@@ -845,7 +845,6 @@ struct RClass *
 mrb_module_new(mrb_state *mrb)
 {
   struct RClass *m = mrb_obj_alloc(mrb, MRB_TT_MODULE, mrb->module_class);
-  m->mt = kh_init(mt, mrb);
   make_metaclass(mrb, m);
 
   return m;
