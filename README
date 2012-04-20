@@ -1,8 +1,8 @@
 !!Notice!!
     This is a preliminary release for internal team reviewing.
-    The URL and address discribed below are not available yet.
+    The URL and address described below are not available yet.
     The official release will be announced later. Thanks.
-    Any suggestion of the modification are welcome,
+    Any suggestions or modifications are welcome,
     but the response might be delayed. Sorry for that in advance.
 
 * What's mruby
@@ -73,27 +73,27 @@ See the file COPYING.
 
 * About Contribution
 
-Thank you for considering of contribution for mruby.
+Thank you for considering making a contribution to mruby.
 mruby has chosen a MIT License as comparatively loose condition,
-to expect to apply into various environment such as embedded system.
-However, the license requires to display copyright notice and license
-sentenses, for example manual or so. Especially for the recent bigger
-system, it is comlecated or very troublesome.
+to expect to apply into various environment such as embedded systems.
+However, the license requires the display of the copyright notice and license
+sentences, for example manual or so. Especially for the recent bigger
+system, it is complicated or very troublesome.
 So, mruby has decided to display "mruby developers" as copyright name
 to make it simple conventionally.
-In the future, mruby might ask you to distribute your new codes
-(that you will commit,) under MIT License as a member of
-"mruby developers" with keeping copyright of you.
+In the future, mruby might ask you to distribute your new code
+(that you will commit,) under a MIT License as a member of
+"mruby developers" while maintaining your own copyright.
 (We did not intend you to transfer or waive your copyright,
- Actual copyright holder name, you, will be listed in AUTHORS file.)
+ The actual copyright holders name, you, will be listed in AUTHORS file.)
 
-Please ask us if you want to distribute your code under other license
+Please ask us if you want to distribute your code under another license
 or if your code is derived from GPL code.
 
 
 * The Author
 
-See the file AUTHORS.
+See the AUTHORS file.
 
 
 Feel free to send comments and bug reports to the author.  Here is the
