@@ -105,12 +105,7 @@ make_metaclass(mrb_state *mrb, struct RClass *c)
   }
   sc = mrb_obj_alloc(mrb, MRB_TT_SCLASS, mrb->class_class);
   sc->mt = 0;
-  if (!c->super) {
-    sc->super = mrb->class_class;
-  }
-  else {
-    sc->super = c->super->c;
-  }
+  sc->super = c->c;
   c->c = sc;
   mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)sc);
   mrb_field_write_barrier(mrb, (struct RBasic*)sc, (struct RBasic*)sc->super);
