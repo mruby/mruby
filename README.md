@@ -1,4 +1,0 @@
-mruby
-=====
-
-Lightweight Ruby
