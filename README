@@ -1,14 +1,14 @@
-!!Notice!! This is preliminary release for team reviewing.
-           the URL and address discribed below are not available yet.
+!!Notice!! This is a preliminary release for internal team reviewing.
+           The URL and address discribed below are not available yet.
            The official release will be announced later. Thanks.
 
 * What's mRuby
 
-mRuby is the light-weighted implementation of ruby language complied with ISO 
-standard to execute various environment. It can run as 'interpreter form' or
+mRuby is the light-weight implementation of the Ruby language complied to the ISO
+standard to execute various environments. It can run in 'interpreter form' or
 'compile and execute on vm form' according to its module construction.
 
-This achivement is due to the Regional Innovation Creation R&D Programs of 
+This achivement is due to the Regional Innovation Creation R&D Programs of
 the Ministry of Economy, Trade and Industry of Japan.
 
 
@@ -47,7 +47,7 @@ command and see the list of branches:
 
 * mRuby home-page (sorry, it's not launched yet. we're working on this)
 
-The URL of the mRuby home-page is: 
+The URL of the mRuby home-page is:
 
    http://www.mruby.org/
 
@@ -92,7 +92,7 @@ or if your code is dirived from GPL code.
 See the file AUTHORS.
 
 
-Feel free to send comments and bug reports to the author.  Here is the 
+Feel free to send comments and bug reports to the author.  Here is the
 author's latest mail address:
 
   devel@mruby.org
