@@ -15,6 +15,7 @@ MRBS := $(MRB1)
 
 # C compiler (gcc)
 CC = gcc
+LL = gcc
 DEBUG_MODE = 1
 ifeq ($(DEBUG_MODE),1)
 CFLAGS = -g
@@ -23,7 +24,7 @@ CFLAGS = -O3
 endif
 INCLUDES = -I../src -I../include
 ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
-MAKE_FLAGS = --no-print-directory CC="$(CC)" LL="$(LL)"
+MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL)
 
 # mruby compiler
 ifeq ($(OS),Windows_NT)
