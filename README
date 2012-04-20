@@ -3,8 +3,7 @@
 mRuby is the light-weighted implementation of ruby language complied with ISO standard to execute various environment. It can run as 'interpriter form' or
 'compile and execute on vm form' according to its module construction.
 
-This achivement is due to the Regional Innovation Creation R&D Programs of the Ministry of Economy,
-Trade and Industry.
+This achivement is due to the Regional Innovation Creation R&D Programs of the Ministry of Economy,Trade and Industry of Japan.
 
 
 * Features of mRuby
