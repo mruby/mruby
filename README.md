@@ -1,6 +1,6 @@
 # !!Notice!!
     This is a preliminary release for internal team review.
-    The URLs and addresses discribed below are not available yet.
+    The URLs and addresses described below are not available yet.
     The official release will be announced later.
     Any suggestion for modification is welcome.
     Delays in replies are to be expected. Sorry in advance.
