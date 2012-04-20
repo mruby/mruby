@@ -22,9 +22,6 @@ typedef intptr_t mrb_sym;
 #undef  HAVE_UNISTD_H /* WINDOWS */
 #define HAVE_UNISTD_H /* LINUX */
 
-#define SIZEOF_LONG             4
-#define SIZEOF_LONG_LONG        8
-
 #ifndef FALSE
 # define FALSE 0
 #endif
