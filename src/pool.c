@@ -68,7 +68,7 @@ mrb_pool_alloc(mrb_pool *pool, size_t len)
     if (page->offset + len <= page->len) {
       n = page->offset;
       page->offset += len;
-      page->last = (void*)page->page+n;
+      page->last = (char*)page->page+n;
       return page->last;
     }
     page = page->next;

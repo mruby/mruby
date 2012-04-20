@@ -4228,6 +4228,7 @@ parser_yylex(parser_state *p)
       else if (term == '[') term = ']';
       else if (term == '{') term = '}';
       else if (term == '<') term = '>';
+      p->sterm = term;
 #if 0
       else paren = 0;
 #endif
