@@ -388,6 +388,10 @@ void mrb_write_barrier(mrb_state *, struct RBasic*);
 
 #define MRUBY_VERSION "Rite"
 
+#ifdef DEBUG
+#undef DEBUG
+#endif
+
 #if 0
 #define DEBUG(x) x
 #else
