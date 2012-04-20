@@ -2,7 +2,6 @@
 #include "mruby/array.h"
 #include <string.h>
 #include "mruby/string.h"
-#include "mdata.h"
 #include "mruby/class.h"
 
 #ifdef INCLUDE_REGEXP

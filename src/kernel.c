@@ -14,7 +14,6 @@
 #include "ritehash.h"
 #include "error.h"
 #include "method.h"
-#include "mdata.h"
 
 #ifdef INCLUDE_REGEXP
 #include "re.h"

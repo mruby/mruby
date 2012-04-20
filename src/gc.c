@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include "mruby/struct.h"
 #include "mruby/proc.h"
-#include "mdata.h"
+#include "mruby/data.h"
 #include "mruby/numeric.h"
 
 /*

@@ -18,7 +18,7 @@ extern "C" {
 
 #include <stdarg.h>
 #include "oniguruma.h"
-#include "mdata.h"
+#include "mruby/data.h"
 
 int mrb_tolower(int c);
 int mrb_toupper(int c);
