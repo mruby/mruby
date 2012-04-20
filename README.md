@@ -17,6 +17,8 @@ the Ministry of Economy, Trade and Industry of Japan.
 
 ## Features of mruby
 
+    | Compatibility with MRI(Matz Ruby Implementation) version... 
+    |
     |FIXME:
     |  + Simple Syntax
     |  + *Normal* Object-Oriented features(ex. class, method calls)
