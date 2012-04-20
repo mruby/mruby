@@ -1,11 +1,11 @@
-!!Notice!!
+# !!Notice!!
     This is a preliminary release for internal team reviewing.
     The URL and address discribed below are not available yet.
     The official release will be announced later. Thanks.
     Any suggestion of the modification are welcome,
     but the response might be delayed. Sorry for that in advance.
 
-* What's mruby
+# What's mruby
 
 mruby is the light-weight implementation of the Ruby language complied to
 the ISO standard to execute various environments. It can run in 'interpreter
@@ -15,7 +15,7 @@ This achievement is due to the Regional Innovation Creation R&D Programs of
 the Ministry of Economy, Trade and Industry of Japan.
 
 
-* Features of mruby
+# Features of mruby
 
     |FIXME:
     |  + Simple Syntax
@@ -31,7 +31,7 @@ the Ministry of Economy, Trade and Industry of Japan.
     |    cf. http://redmine.ruby-lang.org/wiki/ruby-19/SupportedPlatforms
 
 
-* How to get mruby
+# How to get mruby
 
 The mruby distribution files can be found in the following site:
 
@@ -48,30 +48,30 @@ command and see the list of branches:
     $ git ....
 
 
-* mruby home-page (sorry, it's not launched yet. we're working on this)
+# mruby home-page (sorry, it's not launched yet. we're working on this)
 
 The URL of the mruby home-page is:
 
   http://www.mruby.org/
 
 
-* Mailing list
+# Mailing list
 
 There is a mailing list to talk about mruby.
 To subscribe this list....[T.B.D.]
 
 
-* How to compile and install
+# How to compile and install
 
 See the file INSTALL.
 
 
-* Copying
+# Copying
 
 See the file COPYING.
 
 
-* About Contribution
+# About Contribution
 
 Thank you for considering of contribution for mruby.
 mruby has chosen a MIT License as comparatively loose condition,
@@ -91,7 +91,7 @@ Please ask us if you want to distribute your code under other license
 or if your code is derived from GPL code.
 
 
-* The Author
+# The Author
 
 See the file AUTHORS.
 
