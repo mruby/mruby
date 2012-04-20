@@ -8,7 +8,7 @@
 ## What's mruby
 
 mruby is the lightweight implementation of the Ruby language complying to
-the [ISO standard](http://www.ipa.go.jp/about/press/20120402_2.html). 
+the [ISO standard](http://translate.google.com/translate?sl=auto&tl=en&js=n&prev=_t&hl=en&ie=UTF-8&layout=2&eotf=1&u=http%3A%2F%2Fwww.ipa.go.jp%2Fabout%2Fpress%2F20120402_2.html&act=url). 
 mruby can run Ruby code in 'interpreter mode' or 'compile and execute it on a virtual machine' depending on the developer's preference.
 
 This achievement was sponsored by the Regional Innovation Creation R&D Programs of
