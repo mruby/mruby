@@ -101,8 +101,4 @@ author's latest mail address:
 
   devel@mruby.org
 
--------------------------------------------------------
-created at: Fri Apr  20 11:57:36 JST 2012
-Local variables:
-mode: indented-text
-end:
+
