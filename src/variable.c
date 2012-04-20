@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "mruby.h"
 #include "mruby/class.h"
 #include "ritehash.h"
