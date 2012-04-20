@@ -4,9 +4,9 @@
            Any suggestion of the modification are welcome,
            but the response might be delayed. Sorry for that in advance.
 
-* What's mRuby
+* What's mruby
 
-mRuby is the light-weight implementation of the Ruby language complied to the ISO
+mruby is the light-weight implementation of the Ruby language complied to the ISO
 standard to execute various environments. It can run in 'interpreter form' or
 'compile and execute on vm form' according to its module construction.
 
@@ -14,7 +14,7 @@ This achievement is due to the Regional Innovation Creation R&D Programs of
 the Ministry of Economy, Trade and Industry of Japan.
 
 
-* Features of mRuby
+* Features of mruby
 
 |FIXME:
 |  + Simple Syntax
@@ -30,34 +30,34 @@ the Ministry of Economy, Trade and Industry of Japan.
 |    cf. http://redmine.ruby-lang.org/wiki/ruby-19/SupportedPlatforms
 
 
-* How to get mRuby
+* How to get mruby
 
-The mRuby distribution files can be found in the following site:
+The mruby distribution files can be found in the following site:
 
   https://github.com/mruby/mruby/zipball/master
 
-The trunk of the mRuby source tree can be checked out with the
+The trunk of the mruby source tree can be checked out with the
 following command:
 
-  $ git ...
+  $ git ....
 
 There are some other branches under development.  Try the following
 command and see the list of branches:
 
-  $ git ...
+  $ git ....
 
 
-* mRuby home-page (sorry, it's not launched yet. we're working on this)
+* mruby home-page (sorry, it's not launched yet. we're working on this)
 
-The URL of the mRuby home-page is:
+The URL of the mruby home-page is:
 
    http://www.mruby.org/
 
 
 * Mailing list
 
-There is a mailing list to talk about mRuby.
-To subscribe this list....
+There is a mailing list to talk about mruby.
+To subscribe this list....[T.B.D.]
 
 * How to compile and install
 
@@ -71,15 +71,15 @@ See the file COPYING.
 
 * About Contribution
 
-Thank you for considering of contribution for mRuby.
-mRuby has chosen a MIT License as comparatively loose condition,
+Thank you for considering of contribution for mruby.
+mruby has chosen a MIT License as comparatively loose condition,
 to expect to apply into various environment such as embedded system.
 However, the license requires to display copyright notice and license
 sentenses, for example manual or so. Especially for the recent bigger
 system, it is comlecated or very troublesome.
-So, mRuby has decided to display "mruby developers" as copyright name
+So, mruby has decided to display "mruby developers" as copyright name
 to make it simple conventionally.
-In the future, mRuby might ask you to distribute your new codes
+In the future, mruby might ask you to distribute your new codes
 (that you will commit,) under MIT License as a member of
 "mruby developers" with keeping copyright of you.
 (We did not intend you to transfer or waive your copyright,
