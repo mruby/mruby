@@ -47,7 +47,7 @@ following command:
 There are some other branches under development.  Try the following
 command and see the list of branches:
 
-    $ git ....
+    $ git branch -r
 
 
 ## mruby home-page
