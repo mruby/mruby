@@ -44,11 +44,11 @@ mrubyはISO規格に準拠したRuby言語を様々な環境で動作可能と�
 
 開発先端のソースコードは次のコマンドで取得できます．
 
-  $ git ....
+  $ git clone https://github.com/mruby/mruby.git
 
 他に開発中のブランチの一覧は次のコマンドで見られます．
 
-  $ git ....
+  $ git branch -r
 
 
 * ホームページ (まだ準備中です。ただいま鋭意製作中です。)
