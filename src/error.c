@@ -199,8 +199,8 @@ mrb_raise(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
 
   va_start(args, fmt);
   vsnprintf(buf, 256, fmt, args);
-  mrb_raise_va(mrb, c, fmt, args);
   va_end(args);
+  mrb_exc_raise(mrb, mrb_exc_new(mrb, c, buf, strlen(buf)));
 }
 
 void
