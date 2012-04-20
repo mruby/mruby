@@ -75,7 +75,7 @@ typedef struct mrb_value {
 #define mrb_test(o)   ((o).tt != MRB_TT_FALSE)
 #define mrb_fixnum(o) (o).value.i
 #define mrb_float(o)  (o).value.f
-#define mrb_symbol(o)  (o).value.sym
+#define mrb_symbol(o) (o).value.sym
 #define mrb_object(o) (o).value.p
 #define FIXNUM_P(o)   ((o).tt == MRB_TT_FIXNUM)
 #define UNDEF_P(o)    ((o).tt == MRB_TT_UNDEF)
