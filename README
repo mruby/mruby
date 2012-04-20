@@ -1,3 +1,7 @@
+!!Notice!! This is preliminary release for team reviewing.
+           the URL and address discribed below are not available yet.
+           The official release will be announced later. Thanks.
+
 * What's mRuby
 
 mRuby is the light-weighted implementation of ruby language complied with ISO standard to execute various environment. It can run as 'interpreter form' or
@@ -39,7 +43,7 @@ command and see the list of branches:
   $ git ...
 
 
-* mRuby home-page ( sorry,it's not launched yet.We're working on this)
+* mRuby home-page (sorry, it's not launched yet. we're working on this)
 
 The URL of the mRuby home-page is: 
 
@@ -61,7 +65,30 @@ See the file INSTALL.
 See the file COPYING.
 
 
+* About Contribution
+
+Thank you for considering of contribution for mRuby.
+mRuby has chosen a MIT License as comparatively loose condition,
+to expect to apply into various environment such as embedded system.
+However, the license requires to display copyright notice and license
+sentenses, for example manual or so. Especially for the recent bigger
+system, it is comlecated or very troublesome.
+So, mRuby has decided to display "mruby developers" as copyright name
+to make it simple conventionally.
+In the future, mRuby might ask you to distribute your new codes
+(that you will commit,) under MIT License as a member of
+"mruby developers" with keeping copyright of you.
+(We did not intend you to transfer or waive your copyright,
+ Actual copyright holder name, you, will be listed in AUTHORS file.)
+
+Please ask us if you want to distribute your code under other license
+or if your code is dirived from GPL code.
+
+
 * The Author
+
+See the file AUTHORS.
+
 
 Feel free to send comments and bug reports to the author.  Here is the 
 author's latest mail address:
