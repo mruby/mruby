@@ -1,19 +1,20 @@
 * Compilation and Installation
 
-  1. Run make in top directory.
+  1. Run make in the top directory.
 
-     This command will create following directories and
+     This command will create the following directories and
      store libraries and binaries files into them.
 
        * bin
        * lib
        * include
 
-If you fail to compile ruby, please send the detailed error report with
-the error log and machine/OS type, to help others.
+If an error occurs when compiling mRuby, it will be helpful for others if you
+send a detailed report to the developers that includes the error log, machine,
+and OS type.
+
 
 * Porting to other platforms
-
 
 
 That's all.
