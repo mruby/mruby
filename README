@@ -1,20 +1,26 @@
 * What's mRuby
 
-mRuby is the ...
+mRuby is the light-weighted implementation of ruby language complied with ISO standard to execute various environment. It can run as 'interpriter form' or
+'compile and execute on vm form' according to its module construction.
+
+This achivement is due to the national project of the Ministry of Economy,
+Trade and Industry.
+
 
 * Features of mRuby
 
-  + Simple Syntax
-  + *Normal* Object-Oriented features(ex. class, method calls)
-  + *Advanced* Object-Oriented features(ex. Mix-in, Singleton-method)
-  + Operator Overloading
-  + Exception Handling
-  + Iterators and Closures
-  + Garbage Collection
-  + Dynamic Loading of Object files(on some architecture)
-  + Highly Portable (works on many Unix-like/POSIX compatible platforms
-    as well as Windows, Mac OS X, BeOS etc.)
-    cf. http://redmine.ruby-lang.org/wiki/ruby-19/SupportedPlatforms
+|FIXME:
+|  + Simple Syntax
+|  + *Normal* Object-Oriented features(ex. class, method calls)
+|  + *Advanced* Object-Oriented features(ex. Mix-in, Singleton-method)
+|  + Operator Overloading
+|  + Exception Handling
+|  + Iterators and Closures
+|  + Garbage Collection
+|  + Dynamic Loading of Object files(on some architecture)
+|  + Highly Portable (works on many Unix-like/POSIX compatible platforms
+|    as well as Windows, Mac OS X, BeOS etc.)
+|    cf. http://redmine.ruby-lang.org/wiki/ruby-19/SupportedPlatforms
 
 
 * How to get mRuby
