@@ -1,0 +1,19 @@
+* Compilation and Installation
+
+  1. Run make in top directory.
+
+     This command will create following directories and
+     store libraries and binaries files into them.
+
+       * bin
+       * lib
+       * include
+
+If you fail to compile ruby, please send the detailed error report with
+the error log and machine/OS type, to help others.
+
+* Porting to other platforms
+
+
+
+That's all.

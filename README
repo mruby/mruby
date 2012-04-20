@@ -1,0 +1,70 @@
+* What's mRuby
+
+mRuby is the ...
+
+* Features of mRuby
+
+  + Simple Syntax
+  + *Normal* Object-Oriented features(ex. class, method calls)
+  + *Advanced* Object-Oriented features(ex. Mix-in, Singleton-method)
+  + Operator Overloading
+  + Exception Handling
+  + Iterators and Closures
+  + Garbage Collection
+  + Dynamic Loading of Object files(on some architecture)
+  + Highly Portable (works on many Unix-like/POSIX compatible platforms
+    as well as Windows, Mac OS X, BeOS etc.)
+    cf. http://redmine.ruby-lang.org/wiki/ruby-19/SupportedPlatforms
+
+
+* How to get mRuby
+
+The mRuby distribution files can be found in the following site:
+
+  https://github.com/mruby/mruby/zipball/master
+
+The trunk of the mRuby source tree can be checked out with the
+following command:
+
+  $ git ...
+
+There are some other branches under development.  Try the following
+command and see the list of branches:
+
+  $ git ...
+
+
+* mRuby home-page
+
+The URL of the mRuby home-page is:
+
+   http://www.mruby.org/
+
+
+* Mailing list
+
+There is a mailing list to talk about mRuby.
+To subscribe this list....
+
+* How to compile and install
+
+See the file INSTALL.
+
+
+* Copying
+
+See the file COPYING.
+
+
+* The Author
+
+Feel free to send comments and bug reports to the author.  Here is the 
+author's latest mail address:
+
+  devel@ruby.org
+
+-------------------------------------------------------
+created at: Fri Apr  20 11:57:36 JST 2012
+Local variables:
+mode: indented-text
+end:
