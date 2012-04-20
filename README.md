@@ -48,7 +48,9 @@ command and see the list of branches:
     $ git ....
 
 
-## mruby home-page (sorry, it's not launched yet. we're working on this)
+## mruby home-page
+
+(sorry, it's not launched yet. we're working on this)
 
 The URL of the mruby home-page is:
 
