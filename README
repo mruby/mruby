@@ -40,12 +40,12 @@ The mruby distribution files can be found in the following site:
 The trunk of the mruby source tree can be checked out with the
 following command:
 
-    $ git ....
+    $ git clone https://github.com/mruby/mruby.git
 
 There are some other branches under development.  Try the following
 command and see the list of branches:
 
-    $ git ....
+    $ git branch -r
 
 
 * mruby home-page (sorry, it's not launched yet. we're working on this)

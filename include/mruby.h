@@ -75,7 +75,7 @@ typedef struct mrb_value {
 #define mrb_test(o)   ((o).tt != MRB_TT_FALSE)
 #define mrb_fixnum(o) (o).value.i
 #define mrb_float(o)  (o).value.f
-#define mrb_symbol(o)  (o).value.sym
+#define mrb_symbol(o) (o).value.sym
 #define mrb_object(o) (o).value.p
 #define FIXNUM_P(o)   ((o).tt == MRB_TT_FIXNUM)
 #define UNDEF_P(o)    ((o).tt == MRB_TT_UNDEF)
@@ -387,6 +387,10 @@ void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
 void mrb_write_barrier(mrb_state *, struct RBasic*);
 
 #define MRUBY_VERSION "Rite"
+
+#ifdef DEBUG
+#undef DEBUG
+#endif
 
 #if 0
 #define DEBUG(x) x
