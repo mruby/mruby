@@ -64,6 +64,8 @@ struct st_table_entry {
     st_table_entry *fore, *back;
 };
 
+#define SIZEOF_ST_INDEX_T 4
+
 struct st_hash_type {
     int (*compare)(ANYARGS /*st_data_t, st_data_t*/); /* st_compare_func* */
     st_index_t (*hash)(ANYARGS /*st_data_t*/);        /* st_hash_func* */
