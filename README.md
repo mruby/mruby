@@ -69,14 +69,30 @@ To subscribe to the mruby mailing list....[T.B.D.]
 See the INSTALL file.
 
 
-## Copying
+## License
 
-See the COPYING file.
+Copyright (c) 2012 mruby developers
 
+Permission is hereby granted, free of charge, to any person obtaining a 
+copy of this software and associated documentation files (the "Software"), 
+to deal in the Software without restriction, including without limitation 
+the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+and/or sell copies of the Software, and to permit persons to whom the 
+Software is furnished to do so, subject to the following conditions:
 
-## About Contribution
+The above copyright notice and this permission notice shall be included in 
+all copies or substantial portions of the Software.
 
-Thank you for considering contributing to mruby.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+DEALINGS IN THE SOFTWARE.
+
+## Note for License
+
 mruby has chosen a MIT License due to its permissive license allowing
 developers to target various environments such as embedded systems.
 However, the license requires the display of the copyright notice and license
@@ -90,18 +106,10 @@ In the future, mruby might ask you to distribute your new code
 (We did not intend for contributors to transfer or waive their copyrights,
  Actual copyright holder name (contributors) will be listed in the AUTHORS file.)
 
-Please ask us if you want to distribute your code under another license
-or if your code is derived from GPL code.
+Please ask us if you want to distribute your code under another license.
 
+## How to Contribute
 
-## The Author
-
-See the file AUTHORS.
-
-
-Feel free to send comments and bug reports to the author. Here is the
-author's latest mail address:
-
-  devel@mruby.org
-
-
+Send pull request to <http://github.com/mruby/mruby>.   We consider you have granted
+non-exclusive right to your contributed code under MIT license.  If you want to be named
+as one of mruby developers, include update to the AUTHORS file in your pull request.
