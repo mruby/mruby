@@ -35,9 +35,6 @@ mrb_ary_new_capa(mrb_state *mrb, size_t capa)
 {
   struct RArray *a;
 
-  if (capa < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative ary size (or size too big)");
-  }
 #ifdef LONG_MAX
   if (capa > ARY_MAX_SIZE) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "ary size too big");
