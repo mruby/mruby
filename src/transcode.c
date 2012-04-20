@@ -632,14 +632,14 @@ transcode_restartable0(mrb_state *mrb,
             }
             continue;
         case FUNii:
-          next_info = (mrb_value)(*tr->func_ii)(TRANSCODING_STATE(tc), next_info);
+          next_info = (*tr->func_ii)(TRANSCODING_STATE(tc), next_info);
           goto follow_info;
         case FUNsi:
             {
                 const unsigned char *char_start;
                 size_t char_len;
                 char_start = transcode_char_start(tc, *in_pos, inchar_start, in_p, &char_len);
-                next_info = (mrb_value)(*tr->func_si)(TRANSCODING_STATE(tc), char_start, (size_t)char_len);
+                next_info = (*tr->func_si)(TRANSCODING_STATE(tc), char_start, (size_t)char_len);
                 goto follow_info;
             }
         case FUNio:
