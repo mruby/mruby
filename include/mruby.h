@@ -134,7 +134,7 @@ static inline mrb_value
 mrb_obj_value(void *p)
 {
   mrb_value v;
-  struct RBasic *b = p;
+  struct RBasic *b = (struct RBasic*) p;
 
   v.tt = b->tt;
   v.value.p = p;
