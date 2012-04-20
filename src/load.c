@@ -444,7 +444,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
   irep->slen = bin_to_uint32(src);          //syms length
   src += MRB_DUMP_SIZE_OF_LONG;
   if (irep->slen > 0) {
-    if ((irep->syms = mrb_malloc(mrb, MRB_DUMP_SIZE_OF_INT * irep->slen)) == NULL) {
+    if ((irep->syms = mrb_malloc(mrb, sizeof(mrb_sym) * irep->slen)) == NULL) {
       ret = MRB_DUMP_INVALID_IREP;
       goto error_exit;
     }
