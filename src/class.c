@@ -1028,7 +1028,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_name_class(mrb, mod, mrb_intern(mrb, "Module"));
   mrb_name_class(mrb, cls, mrb_intern(mrb, "Class"));
 
-  MRB_SET_INSTANCE_TT(mod, MRB_TT_MODULE);
+  mrb_undef_method(mrb, mod, mrb_intern(mrb, "new"));
   MRB_SET_INSTANCE_TT(cls, MRB_TT_CLASS);
   mrb_define_method(mrb, bob, "initialize", mrb_bob_init, ARGS_NONE());
   mrb_define_method(mrb, bob, "!", mrb_bob_not, ARGS_NONE());
