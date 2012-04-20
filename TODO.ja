@@ -1,7 +1,7 @@
-やること(まだできてないこと) / not yet complete
+やること(まだできてないこと)
 
-* ヒアドキュメント / here document
-* 特殊変数 ($1,$2..) / special variables
+* ヒアドキュメント
+* 特殊変数 ($1,$2..)
 * super in aliased methods
 * BEGIN/END (対応しないんだっけ？)
 * const_missing
