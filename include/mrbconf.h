@@ -27,7 +27,6 @@ typedef intptr_t mrb_sym;
 #define SIZEOF_LONG             4
 #define SIZEOF_LONG_LONG        8
 #define SIZEOF___INT64          0
-#define SIZEOF_VOIDP            4
 #define SIZEOF_FLOAT            4
 #define SIZEOF_DOUBLE           8
 

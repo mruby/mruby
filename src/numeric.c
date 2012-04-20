@@ -97,25 +97,9 @@
 # define SIZEOF_LONG_LONG SIZEOF___INT64
 #endif
 
-#if defined HAVE_UINTPTR_T && 0
 typedef uintptr_t VALUE;
 typedef uintptr_t ID;
-# define SIGNED_VALUE intptr_t
-# define SIZEOF_VALUE SIZEOF_UINTPTR_T
-#elif SIZEOF_LONG == SIZEOF_VOIDP
-//typedef unsigned long VALUE;
-//typedef unsigned long ID;
-# define SIGNED_VALUE long long
-# define SIZEOF_VALUE SIZEOF_LONG
-#elif SIZEOF_LONG_LONG == SIZEOF_VOIDP
-typedef unsigned LONG_LONG VALUE;
-typedef unsigned LONG_LONG ID;
-# define SIGNED_VALUE LONG_LONG
-# define LONG_LONG_VALUE 1
-# define SIZEOF_VALUE SIZEOF_LONG_LONG
-#else
-# error ---->> ruby requires sizeof(void*) == sizeof(long) to be compiled. <<----
-#endif
+#define SIGNED_VALUE intptr_t
 
 #ifdef HAVE_INFINITY
 #elif BYTE_ORDER == LITTLE_ENDIAN
@@ -980,80 +964,6 @@ mrb_num2ulong(mrb_state *mrb, mrb_value val)
     }
 }
 
-#if SIZEOF_INT < SIZEOF_VALUE
-void
-mrb_out_of_int(mrb_state *mrb, SIGNED_VALUE num)
-{
-    mrb_raise(mrb, E_RANGE_ERROR, "integer %"PRIdVALUE " too %s to convert to `int'",
-             num, num < 0 ? "small" : "big");
-}
-
-static void
-check_int(SIGNED_VALUE num)
-{
-    if ((SIGNED_VALUE)(int)num != num) {
-        mrb_out_of_int(num);
-    }
-}
-
-static void
-check_uint(mrb_state *mrb, mrb_value num, mrb_value sign)
-{
-    static const mrb_value mask = ~(mrb_value)UINT_MAX;
-
-    if (RTEST(sign)) {
-        /* minus */
-        if ((num & mask) != mask || (num & ~mask) <= INT_MAX + 1UL)
-            mrb_raise(mrb, E_RANGE_ERROR, "integer %"PRIdVALUE " too small to convert to `unsigned int'", num);
-    }
-    else {
-        /* plus */
-        if ((num & mask) != 0)
-            mrb_raise(mrb, E_RANGE_ERROR, "integer %"PRIuVALUE " too big to convert to `unsigned int'", num);
-    }
-}
-
-long
-mrb_num2int(mrb_value val)
-{
-    long num = mrb_num2long(mrb, val);
-
-    check_int(num);
-    return num;
-}
-
-long
-mrb_fix2int(mrb_state *mrb, mrb_value val)
-{
-    long num = FIXNUM_P(val)?mrb_fixnum(val):mrb_num2long(mrb, val);
-
-    check_int(num);
-    return num;
-}
-
-unsigned long
-mrb_num2uint(mrb_value val)
-{
-    unsigned long num = mrb_num2ulong(val);
-
-    check_uint(num, mrb_funcall(mrb, val, "<", 1, mrb_fixnum_value(0)));
-    return num;
-}
-
-unsigned long
-mrb_fix2uint(mrb_state *mrb, mrb_value val)
-{
-    unsigned long num;
-
-    if (!FIXNUM_P(val)) {
-        return mrb_num2uint(mrb, val);
-    }
-    num = FIX2ULONG(val);
-
-    check_uint(num, mrb_funcall(mrb, val, "<", 1, mrb_fixnum_value(0)));
-    return num;
-}
-#else
 long
 mrb_num2int(mrb_state *mrb, mrb_value val)
 {
@@ -1065,7 +975,6 @@ mrb_fix2int(mrb_value val)
 {
     return mrb_fixnum(val);
 }
-#endif
 
 mrb_value
 mrb_num2fix(mrb_state *mrb, mrb_value val)
@@ -1204,7 +1113,7 @@ mrb_value
 rb_fix2str(mrb_state *mrb, mrb_value x, int base)
 {
     extern const char ruby_digitmap[];
-    char buf[SIZEOF_VALUE*CHAR_BIT + 2], *b = buf + sizeof buf;
+    char buf[sizeof(mrb_int)*CHAR_BIT + 2], *b = buf + sizeof buf;
     long val = mrb_fixnum(x);
     int neg = 0;
 
