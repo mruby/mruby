@@ -985,7 +985,7 @@ mrb_num2fix(mrb_state *mrb, mrb_value val)
 
     v = mrb_num2long(mrb, val);
     if (!FIXABLE(v))
-        mrb_raise(mrb, E_RANGE_ERROR, "integer %"PRIdVALUE " out of range of fixnum", v);
+        mrb_raise(mrb, E_RANGE_ERROR, "integer %ld out of range of fixnum", v);
     return mrb_fixnum_value(v);
 }
 

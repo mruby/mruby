@@ -4833,9 +4833,9 @@ mrb_str_buf_cat_escaped_char(mrb_state *mrb, mrb_value result, unsigned int c, i
   char buf[CHAR_ESC_LEN + 1];
   int l;
 
-#if SIZEOF_INT > 4
-  c &= 0xffffffff;
-#endif
+  if (sizeof(c) > 4) {
+    c &= 0xffffffff;
+  }
   if (unicode_p) {
     if (c < 0x7F && ISPRINT(c)) {
         snprintf(buf, CHAR_ESC_LEN, "%c", c);
