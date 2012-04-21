@@ -9,12 +9,14 @@ BASEDIR = ../../src
 TARGET := ../../bin/mruby
 ifeq ($(OS),Windows_NT)
 EXE := $(TARGET).exe
+SIZEOF := $(BASEDIR)/sizeof.exe
 else
 EXE := $(TARGET)
+SIZEOF := $(BASEDIR)/sizeof
 endif
 YSRC := $(BASEDIR)/parse.y
 YC := $(BASEDIR)/y.tab.c
-EXCEPT1 := $(YC) $(BASEDIR)/minimain.c $(BASEDIR)/dump.c $(BASEDIR)/cdump.c
+EXCEPT1 := $(YC) $(BASEDIR)/minimain.c $(BASEDIR)/dump.c $(BASEDIR)/cdump.c $(BASEDIR)/sizeof.c
 OBJY := $(patsubst %.c,%.o,$(YC))
 OBJ0 := $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/../tools/mruby/*.c))
 OBJ1 := $(patsubst %.c,%.o,$(filter-out $(EXCEPT1),$(wildcard $(BASEDIR)/*.c)))
@@ -86,4 +88,11 @@ clean :
 	$(MAKE) clean -C ../../mrblib $(MAKE_FLAGS)
 	-rm -f $(EXE) $(OBJS) $(OBJY) $(YC) $(EXTS)
 	-rm -f $(OBJS:.o=.d) $(OBJY:.o=.d) $(EXTS:.o=.d)
+	-rm -f $(SIZEOF) $(BASEDIR)/sizeof.h
 	@echo "make: removing targets, objects and depend files of `pwd`"
+
+# measurement of sizeof()
+$(BASEDIR)/sizeof.h : $(SIZEOF)
+	$(SIZEOF) > $@
+$(OBJ1) : $(BASEDIR)/sizeof.h
+

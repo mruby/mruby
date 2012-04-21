@@ -9,12 +9,14 @@ BASEDIR = .
 TARGET := ../lib/ritevm
 ifeq ($(OS),Windows_NT)
 LIB := $(TARGET).lib
+SIZEOF := $(BASEDIR)/sizeof.exe
 else
 LIB := $(TARGET).a
+SIZEOF := $(BASEDIR)/sizeof
 endif
 YSRC := $(BASEDIR)/parse.y
 YC := $(BASEDIR)/y.tab.c
-EXCEPT1 := $(YC) $(BASEDIR)/minimain.c $(BASEDIR)/compile.c $(BASEDIR)/dump.c $(BASEDIR)/cdump.c
+EXCEPT1 := $(YC) $(BASEDIR)/minimain.c $(BASEDIR)/compile.c $(BASEDIR)/dump.c $(BASEDIR)/cdump.c $(BASEDIR)/sizeof.c
 OBJY := $(patsubst %.c,%.o,$(YC))
 OBJ1 := $(patsubst %.c,%.o,$(filter-out $(EXCEPT1),$(wildcard $(BASEDIR)/*.c)))
 #OBJ2 := $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/ext/regex/*.c))
@@ -86,5 +88,10 @@ clean :
 	$(MAKE) clean -C ../mrblib $(MAKE_FLAGS)
 	-rm -f $(LIB) $(OBJS) $(OBJY) $(YC)
 	-rm -f $(OBJS:.o=.d) $(OBJY:.o=.d)
+	-rm -f $(SIZEOF) sizeof.h
 	@echo "make: removing targets, objects and depend files of `pwd`"
 
+# measurement of sizeof()
+sizeof.h : $(SIZEOF)
+	$(SIZEOF) > $@
+$(OBJ1) : $(BASEDIR)/sizeof.h
