@@ -2976,12 +2976,16 @@ nextc(parser_state *p)
     c = *p->s++;
   }
   if (c == '\n') {
-    p->lineno++;
-    p->column = 0;
+    if (p->nerr < 1) {
+      p->lineno++;
+      p->column = 0;
+    }
     // must understand heredoc
   }
   else {
-    p->column++;
+    if (p->nerr < 1) {
+      p->column++;
+    }
   }
   return c;
 }
