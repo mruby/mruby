@@ -589,7 +589,6 @@ int mrb_cmpint(mrb_state *mrb, mrb_value val, mrb_value a, mrb_value b);
 #   define ANYARGS
 # endif
 #endif
-void st_foreach_safe(mrb_state *mrb, void *table, int (*func)(ANYARGS), void * a);
 void mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const char *name2);
 const char *mrb_class_name(mrb_state *mrb, struct RClass* klass);
 void mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val);
