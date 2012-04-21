@@ -275,7 +275,7 @@ new_true(parser_state *p)
   return list1((node*)NODE_TRUE);
 }
 
-// (:true)
+// (:false)
 static node*
 new_false(parser_state *p)
 {
