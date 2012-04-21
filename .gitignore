@@ -16,3 +16,5 @@
 cscope.out
 mruby.exe
 y.tab.c
+src/sizeof.h
+src/sizeof

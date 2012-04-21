@@ -35,6 +35,8 @@ extern "C" {
 # endif
 #endif
 
+#include "sizeof.h"
+
 #ifndef _
 # define _(args) args
 #endif
@@ -69,7 +71,8 @@ struct st_hash_type {
     st_index_t (*hash)(ANYARGS /*st_data_t*/);        /* st_hash_func* */
 };
 
-#define ST_INDEX_BITS (sizeof(st_index_t) * CHAR_BIT)
+#define SIZEOF_ST_INDEX_T SIZEOF_UINTPTR_T
+#define ST_INDEX_BITS (SIZEOF_ST_INDEX_T * CHAR_BIT)
 
 struct st_table {
     const struct st_hash_type *type;

@@ -12,15 +12,17 @@ ifeq ($(OS),Windows_NT)
 EXE := $(TARGET).exe
 LIB := $(RITEVM).lib
 MRB := $(MRUBY).exe
+SIZEOF := src/sizeof.exe
 else
 EXE := $(TARGET)
 LIB := $(RITEVM).a
 MRB := $(MRUBY)
+SIZEOF := src/sizeof
 endif
 MSRC := src/minimain.c
 YSRC := src/parse.y
 YC := src/y.tab.c
-EXCEPT1 := $(YC) $(MSRC)
+EXCEPT1 := $(YC) $(MSRC) src/sizeof.c
 OBJM := $(patsubst %.c,%.o,$(MSRC))
 OBJY := $(patsubst %.c,%.o,$(YC))
 OBJ1 := $(patsubst %.c,%.o,$(filter-out $(EXCEPT1),$(wildcard src/*.c)))
@@ -117,4 +119,10 @@ clean :
 	-rm -f $(EXE) $(OBJM)
 	-rm -f $(OBJM:.o=.d)
 	-rm -f $(IOSLIB) $(IOSSIMLIB) $(IOSDEVLIB)
+	-rm -f $(SIZEOF) src/sizeof.h
 	@echo "make: removing targets, objects and depend files of `pwd`"
+
+# measurement of sizeof()
+src/sizeof.h : $(SIZEOF)
+	$(SIZEOF) > $@
+$(OBJ1) : src/sizeof.h

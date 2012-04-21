@@ -9,12 +9,14 @@ BASEDIR := ../../src
 TARGET := ../../bin/mrbc
 ifeq ($(OS),Windows_NT)
 EXE := $(TARGET).exe
+SIZEOF := $(BASEDIR)/sizeof.exe
 else
 EXE := $(TARGET)
+SIZEOF := $(BASEDIR)/sizeof
 endif
 YSRC := $(BASEDIR)/parse.y
 YC := $(BASEDIR)/y.tab.c
-EXCEPT1 := $(YC) $(BASEDIR)/minimain.c $(BASEDIR)/load.c $(BASEDIR)/init_ext.c
+EXCEPT1 := $(YC) $(BASEDIR)/minimain.c $(BASEDIR)/load.c $(BASEDIR)/init_ext.c $(BASEDIR)/sizeof.c
 OBJY := $(patsubst %.c,%.o,$(YC))
 OBJ0 := $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/../tools/mrbc/*.c))
 OBJ1 := $(patsubst %.c,%.o,$(filter-out $(EXCEPT1),$(wildcard $(BASEDIR)/*.c)))
@@ -69,5 +71,10 @@ $(YC) : $(YSRC)
 clean :
 	-rm -f $(EXE) $(OBJS) $(OBJY) $(YC)
 	-rm -f $(OBJS:.o=.d) $(OBJY:.o=.d)
+	-rm -f $(SIZEOF) $(BASEDIR)/sizeof.h
 	@echo "make: removing targets, objects and depend files of `pwd`"
 
+# measurement of sizeof()
+$(BASEDIR)/sizeof.h : $(SIZEOF)
+	$(SIZEOF) > $@
+$(OBJ1) : $(BASEDIR)/sizeof.h
