@@ -38,13 +38,6 @@ EXTS := $(EXT0)
 LIBS = $(LIB) -lm
 INCLUDES = -I./src -I./include
 
-# library for iOS
-IOSLIB := $(RITEVM)-ios.a
-IOSSIMLIB := $(RITEVM)-iossim.a
-IOSDEVLIB := $(RITEVM)-iosdev.a
-IOSSIMCC := xcrun -sdk iphoneos llvm-gcc-4.2 -arch i386 -isysroot "/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator5.0.sdk/"
-IOSDEVCC := xcrun -sdk iphoneos llvm-gcc-4.2 -arch armv7 -isysroot "/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS5.0.sdk/"
-
 # compiler, linker (gcc)
 CC = gcc
 LL = gcc
@@ -64,24 +57,6 @@ MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL)
 .PHONY : all
 all : $(LIB) $(MRB) $(EXE)
 	@echo "make: built targets of `pwd`"
-
-##############################
-# make library for iOS
-.PHONY : ios
-ios : $(IOSLIB)
-
-$(IOSLIB) : $(IOSSIMLIB) $(IOSDEVLIB)
-	lipo -arch i386 $(IOSSIMLIB) -arch armv7 $(IOSDEVLIB) -create -output $(IOSLIB)
-
-$(IOSSIMLIB) :
-	$(MAKE) clean -C src $(MAKE_FLAGS)
-	$(MAKE) -C src $(MAKE_FLAGS) CC="$(IOSSIMCC)" LL="$(IOSSIMCC)"
-	cp $(LIB) $(IOSSIMLIB)
-
-$(IOSDEVLIB) :
-	$(MAKE) clean -C src $(MAKE_FLAGS)
-	$(MAKE) -C src $(MAKE_FLAGS) CC="$(IOSDEVCC)" LL="$(IOSDEVCC)"
-	cp $(LIB) $(IOSDEVLIB)
 
 # executable constructed using linker from object files
 $(EXE) : $(OBJM) $(LIB)
@@ -116,5 +91,4 @@ clean :
 	$(MAKE) clean -C tools/mruby $(MAKE_FLAGS)
 	-rm -f $(EXE) $(OBJM)
 	-rm -f $(OBJM:.o=.d)
-	-rm -f $(IOSLIB) $(IOSSIMLIB) $(IOSDEVLIB)
 	@echo "make: removing targets, objects and depend files of `pwd`"
