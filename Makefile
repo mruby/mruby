@@ -91,5 +91,4 @@ clean :
 	$(MAKE) clean -C tools/mruby $(MAKE_FLAGS)
 	-rm -f $(EXE) $(OBJM)
 	-rm -f $(OBJM:.o=.d)
-	-rm -f $(IOSLIB) $(IOSSIMLIB) $(IOSDEVLIB)
 	@echo "make: removing targets, objects and depend files of `pwd`"
