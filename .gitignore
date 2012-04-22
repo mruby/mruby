@@ -13,6 +13,15 @@
 .ccmalloc
 .svn
 /.git
+/bin/mrbc
+/bin/mrbc.exe
+/bin/mruby
+/bin/mruby.exe
+/bin/mrubysample
+/bin/mrubysample.exe
+/lib/ritevm.a
+/mrblib/mrblib.c
+/mrblib/mrblib.ctmp
+/mrblib/mrblib.rbtmp
 cscope.out
-mruby.exe
 y.tab.c
