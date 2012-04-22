@@ -23,5 +23,5 @@
 /mrblib/mrblib.c
 /mrblib/mrblib.ctmp
 /mrblib/mrblib.rbtmp
+/src/y.tab.c
 cscope.out
-y.tab.c
