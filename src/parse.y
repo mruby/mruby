@@ -2976,16 +2976,17 @@ nextc(parser_state *p)
     c = *p->s++;
   }
   if (c == '\n') {
-    if (p->nerr < 1) {
+    if (p->column < 0) {
+      p->column++; // pushback caused an underflow
+    }
+    else {
       p->lineno++;
       p->column = 0;
     }
     // must understand heredoc
   }
   else {
-    if (p->nerr < 1) {
-      p->column++;
-    }
+    p->column++;
   }
   return c;
 }
