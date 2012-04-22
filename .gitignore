@@ -15,8 +15,7 @@
 .svn
 /.git
 cscope.out
-mruby.exe
-y.tab.c
-bin
-mrblib/mrblib.c
-mrblib/*.*tmp
+/src/y.tab.c
+/bin
+/mrblib/mrblib.c
+/mrblib/*.*tmp
