@@ -3,6 +3,7 @@
 *.dylib
 *.inc
 *.o
+*.a
 *.orig
 *.rej
 *.sav
@@ -16,3 +17,6 @@
 cscope.out
 mruby.exe
 y.tab.c
+bin
+mrblib/mrblib.c
+mrblib/*.*tmp
