@@ -413,7 +413,6 @@ enum_to_a(mrb_state *mrb, int argc, mrb_value *argv, mrb_value obj)
     mrb_value ary = mrb_ary_new(mrb);
 
     mrb_block_call(mrb, obj, id_each, argc, argv, collect_all, &ary);
-    //OBJ_INFECT(ary, obj);
 
     return ary;
 }

@@ -19,10 +19,6 @@
 #include <ieeefp.h>
 #endif
 
-#ifndef MRB_TAINT_P
-  #define MRB_TAINTED_P(p) FALSE
-#endif
-
 #define BIT_DIGITS(N)   (((N)*146)/485 + 1)  /* log2(10) =~ 146/485 */
 #define BITSPERDIG (sizeof(mrb_int)*CHAR_BIT)
 #define EXTENDSIGN(n, l) (((~0 << (n)) >> (((n)*(l)) % BITSPERDIG)) & ~(~0 << (n)))
@@ -499,7 +495,6 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
   int width, prec, flags = FNONE;
   int nextarg = 1;
   int posarg = 0;
-  int tainted = 0;
   mrb_value nextvalue;
   mrb_value tmp;
   mrb_value str;
@@ -522,7 +517,6 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
 
   ++argc;
   --argv;
-  if (MRB_TAINTED_P(fmt)) tainted = 1;
   mrb_string_value(mrb, &fmt);
   fmt = mrb_str_new4(mrb, fmt);
   p = RSTRING_PTR(fmt);
@@ -726,7 +720,6 @@ format_s:
 
         if (*p == 'p') arg = mrb_inspect(mrb, arg);
         str = mrb_obj_as_string(mrb, arg);
-        if (MRB_TAINTED_P(str)) tainted = 1;
         len = RSTRING_LEN(str);
         mrb_str_set_len(mrb, result, blen);
         if (flags&(FPREC|FWIDTH)) {

@@ -377,7 +377,6 @@ range_to_s(mrb_state *mrb, mrb_value range)
   str  = mrb_str_dup(mrb, str);
   mrb_str_cat(mrb, str, "...", r->excl ? 3 : 2);
   mrb_str_append(mrb, str, str2);
-  //OBJ_INFECT(str, str2);
 
   return str;
 }
@@ -396,7 +395,6 @@ inspect_range(mrb_state *mrb, mrb_value range, mrb_value dummy, int recur)
   str  = mrb_str_dup(mrb, str);
   mrb_str_cat(mrb, str, "...", r->excl ? 3 : 2);
   mrb_str_append(mrb, str, str2);
- // OBJ_INFECT(str, str2);
 
   return str;
 }

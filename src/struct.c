@@ -512,7 +512,6 @@ inspect_struct(mrb_state *mrb, mrb_value s, mrb_value dummy, int recur)
       mrb_str_append(mrb, str, mrb_inspect(mrb, ptr[i]));
     }
     mrb_str_cat2(mrb, str, ">");
-    //OBJ_INFECT(str, s);
 
     return str;
 }
