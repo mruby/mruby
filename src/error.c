@@ -425,7 +425,7 @@ mrb_exc_exception(mrb_state *mrb, mrb_value exc)
   mrb_get_args(mrb, "*", &argv, &argc);
   if (argc == 0) return exc;
   exclass = mrb_obj_value(mrb_class(mrb, exc));
-  return mrb_funcall(mrb, exclass, mrb_intern(mrb, "exception"), argc, argv);
+  return mrb_funcall(mrb, exclass, "exception", argc, argv);
 }
 
 void
