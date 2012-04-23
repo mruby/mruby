@@ -12,6 +12,7 @@ struct RClass {
   struct kh_iv *iv;
   struct kh_mt *mt;
   struct RClass *super;
+  mrb_func_t gc;
 };
 
 #define mrb_class_ptr(v)    ((struct RClass*)((v).value.p))
@@ -64,6 +65,8 @@ struct RClass *mrb_vm_define_class(mrb_state*, mrb_value, mrb_value, mrb_sym);
 struct RClass *mrb_vm_define_module(mrb_state*, mrb_value, mrb_sym);
 void mrb_define_method_vm(mrb_state*, struct RClass*, mrb_sym, mrb_value);
 void mrb_define_method_raw(mrb_state*, struct RClass*, mrb_sym, struct RProc *);
+
+void mrb_set_gc_func(mrb_state *, struct RClass *, mrb_func_t);
 
 struct RClass *mrb_class_outer_module(mrb_state*, struct RClass *);
 struct RProc *mrb_method_search_vm(mrb_state*, struct RClass**, mrb_sym);
