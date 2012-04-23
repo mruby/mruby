@@ -40,7 +40,7 @@ YACC = bison
 
 DEBUG_MODE = 1
 ifeq ($(DEBUG_MODE),1)
-CFLAGS = -g
+CFLAGS = -g -O3
 else
 CFLAGS = -O3
 endif
@@ -86,5 +86,6 @@ clean :
 	$(MAKE) clean -C ../mrblib $(MAKE_FLAGS)
 	-rm -f $(LIB) $(OBJS) $(OBJY) $(YC)
 	-rm -f $(OBJS:.o=.d) $(OBJY:.o=.d)
+	-rm -f $(patsubst %.c,%.o,$(EXCEPT1)) $(patsubst %.c,%.d,$(EXCEPT1))
 	@echo "make: removing targets, objects and depend files of `pwd`"
 
