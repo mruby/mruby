@@ -4455,6 +4455,9 @@ parser_yylex(parser_state *p)
     c = nextc(p);
     if (c < 0) break;
   } while (identchar(c));
+  if (p->column == 0 && p->bidx == 7 && (c < 0 || c == '\n') &&
+      strncmp(tok(p), "__END__", p->bidx) == 0)
+    return -1;
 
   switch (tok(p)[0]) {
   case '@': case '$':
