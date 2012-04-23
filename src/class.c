@@ -111,7 +111,12 @@ make_metaclass(mrb_state *mrb, struct RClass *c)
   }
   sc = mrb_obj_alloc(mrb, MRB_TT_SCLASS, mrb->class_class);
   sc->mt = 0;
-  sc->super = c->c;
+  if (!c->super) {
+    sc->super = mrb->class_class;
+  }
+  else {
+    sc->super = c->super->c;
+  }
   c->c = sc;
   mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)sc);
   mrb_field_write_barrier(mrb, (struct RBasic*)sc, (struct RBasic*)sc->super);
@@ -851,7 +856,6 @@ struct RClass *
 mrb_module_new(mrb_state *mrb)
 {
   struct RClass *m = mrb_obj_alloc(mrb, MRB_TT_MODULE, mrb->module_class);
-  make_metaclass(mrb, m);
 
   return m;
 }
