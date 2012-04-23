@@ -3125,10 +3125,11 @@ enum string_type {
     str_dsym   = (STR_FUNC_SYMBOL|STR_FUNC_EXPAND)
 };
 
-static void
+static int
 newtok(parser_state *p)
 {
   p->bidx = 0;
+  return p->column - 1;
 }
 
 static void
@@ -3420,6 +3421,7 @@ parser_yylex(parser_state *p)
   int space_seen = 0;
   int cmd_state;
   enum mrb_lex_state_enum last_state;
+  int token_column;
 
   if (p->sterm) {
     return parse_string(p, p->sterm);
@@ -3675,7 +3677,7 @@ parser_yylex(parser_state *p)
       p->lstate = EXPR_VALUE;
       return '?';
     }
-    newtok(p);
+    token_column = newtok(p);
     // need support UTF-8 if configured
     if ((isalnum(c) || c == '_')) {
       int c2 = nextc(p);
@@ -3848,7 +3850,7 @@ parser_yylex(parser_state *p)
       
       is_float = seen_point = seen_e = nondigit = 0;
       p->lstate = EXPR_END;
-      newtok(p);
+      token_column = newtok(p);
       if (c == '-' || c == '+') {
 	tokadd(p, c);
 	c = nextc(p);
@@ -4337,7 +4339,7 @@ parser_yylex(parser_state *p)
 
   case '$':
     p->lstate = EXPR_END;
-    newtok(p);
+    token_column = newtok(p);
     c = nextc(p);
     switch (c) {
     case '_':		     /* $_: last read line string */
@@ -4415,7 +4417,7 @@ parser_yylex(parser_state *p)
 
   case '@':
     c = nextc(p);
-    newtok(p);
+    token_column = newtok(p);
     tokadd(p, '@');
     if (c == '@') {
       tokadd(p, '@');
@@ -4437,7 +4439,7 @@ parser_yylex(parser_state *p)
     break;
 
   case '_':
-    newtok(p);
+    token_column = newtok(p);
     break;
 
   default:
@@ -4446,7 +4448,7 @@ parser_yylex(parser_state *p)
       goto retry;
     }
 
-    newtok(p);
+    token_column = newtok(p);
     break;
   }
 
@@ -4455,8 +4457,8 @@ parser_yylex(parser_state *p)
     c = nextc(p);
     if (c < 0) break;
   } while (identchar(c));
-  if (p->column == 0 && p->bidx == 7 && (c < 0 || c == '\n') &&
-      strncmp(tok(p), "__END__", p->bidx) == 0)
+  if (token_column == 0 && toklen(p) == 7 && (c < 0 || c == '\n') &&
+      strncmp(tok(p), "__END__", toklen(p)) == 0)
     return -1;
 
   switch (tok(p)[0]) {
