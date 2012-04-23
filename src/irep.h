@@ -10,7 +10,7 @@ typedef struct mrb_irep {
 
   mrb_code *iseq;
   mrb_value *pool;
-  int *syms;
+  mrb_sym *syms;
 
   int ilen, plen, slen;
 } mrb_irep;

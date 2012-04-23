@@ -5,7 +5,6 @@
 #include "mruby/class.h"
 #include "method.h"
 #include "mruby/numeric.h"
-#include "mdata.h"
 
 #ifdef INCLUDE_REGEXP
   #define mrb_usascii_str_new2 mrb_usascii_str_new_cstr

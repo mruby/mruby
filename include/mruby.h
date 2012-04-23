@@ -1,3 +1,29 @@
+/*
+** mruby - An embeddable Ruby implementaion
+** 
+** Copyright (c) mruby developers 2010-2012
+** 
+** Permission is hereby granted, free of charge, to any person obtaining
+** a copy of this software and associated documentation files (the
+** "Software"), to deal in the Software without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Software, and to
+** permit persons to whom the Software is furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be
+** included in all copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+**
+** [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
+*/
 #ifndef MRUBY_H
 #define MRUBY_H
 
@@ -49,7 +75,7 @@ typedef struct mrb_value {
 #define mrb_test(o)   ((o).tt != MRB_TT_FALSE)
 #define mrb_fixnum(o) (o).value.i
 #define mrb_float(o)  (o).value.f
-#define mrb_symbol(o)  (o).value.sym
+#define mrb_symbol(o) (o).value.sym
 #define mrb_object(o) (o).value.p
 #define FIXNUM_P(o)   ((o).tt == MRB_TT_FIXNUM)
 #define UNDEF_P(o)    ((o).tt == MRB_TT_UNDEF)
@@ -108,7 +134,7 @@ static inline mrb_value
 mrb_obj_value(void *p)
 {
   mrb_value v;
-  struct RBasic *b = p;
+  struct RBasic *b = (struct RBasic*) p;
 
   v.tt = b->tt;
   v.value.p = p;
@@ -362,6 +388,10 @@ void mrb_write_barrier(mrb_state *, struct RBasic*);
 
 #define MRUBY_VERSION "Rite"
 
+#ifdef DEBUG
+#undef DEBUG
+#endif
+
 #if 0
 #define DEBUG(x) x
 #else
@@ -441,11 +471,14 @@ void mrb_bug(const char *fmt, ...);
 #ifdef __GNUC__
 # define NUM2CHR(x) __extension__ ({mrb_value num2chr_x = (x); NUM2CHR_internal(num2chr_x);})
 #else
+/* TODO: there is no definitions of RSTRING_* here, so cannot compile.
 static inline char
 NUM2CHR(mrb_value x)
 {
     return NUM2CHR_internal(x);
 }
+*/
+#define NUM2CHR(x) NUM2CHR_internal(x)
 #endif
 mrb_value mrb_io_gets(mrb_state *mrb, mrb_value);
 mrb_value mrb_io_getbyte(mrb_state *mrb, mrb_value);
@@ -531,60 +564,6 @@ void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
 #define ruby_setjmp(env) RUBY_SETJMP(env)
 #define ruby_longjmp(env,val) RUBY_LONGJMP(env,val)
 
-#if defined PRIdPTR && !defined PRI_VALUE_PREFIX
-#define PRIdVALUE PRIdPTR
-#define PRIiVALUE PRIiPTR
-#define PRIoVALUE PRIoPTR
-#define PRIuVALUE PRIuPTR
-#define PRIxVALUE PRIxPTR
-#define PRIXVALUE PRIXPTR
-#else
-#define PRIdVALUE PRI_VALUE_PREFIX"d"
-#define PRIiVALUE PRI_VALUE_PREFIX"i"
-#define PRIoVALUE PRI_VALUE_PREFIX"o"
-#define PRIuVALUE PRI_VALUE_PREFIX"u"
-#define PRIxVALUE PRI_VALUE_PREFIX"x"
-#define PRIXVALUE PRI_VALUE_PREFIX"X"
-#endif
-#ifndef PRI_VALUE_PREFIX
-# define PRI_VALUE_PREFIX ""
-#endif
-
-#if defined PRIdPTR
-# define PRI_PTRDIFF_PREFIX "t"
-#elif SIZEOF_PTRDIFF_T == SIZEOF_INT
-# define PRI_PTRDIFF_PREFIX
-#elif SIZEOF_PTRDIFF_T == SIZEOF_LONG
-# define PRI_PTRDIFF_PREFIX "l"
-#elif SIZEOF_PTRDIFF_T == SIZEOF_LONG_LONG
-# define PRI_PTRDIFF_PREFIX "ll"
-#else
-# define PRI_PTRDIFF_PREFIX
-#endif
-#define PRIdPTRDIFF PRI_PTRDIFF_PREFIX"d"
-#define PRIiPTRDIFF PRI_PTRDIFF_PREFIX"i"
-#define PRIoPTRDIFF PRI_PTRDIFF_PREFIX"o"
-#define PRIuPTRDIFF PRI_PTRDIFF_PREFIX"u"
-#define PRIxPTRDIFF PRI_PTRDIFF_PREFIX"x"
-#define PRIXPTRDIFF PRI_PTRDIFF_PREFIX"X"
-
-#if defined PRIdPTR
-# define PRI_SIZE_PREFIX "z"
-#elif SIZEOF_SIZE_T == SIZEOF_INT
-# define PRI_SIZE_PREFIX
-#elif SIZEOF_SIZE_T == SIZEOF_LONG
-# define PRI_SIZE_PREFIX "l"
-#elif SIZEOF_SIZE_T == SIZEOF_LONG_LONG
-# define PRI_SIZE_PREFIX "ll"
-#endif
-#define PRIdSIZE PRI_SIZE_PREFIX"d"
-#define PRIiSIZE PRI_SIZE_PREFIX"i"
-#define PRIoSIZE PRI_SIZE_PREFIX"o"
-#define PRIuSIZE PRI_SIZE_PREFIX"u"
-#define PRIxSIZE PRI_SIZE_PREFIX"x"
-#define PRIXSIZE PRI_SIZE_PREFIX"X"
-#define PRIdPTRDIFF PRI_PTRDIFF_PREFIX"d"
-
 #define KHASH  0
 #define STHASH 1
 #define BASICHASH 2
@@ -610,7 +589,6 @@ int mrb_cmpint(mrb_state *mrb, mrb_value val, mrb_value a, mrb_value b);
 #   define ANYARGS
 # endif
 #endif
-void st_foreach_safe(mrb_state *mrb, void *table, int (*func)(ANYARGS), void * a);
 void mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const char *name2);
 const char *mrb_class_name(mrb_state *mrb, struct RClass* klass);
 void mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val);

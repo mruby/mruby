@@ -1,5 +1,4 @@
 #include "mruby.h"
-#include "mdata.h"
 #include "mruby/string.h"
 #include "error.h"
 #include "mruby/numeric.h"

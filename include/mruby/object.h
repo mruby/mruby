@@ -6,7 +6,7 @@
   int color:3;\
   unsigned int flags:21;\
   struct RClass *c;\
-  struct RBasic *gcnext;
+  struct RBasic *gcnext
 
 
 /* white: 011, black: 100, gray: 000 */

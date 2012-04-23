@@ -9,7 +9,7 @@
        * lib
        * include
 
-If an error occurs when compiling mRuby, it will be helpful for others if you
+If an error occurs when compiling mruby, it will be helpful for others if you
 send a detailed report to the developers that includes the error log, machine,
 and OS type.
 

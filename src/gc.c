@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include "mruby/struct.h"
 #include "mruby/proc.h"
-#include "mdata.h"
+#include "mruby/data.h"
 #include "mruby/numeric.h"
 
 /*
@@ -401,8 +401,8 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
       struct REnv *e = (struct REnv *)obj;
 
       if (e->cioff < 0) {
-	mrb_free(mrb, mrb->stack);
-	mrb->stack = 0;
+	mrb_free(mrb, e->stack);
+	e->stack = 0;
       }
     }
     break;
