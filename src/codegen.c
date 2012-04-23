@@ -1,3 +1,9 @@
+/*
+** codegen.c - mruby code generator
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #undef CODEGEN_TEST
 #define CODEGEN_DUMP
 

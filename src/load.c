@@ -1,3 +1,9 @@
+/*
+** load.c - mruby binary loader
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #include <string.h>
 #include "dump.h"
 

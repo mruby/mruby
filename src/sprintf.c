@@ -1,15 +1,8 @@
-/**********************************************************************
-
-  sprintf.c -
-
-  $Author: yugui $
-  created at: Fri Oct 15 10:39:26 JST 1993
-
-  Copyright (C) 1993-2007 Yukihiro Matsumoto
-  Copyright (C) 2000  Network Applied Communication Laboratory, Inc.
-  Copyright (C) 2000  Information-technology Promotion Agency, Japan
-
-**********************************************************************/
+/*
+** sprintf.c - Kernel.#sprintf
+** 
+** See Copyright Notice in mruby.h
+*/
 
 #include "mruby.h"
 #include <stdio.h>

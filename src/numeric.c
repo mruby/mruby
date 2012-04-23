@@ -1,13 +1,8 @@
-/**********************************************************************
-
-  numeric.c -
-
-  $Author: yugui $
-  created at: Fri Aug 13 18:33:09 JST 1993
-
-  Copyright (C) 1993-2007 Yukihiro Matsumoto
-
-**********************************************************************/
+/*
+** numeric.c - Numeric, Integer, Float, Fixnum class
+** 
+** See Copyright Notice in mruby.h
+*/
 
 #include "mruby.h"
 #include "mruby/numeric.h"

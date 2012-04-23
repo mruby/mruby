@@ -1,3 +1,9 @@
+/*
+** class.c - Class class
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #include "mruby.h"
 #include <stdarg.h>
 #include <stdio.h>

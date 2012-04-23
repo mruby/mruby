@@ -1,13 +1,8 @@
-/**********************************************************************
-
-  struct.c -
-
-  $Author: marcandre $
-  created at: Tue Mar 22 18:44:30 JST 1995
-
-  Copyright (C) 1993-2007 Yukihiro Matsumoto
-
-**********************************************************************/
+/*
+** struct.c - Struct class
+** 
+** See Copyright Notice in mruby.h
+*/
 
 #include "mruby.h"
 #include <string.h>

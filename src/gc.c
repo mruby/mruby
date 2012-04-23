@@ -1,3 +1,9 @@
+/*
+** gc.c - garbage collector for RiteVM
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #include "mruby.h"
 #include "mruby/object.h"
 #include "mruby/class.h"

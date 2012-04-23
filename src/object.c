@@ -1,3 +1,9 @@
+/*
+** object.c - Object, NilClass, TrueClass, FalseClass class
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #include "mruby.h"
 #include <string.h>
 #include "mruby/string.h"

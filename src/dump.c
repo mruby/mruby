@@ -1,3 +1,9 @@
+/*
+** dump.c - mruby binary dumper (Rite binary format)
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #include <string.h>
 #include "dump.h"
 

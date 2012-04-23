@@ -1,3 +1,9 @@
+/*
+** state.c - RiteVM open/close functions
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #include "mruby.h"
 #include "irep.h"
 #include <string.h>

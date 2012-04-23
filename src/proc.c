@@ -1,3 +1,9 @@
+/*
+** proc.c - Proc class
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #include "mruby.h"
 #include "mruby/proc.h"
 #include "mruby/array.h"

@@ -1,3 +1,9 @@
+/*
+** symbol.c - Symbol class
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #include "mruby.h"
 #include "ritehash.h"
 #include <string.h>

@@ -1,3 +1,9 @@
+/*
+** string.h - String class
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #ifndef MRUBY_STRING_H
 #define MRUBY_STRING_H
 

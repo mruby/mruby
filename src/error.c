@@ -1,3 +1,9 @@
+/*
+** error.c - Exception class
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #include "mruby.h"
 #include <stdarg.h>
 #include <string.h>

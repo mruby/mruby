@@ -1,3 +1,9 @@
+/*
+** array.c - Array class
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #include "mruby.h"
 #include "mruby/array.h"
 #include <string.h>

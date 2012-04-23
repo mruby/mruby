@@ -1,13 +1,8 @@
-/**********************************************************************
-
-  encoding.c -
-
-  $Author: naruse $
-  created at: Thu May 24 17:23:27 JST 2007
-
-  Copyright (C) 2007 Yukihiro Matsumoto
-
-**********************************************************************/
+/*
+** encoding.c - Encoding class
+** 
+** See Copyright Notice in mruby.h
+*/
 
 #include "mruby.h"
 #ifdef INCLUDE_ENCODING

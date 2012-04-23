@@ -1,3 +1,9 @@
+/*
+** range.c - Range class
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #include "mruby.h"
 #include "mruby/class.h"
 #include "mruby/range.h"

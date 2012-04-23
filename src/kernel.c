@@ -1,3 +1,9 @@
+/*
+** kernel.c - Kernel module
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #include "mruby.h"
 #include "mruby/string.h"
 #include <string.h>

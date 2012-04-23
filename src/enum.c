@@ -1,13 +1,8 @@
-/**********************************************************************
-
-  enum.c -
-
-  $Author: yugui $
-  created at: Fri Oct  1 15:15:19 JST 1993
-
-  Copyright (C) 1993-2007 Yukihiro Matsumoto
-
-**********************************************************************/
+/*
+** enum.c - Enumerable module
+** 
+** See Copyright Notice in mruby.h
+*/
 
 #include "mruby.h"
 

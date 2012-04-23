@@ -1,3 +1,9 @@
+/*
+** parse.y - mruby parser
+** 
+** See Copyright Notice in mruby.h
+*/
+
 %{
 #undef PARSER_TEST
 #undef PARSER_DEBUG

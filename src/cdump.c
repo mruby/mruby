@@ -1,3 +1,9 @@
+/*
+** cdump.c - mruby binary dumper (C source format)
+** 
+** See Copyright Notice in mruby.h
+*/
+
 #include "cdump.h"
 
 #include <string.h>

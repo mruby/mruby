@@ -1,14 +1,8 @@
-/**********************************************************************
-
-  version.c -
-
-  $Author: knu $
-  $Date: 2008-05-31 22:37:06 +0900 (Sat, 31 May 2008) $
-  created at: Thu Sep 30 20:08:01 JST 1993
-
-  Copyright (C) 1993-2003 Yukihiro Matsumoto
-
-**********************************************************************/
+/*
+** version.c - version information
+** 
+** See Copyright Notice in mruby.h
+*/
 
 #include "mruby.h"
 #include "version.h"
