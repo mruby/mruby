@@ -2581,6 +2581,7 @@ superclass	: term
 		| '<'
 		    {
 		      p->lstate = EXPR_BEG;
+		      p->cmd_start = TRUE;
 		    }
 		  expr_value term
 		    {
@@ -3346,8 +3347,9 @@ parse_string(parser_state *p, int term)
       c = nextc(p);
       if (c == '{') {
 	tokfix(p);
-	p->lstate = EXPR_END;
+	p->lstate = EXPR_BEG;
 	p->sterm = term;
+	p->cmd_start = TRUE;
 	yylval.node = new_str(p, tok(p), toklen(p));
 	return tSTRING_PART;
       }
@@ -3477,6 +3479,7 @@ parser_yylex(parser_state *p)
       }
     }
   normal_newline:
+    p->cmd_start = TRUE;
     p->lstate = EXPR_BEG;
     return '\n';
 
@@ -3582,6 +3585,8 @@ parser_yylex(parser_state *p)
     switch (p->lstate) {
     case EXPR_FNAME: case EXPR_DOT:
       p->lstate = EXPR_ARG; break;
+    case EXPR_CLASS:
+      p->cmd_start = TRUE;
     default:
       p->lstate = EXPR_BEG; break;
     }
@@ -4535,6 +4540,9 @@ parser_yylex(parser_state *p)
 	  if (state == EXPR_FNAME) {
 	    yylval.id = intern(kw->name);
 	    return kw->id[0];
+	  }
+	  if (p->lstate == EXPR_BEG) {
+	    p->cmd_start = TRUE;
 	  }
 	  if (kw->id[0] == keyword_do) {
 	    if (p->lpar_beg && p->lpar_beg == p->paren_nest) {
