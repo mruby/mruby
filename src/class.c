@@ -213,6 +213,7 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
   if (!c) {
     struct RClass *s = 0;
 
+    mrb_check_type(mrb, super, MRB_TT_CLASS);
     if (!mrb_nil_p(super)) s = mrb_class_ptr(super);
     c = mrb_class_new(mrb, s);
     setup_class(mrb, outer, c, id);
@@ -840,7 +841,6 @@ mrb_class_new(mrb_state *mrb, struct RClass *super)
   struct RClass *c;
 
   if (super) {
-//    mrb_check_type(mrb, super, MRB_TT_CLASS);
     mrb_check_inheritable(mrb, super);
   }
   c = boot_defclass(mrb, super);
