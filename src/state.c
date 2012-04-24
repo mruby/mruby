@@ -5,7 +5,7 @@
 */
 
 #include "mruby.h"
-#include "irep.h"
+#include "mruby/irep.h"
 #include <string.h>
 
 void mrb_init_heap(mrb_state*);

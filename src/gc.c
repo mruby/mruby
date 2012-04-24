@@ -11,7 +11,7 @@
 #include "mruby/string.h"
 #include "mruby/hash.h"
 #include "mruby/range.h"
-#include "ritehash.h"
+#include "mruby/khash.h"
 #include <string.h>
 #include <stdio.h>
 #include "mruby/struct.h"

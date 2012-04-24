@@ -5,7 +5,7 @@
 */
 
 #include "mruby.h"
-#include "ritehash.h"
+#include "mruby/khash.h"
 #include <string.h>
 
 #include <stdarg.h>

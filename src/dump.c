@@ -5,13 +5,13 @@
 */
 
 #include <string.h>
-#include "dump.h"
+#include "mruby/dump.h"
 
 #include "mruby/string.h"
 #ifdef INCLUDE_REGEXP
 #include "re.h"
 #endif
-#include "irep.h"
+#include "mruby/irep.h"
 
 static const unsigned char def_rite_binary_header[] =
   RITE_FILE_IDENFIFIER

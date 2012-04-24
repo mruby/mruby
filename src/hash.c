@@ -6,7 +6,7 @@
 
 #include "mruby.h"
 #include "mruby/hash.h"
-#include "ritehash.h"
+#include "mruby/khash.h"
 #include "mruby/class.h"
 #include "mruby/array.h"
 #include "error.h"

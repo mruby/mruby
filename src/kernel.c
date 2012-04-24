@@ -17,7 +17,7 @@
 #include "mruby/class.h"
 #include "mruby/struct.h"
 #include "mruby/variable.h"
-#include "ritehash.h"
+#include "mruby/khash.h"
 #include "error.h"
 #include "method.h"
 

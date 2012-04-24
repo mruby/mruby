@@ -7,7 +7,7 @@
 #include "mruby.h"
 #include <string.h>
 #include "mruby/string.h"
-#include "ritehash.h"
+#include "mruby/khash.h"
 #include "encoding.h"
 #include "re.h"
 #include "mruby/numeric.h"

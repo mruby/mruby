@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include "mruby.h"
 #include "mruby/class.h"
-#include "ritehash.h"
+#include "mruby/khash.h"
 #include "mruby/variable.h"
 #include "mruby/string.h"
 #include "mruby/range.h"

@@ -11,7 +11,7 @@
 #include <setjmp.h>
 #include "error.h"
 #include "opcode.h"
-#include "irep.h"
+#include "mruby/irep.h"
 #include "mruby/proc.h"
 #include "mruby/numeric.h"
 #include "mruby/variable.h"

@@ -15,7 +15,7 @@
 #include "mruby/array.h"
 #include "error.h"
 
-#include "ritehash.h"
+#include "mruby/khash.h"
 
 #ifdef INCLUDE_REGEXP
   #define mrb_usascii_str_new2 mrb_usascii_str_new_cstr
