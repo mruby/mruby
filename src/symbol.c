@@ -13,7 +13,7 @@
 #include "mruby/string.h"
 #include <ctype.h>
 #include "mruby/class.h"
-#include "variable.h"
+#include "mruby/variable.h"
 #include <stdio.h>
 
 #ifdef INCLUDE_REGEXP

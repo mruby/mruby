@@ -16,7 +16,7 @@
 #include "regint.h"
 #include "mruby/class.h"
 #include "mruby/hash.h"
-#include "variable.h"
+#include "mruby/variable.h"
 #include "error.h"
 #ifdef INCLUDE_REGEXP
 

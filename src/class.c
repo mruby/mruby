@@ -11,7 +11,7 @@
 #include "mruby/proc.h"
 #include "mruby/string.h"
 #include "mruby/numeric.h"
-#include "variable.h"
+#include "mruby/variable.h"
 #include "mruby/array.h"
 #include "error.h"
 

@@ -14,10 +14,9 @@
 #include <ctype.h>
 #include "mruby/array.h"
 #include "mruby/class.h"
-#include "variable.h"
+#include "mruby/variable.h"
 #include "mruby/hash.h"
 #include <stdio.h>
-#include "variable.h"
 #include "re.h"
 #ifdef INCLUDE_REGEXP
 #include "regex.h"

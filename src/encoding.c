@@ -28,7 +28,7 @@
 #include "mruby/numeric.h"
 #include "mruby/string.h"
 #include "mruby/array.h"
-#include "variable.h"
+#include "mruby/variable.h"
 #include "mruby/hash.h"
 
 #define pprintf printf

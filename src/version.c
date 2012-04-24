@@ -8,7 +8,7 @@
 #include "version.h"
 #include <stdio.h>
 #include "mruby/string.h"
-#include "variable.h"
+#include "mruby/variable.h"
 
 #define PRINT(type) puts(ruby_##type)
 //#define MKSTR(type) mrb_obj_freeze(mrb_str_new(ruby_##type, sizeof(ruby_##type)-1))

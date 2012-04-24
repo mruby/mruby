@@ -14,7 +14,7 @@
 #include "irep.h"
 #include "mruby/proc.h"
 #include "mruby/numeric.h"
-#include "variable.h"
+#include "mruby/variable.h"
 #include "mruby/string.h"
 #include "eval_intern.h"
 #include "mruby/class.h"

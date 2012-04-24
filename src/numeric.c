@@ -10,7 +10,7 @@
 #include "mruby/array.h"
 #include <string.h>
 #include "mruby/class.h"
-#include "variable.h"
+#include "mruby/variable.h"
 
 #include <ctype.h>
 #include <math.h>

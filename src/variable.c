@@ -8,7 +8,7 @@
 #include "mruby.h"
 #include "mruby/class.h"
 #include "ritehash.h"
-#include "variable.h"
+#include "mruby/variable.h"
 #include "mruby/string.h"
 #include "mruby/range.h"
 #include "error.h"

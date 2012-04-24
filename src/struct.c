@@ -24,7 +24,7 @@ mrb_value mrb_exec_recursive_paired(mrb_state *mrb, mrb_value (*func) (mrb_state
 #include "mruby/hash.h"
 #include "mruby/string.h"
 #include "mruby/class.h"
-#include "variable.h"
+#include "mruby/variable.h"
 #include "mruby/range.h"
 #include "error.h"
 //#include "defines.h"
