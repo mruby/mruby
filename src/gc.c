@@ -407,8 +407,8 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
       struct REnv *e = (struct REnv *)obj;
 
       if (e->cioff < 0) {
-	mrb_free(mrb, e->stack);
-	e->stack = 0;
+        mrb_free(mrb, e->stack);
+        e->stack = 0;
       }
     }
     break;
@@ -432,6 +432,14 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_STRUCT:
   case MRB_TT_EXCEPTION:
     break;
+  case MRB_TT_DATA:
+    {
+      struct RData *d = (struct RData *)obj;
+      if (d->type->dfree) {
+        d->type->dfree(mrb, d->data);
+      }
+    }
+	break;
   }
   obj->tt = MRB_TT_FREE;
 }
