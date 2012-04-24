@@ -49,11 +49,6 @@ struct RVarmap {
 };
 extern struct RVarmap *ruby_dyna_vars;
 
-//struct st_hash_type {
-//    int (*compare)();
-//    int (*hash)();
-//};
-
 #define mrb_str_ptr(s)    ((struct RString*)((s).value.p))
 #define RSTRING(s)        ((struct RString*)((s).value.p))
 #define RSTRING_PTR(s)    (RSTRING(s)->buf)
