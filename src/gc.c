@@ -384,6 +384,12 @@ static void
 obj_free(mrb_state *mrb, struct RBasic *obj)
 {
   DEBUG(printf("obj_free(%p,tt=%d)\n",obj,obj->tt));
+  
+  if (obj->c && obj->c->gc)
+  {
+    obj->c->gc(mrb, mrb_obj_value(obj));
+  }
+  
   switch (obj->tt) {
     /* immediate - no mark */
   case MRB_TT_TRUE:

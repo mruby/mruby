@@ -71,6 +71,12 @@ mrb_gc_free_mt(mrb_state *mrb, struct RClass *c)
 }
 
 void
+mrb_set_gc_func(mrb_state *mrb, struct RClass *c, mrb_func_t f)
+{
+	c->gc = f;
+}
+
+void
 mrb_name_class(mrb_state *mrb, struct RClass *c, mrb_sym name)
 {
   mrb_obj_iv_set(mrb, (struct RObject*)c,
