@@ -26,7 +26,7 @@ extern const char ruby_digitmap[];
 
 struct RString {
   MRUBY_OBJECT_HEADER;
-  size_t len;
+  long len;
   union {
     size_t capa;
     mrb_value shared;
