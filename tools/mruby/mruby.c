@@ -82,7 +82,14 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
       }
     }
     else if (cmdline) {
-      args->cmdline = strdup(*argv);
+      if (!args->cmdline) {
+	args->cmdline = strdup(argv[0]);
+      }
+      else {
+	args->cmdline = mrb_realloc(mrb, args->cmdline, strlen(args->cmdline)+strlen(argv[0])+2);
+	strcat(args->cmdline, "\n");
+	strcat(args->cmdline, argv[0]);
+      }
     }
     else if (args->rfp == NULL) {
       if ((args->rfp = fopen(*argv, args->mrbfile ? "rb" : "r")) == NULL) {
