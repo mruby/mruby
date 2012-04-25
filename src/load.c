@@ -495,7 +495,7 @@ error_exit:
 }
 
 int
-mrb_read_irep(mrb_state *mrb, char *bin)
+mrb_read_irep(mrb_state *mrb, const char *bin)
 {
   int ret = MRB_DUMP_OK, i, n, nirep, sirep;
   uint32_t len;
