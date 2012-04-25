@@ -12,6 +12,7 @@ void codedump_all(mrb_state*, int);
 
 struct _args {
   FILE *rfp;
+  char* cmdline;
   int mrbfile      : 1;
   int check_syntax : 1;
   int verbose      : 1;
@@ -24,6 +25,7 @@ usage(const char *name)
   "switches:",
   "-b           load and execute RiteBinary (mrb) file",
   "-c           check syntax only",
+  "-e 'command' one line of script",
   "-v           print version number, then run in verbose mode",
   "--verbose    run in verbose mode",
   "--version    print the version",
@@ -41,6 +43,7 @@ static int
 parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 {
   char **origargv = argv;
+  int cmdline = 0;
 
   memset(args, 0, sizeof(*args));
 
@@ -55,6 +58,9 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         break;
       case 'c':
         args->check_syntax = 1;
+        break;
+      case 'e':
+        cmdline = 1;
         break;
       case 'v':
         ruby_show_version(mrb);
@@ -75,6 +81,9 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         return 0;
       }
     }
+    else if (cmdline) {
+      args->cmdline = strdup(*argv);
+    }
     else if (args->rfp == NULL) {
       if ((args->rfp = fopen(*argv, args->mrbfile ? "rb" : "r")) == NULL) {
         printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
@@ -91,6 +100,8 @@ cleanup(struct _args *args)
 {
   if (args->rfp)
     fclose(args->rfp);
+  if (args->cmdline)
+    free(args->cmdline);
 }
 
 int
@@ -102,7 +113,7 @@ main(int argc, char **argv)
   struct mrb_parser_state *p;
 
   n = parse_args(mrb, argc, argv, &args);
-  if (n < 0 || args.rfp == NULL) {
+  if (n < 0 || (args.cmdline == NULL && args.rfp == NULL)) {
     cleanup(&args);
     usage(argv[0]);
     return n;
@@ -112,7 +123,12 @@ main(int argc, char **argv)
     n = mrb_load_irep(mrb, args.rfp);
   }
   else {
-    p = mrb_parse_file(mrb, args.rfp);
+    if (args.cmdline) {
+      p = mrb_parse_string(mrb, (char*)args.cmdline);
+    }
+    else {
+      p = mrb_parse_file(mrb, args.rfp);
+    }
     if (!p || !p->tree || p->nerr) {
       cleanup(&args);
       return -1;
@@ -139,5 +155,5 @@ main(int argc, char **argv)
 
   cleanup(&args);
 
-  return n;
+  return n > 0 ? 0 : 1;
 }
