@@ -82,7 +82,8 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
       }
     }
     else if (cmdline) {
-      args->cmdline = strdup(*argv);
+      if (args->cmdline == NULL)
+        args->cmdline = strdup(*argv);
     }
     else if (args->rfp == NULL) {
       if ((args->rfp = fopen(*argv, args->mrbfile ? "rb" : "r")) == NULL) {
