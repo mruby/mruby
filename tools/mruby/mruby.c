@@ -130,9 +130,9 @@ main(int argc, char **argv)
       codedump_all(mrb, n);
 
     if (!args.check_syntax) {
-      mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_nil_value());
+      mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
       if (mrb->exc) {
-	mrb_funcall(mrb, mrb_nil_value(), "p", 1, mrb_obj_value(mrb->exc));
+	mrb_p(mrb, mrb_obj_value(mrb->exc));
       }
     }
   }
