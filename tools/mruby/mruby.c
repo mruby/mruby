@@ -139,5 +139,5 @@ main(int argc, char **argv)
 
   cleanup(&args);
 
-  return n;
+  return n > 0 ? 0 : 1;
 }
