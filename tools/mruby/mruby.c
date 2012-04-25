@@ -83,7 +83,11 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
     }
     else if (cmdline) {
       if (!args->cmdline) {
-	args->cmdline = strdup(argv[0]);
+	char *buf;
+
+	buf = mrb_malloc(mrb, strlen(argv[0])+1);
+	strcpy(buf, argv[0]);
+	args->cmdline = buf;
       }
       else {
 	args->cmdline = mrb_realloc(mrb, args->cmdline, strlen(args->cmdline)+strlen(argv[0])+2);
