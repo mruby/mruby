@@ -4658,7 +4658,7 @@ parser_new(mrb_state *mrb)
   p->cmd_start = TRUE;
   p->in_def = p->in_single = FALSE;
 
-  p->capture_errors = NULL;
+  p->capture_errors = 0;
 
   p->lineno = 1;
 #if defined(PARSER_TEST) || defined(PARSER_DEBUG)
