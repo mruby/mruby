@@ -942,12 +942,16 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 
       
       switch (mrb_type(klass)) {
-      case MRB_TT_CLASS:
-	snprintf(buf, 256, "#<Class:%p>", c);
-	break;
-      case MRB_TT_MODULE:
-	snprintf(buf, 256, "#<Module:%p>", c);
-	break;
+        case MRB_TT_CLASS:
+          snprintf(buf, 256, "#<Class:%p>", c);
+          break;
+
+        case MRB_TT_MODULE:
+          snprintf(buf, 256, "#<Module:%p>", c);
+          break;
+
+        default:
+          break;
       }
       return mrb_str_dup(mrb, mrb_str_new_cstr(mrb, buf));
     }

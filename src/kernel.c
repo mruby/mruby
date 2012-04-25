@@ -397,6 +397,10 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
         if (ROBJECT(obj)->iv) {
             ROBJECT(dest)->iv = ROBJECT(obj)->iv;
         }
+        break;
+      
+      default:
+        break;
     }
     mrb_funcall(mrb, dest, "initialize_copy", 1, obj);
 }
