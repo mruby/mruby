@@ -114,9 +114,8 @@ static void
 ivset(mrb_state *mrb, struct kh_iv *h, mrb_sym sym, mrb_value v)
 {
   khiter_t k;
-  int r;
 
-  k = kh_put(iv, h, sym, &r);
+  k = kh_put(iv, h, sym);
   kh_value(h, k) = v;
 }
 
@@ -179,14 +178,13 @@ mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
   struct RClass *c = mrb->ci->target_class;
   khash_t(iv) *h;
   khiter_t k;
-  int r;
 
   while (c) {
     if (c->iv) {
       h = c->iv;
       k = kh_get(iv, h, sym);
       if (k != kh_end(h)) {
-	k = kh_put(iv, h, sym, &r);
+	k = kh_put(iv, h, sym);
 	kh_value(h, k) = v;
       }
     }
@@ -194,7 +192,7 @@ mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
   }
   c = mrb->ci->target_class;
   h = c->iv = kh_init(iv, mrb);
-  k = kh_put(iv, h, sym, &r);
+  k = kh_put(iv, h, sym);
   kh_value(h, k) = v;
 }
 

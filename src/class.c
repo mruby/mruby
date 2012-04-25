@@ -292,10 +292,9 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
 {
   khash_t(mt) *h = c->mt;
   khiter_t k;
-  int ret;
 
   if (!h) h = c->mt = kh_init(mt, mrb);
-  k = kh_put(mt, h, mid, &ret);
+  k = kh_put(mt, h, mid);
   kh_value(h, k) = p;
 }
 
@@ -320,10 +319,9 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
 {
   khash_t(mt) *h = c->mt;
   khiter_t k;
-  int ret;
 
   if (!h) h = c->mt = kh_init(mt, mrb);
-  k = kh_put(mt, h, name, &ret);
+  k = kh_put(mt, h, name);
   kh_value(h, k) = mrb_proc_ptr(body);
 }
 
