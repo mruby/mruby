@@ -108,7 +108,6 @@ static uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
       while( new_n_buckets < limit ) new_n_buckets *= 2;                \
     }                                                                   \
     uint8_t *old_e_flags = h->e_flags;                                  \
-    uint8_t *old_d_flags = h->d_flags;                                  \
     khkey_t *old_keys = h->keys;                                        \
     khval_t *old_vals = h->vals;                                        \
     khint_t old_n_buckets = h->n_buckets;                               \
