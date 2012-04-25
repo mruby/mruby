@@ -628,9 +628,7 @@ mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
-  int argc;
-  mrb_value b, klass;
+  mrb_value b;
 
   mrb_get_args(mrb, "&", &b);
   return mrb_yield_with_self(mrb, b, 0, 0, self);

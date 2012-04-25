@@ -877,9 +877,11 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       int o  = (ax>>13)&0x1f;
       int r  = (ax>>12)&0x1;
       int m2 = (ax>>7)&0x1f;
+      /* unused
       int k  = (ax>>2)&0x1f;
       int kd = (ax>>1)&0x1;
       int b  = (ax>>0)& 0x1;
+      */
       int argc = mrb->ci->argc;
       mrb_value *argv = regs+1;
       int len = m1 + o + r + m2;
@@ -953,7 +955,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
       if (mrb->exc) {
 	mrb_callinfo *ci;
-	int ridx;
 
       L_RAISE:
 	ci = mrb->ci;

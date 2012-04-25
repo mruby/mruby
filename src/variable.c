@@ -61,7 +61,6 @@ mrb_gc_mark_iv(mrb_state *mrb, struct RObject *obj)
 size_t
 mrb_gc_mark_iv_size(mrb_state *mrb, struct RObject *obj)
 {
-  khiter_t k;
   struct kh_iv *h = obj->iv;
 
   if (!h) return 0;

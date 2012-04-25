@@ -164,7 +164,6 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val) /* mr
 {
   khash_t(ht) *h;
   khiter_t k;
-  int r;
 
   mrb_hash_modify(mrb, hash);
   h = RHASH_H_TBL(hash);
