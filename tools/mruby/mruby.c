@@ -107,12 +107,12 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 }
 
 static void
-cleanup(struct _args *args)
+cleanup(mrb_state *mrb, struct _args *args)
 {
   if (args->rfp)
     fclose(args->rfp);
   if (args->cmdline)
-    free(args->cmdline);
+    mrb_free(mrb, args->cmdline);
 }
 
 int
@@ -125,7 +125,7 @@ main(int argc, char **argv)
 
   n = parse_args(mrb, argc, argv, &args);
   if (n < 0 || (args.cmdline == NULL && args.rfp == NULL)) {
-    cleanup(&args);
+    cleanup(mrb, &args);
     usage(argv[0]);
     return n;
   }
@@ -141,7 +141,7 @@ main(int argc, char **argv)
       p = mrb_parse_file(mrb, args.rfp);
     }
     if (!p || !p->tree || p->nerr) {
-      cleanup(&args);
+      cleanup(mrb, &args);
       return -1;
     }
 
@@ -159,12 +159,12 @@ main(int argc, char **argv)
     if (!args.check_syntax) {
       mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
       if (mrb->exc) {
-	mrb_p(mrb, mrb_obj_value(mrb->exc));
+        mrb_p(mrb, mrb_obj_value(mrb->exc));
       }
     }
   }
 
-  cleanup(&args);
+  cleanup(mrb, &args);
 
   return n > 0 ? 0 : 1;
 }
