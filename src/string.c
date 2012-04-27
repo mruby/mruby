@@ -4740,35 +4740,8 @@ mrb_lastline_set(mrb_value val)
 mrb_value
 mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2)
 {
-#ifdef INCLUDE_ENCODING
-  mrb_encoding *enc;
-  int cr, cr2;
-#endif //INCLUDE_ENCODING
-
-  //StringValue(str2);
   mrb_string_value(mrb, &str2);
-  if (RSTRING_LEN(str2) > 0 /*&& STR_ASSOC_P(str)*/) {
-      long len = RSTRING_LEN(str)+RSTRING_LEN(str2);
-#ifdef INCLUDE_ENCODING
-      enc = mrb_enc_check(mrb, str, str2);
-      cr = ENC_CODERANGE(str);
-      if ((cr2 = ENC_CODERANGE(str2)) > cr) cr = cr2;
-#endif //INCLUDE_ENCODING
-      mrb_str_modify(mrb, str);
-      REALLOC_N(mrb, RSTRING(str)->buf, char, len+1);
-      memcpy(RSTRING(str)->buf + RSTRING(str)->len,
-             RSTRING_PTR(str2), RSTRING_LEN(str2)+1);
-      RSTRING(str)->len = len;
-      mrb_enc_associate(mrb, str, enc);
-      ENC_CODERANGE_SET(str, cr);
-
-      return str;
-  }
-#ifdef INCLUDE_ENCODING
   return mrb_str_buf_append(mrb, str, str2);
-#else
-  return str;
-#endif //INCLUDE_ENCODING
 }
 
 void
