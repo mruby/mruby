@@ -323,12 +323,12 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
       struct REnv *e = (struct REnv *)obj;
 
       if (e->cioff < 0) {
-	int i, len;
+        int i, len;
 
-	len = (int)e->flags;
-	for (i=0; i<len; i++) {
-	  mrb_gc_mark_value(mrb, e->stack[i]);
-	}
+        len = (int)e->flags;
+        for (i=0; i<len; i++) {
+          mrb_gc_mark_value(mrb, e->stack[i]);
+        }
       }
     }
     break;
@@ -339,7 +339,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
       size_t i, e;
 
       for (i=0,e=a->len; i<e; i++) {
-	mrb_gc_mark_value(mrb, a->buf[i]);
+        mrb_gc_mark_value(mrb, a->buf[i]);
       }
     }
     break;
@@ -347,6 +347,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_HASH:
     mrb_gc_mark_ht(mrb, (struct RClass*)obj);
     break;
+
   case MRB_TT_STRING:
     {
       struct RString *s = (struct RString*)obj;
@@ -357,6 +358,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
       }
     }
     break;
+
   case MRB_TT_RANGE:
     {
       struct RRange *r = (struct RRange*)obj;
@@ -365,9 +367,8 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
       mrb_gc_mark_value(mrb, r->edges->end);
     }
     break;
-  case MRB_TT_REGEX:
-  case MRB_TT_STRUCT:
-  case MRB_TT_EXCEPTION:
+
+  default:
     break;
   }
 }
@@ -397,12 +398,14 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_OBJECT:
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
     break;
+
   case MRB_TT_CLASS:
   case MRB_TT_MODULE:
   case MRB_TT_SCLASS:
     mrb_gc_free_mt(mrb, (struct RClass*)obj);
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
     break;
+
   case MRB_TT_ENV:
     {
       struct REnv *e = (struct REnv *)obj;
@@ -413,26 +416,24 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
       }
     }
     break;
-  case MRB_TT_PROC:
-  case MRB_TT_ICLASS:
-    break;
+
   case MRB_TT_ARRAY:
     mrb_free(mrb, ((struct RArray*)obj)->buf);
     break;
+
   case MRB_TT_HASH:
     mrb_gc_free_ht(mrb, (struct RClass*)obj);
     break;
+
   case MRB_TT_STRING:
     if (!(obj->flags & MRB_STR_SHARED))
       mrb_free(mrb, ((struct RString*)obj)->buf);
     break;
+
   case MRB_TT_RANGE:
     mrb_free(mrb, ((struct RRange*)obj)->edges);
     break;
-  case MRB_TT_REGEX:
-  case MRB_TT_STRUCT:
-  case MRB_TT_EXCEPTION:
-    break;
+
   case MRB_TT_DATA:
     {
       struct RData *d = (struct RData *)obj;
@@ -440,7 +441,10 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
         d->type->dfree(mrb, d->data);
       }
     }
-	break;
+	  break;
+
+  default:
+    break;
   }
   obj->tt = MRB_TT_FREE;
 }
@@ -529,16 +533,12 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
     children += mrb_gc_mark_ht_size(mrb, (struct RClass*)obj);
     break;
 
-  case MRB_TT_STRING:
-    break;
   case MRB_TT_PROC:
   case MRB_TT_RANGE:
     children+=2;
     break;
 
-  case MRB_TT_REGEX:
-  case MRB_TT_STRUCT:
-  case MRB_TT_EXCEPTION:
+  default:
     break;
   }
   return children;

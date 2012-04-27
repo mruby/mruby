@@ -148,10 +148,6 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, size_t len)
 {
   size_t slen;
 
-  if (len < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
-  }
-
   mrb_str_modify(mrb, str);
   slen = RSTRING_LEN(str);
   if (len != slen) {
@@ -509,10 +505,6 @@ str_new(mrb_state *mrb, enum mrb_vtype ttype, const char *p, size_t len)
 {
   mrb_value str;
 
-  if (len < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
-  }
-
   //str = str_alloc(mrb);
   str = mrb_str_buf_new(mrb, len);
 #ifdef INCLUDE_ENCODING
@@ -600,9 +592,6 @@ mrb_value
 mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 {
   if (len == 0) return str;
-  if (len < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
-  }
   return str_buf_cat(mrb, str, ptr, len);
 }
 

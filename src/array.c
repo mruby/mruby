@@ -906,6 +906,7 @@ mrb_ary_sort_bang(mrb_value ary)
 }
 #endif
 
+#if 0
 mrb_value
 mrb_ary_dup(mrb_state *mrb, mrb_value self)
 {
@@ -928,7 +929,6 @@ mrb_ary_dup(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
-#if 0
 /*
  *  call-seq:
  *     ary.sort                   -> new_ary

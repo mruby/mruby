@@ -31,7 +31,7 @@ mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const str
 
   data = mrb_obj_alloc(mrb, MRB_TT_DATA, klass);
   data->data = ptr;
-  data->type = type;
+  data->type = (struct mrb_data_type *) type;
 
   return data;
 }
