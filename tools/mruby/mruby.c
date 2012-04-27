@@ -47,75 +47,71 @@ static int
 parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 {
   char **origargv = argv;
-  int nomore_flags = 0;
 
   memset(args, 0, sizeof(*args));
 
   for (argc--,argv++; argc > 0; argc--,argv++) {
-    if (!nomore_flags && **argv == '-') {
-      if (strlen(*argv) <= 1)
-        return -1;
+    if (argv[0][0] != '-') break;
 
-      switch ((*argv)[1]) {
-      case 'b':
-        args->mrbfile = 1;
-        break;
-      case 'c':
-        args->check_syntax = 1;
-        break;
-      case 'e':
-        if (argc > 1) {
-          argc--; argv++;
-          if (!args->cmdline) {
-            char *buf;
+    if (strlen(*argv) <= 1)
+      return -1;
 
-            buf = mrb_malloc(mrb, strlen(argv[0])+1);
-            strcpy(buf, argv[0]);
-            args->cmdline = buf;
-          }
-          else {
-            args->cmdline = mrb_realloc(mrb, args->cmdline, strlen(args->cmdline)+strlen(argv[0])+2);
-            strcat(args->cmdline, "\n");
-            strcat(args->cmdline, argv[0]);
-          }
-        }
-        else {
-          printf("%s: No code specified for -e\n", *origargv);
-          return 0;
-        }
-        break;
-      case 'v':
-        ruby_show_version(mrb);
-        args->verbose = 1;
-        break;
-      case '-':
-        if (strcmp((*argv) + 2, "version") == 0) {
-          ruby_show_version(mrb);
-        }
-        else if (strcmp((*argv) + 2, "verbose") == 0) {
-          args->verbose = 1;
-          break;
-        }
-        else if (strcmp((*argv) + 2, "copyright") == 0) {
-          ruby_show_copyright(mrb);
-        }
-        else return -3;
-        return 0;
+    switch ((*argv)[1]) {
+    case 'b':
+      args->mrbfile = 1;
+      break;
+    case 'c':
+      args->check_syntax = 1;
+      break;
+    case 'e':
+      if (argc > 1) {
+	argc--; argv++;
+	if (!args->cmdline) {
+	  char *buf;
+
+	  buf = mrb_malloc(mrb, strlen(argv[0])+1);
+	  strcpy(buf, argv[0]);
+	  args->cmdline = buf;
+	}
+	else {
+	  args->cmdline = mrb_realloc(mrb, args->cmdline, strlen(args->cmdline)+strlen(argv[0])+2);
+	  strcat(args->cmdline, "\n");
+	  strcat(args->cmdline, argv[0]);
+	}
       }
-    }
-    else if (args->rfp == NULL) {
-      if ((args->rfp = fopen(*argv, args->mrbfile ? "rb" : "r")) == NULL) {
-        printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
-        return 0;
+      else {
+	printf("%s: No code specified for -e\n", *origargv);
+	return 0;
       }
-      nomore_flags = 1;
-    }
-    else {
-      args->argv = mrb_realloc(mrb, args->argv, sizeof(char*) * (args->argc + 1));
-      args->argv[args->argc] = *argv;
-      args->argc++;
+      break;
+    case 'v':
+      ruby_show_version(mrb);
+      args->verbose = 1;
+      break;
+    case '-':
+      if (strcmp((*argv) + 2, "version") == 0) {
+	ruby_show_version(mrb);
+      }
+      else if (strcmp((*argv) + 2, "verbose") == 0) {
+	args->verbose = 1;
+	break;
+      }
+      else if (strcmp((*argv) + 2, "copyright") == 0) {
+	ruby_show_copyright(mrb);
+      }
+      else return -3;
+      return 0;
     }
   }
+
+
+  if (args->rfp == NULL && args->cmdline == NULL && (args->rfp = fopen(*argv, args->mrbfile ? "rb" : "r")) == NULL) {
+    printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
+    return 0;
+  }
+  args->argv = mrb_realloc(mrb, args->argv, sizeof(char*) * (argc + 1));
+  memcpy(args->argv, argv, (argc+1) * sizeof(char*));
+  args->argc = argc;
 
   return 0;
 }
@@ -137,7 +133,6 @@ main(int argc, char **argv)
   mrb_state *mrb = mrb_open();
   int n = -1;
   int i;
-  char* value;
   struct _args args;
   struct mrb_parser_state *p;
 
