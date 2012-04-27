@@ -108,7 +108,6 @@ static uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
       while( new_n_buckets < limit ) new_n_buckets *= 2;                \
     }                                                                   \
     uint8_t *old_e_flags = h->e_flags;                                  \
-    uint8_t *old_d_flags = h->d_flags;                                  \
     khkey_t *old_keys = h->keys;                                        \
     khval_t *old_vals = h->vals;                                        \
     khint_t old_n_buckets = h->n_buckets;                               \
@@ -168,7 +167,7 @@ static uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 #define kh_destroy(name, h) kh_destroy_##name(h)
 #define kh_clear(name, h) kh_clear_##name(h)
 #define kh_resize(name, h, s) kh_resize_##name(h, s)
-#define kh_put(name, h, k, r) kh_put_##name(h, k)
+#define kh_put(name, h, k) kh_put_##name(h, k)
 #define kh_get(name, h, k) kh_get_##name(h, k)
 #define kh_del(name, h, k) kh_del_##name(h, k)
 #define kh_debug(name, h) kh_debug_##name(h)

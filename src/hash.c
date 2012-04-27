@@ -164,7 +164,6 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val) /* mr
 {
   khash_t(ht) *h;
   khiter_t k;
-  int r;
 
   mrb_hash_modify(mrb, hash);
   h = RHASH_H_TBL(hash);
@@ -172,7 +171,7 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val) /* mr
   k = kh_get(ht, h, key);
   if (k == kh_end(h)) {
     /* expand */
-    k = kh_put(ht, h, KEY(key), &r);
+    k = kh_put(ht, h, KEY(key));
   }
 
   kh_value(h, k) = val;
@@ -220,7 +219,6 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
   struct RHash* ret;
   khash_t(ht) *h, *ret_h;
   khiter_t k, ret_k;
-  int r;
 
   ret = mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
   ret->ht = kh_init(ht, mrb);
@@ -231,7 +229,7 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
 
     for (k = kh_begin(h); k != kh_end(h); k++) {
       if (kh_exist(h,k)) {
-        ret_k = kh_put(ht, ret_h, KEY(kh_key(h,k)), &r);
+        ret_k = kh_put(ht, ret_h, KEY(kh_key(h,k)));
         kh_val(ret_h, ret_k) = kh_val(h,k);
       }
     }
@@ -616,7 +614,6 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
   khiter_t k;
   mrb_value delKey, delVal;
   mrb_value result;
-  int r;
 
   mrb_hash_modify(mrb, hash);
   if (h) {
@@ -628,7 +625,7 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
         delVal = mrb_hash_delete_key(mrb, hash, delKey);
 
         result = mrb_hash_new(mrb, 1);
-        k = kh_put(ht, RHASH_H_TBL(result), KEY(delKey), &r);
+        k = kh_put(ht, RHASH_H_TBL(result), KEY(delKey));
         kh_value(RHASH_H_TBL(result), k) = delVal;
         return result;
       }

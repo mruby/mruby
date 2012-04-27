@@ -292,10 +292,9 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
 {
   khash_t(mt) *h = c->mt;
   khiter_t k;
-  int ret;
 
   if (!h) h = c->mt = kh_init(mt, mrb);
-  k = kh_put(mt, h, mid, &ret);
+  k = kh_put(mt, h, mid);
   kh_value(h, k) = p;
 }
 
@@ -320,10 +319,9 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
 {
   khash_t(mt) *h = c->mt;
   khiter_t k;
-  int ret;
 
   if (!h) h = c->mt = kh_init(mt, mrb);
-  k = kh_put(mt, h, name, &ret);
+  k = kh_put(mt, h, name);
   kh_value(h, k) = mrb_proc_ptr(body);
 }
 
@@ -942,12 +940,16 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 
       
       switch (mrb_type(klass)) {
-      case MRB_TT_CLASS:
-	snprintf(buf, 256, "#<Class:%p>", c);
-	break;
-      case MRB_TT_MODULE:
-	snprintf(buf, 256, "#<Module:%p>", c);
-	break;
+        case MRB_TT_CLASS:
+          snprintf(buf, 256, "#<Class:%p>", c);
+          break;
+
+        case MRB_TT_MODULE:
+          snprintf(buf, 256, "#<Module:%p>", c);
+          break;
+
+        default:
+          break;
       }
       return mrb_str_dup(mrb, mrb_str_new_cstr(mrb, buf));
     }
