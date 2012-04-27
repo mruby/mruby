@@ -1,5 +1,7 @@
 #include "mruby.h"
 #include "mruby/proc.h"
+#include "mruby/array.h"
+#include "mruby/string.h"
 #include "compile.h"
 #include "mruby/dump.h"
 #include <stdio.h>
@@ -16,6 +18,8 @@ struct _args {
   int mrbfile      : 1;
   int check_syntax : 1;
   int verbose      : 1;
+  int argc;
+  char** argv;
 };
 
 static void
@@ -43,12 +47,12 @@ static int
 parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 {
   char **origargv = argv;
-  int cmdline = 0;
+  int nomore_flags = 0;
 
   memset(args, 0, sizeof(*args));
 
   for (argc--,argv++; argc > 0; argc--,argv++) {
-    if (**argv == '-') {
+    if (!nomore_flags && **argv == '-') {
       if (strlen(*argv) <= 1)
         return -1;
 
@@ -60,7 +64,25 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         args->check_syntax = 1;
         break;
       case 'e':
-        cmdline = 1;
+        if (argc > 1) {
+          argc--; argv++;
+          if (!args->cmdline) {
+            char *buf;
+
+            buf = mrb_malloc(mrb, strlen(argv[0])+1);
+            strcpy(buf, argv[0]);
+            args->cmdline = buf;
+          }
+          else {
+            args->cmdline = mrb_realloc(mrb, args->cmdline, strlen(args->cmdline)+strlen(argv[0])+2);
+            strcat(args->cmdline, "\n");
+            strcat(args->cmdline, argv[0]);
+          }
+        }
+        else {
+          printf("%s: No code specified for -e\n", *origargv);
+          return 0;
+        }
         break;
       case 'v':
         ruby_show_version(mrb);
@@ -81,25 +103,17 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         return 0;
       }
     }
-    else if (cmdline) {
-      if (!args->cmdline) {
-	char *buf;
-
-	buf = mrb_malloc(mrb, strlen(argv[0])+1);
-	strcpy(buf, argv[0]);
-	args->cmdline = buf;
-      }
-      else {
-	args->cmdline = mrb_realloc(mrb, args->cmdline, strlen(args->cmdline)+strlen(argv[0])+2);
-	strcat(args->cmdline, "\n");
-	strcat(args->cmdline, argv[0]);
-      }
-    }
     else if (args->rfp == NULL) {
       if ((args->rfp = fopen(*argv, args->mrbfile ? "rb" : "r")) == NULL) {
         printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
         return 0;
       }
+      nomore_flags = 1;
+    }
+    else {
+      args->argv = mrb_realloc(mrb, args->argv, sizeof(char*) * (args->argc + 1));
+      args->argv[args->argc] = *argv;
+      args->argc++;
     }
   }
 
@@ -113,6 +127,8 @@ cleanup(mrb_state *mrb, struct _args *args)
     fclose(args->rfp);
   if (args->cmdline)
     mrb_free(mrb, args->cmdline);
+  if (args->argv)
+    mrb_free(mrb, args->argv);
 }
 
 int
@@ -120,6 +136,8 @@ main(int argc, char **argv)
 {
   mrb_state *mrb = mrb_open();
   int n = -1;
+  int i;
+  char* value;
   struct _args args;
   struct mrb_parser_state *p;
 
@@ -153,6 +171,12 @@ main(int argc, char **argv)
   }
 
   if (n >= 0) {
+    mrb_value ARGV = mrb_ary_new(mrb);
+    for (i = 0; i < args.argc; i++) {
+      mrb_ary_push(mrb, ARGV, mrb_str_new(mrb, args.argv[i], strlen(args.argv[i])));
+    }
+    mrb_define_global_const(mrb, "ARGV", ARGV);
+
     if (args.verbose)
       codedump_all(mrb, n);
 
