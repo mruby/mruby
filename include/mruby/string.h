@@ -29,7 +29,7 @@ struct RString {
   long len;
   union {
     size_t capa;
-    mrb_value shared;
+    struct RString *shared;
   } aux;
   char *buf;
 };

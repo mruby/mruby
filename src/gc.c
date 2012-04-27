@@ -351,8 +351,9 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     {
       struct RString *s = (struct RString*)obj;
 
-      if (s->flags & MRB_STR_SHARED) {
-        mrb_gc_mark_value(mrb, s->aux.shared)
+      while (s->flags & MRB_STR_SHARED) {
+	s = s->aux.shared;
+	if (!s) break;
       }
     }
     break;
