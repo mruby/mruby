@@ -412,12 +412,12 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
 
       switch (tt) {                           //pool data
       case MRB_TT_FIXNUM:
-        sscanf(buf, "%d", &fix_num);
+	fix_num = readint(buf, 10);
         irep->pool[i] = mrb_fixnum_value(fix_num);
         break;
 
       case MRB_TT_FLOAT:
-        sscanf(buf, "%le", &f);
+	f = readfloat(buf);
         irep->pool[i] = mrb_float_value(f);
         break;
 
