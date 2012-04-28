@@ -8,15 +8,14 @@
 #define MRUBYCONF_H
 
 #include <stdint.h>
-#define MRB_USE_FLOAT
+#undef MRB_USE_FLOAT
 
 #ifdef MRB_USE_FLOAT
 typedef float mrb_float;
-#define readfloat(p) strtof((p),NULL)
 #else
 typedef double mrb_float;
-#define readfloat(p) strtod((p),NULL)
 #endif
+#define readfloat(p) (mrb_float)strtod((p),NULL)
 
 typedef int32_t mrb_int;
 typedef intptr_t mrb_sym;
