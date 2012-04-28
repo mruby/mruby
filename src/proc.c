@@ -59,8 +59,9 @@ mrb_proc_new_cfunc(mrb_state *mrb, mrb_func_t func)
 static mrb_value
 mrb_proc_initialize(mrb_state *mrb, mrb_value self)
 {
-  mrb_value blk = mrb->stack[mrb->ci->argc+1];
+  mrb_value blk;
 
+  mrb_get_args(mrb, "&", &blk);
   if (!mrb_nil_p(blk)) {
     *mrb_proc_ptr(self) = *mrb_proc_ptr(blk);
   }
