@@ -32,7 +32,7 @@ LL = gcc
 YACC = bison
 DEBUG_MODE = 1
 ifeq ($(DEBUG_MODE),1)
-CFLAGS = -g
+CFLAGS = -g -O3
 else
 CFLAGS = -O3
 endif
