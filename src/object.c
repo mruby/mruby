@@ -508,7 +508,7 @@ mrb_any_to_s(mrb_state *mrb, mrb_value obj)
  *     b.kind_of? M       #=> true
  */
 
-int
+mrb_int
 mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
 {
   struct RClass *cl = mrb_class(mrb, obj);
