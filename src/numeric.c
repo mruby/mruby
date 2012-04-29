@@ -109,6 +109,22 @@ const unsigned char mrb_nan[] = "\x7f\xc0\x00\x00";
 #define fmod(x,y) fmodf(x,y)
 #endif
 
+#ifndef round
+mrb_float round(mrb_float x)
+{
+    mrb_float f;
+    if (x > 0.0) {
+        f = floor(x);
+        x = f + (x - f >= 0.5);
+    }
+    else if (x < 0.0) {
+        f = ceil(x);
+        x = f - (f - x >= 0.5);
+    }
+    return x;
+}
+#endif
+
 void mrb_cmperr(mrb_state *mrb, mrb_value x, mrb_value y);
 
 void
