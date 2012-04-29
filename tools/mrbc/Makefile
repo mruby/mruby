@@ -37,7 +37,11 @@ else
 CFLAGS = -O3
 endif
 ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
-MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL)
+ifeq ($(OS),Windows_NT)
+	MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL)
+else
+	MAKE_FLAGS = --no-print-directory CC='$(CC)' LL='$(LL)'
+endif
 
 ##############################
 # generic build targets, rules

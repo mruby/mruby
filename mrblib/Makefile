@@ -24,7 +24,11 @@ CFLAGS = -O3
 endif
 INCLUDES = -I../src -I../include
 ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
-MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL)
+ifeq ($(OS),Windows_NT)
+	MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL)
+else
+	MAKE_FLAGS = --no-print-directory CC='$(CC)' LL='$(LL)'
+endif
 
 # mruby compiler
 ifeq ($(OS),Windows_NT)
