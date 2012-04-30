@@ -1,6 +1,6 @@
 /*
 ** range.c - Range class
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 

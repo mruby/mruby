@@ -1,6 +1,6 @@
 /*
 ** cdump.c - mruby binary dumper (C source format)
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -124,7 +124,7 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
     SOURCE_CODE    ("  irep->syms = mrb_malloc(mrb, sizeof(mrb_sym)*%d);",            irep->slen);
     for (n=0; n<irep->slen; n++)
       if (irep->syms[n]) {
-	SOURCE_CODE  ("  irep->syms[%d] = mrb_intern(mrb, \"%s\");",                  n, mrb_sym2name(mrb, irep->syms[n]));
+        SOURCE_CODE  ("  irep->syms[%d] = mrb_intern(mrb, \"%s\");",                  n, mrb_sym2name(mrb, irep->syms[n]));
       }
   }
   else

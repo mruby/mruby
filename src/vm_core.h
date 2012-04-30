@@ -1,6 +1,6 @@
 /*
 ** vm_core.h - RiteVM core
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -130,12 +130,12 @@ typedef struct mrb_compile_option_struct {
 } mrb_compile_option_t;
 
 struct iseq_inline_cache_entry {
-	mrb_value ic_vmstat;
-	mrb_value ic_class;
+        mrb_value ic_vmstat;
+        mrb_value ic_class;
     union {
-	mrb_value value;
-	mrb_method_entry_t *method;
-	long index;
+        mrb_value value;
+        mrb_method_entry_t *method;
+        long index;
     } ic_value;
 };
 
@@ -168,9 +168,9 @@ void mrb_objspace_free(struct mrb_objspace *);
 #endif
 
 typedef struct mrb_block_struct {
-    mrb_value self;			/* share with method frame if it's only block */
-    mrb_value *lfp;			/* share with method frame if it's only block */
-    mrb_value *dfp;			/* share with method frame if it's only block */
+    mrb_value self;                     /* share with method frame if it's only block */
+    mrb_value *lfp;                     /* share with method frame if it's only block */
+    mrb_value *dfp;                     /* share with method frame if it's only block */
     mrb_iseq_t *iseq;
     mrb_value proc;
 } mrb_block_t;
@@ -217,7 +217,7 @@ RUBY_EXTERN mrb_value mrb_mRubyVMFrozenCore;
 typedef struct {
     mrb_block_t block;
 
-    mrb_value envval;		/* for GC mark */
+    mrb_value envval;           /* for GC mark */
     mrb_value blockprocval;
     int safe_level;
     int is_from_method;
@@ -231,11 +231,11 @@ typedef struct {
     mrb_value *env;
     int env_size;
     int local_size;
-    mrb_value prev_envval;		/* for GC mark */
+    mrb_value prev_envval;              /* for GC mark */
     mrb_block_t block;
 } mrb_env_t;
 
-//#define GetBindingPtr(obj, ptr) 
+//#define GetBindingPtr(obj, ptr)
 //  GetCoreDataFromValue(obj, mrb_binding_t, ptr)
 
 //typedef struct {
@@ -330,7 +330,7 @@ void mrb_disable_interrupt(void);
 //int mrb_thread_method_id_and_class(mrb_thread_t *th, mrb_sym *idp, mrb_value *klassp);
 
 mrb_value mrb_vm_invoke_proc(mrb_thread_t *th, mrb_proc_t *proc, mrb_value self,
-			int argc, const mrb_value *argv, const mrb_block_t *blockptr);
+                        int argc, const mrb_value *argv, const mrb_block_t *blockptr);
 mrb_value mrb_vm_make_proc(mrb_thread_t *th, const mrb_block_t *block, mrb_value klass);
 mrb_value mrb_vm_make_env_object(mrb_thread_t *th, mrb_control_frame_t *cfp);
 
@@ -400,9 +400,9 @@ void mrb_thread_lock_destroy(mrb_thread_lock_t *);
 #define EXEC_EVENT_HOOK(th, flag, self, id, klass) do { \
     mrb_event_flag_t wait_event__ = th->event_flags; \
     if (UNLIKELY(wait_event__)) { \
-	if (wait_event__ & (flag | RUBY_EVENT_VM)) { \
-	    mrb_threadptr_exec_event_hooks(th, flag, self, id, klass); \
-	} \
+        if (wait_event__ & (flag | RUBY_EVENT_VM)) { \
+            mrb_threadptr_exec_event_hooks(th, flag, self, id, klass); \
+        } \
     } \
 } while (0)
 #endif

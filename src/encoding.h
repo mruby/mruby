@@ -1,6 +1,6 @@
 /*
 ** encoding.h - Encoding class
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -62,16 +62,16 @@ int mrb_toupper(int c);
 
 #define ENCODING_MAXNAMELEN 42
 
-#define ENC_CODERANGE_MASK	((int)(FL_USER8|FL_USER9))
-#define ENC_CODERANGE_UNKNOWN	0
-#define ENC_CODERANGE_7BIT	((int)FL_USER8)
-#define ENC_CODERANGE_VALID	((int)FL_USER9)
-#define ENC_CODERANGE_BROKEN	((int)(FL_USER8|FL_USER9))
+#define ENC_CODERANGE_MASK      ((int)(FL_USER8|FL_USER9))
+#define ENC_CODERANGE_UNKNOWN   0
+#define ENC_CODERANGE_7BIT      ((int)FL_USER8)
+#define ENC_CODERANGE_VALID     ((int)FL_USER9)
+#define ENC_CODERANGE_BROKEN    ((int)(FL_USER8|FL_USER9))
 #define ENC_CODERANGE(obj) ((int)(RSTRING(obj)->flags & ENC_CODERANGE_MASK))
 #define ENC_CODERANGE_ASCIIONLY(obj) (ENC_CODERANGE(obj) == ENC_CODERANGE_7BIT)
 #ifdef INCLUDE_ENCODING
 #define ENC_CODERANGE_SET(obj,cr) (RSTRING(obj)->flags = \
-				   (RSTRING(obj)->flags & ~ENC_CODERANGE_MASK) | (cr))
+                                   (RSTRING(obj)->flags & ~ENC_CODERANGE_MASK) | (cr))
 #else
 #define ENC_CODERANGE_SET(obj,cr)
 #endif //INCLUDE_ENCODING

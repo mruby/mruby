@@ -1,6 +1,6 @@
 /*
-** etc.c - 
-** 
+** etc.c -
+**
 ** See Copyright Notice in mruby.h
 */
 

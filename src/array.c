@@ -1,6 +1,6 @@
 /*
 ** array.c - Array class
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 

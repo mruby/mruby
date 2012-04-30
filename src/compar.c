@@ -1,6 +1,6 @@
 /*
 ** compar.c - Comparable module
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -22,7 +22,7 @@ mrb_cmperr(mrb_state *mrb, mrb_value x, mrb_value y)
     classname = mrb_obj_classname(mrb, y);
   }
   mrb_raise(mrb, E_ARGUMENT_ERROR, "comparison of %s with %s failed",
-	    mrb_obj_classname(mrb, x), classname);
+            mrb_obj_classname(mrb, x), classname);
 }
 
 int

@@ -1,6 +1,6 @@
 /*
 ** class.h - Class class
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -74,4 +74,4 @@ void mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_fun
 
 void mrb_obj_call_init(mrb_state *mrb, mrb_value obj, int argc, mrb_value *argv);
 
-#endif	/* MRUBY_CLASS_H */
+#endif  /* MRUBY_CLASS_H */

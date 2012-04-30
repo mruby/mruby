@@ -1,6 +1,6 @@
 /*
 ** gc.h - garbage collector for RiteVM
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 

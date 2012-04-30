@@ -1,6 +1,6 @@
 /*
 ** encoding.c - Encoding class
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -1376,14 +1376,14 @@ nl_langinfo_codeset(void)
     p = strchr(l, '.');
     if (!p++) p = l;
     if (strstart(p, "UTF"))
-	return "UTF-8";
+        return "UTF-8";
     if ((n = 5, strstart(p, "8859-")) || (n = 9, strstart(p, "ISO-8859-"))) {
       if (digit(p[n])) {
-	p += n;
-	memcpy(buf, "ISO-8859-\0\0", 12);
-	buf[9] = *p++;
-	if (digit(*p)) buf[10] = *p++;
-	return buf;
+        p += n;
+        memcpy(buf, "ISO-8859-\0\0", 12);
+        buf[9] = *p++;
+        if (digit(*p)) buf[10] = *p++;
+        return buf;
       }
     }
     if (strstart(p, "KOI8-R")) return "KOI8-R";
@@ -1406,8 +1406,8 @@ nl_langinfo_codeset(void)
     if (strstart(l, "ru")) return "KOI8-R";
     if (strstart(l, "uk")) return "KOI8-U";
     if (strstart(l, "pl") || strstart(l, "hr") ||
-	strstart(l, "hu") || strstart(l, "cs") ||
-	strstart(l, "sk") || strstart(l, "sl")) return "ISO-8859-2";
+        strstart(l, "hu") || strstart(l, "cs") ||
+        strstart(l, "sk") || strstart(l, "sl")) return "ISO-8859-2";
     if (strstart(l, "eo") || strstart(l, "mt")) return "ISO-8859-3";
     if (strstart(l, "el")) return "ISO-8859-7";
     if (strstart(l, "he")) return "ISO-8859-8";

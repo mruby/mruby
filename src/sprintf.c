@@ -1,6 +1,6 @@
 /*
 ** sprintf.c - Kernel.#sprintf
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -162,7 +162,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
   posarg > 0 ? \
   (mrb_raise(mrb, E_ARGUMENT_ERROR, "named%.*s after unnumbered(%d)", (len), (name), posarg), mrb_undef_value()) : \
   posarg == -1 ? \
-  (mrb_raise(mrb, E_ARGUMENT_ERROR, "named%.*s after numbered", (len), (name)), mrb_undef_value()) :	\
+  (mrb_raise(mrb, E_ARGUMENT_ERROR, "named%.*s after numbered", (len), (name)), mrb_undef_value()) :    \
   (posarg = -2, mrb_hash_getWithDef(mrb, get_hash(mrb, &hash, argc, argv), id, mrb_undef_value())))
 
 #define GETNUM(n, val) \

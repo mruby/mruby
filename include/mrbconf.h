@@ -1,6 +1,6 @@
 /*
 ** mrbconf.h - mruby core configuration
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -42,4 +42,4 @@ typedef intptr_t mrb_sym;
 # define TRUE 1
 #endif
 
-#endif	/* MRUBYCONF_H */
+#endif  /* MRUBYCONF_H */
