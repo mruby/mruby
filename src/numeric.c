@@ -1,6 +1,6 @@
 /*
 ** numeric.c - Numeric, Integer, Float, Fixnum class
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 

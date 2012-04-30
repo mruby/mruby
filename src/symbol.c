@@ -1,6 +1,6 @@
 /*
 ** symbol.c - Symbol class
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 

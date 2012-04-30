@@ -1,6 +1,6 @@
 /*
 ** variable.c - mruby variables
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -165,7 +165,7 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
       khiter_t k = kh_get(iv, h, sym);
 
       if (k != kh_end(h))
-	return kh_value(h, k);
+        return kh_value(h, k);
     }
     c = c->super;
   }
@@ -184,8 +184,8 @@ mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
       h = c->iv;
       k = kh_get(iv, h, sym);
       if (k != kh_end(h)) {
-	k = kh_put(iv, h, sym);
-	kh_value(h, k) = v;
+        k = kh_put(iv, h, sym);
+        kh_value(h, k) = v;
       }
     }
     c = c->super;
@@ -244,7 +244,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
       h = c->iv;
       k = kh_get(iv, h, sym);
       if (k != kh_end(h)) {
-	return kh_value(h, k);
+        return kh_value(h, k);
       }
     }
   }
@@ -254,13 +254,13 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
       h = c->iv;
       k = kh_get(iv, h, sym);
       if (k != kh_end(h)) {
-	return kh_value(h, k);
+        return kh_value(h, k);
       }
     }
     c = c->super;
   }
   mrb_raise(mrb, E_NAME_ERROR, "uninitialized constant %s",
-	    mrb_sym2name(mrb, sym));
+            mrb_sym2name(mrb, sym));
   /* not reached */
   return mrb_nil_value();
 }

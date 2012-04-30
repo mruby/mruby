@@ -1,6 +1,6 @@
 /*
 ** string.c - String class
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 

@@ -3906,7 +3906,7 @@ econv_primitive_errinfo(mrb_state *mrb, mrb_value self)
 static mrb_value
 econv_insert_output(mrb_state *mrb, mrb_value self)
 {
-	mrb_value string;
+        mrb_value string;
     const char *insert_enc;
 
     int ret;

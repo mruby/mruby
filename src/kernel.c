@@ -1,6 +1,6 @@
 /*
 ** kernel.c - Kernel module
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -55,22 +55,22 @@ inspect_obj(mrb_state *mrb, mrb_value obj, mrb_value str, int recur)
 
     if (h) {
       for (k = kh_begin(h); k != kh_end(h); k++) {
-	if (kh_exist(h, k)){
-	  mrb_sym id = kh_key(h, k);
-	  mrb_value value = kh_value(h, k);
+        if (kh_exist(h, k)){
+          mrb_sym id = kh_key(h, k);
+          mrb_value value = kh_value(h, k);
 
-	  /* need not to show internal data */
-	  if (RSTRING_PTR(str)[0] == '-') { /* first element */
-	    RSTRING_PTR(str)[0] = '#';
-	    mrb_str_cat2(mrb, str, " ");
-	  }
-	  else {
-	    mrb_str_cat2(mrb, str, ", ");
-	  }
-	  mrb_str_cat2(mrb, str, mrb_sym2name(mrb, id));
-	  mrb_str_cat2(mrb, str, "=");
-	  mrb_str_append(mrb, str, mrb_inspect(mrb, value));
-	}
+          /* need not to show internal data */
+          if (RSTRING_PTR(str)[0] == '-') { /* first element */
+            RSTRING_PTR(str)[0] = '#';
+            mrb_str_cat2(mrb, str, " ");
+          }
+          else {
+            mrb_str_cat2(mrb, str, ", ");
+          }
+          mrb_str_cat2(mrb, str, mrb_sym2name(mrb, id));
+          mrb_str_cat2(mrb, str, "=");
+          mrb_str_append(mrb, str, mrb_inspect(mrb, value));
+        }
       }
     }
   }
@@ -398,7 +398,7 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
             ROBJECT(dest)->iv = ROBJECT(obj)->iv;
         }
         break;
-      
+
       default:
         break;
     }
@@ -795,13 +795,13 @@ mrb_obj_instance_variables(mrb_state *mrb, mrb_value self)
     ary = mrb_ary_new(mrb);
     if (h) {
       for (i=0;i<kh_end(h);i++) {
-	if (kh_exist(h, i)) {
+        if (kh_exist(h, i)) {
           p = mrb_sym2name(mrb, kh_key(h,i));
           if (*p == '@') {
             if (mrb_type(kh_value(h, i)) != MRB_TT_UNDEF)
               mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, p));
           }
-	}
+        }
       }
     }
     return ary;

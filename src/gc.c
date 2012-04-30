@@ -1,6 +1,6 @@
 /*
 ** gc.c - garbage collector for RiteVM
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -298,7 +298,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_MODULE:
     {
       struct RClass *c = (struct RClass*)obj;
-  
+
       mrb_gc_mark_iv(mrb, (struct RObject*)obj);
       mrb_gc_mark_mt(mrb, c);
       mrb_gc_mark(mrb, (struct RBasic*)c->super);
@@ -353,8 +353,8 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
       struct RString *s = (struct RString*)obj;
 
       while (s->flags & MRB_STR_SHARED) {
-	s = s->aux.shared;
-	if (!s) break;
+        s = s->aux.shared;
+        if (!s) break;
       }
     }
     break;
@@ -441,7 +441,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
         d->type->dfree(mrb, d->data);
       }
     }
-	  break;
+          break;
 
   default:
     break;
@@ -594,12 +594,12 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
 
     while (p<e) {
       if (is_dead(mrb, &p->as.basic)) {
-	if (p->as.basic.tt != MRB_TT_FREE) {
-	  obj_free(mrb, &p->as.basic);
-	  p->as.free.next = page->freelist;
-	  page->freelist = (struct RBasic*)p;
+        if (p->as.basic.tt != MRB_TT_FREE) {
+          obj_free(mrb, &p->as.basic);
+          p->as.free.next = page->freelist;
+          page->freelist = (struct RBasic*)p;
           freed++;
-	}
+        }
       }
       else {
         paint_partial_white(mrb, &p->as.basic); /* next gc target */

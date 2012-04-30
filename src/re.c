@@ -1,6 +1,6 @@
 /*
 ** re.c - Regexp class
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 

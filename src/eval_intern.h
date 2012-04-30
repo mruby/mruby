@@ -1,6 +1,6 @@
 /*
-** eval_intern.h - 
-** 
+** eval_intern.h -
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -48,7 +48,7 @@
 #  ifndef alloca
 #   define alloca __builtin_alloca
 #  endif
-# endif	/* atarist */
+# endif /* atarist */
 #else
 # ifdef HAVE_ALLOCA_H
 #  include <alloca.h>
@@ -56,11 +56,11 @@
 #  ifdef _AIX
 #pragma alloca
 #  else
-#   ifndef alloca		/* predefined by HP cc +Olibcalls */
+#   ifndef alloca               /* predefined by HP cc +Olibcalls */
 void *alloca();
 #   endif
 #  endif /* AIX */
-# endif	/* HAVE_ALLOCA_H */
+# endif /* HAVE_ALLOCA_H */
 #endif /* __GNUC__ */
 
 #ifndef HAVE_STRING_H
@@ -135,25 +135,25 @@ char *strrchr(const char *, const char);
 //#define JUMP_TAG(st) TH_JUMP_TAG(GET_THREAD(), st)
 
 enum ruby_tag_type {
-    RUBY_TAG_RETURN	= 0x1,
-    RUBY_TAG_BREAK	= 0x2,
-    RUBY_TAG_NEXT	= 0x3,
-    RUBY_TAG_RETRY	= 0x4,
-    RUBY_TAG_REDO	= 0x5,
-    RUBY_TAG_RAISE	= 0x6,
-    RUBY_TAG_THROW	= 0x7,
-    RUBY_TAG_FATAL	= 0x8,
-    RUBY_TAG_MASK	= 0xf
+    RUBY_TAG_RETURN     = 0x1,
+    RUBY_TAG_BREAK      = 0x2,
+    RUBY_TAG_NEXT       = 0x3,
+    RUBY_TAG_RETRY      = 0x4,
+    RUBY_TAG_REDO       = 0x5,
+    RUBY_TAG_RAISE      = 0x6,
+    RUBY_TAG_THROW      = 0x7,
+    RUBY_TAG_FATAL      = 0x8,
+    RUBY_TAG_MASK       = 0xf
 };
-#define TAG_RETURN	RUBY_TAG_RETURN
-#define TAG_BREAK	RUBY_TAG_BREAK
-#define TAG_NEXT	RUBY_TAG_NEXT
-#define TAG_RETRY	RUBY_TAG_RETRY
-#define TAG_REDO	RUBY_TAG_REDO
-#define TAG_RAISE	RUBY_TAG_RAISE
-#define TAG_THROW	RUBY_TAG_THROW
-#define TAG_FATAL	RUBY_TAG_FATAL
-#define TAG_MASK	RUBY_TAG_MASK
+#define TAG_RETURN      RUBY_TAG_RETURN
+#define TAG_BREAK       RUBY_TAG_BREAK
+#define TAG_NEXT        RUBY_TAG_NEXT
+#define TAG_RETRY       RUBY_TAG_RETRY
+#define TAG_REDO        RUBY_TAG_REDO
+#define TAG_RAISE       RUBY_TAG_RAISE
+#define TAG_THROW       RUBY_TAG_THROW
+#define TAG_FATAL       RUBY_TAG_FATAL
+#define TAG_MASK        RUBY_TAG_MASK
 
 #define NEW_THROW_OBJECT(val, pt, st) \
   ((mrb_value)mrb_node_newnode(NODE_LIT, (mrb_value)(val), (mrb_value)(pt), (mrb_value)(st)))
@@ -208,7 +208,7 @@ NORETURN(void rb_print_undef(mrb_value, mrb_sym, int));
 NORETURN(void rb_vm_localjump_error(const char *,mrb_value, int));
 NORETURN(void rb_vm_jump_tag_but_local_jump(int, mrb_value));
 //NORETURN(void mrb_raise_method_missing(mrb_thread_t *th, int argc, mrb_value *argv,
-//				      mrb_value obj, int call_status));
+//                                    mrb_value obj, int call_status));
 
 mrb_value mrb_vm_make_jump_tag_but_local_jump(int state, mrb_value val);
 NODE *mrb_vm_cref(void);
