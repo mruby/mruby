@@ -1,6 +1,6 @@
 /*
 ** error.c - Exception class
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -332,7 +332,7 @@ error_pos(void)
 static void
 set_backtrace(mrb_state *mrb, mrb_value info, mrb_value bt)
 {
-	mrb_funcall(mrb, info, "set_backtrace", 1, bt);
+        mrb_funcall(mrb, info, "set_backtrace", 1, bt);
 }
 
 mrb_value

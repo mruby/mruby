@@ -1,6 +1,6 @@
 /*
 ** range.h - Range class
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -24,4 +24,4 @@ mrb_int mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_in
 int mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
 struct RClass* mrb_class_real(struct RClass* cl);
 
-#endif	/* MRUBY_RANGE_H */
+#endif  /* MRUBY_RANGE_H */

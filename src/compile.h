@@ -1,6 +1,6 @@
 /*
 ** compile.h - mruby parser
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -17,17 +17,17 @@ typedef struct mrb_ast_node {
 #include <stdio.h>
 
 enum mrb_lex_state_enum {
-    EXPR_BEG,			/* ignore newline, +/- is a sign. */
-    EXPR_END,			/* newline significant, +/- is an operator. */
-    EXPR_ENDARG,		/* ditto, and unbound braces. */
-    EXPR_ENDFN, 		/* ditto, and unbound braces. */
-    EXPR_ARG,			/* newline significant, +/- is an operator. */
-    EXPR_CMDARG,		/* newline significant, +/- is an operator. */
-    EXPR_MID,			/* newline significant, +/- is an operator. */
-    EXPR_FNAME,			/* ignore newline, no reserved words. */
-    EXPR_DOT,			/* right after `.' or `::', no reserved words. */
-    EXPR_CLASS,			/* immediate after `class', no here document. */
-    EXPR_VALUE,			/* alike EXPR_BEG but label is disallowed. */
+    EXPR_BEG,                   /* ignore newline, +/- is a sign. */
+    EXPR_END,                   /* newline significant, +/- is an operator. */
+    EXPR_ENDARG,                /* ditto, and unbound braces. */
+    EXPR_ENDFN,                 /* ditto, and unbound braces. */
+    EXPR_ARG,                   /* newline significant, +/- is an operator. */
+    EXPR_CMDARG,                /* newline significant, +/- is an operator. */
+    EXPR_MID,                   /* newline significant, +/- is an operator. */
+    EXPR_FNAME,                 /* ignore newline, no reserved words. */
+    EXPR_DOT,                   /* right after `.' or `::', no reserved words. */
+    EXPR_CLASS,                 /* immediate after `class', no here document. */
+    EXPR_VALUE,                 /* alike EXPR_BEG but label is disallowed. */
     EXPR_MAX_STATE
 };
 

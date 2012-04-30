@@ -1,6 +1,6 @@
 /*
 ** enum.c - Enumerable module
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 

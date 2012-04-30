@@ -1,6 +1,6 @@
 /*
 ** data.h - Data class
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -13,7 +13,7 @@ extern "C" {
 
 
 struct mrb_data_type {
-  const char *struct_name;  
+  const char *struct_name;
   void (*dfree)(mrb_state *mrb, void*);
 };
 

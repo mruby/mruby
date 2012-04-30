@@ -1,6 +1,6 @@
 /*
 ** pool.c - memory pool
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
@@ -124,8 +124,8 @@ mrb_pool_realloc(mrb_pool *pool, void *p, size_t oldlen, size_t newlen)
       beg = (char*)p - page->page;
       if (beg + oldlen != page->offset) break;
       if (beg + newlen > page->len) {
-	page->offset = beg;
-	break;
+        page->offset = beg;
+        break;
       }
       page->offset = beg + newlen;
       return p;

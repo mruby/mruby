@@ -1,6 +1,6 @@
 /*
 ** object.c - Object, NilClass, TrueClass, FalseClass class
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 

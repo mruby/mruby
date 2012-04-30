@@ -1,6 +1,6 @@
 /*
 ** ritehash.c - Rite Hash for mruby
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 

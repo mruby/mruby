@@ -1,6 +1,6 @@
 /*
 ** hash.c - Hash class
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 

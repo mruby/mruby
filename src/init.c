@@ -1,6 +1,6 @@
 /*
 ** init.c - initialize mruby core
-** 
+**
 ** See Copyright Notice in mruby.h
 */
 
