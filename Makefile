@@ -22,6 +22,7 @@ endif
 
 .PHONY : all
 all :
+	@$(MAKE) -C src $(MAKE_FLAGS)
 	@$(MAKE) -C tools/mruby $(MAKE_FLAGS)
 
 # clean up
