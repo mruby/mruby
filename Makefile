@@ -1,13 +1,6 @@
 # makefile discription.
 # basic build file for mruby
 
-# library for iOS
-IOSLIB := $(RITEVM)-ios.a
-IOSSIMLIB := $(RITEVM)-iossim.a
-IOSDEVLIB := $(RITEVM)-iosdev.a
-IOSSIMCC := xcrun -sdk iphoneos llvm-gcc-4.2 -arch i386 -isysroot "/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator5.0.sdk/"
-IOSDEVCC := xcrun -sdk iphoneos llvm-gcc-4.2 -arch armv7 -isysroot "/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS5.0.sdk/"
-
 # compiler, linker (gcc)
 CC = gcc
 LL = gcc
@@ -30,23 +23,6 @@ endif
 .PHONY : all
 all :
 	@$(MAKE) -C tools/mruby $(MAKE_FLAGS)
-
-# make library for iOS
-.PHONY : ios
-ios : $(IOSLIB)
-
-$(IOSLIB) : $(IOSSIMLIB) $(IOSDEVLIB)
-	lipo -arch i386 $(IOSSIMLIB) -arch armv7 $(IOSDEVLIB) -create -output $(IOSLIB)
-
-$(IOSSIMLIB) :
-	$(MAKE) clean -C src $(MAKE_FLAGS)
-	$(MAKE) -C src $(MAKE_FLAGS) CC="$(IOSSIMCC)" LL="$(IOSSIMCC)"
-	cp $(LIB) $(IOSSIMLIB)
-
-$(IOSDEVLIB) :
-	$(MAKE) clean -C src $(MAKE_FLAGS)
-	$(MAKE) -C src $(MAKE_FLAGS) CC="$(IOSDEVCC)" LL="$(IOSDEVCC)"
-	cp $(LIB) $(IOSDEVLIB)
 
 # clean up
 .PHONY : clean
