@@ -9,6 +9,7 @@ MLIB := $(TARGET).o
 CLIB := $(TARGET).c
 DLIB := $(TARGET).ctmp
 RLIB := $(TARGET).rbtmp
+DEPLIB := $(TARGET).d
 MRB1 := $(BASEDIR)/*.rb
 MRBS := $(MRB1)
 
@@ -62,6 +63,5 @@ $(RLIB) : $(MRBS)
 .PHONY : clean
 clean :
 	@echo "make: removing targets, objects and depend files of `pwd`"
-	-rm -f $(MRBC) $(MLIB) $(CLIB) $(RLIB) $(DLIB)
-	-rm -f $(OBJS:.o=.d)
+	-rm -f $(MRBC) $(MLIB) $(CLIB) $(RLIB) $(DLIB) $(DEPLIB)
 
