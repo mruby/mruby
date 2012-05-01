@@ -1,7 +1,7 @@
 * Prerequisites
   
   1. Make sure you have bison (http://www.gnu.org/software/bison/) installed in your system. 
-  2 Make sure you have cmake (http://www.cmake.org version 2.6 or 
+  2 Make sure you have cmake (http://www.cmake.org version 2.8.8 or 
   later installed).
   
 

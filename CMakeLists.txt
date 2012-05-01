@@ -4,22 +4,25 @@
 #
 # NOTE: the original Makefile build system had a few hacks in them,
 # whch I didn't duplicate. In stead the build logic is like this: 
-# 1) First libritevm_static.a & libritevm.so are built from all C files in src.
+# 1) First libritevm_object is built
+# 2) From this libritevm_static.a is built.
 # 2) Then mrbc is built and linked with libritevm_static.a .
-# 3) Then libmrblib_static.a & lib_mrblib.so are built from the rb files in
+# 4) Then libmrblib_object is builtfrom are built from the rb files in
 #    the mrblib subdirectory
-# 4) Finally, mruby is built and linked with  libritevm_static.a 
-#    and libmrblib_static.a. 
+# 5) Then libmrblib_object &  libritevm_object are linked together into 
+#    a single library libmrubylib_static.a 
+# 6) Finally, mruby is built and linked with  libmrubylib_static.a
+#
 # As a result, applications that embed mruby will have to link against 
-# libritevm_static.a and libmrblib_static.a. in that order.
+# libmrubylib_static.a only..
 #
 # TODO: make this work on windows too, support build options to generate 
 # mrbconf.h, etc...
 #
 
 # Setup
-# Need at least cmake version 2.6
-cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
+# Need at least cmake version 2.8.8
+cmake_minimum_required(VERSION 2.8.8 FATAL_ERROR)
 if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
     cmake_policy(SET CMP0015 NEW)
@@ -93,6 +96,16 @@ add_subdirectory("tools/mrbc")
 
 # compile libmrblib 
 add_subdirectory("mrblib")
+
+# generate final library 
+add_library(mrubylib_static STATIC 
+            $<TARGET_OBJECTS:ritevm_object> $<TARGET_OBJECTS:mrblib_object>)
+add_library(mrubylib SHARED 
+            $<TARGET_OBJECTS:ritevm_object> $<TARGET_OBJECTS:mrblib_object>)
+
+install(TARGETS mrubylib mrubylib_static
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib)
 
 # compile the interpreter tool
 add_subdirectory("tools/mruby")

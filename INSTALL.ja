@@ -4,7 +4,7 @@
 
 以下の手順で行ってください．
 
-  コンパイル前にcmake 2.6 (http://www.cmake.org)をインストールしてください。
+  コンパイル前にcmake 2.8.8 (http://www.cmake.org)をインストールしてください。
 
   1. cmake . ; make ; make install を実行してコンパイルする
 

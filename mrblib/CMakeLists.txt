@@ -25,11 +25,11 @@ DEPENDS init_mrblib.c mrblib_irep.c
 
 # only use this C file to generate mrblib.
 set(MRBLIB_SRC_C mrblib.c)
-add_library(mrblib_static STATIC ${MRBLIB_SRC_C})
-add_library(mrblib SHARED ${MRBLIB_SRC_C})
-target_link_libraries(mrblib ${MRUBY_LIBS})
-target_link_libraries(mrblib_static ${MRUBY_LIBS})
-install(TARGETS mrblib mrblib_static
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib)
+# add_library(mrblib_static STATIC ${MRBLIB_SRC_C})
+add_library(mrblib_object OBJECT ${MRBLIB_SRC_C})
+# target_link_libraries(mrblib ritevm ${MRUBY_LIBS})
+# target_link_libraries(mrblib_static ritevm_static ${MRUBY_LIBS})
+# install(TARGETS mrblib mrblib_static
+#         LIBRARY DESTINATION lib
+#         ARCHIVE DESTINATION lib)
 
