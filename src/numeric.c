@@ -16,10 +16,6 @@
 #include <math.h>
 #include <stdio.h>
 
-#ifdef INCLUDE_REGEXP
-#include "encoding.h"
-#endif
-
 #if defined(__FreeBSD__) && __FreeBSD__ < 4
 #include <floatingpoint.h>
 #endif
@@ -30,20 +26,6 @@
 
 #ifdef HAVE_IEEEFP_H
 #include <ieeefp.h>
-#endif
-
-#ifndef mrb_usascii_str_new2
-  #ifdef INCLUDE_REGEXP
-    #define mrb_usascii_str_new2 mrb_usascii_str_new_cstr
-  #else
-    #define mrb_usascii_str_new2 mrb_str_new_cstr
-  #endif
-#endif
-#ifndef mrb_usascii_str_new2
-  #ifdef INCLUDE_REGEXP
-  #else
-    #define mrb_usascii_str_new  mrb_str_new
-  #endif
 #endif
 
 /* use IEEE 64bit values if not defined */
@@ -1050,7 +1032,7 @@ rb_fix2str(mrb_state *mrb, mrb_value x, int base)
         mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid radix %d", base);
     }
     if (val == 0) {
-        return mrb_usascii_str_new2(mrb, "0");
+        return mrb_str_new_cstr(mrb, "0");
     }
     if (val < 0) {
         val = -val;
@@ -1064,7 +1046,7 @@ rb_fix2str(mrb_state *mrb, mrb_value x, int base)
         *--b = '-';
     }
 
-    return mrb_usascii_str_new2(mrb, b);
+    return mrb_str_new_cstr(mrb, b);
 }
 
 #define SQRT_LONG_MAX ((SIGNED_VALUE)1<<((sizeof(intptr_t)*CHAR_BIT-1)/2))
