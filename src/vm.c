@@ -299,7 +299,7 @@ localjump_error(mrb_state *mrb, const char *kind)
 
 #define SET_SYM_VALUE(r,v) {\
   (r).tt = MRB_TT_SYMBOL;\
-  (r).value.i = (v);\
+  (r).value.sym = (v);\
 }
 
 #define SET_OBJ_VALUE(r,v) {\
