@@ -1,14 +1,18 @@
 * コンパイル・インストール
 
+
+
 以下の手順で行ってください．
 
-  1. makeを実行してコンパイルする
+  コンパイル前にcmake 2.6 (http://www.cmake.org)をインストールしてください。
+
+  1. cmake . ; make ; make install を実行してコンパイルする
 
      以下のディレクトリにライブラリおよびバイナリが作成されます。
 
-       * bin
-       * lib
-       * include
+       * /usr/local/bin
+       * /usr/local/lib
+       * /usr/local/include
 
 もし，コンパイル時にエラーが発生した場合にはエラーのログとマ
 シン，OSの種類を含むできるだけ詳しいレポートを作者に送ってく

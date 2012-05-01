@@ -1,17 +1,21 @@
 * Prerequisites
   
   1. Make sure you have bison (http://www.gnu.org/software/bison/) installed in your system. 
+  2 Make sure you have cmake (http://www.cmake.org version 2.6 or 
+  later installed).
+  
 
 * Compilation and Installation
 
-  1. Run make in the top directory.
-
+  1. Run cmake . ; make ; make install in the top directory.
+     
+  
      This command will create the following directories and
      store libraries and binaries files into them.
 
-       * bin
-       * lib
-       * include
+       * /usr/local/bin
+       * /usr/local/lib
+       * /usr/local/include
 
 If an error occurs when compiling mruby, it will be helpful for others if you
 send a detailed report to the developers that includes the error log, machine,
