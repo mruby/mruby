@@ -250,6 +250,7 @@ typedef struct mrb_state {
   struct RClass *encode_class;
   struct RClass *converter_class;
 #endif
+  struct RClass *time_class;
 
   struct RClass *float_class;
   struct RClass *fixnum_class;
