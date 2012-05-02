@@ -31,7 +31,11 @@ mrb_closure_new(mrb_state *mrb, mrb_irep *irep)
 
   if (!mrb->ci->env) {
     e = mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass *) mrb->ci->proc->env);
+#if 0
     e->flags= (unsigned int)irep->nlocals;
+#else
+    e->flags= (unsigned int)mrb->ci->proc->body.irep->nlocals;
+#endif
     e->mid = mrb->ci->mid;
     e->cioff = mrb->ci - mrb->cibase;
     e->stack = mrb->stack;
