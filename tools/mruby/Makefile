@@ -19,10 +19,6 @@ OBJ0 := $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/../tools/mruby/*.c))
 #OBJ3 := $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/ext/enc/*.c))
 OBJS := $(OBJ0)
 
-# mruby libraries
-EXTC := $(BASEDIR)/../mrblib/mrblib.c
-EXTRB := $(wildcard $(BASEDIR)/../mrblib/*.rb)
-EXTM := $(patsubst %.c,%.o,$(EXTC))
 # ext libraries
 #EXT1 := $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/../ext/socket/*.c))
 EXTS := $(EXT1)
@@ -56,8 +52,8 @@ all : $(LIBR) $(EXE)
 	@echo "make: built targets of `pwd`"
 
 # executable constructed using linker from object files
-$(EXE) : $(LIBR) $(OBJS) $(EXTM) $(EXTS)
-	$(LL) -o $@ $(CFLAGS) $(OBJS) $(EXTM) $(LIBR) $(EXTS) $(LIBS)
+$(EXE) : $(LIBR) $(OBJS) $(EXTS)
+	$(LL) -o $@ $(CFLAGS) $(OBJS) $(LIBR) $(EXTS) $(LIBS)
 
 -include $(OBJS:.o=.d)
 
@@ -70,10 +66,6 @@ $(LIBR) :
 	@$(MAKE) -C $(BASEDIR) $(MAKE_FLAGS)
 
 # mruby library compile
-$(EXTM) : $(EXTRB) $(LIBR)
-	@$(MAKE) -C ../mrbc $(MAKE_FLAGS)
-	@$(MAKE) -C ../../mrblib $(MAKE_FLAGS)
-
 # extend libraries complile
 $(EXTS) : %.o : %.c
 	$(CC) $(ALL_CFLAGS) -MMD $(INCLUDES) -c $< -o $@
