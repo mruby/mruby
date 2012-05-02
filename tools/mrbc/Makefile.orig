@@ -5,7 +5,7 @@
 # extension of the executable-file is modifiable(.exe .out ...)
 BASEDIR := ../../src
 TARGET := ../../bin/mrbc
-LIB := ../../lib/ritevm
+LIB := ../../lib/mruby
 ifeq ($(OS),Windows_NT)
 EXE := $(TARGET).exe
 LIBR := $(LIB).lib
