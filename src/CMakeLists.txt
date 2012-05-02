@@ -10,7 +10,7 @@ BISON_TARGET(mruby parse.y ${CMAKE_CURRENT_BINARY_DIR}/parse.c)
 
 # configure_file("config.in.h" "config.h")
 file(GLOB MRUBY_SRC_C "*.c")
-add_library(ritevm_object OBJECT ${MRUBY_SRC_C} ${BISON_mruby_OUTPUTS})
+add_library(ritevm_object OBJECT ${MRUBY_SRC_C})
 add_library(ritevm_static STATIC $<TARGET_OBJECTS:ritevm_object>)
 add_library(ritevm SHARED $<TARGET_OBJECTS:ritevm_object>)
 
