@@ -114,6 +114,9 @@ add_subdirectory("tools/mruby")
 install(FILES include/mruby.h     DESTINATION include)
 install(FILES include/mrbconf.h   DESTINATION include)
 install(DIRECTORY include/mruby   DESTINATION include)
+# For now, also install header files in src dir to ${PREFIX}include/mruby 
+file(GLOB SRC_HEADERS src/*.h)
+install (FILES ${SRC_HEADERS} DESTINATION include/mruby)
 
 
 
