@@ -8,6 +8,7 @@
 #include "mruby/string.h"
 #include "error.h"
 #include "mruby/numeric.h"
+#include "mruby/data.h"
 
 #ifndef FALSE
 #define FALSE   0
