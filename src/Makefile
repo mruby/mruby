@@ -4,7 +4,7 @@
 # project-specific macros
 # extension of the executable-file is modifiable(.exe .out ...)
 BASEDIR = .
-TARGET := ../lib/ritevm
+TARGET := ../lib/mruby
 ifeq ($(OS),Windows_NT)
 LIB := $(TARGET).lib
 else
