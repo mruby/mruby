@@ -5,13 +5,11 @@
 # extension of the executable-file is modifiable(.exe .out ...)
 BASEDIR = ../../src
 TARGET := ../../bin/mruby
-LIB := ../../lib/mruby
+LIBR := ../../lib/libmruby.a
 ifeq ($(OS),Windows_NT)
 EXE := $(TARGET).exe
-LIBR := $(LIB).lib
 else
 EXE := $(TARGET)
-LIBR := $(LIB).a
 endif
 OBJ0 := $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/../tools/mruby/*.c))
 #OBJ1 := $(patsubst %.c,%.o,$(filter-out $(EXCEPT1),$(wildcard $(BASEDIR)/*.c)))

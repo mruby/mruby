@@ -12,12 +12,7 @@ RLIB := $(TARGET).rbtmp
 DEPLIB := $(TARGET).d
 MRB1 := $(BASEDIR)/*.rb
 MRBS := $(MRB1)
-LIB := ../lib/mruby
-ifeq ($(OS),Windows_NT)
-LIBR := $(LIB).lib
-else
-LIBR := $(LIB).a
-endif
+LIBR := ../lib/libmruby.a
 
 # C compiler (gcc)
 CC = gcc

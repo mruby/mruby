@@ -4,12 +4,7 @@
 # project-specific macros
 # extension of the executable-file is modifiable(.exe .out ...)
 BASEDIR = .
-TARGET := ../lib/mruby
-ifeq ($(OS),Windows_NT)
-LIB := $(TARGET).lib
-else
-LIB := $(TARGET).a
-endif
+TARGET := ../lib/libmruby.a
 YSRC := $(BASEDIR)/parse.y
 YC := $(BASEDIR)/y.tab.c
 EXCEPT1 := $(YC) $(BASEDIR)/minimain.c
@@ -40,11 +35,11 @@ ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
 # generic build targets, rules
 
 .PHONY : all
-all : $(LIB)
+all : $(TARGET)
 	@echo "make: built targets of `pwd`"
 
 # executable constructed using linker from object files
-$(LIB) : $(OBJS) $(OBJY)
+$(TARGET) : $(OBJS) $(OBJY)
 	$(AR) r $@ $(OBJS) $(OBJY)
 
 -include $(OBJS:.o=.d) $(OBJY:.o=.d)
@@ -65,6 +60,6 @@ $(YC) : $(YSRC)
 .PHONY : clean #cleandep
 clean :
 	@echo "make: removing targets, objects and depend files of `pwd`"
-	-rm -f $(LIB) $(OBJS) $(OBJY) $(YC)
+	-rm -f $(TARGET) $(OBJS) $(OBJY) $(YC)
 	-rm -f $(OBJS:.o=.d) $(OBJY:.o=.d)
 	-rm -f $(patsubst %.c,%.o,$(EXCEPT1)) $(patsubst %.c,%.d,$(EXCEPT1))
