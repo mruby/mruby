@@ -1,5 +1,5 @@
 /*
-** error.c - Exception class
+** time.c - Time class
 **
 ** See Copyright Notice in mruby.h
 */
@@ -32,11 +32,9 @@
 
 
 
-
-
-/* Since we are limited to ISO C89, this implementation is based on time_t.
-* That means the resolution of time is only precise to the second level.
-* Also, there are only 2 timezones, namely UTC and local.
+/* Since we are limited to using ISO C89, this implementation is based 
+* on time_t. That means the resolution of time is only precise to the 
+* second level. Also, there are only 2 timezones, namely UTC and LOCAL.
 */
 
 #ifndef mrb_bool_value
