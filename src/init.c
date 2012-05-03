@@ -32,6 +32,8 @@ void Init_var_tables(mrb_state *mrb);
 void Init_version(mrb_state *mrb);
 void mrb_init_print(mrb_state *mrb);
 void mrb_init_mrblib(mrb_state *mrb);
+void mrb_init_time(mrb_state *mrb);
+
 
 #define MANDEL
 #ifdef MANDEL
@@ -98,6 +100,7 @@ mrb_init_core(mrb_state *mrb)
 #endif
   mrb_init_exception(mrb);
   mrb_init_print(mrb);
+  mrb_init_time(mrb);
 
 #ifdef MANDEL
   mrb_define_method(mrb, mrb->kernel_module, "pow", mpow, ARGS_REQ(2));
