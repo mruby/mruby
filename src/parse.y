@@ -3819,7 +3819,7 @@ parser_yylex(parser_state *p)
       return tOP_ASGN;
     }
     if (c == '>') {
-      p->lstate = EXPR_ARG;
+      p->lstate = EXPR_ENDFN;
       return tLAMBDA;
     }
     if (IS_BEG() || (IS_SPCARG(c) && arg_ambiguous(p))) {
