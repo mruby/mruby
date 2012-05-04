@@ -502,6 +502,7 @@ mrb_mod_include(mrb_state *mrb, mrb_value klass)
   mrb_value mod;
 
   mrb_get_args(mrb, "o", &mod);
+  mrb_check_type(mrb, mod, MRB_TT_MODULE);
   mrb_include_module(mrb, mrb_class_ptr(klass), mrb_class_ptr(mod));
   return mod;
 }
