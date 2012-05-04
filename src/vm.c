@@ -992,6 +992,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         case OP_R_RETURN:
           if (proc->env->cioff < 0) {
             localjump_error(mrb, "return");
+            goto L_RAISE;
           }
           ci = mrb->ci = mrb->cibase + proc->env->cioff;
           break;
