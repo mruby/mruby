@@ -18,13 +18,6 @@
 #define TRUE    1
 #endif
 
-void
-ruby_xfree(void *x)
-{
-  //if (x)
-  //    vm_xfree(&mrb_objspace, x);
-}
-
 struct RData*
 mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const struct mrb_data_type *type)
 {
