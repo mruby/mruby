@@ -268,7 +268,7 @@ localjump_error(mrb_state *mrb, const char *kind)
   mrb_value exc;
 
   snprintf(buf, 256, "unexpected %s", kind);
-  exc = mrb_exc_new(mrb, E_LOCALJUMP_ERROR, buf, sizeof(buf));
+  exc = mrb_exc_new(mrb, E_LOCALJUMP_ERROR, buf, strlen(buf));
   mrb->exc = mrb_object(exc);
 }
 
