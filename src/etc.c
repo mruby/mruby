@@ -31,6 +31,18 @@ mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const str
 }
 
 void *
+mrb_get_datatype(mrb_state *mrb, mrb_value obj, const struct mrb_data_type *type)
+{
+  if (SPECIAL_CONST_P(obj) || (mrb_type(obj) != MRB_TT_DATA)) {
+    return NULL;
+  }
+  if (DATA_TYPE(obj) != type) {
+    return NULL;
+  }
+  return DATA_PTR(obj);
+}
+
+void *
 mrb_check_datatype(mrb_state *mrb, mrb_value obj, const struct mrb_data_type *type)
 {
   static const char mesg[] = "wrong argument type %s (expected %s)";

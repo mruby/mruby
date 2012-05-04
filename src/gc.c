@@ -345,7 +345,8 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_HASH:
-    mrb_gc_mark_ht(mrb, (struct RClass*)obj);
+    mrb_gc_mark_iv(mrb, (struct RObject*)obj);
+    mrb_gc_mark_ht(mrb, (struct RHash*)obj);
     break;
 
   case MRB_TT_STRING:
@@ -422,6 +423,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_HASH:
+    mrb_gc_free_iv(mrb, (struct RObject*)obj);
     mrb_gc_free_ht(mrb, (struct RClass*)obj);
     break;
 
@@ -530,7 +532,8 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_HASH:
-    children += mrb_gc_mark_ht_size(mrb, (struct RClass*)obj);
+    children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
+    children += mrb_gc_mark_ht_size(mrb, (struct RHash*)obj);
     break;
 
   case MRB_TT_PROC:
