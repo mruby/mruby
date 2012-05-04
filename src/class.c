@@ -348,7 +348,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       {
         mrb_value *p;
         p = va_arg(ap, mrb_value*);
-        *p =  (argc > i) ? *sp : mrb_nil_value();
+        *p =  *sp;
         i++; sp++;
       }
       break;
