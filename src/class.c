@@ -357,7 +357,22 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_int *p;
 
         p = va_arg(ap, mrb_int*);
-        *p = (argc > i) ? mrb_fixnum(*sp) : 0;
+        switch (sp->tt) {
+        case MRB_TT_FIXNUM:
+          *p = mrb_fixnum(*sp);
+          break;
+        case MRB_TT_FLOAT:
+          *p = (mrb_int)mrb_float(*sp);
+          break;
+        default:
+	  {
+	    mrb_value tmp;
+
+	    tmp = mrb_convert_type(mrb, *sp, MRB_TT_FIXNUM, "Integer", "to_int");
+	    *p = mrb_fixnum(tmp);
+	  }
+          break;
+        }
         i++; sp++;
       }
       break;
@@ -368,10 +383,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         p = va_arg(ap, mrb_float*);
         switch (sp->tt) {
         case MRB_TT_FLOAT:
-          *p = (argc > i) ? mrb_float(*sp) : 0;
+          *p = mrb_float(*sp);
           break;
         case MRB_TT_FIXNUM:
-          *p = (argc > i) ? (mrb_float)mrb_fixnum(*sp) : 0;
+          *p = (mrb_float)mrb_fixnum(*sp);
           break;
         default:
 	  {
