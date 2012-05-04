@@ -309,9 +309,9 @@ mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t f
 }
 
 void
-mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, int apec)
+mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, int aspec)
 {
-  return mrb_define_method_id(mrb, c, mrb_intern(mrb, name), func, apec);
+  return mrb_define_method_id(mrb, c, mrb_intern(mrb, name), func, aspec);
 }
 
 void
