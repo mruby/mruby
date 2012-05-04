@@ -16,7 +16,6 @@
 #include "mruby/numeric.h"
 #include "mruby/variable.h"
 #include "mruby/string.h"
-#include "eval_intern.h"
 #include "mruby/class.h"
 
 #define warn_printf printf
