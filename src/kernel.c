@@ -638,6 +638,13 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
   return mrb_yield_with_self(mrb, b, 0, 0, self);
 }
 
+int
+mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c)
+{
+  if (mrb_obj_class(mrb, obj) == c) return TRUE;
+  return FALSE;
+}
+
 /* 15.3.1.3.19 */
 /*
  *  call-seq:
@@ -646,8 +653,8 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
  *  Returns <code>true</code> if <i>obj</i> is an instance of the given
  *  class. See also <code>Object#kind_of?</code>.
  */
-mrb_value
-rb_obj_is_instance_of(mrb_state *mrb, mrb_value self)
+static mrb_value
+obj_is_instance_of(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg;
 
@@ -1417,7 +1424,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "initialize_copy",            mrb_obj_init_copy,               ARGS_REQ(1));    /* 15.3.1.3.16 */
   mrb_define_method(mrb, krn, "inspect",                    mrb_obj_inspect,                 ARGS_NONE());    /* 15.3.1.3.17 */
   mrb_define_method(mrb, krn, "instance_eval",              mrb_obj_instance_eval,           ARGS_ANY());     /* 15.3.1.3.18 */
-  mrb_define_method(mrb, krn, "instance_of?",               rb_obj_is_instance_of,           ARGS_REQ(1));    /* 15.3.1.3.19 */
+  mrb_define_method(mrb, krn, "instance_of?",               obj_is_instance_of,              ARGS_REQ(1));    /* 15.3.1.3.19 */
   mrb_define_method(mrb, krn, "instance_variable_defined?", mrb_obj_ivar_defined,            ARGS_REQ(1));    /* 15.3.1.3.20 */
   mrb_define_method(mrb, krn, "instance_variable_get",      mrb_obj_ivar_get,                ARGS_REQ(1));    /* 15.3.1.3.21 */
   mrb_define_method(mrb, krn, "instance_variable_set",      mrb_obj_ivar_set,                ARGS_REQ(2));    /* 15.3.1.3.22 */

@@ -835,7 +835,8 @@ mrb_check_inheritable(mrb_state *mrb, struct RClass *super)
  * \param super     a class from which the new class derives.
  * \exception TypeError \a super is not inheritable.
  * \exception TypeError \a super is the Class class.
- */struct RClass *
+ */
+struct RClass *
 mrb_class_new(mrb_state *mrb, struct RClass *super)
 {
   struct RClass *c;

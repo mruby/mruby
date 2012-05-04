@@ -31,23 +31,6 @@ mrb_value mrb_exec_recursive_paired(mrb_state *mrb, mrb_value (*func) (mrb_state
                                   mrb_value obj, mrb_value paired_obj, void* arg);
 
 int printf (const char*, ...);
-/*--------- <1.8.7>object.c ---------> */
-
-/*
- *  call-seq:
- *     obj.instance_of?(class)    => true or false
- *
- *  Returns <code>true</code> if <i>obj</i> is an instance of the given
- *  class. See also <code>Object#kind_of?</code>.
- */
-
-int
-mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c)
-{
-  if (mrb_obj_class(mrb, obj) == c) return TRUE;
-  return FALSE;
-}
-/*--------- <1.8.7>object.c ---------< */
 
 mrb_value
 mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, int excl)
