@@ -374,7 +374,12 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           *p = (argc > i) ? (mrb_float)mrb_fixnum(*sp) : 0;
           break;
         default:
-          // error
+	  {
+	    mrb_value tmp;
+
+	    tmp = mrb_convert_type(mrb, *sp, MRB_TT_FLOAT, "Float", "to_f");
+	    *p = mrb_float(tmp);
+	  }
           break;
         }
         i++; sp++;
