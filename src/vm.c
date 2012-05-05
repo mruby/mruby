@@ -261,7 +261,7 @@ mrb_yield(mrb_state *mrb, mrb_value b, mrb_value v)
   return mrb_yield_with_self(mrb, b, 1, &v, mrb->stack[0]);
 }
 
-void
+static void
 localjump_error(mrb_state *mrb, const char *kind)
 {
   char buf[256];
@@ -269,6 +269,25 @@ localjump_error(mrb_state *mrb, const char *kind)
 
   snprintf(buf, 256, "unexpected %s", kind);
   exc = mrb_exc_new(mrb, E_LOCALJUMP_ERROR, buf, strlen(buf));
+  mrb->exc = mrb_object(exc);
+}
+
+static void
+argnum_error(mrb_state *mrb, int num)
+{
+  char buf[256];
+  mrb_value exc;
+
+  if (mrb->ci->mid) {
+    snprintf(buf, 256, "'%s': wrong number of arguments (%d for %d)",
+	     mrb_sym2name(mrb, mrb->ci->mid),
+	     mrb->ci->argc, num);
+  }
+  else {
+    snprintf(buf, 256, "wrong number of arguments (%d for %d)",
+	     mrb->ci->argc, num);
+  }
+  exc = mrb_exc_new(mrb, E_ARGUMENT_ERROR, buf, strlen(buf));
   mrb->exc = mrb_object(exc);
 }
 
@@ -717,7 +736,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       ci->target_class = m->target_class;
       ci->proc = m;
       if (m->env) {
-        ci->mid = m->env->mid;
+	if (m->env->mid) {
+	  ci->mid = m->env->mid;
+	}
         if (!m->env->stack) {
           m->env->stack = mrb->stack;
         }
@@ -895,10 +916,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       if (mrb->ci->proc && MRB_PROC_STRICT_P(mrb->ci->proc)) {
         if (argc >= 0) {
           if (argc < m1 + m2 || (r == 0 && argc > len)) {
-            fprintf(stderr, "'%s': wrong number of arguments (%d for %d)\n",
-                    mrb_sym2name(mrb, mrb->ci->mid),
-                    mrb->ci->argc, m1+m2);
-            exit(1);
+	    argnum_error(mrb, m1+m2);
+	    goto L_RAISE;
           }
         }
       }

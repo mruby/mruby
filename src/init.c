@@ -98,6 +98,7 @@ mrb_init_core(mrb_state *mrb)
 #endif
   mrb_init_exception(mrb);
   mrb_init_print(mrb);
+  mrb_init_time(mrb);
 
 #ifdef MANDEL
   mrb_define_method(mrb, mrb->kernel_module, "pow", mpow, ARGS_REQ(2));

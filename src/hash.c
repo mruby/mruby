@@ -1390,7 +1390,7 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method(mrb, h, "default",         mrb_hash_default,     ARGS_ANY());  /* 15.2.13.4.5  */
   mrb_define_method(mrb, h, "default=",        mrb_hash_set_default, ARGS_REQ(1)); /* 15.2.13.4.6  */
   mrb_define_method(mrb, h, "default_proc",    mrb_hash_default_proc,ARGS_NONE()); /* 15.2.13.4.7  */
-  mrb_define_method(mrb, h, "default_proc=",   mrb_hash_set_default_proc,ARGS_NONE()); /* 15.2.13.4.7  */
+  mrb_define_method(mrb, h, "default_proc=",   mrb_hash_set_default_proc,ARGS_REQ(1)); /* 15.2.13.4.7  */
   mrb_define_method(mrb, h, "__delete",        mrb_hash_delete,      ARGS_REQ(1)); /* core of 15.2.13.4.8  */
 //mrb_define_method(mrb, h, "each",            mrb_hash_each_pair,   ARGS_NONE()); /* 15.2.13.4.9  */ /* move to mrblib\hash.rb */
 //mrb_define_method(mrb, h, "each_key",        mrb_hash_each_key,    ARGS_NONE()); /* 15.2.13.4.10 */ /* move to mrblib\hash.rb */

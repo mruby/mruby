@@ -31,7 +31,8 @@ assert("gm day")    { doom.mday == 23           }
 t0 = Time.new
 assert("Can create time.") { t0 }
 
-t1 = Time.new(1300000000.0e6).utc
+t1 = Time.at(1300000000.0e6).utc
+p t1.asctime
 assert("asctime") { t1.asctime == "Sun Mar 13 16:06:40 UTC 2011" }
 assert("usec")    { t1.usec    ==  0              }
 assert("to_i")    { t1.to_i    ==  1300000000     }
