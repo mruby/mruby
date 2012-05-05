@@ -268,7 +268,7 @@ localjump_error(mrb_state *mrb, const char *kind)
   mrb_value exc;
 
   snprintf(buf, 256, "unexpected %s", kind);
-  exc = mrb_exc_new(mrb, E_LOCALJUMP_ERROR, buf, sizeof(buf));
+  exc = mrb_exc_new(mrb, E_LOCALJUMP_ERROR, buf, strlen(buf));
   mrb->exc = mrb_object(exc);
 }
 
@@ -992,6 +992,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         case OP_R_RETURN:
           if (proc->env->cioff < 0) {
             localjump_error(mrb, "return");
+            goto L_RAISE;
           }
           ci = mrb->ci = mrb->cibase + proc->env->cioff;
           break;
