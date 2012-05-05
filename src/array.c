@@ -725,7 +725,12 @@ mrb_ary_rindex_m(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_ary_splat(mrb_state *mrb, mrb_value v)
 {
-  return v;
+  if (mrb_type(v) == MRB_TT_ARRAY) {
+    return v;
+  }
+  else {
+    return mrb_ary_new_from_values(mrb, &v, 1);
+  }
 }
 
 static mrb_value
