@@ -3,23 +3,23 @@ assert_equal '1',       'def m() 1 end; m()'
 assert_equal '1',       'def m(a) a end; m(1)'
 assert_equal '[1, 2]',  'def m(a,b) [a, b] end; m(1,2)'
 assert_equal '[1, 2, 3]', 'def m(a,b,c) [a, b, c] end; m(1,2,3)'
-assert_equal 'wrong number of arguments (1 for 0)', %q{
-  def m; end
-  begin
-    m(1)
-  rescue => e
-    e.message
-  end
-}
+# assert_equal 'wrong number of arguments (1 for 0)', %q{
+#   def m; end
+#   begin
+#     m(1)
+#   rescue => e
+#     e.message
+#   end
+# }
 
-assert_equal 'wrong number of arguments (0 for 1)', %q{
-  def m a; end
-  begin
-    m
-  rescue => e
-    e.message
-  end
-}
+# assert_equal 'wrong number of arguments (0 for 1)', %q{
+#   def m a; end
+#   begin
+#     m
+#   rescue => e
+#     e.message
+#   end
+# }
 
 # default argument
 assert_equal '1',       'def m(x=1) x end; m()'
@@ -204,84 +204,84 @@ assert_equal '1',       %q( class C
                             C.new.m )
 
 # undef
-assert_equal '1',       %q( class C
-                              def m() end
-                              undef m
-                            end
-                            begin C.new.m; rescue NoMethodError; 1 end )
-assert_equal '1',       %q( class A
-                              def m() end
-                            end
-                            class C < A
-                              def m() end
-                              undef m
-                            end
-                            begin C.new.m; rescue NoMethodError; 1 end )
-assert_equal '1',       %q( class A; def a() end end   # [yarv-dev:999]
-                            class B < A
-                              def b() end
-                              undef a, b
-                            end
-                            begin B.new.a; rescue NoMethodError; 1 end )
-assert_equal '1',       %q( class A; def a() end end   # [yarv-dev:999]
-                            class B < A
-                              def b() end
-                              undef a, b
-                            end
-                            begin B.new.b; rescue NoMethodError; 1 end )
+# assert_equal '1',       %q( class C
+#                               def m() end
+#                               undef m
+#                             end
+#                             begin C.new.m; rescue NoMethodError; 1 end )
+# assert_equal '1',       %q( class A
+#                               def m() end
+#                             end
+#                             class C < A
+#                               def m() end
+#                               undef m
+#                             end
+#                             begin C.new.m; rescue NoMethodError; 1 end )
+# assert_equal '1',       %q( class A; def a() end end   # [yarv-dev:999]
+#                             class B < A
+#                               def b() end
+#                               undef a, b
+#                             end
+#                             begin B.new.a; rescue NoMethodError; 1 end )
+# assert_equal '1',       %q( class A; def a() end end   # [yarv-dev:999]
+#                             class B < A
+#                               def b() end
+#                               undef a, b
+#                             end
+#                             begin B.new.b; rescue NoMethodError; 1 end )
 
-assert_equal '3',  %q{
-  def m1
-    1
-  end
-  alias m2 m1
-  alias :"#{'m3'}" m1
-  m1 + m2 + m3
-}, '[ruby-dev:32308]'
+# assert_equal '3',  %q{
+#   def m1
+#     1
+#   end
+#   alias m2 m1
+#   alias :"#{'m3'}" m1
+#   m1 + m2 + m3
+# }, '[ruby-dev:32308]'
 assert_equal '1', %q{
   def foobar
   end
   undef :"foo#{:bar}"
   1
 }, '[ruby-dev:32308]'
-assert_equal '1', %q{
-  def foobar
-    1
-  end
-  alias :"bar#{:baz}" :"foo#{:bar}"
-  barbaz
-}, '[ruby-dev:32308]'
+# assert_equal '1', %q{
+#   def foobar
+#     1
+#   end
+#   alias :"bar#{:baz}" :"foo#{:bar}"
+#   barbaz
+# }, '[ruby-dev:32308]'
 
 # private
-assert_equal '1',       %q( class C
-                              def m() mm() end
-                              def mm() 1 end
-                              private :mm
-                            end
-                            C.new.m )
-assert_equal '1',       %q( class C
-                              def m() 7 end
-                              private :m
-                            end
-                            begin C.m; rescue NoMethodError; 1 end )
-assert_equal '1',       %q( class C
-                              def C.m() mm() end
-                              def C.mm() 1 end
-                              private_class_method :mm
-                            end
-                            C.m )
-assert_equal '1',       %q( class C
-                              def C.m() 7 end
-                              private_class_method :m
-                            end
-                            begin C.m; rescue NoMethodError; 1 end )
-assert_equal '1',       %q( class C; def m() 1 end end
-                            C.new.m   # cache
-                            class C
-                              alias mm m; private :mm
-                            end
-                            C.new.m
-                            begin C.new.mm; 7; rescue NoMethodError; 1 end )
+# assert_equal '1',       %q( class C
+#                               def m() mm() end
+#                               def mm() 1 end
+#                               private :mm
+#                             end
+#                             C.new.m )
+# assert_equal '1',       %q( class C
+#                               def m() 7 end
+#                               private :m
+#                             end
+#                             begin C.m; rescue NoMethodError; 1 end )
+# assert_equal '1',       %q( class C
+#                               def C.m() mm() end
+#                               def C.mm() 1 end
+#                               private_class_method :mm
+#                             end
+#                             C.m )
+# assert_equal '1',       %q( class C
+#                               def C.m() 7 end
+#                               private_class_method :m
+#                             end
+#                             begin C.m; rescue NoMethodError; 1 end )
+# assert_equal '1',       %q( class C; def m() 1 end end
+#                             C.new.m   # cache
+#                             class C
+#                               alias mm m; private :mm
+#                             end
+#                             C.new.m
+#                             begin C.new.mm; 7; rescue NoMethodError; 1 end )
 
 # nested method
 assert_equal '1',       %q( class C
@@ -291,12 +291,12 @@ assert_equal '1',       %q( class C
                             end
                             C.new.m
                             C.new.mm )
-assert_equal '1',       %q( class C
-                              def m
-                                def mm() 1 end
-                              end
-                            end
-                            instance_eval "C.new.m; C.new.mm" )
+# assert_equal '1',       %q( class C
+#                               def m
+#                                 def mm() 1 end
+#                               end
+#                             end
+#                             instance_eval "C.new.m; C.new.mm" )
 
 # method_missing
 assert_equal ':m',      %q( class C
@@ -321,24 +321,24 @@ assert_equal 'nil',     %q( class C
                             C.new.m.inspect )
 
 # send
-assert_equal '1',       %q( class C; def m() 1 end end;
-                            C.new.__send__(:m) )
-assert_equal '1',       %q( class C; def m() 1 end end;
-                            C.new.send(:m) )
-assert_equal '1',       %q( class C; def m(a) a end end;
-                            C.new.send(:m,1) )
-assert_equal '1',       %q( class C; def m(a,b) a end end;
-                            C.new.send(:m,1,7) )
-assert_equal '1',       %q( class C; def m(x,a=1) a end end;
-                            C.new.send(:m,7) )
-assert_equal '1',       %q( class C; def m(x,a=7) a end end;
-                            C.new.send(:m,7,1) )
-assert_equal '[1, 2]',  %q( class C; def m(*a) a end end;
-                            C.new.send(:m,1,2).inspect )
-assert_equal '1',       %q( class C; def m() 7 end; private :m end
-                            begin C.new.public_send(:m); rescue NoMethodError; 1 end )
-assert_equal '1',       %q( class C; def m() 1 end; private :m end
-                            C.new.send(:m) )
+# assert_equal '1',       %q( class C; def m() 1 end end;
+#                             C.new.__send__(:m) )
+# assert_equal '1',       %q( class C; def m() 1 end end;
+#                             C.new.send(:m) )
+# assert_equal '1',       %q( class C; def m(a) a end end;
+#                             C.new.send(:m,1) )
+# assert_equal '1',       %q( class C; def m(a,b) a end end;
+#                             C.new.send(:m,1,7) )
+# assert_equal '1',       %q( class C; def m(x,a=1) a end end;
+#                             C.new.send(:m,7) )
+# assert_equal '1',       %q( class C; def m(x,a=7) a end end;
+#                             C.new.send(:m,7,1) )
+# assert_equal '[1, 2]',  %q( class C; def m(*a) a end end;
+#                             C.new.send(:m,1,2).inspect )
+# assert_equal '1',       %q( class C; def m() 7 end; private :m end
+#                             begin C.new.public_send(:m); rescue NoMethodError; 1 end )
+# assert_equal '1',       %q( class C; def m() 1 end; private :m end
+#                             C.new.send(:m) )
 
 # with block
 assert_equal '[[:ok1, :foo], [:ok2, :foo, :bar]]',
@@ -375,36 +375,36 @@ assert_equal '[:ok1, [:ok2, 11]]', %q{
 }
 
 # splat and block arguments
-assert_equal %q{[[[:x, :y, :z], NilClass], [[1, :x, :y, :z], NilClass], [[1, 2, :x, :y, :z], NilClass], [[:obj], NilClass], [[1, :obj], NilClass], [[1, 2, :obj], NilClass], [[], Proc], [[1], Proc], [[1, 2], Proc], [[], Proc], [[1], Proc], [[1, 2], Proc], [[:x, :y, :z], Proc], [[1, :x, :y, :z], Proc], [[1, 2, :x, :y, :z], Proc]]}, %q{
-def m(*args, &b)
-  $result << [args, b.class]
-end
-$result = []
-ary = [:x, :y, :z]
-obj = :obj
-b = Proc.new{}
-
-m(*ary)
-m(1,*ary)
-m(1,2,*ary)
-m(*obj)
-m(1,*obj)
-m(1,2,*obj)
-m(){}
-m(1){}
-m(1,2){}
-m(&b)
-m(1,&b)
-m(1,2,&b)
-m(*ary,&b)
-m(1,*ary,&b)
-m(1,2,*ary,&b)
-$result
-}
+# assert_equal %q{[[[:x, :y, :z], NilClass], [[1, :x, :y, :z], NilClass], [[1, 2, :x, :y, :z], NilClass], [[:obj], NilClass], [[1, :obj], NilClass], [[1, 2, :obj], NilClass], [[], Proc], [[1], Proc], [[1, 2], Proc], [[], Proc], [[1], Proc], [[1, 2], Proc], [[:x, :y, :z], Proc], [[1, :x, :y, :z], Proc], [[1, 2, :x, :y, :z], Proc]]}, %q{
+# def m(*args, &b)
+#   $result << [args, b.class]
+# end
+# $result = []
+# ary = [:x, :y, :z]
+# obj = :obj
+# b = Proc.new{}
+#
+# m(*ary)
+# m(1,*ary)
+# m(1,2,*ary)
+# m(*obj)
+# m(1,*obj)
+# m(1,2,*obj)
+# m(){}
+# m(1){}
+# m(1,2){}
+# m(&b)
+# m(1,&b)
+# m(1,2,&b)
+# m(*ary,&b)
+# m(1,*ary,&b)
+# m(1,2,*ary,&b)
+# $result
+# }
 
 # aset and splat
-assert_equal '4', %q{class Foo;def []=(a,b,c,d);end;end;Foo.new[1,*a=[2,3]]=4}
-assert_equal '4', %q{class Foo;def []=(a,b,c,d);end;end;def m(&blk)Foo.new[1,*a=[2,3],&blk]=4;end;m{}}
+# assert_equal '4', %q{class Foo;def []=(a,b,c,d);end;end;Foo.new[1,*a=[2,3]]=4}
+# assert_equal '4', %q{class Foo;def []=(a,b,c,d);end;end;def m(&blk)Foo.new[1,*a=[2,3],&blk]=4;end;m{}}
 
 # post test
 assert_equal %q{[1, 2, :o1, :o2, [], 3, 4, NilClass, nil, nil]}, %q{
@@ -442,26 +442,26 @@ def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
 end
 ; m(1, 2, 3, 4, 5, 6, 7, 8)}
 
-assert_equal %q{[1, 2, 3, 4, [5, 6, 7], 8, 9, NilClass, nil, nil]}, %q{
-def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
-  x, y = :x, :y if $foo
-  [m1, m2, o1, o2, r, p1, p2, b.class, x, y]
-end
-; m(1, 2, 3, 4, 5, 6, 7, 8, 9)}
+# assert_equal %q{[1, 2, 3, 4, [5, 6, 7], 8, 9, NilClass, nil, nil]}, %q{
+# def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
+#   x, y = :x, :y if $foo
+#   [m1, m2, o1, o2, r, p1, p2, b.class, x, y]
+# end
+# ; m(1, 2, 3, 4, 5, 6, 7, 8, 9)}
 
-assert_equal %q{[1, 2, 3, 4, [5, 6, 7, 8], 9, 10, NilClass, nil, nil]}, %q{
-def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
-  x, y = :x, :y if $foo
-  [m1, m2, o1, o2, r, p1, p2, b.class, x, y]
-end
-; m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)}
+# assert_equal %q{[1, 2, 3, 4, [5, 6, 7, 8], 9, 10, NilClass, nil, nil]}, %q{
+# def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
+#   x, y = :x, :y if $foo
+#   [m1, m2, o1, o2, r, p1, p2, b.class, x, y]
+# end
+# ; m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)}
 
-assert_equal %q{[1, 2, 3, 4, [5, 6, 7, 8, 9], 10, 11, NilClass, nil, nil]}, %q{
-def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
-  x, y = :x, :y if $foo
-  [m1, m2, o1, o2, r, p1, p2, b.class, x, y]
-end
-; m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)}
+# assert_equal %q{[1, 2, 3, 4, [5, 6, 7, 8, 9], 10, 11, NilClass, nil, nil]}, %q{
+# def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
+#   x, y = :x, :y if $foo
+#   [m1, m2, o1, o2, r, p1, p2, b.class, x, y]
+# end
+# ; m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)}
 
 assert_equal %q{[1, 2, :o1, :o2, [], 3, 4, Proc, nil, nil]}, %q{
 def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
@@ -491,33 +491,33 @@ def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
 end
 ; m(1, 2, 3, 4, 5, 6, 7){}}
 
-assert_equal %q{[1, 2, 3, 4, [5, 6], 7, 8, Proc, nil, nil]}, %q{
-def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
-  x, y = :x, :y if $foo
-  [m1, m2, o1, o2, r, p1, p2, b.class, x, y]
-end
-; m(1, 2, 3, 4, 5, 6, 7, 8){}}
+# assert_equal %q{[1, 2, 3, 4, [5, 6], 7, 8, Proc, nil, nil]}, %q{
+# def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
+#   x, y = :x, :y if $foo
+#   [m1, m2, o1, o2, r, p1, p2, b.class, x, y]
+# end
+# ; m(1, 2, 3, 4, 5, 6, 7, 8){}}
 
-assert_equal %q{[1, 2, 3, 4, [5, 6, 7], 8, 9, Proc, nil, nil]}, %q{
-def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
-  x, y = :x, :y if $foo
-  [m1, m2, o1, o2, r, p1, p2, b.class, x, y]
-end
-; m(1, 2, 3, 4, 5, 6, 7, 8, 9){}}
+# assert_equal %q{[1, 2, 3, 4, [5, 6, 7], 8, 9, Proc, nil, nil]}, %q{
+# def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
+#   x, y = :x, :y if $foo
+#   [m1, m2, o1, o2, r, p1, p2, b.class, x, y]
+# end
+# ; m(1, 2, 3, 4, 5, 6, 7, 8, 9){}}
 
-assert_equal %q{[1, 2, 3, 4, [5, 6, 7, 8], 9, 10, Proc, nil, nil]}, %q{
-def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
-  x, y = :x, :y if $foo
-  [m1, m2, o1, o2, r, p1, p2, b.class, x, y]
-end
-; m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10){}}
+# assert_equal %q{[1, 2, 3, 4, [5, 6, 7, 8], 9, 10, Proc, nil, nil]}, %q{
+# def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
+#   x, y = :x, :y if $foo
+#   [m1, m2, o1, o2, r, p1, p2, b.class, x, y]
+# end
+# ; m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10){}}
 
-assert_equal %q{[1, 2, 3, 4, [5, 6, 7, 8, 9], 10, 11, Proc, nil, nil]}, %q{
-def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
-  x, y = :x, :y if $foo
-  [m1, m2, o1, o2, r, p1, p2, b.class, x, y]
-end
-; m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11){}}
+# assert_equal %q{[1, 2, 3, 4, [5, 6, 7, 8, 9], 10, 11, Proc, nil, nil]}, %q{
+# def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2, &b)
+#   x, y = :x, :y if $foo
+#   [m1, m2, o1, o2, r, p1, p2, b.class, x, y]
+# end
+# ; m(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11){}}
 
 assert_equal %q{[1, 2, :o1, :o2, [], 3, 4, nil, nil]}, %q{
 def m(m1, m2, o1=:o1, o2=:o2, *r, p1, p2)
@@ -886,118 +886,118 @@ class C0; def m *args; [:C0_m, args]; end; end
 class C1 < C0; def m a, o=:o; super; end; end
 ; C1.new.m 1, 2}
 
-assert_equal %q{[:ok, :ok, :ok, :ok, :ok, :ok, :ng, :ng]}, %q{
-  $ans = []
-  class Foo
-    def m
-    end
-  end
+# assert_equal %q{[:ok, :ok, :ok, :ok, :ok, :ok, :ng, :ng]}, %q{
+#   $ans = []
+#   class Foo
+#     def m
+#     end
+#   end
+# 
+#   c1 = c2 = nil
+# 
+#   lambda{
+#     $SAFE = 4
+#     c1 = Class.new{
+#       def m
+#       end
+#     }
+#     c2 = Class.new(Foo){
+#       alias mm m
+#     }
+#   }.call
+# 
+#   def test
+#     begin
+#       yield
+#     rescue SecurityError
+#       $ans << :ok
+#     else
+#       $ans << :ng
+#     end
+#   end
+# 
+#   o1 = c1.new
+#   o2 = c2.new
+# 
+#   test{o1.m}
+#   test{o2.mm}
+#   test{o1.send :m}
+#   test{o2.send :mm}
+#   test{o1.public_send :m}
+#   test{o2.public_send :mm}
+#   test{o1.method(:m).call}
+#   test{o2.method(:mm).call}
+#   $ans
+# }
 
-  c1 = c2 = nil
+# assert_equal 'ok', %q{
+#   class C
+#     def x=(n)
+#     end
+#     def m
+#       self.x = :ok
+#     end
+#   end
+#   C.new.m
+# }
 
-  lambda{
-    $SAFE = 4
-    c1 = Class.new{
-      def m
-      end
-    }
-    c2 = Class.new(Foo){
-      alias mm m
-    }
-  }.call
+# assert_equal 'ok', %q{
+#   proc{
+#     $SAFE = 1
+#     class C
+#       def m
+#         :ok
+#       end
+#     end
+#   }.call
+#   C.new.m
+# }, '[ruby-core:11998]'
 
-  def test
-    begin
-      yield
-    rescue SecurityError
-      $ans << :ok
-    else
-      $ans << :ng
-    end
-  end
+# assert_equal 'ok', %q{
+#   proc{
+#     $SAFE = 2
+#     class C
+#       def m
+#         :ok
+#       end
+#     end
+#   }.call
+#   C.new.m
+# }, '[ruby-core:11998]'
 
-  o1 = c1.new
-  o2 = c2.new
+# assert_equal 'ok', %q{
+#   proc{
+#     $SAFE = 3
+#     class C
+#       def m
+#         :ng
+#       end
+#     end
+#   }.call
+#   begin
+#     C.new.m
+#   rescue SecurityError
+#     :ok
+#   end
+# }, '[ruby-core:11998]'
 
-  test{o1.m}
-  test{o2.mm}
-  test{o1.send :m}
-  test{o2.send :mm}
-  test{o1.public_send :m}
-  test{o2.public_send :mm}
-  test{o1.method(:m).call}
-  test{o2.method(:mm).call}
-  $ans
-}
-
-assert_equal 'ok', %q{
-  class C
-    def x=(n)
-    end
-    def m
-      self.x = :ok
-    end
-  end
-  C.new.m
-}
-
-assert_equal 'ok', %q{
-  proc{
-    $SAFE = 1
-    class C
-      def m
-        :ok
-      end
-    end
-  }.call
-  C.new.m
-}, '[ruby-core:11998]'
-
-assert_equal 'ok', %q{
-  proc{
-    $SAFE = 2
-    class C
-      def m
-        :ok
-      end
-    end
-  }.call
-  C.new.m
-}, '[ruby-core:11998]'
-
-assert_equal 'ok', %q{
-  proc{
-    $SAFE = 3
-    class C
-      def m
-        :ng
-      end
-    end
-  }.call
-  begin
-    C.new.m
-  rescue SecurityError
-    :ok
-  end
-}, '[ruby-core:11998]'
-
-assert_equal 'ok', %q{
-  class B
-    def m() :fail end
-  end
-  class C < B
-    undef m
-    begin
-      remove_method :m
-    rescue NameError
-    end
-  end
-  begin
-    C.new.m
-  rescue NameError
-    :ok
-  end
-}, '[ruby-dev:31816], [ruby-dev:31817]'
+# assert_equal 'ok', %q{
+#   class B
+#     def m() :fail end
+#   end
+#   class C < B
+#     undef m
+#     begin
+#       remove_method :m
+#     rescue NameError
+#     end
+#   end
+#   begin
+#     C.new.m
+#   rescue NameError
+#     :ok
+#   end
+# }, '[ruby-dev:31816], [ruby-dev:31817]'
 
 assert_normal_exit %q{
   begin
@@ -1011,68 +1011,68 @@ assert_normal_exit %q{
   end
 }, '[ruby-dev:31818]'
 
-assert_equal 'ok', %q{
-  class Module
-    def define_method2(name, &block)
-      define_method(name, &block)
-    end
-  end
-  class C
-    define_method2(:m) {|x, y| :fail }
-  end
-  begin
-    C.new.m([1,2])
-  rescue ArgumentError
-    :ok
-  end
-}
+# assert_equal 'ok', %q{
+#   class Module
+#     def define_method2(name, &block)
+#       define_method(name, &block)
+#     end
+#   end
+#   class C
+#     define_method2(:m) {|x, y| :fail }
+#   end
+#   begin
+#     C.new.m([1,2])
+#   rescue ArgumentError
+#     :ok
+#   end
+# }
 
 assert_not_match /method_missing/, %q{
   STDERR.reopen(STDOUT)
   variable_or_mehtod_not_exist
 }
 
-assert_equal '[false, false, false, false, true, true]', %q{
-  class C
-    define_method(:foo) {
-      block_given?
-    }
-  end
+# assert_equal '[false, false, false, false, true, true]', %q{
+#   class C
+#     define_method(:foo) {
+#       block_given?
+#     }
+#   end
+# 
+#   C.new.foo {}
+# 
+#   class D
+#     def foo
+#       D.module_eval{
+#         define_method(:m1){
+#           block_given?
+#         }
+#       }
+#     end
+#     def bar
+#       D.module_eval{
+#         define_method(:m2){
+#           block_given?
+#         }
+#       }
+#     end
+#   end
+# 
+#   D.new.foo
+#   D.new.bar{}
+#   [C.new.foo, C.new.foo{}, D.new.m1, D.new.m1{}, D.new.m2, D.new.m2{}]
+# }, '[ruby-core:14813]'
 
-  C.new.foo {}
-
-  class D
-    def foo
-      D.module_eval{
-        define_method(:m1){
-          block_given?
-        }
-      }
-    end
-    def bar
-      D.module_eval{
-        define_method(:m2){
-          block_given?
-        }
-      }
-    end
-  end
-
-  D.new.foo
-  D.new.bar{}
-  [C.new.foo, C.new.foo{}, D.new.m1, D.new.m1{}, D.new.m2, D.new.m2{}]
-}, '[ruby-core:14813]'
-
-assert_equal 'ok', %q{
-  class Foo
-    define_method(:foo) do |&b|
-      b.call
-    end
-  end
-  Foo.new.foo do
-    break :ok
-  end
-}, '[ruby-dev:36028]'
+# assert_equal 'ok', %q{
+#   class Foo
+#     define_method(:foo) do |&b|
+#       b.call
+#     end
+#   end
+#   Foo.new.foo do
+#     break :ok
+#   end
+# }, '[ruby-dev:36028]'
 
 assert_equal '[1, 2, [3, 4]]', %q{
   def regular(a, b, *c)
@@ -1089,61 +1089,61 @@ assert_equal '[1, [:foo, 3, 4, :foo]]', %q{
   regular(1, *a, *[3, 4], *b)
 }
 
-assert_equal '["B", "A"]', %q{
-  class A
-    def m
-      'A'
-    end
-  end
+# assert_equal '["B", "A"]', %q{
+#   class A
+#     def m
+#       'A'
+#     end
+#   end
+# 
+#   class B < A
+#     define_method(:m) do
+#       ['B', super()]
+#     end
+#   end
+# 
+#   class C < B
+#   end
+# 
+#   C.new.m
+# }
 
-  class B < A
-    define_method(:m) do
-      ['B', super()]
-    end
-  end
+# assert_equal 'ok', %q{
+#   module Foo
+#     def foo
+#       begin
+#         super
+#       rescue NoMethodError
+#         :ok
+#       end
+#     end
+#     module_function :foo
+#   end
+#   Foo.foo
+# }, '[ruby-dev:37587]'
 
-  class C < B
-  end
-
-  C.new.m
-}
-
-assert_equal 'ok', %q{
-  module Foo
-    def foo
-      begin
-        super
-      rescue NoMethodError
-        :ok
-      end
-    end
-    module_function :foo
-  end
-  Foo.foo
-}, '[ruby-dev:37587]'
-
-assert_equal 'Object#foo', %q{
-  class Object
-    def self.foo
-      "Object.foo"
-    end
-    def foo
-      "Object#foo"
-    end
-  end
-
-  module Foo
-    def foo
-      begin
-        super
-      rescue NoMethodError
-        :ok
-      end
-    end
-    module_function :foo
-  end
-  Foo.foo
-}, '[ruby-dev:37587]'
+# assert_equal 'Object#foo', %q{
+#   class Object
+#     def self.foo
+#       "Object.foo"
+#     end
+#     def foo
+#       "Object#foo"
+#     end
+#   end
+# 
+#   module Foo
+#     def foo
+#       begin
+#         super
+#       rescue NoMethodError
+#         :ok
+#       end
+#     end
+#     module_function :foo
+#   end
+#   Foo.foo
+# }, '[ruby-dev:37587]'
 
 assert_normal_exit %q{
   class BasicObject
@@ -1156,31 +1156,31 @@ assert_normal_exit %q{
   end
 }, '[ruby-core:22298]'
 
-assert_equal 'ok', %q{
-  "hello"[0] ||= "H"
-  "ok"
-}
+# assert_equal 'ok', %q{
+#   "hello"[0] ||= "H"
+#   "ok"
+# }
 
-assert_equal 'ok', %q{
-  "hello"[0, 1] ||= "H"
-  "ok"
-}
+# assert_equal 'ok', %q{
+#   "hello"[0, 1] ||= "H"
+#   "ok"
+# }
 
-assert_equal 'ok', %q{
-  class C
-    define_method(:foo) do
-      C.class_eval { remove_method(:foo) }
-      super()
-    end
-  end
-  begin
-    C.new.foo
-  rescue NoMethodError
-    'ok'
-  end
-}
-assert_equal 'ok', %q{
-  [0][0, &proc{}] += 21
-  'ok'
-}, '[ruby-core:30534]'
+# assert_equal 'ok', %q{
+#   class C
+#     define_method(:foo) do
+#       C.class_eval { remove_method(:foo) }
+#       super()
+#     end
+#   end
+#   begin
+#     C.new.foo
+#   rescue NoMethodError
+#     'ok'
+#   end
+# }
+# assert_equal 'ok', %q{
+#   [0][0, &proc{}] += 21
+#   'ok'
+# }, '[ruby-core:30534]'
 

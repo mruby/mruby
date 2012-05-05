@@ -35,19 +35,19 @@ assert_equal %q{7}, %q{
   cl = make_closure
   cl.call + cl.call * cl.call
 }
-assert_equal %q{ok}, %q{
-  class C
-    def foo
-      :ok
-    end
-  end
+# assert_equal %q{ok}, %q{
+#   class C
+#     def foo
+#       :ok
+#     end
+#   end
 
-  def block
-    C.method(:new).to_proc
-  end
-  b = block()
-  b.call.foo
-}
+#   def block
+#     C.method(:new).to_proc
+#   end
+#   b = block()
+#   b.call.foo
+# }
 assert_equal %q{[0, 1, :last, 0, 2, :last]}, %q{
   def proc &b
     b
@@ -167,30 +167,30 @@ assert_equal %q{1}, %q{
   end
   m
 }
-assert_equal %q{[:C, :C]}, %q{
-  Const = :top
-  class C
-    Const = :C
-    $pr = proc{
-      (1..2).map{
-        Const
-      }
-    }
-  end
-  $pr.call
-}
-assert_equal %q{top}, %q{
-  Const = :top
-  class C
-    Const = :C
-  end
-  pr = proc{
-    Const
-  }
-  C.class_eval %q{
-    pr.call
-  }
-}
+# assert_equal %q{[:C, :C]}, %q{
+#   Const = :top
+#   class C
+#     Const = :C
+#     $pr = proc{
+#       (1..2).map{
+#         Const
+#       }
+#     }
+#   end
+#   $pr.call
+# }
+# assert_equal %q{top}, %q{
+#   Const = :top
+#   class C
+#     Const = :C
+#   end
+#   pr = proc{
+#     Const
+#   }
+#   C.class_eval %q{
+#     pr.call
+#   }
+# }
 assert_equal %q{1}, %q{
   def m(&b)
     b
@@ -216,27 +216,27 @@ assert_equal %q{[[], [1], [1, 2], [1, 2, 3]]}, %q{
   Proc.new{|*args| args}.call(1, 2, 3),
   ]
 }
-assert_equal %q{[[nil, []], [1, []], [1, [2]], [1, [2, 3]]]}, %q{
-  [
-  Proc.new{|a, *b| [a, b]}.call(),
-  Proc.new{|a, *b| [a, b]}.call(1),
-  Proc.new{|a, *b| [a, b]}.call(1, 2),
-  Proc.new{|a, *b| [a, b]}.call(1, 2, 3),
-  ]
-}
-assert_equal %q{0}, %q{
-  pr = proc{
-    $SAFE
-  }
-  $SAFE = 1
-  pr.call
-}
-assert_equal %q{[1, 0]}, %q{
-  pr = proc{
-    $SAFE += 1
-  }
-  [pr.call, $SAFE]
-}
+# assert_equal %q{[[nil, []], [1, []], [1, [2]], [1, [2, 3]]]}, %q{
+#   [
+#   Proc.new{|a, *b| [a, b]}.call(),
+#   Proc.new{|a, *b| [a, b]}.call(1),
+#   Proc.new{|a, *b| [a, b]}.call(1, 2),
+#   Proc.new{|a, *b| [a, b]}.call(1, 2, 3),
+#   ]
+# }
+# assert_equal %q{0}, %q{
+#   pr = proc{
+#     $SAFE
+#   }
+#   $SAFE = 1
+#   pr.call
+# }
+# assert_equal %q{[1, 0]}, %q{
+#   pr = proc{
+#     $SAFE += 1
+#   }
+#   [pr.call, $SAFE]
+# }
 assert_equal %q{1}, %q{
   def m(&b)
     b
@@ -253,22 +253,22 @@ assert_equal %q{3}, %q{
     a + 2
   }.call
 }
-assert_equal %Q{ok\n}, %q{
-  class A; def get_block; proc {puts "ok"} end end
-  block = A.new.get_block
-  GC.start
-  block.call
-}, '[ruby-core:14885]'
+# assert_equal %Q{ok\n}, %q{
+#   class A; def get_block; proc {puts "ok"} end end
+#   block = A.new.get_block
+#   GC.start
+#   block.call
+# }, '[ruby-core:14885]'
 
-assert_equal 'ok', %q{
-  a = lambda {|x, y, &b| b }
-  b = a.curry[1]
-  if b.call(2){} == nil
-    :ng
-  else
-    :ok
-  end
-}, '[ruby-core:15551]'
+# assert_equal 'ok', %q{
+#   a = lambda {|x, y, &b| b }
+#   b = a.curry[1]
+#   if b.call(2){} == nil
+#     :ng
+#   else
+#     :ok
+#   end
+# }, '[ruby-core:15551]'
 
 assert_equal 'ok', %q{
   lambda {
@@ -277,17 +277,17 @@ assert_equal 'ok', %q{
   }.call
 }, '[ruby-dev:34646]'
 
-assert_equal %q{[:bar, :foo]}, %q{
-  def foo
-    klass = Class.new do
-      define_method(:bar) do
-        return :bar
-      end
-    end
-    [klass.new.bar, :foo]
-  end
-  foo
-}, "[ ruby-Bugs-19304 ]"
+# assert_equal %q{[:bar, :foo]}, %q{
+#   def foo
+#     klass = Class.new do
+#       define_method(:bar) do
+#         return :bar
+#       end
+#     end
+#     [klass.new.bar, :foo]
+#   end
+#   foo
+# }, "[ ruby-Bugs-19304 ]"
 
 assert_equal 'ok', %q{
    $x = :ok
@@ -303,10 +303,10 @@ assert_equal 'ok', %q{
    $x
 }, '[ruby-core:17164]'
 
-assert_equal 'ok', %q{
-  lambda { a = lambda { return }; $x = :ng; a[]; $x = :ok }.call
-  $x
-}, '[ruby-core:17164]'
+# assert_equal 'ok', %q{
+#   lambda { a = lambda { return }; $x = :ng; a[]; $x = :ok }.call
+#   $x
+# }, '[ruby-core:17164]'
 
 assert_equal 'ok', %q{
   lambda { a = lambda { break }; $x = :ng; a[]; $x = :ok }.call
@@ -357,43 +357,43 @@ assert_equal 'ok', %q{
    end
 }, '[ruby-core:17164]'
 
-assert_equal 'ok', %q{
-   def def12
-      b = Proc.new { $x = :ng; lambda { return }.call; $x = :ok }.call
-   end
-   def12
-   $x
-}, '[ruby-core:17164]'
+# assert_equal 'ok', %q{
+#    def def12
+#       b = Proc.new { $x = :ng; lambda { return }.call; $x = :ok }.call
+#    end
+#    def12
+#    $x
+# }, '[ruby-core:17164]'
 
-assert_equal 'ok', %q{
-  def m
-    pr = proc{
-      proc{
-        return :ok
-      }
-    }.call
-    pr.call
-    :ng
-  end
-  m()
-}
+# assert_equal 'ok', %q{
+#   def m
+#     pr = proc{
+#       proc{
+#         return :ok
+#       }
+#     }.call
+#     pr.call
+#     :ng
+#   end
+#   m()
+# }
 
-assert_equal 'ok', %q{
-  class Foo
-    def call_it
-      p = Proc.new
-      p.call
-    end
-  end
+# assert_equal 'ok', %q{
+#   class Foo
+#     def call_it
+#       p = Proc.new
+#       p.call
+#     end
+#   end
 
-  def give_it
-    proc { :ok }
-  end
+#   def give_it
+#     proc { :ok }
+#   end
 
-  f = Foo.new
-  a_proc = give_it
-  f.call_it(&give_it())
-}, '[ruby-core:15711]'
+#   f = Foo.new
+#   a_proc = give_it
+#   f.call_it(&give_it())
+# }, '[ruby-core:15711]'
 
 assert_equal 'foo!', %q{
   class FooProc < Proc
@@ -419,40 +419,40 @@ assert_equal 'foo!', %q{
   fp.bar
 }, 'Subclass of Proc'
 
-assert_equal 'ok', %q{
-  o = Object.new
-  def o.write(s); end
-  $stderr = o
-  at_exit{
-    print $!.message
-  }
-  raise "ok"
-}
+# assert_equal 'ok', %q{
+#   o = Object.new
+#   def o.write(s); end
+#   $stderr = o
+#   at_exit{
+#     print $!.message
+#   }
+#   raise "ok"
+# }
 
-assert_equal 'ok', %q{
-  lambda do
-    class A
-      class B
-        proc{return :ng}.call
-      end
-    end
-  end.call
-  :ok
-}
+# assert_equal 'ok', %q{
+#   lambda do
+#     class A
+#       class B
+#         proc{return :ng}.call
+#       end
+#     end
+#   end.call
+#   :ok
+# }
 
-assert_equal 'ok', %q{
-  $proc = proc{return}
-  begin
-    lambda do
-      class A
-        class B
-          $proc.call
-        end
-      end
-    end.call
-    :ng
-  rescue LocalJumpError
-    :ok
-  end
-}
+# assert_equal 'ok', %q{
+#   $proc = proc{return}
+#   begin
+#     lambda do
+#       class A
+#         class B
+#           $proc.call
+#         end
+#       end
+#     end.call
+#     :ng
+#   rescue LocalJumpError
+#     :ok
+#   end
+# }
 

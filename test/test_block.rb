@@ -66,32 +66,32 @@ assert_equal %q{[4, 8, 12]}, %q{
     e * 4
   }
 }
-assert_equal %q{[1, 2, 3]}, %q{
-  class C
-    include Enumerable
-    def each
-      [1,2,3].each{|e|
-        yield e
-      }
-    end
-  end
-
-  C.new.to_a
-}
-assert_equal %q{[4, 5, 6]}, %q{
-  class C
-    include Enumerable
-    def each
-      [1,2,3].each{|e|
-        yield e
-      }
-    end
-  end
-
-  C.new.map{|e|
-    e + 3
-  }
-}
+# assert_equal %q{[1, 2, 3]}, %q{
+#   class C
+#     include Enumerable
+#     def each
+#       [1,2,3].each{|e|
+#         yield e
+#       }
+#     end
+#   end
+#
+#   C.new.to_a
+# }
+# assert_equal %q{[4, 5, 6]}, %q{
+#   class C
+#     include Enumerable
+#     def each
+#       [1,2,3].each{|e|
+#         yield e
+#       }
+#     end
+#   end
+#
+#   C.new.map{|e|
+#     e + 3
+#   }
+# }
 assert_equal %q{100}, %q{
   def m
     yield
@@ -267,15 +267,15 @@ assert_equal %q{[1, 2, []]}, %q{
     [a, b, c]
   }
 }
-assert_equal %q{[1, 2, nil, []]}, %q{
-  def iter
-    yield 1, 2
-  end
-
-  iter{|a, b, c, *d|
-    [a, b, c, d]
-  }
-}
+# assert_equal %q{[1, 2, nil, []]}, %q{
+#   def iter
+#     yield 1, 2
+#   end
+#
+#   iter{|a, b, c, *d|
+#     [a, b, c, d]
+#   }
+# }
 assert_equal %q{1}, %q{
   def m
     yield
@@ -393,67 +393,67 @@ assert_equal 'nil', %q{
   m {|((*))|}.inspect
 }
 
-assert_equal %q{[1, 1, [1, nil], [1, nil], [1, nil], [1, nil], [1, 1], 1, [1, nil], [1, nil], [1, nil], [1, nil], [[1, 1], [1, 1]], [1, 1], [1, 1], [1, 1], [1, nil], [1, nil], [[[1, 1], [1, 1]], [[1, 1], [1, 1]]], [[1, 1], [1, 1]], [[1, 1], [1, 1]], [[1, 1], [1, 1]], [1, 1], [1, 1], [[[[1, 1], [1, 1]], [[1, 1], [1, 1]]], [[[1, 1], [1, 1]], [[1, 1], [1, 1]]]], [[[1, 1], [1, 1]], [[1, 1], [1, 1]]], [[[1, 1], [1, 1]], [[1, 1], [1, 1]]], [[[1, 1], [1, 1]], [[1, 1], [1, 1]]], [[1, 1], [1, 1]], [[1, 1], [1, 1]]]}, %q{
-def m(ary = [])
-  yield(ary)
-end
+# assert_equal %q{[1, 1, [1, nil], [1, nil], [1, nil], [1, nil], [1, 1], 1, [1, nil], [1, nil], [1, nil], [1, nil], [[1, 1], [1, 1]], [1, 1], [1, 1], [1, 1], [1, nil], [1, nil], [[[1, 1], [1, 1]], [[1, 1], [1, 1]]], [[1, 1], [1, 1]], [[1, 1], [1, 1]], [[1, 1], [1, 1]], [1, 1], [1, 1], [[[[1, 1], [1, 1]], [[1, 1], [1, 1]]], [[[1, 1], [1, 1]], [[1, 1], [1, 1]]]], [[[1, 1], [1, 1]], [[1, 1], [1, 1]]], [[[1, 1], [1, 1]], [[1, 1], [1, 1]]], [[[1, 1], [1, 1]], [[1, 1], [1, 1]]], [[1, 1], [1, 1]], [[1, 1], [1, 1]]]}, %q{
+# def m(ary = [])
+#   yield(ary)
+# end
+#
+# $ans = []
+# o = 1
+# 5.times{
+#   v,(*) = o; $ans << o
+#   m(o){|(v,(*))| $ans << v}
+#   ((x, y)) = o; $ans << [x, y]
+#   m(o){|((x, y))| $ans << [x, y]}
+#   (((x, y))) = o; $ans << [x, y]
+#   m(o){|(((x, y)))| $ans << [x, y]}
+#   o = [o, o]
+# }; $ans
+# }
 
-$ans = []
-o = 1
-5.times{
-  v,(*) = o; $ans << o
-  m(o){|(v,(*))| $ans << v}
-  ((x, y)) = o; $ans << [x, y]
-  m(o){|((x, y))| $ans << [x, y]}
-  (((x, y))) = o; $ans << [x, y]
-  m(o){|(((x, y)))| $ans << [x, y]}
-  o = [o, o]
-}; $ans
-}
-
-assert_equal '0', %q{
-  def m()
-    yield [0]
-  end
-  m {|*,v| v}.inspect
-}, '[ruby-dev:31437]'
+# assert_equal '0', %q{
+#   def m()
+#     yield [0]
+#   end
+#   m {|*,v| v}.inspect
+# }, '[ruby-dev:31437]'
 assert_equal '[0]', %q{
   def m
     yield [0]
   end
   m{|v, &b| v}.inspect
 }, '[ruby-dev:31440]'
-assert_equal 'ok', %q{
-  begin
-    lambda{|a|}.call(1, 2)
-  rescue ArgumentError
-    :ok
-  else
-    :ng
-  end
-}, '[ruby-dev:31464]'
-assert_equal 'ok', %q{
-  begin
-    lambda{|&b|}.call(3)
-  rescue ArgumentError
-    :ok
-  else
-    :ng
-  end
-}, '[ruby-dev:31472]'
-assert_equal 'ok', %q{
-  class C
-    def each
-      yield [1,2]
-      yield 1,2
-    end
-  end
-  vs1 = []
-  C.new.each {|*v| vs1 << v }
-  vs2 = []
-  C.new.to_enum.each {|*v| vs2 << v }
-  vs1 == vs2 ? :ok : :ng
-}, '[ruby-dev:32329]'
+# assert_equal 'ok', %q{
+#   begin
+#     lambda{|a|}.call(1, 2)
+#   rescue ArgumentError
+#     :ok
+#   else
+#     :ng
+#   end
+# }, '[ruby-dev:31464]'
+# assert_equal 'ok', %q{
+#   begin
+#     lambda{|&b|}.call(3)
+#   rescue ArgumentError
+#     :ok
+#   else
+#     :ng
+#   end
+# }, '[ruby-dev:31472]'
+# assert_equal 'ok', %q{
+#   class C
+#     def each
+#       yield [1,2]
+#       yield 1,2
+#     end
+#   end
+#   vs1 = []
+#   C.new.each {|*v| vs1 << v }
+#   vs2 = []
+#   C.new.to_enum.each {|*v| vs2 << v }
+#   vs1 == vs2 ? :ok : :ng
+# }, '[ruby-dev:32329]'
 
 assert_normal_exit %q{
   e = [1,2,3].each
@@ -464,67 +464,67 @@ assert_normal_exit %q{
 }, '[ruby-dev:32604]'
 
 
-assert_equal '[nil, []]', %q{
-  def m() yield nil,[] end
-  l = lambda {|*v| v}
-  GC.stress=true
-  r = m(&l)
-  GC.stress=false
-  r.inspect
-}, '[ruby-dev:32567]'
+# assert_equal '[nil, []]', %q{
+#   def m() yield nil,[] end
+#   l = lambda {|*v| v}
+#   GC.stress=true
+#   r = m(&l)
+#   GC.stress=false
+#   r.inspect
+# }, '[ruby-dev:32567]'
 
 assert_equal NilClass.to_s, %q{
   r = false; 1.times{|&b| r = b}; r.class
 }
 
-assert_equal 'ok', %q{
-  class C
-    define_method(:foo) do |arg, &block|
-      if block then block.call else arg end
-    end
-  end
-  C.new.foo("ng") {"ok"}
-}, '[ruby-talk:266422]'
+# assert_equal 'ok', %q{
+#   class C
+#     define_method(:foo) do |arg, &block|
+#       if block then block.call else arg end
+#     end
+#   end
+#   C.new.foo("ng") {"ok"}
+# }, '[ruby-talk:266422]'
 
-assert_equal 'ok', %q{
-  class C
-    define_method(:xyz) do |o, k, &block|
-      block.call(o, k)
-    end
-  end
-  C.new.xyz("o","k") {|o, k| o+k}
-}, '[ruby-core:20544]'
+# assert_equal 'ok', %q{
+#   class C
+#     define_method(:xyz) do |o, k, &block|
+#       block.call(o, k)
+#     end
+#   end
+#   C.new.xyz("o","k") {|o, k| o+k}
+# }, '[ruby-core:20544]'
 
-assert_equal 'ok', %q{
-  class C
-    define_method(:xyz) do |*args, &block|
-      block.call(*args)
-    end
-  end
-  C.new.xyz("o","k") {|*args| args.join("")}
-}, '[ruby-core:20544]'
+# assert_equal 'ok', %q{
+#   class C
+#     define_method(:xyz) do |*args, &block|
+#       block.call(*args)
+#     end
+#   end
+#   C.new.xyz("o","k") {|*args| args.join("")}
+# }, '[ruby-core:20544]'
 
-assert_equal 'ok', %q{
-  STDERR.reopen(STDOUT)
-  class C
-    define_method(:foo) do |&block|
-      block.call if block
-    end
-    result = "ng"
-    new.foo() {result = "ok"}
-    result
-  end
-}
+# assert_equal 'ok', %q{
+#   STDERR.reopen(STDOUT)
+#   class C
+#     define_method(:foo) do |&block|
+#       block.call if block
+#     end
+#     result = "ng"
+#     new.foo() {result = "ok"}
+#     result
+#   end
+# }
 
-assert_equal "ok", %q{
-  class Bar
-    def bar; :ok; end
-  end
-  def foo
-    yield(Bar.new) if block_given?
-  end
-  foo(&:bar)
-}, '[ruby-core:14279]'
+# assert_equal "ok", %q{
+#   class Bar
+#     def bar; :ok; end
+#   end
+#   def foo
+#     yield(Bar.new) if block_given?
+#   end
+#   foo(&:bar)
+# }, '[ruby-core:14279]'
 
 assert_normal_exit %q{
   class Controller
