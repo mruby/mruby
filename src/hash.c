@@ -9,10 +9,7 @@
 #include "mruby/khash.h"
 #include "mruby/class.h"
 #include "mruby/array.h"
-#include "error.h"
 #include "mruby/string.h"
-#include "mruby/numeric.h"
-#include "mruby/struct.h"
 #include "mruby/variable.h"
 #include "st.h"
 #include <errno.h>
@@ -194,18 +191,6 @@ retry:
       hval = mrb_to_int(mrb, hval);
       goto retry;
   }
-}
-
-static mrb_value
-hash_s_new(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value *argv;
-  int argc;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  mrb_value hash = mrb_hash_new_capa(mrb, 0);
-  mrb_obj_call_init(mrb, hash, argc, argv);
-  return hash;
 }
 
 mrb_value
@@ -535,6 +520,19 @@ mrb_hash_default_proc(mrb_state *mrb, mrb_value hash)
  *     h["cat"]   #=> "catcat"
  */
 
+static mrb_value
+mrb_hash_set_default_proc(mrb_state *mrb, mrb_value hash)
+{
+  mrb_value ifnone;
+  mrb_get_args(mrb, "o", &ifnone);
+
+  mrb_hash_modify(mrb, hash);
+  mrb_iv_set(mrb, hash, mrb_intern(mrb, "ifnone"), ifnone);
+  RHASH(hash)->flags |= MRB_HASH_PROC_DEFAULT;
+
+  return ifnone;
+}
+
 mrb_value
 mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
@@ -682,7 +680,7 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
 mrb_value
 mrb_hash_values_at(mrb_state *mrb, int argc, mrb_value *argv, mrb_value hash)
 {
-    mrb_value result = mrb_ary_new_capa(mrb, argc);//mrb_ary_new2(argc);
+    mrb_value result = mrb_ary_new_capa(mrb, argc);
     long i;
 
     for (i=0; i<argc; i++) {
@@ -940,9 +938,9 @@ inspect_hash(mrb_state *mrb, mrb_value hash, int recur)
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
 
-  if (recur) return mrb_str_new2(mrb, "{...}");
+  if (recur) return mrb_str_new_cstr(mrb, "{...}");
 
-  str = mrb_str_new2(mrb, "{");
+  str = mrb_str_new_cstr(mrb, "{");
   if (h && kh_size(h) > 0) {
     for (k = kh_begin(h); k != kh_end(h); k++) {
       int ai;
@@ -983,7 +981,7 @@ static mrb_value
 mrb_hash_inspect(mrb_state *mrb, mrb_value hash)
 {
   if (RHASH_EMPTY_P(hash))
-      return mrb_str_new2(mrb, "{}");
+      return mrb_str_new_cstr(mrb, "{}");
   return inspect_hash(mrb, hash, 0);
 }
 
@@ -1384,7 +1382,6 @@ mrb_init_hash(mrb_state *mrb)
   h = mrb->hash_class = mrb_define_class(mrb, "Hash", mrb->object_class);
   MRB_SET_INSTANCE_TT(h, MRB_TT_HASH);
 
-  //mrb_define_class_method(mrb, h, "new",       hash_s_new,           ARGS_ANY());
   mrb_include_module(mrb, h, mrb_class_get(mrb, "Enumerable"));
   mrb_define_method(mrb, h, "==",              mrb_hash_equal,       ARGS_REQ(1)); /* 15.2.13.4.1  */
   mrb_define_method(mrb, h, "[]",              mrb_hash_aget,        ARGS_REQ(1)); /* 15.2.13.4.2  */
@@ -1393,6 +1390,7 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method(mrb, h, "default",         mrb_hash_default,     ARGS_ANY());  /* 15.2.13.4.5  */
   mrb_define_method(mrb, h, "default=",        mrb_hash_set_default, ARGS_REQ(1)); /* 15.2.13.4.6  */
   mrb_define_method(mrb, h, "default_proc",    mrb_hash_default_proc,ARGS_NONE()); /* 15.2.13.4.7  */
+  mrb_define_method(mrb, h, "default_proc=",   mrb_hash_set_default_proc,ARGS_NONE()); /* 15.2.13.4.7  */
   mrb_define_method(mrb, h, "__delete",        mrb_hash_delete,      ARGS_REQ(1)); /* core of 15.2.13.4.8  */
 //mrb_define_method(mrb, h, "each",            mrb_hash_each_pair,   ARGS_NONE()); /* 15.2.13.4.9  */ /* move to mrblib\hash.rb */
 //mrb_define_method(mrb, h, "each_key",        mrb_hash_each_key,    ARGS_NONE()); /* 15.2.13.4.10 */ /* move to mrblib\hash.rb */
