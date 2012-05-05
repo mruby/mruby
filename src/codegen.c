@@ -1893,7 +1893,6 @@ loop_break(codegen_scope *s, node *tree)
 
     if (tree) {
       codegen(s, tree, VAL);
-      printf("break op %d\n", cursp());
       pop();
     }
 
