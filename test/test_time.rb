@@ -31,9 +31,8 @@ assert("gm day")    { doom.mday == 23           }
 t0 = Time.new
 assert("Can create time.") { t0 }
 
-t1 = Time.at(1300000000.0e6).utc
-p t1.asctime
-assert("asctime") { t1.asctime == "Sun Mar 13 16:06:40 UTC 2011" }
+t1 = Time.at(1300000000.0).utc
+assert("asctime") { t1.asctime == "Sun Mar 13 07:06:40 UTC 2011" }
 assert("usec")    { t1.usec    ==  0              }
 assert("to_i")    { t1.to_i    ==  1300000000     }
 assert("to_f")    { t1.to_f    ==  1300000000.0   }
@@ -43,7 +42,7 @@ assert("wday")    { t1.wday    ==  0              }
 assert("yday")    { t1.yday    ==  71             }
 assert("year")    { t1.year    ==  2011           }
 
-t2 = Time.new(7.0e6)
+t2 = Time.at(7.0e6)
 t1.initialize_copy(t2)
 assert("initialize_copy") { t1 == t2 }
 
