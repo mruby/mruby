@@ -364,6 +364,9 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         case MRB_TT_FLOAT:
           *p = (mrb_int)mrb_float(*sp);
           break;
+        case MRB_TT_FALSE:
+          *p = 0;
+          break;
         default:
 	  {
 	    mrb_value tmp;
@@ -387,6 +390,9 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           break;
         case MRB_TT_FIXNUM:
           *p = (mrb_float)mrb_fixnum(*sp);
+          break;
+        case MRB_TT_FALSE:
+          *p = 0.0;
           break;
         default:
 	  {
