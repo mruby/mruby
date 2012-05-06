@@ -40,7 +40,7 @@ module Kernel
   ##
   # Alias for +Kernel.lambda+.
   #
-  # 15.3.1.3.27
+  # ISO 15.3.1.3.27
   def lambda(&block)
     ### *** TODO *** ###
     block # dummy
