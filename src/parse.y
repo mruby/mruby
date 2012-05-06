@@ -4683,7 +4683,7 @@ mrb_parse_file(mrb_state *mrb, FILE *f)
 }
 
 parser_state*
-mrb_parse_nstring(mrb_state *mrb, char *s, size_t len)
+mrb_parse_nstring(mrb_state *mrb, const char *s, size_t len)
 {
   parser_state *p;
 
@@ -4698,7 +4698,7 @@ mrb_parse_nstring(mrb_state *mrb, char *s, size_t len)
 }
 
 parser_state*
-mrb_parse_nstring_ext(mrb_state *mrb, char *s, size_t len)
+mrb_parse_nstring_ext(mrb_state *mrb, const char *s, size_t len)
 {
   parser_state *p;
 
@@ -4714,7 +4714,7 @@ mrb_parse_nstring_ext(mrb_state *mrb, char *s, size_t len)
 }
 
 parser_state*
-mrb_parse_string(mrb_state *mrb, char *s)
+mrb_parse_string(mrb_state *mrb, const char *s)
 {
   return mrb_parse_nstring(mrb, s, strlen(s));
 }
