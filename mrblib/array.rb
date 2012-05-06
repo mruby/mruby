@@ -88,10 +88,12 @@ class Array
   end
 end
 
-# include modules
+##
+# Array is enumerable and comparable
 module Enumerable; end
 module Comparable; end
 class Array
+  # ISO 15.2.12.3
   include Enumerable
   include Comparable
 
