@@ -300,8 +300,8 @@ mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
 struct RClass * mrb_module_new(mrb_state *mrb);
 struct RClass * mrb_class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym name);
-struct RClass * mrb_class_get(mrb_state *mrb, char *name);
-struct RClass * mrb_class_obj_get(mrb_state *mrb, char *name);
+struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
+struct RClass * mrb_class_obj_get(mrb_state *mrb, const char *name);
 
 mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
