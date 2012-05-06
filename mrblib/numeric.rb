@@ -48,7 +48,10 @@ class Integer
   end
 end
 
-# include modules
+##
+# Numeric is comparable
+#
+# ISO 15.2.7.3
 module Comparable; end
 class Numeric
   include Comparable
