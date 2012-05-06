@@ -61,13 +61,11 @@ class Hash
   ##
   # Return a hash which contains the content of
   # +self+ and +other+. If a block is given
-  # call the block for each duplicate key and
-  # pass the key, old value and new value.
-  # The value of the block will be replacing
-  # the duplicate element in the has which will
-  # be returned.
-  #
-  # 15.2.13.4.22
+  # it will be called for each element with
+  # a duplicate key. The value of the block
+  # will be the final value of this element.
+  # 
+  # ISO 15.2.13.4.22
   def merge(other, &block)
     h = {}
     raise "can't convert argument into Hash" unless other.respond_to?(:to_hash)

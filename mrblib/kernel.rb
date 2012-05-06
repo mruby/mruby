@@ -38,7 +38,7 @@ module Kernel
   end
 
   ##
-  # Alias for Kernel.lambda.
+  # Alias for +Kernel.lambda+.
   #
   # 15.3.1.3.27
   def lambda(&block)
@@ -47,7 +47,7 @@ module Kernel
   end
 
   ##
-  # Alias for Kernel.loop.
+  # Alias for +Kernel.loop+.
   #
   # ISO 15.3.1.3.29
   def loop #(&block)
