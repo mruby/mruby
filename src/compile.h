@@ -41,7 +41,7 @@ struct mrb_parser_state {
   mrb_state *mrb;
   struct mrb_pool *pool;
   mrb_ast_node *cells;
-  char *s, *send;
+  const char *s, *send;
   FILE *f;
   int lineno;
   int column;
@@ -78,9 +78,9 @@ struct mrb_parser_state {
 };
 
 struct mrb_parser_state* mrb_parse_file(mrb_state*,FILE*);
-struct mrb_parser_state* mrb_parse_string(mrb_state*,char*);
-struct mrb_parser_state* mrb_parse_nstring(mrb_state*,char*,size_t);
-struct mrb_parser_state* mrb_parse_nstring_ext(mrb_state*,char*,size_t);
+struct mrb_parser_state* mrb_parse_string(mrb_state*,const char*);
+struct mrb_parser_state* mrb_parse_nstring(mrb_state*,const char*,size_t);
+struct mrb_parser_state* mrb_parse_nstring_ext(mrb_state*,const char*,size_t);
 int mrb_generate_code(mrb_state*, mrb_ast_node*);
 
 int mrb_compile_file(mrb_state*,FILE*);
