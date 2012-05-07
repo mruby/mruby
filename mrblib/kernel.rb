@@ -65,4 +65,29 @@ module Kernel
   def send(symbol, *args, &block)
     ### *** TODO *** ###
   end
+
+  ##
+  # Print arguments
+  #
+  # ISO 15.3.1.2.10
+  def print(*args)
+    args.each do|x|
+      if x.nil?
+        __printstr__ "nil"
+      else
+        __printstr__ x.to_s
+      end
+    end
+  end
+
+  ##
+  # Print arguments with newline
+  #
+  # ISO 15.3.1.2.11
+  def puts(*args)
+    args.each do|x|
+      __printstr__ x.to_s
+      __printstr__ "\n"
+    end
+  end
 end
