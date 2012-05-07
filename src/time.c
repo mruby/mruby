@@ -192,7 +192,7 @@ mrb_time_at(mrb_state *mrb, mrb_value self)
 }
 
 #ifdef _WIN32
-static int
+static unsigned int
 is_leapyear(unsigned int y)
 {
   return (y % 4) == 0 && ((y % 100) != 0 || (y % 400) == 0);
@@ -207,7 +207,7 @@ timegm(struct tm *tm)
   };
   time_t r = 0;
   int i;
-  unsigned int *nday = ndays[is_leapyear(tm->tm_year+1900)];
+  unsigned int *nday = (unsigned int*) ndays[is_leapyear(tm->tm_year+1900)];
 
   for (i = 70; i < tm->tm_year; ++i)
     r += is_leapyear(i+1900) ? 366*24*60*60 : 365*24*60*60;
