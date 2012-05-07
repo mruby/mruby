@@ -90,7 +90,7 @@ mrb_reg_s_new_instance(mrb_state *mrb, /*int argc, mrb_value *argv, */mrb_value 
   struct RRegexp *re;
   re = mrb_obj_alloc(mrb, MRB_TT_REGEX, mrb->regex_class);
   re->ptr = 0;
-  re->src = mrb_nil_value();
+  re->src = 0;
   re->usecnt = 0;
   return mrb_funcall_argv(mrb, mrb_obj_value(re), "initialize", argc, argv);
 }
@@ -361,10 +361,7 @@ mrb_reg_check(mrb_state *mrb, mrb_value re)
   if (!(RREGEXP(re)->ptr)) {
     mrb_raise(mrb, E_TYPE_ERROR, "uninitialized Regexp");
   }
-  if (RREGEXP_SRC(re).tt == 0) {
-    mrb_raise(mrb, E_TYPE_ERROR, "uninitialized Regexp");
-  }
-  if (!RREGEXP_SRC_PTR(re)) {
+  if (RREGEXP(re)->src == 0) {
     mrb_raise(mrb, E_TYPE_ERROR, "uninitialized Regexp");
   }
 }
@@ -488,7 +485,7 @@ mrb_reg_prepare_re(mrb_state *mrb, mrb_value re, mrb_value str)
   pattern = RREGEXP_SRC_PTR(re);
 
   unescaped = mrb_reg_preprocess(mrb,
-    pattern, pattern + RREGEXP_SRC_LEN(re), enc,
+    pattern, pattern + RREGEXP(re)->src->len, enc,
     &fixed_enc, err);
 
   if (mrb_nil_p(unescaped)) {
@@ -1209,10 +1206,8 @@ mrb_reg_initialize(mrb_state *mrb, mrb_value obj, const char *s, long len, mrb_e
       options & ARG_REG_OPTION_MASK, err,
       sourcefile, sourceline);
   if (!re->ptr) return -1;
-  re->src = mrb_enc_str_new(mrb, s, len, enc);
+  re->src = mrb_str_ptr(mrb_enc_str_new(mrb, s, len, enc));
 
-  /*OBJ_FREEZE(re->src);
-  RB_GC_GUARD(unescaped);*/
   return 0;
 }
 
@@ -1361,7 +1356,8 @@ static int
 reg_equal(mrb_state *mrb, struct RRegexp *re1, struct RRegexp *re2)
 {
   if (re1->ptr->options != re2->ptr->options) return FALSE;
-  if (!mrb_equal(mrb, re1->src, re2->src)) return FALSE;
+  if (!mrb_equal(mrb, mrb_obj_value(re1->src), mrb_obj_value(re2->src)))
+    return FALSE;
   return TRUE;
 }
 
@@ -2436,7 +2432,7 @@ again:
 static mrb_value
 mrb_reg_inspect(mrb_state *mrb, mrb_value re)
 {
-  if (!RREGEXP(re)->ptr || mrb_nil_p(RREGEXP_SRC(re)) || !RREGEXP_SRC_PTR(re)) {
+  if (!RREGEXP(re)->ptr || !RREGEXP_SRC(re) || !RREGEXP_SRC_PTR(re)) {
       return mrb_any_to_s(mrb, re);
   }
   return mrb_reg_desc(mrb, RREGEXP_SRC_PTR(re), RREGEXP_SRC_LEN(re), re);
@@ -2452,7 +2448,7 @@ mrb_reg_s_alloc(mrb_state *mrb, mrb_value dummy)
   re = mrb_obj_alloc(mrb, MRB_TT_REGEX, mrb->regex_class);
 
   re->ptr = 0;
-  re->src.tt = 0;
+  re->src = 0;
   re->usecnt = 0;
 
   return mrb_obj_value(re);
