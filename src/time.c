@@ -180,8 +180,20 @@ current_time(mrb_state *mrb)
 
   tm = mrb_malloc(mrb, sizeof(*tm));
 #ifdef NO_GETTIMEOFDAY
-  tm->sec  = time(NULL);
-  tm->usec = 0;
+  {
+    static time_t last_sec = 0, last_usec = 0;
+
+    tm->sec  = time(NULL);
+    if (tm->sec != last_sec) {
+      last_sec = tm->sec;
+      last_usec = 0;
+    }
+    else {
+      /* add 1 usec to differentiate two times */
+      last_usec += 1;
+    }
+    tm->usec = last_usec;
+  }
 #else
   {
     struct timeval tv;
