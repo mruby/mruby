@@ -259,6 +259,16 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
     }
     c = c->super;
   }
+
+  if (!c) {
+    c = mrb->object_class;
+  }
+  
+  if (mrb_respond_to(mrb, mrb_obj_value(c), mrb_intern(mrb, "const_missing"))) {
+    mrb_value argv = mrb_symbol_value(sym);
+    return mrb_funcall_argv(mrb, mrb_obj_value(c), "const_missing", 1, &argv);
+  }
+
   mrb_raise(mrb, E_NAME_ERROR, "uninitialized constant %s",
             mrb_sym2name(mrb, sym));
   /* not reached */
