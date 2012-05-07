@@ -1001,9 +1001,6 @@ mrb_obj_methods(mrb_state *mrb, int argc, mrb_value *argv, mrb_value obj, mrb_me
 {
 retry:
   if (argc == 0) {
-      mrb_value args[1];
-
-      args[0] = mrb_true_value();
       return class_instance_method_list(mrb, argc, argv, mrb_class(mrb, obj), 0);
   }
   else {
