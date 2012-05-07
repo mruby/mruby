@@ -16,7 +16,9 @@
 #undef  USE_GETTIMEOFDAY  /* C99 does not have gettimeofday */
 #define USE_GETTIMEOFDAY  /* need gettimeofday to retrieve microseconds */
 #undef  USE_GMTIME_R      /* C99 does not have reentrant gmtime_r */
+#ifndef _WIN32
 #define USE_GMTIME_R      /* use reentrant gmtime_r */
+#endif
 #undef  USE_TIMEGM        /* C99 does not have timegm */
 #define USE_TIMEGM        /* use faster gmtime */
 
@@ -188,6 +190,36 @@ mrb_time_at(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "f", &f);
   return mrb_time_make(mrb, mrb_class_ptr(self), f, MRB_TIMEZONE_LOCAL);
 }
+
+#ifdef _WIN32
+static unsigned int
+is_leapyear(unsigned int y)
+{
+  return (y % 4) == 0 && ((y % 100) != 0 || (y % 400) == 0);
+}
+
+static time_t
+timegm(struct tm *tm)
+{
+  static const unsigned int ndays[2][12] = {
+    {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+    {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+  };
+  time_t r = 0;
+  int i;
+  unsigned int *nday = (unsigned int*) ndays[is_leapyear(tm->tm_year+1900)];
+
+  for (i = 70; i < tm->tm_year; ++i)
+    r += is_leapyear(i+1900) ? 366*24*60*60 : 365*24*60*60;
+  for (i = 0; i < tm->tm_mon; ++i)
+    r += nday[i] * 24 * 60 * 60;
+  r += (tm->tm_mday - 1) * 24 * 60 * 60;
+  r += tm->tm_hour * 60 * 60;
+  r += tm->tm_min * 60;
+  r += tm->tm_sec;
+  return r;
+}
+#endif
 
 static struct mrb_time*
 time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
