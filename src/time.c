@@ -17,17 +17,17 @@
 /* gettimeofday(2) */
 /* C99 does not have gettimeofday that is required to retrieve microseconds */
 /* uncomment following macro on platforms without gettimeofday(2) */
-/* #define NO_USE_GETTIMEOFDAY */
+/* #define NO_GETTIMEOFDAY */
 
 /* gmtime(3) */
 /* C99 does not have reentrant gmtime_r() so it might cause troubles under */
 /* multi-threading environment.  undef following macro on platforms that */
 /* does not have gmtime_r() and localtime_r(). */
-/* #define NO_USE_GMTIME_R */
+/* #define NO_GMTIME_R */
 
 #ifdef _WIN32
 /* unfortunately Win32 platform do not provide gmtime_r/localtime_r */
-#define NO_USE_GMTIME_R
+#define NO_GMTIME_R
 #endif
 
 /* timegm(3) */
@@ -37,10 +37,10 @@
 
 /** end of Time class configuration */
 
-#ifndef NO_USE_GETTIMEOFDAY
+#ifndef NO_GETTIMEOFDAY
 #include <sys/time.h>
 #endif
-#ifndef NO_USE_GMTIME_R
+#ifndef NO_GMTIME_R
 #define gmtime_r(t,r) gmtime(t)
 #define localtime_r(t,r) (tzset(),localtime(t))
 #endif
@@ -138,7 +138,7 @@ mrb_time_update_datetime(struct mrb_time *self)
     aid = localtime_r(&self->sec, &self->datetime);
   }
   if(!aid) return NULL;
-#ifndef NO_USE_GMTIME_R
+#ifndef NO_GMTIME_R
   self->datetime = *aid; // copy data
 #endif
 
@@ -179,7 +179,7 @@ current_time(mrb_state *mrb)
   struct mrb_time *tm;  
 
   tm = mrb_malloc(mrb, sizeof(*tm));
-#ifdef NO_USE_GETTIMEOFDAY
+#ifdef NO_GETTIMEOFDAY
   tm->sec  = time(NULL);
   tm->usec = 0;
 #else
