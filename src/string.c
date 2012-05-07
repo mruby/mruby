@@ -2388,6 +2388,13 @@ mrb_str_buf_append(mrb_state *mrb, mrb_value str, mrb_value str2)
 
     return str;
 }
+#else
+mrb_value
+mrb_str_buf_append(mrb_state *mrb, mrb_value str, mrb_value str2)
+{
+  mrb_str_cat(mrb, str, RSTRING_PTR(str2), RSTRING_LEN(str2));
+  return str;
+}
 #endif //INCLUDE_ENCODING
 
 static inline void
