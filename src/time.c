@@ -174,7 +174,7 @@ mrb_time_make(mrb_state *mrb, struct RClass *c, mrb_float seconds, enum mrb_time
 }
 
 static struct mrb_time*
-current_time(mrb_state *mrb)
+current_mrb_time(mrb_state *mrb)
 {
   struct mrb_time *tm;  
 
@@ -213,7 +213,7 @@ current_time(mrb_state *mrb)
 static mrb_value
 mrb_time_now(mrb_state *mrb, mrb_value self)
 {
-  return mrb_time_wrap(mrb, mrb_class_ptr(self), current_time(mrb));
+  return mrb_time_wrap(mrb, mrb_class_ptr(self), current_mrb_time(mrb));
 }
 
 /* 15.2.19.6.1 */
@@ -478,7 +478,7 @@ mrb_time_initialize(mrb_state *mrb, mrb_value self)
     mrb_time_free(mrb, tm);
   }
   if (mrb->ci->argc == 0) {
-    tm = current_time(mrb);
+    tm = current_mrb_time(mrb);
   }
   else {
     mrb_get_args(mrb, "iiiiiii",
