@@ -43,7 +43,6 @@ assert("yday")    { t1.yday    ==  71             }
 assert("year")    { t1.year    ==  2011           }
 
 t2 = Time.at(7.0e6)
-t1.initialize_copy(t2)
-assert("initialize_copy") { t1 == t2 }
+assert("initialize_copy") { t2.clone == t2 }
 
 report()

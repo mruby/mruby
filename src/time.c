@@ -496,6 +496,10 @@ mrb_time_initialize_copy(mrb_state *mrb, mrb_value copy)
   if (!mrb_obj_is_instance_of(mrb, src, mrb_obj_class(mrb, copy))) {
     mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
   }
+  if (!DATA_PTR(copy)) {
+    DATA_PTR(copy) = mrb_malloc(mrb, sizeof(struct mrb_time));
+    DATA_TYPE(copy) = &mrb_time_type;
+  }
   memcpy(DATA_PTR(copy), DATA_PTR(src), sizeof(struct mrb_time));
   return copy;
 }
