@@ -39,7 +39,7 @@ struct RMatch {
   MRUBY_OBJECT_HEADER;
   mrb_value str;
   struct rmatch *rmatch;
-  mrb_value regexp;  /* RRegexp */
+  struct RRegexp *regexp;
 };
 
 struct RRegexp {

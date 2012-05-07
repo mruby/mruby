@@ -281,7 +281,7 @@ match_backref_number(mrb_state *mrb, mrb_value match, mrb_value backref)
   int num;
 
   struct re_registers *regs = RMATCH_REGS(match);
-  mrb_value regexp = RMATCH(match)->regexp;
+  struct RRegexp *regexp = RMATCH(match)->regexp;
 
   match_check(mrb, match);
   switch(mrb_type(backref)) {
@@ -297,7 +297,7 @@ match_backref_number(mrb_state *mrb, mrb_value match, mrb_value backref)
       name = mrb_string_value_cstr(mrb, &backref);
       break;
   }
-  num = onig_name_to_backref_number(mrb_regex_ptr(regexp)->ptr,
+  num = onig_name_to_backref_number(regexp->ptr,
               (const unsigned char*)name,
               (const unsigned char*)name + strlen(name),
               regs);
@@ -582,7 +582,7 @@ mrb_reg_search(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos, mrb_int
   }
 
   RMATCH(match)->str = str_new4(mrb, str.tt, str);
-  RMATCH(match)->regexp = re;
+  RMATCH(match)->regexp = mrb_regex_ptr(re);
   RMATCH(match)->rmatch->char_offset_updated = 0;
   mrb_backref_set(mrb, match);
 
@@ -811,9 +811,7 @@ read_escaped_byte(const char **pp, const char *end, onig_errmsg_buffer err)
     int code;
     int meta_prefix = 0, ctrl_prefix = 0;
     size_t len;
-    int retbyte;
 
-    retbyte = -1;
     if (p == end || *p++ != '\\') {
         //errcpy(err, "too short escaped multibyte character");
         printf("too short escaped multibyte character");
@@ -1360,6 +1358,14 @@ mrb_reg_init_copy(mrb_state *mrb, mrb_value re/*, mrb_value copy*/)
 }
 
 static int
+reg_equal(mrb_state *mrb, struct RRegexp *re1, struct RRegexp *re2)
+{
+  if (re1->ptr->options != re2->ptr->options) return FALSE;
+  if (!mrb_equal(mrb, re1->src, re2->src)) return FALSE;
+  return TRUE;
+}
+
+static int
 mrb_reg_equal(mrb_state *mrb, mrb_value re1, mrb_value re2)
 {
   if (mrb_obj_equal(mrb, re1, re2)) return TRUE;
@@ -1367,14 +1373,7 @@ mrb_reg_equal(mrb_state *mrb, mrb_value re1, mrb_value re2)
   if (mrb_type(re2) != MRB_TT_REGEX) return FALSE;
   mrb_reg_check(mrb, re1);
   mrb_reg_check(mrb, re2);
-  /*if (FL_TEST(re1, KCODE_FIXED) != FL_TEST(re2, KCODE_FIXED)) return Qfalse; */
-  if (RREGEXP(re1)->ptr->options != RREGEXP(re2)->ptr->options) return FALSE;
-  if (RREGEXP_SRC_LEN(re1) != RREGEXP_SRC_LEN(re2)) return FALSE;
-  /*if (ENCODING_GET(re1) != ENCODING_GET(re2)) return mrb_false_value();*/
-  if (memcmp(RREGEXP_SRC_PTR(re1), RREGEXP_SRC_PTR(re2), RREGEXP_SRC_LEN(re1)) == 0) {
-    return TRUE;
-  }
-  return FALSE;
+  return reg_equal(mrb, RREGEXP(re1), RREGEXP(re2));
 }
 
 /* 15.2.15.7.3  */
@@ -1636,11 +1635,11 @@ mrb_reg_source(mrb_state *mrb, mrb_value re)
 }
 
 static int
-name_to_backref_number(mrb_state *mrb, struct re_registers *regs, mrb_value regexp, const char* name, const char* name_end)
+name_to_backref_number(mrb_state *mrb, struct re_registers *regs, struct RRegexp*regexp, const char* name, const char* name_end)
 {
   int num;
 
-  num = onig_name_to_backref_number(RREGEXP(regexp)->ptr,
+  num = onig_name_to_backref_number(regexp->ptr,
            (const unsigned char* )name, (const unsigned char* )name_end, regs);
   if (num >= 1) {
     return num;
@@ -1676,7 +1675,7 @@ match_alloc(mrb_state *mrb)
 
   m->str    = mrb_nil_value();
   m->rmatch = 0;
-  m->regexp = mrb_nil_value();
+  m->regexp = 0;
   m->rmatch = mrb_malloc(mrb, sizeof(struct rmatch));//ALLOC(struct rmatch);
   memset(m->rmatch, 0, sizeof(struct rmatch));
 
@@ -1718,13 +1717,12 @@ mrb_match_aref(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value match)
 {
   mrb_value argv[16];
   int argc;
-  mrb_value idx, rest;
+  mrb_value idx;
 
   match_check(mrb, match);
   //mrb_scan_args(argc, argv, "11", &idx, &rest);
   mrb_get_args(mrb, "*", &argv, &argc);
   idx = argv[0];
-  rest = argv[1];
   if (argc<2) {
     if (mrb_type(idx) == MRB_TT_FIXNUM) {
       if (mrb_fixnum(idx) >= 0) {
@@ -1777,7 +1775,7 @@ update_char_offset(mrb_state *mrb, mrb_value match)
     struct re_registers *regs;
     int i, num_regs, num_pos;
     long c;
-    char *s, *p, *q, *e;
+    char *s, *p, *q;
     mrb_encoding *enc;
     pair_t *pairs;
 
@@ -1816,7 +1814,6 @@ update_char_offset(mrb_state *mrb, mrb_value match)
     qsort(pairs, num_pos, sizeof(pair_t), pair_byte_cmp);
 
     s = p = RSTRING_PTR(RMATCH(match)->str);
-    e = s + RSTRING_LEN(RMATCH(match)->str);
     c = 0;
     for (i = 0; i < num_pos; i++) {
         q = s + pairs[i].byte_pos;
@@ -2526,9 +2523,9 @@ mrb_match_inspect(mrb_state *mrb, mrb_value match)
     struct re_registers *regs = RMATCH_REGS(match);
     int num_regs = regs->num_regs;
     struct backref_name_tag *names;
-    mrb_value regexp = RMATCH(match)->regexp;
+    struct RRegexp *regexp = RMATCH(match)->regexp;
 
-    if (regexp.value.p == 0) {
+    if (!regexp) {
         return mrb_sprintf(mrb, "#<%s:%p>", cname, (void*)&match);
     }
 
@@ -2537,7 +2534,7 @@ mrb_match_inspect(mrb_state *mrb, mrb_value match)
     names = mrb_malloc(mrb, sizeof(struct backref_name_tag)*num_regs);
     memset(names, 0, sizeof(struct backref_name_tag)*num_regs);
 
-    onig_foreach_name(RREGEXP(regexp)->ptr,
+    onig_foreach_name(regexp->ptr,
             match_inspect_name_iter, names);
 
     str = mrb_str_new_cstr(mrb, "#<");//mrb_str_buf_new2("#<");
@@ -2588,7 +2585,8 @@ mrb_match_equal(mrb_state *mrb, mrb_value match1)
   if (mrb_obj_equal(mrb, match1, match2)) return mrb_true_value();
   if (mrb_type(match2) != MRB_TT_MATCH) return mrb_false_value();
   if (!mrb_str_equal(mrb, RMATCH(match1)->str, RMATCH(match2)->str)) return mrb_false_value();
-  if (!mrb_reg_equal(mrb, RMATCH(match1)->regexp, RMATCH(match2)->regexp)) return mrb_false_value();
+
+  if (!reg_equal(mrb, RMATCH(match1)->regexp, RMATCH(match2)->regexp)) return mrb_false_value();
   regs1 = RMATCH_REGS(match1);
   regs2 = RMATCH_REGS(match2);
   if (regs1->num_regs != regs2->num_regs) return mrb_false_value();
@@ -2767,7 +2765,7 @@ mrb_reg_regsub(mrb_state *mrb, mrb_value str, mrb_value src, struct re_registers
                 name_end += c == -1 ? mbclen(name_end, e, str_enc) : clen;
             }
             if (name_end < e) {
-                no = name_to_backref_number(mrb, regs, regexp, name, name_end);
+	        no = name_to_backref_number(mrb, regs, RREGEXP(regexp), name, name_end);
                 p = s = name_end + clen;
                 break;
             }
