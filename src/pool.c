@@ -17,6 +17,12 @@
 
 #define POOL_PAGE_SIZE 16000
 
+#ifdef ALLOC_PADDING
+#  define CALC_ALIGN_PADDING(x) ((x % ALLOC_PADDING) ? ALLOC_PADDING - (x % ALLOC_PADDING) : 0)
+#else
+#  define CALC_ALIGN_PADDING(x) (0)
+#endif
+
 mrb_pool*
 mrb_pool_open(mrb_state *mrb)
 {
@@ -68,7 +74,7 @@ mrb_pool_alloc(mrb_pool *pool, size_t len)
   size_t n;
 
   if (!pool) return 0;
-
+  len += CALC_ALIGN_PADDING(len);
   page = pool->pages;
   while (page) {
     if (page->offset + len <= page->len) {
@@ -95,6 +101,7 @@ mrb_pool_can_realloc(mrb_pool *pool, void *p, size_t len)
   struct mrb_pool_page *page;
 
   if (!pool) return 0;
+  len += CALC_ALIGN_PADDING(len);
   page = pool->pages;
   while (page) {
     if (page->last == p) {
@@ -116,6 +123,8 @@ mrb_pool_realloc(mrb_pool *pool, void *p, size_t oldlen, size_t newlen)
   void *np;
 
   if (!pool) return 0;
+  oldlen += CALC_ALIGN_PADDING(oldlen);
+  newlen += CALC_ALIGN_PADDING(newlen);
   page = pool->pages;
   while (page) {
     if (page->last == p) {
