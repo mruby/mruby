@@ -237,7 +237,7 @@ static void
 match_check(mrb_state *mrb, mrb_value match)
 {
   struct RMatch  *m = mrb_match_ptr(match);
-  if (!m->str.tt) {
+  if (!m->str) {
     mrb_raise(mrb, E_TYPE_ERROR, "uninitialized Match");
   }
 }
@@ -262,7 +262,7 @@ mrb_reg_nth_match(mrb_state *mrb, mrb_int nth, mrb_value match)
   if (start == -1) return mrb_nil_value();
   end = m->rmatch->regs.end[nth];
   len = end - start;
-  str = mrb_str_substr(mrb, m->str, start, len);
+  str = mrb_str_substr(mrb, mrb_obj_value(m->str), start, len);
 
   return str;
 }
@@ -581,7 +581,7 @@ mrb_reg_search(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos, mrb_int
     onig_region_free(regs, 0);
   }
 
-  RMATCH(match)->str = str_new4(mrb, str.tt, str);
+  RMATCH(match)->str = mrb_str_ptr(str);
   RMATCH(match)->regexp = mrb_regex_ptr(re);
   RMATCH(match)->rmatch->char_offset_updated = 0;
   mrb_backref_set(mrb, match);
@@ -1673,7 +1673,7 @@ match_alloc(mrb_state *mrb)
   //  NEWOBJ(match, struct RMatch);
   //  OBJSETUP(match, klass, T_MATCH);
 
-  m->str    = mrb_nil_value();
+  m->str    = 0;
   m->rmatch = 0;
   m->regexp = 0;
   m->rmatch = mrb_malloc(mrb, sizeof(struct rmatch));//ALLOC(struct rmatch);
@@ -1791,7 +1791,7 @@ update_char_offset(mrb_state *mrb, mrb_value match)
         rm->char_offset_num_allocated = num_regs;
     }
 
-    enc = mrb_enc_get(mrb, RMATCH(match)->str);
+    enc = mrb_enc_get(mrb, mrb_obj_value(RMATCH(match)->str));
     if (mrb_enc_mbmaxlen(enc) == 1) {
         for (i = 0; i < num_regs; i++) {
             rm->char_offset[i].beg = BEG(i);
@@ -1813,7 +1813,7 @@ update_char_offset(mrb_state *mrb, mrb_value match)
     }
     qsort(pairs, num_pos, sizeof(pair_t), pair_byte_cmp);
 
-    s = p = RSTRING_PTR(RMATCH(match)->str);
+    s = p = RMATCH(match)->str->buf;
     c = 0;
     for (i = 0; i < num_pos; i++) {
         q = s + pairs[i].byte_pos;
@@ -1886,7 +1886,7 @@ match_array(mrb_state *mrb, mrb_value match, int start)
 {
   struct re_registers *regs;
   mrb_value ary;
-  mrb_value target;
+  struct RString *target;
   int i;
 
   match_check(mrb, match);
@@ -1899,7 +1899,7 @@ match_array(mrb_state *mrb, mrb_value match, int start)
       mrb_ary_push(mrb, ary, mrb_nil_value());
     }
     else {
-      mrb_value str = mrb_str_subseq(mrb, target, regs->beg[i], regs->end[i]-regs->beg[i]);
+      mrb_value str = mrb_str_subseq(mrb, mrb_obj_value(target), regs->beg[i], regs->end[i]-regs->beg[i]);
       mrb_ary_push(mrb, ary, str);
     }
   }
@@ -2084,7 +2084,7 @@ mrb_match_offset(mrb_state *mrb, mrb_value match/*, mrb_value n*/)
 mrb_value
 mrb_reg_match_post(mrb_state *mrb, mrb_value match)
 {
-  mrb_value str;
+  struct RString *str;
   long pos;
   struct re_registers *regs;
 
@@ -2094,9 +2094,7 @@ mrb_reg_match_post(mrb_state *mrb, mrb_value match)
   if (BEG(0) == -1) return mrb_nil_value();
   str = RMATCH(match)->str;
   pos = END(0);
-  str = mrb_str_subseq(mrb, str, pos, RSTRING_LEN(str) - pos);
-
-  return str;
+  return mrb_str_subseq(mrb, mrb_obj_value(str), pos, str->len - pos);
 }
 
 /* 15.2.16.3.9  */
@@ -2121,7 +2119,7 @@ mrb_reg_match_pre(mrb_state *mrb, mrb_value match)
   match_check(mrb, match);
   regs = RMATCH_REGS(match);
   if (BEG(0) == -1) return mrb_nil_value();
-  str = mrb_str_subseq(mrb, RMATCH(match)->str, 0, BEG(0));
+  str = mrb_str_subseq(mrb, mrb_obj_value(RMATCH(match)->str), 0, BEG(0));
 
   return str;
 }
@@ -2141,7 +2139,7 @@ static mrb_value
 mrb_match_string(mrb_state *mrb, mrb_value match)
 {
     match_check(mrb, match);
-    return RMATCH(match)->str;  /* str is frozen */
+    return mrb_obj_value(RMATCH(match)->str);
 }
 
 /* 15.2.16.3.12 */
@@ -2584,8 +2582,8 @@ mrb_match_equal(mrb_state *mrb, mrb_value match1)
   mrb_get_args(mrb, "o", &match2);
   if (mrb_obj_equal(mrb, match1, match2)) return mrb_true_value();
   if (mrb_type(match2) != MRB_TT_MATCH) return mrb_false_value();
-  if (!mrb_str_equal(mrb, RMATCH(match1)->str, RMATCH(match2)->str)) return mrb_false_value();
-
+  if (!mrb_str_equal(mrb, mrb_obj_value(RMATCH(match1)->str), mrb_obj_value(RMATCH(match2)->str)))
+    return mrb_false_value();
   if (!reg_equal(mrb, RMATCH(match1)->regexp, RMATCH(match2)->regexp)) return mrb_false_value();
   regs1 = RMATCH_REGS(match1);
   regs2 = RMATCH_REGS(match2);

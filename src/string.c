@@ -479,11 +479,11 @@ mrb_enc_cr_str_exact_copy(mrb_state *mrb, mrb_value dest, mrb_value src)
 #endif //INCLUDE_ENCODING
 
 mrb_value
-str_new4(mrb_state *mrb, enum mrb_vtype ttype, mrb_value str)
+str_new4(mrb_state *mrb, mrb_value str)
 {
   mrb_value str2;
 
-  str2 = mrb_obj_value(mrb_obj_alloc(mrb, ttype, mrb->string_class));//str_alloc(klass);
+  str2 = mrb_obj_value(mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class));
   RSTRING(str2)->len = RSTRING_LEN(str);
   RSTRING(str2)->buf = RSTRING_PTR(str);
 
@@ -2225,7 +2225,7 @@ mrb_str_new_frozen(mrb_state *mrb, mrb_value orig)
     }
   }
   else {
-    str = str_new4(mrb, orig.tt, orig);
+    str = str_new4(mrb, orig);
   }
   return str;
 }

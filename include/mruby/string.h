@@ -110,7 +110,7 @@ void mrb_str_setter(mrb_state *mrb, mrb_value val, mrb_sym id, mrb_value *var);
 int mrb_str_is_ascii_only_p(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
 int mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2);
-mrb_value str_new4(mrb_state *mrb, enum mrb_vtype ttype, mrb_value str);
+mrb_value str_new4(mrb_state *mrb, mrb_value str);
 mrb_value * mrb_svar(mrb_int cnt);
 mrb_value mrb_str_drop_bytes(mrb_state *mrb, mrb_value str, long len);
 mrb_value mrb_str_dump(mrb_state *mrb, mrb_value str);
