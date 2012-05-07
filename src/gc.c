@@ -424,7 +424,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
 
   case MRB_TT_HASH:
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
-    mrb_gc_free_ht(mrb, (struct RClass*)obj);
+    mrb_gc_free_ht(mrb, (struct RHash*)obj);
     break;
 
   case MRB_TT_STRING:
