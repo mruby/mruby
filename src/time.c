@@ -12,24 +12,40 @@
 #include "mruby/class.h"
 #include "mruby/data.h"
 
-/* Time class configuration */
-#undef  USE_GETTIMEOFDAY  /* C99 does not have gettimeofday */
-#define USE_GETTIMEOFDAY  /* need gettimeofday to retrieve microseconds */
-#undef  USE_GMTIME_R      /* C99 does not have reentrant gmtime_r */
-#ifndef _WIN32
-#define USE_GMTIME_R      /* use reentrant gmtime_r */
-#endif
-#undef  USE_TIMEGM        /* define to use systems timegm(3) */
+/** Time class configuration */
 
-#ifdef USE_GETTIMEOFDAY
+/* gettimeofday(2) */
+/* C99 does not have gettimeofday that is required to retrieve microseconds */
+/* uncomment following macro on platforms without gettimeofday(2) */
+/* #define NO_USE_GETTIMEOFDAY */
+
+/* gmtime(3) */
+/* C99 does not have reentrant gmtime_r() so it might cause troubles under */
+/* multi-threading environment.  undef following macro on platforms that */
+/* does not have gmtime_r() and localtime_r(). */
+/* #define NO_USE_GMTIME_R */
+
+#ifdef _WIN32
+/* unfortunately Win32 platform do not provide gmtime_r/localtime_r */
+#define NO_USE_GMTIME_R
+#endif
+
+/* timegm(3) */
+/* mktime() creates tm structure for localtime; timegm() is for UTF time */
+/* define following macro to use probably faster timegm() on the platform */
+/* #define USE_SYSTEM_TIMEGM */
+
+/** end of Time class configuration */
+
+#ifndef NO_USE_GETTIMEOFDAY
 #include <sys/time.h>
 #endif
-#ifndef USE_GMTIME_R
+#ifndef NO_USE_GMTIME_R
 #define gmtime_r(t,r) gmtime(t)
-#define localtime_r(t,r) localtime(t)
+#define localtime_r(t,r) (tzset(),localtime(t))
 #endif
 
-#ifndef USE_TIMEGM
+#ifndef USE_SYSTEM_TIMEGM
 #define timegm my_timgm
 
 static unsigned int
@@ -119,13 +135,10 @@ mrb_time_update_datetime(struct mrb_time *self)
     aid = gmtime_r(&self->sec, &self->datetime);
   }
   else {
-#ifdef USE_GMTIME_R
-    tzset();
-#endif
     aid = localtime_r(&self->sec, &self->datetime);
   }
   if(!aid) return NULL;
-#ifndef USE_GMTIME_R
+#ifndef NO_USE_GMTIME_R
   self->datetime = *aid; // copy data
 #endif
 
@@ -166,7 +179,10 @@ current_time(mrb_state *mrb)
   struct mrb_time *tm;  
 
   tm = mrb_malloc(mrb, sizeof(*tm));
-#ifdef USE_GETTIMEOFDAY
+#ifdef NO_USE_GETTIMEOFDAY
+  tm->sec  = time(NULL);
+  tm->usec = 0;
+#else
   {
     struct timeval tv;
 
@@ -174,9 +190,6 @@ current_time(mrb_state *mrb)
     tm->sec = tv.tv_sec;
     tm->usec = tv.tv_usec;
   }
-#else
-  tm->sec  = time(NULL);
-  tm->usec = 0;
 #endif
   tm->timezone = MRB_TIMEZONE_LOCAL;
   mrb_time_update_datetime(tm);
