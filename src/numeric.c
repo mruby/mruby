@@ -543,7 +543,6 @@ flo_round(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value num)
         number = d - (d - number >= 0.5);
     }
 
-    number = round(number);
     if (ndigits < 0) number *= f;
     else number /= f;
   }
