@@ -40,7 +40,7 @@
 #ifndef NO_GETTIMEOFDAY
 #include <sys/time.h>
 #endif
-#ifndef NO_GMTIME_R
+#ifdef NO_GMTIME_R
 #define gmtime_r(t,r) gmtime(t)
 #define localtime_r(t,r) (tzset(),localtime(t))
 #endif
@@ -138,7 +138,7 @@ mrb_time_update_datetime(struct mrb_time *self)
     aid = localtime_r(&self->sec, &self->datetime);
   }
   if(!aid) return NULL;
-#ifndef NO_GMTIME_R
+#ifdef NO_GMTIME_R
   self->datetime = *aid; // copy data
 #endif
 
