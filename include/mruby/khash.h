@@ -17,7 +17,7 @@ typedef khint_t khiter_t;
 //extern uint8_t __m[];
 
 /* mask for flags */
-static uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
+static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 
 
 #define __ac_isempty(e_flag, d_flag, i) (e_flag[(i)/8]&__m[(i)%8])
@@ -107,18 +107,20 @@ static uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
       new_n_buckets = INITIAL_HASH_SIZE;                                \
       while( new_n_buckets < limit ) new_n_buckets *= 2;                \
     }                                                                   \
-    uint8_t *old_e_flags = h->e_flags;                                  \
-    khkey_t *old_keys = h->keys;                                        \
-    khval_t *old_vals = h->vals;                                        \
-    khint_t old_n_buckets = h->n_buckets;                               \
-    h->n_buckets = new_n_buckets;                                       \
-    kh_alloc_##name(h);                                                 \
-    /* relocate */                                                      \
-    khint_t i;                                                          \
-    for( i=0 ; i<old_n_buckets ; i++ ){                                 \
-      if( !__ac_isempty(old_e_flags, old_d_flags, i) ){                 \
-        khint_t k = kh_put_##name(h, old_keys[i]);                      \
-        kh_value(h,k) = old_vals[i];                                    \
+    {					                                \
+      uint8_t *old_e_flags = h->e_flags;                                \
+      khkey_t *old_keys = h->keys;                                      \
+      khval_t *old_vals = h->vals;                                      \
+      khint_t old_n_buckets = h->n_buckets;                             \
+      h->n_buckets = new_n_buckets;                                     \
+      kh_alloc_##name(h);                                               \
+      /* relocate */                                                    \
+      khint_t i;                                                        \
+      for( i=0 ; i<old_n_buckets ; i++ ){                               \
+	if( !__ac_isempty(old_e_flags, old_d_flags, i) ){               \
+	  khint_t k = kh_put_##name(h, old_keys[i]);                    \
+	  kh_value(h,k) = old_vals[i];                                  \
+	}                                                               \
       }                                                                 \
     }                                                                   \
   }                                                                     \

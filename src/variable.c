@@ -350,7 +350,7 @@ mrb_value
 mrb_f_global_variables(mrb_state *mrb, mrb_value self)
 {
   char buf[3];
-  int i;
+  khint_t i;
   struct kh_iv *h = mrb->globals;
   mrb_value ary = mrb_ary_new(mrb);
 

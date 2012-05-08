@@ -729,9 +729,10 @@ mrb_value
 mrb_obj_ivar_get(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg;
+  mrb_sym id;
 
   mrb_get_args(mrb, "o", &arg);
-  mrb_sym id = mrb_to_id(mrb, arg);
+  id = mrb_to_id(mrb, arg);
 
   //if (!mrb_is_instance_id(id)) {
   //    mrb_name_error(mrb, id, "`%s' is not allowed as an instance variable name", mrb_sym2name(mrb, id));
@@ -797,7 +798,7 @@ mrb_obj_instance_variables(mrb_state *mrb, mrb_value self)
 {
     mrb_value ary;
     kh_iv_t *h = RCLASS_IV_TBL(self);
-    int i;
+    khint_t i;
     const char* p;
 
     ary = mrb_ary_new(mrb);
@@ -924,7 +925,7 @@ mrb_f_loop(mrb_state *mrb, mrb_value self)
 static void
 method_entry_loop(mrb_state *mrb, struct RClass* klass, mrb_value ary)
 {
-  int i;
+  khint_t i;
 
   khash_t(mt) *h = klass->mt;
   if (!h) return;

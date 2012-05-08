@@ -600,6 +600,7 @@ retry:
       {
         const char *start = p;
         char term = (*p == '<') ? '>' : '}';
+	mrb_value symname;
 
         for (; p < end && *p != term; )
           p++;
@@ -607,7 +608,7 @@ retry:
           mrb_raise(mrb, E_ARGUMENT_ERROR, "name%.*s after <%s>",
                (int)(p - start + 1), start, mrb_sym2name(mrb, id));
         }
-        mrb_value symname = mrb_str_new(mrb, start + 1, p - start - 1);
+        symname = mrb_str_new(mrb, start + 1, p - start - 1);
         id = mrb_intern(mrb, RSTRING_PTR(symname));
         nextvalue = GETNAMEARG(mrb_symbol_value(id), start, (int)(p - start + 1));
         if (UNDEF_P(nextvalue)) {
