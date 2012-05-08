@@ -691,9 +691,10 @@ mrb_obj_ivar_defined(mrb_state *mrb, mrb_value self)
   mrb_value arg;
   khiter_t k;
   kh_iv_t *h = RCLASS_IV_TBL(self);
+  mrb_sym mid;
 
   mrb_get_args(mrb, "o", &arg);
-  mrb_sym mid = mrb_to_id(mrb, arg);
+  mid = mrb_to_id(mrb, arg);
 
   if (h) {
     k = kh_get(iv, h, mid);
