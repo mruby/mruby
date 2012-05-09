@@ -326,7 +326,10 @@ argnum_error(mrb_state *mrb, int num)
   (r).value.p = (void*)(v);\
 }
 
+#ifdef __GNUC__
 #define DIRECT_THREADED
+#endif
+
 #ifndef DIRECT_THREADED
 
 #define INIT_DISPACTH for (;;) { i = *pc; switch (GET_OPCODE(i)) {
