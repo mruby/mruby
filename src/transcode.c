@@ -13,6 +13,9 @@
 #ifdef INCLUDE_ENCODING
 #include "encoding.h"
 #include <sys/types.h> /* for ssize_t */
+#ifdef _MSC_VER
+typedef int ssize_t;
+#endif
 #include "transcode_data.h"
 #include <ctype.h>
 #include "st.h"

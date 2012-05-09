@@ -1348,7 +1348,11 @@ set_default_internal(mrb_state *mrb, mrb_value klass)
 }
 
 #define digit(x) ((x) >= '0' && (x) <= '9')
+#ifndef _MSC_VER
 #define strstart(s, n) (strncasecmp(s, n, strlen(n)) == 0)
+#else
+#define strstart(s, n) (_stricmp(s, n) == 0)
+#endif
 #define C_CODESET "US-ASCII"     /* Return this as the encoding of the
                                   * C/POSIX locale. Could as well one day
                                   * become "UTF-8". */
