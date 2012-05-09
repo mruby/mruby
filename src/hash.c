@@ -16,10 +16,6 @@
 #include <string.h>
 
 
-#ifdef __APPLE__
-#include <crt_externs.h>
-#endif
-
 #include <stdio.h>
 
 static khint_t
