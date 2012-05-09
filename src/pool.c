@@ -18,7 +18,7 @@
 #define POOL_PAGE_SIZE 16000
 
 #ifdef ALLOC_ALIGN
-#  define ALIGN_PADDING(x) ((x % ALLOC_ALIGN) ? ALLOC_ALIGN - (x % ALLOC_ALLOC) : 0)
+#  define ALIGN_PADDING(x) ((x % ALLOC_ALIGN) ? ALLOC_ALIGN - (x % ALLOC_ALIGN) : 0)
 #else
 #  define ALIGN_PADDING(x) (0)
 #endif
