@@ -765,13 +765,10 @@ mrb_obj_ivar_set(mrb_state *mrb, mrb_value self)
 {
   mrb_value key;
   mrb_value val;
+  mrb_sym id;
 
   mrb_get_args(mrb, "oo", &key, &val);
-  mrb_sym id = mrb_to_id(mrb, key);
-
-  //if (!mrb_is_instance_id(id)) {
-  //    mrb_name_error(mrb, id, "`%s' is not allowed as an instance variable name", mrb_sym2name(mrb, id));
-  //}
+  id = mrb_to_id(mrb, key);
   mrb_iv_set(mrb, self, id, val);
   return val;
 }

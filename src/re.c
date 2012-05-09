@@ -1976,9 +1976,10 @@ mrb_match_init_copy(mrb_state *mrb, mrb_value obj/*, mrb_value orig*/)
   mrb_value argv[16];
   int argc;
   struct rmatch *rm;
+  mrb_value orig;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  mrb_value orig = argv[0];
+  orig = argv[0];
 
   if (mrb_obj_equal(mrb, obj, orig)) return obj;
 
@@ -2006,7 +2007,7 @@ mrb_match_init_copy(mrb_state *mrb, mrb_value obj/*, mrb_value orig*/)
           rm->char_offset_num_allocated = rm->regs.num_regs;
       }
       memcpy(rm->char_offset, RMATCH(orig)->rmatch->char_offset,
-             sizeof(struct rmatch_offset)* rm->regs.num_regs);
+             sizeof(struct rmatch_offset) * rm->regs.num_regs);
       rm->char_offset_updated = 1;
   }
 
