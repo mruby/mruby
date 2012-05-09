@@ -2694,14 +2694,10 @@ str_encode_bang(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value str)
 {
   mrb_value argv[16];
   int argc;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
   mrb_value newstr;
   int encidx;
 
-  //if (OBJ_FROZEN(str)) { /* in future, may use str_frozen_check from string.c, but that's currently static */
-  //  mrb_raise(mrb, mrb->eRuntimeError_class, "string frozen");
-  //}
+  mrb_get_args(mrb, "*", &argv, &argc);
 
   newstr = str;
   encidx = str_transcode(mrb, argc, argv, &newstr);
@@ -2770,10 +2766,12 @@ str_encode(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value str)
 {
   mrb_value argv[16];
   int argc;
+  mrb_value newstr;
+  int encidx;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  mrb_value newstr = str;
-  int encidx = str_transcode(mrb, argc, argv, &newstr);
+  newstr = str;
+  encidx = str_transcode(mrb, argc, argv, &newstr);
 
   if (encidx < 0) return mrb_str_dup(mrb, str);
   if (mrb_obj_equal(mrb, newstr, str)) {
@@ -3908,11 +3906,11 @@ econv_insert_output(mrb_state *mrb, mrb_value self)
 {
         mrb_value string;
     const char *insert_enc;
-
+    mrb_econv_t *ec;
     int ret;
 
     mrb_get_args(mrb, "o", &string);
-    mrb_econv_t *ec = check_econv(mrb, self);
+    ec = check_econv(mrb, self);
 
     //StringValue(string);
     mrb_string_value(mrb, &string);
