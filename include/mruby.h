@@ -241,7 +241,6 @@ typedef struct mrb_state {
   struct RClass *string_class;
   struct RClass *array_class;
   struct RClass *hash_class;
-  struct RClass *range_class;
 #ifdef INCLUDE_REGEXP
   struct RClass *regex_class;
   struct RClass *match_class;

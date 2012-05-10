@@ -27,6 +27,8 @@
 #define OTHER 2
 #endif
 
+#define RANGE_CLASS (mrb_class_obj_get(mrb, "Range"))
+
 mrb_value mrb_exec_recursive_paired(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mrb_value, int),
                                   mrb_value obj, mrb_value paired_obj, void* arg);
 
@@ -37,7 +39,7 @@ mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, int excl)
 {
   struct RRange *r;
 
-  r = mrb_obj_alloc(mrb, MRB_TT_RANGE, mrb->range_class);
+  r = mrb_obj_alloc(mrb, MRB_TT_RANGE, RANGE_CLASS);
   r->edges = mrb_malloc(mrb, sizeof(struct mrb_range_edges));
   r->edges->beg = beg;
   r->edges->end = end;
@@ -310,7 +312,6 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
   mrb_int beg, end, b, e;
   struct RRange *r = mrb_range_ptr(range);
 
-  //if (!mrb_obj_is_kind_of(mrb, range, mrb->range_class)) return FALSE;
   if (mrb_type(range) != MRB_TT_RANGE) return FALSE;
 
   beg = b = mrb_fixnum(r->edges->beg);
@@ -438,7 +439,7 @@ range_eql(mrb_state *mrb, mrb_value range)
 
   if (mrb_obj_equal(mrb, range, obj))
     return mrb_true_value();
-  if (!mrb_obj_is_kind_of(mrb, obj, mrb->range_class))
+  if (!mrb_obj_is_kind_of(mrb, obj, RANGE_CLASS))
     return mrb_false_value();
   return mrb_exec_recursive_paired(mrb, recursive_eql, range, obj, &obj);
 }
@@ -464,7 +465,8 @@ void
 mrb_init_range(mrb_state *mrb)
 {
   struct RClass *r;
-  r = mrb->range_class = mrb_define_class(mrb, "Range", mrb->object_class);
+
+  r = mrb_define_class(mrb, "Range", mrb->object_class);
   mrb_include_module(mrb, r, mrb_class_get(mrb, "Enumerable"));
 
   mrb_define_method(mrb, r, "begin",           mrb_range_beg,         ARGS_NONE());      /* 15.2.14.4.3  */
