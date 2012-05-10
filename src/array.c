@@ -10,12 +10,6 @@
 #include "mruby/string.h"
 #include "mruby/class.h"
 
-#ifdef INCLUDE_REGEXP
-  #define mrb_usascii_str_new2 mrb_usascii_str_new_cstr
-#else
-  #define mrb_usascii_str_new2 mrb_str_new_cstr
-  #define mrb_usascii_str_new  mrb_str_new
-#endif
 mrb_value mrb_exec_recursive_paired(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mrb_value, int),
                                    mrb_value obj, mrb_value paired_obj, void* arg);
 
