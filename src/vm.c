@@ -1558,7 +1558,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       /*        stop VM */
     L_STOP:
       mrb->jmp = prev_jmp;
-      return mrb_nil_value();
+      return regs[irep->nlocals];
     }
 
     CASE(OP_ERR) {

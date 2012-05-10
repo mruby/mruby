@@ -523,7 +523,7 @@ scope_body(codegen_scope *s, node *tree)
   int idx = scope->idx;
 
   if (!s->iseq) {
-    codegen(scope, tree->cdr, NOVAL);
+    codegen(scope, tree->cdr, VAL);
     genop(scope, MKOP_A(OP_STOP, 0));
   }
   else {
