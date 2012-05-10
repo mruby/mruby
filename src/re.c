@@ -20,6 +20,9 @@
 #include "error.h"
 #ifdef INCLUDE_REGEXP
 
+#define REGEX_CLASS (mrb_class_obj_get(mrb, "Regexp"))
+#define MATCH_CLASS (mrb_class_obj_get(mrb, "MatchData"))
+
 //from opcode.h
 #define GETARG_A(i)   ((((mrb_code)(i)) >> 24) & 0xff)
 #define GETARG_B(i)   ((((mrb_code)(i)) >> 16) & 0xff)
@@ -88,7 +91,7 @@ mrb_reg_s_new_instance(mrb_state *mrb, /*int argc, mrb_value *argv, */mrb_value 
   struct RRegexp *re;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  re = mrb_obj_alloc(mrb, MRB_TT_REGEX, mrb->regex_class);
+  re = mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
   re->ptr = 0;
   re->src = 0;
   re->usecnt = 0;
@@ -1665,9 +1668,7 @@ match_alloc(mrb_state *mrb)
 {
   struct RMatch* m;
 
-  m = mrb_obj_alloc(mrb, MRB_TT_MATCH, mrb->match_class);
-  //  NEWOBJ(match, struct RMatch);
-  //  OBJSETUP(match, klass, T_MATCH);
+  m = mrb_obj_alloc(mrb, MRB_TT_MATCH, MATCH_CLASS);
 
   m->str    = 0;
   m->rmatch = 0;
@@ -2455,7 +2456,7 @@ mrb_reg_s_alloc(mrb_state *mrb, mrb_value dummy)
 
   //NEWOBJ(re, struct RRegexp);
   //OBJSETUP(re, klass, T_REGEXP);
-  re = mrb_obj_alloc(mrb, MRB_TT_REGEX, mrb->regex_class);
+  re = mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
 
   re->ptr = 0;
   re->src = 0;
@@ -2626,10 +2627,8 @@ void
 mrb_init_regexp(mrb_state *mrb)
 {
   struct RClass *s;
-    s = mrb->regex_class = mrb_define_class(mrb, "Regexp", mrb->object_class);
+  s = mrb_define_class(mrb, "Regexp", mrb->object_class);
 
-    //mrb->encode_class = mrb_define_class(mrb, "Encoding", mrb->object_class);
-    //mrb_define_alloc_func(mrb, s, mrb_reg_s_alloc);
     mrb_define_class_method(mrb, s, "compile",         mrb_reg_s_new_instance, ARGS_ANY());              /* 15.2.15.6.1  */
     mrb_define_class_method(mrb, s, "escape",          mrb_reg_s_quote,        ARGS_REQ(1));             /* 15.2.15.6.2  */
     mrb_define_class_method(mrb, s, "last_match",      mrb_reg_s_last_match,   ARGS_ANY());              /* 15.2.15.6.3  */
@@ -2667,7 +2666,7 @@ mrb_init_regexp(mrb_state *mrb)
 
     //mrb_global_variable(&reg_cache);
 
-    s = mrb->match_class = mrb_define_class(mrb, "MatchData", mrb->object_class);
+    s = mrb_define_class(mrb, "MatchData", mrb->object_class);
     //mrb_undef_method(CLASS_OF(rb_cMatch), "new");
 
     mrb_define_method(mrb, s, "[]",              mrb_match_aref,        ARGS_ANY());                     /* 15.2.16.3.1  */
