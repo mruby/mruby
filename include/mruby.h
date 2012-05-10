@@ -241,10 +241,6 @@ typedef struct mrb_state {
   struct RClass *string_class;
   struct RClass *array_class;
   struct RClass *hash_class;
-#ifdef INCLUDE_ENCODING
-  struct RClass *encode_class;
-  struct RClass *converter_class;
-#endif
 
   struct RClass *float_class;
   struct RClass *fixnum_class;

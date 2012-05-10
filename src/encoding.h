@@ -348,6 +348,9 @@ void mrb_econv_binmode(mrb_econv_t *ec);
 
 int mrb_isspace(int c);
 
+#define ENCODE_CLASS (mrb_class_obj_get(mrb, "Encoding"))
+#define CONVERTER_CLASS (mrb_class_obj_get(mrb, "Converter"))
+
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif

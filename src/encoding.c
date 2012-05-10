@@ -103,7 +103,7 @@ static const struct mrb_data_type encoding_data_type = {
 static mrb_value
 enc_new(mrb_state *mrb, mrb_encoding *encoding)
 {
-    return mrb_obj_value(Data_Wrap_Struct(mrb, mrb->encode_class, &encoding_data_type, encoding));
+    return mrb_obj_value(Data_Wrap_Struct(mrb, ENCODE_CLASS, &encoding_data_type, encoding));
 }
 
 #define enc_autoload_p(enc) (!mrb_enc_mbmaxlen(enc))
@@ -1139,7 +1139,7 @@ mrb_usascii_encindex(void)
 int
 mrb_locale_encindex(mrb_state *mrb)
 {
-    mrb_value charmap = mrb_locale_charmap(mrb, mrb_obj_value(mrb->encode_class));
+    mrb_value charmap = mrb_locale_charmap(mrb, mrb_obj_value(ENCODE_CLASS));
     int idx;
 
     if (mrb_nil_p(charmap))
@@ -1493,7 +1493,7 @@ set_encoding_const(mrb_state *mrb, const char *name, mrb_encoding *enc)
     if (s - name > ENCODING_NAMELEN_MAX) return;
     valid = 1;
     //mrb_define_const(mrb_cEncoding, name, encoding);
-    mrb_define_const(mrb, mrb->encode_class, name, encoding);
+    mrb_define_const(mrb, ENCODE_CLASS, name, encoding);
   }
   if (!valid || haslower) {
     size_t len = s - name;
@@ -1516,14 +1516,14 @@ set_encoding_const(mrb_state *mrb, const char *name, mrb_encoding *enc)
         if (!ISALNUM(*s)) *s = '_';
       }
       if (hasupper) {
-        mrb_define_const(mrb, mrb->encode_class, name, encoding);
+        mrb_define_const(mrb, ENCODE_CLASS, name, encoding);
       }
     }
     if (haslower) {
       for (s = (char *)name; *s; ++s) {
       if (ISLOWER(*s)) *s = ONIGENC_ASCII_CODE_TO_UPPER_CASE((int)*s);
       }
-      mrb_define_const(mrb, mrb->encode_class, name, encoding);
+      mrb_define_const(mrb, ENCODE_CLASS, name, encoding);
     }
   }
 }
@@ -1617,7 +1617,7 @@ mrb_init_encoding(mrb_state *mrb)
   int i;
   struct RClass *s;
 
-  s = mrb->encode_class = mrb_define_class(mrb, "Encoding", mrb->object_class);
+  s = mrb_define_class(mrb, "Encoding", mrb->object_class);
   //mrb_undef_alloc_func(mrb_cEncoding);
   //mrb_undef_method(CLASS_OF(mrb_cEncoding), "new");
   mrb_define_class_method(mrb, s, "aliases",           mrb_enc_aliases,        ARGS_NONE()); /* 15.2.40.2.1  */

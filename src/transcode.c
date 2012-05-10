@@ -4273,7 +4273,6 @@ extern void Init_newline(void);
 void
 mrb_init_transcode(mrb_state *mrb)
 {
-  struct RClass *e;
   struct RClass *s;
   struct RClass *c;
   struct RClass *u;
@@ -4281,7 +4280,7 @@ mrb_init_transcode(mrb_state *mrb)
   struct RClass *eConverterNotFoundError_class;
   struct RClass *eInvalidByteSequenceError_class;
   struct RClass *eUndefinedConversionError_class;
-  e = mrb->encode_class;
+
   eUndefinedConversionError_class = mrb_define_class(mrb, "UndefinedConversionError", E_ENCODING_ERROR);
   eInvalidByteSequenceError_class = mrb_define_class(mrb, "InvalidByteSequenceError", E_ENCODING_ERROR);
   eConverterNotFoundError_class   = mrb_define_class(mrb, "ConverterNotFoundError",   E_ENCODING_ERROR);
@@ -4312,7 +4311,7 @@ mrb_init_transcode(mrb_state *mrb)
   mrb_define_method(mrb, s, "encode",  str_encode,      ARGS_ANY());
   mrb_define_method(mrb, s, "encode!", str_encode_bang, ARGS_ANY());
 
-  c = mrb->converter_class = mrb_define_class(mrb, "Converter", mrb->encode_class);
+  c = mrb_define_class(mrb, "Converter", ENCODE_CLASS);
   //mrb_cEncodingConverter = rb_define_class_under(mrb_cEncoding, "Converter", rb_cData);
   //mrb_define_alloc_func(mrb_cEncodingConverter, econv_s_allocate);
   mrb_define_class_method(mrb, c, "asciicompat_encoding",      econv_s_asciicompat_encoding,    ARGS_REQ(1)); /* 1  */
