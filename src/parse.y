@@ -814,6 +814,7 @@ var_reference(parser_state *p, node *lhs)
     node *node;
     mrb_sym id;
     int num;
+    unsigned int stack;
     const struct vtable *vars;
 }
 
@@ -1779,13 +1780,12 @@ call_args	: command
 		;
 
 command_args	:  {
-		      $<num>$ = p->cmdarg_stack;
+		      $<stack>$ = p->cmdarg_stack;
 		      CMDARG_PUSH(1);
 		    }
 		  call_args
 		    {
-		      /* CMDARG_POP() */
-		      p->cmdarg_stack = $<num>1;
+		      p->cmdarg_stack = $<stack>1;
 		      $$ = $2;
 		    }
 		;
@@ -1848,10 +1848,15 @@ primary		: literal
 		      $$ = new_fcall(p, $1, 0);
 		    }
 		| keyword_begin
+		    {
+		      $<stack>1 = p->cmdarg_stack;
+		      p->cmdarg_stack = 0;
+		    }
 		  bodystmt
 		  keyword_end
 		    {
-		      $$ = $2;
+		      p->cmdarg_stack = $<stack>1;
+		      $$ = $3;
 		    }
 		| tLPAREN_ARG expr {p->lstate = EXPR_ENDARG;} rparen
 		    {
