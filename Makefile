@@ -26,8 +26,16 @@ all :
 	@$(MAKE) -C mrblib $(MAKE_FLAGS)
 	@$(MAKE) -C tools/mruby $(MAKE_FLAGS)
 
+.PHONY : mirb
+mirb :
+	@$(MAKE) -C src $(MAKE_FLAGS)
+	@$(MAKE) -C mrblib $(MAKE_FLAGS)
+	@$(MAKE) -C tools/mirb $(MAKE_FLAGS)
+
 # clean up
 .PHONY : clean
 clean :
 	@$(MAKE) clean -C src $(MAKE_FLAGS)
 	@$(MAKE) clean -C tools/mruby $(MAKE_FLAGS)
+	@$(MAKE) clean -C tools/mirb $(MAKE_FLAGS)
+
