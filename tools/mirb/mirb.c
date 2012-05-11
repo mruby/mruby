@@ -83,7 +83,7 @@ bool is_code_block_open(struct mrb_parser_state *parser) {
 
   if (!code_block_open) {
     // based on the last parser state the code
-    // block seems to be open
+    // block seems to be closed
 
     // now check if parser error are available
     if (0 < parser->nerr) {
