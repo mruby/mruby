@@ -269,7 +269,9 @@ typedef struct mrb_state {
   mrb_sym symidx;
   struct kh_n2s *name2sym;      /* symbol table */
   struct kh_s2n *sym2name;      /* reverse symbol table */
+#ifdef INCLUDE_REGEXP
   struct RNode *local_svar;/* regexp */
+#endif
 
   struct RClass *eException_class;
   struct RClass *eStandardError_class;

@@ -16,12 +16,6 @@
 #include "mruby/variable.h"
 #include <stdio.h>
 
-#ifdef INCLUDE_REGEXP
-#include "re.h"
-#include "regex.h"
-#include "st.h"
-#endif
-
 /* ------------------------------------------------------ */
 KHASH_MAP_INIT_INT(s2n, const char*);
 KHASH_MAP_INIT_STR(n2s, mrb_sym);
