@@ -55,12 +55,11 @@ bool is_code_block_open(struct mrb_parser_state *parser) {
     // an argument is the last token
     code_block_open = false;
     break;
-  case EXPR_CMDARG:
-    code_block_open = false;
-    break;
 
   // all states which are unsure
 
+  case EXPR_CMDARG:
+    break;
   case EXPR_END:
     // an expression was ended
     break;
@@ -109,6 +108,9 @@ bool is_code_block_open(struct mrb_parser_state *parser) {
         code_block_open = true;
       } else if (strcmp(parser->error_buffer[0].message,
           "syntax error, unexpected tREGEXP_BEG") == 0) {
+        code_block_open = true;
+      } else if (strcmp(parser->error_buffer[0].message,
+          "unterminated string meets end of file") == 0) {
         code_block_open = true;
       }
     }
