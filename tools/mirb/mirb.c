@@ -208,7 +208,6 @@ int main(void)
             // pass a proc for evaulation
             mrb_proc_new(mrb_interpreter, mrb_interpreter->irep[byte_code]),
             mrb_top_self(mrb_interpreter));
-            //mrb_nil_value());
           // did an exception occur?
           if (mrb_interpreter->exc) {
             mrb_p(mrb_interpreter, mrb_obj_value(mrb_interpreter->exc));
