@@ -31,6 +31,10 @@
 #include <stdlib.h>
 #include "mrbconf.h"
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 enum mrb_vtype {
   MRB_TT_FALSE = 0,   /*   0 */
   MRB_TT_FREE,        /*   1 */
