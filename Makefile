@@ -10,7 +10,7 @@ CFLAGS = -g -O3
 else
 CFLAGS = -O3
 endif
-ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
+ALL_CFLAGS = -strict -Wall -Werror-implicit-function-declaration $(CFLAGS)
 ifeq ($(OS),Windows_NT)
   MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)'
 else
