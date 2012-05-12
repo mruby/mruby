@@ -1002,6 +1002,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
         switch (GETARG_B(i)) {
         case OP_R_NORMAL:
+          if (ci == mrb->cibase) {
+            localjump_error(mrb, "return");
+            goto L_RAISE;
+          }
           ci = mrb->ci;
           break;
         case OP_R_BREAK:
