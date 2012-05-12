@@ -6,9 +6,7 @@
 
 #include "mruby.h"
 
-#include <ctype.h>
 #include <math.h>
-#include <stdio.h>
 
 #if defined(__FreeBSD__) && __FreeBSD__ < 4
 #include <floatingpoint.h>
@@ -670,7 +668,7 @@ math_gamma(mrb_state *mrb, mrb_value obj)
  *  but avoid overflow by Math.gamma(x) for large x.
  */
 
-// TODO: lgamma_r() is missing
+/* TODO: lgamma_r() is missing */
 
 /*
 static mrb_value
@@ -746,5 +744,5 @@ mrb_init_math(mrb_state *mrb)
   mrb_define_class_method(mrb, mrb_math, "erfc", math_erfc, 1);
 
   mrb_define_class_method(mrb, mrb_math, "gamma", math_gamma, 1);
-  // mrb_define_class_method(mrb, mrb_math, "lgamma", math_lgamma, 1);
+  /* mrb_define_class_method(mrb, mrb_math, "lgamma", math_lgamma, 1); */
 }
