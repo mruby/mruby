@@ -22,73 +22,73 @@ is_code_block_open(struct mrb_parser_state *parser)
 
   switch (parser->lstate) {
 
-  // all states which need more code
+  /* all states which need more code */
 
   case EXPR_BEG:
-    // an expression was just started,
-    // we can't end it like this
+    /* an expression was just started, */
+    /* we can't end it like this */
     code_block_open = TRUE;
     break;
   case EXPR_DOT:
-    // a message dot was the last token,
-    // there has to come more
+    /* a message dot was the last token, */
+    /* there has to come more */
     code_block_open = TRUE;
     break;
   case EXPR_CLASS:
-    // a class keyword is not enough!
-    // we need also a name of the class
+    /* a class keyword is not enough! */
+    /* we need also a name of the class */
     code_block_open = TRUE;
     break;
   case EXPR_FNAME:
-    // a method name is necessary
+    /* a method name is necessary */
     code_block_open = TRUE;
     break;
   case EXPR_VALUE:
-    // if, elsif, etc. without condition
+    /* if, elsif, etc. without condition */
     code_block_open = TRUE;
     break;
 
-  // now all the states which are closed
+  /* now all the states which are closed */
 
   case EXPR_ARG:
-    // an argument is the last token
+    /* an argument is the last token */
     code_block_open = FALSE;
     break;
 
-  // all states which are unsure
+  /* all states which are unsure */
 
   case EXPR_CMDARG:
     break;
   case EXPR_END:
-    // an expression was ended
+    /* an expression was ended */
     break;
   case EXPR_ENDARG:
-    // closing parenthese
+    /* closing parenthese */
     break;
   case EXPR_ENDFN:
-    // definition end
+    /* definition end */
     break;
   case EXPR_MID:
-    // jump keyword like break, return, ...
+    /* jump keyword like break, return, ... */
     break;
   case EXPR_MAX_STATE:
-    // don't know what to do with this token
+    /* don't know what to do with this token */
     break;
   default:
-    // this state is unexpected!
+    /* this state is unexpected! */
     break;
   }
 
   if (!code_block_open) {
-    // based on the last parser state the code
-    // block seems to be closed
+    /* based on the last parser state the code */
+    /* block seems to be closed */
 
-    // now check if parser error are available
+    /* now check if parser error are available */
     if (0 < parser->nerr) {
-      // a parser error occur, we have to check if
-      // we need to read one more line or if there is
-      // a different issue which we have to show to
-      // the user
+      /* a parser error occur, we have to check if */
+      /* we need to read one more line or if there is */
+      /* a different issue which we have to show to */
+      /* the user */
 
       if (strcmp(parser->error_buffer[0].message,
           "syntax error, unexpected $end, expecting ';' or '\\n'") == 0) {
@@ -121,8 +121,8 @@ is_code_block_open(struct mrb_parser_state *parser)
     }
   }
   else {
-    // last parser state suggest that this code
-    // block is open, WE NEED MORE CODE!!
+    /* last parser state suggest that this code */
+    /* block is open, WE NEED MORE CODE!! */
   }
 
   return code_block_open;
@@ -161,7 +161,7 @@ main(void)
 
   print_hint();
 
-  // new interpreter instance
+  /* new interpreter instance */
   mrb_interpreter = mrb_open();
   memset(ruby_code, 0, sizeof(*ruby_code));
   memset(last_code_line, 0, sizeof(*last_code_line));
@@ -183,14 +183,14 @@ main(void)
 
     if (strcmp(last_code_line, "exit") == 0) {
       if (code_block_open) {
-        // cancel the current block and reset
+        /* cancel the current block and reset */
         code_block_open = FALSE;
         memset(ruby_code, 0, sizeof(*ruby_code));
         memset(last_code_line, 0, sizeof(*last_code_line));
         continue;
       }
       else {
-        // quit the program
+        /* quit the program */
         break;
       }
     }
@@ -204,34 +204,34 @@ main(void)
         strcat(ruby_code, last_code_line);
       }
 
-      // parse code
+      /* parse code */
       parser = mrb_parse_nstring_ext(mrb_interpreter, ruby_code, strlen(ruby_code));
       code_block_open = is_code_block_open(parser); 
 
       if (code_block_open) {
-        // no evaluation of code
+        /* no evaluation of code */
       }
       else {
         if (0 < parser->nerr) {
-          // syntax error
+          /* syntax error */
           printf("%s\n", parser->error_buffer[0].message);
         }
 	else {
-          // generate bytecode
+          /* generate bytecode */
           byte_code = mrb_generate_code(mrb_interpreter, parser->tree);
 
-          // evaluate the bytecode
+          /* evaluate the bytecode */
           mrb_return_value = mrb_run(mrb_interpreter,
-            // pass a proc for evaulation
+            /* pass a proc for evaulation */
             mrb_proc_new(mrb_interpreter, mrb_interpreter->irep[byte_code]),
             mrb_top_self(mrb_interpreter));
-          // did an exception occur?
+          /* did an exception occur? */
           if (mrb_interpreter->exc) {
             mrb_p(mrb_interpreter, mrb_obj_value(mrb_interpreter->exc));
             mrb_interpreter->exc = 0;
           }
 	  else {
-            // no
+            /* no */
             printf(" => ");
             mrb_p(mrb_interpreter, mrb_return_value);
           }
