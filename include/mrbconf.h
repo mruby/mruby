@@ -43,6 +43,12 @@ typedef intptr_t mrb_sym;
 #endif
 
 #ifdef _MSC_VER
+/* C99 stdbool.h emulation */
+typedef unsigned int _Bool;
+# define bool _Bool
+# define true 1
+# define false 0
+
 # define inline __inline
 # define snprintf _snprintf
 # define isnan _isnan
