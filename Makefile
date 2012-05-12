@@ -4,6 +4,7 @@
 # compiler, linker (gcc)
 CC = gcc
 LL = gcc
+RUNRUBY = ruby
 DEBUG_MODE = 1
 ifeq ($(DEBUG_MODE),1)
 CFLAGS = -g -O3
@@ -39,3 +40,7 @@ clean :
 	@$(MAKE) clean -C tools/mruby $(MAKE_FLAGS)
 	@$(MAKE) clean -C tools/mirb $(MAKE_FLAGS)
 
+# test
+.PHONY : test
+test :
+	@$(RUNRUBY) test/runner.rb
