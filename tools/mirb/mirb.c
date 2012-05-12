@@ -7,9 +7,6 @@
 */
  
 #include <string.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <fcntl.h>
 
 #include <mruby.h>
 #include <mruby/proc.h>
@@ -18,8 +15,10 @@
 
 /* Guess if the user might want to enter more
  * or if he wants an evaluation of his code now */
-bool is_code_block_open(struct mrb_parser_state *parser) {
-  bool code_block_open = false;
+int
+is_code_block_open(struct mrb_parser_state *parser)
+{
+  int code_block_open = FALSE;
 
   switch (parser->lstate) {
 
@@ -28,32 +27,32 @@ bool is_code_block_open(struct mrb_parser_state *parser) {
   case EXPR_BEG:
     // an expression was just started,
     // we can't end it like this
-    code_block_open = true;
+    code_block_open = TRUE;
     break;
   case EXPR_DOT:
     // a message dot was the last token,
     // there has to come more
-    code_block_open = true;
+    code_block_open = TRUE;
     break;
   case EXPR_CLASS:
     // a class keyword is not enough!
     // we need also a name of the class
-    code_block_open = true;
+    code_block_open = TRUE;
     break;
   case EXPR_FNAME:
     // a method name is necessary
-    code_block_open = true;
+    code_block_open = TRUE;
     break;
   case EXPR_VALUE:
     // if, elsif, etc. without condition
-    code_block_open = true;
+    code_block_open = TRUE;
     break;
 
   // now all the states which are closed
 
   case EXPR_ARG:
     // an argument is the last token
-    code_block_open = false;
+    code_block_open = FALSE;
     break;
 
   // all states which are unsure
@@ -93,25 +92,25 @@ bool is_code_block_open(struct mrb_parser_state *parser) {
 
       if (strcmp(parser->error_buffer[0].message,
           "syntax error, unexpected $end, expecting ';' or '\\n'") == 0) {
-        code_block_open = true;
+        code_block_open = TRUE;
       } else if (strcmp(parser->error_buffer[0].message,
           "syntax error, unexpected $end, expecting keyword_end") == 0) {
-        code_block_open = true;
+        code_block_open = TRUE;
       } else if (strcmp(parser->error_buffer[0].message,
           "syntax error, unexpected $end, expecting '<' or ';' or '\\n'") == 0) {
-        code_block_open = true;
+        code_block_open = TRUE;
       } else if (strcmp(parser->error_buffer[0].message,
           "syntax error, unexpected keyword_end") == 0) {
-        code_block_open = true;
+        code_block_open = TRUE;
       } else if (strcmp(parser->error_buffer[0].message,
           "syntax error, unexpected $end, expecting keyword_then or ';' or '\\n'") == 0) {
-        code_block_open = true;
+        code_block_open = TRUE;
       } else if (strcmp(parser->error_buffer[0].message,
           "syntax error, unexpected tREGEXP_BEG") == 0) {
-        code_block_open = true;
+        code_block_open = TRUE;
       } else if (strcmp(parser->error_buffer[0].message,
           "unterminated string meets end of file") == 0) {
-        code_block_open = true;
+        code_block_open = TRUE;
       }
     }
   } else {
@@ -131,7 +130,9 @@ void print_hint(void)
 }
 
 /* Print the command line prompt of the REPL */
-void print_cmdline(bool code_block_open) {
+void
+print_cmdline(int code_block_open)
+{
   if (code_block_open) {
     printf("* ");
   } else {
@@ -139,7 +140,8 @@ void print_cmdline(bool code_block_open) {
   }
 }
 
-int main(void)
+int
+main(void)
 {
   char last_char, ruby_code[1024], last_code_line[1024];
   int char_index;
@@ -147,7 +149,7 @@ int main(void)
   mrb_state *mrb_interpreter;
   mrb_value mrb_return_value;
   int byte_code;
-  bool code_block_open = false;
+  int code_block_open = FALSE;
 
   print_hint();
 
@@ -156,7 +158,7 @@ int main(void)
   memset(ruby_code, 0, sizeof(*ruby_code));
   memset(last_code_line, 0, sizeof(*last_code_line));
 
-  while (true) {
+  while (TRUE) {
     print_cmdline(code_block_open);
 
     char_index = 0;
@@ -174,7 +176,7 @@ int main(void)
     if (strcmp(last_code_line, "exit") == 0) {
       if (code_block_open) {
         // cancel the current block and reset
-        code_block_open = false;
+        code_block_open = FALSE;
         memset(ruby_code, 0, sizeof(*ruby_code));
         memset(last_code_line, 0, sizeof(*last_code_line));
         continue;
