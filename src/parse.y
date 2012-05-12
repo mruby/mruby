@@ -3056,12 +3056,11 @@ peek_n(parser_state *p, int c, int n)
   node *list = 0;
   int c0;
 
-  n++;				/* must read 1 char */
-  while (n--) {
+  do {
     c0 = nextc(p);
     if (c0 < 0) return FALSE;
     list = push(list, (node*)(intptr_t)c0);
-  }
+  } while(n--);
   if (p->pb) {
     p->pb = push(p->pb, (node*)list);
   }
