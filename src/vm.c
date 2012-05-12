@@ -126,6 +126,16 @@ cipush(mrb_state *mrb)
 static void
 cipop(mrb_state *mrb)
 {
+  if (mrb->ci->env) {
+    struct REnv *e = mrb->ci->env;
+    int len = (int)e->flags;
+    mrb_value *p = mrb_malloc(mrb, sizeof(mrb_value)*len);
+
+    e->cioff = -1;
+    memcpy(p, e->stack, sizeof(mrb_value)*len);
+    e->stack = p;
+  }
+
   mrb->ci--;
 }
 
@@ -965,16 +975,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_RETURN) {
       /* A      return R(A) */
     L_RETURN:
-      if (mrb->ci->env) {
-        struct REnv *e = mrb->ci->env;
-        int len = (int)e->flags;
-        mrb_value *p = mrb_malloc(mrb, sizeof(mrb_value)*len);
-
-        e->cioff = -1;
-        memcpy(p, e->stack, sizeof(mrb_value)*len);
-        e->stack = p;
-      }
-
       if (mrb->exc) {
         mrb_callinfo *ci;
 
