@@ -93,27 +93,34 @@ is_code_block_open(struct mrb_parser_state *parser)
       if (strcmp(parser->error_buffer[0].message,
           "syntax error, unexpected $end, expecting ';' or '\\n'") == 0) {
         code_block_open = TRUE;
-      } else if (strcmp(parser->error_buffer[0].message,
+      }
+      else if (strcmp(parser->error_buffer[0].message,
           "syntax error, unexpected $end, expecting keyword_end") == 0) {
         code_block_open = TRUE;
-      } else if (strcmp(parser->error_buffer[0].message,
+      }
+      else if (strcmp(parser->error_buffer[0].message,
           "syntax error, unexpected $end, expecting '<' or ';' or '\\n'") == 0) {
         code_block_open = TRUE;
-      } else if (strcmp(parser->error_buffer[0].message,
+      }
+      else if (strcmp(parser->error_buffer[0].message,
           "syntax error, unexpected keyword_end") == 0) {
         code_block_open = TRUE;
-      } else if (strcmp(parser->error_buffer[0].message,
+      }
+      else if (strcmp(parser->error_buffer[0].message,
           "syntax error, unexpected $end, expecting keyword_then or ';' or '\\n'") == 0) {
         code_block_open = TRUE;
-      } else if (strcmp(parser->error_buffer[0].message,
+      }
+      else if (strcmp(parser->error_buffer[0].message,
           "syntax error, unexpected tREGEXP_BEG") == 0) {
         code_block_open = TRUE;
-      } else if (strcmp(parser->error_buffer[0].message,
+      }
+      else if (strcmp(parser->error_buffer[0].message,
           "unterminated string meets end of file") == 0) {
         code_block_open = TRUE;
       }
     }
-  } else {
+  }
+  else {
     // last parser state suggest that this code
     // block is open, WE NEED MORE CODE!!
   }
@@ -135,7 +142,8 @@ print_cmdline(int code_block_open)
 {
   if (code_block_open) {
     printf("* ");
-  } else {
+  }
+  else {
     printf("> ");
   }
 }
@@ -180,15 +188,18 @@ main(void)
         memset(ruby_code, 0, sizeof(*ruby_code));
         memset(last_code_line, 0, sizeof(*last_code_line));
         continue;
-      } else {
+      }
+      else {
         // quit the program
         break;
       }
-    } else {
+    }
+    else {
       if (code_block_open) {
         strcat(ruby_code, "\n");
         strcat(ruby_code, last_code_line);
-      } else {
+      }
+      else {
         memset(ruby_code, 0, sizeof(*ruby_code));
         strcat(ruby_code, last_code_line);
       }
@@ -199,11 +210,13 @@ main(void)
 
       if (code_block_open) {
         // no evaluation of code
-      } else {
+      }
+      else {
         if (0 < parser->nerr) {
           // syntax error
           printf("%s\n", parser->error_buffer[0].message);
-        } else {
+        }
+	else {
           // generate bytecode
           byte_code = mrb_generate_code(mrb_interpreter, parser->tree);
 
@@ -216,7 +229,8 @@ main(void)
           if (mrb_interpreter->exc) {
             mrb_p(mrb_interpreter, mrb_obj_value(mrb_interpreter->exc));
             mrb_interpreter->exc = 0;
-          } else {
+          }
+	  else {
             // no
             printf(" => ");
             mrb_p(mrb_interpreter, mrb_return_value);
