@@ -10,6 +10,8 @@ The core part (parser, bytecode-interpreter, core-lib, etc.) of mruby is written
 
 mruby should be highly portable to other systems and compilers. For that it is recommended to keep your code as close as possible to the C99 standard (http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf).
 
+Although we target C99, VC is also a important target for mruby, so that we avoid local variable declaration in the middle.
+
 ### Reduce library dependencies to a minimum
 
 The dependencies to libraries should be put to an absolute minimum. This increases the portability but makes it also easier to cut away parts of mruby on-demand.
