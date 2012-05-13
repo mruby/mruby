@@ -29,7 +29,23 @@ CFLAGS = -g -O3
 else
 CFLAGS = -O3
 endif
-ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
+ALL_CFLAGS := -std=c99 -Wall -Wextra -Werror-implicit-function-declaration $(CFLAGS)
+ALL_CFLAGS += -Wbad-function-cast
+ALL_CFLAGS += -Wcast-align
+ALL_CFLAGS += -Wdeclaration-after-statement
+ALL_CFLAGS += -Wdisabled-optimization
+ALL_CFLAGS += -Wfloat-equal
+ALL_CFLAGS += -Wformat=2
+ALL_CFLAGS += -Winline
+ALL_CFLAGS += -Wno-missing-field-initializers
+ALL_CFLAGS += -Wno-pointer-sign
+ALL_CFLAGS += -Wno-sign-compare
+ALL_CFLAGS += -Wno-unused-parameter
+ALL_CFLAGS += -Wpointer-arith
+ALL_CFLAGS += -Wredundant-decls
+ALL_CFLAGS += -Wstrict-aliasing=2
+ALL_CFLAGS += -Wswitch-default
+ALL_CFLAGS += -Wswitch-enum
 
 ##############################
 # generic build targets, rules
