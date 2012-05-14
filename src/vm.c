@@ -1562,6 +1562,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       /*        stop VM */
     L_STOP:
       mrb->jmp = prev_jmp;
+      if (mrb->exc) {
+	return mrb_obj_value(mrb->exc);
+      }
       return regs[irep->nlocals];
     }
 
