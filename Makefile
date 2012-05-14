@@ -27,11 +27,10 @@ all :
 	@$(MAKE) -C tools/mruby $(MAKE_FLAGS)
 	@$(MAKE) -C tools/mirb $(MAKE_FLAGS)
 
-# mruby iso test
-.PHONY : mrit
-mrit :
+# mruby test
+.PHONY : test
+test :
 	@$(MAKE) -C test $(MAKE_FLAGS)
-	@$(MAKE) -C tools/mrit $(MAKE_FLAGS)
 
 # clean up
 .PHONY : clean
@@ -39,5 +38,4 @@ clean :
 	@$(MAKE) clean -C src $(MAKE_FLAGS)
 	@$(MAKE) clean -C tools/mruby $(MAKE_FLAGS)
 	@$(MAKE) clean -C tools/mirb $(MAKE_FLAGS)
-	@$(MAKE) clean -C tools/mrit $(MAKE_FLAGS)
 	@$(MAKE) clean -C test $(MAKE_FLAGS)

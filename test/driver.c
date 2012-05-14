@@ -1,10 +1,10 @@
 /*
-** mrit - Embeddable Ruby ISO Test
+** mrbtest - Test for Embeddable Ruby
 **
-** This program verifies ISO/IEC 30170:2012
+** This program runs Ruby test programs in test/t directory
 ** against the current mruby implementation.
 */
- 
+
 #include <string.h>
 
 #include <mruby.h>
@@ -13,12 +13,12 @@
 #include <compile.h>
 
 void
-mrb_init_mritlib(mrb_state *);
+mrb_init_mrbtest(mrb_state *);
 
 /* Print a short remark for the user */
 void print_hint(void)
 {
-  printf("mrit - Embeddable Ruby ISO Test\n");
+  printf("mrbtest - Embeddable Ruby Test\n");
   printf("\nThis is a very early version, please test and report errors.\n");
   printf("Thanks :)\n\n");
 }
@@ -35,7 +35,7 @@ main(void)
 
   /* new interpreter instance */
   mrb_interpreter = mrb_open();
-  mrb_init_mritlib(mrb_interpreter);
+  mrb_init_mrbtest(mrb_interpreter);
   parser = mrb_parse_nstring_ext(mrb_interpreter, "report()", strlen("report()"));
 
   /* generate bytecode */
@@ -48,7 +48,7 @@ main(void)
     mrb_top_self(mrb_interpreter));
   /* did an exception occur? */
   if (mrb_interpreter->exc) {
-    mrb_p(mrb_interpreter, mrb_obj_value(mrb_interpreter->exc));
+    mrb_p(mrb_interpreter, mrb_return_value);
     mrb_interpreter->exc = 0;
   }
   else {
