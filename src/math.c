@@ -5,31 +5,7 @@
 */
 
 #include "mruby.h"
-
 #include <math.h>
-
-#if defined(__FreeBSD__) && __FreeBSD__ < 4
-#include <floatingpoint.h>
-#endif
-
-#ifdef HAVE_FLOAT_H
-#include <float.h>
-#endif
-
-#ifdef HAVE_IEEEFP_H
-#include <ieeefp.h>
-#endif
-
-#define SIGNED_VALUE intptr_t
-
-#ifdef MRB_USE_FLOAT
-#define floor(f) floorf(f)
-#define ceil(f) ceilf(f)
-#define floor(f) floorf(f)
-#define fmod(x,y) fmodf(x,y)
-#endif
-
-#define numberof(array) (int)(sizeof(array) / sizeof((array)[0]))
 
 #define domain_error(msg) \
     mrb_raise(mrb, E_RANGE_ERROR, "Numerical argument is out of domain - " #msg);
@@ -185,22 +161,6 @@ math_atan2(mrb_state *mrb, mrb_value obj)
 /*
   HYPERBOLIC TRIG FUNCTIONS
 */
-#ifndef HAVE_SINH
-double
-sinh(double x)
-{
-    return (exp(x) - exp(-x)) / 2;
-}
-#endif
-
-#ifndef HAVE_TANH
-double
-tanh(double x)
-{
-    return sinh(x) / cosh(x);
-}
-#endif
-
 /*
  *  call-seq:
  *     Math.sinh(x)    -> float
@@ -568,131 +528,6 @@ math_erfc(mrb_state *mrb, mrb_value obj)
   return mrb_float_value(x);
 }
 
-/*
- * call-seq:
- *    Math.gamma(x)  -> float
- *
- *  Calculates the gamma function of x.
- *
- *  Note that gamma(n) is same as fact(n-1) for integer n > 0.
- *  However gamma(n) returns float and can be an approximation.
- *
- *   def fact(n) (1..n).inject(1) {|r,i| r*i } end
- *   1.upto(26) {|i| p [i, Math.gamma(i), fact(i-1)] }
- *   #=> [1, 1.0, 1]
- *   #   [2, 1.0, 1]
- *   #   [3, 2.0, 2]
- *   #   [4, 6.0, 6]
- *   #   [5, 24.0, 24]
- *   #   [6, 120.0, 120]
- *   #   [7, 720.0, 720]
- *   #   [8, 5040.0, 5040]
- *   #   [9, 40320.0, 40320]
- *   #   [10, 362880.0, 362880]
- *   #   [11, 3628800.0, 3628800]
- *   #   [12, 39916800.0, 39916800]
- *   #   [13, 479001600.0, 479001600]
- *   #   [14, 6227020800.0, 6227020800]
- *   #   [15, 87178291200.0, 87178291200]
- *   #   [16, 1307674368000.0, 1307674368000]
- *   #   [17, 20922789888000.0, 20922789888000]
- *   #   [18, 355687428096000.0, 355687428096000]
- *   #   [19, 6.402373705728e+15, 6402373705728000]
- *   #   [20, 1.21645100408832e+17, 121645100408832000]
- *   #   [21, 2.43290200817664e+18, 2432902008176640000]
- *   #   [22, 5.109094217170944e+19, 51090942171709440000]
- *   #   [23, 1.1240007277776077e+21, 1124000727777607680000]
- *   #   [24, 2.5852016738885062e+22, 25852016738884976640000]
- *   #   [25, 6.204484017332391e+23, 620448401733239439360000]
- *   #   [26, 1.5511210043330954e+25, 15511210043330985984000000]
- *
- */
-static mrb_value
-math_gamma(mrb_state *mrb, mrb_value obj)
-{
-    static const double fact_table[] = {
-        /* fact(0) */ 1.0,
-        /* fact(1) */ 1.0,
-        /* fact(2) */ 2.0,
-        /* fact(3) */ 6.0,
-        /* fact(4) */ 24.0,
-        /* fact(5) */ 120.0,
-        /* fact(6) */ 720.0,
-        /* fact(7) */ 5040.0,
-        /* fact(8) */ 40320.0,
-        /* fact(9) */ 362880.0,
-        /* fact(10) */ 3628800.0,
-        /* fact(11) */ 39916800.0,
-        /* fact(12) */ 479001600.0,
-        /* fact(13) */ 6227020800.0,
-        /* fact(14) */ 87178291200.0,
-        /* fact(15) */ 1307674368000.0,
-        /* fact(16) */ 20922789888000.0,
-        /* fact(17) */ 355687428096000.0,
-        /* fact(18) */ 6402373705728000.0,
-        /* fact(19) */ 121645100408832000.0,
-        /* fact(20) */ 2432902008176640000.0,
-        /* fact(21) */ 51090942171709440000.0,
-        /* fact(22) */ 1124000727777607680000.0,
-        /* fact(23)=25852016738884976640000 needs 56bit mantissa which is
-         * impossible to represent exactly in IEEE 754 double which have
-         * 53bit mantissa. */
-    };
-    double intpart, fracpart;
-    mrb_float x;
-    mrb_get_args(mrb, "f", &x);
-    
-    /* check for domain error */
-    if (isinf(x) && signbit(x)) domain_error("gamma");
-    fracpart = modf(x, &intpart);
-    if (fracpart == 0.0) {
-	    if (intpart < 0) domain_error("gamma");
-	    if (0 < intpart &&
-	      intpart - 1 < (double)numberof(fact_table)) {
-	    return mrb_float_value(fact_table[(int)intpart - 1]);
-	    }
-    }
-    return mrb_float_value(tgamma(x));
-}
-
-
-/*
- * call-seq:
- *    Math.lgamma(x)  -> [float, -1 or 1]
- *
- *  Calculates the logarithmic gamma of x and
- *  the sign of gamma of x.
- *
- *  Math.lgamma(x) is same as
- *   [Math.log(Math.gamma(x).abs), Math.gamma(x) < 0 ? -1 : 1]
- *  but avoid overflow by Math.gamma(x) for large x.
- */
-
-/* TODO: lgamma_r() is missing */
-
-/*
-static mrb_value
-math_lgamma(mrb_state *mrb, mrb_value obj)
-{
-    double d0, d;
-    int sign=1;
-    mrb_float x;
-    mrb_get_args(mrb, "f", &x);
-
-    // check for domain error
-    if (isinf(x)) {
-	    if (signbit(x)) domain_error("lgamma");
-	    return rb_assoc_new(mrb_float_value(INFINITY), mrb_fixnum_value(1));
-    }
-    d = lgamma_r(x, &sign);
-    return mrb_assoc_new(mrb, mrb_float_value(d), mrb_fixnum_value(sign));
-}
-*/
-
-
-
-
-
 /* ------------------------------------------------------------------------*/
 void
 mrb_init_math(mrb_state *mrb)
@@ -742,7 +577,4 @@ mrb_init_math(mrb_state *mrb)
 
   mrb_define_class_method(mrb, mrb_math, "erf",  math_erf,  1);
   mrb_define_class_method(mrb, mrb_math, "erfc", math_erfc, 1);
-
-  mrb_define_class_method(mrb, mrb_math, "gamma", math_gamma, 1);
-  /* mrb_define_class_method(mrb, mrb_math, "lgamma", math_lgamma, 1); */
 }
