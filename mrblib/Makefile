@@ -43,9 +43,12 @@ endif
 # generic build targets, rules
 
 .PHONY : all
-all : $(MRBC) $(MLIB)
-	$(AR) r $(LIBR) $(MLIB)
+all : $(LIBR)
 	@echo "make: built targets of `pwd`"
+
+# update libmruby.a
+$(LIBR) : $(MRBC) $(MLIB)
+	$(AR) r $(LIBR) $(MLIB)
 
 # Compile mrblib source
 $(MLIB) : $(CLIB)
