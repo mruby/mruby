@@ -83,7 +83,7 @@ typedef struct mrb_value {
 
 #include "mruby/object.h"
 
-#define IMMEDIATE_P(x) ((mrb_type(x) >= MRB_TT_FALSE) && (mrb_type(x) <= MRB_TT_FLOAT))
+#define IMMEDIATE_P(x) (mrb_type(x) <= MRB_TT_FLOAT)
 #define SPECIAL_CONST_P(x) IMMEDIATE_P(x)
 #define SYMBOL_P(o) (mrb_type(o) == MRB_TT_SYMBOL)
 #define RTEST(o) mrb_test(o)
