@@ -92,6 +92,30 @@ fix_uminus(mrb_state *mrb, mrb_value num)
 }
 
 /*
+ * call-seq:
+ *
+ *  num ** other  ->  num
+ *
+ * Raises <code>num</code> the <code>other</code> power.
+ *
+ *    2.0**3      #=> 8.0
+ */
+static mrb_value
+num_pow(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y;
+  int both_int = FALSE;
+  mrb_float d;
+
+  mrb_get_args(mrb, "o", &y);
+  if (FIXNUM_P(x) && FIXNUM_P(y)) both_int = TRUE;
+  d = pow(mrb_to_flo(mrb, x), mrb_to_flo(mrb, y));
+  if (both_int && isfinite(d) && FIXABLE(d))
+    return mrb_fixnum_value((mrb_int)d);
+  return mrb_float_value(d);
+}
+
+/*
  *  call-seq:
  *     num.quo(numeric)  ->  real
  *
@@ -1294,6 +1318,7 @@ mrb_init_numeric(mrb_state *mrb)
 
   mrb_define_method(mrb, numeric, "+@",       num_uplus,      ARGS_REQ(1));  /* 15.2.7.4.1  */
   mrb_define_method(mrb, numeric, "-@",       num_uminus,     ARGS_REQ(1));  /* 15.2.7.4.2  */
+  mrb_define_method(mrb, numeric, "**",       num_pow,        ARGS_REQ(1));
   mrb_define_method(mrb, numeric, "abs",      num_abs,        ARGS_NONE());  /* 15.2.7.4.3  */
   mrb_define_method(mrb, numeric, "quo",      num_quo,        ARGS_REQ(1));  /* 15.2.7.4.5 (x) */
   mrb_define_method(mrb, numeric, "<=>",      num_cmp,        ARGS_REQ(1));  /* 15.2.9.3.6  */
