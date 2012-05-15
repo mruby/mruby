@@ -36,7 +36,6 @@ ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
 
 .PHONY : all
 all : $(TARGET)
-	@echo "make: built targets of `pwd`"
 
 # executable constructed using linker from object files
 $(TARGET) : $(OBJS) $(OBJY)

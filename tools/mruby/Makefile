@@ -47,7 +47,6 @@ endif
 
 .PHONY : all
 all : $(LIBR) $(EXE)
-	@echo "make: built targets of `pwd`"
 
 # executable constructed using linker from object files
 $(EXE) : $(LIBR) $(OBJS) $(EXTS)

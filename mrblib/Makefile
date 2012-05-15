@@ -44,7 +44,6 @@ endif
 
 .PHONY : all
 all : $(LIBR)
-	@echo "make: built targets of `pwd`"
 
 # update libmruby.a
 $(LIBR) : $(MRBC) $(MLIB)
