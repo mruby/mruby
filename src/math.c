@@ -216,61 +216,6 @@ math_tanh(mrb_state *mrb, mrb_value obj)
 
 
 /*
-  INVERSE HYPERBOLIC TRIG FUNCTIONS
-*/
-
-/*
- *  call-seq:
- *     Math.asinh(x)    -> float
- *
- *  Computes the inverse hyperbolic sine of <i>x</i>.
- */
-static mrb_value
-math_asinh(mrb_state *mrb, mrb_value obj)
-{
-  mrb_float x;
-
-  mrb_get_args(mrb, "f", &x);
-  x = asinh(x);
-
-  return mrb_float_value(x);
-}
-
-/*
- *  call-seq:
- *     Math.acosh(x)    -> float
- *
- *  Computes the inverse hyperbolic cosine of <i>x</i>.
- */
-static mrb_value
-math_acosh(mrb_state *mrb, mrb_value obj)
-{
-  mrb_float x;
-
-  mrb_get_args(mrb, "f", &x);
-  x = acosh(x);
-
-  return mrb_float_value(x);
-}
-
-/*
- *  call-seq:
- *     Math.atanh(x)    -> float
- *
- *  Computes the inverse hyperbolic tangent of <i>x</i>.
- */
-static mrb_value
-math_atanh(mrb_state *mrb, mrb_value obj)
-{
-  mrb_float x;
-
-  mrb_get_args(mrb, "f", &x);
-  x = atanh(x);
-
-  return mrb_float_value(x);
-}
-
-/*
   EXPONENTIALS AND LOGARITHMS
 */
 #if defined __CYGWIN__
@@ -389,49 +334,6 @@ math_log10(mrb_state *mrb, mrb_value obj)
 
 /*
  *  call-seq:
- *     Math.cbrt(numeric)    -> float
- *
- *  Returns the cube root of <i>numeric</i>.
- *
- *    -9.upto(9) {|x|
- *      p [x, Math.cbrt(x), Math.cbrt(x)**3]
- *    }
- *    #=>
- *    [-9, -2.0800838230519, -9.0]
- *    [-8, -2.0, -8.0]
- *    [-7, -1.91293118277239, -7.0]
- *    [-6, -1.81712059283214, -6.0]
- *    [-5, -1.7099759466767, -5.0]
- *    [-4, -1.5874010519682, -4.0]
- *    [-3, -1.44224957030741, -3.0]
- *    [-2, -1.25992104989487, -2.0]
- *    [-1, -1.0, -1.0]
- *    [0, 0.0, 0.0]
- *    [1, 1.0, 1.0]
- *    [2, 1.25992104989487, 2.0]
- *    [3, 1.44224957030741, 3.0]
- *    [4, 1.5874010519682, 4.0]
- *    [5, 1.7099759466767, 5.0]
- *    [6, 1.81712059283214, 6.0]
- *    [7, 1.91293118277239, 7.0]
- *    [8, 2.0, 8.0]
- *    [9, 2.0800838230519, 9.0]
- *
- */
-static mrb_value
-math_cbrt(mrb_state *mrb, mrb_value obj)
-{
-  mrb_float x;
-
-  mrb_get_args(mrb, "f", &x);
-  x = cbrt(x);
-
-  return mrb_float_value(x);
-}
-
-
-/*
- *  call-seq:
  *     Math.frexp(numeric)    -> [ fraction, exponent ]
  *
  *  Returns a two-element array containing the normalized fraction (a
@@ -494,40 +396,6 @@ math_hypot(mrb_state *mrb, mrb_value obj)
   return mrb_float_value(x);
 }
 
-/*
- * call-seq:
- *    Math.erf(x)  -> float
- *
- *  Calculates the error function of x.
- */
-static mrb_value
-math_erf(mrb_state *mrb, mrb_value obj)
-{
-  mrb_float x;
-
-  mrb_get_args(mrb, "f", &x);
-  x = erf(x);
-
-  return mrb_float_value(x);
-}
-
-/*
- * call-seq:
- *    Math.erfc(x)  -> float
- *
- *  Calculates the complementary error function of x.
- */
-static mrb_value
-math_erfc(mrb_state *mrb, mrb_value obj)
-{
-  mrb_float x;
-
-  mrb_get_args(mrb, "f", &x);
-  x = erfc(x);
-
-  return mrb_float_value(x);
-}
-
 /* ------------------------------------------------------------------------*/
 void
 mrb_init_math(mrb_state *mrb)
@@ -560,21 +428,13 @@ mrb_init_math(mrb_state *mrb)
   mrb_define_class_method(mrb, mrb_math, "cosh", math_cosh, 1);
   mrb_define_class_method(mrb, mrb_math, "tanh", math_tanh, 1);
 
-  mrb_define_class_method(mrb, mrb_math, "asinh", math_asinh, 1);
-  mrb_define_class_method(mrb, mrb_math, "acosh", math_acosh, 1);
-  mrb_define_class_method(mrb, mrb_math, "atanh", math_atanh, 1);
-
   mrb_define_class_method(mrb, mrb_math, "exp", math_exp, 1);
   mrb_define_class_method(mrb, mrb_math, "log", math_log, -1);
   mrb_define_class_method(mrb, mrb_math, "log2", math_log2, 1);
   mrb_define_class_method(mrb, mrb_math, "log10", math_log10, 1);
-  mrb_define_class_method(mrb, mrb_math, "cbrt", math_cbrt, 1);
 
   mrb_define_class_method(mrb, mrb_math, "frexp", math_frexp, 1);
   mrb_define_class_method(mrb, mrb_math, "ldexp", math_ldexp, 2);
 
   mrb_define_class_method(mrb, mrb_math, "hypot", math_hypot, 2);
-
-  mrb_define_class_method(mrb, mrb_math, "erf",  math_erf,  1);
-  mrb_define_class_method(mrb, mrb_math, "erfc", math_erfc, 1);
 }
