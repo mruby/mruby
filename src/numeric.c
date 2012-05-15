@@ -115,19 +115,32 @@ num_pow(mrb_state *mrb, mrb_value x)
   return mrb_float_value(d);
 }
 
+/* 15.2.8.3.4  */
+/* 15.2.9.3.4  */
+/*
+ * call-seq:
+ *   num / other  ->  num
+ *
+ * Performs division: the class of the resulting object depends on
+ * the class of <code>num</code> and on the magnitude of the
+ * result.
+ */
+
+/* 15.2.9.3.19(x) */
 /*
  *  call-seq:
  *     num.quo(numeric)  ->  real
  *
  *  Returns most exact division.
  */
-static mrb_value
-num_quo(mrb_state *mrb, mrb_value x)
-{
-  mrb_value y;
 
-  mrb_get_args(mrb, "o", &y);
-  return mrb_float_value(mrb_to_flo(mrb, x) / mrb_to_flo(mrb, y));
+static mrb_value
+num_div(mrb_state *mrb, mrb_value x)
+{
+  mrb_float y;
+
+  mrb_get_args(mrb, "f", &y);
+  return mrb_float_value(mrb_to_flo(mrb, x) / y);
 }
 
 /*
@@ -234,24 +247,6 @@ flo_mul(mrb_state *mrb, mrb_value x)
 
   mrb_get_args(mrb, "o", &y);
   return mrb_float_value(mrb_float(x) * mrb_to_flo(mrb, y));
-}
-
-/* 15.2.9.3.4  */
-/*
- * call-seq:
- *   float / other  ->  float
- *
- * Returns a new float which is the result of dividing
- * <code>float</code> by <code>other</code>.
- */
-
-static mrb_value
-flo_div(mrb_state *mrb, mrb_value x)
-{
-  mrb_value y;
-
-  mrb_get_args(mrb, "o", &y);
-  return mrb_float_value(mrb_float(x) / mrb_to_flo(mrb, y));
 }
 
 static void
@@ -771,34 +766,6 @@ fixdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
   if (modp) *modp = mod;
 }
 
-/* 15.2.8.3.4  */
-/*
- * call-seq:
- *   fix / numeric  ->  numeric_result
- *
- * Performs division: the class of the resulting object depends on
- * the class of <code>numeric</code> and on the magnitude of the
- * result.
- */
-
-static mrb_value
-fix_div(mrb_state *mrb, mrb_value x)
-{
-  mrb_value y;
-  mrb_int a;
-
-  mrb_get_args(mrb, "o", &y);
-
-  a = mrb_fixnum(x);
-  if (FIXNUM_P(y)) {
-    mrb_int div;
-
-    fixdivmod(mrb, a, mrb_fixnum(y), &div, 0);
-    return mrb_fixnum_value(div);
-  }
-  return mrb_float_value((mrb_float)a / mrb_to_flo(mrb, y));
-}
-
 /* 15.2.8.3.5  */
 /*
  *  call-seq:
@@ -1215,10 +1182,7 @@ mrb_fix_to_s(mrb_state *mrb, mrb_value self, int argc, mrb_value *argv)
 
   if (argc == 0) base = 10;
   else {
-    //mrb_value b;
-
-    //mrb_scan_args(argc, argv, "01", &b);
-    base = mrb_fixnum(argv[0]);
+    mrb_get_args(mrb, "i", &base);
   }
 
   return mrb_fix2str(mrb, self, base);
@@ -1319,8 +1283,9 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, numeric, "+@",       num_uplus,      ARGS_REQ(1));  /* 15.2.7.4.1  */
   mrb_define_method(mrb, numeric, "-@",       num_uminus,     ARGS_REQ(1));  /* 15.2.7.4.2  */
   mrb_define_method(mrb, numeric, "**",       num_pow,        ARGS_REQ(1));
+  mrb_define_method(mrb, numeric, "/",        num_div,        ARGS_REQ(1));  /* 15.2.8.3.4  */
+  mrb_define_method(mrb, numeric, "quo",      num_div,        ARGS_REQ(1));  /* 15.2.7.4.5 (x) */
   mrb_define_method(mrb, numeric, "abs",      num_abs,        ARGS_NONE());  /* 15.2.7.4.3  */
-  mrb_define_method(mrb, numeric, "quo",      num_quo,        ARGS_REQ(1));  /* 15.2.7.4.5 (x) */
   mrb_define_method(mrb, numeric, "<=>",      num_cmp,        ARGS_REQ(1));  /* 15.2.9.3.6  */
 
   /* Integer Class */
@@ -1331,7 +1296,6 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fixnum,  "-",        mrb_fixnum_minus,  ARGS_REQ(1)); /* 15.2.8.3.2  */
   mrb_define_method(mrb, fixnum,  "-@",       fix_uminus,        ARGS_REQ(1)); /* 15.2.7.4.2  */
   mrb_define_method(mrb, fixnum,  "*",        fix_mul,           ARGS_REQ(1)); /* 15.2.8.3.3  */
-  mrb_define_method(mrb, fixnum,  "/",        fix_div,           ARGS_REQ(1)); /* 15.2.8.3.4  */
   mrb_define_method(mrb, fixnum,  "%",        fix_mod,           ARGS_REQ(1)); /* 15.2.8.3.5  */
   mrb_define_method(mrb, fixnum,  "==",       fix_equal,         ARGS_REQ(1)); /* 15.2.8.3.7  */
   mrb_define_method(mrb, fixnum,  "~",        fix_rev,           ARGS_NONE()); /* 15.2.8.3.8  */
@@ -1351,8 +1315,6 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fixnum,  "to_i",     int_to_i,          ARGS_NONE()); /* 15.2.8.3.24 */
   mrb_define_method(mrb, fixnum,  "to_s",     mrb_fixnum_to_s,   ARGS_NONE()); /* 15.2.8.3.25 */
   mrb_define_method(mrb, fixnum,  "truncate", int_to_i,          ARGS_NONE()); /* 15.2.8.3.26 */
-  //mrb_define_method(mrb, fixnum,  "<",        mrb_fixnum_lt,     ARGS_REQ(1)); /* 15.2.8.3.28 (x) */
-  //mrb_define_method(mrb, fixnum,  ">",        mrb_fixnum_gt,     ARGS_REQ(1)); /* 15.2.8.3.29 (x) */
   mrb_define_method(mrb, fixnum,  "divmod",   fix_divmod,        ARGS_REQ(1)); /* 15.2.8.3.30 (x) */
 
   /* Float Class */
@@ -1360,7 +1322,6 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "+",         mrb_float_plus,   ARGS_REQ(1)); /* 15.2.9.3.1  */
   mrb_define_method(mrb, fl,      "-",         flo_minus,        ARGS_REQ(1)); /* 15.2.9.3.2  */
   mrb_define_method(mrb, fl,      "*",         flo_mul,          ARGS_REQ(1)); /* 15.2.9.3.3  */
-  mrb_define_method(mrb, fl,      "/",         flo_div,          ARGS_REQ(1)); /* 15.2.9.3.4  */
   mrb_define_method(mrb, fl,      "%",         flo_mod,          ARGS_REQ(1)); /* 15.2.9.3.5  */
   mrb_define_method(mrb, fl,      "==",        flo_eq,           ARGS_REQ(1)); /* 15.2.9.3.7  */
   mrb_define_method(mrb, fl,      "ceil",      flo_ceil,         ARGS_NONE()); /* 15.2.9.3.8  */
@@ -1373,7 +1334,4 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "truncate",  flo_truncate,     ARGS_NONE()); /* 15.2.9.3.15 */
 
   mrb_define_method(mrb, fl,      "to_s",      flo_to_s,         ARGS_NONE()); /* 15.2.9.3.16(x) */
-  //mrb_define_method(mrb, fl,      "<",         flo_lt,           ARGS_REQ(1)); /* 15.2.9.3.17(x) */
-  //mrb_define_method(mrb, fl,      ">",         flo_gt,           ARGS_REQ(1)); /* 15.2.9.3.18(x) */
-  mrb_define_method(mrb, fl,      "quo",       flo_div,          ARGS_REQ(1)); /* 15.2.9.3.19(x) */
 }
