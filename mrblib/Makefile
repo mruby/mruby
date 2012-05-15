@@ -46,7 +46,7 @@ endif
 all : $(LIBR)
 
 # update libmruby.a
-$(LIBR) : $(MRBC) $(MLIB)
+$(LIBR) : $(MLIB)
 	$(AR) r $(LIBR) $(MLIB)
 
 # Compile mrblib source
