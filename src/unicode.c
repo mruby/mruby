@@ -2117,15 +2117,18 @@ onigenc_unicode_property_name_to_ctype(OnigEncoding enc, UChar* name, UChar* end
 
 
 static int
-code2_cmp(OnigCodePoint* x, OnigCodePoint* y)
+code2_cmp(st_data_t xd, st_data_t yd)
 {
+  OnigCodePoint* x = (OnigCodePoint*) xd;
+  OnigCodePoint* y = (OnigCodePoint*) yd;
   if (x[0] == y[0] && x[1] == y[1]) return 0;
   return 1;
 }
 
 static st_index_t
-code2_hash(OnigCodePoint* x)
+code2_hash(st_data_t xd)
 {
+  OnigCodePoint* x = (OnigCodePoint*) xd;
   return (st_index_t )(x[0] + x[1]);
 }
 
@@ -2135,15 +2138,18 @@ static const struct st_hash_type type_code2_hash = {
 };
 
 static int
-code3_cmp(OnigCodePoint* x, OnigCodePoint* y)
+code3_cmp(st_data_t xd, st_data_t yd)
 {
+  OnigCodePoint* x = (OnigCodePoint*) xd;
+  OnigCodePoint* y = (OnigCodePoint*) yd;
   if (x[0] == y[0] && x[1] == y[1] && x[2] == y[2]) return 0;
   return 1;
 }
 
 static st_index_t
-code3_hash(OnigCodePoint* x)
+code3_hash(st_data_t xd)
 {
+  OnigCodePoint* x = (OnigCodePoint*) xd;
   return (st_index_t )(x[0] + x[1] + x[2]);
 }
 
@@ -2244,7 +2250,7 @@ onigenc_unicode_mbc_case_fold(OnigEncoding enc,
   }
 #endif
 
-  if (onig_st_lookup(FoldTable, (st_data_t )code, (void* )&to) != 0) {
+  if (onig_st_lookup(FoldTable, (st_data_t )code, (st_data_t* )&to) != 0) {
     if (to->n == 1) {
       return ONIGENC_CODE_TO_MBC(enc, to->code[0], fold);
     }
@@ -2448,7 +2454,7 @@ onigenc_unicode_get_case_fold_codes_by_str(OnigEncoding enc,
   }
 #endif
 
-  if (onig_st_lookup(FoldTable, (st_data_t )code, (void* )&to) != 0) {
+  if (onig_st_lookup(FoldTable, (st_data_t )code, (st_data_t* )&to) != 0) {
     if (to->n == 1) {
       OnigCodePoint orig_code = code;
 
@@ -2458,7 +2464,7 @@ onigenc_unicode_get_case_fold_codes_by_str(OnigEncoding enc,
       n++;
 
       code = to->code[0];
-      if (onig_st_lookup(Unfold1Table, (st_data_t )code, (void* )&to) != 0) {
+      if (onig_st_lookup(Unfold1Table, (st_data_t )code, (st_data_t* )&to) != 0) {
         for (i = 0; i < to->n; i++) {
           if (to->code[i] != orig_code) {
             items[n].byte_len = len;
@@ -2476,7 +2482,7 @@ onigenc_unicode_get_case_fold_codes_by_str(OnigEncoding enc,
       for (fn = 0; fn < to->n; fn++) {
         cs[fn][0] = to->code[fn];
         if (onig_st_lookup(Unfold1Table, (st_data_t )cs[fn][0],
-                           (void* )&z3) != 0) {
+                           (st_data_t* )&z3) != 0) {
           for (i = 0; i < z3->n; i++) {
             cs[fn][i+1] = z3->code[i];
           }
@@ -2498,7 +2504,7 @@ onigenc_unicode_get_case_fold_codes_by_str(OnigEncoding enc,
         }
 
         if (onig_st_lookup(Unfold2Table, (st_data_t )to->code,
-                           (void* )&z2) != 0) {
+                           (st_data_t* )&z2) != 0) {
           for (i = 0; i < z2->n; i++) {
             if (z2->code[i] == code) continue;
 
@@ -2524,7 +2530,7 @@ onigenc_unicode_get_case_fold_codes_by_str(OnigEncoding enc,
         }
 
         if (onig_st_lookup(Unfold3Table, (st_data_t )to->code,
-                           (void* )&z2) != 0) {
+                           (st_data_t* )&z2) != 0) {
           for (i = 0; i < z2->n; i++) {
             if (z2->code[i] == code) continue;
 
@@ -2541,7 +2547,7 @@ onigenc_unicode_get_case_fold_codes_by_str(OnigEncoding enc,
     }
   }
   else {
-    if (onig_st_lookup(Unfold1Table, (st_data_t )code, (void* )&to) != 0) {
+    if (onig_st_lookup(Unfold1Table, (st_data_t )code, (st_data_t* )&to) != 0) {
       for (i = 0; i < to->n; i++) {
         items[n].byte_len = len;
         items[n].code_len = 1;
@@ -2559,7 +2565,7 @@ onigenc_unicode_get_case_fold_codes_by_str(OnigEncoding enc,
 
       codes[0] = code;
       code = ONIGENC_MBC_TO_CODE(enc, p, end);
-      if (onig_st_lookup(FoldTable, (st_data_t )code, (void* )&to) != 0
+      if (onig_st_lookup(FoldTable, (st_data_t )code, (st_data_t* )&to) != 0
           && to->n == 1) {
         codes[1] = to->code[0];
       }
@@ -2568,7 +2574,7 @@ onigenc_unicode_get_case_fold_codes_by_str(OnigEncoding enc,
 
       clen = enclen(enc, p, end);
       len += clen;
-      if (onig_st_lookup(Unfold2Table, (st_data_t )codes, (void* )&z2) != 0) {
+      if (onig_st_lookup(Unfold2Table, (st_data_t )codes, (st_data_t* )&z2) != 0) {
         for (i = 0; i < z2->n; i++) {
           items[n].byte_len = len;
           items[n].code_len = 1;
@@ -2580,7 +2586,7 @@ onigenc_unicode_get_case_fold_codes_by_str(OnigEncoding enc,
       p += clen;
       if (p < end) {
         code = ONIGENC_MBC_TO_CODE(enc, p, end);
-        if (onig_st_lookup(FoldTable, (st_data_t )code, (void* )&to) != 0
+        if (onig_st_lookup(FoldTable, (st_data_t )code, (st_data_t* )&to) != 0
             && to->n == 1) {
           codes[2] = to->code[0];
         }
@@ -2590,7 +2596,7 @@ onigenc_unicode_get_case_fold_codes_by_str(OnigEncoding enc,
         clen = enclen(enc, p, end);
         len += clen;
         if (onig_st_lookup(Unfold3Table, (st_data_t )codes,
-                           (void* )&z2) != 0) {
+                           (st_data_t* )&z2) != 0) {
           for (i = 0; i < z2->n; i++) {
             items[n].byte_len = len;
             items[n].code_len = 1;

@@ -65,6 +65,12 @@ allocate_converted_string(mrb_state *mrb,
         unsigned char *caller_dst_buf, size_t caller_dst_bufsize,
         size_t *dst_len_ptr);
 
+union mrb_transcoding_state_t { /* opaque data for stateful encoding */
+    void *ptr;
+    char ary[sizeof(double) > sizeof(void*) ? sizeof(double) : sizeof(void*)];
+    double dummy_for_alignment;
+};
+
 /* dynamic structure, one per conversion (similar to iconv_t) */
 /* may carry conversion state (e.g. for iso-2022-jp) */
 typedef struct mrb_transcoding {
@@ -92,11 +98,7 @@ typedef struct mrb_transcoding {
         unsigned char *ptr; /* length: max_output */
     } writebuf;
 
-    union mrb_transcoding_state_t { /* opaque data for stateful encoding */
-        void *ptr;
-        char ary[sizeof(double) > sizeof(void*) ? sizeof(double) : sizeof(void*)];
-        double dummy_for_alignment;
-    } state;
+    union mrb_transcoding_state_t state;
 } mrb_transcoding;
 #define TRANSCODING_READBUF(tc) \
     ((tc)->transcoder->max_input <= (int)sizeof((tc)->readbuf.ary) ? \
@@ -191,7 +193,7 @@ make_transcoder_entry(const char *sname, const char *dname)
     }
     table2 = (st_table *)val;
     if (!st_lookup(table2, (st_data_t)dname, &val)) {
-        transcoder_entry_t *entry = malloc(sizeof(transcoder_entry_t));
+        transcoder_entry_t *entry = (transcoder_entry_t *) malloc(sizeof(transcoder_entry_t));
         entry->sname = sname;
         entry->dname = dname;
         entry->lib = NULL;
@@ -271,7 +273,7 @@ typedef struct {
     const char *base_enc;
 } search_path_bfs_t;
 
-static int
+static enum st_retval
 transcode_search_path_i(st_data_t key, st_data_t val, st_data_t arg)
 {
     const char *dname = (const char *)key;
@@ -282,7 +284,7 @@ transcode_search_path_i(st_data_t key, st_data_t val, st_data_t arg)
         return ST_CONTINUE;
     }
 
-    q = malloc(sizeof(search_path_queue_t));
+    q = (search_path_queue_t *) malloc(sizeof(search_path_queue_t));
     q->enc = dname;
     q->next = NULL;
     *bfs->queue_last_ptr = q;
@@ -307,7 +309,7 @@ transcode_search_path(mrb_state *mrb, const char *sname, const char *dname,
     if (encoding_equal(sname, dname))
         return -1;
 
-    q = malloc(sizeof(search_path_queue_t));//ALLOC(search_path_queue_t);
+    q = (search_path_queue_t *) malloc(sizeof(search_path_queue_t));//ALLOC(search_path_queue_t);
     q->enc = sname;
     q->next = NULL;
     bfs.queue_last_ptr = &q->next;
@@ -336,7 +338,7 @@ transcode_search_path(mrb_state *mrb, const char *sname, const char *dname,
         }
 
         bfs.base_enc = q->enc;
-        st_foreach(table2, transcode_search_path_i, (st_data_t)&bfs);
+        st_foreach(table2, (st_foreach_func_t) transcode_search_path_i, (st_data_t)&bfs);
         bfs.base_enc = NULL;
 
         xfree(q);
@@ -577,10 +579,12 @@ transcode_restartable0(mrb_state *mrb,
       switch (mrb_fixnum(next_info) & 0x1F) {
         case NOMAP:
             {
-                const unsigned char *p = inchar_start;
-                writebuf_off = 0;
-                while (p < in_p) {
-                    TRANSCODING_WRITEBUF(tc)[writebuf_off++] = (unsigned char)*p++;
+                {
+                    const unsigned char *p = inchar_start;
+                    writebuf_off = 0;
+                    while (p < in_p) {
+                        TRANSCODING_WRITEBUF(tc)[writebuf_off++] = (unsigned char)*p++;
+                    }
                 }
                 writebuf_len = writebuf_off;
                 writebuf_off = 0;
@@ -787,7 +791,7 @@ transcode_restartable(mrb_state *mrb,
                       const int opt)
 {
     if (tc->readagain_len) {
-        unsigned char *readagain_buf = malloc(tc->readagain_len);//ALLOCA_N(unsigned char, tc->readagain_len);
+        unsigned char *readagain_buf = (unsigned char *) malloc(tc->readagain_len);//ALLOCA_N(unsigned char, tc->readagain_len);
         const unsigned char *readagain_pos = readagain_buf;
         const unsigned char *readagain_stop = readagain_buf + tc->readagain_len;
         mrb_econv_result_t res;
@@ -811,7 +815,7 @@ mrb_transcoding_open_by_transcoder(const mrb_transcoder *tr, int flags)
 {
     mrb_transcoding *tc;
 
-    tc = malloc(sizeof(mrb_transcoding));
+    tc = (mrb_transcoding *) malloc(sizeof(mrb_transcoding));
     tc->transcoder = tr;
     tc->flags = flags;
     if (TRANSCODING_STATE_EMBED_MAX < tr->state_size)
@@ -825,10 +829,10 @@ mrb_transcoding_open_by_transcoder(const mrb_transcoder *tr, int flags)
     tc->writebuf_len = 0;
     tc->writebuf_off = 0;
     if ((int)sizeof(tc->readbuf.ary) < tr->max_input) {
-        tc->readbuf.ptr = xmalloc(tr->max_input);
+        tc->readbuf.ptr = (unsigned char *) xmalloc(tr->max_input);
     }
     if ((int)sizeof(tc->writebuf.ary) < tr->max_output) {
-        tc->writebuf.ptr = xmalloc(tr->max_output);
+        tc->writebuf.ptr = (unsigned char *) xmalloc(tr->max_output);
     }
     return tc;
 }
@@ -887,7 +891,7 @@ mrb_econv_alloc(int n_hint)
     if (n_hint <= 0)
         n_hint = 1;
 
-    ec = malloc(sizeof(mrb_econv_t));//ALLOC(mrb_econv_t);
+    ec = (mrb_econv_t *) malloc(sizeof(mrb_econv_t));//ALLOC(mrb_econv_t);
     ec->flags = 0;
     ec->source_encoding_name = NULL;
     ec->destination_encoding_name = NULL;
@@ -902,7 +906,7 @@ mrb_econv_alloc(int n_hint)
     ec->in_buf_end = NULL;
     ec->num_allocated = n_hint;
     ec->num_trans = 0;
-    ec->elems = malloc(sizeof(mrb_econv_elem_t)*ec->num_allocated);//ALLOC_N(mrb_econv_elem_t, ec->num_allocated);
+    ec->elems = (mrb_econv_elem_t *) malloc(sizeof(mrb_econv_elem_t)*ec->num_allocated);//ALLOC_N(mrb_econv_elem_t, ec->num_allocated);
     ec->num_finished = 0;
     ec->last_tc = NULL;
     ec->last_error.result = econv_source_buffer_empty;
@@ -930,7 +934,7 @@ mrb_econv_add_transcoder_at(mrb_state *mrb, mrb_econv_t *ec, const mrb_transcode
         ec->num_allocated = n;
     }
 
-    p = xmalloc(bufsize);
+    p = (unsigned char *) xmalloc(bufsize);
 
     memmove(ec->elems+i+1, ec->elems+i, sizeof(mrb_econv_elem_t)*(ec->num_trans-i));
 
@@ -991,10 +995,10 @@ struct trans_open_t {
 static void
 trans_open_i(mrb_state *mrb, const char *sname, const char *dname, int depth, void *arg)
 {
-    struct trans_open_t *toarg = arg;
+    struct trans_open_t *toarg = (struct trans_open_t *) arg;
 
     if (!toarg->entries) {
-        toarg->entries = malloc(sizeof(transcoder_entry_t*)*depth+1+toarg->num_additional);//ALLOC_N(transcoder_entry_t *, depth+1+toarg->num_additional);
+        toarg->entries = (transcoder_entry_t**)malloc(sizeof(transcoder_entry_t*)*depth+1+toarg->num_additional);//ALLOC_N(transcoder_entry_t *, depth+1+toarg->num_additional);
     }
     toarg->entries[depth] = get_transcoder_entry(sname, dname);
 }
@@ -1125,16 +1129,16 @@ trans_sweep(mrb_state *mrb, mrb_econv_t *ec,
     int flags,
     int start)
 {
-    int try;
+    int should_try;
     int i, f;
 
     const unsigned char **ipp, *is, *iold;
     unsigned char **opp, *os, *oold;
     mrb_econv_result_t res;
 
-    try = 1;
-    while (try) {
-        try = 0;
+    should_try = 1;
+    while (should_try) {
+        should_try = 0;
         for (i = start; i < ec->num_trans; i++) {
             mrb_econv_elem_t *te = &ec->elems[i];
 
@@ -1177,7 +1181,7 @@ trans_sweep(mrb_state *mrb, mrb_econv_t *ec,
             oold = *opp;
             te->last_result = res = mrb_transcoding_convert(mrb, te->tc, ipp, is, opp, os, f);
             if (iold != *ipp || oold != *opp)
-                try = 1;
+                should_try = 1;
 
             switch (res) {
               case econv_invalid_byte_sequence:
@@ -1574,7 +1578,7 @@ allocate_converted_string(mrb_state *mrb,
     if (caller_dst_buf)
         dst_str = caller_dst_buf;
     else
-        dst_str = xmalloc(dst_bufsize);
+        dst_str = (unsigned char *) xmalloc(dst_bufsize);
     dst_len = 0;
     sp = str;
     dp = dst_str+dst_len;
@@ -1587,12 +1591,12 @@ allocate_converted_string(mrb_state *mrb,
         dst_bufsize *= 2;
         if (dst_str == caller_dst_buf) {
             unsigned char *tmp;
-            tmp = xmalloc(dst_bufsize);
+            tmp = (unsigned char *) xmalloc(dst_bufsize);
             memcpy(tmp, dst_str, dst_bufsize/2);
             dst_str = tmp;
         }
         else {
-            dst_str = xrealloc(dst_str, dst_bufsize);
+            dst_str = (unsigned char *) xrealloc(dst_str, dst_bufsize);
         }
         dp = dst_str+dst_len;
         res = mrb_econv_convert(mrb, ec, &sp, str+len, &dp, dst_str+dst_bufsize, 0);
@@ -1687,7 +1691,7 @@ mrb_econv_insert_output(mrb_state *mrb, mrb_econv_t *ec,
     }
 
     if (*buf_start_p == NULL) {
-        unsigned char *buf = xmalloc(need);
+        unsigned char *buf = (unsigned char *) xmalloc(need);
         *buf_start_p = buf;
         *data_start_p = buf;
         *data_end_p = buf;
@@ -1702,7 +1706,7 @@ mrb_econv_insert_output(mrb_state *mrb, mrb_econv_t *ec,
             size_t s = (*data_end_p - *buf_start_p) + need;
             if (s < need)
                 goto fail;
-            buf = xrealloc(*buf_start_p, s);
+            buf = (unsigned char *) xrealloc(*buf_start_p, s);
             *data_start_p = buf;
             *data_end_p = buf + (*data_end_p - *buf_start_p);
             *buf_start_p = buf;
@@ -1795,7 +1799,7 @@ struct asciicompat_encoding_t {
     const char *ascii_incompat_name;
 };
 
-static int
+static enum st_retval
 asciicompat_encoding_i(mrb_state *mrb, st_data_t key, st_data_t val, st_data_t arg)
 {
     struct asciicompat_encoding_t *data = (struct asciicompat_encoding_t *)arg;
@@ -1835,7 +1839,7 @@ mrb_econv_asciicompat_encoding(const char *ascii_incompat_name)
 
     data.ascii_incompat_name = ascii_incompat_name;
     data.ascii_compat_name = NULL;
-    st_foreach(table2, asciicompat_encoding_i, (st_data_t)&data);
+    st_foreach(table2, (st_foreach_func_t) asciicompat_encoding_i, (st_data_t)&data);
     return data.ascii_compat_name;
 }
 
@@ -2083,51 +2087,54 @@ make_econv_exception(mrb_state *mrb, mrb_econv_t *ec)
     mrb_value mesg, exc;
     if (ec->last_error.result == econv_invalid_byte_sequence ||
         ec->last_error.result == econv_incomplete_input) {
-        const char *err = (const char *)ec->last_error.error_bytes_start;
-        size_t error_len = ec->last_error.error_bytes_len;
-        mrb_value bytes = mrb_str_new(mrb, err, error_len);
-        mrb_value dumped = mrb_str_dump(mrb, bytes);
-        size_t readagain_len = ec->last_error.readagain_len;
-        mrb_value bytes2 = mrb_nil_value();
-        mrb_value dumped2;
-        int idx;
-        if (ec->last_error.result == econv_incomplete_input) {
-            mesg = mrb_sprintf(mrb, "incomplete %s on %s",
-                    //StringValueCStr(dumped),
-                    mrb_string_value_cstr(mrb, &dumped),
-                    ec->last_error.source_encoding);
-        }
-        else if (readagain_len) {
-            bytes2 = mrb_str_new(mrb, err+error_len, readagain_len);
-            dumped2 = mrb_str_dump(mrb, bytes2);
-            mesg = mrb_sprintf(mrb, "%s followed by %s on %s",
-                    //StringValueCStr(dumped),
-                    mrb_string_value_cstr(mrb, &dumped),
-                    //StringValueCStr(dumped2),
-                    mrb_string_value_cstr(mrb, &dumped2),
-                    ec->last_error.source_encoding);
-        }
-        else {
-            mesg = mrb_sprintf(mrb, "%s on %s",
-                    //StringValueCStr(dumped),
-                    mrb_string_value_cstr(mrb, &dumped),
-                    ec->last_error.source_encoding);
-        }
+        {
+            const char *err = (const char *)ec->last_error.error_bytes_start;
+            size_t error_len = ec->last_error.error_bytes_len;
+            mrb_value bytes = mrb_str_new(mrb, err, error_len);
+            mrb_value dumped = mrb_str_dump(mrb, bytes);
+            size_t readagain_len = ec->last_error.readagain_len;
+            mrb_value bytes2 = mrb_nil_value();
+            if (ec->last_error.result == econv_incomplete_input) {
+                mesg = mrb_sprintf(mrb, "incomplete %s on %s",
+                        //StringValueCStr(dumped),
+                        mrb_string_value_cstr(mrb, &dumped),
+                        ec->last_error.source_encoding);
+            }
+            else if (readagain_len) {
+                mrb_value dumped2;
+                bytes2 = mrb_str_new(mrb, err+error_len, readagain_len);
+                dumped2 = mrb_str_dump(mrb, bytes2);
+                mesg = mrb_sprintf(mrb, "%s followed by %s on %s",
+                        //StringValueCStr(dumped),
+                        mrb_string_value_cstr(mrb, &dumped),
+                        //StringValueCStr(dumped2),
+                        mrb_string_value_cstr(mrb, &dumped2),
+                        ec->last_error.source_encoding);
+            }
+            else {
+                mesg = mrb_sprintf(mrb, "%s on %s",
+                        //StringValueCStr(dumped),
+                        mrb_string_value_cstr(mrb, &dumped),
+                        ec->last_error.source_encoding);
+            }
 
-        exc = mrb_exc_new3(mrb, E_INVALIDBYTESEQUENCE_ERROR, mesg);
-        mrb_iv_set(mrb, exc, mrb_intern(mrb, "error_bytes"), bytes);
-        mrb_iv_set(mrb, exc, mrb_intern(mrb, "readagain_bytes"), bytes2);
-        mrb_iv_set(mrb, exc, mrb_intern(mrb, "incomplete_input"), ec->last_error.result == econv_incomplete_input ? mrb_true_value() : mrb_false_value());
+            exc = mrb_exc_new3(mrb, E_INVALIDBYTESEQUENCE_ERROR, mesg);
+            mrb_iv_set(mrb, exc, mrb_intern(mrb, "error_bytes"), bytes);
+            mrb_iv_set(mrb, exc, mrb_intern(mrb, "readagain_bytes"), bytes2);
+            mrb_iv_set(mrb, exc, mrb_intern(mrb, "incomplete_input"), ec->last_error.result == econv_incomplete_input ? mrb_true_value() : mrb_false_value());
+        }
 
 set_encs:
         mrb_iv_set(mrb, exc, mrb_intern(mrb, "source_encoding_name"), mrb_str_new2(mrb, ec->last_error.source_encoding));
         mrb_iv_set(mrb, exc, mrb_intern(mrb, "destination_encoding_name"), mrb_str_new2(mrb, ec->last_error.destination_encoding));
-        idx = mrb_enc_find_index(mrb, ec->last_error.source_encoding);
-        if (0 <= idx)
-            mrb_iv_set(mrb, exc, mrb_intern(mrb, "source_encoding"), mrb_enc_from_encoding(mrb, mrb_enc_from_index(mrb, idx)));
-        idx = mrb_enc_find_index(mrb, ec->last_error.destination_encoding);
-        if (0 <= idx)
-            mrb_iv_set(mrb, exc, mrb_intern(mrb, "destination_encoding"), mrb_enc_from_encoding(mrb, mrb_enc_from_index(mrb, idx)));
+        {
+            int idx = mrb_enc_find_index(mrb, ec->last_error.source_encoding);
+            if (0 <= idx)
+                mrb_iv_set(mrb, exc, mrb_intern(mrb, "source_encoding"), mrb_enc_from_encoding(mrb, mrb_enc_from_index(mrb, idx)));
+            idx = mrb_enc_find_index(mrb, ec->last_error.destination_encoding);
+            if (0 <= idx)
+                mrb_iv_set(mrb, exc, mrb_intern(mrb, "destination_encoding"), mrb_enc_from_encoding(mrb, mrb_enc_from_index(mrb, idx)));
+        }
         return exc;
     }
     if (ec->last_error.result == econv_undefined_conversion) {
@@ -2246,7 +2253,7 @@ mrb_econv_set_replacement(mrb_state *mrb, mrb_econv_t *ec,
     encname2 = mrb_econv_encoding_to_insert_output(ec);
 
     if (encoding_equal(encname, encname2)) {
-        str2 = xmalloc(len);
+        str2 = (unsigned char *) xmalloc(len);
         memcpy(str2, str, len); /* xxx: str may be invalid */
         len2 = len;
         encname2 = encname;
@@ -2324,9 +2331,8 @@ transcode_loop(mrb_state *mrb,
       if (!mrb_obj_equal(mrb, rep, Qundef)) {
           //StringValue(rep);
           mrb_string_value(mrb, &rep);
-          ret = mrb_econv_insert_output(mrb, ec, (const unsigned char *)RSTRING_PTR(rep),
-                RSTRING_LEN(rep), mrb_enc_name(mrb_enc_get(mrb, rep)));
-          if ((int)ret == -1) {
+          if (mrb_econv_insert_output(mrb, ec, (const unsigned char *)RSTRING_PTR(rep),
+                RSTRING_LEN(rep), mrb_enc_name(mrb_enc_get(mrb, rep))) == -1) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "too big fallback string");
           }
           goto resume;
@@ -2807,7 +2813,7 @@ mrb_str_encode(mrb_state *mrb, mrb_value str, mrb_value to, int ecflags, mrb_val
 static void
 econv_free(mrb_state *mrb, void *ptr)
 {
-    mrb_econv_t *ec = ptr;
+    mrb_econv_t *ec = (mrb_econv_t *) ptr;
     mrb_econv_close(ec);
 }
 
@@ -2987,7 +2993,7 @@ decorate_convpath(mrb_state *mrb, mrb_value convpath, int ecflags)
 static void
 search_convpath_i(mrb_state *mrb, const char *sname, const char *dname, int depth, void *arg)
 {
-    mrb_value *ary_p = arg;
+    mrb_value *ary_p = (mrb_value *) arg;
     mrb_value v;
 
     if (mrb_obj_equal(mrb, *ary_p, mrb_nil_value())) {
@@ -3321,7 +3327,7 @@ econv_inspect(mrb_state *mrb, mrb_value self)
     const char *cname = mrb_obj_classname(mrb, self);
     mrb_econv_t *ec;
 
-    Data_Get_Struct(mrb, self, &econv_data_type, ec);
+    Data_Get_Struct(mrb, self, &econv_data_type, mrb_econv_t, ec);
     if (!ec)
         return mrb_sprintf(mrb, "#<%s: uninitialized>", cname);
     else {
@@ -3340,7 +3346,7 @@ check_econv(mrb_state *mrb, mrb_value self)
 {
     mrb_econv_t *ec;
 
-    Data_Get_Struct(mrb, self, &econv_data_type, ec);
+    Data_Get_Struct(mrb, self, &econv_data_type, mrb_econv_t, ec);
     if (!ec) {
         mrb_raise(mrb, E_TYPE_ERROR, "uninitialized encoding converter");
     }

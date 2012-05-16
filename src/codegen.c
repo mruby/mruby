@@ -19,14 +19,16 @@
 typedef mrb_ast_node node;
 typedef struct mrb_parser_state parser_state;
 
+enum looptype {
+  LOOP_NORMAL,
+  LOOP_BLOCK,
+  LOOP_FOR,
+  LOOP_BEGIN,
+  LOOP_RESCUE,
+};
+
 struct loopinfo {
-  enum looptype {
-    LOOP_NORMAL,
-    LOOP_BLOCK,
-    LOOP_FOR,
-    LOOP_BEGIN,
-    LOOP_RESCUE,
-  } type;
+  enum looptype type;
   int pc1, pc2, pc3, acc;
   int ensure_level;
   struct loopinfo *prev;
@@ -128,7 +130,7 @@ genop(codegen_scope *s, mrb_code i)
 {
   if (s->pc == s->icapa) {
     s->icapa *= 2;
-    s->iseq = codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->icapa);
+    s->iseq = (mrb_code *) codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->icapa);
   }
   s->iseq[s->pc] = i;
   s->pc++;
@@ -321,7 +323,7 @@ new_lit(codegen_scope *s, mrb_value val)
   }
   if (s->plen == s->pcapa) {
     s->pcapa *= 2;
-    s->pool = codegen_realloc(s, s->pool, sizeof(mrb_value)*s->pcapa);
+    s->pool = (mrb_value *) codegen_realloc(s, s->pool, sizeof(mrb_value)*s->pcapa);
   }
   s->pool[s->plen] = val;
   return s->plen++;
@@ -355,7 +357,7 @@ new_sym(codegen_scope *s, mrb_sym sym)
     if (s->syms[i] == sym) return i;
   }
   if (s->slen > 125 && s->slen < 256) {
-    s->syms = codegen_realloc(s, s->syms, sizeof(mrb_sym)*65536);
+    s->syms = (mrb_sym *) codegen_realloc(s, s->syms, sizeof(mrb_sym)*65536);
     memset(s->syms+s->slen, 0, sizeof(mrb_sym)*(256-s->slen));
     s->slen = 256;
   }
@@ -552,7 +554,7 @@ attrsym(codegen_scope *s, mrb_sym a)
   char *name2;
   size_t len = strlen(name);
 
-  name2 = codegen_palloc(s, len+1);
+  name2 = (char *) codegen_palloc(s, len+1);
   strcpy(name2, name);
   name2[len] = '=';
   name2[len+1] = '\0';
@@ -1808,7 +1810,7 @@ static codegen_scope*
 scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
 {
   mrb_pool *pool = mrb_pool_open(mrb);
-  codegen_scope *p = mrb_pool_alloc(pool, sizeof(codegen_scope));
+  codegen_scope *p = (codegen_scope *) mrb_pool_alloc(pool, sizeof(codegen_scope));
   if (!p) return 0;
 
   memset(p, 0, sizeof(codegen_scope));
@@ -1820,12 +1822,12 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
 
   p->mrb = prev->mrb;
   p->icapa = 1024;
-  p->iseq = mrb_malloc(mrb, sizeof(mrb_code)*p->icapa);
+  p->iseq = (mrb_code *) mrb_malloc(mrb, sizeof(mrb_code)*p->icapa);
 
   p->pcapa = 32;
-  p->pool = mrb_malloc(mrb, sizeof(mrb_value)*p->pcapa);
+  p->pool = (mrb_value *) mrb_malloc(mrb, sizeof(mrb_value)*p->pcapa);
 
-  p->syms = mrb_malloc(mrb, sizeof(mrb_sym)*256);
+  p->syms = (mrb_sym *) mrb_malloc(mrb, sizeof(mrb_sym)*256);
 
   p->lv = lv;
   p->sp += node_len(lv)+2;
@@ -1843,20 +1845,20 @@ scope_finish(codegen_scope *s, int idx)
   mrb_irep *irep;
 
   mrb_add_irep(mrb, idx);
-  irep = mrb->irep[idx] = mrb_malloc(mrb, sizeof(mrb_irep));
+  irep = mrb->irep[idx] = (mrb_irep *) mrb_malloc(mrb, sizeof(mrb_irep));
 
   irep->idx = idx;
   irep->flags = 0;
   if (s->iseq) {
-    irep->iseq = codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc);
+    irep->iseq = (mrb_code *) codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc);
     irep->ilen = s->pc;
   }
   if (s->pool) {
-    irep->pool = codegen_realloc(s, s->pool, sizeof(mrb_value)*s->plen);
+    irep->pool = (mrb_value *) codegen_realloc(s, s->pool, sizeof(mrb_value)*s->plen);
     irep->plen = s->plen;
   }
   if (s->syms) {
-    irep->syms = codegen_realloc(s, s->syms, sizeof(mrb_sym)*s->slen);
+    irep->syms = (mrb_sym *) codegen_realloc(s, s->syms, sizeof(mrb_sym)*s->slen);
     irep->slen = s->slen;
   }
 
@@ -1869,7 +1871,7 @@ scope_finish(codegen_scope *s, int idx)
 static struct loopinfo*
 loop_push(codegen_scope *s, enum looptype t)
 {
-  struct loopinfo *p = codegen_palloc(s, sizeof(struct loopinfo));
+  struct loopinfo *p = (struct loopinfo *) codegen_palloc(s, sizeof(struct loopinfo));
 
   p->type = t;
   p->pc1 = p->pc2 = p->pc3 = 0;

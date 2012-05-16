@@ -69,12 +69,12 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         if (!args->cmdline) {
           char *buf;
 
-          buf = mrb_malloc(mrb, strlen(argv[0])+1);
+          buf = (char *) mrb_malloc(mrb, strlen(argv[0])+1);
           strcpy(buf, argv[0]);
           args->cmdline = buf;
         }
         else {
-          args->cmdline = mrb_realloc(mrb, args->cmdline, strlen(args->cmdline)+strlen(argv[0])+2);
+          args->cmdline = (char *) mrb_realloc(mrb, args->cmdline, strlen(args->cmdline)+strlen(argv[0])+2);
           strcat(args->cmdline, "\n");
           strcat(args->cmdline, argv[0]);
         }
@@ -109,7 +109,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
     printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
     return 0;
   }
-  args->argv = mrb_realloc(mrb, args->argv, sizeof(char*) * (argc + 1));
+  args->argv = (char **) mrb_realloc(mrb, args->argv, sizeof(char*) * (argc + 1));
   memcpy(args->argv, argv, (argc+1) * sizeof(char*));
   args->argc = argc;
 

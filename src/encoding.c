@@ -154,7 +154,7 @@ enc_check_encoding(mrb_state *mrb, mrb_value obj)
   if (SPECIAL_CONST_P(obj) || !is_data_encoding(obj)) {
     return -1;
   }
-  return check_encoding(mrb, RDATA(obj)->data);
+  return check_encoding(mrb, (mrb_encoding *) RDATA(obj)->data);
 }
 
 static int
@@ -210,7 +210,7 @@ to_encoding(mrb_state *mrb, mrb_value enc)
 mrb_encoding *
 mrb_to_encoding(mrb_state *mrb, mrb_value enc)
 {
-    if (enc_check_encoding(mrb, enc) >= 0) return RDATA(enc)->data;
+    if (enc_check_encoding(mrb, enc) >= 0) return (mrb_encoding *) RDATA(enc)->data;
     return to_encoding(mrb, enc);
 }
 
@@ -222,7 +222,7 @@ enc_table_expand(int newsize)
 
     if (enc_table.size >= newsize) return newsize;
     newsize = (newsize + 7) / 8 * 8;
-    ent = realloc(enc_table.list, sizeof(*enc_table.list) * newsize);
+    ent = (struct mrb_encoding_entry *) realloc(enc_table.list, sizeof(*enc_table.list) * newsize);
     if (!ent) return -1;
     memset(ent + enc_table.size, 0, sizeof(*ent)*(newsize - enc_table.size));
     enc_table.list = ent;
@@ -245,7 +245,7 @@ enc_register_at(mrb_state *mrb, int index, const char *name, mrb_encoding *encod
     return -1;
     }
     if (!ent->enc) {
-    ent->enc = xmalloc(sizeof(mrb_encoding));
+    ent->enc = (mrb_encoding *) xmalloc(sizeof(mrb_encoding));
     }
     if (encoding) {
     *ent->enc = *encoding;
@@ -919,11 +919,11 @@ enc_name(mrb_state *mrb, mrb_value self)
 
 struct fn_arg {
   mrb_state *mrb;
-  int (*func)(ANYARGS);
+  st_foreach_func_t func;
   void *a;
 };
 
-static int
+static enum st_retval
 fn_i(st_data_t key, st_data_t val, st_data_t arg) {
   struct fn_arg *a = (struct fn_arg*)arg;
 
@@ -931,7 +931,7 @@ fn_i(st_data_t key, st_data_t val, st_data_t arg) {
 }
 
 static int
-st_foreachNew(mrb_state *mrb, st_table *tbl, int (*func)(ANYARGS), void *a)
+st_foreachNew(mrb_state *mrb, st_table *tbl, st_foreach_func_t func, void *a)
 {
   struct fn_arg arg = {
     mrb,
@@ -939,10 +939,10 @@ st_foreachNew(mrb_state *mrb, st_table *tbl, int (*func)(ANYARGS), void *a)
     a,
   };
 
-  return st_foreach(tbl, fn_i, (st_data_t)&arg);
+  return st_foreach(tbl, (st_foreach_func_t)fn_i, (st_data_t)&arg);
 }
 
-static int
+static enum st_retval
 enc_names_i(mrb_state *mrb, st_data_t name, st_data_t idx, st_data_t args)
 {
   mrb_value *arg = (mrb_value *)args;
@@ -972,7 +972,7 @@ enc_names(mrb_state *mrb, mrb_value self)
 
     args[0] = mrb_fixnum_value(mrb_to_encoding_index(mrb, self));
     args[1] = mrb_ary_new_capa(mrb, 0);//mrb_ary_new2(0);
-    st_foreachNew(mrb, enc_table.names, enc_names_i, args);
+    st_foreachNew(mrb, enc_table.names, (st_foreach_func_t)enc_names_i, args);
     return args[1];
 }
 
@@ -1508,7 +1508,7 @@ set_encoding_const(mrb_state *mrb, const char *name, mrb_encoding *enc)
     len += strlen(s);
     if (len++ > ENCODING_NAMELEN_MAX) return;
     //MEMCPY(s = ALLOCA_N(char, len), name, char, len);
-    memcpy(s = mrb_malloc(mrb, len), name, len);
+    memcpy(s = (char *) mrb_malloc(mrb, len), name, len);
     name = s;
     if (!valid) {
       if (ISLOWER(*s)) *s = ONIGENC_ASCII_CODE_TO_UPPER_CASE((int)*s);
@@ -1527,7 +1527,7 @@ set_encoding_const(mrb_state *mrb, const char *name, mrb_encoding *enc)
     }
   }
 }
-static int
+static enum st_retval
 mrb_enc_name_list_i(mrb_state *mrb, st_data_t name, st_data_t idx, mrb_value *arg)
 {
     mrb_value ary = *arg;
@@ -1556,11 +1556,11 @@ static mrb_value
 mrb_enc_name_list(mrb_state *mrb, mrb_value klass)
 {
     mrb_value ary = mrb_ary_new_capa(mrb, enc_table.names->num_entries);//mrb_ary_new2(enc_table.names->num_entries);
-    st_foreachNew(mrb, enc_table.names, mrb_enc_name_list_i, &ary);
+    st_foreachNew(mrb, enc_table.names, (st_foreach_func_t)mrb_enc_name_list_i, &ary);
     return ary;
 }
 
-static int
+static enum st_retval
 mrb_enc_aliases_enc_i(mrb_state *mrb, st_data_t name, st_data_t orig, st_data_t arg)
 {
     mrb_value *p = (mrb_value *)arg;
@@ -1604,7 +1604,7 @@ mrb_enc_aliases(mrb_state *mrb, mrb_value klass)
     mrb_value aliases[2];
     aliases[0] = mrb_hash_new_capa(mrb, 0);
     aliases[1] = mrb_ary_new(mrb);
-    st_foreachNew(mrb, enc_table.names, mrb_enc_aliases_enc_i, aliases);
+    st_foreachNew(mrb, enc_table.names, (st_foreach_func_t)mrb_enc_aliases_enc_i, aliases);
     return aliases[0];
 }
 

@@ -63,7 +63,7 @@ mrb_str_set_len(mrb_state *mrb, mrb_value str, long len)
 }
 
 #define RESIZE_CAPA(str,capacity) do {\
-      RSTRING(str)->buf = mrb_realloc(mrb, RSTRING(str)->buf, (capacity)+1);\
+      RSTRING(str)->buf = (char *) mrb_realloc(mrb, RSTRING(str)->buf, (capacity)+1);\
       if (!MRB_STR_NOCAPA_P(str))\
         RSTRING_CAPA(str) = capacity;\
 } while (0)
@@ -123,7 +123,7 @@ mrb_str_buf_cat_ascii(mrb_state *mrb, mrb_value str, const char *ptr)
   }
   else {
     //char *buf = ALLOCA_N(char, mrb_enc_mbmaxlen(enc));
-    char *buf = mrb_malloc(mrb, mrb_enc_mbmaxlen(enc));
+    char *buf = (char *) mrb_malloc(mrb, mrb_enc_mbmaxlen(enc));
     while (*ptr) {
       unsigned int c = (unsigned char)*ptr;
       int len = mrb_enc_codelen(mrb, c, enc);
@@ -152,7 +152,7 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, size_t len)
   slen = RSTRING_LEN(str);
   if (len != slen) {
     if (slen < len || slen -len > 1024) {
-      RSTRING_PTR(str) = mrb_realloc(mrb, RSTRING_PTR(str), len+1);
+      RSTRING_PTR(str) = (char *) mrb_realloc(mrb, RSTRING_PTR(str), len+1);
     }
     if (!MRB_STR_NOCAPA_P(str)) {
       RSTRING(str)->aux.capa = len;
@@ -299,7 +299,7 @@ str_alloc(mrb_state *mrb)
 {
   struct RString* s;
 
-  s = mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
+  s = (struct RString*) mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
   //NEWOBJ(str, struct RString);
   //OBJSETUP(str, klass, T_STRING);
 
@@ -324,7 +324,7 @@ str_make_independent(mrb_state *mrb, mrb_value str)
   char *ptr;
   long len = RSTRING_LEN(str);
 
-  ptr = mrb_malloc(mrb, sizeof(char)*(len+1));
+  ptr = (char *) mrb_malloc(mrb, sizeof(char)*(len+1));
   if (RSTRING_PTR(str)) {
     memcpy(ptr, RSTRING_PTR(str), len);
   }
@@ -540,14 +540,14 @@ mrb_str_buf_new(mrb_state *mrb, size_t capa)
 {
   struct RString *s;
 
-  s = mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
+  s = (struct RString *) mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
 
   if (capa < STR_BUF_MIN_SIZE) {
     capa = STR_BUF_MIN_SIZE;
   }
   s->len = 0;
   s->aux.capa = capa;
-  s->buf = mrb_malloc(mrb, capa+1);
+  s->buf = (char *) mrb_malloc(mrb, capa+1);
   s->buf[0] = '\0';
 
   return mrb_obj_value(s);
@@ -610,8 +610,8 @@ mrb_str_new(mrb_state *mrb, const char *p, size_t len)
   if (len == 0) {
     return mrb_str_buf_new(mrb, len);
   }
-  s = mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
-  s->buf = mrb_malloc(mrb, len+1);
+  s = (struct RString *) mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
+  s->buf = (char *) mrb_malloc(mrb, len+1);
   if (p) {
     memcpy(s->buf, p, len);
   }
@@ -658,8 +658,8 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
   struct RString *s;
   size_t len = strlen(p);
 
-  s = mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
-  s->buf = mrb_malloc(mrb, len+1);
+  s = (struct RString *) mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
+  s->buf = (char *) mrb_malloc(mrb, len+1);
   memcpy(s->buf, p, len);
   s->buf[len] = 0;
   s->len = len;
@@ -718,7 +718,7 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
 
   if (s1->aux.capa < len) {
     s1->aux.capa = len;
-    s1->buf = mrb_realloc(mrb, s1->buf, len+1);
+    s1->buf = (char *) mrb_realloc(mrb, s1->buf, len+1);
   }
   memcpy(s1->buf+s1->len, s2->buf, s2->len);
   s1->len = len;
@@ -1425,8 +1425,8 @@ mrb_str_dup(mrb_state *mrb, mrb_value str)
   struct RString *s = mrb_str_ptr(str);
   struct RString *dup;
 
-  dup = mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
-  dup->buf = mrb_malloc(mrb, s->len+1);
+  dup = (struct RString *) mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
+  dup->buf = (char *) mrb_malloc(mrb, s->len+1);
   if (s->buf) {
     memcpy(dup->buf, s->buf, s->len);
     dup->buf[s->len] = 0;
@@ -4007,7 +4007,7 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, int badcheck)
     len = RSTRING_LEN(str);
     if (s[len]) {    /* no sentinel somehow */
       //char *p = ALLOCA_N(char, len+1);
-      char *p = mrb_malloc(mrb, len+1);
+      char *p = (char *) mrb_malloc(mrb, len+1);
 
       //MEMCPY(p, s, char, len);
       memcpy(p, s, sizeof(char)*len);
@@ -4145,7 +4145,7 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, int badcheck)
       mrb_raise(mrb, E_ARGUMENT_ERROR, "string for Float contains null byte");
     }
     if (s[len]) {    /* no sentinel somehow */
-      char *p = mrb_malloc(mrb, len+1);
+      char *p = (char *) mrb_malloc(mrb, len+1);
 
       memcpy(p, s, sizeof(char)*len);
       p[len] = '\0';

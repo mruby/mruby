@@ -40,8 +40,8 @@ struct RData *mrb_data_object_alloc(mrb_state *mrb, struct RClass* klass, void *
 #define DATA_TYPE(d)       (RDATA(d)->type)
 void *mrb_get_datatype(mrb_state *mrb, mrb_value, const struct mrb_data_type*);
 void *mrb_check_datatype(mrb_state *mrb, mrb_value, const struct mrb_data_type*);
-#define Data_Get_Struct(mrb,obj,type,sval) do {\
-  sval = mrb_check_datatype(mrb, obj, type); \
+#define Data_Get_Struct(mrb,obj,type,ctyp,sval) do {\
+  sval = (ctyp *) mrb_check_datatype(mrb, obj, type); \
 } while (0)
 
 #if defined(__cplusplus)

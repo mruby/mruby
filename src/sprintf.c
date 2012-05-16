@@ -191,6 +191,11 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
   num = mrb_fixnum(tmp); \
 } while (0)
 
+/* @@TODO -- all of this use of "volatile" qualifiers keeps C++ from allowing default copying of structures.  Why is it needed?!?  Disabling if building under C++ for now */
+#ifdef __cplusplus
+#define volatile /**/
+#endif
+
 static mrb_value
 get_hash(mrb_state *mrb, volatile mrb_value *hash, int argc, const mrb_value *argv)
 {

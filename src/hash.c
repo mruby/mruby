@@ -75,10 +75,10 @@ mrb_gc_mark_ht(mrb_state *mrb, struct RHash *c)
 }
 
 size_t
-mrb_gc_mark_ht_size(mrb_state *mrb, struct RClass *c)
+mrb_gc_mark_ht_size(mrb_state *mrb, struct RHash *c)
 {
   size_t ht_size = 0;
-  khash_t(ht) *h = ((struct RHash*)c)->ht;
+  khash_t(ht) *h = c->ht;
 
   /* ((struct RHash*)c)->ht */
   if (h) ht_size += kh_size(h)*2;
@@ -87,9 +87,9 @@ mrb_gc_mark_ht_size(mrb_state *mrb, struct RClass *c)
 }
 
 void
-mrb_gc_free_ht(mrb_state *mrb, struct RClass *c)
+mrb_gc_free_ht(mrb_state *mrb, struct RHash *c)
 {
-  khash_t(ht) *h = ((struct RHash*)c)->ht;
+  khash_t(ht) *h = c->ht;
 
   kh_destroy(ht, h);
 }
@@ -100,7 +100,7 @@ mrb_hash_new_capa(mrb_state *mrb, size_t capa)
 {
   struct RHash *h;
 
-  h = mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
+  h = (struct RHash *) mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
   h->ht = kh_init(ht, mrb);
   kh_resize(ht, h->ht, capa);
   h->iv = 0;
@@ -197,7 +197,7 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
   khash_t(ht) *h, *ret_h;
   khiter_t k, ret_k;
 
-  ret = mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
+  ret = (struct RHash *) mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
   ret->ht = kh_init(ht, mrb);
 
   if (!RHASH_EMPTY_P(hash)) {

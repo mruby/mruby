@@ -21,23 +21,23 @@
      * allocated initially
      *
      */
-static int numcmp(long, long);
-static st_index_t numhash(long);
+static int numcmp(st_data_t, st_data_t);
+static st_index_t numhash(st_data_t);
 static struct st_hash_type type_numhash = {
     numcmp,
     numhash,
 };
 
 /* extern int strcmp(const char *, const char *); */
-static st_index_t strhash(const char *);
+static st_index_t strhash(st_data_t);
 static struct st_hash_type type_strhash = {
-    strcmp,
+    (int (*)(st_data_t, st_data_t)) strcmp,
     strhash,
 };
 
 static st_index_t strcasehash(st_data_t);
 static const struct st_hash_type type_strcasehash = {
-    st_strcasecmp,
+    (int (*)(st_data_t, st_data_t)) st_strcasecmp,
     strcasehash,
 };
 
@@ -404,7 +404,7 @@ st_delete(register st_table *table, register st_data_t *key, st_data_t *value)
 }
 
 int
-st_foreach(st_table *table, int (*func)(ANYARGS), st_data_t arg)
+st_foreach(st_table *table, st_foreach_func_t func, st_data_t arg)
 {
     st_table_entry *ptr, **last, *tmp;
     enum st_retval retval;
@@ -413,7 +413,7 @@ st_foreach(st_table *table, int (*func)(ANYARGS), st_data_t arg)
     if ((ptr = table->head) != 0) {
         do {
             i = ptr->hash % table->num_bins;
-            retval = (*func)(ptr->key, ptr->record, (void*)arg);
+            retval = (*func)(ptr->key, ptr->record, (void *)arg);
             switch (retval) {
               case ST_CHECK:    /* check if hash is modified during iteration */
                 for (tmp = table->bins[i]; tmp != ptr; tmp = tmp->next) {
@@ -450,8 +450,9 @@ st_foreach(st_table *table, int (*func)(ANYARGS), st_data_t arg)
 }
 
 static st_index_t
-strhash(const char *string)
+strhash(st_data_t stringd)
 {
+    const char *string = (const char *) stringd;
     register int c;
 
 #ifdef HASH_ELFHASH
@@ -560,13 +561,13 @@ strcasehash(st_data_t arg)
 }
 
 static int
-numcmp(long x, long y)
+numcmp(st_data_t x, st_data_t y)
 {
     return x != y;
 }
 
 static st_index_t
-numhash(long n)
+numhash(st_data_t n)
 {
     return n;
 }
