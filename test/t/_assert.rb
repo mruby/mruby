@@ -2,7 +2,6 @@ $ok_test = 0
 $ko_test = 0
 $kill_test = 0
 $asserts  = []
-$exceptions = []
 
 ##
 # Print the assertion in a readable way
