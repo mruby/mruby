@@ -17,28 +17,55 @@
 #define atanh(x) (log(1+x) - log(1-x))/2.0
 #define cbrt(x)  pow(x,1.0/3.0)
 
-
-double erf(double x)
+#define REL_ERROR 1E-12
+/* Implementation of Error function */
+double 
+erf(double x)
 {
-    // constants
-    double a1 =  0.254829592;
-    double a2 = -0.284496736;
-    double a3 =  1.421413741;
-    double a4 = -1.453152027;
-    double a5 =  1.061405429;
-    double p  =  0.3275911;
+  static const double two_sqrtpi=  1.128379167095512574;
+    if (fabs(x) > 2.2) {
+        return 1.0 - erfc(x);
+    }
+    double sum= x, term= x, xsqr= x*x;
+    int j= 1;
+    do {
+        term*= xsqr/j;
+        sum-= term/(2*j+1);
+        ++j;
+        term*= xsqr/j;
+        sum+= term/(2*j+1);
+        ++j;
+    } while (fabs(term)/sum > REL_ERROR);
+    return two_sqrtpi*sum;
+}
 
-    // Save the sign of x
-    int sign = 1;
-    if (x < 0)
-        sign = -1;
-    x = fabs(x);
-
-    // A&S formula 7.1.26
-    double t = 1.0/(1.0 + p*x);
-    double y = 1.0 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*exp(-x*x);
-
-    return sign*y;
+/* Implementation of complementary Error function */
+double 
+erfc(double x)
+{
+    static const double one_sqrtpi=  0.564189583547756287;        
+    if (fabs(x) < 2.2) {
+        return 1.0 - erf(x);       
+    }                              
+    if (signbit(x)) {              
+        return 2.0 - erfc(-x);     
+    }                              
+    double a=1, b=x;               
+    double c=x, d=x*x+0.5;         
+    double q1,q2;                  
+    double n= 1.0, t;
+    do {
+        t= a*n+b*x;
+        a= b;
+         b= t;
+        t= c*n+d*x;
+        c= d;
+        d= t;
+        n+= 0.5;
+        q1= q2;
+        q2= b/d;
+      } while (fabs(q1-q2)/q2 > REL_ERROR);
+    return one_sqrtpi*exp(-x*x)*q2;
 }
 
 #endif
@@ -546,7 +573,6 @@ math_erf(mrb_state *mrb, mrb_value obj)
 }
 
 
-#ifndef _MSC_VER
 /*
  * call-seq:
  *    Math.erfc(x)  -> float
@@ -563,7 +589,6 @@ math_erfc(mrb_state *mrb, mrb_value obj)
 
   return mrb_float_value(x);
 }
-#endif
 
 /* ------------------------------------------------------------------------*/
 void
@@ -613,7 +638,5 @@ mrb_init_math(mrb_state *mrb)
   mrb_define_class_method(mrb, mrb_math, "hypot", math_hypot, 2);
 
   mrb_define_class_method(mrb, mrb_math, "erf",  math_erf,  1);
-#ifndef _MSC_VER
   mrb_define_class_method(mrb, mrb_math, "erfc", math_erfc, 1);
-#endif
 }
