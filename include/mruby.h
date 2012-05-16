@@ -287,7 +287,8 @@ void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
 
 void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t,int);
 void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, int);
-void mrb_define_singleton_method(mrb_state*, void*, const char*, mrb_func_t,int);
+void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t,int);
+void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t,int);
 void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);

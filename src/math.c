@@ -622,34 +622,34 @@ mrb_init_math(mrb_state *mrb)
       mrb_define_const(mrb, mrb_math, "E", mrb_float_value(exp(1.0)));
   #endif
   
-  mrb_define_class_method(mrb, mrb_math, "sin", math_sin, 1);
-  mrb_define_class_method(mrb, mrb_math, "cos", math_cos, 1);
-  mrb_define_class_method(mrb, mrb_math, "tan", math_tan, 1);
+  mrb_define_module_function(mrb, mrb_math, "sin", math_sin, 1);
+  mrb_define_module_function(mrb, mrb_math, "cos", math_cos, 1);
+  mrb_define_module_function(mrb, mrb_math, "tan", math_tan, 1);
 
-  mrb_define_class_method(mrb, mrb_math, "asin", math_asin, 1);
-  mrb_define_class_method(mrb, mrb_math, "acos", math_acos, 1);
-  mrb_define_class_method(mrb, mrb_math, "atan", math_atan, 1);
-  mrb_define_class_method(mrb, mrb_math, "atan2", math_atan2, 2);
+  mrb_define_module_function(mrb, mrb_math, "asin", math_asin, 1);
+  mrb_define_module_function(mrb, mrb_math, "acos", math_acos, 1);
+  mrb_define_module_function(mrb, mrb_math, "atan", math_atan, 1);
+  mrb_define_module_function(mrb, mrb_math, "atan2", math_atan2, 2);
   
-  mrb_define_class_method(mrb, mrb_math, "sinh", math_sinh, 1);
-  mrb_define_class_method(mrb, mrb_math, "cosh", math_cosh, 1);
-  mrb_define_class_method(mrb, mrb_math, "tanh", math_tanh, 1);
+  mrb_define_module_function(mrb, mrb_math, "sinh", math_sinh, 1);
+  mrb_define_module_function(mrb, mrb_math, "cosh", math_cosh, 1);
+  mrb_define_module_function(mrb, mrb_math, "tanh", math_tanh, 1);
 
-  mrb_define_class_method(mrb, mrb_math, "asinh", math_asinh, 1);
-  mrb_define_class_method(mrb, mrb_math, "acosh", math_acosh, 1);
-  mrb_define_class_method(mrb, mrb_math, "atanh", math_atanh, 1);
+  mrb_define_module_function(mrb, mrb_math, "asinh", math_asinh, 1);
+  mrb_define_module_function(mrb, mrb_math, "acosh", math_acosh, 1);
+  mrb_define_module_function(mrb, mrb_math, "atanh", math_atanh, 1);
 
-  mrb_define_class_method(mrb, mrb_math, "exp", math_exp, 1);
-  mrb_define_class_method(mrb, mrb_math, "log", math_log, -1);
-  mrb_define_class_method(mrb, mrb_math, "log2", math_log2, 1);
-  mrb_define_class_method(mrb, mrb_math, "log10", math_log10, 1);
-  mrb_define_class_method(mrb, mrb_math, "cbrt", math_cbrt, 1);
+  mrb_define_module_function(mrb, mrb_math, "exp", math_exp, 1);
+  mrb_define_module_function(mrb, mrb_math, "log", math_log, -1);
+  mrb_define_module_function(mrb, mrb_math, "log2", math_log2, 1);
+  mrb_define_module_function(mrb, mrb_math, "log10", math_log10, 1);
+  mrb_define_module_function(mrb, mrb_math, "cbrt", math_cbrt, 1);
 
-  mrb_define_class_method(mrb, mrb_math, "frexp", math_frexp, 1);
-  mrb_define_class_method(mrb, mrb_math, "ldexp", math_ldexp, 2);
+  mrb_define_module_function(mrb, mrb_math, "frexp", math_frexp, 1);
+  mrb_define_module_function(mrb, mrb_math, "ldexp", math_ldexp, 2);
 
-  mrb_define_class_method(mrb, mrb_math, "hypot", math_hypot, 2);
+  mrb_define_module_function(mrb, mrb_math, "hypot", math_hypot, 2);
 
-  mrb_define_class_method(mrb, mrb_math, "erf",  math_erf,  1);
-  mrb_define_class_method(mrb, mrb_math, "erfc", math_erfc, 1);
+  mrb_define_module_function(mrb, mrb_math, "erf",  math_erf,  1);
+  mrb_define_module_function(mrb, mrb_math, "erfc", math_erfc, 1);
 }
