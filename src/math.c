@@ -11,6 +11,7 @@
     mrb_raise(mrb, E_RANGE_ERROR, "Numerical argument is out of domain - " #msg);
 
 /* math functions not provided under Microsoft Visual C++ */
+#define _MSC_VER
 #ifdef _MSC_VER
 #define asinh(x) log(x + sqrt(pow(x,2.0) + 1))
 #define acosh(x) log(x + sqrt(pow(x,2.0) - 1))
@@ -30,18 +31,20 @@ erfc(double x);
 double 
 erf(double x)
 {
-  static const double two_sqrtpi=  1.128379167095512574;
-  double sum= x, term= x, xsqr= x*x;
+  static const double two_sqrtpi =  1.128379167095512574;
+  double sum  = x;
+  double term = x;
+  double xsqr = x*x;
   int j= 1;
   if (fabs(x) > 2.2) {
     return 1.0 - erfc(x);
   }
   do {
-    term*= xsqr/j;
-    sum-= term/(2*j+1);
+    term *= xsqr/j;
+    sum  -= term/(2*j+1);
     ++j;
-    term*= xsqr/j;
-    sum+= term/(2*j+1);
+    term *= xsqr/j;
+    sum  += term/(2*j+1);
     ++j;
   } while (fabs(term)/sum > REL_ERROR);
   return two_sqrtpi*sum;
@@ -52,10 +55,13 @@ double
 erfc(double x)
 {
   static const double one_sqrtpi=  0.564189583547756287;        
-  double a=1, b=x;               
-  double c=x, d=x*x+0.5;         
-  double q1,q2;                  
-  double n= 1.0, t;
+  double a = 1; 
+  double b = x;               
+  double c = x; 
+  double d = x*x+0.5;         
+  double q1, q2;                  
+  double n = 1.0;
+  double t;
   if (fabs(x) < 2.2) {
     return 1.0 - erf(x);       
   }                              
@@ -63,15 +69,15 @@ erfc(double x)
     return 2.0 - erfc(-x);     
   }                              
   do {
-    t= a*n+b*x;
-    a= b;
-    b= t;
-    t= c*n+d*x;
-    c= d;
-    d= t;
-    n+= 0.5;
-    q1= q2;
-    q2= b/d;
+    t  = a*n+b*x;
+    a  = b;
+    b  = t;
+    t  = c*n+d*x;
+    c  = d;
+    d  = t;
+    n += 0.5;
+    q1 = q2;
+    q2 = b/d;
   } while (fabs(q1-q2)/q2 > REL_ERROR);
   return one_sqrtpi*exp(-x*x)*q2;
 }
