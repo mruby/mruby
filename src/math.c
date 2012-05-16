@@ -17,6 +17,10 @@
 #define atanh(x) (log(1+x) - log(1-x))/2.0
 #define cbrt(x)  pow(x,1.0/3.0)
 
+/* Declaration of complementary Error function */
+double
+erfc(double x);
+
 /* 
 ** Implementations of error functions
 ** credits to http://www.digitalmars.com/archives/cplusplus/3634.html
@@ -27,11 +31,11 @@ double
 erf(double x)
 {
   static const double two_sqrtpi=  1.128379167095512574;
+  double sum= x, term= x, xsqr= x*x;
+  int j= 1;
   if (fabs(x) > 2.2) {
     return 1.0 - erfc(x);
   }
-  double sum= x, term= x, xsqr= x*x;
-  int j= 1;
   do {
     term*= xsqr/j;
     sum-= term/(2*j+1);
@@ -48,16 +52,16 @@ double
 erfc(double x)
 {
   static const double one_sqrtpi=  0.564189583547756287;        
-  if (fabs(x) < 2.2) {
-    return 1.0 - erf(x);       
-  }                              
-  if (signbit(x)) {              
-    return 2.0 - erfc(-x);     
-  }                              
   double a=1, b=x;               
   double c=x, d=x*x+0.5;         
   double q1,q2;                  
   double n= 1.0, t;
+  if (fabs(x) < 2.2) {
+    return 1.0 - erf(x);       
+  }                              
+  if (x < 0.0) { /*signbit(x)*/              
+    return 2.0 - erfc(-x);     
+  }                              
   do {
     t= a*n+b*x;
     a= b;
