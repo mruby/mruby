@@ -404,29 +404,6 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
   mrb_raise(mrb, mrb->eRuntimeError_class, "%s", mesg);
 }
 
-static mrb_value
-mrb_exc_c_exception(mrb_state *mrb, mrb_value exc)
-{
-  mrb_value *argv;
-  int argc;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  return mrb_make_exception(mrb, argc, argv);
-}
-
-static mrb_value
-mrb_exc_exception(mrb_state *mrb, mrb_value exc)
-{
-  mrb_value *argv;
-  int argc;
-  mrb_value exclass;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  if (argc == 0) return exc;
-  exclass = mrb_obj_value(mrb_class(mrb, exc));
-  return mrb_funcall(mrb, exclass, "exception", argc, argv);
-}
-
 void
 mrb_init_exception(mrb_state *mrb)
 {

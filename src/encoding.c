@@ -84,12 +84,6 @@ enum {
 
 #define mrb_usascii_str_new2 mrb_usascii_str_new_cstr
 
-static size_t
-enc_memsize(mrb_state *mrb, const void *p)
-{
-    return 0;
-}
-
 static const struct mrb_data_type encoding_data_type = {
   "encoding", 0,
 };
