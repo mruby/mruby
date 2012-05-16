@@ -54,14 +54,11 @@ unsigned long ruby_scan_oct(const char *, size_t, size_t *);
 unsigned long ruby_scan_hex(const char *, size_t, size_t *);
 
 static mrb_value mrb_match_to_a(mrb_state *mrb, mrb_value match);
-int re_adjust_startpos(struct re_pattern_buffer *bufp, const char *string, int size, int startpos, int range);
 static mrb_value mrb_reg_preprocess(mrb_state *mrb, const char *p, const char *end, mrb_encoding *enc,
         mrb_encoding **fixed_enc, onig_errmsg_buffer err);
 static void mrb_reg_expr_str(mrb_state *mrb, mrb_value str, const char *s, long len,
       mrb_encoding *enc, mrb_encoding *resenc);
 static char * option_to_str(char str[4], int options);
-mrb_value match_alloc(mrb_state *mrb);
-void mrb_warn(const char *fmt, ...);
 
 static mrb_value reg_cache;
 //static int may_need_recompile;

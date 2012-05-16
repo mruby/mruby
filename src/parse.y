@@ -4726,7 +4726,6 @@ mrb_parse_string(mrb_state *mrb, const char *s)
 #define PARSER_DUMP
 
 void parser_dump(mrb_state *mrb, node *tree, int offset);
-int mrb_generate_code(mrb_state*, mrb_ast_node*);
 
 int
 mrb_compile_file(mrb_state * mrb, FILE *f)

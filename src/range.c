@@ -32,8 +32,6 @@
 mrb_value mrb_exec_recursive_paired(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mrb_value, int),
                                   mrb_value obj, mrb_value paired_obj, void* arg);
 
-int printf (const char*, ...);
-
 mrb_value
 mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, int excl)
 {

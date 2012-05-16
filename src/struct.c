@@ -31,8 +31,6 @@ mrb_value mrb_exec_recursive_paired(mrb_state *mrb, mrb_value (*func) (mrb_state
 #define mrb_long2int(n) ((int)(n))
 
 
-static mrb_value struct_alloc(mrb_state *mrb, mrb_value);
-
 static struct RClass *
 struct_class(mrb_state *mrb)
 {

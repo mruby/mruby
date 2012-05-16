@@ -47,7 +47,6 @@ static mrb_value str_replace(mrb_state *mrb, mrb_value str, mrb_value str2);
 #ifdef INCLUDE_ENCODING
 static long str_strlen(mrb_state *mrb, mrb_value str, mrb_encoding *enc);
 #endif //INCLUDE_ENCODING
-int mrb_block_given_p();
 #ifdef INCLUDE_ENCODING
 #define is_ascii_string(mrb, str) (mrb_enc_str_coderange(mrb, str) == ENC_CODERANGE_7BIT)
 #define is_broken_string(mrb, str) (mrb_enc_str_coderange(mrb, str) == ENC_CODERANGE_BROKEN)

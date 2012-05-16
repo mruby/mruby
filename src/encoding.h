@@ -92,7 +92,6 @@ int mrb_toupper(int c);
 
 typedef OnigEncodingType mrb_encoding;
 
-mrb_encoding* mrb_enc_get(mrb_state *mrb, mrb_value obj);
 /* mrb_encoding * -> name */
 #define mrb_enc_name(enc) (enc)->name
 int mrb_enc_get_index(mrb_state *mrb, mrb_value obj);
