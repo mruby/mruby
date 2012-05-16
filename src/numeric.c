@@ -37,8 +37,6 @@
 #define fmod(x,y) fmodf(x,y)
 #endif
 
-void mrb_cmperr(mrb_state *mrb, mrb_value x, mrb_value y);
-
 void
 mrb_num_zerodiv(mrb_state *mrb)
 {

@@ -34,7 +34,6 @@ typedef struct fc_result {
     struct fc_result *prev;
 } fcresult_t;
 
-struct RClass* mrb_class_real(struct RClass* cl);
 int kiv_lookup(khash_t(iv) *table, mrb_sym key, mrb_value *value);
 extern struct kh_iv *mrb_class_tbl;
 
