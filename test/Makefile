@@ -12,6 +12,7 @@ INIT := init_$(TARGET).c
 DLIB := $(TARGET).ctmp
 RLIB := $(TARGET).rbtmp
 DEPLIB := $(TARGET).d driver.d
+ASSLIB := $(BASEDIR)/assert.rb
 MRBS := $(BASEDIR)/t/*.rb
 OBJS := driver.o $(MLIB)
 
@@ -95,7 +96,7 @@ $(MRBC) : ../src/opcode.h ../src/codegen.c ../src/parse.y
 	$(MAKE) -C ../tools/mrbc $(MAKE_FLAGS)
 
 # merge mruby sources
-$(RLIB) : $(MRBS)
+$(RLIB) : $(ASSLIB) $(MRBS)
 	cat $? > $@
 
 # clean up
