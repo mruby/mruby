@@ -66,10 +66,6 @@ endif
 ##############################
 # generic build targets, rules
 
-.PHONY : all
-all : $(LIBR) $(EXE)
-	@echo "make: built targets of `pwd`"
-
 .PHONY : test
 all : $(LIBR) $(EXE)
 	./$(EXE)
