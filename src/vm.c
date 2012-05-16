@@ -372,11 +372,11 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   mrb_code *pc = irep->iseq;
   mrb_value *pool = irep->pool;
   mrb_sym *syms = irep->syms;
-  mrb_value *regs;
+  mrb_value *regs = NULL;
   mrb_code i;
   int ai = mrb->arena_idx;
   jmp_buf c_jmp;
-  jmp_buf *prev_jmp;
+  jmp_buf *prev_jmp = NULL;
 
 #ifdef DIRECT_THREADED
   static void *optable[] = {
@@ -878,7 +878,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         regs[a] = mrb_ary_new_elts(mrb, m1+m2, stack);
       }
       else {
-        mrb_value *pp;
+        mrb_value *pp = NULL;
         struct RArray *rest;
         int len = 0;
 
