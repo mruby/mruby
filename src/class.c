@@ -578,6 +578,19 @@ mrb_define_class_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_
   mrb_define_method_id(mrb, c->c, mrb_intern(mrb, name), func, aspec);
 }
 
+void
+mrb_define_singleton_method(mrb_state *mrb, struct RObject *o, const char *name, mrb_func_t func, int aspec)
+{
+  mrb_define_method_id(mrb, mrb_singleton_class_ptr(mrb, o->c), mrb_intern(mrb, name), func, aspec);
+}
+
+void
+mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, int aspec)
+{
+  mrb_define_class_method(mrb, c, name, func, aspec);
+  mrb_define_method(mrb, c, name, func, aspec);
+}
+
 struct RProc*
 mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
 {
