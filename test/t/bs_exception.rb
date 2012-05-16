@@ -154,4 +154,5 @@ assert('BS Exception 10') do
   ensure
     7+7
   end == 12
-end 
+end
+

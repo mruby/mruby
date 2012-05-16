@@ -118,3 +118,4 @@ end
 assert('BS Class Dup 2') do
   module M; end;  M.dup.class == Module
 end
+
