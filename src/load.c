@@ -251,7 +251,7 @@ int
 mrb_load_irep(mrb_state *mrb, FILE* fp)
 {
   int ret, i;
-  uint32_t  len, rlen;
+  uint32_t  len, rlen = 0;
   unsigned char hex8[8], hcrc[4];
   unsigned char *dst, *rite_dst = NULL;
   rite_binary_header  bin_header;
@@ -498,7 +498,7 @@ int
 mrb_read_irep(mrb_state *mrb, const char *bin)
 {
   int ret = MRB_DUMP_OK, i, n, nirep, sirep;
-  uint32_t len;
+  uint32_t len = 0;
   unsigned char *src;
   rite_binary_header  bin_header;
 
