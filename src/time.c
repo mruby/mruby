@@ -28,8 +28,8 @@
 #ifdef _WIN32
 /* Win32 platform do not provide gmtime_r/localtime_r; emulate them using gmtime_s/localtime_s */
 #if _MVC_VER
-#define gmtime_r(tp, tm)    ((gmtime_s((tm), (tp)) == 0) ? (tp) : NULL)
-#define localtime_r(tp, tm)    ((localtime_s((tm), (tp)) == 0) ? (tp) : NULL)
+#define gmtime_r(tp, tm)    ((gmtime_s((tm), (tp)) == 0) ? (tm) : NULL)
+#define localtime_r(tp, tm)    ((localtime_s((tm), (tp)) == 0) ? (tm) : NULL)
 #else
 #define NO_GMTIME_R
 #endif
