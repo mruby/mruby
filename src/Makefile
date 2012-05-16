@@ -29,7 +29,7 @@ CFLAGS = -g -O3
 else
 CFLAGS = -O3
 endif
-ALL_CFLAGS := -std=c99 -Wall -Wextra -Werror-implicit-function-declaration $(CFLAGS)
+ALL_CFLAGS := -std=gnu99 -Wall -Wextra -Werror-implicit-function-declaration $(CFLAGS)
 ALL_CFLAGS += -Wbad-function-cast
 ALL_CFLAGS += -Wcast-align
 ALL_CFLAGS += -Wdeclaration-after-statement
