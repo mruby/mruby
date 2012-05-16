@@ -7,15 +7,17 @@
 #include "mruby.h"
 #include <stddef.h>
 
+struct mrb_pool_page {
+  struct mrb_pool_page *next;
+  size_t offset;
+  size_t len;
+  void *last;
+  char page[1];
+};
+
 typedef struct mrb_pool {
   mrb_state *mrb;
-  struct mrb_pool_page {
-    struct mrb_pool_page *next;
-    size_t offset;
-    size_t len;
-    void *last;
-    char page[1];
-  } *pages;
+  struct mrb_pool_page *pages;
 } mrb_pool;
 
 mrb_pool* mrb_pool_open(mrb_state*);

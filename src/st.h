@@ -46,8 +46,8 @@ struct st_table_entry {
 };
 
 struct st_hash_type {
-    int (*compare)(ANYARGS /*st_data_t, st_data_t*/); /* st_compare_func* */
-    st_index_t (*hash)(ANYARGS /*st_data_t*/);        /* st_hash_func* */
+    int (*compare)(st_data_t, st_data_t); /* st_compare_func* */
+    st_index_t (*hash)(st_data_t);        /* st_hash_func* */
 };
 
 struct st_table {
@@ -62,6 +62,8 @@ struct st_table {
 
 enum st_retval {ST_CONTINUE, ST_STOP, ST_DELETE, ST_CHECK};
 
+typedef enum st_retval (*st_foreach_func_t)(ANYARGS);
+
 st_table *st_init_table(const struct st_hash_type *);
 st_table *st_init_table_with_size(const struct st_hash_type *, int);
 st_table *st_init_numtable(void);
@@ -74,7 +76,7 @@ int st_delete(st_table *, st_data_t *, st_data_t *);
 int st_delete_safe(st_table *, st_data_t *, st_data_t *, st_data_t);
 int st_insert(st_table *, st_data_t, st_data_t);
 int st_lookup(st_table *, st_data_t, st_data_t *);
-int st_foreach(st_table *, int (*)(ANYARGS), st_data_t);
+int st_foreach(st_table *, st_foreach_func_t, st_data_t);
 void st_add_direct(st_table *, st_data_t, st_data_t);
 void st_free_table(st_table *);
 void st_cleanup_safe(st_table *, st_data_t);

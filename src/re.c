@@ -91,7 +91,7 @@ mrb_reg_s_new_instance(mrb_state *mrb, /*int argc, mrb_value *argv, */mrb_value 
   struct RRegexp *re;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  re = mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
+  re = (struct RRegexp *) mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
   re->ptr = 0;
   re->src = 0;
   re->usecnt = 0;
@@ -927,7 +927,7 @@ unescape_escaped_nonascii(mrb_state *mrb, const char **pp, const char *end, mrb_
     const char *p = *pp;
     int chmaxlen = mrb_enc_mbmaxlen(enc);
     //char *chbuf = ALLOCA_N(char, chmaxlen);
-    char *chbuf = mrb_malloc(mrb, chmaxlen);
+    char *chbuf = (char *) mrb_malloc(mrb, chmaxlen);
     int chlen = 0;
     int byte;
     int l;
@@ -1668,12 +1668,12 @@ match_alloc(mrb_state *mrb)
 {
   struct RMatch* m;
 
-  m = mrb_obj_alloc(mrb, MRB_TT_MATCH, MATCH_CLASS);
+  m = (struct RMatch *) mrb_obj_alloc(mrb, MRB_TT_MATCH, MATCH_CLASS);
 
   m->str    = 0;
   m->rmatch = 0;
   m->regexp = 0;
-  m->rmatch = mrb_malloc(mrb, sizeof(struct rmatch));//ALLOC(struct rmatch);
+  m->rmatch = (struct rmatch *) mrb_malloc(mrb, sizeof(struct rmatch));//ALLOC(struct rmatch);
   memset(m->rmatch, 0, sizeof(struct rmatch));
 
   return mrb_obj_value(m);
@@ -1784,7 +1784,7 @@ update_char_offset(mrb_state *mrb, mrb_value match)
 
     if (rm->char_offset_num_allocated < num_regs) {
         //REALLOC_N(rm->char_offset, struct rmatch_offset, num_regs);
-        rm->char_offset = mrb_realloc(mrb, rm->char_offset, sizeof(struct rmatch_offset)*num_regs);
+        rm->char_offset = (struct rmatch_offset *) mrb_realloc(mrb, rm->char_offset, sizeof(struct rmatch_offset)*num_regs);
         rm->char_offset_num_allocated = num_regs;
     }
 
@@ -1799,7 +1799,7 @@ update_char_offset(mrb_state *mrb, mrb_value match)
     }
 
     //pairs = ALLOCA_N(pair_t, num_regs*2);
-    pairs = mrb_malloc(mrb, sizeof(pair_t)*num_regs*2);
+    pairs = (pair_t *) mrb_malloc(mrb, sizeof(pair_t)*num_regs*2);
 
     num_pos = 0;
     for (i = 0; i < num_regs; i++) {
@@ -1828,11 +1828,11 @@ update_char_offset(mrb_state *mrb, mrb_value match)
         }
 
         key.byte_pos = BEG(i);
-        found = bsearch(&key, pairs, num_pos, sizeof(pair_t), pair_byte_cmp);
+        found = (pair_t *) bsearch(&key, pairs, num_pos, sizeof(pair_t), pair_byte_cmp);
         rm->char_offset[i].beg = found->char_pos;
 
         key.byte_pos = END(i);
-        found = bsearch(&key, pairs, num_pos, sizeof(pair_t), pair_byte_cmp);
+        found = (pair_t *) bsearch(&key, pairs, num_pos, sizeof(pair_t), pair_byte_cmp);
         rm->char_offset[i].end = found->char_pos;
     }
 
@@ -1992,7 +1992,7 @@ mrb_match_init_copy(mrb_state *mrb, mrb_value obj/*, mrb_value orig*/)
   RMATCH(obj)->regexp = RMATCH(orig)->regexp;
 
   if (RMATCH(obj)->rmatch == 0) {
-      RMATCH(obj)->rmatch = mrb_malloc(mrb, sizeof(struct rmatch));//ALLOC(struct rmatch);
+      RMATCH(obj)->rmatch = (struct rmatch *) mrb_malloc(mrb, sizeof(struct rmatch));//ALLOC(struct rmatch);
       memset(RMATCH(obj)->rmatch, 0, sizeof(struct rmatch));
   }
   rm = RMATCH(obj)->rmatch;
@@ -2004,7 +2004,7 @@ mrb_match_init_copy(mrb_state *mrb, mrb_value obj/*, mrb_value orig*/)
   else {
       if (rm->char_offset_num_allocated < rm->regs.num_regs) {
           //REALLOC_N(rm->char_offset, struct rmatch_offset, rm->regs.num_regs);
-          rm->char_offset = mrb_realloc(mrb, rm->char_offset, sizeof(struct rmatch_offset)* rm->regs.num_regs);
+          rm->char_offset = (struct rmatch_offset *) mrb_realloc(mrb, rm->char_offset, sizeof(struct rmatch_offset)* rm->regs.num_regs);
           rm->char_offset_num_allocated = rm->regs.num_regs;
       }
       memcpy(rm->char_offset, RMATCH(orig)->rmatch->char_offset,
@@ -2456,7 +2456,7 @@ mrb_reg_s_alloc(mrb_state *mrb, mrb_value dummy)
 
   //NEWOBJ(re, struct RRegexp);
   //OBJSETUP(re, klass, T_REGEXP);
-  re = mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
+  re = (struct RRegexp*) mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
 
   re->ptr = 0;
   re->src = 0;
@@ -2536,7 +2536,7 @@ mrb_match_inspect(mrb_state *mrb, mrb_value match)
 
     //names = ALLOCA_N(struct backref_name_tag, num_regs);
     //MEMZERO(names, struct backref_name_tag, num_regs);
-    names = mrb_malloc(mrb, sizeof(struct backref_name_tag)*num_regs);
+    names = (struct backref_name_tag *) mrb_malloc(mrb, sizeof(struct backref_name_tag)*num_regs);
     memset(names, 0, sizeof(struct backref_name_tag)*num_regs);
 
     onig_foreach_name(regexp->ptr,
@@ -3022,7 +3022,7 @@ mrb_memsearch_qs_utf8(const unsigned char *xs, long m, const unsigned char *ys, 
 int
 mrb_memsearch(mrb_state *mrb, const void *x0, int m, const void *y0, int n, mrb_encoding *enc)
 {
-  const unsigned char *x = x0, *y = y0;
+  const unsigned char *x = (const unsigned char *) x0, *y = (const unsigned char *) y0;
 
   if (m > n) return -1;
   else if (m == n) {
@@ -3040,10 +3040,10 @@ mrb_memsearch(mrb_state *mrb, const void *x0, int m, const void *y0, int n, mrb_
     return -1;
   }
   else if (enc == mrb_utf8_encoding(mrb)) {
-    return mrb_memsearch_qs_utf8(x0, m, y0, n);
+    return mrb_memsearch_qs_utf8((const unsigned char *) x0, m, (const unsigned char *) y0, n);
   }
   else {
-    return mrb_memsearch_qs(x0, m, y0, n);
+    return mrb_memsearch_qs((const unsigned char *) x0, m, (const unsigned char *) y0, n);
   }
 }
 #endif //INCLUDE_ENCODING

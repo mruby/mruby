@@ -22,14 +22,14 @@
 
 #define YYLEX_PARAM p
 
-typedef mrb_ast_node node;
+typedef mrb_ast_node node_t;
 typedef struct mrb_parser_state parser_state;
 
 static int yylex(void *lval, parser_state *p);
 static void yyerror(parser_state *p, const char *s);
 static void yywarn(parser_state *p, const char *s);
 static void yywarning(parser_state *p, const char *s);
-static void backref_error(parser_state *p, node *n);
+static void backref_error(parser_state *p, node_t *n);
 
 #define identchar(c) (isalnum(c) || (c) == '_' || !isascii(c))
 
@@ -61,7 +61,7 @@ intern_gen(parser_state *p, const char *s)
 #define intern(s) intern_gen(p,(s))
 
 static void
-cons_free_gen(parser_state *p, node *cons)
+cons_free_gen(parser_state *p, node_t *cons)
 {
   cons->cdr = p->cells;
   p->cells = cons;
@@ -79,17 +79,17 @@ parser_palloc(parser_state *p, size_t size)
   return m;
 }
 
-static node*
-cons_gen(parser_state *p, node *car, node *cdr)
+static node_t*
+cons_gen(parser_state *p, node_t *car, node_t *cdr)
 {
-  node *c;
+  node_t *c;
 
   if (p->cells) {
     c = p->cells;
     p->cells = p->cells->cdr;
   }
   else {
-    c = parser_palloc(p, sizeof(mrb_ast_node));
+    c = (node_t *) parser_palloc(p, sizeof(mrb_ast_node));
   }
 
   c->car = car;
@@ -98,52 +98,52 @@ cons_gen(parser_state *p, node *car, node *cdr)
 }
 #define cons(a,b) cons_gen(p,(a),(b))
 
-static node*
-list1_gen(parser_state *p, node *a)
+static node_t*
+list1_gen(parser_state *p, node_t *a)
 {
   return cons(a, 0);
 }
 #define list1(a) list1_gen(p, (a))
 
-static node*
-list2_gen(parser_state *p, node *a, node *b)
+static node_t*
+list2_gen(parser_state *p, node_t *a, node_t *b)
 {
   return cons(a, cons(b,0));
 }
 #define list2(a,b) list2_gen(p, (a),(b))
 
-static node*
-list3_gen(parser_state *p, node *a, node *b, node *c)
+static node_t*
+list3_gen(parser_state *p, node_t *a, node_t *b, node_t *c)
 {
   return cons(a, cons(b, cons(c,0)));
 }
 #define list3(a,b,c) list3_gen(p, (a),(b),(c))
 
-static node*
-list4_gen(parser_state *p, node *a, node *b, node *c, node *d)
+static node_t*
+list4_gen(parser_state *p, node_t *a, node_t *b, node_t *c, node_t *d)
 {
   return cons(a, cons(b, cons(c, cons(d, 0))));
 }
 #define list4(a,b,c,d) list4_gen(p, (a),(b),(c),(d))
 
-static node*
-list5_gen(parser_state *p, node *a, node *b, node *c, node *d, node *e)
+static node_t*
+list5_gen(parser_state *p, node_t *a, node_t *b, node_t *c, node_t *d, node_t *e)
 {
   return cons(a, cons(b, cons(c, cons(d, cons(e, 0)))));
 }
 #define list5(a,b,c,d,e) list5_gen(p, (a),(b),(c),(d),(e))
 
-static node*
-list6_gen(parser_state *p, node *a, node *b, node *c, node *d, node *e, node *f)
+static node_t*
+list6_gen(parser_state *p, node_t *a, node_t *b, node_t *c, node_t *d, node_t *e, node_t *f)
 {
   return cons(a, cons(b, cons(c, cons(d, cons(e, cons(f, 0))))));
 }
 #define list6(a,b,c,d,e,f) list6_gen(p, (a),(b),(c),(d),(e),(f))
 
-static node*
-append_gen(parser_state *p, node *a, node *b)
+static node_t*
+append_gen(parser_state *p, node_t *a, node_t *b)
 {
-  node *c = a;
+  node_t *c = a;
 
   if (!a) return b;
   while (c->cdr) {
@@ -160,7 +160,7 @@ append_gen(parser_state *p, node *a, node *b)
 static char*
 parser_strndup(parser_state *p, const char *s, size_t len)
 {
-  char *b = parser_palloc(p, len+1);
+  char *b = (char *) parser_palloc(p, len+1);
 
   memcpy(b, s, len);
   b[len] = '\0';
@@ -178,17 +178,17 @@ parser_strdup(parser_state *p, const char *s)
 
 // xxx -----------------------------
 
-static node*
+static node_t*
 local_switch(parser_state *p)
 {
-  node *prev = p->locals;
+  node_t *prev = p->locals;
 
   p->locals = cons(0, 0);
   return prev;
 }
 
 static void
-local_resume(parser_state *p, node *prev)
+local_resume(parser_state *p, node_t *prev)
 {
   p->locals = prev;
 }
@@ -208,10 +208,10 @@ local_unnest(parser_state *p)
 static int
 local_var_p(parser_state *p, mrb_sym sym)
 {
-  node *l = p->locals;
+  node_t *l = p->locals;
 
   while (l) {
-    node *n = l->car;
+    node_t *n = l->car;
     while (n) {
       if ((mrb_sym)n->car == sym) return 1;
       n = n->cdr;
@@ -224,7 +224,7 @@ local_var_p(parser_state *p, mrb_sym sym)
 static void
 local_add_f(parser_state *p, mrb_sym sym)
 {
-  p->locals->car = push(p->locals->car, (node*)sym);
+  p->locals->car = push(p->locals->car, (node_t*)sym);
 }
 
 static void
@@ -236,106 +236,106 @@ local_add(parser_state *p, mrb_sym sym)
 }
 
 // (:scope (vars..) (prog...))
-static node*
-new_scope(parser_state *p, node *body)
+static node_t*
+new_scope(parser_state *p, node_t *body)
 {
-  return cons((node*)NODE_SCOPE, cons(p->locals->car, body));
+  return cons((node_t*)NODE_SCOPE, cons(p->locals->car, body));
 }
 
 // (:begin prog...)
-static node*
-new_begin(parser_state *p, node *body)
+static node_t*
+new_begin(parser_state *p, node_t *body)
 {
   if (body) 
-    return list2((node*)NODE_BEGIN, body);
-  return cons((node*)NODE_BEGIN, 0);
+    return list2((node_t*)NODE_BEGIN, body);
+  return cons((node_t*)NODE_BEGIN, 0);
 }
 
 #define newline_node(n) (n)
 
 // (:rescue body rescue else)
-static node*
-new_rescue(parser_state *p, node *body, node *resq, node *els)
+static node_t*
+new_rescue(parser_state *p, node_t *body, node_t *resq, node_t *els)
 {
-  return list4((node*)NODE_RESCUE, body, resq, els);
+  return list4((node_t*)NODE_RESCUE, body, resq, els);
 }
 
 // (:ensure body ensure)
-static node*
-new_ensure(parser_state *p, node *a, node *b)
+static node_t*
+new_ensure(parser_state *p, node_t *a, node_t *b)
 {
-  return cons((node*)NODE_ENSURE, cons(a, cons(0, b)));
+  return cons((node_t*)NODE_ENSURE, cons(a, cons(0, b)));
 }
 
 // (:nil)
-static node*
+static node_t*
 new_nil(parser_state *p)
 {
-  return list1((node*)NODE_NIL);
+  return list1((node_t*)NODE_NIL);
 }
 
 // (:true)
-static node*
+static node_t*
 new_true(parser_state *p)
 {
-  return list1((node*)NODE_TRUE);
+  return list1((node_t*)NODE_TRUE);
 }
 
 // (:false)
-static node*
+static node_t*
 new_false(parser_state *p)
 {
-  return list1((node*)NODE_FALSE);
+  return list1((node_t*)NODE_FALSE);
 }
 
 // (:alias new old)
-static node*
+static node_t*
 new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 {
-  return cons((node*)NODE_ALIAS, cons((node*)a, (node*)b));
+  return cons((node_t*)NODE_ALIAS, cons((node_t*)a, (node_t*)b));
 }
 
 // (:if cond then else)
-static node*
-new_if(parser_state *p, node *a, node *b, node *c)
+static node_t*
+new_if(parser_state *p, node_t *a, node_t *b, node_t *c)
 {
-  return list4((node*)NODE_IF, a, b, c);
+  return list4((node_t*)NODE_IF, a, b, c);
 }
 
 // (:unless cond then else)
-static node*
-new_unless(parser_state *p, node *a, node *b, node *c)
+static node_t*
+new_unless(parser_state *p, node_t *a, node_t *b, node_t *c)
 {
-  return list4((node*)NODE_IF, a, c, b);
+  return list4((node_t*)NODE_IF, a, c, b);
 }
 
 // (:while cond body)
-static node*
-new_while(parser_state *p, node *a, node *b)
+static node_t*
+new_while(parser_state *p, node_t *a, node_t *b)
 {
-  return cons((node*)NODE_WHILE, cons(a, b));
+  return cons((node_t*)NODE_WHILE, cons(a, b));
 }
 
 // (:until cond body)
-static node*
-new_until(parser_state *p, node *a, node *b)
+static node_t*
+new_until(parser_state *p, node_t *a, node_t *b)
 {
-  return cons((node*)NODE_UNTIL, cons(a, b));
+  return cons((node_t*)NODE_UNTIL, cons(a, b));
 }
 
 // (:for var obj body)
-static node*
-new_for(parser_state *p, node *v, node *o, node *b)
+static node_t*
+new_for(parser_state *p, node_t *v, node_t *o, node_t *b)
 {
-  return list4((node*)NODE_FOR, v, o, b);
+  return list4((node_t*)NODE_FOR, v, o, b);
 }
 
 // (:case a ((when ...) body) ((when...) body))
-static node*
-new_case(parser_state *p, node *a, node *b)
+static node_t*
+new_case(parser_state *p, node_t *a, node_t *b)
 {
-  node *n = list2((node*)NODE_CASE, a);
-  node *n2 = n;
+  node_t *n = list2((node_t*)NODE_CASE, a);
+  node_t *n2 = n;
 
   while (n2->cdr) {
     n2 = n2->cdr;
@@ -345,256 +345,256 @@ new_case(parser_state *p, node *a, node *b)
 }
 
 // (:postexe a)
-static node*
-new_postexe(parser_state *p, node *a)
+static node_t*
+new_postexe(parser_state *p, node_t *a)
 {
-  return cons((node*)NODE_POSTEXE, a);
+  return cons((node_t*)NODE_POSTEXE, a);
 }
 
 // (:self)
-static node*
+static node_t*
 new_self(parser_state *p)
 {
-  return list1((node*)NODE_SELF);
+  return list1((node_t*)NODE_SELF);
 }
 
 // (:call a b c)
-static node*
-new_call(parser_state *p, node *a, mrb_sym b, node *c)
+static node_t*
+new_call(parser_state *p, node_t *a, mrb_sym b, node_t *c)
 {
-  return list4((node*)NODE_CALL, a, (node*)b, c);
+  return list4((node_t*)NODE_CALL, a, (node_t*)b, c);
 }
 
 // (:fcall self mid args)
-static node*
-new_fcall(parser_state *p, mrb_sym b, node *c)
+static node_t*
+new_fcall(parser_state *p, mrb_sym b, node_t *c)
 {
-  return list4((node*)NODE_FCALL, new_self(p), (node*)b, c);
+  return list4((node_t*)NODE_FCALL, new_self(p), (node_t*)b, c);
 }
 
 #if 0
 // (:vcall self mid)
-static node*
+static node_t*
 new_vcall(parser_state *p, mrb_sym b)
 {
-  return list3((node*)NODE_VCALL, new_self(p), (node*)b);
+  return list3((node_t*)NODE_VCALL, new_self(p), (node_t*)b);
 }
 #endif
 
 // (:super . c)
-static node*
-new_super(parser_state *p, node *c)
+static node_t*
+new_super(parser_state *p, node_t *c)
 {
-  return cons((node*)NODE_SUPER, c);
+  return cons((node_t*)NODE_SUPER, c);
 }
 
 // (:zsuper)
-static node*
+static node_t*
 new_zsuper(parser_state *p)
 {
-  return list1((node*)NODE_ZSUPER);
+  return list1((node_t*)NODE_ZSUPER);
 }
 
 // (:yield . c)
-static node*
-new_yield(parser_state *p, node *c)
+static node_t*
+new_yield(parser_state *p, node_t *c)
 {
   if (c) {
     if (c->cdr) {
       yyerror(p, "both block arg and actual block given");
     }
-    return cons((node*)NODE_YIELD, c->car);
+    return cons((node_t*)NODE_YIELD, c->car);
   }
-  return cons((node*)NODE_YIELD, 0);
+  return cons((node_t*)NODE_YIELD, 0);
 }
 
 // (:return . c)
-static node*
-new_return(parser_state *p, node *c)
+static node_t*
+new_return(parser_state *p, node_t *c)
 {
-  return cons((node*)NODE_RETURN, c);
+  return cons((node_t*)NODE_RETURN, c);
 }
 
 // (:break . c)
-static node*
-new_break(parser_state *p, node *c)
+static node_t*
+new_break(parser_state *p, node_t *c)
 {
-  return cons((node*)NODE_BREAK, c);
+  return cons((node_t*)NODE_BREAK, c);
 }
 
 // (:next . c)
-static node*
-new_next(parser_state *p, node *c)
+static node_t*
+new_next(parser_state *p, node_t *c)
 {
-  return cons((node*)NODE_NEXT, c);
+  return cons((node_t*)NODE_NEXT, c);
 }
 
 // (:redo)
-static node*
+static node_t*
 new_redo(parser_state *p)
 {
-  return list1((node*)NODE_REDO);
+  return list1((node_t*)NODE_REDO);
 }
 
 // (:retry)
-static node*
+static node_t*
 new_retry(parser_state *p)
 {
-  return list1((node*)NODE_RETRY);
+  return list1((node_t*)NODE_RETRY);
 }
 
 // (:dot2 a b)
-static node*
-new_dot2(parser_state *p, node *a, node *b)
+static node_t*
+new_dot2(parser_state *p, node_t *a, node_t *b)
 {
-  return cons((node*)NODE_DOT2, cons(a, b));
+  return cons((node_t*)NODE_DOT2, cons(a, b));
 }
 
 // (:dot3 a b)
-static node*
-new_dot3(parser_state *p, node *a, node *b)
+static node_t*
+new_dot3(parser_state *p, node_t *a, node_t *b)
 {
-  return cons((node*)NODE_DOT3, cons(a, b));
+  return cons((node_t*)NODE_DOT3, cons(a, b));
 }
 
 // (:colon2 b c)
-static node*
-new_colon2(parser_state *p, node *b, mrb_sym c)
+static node_t*
+new_colon2(parser_state *p, node_t *b, mrb_sym c)
 {
-  return cons((node*)NODE_COLON2, cons(b, (node*)c));
+  return cons((node_t*)NODE_COLON2, cons(b, (node_t*)c));
 }
 
 // (:colon3 . c)
-static node*
+static node_t*
 new_colon3(parser_state *p, mrb_sym c)
 {
-  return cons((node*)NODE_COLON3, (node*)c);
+  return cons((node_t*)NODE_COLON3, (node_t*)c);
 }
 
 // (:and a b)
-static node*
-new_and(parser_state *p, node *a, node *b)
+static node_t*
+new_and(parser_state *p, node_t *a, node_t *b)
 {
-  return cons((node*)NODE_AND, cons(a, b));
+  return cons((node_t*)NODE_AND, cons(a, b));
 }
 
 // (:or a b)
-static node*
-new_or(parser_state *p, node *a, node *b)
+static node_t*
+new_or(parser_state *p, node_t *a, node_t *b)
 {
-  return cons((node*)NODE_OR, cons(a, b));
+  return cons((node_t*)NODE_OR, cons(a, b));
 }
 
 // (:array a...)
-static node*
-new_array(parser_state *p, node *a)
+static node_t*
+new_array(parser_state *p, node_t *a)
 {
-  return cons((node*)NODE_ARRAY, a);
+  return cons((node_t*)NODE_ARRAY, a);
 }
 
 // (:splat . a)
-static node*
-new_splat(parser_state *p, node *a)
+static node_t*
+new_splat(parser_state *p, node_t *a)
 {
-  return cons((node*)NODE_SPLAT, a);
+  return cons((node_t*)NODE_SPLAT, a);
 }
 
 // (:hash (k . v) (k . v)...)
-static node*
-new_hash(parser_state *p, node *a)
+static node_t*
+new_hash(parser_state *p, node_t *a)
 {
-  return cons((node*)NODE_HASH, a);
+  return cons((node_t*)NODE_HASH, a);
 }
 
 // (:sym . a)
-static node*
+static node_t*
 new_sym(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_SYM, (node*)sym);
+  return cons((node_t*)NODE_SYM, (node_t*)sym);
 }
 
 // (:lvar . a)
-static node*
+static node_t*
 new_lvar(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_LVAR, (node*)sym);
+  return cons((node_t*)NODE_LVAR, (node_t*)sym);
 }
 
 // (:gvar . a)
-static node*
+static node_t*
 new_gvar(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_GVAR, (node*)sym);
+  return cons((node_t*)NODE_GVAR, (node_t*)sym);
 }
 
 // (:ivar . a)
-static node*
+static node_t*
 new_ivar(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_IVAR, (node*)sym);
+  return cons((node_t*)NODE_IVAR, (node_t*)sym);
 }
 
 // (:cvar . a)
-static node*
+static node_t*
 new_cvar(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_CVAR, (node*)sym);
+  return cons((node_t*)NODE_CVAR, (node_t*)sym);
 }
 
 // (:const . a)
-static node*
+static node_t*
 new_const(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_CONST, (node*)sym);
+  return cons((node_t*)NODE_CONST, (node_t*)sym);
 }
 
 // (:undef a...)
-static node*
+static node_t*
 new_undef(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_UNDEF, (node*)sym);
+  return cons((node_t*)NODE_UNDEF, (node_t*)sym);
 }
 
 // (:class class super body)
-static node*
-new_class(parser_state *p, node *c, node *s, node *b)
+static node_t*
+new_class(parser_state *p, node_t *c, node_t *s, node_t *b)
 {
-  return list4((node*)NODE_CLASS, c, s, cons(p->locals->car, b));
+  return list4((node_t*)NODE_CLASS, c, s, cons(p->locals->car, b));
 }
 
 // (:sclass obj body)
-static node*
-new_sclass(parser_state *p, node *o, node *b)
+static node_t*
+new_sclass(parser_state *p, node_t *o, node_t *b)
 {
-  return list3((node*)NODE_SCLASS, o, cons(p->locals->car, b));
+  return list3((node_t*)NODE_SCLASS, o, cons(p->locals->car, b));
 }
 
 // (:module module body)
-static node*
-new_module(parser_state *p, node *m, node *b)
+static node_t*
+new_module(parser_state *p, node_t *m, node_t *b)
 {
-  return list3((node*)NODE_MODULE, m, cons(p->locals->car, b));
+  return list3((node_t*)NODE_MODULE, m, cons(p->locals->car, b));
 }
 
 // (:def m lv (arg . body))
-static node*
-new_def(parser_state *p, mrb_sym m, node *a, node *b)
+static node_t*
+new_def(parser_state *p, mrb_sym m, node_t *a, node_t *b)
 {
-  return list5((node*)NODE_DEF, (node*)m, p->locals->car, a, b);
+  return list5((node_t*)NODE_DEF, (node_t*)m, p->locals->car, a, b);
 }
 
 // (:sdef obj m lv (arg . body))
-static node*
-new_sdef(parser_state *p, node *o, mrb_sym m, node *a, node *b)
+static node_t*
+new_sdef(parser_state *p, node_t *o, mrb_sym m, node_t *a, node_t *b)
 {
-  return list6((node*)NODE_SDEF, o, (node*)m, p->locals->car, a, b);
+  return list6((node_t*)NODE_SDEF, o, (node_t*)m, p->locals->car, a, b);
 }
 
 // (:arg . sym)
-static node*
+static node_t*
 new_arg(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_ARG, (node*)sym);
+  return cons((node_t*)NODE_ARG, (node_t*)sym);
 }
 
 // (m o r m2 b)
@@ -603,99 +603,99 @@ new_arg(parser_state *p, mrb_sym sym)
 // r: a
 // m2: (a b c)
 // b: a
-static node*
-new_args(parser_state *p, node *m, node *opt, mrb_sym rest, node *m2, mrb_sym blk)
+static node_t*
+new_args(parser_state *p, node_t *m, node_t *opt, mrb_sym rest, node_t *m2, mrb_sym blk)
 {
-  node *n;
+  node_t *n;
 
-  n = cons(m2, (node*)blk);
-  n = cons((node*)rest, n);
+  n = cons(m2, (node_t*)blk);
+  n = cons((node_t*)rest, n);
   n = cons(opt, n);
   return cons(m, n);
 }
 
 // (:block_arg . a)
-static node*
-new_block_arg(parser_state *p, node *a)
+static node_t*
+new_block_arg(parser_state *p, node_t *a)
 {
-  return cons((node*)NODE_BLOCK_ARG, a);
+  return cons((node_t*)NODE_BLOCK_ARG, a);
 }
 
 // (:block arg body)
-static node*
-new_block(parser_state *p, node *a, node *b)
+static node_t*
+new_block(parser_state *p, node_t *a, node_t *b)
 {
-  return list4((node*)NODE_BLOCK, p->locals->car, a, b);
+  return list4((node_t*)NODE_BLOCK, p->locals->car, a, b);
 }
 
 // (:lambda arg body)
-static node*
-new_lambda(parser_state *p, node *a, node *b)
+static node_t*
+new_lambda(parser_state *p, node_t *a, node_t *b)
 {
-  return list4((node*)NODE_LAMBDA, p->locals->car, a, b);
+  return list4((node_t*)NODE_LAMBDA, p->locals->car, a, b);
 }
 
 // (:asgn lhs rhs)
-static node*
-new_asgn(parser_state *p, node *a, node *b)
+static node_t*
+new_asgn(parser_state *p, node_t *a, node_t *b)
 {
-  return cons((node*)NODE_ASGN, cons(a, b));
+  return cons((node_t*)NODE_ASGN, cons(a, b));
 }
 
 // (:masgn mlhs=(pre rest post)  mrhs)
-static node*
-new_masgn(parser_state *p, node *a, node *b)
+static node_t*
+new_masgn(parser_state *p, node_t *a, node_t *b)
 {
-  return cons((node*)NODE_MASGN, cons(a, b));
+  return cons((node_t*)NODE_MASGN, cons(a, b));
 }
 
 // (:asgn lhs rhs)
-static node*
-new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
+static node_t*
+new_op_asgn(parser_state *p, node_t *a, mrb_sym op, node_t *b)
 {
-  return list4((node*)NODE_OP_ASGN, a, (node*)op, b);
+  return list4((node_t*)NODE_OP_ASGN, a, (node_t*)op, b);
 }
 
 // (:int . i)
-static node*
+static node_t*
 new_int(parser_state *p, const char *s, int base)
 {
-  return list3((node*)NODE_INT, (node*)strdup(s), (node*)(intptr_t)base);
+  return list3((node_t*)NODE_INT, (node_t*)strdup(s), (node_t*)(intptr_t)base);
 }
 
 // (:float . i)
-static node*
+static node_t*
 new_float(parser_state *p, const char *s)
 {
-  return cons((node*)NODE_FLOAT, (node*)strdup(s));
+  return cons((node_t*)NODE_FLOAT, (node_t*)strdup(s));
 }
 
 // (:str . (s . len))
-static node*
+static node_t*
 new_str(parser_state *p, const char *s, size_t len)
 {
-  return cons((node*)NODE_STR, cons((node*)strndup(s, len), (node*)len));
+  return cons((node_t*)NODE_STR, cons((node_t*)strndup(s, len), (node_t*)len));
 }
 
 // (:dstr . a)
-static node*
-new_dstr(parser_state *p, node *a)
+static node_t*
+new_dstr(parser_state *p, node_t *a)
 {
-  return cons((node*)NODE_DSTR, a);
+  return cons((node_t*)NODE_DSTR, a);
 }
 
 // (:backref . n)
-static node*
+static node_t*
 new_back_ref(parser_state *p, int n)
 {
-  return cons((node*)NODE_BACK_REF, (node*)(intptr_t)n);
+  return cons((node_t*)NODE_BACK_REF, (node_t*)(intptr_t)n);
 }
 
 // (:nthref . n)
-static node*
+static node_t*
 new_nth_ref(parser_state *p, int n)
 {
-  return cons((node*)NODE_NTH_REF, (node*)(intptr_t)n);
+  return cons((node_t*)NODE_NTH_REF, (node_t*)(intptr_t)n);
 }
 
 static void
@@ -706,29 +706,29 @@ new_bv(parser_state *p, mrb_sym id)
 // xxx -----------------------------
 
 // (:call a op)
-static node*
-call_uni_op(parser_state *p, node *recv, char *m)
+static node_t*
+call_uni_op(parser_state *p, node_t *recv, char *m)
 {
   return new_call(p, recv, intern(m), 0);
 }
 
 // (:call a op b)
-static node*
-call_bin_op(parser_state *p, node *recv, char *m, node *arg1)
+static node_t*
+call_bin_op(parser_state *p, node_t *recv, char *m, node_t *arg1)
 {
   return new_call(p, recv, intern(m), list1(list1(arg1)));
 }
 
 // (:match (a . b))
-static node*
-match_op(parser_state *p, node *a, node *b)
+static node_t*
+match_op(parser_state *p, node_t *a, node_t *b)
 {
-  return cons((node*)NODE_MATCH, cons((node*)a, (node*)b));
+  return cons((node_t*)NODE_MATCH, cons((node_t*)a, (node_t*)b));
 }
 
 
 static void
-args_with_block(parser_state *p, node *a, node *b)
+args_with_block(parser_state *p, node_t *a, node_t *b)
 {
   if (b) {
     if (a->cdr) {
@@ -739,9 +739,9 @@ args_with_block(parser_state *p, node *a, node *b)
 }
 
 static void
-call_with_block(parser_state *p, node *a, node *b)
+call_with_block(parser_state *p, node_t *a, node_t *b)
 {
-  node *n = a->cdr->cdr->cdr;
+  node_t *n = a->cdr->cdr->cdr;
 
   if (!n->car) n->car = cons(0, b);
   else {
@@ -749,20 +749,20 @@ call_with_block(parser_state *p, node *a, node *b)
   }
 }
 
-static node*
-negate_lit(parser_state *p, node *n)
+static node_t*
+negate_lit(parser_state *p, node_t *n)
 {
-  return cons((node*)NODE_NEGATE, n);
+  return cons((node_t*)NODE_NEGATE, n);
 }
 
-static node*
-cond(node *n)
+static node_t*
+cond(node_t *n)
 {
   return n;
 }
 
-static node*
-ret_args(parser_state *p, node *n)
+static node_t*
+ret_args(parser_state *p, node_t *n)
 {
   if (n->cdr) {
     yyerror(p, "block argument should not be given");
@@ -772,7 +772,7 @@ ret_args(parser_state *p, node *n)
 }
 
 static void
-assignable(parser_state *p, node *lhs)
+assignable(parser_state *p, node_t *lhs)
 {
   switch ((int)(intptr_t)lhs->car) {
   case NODE_LVAR:
@@ -783,10 +783,10 @@ assignable(parser_state *p, node *lhs)
   }
 }
 
-static node*
-var_reference(parser_state *p, node *lhs)
+static node_t*
+var_reference(parser_state *p, node_t *lhs)
 {
-  node *n;
+  node_t *n;
 
   switch ((int)(intptr_t)lhs->car) {
   case NODE_LVAR:
@@ -811,7 +811,7 @@ var_reference(parser_state *p, node *lhs)
 %lex-param {parser_state *p}
 
 %union {
-    node *node;
+    node_t *node;
     mrb_sym id;
     int num;
     unsigned int stack;
@@ -1432,15 +1432,15 @@ cname		: tIDENTIFIER
 
 cpath		: tCOLON3 cname
 		    {
-		      $$ = cons((node*)1, (node*)$2);
+		      $$ = cons((node_t*)1, (node_t*)$2);
 		    }
 		| cname
 		    {
-		      $$ = cons((node*)0, (node*)$1);
+		      $$ = cons((node_t*)0, (node_t*)$1);
 		    }
 		| primary_value tCOLON2 cname
 		    {
-		      $$ = cons($1, (node*)$3);
+		      $$ = cons($1, (node_t*)$3);
 		    }
 		;
 
@@ -1475,7 +1475,7 @@ undef_list	: fsym
 		    }
 		| undef_list ',' {p->lstate = EXPR_FNAME;} fitem
 		    {
-		      $$ = push($1, (node*)$4);
+		      $$ = push($1, (node_t*)$4);
 		    }
 		;
 
@@ -1994,7 +1994,7 @@ primary		: literal
 		    }
 		  term
 		    {
-		      $<node>$ = cons(local_switch(p), (node*)(intptr_t)p->in_single);
+		      $<node>$ = cons(local_switch(p), (node_t*)(intptr_t)p->in_single);
 		      p->in_single = 0;
 		    }
 		  bodystmt
@@ -2135,11 +2135,11 @@ f_margs		: f_marg_list
 		    }
 		| f_marg_list ',' tSTAR
 		    {
-		      $$ = list3($1, (node*)-1, 0);
+		      $$ = list3($1, (node_t*)-1, 0);
 		    }
 		| f_marg_list ',' tSTAR ',' f_marg_list
 		    {
-		      $$ = list3($1, (node*)-1, $5);
+		      $$ = list3($1, (node_t*)-1, $5);
 		    }
 		| tSTAR f_norm_arg
 		    {
@@ -2151,11 +2151,11 @@ f_margs		: f_marg_list
 		    }
 		| tSTAR
 		    {
-		      $$ = list3(0, (node*)-1, 0);
+		      $$ = list3(0, (node_t*)-1, 0);
 		    }
 		| tSTAR ',' f_marg_list
 		    {
-		      $$ = list3(0, (node*)-1, $3);
+		      $$ = list3(0, (node_t*)-1, $3);
 		    }
 		;
 
@@ -2303,7 +2303,7 @@ do_block	: keyword_do_block
 
 block_call	: command do_block
 		    {
-		      if ($1->car == (node*)NODE_YIELD) {
+		      if ($1->car == (node_t*)NODE_YIELD) {
 			yyerror(p, "block given to yield");
 		      }
 		      else {
@@ -2730,14 +2730,14 @@ f_arg		: f_arg_item
 f_opt		: tIDENTIFIER '=' arg_value
 		    {
 		      local_add_f(p, $1);
-		      $$ = cons((node*)$1, $3);
+		      $$ = cons((node_t*)$1, $3);
 		    }
 		;
 
 f_block_opt	: tIDENTIFIER '=' primary_value
 		    {
 		      local_add_f(p, $1);
-		      $$ = cons((node*)$1, $3);
+		      $$ = cons((node_t*)$1, $3);
 		    }
 		;
 
@@ -2809,7 +2809,7 @@ singleton	: var_ref
 			yyerror(p, "can't define singleton method for ().");
 		      }
 		      else {
-			switch ((enum node_type)$3->car) {
+			switch ((enum node_type)(uintptr_t)$3->car) {
 			case NODE_STR:
 			case NODE_DSTR:
 			case NODE_DREGX:
@@ -2919,7 +2919,7 @@ yyerror(parser_state *p, const char *s)
   }
   else if (p->nerr < sizeof(p->error_buffer) / sizeof(p->error_buffer[0])) {
     n = strlen(s);
-    c = parser_palloc(p, n + 1);
+    c = (char *) parser_palloc(p, n + 1);
     memcpy(c, s, n + 1);
     p->error_buffer[p->nerr].message = c;
     p->error_buffer[p->nerr].lineno = p->lineno;
@@ -2949,7 +2949,7 @@ yywarn(parser_state *p, const char *s)
   }
   else if (p->nerr < sizeof(p->warn_buffer) / sizeof(p->warn_buffer[0])) {
     n = strlen(s);
-    c = parser_palloc(p, n + 1);
+    c = (char *) parser_palloc(p, n + 1);
     memcpy(c, s, n + 1);
     p->error_buffer[p->nwarn].message = c;
     p->error_buffer[p->nwarn].lineno = p->lineno;
@@ -2975,7 +2975,7 @@ yywarning_s(parser_state *p, const char *fmt, const char *s)
 }
 
 static void
-backref_error(parser_state *p, node *n)
+backref_error(parser_state *p, node_t *n)
 {
   switch ((int)(intptr_t)n->car) {
   case NODE_NTH_REF:
@@ -2996,7 +2996,7 @@ nextc(parser_state *p)
   int c;
 
   if (p->pb) {
-    node *tmp;
+    node_t *tmp;
 
     c = (int)(intptr_t)p->pb->car;
     tmp = p->pb;
@@ -3035,7 +3035,7 @@ pushback(parser_state *p, int c)
 {
   if (c < 0) return;
   p->column--;
-  p->pb = cons((node*)(intptr_t)c, p->pb);
+  p->pb = cons((node_t*)(intptr_t)c, p->pb);
 }
 
 static void
@@ -3053,16 +3053,16 @@ skip(parser_state *p, char term)
 static int
 peek_n(parser_state *p, int c, int n)
 {
-  node *list = 0;
+  node_t *list = 0;
   int c0;
 
   do {
     c0 = nextc(p);
     if (c0 < 0) return FALSE;
-    list = push(list, (node*)(intptr_t)c0);
+    list = push(list, (node_t*)(intptr_t)c0);
   } while(n--);
   if (p->pb) {
-    p->pb = push(p->pb, (node*)list);
+    p->pb = push(p->pb, (node_t*)list);
   }
   else {
     p->pb = list;
@@ -4619,7 +4619,7 @@ yylex(void *lval, parser_state *p)
 static void
 start_parser(parser_state *p)
 {
-  node *tree;
+  node_t *tree;
 
   if (setjmp(p->jmp) != 0) {
     yyerror(p, "memory allocation error");
@@ -4651,7 +4651,7 @@ parser_new(mrb_state *mrb)
 
   pool = mrb_pool_open(mrb);
   if (!pool) return 0;
-  p = mrb_pool_alloc(pool, sizeof(parser_state));
+  p = (parser_state *) mrb_pool_alloc(pool, sizeof(parser_state));
   if (!p) return 0;
 
   memset(p, 0, sizeof(parser_state));
@@ -4725,7 +4725,7 @@ mrb_parse_string(mrb_state *mrb, const char *s)
 
 #define PARSER_DUMP
 
-void parser_dump(mrb_state *mrb, node *tree, int offset);
+void parser_dump(mrb_state *mrb, node_t *tree, int offset);
 int mrb_generate_code(mrb_state*, mrb_ast_node*);
 
 int
@@ -4800,7 +4800,7 @@ dump_prefix(int offset)
 }
 
 static void
-dump_recur(mrb_state *mrb, node *tree, int offset)
+dump_recur(mrb_state *mrb, node_t *tree, int offset)
 {
   while (tree) {
     parser_dump(mrb, tree->car, offset);
@@ -4809,7 +4809,7 @@ dump_recur(mrb_state *mrb, node *tree, int offset)
 }
 
 void
-parser_dump(mrb_state *mrb, node *tree, int offset)
+parser_dump(mrb_state *mrb, node_t *tree, int offset)
 {
   int n;
 
@@ -4833,12 +4833,12 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     }
     tree = tree->cdr;
     if (tree->car) {
-      node *n2 = tree->car;
+      node_t *n2 = tree->car;
 
       dump_prefix(offset+1);
       printf("rescue:\n");
       while (n2) {
-	node *n3 = n2->car;
+	node_t *n3 = n2->car;
 	if (n3->car) {
 	  dump_prefix(offset+2);
 	  printf("handle classes:\n");
@@ -4884,7 +4884,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     printf("NODE_BLOCK:\n");
     tree = tree->cdr;
     if (tree->car) {
-      node *n = tree->car;
+      node_t *n = tree->car;
 
       if (n->car) {
 	dump_prefix(offset+1);
@@ -4896,7 +4896,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 	dump_prefix(offset+1);
 	printf("optional args:\n");
 	{
-	  node *n2 = n->car;
+	  node_t *n2 = n->car;
 
 	  while (n2) {
 	    dump_prefix(offset+2);
@@ -4997,7 +4997,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     dump_prefix(offset+1);
     printf("var:\n");
     {
-      node *n2 = tree->car;
+      node_t *n2 = tree->car;
 
       if (n2->car) {
 	dump_prefix(offset+2);
@@ -5036,7 +5036,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     dump_prefix(offset+1);
     printf("local variables:\n");
     {
-      node *n2 = tree->car;
+      node_t *n2 = tree->car;
 
       while (n2) {
 	dump_prefix(offset+2);
@@ -5132,7 +5132,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     dump_prefix(offset+1);
     printf("mlhs:\n");
     {
-      node *n2 = tree->car;
+      node_t *n2 = tree->car;
 
       if (n2->car) {
 	dump_prefix(offset+2);
@@ -5313,11 +5313,11 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_CLASS:
     printf("NODE_CLASS:\n");
-    if (tree->car->car == (node*)0) {
+    if (tree->car->car == (node_t*)0) {
       dump_prefix(offset+1);
       printf(":%s\n", mrb_sym2name(mrb, (mrb_sym)tree->car->cdr));
     }
-    else if (tree->car->car == (node*)1) {
+    else if (tree->car->car == (node_t*)1) {
       dump_prefix(offset+1);
       printf("::%s\n", mrb_sym2name(mrb, (mrb_sym)tree->car->cdr));
     }
@@ -5338,11 +5338,11 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_MODULE:
     printf("NODE_MODULE:\n");
-    if (tree->car->car == (node*)0) {
+    if (tree->car->car == (node_t*)0) {
       dump_prefix(offset+1);
       printf(":%s\n", mrb_sym2name(mrb, (mrb_sym)tree->car->cdr));
     }
-    else if (tree->car->car == (node*)1) {
+    else if (tree->car->car == (node_t*)1) {
       dump_prefix(offset+1);
       printf("::%s\n", mrb_sym2name(mrb, (mrb_sym)tree->car->cdr));
     }
@@ -5372,7 +5372,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     dump_prefix(offset+1);
     printf("local variables:\n");
     {
-      node *n2 = tree->car;
+      node_t *n2 = tree->car;
 
       while (n2) {
 	dump_prefix(offset+2);
@@ -5383,7 +5383,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     }
     tree = tree->cdr;
     if (tree->car) {
-      node *n = tree->car;
+      node_t *n = tree->car;
 
       if (n->car) {
 	dump_prefix(offset+1);
@@ -5395,7 +5395,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 	dump_prefix(offset+1);
 	printf("optional args:\n");
 	{
-	  node *n2 = n->car;
+	  node_t *n2 = n->car;
 
 	  while (n2) {
 	    dump_prefix(offset+2);
@@ -5433,7 +5433,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     printf(":%s\n", mrb_sym2name(mrb, (mrb_sym)tree->car));
     tree = tree->cdr->cdr;
     if (tree->car) {
-      node *n = tree->car;
+      node_t *n = tree->car;
 
       if (n->car) {
 	dump_prefix(offset+1);
@@ -5445,7 +5445,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 	dump_prefix(offset+1);
 	printf("optional args:\n");
 	{
-	  node *n2 = n->car;
+	  node_t *n2 = n->car;
 
 	  while (n2) {
 	    dump_prefix(offset+2);

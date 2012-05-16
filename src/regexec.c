@@ -1755,7 +1755,7 @@ match_at(regex_t* reg, const UChar* str, const UChar* end,
         s += mb_len;
         DATA_ENSURE(0);
         code = ONIGENC_MBC_TO_CODE(encode, ss, s);
-        if (onig_is_code_in_cc_len(mb_len, code, node) == 0) goto fail;
+        if (onig_is_code_in_cc_len(mb_len, code, (CClassNode *) node) == 0) goto fail;
       }
       MOP_OUT;
       break;

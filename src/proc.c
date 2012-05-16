@@ -15,7 +15,7 @@ mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
 {
   struct RProc *p;
 
-  p = mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
+  p = (struct RProc *) mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
   p->body.irep = irep;
   p->target_class = (mrb->ci) ? mrb->ci->target_class : 0;
   p->env = 0;
@@ -30,7 +30,7 @@ mrb_closure_new(mrb_state *mrb, mrb_irep *irep)
   struct REnv *e;
 
   if (!mrb->ci->env) {
-    e = mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass *) mrb->ci->proc->env);
+    e = (struct REnv *) mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass *) mrb->ci->proc->env);
     e->flags= (unsigned int)mrb->ci->proc->body.irep->nlocals;
     e->mid = mrb->ci->mid;
     e->cioff = mrb->ci - mrb->cibase;
@@ -49,7 +49,7 @@ mrb_proc_new_cfunc(mrb_state *mrb, mrb_func_t func)
 {
   struct RProc *p;
 
-  p = mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
+  p = (struct RProc *) mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
   p->body.func = func;
   p->flags |= MRB_PROC_CFUNC;
 
@@ -95,8 +95,8 @@ void
 mrb_init_proc(mrb_state *mrb)
 {
   struct RProc *m;
-  mrb_code *call_iseq = mrb_malloc(mrb, sizeof(mrb_code));
-  mrb_irep *call_irep = mrb_calloc(mrb, sizeof(mrb_irep), 1);
+  mrb_code *call_iseq = (mrb_code *) mrb_malloc(mrb, sizeof(mrb_code));
+  mrb_irep *call_irep = (mrb_irep *) mrb_calloc(mrb, sizeof(mrb_irep), 1);
 
   if ( call_iseq == NULL || call_irep == NULL )
     return;

@@ -26,7 +26,7 @@
 mrb_pool*
 mrb_pool_open(mrb_state *mrb)
 {
-  mrb_pool *pool = mrb_malloc(mrb, sizeof(mrb_pool));
+  mrb_pool *pool = (mrb_pool *) mrb_malloc(mrb, sizeof(mrb_pool));
 
   if (pool) {
     pool->mrb = mrb;
@@ -58,7 +58,7 @@ page_alloc(mrb_pool *pool, size_t len)
 
   if (len < POOL_PAGE_SIZE)
     len = POOL_PAGE_SIZE;
-  page = mrb_malloc(pool->mrb, sizeof(struct mrb_pool_page)+len-1);
+  page = (struct mrb_pool_page *) mrb_malloc(pool->mrb, sizeof(struct mrb_pool_page)+len-1);
   if (page) {
     page->offset = 0;
     page->len = len;

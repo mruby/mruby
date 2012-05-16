@@ -36,7 +36,7 @@ mrb_intern(mrb_state *mrb, const char *name)
 
   sym = ++mrb->symidx;
   len = strlen(name);
-  p = mrb_malloc(mrb, len+1);
+  p = (char *) mrb_malloc(mrb, len+1);
   memcpy(p, name, len);
   p[len] = 0;
   k = kh_put(n2s, h, p);

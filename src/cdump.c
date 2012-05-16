@@ -107,7 +107,7 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
     return -1;
 
   buf_len = MRB_CDUMP_LINE_LEN;
-  if ((buf = mrb_malloc(mrb, buf_len)) == 0 ) {
+  if ((buf = (char *) mrb_malloc(mrb, buf_len)) == 0 ) {
     return MRB_CDUMP_GENERAL_FAILURE;
   }
 
@@ -141,7 +141,7 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
         str_len = str_format_len(irep->pool[n]) + 1;
         if ( str_len > buf_len ) {
           buf_len = str_len;
-          if ((buf = mrb_realloc(mrb, buf, buf_len)) == 0 ) {
+          if ((buf = (char *) mrb_realloc(mrb, buf, buf_len)) == 0 ) {
             return MRB_CDUMP_GENERAL_FAILURE;
           }
         }
