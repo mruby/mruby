@@ -2915,10 +2915,10 @@ yyerror(parser_state *p, const char *s)
 
   if (! p->capture_errors) {
     if (p->filename) {
-      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
+      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column+1, s);
     }
     else {
-      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column, s);
+      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column+1, s);
     }
   }
   else if (p->nerr < sizeof(p->error_buffer) / sizeof(p->error_buffer[0])) {
@@ -2927,7 +2927,7 @@ yyerror(parser_state *p, const char *s)
     memcpy(c, s, n + 1);
     p->error_buffer[p->nerr].message = c;
     p->error_buffer[p->nerr].lineno = p->lineno;
-    p->error_buffer[p->nerr].column = p->column;
+    p->error_buffer[p->nerr].column = p->column+1;
   }
   p->nerr++;
 }
@@ -3020,18 +3020,9 @@ nextc(parser_state *p)
       c = *p->s++;
     }
     if (c == '\n') {
-      if (p->column < 0) {
-	p->column++; // pushback caused an underflow
-      }
-      else {
-	p->lineno++;
-	p->column = 0;
-      }
       // must understand heredoc
     }
-    else {
-      p->column++;
-    }
+    p->column++;
   }
   return c;
 }
@@ -3395,6 +3386,8 @@ parse_qstring(parser_state *p, int term)
       c = nextc(p);
       switch (c) {
       case '\n':
+	p->lineno++;
+	p->column = 0;
 	continue;
 
       case '\\':
@@ -3462,6 +3455,8 @@ parser_yylex(parser_state *p)
     skip(p, '\n');
     /* fall through */
   case '\n':
+    p->lineno++;
+    p->column = 0;
     switch (p->lstate) {
     case EXPR_BEG:
     case EXPR_FNAME:
@@ -4249,6 +4244,8 @@ parser_yylex(parser_state *p)
   case '\\':
     c = nextc(p);
     if (c == '\n') {
+      p->lineno++;
+      p->column = 0;
       space_seen = 1;
       goto retry; /* skip \\n */
     }
@@ -4678,7 +4675,7 @@ parser_new(mrb_state *mrb)
 }
 
 parser_state*
-mrb_parse_file(mrb_state *mrb, FILE *f)
+mrb_parse_file(mrb_state *mrb, FILE *f, const char *fn, int line)
 {
   parser_state *p;
  
@@ -4686,6 +4683,8 @@ mrb_parse_file(mrb_state *mrb, FILE *f)
   if (!p) return 0;
   p->s = p->send = NULL;
   p->f = f;
+  if (line) p->lineno = line;
+  if (fn) mrb_parser_filename(p, fn);
 
   start_parser(p);
   return p;
@@ -4733,12 +4732,12 @@ mrb_parse_string(mrb_state *mrb, const char *s)
 void parser_dump(mrb_state *mrb, node *tree, int offset);
 
 int
-mrb_compile_file(mrb_state * mrb, FILE *f)
+mrb_compile_file(mrb_state * mrb, FILE *f,const char *fn, int line)
 {
   parser_state *p;
   int n;
 
-  p = mrb_parse_file(mrb, f);
+  p = mrb_parse_file(mrb, f, fn, line);
   if (!p) return -1;
   if (!p->tree) return -1;
   if (p->nerr) return -1;
@@ -4766,7 +4765,9 @@ mrb_parser_lineno(struct mrb_parser_state *p, int n)
   if (n <= 0) {
     return p->lineno;
   }
-  return p->lineno = n;
+  p->column = 0;
+  p->lineno = n;
+  return n;
 }
 
 int

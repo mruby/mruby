@@ -77,13 +77,13 @@ struct mrb_parser_state {
   jmp_buf jmp;
 };
 
-struct mrb_parser_state* mrb_parse_file(mrb_state*,FILE*);
+struct mrb_parser_state* mrb_parse_file(mrb_state*,FILE*,const char*,int);
 struct mrb_parser_state* mrb_parse_string(mrb_state*,const char*);
 struct mrb_parser_state* mrb_parse_nstring(mrb_state*,const char*,size_t);
 struct mrb_parser_state* mrb_parse_nstring_ext(mrb_state*,const char*,size_t);
 int mrb_generate_code(mrb_state*, mrb_ast_node*);
 
-int mrb_compile_file(mrb_state*,FILE*);
+int mrb_compile_file(mrb_state*,FILE*,const char*,int);
 int mrb_compile_string(mrb_state*,char*);
 int mrb_compile_nstring(mrb_state*,char*,size_t);
 
