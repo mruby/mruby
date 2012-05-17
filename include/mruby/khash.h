@@ -4,6 +4,13 @@
 ** See Copyright Notice in mruby.h
 */
 
+#ifndef KHASH_H
+#define KHASH_H
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -203,3 +210,8 @@ typedef const char *kh_cstr_t;
 #define KHASH_MAP_INIT_STR(name, khval_t)                               \
     KHASH_INIT(name, kh_cstr_t, khval_t, 1, kh_str_hash_func, kh_str_hash_equal)
 
+#if defined(__cplusplus)
+}  /* extern "C" { */
+#endif
+
+#endif  /* KHASH_H */

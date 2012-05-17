@@ -7,6 +7,10 @@
 #ifndef MRUBY_CLASS_H
 #define MRUBY_CLASS_H
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 struct RClass {
   MRUBY_OBJECT_HEADER;
   struct kh_iv *iv;
@@ -75,5 +79,9 @@ int mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
 struct RClass* mrb_class_real(struct RClass* cl);
 
 void mrb_obj_call_init(mrb_state *mrb, mrb_value obj, int argc, mrb_value *argv);
+
+#if defined(__cplusplus)
+}  /* extern "C" { */
+#endif
 
 #endif  /* MRUBY_CLASS_H */

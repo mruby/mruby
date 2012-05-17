@@ -28,6 +28,10 @@
 #ifndef MRUBY_H
 #define MRUBY_H
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #include <stdlib.h>
 #include "mrbconf.h"
 
@@ -583,5 +587,9 @@ mrb_value mrb_block_proc(void);
 int mrb_sourceline(void);
 void ruby_default_signal(int sig);
 mrb_value mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id);
+
+#if defined(__cplusplus)
+}  /* extern "C" { */
+#endif
 
 #endif  /* MRUBY_H */

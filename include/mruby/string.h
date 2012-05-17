@@ -7,6 +7,10 @@
 #ifndef MRUBY_STRING_H
 #define MRUBY_STRING_H
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #ifdef INCLUDE_ENCODING
 #include "encoding.h"
 #endif
@@ -129,5 +133,9 @@ int mrb_symname_p(const char *name);
 
 mrb_value mrb_tainted_str_new(mrb_state *mrb, const char *ptr, long len);
 int mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2);
+
+#if defined(__cplusplus)
+}  /* extern "C" { */
+#endif
 
 #endif  /* MRUBY_STRING_H */

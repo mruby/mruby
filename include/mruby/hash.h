@@ -7,6 +7,10 @@
 #ifndef MRUBY_HASH_H
 #define MRUBY_HASH_H
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 struct RHash {
   MRUBY_OBJECT_HEADER;
   struct kh_iv *iv;
@@ -59,5 +63,9 @@ struct kh_ht * mrb_hash_tbl(mrb_state *mrb, mrb_value hash);
 
 void mrb_reset_random_seed(void);
 mrb_value mrb_obj_is_proc(mrb_value proc);
+
+#if defined(__cplusplus)
+}  /* extern "C" { */
+#endif
 
 #endif  /* MRUBY_HASH_H */

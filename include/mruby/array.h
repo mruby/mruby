@@ -7,6 +7,10 @@
 #ifndef MRUBY_ARRAY_H
 #define MRUBY_ARRAY_H
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 struct RArray {
   MRUBY_OBJECT_HEADER;
   size_t len;
@@ -44,5 +48,9 @@ void mrb_mem_clear(mrb_value *mem, long size);
 mrb_value mrb_ary_tmp_new(mrb_state *mrb, long capa);
 mrb_value mrb_ary_sort(mrb_state *mrb, mrb_value ary);
 mrb_value mrb_ary_shift(mrb_state *mrb, mrb_value self);
+
+#if defined(__cplusplus)
+}  /* extern "C" { */
+#endif
 
 #endif  /* MRUBY_ARRAY_H */
