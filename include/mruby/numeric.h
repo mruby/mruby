@@ -10,10 +10,8 @@
 #include <limits.h>
 
 #define RSHIFT(x,y) ((x)>>(int)(y))
-#define FIXNUM_MAX (LONG_MAX>>1)
-#define FIXNUM_MIN RSHIFT((long)LONG_MIN,1)
-#define POSFIXABLE(f) ((f) < FIXNUM_MAX+1)
-#define NEGFIXABLE(f) ((f) >= FIXNUM_MIN)
+#define POSFIXABLE(f) ((f) <= INT_MAX)
+#define NEGFIXABLE(f) ((f) >= INT_MIN)
 #define FIXABLE(f) (POSFIXABLE(f) && NEGFIXABLE(f))
 
 mrb_value mrb_flt2big(mrb_state *mrb, mrb_float d);
