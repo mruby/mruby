@@ -2914,8 +2914,12 @@ yyerror(parser_state *p, const char *s)
   size_t n;
 
   if (! p->capture_errors) {
-    fputs(s, stderr);
-    fputs("\n", stderr);
+    if (p->filename) {
+      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
+    }
+    else {
+      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column, s);
+    }
   }
   else if (p->nerr < sizeof(p->error_buffer) / sizeof(p->error_buffer[0])) {
     n = strlen(s);
