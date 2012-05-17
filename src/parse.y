@@ -3003,29 +3003,31 @@ nextc(parser_state *p)
     p->pb = p->pb->cdr;
     cons_free(tmp);
   }
-  else if (p->f) {
-    if (feof(p->f)) return -1;
-    c = fgetc(p->f);
-    if (c == EOF) return -1;
-  }
-  else if (!p->s || p->s >= p->send) {
-    return -1;
-  }
   else {
-    c = *p->s++;
-  }
-  if (c == '\n') {
-    if (p->column < 0) {
-      p->column++; // pushback caused an underflow
+    if (p->f) {
+      if (feof(p->f)) return -1;
+      c = fgetc(p->f);
+      if (c == EOF) return -1;
+    }
+    else if (!p->s || p->s >= p->send) {
+      return -1;
     }
     else {
-      p->lineno++;
-      p->column = 0;
+      c = *p->s++;
     }
-    // must understand heredoc
-  }
-  else {
-    p->column++;
+    if (c == '\n') {
+      if (p->column < 0) {
+	p->column++; // pushback caused an underflow
+      }
+      else {
+	p->lineno++;
+	p->column = 0;
+      }
+      // must understand heredoc
+    }
+    else {
+      p->column++;
+    }
   }
   return c;
 }
