@@ -28,10 +28,9 @@ static void fmt_setup(char*,size_t,int,int,int,int);
 static char*
 remove_sign_bits(char *str, int base)
 {
-  char *s, *t;
+  char *t;
 
-  s = t = str;
-
+  t = str;
   if (base == 16) {
     while (*t == 'f') {
       t++;
@@ -780,7 +779,7 @@ format_s:
         char sc = 0;
         long v = 0, org_v = 0;
         int base;
-        int len, pos;
+        int len;
 
         switch (*p) {
         case 'd':
@@ -901,7 +900,6 @@ bin_retry:
         }
         len = (int)strlen(s);
 
-        pos = -1;
         if (dots) {
           prec -= 2;
           width -= 2;

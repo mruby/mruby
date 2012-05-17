@@ -230,8 +230,6 @@ str_independent(mrb_value str)
 static inline void
 str_enc_copy(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
-  unsigned int tmp;
-  tmp = ENCODING_GET_INLINED(str2);
   mrb_enc_set_index(mrb, str1, ENCODING_GET(mrb, str2));
 }
 
@@ -1067,13 +1065,11 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
 mrb_value
 mrb_string_value(mrb_state *mrb, mrb_value *ptr)
 {
-  struct RString *ps;
   mrb_value s = *ptr;
   if (mrb_type(s) != MRB_TT_STRING) {
     s = mrb_str_to_str(mrb, s);
     *ptr = s;
   }
-  ps = mrb_str_ptr(s);
   return s;
 }
 
@@ -2449,8 +2445,7 @@ str_gsub(mrb_state *mrb, mrb_value str, mrb_int bang)
   struct re_registers *regs;
   mrb_int beg, n;
   mrb_int beg0, end0;
-  mrb_int offset, blen, slen, len, last;
-  int iter = 0;
+  mrb_int offset, blen, len, last;
   char *sp, *cp;
   mrb_encoding *str_enc;
 
@@ -2458,7 +2453,6 @@ str_gsub(mrb_state *mrb, mrb_value str, mrb_int bang)
   switch (argc) {
     case 1:
       /*RETURN_ENUMERATOR(str, argc, argv);*/
-      iter = 1;
       break;
     case 2:
       repl = argv[1];
@@ -2480,7 +2474,6 @@ str_gsub(mrb_state *mrb, mrb_value str, mrb_int bang)
   blen = RSTRING_LEN(str) + 30;
   dest = mrb_str_buf_new(mrb, blen);
   sp = RSTRING_PTR(str);
-  slen = RSTRING_LEN(str);
   cp = sp;
   str_enc = STR_ENC_GET(mrb, str);
 
@@ -3702,12 +3695,11 @@ mrb_str_sub_bang(mrb_state *mrb, mrb_value str)
   mrb_value *argv;
   int argc;
   mrb_value pat, repl;
-  int iter = 0;
   long plen;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   if (argc == 1 && mrb_block_given_p()) {
-    iter = 1;
+    /* do nothing */
   }
   else if (argc == 2) {
     repl = argv[1];
@@ -4062,7 +4054,6 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
 double
 mrb_cstr_to_dbl(mrb_state *mrb, const char * p, int badcheck)
 {
-  const char *q;
   char *end;
   double d;
 //  const char *ellipsis = "";
@@ -4074,7 +4065,6 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, int badcheck)
       (w = (int)(end - p), ellipsis = ""))
 
   if (!p) return 0.0;
-  q = p;
   while (ISSPACE(*p)) p++;
 
   if (!badcheck && p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {

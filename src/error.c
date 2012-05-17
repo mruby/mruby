@@ -408,23 +408,9 @@ void
 mrb_init_exception(mrb_state *mrb)
 {
   struct RClass *e;
-  struct RClass *eTypeError_class;
-  struct RClass *eArgumentError_class;
-  struct RClass *eIndexError_class;
-  struct RClass *eRangeError_class;
-  struct RClass *eNameError_class;
-  struct RClass *eNoMethodError_class;
-  struct RClass *eScriptError_class;
-  struct RClass *eSyntaxError_class;
-  struct RClass *eLoadError_class;
-  struct RClass *eSystemCallError_class;
-  struct RClass *eLocalJumpError_class;
-  struct RClass *eRegexpError_class;
-  struct RClass *eZeroDivisionError_class;
-  struct RClass *eEncodingError_class;
-  struct RClass *eNotImpError_class;
-  struct RClass *eFloatDomainError_class;
-  struct RClass *eKeyError_class;
+  struct RClass *eIndexError;
+  struct RClass *eRangeError;
+  struct RClass *eNameError;
 
   mrb->eException_class = e = mrb_define_class(mrb, "Exception",           mrb->object_class);         /* 15.2.22 */
   mrb_define_class_method(mrb, e, "exception", mrb_instance_new, ARGS_ANY());
@@ -438,24 +424,29 @@ mrb_init_exception(mrb_state *mrb)
   mrb->eStandardError_class     = mrb_define_class(mrb, "StandardError",       mrb->eException_class);     /* 15.2.23 */
   mrb->eRuntimeError_class      = mrb_define_class(mrb, "RuntimeError",        mrb->eStandardError_class); /* 15.2.28 */
 
-  eTypeError_class              = mrb_define_class(mrb, "TypeError",           mrb->eStandardError_class); /* 15.2.29 */
-  eArgumentError_class          = mrb_define_class(mrb, "ArgumentError",       mrb->eStandardError_class); /* 15.2.24 */
-  eIndexError_class             = mrb_define_class(mrb, "IndexError",          mrb->eStandardError_class); /* 15.2.33 */
-  eRangeError_class             = mrb_define_class(mrb, "RangeError",          mrb->eStandardError_class); /* 15.2.26 */
-  eNameError_class              = mrb_define_class(mrb, "NameError",           mrb->eStandardError_class); /* 15.2.31 */
+  mrb_define_class(mrb, "TypeError",           mrb->eStandardError_class); /* 15.2.29 */
+  mrb_define_class(mrb, "ArgumentError",       mrb->eStandardError_class); /* 15.2.24 */
+  eIndexError             = mrb_define_class(mrb, "IndexError",          mrb->eStandardError_class); /* 15.2.33 */
+  eRangeError             = mrb_define_class(mrb, "RangeError",          mrb->eStandardError_class); /* 15.2.26 */
+  eNameError              = mrb_define_class(mrb, "NameError",           mrb->eStandardError_class); /* 15.2.31 */
 
-  eNoMethodError_class          = mrb_define_class(mrb, "NoMethodError",       eNameError_class);          /* 15.2.32 */
-  eScriptError_class            = mrb_define_class(mrb, "ScriptError",         mrb->eException_class);     /* 15.2.37 */
-  eSyntaxError_class            = mrb_define_class(mrb, "SyntaxError",         eScriptError_class);        /* 15.2.38 */
-  eLoadError_class              = mrb_define_class(mrb, "LoadError",           eScriptError_class);        /* 15.2.39 */
-  eSystemCallError_class        = mrb_define_class(mrb, "SystemCallError",     mrb->eStandardError_class); /* 15.2.36 */
-  eLocalJumpError_class         = mrb_define_class(mrb, "LocalJumpError",      mrb->eStandardError_class); /* 15.2.25 */
-  eRegexpError_class            = mrb_define_class(mrb, "RegexpError",         mrb->eStandardError_class); /* 15.2.27 */
-  eZeroDivisionError_class      = mrb_define_class(mrb, "ZeroDivisionError",   mrb->eStandardError_class); /* 15.2.30 */
+  mrb_define_class(mrb, "NoMethodError",       eNameError);          /* 15.2.32 */
+  //  eScriptError            = mrb_define_class(mrb, "ScriptError",         mrb->eException_class);     /* 15.2.37 */
+  //  mrb_define_class(mrb, "SyntaxError",         eScriptError);        /* 15.2.38 */
+  //  mrb_define_class(mrb, "LoadError",           eScriptError);        /* 15.2.39 */
+  //  mrb_define_class(mrb, "NotImplementedError", eScriptError_class);
+  //  mrb_define_class(mrb, "SystemCallError",     mrb->eStandardError_class); /* 15.2.36 */
+  mrb_define_class(mrb, "LocalJumpError",      mrb->eStandardError_class); /* 15.2.25 */
 
-  eEncodingError_class          = mrb_define_class(mrb, "EncodingError",       mrb->eStandardError_class);
-  eNotImpError_class            = mrb_define_class(mrb, "NotImplementedError", eScriptError_class);
+#ifdef INCLUDE_REGEX
+  mrb_define_class(mrb, "RegexpError",         mrb->eStandardError_class); /* 15.2.27 */
+#endif
 
-  eFloatDomainError_class       = mrb_define_class(mrb, "FloatDomainError",    eRangeError_class);
-  eKeyError_class               = mrb_define_class(mrb, "KeyError",            eIndexError_class);
+#ifdef INCLUDE_ENCODING
+  mrb_define_class(mrb, "EncodingError",       mrb->eStandardError_class);
+#endif
+  mrb_define_class(mrb, "ZeroDivisionError",   mrb->eStandardError_class); /* 15.2.30 */
+
+  mrb_define_class(mrb, "FloatDomainError",    eRangeError);
+  mrb_define_class(mrb, "KeyError",            eIndexError);
 }

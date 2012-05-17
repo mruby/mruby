@@ -116,7 +116,9 @@ load_rite_header(FILE* fp, rite_binary_header* bin_header, unsigned char* hcrc)
 {
   rite_file_header    file_header;
 
-  fread(&file_header, 1, sizeof(file_header), fp);
+  if (fread(&file_header, 1, sizeof(file_header), fp) < sizeof(file_header)) {
+    return MRB_DUMP_READ_FAULT;
+  }
   memcpy(bin_header->rbfi, file_header.rbfi, sizeof(file_header.rbfi));
   if (memcmp(bin_header->rbfi, RITE_FILE_IDENFIFIER, sizeof(bin_header->rbfi)) != 0) {
     return MRB_DUMP_INVALID_FILE_HEADER;    //File identifier error
@@ -142,7 +144,7 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
 {
   int i;
   uint32_t blocklen;
-  uint16_t offset, tt, pdl, snl, clen;
+  uint16_t offset, pdl, snl, clen;
   unsigned char hex2[2], hex4[4], hex8[8], hcrc[4];
   unsigned char *pStart;
   char *char_buf;
@@ -193,7 +195,6 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
   for (i=0; i<blocklen; i++) {
     rite_fgets(rfp, hex2, sizeof(hex2), TRUE);          //TT
     dst += hex_to_bin8(dst, hex2);
-    tt = hex_to_uint8(hex2);
     rite_fgets(rfp, hex4, sizeof(hex4), TRUE);          //pool data length
     pdl = hex_to_uint16(hex4);
 

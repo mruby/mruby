@@ -411,8 +411,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       break;
     case 's':
       {
-        char **ps;
-        size_t *pl;
+        char **ps = 0;
+        size_t *pl = 0;
         struct RString *s;
 
         if (argc > i) {
@@ -421,10 +421,6 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           *ps = s->buf;
           pl = va_arg(ap, size_t*);
           *pl = s->len;
-        }
-        else {
-          *ps = "";
-          *pl = 0;
         }
         i++; sp++;
       }
