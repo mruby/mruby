@@ -5238,11 +5238,11 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_BACK_REF:
-    printf("NODE_BACK_REF: $%c\n", (int)tree);
+    printf("NODE_BACK_REF: $%c\n", (int)(intptr_t)tree);
     break;
 
   case NODE_NTH_REF:
-    printf("NODE_NTH_REF: $%d\n", (int)tree);
+    printf("NODE_NTH_REF: $%d\n", (int)(intptr_t)tree);
     break;
 
   case NODE_ARG:
