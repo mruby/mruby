@@ -4406,7 +4406,6 @@ parser_yylex(parser_state *p)
     case '1': case '2': case '3':
     case '4': case '5': case '6':
     case '7': case '8': case '9':
-      tokadd(p, '$');
       do {
 	tokadd(p, c);
 	c = nextc(p);
@@ -4414,7 +4413,7 @@ parser_yylex(parser_state *p)
       pushback(p, c);
       if (last_state == EXPR_FNAME) goto gvar;
       tokfix(p);
-      yylval.node = new_nth_ref(p, atoi(tok(p)+1)); 
+      yylval.node = new_nth_ref(p, atoi(tok(p))); 
       return tNTH_REF;
 
     default:
@@ -5239,13 +5238,11 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_BACK_REF:
-    printf("NODE_BACK_REF:\n");
-    parser_dump(mrb, tree, offset+1);
+    printf("NODE_BACK_REF: $%c\n", (int)tree);
     break;
 
   case NODE_NTH_REF:
-    printf("NODE_NTH_REF:\n");
-    parser_dump(mrb, tree, offset+1);
+    printf("NODE_NTH_REF: $%d\n", (int)tree);
     break;
 
   case NODE_ARG:

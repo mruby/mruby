@@ -1477,11 +1477,27 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_BACK_REF:
-    codegen(s, tree, VAL);
+    {
+      char buf[4];
+      int sym;
+
+      snprintf(buf, 3, "$%c", (intptr_t)tree);
+      sym = new_sym(s, mrb_intern(s->mrb, buf));
+      genop(s, MKOP_ABx(OP_GETGLOBAL, cursp(), sym));
+      push();
+    }
     break;
 
   case NODE_NTH_REF:
-    codegen(s, tree, VAL);
+    {
+      char buf[4];
+      int sym;
+
+      snprintf(buf, 3, "$%d", (intptr_t)tree);
+      sym = new_sym(s, mrb_intern(s->mrb, buf));
+      genop(s, MKOP_ABx(OP_GETGLOBAL, cursp(), sym));
+      push();
+    }
     break;
 
   case NODE_ARG:
