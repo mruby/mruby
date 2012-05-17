@@ -105,7 +105,8 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
   }
 
 
-  if (args->rfp == NULL && args->cmdline == NULL && (args->rfp = fopen(*argv, args->mrbfile ? "rb" : "r")) == NULL) {
+  if (args->rfp == NULL && args->cmdline == NULL && 
+     (*argv == NULL || (args->rfp = fopen(*argv, args->mrbfile ? "rb" : "r")) == NULL)) {
     printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
     return 0;
   }
