@@ -9,7 +9,6 @@
 #include "mruby/string.h"
 #include <stdio.h>
 #include "mruby/class.h"
-#include "method.h"
 #include "mruby/numeric.h"
 
 #ifdef INCLUDE_REGEXP
