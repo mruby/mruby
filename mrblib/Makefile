@@ -47,7 +47,7 @@ endif
 all : $(LIBR)
 
 # update libmruby.a
-$(LIBR) : $(MLIB)
+$(LIBR) : $(MLIB) $(LIBR0)
 	cp $(LIBR0) $(LIBR)
 	$(AR) r $(LIBR) $(MLIB)
 
