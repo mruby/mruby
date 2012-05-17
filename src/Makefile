@@ -4,7 +4,7 @@
 # project-specific macros
 # extension of the executable-file is modifiable(.exe .out ...)
 BASEDIR = .
-TARGET := ../lib/libmruby.a
+TARGET := ../lib/libmruby_core.a
 YSRC := $(BASEDIR)/parse.y
 YC := $(BASEDIR)/y.tab.c
 EXCEPT1 := $(YC) $(BASEDIR)/minimain.c
