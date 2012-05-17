@@ -108,7 +108,7 @@ num_pow(mrb_state *mrb, mrb_value x)
   mrb_get_args(mrb, "o", &y);
   if (FIXNUM_P(x) && FIXNUM_P(y)) both_int = TRUE;
   d = pow(mrb_to_flo(mrb, x), mrb_to_flo(mrb, y));
-  if (both_int && isfinite(d) && FIXABLE(d))
+  if (both_int && FIXABLE(d))
     return mrb_fixnum_value((mrb_int)d);
   return mrb_float_value(d);
 }
