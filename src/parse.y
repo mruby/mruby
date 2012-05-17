@@ -4062,7 +4062,7 @@ parser_yylex(parser_state *p)
       }
       tokfix(p);
       if (is_float) {
-	strtod(tok(p), 0);
+	(void)strtod(tok(p), 0); /* just check if float is within range */
 	if (errno == ERANGE) {
 	  yywarning_s(p, "float %s out of range", tok(p));
 	  errno = 0;
