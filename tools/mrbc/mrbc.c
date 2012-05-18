@@ -2,7 +2,7 @@
 #include "mruby/proc.h"
 #include "mruby/dump.h"
 #include "mruby/cdump.h"
-#include "compile.h"
+#include "mruby/compile.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

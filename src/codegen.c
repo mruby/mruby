@@ -9,7 +9,7 @@
 
 #include "mruby.h"
 #include "mruby/irep.h"
-#include "compile.h"
+#include "mruby/compile.h"
 #include "mruby/proc.h"
 #include "opcode.h"
 #include "mruby/string.h"

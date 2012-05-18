@@ -11,7 +11,7 @@
 #include <mruby.h>
 #include <mruby/proc.h>
 #include <mruby/data.h>
-#include <compile.h>
+#include <mruby/compile.h>
 
 /* Guess if the user might want to enter more
  * or if he wants an evaluation of his code now */

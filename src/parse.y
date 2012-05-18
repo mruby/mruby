@@ -14,7 +14,7 @@
 
 #include "mruby.h"
 #include "st.h"
-#include "compile.h"
+#include "mruby/compile.h"
 #include <stdio.h>
 #include <errno.h>
 #include <ctype.h>
