@@ -4,8 +4,8 @@
 ** See Copyright Notice in mruby.h
 */
 
-#ifndef RUBY_COMPILE_H
-#define RUBY_COMPILE_H 1
+#ifndef MRUBY_COMPILE_H
+#define MRUBY_COMPILE_H 1
 
 #if defined(__cplusplus)
 extern "C" {
