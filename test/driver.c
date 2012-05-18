@@ -10,7 +10,7 @@
 #include <mruby.h>
 #include <mruby/proc.h>
 #include <mruby/data.h>
-#include <compile.h>
+#include <mruby/compile.h>
 
 void
 mrb_init_mrbtest(mrb_state *);
