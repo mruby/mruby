@@ -124,7 +124,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 static void
 cleanup(mrb_state *mrb, struct _args *args)
 {
-  if (args->rfp)
+  if (args->rfp && args->rfp != stdin)
     fclose(args->rfp);
   if (args->cmdline)
     mrb_free(mrb, args->cmdline);
