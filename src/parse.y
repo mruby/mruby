@@ -4727,21 +4727,6 @@ mrb_parse_nstring(mrb_state *mrb, const char *s, size_t len)
 }
 
 parser_state*
-mrb_parse_nstring_ext(mrb_state *mrb, const char *s, size_t len)
-{
-  parser_state *p;
-
-  p = mrb_parser_new(mrb);
-  if (!p) return 0;
-  p->s = s;
-  p->send = s + len;
-  p->capture_errors = 1;
-
-  mrb_parser_parse(p);
-  return p;
-}
-
-parser_state*
 mrb_parse_string(mrb_state *mrb, const char *s)
 {
   return mrb_parse_nstring(mrb, s, strlen(s));
