@@ -1,12 +1,11 @@
 ##
 # Math Test
 
-MATH_TOLERANCE = 1E-12
 def check(a,b)
   a = a.to_f
   b = b.to_f
   if a.finite? and b.finite?
-    (a-b).abs < MATH_TOLERANCE
+    (a-b).abs < Math::TOLERANCE
   else
     true
   end
@@ -14,7 +13,7 @@ end
 
 
 assert('Math.sin 0') do
-  check(Math.sin(0), 0)
+  check(Math.sin(0), 1)
 end
 
 assert('Math.sin PI/2') do
