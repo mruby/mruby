@@ -152,7 +152,12 @@ main(int argc, char **argv)
       p = mrb_parse_string(mrb, (char*)args.cmdline);
     }
     else {
-      p = mrb_parse_file(mrb, args.rfp, argv[1], 0);
+      p = mrb_parser_new(mrb);
+      if (p) {
+	mrb_parser_filename(p, argv[1]);
+	p->f = args.rfp;
+	mrb_parser_parse(p);
+      }
     }
     if (!p || !p->tree || p->nerr) {
       cleanup(mrb, &args);

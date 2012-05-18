@@ -4618,8 +4618,8 @@ yylex(void *lval, parser_state *p)
     return t;
 }
 
-static void
-start_parser(parser_state *p)
+void
+mrb_parser_parse(parser_state *p)
 {
   node *tree;
 
@@ -4645,8 +4645,8 @@ start_parser(parser_state *p)
   }
 }
 
-static parser_state*
-parser_new(mrb_state *mrb)
+parser_state*
+mrb_parser_new(mrb_state *mrb)
 {
   mrb_pool *pool;
   parser_state *p;
@@ -4661,6 +4661,9 @@ parser_new(mrb_state *mrb)
   p->pool = pool;
   p->in_def = p->in_single = 0;
 
+  p->s = p->send = NULL;
+  p->f = NULL;
+
   p->cmd_start = TRUE;
   p->in_def = p->in_single = FALSE;
 
@@ -4672,82 +4675,6 @@ parser_new(mrb_state *mrb)
 #endif
 
   return p;
-}
-
-parser_state*
-mrb_parse_file(mrb_state *mrb, FILE *f, const char *fn, int line)
-{
-  parser_state *p;
- 
-  p = parser_new(mrb);
-  if (!p) return 0;
-  p->s = p->send = NULL;
-  p->f = f;
-  if (line) p->lineno = line;
-  if (fn) mrb_parser_filename(p, fn);
-
-  start_parser(p);
-  return p;
-}
-
-parser_state*
-mrb_parse_nstring(mrb_state *mrb, const char *s, size_t len)
-{
-  parser_state *p;
-
-  p = parser_new(mrb);
-  if (!p) return 0;
-  p->s = s;
-  p->send = s + len;
-  p->f = NULL;
-
-  start_parser(p);
-  return p;
-}
-
-parser_state*
-mrb_parse_nstring_ext(mrb_state *mrb, const char *s, size_t len)
-{
-  parser_state *p;
-
-  p = parser_new(mrb);
-  if (!p) return 0;
-  p->s = s;
-  p->send = s + len;
-  p->f = NULL;
-  p->capture_errors = 1;
-
-  start_parser(p);
-  return p;
-}
-
-parser_state*
-mrb_parse_string(mrb_state *mrb, const char *s)
-{
-  return mrb_parse_nstring(mrb, s, strlen(s));
-}
-
-#define PARSER_DUMP
-
-void parser_dump(mrb_state *mrb, node *tree, int offset);
-
-int
-mrb_compile_file(mrb_state * mrb, FILE *f,const char *fn, int line)
-{
-  parser_state *p;
-  int n;
-
-  p = mrb_parse_file(mrb, f, fn, line);
-  if (!p) return -1;
-  if (!p->tree) return -1;
-  if (p->nerr) return -1;
-#ifdef PARSER_DUMP
-  parser_dump(mrb, p->tree, 0);
-#endif
-  n = mrb_generate_code(mrb, p->tree);
-  mrb_pool_close(p->pool);
-
-  return n;
 }
 
 const char*
@@ -4767,6 +4694,77 @@ mrb_parser_lineno(struct mrb_parser_state *p, int n)
   }
   p->column = 0;
   p->lineno = n;
+  return n;
+}
+
+parser_state*
+mrb_parse_file(mrb_state *mrb, FILE *f)
+{
+  parser_state *p;
+ 
+  p = mrb_parser_new(mrb);
+  if (!p) return 0;
+  p->s = p->send = NULL;
+  p->f = f;
+
+  mrb_parser_parse(p);
+  return p;
+}
+
+parser_state*
+mrb_parse_nstring(mrb_state *mrb, const char *s, size_t len)
+{
+  parser_state *p;
+
+  p = mrb_parser_new(mrb);
+  if (!p) return 0;
+  p->send = s + len;
+
+  mrb_parser_parse(p);
+  return p;
+}
+
+parser_state*
+mrb_parse_nstring_ext(mrb_state *mrb, const char *s, size_t len)
+{
+  parser_state *p;
+
+  p = mrb_parser_new(mrb);
+  if (!p) return 0;
+  p->s = s;
+  p->send = s + len;
+  p->capture_errors = 1;
+
+  mrb_parser_parse(p);
+  return p;
+}
+
+parser_state*
+mrb_parse_string(mrb_state *mrb, const char *s)
+{
+  return mrb_parse_nstring(mrb, s, strlen(s));
+}
+
+#define PARSER_DUMP
+
+void parser_dump(mrb_state *mrb, node *tree, int offset);
+
+int
+mrb_compile_file(mrb_state * mrb, FILE *f)
+{
+  parser_state *p;
+  int n;
+
+  p = mrb_parse_file(mrb, f);
+  if (!p) return -1;
+  if (!p->tree) return -1;
+  if (p->nerr) return -1;
+#ifdef PARSER_DUMP
+  parser_dump(mrb, p->tree, 0);
+#endif
+  n = mrb_generate_code(mrb, p->tree);
+  mrb_pool_close(p->pool);
+
   return n;
 }
 

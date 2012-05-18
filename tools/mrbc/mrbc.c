@@ -164,7 +164,7 @@ main(int argc, char **argv)
     return n;
   }
 
-  p = mrb_parse_file(mrb, args.rfp, 0, 0);
+  p = mrb_parse_file(mrb, args.rfp);
   if (!p || !p->tree || p->nerr) {
     cleanup(&args);
     return -1;
