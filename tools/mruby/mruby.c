@@ -107,10 +107,12 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
   }
 
 
-  if (args->rfp == NULL && args->cmdline == NULL && 
-     (*argv == NULL || (args->rfp = fopen(*argv, args->mrbfile ? "rb" : "r")) == NULL)) {
-    printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
-    return 0;
+  if (args->rfp == NULL && args->cmdline == NULL) {
+    if (*argv == NULL) args->rfp = stdin;
+    else if ((args->rfp = fopen(*argv, args->mrbfile ? "rb" : "r")) == NULL) {
+      printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
+      return 0;
+    }
   }
   args->argv = mrb_realloc(mrb, args->argv, sizeof(char*) * (argc + 1));
   memcpy(args->argv, argv, (argc+1) * sizeof(char*));
