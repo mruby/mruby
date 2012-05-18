@@ -81,10 +81,10 @@ $(CLIB) : $(RLIB) $(MRBC) $(INIT)
 
 # merge mruby sources
 $(RLIB) : $(ASSLIB) $(MRBS)
-	cat $? > $@
+	cat $(ASSLIB) $(MRBS) > $@
 
 # clean up
 .PHONY : clean
 clean :
 	@echo "make: removing targets, objects and depend files of `pwd`"
-	-rm -f $(MRBC) $(MLIB) $(CLIB) $(RLIB) $(DLIB) $(DEPLIB) $(OBJS) $(EXE)
+	-rm -f $(MLIB) $(CLIB) $(RLIB) $(DLIB) $(DEPLIB) $(OBJS) $(EXE)
