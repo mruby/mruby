@@ -2954,9 +2954,9 @@ yywarn(parser_state *p, const char *s)
     n = strlen(s);
     c = parser_palloc(p, n + 1);
     memcpy(c, s, n + 1);
-    p->error_buffer[p->nwarn].message = c;
-    p->error_buffer[p->nwarn].lineno = p->lineno;
-    p->error_buffer[p->nwarn].column = p->column;
+    p->warn_buffer[p->nwarn].message = c;
+    p->warn_buffer[p->nwarn].lineno = p->lineno;
+    p->warn_buffer[p->nwarn].column = p->column;
   }
   p->nwarn++;
 }
