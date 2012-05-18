@@ -57,21 +57,16 @@ else
 CFLAGS = -O3
 endif
 ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
-ifeq ($(OS),Windows_NT)
-  MAKE_FLAGS = CC=$(CC) LL=$(LL) ALL_CFLAGS="$(ALL_CFLAGS)"
-else
-  MAKE_FLAGS = CC='$(CC)' LL='$(LL)' ALL_CFLAGS='$(ALL_CFLAGS)'
-endif
 
 ##############################
 # generic build targets, rules
 
 .PHONY : test
-all : $(LIBR) $(EXE)
+all : $(EXE)
 	./$(EXE)
 
 # executable constructed using linker from object files
-$(EXE) : $(LIBR) $(OBJS)
+$(EXE) : $(OBJS)
 	$(LL) -o $@ $(CFLAGS) $(OBJS) $(LIBR) $(LIBS)
 
 -include $(OBJS:.o=.d)
@@ -80,16 +75,9 @@ $(EXE) : $(LIBR) $(OBJS)
 $(OBJS) : %.o : %.c
 	$(CC) $(ALL_CFLAGS) -MMD $(INCLUDES) -c $< -o $@
 
-# C library compile
-$(LIBR) :
-	@$(MAKE) -C $(BASEDIR) $(MAKE_FLAGS)
-
 # Compile C source from merged mruby source
 $(CLIB) : $(RLIB) $(MRBC) $(INIT)
 	$(MRBC) -Bmrbtest_irep -o$(DLIB) $(RLIB); cat $(INIT) $(DLIB) > $@
-
-$(MRBC) : ../src/opcode.h ../src/codegen.c ../src/parse.y
-	$(MAKE) -C ../tools/mrbc $(MAKE_FLAGS)
 
 # merge mruby sources
 $(RLIB) : $(ASSLIB) $(MRBS)
