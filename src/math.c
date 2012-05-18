@@ -10,6 +10,8 @@
 #define domain_error(msg) \
     mrb_raise(mrb, E_RANGE_ERROR, "Numerical argument is out of domain - " #msg);
 
+#define MATH_TOLERANCE 1E-12
+
 /* math functions not provided under Microsoft Visual C++ */
 #ifdef _MSC_VER
 #define asinh(x) log(x + sqrt(pow(x,2.0) + 1))
@@ -25,7 +27,7 @@ erfc(double x);
 ** Implementations of error functions
 ** credits to http://www.digitalmars.com/archives/cplusplus/3634.html
 */
-#define REL_ERROR 1E-12
+
 /* Implementation of Error function */
 double 
 erf(double x)
@@ -45,7 +47,7 @@ erf(double x)
     term *= xsqr/j;
     sum  += term/(2*j+1);
     ++j;
-  } while (fabs(term)/sum > REL_ERROR);
+  } while (fabs(term)/sum > MATH_TOLERANCE);
   return two_sqrtpi*sum;
 }
 
@@ -77,7 +79,7 @@ erfc(double x)
     n += 0.5;
     q1 = q2;
     q2 = b/d;
-  } while (fabs(q1-q2)/q2 > REL_ERROR);
+  } while (fabs(q1-q2)/q2 > MATH_TOLERANCE);
   return one_sqrtpi*exp(-x*x)*q2;
 }
 
@@ -610,6 +612,7 @@ mrb_init_math(mrb_state *mrb)
   struct RClass *mrb_math;
   mrb_math = mrb_define_module(mrb, "Math");
   
+  mrb_define_const(mrb, mrb_math, "TOLERANCE", mrb_float_value(MATH_TOLERANCE));
   #ifdef M_PI
       mrb_define_const(mrb, mrb_math, "PI", mrb_float_value(M_PI));
   #else

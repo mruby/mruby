@@ -22,7 +22,7 @@ end
 # iso : The ISO reference code of the feature
 #       which will be tested by this
 #       assertion
-def assert(str = 'Assertion failed', iso = '')
+def assert(str = 'Assertion failed', iso = 'No ISO')
   begin
     if(!yield)
       $asserts.push([str, iso])
