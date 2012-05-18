@@ -9,6 +9,8 @@
 
 #define RITEBIN_EXT ".mrb"
 #define C_EXT       ".c"
+void mrb_show_version(mrb_state *);
+void mrb_show_copyright(mrb_state *);
 void parser_dump(mrb_state*, struct mrb_ast_node*, int);
 void codedump_all(mrb_state*, int);
 
@@ -94,7 +96,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         args->check_syntax = 1;
         break;
       case 'v':
-        ruby_show_version(mrb);
+        mrb_show_version(mrb);
         args->verbose = 1;
         break;
       case '-':

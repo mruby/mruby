@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 
-void ruby_show_version(mrb_state *);
-void ruby_show_copyright(mrb_state *);
+void mrb_show_version(mrb_state *);
+void mrb_show_copyright(mrb_state *);
 void parser_dump(mrb_state*, struct mrb_ast_node*, int);
 void codedump_all(mrb_state*, int);
 
@@ -85,19 +85,19 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
       }
       break;
     case 'v':
-      ruby_show_version(mrb);
+      mrb_show_version(mrb);
       args->verbose = 1;
       break;
     case '-':
       if (strcmp((*argv) + 2, "version") == 0) {
-        ruby_show_version(mrb);
+        mrb_show_version(mrb);
       }
       else if (strcmp((*argv) + 2, "verbose") == 0) {
         args->verbose = 1;
         break;
       }
       else if (strcmp((*argv) + 2, "copyright") == 0) {
-        ruby_show_copyright(mrb);
+        mrb_show_copyright(mrb);
       }
       else return -3;
       return 0;
