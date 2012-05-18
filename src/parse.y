@@ -4720,6 +4720,7 @@ mrb_parse_nstring(mrb_state *mrb, const char *s, size_t len)
 
   p = mrb_parser_new(mrb);
   if (!p) return 0;
+  p->s = s;
   p->send = s + len;
 
   mrb_parser_parse(p);
