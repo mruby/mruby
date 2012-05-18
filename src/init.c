@@ -28,7 +28,6 @@ void mrb_init_file(mrb_state *);
 void mrb_init_thread(mrb_state *);
 void mrb_init_struct(mrb_state *);
 void mrb_init_gc(mrb_state *);
-void Init_var_tables(mrb_state *mrb);
 void mrb_init_print(mrb_state *mrb);
 void mrb_init_mrblib(mrb_state *mrb);
 void mrb_init_math(mrb_state *mrb);
