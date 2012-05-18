@@ -7,6 +7,10 @@
 #ifndef MRUBY_GC_H
 #define MRUBY_GC_H
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 typedef struct {
   union {
     struct free_obj {
@@ -40,5 +44,9 @@ void mrb_gc_free_mt(mrb_state*, struct RClass*);
 void mrb_gc_mark_ht(mrb_state*, struct RHash*);
 size_t mrb_gc_mark_ht_size(mrb_state*, struct RHash*);
 void mrb_gc_free_ht(mrb_state*, struct RHash*);
+
+#if defined(__cplusplus)
+}  /* extern "C" { */
+#endif
 
 #endif  /* MRUBY_GC_H */

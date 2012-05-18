@@ -4,6 +4,13 @@
 ** See Copyright Notice in mruby.h
 */
 
+#ifndef RUBY_COMPILE_H
+#define RUBY_COMPILE_H 1
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #include "mruby.h"
 #include <stdio.h>
 #include <setjmp.h>
@@ -93,3 +100,8 @@ int mrb_compile_file(mrb_state*,FILE*);
 int mrb_compile_string(mrb_state*,char*);
 int mrb_compile_nstring(mrb_state*,char*,size_t);
 
+#if defined(__cplusplus)
+}  /* extern "C" { */
+#endif
+
+#endif /* MRUBY_COMPILE_H */
