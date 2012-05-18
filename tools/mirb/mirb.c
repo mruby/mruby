@@ -161,8 +161,10 @@ main(void)
 
   print_hint();
 
-  /* new interpreter instance */
+  /* new interpreter instance */ 
   mrb_interpreter = mrb_open();
+  /* new parser instance */
+  parser = mrb_parser_new(mrb_interpreter);
   memset(ruby_code, 0, sizeof(*ruby_code));
   memset(last_code_line, 0, sizeof(*last_code_line));
 
@@ -205,7 +207,10 @@ main(void)
       }
 
       /* parse code */
-      parser = mrb_parse_nstring_ext(mrb_interpreter, ruby_code, strlen(ruby_code));
+      parser->s = ruby_code;
+      parser->send = ruby_code + strlen(ruby_code);
+      parser->capture_errors = 1;
+      mrb_parser_parse(parser);
       code_block_open = is_code_block_open(parser); 
 
       if (code_block_open) {

@@ -967,12 +967,11 @@ var_reference(parser_state *p, node *lhs)
 %%
 program		:  {
 		     p->lstate = EXPR_BEG;
-		     local_nest(p);
+		     if (!p->locals) p->locals = cons(0,0);
 		   }
 		  top_compstmt
 		    {
 		      p->tree = new_scope(p, $2);
-		     local_unnest(p);
 		    }
 		;
 
@@ -4631,6 +4630,9 @@ mrb_parser_parse(parser_state *p)
   }
   yyparse(p);
   tree = p->tree;
+  if ((int)tree->car == NODE_SCOPE) {
+    p->locals = cons(tree->cdr->car, 0);
+  }
   if (!tree) {
     if (p->begin_tree) {
       tree = p->begin_tree;
