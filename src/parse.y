@@ -4630,9 +4630,6 @@ mrb_parser_parse(parser_state *p)
   }
   yyparse(p);
   tree = p->tree;
-  if ((int)tree->car == NODE_SCOPE) {
-    p->locals = cons(tree->cdr->car, 0);
-  }
   if (!tree) {
     if (p->begin_tree) {
       tree = p->begin_tree;
@@ -4641,9 +4638,14 @@ mrb_parser_parse(parser_state *p)
       tree = new_nil(p);
     }
   }
-  else if (p->begin_tree) {
-    tree = new_begin(p, p->begin_tree);
-    append(tree, p->tree);
+  else {
+    if ((int)tree->car == NODE_SCOPE) {
+      p->locals = cons(tree->cdr->car, 0);
+    }
+    if (p->begin_tree) {
+      tree = new_begin(p, p->begin_tree);
+      append(tree, p->tree);
+    }
   }
 }
 
