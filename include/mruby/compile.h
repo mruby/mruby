@@ -19,8 +19,6 @@ typedef struct mrb_ast_node {
   struct mrb_ast_node *car, *cdr;
 } mrb_ast_node;
 
-#include "node.h"
-#include "pool.h"
 #include <stdio.h>
 
 enum mrb_lex_state_enum {

@@ -588,6 +588,14 @@ int mrb_sourceline(void);
 void ruby_default_signal(int sig);
 mrb_value mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id);
 
+/* memory pool implementation */
+typedef struct mrb_pool mrb_pool;
+struct mrb_pool* mrb_pool_open(mrb_state*);
+void mrb_pool_close(struct mrb_pool*);
+void* mrb_pool_alloc(struct mrb_pool*, size_t);
+void* mrb_pool_realloc(struct mrb_pool*, void*, size_t oldlen, size_t newlen);
+int mrb_pool_can_realloc(struct mrb_pool*, void*, size_t);
+
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif

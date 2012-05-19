@@ -8,11 +8,12 @@
 #define CODEGEN_DUMP
 
 #include "mruby.h"
-#include "mruby/irep.h"
-#include "mruby/compile.h"
-#include "mruby/proc.h"
-#include "opcode.h"
 #include "mruby/string.h"
+#include "mruby/irep.h"
+#include "mruby/proc.h"
+#include "mruby/compile.h"
+#include "opcode.h"
+#include "node.h"
 #include <string.h>
 #include <stdlib.h>
 

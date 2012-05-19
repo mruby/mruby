@@ -13,8 +13,10 @@
 #define YYSTACK_USE_ALLOCA 0
 
 #include "mruby.h"
-#include "st.h"
 #include "mruby/compile.h"
+#include "node.h"
+#include "st.h"
+
 #include <stdio.h>
 #include <errno.h>
 #include <ctype.h>
