@@ -42,6 +42,7 @@ is_code_block_open(struct mrb_parser_state *parser)
     else if (strcmp(message, "syntax error, unexpected tREGEXP_BEG") == 0) {
       code_block_open = TRUE;
     }
+    return code_block_open;
   }
 
   switch (parser->lstate) {
@@ -50,7 +51,8 @@ is_code_block_open(struct mrb_parser_state *parser)
 
   case EXPR_BEG:
     /* an expression was just started, */
-    /* or right after the expresion terminated */
+    /* we can't end it like this */
+    code_block_open = TRUE;
     break;
   case EXPR_DOT:
     /* a message dot was the last token, */
@@ -175,13 +177,13 @@ main(void)
     }
     else {
       if (code_block_open) {
+	strcat(ruby_code, "\n");
         strcat(ruby_code, last_code_line);
       }
       else {
         memset(ruby_code, 0, sizeof(*ruby_code));
         strcat(ruby_code, last_code_line);
       }
-      strcat(ruby_code, "\n");
 
       /* parse code */
       parser->s = ruby_code;
