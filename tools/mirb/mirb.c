@@ -20,31 +20,26 @@ is_code_block_open(struct mrb_parser_state *parser)
 {
   int code_block_open = FALSE;
 
+  /* check for unterminated string */
+  if (parser->sterm) return TRUE;
+
   /* check if parser error are available */
   if (0 < parser->nerr) {
     const char *unexpected_end = "syntax error, unexpected $end";
+    const char *message = parser->error_buffer[0].message;
+
     /* a parser error occur, we have to check if */
     /* we need to read one more line or if there is */
     /* a different issue which we have to show to */
     /* the user */
 
-    if (strncmp(parser->error_buffer[0].message, unexpected_end, strlen(unexpected_end)) == 0) {
+    if (strncmp(message, unexpected_end, strlen(unexpected_end)) == 0) {
       code_block_open = TRUE;
     }
-    else if (strcmp(parser->error_buffer[0].message,
-		    "syntax error, unexpected keyword_end") == 0) {
+    else if (strcmp(message, "syntax error, unexpected keyword_end") == 0) {
       code_block_open = TRUE;
     }
-    else if (strcmp(parser->error_buffer[0].message,
-		    "syntax error, unexpected $end, expecting keyword_then or ';' or '\\n'") == 0) {
-      code_block_open = TRUE;
-    }
-    else if (strcmp(parser->error_buffer[0].message,
-		    "syntax error, unexpected tREGEXP_BEG") == 0) {
-      code_block_open = TRUE;
-    }
-    else if (strcmp(parser->error_buffer[0].message,
-		    "unterminated string meets end of file") == 0) {
+    else if (strcmp(message, "syntax error, unexpected tREGEXP_BEG") == 0) {
       code_block_open = TRUE;
     }
   }
