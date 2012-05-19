@@ -4630,6 +4630,11 @@ mrb_parser_parse(parser_state *p)
     p->tree = p->begin_tree = 0;
     return;
   }
+
+  p->cmd_start = TRUE;
+  p->in_def = p->in_single = FALSE;
+  p->nerr = p->nwarn = 0;
+
   yyparse(p);
   tree = p->tree;
   if (!tree) {

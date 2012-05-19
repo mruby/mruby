@@ -27,6 +27,7 @@ is_code_block_open(struct mrb_parser_state *parser)
   case EXPR_BEG:
     /* an expression was just started, */
     /* we can't end it like this */
+    if (parser->nerr == 0) return FALSE;
     code_block_open = TRUE;
     break;
   case EXPR_DOT:
@@ -198,13 +199,13 @@ main(void)
     }
     else {
       if (code_block_open) {
-        strcat(ruby_code, "\n");
         strcat(ruby_code, last_code_line);
       }
       else {
         memset(ruby_code, 0, sizeof(*ruby_code));
         strcat(ruby_code, last_code_line);
       }
+      strcat(ruby_code, "\n");
 
       /* parse code */
       parser->s = ruby_code;
