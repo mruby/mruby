@@ -26,9 +26,7 @@ is_code_block_open(struct mrb_parser_state *parser)
 
   case EXPR_BEG:
     /* an expression was just started, */
-    /* we can't end it like this */
-    if (parser->nerr == 0) return FALSE;
-    code_block_open = TRUE;
+    /* or right after the expresion terminated */
     break;
   case EXPR_DOT:
     /* a message dot was the last token, */
@@ -86,21 +84,13 @@ is_code_block_open(struct mrb_parser_state *parser)
 
     /* now check if parser error are available */
     if (0 < parser->nerr) {
+      const char *unexpected_end = "syntax error, unexpected $end";
       /* a parser error occur, we have to check if */
       /* we need to read one more line or if there is */
       /* a different issue which we have to show to */
       /* the user */
 
-      if (strcmp(parser->error_buffer[0].message,
-          "syntax error, unexpected $end, expecting ';' or '\\n'") == 0) {
-        code_block_open = TRUE;
-      }
-      else if (strcmp(parser->error_buffer[0].message,
-          "syntax error, unexpected $end, expecting keyword_end") == 0) {
-        code_block_open = TRUE;
-      }
-      else if (strcmp(parser->error_buffer[0].message,
-          "syntax error, unexpected $end, expecting '<' or ';' or '\\n'") == 0) {
+      if (strncmp(parser->error_buffer[0].message, unexpected_end, strlen(unexpected_end)) == 0) {
         code_block_open = TRUE;
       }
       else if (strcmp(parser->error_buffer[0].message,
@@ -211,6 +201,7 @@ main(void)
       parser->s = ruby_code;
       parser->send = ruby_code + strlen(ruby_code);
       parser->capture_errors = 1;
+      parser->lineno = 1;
       mrb_parser_parse(parser);
       code_block_open = is_code_block_open(parser); 
 
@@ -220,7 +211,7 @@ main(void)
       else {
         if (0 < parser->nerr) {
           /* syntax error */
-          printf("%s\n", parser->error_buffer[0].message);
+          printf("line %d: %s\n", parser->error_buffer[0].lineno, parser->error_buffer[0].message);
         }
 	else {
           /* generate bytecode */
