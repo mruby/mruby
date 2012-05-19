@@ -4634,6 +4634,7 @@ mrb_parser_parse(parser_state *p)
   p->cmd_start = TRUE;
   p->in_def = p->in_single = FALSE;
   p->nerr = p->nwarn = 0;
+  p->sterm = 0;
 
   yyparse(p);
   tree = p->tree;
