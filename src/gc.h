@@ -11,12 +11,14 @@
 extern "C" {
 #endif
 
+struct free_obj {
+  MRUBY_OBJECT_HEADER;
+  struct RBasic *next;
+};
+
 typedef struct {
   union {
-    struct free_obj {
-      MRUBY_OBJECT_HEADER;
-      struct RBasic *next;
-    } free;
+    struct free_obj free;
     struct RBasic basic;
     struct RObject object;
     struct RClass klass;

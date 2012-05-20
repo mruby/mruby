@@ -191,7 +191,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 } while (0)
 
 static mrb_value
-get_hash(mrb_state *mrb, volatile mrb_value *hash, int argc, const mrb_value *argv)
+get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
 {
   mrb_value tmp;
 
@@ -497,7 +497,7 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
   mrb_value nextvalue;
   mrb_value tmp;
   mrb_value str;
-  volatile mrb_value hash = mrb_undef_value();
+  mrb_value hash = mrb_undef_value();
 
 #define CHECK_FOR_WIDTH(f)                                                  \
   if ((f) & FWIDTH) {                                                       \
@@ -772,7 +772,7 @@ format_s:
     case 'B':
     case 'u':
       {
-        volatile mrb_value val = GETARG();
+        mrb_value val = GETARG();
         char fbuf[32], nbuf[64], *s;
         const char *prefix = 0;
         int sign = 0, dots = 0;

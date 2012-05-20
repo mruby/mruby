@@ -404,7 +404,7 @@ st_delete(register st_table *table, register st_data_t *key, st_data_t *value)
 }
 
 int
-st_foreach(st_table *table, int (*func)(ANYARGS), st_data_t arg)
+st_foreach(st_table *table, enum st_retval (*func)(ANYARGS), st_data_t arg)
 {
     st_table_entry *ptr, **last, *tmp;
     enum st_retval retval;
@@ -572,7 +572,7 @@ numhash(long n)
 }
 
 #if 0
-static int
+static enum st_retval
 f(st_data_t key, st_data_t val, st_data_t a)
 {
   printf("tbl=%p key=%s val=%s\n", (st_table*)a, (char*)key, (char*)val);

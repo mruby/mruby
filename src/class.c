@@ -1003,10 +1003,10 @@ mrb_value
 mrb_mod_alias(mrb_state *mrb, mrb_value mod)
 {
   struct RClass *c = mrb_class_ptr(mod);
-  mrb_value new, old;
+  mrb_value new_value, old_value;
 
-  mrb_get_args(mrb, "oo", &new, &old);
-  mrb_alias_method(mrb, c, mrb_symbol(new), mrb_symbol(old));
+  mrb_get_args(mrb, "oo", &new_value, &old_value);
+  mrb_alias_method(mrb, c, mrb_symbol(new_value), mrb_symbol(old_value));
   return mrb_nil_value();
 }
 

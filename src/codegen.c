@@ -20,14 +20,16 @@
 typedef mrb_ast_node node;
 typedef struct mrb_parser_state parser_state;
 
+enum looptype {
+  LOOP_NORMAL,
+  LOOP_BLOCK,
+  LOOP_FOR,
+  LOOP_BEGIN,
+  LOOP_RESCUE,
+} type;
+
 struct loopinfo {
-  enum looptype {
-    LOOP_NORMAL,
-    LOOP_BLOCK,
-    LOOP_FOR,
-    LOOP_BEGIN,
-    LOOP_RESCUE,
-  } type;
+  enum looptype type;
   int pc1, pc2, pc3, acc;
   int ensure_level;
   struct loopinfo *prev;

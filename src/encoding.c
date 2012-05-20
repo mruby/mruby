@@ -913,11 +913,11 @@ enc_name(mrb_state *mrb, mrb_value self)
 
 struct fn_arg {
   mrb_state *mrb;
-  int (*func)(ANYARGS);
+  enum st_retval (*func)(ANYARGS);
   void *a;
 };
 
-static int
+static enum st_retval
 fn_i(st_data_t key, st_data_t val, st_data_t arg) {
   struct fn_arg *a = (struct fn_arg*)arg;
 
@@ -925,7 +925,7 @@ fn_i(st_data_t key, st_data_t val, st_data_t arg) {
 }
 
 static int
-st_foreachNew(mrb_state *mrb, st_table *tbl, int (*func)(ANYARGS), void *a)
+st_foreachNew(mrb_state *mrb, st_table *tbl, enum st_retval (*func)(ANYARGS), void *a)
 {
   struct fn_arg arg = {
     mrb,
@@ -936,7 +936,7 @@ st_foreachNew(mrb_state *mrb, st_table *tbl, int (*func)(ANYARGS), void *a)
   return st_foreach(tbl, fn_i, (st_data_t)&arg);
 }
 
-static int
+static enum st_retval
 enc_names_i(mrb_state *mrb, st_data_t name, st_data_t idx, st_data_t args)
 {
   mrb_value *arg = (mrb_value *)args;
@@ -1521,7 +1521,7 @@ set_encoding_const(mrb_state *mrb, const char *name, mrb_encoding *enc)
     }
   }
 }
-static int
+static enum st_retval
 mrb_enc_name_list_i(mrb_state *mrb, st_data_t name, st_data_t idx, mrb_value *arg)
 {
     mrb_value ary = *arg;
@@ -1554,7 +1554,7 @@ mrb_enc_name_list(mrb_state *mrb, mrb_value klass)
     return ary;
 }
 
-static int
+static enum st_retval
 mrb_enc_aliases_enc_i(mrb_state *mrb, st_data_t name, st_data_t orig, st_data_t arg)
 {
     mrb_value *p = (mrb_value *)arg;

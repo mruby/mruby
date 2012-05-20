@@ -65,6 +65,12 @@ allocate_converted_string(mrb_state *mrb,
         unsigned char *caller_dst_buf, size_t caller_dst_bufsize,
         size_t *dst_len_ptr);
 
+union mrb_transcoding_state_t { /* opaque data for stateful encoding */
+    void *ptr;
+    char ary[sizeof(double) > sizeof(void*) ? sizeof(double) : sizeof(void*)];
+    double dummy_for_alignment;
+};
+
 /* dynamic structure, one per conversion (similar to iconv_t) */
 /* may carry conversion state (e.g. for iso-2022-jp) */
 typedef struct mrb_transcoding {
@@ -92,11 +98,7 @@ typedef struct mrb_transcoding {
         unsigned char *ptr; /* length: max_output */
     } writebuf;
 
-    union mrb_transcoding_state_t { /* opaque data for stateful encoding */
-        void *ptr;
-        char ary[sizeof(double) > sizeof(void*) ? sizeof(double) : sizeof(void*)];
-        double dummy_for_alignment;
-    } state;
+    union mrb_transcoding_state_t state;
 } mrb_transcoding;
 #define TRANSCODING_READBUF(tc) \
     ((tc)->transcoder->max_input <= (int)sizeof((tc)->readbuf.ary) ? \
@@ -271,7 +273,7 @@ typedef struct {
     const char *base_enc;
 } search_path_bfs_t;
 
-static int
+static enum st_retval
 transcode_search_path_i(st_data_t key, st_data_t val, st_data_t arg)
 {
     const char *dname = (const char *)key;
@@ -577,10 +579,12 @@ transcode_restartable0(mrb_state *mrb,
       switch (mrb_fixnum(next_info) & 0x1F) {
         case NOMAP:
             {
-                const unsigned char *p = inchar_start;
-                writebuf_off = 0;
-                while (p < in_p) {
-                    TRANSCODING_WRITEBUF(tc)[writebuf_off++] = (unsigned char)*p++;
+                {
+                    const unsigned char *p = inchar_start;
+                    writebuf_off = 0;
+                    while (p < in_p) {
+                        TRANSCODING_WRITEBUF(tc)[writebuf_off++] = (unsigned char)*p++;
+                    }
                 }
                 writebuf_len = writebuf_off;
                 writebuf_off = 0;
@@ -1125,16 +1129,16 @@ trans_sweep(mrb_state *mrb, mrb_econv_t *ec,
     int flags,
     int start)
 {
-    int try;
+    int should_try;
     int i, f;
 
     const unsigned char **ipp, *is, *iold;
     unsigned char **opp, *os, *oold;
     mrb_econv_result_t res;
 
-    try = 1;
-    while (try) {
-        try = 0;
+    should_try = 1;
+    while (should_try) {
+        should_try = 0;
         for (i = start; i < ec->num_trans; i++) {
             mrb_econv_elem_t *te = &ec->elems[i];
 
@@ -1177,7 +1181,7 @@ trans_sweep(mrb_state *mrb, mrb_econv_t *ec,
             oold = *opp;
             te->last_result = res = mrb_transcoding_convert(mrb, te->tc, ipp, is, opp, os, f);
             if (iold != *ipp || oold != *opp)
-                try = 1;
+                should_try = 1;
 
             switch (res) {
               case econv_invalid_byte_sequence:
@@ -1795,7 +1799,7 @@ struct asciicompat_encoding_t {
     const char *ascii_incompat_name;
 };
 
-static int
+static enum st_retval
 asciicompat_encoding_i(mrb_state *mrb, st_data_t key, st_data_t val, st_data_t arg)
 {
     struct asciicompat_encoding_t *data = (struct asciicompat_encoding_t *)arg;
@@ -2083,51 +2087,54 @@ make_econv_exception(mrb_state *mrb, mrb_econv_t *ec)
     mrb_value mesg, exc;
     if (ec->last_error.result == econv_invalid_byte_sequence ||
         ec->last_error.result == econv_incomplete_input) {
-        const char *err = (const char *)ec->last_error.error_bytes_start;
-        size_t error_len = ec->last_error.error_bytes_len;
-        mrb_value bytes = mrb_str_new(mrb, err, error_len);
-        mrb_value dumped = mrb_str_dump(mrb, bytes);
-        size_t readagain_len = ec->last_error.readagain_len;
-        mrb_value bytes2 = mrb_nil_value();
-        mrb_value dumped2;
-        int idx;
-        if (ec->last_error.result == econv_incomplete_input) {
-            mesg = mrb_sprintf(mrb, "incomplete %s on %s",
-                    //StringValueCStr(dumped),
-                    mrb_string_value_cstr(mrb, &dumped),
-                    ec->last_error.source_encoding);
+        {
+            const char *err = (const char *)ec->last_error.error_bytes_start;
+            size_t error_len = ec->last_error.error_bytes_len;
+            mrb_value bytes = mrb_str_new(mrb, err, error_len);
+            mrb_value dumped = mrb_str_dump(mrb, bytes);
+            size_t readagain_len = ec->last_error.readagain_len;
+            mrb_value bytes2 = mrb_nil_value();
+            mrb_value dumped2;
+            if (ec->last_error.result == econv_incomplete_input) {
+                mesg = mrb_sprintf(mrb, "incomplete %s on %s",
+                        //StringValueCStr(dumped),
+                        mrb_string_value_cstr(mrb, &dumped),
+                        ec->last_error.source_encoding);
+            }
+            else if (readagain_len) {
+                bytes2 = mrb_str_new(mrb, err+error_len, readagain_len);
+                dumped2 = mrb_str_dump(mrb, bytes2);
+                mesg = mrb_sprintf(mrb, "%s followed by %s on %s",
+                        //StringValueCStr(dumped),
+                        mrb_string_value_cstr(mrb, &dumped),
+                        //StringValueCStr(dumped2),
+                        mrb_string_value_cstr(mrb, &dumped2),
+                        ec->last_error.source_encoding);
+            }
+            else {
+                mesg = mrb_sprintf(mrb, "%s on %s",
+                        //StringValueCStr(dumped),
+                        mrb_string_value_cstr(mrb, &dumped),
+                        ec->last_error.source_encoding);
+            }
+    
+            exc = mrb_exc_new3(mrb, E_INVALIDBYTESEQUENCE_ERROR, mesg);
+            mrb_iv_set(mrb, exc, mrb_intern(mrb, "error_bytes"), bytes);
+            mrb_iv_set(mrb, exc, mrb_intern(mrb, "readagain_bytes"), bytes2);
+            mrb_iv_set(mrb, exc, mrb_intern(mrb, "incomplete_input"), ec->last_error.result == econv_incomplete_input ? mrb_true_value() : mrb_false_value());
         }
-        else if (readagain_len) {
-            bytes2 = mrb_str_new(mrb, err+error_len, readagain_len);
-            dumped2 = mrb_str_dump(mrb, bytes2);
-            mesg = mrb_sprintf(mrb, "%s followed by %s on %s",
-                    //StringValueCStr(dumped),
-                    mrb_string_value_cstr(mrb, &dumped),
-                    //StringValueCStr(dumped2),
-                    mrb_string_value_cstr(mrb, &dumped2),
-                    ec->last_error.source_encoding);
-        }
-        else {
-            mesg = mrb_sprintf(mrb, "%s on %s",
-                    //StringValueCStr(dumped),
-                    mrb_string_value_cstr(mrb, &dumped),
-                    ec->last_error.source_encoding);
-        }
-
-        exc = mrb_exc_new3(mrb, E_INVALIDBYTESEQUENCE_ERROR, mesg);
-        mrb_iv_set(mrb, exc, mrb_intern(mrb, "error_bytes"), bytes);
-        mrb_iv_set(mrb, exc, mrb_intern(mrb, "readagain_bytes"), bytes2);
-        mrb_iv_set(mrb, exc, mrb_intern(mrb, "incomplete_input"), ec->last_error.result == econv_incomplete_input ? mrb_true_value() : mrb_false_value());
 
 set_encs:
         mrb_iv_set(mrb, exc, mrb_intern(mrb, "source_encoding_name"), mrb_str_new2(mrb, ec->last_error.source_encoding));
         mrb_iv_set(mrb, exc, mrb_intern(mrb, "destination_encoding_name"), mrb_str_new2(mrb, ec->last_error.destination_encoding));
-        idx = mrb_enc_find_index(mrb, ec->last_error.source_encoding);
-        if (0 <= idx)
-            mrb_iv_set(mrb, exc, mrb_intern(mrb, "source_encoding"), mrb_enc_from_encoding(mrb, mrb_enc_from_index(mrb, idx)));
-        idx = mrb_enc_find_index(mrb, ec->last_error.destination_encoding);
-        if (0 <= idx)
-            mrb_iv_set(mrb, exc, mrb_intern(mrb, "destination_encoding"), mrb_enc_from_encoding(mrb, mrb_enc_from_index(mrb, idx)));
+        {
+            int idx = mrb_enc_find_index(mrb, ec->last_error.source_encoding);
+            if (0 <= idx)
+                mrb_iv_set(mrb, exc, mrb_intern(mrb, "source_encoding"), mrb_enc_from_encoding(mrb, mrb_enc_from_index(mrb, idx)));
+            idx = mrb_enc_find_index(mrb, ec->last_error.destination_encoding);
+            if (0 <= idx)
+                mrb_iv_set(mrb, exc, mrb_intern(mrb, "destination_encoding"), mrb_enc_from_encoding(mrb, mrb_enc_from_index(mrb, idx)));
+        }
         return exc;
     }
     if (ec->last_error.result == econv_undefined_conversion) {
