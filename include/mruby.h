@@ -81,7 +81,7 @@ typedef struct mrb_value {
 #define mrb_fixnum(o) (o).value.i
 #define mrb_float(o)  (o).value.f
 #define mrb_symbol(o) (o).value.sym
-#define mrb_object(o) ((struct RObject *) (o).value.p)
+#define mrb_object(o) ((struct RBasic *) (o).value.p)
 #define FIXNUM_P(o)   ((o).tt == MRB_TT_FIXNUM)
 #define UNDEF_P(o)    ((o).tt == MRB_TT_UNDEF)
 
@@ -337,7 +337,7 @@ mrb_value mrb_str_format(mrb_state *, int, const mrb_value *, mrb_value);
 void *mrb_malloc(mrb_state*, size_t);
 void *mrb_calloc(mrb_state*, size_t, size_t);
 void *mrb_realloc(mrb_state*, void*, size_t);
-void *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*);
+struct RBasic *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*);
 void *mrb_free(mrb_state*, void*);
 
 mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len); /* mrb_str_new */
@@ -368,11 +368,11 @@ int mrb_gc_arena_save(mrb_state*);
 void mrb_gc_arena_restore(mrb_state*,int);
 void mrb_gc_mark(mrb_state*,struct RBasic*);
 #define mrb_gc_mark_value(mrb,val) do {\
-  if ((val).tt >= MRB_TT_OBJECT) mrb_gc_mark((mrb), (struct RBasic *) mrb_object(val));\
+  if ((val).tt >= MRB_TT_OBJECT) mrb_gc_mark((mrb), mrb_object(val));\
 } while (0);
 void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
 #define mrb_field_write_barrier_value(mrb, obj, val) do{\
-  if ((val.tt >= MRB_TT_OBJECT)) mrb_field_write_barrier((mrb), (obj), (struct RBasic *) mrb_object(val));\
+  if ((val.tt >= MRB_TT_OBJECT)) mrb_field_write_barrier((mrb), (obj), mrb_object(val));\
 } while (0);
 void mrb_write_barrier(mrb_state *, struct RBasic*);
 

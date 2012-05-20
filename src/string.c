@@ -291,12 +291,14 @@ mrb_str_capacity(mrb_value str)
 }
 #endif //INCLUDE_ENCODING
 
+#define mrb_obj_alloc_string(mrb) ((struct RString *) mrb_obj_alloc((mrb), MRB_TT_STRING, (mrb)->string_class))
+
 static inline mrb_value
 str_alloc(mrb_state *mrb)
 {
   struct RString* s;
 
-  s = mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
+  s = mrb_obj_alloc_string(mrb);
   //NEWOBJ(str, struct RString);
   //OBJSETUP(str, klass, T_STRING);
 
@@ -480,7 +482,7 @@ str_new4(mrb_state *mrb, mrb_value str)
 {
   mrb_value str2;
 
-  str2 = mrb_obj_value(mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class));
+  str2 = mrb_obj_value(mrb_obj_alloc_string(mrb));
   RSTRING(str2)->len = RSTRING_LEN(str);
   RSTRING(str2)->buf = RSTRING_PTR(str);
 
@@ -537,7 +539,7 @@ mrb_str_buf_new(mrb_state *mrb, size_t capa)
 {
   struct RString *s;
 
-  s = mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
+  s = mrb_obj_alloc_string(mrb);
 
   if (capa < STR_BUF_MIN_SIZE) {
     capa = STR_BUF_MIN_SIZE;
@@ -607,7 +609,7 @@ mrb_str_new(mrb_state *mrb, const char *p, size_t len)
   if (len == 0) {
     return mrb_str_buf_new(mrb, len);
   }
-  s = mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
+  s = mrb_obj_alloc_string(mrb);
   s->buf = mrb_malloc(mrb, len+1);
   if (p) {
     memcpy(s->buf, p, len);
@@ -655,7 +657,7 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
   struct RString *s;
   size_t len = strlen(p);
 
-  s = mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
+  s = mrb_obj_alloc_string(mrb);
   s->buf = mrb_malloc(mrb, len+1);
   memcpy(s->buf, p, len);
   s->buf[len] = 0;
@@ -1420,7 +1422,7 @@ mrb_str_dup(mrb_state *mrb, mrb_value str)
   struct RString *s = mrb_str_ptr(str);
   struct RString *dup;
 
-  dup = mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
+  dup = mrb_obj_alloc_string(mrb);
   dup->buf = mrb_malloc(mrb, s->len+1);
   if (s->buf) {
     memcpy(dup->buf, s->buf, s->len);

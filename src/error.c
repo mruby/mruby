@@ -183,7 +183,7 @@ exc_equal(mrb_state *mrb, mrb_value exc)
 void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
-    mrb->exc = mrb_object(exc);
+    mrb->exc = (struct RObject *) mrb_object(exc);
     longjmp(*(jmp_buf*)mrb->jmp, 1);
 }
 
