@@ -75,10 +75,10 @@ mrb_gc_mark_ht(mrb_state *mrb, struct RHash *c)
 }
 
 size_t
-mrb_gc_mark_ht_size(mrb_state *mrb, struct RClass *c)
+mrb_gc_mark_ht_size(mrb_state *mrb, struct RHash *c)
 {
   size_t ht_size = 0;
-  khash_t(ht) *h = ((struct RHash*)c)->ht;
+  khash_t(ht) *h = c->ht;
 
   /* ((struct RHash*)c)->ht */
   if (h) ht_size += kh_size(h)*2;
@@ -87,9 +87,9 @@ mrb_gc_mark_ht_size(mrb_state *mrb, struct RClass *c)
 }
 
 void
-mrb_gc_free_ht(mrb_state *mrb, struct RClass *c)
+mrb_gc_free_ht(mrb_state *mrb, struct RHash *c)
 {
-  khash_t(ht) *h = ((struct RHash*)c)->ht;
+  khash_t(ht) *h = c->ht;
 
   kh_destroy(ht, h);
 }
