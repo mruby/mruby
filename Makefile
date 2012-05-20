@@ -29,7 +29,7 @@ all :
 
 # mruby test
 .PHONY : test
-test :
+test : all
 	@$(MAKE) -C test $(MAKE_FLAGS)
 
 # clean up
