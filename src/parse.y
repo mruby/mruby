@@ -1861,7 +1861,6 @@ primary		: literal
 		    }
 		| tLPAREN_ARG expr {p->lstate = EXPR_ENDARG;} rparen
 		    {
-		      yywarning(p, "(...) interpreted as grouped expression");
 		      $$ = $2;
 		    }
 		| tLPAREN compstmt ')'
@@ -2949,8 +2948,12 @@ yywarn(parser_state *p, const char *s)
   size_t n;
 
   if (! p->capture_errors) {
-    fputs(s, stderr);
-    fputs("\n", stderr);
+    if (p->filename) {
+      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column+1, s);
+    }
+    else {
+      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column+1, s);
+    }
   }
   else if (p->nerr < sizeof(p->warn_buffer) / sizeof(p->warn_buffer[0])) {
     n = strlen(s);
@@ -2966,8 +2969,7 @@ yywarn(parser_state *p, const char *s)
 static void
 yywarning(parser_state *p, const char *s)
 {
-  fputs(s, stderr);
-  fputs("\n", stderr);
+  yywarn(p, s);
 }
 
 static void
@@ -4190,6 +4192,7 @@ parser_yylex(parser_state *p)
     }
     else if (IS_SPCARG(-1)) {
       c = tLPAREN_ARG;
+      yywarning(p, "(...) interpreted as grouped expression");
     }
     p->paren_nest++;
     COND_PUSH(0);
