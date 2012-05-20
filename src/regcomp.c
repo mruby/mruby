@@ -3038,19 +3038,21 @@ setup_subexp_call(Node* node, ScanEnv* env)
       Node** nodes = SCANENV_MEM_NODES(env);
 
       if (cn->group_num != 0) {
-        int gnum = cn->group_num;
+        {
+          int gnum = cn->group_num;
 
 #ifdef USE_NAMED_GROUP
-        if (env->num_named > 0 &&
-            IS_SYNTAX_BV(env->syntax, ONIG_SYN_CAPTURE_ONLY_NAMED_GROUP) &&
-            !ONIG_IS_OPTION_ON(env->option, ONIG_OPTION_CAPTURE_GROUP)) {
-          return ONIGERR_NUMBERED_BACKREF_OR_CALL_NOT_ALLOWED;
-        }
+          if (env->num_named > 0 &&
+              IS_SYNTAX_BV(env->syntax, ONIG_SYN_CAPTURE_ONLY_NAMED_GROUP) &&
+              !ONIG_IS_OPTION_ON(env->option, ONIG_OPTION_CAPTURE_GROUP)) {
+            return ONIGERR_NUMBERED_BACKREF_OR_CALL_NOT_ALLOWED;
+          }
 #endif
-        if (gnum > env->num_mem) {
-          onig_scan_env_set_error_string(env,
-                 ONIGERR_UNDEFINED_GROUP_REFERENCE, cn->name, cn->name_end);
-          return ONIGERR_UNDEFINED_GROUP_REFERENCE;
+          if (gnum > env->num_mem) {
+            onig_scan_env_set_error_string(env,
+                   ONIGERR_UNDEFINED_GROUP_REFERENCE, cn->name, cn->name_end);
+            return ONIGERR_UNDEFINED_GROUP_REFERENCE;
+          }
         }
 
 #ifdef USE_NAMED_GROUP
