@@ -4647,7 +4647,7 @@ mrb_parser_parse(parser_state *p)
     }
   }
   else {
-    if ((int)(intptr_t)tree->car == NODE_SCOPE) {
+    if ((intptr_t)tree->car == NODE_SCOPE) {
       p->locals = cons(tree->cdr->car, 0);
     }
     if (p->begin_tree) {
