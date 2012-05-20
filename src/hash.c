@@ -613,9 +613,9 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
         delKey = kh_key(h,k);
         delVal = mrb_hash_delete_key(mrb, hash, delKey);
 
-        result = mrb_hash_new(mrb, 1);
-        k = kh_put(ht, RHASH_TBL(result), KEY(delKey));
-        kh_value(RHASH_TBL(result), k) = delVal;
+        result = mrb_ary_new(mrb);
+        mrb_ary_push(mrb, result, delKey);
+        mrb_ary_push(mrb, result, delVal);
         return result;
       }
     }
