@@ -602,7 +602,6 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
   mrb_value delKey, delVal;
-  mrb_value result;
 
   mrb_hash_modify(mrb, hash);
   if (h) {
@@ -613,10 +612,7 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
         delKey = kh_key(h,k);
         delVal = mrb_hash_delete_key(mrb, hash, delKey);
 
-        result = mrb_ary_new(mrb);
-        mrb_ary_push(mrb, result, delKey);
-        mrb_ary_push(mrb, result, delVal);
-        return result;
+	return mrb_assoc_new(mrb, delKey, delVal);
       }
     }
   }
