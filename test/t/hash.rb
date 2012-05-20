@@ -192,10 +192,10 @@ end
 
 assert('Hash#shift', '15.2.13.4.24') do
   a = { 'abc_key' => 'abc_value', 'cba_key' => 'cba_value' }
-  # TODO Broken ATM (Hash instead of Array
   b = a.shift
 
-  a == { 'abc_key' => 'abc_value' }
+  a == { 'abc_key' => 'abc_value' } and
+    b == [ 'cba_key', 'cba_value' ]
 end
 
 assert('Hash#size', '15.2.13.4.25') do
