@@ -813,7 +813,7 @@ var_reference(parser_state *p, node *lhs)
 %lex-param {parser_state *p}
 
 %union {
-    node *node;
+    node *nd;
     mrb_sym id;
     int num;
     unsigned int stack;
@@ -871,28 +871,28 @@ var_reference(parser_state *p, node *lhs)
 	keyword__ENCODING__
 
 %token <id>   tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL
-%token <node> tINTEGER tFLOAT tCHAR tREGEXP
-%token <node> tSTRING tSTRING_PART
-%token <node> tNTH_REF tBACK_REF
+%token <nd> tINTEGER tFLOAT tCHAR tREGEXP
+%token <nd> tSTRING tSTRING_PART
+%token <nd> tNTH_REF tBACK_REF
 %token <num>  tREGEXP_END
 
-%type <node> singleton string string_interp regexp
-%type <node> literal numeric cpath
-%type <node> top_compstmt top_stmts top_stmt
-%type <node> bodystmt compstmt stmts stmt expr arg primary command command_call method_call
-%type <node> expr_value arg_value primary_value
-%type <node> if_tail opt_else case_body cases opt_rescue exc_list exc_var opt_ensure
-%type <node> args call_args opt_call_args
-%type <node> paren_args opt_paren_args variable
-%type <node> command_args aref_args opt_block_arg block_arg var_ref var_lhs
-%type <node> command_asgn mrhs superclass block_call block_command
-%type <node> f_block_optarg f_block_opt
-%type <node> f_arglist f_args f_arg f_arg_item f_optarg f_marg f_marg_list f_margs
-%type <node> assoc_list assocs assoc undef_list backref for_var
-%type <node> block_param opt_block_param block_param_def f_opt
-%type <node> bv_decls opt_bv_decl bvar f_larglist lambda_body
-%type <node> brace_block cmd_brace_block do_block lhs none fitem f_bad_arg
-%type <node> mlhs mlhs_list mlhs_post mlhs_basic mlhs_item mlhs_node mlhs_inner
+%type <nd> singleton string string_interp regexp
+%type <nd> literal numeric cpath
+%type <nd> top_compstmt top_stmts top_stmt
+%type <nd> bodystmt compstmt stmts stmt expr arg primary command command_call method_call
+%type <nd> expr_value arg_value primary_value
+%type <nd> if_tail opt_else case_body cases opt_rescue exc_list exc_var opt_ensure
+%type <nd> args call_args opt_call_args
+%type <nd> paren_args opt_paren_args variable
+%type <nd> command_args aref_args opt_block_arg block_arg var_ref var_lhs
+%type <nd> command_asgn mrhs superclass block_call block_command
+%type <nd> f_block_optarg f_block_opt
+%type <nd> f_arglist f_args f_arg f_arg_item f_optarg f_marg f_marg_list f_margs
+%type <nd> assoc_list assocs assoc undef_list backref for_var
+%type <nd> block_param opt_block_param block_param_def f_opt
+%type <nd> bv_decls opt_bv_decl bvar f_larglist lambda_body
+%type <nd> brace_block cmd_brace_block do_block lhs none fitem f_bad_arg
+%type <nd> mlhs mlhs_list mlhs_post mlhs_basic mlhs_item mlhs_node mlhs_inner
 %type <id>   fsym sym symbol operation operation2 operation3
 %type <id>   cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg
 
@@ -1007,12 +1007,12 @@ top_stmt	: stmt
 		      if (p->in_def || p->in_single) {
 			yyerror(p, "BEGIN in method");
 		      }
-		      $<node>$ = local_switch(p);
+		      $<nd>$ = local_switch(p);
 		    }
 		  '{' top_compstmt '}'
 		    {
 		      p->begin_tree = push(p->begin_tree, $4);
-		      local_resume(p, $<node>2);
+		      local_resume(p, $<nd>2);
 		      $$ = 0;
 		    }
 		;
@@ -1980,13 +1980,13 @@ primary		: literal
 		    {
 		      if (p->in_def || p->in_single)
 			yyerror(p, "class definition in method body");
-		      $<node>$ = local_switch(p);
+		      $<nd>$ = local_switch(p);
 		    }
 		  bodystmt
 		  keyword_end
 		    {
 		      $$ = new_class(p, $2, $3, $5);
-		      local_resume(p, $<node>4);
+		      local_resume(p, $<nd>4);
 		    }
 		| keyword_class tLSHFT expr
 		    {
@@ -1995,54 +1995,54 @@ primary		: literal
 		    }
 		  term
 		    {
-		      $<node>$ = cons(local_switch(p), (node*)(intptr_t)p->in_single);
+		      $<nd>$ = cons(local_switch(p), (node*)(intptr_t)p->in_single);
 		      p->in_single = 0;
 		    }
 		  bodystmt
 		  keyword_end
 		    {
 		      $$ = new_sclass(p, $3, $7);
-		      local_resume(p, $<node>6->car);
+		      local_resume(p, $<nd>6->car);
 		      p->in_def = $<num>4;
-		      p->in_single = (int)(intptr_t)$<node>6->cdr;
+		      p->in_single = (int)(intptr_t)$<nd>6->cdr;
 		    }
 		| keyword_module cpath
 		    {
 		      if (p->in_def || p->in_single)
 			yyerror(p, "module definition in method body");
-		      $<node>$ = local_switch(p);
+		      $<nd>$ = local_switch(p);
 		    }
 		  bodystmt
 		  keyword_end
 		    {
 		      $$ = new_module(p, $2, $4);
-		      local_resume(p, $<node>3);
+		      local_resume(p, $<nd>3);
 		    }
 		| keyword_def fname
 		    {
 		      p->in_def++;
-		      $<node>$ = local_switch(p);
+		      $<nd>$ = local_switch(p);
 		    }
 		  f_arglist
 		  bodystmt
 		  keyword_end
 		    {
 		      $$ = new_def(p, $2, $4, $5);
-		      local_resume(p, $<node>3);
+		      local_resume(p, $<nd>3);
 		      p->in_def--;
 		    }
 		| keyword_def singleton dot_or_colon {p->lstate = EXPR_FNAME;} fname
 		    {
 		      p->in_single++;
 		      p->lstate = EXPR_ENDFN; /* force for args */
-		      $<node>$ = local_switch(p);
+		      $<nd>$ = local_switch(p);
 		    }
 		  f_arglist
 		  bodystmt
 		  keyword_end
 		    {
 		      $$ = new_sdef(p, $2, $5, $7, $8);
-		      local_resume(p, $<node>6);
+		      local_resume(p, $<nd>6);
 		      p->in_single--;
 		    }
 		| keyword_break
@@ -3355,7 +3355,7 @@ parse_string(parser_state *p, int term)
 	p->lstate = EXPR_BEG;
 	p->sterm = term;
 	p->cmd_start = TRUE;
-	yylval.node = new_str(p, tok(p), toklen(p));
+	yylval.nd = new_str(p, tok(p), toklen(p));
 	return tSTRING_PART;
       }
       tokadd(p, '#');
@@ -3368,7 +3368,7 @@ parse_string(parser_state *p, int term)
   tokfix(p);
   p->lstate = EXPR_END;
   p->sterm = 0;
-  yylval.node = new_str(p, tok(p), toklen(p));
+  yylval.nd = new_str(p, tok(p), toklen(p));
   return tSTRING;
 }
 
@@ -3409,7 +3409,7 @@ parse_qstring(parser_state *p, int term)
   }
 
   tokfix(p);
-  yylval.node = new_str(p, tok(p), toklen(p));
+  yylval.nd = new_str(p, tok(p), toklen(p));
   p->lstate = EXPR_END;
   return tSTRING;
 }
@@ -3717,7 +3717,7 @@ parser_yylex(parser_state *p)
       tokadd(p, c);
     }
     tokfix(p);
-    yylval.node = new_str(p, tok(p), toklen(p));
+    yylval.nd = new_str(p, tok(p), toklen(p));
     p->lstate = EXPR_END;
     return tCHAR;
 
@@ -3894,7 +3894,7 @@ parser_yylex(parser_state *p)
 	    no_digits();
 	  }
 	  else if (nondigit) goto trailing_uc;
-	  yylval.node = new_int(p, tok(p), 16);
+	  yylval.nd = new_int(p, tok(p), 16);
 	  return tINTEGER;
 	}
 	if (c == 'b' || c == 'B') {
@@ -3918,7 +3918,7 @@ parser_yylex(parser_state *p)
 	    no_digits();
 	  }
 	  else if (nondigit) goto trailing_uc;
-	  yylval.node = new_int(p, tok(p), 2);
+	  yylval.nd = new_int(p, tok(p), 2);
 	  return tINTEGER;
 	}
 	if (c == 'd' || c == 'D') {
@@ -3942,7 +3942,7 @@ parser_yylex(parser_state *p)
 	    no_digits();
 	  }
 	  else if (nondigit) goto trailing_uc;
-	  yylval.node = new_int(p, tok(p), 10);
+	  yylval.nd = new_int(p, tok(p), 10);
 	  return tINTEGER;
 	}
 	if (c == '_') {
@@ -3975,7 +3975,7 @@ parser_yylex(parser_state *p)
 	    pushback(p, c);
 	    tokfix(p);
 	    if (nondigit) goto trailing_uc;
-	    yylval.node = new_int(p, tok(p), 8);
+	    yylval.nd = new_int(p, tok(p), 8);
 	    return tINTEGER;
 	  }
 	  if (nondigit) {
@@ -3992,7 +3992,7 @@ parser_yylex(parser_state *p)
 	}
 	else {
 	  pushback(p, c);
-	  yylval.node = new_int(p, "0", 10);
+	  yylval.nd = new_int(p, "0", 10);
 	  return tINTEGER;
 	}
       }
@@ -4069,10 +4069,10 @@ parser_yylex(parser_state *p)
 	  yywarning_s(p, "float %s out of range", tok(p));
 	  errno = 0;
 	}
-	yylval.node = new_float(p, tok(p));
+	yylval.nd = new_float(p, tok(p));
 	return tFLOAT;
       }
-      yylval.node = new_int(p, tok(p), 10);
+      yylval.nd = new_int(p, tok(p), 10);
       return tINTEGER;
     }
 
@@ -4404,7 +4404,7 @@ parser_yylex(parser_state *p)
 	tokadd(p, c);
 	goto gvar;
       }
-      yylval.node = new_back_ref(p, c);
+      yylval.nd = new_back_ref(p, c);
       return tBACK_REF;
 
     case '1': case '2': case '3':
@@ -4417,7 +4417,7 @@ parser_yylex(parser_state *p)
       pushback(p, c);
       if (last_state == EXPR_FNAME) goto gvar;
       tokfix(p);
-      yylval.node = new_nth_ref(p, atoi(tok(p))); 
+      yylval.nd = new_nth_ref(p, atoi(tok(p))); 
       return tNTH_REF;
 
     default:
