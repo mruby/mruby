@@ -65,6 +65,12 @@ allocate_converted_string(mrb_state *mrb,
         unsigned char *caller_dst_buf, size_t caller_dst_bufsize,
         size_t *dst_len_ptr);
 
+union mrb_transcoding_state_t { /* opaque data for stateful encoding */
+    void *ptr;
+    char ary[sizeof(double) > sizeof(void*) ? sizeof(double) : sizeof(void*)];
+    double dummy_for_alignment;
+};
+
 /* dynamic structure, one per conversion (similar to iconv_t) */
 /* may carry conversion state (e.g. for iso-2022-jp) */
 typedef struct mrb_transcoding {
@@ -92,11 +98,7 @@ typedef struct mrb_transcoding {
         unsigned char *ptr; /* length: max_output */
     } writebuf;
 
-    union mrb_transcoding_state_t { /* opaque data for stateful encoding */
-        void *ptr;
-        char ary[sizeof(double) > sizeof(void*) ? sizeof(double) : sizeof(void*)];
-        double dummy_for_alignment;
-    } state;
+    union mrb_transcoding_state_t state;
 } mrb_transcoding;
 #define TRANSCODING_READBUF(tc) \
     ((tc)->transcoder->max_input <= (int)sizeof((tc)->readbuf.ary) ? \
