@@ -123,7 +123,7 @@ mrb_reserved_word (register const char *str, register unsigned int len)
 #line 42 "keywords"
       {"then", {keyword_then, keyword_then}, EXPR_BEG},
 #line 34 "keywords"
-      {"not", {keyword_not, keyword_not}, EXPR_ARG},
+      {"not", {keyword_not, keyword_not}, EXPR_VALUE},
 #line 27 "keywords"
       {"false", {keyword_false, keyword_false}, EXPR_END},
 #line 40 "keywords"
