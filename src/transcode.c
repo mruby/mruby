@@ -1127,16 +1127,16 @@ trans_sweep(mrb_state *mrb, mrb_econv_t *ec,
     int flags,
     int start)
 {
-    int try;
+    int should_try;
     int i, f;
 
     const unsigned char **ipp, *is, *iold;
     unsigned char **opp, *os, *oold;
     mrb_econv_result_t res;
 
-    try = 1;
-    while (try) {
-        try = 0;
+    should_try = 1;
+    while (should_try) {
+        should_try = 0;
         for (i = start; i < ec->num_trans; i++) {
             mrb_econv_elem_t *te = &ec->elems[i];
 
@@ -1179,7 +1179,7 @@ trans_sweep(mrb_state *mrb, mrb_econv_t *ec,
             oold = *opp;
             te->last_result = res = mrb_transcoding_convert(mrb, te->tc, ipp, is, opp, os, f);
             if (iold != *ipp || oold != *opp)
-                try = 1;
+                should_try = 1;
 
             switch (res) {
               case econv_invalid_byte_sequence:
