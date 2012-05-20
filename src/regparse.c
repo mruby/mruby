@@ -416,7 +416,7 @@ typedef st_data_t HashDataType;   /* 1.6 st.h doesn't define st_data_t type */
 #define NAMEBUF_SIZE_1  25
 
 #ifdef ONIG_DEBUG
-static int
+static enum st_retval
 i_print_name_entry(UChar* key, NameEntry* e, void* arg)
 {
   int i;
@@ -451,7 +451,7 @@ onig_print_names(FILE* fp, regex_t* reg)
 }
 #endif /* ONIG_DEBUG */
 
-static int
+static enum st_retval
 i_free_name_entry(UChar* key, NameEntry* e, void* arg ARG_UNUSED)
 {
   xfree(e->name);
@@ -508,7 +508,7 @@ typedef struct {
   OnigEncoding enc;
 } INamesArg;
 
-static int
+static enum st_retval
 i_names(UChar* key ARG_UNUSED, NameEntry* e, INamesArg* arg)
 {
   int r = (*(arg->func))(e->name,
@@ -541,7 +541,7 @@ onig_foreach_name(regex_t* reg,
   return narg.ret;
 }
 
-static int
+static enum st_retval
 i_renumber_name(UChar* key ARG_UNUSED, NameEntry* e, GroupNumRemap* map)
 {
   int i;
@@ -4922,7 +4922,7 @@ static const struct st_hash_type type_type_cclass_hash = {
 static st_table* OnigTypeCClassTable;
 
 
-static int
+static enum st_retval
 i_free_shared_class(type_cclass_key* key, Node* node, void* arg ARG_UNUSED)
 {
   if (IS_NOT_NULL(node)) {

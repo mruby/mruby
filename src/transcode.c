@@ -273,7 +273,7 @@ typedef struct {
     const char *base_enc;
 } search_path_bfs_t;
 
-static int
+static enum st_retval
 transcode_search_path_i(st_data_t key, st_data_t val, st_data_t arg)
 {
     const char *dname = (const char *)key;
@@ -1797,7 +1797,7 @@ struct asciicompat_encoding_t {
     const char *ascii_incompat_name;
 };
 
-static int
+static enum st_retval
 asciicompat_encoding_i(mrb_state *mrb, st_data_t key, st_data_t val, st_data_t arg)
 {
     struct asciicompat_encoding_t *data = (struct asciicompat_encoding_t *)arg;
