@@ -242,7 +242,7 @@ mrb_init_heap(mrb_state *mrb)
 #endif
 }
 
-void*
+struct RBasic*
 mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
 {
   struct RBasic *p;
@@ -270,7 +270,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   p->tt = ttype;
   p->c = cls;
   paint_partial_white(mrb, p);
-  return (void*)p;
+  return p;
 }
 
 static inline void

@@ -55,7 +55,7 @@ mrb_class(mrb_state *mrb, mrb_value v)
     return mrb->nil_class; /* not reach */
 #endif
   default:
-    return ((struct RBasic*)mrb_object(v))->c;
+    return mrb_object(v)->c;
   }
 }
 
