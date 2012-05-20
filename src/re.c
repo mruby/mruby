@@ -88,7 +88,7 @@ mrb_reg_s_new_instance(mrb_state *mrb, /*int argc, mrb_value *argv, */mrb_value 
   struct RRegexp *re;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  re = mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
+  re = (struct RRegexp *) mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
   re->ptr = 0;
   re->src = 0;
   re->usecnt = 0;
@@ -1665,7 +1665,7 @@ match_alloc(mrb_state *mrb)
 {
   struct RMatch* m;
 
-  m = mrb_obj_alloc(mrb, MRB_TT_MATCH, MATCH_CLASS);
+  m = (struct RMatch *) mrb_obj_alloc(mrb, MRB_TT_MATCH, MATCH_CLASS);
 
   m->str    = 0;
   m->rmatch = 0;
@@ -2453,7 +2453,7 @@ mrb_reg_s_alloc(mrb_state *mrb, mrb_value dummy)
 
   //NEWOBJ(re, struct RRegexp);
   //OBJSETUP(re, klass, T_REGEXP);
-  re = mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
+  re = (struct RRegexp *) mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
 
   re->ptr = 0;
   re->src = 0;
