@@ -22,17 +22,18 @@ end
 # iso : The ISO reference code of the feature
 #       which will be tested by this
 #       assertion
-def assert(str = 'Assertion failed', iso = 'No ISO')
+def assert(str = 'Assertion failed', iso = '')
   begin
     if(!yield)
-      $asserts.push([str, iso])
+      $asserts.push(['Fail: ', str, iso])
       $ko_test += 1
       print('F')
     else
       $ok_test += 1
       print('.')
     end
-  rescue
+  rescue => e
+    $asserts.push(['Error: ', str, iso, e])
     $kill_test += 1
     print('X')
   end
@@ -43,9 +44,13 @@ end
 # which were reported broken.
 def report()
   print "\n"
-  $asserts.each do |str, iso|
-    print('Fail: ');
+  $asserts.each do |err, str, iso, e|
+    print(err);
     print_assertion_string(str, iso)
+    if e
+      print(" => ")
+      print(e.message)
+    end
     print("\n")
   end
 
