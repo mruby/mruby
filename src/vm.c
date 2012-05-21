@@ -992,7 +992,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         irep = ci->proc->body.irep;
         pool = irep->pool;
         syms = irep->syms;
-        regs = mrb->stack = mrb->stbase + ci->stackidx;
+        regs = mrb->stack = mrb->stbase + ci[1].stackidx;
         pc = mrb->rescue[--ci->ridx];
       }
       else {
