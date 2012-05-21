@@ -266,8 +266,8 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
 static mrb_value
 mrb_time_gm(mrb_state *mrb, mrb_value self)
 { 
-  mrb_int ayear = 0.0, amonth = 1.0, aday = 1.0, ahour = 0.0, 
-  amin = 0.0, asec = 0.0, ausec = 0.0;
+  mrb_int ayear = 0, amonth = 1, aday = 1, ahour = 0, 
+  amin = 0, asec = 0, ausec = 0;
 
   mrb_get_args(mrb, "iiiiiii",
                 &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
@@ -281,8 +281,8 @@ mrb_time_gm(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_time_local(mrb_state *mrb, mrb_value self)
 { 
-  mrb_int ayear = 0.0, amonth = 1.0, aday = 1.0, ahour = 0.0, 
-  amin = 0.0, asec = 0.0, ausec = 0.0;
+  mrb_int ayear = 0, amonth = 1, aday = 1, ahour = 0, 
+  amin = 0, asec = 0, ausec = 0;
 
   mrb_get_args(mrb, "iiiiiii",
                 &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
