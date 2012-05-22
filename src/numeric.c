@@ -35,6 +35,10 @@
 #define ceil(f) ceilf(f)
 #define floor(f) floorf(f)
 #define fmod(x,y) fmodf(x,y)
+#define fabs(f) fabsf(f)
+#define MRB_FLT_EPSILON __FLT_EPSILON__
+#else
+#define MRB_FLT_EPSILON __DBL_EPSILON__
 #endif
 
 void
@@ -252,7 +256,7 @@ flodivmod(mrb_state *mrb, mrb_float x, mrb_float y, mrb_float *divp, mrb_float *
 {
   mrb_float div, mod;
 
-  if (y == 0.0) mrb_num_zerodiv(mrb);
+  if (fabs(y) < MRB_FLT_EPSILON) mrb_num_zerodiv(mrb);
   mod = fmod(x, y);
   if (isinf(x) && !isinf(y) && !isnan(y))
     div = x;
@@ -355,7 +359,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
     return num_equal(mrb, x, y);
   }
   a = mrb_float(x);
-  return (a == b)?mrb_true_value():mrb_false_value();
+  return (fabs(a - b) < MRB_FLT_EPSILON)?mrb_true_value():mrb_false_value();
 }
 
 /* 15.2.8.3.18 */
@@ -849,7 +853,7 @@ fix_equal(mrb_state *mrb, mrb_value x)
   if (mrb_obj_equal(mrb, x, y)) return mrb_true_value();
   switch (mrb_type(y)) {
   case MRB_TT_FLOAT:
-    if ((mrb_float)mrb_fixnum(x) == mrb_float(y))
+    if (fabs((mrb_float)mrb_fixnum(x) - mrb_float(y)) < MRB_FLT_EPSILON)
       return mrb_true_value();
     /* fall through */
   case MRB_TT_FIXNUM:
