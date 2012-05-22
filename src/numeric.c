@@ -372,7 +372,8 @@ flo_hash(mrb_state *mrb, mrb_value num)
   int i, hash;
 
   d = (mrb_float)mrb_fixnum(num);
-  if (d == 0) d = fabs(d);
+  /* normalize -0.0 to 0.0 */
+  if (d == 0) d = 0.0;
   c = (char*)&d;
   for (hash=0, i=0; i<sizeof(mrb_float);i++) {
     hash = (hash * 971) ^ (unsigned char)c[i];
