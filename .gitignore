@@ -23,3 +23,5 @@ cscope.out
 /test/mrbtest
 /test/mrbtest.c
 /test/*.*tmp
+CMakeFiles
+CMakeCache.txt
