@@ -227,6 +227,7 @@ main(void)
       }
     }
   }
+  mrb_close(mrb_interpreter);
 
   return 0;
 }

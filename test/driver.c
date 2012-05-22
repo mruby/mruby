@@ -55,6 +55,7 @@ main(void)
   else {
     /* no */
   }
+  mrb_close(mrb);
 
   return 0;
 }
