@@ -37,7 +37,7 @@ mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, int excl)
 {
   struct RRange *r;
 
-  r = (struct RRange *) mrb_obj_alloc(mrb, MRB_TT_RANGE, RANGE_CLASS);
+  r = (struct RRange*)mrb_obj_alloc(mrb, MRB_TT_RANGE, RANGE_CLASS);
   r->edges = mrb_malloc(mrb, sizeof(struct mrb_range_edges));
   r->edges->beg = beg;
   r->edges->end = end;

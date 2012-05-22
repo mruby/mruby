@@ -317,8 +317,8 @@ str_end_cmp(st_data_t xp, st_data_t yp)
   const UChar *p, *q;
   int c;
 
-  x = (const st_str_end_key *)xp;
-  y = (const st_str_end_key *)yp;
+  x = (const st_str_end_key*)xp;
+  y = (const st_str_end_key*)yp;
   if ((x->end - x->s) != (y->end - y->s))
     return 1;
 
@@ -337,7 +337,7 @@ str_end_cmp(st_data_t xp, st_data_t yp)
 static st_index_t
 str_end_hash(st_data_t xp)
 {
-  const st_str_end_key *x = (const st_str_end_key *)xp;
+  const st_str_end_key *x = (const st_str_end_key*)xp;
   const UChar *p;
   st_index_t val = 0;
 
@@ -2799,12 +2799,12 @@ onig_syntax_warn(ScanEnv *env, const char *fmt, ...)
     va_start(args, fmt);
     onig_vsnprintf_with_pattern(buf, WARN_BUFSIZE, env->enc,
                 env->pattern, env->pattern_end,
-                (const UChar *)fmt, args);
+                (const UChar*)fmt, args);
     va_end(args);
     if (env->sourcefile == NULL)
-      mrb_warn("%s", (char *)buf);
+      mrb_warn("%s", (char*)buf);
     else
-      mrb_compile_warn(env->sourcefile, env->sourceline, "%s", (char *)buf);
+      mrb_compile_warn(env->sourcefile, env->sourceline, "%s", (char*)buf);
 }
 
 static void

@@ -279,7 +279,7 @@ localjump_error(mrb_state *mrb, const char *kind)
 
   snprintf(buf, 256, "unexpected %s", kind);
   exc = mrb_exc_new(mrb, E_LOCALJUMP_ERROR, buf, strlen(buf));
-  mrb->exc = (struct RObject *) mrb_object(exc);
+  mrb->exc = (struct RObject*)mrb_object(exc);
 }
 
 static void
@@ -298,7 +298,7 @@ argnum_error(mrb_state *mrb, int num)
 	     mrb->ci->argc, num);
   }
   exc = mrb_exc_new(mrb, E_ARGUMENT_ERROR, buf, strlen(buf));
-  mrb->exc = (struct RObject *) mrb_object(exc);
+  mrb->exc = (struct RObject*)mrb_object(exc);
 }
 
 #define SET_TRUE_VALUE(r) {\
@@ -625,7 +625,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_RAISE) {
       /* A      raise(R(A)) */
-      mrb->exc = (struct RObject *) mrb_object(regs[GETARG_A(i)]);
+      mrb->exc = (struct RObject*)mrb_object(regs[GETARG_A(i)]);
       goto L_RAISE;
     }
 
@@ -1573,7 +1573,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       mrb_value msg = pool[GETARG_Bx(i)];
       mrb_value exc = mrb_exc_new3(mrb, mrb->eRuntimeError_class, msg);
 
-      mrb->exc = (struct RObject *) mrb_object(exc);
+      mrb->exc = (struct RObject*)mrb_object(exc);
       goto L_RAISE;
     }
   }

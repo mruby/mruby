@@ -191,7 +191,7 @@ make_transcoder_entry(const char *sname, const char *dname)
         val = (st_data_t)st_init_strcasetable();
         st_add_direct(transcoder_table, (st_data_t)sname, val);
     }
-    table2 = (st_table *)val;
+    table2 = (st_table*)val;
     if (!st_lookup(table2, (st_data_t)dname, &val)) {
         transcoder_entry_t *entry = malloc(sizeof(transcoder_entry_t));
         entry->sname = sname;
@@ -201,7 +201,7 @@ make_transcoder_entry(const char *sname, const char *dname)
         val = (st_data_t)entry;
         st_add_direct(table2, (st_data_t)dname, val);
     }
-    return (transcoder_entry_t *)val;
+    return (transcoder_entry_t*)val;
 }
 
 static transcoder_entry_t *
@@ -213,11 +213,11 @@ get_transcoder_entry(const char *sname, const char *dname)
     if (!st_lookup(transcoder_table, (st_data_t)sname, &val)) {
         return NULL;
     }
-    table2 = (st_table *)val;
+    table2 = (st_table*)val;
     if (!st_lookup(table2, (st_data_t)dname, &val)) {
         return NULL;
     }
-    return (transcoder_entry_t *)val;
+    return (transcoder_entry_t*)val;
 }
 
 void
@@ -276,8 +276,8 @@ typedef struct {
 static enum st_retval
 transcode_search_path_i(st_data_t key, st_data_t val, st_data_t arg)
 {
-    const char *dname = (const char *)key;
-    search_path_bfs_t *bfs = (search_path_bfs_t *)arg;
+    const char *dname = (const char*)key;
+    search_path_bfs_t *bfs = (search_path_bfs_t*)arg;
     search_path_queue_t *q;
 
     if (st_lookup(bfs->visited, (st_data_t)dname, &val)) {
@@ -328,7 +328,7 @@ transcode_search_path(mrb_state *mrb, const char *sname, const char *dname,
             xfree(q);
             continue;
         }
-        table2 = (st_table *)val;
+        table2 = (st_table*)val;
 
         if (st_lookup(table2, (st_data_t)dname, &val)) {
             st_add_direct(bfs.visited, (st_data_t)dname, (st_data_t)q->enc);
@@ -361,7 +361,7 @@ transcode_search_path(mrb_state *mrb, const char *sname, const char *dname,
             if (!val)
                 break;
             pathlen++;
-            enc = (const char *)val;
+            enc = (const char*)val;
         }
         depth = pathlen;
         enc = dname;
@@ -369,8 +369,8 @@ transcode_search_path(mrb_state *mrb, const char *sname, const char *dname,
             st_lookup(bfs.visited, (st_data_t)enc, &val);
             if (!val)
                 break;
-            callback(mrb, (const char *)val, enc, --depth, arg);
-            enc = (const char *)val;
+            callback(mrb, (const char*)val, enc, --depth, arg);
+            enc = (const char*)val;
         }
     }
 
@@ -1037,7 +1037,7 @@ mrb_econv_open0(mrb_state *mrb, const char *sname, const char *dname, int ecflag
         struct trans_open_t toarg;
         toarg.entries = NULL;
         toarg.num_additional = 0;
-        num_trans = transcode_search_path(mrb, sname, dname, trans_open_i, (void *)&toarg);
+        num_trans = transcode_search_path(mrb, sname, dname, trans_open_i, (void*)&toarg);
         entries = toarg.entries;
         if (num_trans < 0) {
             xfree(entries);
@@ -1457,7 +1457,7 @@ output_hex_charref(mrb_state *mrb, mrb_econv_t *ec)
         u += p[3];
         snprintf(charef_buf, sizeof(charef_buf), "&#x%X;", u);
 
-        ret = mrb_econv_insert_output(mrb, ec, (unsigned char *)charef_buf, strlen(charef_buf), "US-ASCII");
+        ret = mrb_econv_insert_output(mrb, ec, (unsigned char*)charef_buf, strlen(charef_buf), "US-ASCII");
         if (ret == -1)
             goto fail;
 
@@ -1466,12 +1466,12 @@ output_hex_charref(mrb_state *mrb, mrb_econv_t *ec)
     }
 
     if (utf_allocated)
-        xfree((void *)utf);
+        xfree((void*)utf);
     return 0;
 
   fail:
     if (utf_allocated)
-        xfree((void *)utf);
+        xfree((void*)utf);
     return -1;
 }
 
@@ -1738,7 +1738,7 @@ mrb_econv_close(mrb_econv_t *ec)
     int i;
 
     if (ec->replacement_allocated) {
-        xfree((void *)ec->replacement_str);
+        xfree((void*)ec->replacement_str);
     }
     for (i = 0; i < ec->num_trans; i++) {
         mrb_transcoding_close(ec->elems[i].tc);
@@ -1802,8 +1802,8 @@ struct asciicompat_encoding_t {
 static enum st_retval
 asciicompat_encoding_i(mrb_state *mrb, st_data_t key, st_data_t val, st_data_t arg)
 {
-    struct asciicompat_encoding_t *data = (struct asciicompat_encoding_t *)arg;
-    transcoder_entry_t *entry = (transcoder_entry_t *)val;
+    struct asciicompat_encoding_t *data = (struct asciicompat_encoding_t*)arg;
+    transcoder_entry_t *entry = (transcoder_entry_t*)val;
     const mrb_transcoder *tr;
 
     if (DECORATOR_P(entry->sname, entry->dname))
@@ -1825,7 +1825,7 @@ mrb_econv_asciicompat_encoding(const char *ascii_incompat_name)
 
     if (!st_lookup(transcoder_table, (st_data_t)ascii_incompat_name, &v))
         return NULL;
-    table2 = (st_table *)v;
+    table2 = (st_table*)v;
 
     /*
      * Assumption:
@@ -1872,9 +1872,9 @@ mrb_econv_substr_append(mrb_state *mrb, mrb_econv_t *ec, mrb_value src, long off
             mrb_str_resize(mrb, dst, new_capa);
             mrb_str_set_len(mrb, dst, dlen);
         }
-        ss = sp = (const unsigned char *)RSTRING_PTR(src) + off;
+        ss = sp = (const unsigned char*)RSTRING_PTR(src) + off;
         se = ss + len;
-        ds = (unsigned char *)RSTRING_PTR(dst);
+        ds = (unsigned char*)RSTRING_PTR(dst);
         de = ds + mrb_str_capacity(dst);
         dp = ds += dlen;
         res = mrb_econv_convert(mrb, ec, &sp, se, &dp, de, flags);
@@ -2088,7 +2088,7 @@ make_econv_exception(mrb_state *mrb, mrb_econv_t *ec)
     if (ec->last_error.result == econv_invalid_byte_sequence ||
         ec->last_error.result == econv_incomplete_input) {
         {
-            const char *err = (const char *)ec->last_error.error_bytes_start;
+            const char *err = (const char*)ec->last_error.error_bytes_start;
             size_t error_len = ec->last_error.error_bytes_len;
             mrb_value bytes = mrb_str_new(mrb, err, error_len);
             mrb_value dumped = mrb_str_dump(mrb, bytes);
@@ -2138,7 +2138,7 @@ set_encs:
         return exc;
     }
     if (ec->last_error.result == econv_undefined_conversion) {
-        mrb_value bytes = mrb_str_new(mrb, (const char *)ec->last_error.error_bytes_start,
+        mrb_value bytes = mrb_str_new(mrb, (const char*)ec->last_error.error_bytes_start,
                                  ec->last_error.error_bytes_len);
         mrb_value dumped = mrb_nil_value();
         int idx;
@@ -2146,7 +2146,7 @@ set_encs:
             mrb_encoding *utf8 = mrb_utf8_encoding(mrb);
             const char *start, *end;
             int n;
-            start = (const char *)ec->last_error.error_bytes_start;
+            start = (const char*)ec->last_error.error_bytes_start;
             end = start + ec->last_error.error_bytes_len;
             n = mrb_enc_precise_mbclen(start, end, utf8);
             if (MBCLEN_CHARFOUND_P(n) &&
@@ -2227,10 +2227,10 @@ make_replacement(mrb_state *mrb, mrb_econv_t *ec)
     if (*ins_enc) {
         tr = tc->transcoder;
         enc = mrb_enc_find(mrb, tr->dst_encoding);
-        replacement = (const unsigned char *)get_replacement_character(ins_enc, &len, &repl_enc);
+        replacement = (const unsigned char*)get_replacement_character(ins_enc, &len, &repl_enc);
     }
     else {
-        replacement = (unsigned char *)"?";
+        replacement = (unsigned char*)"?";
         len = 1;
         repl_enc = "";
     }
@@ -2265,7 +2265,7 @@ mrb_econv_set_replacement(mrb_state *mrb, mrb_econv_t *ec,
     }
 
     if (ec->replacement_allocated) {
-        xfree((void *)ec->replacement_str);
+        xfree((void*)ec->replacement_str);
     }
     ec->replacement_allocated = 1;
     ec->replacement_str = str2;
@@ -2324,14 +2324,14 @@ transcode_loop(mrb_state *mrb,
 
     if (!mrb_nil_p(fallback) && ret == econv_undefined_conversion) {
       mrb_value rep = mrb_enc_str_new(mrb,
-            (const char *)ec->last_error.error_bytes_start,
+            (const char*)ec->last_error.error_bytes_start,
             ec->last_error.error_bytes_len,
             mrb_enc_find(mrb, ec->last_error.source_encoding));
       rep = mrb_hash_getWithDef(mrb, fallback, rep, Qundef);//mrb_hash_lookup2(fallback, rep, Qundef);
       if (!mrb_obj_equal(mrb, rep, Qundef)) {
           //StringValue(rep);
           mrb_string_value(mrb, &rep);
-          ret = mrb_econv_insert_output(mrb, ec, (const unsigned char *)RSTRING_PTR(rep),
+          ret = mrb_econv_insert_output(mrb, ec, (const unsigned char*)RSTRING_PTR(rep),
                 RSTRING_LEN(rep), mrb_enc_name(mrb_enc_get(mrb, rep)));
           if ((int)ret == -1) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "too big fallback string");
@@ -2365,7 +2365,7 @@ static unsigned char *
 str_transcoding_resize(mrb_state *mrb, mrb_value destination, size_t len, size_t new_len)
 {
     mrb_str_resize(mrb, destination, new_len);
-    return (unsigned char *)RSTRING_PTR(destination);
+    return (unsigned char*)RSTRING_PTR(destination);
 }
 
 static int
@@ -2500,7 +2500,7 @@ mrb_econv_open_opts(mrb_state *mrb, const char *source_encoding, const char *des
         mrb_encoding *enc = mrb_enc_get(mrb, replacement);
 
         ret = mrb_econv_set_replacement(mrb, ec,
-                (const unsigned char *)RSTRING_PTR(replacement),
+                (const unsigned char*)RSTRING_PTR(replacement),
                 RSTRING_LEN(replacement),
                 mrb_enc_name(enc));
         if (ret == -1) {
@@ -2627,17 +2627,17 @@ str_transcode0(mrb_state *mrb, int argc, mrb_value *argv, mrb_value *self, int e
         }
     }
 
-    fromp = sp = (unsigned char *)RSTRING_PTR(str);
+    fromp = sp = (unsigned char*)RSTRING_PTR(str);
     slen = RSTRING_LEN(str);
     blen = slen + 30; /* len + margin */
     dest = mrb_str_tmp_new(mrb, blen);
-    bp = (unsigned char *)RSTRING_PTR(dest);
+    bp = (unsigned char*)RSTRING_PTR(dest);
 
     transcode_loop(mrb, &fromp, &bp, (sp+slen), (bp+blen), dest, str_transcoding_resize, sname, dname, ecflags, ecopts);
     if (fromp != sp+slen) {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "not fully converted, %td bytes left", sp+slen-fromp);
     }
-    buf = (unsigned char *)RSTRING_PTR(dest);
+    buf = (unsigned char*)RSTRING_PTR(dest);
     *bp = '\0';
     mrb_str_set_len(mrb, dest, bp - buf);
 
@@ -3081,7 +3081,7 @@ struct mrb_econv_init_by_convpath_t {
 static void
 mrb_econv_init_by_convpath_i(mrb_state *mrb, const char *sname, const char *dname, int depth, void *arg)
 {
-    struct mrb_econv_init_by_convpath_t *a = (struct mrb_econv_init_by_convpath_t *)arg;
+    struct mrb_econv_init_by_convpath_t *a = (struct mrb_econv_init_by_convpath_t*)arg;
     int ret;
 
     if (a->ret == -1)
@@ -3528,17 +3528,17 @@ mrb_value econv_primitive_cnvproc(mrb_state *mrb, int argc, mrb_value *argv, mrb
         ip = is = NULL;
     }
     else {
-        ip = (const unsigned char *)RSTRING_PTR(input);
+        ip = (const unsigned char*)RSTRING_PTR(input);
         is = ip + RSTRING_LEN(input);
     }
 
-    op = (unsigned char *)RSTRING_PTR(output) + output_byteoffset;
+    op = (unsigned char*)RSTRING_PTR(output) + output_byteoffset;
     os = op + output_bytesize;
 
     res = mrb_econv_convert(mrb, ec, &ip, is, &op, os, flags);
-    mrb_str_set_len(mrb, output, op-(unsigned char *)RSTRING_PTR(output));
+    mrb_str_set_len(mrb, output, op-(unsigned char*)RSTRING_PTR(output));
     if (!mrb_nil_p(input))
-        mrb_str_drop_bytes(mrb, input, ip - (unsigned char *)RSTRING_PTR(input));
+        mrb_str_drop_bytes(mrb, input, ip - (unsigned char*)RSTRING_PTR(input));
 
     if (mrb_nil_p(output_bytesize_v) && res == econv_destination_buffer_full) {
         if (LONG_MAX / 2 < output_bytesize)
@@ -3870,10 +3870,10 @@ econv_primitive_errinfo(mrb_state *mrb, mrb_value self)
         mrb_ary_set(mrb, ary, 2, mrb_str_new2(mrb, ec->last_error.destination_encoding));//rb_ary_store(ary, 2, mrb_str_new2(mrb, ec->last_error.destination_encoding));
 
     if (ec->last_error.error_bytes_start) {
-        //rb_ary_store(ary, 3, mrb_str_new(mrb, (const char *)ec->last_error.error_bytes_start, ec->last_error.error_bytes_len));
-        mrb_ary_set(mrb, ary, 3, mrb_str_new(mrb, (const char *)ec->last_error.error_bytes_start, ec->last_error.error_bytes_len));
-        //rb_ary_store(ary, 4, mrb_str_new(mrb, (const char *)ec->last_error.error_bytes_start + ec->last_error.error_bytes_len, ec->last_error.readagain_len));
-        mrb_ary_set(mrb, ary, 4, mrb_str_new(mrb, (const char *)ec->last_error.error_bytes_start + ec->last_error.error_bytes_len, ec->last_error.readagain_len));
+        //rb_ary_store(ary, 3, mrb_str_new(mrb, (const char*)ec->last_error.error_bytes_start, ec->last_error.error_bytes_len));
+        mrb_ary_set(mrb, ary, 3, mrb_str_new(mrb, (const char*)ec->last_error.error_bytes_start, ec->last_error.error_bytes_len));
+        //rb_ary_store(ary, 4, mrb_str_new(mrb, (const char*)ec->last_error.error_bytes_start + ec->last_error.error_bytes_len, ec->last_error.readagain_len));
+        mrb_ary_set(mrb, ary, 4, mrb_str_new(mrb, (const char*)ec->last_error.error_bytes_start + ec->last_error.error_bytes_len, ec->last_error.readagain_len));
     }
 
     return ary;
@@ -3927,7 +3927,7 @@ econv_insert_output(mrb_state *mrb, mrb_value self)
     insert_enc = mrb_econv_encoding_to_insert_output(ec);
     string = mrb_str_encode(mrb, string, mrb_enc_from_encoding(mrb, mrb_enc_find(mrb, insert_enc)), 0, mrb_nil_value());
 
-    ret = mrb_econv_insert_output(mrb, ec, (const unsigned char *)RSTRING_PTR(string), RSTRING_LEN(string), insert_enc);
+    ret = mrb_econv_insert_output(mrb, ec, (const unsigned char*)RSTRING_PTR(string), RSTRING_LEN(string), insert_enc);
     if (ret == -1) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "too big string");
     }
@@ -3984,7 +3984,7 @@ econv_putback(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value self)
   }
 
   str = mrb_str_new(mrb, NULL, n);
-  mrb_econv_putback(ec, (unsigned char *)RSTRING_PTR(str), n);
+  mrb_econv_putback(ec, (unsigned char*)RSTRING_PTR(str), n);
 
   if (ec->source_encoding) {
     mrb_enc_associate(mrb, str, ec->source_encoding);
@@ -4050,7 +4050,7 @@ econv_get_replacement(mrb_state *mrb, mrb_value self)
     }
 
     enc = mrb_enc_find(mrb, ec->replacement_enc);
-    return mrb_enc_str_new(mrb, (const char *)ec->replacement_str, (long)ec->replacement_len, enc);
+    return mrb_enc_str_new(mrb, (const char*)ec->replacement_str, (long)ec->replacement_len, enc);
 }
 
 /*
@@ -4078,7 +4078,7 @@ econv_set_replacement(mrb_state *mrb, mrb_value self)
   enc = mrb_enc_get(mrb, string);
 
   ret = mrb_econv_set_replacement(mrb, ec,
-          (const unsigned char *)RSTRING_PTR(string),
+          (const unsigned char*)RSTRING_PTR(string),
           RSTRING_LEN(string),
           mrb_enc_name(enc));
 

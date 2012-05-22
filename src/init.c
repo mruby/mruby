@@ -22,15 +22,15 @@ void mrb_init_string(mrb_state*);
 void mrb_init_regexp(mrb_state*);
 void mrb_init_encoding(mrb_state*);
 void mrb_init_exception(mrb_state*);
-void mrb_init_time(mrb_state *);
-void mrb_init_io(mrb_state *);
-void mrb_init_file(mrb_state *);
-void mrb_init_thread(mrb_state *);
-void mrb_init_struct(mrb_state *);
-void mrb_init_gc(mrb_state *);
-void mrb_init_print(mrb_state *mrb);
-void mrb_init_mrblib(mrb_state *mrb);
-void mrb_init_math(mrb_state *mrb);
+void mrb_init_time(mrb_state*);
+void mrb_init_io(mrb_state*);
+void mrb_init_file(mrb_state*);
+void mrb_init_thread(mrb_state*);
+void mrb_init_struct(mrb_state*);
+void mrb_init_gc(mrb_state*);
+void mrb_init_print(mrb_state*);
+void mrb_init_mrblib(mrb_state*);
+void mrb_init_math(mrb_state*);
 
 void
 mrb_init_core(mrb_state *mrb)

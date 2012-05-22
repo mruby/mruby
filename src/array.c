@@ -49,7 +49,7 @@ mrb_ary_new_capa(mrb_state *mrb, size_t capa)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "ary size too big");
   }
 
-  a = (struct RArray *) mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
+  a = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
   a->buf = mrb_malloc(mrb, blen);
   memset(a->buf, 0, blen);
   a->capa = capa;

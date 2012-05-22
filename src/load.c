@@ -319,7 +319,7 @@ read_rite_header(mrb_state *mrb, unsigned char *bin, rite_binary_header*  bin_he
     return MRB_DUMP_INVALID_FILE_HEADER;    //Instruction set version check
   }
 
-  crc = calc_crc_16_ccitt((unsigned char *)bin_header, sizeof(*bin_header));   //Calculate CRC
+  crc = calc_crc_16_ccitt((unsigned char*)bin_header, sizeof(*bin_header));   //Calculate CRC
   if (crc != bin_to_uint16(bin)) {
     return MRB_DUMP_INVALID_FILE_HEADER;    //CRC error
   }
@@ -376,7 +376,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
       src += MRB_DUMP_SIZE_OF_LONG;
     }
   }
-  crc = calc_crc_16_ccitt((unsigned char *)pStart, src - pStart);     //Calculate CRC
+  crc = calc_crc_16_ccitt((unsigned char*)pStart, src - pStart);     //Calculate CRC
   if (crc != bin_to_uint16(src)) {          //iseq CRC
     ret = MRB_DUMP_INVALID_IREP;
     goto error_exit;
@@ -439,7 +439,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
       }
     }
   }
-  crc = calc_crc_16_ccitt((unsigned char *)pStart, src - pStart);     //Calculate CRC
+  crc = calc_crc_16_ccitt((unsigned char*)pStart, src - pStart);     //Calculate CRC
   if (crc != bin_to_uint16(src)) {          //pool CRC
     ret = MRB_DUMP_INVALID_IREP;
     goto error_exit;
@@ -480,7 +480,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
       irep->syms[i] = mrb_intern(mrb, buf);
     }
   }
-  crc = calc_crc_16_ccitt((unsigned char *)pStart, src - pStart);     //Calculate CRC
+  crc = calc_crc_16_ccitt((unsigned char*)pStart, src - pStart);     //Calculate CRC
   if (crc != bin_to_uint16(src)) {           //syms CRC
     ret = MRB_DUMP_INVALID_IREP;
     goto error_exit;

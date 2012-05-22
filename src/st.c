@@ -29,7 +29,7 @@ static struct st_hash_type type_numhash = {
 };
 
 /* extern int strcmp(const char *, const char *); */
-static st_index_t strhash(const char *);
+static st_index_t strhash(const char*);
 static struct st_hash_type type_strhash = {
     strcmp,
     strhash,
@@ -41,7 +41,7 @@ static const struct st_hash_type type_strcasehash = {
     strcasehash,
 };
 
-static void rehash(st_table *);
+static void rehash(st_table*);
 
 #ifdef RUBY
 #define malloc xmalloc
@@ -542,7 +542,7 @@ st_strncasecmp(const char *s1, const char *s2, size_t n)
 static st_index_t
 strcasehash(st_data_t arg)
 {
-    register const char *string = (const char *)arg;
+    register const char *string = (const char*)arg;
     register st_index_t hval = FNV1_32A_INIT;
 
     /*

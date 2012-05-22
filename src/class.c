@@ -108,7 +108,7 @@ make_metaclass(mrb_state *mrb, struct RClass *c)
   if (c->c->tt == MRB_TT_SCLASS) {
     return;
   }
-  sc = (struct RClass *) mrb_obj_alloc(mrb, MRB_TT_SCLASS, mrb->class_class);
+  sc = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_SCLASS, mrb->class_class);
   sc->mt = 0;
   if (!c->super) {
     sc->super = mrb->class_class;
@@ -500,7 +500,7 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
 {
   struct RClass *c;
 
-  c = (struct RClass *) mrb_obj_alloc(mrb, MRB_TT_CLASS, mrb->class_class);
+  c = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_CLASS, mrb->class_class);
   c->super = super ? super : mrb->object_class;
   mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)super);
   c->mt = kh_init(mt, mrb);
@@ -512,7 +512,7 @@ mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
   struct RClass *ic;
 
-  ic = (struct RClass *) mrb_obj_alloc(mrb, MRB_TT_ICLASS, mrb->class_class);
+  ic = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, mrb->class_class);
   ic->c = m;
   ic->mt = m->mt;
   ic->iv = m->iv;
@@ -540,7 +540,7 @@ mrb_singleton_class_ptr(mrb_state *mrb, struct RClass *c)
   if (c->tt == MRB_TT_SCLASS) {
     return c;
   }
-  sc = (struct RClass *) mrb_obj_alloc(mrb, MRB_TT_SCLASS, mrb->class_class);
+  sc = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_SCLASS, mrb->class_class);
   sc->mt = 0;
   sc->super = c;
   mrb_field_write_barrier(mrb, (struct RBasic*)sc, (struct RBasic*)c);
@@ -668,7 +668,7 @@ mrb_value
 mrb_class_new_instance(mrb_state *mrb, int argc, mrb_value *argv, struct RClass * klass)
 {
   mrb_value obj;
-  struct RClass * c = (struct RClass *) mrb_obj_alloc(mrb, klass->tt, klass);
+  struct RClass * c = (struct RClass*)mrb_obj_alloc(mrb, klass->tt, klass);
   c->super = klass;
   obj = mrb_obj_value(c);
   mrb_obj_call_init(mrb, obj, argc, argv);
@@ -686,7 +686,7 @@ mrb_class_new_instance_m(mrb_state *mrb, mrb_value klass)
   mrb_value obj;
 
   mrb_get_args(mrb, "b*", &b, &argv, &argc);
-  c = (struct RClass *) mrb_obj_alloc(mrb, k->tt, k);
+  c = (struct RClass*)mrb_obj_alloc(mrb, k->tt, k);
   c->super = k;
   obj = mrb_obj_value(c);
   mrb_funcall_with_block(mrb, obj, "initialize", argc, argv, b);
@@ -706,7 +706,7 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
   int argc;
 
   if (ttype == 0) ttype = MRB_TT_OBJECT;
-  o = (struct RObject *) mrb_obj_alloc(mrb, ttype, c);
+  o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);
   obj = mrb_obj_value(o);
   mrb_get_args(mrb, "b*", &b, &argv, &argc);
   mrb_funcall_with_block(mrb, obj, "initialize", argc, argv, b);
@@ -895,7 +895,7 @@ mrb_class_new(mrb_state *mrb, struct RClass *super)
 struct RClass *
 mrb_module_new(mrb_state *mrb)
 {
-  struct RClass *m = (struct RClass *) mrb_obj_alloc(mrb, MRB_TT_MODULE, mrb->module_class);
+  struct RClass *m = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_MODULE, mrb->module_class);
 
   return m;
 }

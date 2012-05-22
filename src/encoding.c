@@ -274,8 +274,8 @@ enc_register(mrb_state *mrb, const char *name, mrb_encoding *encoding)
     return enc_register_at(mrb, index - 1, name, encoding);
 }
 
-static void set_encoding_const(mrb_state *mrb, const char *, mrb_encoding *);
-int mrb_enc_registered(const char *name);
+static void set_encoding_const(mrb_state *, const char*, mrb_encoding*);
+int mrb_enc_registered(const char*);
 
 static void
 enc_check_duplication(mrb_state *mrb, const char *name)
@@ -939,11 +939,11 @@ st_foreachNew(mrb_state *mrb, st_table *tbl, enum st_retval (*func)(ANYARGS), vo
 static enum st_retval
 enc_names_i(mrb_state *mrb, st_data_t name, st_data_t idx, st_data_t args)
 {
-  mrb_value *arg = (mrb_value *)args;
+  mrb_value *arg = (mrb_value*)args;
   int iargs = mrb_fixnum(arg[0]);
   //if ((int)idx == (int)arg[0]) {
   if ((int)idx == iargs) {
-    mrb_value str = mrb_usascii_str_new2(mrb, (char *)name);
+    mrb_value str = mrb_usascii_str_new2(mrb, (char*)name);
     //OBJ_FREEZE(str);
     mrb_ary_push(mrb, arg[1], str);
   }
@@ -992,7 +992,7 @@ enc_names(mrb_state *mrb, mrb_value self)
 static mrb_value
 enc_list(mrb_state *mrb, mrb_value klass)
 {
-    struct RArray *ar = (struct RArray *)mrb_encoding_list.value.p;
+    struct RArray *ar = (struct RArray*)mrb_encoding_list.value.p;
     mrb_value ary = mrb_ary_new_capa(mrb, 0);//mrb_ary_new2(0);
     //mrb_ary_replace_m(mrb, ary/*, mmrb_encoding_list*/);
     mrb_ary_replace(mrb, mrb_ary_ptr(ary), ar->buf, enc_table.count);
@@ -1473,7 +1473,7 @@ static void
 set_encoding_const(mrb_state *mrb, const char *name, mrb_encoding *enc)
 {
   mrb_value encoding = mrb_enc_from_encoding(mrb, enc);
-  char *s = (char *)name;
+  char *s = (char*)name;
   int haslower = 0, hasupper = 0, valid = 0;
 
   if (ISDIGIT(*s)) return;
@@ -1514,7 +1514,7 @@ set_encoding_const(mrb_state *mrb, const char *name, mrb_encoding *enc)
       }
     }
     if (haslower) {
-      for (s = (char *)name; *s; ++s) {
+      for (s = (char*)name; *s; ++s) {
       if (ISLOWER(*s)) *s = ONIGENC_ASCII_CODE_TO_UPPER_CASE((int)*s);
       }
       mrb_define_const(mrb, ENCODE_CLASS, name, encoding);
@@ -1525,7 +1525,7 @@ static enum st_retval
 mrb_enc_name_list_i(mrb_state *mrb, st_data_t name, st_data_t idx, mrb_value *arg)
 {
     mrb_value ary = *arg;
-    mrb_value str = mrb_usascii_str_new2(mrb, (char *)name);
+    mrb_value str = mrb_usascii_str_new2(mrb, (char*)name);
     //OBJ_FREEZE(str);
     mrb_ary_push(mrb, ary, str);
     return ST_CONTINUE;
@@ -1557,7 +1557,7 @@ mrb_enc_name_list(mrb_state *mrb, mrb_value klass)
 static enum st_retval
 mrb_enc_aliases_enc_i(mrb_state *mrb, st_data_t name, st_data_t orig, st_data_t arg)
 {
-    mrb_value *p = (mrb_value *)arg;
+    mrb_value *p = (mrb_value*)arg;
     mrb_value aliases = p[0], ary = p[1];
     int idx = (int)orig;
     mrb_value key, str = mrb_ary_ref(mrb, ary, idx);//mrb_ary_entry(ary, idx);
@@ -1573,7 +1573,7 @@ mrb_enc_aliases_enc_i(mrb_state *mrb, st_data_t name, st_data_t orig, st_data_t 
     OBJ_FREEZE(str);
     mrb_ary_set(mrb, ary, idx, str);//rb_ary_store(ary, idx, str);
     }
-    key = mrb_usascii_str_new2(mrb, (char *)name);
+    key = mrb_usascii_str_new2(mrb, (char*)name);
     OBJ_FREEZE(key);
     mrb_hash_set(mrb, aliases, key, str);
     return ST_CONTINUE;

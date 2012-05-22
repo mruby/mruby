@@ -49,9 +49,9 @@ typedef char onig_errmsg_buffer[ONIG_MAX_ERROR_MESSAGE_LEN];
 #define mrb_bug printf
 #define KCODE_FIXED FL_USER4
 #define scan_oct(s,l,e) (int)ruby_scan_oct(s,l,e)
-unsigned long ruby_scan_oct(const char *, size_t, size_t *);
+unsigned long ruby_scan_oct(const char*, size_t, size_t*);
 #define scan_hex(s,l,e) (int)ruby_scan_hex(s,l,e)
-unsigned long ruby_scan_hex(const char *, size_t, size_t *);
+unsigned long ruby_scan_hex(const char*, size_t, size_t*);
 
 static mrb_value mrb_match_to_a(mrb_state *mrb, mrb_value match);
 static mrb_value mrb_reg_preprocess(mrb_state *mrb, const char *p, const char *end, mrb_encoding *enc,
@@ -88,7 +88,7 @@ mrb_reg_s_new_instance(mrb_state *mrb, /*int argc, mrb_value *argv, */mrb_value 
   struct RRegexp *re;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  re = (struct RRegexp *) mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
+  re = (struct RRegexp*)mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
   re->ptr = 0;
   re->src = 0;
   re->usecnt = 0;
@@ -1665,7 +1665,7 @@ match_alloc(mrb_state *mrb)
 {
   struct RMatch* m;
 
-  m = (struct RMatch *) mrb_obj_alloc(mrb, MRB_TT_MATCH, MATCH_CLASS);
+  m = (struct RMatch*)mrb_obj_alloc(mrb, MRB_TT_MATCH, MATCH_CLASS);
 
   m->str    = 0;
   m->rmatch = 0;
@@ -2453,7 +2453,7 @@ mrb_reg_s_alloc(mrb_state *mrb, mrb_value dummy)
 
   //NEWOBJ(re, struct RRegexp);
   //OBJSETUP(re, klass, T_REGEXP);
-  re = (struct RRegexp *) mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
+  re = (struct RRegexp*)mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
 
   re->ptr = 0;
   re->src = 0;
@@ -2506,7 +2506,7 @@ static int
 match_inspect_name_iter(const OnigUChar *name, const OnigUChar *name_end,
           int back_num, int *back_refs, OnigRegex regex, void *arg0)
 {
-    struct backref_name_tag *arg = (struct backref_name_tag *)arg0;
+    struct backref_name_tag *arg = (struct backref_name_tag*)arg0;
     int i;
 
     for (i = 0; i < back_num; i++) {
@@ -2548,11 +2548,11 @@ mrb_match_inspect(mrb_state *mrb, mrb_value match)
         mrb_str_buf_cat(mrb, str, " ", strlen(" "));//mrb_str_buf_cat2(str, " ");
         if (0 < i) {
             if (names[i].name)
-                mrb_str_buf_cat(mrb, str, (const char *)names[i].name, names[i].len);
+                mrb_str_buf_cat(mrb, str, (const char*)names[i].name, names[i].len);
             else {
                 //mrb_str_catf(mrb, str, "%d", i);
                 sprintf(buf, "%d", i);
-                mrb_str_buf_cat(mrb, str, (const char *)buf, strlen(buf));
+                mrb_str_buf_cat(mrb, str, (const char*)buf, strlen(buf));
             }
             mrb_str_buf_cat(mrb, str, ":", strlen(":"));//mrb_str_buf_cat2(str, ":");
         }

@@ -320,7 +320,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 
   case MRB_TT_ENV:
     {
-      struct REnv *e = (struct REnv *)obj;
+      struct REnv *e = (struct REnv*)obj;
 
       if (e->cioff < 0) {
         int i, len;
@@ -427,7 +427,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
 
   case MRB_TT_ENV:
     {
-      struct REnv *e = (struct REnv *)obj;
+      struct REnv *e = (struct REnv*)obj;
 
       if (e->cioff < 0) {
         mrb_free(mrb, e->stack);
@@ -456,7 +456,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
 
   case MRB_TT_DATA:
     {
-      struct RData *d = (struct RData *)obj;
+      struct RData *d = (struct RData*)obj;
       if (d->type->dfree) {
         d->type->dfree(mrb, d->data);
       }
@@ -1020,7 +1020,7 @@ test_gc_gray_mark(void)
   puts("test_gc_gray_mark");
 
   puts("  in MRB_TT_CLASS");
-  obj = (struct RBasic *)mrb->object_class;
+  obj = (struct RBasic*)mrb->object_class;
   paint_gray(obj);
   gray_num = gc_gray_mark(mrb, obj);
   gc_assert(is_black(obj));
@@ -1087,10 +1087,10 @@ test_incremental_gc(void)
   incremental_gc(mrb, max);
   gc_assert(mrb->gc_state == GC_STATE_NONE);
 
-  free = (RVALUE *)mrb->heaps->freelist;
+  free = (RVALUE*)mrb->heaps->freelist;
   while (free) {
    freed++;
-   free = (RVALUE *)free->as.free.next;
+   free = (RVALUE*)free->as.free.next;
   }
 
   gc_assert(mrb->live == live);

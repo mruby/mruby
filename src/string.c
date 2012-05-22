@@ -291,7 +291,7 @@ mrb_str_capacity(mrb_value str)
 }
 #endif //INCLUDE_ENCODING
 
-#define mrb_obj_alloc_string(mrb) ((struct RString *) mrb_obj_alloc((mrb), MRB_TT_STRING, (mrb)->string_class))
+#define mrb_obj_alloc_string(mrb) ((struct RString*)mrb_obj_alloc((mrb), MRB_TT_STRING, (mrb)->string_class))
 
 static inline mrb_value
 str_alloc(mrb_state *mrb)
@@ -413,11 +413,11 @@ mrb_enc_nth(mrb_state *mrb, const char *p, const char *e, long nth, mrb_encoding
         while (p < e && 0 < nth) {
             e2 = p + nth;
             if (e < e2)
-                return (char *)e;
+                return (char*)e;
             if (ISASCII(*p)) {
                 p2 = search_nonascii(p, e2);
                 if (!p2)
-                    return (char *)e2;
+                    return (char*)e2;
                 nth -= p2 - p;
                 p = p2;
             }
@@ -426,8 +426,8 @@ mrb_enc_nth(mrb_state *mrb, const char *p, const char *e, long nth, mrb_encoding
             nth--;
         }
         if (nth != 0)
-            return (char *)e;
-        return (char *)p;
+            return (char*)e;
+        return (char*)p;
     }
     else {
         while (p<e && nth--) {
@@ -448,7 +448,7 @@ str_nth(mrb_state *mrb, const char *p, const char *e, long nth, mrb_encoding *en
   }
   if (!p) return 0;
   if (p > e) p = e;
-  return (char *)p;
+  return (char*)p;
 }
 
 /* char offset to byte offset */
@@ -4702,7 +4702,7 @@ mrb_str_vcatf(mrb_state *mrb, mrb_value str, const char *fmt, va_list ap)
     //StringValue(str);
     mrb_string_value(mrb, &str);
     mrb_str_modify(mrb, str);
-    mrb_str_resize(mrb, str, (char *)RSTRING_END(str) - RSTRING_PTR(str));
+    mrb_str_resize(mrb, str, (char*)RSTRING_END(str) - RSTRING_PTR(str));
 
     return str;
 }

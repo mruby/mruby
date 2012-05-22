@@ -377,7 +377,7 @@ mrb_st_lookup(struct kh_iv *table, mrb_sym id, khiter_t *value)
   khiter_t k;
 
   if (table) {
-    h = (khash_t(iv) *)table;
+    h = (khash_t(iv)*)table;
     k = kh_get(iv, h, id);
     if (k != kh_end(h)) {
       if (value != 0)  *value = k;//kh_value(h, k);

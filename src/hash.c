@@ -100,7 +100,7 @@ mrb_hash_new_capa(mrb_state *mrb, size_t capa)
 {
   struct RHash *h;
 
-  h = (struct RHash *) mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
+  h = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
   h->ht = kh_init(ht, mrb);
   kh_resize(ht, h->ht, capa);
   h->iv = 0;
@@ -197,7 +197,7 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
   khash_t(ht) *h, *ret_h;
   khiter_t k, ret_k;
 
-  ret = (struct RHash *) mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
+  ret = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
   ret->ht = kh_init(ht, mrb);
 
   if (!RHASH_EMPTY_P(hash)) {

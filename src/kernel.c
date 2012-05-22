@@ -367,7 +367,7 @@ mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
       //struct clone_method_data data;
       /* copy singleton(unnamed) class */
       //VALUE clone = class_alloc(RBASIC(klass)->flags, 0);
-    struct RClass *clone = (struct RClass *) mrb_obj_alloc(mrb, klass->tt, mrb->class_class);
+    struct RClass *clone = (struct RClass*)mrb_obj_alloc(mrb, klass->tt, mrb->class_class);
     //clone->super = objklass->super;
 
       if ((mrb_type(obj) == MRB_TT_CLASS) ||
@@ -452,7 +452,7 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
   if (mrb_special_const_p(self)) {
       mrb_raise(mrb, E_TYPE_ERROR, "can't clone %s", mrb_obj_classname(mrb, self));
   }
-  clone = (struct RObject *) mrb_obj_alloc(mrb, self.tt, mrb_obj_class(mrb, self));
+  clone = (struct RObject*)mrb_obj_alloc(mrb, self.tt, mrb_obj_class(mrb, self));
   clone->c = mrb_singleton_class_clone(mrb, self);
   init_copy(mrb, mrb_obj_value(clone), self);
   //1-9-2 no bug mrb_funcall(mrb, clone, "initialize_clone", 1, self);
