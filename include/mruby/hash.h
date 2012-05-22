@@ -17,22 +17,6 @@ struct RHash {
   struct kh_ht *ht;
 };
 
-#define N 624
-#define M 397
-#define MATRIX_A 0x9908b0dfU    /* constant vector a */
-#define UMASK 0x80000000U       /* most significant w-r bits */
-#define LMASK 0x7fffffffU       /* least significant r bits */
-#define MIXBITS(u,v) ( ((u) & UMASK) | ((v) & LMASK) )
-#define TWIST(u,v) ((MIXBITS(u,v) >> 1) ^ ((v)&1U ? MATRIX_A : 0U))
-enum {MT_MAX_STATE = N};
-
-struct MT {
-    /* assume int is enough to store 32bits */
-    unsigned int state[N]; /* the array for the state vector  */
-    unsigned int *next;
-    int left;
-};
-
 #define mrb_hash_end(h) st_hash_end(h)
 #define mrb_hash_uint(h, i) st_hash_uint(h, i)
 
