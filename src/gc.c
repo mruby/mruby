@@ -299,13 +299,13 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     {
       struct RClass *c = (struct RClass*)obj;
 
-      mrb_gc_mark_iv(mrb, (struct RObject*)obj);
       mrb_gc_mark_mt(mrb, c);
       mrb_gc_mark(mrb, (struct RBasic*)c->super);
     }
-    break;
+    /* fall through */
 
   case MRB_TT_OBJECT:
+  case MRB_TT_DATA:
     mrb_gc_mark_iv(mrb, (struct RObject*)obj);
     break;
 
