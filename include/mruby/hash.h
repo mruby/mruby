@@ -45,7 +45,6 @@ struct kh_ht * mrb_hash_tbl(mrb_state *mrb, mrb_value hash);
 #define MRB_HASH_PROC_DEFAULT 256
 #define MRB_RHASH_PROCDEFAULT_P(h) (RHASH(h)->flags & MRB_HASH_PROC_DEFAULT)
 
-void mrb_reset_random_seed(void);
 mrb_value mrb_obj_is_proc(mrb_value proc);
 
 #if defined(__cplusplus)
