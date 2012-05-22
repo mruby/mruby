@@ -163,12 +163,14 @@ main(int argc, char **argv)
   if (n < 0 || args.rfp == NULL) {
     cleanup(&args);
     usage(argv[0]);
+    mrb_close(mrb);
     return n;
   }
 
   p = mrb_parse_file(mrb, args.rfp);
   if (!p || !p->tree || p->nerr) {
     cleanup(&args);
+    mrb_close(mrb);
     return -1;
   }
 
@@ -183,6 +185,7 @@ main(int argc, char **argv)
 
   if (n < 0 || args.check_syntax) {
     cleanup(&args);
+    mrb_close(mrb);
     return n;
   }
   if (args.initname) {
@@ -196,6 +199,7 @@ main(int argc, char **argv)
   }
 
   cleanup(&args);
+  mrb_close(mrb);
 
   return n;
 }
