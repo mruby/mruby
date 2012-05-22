@@ -2291,6 +2291,7 @@ p(fib(30), \"\\n\")\n\
   codedump_all(mrb, n);
 #endif
   mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[0]), mrb_nil_value());
+  mrb_close(mrb);
 
   return 0;
 }

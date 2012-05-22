@@ -130,6 +130,7 @@ cleanup(mrb_state *mrb, struct _args *args)
     mrb_free(mrb, args->cmdline);
   if (args->argv)
     mrb_free(mrb, args->argv);
+  mrb_close(mrb);
 }
 
 int
