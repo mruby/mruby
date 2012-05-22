@@ -162,7 +162,7 @@ mrb_nil_value()
   mrb_value v;
 
   v.tt = MRB_TT_FALSE;
-  v.value.p = 0;
+  v.value.i = 0;
   return v;
 }
 
