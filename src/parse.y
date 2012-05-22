@@ -10,6 +10,12 @@
 
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
+/*
+ * Force yacc to use our memory management.  This is a little evil because
+ * the macros assume that "parser_state *p" is in scope
+ */
+#define YYMALLOC(n)    mrb_malloc(p->mrb, (n))
+#define YYFREE(o)      mrb_free(p->mrb, (o))
 #define YYSTACK_USE_ALLOCA 0
 
 #include "mruby.h"
