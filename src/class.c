@@ -578,7 +578,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       break;
     }
   }
-  if (!*format && argc > i) {
+  if (!c && argc > i) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
   }
   va_end(ap);
