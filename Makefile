@@ -18,6 +18,12 @@ else
 endif
 
 ##############################
+# internal variables
+
+export MSG_BEGIN = @for line in
+export MSG_END = ; do echo "$$line"; done
+
+##############################
 # generic build targets, rules
 
 .PHONY : all
@@ -39,3 +45,29 @@ clean :
 	@$(MAKE) clean -C tools/mruby $(MAKE_FLAGS)
 	@$(MAKE) clean -C tools/mirb $(MAKE_FLAGS)
 	@$(MAKE) clean -C test $(MAKE_FLAGS)
+
+# display help for build configuration and interesting targets
+.PHONY : showconfig
+showconfig :
+	$(MSG_BEGIN) \
+	"" \
+	"  CC = $(CC)" \
+	"  LL = $(LL)" \
+	"  MAKE = $(MAKE)" \
+	"" \
+	"  CFLAGS = $(CFLAGS)" \
+	"  ALL_CFLAGS = $(ALL_CFLAGS)" \
+	$(MSG_END)
+
+.PHONY : help
+help :
+	$(MSG_BEGIN) \
+	"" \
+	"            Basic mruby Makefile" \
+	"" \
+	"targets:" \
+	"  all (default):  build all targets, install (locally) in-repo" \
+	"  clean:          clean all built and in-repo installed artifacts" \
+	"  showconfig:     show build config summary" \
+	"  test:           run all mruby tests" \
+	$(MSG_END)
