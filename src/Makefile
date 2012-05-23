@@ -7,6 +7,8 @@ BASEDIR = .
 TARGET := ../lib/libmruby_core.a
 YSRC := $(BASEDIR)/parse.y
 YC := $(BASEDIR)/y.tab.c
+KWD := $(BASEDIR)/keywords
+LDEF := $(BASEDIR)/lex.def
 EXCEPT1 := $(YC) $(BASEDIR)/minimain.c
 OBJY := $(patsubst %.c,%.o,$(YC))
 OBJ1 := $(patsubst %.c,%.o,$(filter-out $(EXCEPT1),$(wildcard $(BASEDIR)/*.c)))
@@ -48,12 +50,15 @@ $(OBJS) : %.o : %.c
 	$(CC) $(ALL_CFLAGS) -MMD $(INCLUDES) -c $< -o $@
 
 # parser complie
-$(OBJY) : $(YC)
+$(OBJY) : $(YC) $(LDEF)
 	$(CC) $(ALL_CFLAGS) -MMD $(INCLUDES) -c $(YC) -o $(OBJY)
 
 # yacc complie
 $(YC) : $(YSRC)
 	$(YACC) -o $(YC) $(YSRC)
+
+$(LDEF) : $(KWD)
+	gperf -L ANSI-C -C -p -j1 -i 1 -g -o -t -N mrb_reserved_word -k'1,3,$$' $(KWD) > $(LDEF)
 
 # clean up
 .PHONY : clean #cleandep
