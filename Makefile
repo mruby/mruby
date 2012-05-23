@@ -1,9 +1,12 @@
 # makefile discription.
 # basic build file for mruby
 
-# compiler, linker (gcc)
-CC = gcc
-LL = gcc
+# compiler, linker (gcc), archiver, parser generator
+export CC = gcc
+export LL = gcc
+export AR = ar
+export YACC = bison
+
 DEBUG_MODE = 1
 ifeq ($(DEBUG_MODE),1)
 CFLAGS = -g -O3
@@ -22,6 +25,10 @@ endif
 
 export MSG_BEGIN = @for line in
 export MSG_END = ; do echo "$$line"; done
+
+export CP := cp
+export RM_F := rm -f
+export CAT := cat
 
 ##############################
 # generic build targets, rules
