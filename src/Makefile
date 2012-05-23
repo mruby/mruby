@@ -19,12 +19,6 @@ OBJS := $(OBJ1) $(OBJ2) $(OBJ3)
 # libraries, includes
 INCLUDES = -I$(BASEDIR) -I$(BASEDIR)/../include
 
-# compiler, linker (gcc)
-CC = gcc
-LL = gcc
-AR = ar
-YACC = bison
-
 DEBUG_MODE = 1
 ifeq ($(DEBUG_MODE),1)
 CFLAGS = -g -O3
@@ -32,6 +26,7 @@ else
 CFLAGS = -O3
 endif
 ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
+
 
 ##############################
 # generic build targets, rules
@@ -64,6 +59,6 @@ $(LDEF) : $(KWD)
 .PHONY : clean #cleandep
 clean :
 	@echo "make: removing targets, objects and depend files of `pwd`"
-	-rm -f $(TARGET) $(OBJS) $(OBJY) $(YC)
-	-rm -f $(OBJS:.o=.d) $(OBJY:.o=.d)
-	-rm -f $(patsubst %.c,%.o,$(EXCEPT1)) $(patsubst %.c,%.d,$(EXCEPT1))
+	-$(RM_F) $(TARGET) $(OBJS) $(OBJY) $(YC)
+	-$(RM_F) $(OBJS:.o=.d) $(OBJY:.o=.d)
+	-$(RM_F) $(patsubst %.c,%.o,$(EXCEPT1)) $(patsubst %.c,%.d,$(EXCEPT1))
