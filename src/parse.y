@@ -1869,6 +1869,10 @@ primary		: literal
 		    {
 		      $$ = $2;
 		    }
+		| tLPAREN_ARG {p->lstate = EXPR_ENDARG;} rparen
+		    {
+		      $$ = 0;
+		    }
 		| tLPAREN compstmt ')'
 		    {
 		      $$ = $2;
