@@ -4202,7 +4202,6 @@ parser_yylex(parser_state *p)
     }
     else if (IS_SPCARG(-1)) {
       c = tLPAREN_ARG;
-      yywarning(p, "(...) interpreted as grouped expression");
     }
     p->paren_nest++;
     COND_PUSH(0);
