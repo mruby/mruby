@@ -10,7 +10,7 @@ assert('Math.sin PI/2') do
 end
 
 
-assert('Fundamental trig identities') do  
+assert('Fundamental trig identities') do
   result = true
   N = 15
   N.times do |i|
@@ -26,7 +26,7 @@ assert('Fundamental trig identities') do
     result &= check_float((1/t) ** 2 + 1, (1/s) ** 2)
   end
   result
-end  
+end
 
 assert('Math.erf 0') do
   check_float(Math.erf(0), 0)
