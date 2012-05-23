@@ -19,11 +19,11 @@ assert('Fundamental trig identities') do
     s  = Math.sin(a)
     c  = Math.cos(a)
     t  = Math.tan(a)
-    result &= check_float(s, Math.cos(ca))
-    result &= check_float(t, 1 / Math.tan(ca))
-    result &= check_float(s ** 2 + c ** 2, 1)
-    result &= check_float(t ** 2 + 1, (1/c) ** 2)
-    result &= check_float((1/t) ** 2 + 1, (1/s) ** 2)
+    result = result & check_float(s, Math.cos(ca))
+    result = result & check_float(t, 1 / Math.tan(ca))
+    result = result & check_float(s ** 2 + c ** 2, 1)
+    result = result & check_float(t ** 2 + 1, (1/c) ** 2)
+    result = result & check_float((1/t) ** 2 + 1, (1/s) ** 2)
   end
   result
 end
@@ -81,7 +81,7 @@ assert('Math.cbrt') do
   cub = [-8, -1, 0, 1, 8]
   result = true
   cub.each_with_index do |v,i|
-    result &= check_float(Math.cbrt(v), num[i])
+    result = result & check_float(Math.cbrt(v), num[i])
   end
   result
 end
