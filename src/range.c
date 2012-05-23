@@ -433,8 +433,8 @@ static mrb_value
 range_eql(mrb_state *mrb, mrb_value range)
 {
   mrb_value obj;
-  mrb_get_args(mrb, "o", &obj);
 
+  mrb_get_args(mrb, "o", &obj);
   if (mrb_obj_equal(mrb, range, obj))
     return mrb_true_value();
   if (!mrb_obj_is_kind_of(mrb, obj, RANGE_CLASS))
@@ -447,16 +447,17 @@ mrb_value
 range_initialize_copy(mrb_state *mrb, mrb_value copy)
 {
   mrb_value src;
+
   mrb_get_args(mrb, "o", &src);
 
-    if (mrb_obj_equal(mrb, copy, src)) return copy;
-    //mrb_check_frozen(copy);
-    if (!mrb_obj_is_instance_of(mrb, src, mrb_obj_class(mrb, copy))) {
-      mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
-    }
-    memcpy(mrb_range_ptr(copy), mrb_range_ptr(src), sizeof(struct RRange));
+  if (mrb_obj_equal(mrb, copy, src)) return copy;
+  //mrb_check_frozen(copy);
+  if (!mrb_obj_is_instance_of(mrb, src, mrb_obj_class(mrb, copy))) {
+    mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
+  }
+  memcpy(mrb_range_ptr(copy), mrb_range_ptr(src), sizeof(struct RRange));
 
-    return copy;
+  return copy;
 }
 
 void

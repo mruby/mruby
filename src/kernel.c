@@ -958,10 +958,10 @@ class_instance_method_list(mrb_state *mrb, int argc, mrb_value *argv, struct RCl
   }
   else {
       mrb_value r;
+
       mrb_get_args(mrb, "o", &r);
       recur = mrb_test(r);
   }
-
   ary = mrb_ary_new(mrb);
   oldklass = 0;
   while (klass && (klass != oldklass)) {

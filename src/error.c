@@ -83,7 +83,6 @@ exc_exception(mrb_state *mrb, mrb_value self)
   int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-
   if (argc == 0) return self;
   if (argc == 1 && mrb_obj_equal(mrb, self, argv[0])) return self;
   exc = mrb_obj_clone(mrb, self);
@@ -161,7 +160,6 @@ exc_equal(mrb_state *mrb, mrb_value exc)
   mrb_sym id_mesg = mrb_intern(mrb, "mesg");
 
   mrb_get_args(mrb, "o", &obj);
-
   if (mrb_obj_equal(mrb, exc, obj)) return mrb_true_value();
 
   if (mrb_obj_class(mrb, exc) != mrb_obj_class(mrb, obj)) {

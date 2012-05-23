@@ -283,7 +283,6 @@ mrb_hash_init_core(mrb_state *mrb, mrb_value hash)
   int argc;
 
   mrb_get_args(mrb, "o*", &block, &argv, &argc);
-
   mrb_hash_modify(mrb, hash);
   if (mrb_nil_p(block)) {
     if (argc > 0) {
@@ -434,7 +433,6 @@ mrb_hash_default(mrb_state *mrb, mrb_value hash)
   mrb_value key;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-
   if (MRB_RHASH_PROCDEFAULT_P(hash)) {
     if (argc == 0) return mrb_nil_value();
     key = argv[0];
@@ -470,8 +468,8 @@ static mrb_value
 mrb_hash_set_default(mrb_state *mrb, mrb_value hash)
 {
   mrb_value ifnone;
-  mrb_get_args(mrb, "o", &ifnone);
 
+  mrb_get_args(mrb, "o", &ifnone);
   mrb_hash_modify(mrb, hash);
   mrb_iv_set(mrb, hash, mrb_intern(mrb, "ifnone"), ifnone);
   RHASH(hash)->flags &= ~(MRB_HASH_PROC_DEFAULT);
@@ -521,8 +519,8 @@ static mrb_value
 mrb_hash_set_default_proc(mrb_state *mrb, mrb_value hash)
 {
   mrb_value ifnone;
-  mrb_get_args(mrb, "o", &ifnone);
 
+  mrb_get_args(mrb, "o", &ifnone);
   mrb_hash_modify(mrb, hash);
   mrb_iv_set(mrb, hash, mrb_intern(mrb, "ifnone"), ifnone);
   RHASH(hash)->flags |= MRB_HASH_PROC_DEFAULT;
@@ -789,7 +787,6 @@ mrb_hash_replace(mrb_state *mrb, mrb_value hash)
   khiter_t k;
 
   mrb_get_args(mrb, "o", &hash2);
-
   mrb_hash_modify_check(mrb, hash);
   hash2 = to_hash(mrb, hash2);
   if (mrb_obj_equal(mrb, hash, hash2)) return hash;
@@ -1207,6 +1204,7 @@ static mrb_value
 mrb_hash_equal(mrb_state *mrb, mrb_value hash1)
 {
   mrb_value hash2;
+
   mrb_get_args(mrb, "o", &hash2);
   return hash_equal(mrb, hash1, hash2, FALSE);
 }
@@ -1224,6 +1222,7 @@ static mrb_value
 mrb_hash_eql(mrb_state *mrb, mrb_value hash1)
 {
   mrb_value hash2;
+
   mrb_get_args(mrb, "o", &hash2);
   return hash_equal(mrb, hash1, hash2, TRUE);
 }
@@ -1292,7 +1291,6 @@ mrb_hash_assoc(mrb_state *mrb, mrb_value hash)
   mrb_value key, value, has_key;
 
   mrb_get_args(mrb, "o", &key);
-
   if (mrb_nil_p(key))
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
 
@@ -1325,7 +1323,6 @@ mrb_hash_rassoc(mrb_state *mrb, mrb_value hash)
   mrb_value key, value, has_key;
 
   mrb_get_args(mrb, "o", &key);
-
   if (mrb_nil_p(key))
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
 

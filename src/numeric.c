@@ -306,6 +306,7 @@ static mrb_value
 num_eql(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
+  
   mrb_get_args(mrb, "o", &y);
   if (mrb_type(x) != mrb_type(y)) return mrb_false_value();
   if (mrb_equal(mrb, x, y)) {
@@ -942,8 +943,8 @@ fix_xor(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
   mrb_int val;
-  mrb_get_args(mrb, "o", &y);
 
+  mrb_get_args(mrb, "o", &y);
   y = bit_coerce(mrb, y);
   val = mrb_fixnum(x) ^ mrb_fixnum(y);
   return mrb_fixnum_value(val);
@@ -965,8 +966,8 @@ mrb_fix_lshift(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
   mrb_int val, width;
-  mrb_get_args(mrb, "o", &y);
 
+  mrb_get_args(mrb, "o", &y);
   val = mrb_fixnum(x);
   y = bit_coerce(mrb, y);
   width = mrb_fixnum(y);
@@ -1000,8 +1001,8 @@ mrb_fix_rshift(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
   mrb_int i, val;
-  mrb_get_args(mrb, "o", &y);
 
+  mrb_get_args(mrb, "o", &y);
   val = mrb_fixnum(x);
   y = bit_coerce(mrb, y);
   i = mrb_fixnum(y);

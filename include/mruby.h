@@ -329,7 +329,7 @@ int mrb_get_args(mrb_state *mrb, const char *format, ...);
 
 mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, int,...);
 mrb_value mrb_funcall_argv(mrb_state*, mrb_value, const char*, int, mrb_value*);
-mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, const char*, int, mrb_value*, struct RProc*);
+mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, const char*, int, mrb_value*, mrb_value);
 mrb_sym mrb_intern(mrb_state*,const char*);
 const char *mrb_sym2name(mrb_state*,mrb_sym);
 mrb_value mrb_str_format(mrb_state *, int, const mrb_value *, mrb_value);

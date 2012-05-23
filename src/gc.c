@@ -844,9 +844,10 @@ gc_interval_ratio_get(mrb_state *mrb, mrb_value obj)
 static mrb_value
 gc_interval_ratio_set(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value ratio;
-  mrb_get_args(mrb, "o", &ratio);
-  mrb->gc_interval_ratio = mrb_fixnum(mrb_to_int(mrb, ratio));
+  mrb_int ratio;
+
+  mrb_get_args(mrb, "i", &ratio);
+  mrb->gc_interval_ratio = ratio;
   return mrb_nil_value();
 }
 
@@ -876,9 +877,10 @@ gc_step_ratio_get(mrb_state *mrb, mrb_value obj)
 static mrb_value
 gc_step_ratio_set(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value ratio;
-  mrb_get_args(mrb, "o", &ratio);
-  mrb->gc_step_ratio = mrb_fixnum(mrb_to_int(mrb, ratio));
+  mrb_int ratio;
+
+  mrb_get_args(mrb, "i", &ratio);
+  mrb->gc_step_ratio = ratio;
   return mrb_nil_value();
 }
 

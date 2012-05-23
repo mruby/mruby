@@ -328,15 +328,67 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
   kh_value(h, k) = mrb_proc_ptr(body);
 }
 
+static mrb_value
+check_type(mrb_state *mrb, mrb_value val, enum mrb_vtype t, const char *c, const char *m)
+{
+  mrb_value tmp;
+
+  tmp = mrb_check_convert_type(mrb, val, t, c, m);
+  if (mrb_nil_p(tmp)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "expected %s", c);
+  }
+  return tmp;
+}
+
+static mrb_value
+to_str(mrb_state *mrb, mrb_value val)
+{
+  return check_type(mrb, val, MRB_TT_STRING, "String", "to_str");
+}
+
+static mrb_value
+to_ary(mrb_state *mrb, mrb_value val)
+{
+  return check_type(mrb, val, MRB_TT_ARRAY, "Array", "to_ary");
+}
+
+static mrb_value
+to_hash(mrb_state *mrb, mrb_value val)
+{
+  return check_type(mrb, val, MRB_TT_HASH, "Hash", "to_hash");
+}
+
+/*
+  retrieve arguments from mrb_state.
+
+  mrb_get_args(mrb, format, ...)
+  
+  returns number of arguments parsed.
+
+  fortmat specifiers:
+
+   o: Object [mrb_value]
+   S: String [mrb_value]
+   A: Array [mrb_value]
+   H: Hash [mrb_value]
+   s: String [char*,int]
+   z: String [char*]
+   a: Array [mrb_value*,int]
+   f: Float [mrb_float]
+   i: Integer [mrb_int]
+   &: Block [mrb_value]
+   *: rest argument [mrb_value*,int]
+   |: optional
+ */
 int
 mrb_get_args(mrb_state *mrb, const char *format, ...)
 {
   char c;
-  int i=0;
+  int i = 0;
   mrb_value *sp = mrb->stack + 1;
   va_list ap;
   int argc = mrb->ci->argc;
-  int *argcp;
+  int opt = 0;
 
   va_start(ap, format);
   if (argc < 0) {
@@ -346,39 +398,92 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     sp = a->buf;
   }
   while ((c = *format++)) {
+    if (argc < i) {
+      if (opt) continue;
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+    }
     switch (c) {
     case 'o':
       {
         mrb_value *p;
+
         p = va_arg(ap, mrb_value*);
         *p =  *sp;
         i++; sp++;
       }
       break;
-    case 'i':
+    case 'S':
       {
-        mrb_int *p;
+        mrb_value *p;
 
-        p = va_arg(ap, mrb_int*);
-        switch (sp->tt) {
-        case MRB_TT_FIXNUM:
-          *p = mrb_fixnum(*sp);
-          break;
-        case MRB_TT_FLOAT:
-          *p = (mrb_int)mrb_float(*sp);
-          break;
-        case MRB_TT_FALSE:
-          *p = 0;
-          break;
-        default:
-	  {
-	    mrb_value tmp;
+        p = va_arg(ap, mrb_value*);
+	*p = to_str(mrb, *sp);
+        i++; sp++;
+      }
+      break;
+    case 'A':
+      {
+        mrb_value *p;
 
-	    tmp = mrb_convert_type(mrb, *sp, MRB_TT_FIXNUM, "Integer", "to_int");
-	    *p = mrb_fixnum(tmp);
-	  }
-          break;
-        }
+        p = va_arg(ap, mrb_value*);
+	*p = to_ary(mrb, *sp);
+        i++; sp++;
+      }
+      break;
+    case 'H':
+      {
+        mrb_value *p;
+
+        p = va_arg(ap, mrb_value*);
+	*p = to_hash(mrb, *sp);
+        i++; sp++;
+      }
+      break;
+    case 's':
+      {
+	mrb_value ss;
+        struct RString *s;
+        char **ps = 0;
+        int *pl = 0;
+
+	ss = to_str(mrb, *sp);
+	s = mrb_str_ptr(ss);
+	ps = va_arg(ap, char**);
+	*ps = s->buf;
+	pl = va_arg(ap, int*);
+	*pl = s->len;
+        i++; sp++;
+      }
+      break;
+    case 'z':
+      {
+	mrb_value ss;
+        struct RString *s;
+        char **ps;
+
+	ss = to_str(mrb, *sp);
+	s = mrb_str_ptr(ss);
+	if (strlen(s->buf) != s->len) {
+	  mrb_raise(mrb, E_ARGUMENT_ERROR, "String contains NUL");
+	}
+	ps = va_arg(ap, char**);
+	*ps = s->buf;
+        i++; sp++;
+      }
+      break;
+    case 'a':
+      {
+	mrb_value aa;
+        struct RArray *a;
+        mrb_value **pb;
+        int *pl;
+
+	aa = to_ary(mrb, *sp);
+	a = mrb_ary_ptr(aa);
+	pb = va_arg(ap, mrb_value**);
+	*pb = a->buf;
+	pl = va_arg(ap, int*);
+	*pl = a->len;
         i++; sp++;
       }
       break;
@@ -409,53 +514,34 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         i++; sp++;
       }
       break;
-    case 's':
+    case 'i':
       {
-        char **ps = 0;
-        size_t *pl = 0;
-        struct RString *s;
+        mrb_int *p;
 
-        if (argc > i) {
-          s = mrb_str_ptr(*sp);
-          ps = va_arg(ap, char**);
-          *ps = s->buf;
-          pl = va_arg(ap, size_t*);
-          *pl = s->len;
+        p = va_arg(ap, mrb_int*);
+        switch (sp->tt) {
+        case MRB_TT_FIXNUM:
+          *p = mrb_fixnum(*sp);
+          break;
+        case MRB_TT_FLOAT:
+          *p = (mrb_int)mrb_float(*sp);
+          break;
+        case MRB_TT_FALSE:
+          *p = 0;
+          break;
+        default:
+	  {
+	    mrb_value tmp;
+
+	    tmp = mrb_convert_type(mrb, *sp, MRB_TT_FIXNUM, "Integer", "to_int");
+	    *p = mrb_fixnum(tmp);
+	  }
+          break;
         }
         i++; sp++;
       }
       break;
-    case 'a':
-      {
-        mrb_value *var;
-        var = va_arg(ap, mrb_value*);
-        if (argc > i) {
-          if (var) {
-            memcpy(var, sp, sizeof(mrb_value)*(argc-i));
-          }
-          //i = mrb->argc;
-        }
-        else {
-          if (var) *var = mrb_ary_new(mrb);
-        }
-        argcp = va_arg(ap, int*);
-        *argcp = argc-i;
-        goto last_var;
-      }
-      break;
-    case 'b':
-      {
-        struct RProc **p;
-        mrb_value *bp = mrb->stack + 1;
 
-        p = va_arg(ap, struct RProc**);
-        if (mrb->ci->argc > 0) {
-          bp += mrb->ci->argc;
-        }
-        if (mrb_nil_p(*bp)) *p = 0;
-        else *p = mrb_proc_ptr(*bp);
-      }
-      break;
     case '&':
       {
         mrb_value *p, *bp = mrb->stack + 1;
@@ -467,30 +553,34 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         *p = *bp;
       }
       break;
+    case '|':
+      opt = 1;
+      break;
     case '*':
       {
         mrb_value **var;
+	int *pl;
+
         var = va_arg(ap, mrb_value**);
-        argcp = va_arg(ap, int*);
+        pl = va_arg(ap, int*);
         if (argc > i) {
-          *argcp = argc-i;
-          if (*argcp > 0) {
-            if (var) {
-              *var = sp;
-            }
-            i += *argcp;
+          *pl = argc-i;
+          if (*pl > 0) {
+	    *var = sp;
+            i = argc;
           }
         }
         else {
-          *argcp = 0;
+          *pl = 0;
           *var = NULL;
         }
-        goto last_var;
       }
       break;
     }
   }
-last_var:
+  if (!*format && argc > i) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+  }
   va_end(ap);
   return 0;
 }
@@ -679,17 +769,17 @@ mrb_value
 mrb_class_new_instance_m(mrb_state *mrb, mrb_value klass)
 {
   mrb_value *argv;
-  struct RProc *b;
+  mrb_value blk;
   struct RClass *k = mrb_class_ptr(klass);
   struct RClass *c;
   int argc;
   mrb_value obj;
 
-  mrb_get_args(mrb, "b*", &b, &argv, &argc);
+  mrb_get_args(mrb, "*&", &argv, &argc, &blk);
   c = (struct RClass*)mrb_obj_alloc(mrb, k->tt, k);
   c->super = k;
   obj = mrb_obj_value(c);
-  mrb_funcall_with_block(mrb, obj, "initialize", argc, argv, b);
+  mrb_funcall_with_block(mrb, obj, "initialize", argc, argv, blk);
 
   return obj;
 }
@@ -698,18 +788,17 @@ mrb_value
 mrb_instance_new(mrb_state *mrb, mrb_value cv)
 {
   struct RClass *c = mrb_class_ptr(cv);
-  struct RProc *b;
   struct RObject *o;
   enum mrb_vtype ttype = MRB_INSTANCE_TT(c);
-  mrb_value obj;
+  mrb_value obj, blk;
   mrb_value *argv;
   int argc;
 
   if (ttype == 0) ttype = MRB_TT_OBJECT;
   o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);
   obj = mrb_obj_value(o);
-  mrb_get_args(mrb, "b*", &b, &argv, &argc);
-  mrb_funcall_with_block(mrb, obj, "initialize", argc, argv, b);
+  mrb_get_args(mrb, "*&", &argv, &argc, &blk);
+  mrb_funcall_with_block(mrb, obj, "initialize", argc, argv, blk);
 
   return obj;
 }
