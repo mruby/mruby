@@ -2925,10 +2925,10 @@ yyerror(parser_state *p, const char *s)
 
   if (! p->capture_errors) {
     if (p->filename) {
-      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column+1, s);
+      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
     }
     else {
-      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column+1, s);
+      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column, s);
     }
   }
   else if (p->nerr < sizeof(p->error_buffer) / sizeof(p->error_buffer[0])) {
@@ -2937,7 +2937,7 @@ yyerror(parser_state *p, const char *s)
     memcpy(c, s, n + 1);
     p->error_buffer[p->nerr].message = c;
     p->error_buffer[p->nerr].lineno = p->lineno;
-    p->error_buffer[p->nerr].column = p->column+1;
+    p->error_buffer[p->nerr].column = p->column;
   }
   p->nerr++;
 }
@@ -2959,10 +2959,10 @@ yywarn(parser_state *p, const char *s)
 
   if (! p->capture_errors) {
     if (p->filename) {
-      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column+1, s);
+      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
     }
     else {
-      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column+1, s);
+      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column, s);
     }
   }
   else if (p->nerr < sizeof(p->warn_buffer) / sizeof(p->warn_buffer[0])) {
@@ -3400,7 +3400,7 @@ parse_qstring(parser_state *p, int term)
       switch (c) {
       case '\n':
 	p->lineno++;
-	p->column = 0;
+	p->column = 1;
 	continue;
 
       case '\\':
@@ -3469,7 +3469,7 @@ parser_yylex(parser_state *p)
     /* fall through */
   case '\n':
     p->lineno++;
-    p->column = 0;
+    p->column = 1;
     switch (p->lstate) {
     case EXPR_BEG:
     case EXPR_FNAME:
@@ -4258,7 +4258,7 @@ parser_yylex(parser_state *p)
     c = nextc(p);
     if (c == '\n') {
       p->lineno++;
-      p->column = 0;
+      p->column = 1;
       space_seen = 1;
       goto retry; /* skip \\n */
     }
@@ -4694,6 +4694,7 @@ mrb_parser_new(mrb_state *mrb)
   p->capture_errors = 0;
 
   p->lineno = 1;
+  p->column = 1;
 #if defined(PARSER_TEST) || defined(PARSER_DEBUG)
   yydebug = 1;
 #endif
@@ -4716,7 +4717,7 @@ mrb_parser_lineno(struct mrb_parser_state *p, int n)
   if (n <= 0) {
     return p->lineno;
   }
-  p->column = 0;
+  p->column = 1;
   p->lineno = n;
   return n;
 }
