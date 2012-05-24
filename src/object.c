@@ -8,6 +8,7 @@
 #include <string.h>
 #include "mruby/string.h"
 #include <stdio.h>
+#include <math.h>
 #include "mruby/class.h"
 #include "mruby/numeric.h"
 
@@ -26,6 +27,13 @@
 #define TRUE    1
 #endif
 
+#ifdef MRB_USE_FLOAT
+#define fabs(f) fabsf(f)
+#define MRB_FLT_EPSILON __FLT_EPSILON__
+#else
+#define MRB_FLT_EPSILON __DBL_EPSILON__
+#endif
+
 int
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
@@ -41,7 +49,7 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
     return (v1.value.sym == v2.value.sym);
 
   case MRB_TT_FLOAT:
-    return (v1.value.f == v2.value.f);
+    return fabs(v1.value.f - v2.value.f) < MRB_FLT_EPSILON;
 
   default:
     return (v1.value.p == v2.value.p);
