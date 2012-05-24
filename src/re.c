@@ -229,6 +229,7 @@ static mrb_value
 mrb_reg_s_quote(mrb_state *mrb, mrb_value c/*, mrb_value str*/)
 {
     mrb_value str;
+
     mrb_get_args(mrb, "o", &str);
     return mrb_reg_quote(mrb, reg_operand(mrb, str, 1/*TRUE*/));
 }
@@ -1520,6 +1521,7 @@ mrb_value
 mrb_reg_match(mrb_state *mrb, mrb_value re/*, mrb_value str*/)
 {
   mrb_value str;
+
   mrb_get_args(mrb, "o", &str);
   return mrb_reg_match_str(mrb, re, str);
 }
@@ -1582,7 +1584,7 @@ mrb_reg_match_m(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value re)
   long pos;
 
   //if (mrb_scan_args(argc, argv, "11", &str, &initpos) == 2) {
-  mrb_get_args(mrb, "&*", &b, &argv, &argc);
+  mrb_get_args(mrb, "*&", &argv, &argc, &b);
   if (argc == 2) {
     initpos = argv[1];
     pos = mrb_fixnum(initpos);

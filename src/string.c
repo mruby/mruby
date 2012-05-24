@@ -1101,6 +1101,7 @@ static mrb_value
 mrb_str_match(mrb_state *mrb, mrb_value self/* x */)
 {
   mrb_value y;
+
   mrb_get_args(mrb, "o", &y);
   switch (mrb_type(y)) {
     case MRB_TT_STRING:
@@ -2048,7 +2049,7 @@ mrb_str_each_line(mrb_state *mrb, mrb_value str)
   int argc;
 
   //if (mrb_scan_args(argc, argv, "01", &rs) == 0) {
-  mrb_get_args(mrb, "&*", &b, &argv, &argc);
+  mrb_get_args(mrb, "*&", &argv, &argc, &b);
   if (argc > 0) {
     rs = argv[0];
   } else {
@@ -2632,8 +2633,8 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
 {
   mrb_int i;
   mrb_value str2;
-  mrb_get_args(mrb, "o", &str2);
 
+  mrb_get_args(mrb, "o", &str2);
   if (mrb_type(str2) == MRB_TT_FIXNUM) {
     if (memchr(RSTRING_PTR(self), mrb_fixnum(str2), RSTRING_LEN(self)))
       return mrb_true_value();
@@ -2955,7 +2956,8 @@ mrb_str_match_m(mrb_state *mrb, mrb_value self)
   mrb_value *argv;
   int argc;
   mrb_value re, result, b;
-  mrb_get_args(mrb, "&*", &b, &argv, &argc);
+
+  mrb_get_args(mrb, "*&", &argv, &argc, &b);
   if (argc < 1)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 1..2)", argc);
   re = argv[0];
@@ -3336,7 +3338,7 @@ mrb_str_scan(mrb_state *mrb, mrb_value str)
   char *p = ps->buf;
   long len = ps->len;
 
-  mrb_get_args(mrb, "&o", &b, &pat);
+  mrb_get_args(mrb, "o&", &pat, &b);
   pat = get_pat(mrb, pat, 1);
   if (!mrb_block_given_p()) {
     mrb_value ary = mrb_ary_new(mrb);
@@ -4292,6 +4294,7 @@ static mrb_value
 mrb_str_force_encoding(mrb_state *mrb, mrb_value self)
 {
   mrb_value enc;
+
   mrb_get_args(mrb, "o", &enc);
   str_modifiable(self);
   mrb_enc_associate(mrb, self, mrb_to_encoding(mrb, enc));

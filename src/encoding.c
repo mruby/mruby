@@ -1028,8 +1028,8 @@ static mrb_value
 enc_find(mrb_state *mrb, mrb_value klass)
 {
   mrb_value enc;
-  mrb_get_args(mrb, "o", &enc);
 
+  mrb_get_args(mrb, "o", &enc);
   return mrb_enc_from_encoding(mrb, to_encoding(mrb, enc));
 }
 
@@ -1058,6 +1058,7 @@ enc_compatible_p(mrb_state *mrb, mrb_value klass)
     mrb_value str1;
     mrb_value str2;
     mrb_encoding *enc;
+
     mrb_get_args(mrb, "oo", &str1, &str2);
     if (!enc_capable(str1)) return mrb_nil_value();
     if (!enc_capable(str2)) return mrb_nil_value();
@@ -1081,6 +1082,7 @@ static mrb_value
 enc_load(mrb_state *mrb, mrb_value klass)
 {
     mrb_value str;
+
     mrb_get_args(mrb, "o", &str);
     return enc_find(mrb, str);
 }
@@ -1277,6 +1279,7 @@ static mrb_value
 set_default_external(mrb_state *mrb, mrb_value klass)
 {
   mrb_value encoding;
+
   mrb_get_args(mrb, "o", &encoding);
   mrb_warning("setting Encoding.default_external");
   mrb_enc_set_default_external(mrb, encoding);
@@ -1335,6 +1338,7 @@ static mrb_value
 set_default_internal(mrb_state *mrb, mrb_value klass)
 {
   mrb_value encoding;
+
   mrb_get_args(mrb, "o", &encoding);
   mrb_warning("setting Encoding.default_internal");
   mrb_enc_set_default_internal(mrb, encoding);

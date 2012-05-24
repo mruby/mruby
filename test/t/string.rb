@@ -115,7 +115,7 @@ end
 assert('String#chop!', '15.2.10.5.12') do
   a = ''
   b = 'abc'
-  
+
   a.chop!
   b.chop!
 
@@ -147,7 +147,7 @@ assert('String#each_line', '15.2.10.5.15') do
   a.each_line do |line|
     n_list << line
   end
-  
+
   list == n_list
 end
 

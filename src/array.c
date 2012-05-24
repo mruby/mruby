@@ -177,10 +177,7 @@ mrb_ary_concat_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value other;
 
-  mrb_get_args(mrb, "o", &other);
-  if (mrb_type(other) != MRB_TT_ARRAY) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "expected Array");
-  }
+  mrb_get_args(mrb, "A", &other);
   mrb_ary_concat(mrb, self, other);
   return self;
 }
@@ -193,11 +190,7 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
   mrb_value other;
   mrb_value ary;
 
-  mrb_get_args(mrb, "o", &other);
-  if (mrb_type(other) != MRB_TT_ARRAY) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "expected Array");
-  }
-
+  mrb_get_args(mrb, "A", &other);
   ary = mrb_ary_new_capa(mrb, a1->len + RARRAY_LEN(other));
   a2 = mrb_ary_ptr(ary);
   memcpy(a2->buf, a1->buf, sizeof(mrb_value)*a1->len);
@@ -924,22 +917,10 @@ mrb_ary_join(mrb_state *mrb, mrb_value ary, mrb_value sep)
 static mrb_value
 mrb_ary_join_m(mrb_state *mrb, mrb_value ary)
 {
-  mrb_value *argv;
-  int argc;
+  mrb_value sep = mrb_nil_value();
 
-  mrb_get_args(mrb, "*", &argv, &argc);
-  switch(argc) {
-  case 0:
-    return mrb_ary_join(mrb, ary, mrb_nil_value());
-
-  case 1:
-    return mrb_ary_join(mrb, ary, argv[0]);
-
-  default:
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
-  }
-
-  return mrb_nil_value(); /* dummy */
+  mrb_get_args(mrb, "|o", &sep);
+  return mrb_ary_join(mrb, ary, sep);
 }
 
 static mrb_value

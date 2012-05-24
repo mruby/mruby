@@ -9,7 +9,7 @@ assert('Float#+', '15.2.9.3.1') do
   a = 3.123456788 + 0.000000001
   b = 3.123456789 + 1
 
-  check_float(a, 3.123456789) and 
+  check_float(a, 3.123456789) and
     check_float(b, 4.123456789)
 end
 
@@ -17,8 +17,8 @@ assert('Float#-', '15.2.9.3.2') do
   a = 3.123456790 - 0.000000001
   b = 5.123456789 - 1
 
-  check_float(a, 3.123456789) and 
-    check_float(b, 4.123456789)  
+  check_float(a, 3.123456789) and
+    check_float(b, 4.123456789)
 end
 
 assert('Float#*', '15.2.9.3.3') do
@@ -47,17 +47,17 @@ end
 
 assert('Float#<=>', '15.2.9.3.6') do
   a = 3.123456789 <=> 3.123456788
-  b = 3.123456789 <=> 3.123456789 
+  b = 3.123456789 <=> 3.123456789
   c = 3.123456789 <=> 3.123456790
   a2 = 3.123456789 <=> 3
   c2 = 3.123456789 <=> 4
-    
+
   a == 1 and b == 0 and c == -1 and
     a2 == 1 and c2 == -1
 end
 
 assert('Float#==', '15.2.9.3.7') do
-  3.1 == 3.1 and not (3.1 == 3.2)
+  3.1 == 3.1 and not 3.1 == 3.2
 end
 
 assert('Float#ceil', '15.2.9.3.8') do
@@ -74,7 +74,7 @@ assert('Float#floor', '15.2.9.3.10') do
 end
 
 assert('Float#infinite?', '15.2.9.3.11') do
-  not 3.123456789.infinite? and 
+  not 3.123456789.infinite? and
     (1.0 / 0.0).infinite?
 end
 

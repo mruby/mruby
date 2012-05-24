@@ -16,17 +16,16 @@ ASSLIB := $(BASEDIR)/assert.rb
 MRBS := $(BASEDIR)/t/*.rb
 OBJS := driver.o $(MLIB)
 
-# C compiler (gcc)
-CC = gcc
-LL = gcc
-AR = ar
+# libraries, includes
+LIBS = -lm
+INCLUDES = -I$(BASEDIR)/../src -I$(BASEDIR)/../include
+
 DEBUG_MODE = 1
 ifeq ($(DEBUG_MODE),1)
 CFLAGS = -g
 else
 CFLAGS = -O3
 endif
-INCLUDES = -I../src -I../include
 ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
 ifeq ($(OS),Windows_NT)
   MAKE_FLAGS = CC=$(CC) LL=$(LL) ALL_CFLAGS="$(ALL_CFLAGS)"
@@ -43,20 +42,6 @@ MRBC = ../bin/mrbc
 EXE := $(TARGET)
 endif
 
-# libraries, includes
-LIBS = -lm
-
-# compiler, linker (gcc)
-CC = gcc
-LL = gcc
-YACC = bison
-DEBUG_MODE = 1
-ifeq ($(DEBUG_MODE),1)
-CFLAGS = -g -O3
-else
-CFLAGS = -O3
-endif
-ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
 
 ##############################
 # generic build targets, rules
@@ -77,14 +62,14 @@ $(OBJS) : %.o : %.c
 
 # Compile C source from merged mruby source
 $(CLIB) : $(RLIB) $(MRBC) $(INIT)
-	$(MRBC) -Bmrbtest_irep -o$(DLIB) $(RLIB); cat $(INIT) $(DLIB) > $@
+	$(MRBC) -Bmrbtest_irep -o$(DLIB) $(RLIB); $(CAT) $(INIT) $(DLIB) > $@
 
 # merge mruby sources
 $(RLIB) : $(ASSLIB) $(MRBS)
-	cat $(ASSLIB) $(MRBS) > $@
+	$(CAT) $(ASSLIB) $(MRBS) > $@
 
 # clean up
 .PHONY : clean
 clean :
 	@echo "make: removing targets, objects and depend files of `pwd`"
-	-rm -f $(MLIB) $(CLIB) $(RLIB) $(DLIB) $(DEPLIB) $(OBJS) $(EXE)
+	-$(RM_F) $(MLIB) $(CLIB) $(RLIB) $(DLIB) $(DEPLIB) $(OBJS) $(EXE)

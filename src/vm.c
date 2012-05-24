@@ -160,7 +160,7 @@ ecall(mrb_state *mrb, int i)
 }
 
 mrb_value
-mrb_funcall_with_block(mrb_state *mrb, mrb_value self, const char *name, int argc, mrb_value *argv, struct RProc *blk)
+mrb_funcall_with_block(mrb_state *mrb, mrb_value self, const char *name, int argc, mrb_value *argv, mrb_value blk)
 {
   struct RProc *p;
   struct RClass *c;
@@ -197,12 +197,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, const char *name, int arg
   else if (argc > 0) {
     memcpy(mrb->stack+1, argv, sizeof(mrb_value)*argc);
   }
-  if (!blk) {
-    mrb->stack[argc+1] = mrb_nil_value();
-  }
-  else {
-    mrb->stack[argc+1] = mrb_obj_value(blk);
-  }
+  mrb->stack[argc+1] = blk;
 
   if (MRB_PROC_CFUNC_P(p)) {
     val = p->body.func(mrb, self);
@@ -218,7 +213,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, const char *name, int arg
 mrb_value
 mrb_funcall_argv(mrb_state *mrb, mrb_value self, const char *name, int argc, mrb_value *argv)
 {
-  return mrb_funcall_with_block(mrb, self, name, argc, argv, 0);
+  return mrb_funcall_with_block(mrb, self, name, argc, argv, mrb_nil_value());
 }
 
 mrb_value

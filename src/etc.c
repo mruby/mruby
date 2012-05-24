@@ -67,6 +67,7 @@ mrb_lastline_get(mrb_state *mrb)
   //return mrb_nil_value();
   mrb_value *argv;
   int argc;
+
   mrb_get_args(mrb, "*", &argv, &argc);
   if (argc < 1) {
     return mrb_nil_value();

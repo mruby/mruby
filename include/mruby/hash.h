@@ -31,7 +31,7 @@ mrb_value mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key);
 mrb_value mrb_hash_getWithDef(mrb_state *mrb, mrb_value hash, mrb_value vkey, mrb_value def);
 mrb_value mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key);
 mrb_value mrb_hash(mrb_state *mrb, mrb_value obj);
-void ruby_setenv(mrb_state *mrb, const char *name, const char *value);
+mrb_value mrb_check_hash_type(mrb_state *mrb, mrb_value self);
 
 /* RHASH_TBL allocates st_table if not available. */
 #define RHASH(obj)   ((struct RHash*)((obj).value.p))

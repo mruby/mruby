@@ -83,7 +83,7 @@ end
 assert('Array#index', '15.2.12.5.14') do
   a = [1,2,3]
 
-  a.index(2) == 1 
+  a.index(2) == 1
 end
 
 assert('Array#initialize', '15.2.12.5.15') do
@@ -99,7 +99,7 @@ assert('Array#initialize_copy', '15.2.12.5.16') do
   a = [1,2,3]
   b = [].initialize_copy(a)
 
-  b == [1,2,3]  
+  b == [1,2,3]
 end
 
 assert('Array#join', '15.2.12.5.17') do
@@ -165,7 +165,7 @@ end
 assert('Array#rindex', '15.2.12.5.26') do
   a = [1,2,3]
 
-  a.rindex(2) == 1 
+  a.rindex(2) == 1
 end
 
 assert('Array#shift', '15.2.12.5.27') do
@@ -178,7 +178,7 @@ end
 assert('Array#size', '15.2.12.5.28') do
   a = [1,2,3]
 
-  a.size == 3  
+  a.size == 3
 end
 
 assert('Array#slice', '15.2.12.5.29') do
