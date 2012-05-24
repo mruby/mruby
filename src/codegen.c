@@ -1234,25 +1234,25 @@ codegen(codegen_scope *s, node *tree, int val)
       int idx = new_msym(s, sym);
 
       if (name[0] == '+' && strlen(name) == 1)  {
-        genop(s, MKOP_ABC(OP_ADD, cursp(), idx, 2));
+        genop(s, MKOP_ABC(OP_ADD, cursp(), idx, 1));
       }
       else if (name[0] == '-' && strlen(name) == 1)  {
-        genop(s, MKOP_ABC(OP_SUB, cursp(), idx, 2));
+        genop(s, MKOP_ABC(OP_SUB, cursp(), idx, 1));
       }
       else if (name[0] == '<' && strlen(name) == 1)  {
-        genop(s, MKOP_ABC(OP_LT, cursp(), idx, 2));
+        genop(s, MKOP_ABC(OP_LT, cursp(), idx, 1));
       }
       else if (name[0] == '<' && strlen(name) == 2 && name[1] == '=')  {
-        genop(s, MKOP_ABC(OP_LE, cursp(), idx, 2));
+        genop(s, MKOP_ABC(OP_LE, cursp(), idx, 1));
       }
       else if (name[0] == '>' && strlen(name) == 1)  {
-        genop(s, MKOP_ABC(OP_GT, cursp(), idx, 2));
+        genop(s, MKOP_ABC(OP_GT, cursp(), idx, 1));
       }
       else if (name[0] == '>' && strlen(name) == 2 && name[1] == '=')  {
-        genop(s, MKOP_ABC(OP_GE, cursp(), idx, 2));
+        genop(s, MKOP_ABC(OP_GE, cursp(), idx, 1));
       }
       else {
-        genop(s, MKOP_ABC(OP_SEND, cursp(), idx, 2));
+        genop(s, MKOP_ABC(OP_SEND, cursp(), idx, 1));
       }
     }
     gen_assignment(s, tree->car, cursp(), val);
