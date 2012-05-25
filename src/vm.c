@@ -980,7 +980,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           cipop(mrb);
           ci = mrb->ci;
           if (ci == mrb->cibase) {
-            if (ci->ridx == 0) goto L_STOP;
+            if (ci->ridx == 0) {
+	      mrb->stack = mrb->stbase;
+	      goto L_STOP;
+	    }
             break;
           }
         }
