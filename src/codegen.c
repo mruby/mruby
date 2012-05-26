@@ -64,6 +64,7 @@ typedef struct scope {
 
   int nlocals;
   int nregs;
+  int ai;
 
   int idx;
 } codegen_scope;
@@ -1849,6 +1850,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->lv = lv;
   p->sp += node_len(lv)+2;
   p->nlocals = p->sp;
+  p->ai = mrb->arena_idx;
 
   p->idx = mrb->irep_len++;
 
@@ -1882,6 +1884,7 @@ scope_finish(codegen_scope *s, int idx)
   irep->nlocals = s->nlocals;
   irep->nregs = s->nregs;
 
+  s->mrb->arena_idx = s->ai;
   mrb_pool_close(s->mpool);
 }
 
