@@ -7,7 +7,51 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		88BF35B1156CA43500F12AC7 /* hello_mruby.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF35B0156CA43500F12AC7 /* hello_mruby.c */; };
+		883C492D1570563500761318 /* hello_mruby.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF35B0156CA43500F12AC7 /* hello_mruby.c */; };
+		883C493B15714C6D00761318 /* array.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34D4156C998200F12AC7 /* array.c */; };
+		883C493C15714C6D00761318 /* ascii.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34D5156C998200F12AC7 /* ascii.c */; };
+		883C493D15714C6D00761318 /* cdump.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34D6156C998200F12AC7 /* cdump.c */; };
+		883C493E15714C6D00761318 /* class.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34D7156C998200F12AC7 /* class.c */; };
+		883C493F15714C6D00761318 /* codegen.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34D9156C998200F12AC7 /* codegen.c */; };
+		883C494015714C6D00761318 /* compar.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34DA156C998200F12AC7 /* compar.c */; };
+		883C494115714C6D00761318 /* crc.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34DB156C998200F12AC7 /* crc.c */; };
+		883C494215714C6D00761318 /* dump.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34DC156C998200F12AC7 /* dump.c */; };
+		883C494315714C6D00761318 /* encoding.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34DD156C998200F12AC7 /* encoding.c */; };
+		883C494415714C6D00761318 /* enum.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34DF156C998200F12AC7 /* enum.c */; };
+		883C494515714C6D00761318 /* error.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34E0156C998200F12AC7 /* error.c */; };
+		883C494615714C6D00761318 /* etc.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34E2156C998200F12AC7 /* etc.c */; };
+		883C494715714C6D00761318 /* gc.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34E5156C998200F12AC7 /* gc.c */; };
+		883C494815714C6D00761318 /* hash.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34E7156C998200F12AC7 /* hash.c */; };
+		883C494915714C6D00761318 /* init.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34E8156C998200F12AC7 /* init.c */; };
+		883C494A15714C6D00761318 /* init_ext.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34EA156C998200F12AC7 /* init_ext.c */; };
+		883C494B15714C6D00761318 /* kernel.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34EB156C998200F12AC7 /* kernel.c */; };
+		883C494C15714C6D00761318 /* load.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34EE156C998200F12AC7 /* load.c */; };
+		883C494D15714C6D00761318 /* math.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34F0156C998200F12AC7 /* math.c */; };
+		883C494E15714C6D00761318 /* numeric.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34F4156C998200F12AC7 /* numeric.c */; };
+		883C494F15714C6D00761318 /* object.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34F5156C998200F12AC7 /* object.c */; };
+		883C495015714C6D00761318 /* pool.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34F9156C998200F12AC7 /* pool.c */; };
+		883C495115714C6D00761318 /* print.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34FA156C998200F12AC7 /* print.c */; };
+		883C495215714C6D00761318 /* proc.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34FB156C998200F12AC7 /* proc.c */; };
+		883C495315714C6D00761318 /* range.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34FC156C998200F12AC7 /* range.c */; };
+		883C495415714C6D00761318 /* re.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34FD156C998200F12AC7 /* re.c */; };
+		883C495515714C6D00761318 /* regcomp.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34FF156C998200F12AC7 /* regcomp.c */; };
+		883C495615714C6D00761318 /* regenc.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF3500156C998200F12AC7 /* regenc.c */; };
+		883C495715714C6D00761318 /* regerror.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF3502156C998200F12AC7 /* regerror.c */; };
+		883C495815714C6D00761318 /* regexec.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF3504156C998200F12AC7 /* regexec.c */; };
+		883C495915714C6D00761318 /* regparse.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF3506156C998200F12AC7 /* regparse.c */; };
+		883C495A15714C6D00761318 /* sprintf.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF3508156C998200F12AC7 /* sprintf.c */; };
+		883C495B15714C6D00761318 /* st.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF3509156C998200F12AC7 /* st.c */; };
+		883C495C15714C6D00761318 /* state.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF350B156C998200F12AC7 /* state.c */; };
+		883C495D15714C6D00761318 /* string.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF350C156C998200F12AC7 /* string.c */; };
+		883C495E15714C6D00761318 /* struct.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF350D156C998200F12AC7 /* struct.c */; };
+		883C495F15714C6D00761318 /* symbol.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF350E156C998200F12AC7 /* symbol.c */; };
+		883C496015714C6D00761318 /* time.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF350F156C998200F12AC7 /* time.c */; };
+		883C496115714C6D00761318 /* transcode.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF3510156C998200F12AC7 /* transcode.c */; };
+		883C496215714C6D00761318 /* unicode.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF3512156C998200F12AC7 /* unicode.c */; };
+		883C496315714C6D00761318 /* us_ascii.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF3513156C998200F12AC7 /* us_ascii.c */; };
+		883C496415714C6D00761318 /* utf_8.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF3514156C998200F12AC7 /* utf_8.c */; };
+		883C496515714C6D00761318 /* variable.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF3515156C998200F12AC7 /* variable.c */; };
+		883C496615714C6D00761318 /* vm.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF3518156C998200F12AC7 /* vm.c */; };
 		88BF35B4156CA51700F12AC7 /* libmruby.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 88BF359E156CA2E400F12AC7 /* libmruby.a */; };
 		88BF35B5156CA51A00F12AC7 /* libmruby_core.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 88BF359F156CA2E400F12AC7 /* libmruby_core.a */; };
 /* End PBXBuildFile section */
@@ -22,19 +66,8 @@
 		};
 /* End PBXContainerItemProxy section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		88BF35A3156CA3ED00F12AC7 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 8;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
+		883C493615714C2500761318 /* libmruby_core.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libmruby_core.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		88BF34C0156C997100F12AC7 /* mirb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mirb.c; sourceTree = "<group>"; };
 		88BF34C4156C997100F12AC7 /* mrbc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mrbc.c; sourceTree = "<group>"; };
 		88BF34C8156C997100F12AC7 /* mruby.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mruby.c; sourceTree = "<group>"; };
@@ -145,6 +178,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		883C493315714C2500761318 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		88BF35A2156CA3ED00F12AC7 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -168,6 +208,7 @@
 				88BF35A7156CA3ED00F12AC7 /* HelloMRuby */,
 				88BF35A0156CA30F00F12AC7 /* Products */,
 				88BF35A5156CA3ED00F12AC7 /* HelloMRuby */,
+				883C493615714C2500761318 /* libmruby_core.dylib */,
 			);
 			sourceTree = "<group>";
 		};
@@ -397,6 +438,16 @@
 		};
 /* End PBXGroup section */
 
+/* Begin PBXHeadersBuildPhase section */
+		883C493415714C2500761318 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
 /* Begin PBXLegacyTarget section */
 		88BF3594156CA10D00F12AC7 /* make_mruby */ = {
 			isa = PBXLegacyTarget;
@@ -415,13 +466,29 @@
 /* End PBXLegacyTarget section */
 
 /* Begin PBXNativeTarget section */
+		883C493515714C2500761318 /* mruby_core */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 883C493915714C2500761318 /* Build configuration list for PBXNativeTarget "mruby_core" */;
+			buildPhases = (
+				883C493215714C2500761318 /* Sources */,
+				883C493315714C2500761318 /* Frameworks */,
+				883C493415714C2500761318 /* Headers */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = mruby_core;
+			productName = mruby_core;
+			productReference = 883C493615714C2500761318 /* libmruby_core.dylib */;
+			productType = "com.apple.product-type.library.dynamic";
+		};
 		88BF35A4156CA3ED00F12AC7 /* HelloMRuby */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 88BF35AC156CA3ED00F12AC7 /* Build configuration list for PBXNativeTarget "HelloMRuby" */;
 			buildPhases = (
 				88BF35A1156CA3ED00F12AC7 /* Sources */,
 				88BF35A2156CA3ED00F12AC7 /* Frameworks */,
-				88BF35A3156CA3ED00F12AC7 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -455,16 +522,68 @@
 			targets = (
 				88BF3594156CA10D00F12AC7 /* make_mruby */,
 				88BF35A4156CA3ED00F12AC7 /* HelloMRuby */,
+				883C493515714C2500761318 /* mruby_core */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		883C493215714C2500761318 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				883C493B15714C6D00761318 /* array.c in Sources */,
+				883C493C15714C6D00761318 /* ascii.c in Sources */,
+				883C493D15714C6D00761318 /* cdump.c in Sources */,
+				883C493E15714C6D00761318 /* class.c in Sources */,
+				883C493F15714C6D00761318 /* codegen.c in Sources */,
+				883C494015714C6D00761318 /* compar.c in Sources */,
+				883C494115714C6D00761318 /* crc.c in Sources */,
+				883C494215714C6D00761318 /* dump.c in Sources */,
+				883C494315714C6D00761318 /* encoding.c in Sources */,
+				883C494415714C6D00761318 /* enum.c in Sources */,
+				883C494515714C6D00761318 /* error.c in Sources */,
+				883C494615714C6D00761318 /* etc.c in Sources */,
+				883C494715714C6D00761318 /* gc.c in Sources */,
+				883C494815714C6D00761318 /* hash.c in Sources */,
+				883C494915714C6D00761318 /* init.c in Sources */,
+				883C494A15714C6D00761318 /* init_ext.c in Sources */,
+				883C494B15714C6D00761318 /* kernel.c in Sources */,
+				883C494C15714C6D00761318 /* load.c in Sources */,
+				883C494D15714C6D00761318 /* math.c in Sources */,
+				883C494E15714C6D00761318 /* numeric.c in Sources */,
+				883C494F15714C6D00761318 /* object.c in Sources */,
+				883C495015714C6D00761318 /* pool.c in Sources */,
+				883C495115714C6D00761318 /* print.c in Sources */,
+				883C495215714C6D00761318 /* proc.c in Sources */,
+				883C495315714C6D00761318 /* range.c in Sources */,
+				883C495415714C6D00761318 /* re.c in Sources */,
+				883C495515714C6D00761318 /* regcomp.c in Sources */,
+				883C495615714C6D00761318 /* regenc.c in Sources */,
+				883C495715714C6D00761318 /* regerror.c in Sources */,
+				883C495815714C6D00761318 /* regexec.c in Sources */,
+				883C495915714C6D00761318 /* regparse.c in Sources */,
+				883C495A15714C6D00761318 /* sprintf.c in Sources */,
+				883C495B15714C6D00761318 /* st.c in Sources */,
+				883C495C15714C6D00761318 /* state.c in Sources */,
+				883C495D15714C6D00761318 /* string.c in Sources */,
+				883C495E15714C6D00761318 /* struct.c in Sources */,
+				883C495F15714C6D00761318 /* symbol.c in Sources */,
+				883C496015714C6D00761318 /* time.c in Sources */,
+				883C496115714C6D00761318 /* transcode.c in Sources */,
+				883C496215714C6D00761318 /* unicode.c in Sources */,
+				883C496315714C6D00761318 /* us_ascii.c in Sources */,
+				883C496415714C6D00761318 /* utf_8.c in Sources */,
+				883C496515714C6D00761318 /* variable.c in Sources */,
+				883C496615714C6D00761318 /* vm.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		88BF35A1156CA3ED00F12AC7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				88BF35B1156CA43500F12AC7 /* hello_mruby.c in Sources */,
+				883C492D1570563500761318 /* hello_mruby.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -479,6 +598,24 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		883C493715714C2500761318 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				EXECUTABLE_PREFIX = lib;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../include/**";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		883C493815714C2500761318 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				EXECUTABLE_PREFIX = lib;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../include/**";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		88BF337C156C992100F12AC7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -550,26 +687,32 @@
 		88BF35AD156CA3ED00F12AC7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = YES;
+				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../include\"/**";
 				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../lib\"";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				USER_HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../include\"";
 			};
 			name = Debug;
 		};
 		88BF35AE156CA3ED00F12AC7 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = YES;
+				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../include\"/**";
 				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../lib\"";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				USER_HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../include\"";
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		883C493915714C2500761318 /* Build configuration list for PBXNativeTarget "mruby_core" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				883C493715714C2500761318 /* Debug */,
+				883C493815714C2500761318 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
 		88BF3374156C992100F12AC7 /* Build configuration list for PBXProject "mruby" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
