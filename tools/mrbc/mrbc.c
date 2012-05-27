@@ -205,11 +205,6 @@ main(int argc, char **argv)
 }
 
 void
-mrb_init_ext(mrb_state *mrb)
-{
-}
-
-void
 mrb_init_mrblib(mrb_state *mrb)
 {
 }
