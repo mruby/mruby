@@ -3040,8 +3040,8 @@ nextc(parser_state *p)
     if (c == '\n') {
       // must understand heredoc
     }
-    p->column++;
   }
+  p->column++;
   return c;
 }
 
