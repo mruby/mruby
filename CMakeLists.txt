@@ -18,7 +18,7 @@
 #  4c. Build, test, and install: `make all test install`
 #  4d. Build, test, and package: `make all test package`
 
-cmake_minimum_required(VERSION 2.8.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.4 FATAL_ERROR)
 
 # Default build mode is Release With Debug Info unless specified
 if(NOT CMAKE_BUILD_TYPE)
@@ -26,7 +26,7 @@ if(NOT CMAKE_BUILD_TYPE)
       "Choose build type: empty Debug Release RelWithDebInfo MinSizeRel"
       FORCE)
   message(STATUS "Build type not set, defaulting to 'RelWithDebInfo'")
-endif()
+endif(NOT CMAKE_BUILD_TYPE)
 
 project(mruby C)
 
@@ -39,7 +39,26 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR AND NOT MSVC_IDE)
           "\nIn-source builds are not allowed as CMake would overwrite the "
           "Makefiles distributed with mruby. Please change to the 'build' "
           "subdirectory and run CMake from there.")
-endif()
+endif(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR AND NOT MSVC_IDE)
+
+# Build a CMAKE_VER variable out of CMAKE_{MAJOR,MINOR,PATCH}_VERSION, each
+# zeropassed to three digits (i.e. "002008008") for easy comparison.
+# Newer versions of cmake have the VERSION_{LESS,EQUAL,GREATER} comparison
+# predicates, but we don't want to rely on them being there
+set(CMAKE_VER "${CMAKE_PATCH_VERSION}")
+string(REGEX REPLACE "^([0-9])\$" "0\\1" CMAKE_VER "${CMAKE_VER}")
+string(REGEX REPLACE "^([0-9][0-9])\$" "0\\1" CMAKE_VER "${CMAKE_VER}")
+set(CMAKE_VER "${CMAKE_MINOR_VERSION}${CMAKE_VER}")
+string(REGEX REPLACE "^([0-9][0-9][0-9][0-9])\$" "0\\1" CMAKE_VER "${CMAKE_VER}")
+string(REGEX REPLACE "^([0-9][0-9][0-9][0-9][0-9])\$" "0\\1" CMAKE_VER "${CMAKE_VER}")
+set(CMAKE_VER "${CMAKE_MAJOR_VERSION}${CMAKE_VER}")
+string(REGEX REPLACE "^([0-9][0-9][0-9][0-9][0-9][0-9][0-9])\$" "0\\1" CMAKE_VER "${CMAKE_VER}")
+string(REGEX REPLACE "^([0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9])\$" "0\\1" CMAKE_VER "${CMAKE_VER}")
+
+if("${CMAKEVER}" STRLESS "002006000")
+  # Versions of cmake prior to 2.6 didn't support cross-compiling
+  set(CMAKE_CROSSCOMPILING 0 )
+endif("${CMAKEVER}" STRLESS "002006000")
 
 if(COMMAND cmake_policy)
   cmake_policy(SET CMP0003 NEW)  # don't split absolute link paths
@@ -53,7 +72,7 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     "Install path prefix prepended to install directories."
     FORCE
     )
-endif()
+endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 # TODO refactor to use an option when adding shared lib support
 set(BUILD_SHARED_LIBS OFF)
@@ -76,16 +95,21 @@ include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/src")
 # instead of `lib'.  Set this to 64 to do that.
 #set(LIB_SUFFIX "" CACHE STRING "Suffix for 'lib' directories, e.g. '64'")
 
+file(GLOB MRUBY_SRC_C "${CMAKE_SOURCE_DIR}/src/*.c")
+list(APPEND MRUBY_SRC_C "${CMAKE_BINARY_DIR}/src/parse.c")
+
 # build the components
 add_subdirectory(src)
-add_subdirectory(mrblib)
 add_subdirectory(tools)
+add_subdirectory(mrblib)
 add_subdirectory(test)
 
 # install the header files
 install(FILES include/mruby.h DESTINATION include)
 install(FILES include/mrbconf.h DESTINATION include)
-install(DIRECTORY include/mruby DESTINATION include FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY DESTINATION include/mruby )
+file(GLOB INCLUDE_SLASH_MRUBY_FILES "include/mruby/*.h" )
+install(FILES ${INCLUDE_SLASH_MRUBY_FILES} DESTINATION include/mruby)
 
 # TODO refactor once proper versioning scheme implemented
 # archive packaging
@@ -93,14 +117,16 @@ set(CPACK_GENERATOR "TGZ;ZIP")
 string(TOLOWER ${CMAKE_SYSTEM_NAME} MRUBY_HOST)
 if(CMAKE_C_COMPILER_VERSION)
   string(REPLACE "." "" MRUBY_GCC_VERSION ${CMAKE_C_COMPILER_VERSION})
-endif()
+endif(CMAKE_C_COMPILER_VERSION)
 
 # TODO add build info suffix for non-Windows builds?
 if(MINGW)
   set(MRUBY_BUILD "-mingw${MRUBY_GCC_VERSION}")
-elseif(MSVC)
-  set(MRUBY_BUILD "-msvc${MSVC_VERSION}")
-endif()
+else(MINGW)
+  if(MSVC)
+    set(MRUBY_BUILD "-msvc${MSVC_VERSION}")
+  endif(MSVC)
+endif(MINGW)
 set(CPACK_PACKAGE_FILE_NAME
   "${CMAKE_PROJECT_NAME}-${MRUBY_VERSION}-${MRUBY_HOST}${MRUBY_BUILD}"
   )
