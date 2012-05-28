@@ -1,8 +1,8 @@
 # build tools/mrbc executable
 
 file(GLOB MRBC_SRC_C "*.c")
-add_executable(mrbc ${MRBC_SRC_C})
-target_link_libraries(mrbc mruby_static ${MRUBY_LIBS})
+add_executable(mrbc ${MRBC_SRC_C} $<TARGET_OBJECTS:mruby_object>)
+target_link_libraries(mrbc ${MRUBY_LIBS})
 
 install(TARGETS mrbc RUNTIME DESTINATION bin)
 
