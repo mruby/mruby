@@ -22,4 +22,3 @@ end
 assert('Numeric#**') do
   2.0**3 == 8.0
 end
-

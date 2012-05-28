@@ -24,4 +24,3 @@ end
 assert('FalseClass#|', '15.2.6.3.4') do
   FalseClass.new.|(true) and not FalseClass.new.|(false)
 end
-

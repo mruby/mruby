@@ -388,4 +388,3 @@ assert('BS Block [ruby-core:14395]') do
   t = Controller.new
   t.test_for_bug
 end
-

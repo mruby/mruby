@@ -122,4 +122,3 @@ assert('Kernel#to_s', '15.3.1.2.46') do
   # TODO looks strange..
   to_s == ''
 end
-

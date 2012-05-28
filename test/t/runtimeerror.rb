@@ -12,4 +12,3 @@ assert('RuntimeError', '15.2.28') do
 
   RuntimeError.class == Class and e2.class == RuntimeError
 end
-

@@ -24,4 +24,3 @@ end
 assert('NilClass#to_s', '15.2.4.3.5') do
   NilClass.new.to_s == ''
 end
-

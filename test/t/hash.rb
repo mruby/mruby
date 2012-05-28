@@ -224,4 +224,3 @@ assert('Hash#values', '15.2.13.4.28') do
 
   a.values == ['abc_value']
 end
-
