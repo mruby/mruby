@@ -42,4 +42,3 @@ assert('Proc#call', '15.2.17.4.3') do
 
   a == 1 and a2 == 5 
 end
-
