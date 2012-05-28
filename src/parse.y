@@ -1008,7 +1008,7 @@ top_stmts	: none
 		    }
 		| error top_stmt
 		    {
-		      $$ = $2;
+		      $$ = new_begin(p, 0);
 		    }
 		;
 
