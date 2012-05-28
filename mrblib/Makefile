@@ -63,7 +63,7 @@ $(MRBC) : ../src/opcode.h ../src/codegen.c ../src/parse.y
 
 # merge mruby sources
 $(RLIB) : $(MRBS)
-	$(CAT) $? > $@
+	$(CAT) $(MRBS) > $@
 
 # clean up
 .PHONY : clean
