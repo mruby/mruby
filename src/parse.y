@@ -3405,7 +3405,7 @@ parse_qstring(parser_state *p, int term)
       switch (c) {
       case '\n':
 	p->lineno++;
-	p->column = 1;
+	p->column = 0;
 	continue;
 
       case '\\':
@@ -3474,7 +3474,7 @@ parser_yylex(parser_state *p)
     /* fall through */
   case '\n':
     p->lineno++;
-    p->column = 1;
+    p->column = 0;
     switch (p->lstate) {
     case EXPR_BEG:
     case EXPR_FNAME:
@@ -3569,8 +3569,8 @@ parser_yylex(parser_state *p)
     if (p->column == 1) {
       if (peeks(p, "begin\n")) {
 	skips(p, "\n=end\n");
+	goto retry;
       }
-      goto retry;
     }
     switch (p->lstate) {
     case EXPR_FNAME: case EXPR_DOT:
@@ -4263,7 +4263,7 @@ parser_yylex(parser_state *p)
     c = nextc(p);
     if (c == '\n') {
       p->lineno++;
-      p->column = 1;
+      p->column = 0;
       space_seen = 1;
       goto retry; /* skip \\n */
     }
@@ -4699,7 +4699,7 @@ mrb_parser_new(mrb_state *mrb)
   p->capture_errors = 0;
 
   p->lineno = 1;
-  p->column = 1;
+  p->column = 0;
 #if defined(PARSER_TEST) || defined(PARSER_DEBUG)
   yydebug = 1;
 #endif
@@ -4722,7 +4722,7 @@ mrb_parser_lineno(struct mrb_parser_state *p, int n)
   if (n <= 0) {
     return p->lineno;
   }
-  p->column = 1;
+  p->column = 0;
   p->lineno = n;
   return n;
 }
