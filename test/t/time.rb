@@ -71,4 +71,3 @@ end
 assert('Time#new') do
   Time.new.class == Time
 end
-

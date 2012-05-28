@@ -24,4 +24,3 @@ end
 assert('TrueClass#|', '15.2.5.3.4') do
   TrueClass.new.|(true) and TrueClass.new.|(false)
 end
-

@@ -36,4 +36,3 @@ end
 assert('BS Literal 9') do
   Fixnum == 1234.class
 end
-

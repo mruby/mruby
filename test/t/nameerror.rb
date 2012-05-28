@@ -12,4 +12,3 @@ assert('NameError#initialize', '15.2.31.2.2') do
 
    e.class == NameError and e.message == 'a'
 end
-

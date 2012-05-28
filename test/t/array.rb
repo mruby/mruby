@@ -22,11 +22,47 @@ assert('Array#<<', '15.2.12.5.3') do
 end
 
 assert('Array#[]', '15.2.12.5.4') do
-  [1,2,3].[](1) == 2
+  e2 = nil
+  e3 = nil
+  a = Array.new
+  begin
+    # this will cause an exception due to the wrong arguments
+    a.[]()
+  rescue => e1
+    e2 = e1
+  end
+  begin
+    # this will cause an exception due to the wrong arguments
+    a.[](1,2,3)
+  rescue => e1
+    e3 = e1
+  end
+
+  [1,2,3].[](1) == 2 and
+    e2.class == ArgumentError and
+    e3.class == ArgumentError
 end
 
 assert('Array#[]=', '15.2.12.5.5') do
-  [1,2,3].[]=(1,4) == [1, 4, 3]
+  e2 = nil
+  e3 = nil
+  a = Array.new
+  begin
+    # this will cause an exception due to the wrong arguments
+    a.[]=()
+  rescue => e1
+    e2 = e1
+  end
+  begin
+    # this will cause an exception due to the wrong arguments
+    a.[]=(1,2,3,4)
+  rescue => e1
+    e3 = e1
+  end
+
+  [1,2,3].[]=(1,4) == [1, 4, 3] and
+    e2.class == ArgumentError and
+    e3.class == ArgumentError
 end
 
 assert('Array#clear', '15.2.12.5.6') do
@@ -193,5 +229,3 @@ assert('Array#unshift', '15.2.12.5.30') do
 end
 
 # Not ISO specified
-
-

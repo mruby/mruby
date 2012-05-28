@@ -99,4 +99,3 @@ end
 assert('Float#truncate', '15.2.9.3.15') do
   3.123456789.truncate == 3
 end
-

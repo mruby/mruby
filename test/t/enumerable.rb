@@ -72,3 +72,32 @@ assert('Enumerable#min', '15.3.2.2.14') do
     a.min {|i1,i2| i1.length <=> i2.length} == 'c'
 end
 
+assert('Enumerable#member?', '15.3.2.2.15') do
+  [1,2,3,4,5,6,7,8,9].member?(5) and
+    not [1,2,3,4,5,6,7,8,9].member?(0)
+end
+
+assert('Enumerable#partion', '15.3.2.2.16') do
+  [0,1,2,3,4,5,6,7,8,9].partition do |i|
+    i % 2 == 0
+  end == [[0,2,4,6,8], [1,3,5,7,9]]
+end
+
+assert('Enumerable#reject', '15.3.2.2.17') do
+  [0,1,2,3,4,5,6,7,8,9].reject do |i|
+    i % 2 == 0
+  end == [1,3,5,7,9]
+end
+
+assert('Enumerable#select', '15.3.2.2.18') do
+  [1,2,3,4,5,6,7,8,9].select() {|i| i%2 == 0} == [2,4,6,8]
+end
+
+assert('Enumerable#sort', '15.3.2.2.19') do
+  [7,3,1,2,6,4].sort == [1,2,3,4,6,7] and
+    [7,3,1,2,6,4].sort {|e1,e2| e2<=>e1} == [7,6,4,3,2,1]
+end
+
+assert('Enumerable#to_a', '15.3.2.2.20') do
+  [1].to_a == [1]
+end

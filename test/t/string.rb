@@ -319,4 +319,3 @@ assert('String#upcase!', '15.2.10.5.43') do
 
   a == 'ABC'
 end
-

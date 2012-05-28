@@ -168,4 +168,3 @@ assert('Integer#upto', '15.2.8.3.27') do
   end
   a == 6
 end
-
