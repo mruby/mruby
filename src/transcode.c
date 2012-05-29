@@ -543,6 +543,7 @@ transcode_restartable0(mrb_state *mrb,
       case 32: goto resume_label32;
       case 33: goto resume_label33;
       case 34: goto resume_label34;
+      default: break;
     }
 
     while (1) {
@@ -1197,6 +1198,10 @@ trans_sweep(mrb_state *mrb, mrb_econv_t *ec,
               case econv_finished:
                 ec->num_finished = i+1;
                 break;
+
+	      default:
+		mrb_bug("Internal Error: invalid return value from mrb_transcoding_convert().");
+		break;
             }
         }
     }
@@ -1507,8 +1512,12 @@ mrb_econv_convert(mrb_state *mrb, mrb_econv_t *ec,
       /* todo: add more alternative behaviors */
         switch (ec->flags & ECONV_INVALID_MASK) {
           case ECONV_INVALID_REPLACE:
-          if (output_replacement_character(mrb, ec) == 0)
+            if (output_replacement_character(mrb, ec) == 0)
                 goto resume;
+
+	  default:
+	    mrb_bug("Internal error: Unhandled ECONV_INVALID_xxx.");
+	    break;
       }
     }
 
@@ -1526,6 +1535,10 @@ mrb_econv_convert(mrb_state *mrb, mrb_econv_t *ec,
             if (output_hex_charref(mrb, ec) == 0)
                 goto resume;
             break;
+
+	  default:
+	    mrb_bug("Internal error: Unhandled ECONV_UNDEF_xxx.");
+	    break;
         }
     }
 
