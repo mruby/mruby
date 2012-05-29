@@ -538,7 +538,6 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
   }
 
   mrb->irep_len += nirep;
-
 error_exit:
   mrb_gc_arena_restore(mrb, ai);
   if (ret != MRB_DUMP_OK) {
