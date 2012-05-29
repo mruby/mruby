@@ -54,7 +54,7 @@ remove_sign_bits(char *str, int base)
 static char
 sign_bits(int base, const char *p)
 {
-  char c = '.';
+  char c;
 
   switch (base) {
   case 16:
@@ -65,6 +65,8 @@ sign_bits(int base, const char *p)
     c = '7'; break;
   case 2:
     c = '1'; break;
+  default:
+    c = '.'; break;
   }
   return c;
 }
@@ -74,7 +76,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 {
   char buf[64], *b = buf + sizeof buf;
   unsigned long val = mrb_fixnum(x);
-  char d = 0;
+  char d;
 
   if (base != 2) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid radix %d", base);
@@ -97,6 +99,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
     case 16: d = 'f'; break;
     case 8:  d = '7'; break;
     case 2:  d = '1'; break;
+    default: d = 0;   break;
     }
 
     if (d && *b != d) {
@@ -793,6 +796,8 @@ format_s:
         case 'B':
           if (flags&(FPLUS|FSPACE)) sign = 1;
           break;
+	default:
+	  break;
         }
         if (flags & FSHARP) {
           switch (*p) {
@@ -801,6 +806,7 @@ format_s:
           case 'X': prefix = "0X"; break;
           case 'b': prefix = "0b"; break;
           case 'B': prefix = "0B"; break;
+	  default: break;
           }
         }
 
@@ -884,13 +890,14 @@ bin_retry:
           snprintf(fbuf, sizeof(fbuf), "%%l%c", c);
           snprintf(++s, sizeof(nbuf) - 1, fbuf, v);
           if (v < 0) {
-            char d = 0;
+            char d;
 
             s = remove_sign_bits(s, base);
             switch (base) {
             case 16: d = 'f'; break;
             case 8:  d = '7'; break;
             case 2:  d = '1'; break;
+	    default: d = 0; break;
             }
 
             if (d && *s != d) {
