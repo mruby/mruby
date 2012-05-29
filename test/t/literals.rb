@@ -22,10 +22,9 @@ assert('Literals Numerical', '8.7.6.2') do
     1.0e1 == 10.0 and 1.0e-1 == 0.1 and 1.0e+1 == 10.0
 end
 
-#assert('Literals Strings Single Quoted', '8.7.6.3.2') do
-# creates segmentation fault for now
-#  'abc' == 'abc' and '\'' == '\'' and '\\' == '\\'
-#end
+assert('Literals Strings Single Quoted', '8.7.6.3.2') do
+  'abc' == 'abc' and '\'' == '\'' and '\\' == '\\'
+end
 
 assert('Literals Strings Double Quoted', '8.7.6.3.3') do
   a = "abc"
