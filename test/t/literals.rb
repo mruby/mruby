@@ -33,16 +33,20 @@ assert('Literals Strings Double Quoted', '8.7.6.3.3') do
     "#{a}" == "abc"
 end
 
-#creates segmentation fault for now
-#assert('Literals Strings Quoted Non-Expanded', '8.7.6.3.4') do
-#  a = %q{abc}
-#  b = %q(abc)
-#  c = %q[abc]
-#  d = %q<abc>
-#  e = %/abc/
-#  f = %/ab\/c/
+assert('Literals Strings Quoted Non-Expanded', '8.7.6.3.4') do
+  a = %q{abc}
+  b = %q(abc)
+  c = %q[abc]
+  d = %q<abc>
+  e = %q/abc/
+  f = %q/ab\/c/
 
-#  a == 'abc' and b == 'abc' and c == 'abc' and d == 'abc' and
-#    e == 'abc' and f 'ab/c'
-#end
+  a == 'abc' and b == 'abc' and c == 'abc' and d == 'abc' and
+    e == 'abc' and f == 'ab/c'
+end
+
+assert('Literals Strings Quoted Expanded', '8.7.6.3.5') do
+  # segv atm
+  true
+end
 
