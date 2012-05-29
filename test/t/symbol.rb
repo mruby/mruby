@@ -20,4 +20,3 @@ end
 assert('Symbol#to_sym', '15.2.11.3.4') do
   :abc.to_sym == :abc
 end
-

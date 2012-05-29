@@ -1007,14 +1007,12 @@ mrb_hash_keys(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
-  mrb_value ary = mrb_ary_new(mrb);
+  mrb_value ary = mrb_ary_new_capa(mrb, kh_size(h));
 
   if (!h) return ary;
   for (k = kh_begin(h); k != kh_end(h); k++) {
     if (kh_exist(h, k)) {
       mrb_value v = kh_key(h,k);
-      if ( !mrb_special_const_p(v) )
-        v = mrb_obj_dup(mrb, v);
       mrb_ary_push(mrb, ary, v);
     }
   }

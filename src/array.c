@@ -917,22 +917,10 @@ mrb_ary_join(mrb_state *mrb, mrb_value ary, mrb_value sep)
 static mrb_value
 mrb_ary_join_m(mrb_state *mrb, mrb_value ary)
 {
-  mrb_value *argv;
-  int argc;
+  mrb_value sep = mrb_nil_value();
 
-  mrb_get_args(mrb, "*", &argv, &argc);
-  switch(argc) {
-  case 0:
-    return mrb_ary_join(mrb, ary, mrb_nil_value());
-
-  case 1:
-    return mrb_ary_join(mrb, ary, argv[0]);
-
-  default:
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
-  }
-
-  return mrb_nil_value(); /* dummy */
+  mrb_get_args(mrb, "|o", &sep);
+  return mrb_ary_join(mrb, ary, sep);
 }
 
 static mrb_value

@@ -62,4 +62,3 @@ assert('Range#member?', '15.2.14.4.11') do
 
   a.member?(5) and not a.member?(20)
 end
-

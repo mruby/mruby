@@ -37,12 +37,6 @@
 #define fmod(x,y) fmodf(x,y)
 #endif
 
-void
-mrb_num_zerodiv(mrb_state *mrb)
-{
-    mrb_raise(mrb, E_ZERODIVISION_ERROR, "divided by 0");
-}
-
 static mrb_float
 mrb_to_flo(mrb_state *mrb, mrb_value val)
 {
@@ -252,7 +246,6 @@ flodivmod(mrb_state *mrb, mrb_float x, mrb_float y, mrb_float *divp, mrb_float *
 {
   mrb_float div, mod;
 
-  if (y == 0.0) mrb_num_zerodiv(mrb);
   mod = fmod(x, y);
   if (isinf(x) && !isinf(y) && !isnan(y))
     div = x;
@@ -744,7 +737,6 @@ fixdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
 {
   mrb_int div, mod;
 
-  if (y == 0) mrb_num_zerodiv(mrb);
   if (y < 0) {
     if (x < 0)
       div = -x / -y;
@@ -1041,24 +1033,6 @@ fix_to_f(mrb_state *mrb, mrb_value num)
 
     return mrb_float_value(val);
 }
-
-/*
- *  Document-class: ZeroDivisionError
- *
- *  Raised when attempting to divide an integer by 0.
- *
- *     42 / 0
- *
- *  <em>raises the exception:</em>
- *
- *     ZeroDivisionError: divided by 0
- *
- *  Note that only division by an exact 0 will raise that exception:
- *
- *     42 /  0.0 #=> Float::INFINITY
- *     42 / -0.0 #=> -Float::INFINITY
- *     0  /  0.0 #=> NaN
- */
 
 /*
  *  Document-class: FloatDomainError

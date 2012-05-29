@@ -4400,9 +4400,17 @@ mrb_str_conv_enc_opts(mrb_state *mrb, mrb_value str, mrb_encoding *from, mrb_enc
         mrb_enc_associate(mrb, newstr, to);
         return newstr;
 
-      default:
+      case econv_invalid_byte_sequence:
+      case econv_undefined_conversion:
+      case econv_source_buffer_empty:
+      case econv_after_output:
+      case econv_incomplete_input:
         /* some error, return original */
         return str;
+
+      default:
+	mrb_bug("Internal Error: Invalid return value mrb_econv_convert.");
+	return str;
     }
 }
 

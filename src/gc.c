@@ -261,12 +261,13 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   }
 
   mrb->live++;
+  if (mrb->arena_idx > MRB_ARENA_SIZE) {
+    /* arena overflow error */
+    mrb->arena_idx = MRB_ARENA_SIZE - 2; /* force room in arena */
+    mrb_raise(mrb, mrb->eRuntimeError_class, "arena overflow error");
+  }
   mrb->arena[mrb->arena_idx++] = p;
   memset(p, 0, sizeof(RVALUE));
-  if (mrb->arena_idx >= MRB_ARENA_SIZE) {
-    /* arena overflow error */
-    mrb_raise(mrb, E_TYPE_ERROR, "arena overflow error");
-  }
   p->tt = ttype;
   p->c = cls;
   paint_partial_white(mrb, p);

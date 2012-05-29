@@ -186,12 +186,16 @@ mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
       if (k != kh_end(h)) {
         k = kh_put(iv, h, sym);
         kh_value(h, k) = v;
+	return;
       }
     }
     c = c->super;
   }
   c = mrb->ci->target_class;
-  h = c->iv = kh_init(iv, mrb);
+  h = c->iv;
+  if (!h) {
+    c->iv = h = kh_init(iv, mrb);
+  }
   k = kh_put(iv, h, sym);
   kh_value(h, k) = v;
 }

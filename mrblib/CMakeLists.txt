@@ -45,12 +45,10 @@ else()
 endif()
 
 
-add_library(mrblib_object OBJECT mrblib.c)
-
 # generate final static libmruby archive library
 add_library(libmruby_static STATIC
+  mrblib.c
   $<TARGET_OBJECTS:mruby_object>
-  $<TARGET_OBJECTS:mrblib_object>
   )
 set_target_properties(libmruby_static PROPERTIES OUTPUT_NAME mruby)
 

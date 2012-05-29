@@ -41,8 +41,13 @@ static void backref_error(parser_state *p, node *n);
 
 #define identchar(c) (isalnum(c) || (c) == '_' || !isascii(c))
 
+#ifndef TRUE
 #define TRUE  1
+#endif
+
+#ifndef FALSE
 #define FALSE 0
+#endif
 
 typedef unsigned int stack_type;
 
@@ -1003,7 +1008,7 @@ top_stmts	: none
 		    }
 		| error top_stmt
 		    {
-		      $$ = $2;
+		      $$ = new_begin(p, 0);
 		    }
 		;
 
@@ -2925,10 +2930,10 @@ yyerror(parser_state *p, const char *s)
 
   if (! p->capture_errors) {
     if (p->filename) {
-      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column+1, s);
+      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
     }
     else {
-      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column+1, s);
+      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column, s);
     }
   }
   else if (p->nerr < sizeof(p->error_buffer) / sizeof(p->error_buffer[0])) {
@@ -2937,7 +2942,7 @@ yyerror(parser_state *p, const char *s)
     memcpy(c, s, n + 1);
     p->error_buffer[p->nerr].message = c;
     p->error_buffer[p->nerr].lineno = p->lineno;
-    p->error_buffer[p->nerr].column = p->column+1;
+    p->error_buffer[p->nerr].column = p->column;
   }
   p->nerr++;
 }
@@ -2959,10 +2964,10 @@ yywarn(parser_state *p, const char *s)
 
   if (! p->capture_errors) {
     if (p->filename) {
-      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column+1, s);
+      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
     }
     else {
-      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column+1, s);
+      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column, s);
     }
   }
   else if (p->nerr < sizeof(p->warn_buffer) / sizeof(p->warn_buffer[0])) {
@@ -3035,8 +3040,8 @@ nextc(parser_state *p)
     if (c == '\n') {
       // must understand heredoc
     }
-    p->column++;
   }
+  p->column++;
   return c;
 }
 
@@ -3564,8 +3569,8 @@ parser_yylex(parser_state *p)
     if (p->column == 1) {
       if (peeks(p, "begin\n")) {
 	skips(p, "\n=end\n");
+	goto retry;
       }
-      goto retry;
     }
     switch (p->lstate) {
     case EXPR_FNAME: case EXPR_DOT:
@@ -4694,6 +4699,7 @@ mrb_parser_new(mrb_state *mrb)
   p->capture_errors = 0;
 
   p->lineno = 1;
+  p->column = 0;
 #if defined(PARSER_TEST) || defined(PARSER_DEBUG)
   yydebug = 1;
 #endif

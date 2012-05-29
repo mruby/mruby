@@ -337,6 +337,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
   mrb_int fix_num;
   mrb_float f;
   mrb_value str;
+  int ai = mrb_gc_arena_save(mrb);
 
   recordStart = src;
   buf = mrb_malloc(mrb, bufsize);
@@ -489,6 +490,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
 
   *len = src - recordStart;
 error_exit:
+  mrb_gc_arena_restore(mrb, ai);
   if (buf)
     mrb_free(mrb, buf);
 
@@ -537,7 +539,6 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
   }
 
   mrb->irep_len += nirep;
-
 error_exit:
   if (ret != MRB_DUMP_OK) {
     for (n=0,i=sirep; n<nirep; n++,i++) {
