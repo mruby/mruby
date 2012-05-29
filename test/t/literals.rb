@@ -46,7 +46,22 @@ assert('Literals Strings Quoted Non-Expanded', '8.7.6.3.4') do
 end
 
 assert('Literals Strings Quoted Expanded', '8.7.6.3.5') do
-  # segv atm
-  true
+  a = %Q{abc}
+  b = %Q(abc)
+  c = %Q[abc]
+  d = %Q<abc>
+  e = %Q/abc/
+  f = %Q/ab\/c/
+  g = %Q{#{a}}
+
+  a == 'abc' and b == 'abc' and c == 'abc' and d == 'abc' and
+    e == 'abc' and f == 'ab/c' and g == 'abc'
 end
 
+# Not Implemented ATM assert('Literals Strings Here documents', '8.7.6.3.6') do
+
+# Not Implemented ATM assert('Literals Array', '8.7.6.4') do
+
+# Not Implemented ATM assert('Literals Regular expression', '8.7.6.5') do
+
+# Not Implemented ATM assert('Literals Symbol', '8.7.6.6') do
