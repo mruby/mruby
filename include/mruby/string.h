@@ -24,9 +24,8 @@ extern "C" {
 #define mrb_str_new4 mrb_str_new_frozen
 
 #define STR_BUF_MIN_SIZE 128
-//#define RSTRING_EMBED_LEN_MAX STR_BUF_MIN_SIZE
 
-extern const char ruby_digitmap[];
+extern const char mrb_digitmap[];
 
 struct RString {
   MRUBY_OBJECT_HEADER;

@@ -1140,7 +1140,7 @@ mrb_fix2str(mrb_state *mrb, mrb_value x, int base)
   }
   *--b = '\0';
   do {
-    *--b = ruby_digitmap[(int)(val % base)];
+    *--b = mrb_digitmap[(int)(val % base)];
   } while (val /= base);
   if (neg) {
     *--b = '-';

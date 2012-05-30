@@ -33,7 +33,7 @@
 #define TRUE    1
 #endif
 
-const char ruby_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 #ifdef INCLUDE_REGEXP
 static mrb_value get_pat(mrb_state *mrb, mrb_value pat, mrb_int quote);
