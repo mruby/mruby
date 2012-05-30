@@ -499,8 +499,8 @@ root_scan_phase(mrb_state *mrb)
   /* mark closure */
   for (ci = mrb->cibase; ci <= mrb->ci; ci++) {
     if (!ci) continue;
-    mrb_gc_mark( mrb, (struct RBasic*)ci->env);
-    mrb_gc_mark( mrb, (struct RBasic*)ci->proc);
+    mrb_gc_mark(mrb, (struct RBasic*)ci->env);
+    mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
   }
   /* mark irep pool */
   for (i=0; i<mrb->irep_len; i++) {
