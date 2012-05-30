@@ -222,5 +222,6 @@ end
 assert('Hash#values', '15.2.13.4.28') do
   a = { 'abc_key' => 'abc_value' }
 
+  p a.values
   a.values == ['abc_value']
 end

@@ -1037,7 +1037,7 @@ mrb_hash_values(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
-  mrb_value ary = mrb_ary_new(mrb);
+  mrb_value ary = mrb_ary_new_capa(mrb, kh_size(h));
 
   if (!h) return ary;
   for (k = kh_begin(h); k != kh_end(h); k++) {
