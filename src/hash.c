@@ -37,9 +37,6 @@ mrb_hash_ht_hash_equal(mrb_state *mrb, mrb_value a, mrb_value b)
 
 KHASH_INIT(ht, mrb_value, mrb_value, 1, mrb_hash_ht_hash_func, mrb_hash_ht_hash_equal);
 
-mrb_value mrb_exec_recursive_paired(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mrb_value, int),
-                                  mrb_value obj, mrb_value paired_obj, void* arg);
-
 #ifndef FALSE
 #define FALSE   0
 #endif
@@ -1137,28 +1134,6 @@ mrb_hash_has_value(mrb_state *mrb, mrb_value hash)
 }
 
 static mrb_value
-recursive_eql(mrb_state *mrb, mrb_value hash, mrb_value dt, int recur)
-{
-  khash_t(ht) *h1 = RHASH_TBL(hash);
-  khash_t(ht) *h2 = RHASH_TBL(dt);
-  khiter_t k1, k2;
-  mrb_value key1;
-
-  for (k1 = kh_begin(h1); k1 != kh_end(h1); k1++) {
-    if (!kh_exist(h1, k1)) continue;
-    key1 = kh_key(h1,k1);
-    k2 = kh_get(ht, h2, key1);
-    if ( k2 != kh_end(h2)) {
-      if (mrb_equal(mrb, kh_value(h1,k1), kh_value(h2,k2))) {
-        continue; /* next key */
-      }
-    }
-    return mrb_false_value();
-  }
-  return mrb_true_value();
-}
-
-static mrb_value
 hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
 {
   if (mrb_obj_equal(mrb, hash1, hash2)) return mrb_true_value();
@@ -1172,9 +1147,25 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
           return mrb_fixnum_value(mrb_equal(mrb, hash2, hash1));
   }
   if (RHASH_SIZE(hash1) != RHASH_SIZE(hash2)) return mrb_false_value();
-  if (!RHASH(hash1)->ht || !RHASH(hash2)->ht) return mrb_true_value();
+  else {
+    khash_t(ht) *h1 = RHASH_TBL(hash1);
+    khash_t(ht) *h2 = RHASH_TBL(hash2);
+    khiter_t k1, k2;
+    mrb_value key;
 
-  return mrb_exec_recursive_paired(mrb, recursive_eql, hash1, hash2, (void*)0);
+    for (k1 = kh_begin(h1); k1 != kh_end(h1); k1++) {
+      if (!kh_exist(h1, k1)) continue;
+      key = kh_key(h1,k1);
+      k2 = kh_get(ht, h2, key);
+      if (k2 != kh_end(h2)) {
+	if (mrb_equal(mrb, kh_value(h1,k1), kh_value(h2,k2))) {
+	  continue; /* next key */
+	}
+      }
+      return mrb_false_value();
+    }
+  }
+  return mrb_true_value();
 }
 
 /* 15.2.13.4.1  */
