@@ -39,9 +39,6 @@ typedef enum {
 #include "regint.h"
 #endif
 
-KHASH_MAP_INIT_INT(mt, struct RProc*);
-KHASH_MAP_INIT_INT(iv, mrb_value);
-
 #ifndef FALSE
 #define FALSE   0
 #endif

@@ -41,21 +41,32 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
    __hash_func: hash function
    __hash_equal: hash comparation function
 */
-#define KHASH_INIT(name, khkey_t, khval_t, kh_is_map, __hash_func, __hash_equal) \
-  typedef struct kh_##name {                                            \
-    khint_t n_buckets;                                                  \
-    khint_t size;                                                       \
-    khint_t n_occupied;                                                 \
-    khint_t upper_bound;                                                \
-    uint8_t *e_flags;                                                   \
-    uint8_t *d_flags;                                                   \
-    khkey_t *keys;                                                      \
-    khval_t *vals;                                                      \
-    khint_t mask;                                                       \
-    khint_t inc;                                                        \
-    mrb_state *mrb;                                                     \
-  } kh_##name##_t;                                                      \
-  static void kh_alloc_##name(kh_##name##_t *h)                         \
+#define KHASH_DECL(name, khkey_t, khval_t, kh_is_map)             \
+  typedef struct kh_##name {                                      \
+    khint_t n_buckets;                                            \
+    khint_t size;                                                 \
+    khint_t n_occupied;                                           \
+    khint_t upper_bound;                                          \
+    uint8_t *e_flags;                                             \
+    uint8_t *d_flags;                                             \
+    khkey_t *keys;                                                \
+    khval_t *vals;                                                \
+    khint_t mask;                                                 \
+    khint_t inc;                                                  \
+    mrb_state *mrb;                                               \
+  } kh_##name##_t;                                                \
+  void kh_alloc_##name(kh_##name##_t *h);                         \
+  kh_##name##_t *kh_init_##name(mrb_state *mrb);                  \
+  void kh_destroy_##name(kh_##name##_t *h);                       \
+  void kh_clear_##name(kh_##name##_t *h);                         \
+  khint_t kh_get_##name(kh_##name##_t *h, khkey_t key);           \
+  khint_t kh_put_##name(kh_##name##_t *h, khkey_t key);           \
+  void kh_resize_##name(kh_##name##_t *h, khint_t new_n_buckets); \
+  void kh_del_##name(kh_##name##_t *h, khint_t x);                \
+  void kh_debug_##name(kh_##name##_t *h);                         \
+
+#define KHASH_DEF(name, khkey_t, khval_t, kh_is_map, __hash_func, __hash_equal) \
+  void kh_alloc_##name(kh_##name##_t *h)                                \
   {                                                                     \
     khint_t sz = h->n_buckets;                                          \
     h->size = h->n_occupied = 0;                                        \
@@ -69,14 +80,14 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
     h->mask = sz-1;                                                     \
     h->inc = sz/2-1;                                                    \
   }                                                                     \
-  static inline kh_##name##_t *kh_init_##name(mrb_state *mrb){          \
+  kh_##name##_t *kh_init_##name(mrb_state *mrb){                        \
     kh_##name##_t *h = (kh_##name##_t*)mrb_calloc(mrb, 1, sizeof(kh_##name##_t)); \
     h->n_buckets = INITIAL_HASH_SIZE;                                   \
     h->mrb = mrb;                                                       \
     kh_alloc_##name(h);                                                 \
     return h;                                                           \
   }                                                                     \
-  static inline void kh_destroy_##name(kh_##name##_t *h)                \
+  void kh_destroy_##name(kh_##name##_t *h)                              \
   {                                                                     \
     if( h ){                                                            \
       mrb_free(h->mrb, h->keys);                                        \
@@ -85,7 +96,7 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
       mrb_free(h->mrb, h);                                              \
     }                                                                   \
   }                                                                     \
-  static inline void kh_clear_##name(kh_##name##_t *h)                  \
+  void kh_clear_##name(kh_##name##_t *h)                                \
   {                                                                     \
     if( h && h->e_flags ){                                              \
       memset(h->e_flags, 0xff, h->n_buckets/8*sizeof(uint8_t));         \
@@ -93,7 +104,7 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
       h->size = h->n_occupied = 0;                                      \
     }                                                                   \
   }                                                                     \
-  static inline khint_t kh_get_##name(kh_##name##_t *h, khkey_t key)    \
+  khint_t kh_get_##name(kh_##name##_t *h, khkey_t key)                  \
   {                                                                     \
     khint_t k = __hash_func(h->mrb,key) & (h->mask);                    \
     while( !__ac_isempty(h->e_flags, h->d_flags, k) ){                  \
@@ -104,8 +115,7 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
     }                                                                   \
     return h->n_buckets;                                                \
   }                                                                     \
-  static inline khint_t kh_put_##name(kh_##name##_t *h, khkey_t key);   \
-  static void kh_resize_##name(kh_##name##_t *h, khint_t new_n_buckets) \
+  void kh_resize_##name(kh_##name##_t *h, khint_t new_n_buckets)        \
   {                                                                     \
     if( new_n_buckets<INITIAL_HASH_SIZE ){                              \
       new_n_buckets = INITIAL_HASH_SIZE;                                \
@@ -114,7 +124,7 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
       new_n_buckets = INITIAL_HASH_SIZE;                                \
       while( new_n_buckets < limit ) new_n_buckets *= 2;                \
     }                                                                   \
-    {					                                \
+    {					                                                \
       uint8_t *old_e_flags = h->e_flags;                                \
       khkey_t *old_keys = h->keys;                                      \
       khval_t *old_vals = h->vals;                                      \
@@ -124,14 +134,14 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
       kh_alloc_##name(h);                                               \
       /* relocate */                                                    \
       for( i=0 ; i<old_n_buckets ; i++ ){                               \
-	if( !__ac_isempty(old_e_flags, old_d_flags, i) ){               \
-	  khint_t k = kh_put_##name(h, old_keys[i]);                    \
-	  kh_value(h,k) = old_vals[i];                                  \
-	}                                                               \
+	if( !__ac_isempty(old_e_flags, old_d_flags, i) ){                   \
+	  khint_t k = kh_put_##name(h, old_keys[i]);                        \
+	  kh_value(h,k) = old_vals[i];                                      \
+	}                                                                   \
       }                                                                 \
     }                                                                   \
   }                                                                     \
-  static inline khint_t kh_put_##name(kh_##name##_t *h, khkey_t key)    \
+  khint_t kh_put_##name(kh_##name##_t *h, khkey_t key)                  \
   {                                                                     \
     khint_t k;                                                          \
     if( h->n_occupied >= h->upper_bound ){                              \
@@ -156,12 +166,12 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
     }                                                                   \
     return k;                                                           \
   }                                                                     \
-  static inline void kh_del_##name(kh_##name##_t *h, khint_t x)         \
+  void kh_del_##name(kh_##name##_t *h, khint_t x)                       \
   {                                                                     \
     h->d_flags[x/8] |= __m[x%8];                                        \
     h->size--;                                                          \
   }                                                                     \
-  static inline void kh_debug_##name(kh_##name##_t *h)                  \
+  void kh_debug_##name(kh_##name##_t *h)                                \
   {                                                                     \
     khint_t i;                                                          \
     printf("idx:e_flag:d_flag\n");                                      \
@@ -190,25 +200,62 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 #define kh_size(h) ((h)->size)
 #define kh_n_buckets(h) ((h)->n_buckets)
 
-//#define kh_int_hash_func(mrb,key) (uint32_t)(key)
-#define kh_int_hash_func(mrb,key) (uint32_t)((key)^((key)<<2)^((key)>>2))
-#define kh_int_hash_equal(mrb,a, b) (a == b)
-#define kh_int64_hash_func(mrb,key) (uint32_t)((key)>>33^(key)^(key)<<11)
-#define kh_int64_hash_equal(mrb,a, b) (a == b)
+#include "mruby.h"
+
+static inline khint_t kh_int_hash_func(struct mrb_state *mrb, uint32_t key)
+{
+	return (khint_t)(key ^ (key << 2) ^ (key >> 2));
+}
+static inline int kh_int_hash_equal(struct mrb_state *mrb, uint32_t a, uint32_t b)
+{
+	return a == b ? 1 : 0;
+}
+static inline khint_t kh_int64_hash_func(struct mrb_state *mrb, int64_t key)
+{
+	return (khint_t)((key >> 33) ^ key ^ (key << 11));
+}
+static inline int kh_int64_hash_equal(struct mrb_state *mrb, int64_t a, int64_t b)
+{
+	return a == b ? 1 : 0;
+}
 static inline khint_t __ac_X31_hash_string(const char *s)
 {
     khint_t h = *s;
     if (h) for (++s ; *s; ++s) h = (h << 5) - h + *s;
     return h;
 }
-#define kh_str_hash_func(mrb,key) __ac_X31_hash_string(key)
-#define kh_str_hash_equal(mrb,a, b) (strcmp(a, b) == 0)
+static inline khint_t kh_str_hash_func(struct mrb_state *mrb, const char *key)
+{
+	return __ac_X31_hash_string(key);
+}
+static inline int kh_str_hash_equal(struct mrb_state *mrb, const char *a, const char *b)
+{
+	return (strcmp(a, b) == 0) ? 1 : 0;
+}
+static inline khint_t kh_mrbsym_hash_func(struct mrb_state *mrb, mrb_sym key)
+{
+#if defined(__STDINT_LIMITS)
+#if (INTPTR_MAX == INT64_MAX)
+	return kh_in64_hash_func(mrb, key);
+#else
+	return kh_int_hash_func(mrb, key);
+#endif
+#else
+	return kh_int_hash_func(mrb, key);
+#endif
+}
+static inline int kh_mrbsym_hash_equal(struct mrb_state *mrb, mrb_sym a, mrb_sym b)
+{
+	return a == b ? 1 : 0;
+}
 
-#define KHASH_MAP_INIT_INT(name, khval_t)                               \
-    KHASH_INIT(name, uint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 typedef const char *kh_cstr_t;
-#define KHASH_MAP_INIT_STR(name, khval_t)                               \
-    KHASH_INIT(name, kh_cstr_t, khval_t, 1, kh_str_hash_func, kh_str_hash_equal)
+
+KHASH_DECL(mt,  mrb_sym,   struct RProc*, 1);
+KHASH_DECL(iv,  mrb_sym,       mrb_value, 1);
+KHASH_DECL(s2n, mrb_sym,       kh_cstr_t, 1);
+KHASH_DECL(n2s, kh_cstr_t,       mrb_sym, 1);
+KHASH_DECL(ht,  mrb_value,     mrb_value, 1);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */

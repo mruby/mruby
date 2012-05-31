@@ -23,9 +23,6 @@
   #define mrb_usascii_str_new2 mrb_str_new_cstr
 #endif
 
-KHASH_MAP_INIT_INT(mt, struct RProc*);
-KHASH_MAP_INIT_INT(iv, mrb_value);
-
 typedef struct fc_result {
     mrb_sym name;
     struct RClass * klass;
