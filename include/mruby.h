@@ -557,6 +557,9 @@ int mrb_sourceline(void);
 void ruby_default_signal(int sig);
 mrb_value mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id);
 
+int mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
+int mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
+
 /* memory pool implementation */
 typedef struct mrb_pool mrb_pool;
 struct mrb_pool* mrb_pool_open(mrb_state*);

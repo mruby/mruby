@@ -74,8 +74,6 @@ struct RClass *mrb_class_outer_module(mrb_state*, struct RClass *);
 struct RProc *mrb_method_search_vm(mrb_state*, struct RClass**, mrb_sym);
 struct RProc *mrb_method_search(mrb_state*, struct RClass*, mrb_sym);
 
-int mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
-int mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
 struct RClass* mrb_class_real(struct RClass* cl);
 
 void mrb_obj_call_init(mrb_state *mrb, mrb_value obj, int argc, mrb_value *argv);
