@@ -6,21 +6,21 @@ assert('NilClass', '15.2.4') do
 end
 
 assert('NilClass#&', '15.2.4.3.1') do
-  not NilClass.new.& and not NilClass.new.&(nil)
+  not nil.&(true) and not nil.&(nil)
 end
 
 assert('NilClass#^', '15.2.4.3.2') do
-  NilClass.new.^(true) and not NilClass.new.^(false)
+  nil.^(true) and not nil.^(false)
 end
 
 assert('NilClass#|', '15.2.4.3.3') do
-  NilClass.new.|(true) and not NilClass.new.|(false)
+  nil.|(true) and not nil.|(false)
 end
 
 assert('NilClass#nil?', '15.2.4.3.4') do
-  NilClass.new.nil?
+  nil.nil?
 end
 
 assert('NilClass#to_s', '15.2.4.3.5') do
-  NilClass.new.to_s == ''
+  nil.to_s == ''
 end
