@@ -30,7 +30,10 @@ extern const char mrb_digitmap[];
 struct RString {
   MRUBY_OBJECT_HEADER;
   int len;
-  int capa;
+  union {
+    int capa;
+    struct RString *shared;
+  } aux;
   char *buf;
 };
 
@@ -38,7 +41,7 @@ struct RString {
 #define RSTRING(s)        ((struct RString*)((s).value.p))
 #define RSTRING_PTR(s)    (RSTRING(s)->buf)
 #define RSTRING_LEN(s)    (RSTRING(s)->len)
-#define RSTRING_CAPA(s)   (RSTRING(s)->capa)
+#define RSTRING_CAPA(s)   (RSTRING(s)->aux.capa)
 #define RSTRING_END(s)    (RSTRING(s)->buf + RSTRING(s)->len)
 
 #define MRB_STR_SHARED      256
@@ -64,7 +67,6 @@ mrb_value str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len
 
 char *mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr);
 char *mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr);
-mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, long beg, long len);
 size_t mrb_str_sublen(mrb_state *mrb, mrb_value str, long pos);
 mrb_value mrb_str_size(mrb_state *mrb, mrb_value self);
 long mrb_str_offset(mrb_state *mrb, mrb_value str, long pos);

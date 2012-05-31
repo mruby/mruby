@@ -360,14 +360,11 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 
   case MRB_TT_STRING:
     {
-#if 0
       struct RString *s = (struct RString*)obj;
 
       while (s->flags & MRB_STR_SHARED) {
-        s = s->aux.shared;
-        if (!s) break;
+	mrb_gc_mark(mrb, (struct RBasic*)s->aux.shared);
       }
-#endif
     }
     break;
 
