@@ -2583,7 +2583,8 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
   char *s, *send;
   int modify = 0;
 
-  s = RSTRING(str)->buf; send = s + RSTRING(str)->len;
+  s = RSTRING_PTR(str);
+  send = RSTRING_END(str);
   while (s < send) {
     if (ISLOWER(*s)) {
       *s = toupper(*s);
