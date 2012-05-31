@@ -200,25 +200,6 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
-static mrb_value
-recursive_cmp(mrb_state *mrb, mrb_value ary1, mrb_value ary2, int recur)
-{
-  long i, len;
-
-  if (recur) return mrb_undef_value(); /* Subtle! */
-  len = RARRAY_LEN(ary1);
-  if (len > RARRAY_LEN(ary2)) {
-    len = RARRAY_LEN(ary2);
-  }
-
-  for (i=0; i<len; i++) {
-    mrb_value r = mrb_funcall(mrb, ary_elt(ary1, i), "<=>", 1, ary_elt(ary2, i));
-    if (mrb_type(r) != MRB_TT_FIXNUM || mrb_fixnum(r) != 0) return r;
-  }
-
-  return mrb_undef_value();
-}
-
 /*
  *  call-seq:
  *     ary <=> other_ary   ->  -1, 0, +1 or nil
@@ -242,15 +223,23 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
 {
   mrb_value ary2;
   struct RArray *a1, *a2;
-  mrb_value r;
-  long len;
+  mrb_value r = mrb_nil_value();
+  long i, len;
 
   mrb_get_args(mrb, "o", &ary2);
   if (mrb_type(ary2) != MRB_TT_ARRAY) return mrb_nil_value();
   a1 = RARRAY(ary1); a2 = RARRAY(ary2);
   if (a1->len == a2->len && a1->buf == a2->buf) return mrb_fixnum_value(0);
-  r = mrb_exec_recursive_paired(mrb, recursive_cmp, ary1, ary2, &ary2);
-  if (mrb_type(r) != MRB_TT_UNDEF) return r;
+  else {
+    len = RARRAY_LEN(ary1);
+    if (len > RARRAY_LEN(ary2)) {
+      len = RARRAY_LEN(ary2);
+    }
+    for (i=0; i<len; i++) {
+      r = mrb_funcall(mrb, ary_elt(ary1, i), "<=>", 1, ary_elt(ary2, i));
+      if (mrb_type(r) != MRB_TT_FIXNUM || mrb_fixnum(r) != 0) return r;
+    }
+  }
   len = a1->len - a2->len;
   return mrb_fixnum_value((len == 0)? 0: (len > 0)? 1: -1);
 }
@@ -923,19 +912,6 @@ mrb_ary_join_m(mrb_state *mrb, mrb_value ary)
   return mrb_ary_join(mrb, ary, sep);
 }
 
-static mrb_value
-recursive_equal(mrb_state *mrb, mrb_value ary1, mrb_value ary2, int recur)
-{
-  long i;
-
-  if (recur) return mrb_true_value(); /* Subtle! */
-  for (i=0; i<RARRAY_LEN(ary1); i++) {
-    if (!mrb_equal(mrb, ary_elt(ary1, i), ary_elt(ary2, i)))
-        return mrb_false_value();
-  }
-  return mrb_true_value();
-}
-
 /* 15.2.12.5.33 (x) */
 /*
  *  call-seq:
@@ -970,20 +946,15 @@ mrb_ary_equal(mrb_state *mrb, mrb_value ary1)
     }
   }
   if (RARRAY_LEN(ary1) != RARRAY_LEN(ary2)) return mrb_false_value();
-  return mrb_exec_recursive_paired(mrb, recursive_equal, ary1, ary2, &ary2);
-}
+  else {
+    long i;
 
-static mrb_value
-recursive_eql(mrb_state *mrb, mrb_value ary1, mrb_value ary2, int recur)
-{
-  long i;
-
-  if (recur) return mrb_true_value(); /* Subtle! */
-  for (i=0; i<RARRAY_LEN(ary1); i++) {
-    if (!mrb_eql(mrb, ary_elt(ary1, i), ary_elt(ary2, i)))
-      return mrb_false_value();
+    for (i=0; i<RARRAY_LEN(ary1); i++) {
+      if (!mrb_equal(mrb, ary_elt(ary1, i), ary_elt(ary2, i)))
+        return mrb_false_value();
+    }
+    return mrb_true_value();
   }
-  return mrb_true_value();
 }
 
 /* 15.2.12.5.34 (x) */
@@ -1001,10 +972,18 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
   mrb_value ary2;
 
   mrb_get_args(mrb, "o", &ary2);
-  if (mrb_obj_equal(mrb, ary1,ary2)) return mrb_true_value();
+  if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_true_value();
   if (mrb_type(ary2) != MRB_TT_ARRAY) return mrb_false_value();
   if (RARRAY_LEN(ary1) != RARRAY_LEN(ary2)) return mrb_false_value();
-  return mrb_exec_recursive_paired(mrb, recursive_eql, ary1, ary2, &ary2);
+  else {
+    long i;
+
+    for (i=0; i<RARRAY_LEN(ary1); i++) {
+      if (!mrb_eql(mrb, ary_elt(ary1, i), ary_elt(ary2, i)))
+	return mrb_false_value();
+    }
+    return mrb_true_value();
+  }
 }
 
 void
