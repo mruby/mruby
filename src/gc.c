@@ -362,7 +362,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     {
       struct RString *s = (struct RString*)obj;
 
-      while (s->flags & MRB_STR_SHARED) {
+      if (s->flags & MRB_STR_SHARED) {
 	mrb_gc_mark(mrb, (struct RBasic*)s->aux.shared);
       }
     }

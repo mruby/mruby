@@ -341,8 +341,9 @@ void *mrb_realloc(mrb_state*, void*, size_t);
 struct RBasic *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*);
 void *mrb_free(mrb_state*, void*);
 
-mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len); /* mrb_str_new */
+mrb_value mrb_str_new(mrb_state *mrb, const char *p, int len); /* mrb_str_new */
 mrb_value mrb_str_new_cstr(mrb_state*, const char*);
+mrb_value mrb_str_new2(mrb_state *mrb, const char *p);
 
 mrb_state* mrb_open(void);
 mrb_state* mrb_open_allocf(mrb_allocf);

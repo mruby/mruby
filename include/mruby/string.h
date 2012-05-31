@@ -55,24 +55,18 @@ void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
 mrb_value mrb_obj_to_str(mrb_state*, mrb_value);
 mrb_value mrb_str_plus(mrb_state*, mrb_value, mrb_value);
 mrb_value mrb_obj_as_string(mrb_state *mrb, mrb_value obj);
-mrb_value mrb_str_resize(mrb_state *mrb, mrb_value str, size_t len); /* mrb_str_resize */
+mrb_value mrb_str_resize(mrb_state *mrb, mrb_value str, int len); /* mrb_str_resize */
 mrb_value mrb_string_value(mrb_state *mrb, mrb_value *ptr); /* StringValue */
 mrb_value mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, int len);
 mrb_value mrb_check_string_type(mrb_state *mrb, mrb_value str);
-mrb_value mrb_str_buf_new(mrb_state *mrb, size_t capa);
-mrb_value mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len);
-mrb_value str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len);
+mrb_value mrb_str_buf_new(mrb_state *mrb, int capa);
+mrb_value mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, int len);
 
 char *mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr);
 char *mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr);
-size_t mrb_str_sublen(mrb_state *mrb, mrb_value str, long pos);
-mrb_value mrb_str_size(mrb_state *mrb, mrb_value self);
-long mrb_str_offset(mrb_state *mrb, mrb_value str, long pos);
-mrb_value mrb_str_new2(mrb_state *mrb, const char *p);
+int mrb_str_sublen(mrb_state *mrb, mrb_value str, int pos);
+int mrb_str_offset(mrb_state *mrb, mrb_value str, int pos);
 mrb_value mrb_str_dup(mrb_state *mrb, mrb_value str); /* mrb_str_dup */
-mrb_value mrb_lastline_get(mrb_state *mrb);
-mrb_value mrb_usascii_str_new(mrb_state *mrb, const char *ptr, long len);
-void mrb_lastline_set(mrb_value val);
 mrb_value mrb_str_intern(mrb_state *mrb, mrb_value self);
 mrb_value mrb_str_cat2(mrb_state *mrb, mrb_value str, const char *ptr);
 mrb_value mrb_str_catf(mrb_state *mrb, mrb_value str, const char *format, ...);
