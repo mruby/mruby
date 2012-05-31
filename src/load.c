@@ -336,7 +336,6 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
   uint16_t crc, tt, pdl, snl, offset, bufsize=MRB_DUMP_DEFAULT_STR_LEN;
   mrb_int fix_num;
   mrb_float f;
-  mrb_value str;
   int ai = mrb_gc_arena_save(mrb);
 
   recordStart = src;
