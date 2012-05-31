@@ -1197,12 +1197,6 @@ mrb_str_eql(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
-mrb_value
-mrb_str_new_frozen(mrb_state *mrb, mrb_value orig)
-{
-  return str_dup(mrb, orig);
-}
-
 static mrb_value
 str_subseq(mrb_state *mrb, mrb_value str, long beg, long len)
 {
