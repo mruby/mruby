@@ -472,24 +472,6 @@ NUM2CHR(mrb_value x)
 */
 #define NUM2CHR(x) NUM2CHR_internal(x)
 #endif
-mrb_value mrb_io_gets(mrb_state *mrb, mrb_value);
-mrb_value mrb_io_getbyte(mrb_state *mrb, mrb_value);
-mrb_value mrb_io_ungetc(mrb_state *, mrb_value, mrb_value);
-mrb_value mrb_io_ungetbyte(mrb_state *mrb, mrb_value, mrb_value);
-mrb_value mrb_io_close(mrb_state *mrb, mrb_value);
-mrb_value mrb_io_flush(mrb_state *mrb, mrb_value);
-mrb_value mrb_io_eof(mrb_value);
-mrb_value mrb_io_binmode(mrb_state *mrb, mrb_value);
-mrb_value mrb_io_ascii8bit_binmode(mrb_value);
-mrb_value mrb_io_addstr(mrb_state *mrb, mrb_value, mrb_value);
-mrb_value mrb_io_printf(mrb_state *mrb, int, mrb_value*, mrb_value);
-mrb_value mrb_io_print(mrb_state *mrb, int, mrb_value*, mrb_value);
-mrb_value mrb_io_puts(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value);
-mrb_value mrb_io_fdopen(int, int, const char*);
-mrb_value mrb_io_get_io(mrb_state *mrb, mrb_value);
-mrb_value mrb_file_open(mrb_state *mrb, const char*, const char*);
-mrb_value mrb_file_open_str(mrb_value, const char*);
-mrb_value mrb_gets(mrb_state *mrb);
 
 mrb_value mrb_yield(mrb_state *mrb, mrb_value v, mrb_value blk);
 mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv);
