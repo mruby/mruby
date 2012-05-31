@@ -503,8 +503,6 @@ const char *mrb_class_name(mrb_state *mrb, struct RClass* klass);
 void mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val);
 
 mrb_value mrb_block_proc(void);
-int mrb_sourceline(void);
-void ruby_default_signal(int sig);
 mrb_value mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id);
 
 int mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
