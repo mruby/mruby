@@ -506,7 +506,7 @@ mrb_value mrb_exec_recursive(mrb_state *mrb, mrb_value(*)(mrb_state *, mrb_value
 #define xfree       free
 #endif
 
-void mrb_garbage_collect(mrb_state *mrb)
+void mrb_garbage_collect(mrb_state *mrb);
 void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
