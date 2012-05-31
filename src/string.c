@@ -1411,7 +1411,7 @@ mrb_str_index(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int offset)
     s = t;
   }
 #else
-  pos = mrb_memsearch(sptr, slen, s+offset, len-offset);
+  pos = mrb_memsearch(sptr, slen, s, len);
   if (pos < 0) return pos;
 #endif //INCLUDE_ENCODING
   return pos + offset;
