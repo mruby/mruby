@@ -4835,9 +4835,9 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
     if (resenc == NULL) resenc = mrb_default_external_encoding(mrb);
     if (!mrb_enc_asciicompat(mrb, resenc)) resenc = mrb_usascii_encoding(mrb);
     mrb_enc_associate(mrb, result, resenc);
-    mrb_str_buf_cat(mrb, result, "\"", strlen("\"")); //str_buf_cat2(result, "\"");
+    mrb_str_buf_cat(mrb, result, "\"", strlen("\""));
 #else
-    mrb_value result = mrb_str_new_cstr(mrb, "\"");//mrb_str_buf_new2("\"");
+    mrb_value result = mrb_str_new_cstr(mrb, "\"");
 #endif //INCLUDE_ENCODING
 
     p = RSTRING_PTR(str); pend = RSTRING_END(str);
@@ -4927,8 +4927,10 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
           continue;
       }
     }
+#ifdef INCLUDE_ENCODING
     if (p > prev) mrb_str_buf_cat(mrb, result, prev, p - prev);
-    mrb_str_buf_cat(mrb, result, "\"", strlen("\"")); //str_buf_cat2(result, "\"");
+#endif
+    mrb_str_buf_cat(mrb, result, "\"", strlen("\""));
 
     return result;
 }
