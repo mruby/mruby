@@ -27,8 +27,8 @@ ary_elt(mrb_value ary, long offset)
   return RARRAY_PTR(ary)[offset];
 }
 
-mrb_value
-mrb_ary_new_capa(mrb_state *mrb, size_t capa)
+static struct RArray*
+ary_new_capa(mrb_state *mrb, size_t capa)
 {
   struct RArray *a;
   size_t blen;
@@ -52,6 +52,13 @@ mrb_ary_new_capa(mrb_state *mrb, size_t capa)
   a->capa = capa;
   a->len = 0;
 
+  return a;
+}
+
+mrb_value
+mrb_ary_new_capa(mrb_state *mrb, size_t capa)
+{
+  struct RArray *a = ary_new_capa(mrb, capa);
   return mrb_obj_value(a);
 }
 
@@ -62,7 +69,7 @@ mrb_ary_new(mrb_state *mrb)
 }
 
 mrb_value
-mrb_ary_new_from_values(mrb_state *mrb, mrb_value *vals, size_t size)
+mrb_ary_new_from_values(mrb_state *mrb, size_t size, mrb_value *vals)
 {
   mrb_value ary;
   struct RArray *a;
@@ -81,7 +88,7 @@ mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr)
   mrb_value arv[2];
   arv[0] = car;
   arv[1] = cdr;
-  return mrb_ary_new_from_values(mrb, arv, 2);
+  return mrb_ary_new_from_values(mrb, 2, arv);
 }
 
 void
@@ -153,7 +160,7 @@ mrb_ary_s_create(mrb_state *mrb, mrb_value self)
   int len;
 
   mrb_get_args(mrb, "*", &vals, &len);
-  return mrb_ary_new_from_values(mrb, vals, (size_t)len);
+  return mrb_ary_new_from_values(mrb, (size_t)len, vals);
 }
 
 void
@@ -555,7 +562,7 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
     if ((len = mrb_fixnum(argv[0])) < 0) return mrb_nil_value();
     if (a->len == (size_t)index) return mrb_ary_new(mrb);
     if ((size_t)len > a->len - index) len = a->len - index;
-    return mrb_ary_new_from_values(mrb, a->buf + index, len);
+    return mrb_ary_new_from_values(mrb, len, a->buf + index);
 
   default:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
@@ -640,7 +647,7 @@ mrb_ary_first(mrb_state *mrb, mrb_value self)
   /* len == 1 */
   size = mrb_fixnum(*vals);
   if (size > a->len) size = a->len;
-  return mrb_ary_new_from_values(mrb, a->buf, size);
+  return mrb_ary_new_from_values(mrb, size, a->buf);
 }
 
 mrb_value
@@ -662,7 +669,7 @@ mrb_ary_last(mrb_state *mrb, mrb_value self)
   /* len == 1 */
   size = mrb_fixnum(*vals);
   if (size > a->len) size = a->len;
-  return mrb_ary_new_from_values(mrb, a->buf + a->len - size, size);
+  return mrb_ary_new_from_values(mrb, size, a->buf + a->len - size);
 }
 
 mrb_value
@@ -702,7 +709,7 @@ mrb_ary_splat(mrb_state *mrb, mrb_value v)
     return v;
   }
   else {
-    return mrb_ary_new_from_values(mrb, &v, 1);
+    return mrb_ary_new_from_values(mrb, 1, &v);
   }
 }
 

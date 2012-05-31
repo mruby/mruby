@@ -2111,7 +2111,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     else if (lim == 1) {
       if (RSTRING_LEN(str) == 0)
         return mrb_ary_new_capa(mrb, 0);
-      return mrb_ary_new_from_values(mrb, &str, 1);
+      return mrb_ary_new_from_values(mrb, 1, &str);
     }
     i = 1;
   }

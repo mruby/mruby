@@ -32,7 +32,7 @@ void mrb_ary_concat(mrb_state*, mrb_value, mrb_value);
 mrb_value mrb_ary_splat(mrb_state*, mrb_value);
 void mrb_ary_push(mrb_state*, mrb_value, mrb_value);
 mrb_value mrb_ary_pop(mrb_state *mrb, mrb_value ary);
-mrb_value mrb_ary_new_from_values(mrb_state *mrb, mrb_value *vals, size_t size);
+mrb_value mrb_ary_new_from_values(mrb_state *mrb, size_t size, mrb_value *vals);
 mrb_value mrb_ary_aget(mrb_state *mrb, mrb_value self);
 mrb_value mrb_ary_ref(mrb_state *mrb, mrb_value ary, mrb_int n);
 void mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val);
