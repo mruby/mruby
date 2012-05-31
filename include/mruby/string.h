@@ -21,8 +21,6 @@ extern "C" {
 
 #define IS_EVSTR(p,e) ((p) < (e) && (*(p) == '$' || *(p) == '@' || *(p) == '{'))
 
-#define mrb_str_new4 mrb_str_new_frozen
-
 #define STR_BUF_MIN_SIZE 128
 
 extern const char mrb_digitmap[];
@@ -96,7 +94,6 @@ void mrb_str_setter(mrb_state *mrb, mrb_value val, mrb_sym id, mrb_value *var);
 int mrb_str_is_ascii_only_p(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
 int mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2);
-mrb_value str_new4(mrb_state *mrb, mrb_value str);
 mrb_value * mrb_svar(mrb_int cnt);
 mrb_value mrb_str_drop_bytes(mrb_state *mrb, mrb_value str, long len);
 mrb_value mrb_str_dump(mrb_state *mrb, mrb_value str);
