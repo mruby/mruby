@@ -35,7 +35,7 @@ const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 #ifdef INCLUDE_REGEXP
 static mrb_value get_pat(mrb_state *mrb, mrb_value pat, mrb_int quote);
 #endif //INCLUDE_REGEXP
-static mrb_value str_replace(mrb_state *mrb, mrb_value str, mrb_value str2);
+static mrb_value str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2);
 
 #define RESIZE_CAPA(str,capacity) do {\
       RSTRING(str)->buf = mrb_realloc(mrb, RSTRING(str)->buf, (capacity)+1);\
@@ -666,7 +666,7 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
       idx = mrb_fixnum(indx);
 
 num_index:
-      str = mrb_str_subseq(mrb, str, idx, 1);
+      str = mrb_str_substr(mrb, str, idx, 1);
       if (!mrb_nil_p(str) && RSTRING_LEN(str) == 0) return mrb_nil_value();
       return str;
 
@@ -1398,9 +1398,15 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
 }
 
 static mrb_value
-str_replace(mrb_state *mrb, mrb_value str, mrb_value str2)
+str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 {
-  return mrb_nil_value();
+  int len = s2->len;
+
+  s1->buf = mrb_realloc(mrb, s1->buf, len);
+  memcpy(s1->buf, s2->buf, len);
+  s1->len = s2->len;
+  s2->capa = s2->len;
+  return mrb_obj_value(s1);
 }
 
 /* 15.2.10.5.24 */
@@ -1417,14 +1423,8 @@ mrb_str_replace(mrb_state *mrb, mrb_value str)
 {
   mrb_value str2;
 
-  mrb_get_args(mrb, "o", &str2);
-  str_modifiable(str);
-  if (mrb_obj_equal(mrb, str, str2)) return str;
-
-  //StringValue(str2);
-  mrb_string_value(mrb, &str2);
-  //str_discard(str);
-  return str_replace(mrb, str, str2);
+  mrb_get_args(mrb, "S", &str2);
+  return str_replace(mrb, mrb_str_ptr(str), mrb_str_ptr(str2));
 }
 
 /* 15.2.10.5.23 */
@@ -1437,13 +1437,11 @@ mrb_str_replace(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_init(mrb_state *mrb, mrb_value self)
 {
-  //mrb_value orig;
-  mrb_value *argv;
-  int argc;
+  mrb_value str2;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
-  if (argc == 1)
-    mrb_str_replace(mrb, self);
+  if (mrb_get_args(mrb, "|S", &str2) == 1) {
+    str_replace(mrb, mrb_str_ptr(self), mrb_str_ptr(str2));
+  }
   return self;
 }
 
@@ -1960,7 +1958,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   int argc;
   mrb_value spat;
   mrb_value limit;
-  enum {awk, string, regexp} split_type;
+  enum {awk, string, regexp} split_type = string;
   long beg, end, i = 0;
   int lim = 0;
   mrb_value result, tmp;
