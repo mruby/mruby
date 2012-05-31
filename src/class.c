@@ -398,10 +398,16 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     sp = a->buf;
   }
   while ((c = *format++)) {
-    if (argc < i) {
-      if (opt) continue;
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+    switch (c) {
+    case '|': case '*': case '&':
+      break;
+    default:
+      if (argc <= i) {
+	if (opt) continue;
+	mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+      }
     }
+
     switch (c) {
     case 'o':
       {
@@ -556,6 +562,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     case '|':
       opt = 1;
       break;
+
     case '*':
       {
         mrb_value **var;
@@ -569,6 +576,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 	    *var = sp;
             i = argc;
           }
+	  i = argc;
+	  sp += *pl;
         }
         else {
           *pl = 0;
@@ -582,7 +591,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
   }
   va_end(ap);
-  return 0;
+  return i;
 }
 
 static struct RClass*
