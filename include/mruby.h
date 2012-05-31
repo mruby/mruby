@@ -539,8 +539,6 @@ typedef enum call_type {
 void mrb_cmperr(mrb_state *mrb, mrb_value x, mrb_value y);
 int mrb_cmpint(mrb_state *mrb, mrb_value val, mrb_value a, mrb_value b);
 
-#define REALLOC_N(mrb,var,type,n) (var)=(type*)mrb_realloc(mrb, (char*)(var), sizeof(type)*(n))
-
 #ifndef ANYARGS
 # ifdef __cplusplus
 #   define ANYARGS ...
