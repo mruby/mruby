@@ -448,16 +448,6 @@ void mrb_bug(const char *fmt, ...);
 
 #define SYM2ID(x) ((x).value.sym)
 
-#define CONST_ID_CACHE(mrb, result, str) \
-  {                                 \
-  static mrb_sym mrb_intern_id_cache;\
-  if (!mrb_intern_id_cache)          \
-    mrb_intern_id_cache = mrb_intern(mrb, str); \
-    result mrb_intern_id_cache;      \
-  }
-#define CONST_ID(mrb, var, str) \
-    do CONST_ID_CACHE(mrb, var =, str) while (0)
-
 #define NUM2CHR_internal(x) (((mrb_type(x) == MRB_TT_STRING)&&(RSTRING_LEN(x)>=1))?\
                      RSTRING_PTR(x)[0]:(char)(mrb_fixnum_number(x)&0xff))
 #ifdef __GNUC__
