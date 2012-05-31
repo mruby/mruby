@@ -21,11 +21,12 @@
 static inline khint_t
 mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
 {
-  char type = mrb_type(key);
-  mrb_value s1 = mrb_str_new(mrb, &type, 1);
-  mrb_value s2 = mrb_inspect(mrb, key);
-  s1 = mrb_str_cat(mrb, s1, RSTRING_PTR(s2), RSTRING_LEN(s2));
-  return kh_str_hash_func(mrb, RSTRING_PTR(s1));
+  khint_t h = mrb_type(key) << 24;
+  mrb_value h2;
+
+  h2 = mrb_funcall(mrb, key, "hash", 0, 0);
+  h ^= h2.value.i;
+  return h;
 }
 
 static inline khint_t
