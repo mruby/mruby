@@ -242,6 +242,24 @@ mrb_init_heap(mrb_state *mrb)
 #endif
 }
 
+static void
+gc_protect(mrb_state *mrb, struct RBasic *p)
+{
+  if (mrb->arena_idx > MRB_ARENA_SIZE) {
+    /* arena overflow error */
+    mrb->arena_idx = MRB_ARENA_SIZE - 4; /* force room in arena */
+    mrb_raise(mrb, mrb->eRuntimeError_class, "arena overflow error");
+  }
+  mrb->arena[mrb->arena_idx++] = p;
+}
+
+void
+mrb_gc_protect(mrb_state *mrb, mrb_value obj)
+{
+  if (SPECIAL_CONST_P(obj)) return;
+  gc_protect(mrb, RBASIC(obj));
+}
+
 struct RBasic*
 mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
 {
@@ -264,12 +282,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   }
 
   mrb->live++;
-  if (mrb->arena_idx > MRB_ARENA_SIZE) {
-    /* arena overflow error */
-    mrb->arena_idx = MRB_ARENA_SIZE - 4; /* force room in arena */
-    mrb_raise(mrb, mrb->eRuntimeError_class, "arena overflow error");
-  }
-  mrb->arena[mrb->arena_idx++] = p;
+  gc_protect(mrb, p);
   memset(p, 0, sizeof(RVALUE));
   p->tt = ttype;
   p->c = cls;

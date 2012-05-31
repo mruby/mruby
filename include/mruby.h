@@ -506,7 +506,7 @@ mrb_value mrb_exec_recursive(mrb_state *mrb, mrb_value(*)(mrb_state *, mrb_value
 #define xfree       free
 #endif
 
-void mrb_gc(void);
+void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
 #define thread_debug if(0)printf
 
 #define RUBY_VM 1 /* YARV */
