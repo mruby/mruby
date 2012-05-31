@@ -70,28 +70,18 @@ mrb_value mrb_str_size(mrb_state *mrb, mrb_value self);
 long mrb_str_offset(mrb_state *mrb, mrb_value str, long pos);
 mrb_value mrb_str_new2(mrb_state *mrb, const char *p);
 mrb_value mrb_str_dup(mrb_state *mrb, mrb_value str); /* mrb_str_dup */
-mrb_value mrb_str_new_frozen(mrb_state *mrb, mrb_value orig);
 mrb_value mrb_lastline_get(mrb_state *mrb);
 mrb_value mrb_usascii_str_new(mrb_state *mrb, const char *ptr, long len);
 void mrb_lastline_set(mrb_value val);
-mrb_value mrb_str_buf_cat_ascii(mrb_state *mrb, mrb_value str, const char *ptr);
-void mrb_str_modify(mrb_state *mrb, mrb_value str);
-void mrb_str_set_len(mrb_state *mrb, mrb_value str, long len);
 mrb_value mrb_str_intern(mrb_state *mrb, mrb_value self);
-void mrb_str_shared_replace(mrb_state *mrb, mrb_value str, mrb_value str2);
 mrb_value mrb_str_cat2(mrb_state *mrb, mrb_value str, const char *ptr);
 mrb_value mrb_str_catf(mrb_state *mrb, mrb_value str, const char *format, ...);
 mrb_value mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, int badcheck);
 double mrb_str_to_dbl(mrb_state *mrb, mrb_value str, int badcheck);
 mrb_value mrb_str_to_str(mrb_state *mrb, mrb_value str);
-mrb_value mrb_locale_str_new(mrb_state *mrb, const char *ptr, long len);
-mrb_value mrb_filesystem_str_new_cstr(mrb_state *mrb, const char *ptr);
 mrb_int mrb_str_hash(mrb_state *mrb, mrb_value str);
 int mrb_str_hash_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2);
-mrb_value str_new3(mrb_state *mrb, struct RClass* klass, mrb_value str);
 mrb_value mrb_str_buf_append(mrb_state *mrb, mrb_value str, mrb_value str2);
-void mrb_str_setter(mrb_state *mrb, mrb_value val, mrb_sym id, mrb_value *var);
-int mrb_str_is_ascii_only_p(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
 int mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2);
 mrb_value * mrb_svar(mrb_int cnt);
@@ -99,18 +89,7 @@ mrb_value mrb_str_drop_bytes(mrb_state *mrb, mrb_value str, long len);
 mrb_value mrb_str_dump(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, long len);
 mrb_value mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2);
-size_t mrb_str_capacity(mrb_value str);
 
-#ifdef INCLUDE_ENCODING
-int sym_printable(mrb_state *mrb, const char *s, const char *send, mrb_encoding *enc);
-mrb_value mrb_str_conv_enc(mrb_state *mrb, mrb_value str, mrb_encoding *from, mrb_encoding *to);
-mrb_value mrb_str_conv_enc_opts(mrb_state *mrb, mrb_value str, mrb_encoding *from, mrb_encoding *to, int ecflags, mrb_value ecopts);
-mrb_value mrb_enc_str_new(mrb_state *mrb, const char *ptr, long len, mrb_encoding *enc);
-#else
-int mrb_symname_p(const char *name);
-#endif
-
-mrb_value mrb_tainted_str_new(mrb_state *mrb, const char *ptr, long len);
 int mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2);
 
 #if defined(__cplusplus)

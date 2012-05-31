@@ -113,7 +113,6 @@ mrb_reg_quote(mrb_state *mrb, mrb_value str)
     }
     s++;
   }
-  //tmp = mrb_str_new3(str);
   tmp = mrb_str_new(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
   return tmp;
 
