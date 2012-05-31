@@ -402,7 +402,33 @@ mrb_str_size(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_times(mrb_state *mrb, mrb_value self)
 {
-  return mrb_nil_value();
+  mrb_value str2;
+  mrb_int n,len,times;
+  char *ptr2;
+
+  mrb_get_args(mrb, "i", &times);
+  if (times < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argument");
+  }
+  if (times && INT32_MAX/times < RSTRING_LEN(self)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "argument too big");
+  }
+
+  len = RSTRING_LEN(self)*times;
+  str2 = mrb_str_new_with_class(mrb, self, 0, len);
+  ptr2 = RSTRING_PTR(str2);
+  if (len > 0) {
+    n = RSTRING_LEN(self);
+    memcpy(ptr2, RSTRING_PTR(self), n);
+    while (n <= len/2) {
+      memcpy(ptr2 + n, ptr2, n);
+      n *= 2;
+    }
+    memcpy(ptr2 + n, ptr2, len-n);
+  }
+  ptr2[RSTRING_LEN(str2)] = '\0';
+
+  return str2;
 }
 /* -------------------------------------------------------------- */
 
