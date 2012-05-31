@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8844359B157730E1007F95A4 /* mrbtest.c in Sources */ = {isa = PBXBuildFile; fileRef = 8844359A157730DB007F95A4 /* mrbtest.c */; };
+		8844359C15773120007F95A4 /* libmruby.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8844353E1576F1A3007F95A4 /* libmruby.a */; };
+		8844359F15773215007F95A4 /* driver.c in Sources */ = {isa = PBXBuildFile; fileRef = 8844356415772EF0007F95A4 /* driver.c */; };
 		88760A97157591E100113BFB /* mrbc.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34C4156C997100F12AC7 /* mrbc.c */; };
 		88760AEA15759F9700113BFB /* y.tab.c in Sources */ = {isa = PBXBuildFile; fileRef = 88EDC30215757CB40098CF0D /* y.tab.c */; };
 		88760AEB15759F9700113BFB /* array.c in Sources */ = {isa = PBXBuildFile; fileRef = 88BF34D4156C998200F12AC7 /* array.c */; };
@@ -84,6 +87,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		8844359D15773126007F95A4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 88760AA115759B4F00113BFB;
+			remoteInfo = ruby_lib;
+		};
 		88760ADE15759C1C00113BFB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
@@ -126,6 +136,45 @@
 		8844353C1576F1A3007F95A4 /* mrbc */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = mrbc; sourceTree = BUILT_PRODUCTS_DIR; };
 		8844353E1576F1A3007F95A4 /* libmruby.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libmruby.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8844353F1576F1A3007F95A4 /* mruby.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = mruby.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		8844356215772EF0007F95A4 /* assert.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = assert.rb; sourceTree = "<group>"; };
+		8844356415772EF0007F95A4 /* driver.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = driver.c; sourceTree = "<group>"; };
+		8844356515772EF0007F95A4 /* init_mrbtest.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = init_mrbtest.c; sourceTree = "<group>"; };
+		8844356815772EF0007F95A4 /* argumenterror.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = argumenterror.rb; sourceTree = "<group>"; };
+		8844356915772EF0007F95A4 /* array.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = array.rb; sourceTree = "<group>"; };
+		8844356A15772EF0007F95A4 /* bs_block.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = bs_block.rb; sourceTree = "<group>"; };
+		8844356B15772EF0007F95A4 /* bs_literal.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = bs_literal.rb; sourceTree = "<group>"; };
+		8844356C15772EF0007F95A4 /* class.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = class.rb; sourceTree = "<group>"; };
+		8844356D15772EF0007F95A4 /* enumerable.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = enumerable.rb; sourceTree = "<group>"; };
+		8844356E15772EF0007F95A4 /* exception.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = exception.rb; sourceTree = "<group>"; };
+		8844356F15772EF0007F95A4 /* false.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = false.rb; sourceTree = "<group>"; };
+		8844357015772EF0007F95A4 /* float.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = float.rb; sourceTree = "<group>"; };
+		8844357115772EF0007F95A4 /* hash.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = hash.rb; sourceTree = "<group>"; };
+		8844357215772EF0007F95A4 /* indexerror.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = indexerror.rb; sourceTree = "<group>"; };
+		8844357315772EF0007F95A4 /* integer.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = integer.rb; sourceTree = "<group>"; };
+		8844357415772EF0007F95A4 /* kernel.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = kernel.rb; sourceTree = "<group>"; };
+		8844357515772EF0007F95A4 /* literals.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = literals.rb; sourceTree = "<group>"; };
+		8844357615772EF0007F95A4 /* localjumperror.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = localjumperror.rb; sourceTree = "<group>"; };
+		8844357715772EF0007F95A4 /* math.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = math.rb; sourceTree = "<group>"; };
+		8844357815772EF0007F95A4 /* module.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = module.rb; sourceTree = "<group>"; };
+		8844357915772EF0007F95A4 /* nameerror.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = nameerror.rb; sourceTree = "<group>"; };
+		8844357A15772EF0007F95A4 /* nil.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = nil.rb; sourceTree = "<group>"; };
+		8844357B15772EF0007F95A4 /* nomethoderror.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = nomethoderror.rb; sourceTree = "<group>"; };
+		8844357C15772EF0007F95A4 /* numeric.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = numeric.rb; sourceTree = "<group>"; };
+		8844357D15772EF0007F95A4 /* object.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = object.rb; sourceTree = "<group>"; };
+		8844357E15772EF0007F95A4 /* proc.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = proc.rb; sourceTree = "<group>"; };
+		8844357F15772EF0007F95A4 /* range.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = range.rb; sourceTree = "<group>"; };
+		8844358015772EF0007F95A4 /* rangeerror.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = rangeerror.rb; sourceTree = "<group>"; };
+		8844358115772EF0007F95A4 /* regexperror.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = regexperror.rb; sourceTree = "<group>"; };
+		8844358215772EF0007F95A4 /* runtimeerror.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = runtimeerror.rb; sourceTree = "<group>"; };
+		8844358315772EF0007F95A4 /* standarderror.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = standarderror.rb; sourceTree = "<group>"; };
+		8844358415772EF0007F95A4 /* string.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = string.rb; sourceTree = "<group>"; };
+		8844358515772EF0007F95A4 /* struct.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = struct.rb; sourceTree = "<group>"; };
+		8844358615772EF0007F95A4 /* symbol.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = symbol.rb; sourceTree = "<group>"; };
+		8844358715772EF0007F95A4 /* time.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = time.rb; sourceTree = "<group>"; };
+		8844358815772EF0007F95A4 /* true.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = true.rb; sourceTree = "<group>"; };
+		8844358915772EF0007F95A4 /* typeerror.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = typeerror.rb; sourceTree = "<group>"; };
+		8844358F1577301B007F95A4 /* mrbtest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = mrbtest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8844359A157730DB007F95A4 /* mrbtest.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = mrbtest.c; sourceTree = "<group>"; };
 		88760A9D1575991600113BFB /* mrbc */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = mrbc; path = build/mrbc; sourceTree = "<group>"; };
 		88760B1715769BE400113BFB /* libmruby_core.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; name = libmruby_core.a; path = build/lib/libmruby_core.a; sourceTree = "<group>"; };
 		88760B1C15769CEE00113BFB /* mrblib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mrblib.c; sourceTree = "<group>"; };
@@ -234,6 +283,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		8844358C1577301B007F95A4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8844359C15773120007F95A4 /* libmruby.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		88760A88157590F000113BFB /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -284,6 +341,60 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		8844356115772EF0007F95A4 /* test */ = {
+			isa = PBXGroup;
+			children = (
+				8844359A157730DB007F95A4 /* mrbtest.c */,
+				8844356215772EF0007F95A4 /* assert.rb */,
+				8844356415772EF0007F95A4 /* driver.c */,
+				8844356515772EF0007F95A4 /* init_mrbtest.c */,
+				8844356715772EF0007F95A4 /* t */,
+			);
+			name = test;
+			path = ../test;
+			sourceTree = "<group>";
+		};
+		8844356715772EF0007F95A4 /* t */ = {
+			isa = PBXGroup;
+			children = (
+				8844356815772EF0007F95A4 /* argumenterror.rb */,
+				8844356915772EF0007F95A4 /* array.rb */,
+				8844356A15772EF0007F95A4 /* bs_block.rb */,
+				8844356B15772EF0007F95A4 /* bs_literal.rb */,
+				8844356C15772EF0007F95A4 /* class.rb */,
+				8844356D15772EF0007F95A4 /* enumerable.rb */,
+				8844356E15772EF0007F95A4 /* exception.rb */,
+				8844356F15772EF0007F95A4 /* false.rb */,
+				8844357015772EF0007F95A4 /* float.rb */,
+				8844357115772EF0007F95A4 /* hash.rb */,
+				8844357215772EF0007F95A4 /* indexerror.rb */,
+				8844357315772EF0007F95A4 /* integer.rb */,
+				8844357415772EF0007F95A4 /* kernel.rb */,
+				8844357515772EF0007F95A4 /* literals.rb */,
+				8844357615772EF0007F95A4 /* localjumperror.rb */,
+				8844357715772EF0007F95A4 /* math.rb */,
+				8844357815772EF0007F95A4 /* module.rb */,
+				8844357915772EF0007F95A4 /* nameerror.rb */,
+				8844357A15772EF0007F95A4 /* nil.rb */,
+				8844357B15772EF0007F95A4 /* nomethoderror.rb */,
+				8844357C15772EF0007F95A4 /* numeric.rb */,
+				8844357D15772EF0007F95A4 /* object.rb */,
+				8844357E15772EF0007F95A4 /* proc.rb */,
+				8844357F15772EF0007F95A4 /* range.rb */,
+				8844358015772EF0007F95A4 /* rangeerror.rb */,
+				8844358115772EF0007F95A4 /* regexperror.rb */,
+				8844358215772EF0007F95A4 /* runtimeerror.rb */,
+				8844358315772EF0007F95A4 /* standarderror.rb */,
+				8844358415772EF0007F95A4 /* string.rb */,
+				8844358515772EF0007F95A4 /* struct.rb */,
+				8844358615772EF0007F95A4 /* symbol.rb */,
+				8844358715772EF0007F95A4 /* time.rb */,
+				8844358815772EF0007F95A4 /* true.rb */,
+				8844358915772EF0007F95A4 /* typeerror.rb */,
+			);
+			path = t;
+			sourceTree = "<group>";
+		};
 		88760B3F1576A01C00113BFB /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -322,9 +433,11 @@
 				88BF34D3156C998200F12AC7 /* src */,
 				88BF34BB156C997100F12AC7 /* tools */,
 				88760B7C1576A33100113BFB /* mruby_fw */,
+				8844356115772EF0007F95A4 /* test */,
 				88760B3F1576A01C00113BFB /* Products */,
 				8844353B1576F1A3007F95A4 /* libmruby_core.a */,
 				8844353C1576F1A3007F95A4 /* mrbc */,
+				8844358F1577301B007F95A4 /* mrbtest */,
 				8844353E1576F1A3007F95A4 /* libmruby.a */,
 				8844353F1576F1A3007F95A4 /* mruby.framework */,
 			);
@@ -561,6 +674,24 @@
 /* End PBXLegacyTarget section */
 
 /* Begin PBXNativeTarget section */
+		8844358E1577301B007F95A4 /* mrbtest */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 884435961577301B007F95A4 /* Build configuration list for PBXNativeTarget "mrbtest" */;
+			buildPhases = (
+				8844359915773052007F95A4 /* ShellScript */,
+				8844358B1577301B007F95A4 /* Sources */,
+				8844358C1577301B007F95A4 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8844359E15773126007F95A4 /* PBXTargetDependency */,
+			);
+			name = mrbtest;
+			productName = mrbtest;
+			productReference = 8844358F1577301B007F95A4 /* mrbtest */;
+			productType = "com.apple.product-type.tool";
+		};
 		88760A8A157590F000113BFB /* mrbc */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 88760A92157590F000113BFB /* Build configuration list for PBXNativeTarget "mrbc" */;
@@ -695,6 +826,7 @@
 				88760AA115759B4F00113BFB /* ruby_lib */,
 				88760B2315769E6100113BFB /* mruby */,
 				88760B3215769F3000113BFB /* mirb */,
+				8844358E1577301B007F95A4 /* mrbtest */,
 				88760B731576A33100113BFB /* mruby_fw */,
 			);
 		};
@@ -712,6 +844,19 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		8844359915773052007F95A4 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cd ../test\ncat ./assert.rb ./t/*.rb > mrbtest.rbtmp\n../Xcode/build/mrbc -Bmrbtest_irep -omrbtest.ctmp mrbtest.rbtmp\ncat init_mrbtest.c mrbtest.ctmp > mrbtest.c";
+		};
 		88760AE015759C3600113BFB /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -754,6 +899,15 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		8844358B1577301B007F95A4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8844359B157730E1007F95A4 /* mrbtest.c in Sources */,
+				8844359F15773215007F95A4 /* driver.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		88760A87157590F000113BFB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -849,6 +1003,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		8844359E15773126007F95A4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 88760AA115759B4F00113BFB /* ruby_lib */;
+			targetProxy = 8844359D15773126007F95A4 /* PBXContainerItemProxy */;
+		};
 		88760ADF15759C1C00113BFB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 88760A8A157590F000113BFB /* mrbc */;
@@ -888,6 +1047,36 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		884435971577301B007F95A4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../src\"",
+				);
+				INSTALL_PATH = /;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		884435981577301B007F95A4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../src\"",
+				);
+				INSTALL_PATH = /;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		88760A93157590F000113BFB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1143,6 +1332,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		884435961577301B007F95A4 /* Build configuration list for PBXNativeTarget "mrbtest" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				884435971577301B007F95A4 /* Debug */,
+				884435981577301B007F95A4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		88760A92157590F000113BFB /* Build configuration list for PBXNativeTarget "mrbc" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
