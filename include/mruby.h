@@ -507,40 +507,6 @@ mrb_value mrb_exec_recursive(mrb_state *mrb, mrb_value(*)(mrb_state *, mrb_value
 #endif
 
 void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
-#define thread_debug if(0)printf
-
-#define RUBY_VM 1 /* YARV */
-#define HAVE_NATIVETHREAD
-int ruby_native_thread_p(void);
-
-#define RUBY_EVENT_NONE      0x0000
-#define RUBY_EVENT_LINE      0x0001
-#define RUBY_EVENT_CLASS     0x0002
-#define RUBY_EVENT_END       0x0004
-#define RUBY_EVENT_CALL      0x0008
-#define RUBY_EVENT_RETURN    0x0010
-#define RUBY_EVENT_C_CALL    0x0020
-#define RUBY_EVENT_C_RETURN  0x0040
-#define RUBY_EVENT_RAISE     0x0080
-#define RUBY_EVENT_ALL       0xffff
-#define RUBY_EVENT_VM       0x10000
-#define RUBY_EVENT_SWITCH   0x20000
-#define RUBY_EVENT_COVERAGE 0x40000
-
-typedef unsigned int mrb_event_flag_t;
-typedef void (*mrb_event_hook_func_t)(mrb_state *mrb, mrb_event_flag_t, mrb_value data, mrb_value, mrb_sym, mrb_value klass);
-
-typedef struct mrb_event_hook_struct {
-    mrb_event_flag_t flag;
-    mrb_event_hook_func_t func;
-    mrb_value data;
-    struct mrb_event_hook_struct *next;
-} mrb_event_hook_t;
-
-#define RB_EVENT_HOOKS_HAVE_CALLBACK_DATA 1
-void mrb_add_event_hook(mrb_state *mrb, mrb_event_hook_func_t func, mrb_event_flag_t events,
-               mrb_value data);
-int mrb_remove_event_hook(mrb_event_hook_func_t func);
 mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
 
