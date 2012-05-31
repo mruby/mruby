@@ -274,11 +274,11 @@ mrb_f_send(int argc, mrb_value *argv, mrb_value recv)
 static mrb_value
 mrb_f_send_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
+  mrb_value name, block, *argv;
   int argc;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  return mrb_f_send(argc, argv, self);
+  
+  mrb_get_args(mrb, "&o*", &block, &name, &argv, &argc);
+  return mrb_funcall_with_block(mrb,self, mrb_string_value_ptr(mrb, name), argc, argv, block);
 }
 
 /* 15.3.1.2.1  */
