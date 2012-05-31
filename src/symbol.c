@@ -17,9 +17,6 @@
 #include <stdio.h>
 
 /* ------------------------------------------------------ */
-KHASH_MAP_INIT_INT(s2n, const char*);
-KHASH_MAP_INIT_STR(n2s, mrb_sym);
-/* ------------------------------------------------------ */
 mrb_sym
 mrb_intern(mrb_state *mrb, const char *name)
 {
