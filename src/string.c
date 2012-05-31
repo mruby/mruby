@@ -927,6 +927,20 @@ mrb_str_chop(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
 {
+  char *s, *send;
+  int modify = 0;
+
+  s = RSTRING_PTR(str);
+  send = RSTRING_END(str);
+  while (s < send) {
+    if (ISUPPER(*s)) {
+      *s = tolower(*s);
+      modify = 1;
+    }
+    s++;
+  }
+
+  if (modify) return str;
   return mrb_nil_value();
 }
 
