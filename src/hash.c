@@ -59,12 +59,11 @@ mrb_hash_ht_key(mrb_state *mrb, mrb_value key)
 #define KEY(key) mrb_hash_ht_key(mrb, key)
 
 void
-mrb_gc_mark_ht(mrb_state *mrb, struct RHash *c)
+mrb_gc_mark_ht(mrb_state *mrb, struct RHash *hash)
 {
   khiter_t k;
-  khash_t(ht) *h = ((struct RHash*)c)->ht;
+  khash_t(ht) *h = hash->ht;
 
-  if (!h) return;
   for (k = kh_begin(h); k != kh_end(h); k++)
     if (kh_exist(h, k)) {
       mrb_gc_mark_value(mrb, kh_key(h, k));
@@ -73,23 +72,15 @@ mrb_gc_mark_ht(mrb_state *mrb, struct RHash *c)
 }
 
 size_t
-mrb_gc_mark_ht_size(mrb_state *mrb, struct RHash *c)
+mrb_gc_mark_ht_size(mrb_state *mrb, struct RHash *hash)
 {
-  size_t ht_size = 0;
-  khash_t(ht) *h = c->ht;
-
-  /* ((struct RHash*)c)->ht */
-  if (h) ht_size += kh_size(h)*2;
-
-  return ht_size;
+  return kh_size(hash->ht)*2;
 }
 
 void
-mrb_gc_free_ht(mrb_state *mrb, struct RHash *c)
+mrb_gc_free_ht(mrb_state *mrb, struct RHash *hash)
 {
-  khash_t(ht) *h = c->ht;
-
-  kh_destroy(ht, h);
+  kh_destroy(ht, hash->ht);
 }
 
 
@@ -117,11 +108,9 @@ mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key) /* mrb_hash_aref */ 
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
 
-  if (h) {
-    k = kh_get(ht, h, key);
-    if (k != kh_end(h))
-      return kh_value(h, k);
-  }
+  k = kh_get(ht, h, key);
+  if (k != kh_end(h))
+    return kh_value(h, k);
 
   /* not found */
   if (MRB_RHASH_PROCDEFAULT_P(hash)) {
@@ -171,21 +160,6 @@ mrb_hash_freeze(mrb_value hash)
 {
   //return mrb_obj_freeze(hash);
   return (hash);
-}
-
-mrb_value
-mrb_hash(mrb_state *mrb, mrb_value obj)
-{
-  mrb_value hval = mrb_funcall(mrb, obj, "Hash", 0);
-retry:
-  switch (mrb_type(hval)) {
-    case MRB_TT_FIXNUM:
-      return hval;
-
-    default:
-      hval = mrb_to_int(mrb, hval);
-      goto retry;
-  }
 }
 
 mrb_value
@@ -1311,9 +1285,6 @@ mrb_hash_rassoc(mrb_state *mrb, mrb_value hash)
   mrb_value key, value, has_key;
 
   mrb_get_args(mrb, "o", &key);
-  if (mrb_nil_p(key))
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
-
   has_key = mrb_hash_has_keyWithKey(mrb, hash, key);
   if (mrb_test(has_key)) {
     value = mrb_hash_get(mrb, hash, key);
