@@ -11,11 +11,7 @@
 #include "mruby/array.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
-#include "st.h"
-#include <errno.h>
 #include <string.h>
-
-
 #include <stdio.h>
 
 static inline khint_t
