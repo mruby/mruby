@@ -635,7 +635,6 @@ mrb_str_index(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int offset)
   slen = RSTRING_LEN(sub);
   len = RSTRING_LEN(str) - offset;
   pos = mrb_memsearch(sptr, slen, s, len);
- 
   if (pos < 0) return pos;
   return pos + offset;
 }
