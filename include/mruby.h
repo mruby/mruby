@@ -511,18 +511,6 @@ void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
 
-//#define RUBY_SETJMP(env) ${setjmp_prefix}setjmp(env${setjmp_sigmask+,0})
-//#define RUBY_LONGJMP(env,val) ${setjmp_prefix}longjmp(env,val)
-//#define RUBY_JMP_BUF ${setjmp_sigmask+${setjmp_prefix}}jmp_buf
-#define RUBY_SETJMP(env) __builtin_setjmp(env)
-#define RUBY_LONGJMP(env,val) __builtin_longjmp(env,1)//(env,val)
-//#define RUBY_JMP_BUF ${setjmp_sigmask+${setjmp_prefix}}jmp_buf
-#define select(n, r, w, e, t) select_large_fdset(n, r, w, e, t)
-
-//int RUBY_SETJMP(mrb_jmpbuf_t env); /* add kusuda */
-#define ruby_setjmp(env) RUBY_SETJMP(env)
-#define ruby_longjmp(env,val) RUBY_LONGJMP(env,val)
-
 typedef enum call_type {
     CALL_PUBLIC,
     CALL_FCALL,
