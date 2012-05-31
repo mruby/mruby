@@ -1211,6 +1211,9 @@ str_subseq(mrb_state *mrb, mrb_value str, long beg, long len)
 
   str2 = mrb_str_new_with_class(mrb, str, 0, 0);
   orig = mrb_str_ptr(str);
+  while (orig->flags & MRB_STR_SHARED) {
+    orig = orig->aux.shared;
+  }
   s = mrb_str_ptr(str2);
   s->buf = orig->buf + beg;
   s->len = len;
