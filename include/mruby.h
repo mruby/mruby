@@ -523,11 +523,6 @@ void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
 #define ruby_setjmp(env) RUBY_SETJMP(env)
 #define ruby_longjmp(env,val) RUBY_LONGJMP(env,val)
 
-#define KHASH  0
-#define STHASH 1
-#define BASICHASH 2
-#define HASH_CLASS_METHOD BASICHASH
-
 typedef enum call_type {
     CALL_PUBLIC,
     CALL_FCALL,
