@@ -464,7 +464,31 @@ mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2)
 static mrb_value
 mrb_str_cmp_m(mrb_state *mrb, mrb_value str1)
 {
-  return mrb_nil_value();
+  mrb_value str2;
+  mrb_int result;
+
+  mrb_get_args(mrb, "o", &str2);
+  if (mrb_type(str2) != MRB_TT_STRING) {
+    if (!mrb_respond_to(mrb, str2, mrb_intern(mrb, "to_s"))) {
+      return mrb_nil_value();
+    }
+    else if (!mrb_respond_to(mrb, str2, mrb_intern(mrb, "<=>"))) {
+      return mrb_nil_value();
+    }
+    else {
+      mrb_value tmp = mrb_funcall(mrb, str2, "<=>", 1, str1);
+
+      if (mrb_nil_p(tmp)) return mrb_nil_value();
+      if (!mrb_fixnum(tmp)) {
+        return mrb_funcall(mrb, mrb_fixnum_value(0), "-", 1, tmp);
+      }
+      result = -mrb_fixnum(tmp);
+    }
+  }
+  else {
+    result = mrb_str_cmp(mrb, str1, str2);
+  }
+  return mrb_fixnum_value(result);
 }
 
 static int
