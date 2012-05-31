@@ -794,6 +794,22 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
 {
+  char *s, *send;
+  int modify = 0;
+
+  if (RSTRING_LEN(str) == 0 || !RSTRING_PTR(str)) return mrb_nil_value();
+  s = RSTRING_PTR(str); send = RSTRING_END(str);
+  if (ISLOWER(*s)) {
+    *s = toupper(*s);
+    modify = 1;
+  }
+  while (++s < send) {
+    if (ISUPPER(*s)) {
+      *s = tolower(*s);
+      modify = 1;
+    }
+  }
+  if (modify) return str;
   return mrb_nil_value();
 }
 
