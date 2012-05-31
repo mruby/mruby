@@ -247,6 +247,9 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
 {
   struct RBasic *p;
 
+#ifdef MRB_GC_STRESS
+  mrb_garbage_collect(mrb);
+#endif
   if (mrb->gc_threshold < mrb->live) {
     mrb_incremental_gc(mrb);
   }
@@ -277,6 +280,11 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
 static inline void
 add_gray_list(mrb_state *mrb, struct RBasic *obj)
 {
+#ifdef MRB_GC_STRESS
+  if (obj->tt > MRB_TT_MAXDEFINE) {
+    abort();
+  }
+#endif
   paint_gray(obj);
   obj->gcnext = mrb->gray_list;
   mrb->gray_list = obj;
@@ -499,14 +507,18 @@ root_scan_phase(mrb_state *mrb)
   /* mark closure */
   for (ci = mrb->cibase; ci <= mrb->ci; ci++) {
     if (!ci) continue;
-    mrb_gc_mark( mrb, (struct RBasic*)ci->env);
+    mrb_gc_mark(mrb, (struct RBasic*)ci->env);
+    mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
+    mrb_gc_mark(mrb, (struct RBasic*)ci->target_class);
   }
   /* mark irep pool */
   for (i=0; i<mrb->irep_len; i++) {
-    mrb_irep *irep = mrb->irep[i];
-    if (!irep) continue;
-    for (j=0; j<irep->plen; j++) {
-      mrb_gc_mark_value(mrb, irep->pool[j]);
+    if (mrb->irep) {
+      mrb_irep *irep = mrb->irep[i];
+      if (!irep) continue;
+      for (j=0; j<irep->plen; j++) {
+	mrb_gc_mark_value(mrb, irep->pool[j]);
+      }
     }
   }
 }

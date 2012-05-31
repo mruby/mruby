@@ -531,14 +531,13 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
     src += MRB_DUMP_SIZE_OF_LONG;                      //record ren
     if ((ret = read_rite_irep_record(mrb, src, mrb->irep[i], &len)) != MRB_DUMP_OK)
       goto error_exit;
-    mrb->irep[i]->idx = i;
+    mrb->irep[mrb->irep_len++]->idx = i;
     src += len;
   }
   if (0 != bin_to_uint32(src)) {              //dummy record len
     ret = MRB_DUMP_GENERAL_FAILURE;
   }
 
-  mrb->irep_len += nirep;
 error_exit:
   if (ret != MRB_DUMP_OK) {
     for (n=0,i=sirep; n<nirep; n++,i++) {

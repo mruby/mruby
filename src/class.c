@@ -398,10 +398,16 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     sp = a->buf;
   }
   while ((c = *format++)) {
-    if (argc < i) {
-      if (opt) continue;
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+    switch (c) {
+    case '|': case '*': case '&':
+      break;
+    default:
+      if (argc <= i) {
+	if (opt) continue;
+	mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+      }
     }
+
     switch (c) {
     case 'o':
       {
@@ -556,6 +562,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     case '|':
       opt = 1;
       break;
+
     case '*':
       {
         mrb_value **var;
@@ -569,6 +576,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 	    *var = sp;
             i = argc;
           }
+	  i = argc;
+	  sp += *pl;
         }
         else {
           *pl = 0;
@@ -582,7 +591,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
   }
   va_end(ap);
-  return 0;
+  return i;
 }
 
 static struct RClass*
@@ -1100,14 +1109,20 @@ mrb_mod_alias(mrb_state *mrb, mrb_value mod)
 }
 
 
-void
-mrb_undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
+static void
+undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
 {
   mrb_value m;
 
   m.tt = MRB_TT_PROC;
   m.value.p = 0;
   mrb_define_method_vm(mrb, c, a, m);
+}
+
+void
+mrb_undef_method(mrb_state *mrb, struct RClass *c, const char *name)
+{
+  undef_method(mrb, c, mrb_intern(mrb, name));
 }
 
 mrb_value
@@ -1119,7 +1134,7 @@ mrb_mod_undef(mrb_state *mrb, mrb_value mod)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   while (argc--) {
-    mrb_undef_method(mrb, c, mrb_symbol(*argv));
+    undef_method(mrb, c, mrb_symbol(*argv));
     argv++;
   }
   return mrb_nil_value();
@@ -1170,7 +1185,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_name_class(mrb, mod, mrb_intern(mrb, "Module"));
   mrb_name_class(mrb, cls, mrb_intern(mrb, "Class"));
 
-  mrb_undef_method(mrb, mod, mrb_intern(mrb, "new"));
+  mrb_undef_method(mrb, mod, "new");
   MRB_SET_INSTANCE_TT(cls, MRB_TT_CLASS);
   mrb_define_method(mrb, bob, "initialize", mrb_bob_init, ARGS_NONE());
   mrb_define_method(mrb, bob, "!", mrb_bob_not, ARGS_NONE());

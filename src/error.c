@@ -56,9 +56,9 @@ exc_initialize(mrb_state *mrb, mrb_value exc)
 {
   mrb_value mesg;
 
-  mrb_get_args(mrb, "o", &mesg);
-  mrb_iv_set(mrb, exc, mrb_intern(mrb, "mesg"), mesg);
-
+  if (mrb_get_args(mrb, "|o", &mesg) == 1) {
+    mrb_iv_set(mrb, exc, mrb_intern(mrb, "mesg"), mesg);
+  }
   return exc;
 }
 

@@ -1140,7 +1140,7 @@ mrb_fix2str(mrb_state *mrb, mrb_value x, int base)
   }
   *--b = '\0';
   do {
-    *--b = ruby_digitmap[(int)(val % base)];
+    *--b = mrb_digitmap[(int)(val % base)];
   } while (val /= base);
   if (neg) {
     *--b = '-';
@@ -1266,6 +1266,7 @@ mrb_init_numeric(mrb_state *mrb)
   integer = mrb_define_class(mrb, "Integer",  numeric);
   fixnum = mrb->fixnum_class = mrb_define_class(mrb, "Fixnum", integer);
 
+  mrb_undef_method(mrb,  fixnum, "new");
   mrb_define_method(mrb, fixnum,  "+",        mrb_fixnum_plus,   ARGS_REQ(1)); /* 15.2.8.3.1  */
   mrb_define_method(mrb, fixnum,  "-",        mrb_fixnum_minus,  ARGS_REQ(1)); /* 15.2.8.3.2  */
   mrb_define_method(mrb, fixnum,  "-@",       fix_uminus,        ARGS_REQ(1)); /* 15.2.7.4.2  */
@@ -1293,6 +1294,7 @@ mrb_init_numeric(mrb_state *mrb)
 
   /* Float Class */
   fl = mrb->float_class = mrb_define_class(mrb, "Float", numeric);
+  mrb_undef_method(mrb,  fl, "new");
   mrb_define_method(mrb, fl,      "+",         mrb_float_plus,   ARGS_REQ(1)); /* 15.2.9.3.1  */
   mrb_define_method(mrb, fl,      "-",         flo_minus,        ARGS_REQ(1)); /* 15.2.9.3.2  */
   mrb_define_method(mrb, fl,      "*",         flo_mul,          ARGS_REQ(1)); /* 15.2.9.3.3  */
