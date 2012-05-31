@@ -18,7 +18,7 @@
 
 #include <stdio.h>
 
-static khint_t
+static inline khint_t
 mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
 {
   char type = mrb_type(key);
@@ -28,7 +28,7 @@ mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
   return kh_str_hash_func(mrb, RSTRING_PTR(s1));
 }
 
-static khint_t
+static inline khint_t
 mrb_hash_ht_hash_equal(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   return mrb_equal(mrb, a, b);
