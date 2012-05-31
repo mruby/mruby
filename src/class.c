@@ -17,12 +17,6 @@
 
 #include "mruby/khash.h"
 
-#ifdef INCLUDE_REGEXP
-  #define mrb_usascii_str_new2 mrb_usascii_str_new_cstr
-#else
-  #define mrb_usascii_str_new2 mrb_str_new_cstr
-#endif
-
 KHASH_MAP_INIT_INT(mt, struct RProc*);
 KHASH_MAP_INIT_INT(iv, mrb_value);
 
@@ -1052,7 +1046,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 {
   //if (FL_TEST(klass, FL_SINGLETON)) {
   if (mrb_type(klass) == MRB_TT_SCLASS) {
-    mrb_value s = mrb_usascii_str_new2(mrb, "#<");
+    mrb_value s = mrb_str_new_cstr(mrb, "#<");
     mrb_value v = mrb_iv_get(mrb, klass, mrb_intern(mrb, "__attached__"));
 
     mrb_str_cat2(mrb, s, "Class:");

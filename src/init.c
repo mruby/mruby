@@ -20,7 +20,6 @@ void mrb_init_proc(mrb_state*);
 void mrb_init_range(mrb_state*);
 void mrb_init_string(mrb_state*);
 void mrb_init_regexp(mrb_state*);
-void mrb_init_encoding(mrb_state*);
 void mrb_init_exception(mrb_state*);
 void mrb_init_time(mrb_state*);
 void mrb_init_io(mrb_state*);
@@ -54,7 +53,6 @@ mrb_init_core(mrb_state *mrb)
   mrb_init_gc(mrb);
 #ifdef INCLUDE_REGEXP
   mrb_init_regexp(mrb);
-  mrb_init_encoding(mrb);
 #endif
   mrb_init_exception(mrb);
   mrb_init_print(mrb);

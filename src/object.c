@@ -11,13 +11,6 @@
 #include "mruby/class.h"
 #include "mruby/numeric.h"
 
-#ifdef INCLUDE_REGEXP
-  #define mrb_usascii_str_new2 mrb_usascii_str_new_cstr
-#else
-  #define mrb_usascii_str_new2 mrb_str_new_cstr
-  #define mrb_usascii_str_new  mrb_str_new
-#endif
-
 #ifndef FALSE
 #define FALSE   0
 #endif
@@ -106,7 +99,7 @@ mrb_true(mrb_state *mrb, mrb_value obj)
 static mrb_value
 nil_to_s(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_usascii_str_new(mrb, 0, 0);
+    return mrb_str_new(mrb, 0, 0);
 }
 
 /***********************************************************************
@@ -166,7 +159,7 @@ true_xor(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_to_s(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_usascii_str_new2(mrb, "true");
+    return mrb_str_new_cstr(mrb, "true");
 }
 
 /* 15.2.5.3.4  */
@@ -279,7 +272,7 @@ false_or(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_to_s(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_usascii_str_new2(mrb, "false");
+    return mrb_str_new_cstr(mrb, "false");
 }
 
 void

@@ -30,34 +30,15 @@ extern const char mrb_digitmap[];
 struct RString {
   MRUBY_OBJECT_HEADER;
   int len;
-  union {
-    int capa;
-    struct RString *shared;
-  } aux;
+  int capa;
   char *buf;
 };
-
-extern struct SCOPE {
-    struct RBasic super;
-    mrb_sym *local_tbl;
-    mrb_value *local_vars;
-    int flags;
-} *ruby_scope;
-
-struct RVarmap {
-    struct RBasic super;
-    mrb_sym id;
-    mrb_value val;
-    struct RVarmap *next;
-};
-extern struct RVarmap *ruby_dyna_vars;
 
 #define mrb_str_ptr(s)    ((struct RString*)((s).value.p))
 #define RSTRING(s)        ((struct RString*)((s).value.p))
 #define RSTRING_PTR(s)    (RSTRING(s)->buf)
 #define RSTRING_LEN(s)    (RSTRING(s)->len)
-#define RSTRING_CAPA(s)   (RSTRING(s)->aux.capa)
-#define RSTRING_SHARED(s) (RSTRING(s)->aux.shared)
+#define RSTRING_CAPA(s)   (RSTRING(s)->capa)
 #define RSTRING_END(s)    (RSTRING(s)->buf + RSTRING(s)->len)
 
 #define MRB_STR_SHARED      256

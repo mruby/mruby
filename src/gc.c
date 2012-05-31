@@ -266,7 +266,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   mrb->live++;
   if (mrb->arena_idx > MRB_ARENA_SIZE) {
     /* arena overflow error */
-    mrb->arena_idx = MRB_ARENA_SIZE - 2; /* force room in arena */
+    mrb->arena_idx = MRB_ARENA_SIZE - 4; /* force room in arena */
     mrb_raise(mrb, mrb->eRuntimeError_class, "arena overflow error");
   }
   mrb->arena[mrb->arena_idx++] = p;
@@ -360,12 +360,14 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 
   case MRB_TT_STRING:
     {
+#if 0
       struct RString *s = (struct RString*)obj;
 
       while (s->flags & MRB_STR_SHARED) {
         s = s->aux.shared;
         if (!s) break;
       }
+#endif
     }
     break;
 
