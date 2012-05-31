@@ -10,9 +10,6 @@
 #include "mruby/string.h"
 #include "mruby/class.h"
 
-mrb_value mrb_exec_recursive_paired(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mrb_value, int),
-                                   mrb_value obj, mrb_value paired_obj, void* arg);
-
 //#define ARY_DEFAULT_LEN  16
 #define ARY_DEFAULT_LEN   4
 #define ARY_SHRINK_RATIO  5 /* must be larger than 2 */
