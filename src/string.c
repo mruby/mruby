@@ -830,6 +830,62 @@ mrb_str_capitalize(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
 {
+  mrb_value rs;
+  mrb_int newline;
+  char *p, *pp;
+  long len, rslen;
+
+  len = RSTRING_LEN(str);
+  if (mrb_get_args(mrb, "|S", &rs) == 0) {
+    if (len == 0) return mrb_nil_value();
+  smart_chomp:
+    if (RSTRING_PTR(str)[len-1] == '\n') {
+      STR_DEC_LEN(str);
+      if (RSTRING_LEN(str) > 0 &&
+	  RSTRING_PTR(str)[RSTRING_LEN(str)-1] == '\r') {
+	STR_DEC_LEN(str);
+      }
+    }
+    else if (RSTRING_PTR(str)[len-1] == '\r') {
+      STR_DEC_LEN(str);
+    }
+    else {
+      return mrb_nil_value();
+    }
+    return str;
+  }
+
+  if (len == 0 || mrb_nil_p(rs)) return mrb_nil_value();
+  p = RSTRING_PTR(str);
+  rslen = RSTRING_LEN(rs);
+  if (rslen == 0) {
+    while (len>0 && p[len-1] == '\n') {
+      len--;
+      if (len>0 && p[len-1] == '\r')
+        len--;
+    }
+    if (len < RSTRING_LEN(str)) {
+      STR_SET_LEN(str, len);
+      p[len] = '\0';
+      return str;
+    }
+    return mrb_nil_value();
+  }
+  if (rslen > len) return mrb_nil_value();
+  newline = RSTRING_PTR(rs)[rslen-1];
+  if (rslen == 1 && newline == '\n')
+    newline = RSTRING_PTR(rs)[rslen-1];
+  if (rslen == 1 && newline == '\n')
+    goto smart_chomp;
+
+  pp = p + len - rslen;
+  if (p[len-1] == newline &&
+     (rslen <= 1 ||
+     memcmp(RSTRING_PTR(rs), pp, rslen) == 0)) {
+    STR_SET_LEN(str, len - rslen);
+    p[len] = '\0';
+    return str;
+  }
   return mrb_nil_value();
 }
 

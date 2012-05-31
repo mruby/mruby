@@ -85,7 +85,7 @@ assert('String#chomp', '15.2.10.5.9') do
     d == "abc\n" and e == 'abc' and f == "abc\n"
 end
 
-assert('String#chomp', '15.2.10.5.10') do
+assert('String#chomp!', '15.2.10.5.10') do
   a = 'abc'
   b = ''
   c = "abc\n"
