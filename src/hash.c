@@ -673,7 +673,7 @@ mrb_hash_values_at(mrb_state *mrb, int argc, mrb_value *argv, mrb_value hash)
     long i;
 
     for (i=0; i<argc; i++) {
-        mrb_ary_push(mrb, result, KEY(mrb_hash_get(mrb, hash, argv[i])));
+        mrb_ary_push(mrb, result, mrb_hash_get(mrb, hash, argv[i]));
     }
     return result;
 }
