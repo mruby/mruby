@@ -281,25 +281,6 @@ mrb_f_send_m(mrb_state *mrb, mrb_value self)
   return mrb_funcall_with_block(mrb,self, mrb_string_value_ptr(mrb, name), argc, argv, block);
 }
 
-/* 15.3.1.2.1  */
-/* 15.3.1.3.5  */
-/*
- *  call-seq:
- *     spawn([env,] command... [,options])     -> pid
- *     Process.spawn([env,] command... [,options])     -> pid
- *
- *  spawn executes specified command and return its pid.
- */
-static mrb_value
-mrb_f_spawn_m(mrb_state *mrb, mrb_value self)
-{
-  mrb_value *argv;
-  int argc;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  return (mrb_f_send(argc, argv, self));
-}
-
 static mrb_value
 mrb_f_block_given_p(void)
 {
@@ -1400,7 +1381,6 @@ mrb_init_kernel(mrb_state *mrb)
   struct RClass *krn;
 
   krn = mrb->kernel_module = mrb_define_module(mrb, "Kernel");
-  mrb_define_class_method(mrb, krn, "'",                    mrb_f_spawn_m,                   ARGS_ANY());     /* 15.3.1.2.1  */
   mrb_define_class_method(mrb, krn, "block_given?",         mrb_f_block_given_p_m,           ARGS_NONE());    /* 15.3.1.2.2  */
   mrb_define_class_method(mrb, krn, "eval",                 mrb_f_eval_m,                    ARGS_ANY());     /* 15.3.1.2.3  */
   mrb_define_class_method(mrb, krn, "global_variables",     mrb_f_global_variables,          ARGS_NONE());    /* 15.3.1.2.4  */
@@ -1419,7 +1399,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "===",                        mrb_equal_m,                     ARGS_REQ(1));    /* 15.3.1.3.2  */
   mrb_define_method(mrb, krn, "__id__",                     mrb_obj_id_m,                    ARGS_NONE());    /* 15.3.1.3.3  */
   mrb_define_method(mrb, krn, "__send__",                   mrb_f_send_m,                    ARGS_ANY());     /* 15.3.1.3.4  */
-  mrb_define_method(mrb, krn, "'",                          mrb_f_spawn_m,                   ARGS_ANY());     /* 15.3.1.3.5  *//* "spawn"->"'" */
   mrb_define_method(mrb, krn, "block_given?",               mrb_f_block_given_p_m,           ARGS_NONE());    /* 15.3.1.3.6  */
   mrb_define_method(mrb, krn, "class",                      mrb_obj_class_m,                 ARGS_NONE());    /* 15.3.1.3.7  */
   mrb_define_method(mrb, krn, "clone",                      mrb_obj_clone,                   ARGS_NONE());    /* 15.3.1.3.8  */
