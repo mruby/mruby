@@ -5163,7 +5163,13 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 	if (n2->car) {
 	  dump_prefix(offset+2);
 	  printf("rest:\n");
-	  parser_dump(mrb, n2->car, offset+3);
+          if (n2->car == (node*)-1) {
+	    dump_prefix(offset+2);
+	    printf("(empty)\n");
+	  }
+          else {
+	    parser_dump(mrb, n2->car, offset+3);
+	  }
 	}
 	n2 = n2->cdr;
 	if (n2) {
