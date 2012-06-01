@@ -337,6 +337,7 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
   struct RString *s1 = mrb_str_ptr(self), *s2;
   int len;
 
+  str_modify(mrb, self);
   if (mrb_type(other) != MRB_TT_STRING) {
     other = mrb_str_to_str(mrb, other);
   }
