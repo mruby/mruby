@@ -416,7 +416,7 @@ mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_val
     mrb_raise(mrb, E_ARGUMENT_ERROR, "struct size differs");
   }
   st = RSTRUCT(self);
-  st->ptr = malloc(sizeof(mrb_value)*argc);
+  st->ptr = mrb_malloc(mrb, sizeof(mrb_value)*argc);
   st->len = n;
   memcpy(st->ptr, argv, sizeof(mrb_value)*argc);
   //if (n > argc) {
