@@ -112,7 +112,17 @@ assert('Kernel#respond_to?', '15.3.1.2.43') do
   respond_to? :nil?
 end
 
-# TODO at the moment doesn't comply to ISO assert('Kernel#send', '15.3.1.2.44') do
+assert('Kernel#send', '15.3.1.2.44') do
+  # test with block
+  l = send(:lambda) do
+    true
+  end
+  l.call and l.class == Proc and
+    # test with argument
+    send(:respond_to?, :nil?) and
+    # test without argument and without block
+    send(:public_methods).class == Array
+end
 
 assert('Kernel#singleton_methods', '15.3.1.2.45') do
   singleton_methods.class == Array
