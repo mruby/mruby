@@ -240,18 +240,6 @@ mrb_obj_id_m(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(mrb_obj_id(self));
 }
 
-mrb_value
-send_internal(int argc, mrb_value *argv, mrb_value recv, enum call_type ctype)
-{
-    return mrb_nil_value(); /* dummy */
-}
-
-mrb_value
-mrb_f_send(int argc, mrb_value *argv, mrb_value recv)
-{
-    return send_internal(argc, argv, recv, CALL_FCALL);
-}
-
 /* 15.3.1.3.4  */
 /* 15.3.1.3.44 */
 /*
@@ -272,7 +260,7 @@ mrb_f_send(int argc, mrb_value *argv, mrb_value recv)
  *     k.send :hello, "gentle", "readers"   #=> "Hello gentle readers"
  */
 static mrb_value
-mrb_f_send_m(mrb_state *mrb, mrb_value self)
+mrb_f_send(mrb_state *mrb, mrb_value self)
 {
   mrb_value name, block, *argv;
   int argc;
@@ -1398,7 +1386,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "!=",                         mrb_obj_not_equal_m,             ARGS_REQ(1));
   mrb_define_method(mrb, krn, "===",                        mrb_equal_m,                     ARGS_REQ(1));    /* 15.3.1.3.2  */
   mrb_define_method(mrb, krn, "__id__",                     mrb_obj_id_m,                    ARGS_NONE());    /* 15.3.1.3.3  */
-  mrb_define_method(mrb, krn, "__send__",                   mrb_f_send_m,                    ARGS_ANY());     /* 15.3.1.3.4  */
+  mrb_define_method(mrb, krn, "__send__",                   mrb_f_send,                      ARGS_ANY());     /* 15.3.1.3.4  */
   mrb_define_method(mrb, krn, "block_given?",               mrb_f_block_given_p_m,           ARGS_NONE());    /* 15.3.1.3.6  */
   mrb_define_method(mrb, krn, "class",                      mrb_obj_class_m,                 ARGS_NONE());    /* 15.3.1.3.7  */
   mrb_define_method(mrb, krn, "clone",                      mrb_obj_clone,                   ARGS_NONE());    /* 15.3.1.3.8  */
@@ -1433,7 +1421,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "remove_instance_variable",   mrb_obj_remove_instance_variable,ARGS_REQ(1));    /* 15.3.1.3.41 */
   mrb_define_method(mrb, krn, "require",                    mrb_f_require,                   ARGS_REQ(1));    /* 15.3.1.3.42 */
   mrb_define_method(mrb, krn, "respond_to?",                obj_respond_to,                  ARGS_ANY());     /* 15.3.1.3.43 */
-  mrb_define_method(mrb, krn, "send",                       mrb_f_send_m,                    ARGS_ANY());     /* 15.3.1.3.44 */
+  mrb_define_method(mrb, krn, "send",                       mrb_f_send,                      ARGS_ANY());     /* 15.3.1.3.44 */
   mrb_define_method(mrb, krn, "singleton_methods",          mrb_obj_singleton_methods_m,     ARGS_ANY());     /* 15.3.1.3.45 */
   mrb_define_method(mrb, krn, "to_s",                       mrb_any_to_s,                    ARGS_NONE());    /* 15.3.1.3.46 */
 
