@@ -17,7 +17,7 @@
 #include <stdio.h>
 
 /* ------------------------------------------------------ */
-KHASH_MAP_INIT_INT(s2n, const char*);
+KHASH_INIT(s2n, mrb_sym, const char*, 1, kh_int_hash_func, kh_int_hash_equal)
 KHASH_MAP_INIT_STR(n2s, mrb_sym);
 /* ------------------------------------------------------ */
 mrb_sym

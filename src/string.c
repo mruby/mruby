@@ -38,25 +38,15 @@ static mrb_value get_pat(mrb_state *mrb, mrb_value pat, mrb_int quote);
 static mrb_value str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2);
 static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, long beg, long len);
 
-#define RESIZE_CAPA(str,capacity) do {\
-      RSTRING(str)->buf = mrb_realloc(mrb, RSTRING(str)->buf, (capacity)+1);\
-      RSTRING_CAPA(str) = capacity;\
-} while (0)
-
-#define STR_SET_LEN(str, n) do { \
-    RSTRING(str)->len = (n);\
-} while (0)
-
-#define STR_DEC_LEN(str) do {\
-    RSTRING(str)->len--;\
+#define RESIZE_CAPA(s,capacity) do {\
+      s->buf = mrb_realloc(mrb, s->buf, (capacity)+1);\
+      s->aux.capa = capacity;\
 } while (0)
 
 static void
-str_modify(mrb_state *mrb, mrb_value str)
+str_modify(mrb_state *mrb, struct RString *s)
 {
-  struct RString *s = mrb_str_ptr(str);
-
-  if (MRB_STR_SHARED_P(str)) {
+  if (s->flags & MRB_STR_SHARED) {
     char *ptr, *p;
     long len;
 
@@ -70,7 +60,7 @@ str_modify(mrb_state *mrb, mrb_value str)
     s->buf = ptr;
     s->len = len;
     s->aux.capa = len;
-    MRB_STR_UNSET_NOCAPA(str);
+    s->flags &= ~MRB_STR_SHARED;
   }
 }
 
@@ -78,18 +68,19 @@ mrb_value
 mrb_str_resize(mrb_state *mrb, mrb_value str, int len)
 {
   int slen;
+  struct RString *s = mrb_str_ptr(str);
 
-  str_modify(mrb, str);
-  slen = RSTRING_LEN(str);
+  str_modify(mrb, s);
+  slen = s->len;
   if (len != slen) {
     if (slen < len || slen -len > 1024) {
-      RSTRING_PTR(str) = mrb_realloc(mrb, RSTRING_PTR(str), len+1);
+      s->buf = mrb_realloc(mrb, s->buf, len+1);
     }
-    if (!MRB_STR_NOCAPA_P(str)) {
-      RSTRING_CAPA(str) = len;
+    if (!(s->flags & MRB_STR_SHARED)) {
+      s->aux.capa = len;
     }
-    RSTRING(str)->len = len;
-    RSTRING(str)->buf[len] = '\0';    /* sentinel */
+    s->len = len;
+    s->buf[len] = '\0';		/* sentinel */
   }
   return str;
 }
@@ -176,21 +167,21 @@ mrb_str_buf_new(mrb_state *mrb, int capa)
   return mrb_obj_value(s);
 }
 
-mrb_value
-str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, int len)
+static void
+str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, int len)
 {
   long capa, total, off = -1;
 
-  str_modify(mrb, str);
-  if (ptr >= RSTRING_PTR(str) && ptr <= RSTRING_END(str)) {
-      off = ptr - RSTRING_PTR(str);
+  str_modify(mrb, s);
+  if (ptr >= s->buf && ptr <= s->buf + s->len) {
+      off = ptr - s->buf;
   }
-  if (len == 0) return mrb_fixnum_value(0);
-  capa = RSTRING_CAPA(str);
-  if (RSTRING_LEN(str) >= LONG_MAX - len) {
+  if (len == 0) return;
+  capa = s->aux.capa;
+  if (s->len >= LONG_MAX - len) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string sizes too big");
   }
-  total = RSTRING_LEN(str)+len;
+  total = s->len+len;
   if (capa <= total) {
     while (total > capa) {
         if (capa + 1 >= LONG_MAX / 2) {
@@ -199,23 +190,22 @@ str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, int len)
         }
         capa = (capa + 1) * 2;
     }
-    RESIZE_CAPA(str, capa);
+    RESIZE_CAPA(s, capa);
   }
   if (off != -1) {
-      ptr = RSTRING_PTR(str) + off;
+      ptr = s->buf + off;
   }
-  memcpy(RSTRING_PTR(str) + RSTRING_LEN(str), ptr, len);
-  STR_SET_LEN(str, total);
-  RSTRING_PTR(str)[total] = '\0'; /* sentinel */
-
-  return str;
+  memcpy(s->buf + s->len, ptr, len);
+  s->len = total;
+  s->buf[total] = '\0';		/* sentinel */
 }
 
 mrb_value
 mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, int len)
 {
   if (len == 0) return str;
-  return str_buf_cat(mrb, str, ptr, len);
+  str_buf_cat(mrb, mrb_str_ptr(str), ptr, len);
+  return str;
 }
 
 mrb_value
@@ -337,6 +327,7 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
   struct RString *s1 = mrb_str_ptr(self), *s2;
   int len;
 
+  str_modify(mrb, s1);
   if (mrb_type(other) != MRB_TT_STRING) {
     other = mrb_str_to_str(mrb, other);
   }
@@ -862,19 +853,20 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
 {
-  char *s, *send;
+  char *p, *pend;
   int modify = 0;
+  struct RString *s = mrb_str_ptr(str);
 
-  str_modify(mrb, str);
-  if (RSTRING_LEN(str) == 0 || !RSTRING_PTR(str)) return mrb_nil_value();
-  s = RSTRING_PTR(str); send = RSTRING_END(str);
-  if (ISLOWER(*s)) {
-    *s = toupper(*s);
+  str_modify(mrb, s);
+  if (s->len == 0 || !s->buf) return mrb_nil_value();
+  p = s->buf; pend = s->buf + s->len;
+  if (ISLOWER(*p)) {
+    *p = toupper(*p);
     modify = 1;
   }
-  while (++s < send) {
-    if (ISUPPER(*s)) {
-      *s = tolower(*s);
+  while (++p < pend) {
+    if (ISUPPER(*p)) {
+      *p = tolower(*p);
       modify = 1;
     }
   }
@@ -919,21 +911,22 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
   mrb_int newline;
   char *p, *pp;
   long len, rslen;
+  struct RString *s = mrb_str_ptr(str);
 
-  str_modify(mrb, str);
-  len = RSTRING_LEN(str);
+  str_modify(mrb, s);
+  len = s->len;
   if (mrb_get_args(mrb, "|S", &rs) == 0) {
     if (len == 0) return mrb_nil_value();
   smart_chomp:
-    if (RSTRING_PTR(str)[len-1] == '\n') {
-      STR_DEC_LEN(str);
-      if (RSTRING_LEN(str) > 0 &&
-	  RSTRING_PTR(str)[RSTRING_LEN(str)-1] == '\r') {
-	STR_DEC_LEN(str);
+    if (s->buf[len-1] == '\n') {
+      s->len--;
+      if (s->len > 0 &&
+	  s->buf[s->len-1] == '\r') {
+	s->len--;
       }
     }
-    else if (RSTRING_PTR(str)[len-1] == '\r') {
-      STR_DEC_LEN(str);
+    else if (s->buf[len-1] == '\r') {
+      s->len--;
     }
     else {
       return mrb_nil_value();
@@ -942,7 +935,7 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
   }
 
   if (len == 0 || mrb_nil_p(rs)) return mrb_nil_value();
-  p = RSTRING_PTR(str);
+  p = s->buf;
   rslen = RSTRING_LEN(rs);
   if (rslen == 0) {
     while (len>0 && p[len-1] == '\n') {
@@ -950,8 +943,8 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
       if (len>0 && p[len-1] == '\r')
         len--;
     }
-    if (len < RSTRING_LEN(str)) {
-      STR_SET_LEN(str, len);
+    if (len < s->len) {
+      s->len = len;
       p[len] = '\0';
       return str;
     }
@@ -968,7 +961,7 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
   if (p[len-1] == newline &&
      (rslen <= 1 ||
      memcmp(RSTRING_PTR(rs), pp, rslen) == 0)) {
-    STR_SET_LEN(str, len - rslen);
+    s->len = len - rslen;
     p[len] = '\0';
     return str;
   }
@@ -1016,18 +1009,20 @@ mrb_str_chomp(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
 {
-  str_modify(mrb, str);
-  if (RSTRING_LEN(str) > 0) {
+  struct RString *s = mrb_str_ptr(str);
+
+  str_modify(mrb, s);
+  if (s->len > 0) {
     int len;
-    len = RSTRING_LEN(str) - 1;
-    if (RSTRING_PTR(str)[len] == '\n') {
+    len = s->len - 1;
+    if (s->buf[len] == '\n') {
       if (len > 0 &&
-          RSTRING_PTR(str)[len-1] == '\r') {
+          s->buf[len-1] == '\r') {
         len--;
       }
     }
-    STR_SET_LEN(str, len);
-    RSTRING_PTR(str)[len] = '\0';
+    s->len = len;
+    s->buf[len] = '\0';
     return str;
   }
   return mrb_nil_value();
@@ -1070,18 +1065,19 @@ mrb_str_chop(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
 {
-  char *s, *send;
+  char *p, *pend;
   int modify = 0;
+  struct RString *s = mrb_str_ptr(str);
 
-  str_modify(mrb, str);
-  s = RSTRING_PTR(str);
-  send = RSTRING_END(str);
-  while (s < send) {
-    if (ISUPPER(*s)) {
-      *s = tolower(*s);
+  str_modify(mrb, s);
+  p = s->buf;
+  pend = s->buf + s->len;
+  while (p < pend) {
+    if (ISUPPER(*p)) {
+      *p = tolower(*p);
       modify = 1;
     }
-    s++;
+    p++;
   }
 
   if (modify) return str;
@@ -1243,6 +1239,7 @@ str_gsub(mrb_state *mrb, mrb_value str, mrb_int bang)
   mrb_int offset, blen, len, last;
   char *sp, *cp;
 
+  if (bang) str_modify(mrb, mrb_str_ptr(self));
   mrb_get_args(mrb, "*", &argv, &argc);
   switch (argc) {
     case 1:
@@ -1361,8 +1358,10 @@ mrb_str_gsub(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_gsub_bang(mrb_state *mrb, mrb_value self)
 {
-  str_modify(mrb, self);
-  return str_gsub(mrb, self, 1);
+  striuct RString *s = mrb_str_ptr(self);
+
+  str_modify(mrb, s);
+  return str_gsub(mrb, s, 1);
 }
 #endif //INCLUDE_REGEXP
 
@@ -1534,6 +1533,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 {
   int len = s2->len;
 
+  str_modify(mrb, s1);
   s1->buf = mrb_realloc(mrb, s1->buf, len);
   memcpy(s1->buf, s2->buf, len);
   s1->len = s2->len;
@@ -1739,16 +1739,17 @@ mrb_str_reverse(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
 {
-  char *s, *e;
+  struct RString *s = mrb_str_ptr(str);
+  char *p, *e;
   char c;
 
-  str_modify(mrb, str);
-  if (RSTRING(str)->len > 1) {
-    s = RSTRING(str)->buf;
-    e = s + RSTRING(str)->len - 1;
-    while (s < e) {
-      c = *s;
-      *s++ = *e;
+  str_modify(mrb, s);
+  if (s->len > 1) {
+    p = s->buf;
+    e = p + s->len - 1;
+    while (p < e) {
+      c = *p;
+      *p++ = *e;
       *e-- = c;
     }
   }
@@ -2701,18 +2702,19 @@ mrb_str_to_s(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
 {
-  char *s, *send;
+  struct RString *s = mrb_str_ptr(str);
+  char *p, *pend;
   int modify = 0;
 
-  str_modify(mrb, str);
-  s = RSTRING_PTR(str);
-  send = RSTRING_END(str);
-  while (s < send) {
-    if (ISLOWER(*s)) {
-      *s = toupper(*s);
+  str_modify(mrb, s);
+  p = RSTRING_PTR(str);
+  pend = RSTRING_END(str);
+  while (p < pend) {
+    if (ISLOWER(*p)) {
+      *p = toupper(*p);
       modify = 1;
     }
-    s++;
+    p++;
   }
 
   if (modify) return str;
@@ -2847,18 +2849,20 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
 mrb_value
 mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, long len)
 {
-    if (len < 0) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
-    }
-    if (0/*STR_ASSOC_P(str)*/) {
-      mrb_realloc(mrb, RSTRING(str)->buf, RSTRING(str)->len+len+1);
-      memcpy(RSTRING(str)->buf + RSTRING(str)->len, ptr, len);
-      RSTRING(str)->len += len;
-      RSTRING(str)->buf[RSTRING(str)->len] = '\0'; /* sentinel */
-      return str;
-    }
+  struct RString *s = mrb_str_ptr(str);
 
-    return str_buf_cat(mrb, str, ptr, len);
+  if (len < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
+  }
+  if (0/*STR_ASSOC_P(str)*/) {
+    mrb_realloc(mrb, s->buf, s->len+len+1);
+    memcpy(s->buf + s->len, ptr, len);
+    s->len += len;
+    s->buf[s->len] = '\0';	/* sentinel */
+    return str;
+  }
+  str_buf_cat(mrb, s, ptr, len);
+  return str;
 }
 
 mrb_value

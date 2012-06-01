@@ -532,7 +532,7 @@ scope_body(codegen_scope *s, node *tree)
   }
   else {
     codegen(scope, tree->cdr, VAL);
-    genop(scope, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL));
+    genop(scope, MKOP_AB(OP_RETURN, scope->sp, OP_R_NORMAL));
   }
   scope_finish(scope, idx);
 
