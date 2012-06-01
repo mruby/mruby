@@ -33,8 +33,8 @@ project(mruby C)
 # TODO stop polluting source tree with CMakeFiles/ and CMakeCache.txt
 #      on build location check failure
 # Make sure we are not trying to generate in in-tree build unless building
-# with a MSVC IDE where it's OK.
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR AND NOT MSVC_IDE)
+# with an MSVC or Xcode IDE where it's OK.
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR AND NOT (MSVC_IDE OR XCODE))
   message(FATAL_ERROR
           "\nIn-source builds are not allowed as CMake would overwrite the "
           "Makefiles distributed with mruby. Please change to the 'build' "
