@@ -190,10 +190,9 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 #define kh_size(h) ((h)->size)
 #define kh_n_buckets(h) ((h)->n_buckets)
 
-//#define kh_int_hash_func(mrb,key) (uint32_t)(key)
-#define kh_int_hash_func(mrb,key) (uint32_t)((key)^((key)<<2)^((key)>>2))
+#define kh_int_hash_func(mrb,key) (khint_t)((key)^((key)<<2)^((key)>>2))
 #define kh_int_hash_equal(mrb,a, b) (a == b)
-#define kh_int64_hash_func(mrb,key) (uint32_t)((key)>>33^(key)^(key)<<11)
+#define kh_int64_hash_func(mrb,key) (khint_t)((key)>>33^(key)^(key)<<11)
 #define kh_int64_hash_equal(mrb,a, b) (a == b)
 static inline khint_t __ac_X31_hash_string(const char *s)
 {
