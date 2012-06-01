@@ -58,16 +58,6 @@ module Kernel
   end
 
   ##
-  # Invoke the method with the name +symbol+ on
-  # the receiver and pass +args+ and the given
-  # block.
-  #
-  # ISO 15.3.1.3.44
-  #def send(symbol, *args, &block)
-    ### *** TODO *** ###
-  #end
-
-  ##
   # Print arguments
   #
   # ISO 15.3.1.2.10
