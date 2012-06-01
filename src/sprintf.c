@@ -520,7 +520,6 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
   ++argc;
   --argv;
   mrb_string_value(mrb, &fmt);
-  fmt = mrb_str_new4(mrb, fmt);
   p = RSTRING_PTR(fmt);
   end = p + RSTRING_LEN(fmt);
   blen = 0;
@@ -668,44 +667,37 @@ retry:
         mrb_value tmp;
         unsigned int c;
         int n;
-#ifdef INCLUDE_ENCODING
-        mrb_encoding *enc = mrb_enc_get(mrb, fmt);
-#endif //INCLUDE_ENCODING
 
         tmp = mrb_check_string_type(mrb, val);
         if (!mrb_nil_p(tmp)) {
           if (RSTRING_LEN(tmp) != 1 ) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "%%c requires a character");
           }
-#ifdef INCLUDE_ENCODING
-          c = mrb_enc_codepoint_len(mrb, RSTRING_PTR(tmp), RSTRING_END(tmp), &n, enc);
-#else
           c = RSTRING_PTR(tmp)[0];
           n = 1;
-#endif //INCLUDE_ENCODING
         }
         else {
           c = mrb_fixnum(val);
-          n = mrb_enc_codelen(mrb, c, enc);
+          n = 1;
         }
         if (n <= 0) {
           mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
         }
         if (!(flags & FWIDTH)) {
           CHECK(n);
-          mrb_enc_mbcput(c, &buf[blen], enc);
+	  buf[blen] = c;
           blen += n;
         }
         else if ((flags & FMINUS)) {
           CHECK(n);
-          mrb_enc_mbcput(c, &buf[blen], enc);
+	  buf[blen] = c;
           blen += n;
           FILL(' ', width-1);
         }
         else {
           FILL(' ', width-1);
           CHECK(n);
-          mrb_enc_mbcput(c, &buf[blen], enc);
+	  buf[blen] = c;
           blen += n;
         }
       }
@@ -717,25 +709,18 @@ format_s:
       {
         mrb_value arg = GETARG();
         long len, slen;
-#ifdef INCLUDE_ENCODING
-        mrb_encoding *enc = mrb_enc_get(mrb, fmt);
-#endif //INCLUDE_ENCODING
 
         if (*p == 'p') arg = mrb_inspect(mrb, arg);
         str = mrb_obj_as_string(mrb, arg);
         len = RSTRING_LEN(str);
-        mrb_str_set_len(mrb, result, blen);
+	RSTRING_LEN(result) = blen;
         if (flags&(FPREC|FWIDTH)) {
           slen = RSTRING_LEN(str);
           if (slen < 0) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid mbstring sequence");
           }
           if ((flags&FPREC) && (prec < slen)) {
-#ifdef INCLUDE_ENCODING
-            char *p = mrb_enc_nth(mrb, RSTRING_PTR(str), RSTRING_END(str),prec, enc);
-#else
             char *p = RSTRING_PTR(str) + prec;
-#endif //INCLUDE_ENCODING
             slen = prec;
             len = p - RSTRING_PTR(str);
           }
@@ -757,12 +742,10 @@ format_s:
                 buf[blen++] = ' ';
               }
             }
-            mrb_enc_associate(mrb, result, enc);
             break;
           }
         }
         PUSH(RSTRING_PTR(str), len);
-        mrb_enc_associate(mrb, result, enc);
       }
       break;
 
@@ -915,15 +898,8 @@ bin_retry:
         if (*p == 'X') {
           char *pp = s;
           int c;
-#ifdef INCLUDE_ENCODING
-          mrb_encoding *enc = mrb_enc_get(mrb, fmt);
-#endif //INCLUDE_ENCODING
           while ((c = (int)(unsigned char)*pp) != 0) {
-#ifdef INCLUDE_ENCODING
-            *pp = mrb_enc_toupper(c, enc);
-#else
             *pp = toupper(c);
-#endif //INCLUDE_ENCODING
             pp++;
           }
         }

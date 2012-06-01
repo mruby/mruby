@@ -11,13 +11,6 @@
 #include "mruby/class.h"
 #include "mruby/numeric.h"
 
-#ifdef INCLUDE_REGEXP
-  #define mrb_usascii_str_new2 mrb_usascii_str_new_cstr
-#else
-  #define mrb_usascii_str_new2 mrb_str_new_cstr
-  #define mrb_usascii_str_new  mrb_str_new
-#endif
-
 #ifndef FALSE
 #define FALSE   0
 #endif
@@ -106,7 +99,7 @@ mrb_true(mrb_state *mrb, mrb_value obj)
 static mrb_value
 nil_to_s(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_usascii_str_new(mrb, 0, 0);
+    return mrb_str_new(mrb, 0, 0);
 }
 
 /***********************************************************************
@@ -166,7 +159,7 @@ true_xor(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_to_s(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_usascii_str_new2(mrb, "true");
+    return mrb_str_new_cstr(mrb, "true");
 }
 
 /* 15.2.5.3.4  */
@@ -279,7 +272,7 @@ false_or(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_to_s(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_usascii_str_new2(mrb, "false");
+    return mrb_str_new_cstr(mrb, "false");
 }
 
 void
@@ -626,12 +619,12 @@ mrb_Float(mrb_state *mrb, mrb_value val)
 mrb_value
 mrb_inspect(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_obj_as_string(mrb, mrb_funcall(mrb, obj, "inspect", 0, 0));
+  return mrb_obj_as_string(mrb, mrb_funcall(mrb, obj, "inspect", 0, 0));
 }
 
 int
 mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
-    return RTEST(mrb_funcall(mrb, obj1, "eql?", 1, obj2));
+  if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
+  return RTEST(mrb_funcall(mrb, obj1, "eql?", 1, obj2));
 }
-

@@ -1225,15 +1225,30 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_OP_ASGN:
-    codegen(s, tree->car, VAL);
-    codegen(s, tree->cdr->cdr->car, VAL);
-    genop(s, MKOP_A(OP_LOADNIL, cursp()));
-    pop(); pop();
     {
       mrb_sym sym = (mrb_sym)tree->cdr->car;
       const char *name = mrb_sym2name(s->mrb, sym);
-      int idx = new_msym(s, sym);
+      int idx;
 
+      codegen(s, tree->car, VAL);
+      if ((name[0] == '|' && strlen(name) == 2 && name[1] == '|') ||
+	  (name[0] == '&' && strlen(name) == 2 && name[1] == '&')) {
+	int pos;
+
+	pop();
+	pos = new_label(s);
+	genop(s, MKOP_AsBx(name[0] == '|' ? OP_JMPIF : OP_JMPNOT, cursp(), 0));
+	codegen(s, tree->cdr->cdr->car, VAL);
+	pop();
+	gen_assignment(s, tree->car, cursp(), val);
+	dispatch(s, pos);
+	break;
+      }
+      codegen(s, tree->cdr->cdr->car, VAL);
+      genop(s, MKOP_A(OP_LOADNIL, cursp()));
+      pop(); pop();
+
+      idx = new_msym(s, sym);
       if (name[0] == '+' && strlen(name) == 1)  {
         genop(s, MKOP_ABC(OP_ADD, cursp(), idx, 1));
       }

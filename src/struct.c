@@ -379,7 +379,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
       pargv = &argv[0];
       argcnt++;
     }
-    rest = mrb_ary_new_from_values(mrb, pargv, argcnt);
+    rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
   }
   st = make_struct(mrb, name, rest, struct_class(mrb));
   if (!mrb_nil_p(b)) {

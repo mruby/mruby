@@ -11,33 +11,27 @@
 #include "mruby/array.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
-#include "st.h"
-#include <errno.h>
 #include <string.h>
-
-
 #include <stdio.h>
 
-static khint_t
+static inline khint_t
 mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
 {
-  char type = mrb_type(key);
-  mrb_value s1 = mrb_str_new(mrb, &type, 1);
-  mrb_value s2 = mrb_inspect(mrb, key);
-  s1 = mrb_str_cat(mrb, s1, RSTRING_PTR(s2), RSTRING_LEN(s2));
-  return kh_str_hash_func(mrb, RSTRING_PTR(s1));
+  khint_t h = mrb_type(key) << 24;
+  mrb_value h2;
+
+  h2 = mrb_funcall(mrb, key, "hash", 0, 0);
+  h ^= h2.value.i;
+  return h;
 }
 
-static khint_t
+static inline khint_t
 mrb_hash_ht_hash_equal(mrb_state *mrb, mrb_value a, mrb_value b)
 {
-  return mrb_equal(mrb, a, b);
+  return mrb_eql(mrb, a, b);
 }
 
 KHASH_INIT(ht, mrb_value, mrb_value, 1, mrb_hash_ht_hash_func, mrb_hash_ht_hash_equal);
-
-mrb_value mrb_exec_recursive_paired(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mrb_value, int),
-                                  mrb_value obj, mrb_value paired_obj, void* arg);
 
 #ifndef FALSE
 #define FALSE   0
@@ -61,12 +55,11 @@ mrb_hash_ht_key(mrb_state *mrb, mrb_value key)
 #define KEY(key) mrb_hash_ht_key(mrb, key)
 
 void
-mrb_gc_mark_ht(mrb_state *mrb, struct RHash *c)
+mrb_gc_mark_ht(mrb_state *mrb, struct RHash *hash)
 {
   khiter_t k;
-  khash_t(ht) *h = ((struct RHash*)c)->ht;
+  khash_t(ht) *h = hash->ht;
 
-  if (!h) return;
   for (k = kh_begin(h); k != kh_end(h); k++)
     if (kh_exist(h, k)) {
       mrb_gc_mark_value(mrb, kh_key(h, k));
@@ -75,23 +68,15 @@ mrb_gc_mark_ht(mrb_state *mrb, struct RHash *c)
 }
 
 size_t
-mrb_gc_mark_ht_size(mrb_state *mrb, struct RHash *c)
+mrb_gc_mark_ht_size(mrb_state *mrb, struct RHash *hash)
 {
-  size_t ht_size = 0;
-  khash_t(ht) *h = c->ht;
-
-  /* ((struct RHash*)c)->ht */
-  if (h) ht_size += kh_size(h)*2;
-
-  return ht_size;
+  return kh_size(hash->ht)*2;
 }
 
 void
-mrb_gc_free_ht(mrb_state *mrb, struct RHash *c)
+mrb_gc_free_ht(mrb_state *mrb, struct RHash *hash)
 {
-  khash_t(ht) *h = c->ht;
-
-  kh_destroy(ht, h);
+  kh_destroy(ht, hash->ht);
 }
 
 
@@ -119,11 +104,9 @@ mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key) /* mrb_hash_aref */ 
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
 
-  if (h) {
-    k = kh_get(ht, h, key);
-    if (k != kh_end(h))
-      return kh_value(h, k);
-  }
+  k = kh_get(ht, h, key);
+  if (k != kh_end(h))
+    return kh_value(h, k);
 
   /* not found */
   if (MRB_RHASH_PROCDEFAULT_P(hash)) {
@@ -173,21 +156,6 @@ mrb_hash_freeze(mrb_value hash)
 {
   //return mrb_obj_freeze(hash);
   return (hash);
-}
-
-mrb_value
-mrb_hash(mrb_state *mrb, mrb_value obj)
-{
-  mrb_value hval = mrb_funcall(mrb, obj, "Hash", 0);
-retry:
-  switch (mrb_type(hval)) {
-    case MRB_TT_FIXNUM:
-      return hval;
-
-    default:
-      hval = mrb_to_int(mrb, hval);
-      goto retry;
-  }
 }
 
 mrb_value
@@ -675,7 +643,7 @@ mrb_hash_values_at(mrb_state *mrb, int argc, mrb_value *argv, mrb_value hash)
     long i;
 
     for (i=0; i<argc; i++) {
-        mrb_ary_push(mrb, result, KEY(mrb_hash_get(mrb, hash, argv[i])));
+        mrb_ary_push(mrb, result, mrb_hash_get(mrb, hash, argv[i]));
     }
     return result;
 }
@@ -1136,28 +1104,6 @@ mrb_hash_has_value(mrb_state *mrb, mrb_value hash)
 }
 
 static mrb_value
-recursive_eql(mrb_state *mrb, mrb_value hash, mrb_value dt, int recur)
-{
-  khash_t(ht) *h1 = RHASH_TBL(hash);
-  khash_t(ht) *h2 = RHASH_TBL(dt);
-  khiter_t k1, k2;
-  mrb_value key1;
-
-  for (k1 = kh_begin(h1); k1 != kh_end(h1); k1++) {
-    if (!kh_exist(h1, k1)) continue;
-    key1 = kh_key(h1,k1);
-    k2 = kh_get(ht, h2, key1);
-    if ( k2 != kh_end(h2)) {
-      if (mrb_equal(mrb, kh_value(h1,k1), kh_value(h2,k2))) {
-        continue; /* next key */
-      }
-    }
-    return mrb_false_value();
-  }
-  return mrb_true_value();
-}
-
-static mrb_value
 hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
 {
   if (mrb_obj_equal(mrb, hash1, hash2)) return mrb_true_value();
@@ -1171,9 +1117,25 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
           return mrb_fixnum_value(mrb_equal(mrb, hash2, hash1));
   }
   if (RHASH_SIZE(hash1) != RHASH_SIZE(hash2)) return mrb_false_value();
-  if (!RHASH(hash1)->ht || !RHASH(hash2)->ht) return mrb_true_value();
+  else {
+    khash_t(ht) *h1 = RHASH_TBL(hash1);
+    khash_t(ht) *h2 = RHASH_TBL(hash2);
+    khiter_t k1, k2;
+    mrb_value key;
 
-  return mrb_exec_recursive_paired(mrb, recursive_eql, hash1, hash2, (void*)0);
+    for (k1 = kh_begin(h1); k1 != kh_end(h1); k1++) {
+      if (!kh_exist(h1, k1)) continue;
+      key = kh_key(h1,k1);
+      k2 = kh_get(ht, h2, key);
+      if (k2 != kh_end(h2)) {
+	if (mrb_equal(mrb, kh_value(h1,k1), kh_value(h2,k2))) {
+	  continue; /* next key */
+	}
+      }
+      return mrb_false_value();
+    }
+  }
+  return mrb_true_value();
 }
 
 /* 15.2.13.4.1  */
@@ -1319,9 +1281,6 @@ mrb_hash_rassoc(mrb_state *mrb, mrb_value hash)
   mrb_value key, value, has_key;
 
   mrb_get_args(mrb, "o", &key);
-  if (mrb_nil_p(key))
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
-
   has_key = mrb_hash_has_keyWithKey(mrb, hash, key);
   if (mrb_test(has_key)) {
     value = mrb_hash_get(mrb, hash, key);

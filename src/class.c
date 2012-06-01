@@ -17,12 +17,6 @@
 
 #include "mruby/khash.h"
 
-#ifdef INCLUDE_REGEXP
-  #define mrb_usascii_str_new2 mrb_usascii_str_new_cstr
-#else
-  #define mrb_usascii_str_new2 mrb_str_new_cstr
-#endif
-
 KHASH_MAP_INIT_INT(mt, struct RProc*);
 KHASH_MAP_INIT_INT(iv, mrb_value);
 
@@ -1052,7 +1046,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 {
   //if (FL_TEST(klass, FL_SINGLETON)) {
   if (mrb_type(klass) == MRB_TT_SCLASS) {
-    mrb_value s = mrb_usascii_str_new2(mrb, "#<");
+    mrb_value s = mrb_str_new_cstr(mrb, "#<");
     mrb_value v = mrb_iv_get(mrb, klass, mrb_intern(mrb, "__attached__"));
 
     mrb_str_cat2(mrb, s, "Class:");
@@ -1140,6 +1134,48 @@ mrb_mod_undef(mrb_state *mrb, mrb_value mod)
   return mrb_nil_value();
 }
 
+static mrb_sym
+mrb_sym_value(mrb_state *mrb, mrb_value val)
+{
+  if(val.tt == MRB_TT_STRING) {
+    return mrb_intern(mrb, RSTRING_PTR(val));
+  }
+  else if(val.tt != MRB_TT_SYMBOL) {
+    mrb_value obj = mrb_funcall(mrb, val, "inspect", 0);
+    mrb_raise(mrb, E_TYPE_ERROR, "%s is not a symbol",
+         mrb_string_value_ptr(mrb, obj));
+  }
+  return mrb_symbol(val);
+}
+
+mrb_value
+mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value sym;
+  mrb_get_args(mrb, "o", &sym);
+  if(mrb_const_defined(mrb, mod, mrb_sym_value(mrb, sym))) {
+    return mrb_true_value();
+  }
+  return mrb_false_value();
+}
+
+mrb_value
+mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value sym;
+  mrb_get_args(mrb, "o", &sym);
+  return mrb_const_get(mrb, mod, mrb_sym_value(mrb, sym));
+}
+
+mrb_value
+mrb_mod_const_set(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value sym, value;
+  mrb_get_args(mrb, "oo", &sym, &value);
+  mrb_const_set(mrb, mod, mrb_sym_value(mrb, sym), value);
+  return value;
+}
+
 
 static mrb_value
 mrb_mod_eqq(mrb_state *mrb, mrb_value mod)
@@ -1197,6 +1233,9 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "to_s", mrb_mod_to_s, ARGS_NONE());
   mrb_define_method(mrb, mod, "alias_method", mrb_mod_alias, ARGS_ANY());
   mrb_define_method(mrb, mod, "undef_method", mrb_mod_undef, ARGS_ANY());
+  mrb_define_method(mrb, mod, "const_defined?", mrb_mod_const_defined, ARGS_REQ(1));
+  mrb_define_method(mrb, mod, "const_get", mrb_mod_const_get, ARGS_REQ(1));
+  mrb_define_method(mrb, mod, "const_set", mrb_mod_const_set, ARGS_REQ(2));
 
   mrb_define_method(mrb, mod, "===", mrb_mod_eqq, ARGS_REQ(1));
 }
