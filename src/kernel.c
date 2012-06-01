@@ -277,7 +277,7 @@ mrb_f_send_m(mrb_state *mrb, mrb_value self)
   mrb_value name, block, *argv;
   int argc;
   
-  mrb_get_args(mrb, "&o*", &block, &name, &argv, &argc);
+  mrb_get_args(mrb, "o*&", &name, &argv, &argc, &block);
   return mrb_funcall_with_block(mrb,self, mrb_string_value_ptr(mrb, name), argc, argv, block);
 }
 
