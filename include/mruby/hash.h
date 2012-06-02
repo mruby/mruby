@@ -20,8 +20,8 @@ struct RHash {
 #define mrb_hash_ptr(v)    ((struct RHash*)((v).value.p))
 #define mrb_hash_value(p)  mrb_obj_value((void*)(p))
 
-mrb_value mrb_hash_new_capa(mrb_state*, size_t);
-mrb_value mrb_hash_new(mrb_state *mrb, int capa);
+mrb_value mrb_hash_new_capa(mrb_state*, int);
+mrb_value mrb_hash_new(mrb_state *mrb);
 
 void mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val);
 mrb_value mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key);

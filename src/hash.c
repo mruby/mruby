@@ -81,21 +81,23 @@ mrb_gc_free_ht(mrb_state *mrb, struct RHash *hash)
 
 
 mrb_value
-mrb_hash_new_capa(mrb_state *mrb, size_t capa)
+mrb_hash_new_capa(mrb_state *mrb, int capa)
 {
   struct RHash *h;
 
   h = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
   h->ht = kh_init(ht, mrb);
-  kh_resize(ht, h->ht, capa);
+  if (capa > 0) {
+    kh_resize(ht, h->ht, capa);
+  }
   h->iv = 0;
   return mrb_obj_value(h);
 }
 
 mrb_value
-mrb_hash_new(mrb_state *mrb, int capa)
+mrb_hash_new(mrb_state *mrb)
 {
-  return mrb_hash_new_capa(mrb, capa);
+  return mrb_hash_new_capa(mrb, 0);
 }
 
 mrb_value
