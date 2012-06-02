@@ -25,12 +25,18 @@ extern "C" {
 
 extern const char mrb_digitmap[];
 
+struct mrb_shared_string {
+  int refcnt;
+  char *buf;
+  int len;
+};
+
 struct RString {
   MRUBY_OBJECT_HEADER;
   int len;
   union {
     int capa;
-    struct RString *shared;
+    struct mrb_shared_string *shared;
   } aux;
   char *buf;
 };
@@ -41,14 +47,7 @@ struct RString {
 #define RSTRING_LEN(s)    (RSTRING(s)->len)
 #define RSTRING_CAPA(s)   (RSTRING(s)->aux.capa)
 #define RSTRING_END(s)    (RSTRING(s)->buf + RSTRING(s)->len)
-
 #define MRB_STR_SHARED      256
-#define MRB_STR_SHARED_P(s) (FL_ALL(s, MRB_STR_SHARED))
-#define MRB_STR_NOCAPA      (MRB_STR_SHARED)
-#define MRB_STR_NOCAPA_P(s) (FL_ANY(s, MRB_STR_NOCAPA))
-#define MRB_STR_UNSET_NOCAPA(s) do {\
-  FL_UNSET(s, MRB_STR_NOCAPA);\
-} while (0)
 
 mrb_value mrb_str_literal(mrb_state*, mrb_value);
 void mrb_str_concat(mrb_state*, mrb_value, mrb_value);

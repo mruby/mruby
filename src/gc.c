@@ -372,13 +372,6 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_STRING:
-    {
-      struct RString *s = (struct RString*)obj;
-
-      if (s->flags & MRB_STR_SHARED) {
-	mrb_gc_mark(mrb, (struct RBasic*)s->aux.shared);
-      }
-    }
     break;
 
   case MRB_TT_RANGE:

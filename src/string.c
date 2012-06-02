@@ -49,6 +49,7 @@ str_modify(mrb_state *mrb, struct RString *s)
   if (s->flags & MRB_STR_SHARED) {
     char *ptr, *p;
     long len;
+    struct mrb_shared_string *shared = s->aux.shared;
 
     p = s->buf;
     len = s->len;
@@ -61,6 +62,12 @@ str_modify(mrb_state *mrb, struct RString *s)
     s->len = len;
     s->aux.capa = len;
     s->flags &= ~MRB_STR_SHARED;
+
+    shared->refcnt--;
+    if (shared->refcnt == 0) {
+      mrb_free(mrb, shared->buf);
+      mrb_free(mrb, shared);
+    }
   }
 }
 
@@ -76,9 +83,7 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, int len)
     if (slen < len || slen -len > 1024) {
       s->buf = mrb_realloc(mrb, s->buf, len+1);
     }
-    if (!(s->flags & MRB_STR_SHARED)) {
-      s->aux.capa = len;
-    }
+    s->aux.capa = len;
     s->len = len;
     s->buf[len] = '\0';		/* sentinel */
   }
@@ -178,13 +183,13 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, int len)
   }
   if (len == 0) return;
   capa = s->aux.capa;
-  if (s->len >= LONG_MAX - len) {
+  if (s->len >= INT_MAX - len) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string sizes too big");
   }
   total = s->len+len;
   if (capa <= total) {
     while (total > capa) {
-        if (capa + 1 >= LONG_MAX / 2) {
+        if (capa + 1 >= INT_MAX / 2) {
           capa = (total + 4095) / 4096;
           break;
         }
@@ -258,12 +263,16 @@ str_make_shared(mrb_state *mrb, mrb_value str)
   str_with_class(mrb, s, str);
   orig = mrb_str_ptr(str);
   if (!(orig->flags & MRB_STR_SHARED)) {
-    struct RString *shared = mrb_obj_alloc_string(mrb);
+    struct mrb_shared_string *shared = mrb_malloc(mrb, sizeof(struct mrb_shared_string));
 
-    shared->buf = orig->buf;
+    shared->refcnt = 1;
+    if (orig->aux.capa > orig->len) {
+      shared->buf = mrb_realloc(mrb, shared->buf, orig->len+1);
+    }
+    else {
+      shared->buf = orig->buf;
+    }
     shared->len = orig->len;
-    shared->aux.capa = orig->aux.capa;
-
     orig->aux.shared = shared;
     orig->flags |= MRB_STR_SHARED;
   }
@@ -285,16 +294,19 @@ str_make_shared(mrb_state *mrb, mrb_value str)
 mrb_value
 mrb_str_literal(mrb_state *mrb, mrb_value str)
 {
-  struct RString *orig, *s;
+  struct RString *s, *orig;
+  struct mrb_shared_string *shared;
 
   s = str_new(mrb, 0, 0);
   orig = mrb_str_ptr(str);
-  while (orig->flags & MRB_STR_SHARED) {
-    orig = orig->aux.shared;
+  if (!(orig->flags & MRB_STR_SHARED)) {
+    str_make_shared(mrb, str);
   }
-  s->buf = orig->buf;
-  s->len = orig->len;
-  s->aux.shared = orig;
+  shared = orig->aux.shared;
+  shared->refcnt++;
+  s->buf = shared->buf;
+  s->len = shared->len;
+  s->aux.shared = shared;
   s->flags |= MRB_STR_SHARED;
 
   return mrb_obj_value(s);
@@ -2849,19 +2861,10 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
 mrb_value
 mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, long len)
 {
-  struct RString *s = mrb_str_ptr(str);
-
   if (len < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
   }
-  if (0/*STR_ASSOC_P(str)*/) {
-    mrb_realloc(mrb, s->buf, s->len+len+1);
-    memcpy(s->buf + s->len, ptr, len);
-    s->len += len;
-    s->buf[s->len] = '\0';	/* sentinel */
-    return str;
-  }
-  str_buf_cat(mrb, s, ptr, len);
+  str_buf_cat(mrb, mrb_str_ptr(str), ptr, len);
   return str;
 }
 
