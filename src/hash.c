@@ -701,7 +701,7 @@ mrb_hash_clear(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
 
-  kh_clear(ht, h);
+  if (h) kh_clear(ht, h);
   return hash;
 }
 
