@@ -60,6 +60,7 @@ mrb_gc_mark_ht(mrb_state *mrb, struct RHash *hash)
   khiter_t k;
   khash_t(ht) *h = hash->ht;
 
+  if (!h) return;
   for (k = kh_begin(h); k != kh_end(h); k++)
     if (kh_exist(h, k)) {
       mrb_gc_mark_value(mrb, kh_key(h, k));
@@ -70,13 +71,14 @@ mrb_gc_mark_ht(mrb_state *mrb, struct RHash *hash)
 size_t
 mrb_gc_mark_ht_size(mrb_state *mrb, struct RHash *hash)
 {
+  if (!hash->ht) return 0;
   return kh_size(hash->ht)*2;
 }
 
 void
 mrb_gc_free_ht(mrb_state *mrb, struct RHash *hash)
 {
-  kh_destroy(ht, hash->ht);
+  if (hash->ht) kh_destroy(ht, hash->ht);
 }
 
 
@@ -106,9 +108,11 @@ mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
 
-  k = kh_get(ht, h, key);
-  if (k != kh_end(h))
-    return kh_value(h, k);
+  if (h) {
+    k = kh_get(ht, h, key);
+    if (k != kh_end(h))
+      return kh_value(h, k);
+  }
 
   /* not found */
   if (MRB_RHASH_PROCDEFAULT_P(hash)) {
@@ -142,6 +146,7 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val) /* mr
   mrb_hash_modify(mrb, hash);
   h = RHASH_TBL(hash);
 
+  if (!h) h = RHASH_TBL(hash) = kh_init(ht, mrb);
   k = kh_get(ht, h, key);
   if (k == kh_end(h)) {
     /* expand */
@@ -196,7 +201,7 @@ mrb_hash_tbl(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
 
-  if (!RHASH_TBL(hash)) {
+  if (!h) {
     RHASH_TBL(hash) = kh_init(ht, mrb);
   }
   return h;
