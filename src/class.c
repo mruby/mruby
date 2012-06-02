@@ -810,13 +810,12 @@ mrb_value
 mrb_class_new_class(mrb_state *mrb, mrb_value cv)
 {
   mrb_value super;
-  if(mrb->ci->argc > 0) {
-    mrb_get_args(mrb, "o", &super);
-  }
-  else {
+  struct RClass *new_class;
+
+  if (mrb_get_args(mrb, "|o", &super) == 0) {
     super = mrb_obj_value(mrb->object_class);
   }
-  struct RClass *new_class = mrb_class_new(mrb, mrb_class_ptr(super));
+  new_class = mrb_class_new(mrb, mrb_class_ptr(super));
   return mrb_obj_value(new_class);
 }
 
