@@ -296,21 +296,6 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
-static void
-ary_reverse(struct RArray *a)
-{
-  mrb_value *p1, *p2;
-
-  p1 = a->buf;
-  p2 = a->buf + a->len - 1;
-
-  while(p1 < p2) {
-    mrb_value tmp = *p1;
-    *p1++ = *p2;
-    *p2-- = tmp;
-  }
-}
-
 mrb_value
 mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
 {
