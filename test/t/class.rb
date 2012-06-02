@@ -5,6 +5,12 @@ assert('Class', '15.2.3') do
   Class.class == Class
 end
 
+assert('Class#superclass', '15.2.3.3.4') do
+  class SubClass < String; end
+
+  SubClass.superclass == String
+end
+
 # Not ISO specified
 
 assert('Class 1') do

@@ -819,6 +819,15 @@ mrb_class_new_class(mrb_state *mrb, mrb_value cv)
   return mrb_obj_value(new_class);
 }
 
+mrb_value
+mrb_class_superclass(mrb_state *mrb, mrb_value klass)
+{
+  struct RClass *c, *s;
+  c = mrb_class_ptr(klass);
+  s = c->super;
+  return mrb_obj_value(s);
+}
+
 static mrb_value
 mrb_bob_init(mrb_state *mrb, mrb_value cv)
 {
@@ -1240,6 +1249,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, bob, "!", mrb_bob_not, ARGS_NONE());
   mrb_define_method(mrb, bob, "method_missing", mrb_bob_missing, ARGS_ANY());     /* 15.3.1.3.30 */
   mrb_define_class_method(mrb, cls, "new", mrb_class_new_class, ARGS_ANY());
+  mrb_define_method(mrb, cls, "superclass", mrb_class_superclass, ARGS_NONE());
   mrb_define_method(mrb, cls, "new", mrb_instance_new, ARGS_ANY());
   mrb_define_method(mrb, cls, "inherited", mrb_bob_init, ARGS_REQ(1));
   mrb_define_method(mrb, mod, "include", mrb_mod_include, ARGS_REQ(1));
