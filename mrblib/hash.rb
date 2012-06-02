@@ -110,7 +110,7 @@ class Hash
   end
 
   # 1.9 Hash#select! returns Hash; ISO says nothing.
-  def reject!(&b)
+  def select!(&b)
     keys = []
     self.each_key{|k|
       v = self[k]
