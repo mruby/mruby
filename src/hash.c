@@ -172,11 +172,11 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
   khash_t(ht) *h, *ret_h;
   khiter_t k, ret_k;
 
+  h = RHASH_TBL(hash);
   ret = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
   ret->ht = kh_init(ht, mrb);
 
-  if (!RHASH_EMPTY_P(hash)) {
-    h = RHASH_TBL(hash);
+  if (kh_size(h) > 0) {
     ret_h = ret->ht;
 
     for (k = kh_begin(h); k != kh_end(h); k++) {
@@ -818,7 +818,6 @@ static mrb_value
 mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
 {
   khash_t(ht) *h = RHASH_TBL(self);
-  khiter_t k;
 
   if (h) {
     if (kh_size(h) == 0)
@@ -939,8 +938,10 @@ inspect_hash(mrb_state *mrb, mrb_value hash, int recur)
 static mrb_value
 mrb_hash_inspect(mrb_state *mrb, mrb_value hash)
 {
-  if (RHASH_EMPTY_P(hash))
-      return mrb_str_new_cstr(mrb, "{}");
+  khash_t(ht) *h = RHASH_TBL(hash);
+
+  if (!h || kh_size(h) == 0)
+    return mrb_str_new_cstr(mrb, "{}");
   return inspect_hash(mrb, hash, 0);
 }
 
@@ -1107,6 +1108,8 @@ mrb_hash_has_value(mrb_state *mrb, mrb_value hash)
 static mrb_value
 hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
 {
+  khash_t(ht) *h1, *h2;
+
   if (mrb_obj_equal(mrb, hash1, hash2)) return mrb_true_value();
   if (mrb_type(hash2) != MRB_TT_HASH) {
       if (!mrb_respond_to(mrb, hash2, mrb_intern(mrb, "to_hash"))) {
@@ -1117,10 +1120,15 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
       else
           return mrb_fixnum_value(mrb_equal(mrb, hash2, hash1));
   }
-  if (RHASH_SIZE(hash1) != RHASH_SIZE(hash2)) return mrb_false_value();
+  h1 = RHASH_TBL(hash1);
+  h2 = RHASH_TBL(hash2);
+  if (!h2) {
+    if (!h2)  return mrb_true_value();
+    return mrb_false_value();
+  }
+  if (!h2) return mrb_false_value();
+  if (kh_size(h1) != kh_size(h2)) return mrb_false_value();
   else {
-    khash_t(ht) *h1 = RHASH_TBL(hash1);
-    khash_t(ht) *h2 = RHASH_TBL(hash2);
     khiter_t k1, k2;
     mrb_value key;
 
