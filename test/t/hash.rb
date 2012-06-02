@@ -224,3 +224,42 @@ assert('Hash#values', '15.2.13.4.28') do
 
   a.values == ['abc_value']
 end
+
+# Not ISO specified
+
+assert('Hash#reject') do
+  h = {:one => 1, :two => 2, :three => 3, :four => 4}
+  ret = h.reject do |k,v|
+    v % 2 == 0
+  end
+  ret == {:one => 1, :three => 3} and
+    h == {:one => 1, :two => 2, :three => 3, :four => 4}
+end
+
+assert('Hash#reject!') do
+  h = {:one => 1, :two => 2, :three => 3, :four => 4}
+  ret = h.reject! do |k,v|
+    v % 2 == 0
+  end
+  ret == {:one => 1, :three => 3} and
+    h == {:one => 1, :three => 3}
+end
+
+assert('Hash#select') do
+  h = {:one => 1, :two => 2, :three => 3, :four => 4}
+  ret = h.select do |k,v|
+    v % 2 == 0
+  end
+  ret == {:two => 2, :four => 4} and
+    h == {:one => 1, :two => 2, :three => 3, :four => 4}
+end
+
+assert('Hash#select!') do
+  h = {:one => 1, :two => 2, :three => 3, :four => 4}
+  ret = h.select! do |k,v|
+    v % 2 == 0
+  end
+  ret == {:two => 2, :four => 4} and
+    h == {:two => 2, :four => 4}
+end
+
