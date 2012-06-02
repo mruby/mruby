@@ -101,7 +101,7 @@ mrb_hash_new(mrb_state *mrb)
 }
 
 mrb_value
-mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key) /* mrb_hash_aref */ /* mrb_hash_lookup */
+mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
@@ -118,13 +118,13 @@ mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key) /* mrb_hash_aref */ 
 }
 
 mrb_value
-mrb_hash_getWithDef(mrb_state *mrb, mrb_value hash, mrb_value vkey, mrb_value def) /* mrb_hash_lookup2 */
+mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value def)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
 
   if (h) {
-    k = kh_get(ht, h, vkey);
+    k = kh_get(ht, h, key);
     if (k != kh_end(h))
       return kh_value(h, k);
   }
@@ -333,15 +333,9 @@ mrb_hash_aget(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
-mrb_hash_lookup2(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value def)
-{
-  return mrb_hash_getWithDef(mrb, hash, key, def);
-}
-
-mrb_value
 mrb_hash_lookup(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
-    return mrb_hash_lookup2(mrb, hash, key, mrb_nil_value());
+  return mrb_hash_get(mrb, hash, key);
 }
 
 /*

@@ -165,7 +165,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
   (mrb_raise(mrb, E_ARGUMENT_ERROR, "named%.*s after unnumbered(%d)", (len), (name), posarg), mrb_undef_value()) : \
   posarg == -1 ? \
   (mrb_raise(mrb, E_ARGUMENT_ERROR, "named%.*s after numbered", (len), (name)), mrb_undef_value()) :    \
-  (posarg = -2, mrb_hash_getWithDef(mrb, get_hash(mrb, &hash, argc, argv), id, mrb_undef_value())))
+  (posarg = -2, mrb_hash_fetch(mrb, get_hash(mrb, &hash, argc, argv), id, mrb_undef_value())))
 
 #define GETNUM(n, val) \
   for (; p < end && ISDIGIT(*p); p++) {\
