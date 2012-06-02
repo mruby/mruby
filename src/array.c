@@ -317,7 +317,16 @@ mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
   struct RArray *a = mrb_ary_ptr(self);
 
   if (a->len > 1) {
-    ary_reverse(a);
+    mrb_value *p1, *p2;
+
+    p1 = a->buf;
+    p2 = a->buf + a->len - 1;
+
+    while(p1 < p2) {
+      mrb_value tmp = *p1;
+      *p1++ = *p2;
+      *p2-- = tmp;
+    }
   }
   return self;
 }
@@ -325,13 +334,21 @@ mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_ary_reverse(mrb_state *mrb, mrb_value self)
 {
-  struct RArray *a = mrb_ary_ptr(self);
+  struct RArray *a = mrb_ary_ptr(self), *b;
   mrb_value ary;
 
   ary = mrb_ary_new_capa(mrb, a->len);
+  b = mrb_ary_ptr(ary);
   if (a->len > 0) {
-    mrb_ary_replace(mrb, mrb_ary_ptr(ary), a->buf, a->len);
-    ary_reverse(mrb_ary_ptr(ary));
+    mrb_value *p1, *p2, *e;
+
+    p1 = a->buf;
+    e  = p1 + a->len;
+    p2 = b->buf + a->len - 1;
+    while(p1 < e) {
+      *p2-- = *p1++;
+    }
+    b->len = a->len;
   }
   return ary;
 }
