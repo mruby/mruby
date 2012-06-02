@@ -10,7 +10,6 @@
 #include "mruby/string.h"
 #include "mruby/class.h"
 
-//#define ARY_DEFAULT_LEN  16
 #define ARY_DEFAULT_LEN   4
 #define ARY_SHRINK_RATIO  5 /* must be larger than 2 */
 #ifdef LONG_MAX
@@ -292,7 +291,6 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
   mrb_value ary;
   mrb_value *buf;
   mrb_int times;
-  //int len;
 
   mrb_get_args(mrb, "i", &times);
   if (times < 0) {
@@ -359,10 +357,10 @@ mrb_ary_new4(mrb_state *mrb, int n, const mrb_value *elts)
 {
   mrb_value ary;
 
-  ary = mrb_ary_new_capa(mrb, n);//mrb_ary_new2(n);
+  ary = mrb_ary_new_capa(mrb, n);
   if (n > 0 && elts) {
     memcpy(RARRAY_PTR(ary), elts, sizeof(mrb_value)*n);
-    RARRAY_LEN(ary) = n; //ARY_SET_LEN(ary, n);
+    RARRAY_LEN(ary) = n;
   }
 
   return ary;
@@ -650,7 +648,6 @@ mrb_value
 mrb_ary_first(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  //mrb_value ary;
   int size;
   mrb_value *vals;
   int len;
@@ -672,7 +669,6 @@ mrb_value
 mrb_ary_last(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  //mrb_value ary;
   int size;
   mrb_value *vals;
   int len;
@@ -819,7 +815,6 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
     } else {
       s = mrb_inspect(mrb, RARRAY_PTR(ary)[i]);
     }
-    //mrb_str_buf_append(mrb, arystr, s);
     mrb_str_buf_cat(mrb, arystr, RSTRING_PTR(s), RSTRING_LEN(s));
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -869,7 +864,6 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
 
   for(i=0; i<RARRAY_LEN(ary); i++) {
     if (i > 0 && !mrb_nil_p(sep)) {
-      //mrb_str_buf_append(mrb, result, sep); // segv (encoding error?)
       mrb_str_buf_cat(mrb, result, RSTRING_PTR(sep), RSTRING_LEN(sep));
     }
 
@@ -882,7 +876,6 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
 
     case MRB_TT_STRING:
     str_join:
-      //mrb_str_buf_append(mrb, result, val);
       mrb_str_buf_cat(mrb, result, RSTRING_PTR(val), RSTRING_LEN(val));
       break;
 
