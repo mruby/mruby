@@ -186,7 +186,7 @@ mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
       if (k != kh_end(h)) {
         k = kh_put(iv, h, sym);
         kh_value(h, k) = v;
-	return;
+        return;
       }
     }
     c = c->super;
@@ -233,26 +233,8 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
   struct RClass *c = base;
   khash_t(iv) *h;
   khiter_t k;
+  mrb_sym cm = mrb_intern(mrb, "const_missing");
 
-  if (c->iv) {
-    h = c->iv;
-    k = kh_get(iv, h, sym);
-    if (k != kh_end(h)) {
-      return kh_value(h, k);
-    }
-  }
-  for (;;) {
-    c = mrb_class_outer_module(mrb, c);
-    if (!c) break;
-    if (c->iv) {
-      h = c->iv;
-      k = kh_get(iv, h, sym);
-      if (k != kh_end(h)) {
-        return kh_value(h, k);
-      }
-    }
-  }
-  c = base->super;
   while (c) {
     if (c->iv) {
       h = c->iv;
@@ -260,17 +242,12 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
       if (k != kh_end(h)) {
         return kh_value(h, k);
       }
+      if (mrb_respond_to(mrb, mrb_obj_value(c), cm)) {
+        mrb_value argv = mrb_symbol_value(sym);
+        return mrb_funcall_argv(mrb, mrb_obj_value(c), "const_missing", 1, &argv);
+      }
     }
     c = c->super;
-  }
-
-  if (!c) {
-    c = mrb->object_class;
-  }
-  
-  if (mrb_respond_to(mrb, mrb_obj_value(c), mrb_intern(mrb, "const_missing"))) {
-    mrb_value argv = mrb_symbol_value(sym);
-    return mrb_funcall_argv(mrb, mrb_obj_value(c), "const_missing", 1, &argv);
   }
 
   mrb_raise(mrb, E_NAME_ERROR, "uninitialized constant %s",
