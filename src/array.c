@@ -256,8 +256,8 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
   return mrb_fixnum_value((len == 0)? 0: (len > 0)? 1: -1);
 }
 
-void
-mrb_ary_replace(mrb_state *mrb, struct RArray *a, mrb_value *argv, size_t len)
+static void
+ary_replace(mrb_state *mrb, struct RArray *a, mrb_value *argv, size_t len)
 {
   if (a->capa < len) mrb_ary_expand_capa(mrb, a, len);
   memcpy(a->buf, argv, sizeof(mrb_value)*len);
@@ -265,14 +265,21 @@ mrb_ary_replace(mrb_state *mrb, struct RArray *a, mrb_value *argv, size_t len)
   a->len = len;
 }
 
+void
+mrb_ary_replace(mrb_state *mrb, mrb_value self, mrb_value other)
+{
+  struct RArray *a2 = mrb_ary_ptr(other);
+
+  ary_replace(mrb, mrb_ary_ptr(self), a2->buf, a2->len);
+}
+
 mrb_value
 mrb_ary_replace_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *buf;
-  int blen;
+  mrb_value other;
 
-  mrb_get_args(mrb, "a", &buf, &blen);
-  mrb_ary_replace(mrb, mrb_ary_ptr(self), buf, blen);
+  mrb_get_args(mrb, "A", &other);
+  mrb_ary_replace(mrb, self, other);
 
   return self;
 }
