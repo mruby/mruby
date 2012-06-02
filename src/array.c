@@ -261,10 +261,11 @@ mrb_ary_replace(mrb_state *mrb, struct RArray *a, mrb_value *argv, size_t len)
 mrb_value
 mrb_ary_replace_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other;
+  mrb_value *buf;
+  int blen;
 
-  mrb_get_args(mrb, "o", &other);
-  mrb_ary_replace(mrb, mrb_ary_ptr(self), RARRAY_PTR(other), RARRAY_LEN(other));
+  mrb_get_args(mrb, "a", &buf, &blen);
+  mrb_ary_replace(mrb, mrb_ary_ptr(self), buf, blen);
 
   return self;
 }
