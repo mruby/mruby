@@ -819,12 +819,12 @@ mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
 {
   khash_t(ht) *h = RHASH_TBL(self);
   khiter_t k;
+
   if (h) {
-    for (k = kh_begin(h); k != kh_end(h); k++)
-      if (kh_exist(h, k))
-        return mrb_false_value();
+    if (kh_size(h) == 0)
+      return mrb_true_value();
   }
-  return mrb_true_value();
+  return mrb_false_value();
 }
 
 /* 15.2.13.4.11 */
