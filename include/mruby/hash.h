@@ -17,9 +17,6 @@ struct RHash {
   struct kh_ht *ht;
 };
 
-#define mrb_hash_end(h) st_hash_end(h)
-#define mrb_hash_uint(h, i) st_hash_uint(h, i)
-
 #define mrb_hash_ptr(v)    ((struct RHash*)((v).value.p))
 #define mrb_hash_value(p)  mrb_obj_value((void*)(p))
 
