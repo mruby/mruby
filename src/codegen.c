@@ -208,23 +208,19 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
     case OP_SETCV:
     case OP_SETCONST:
     case OP_SETMCNST:
-      switch (c0) {
-      case OP_MOVE:
+      if (c0 == OP_MOVE) {
         if (GETARG_A(i) == GETARG_A(i0)) {
           s->iseq[s->pc-1] = MKOP_ABx(c1, GETARG_B(i0), GETARG_Bx(i));
           return;
         }
-        break;
       }
       break;
     case OP_SETUPVAR:
-      switch (c0) {
-      case OP_MOVE:
+      if (c0 == OP_MOVE) {
         if (GETARG_A(i) == GETARG_A(i0)) {
           s->iseq[s->pc-1] = MKOP_ABC(c1, GETARG_B(i0), GETARG_B(i), GETARG_C(i));
           return;
         }
-        break;
       }
       break;
     case OP_EPOP:
