@@ -191,15 +191,16 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a1 = mrb_ary_ptr(self);
   struct RArray *a2;
-  mrb_value other;
   mrb_value ary;
+  mrb_value *buf;
+  int blen;
 
-  mrb_get_args(mrb, "A", &other);
-  ary = mrb_ary_new_capa(mrb, a1->len + RARRAY_LEN(other));
+  mrb_get_args(mrb, "a", &buf, &blen);
+  ary = mrb_ary_new_capa(mrb, a1->len + blen);
   a2 = mrb_ary_ptr(ary);
   memcpy(a2->buf, a1->buf, sizeof(mrb_value)*a1->len);
-  memcpy(a2->buf + a1->len, RARRAY_PTR(other), sizeof(mrb_value)*RARRAY_LEN(other));
-  a2->len = a1->len + RARRAY_LEN(other);
+  memcpy(a2->buf + a1->len, buf, sizeof(mrb_value)*blen);
+  a2->len = a1->len + blen;
 
   return ary;
 }
