@@ -769,14 +769,6 @@ mrb_ary_entry(mrb_value ary, int offset)
   return ary_elt(ary, offset);
 }
 
-void
-mrb_mem_clear(mrb_value *mem, int size)
-{
-  while (size--) {
-    *mem++ = mrb_nil_value();
-  }
-}
-
 mrb_value
 mrb_ary_tmp_new(mrb_state *mrb, int capa)
 {

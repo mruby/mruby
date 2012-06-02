@@ -419,9 +419,7 @@ mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_val
   st->ptr = mrb_malloc(mrb, sizeof(mrb_value)*argc);
   st->len = n;
   memcpy(st->ptr, argv, sizeof(mrb_value)*argc);
-  //if (n > argc) {
-  //  mrb_mem_clear(RSTRUCT_PTR(self)+argc, n-argc);
-  //}
+
   return self;
 }
 
