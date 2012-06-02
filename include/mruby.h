@@ -147,7 +147,7 @@ mrb_obj_value(void *p)
 }
 
 static inline mrb_value
-mrb_false_value()
+mrb_false_value(void)
 {
   mrb_value v;
 
@@ -157,7 +157,7 @@ mrb_false_value()
 }
 
 static inline mrb_value
-mrb_nil_value()
+mrb_nil_value(void)
 {
   mrb_value v;
 
@@ -167,7 +167,7 @@ mrb_nil_value()
 }
 
 static inline mrb_value
-mrb_true_value()
+mrb_true_value(void)
 {
   mrb_value v;
 
@@ -177,7 +177,7 @@ mrb_true_value()
 }
 
 static inline mrb_value
-mrb_undef_value()
+mrb_undef_value(void)
 {
   mrb_value v;
 
@@ -415,6 +415,9 @@ mrb_value mrb_check_funcall(mrb_state *mrb, mrb_value recv, mrb_sym mid, int arg
 #define ISDIGIT(c) (ISASCII(c) && isdigit((int)(unsigned char)(c)))
 #define ISXDIGIT(c) (ISASCII(c) && isxdigit((int)(unsigned char)(c)))
 #endif
+
+mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len);
+void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
 
 int mrb_block_given_p(void);
 void mrb_raise(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
