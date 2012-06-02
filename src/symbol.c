@@ -188,8 +188,7 @@ sym_to_sym(mrb_state *mrb, mrb_value sym)
 #define is_identchar(c) (SIGN_EXTEND_CHAR(c)!=-1&&(ISALNUM(c) || (c) == '_'))
 
 static int
-is_special_global_name(m)
-    const char *m;
+is_special_global_name(const char* m)
 {
     switch (*m) {
       case '~': case '*': case '$': case '?': case '!': case '@':
