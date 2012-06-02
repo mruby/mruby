@@ -416,6 +416,9 @@ mrb_value mrb_check_funcall(mrb_state *mrb, mrb_value recv, mrb_sym mid, int arg
 #define ISXDIGIT(c) (ISASCII(c) && isxdigit((int)(unsigned char)(c)))
 #endif
 
+mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len);
+void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
+
 int mrb_block_given_p(void);
 void mrb_raise(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
 void rb_raise(struct RClass *c, const char *fmt, ...);
