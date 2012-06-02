@@ -202,7 +202,22 @@ static inline khint_t __ac_X31_hash_string(const char *s)
 }
 #define kh_str_hash_func(mrb,key) __ac_X31_hash_string(key)
 #define kh_str_hash_equal(mrb,a, b) (strcmp(a, b) == 0)
-
+static inline khint_t kh_mrbsym_hash_func(struct mrb_state *mrb, mrb_sym key)
+{
+#if defined(__STDINT_LIMITS)
+#if INTPTR_MAX == INT32_MAX
+	return kh_int_hash_func(mrb, key);
+#else
+	return kh_int64_hash_func(mrb, key);
+#endif
+#else
+	return kh_int_hash_func(mrb, key);
+#endif
+}
+static inline int kh_mrbsym_hash_equal(struct mrb_state *mrb, mrb_sym a, mrb_sym b)
+{
+	return a == b ? 1 : 0;
+}
 #define KHASH_MAP_INIT_INT(name, khval_t)                               \
     KHASH_INIT(name, uint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 typedef const char *kh_cstr_t;
