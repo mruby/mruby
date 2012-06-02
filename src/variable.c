@@ -19,7 +19,7 @@
 #include "st.h"
 #endif
 
-KHASH_MAP_INIT_INT(iv, mrb_value);
+KHASH_INIT(iv, mrb_sym, mrb_value, 1, kh_int_hash_func, kh_int_hash_equal)
 
 #ifndef FALSE
 #define FALSE   0
