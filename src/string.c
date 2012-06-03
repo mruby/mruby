@@ -36,7 +36,7 @@ const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 static mrb_value get_pat(mrb_state *mrb, mrb_value pat, mrb_int quote);
 #endif //INCLUDE_REGEXP
 static mrb_value str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2);
-static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, long beg, long len);
+static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len);
 
 #define RESIZE_CAPA(s,capacity) do {\
       s->buf = mrb_realloc(mrb, s->buf, (capacity)+1);\
@@ -254,34 +254,26 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
   return mrb_obj_value(s);
 }
 
-static struct RString*
+static void
 str_make_shared(mrb_state *mrb, mrb_value str)
 {
-  struct RString *orig, *s;
+  struct RString *s;
 
-  s = str_new(mrb, 0, 0);
-  str_with_class(mrb, s, str);
-  orig = mrb_str_ptr(str);
-  if (!(orig->flags & MRB_STR_SHARED)) {
+  s = mrb_str_ptr(str);
+  if (!(s->flags & MRB_STR_SHARED)) {
     struct mrb_shared_string *shared = mrb_malloc(mrb, sizeof(struct mrb_shared_string));
 
     shared->refcnt = 1;
-    if (orig->aux.capa > orig->len) {
-      shared->buf = mrb_realloc(mrb, shared->buf, orig->len+1);
+    if (s->aux.capa > s->len) {
+      shared->buf = mrb_realloc(mrb, shared->buf, s->len+1);
     }
     else {
-      shared->buf = orig->buf;
+      shared->buf = s->buf;
     }
-    shared->len = orig->len;
-    orig->aux.shared = shared;
-    orig->flags |= MRB_STR_SHARED;
+    shared->len = s->len;
+    s->aux.shared = shared;
+    s->flags |= MRB_STR_SHARED;
   }
-  s->buf = orig->buf;
-  s->len = orig->len;
-  s->aux.shared = orig->aux.shared;
-  s->flags |= MRB_STR_SHARED;
-
-  return s;
 }
 
 /*
@@ -1196,12 +1188,15 @@ mrb_str_eql(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-mrb_str_subseq(mrb_state *mrb, mrb_value str, long beg, long len)
+mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len)
 {
   struct RString *s;
+  struct mrb_shared_string *shared;
 
-  s = str_make_shared(mrb, str);
-  s->buf += beg;
+  str_make_shared(mrb, str);
+  shared = RSTRING(str)->aux.shared;
+  s = mrb_obj_alloc_string(mrb);
+  s->buf = shared->buf + beg;
   s->len = len;
 
   return mrb_obj_value(s);
