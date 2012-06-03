@@ -1202,6 +1202,9 @@ mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len)
   s = mrb_obj_alloc_string(mrb);
   s->buf = shared->buf + beg;
   s->len = len;
+  s->aux.shared = shared;
+  s->flags |= MRB_STR_SHARED;
+  shared->refcnt++;
 
   return mrb_obj_value(s);
 }
