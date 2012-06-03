@@ -76,6 +76,7 @@ mrb_add_irep(mrb_state *mrb, int idx)
 
     if (idx > max) max = idx+1;
     mrb->irep = mrb_malloc(mrb, sizeof(mrb_irep*)*max);
+    memset(mrb->irep, 0, sizeof(mrb_irep*)*max);
     mrb->irep_capa = max;
   }
   else if (mrb->irep_capa <= idx) {
