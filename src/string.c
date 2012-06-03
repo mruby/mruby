@@ -265,7 +265,7 @@ str_make_shared(mrb_state *mrb, mrb_value str)
 
     shared->refcnt = 1;
     if (s->aux.capa > s->len) {
-      shared->buf = mrb_realloc(mrb, shared->buf, s->len+1);
+      s->buf = shared->buf = mrb_realloc(mrb, s->buf, s->len+1);
     }
     else {
       shared->buf = s->buf;
