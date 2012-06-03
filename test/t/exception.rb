@@ -193,3 +193,39 @@ assert('Exception 10') do
     7+7
   end == 12
 end
+
+assert('Exception 11') do
+  a = :ok
+  begin
+    begin
+      raise Exception
+    rescue
+      a = :ng
+    end
+  rescue Exception
+  end
+  a == :ok
+end
+
+assert('Exception 12') do
+  a = :ok
+  begin
+    raise Exception rescue a = :ng
+  rescue Exception
+  end
+  a == :ok
+end
+
+assert('Exception 13') do
+  a = :ng
+  begin
+    raise StandardError
+  rescue TypeError, ArgumentError
+    a = :ng
+  rescue
+    a = :ok
+  else
+    a = :ng
+  end
+  a == :ok
+end
