@@ -463,6 +463,39 @@ mrb_time_dstp(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(tm->datetime.tm_isdst);
 }
 
+/* 15.2.19.7.8 */
+/* 15.2.19.7.10 */
+/* Returns the Time object of the UTC(GMT) timezone. */
+static mrb_value
+mrb_time_getutc(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_time *tm, *tm2;
+
+  tm = mrb_get_datatype(mrb, self, &mrb_time_type);
+  if (!tm) return self;
+  tm2 = mrb_malloc(mrb, sizeof(*tm));
+  *tm2 = *tm;
+  tm2->timezone = MRB_TIMEZONE_UTC;
+  mrb_time_update_datetime(tm2);
+  return mrb_time_wrap(mrb, mrb_obj_class(mrb, self), tm2);
+}
+
+/* 15.2.19.7.9 */
+/* Returns the Time object of the LOCAL timezone. */
+static mrb_value
+mrb_time_getlocal(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_time *tm, *tm2;
+
+  tm = mrb_get_datatype(mrb, self, &mrb_time_type);
+  if (!tm) return self;
+  tm2 = mrb_malloc(mrb, sizeof(*tm));
+  *tm2 = *tm;
+  tm2->timezone = MRB_TIMEZONE_LOCAL;
+  mrb_time_update_datetime(tm2);
+  return mrb_time_wrap(mrb, mrb_obj_class(mrb, self), tm2);
+}
+
 /* 15.2.19.7.15 */
 /* Returns hour of time. */
 static mrb_value
@@ -671,6 +704,9 @@ mrb_init_time(mrb_state *mrb)
   mrb_define_method(mrb, tc, "ctime"  , mrb_time_asctime, ARGS_NONE()); /* 15.2.19.7.5 */
   mrb_define_method(mrb, tc, "day"    , mrb_time_day    , ARGS_NONE()); /* 15.2.19.7.6 */
   mrb_define_method(mrb, tc, "dst?"   , mrb_time_dstp   , ARGS_NONE()); /* 15.2.19.7.7 */
+  mrb_define_method(mrb, tc, "getgm"  , mrb_time_getutc , ARGS_NONE()); /* 15.2.19.7.8 */
+  mrb_define_method(mrb, tc, "getlocal",mrb_time_getlocal,ARGS_NONE()); /* 15.2.19.7.9 */
+  mrb_define_method(mrb, tc, "getutc" , mrb_time_getutc , ARGS_NONE()); /* 15.2.19.7.10 */
   mrb_define_method(mrb, tc, "gmt?"   , mrb_time_utcp   , ARGS_NONE()); /* 15.2.19.7.11 */
   mrb_define_method(mrb, tc, "gmtime" , mrb_time_utc    , ARGS_NONE()); /* 15.2.19.7.13 */
   mrb_define_method(mrb, tc, "hour"   , mrb_time_hour, ARGS_NONE());    /* 15.2.19.7.15 */
