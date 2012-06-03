@@ -934,6 +934,11 @@ test_mrb_field_write_barrier(void)
   mrb_state *mrb = mrb_open();
   struct RBasic *obj, *value;
 
+  if (mrb == NULL) {
+    fprintf(stderr, "Invalid mrb_state, exiting test_mrb_field_write_barrier");
+    return;
+  }
+
   puts("test_mrb_field_write_barrier");
   obj = RBASIC(mrb_ary_new(mrb));
   value = RBASIC(mrb_str_new_cstr(mrb, "value"));
@@ -997,6 +1002,11 @@ test_mrb_write_barrier(void)
   mrb_state *mrb = mrb_open();
   struct RBasic *obj;
 
+  if (mrb == NULL) {
+    fprintf(stderr, "Invalid mrb_state, exiting test_mrb_write_barrier");
+    return;
+  }
+
   puts("test_mrb_write_barrier");
   obj = RBASIC(mrb_ary_new(mrb));
   paint_black(obj);
@@ -1024,6 +1034,11 @@ test_add_gray_list(void)
   mrb_state *mrb = mrb_open();
   struct RBasic *obj1, *obj2;
 
+  if (mrb == NULL) {
+    fprintf(stderr, "Invalid mrb_state, exiting test_add_gray_list");
+    return;
+  }
+
   puts("test_add_gray_list");
   gc_assert(mrb->gray_list == NULL);
   obj1 = RBASIC(mrb_str_new_cstr(mrb, "test"));
@@ -1047,6 +1062,11 @@ test_gc_gray_mark(void)
   mrb_value obj_v, value_v;
   struct RBasic *obj;
   size_t gray_num = 0;
+
+  if (mrb == NULL) {
+    fprintf(stderr, "Invalid mrb_state, exiting test_gc_gray_mark");
+    return;
+  }
 
   puts("test_gc_gray_mark");
 
@@ -1078,6 +1098,11 @@ test_incremental_gc(void)
   size_t max = ~0, live = 0, total = 0, freed = 0;
   RVALUE *free;
   struct heap_page *page;
+
+  if (mrb == NULL) {
+    fprintf(stderr, "Invalid mrb_state, exiting test_incremental_gc");
+    return;
+  }
 
   puts("test_incremental_gc");
 
@@ -1135,6 +1160,11 @@ test_incremental_sweep_phase(void)
 {
   mrb_state *mrb = mrb_open();
 
+  if (mrb == NULL) {
+    fprintf(stderr, "Invalid mrb_state, exiting test_incremental_sweep_phase");
+    return;
+  }
+
   puts("test_incremental_sweep_phase");
 
   add_heap(mrb);
@@ -1157,6 +1187,11 @@ test_gc_api(void)
   mrb_value res;
 
   mrb_value argv[1];
+
+  if (mrb == NULL) {
+    fprintf(stderr, "Invalid mrb_state, exiting test_gc_api");
+    return;
+  }
 
   puts("test_gc_api");
 
@@ -1190,6 +1225,11 @@ test_many_object_benchmark(void)
   size_t i = 0, j=0;
   mrb_value ary = mrb_ary_new(mrb);
   int save_point = mrb_gc_arena_save(mrb);
+
+  if (mrb == NULL) {
+    fprintf(stderr, "Invalid mrb_state, test_many_object_benchmark");
+    return;
+  }
 
   puts("test_many_object_benchmark");
 
