@@ -16,6 +16,7 @@ mrb_state*
 mrb_open_allocf(mrb_allocf f)
 {
   mrb_state *mrb = (f)(NULL, NULL, sizeof(mrb_state));
+  if (mrb == NULL) return NULL;
 
   memset(mrb, 0, sizeof(mrb_state));
   mrb->allocf = f;
