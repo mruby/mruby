@@ -2292,6 +2292,11 @@ main()
   mrb_state *mrb = mrb_open();
   int n;
 
+  if (mrb == NULL) {
+    fprintf(stderr, "Invalid mrb_state, exiting codegen test");
+    return EXIT_FAILURE;
+  }
+
 #if 1
   n = mrb_compile_string(mrb, "p(__FILE__)\np(__LINE__)");
 #else
