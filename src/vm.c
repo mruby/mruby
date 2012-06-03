@@ -42,11 +42,29 @@ stack_init(mrb_state *mrb)
 }
 
 static void
+envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
+{
+  mrb_callinfo *ci = mrb->cibase;
+
+  while (ci <= mrb->ci) {
+    struct REnv *e = ci->env;
+    if (e && e->cioff >= 0) {
+      int off = e->stack - oldbase;
+
+      e->stack = newbase + off;
+    }
+    ci++;
+  }
+}
+
+static void
 stack_extend(mrb_state *mrb, int room, int keep)
 {
   int size, off;
 
   if (mrb->stack + room >= mrb->stend) {
+    mrb_value *oldbase = mrb->stbase;
+
     size = mrb->stend - mrb->stbase;
     off = mrb->stack - mrb->stbase;
 
@@ -57,6 +75,7 @@ stack_extend(mrb_state *mrb, int room, int keep)
     mrb->stbase = mrb_realloc(mrb, mrb->stbase, sizeof(mrb_value) * size);
     mrb->stack = mrb->stbase + off;
     mrb->stend = mrb->stbase + size;
+    envadjust(mrb, oldbase, mrb->stbase);
   }
   if (room > keep) {
     memset(mrb->stack+keep, 0, sizeof(mrb_value) * (room-keep));
