@@ -5,6 +5,10 @@ assert('Array', '15.2.12') do
   Array.class == Class
 end
 
+assert('Array superclass', '15.2.12.2') do
+  Array.superclass == Object
+end
+
 assert('Array.[]', '15.2.12.4.1') do
   Array.[](1,2,3) == [1, 2, 3]
 end
