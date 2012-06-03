@@ -469,8 +469,6 @@ mrb_value mrb_yield_with_self(mrb_state *mrb, mrb_value b, int argc, mrb_value *
 mrb_value mrb_class_new_instance(mrb_state *mrb, int, mrb_value*, struct RClass *);
 mrb_value mrb_class_new_instance_m(mrb_state *mrb, mrb_value klass);
 
-mrb_value mrb_exec_recursive(mrb_state *mrb, mrb_value(*)(mrb_state *, mrb_value, mrb_value, int),mrb_value,void *);
-
 #ifndef xmalloc
 #define xmalloc     malloc
 #define xrealloc    realloc

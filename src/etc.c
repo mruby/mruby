@@ -111,14 +111,6 @@ mrb_exec_recursive(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mr
  * current method is called recursively on the ordered pair <obj, paired_obj>
  */
 
-mrb_value
-mrb_exec_recursive_paired(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mrb_value, int),
-                                             mrb_value obj, mrb_value paired_obj, void* arg)
-{
-  //  return mrb_exec_recursive_paired(mrb, recursive_eql, hash1, hash2, mrb_fixnum_value((int)&data));
-  return func(mrb, obj, paired_obj, 0);
-}
-
 mrb_sym
 mrb_to_id(mrb_state *mrb, mrb_value name)
 {
