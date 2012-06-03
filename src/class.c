@@ -822,10 +822,16 @@ mrb_class_new_class(mrb_state *mrb, mrb_value cv)
 mrb_value
 mrb_class_superclass(mrb_state *mrb, mrb_value klass)
 {
-  struct RClass *c, *s;
+  struct RClass *c;
+  mrb_value superclass;
+
   c = mrb_class_ptr(klass);
-  s = mrb_class_real(c->super);
-  return mrb_obj_value(s);
+  if (c->super)
+    superclass = mrb_obj_value(mrb_class_real(c->super));
+  else
+    superclass = mrb_nil_value();
+
+  return superclass;
 }
 
 static mrb_value

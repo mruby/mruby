@@ -5,9 +5,8 @@ assert('Class', '15.2.3') do
   Class.class == Class
 end
 
-assert('Class#superclass', '15.2.3.3.4') do
-  class SubClass < String; end
-  SubClass.superclass == String
+assert('Class superclass', '15.2.3.2') do
+  Class.superclass == Module
 end
 
 assert('Class#new', '15.2.3.3.3') do
@@ -38,6 +37,11 @@ assert('Class#new', '15.2.3.3.3') do
 
   TestClass.new(:arg).result == :only_args
   # with block doesn't work yet
+end
+
+assert('Class#superclass', '15.2.3.3.4') do
+  class SubClass < String; end
+  SubClass.superclass == String
 end
 
 # Not ISO specified
