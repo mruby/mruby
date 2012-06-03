@@ -358,7 +358,6 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
 
   tm2 = mrb_get_datatype(mrb, other, &mrb_time_type);
   if (tm2) {
-
     f = (mrb_float)(tm->sec - tm2->sec)
       + (mrb_float)(tm->usec - tm2->usec) / 1.0e6;
     return mrb_float_value(f);
