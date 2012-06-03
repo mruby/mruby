@@ -5,6 +5,10 @@ assert('Hash', '15.2.13') do
   Hash.class == Class
 end
 
+assert('Hash superclass', '15.2.13.2') do
+  Hash.superclass == Object
+end
+
 assert('Hash#==', '15.2.13.4.1') do
   ({ 'abc' => 'abc' } ==  { 'abc' => 'abc' }) and
     not ({ 'abc' => 'abc' } ==  { 'cba' => 'cba' })
