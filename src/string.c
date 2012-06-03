@@ -57,23 +57,29 @@ static void
 str_modify(mrb_state *mrb, struct RString *s)
 {
   if (s->flags & MRB_STR_SHARED) {
-    char *ptr, *p;
-    long len;
     struct mrb_shared_string *shared = s->aux.shared;
 
-    p = s->buf;
-    len = s->len;
-    ptr = mrb_malloc(mrb, sizeof(char)*(len+1));
-    if (p) {
-      memcpy(ptr, p, len);
+    if (shared->refcnt == 1 && s->buf == shared->buf) {
+      s->buf = shared->buf;
+      s->aux.capa = shared->len;
+      mrb_free(mrb, shared);
     }
-    ptr[len] = 0;
-    s->buf = ptr;
-    s->len = len;
-    s->aux.capa = len;
-    s->flags &= ~MRB_STR_SHARED;
+    else {
+      char *ptr, *p;
+      long len;
 
-    mrb_str_decref(mrb, shared);
+      p = s->buf;
+      len = s->len;
+      ptr = mrb_malloc(mrb, len+1);
+      if (p) {
+	memcpy(ptr, p, len);
+      }
+      ptr[len] = 0;
+      s->buf = ptr;
+      s->aux.capa = len;
+      mrb_str_decref(mrb, shared);
+    }
+    s->flags &= ~MRB_STR_SHARED;
   }
 }
 
