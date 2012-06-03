@@ -656,41 +656,49 @@ mrb_init_time(mrb_state *mrb)
   tc = mrb_define_class(mrb, "Time", mrb->object_class);
   MRB_SET_INSTANCE_TT(tc, MRB_TT_DATA);
   mrb_include_module(mrb, tc, mrb_class_get(mrb, "Comparable"));
-  mrb_define_class_method(mrb, tc, "now", mrb_time_now, ARGS_NONE());
-  mrb_define_class_method(mrb, tc, "at", mrb_time_at, ARGS_ANY());
-  mrb_define_class_method(mrb, tc, "gm", mrb_time_gm, ARGS_REQ(1)|ARGS_OPT(6));
-  mrb_define_class_method(mrb, tc, "local", mrb_time_local, ARGS_REQ(1)|ARGS_OPT(6));
+  mrb_define_class_method(mrb, tc, "at", mrb_time_at, ARGS_ANY());                    /* 15.2.19.6.1 */
+  mrb_define_class_method(mrb, tc, "gm", mrb_time_gm, ARGS_REQ(1)|ARGS_OPT(6));       /* 15.2.19.6.2 */
+  mrb_define_class_method(mrb, tc, "local", mrb_time_local, ARGS_REQ(1)|ARGS_OPT(6)); /* 15.2.19.6.3 */
+  mrb_define_class_method(mrb, tc, "mktime", mrb_time_local, ARGS_REQ(1)|ARGS_OPT(6));/* 15.2.19.6.4 */
+  mrb_define_class_method(mrb, tc, "now", mrb_time_now, ARGS_NONE());                 /* 15.2.19.6.5 */
 
   mrb_define_method(mrb, tc, "=="     , mrb_time_eq     , ARGS_REQ(1));
-  mrb_define_method(mrb, tc, "<=>"    , mrb_time_cmp    , ARGS_REQ(1));
-  mrb_define_method(mrb, tc, "+"      , mrb_time_plus   , ARGS_REQ(1));
-  mrb_define_method(mrb, tc, "-"      , mrb_time_minus  , ARGS_REQ(1));
+  mrb_define_method(mrb, tc, "<=>"    , mrb_time_cmp    , ARGS_REQ(1)); /* 15.2.19.7.1 */
+  mrb_define_method(mrb, tc, "+"      , mrb_time_plus   , ARGS_REQ(1)); /* 15.2.19.7.2 */
+  mrb_define_method(mrb, tc, "-"      , mrb_time_minus  , ARGS_REQ(1)); /* 15.2.19.7.3 */
   mrb_define_method(mrb, tc, "to_s"   , mrb_time_asctime, ARGS_NONE());
-  mrb_define_method(mrb, tc, "asctime", mrb_time_asctime, ARGS_NONE());
-  mrb_define_method(mrb, tc, "ctime"  , mrb_time_asctime, ARGS_NONE());
-  mrb_define_method(mrb, tc, "day"    , mrb_time_day    , ARGS_NONE());
-  mrb_define_method(mrb, tc, "dst?"   , mrb_time_dstp   , ARGS_NONE());
-  mrb_define_method(mrb, tc, "gmt?"   , mrb_time_utcp   , ARGS_NONE());
-  mrb_define_method(mrb, tc, "gmtime" , mrb_time_utc    , ARGS_NONE());
-  mrb_define_method(mrb, tc, "hour"   , mrb_time_hour, ARGS_NONE());
-  mrb_define_method(mrb, tc, "localtime", mrb_time_localtime, ARGS_NONE());
-  mrb_define_method(mrb, tc, "mday"   , mrb_time_mday, ARGS_NONE());
-  mrb_define_method(mrb, tc, "min"    , mrb_time_min, ARGS_NONE());
+  mrb_define_method(mrb, tc, "asctime", mrb_time_asctime, ARGS_NONE()); /* 15.2.19.7.4 */
+  mrb_define_method(mrb, tc, "ctime"  , mrb_time_asctime, ARGS_NONE()); /* 15.2.19.7.5 */
+  mrb_define_method(mrb, tc, "day"    , mrb_time_day    , ARGS_NONE()); /* 15.2.19.7.6 */
+  mrb_define_method(mrb, tc, "dst?"   , mrb_time_dstp   , ARGS_NONE()); /* 15.2.19.7.7 */
+  mrb_define_method(mrb, tc, "gmt?"   , mrb_time_utcp   , ARGS_NONE()); /* 15.2.19.7.11 */
+  mrb_define_method(mrb, tc, "gmtime" , mrb_time_utc    , ARGS_NONE()); /* 15.2.19.7.13 */
+  mrb_define_method(mrb, tc, "hour"   , mrb_time_hour, ARGS_NONE());    /* 15.2.19.7.15 */
+  mrb_define_method(mrb, tc, "localtime", mrb_time_localtime, ARGS_NONE()); /* 15.2.19.7.18 */
+  mrb_define_method(mrb, tc, "mday"   , mrb_time_mday, ARGS_NONE());    /* 15.2.19.7.19 */
+  mrb_define_method(mrb, tc, "min"    , mrb_time_min, ARGS_NONE());     /* 15.2.19.7.20 */
    
-  mrb_define_method(mrb, tc, "mon"  , mrb_time_mon, ARGS_NONE());
-  mrb_define_method(mrb, tc, "month", mrb_time_mon, ARGS_NONE());
+  mrb_define_method(mrb, tc, "mon"  , mrb_time_mon, ARGS_NONE());       /* 15.2.19.7.21 */
+  mrb_define_method(mrb, tc, "month", mrb_time_mon, ARGS_NONE());       /* 15.2.19.7.22 */
   
-  mrb_define_method(mrb, tc, "sec" , mrb_time_sec, ARGS_NONE());
-  mrb_define_method(mrb, tc, "to_i", mrb_time_to_i, ARGS_NONE());
-  mrb_define_method(mrb, tc, "to_f", mrb_time_to_f, ARGS_NONE());
-  mrb_define_method(mrb, tc, "usec", mrb_time_usec, ARGS_NONE());
-  mrb_define_method(mrb, tc, "utc" , mrb_time_utc, ARGS_NONE());
-  mrb_define_method(mrb, tc, "utc?", mrb_time_utcp, ARGS_NONE());
-  mrb_define_method(mrb, tc, "wday", mrb_time_wday, ARGS_NONE());
-  mrb_define_method(mrb, tc, "yday", mrb_time_yday, ARGS_NONE());
-  mrb_define_method(mrb, tc, "year", mrb_time_year, ARGS_NONE());
-  mrb_define_method(mrb, tc, "zone", mrb_time_zone, ARGS_NONE());
+  mrb_define_method(mrb, tc, "sec" , mrb_time_sec, ARGS_NONE());        /* 15.2.19.7.23 */
+  mrb_define_method(mrb, tc, "to_i", mrb_time_to_i, ARGS_NONE());       /* 15.2.19.7.25 */
+  mrb_define_method(mrb, tc, "to_f", mrb_time_to_f, ARGS_NONE());       /* 15.2.19.7.24 */
+  mrb_define_method(mrb, tc, "usec", mrb_time_usec, ARGS_NONE());       /* 15.2.19.7.26 */
+  mrb_define_method(mrb, tc, "utc" , mrb_time_utc, ARGS_NONE());        /* 15.2.19.7.27 */
+  mrb_define_method(mrb, tc, "utc?", mrb_time_utcp, ARGS_NONE());       /* 15.2.19.7.28 */
+  mrb_define_method(mrb, tc, "wday", mrb_time_wday, ARGS_NONE());       /* 15.2.19.7.30 */
+  mrb_define_method(mrb, tc, "yday", mrb_time_yday, ARGS_NONE());       /* 15.2.19.7.31 */
+  mrb_define_method(mrb, tc, "year", mrb_time_year, ARGS_NONE());       /* 15.2.19.7.32 */
+  mrb_define_method(mrb, tc, "zone", mrb_time_zone, ARGS_NONE());       /* 15.2.19.7.33 */
   
-  mrb_define_method(mrb, tc, "initialize", mrb_time_initialize, ARGS_REQ(1));
-  mrb_define_method(mrb, tc, "initialize_copy", mrb_time_initialize_copy, ARGS_REQ(1));
+  mrb_define_method(mrb, tc, "initialize", mrb_time_initialize, ARGS_REQ(1)); /* 15.2.19.7.16 */
+  mrb_define_method(mrb, tc, "initialize_copy", mrb_time_initialize_copy, ARGS_REQ(1)); /* 15.2.19.7.17 */
+
+  /*
+    methods not available:
+      gmt_offset(15.2.19.7.12)
+      gmtoff(15.2.19.7.14)
+      utc_offset(15.2.19.7.29)
+  */
 }
