@@ -46,7 +46,7 @@ stack_extend(mrb_state *mrb, int room, int keep)
 {
   int size, off;
 
-  if (mrb->stack + room > mrb->stend) {
+  if (mrb->stack + room >= mrb->stend) {
     size = mrb->stend - mrb->stbase;
     off = mrb->stack - mrb->stbase;
 
