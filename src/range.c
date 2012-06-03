@@ -29,9 +29,6 @@
 
 #define RANGE_CLASS (mrb_class_obj_get(mrb, "Range"))
 
-mrb_value mrb_exec_recursive_paired(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mrb_value, int),
-                                  mrb_value obj, mrb_value paired_obj, void* arg);
-
 mrb_value
 mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, int excl)
 {
@@ -397,23 +394,6 @@ range_inspect(mrb_state *mrb, mrb_value range)
     return inspect_range(mrb, range, range, 0);
 }
 
-static mrb_value
-recursive_eql(mrb_state *mrb, mrb_value range, mrb_value obj, int recur)
-{
-  struct RRange *r = mrb_range_ptr(range);
-  struct RRange *o = mrb_range_ptr(obj);
-
-  if (recur) return mrb_true_value(); /* Subtle! */
-  if (!mrb_eql(mrb, r->edges->beg, o->edges->beg))
-    return mrb_false_value();
-  if (!mrb_eql(mrb, r->edges->end, o->edges->end))
-    return mrb_false_value();
-
-  if (r->excl != o->excl)
-    return mrb_false_value();
-  return mrb_true_value();
-}
-
 /* 15.2.14.4.14(x) */
 /*
  *  call-seq:
@@ -433,13 +413,24 @@ static mrb_value
 range_eql(mrb_state *mrb, mrb_value range)
 {
   mrb_value obj;
+  struct RRange *r, *o;
 
   mrb_get_args(mrb, "o", &obj);
   if (mrb_obj_equal(mrb, range, obj))
     return mrb_true_value();
   if (!mrb_obj_is_kind_of(mrb, obj, RANGE_CLASS))
     return mrb_false_value();
-  return mrb_exec_recursive_paired(mrb, recursive_eql, range, obj, &obj);
+
+  r = mrb_range_ptr(range);
+  if (obj.tt != MRB_TT_RANGE) return mrb_false_value();
+  o = mrb_range_ptr(obj);
+  if (!mrb_eql(mrb, r->edges->beg, o->edges->beg))
+    return mrb_false_value();
+  if (!mrb_eql(mrb, r->edges->end, o->edges->end))
+    return mrb_false_value();
+  if (r->excl != o->excl)
+    return mrb_false_value();
+  return mrb_true_value();
 }
 
 /* 15.2.14.4.15(x) */

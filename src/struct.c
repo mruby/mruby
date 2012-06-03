@@ -15,10 +15,6 @@
 #ifdef INCLUDE_REGEXP
 #include "encoding.h"
 #endif
-mrb_sym rb_frame_this_func(mrb_state *mrb);
-mrb_sym mrb_frame_callee(mrb_state *mrb);
-mrb_value mrb_exec_recursive_paired(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mrb_value, int),
-                                  mrb_value obj, mrb_value paired_obj, void* arg);
 
 #include "mruby/numeric.h"
 #include "mruby/hash.h"
@@ -688,22 +684,6 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
   return RSTRUCT_PTR(s)[i] = val;
 }
 
-static mrb_value
-recursive_equal(mrb_state *mrb, mrb_value s, mrb_value s2, int recur)
-{
-    mrb_value *ptr, *ptr2;
-    long i, len;
-
-    if (recur) return mrb_true_value(); /* Subtle! */
-    ptr = RSTRUCT_PTR(s);
-    ptr2 = RSTRUCT_PTR(s2);
-    len = RSTRUCT_LEN(s);
-    for (i=0; i<len; i++) {
-      if (!mrb_equal(mrb, ptr[i], ptr2[i])) return mrb_false_value();
-    }
-    return mrb_true_value();
-}
-
 /* 15.2.18.4.1  */
 /*
  *  call-seq:
@@ -726,6 +706,8 @@ static mrb_value
 mrb_struct_equal(mrb_state *mrb, mrb_value s)
 {
   mrb_value s2;
+  mrb_value *ptr, *ptr2;
+  long i, len;
 
   mrb_get_args(mrb, "o", &s2);
   if (mrb_obj_equal(mrb, s, s2)) return mrb_true_value();
@@ -734,24 +716,13 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
   if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
     mrb_bug("inconsistent struct"); /* should never happen */
   }
-
-  return mrb_exec_recursive_paired(mrb, recursive_equal, s, s2, (void*)0);
-}
-
-static mrb_value
-recursive_eql(mrb_state *mrb, mrb_value s, mrb_value s2, int recur)
-{
-    mrb_value *ptr, *ptr2;
-    long i, len;
-
-    if (recur) return mrb_true_value(); /* Subtle! */
-    ptr = RSTRUCT_PTR(s);
-    ptr2 = RSTRUCT_PTR(s2);
-    len = RSTRUCT_LEN(s);
-    for (i=0; i<len; i++) {
-      if (!mrb_eql(mrb, ptr[i], ptr2[i])) return mrb_false_value();
-    }
-    return mrb_true_value();
+  ptr = RSTRUCT_PTR(s);
+  ptr2 = RSTRUCT_PTR(s2);
+  len = RSTRUCT_LEN(s);
+  for (i=0; i<len; i++) {
+    if (!mrb_equal(mrb, ptr[i], ptr2[i])) return mrb_false_value();
+  }
+  return mrb_true_value();
 }
 
 /* 15.2.18.4.12(x)  */
@@ -766,6 +737,8 @@ static mrb_value
 mrb_struct_eql(mrb_state *mrb, mrb_value s)
 {
   mrb_value s2;
+  mrb_value *ptr, *ptr2;
+  long i, len;
 
   mrb_get_args(mrb, "o", &s2);
   if (mrb_obj_equal(mrb, s, s2)) return mrb_true_value();
@@ -775,7 +748,13 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
     mrb_bug("inconsistent struct"); /* should never happen */
   }
 
-  return mrb_exec_recursive_paired(mrb, recursive_eql, s, s2, (void*)0);
+  ptr = RSTRUCT_PTR(s);
+  ptr2 = RSTRUCT_PTR(s2);
+  len = RSTRUCT_LEN(s);
+  for (i=0; i<len; i++) {
+    if (!mrb_eql(mrb, ptr[i], ptr2[i])) return mrb_false_value();
+  }
+  return mrb_true_value();
 }
 
 /*
