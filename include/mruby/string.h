@@ -49,6 +49,7 @@ struct RString {
 #define RSTRING_END(s)    (RSTRING(s)->buf + RSTRING(s)->len)
 #define MRB_STR_SHARED      256
 
+void mrb_str_decref(mrb_state*, struct mrb_shared_string*);
 mrb_value mrb_str_literal(mrb_state*, mrb_value);
 void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
 mrb_value mrb_obj_to_str(mrb_state*, mrb_value);

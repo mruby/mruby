@@ -43,6 +43,16 @@ static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len)
       s->aux.capa = capacity;\
 } while (0)
 
+void
+mrb_str_decref(mrb_state *mrb, struct mrb_shared_string *shared)
+{
+  shared->refcnt--;
+  if (shared->refcnt == 0) {
+    mrb_free(mrb, shared->buf);
+    mrb_free(mrb, shared);
+  }
+}
+
 static void
 str_modify(mrb_state *mrb, struct RString *s)
 {
@@ -63,11 +73,7 @@ str_modify(mrb_state *mrb, struct RString *s)
     s->aux.capa = len;
     s->flags &= ~MRB_STR_SHARED;
 
-    shared->refcnt--;
-    if (shared->refcnt == 0) {
-      mrb_free(mrb, shared->buf);
-      mrb_free(mrb, shared);
-    }
+    mrb_str_decref(mrb, shared);
   }
 }
 
