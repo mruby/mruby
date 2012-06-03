@@ -5518,11 +5518,6 @@ main()
   mrb_state *mrb = mrb_open();
   int n;
 
-  if (mrb == NULL) {
-    fprintf(stderr, "Invalid mrb_state, exiting parser test");
-    return EXIT_FAILURE;
-  }
-
   n = mrb_compile_string(mrb, "\
 def fib(n)\n\
   if n<2\n\
