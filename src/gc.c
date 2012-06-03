@@ -121,25 +121,31 @@ gettimeofday_time(void)
 
 #define GC_STEP_SIZE 1024
 
-
 void*
 mrb_realloc(mrb_state *mrb, void *p, size_t len)
 {
-  return (mrb->allocf)(mrb, p, len);
+  p = (mrb->allocf)(mrb, p, len);
+
+  if (!p && len > 0 && mrb->heaps) {
+    mrb_garbage_collect(mrb);
+    p = (mrb->allocf)(mrb, p, len);
+  }
+  return p;
 }
 
 void*
 mrb_malloc(mrb_state *mrb, size_t len)
 {
-  return (mrb->allocf)(mrb, 0, len);
+  return mrb_realloc(mrb, 0, len);
 }
 
 void*
 mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
 {
-  void *p = (mrb->allocf)(mrb, 0, nelem*len);
+  void *p = mrb_realloc(mrb, 0, nelem*len);
 
-  memset(p, 0, nelem*len);
+  if (len > 0)
+    memset(p, 0, nelem*len);
   return p;
 }
 
