@@ -261,11 +261,8 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
 }
 
 static void
-str_make_shared(mrb_state *mrb, mrb_value str)
+str_make_shared(mrb_state *mrb, struct RString *s)
 {
-  struct RString *s;
-
-  s = mrb_str_ptr(str);
   if (!(s->flags & MRB_STR_SHARED)) {
     struct mrb_shared_string *shared = mrb_malloc(mrb, sizeof(struct mrb_shared_string));
 
@@ -298,7 +295,7 @@ mrb_str_literal(mrb_state *mrb, mrb_value str)
   s = str_new(mrb, 0, 0);
   orig = mrb_str_ptr(str);
   if (!(orig->flags & MRB_STR_SHARED)) {
-    str_make_shared(mrb, str);
+    str_make_shared(mrb, mrb_str_ptr(str));
   }
   shared = orig->aux.shared;
   shared->refcnt++;
@@ -1199,8 +1196,9 @@ mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len)
   struct RString *s;
   struct mrb_shared_string *shared;
 
-  str_make_shared(mrb, str);
-  shared = RSTRING(str)->aux.shared;
+  s = mrb_str_ptr(str);
+  str_make_shared(mrb, s);
+  shared = s->aux.shared;
   s = mrb_obj_alloc_string(mrb);
   s->buf = shared->buf + beg;
   s->len = len;
@@ -1541,16 +1539,35 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
     return mrb_fixnum_value(pos);
 }
 
+#define STR_REPLACE_SHARED_MIN 10
+
 static mrb_value
 str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 {
-  int len = s2->len;
-
-  str_modify(mrb, s1);
-  s1->buf = mrb_realloc(mrb, s1->buf, len);
-  memcpy(s1->buf, s2->buf, len);
-  s1->len = s2->len;
-  s2->aux.capa = s2->len;
+  if (s2->flags & MRB_STR_SHARED) {
+  L_SHARE:
+    s1->buf = s2->buf;
+    s1->len = s2->len;
+    s1->aux.shared = s2->aux.shared;
+    s1->flags |= MRB_STR_SHARED;
+  }
+  else if (s2->len > STR_REPLACE_SHARED_MIN) {
+    str_make_shared(mrb, s2);
+    goto L_SHARE;
+  }
+  else {
+    if (s1->flags & MRB_STR_SHARED) {
+      mrb_str_decref(mrb, s1->aux.shared);
+      s1->buf = mrb_malloc(mrb, s2->len+1);
+    }
+    else {
+      s1->buf = mrb_realloc(mrb, s1->buf, s2->len+1);
+    }
+    memcpy(s1->buf, s2->buf, s2->len);
+    s1->buf[s2->len] = 0;
+    s1->len = s2->len;
+    s2->aux.capa = s2->len;
+  }
   return mrb_obj_value(s1);
 }
 
