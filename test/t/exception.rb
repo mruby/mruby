@@ -5,6 +5,10 @@ assert('Exception', '15.2.22') do
   Exception.class == Class
 end
 
+assert('Exception superclass', '15.2.22.2') do
+  Exception.superclass == Object
+end
+
 assert('Exception.exception', '15.2.22.4.1') do
   e = Exception.exception('a')
 
