@@ -11,10 +11,19 @@
 extern "C" {
 #endif
 
+struct mrb_shared_array {
+  int refcnt;
+  mrb_value *buf;
+  int len;
+};
+
 struct RArray {
   MRUBY_OBJECT_HEADER;
   int len;
-  int capa;
+  union {
+    int capa;
+    struct mrb_shared_array *shared;
+  } aux;
   mrb_value *buf;
 };
 
@@ -24,7 +33,9 @@ struct RArray {
 
 #define RARRAY_LEN(a) (RARRAY(a)->len)
 #define RARRAY_PTR(a) (RARRAY(a)->buf)
+#define MRB_ARY_SHARED      256
 
+void mrb_ary_decref(mrb_state*, struct mrb_shared_array*);
 mrb_value mrb_ary_new_capa(mrb_state*, int);
 mrb_value mrb_ary_new(mrb_state *mrb);
 mrb_value mrb_ary_new_elts(mrb_state *mrb, int n, const mrb_value *elts);
@@ -43,7 +54,6 @@ mrb_value mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item);
 mrb_value mrb_ary_new4(mrb_state *mrb, int n, const mrb_value *elts);
 mrb_value mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr);
 mrb_value mrb_ary_entry(mrb_value ary, int offset);
-mrb_value mrb_ary_tmp_new(mrb_state *mrb, int capa);
 mrb_value mrb_ary_sort(mrb_state *mrb, mrb_value ary);
 mrb_value mrb_ary_shift(mrb_state *mrb, mrb_value self);
 

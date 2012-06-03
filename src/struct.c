@@ -450,7 +450,7 @@ mrb_struct_new(mrb_state *mrb, struct RClass *klass, ...)
 
     size = mrb_long2int(num_members(mrb, klass));
     if (size > numberof(tmpargs)) {
-      tmpargs[0] = mrb_ary_tmp_new(mrb, size);
+      tmpargs[0] = mrb_ary_new_capa(mrb, size);
       mem = RARRAY_PTR(tmpargs[0]);
     }
     va_start(args, klass);
