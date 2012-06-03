@@ -834,28 +834,34 @@ codegen(codegen_scope *s, node *tree, int val)
         push();
         while (n2) {
           node *n3 = n2->car;
+          node *n4 = n3->car;
 
           if (pos1) dispatch(s, pos1);
-          if (n3->car) {
-            node *n4 = n3->car;
-
-            pos2 = 0;
-            while (n4) {
+          pos2 = 0;
+          do {
+            if (n4) {
               codegen(s, n4->car, VAL);
-              genop(s, MKOP_AB(OP_MOVE, cursp(), exc));
+            }
+            else {
+              genop(s, MKOP_ABx(OP_GETCONST, cursp(), new_msym(s, mrb_intern(s->mrb, "StandardError"))));
               push();
-              genop(s, MKOP_A(OP_LOADNIL, cursp()));
-              pop(); pop();
-              genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern(s->mrb, "===")), 1));
-              tmp = new_label(s);
-              genop(s, MKOP_AsBx(OP_JMPIF, cursp(), pos2));
-              pos2 = tmp;
+            }
+            genop(s, MKOP_AB(OP_MOVE, cursp(), exc));
+            push();
+            genop(s, MKOP_A(OP_LOADNIL, cursp()));
+            pop(); pop();
+            genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern(s->mrb, "===")), 1));
+            tmp = new_label(s);
+            genop(s, MKOP_AsBx(OP_JMPIF, cursp(), pos2));
+            pos2 = tmp;
+            if (n4) {
               n4 = n4->cdr;
             }
-            pos1 = new_label(s);
-            genop(s, MKOP_Bx(OP_JMP, 0));
-            dispatch_linked(s, pos2);
-          }
+          } while (n4);
+          pos1 = new_label(s);
+          genop(s, MKOP_Bx(OP_JMP, 0));
+          dispatch_linked(s, pos2);
+
           pop();
           if (n3->cdr->car) {
             gen_assignment(s, n3->cdr->car, exc, NOVAL);
