@@ -824,7 +824,7 @@ mrb_class_superclass(mrb_state *mrb, mrb_value klass)
 {
   struct RClass *c, *s;
   c = mrb_class_ptr(klass);
-  s = c->super;
+  s = mrb_class_real(c->super);
   return mrb_obj_value(s);
 }
 
