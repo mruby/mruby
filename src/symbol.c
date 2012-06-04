@@ -288,12 +288,14 @@ symname_p(const char *name)
       case '*':
         if (*++m == '*') ++m;
         break;
-
+      case '!':
+        if (*++m == '=') ++m;
+        break;
       case '+': case '-':
         if (*++m == '@') ++m;
         break;
 
-      case '|': case '^': case '&': case '/': case '%': case '~': case '`': case '!':
+      case '|': case '^': case '&': case '/': case '%': case '~': case '`':
         ++m;
         break;
 
