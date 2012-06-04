@@ -694,6 +694,7 @@ mrb_init_time(mrb_state *mrb)
   mrb_define_class_method(mrb, tc, "local", mrb_time_local, ARGS_REQ(1)|ARGS_OPT(6)); /* 15.2.19.6.3 */
   mrb_define_class_method(mrb, tc, "mktime", mrb_time_local, ARGS_REQ(1)|ARGS_OPT(6));/* 15.2.19.6.4 */
   mrb_define_class_method(mrb, tc, "now", mrb_time_now, ARGS_NONE());                 /* 15.2.19.6.5 */
+  mrb_define_class_method(mrb, tc, "utc", mrb_time_gm, ARGS_REQ(1)|ARGS_OPT(6));      /* 15.2.19.6.6 */
 
   mrb_define_method(mrb, tc, "=="     , mrb_time_eq     , ARGS_REQ(1));
   mrb_define_method(mrb, tc, "<=>"    , mrb_time_cmp    , ARGS_REQ(1)); /* 15.2.19.7.1 */
