@@ -363,8 +363,11 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
     return mrb_float_value(f);
   }
   else {
-    mrb_get_args(mrb, "f", &f);
-    return mrb_time_make(mrb, mrb_obj_class(mrb, self), f, tm->timezone);
+    mrb_float f, f2;
+    mrb_get_args(mrb, "f", &f2);
+
+    f = ((mrb_float)tm->sec + (mrb_float)tm->usec/1.0e6);
+    return mrb_time_make(mrb, mrb_obj_class(mrb, self), f-f2, tm->timezone);
   }
 }
 
