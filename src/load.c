@@ -477,7 +477,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
       memcpy(buf, src, snl);                  //symbol name
       src += snl;
       buf[snl] = '\0';
-      irep->syms[i] = mrb_intern(mrb, buf);
+      irep->syms[i] = mrb_intern2(mrb, buf, snl);
     }
   }
   crc = calc_crc_16_ccitt((unsigned char*)pStart, src - pStart);     //Calculate CRC

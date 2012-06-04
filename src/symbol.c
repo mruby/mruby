@@ -17,59 +17,92 @@
 #include <stdio.h>
 
 /* ------------------------------------------------------ */
-KHASH_INIT(s2n, mrb_sym, const char*, 1, kh_int_hash_func, kh_int_hash_equal)
-KHASH_MAP_INIT_STR(n2s, mrb_sym);
+typedef struct symbol_name {
+  int len;
+  const char *name;
+} symbol_name;
+
+static inline khint_t
+sym_hash_func(mrb_state *mrb, const symbol_name s)
+{
+  khint_t h = 0;
+  size_t i;
+  const char *p = s.name;
+
+  for (i=0; i<s.len; i++) {
+    h = (h << 5) - h + *p++;
+  }
+  return h;
+}
+#define sym_hash_equal(mrb,a, b) (a.len == b.len && memcmp(a.name, b.name, a.len) == 0)
+
+KHASH_INIT(n2s, symbol_name, mrb_sym, 1, sym_hash_func, sym_hash_equal)
 /* ------------------------------------------------------ */
 mrb_sym
-mrb_intern(mrb_state *mrb, const char *name)
+mrb_intern2(mrb_state *mrb, const char *name, int len)
 {
   khash_t(n2s) *h = mrb->name2sym;
-  khash_t(s2n) *rh = mrb->sym2name;
   khiter_t k;
-  size_t len;
   char *p;
   mrb_sym sym;
+  symbol_name sname;
 
-  k = kh_get(n2s, h, name);
+  sname.name = name;
+  sname.len = len;
+  k = kh_get(n2s, h, sname);
   if (k != kh_end(h))
     return kh_value(h, k);
 
   sym = ++mrb->symidx;
-  len = strlen(name);
   p = mrb_malloc(mrb, len+1);
   memcpy(p, name, len);
   p[len] = 0;
-  k = kh_put(n2s, h, p);
+  sname.name = p;
+  k = kh_put(n2s, h, sname);
   kh_value(h, k) = sym;
-
-  k = kh_put(s2n, rh, sym);
-  kh_value(rh, k) = p;
 
   return sym;
 }
 
-const char*
-mrb_sym2name(mrb_state *mrb, mrb_sym sym)
+mrb_sym
+mrb_intern(mrb_state *mrb, const char *name)
 {
-  khash_t(s2n) *h = mrb->sym2name;
-  khiter_t k;
+  return mrb_intern2(mrb, name, strlen(name));
+}
 
-  k = kh_get(s2n, h, sym);
+mrb_sym
+mrb_intern_str(mrb_state *mrb, mrb_value str)
+{
+  return mrb_intern(mrb, RSTRING_PTR(str));
+}
+
+const char*
+mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, int *lenp)
+{
+  khash_t(n2s) *h = mrb->name2sym;
+  khiter_t k;
+  symbol_name sname;
+
+  for (k = kh_begin(h); k != kh_end(h); k++) {
+    if (kh_exist(h, k) && kh_value(h, k) == sym) break;
+  }
   if (k == kh_end(h)) {
+    *lenp = 0;
     return NULL;                /* missing */
   }
-  return kh_value(h, k);
+  sname = kh_key(h, k);
+  *lenp = sname.len;
+  return sname.name;
 }
 
 void
 mrb_free_symtbls(mrb_state *mrb)
 {
-  khash_t(s2n) *h = mrb->sym2name;
+  khash_t(n2s) *h = mrb->name2sym;
   khiter_t k;
 
-  for (k = kh_begin(h); k != kh_end(h); ++k)
-    if (kh_exist(h, k)) mrb_free(mrb, (char*)kh_value(h, k));
-  kh_destroy(s2n,mrb->sym2name);
+  for (k = kh_begin(h); k != kh_end(h); k++)
+    if (kh_exist(h, k)) mrb_free(mrb, (char*)kh_key(h, k).name);
   kh_destroy(n2s,mrb->name2sym);
 }
 
@@ -77,7 +110,6 @@ void
 mrb_init_symtbl(mrb_state *mrb)
 {
   mrb->name2sym = kh_init(n2s, mrb);
-  mrb->sym2name = kh_init(s2n, mrb);
 }
 
 /**********************************************************************
@@ -148,8 +180,11 @@ mrb_value
 mrb_sym_to_s(mrb_state *mrb, mrb_value sym)
 {
   mrb_sym id = SYM2ID(sym);
+  const char *p;
+  int len;
 
-  return mrb_str_new_cstr(mrb, mrb_sym2name(mrb, id));
+  p = mrb_sym2name_len(mrb, id, &len);
+  return mrb_str_new(mrb, p, len);
 }
 
 /* 15.2.11.3.4  */
@@ -258,7 +293,7 @@ symname_p(const char *name)
         if (*++m == '@') ++m;
         break;
 
-      case '|': case '^': case '&': case '/': case '%': case '~': case '`':
+      case '|': case '^': case '&': case '/': case '%': case '~': case '`': case '!':
         ++m;
         break;
 
@@ -288,9 +323,10 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   mrb_value str;
   const char *name;
   mrb_sym id = SYM2ID(sym);
+  int len;
 
-  name = mrb_sym2name(mrb, id); //mrb_id2name(id);
-  str = mrb_str_new(mrb, 0, strlen(name)+1);
+  name = mrb_sym2name_len(mrb, id, &len);
+  str = mrb_str_new(mrb, 0, len+1);
   RSTRING(str)->buf[0] = ':';
   strcpy(RSTRING(str)->buf+1, name);
   if (!symname_p(name)) {
@@ -300,6 +336,21 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   return str;
 }
 
+const char*
+mrb_sym2name(mrb_state *mrb, mrb_sym sym)
+{
+  int len;
+  const char *name = mrb_sym2name_len(mrb, sym, &len);
+
+  if (!name) return NULL;
+  if (symname_p(name) && strlen(name) == len) {
+    return name;
+  }
+  else {
+    mrb_value str = mrb_str_dump(mrb, mrb_str_new(mrb, name, len));
+    return RSTRING(str)->buf;
+  }
+}
 
 void
 mrb_init_symbols(mrb_state *mrb)

@@ -1616,12 +1616,6 @@ mrb_str_init(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-mrb_sym
-mrb_intern_str(mrb_state *mrb, mrb_value str)
-{
-  return mrb_intern(mrb, RSTRING_PTR(str));
-}
-
 /* 15.2.10.5.25 */
 /* 15.2.10.5.41 */
 /*
