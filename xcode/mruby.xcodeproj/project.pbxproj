@@ -6,6 +6,24 @@
 	objectVersion = 46;
 	objects = {
 
+/* Begin PBXAggregateTarget section */
+		88C19D95157D7593002ABAEA /* all binaries */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = 88C19D98157D7594002ABAEA /* Build configuration list for PBXAggregateTarget "all binaries" */;
+			buildPhases = (
+				88C19DA2157D75F2002ABAEA /* ShellScript */,
+			);
+			dependencies = (
+				88C19D9B157D759D002ABAEA /* PBXTargetDependency */,
+				88C19D9D157D75A1002ABAEA /* PBXTargetDependency */,
+				88C19D9F157D75A3002ABAEA /* PBXTargetDependency */,
+				88C19DA1157D75A6002ABAEA /* PBXTargetDependency */,
+			);
+			name = "all binaries";
+			productName = binaries;
+		};
+/* End PBXAggregateTarget section */
+
 /* Begin PBXBuildFile section */
 		8844359B157730E1007F95A4 /* mrbtest.c in Sources */ = {isa = PBXBuildFile; fileRef = 8844359A157730DB007F95A4 /* mrbtest.c */; };
 		8844359C15773120007F95A4 /* libmruby.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8844353E1576F1A3007F95A4 /* libmruby.a */; };
@@ -122,6 +140,34 @@
 			proxyType = 1;
 			remoteGlobalIDString = 88760AA115759B4F00113BFB;
 			remoteInfo = ruby_lib;
+		};
+		88C19D9A157D759D002ABAEA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 88760A8A157590F000113BFB;
+			remoteInfo = mrbc;
+		};
+		88C19D9C157D75A1002ABAEA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 88760B3215769F3000113BFB;
+			remoteInfo = mirb;
+		};
+		88C19D9E157D75A3002ABAEA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 88760B2315769E6100113BFB;
+			remoteInfo = mruby;
+		};
+		88C19DA0157D75A6002ABAEA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8844358E1577301B007F95A4;
+			remoteInfo = mrbtest;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -808,6 +854,7 @@
 				88760B3215769F3000113BFB /* mirb */,
 				8844358E1577301B007F95A4 /* mrbtest */,
 				88760B731576A33100113BFB /* mruby_fw */,
+				88C19D95157D7593002ABAEA /* all binaries */,
 			);
 		};
 /* End PBXProject section */
@@ -875,6 +922,19 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "cd ../mrblib\ncat ./*.rb > mrblib.rbtmp\n../Xcode/build/mrbc -Bmrblib_irep -omrblib.ctmp mrblib.rbtmp\ncat init_mrblib.c mrblib.ctmp > mrblib.c";
+		};
+		88C19DA2157D75F2002ABAEA /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = build/mrbtest;
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1006,6 +1066,26 @@
 			isa = PBXTargetDependency;
 			target = 88760AA115759B4F00113BFB /* ruby_lib */;
 			targetProxy = 88760B891576A35C00113BFB /* PBXContainerItemProxy */;
+		};
+		88C19D9B157D759D002ABAEA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 88760A8A157590F000113BFB /* mrbc */;
+			targetProxy = 88C19D9A157D759D002ABAEA /* PBXContainerItemProxy */;
+		};
+		88C19D9D157D75A1002ABAEA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 88760B3215769F3000113BFB /* mirb */;
+			targetProxy = 88C19D9C157D75A1002ABAEA /* PBXContainerItemProxy */;
+		};
+		88C19D9F157D75A3002ABAEA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 88760B2315769E6100113BFB /* mruby */;
+			targetProxy = 88C19D9E157D75A3002ABAEA /* PBXContainerItemProxy */;
+		};
+		88C19DA1157D75A6002ABAEA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8844358E1577301B007F95A4 /* mrbtest */;
+			targetProxy = 88C19DA0157D75A6002ABAEA /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1303,6 +1383,20 @@
 			};
 			name = Release;
 		};
+		88C19D96157D7594002ABAEA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		88C19D97157D7594002ABAEA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1386,6 +1480,14 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		88C19D98157D7594002ABAEA /* Build configuration list for PBXAggregateTarget "all binaries" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				88C19D96157D7594002ABAEA /* Debug */,
+				88C19D97157D7594002ABAEA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
 		};
 /* End XCConfigurationList section */
 	};
