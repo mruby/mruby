@@ -268,8 +268,10 @@ get_syms_block_size(mrb_state *mrb, mrb_irep *irep, int type)
 
     size += DUMP_SIZE(MRB_DUMP_SIZE_OF_SHORT, type); /* snl(n) */
     if (irep->syms[sym_no] != 0) {
-      name = mrb_sym2name(mrb, irep->syms[sym_no]);
-      nlen = str_dump_len((char*)name, strlen(name), type);
+      int len;
+
+      name = mrb_sym2name_len(mrb, irep->syms[sym_no], &len);
+      nlen = str_dump_len((char*)name, len, type);
       size += nlen; /* sn(n) */
     }
   }

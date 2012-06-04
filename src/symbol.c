@@ -34,7 +34,7 @@ sym_hash_func(mrb_state *mrb, const symbol_name s)
   }
   return h;
 }
-#define sym_hash_equal(mrb,a, b) (a.len == b.len && strcmp(a.name, b.name) == 0)
+#define sym_hash_equal(mrb,a, b) (a.len == b.len && memcmp(a.name, b.name, a.len) == 0)
 
 KHASH_INIT(n2s, symbol_name, mrb_sym, 1, sym_hash_func, sym_hash_equal)
 /* ------------------------------------------------------ */
@@ -76,8 +76,8 @@ mrb_intern_str(mrb_state *mrb, mrb_value str)
   return mrb_intern2(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
 }
 
-static const char*
-sym2name_len(mrb_state *mrb, mrb_sym sym, int *lenp)
+const char*
+mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, int *lenp)
 {
   khash_t(n2s) *h = mrb->name2sym;
   khiter_t k;
@@ -185,7 +185,7 @@ mrb_sym_to_s(mrb_state *mrb, mrb_value sym)
   const char *p;
   int len;
 
-  p = sym2name_len(mrb, id, &len);
+  p = mrb_sym2name_len(mrb, id, &len);
   return mrb_str_new(mrb, p, len);
 }
 
@@ -290,7 +290,9 @@ symname_p(const char *name)
       case '*':
         if (*++m == '*') ++m;
         break;
-
+      case '!':
+        if (*++m == '=') ++m;
+        break;
       case '+': case '-':
         if (*++m == '@') ++m;
         break;
@@ -327,7 +329,7 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   int len;
   mrb_sym id = SYM2ID(sym);
 
-  name = sym2name_len(mrb, id, &len);
+  name = mrb_sym2name_len(mrb, id, &len);
   str = mrb_str_new(mrb, 0, len+1);
   RSTRING(str)->buf[0] = ':';
   memcpy(RSTRING(str)->buf+1, name, len);
@@ -342,7 +344,7 @@ const char*
 mrb_sym2name(mrb_state *mrb, mrb_sym sym)
 {
   int len;
-  const char *name = sym2name_len(mrb, sym, &len);
+  const char *name = mrb_sym2name_len(mrb, sym, &len);
 
   if (!name) return NULL;
   if (symname_p(name) && strlen(name) == len) {
@@ -353,7 +355,6 @@ mrb_sym2name(mrb_state *mrb, mrb_sym sym)
     return RSTRING(str)->buf;
   }
 }
-
 
 void
 mrb_init_symbols(mrb_state *mrb)
