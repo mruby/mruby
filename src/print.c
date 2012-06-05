@@ -17,7 +17,7 @@ printstr(mrb_state *mrb, mrb_value obj)
 
   if (mrb_type(obj) == MRB_TT_STRING) {
     str = mrb_str_ptr(obj);
-    s = str->buf;
+    s = str->ptr;
     len = str->len;
     while (len--) {
       putc(*s, stdout);

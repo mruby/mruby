@@ -39,7 +39,7 @@ static mrb_value str_replace(mrb_state *mrb, struct RString *s1, struct RString 
 static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len);
 
 #define RESIZE_CAPA(s,capacity) do {\
-      s->buf = mrb_realloc(mrb, s->buf, (capacity)+1);\
+      s->ptr = mrb_realloc(mrb, s->ptr, (capacity)+1);\
       s->aux.capa = capacity;\
 } while (0)
 
@@ -48,7 +48,7 @@ mrb_str_decref(mrb_state *mrb, struct mrb_shared_string *shared)
 {
   shared->refcnt--;
   if (shared->refcnt == 0) {
-    mrb_free(mrb, shared->buf);
+    mrb_free(mrb, shared->ptr);
     mrb_free(mrb, shared);
   }
 }
@@ -59,8 +59,8 @@ str_modify(mrb_state *mrb, struct RString *s)
   if (s->flags & MRB_STR_SHARED) {
     struct mrb_shared_string *shared = s->aux.shared;
 
-    if (shared->refcnt == 1 && s->buf == shared->buf) {
-      s->buf = shared->buf;
+    if (shared->refcnt == 1 && s->ptr == shared->ptr) {
+      s->ptr = shared->ptr;
       s->aux.capa = shared->len;
       mrb_free(mrb, shared);
     }
@@ -68,14 +68,14 @@ str_modify(mrb_state *mrb, struct RString *s)
       char *ptr, *p;
       long len;
 
-      p = s->buf;
+      p = s->ptr;
       len = s->len;
       ptr = mrb_malloc(mrb, len+1);
       if (p) {
 	memcpy(ptr, p, len);
       }
       ptr[len] = 0;
-      s->buf = ptr;
+      s->ptr = ptr;
       s->aux.capa = len;
       mrb_str_decref(mrb, shared);
     }
@@ -93,11 +93,11 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, int len)
   slen = s->len;
   if (len != slen) {
     if (slen < len || slen -len > 1024) {
-      s->buf = mrb_realloc(mrb, s->buf, len+1);
+      s->ptr = mrb_realloc(mrb, s->ptr, len+1);
     }
     s->aux.capa = len;
     s->len = len;
-    s->buf[len] = '\0';		/* sentinel */
+    s->ptr[len] = '\0';		/* sentinel */
   }
   return str;
 }
@@ -107,7 +107,7 @@ str_mod_check(mrb_state *mrb, mrb_value str, char *p, mrb_int len)
 {
   struct RString *s = mrb_str_ptr(str);
 
-  if (s->buf != p || s->len != len) {
+  if (s->ptr != p || s->len != len) {
     mrb_raise(mrb, mrb->eRuntimeError_class, "string modified");
   }
 }
@@ -122,7 +122,7 @@ str_alloc(mrb_state *mrb, struct RClass *c)
   s = mrb_obj_alloc_string(mrb);
 
   s->c = c;
-  s->buf = 0;
+  s->ptr = 0;
   s->len = 0;
   s->aux.capa = 0;
 
@@ -143,11 +143,11 @@ str_new(mrb_state *mrb, const char *p, int len)
 
   s->len = len;
   s->aux.capa = len;
-  s->buf = mrb_malloc(mrb, len+1);
+  s->ptr = mrb_malloc(mrb, len+1);
   if (p) {
-    memcpy(s->buf, p, len);
+    memcpy(s->ptr, p, len);
   }
-  s->buf[len] = '\0';
+  s->ptr[len] = '\0';
   return s;
 }
 
@@ -178,8 +178,8 @@ mrb_str_buf_new(mrb_state *mrb, int capa)
   }
   s->len = 0;
   s->aux.capa = capa;
-  s->buf = mrb_malloc(mrb, capa+1);
-  s->buf[0] = '\0';
+  s->ptr = mrb_malloc(mrb, capa+1);
+  s->ptr[0] = '\0';
 
   return mrb_obj_value(s);
 }
@@ -190,8 +190,8 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, int len)
   long capa, total, off = -1;
 
   str_modify(mrb, s);
-  if (ptr >= s->buf && ptr <= s->buf + s->len) {
-      off = ptr - s->buf;
+  if (ptr >= s->ptr && ptr <= s->ptr + s->len) {
+      off = ptr - s->ptr;
   }
   if (len == 0) return;
   capa = s->aux.capa;
@@ -210,11 +210,11 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, int len)
     RESIZE_CAPA(s, capa);
   }
   if (off != -1) {
-      ptr = s->buf + off;
+      ptr = s->ptr + off;
   }
-  memcpy(s->buf + s->len, ptr, len);
+  memcpy(s->ptr + s->len, ptr, len);
   s->len = total;
-  s->buf[total] = '\0';		/* sentinel */
+  s->ptr[total] = '\0';		/* sentinel */
 }
 
 mrb_value
@@ -257,9 +257,9 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
   int len = strlen(p);
 
   s = mrb_obj_alloc_string(mrb);
-  s->buf = mrb_malloc(mrb, len+1);
-  memcpy(s->buf, p, len);
-  s->buf[len] = 0;
+  s->ptr = mrb_malloc(mrb, len+1);
+  memcpy(s->ptr, p, len);
+  s->ptr[len] = 0;
   s->len = len;
   s->aux.capa = len;
 
@@ -274,10 +274,10 @@ str_make_shared(mrb_state *mrb, struct RString *s)
 
     shared->refcnt = 1;
     if (s->aux.capa > s->len) {
-      s->buf = shared->buf = mrb_realloc(mrb, s->buf, s->len+1);
+      s->ptr = shared->ptr = mrb_realloc(mrb, s->ptr, s->len+1);
     }
     else {
-      shared->buf = s->buf;
+      shared->ptr = s->ptr;
     }
     shared->len = s->len;
     s->aux.shared = shared;
@@ -305,7 +305,7 @@ mrb_str_literal(mrb_state *mrb, mrb_value str)
   }
   shared = orig->aux.shared;
   shared->refcnt++;
-  s->buf = shared->buf;
+  s->ptr = shared->ptr;
   s->len = shared->len;
   s->aux.shared = shared;
   s->flags |= MRB_STR_SHARED;
@@ -325,7 +325,7 @@ mrb_str_body(mrb_value str, int *len_p)
   struct RString *s = mrb_str_ptr(str);
 
   *len_p = s->len;
-  return s->buf;
+  return s->ptr;
 }
 
 /*
@@ -349,11 +349,11 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
 
   if (s1->aux.capa < len) {
     s1->aux.capa = len;
-    s1->buf = mrb_realloc(mrb, s1->buf, len+1);
+    s1->ptr = mrb_realloc(mrb, s1->ptr, len+1);
   }
-  memcpy(s1->buf+s1->len, s2->buf, s2->len);
+  memcpy(s1->ptr+s1->len, s2->ptr, s2->len);
   s1->len = len;
-  s1->buf[len] = 0;
+  s1->ptr[len] = 0;
 }
 
 /*
@@ -370,8 +370,8 @@ mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
   struct RString *t;
 
   t = str_new(mrb, 0, s->len + s2->len);
-  memcpy(t->buf, s->buf, s->len);
-  memcpy(t->buf + s->len, s2->buf, s2->len);
+  memcpy(t->ptr, s->ptr, s->len);
+  memcpy(t->ptr + s->len, s2->ptr, s2->len);
 
   return mrb_obj_value(t);
 }
@@ -446,7 +446,7 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
   len = RSTRING_LEN(self)*times;
   str2 = str_new(mrb, 0, len);
   str_with_class(mrb, str2, self);
-  p = str2->buf;
+  p = str2->ptr;
   if (len > 0) {
     n = RSTRING_LEN(self);
     memcpy(p, RSTRING_PTR(self), n);
@@ -481,7 +481,7 @@ mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2)
   struct RString *s2 = mrb_str_ptr(str2);
 
   len = lesser(s1->len, s2->len);
-  retval = memcmp(s1->buf, s2->buf, len);
+  retval = memcmp(s1->ptr, s2->ptr, len);
   if (retval == 0) {
     if (s1->len == s2->len) return 0;
     if (s1->len > s2->len)  return 1;
@@ -725,7 +725,7 @@ mrb_str_dup(mrb_state *mrb, mrb_value str)
   /* should return shared string */
   struct RString *s = mrb_str_ptr(str);
 
-  return mrb_str_new(mrb, s->buf, s->len);
+  return mrb_str_new(mrb, s->ptr, s->len);
 }
 
 static mrb_value
@@ -871,8 +871,8 @@ mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
   struct RString *s = mrb_str_ptr(str);
 
   str_modify(mrb, s);
-  if (s->len == 0 || !s->buf) return mrb_nil_value();
-  p = s->buf; pend = s->buf + s->len;
+  if (s->len == 0 || !s->ptr) return mrb_nil_value();
+  p = s->ptr; pend = s->ptr + s->len;
   if (ISLOWER(*p)) {
     *p = toupper(*p);
     modify = 1;
@@ -931,14 +931,14 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
   if (mrb_get_args(mrb, "|S", &rs) == 0) {
     if (len == 0) return mrb_nil_value();
   smart_chomp:
-    if (s->buf[len-1] == '\n') {
+    if (s->ptr[len-1] == '\n') {
       s->len--;
       if (s->len > 0 &&
-	  s->buf[s->len-1] == '\r') {
+	  s->ptr[s->len-1] == '\r') {
 	s->len--;
       }
     }
-    else if (s->buf[len-1] == '\r') {
+    else if (s->ptr[len-1] == '\r') {
       s->len--;
     }
     else {
@@ -948,7 +948,7 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
   }
 
   if (len == 0 || mrb_nil_p(rs)) return mrb_nil_value();
-  p = s->buf;
+  p = s->ptr;
   rslen = RSTRING_LEN(rs);
   if (rslen == 0) {
     while (len>0 && p[len-1] == '\n') {
@@ -1028,14 +1028,14 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
   if (s->len > 0) {
     int len;
     len = s->len - 1;
-    if (s->buf[len] == '\n') {
+    if (s->ptr[len] == '\n') {
       if (len > 0 &&
-          s->buf[len-1] == '\r') {
+          s->ptr[len-1] == '\r') {
         len--;
       }
     }
     s->len = len;
-    s->buf[len] = '\0';
+    s->ptr[len] = '\0';
     return str;
   }
   return mrb_nil_value();
@@ -1083,8 +1083,8 @@ mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
   struct RString *s = mrb_str_ptr(str);
 
   str_modify(mrb, s);
-  p = s->buf;
-  pend = s->buf + s->len;
+  p = s->ptr;
+  pend = s->ptr + s->len;
   while (p < pend) {
     if (ISUPPER(*p)) {
       *p = tolower(*p);
@@ -1206,7 +1206,7 @@ mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len)
   str_make_shared(mrb, s);
   shared = s->aux.shared;
   s = mrb_obj_alloc_string(mrb);
-  s->buf = shared->buf + beg;
+  s->ptr = shared->ptr + beg;
   s->len = len;
   s->aux.shared = shared;
   s->flags |= MRB_STR_SHARED;
@@ -1391,7 +1391,7 @@ mrb_str_hash(mrb_state *mrb, mrb_value str)
   /* 1-8-7 */
   struct RString *s = mrb_str_ptr(str);
   long len = s->len;
-  char *p = s->buf;
+  char *p = s->ptr;
   mrb_int key = 0;
 
   while (len--) {
@@ -1555,7 +1555,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 {
   if (s2->flags & MRB_STR_SHARED) {
   L_SHARE:
-    s1->buf = s2->buf;
+    s1->ptr = s2->ptr;
     s1->len = s2->len;
     s1->aux.shared = s2->aux.shared;
     s1->flags |= MRB_STR_SHARED;
@@ -1567,13 +1567,13 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   else {
     if (s1->flags & MRB_STR_SHARED) {
       mrb_str_decref(mrb, s1->aux.shared);
-      s1->buf = mrb_malloc(mrb, s2->len+1);
+      s1->ptr = mrb_malloc(mrb, s2->len+1);
     }
     else {
-      s1->buf = mrb_realloc(mrb, s1->buf, s2->len+1);
+      s1->ptr = mrb_realloc(mrb, s1->ptr, s2->len+1);
     }
-    memcpy(s1->buf, s2->buf, s2->len);
-    s1->buf[s2->len] = 0;
+    memcpy(s1->ptr, s2->ptr, s2->len);
+    s1->ptr[s2->len] = 0;
     s1->len = s2->len;
     s2->aux.capa = s2->len;
   }
@@ -1754,7 +1754,7 @@ mrb_str_reverse(mrb_state *mrb, mrb_value str)
   s2 = str_new(mrb, 0, RSTRING(str)->len);
   str_with_class(mrb, s2, str);
   s = RSTRING_PTR(str); e = RSTRING_END(str) - 1;
-  p = s2->buf;
+  p = s2->ptr;
 
   while (e >= s) {
     *p++ = *e--;
@@ -1778,7 +1778,7 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
 
   str_modify(mrb, s);
   if (s->len > 1) {
-    p = s->buf;
+    p = s->ptr;
     e = p + s->len - 1;
     while (p < e) {
       c = *p;
@@ -1820,13 +1820,13 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
   if (ps->len - pos < len) {
     pos = ps->len - len;
   }
-  sbeg = ps->buf;
-  s = ps->buf + pos;
-  t = psub->buf;
+  sbeg = ps->ptr;
+  s = ps->ptr + pos;
+  t = psub->ptr;
   if (len) {
     while (sbeg <= s) {
       if (memcmp(s, t, len) == 0) {
-        return s - ps->buf;
+        return s - ps->ptr;
       }
       s--;
     }
@@ -2028,7 +2028,7 @@ mrb_str_scan(mrb_state *mrb, mrb_value str)
   mrb_int start = 0;
   mrb_value match = mrb_nil_value();
   struct RString *ps = mrb_str_ptr(str);
-  char *p = ps->buf;
+  char *p = ps->ptr;
   long len = ps->len;
 
   mrb_get_args(mrb, "o&", &pat, &b);
@@ -2513,7 +2513,7 @@ char *
 mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 {
   struct RString *ps = mrb_str_ptr(*ptr);
-  char *s = ps->buf;
+  char *s = ps->ptr;
 
   if (!s || ps->len != strlen(s)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
@@ -2820,7 +2820,7 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
     result = str_new(mrb, 0, len);
     str_with_class(mrb, result, str);
     p = RSTRING_PTR(str); pend = p + RSTRING_LEN(str);
-    q = result->buf;
+    q = result->ptr;
 
     *q++ = '"';
     while (p < pend) {

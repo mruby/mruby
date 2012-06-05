@@ -27,7 +27,7 @@ extern const char mrb_digitmap[];
 
 struct mrb_shared_string {
   int refcnt;
-  char *buf;
+  char *ptr;
   int len;
 };
 
@@ -38,15 +38,15 @@ struct RString {
     int capa;
     struct mrb_shared_string *shared;
   } aux;
-  char *buf;
+  char *ptr;
 };
 
 #define mrb_str_ptr(s)    ((struct RString*)((s).value.p))
 #define RSTRING(s)        ((struct RString*)((s).value.p))
-#define RSTRING_PTR(s)    (RSTRING(s)->buf)
+#define RSTRING_PTR(s)    (RSTRING(s)->ptr)
 #define RSTRING_LEN(s)    (RSTRING(s)->len)
 #define RSTRING_CAPA(s)   (RSTRING(s)->aux.capa)
-#define RSTRING_END(s)    (RSTRING(s)->buf + RSTRING(s)->len)
+#define RSTRING_END(s)    (RSTRING(s)->ptr + RSTRING(s)->len)
 #define MRB_STR_SHARED      256
 
 void mrb_str_decref(mrb_state*, struct mrb_shared_string*);

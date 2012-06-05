@@ -433,7 +433,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
         }
         else if (mrb_special_const_p(x)) {
           s = mrb_str_ptr(mrb_obj_as_string(mrb, x));
-          etype = s->buf;
+          etype = s->ptr;
         }
         else {
           etype = mrb_obj_classname(mrb, x);
@@ -471,8 +471,8 @@ mrb_any_to_s(mrb_state *mrb, mrb_value obj)
   str = mrb_str_new(mrb, 0, len); /* 6:tags 16:addr */
   s = mrb_str_ptr(str);
   //  snprintf(RSTRING(str)->ptr, len+1, "#<%s:0x%lx>", cname, obj);
-  sprintf(s->buf, "#<%s:0x%lx>", cname, (unsigned long)(obj.value.p));
-  s->len = strlen(s->buf);
+  sprintf(s->ptr, "#<%s:0x%lx>", cname, (unsigned long)(obj.value.p));
+  s->len = strlen(s->ptr);
 
   return str;
 }

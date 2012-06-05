@@ -449,7 +449,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 	ss = to_str(mrb, *sp);
 	s = mrb_str_ptr(ss);
 	ps = va_arg(ap, char**);
-	*ps = s->buf;
+	*ps = s->ptr;
 	pl = va_arg(ap, int*);
 	*pl = s->len;
         i++; sp++;
@@ -463,11 +463,11 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
 	ss = to_str(mrb, *sp);
 	s = mrb_str_ptr(ss);
-	if (strlen(s->buf) != s->len) {
+	if (strlen(s->ptr) != s->len) {
 	  mrb_raise(mrb, E_ARGUMENT_ERROR, "String contains NUL");
 	}
 	ps = va_arg(ap, char**);
-	*ps = s->buf;
+	*ps = s->ptr;
         i++; sp++;
       }
       break;
@@ -959,7 +959,7 @@ mrb_class_name(mrb_state *mrb, struct RClass* c)
 {
   mrb_value path = mrb_class_path(mrb, c);
   if (mrb_nil_p(path)) return 0;
-  return mrb_str_ptr(path)->buf;
+  return mrb_str_ptr(path)->ptr;
 }
 
 const char*
