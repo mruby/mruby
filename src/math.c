@@ -10,10 +10,11 @@
 #define domain_error(msg) \
     mrb_raise(mrb, E_RANGE_ERROR, "Numerical argument is out of domain - " #msg);
 
-#define MATH_TOLERANCE 1E-12
-
 /* math functions not provided under Microsoft Visual C++ */
 #ifdef _MSC_VER
+
+#define MATH_TOLERANCE 1E-12
+
 #define asinh(x) log(x + sqrt(pow(x,2.0) + 1))
 #define acosh(x) log(x + sqrt(pow(x,2.0) - 1))
 #define atanh(x) (log(1+x) - log(1-x))/2.0
@@ -631,7 +632,6 @@ mrb_init_math(mrb_state *mrb)
   struct RClass *mrb_math;
   mrb_math = mrb_define_module(mrb, "Math");
   
-  mrb_define_const(mrb, mrb_math, "TOLERANCE", mrb_float_value(MATH_TOLERANCE));
   #ifdef M_PI
       mrb_define_const(mrb, mrb_math, "PI", mrb_float_value(M_PI));
   #else
