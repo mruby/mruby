@@ -21,6 +21,9 @@ typedef int mrb_int;
 typedef intptr_t mrb_sym;
 #define readint(p,base) strtol((p),NULL,(base))
 
+#undef  PARSER_DUMP        /* do not print out parser state */
+//#define PARSER_DUMP        /* print out parser state */
+
 #undef  INCLUDE_ENCODING   /* not use encoding classes (ascii only) */
 //#define INCLUDE_ENCODING   /* use UTF-8 encoding classes */
 
@@ -29,6 +32,10 @@ typedef intptr_t mrb_sym;
 
 #ifdef  INCLUDE_REGEXP
 # define INCLUDE_ENCODING  /* Regexp depends Encoding */
+#endif
+
+#ifdef  MRUBY_DEBUG_BUILD
+# define PARSER_DUMP
 #endif
 
 #undef  HAVE_UNISTD_H /* WINDOWS */
