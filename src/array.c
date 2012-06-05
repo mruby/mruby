@@ -46,8 +46,8 @@ ary_new_capa(mrb_state *mrb, int capa)
   }
 
   a = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
-  a->buf = mrb_malloc(mrb, blen);
-  memset(a->buf, 0, blen);
+  a->ptr = mrb_malloc(mrb, blen);
+  memset(a->ptr, 0, blen);
   a->aux.capa = capa;
   a->len = 0;
 
@@ -75,7 +75,7 @@ mrb_ary_new_from_values(mrb_state *mrb, int size, mrb_value *vals)
 
   ary = mrb_ary_new_capa(mrb, size);
   a = mrb_ary_ptr(ary);
-  memcpy(a->buf, vals, sizeof(mrb_value)*size);
+  memcpy(a->ptr, vals, sizeof(mrb_value)*size);
   a->len = size;
 
   return ary;
@@ -91,12 +91,12 @@ mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr)
 }
 
 static void
-ary_fill_with_nil(mrb_value *buf, int size)
+ary_fill_with_nil(mrb_value *ptr, int size)
 {
   mrb_value nil = mrb_nil_value();
 
   while((int)(size--)) {
-    *buf++ = nil;
+    *ptr++ = nil;
   }
 }
 
@@ -106,8 +106,8 @@ ary_modify(mrb_state *mrb, struct RArray *a)
   if (a->flags & MRB_ARY_SHARED) {
     struct mrb_shared_array *shared = a->aux.shared;
 
-    if (shared->refcnt == 1 && a->buf == shared->buf) {
-      a->buf = shared->buf;
+    if (shared->refcnt == 1 && a->ptr == shared->ptr) {
+      a->ptr = shared->ptr;
       a->aux.capa = a->len;
       mrb_free(mrb, shared);
     }
@@ -115,13 +115,13 @@ ary_modify(mrb_state *mrb, struct RArray *a)
       mrb_value *ptr, *p;
       int len;
 
-      p = a->buf;
+      p = a->ptr;
       len = a->len * sizeof(mrb_value);
       ptr = mrb_malloc(mrb, len);
       if (p) {
 	memcpy(ptr, p, len);
       }
-      a->buf = ptr;
+      a->ptr = ptr;
       a->aux.capa = len;
       mrb_ary_decref(mrb, shared);
     }
@@ -137,10 +137,10 @@ ary_make_shared(mrb_state *mrb, struct RArray *a)
 
     shared->refcnt = 1;
     if (a->aux.capa > a->len) {
-      a->buf = shared->buf = mrb_realloc(mrb, a->buf, sizeof(mrb_value)*a->len+1);
+      a->ptr = shared->ptr = mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*a->len+1);
     }
     else {
-      shared->buf = a->buf;
+      shared->ptr = a->ptr;
     }
     shared->len = a->len;
     a->aux.shared = shared;
@@ -174,7 +174,7 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, int len)
 
   if (capa > a->aux.capa) {
     a->aux.capa = capa;
-    a->buf = mrb_realloc(mrb, a->buf, sizeof(mrb_value)*capa);
+    a->ptr = mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
   }
 }
 
@@ -196,7 +196,7 @@ ary_shrink_capa(mrb_state *mrb, struct RArray *a)
 
   if (capa > a->len && capa < a->aux.capa) {
     a->aux.capa = capa;
-    a->buf = mrb_realloc(mrb, a->buf, sizeof(mrb_value)*capa);
+    a->ptr = mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
   }
 }
 
@@ -211,13 +211,13 @@ mrb_ary_s_create(mrb_state *mrb, mrb_value self)
 }
 
 static void
-ary_concat(mrb_state *mrb, struct RArray *a, mrb_value *buf, int blen)
+ary_concat(mrb_state *mrb, struct RArray *a, mrb_value *ptr, int blen)
 {
   int len = a->len + blen;
 
   ary_modify(mrb, a);
   if (a->aux.capa < len) ary_expand_capa(mrb, a, len);
-  memcpy(a->buf+a->len, buf, sizeof(mrb_value)*blen);
+  memcpy(a->ptr+a->len, ptr, sizeof(mrb_value)*blen);
   mrb_write_barrier(mrb, (struct RBasic*)a);
   a->len = len;
 }
@@ -227,17 +227,17 @@ mrb_ary_concat(mrb_state *mrb, mrb_value self, mrb_value other)
 {
   struct RArray *a2 = mrb_ary_ptr(other);
 
-  ary_concat(mrb, mrb_ary_ptr(self), a2->buf, a2->len);
+  ary_concat(mrb, mrb_ary_ptr(self), a2->ptr, a2->len);
 }
 
 mrb_value
 mrb_ary_concat_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *buf;
+  mrb_value *ptr;
   int blen;
 
-  mrb_get_args(mrb, "a", &buf, &blen);
-  ary_concat(mrb, mrb_ary_ptr(self), buf, blen);
+  mrb_get_args(mrb, "a", &ptr, &blen);
+  ary_concat(mrb, mrb_ary_ptr(self), ptr, blen);
   return self;
 }
 
@@ -247,14 +247,14 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
   struct RArray *a1 = mrb_ary_ptr(self);
   struct RArray *a2;
   mrb_value ary;
-  mrb_value *buf;
+  mrb_value *ptr;
   int blen;
 
-  mrb_get_args(mrb, "a", &buf, &blen);
+  mrb_get_args(mrb, "a", &ptr, &blen);
   ary = mrb_ary_new_capa(mrb, a1->len + blen);
   a2 = mrb_ary_ptr(ary);
-  memcpy(a2->buf, a1->buf, sizeof(mrb_value)*a1->len);
-  memcpy(a2->buf + a1->len, buf, sizeof(mrb_value)*blen);
+  memcpy(a2->ptr, a1->ptr, sizeof(mrb_value)*a1->len);
+  memcpy(a2->ptr + a1->len, ptr, sizeof(mrb_value)*blen);
   a2->len = a1->len + blen;
 
   return ary;
@@ -289,7 +289,7 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
   mrb_get_args(mrb, "o", &ary2);
   if (mrb_type(ary2) != MRB_TT_ARRAY) return mrb_nil_value();
   a1 = RARRAY(ary1); a2 = RARRAY(ary2);
-  if (a1->len == a2->len && a1->buf == a2->buf) return mrb_fixnum_value(0);
+  if (a1->len == a2->len && a1->ptr == a2->ptr) return mrb_fixnum_value(0);
   else {
     len = RARRAY_LEN(ary1);
     if (len > RARRAY_LEN(ary2)) {
@@ -310,7 +310,7 @@ ary_replace(mrb_state *mrb, struct RArray *a, mrb_value *argv, int len)
   ary_modify(mrb, a);
   if (a->aux.capa < len)
     ary_expand_capa(mrb, a, len);
-  memcpy(a->buf, argv, sizeof(mrb_value)*len);
+  memcpy(a->ptr, argv, sizeof(mrb_value)*len);
   mrb_write_barrier(mrb, (struct RBasic*)a);
   a->len = len;
 }
@@ -320,7 +320,7 @@ mrb_ary_replace(mrb_state *mrb, mrb_value self, mrb_value other)
 {
   struct RArray *a2 = mrb_ary_ptr(other);
 
-  ary_replace(mrb, mrb_ary_ptr(self), a2->buf, a2->len);
+  ary_replace(mrb, mrb_ary_ptr(self), a2->ptr, a2->len);
 }
 
 mrb_value
@@ -340,7 +340,7 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
   struct RArray *a1 = mrb_ary_ptr(self);
   struct RArray *a2;
   mrb_value ary;
-  mrb_value *buf;
+  mrb_value *ptr;
   mrb_int times;
 
   mrb_get_args(mrb, "i", &times);
@@ -351,10 +351,10 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
 
   ary = mrb_ary_new_capa(mrb, a1->len * times);
   a2 = mrb_ary_ptr(ary);
-  buf = a2->buf;
+  ptr = a2->ptr;
   while(times--) {
-    memcpy(buf, a1->buf, sizeof(mrb_value)*(a1->len));
-    buf += a1->len;
+    memcpy(ptr, a1->ptr, sizeof(mrb_value)*(a1->len));
+    ptr += a1->len;
     a2->len += a1->len;
   }
 
@@ -369,8 +369,8 @@ mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
   if (a->len > 1) {
     mrb_value *p1, *p2;
 
-    p1 = a->buf;
-    p2 = a->buf + a->len - 1;
+    p1 = a->ptr;
+    p2 = a->ptr + a->len - 1;
 
     while(p1 < p2) {
       mrb_value tmp = *p1;
@@ -392,9 +392,9 @@ mrb_ary_reverse(mrb_state *mrb, mrb_value self)
   if (a->len > 0) {
     mrb_value *p1, *p2, *e;
 
-    p1 = a->buf;
+    p1 = a->ptr;
     e  = p1 + a->len;
-    p2 = b->buf + a->len - 1;
+    p2 = b->ptr + a->len - 1;
     while(p1 < e) {
       *p2-- = *p1++;
     }
@@ -431,7 +431,7 @@ mrb_ary_push(mrb_state *mrb, mrb_value ary, mrb_value elem) /* mrb_ary_push */
   ary_modify(mrb, a);
   if (a->len == a->aux.capa)
     ary_expand_capa(mrb, a, a->len + 1);
-  a->buf[a->len++] = elem;
+  a->ptr[a->len++] = elem;
   mrb_write_barrier(mrb, (struct RBasic*)a);
 }
 
@@ -455,7 +455,7 @@ mrb_ary_pop(mrb_state *mrb, mrb_value ary)
   struct RArray *a = mrb_ary_ptr(ary);
 
   if (a->len == 0) return mrb_nil_value();
-  return a->buf[--a->len];
+  return a->ptr[--a->len];
 }
 
 #define ARY_SHIFT_SHARED_MIN 10
@@ -469,8 +469,8 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
   if (a->len == 0) return mrb_nil_value();
   if (a->flags & MRB_ARY_SHARED) {
   L_SHIFT:
-    val = a->buf[0];
-    a->buf++;
+    val = a->ptr[0];
+    a->ptr++;
     a->len--;
     return val;
   }
@@ -479,13 +479,13 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
     goto L_SHIFT;
   }
   else {
-    mrb_value *buf = a->buf;
+    mrb_value *ptr = a->ptr;
     int size = a->len;
 
-    val = *buf;
+    val = *ptr;
     while((int)(--size)) {
-      *buf = *(buf+1);
-      ++buf;
+      *ptr = *(ptr+1);
+      ++ptr;
     }
     --a->len;
   }
@@ -504,8 +504,8 @@ mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item)
   ary_modify(mrb, a);
   if (a->aux.capa < a->len + 1)
     ary_expand_capa(mrb, a, a->len + 1);
-  memmove(a->buf + 1, a->buf, sizeof(mrb_value)*a->len);
-  memcpy(a->buf, &item, sizeof(mrb_value));
+  memmove(a->ptr + 1, a->ptr, sizeof(mrb_value)*a->len);
+  memcpy(a->ptr, &item, sizeof(mrb_value));
   a->len += 1;
   mrb_write_barrier(mrb, (struct RBasic*)a);
 
@@ -524,8 +524,8 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   if (len == 0) return self;
   if (a->aux.capa < a->len + len)
     ary_expand_capa(mrb, a, a->len + len);
-  memmove(a->buf + len, a->buf, sizeof(mrb_value)*a->len);
-  memcpy(a->buf, vals, sizeof(mrb_value)*len);
+  memmove(a->ptr + len, a->ptr, sizeof(mrb_value)*a->len);
+  memcpy(a->ptr, vals, sizeof(mrb_value)*len);
   a->len += len;
   mrb_write_barrier(mrb, (struct RBasic*)a);
 
@@ -541,7 +541,7 @@ mrb_ary_ref(mrb_state *mrb, mrb_value ary, mrb_int n)
   if (n < 0) n += a->len;
   if (n < 0 || a->len <= (int)n) return mrb_nil_value();
 
-  return a->buf[n];
+  return a->ptr[n];
 }
 
 void
@@ -558,11 +558,11 @@ mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val) /* rb_ary_s
   if (a->len <= (int)n) {
     if (a->aux.capa <= (int)n)
       ary_expand_capa(mrb, a, n + 1);
-    ary_fill_with_nil(a->buf + a->len, n + 1 - a->len);
+    ary_fill_with_nil(a->ptr + a->len, n + 1 - a->len);
     a->len = n + 1;
   }
 
-  a->buf[n] = val;
+  a->ptr[n] = val;
   mrb_write_barrier(mrb, (struct RBasic*)a);
 }
 
@@ -600,14 +600,14 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     ary_expand_capa(mrb, a, size);
 
   if (head > a->len) {
-    ary_fill_with_nil(a->buf + a->len, (int)(head - a->len));
+    ary_fill_with_nil(a->ptr + a->len, (int)(head - a->len));
   }
   else if (head < a->len) {
-    memmove(a->buf + head + argc, a->buf + tail, sizeof(mrb_value)*(a->len - tail));
+    memmove(a->ptr + head + argc, a->ptr + tail, sizeof(mrb_value)*(a->len - tail));
   }
 
   for(i = 0; i < argc; i++) {
-    *(a->buf + head + i) = *(argv + i);
+    *(a->ptr + head + i) = *(argv + i);
   }
 
   a->len = size;
@@ -626,7 +626,7 @@ mrb_ary_decref(mrb_state *mrb, struct mrb_shared_array *shared)
 {
   shared->refcnt--;
   if (shared->refcnt == 0) {
-    mrb_free(mrb, shared->buf);
+    mrb_free(mrb, shared->ptr);
     mrb_free(mrb, shared);
   }
 }
@@ -638,7 +638,7 @@ ary_subseq(mrb_state *mrb, struct RArray *a, int beg, int len)
 
   ary_make_shared(mrb, a);
   b  = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
-  b->buf = a->buf + beg;
+  b->ptr = a->ptr + beg;
   b->len = len;
   b->aux.shared = a->aux.shared;
   b->aux.shared->refcnt++;
@@ -714,20 +714,20 @@ mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
   struct RArray *a = mrb_ary_ptr(self);
   mrb_int   index;
   mrb_value val;
-  mrb_value *buf;
+  mrb_value *ptr;
   int len;
 
   mrb_get_args(mrb, "i", &index);
   if (index < 0) index += a->len;
   if (index < 0 || a->len <= (int)index) return mrb_nil_value();
 
-  val = a->buf[index];
+  val = a->ptr[index];
 
-  buf = a->buf + index;
+  ptr = a->ptr + index;
   len = a->len - index;
   while((int)(--len)) {
-    *buf = *(buf+1);
-    ++buf;
+    *ptr = *(ptr+1);
+    ++ptr;
   }
   --a->len;
 
@@ -743,14 +743,14 @@ mrb_ary_first(mrb_state *mrb, mrb_value self)
   int size;
 
   if (mrb_get_args(mrb, "|i", &size) == 0) {
-    return (a->len > 0)? a->buf[0]: mrb_nil_value();
+    return (a->len > 0)? a->ptr[0]: mrb_nil_value();
   }
 
   if (size > a->len) size = a->len;
   if (a->flags & MRB_ARY_SHARED) {
     return ary_subseq(mrb, a, 0, size);
   }
-  return mrb_ary_new_from_values(mrb, size, a->buf);
+  return mrb_ary_new_from_values(mrb, size, a->ptr);
 }
 
 mrb_value
@@ -766,7 +766,7 @@ mrb_ary_last(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
   }
 
-  if (len == 0) return (a->len > 0)? a->buf[a->len - 1]: mrb_nil_value();
+  if (len == 0) return (a->len > 0)? a->ptr[a->len - 1]: mrb_nil_value();
 
   /* len == 1 */
   size = mrb_fixnum(*vals);
@@ -774,7 +774,7 @@ mrb_ary_last(mrb_state *mrb, mrb_value self)
   if ((a->flags & MRB_ARY_SHARED) || size > ARY_DEFAULT_LEN) {
     return ary_subseq(mrb, a, a->len - size, size);
   }
-  return mrb_ary_new_from_values(mrb, size, a->buf + a->len - size);
+  return mrb_ary_new_from_values(mrb, size, a->ptr + a->len - size);
 }
 
 mrb_value

@@ -13,7 +13,7 @@ extern "C" {
 
 struct mrb_shared_array {
   int refcnt;
-  mrb_value *buf;
+  mrb_value *ptr;
   int len;
 };
 
@@ -24,7 +24,7 @@ struct RArray {
     int capa;
     struct mrb_shared_array *shared;
   } aux;
-  mrb_value *buf;
+  mrb_value *ptr;
 };
 
 #define mrb_ary_ptr(v)    ((struct RArray*)((v).value.p))
@@ -32,7 +32,7 @@ struct RArray {
 #define RARRAY(v)  ((struct RArray*)((v).value.p))
 
 #define RARRAY_LEN(a) (RARRAY(a)->len)
-#define RARRAY_PTR(a) (RARRAY(a)->buf)
+#define RARRAY_PTR(a) (RARRAY(a)->ptr)
 #define MRB_ARY_SHARED      256
 
 void mrb_ary_decref(mrb_state*, struct mrb_shared_array*);

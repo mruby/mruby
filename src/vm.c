@@ -899,17 +899,17 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         if (stack[m1].tt == MRB_TT_ARRAY) {
           struct RArray *ary = mrb_ary_ptr(stack[m1]);
 
-          pp = ary->buf;
+          pp = ary->ptr;
           len = ary->len;
         }
         regs[a] = mrb_ary_new_capa(mrb, m1+len+m2);
         rest = mrb_ary_ptr(regs[a]);
-        memcpy(rest->buf, stack, sizeof(mrb_value)*m1);
+        memcpy(rest->ptr, stack, sizeof(mrb_value)*m1);
         if (len > 0) {
-          memcpy(rest->buf+m1, pp, sizeof(mrb_value)*len);
+          memcpy(rest->ptr+m1, pp, sizeof(mrb_value)*len);
         }
         if (m2 > 0) {
-          memcpy(rest->buf+m1+len, stack+m1+1, sizeof(mrb_value)*m2);
+          memcpy(rest->ptr+m1+len, stack+m1+1, sizeof(mrb_value)*m2);
         }
         rest->len = m1+len+m2;
       }
@@ -936,7 +936,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
       if (argc < 0) {
         struct RArray *ary = mrb_ary_ptr(regs[1]);
-        argv = ary->buf;
+        argv = ary->ptr;
         argc = ary->len;
         regs[len+2] = regs[1];  /* save argary in register */
       }
@@ -950,7 +950,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       }
       else if (len > 1 && argc == 1 && argv[0].tt == MRB_TT_ARRAY) {
         argc = mrb_ary_ptr(argv[0])->len;
-        argv = mrb_ary_ptr(argv[0])->buf;
+        argv = mrb_ary_ptr(argv[0])->ptr;
       }
       mrb->ci->argc = len;
       if (argc < len) {
@@ -1398,15 +1398,15 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         int i;
 
         if (len > pre + post) {
-          regs[a++] = mrb_ary_new_elts(mrb, len - pre - post, ary->buf+pre);
+          regs[a++] = mrb_ary_new_elts(mrb, len - pre - post, ary->ptr+pre);
           while (post--) {
-            regs[a++] = ary->buf[len-post-1];
+            regs[a++] = ary->ptr[len-post-1];
           }
         }
         else {
           regs[a++] = mrb_ary_new_capa(mrb, 0);
           for (i=0; i+pre<len; i++) {
-            regs[a+i] = ary->buf[pre+i];
+            regs[a+i] = ary->ptr[pre+i];
           }
           while (i < post) {
             SET_NIL_VALUE(regs[a+i]);

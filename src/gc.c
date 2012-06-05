@@ -367,7 +367,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
       size_t i, e;
 
       for (i=0,e=a->len; i<e; i++) {
-        mrb_gc_mark_value(mrb, a->buf[i]);
+        mrb_gc_mark_value(mrb, a->ptr[i]);
       }
     }
     break;
@@ -460,7 +460,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     if (obj->flags & MRB_ARY_SHARED)
       mrb_ary_decref(mrb, ((struct RArray*)obj)->aux.shared);
     else
-      mrb_free(mrb, ((struct RArray*)obj)->buf);
+      mrb_free(mrb, ((struct RArray*)obj)->ptr);
     break;
 
   case MRB_TT_HASH:

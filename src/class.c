@@ -389,7 +389,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     struct RArray *a = mrb_ary_ptr(mrb->stack[1]);
 
     argc = a->len;
-    sp = a->buf;
+    sp = a->ptr;
   }
   while ((c = *format++)) {
     switch (c) {
@@ -481,7 +481,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 	aa = to_ary(mrb, *sp);
 	a = mrb_ary_ptr(aa);
 	pb = va_arg(ap, mrb_value**);
-	*pb = a->buf;
+	*pb = a->ptr;
 	pl = va_arg(ap, int*);
 	*pl = a->len;
         i++; sp++;
