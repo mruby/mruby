@@ -76,6 +76,16 @@ assert('Math.log10 10**100') do
   check_float(Math.log10(10**100), 100.0)
 end
 
+assert('Math.sqrt') do
+  num = [0.0, 1.0, 2.0, 3.0, 4.0]
+  sqr = [0, 1, 4, 9, 16]
+  result = true
+  sqr.each_with_index do |v,i|
+    result &= check_float(Math.sqrt(v), num[i])
+  end
+  result
+end
+
 assert('Math.cbrt') do
   num = [-2.0, -1.0, 0.0, 1.0, 2.0]
   cub = [-8, -1, 0, 1, 8]

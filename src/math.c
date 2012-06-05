@@ -465,6 +465,25 @@ math_log10(mrb_state *mrb, mrb_value obj)
 
 /*
  *  call-seq:
+ *     Math.sqrt(numeric)    -> float
+ *
+ *  Returns the square root of <i>numeric</i>.
+ *
+ */
+static mrb_value
+math_sqrt(mrb_state *mrb, mrb_value obj)
+{
+  mrb_float x;
+  
+  mrb_get_args(mrb, "f", &x);
+  x = sqrt(x);
+  
+  return mrb_float_value(x);
+}
+
+
+/*
+ *  call-seq:
  *     Math.cbrt(numeric)    -> float
  *
  *  Returns the cube root of <i>numeric</i>.
@@ -646,6 +665,7 @@ mrb_init_math(mrb_state *mrb)
   mrb_define_module_function(mrb, mrb_math, "log", math_log, -1);
   mrb_define_module_function(mrb, mrb_math, "log2", math_log2, 1);
   mrb_define_module_function(mrb, mrb_math, "log10", math_log10, 1);
+  mrb_define_module_function(mrb, mrb_math, "sqrt", math_sqrt, 1);
   mrb_define_module_function(mrb, mrb_math, "cbrt", math_cbrt, 1);
 
   mrb_define_module_function(mrb, mrb_math, "frexp", math_frexp, 1);
