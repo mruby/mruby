@@ -48,6 +48,13 @@ mrb_value mrb_f_global_variables(mrb_state *mrb, mrb_value self);
 mrb_value mrb_gv_get(mrb_state *mrb, mrb_sym sym);
 void mrb_gv_set(mrb_state *mrb, mrb_sym sym, mrb_value val);
 
+/* GC functions */
+void mrb_gc_mark_gv(mrb_state*);
+void mrb_gc_free_gv(mrb_state*);
+void mrb_gc_mark_iv(mrb_state*, struct RObject*);
+size_t mrb_gc_mark_iv_size(mrb_state*, struct RObject*);
+void mrb_gc_free_iv(mrb_state*, struct RObject*);
+
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif

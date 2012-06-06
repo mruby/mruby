@@ -78,6 +78,10 @@ struct RClass* mrb_class_real(struct RClass* cl);
 
 void mrb_obj_call_init(mrb_state *mrb, mrb_value obj, int argc, mrb_value *argv);
 
+void mrb_gc_mark_mt(mrb_state*, struct RClass*);
+size_t mrb_gc_mark_mt_size(mrb_state*, struct RClass*);
+void mrb_gc_free_mt(mrb_state*, struct RClass*);
+
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif

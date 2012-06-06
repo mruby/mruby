@@ -18,6 +18,7 @@
 #include "mruby/proc.h"
 #include "mruby/data.h"
 #include "mruby/numeric.h"
+#include "mruby/variable.h"
 
 /*
   = Tri-color Incremental Garbage Collection
@@ -74,7 +75,29 @@
 #include "re.h"
 #endif
 
-#include "gc.h"
+struct free_obj {
+  MRUBY_OBJECT_HEADER;
+  struct RBasic *next;
+};
+
+typedef struct {
+  union {
+    struct free_obj free;
+    struct RBasic basic;
+    struct RObject object;
+    struct RClass klass;
+    struct RString string;
+    struct RArray array;
+    struct RHash hash;
+    struct RRange range;
+    struct RStruct structdata;
+    struct RProc procdata;
+#ifdef INCLUDE_REGEXP
+    struct RMatch match;
+    struct RRegexp regexp;
+#endif
+  } as;
+} RVALUE;
 
 #ifdef GC_PROFILE
 #include <sys/time.h>

@@ -42,6 +42,11 @@ struct kh_ht * mrb_hash_tbl(mrb_state *mrb, mrb_value hash);
 
 mrb_value mrb_obj_is_proc(mrb_value proc);
 
+/* GC functions */
+void mrb_gc_mark_ht(mrb_state*, struct RHash*);
+size_t mrb_gc_mark_ht_size(mrb_state*, struct RHash*);
+void mrb_gc_free_ht(mrb_state*, struct RHash*);
+
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif
