@@ -280,6 +280,8 @@ typedef struct mrb_state {
   struct RClass *eException_class;
   struct RClass *eStandardError_class;
   struct RClass *eRuntimeError_class;
+
+  void *ud; /* auxiliary data */
 } mrb_state;
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
