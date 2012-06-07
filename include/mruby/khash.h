@@ -129,6 +129,9 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 	  kh_value(h,k) = old_vals[i];                                  \
 	}                                                               \
       }                                                                 \
+      mrb_free(h->mrb, old_e_flags);                                    \
+      mrb_free(h->mrb, old_keys);                                       \
+      mrb_free(h->mrb, old_vals);                                       \
     }                                                                   \
   }                                                                     \
   static inline khint_t kh_put_##name(kh_##name##_t *h, khkey_t key)    \
