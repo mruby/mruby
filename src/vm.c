@@ -356,20 +356,20 @@ argnum_error(mrb_state *mrb, int num)
 
 #ifndef DIRECT_THREADED
 
-#define INIT_DISPACTH for (;;) { i = *pc; switch (GET_OPCODE(i)) {
+#define INIT_DISPATCH for (;;) { i = *pc; switch (GET_OPCODE(i)) {
 #define CASE(op) case op:
 #define NEXT mrb->arena_idx = ai; pc++; break
 #define JUMP break
-#define END_DISPACTH }}
+#define END_DISPATCH }}
 
 #else
 
-#define INIT_DISPACTH JUMP; return mrb_nil_value();
+#define INIT_DISPATCH JUMP; return mrb_nil_value();
 #define CASE(op) L_ ## op:
 #define NEXT mrb->arena_idx = ai; i=*++pc; goto *optable[GET_OPCODE(i)]
 #define JUMP i=*pc; goto *optable[GET_OPCODE(i)]
 
-#define END_DISPACTH
+#define END_DISPATCH
 
 #endif
 
@@ -432,7 +432,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   mrb->ci->nregs = irep->nregs + 2;
   regs = mrb->stack;
 
-  INIT_DISPACTH {
+  INIT_DISPATCH {
     CASE(OP_NOP) {
       /* do nothing */
       NEXT;
@@ -1594,5 +1594,5 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       goto L_RAISE;
     }
   }
-  END_DISPACTH;
+  END_DISPATCH;
 }
