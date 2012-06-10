@@ -16,6 +16,7 @@
 #include "node.h"
 #include <string.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 typedef mrb_ast_node node;
 typedef struct mrb_parser_state parser_state;
@@ -1988,103 +1989,103 @@ codedump(mrb_state *mrb, int n)
       printf("OP_NOP\n");
       break;
     case OP_MOVE:
-      printf("OP_MOVE\tR%d\tR%d\n", GETARG_A(c), GETARG_B(c));
+      printf("OP_MOVE\tR%"PRId32"\tR%"PRId32"\n", GETARG_A(c), GETARG_B(c));
       break;
     case OP_LOADL:
-      printf("OP_LOADL\tR%d\tL(%d)\n", GETARG_A(c), GETARG_Bx(c));
+      printf("OP_LOADL\tR%"PRId32"\tL(%"PRId32")\n", GETARG_A(c), GETARG_Bx(c));
       break;
     case OP_LOADI:
-      printf("OP_LOADI\tR%d\t%d\n", GETARG_A(c), GETARG_sBx(c));
+      printf("OP_LOADI\tR%"PRId32"\t%"PRId32"\n", GETARG_A(c), GETARG_sBx(c));
       break;
     case OP_LOADSYM:
-      printf("OP_LOADSYM\tR%d\t'%s'\n", GETARG_A(c),
+      printf("OP_LOADSYM\tR%"PRId32"\t'%s'\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_LOADNIL:
-      printf("OP_LOADNIL\tR%d\n", GETARG_A(c));
+      printf("OP_LOADNIL\tR%"PRId32"\n", GETARG_A(c));
       break;
     case OP_LOADSELF:
-      printf("OP_LOADSELF\tR%d\n", GETARG_A(c));
+      printf("OP_LOADSELF\tR%"PRId32"\n", GETARG_A(c));
       break;
     case OP_LOADT:
-      printf("OP_LOADT\tR%d\n", GETARG_A(c));
+      printf("OP_LOADT\tR%"PRId32"\n", GETARG_A(c));
       break;
     case OP_LOADF:
-      printf("OP_LOADF\tR%d\n", GETARG_A(c));
+      printf("OP_LOADF\tR%"PRId32"\n", GETARG_A(c));
       break;
     case OP_GETGLOBAL:
-      printf("OP_GETGLOBAL\tR%d\t'%s'\n", GETARG_A(c),
+      printf("OP_GETGLOBAL\tR%"PRId32"\t'%s'\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETGLOBAL:
-      printf("OP_SETGLOBAL\t'%s'\tR%d\n",
+      printf("OP_SETGLOBAL\t'%s'\tR%"PRId32"\n",
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
       break;
     case OP_GETCONST:
-      printf("OP_GETCONST\tR%d\t'%s'\n", GETARG_A(c),
+      printf("OP_GETCONST\tR%"PRId32"\t'%s'\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETCONST:
-      printf("OP_SETCONST\t'%s'\tR%d\n",
+      printf("OP_SETCONST\t'%s'\tR%"PRId32"\n",
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
       break;
     case OP_GETMCNST:
-      printf("OP_GETMCNST\tR%d\tR%d::%s\n", GETARG_A(c), GETARG_A(c),
+      printf("OP_GETMCNST\tR%"PRId32"\tR%"PRId32"::%s\n", GETARG_A(c), GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETMCNST:
-      printf("OP_SETMCNST\tR%d::%s\tR%d\n", GETARG_A(c)+1,
+      printf("OP_SETMCNST\tR%"PRId32"::%s\tR%"PRId32"\n", GETARG_A(c)+1,
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
       break;
     case OP_GETIV:
-      printf("OP_GETIV\tR%d\t%s\n", GETARG_A(c),
+      printf("OP_GETIV\tR%"PRId32"\t%s\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETIV:
-      printf("OP_SETIV\t%s\tR%d\n",
+      printf("OP_SETIV\t%s\tR%"PRId32"\n",
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
       break;
     case OP_GETUPVAR:
-      printf("OP_GETUPVAR\tR%d\t%d\t%d\n",
+      printf("OP_GETUPVAR\tR%"PRId32"\t%"PRId32"\t%"PRId32"\n",
              GETARG_A(c), GETARG_B(c), GETARG_C(c));
       break;
     case OP_SETUPVAR:
-      printf("OP_SETUPVAR\tR%d\t%d\t%d\n",
+      printf("OP_SETUPVAR\tR%"PRId32"\t%"PRId32"\t%"PRId32"\n",
              GETARG_A(c), GETARG_B(c), GETARG_C(c));
       break;
     case OP_GETCV:
-      printf("OP_GETCV\tR%d\t%s\n", GETARG_A(c),
+      printf("OP_GETCV\tR%"PRId32"\t%s\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETCV:
-      printf("OP_SETCV\t%s\tR%d\n",
+      printf("OP_SETCV\t%s\tR%"PRId32"\n",
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
       break;
     case OP_JMP:
-      printf("OP_JMP\t\t%03d\n", i+GETARG_sBx(c));
+      printf("OP_JMP\t\t%03"PRIu32"\n", i+GETARG_sBx(c));
       break;
     case OP_JMPIF:
-      printf("OP_JMPIF\tR%d\t%03d\n", GETARG_A(c), i+GETARG_sBx(c));
+      printf("OP_JMPIF\tR%"PRId32"\t%03"PRId32"\n", GETARG_A(c), i+GETARG_sBx(c));
       break;
     case OP_JMPNOT:
-      printf("OP_JMPNOT\tR%d\t%03d\n", GETARG_A(c), i+GETARG_sBx(c));
+      printf("OP_JMPNOT\tR%"PRId32"\t%03"PRId32"\n", GETARG_A(c), i+GETARG_sBx(c));
       break;
     case OP_SEND:
-      printf("OP_SEND\tR%d\t'%s'\t%d\n", GETARG_A(c),
+      printf("OP_SEND\tR%"PRId32"\t'%s'\t%"PRId32"\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_SUPER:
-      printf("OP_SUPER\tR%d\t%d\n", GETARG_A(c),
+      printf("OP_SUPER\tR%"PRId32"\t%"PRId32"\n", GETARG_A(c),
              GETARG_C(c));
       break;
     case OP_ARGARY:
-      printf("OP_ARGARY\tR%d\t%d:%d:%d:%d\n", GETARG_A(c),
+      printf("OP_ARGARY\tR%"PRId32"\t%"PRId32":%"PRId32":%"PRId32":%"PRId32"\n", GETARG_A(c),
              (GETARG_Bx(c)>>10)&0x3f,
              (GETARG_Bx(c)>>9)&0x1,
              (GETARG_Bx(c)>>4)&0x1f,
@@ -2092,7 +2093,7 @@ codedump(mrb_state *mrb, int n)
       break;
 
     case OP_ENTER:
-      printf("OP_ENTER\t%d:%d:%d:%d:%d:%d:%d\n",
+      printf("OP_ENTER\t%"PRId32":%"PRId32":%"PRId32":%"PRId32":%"PRId32":%"PRId32":%"PRId32"\n",
              (GETARG_Ax(c)>>18)&0x1f,
              (GETARG_Ax(c)>>13)&0x1f,
              (GETARG_Ax(c)>>12)&0x1,
@@ -2102,7 +2103,7 @@ codedump(mrb_state *mrb, int n)
              GETARG_Ax(c) & 0x1);
       break;
     case OP_RETURN:
-      printf("OP_RETURN\tR%d", GETARG_A(c));
+      printf("OP_RETURN\tR%"PRId32"", GETARG_A(c));
       switch (GETARG_B(c)) {
       case OP_R_NORMAL:
         printf("\n"); break;
@@ -2116,7 +2117,7 @@ codedump(mrb_state *mrb, int n)
       }
       break;
     case OP_BLKPUSH:
-      printf("OP_BLKPUSH\tR%d\t%d:%d:%d:%d\n", GETARG_A(c),
+      printf("OP_BLKPUSH\tR%"PRId32"\t%"PRId32":%"PRId32":%"PRId32":%"PRId32"\n", GETARG_A(c),
              (GETARG_Bx(c)>>10)&0x3f,
              (GETARG_Bx(c)>>9)&0x1,
              (GETARG_Bx(c)>>4)&0x1f,
@@ -2124,43 +2125,43 @@ codedump(mrb_state *mrb, int n)
       break;
 
     case OP_LAMBDA:
-      printf("OP_LAMBDA\tR%d\tI(%d)\t%d\n", GETARG_A(c), n+GETARG_b(c), GETARG_c(c));
+      printf("OP_LAMBDA\tR%"PRId32"\tI(%"PRId32")\t%"PRId32"\n", GETARG_A(c), n+GETARG_b(c), GETARG_c(c));
       break;
     case OP_RANGE:
-      printf("OP_RANGE\tR%d\tR%d\t%d\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      printf("OP_RANGE\tR%"PRId32"\tR%"PRId32"\t%"PRId32"\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
       break;
     case OP_METHOD:
-      printf("OP_METHOD\tR%d\t'%s'\n", GETARG_A(c),
+      printf("OP_METHOD\tR%"PRId32"\t'%s'\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]));
       break;
 
     case OP_ADD:
-      printf("OP_ADD\tR%d\t'%s'\t%d\n", GETARG_A(c),
+      printf("OP_ADD\tR%"PRId32"\t'%s'\t%"PRId32"\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_SUB:
-      printf("OP_SUB\tR%d\t'%s'\t%d\n", GETARG_A(c),
+      printf("OP_SUB\tR%"PRId32"\t'%s'\t%"PRId32"\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_LT:
-      printf("OP_LT\tR%d\t'%s'\t%d\n", GETARG_A(c),
+      printf("OP_LT\tR%"PRId32"\t'%s'\t%"PRId32"\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_LE:
-      printf("OP_LE\tR%d\t'%s'\t%d\n", GETARG_A(c),
+      printf("OP_LE\tR%"PRId32"\t'%s'\t%"PRId32"\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_GT:
-      printf("OP_GT\tR%d\t'%s'\t%d\n", GETARG_A(c),
+      printf("OP_GT\tR%"PRId32"\t'%s'\t%"PRId32"\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_GE:
-      printf("OP_GE\tR%d\t'%s'\t%d\n", GETARG_A(c),
+      printf("OP_GE\tR%"PRId32"\t'%s'\t%"PRId32"\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
@@ -2170,74 +2171,74 @@ codedump(mrb_state *mrb, int n)
       break;
 
     case OP_ARRAY:
-      printf("OP_ARRAY\tR%d\tR%d\t%d\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      printf("OP_ARRAY\tR%"PRId32"\tR%"PRId32"\t%"PRId32"\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
       break;
     case OP_ARYCAT:
-      printf("OP_ARYCAT\tR%d\tR%d\n", GETARG_A(c), GETARG_B(c));
+      printf("OP_ARYCAT\tR%"PRId32"\tR%"PRId32"\n", GETARG_A(c), GETARG_B(c));
       break;
     case OP_ARYPUSH:
-      printf("OP_ARYPUSH\tR%d\tR%d\n", GETARG_A(c), GETARG_B(c));
+      printf("OP_ARYPUSH\tR%"PRId32"\tR%"PRId32"\n", GETARG_A(c), GETARG_B(c));
       break;
     case OP_AREF:
-      printf("OP_AREF\tR%d\tR%d\t%d\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      printf("OP_AREF\tR%"PRId32"\tR%"PRId32"\t%"PRId32"\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
       break;
     case OP_APOST:
-      printf("OP_APOST\tR%d\t%d\t%d\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      printf("OP_APOST\tR%"PRId32"\t%"PRId32"\t%"PRId32"\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
       break;
     case OP_STRING:
-      printf("OP_STRING\tR%d\t'%s'\n", GETARG_A(c), RSTRING_PTR(irep->pool[GETARG_Bx(c)]));
+      printf("OP_STRING\tR%"PRId32"\t'%s'\n", GETARG_A(c), RSTRING_PTR(irep->pool[GETARG_Bx(c)]));
       break;
     case OP_STRCAT:
-      printf("OP_STRCAT\tR%d\tR%d\n", GETARG_A(c), GETARG_B(c));
+      printf("OP_STRCAT\tR%"PRId32"\tR%"PRId32"\n", GETARG_A(c), GETARG_B(c));
       break;
     case OP_HASH:
-      printf("OP_HASH\tR%d\tR%d\t%d\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      printf("OP_HASH\tR%"PRId32"\tR%"PRId32"\t%"PRId32"\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
       break;
 
     case OP_OCLASS:
-      printf("OP_OCLASS\tR%d\n", GETARG_A(c));
+      printf("OP_OCLASS\tR%"PRId32"\n", GETARG_A(c));
       break;
     case OP_CLASS:
-      printf("OP_CLASS\tR%d\t'%s'\n", GETARG_A(c),
+      printf("OP_CLASS\tR%"PRId32"\t'%s'\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]));
       break;
     case OP_MODULE:
-      printf("OP_MODULE\tR%d\t'%s'\n", GETARG_A(c),
+      printf("OP_MODULE\tR%"PRId32"\t'%s'\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]));
       break;
     case OP_EXEC:
-      printf("OP_EXEC\tR%d\tI(%d)\n", GETARG_A(c), n+GETARG_Bx(c));
+      printf("OP_EXEC\tR%"PRId32"\tI(%"PRId32")\n", GETARG_A(c), n+GETARG_Bx(c));
       break;
     case OP_SCLASS:
-      printf("OP_SCLASS\tR%d\tR%d\n", GETARG_A(c), GETARG_B(c));
+      printf("OP_SCLASS\tR%"PRId32"\tR%"PRId32"\n", GETARG_A(c), GETARG_B(c));
       break;
     case OP_TCLASS:
-      printf("OP_TCLASS\tR%d\n", GETARG_A(c));
+      printf("OP_TCLASS\tR%"PRId32"\n", GETARG_A(c));
       break;
     case OP_ERR:
-      printf("OP_ERR\t:L(%d)\n", GETARG_Bx(c));
+      printf("OP_ERR\t:L(%"PRId32")\n", GETARG_Bx(c));
       break;
     case OP_EPUSH:
-      printf("OP_EPUSH\t:I(%d)\n", n+GETARG_Bx(c));
+      printf("OP_EPUSH\t:I(%"PRId32")\n", n+GETARG_Bx(c));
       break;
     case OP_ONERR:
-      printf("OP_ONERR\t%03d\n", i+GETARG_sBx(c));
+      printf("OP_ONERR\t%03"PRId32"\n", i+GETARG_sBx(c));
       break;
     case OP_RESCUE:
-      printf("OP_RESCUE\tR%d\n", GETARG_A(c));
+      printf("OP_RESCUE\tR%"PRId32"\n", GETARG_A(c));
       break;
     case OP_RAISE:
-      printf("OP_RAISE\tR%d\n", GETARG_A(c));
+      printf("OP_RAISE\tR%"PRId32"\n", GETARG_A(c));
       break;
     case OP_POPERR:
-      printf("OP_POPERR\t%d\n", GETARG_A(c));
+      printf("OP_POPERR\t%"PRId32"\n", GETARG_A(c));
       break;
     case OP_EPOP:
-      printf("OP_EPOP\t%d\n", GETARG_A(c));
+      printf("OP_EPOP\t%"PRId32"\n", GETARG_A(c));
       break;
 
     default:
-      printf("OP_unknown %d\t%d\t%d\t%d\n", GET_OPCODE(c),
+      printf("OP_unknown %"PRId32"\t%"PRId32"\t%"PRId32"\t%"PRId32"\n", GET_OPCODE(c),
              GETARG_A(c), GETARG_B(c), GETARG_C(c));
       break;
     }
@@ -2306,7 +2307,7 @@ end\n\
 p(fib(30), \"\\n\")\n\
 ");
 #endif
-  printf("ret: %d\n", n);
+  printf("ret: %"PRId32"\n", n);
 #ifdef CODEGEN_DUMP
   codedump_all(mrb, n);
 #endif

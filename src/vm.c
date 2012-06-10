@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <setjmp.h>
+#include <inttypes.h>
 
 #define STACK_INIT_SIZE 128
 #define CALLINFO_INIT_SIZE 32
@@ -1571,7 +1572,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_DEBUG) {
       /* A      debug print R(A),R(B),R(C) */
-      printf("OP_DEBUG %d %d %d\n", GETARG_A(i), GETARG_B(i), GETARG_C(i));
+      printf("OP_DEBUG %"PRId32" %"PRId32" %"PRId32"\n", GETARG_A(i), GETARG_B(i), GETARG_C(i));
       NEXT;
     }
 

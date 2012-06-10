@@ -6,6 +6,7 @@
 
 #include "mruby/cdump.h"
 
+#include <inttypes.h>
 #include <string.h>
 
 #include "mruby/irep.h"
@@ -30,7 +31,7 @@ make_cdump_isec(mrb_state *mrb, int irep_no, FILE *f)
   if (irep->ilen > 0) {
     SOURCE_CODE  ("static mrb_code iseq_%d[] = {", irep_no);
     for (i=0; i<irep->ilen; i++)
-      SOURCE_CODE("  0x%08x,"                    , irep->iseq[i]);
+      SOURCE_CODE("  0x%08"PRIx32","                    , irep->iseq[i]);
     SOURCE_CODE0 ("};");
     SOURCE_CODE0 ("");
   }

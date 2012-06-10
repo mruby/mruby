@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -169,7 +170,7 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
     khint_t i;                                                          \
     printf("idx:e_flag:d_flag\n");                                      \
     for( i=0 ; i<h->n_buckets/8 ; i++ ){                                \
-      printf("%4d:%02X:%02X\n", i, h->e_flags[i], h->d_flags[i]);       \
+      printf("%4"PRIu32":%02X:%02X\n", i, h->e_flags[i], h->d_flags[i]);       \
     }                                                                   \
   }                                                                     \
 
