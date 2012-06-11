@@ -5050,15 +5050,19 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_SCOPE:
     printf("NODE_SCOPE:\n");
-    dump_prefix(offset+1);
-    printf("local variables:\n");
     {
       node *n2 = tree->car;
 
-      while (n2) {
-	dump_prefix(offset+2);
-	printf("%s\n", mrb_sym2name(mrb, (mrb_sym)n2->car));
-	n2 = n2->cdr;
+      if (n2) {
+	dump_prefix(offset+1);
+	printf("local variables:\n");
+
+	while (n2) {
+	  dump_prefix(offset+2);
+	  printf("%s ", mrb_sym2name(mrb, (mrb_sym)n2->car));
+	  n2 = n2->cdr;
+	}
+	printf("\n");
       }
     }
     tree = tree->cdr;
