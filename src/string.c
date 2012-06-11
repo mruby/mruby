@@ -2945,11 +2945,11 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
 
     p = RSTRING_PTR(str); pend = RSTRING_END(str);
     prev = p;
-    while (p < pend) {
+    for (;p < pend; p++) {
       unsigned int c, cc;
       int n;
 
-      c = *p++;
+      c = *p;
       n = 1;
       if (c == '"'|| c == '\\' || (c == '#' && IS_EVSTR(p, pend))) {
           buf[0] = '\\'; buf[1] = c;
@@ -2988,9 +2988,6 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
           continue;
       }
     }
-#ifdef INCLUDE_ENCODING
-    if (p > prev) mrb_str_buf_cat(mrb, result, prev, p - prev);
-#endif
     mrb_str_buf_cat(mrb, result, "\"", strlen("\""));
 
     return result;
