@@ -256,6 +256,9 @@ assert('String#slice', '15.2.10.5.34') do
   d1 = 'abc'.slice(0, 0)
   e1 = 'abc'.slice(1, 2)
 
+  # slice of shared string
+  e11 = e1.slice(0)
+
   # args is RegExp
   # TODO SEGFAULT ATM
 
@@ -265,7 +268,7 @@ assert('String#slice', '15.2.10.5.34') do
 
   a == 'a' and b == 'c' and c == nil and d == nil and
     a1 == nil and b1 == nil and c1 == nil and d1 == '' and
-    e1 == 'bc' and
+    e1 == 'bc' and e11 == 'b' and
     a3 == 'bc' and b3 == nil
 end
 

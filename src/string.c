@@ -1199,14 +1199,14 @@ mrb_str_eql(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len)
 {
-  struct RString *s;
+  struct RString *orig, *s;
   struct mrb_shared_string *shared;
 
-  s = mrb_str_ptr(str);
-  str_make_shared(mrb, s);
-  shared = s->aux.shared;
+  orig = mrb_str_ptr(str);
+  str_make_shared(mrb, orig);
+  shared = orig->aux.shared;
   s = mrb_obj_alloc_string(mrb);
-  s->ptr = shared->ptr + beg;
+  s->ptr = orig->ptr + beg;
   s->len = len;
   s->aux.shared = shared;
   s->flags |= MRB_STR_SHARED;
