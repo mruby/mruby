@@ -1280,7 +1280,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       int n = 0;
 
-      push();
+      push();			/* room for receiver */
       if (tree) {
         node *args = tree->car;
         while (args) {
@@ -1307,14 +1307,19 @@ codegen(codegen_scope *s, node *tree, int val)
       codegen_scope *s2 = s;
       int lv = 0, ainfo = 0;
 
+      push(); 			/* room for receiver */
       while (s2->ainfo < 0) {
         lv++;
         s2 = s2->prev;
         if (!s2) break;
       }
       if (s2) ainfo = s2->ainfo;
-      push();
       genop(s, MKOP_ABx(OP_ARGARY, cursp(), (ainfo<<4)|(lv & 0xf)));
+      if (tree && tree->cdr) {
+	push();
+        codegen(s, tree->cdr, VAL);
+        pop_n(2);
+      }
       pop();
       genop(s, MKOP_ABC(OP_SUPER, cursp(), 0, CALL_MAXARGS));
       if (val) push();

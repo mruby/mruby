@@ -754,11 +754,21 @@ args_with_block(parser_state *p, node *a, node *b)
 static void
 call_with_block(parser_state *p, node *a, node *b)
 {
-  node *n = a->cdr->cdr->cdr;
+  node *n;
 
-  if (!n->car) n->car = cons(0, b);
+  if (a->car == (node*)NODE_SUPER ||
+      a->car == (node*)NODE_ZSUPER) {
+    if (!a->cdr) a->cdr = cons(0, b);
+    else {
+      args_with_block(p, a->cdr, b);
+    }
+  }
   else {
-    args_with_block(p, n->car, b);
+    n = a->cdr->cdr->cdr;
+    if (!n->car) n->car = cons(0, b);
+    else {
+      args_with_block(p, n->car, b);
+    }
   }
 }
 
