@@ -886,6 +886,13 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       if (lv == 0) stack = regs + 1;
       else {
         struct REnv *e = uvenv(mrb, lv-1);
+	if (!e) {
+	  mrb_value exc;
+	  const char *m = "super called outside of method";
+	  exc = mrb_exc_new(mrb, E_NOMETHOD_ERROR, m, strlen(m));
+	  mrb->exc = (struct RObject*)mrb_object(exc);
+	  goto L_RAISE;
+	}
         stack = e->stack + 1;
       }
       if (r == 0) {
@@ -1140,6 +1147,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       if (lv == 0) stack = regs + 1;
       else {
         struct REnv *e = uvenv(mrb, lv-1);
+	if (!e) {
+	  localjump_error(mrb, "yield");
+	  goto L_RAISE;
+	}
         stack = e->stack + 1;
       }
       regs[a] = stack[m1+r+m2];
