@@ -269,12 +269,6 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   return mrb_funcall_with_block(mrb,self, mrb_string_value_ptr(mrb, name), argc, argv, block);
 }
 
-static mrb_value
-mrb_f_block_given_p(void)
-{
-  return mrb_false_value(); /* dummy */
-}
-
 /* 15.3.1.2.2  */
 /* 15.3.1.2.5  */
 /* 15.3.1.3.6  */
@@ -302,7 +296,18 @@ mrb_f_block_given_p(void)
 static mrb_value
 mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
 {
-  return mrb_f_block_given_p();
+  mrb_callinfo *ci = mrb->ci;
+  mrb_value *bp, *p;
+
+  p = mrb->stbase + ci->stackidx;
+  bp = mrb->stbase + ci->stackidx + 1;
+  ci--;
+  if (ci <= mrb->cibase) return mrb_false_value();
+  if (ci->argc > 0) {
+    bp += ci->argc;
+  }
+  if (mrb_nil_p(*bp)) return mrb_false_value();
+  return mrb_true_value();
 }
 
 /* 15.3.1.3.7  */

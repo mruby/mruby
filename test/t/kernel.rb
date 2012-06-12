@@ -6,7 +6,14 @@ assert('Kernel', '15.3.1') do
 end
 
 assert('Kernel.block_given?', '15.3.1.2.2') do
-  Kernel.block_given? == false
+  def bg_try(&b)
+    if block_given?
+      yield
+    else
+      "no block"
+    end
+  end
+  (Kernel.block_given? == false) && (bg_try == "no block") && ((bg_try { "block" }) == "block") && ((bg_try do "block" end) == "block")
 end
 
 assert('Kernel.global_variables', '15.3.1.2.4') do
