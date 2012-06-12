@@ -2943,18 +2943,15 @@ mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2)
 mrb_value
 mrb_str_inspect(mrb_state *mrb, mrb_value str)
 {
-    const char *p, *pend, *prev;
+    const char *p, *pend;
     char buf[CHAR_ESC_LEN + 1];
     mrb_value result = mrb_str_new_cstr(mrb, "\"");
 
     p = RSTRING_PTR(str); pend = RSTRING_END(str);
-    prev = p;
     for (;p < pend; p++) {
       unsigned int c, cc;
-      int n;
 
       c = *p;
-      n = 1;
       if (c == '"'|| c == '\\' || (c == '#' && IS_EVSTR(p, pend))) {
           buf[0] = '\\'; buf[1] = c;
           mrb_str_buf_cat(mrb, result, buf, 2);
@@ -2977,18 +2974,14 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
         default: cc = 0; break;
       }
       if (cc) {
-          if (p - n > prev) mrb_str_buf_cat(mrb, result, prev, p - n - prev);
           buf[0] = '\\';
           buf[1] = (char)cc;
           mrb_str_buf_cat(mrb, result, buf, 2);
-          prev = p;
           continue;
       }
       else {
-          if (p - n > prev) mrb_str_buf_cat(mrb, result, prev, p - n - prev);
           sprintf(buf, "\\%03o", c & 0377);
           mrb_str_buf_cat(mrb, result, buf, strlen(buf));
-          prev = p;
           continue;
       }
     }
