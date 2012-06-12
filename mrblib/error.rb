@@ -12,3 +12,10 @@ class Exception
     self.new(*args, &block)
   end
 end
+
+# ISO 15.2.37
+class ScriptError < Exception
+end
+
+class NotImplementedError < ScriptError
+end

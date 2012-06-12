@@ -24,6 +24,11 @@ module Kernel
     end
   end
 
+  # 15.3.1.2.3
+  def self.eval(s)
+    raise NotImplementedError.new("eval not implemented")
+  end
+
   ##
   # Alias for +send+.
   #
@@ -32,11 +37,10 @@ module Kernel
     ### *** TODO *** ###
   #end
 
-  # 15.3.1.3.18
-  #def instance_eval(string=nil, &block)
-  #  ### *** TODO *** ###
-  #  raise "Not implemented yet"
-  #end
+  # 15.3.1.3.12
+  def eval(s)
+    Kernel.eval(s)
+  end
 
   ##
   # Alias for +Kernel.lambda+.
