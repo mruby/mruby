@@ -396,8 +396,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     case '|': case '*': case '&':
       break;
     default:
-      if (argc <= i) {
-	if (opt) continue;
+      if (argc <= i && !opt) {
 	mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
       }
     }
@@ -408,8 +407,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-        *p =  *sp;
-        i++; sp++;
+	if (i < argc) {
+	  *p = *sp++;
+	  i++;
+	}
       }
       break;
     case 'S':
@@ -417,8 +418,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-	*p = to_str(mrb, *sp);
-        i++; sp++;
+	if (i < argc) {
+	  *p = to_str(mrb, *sp++);
+	  i++;
+	}
       }
       break;
     case 'A':
@@ -426,8 +429,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-	*p = to_ary(mrb, *sp);
-        i++; sp++;
+	if (i < argc) {
+	  *p = to_ary(mrb, *sp++);
+	  i++;
+	}
       }
       break;
     case 'H':
@@ -435,8 +440,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-	*p = to_hash(mrb, *sp);
-        i++; sp++;
+	if (i < argc) {
+	  *p = to_hash(mrb, *sp++);
+	  i++;
+	}
       }
       break;
     case 's':
@@ -446,13 +453,15 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         char **ps = 0;
         int *pl = 0;
 
-	ss = to_str(mrb, *sp);
-	s = mrb_str_ptr(ss);
 	ps = va_arg(ap, char**);
-	*ps = s->ptr;
 	pl = va_arg(ap, int*);
-	*pl = s->len;
-        i++; sp++;
+	if (i < argc) {
+	  ss = to_str(mrb, *sp++);
+	  s = mrb_str_ptr(ss);
+	  *ps = s->ptr;
+	  *pl = s->len;
+	  i++;
+	}
       }
       break;
     case 'z':
@@ -461,14 +470,16 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         struct RString *s;
         char **ps;
 
-	ss = to_str(mrb, *sp);
-	s = mrb_str_ptr(ss);
-	if (strlen(s->ptr) != s->len) {
-	  mrb_raise(mrb, E_ARGUMENT_ERROR, "String contains NUL");
-	}
 	ps = va_arg(ap, char**);
-	*ps = s->ptr;
-        i++; sp++;
+	if (i < argc) {
+	  ss = to_str(mrb, *sp++);
+	  s = mrb_str_ptr(ss);
+	  if (strlen(s->ptr) != s->len) {
+	    mrb_raise(mrb, E_ARGUMENT_ERROR, "String contains NUL");
+	  }
+	  *ps = s->ptr;
+	  i++;
+	}
       }
       break;
     case 'a':
@@ -478,13 +489,15 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value **pb;
         int *pl;
 
-	aa = to_ary(mrb, *sp);
-	a = mrb_ary_ptr(aa);
 	pb = va_arg(ap, mrb_value**);
-	*pb = a->ptr;
 	pl = va_arg(ap, int*);
-	*pl = a->len;
-        i++; sp++;
+	if (i < argc) {
+	  aa = to_ary(mrb, *sp++);
+	  a = mrb_ary_ptr(aa);
+	  *pb = a->ptr;
+	  *pl = a->len;
+	  i++;
+	}
       }
       break;
     case 'f':
@@ -492,26 +505,29 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_float *p;
 
         p = va_arg(ap, mrb_float*);
-        switch (sp->tt) {
-        case MRB_TT_FLOAT:
-          *p = mrb_float(*sp);
-          break;
-        case MRB_TT_FIXNUM:
-          *p = (mrb_float)mrb_fixnum(*sp);
-          break;
-        case MRB_TT_FALSE:
-          *p = 0.0;
-          break;
-        default:
-	  {
-	    mrb_value tmp;
+	if (i < argc) {
+	  switch (sp->tt) {
+	  case MRB_TT_FLOAT:
+	    *p = mrb_float(*sp);
+	    break;
+	  case MRB_TT_FIXNUM:
+	    *p = (mrb_float)mrb_fixnum(*sp);
+	    break;
+	  case MRB_TT_FALSE:
+	    *p = 0.0;
+	    break;
+	  default:
+	    {
+	      mrb_value tmp;
 
-	    tmp = mrb_convert_type(mrb, *sp, MRB_TT_FLOAT, "Float", "to_f");
-	    *p = mrb_float(tmp);
+	      tmp = mrb_convert_type(mrb, *sp, MRB_TT_FLOAT, "Float", "to_f");
+	      *p = mrb_float(tmp);
+	    }
+	    break;
 	  }
-          break;
-        }
-        i++; sp++;
+	  sp++;
+	  i++;
+	}
       }
       break;
     case 'i':
@@ -519,26 +535,29 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_int *p;
 
         p = va_arg(ap, mrb_int*);
-        switch (sp->tt) {
-        case MRB_TT_FIXNUM:
-          *p = mrb_fixnum(*sp);
-          break;
-        case MRB_TT_FLOAT:
-          *p = (mrb_int)mrb_float(*sp);
-          break;
-        case MRB_TT_FALSE:
-          *p = 0;
-          break;
-        default:
-	  {
-	    mrb_value tmp;
+	if (i < argc) {
+	  switch (sp->tt) {
+	  case MRB_TT_FIXNUM:
+	    *p = mrb_fixnum(*sp);
+	    break;
+	  case MRB_TT_FLOAT:
+	    *p = (mrb_int)mrb_float(*sp);
+	    break;
+	  case MRB_TT_FALSE:
+	    *p = 0;
+	    break;
+	  default:
+	    {
+	      mrb_value tmp;
 
-	    tmp = mrb_convert_type(mrb, *sp, MRB_TT_FIXNUM, "Integer", "to_int");
-	    *p = mrb_fixnum(tmp);
+	      tmp = mrb_convert_type(mrb, *sp, MRB_TT_FIXNUM, "Integer", "to_int");
+	      *p = mrb_fixnum(tmp);
+	    }
+	    break;
 	  }
-          break;
-        }
-        i++; sp++;
+	  sp++;
+	  i++;
+	}
       }
       break;
 
