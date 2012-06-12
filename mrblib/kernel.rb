@@ -33,10 +33,10 @@ module Kernel
   #end
 
   # 15.3.1.3.18
-  def instance_eval(string=nil, &block)
-    ### *** TODO *** ###
-    raise "Not implemented yet"
-  end
+  #def instance_eval(string=nil, &block)
+  #  ### *** TODO *** ###
+  #  raise "Not implemented yet"
+  #end
 
   ##
   # Alias for +Kernel.lambda+.
