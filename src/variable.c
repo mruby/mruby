@@ -235,6 +235,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
   khiter_t k;
   mrb_sym cm = mrb_intern(mrb, "const_missing");
 
+ L_RETRY:
   while (c) {
     if (c->iv) {
       h = c->iv;
@@ -250,6 +251,10 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
     c = c->super;
   }
 
+  if (base->tt == MRB_TT_MODULE) {
+    c = base = mrb->object_class;
+    goto L_RETRY;
+  }
   mrb_raise(mrb, E_NAME_ERROR, "uninitialized constant %s",
             mrb_sym2name(mrb, sym));
   /* not reached */
