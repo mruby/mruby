@@ -5,6 +5,9 @@
 */
 
 #include "mruby.h"
+
+#ifdef INCLUDE_KERNEL_SPRINTF
+
 #include <stdio.h>
 #include <string.h>
 #include "encoding.h"
@@ -1078,3 +1081,5 @@ fmt_setup(char *buf, size_t size, int c, int flags, int width, int prec)
     *buf++ = c;
     *buf = '\0';
 }
+
+#endif //INCLUDE_KERNEL_SPRINTF
