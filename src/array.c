@@ -501,12 +501,20 @@ mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item)
 {
   struct RArray *a = mrb_ary_ptr(self);
 
-  ary_modify(mrb, a);
-  if (a->aux.capa < a->len + 1)
-    ary_expand_capa(mrb, a, a->len + 1);
-  memmove(a->ptr + 1, a->ptr, sizeof(mrb_value)*a->len);
-  memcpy(a->ptr, &item, sizeof(mrb_value));
-  a->len += 1;
+  if ((a->flags & MRB_ARY_SHARED)
+      && a->aux.shared->refcnt == 1 /* shared only referenced from this array */
+      && a->ptr - a->aux.shared->ptr >= 1) /* there's room for unshifted item */ {
+    a->ptr--;
+    a->ptr[0] = item;
+  }
+  else {
+    ary_modify(mrb, a);
+    if (a->aux.capa < a->len + 1)
+      ary_expand_capa(mrb, a, a->len + 1);
+    memmove(a->ptr + 1, a->ptr, sizeof(mrb_value)*a->len);
+    a->ptr[0] = item;
+  }
+  a->len++;
   mrb_write_barrier(mrb, (struct RBasic*)a);
 
   return self;
@@ -519,12 +527,19 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   mrb_value *vals;
   int len;
 
-  ary_modify(mrb, a);
   mrb_get_args(mrb, "*", &vals, &len);
-  if (len == 0) return self;
-  if (a->aux.capa < a->len + len)
-    ary_expand_capa(mrb, a, a->len + len);
-  memmove(a->ptr + len, a->ptr, sizeof(mrb_value)*a->len);
+  if ((a->flags & MRB_ARY_SHARED)
+      && a->aux.shared->refcnt == 1 /* shared only referenced from this array */
+      && a->ptr - a->aux.shared->ptr >= len) /* there's room for unshifted item */ {
+    a->ptr -= len;
+  }
+  else {
+    ary_modify(mrb, a);
+    if (len == 0) return self;
+    if (a->aux.capa < a->len + len)
+      ary_expand_capa(mrb, a, a->len + len);
+    memmove(a->ptr + len, a->ptr, sizeof(mrb_value)*a->len);
+  }
   memcpy(a->ptr, vals, sizeof(mrb_value)*len);
   a->len += len;
   mrb_write_barrier(mrb, (struct RBasic*)a);
