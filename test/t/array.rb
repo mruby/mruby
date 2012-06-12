@@ -222,7 +222,9 @@ assert('Array#size', '15.2.12.5.28') do
 end
 
 assert('Array#slice', '15.2.12.5.29') do
-  [1,2,3].[](1) == 2
+  a = "12345".slice(1, 3)
+  b = a.slice(0)
+  "#{b}:" == "2:" and [1,2,3].[](1) == 2
 end
 
 assert('Array#unshift', '15.2.12.5.30') do
