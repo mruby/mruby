@@ -34,6 +34,9 @@ typedef intptr_t mrb_sym;
 # define INCLUDE_ENCODING  /* Regexp depends Encoding */
 #endif
 
+//#undef INCLUDE_KERNEL_SPRINTF     /* not use Kernel.sprintf method. */
+#define INCLUDE_KERNEL_SPRINTF     /* not use Kernel.sprintf method. */
+
 #ifdef  MRUBY_DEBUG_BUILD
 # define PARSER_DUMP
 #endif
