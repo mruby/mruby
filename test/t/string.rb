@@ -277,9 +277,11 @@ assert('String#split', '15.2.10.5.35') do
   # without RegExp behavior is actually unspecified
   a = 'abc abc abc'.split
   b = 'a,b,c,,d'.split(',')
+  c = 'abc abc abc'.split(nil)
 
   a == ['abc', 'abc', 'abc'] and
-    b == ["a", "b", "c", "", "d"]
+    b == ["a", "b", "c", "", "d"] and
+    c == ['abc', 'abc', 'abc']
 end
 
 # TODO ATM broken assert('String#sub', '15.2.10.5.36') do

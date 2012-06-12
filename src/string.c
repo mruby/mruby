@@ -2139,7 +2139,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     i = 1;
   }
 
-  if (argc == 0) {
+  if (argc == 0 || mrb_nil_p(spat)) {
     split_type = awk;
   }
   else {
