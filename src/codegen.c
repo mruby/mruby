@@ -1278,16 +1278,18 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_SUPER:
     {
-      int n = 0;
+      int n = 0, noop = 0, sendv = 0;
 
       push();			/* room for receiver */
       if (tree) {
         node *args = tree->car;
-        while (args) {
-          codegen(s, args->car, VAL);
-          n++;
-          args = args->cdr;
-        }
+	if (args) {
+	  n = gen_values(s, args);
+	  if (n < 0) {
+	    n = noop = sendv = 1;
+	    push();
+	  }
+	}
       }
       if (tree && tree->cdr) {
         codegen(s, tree->cdr, VAL);
@@ -1297,6 +1299,7 @@ codegen(codegen_scope *s, node *tree, int val)
         genop(s, MKOP_A(OP_LOADNIL, cursp()));
       }
       pop_n(n+1);
+      if (sendv) n = CALL_MAXARGS;
       genop(s, MKOP_ABC(OP_SUPER, cursp(), 0, n));
       if (val) push();
     }
