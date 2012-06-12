@@ -122,7 +122,7 @@ ary_modify(mrb_state *mrb, struct RArray *a)
 	memcpy(ptr, p, len);
       }
       a->ptr = ptr;
-      a->aux.capa = len;
+      a->aux.capa = a->len;
       mrb_ary_decref(mrb, shared);
     }
     a->flags &= ~MRB_ARY_SHARED;
