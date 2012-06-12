@@ -2208,14 +2208,24 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     char *ptr = RSTRING_PTR(str);
     char *temp = ptr;
     char *eptr = RSTRING_END(str);
-    char *sptr = RSTRING_PTR(spat);
     long slen = RSTRING_LEN(spat);
 
-    while (ptr < eptr &&
-	   (end = mrb_memsearch(sptr, slen, ptr, eptr - ptr)) >= 0) {
-      mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr - temp, end));
-      ptr += end + slen;
-      if (lim >= 0 && lim <= ++i) break;
+    if (slen == 0) {
+      while (ptr < eptr) {
+	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr-temp, 1));
+	ptr++;
+	if (lim >= 0 && lim <= ++i) break;
+      }
+    }
+    else {
+      char *sptr = RSTRING_PTR(spat);
+
+      while (ptr < eptr &&
+	     (end = mrb_memsearch(sptr, slen, ptr, eptr - ptr)) >= 0) {
+	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr - temp, end));
+	ptr += end + slen;
+	if (lim >= 0 && lim <= ++i) break;
+      }
     }
     beg = ptr - temp;
   }
