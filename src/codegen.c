@@ -645,6 +645,9 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
     else if (!noop && name[0] == '-' && strlen(name) == 1)  {
       genop(s, MKOP_ABC(OP_SUB, cursp(), idx, n));
     }
+    else if (!noop && name[0] == '*' && strlen(name) == 1)  {
+      genop(s, MKOP_ABC(OP_MUL, cursp(), idx, n));
+    }
     else if (!noop && name[0] == '<' && strlen(name) == 1)  {
       genop(s, MKOP_ABC(OP_LT, cursp(), idx, n));
     }
@@ -656,6 +659,9 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
     }
     else if (!noop && name[0] == '>' && strlen(name) == 2 && name[1] == '=')  {
       genop(s, MKOP_ABC(OP_GE, cursp(), idx, n));
+    }
+    else if (!noop && name[0] == '=' && strlen(name) == 2 && name[1] == '=')  {
+      genop(s, MKOP_ABC(OP_EQ, cursp(), idx, n));
     }
     else {
       if (sendv) n = CALL_MAXARGS;
@@ -2152,6 +2158,11 @@ codedump(mrb_state *mrb, int n)
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
+    case OP_MUL:
+      printf("OP_MUL\tR%d\t'%s'\t%d\n", GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             GETARG_C(c));
+      break;
     case OP_LT:
       printf("OP_LT\tR%d\t'%s'\t%d\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
@@ -2169,6 +2180,11 @@ codedump(mrb_state *mrb, int n)
       break;
     case OP_GE:
       printf("OP_GE\tR%d\t'%s'\t%d\n", GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             GETARG_C(c));
+      break;
+    case OP_EQ:
+      printf("OP_EQ\tR%d\t'%s'\t%d\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
