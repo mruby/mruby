@@ -466,40 +466,6 @@ mrb_obj_dup(mrb_state *mrb, mrb_value obj)
     return dup;
 }
 
-/* 15.3.1.2.3  */
-/* 15.3.1.3.12 */
-/*
- *  call-seq:
- *     eval(string [, binding [, filename [,lineno]]])  -> obj
- *
- *  Evaluates the Ruby expression(s) in <em>string</em>. If
- *  <em>binding</em> is given, which must be a <code>Binding</code>
- *  object, the evaluation is performed in its context. If the
- *  optional <em>filename</em> and <em>lineno</em> parameters are
- *  present, they will be used when reporting syntax errors.
- *
- *     def getBinding(str)
- *       return binding
- *     end
- *     str = "hello"
- *     eval "str + ' Fred'"                      #=> "hello Fred"
- *     eval "str + ' Fred'", getBinding("bye")   #=> "bye Fred"
- */
-mrb_value
-mrb_f_eval(int argc, mrb_value *argv, mrb_value self)
-{
-  return mrb_false_value(); /* dummy */
-}
-mrb_value
-mrb_f_eval_m(mrb_state *mrb, mrb_value self)
-{
-  mrb_value *argv;
-  int argc;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  return mrb_f_eval(argc, argv, self);
-}
-
 static mrb_value
 mrb_obj_extend(mrb_state *mrb, int argc, mrb_value *argv, mrb_value obj)
 {
@@ -1370,7 +1336,6 @@ mrb_init_kernel(mrb_state *mrb)
 
   krn = mrb->kernel_module = mrb_define_module(mrb, "Kernel");
   mrb_define_class_method(mrb, krn, "block_given?",         mrb_f_block_given_p_m,           ARGS_NONE());    /* 15.3.1.2.2  */
-  mrb_define_class_method(mrb, krn, "eval",                 mrb_f_eval_m,                    ARGS_ANY());     /* 15.3.1.2.3  */
   mrb_define_class_method(mrb, krn, "global_variables",     mrb_f_global_variables,          ARGS_NONE());    /* 15.3.1.2.4  */
   mrb_define_class_method(mrb, krn, "iterator?",            mrb_f_block_given_p_m,           ARGS_NONE());    /* 15.3.1.2.5  */
   mrb_define_class_method(mrb, krn, "lambda",               proc_lambda,                     ARGS_NONE());    /* 15.3.1.2.6  */
@@ -1393,7 +1358,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "dup",                        mrb_obj_dup,                     ARGS_NONE());    /* 15.3.1.3.9  */
   mrb_define_method(mrb, krn, "eql?",                       mrb_obj_equal_m,                 ARGS_REQ(1));    /* 15.3.1.3.10 */
   mrb_define_method(mrb, krn, "equal?",                     mrb_obj_equal_m,                 ARGS_REQ(1));    /* 15.3.1.3.11 */
-  mrb_define_method(mrb, krn, "eval",                       mrb_f_eval_m,                    ARGS_ANY());     /* 15.3.1.3.12 */
   mrb_define_method(mrb, krn, "extend",                     mrb_obj_extend_m,                ARGS_ANY());     /* 15.3.1.3.13 */
   mrb_define_method(mrb, krn, "global_variables",           mrb_f_global_variables,          ARGS_NONE());    /* 15.3.1.3.14 */
   mrb_define_method(mrb, krn, "hash",                       mrb_obj_hash,                    ARGS_NONE());    /* 15.3.1.3.15 */
