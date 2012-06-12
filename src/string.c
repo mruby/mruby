@@ -2213,7 +2213,6 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
 
     while (ptr < eptr &&
 	   (end = mrb_memsearch(sptr, slen, ptr, eptr - ptr)) >= 0) {
-      /* Check we are at the start of a char */
       mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr - temp, end));
       ptr += end + slen;
       if (lim >= 0 && lim <= ++i) break;
