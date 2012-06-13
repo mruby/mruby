@@ -218,6 +218,7 @@ mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
   exc = mrb_class_new_instance(mrb, 2, argv, E_NAME_ERROR);
   mrb_exc_raise(mrb, exc);
 }
+
 mrb_value
 mrb_sprintf(mrb_state *mrb, const char *fmt, ...)
 {
