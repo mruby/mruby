@@ -419,7 +419,7 @@ math_log(mrb_state *mrb, mrb_value obj)
   argc = mrb_get_args(mrb, "f|f", &x, &base);
   x = log(x);
   if (argc == 2) {
-    d /= log(base);
+    x /= log(base);
   }
   return mrb_float_value(x);
 }
