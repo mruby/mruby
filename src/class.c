@@ -542,7 +542,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 	    *p = mrb_fixnum(*sp);
 	    break;
 	  case MRB_TT_FLOAT:
-	    *p = (mrb_int)mrb_float(*sp);
+	    {
+	      mrb_float f = mrb_float(*sp);
+
+	      if (!FIXABLE(f)) {
+		mrb_raise(mrb, E_RANGE_ERROR, "float too big for int");
+	      }
+	      *p = (mrb_int)f;
+	    }
 	    break;
 	  case MRB_TT_FALSE:
 	    *p = 0;
