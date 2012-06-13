@@ -297,9 +297,8 @@ static mrb_value
 mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
 {
   mrb_callinfo *ci = mrb->ci;
-  mrb_value *bp, *p;
+  mrb_value *bp;
 
-  p = mrb->stbase + ci->stackidx;
   bp = mrb->stbase + ci->stackidx + 1;
   ci--;
   if (ci <= mrb->cibase) return mrb_false_value();
