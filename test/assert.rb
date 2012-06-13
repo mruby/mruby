@@ -32,7 +32,7 @@ def assert(str = 'Assertion failed', iso = '')
       $ok_test += 1
       print('.')
     end
-  rescue => e
+  rescue Exception => e
     $asserts.push(['Error: ', str, iso, e])
     $kill_test += 1
     print('X')
