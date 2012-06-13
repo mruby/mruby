@@ -1073,7 +1073,8 @@ mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y)
 
     b = mrb_fixnum(y);
     c = a + b;
-    if (c - b != a) {
+    if (((a < 0) ^ (b < 0)) == 0 && (a < 0) != (c < 0)) {
+      /* integer overflow */
       return mrb_float_value((mrb_float)a + (mrb_float)b);
     }
     return mrb_fixnum_value(c);
@@ -1111,7 +1112,8 @@ mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y)
 
     b = mrb_fixnum(y);
     c = a - b;
-    if (c + b != a) {
+    if (((a < 0) ^ (b < 0)) != 0 && (a < 0) != (c < 0)) {
+      /* integer overflow */
       return mrb_float_value((mrb_float)a - (mrb_float)b);
     }
     return mrb_fixnum_value(c);
