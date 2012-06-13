@@ -262,11 +262,12 @@ mrb_obj_id_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_f_send(mrb_state *mrb, mrb_value self)
 {
-  mrb_value name, block, *argv;
+  mrb_sym name;
+  mrb_value block, *argv;
   int argc;
   
-  mrb_get_args(mrb, "o*&", &name, &argv, &argc, &block);
-  return mrb_funcall_with_block(mrb,self, mrb_string_value_ptr(mrb, name), argc, argv, block);
+  mrb_get_args(mrb, "n*&", &name, &argv, &argc, &block);
+  return mrb_funcall_with_block(mrb,self, mrb_sym2name(mrb, name), argc, argv, block);
 }
 
 /* 15.3.1.2.2  */
