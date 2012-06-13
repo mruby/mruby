@@ -20,21 +20,24 @@ typedef double mrb_float;
 typedef int mrb_int;
 typedef intptr_t mrb_sym;
 
-#undef  PARSER_DUMP        /* do not print out parser state */
 //#define PARSER_DUMP        /* print out parser state */
+#undef  PARSER_DUMP        /* do not print out parser state */
 
-#undef  INCLUDE_ENCODING   /* not use encoding classes (ascii only) */
 //#define INCLUDE_ENCODING   /* use UTF-8 encoding classes */
+#undef  INCLUDE_ENCODING   /* not use encoding classes (ascii only) */
 
-#undef  INCLUDE_REGEXP     /* not use regular expression classes */
 //#define INCLUDE_REGEXP     /* use regular expression classes */
+#undef  INCLUDE_REGEXP     /* not use regular expression classes */
 
 #ifdef  INCLUDE_REGEXP
 # define INCLUDE_ENCODING  /* Regexp depends Encoding */
 #endif
 
-//#undef INCLUDE_KERNEL_SPRINTF     /* not use Kernel.sprintf method. */
-#define INCLUDE_KERNEL_SPRINTF     /* not use Kernel.sprintf method. */
+#define INCLUDE_KERNEL_SPRINTF     /* not use Kernel.sprintf method */
+//#undef INCLUDE_KERNEL_SPRINTF     /* not use Kernel.sprintf method */
+
+#define INCLUDE_MATH	/* use (non ISO) Math module */
+//#undef INCLUDE_MATH     /* not use (non ISO) Math module */
 
 #ifdef  MRUBY_DEBUG_BUILD
 # define PARSER_DUMP

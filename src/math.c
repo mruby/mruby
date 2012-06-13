@@ -5,6 +5,8 @@
 */
 
 #include "mruby.h"
+
+#ifdef INCLUDE_MATH
 #include <math.h>
 
 #define domain_error(msg) \
@@ -679,3 +681,4 @@ mrb_init_math(mrb_state *mrb)
   mrb_define_module_function(mrb, mrb_math, "erf",  math_erf,  ARGS_REQ(1));
   mrb_define_module_function(mrb, mrb_math, "erfc", math_erfc, ARGS_REQ(1));
 }
+#endif	/* INCLUDE_MATH */
