@@ -1,3 +1,8 @@
 # no installation...
 
-script: "make all test"
+script:
+  - make all test
+  - sudo apt-get install subversion
+  - svn co http://svn.ruby-lang.org/repos/ruby/trunk/bootstraptest
+  - sed -i -e 's/ -v`/ --version`/' bootstraptest/runner.rb
+  - "ruby ./bootstraptest/runner.rb --ruby='bin/mruby -I./lib' || :"
