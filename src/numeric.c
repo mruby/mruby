@@ -28,7 +28,7 @@
 #include <ieeefp.h>
 #endif
 
-#define SIGNED_VALUE intptr_t
+#define RSHIFT(x,y) ((x)>>(int)(y))
 
 #ifdef MRB_USE_FLOAT
 #define floor(f) floorf(f)
@@ -697,7 +697,7 @@ int_succ(mrb_state *mrb, mrb_value num)
   return mrb_funcall(mrb, num, "+", 1, mrb_fixnum_value(1));
 }
 
-#define SQRT_INT_MAX ((SIGNED_VALUE)1<<((sizeof(mrb_int)*CHAR_BIT-1)/2))
+#define SQRT_INT_MAX ((mrb_int)1<<((sizeof(mrb_int)*CHAR_BIT-1)/2))
 /*tests if N*N would overflow*/
 #define FIT_SQRT_INT(n) (((n)<SQRT_INT_MAX)&&((n)>=-SQRT_INT_MAX))
 

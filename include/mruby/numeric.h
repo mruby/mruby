@@ -13,7 +13,6 @@ extern "C" {
 
 #include <limits.h>
 
-#define RSHIFT(x,y) ((x)>>(int)(y))
 #define POSFIXABLE(f) ((f) <= INT_MAX)
 #define NEGFIXABLE(f) ((f) >= INT_MIN)
 #define FIXABLE(f) (POSFIXABLE(f) && NEGFIXABLE(f))
