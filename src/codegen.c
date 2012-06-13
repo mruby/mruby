@@ -16,6 +16,9 @@
 #include "node.h"
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <limits.h>
+#include <ctype.h>
 
 typedef mrb_ast_node node;
 typedef struct mrb_parser_state parser_state;
@@ -800,6 +803,27 @@ raise_error(codegen_scope *s, const char *msg)
   genop(s, MKOP_ABx(OP_ERR, 0, idx));
 }
 
+static mrb_float
+readint_float(codegen_scope *s, const char *p, int base)
+{
+  const char *e = p + strlen(p);
+  mrb_float f = 0;
+  int n;
+
+  while (p <= e) {
+    char c = tolower(*p);
+    for (n=0; n<base; n++) {
+      if (mrb_digitmap[n] == c) {
+	f *= base;
+	f += n;
+	break;
+      }
+    }
+    p++;
+  }
+  return f;
+}
+
 static void
 codegen(codegen_scope *s, node *tree, int val)
 {
@@ -1553,14 +1577,22 @@ codegen(codegen_scope *s, node *tree, int val)
       int i = readint(p, base);
       mrb_code co;
 
-      if (i < MAXARG_sBx && i > -MAXARG_sBx) {
-        co = MKOP_AsBx(OP_LOADI, cursp(), i);
+      if (i == LONG_MAX && errno == ERANGE) {
+	mrb_float f = readint_float(s, p, base);
+	int off = new_lit(s, mrb_float_value(f));
+
+	genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
       }
       else {
-        int off = new_lit(s, mrb_fixnum_value(i));
-        co = MKOP_ABx(OP_LOADL, cursp(), off);
+	if (i < MAXARG_sBx && i > -MAXARG_sBx) {
+	  co = MKOP_AsBx(OP_LOADI, cursp(), i);
+	}
+	else {
+	  int off = new_lit(s, mrb_fixnum_value(i));
+	  co = MKOP_ABx(OP_LOADL, cursp(), off);
+	}
+	genop(s, co);
       }
-      genop(s, co);
       push();
     }
     break;
@@ -1599,15 +1631,23 @@ codegen(codegen_scope *s, node *tree, int val)
           int i = readint(p, base);
           mrb_code co;
 
-          i = -i;
-          if (i < MAXARG_sBx && i > -MAXARG_sBx) {
-            co = MKOP_AsBx(OP_LOADI, cursp(), i);
-          }
-          else {
-            int off = new_lit(s, mrb_fixnum_value(i));
-            co = MKOP_ABx(OP_LOADL, cursp(), off);
-          }
-          genop(s, co);
+	  if (i == LONG_MAX && errno == ERANGE) {
+	    mrb_float f = readint_float(s, p, base);
+	    int off = new_lit(s, mrb_float_value(-f));
+
+	    genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
+	  }
+	  else {
+	    i = -i;
+	    if (i < MAXARG_sBx && i > -MAXARG_sBx) {
+	      co = MKOP_AsBx(OP_LOADI, cursp(), i);
+	    }
+	    else {
+	      int off = new_lit(s, mrb_fixnum_value(i));
+	      co = MKOP_ABx(OP_LOADL, cursp(), off);
+	    }
+	    genop(s, co);
+	  }
           push();
         }
         break;
