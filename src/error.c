@@ -136,18 +136,13 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
 {
   mrb_value str, klass;
 
-  klass = mrb_str_new2(mrb, mrb_obj_classname(mrb, exc));
+  str = mrb_str_new2(mrb, mrb_obj_classname(mrb, exc));
   exc = mrb_obj_as_string(mrb, exc);
-  if (RSTRING_LEN(exc) == 0) {
-    return klass;
+
+  if (RSTRING_LEN(exc) > 0) {
+    mrb_str_cat2(mrb, str, ": ");
+    mrb_str_append(mrb, str, exc);
   }
-
-  str = mrb_str_new2(mrb, "#<");
-  mrb_str_append(mrb, str, klass);
-  mrb_str_cat2(mrb, str, ": ");
-  mrb_str_append(mrb, str, exc);
-  mrb_str_cat2(mrb, str, ">");
-
   return str;
 }
 
