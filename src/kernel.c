@@ -191,7 +191,7 @@ mrb_obj_not_equal_m(mrb_state *mrb, mrb_value self)
   mrb_value arg;
 
   mrb_get_args(mrb, "o", &arg);
-  if (mrb_obj_equal(mrb, self, arg)) {
+  if (mrb_equal(mrb, self, arg)) {
     return mrb_false_value();
   }
   else {
