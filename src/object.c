@@ -350,8 +350,8 @@ mrb_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *tname,
   if (mrb_type(val) == type) return val;
   v = convert_type(mrb, val, tname, method, 1/*Qtrue*/);
   if (mrb_type(v) != type) {
-    mrb_raise(mrb, E_TYPE_ERROR, "%s#%s should return %s",
-     mrb_obj_classname(mrb, val), method, tname);
+    mrb_raise(mrb, E_TYPE_ERROR, "%s cannot be converted to %s by #%s",
+     mrb_obj_classname(mrb, val), tname, method);
   }
   return v;
 }
