@@ -12,6 +12,7 @@
 #include "mruby/irep.h"
 #include "mruby/proc.h"
 #include "mruby/compile.h"
+#include "mruby/numeric.h"
 #include "opcode.h"
 #include "node.h"
 #include <string.h>
@@ -1574,10 +1575,10 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       char *p = (char*)tree->car;
       int base = (intptr_t)tree->cdr->car;
-      int i = readint(p, base);
+      long i = readint(p, base);
       mrb_code co;
 
-      if (i == LONG_MAX && errno == ERANGE) {
+      if ((i == LONG_MAX && errno == ERANGE) || !FIXABLE(i)) {
 	mrb_float f = readint_float(s, p, base);
 	int off = new_lit(s, mrb_float_value(f));
 
@@ -1628,10 +1629,10 @@ codegen(codegen_scope *s, node *tree, int val)
         {
           char *p = (char*)tree->car;
           int base = (intptr_t)tree->cdr->car;
-          int i = readint(p, base);
+          long i = readint(p, base);
           mrb_code co;
 
-	  if (i == LONG_MAX && errno == ERANGE) {
+	  if ((i == LONG_MAX && errno == ERANGE) || !FIXABLE(i)) {
 	    mrb_float f = readint_float(s, p, base);
 	    int off = new_lit(s, mrb_float_value(-f));
 
