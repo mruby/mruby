@@ -708,15 +708,16 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
 }
 
 void
-mrb_define_class_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, int aspec)
+mrb_define_singleton_method(mrb_state *mrb, struct RObject *o, const char *name, mrb_func_t func, int aspec)
 {
-  mrb_define_method_id(mrb, c->c, mrb_intern(mrb, name), func, aspec);
+  o->c = mrb_singleton_class_ptr(mrb, o->c);
+  mrb_define_method_id(mrb, o->c, mrb_intern(mrb, name), func, aspec);
 }
 
 void
-mrb_define_singleton_method(mrb_state *mrb, struct RObject *o, const char *name, mrb_func_t func, int aspec)
+mrb_define_class_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, int aspec)
 {
-  mrb_define_method_id(mrb, mrb_singleton_class_ptr(mrb, o->c), mrb_intern(mrb, name), func, aspec);
+  mrb_define_singleton_method(mrb, (struct RObject*)c, name, func, aspec);
 }
 
 void
