@@ -134,7 +134,7 @@ exc_message(mrb_state *mrb, mrb_value exc)
 static mrb_value
 exc_inspect(mrb_state *mrb, mrb_value exc)
 {
-  mrb_value str, klass;
+  mrb_value str;
 
   str = mrb_str_new2(mrb, mrb_obj_classname(mrb, exc));
   exc = mrb_obj_as_string(mrb, exc);
