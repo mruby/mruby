@@ -164,6 +164,7 @@ ecall(mrb_state *mrb, int i)
   struct RProc *p;
   mrb_callinfo *ci;
   mrb_value *self = mrb->stack;
+  struct RObject *exc;
 
   p = mrb->ensure[i];
   ci = cipush(mrb);
@@ -175,7 +176,9 @@ ecall(mrb_state *mrb, int i)
   ci->nregs = p->body.irep->nregs;
   ci->target_class = p->target_class;
   mrb->stack = mrb->stack + ci[-1].nregs;
+  exc = mrb->exc; mrb->exc = 0;
   mrb_run(mrb, p, *self);
+  mrb->exc = exc;
 }
 
 mrb_value
@@ -999,13 +1002,18 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     L_RETURN:
       if (mrb->exc) {
         mrb_callinfo *ci;
+        int eidx;
 
       L_RAISE:
         ci = mrb->ci;
+	eidx = mrb->ci->eidx;
         if (ci == mrb->cibase) goto L_STOP;
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           ci = mrb->ci;
+	  while (eidx > mrb->ci->eidx) {
+	    ecall(mrb, --eidx);
+	  }
           if (ci == mrb->cibase) {
             if (ci->ridx == 0) {
 	      mrb->stack = mrb->stbase;
@@ -1569,6 +1577,13 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_STOP) {
       /*        stop VM */
     L_STOP:
+      {
+	int n = mrb->ci->eidx;
+
+	while (n--) {
+	  ecall(mrb, n);
+	}
+      }
       mrb->jmp = prev_jmp;
       if (mrb->exc) {
 	return mrb_obj_value(mrb->exc);
