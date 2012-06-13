@@ -648,6 +648,9 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
     else if (!noop && name[0] == '*' && strlen(name) == 1)  {
       genop(s, MKOP_ABC(OP_MUL, cursp(), idx, n));
     }
+    else if (!noop && name[0] == '/' && strlen(name) == 1)  {
+      genop(s, MKOP_ABC(OP_DIV, cursp(), idx, n));
+    }
     else if (!noop && name[0] == '<' && strlen(name) == 1)  {
       genop(s, MKOP_ABC(OP_LT, cursp(), idx, n));
     }
@@ -2160,6 +2163,11 @@ codedump(mrb_state *mrb, int n)
       break;
     case OP_MUL:
       printf("OP_MUL\tR%d\t'%s'\t%d\n", GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             GETARG_C(c));
+      break;
+    case OP_DIV:
+      printf("OP_DIV\tR%d\t'%s'\t%d\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
