@@ -187,27 +187,13 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
 {
   char buf[32];
   mrb_float value = mrb_float(flt);
-  char *p, *e;
 
   if (isinf(value))
-    return mrb_str_new2(mrb, value < 0 ? "-Infinity" : "Infinity");
+    return mrb_str_new2(mrb, value < 0 ? "-inf" : "inf");
   else if(isnan(value))
     return mrb_str_new2(mrb, "NaN");
 
-  sprintf(buf, "%#.15g", value); /* ensure to print decimal point */
-  if (!(e = strchr(buf, 'e'))) {
-    e = buf + strlen(buf);
-  }
-  if (!ISDIGIT(e[-1])) { /* reformat if ended with decimal point (ex 111111111111111.) */
-    sprintf(buf, "%#.14e", value);
-    if (!(e = strchr(buf, 'e'))) {
-      e = buf + strlen(buf);
-    }
-  }
-  p = e;
-  while (p[-1]=='0' && ISDIGIT(p[-2]))
-    p--;
-  memmove(p, e, strlen(e)+1);
+  sprintf(buf, "%.14g", value);
   return mrb_str_new2(mrb, buf);
 }
 
