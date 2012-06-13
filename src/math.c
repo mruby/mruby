@@ -411,11 +411,14 @@ math_exp(mrb_state *mrb, mrb_value obj)
 static mrb_value
 math_log(mrb_state *mrb, mrb_value obj)
 {
-  mrb_float x;
+  mrb_float x, base;
+  int argc;
 
-  mrb_get_args(mrb, "f", &x);
+  argc = mrb_get_args(mrb, "f|f", &x, &base);
   x = log(x);
-
+  if (argc == 2) {
+    d /= log(base);
+  }
   return mrb_float_value(x);
 }
 
