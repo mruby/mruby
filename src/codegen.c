@@ -893,7 +893,7 @@ codegen(codegen_scope *s, node *tree, int val)
             }
           } while (n4);
           pos1 = new_label(s);
-          genop(s, MKOP_Bx(OP_JMP, 0));
+          genop(s, MKOP_sBx(OP_JMP, 0));
           dispatch_linked(s, pos2);
 
           pop();
@@ -904,7 +904,7 @@ codegen(codegen_scope *s, node *tree, int val)
             codegen(s, n3->cdr->cdr->car, val);
           }
           tmp = new_label(s);
-          genop(s, MKOP_AsBx(OP_JMP, cursp(), exend));
+          genop(s, MKOP_sBx(OP_JMP, exend));
           exend = tmp;
           n2 = n2->cdr;
           push();
