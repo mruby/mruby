@@ -1575,16 +1575,18 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       char *p = (char*)tree->car;
       int base = (intptr_t)tree->cdr->car;
-      long i = readint(p, base);
+      mrb_float f;
+      mrb_int i;
       mrb_code co;
 
-      if ((i == LONG_MAX && errno == ERANGE) || !FIXABLE(i)) {
-	mrb_float f = readint_float(s, p, base);
+      f = readint_float(s, p, base);
+      if (!FIXABLE(f)) {
 	int off = new_lit(s, mrb_float_value(f));
 
 	genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
       }
       else {
+	i = (mrb_int)f;
 	if (i < MAXARG_sBx && i > -MAXARG_sBx) {
 	  co = MKOP_AsBx(OP_LOADI, cursp(), i);
 	}
@@ -1629,17 +1631,18 @@ codegen(codegen_scope *s, node *tree, int val)
         {
           char *p = (char*)tree->car;
           int base = (intptr_t)tree->cdr->car;
-          long i = readint(p, base);
+	  mrb_float f;
+          mrb_int i;
           mrb_code co;
 
-	  if ((i == LONG_MAX && errno == ERANGE) || !FIXABLE(i)) {
-	    mrb_float f = readint_float(s, p, base);
+	  f = readint_float(s, p, base);
+	  if (!FIXABLE(f)) {
 	    int off = new_lit(s, mrb_float_value(-f));
-
+	    
 	    genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
 	  }
 	  else {
-	    i = -i;
+	    i = (mrb_int)-f;
 	    if (i < MAXARG_sBx && i > -MAXARG_sBx) {
 	      co = MKOP_AsBx(OP_LOADI, cursp(), i);
 	    }

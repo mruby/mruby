@@ -19,7 +19,6 @@ typedef double mrb_float;
 
 typedef int mrb_int;
 typedef intptr_t mrb_sym;
-#define readint(p,base) strtol((p),NULL,(base))
 
 #undef  PARSER_DUMP        /* do not print out parser state */
 //#define PARSER_DUMP        /* print out parser state */

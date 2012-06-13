@@ -413,7 +413,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
 
       switch (tt) {                           //pool data
       case MRB_TT_FIXNUM:
-        fix_num = readint(buf, 10);
+        fix_num = strtol(buf, NULL, 10);
         irep->pool[i] = mrb_fixnum_value(fix_num);
         break;
 
