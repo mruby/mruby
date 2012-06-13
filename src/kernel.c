@@ -1140,11 +1140,7 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   if (argc == 0) {
-    err = get_errinfo(mrb);
-    if (!mrb_nil_p(err)) {
-        argc = 1;
-        argv[0] = err;
-      }
+    mrb_raise(mrb, mrb->eRuntimeError_class, "");
   }
   mrb_exc_raise(mrb, mrb_make_exception(mrb, argc, argv));
   return mrb_nil_value();            /* not reached */
