@@ -971,7 +971,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         if (r) {                  /* r */
           regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
         }
-        pc += argc - m1 - m2 + 1;
+	if (o == 0) pc++;
+	else
+	  pc += argc - m1 - m2 + 1;
       }
       else {
         memmove(&regs[1], argv, sizeof(mrb_value)*(m1+o)); /* m1 + o */
