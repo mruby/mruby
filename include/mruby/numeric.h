@@ -22,6 +22,11 @@ mrb_value mrb_flt2big(mrb_state *mrb, mrb_float d);
 void mrb_num_zerodiv(mrb_state *mrb);
 mrb_value mrb_fix2str(mrb_state *mrb, mrb_value x, int base);
 
+mrb_value mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y);
+
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif

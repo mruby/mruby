@@ -1162,12 +1162,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   regs[a].value.v1 = regs[a].value.v1 op regs[a+1].value.v2;\
 } while(0)
 
-#define OP_MATH(op) do {\
+#define OP_MATH(op,iop,s) do {\
   int a = GETARG_A(i);\
-  /* need to check if - is overridden */\
+  /* need to check if op is overridden */\
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
   case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):\
-    OP_MATH_BODY(op,i,i);                  \
+    regs[a] = iop(mrb, regs[a], regs[a+1]);\
     break;\
   case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):\
     {\
@@ -1182,6 +1182,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):\
     OP_MATH_BODY(op,f,f);\
     break;\
+    s\
   default:\
     i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));\
     goto L_SEND;\
@@ -1190,50 +1191,28 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_ADD) {
       /* A B C  R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)*/
-      int a = GETARG_A(i);
-
-      switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
-      case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
-        OP_MATH_BODY(+,i,i);
-        break;
-      case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
-        {
-          mrb_int x = regs[a].value.i;
-          mrb_float y = regs[a+1].value.f;
-          SET_FLOAT_VALUE(regs[a], (mrb_float)x + y);
-        }
-        break;
-      case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
-        OP_MATH_BODY(+,f,i);
-        break;
-      case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
-        OP_MATH_BODY(+,f,f);
-        break;
+      OP_MATH(+,mrb_fixnum_plus,
       case TYPES2(MRB_TT_STRING,MRB_TT_STRING):
         regs[a] = mrb_str_plus(mrb, regs[a], regs[a+1]);
-        break;
-      default:
-        i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));
-        goto L_SEND;
-      }
+	break;);
       NEXT;
     }
 
     CASE(OP_SUB) {
       /* A B C  R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)*/
-      OP_MATH(-);
+      OP_MATH(-,mrb_fixnum_minus,;);
       NEXT;
     }
 
     CASE(OP_MUL) {
       /* A B C  R(A) := R(A)*R(A+1) (Syms[B]=:*,C=1)*/
-      OP_MATH(*);
+      OP_MATH(*,mrb_fixnum_mul,;);
       NEXT;
     }
 
     CASE(OP_DIV) {
       /* A B C  R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)*/
-      OP_MATH(/);
+      OP_MATH(/,mrb_num_div,;);
       NEXT;
     }
 
