@@ -51,7 +51,8 @@ typedef struct scope {
   int sp;
   int pc;
   int lastlabel;
-  int ainfo;
+  int ainfo:15;
+  int mscope:1;
 
   struct loopinfo *loop;
   int ensure_level;
@@ -448,6 +449,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
 
   s = scope_new(s->mrb, s, tree->car);
   idx = s->idx;
+  s->mscope = !blk;
 
   if (blk) {
     struct loopinfo *lp = loop_push(s, LOOP_BLOCK);
@@ -1346,7 +1348,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int lv = 0, ainfo = 0;
 
       push(); 			/* room for receiver */
-      while (s2->ainfo < 0) {
+      while (!s2->mscope) {
         lv++;
         s2 = s2->prev;
         if (!s2) break;
@@ -1381,7 +1383,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int lv = 0, ainfo = 0;
       int n = 0, sendv = 0;
 
-      while (s2->ainfo < 0) {
+      while (!s2->mscope) {
         lv++;
         s2 = s2->prev;
         if (!s2) break;
@@ -1916,6 +1918,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   if (!prev) return p;
   p->prev = prev;
   p->ainfo = -1;
+  p->mscope = 0;
 
   p->mrb = prev->mrb;
   p->icapa = 1024;
