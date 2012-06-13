@@ -1165,27 +1165,21 @@ mrb_fix2str(mrb_state *mrb, mrb_value x, int base)
     neg = 1;
   }
   *--b = '\0';
-  do {
-    *--b = mrb_digitmap[(int)(val % base)];
-  } while (val /= base);
+  if (neg && val < 0) {
+    do {
+      *--b = mrb_digitmap[abs(val % base)];
+    } while (val /= base);
+  }
+  else {
+    do {
+      *--b = mrb_digitmap[(int)(val % base)];
+    } while (val /= base);
+  }
   if (neg) {
     *--b = '-';
   }
 
   return mrb_str_new2(mrb, b);
-}
-
-mrb_value
-mrb_fix_to_s(mrb_state *mrb, mrb_value self, int argc, mrb_value *argv)
-{
-  int base;
-
-  if (argc == 0) base = 10;
-  else {
-    mrb_get_args(mrb, "i", &base);
-  }
-
-  return mrb_fix2str(mrb, self, base);
 }
 
 /* 15.2.8.3.25 */
@@ -1205,13 +1199,12 @@ mrb_fix_to_s(mrb_state *mrb, mrb_value self, int argc, mrb_value *argv)
  *
  */
 static mrb_value
-fix_to_s(mrb_state *mrb, mrb_value self) /* fix_to_s */
+fix_to_s(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
-  int argc;
+  mrb_int base = 10;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
-  return mrb_fix_to_s(mrb, self, argc, argv);
+  mrb_get_args(mrb, "|i", &base);
+  return mrb_fix2str(mrb, self, base);
 }
 
 /* 15.2.9.3.6  */
