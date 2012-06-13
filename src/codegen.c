@@ -914,6 +914,7 @@ codegen(codegen_scope *s, node *tree, int val)
           genop(s, MKOP_A(OP_RAISE, exc));
         }
       }
+      pop();
       tree = tree->cdr;
       dispatch(s, noexc);
       genop(s, MKOP_A(OP_POPERR, 1));
