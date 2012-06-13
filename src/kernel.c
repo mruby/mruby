@@ -1117,12 +1117,8 @@ get_errinfo(mrb_state *mrb)
  *     raise
  *     raise(string)
  *     raise(exception [, string [, array]])
- *     fail
- *     fail(string)
- *     fail(exception [, string [, array]])
  *
- *  With no arguments, raises the exception in <code>$!</code> or raises
- *  a <code>RuntimeError</code> if <code>$!</code> is +nil+.
+ *  With no arguments, raises a <code>RuntimeError</code>
  *  With a single +String+ argument, raises a
  *  +RuntimeError+ with the string as a message. Otherwise,
  *  the first parameter should be the name of an +Exception+
