@@ -1092,24 +1092,6 @@ mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
   return mrb_obj_methods(mrb, argc, argv, self, NOEX_PUBLIC); /* public attribute not define */
 }
 
-/* 15.3.1.2.11  */
-/* 15.3.1.3.39 */
-/*
- *  call-seq:
- *     puts(obj, ...)    -> nil
- *
- *  Equivalent to
- *
- *      $stdout.puts(obj, ...)
- */
-
-static mrb_value
-get_errinfo(mrb_state *mrb)
-{
-    //return get_thread_errinfo(GET_THREAD());
-    return mrb_str_new_cstr(mrb, "error!!"); /* dummy */
-}
-
 /* 15.3.1.2.12  */
 /* 15.3.1.3.40 */
 /*
