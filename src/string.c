@@ -763,7 +763,7 @@ num_index:
 
         len = RSTRING_LEN(str);
         switch (mrb_range_beg_len(mrb, indx, &beg, &len, len, 0)) {
-          case 0/*FLASE*/:
+          case FALSE:
             break;
           case 2/*OTHER*/:
             return mrb_nil_value();

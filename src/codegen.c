@@ -298,20 +298,8 @@ push_(codegen_scope *s)
   s->sp++;
   nregs_update;
 }
-#if 0
-static void
-push_n_(codegen_scope *s, int n)
-{
-  if (s->sp + n > 511) {
-    codegen_error(s, "too complex expression");
-  }
-  s->sp += n;
-  nregs_update;
-}
-#endif
 
 #define push() push_(s)
-#define push_n(n) push_n_(s, n)
 #define pop()  (s->sp--)
 #define pop_n(n) (s->sp-=(n))
 #define cursp() (s->sp)
