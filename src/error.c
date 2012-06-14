@@ -398,7 +398,6 @@ mrb_init_exception(mrb_state *mrb)
   //  eScriptError            = mrb_define_class(mrb, "ScriptError",         mrb->eException_class);     /* 15.2.37 */
   //  mrb_define_class(mrb, "SyntaxError",         eScriptError);        /* 15.2.38 */
   //  mrb_define_class(mrb, "LoadError",           eScriptError);        /* 15.2.39 */
-  //  mrb_define_class(mrb, "NotImplementedError", eScriptError_class);
   //  mrb_define_class(mrb, "SystemCallError",     mrb->eStandardError_class); /* 15.2.36 */
   mrb_define_class(mrb, "LocalJumpError",      mrb->eStandardError_class); /* 15.2.25 */
 
