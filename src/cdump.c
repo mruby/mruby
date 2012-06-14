@@ -195,7 +195,6 @@ mrb_cdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname)
 
   SOURCE_CODE0("  mrb->irep_len = idx;");
   SOURCE_CODE0("");
-  SOURCE_CODE0("  extern mrb_value mrb_top_self(mrb_state *mrb);");
   SOURCE_CODE0("  mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));");
   SOURCE_CODE0("}");
 
