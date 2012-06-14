@@ -201,11 +201,6 @@ r_le(mrb_state *mrb, mrb_value a, mrb_value b)
 
   if (mrb_nil_p(r)) return FALSE;
 
-  /* mrb_value -> int */
-  //c = mrb_cmpint(mrb, r, a, b);
-  //if (c == 0) return TRUE;
-  //if (c < 0) return TRUE;
-  //return FALSE;
   if (mrb_obj_equal(mrb, r, mrb_fixnum_value(0))) return TRUE;
   if (mrb_obj_equal(mrb, r, mrb_fixnum_value(-1))) return TRUE;
   return FALSE;
@@ -220,10 +215,6 @@ r_gt(mrb_state *mrb, mrb_value a, mrb_value b)
 
   if (mrb_nil_p(r)) return FALSE;
 
-  /* mrb_value -> int */
-  //c = mrb_cmpint(mrb, r);
-  //if (c > 0) return TRUE;
-  //return FALSE;
   if (mrb_obj_equal(mrb, r, mrb_fixnum_value(1))) return TRUE;
   return FALSE;
 }
@@ -237,11 +228,6 @@ r_ge(mrb_state *mrb, mrb_value a, mrb_value b)
 
   if (mrb_nil_p(r)) return FALSE;
 
-  /* mrb_value -> int */
-  //c = mrb_cmpint(mrb, r);
-  //if (c == 0) return TRUE;
-  //if (c > 0)  return TRUE;
-  //return FALSE;
   if (mrb_obj_equal(mrb, r, mrb_fixnum_value(0))) return TRUE;
   if (mrb_obj_equal(mrb, r, mrb_fixnum_value(1))) return TRUE;
   return FALSE;
