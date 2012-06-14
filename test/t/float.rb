@@ -44,9 +44,11 @@ end
 assert('Float#%', '15.2.9.3.5') do
   a = 3.123456789 % 3.123456789
   b = 3.123456789 % 1
+  c = 3.123456789 % 0
 
   check_float(a, 0.0) and
-    check_float(b, 0.123456789)
+    check_float(b, 0.123456789) and
+  c.to_s == 'NaN'
 end
 
 assert('Float#<=>', '15.2.9.3.6') do

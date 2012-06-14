@@ -34,7 +34,15 @@ assert('Integer#/', '15.2.8.3.4') do
   a = 2/1
   b = 2/1.0
 
-  a == 2 and b == 2.0
+  c = false
+  begin
+    1 / 0
+  rescue ZeroDivisionError
+    c = true
+  end
+
+
+  a == 2 and b == 2.0 and c
 end
 
 assert('Integer#%', '15.2.8.3.5') do
@@ -42,7 +50,14 @@ assert('Integer#%', '15.2.8.3.5') do
   b = 1%1.0
   c = 2%4
 
-  a == 0 and b == 0.0 and c == 2
+  d = false
+  begin
+    1 % 0
+  rescue ZeroDivisionError
+    d = true
+  end
+
+  a == 0 and b == 0.0 and c == 2 and d
 end
 
 assert('Integer#<=>', '15.2.8.3.6') do
@@ -171,4 +186,16 @@ assert('Integer#upto', '15.2.8.3.27') do
     a += i
   end
   a == 6
+end
+
+assert('Integer#divmod', '15.2.8.3.30') do
+  a = false
+  begin
+    1.divmod 0
+  rescue ZeroDivisionError
+    a = true
+  end
+  b = 10.divmod 3
+
+  a == true && b == [3, 1]
 end

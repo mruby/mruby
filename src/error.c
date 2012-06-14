@@ -408,7 +408,7 @@ mrb_init_exception(mrb_state *mrb)
 #ifdef INCLUDE_ENCODING
   mrb_define_class(mrb, "EncodingError",       mrb->eStandardError_class);
 #endif
-  // mrb_define_class(mrb, "ZeroDivisionError",   mrb->eStandardError_class); /* 15.2.30 */
+  mrb_define_class(mrb, "ZeroDivisionError",   mrb->eStandardError_class); /* 15.2.30 */
 
   mrb_define_class(mrb, "FloatDomainError",    eRangeError);
   mrb_define_class(mrb, "KeyError",            eIndexError);
