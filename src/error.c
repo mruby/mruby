@@ -20,14 +20,6 @@
 
 #define warn_printf printf
 
-#ifndef FALSE
-#define FALSE   0
-#endif
-
-#ifndef TRUE
-#define TRUE    1
-#endif
-
 mrb_value
 mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
 {
@@ -298,28 +290,6 @@ sysexit_status(mrb_state *mrb, mrb_value err)
 {
   mrb_value st = mrb_iv_get(mrb, err, mrb_intern(mrb, "status"));
   return mrb_fixnum(st);
-}
-
-void
-error_pos(void)
-{
-#if 0
-  const char *sourcefile = mrb_sourcefile();
-  int sourceline = mrb_sourceline();
-
-  if (sourcefile) {
-    if (sourceline == 0) {
-      warn_printf("%s", sourcefile);
-    }
-    else if (mrb_frame_callee()) {
-      warn_printf("%s:%d:in `%s'", sourcefile, sourceline,
-                mrb_sym2name(mrb, mrb_frame_callee()));
-    }
-    else {
-      warn_printf("%s:%d", sourcefile, sourceline);
-    }
-  }
-#endif
 }
 
 static void

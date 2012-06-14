@@ -34,21 +34,8 @@ typedef enum {
     NOEX_RESPONDS  = 0x80
 } mrb_method_flag_t;
 
-#ifdef INCLUDE_REGEXP
-#include "re.h"
-#include "regint.h"
-#endif
-
 KHASH_INIT(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal)
 KHASH_INIT(iv, mrb_sym, mrb_value, 1, kh_int_hash_func, kh_int_hash_equal)
-
-#ifndef FALSE
-#define FALSE   0
-#endif
-
-#ifndef TRUE
-#define TRUE    1
-#endif
 
 struct obj_ivar_tag {
   mrb_value obj;
