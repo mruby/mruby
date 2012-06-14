@@ -767,12 +767,11 @@ static mrb_value
 fix_mod(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  mrb_int a;
+  mrb_int a, b;
 
   mrb_get_args(mrb, "o", &y);
-
   a = mrb_fixnum(x);
-  if (FIXNUM_P(y)) {
+  if (FIXNUM_P(y) && (b=mrb_fixnum(y)) != 0) {
     mrb_int mod;
 
     fixdivmod(mrb, a, mrb_fixnum(y), 0, &mod);
