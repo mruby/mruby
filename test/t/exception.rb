@@ -41,6 +41,16 @@ assert('Exception.exception', '15.2.22.4.1') do
   e.message == 'a'
 end
 
+assert('ZeroDivisionError', '15.2.30') do
+  begin
+    raise ZeroDivisionError
+  rescue ZeroDivisionError
+    true
+  else
+    false
+  end
+end
+
 # Not ISO specified
 
 assert('Exception 1') do
