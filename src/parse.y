@@ -1512,7 +1512,7 @@ op		: '|'		{ $$ = intern("|"); }
 		| '>'		{ $$ = intern(">"); }
 		| tGEQ		{ $$ = intern(">="); }
 		| '<'		{ $$ = intern("<"); }
-		| tLEQ		{ $$ = intern(">="); }
+		| tLEQ		{ $$ = intern("<="); }
 		| tNEQ		{ $$ = intern("!="); }
 		| tLSHFT	{ $$ = intern("<<"); }
 		| tRSHFT	{ $$ = intern(">>"); }
