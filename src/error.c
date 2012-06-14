@@ -20,14 +20,6 @@
 
 #define warn_printf printf
 
-#ifndef FALSE
-#define FALSE   0
-#endif
-
-#ifndef TRUE
-#define TRUE    1
-#endif
-
 mrb_value
 mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
 {
@@ -300,28 +292,6 @@ sysexit_status(mrb_state *mrb, mrb_value err)
   return mrb_fixnum(st);
 }
 
-void
-error_pos(void)
-{
-#if 0
-  const char *sourcefile = mrb_sourcefile();
-  int sourceline = mrb_sourceline();
-
-  if (sourcefile) {
-    if (sourceline == 0) {
-      warn_printf("%s", sourcefile);
-    }
-    else if (mrb_frame_callee()) {
-      warn_printf("%s:%d:in `%s'", sourcefile, sourceline,
-                mrb_sym2name(mrb, mrb_frame_callee()));
-    }
-    else {
-      warn_printf("%s:%d", sourcefile, sourceline);
-    }
-  }
-#endif
-}
-
 static void
 set_backtrace(mrb_state *mrb, mrb_value info, mrb_value bt)
 {
@@ -428,7 +398,6 @@ mrb_init_exception(mrb_state *mrb)
   //  eScriptError            = mrb_define_class(mrb, "ScriptError",         mrb->eException_class);     /* 15.2.37 */
   //  mrb_define_class(mrb, "SyntaxError",         eScriptError);        /* 15.2.38 */
   //  mrb_define_class(mrb, "LoadError",           eScriptError);        /* 15.2.39 */
-  //  mrb_define_class(mrb, "NotImplementedError", eScriptError_class);
   //  mrb_define_class(mrb, "SystemCallError",     mrb->eStandardError_class); /* 15.2.36 */
   mrb_define_class(mrb, "LocalJumpError",      mrb->eStandardError_class); /* 15.2.25 */
 

@@ -21,14 +21,6 @@
 
 KHASH_INIT(iv, mrb_sym, mrb_value, 1, kh_int_hash_func, kh_int_hash_equal)
 
-#ifndef FALSE
-#define FALSE   0
-#endif
-
-#ifndef TRUE
-#define TRUE    1
-#endif
-
 static void
 mark_tbl(mrb_state *mrb, struct kh_iv *h)
 {

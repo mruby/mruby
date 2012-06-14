@@ -15,14 +15,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifndef FALSE
-#define FALSE   0
-#endif
-
-#ifndef TRUE
-#define TRUE    1
-#endif
-
 #ifndef OTHER
 #define OTHER 2
 #endif
