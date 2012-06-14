@@ -1134,7 +1134,6 @@ get_errinfo(mrb_state *mrb)
 mrb_value
 mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
-  mrb_value err;
   mrb_value *argv;
   int argc;
 
