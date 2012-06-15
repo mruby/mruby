@@ -4886,7 +4886,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     parser_dump(mrb, tree->car, offset+2);
     dump_prefix(offset+1);
     printf("ensure:\n");
-    parser_dump(mrb, tree->cdr, offset+2);
+    parser_dump(mrb, tree->cdr->cdr, offset+2);
     break;
 
   case NODE_LAMBDA:
