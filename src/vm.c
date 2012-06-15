@@ -178,7 +178,7 @@ ecall(mrb_state *mrb, int i)
   mrb->stack = mrb->stack + ci[-1].nregs;
   exc = mrb->exc; mrb->exc = 0;
   mrb_run(mrb, p, *self);
-  mrb->exc = exc;
+  if (!mrb->exc) mrb->exc = exc;
 }
 
 mrb_value
