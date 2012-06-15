@@ -173,15 +173,6 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 }
 
 void
-mrb_raise_va(mrb_state *mrb, struct RClass *c, const char *fmt, va_list args)
-{
-  char buf[256];
-
-  vsnprintf(buf, 256, fmt, args);
-  mrb_exc_raise(mrb, mrb_exc_new(mrb, c, buf, strlen(buf)));
-}
-
-void
 mrb_raise(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
 {
   va_list args;
@@ -235,18 +226,6 @@ mrb_warn(const char *fmt, ...)
   va_end(args);
 }
 
-
-void
-mrb_warning(const char *fmt, ...)
-{
-  va_list args;
-  char buf[256];
-
-  va_start(args, fmt);
-  snprintf(buf, 256, "warning: %s", fmt);
-  printf(buf, args);
-  va_end(args);
-}
 
 void
 mrb_bug(const char *fmt, ...)
