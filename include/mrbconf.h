@@ -39,6 +39,9 @@ typedef intptr_t mrb_sym;
 #define INCLUDE_MATH	/* use (non ISO) Math module */
 //#undef INCLUDE_MATH     /* not use (non ISO) Math module */
 
+#define INCLUDE_TIME	/* use Time module */
+//#undef INCLUDE_TIME     /* not use Time module */
+
 #ifdef  MRUBY_DEBUG_BUILD
 # define PARSER_DUMP
 #endif

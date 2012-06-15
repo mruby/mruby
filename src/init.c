@@ -56,7 +56,9 @@ mrb_init_core(mrb_state *mrb)
 #endif
   mrb_init_exception(mrb);
   mrb_init_print(mrb);
+#ifdef INCLUDE_TIME
   mrb_init_time(mrb);
+#endif
 #ifdef INCLUDE_MATH
   mrb_init_math(mrb);
 #endif

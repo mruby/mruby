@@ -6,6 +6,7 @@
 
 
 #include "mruby.h"
+#ifdef INCLUDE_TIME
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
@@ -742,3 +743,5 @@ mrb_init_time(mrb_state *mrb)
       utc_offset(15.2.19.7.29)
   */
 }
+#endif
+
