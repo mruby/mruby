@@ -71,7 +71,7 @@
 
 */
 
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
 #include "re.h"
 #endif
 
@@ -92,7 +92,7 @@ typedef struct {
     struct RRange range;
     struct RStruct structdata;
     struct RProc procdata;
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
     struct RMatch match;
     struct RRegexp regexp;
 #endif
@@ -412,7 +412,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     }
     break;
 
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
   case MRB_TT_MATCH:
     {
       struct RMatch *m = (struct RMatch*)obj;
@@ -611,7 +611,7 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
     children+=2;
     break;
 
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
   case MRB_TT_MATCH:
     children+=2;
     break;

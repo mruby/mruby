@@ -6,7 +6,7 @@
 
 
 #include "mruby.h"
-#ifdef INCLUDE_TIME
+#ifdef ENABLE_TIME
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
@@ -744,4 +744,3 @@ mrb_init_time(mrb_state *mrb)
   */
 }
 #endif
-

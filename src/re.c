@@ -13,7 +13,7 @@
 #include "regint.h"
 #include "mruby/class.h"
 #include "error.h"
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
 
 #define REGEX_CLASS (mrb_class_obj_get(mrb, "Regexp"))
 #define MATCH_CLASS (mrb_class_obj_get(mrb, "MatchData"))
@@ -2318,7 +2318,7 @@ mrb_backref_set(mrb_state *mrb, mrb_value val)
 {
   vm_svar_set(mrb, 1, val);
 }
-#endif //INCLUDE_REGEXP
+#endif //ENABLE_REGEXP
 
 #ifdef INCLUDE_ENCODING
 static inline long
@@ -2421,7 +2421,7 @@ mrb_memsearch(mrb_state *mrb, const void *x0, int m, const void *y0, int n, mrb_
 }
 #endif //INCLUDE_ENCODING
 
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
 mrb_value
 mrb_reg_init_str(mrb_state *mrb, mrb_value re, mrb_value s, int options)
 {
@@ -2469,7 +2469,7 @@ re_adjust_startpos(struct re_pattern_buffer *bufp, const char *string, int size,
   }*/
   return startpos;
 }
-#endif //INCLUDE_REGEXP
+#endif //ENABLE_REGEXP
 
 #ifdef INCLUDE_ENCODING
 static const unsigned char mbctab_ascii[] = {

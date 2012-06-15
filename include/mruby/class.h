@@ -40,14 +40,7 @@ mrb_class(mrb_state *mrb, mrb_value v)
   case MRB_TT_FLOAT:
     return mrb->float_class;
 
-#ifdef INCLUDE_REGEXP
-//  case MRB_TT_REGEX:
-//    return mrb->regex_class;
-//  case MRB_TT_MATCH:
-//    return mrb->match_class;
-//  case MRB_TT_DATA:
-//    return mrb->encode_class;
-#else
+#ifdef ENABLE_REGEXP
   case MRB_TT_REGEX:
   case MRB_TT_MATCH:
     mrb_raise(mrb, E_TYPE_ERROR, "type mismatch: %s given",

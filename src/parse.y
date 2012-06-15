@@ -4776,9 +4776,6 @@ mrb_compile_file(mrb_state * mrb, FILE *f)
   if (!p) return -1;
   if (!p->tree) return -1;
   if (p->nerr) return -1;
-#ifdef PARSER_DUMP
-  parser_dump(mrb, p->tree, 0);
-#endif
   n = mrb_generate_code(mrb, p->tree);
   mrb_pool_close(p->pool);
 
@@ -4795,9 +4792,6 @@ mrb_compile_nstring(mrb_state *mrb, char *s, size_t len)
   if (!p) return -1;
   if (!p->tree) return -1;
   if (p->nerr) return -1;
-#ifdef PARSER_DUMP
-  parser_dump(mrb, p->tree, 0);
-#endif
   n = mrb_generate_code(mrb, p->tree);
   mrb_pool_close(p->pool);
 

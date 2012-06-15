@@ -8,7 +8,7 @@
 #include "mruby/dump.h"
 
 #include "mruby/string.h"
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
 #include "re.h"
 #endif
 #include "mruby/irep.h"
@@ -237,7 +237,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep, int type)
       nlen = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);
       size += nlen;
       break;
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
     case MRB_TT_REGEX:
       str = mrb_reg_to_s(mrb, irep->pool[pool_no]);
       nlen = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);
@@ -365,7 +365,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
       str_dump(RSTRING_PTR(str), char_buf, RSTRING_LEN(str), type);
       break;
 
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
     case MRB_TT_REGEX:
       str = mrb_reg_to_s(mrb, irep->pool[pool_no]);
       nlen = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);

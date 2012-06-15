@@ -8,7 +8,20 @@
 #define MRUBYCONF_H
 
 #include <stdint.h>
+
+/* configuration options: */
+/* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
 #undef MRB_USE_FLOAT
+
+/* -DDISABLE_XXXX to change to drop the feature */
+#define DISABLE_REGEXP	        /* regular expression classes */
+#undef DISABLE_KERNEL_SPRINTF	/* Kernel.sprintf method */
+#undef DISABLE_MATH		/* Math functions */
+#undef DISABLE_TIME		/* Time class */
+
+#undef  HAVE_UNISTD_H /* WINDOWS */
+#define HAVE_UNISTD_H /* LINUX */
+/* end of configuration */
 
 #ifdef MRB_USE_FLOAT
 typedef float mrb_float;
@@ -20,34 +33,19 @@ typedef double mrb_float;
 typedef int mrb_int;
 typedef intptr_t mrb_sym;
 
-//#define PARSER_DUMP        /* print out parser state */
-#undef  PARSER_DUMP        /* do not print out parser state */
-
-//#define INCLUDE_ENCODING   /* use UTF-8 encoding classes */
-#undef  INCLUDE_ENCODING   /* not use encoding classes (ascii only) */
-
-//#define INCLUDE_REGEXP     /* use regular expression classes */
-#undef  INCLUDE_REGEXP     /* not use regular expression classes */
-
-#ifdef  INCLUDE_REGEXP
-# define INCLUDE_ENCODING  /* Regexp depends Encoding */
+/* define ENABLE_XXXX from DISABLE_XXX */
+#ifndef DISABLE_REGEXP
+#define ENABLE_REGEXP
 #endif
-
-#define INCLUDE_KERNEL_SPRINTF     /* not use Kernel.sprintf method */
-//#undef INCLUDE_KERNEL_SPRINTF     /* not use Kernel.sprintf method */
-
-#define INCLUDE_MATH	/* use (non ISO) Math module */
-//#undef INCLUDE_MATH     /* not use (non ISO) Math module */
-
-#define INCLUDE_TIME	/* use Time module */
-//#undef INCLUDE_TIME     /* not use Time module */
-
-#ifdef  MRUBY_DEBUG_BUILD
-# define PARSER_DUMP
+#ifndef DISABLE_KERNEL_SPRINTF
+#define ENABLE_KERNEL_SPRINTF
 #endif
-
-#undef  HAVE_UNISTD_H /* WINDOWS */
-#define HAVE_UNISTD_H /* LINUX */
+#ifndef DISABLE_MATH
+#define ENABLE_MATH
+#endif
+#ifndef DISABLE_TIME
+#define ENABLE_TIME
+#endif
 
 #ifndef FALSE
 # define FALSE 0

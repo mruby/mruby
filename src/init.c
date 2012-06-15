@@ -51,15 +51,15 @@ mrb_init_core(mrb_state *mrb)
   mrb_init_range(mrb);
   mrb_init_struct(mrb);
   mrb_init_gc(mrb);
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
   mrb_init_regexp(mrb);
 #endif
   mrb_init_exception(mrb);
   mrb_init_print(mrb);
-#ifdef INCLUDE_TIME
+#ifdef ENABLE_TIME
   mrb_init_time(mrb);
 #endif
-#ifdef INCLUDE_MATH
+#ifdef ENABLE_MATH
   mrb_init_math(mrb);
 #endif
 

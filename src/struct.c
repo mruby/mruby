@@ -12,7 +12,7 @@
 #include <stdarg.h>
 //#include "defines.h"
 
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
 #include "encoding.h"
 #endif
 

@@ -14,7 +14,7 @@
 #include "error.h"
 #include "mruby/array.h"
 
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
 #include "re.h"
 #include "st.h"
 #endif
