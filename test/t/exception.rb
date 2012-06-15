@@ -41,6 +41,36 @@ assert('Exception.exception', '15.2.22.4.1') do
   e.message == 'a'
 end
 
+assert('ScriptError', '15.2.37') do
+  begin
+    raise ScriptError.new
+  rescue ScriptError
+    true
+  else
+    false
+  end
+end
+
+assert('SyntaxError', '15.2.38') do
+  begin
+    raise SyntaxError.new
+  rescue SyntaxError
+    true
+  else
+    false
+  end
+end
+
+assert('LoadError', '15.2.39') do
+  begin
+    raise LoadError.new
+  rescue LoadError
+    true
+  else
+    false
+  end
+end
+
 # Not ISO specified
 
 assert('Exception 1') do
