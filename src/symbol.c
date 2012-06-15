@@ -363,7 +363,7 @@ mrb_sym2name(mrb_state *mrb, mrb_sym sym)
 }
 
 void
-mrb_init_symbols(mrb_state *mrb)
+mrb_init_symbol(mrb_state *mrb)
 {
   struct RClass *sym;
 
