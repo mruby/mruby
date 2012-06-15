@@ -173,24 +173,19 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 }
 
 void
-mrb_raise_va(mrb_state *mrb, struct RClass *c, const char *fmt, va_list args)
-{
-  char buf[256];
-
-  vsnprintf(buf, 256, fmt, args);
-  mrb_exc_raise(mrb, mrb_exc_new(mrb, c, buf, strlen(buf)));
-}
-
-void
 mrb_raise(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
 {
   va_list args;
   char buf[256];
+  int n;
 
   va_start(args, fmt);
-  vsnprintf(buf, 256, fmt, args);
+  n = vsnprintf(buf, 256, fmt, args);
   va_end(args);
-  mrb_exc_raise(mrb, mrb_exc_new(mrb, c, buf, strlen(buf)));
+  if (n < 0) {
+    n = 0;
+  }
+  mrb_exc_raise(mrb, mrb_exc_new(mrb, c, buf, n));
 }
 
 void
@@ -199,12 +194,15 @@ mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
   mrb_value exc, argv[2];
   va_list args;
   char buf[256];
+  int n;
 
   va_start(args, fmt);
-  //argv[0] = mrb_vsprintf(fmt, args);
-  vsnprintf(buf, 256, fmt, args);
-  argv[0] = mrb_str_new(mrb, buf, strlen(buf));
+  n = vsnprintf(buf, 256, fmt, args);
   va_end(args);
+  if (n < 0) {
+    n = 0;
+  }
+  argv[0] = mrb_str_new(mrb, buf, n);
 
   argv[1] = mrb_str_new_cstr(mrb, mrb_sym2name(mrb, id));
   exc = mrb_class_new_instance(mrb, 2, argv, E_NAME_ERROR);
@@ -216,11 +214,15 @@ mrb_sprintf(mrb_state *mrb, const char *fmt, ...)
 {
   va_list args;
   char buf[256];
+  int n;
 
   va_start(args, fmt);
-  vsnprintf(buf, 256, fmt, args);
+  n = vsnprintf(buf, 256, fmt, args);
   va_end(args);
-  return mrb_str_new(mrb, buf, strlen(buf));
+  if (n < 0) {
+    n = 0;
+  }
+  return mrb_str_new(mrb, buf, n);
 }
 
 void
@@ -235,18 +237,6 @@ mrb_warn(const char *fmt, ...)
   va_end(args);
 }
 
-
-void
-mrb_warning(const char *fmt, ...)
-{
-  va_list args;
-  char buf[256];
-
-  va_start(args, fmt);
-  snprintf(buf, 256, "warning: %s", fmt);
-  printf(buf, args);
-  va_end(args);
-}
 
 void
 mrb_bug(const char *fmt, ...)
@@ -395,9 +385,6 @@ mrb_init_exception(mrb_state *mrb)
   eNameError              = mrb_define_class(mrb, "NameError",           mrb->eStandardError_class); /* 15.2.31 */
 
   mrb_define_class(mrb, "NoMethodError",       eNameError);          /* 15.2.32 */
-  //  eScriptError            = mrb_define_class(mrb, "ScriptError",         mrb->eException_class);     /* 15.2.37 */
-  //  mrb_define_class(mrb, "SyntaxError",         eScriptError);        /* 15.2.38 */
-  //  mrb_define_class(mrb, "LoadError",           eScriptError);        /* 15.2.39 */
   //  mrb_define_class(mrb, "SystemCallError",     mrb->eStandardError_class); /* 15.2.36 */
   mrb_define_class(mrb, "LocalJumpError",      mrb->eStandardError_class); /* 15.2.25 */
 
