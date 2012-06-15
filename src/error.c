@@ -177,11 +177,15 @@ mrb_raise(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
 {
   va_list args;
   char buf[256];
+  int n;
 
   va_start(args, fmt);
-  vsnprintf(buf, 256, fmt, args);
+  n = vsnprintf(buf, 256, fmt, args);
   va_end(args);
-  mrb_exc_raise(mrb, mrb_exc_new(mrb, c, buf, strlen(buf)));
+  if (n < 0) {
+    n = 0;
+  }
+  mrb_exc_raise(mrb, mrb_exc_new(mrb, c, buf, n));
 }
 
 void
@@ -190,12 +194,15 @@ mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
   mrb_value exc, argv[2];
   va_list args;
   char buf[256];
+  int n;
 
   va_start(args, fmt);
-  //argv[0] = mrb_vsprintf(fmt, args);
-  vsnprintf(buf, 256, fmt, args);
-  argv[0] = mrb_str_new(mrb, buf, strlen(buf));
+  n = vsnprintf(buf, 256, fmt, args);
   va_end(args);
+  if (n < 0) {
+    n = 0;
+  }
+  argv[0] = mrb_str_new(mrb, buf, n);
 
   argv[1] = mrb_str_new_cstr(mrb, mrb_sym2name(mrb, id));
   exc = mrb_class_new_instance(mrb, 2, argv, E_NAME_ERROR);
@@ -207,11 +214,15 @@ mrb_sprintf(mrb_state *mrb, const char *fmt, ...)
 {
   va_list args;
   char buf[256];
+  int n;
 
   va_start(args, fmt);
-  vsnprintf(buf, 256, fmt, args);
+  n = vsnprintf(buf, 256, fmt, args);
   va_end(args);
-  return mrb_str_new(mrb, buf, strlen(buf));
+  if (n < 0) {
+    n = 0;
+  }
+  return mrb_str_new(mrb, buf, n);
 }
 
 void
