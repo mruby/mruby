@@ -428,7 +428,6 @@ int mrb_block_given_p(void);
 void mrb_raise(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
 void rb_raise(struct RClass *c, const char *fmt, ...);
 void mrb_warn(const char *fmt, ...);
-void mrb_warning(const char *fmt, ...);
 void mrb_bug(const char *fmt, ...);
 
 #define E_TYPE_ERROR                (mrb_class_obj_get(mrb, "TypeError"))

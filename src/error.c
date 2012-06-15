@@ -229,25 +229,23 @@ void
 mrb_warn(const char *fmt, ...)
 {
   va_list args;
-  char buf[256];
 
   va_start(args, fmt);
-  snprintf(buf, 256, "warning: %s", fmt);
-  printf(buf, args);
+  printf("warning: ");
+  vprintf(fmt, args);
   va_end(args);
 }
-
 
 void
 mrb_bug(const char *fmt, ...)
 {
   va_list args;
-  char buf[256];
 
   va_start(args, fmt);
-  snprintf(buf, 256, "bug: %s", fmt);
-  printf(buf, args);
+  printf("bug: ");
+  vprintf(fmt, args);
   va_end(args);
+  exit(EXIT_FAILURE);
 }
 
 static const char *
