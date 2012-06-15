@@ -26,14 +26,6 @@
 #define MKARG_B(c)    (((c) & 0xff) << 16)
 #define MKARG_C(c)    (((c) & 0xff) <<  8)
 
-#ifndef FALSE
-#define FALSE   0
-#endif
-
-#ifndef TRUE
-#define TRUE    1
-#endif
-
 #define ARG_REG_OPTION_MASK \
     (ONIG_OPTION_IGNORECASE|ONIG_OPTION_MULTILINE|ONIG_OPTION_EXTEND)
 #define ARG_ENCODING_FIXED    16

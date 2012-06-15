@@ -22,14 +22,6 @@
 #include "st.h"
 #endif //ENABLE_REGEXP
 
-#ifndef FALSE
-#define FALSE   0
-#endif
-
-#ifndef TRUE
-#define TRUE    1
-#endif
-
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 #ifdef ENABLE_REGEXP
