@@ -24,7 +24,7 @@ end
 
 assert('Exception#message', '15.2.22.5.2') do
   e = Exception.exception('a')
-  
+
   e.message == 'a'
 end
 
@@ -55,16 +55,6 @@ assert('SyntaxError', '15.2.38') do
   begin
     raise SyntaxError.new
   rescue SyntaxError
-    true
-  else
-    false
-  end
-end
-
-assert('LoadError', '15.2.39') do
-  begin
-    raise LoadError.new
-  rescue LoadError
     true
   else
     false

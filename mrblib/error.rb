@@ -21,9 +21,5 @@ end
 class SyntaxError < ScriptError
 end
 
-# ISO 15.2.39
-class LoadError < ScriptError
-end
-
 class NotImplementedError < ScriptError
 end
