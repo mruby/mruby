@@ -1105,7 +1105,6 @@ mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y)
   mrb_int a;
   
   a = mrb_fixnum(x);
-  if (a == 0) return y;
   if (FIXNUM_P(y)) {
     mrb_int b, c;
 
