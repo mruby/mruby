@@ -183,33 +183,51 @@ mrb_struct_modify(mrb_value s)
 }
 
 mrb_sym
-mrb_id_attrset(mrb_sym id)
+mrb_id_attrset(mrb_state *mrb, mrb_sym id)
 {
-    //id &= ~ID_SCOPE_MASK;
-    //id |= ID_ATTRSET;
-    return id;
+  const char *name;
+  char *buf;
+  int len;
+  mrb_sym mid;
+
+  name = mrb_sym2name_len(mrb, id, &len);
+  buf = mrb_malloc(mrb, len+2);
+  memcpy(buf, name, len);
+  buf[len] = '=';
+  buf[len+1] = '\0';
+
+  mid = mrb_intern2(mrb, buf, len+1);
+  mrb_free(mrb, buf);
+  return mid;
 }
 
 static mrb_value
 mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
 {
-    mrb_value members, slot, *ptr, *ptr_members;
-    long i, len;
+  const char *name;
+  int i, len;
+  mrb_sym mid;
+  mrb_value members, slot, *ptr, *ptr_members;
 
-    members = mrb_struct_members(mrb, obj);
-    ptr_members = RARRAY_PTR(members);
-    len = RARRAY_LEN(members);
-    mrb_struct_modify(obj);
-    ptr = RSTRUCT_PTR(obj);
-    for (i=0; i<len; i++) {
-      slot = ptr_members[i];
-      if (mrb_id_attrset(SYM2ID(slot)) == 0/*rb_frame_this_func(mrb)*/) {
-          return ptr[i] = val;
-      }
+  /* get base id */
+  name = mrb_sym2name_len(mrb, mrb->ci->mid, &len);
+  mid = mrb_intern2(mrb, name, len-1); /* omit last "=" */
+
+  members = mrb_struct_members(mrb, obj);
+  ptr_members = RARRAY_PTR(members);
+  len = RARRAY_LEN(members);
+  mrb_struct_modify(obj);
+  ptr = RSTRUCT_PTR(obj);
+  for (i=0; i<len; i++) {
+    slot = ptr_members[i];
+    if (SYM2ID(slot) == mid) {
+      return ptr[i] = val;
     }
-    mrb_name_error(mrb, 0/*rb_frame_this_func(mrb)*/, "`%s' is not a struct member",
-              mrb_sym2name(mrb, 0/*rb_frame_this_func(mrb)*/));
-    return mrb_nil_value();            /* not reached */
+  }
+
+  mrb_name_error(mrb, mid, "`%s' is not a struct member",
+		 mrb_sym2name(mrb, mid));
+  return mrb_nil_value();            /* not reached */
 }
 
 #define is_notop_id(id) (id)//((id)>tLAST_TOKEN)
@@ -275,7 +293,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
           else {
             mrb_define_method_id(mrb, c, id, mrb_struct_ref, 0);
           }
-          mrb_define_method_id(mrb, c, mrb_id_attrset(id), (mrb_func_t)mrb_struct_set, 1);
+          mrb_define_method_id(mrb, c, mrb_id_attrset(mrb, id), (mrb_func_t)mrb_struct_set, 1);
       }
     }
 
