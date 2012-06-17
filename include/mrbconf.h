@@ -18,6 +18,7 @@
 #undef DISABLE_KERNEL_SPRINTF	/* Kernel.sprintf method */
 #undef DISABLE_MATH		/* Math functions */
 #undef DISABLE_TIME		/* Time class */
+#undef DISABLE_STRUCT		/* Struct class */
 
 #undef  HAVE_UNISTD_H /* WINDOWS */
 #define HAVE_UNISTD_H /* LINUX */
@@ -45,6 +46,9 @@ typedef intptr_t mrb_sym;
 #endif
 #ifndef DISABLE_TIME
 #define ENABLE_TIME
+#endif
+#ifndef DISABLE_STRUCT
+#define ENABLE_STRUCT
 #endif
 
 #ifndef FALSE

@@ -5,6 +5,7 @@
 */
 
 #include "mruby.h"
+#ifdef ENABLE_STRUCT
 #include <string.h>
 #include "error.h"
 #include "mruby/struct.h"
@@ -793,3 +794,4 @@ mrb_init_struct(mrb_state *mrb)
   mrb_define_method(mrb, st,       "eql?",            mrb_struct_eql,         ARGS_REQ(1)); /* 15.2.18.4.12(x)  */
 
 }
+#endif	/* ENABLE_STRUCT */

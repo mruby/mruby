@@ -49,7 +49,9 @@ mrb_init_core(mrb_state *mrb)
   mrb_init_hash(mrb);
   mrb_init_numeric(mrb);
   mrb_init_range(mrb);
+#ifdef ENABLE_STRUCT
   mrb_init_struct(mrb);
+#endif
   mrb_init_gc(mrb);
 #ifdef ENABLE_REGEXP
   mrb_init_regexp(mrb);
