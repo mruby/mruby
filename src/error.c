@@ -203,9 +203,8 @@ mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
     n = 0;
   }
   argv[0] = mrb_str_new(mrb, buf, n);
-
-  argv[1] = mrb_str_new_cstr(mrb, mrb_sym2name(mrb, id));
-  exc = mrb_class_new_instance(mrb, 2, argv, E_NAME_ERROR);
+  argv[1] = mrb_symbol_value(id); /* ignore now */
+  exc = mrb_class_new_instance(mrb, 1, argv, E_NAME_ERROR);
   mrb_exc_raise(mrb, exc);
 }
 
