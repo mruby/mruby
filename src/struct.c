@@ -131,7 +131,7 @@ mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
     ptr = RSTRUCT_PTR(obj);
     members = mrb_struct_members(mrb, obj);
     ptr_members = RARRAY_PTR(members);
-    slot = mrb_str_new_cstr(mrb, mrb_sym2name(mrb, id));
+    slot = mrb_symbol_value(id);
     len = RARRAY_LEN(members);
     for (i=0; i<len; i++) {
       if (mrb_obj_equal(mrb, ptr_members[i], slot)) {
@@ -145,8 +145,7 @@ mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
 static mrb_value
 mrb_struct_ref(mrb_state *mrb, mrb_value obj)
 {
-    //return mrb_struct_getmember(mrb, obj, rb_frame_this_func(mrb));
-    return mrb_nil_value();
+    return mrb_struct_getmember(mrb, obj, mrb->ci->mid);
 }
 
 static mrb_value mrb_struct_ref0(mrb_state* mrb, mrb_value obj) {return RSTRUCT_PTR(obj)[0];}
@@ -230,6 +229,15 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
   return mrb_nil_value();            /* not reached */
 }
 
+static mrb_value
+mrb_struct_set_m(mrb_state *mrb, mrb_value obj)
+{
+  mrb_value val;
+
+  mrb_get_args(mrb, "o", &val);
+  return mrb_struct_set(mrb, obj, val);
+}
+
 #define is_notop_id(id) (id)//((id)>tLAST_TOKEN)
 #define is_local_id(id) (is_notop_id(id))//&&((id)&ID_SCOPE_MASK)==ID_LOCAL)
 int
@@ -288,12 +296,12 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
       mrb_sym id = SYM2ID(ptr_members[i]);
       if (mrb_is_local_id(id) || mrb_is_const_id(id)) {
           if (i < N_REF_FUNC) {
-            mrb_define_method_id(mrb, c, id, (mrb_func_t)ref_func[i], 0);
+            mrb_define_method_id(mrb, c, id, ref_func[i], ARGS_NONE());
           }
           else {
-            mrb_define_method_id(mrb, c, id, mrb_struct_ref, 0);
+            mrb_define_method_id(mrb, c, id, mrb_struct_ref, ARGS_NONE());
           }
-          mrb_define_method_id(mrb, c, mrb_id_attrset(mrb, id), (mrb_func_t)mrb_struct_set, 1);
+          mrb_define_method_id(mrb, c, mrb_id_attrset(mrb, id), mrb_struct_set_m, ARGS_REQ(1));
       }
     }
 
@@ -314,7 +322,7 @@ mrb_struct_define(mrb_state *mrb, const char *name, ...)
     va_start(ar, name);
     while ((mem = va_arg(ar, char*)) != 0) {
       mrb_sym slot = mrb_intern(mrb, mem);
-      mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, mrb_sym2name(mrb, slot)));
+      mrb_ary_push(mrb, ary, mrb_symbol_value(slot));
     }
     va_end(ar);
 
@@ -379,10 +387,6 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
       mrb_ary_unshift(mrb, rest, name);
       name = mrb_nil_value();
     }
-    for (i=0; i<RARRAY_LEN(rest); i++) {
-      id = mrb_to_id(mrb, RARRAY_PTR(rest)[i]);
-      RARRAY_PTR(rest)[i] = mrb_str_new_cstr(mrb, mrb_sym2name(mrb, id));
-    }
   }
   else {
     pargv = &argv[1];
@@ -395,6 +399,10 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
       argcnt++;
     }
     rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
+  }
+  for (i=0; i<RARRAY_LEN(rest); i++) {
+    id = mrb_to_id(mrb, RARRAY_PTR(rest)[i]);
+    RARRAY_PTR(rest)[i] = mrb_symbol_value(id);
   }
   st = make_struct(mrb, name, rest, struct_class(mrb));
   if (!mrb_nil_p(b)) {
