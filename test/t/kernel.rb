@@ -32,10 +32,6 @@ assert('Kernel.lambda', '15.3.1.2.6') do
   l.call and l.class == Proc
 end
 
-assert('Kernel.local_variables', '15.3.1.2.7') do
-  Kernel.local_variables.class == Array
-end
-
 assert('Kernel.loop', '15.3.1.2.8') do
   i = 0
 
@@ -77,10 +73,6 @@ end
 
 assert('Kernel#hash', '15.3.1.2.15') do
   hash == hash
-end
-
-assert('Kernel#local_variables', '15.3.1.2.28') do
-  local_variables.class == Array
 end
 
 assert('Kernel#loop', '15.3.1.2.29') do
