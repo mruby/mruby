@@ -71,14 +71,14 @@ static mrb_value
 exc_exception(mrb_state *mrb, mrb_value self)
 {
   mrb_value exc;
-  mrb_value *argv;
+  mrb_value a;
   int argc;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
+  argc = mrb_get_args(mrb, "|o", &a);
   if (argc == 0) return self;
-  if (argc == 1 && mrb_obj_equal(mrb, self, argv[0])) return self;
+  if (mrb_obj_equal(mrb, self, a)) return self;
   exc = mrb_obj_clone(mrb, self);
-  exc_initialize(mrb, exc);
+  mrb_iv_set(mrb, exc, mrb_intern(mrb, "mesg"), a);
 
   return exc;
 }
@@ -321,7 +321,7 @@ exception_call:
       //  mrb_raise(mrb, E_TYPE_ERROR, "exception class/object expected");
       //}
       if (mrb_respond_to(mrb, argv[0], mrb_intern(mrb, "exception"))) {
-        mesg = mrb_funcall(mrb, argv[0], "exception", n, argv+1);
+        mesg = mrb_funcall_argv(mrb, argv[0], "exception", n, argv+1);
       }
       else {
         /* undef */
