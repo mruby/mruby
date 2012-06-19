@@ -1300,19 +1300,19 @@ mrb_init_class(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(cls, MRB_TT_CLASS);
   mrb_define_method(mrb, bob, "initialize", mrb_bob_init, ARGS_NONE());
   mrb_define_method(mrb, bob, "!", mrb_bob_not, ARGS_NONE());
-  mrb_define_method(mrb, bob, "method_missing", mrb_bob_missing, ARGS_ANY());     /* 15.3.1.3.30 */
+  mrb_define_method(mrb, bob, "method_missing", mrb_bob_missing, ARGS_ANY());        /* 15.3.1.3.30 */
   mrb_define_class_method(mrb, cls, "new", mrb_class_new_class, ARGS_ANY());
-  mrb_define_method(mrb, cls, "superclass", mrb_class_superclass, ARGS_NONE());
-  mrb_define_method(mrb, cls, "new", mrb_instance_new, ARGS_ANY());
+  mrb_define_method(mrb, cls, "superclass", mrb_class_superclass, ARGS_NONE());      /* 15.2.3.3.4 */
+  mrb_define_method(mrb, cls, "new", mrb_instance_new, ARGS_ANY());                  /* 15.2.3.3.3 */
   mrb_define_method(mrb, cls, "inherited", mrb_bob_init, ARGS_REQ(1));
-  mrb_define_method(mrb, mod, "include", mrb_mod_include, ARGS_REQ(1));
+  mrb_define_method(mrb, mod, "include", mrb_mod_include, ARGS_REQ(1));              /* 15.2.2.4.27 */
 
   mrb_define_method(mrb, mod, "to_s", mrb_mod_to_s, ARGS_NONE());
-  mrb_define_method(mrb, mod, "alias_method", mrb_mod_alias, ARGS_ANY());
-  mrb_define_method(mrb, mod, "undef_method", mrb_mod_undef, ARGS_ANY());
-  mrb_define_method(mrb, mod, "const_defined?", mrb_mod_const_defined, ARGS_REQ(1));
-  mrb_define_method(mrb, mod, "const_get", mrb_mod_const_get, ARGS_REQ(1));
-  mrb_define_method(mrb, mod, "const_set", mrb_mod_const_set, ARGS_REQ(2));
+  mrb_define_method(mrb, mod, "alias_method", mrb_mod_alias, ARGS_ANY());            /* 15.2.2.4.8 */
+  mrb_define_method(mrb, mod, "undef_method", mrb_mod_undef, ARGS_ANY());            /* 15.2.2.4.41 */
+  mrb_define_method(mrb, mod, "const_defined?", mrb_mod_const_defined, ARGS_REQ(1)); /* 15.2.2.4.20 */
+  mrb_define_method(mrb, mod, "const_get", mrb_mod_const_get, ARGS_REQ(1));          /* 15.2.2.4.21 */
+  mrb_define_method(mrb, mod, "const_set", mrb_mod_const_set, ARGS_REQ(2));          /* 15.2.2.4.23 */
 
   mrb_define_method(mrb, mod, "===", mrb_mod_eqq, ARGS_REQ(1));
 }
