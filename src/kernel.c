@@ -34,9 +34,6 @@ typedef enum {
     NOEX_RESPONDS  = 0x80
 } mrb_method_flag_t;
 
-KHASH_INIT(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal)
-KHASH_INIT(iv, mrb_sym, mrb_value, 1, kh_int_hash_func, kh_int_hash_equal)
-
 struct obj_ivar_tag {
   mrb_value obj;
   int (*func)(mrb_sym key, mrb_value val, void * arg);
