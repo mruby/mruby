@@ -833,32 +833,6 @@ mrb_f_local_variables(mrb_state *mrb, mrb_value self)
   return ary; /* dummy */
 }
 
-/* 15.3.1.2.8  */
-/* 15.3.1.3.29 */
-/*
- *  call-seq:
- *     loop { block }
- *     loop            -> an_enumerator
- *
- *  Repeatedly executes the block.
- *
- *  If no block is given, an enumerator is returned instead.
- *
- *     loop do
- *       print "Input: "
- *       line = gets
- *       break if !line or line =~ /^qQ/
- *       # ...
- *     end
- *
- *  StopIteration raised in the block breaks the loop.
- */
-mrb_value
-mrb_f_loop(mrb_state *mrb, mrb_value self)
-{
-  return mrb_nil_value();            /* dummy */
-}
-
 static void
 method_entry_loop(mrb_state *mrb, struct RClass* klass, mrb_value ary)
 {
@@ -1160,44 +1134,10 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();            /* not reached */
 }
 
-/* 15.3.1.2.13  */
-/* 15.3.1.3.42 */
-/*
- *  call-seq:
- *     require(string)    -> true or false
- *
- *  Ruby tries to load the library named _string_, returning
- *  +true+ if successful. If the filename does not resolve to
- *  an absolute path, it will be searched for in the directories listed
- *  in <code>$:</code>. If the file has the extension ``.rb'', it is
- *  loaded as a source file; if the extension is ``.so'', ``.o'', or
- *  ``.dll'', or whatever the default shared library extension is on
- *  the current platform, Ruby loads the shared library as a Ruby
- *  extension. Otherwise, Ruby tries adding ``.rb'', ``.so'', and so on
- *  to the name. The name of the loaded feature is added to the array in
- *  <code>$"</code>. A feature will not be loaded if its name already
- *  appears in <code>$"</code>. The file name is converted to an absolute
- *  path, so ``<code>require 'a'; require './a'</code>'' will not load
- *  <code>a.rb</code> twice.
- *
- *     require "my-library.rb"
- *     require "db-driver"
- */
-mrb_value
-mrb_f_require(mrb_state *mrb, mrb_value self)
-{
-  mrb_value fname;
-
-  mrb_get_args(mrb, "o", &fname);
-  return mrb_nil_value(); /* dummy */
-}
-
-
 static inline int
 basic_obj_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym id, int pub)
 {
   return mrb_respond_to(mrb, obj, id);
-  //return TRUE;
 }
 /* 15.3.1.3.43 */
 /*
@@ -1290,10 +1230,8 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_class_method(mrb, krn, "iterator?",            mrb_f_block_given_p_m,           ARGS_NONE());    /* 15.3.1.2.5  */
   mrb_define_class_method(mrb, krn, "lambda",               proc_lambda,                     ARGS_NONE());    /* 15.3.1.2.6  */
   mrb_define_class_method(mrb, krn, "local_variables",      mrb_f_local_variables,           ARGS_NONE());    /* 15.3.1.2.7  */
-  mrb_define_class_method(mrb, krn, "loop",                 mrb_f_loop,                      ARGS_NONE());    /* 15.3.1.2.8  */
 ;     /* 15.3.1.2.11 */
   mrb_define_class_method(mrb, krn, "raise",                mrb_f_raise,                     ARGS_ANY());     /* 15.3.1.2.12 */
-  mrb_define_class_method(mrb, krn, "require",              mrb_f_require,                   ARGS_REQ(1));    /* 15.3.1.2.13 */
 
   mrb_define_method(mrb, krn, "singleton_class",            mrb_singleton_class,             ARGS_NONE());
 
@@ -1324,7 +1262,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "kind_of?",                   mrb_obj_is_kind_of_m,            ARGS_REQ(1));    /* 15.3.1.3.26 */
   mrb_define_method(mrb, krn, "lambda",                     proc_lambda,                     ARGS_NONE());    /* 15.3.1.3.27 */
   mrb_define_method(mrb, krn, "local_variables",            mrb_f_local_variables,           ARGS_NONE());    /* 15.3.1.3.28 */
-  mrb_define_method(mrb, krn, "loop",                       mrb_f_loop,                      ARGS_NONE());    /* 15.3.1.3.29 */
   mrb_define_method(mrb, krn, "methods",                    mrb_obj_methods_m,               ARGS_ANY());     /* 15.3.1.3.31 */
   mrb_define_method(mrb, krn, "nil?",                       mrb_false,                       ARGS_NONE());    /* 15.3.1.3.32 */
   mrb_define_method(mrb, krn, "object_id",                  mrb_obj_id_m,                    ARGS_NONE());    /* 15.3.1.3.33 */
@@ -1333,7 +1270,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "public_methods",             mrb_obj_public_methods,          ARGS_ANY());     /* 15.3.1.3.38 */
   mrb_define_method(mrb, krn, "raise",                      mrb_f_raise,                     ARGS_ANY());     /* 15.3.1.3.40 */
   mrb_define_method(mrb, krn, "remove_instance_variable",   mrb_obj_remove_instance_variable,ARGS_REQ(1));    /* 15.3.1.3.41 */
-  mrb_define_method(mrb, krn, "require",                    mrb_f_require,                   ARGS_REQ(1));    /* 15.3.1.3.42 */
   mrb_define_method(mrb, krn, "respond_to?",                obj_respond_to,                  ARGS_ANY());     /* 15.3.1.3.43 */
   mrb_define_method(mrb, krn, "send",                       mrb_f_send,                      ARGS_ANY());     /* 15.3.1.3.44 */
   mrb_define_method(mrb, krn, "singleton_methods",          mrb_obj_singleton_methods_m,     ARGS_ANY());     /* 15.3.1.3.45 */
