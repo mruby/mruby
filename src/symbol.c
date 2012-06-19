@@ -362,6 +362,37 @@ mrb_sym2name(mrb_state *mrb, mrb_sym sym)
   }
 }
 
+#define lesser(a,b) (((a)>(b))?(b):(a))
+
+static mrb_value
+sym_cmp(mrb_state *mrb, mrb_value s1)
+{
+  mrb_value s2;
+  mrb_sym sym1, sym2;
+
+  mrb_get_args(mrb, "o", &s2);
+  if (mrb_type(s2) != MRB_TT_SYMBOL) return mrb_nil_value();
+  sym1 = mrb_symbol(s1);
+  sym2 = mrb_symbol(s2);
+  if (sym1 == sym2) return mrb_fixnum_value(0);
+  else {
+    const char *p1, *p2;
+    int len, len1, len2, retval;
+
+    p1 = mrb_sym2name_len(mrb, sym1, &len1);
+    p2 = mrb_sym2name_len(mrb, sym2, &len2);
+    len = lesser(len1, len2);
+    retval = memcmp(p1, p2, len);
+    if (retval == 0) {
+      if (len1 == len2) return mrb_fixnum_value(0);
+      if (len1 > len2)  return mrb_fixnum_value(1);
+      return mrb_fixnum_value(-1);
+    }
+    if (retval > 0) return mrb_fixnum_value(1);
+    return mrb_fixnum_value(-1);
+  }
+}
+
 void
 mrb_init_symbol(mrb_state *mrb)
 {
@@ -373,6 +404,6 @@ mrb_init_symbol(mrb_state *mrb)
   mrb_define_method(mrb, sym, "id2name",         mrb_sym_to_s,            ARGS_NONE());              /* 15.2.11.3.2  */
   mrb_define_method(mrb, sym, "to_s",            mrb_sym_to_s,            ARGS_NONE());              /* 15.2.11.3.3  */
   mrb_define_method(mrb, sym, "to_sym",          sym_to_sym,              ARGS_NONE());              /* 15.2.11.3.4  */
-
   mrb_define_method(mrb, sym, "inspect",         sym_inspect,             ARGS_NONE());              /* 15.2.11.3.5(x)  */
+  mrb_define_method(mrb, sym, "<=>",             sym_cmp,                 ARGS_REQ(1));
 }
