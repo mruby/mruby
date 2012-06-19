@@ -70,21 +70,6 @@ mrb_lastline_get(mrb_state *mrb)
   }
 }
 
-mrb_value
-mrb_rescue2(mrb_state *mrb, mrb_value (* b_proc) (ANYARGS), mrb_value *data1,
-                           mrb_value (* r_proc) (ANYARGS), mrb_value *data2, ...)
-{
-    mrb_value result = (*b_proc) (mrb, data1);
-    return result;
-}
-
-mrb_value
-mrb_rescue(mrb_state *mrb, mrb_value (* b_proc)(ANYARGS), mrb_value *data1,
-                          mrb_value (* r_proc)(ANYARGS), mrb_value *data2)
-{
-  return mrb_rescue2(mrb, b_proc, data1, r_proc, data2, mrb->eStandardError_class,
-                         mrb_fixnum_value(0));
-}
 /* ------------------------------------------------ */
 /*
  * Calls func(obj, arg, recursive), where recursive is non-zero if the
