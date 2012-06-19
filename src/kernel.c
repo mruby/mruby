@@ -997,31 +997,6 @@ mrb_false(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
-/* 15.3.1.2.10  */
-/* 15.3.1.3.35 */
-/*
- *  call-seq:
- *     print(obj, ...)    -> nil
- *
- *  Prints each object in turn to <code>$stdout</code>. If the output
- *  field separator (<code>$,</code>) is not +nil+, its
- *  contents will appear between each field. If the output record
- *  separator (<code>$\\</code>) is not +nil+, it will be
- *  appended to the output. If no arguments are given, prints
- *  <code>$_</code>. Objects that aren't strings will be converted by
- *  calling their <code>to_s</code> method.
- *
- *     print "cat", [1,2,3], 99, "\n"
- *     $, = ", "
- *     $\ = "\n"
- *     print "cat", [1,2,3], 99
- *
- *  <em>produces:</em>
- *
- *     cat12399
- *     cat, 1, 2, 3, 99
- */
-
 /* 15.3.1.3.36 */
 /*
  *  call-seq:
