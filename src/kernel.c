@@ -1085,7 +1085,7 @@ mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     raise
  *     raise(string)
- *     raise(exception [, string [, array]])
+ *     raise(exception [, string])
  *
  *  With no arguments, raises a <code>RuntimeError</code>
  *  With a single +String+ argument, raises a
@@ -1103,14 +1103,24 @@ mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
+  mrb_value a[2];
   int argc;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
-  if (argc == 0) {
+  argc = mrb_get_args(mrb, "|oo", &a[0], &a[1]);
+  switch (argc) {
+  case 0:
     mrb_raise(mrb, mrb->eRuntimeError_class, "");
+    break;
+  case 1:
+    a[1] = mrb_check_string_type(mrb, a[0]);
+    if (!mrb_nil_p(a[1])) {
+      argc = 2;
+      a[0] = mrb_obj_value(mrb->eRuntimeError_class);
+    }
+    /* fall through */
+  default:
+    mrb_exc_raise(mrb, mrb_make_exception(mrb, argc, a));
   }
-  mrb_exc_raise(mrb, mrb_make_exception(mrb, argc, argv));
   return mrb_nil_value();            /* not reached */
 }
 
