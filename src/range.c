@@ -111,7 +111,6 @@ range_init(mrb_state *mrb, mrb_value range, mrb_value beg, mrb_value end, mrb_in
   if ((mrb_type(beg) != MRB_TT_FIXNUM) || (mrb_type(end) != MRB_TT_FIXNUM)) {
     args[0] = beg;
     args[1] = end;
-    if (mrb_nil_p(v)) range_failed(); */
     if (!range_check(mrb, args)) {
       printf("range_failed()\n");
     }
