@@ -1209,6 +1209,21 @@ mrb_mod_undef(mrb_state *mrb, mrb_value mod)
   return mrb_nil_value();
 }
 
+static mrb_value
+mod_define_method(mrb_state *mrb, mrb_value self)
+{
+  struct RClass *c = mrb_class_ptr(self);
+  mrb_sym mid;
+  mrb_value blk;
+
+  mrb_get_args(mrb, "n&", &mid, &blk);
+  if (mrb_nil_p(blk)) {
+    /* raise */
+  }
+  mrb_define_method_raw(mrb, c, mid, mrb_proc_ptr(blk));
+  return blk;
+}
+
 static mrb_sym
 mrb_sym_value(mrb_state *mrb, mrb_value val)
 {
@@ -1313,6 +1328,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "const_defined?", mrb_mod_const_defined, ARGS_REQ(1)); /* 15.2.2.4.20 */
   mrb_define_method(mrb, mod, "const_get", mrb_mod_const_get, ARGS_REQ(1));          /* 15.2.2.4.21 */
   mrb_define_method(mrb, mod, "const_set", mrb_mod_const_set, ARGS_REQ(2));          /* 15.2.2.4.23 */
+  mrb_define_method(mrb, mod, "define_method", mod_define_method, ARGS_REQ(1));
 
   mrb_define_method(mrb, mod, "===", mrb_mod_eqq, ARGS_REQ(1));
 }
