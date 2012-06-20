@@ -788,6 +788,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         /* setup environment for calling method */
         proc = m;
         irep = m->body.irep;
+	if (!irep) {
+	  mrb->stack[0] = mrb_nil_value();
+	  goto L_RETURN;
+	}
         pool = irep->pool;
         syms = irep->syms;
         ci->nregs = irep->nregs;
