@@ -18,14 +18,6 @@ module Kernel
     raise NotImplementedError.new("eval not implemented")
   end
 
-  ##
-  # Alias for +send+.
-  #
-  # ISO 15.3.1.3.4
-  #def __send__(symbol, *args, &block)
-    ### *** TODO *** ###
-  #end
-
   # 15.3.1.3.12
   def eval(s)
     Kernel.eval(s)
