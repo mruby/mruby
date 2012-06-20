@@ -2143,7 +2143,7 @@ mrb_reg_regsub(mrb_state *mrb, mrb_value str, mrb_value src, struct re_registers
                 break;
             }
             else {
-                mrb_raise(mrb, mrb->eRuntimeError_class, "invalid group name reference format");
+                mrb_raise(mrb, E_RUNTIME_ERROR, "invalid group name reference format");
             }
         }
 

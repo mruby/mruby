@@ -573,7 +573,7 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
   mrb_value a, b;
 
   if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
-    mrb_raise(mrb, mrb->eRuntimeError_class, "instance_eval with string not implemented");
+    mrb_raise(mrb, E_RUNTIME_ERROR, "instance_eval with string not implemented");
   }
   return mrb_yield_with_self(mrb, b, 0, 0, self);
 }
@@ -1019,13 +1019,13 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
   argc = mrb_get_args(mrb, "|oo", &a[0], &a[1]);
   switch (argc) {
   case 0:
-    mrb_raise(mrb, mrb->eRuntimeError_class, "");
+    mrb_raise(mrb, E_RUNTIME_ERROR, "");
     break;
   case 1:
     a[1] = mrb_check_string_type(mrb, a[0]);
     if (!mrb_nil_p(a[1])) {
       argc = 2;
-      a[0] = mrb_obj_value(mrb->eRuntimeError_class);
+      a[0] = mrb_obj_value(E_RUNTIME_ERROR);
     }
     /* fall through */
   default:

@@ -301,7 +301,7 @@ make_exception(mrb_state *mrb, int argc, mrb_value *argv, int isstr)
       if (isstr) {
         mesg = mrb_check_string_type(mrb, argv[0]);
         if (!mrb_nil_p(mesg)) {
-          mesg = mrb_exc_new3(mrb, mrb->eRuntimeError_class, mesg);
+          mesg = mrb_exc_new3(mrb, E_RUNTIME_ERROR, mesg);
           break;
         }
       }
@@ -352,7 +352,7 @@ mrb_make_exception(mrb_state *mrb, int argc, mrb_value *argv)
 void
 mrb_sys_fail(mrb_state *mrb, const char *mesg)
 {
-  mrb_raise(mrb, mrb->eRuntimeError_class, "%s", mesg);
+  mrb_raise(mrb, E_RUNTIME_ERROR, "%s", mesg);
 }
 
 void
@@ -369,6 +369,6 @@ mrb_init_exception(mrb_state *mrb)
   mrb_define_method(mrb, e, "message", exc_message, ARGS_NONE());
   mrb_define_method(mrb, e, "inspect", exc_inspect, ARGS_NONE());
 
-  mrb->eStandardError_class     = mrb_define_class(mrb, "StandardError",       mrb->eException_class);     /* 15.2.23 */
-  mrb->eRuntimeError_class      = mrb_define_class(mrb, "RuntimeError",        mrb->eStandardError_class); /* 15.2.28 */
+  mrb->eStandardError_class     = mrb_define_class(mrb, "StandardError",       mrb->eException_class); /* 15.2.23 */
+  mrb_define_class(mrb, "RuntimeError", mrb->eStandardError_class);                                    /* 15.2.28 */
 }

@@ -100,7 +100,7 @@ str_mod_check(mrb_state *mrb, mrb_value str, char *p, mrb_int len)
   struct RString *s = mrb_str_ptr(str);
 
   if (s->ptr != p || s->len != len) {
-    mrb_raise(mrb, mrb->eRuntimeError_class, "string modified");
+    mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
   }
 }
 

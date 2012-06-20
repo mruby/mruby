@@ -279,7 +279,6 @@ typedef struct mrb_state {
 
   struct RClass *eException_class;
   struct RClass *eStandardError_class;
-  struct RClass *eRuntimeError_class;
 
   void *ud; /* auxiliary data */
 } mrb_state;
@@ -430,6 +429,7 @@ void rb_raise(struct RClass *c, const char *fmt, ...);
 void mrb_warn(const char *fmt, ...);
 void mrb_bug(const char *fmt, ...);
 
+#define E_RUNTIME_ERROR             (mrb_class_obj_get(mrb, "RuntimeError"))
 #define E_TYPE_ERROR                (mrb_class_obj_get(mrb, "TypeError"))
 #define E_ARGUMENT_ERROR            (mrb_class_obj_get(mrb, "ArgumentError"))
 #define E_INDEX_ERROR               (mrb_class_obj_get(mrb, "IndexError"))
