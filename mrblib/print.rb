@@ -47,4 +47,8 @@ module Kernel
     end
     args[0]
   end
+
+  def printf(*args)
+    __printstr__(sprintf(*args))
+  end
 end
