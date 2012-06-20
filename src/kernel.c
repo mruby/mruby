@@ -794,22 +794,6 @@ mrb_obj_is_kind_of_m(mrb_state *mrb, mrb_value self)
   }
 }
 
-/* 15.3.1.2.6  */
-/* 15.3.1.3.27 */
-/*
- * call-seq:
- *   lambda { |...| block }  -> a_proc
- *
- * Equivalent to <code>Proc.new</code>, except the resulting Proc objects
- * check the number of parameters passed when called.
- */
-mrb_value
-proc_lambda(mrb_state *mrb, mrb_value self)
-{
-  //return mrb_block_lambda();
-  return mrb_nil_value(); /* dummy */
-}
-
 static void
 method_entry_loop(mrb_state *mrb, struct RClass* klass, mrb_value ary)
 {
@@ -1205,7 +1189,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_class_method(mrb, krn, "block_given?",         mrb_f_block_given_p_m,           ARGS_NONE());    /* 15.3.1.2.2  */
   mrb_define_class_method(mrb, krn, "global_variables",     mrb_f_global_variables,          ARGS_NONE());    /* 15.3.1.2.4  */
   mrb_define_class_method(mrb, krn, "iterator?",            mrb_f_block_given_p_m,           ARGS_NONE());    /* 15.3.1.2.5  */
-  mrb_define_class_method(mrb, krn, "lambda",               proc_lambda,                     ARGS_NONE());    /* 15.3.1.2.6  */
 ;     /* 15.3.1.2.11 */
   mrb_define_class_method(mrb, krn, "raise",                mrb_f_raise,                     ARGS_ANY());     /* 15.3.1.2.12 */
 
@@ -1236,7 +1219,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "is_a?",                      mrb_obj_is_kind_of_m,            ARGS_REQ(1));    /* 15.3.1.3.24 */
   mrb_define_method(mrb, krn, "iterator?",                  mrb_f_block_given_p_m,           ARGS_NONE());    /* 15.3.1.3.25 */
   mrb_define_method(mrb, krn, "kind_of?",                   mrb_obj_is_kind_of_m,            ARGS_REQ(1));    /* 15.3.1.3.26 */
-  mrb_define_method(mrb, krn, "lambda",                     proc_lambda,                     ARGS_NONE());    /* 15.3.1.3.27 */
   mrb_define_method(mrb, krn, "methods",                    mrb_obj_methods_m,               ARGS_ANY());     /* 15.3.1.3.31 */
   mrb_define_method(mrb, krn, "nil?",                       mrb_false,                       ARGS_NONE());    /* 15.3.1.3.32 */
   mrb_define_method(mrb, krn, "object_id",                  mrb_obj_id_m,                    ARGS_NONE());    /* 15.3.1.3.33 */

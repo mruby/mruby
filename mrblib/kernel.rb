@@ -3,17 +3,6 @@
 #
 # ISO 15.3.1
 module Kernel
-
-  ##
-  # Takes the given block, create a lambda
-  # out of it and +call+ it.
-  #
-  # ISO 15.3.1.2.6
-  def self.lambda(&block)
-    ### *** TODO *** ###
-    block  # dummy
-  end
-
   ##
   # Calls the given block repetitively.
   #
@@ -40,15 +29,6 @@ module Kernel
   # 15.3.1.3.12
   def eval(s)
     Kernel.eval(s)
-  end
-
-  ##
-  # Alias for +Kernel.lambda+.
-  #
-  # ISO 15.3.1.3.27
-  def lambda(&block)
-    ### *** TODO *** ###
-    block # dummy
   end
 
   ##
