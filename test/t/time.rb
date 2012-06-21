@@ -1,7 +1,7 @@
 ##
 # Time ISO Test
 
-if TimeEnabled
+if Object.const_defined?(:Time)
   assert('Time.new', '15.2.3.3.3') do
     Time.new.class == Time
   end
