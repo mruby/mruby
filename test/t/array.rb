@@ -234,4 +234,12 @@ assert('Array#unshift', '15.2.12.5.30') do
   a == [1,2,3] and b == [1,2,3]
 end
 
+assert('Array#to_s', '15.2.12.5.31') do
+  a = [2, 3,   4, 5]
+  r1 = a.to_s
+  r2 = a.inspect
+
+  r1 == r2 and r1 == "[2, 3, 4, 5]"
+end
+
 # Not ISO specified
