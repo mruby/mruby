@@ -1,7 +1,7 @@
 ##
 # Struct ISO Test
 
-if StructEnabled
+if Object.const_defined?(:Struct)
   assert('Struct', '15.2.18') do
     Struct.class == Class
   end
