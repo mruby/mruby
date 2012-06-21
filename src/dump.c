@@ -417,7 +417,7 @@ write_syms_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
     if (irep->syms[sym_no] != 0) {
       int len;
 
-      name = mrb_sym2name(mrb, irep->syms[sym_no], &len);
+      name = mrb_sym2name_len(mrb, irep->syms[sym_no], &len);
       nlen = str_dump_len((char*)name, len, type);
       if ( nlen > buf_size - 1) {
         buf_size = nlen + 1;
