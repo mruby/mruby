@@ -15,7 +15,8 @@
 #include "mruby/array.h"
 #include "error.h"
 
-#include "mruby/khash.h"
+KHASH_DEFINE(iv, mrb_sym, mrb_value,     1, kh_int_hash_func, kh_int_hash_equal);
+KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal);
 
 typedef struct fc_result {
     mrb_sym name;
@@ -24,9 +25,6 @@ typedef struct fc_result {
     struct RClass * track;
     struct fc_result *prev;
 } fcresult_t;
-
-int kiv_lookup(khash_t(iv) *table, mrb_sym key, mrb_value *value);
-extern struct kh_iv *mrb_class_tbl;
 
 void
 mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)

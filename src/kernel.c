@@ -10,14 +10,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mruby/proc.h"
-
 #include "mruby/range.h"
 #include "mruby/array.h"
 #include "mruby/hash.h"
 #include "mruby/class.h"
 #include "mruby/struct.h"
 #include "mruby/variable.h"
-#include "mruby/khash.h"
 #include "error.h"
 
 typedef enum {
@@ -1057,39 +1055,14 @@ mrb_value
 mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
 {
   mrb_sym sym;
-  mrb_value name;
-  khash_t(iv) *h;
-  khiter_t k;
   mrb_value val;
-  mrb_value Qundef = mrb_undef_value();
 
-  mrb_get_args(mrb, "o", &name);
-  sym = mrb_to_id(mrb, name);
-  //if (OBJ_FROZEN(obj)) mrb_error_frozen("object");
-  //if (!mrb_is_instance_id(id)) {
-  //    mrb_name_error(mrb, id, "`%s' is not allowed as an instance variable name", mrb_sym2name(mrb, id));
-  //}
-  switch (mrb_type(self)) {
-    case MRB_TT_OBJECT:
-    case MRB_TT_CLASS:
-    case MRB_TT_MODULE:
-      if (!mrb_obj_ptr(self)->iv) break;
-      h = mrb_obj_ptr(self)->iv;
-      if (!h) break;
-      k = kh_get(iv, h, sym);
-      if (k != kh_end(h)) {
-        val = kh_value(h, k);
-        if (!mrb_obj_equal(mrb, val, Qundef)) {
-          kh_value(h, k) = Qundef;
-          return val;
-        }
-      }
-      break;
-    default:
-      break;
+  mrb_get_args(mrb, "n", &sym);
+  val = mrb_iv_remove(mrb, self, sym);
+  if (UNDEF_P(val)) {
+    mrb_name_error(mrb, sym, "instance variable %s not defined", mrb_sym2name(mrb, sym));
   }
-  mrb_name_error(mrb, sym, "instance variable %s not defined", mrb_sym2name(mrb, sym));
-  return mrb_nil_value();            /* not reached */
+  return val;
 }
 
 static inline int

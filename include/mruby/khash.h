@@ -216,12 +216,6 @@ static inline khint_t __ac_X31_hash_string(const char *s)
 
 typedef const char *kh_cstr_t;
 
-/* declare common hash types. */
-#include "mruby.h"
-
-KHASH_DECLARE(mt, mrb_sym,   struct RProc*, 1)
-KHASH_DECLARE(iv, mrb_sym,   mrb_value,     1)
-
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif

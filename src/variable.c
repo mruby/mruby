@@ -94,10 +94,28 @@ mrb_obj_iv_get(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
   return ivget(mrb, obj->iv, sym);
 }
 
+static int
+obj_iv_p(mrb_value obj)
+{
+  switch (mrb_type(obj)) {
+    case MRB_TT_OBJECT:
+    case MRB_TT_CLASS:
+    case MRB_TT_MODULE:
+    case MRB_TT_HASH:
+    case MRB_TT_DATA:
+      return TRUE;
+    default:
+      return FALSE;
+  }
+}
+
 mrb_value
 mrb_iv_get(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 {
-  return mrb_obj_iv_get(mrb, mrb_obj_ptr(obj), sym);
+  if (obj_iv_p(obj)) {
+    return mrb_obj_iv_get(mrb, mrb_obj_ptr(obj), sym);
+  }
+  return mrb_nil_value();
 }
 
 static void
@@ -127,7 +145,30 @@ mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 void
 mrb_iv_set(mrb_state *mrb, mrb_value obj, mrb_sym sym, mrb_value v) /* mrb_ivar_set */
 {
-  mrb_obj_iv_set(mrb, mrb_obj_ptr(obj), sym, v);
+  if (obj_iv_p(obj)) {
+    mrb_obj_iv_set(mrb, mrb_obj_ptr(obj), sym, v);
+  }
+}
+
+mrb_value
+mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
+{
+  mrb_value val;
+
+  if (obj_iv_p(obj)) {
+    khash_t(iv) *h = mrb_obj_ptr(obj)->iv;
+    khiter_t k;
+
+    if (h) {
+      k = kh_get(iv, h, sym);
+      if (k != kh_end(h)) {
+	val = kh_value(h, k);
+	kh_del(iv, h, k);
+	return val;
+      }
+    }
+  }
+  return mrb_undef_value();
 }
 
 mrb_value
@@ -366,7 +407,7 @@ mrb_st_lookup(struct kh_iv *table, mrb_sym id, khiter_t *value)
   }
 }
 
-int
+static int
 kiv_lookup(khash_t(iv)* table, mrb_sym key, mrb_value *value)
 {
   khash_t(iv) *h=table;
