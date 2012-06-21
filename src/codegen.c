@@ -633,31 +633,31 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
   {
     const char *name = mrb_sym2name(s->mrb, sym);
 
-    if (!noop && name[0] == '+' && strlen(name) == 1)  {
+    if (!noop && name[0] == '+' && name[1] == '\0')  {
       genop(s, MKOP_ABC(OP_ADD, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '-' && strlen(name) == 1)  {
+    else if (!noop && name[0] == '-' && name[1] == '\0')  {
       genop(s, MKOP_ABC(OP_SUB, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '*' && strlen(name) == 1)  {
+    else if (!noop && name[0] == '*' && name[1] == '\0')  {
       genop(s, MKOP_ABC(OP_MUL, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '/' && strlen(name) == 1)  {
+    else if (!noop && name[0] == '/' && name[1] == '\0')  {
       genop(s, MKOP_ABC(OP_DIV, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '<' && strlen(name) == 1)  {
+    else if (!noop && name[0] == '<' && name[1] == '\0')  {
       genop(s, MKOP_ABC(OP_LT, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '<' && strlen(name) == 2 && name[1] == '=')  {
+    else if (!noop && name[0] == '<' && name[1] == '=' && name[2] == '\0')  {
       genop(s, MKOP_ABC(OP_LE, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '>' && strlen(name) == 1)  {
+    else if (!noop && name[0] == '>' && name[1] == '\0')  {
       genop(s, MKOP_ABC(OP_GT, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '>' && strlen(name) == 2 && name[1] == '=')  {
+    else if (!noop && name[0] == '>' && name[1] == '=' && name[2] == '\0')  {
       genop(s, MKOP_ABC(OP_GE, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '=' && strlen(name) == 2 && name[1] == '=')  {
+    else if (!noop && name[0] == '=' && name[1] == '=' && name[2] == '\0')  {
       genop(s, MKOP_ABC(OP_EQ, cursp(), idx, n));
     }
     else {
@@ -1258,8 +1258,8 @@ codegen(codegen_scope *s, node *tree, int val)
       int idx;
 
       codegen(s, tree->car, VAL);
-      if ((name[0] == '|' && strlen(name) == 2 && name[1] == '|') ||
-	  (name[0] == '&' && strlen(name) == 2 && name[1] == '&')) {
+      if ((name[0] == '|' && name[1] == '|' && name[2] == '\0') ||
+	  (name[0] == '&' && name[1] == '&' && name[2] == '\0')) {
 	int pos;
 
 	pop();
@@ -1276,22 +1276,22 @@ codegen(codegen_scope *s, node *tree, int val)
       pop(); pop();
 
       idx = new_msym(s, sym);
-      if (name[0] == '+' && strlen(name) == 1)  {
+      if (name[0] == '+' && name[1] == '\0')  {
         genop(s, MKOP_ABC(OP_ADD, cursp(), idx, 1));
       }
-      else if (name[0] == '-' && strlen(name) == 1)  {
+      else if (name[0] == '-' && name[1] == '\0')  {
         genop(s, MKOP_ABC(OP_SUB, cursp(), idx, 1));
       }
-      else if (name[0] == '<' && strlen(name) == 1)  {
+      else if (name[0] == '<' && name[1] == '\0')  {
         genop(s, MKOP_ABC(OP_LT, cursp(), idx, 1));
       }
-      else if (name[0] == '<' && strlen(name) == 2 && name[1] == '=')  {
+      else if (name[0] == '<' && name[1] == '=' && name[2] == '\0')  {
         genop(s, MKOP_ABC(OP_LE, cursp(), idx, 1));
       }
-      else if (name[0] == '>' && strlen(name) == 1)  {
+      else if (name[0] == '>' && name[1] == '\0')  {
         genop(s, MKOP_ABC(OP_GT, cursp(), idx, 1));
       }
-      else if (name[0] == '>' && strlen(name) == 2 && name[1] == '=')  {
+      else if (name[0] == '>' && name[1] == '=' && name[2] == '\0')  {
         genop(s, MKOP_ABC(OP_GE, cursp(), idx, 1));
       }
       else {
