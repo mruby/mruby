@@ -1,7 +1,7 @@
 ##
 # Math Test
 
-if MathEnabled
+if Object.const_defined?(:Math)
   assert('Math.sin 0') do
     check_float(Math.sin(0), 0)
   end
