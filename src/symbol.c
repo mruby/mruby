@@ -36,7 +36,8 @@ sym_hash_func(mrb_state *mrb, const symbol_name s)
 }
 #define sym_hash_equal(mrb,a, b) (a.len == b.len && memcmp(a.name, b.name, a.len) == 0)
 
-KHASH_INIT(n2s, symbol_name, mrb_sym, 1, sym_hash_func, sym_hash_equal)
+KHASH_DECLARE(n2s, symbol_name, mrb_sym, 1)
+KHASH_DEFINE (n2s, symbol_name, mrb_sym, 1, sym_hash_func, sym_hash_equal)
 /* ------------------------------------------------------ */
 mrb_sym
 mrb_intern2(mrb_state *mrb, const char *name, int len)
