@@ -19,8 +19,6 @@
 #include "st.h"
 #endif
 
-KHASH_INIT(iv, mrb_sym, mrb_value, 1, kh_int_hash_func, kh_int_hash_equal)
-
 static void
 mark_tbl(mrb_state *mrb, struct kh_iv *h)
 {
