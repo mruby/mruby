@@ -1206,6 +1206,39 @@ mrb_init_kernel(mrb_state *mrb)
 #ifdef ENABLE_KERNEL_SPRINTF
   mrb_define_method(mrb, krn, "sprintf",                    mrb_f_sprintf,                   ARGS_ANY());     /* in sprintf.c */
   mrb_define_method(mrb, krn, "format",                     mrb_f_sprintf,                   ARGS_ANY());     /* in sprintf.c */
+  mrb_define_const(mrb, krn, "SprintfEnabled", mrb_true_value());
+#else
+  mrb_define_const(mrb, krn, "SprintfEnabled", mrb_false_value());
+#endif
+
+#ifdef ENABLE_MATH
+  mrb_define_const(mrb, krn, "MathEnabled", mrb_true_value());
+#else
+  mrb_define_const(mrb, krn, "MathEnabled", mrb_false_value());
+#endif
+
+#ifdef ENABLE_TIME
+  mrb_define_const(mrb, krn, "TimeEnabled", mrb_true_value());
+#else
+  mrb_define_const(mrb, krn, "TimeEnabled", mrb_false_value());
+#endif
+
+#ifdef ENABLE_REGEXP
+  mrb_define_const(mrb, krn, "RegExpEnabled", mrb_true_value());
+#else
+  mrb_define_const(mrb, krn, "RegExpEnabled", mrb_false_value());
+#endif
+
+#ifdef ENABLE_STRUCT
+  mrb_define_const(mrb, krn, "StructEnabled", mrb_true_value());
+#else
+  mrb_define_const(mrb, krn, "StructEnabled", mrb_false_value());
+#endif
+
+#ifdef MRB_USE_FLOAT
+  mrb_define_const(mrb, krn, "UsingFloat", mrb_true_value());
+#else
+  mrb_define_const(mrb, krn, "UsingFloat", mrb_false_value());
 #endif
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
