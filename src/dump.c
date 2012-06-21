@@ -415,15 +415,17 @@ write_syms_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
     uint16_t nlen =0;
 
     if (irep->syms[sym_no] != 0) {
-      name = mrb_sym2name(mrb, irep->syms[sym_no]);
-      nlen = str_dump_len((char*)name, strlen(name), type);
+      int len;
+
+      name = mrb_sym2name(mrb, irep->syms[sym_no], &len);
+      nlen = str_dump_len((char*)name, len, type);
       if ( nlen > buf_size - 1) {
         buf_size = nlen + 1;
         if ((char_buf = mrb_realloc(mrb, char_buf, buf_size)) == 0)
           goto error_exit;
       }
       memset(char_buf, 0, buf_size);
-      str_dump((char*)name, char_buf, strlen(name), type);
+      str_dump((char*)name, char_buf, len, type);
 
       buf += uint16_dump(nlen, buf, type); /* length of symbol name */
       memcpy(buf, char_buf, nlen); /* symbol name */

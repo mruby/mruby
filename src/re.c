@@ -357,14 +357,14 @@ mrb_reg_desc(mrb_state *mrb, const char *s, long len, mrb_value re)
   mrb_value str = mrb_str_new_cstr(mrb, "/");//mrb_str_buf_new2("/");
 
   mrb_reg_expr_str(mrb, str, s, len);
-  mrb_str_buf_cat(mrb, str, "/", strlen("/"));
+  mrb_str_buf_cat(mrb, str, "/", sizeof("/"));
   if (re.tt) {
     char opts[4];
     mrb_reg_check(mrb, re);
     if (*option_to_str(opts, RREGEXP(re)->ptr->options))
         mrb_str_buf_cat(mrb, str, opts, strlen(opts));//mrb_str_buf_cat2(str, opts);
     if (RBASIC(re)->flags & REG_ENCODING_NONE)
-        mrb_str_buf_cat(mrb, str, "n", strlen("n"));//mrb_str_buf_cat2(str, "n");
+        mrb_str_buf_cat(mrb, str, "n", sizeof("n"));
   }
 
   return str;
@@ -1796,9 +1796,9 @@ again:
     mrb_str_buf_cat(mrb, str, optbuf, strlen(optbuf));
   }
 
-  mrb_str_buf_cat(mrb, str, ":", strlen(":"));
+  mrb_str_buf_cat(mrb, str, ":", sizeof(":"));
   mrb_reg_expr_str(mrb, str, (char*)ptr, len);
-  mrb_str_buf_cat(mrb, str, ")", strlen(")"));
+  mrb_str_buf_cat(mrb, str, ")", sizeof(")"));
 
   return str;
 }
@@ -1919,29 +1919,28 @@ mrb_match_inspect(mrb_state *mrb, mrb_value match)
             match_inspect_name_iter, names);
 
     str = mrb_str_new_cstr(mrb, "#<");//mrb_str_buf_new2("#<");
-    mrb_str_buf_cat(mrb, str, cname, strlen(cname));//mrb_str_buf_cat2(str, cname);
+    mrb_str_buf_cat(mrb, str, cname, strlen(cname));
 
     for (i = 0; i < num_regs; i++) {
         char buf[sizeof(num_regs)*3+1];
         mrb_value v;
-        mrb_str_buf_cat(mrb, str, " ", strlen(" "));//mrb_str_buf_cat2(str, " ");
+        mrb_str_buf_cat(mrb, str, " ", sizeof(" "));
         if (0 < i) {
             if (names[i].name)
                 mrb_str_buf_cat(mrb, str, (const char*)names[i].name, names[i].len);
             else {
-                //mrb_str_catf(mrb, str, "%d", i);
                 sprintf(buf, "%d", i);
                 mrb_str_buf_cat(mrb, str, (const char*)buf, strlen(buf));
             }
-            mrb_str_buf_cat(mrb, str, ":", strlen(":"));//mrb_str_buf_cat2(str, ":");
+            mrb_str_buf_cat(mrb, str, ":", sizeof(":"));
         }
         v = mrb_reg_nth_match(mrb, i, match);
         if (mrb_nil_p(v))
-            mrb_str_buf_cat(mrb, str, "nil", strlen("nil"));//mrb_str_buf_cat2(str, "nil");
+            mrb_str_buf_cat(mrb, str, "nil", sizeof("nil"));
         else
             mrb_str_buf_append(mrb, str, mrb_str_inspect(mrb, v));
     }
-    mrb_str_buf_cat(mrb, str, ">", strlen(">"));//mrb_str_buf_cat2(str, ">");
+    mrb_str_buf_cat(mrb, str, ">", sizeof(">"));
 
     return str;
 }

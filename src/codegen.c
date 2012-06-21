@@ -542,16 +542,17 @@ nosplat(node *t)
 static mrb_sym
 attrsym(codegen_scope *s, mrb_sym a)
 {
-  const char *name = mrb_sym2name(s->mrb, a);
+  const char *name;
+  int len;
   char *name2;
-  size_t len = strlen(name);
 
+  name = mrb_sym2name(s->mrb, a, &len);
   name2 = codegen_palloc(s, len+1);
   strcpy(name2, name);
   name2[len] = '=';
   name2[len+1] = '\0';
 
-  return mrb_intern(s->mrb, name2);
+  return mrb_intern2(s->mrb, name2, len+1);
 }
 
 static int
