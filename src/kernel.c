@@ -1207,5 +1207,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "sprintf",                    mrb_f_sprintf,                   ARGS_ANY());     /* in sprintf.c */
   mrb_define_method(mrb, krn, "format",                     mrb_f_sprintf,                   ARGS_ANY());     /* in sprintf.c */
 #endif
+
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
 }
