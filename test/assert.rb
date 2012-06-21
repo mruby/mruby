@@ -2,6 +2,7 @@ $ok_test = 0
 $ko_test = 0
 $kill_test = 0
 $asserts  = []
+$test_start = Time.now if Object.const_defined?(:Time)
 
 ##
 # Print the assertion in a readable way
@@ -68,6 +69,12 @@ def report()
   print('Crash: ')
   print($kill_test)
   print("\n")
+
+  if Object.const_defined?(:Time)
+    print(' Time: ')
+    print(Time.now - $test_start)
+    print(" seconds\n")
+  end
 end
 
 ##
@@ -83,3 +90,4 @@ def check_float(a, b)
     true
   end
 end
+
