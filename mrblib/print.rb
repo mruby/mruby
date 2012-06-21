@@ -48,7 +48,12 @@ module Kernel
     args[0]
   end
 
-  def printf(*args)
-    __printstr__(sprintf(*args))
+  if Kernel.respond_to?(:sprintf)
+    ##
+    # Invoke method +sprintf+ and pass +*args+ to it.
+    # Pass return value to *print* of STDOUT.
+    def printf(*args)
+      __printstr__(sprintf(*args))
+    end
   end
 end
