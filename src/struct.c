@@ -93,7 +93,7 @@ mrb_struct_s_members_m(mrb_state *mrb, mrb_value klass)
     mrb_value *p, *pend;
 
     members = mrb_struct_s_members(mrb, klass);
-    ary = mrb_ary_new_capa(mrb, RARRAY_LEN(members));//mrb_ary_new2(RARRAY_LEN(members));
+    ary = mrb_ary_new_capa(mrb, RARRAY_LEN(members));
     p = RARRAY_PTR(members); pend = p + RARRAY_LEN(members);
     while (p < pend) {
       mrb_ary_push(mrb, ary, *p);
@@ -493,7 +493,7 @@ static mrb_value
 inspect_struct(mrb_state *mrb, mrb_value s, mrb_value dummy, int recur)
 {
     const char *cn = mrb_class_name(mrb, mrb_obj_class(mrb, s));
-    mrb_value members, str = mrb_str_new2(mrb, "#<struct ");
+    mrb_value members, str = mrb_str_new(mrb, "#<struct ", 9);
     mrb_value *ptr, *ptr_members;
     long i, len;
 
