@@ -966,15 +966,14 @@ mrb_value
 mrb_class_path(mrb_state *mrb, struct RClass *c)
 {
   mrb_value path;
+  const char *name;
+  int len;
 
   path = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern(mrb, "__classpath__"));
   if (mrb_nil_p(path)) {
     struct RClass *outer = mrb_class_outer_module(mrb, c);
     mrb_sym sym = class_sym(mrb, c, outer);
     if (outer && outer != mrb->object_class) {
-      char *name;
-      int len;
-
       mrb_value base = mrb_class_path(mrb, outer);
       path = mrb_str_plus(mrb, base, mrb_str_new(mrb, "::", 2));
       name = mrb_sym2name_len(mrb, sym, &len);
@@ -984,9 +983,6 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
       return mrb_nil_value();
     }
     else {
-      char *name;
-      int len;
-
       name = mrb_sym2name_len(mrb, sym, &len);
       path = mrb_str_new(mrb, name, len);
     }

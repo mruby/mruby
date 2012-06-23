@@ -521,7 +521,7 @@ inspect_struct(mrb_state *mrb, mrb_value s, mrb_value dummy, int recur)
       slot = ptr_members[i];
       id = SYM2ID(slot);
       if (mrb_is_local_id(id) || mrb_is_const_id(id)) {
-	char *name;
+	const char *name;
 	int len;
 
 	name = mrb_sym2name_len(mrb, id, &len);
