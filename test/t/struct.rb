@@ -16,6 +16,13 @@ if Object.const_defined?(:Struct)
       c.members == [:m1,:m2]
   end
 
+  assert('Struct#==', '15.2.18.4.1') do
+    c = Struct.new(:m1, :m2)
+    cc1 = c.new(1,2)
+    cc2 = c.new(1,2)
+    cc1 == cc2
+  end
+
   assert('Struct#[]', '15.2.18.4.2') do
     c = Struct.new(:m1, :m2)
     cc = c.new(1,2)
