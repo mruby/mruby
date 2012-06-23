@@ -394,8 +394,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   mrb_value *regs = NULL;
   mrb_code i;
   int ai = mrb->arena_idx;
+  jmp_buf *prev_jmp = mrb->jmp;
   jmp_buf c_jmp;
-  volatile jmp_buf *prev_jmp = NULL;
 
 #ifdef DIRECT_THREADED
   static void *optable[] = {
@@ -424,7 +424,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
 
   if (setjmp(c_jmp) == 0) {
-    prev_jmp = mrb->jmp;
     mrb->jmp = &c_jmp;
   }
   else {
