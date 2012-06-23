@@ -708,46 +708,6 @@ mrb_obj_ivar_set(mrb_state *mrb, mrb_value self)
   return val;
 }
 
-/* 15.3.1.3.23 */
-/*
- *  call-seq:
- *     obj.instance_variables    -> array
- *
- *  Returns an array of instance variable names for the receiver. Note
- *  that simply defining an accessor does not create the corresponding
- *  instance variable.
- *
- *     class Fred
- *       attr_accessor :a1
- *       def initialize
- *         @iv = 3
- *       end
- *     end
- *     Fred.new.instance_variables   #=> [:@iv]
- */
-mrb_value
-mrb_obj_instance_variables(mrb_state *mrb, mrb_value self)
-{
-    mrb_value ary;
-    kh_iv_t *h = RCLASS_IV_TBL(self);
-    khint_t i;
-    const char* p;
-
-    ary = mrb_ary_new(mrb);
-    if (h) {
-      for (i=0;i<kh_end(h);i++) {
-        if (kh_exist(h, i)) {
-          p = mrb_sym2name(mrb, kh_key(h,i));
-          if (*p == '@') {
-            if (mrb_type(kh_value(h, i)) != MRB_TT_UNDEF)
-              mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, p));
-          }
-        }
-      }
-    }
-    return ary;
-}
-
 /* 15.3.1.3.24 */
 /* 15.3.1.3.26 */
 /*
