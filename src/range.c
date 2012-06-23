@@ -343,7 +343,12 @@ inspect_range(mrb_state *mrb, mrb_value range, mrb_value dummy, int recur)
   struct RRange *r = mrb_range_ptr(range);
 
   if (recur) {
-    return mrb_str_new2(mrb, r->excl ? "(... ... ...)" : "(... .. ...)");
+    static const char s[2][14] = { "(... ... ...)", "(... .. ...)" };
+    static const int n[] = { 13, 12 };
+    int idx;
+
+    idx = (r->excl) ? 0 : 1;
+    return mrb_str_new(mrb, s[idx], n[idx]);
   }
   str  = mrb_inspect(mrb, r->edges->beg);
   str2 = mrb_inspect(mrb, r->edges->end);

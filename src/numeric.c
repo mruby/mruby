@@ -15,6 +15,7 @@
 #include <ctype.h>
 #include <math.h>
 #include <stdio.h>
+#include <assert.h>
 
 #if defined(__FreeBSD__) && __FreeBSD__ < 4
 #include <floatingpoint.h>
@@ -186,15 +187,21 @@ static mrb_value
 flo_to_s(mrb_state *mrb, mrb_value flt)
 {
   char buf[32];
+  int n;
   mrb_float value = mrb_float(flt);
 
-  if (isinf(value))
-    return mrb_str_new2(mrb, value < 0 ? "-inf" : "inf");
-  else if(isnan(value))
-    return mrb_str_new2(mrb, "NaN");
+  if (isinf(value)) {
+    static const char s[2][5] = { "-inf", "inf" };
+    static const int n[] = { 4, 3 };
+    int idx;
+    idx = (value < 0) ? 0 : 1;
+    return mrb_str_new(mrb, s[idx], n[idx]);
+  } else if(isnan(value))
+    return mrb_str_new(mrb, "NaN", 3);
 
-  sprintf(buf, "%.14g", value);
-  return mrb_str_new2(mrb, buf);
+  n = sprintf(buf, "%.14g", value);
+  assert(n >= 0);
+  return mrb_str_new(mrb, buf, n);
 }
 
 /* 15.2.9.3.2  */
@@ -1158,7 +1165,7 @@ mrb_fix2str(mrb_state *mrb, mrb_value x, int base)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid radix %d", base);
   }
   if (val == 0) {
-    return mrb_str_new2(mrb, "0");
+    return mrb_str_new(mrb, "0", 1);
   }
   if (val < 0) {
     val = -val;
