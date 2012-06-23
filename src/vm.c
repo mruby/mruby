@@ -393,7 +393,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   mrb_code i;
   int ai = mrb->arena_idx;
   jmp_buf c_jmp;
-  jmp_buf *prev_jmp = NULL;
+  volatile jmp_buf *prev_jmp = NULL;
 
 #ifdef DIRECT_THREADED
   static void *optable[] = {

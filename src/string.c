@@ -21,7 +21,6 @@
 #include "regex.h"
 #include "st.h"
 #endif //ENABLE_REGEXP
-#include <assert.h>
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -222,7 +221,7 @@ mrb_value
 mrb_str_new(mrb_state *mrb, const char *p, int len)
 {
   struct RString *s;
-  assert(!(!p && len));
+
   s = str_new(mrb, p, len);
   return mrb_obj_value(s);
 }
