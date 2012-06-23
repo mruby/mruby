@@ -21,6 +21,7 @@
 #include "regex.h"
 #include "st.h"
 #endif //ENABLE_REGEXP
+#include <assert.h>
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -220,7 +221,9 @@ mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, int len)
 mrb_value
 mrb_str_new(mrb_state *mrb, const char *p, int len)
 {
-  struct RString *s = str_new(mrb, p, len);
+  struct RString *s;
+  assert(!(!p && len));
+  s = str_new(mrb, p, len);
   return mrb_obj_value(s);
 }
 
@@ -1969,7 +1972,7 @@ scan_once(mrb_state *mrb, mrb_value str, mrb_value pat, mrb_int *start)
     if (regs->num_regs == 1) {
       return mrb_reg_nth_match(mrb, 0, match);
     }
-    result = mrb_ary_new_capa(mrb, regs->num_regs);//mrb_ary_new2(regs->num_regs);
+    result = mrb_ary_new_capa(mrb, regs->num_regs);
     for (i=1; i < regs->num_regs; i++) {
       mrb_ary_push(mrb, result, mrb_reg_nth_match(mrb, i, match));
     }
