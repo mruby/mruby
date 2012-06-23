@@ -521,8 +521,11 @@ inspect_struct(mrb_state *mrb, mrb_value s, mrb_value dummy, int recur)
       slot = ptr_members[i];
       id = SYM2ID(slot);
       if (mrb_is_local_id(id) || mrb_is_const_id(id)) {
-        //mrb_str_append(str, mrb_id2str(id));
-        mrb_str_append(mrb, str, mrb_str_new_cstr(mrb, mrb_sym2name(mrb, id)));
+	char *name;
+	int len;
+
+	name = mrb_sym2name_len(mrb, id, &len);
+        mrb_str_append(mrb, str, mrb_str_new(mrb, name, len));
       }
       else {
           mrb_str_append(mrb, str, mrb_inspect(mrb, slot));
@@ -804,9 +807,7 @@ mrb_init_struct(mrb_state *mrb)
 {
   struct RClass *st;
   st = mrb_define_class(mrb, "Struct",  mrb->object_class);
-  //mrb_include_module(mrb_cStruct, rb_mEnumerable);
 
-  //mrb_undef_alloc_func(mrb_cStruct);
   mrb_define_class_method(mrb, st, "new",             mrb_struct_s_def,       ARGS_ANY());  /* 15.2.18.3.1  */
 
   mrb_define_method(mrb, st,       "==",              mrb_struct_equal,       ARGS_REQ(1)); /* 15.2.18.4.1  */

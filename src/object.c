@@ -151,7 +151,7 @@ true_xor(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_to_s(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_str_new_cstr(mrb, "true");
+  return mrb_str_new(mrb, "true", 4);
 }
 
 /* 15.2.5.3.4  */
@@ -264,7 +264,7 @@ false_or(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_to_s(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_str_new_cstr(mrb, "false");
+  return mrb_str_new(mrb, "false", 5);
 }
 
 void
@@ -462,9 +462,7 @@ mrb_any_to_s(mrb_state *mrb, mrb_value obj)
   len = strlen(cname)+6+16;
   str = mrb_str_new(mrb, 0, len); /* 6:tags 16:addr */
   s = mrb_str_ptr(str);
-  //  snprintf(RSTRING(str)->ptr, len+1, "#<%s:0x%lx>", cname, obj);
-  sprintf(s->ptr, "#<%s:0x%lx>", cname, (unsigned long)(obj.value.p));
-  s->len = strlen(s->ptr);
+  s->len = sprintf(s->ptr, "#<%s:0x%lx>", cname, (unsigned long)(obj.value.p));
 
   return str;
 }

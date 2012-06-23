@@ -2517,6 +2517,7 @@ bad:
       printf("Integer");
   return mrb_fixnum_value(0);
 }
+
 char *
 mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 {
@@ -2535,10 +2536,8 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, int badcheck)
   char *s;
   int len;
 
-  //StringValue(str);
   mrb_string_value(mrb, &str);
   if (badcheck) {
-    //s = StringValueCStr(str);
     s = mrb_string_value_cstr(mrb, &str);
   }
   else {
@@ -2949,7 +2948,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
 {
     const char *p, *pend;
     char buf[CHAR_ESC_LEN + 1];
-    mrb_value result = mrb_str_new_cstr(mrb, "\"");
+    mrb_value result = mrb_str_new(mrb, "\"", 1);
 
     p = RSTRING_PTR(str); pend = RSTRING_END(str);
     for (;p < pend; p++) {

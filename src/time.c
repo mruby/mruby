@@ -430,16 +430,17 @@ mrb_time_asctime(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm;
   struct tm *d;
   char buf[256];
+  int len;
 
   tm = mrb_get_datatype(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   d = &tm->datetime;
-  snprintf(buf, 256, "%s %s %02d %02d:%02d:%02d %s%d",
-	   wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday, 
-	   d->tm_hour, d->tm_min, d->tm_sec,
-	   tm->timezone == MRB_TIMEZONE_UTC ? "UTC " : "",
-	   d->tm_year + 1900);
-  return mrb_str_new_cstr(mrb, buf);
+  len = snprintf(buf, 256, "%s %s %02d %02d:%02d:%02d %s%d",
+		 wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday, 
+		 d->tm_hour, d->tm_min, d->tm_sec,
+		 tm->timezone == MRB_TIMEZONE_UTC ? "UTC " : "",
+		 d->tm_year + 1900);
+  return mrb_str_new(mrb, buf, len);
 }
 
 /* 15.2.19.7.6 */

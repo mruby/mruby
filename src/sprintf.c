@@ -1061,6 +1061,8 @@ static void
 fmt_setup(char *buf, size_t size, int c, int flags, int width, int prec)
 {
     char *end = buf + size;
+    int n;
+
     *buf++ = '%';
     if (flags & FSHARP) *buf++ = '#';
     if (flags & FPLUS)  *buf++ = '+';
@@ -1069,13 +1071,13 @@ fmt_setup(char *buf, size_t size, int c, int flags, int width, int prec)
     if (flags & FSPACE) *buf++ = ' ';
 
     if (flags & FWIDTH) {
-      snprintf(buf, end - buf, "%d", width);
-      buf += strlen(buf);
+      n = snprintf(buf, end - buf, "%d", width);
+      buf += n;
     }
 
     if (flags & FPREC) {
-      snprintf(buf, end - buf, ".%d", prec);
-      buf += strlen(buf);
+      n = snprintf(buf, end - buf, ".%d", prec);
+      buf += n;
     }
 
     *buf++ = c;

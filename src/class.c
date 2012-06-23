@@ -972,15 +972,23 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
     struct RClass *outer = mrb_class_outer_module(mrb, c);
     mrb_sym sym = class_sym(mrb, c, outer);
     if (outer && outer != mrb->object_class) {
+      char *name;
+      int len;
+
       mrb_value base = mrb_class_path(mrb, outer);
-      path = mrb_str_plus(mrb, base, mrb_str_new_cstr(mrb, "::"));
-      mrb_str_concat(mrb, path, mrb_str_new_cstr(mrb, mrb_sym2name(mrb, sym)));
+      path = mrb_str_plus(mrb, base, mrb_str_new(mrb, "::", 2));
+      name = mrb_sym2name_len(mrb, sym, &len);
+      mrb_str_concat(mrb, path, mrb_str_new(mrb, name, len));
     }
     else if (sym == 0) {
       return mrb_nil_value();
     }
     else {
-      path = mrb_str_new_cstr(mrb, mrb_sym2name(mrb, sym));
+      char *name;
+      int len;
+
+      name = mrb_sym2name_len(mrb, sym, &len);
+      path = mrb_str_new(mrb, name, len);
     }
     mrb_obj_iv_set(mrb, (struct RObject*)c, mrb_intern(mrb, "__classpath__"), path);
   }
@@ -1114,9 +1122,8 @@ mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const 
 static mrb_value
 mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 {
-  //if (FL_TEST(klass, FL_SINGLETON)) {
   if (mrb_type(klass) == MRB_TT_SCLASS) {
-    mrb_value s = mrb_str_new_cstr(mrb, "#<");
+    mrb_value s = mrb_str_new(mrb, "#<", 2);
     mrb_value v = mrb_iv_get(mrb, klass, mrb_intern(mrb, "__attached__"));
 
     mrb_str_cat2(mrb, s, "Class:");

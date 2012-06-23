@@ -292,10 +292,11 @@ static void
 localjump_error(mrb_state *mrb, const char *kind)
 {
   char buf[256];
+  int len;
   mrb_value exc;
 
-  snprintf(buf, 256, "unexpected %s", kind);
-  exc = mrb_exc_new(mrb, E_LOCALJUMP_ERROR, buf, strlen(buf));
+  len = snprintf(buf, 256, "unexpected %s", kind);
+  exc = mrb_exc_new(mrb, E_LOCALJUMP_ERROR, buf, len);
   mrb->exc = (struct RObject*)mrb_object(exc);
 }
 
@@ -303,18 +304,19 @@ static void
 argnum_error(mrb_state *mrb, int num)
 {
   char buf[256];
+  int len;
   mrb_value exc;
 
   if (mrb->ci->mid) {
-    snprintf(buf, 256, "'%s': wrong number of arguments (%d for %d)",
-	     mrb_sym2name(mrb, mrb->ci->mid),
-	     mrb->ci->argc, num);
+    len = snprintf(buf, 256, "'%s': wrong number of arguments (%d for %d)",
+		   mrb_sym2name(mrb, mrb->ci->mid),
+		   mrb->ci->argc, num);
   }
   else {
-    snprintf(buf, 256, "wrong number of arguments (%d for %d)",
-	     mrb->ci->argc, num);
+    len = snprintf(buf, 256, "wrong number of arguments (%d for %d)",
+		   mrb->ci->argc, num);
   }
-  exc = mrb_exc_new(mrb, E_ARGUMENT_ERROR, buf, strlen(buf));
+  exc = mrb_exc_new(mrb, E_ARGUMENT_ERROR, buf, len);
   mrb->exc = (struct RObject*)mrb_object(exc);
 }
 

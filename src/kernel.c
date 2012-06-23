@@ -117,7 +117,7 @@ mrb_obj_inspect(mrb_state *mrb, mrb_value obj)
     return mrb_any_to_s(mrb, obj);
   }
   else if (mrb_nil_p(obj)) {
-    return mrb_str_new_cstr(mrb, "nil");
+    return mrb_str_new(mrb, "nil", 3);
   }
   return mrb_funcall(mrb, obj, "to_s", 0, 0);
 }
