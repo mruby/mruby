@@ -345,8 +345,8 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_CLASS:
-  case MRB_TT_SCLASS:
   case MRB_TT_MODULE:
+  case MRB_TT_SCLASS:
     {
       struct RClass *c = (struct RClass*)obj;
 
