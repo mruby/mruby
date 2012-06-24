@@ -338,7 +338,12 @@ mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
       if (klass->iv) {
           clone->iv = klass->iv;
       }
-    clone->mt = kh_init(mt, mrb);
+      if (klass->mt) {
+          clone->mt = kh_copy(mt, mrb, klass->mt);
+      }
+      else {
+          clone->mt = kh_init(mt, mrb);
+      }
       clone->tt = MRB_TT_SCLASS;
       return clone;
   }
@@ -361,10 +366,11 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
       case MRB_TT_CLASS:
       case MRB_TT_MODULE:
         if (ROBJECT(dest)->iv) {
+            kh_destroy(iv, ROBJECT(dest)->iv);
             ROBJECT(dest)->iv = 0;
         }
         if (ROBJECT(obj)->iv) {
-            ROBJECT(dest)->iv = ROBJECT(obj)->iv;
+            ROBJECT(dest)->iv = kh_copy(iv, mrb, ROBJECT(obj)->iv);
         }
         break;
 
@@ -446,9 +452,8 @@ mrb_obj_dup(mrb_state *mrb, mrb_value obj)
         mrb_raise(mrb, E_TYPE_ERROR, "can't dup %s", mrb_obj_classname(mrb, obj));
     }
     p = mrb_obj_alloc(mrb, mrb_type(obj), mrb_obj_class(mrb, obj));
-    //init_copy(dup, obj);
     dup = mrb_obj_value(p);
-    mrb_funcall(mrb, dup, "initialize_copy", 1, obj);
+    init_copy(mrb, dup, obj);
 
     return dup;
 }
