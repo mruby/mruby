@@ -430,6 +430,18 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     break;
 #endif
 
+#ifdef ENABLE_STRUCT
+  case MRB_TT_STRUCT:
+    {
+      struct RStruct *s = (struct RStruct*)obj;
+      long i;
+      for (i=0; i<s->len; i++){
+        mrb_gc_mark_value(mrb, s->ptr[i]);
+      }
+    }
+    break;
+#endif
+
   default:
     break;
   }

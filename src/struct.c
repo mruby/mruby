@@ -286,8 +286,8 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     nstr = mrb_obj_value(c);
     mrb_iv_set(mrb, nstr, mrb_intern(mrb, "__members__"), members);
 
-    mrb_define_class_method(mrb, c, "new", mrb_class_new_instance_m, ARGS_ANY());
-    mrb_define_class_method(mrb, c, "[]", mrb_class_new_instance_m, ARGS_ANY());
+    mrb_define_class_method(mrb, c, "new", mrb_instance_new, ARGS_ANY());
+    mrb_define_class_method(mrb, c, "[]", mrb_instance_new, ARGS_ANY());
     mrb_define_class_method(mrb, c, "members", mrb_struct_s_members_m, ARGS_NONE());
     //RSTRUCT(nstr)->basic.c->super = c->c;
     ptr_members = RARRAY_PTR(members);
