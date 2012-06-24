@@ -127,11 +127,11 @@ assert('Kernel#dup', '15.3.1.3.9') do
     a.respond_to?(:test) == true && b.respond_to?(:test) == false && c.respond_to?(:test) == false
 end
 
-assert('Kernel#hash', '15.3.1.2.15') do
+assert('Kernel#hash', '15.3.1.3.15') do
   hash == hash
 end
 
-assert('Kernel#loop', '15.3.1.2.29') do
+assert('Kernel#loop', '15.3.1.3.29') do
   i = 0
 
   loop do
@@ -142,32 +142,31 @@ assert('Kernel#loop', '15.3.1.2.29') do
   i == 100
 end
 
-assert('Kernel#methods', '15.3.1.2.31') do
+assert('Kernel#methods', '15.3.1.3.31') do
   methods.class == Array
 end
 
-assert('Kernel#nil?', '15.3.1.2.32') do
-  # TODO why is Kernel nil ????
-  nil? == true
+assert('Kernel#nil?', '15.3.1.3.32') do
+  nil.nil? == true
 end
 
-assert('Kernel#private_methods', '15.3.1.2.36') do
-  private_methods.class == Array 
+assert('Kernel#private_methods', '15.3.1.3.36') do
+  private_methods.class == Array
 end
 
-assert('Kernel#protected_methods', '15.3.1.2.37') do
+assert('Kernel#protected_methods', '15.3.1.3.37') do
   protected_methods.class == Array
 end
 
-assert('Kernel#public_methods', '15.3.1.2.38') do
+assert('Kernel#public_methods', '15.3.1.3.38') do
   public_methods.class == Array
 end
 
-assert('Kernel#respond_to?', '15.3.1.2.43') do
+assert('Kernel#respond_to?', '15.3.1.3.43') do
   respond_to? :nil?
 end
 
-assert('Kernel#send', '15.3.1.2.44') do
+assert('Kernel#send', '15.3.1.3.44') do
   # test with block
   l = send(:lambda) do
     true
@@ -179,11 +178,11 @@ assert('Kernel#send', '15.3.1.2.44') do
     send(:public_methods).class == Array
 end
 
-assert('Kernel#singleton_methods', '15.3.1.2.45') do
+assert('Kernel#singleton_methods', '15.3.1.3.45') do
   singleton_methods.class == Array
 end
 
-assert('Kernel#to_s', '15.3.1.2.46') do
+assert('Kernel#to_s', '15.3.1.3.46') do
   # TODO looks strange..
   to_s == ''
 end
