@@ -502,6 +502,12 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     mrb_free(mrb, ((struct RRange*)obj)->edges);
     break;
 
+#ifdef ENABLE_STRUCT
+  case MRB_TT_STRUCT:
+    mrb_free(mrb, ((struct RStruct*)obj)->ptr);
+    break;
+#endif
+
   case MRB_TT_DATA:
     {
       struct RData *d = (struct RData*)obj;
