@@ -71,6 +71,62 @@ assert('Kernel.raise', '15.3.1.2.12') do
   e_list[0].class == RuntimeError
 end
 
+assert('Kernel#clone', '15.3.1.3.8') do
+  class KernelCloneTest
+    def initialize
+      @v = 0
+    end
+
+    def get
+      @v
+    end
+
+    def set(v)
+      @v = v
+    end
+  end
+
+  a = KernelCloneTest.new
+  a.set(1)
+  b = a.clone
+
+  def a.test
+  end
+  a.set(2)
+  c = a.clone
+
+  a.get == 2 && b.get == 1 && c.get == 2 &&
+    a.respond_to?(:test) == true && b.respond_to?(:test) == false && c.respond_to?(:test) == true
+end
+
+assert('Kernel#dup', '15.3.1.3.9') do
+  class KernelDupTest
+    def initialize
+      @v = 0
+    end
+
+    def get
+      @v
+    end
+
+    def set(v)
+      @v = v
+    end
+  end
+
+  a = KernelDupTest.new
+  a.set(1)
+  b = a.dup
+
+  def a.test
+  end
+  a.set(2)
+  c = a.dup
+
+  a.get == 2 && b.get == 1 && c.get == 2 &&
+    a.respond_to?(:test) == true && b.respond_to?(:test) == false && c.respond_to?(:test) == false
+end
+
 assert('Kernel#hash', '15.3.1.2.15') do
   hash == hash
 end

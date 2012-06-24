@@ -61,6 +61,7 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
   khint_t kh_put_##name(kh_##name##_t *h, khkey_t key);                 \
   void kh_resize_##name(kh_##name##_t *h, khint_t new_n_buckets);       \
   void kh_del_##name(kh_##name##_t *h, khint_t x);                      \
+  kh_##name##_t *kh_copy_##name(mrb_state *mrb, kh_##name##_t *h);
 
 /* define kh_xxx_funcs
 
@@ -179,6 +180,20 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
   {                                                                     \
     h->d_flags[x/8] |= __m[x%8];                                        \
     h->size--;                                                          \
+  }                                                                     \
+  kh_##name##_t *kh_copy_##name(mrb_state *mrb, kh_##name##_t *h)       \
+  {                                                                     \
+    kh_##name##_t *h2;                                                  \
+    khiter_t k, k2;                                                     \
+                                                                        \
+    h2 = kh_init_##name(mrb);                                           \
+    for (k = kh_begin(h); k != kh_end(h); k++) {                        \
+      if (kh_exist(h, k)) {                                             \
+        k2 = kh_put_##name(h2, kh_key(h, k));                           \
+        kh_value(h2, k2) = kh_value(h, k);                              \
+      }                                                                 \
+    }                                                                   \
+    return h2;                                                          \
   }
 
 
@@ -191,6 +206,7 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 #define kh_put(name, h, k) kh_put_##name(h, k)
 #define kh_get(name, h, k) kh_get_##name(h, k)
 #define kh_del(name, h, k) kh_del_##name(h, k)
+#define kh_copy(name, mrb, h) kh_copy_##name(mrb, h)
 
 #define kh_exist(h, x) (!__ac_iseither((h)->e_flags, (h)->d_flags, (x)))
 #define kh_key(h, x) ((h)->keys[x])
