@@ -626,6 +626,15 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
     break;
 #endif
 
+#ifdef ENABLE_STRUCT
+  case MRB_TT_STRUCT:
+    {
+      struct RStruct *s = (struct RStruct*)obj;
+      children += s->len;
+    }
+    break;
+#endif
+
   default:
     break;
   }
