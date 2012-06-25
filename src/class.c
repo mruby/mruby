@@ -1226,7 +1226,7 @@ static mrb_sym
 mrb_sym_value(mrb_state *mrb, mrb_value val)
 {
   if(val.tt == MRB_TT_STRING) {
-    return mrb_intern(mrb, RSTRING_PTR(val));
+    return mrb_intern_str(mrb, val);
   }
   else if(val.tt != MRB_TT_SYMBOL) {
     mrb_value obj = mrb_funcall(mrb, val, "inspect", 0);

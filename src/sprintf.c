@@ -613,7 +613,7 @@ retry:
                (int)(p - start + 1), start, mrb_sym2name(mrb, id));
         }
         symname = mrb_str_new(mrb, start + 1, p - start - 1);
-        id = mrb_intern(mrb, RSTRING_PTR(symname));
+        id = mrb_intern_str(mrb, symname);
         nextvalue = GETNAMEARG(mrb_symbol_value(id), start, (int)(p - start + 1));
         if (UNDEF_P(nextvalue)) {
           mrb_raise(mrb, E_KEY_ERROR, "key%.*s not found", (int)(p - start + 1), start);
