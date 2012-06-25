@@ -711,6 +711,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       if (ci->argc == CALL_MAXARGS) ci->argc = -1;
       ci->target_class = m->target_class;
       ci->pc = pc + 1;
+      ci->acc = a;
 
       /* prepare stack */
       mrb->stack += a;
@@ -725,9 +726,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         NEXT;
       }
       else {
-        /* fill callinfo */
-        ci->acc = a;
-
         /* setup environment for calling method */
         proc = mrb->ci->proc = m;
         irep = m->body.irep;
