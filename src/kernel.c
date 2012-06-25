@@ -78,10 +78,7 @@ inspect_obj(mrb_state *mrb, mrb_value obj, mrb_value str, int recur)
 int
 mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
-    //const mrb_method_entry_t *me = mrb_method_entry(CLASS_OF(obj), mrb_intern("to_s"));
-    //if (me && me->def && me->def->type == VM_METHOD_TYPE_CFUNC &&
-    //me->def->body.cfunc.func == mrb_any_to_s)
-    struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mrb_intern(mrb, "to_s"));
+    struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mrb_intern2(mrb, "to_s", 4));
     if (me && MRB_PROC_CFUNC_P(me) && (me->body.func == mrb_any_to_s))
       return 1;
     return 0;

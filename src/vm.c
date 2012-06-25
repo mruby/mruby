@@ -24,6 +24,11 @@
 #define STACK_INIT_SIZE 128
 #define CALLINFO_INIT_SIZE 32
 
+static const char cmethod_missingstr[] = "method_missing";
+static const int  cmethod_missinglen = sizeof(cmethod_missingstr) - 1;
+
+#define MRB_INTERN(mrb, name) (mrb_intern2(mrb, c##name##str, c##name##len))
+
 static void
 stack_init(mrb_state *mrb)
 {
@@ -196,7 +201,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, const char *name, int arg
   p = mrb_method_search_vm(mrb, &c, mid);
   if (!p) {
     undef = mid;
-    mid = mrb_intern(mrb, "method_missing");
+    mid = MRB_INTERN(mrb, method_missing);
     p = mrb_method_search_vm(mrb, &c, mid);
     n++; argc++;
   }
@@ -690,7 +695,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       if (!m) {
         mrb_value sym = mrb_symbol_value(mid);
 
-        mid = mrb_intern(mrb, "method_missing");
+        mid = MRB_INTERN(mrb, method_missing);
         m = mrb_method_search_vm(mrb, &c, mid);
         if (n == CALL_MAXARGS) {
           mrb_ary_unshift(mrb, regs[a+1], sym);
@@ -822,7 +827,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
         c = mrb->ci->proc->target_class;
-        mid = mrb_intern(mrb, "method_missing");
+        mid = MRB_INTERN(mrb, method_missing);
         m = mrb_method_search_vm(mrb, &c, mid);
         if (n == CALL_MAXARGS) {
           mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(ci->mid));
@@ -1106,7 +1111,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       if (!m) {
         mrb_value sym = mrb_symbol_value(mid);
 
-        mid = mrb_intern(mrb, "method_missing");
+        mid = MRB_INTERN(mrb, method_missing);
         m = mrb_method_search_vm(mrb, &c, mid);
         if (n == CALL_MAXARGS) {
           mrb_ary_unshift(mrb, regs[a+1], sym);
