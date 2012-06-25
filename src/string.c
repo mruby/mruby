@@ -292,7 +292,7 @@ mrb_str_literal(mrb_state *mrb, mrb_value str)
   struct RString *s, *orig;
   struct mrb_shared_string *shared;
 
-  s = str_new(mrb, 0, 0);
+  s = str_alloc(mrb, mrb->string_class);
   orig = mrb_str_ptr(str);
   if (!(orig->flags & MRB_STR_SHARED)) {
     str_make_shared(mrb, mrb_str_ptr(str));
