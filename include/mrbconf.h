@@ -15,10 +15,10 @@
 
 /* -DDISABLE_XXXX to change to drop the feature */
 #define DISABLE_REGEXP	        /* regular expression classes */
-#undef DISABLE_KERNEL_SPRINTF	/* Kernel.sprintf method */
-#undef DISABLE_MATH		/* Math functions */
-#undef DISABLE_TIME		/* Time class */
-#undef DISABLE_STRUCT		/* Struct class */
+//#define DISABLE_SPRINTF	/* Kernel.sprintf method */
+//#define DISABLE_MATH		/* Math functions */
+//#define DISABLE_TIME		/* Time class */
+//#define DISABLE_STRUCT	/* Struct class */
 
 #undef  HAVE_UNISTD_H /* WINDOWS */
 #define HAVE_UNISTD_H /* LINUX */
@@ -38,8 +38,8 @@ typedef intptr_t mrb_sym;
 #ifndef DISABLE_REGEXP
 #define ENABLE_REGEXP
 #endif
-#ifndef DISABLE_KERNEL_SPRINTF
-#define ENABLE_KERNEL_SPRINTF
+#ifndef DISABLE_SPRINTF
+#define ENABLE_SPRINTF
 #endif
 #ifndef DISABLE_MATH
 #define ENABLE_MATH

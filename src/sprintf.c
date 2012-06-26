@@ -6,7 +6,7 @@
 
 #include "mruby.h"
 
-#ifdef ENABLE_KERNEL_SPRINTF
+#ifdef ENABLE_SPRINTF
 
 #include <stdio.h>
 #include <string.h>
@@ -1084,4 +1084,4 @@ fmt_setup(char *buf, size_t size, int c, int flags, int width, int prec)
     *buf = '\0';
 }
 
-#endif	/* ENABLE_KERNEL_SPRINTF */
+#endif	/* ENABLE_SPRINTF */
