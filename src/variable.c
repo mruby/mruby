@@ -308,7 +308,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
   struct RClass *c = base;
   khash_t(iv) *h;
   khiter_t k;
-  mrb_sym cm = mrb_intern(mrb, "const_missing");
+  mrb_sym cm = mrb_intern2(mrb, "const_missing", 13);
 
  L_RETRY:
   while (c) {

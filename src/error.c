@@ -49,7 +49,7 @@ exc_initialize(mrb_state *mrb, mrb_value exc)
   mrb_value mesg;
 
   if (mrb_get_args(mrb, "|o", &mesg) == 1) {
-    mrb_iv_set(mrb, exc, mrb_intern(mrb, "mesg"), mesg);
+    mrb_iv_set(mrb, exc, mrb_intern2(mrb, "mesg", 4), mesg);
   }
   return exc;
 }
@@ -78,7 +78,7 @@ exc_exception(mrb_state *mrb, mrb_value self)
   if (argc == 0) return self;
   if (mrb_obj_equal(mrb, self, a)) return self;
   exc = mrb_obj_clone(mrb, self);
-  mrb_iv_set(mrb, exc, mrb_intern(mrb, "mesg"), a);
+  mrb_iv_set(mrb, exc, mrb_intern2(mrb, "mesg", 4), a);
 
   return exc;
 }
@@ -94,7 +94,7 @@ exc_exception(mrb_state *mrb, mrb_value self)
 static mrb_value
 exc_to_s(mrb_state *mrb, mrb_value exc)
 {
-  mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern(mrb, "mesg"));
+  mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern2(mrb, "mesg", 4));
 
   if (mrb_nil_p(mesg)) return mrb_str_new2(mrb, mrb_obj_classname(mrb, exc));
   return mesg;
@@ -144,13 +144,13 @@ exc_equal(mrb_state *mrb, mrb_value exc)
 {
   mrb_value obj;
   mrb_value mesg;
-  mrb_sym id_mesg = mrb_intern(mrb, "mesg");
+  mrb_sym id_mesg = mrb_intern2(mrb, "mesg", 4);
 
   mrb_get_args(mrb, "o", &obj);
   if (mrb_obj_equal(mrb, exc, obj)) return mrb_true_value();
 
   if (mrb_obj_class(mrb, exc) != mrb_obj_class(mrb, obj)) {
-    if ( mrb_respond_to(mrb, obj, mrb_intern(mrb, "message")) ) {
+    if ( mrb_respond_to(mrb, obj, mrb_intern2(mrb, "message", 7)) ) {
       mesg = mrb_funcall(mrb, obj, "message", 0);
     }
     else
@@ -275,7 +275,7 @@ mrb_bug_errno(const char *mesg, int errno_arg)
 int
 sysexit_status(mrb_state *mrb, mrb_value err)
 {
-  mrb_value st = mrb_iv_get(mrb, err, mrb_intern(mrb, "status"));
+  mrb_value st = mrb_iv_get(mrb, err, mrb_intern2(mrb, "status", 6));
   return mrb_fixnum(st);
 }
 
@@ -320,7 +320,7 @@ exception_call:
       //  /* undef */
       //  mrb_raise(mrb, E_TYPE_ERROR, "exception class/object expected");
       //}
-      if (mrb_respond_to(mrb, argv[0], mrb_intern(mrb, "exception"))) {
+      if (mrb_respond_to(mrb, argv[0], mrb_intern2(mrb, "exception", 9))) {
         mesg = mrb_funcall_argv(mrb, argv[0], "exception", n, argv+1);
       }
       else {

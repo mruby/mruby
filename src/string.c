@@ -519,10 +519,10 @@ mrb_str_cmp_m(mrb_state *mrb, mrb_value str1)
 
   mrb_get_args(mrb, "o", &str2);
   if (mrb_type(str2) != MRB_TT_STRING) {
-    if (!mrb_respond_to(mrb, str2, mrb_intern(mrb, "to_s"))) {
+    if (!mrb_respond_to(mrb, str2, mrb_intern2(mrb, "to_s", 4))) {
       return mrb_nil_value();
     }
-    else if (!mrb_respond_to(mrb, str2, mrb_intern(mrb, "<=>"))) {
+    else if (!mrb_respond_to(mrb, str2, mrb_intern2(mrb, "<=>", 3))) {
       return mrb_nil_value();
     }
     else {
@@ -558,7 +558,7 @@ mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2)
   if (mrb_obj_equal(mrb, str1, str2)) return TRUE;
   if (mrb_type(str2) != MRB_TT_STRING) {
     if (mrb_nil_p(str2)) return FALSE;
-    if (!mrb_respond_to(mrb, str2, mrb_intern(mrb, "to_str"))) {
+    if (!mrb_respond_to(mrb, str2, mrb_intern2(mrb, "to_str", 6))) {
       return FALSE;
     }
     str2 = mrb_funcall(mrb, str2, "to_str", 0);
@@ -1718,7 +1718,6 @@ mrb_str_match_m(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 1..2)", argc);
   re = argv[0];
   argv[0] = self;
-  //  result = mrb_funcall2(get_pat(re, 0), mrb_intern("match"), argc, argv);
   result = mrb_funcall(mrb, get_pat(mrb, re, 0), "match", 1, self);
   if (!mrb_nil_p(result) && mrb_block_given_p()) {
     return mrb_yield(mrb, b, result);

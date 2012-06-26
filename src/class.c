@@ -18,6 +18,22 @@
 KHASH_DEFINE(iv, mrb_sym, mrb_value,     1, kh_int_hash_func, kh_int_hash_equal);
 KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal);
 
+#define DECLARE_STR_AND_LEN(name) \
+static const char c##name##str[] = #name; \
+static const int  c##name##len = sizeof(c##name##str) - 1;
+
+DECLARE_STR_AND_LEN(__classid__);
+DECLARE_STR_AND_LEN(__outer__);
+DECLARE_STR_AND_LEN(__classpath__);
+DECLARE_STR_AND_LEN(__attached__);
+DECLARE_STR_AND_LEN(BasicObject);
+DECLARE_STR_AND_LEN(Object);
+DECLARE_STR_AND_LEN(Module);
+DECLARE_STR_AND_LEN(Class);
+
+#define MRB_INTERN(mrb, name) (mrb_intern2(mrb, c##name##str, c##name##len))
+#define GET_CSTR(name) (c##name##str)
+
 typedef struct fc_result {
     mrb_sym name;
     struct RClass * klass;
@@ -62,7 +78,7 @@ void
 mrb_name_class(mrb_state *mrb, struct RClass *c, mrb_sym name)
 {
   mrb_obj_iv_set(mrb, (struct RObject*)c,
-                 mrb_intern(mrb, "__classid__"), mrb_symbol_value(name));
+                 MRB_INTERN(mrb, __classid__), mrb_symbol_value(name));
 }
 
 static mrb_sym
@@ -70,7 +86,7 @@ class_sym(mrb_state *mrb, struct RClass *c, struct RClass *outer)
 {
   mrb_value name;
 
-  name = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern(mrb, "__classid__"));
+  name = mrb_obj_iv_get(mrb, (struct RObject*)c, MRB_INTERN(mrb, __classid__));
   if (mrb_nil_p(name)) {
     khash_t(iv)* h;
     khiter_t k;
@@ -135,7 +151,7 @@ setup_class(mrb_state *mrb, mrb_value outer, struct RClass *c, mrb_sym id)
   mrb_name_class(mrb, c, id);
   mrb_const_set(mrb, outer, id, mrb_obj_value(c));
   mrb_obj_iv_set(mrb, (struct RObject*)c,
-                 mrb_intern(mrb, "__outer__"), outer);
+                 MRB_INTERN(mrb, __outer__), outer);
 }
 
 struct RClass*
@@ -143,7 +159,7 @@ mrb_class_outer_module(mrb_state *mrb, struct RClass *c)
 {
   mrb_value outer;
 
-  outer = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern(mrb, "__outer__"));
+  outer = mrb_obj_iv_get(mrb, (struct RObject*)c, MRB_INTERN(mrb, __outer__));
   if (mrb_nil_p(outer)) return 0;
   return mrb_class_ptr(outer);
 }
@@ -969,7 +985,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
   const char *name;
   int len;
 
-  path = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern(mrb, "__classpath__"));
+  path = mrb_obj_iv_get(mrb, (struct RObject*)c, MRB_INTERN(mrb, __classpath__));
   if (mrb_nil_p(path)) {
     struct RClass *outer = mrb_class_outer_module(mrb, c);
     mrb_sym sym = class_sym(mrb, c, outer);
@@ -986,7 +1002,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
       name = mrb_sym2name_len(mrb, sym, &len);
       path = mrb_str_new(mrb, name, len);
     }
-    mrb_obj_iv_set(mrb, (struct RObject*)c, mrb_intern(mrb, "__classpath__"), path);
+    mrb_obj_iv_set(mrb, (struct RObject*)c, MRB_INTERN(mrb, __classpath__), path);
   }
   return path;
 }
@@ -1123,7 +1139,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 {
   if (mrb_type(klass) == MRB_TT_SCLASS) {
     mrb_value s = mrb_str_new(mrb, "#<", 2);
-    mrb_value v = mrb_iv_get(mrb, klass, mrb_intern(mrb, "__attached__"));
+    mrb_value v = mrb_iv_get(mrb, klass, MRB_INTERN(mrb, __attached__));
 
     mrb_str_cat2(mrb, s, "Class:");
     switch (mrb_type(v)) {
@@ -1301,16 +1317,16 @@ mrb_init_class(mrb_state *mrb)
   make_metaclass(mrb, cls);
 
   /* name basic classes */
-  mrb_define_const(mrb, obj, "BasicObject", mrb_obj_value(bob));
-  mrb_define_const(mrb, obj, "Object", mrb_obj_value(obj));
-  mrb_define_const(mrb, obj, "Module", mrb_obj_value(mod));
-  mrb_define_const(mrb, obj, "Class", mrb_obj_value(cls));
+  mrb_define_const(mrb, obj, GET_CSTR(BasicObject), mrb_obj_value(bob));
+  mrb_define_const(mrb, obj, GET_CSTR(Object), mrb_obj_value(obj));
+  mrb_define_const(mrb, obj, GET_CSTR(Module), mrb_obj_value(mod));
+  mrb_define_const(mrb, obj, GET_CSTR(Class), mrb_obj_value(cls));
 
   /* name each classes */
-  mrb_name_class(mrb, bob, mrb_intern(mrb, "BasicObject"));
-  mrb_name_class(mrb, obj, mrb_intern(mrb, "Object"));
-  mrb_name_class(mrb, mod, mrb_intern(mrb, "Module"));
-  mrb_name_class(mrb, cls, mrb_intern(mrb, "Class"));
+  mrb_name_class(mrb, bob, MRB_INTERN(mrb, BasicObject));
+  mrb_name_class(mrb, obj, MRB_INTERN(mrb, Object));
+  mrb_name_class(mrb, mod, MRB_INTERN(mrb, Module));
+  mrb_name_class(mrb, cls, MRB_INTERN(mrb, Class));
 
   mrb_undef_method(mrb, mod, "new");
   MRB_SET_INSTANCE_TT(cls, MRB_TT_CLASS);

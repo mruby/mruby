@@ -27,6 +27,10 @@
 //#include "defines.h"
 #define mrb_long2int(n) ((int)(n))
 
+static const char c__members__str[] = "__members__";
+static const int  c__members__len = sizeof(c__members__str) - 1;
+
+#define MRB_INTERN(mrb, name) mrb_intern2(mrb, c##name##str, c##name##len)
 
 static struct RClass *
 struct_class(mrb_state *mrb)
@@ -62,7 +66,7 @@ mrb_struct_iv_get(mrb_state *mrb, mrb_value c, const char *name)
 mrb_value
 mrb_struct_s_members(mrb_state *mrb, mrb_value klass)
 {
-    mrb_value members = struct_ivar_get(mrb, klass, mrb_intern(mrb, "__members__"));
+    mrb_value members = struct_ivar_get(mrb, klass, MRB_INTERN(mrb, __members__));
 
     if (mrb_nil_p(members)) {
       mrb_raise(mrb, E_TYPE_ERROR, "uninitialized struct");
@@ -284,7 +288,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     }
     MRB_SET_INSTANCE_TT(c, MRB_TT_STRUCT);
     nstr = mrb_obj_value(c);
-    mrb_iv_set(mrb, nstr, mrb_intern(mrb, "__members__"), members);
+    mrb_iv_set(mrb, nstr, MRB_INTERN(mrb, __members__), members);
 
     mrb_define_class_method(mrb, c, "new", mrb_instance_new, ARGS_ANY());
     mrb_define_class_method(mrb, c, "[]", mrb_instance_new, ARGS_ANY());
@@ -416,7 +420,7 @@ static long
 num_members(mrb_state *mrb, struct RClass *klass)
 {
     mrb_value members;
-    members = struct_ivar_get(mrb, mrb_obj_value(klass), mrb_intern(mrb, "__members__"));
+    members = struct_ivar_get(mrb, mrb_obj_value(klass), MRB_INTERN(mrb, __members__));
     if (mrb_type(members) != MRB_TT_ARRAY) {
       mrb_raise(mrb, E_TYPE_ERROR, "broken members");
     }
