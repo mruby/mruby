@@ -7,6 +7,7 @@
 #include "mruby.h"
 #include <stdarg.h>
 #include <stdio.h>
+#include <assert.h>
 #include "mruby/class.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
@@ -863,26 +864,31 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
 }
 
 mrb_value
-mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc,...)
+mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
 {
-  mrb_value args[16];
+  mrb_value *args;
+  mrb_value result;
   va_list ap;
   int i;
 
-  if (argc == 0) {
-    for (i=0; i<5; i++) {
-      args[i] = mrb_nil_value();
-    }
-  }
-  else {
+  if (argc != 0) {
+    args = mrb_malloc(mrb, sizeof(mrb_value) * argc);
+    assert(args != 0);
+
     va_start(ap, argc);
-    // assert(argc < 16);
-    for (i=0; i<argc; i++) {
+    for (i = 0; i < argc; i++) {
       args[i] = va_arg(ap, mrb_value);
     }
     va_end(ap);
+  } else {
+    args = NULL;
   }
-  return mrb_funcall_argv(mrb, self, name, argc, args);
+  result = mrb_funcall_argv(mrb, self, name, argc, args);
+  if (args != NULL) {
+    mrb_free(mrb, args);
+  }
+
+  return result;
 }
 
 
