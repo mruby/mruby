@@ -91,6 +91,6 @@ mrb_add_irep(mrb_state *mrb, int idx)
 mrb_value
 mrb_top_self(mrb_state *mrb)
 {
-  // for now
-  return mrb_nil_value();
+  // for now return mrb_nil_value();
+  return mrb_obj_value(mrb->rmain);
 }

@@ -241,6 +241,7 @@ typedef struct mrb_state {
   struct RClass *object_class;
   struct RClass *class_class;
   struct RClass *module_class;
+  struct RClass *rmain;
   struct RClass *proc_class;
   struct RClass *string_class;
   struct RClass *array_class;

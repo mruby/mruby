@@ -1279,6 +1279,12 @@ mrb_mod_eqq(mrb_state *mrb, mrb_value mod)
   return mrb_true_value();
 }
 
+mrb_value
+mrb_main_tos(mrb_state *mrb, mrb_value cv)
+{
+  return mrb_str_new(mrb, "main", 4);
+}
+
 void
 mrb_init_class(mrb_state *mrb)
 {
@@ -1287,12 +1293,14 @@ mrb_init_class(mrb_state *mrb)
   struct RClass *mod;           /* Module */
   struct RClass *cls;           /* Class */
   //struct RClass *krn;    /* Kernel */
+  struct RClass *rmain;
 
   /* boot class hierarchy */
   bob = boot_defclass(mrb, 0);
   obj = boot_defclass(mrb, bob); mrb->object_class = obj;
   mod = boot_defclass(mrb, obj); mrb->module_class = mod;/* obj -> mod */
   cls = boot_defclass(mrb, mod); mrb->class_class = cls; /* obj -> cls */
+
   /* fix-up loose ends */
   bob->c = obj->c = mod->c = cls->c = cls;
   make_metaclass(mrb, bob);
@@ -1332,4 +1340,8 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "define_method", mod_define_method, ARGS_REQ(1));
 
   mrb_define_method(mrb, mod, "===", mrb_mod_eqq, ARGS_REQ(1));
+
+  rmain=boot_defclass(mrb, 0); mrb->rmain = rmain;
+  rmain->c = obj;
+  mrb_define_singleton_method(mrb, (struct RObject*)rmain, "to_s", mrb_main_tos, ARGS_NONE());
 }
