@@ -608,13 +608,11 @@ static char*
 hex_to_str(char *hex, char *str, uint16_t *str_len)
 {
   char *src, *dst;
-  uint16_t hex_len = strlen(hex);
+  int escape = 0;
 
   *str_len = 0;
-
-  for (src = hex, dst = str; hex_len > 0; (*str_len)++, hex_len--) {
-    if (*src == '\\' && hex_len > 1) {
-      src++; hex_len--;
+  for (src = hex, dst = str; *src != '\0'; src++) {
+    if (escape) {
       switch(*src) {
       case 'a':  *dst++ = '\a'/* BEL */; break;
       case 'b':  *dst++ = '\b'/* BS  */; break;
@@ -629,12 +627,18 @@ hex_to_str(char *hex, char *str, uint16_t *str_len)
       case '\\': *dst++ = *src; break;
       default:break;
       }
-      src++;
+      escape = 0;
     } else {
-      *dst++ = *src++;
+      if (*src == '\\') {
+        escape = 1;
+      } else {
+        escape = 0;
+        *dst++ = *src;
+      }
+    }
+    if (!escape) {
+      (*str_len)++;
     }
   }
-
   return str;
 }
-
