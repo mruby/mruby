@@ -45,7 +45,7 @@ str_format_len(mrb_value str)
 
   char *src;
 
-  for (src = RSTRING_PTR(str); src < RSTRING_END(str);) {
+  for (src = RSTRING_PTR(str); src < RSTRING_END(str); src++) {
     switch (*src) {
     case 0x07:/* BEL */ /* fall through */
     case 0x08:/* BS  */ /* fall through */
@@ -58,11 +58,11 @@ str_format_len(mrb_value str)
     case 0x27:/* '   */ /* fall through */
     case 0x3F:/* ?   */ /* fall through */
     case 0x5C:/* \   */ /* fall through */
-      dump_len += 2; src += 2;
+      dump_len += 2;
       break;
 
     default:
-      dump_len++; src++;
+      dump_len++;
       break;
     }
   }
