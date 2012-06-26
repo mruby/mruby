@@ -32,6 +32,7 @@ stack_init(mrb_state *mrb)
   memset(mrb->stbase, 0, sizeof(mrb_value) * STACK_INIT_SIZE);
   mrb->stend = mrb->stbase + STACK_INIT_SIZE;
   mrb->stack = mrb->stbase;
+  mrb->stack[0] = mrb_top_self(mrb);
 
   /* assert(mrb->ci == NULL); */
   mrb->cibase = mrb_malloc(mrb, sizeof(mrb_callinfo)*CALLINFO_INIT_SIZE);
