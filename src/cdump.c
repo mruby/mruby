@@ -73,22 +73,23 @@ str_format_len(mrb_value str)
 static char*
 str_to_format(mrb_value str, char *buf)
 {
-  char *src, *dst;
+  char *src;
+  char *dst;
 
-  for (src = RSTRING_PTR(str), dst = buf; src < RSTRING_END(str);) {
+  for (src = RSTRING_PTR(str), dst = buf; src < RSTRING_END(str); src++) {
     switch (*src) {
-    case 0x07:/* BEL */  memcpy(dst, "\\a", 2); dst+=2; src+=2; break;
-    case 0x08:/* BS  */  memcpy(dst, "\\b", 2); dst+=2; src+=2; break;
-    case 0x09:/* HT  */  memcpy(dst, "\\t", 2); dst+=2; src+=2; break;
-    case 0x0A:/* LF  */  memcpy(dst, "\\n", 2); dst+=2; src+=2; break;
-    case 0x0B:/* VT  */  memcpy(dst, "\\v", 2); dst+=2; src+=2; break;
-    case 0x0C:/* FF  */  memcpy(dst, "\\f", 2); dst+=2; src+=2; break;
-    case 0x0D:/* CR  */  memcpy(dst, "\\r", 2); dst+=2; src+=2; break;
-    case 0x22:/* "   */  memcpy(dst, "\\\"", 2); dst+=2; src+=2; break;
-    case 0x27:/* '   */  memcpy(dst, "\\\'", 2); dst+=2; src+=2; break;
-    case 0x3F:/* ?   */  memcpy(dst, "\\\?", 2); dst+=2; src+=2; break;
-    case 0x5C:/* \   */  memcpy(dst, "\\\\", 2); dst+=2; src+=2; break;
-    default: *dst++ = *src++; break;
+    case 0x07:/* BEL */  *dst++ = '\\'; *dst++ = 'a'; break;
+    case 0x08:/* BS  */  *dst++ = '\\'; *dst++ = 'b'; break;
+    case 0x09:/* HT  */  *dst++ = '\\'; *dst++ = 't'; break;
+    case 0x0A:/* LF  */  *dst++ = '\\'; *dst++ = 'n'; break;
+    case 0x0B:/* VT  */  *dst++ = '\\'; *dst++ = 'v'; break;
+    case 0x0C:/* FF  */  *dst++ = '\\'; *dst++ = 'f'; break;
+    case 0x0D:/* CR  */  *dst++ = '\\'; *dst++ = 'r'; break;
+    case 0x22:/* "   */  *dst++ = '\\'; *dst++ = '\"'; break;
+    case 0x27:/* '   */  *dst++ = '\\'; *dst++ = '\''; break;
+    case 0x3F:/* ?   */  *dst++ = '\\'; *dst++ = '\?'; break;
+    case 0x5C:/* \   */  *dst++ = '\\'; *dst++ = '\\'; break;
+    default: *dst++ = *src; break;
     }
   }
 
