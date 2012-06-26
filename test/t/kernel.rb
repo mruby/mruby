@@ -187,7 +187,7 @@ assert('Kernel#dup', '15.3.1.3.9') do
     c.respond_to?(:test) == false
 end
 
-assert('global_variables', '15.3.1.3.14') do
+assert('Kernel#global_variables', '15.3.1.3.14') do
   global_variables.class == Array
 end
 
@@ -195,7 +195,7 @@ assert('Kernel#hash', '15.3.1.3.15') do
   hash == hash
 end
 
-assert('inspect', '15.3.1.3.17') do
+assert('Kernel#inspect', '15.3.1.3.17') do
   inspect.class == String
 end
 
@@ -263,7 +263,7 @@ assert('Kernel#public_methods', '15.3.1.3.38') do
   public_methods.class == Array
 end
 
-assert('Kernel.raise', '15.3.1.3.40') do
+assert('Kernel#raise', '15.3.1.3.40') do
   e_list = []
 
   begin
