@@ -1549,10 +1549,17 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 {
   if (s2->flags & MRB_STR_SHARED) {
   L_SHARE:
+    if (s1->flags & MRB_STR_SHARED){
+      mrb_str_decref(mrb, s1->aux.shared);
+    }
+    else {
+      mrb_free(mrb, s1->ptr);
+    }
     s1->ptr = s2->ptr;
     s1->len = s2->len;
     s1->aux.shared = s2->aux.shared;
     s1->flags |= MRB_STR_SHARED;
+    s1->aux.shared->refcnt++;
   }
   else if (s2->len > STR_REPLACE_SHARED_MIN) {
     str_make_shared(mrb, s2);
@@ -1561,6 +1568,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   else {
     if (s1->flags & MRB_STR_SHARED) {
       mrb_str_decref(mrb, s1->aux.shared);
+      s1->flags &= ~MRB_STR_SHARED;
       s1->ptr = mrb_malloc(mrb, s2->len+1);
     }
     else {
@@ -1569,7 +1577,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
     memcpy(s1->ptr, s2->ptr, s2->len);
     s1->ptr[s2->len] = 0;
     s1->len = s2->len;
-    s2->aux.capa = s2->len;
+    s1->aux.capa = s2->len;
   }
   return mrb_obj_value(s1);
 }
