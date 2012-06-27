@@ -180,7 +180,7 @@ mrb_raise(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
   int n;
 
   va_start(args, fmt);
-  n = vsnprintf(buf, 256, fmt, args);
+  n = vsnprintf(buf, sizeof(buf), fmt, args);
   va_end(args);
   if (n < 0) {
     n = 0;
@@ -197,7 +197,7 @@ mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
   int n;
 
   va_start(args, fmt);
-  n = vsnprintf(buf, 256, fmt, args);
+  n = vsnprintf(buf, sizeof(buf), fmt, args);
   va_end(args);
   if (n < 0) {
     n = 0;
@@ -216,7 +216,7 @@ mrb_sprintf(mrb_state *mrb, const char *fmt, ...)
   int n;
 
   va_start(args, fmt);
-  n = vsnprintf(buf, 256, fmt, args);
+  n = vsnprintf(buf, sizeof(buf), fmt, args);
   va_end(args);
   if (n < 0) {
     n = 0;
