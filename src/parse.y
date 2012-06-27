@@ -2587,7 +2587,7 @@ var_ref		: variable
 		    {
 		      char buf[16];
 
-		      snprintf(buf, 16, "%d", p->lineno);
+		      snprintf(buf, sizeof(buf), "%d", p->lineno);
 		      $$ = new_int(p, buf, 10);
 		    }
 		;
@@ -2955,7 +2955,7 @@ yyerror_i(parser_state *p, const char *fmt, int i)
 {
   char buf[256];
 
-  snprintf(buf, 256, fmt, i);
+  snprintf(buf, sizeof(buf), fmt, i);
   yyerror(p, buf);
 }
 
@@ -2995,7 +2995,7 @@ yywarning_s(parser_state *p, const char *fmt, const char *s)
 {
   char buf[256];
 
-  snprintf(buf, 256, fmt, s);
+  snprintf(buf, sizeof(buf), fmt, s);
   yywarning(p, buf);
 }
 
@@ -3201,9 +3201,9 @@ toklen(parser_state *p)
 #define IS_LABEL_SUFFIX(n) (peek_n(p, ':',(n)) && !peek_n(p, ':', (n)+1))
 
 static unsigned long
-scan_oct(const char *start, int len, int *retlen)
+scan_oct(const int *start, int len, int *retlen)
 {
-  const char *s = start;
+  const int *s = start;
   unsigned long retval = 0;
 
   while (len-- && *s >= '0' && *s <= '7') {
@@ -3215,10 +3215,10 @@ scan_oct(const char *start, int len, int *retlen)
 }
 
 static unsigned long
-scan_hex(const char *start, int len, int *retlen)
+scan_hex(const int *start, int len, int *retlen)
 {
   static const char hexdigit[] = "0123456789abcdef0123456789ABCDEF";
-  register const char *s = start;
+  register const int *s = start;
   register unsigned long retval = 0;
   char *tmp;
 
@@ -3264,7 +3264,7 @@ read_escape(parser_state *p)
   case '0': case '1': case '2': case '3': /* octal constant */
   case '4': case '5': case '6': case '7':
     {
-       char buf[3];
+       int buf[3];
        int i;
 
        for (i=0; i<3; i++) {
@@ -3281,7 +3281,7 @@ read_escape(parser_state *p)
 
   case 'x':	/* hex constant */
     {
-      char buf[2];
+      int buf[2];
       int i;
 
       for (i=0; i<2; i++) {
@@ -3702,7 +3702,7 @@ parser_yylex(parser_state *p)
 	}
 	if (c2) {
 	  char buf[256];
-	  snprintf(buf, 256, "invalid character syntax; use ?\\%c", c2);
+	  snprintf(buf, sizeof(buf), "invalid character syntax; use ?\\%c", c2);
 	  yyerror(p, buf);
 	}
       }
@@ -4542,7 +4542,7 @@ parser_yylex(parser_state *p)
 	    pushback(p, c);
 	  }
 	}
-	if (result == 0 && isupper(tok(p)[0])) {
+	if (result == 0 && isupper((int)tok(p)[0])) {
 	  result = tCONSTANT;
 	}
 	else {

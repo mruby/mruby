@@ -435,7 +435,7 @@ mrb_time_asctime(mrb_state *mrb, mrb_value self)
   tm = mrb_get_datatype(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   d = &tm->datetime;
-  len = snprintf(buf, 256, "%s %s %02d %02d:%02d:%02d %s%d",
+  len = snprintf(buf, sizeof(buf), "%s %s %02d %02d:%02d:%02d %s%d",
 		 wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday, 
 		 d->tm_hour, d->tm_min, d->tm_sec,
 		 tm->timezone == MRB_TIMEZONE_UTC ? "UTC " : "",

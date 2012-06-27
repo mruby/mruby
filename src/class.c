@@ -1149,11 +1149,11 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 
       switch (mrb_type(klass)) {
         case MRB_TT_CLASS:
-          n = snprintf(buf, 256, "#<Class:%p>", c);
+          n = snprintf(buf, sizeof(buf), "#<Class:%p>", c);
           break;
 
         case MRB_TT_MODULE:
-          n = snprintf(buf, 256, "#<Module:%p>", c);
+          n = snprintf(buf, sizeof(buf), "#<Module:%p>", c);
           break;
 
         default:
