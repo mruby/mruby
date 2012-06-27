@@ -2587,7 +2587,7 @@ var_ref		: variable
 		    {
 		      char buf[16];
 
-		      snprintf(buf, 16, "%d", p->lineno);
+		      snprintf(buf, sizeof(buf), "%d", p->lineno);
 		      $$ = new_int(p, buf, 10);
 		    }
 		;
@@ -2955,7 +2955,7 @@ yyerror_i(parser_state *p, const char *fmt, int i)
 {
   char buf[256];
 
-  snprintf(buf, 256, fmt, i);
+  snprintf(buf, sizeof(buf), fmt, i);
   yyerror(p, buf);
 }
 
@@ -2995,7 +2995,7 @@ yywarning_s(parser_state *p, const char *fmt, const char *s)
 {
   char buf[256];
 
-  snprintf(buf, 256, fmt, s);
+  snprintf(buf, sizeof(buf), fmt, s);
   yywarning(p, buf);
 }
 
@@ -3702,7 +3702,7 @@ parser_yylex(parser_state *p)
 	}
 	if (c2) {
 	  char buf[256];
-	  snprintf(buf, 256, "invalid character syntax; use ?\\%c", c2);
+	  snprintf(buf, sizeof(buf), "invalid character syntax; use ?\\%c", c2);
 	  yyerror(p, buf);
 	}
       }
