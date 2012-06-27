@@ -364,7 +364,7 @@ mrb_reg_desc(mrb_state *mrb, const char *s, long len, mrb_value re)
     if (*option_to_str(opts, RREGEXP(re)->ptr->options))
         mrb_str_buf_cat(mrb, str, opts, strlen(opts));//mrb_str_buf_cat2(str, opts);
     if (RBASIC(re)->flags & REG_ENCODING_NONE)
-        mrb_str_buf_cat(mrb, str, "n", sizeof("n"));
+        mrb_str_buf_cat(mrb, str, "n", 1);
   }
 
   return str;
@@ -1797,9 +1797,9 @@ again:
     mrb_str_buf_cat(mrb, str, optbuf, strlen(optbuf));
   }
 
-  mrb_str_buf_cat(mrb, str, ":", sizeof(":"));
+  mrb_str_buf_cat(mrb, str, ":", 1);
   mrb_reg_expr_str(mrb, str, (char*)ptr, len);
-  mrb_str_buf_cat(mrb, str, ")", sizeof(")"));
+  mrb_str_buf_cat(mrb, str, ")", 1);
 
   return str;
 }
@@ -1925,7 +1925,7 @@ mrb_match_inspect(mrb_state *mrb, mrb_value match)
     for (i = 0; i < num_regs; i++) {
         char buf[sizeof(num_regs)*3+1];
         mrb_value v;
-        mrb_str_buf_cat(mrb, str, " ", sizeof(" "));
+        mrb_str_buf_cat(mrb, str, " ", 1);
         if (0 < i) {
             if (names[i].name)
                 mrb_str_buf_cat(mrb, str, (const char*)names[i].name, names[i].len);
@@ -1933,15 +1933,15 @@ mrb_match_inspect(mrb_state *mrb, mrb_value match)
 	      int n = sprintf(buf, "%d", i);
                 mrb_str_buf_cat(mrb, str, (const char*)buf, n);
             }
-            mrb_str_buf_cat(mrb, str, ":", sizeof(":"));
+            mrb_str_buf_cat(mrb, str, ":", 1);
         }
         v = mrb_reg_nth_match(mrb, i, match);
         if (mrb_nil_p(v))
-            mrb_str_buf_cat(mrb, str, "nil", sizeof("nil"));
+            mrb_str_buf_cat(mrb, str, "nil", 3);
         else
             mrb_str_buf_append(mrb, str, mrb_str_inspect(mrb, v));
     }
-    mrb_str_buf_cat(mrb, str, ">", sizeof(">"));
+    mrb_str_buf_cat(mrb, str, ">", 1);
 
     return str;
 }

@@ -2988,7 +2988,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
           continue;
       }
     }
-    mrb_str_buf_cat(mrb, result, "\"", sizeof("\""));
+    mrb_str_buf_cat(mrb, result, "\"", 1);
 
     return result;
 }
