@@ -1537,7 +1537,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int len;
       int sym;
 
-      len = snprintf(buf, 3, "$%c", (int)(intptr_t)tree);
+      len = snprintf(buf, sizeof(buf), "$%c", (int)(intptr_t)tree);
       sym = new_sym(s, mrb_intern2(s->mrb, buf, len));
       genop(s, MKOP_ABx(OP_GETGLOBAL, cursp(), sym));
       push();
@@ -1550,7 +1550,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int len;
       int sym;
 
-      len = snprintf(buf, 3, "$%d", (int)(intptr_t)tree);
+      len = snprintf(buf, sizeof(buf), "$%d", (int)(intptr_t)tree);
       sym = new_sym(s, mrb_intern2(s->mrb, buf, len));
       genop(s, MKOP_ABx(OP_GETGLOBAL, cursp(), sym));
       push();
