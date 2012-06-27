@@ -1930,8 +1930,8 @@ mrb_match_inspect(mrb_state *mrb, mrb_value match)
             if (names[i].name)
                 mrb_str_buf_cat(mrb, str, (const char*)names[i].name, names[i].len);
             else {
-                sprintf(buf, "%d", i);
-                mrb_str_buf_cat(mrb, str, (const char*)buf, strlen(buf));
+	      int n = sprintf(buf, "%d", i);
+                mrb_str_buf_cat(mrb, str, (const char*)buf, n);
             }
             mrb_str_buf_cat(mrb, str, ":", sizeof(":"));
         }

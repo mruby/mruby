@@ -2983,8 +2983,8 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
           continue;
       }
       else {
-          sprintf(buf, "\\%03o", c & 0377);
-          mrb_str_buf_cat(mrb, result, buf, strlen(buf));
+	int n = sprintf(buf, "\\%03o", c & 0377);
+	mrb_str_buf_cat(mrb, result, buf, n);
           continue;
       }
     }

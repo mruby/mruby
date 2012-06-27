@@ -1141,25 +1141,25 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
   }
   else {
     struct RClass *c = mrb_class_ptr(klass);
-    const char *cn = mrb_class_name(mrb,  c);
+    const char *cn = mrb_class_name(mrb, c);
 
     if (!cn) {
       char buf[256];
-
+      int n = 0;
 
       switch (mrb_type(klass)) {
         case MRB_TT_CLASS:
-          snprintf(buf, 256, "#<Class:%p>", c);
+          n = snprintf(buf, 256, "#<Class:%p>", c);
           break;
 
         case MRB_TT_MODULE:
-          snprintf(buf, 256, "#<Module:%p>", c);
+          n = snprintf(buf, 256, "#<Module:%p>", c);
           break;
 
         default:
           break;
       }
-      return mrb_str_dup(mrb, mrb_str_new_cstr(mrb, buf));
+      return mrb_str_dup(mrb, mrb_str_new(mrb, buf, n));
     }
     else {
       return mrb_str_dup(mrb, mrb_str_new_cstr(mrb, cn));

@@ -496,7 +496,7 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
   char *buf;
   long blen, bsiz;
   mrb_value result;
-
+  int n;
   int width, prec, flags = FNONE;
   int nextarg = 1;
   int posarg = 0;
@@ -533,7 +533,6 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
 
   for (; p < end; p++) {
     const char *t;
-    int n;
     mrb_sym id = 0;
 
     for (t = p; t < end && *t != '%'; t++) ;
@@ -669,7 +668,6 @@ retry:
         mrb_value val = GETARG();
         mrb_value tmp;
         unsigned int c;
-        int n;
 
         tmp = mrb_check_string_type(mrb, val);
         if (!mrb_nil_p(tmp)) {
@@ -984,6 +982,7 @@ bin_retry:
         fval = mrb_float(mrb_Float(mrb, val));
         if (isnan(fval) || isinf(fval)) {
           const char *expr;
+	  const int elen = 3;
 
           if (isnan(fval)) {
             expr = "NaN";
@@ -991,14 +990,14 @@ bin_retry:
           else {
             expr = "Inf";
           }
-          need = (int)strlen(expr);
+          need = elen;
           if ((!isnan(fval) && fval < 0.0) || (flags & FPLUS))
             need++;
           if ((flags & FWIDTH) && need < width)
             need = width;
 
           CHECK(need + 1);
-          snprintf(&buf[blen], need + 1, "%*s", need, "");
+          n = snprintf(&buf[blen], need + 1, "%*s", need, "");
           if (flags & FMINUS) {
             if (!isnan(fval) && fval < 0.0)
               buf[blen++] = '-';
@@ -1006,17 +1005,16 @@ bin_retry:
               buf[blen++] = '+';
             else if (flags & FSPACE)
               blen++;
-            memcpy(&buf[blen], expr, strlen(expr));
+            memcpy(&buf[blen], expr, elen);
           }
           else {
             if (!isnan(fval) && fval < 0.0)
-              buf[blen + need - strlen(expr) - 1] = '-';
+              buf[blen + need - elen - 1] = '-';
             else if (flags & FPLUS)
-              buf[blen + need - strlen(expr) - 1] = '+';
+              buf[blen + need - elen - 1] = '+';
             else if ((flags & FSPACE) && need > width)
               blen++;
-            memcpy(&buf[blen + need - strlen(expr)], expr,
-            strlen(expr));
+            memcpy(&buf[blen + need - elen], expr, elen);
           }
           blen += strlen(&buf[blen]);
           break;
@@ -1036,8 +1034,8 @@ bin_retry:
         need += 20;
 
         CHECK(need);
-        snprintf(&buf[blen], need, fbuf, fval);
-        blen += strlen(&buf[blen]);
+        n = snprintf(&buf[blen], need, fbuf, fval);
+        blen += n;
       }
       break;
     }
