@@ -527,13 +527,6 @@ new_strsym(parser_state *p, node* str)
   return mrb_intern2(p->mrb, s, len);
 }
 
-// (:sym . a)
-static node*
-new_dsym(parser_state *p, node *a)
-{
-  return cons((node*)NODE_DSYM, a);
-}
-
 // (:lvar . a)
 static node*
 new_lvar(parser_state *p, mrb_sym sym)
@@ -703,6 +696,13 @@ static node*
 new_dstr(parser_state *p, node *a)
 {
   return cons((node*)NODE_DSTR, a);
+}
+
+// (:dsym . a)
+static node*
+new_dsym(parser_state *p, node *a)
+{
+  return cons((node*)NODE_DSYM, new_dstr(p, a));
 }
 
 // (:backref . n)

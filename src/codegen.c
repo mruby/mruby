@@ -1711,6 +1711,15 @@ codegen(codegen_scope *s, node *tree, int val)
     }
     break;
 
+  case NODE_DSYM:
+    codegen(s, tree, val);
+    if (val) {
+      pop();
+      genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern(s->mrb, "intern")), 0));
+      push();
+    }
+    break;
+
   case NODE_SELF:
     if (val) {
       genop(s, MKOP_A(OP_LOADSELF, cursp()));
