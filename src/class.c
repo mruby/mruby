@@ -7,6 +7,7 @@
 #include "mruby.h"
 #include <stdarg.h>
 #include <stdio.h>
+#include <assert.h>
 #include "mruby/class.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
@@ -1145,7 +1146,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 
     if (!cn) {
       char buf[256];
-      int n = 0;
+      int n;
 
       switch (mrb_type(klass)) {
         case MRB_TT_CLASS:
@@ -1157,8 +1158,10 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
           break;
 
         default:
+	  n = -1;
           break;
       }
+      assert(n >= 0);
       return mrb_str_dup(mrb, mrb_str_new(mrb, buf, n));
     }
     else {
