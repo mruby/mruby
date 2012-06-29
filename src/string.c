@@ -6,6 +6,7 @@
 
 #include "mruby.h"
 
+#include <assert.h>
 #include <stdarg.h>
 #include <string.h>
 #include "mruby/string.h"
@@ -2877,8 +2878,10 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
           *q++ = c;
       }
       else {
+          int n;
           *q++ = '\\';
-          sprintf(q, "%03o", c&0xff);
+          n = sprintf(q, "%03o", c&0xff);
+          assert(n == 3);
           q += 3;
       }
     }
@@ -2983,8 +2986,10 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
           continue;
       }
       else {
-	int n = sprintf(buf, "\\%03o", c & 0377);
-	mrb_str_buf_cat(mrb, result, buf, n);
+          int n;
+          n = snprintf(buf, sizeof(buf), "\\%03o", c & 0377);
+          assert(n >= 0);
+          mrb_str_buf_cat(mrb, result, buf, n);
           continue;
       }
     }

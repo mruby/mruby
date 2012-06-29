@@ -199,7 +199,7 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
   } else if(isnan(value))
     return mrb_str_new(mrb, "NaN", 3);
 
-  n = sprintf(buf, "%.14g", value);
+  n = snprintf(buf, sizeof(buf), "%.14g", value);
   assert(n >= 0);
   return mrb_str_new(mrb, buf, n);
 }

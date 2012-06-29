@@ -4,6 +4,7 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <assert.h>
 #include <string.h>
 #include "mruby/dump.h"
 
@@ -222,15 +223,18 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep, int type)
 
   for (pool_no = 0; pool_no < irep->plen; pool_no++) {
     uint16_t nlen =0;
+    int n;
 
     switch (irep->pool[pool_no].tt) {
     case MRB_TT_FIXNUM:
-      sprintf( buf, "%d", irep->pool[pool_no].value.i);
-      size += strlen(buf);
+      n = snprintf( buf, sizeof(buf), "%d", irep->pool[pool_no].value.i);
+      assert(n >= 0);
+      size += n;
       break;
     case MRB_TT_FLOAT:
-      sprintf( buf, "%.16e", irep->pool[pool_no].value.f);
-      size += strlen(buf);
+      n = snprintf( buf, sizeof(buf), "%.16e", irep->pool[pool_no].value.f);
+      assert(n >= 0);
+      size += n;
       break;
     case MRB_TT_STRING:
       str = mrb_string_value( mrb, &irep->pool[pool_no]);
@@ -331,6 +335,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
   char *buf_top = buf;
   char *char_buf;
   uint16_t buf_size =0;
+  int buf_len;
 
   buf_size = MRB_DUMP_DEFAULT_STR_LEN;
   if ((char_buf = mrb_malloc(mrb, buf_size)) == 0)
@@ -384,10 +389,11 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
       continue;
     }
 
-    buf += uint16_dump((uint16_t)strlen(char_buf), buf, type); /* data length */
+    buf_len = strlen(char_buf);
+    buf += uint16_dump((uint16_t)buf_len, buf, type); /* data length */
 
-    memcpy(buf, char_buf, strlen(char_buf));
-    buf += strlen(char_buf);
+    memcpy(buf, char_buf, buf_len);
+    buf += buf_len;
   }
 
 error_exit:
