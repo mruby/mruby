@@ -90,7 +90,9 @@ typedef struct {
     struct RArray array;
     struct RHash hash;
     struct RRange range;
+#ifdef ENABLE_STRUCT
     struct RStruct structdata;
+#endif
     struct RProc procdata;
 #ifdef ENABLE_REGEXP
     struct RMatch match;
