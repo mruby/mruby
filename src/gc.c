@@ -528,6 +528,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
       if (d->type->dfree) {
         d->type->dfree(mrb, d->data);
       }
+      mrb_gc_free_iv(mrb, (struct RObject*)obj);
     }
     break;
 
@@ -607,6 +608,7 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_OBJECT:
+  case MRB_TT_DATA:
     children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
     break;
 
