@@ -15,9 +15,9 @@ endif
 ifeq ($(COMPILE_MODE),debug)
   CFLAGS = -g -O3
 else ifeq ($(COMPILE_MODE),release)
-  CFLAGS = -O3
+  CFLAGS = -O3 -DNDEBUG
 else ifeq ($(COMPILE_MODE),small)
-  CFLAGS = -Os
+  CFLAGS = -Os -DNDEBUG
 endif
 
 ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
