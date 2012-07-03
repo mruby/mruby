@@ -4812,7 +4812,7 @@ mrb_compile_file(mrb_state * mrb, FILE *f)
 }
 
 int
-mrb_compile_nstring(mrb_state *mrb, char *s, int len)
+mrb_compile_nstring(mrb_state *mrb, const char *s, int len)
 {
   parser_state *p;
   int n;
@@ -4828,7 +4828,7 @@ mrb_compile_nstring(mrb_state *mrb, char *s, int len)
 }
 
 int
-mrb_compile_string(mrb_state *mrb, char *s)
+mrb_compile_string(mrb_state *mrb, const char *s)
 {
   return mrb_compile_nstring(mrb, s, strlen(s));
 }
