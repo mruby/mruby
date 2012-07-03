@@ -26,10 +26,8 @@ void print_hint(void)
 int
 main(void)
 {
-  struct mrb_parser_state *parser;
   mrb_state *mrb;
   mrb_value return_value;
-  int byte_code;
   const char *prog = "report()";
 
   print_hint();
