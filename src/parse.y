@@ -686,7 +686,7 @@ new_float(parser_state *p, const char *s)
 
 // (:str . (s . len))
 static node*
-new_str(parser_state *p, const char *s, size_t len)
+new_str(parser_state *p, const char *s, int len)
 {
   return cons((node*)NODE_STR, cons((node*)strndup(s, len), (node*)len));
 }
@@ -2961,7 +2961,7 @@ static void
 yyerror(parser_state *p, const char *s)
 {
   char* c;
-  size_t n;
+  int n;
 
   if (! p->capture_errors) {
     if (p->filename) {
@@ -2995,7 +2995,7 @@ static void
 yywarn(parser_state *p, const char *s)
 {
   char* c;
-  size_t n;
+  int n;
 
   if (! p->capture_errors) {
     if (p->filename) {
@@ -4774,7 +4774,7 @@ mrb_parse_file(mrb_state *mrb, FILE *f)
 }
 
 parser_state*
-mrb_parse_nstring(mrb_state *mrb, const char *s, size_t len)
+mrb_parse_nstring(mrb_state *mrb, const char *s, int len)
 {
   parser_state *p;
 
@@ -4812,7 +4812,7 @@ mrb_compile_file(mrb_state * mrb, FILE *f)
 }
 
 int
-mrb_compile_nstring(mrb_state *mrb, char *s, size_t len)
+mrb_compile_nstring(mrb_state *mrb, char *s, int len)
 {
   parser_state *p;
   int n;
