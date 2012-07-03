@@ -22,6 +22,7 @@ typedef struct mrbc_context {
   int slen;
   char *filename;
   int lineno;
+  int capture_errors:1;
 } mrbc_context;
 
 mrbc_context* mrbc_context_new(mrb_state *mrb);

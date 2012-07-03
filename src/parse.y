@@ -4683,6 +4683,7 @@ parser_init_cxt(parser_state *p, mrbc_context *cxt)
       local_add_f(p, cxt->syms[len]);
     }
   }
+  p->capture_errors = cxt->capture_errors;
 }
 
 static void
