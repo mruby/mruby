@@ -4672,9 +4672,36 @@ yylex(void *lval, parser_state *p)
 static void
 parser_init_cxt(parser_state *p, mrbc_context *cxt)
 {
-  if (cxt) {
-    if (cxt->lineno) p->lineno = cxt->lineno;
-    if (cxt->filename) p->filename = cxt->filename;
+  if (!cxt) return;
+  if (cxt->lineno) p->lineno = cxt->lineno;
+  if (cxt->filename) p->filename = cxt->filename;
+  if (cxt->syms) {
+    int len = cxt->slen;
+
+    p->locals = cons(0,0);
+    while (len--) {
+      local_add_f(p, cxt->syms[len]);
+    }
+  }
+}
+
+static void
+parser_update_cxt(parser_state *p, mrbc_context *cxt)
+{
+  node *n, *n0;
+  int i = 0;
+
+  if (!cxt) return;
+  if ((int)p->tree->car != NODE_SCOPE) return;
+  n0 = n = p->tree->cdr->car;
+  while (n) {
+    i++;
+    n = n->cdr;
+  }
+  cxt->syms = mrb_realloc(p->mrb, cxt->syms, i*sizeof(mrb_sym));
+  cxt->slen = i;
+  for (i=0, n=n0; n; i++,n=n->cdr) {
+    cxt->syms[i] = (mrb_sym)n->car;
   }
 }
 
@@ -4694,8 +4721,8 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
   p->in_def = p->in_single = FALSE;
   p->nerr = p->nwarn = 0;
   p->sterm = 0;
-  parser_init_cxt(p, c);
 
+  parser_init_cxt(p, c);
   yyparse(p);
   tree = p->tree;
   if (!tree) {
@@ -4707,9 +4734,7 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
     }
   }
   else {
-    if ((intptr_t)tree->car == NODE_SCOPE) {
-      p->locals = cons(tree->cdr->car, 0);
-    }
+    parser_update_cxt(p, c);
     if (p->begin_tree) {
       tree = new_begin(p, p->begin_tree);
       append(tree, p->tree);
