@@ -231,7 +231,7 @@ main(void)
         memset(ruby_code, 0, sizeof(*ruby_code));
         memset(ruby_code, 0, sizeof(*last_code_line));
       }
-      mrb_pool_close(parser->pool);
+      mrb_parser_free(parser);
     }
   }
   mrbc_context_free(mrb, cxt);
