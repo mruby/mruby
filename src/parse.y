@@ -4847,13 +4847,17 @@ load_exec(mrb_state *mrb, parser_state *p)
 {
   int n;
 
-  if (!p || !p->tree || p->nerr) {
+  if (!p) {
+    mrb_pool_close(p->pool);
+    return mrb_nil_value();
+  }
+  if (p->capture_errors && (!p->tree || p->nerr)) {
     char buf[256];
 
     n = snprintf(buf, sizeof(buf), "line %d: %s\n",
 		 p->error_buffer[0].lineno, p->error_buffer[0].message);
-    mrb_pool_close(p->pool);
     mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, buf, n));
+    mrb_pool_close(p->pool);
     return mrb_nil_value();
   }
   n = mrb_generate_code(mrb, p->tree);
