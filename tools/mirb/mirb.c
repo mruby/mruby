@@ -196,7 +196,7 @@ main(void)
       parser->send = ruby_code + strlen(ruby_code);
       parser->capture_errors = 1;
       parser->lineno = 1;
-      mrb_parser_parse(parser);
+      mrb_parser_parse(parser, NULL);
       code_block_open = is_code_block_open(parser); 
 
       if (code_block_open) {

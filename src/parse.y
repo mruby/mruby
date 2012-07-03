@@ -4669,8 +4669,17 @@ yylex(void *lval, parser_state *p)
     return t;
 }
 
+static void
+parser_init_cxt(parser_state *p, mrbc_context *cxt)
+{
+  if (cxt) {
+    if (cxt->lineno) p->lineno = cxt->lineno;
+    if (cxt->filename) p->filename = cxt->filename;
+  }
+}
+
 void
-mrb_parser_parse(parser_state *p)
+mrb_parser_parse(parser_state *p, mrbc_context *c)
 {
   node *tree;
 
@@ -4685,6 +4694,7 @@ mrb_parser_parse(parser_state *p)
   p->in_def = p->in_single = FALSE;
   p->nerr = p->nwarn = 0;
   p->sterm = 0;
+  parser_init_cxt(p, c);
 
   yyparse(p);
   tree = p->tree;
@@ -4772,15 +4782,6 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
   return c->filename;
 }
 
-static void
-parser_init_cxt(parser_state *p, mrbc_context *cxt)
-{
-  if (cxt) {
-    if (cxt->lineno) p->lineno = cxt->lineno;
-    if (cxt->filename) p->filename = cxt->filename;
-  }
-}
-
 parser_state*
 mrb_parse_file(mrb_state *mrb, FILE *f, mrbc_context *c)
 {
@@ -4788,11 +4789,10 @@ mrb_parse_file(mrb_state *mrb, FILE *f, mrbc_context *c)
  
   p = mrb_parser_new(mrb);
   if (!p) return 0;
-  parser_init_cxt(p, c);
   p->s = p->send = NULL;
   p->f = f;
 
-  mrb_parser_parse(p);
+  mrb_parser_parse(p, c);
   return p;
 }
 
@@ -4803,11 +4803,10 @@ mrb_parse_nstring(mrb_state *mrb, const char *s, int len, mrbc_context *c)
 
   p = mrb_parser_new(mrb);
   if (!p) return 0;
-  parser_init_cxt(p, c);
   p->s = s;
   p->send = s + len;
 
-  mrb_parser_parse(p);
+  mrb_parser_parse(p, c);
   return p;
 }
 

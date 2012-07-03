@@ -98,7 +98,7 @@ struct mrb_parser_state {
 
 struct mrb_parser_state* mrb_parser_new(mrb_state*);
 const char *mrb_parser_filename(struct mrb_parser_state*, const char*);
-void mrb_parser_parse(struct mrb_parser_state*);
+void mrb_parser_parse(struct mrb_parser_state*,mrbc_context*);
 
 /* utility functions */
 struct mrb_parser_state* mrb_parse_file(mrb_state*,FILE*,mrbc_context*);
