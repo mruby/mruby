@@ -133,22 +133,22 @@ main(void)
   char last_char, ruby_code[1024], last_code_line[1024];
   int char_index;
   struct mrb_parser_state *parser;
-  mrb_state *mrb_interpreter;
-  mrb_value mrb_return_value;
-  int byte_code;
+  mrb_state *mrb;
+  mrb_value result;
+  int n;
   int code_block_open = FALSE;
 
   print_hint();
 
   /* new interpreter instance */ 
-  mrb_interpreter = mrb_open();
-  if (mrb_interpreter == NULL) {
-    fprintf(stderr, "Invalid mrb_interpreter, exiting mirb");
+  mrb = mrb_open();
+  if (mrb == NULL) {
+    fprintf(stderr, "Invalid mrb interpreter, exiting mirb");
     return EXIT_FAILURE;
   }
 
   /* new parser instance */
-  parser = mrb_parser_new(mrb_interpreter);
+  parser = mrb_parser_new(mrb);
   memset(ruby_code, 0, sizeof(*ruby_code));
   memset(last_code_line, 0, sizeof(*last_code_line));
 
@@ -209,22 +209,22 @@ main(void)
         }
 	else {
           /* generate bytecode */
-          byte_code = mrb_generate_code(mrb_interpreter, parser->tree);
+          n = mrb_generate_code(mrb, parser->tree);
 
           /* evaluate the bytecode */
-          mrb_return_value = mrb_run(mrb_interpreter,
+          result = mrb_run(mrb,
             /* pass a proc for evaulation */
-            mrb_proc_new(mrb_interpreter, mrb_interpreter->irep[byte_code]),
-            mrb_top_self(mrb_interpreter));
+            mrb_proc_new(mrb, mrb->irep[n]),
+            mrb_top_self(mrb));
           /* did an exception occur? */
-          if (mrb_interpreter->exc) {
-            mrb_p(mrb_interpreter, mrb_obj_value(mrb_interpreter->exc));
-            mrb_interpreter->exc = 0;
+          if (mrb->exc) {
+            mrb_p(mrb, mrb_obj_value(mrb->exc));
+            mrb->exc = 0;
           }
 	  else {
             /* no */
             printf(" => ");
-            mrb_p(mrb_interpreter, mrb_return_value);
+            mrb_p(mrb, result);
           }
         }
 
@@ -233,7 +233,7 @@ main(void)
       }
     }
   }
-  mrb_close(mrb_interpreter);
+  mrb_close(mrb);
 
   return 0;
 }
