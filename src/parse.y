@@ -20,6 +20,7 @@
 
 #include "mruby.h"
 #include "mruby/compile.h"
+#include "mruby/proc.h"
 #include "node.h"
 #include "st.h"
 
@@ -4793,45 +4794,48 @@ mrb_parse_string(mrb_state *mrb, const char *s)
   return mrb_parse_nstring(mrb, s, strlen(s));
 }
 
+static mrb_value
+load_exec(mrb_state *mrb, parser_state *p)
+{
+  int n;
+
+  if (!p || !p->tree || p->nerr) {
+    char buf[256];
+
+    n = snprintf(buf, sizeof(buf), "line %d: %s\n",
+		 p->error_buffer[0].lineno, p->error_buffer[0].message);
+    mrb_pool_close(p->pool);
+    mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, buf, n));
+    return mrb_nil_value();
+  }
+  n = mrb_generate_code(mrb, p->tree);
+  mrb_pool_close(p->pool);
+  if (n < 0) {
+    mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SCRIPT_ERROR, "codegen error", 13));
+    return mrb_nil_value();
+  }
+  return mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
+}
+
+mrb_value
+mrb_load_file(mrb_state *mrb, FILE *f)
+{
+  return load_exec(mrb, mrb_parse_file(mrb, f));
+}
+
+mrb_value
+mrb_load_nstring(mrb_state *mrb, const char *s, int len)
+{
+  return load_exec(mrb, mrb_parse_nstring(mrb, s, len));
+}
+
+mrb_value
+mrb_load_string(mrb_state *mrb, const char *s)
+{
+  return load_exec(mrb, mrb_parse_nstring(mrb, s, strlen(s)));
+}
+
 void parser_dump(mrb_state *mrb, node *tree, int offset);
-
-int
-mrb_compile_file(mrb_state * mrb, FILE *f)
-{
-  parser_state *p;
-  int n;
-
-  p = mrb_parse_file(mrb, f);
-  if (!p) return -1;
-  if (!p->tree) return -1;
-  if (p->nerr) return -1;
-  n = mrb_generate_code(mrb, p->tree);
-  mrb_pool_close(p->pool);
-
-  return n;
-}
-
-int
-mrb_compile_nstring(mrb_state *mrb, const char *s, int len)
-{
-  parser_state *p;
-  int n;
-
-  p = mrb_parse_nstring(mrb, s, len);
-  if (!p) return -1;
-  if (!p->tree) return -1;
-  if (p->nerr) return -1;
-  n = mrb_generate_code(mrb, p->tree);
-  mrb_pool_close(p->pool);
-
-  return n;
-}
-
-int
-mrb_compile_string(mrb_state *mrb, const char *s)
-{
-  return mrb_compile_nstring(mrb, s, strlen(s));
-}
 
 static void
 dump_prefix(int offset)

@@ -94,9 +94,10 @@ struct mrb_parser_state* mrb_parse_string(mrb_state*,const char*);
 struct mrb_parser_state* mrb_parse_nstring(mrb_state*,const char*,int);
 int mrb_generate_code(mrb_state*, mrb_ast_node*);
 
-int mrb_compile_file(mrb_state*,FILE*);
-int mrb_compile_string(mrb_state*,const char*);
-int mrb_compile_nstring(mrb_state*,const char*,int);
+/* program load functions */
+mrb_value mrb_load_file(mrb_state*,FILE*);
+mrb_value mrb_load_string(mrb_state *mrb, const char *path);
+mrb_value mrb_load_nstring(mrb_state *mrb, const char *path, int len);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */
