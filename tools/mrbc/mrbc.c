@@ -172,7 +172,7 @@ main(int argc, char **argv)
     return n;
   }
 
-  p = mrb_parse_file(mrb, args.rfp);
+  p = mrb_parse_file(mrb, args.rfp, NULL);
   if (!p || !p->tree || p->nerr) {
     cleanup(&args);
     mrb_close(mrb);

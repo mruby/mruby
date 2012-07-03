@@ -4730,7 +4730,6 @@ mrb_parser_new(mrb_state *mrb)
   p->in_def = p->in_single = FALSE;
 
   p->capture_errors = 0;
-
   p->lineno = 1;
   p->column = 0;
 #if defined(PARSER_TEST) || defined(PARSER_DEBUG)
@@ -4740,33 +4739,56 @@ mrb_parser_new(mrb_state *mrb)
   return p;
 }
 
-const char*
-mrb_parser_filename(parser_state *p, const char *s)
+mrbc_context*
+mrbc_context_new(mrb_state *mrb)
 {
-  if (s) {
-    p->filename = strdup(s);
-  }
-  return p->filename;
+  mrbc_context *c;
+
+  c = mrb_malloc(mrb, sizeof(mrbc_context));
+  memset(c, 0, sizeof(mrbc_context));
+  return c;
 }
 
-int
-mrb_parser_lineno(struct mrb_parser_state *p, int n)
+void
+mrbc_context_free(mrb_state *mrb, mrbc_context *cxt)
 {
-  if (n <= 0) {
-    return p->lineno;
+  mrb_free(mrb, cxt->syms);
+  mrb_free(mrb, cxt->filename);
+  mrb_free(mrb, cxt);
+}
+
+const char*
+mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
+{
+  if (s) {
+    int len = strlen(s);
+    char *p = mrb_malloc(mrb, len);
+
+    memcpy(p, s, len);
+    if (c->filename) mrb_free(mrb, c->filename);
+    c->filename = p;
+    c->lineno = 1;
   }
-  p->column = 0;
-  p->lineno = n;
-  return n;
+  return c->filename;
+}
+
+static void
+parser_init_cxt(parser_state *p, mrbc_context *cxt)
+{
+  if (cxt) {
+    if (cxt->lineno) p->lineno = cxt->lineno;
+    if (cxt->filename) p->filename = cxt->filename;
+  }
 }
 
 parser_state*
-mrb_parse_file(mrb_state *mrb, FILE *f)
+mrb_parse_file(mrb_state *mrb, FILE *f, mrbc_context *c)
 {
   parser_state *p;
  
   p = mrb_parser_new(mrb);
   if (!p) return 0;
+  parser_init_cxt(p, c);
   p->s = p->send = NULL;
   p->f = f;
 
@@ -4775,12 +4797,13 @@ mrb_parse_file(mrb_state *mrb, FILE *f)
 }
 
 parser_state*
-mrb_parse_nstring(mrb_state *mrb, const char *s, int len)
+mrb_parse_nstring(mrb_state *mrb, const char *s, int len, mrbc_context *c)
 {
   parser_state *p;
 
   p = mrb_parser_new(mrb);
   if (!p) return 0;
+  parser_init_cxt(p, c);
   p->s = s;
   p->send = s + len;
 
@@ -4789,9 +4812,9 @@ mrb_parse_nstring(mrb_state *mrb, const char *s, int len)
 }
 
 parser_state*
-mrb_parse_string(mrb_state *mrb, const char *s)
+mrb_parse_string(mrb_state *mrb, const char *s, mrbc_context *c)
 {
-  return mrb_parse_nstring(mrb, s, strlen(s));
+  return mrb_parse_nstring(mrb, s, strlen(s), c);
 }
 
 static mrb_value
@@ -4818,21 +4841,39 @@ load_exec(mrb_state *mrb, parser_state *p)
 }
 
 mrb_value
+mrb_load_file_cxt(mrb_state *mrb, FILE *f, mrbc_context *c)
+{
+  return load_exec(mrb, mrb_parse_file(mrb, f, c));
+}
+
+mrb_value
 mrb_load_file(mrb_state *mrb, FILE *f)
 {
-  return load_exec(mrb, mrb_parse_file(mrb, f));
+  return mrb_load_file_cxt(mrb, f, NULL);
+}
+
+mrb_value
+mrb_load_nstring_cxt(mrb_state *mrb, const char *s, int len, mrbc_context *c)
+{
+  return load_exec(mrb, mrb_parse_nstring(mrb, s, len, c));
 }
 
 mrb_value
 mrb_load_nstring(mrb_state *mrb, const char *s, int len)
 {
-  return load_exec(mrb, mrb_parse_nstring(mrb, s, len));
+  return mrb_load_nstring_cxt(mrb, s, len, NULL);
+}
+
+mrb_value
+mrb_load_string_cxt(mrb_state *mrb, const char *s, mrbc_context *c)
+{
+  return load_exec(mrb, mrb_parse_nstring(mrb, s, strlen(s), c));
 }
 
 mrb_value
 mrb_load_string(mrb_state *mrb, const char *s)
 {
-  return load_exec(mrb, mrb_parse_nstring(mrb, s, strlen(s)));
+  return mrb_load_string_cxt(mrb, s, NULL);
 }
 
 void parser_dump(mrb_state *mrb, node *tree, int offset);

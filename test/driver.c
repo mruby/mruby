@@ -42,16 +42,8 @@ main(void)
   }
 
   mrb_init_mrbtest(mrb);
-  parser = mrb_parse_nstring(mrb, prog, strlen(prog));
-
-  /* generate bytecode */
-  byte_code = mrb_generate_code(mrb, parser->tree);
-
-  /* evaluate the bytecode */
-  return_value = mrb_run(mrb,
-    /* pass a proc for evaulation */
-    mrb_proc_new(mrb, mrb->irep[byte_code]),
-    mrb_top_self(mrb));
+  /* evaluate the test */
+  return_value = mrb_load_string(mrb, prog);
   /* did an exception occur? */
   if (mrb->exc) {
     mrb_p(mrb, return_value);

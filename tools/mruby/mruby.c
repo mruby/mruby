@@ -165,17 +165,16 @@ main(int argc, char **argv)
     n = mrb_load_irep(mrb, args.rfp);
   }
   else {
+    mrbc_context *c = mrbc_context_new(mrb);
     if (args.cmdline) {
-      p = mrb_parse_string(mrb, (char*)args.cmdline);
-    }
+      mrbc_filename(mrb, c, "-e");
+      p = mrb_parse_string(mrb, (char*)args.cmdline, c); 
+   }
     else {
-      p = mrb_parser_new(mrb);
-      if (p) {
-	mrb_parser_filename(p, argv[1]);
-	p->f = args.rfp;
-	mrb_parser_parse(p);
-      }
+      mrbc_filename(mrb, c, argv[1]);
+      p = mrb_parse_file(mrb, args.rfp, c);
     }
+    mrbc_context_free(mrb, c);
     if (!p || !p->tree || p->nerr) {
       cleanup(mrb, &args);
       return -1;
