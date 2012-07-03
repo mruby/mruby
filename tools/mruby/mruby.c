@@ -184,7 +184,7 @@ main(int argc, char **argv)
       parser_dump(mrb, p->tree, 0);
 
     n = mrb_generate_code(mrb, p->tree);
-    mrb_pool_close(p->pool);
+    mrb_parser_free(p);
   }
 
   if (n >= 0) {

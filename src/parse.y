@@ -4853,7 +4853,7 @@ load_exec(mrb_state *mrb, parser_state *p)
   int n;
 
   if (!p) {
-    mrb_pool_close(p->pool);
+    mrb_parser_free(p);
     return mrb_nil_value();
   }
   if (p->capture_errors && (!p->tree || p->nerr)) {
@@ -4862,11 +4862,11 @@ load_exec(mrb_state *mrb, parser_state *p)
     n = snprintf(buf, sizeof(buf), "line %d: %s\n",
 		 p->error_buffer[0].lineno, p->error_buffer[0].message);
     mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, buf, n));
-    mrb_pool_close(p->pool);
+    mrb_parser_free(p);
     return mrb_nil_value();
   }
   n = mrb_generate_code(mrb, p->tree);
-  mrb_pool_close(p->pool);
+  mrb_parser_free(p);
   if (n < 0) {
     mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SCRIPT_ERROR, "codegen error", 13));
     return mrb_nil_value();
