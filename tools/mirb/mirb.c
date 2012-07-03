@@ -132,6 +132,7 @@ main(void)
 {
   char last_char, ruby_code[1024], last_code_line[1024];
   int char_index;
+  mrbc_context *cxt;
   struct mrb_parser_state *parser;
   mrb_state *mrb;
   mrb_value result;
@@ -147,8 +148,8 @@ main(void)
     return EXIT_FAILURE;
   }
 
-  /* new parser instance */
-  parser = mrb_parser_new(mrb);
+  cxt = mrbc_context_new(mrb);
+  cxt->capture_errors = 1;
   memset(ruby_code, 0, sizeof(*ruby_code));
   memset(last_code_line, 0, sizeof(*last_code_line));
 
@@ -192,11 +193,11 @@ main(void)
       }
 
       /* parse code */
+      parser = mrb_parser_new(mrb);
       parser->s = ruby_code;
       parser->send = ruby_code + strlen(ruby_code);
-      parser->capture_errors = 1;
       parser->lineno = 1;
-      mrb_parser_parse(parser, NULL);
+      mrb_parser_parse(parser, cxt);
       code_block_open = is_code_block_open(parser); 
 
       if (code_block_open) {
@@ -227,12 +228,13 @@ main(void)
             mrb_p(mrb, result);
           }
         }
-
         memset(ruby_code, 0, sizeof(*ruby_code));
         memset(ruby_code, 0, sizeof(*last_code_line));
       }
+      mrb_pool_close(parser->pool);
     }
   }
+  mrbc_context_free(mrb, cxt);
   mrb_close(mrb);
 
   return 0;
