@@ -1120,7 +1120,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
 
       /* replace callinfo */
-      mrb->ci = ci = &mrb->ci[-1];
+      ci = mrb->ci;
       ci->mid = mid;
       ci->target_class = m->target_class;
       ci->argc = n;

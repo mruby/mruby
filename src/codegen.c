@@ -2149,6 +2149,11 @@ codedump(mrb_state *mrb, int n)
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
+    case OP_TAILCALL:
+      printf("OP_TAILCALL\tR%d\t:%s\t%d\n", GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             GETARG_C(c));
+      break;
     case OP_SUPER:
       printf("OP_SUPER\tR%d\t%d\n", GETARG_A(c),
              GETARG_C(c));
