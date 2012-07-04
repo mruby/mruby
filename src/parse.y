@@ -3949,7 +3949,7 @@ parser_yylex(parser_state *p)
 	      }
 	      if (!ISXDIGIT(c)) break;
 	      nondigit = 0;
-	      tokadd(p, c);
+	      tokadd(p, tolower(c));
 	    } while ((c = nextc(p)) != -1);
 	  }
 	  pushback(p, c);
