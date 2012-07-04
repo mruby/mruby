@@ -4128,8 +4128,15 @@ parser_yylex(parser_state *p)
       }
       tokfix(p);
       if (is_float) {
-	(void)strtod(tok(p), 0); /* just check if float is within range */
-	if (errno == ERANGE) {
+	double d;
+	char *endp;
+
+	errno = 0;
+	d = strtod(tok(p), &endp);
+	if (d == 0 && endp == tok(p)) {
+	  yywarning_s(p, "corrupted float value %s", tok(p));
+	}
+	else if (errno == ERANGE) {
 	  yywarning_s(p, "float %s out of range", tok(p));
 	  errno = 0;
 	}
