@@ -802,6 +802,7 @@ readint_float(codegen_scope *s, const char *p, int base)
   mrb_float f = 0;
   int n;
 
+  if (*p == '+') p++;
   while (p < e) {
     char c = *p;
     c = tolower((unsigned char)c);
@@ -811,6 +812,9 @@ readint_float(codegen_scope *s, const char *p, int base)
 	f += n;
 	break;
       }
+    }
+    if (n == base) {
+      codegen_error(s, "malformed readint input");
     }
     p++;
   }
