@@ -159,7 +159,7 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
   else
     SOURCE_CODE0   ("  irep->pool = NULL;");
   SOURCE_CODE0     ("  mrb->irep_len = idx;");
-  SOURCE_CODE0     ("  ai = mrb->arena_idx;");
+  SOURCE_CODE0     ("  mrb->arena_idx = ai;");
   SOURCE_CODE0("");
   return MRB_CDUMP_OK;
 }
