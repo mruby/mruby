@@ -803,7 +803,7 @@ readint_float(codegen_scope *s, const char *p, int base)
   int n;
 
   while (p <= e) {
-    char c = tolower(*p);
+    char c = tolower((unsigned char)*p);
     for (n=0; n<base; n++) {
       if (mrb_digitmap[n] == c) {
 	f *= base;
