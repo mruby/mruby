@@ -139,7 +139,9 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
       switch (irep->pool[n].tt) {
       case MRB_TT_FLOAT:
         SOURCE_CODE("  irep->pool[%d] = mrb_float_value(%.16e);",                     n, irep->pool[n].value.f); break;
-      case MRB_TT_STRING:
+      case MRB_TT_FIXNUM:
+        SOURCE_CODE("  irep->pool[%d] = mrb_fixnum_value(%d);",                       n, irep->pool[n].value.i); break; 
+     case MRB_TT_STRING:
         str_len = str_format_len(irep->pool[n]) + 1;
         if ( str_len > buf_len ) {
           buf_len = str_len;
