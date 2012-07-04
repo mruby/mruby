@@ -112,6 +112,7 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
     return MRB_CDUMP_GENERAL_FAILURE;
   }
 
+  SOURCE_CODE0     ("  ai = mrb->arena_idx;");
   SOURCE_CODE0     ("  irep = mrb->irep[idx] = mrb_malloc(mrb, sizeof(mrb_irep));");
   SOURCE_CODE0     ("  irep->idx = idx++;");
   SOURCE_CODE      ("  irep->flags = %d | MRB_ISEQ_NOFREE;",                          irep->flags);
@@ -155,6 +156,8 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
   }
   else
     SOURCE_CODE0   ("  irep->pool = NULL;");
+  SOURCE_CODE0     ("  mrb->irep_len = idx;");
+  SOURCE_CODE0     ("  ai = mrb->arena_idx;");
   SOURCE_CODE0("");
   return MRB_CDUMP_OK;
 }
@@ -185,6 +188,7 @@ mrb_cdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname)
   SOURCE_CODE0("{");
   SOURCE_CODE0("  int n = mrb->irep_len;");
   SOURCE_CODE0("  int idx = n;");
+  SOURCE_CODE0("  int ai;");
   SOURCE_CODE0("  mrb_irep *irep;");
   SOURCE_CODE0("");
   SOURCE_CODE ("  mrb_add_irep(mrb, idx+%d);",  irep_num);
@@ -194,8 +198,6 @@ mrb_cdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname)
       return -1;
   }
 
-  SOURCE_CODE0("  mrb->irep_len = idx;");
-  SOURCE_CODE0("");
   SOURCE_CODE0("  mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));");
   SOURCE_CODE0("}");
 
