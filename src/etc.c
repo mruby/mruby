@@ -126,34 +126,7 @@ mrb_block_proc(void)
   return mrb_nil_value();//proc_new(mrb_cProc, FALSE);
 }
 
-/*
- *  Document-method: __id__
- *  Document-method: object_id
- *
- *  call-seq:
- *     obj.__id__       -> fixnum
- *     obj.object_id    -> fixnum
- *
- *  Returns an integer identifier for <i>obj</i>. The same number will
- *  be returned on all calls to <code>id</code> for a given object, and
- *  no two active objects will share an id.
- *  <code>Object#object_id</code> is a different concept from the
- *  <code>:name</code> notation, which returns the symbol id of
- *  <code>name</code>. Replaces the deprecated <code>Object#id</code>.
- */
-
-/*
- *  call-seq:
- *     obj.hash    -> fixnum
- *
- *  Generates a <code>Fixnum</code> hash value for this object. This
- *  function must have the property that <code>a.eql?(b)</code> implies
- *  <code>a.hash == b.hash</code>. The hash value is used by class
- *  <code>Hash</code>. Any hash value that exceeds the capacity of a
- *  <code>Fixnum</code> will be truncated before being used.
- */
-
-int
+mrb_int
 mrb_obj_id(mrb_value obj)
 {
     /*
