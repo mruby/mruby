@@ -646,6 +646,7 @@ mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
   struct RClass *ic;
 
+  if (m->super) mrb_include_module(mrb, c, m->super);
   ic = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, mrb->class_class);
   ic->c = m;
   ic->mt = m->mt;
