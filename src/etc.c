@@ -183,8 +183,6 @@ mrb_obj_id(mrb_value obj)
   case  MRB_TT_MATCH:
   case  MRB_TT_FILE:
   case  MRB_TT_DATA:
-  case  MRB_TT_THREAD:
-  case  MRB_TT_THREADGRP:
   default:
     return MakeID(obj.value.p);
   }

@@ -60,9 +60,7 @@ enum mrb_vtype {
   MRB_TT_FILE,        /*  21 */
   MRB_TT_ENV,         /*  22 */
   MRB_TT_DATA,        /*  23 */
-  MRB_TT_THREAD,      /*  24 */
-  MRB_TT_THREADGRP,   /*  25 */
-  MRB_TT_MAXDEFINE    /*  26 */
+  MRB_TT_MAXDEFINE    /*  24 */
 };
 
 typedef struct mrb_value {
