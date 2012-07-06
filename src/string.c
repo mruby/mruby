@@ -2381,17 +2381,10 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
   #define BDIGIT unsigned int
   #define BDIGIT_DBL unsigned long
 
-//  const char *s = str;
   char *end;
   char sign = 1;
-//  char nondigit = 0;
   int c;
-//  BDIGIT_DBL num;
   long len;
-//  long blen = 1;
-//  long i;
-//  mrb_value z;
-//  BDIGIT *zds;
   unsigned long val;
 
 #undef ISDIGIT
@@ -2508,21 +2501,22 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
   }
   len *= strlen(str)*sizeof(char);
 
-    val = strtoul((char*)str, &end, base);
+  val = strtoul((char*)str, &end, base);
 
-    if (badcheck) {
-      if (end == str) goto bad; /* no number */
-      while (*end && ISSPACE(*end)) end++;
-      if (*end) goto bad;        /* trailing garbage */
-    }
+  if (badcheck) {
+    if (end == str) goto bad; /* no number */
+    while (*end && ISSPACE(*end)) end++;
+    if (*end) goto bad;        /* trailing garbage */
+  }
 
-      if (sign) return mrb_fixnum_value(val);
-      else {
-        long result = -(long)val;
-        return mrb_fixnum_value(result);
-      }
+  if (sign) return mrb_fixnum_value(val);
+  else {
+    long result = -(long)val;
+    return mrb_fixnum_value(result);
+  }
 bad:
-      printf("Integer");
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "invalide string for number(%s)", str);
+  /* not reached */
   return mrb_fixnum_value(0);
 }
 
@@ -2631,8 +2625,8 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, int badcheck)
   if (p == end) {
     if (badcheck) {
 bad:
-      //mrb_invalid_str(q, "Float()");
-      printf("Float()\n");
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "invalide string for float(%s)", p);
+      /* not reached */
     }
     return d;
   }
