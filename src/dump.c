@@ -331,6 +331,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
   char *buf_top = buf;
   char *char_buf;
   uint16_t buf_size =0;
+  int len;
 
   buf_size = MRB_DUMP_DEFAULT_STR_LEN;
   if ((char_buf = mrb_malloc(mrb, buf_size)) == 0)
@@ -384,10 +385,12 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
       continue;
     }
 
-    buf += uint16_dump((uint16_t)strlen(char_buf), buf, type); /* data length */
+    len = strlen(char_buf);
 
-    memcpy(buf, char_buf, strlen(char_buf));
-    buf += strlen(char_buf);
+    buf += uint16_dump((uint16_t)len, buf, type); /* data length */
+
+    memcpy(buf, char_buf, len);
+    buf += len;
   }
 
 error_exit:
@@ -600,8 +603,10 @@ dump_irep_record(mrb_state *mrb, int irep_no, FILE* fp, uint32_t *rlen)
 
   memset( buf, 0, irep_record_size);
 
-  if ((rc = write_irep_record(mrb, irep_no, buf, rlen, DUMP_TYPE_HEX)) != MRB_DUMP_OK)
+  if ((rc = write_irep_record(mrb, irep_no, buf, rlen, DUMP_TYPE_HEX)) != MRB_DUMP_OK) {
+    rc = MRB_DUMP_GENERAL_FAILURE;
     goto error_exit;
+  }
 
 
   if (fwrite(buf, irep_record_size, 1, fp) != 1)
