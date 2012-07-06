@@ -185,14 +185,14 @@ mrb_range_eq(mrb_state *mrb, mrb_value range)
 static int
 r_le(mrb_state *mrb, mrb_value a, mrb_value b)
 {
-  //int c;
   mrb_value r = mrb_funcall(mrb, a, "<=>", 1, b); /* compare result */
   /* output :a < b => -1, a = b =>  0, a > b => +1 */
 
-  if (mrb_nil_p(r)) return FALSE;
+  if (mrb_type(r) == MRB_TT_FIXNUM) {
+    int c = mrb_fixnum(r);
+    if (c == 0 || c == -1) return TRUE;
+  }
 
-  if (mrb_obj_equal(mrb, r, mrb_fixnum_value(0))) return TRUE;
-  if (mrb_obj_equal(mrb, r, mrb_fixnum_value(-1))) return TRUE;
   return FALSE;
 }
 
