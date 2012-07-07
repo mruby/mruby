@@ -9,6 +9,23 @@ assert('Module superclass', '15.2.2.2') do
   Module.superclass == Object
 end
 
+# TODO not implemented ATM assert('Module.constants', '15.2.2.3.1') do
+
+# TODO not implemented ATM assert('Module.nesting', '15.2.2.3.2') do
+
+assert('Module#append_features', '15.2.2.4.10') do
+  module Test4AppendFeatures
+    def self.append_features(mod)
+      Test4AppendFeatures2.const_set(:Const4AppendFeatures2, mod)
+    end
+  end
+  module Test4AppendFeatures2
+    include Test4AppendFeatures
+  end
+
+  Test4AppendFeatures2.const_get(:Const4AppendFeatures2) == Test4AppendFeatures2
+end
+
 assert('Module#const_defined?', '15.2.2.4.20') do
   module Test4ConstDefined
     Const4Test4ConstDefined = true
@@ -56,6 +73,41 @@ assert('Module#const_get', '15.2.2.4.23') do
   Test4ConstSet.const_get(:Const4Test4ConstSet) == 23
 end
 
-# TODO not implemented ATM assert('Module.constants', '15.2.2') do
+assert('Module#include', '15.2.2.4.27') do
+  module Test4Include
+    Const4Include = 42
+  end
+  module Test4Include2
+    include Test4Include
+  end
 
-# TODO not implemented ATM assert('Module.nesting', '15.2.2') do
+  Test4Include2.const_get(:Const4Include) == 42
+end
+
+assert('Module#included', '15.2.2.4.29') do
+  module Test4Included
+    Const4Included = 42
+    def Test4Included.included mod
+      Test4Included.const_set(:Const4Included2, mod)
+    end
+  end
+  module Test4Included2
+    include Test4Included
+  end
+
+  Test4Included2.const_get(:Const4Included) == 42 and
+    Test4Included2.const_get(:Const4Included2) == Test4Included2
+end
+
+assert('Module#included_modules', '15.2.2.4.30') do
+  r1 = true
+  module Test4includedModules
+    Const4Included = 42
+  end
+  module Test4includedModules2
+    r1 = included Test4includedModules
+  end
+
+  Test4includedModules2.included_modules.class == Array
+end
+
