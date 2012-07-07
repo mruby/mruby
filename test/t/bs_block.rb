@@ -62,7 +62,7 @@ end
 assert('BS Block 7') do
   ans = []
   for m in 1..3
-    for n in 1..3
+    for n in 2..4
       a = [m, n]
       ans << a
     end
