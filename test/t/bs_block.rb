@@ -66,7 +66,7 @@ assert('BS Block 7') do
       a = [m, n]
       ans << a
     end
-  end == 1..3
+  end == (1..3)
 end
 
 assert('BS Block 8') do
