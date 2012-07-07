@@ -641,30 +641,88 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
   return c;
 }
 
+static int
+find_in_ancestors(struct RClass *c, struct RClass *m)
+{
+  while(c) {
+    if (c == m || c->mt == m->mt){
+      return 1;
+    }
+    c = c->super;
+  }
+  return 0;
+}
+
 void
 mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
-  struct RClass *ic;
+  struct RClass *ic, *ins_pos;
 
-  if (m->super) mrb_include_module(mrb, c, m->super);
-  ic = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, mrb->class_class);
-  ic->c = m;
-  ic->mt = m->mt;
-  ic->iv = m->iv;
-  ic->super = c->super;
-  c->super = ic;
-  mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)ic);
+  ins_pos = c;
+  while (m) {
+    if (!find_in_ancestors(c, m)) {
+      ic = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, mrb->class_class);
+      if (m->tt == MRB_TT_ICLASS) {
+        ic->c = m->c;
+      }
+      else {
+        ic->c = m;
+      }
+      ic->mt = m->mt;
+      ic->iv = m->iv;
+      ic->super = ins_pos->super;
+      ins_pos->super = ic;
+      mrb_field_write_barrier(mrb, (struct RBasic*)ins_pos, (struct RBasic*)ic);
+      ins_pos = ic;
+    }
+    m = m->super;
+  }
+}
+
+static mrb_value
+mrb_mod_append_features(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value klass;
+
+  mrb_check_type(mrb, mod, MRB_TT_MODULE);
+  mrb_get_args(mrb, "o", &klass);
+  mrb_include_module(mrb, mrb_class_ptr(klass), mrb_class_ptr(mod));
+  return mod;
 }
 
 static mrb_value
 mrb_mod_include(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value mod;
+  mrb_value *argv;
+  int argc, i;
 
-  mrb_get_args(mrb, "o", &mod);
-  mrb_check_type(mrb, mod, MRB_TT_MODULE);
-  mrb_include_module(mrb, mrb_class_ptr(klass), mrb_class_ptr(mod));
-  return mod;
+  mrb_get_args(mrb, "*", &argv, &argc);
+  for (i=0; i<argc; i++) {
+    mrb_check_type(mrb, argv[i], MRB_TT_MODULE);
+  }
+  while (argc--) {
+    mrb_funcall_argv(mrb, argv[argc], "append_features", 1, &klass);
+    mrb_funcall_argv(mrb, argv[argc], "included", 1, &klass);
+  }
+
+  return klass;
+}
+
+static mrb_value
+mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
+{
+  mrb_value result;
+  struct RClass *c = mrb_class_ptr(self);
+
+  result = mrb_ary_new(mrb);
+  while (c) {
+    if (c->tt == MRB_TT_ICLASS) {
+      mrb_ary_push(mrb, result, mrb_obj_value(c->c));
+    }
+    c = c->super;
+  }
+
+  return result;
 }
 
 static struct RClass *
@@ -1323,7 +1381,10 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, cls, "superclass", mrb_class_superclass, ARGS_NONE());      /* 15.2.3.3.4 */
   mrb_define_method(mrb, cls, "new", mrb_instance_new, ARGS_ANY());                  /* 15.2.3.3.3 */
   mrb_define_method(mrb, cls, "inherited", mrb_bob_init, ARGS_REQ(1));
-  mrb_define_method(mrb, mod, "include", mrb_mod_include, ARGS_REQ(1));              /* 15.2.2.4.27 */
+  mrb_define_method(mrb, mod, "include", mrb_mod_include, ARGS_ANY());               /* 15.2.2.4.27 */
+  mrb_define_method(mrb, mod, "append_features", mrb_mod_append_features, ARGS_REQ(1)); /* 15.2.2.4.10 */
+  mrb_define_method(mrb, mod, "included", mrb_bob_init, ARGS_REQ(1));                /* 15.2.2.4.29 */
+  mrb_define_method(mrb, mod, "included_modules", mrb_mod_included_modules, ARGS_NONE()); /* 15.2.2.4.30 */
 
   mrb_define_method(mrb, mod, "to_s", mrb_mod_to_s, ARGS_NONE());
   mrb_define_method(mrb, mod, "alias_method", mrb_mod_alias, ARGS_ANY());            /* 15.2.2.4.8 */
