@@ -467,13 +467,6 @@ mrb_value mrb_yield_with_self(mrb_state *mrb, mrb_value b, int argc, mrb_value *
 mrb_value mrb_class_new_instance(mrb_state *mrb, int, mrb_value*, struct RClass *);
 mrb_value mrb_class_new_instance_m(mrb_state *mrb, mrb_value klass);
 
-#ifndef xmalloc
-#define xmalloc     malloc
-#define xrealloc    realloc
-#define xcalloc     calloc
-#define xfree       free
-#endif
-
 void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
