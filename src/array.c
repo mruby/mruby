@@ -46,8 +46,7 @@ ary_new_capa(mrb_state *mrb, int capa)
   }
 
   a = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
-  a->ptr = mrb_malloc(mrb, blen);
-  memset(a->ptr, 0, blen);
+  a->ptr = mrb_calloc(mrb, blen, 1);
   a->aux.capa = capa;
   a->len = 0;
 
@@ -566,9 +565,11 @@ mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val) /* rb_ary_s
 
   ary_modify(mrb, a);
   /* range check */
-  if (n < 0) n += a->len;
   if (n < 0) {
-    mrb_raise(mrb, E_INDEX_ERROR, "index %ld out of array", n - a->len);
+    n += a->len;
+    if (n < 0) {
+      mrb_raise(mrb, E_INDEX_ERROR, "index %ld out of array", n - a->len);
+    }
   }
   if (a->len <= (int)n) {
     if (a->aux.capa <= (int)n)
@@ -592,9 +593,11 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
 
   ary_modify(mrb, a);
   /* range check */
-  if (head < 0) head += a->len;
   if (head < 0) {
-    mrb_raise(mrb, E_INDEX_ERROR, "index is out of array");
+    head += a->len;
+    if (head < 0) {
+      mrb_raise(mrb, E_INDEX_ERROR, "index is out of array");
+    }
   }
   tail = head + len;
 
