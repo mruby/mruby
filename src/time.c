@@ -241,7 +241,6 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
   time_t nowsecs;
   struct tm nowtime = { 0 };
 
-  memset(&nowtime, 0, sizeof(struct tm));
   nowtime.tm_year  = (int)ayear  - 1900;
   nowtime.tm_mon   = (int)amonth - 1;
   nowtime.tm_mday  = (int)aday;
