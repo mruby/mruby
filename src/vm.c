@@ -28,16 +28,14 @@ static void
 stack_init(mrb_state *mrb)
 {
   /* assert(mrb->stack == NULL); */
-  mrb->stbase = mrb_malloc(mrb, sizeof(mrb_value) * STACK_INIT_SIZE);
-  memset(mrb->stbase, 0, sizeof(mrb_value) * STACK_INIT_SIZE);
+  mrb->stbase = mrb_calloc(mrb, STACK_INIT_SIZE, sizeof(mrb_value));
   mrb->stend = mrb->stbase + STACK_INIT_SIZE;
   mrb->stack = mrb->stbase;
 
   /* assert(mrb->ci == NULL); */
-  mrb->cibase = mrb_malloc(mrb, sizeof(mrb_callinfo)*CALLINFO_INIT_SIZE);
+  mrb->cibase = mrb_calloc(mrb, CALLINFO_INIT_SIZE, sizeof(mrb_callinfo));
   mrb->ciend = mrb->cibase + CALLINFO_INIT_SIZE;
   mrb->ci = mrb->cibase;
-  memset(mrb->ci, 0, sizeof(mrb_callinfo));
   mrb->ci->target_class = mrb->object_class;
 }
 
