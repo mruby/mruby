@@ -46,8 +46,7 @@ ary_new_capa(mrb_state *mrb, int capa)
   }
 
   a = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
-  a->ptr = mrb_malloc(mrb, blen);
-  memset(a->ptr, 0, blen);
+  a->ptr = mrb_calloc(mrb, blen, 1);
   a->aux.capa = capa;
   a->len = 0;
 

@@ -460,11 +460,10 @@ calc_crc_section(mrb_state *mrb, mrb_irep *irep, uint16_t *crc, int section)
   default: return MRB_DUMP_GENERAL_FAILURE;
   }
 
-  if ((buf = mrb_malloc(mrb, buf_size)) == 0)
+  if ((buf = mrb_calloc(mrb, 1, buf_size)) == 0)
     return MRB_DUMP_GENERAL_FAILURE;
 
   buf_top = buf;
-  memset(buf, 0, buf_size);
 
   switch (section) {
   case DUMP_IREP_HEADER: buf += write_irep_header(mrb, irep, buf, type); break;
@@ -598,10 +597,8 @@ dump_irep_record(mrb_state *mrb, int irep_no, FILE* fp, uint32_t *rlen)
   if (irep_record_size == 0)
     return MRB_DUMP_GENERAL_FAILURE;
 
-  if ((buf = mrb_malloc(mrb, irep_record_size)) == 0)
+  if ((buf = mrb_calloc(mrb, 1, irep_record_size)) == 0)
     return MRB_DUMP_GENERAL_FAILURE;
-
-  memset( buf, 0, irep_record_size);
 
   if ((rc = write_irep_record(mrb, irep_no, buf, rlen, DUMP_TYPE_HEX)) != MRB_DUMP_OK) {
     rc = MRB_DUMP_GENERAL_FAILURE;

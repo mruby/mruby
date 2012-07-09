@@ -4792,8 +4792,7 @@ mrbc_context_new(mrb_state *mrb)
 {
   mrbc_context *c;
 
-  c = mrb_malloc(mrb, sizeof(mrbc_context));
-  memset(c, 0, sizeof(mrbc_context));
+  c = mrb_calloc(mrb, 1, sizeof(mrbc_context));
   return c;
 }
 
