@@ -239,7 +239,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
 	    enum mrb_timezone timezone)
 {
   time_t nowsecs;
-  struct tm nowtime;
+  struct tm nowtime = { 0 };
 
   memset(&nowtime, 0, sizeof(struct tm));
   nowtime.tm_year  = (int)ayear  - 1900;

@@ -248,12 +248,12 @@ mrb_load_irep(mrb_state *mrb, FILE* fp)
   unsigned char hex8[8], hcrc[4];
   unsigned char *dst, *rite_dst = NULL;
   rite_binary_header  bin_header;
-  RiteFILE ritefp, *rfp;
+  RiteFILE ritefp = { 0 };
+  RiteFILE *rfp;
 
   if ((mrb == NULL) || (fp == NULL)) {
     return MRB_DUMP_INVALID_ARGUMENT;
   }
-  memset(&ritefp, 0, sizeof(ritefp));
   ritefp.fp = fp;
   rfp = &ritefp;
 
