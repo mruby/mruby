@@ -739,6 +739,7 @@ mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
   if (index < 0) index += a->len;
   if (index < 0 || a->len <= (int)index) return mrb_nil_value();
 
+  ary_modify(mrb, a);
   val = a->ptr[index];
 
   ptr = a->ptr + index;
@@ -850,6 +851,7 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
   struct RArray *a = mrb_ary_ptr(self);
 
   a->len = 0;
+  ary_modify(mrb, a);
   ary_shrink_capa(mrb, a);
 
   return self;
