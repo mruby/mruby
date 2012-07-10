@@ -243,3 +243,11 @@ assert('Array#to_s', '15.2.12.5.31') do
 end
 
 # Not ISO specified
+
+assert("Array (Shared Array Corruption)") do
+  a = [ "a", "b", "c", "d", "e", "f" ]
+  b = a.slice(1, 3)
+  a.clear
+  b.clear
+end
+
