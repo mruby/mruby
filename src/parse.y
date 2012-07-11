@@ -4683,11 +4683,11 @@ parser_init_cxt(parser_state *p, mrbc_context *cxt)
   if (cxt->lineno) p->lineno = cxt->lineno;
   if (cxt->filename) p->filename = cxt->filename;
   if (cxt->syms) {
-    int len = cxt->slen;
+    int i;
 
     p->locals = cons(0,0);
-    while (len--) {
-      local_add_f(p, cxt->syms[len]);
+    for (i=0; i<cxt->slen; i++) {
+      local_add_f(p, cxt->syms[i]);
     }
   }
   p->capture_errors = cxt->capture_errors;
