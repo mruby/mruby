@@ -22,7 +22,6 @@
 #include "mruby/compile.h"
 #include "mruby/proc.h"
 #include "node.h"
-#include "st.h"
 
 #include <stdio.h>
 #include <errno.h>

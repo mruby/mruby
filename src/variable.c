@@ -16,7 +16,6 @@
 
 #ifdef ENABLE_REGEXP
 #include "re.h"
-#include "st.h"
 #endif
 
 static void

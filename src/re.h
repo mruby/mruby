@@ -13,6 +13,7 @@
 #include "node.h"
 #include "regex.h"
 #include "encoding.h"
+#include "st.h"
 
 #define BEG(no) regs->beg[no]
 #define END(no) regs->end[no]

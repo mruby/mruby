@@ -19,7 +19,6 @@
 #include "re.h"
 #ifdef ENABLE_REGEXP
 #include "regex.h"
-#include "st.h"
 #endif //ENABLE_REGEXP
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
