@@ -14,7 +14,6 @@ extern "C" {
 #include "mruby.h"
 #include <stdio.h>
 #include <setjmp.h>
-#include <stdio.h>
 
 /* load context */
 typedef struct mrbc_context {
