@@ -2310,7 +2310,7 @@ codedump(mrb_state *mrb, int n)
       printf("OP_TCLASS\tR%d\n", GETARG_A(c));
       break;
     case OP_ERR:
-      printf("OP_ERR\t:L(%d)\n", GETARG_Bx(c));
+      printf("OP_ERR\tL(%d)\n", GETARG_Bx(c));
       break;
     case OP_EPUSH:
       printf("OP_EPUSH\t:I(%d)\n", n+GETARG_Bx(c));
