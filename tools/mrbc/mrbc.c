@@ -158,7 +158,8 @@ main(int argc, char **argv)
   mrb_state *mrb = mrb_open();
   int n = -1;
   struct _args args;
-  struct mrb_parser_state *p;
+  mrbc_context *c;
+  mrb_value result;
 
   if (mrb == NULL) {
     fprintf(stderr, "Invalid mrb_state, exiting mrbc");
@@ -166,7 +167,6 @@ main(int argc, char **argv)
   }
 
   n = parse_args(mrb, argc, argv, &args);
-
   if (n < 0 || args.rfp == NULL) {
     cleanup(&args);
     usage(argv[0]);
@@ -174,22 +174,17 @@ main(int argc, char **argv)
     return n;
   }
 
-  p = mrb_parse_file(mrb, args.rfp, NULL);
-  if (!p || !p->tree || p->nerr) {
+  c = mrbc_context_new(mrb);
+  if (args.verbose)
+    c->dump_result = 1;
+  c->no_exec = 1;
+  result = mrb_load_file_cxt(mrb, args.rfp, c);
+  if (mrb_nil_p(result)) {
     cleanup(&args);
     mrb_close(mrb);
     return -1;
   }
-
-  if (args.verbose)
-    parser_dump(mrb, p->tree, 0);
-
-  n = mrb_generate_code(mrb, p->tree);
-  mrb_parser_free(p);
-
-  if (args.verbose)
-    codedump_all(mrb, n);
-
+  n = mrb_fixnum(result);
   if (n < 0 || args.check_syntax) {
     cleanup(&args);
     mrb_close(mrb);
@@ -215,4 +210,3 @@ void
 mrb_init_mrblib(mrb_state *mrb)
 {
 }
-

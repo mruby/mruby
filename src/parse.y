@@ -4721,6 +4721,9 @@ parser_update_cxt(parser_state *p, mrbc_context *cxt)
   }
 }
 
+void codedump_all(mrb_state*, int);
+void parser_dump(mrb_state *mrb, node *tree, int offset);
+
 void
 mrb_parser_parse(parser_state *p, mrbc_context *c)
 {
@@ -4755,6 +4758,9 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
       tree = new_begin(p, p->begin_tree);
       append(tree, p->tree);
     }
+  }
+  if (c && c->dump_result) {
+    parser_dump(p->mrb, p->tree, 0);
   }
 }
 
@@ -4862,7 +4868,7 @@ mrb_parse_string(mrb_state *mrb, const char *s, mrbc_context *c)
 }
 
 static mrb_value
-load_exec(mrb_state *mrb, parser_state *p)
+load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
 {
   int n;
 
@@ -4885,13 +4891,17 @@ load_exec(mrb_state *mrb, parser_state *p)
     mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SCRIPT_ERROR, "codegen error", 13));
     return mrb_nil_value();
   }
+  if (c) {
+    if (c->dump_result) codedump_all(mrb, n);
+    if (c->no_exec) return mrb_fixnum_value(n);
+  }
   return mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
 }
 
 mrb_value
 mrb_load_file_cxt(mrb_state *mrb, FILE *f, mrbc_context *c)
 {
-  return load_exec(mrb, mrb_parse_file(mrb, f, c));
+  return load_exec(mrb, mrb_parse_file(mrb, f, c), c);
 }
 
 mrb_value
@@ -4903,7 +4913,7 @@ mrb_load_file(mrb_state *mrb, FILE *f)
 mrb_value
 mrb_load_nstring_cxt(mrb_state *mrb, const char *s, int len, mrbc_context *c)
 {
-  return load_exec(mrb, mrb_parse_nstring(mrb, s, len, c));
+  return load_exec(mrb, mrb_parse_nstring(mrb, s, len, c), c);
 }
 
 mrb_value
@@ -4915,7 +4925,7 @@ mrb_load_nstring(mrb_state *mrb, const char *s, int len)
 mrb_value
 mrb_load_string_cxt(mrb_state *mrb, const char *s, mrbc_context *c)
 {
-  return load_exec(mrb, mrb_parse_nstring(mrb, s, strlen(s), c));
+  return mrb_load_nstring_cxt(mrb, s, strlen(s), c);
 }
 
 mrb_value
@@ -4923,8 +4933,6 @@ mrb_load_string(mrb_state *mrb, const char *s)
 {
   return mrb_load_string_cxt(mrb, s, NULL);
 }
-
-void parser_dump(mrb_state *mrb, node *tree, int offset);
 
 static void
 dump_prefix(int offset)

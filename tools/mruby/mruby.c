@@ -9,8 +9,6 @@
 
 void mrb_show_version(mrb_state *);
 void mrb_show_copyright(mrb_state *);
-void parser_dump(mrb_state*, struct mrb_ast_node*, int);
-void codedump_all(mrb_state*, int);
 
 struct _args {
   FILE *rfp;
@@ -149,7 +147,7 @@ main(int argc, char **argv)
   int n = -1;
   int i;
   struct _args args;
-  struct mrb_parser_state *p;
+  mrb_value ARGV;
 
   if (mrb == NULL) {
     fprintf(stderr, "Invalid mrb_state, exiting mruby");
@@ -163,50 +161,42 @@ main(int argc, char **argv)
     return n;
   }
 
+  ARGV = mrb_ary_new(mrb);
+  for (i = 0; i < args.argc; i++) {
+    mrb_ary_push(mrb, ARGV, mrb_str_new(mrb, args.argv[i], strlen(args.argv[i])));
+  }
+  mrb_define_global_const(mrb, "ARGV", ARGV);
+
   if (args.mrbfile) {
     n = mrb_load_irep(mrb, args.rfp);
-  }
-  else {
-    mrbc_context *c = mrbc_context_new(mrb);
-    if (args.cmdline) {
-      mrbc_filename(mrb, c, "-e");
-      p = mrb_parse_string(mrb, (char*)args.cmdline, c); 
-   }
-    else {
-      mrbc_filename(mrb, c, argv[1]);
-      p = mrb_parse_file(mrb, args.rfp, c);
-    }
-    mrbc_context_free(mrb, c);
-    if (!p || !p->tree || p->nerr) {
-      cleanup(mrb, &args);
-      return -1;
-    }
-
-    if (args.verbose)
-      parser_dump(mrb, p->tree, 0);
-
-    n = mrb_generate_code(mrb, p->tree);
-    mrb_parser_free(p);
-  }
-
-  if (n >= 0) {
-    mrb_value ARGV = mrb_ary_new(mrb);
-    for (i = 0; i < args.argc; i++) {
-      mrb_ary_push(mrb, ARGV, mrb_str_new(mrb, args.argv[i], strlen(args.argv[i])));
-    }
-    mrb_define_global_const(mrb, "ARGV", ARGV);
-
-    if (args.verbose)
-      codedump_all(mrb, n);
-
-    if (!args.check_syntax) {
-      mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
-      if (mrb->exc) {
-        mrb_p(mrb, mrb_obj_value(mrb->exc));
+    if (n >= 0) {
+      if (!args.check_syntax) {
+	mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
+	if (mrb->exc) {
+	  mrb_p(mrb, mrb_obj_value(mrb->exc));
+	}
       }
     }
   }
+  else {
+    mrbc_context *c = mrbc_context_new(mrb);
 
+    if (args.verbose)
+      c->dump_result = 1;
+    if (args.check_syntax)
+      c->no_exec = 1;
+
+    if (args.cmdline) {
+      mrbc_filename(mrb, c, "-e");
+      mrb_load_string_cxt(mrb, (char*)args.cmdline, c);
+    }
+    else {
+      mrbc_filename(mrb, c, argv[1]);
+      mrb_load_file_cxt(mrb, args.rfp, c);
+    }
+    mrbc_context_free(mrb, c);
+      return -1;
+  }
   cleanup(mrb, &args);
 
   return n > 0 ? 0 : 1;

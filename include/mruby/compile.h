@@ -22,6 +22,8 @@ typedef struct mrbc_context {
   char *filename;
   int lineno;
   int capture_errors:1;
+  int dump_result:1;
+  int no_exec:1;
 } mrbc_context;
 
 mrbc_context* mrbc_context_new(mrb_state *mrb);
