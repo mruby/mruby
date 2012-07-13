@@ -4876,19 +4876,24 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
     mrb_parser_free(p);
     return mrb_undef_value();
   }
-  if (p->capture_errors && (!p->tree || p->nerr)) {
-    char buf[256];
+  if (!p->tree || p->nerr) {
+    if (p->capture_errors) {
+      char buf[256];
 
-    n = snprintf(buf, sizeof(buf), "line %d: %s\n",
-		 p->error_buffer[0].lineno, p->error_buffer[0].message);
-    mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, buf, n));
+      n = snprintf(buf, sizeof(buf), "line %d: %s\n",
+		   p->error_buffer[0].lineno, p->error_buffer[0].message);
+      mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, buf, n));
+    }
+    else {
+      mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, "", 0));
+    }
     mrb_parser_free(p);
     return mrb_undef_value();
   }
   n = mrb_generate_code(mrb, p->tree);
   mrb_parser_free(p);
   if (n < 0) {
-    mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SCRIPT_ERROR, "codegen error", 13));
+    mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SCRIPT_ERROR, "", 0));
     return mrb_undef_value();
   }
   if (c) {
