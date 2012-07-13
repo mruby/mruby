@@ -180,6 +180,7 @@ main(int argc, char **argv)
   }
   else {
     mrbc_context *c = mrbc_context_new(mrb);
+    mrb_value v;
 
     if (args.verbose)
       c->dump_result = 1;
@@ -188,14 +189,16 @@ main(int argc, char **argv)
 
     if (args.cmdline) {
       mrbc_filename(mrb, c, "-e");
-      mrb_load_string_cxt(mrb, (char*)args.cmdline, c);
+      v = mrb_load_string_cxt(mrb, (char*)args.cmdline, c);
     }
     else {
       mrbc_filename(mrb, c, argv[1]);
-      mrb_load_file_cxt(mrb, args.rfp, c);
+      v = mrb_load_file_cxt(mrb, args.rfp, c);
     }
     mrbc_context_free(mrb, c);
-      return -1;
+    if (!mrb->exc && args.check_syntax) {
+      printf("Syntax OK\n");
+    }
   }
   cleanup(mrb, &args);
 
