@@ -144,12 +144,13 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 }
 
 static void
-cleanup(struct _args *args)
+cleanup(mrb_state *mrb, struct _args *args)
 {
   if (args->rfp)
     fclose(args->rfp);
   if (args->wfp)
     fclose(args->wfp);
+  mrb_close(mrb);
 }
 
 int
@@ -168,9 +169,8 @@ main(int argc, char **argv)
 
   n = parse_args(mrb, argc, argv, &args);
   if (n < 0 || args.rfp == NULL) {
-    cleanup(&args);
+    cleanup(mrb, &args);
     usage(argv[0]);
-    mrb_close(mrb);
     return n;
   }
 
@@ -179,16 +179,14 @@ main(int argc, char **argv)
     c->dump_result = 1;
   c->no_exec = 1;
   result = mrb_load_file_cxt(mrb, args.rfp, c);
-  if (mrb_undef_p(result)) {
-    cleanup(&args);
-    mrb_close(mrb);
-    return -1;
+  if (mrb_undef_p(result) || mrb_fixnum(result) < 0) {
+    cleanup(mrb, &args);
+    return EXIT_FAILURE;
   }
-  n = mrb_fixnum(result);
-  if (n < 0 || args.check_syntax) {
-    cleanup(&args);
-    mrb_close(mrb);
-    return n;
+  if (args.check_syntax) {
+    printf("Syntax OK\n");
+    cleanup(mrb, &args);
+    return EXIT_SUCCESS;
   }
   if (args.initname) {
     if (args.dump_type == DUMP_TYPE_BIN)
@@ -200,10 +198,8 @@ main(int argc, char **argv)
     n = mrb_dump_irep(mrb, n, args.wfp);
   }
 
-  cleanup(&args);
-  mrb_close(mrb);
-
-  return n;
+  cleanup(mrb, &args);
+  return EXIT_SUCCESS;
 }
 
 void
