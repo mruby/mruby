@@ -1577,7 +1577,11 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_DEBUG) {
       /* A      debug print R(A),R(B),R(C) */
+#ifdef ENABLE_STDIO
       printf("OP_DEBUG %d %d %d\n", GETARG_A(i), GETARG_B(i), GETARG_C(i));
+#else
+      abort();
+#endif
       NEXT;
     }
 

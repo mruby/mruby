@@ -94,7 +94,9 @@ codegen_error(codegen_scope *s, const char *message)
     s = s->prev;
   }
   mrb_pool_close(s->mpool);
+#ifdef ENABLE_STDIO
   fprintf(stderr, "codegen error: %s\n", message);
+#endif
   longjmp(s->jmp, 1);
 }
 
@@ -270,7 +272,9 @@ dispatch(codegen_scope *s, int pc)
   case OP_ONERR:
     break;
   default:
+#ifdef ENABLE_STDIO
     fprintf(stderr, "bug: dispatch on non JMP op\n");
+#endif
     scope_error(s);
   }
   s->iseq[pc] = MKOP_AsBx(c, GETARG_A(i), diff);
@@ -739,7 +743,9 @@ gen_assignment(codegen_scope *s, node *node, int sp, int val)
     break;
 
   default:
+#ifdef ENABLE_STDIO
     printf("unknown lhs %d\n", type);
+#endif
     break;
   }
   if (val) push();
@@ -2047,6 +2053,7 @@ loop_pop(codegen_scope *s, int val)
 static void
 codedump(mrb_state *mrb, int n)
 {
+#ifdef ENABLE_STDIO
   mrb_irep *irep = mrb->irep[n];
   int i;
   mrb_code c;
@@ -2342,6 +2349,7 @@ codedump(mrb_state *mrb, int n)
     }
   }
   printf("\n");
+#endif
 }
 
 void

@@ -2964,12 +2964,14 @@ yyerror(parser_state *p, const char *s)
   int n;
 
   if (! p->capture_errors) {
+#ifdef ENABLE_STDIO
     if (p->filename) {
       fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
     }
     else {
       fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column, s);
     }
+#endif
   }
   else if (p->nerr < sizeof(p->error_buffer) / sizeof(p->error_buffer[0])) {
     n = strlen(s);
@@ -2998,12 +3000,14 @@ yywarn(parser_state *p, const char *s)
   int n;
 
   if (! p->capture_errors) {
+#ifdef ENABLE_STDIO
     if (p->filename) {
       fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
     }
     else {
       fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column, s);
     }
+#endif
   }
   else if (p->nerr < sizeof(p->warn_buffer) / sizeof(p->warn_buffer[0])) {
     n = strlen(s);
@@ -4943,6 +4947,7 @@ dump_recur(mrb_state *mrb, node *tree, int offset)
 void
 parser_dump(mrb_state *mrb, node *tree, int offset)
 {
+#ifdef ENABLE_STDIO
   int n;
 
   if (!tree) return;
@@ -5631,7 +5636,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     printf("node type: %d (0x%x)\n", (int)n, (int)n);
     break;
   }
-  return;
+#endif
 }
 
 #ifdef PARSER_TEST

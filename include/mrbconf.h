@@ -19,6 +19,7 @@
 //#define DISABLE_MATH		/* Math functions */
 //#define DISABLE_TIME		/* Time class */
 //#define DISABLE_STRUCT	/* Struct class */
+//#define DISABLE_STDIO		/* use of stdio */
 
 #undef  HAVE_UNISTD_H /* WINDOWS */
 #define HAVE_UNISTD_H /* LINUX */
@@ -49,6 +50,9 @@ typedef intptr_t mrb_sym;
 #endif
 #ifndef DISABLE_STRUCT
 #define ENABLE_STRUCT
+#endif
+#ifndef DISABLE_STDIO
+#define ENABLE_STDIO
 #endif
 
 #ifndef FALSE

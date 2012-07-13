@@ -403,11 +403,6 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
   struct RString *s;
   int xt;
 
-  /*if (x == Qundef) {
-    //mrb_bug("undef leaked to the Ruby space");
-    printf ("undef leaked to the Ruby space\n");
-  }*/
-
   xt = mrb_type(x);
   if ((xt != t) || (xt == MRB_TT_DATA)) {
     while (type->type < MRB_TT_MAXDEFINE) {
@@ -431,12 +426,11 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
           etype = mrb_obj_classname(mrb, x);
         }
         mrb_raise(mrb, E_TYPE_ERROR, "wrong argument type %s (expected %s)",
-          etype, type->name);
+		  etype, type->name);
       }
       type++;
     }
-    /*mrb_bug("unknown type 0x%x", t);*/
-    printf ("unknown type 0x%x (0x%x given)", t, mrb_type(x));
+    mrb_raise(mrb, E_TYPE_ERROR, "unknown type 0x%x (0x%x given)", t, mrb_type(x));
   }
 }
 
