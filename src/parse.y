@@ -4939,6 +4939,8 @@ mrb_load_string(mrb_state *mrb, const char *s)
   return mrb_load_string_cxt(mrb, s, NULL);
 }
 
+#ifdef ENABLE_STDIO
+
 static void
 dump_prefix(int offset)
 {
@@ -4956,6 +4958,8 @@ dump_recur(mrb_state *mrb, node *tree, int offset)
     tree = tree->cdr;
   }
 }
+
+#endif
 
 void
 parser_dump(mrb_state *mrb, node *tree, int offset)
