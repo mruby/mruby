@@ -3041,6 +3041,8 @@ backref_error(parser_state *p, node *n)
   case NODE_BACK_REF:
     yyerror_i(p, "can't set variable $%c", (int)(intptr_t)n->cdr);
     break;
+  default:
+    break;
   }
 }
 
@@ -3722,7 +3724,7 @@ parser_yylex(parser_state *p)
     }
     if (isspace(c)) {
       if (!IS_ARG()) {
-	int c2 = 0;
+	int c2;
 	switch (c) {
 	case ' ':
 	  c2 = 's';
@@ -3741,6 +3743,9 @@ parser_yylex(parser_state *p)
 	  break;
 	case '\f':
 	  c2 = 'f';
+	  break;
+	default:
+	  c2 = 0;
 	  break;
 	}
 	if (c2) {

@@ -110,6 +110,8 @@ append_cmdline:
       }
       else return -3;
       return 0;
+    default:
+      break;
     }
   }
 

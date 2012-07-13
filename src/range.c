@@ -31,7 +31,11 @@ range_check(mrb_state *mrb, mrb_value a, mrb_value b)
     case MRB_TT_FIXNUM:
     case MRB_TT_FLOAT:
       return;
+    default:
+      break;
     }
+  default:
+    break;
   }
 
   mrb_p(mrb, a);

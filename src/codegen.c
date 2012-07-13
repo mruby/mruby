@@ -207,6 +207,8 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
           return;
         }
         break;
+      default:
+	break;
       }
       break;
     case OP_SETIV:
@@ -239,6 +241,8 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
         s->iseq[s->pc-1] = MKOP_A(OP_POPERR, GETARG_A(i0)+GETARG_A(i));
         return;
       }
+      break;
+    default:
       break;
     }
   }

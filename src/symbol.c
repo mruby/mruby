@@ -276,6 +276,7 @@ symname_p(const char *name)
       case '>':
         switch (*++m) {
           case '>': case '=': ++m; break;
+	default: break;
         }
         break;
 
@@ -319,7 +320,8 @@ id:
         while (is_identchar(*m)) m += 1;
         if (localid) {
             switch (*m) {
-              case '!': case '?': case '=': ++m;
+	    case '!': case '?': case '=': ++m;
+	    default: break;
             }
         }
         break;

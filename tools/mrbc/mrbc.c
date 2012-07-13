@@ -114,6 +114,8 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         }
         else return -3;
         return 0;
+      default:
+	break;
       }
     }
     else if (args->rfp == NULL) {

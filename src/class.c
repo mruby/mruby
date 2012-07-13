@@ -620,6 +620,9 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         }
       }
       break;
+    default:
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "invalide argument specifier %c", c);
+      break;
     }
   }
   if (!c && argc > i) {
