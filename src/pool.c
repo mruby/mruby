@@ -35,7 +35,6 @@ struct mrb_pool {
 
 #undef TEST_POOL
 #ifdef TEST_POOL
-#include <stdio.h>
 
 #define mrb_malloc(m,s) malloc(s)
 #define mrb_free(m,p) free(p)

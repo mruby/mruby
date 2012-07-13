@@ -7,7 +7,6 @@
 #include "mruby.h"
 #include "mruby/string.h"
 #include <string.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include "mruby/proc.h"
 #include "mruby/range.h"

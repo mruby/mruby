@@ -16,8 +16,8 @@
 #include "mruby/class.h"
 #include "mruby/variable.h"
 #include <stdio.h>
-#include "re.h"
 #ifdef ENABLE_REGEXP
+#include "re.h"
 #include "regex.h"
 #endif //ENABLE_REGEXP
 

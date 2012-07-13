@@ -13,7 +13,6 @@
 #include "mruby/range.h"
 #include "mruby/khash.h"
 #include <string.h>
-#include <stdio.h>
 #include "mruby/struct.h"
 #include "mruby/proc.h"
 #include "mruby/data.h"

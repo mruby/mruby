@@ -11,8 +11,6 @@
 #include "error.h"
 #include "mruby/numeric.h"
 #include "mruby/string.h"
-
-#include <stdio.h>
 #include <string.h>
 
 #ifndef OTHER

@@ -12,7 +12,6 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include <string.h>
-#include <stdio.h>
 
 static inline khint_t
 mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)

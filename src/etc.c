@@ -126,7 +126,6 @@ mrb_block_proc(void)
   return mrb_nil_value();//proc_new(mrb_cProc, FALSE);
 }
 
-#include <stdio.h>
 static mrb_int
 float_id(mrb_float f)
 {

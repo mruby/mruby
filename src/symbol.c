@@ -14,7 +14,6 @@
 #include <ctype.h>
 #include "mruby/class.h"
 #include "mruby/variable.h"
-#include <stdio.h>
 
 /* ------------------------------------------------------ */
 typedef struct symbol_name {
