@@ -145,7 +145,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
   blen += (l);\
 } while (0)
 
-#define GETARG() (!UNDEF_P(nextvalue) ? nextvalue : \
+#define GETARG() (!mrb_undef_p(nextvalue) ? nextvalue : \
   posarg == -1 ? \
   (mrb_raise(mrb, E_ARGUMENT_ERROR, "unnumbered(%d) mixed with numbered", nextarg), mrb_undef_value()) : \
   posarg == -2 ? \
@@ -201,7 +201,7 @@ get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
 {
   mrb_value tmp;
 
-  if (!UNDEF_P(*hash)) return *hash;
+  if (!mrb_undef_p(*hash)) return *hash;
   if (argc != 2) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "one hash required");
   }
@@ -586,7 +586,7 @@ retry:
       n = 0;
       GETNUM(n, width);
       if (*p == '$') {
-        if (!UNDEF_P(nextvalue)) {
+        if (!mrb_undef_p(nextvalue)) {
           mrb_raise(mrb, E_ARGUMENT_ERROR, "value given twice - %d$", n);
         }
         nextvalue = GETPOSARG(n);
@@ -614,7 +614,7 @@ retry:
         symname = mrb_str_new(mrb, start + 1, p - start - 1);
         id = mrb_intern_str(mrb, symname);
         nextvalue = GETNAMEARG(mrb_symbol_value(id), start, (int)(p - start + 1));
-        if (UNDEF_P(nextvalue)) {
+        if (mrb_undef_p(nextvalue)) {
           mrb_raise(mrb, E_KEY_ERROR, "key%.*s not found", (int)(p - start + 1), start);
         }
         if (term == '}') goto format_s;

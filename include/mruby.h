@@ -81,7 +81,7 @@ typedef struct mrb_value {
 #define mrb_symbol(o) (o).value.sym
 #define mrb_object(o) ((struct RBasic *) (o).value.p)
 #define FIXNUM_P(o)   ((o).tt == MRB_TT_FIXNUM)
-#define UNDEF_P(o)    ((o).tt == MRB_TT_UNDEF)
+#define mrb_undef_p(o) ((o).tt == MRB_TT_UNDEF)
 
 #include "mruby/object.h"
 

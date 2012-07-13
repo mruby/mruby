@@ -179,7 +179,7 @@ main(int argc, char **argv)
     c->dump_result = 1;
   c->no_exec = 1;
   result = mrb_load_file_cxt(mrb, args.rfp, c);
-  if (mrb_nil_p(result)) {
+  if (mrb_undef_p(result)) {
     cleanup(&args);
     mrb_close(mrb);
     return -1;
