@@ -4871,6 +4871,7 @@ static mrb_value
 load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
 {
   int n;
+  mrb_value v;
 
   if (!p) {
     mrb_parser_free(p);
@@ -4900,7 +4901,9 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
     if (c->dump_result) codedump_all(mrb, n);
     if (c->no_exec) return mrb_fixnum_value(n);
   }
-  return mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
+  v = mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
+  if (!mrb->exc) return mrb_undef_value();
+  return v;
 }
 
 mrb_value
