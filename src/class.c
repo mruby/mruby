@@ -187,30 +187,39 @@ mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
 struct RClass*
 mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id)
 {
-  struct RClass *c = 0;
+  struct RClass *c, *s;
 
   if (mrb_const_defined(mrb, outer, id)) {
     mrb_value v = mrb_const_get(mrb, outer, id);
 
+    mrb_check_type(mrb, v, MRB_TT_CLASS);
     c = mrb_class_ptr(v);
-    if (!mrb_nil_p(super) && (c->tt != MRB_TT_CLASS || c->super != mrb_class_ptr(super))) {
-      c = 0;
-    }
-  }
-  if (!c) {
-    struct RClass *s = 0;
-
     if (!mrb_nil_p(super)) {
-      mrb_check_type(mrb, super, MRB_TT_CLASS);
-      s = mrb_class_ptr(super);
+      if (mrb_type(super) != MRB_TT_CLASS) {
+        mrb_raise(mrb, E_TYPE_ERROR, "superclass must be a Class (%s given)", mrb_obj_classname(mrb, super));
+      }
+
+      if (!c->super || mrb_class_ptr(super) != mrb_class_real(c->super)) {
+        mrb_raise(mrb, E_TYPE_ERROR, "superclass mismatch for class %s", mrb_sym2name(mrb, id));
+      }
     }
-    if (!s) {
-      s = mrb->object_class;
-    }
-    c = mrb_class_new(mrb, s);
-    setup_class(mrb, outer, c, id);
-    mrb_funcall(mrb, mrb_obj_value(s), "inherited", 1, mrb_obj_value(c));
+
+    return c;
   }
+
+  if (!mrb_nil_p(super)) {
+    if (mrb_type(super) != MRB_TT_CLASS) {
+      mrb_raise(mrb, E_TYPE_ERROR, "superclass must be a Class (%s given)", mrb_obj_classname(mrb, super));
+    }
+    s = mrb_class_ptr(super);
+  }
+  else {
+    s = mrb->object_class;
+  }
+
+  c = mrb_class_new(mrb, s);
+  setup_class(mrb, outer, c, id);
+  mrb_funcall(mrb, mrb_obj_value(s), "inherited", 1, mrb_obj_value(c));
 
   return c;
 }
