@@ -8,11 +8,7 @@
 #include "mruby/numeric.h"
 #include "mruby/string.h"
 #include "mruby/array.h"
-#include <string.h>
-#include "mruby/class.h"
-#include "mruby/variable.h"
 
-#include <ctype.h>
 #include <math.h>
 #include <stdio.h>
 #include <assert.h>

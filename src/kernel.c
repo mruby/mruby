@@ -6,14 +6,9 @@
 
 #include "mruby.h"
 #include "mruby/string.h"
-#include <string.h>
-#include <stdlib.h>
 #include "mruby/proc.h"
-#include "mruby/range.h"
 #include "mruby/array.h"
-#include "mruby/hash.h"
 #include "mruby/class.h"
-#include "mruby/struct.h"
 #include "mruby/variable.h"
 #include "error.h"
 

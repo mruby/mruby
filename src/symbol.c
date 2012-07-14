@@ -8,12 +8,8 @@
 #include "mruby/khash.h"
 #include <string.h>
 
-#include <stdarg.h>
-#include <string.h>
 #include "mruby/string.h"
 #include <ctype.h>
-#include "mruby/class.h"
-#include "mruby/variable.h"
 
 /* ------------------------------------------------------ */
 typedef struct symbol_name {
