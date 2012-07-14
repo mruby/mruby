@@ -8,8 +8,6 @@
 #include "mruby/class.h"
 #include "mruby/khash.h"
 #include "mruby/variable.h"
-#include "mruby/string.h"
-#include "mruby/range.h"
 #include "error.h"
 #include "mruby/array.h"
 

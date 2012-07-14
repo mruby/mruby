@@ -15,7 +15,6 @@
 #include "mruby/hash.h"
 #include "mruby/numeric.h"
 #include <math.h>
-#include <stdarg.h>
 #include <ctype.h>
 
 #ifdef HAVE_IEEEFP_H

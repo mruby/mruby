@@ -11,12 +11,10 @@
 #include "mruby/string.h"
 #include "mruby/hash.h"
 #include "mruby/range.h"
-#include "mruby/khash.h"
 #include <string.h>
 #include "mruby/struct.h"
 #include "mruby/proc.h"
 #include "mruby/data.h"
-#include "mruby/numeric.h"
 #include "mruby/variable.h"
 
 /*
@@ -101,6 +99,7 @@ typedef struct {
 } RVALUE;
 
 #ifdef GC_PROFILE
+#include <stdio.h>
 #include <sys/time.h>
 
 static double program_invoke_time = 0;
