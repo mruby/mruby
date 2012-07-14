@@ -254,7 +254,6 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
   }
   c = mrb_class_new(mrb, super);
   setup_class(mrb, mrb_obj_value(outer), c, id);
-  mrb_const_set(mrb, mrb_obj_value(outer), id, mrb_obj_value(c));
 
   return c;
 }
@@ -274,7 +273,6 @@ mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name)
   }
   c = mrb_module_new(mrb);
   setup_class(mrb, mrb_obj_value(outer), c, id);
-  mrb_const_set(mrb, mrb_obj_value(outer), id, mrb_obj_value(c));
 
   return c;
 }
