@@ -111,11 +111,11 @@ int mrb_generate_code(mrb_state*, mrb_ast_node*);
 
 /* program load functions */
 mrb_value mrb_load_file(mrb_state*,FILE*);
-mrb_value mrb_load_string(mrb_state *mrb, const char *path);
-mrb_value mrb_load_nstring(mrb_state *mrb, const char *path, int len);
+mrb_value mrb_load_string(mrb_state *mrb, const char *s);
+mrb_value mrb_load_nstring(mrb_state *mrb, const char *s, int len);
 mrb_value mrb_load_file_cxt(mrb_state*,FILE*, mrbc_context *cxt);
-mrb_value mrb_load_string_cxt(mrb_state *mrb, const char *path, mrbc_context *cxt);
-mrb_value mrb_load_nstring_cxt(mrb_state *mrb, const char *path, int len, mrbc_context *cxt);
+mrb_value mrb_load_string_cxt(mrb_state *mrb, const char *s, mrbc_context *cxt);
+mrb_value mrb_load_nstring_cxt(mrb_state *mrb, const char *s, int len, mrbc_context *cxt);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */
