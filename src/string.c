@@ -10,11 +10,10 @@
 #include <string.h>
 #include "mruby/string.h"
 #include <ctype.h>
-#include "mruby/numeric.h"
+#include <limits.h>
 #include "mruby/range.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
-#include "mruby/variable.h"
 #include <stdio.h>
 #ifdef ENABLE_REGEXP
 #include "re.h"

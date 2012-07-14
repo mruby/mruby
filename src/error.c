@@ -6,14 +6,9 @@
 
 #include "mruby.h"
 #include <stdarg.h>
-#include <string.h>
 #include <stdio.h>
 #include <setjmp.h>
 #include "error.h"
-#include "opcode.h"
-#include "mruby/irep.h"
-#include "mruby/proc.h"
-#include "mruby/numeric.h"
 #include "mruby/variable.h"
 #include "mruby/string.h"
 #include "mruby/class.h"

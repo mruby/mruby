@@ -7,9 +7,6 @@
 #include "mruby.h"
 #include "mruby/class.h"
 #include "mruby/range.h"
-#include "mruby/variable.h"
-#include "error.h"
-#include "mruby/numeric.h"
 #include "mruby/string.h"
 #include <string.h>
 

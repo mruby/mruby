@@ -10,7 +10,6 @@
 
 #include "mruby/irep.h"
 #include "mruby/string.h"
-#include "re.h"
 
 #define MRB_CDUMP_LINE_LEN 128
 

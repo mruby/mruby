@@ -10,15 +10,12 @@
 #include "mruby.h"
 #include "mruby/string.h"
 #include "mruby/irep.h"
-#include "mruby/proc.h"
 #include "mruby/compile.h"
 #include "mruby/numeric.h"
 #include "opcode.h"
 #include "node.h"
 #include <string.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <limits.h>
 #include <ctype.h>
 
 typedef mrb_ast_node node;

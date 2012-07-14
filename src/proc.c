@@ -6,7 +6,6 @@
 
 #include "mruby.h"
 #include "mruby/proc.h"
-#include "mruby/array.h"
 #include "mruby/class.h"
 #include "opcode.h"
 

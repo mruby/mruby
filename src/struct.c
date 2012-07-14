@@ -17,13 +17,9 @@
 #include "encoding.h"
 #endif
 
-#include "mruby/numeric.h"
-#include "mruby/hash.h"
 #include "mruby/string.h"
 #include "mruby/class.h"
 #include "mruby/variable.h"
-#include "mruby/range.h"
-#include "error.h"
 //#include "defines.h"
 #define mrb_long2int(n) ((int)(n))
 
