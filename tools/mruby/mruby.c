@@ -196,11 +196,13 @@ main(int argc, char **argv)
       v = mrb_load_file_cxt(mrb, args.rfp, c);
     }
     mrbc_context_free(mrb, c);
-    if (args.check_syntax) {
-      printf("Syntax OK\n");
+    if (mrb->exc) {
+      if (!mrb_undef_p(v)) {
+	mrb_p(mrb, mrb_obj_value(mrb->exc));
+      }
     }
-    else if (!mrb_undef_p(v) && mrb->exc) {
-      mrb_p(mrb, mrb_obj_value(mrb->exc));
+    else if (args.check_syntax) {
+      printf("Syntax OK\n");
     }
   }
   cleanup(mrb, &args);
