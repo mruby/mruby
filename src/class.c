@@ -216,6 +216,23 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
   return c;
 }
 
+static struct RClass *
+class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
+{
+  mrb_value c = mrb_const_get(mrb, mrb_obj_value(klass), id);
+
+  if (c.tt != MRB_TT_MODULE && c.tt != MRB_TT_CLASS) {
+    mrb_raise(mrb, E_TYPE_ERROR, "%s is not a class/module", mrb_sym2name(mrb, id));
+  }
+  return mrb_class_ptr(c);
+}
+
+struct RClass *
+mrb_class_get(mrb_state *mrb, const char *name)
+{
+  return class_from_sym(mrb, mrb->object_class, mrb_intern(mrb, name));
+}
+
 /*!
  * Defines a class under the namespace of \a outer.
  * \param outer  a class which contains the new class.
@@ -239,10 +256,7 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
   mrb_sym id = mrb_intern(mrb, name);
 
   if (mrb_const_defined_at(mrb, outer, id)) {
-    c = mrb_class_from_sym(mrb, outer, id);
-    if (c->tt != MRB_TT_CLASS) {
-        mrb_raise(mrb, E_TYPE_ERROR, "%s is not a class", mrb_sym2name(mrb, id));
-    }
+    c = class_from_sym(mrb, outer, id);
     if (mrb_class_real(c->super) != super) {
         mrb_name_error(mrb, id, "%s is already defined", mrb_sym2name(mrb, id));
     }
@@ -266,10 +280,7 @@ mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name)
   mrb_sym id = mrb_intern(mrb, name);
 
   if (mrb_const_defined_at(mrb, outer, id)) {
-    c = mrb_class_from_sym(mrb, outer, id);
-    if (c->tt != MRB_TT_MODULE) {
-        mrb_raise(mrb, E_TYPE_ERROR, "%s is not a module", mrb_sym2name(mrb, id));
-    }
+    c = class_from_sym(mrb, outer, id);
     return c;
   }
   c = mrb_module_new(mrb);

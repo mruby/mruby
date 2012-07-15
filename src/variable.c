@@ -495,19 +495,6 @@ mrb_const_defined_at(mrb_state *mrb, struct RClass *klass, mrb_sym id)
   return mrb_const_defined_0(mrb, klass, id, TRUE, FALSE);
 }
 
-struct RClass *
-mrb_class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
-{
-  mrb_value c = const_get(mrb, klass, id);
-  return mrb_class_ptr(c);
-}
-
-struct RClass *
-mrb_class_get(mrb_state *mrb, const char *name)
-{
-  return mrb_class_from_sym(mrb, mrb->object_class, mrb_intern(mrb, name));
-}
-
 mrb_value
 mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id)
 {
