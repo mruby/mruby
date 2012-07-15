@@ -5,10 +5,11 @@
 */
 
 #include "mruby.h"
+#ifdef ENABLE_STDIO
 #include "mruby/string.h"
 #include <stdio.h>
 
-mrb_value
+static void
 printstr(mrb_state *mrb, mrb_value obj)
 {
   struct RString *str;
@@ -24,7 +25,6 @@ printstr(mrb_state *mrb, mrb_value obj)
       s++;
     }
   }
-  return obj;
 }
 
 mrb_value
@@ -71,3 +71,14 @@ mrb_show_copyright(mrb_state *mrb)
 {
   printf("mruby - Copyright (c) 2010-2012 mruby developers\n");
 }
+#else
+void
+mrb_show_version(mrb_state *mrb)
+{
+}
+
+void
+mrb_show_copyright(mrb_state *mrb)
+{
+}
+#endif

@@ -43,6 +43,7 @@ mrb_init_core(mrb_state *mrb)
   mrb_init_enumerable(mrb);
 
   mrb_init_symbol(mrb);
+  mrb_init_exception(mrb);
   mrb_init_proc(mrb);
   mrb_init_string(mrb);
   mrb_init_array(mrb);
@@ -56,8 +57,9 @@ mrb_init_core(mrb_state *mrb)
 #ifdef ENABLE_REGEXP
   mrb_init_regexp(mrb);
 #endif
-  mrb_init_exception(mrb);
+#ifdef ENABLE_STDIO
   mrb_init_print(mrb);
+#endif
 #ifdef ENABLE_TIME
   mrb_init_time(mrb);
 #endif
