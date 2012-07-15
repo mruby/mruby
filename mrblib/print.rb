@@ -51,11 +51,13 @@ module Kernel
   ##
   # Invoke method +sprintf+ and pass +*args+ to it.
   # Pass return value to +print+ of STDOUT.
-  def printf(*args)
-    if Kernel.respond_to?(:sprintf)
+  if Kernel.respond_to?(:sprintf) and Kernel.respond_to?(:__printstr__)
+    def printf(*args)
       __printstr__(sprintf(*args))
-    else
-      raise NotImplementedError.new('sprintf not available')
+    end
+  else
+    def printf(*args)
+      raise NotImplementedError.new('printf not available')
     end
   end
 
