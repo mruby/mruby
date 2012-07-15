@@ -688,7 +688,7 @@ new_float(parser_state *p, const char *s)
 static node*
 new_str(parser_state *p, const char *s, int len)
 {
-  return cons((node*)NODE_STR, cons((node*)strndup(s, len), (node*)len));
+  return cons((node*)NODE_STR, cons((node*)strndup(s, len), (node*)(intptr_t)len));
 }
 
 // (:dstr . a)
@@ -4708,7 +4708,7 @@ parser_update_cxt(parser_state *p, mrbc_context *cxt)
   int i = 0;
 
   if (!cxt) return;
-  if ((int)p->tree->car != NODE_SCOPE) return;
+  if ((int)(intptr_t)p->tree->car != NODE_SCOPE) return;
   n0 = n = p->tree->cdr->car;
   while (n) {
     i++;
