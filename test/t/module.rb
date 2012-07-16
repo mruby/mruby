@@ -13,6 +13,24 @@ end
 
 # TODO not implemented ATM assert('Module.nesting', '15.2.2.3.2') do
 
+assert('Module#ancestors', '15.2.2.4.9') do
+  module Test4Ancestors1
+  end
+
+  module Test4Ancestors2
+    include(Test4Ancestors1)
+  end
+
+  class Test4Ancestors3
+  end
+
+  class Test4Ancestors4 < Test4Ancestors3
+    include(Test4Ancestors2)
+  end
+
+  Test4Ancestors4.ancestors.slice(0, 4) == [ Test4Ancestors4, Test4Ancestors2, Test4Ancestors1, Test4Ancestors3 ]
+end
+
 assert('Module#append_features', '15.2.2.4.10') do
   module Test4AppendFeatures
     def self.append_features(mod)
