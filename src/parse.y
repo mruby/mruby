@@ -805,12 +805,8 @@ ret_args(parser_state *p, node *n)
 static void
 assignable(parser_state *p, node *lhs)
 {
-  switch ((int)(intptr_t)lhs->car) {
-  case NODE_LVAR:
+  if ((int)(intptr_t)lhs->car == NODE_LVAR) {
     local_add(p, (mrb_sym)lhs->cdr);
-    break;
-  default:
-    break;
   }
 }
 
@@ -819,17 +815,14 @@ var_reference(parser_state *p, node *lhs)
 {
   node *n;
 
-  switch ((int)(intptr_t)lhs->car) {
-  case NODE_LVAR:
+  if ((int)(intptr_t)lhs->car == NODE_LVAR) {
     if (!local_var_p(p, (mrb_sym)lhs->cdr)) {
       n = new_fcall(p, (mrb_sym)lhs->cdr, 0);
       cons_free(lhs);
       return n;
     }
-    break;
-  default:
-    break;
   }
+
   return lhs;
 }
 
@@ -3038,15 +3031,16 @@ yywarning_s(parser_state *p, const char *fmt, const char *s)
 static void
 backref_error(parser_state *p, node *n)
 {
-  switch ((int)(intptr_t)n->car) {
-  case NODE_NTH_REF:
+  int c;
+
+  c = (int)(intptr_t)n->car;
+
+  if (c == NODE_NTH_REF) {
     yyerror_i(p, "can't set variable $%d", (int)(intptr_t)n->cdr);
-    break;
-  case NODE_BACK_REF:
+  } else if (c == NODE_BACK_REF) {
     yyerror_i(p, "can't set variable $%c", (int)(intptr_t)n->cdr);
-    break;
-  default:
-    break;
+  } else {
+    mrb_bug("Internal error in backref_error() : n=>car == %d", c);
   }
 }
 
@@ -3589,11 +3583,10 @@ parser_yylex(parser_state *p)
 	c = '*';
       }
     }
-    switch (p->lstate) {
-    case EXPR_FNAME: case EXPR_DOT:
-      p->lstate = EXPR_ARG; break;
-    default:
-      p->lstate = EXPR_BEG; break;
+    if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
+      p->lstate = EXPR_ARG;
+    } else {
+      p->lstate = EXPR_BEG;
     }
     return c;
 
@@ -3624,11 +3617,10 @@ parser_yylex(parser_state *p)
 	goto retry;
       }
     }
-    switch (p->lstate) {
-    case EXPR_FNAME: case EXPR_DOT:
-      p->lstate = EXPR_ARG; break;
-    default:
-      p->lstate = EXPR_BEG; break;
+    if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
+      p->lstate = EXPR_ARG;
+    } else {
+      p->lstate = EXPR_BEG;
     }
     if ((c = nextc(p)) == '=') {
       if ((c = nextc(p)) == '=') {
@@ -3660,13 +3652,13 @@ parser_yylex(parser_state *p)
       if (token) return token;
     }
 #endif
-    switch (p->lstate) {
-    case EXPR_FNAME: case EXPR_DOT:
-      p->lstate = EXPR_ARG; break;
-    case EXPR_CLASS:
-      p->cmd_start = TRUE;
-    default:
-      p->lstate = EXPR_BEG; break;
+    if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
+      p->lstate = EXPR_ARG;
+    } else {
+      p->lstate = EXPR_BEG;
+      if (p->lstate == EXPR_CLASS) {
+        p->cmd_start = TRUE;
+      }
     }
     if (c == '=') {
       if ((c = nextc(p)) == '>') {
@@ -3688,11 +3680,10 @@ parser_yylex(parser_state *p)
     return '<';
 
   case '>':
-    switch (p->lstate) {
-    case EXPR_FNAME: case EXPR_DOT:
-      p->lstate = EXPR_ARG; break;
-    default:
-      p->lstate = EXPR_BEG; break;
+    if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
+      p->lstate = EXPR_ARG;
+    } else {
+      p->lstate = EXPR_BEG;
     }
     if ((c = nextc(p)) == '=') {
       return tGEQ;
@@ -3820,10 +3811,9 @@ parser_yylex(parser_state *p)
     else {
       c = '&';
     }
-    switch (p->lstate) {
-    case EXPR_FNAME: case EXPR_DOT:
-      p->lstate = EXPR_ARG; break;
-    default:
+    if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
+      p->lstate = EXPR_ARG;
+    } else {
       p->lstate = EXPR_BEG;
     }
     return c;
@@ -4206,11 +4196,10 @@ parser_yylex(parser_state *p)
 #endif
       return tREGEXP_BEG;
     }
-    switch (p->lstate) {
-    case EXPR_FNAME: case EXPR_DOT:
-      p->lstate = EXPR_ARG; break;
-    default:
-      p->lstate = EXPR_BEG; break;
+    if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
+      p->lstate = EXPR_ARG;
+    } else {
+      p->lstate = EXPR_BEG;
     }
     return '/';
 
@@ -4220,11 +4209,10 @@ parser_yylex(parser_state *p)
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
-    switch (p->lstate) {
-    case EXPR_FNAME: case EXPR_DOT:
-      p->lstate = EXPR_ARG; break;
-    default:
-      p->lstate = EXPR_BEG; break;
+    if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
+      p->lstate = EXPR_ARG;
+    } else {
+      p->lstate = EXPR_BEG;
     }
     pushback(p, c);
     return '^';
@@ -4409,11 +4397,10 @@ parser_yylex(parser_state *p)
     if (IS_SPCARG(c)) {
       goto quotation;
     }
-    switch (p->lstate) {
-    case EXPR_FNAME: case EXPR_DOT:
-      p->lstate = EXPR_ARG; break;
-    default:
-      p->lstate = EXPR_BEG; break;
+    if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
+      p->lstate = EXPR_ARG;
+    } else {
+      p->lstate = EXPR_BEG;
     }
     pushback(p, c);
     return '%';
