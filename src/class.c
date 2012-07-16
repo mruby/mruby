@@ -741,6 +741,17 @@ mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_mod_extend_object(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value obj;
+
+  mrb_check_type(mrb, mod, MRB_TT_MODULE);
+  mrb_get_args(mrb, "o", &obj);
+  mrb_include_module(mrb, mrb_class_ptr(mrb_singleton_class(mrb, obj)), mrb_class_ptr(mod));
+  return mod;
+}
+
+static mrb_value
 mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
 {
   mrb_value result;
@@ -1413,6 +1424,8 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, cls, "superclass", mrb_class_superclass, ARGS_NONE());      /* 15.2.3.3.4 */
   mrb_define_method(mrb, cls, "new", mrb_instance_new, ARGS_ANY());                  /* 15.2.3.3.3 */
   mrb_define_method(mrb, cls, "inherited", mrb_bob_init, ARGS_REQ(1));
+  mrb_define_method(mrb, mod, "extend_object", mrb_mod_extend_object, ARGS_REQ(1));  /* 15.2.2.4.25 */
+  mrb_define_method(mrb, mod, "extended", mrb_bob_init, ARGS_REQ(1));                /* 15.2.2.4.26 */
   mrb_define_method(mrb, mod, "include", mrb_mod_include, ARGS_ANY());               /* 15.2.2.4.27 */
   mrb_define_method(mrb, mod, "append_features", mrb_mod_append_features, ARGS_REQ(1)); /* 15.2.2.4.10 */
   mrb_define_method(mrb, mod, "included", mrb_bob_init, ARGS_REQ(1));                /* 15.2.2.4.29 */
