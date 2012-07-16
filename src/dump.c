@@ -222,15 +222,16 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep, int type)
 
   for (pool_no = 0; pool_no < irep->plen; pool_no++) {
     uint16_t nlen =0;
+    int len;
 
     switch (irep->pool[pool_no].tt) {
     case MRB_TT_FIXNUM:
-      sprintf( buf, "%d", irep->pool[pool_no].value.i);
-      size += strlen(buf);
+      len = sprintf( buf, "%d", irep->pool[pool_no].value.i);
+      size += (uint32_t)len;
       break;
     case MRB_TT_FLOAT:
-      sprintf( buf, "%.16e", irep->pool[pool_no].value.f);
-      size += strlen(buf);
+      len = sprintf( buf, "%.16e", irep->pool[pool_no].value.f);
+      size += (uint32_t)len;
       break;
     case MRB_TT_STRING:
       str = mrb_string_value( mrb, &irep->pool[pool_no]);
