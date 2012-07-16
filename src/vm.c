@@ -892,8 +892,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         struct REnv *e = uvenv(mrb, lv-1);
 	if (!e) {
 	  mrb_value exc;
-	  const char *m = "super called outside of method";
-	  exc = mrb_exc_new(mrb, E_NOMETHOD_ERROR, m, strlen(m));
+	  static const char m[] = "super called outside of method";
+	  exc = mrb_exc_new(mrb, E_NOMETHOD_ERROR, m, sizeof(m) - 1);
 	  mrb->exc = (struct RObject*)mrb_object(exc);
 	  goto L_RAISE;
 	}
