@@ -20,19 +20,14 @@ static void
 range_check(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   mrb_value ans;
+  int ta;
+  int tb;
 
-  switch (mrb_type(a)) {
-  case MRB_TT_FIXNUM:
-  case MRB_TT_FLOAT:
-    switch (mrb_type(b)) {
-    case MRB_TT_FIXNUM:
-    case MRB_TT_FLOAT:
-      return;
-    default:
-      break;
-    }
-  default:
-    break;
+  ta = mrb_type(a);
+  tb = mrb_type(b);
+  if ((ta == MRB_TT_FIXNUM || ta == MRB_TT_FLOAT) &&
+      (tb == MRB_TT_FIXNUM || tb == MRB_TT_FLOAT)) {
+    return;
   }
 
   mrb_p(mrb, a);
