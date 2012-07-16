@@ -187,6 +187,21 @@ assert('Kernel#dup', '15.3.1.3.9') do
     c.respond_to?(:test) == false
 end
 
+assert('Kernel#extend', '15.3.1.3.13') do
+  class Test4ExtendClass
+  end
+
+  module Test4ExtendModule
+    def test_method; end
+  end
+
+  a = Test4ExtendClass.new
+  a.extend(Test4ExtendModule)
+  b = Test4ExtendClass.new
+
+  a.respond_to?(:test_method) == true && b.respond_to?(:test_method) == false
+end
+
 assert('Kernel#global_variables', '15.3.1.3.14') do
   global_variables.class == Array
 end
