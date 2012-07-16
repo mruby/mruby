@@ -13,6 +13,12 @@ end
 
 # TODO not implemented ATM assert('Module.nesting', '15.2.2.3.2') do
 
+assert('Module#ancestors', '15.2.2.4.9') do
+
+  r = String.ancestors
+  r.class == Array and r.include?(String) and r.include?(Object)
+end
+
 assert('Module#append_features', '15.2.2.4.10') do
   module Test4AppendFeatures
     def self.append_features(mod)
@@ -100,14 +106,12 @@ assert('Module#included', '15.2.2.4.29') do
 end
 
 assert('Module#included_modules', '15.2.2.4.30') do
-  r1 = true
   module Test4includedModules
-    Const4Included = 42
   end
   module Test4includedModules2
-    r1 = included Test4includedModules
+    include Test4includedModules
   end
 
-  Test4includedModules2.included_modules.class == Array
+  r = Test4includedModules2.included_modules
+  r.class == Array and r.include?(Test4includedModules)
 end
-

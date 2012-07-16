@@ -721,6 +721,26 @@ mrb_mod_include(mrb_state *mrb, mrb_value klass)
 }
 
 static mrb_value
+mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
+{
+  mrb_value result;
+  struct RClass *c = mrb_class_ptr(self);
+
+  result = mrb_ary_new(mrb);
+  while (c) {
+    if (c->tt == MRB_TT_ICLASS) {
+      mrb_ary_push(mrb, result, mrb_obj_value(c->c));
+    }
+    else {
+      mrb_ary_push(mrb, result, mrb_obj_value(c));
+    }
+    c = c->super;
+  }
+
+  return result;
+}
+
+static mrb_value
 mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
 {
   mrb_value result;
@@ -1400,6 +1420,7 @@ mrb_init_class(mrb_state *mrb)
 
   mrb_define_method(mrb, mod, "to_s", mrb_mod_to_s, ARGS_NONE());
   mrb_define_method(mrb, mod, "alias_method", mrb_mod_alias, ARGS_ANY());            /* 15.2.2.4.8 */
+  mrb_define_method(mrb, mod, "ancestors", mrb_mod_ancestors, ARGS_NONE());          /* 15.2.2.4.9 */
   mrb_define_method(mrb, mod, "undef_method", mrb_mod_undef, ARGS_ANY());            /* 15.2.2.4.41 */
   mrb_define_method(mrb, mod, "const_defined?", mrb_mod_const_defined, ARGS_REQ(1)); /* 15.2.2.4.20 */
   mrb_define_method(mrb, mod, "const_get", mrb_mod_const_get, ARGS_REQ(1));          /* 15.2.2.4.21 */
