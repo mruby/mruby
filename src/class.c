@@ -1441,4 +1441,5 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "define_method", mod_define_method, ARGS_REQ(1));
 
   mrb_define_method(mrb, mod, "===", mrb_mod_eqq, ARGS_REQ(1));
+  mrb_undef_method(mrb, cls, "append_features");
 }
