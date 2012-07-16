@@ -653,40 +653,42 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
   return c;
 }
 
-static int
-find_in_ancestors(struct RClass *c, struct RClass *m)
-{
-  while(c) {
-    if (c == m || c->mt == m->mt){
-      return 1;
-    }
-    c = c->super;
-  }
-  return 0;
-}
-
 void
 mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
-  struct RClass *ic, *ins_pos;
+  struct RClass *ins_pos;
 
   ins_pos = c;
   while (m) {
-    if (!find_in_ancestors(c, m)) {
-      ic = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, mrb->class_class);
-      if (m->tt == MRB_TT_ICLASS) {
-        ic->c = m->c;
+    struct RClass *p = c, *ic;
+    int superclass_seen = 0;
+
+    while(p) {
+      if (c != p && p->tt == MRB_TT_CLASS) {
+	superclass_seen = 1;
       }
-      else {
-        ic->c = m;
+      else if (p->mt == m->mt){
+	if (p->tt == MRB_TT_ICLASS && !superclass_seen) {
+	  ins_pos = p;
+	}
+	goto skip;
       }
-      ic->mt = m->mt;
-      ic->iv = m->iv;
-      ic->super = ins_pos->super;
-      ins_pos->super = ic;
-      mrb_field_write_barrier(mrb, (struct RBasic*)ins_pos, (struct RBasic*)ic);
-      ins_pos = ic;
+      p = p->super;
     }
+    ic = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, mrb->class_class);
+    if (m->tt == MRB_TT_ICLASS) {
+      ic->c = m->c;
+    }
+    else {
+      ic->c = m;
+    }
+    ic->mt = m->mt;
+    ic->iv = m->iv;
+    ic->super = ins_pos->super;
+    ins_pos->super = ic;
+    mrb_field_write_barrier(mrb, (struct RBasic*)ins_pos, (struct RBasic*)ic);
+    ins_pos = ic;
+  skip:
     m = m->super;
   }
 }
