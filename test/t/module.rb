@@ -14,7 +14,6 @@ end
 # TODO not implemented ATM assert('Module.nesting', '15.2.2.3.2') do
 
 assert('Module#ancestors', '15.2.2.4.9') do
-
   r = String.ancestors
   r.class == Array and r.include?(String) and r.include?(Object)
 end
@@ -53,21 +52,12 @@ assert('Module.const_missing', '15.2.2.4.22') do
   e1 = nil
 
   module Test4ConstMissing
-    def const_missing(sym)
-      # ATM this redirect doesn't work
-      puts "PLEASE GO TO TEST CASE Module.const_missing!"
-      puts "IT IS WORKING NOW!! PLEASE FINALIZE."
-      puts "Thanks :)"
+    def self.const_missing(sym)
+      42 # the answer to everything
     end
   end
 
-  begin
-    Test4ConstMissing.const_get(:ConstDoesntExist)
-  rescue => e2
-    e1 = e2
-  end
-
-  e1.class == NameError
+  Test4ConstMissing.const_get(:ConstDoesntExist) == 42
 end
 
 assert('Module#const_get', '15.2.2.4.23') do
@@ -93,7 +83,7 @@ end
 assert('Module#included', '15.2.2.4.29') do
   module Test4Included
     Const4Included = 42
-    def Test4Included.included mod
+    def self.included mod
       Test4Included.const_set(:Const4Included2, mod)
     end
   end
