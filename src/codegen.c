@@ -479,10 +479,10 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     pos = new_label(s);
     for (i=0; i<oa; i++) {
       new_label(s);
-      genop(s, MKOP_Ax(OP_JMP, 0));
+      genop(s, MKOP_sBx(OP_JMP, 0));
     }
     if (oa > 0) {
-      genop(s, MKOP_Ax(OP_JMP, 0));
+      genop(s, MKOP_sBx(OP_JMP, 0));
     }
     opt = tree->car->cdr->car;
     i = 0;
@@ -1086,21 +1086,23 @@ codegen(codegen_scope *s, node *tree, int val)
         }
         if (tree->car->car) {
           pos1 = new_label(s);
-          genop(s, MKOP_AsBx(OP_JMP, cursp(), 0));
+          genop(s, MKOP_sBx(OP_JMP, 0));
           dispatch_linked(s, pos2);
         }
-        pop(); pop();
+        pop();
         codegen(s, tree->car->cdr, val);
+	pop();
         tmp = new_label(s);
-        genop(s, MKOP_AsBx(OP_JMP, cursp(), pos3));
+        genop(s, MKOP_sBx(OP_JMP, pos3));
         pos3 = tmp;
         if (pos1) dispatch(s, pos1);
         tree = tree->cdr;
-        push(); push();
+        push();
       }
       pop();
-      if (pos3) dispatch_linked(s, pos3);
+      genop(s, MKOP_A(OP_LOADNIL, cursp()));
       if (val) push();
+      if (pos3) dispatch_linked(s, pos3);
     }
     break;
 
