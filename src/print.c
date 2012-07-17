@@ -20,10 +20,7 @@ printstr(mrb_state *mrb, mrb_value obj)
     str = mrb_str_ptr(obj);
     s = str->ptr;
     len = str->len;
-    while (len--) {
-      putc(*s, stdout);
-      s++;
-    }
+    fwrite(s, len, 1, stdout);
   }
 }
 
