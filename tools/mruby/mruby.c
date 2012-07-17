@@ -7,6 +7,18 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifndef ENABLE_STDIO
+static void
+p(mrb_state *mrb, mrb_value obj)
+{
+  obj = mrb_funcall(mrb, obj, "inspect", 0);
+  fwrite(RSTRING_PTR(obj), RSTRING_LEN(obj), 1, stdout);
+  putc('\n', stdout);
+}
+#else
+#define p(mrb,obj) mrb_p(mrb,obj)
+#endif
+
 void mrb_show_version(mrb_state *);
 void mrb_show_copyright(mrb_state *);
 
@@ -173,7 +185,7 @@ main(int argc, char **argv)
       if (!args.check_syntax) {
 	mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
 	if (mrb->exc) {
-	  mrb_p(mrb, mrb_obj_value(mrb->exc));
+	  p(mrb, mrb_obj_value(mrb->exc));
 	}
       }
     }
@@ -198,7 +210,7 @@ main(int argc, char **argv)
     mrbc_context_free(mrb, c);
     if (mrb->exc) {
       if (!mrb_undef_p(v)) {
-	mrb_p(mrb, mrb_obj_value(mrb->exc));
+	p(mrb, mrb_obj_value(mrb->exc));
       }
     }
     else if (args.check_syntax) {
