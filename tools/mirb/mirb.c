@@ -13,6 +13,19 @@
 #include <mruby/data.h>
 #include <mruby/compile.h>
 
+#ifndef ENABLE_STDIO
+#include <mruby/string.h>
+static void
+p(mrb_state *mrb, mrb_value obj)
+{
+  obj = mrb_funcall(mrb, obj, "inspect", 0);
+  fwrite(RSTRING_PTR(obj), RSTRING_LEN(obj), 1, stdout);
+  putc('\n', stdout);
+}
+#else
+#define p(mrb,obj) mrb_p(mrb,obj)
+#endif
+
 /* Guess if the user might want to enter more
  * or if he wants an evaluation of his code now */
 int
@@ -219,13 +232,13 @@ main(void)
             mrb_top_self(mrb));
           /* did an exception occur? */
           if (mrb->exc) {
-            mrb_p(mrb, mrb_obj_value(mrb->exc));
+            p(mrb, mrb_obj_value(mrb->exc));
             mrb->exc = 0;
           }
 	  else {
             /* no */
             printf(" => ");
-            mrb_p(mrb, result);
+            p(mrb, result);
           }
         }
         memset(ruby_code, 0, sizeof(*ruby_code));
