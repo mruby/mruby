@@ -137,7 +137,7 @@ proc_lambda(mrb_state *mrb, mrb_value self)
     p2->flags |= MRB_PROC_STRICT;
     return mrb_obj_value(p2);
   }
-  return self;
+  return blk;
 }
 
 void
