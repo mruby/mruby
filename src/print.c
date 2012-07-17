@@ -72,6 +72,12 @@ mrb_show_copyright(mrb_state *mrb)
   printf("mruby - Copyright (c) 2010-2012 mruby developers\n");
 }
 #else
+mrb_value
+mrb_p(mrb_state *mrb, mrb_value obj)
+{
+  return mrb_nil_value();
+}
+
 void
 mrb_show_version(mrb_state *mrb)
 {
