@@ -30,8 +30,6 @@ range_check(mrb_state *mrb, mrb_value a, mrb_value b)
     return;
   }
 
-  mrb_p(mrb, a);
-  mrb_p(mrb, b);
   ans =  mrb_funcall(mrb, a, "<=>", 1, b);
   if (mrb_nil_p(ans)) {
     /* can not be compared */
