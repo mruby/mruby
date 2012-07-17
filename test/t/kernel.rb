@@ -36,7 +36,9 @@ assert('Kernel.lambda', '15.3.1.2.6') do
     true
   end
 
-  l.call and l.class == Proc
+  m = Kernel.lambda(&l)
+
+  l.call and l.class == Proc and m.call and m.class == Proc
 end
 
 # Not implemented at the moment
@@ -235,7 +237,9 @@ assert('Kernel#lambda', '15.3.1.3.27') do
     true
   end
 
-  l.call and l.class == Proc
+  m = lambda(&l)
+
+  l.call and l.class == Proc and m.call and m.class == Proc
 end
 
 # Not implemented yet
