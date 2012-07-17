@@ -27,13 +27,12 @@ printstr(mrb_state *mrb, mrb_value obj)
   }
 }
 
-mrb_value
+void
 mrb_p(mrb_state *mrb, mrb_value obj)
 {
   obj = mrb_funcall(mrb, obj, "inspect", 0);
   printstr(mrb, obj);
   putc('\n', stdout);
-  return obj;
 }
 
 /* 15.3.1.2.9  */
@@ -72,10 +71,9 @@ mrb_show_copyright(mrb_state *mrb)
   printf("mruby - Copyright (c) 2010-2012 mruby developers\n");
 }
 #else
-mrb_value
+void
 mrb_p(mrb_state *mrb, mrb_value obj)
 {
-  return obj;
 }
 
 void

@@ -354,7 +354,7 @@ int mrb_checkstack(mrb_state*,int);
 mrb_value mrb_top_self(mrb_state *);
 mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
 
-mrb_value mrb_p(mrb_state*, mrb_value);
+void mrb_p(mrb_state*, mrb_value);
 mrb_int mrb_obj_id(mrb_value obj);
 mrb_sym mrb_to_id(mrb_state *mrb, mrb_value name);
 
