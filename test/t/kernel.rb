@@ -300,7 +300,12 @@ assert('Kernel#raise', '15.3.1.3.40') do
 end
 
 assert('Kernel#respond_to?', '15.3.1.3.43') do
-  respond_to? :nil?
+  class Test4RespondTo
+    def test_method; end
+    undef test_method
+  end
+
+  respond_to?(:nil?) and Test4RespondTo.new.respond_to?(:test_method) == false
 end
 
 assert('Kernel#send', '15.3.1.3.44') do
