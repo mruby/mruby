@@ -75,7 +75,7 @@ mrb_show_copyright(mrb_state *mrb)
 mrb_value
 mrb_p(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_nil_value();
+  return obj;
 }
 
 void
