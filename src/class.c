@@ -1052,8 +1052,14 @@ mrb_obj_respond_to(struct RClass* c, mrb_sym mid)
 
     if (h) {
       k = kh_get(mt, h, mid);
-      if (k != kh_end(h))
-        return 1; /* exist method */
+      if (k != kh_end(h)) {
+        if (kh_value(h, k)) {
+          return 1; /* exist method */
+        }
+        else {
+          return 0;
+        }
+      }
     }
     c = c->super;
   }
