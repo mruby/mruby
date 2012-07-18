@@ -553,7 +553,7 @@ attrsym(codegen_scope *s, mrb_sym a)
 
   name = mrb_sym2name_len(s->mrb, a, &len);
   name2 = codegen_palloc(s, len+1);
-  strcpy(name2, name);
+  memcpy(name2, name, len);
   name2[len] = '=';
   name2[len+1] = '\0';
 
