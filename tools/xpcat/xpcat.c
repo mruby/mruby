@@ -60,9 +60,7 @@ main(int argc, char *argv[])
     }
   }
 
-done:
   fclose(outfile);
-
   return EXIT_SUCCESS;
 }
 
