@@ -4889,7 +4889,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
     if (c->no_exec) return mrb_fixnum_value(n);
   }
   v = mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
-  if (!mrb->exc) return mrb_undef_value();
+  if (mrb->exc) return mrb_undef_value();
   return v;
 }
 
