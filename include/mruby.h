@@ -190,7 +190,9 @@ struct mrb_state;
 
 typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t);
 
-#define MRB_ARENA_SIZE 1024  //256 up kusuda 2011/04/30
+#ifndef MRB_ARENA_SIZE
+#define MRB_ARENA_SIZE 1024
+#endif
 #define ruby_debug   (mrb_nil_value())
 #define ruby_verbose (mrb_nil_value())
 
