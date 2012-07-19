@@ -21,11 +21,10 @@
 //#define DISABLE_STRUCT	/* Struct class */
 //#define DISABLE_STDIO		/* use of stdio */
 
+//#define MRB_FUNCALL_ARGC_MAX 16 /* argv size in mrb_funcall */
+
 #undef  HAVE_UNISTD_H /* WINDOWS */
 #define HAVE_UNISTD_H /* LINUX */
-
-#define MRB_FUNCALL_ARGC_MAX 16U /* Allocate arrays using auto variable. */
-//#undef MRB_FUNCALL_ARGC_MAX /* Allocate arrays using mrb_malloc if undefned. */
 
 /* end of configuration */
 
