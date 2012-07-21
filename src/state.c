@@ -83,7 +83,7 @@ mrb_add_irep(mrb_state *mrb, int idx)
     while (mrb->irep_capa <= idx) {
       mrb->irep_capa *= 2;
     }
-    mrb->irep = mrb_realloc(mrb, mrb->irep, sizeof(mrb_irep)*mrb->irep_capa);
+    mrb->irep = mrb_realloc(mrb, mrb->irep, sizeof(mrb_irep*)*mrb->irep_capa);
   }
 }
 
