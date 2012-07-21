@@ -115,7 +115,6 @@ mrb_define_module_id(mrb_state *mrb, mrb_sym name)
 {
   struct RClass *m = mrb_module_new(mrb);
 
-  m->mt = kh_init(mt, mrb);
   mrb_obj_iv_set(mrb, (struct RObject*)mrb->object_class,
              name, mrb_obj_value(m));
   mrb_name_class(mrb, m, name);
