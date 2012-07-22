@@ -344,9 +344,7 @@ mrb_time_plus(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "f", &f);
   tm = mrb_get_datatype(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
-  f += tm->sec;
-  f += (mrb_float)tm->usec / 1.0e6;
-  return mrb_time_make(mrb, mrb_obj_class(mrb, self), f, 0, tm->timezone);
+  return mrb_time_make(mrb, mrb_obj_class(mrb, self), tm->sec+f, tm->usec, tm->timezone);
 }
 
 static mrb_value
