@@ -365,8 +365,6 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
     return mrb_float_value(f);
   }
   else {
-    mrb_float f;
-
     mrb_get_args(mrb, "f", &f);
     return mrb_time_make(mrb, mrb_obj_class(mrb, self), tm->sec-f, tm->usec, tm->timezone);
   }
