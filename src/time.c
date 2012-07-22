@@ -227,9 +227,10 @@ mrb_time_now(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_time_at(mrb_state *mrb, mrb_value self)
 { 
-  mrb_float f;
+  mrb_float f, f2 = 0;
 
-  mrb_get_args(mrb, "f", &f);
+  mrb_get_args(mrb, "f|f", &f, &f2);
+  f += f2 * 1e-6;
   return mrb_time_make(mrb, mrb_class_ptr(self), f, MRB_TIMEZONE_LOCAL);
 }
 
