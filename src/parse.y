@@ -4871,25 +4871,27 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
       n = snprintf(buf, sizeof(buf), "line %d: %s\n",
 		   p->error_buffer[0].lineno, p->error_buffer[0].message);
       mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, buf, n));
+      mrb_parser_free(p);
+      return mrb_undef_value();
     }
     else {
-      mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, "", 0));
+      mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, "syntax error", 0));
+      mrb_parser_free(p);
+      return mrb_nil_value();
     }
-    mrb_parser_free(p);
-    return mrb_undef_value();
   }
   n = mrb_generate_code(mrb, p->tree);
   mrb_parser_free(p);
   if (n < 0) {
-    mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SCRIPT_ERROR, "", 0));
-    return mrb_undef_value();
+    mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SCRIPT_ERROR, "codegen error", 0));
+    return mrb_nil_value();
   }
   if (c) {
     if (c->dump_result) codedump_all(mrb, n);
     if (c->no_exec) return mrb_fixnum_value(n);
   }
   v = mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
-  if (mrb->exc) return mrb_undef_value();
+  if (mrb->exc) return mrb_nil_value();
   return v;
 }
 
