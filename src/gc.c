@@ -17,6 +17,10 @@
 #include "mruby/data.h"
 #include "mruby/variable.h"
 
+#ifndef SIZE_MAX
+#include <limits.h> // for SIZE_MAX
+#endif
+
 /*
   = Tri-color Incremental Garbage Collection
 
