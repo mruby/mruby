@@ -160,13 +160,17 @@ mrb_time_wrap(mrb_state *mrb, struct RClass *tc, struct mrb_time *tm)
 
 /* Allocates a mrb_time object and initializes it. */
 static struct mrb_time*
-mrb_time_alloc(mrb_state *mrb, mrb_float seconds, enum mrb_timezone timezone)
+mrb_time_alloc(mrb_state *mrb, mrb_float sec, mrb_float usec, enum mrb_timezone timezone)
 {
   struct mrb_time *tm;
 
   tm = mrb_malloc(mrb, sizeof(struct mrb_time));
-  tm->sec  = (time_t)seconds;
-  tm->usec = (seconds - tm->sec) * 1.0e6;
+  tm->sec  = (time_t)sec;
+  tm->usec = (sec - tm->sec) * 1.0e6 + usec;
+  if (tm->usec < 0) {
+    tm->sec--;
+    tm->usec += 1.0e6;
+  }
   tm->timezone = timezone;
   mrb_time_update_datetime(tm);
 
@@ -174,9 +178,9 @@ mrb_time_alloc(mrb_state *mrb, mrb_float seconds, enum mrb_timezone timezone)
 }
 
 static mrb_value
-mrb_time_make(mrb_state *mrb, struct RClass *c, mrb_float seconds, enum mrb_timezone timezone)
+mrb_time_make(mrb_state *mrb, struct RClass *c, mrb_float sec, mrb_float usec, enum mrb_timezone timezone)
 {
-  return mrb_time_wrap(mrb, c, mrb_time_alloc(mrb, seconds, timezone));
+  return mrb_time_wrap(mrb, c, mrb_time_alloc(mrb, sec, usec, timezone));
 }
 
 static struct mrb_time*
@@ -230,8 +234,7 @@ mrb_time_at(mrb_state *mrb, mrb_value self)
   mrb_float f, f2 = 0;
 
   mrb_get_args(mrb, "f|f", &f, &f2);
-  f += f2 * 1e-6;
-  return mrb_time_make(mrb, mrb_class_ptr(self), f, MRB_TIMEZONE_LOCAL);
+  return mrb_time_make(mrb, mrb_class_ptr(self), f, f2, MRB_TIMEZONE_LOCAL);
 }
 
 static struct mrb_time*
@@ -259,7 +262,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time.");
   }
 
-  return mrb_time_alloc(mrb, nowsecs+ausec/10e6, timezone);
+  return mrb_time_alloc(mrb, nowsecs, ausec, timezone);
 }
 
 /* 15.2.19.6.2 */
@@ -343,7 +346,7 @@ mrb_time_plus(mrb_state *mrb, mrb_value self)
   if (!tm) return mrb_nil_value();
   f += tm->sec;
   f += (mrb_float)tm->usec / 1.0e6;
-  return mrb_time_make(mrb, mrb_obj_class(mrb, self), f, tm->timezone);
+  return mrb_time_make(mrb, mrb_obj_class(mrb, self), f, 0, tm->timezone);
 }
 
 static mrb_value
@@ -364,11 +367,10 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
     return mrb_float_value(f);
   }
   else {
-    mrb_float f, f2;
-    mrb_get_args(mrb, "f", &f2);
+    mrb_float f;
 
-    f = ((mrb_float)tm->sec + (mrb_float)tm->usec/1.0e6);
-    return mrb_time_make(mrb, mrb_obj_class(mrb, self), f-f2, tm->timezone);
+    mrb_get_args(mrb, "f", &f);
+    return mrb_time_make(mrb, mrb_obj_class(mrb, self), tm->sec-f, tm->usec, tm->timezone);
   }
 }
 
