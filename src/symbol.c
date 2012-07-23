@@ -339,7 +339,7 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   memcpy(RSTRING(str)->ptr+1, name, len);
   if (!symname_p(name) || strlen(name) != len) {
     str = mrb_str_dump(mrb, str);
-    strncpy(RSTRING(str)->ptr, ":\"", 2);
+    memcpy(RSTRING(str)->ptr, ":\"", 2);
   }
   return str;
 }
