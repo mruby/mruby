@@ -167,9 +167,13 @@ mrb_time_alloc(mrb_state *mrb, mrb_float sec, mrb_float usec, enum mrb_timezone 
   tm = mrb_malloc(mrb, sizeof(struct mrb_time));
   tm->sec  = (time_t)sec;
   tm->usec = (sec - tm->sec) * 1.0e6 + usec;
-  if (tm->usec < 0) {
+  while (tm->usec < 0) {
     tm->sec--;
     tm->usec += 1.0e6;
+  }
+  while (tm->usec > 1.0e6) {
+    tm->sec++;
+    tm->usec -= 1.0e6;
   }
   tm->timezone = timezone;
   mrb_time_update_datetime(tm);
