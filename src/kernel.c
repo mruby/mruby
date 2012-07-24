@@ -582,7 +582,7 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
   mrb_value a, b;
 
   if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "instance_eval with string not implemented");
+    mrb_raise(mrb, E_NOTIMP_ERROR, "instance_eval with string not implemented");
   }
   return mrb_yield_with_self(mrb, b, 0, 0, self);
 }
