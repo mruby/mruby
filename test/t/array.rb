@@ -152,7 +152,15 @@ end
 assert('Array#last', '15.2.12.5.18') do
   a = [1,2,3]
 
-  a.last == 3 and [].last == nil
+  e2 = nil
+  begin
+    # this will cause an exception due to the wrong argument
+    [1,2,3].last(-1)
+  rescue => e1
+    e2 = e1
+  end
+
+  a.last == 3 and [].last == nil and e2.class == ArgumentError
 end
 
 assert('Array#length', '15.2.12.5.19') do
