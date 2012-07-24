@@ -10,6 +10,7 @@
 #include "mruby/variable.h"
 #include "error.h"
 #include "mruby/array.h"
+#include "mruby/proc.h"
 
 #ifdef ENABLE_REGEXP
 #include "re.h"
@@ -342,7 +343,10 @@ mrb_const_get(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 mrb_value
 mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
 {
-  return const_get(mrb, mrb->ci->target_class, sym);
+  struct RClass *c = mrb->ci->proc->target_class;
+
+  if (!c) c = mrb->ci->target_class;
+  return const_get(mrb, c, sym);
 }
 
 void
@@ -355,7 +359,10 @@ mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
 void
 mrb_vm_const_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
-  mrb_obj_iv_set(mrb, (struct RObject*)mrb->ci->target_class, sym, v);
+  struct RClass *c = mrb->ci->proc->target_class;
+
+  if (!c) c = mrb->ci->target_class;
+  mrb_obj_iv_set(mrb, (struct RObject*)c, sym, v);
 }
 
 void
