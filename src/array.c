@@ -789,6 +789,9 @@ mrb_ary_last(mrb_state *mrb, mrb_value self)
 
   /* len == 1 */
   size = mrb_fixnum(*vals);
+  if (size < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative array size");
+  }
   if (size > a->len) size = a->len;
   if ((a->flags & MRB_ARY_SHARED) || size > ARY_DEFAULT_LEN) {
     return ary_subseq(mrb, a, a->len - size, size);
