@@ -555,6 +555,8 @@ mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
+
 /* 15.3.1.3.18 */
 /*
  *  call-seq:
@@ -580,11 +582,13 @@ mrb_value
 mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
 {
   mrb_value a, b;
+  mrb_value cv;
 
   if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "instance_eval with string not implemented");
   }
-  return mrb_yield_with_self(mrb, b, 0, 0, self);
+  cv = mrb_singleton_class(mrb, self);
+  return mrb_yield_internal(mrb, b, 0, 0, self, mrb_class_ptr(cv));
 }
 
 int

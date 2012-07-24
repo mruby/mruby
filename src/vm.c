@@ -237,7 +237,7 @@ mrb_funcall_argv(mrb_state *mrb, mrb_value self, const char *name, int argc, mrb
 }
 
 mrb_value
-mrb_yield_with_self(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self)
+mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c)
 {
   struct RProc *p;
   mrb_sym mid = mrb->ci->mid;
@@ -251,7 +251,7 @@ mrb_yield_with_self(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_
   ci->proc = p;
   ci->stackidx = mrb->stack - mrb->stbase;
   ci->argc = argc;
-  ci->target_class = p->target_class;
+  ci->target_class = c;
   ci->nregs = argc + 2;
   ci->acc = -1;
   mrb->stack = mrb->stack + n;
@@ -277,13 +277,17 @@ mrb_yield_with_self(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_
 mrb_value
 mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv)
 {
-  return mrb_yield_with_self(mrb, b, argc, argv, mrb->stack[0]);
+  struct RProc *p = mrb_proc_ptr(b);
+
+  return mrb_yield_internal(mrb, b, argc, argv, mrb->stack[0], p->target_class);
 }
 
 mrb_value
 mrb_yield(mrb_state *mrb, mrb_value b, mrb_value v)
 {
-  return mrb_yield_with_self(mrb, b, 1, &v, mrb->stack[0]);
+  struct RProc *p = mrb_proc_ptr(b);
+
+  return mrb_yield_internal(mrb, b, 1, &v, mrb->stack[0], p->target_class);
 }
 
 static void
@@ -1564,6 +1568,11 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_TCLASS) {
       /* A B    R(A) := target_class */
+      if (!mrb->ci->target_class) {
+	mrb_value exc = mrb_exc_new(mrb, E_TYPE_ERROR, "no target class or module", 25);
+	mrb->exc = (struct RObject*)mrb_object(exc);
+	goto L_RAISE;
+      }
       regs[GETARG_A(i)] = mrb_obj_value(mrb->ci->target_class);
       NEXT;
     }
