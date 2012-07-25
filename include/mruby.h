@@ -296,6 +296,7 @@ void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_f
 void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t,int);
 void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 void mrb_undef_method(mrb_state*, struct RClass*, const char*);
+void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
 struct RClass * mrb_module_new(mrb_state *mrb);
