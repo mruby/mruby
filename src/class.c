@@ -1307,6 +1307,12 @@ mrb_undef_method(mrb_state *mrb, struct RClass *c, const char *name)
   undef_method(mrb, c, mrb_intern(mrb, name));
 }
 
+void
+mrb_undef_class_method(mrb_state *mrb, struct RClass *c, const char *name)
+{
+  mrb_undef_method(mrb,  mrb_class_ptr(mrb_singleton_class(mrb, mrb_obj_value(c))), name);
+}
+
 mrb_value
 mrb_mod_undef(mrb_state *mrb, mrb_value mod)
 {
