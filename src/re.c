@@ -2041,7 +2041,7 @@ mrb_init_regexp(mrb_state *mrb)
     mrb_define_const(mrb, s, "FIXEDENCODING", mrb_fixnum_value(ARG_ENCODING_FIXED));
 
     s = mrb_define_class(mrb, "MatchData", mrb->object_class);
-    //mrb_undef_method(CLASS_OF(rb_cMatch), "new");
+    //mrb_undef_class_method(CLASS_OF(rb_cMatch), "new");
 
     mrb_define_method(mrb, s, "[]",              mrb_match_aref,        ARGS_ANY());                     /* 15.2.16.3.1  */
     mrb_define_method(mrb, s, "begin",           mrb_match_begin,       ARGS_REQ(1));                    /* 15.2.16.3.2  */
