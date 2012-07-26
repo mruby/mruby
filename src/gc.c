@@ -563,6 +563,7 @@ root_scan_phase(mrb_state *mrb)
   /* mark stack */
   e = mrb->stack - mrb->stbase;
   if (mrb->ci) e += mrb->ci->nregs;
+  if (mrb->stbase + e > mrb->stend) e = mrb->stend - mrb->stbase;
   for (i=0; i<e; i++) {
     mrb_gc_mark_value(mrb, mrb->stbase[i]);
   }
