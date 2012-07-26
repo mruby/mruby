@@ -65,6 +65,7 @@ assert('Array#[]=', '15.2.12.5.5') do
   end
 
   [1,2,3].[]=(1,4) == [1, 4, 3] and
+  [1,2,3].[]=(1,2,3) == [1, 3] and
     e2.class == ArgumentError and
     e3.class == ArgumentError
 end
@@ -248,6 +249,21 @@ assert('Array#to_s', '15.2.12.5.31') do
   r2 = a.inspect
 
   r1 == r2 and r1 == "[2, 3, 4, 5]"
+end
+
+assert('Array#==', '15.2.12.5.33') do
+  r1 = [ "a", "c" ]    == [ "a", "c", 7 ]     #=> false
+  r2 = [ "a", "c", 7 ] == [ "a", "c", 7 ]     #=> true
+  r3 = [ "a", "c", 7 ] == [ "a", "d", "f" ]   #=> false
+
+  r1 == false and r2 == true and r3 == false
+end
+
+assert('Array#<=>', '15.2.12.5.36') do
+  r1 = [ "a", "a", "c" ]    <=> [ "a", "b", "c" ]   #=> -1
+  r2 = [ 1, 2, 3, 4, 5, 6 ] <=> [ 1, 2 ]            #=> +1
+
+  r1 == -1 and r2 == +1
 end
 
 # Not ISO specified
