@@ -121,7 +121,6 @@ uvset(mrb_state *mrb, int up, int idx, mrb_value v)
 static mrb_callinfo*
 cipush(mrb_state *mrb)
 {
-  size_t nregs = mrb->ci->nregs;
   int eidx = mrb->ci->eidx;
   int ridx = mrb->ci->ridx;
 
@@ -133,7 +132,7 @@ cipush(mrb_state *mrb)
     mrb->ciend = mrb->cibase + size * 2;
   }
   mrb->ci++;
-  mrb->ci->nregs = nregs;
+  mrb->ci->nregs = 0;
   mrb->ci->eidx = eidx;
   mrb->ci->ridx = ridx;
   mrb->ci->env = 0;
@@ -719,6 +718,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       mrb->stack += a;
 
       if (MRB_PROC_CFUNC_P(m)) {
+	ci->nregs = n + 1;
         mrb->stack[0] = m->body.func(mrb, recv);
         mrb->arena_idx = ai;
         if (mrb->exc) goto L_RAISE;

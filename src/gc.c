@@ -545,6 +545,8 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
   obj->tt = MRB_TT_FREE;
 }
 
+#include <stdio.h>
+
 static void
 root_scan_phase(mrb_state *mrb)
 {
