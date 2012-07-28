@@ -145,7 +145,7 @@ genop(codegen_scope *s, mrb_code i)
 static void
 genop_peep(codegen_scope *s, mrb_code i, int val)
 {
-  // peephole optimization
+  /* peephole optimization */
   if (!val && s->lastlabel != s->pc && s->pc > 0) {
     mrb_code i0 = s->iseq[s->pc-1];
     int c1 = GET_OPCODE(i);
@@ -156,9 +156,13 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       switch (c0) {
       case OP_MOVE:
         if (GETARG_B(i) == GETARG_A(i0) && GETARG_A(i) == GETARG_B(i0) && GETARG_A(i) >= s->nlocals) {
-          // skip swapping OP_MOVE
+          /* skip swapping OP_MOVE */
           return;
         }
+	if (GETARG_B(i) == GETARG_A(i0) && GETARG_A(i0) >= s->nlocals) {
+	  s->iseq[s->pc-1] = MKOP_AB(OP_MOVE, GETARG_A(i), GETARG_B(i0));
+	  return;
+	}
         break;
       case OP_LOADI:
         if (GETARG_B(i) == GETARG_A(i0) && GETARG_A(i0) >= s->nlocals) {
