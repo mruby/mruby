@@ -764,6 +764,9 @@ mrb_ary_first(mrb_state *mrb, mrb_value self)
   if (mrb_get_args(mrb, "|i", &size) == 0) {
     return (a->len > 0)? a->ptr[0]: mrb_nil_value();
   }
+  if (size < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative array size");
+  }
 
   if (size > a->len) size = a->len;
   if (a->flags & MRB_ARY_SHARED) {
