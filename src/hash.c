@@ -568,7 +568,9 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
         if (!kh_exist(h,k)) continue;
 
         delKey = kh_key(h,k);
+        mrb_gc_protect(mrb, delKey);
         delVal = mrb_hash_delete_key(mrb, hash, delKey);
+        mrb_gc_protect(mrb, delVal);
 
 	return mrb_assoc_new(mrb, delKey, delVal);
       }
