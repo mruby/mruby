@@ -118,7 +118,24 @@ assert('Array#first', '15.2.12.5.13') do
   a = []
   b = [1,2,3]
 
-  a.first == nil and b.first == 1
+  e2 = nil
+  e3 = nil
+  begin
+    # this will cause an exception due to the wrong argument
+    [1,2,3].first(-1)
+  rescue => e1
+    e2 = e1
+  end
+  begin
+    # this will cause an exception due to the wrong argument
+    [1,2,3].first(1,2)
+  rescue => e1
+    e3 = e1
+  end
+
+  a.first == nil and b.first == 1 and b.first(0) == [] and
+    b.first(1) == [1] and b.first(4) == [1,2,3] and
+    e2.class == ArgumentError and e3.class == ArgumentError
 end
 
 assert('Array#index', '15.2.12.5.14') do
