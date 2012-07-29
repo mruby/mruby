@@ -72,9 +72,6 @@ inspect_obj(mrb_state *mrb, mrb_value obj, mrb_value str, int recur)
 int
 mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
-    //const mrb_method_entry_t *me = mrb_method_entry(CLASS_OF(obj), mrb_intern("to_s"));
-    //if (me && me->def && me->def->type == VM_METHOD_TYPE_CFUNC &&
-    //me->def->body.cfunc.func == mrb_any_to_s)
     struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mrb_intern(mrb, "to_s"));
     if (me && MRB_PROC_CFUNC_P(me) && (me->body.func == mrb_any_to_s))
       return 1;
@@ -314,52 +311,38 @@ mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
 {
   struct RClass *klass = RBASIC(obj)->c;
 
-  //if (!FL_TEST(klass, FL_SINGLETON))
-      //return klass;
   if (klass->tt != MRB_TT_SCLASS)
     return klass;
   else {
-      //struct clone_method_data data;
-      /* copy singleton(unnamed) class */
-      //VALUE clone = class_alloc(RBASIC(klass)->flags, 0);
+    /* copy singleton(unnamed) class */
     struct RClass *clone = (struct RClass*)mrb_obj_alloc(mrb, klass->tt, mrb->class_class);
-    //clone->super = objklass->super;
 
-      if ((mrb_type(obj) == MRB_TT_CLASS) ||
-          (mrb_type(obj) == MRB_TT_SCLASS)) { /* BUILTIN_TYPE(obj) == T_CLASS */
-          clone->c = clone;
-      }
-      else {
-          clone->c = mrb_singleton_class_clone(mrb, mrb_obj_value(klass));
-      }
+    if ((mrb_type(obj) == MRB_TT_CLASS) ||
+      (mrb_type(obj) == MRB_TT_SCLASS)) { /* BUILTIN_TYPE(obj) == T_CLASS */
+      clone->c = clone;
+    }
+    else {
+      clone->c = mrb_singleton_class_clone(mrb, mrb_obj_value(klass));
+    }
 
-      clone->super = klass->super;
-      if (klass->iv) {
-          clone->iv = klass->iv;
-      }
-      if (klass->mt) {
-          clone->mt = kh_copy(mt, mrb, klass->mt);
-      }
-      else {
-          clone->mt = kh_init(mt, mrb);
-      }
-      clone->tt = MRB_TT_SCLASS;
-      return clone;
+    clone->super = klass->super;
+    if (klass->iv) {
+      clone->iv = klass->iv;
+    }
+    if (klass->mt) {
+      clone->mt = kh_copy(mt, mrb, klass->mt);
+    }
+    else {
+      clone->mt = kh_init(mt, mrb);
+    }
+    clone->tt = MRB_TT_SCLASS;
+    return clone;
   }
 }
 
 static void
 init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
 {
-    //if (OBJ_FROZEN(dest)) {
-    //    rb_raise(rb_eTypeError, "[bug] frozen object (%s) allocated", rb_obj_classname(dest));
-    //}
-    //RBASIC(dest)->flags &= ~(T_MASK|FL_EXIVAR);
-    //RBASIC(dest)->flags |= RBASIC(obj)->flags & (T_MASK|FL_EXIVAR|FL_TAINT);
-    //if (FL_TEST(obj, FL_EXIVAR)) {
-    //    mrb_copy_generic_ivar(dest, obj);
-    //}
-    //mrb_gc_copy_finalizer(dest, obj);
     switch (mrb_type(obj)) {
       case MRB_TT_OBJECT:
       case MRB_TT_CLASS:
@@ -416,8 +399,6 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
   clone = (struct RObject*)mrb_obj_alloc(mrb, self.tt, mrb_obj_class(mrb, self));
   clone->c = mrb_singleton_class_clone(mrb, self);
   init_copy(mrb, mrb_obj_value(clone), self);
-  //1-9-2 no bug mrb_funcall(mrb, clone, "initialize_clone", 1, self);
-  //RBASIC(clone)->flags |= RBASIC(obj)->flags & FL_FREEZE;
 
   return mrb_obj_value(clone);
 }
@@ -466,7 +447,6 @@ mrb_obj_extend(mrb_state *mrb, int argc, mrb_value *argv, mrb_value obj)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (at least 1)");
   }
   for (i = 0; i < argc; i++) {
-    //Check_Type(argv[i], T_MODULE);
     mrb_check_type(mrb, argv[i], MRB_TT_MODULE);
   }
   while (argc--) {
@@ -510,19 +490,6 @@ mrb_obj_extend_m(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "*", &argv, &argc);
   return mrb_obj_extend(mrb, argc, argv, self);
 }
-
-/* 15.3.1.2.4  */
-/* 15.3.1.3.14 */
-/*
- *  call-seq:
- *     global_variables    -> array
- *
- *  Returns an array of the names of global variables.
- *
- *     global_variables.grep /std/   #=> [:$stdin, :$stdout, :$stderr]
- */
-//mrb_value
-//mrb_f_global_variables(mrb_state *mrb, mrb_value self)
 
 /* 15.3.1.3.15 */
 /*
@@ -824,7 +791,6 @@ mrb_obj_singleton_methods(mrb_state *mrb, int argc, mrb_value *argv, mrb_value o
       recur = mrb_true_value();
   }
   else {
-      //mrb_scan_args(argc, argv, "01", &recur);
       recur = argv[0];
   }
   klass = mrb_class(mrb, obj);
@@ -853,7 +819,6 @@ retry:
   else {
       mrb_value recur;
 
-      //mrb_scan_args(argc, argv, "1", &recur);
       recur = argv[0];
       if (mrb_test(recur)) {
           argc = 0;
@@ -1073,7 +1038,6 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   mrb_sym id;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  //mrb_scan_args(argc, argv, "11", &mid, &priv);
   mid = argv[0];
   if (argc > 1) priv = argv[1];
   else priv = mrb_nil_value();

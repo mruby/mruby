@@ -460,10 +460,6 @@ kiv_lookup(khash_t(iv)* table, mrb_sym key, mrb_value *value)
   khash_t(iv) *h=table;
   khiter_t k;
 
-  // you must check(iv==0), before you call this function.
-  //if (!obj->iv) {
-  //  return 0;
-  //}
   k = kh_get(iv, h, key);
   if (k != kh_end(h)) {
     *value = kh_value(h, k);
@@ -505,7 +501,6 @@ mrb_const_defined_at(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 mrb_value
 mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id)
 {
-  //return ivar_get(obj, id, FALSE);
   return mrb_iv_get(mrb, obj, id);
 }
 

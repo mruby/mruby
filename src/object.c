@@ -516,7 +516,6 @@ mrb_to_integer(mrb_state *mrb, mrb_value val, const char *method)
     mrb_value v;
 
     if (FIXNUM_P(val)) return val;
-    //if (TYPE(val) == T_BIGNUM) return val;
     v = convert_type(mrb, val, "Integer", method, TRUE);
     if (!mrb_obj_is_kind_of(mrb, v, mrb->fixnum_class)) {
       const char *cname = mrb_obj_classname(mrb, val);

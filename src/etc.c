@@ -52,11 +52,6 @@ mrb_check_datatype(mrb_state *mrb, mrb_value obj, const struct mrb_data_type *ty
 mrb_value
 mrb_lastline_get(mrb_state *mrb)
 {
-  //mrb_value *var = mrb_svar(0);
-  //if (var) {
-  //  return *var;
-  //}
-  //return mrb_nil_value();
   mrb_value *argv;
   int argc;
 
