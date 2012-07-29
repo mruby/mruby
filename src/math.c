@@ -5,6 +5,7 @@
 */
 
 #include "mruby.h"
+#include "mruby/array.h"
 
 #ifdef ENABLE_MATH
 #include <math.h>

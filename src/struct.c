@@ -184,7 +184,7 @@ mrb_id_attrset(mrb_state *mrb, mrb_sym id)
   mrb_sym mid;
 
   name = mrb_sym2name_len(mrb, id, &len);
-  buf = mrb_malloc(mrb, len+2);
+  buf = (char *)mrb_malloc(mrb, len+2);
   memcpy(buf, name, len);
   buf[len] = '=';
   buf[len+1] = '\0';
@@ -427,7 +427,7 @@ mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_val
     mrb_raise(mrb, E_ARGUMENT_ERROR, "struct size differs");
   }
   st = RSTRUCT(self);
-  st->ptr = mrb_calloc(mrb, sizeof(mrb_value), n);
+  st->ptr = (mrb_value *)mrb_calloc(mrb, sizeof(mrb_value), n);
   st->len = n;
   memcpy(st->ptr, argv, sizeof(mrb_value)*argc);
 

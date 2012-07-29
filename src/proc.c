@@ -144,8 +144,8 @@ void
 mrb_init_proc(mrb_state *mrb)
 {
   struct RProc *m;
-  mrb_code *call_iseq = mrb_malloc(mrb, sizeof(mrb_code));
-  mrb_irep *call_irep = mrb_calloc(mrb, sizeof(mrb_irep), 1);
+  mrb_code *call_iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code));
+  mrb_irep *call_irep = (mrb_irep *)mrb_calloc(mrb, sizeof(mrb_irep), 1);
 
   if ( call_iseq == NULL || call_irep == NULL )
     return;

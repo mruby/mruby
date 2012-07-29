@@ -50,7 +50,7 @@ mrb_intern2(mrb_state *mrb, const char *name, int len)
     return kh_value(h, k);
 
   sym = ++mrb->symidx;
-  p = mrb_malloc(mrb, len+1);
+  p = (char *)mrb_malloc(mrb, len+1);
   memcpy(p, name, len);
   p[len] = 0;
   sname.name = (const char*)p;
