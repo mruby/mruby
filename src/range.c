@@ -412,7 +412,6 @@ range_initialize_copy(mrb_state *mrb, mrb_value copy)
   mrb_get_args(mrb, "o", &src);
 
   if (mrb_obj_equal(mrb, copy, src)) return copy;
-  //mrb_check_frozen(copy);
   if (!mrb_obj_is_instance_of(mrb, src, mrb_obj_class(mrb, copy))) {
     mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
   }

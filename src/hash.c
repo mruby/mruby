@@ -1339,9 +1339,9 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method(mrb, h, "default_proc",    mrb_hash_default_proc,ARGS_NONE()); /* 15.2.13.4.7  */
   mrb_define_method(mrb, h, "default_proc=",   mrb_hash_set_default_proc,ARGS_REQ(1)); /* 15.2.13.4.7  */
   mrb_define_method(mrb, h, "__delete",        mrb_hash_delete,      ARGS_REQ(1)); /* core of 15.2.13.4.8  */
-//mrb_define_method(mrb, h, "each",            mrb_hash_each_pair,   ARGS_NONE()); /* 15.2.13.4.9  */ /* move to mrblib\hash.rb */
-//mrb_define_method(mrb, h, "each_key",        mrb_hash_each_key,    ARGS_NONE()); /* 15.2.13.4.10 */ /* move to mrblib\hash.rb */
-//mrb_define_method(mrb, h, "each_value",      mrb_hash_each_value,  ARGS_NONE()); /* 15.2.13.4.11 */ /* move to mrblib\hash.rb */
+// "each"                                                                             15.2.13.4.9  move to mrblib/hash.rb
+// "each_key"                                                                         15.2.13.4.10 move to mrblib/hash.rb
+// "each_value"                                                                       15.2.13.4.11 move to mrblib/hash.rb
   mrb_define_method(mrb, h, "empty?",          mrb_hash_empty_p,     ARGS_NONE()); /* 15.2.13.4.12 */
   mrb_define_method(mrb, h, "has_key?",        mrb_hash_has_key,     ARGS_REQ(1)); /* 15.2.13.4.13 */
   mrb_define_method(mrb, h, "has_value?",      mrb_hash_has_value,   ARGS_REQ(1)); /* 15.2.13.4.14 */
@@ -1352,7 +1352,7 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method(mrb, h, "keys",            mrb_hash_keys,        ARGS_NONE()); /* 15.2.13.4.19 */
   mrb_define_method(mrb, h, "length",          mrb_hash_size_m,      ARGS_NONE()); /* 15.2.13.4.20 */
   mrb_define_method(mrb, h, "member?",         mrb_hash_has_key,     ARGS_REQ(1)); /* 15.2.13.4.21 */
-//mrb_define_method(mrb, h, "merge",           mrb_hash_merge,       ARGS_REQ(1)); /* 15.2.13.4.22 */ /* move to mrblib\hash.rb */
+// "merge"                                                                            15.2.13.4.22 move to mrblib/hash.rb
   mrb_define_method(mrb, h, "replace",         mrb_hash_replace,     ARGS_REQ(1)); /* 15.2.13.4.23 */
   mrb_define_method(mrb, h, "shift",           mrb_hash_shift,       ARGS_NONE()); /* 15.2.13.4.24 */
   mrb_define_method(mrb, h, "size",            mrb_hash_size_m,      ARGS_NONE()); /* 15.2.13.4.25 */

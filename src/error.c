@@ -29,7 +29,6 @@ mrb_exc_new3(mrb_state *mrb, struct RClass* c, mrb_value str)
   return mrb_funcall(mrb, mrb_obj_value(c), "new", 1, str);
 }
 
-//mrb_value make_exception(mrb_state *mrb, int argc, mrb_value *argv, int isstr);
 /*
  * call-seq:
  *    Exception.new(msg = nil)   ->  exception
@@ -307,14 +306,6 @@ make_exception(mrb_state *mrb, int argc, mrb_value *argv, int isstr)
     case 3:
       n = 1;
 exception_call:
-      //if (argv[0] == sysstack_error) return argv[0];
-
-      //CONST_ID(mrb, exception, "exception");
-      //mesg = mrb_check_funcall(mrb, argv[0], exception, n, argv+1);
-      //if (mrb_nil_p(mesg)) {
-      //  /* undef */
-      //  mrb_raise(mrb, E_TYPE_ERROR, "exception class/object expected");
-      //}
       if (mrb_respond_to(mrb, argv[0], mrb_intern(mrb, "exception"))) {
         mesg = mrb_funcall_argv(mrb, argv[0], "exception", n, argv+1);
       }
