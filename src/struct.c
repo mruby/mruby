@@ -38,8 +38,6 @@ struct_ivar_get(mrb_state *mrb, mrb_value c, mrb_sym id)
 
   mrb_value ans;
     for (;;) {
-      //if (mrb_ivar_defined(c, id))
-      //    return mrb_iv_get(mrb, c, id);
       ans = mrb_iv_get(mrb, c, id);
       if (!mrb_nil_p(ans)) return ans;
       kclass = RCLASS_SUPER(c);
@@ -260,19 +258,15 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     //OBJ_FREEZE(members);
     if (mrb_nil_p(name)) {
       c = mrb_class_new(mrb, klass);
-      //mrb_make_metaclass(nstr, RBASIC(klass)->c);
-      //mrb_class_inherited(klass, nstr);
     }
     else {
       /* old style: should we warn? */
       name = mrb_str_to_str(mrb, name);
       id = mrb_to_id(mrb, name);
       if (!mrb_is_const_id(id)) {
-          //mrb_name_error(id, "identifier %s needs to be constant", StringValuePtr(name));
           mrb_name_error(mrb, id, "identifier %s needs to be constant", mrb_string_value_ptr(mrb, name));
       }
       if (mrb_const_defined_at(mrb, klass, id)) {
-          //mrb_warn("redefining constant Struct::%s", StringValuePtr(name));
           mrb_warn("redefining constant Struct::%s", mrb_string_value_ptr(mrb, name));
           //?rb_mod_remove_const(klass, mrb_sym2name(mrb, id));
       }
@@ -376,7 +370,6 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "&*", &b, &argv, &argc);
   if (argc > 0) name = argv[0];
   if (argc > 1) rest = argv[1];
-  //mrb_scan_args(argc, argv, "1*", &name, &rest);
   if (mrb_type(rest) == MRB_TT_ARRAY) {
     if (!mrb_nil_p(name) && SYMBOL_P(name)) {
       /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
@@ -389,7 +382,6 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
     argcnt = argc-1;
     if (!mrb_nil_p(name) && SYMBOL_P(name)) {
       /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
-      //mrb_ary_unshift(mrb, rest, name);
       name = mrb_nil_value();
       pargv = &argv[0];
       argcnt++;
@@ -557,7 +549,6 @@ mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
   mrb_get_args(mrb, "o", &s);
 
   if (mrb_obj_equal(mrb, copy, s)) return copy;
-  //mrb_check_frozen(copy);
   if (!mrb_obj_is_instance_of(mrb, s, mrb_obj_class(mrb, copy))) {
     mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
   }

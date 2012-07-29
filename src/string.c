@@ -1354,7 +1354,6 @@ str_gsub(mrb_state *mrb, mrb_value str, mrb_int bang)
 static mrb_value
 mrb_str_gsub(mrb_state *mrb, mrb_value self)
 {
-  //return str_gsub(argc, argv, self, 0);
   return str_gsub(mrb, self, 0);
 }
 
@@ -1469,10 +1468,8 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
   int argc;
 
   mrb_value sub;
-  //mrb_value initpos;
   mrb_int pos;
 
-  //if (mrb_scan_args(argc, argv, "11", &sub, &initpos) == 2) {
   mrb_get_args(mrb, "*", &argv, &argc);
   if (argc == 2) {
     pos = mrb_fixnum(argv[1]);
@@ -1959,7 +1956,6 @@ scan_once(mrb_state *mrb, mrb_value str, mrb_value pat, mrb_int *start)
 
   if (mrb_reg_search(mrb, pat, str, *start, 0) >= 0) {
     match = mrb_backref_get(mrb);
-    //regs = RMATCH(match)->regs;
     pmatch = mrb_match_ptr(match);
     regs = &pmatch->rmatch->regs;
     if (regs->beg[0] == regs->end[0]) {
@@ -2143,7 +2139,6 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     split_type = awk;
   }
   else {
-//fs_set:
     if (mrb_type(spat) == MRB_TT_STRING) {
       split_type = string;
 #ifdef ENABLE_REGEXP
@@ -2546,7 +2541,6 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, int badcheck)
   if (s) {
     len = RSTRING_LEN(str);
     if (s[len]) {    /* no sentinel somehow */
-      //char *p = ALLOCA_N(char, len+1);
       char *p = mrb_malloc(mrb, len+1);
 
       //MEMCPY(p, s, char, len);
@@ -2584,10 +2578,8 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
   int argc;
-  //mrb_value b;
   int base;
 
-  //mrb_scan_args(argc, *argv, "01", &b);
   mrb_get_args(mrb, "*", &argv, &argc);
   if (argc == 0)
     base = 10;
@@ -2710,7 +2702,6 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, int badcheck)
 static mrb_value
 mrb_str_to_f(mrb_state *mrb, mrb_value self)
 {
-  //return mrb_float_new(mrb_str_to_dbl(self, 0/*Qfalse*/));
   return mrb_float_value(mrb_str_to_dbl(mrb, self, 0/*Qfalse*/));
 }
 
