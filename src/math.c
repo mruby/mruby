@@ -89,10 +89,6 @@ erfc(double x)
 
 #endif
 
-
-mrb_value
-mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr);
-
 /*
   TRIGONOMETRIC FUNCTIONS
 */
