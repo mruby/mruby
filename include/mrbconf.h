@@ -19,6 +19,9 @@
 /* number of object per heap page */
 //#define MRB_HEAP_PAGE_SIZE 1024
 
+/* initial size for IV khash */
+//#define MRB_IV_INITIAL_SIZE 8
+
 /* default size of khash table bucket */
 //#define KHASH_DEFAULT_SIZE 32
 
