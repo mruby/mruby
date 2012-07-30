@@ -17,7 +17,7 @@ extern "C" {
 typedef uint32_t khint_t;
 typedef khint_t khiter_t;
 
-#if !defined(MRB_INITIAL_HASH_SIZE)
+#ifndef MRB_INITIAL_HASH_SIZE
 # define MRB_INITIAL_HASH_SIZE 32
 #endif
 
@@ -89,12 +89,15 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
     h->mask = sz-1;                                                     \
     h->inc = sz/2-1;                                                    \
   }                                                                     \
-  kh_##name##_t *kh_init_##name(mrb_state *mrb){                        \
+  kh_##name##_t *kh_init_##name##_size(mrb_state *mrb, khint_t size) {  \
     kh_##name##_t *h = (kh_##name##_t*)mrb_calloc(mrb, 1, sizeof(kh_##name##_t)); \
-    h->n_buckets = MRB_INITIAL_HASH_SIZE;                               \
+    h->n_buckets = size;                                                \
     h->mrb = mrb;                                                       \
     kh_alloc_##name(h);                                                 \
     return h;                                                           \
+  }                                                                     \
+  kh_##name##_t *kh_init_##name(mrb_state *mrb){                        \
+    return kh_init_##name##_size(mrb, MRB_INITIAL_HASH_SIZE);           \
   }                                                                     \
   void kh_destroy_##name(kh_##name##_t *h)                              \
   {                                                                     \
