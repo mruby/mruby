@@ -17,7 +17,10 @@ extern "C" {
 typedef uint32_t khint_t;
 typedef khint_t khiter_t;
 
-#define INITIAL_HASH_SIZE 32
+#if !defined(MRB_INITIAL_HASH_SIZE)
+# define MRB_INITIAL_HASH_SIZE 32
+#endif
+
 #define UPPER_BOUND(x) ((x)>>2|(x>>1))
 
 //extern uint8_t __m[];
@@ -88,7 +91,7 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
   }                                                                     \
   kh_##name##_t *kh_init_##name(mrb_state *mrb){                        \
     kh_##name##_t *h = (kh_##name##_t*)mrb_calloc(mrb, 1, sizeof(kh_##name##_t)); \
-    h->n_buckets = INITIAL_HASH_SIZE;                                   \
+    h->n_buckets = MRB_INITIAL_HASH_SIZE;                               \
     h->mrb = mrb;                                                       \
     kh_alloc_##name(h);                                                 \
     return h;                                                           \
@@ -123,14 +126,16 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
   }                                                                     \
   void kh_resize_##name(kh_##name##_t *h, khint_t new_n_buckets)        \
   {                                                                     \
-    if( new_n_buckets<INITIAL_HASH_SIZE ){                              \
-      new_n_buckets = INITIAL_HASH_SIZE;                                \
+    if( new_n_buckets<MRB_INITIAL_HASH_SIZE ){                          \
+      new_n_buckets = MRB_INITIAL_HASH_SIZE;                            \
     } else {                                                            \
       khint_t limit = new_n_buckets;                                    \
-      new_n_buckets = INITIAL_HASH_SIZE;                                \
-      while( new_n_buckets < limit ) new_n_buckets *= 2;                \
+      new_n_buckets = MRB_INITIAL_HASH_SIZE;                            \
+      while( new_n_buckets < limit ) {                                  \
+        new_n_buckets *= 2;                                             \
+      }                                                                 \
     }                                                                   \
-    {					                                                \
+    {                                                                   \
       uint8_t *old_e_flags = h->e_flags;                                \
       khkey_t *old_keys = h->keys;                                      \
       khval_t *old_vals = h->vals;                                      \
@@ -140,10 +145,10 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
       kh_alloc_##name(h);                                               \
       /* relocate */                                                    \
       for( i=0 ; i<old_n_buckets ; i++ ){                               \
-	if( !__ac_isempty(old_e_flags, old_d_flags, i) ){                   \
-	  khint_t k = kh_put_##name(h, old_keys[i]);                        \
-	  kh_value(h,k) = old_vals[i];                                      \
-	}                                                                   \
+        if( !__ac_isempty(old_e_flags, old_d_flags, i) ){               \
+          khint_t k = kh_put_##name(h, old_keys[i]);                    \
+          kh_value(h,k) = old_vals[i];                                  \
+        }                                                               \
       }                                                                 \
       mrb_free(h->mrb, old_e_flags);                                    \
       mrb_free(h->mrb, old_keys);                                       \
