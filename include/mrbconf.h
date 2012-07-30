@@ -16,7 +16,7 @@
 /* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
 //#define MRB_USE_FLOAT
 
-/* -DDISABLE_XXXX to change to drop the feature */
+/* -DDISABLE_XXXX to drop the feature */
 #define DISABLE_REGEXP	        /* regular expression classes */
 //#define DISABLE_SPRINTF	/* Kernel.sprintf method */
 //#define DISABLE_MATH		/* Math functions */
