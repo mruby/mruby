@@ -189,7 +189,9 @@ mrb_free(mrb_state *mrb, void *p)
   return (mrb->allocf)(mrb, p, 0);
 }
 
-#define HEAP_PAGE_SIZE 1024
+#ifndef MRB_HEAP_PAGE_SIZE
+#define MRB_HEAP_PAGE_SIZE 1024
+#endif
 
 struct heap_page {
   struct RBasic *freelist;
@@ -197,7 +199,7 @@ struct heap_page {
   struct heap_page *next;
   struct heap_page *free_next;
   struct heap_page *free_prev;
-  RVALUE objects[HEAP_PAGE_SIZE];
+  RVALUE objects[MRB_HEAP_PAGE_SIZE];
 };
 
 static void
@@ -252,7 +254,7 @@ add_heap(mrb_state *mrb)
   RVALUE *p, *e;
   struct RBasic *prev = NULL;
 
-  for (p = page->objects, e=p+HEAP_PAGE_SIZE; p<e; p++) {
+  for (p = page->objects, e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
     p->as.free.tt = MRB_TT_FREE;
     p->as.free.next = prev;
     prev = &p->as.basic;
@@ -708,7 +710,7 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
 
   while (page && (tried_sweep < limit)) {
     RVALUE *p = page->objects;
-    RVALUE *e = p + HEAP_PAGE_SIZE;
+    RVALUE *e = p + MRB_HEAP_PAGE_SIZE;
     size_t freed = 0;
     int dead_slot = 1;
     int full = (page->freelist == NULL);
@@ -730,7 +732,7 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
     }
 
     /* free dead slot */
-    if (dead_slot && freed < HEAP_PAGE_SIZE) {
+    if (dead_slot && freed < MRB_HEAP_PAGE_SIZE) {
       struct heap_page *next = page->next;
 
       unlink_heap_page(mrb, page);
@@ -744,7 +746,7 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
       }
       page = page->next;
     }
-    tried_sweep += HEAP_PAGE_SIZE;
+    tried_sweep += MRB_HEAP_PAGE_SIZE;
     mrb->live -= freed;
     mrb->gc_live_after_mark -= freed;
   }
@@ -1158,7 +1160,7 @@ test_incremental_gc(void)
   page = mrb->heaps;
   while (page) {
     RVALUE *p = page->objects;
-    RVALUE *e = p + HEAP_PAGE_SIZE;
+    RVALUE *e = p + MRB_HEAP_PAGE_SIZE;
     while (p<e) {
       if (is_black(&p->as.basic)) {
         live++;
@@ -1169,7 +1171,7 @@ test_incremental_gc(void)
       p++;
     }
     page = page->next;
-    total += HEAP_PAGE_SIZE;
+    total += MRB_HEAP_PAGE_SIZE;
   }
 
   gc_assert(mrb->gray_list == NULL);
@@ -1204,7 +1206,7 @@ test_incremental_sweep_phase(void)
 
   gc_assert(mrb->heaps->next->next == NULL);
   gc_assert(mrb->free_heaps->next->next == NULL);
-  incremental_sweep_phase(mrb, HEAP_PAGE_SIZE*3);
+  incremental_sweep_phase(mrb, MRB_HEAP_PAGE_SIZE*3);
 
   gc_assert(mrb->heaps->next == NULL);
   gc_assert(mrb->heaps == mrb->free_heaps);
