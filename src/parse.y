@@ -94,7 +94,7 @@ cons_gen(parser_state *p, node *car, node *cdr)
     p->cells = p->cells->cdr;
   }
   else {
-    c = parser_palloc(p, sizeof(mrb_ast_node));
+    c = (node *)parser_palloc(p, sizeof(mrb_ast_node));
   }
 
   c->car = car;
@@ -165,7 +165,7 @@ append_gen(parser_state *p, node *a, node *b)
 static char*
 parser_strndup(parser_state *p, const char *s, size_t len)
 {
-  char *b = parser_palloc(p, len+1);
+  char *b = (char *)parser_palloc(p, len+1);
 
   memcpy(b, s, len);
   b[len] = '\0';
@@ -2852,7 +2852,7 @@ singleton	: var_ref
 			yyerror(p, "can't define singleton method for ().");
 		      }
 		      else {
-			switch ((enum node_type)$3->car) {
+			switch ((enum node_type)(int)(intptr_t)$3->car) {
 			case NODE_STR:
 			case NODE_DSTR:
 			case NODE_DREGX:
@@ -2968,7 +2968,7 @@ yyerror(parser_state *p, const char *s)
   }
   else if (p->nerr < sizeof(p->error_buffer) / sizeof(p->error_buffer[0])) {
     n = strlen(s);
-    c = parser_palloc(p, n + 1);
+    c = (char *)parser_palloc(p, n + 1);
     memcpy(c, s, n + 1);
     p->error_buffer[p->nerr].message = c;
     p->error_buffer[p->nerr].lineno = p->lineno;
@@ -3004,7 +3004,7 @@ yywarn(parser_state *p, const char *s)
   }
   else if (p->nerr < sizeof(p->warn_buffer) / sizeof(p->warn_buffer[0])) {
     n = strlen(s);
-    c = parser_palloc(p, n + 1);
+    c = (char *)parser_palloc(p, n + 1);
     memcpy(c, s, n + 1);
     p->warn_buffer[p->nwarn].message = c;
     p->warn_buffer[p->nwarn].lineno = p->lineno;
@@ -3254,7 +3254,7 @@ scan_hex(const int *start, int len, int *retlen)
   register unsigned long retval = 0;
   char *tmp;
 
-  while (len-- && *s && (tmp = strchr(hexdigit, *s))) {
+  while (len-- && *s && (tmp = (char *)strchr(hexdigit, *s))) {
     retval <<= 4;
     retval |= (tmp - hexdigit) & 15;
     s++;
@@ -4701,7 +4701,7 @@ parser_update_cxt(parser_state *p, mrbc_context *cxt)
     i++;
     n = n->cdr;
   }
-  cxt->syms = mrb_realloc(p->mrb, cxt->syms, i*sizeof(mrb_sym));
+  cxt->syms = (mrb_sym *)mrb_realloc(p->mrb, cxt->syms, i*sizeof(mrb_sym));
   cxt->slen = i;
   for (i=0, n=n0; n; i++,n=n->cdr) {
     cxt->syms[i] = (mrb_sym)n->car;
@@ -4759,7 +4759,7 @@ mrb_parser_new(mrb_state *mrb)
 
   pool = mrb_pool_open(mrb);
   if (!pool) return 0;
-  p = mrb_pool_alloc(pool, sizeof(parser_state));
+  p = (parser_state *)mrb_pool_alloc(pool, sizeof(parser_state));
   if (!p) return 0;
 
   memset(p, 0, sizeof(parser_state));
@@ -4793,7 +4793,7 @@ mrbc_context_new(mrb_state *mrb)
 {
   mrbc_context *c;
 
-  c = mrb_calloc(mrb, 1, sizeof(mrbc_context));
+  c = (mrbc_context *)mrb_calloc(mrb, 1, sizeof(mrbc_context));
   return c;
 }
 
@@ -4810,7 +4810,7 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 {
   if (s) {
     int len = strlen(s);
-    char *p = mrb_malloc(mrb, len);
+    char *p = (char *)mrb_malloc(mrb, len);
 
     memcpy(p, s, len);
     if (c->filename) mrb_free(mrb, c->filename);
