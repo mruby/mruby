@@ -16,6 +16,10 @@
 #include "re.h"
 #endif
 
+#ifndef MRB_IV_INITIAL_SIZE
+#define MRB_IV_INITIAL_SIZE 8
+#endif
+
 static void
 mark_tbl(mrb_state *mrb, struct kh_iv *h)
 {
@@ -130,7 +134,7 @@ mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
   khash_t(iv) *h;
 
   if (!obj->iv) {
-    h = obj->iv = kh_init_size(iv, mrb, 8);
+    h = obj->iv = kh_init_size(iv, mrb, MRB_IV_INITIAL_SIZE);
   }
   else {
     h = obj->iv;
@@ -266,7 +270,7 @@ mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
   c = mrb->ci->target_class;
   h = c->iv;
   if (!h) {
-    c->iv = h = kh_init_size(iv, mrb, 8);
+    c->iv = h = kh_init_size(iv, mrb, MRB_IV_INITIAL_SIZE);
   }
   k = kh_put(iv, h, sym);
   kh_value(h, k) = v;
