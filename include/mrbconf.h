@@ -23,6 +23,8 @@
 
 //#define MRB_FUNCALL_ARGC_MAX 16 /* argv size in mrb_funcall */
 
+#define MRB_HEAP_PAGE_SIZE 256
+
 #undef  HAVE_UNISTD_H /* WINDOWS */
 #define HAVE_UNISTD_H /* LINUX */
 
