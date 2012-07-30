@@ -189,7 +189,11 @@ mrb_free(mrb_state *mrb, void *p)
   return (mrb->allocf)(mrb, p, 0);
 }
 
-#define HEAP_PAGE_SIZE 1024
+#if defined(MRB_HEAP_PAGE_SIZE)
+# define HEAP_PAGE_SIZE MRB_HEAP_PAGE_SIZE
+#else
+# define HEAP_PAGE_SIZE 1024
+#endif
 
 struct heap_page {
   struct RBasic *freelist;
