@@ -248,7 +248,7 @@ unlink_free_heap_page(mrb_state *mrb, struct heap_page *page)
 static void
 add_heap(mrb_state *mrb)
 {
-  struct heap_page *page = mrb_calloc(mrb, 1, sizeof(struct heap_page));
+  struct heap_page *page = (struct heap_page *)mrb_calloc(mrb, 1, sizeof(struct heap_page));
   RVALUE *p, *e;
   struct RBasic *prev = NULL;
 

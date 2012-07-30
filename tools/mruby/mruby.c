@@ -86,12 +86,12 @@ append_cmdline:
         if (!args->cmdline) {
           char *buf;
 
-          buf = mrb_malloc(mrb, strlen(item)+1);
+          buf = (char *)mrb_malloc(mrb, strlen(item)+1);
           strcpy(buf, item);
           args->cmdline = buf;
         }
         else {
-          args->cmdline = mrb_realloc(mrb, args->cmdline, strlen(args->cmdline)+strlen(item)+2);
+          args->cmdline = (char *)mrb_realloc(mrb, args->cmdline, strlen(args->cmdline)+strlen(item)+2);
           strcat(args->cmdline, "\n");
           strcat(args->cmdline, item);
         }
@@ -133,7 +133,7 @@ append_cmdline:
       return 0;
     }
   }
-  args->argv = mrb_realloc(mrb, args->argv, sizeof(char*) * (argc + 1));
+  args->argv = (char **)mrb_realloc(mrb, args->argv, sizeof(char*) * (argc + 1));
   memcpy(args->argv, argv, (argc+1) * sizeof(char*));
   args->argc = argc;
 

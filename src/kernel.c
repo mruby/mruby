@@ -853,7 +853,7 @@ mrb_obj_methods_m(mrb_state *mrb, mrb_value self)
   int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  return mrb_obj_methods(mrb, argc, argv, self, 0); /* everything but private */
+  return mrb_obj_methods(mrb, argc, argv, self, (mrb_method_flag_t)0); /* everything but private */
 }
 
 /* 15.3.1.3.32 */

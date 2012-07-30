@@ -335,7 +335,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
   int len;
 
   buf_size = MRB_DUMP_DEFAULT_STR_LEN;
-  if ((char_buf = mrb_malloc(mrb, buf_size)) == 0)
+  if ((char_buf = (char *)mrb_malloc(mrb, buf_size)) == 0)
     goto error_exit;
 
   buf += uint32_dump((uint32_t)irep->plen, buf, type); /* number of pool */
@@ -360,7 +360,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
       nlen = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);
       if ( nlen > buf_size - 1) {
         buf_size = nlen + 1;
-        if ((char_buf = mrb_realloc(mrb, char_buf, buf_size)) == 0)
+        if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == 0)
           goto error_exit;
         memset(char_buf, 0, buf_size);
       }
@@ -409,7 +409,7 @@ write_syms_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
   uint16_t buf_size =0;
 
   buf_size = MRB_DUMP_DEFAULT_STR_LEN;
-  if ((char_buf = mrb_malloc(mrb, buf_size)) == 0)
+  if ((char_buf = (char *)mrb_malloc(mrb, buf_size)) == 0)
     goto error_exit;
 
   buf += uint32_dump((uint32_t)irep->slen, buf, type); /* number of symbol */
@@ -425,7 +425,7 @@ write_syms_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
       nlen = str_dump_len((char*)name, len, type);
       if ( nlen > buf_size - 1) {
         buf_size = nlen + 1;
-        if ((char_buf = mrb_realloc(mrb, char_buf, buf_size)) == 0)
+        if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == 0)
           goto error_exit;
       }
       memset(char_buf, 0, buf_size);
@@ -461,7 +461,7 @@ calc_crc_section(mrb_state *mrb, mrb_irep *irep, uint16_t *crc, int section)
   default: return MRB_DUMP_GENERAL_FAILURE;
   }
 
-  if ((buf = mrb_calloc(mrb, 1, buf_size)) == 0)
+  if ((buf = (char *)mrb_calloc(mrb, 1, buf_size)) == 0)
     return MRB_DUMP_GENERAL_FAILURE;
 
   buf_top = buf;
@@ -598,7 +598,7 @@ dump_irep_record(mrb_state *mrb, int irep_no, FILE* fp, uint32_t *rlen)
   if (irep_record_size == 0)
     return MRB_DUMP_GENERAL_FAILURE;
 
-  if ((buf = mrb_calloc(mrb, 1, irep_record_size)) == 0)
+  if ((buf = (char *)mrb_calloc(mrb, 1, irep_record_size)) == 0)
     return MRB_DUMP_GENERAL_FAILURE;
 
   if ((rc = write_irep_record(mrb, irep_no, buf, rlen, DUMP_TYPE_HEX)) != MRB_DUMP_OK) {
@@ -690,7 +690,7 @@ mrb_bdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname)
     buf_size += get_irep_record_size(mrb, irep_no, DUMP_TYPE_BIN);
   buf_size += MRB_DUMP_SIZE_OF_LONG; /* end of file */
 
-  if ((buf = mrb_malloc(mrb, buf_size)) == 0)
+  if ((buf = (char *)mrb_malloc(mrb, buf_size)) == 0)
     return MRB_DUMP_GENERAL_FAILURE;
 
   rc = mrb_write_irep(mrb, n, buf);
