@@ -135,7 +135,10 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
   if (outfile == NULL)
     outfile = get_outfilename(infile, args->ext);
 
-  if ((args->wfp = fopen(outfile, "wb")) == NULL) {
+  if (strcmp("-", outfile) == 0) {
+    args->wfp = stdout;
+  }
+  else if ((args->wfp = fopen(outfile, "wb")) == NULL) {
     printf("%s: Cannot open output file. (%s)\n", *origargv, outfile);
     return 0;
   }
