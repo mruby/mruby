@@ -130,7 +130,7 @@ mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
   khash_t(iv) *h;
 
   if (!obj->iv) {
-    h = obj->iv = kh_init(iv, mrb);
+    h = obj->iv = kh_init_size(iv, mrb, 8);
   }
   else {
     h = obj->iv;
@@ -266,7 +266,7 @@ mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
   c = mrb->ci->target_class;
   h = c->iv;
   if (!h) {
-    c->iv = h = kh_init(iv, mrb);
+    c->iv = h = kh_init_size(iv, mrb, 8);
   }
   k = kh_put(iv, h, sym);
   kh_value(h, k) = v;
