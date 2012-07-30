@@ -17,9 +17,10 @@ extern "C" {
 typedef uint32_t khint_t;
 typedef khint_t khiter_t;
 
-#ifndef MRB_INITIAL_HASH_SIZE
-# define MRB_INITIAL_HASH_SIZE 32
+#ifndef KHASH_DEFAULT_SIZE
+# define KHASH_DEFAULT_SIZE 32
 #endif
+#define KHASH_MIN_SIZE 8
 
 #define UPPER_BOUND(x) ((x)>>2|(x>>1))
 
@@ -32,7 +33,15 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
 #define __ac_isempty(e_flag, d_flag, i) (e_flag[(i)/8]&__m[(i)%8])
 #define __ac_isdel(e_flag, d_flag, i) (d_flag[(i)/8]&__m[(i)%8])
 #define __ac_iseither(e_flag, d_flag, i) (__ac_isempty(e_flag,d_flag,i)||__ac_isdel(e_flag,d_flag,i))
-
+#define khash_power2(v) do { \
+  v--;\
+  v |= v >> 1;\
+  v |= v >> 2;\
+  v |= v >> 4;\
+  v |= v >> 8;\
+  v |= v >> 16;\
+  v++;\
+} while (0);
 
 /* declare struct kh_xxx and kh_xxx_funcs
 
@@ -92,13 +101,16 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
   }                                                                     \
   kh_##name##_t *kh_init_##name##_size(mrb_state *mrb, khint_t size) {  \
     kh_##name##_t *h = (kh_##name##_t*)mrb_calloc(mrb, 1, sizeof(kh_##name##_t)); \
+    if (size < KHASH_MIN_SIZE)                                          \
+      size = KHASH_MIN_SIZE;                                            \
+    khash_power2(size);                                                 \
     h->n_buckets = size;                                                \
     h->mrb = mrb;                                                       \
     kh_alloc_##name(h);                                                 \
     return h;                                                           \
   }                                                                     \
   kh_##name##_t *kh_init_##name(mrb_state *mrb){                        \
-    return kh_init_##name##_size(mrb, MRB_INITIAL_HASH_SIZE);           \
+    return kh_init_##name##_size(mrb, KHASH_DEFAULT_SIZE);              \
   }                                                                     \
   void kh_destroy_##name(kh_##name##_t *h)                              \
   {                                                                     \
@@ -130,15 +142,9 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
   }                                                                     \
   void kh_resize_##name(kh_##name##_t *h, khint_t new_n_buckets)        \
   {                                                                     \
-    if (new_n_buckets<MRB_INITIAL_HASH_SIZE) {                          \
-      new_n_buckets = MRB_INITIAL_HASH_SIZE;                            \
-    } else {                                                            \
-      khint_t limit = new_n_buckets;                                    \
-      new_n_buckets = MRB_INITIAL_HASH_SIZE;                            \
-      while (new_n_buckets < limit)  {                                  \
-        new_n_buckets *= 2;                                             \
-      }                                                                 \
-    }                                                                   \
+    if (new_n_buckets < KHASH_MIN_SIZE)                                 \
+      new_n_buckets = KHASH_MIN_SIZE;                                   \
+    khash_power2(new_n_buckets);                                        \
     {                                                                   \
       uint8_t *old_e_flags = h->e_flags;                                \
       khkey_t *old_keys = h->keys;                                      \

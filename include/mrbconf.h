@@ -13,14 +13,14 @@
 /* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
 //#define MRB_USE_FLOAT
 
-/* initial size of khash table bucket; should be power of 2 (n >= 8) */
-//#define MRB_INITIAL_HASH_SIZE 32
-
 /* argv max size in mrb_funcall */
 //#define MRB_FUNCALL_ARGC_MAX 16 
 
 /* number of object per heap page */
 //#define MRB_HEAP_PAGE_SIZE 1024
+
+/* default size of khash table bucket */
+//#define KHASH_DEFAULT_SIZE 32
 
 /* -DDISABLE_XXXX to drop the feature */
 #define DISABLE_REGEXP	        /* regular expression classes */
