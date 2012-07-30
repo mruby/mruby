@@ -46,7 +46,7 @@ ary_new_capa(mrb_state *mrb, int capa)
   }
 
   a = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
-  a->ptr = mrb_calloc(mrb, blen, 1);
+  a->ptr = (mrb_value *)mrb_calloc(mrb, blen, 1);
   a->aux.capa = capa;
   a->len = 0;
 
@@ -116,7 +116,7 @@ ary_modify(mrb_state *mrb, struct RArray *a)
 
       p = a->ptr;
       len = a->len * sizeof(mrb_value);
-      ptr = mrb_malloc(mrb, len);
+      ptr = (mrb_value *)mrb_malloc(mrb, len);
       if (p) {
 	memcpy(ptr, p, len);
       }
@@ -132,11 +132,11 @@ static void
 ary_make_shared(mrb_state *mrb, struct RArray *a)
 {
   if (!(a->flags & MRB_ARY_SHARED)) {
-    struct mrb_shared_array *shared = mrb_malloc(mrb, sizeof(struct mrb_shared_array));
+    struct mrb_shared_array *shared = (struct mrb_shared_array *)mrb_malloc(mrb, sizeof(struct mrb_shared_array));
 
     shared->refcnt = 1;
     if (a->aux.capa > a->len) {
-      a->ptr = shared->ptr = mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*a->len+1);
+      a->ptr = shared->ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*a->len+1);
     }
     else {
       shared->ptr = a->ptr;
@@ -173,7 +173,7 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, int len)
 
   if (capa > a->aux.capa) {
     a->aux.capa = capa;
-    a->ptr = mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
+    a->ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
   }
 }
 
@@ -195,7 +195,7 @@ ary_shrink_capa(mrb_state *mrb, struct RArray *a)
 
   if (capa > a->len && capa < a->aux.capa) {
     a->aux.capa = capa;
-    a->ptr = mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
+    a->ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
   }
 }
 

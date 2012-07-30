@@ -28,12 +28,12 @@ static void
 stack_init(mrb_state *mrb)
 {
   /* assert(mrb->stack == NULL); */
-  mrb->stbase = mrb_calloc(mrb, STACK_INIT_SIZE, sizeof(mrb_value));
+  mrb->stbase = (mrb_value *)mrb_calloc(mrb, STACK_INIT_SIZE, sizeof(mrb_value));
   mrb->stend = mrb->stbase + STACK_INIT_SIZE;
   mrb->stack = mrb->stbase;
 
   /* assert(mrb->ci == NULL); */
-  mrb->cibase = mrb_calloc(mrb, CALLINFO_INIT_SIZE, sizeof(mrb_callinfo));
+  mrb->cibase = (mrb_callinfo *)mrb_calloc(mrb, CALLINFO_INIT_SIZE, sizeof(mrb_callinfo));
   mrb->ciend = mrb->cibase + CALLINFO_INIT_SIZE;
   mrb->ci = mrb->cibase;
   mrb->ci->target_class = mrb->object_class;
@@ -70,7 +70,7 @@ stack_extend(mrb_state *mrb, int room, int keep)
       size *= 2;
     else
       size += room;
-    mrb->stbase = mrb_realloc(mrb, mrb->stbase, sizeof(mrb_value) * size);
+    mrb->stbase = (mrb_value *)mrb_realloc(mrb, mrb->stbase, sizeof(mrb_value) * size);
     mrb->stack = mrb->stbase + off;
     mrb->stend = mrb->stbase + size;
     envadjust(mrb, oldbase, mrb->stbase);
@@ -127,7 +127,7 @@ cipush(mrb_state *mrb)
   if (mrb->ci + 1 == mrb->ciend) {
     size_t size = mrb->ci - mrb->cibase;
 
-    mrb->cibase = mrb_realloc(mrb, mrb->cibase, sizeof(mrb_callinfo)*size*2);
+    mrb->cibase = (mrb_callinfo *)mrb_realloc(mrb, mrb->cibase, sizeof(mrb_callinfo)*size*2);
     mrb->ci = mrb->cibase + size;
     mrb->ciend = mrb->cibase + size * 2;
   }
@@ -145,7 +145,7 @@ cipop(mrb_state *mrb)
   if (mrb->ci->env) {
     struct REnv *e = mrb->ci->env;
     int len = (int)e->flags;
-    mrb_value *p = mrb_malloc(mrb, sizeof(mrb_value)*len);
+    mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
 
     e->cioff = -1;
     memcpy(p, e->stack, sizeof(mrb_value)*len);
@@ -395,7 +395,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   mrb_value *regs = NULL;
   mrb_code i;
   int ai = mrb->arena_idx;
-  jmp_buf *prev_jmp = mrb->jmp;
+  jmp_buf *prev_jmp = (jmp_buf *)mrb->jmp;
   jmp_buf c_jmp;
 
 #ifdef DIRECT_THREADED
@@ -620,7 +620,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       if (mrb->rsize <= mrb->ci->ridx) {
         if (mrb->rsize == 0) mrb->rsize = 16;
         else mrb->rsize *= 2;
-        mrb->rescue = mrb_realloc(mrb, mrb->rescue, sizeof(mrb_code*) * mrb->rsize);
+        mrb->rescue = (mrb_code **)mrb_realloc(mrb, mrb->rescue, sizeof(mrb_code*) * mrb->rsize);
       }
       mrb->rescue[mrb->ci->ridx++] = pc + GETARG_sBx(i);
       NEXT;
@@ -657,7 +657,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       if (mrb->esize <= mrb->ci->eidx) {
         if (mrb->esize == 0) mrb->esize = 16;
         else mrb->esize *= 2;
-        mrb->ensure = mrb_realloc(mrb, mrb->ensure, sizeof(struct RProc*) * mrb->esize);
+        mrb->ensure = (struct RProc **)mrb_realloc(mrb, mrb->ensure, sizeof(struct RProc*) * mrb->esize);
       }
       mrb->ensure[mrb->ci->eidx++] = p;
       NEXT;

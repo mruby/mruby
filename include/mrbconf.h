@@ -7,6 +7,9 @@
 #ifndef MRUBYCONF_H
 #define MRUBYCONF_H
 
+#if defined(__cplusplus)
+#define __STDC_LIMIT_MACROS
+#endif
 #include <stdint.h>
 
 /* configuration options: */
