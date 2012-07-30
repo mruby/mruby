@@ -488,7 +488,7 @@ mrb_hash_set_default_proc(mrb_state *mrb, mrb_value hash)
   return ifnone;
 }
 
-mrb_value
+static mrb_value
 mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
@@ -965,7 +965,7 @@ mrb_hash_to_hash(mrb_state *mrb, mrb_value hash)
  *
  */
 
-mrb_value
+static mrb_value
 mrb_hash_keys(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);

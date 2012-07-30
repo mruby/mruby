@@ -44,7 +44,6 @@ const char * mrb_class2name(mrb_state *mrb, struct RClass* klass);
 mrb_value mrb_iv_get(mrb_state *mrb, mrb_value obj, mrb_sym sym);
 void mrb_iv_set(mrb_state *mrb, mrb_value obj, mrb_sym sym, mrb_value v);
 mrb_value mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym);
-void mrb_copy_generic_ivar(mrb_value clone, mrb_value obj);
 int mrb_const_defined_at(mrb_state *mrb, struct RClass *klass, mrb_sym id);
 mrb_value mrb_f_global_variables(mrb_state *mrb, mrb_value self);
 mrb_value mrb_gv_get(mrb_state *mrb, mrb_sym sym);
