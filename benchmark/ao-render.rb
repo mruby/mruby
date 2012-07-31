@@ -1,4 +1,4 @@
-# AO render benchmark 
+# AO render benchmark
 # Original program (C) Syoyo Fujita in Javascript (and other languages)
 #      http://lucille.atso-net.jp/blog/?p=642
 #      http://lucille.atso-net.jp/blog/?p=711
@@ -28,7 +28,6 @@ module Rand
     (w % BNUM) / BNUMF
   end
 end
-    
 
 class Vec
   def initialize(x, y, z)
@@ -43,7 +42,7 @@ class Vec
   def x; @x; end
   def y; @y; end
   def z; @z; end
-  
+
   def vadd(b)
     Vec.new(@x + b.x, @y + b.y, @z + b.z)
   end
@@ -51,7 +50,7 @@ class Vec
   def vsub(b)
     Vec.new(@x - b.x, @y - b.y, @z - b.z)
   end
-  
+
   def vcross(b)
     Vec.new(@y * b.z - @z * b.y,
             @z * b.x - @x * b.z,
@@ -85,7 +84,7 @@ class Sphere
     @center = center
     @radius = radius
   end
-  
+
   def center; @center; end
   def radius; @radius; end
 
@@ -100,8 +99,8 @@ class Sphere
       if t > 0.0 and t < isect.t then
         isect.t = t
         isect.hit = true
-        isect.pl = Vec.new(ray.org.x + ray.dir.x * t, 
-                          ray.org.y + ray.dir.y * t, 
+        isect.pl = Vec.new(ray.org.x + ray.dir.x * t,
+                          ray.org.y + ray.dir.y * t,
                           ray.org.z + ray.dir.z * t)
         n = isect.pl.vsub(@center)
         isect.n = n.vnormalize
@@ -164,9 +163,9 @@ class Isect
   def t=(v); @t = v; end
   def hit; @hit; end
   def hit=(v); @hit = v; end
-  def pl; @pl; end 
+  def pl; @pl; end
   def pl=(v); @pl = v; end
-  def n; @n; end 
+  def n; @n; end
   def n=(v); @n = v; end
 end
 
@@ -184,7 +183,7 @@ end
 def otherBasis(basis, n)
   basis[2] = Vec.new(n.x, n.y, n.z)
   basis[1] = Vec.new(0.0, 0.0, 0.0)
-  
+
   if n.x < 0.6 and n.x > -0.6 then
     basis[1].x = 1.0
   elsif n.y < 0.6 and n.y > -0.6 then
@@ -214,14 +213,14 @@ class Scene
   def ambient_occlusion(isect)
     basis = Array.new(3)
     otherBasis(basis, isect.n)
-    
+
     ntheta    = NAO_SAMPLES
     nphi      = NAO_SAMPLES
     eps       = 0.0001
     occlusion = 0.0
 
-    p0 = Vec.new(isect.pl.x + eps * isect.n.x, 
-                isect.pl.y + eps * isect.n.y, 
+    p0 = Vec.new(isect.pl.x + eps * isect.n.x,
+                isect.pl.y + eps * isect.n.y,
                 isect.pl.z + eps * isect.n.z)
     nphi.times do |j|
       ntheta.times do |i|
@@ -234,10 +233,10 @@ class Scene
         rx = x * basis[0].x + y * basis[1].x + z * basis[2].x
         ry = x * basis[0].y + y * basis[1].y + z * basis[2].y
         rz = x * basis[0].z + y * basis[1].z + z * basis[2].z
-        
+
         raydir = Vec.new(rx, ry, rz)
         ray = Ray.new(p0, raydir)
-        
+
         occisect = Isect.new
         @spheres[0].intersect(ray, occisect)
         @spheres[1].intersect(ray, occisect)
@@ -261,7 +260,7 @@ class Scene
     h.times do |y|
       w.times do |x|
         rad = Vec.new(0.0, 0.0, 0.0)
-        
+
         # Subsmpling
         nsubsamples.times do |v|
           nsubsamples.times do |u|
@@ -279,7 +278,7 @@ class Scene
             eye = Vec.new(px, py, -1.0).vnormalize
 
             ray = Ray.new(Vec.new(0.0, 0.0, 0.0), eye)
-            
+
             isect = Isect.new
             @spheres[0].intersect(ray, isect)
             @spheres[1].intersect(ray, isect)
@@ -295,7 +294,7 @@ class Scene
             end
           end
         end
-        
+
         r = rad.x / (nsf * nsf)
         g = rad.y / (nsf * nsf)
         b = rad.z / (nsf * nsf)
