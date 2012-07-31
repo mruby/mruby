@@ -549,12 +549,6 @@ flo_round(mrb_state *mrb, mrb_value num)
     if (ndigits < 0) number *= f;
     else number /= f;
   }
-
-  {
-    mrb_value ff = mrb_float_value(number);
-
-    printf("%f.round(%d) = %f\n", mrb_float(num), ndigits, mrb_float(ff));
-  }
   if (ndigits > 0) return mrb_float_value(number);
   return mrb_fixnum_value((mrb_int)number);
 }
