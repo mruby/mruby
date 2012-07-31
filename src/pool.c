@@ -9,7 +9,7 @@
 #include <string.h>
 
 /* configuration section */
-/* allcated memory address should be multiple of POOL_ALLOC_ALIGN */
+/* allocated memory address should be multiple of POOL_ALIGNMENT */
 /* or undef it if alignment does not matter */
 #ifndef POOL_ALIGNMENT
 #define POOL_ALIGNMENT 4
