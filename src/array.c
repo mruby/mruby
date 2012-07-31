@@ -682,10 +682,10 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
     if (mrb_type(argv[0]) != MRB_TT_FIXNUM) {
       mrb_raise(mrb, E_TYPE_ERROR, "expected Fixnum");
     }
-    len = mrb_fixnum(argv[0]);
     if (index < 0) index += a->len;
     if (index < 0 || a->len < (int)index) return mrb_nil_value();
-    if ((len = mrb_fixnum(argv[0])) < 0) return mrb_nil_value();
+    len = mrb_fixnum(argv[0]);
+    if (len < 0) return mrb_nil_value();
     if (a->len == (int)index) return mrb_ary_new(mrb);
     if ((int)len > a->len - index) len = a->len - index;
     return ary_subseq(mrb, a, index, len);
