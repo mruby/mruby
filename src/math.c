@@ -647,7 +647,7 @@ mrb_init_math(mrb_state *mrb)
 #endif
 
 #ifdef MRB_USE_FLOAT
-  mrb_define_const(mrb, mrb_math, "TOLERANCE", mrb_float_value(1e-6));
+  mrb_define_const(mrb, mrb_math, "TOLERANCE", mrb_float_value(1e-5));
 #else
   mrb_define_const(mrb, mrb_math, "TOLERANCE", mrb_float_value(1e-12));
 #endif
