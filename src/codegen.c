@@ -188,7 +188,6 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       case OP_GETSPECIAL:
       case OP_LOADL:
       case OP_STRING:
-      case OP_GETMCNST:
         if (GETARG_B(i) == GETARG_A(i0) && GETARG_A(i0) >= s->nlocals) {
           s->iseq[s->pc-1] = MKOP_ABx(c0, GETARG_A(i), GETARG_Bx(i0));
           return;
