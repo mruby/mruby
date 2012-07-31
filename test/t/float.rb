@@ -26,11 +26,11 @@ assert('Float#-', '15.2.9.3.2') do
 end
 
 assert('Float#*', '15.2.9.3.3') do
-  a = 3.123456789 * 3.123456789
-  b = 3.123456789 * 1
+  a = 3.125 * 3.125
+  b = 3.125 * 1
 
-  check_float(a, 9.75598231275019) and
-    check_float(b, 3.123456789)
+  check_float(a, 9.765625) and
+    check_float(b, 3.125)
 end
 
 assert('Float#/', '15.2.9.3.4') do
@@ -42,19 +42,19 @@ assert('Float#/', '15.2.9.3.4') do
 end
 
 assert('Float#%', '15.2.9.3.5') do
-  a = 3.123456789 % 3.123456789
-  b = 3.123456789 % 1
+  a = 3.125 % 3.125
+  b = 3.125 % 1
 
   check_float(a, 0.0) and
-    check_float(b, 0.123456789)
+    check_float(b, 0.125)
 end
 
 assert('Float#<=>', '15.2.9.3.6') do
-  a = 3.123456789 <=> 3.123456788
-  b = 3.123456789 <=> 3.123456789
-  c = 3.123456789 <=> 3.123456790
-  a2 = 3.123456789 <=> 3
-  c2 = 3.123456789 <=> 4
+  a = 3.125 <=> 3.123
+  b = 3.125 <=> 3.125
+  c = 3.125 <=> 3.126
+  a2 = 3.125 <=> 3
+  c2 = 3.125 <=> 4
 
   a == 1 and b == 0 and c == -1 and
     a2 == 1 and c2 == -1
@@ -96,16 +96,16 @@ end
 assert('Float#round', '15.2.9.3.12') do
   a = 3.123456789.round
   b = 3.5.round
-  c = 3.499999999.round
+  c = 3.4999.round
   d = (-3.123456789).round
   e = (-3.5).round
   f = 12345.67.round(-1)
-  g = 3.123456789.round(0)
-  h = 3.123456789.round(1)
-  i = 3.123456789.round(4)
+  g = 3.423456789.round(0)
+  h = 3.423456789.round(1)
+  i = 3.423456789.round(3)
 
   a == 3 and b == 4 and c == 3 and d == -3 and e == -4 and
-    f == 12350 and g == 3 and h == 3.1 and i == 3.1235
+    f == 12350 and g == 3 and h == 3.4 and i == 3.423
 end
 
 assert('Float#to_f', '15.2.9.3.13') do

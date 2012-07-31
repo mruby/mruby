@@ -195,7 +195,11 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
   } else if(isnan(value))
     return mrb_str_new(mrb, "NaN", 3);
 
+#ifdef MRB_USE_FLOAT
+  n = sprintf(buf, "%.7g", value);
+#else
   n = sprintf(buf, "%.14g", value);
+#endif
   assert(n >= 0);
   return mrb_str_new(mrb, buf, n);
 }
@@ -511,21 +515,13 @@ flo_ceil(mrb_state *mrb, mrb_value num)
  */
 
 static mrb_value
-flo_round(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value num)
+flo_round(mrb_state *mrb, mrb_value num)
 {
-  mrb_value nd;
-  mrb_float number, f;
+  double number, f;
   int ndigits = 0, i;
-  mrb_value *argv;
-  int argc;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
-
-  if (argc == 1) {
-    nd = argv[0];
-    ndigits = mrb_fixnum(nd);
-  }
-  number  = mrb_float(num);
+  mrb_get_args(mrb, "|i", &ndigits);
+  number = mrb_float(num);
   f = 1.0;
   i = abs(ndigits);
   while  (--i >= 0)
@@ -535,7 +531,7 @@ flo_round(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value num)
     if (ndigits < 0) number = 0;
   }
   else {
-    mrb_float d;
+    double d;
 
     if (ndigits < 0) number /= f;
     else number *= f;
@@ -554,6 +550,11 @@ flo_round(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value num)
     else number /= f;
   }
 
+  {
+    mrb_value ff = mrb_float_value(number);
+
+    printf("%f.round(%d) = %f\n", mrb_float(num), ndigits, mrb_float(ff));
+  }
   if (ndigits > 0) return mrb_float_value(number);
   return mrb_fixnum_value((mrb_int)number);
 }
