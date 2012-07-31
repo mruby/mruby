@@ -1027,13 +1027,14 @@ codegen(codegen_scope *s, node *tree, int val)
       struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
 
       lp->pc1 = new_label(s);
+      genop(s, MKOP_sBx(OP_JMP, 0));
+      lp->pc2 = new_label(s);
+      codegen(s, tree->cdr, NOVAL);
+      dispatch(s, lp->pc1);
       codegen(s, tree->car, VAL);
       pop();
-      lp->pc2 = new_label(s);
-      genop(s, MKOP_AsBx(OP_JMPNOT, cursp(), 0));
-      codegen(s, tree->cdr, NOVAL);
-      genop(s, MKOP_sBx(OP_JMP, lp->pc1 - s->pc));
-      dispatch(s, lp->pc2);
+      genop(s, MKOP_AsBx(OP_JMPIF, cursp(), lp->pc2 - s->pc));
+
       loop_pop(s, val);
     }
     break;
@@ -1043,13 +1044,14 @@ codegen(codegen_scope *s, node *tree, int val)
       struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
 
       lp->pc1 = new_label(s);
+      genop(s, MKOP_sBx(OP_JMP, 0));
+      lp->pc2 = new_label(s);
+      codegen(s, tree->cdr, NOVAL);
+      dispatch(s, lp->pc1);
       codegen(s, tree->car, VAL);
       pop();
-      lp->pc2 = new_label(s);
-      genop(s, MKOP_AsBx(OP_JMPIF, cursp(), 0));
-      codegen(s, tree->cdr, NOVAL);
-      genop(s, MKOP_sBx(OP_JMP, lp->pc1 - s->pc));
-      dispatch(s, lp->pc2);
+      genop(s, MKOP_AsBx(OP_JMPNOT, cursp(), lp->pc2 - s->pc));
+
       loop_pop(s, val);
     }
     break;
