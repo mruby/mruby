@@ -561,7 +561,10 @@ root_scan_phase(mrb_state *mrb)
   for (i=0,e=mrb->arena_idx; i<e; i++) {
     mrb_gc_mark(mrb, mrb->arena[i]);
   }
+  /* mark class hierarchy */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->object_class);
+  /* mark exception */
+  mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
   /* mark stack */
   e = mrb->stack - mrb->stbase;
   if (mrb->ci) e += mrb->ci->nregs;
