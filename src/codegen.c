@@ -606,7 +606,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
 {
   mrb_sym sym = name ? name : (mrb_sym)tree->cdr->car;
   int idx;
-  int n = 0, noop = 0, sendv = 0;
+  int n = 0, noop = 0, sendv = 0, blk = 0;
 
   codegen(s, tree->car, VAL); /* receiver */
   idx = new_msym(s, sym);
@@ -636,40 +636,44 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
     pop();
   }
   else {
-    genop(s, MKOP_A(OP_LOADNIL, cursp()));
+    blk = cursp();
   }
   pop_n(n+1);
   {
-    const char *name = mrb_sym2name(s->mrb, sym);
+    int len;
+    const char *name = mrb_sym2name_len(s->mrb, sym, &len);
 
-    if (!noop && name[0] == '+' && name[1] == '\0')  {
+    if (!noop && len == 1 && name[0] == '+')  {
       genop(s, MKOP_ABC(OP_ADD, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '-' && name[1] == '\0')  {
+    else if (!noop && len == 1 && name[0] == '-')  {
       genop(s, MKOP_ABC(OP_SUB, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '*' && name[1] == '\0')  {
+    else if (!noop && len == 1 && name[0] == '*')  {
       genop(s, MKOP_ABC(OP_MUL, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '/' && name[1] == '\0')  {
+    else if (!noop && len == 1 && name[0] == '/')  {
       genop(s, MKOP_ABC(OP_DIV, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '<' && name[1] == '\0')  {
+    else if (!noop && len == 1 && name[0] == '<')  {
       genop(s, MKOP_ABC(OP_LT, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '<' && name[1] == '=' && name[2] == '\0')  {
+    else if (!noop && len == 2 && name[0] == '<' && name[1] == '=')  {
       genop(s, MKOP_ABC(OP_LE, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '>' && name[1] == '\0')  {
+    else if (!noop && len == 1 && name[0] == '>')  {
       genop(s, MKOP_ABC(OP_GT, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '>' && name[1] == '=' && name[2] == '\0')  {
+    else if (!noop && len == 2 && name[0] == '>' && name[1] == '=')  {
       genop(s, MKOP_ABC(OP_GE, cursp(), idx, n));
     }
-    else if (!noop && name[0] == '=' && name[1] == '=' && name[2] == '\0')  {
+    else if (!noop && len == 2 && name[0] == '=' && name[1] == '=')  {
       genop(s, MKOP_ABC(OP_EQ, cursp(), idx, n));
     }
     else {
+      if (blk > 0) {		 /* no block */
+	genop(s, MKOP_A(OP_LOADNIL, blk));
+      }
       if (sendv) n = CALL_MAXARGS;
       genop(s, MKOP_ABC(OP_SEND, cursp(), idx, n));
     }

@@ -1211,6 +1211,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     break;\
     s\
   default:\
+    SET_NIL_VALUE(regs[a+2]);\
     i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));\
     goto L_SEND;\
   }\
@@ -1257,6 +1258,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         regs[a].value.f += GETARG_C(i);
         break;
       default:
+	SET_NIL_VALUE(regs[a+2]);
         SET_INT_VALUE(regs[a+1], GETARG_C(i));
         i = MKOP_ABC(OP_SEND, a, GETARG_B(i), 1);
         goto L_SEND;
@@ -1277,6 +1279,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         regs[a].value.f -= GETARG_C(i);
         break;
       default:
+	SET_NIL_VALUE(regs[a+2]);
         SET_INT_VALUE(regs[a+1], GETARG_C(i));
         i = MKOP_ABC(OP_SEND, a, GETARG_B(i), 1);
         goto L_SEND;
@@ -1310,6 +1313,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     OP_CMP_BODY(op,f,f);\
     break;\
   default:\
+    SET_NIL_VALUE(regs[a+2]);\
     i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));\
     goto L_SEND;\
   }\
