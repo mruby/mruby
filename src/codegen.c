@@ -806,11 +806,11 @@ raise_error(codegen_scope *s, const char *msg)
   genop(s, MKOP_ABx(OP_ERR, 0, idx));
 }
 
-static mrb_float
+static double
 readint_float(codegen_scope *s, const char *p, int base)
 {
   const char *e = p + strlen(p);
-  mrb_float f = 0;
+  double f = 0;
   int n;
 
   if (*p == '+') p++;
@@ -1589,7 +1589,7 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       char *p = (char*)tree->car;
       int base = (intptr_t)tree->cdr->car;
-      mrb_float f;
+      double f;
       mrb_int i;
       mrb_code co;
 
