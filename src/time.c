@@ -160,7 +160,7 @@ mrb_time_wrap(mrb_state *mrb, struct RClass *tc, struct mrb_time *tm)
 
 /* Allocates a mrb_time object and initializes it. */
 static struct mrb_time*
-mrb_time_alloc(mrb_state *mrb, mrb_float sec, mrb_float usec, enum mrb_timezone timezone)
+mrb_time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
 {
   struct mrb_time *tm;
 
@@ -182,7 +182,7 @@ mrb_time_alloc(mrb_state *mrb, mrb_float sec, mrb_float usec, enum mrb_timezone 
 }
 
 static mrb_value
-mrb_time_make(mrb_state *mrb, struct RClass *c, mrb_float sec, mrb_float usec, enum mrb_timezone timezone)
+mrb_time_make(mrb_state *mrb, struct RClass *c, double sec, double usec, enum mrb_timezone timezone)
 {
   return mrb_time_wrap(mrb, c, mrb_time_alloc(mrb, sec, usec, timezone));
 }
