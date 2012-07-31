@@ -25,6 +25,12 @@
 /* default size of khash table bucket */
 //#define KHASH_DEFAULT_SIZE 32
 
+/* allocated memory address alignment */
+//#define POOL_ALIGNMENT 4
+
+/* page size of memory pool */
+//#define POOL_PAGE_SIZE 16000
+
 /* -DDISABLE_XXXX to drop the feature */
 #define DISABLE_REGEXP	        /* regular expression classes */
 //#define DISABLE_SPRINTF	/* Kernel.sprintf method */
