@@ -50,10 +50,10 @@ is_code_block_open(struct mrb_parser_state *parser)
       code_block_open = TRUE;
     }
     else if (strcmp(message, "syntax error, unexpected keyword_end") == 0) {
-      code_block_open = TRUE;
+      code_block_open = FALSE;
     }
     else if (strcmp(message, "syntax error, unexpected tREGEXP_BEG") == 0) {
-      code_block_open = TRUE;
+      code_block_open = FALSE;
     }
     return code_block_open;
   }
