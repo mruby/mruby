@@ -330,8 +330,8 @@ struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, co
 int mrb_get_args(mrb_state *mrb, const char *format, ...);
 
 mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, int,...);
-mrb_value mrb_funcall_argv(mrb_state*, mrb_value, const char*, int, mrb_value*);
-mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, const char*, int, mrb_value*, mrb_value);
+mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, int, mrb_value*);
+mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, int, mrb_value*, mrb_value);
 mrb_sym mrb_intern(mrb_state*,const char*);
 mrb_sym mrb_intern2(mrb_state*,const char*,int);
 mrb_sym mrb_intern_str(mrb_state*,mrb_value);

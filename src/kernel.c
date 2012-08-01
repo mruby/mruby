@@ -245,7 +245,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   int argc;
   
   mrb_get_args(mrb, "n*&", &name, &argv, &argc, &block);
-  return mrb_funcall_with_block(mrb,self, mrb_sym2name(mrb, name), argc, argv, block);
+  return mrb_funcall_with_block(mrb,self, name, argc, argv, block);
 }
 
 /* 15.3.1.2.2  */

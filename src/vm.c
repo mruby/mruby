@@ -179,16 +179,18 @@ ecall(mrb_state *mrb, int i)
 }
 
 mrb_value
-mrb_funcall_with_block(mrb_state *mrb, mrb_value self, const char *name, int argc, mrb_value *argv, mrb_value blk)
+mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mrb_value *argv, mrb_value blk)
 {
   struct RProc *p;
   struct RClass *c;
-  mrb_sym mid = mrb_intern(mrb, name);
   mrb_sym undef = 0;
   mrb_callinfo *ci;
   int n = mrb->ci->nregs;
   mrb_value val;
 
+  if (argc < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%d)", argc);
+  }
   c = mrb_class(mrb, self);
   p = mrb_method_search_vm(mrb, &c, mid);
   if (!p) {
@@ -232,9 +234,9 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, const char *name, int arg
 }
 
 mrb_value
-mrb_funcall_argv(mrb_state *mrb, mrb_value self, const char *name, int argc, mrb_value *argv)
+mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mrb_value *argv)
 {
-  return mrb_funcall_with_block(mrb, self, name, argc, argv, mrb_nil_value());
+  return mrb_funcall_with_block(mrb, self, mid, argc, argv, mrb_nil_value());
 }
 
 mrb_value

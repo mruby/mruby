@@ -144,7 +144,7 @@ exc_equal(mrb_state *mrb, mrb_value exc)
   if (mrb_obj_equal(mrb, exc, obj)) return mrb_true_value();
 
   if (mrb_obj_class(mrb, exc) != mrb_obj_class(mrb, obj)) {
-    if ( mrb_respond_to(mrb, obj, mrb_intern(mrb, "message")) ) {
+    if (mrb_respond_to(mrb, obj, mrb_intern(mrb, "message"))) {
       mesg = mrb_funcall(mrb, obj, "message", 0);
     }
     else
@@ -306,12 +306,15 @@ make_exception(mrb_state *mrb, int argc, mrb_value *argv, int isstr)
     case 3:
       n = 1;
 exception_call:
-      if (mrb_respond_to(mrb, argv[0], mrb_intern(mrb, "exception"))) {
-        mesg = mrb_funcall_argv(mrb, argv[0], "exception", n, argv+1);
-      }
-      else {
-        /* undef */
-        mrb_raise(mrb, E_TYPE_ERROR, "exception class/object expected");
+      {
+	mrb_sym exc = mrb_intern(mrb, "exception");
+	if (mrb_respond_to(mrb, argv[0], exc)) {
+	  mesg = mrb_funcall_argv(mrb, argv[0], exc, n, argv+1);
+	}
+	else {
+	  /* undef */
+	  mrb_raise(mrb, E_TYPE_ERROR, "exception class/object expected");
+	}
       }
 
       break;

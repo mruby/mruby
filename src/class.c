@@ -723,8 +723,8 @@ mrb_mod_include(mrb_state *mrb, mrb_value klass)
     mrb_check_type(mrb, argv[i], MRB_TT_MODULE);
   }
   while (argc--) {
-    mrb_funcall_argv(mrb, argv[argc], "append_features", 1, &klass);
-    mrb_funcall_argv(mrb, argv[argc], "included", 1, &klass);
+    mrb_funcall(mrb, argv[argc], "append_features", 1, klass);
+    mrb_funcall(mrb, argv[argc], "included", 1, klass);
   }
 
   return klass;
@@ -877,29 +877,41 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
 mrb_value
 mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
 {
-  mrb_value args[MRB_FUNCALL_ARGC_MAX];
+  mrb_sym mid = mrb_intern(mrb, name);
   va_list ap;
   int i;
 
-  if (argc != 0) {
+  if (argc == 0) {
+    return mrb_funcall_argv(mrb, self, mid, 0, 0);
+  }
+  else if (argc == 1) {
+    mrb_value v;
+
+    va_start(ap, argc);
+    v = va_arg(ap, mrb_value);
+    va_end(ap);
+    return mrb_funcall_argv(mrb, self, mid, 1, &v);
+  }
+  else {
+    mrb_value argv[MRB_FUNCALL_ARGC_MAX];
+
     if (argc > MRB_FUNCALL_ARGC_MAX) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=%d)\n", MRB_FUNCALL_ARGC_MAX);
-    } 
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=%d)", MRB_FUNCALL_ARGC_MAX);
+    }
 
     va_start(ap, argc);
     for (i = 0; i < argc; i++) {
-      args[i] = va_arg(ap, mrb_value);
+      argv[i] = va_arg(ap, mrb_value);
     }
     va_end(ap);
+    return mrb_funcall_argv(mrb, self, mid, argc, argv);
   }
-  return mrb_funcall_argv(mrb, self, name, argc, args);
 }
-
 
 void
 mrb_obj_call_init(mrb_state *mrb, mrb_value obj, int argc, mrb_value *argv)
 {
-  mrb_funcall_argv(mrb, obj, "initialize", argc, argv);
+  mrb_funcall_argv(mrb, obj, mrb_intern(mrb, "initialize"), argc, argv);
 }
 
 /*
@@ -938,7 +950,7 @@ mrb_class_new_instance_m(mrb_state *mrb, mrb_value klass)
   c = (struct RClass*)mrb_obj_alloc(mrb, k->tt, k);
   c->super = k;
   obj = mrb_obj_value(c);
-  mrb_funcall_with_block(mrb, obj, "initialize", argc, argv, blk);
+  mrb_funcall_with_block(mrb, obj, mrb_intern(mrb, "initialize"), argc, argv, blk);
 
   return obj;
 }
@@ -957,7 +969,7 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
   o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);
   obj = mrb_obj_value(o);
   mrb_get_args(mrb, "*&", &argv, &argc, &blk);
-  mrb_funcall_with_block(mrb, obj, "initialize", argc, argv, blk);
+  mrb_funcall_with_block(mrb, obj, mrb_intern(mrb, "initialize"), argc, argv, blk);
 
   return obj;
 }
