@@ -224,6 +224,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
     int ai = mrb->arena_idx;
     val = p->body.func(mrb, self);
     mrb->arena_idx = ai;
+    mrb_gc_protect(mrb, val);
     mrb->stack = mrb->stbase + ci->stackidx;
     cipop(mrb);
   }
