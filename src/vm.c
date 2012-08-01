@@ -219,7 +219,9 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, const char *name, int arg
   mrb->stack[argc+1] = blk;
 
   if (MRB_PROC_CFUNC_P(p)) {
+    int ai = mrb->arena_idx;
     val = p->body.func(mrb, self);
+    mrb->arena_idx = ai;
     mrb->stack = mrb->stbase + ci->stackidx;
     cipop(mrb);
   }
