@@ -481,14 +481,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       NEXT;
     }
 
-    CASE(OP_LOADNIL) {
-      /* A B    R(A) := nil */
-      int a = GETARG_A(i);
-
-      SET_NIL_VALUE(regs[a]);
-      NEXT;
-    }
-
     CASE(OP_LOADSELF) {
       /* A      R(A) := self */
       regs[GETARG_A(i)] = mrb->stack[0];
@@ -677,6 +669,14 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         ecall(mrb, --mrb->ci->eidx);
       }
       mrb->arena_idx = ai;
+      NEXT;
+    }
+
+    CASE(OP_LOADNIL) {
+      /* A B    R(A) := nil */
+      int a = GETARG_A(i);
+
+      SET_NIL_VALUE(regs[a]);
       NEXT;
     }
 
