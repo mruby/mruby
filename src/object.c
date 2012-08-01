@@ -317,7 +317,7 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *metho
       return mrb_nil_value();
     }
   }
-  return mrb_funcall(mrb, val, method, 0);
+  return mrb_funcall_argv(mrb, val, m, 0, 0);
 }
 
 mrb_value
