@@ -309,7 +309,8 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
   struct RClass *c = base;
   khash_t(iv) *h;
   khiter_t k;
-  mrb_sym cm = mrb_intern(mrb, "const_missing");
+  int retry = 0;
+  mrb_sym cm;
 
  L_RETRY:
   while (c) {
@@ -319,17 +320,22 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
       if (k != kh_end(h)) {
         return kh_value(h, k);
       }
-      if (mrb_respond_to(mrb, mrb_obj_value(c), cm)) {
-        mrb_value name = mrb_symbol_value(sym);
-        return mrb_funcall(mrb, mrb_obj_value(c), "const_missing", 1, name);
-      }
     }
     c = c->super;
   }
-
-  if (base->tt == MRB_TT_MODULE) {
-    c = base = mrb->object_class;
+  if (!retry && base->tt == MRB_TT_MODULE) {
+    c = mrb->object_class;
+    retry = 1;
     goto L_RETRY;
+  }
+  c = base;
+  cm = mrb_intern(mrb, "const_missing");
+  while (c) {
+    if (mrb_respond_to(mrb, mrb_obj_value(c), cm)) {
+      mrb_value name = mrb_symbol_value(sym);
+      return mrb_funcall(mrb, mrb_obj_value(c), "const_missing", 1, name);
+    }
+    c = c->super;
   }
   mrb_raise(mrb, E_NAME_ERROR, "uninitialized constant %s",
             mrb_sym2name(mrb, sym));
