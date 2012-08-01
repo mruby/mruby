@@ -1278,12 +1278,14 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_OP_ASGN:
     {
       mrb_sym sym = (mrb_sym)tree->cdr->car;
-      const char *name = mrb_sym2name(s->mrb, sym);
-      int idx;
+      int len;
+      const char *name = mrb_sym2name_len(s->mrb, sym, &len);
+      int idx, blk = 0;
 
       codegen(s, tree->car, VAL);
-      if ((name[0] == '|' && name[1] == '|' && name[2] == '\0') ||
-	  (name[0] == '&' && name[1] == '&' && name[2] == '\0')) {
+      if (len == 2 &&
+	  ((name[0] == '|' && name[1] == '|') ||
+	   (name[0] == '&' && name[1] == '&'))) {
 	int pos;
 
 	pop();
@@ -1296,29 +1298,32 @@ codegen(codegen_scope *s, node *tree, int val)
 	break;
       }
       codegen(s, tree->cdr->cdr->car, VAL);
-      genop(s, MKOP_A(OP_LOADNIL, cursp()));
+      blk = cursp();
       pop(); pop();
 
       idx = new_msym(s, sym);
-      if (name[0] == '+' && name[1] == '\0')  {
+      if (len == 1 && name[0] == '+')  {
         genop(s, MKOP_ABC(OP_ADD, cursp(), idx, 1));
       }
-      else if (name[0] == '-' && name[1] == '\0')  {
+      else if (len == 1 && name[0] == '-')  {
         genop(s, MKOP_ABC(OP_SUB, cursp(), idx, 1));
       }
-      else if (name[0] == '<' && name[1] == '\0')  {
+      else if (len == 1 && name[0] == '<')  {
         genop(s, MKOP_ABC(OP_LT, cursp(), idx, 1));
       }
-      else if (name[0] == '<' && name[1] == '=' && name[2] == '\0')  {
+      else if (len == 2 && name[0] == '<' && name[1] == '=')  {
         genop(s, MKOP_ABC(OP_LE, cursp(), idx, 1));
       }
-      else if (name[0] == '>' && name[1] == '\0')  {
+      else if (len == 1 && name[0] == '>')  {
         genop(s, MKOP_ABC(OP_GT, cursp(), idx, 1));
       }
-      else if (name[0] == '>' && name[1] == '=' && name[2] == '\0')  {
+      else if (len == 2 && name[0] == '>' && name[1] == '=')  {
         genop(s, MKOP_ABC(OP_GE, cursp(), idx, 1));
       }
       else {
+	if (blk > 0) {
+	  genop(s, MKOP_A(OP_LOADNIL, blk));
+	}
         genop(s, MKOP_ABC(OP_SEND, cursp(), idx, 1));
       }
     }
