@@ -1551,6 +1551,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       ci->argc = 0;
       ci->target_class = mrb_class_ptr(regs[GETARG_A(i)]);
 
+      /* prepare stack */
+      mrb->stack += a;
+
       p = mrb_proc_new(mrb, mrb->irep[irep->idx+GETARG_Bx(i)]);
       p->target_class = ci->target_class;
       ci->proc = p;
@@ -1569,8 +1572,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         irep = p->body.irep;
         pool = irep->pool;
         syms = irep->syms;
-        mrb->stack += a;
         stack_extend(mrb, irep->nregs, 1);
+	ci->nregs = irep->nregs;
         regs = mrb->stack;
         pc = irep->iseq;
         JUMP;
