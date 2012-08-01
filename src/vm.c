@@ -132,7 +132,7 @@ cipush(mrb_state *mrb)
     mrb->ciend = mrb->cibase + size * 2;
   }
   mrb->ci++;
-  mrb->ci->nregs = 0;
+  mrb->ci->nregs = 2;
   mrb->ci->eidx = eidx;
   mrb->ci->ridx = ridx;
   mrb->ci->env = 0;
@@ -1549,7 +1549,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       ci->mid = 0;
       ci->stackidx = mrb->stack - mrb->stbase;
       ci->argc = 0;
-      ci->target_class = mrb_class_ptr(regs[GETARG_A(i)]);
+      ci->target_class = mrb_class_ptr(recv);
 
       /* prepare stack */
       mrb->stack += a;
