@@ -308,7 +308,8 @@ push_(codegen_scope *s)
 }
 
 #define push() push_(s)
-#define pop()  (s->sp--)
+#define pop_(s) ((s)->sp--)
+#define pop() pop_(s)
 #define pop_n(n) (s->sp-=(n))
 #define cursp() (s->sp)
 
@@ -508,6 +509,9 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   pop();
   c = s->iseq[s->pc-1];
   if (GET_OPCODE(c) != OP_RETURN || GETARG_B(c) != OP_R_NORMAL || s->pc == s->lastlabel) {
+    if (s->nregs == 0) {
+      genop(s, MKOP_A(OP_LOADNIL, cursp()));
+    }
     genop(s, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL));
   }
   if (blk) {
@@ -524,12 +528,15 @@ scope_body(codegen_scope *s, node *tree)
   codegen_scope *scope = scope_new(s->mrb, s, tree->car);
   int idx = scope->idx;
 
+  codegen(scope, tree->cdr, VAL);
   if (!s->iseq) {
-    codegen(scope, tree->cdr, VAL);
     genop(scope, MKOP_A(OP_STOP, 0));
   }
   else {
-    codegen(scope, tree->cdr, VAL);
+    pop_(scope);
+    if (scope->nregs == 0) {
+      genop(scope, MKOP_A(OP_LOADNIL, scope->sp));
+    }
     genop(scope, MKOP_AB(OP_RETURN, scope->sp, OP_R_NORMAL));
   }
   scope_finish(scope, idx);
