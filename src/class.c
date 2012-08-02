@@ -602,12 +602,15 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
     case '&':
       {
-        mrb_value *p, *bp = mrb->stack + 1;
+        mrb_value *p, *bp;
 
         p = va_arg(ap, mrb_value*);
-        if (mrb->ci->argc > 0) {
-          bp += mrb->ci->argc;
+        if (mrb->ci->argc < 0) {
+          bp = mrb->stack + 2;
         }
+	else {
+          bp = mrb->stack + mrb->ci->argc + 1;
+	}
         *p = *bp;
       }
       break;
