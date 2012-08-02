@@ -867,7 +867,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         mrb->arena_idx = ai;
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
-        mrb->stack = mrb->stbase + ci->stackidx;
+        regs = mrb->stack = mrb->stbase + ci->stackidx;
         cipop(mrb);
         NEXT;
       }
@@ -1563,7 +1563,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         mrb->arena_idx = ai;
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
-        mrb->stack = mrb->stbase + ci->stackidx;
+        regs = mrb->stack = mrb->stbase + ci->stackidx;
         cipop(mrb);
         NEXT;
       }
