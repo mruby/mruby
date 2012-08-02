@@ -522,18 +522,20 @@ mrb_time_initialize(mrb_state *mrb, mrb_value self)
 {
   mrb_int ayear = 0, amonth = 1, aday = 1, ahour = 0, 
   amin = 0, asec = 0, ausec = 0;
+  int n;
   struct mrb_time *tm;
 
   tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
   if (tm) {
     mrb_time_free(mrb, tm);
   }
-  if (mrb->ci->argc == 0) {
+
+  n = mrb_get_args(mrb, "|iiiiiii",
+		   &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
+  if (n == 0) {
     tm = current_mrb_time(mrb);
   }
   else {
-    mrb_get_args(mrb, "iiiiiii",
-		 &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
     tm = time_mktime(mrb, ayear, amonth, aday, ahour, amin, asec, ausec, MRB_TIMEZONE_LOCAL);
   }
   DATA_PTR(self) = tm;
