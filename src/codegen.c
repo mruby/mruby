@@ -364,7 +364,7 @@ new_lit(codegen_scope *s, mrb_value val)
   int i;
 
   for (i=0; i<s->plen; i++) {
-    if (memcmp(&s->pool[i], &val, sizeof(mrb_value)) == 0) return i;
+    if (mrb_obj_equal(s->mrb, s->pool[i], val)) return i;
   }
   if (s->plen == s->pcapa) {
     s->pcapa *= 2;
