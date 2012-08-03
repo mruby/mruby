@@ -807,11 +807,16 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
 
   switch (mrb_type(v)) {
   case MRB_TT_FALSE:
+    if (mrb_nil_p(v))
+      return mrb_obj_value(mrb->nil_class);
+    return mrb_obj_value(mrb->false_class);
   case MRB_TT_TRUE:
+    return mrb_obj_value(mrb->true_class);
   case MRB_TT_SYMBOL:
   case MRB_TT_FIXNUM:
   case MRB_TT_FLOAT:
-    return mrb_nil_value();    /* should raise TypeError */
+    mrb_raise(mrb, E_TYPE_ERROR, "can't define singleton");
+    return mrb_nil_value();    /* not reached */
   default:
     break;
   }
