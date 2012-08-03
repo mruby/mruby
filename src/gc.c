@@ -151,13 +151,15 @@ gettimeofday_time(void)
 void*
 mrb_realloc(mrb_state *mrb, void *p, size_t len)
 {
-  p = (mrb->allocf)(mrb, p, len);
+  void *p2;
 
-  if (!p && len > 0 && mrb->heaps) {
+  p2 = (mrb->allocf)(mrb, p, len);
+
+  if (!p2 && len > 0 && mrb->heaps) {
     mrb_garbage_collect(mrb);
-    p = (mrb->allocf)(mrb, p, len);
+    p2 = (mrb->allocf)(mrb, p, len);
   }
-  return p;
+  return p2;
 }
 
 void*
