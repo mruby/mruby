@@ -717,7 +717,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       ci->stackidx = mrb->stack - mrb->stbase;
       ci->argc = n;
       if (ci->argc == CALL_MAXARGS) ci->argc = -1;
-      ci->target_class = m->target_class;
+      ci->target_class = c;
       ci->pc = pc + 1;
       ci->acc = a;
 
@@ -832,10 +832,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       int n = GETARG_C(i);
 
       recv = regs[0];
-      c = mrb->ci->proc->target_class->super;
+      c = mrb->ci->target_class->super;
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
-        c = mrb->ci->proc->target_class;
         mid = mrb_intern(mrb, "method_missing");
         m = mrb_method_search_vm(mrb, &c, mid);
         if (n == CALL_MAXARGS) {

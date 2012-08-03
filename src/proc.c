@@ -15,8 +15,8 @@ mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
   struct RProc *p;
 
   p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
-  p->body.irep = irep;
   p->target_class = (mrb->ci) ? mrb->ci->target_class : 0;
+  p->body.irep = irep;
   p->env = 0;
 
   return p;

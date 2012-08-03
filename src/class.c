@@ -333,7 +333,6 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
   if (!h) h = c->mt = kh_init(mt, mrb);
   k = kh_put(mt, h, name);
   p = mrb_proc_ptr(body);
-  if (p) p->target_class = c;
   kh_value(h, k) = p;
 }
 
