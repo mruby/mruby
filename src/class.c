@@ -1364,14 +1364,17 @@ static mrb_value
 mod_define_method(mrb_state *mrb, mrb_value self)
 {
   struct RClass *c = mrb_class_ptr(self);
+  struct RProc *p;
   mrb_sym mid;
   mrb_value blk;
 
   mrb_get_args(mrb, "n&", &mid, &blk);
   if (mrb_nil_p(blk)) {
-    /* raise */
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
   }
-  mrb_define_method_raw(mrb, c, mid, mrb_proc_ptr(blk));
+  p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
+  mrb_proc_copy(p, mrb_proc_ptr(blk));
+  mrb_define_method_raw(mrb, c, mid, p);
   return blk;
 }
 

@@ -55,8 +55,8 @@ mrb_proc_new_cfunc(mrb_state *mrb, mrb_func_t func)
   return p;
 }
 
-static inline void
-proc_copy(struct RProc *a, struct RProc *b)
+void
+mrb_proc_copy(struct RProc *a, struct RProc *b)
 {
   a->flags = b->flags;
   a->body = b->body;
@@ -75,7 +75,7 @@ mrb_proc_initialize(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Proc object without a block");
   }
   else {
-    proc_copy(mrb_proc_ptr(self), mrb_proc_ptr(blk));
+    mrb_proc_copy(mrb_proc_ptr(self), mrb_proc_ptr(blk));
   }
   return self;
 }
@@ -89,7 +89,7 @@ mrb_proc_init_copy(mrb_state *mrb, mrb_value self)
   if (mrb_type(proc) != MRB_TT_PROC) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "not a proc");
   }
-  proc_copy(mrb_proc_ptr(self), mrb_proc_ptr(proc));
+  mrb_proc_copy(mrb_proc_ptr(self), mrb_proc_ptr(proc));
   return self;
 }
 
@@ -133,7 +133,7 @@ proc_lambda(mrb_state *mrb, mrb_value self)
   p = mrb_proc_ptr(blk);
   if (!MRB_PROC_STRICT_P(p)) {
     struct RProc *p2 = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, p->c);
-    proc_copy(p2, p);
+    mrb_proc_copy(p2, p);
     p2->flags |= MRB_PROC_STRICT;
     return mrb_obj_value(p2);
   }
