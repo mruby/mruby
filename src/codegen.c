@@ -247,8 +247,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
     case OP_RETURN:
       switch (c0) {
       case OP_MOVE:
-	s->iseq[s->pc-1] = MKOP_AB(OP_MOVE, 0, GETARG_B(i0));
-	genop(s, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
+	s->iseq[s->pc-1] = MKOP_AB(OP_RETURN, GETARG_B(i0), OP_R_NORMAL);
 	return;
       case OP_LOADI:
 	s->iseq[s->pc-1] = MKOP_AsBx(OP_LOADI, 0, GETARG_sBx(i0));
