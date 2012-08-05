@@ -905,13 +905,13 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       if (lv == 0) stack = regs + 1;
       else {
         struct REnv *e = uvenv(mrb, lv-1);
-	if (!e) {
-	  mrb_value exc;
-	  static const char m[] = "super called outside of method";
-	  exc = mrb_exc_new(mrb, E_NOMETHOD_ERROR, m, sizeof(m) - 1);
-	  mrb->exc = (struct RObject*)mrb_object(exc);
-	  goto L_RAISE;
-	}
+        if (!e) {
+          mrb_value exc;
+          static const char m[] = "super called outside of method";
+          exc = mrb_exc_new(mrb, E_NOMETHOD_ERROR, m, sizeof(m) - 1);
+          mrb->exc = (struct RObject*)mrb_object(exc);
+          goto L_RAISE;
+        }
         stack = e->stack + 1;
       }
       if (r == 0) {
@@ -1598,9 +1598,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_TCLASS) {
       /* A B    R(A) := target_class */
       if (!mrb->ci->target_class) {
-	mrb_value exc = mrb_exc_new(mrb, E_TYPE_ERROR, "no target class or module", 25);
-	mrb->exc = (struct RObject*)mrb_object(exc);
-	goto L_RAISE;
+        static const char msg[] = "no target class or module";
+        mrb_value exc = mrb_exc_new(mrb, E_TYPE_ERROR, msg, sizeof(msg) - 1);
+        mrb->exc = (struct RObject*)mrb_object(exc);
+        goto L_RAISE;
       }
       regs[GETARG_A(i)] = mrb_obj_value(mrb->ci->target_class);
       NEXT;
