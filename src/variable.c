@@ -233,8 +233,9 @@ mrb_obj_instance_variables(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
 {
-  struct RClass *c = mrb->ci->target_class;
+  struct RClass *c = mrb->ci->proc->target_class;
 
+  if (!c) c = mrb->ci->target_class;
   while (c) {
     if (c->iv) {
       khash_t(iv) *h = c->iv;
@@ -251,10 +252,11 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
 void
 mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
-  struct RClass *c = mrb->ci->target_class;
+  struct RClass *c = mrb->ci->proc->target_class;
   khash_t(iv) *h;
   khiter_t k;
 
+  if (!c) c = mrb->ci->target_class;
   while (c) {
     if (c->iv) {
       h = c->iv;
