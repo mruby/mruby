@@ -15,7 +15,8 @@ void mrb_init_ext(mrb_state*);
 mrb_state*
 mrb_open_allocf(mrb_allocf f)
 {
-  mrb_state *mrb = (f)(NULL, NULL, sizeof(mrb_state));
+  mrb_state *mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state));
+  if (mrb == NULL) return NULL;
 
   memset(mrb, 0, sizeof(mrb_state));
   mrb->allocf = f;
@@ -75,14 +76,14 @@ mrb_add_irep(mrb_state *mrb, int idx)
     int max = 256;
 
     if (idx > max) max = idx+1;
-    mrb->irep = mrb_malloc(mrb, sizeof(mrb_irep*)*max);
+    mrb->irep = (mrb_irep **)mrb_calloc(mrb, max, sizeof(mrb_irep*));
     mrb->irep_capa = max;
   }
   else if (mrb->irep_capa <= idx) {
     while (mrb->irep_capa <= idx) {
       mrb->irep_capa *= 2;
     }
-    mrb->irep = mrb_realloc(mrb, mrb->irep, sizeof(mrb_irep)*mrb->irep_capa);
+    mrb->irep = (mrb_irep **)mrb_realloc(mrb, mrb->irep, sizeof(mrb_irep*)*mrb->irep_capa);
   }
 }
 

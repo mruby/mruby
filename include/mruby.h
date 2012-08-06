@@ -60,9 +60,7 @@ enum mrb_vtype {
   MRB_TT_FILE,        /*  21 */
   MRB_TT_ENV,         /*  22 */
   MRB_TT_DATA,        /*  23 */
-  MRB_TT_THREAD,      /*  24 */
-  MRB_TT_THREADGRP,   /*  25 */
-  MRB_TT_MAXDEFINE    /*  26 */
+  MRB_TT_MAXDEFINE    /*  24 */
 };
 
 typedef struct mrb_value {
@@ -83,7 +81,7 @@ typedef struct mrb_value {
 #define mrb_symbol(o) (o).value.sym
 #define mrb_object(o) ((struct RBasic *) (o).value.p)
 #define FIXNUM_P(o)   ((o).tt == MRB_TT_FIXNUM)
-#define UNDEF_P(o)    ((o).tt == MRB_TT_UNDEF)
+#define mrb_undef_p(o) ((o).tt == MRB_TT_UNDEF)
 
 #include "mruby/object.h"
 
@@ -147,7 +145,7 @@ mrb_obj_value(void *p)
 }
 
 static inline mrb_value
-mrb_false_value()
+mrb_false_value(void)
 {
   mrb_value v;
 
@@ -157,7 +155,7 @@ mrb_false_value()
 }
 
 static inline mrb_value
-mrb_nil_value()
+mrb_nil_value(void)
 {
   mrb_value v;
 
@@ -167,7 +165,7 @@ mrb_nil_value()
 }
 
 static inline mrb_value
-mrb_true_value()
+mrb_true_value(void)
 {
   mrb_value v;
 
@@ -177,7 +175,7 @@ mrb_true_value()
 }
 
 static inline mrb_value
-mrb_undef_value()
+mrb_undef_value(void)
 {
   mrb_value v;
 
@@ -192,7 +190,9 @@ struct mrb_state;
 
 typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t);
 
-#define MRB_ARENA_SIZE 1024  //256 up kusuda 2011/04/30
+#ifndef MRB_ARENA_SIZE
+#define MRB_ARENA_SIZE 1024
+#endif
 #define ruby_debug   (mrb_nil_value())
 #define ruby_verbose (mrb_nil_value())
 
@@ -279,7 +279,8 @@ typedef struct mrb_state {
 
   struct RClass *eException_class;
   struct RClass *eStandardError_class;
-  struct RClass *eRuntimeError_class;
+
+  void *ud; /* auxiliary data */
 } mrb_state;
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
@@ -295,10 +296,10 @@ void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_f
 void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t,int);
 void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 void mrb_undef_method(mrb_state*, struct RClass*, const char*);
+void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
 struct RClass * mrb_module_new(mrb_state *mrb);
-struct RClass * mrb_class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym name);
 struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
 struct RClass * mrb_class_obj_get(mrb_state *mrb, const char *name);
 
@@ -329,10 +330,13 @@ struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, co
 int mrb_get_args(mrb_state *mrb, const char *format, ...);
 
 mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, int,...);
-mrb_value mrb_funcall_argv(mrb_state*, mrb_value, const char*, int, mrb_value*);
-mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, const char*, int, mrb_value*, mrb_value);
+mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, int, mrb_value*);
+mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, int, mrb_value*, mrb_value);
 mrb_sym mrb_intern(mrb_state*,const char*);
+mrb_sym mrb_intern2(mrb_state*,const char*,int);
+mrb_sym mrb_intern_str(mrb_state*,mrb_value);
 const char *mrb_sym2name(mrb_state*,mrb_sym);
+const char *mrb_sym2name_len(mrb_state*,mrb_sym,int*);
 mrb_value mrb_str_format(mrb_state *, int, const mrb_value *, mrb_value);
 
 void *mrb_malloc(mrb_state*, size_t);
@@ -353,8 +357,8 @@ int mrb_checkstack(mrb_state*,int);
 mrb_value mrb_top_self(mrb_state *);
 mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
 
-mrb_value mrb_p(mrb_state*, mrb_value);
-int mrb_obj_id(mrb_value obj);
+void mrb_p(mrb_state*, mrb_value);
+mrb_int mrb_obj_id(mrb_value obj);
 mrb_sym mrb_to_id(mrb_state *mrb, mrb_value name);
 
 int mrb_obj_equal(mrb_state*, mrb_value, mrb_value);
@@ -416,13 +420,16 @@ mrb_value mrb_check_funcall(mrb_state *mrb, mrb_value recv, mrb_sym mid, int arg
 #define ISXDIGIT(c) (ISASCII(c) && isxdigit((int)(unsigned char)(c)))
 #endif
 
+mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len);
+void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
+
 int mrb_block_given_p(void);
 void mrb_raise(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
 void rb_raise(struct RClass *c, const char *fmt, ...);
 void mrb_warn(const char *fmt, ...);
-void mrb_warning(const char *fmt, ...);
 void mrb_bug(const char *fmt, ...);
 
+#define E_RUNTIME_ERROR             (mrb_class_obj_get(mrb, "RuntimeError"))
 #define E_TYPE_ERROR                (mrb_class_obj_get(mrb, "TypeError"))
 #define E_ARGUMENT_ERROR            (mrb_class_obj_get(mrb, "ArgumentError"))
 #define E_INDEX_ERROR               (mrb_class_obj_get(mrb, "IndexError"))
@@ -431,13 +438,9 @@ void mrb_bug(const char *fmt, ...);
 #define E_NOMETHOD_ERROR            (mrb_class_obj_get(mrb, "NoMethodError"))
 #define E_SCRIPT_ERROR              (mrb_class_obj_get(mrb, "ScriptError"))
 #define E_SYNTAX_ERROR              (mrb_class_obj_get(mrb, "SyntaxError"))
-#define E_LOAD_ERROR                (mrb_class_obj_get(mrb, "LoadError"))
-#define E_SYSTEMCALL_ERROR          (mrb_class_obj_get(mrb, "SystemCallError"))
 #define E_LOCALJUMP_ERROR           (mrb_class_obj_get(mrb, "LocalJumpError"))
 #define E_REGEXP_ERROR              (mrb_class_obj_get(mrb, "RegexpError"))
-#define E_ZERODIVISION_ERROR        (mrb_class_obj_get(mrb, "ZeroDivisionError"))
 
-#define E_ENCODING_ERROR            (mrb_class_obj_get(mrb, "EncodingError"))
 #define E_NOTIMP_ERROR              (mrb_class_obj_get(mrb, "NotImplementedError"))
 #define E_FLOATDOMAIN_ERROR         (mrb_class_obj_get(mrb, "FloatDomainError"))
 
@@ -462,20 +465,9 @@ NUM2CHR(mrb_value x)
 
 mrb_value mrb_yield(mrb_state *mrb, mrb_value v, mrb_value blk);
 mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv);
-mrb_value mrb_yield_with_self(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self);
 mrb_value mrb_class_new_instance(mrb_state *mrb, int, mrb_value*, struct RClass *);
 mrb_value mrb_class_new_instance_m(mrb_state *mrb, mrb_value klass);
 
-mrb_value mrb_exec_recursive(mrb_state *mrb, mrb_value(*)(mrb_state *, mrb_value, mrb_value, int),mrb_value,void *);
-
-#ifndef xmalloc
-#define xmalloc     malloc
-#define xrealloc    realloc
-#define xcalloc     calloc
-#define xfree       free
-#endif
-
-void mrb_garbage_collect(mrb_state *mrb);
 void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);

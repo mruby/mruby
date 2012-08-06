@@ -7,20 +7,22 @@
 	objects = {
 
 /* Begin PBXAggregateTarget section */
-		88C19D95157D7593002ABAEA /* all binaries */ = {
+		88D0984E15CFF54A002E0BE8 /* build all */ = {
 			isa = PBXAggregateTarget;
-			buildConfigurationList = 88C19D98157D7594002ABAEA /* Build configuration list for PBXAggregateTarget "all binaries" */;
+			buildConfigurationList = 88D0985115CFF54A002E0BE8 /* Build configuration list for PBXAggregateTarget "build all" */;
 			buildPhases = (
-				88C19DA2157D75F2002ABAEA /* ShellScript */,
 			);
 			dependencies = (
-				88C19D9B157D759D002ABAEA /* PBXTargetDependency */,
-				88C19D9D157D75A1002ABAEA /* PBXTargetDependency */,
-				88C19D9F157D75A3002ABAEA /* PBXTargetDependency */,
-				88C19DA1157D75A6002ABAEA /* PBXTargetDependency */,
+				88D0985415CFF561002E0BE8 /* PBXTargetDependency */,
+				88D0985615CFF561002E0BE8 /* PBXTargetDependency */,
+				88D0985815CFF561002E0BE8 /* PBXTargetDependency */,
+				88D0985A15CFF561002E0BE8 /* PBXTargetDependency */,
+				88D0985C15CFF561002E0BE8 /* PBXTargetDependency */,
+				88D0985E15CFF561002E0BE8 /* PBXTargetDependency */,
+				88D0986015CFF561002E0BE8 /* PBXTargetDependency */,
 			);
-			name = "all binaries";
-			productName = binaries;
+			name = "build all";
+			productName = "make all";
 		};
 /* End PBXAggregateTarget section */
 
@@ -141,33 +143,54 @@
 			remoteGlobalIDString = 88760AA115759B4F00113BFB;
 			remoteInfo = ruby_lib;
 		};
-		88C19D9A157D759D002ABAEA /* PBXContainerItemProxy */ = {
+		88D0985315CFF561002E0BE8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 88760AE415759EFE00113BFB;
+			remoteInfo = mruby_core;
+		};
+		88D0985515CFF561002E0BE8 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 88760A8A157590F000113BFB;
 			remoteInfo = mrbc;
 		};
-		88C19D9C157D75A1002ABAEA /* PBXContainerItemProxy */ = {
+		88D0985715CFF561002E0BE8 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 88760B3215769F3000113BFB;
-			remoteInfo = mirb;
+			remoteGlobalIDString = 88760AA115759B4F00113BFB;
+			remoteInfo = ruby_lib;
 		};
-		88C19D9E157D75A3002ABAEA /* PBXContainerItemProxy */ = {
+		88D0985915CFF561002E0BE8 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 88760B2315769E6100113BFB;
 			remoteInfo = mruby;
 		};
-		88C19DA0157D75A6002ABAEA /* PBXContainerItemProxy */ = {
+		88D0985B15CFF561002E0BE8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 88760B3215769F3000113BFB;
+			remoteInfo = mirb;
+		};
+		88D0985D15CFF561002E0BE8 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 8844358E1577301B007F95A4;
 			remoteInfo = mrbtest;
+		};
+		88D0985F15CFF561002E0BE8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 88760B731576A33100113BFB;
+			remoteInfo = mruby_fw;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -832,7 +855,7 @@
 		88BF3371156C992100F12AC7 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0430;
+				LastUpgradeCheck = 0440;
 			};
 			buildConfigurationList = 88BF3374156C992100F12AC7 /* Build configuration list for PBXProject "mruby" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -854,7 +877,7 @@
 				88760B3215769F3000113BFB /* mirb */,
 				8844358E1577301B007F95A4 /* mrbtest */,
 				88760B731576A33100113BFB /* mruby_fw */,
-				88C19D95157D7593002ABAEA /* all binaries */,
+				88D0984E15CFF54A002E0BE8 /* build all */,
 			);
 		};
 /* End PBXProject section */
@@ -922,19 +945,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "cd ../mrblib\ncat ./*.rb > mrblib.rbtmp\n../Xcode/build/mrbc -Bmrblib_irep -omrblib.ctmp mrblib.rbtmp\ncat init_mrblib.c mrblib.ctmp > mrblib.c";
-		};
-		88C19DA2157D75F2002ABAEA /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = build/mrbtest;
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1067,25 +1077,40 @@
 			target = 88760AA115759B4F00113BFB /* ruby_lib */;
 			targetProxy = 88760B891576A35C00113BFB /* PBXContainerItemProxy */;
 		};
-		88C19D9B157D759D002ABAEA /* PBXTargetDependency */ = {
+		88D0985415CFF561002E0BE8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 88760AE415759EFE00113BFB /* mruby_core */;
+			targetProxy = 88D0985315CFF561002E0BE8 /* PBXContainerItemProxy */;
+		};
+		88D0985615CFF561002E0BE8 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 88760A8A157590F000113BFB /* mrbc */;
-			targetProxy = 88C19D9A157D759D002ABAEA /* PBXContainerItemProxy */;
+			targetProxy = 88D0985515CFF561002E0BE8 /* PBXContainerItemProxy */;
 		};
-		88C19D9D157D75A1002ABAEA /* PBXTargetDependency */ = {
+		88D0985815CFF561002E0BE8 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 88760B3215769F3000113BFB /* mirb */;
-			targetProxy = 88C19D9C157D75A1002ABAEA /* PBXContainerItemProxy */;
+			target = 88760AA115759B4F00113BFB /* ruby_lib */;
+			targetProxy = 88D0985715CFF561002E0BE8 /* PBXContainerItemProxy */;
 		};
-		88C19D9F157D75A3002ABAEA /* PBXTargetDependency */ = {
+		88D0985A15CFF561002E0BE8 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 88760B2315769E6100113BFB /* mruby */;
-			targetProxy = 88C19D9E157D75A3002ABAEA /* PBXContainerItemProxy */;
+			targetProxy = 88D0985915CFF561002E0BE8 /* PBXContainerItemProxy */;
 		};
-		88C19DA1157D75A6002ABAEA /* PBXTargetDependency */ = {
+		88D0985C15CFF561002E0BE8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 88760B3215769F3000113BFB /* mirb */;
+			targetProxy = 88D0985B15CFF561002E0BE8 /* PBXContainerItemProxy */;
+		};
+		88D0985E15CFF561002E0BE8 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 8844358E1577301B007F95A4 /* mrbtest */;
-			targetProxy = 88C19DA0157D75A6002ABAEA /* PBXContainerItemProxy */;
+			targetProxy = 88D0985D15CFF561002E0BE8 /* PBXContainerItemProxy */;
+		};
+		88D0986015CFF561002E0BE8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 88760B731576A33100113BFB /* mruby_fw */;
+			targetProxy = 88D0985F15CFF561002E0BE8 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1113,6 +1138,7 @@
 				);
 				INSTALL_PATH = /;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = "";
 			};
 			name = Debug;
 		};
@@ -1128,6 +1154,7 @@
 				);
 				INSTALL_PATH = /;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = "";
 			};
 			name = Release;
 		};
@@ -1137,6 +1164,7 @@
 				DEPLOYMENT_LOCATION = YES;
 				INSTALL_PATH = /;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = "";
 			};
 			name = Debug;
 		};
@@ -1146,12 +1174,14 @@
 				DEPLOYMENT_LOCATION = YES;
 				INSTALL_PATH = /;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = "";
 			};
 			name = Release;
 		};
 		88760AA415759B4F00113BFB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				DEPLOYMENT_LOCATION = YES;
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
@@ -1161,12 +1191,14 @@
 				);
 				INSTALL_PATH = /lib;
 				PRODUCT_NAME = mruby;
+				SDKROOT = "";
 			};
 			name = Debug;
 		};
 		88760AA515759B4F00113BFB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				DEPLOYMENT_LOCATION = YES;
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
@@ -1176,12 +1208,14 @@
 				);
 				INSTALL_PATH = /lib;
 				PRODUCT_NAME = mruby;
+				SDKROOT = "";
 			};
 			name = Release;
 		};
 		88760AE715759EFE00113BFB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				DEPLOYMENT_LOCATION = YES;
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
@@ -1193,6 +1227,7 @@
 				INSTALL_PATH = /lib;
 				LIBRARY_STYLE = STATIC;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = "";
 				USE_HEADERMAP = "$(inherited)";
 			};
 			name = Debug;
@@ -1200,6 +1235,7 @@
 		88760AE815759EFE00113BFB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				DEPLOYMENT_LOCATION = YES;
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
@@ -1210,6 +1246,7 @@
 				INSTALL_PATH = /lib;
 				LIBRARY_STYLE = STATIC;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = "";
 				USE_HEADERMAP = "$(inherited)";
 			};
 			name = Release;
@@ -1225,6 +1262,7 @@
 				);
 				INSTALL_PATH = /;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = "";
 			};
 			name = Debug;
 		};
@@ -1239,6 +1277,7 @@
 				);
 				INSTALL_PATH = /;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = "";
 			};
 			name = Release;
 		};
@@ -1249,6 +1288,7 @@
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				INSTALL_PATH = /;
 				PRODUCT_NAME = mirb;
+				SDKROOT = "";
 			};
 			name = Debug;
 		};
@@ -1259,12 +1299,14 @@
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				INSTALL_PATH = /;
 				PRODUCT_NAME = mirb;
+				SDKROOT = "";
 			};
 			name = Release;
 		};
 		88760B871576A33100113BFB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				DEPLOYMENT_LOCATION = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
@@ -1279,6 +1321,7 @@
 				INFOPLIST_FILE = "mruby_fw/mruby_fw-Info.plist";
 				INSTALL_PATH = /;
 				PRODUCT_NAME = mruby;
+				SDKROOT = "";
 				WRAPPER_EXTENSION = framework;
 			};
 			name = Debug;
@@ -1286,6 +1329,7 @@
 		88760B881576A33100113BFB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				DEPLOYMENT_LOCATION = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
@@ -1300,6 +1344,7 @@
 				INFOPLIST_FILE = "mruby_fw/mruby_fw-Info.plist";
 				INSTALL_PATH = /;
 				PRODUCT_NAME = mruby;
+				SDKROOT = "";
 				WRAPPER_EXTENSION = framework;
 			};
 			name = Release;
@@ -1365,6 +1410,7 @@
 		88BF3596156CA10D00F12AC7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				DEBUGGING_SYMBOLS = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -1377,23 +1423,26 @@
 		88BF3597156CA10D00F12AC7 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
 		};
-		88C19D96157D7594002ABAEA /* Debug */ = {
+		88D0984F15CFF54A002E0BE8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = "";
 			};
 			name = Debug;
 		};
-		88C19D97157D7594002ABAEA /* Release */ = {
+		88D0985015CFF54A002E0BE8 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = "";
 			};
 			name = Release;
 		};
@@ -1481,11 +1530,11 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		88C19D98157D7594002ABAEA /* Build configuration list for PBXAggregateTarget "all binaries" */ = {
+		88D0985115CFF54A002E0BE8 /* Build configuration list for PBXAggregateTarget "build all" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				88C19D96157D7594002ABAEA /* Debug */,
-				88C19D97157D7594002ABAEA /* Release */,
+				88D0984F15CFF54A002E0BE8 /* Debug */,
+				88D0985015CFF54A002E0BE8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 		};

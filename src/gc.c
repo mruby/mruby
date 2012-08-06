@@ -11,13 +11,15 @@
 #include "mruby/string.h"
 #include "mruby/hash.h"
 #include "mruby/range.h"
-#include "mruby/khash.h"
 #include <string.h>
-#include <stdio.h>
 #include "mruby/struct.h"
 #include "mruby/proc.h"
 #include "mruby/data.h"
-#include "mruby/numeric.h"
+#include "mruby/variable.h"
+
+#ifndef SIZE_MAX
+#include <limits.h> // for SIZE_MAX
+#endif
 
 /*
   = Tri-color Incremental Garbage Collection
@@ -70,13 +72,38 @@
 
 */
 
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
 #include "re.h"
 #endif
 
-#include "gc.h"
+struct free_obj {
+  MRUBY_OBJECT_HEADER;
+  struct RBasic *next;
+};
+
+typedef struct {
+  union {
+    struct free_obj free;
+    struct RBasic basic;
+    struct RObject object;
+    struct RClass klass;
+    struct RString string;
+    struct RArray array;
+    struct RHash hash;
+    struct RRange range;
+#ifdef ENABLE_STRUCT
+    struct RStruct structdata;
+#endif
+    struct RProc procdata;
+#ifdef ENABLE_REGEXP
+    struct RMatch match;
+    struct RRegexp regexp;
+#endif
+  } as;
+} RVALUE;
 
 #ifdef GC_PROFILE
+#include <stdio.h>
 #include <sys/time.h>
 
 static double program_invoke_time = 0;
@@ -121,25 +148,40 @@ gettimeofday_time(void)
 
 #define GC_STEP_SIZE 1024
 
-
 void*
 mrb_realloc(mrb_state *mrb, void *p, size_t len)
 {
-  return (mrb->allocf)(mrb, p, len);
+  void *p2;
+
+  p2 = (mrb->allocf)(mrb, p, len);
+
+  if (!p2 && len > 0 && mrb->heaps) {
+    mrb_garbage_collect(mrb);
+    p2 = (mrb->allocf)(mrb, p, len);
+  }
+  return p2;
 }
 
 void*
 mrb_malloc(mrb_state *mrb, size_t len)
 {
-  return (mrb->allocf)(mrb, 0, len);
+  return mrb_realloc(mrb, 0, len);
 }
 
 void*
 mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
 {
-  void *p = (mrb->allocf)(mrb, 0, nelem*len);
+  void *p = NULL;
+  size_t size;
 
-  memset(p, 0, nelem*len);
+  if (nelem <= SIZE_MAX / len) {
+    size = nelem * len;
+    p = mrb_realloc(mrb, 0, size);
+
+    if (p && size > 0)
+      memset(p, 0, size);
+  }
+
   return p;
 }
 
@@ -149,7 +191,9 @@ mrb_free(mrb_state *mrb, void *p)
   return (mrb->allocf)(mrb, p, 0);
 }
 
-#define HEAP_PAGE_SIZE 1024
+#ifndef MRB_HEAP_PAGE_SIZE
+#define MRB_HEAP_PAGE_SIZE 1024
+#endif
 
 struct heap_page {
   struct RBasic *freelist;
@@ -157,7 +201,7 @@ struct heap_page {
   struct heap_page *next;
   struct heap_page *free_next;
   struct heap_page *free_prev;
-  RVALUE objects[HEAP_PAGE_SIZE];
+  RVALUE objects[MRB_HEAP_PAGE_SIZE];
 };
 
 static void
@@ -208,13 +252,11 @@ unlink_free_heap_page(mrb_state *mrb, struct heap_page *page)
 static void
 add_heap(mrb_state *mrb)
 {
-  struct heap_page *page = mrb_malloc(mrb, sizeof(struct heap_page));
+  struct heap_page *page = (struct heap_page *)mrb_calloc(mrb, 1, sizeof(struct heap_page));
   RVALUE *p, *e;
   struct RBasic *prev = NULL;
 
-  memset(page, 0, sizeof(struct heap_page));
-
-  for (p = page->objects, e=p+HEAP_PAGE_SIZE; p<e; p++) {
+  for (p = page->objects, e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
     p->as.free.tt = MRB_TT_FREE;
     p->as.free.next = prev;
     prev = &p->as.basic;
@@ -248,7 +290,7 @@ gc_protect(mrb_state *mrb, struct RBasic *p)
   if (mrb->arena_idx > MRB_ARENA_SIZE) {
     /* arena overflow error */
     mrb->arena_idx = MRB_ARENA_SIZE - 4; /* force room in arena */
-    mrb_raise(mrb, mrb->eRuntimeError_class, "arena overflow error");
+    mrb_raise(mrb, E_RUNTIME_ERROR, "arena overflow error");
   }
   mrb->arena[mrb->arena_idx++] = p;
 }
@@ -316,8 +358,8 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_CLASS:
-  case MRB_TT_SCLASS:
   case MRB_TT_MODULE:
+  case MRB_TT_SCLASS:
     {
       struct RClass *c = (struct RClass*)obj;
 
@@ -361,7 +403,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
       size_t i, e;
 
       for (i=0,e=a->len; i<e; i++) {
-        mrb_gc_mark_value(mrb, a->buf[i]);
+        mrb_gc_mark_value(mrb, a->ptr[i]);
       }
     }
     break;
@@ -372,13 +414,6 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_STRING:
-    {
-      struct RString *s = (struct RString*)obj;
-
-      if (s->flags & MRB_STR_SHARED) {
-	mrb_gc_mark(mrb, (struct RBasic*)s->aux.shared);
-      }
-    }
     break;
 
   case MRB_TT_RANGE:
@@ -390,7 +425,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     }
     break;
 
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
   case MRB_TT_MATCH:
     {
       struct RMatch *m = (struct RMatch*)obj;
@@ -404,6 +439,18 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
       struct RRegexp *r = (struct RRegexp*)obj;
 
       mrb_gc_mark(mrb, (struct RBasic*)r->src);
+    }
+    break;
+#endif
+
+#ifdef ENABLE_STRUCT
+  case MRB_TT_STRUCT:
+    {
+      struct RStruct *s = (struct RStruct*)obj;
+      long i;
+      for (i=0; i<s->len; i++){
+        mrb_gc_mark_value(mrb, s->ptr[i]);
+      }
     }
     break;
 #endif
@@ -458,7 +505,10 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_ARRAY:
-    mrb_free(mrb, ((struct RArray*)obj)->buf);
+    if (obj->flags & MRB_ARY_SHARED)
+      mrb_ary_decref(mrb, ((struct RArray*)obj)->aux.shared);
+    else
+      mrb_free(mrb, ((struct RArray*)obj)->ptr);
     break;
 
   case MRB_TT_HASH:
@@ -467,13 +517,21 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_STRING:
-    if (!(obj->flags & MRB_STR_SHARED))
-      mrb_free(mrb, ((struct RString*)obj)->buf);
+    if (obj->flags & MRB_STR_SHARED)
+      mrb_str_decref(mrb, ((struct RString*)obj)->aux.shared);
+    else
+      mrb_free(mrb, ((struct RString*)obj)->ptr);
     break;
 
   case MRB_TT_RANGE:
     mrb_free(mrb, ((struct RRange*)obj)->edges);
     break;
+
+#ifdef ENABLE_STRUCT
+  case MRB_TT_STRUCT:
+    mrb_free(mrb, ((struct RStruct*)obj)->ptr);
+    break;
+#endif
 
   case MRB_TT_DATA:
     {
@@ -481,6 +539,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
       if (d->type->dfree) {
         d->type->dfree(mrb, d->data);
       }
+      mrb_gc_free_iv(mrb, (struct RObject*)obj);
     }
     break;
 
@@ -504,10 +563,14 @@ root_scan_phase(mrb_state *mrb)
   for (i=0,e=mrb->arena_idx; i<e; i++) {
     mrb_gc_mark(mrb, mrb->arena[i]);
   }
+  /* mark class hierarchy */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->object_class);
+  /* mark exception */
+  mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
   /* mark stack */
   e = mrb->stack - mrb->stbase;
   if (mrb->ci) e += mrb->ci->nregs;
+  if (mrb->stbase + e > mrb->stend) e = mrb->stend - mrb->stbase;
   for (i=0; i<e; i++) {
     mrb_gc_mark_value(mrb, mrb->stbase[i]);
   }
@@ -560,6 +623,7 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_OBJECT:
+  case MRB_TT_DATA:
     children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
     break;
 
@@ -584,12 +648,21 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
     children+=2;
     break;
 
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
   case MRB_TT_MATCH:
     children+=2;
     break;
   case MRB_TT_REGEX:
     children+=1;
+    break;
+#endif
+
+#ifdef ENABLE_STRUCT
+  case MRB_TT_STRUCT:
+    {
+      struct RStruct *s = (struct RStruct*)obj;
+      children += s->len;
+    }
     break;
 #endif
 
@@ -642,7 +715,7 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
 
   while (page && (tried_sweep < limit)) {
     RVALUE *p = page->objects;
-    RVALUE *e = p + HEAP_PAGE_SIZE;
+    RVALUE *e = p + MRB_HEAP_PAGE_SIZE;
     size_t freed = 0;
     int dead_slot = 1;
     int full = (page->freelist == NULL);
@@ -664,7 +737,7 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
     }
 
     /* free dead slot */
-    if (dead_slot && freed < HEAP_PAGE_SIZE) {
+    if (dead_slot && freed < MRB_HEAP_PAGE_SIZE) {
       struct heap_page *next = page->next;
 
       unlink_heap_page(mrb, page);
@@ -678,7 +751,7 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
       }
       page = page->next;
     }
-    tried_sweep += HEAP_PAGE_SIZE;
+    tried_sweep += MRB_HEAP_PAGE_SIZE;
     mrb->live -= freed;
     mrb->gc_live_after_mark -= freed;
   }
@@ -1092,7 +1165,7 @@ test_incremental_gc(void)
   page = mrb->heaps;
   while (page) {
     RVALUE *p = page->objects;
-    RVALUE *e = p + HEAP_PAGE_SIZE;
+    RVALUE *e = p + MRB_HEAP_PAGE_SIZE;
     while (p<e) {
       if (is_black(&p->as.basic)) {
         live++;
@@ -1103,7 +1176,7 @@ test_incremental_gc(void)
       p++;
     }
     page = page->next;
-    total += HEAP_PAGE_SIZE;
+    total += MRB_HEAP_PAGE_SIZE;
   }
 
   gc_assert(mrb->gray_list == NULL);
@@ -1138,7 +1211,7 @@ test_incremental_sweep_phase(void)
 
   gc_assert(mrb->heaps->next->next == NULL);
   gc_assert(mrb->free_heaps->next->next == NULL);
-  incremental_sweep_phase(mrb, HEAP_PAGE_SIZE*3);
+  incremental_sweep_phase(mrb, MRB_HEAP_PAGE_SIZE*3);
 
   gc_assert(mrb->heaps->next == NULL);
   gc_assert(mrb->heaps == mrb->free_heaps);

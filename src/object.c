@@ -11,14 +11,6 @@
 #include "mruby/class.h"
 #include "mruby/numeric.h"
 
-#ifndef FALSE
-#define FALSE   0
-#endif
-
-#ifndef TRUE
-#define TRUE    1
-#endif
-
 int
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
@@ -159,7 +151,7 @@ true_xor(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_to_s(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_str_new_cstr(mrb, "true");
+  return mrb_str_new(mrb, "true", 4);
 }
 
 /* 15.2.5.3.4  */
@@ -272,7 +264,7 @@ false_or(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_to_s(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_str_new_cstr(mrb, "false");
+  return mrb_str_new(mrb, "false", 5);
 }
 
 void
@@ -283,7 +275,7 @@ mrb_init_object(mrb_state *mrb)
   struct RClass *f;
 
   n = mrb->nil_class   = mrb_define_class(mrb, "NilClass",   mrb->object_class);
-  mrb_undef_method(mrb,  n, "new");
+  mrb_undef_class_method(mrb, n, "new");
   mrb_define_method(mrb, n, "&",    false_and,      ARGS_REQ(1));  /* 15.2.4.3.1  */
   mrb_define_method(mrb, n, "^",    false_xor,      ARGS_REQ(1));  /* 15.2.4.3.2  */
   mrb_define_method(mrb, n, "|",    false_or,       ARGS_REQ(1));  /* 15.2.4.3.3  */
@@ -291,14 +283,14 @@ mrb_init_object(mrb_state *mrb)
   mrb_define_method(mrb, n, "to_s", nil_to_s,       ARGS_NONE());  /* 15.2.4.3.5  */
 
   t = mrb->true_class  = mrb_define_class(mrb, "TrueClass",  mrb->object_class);
-  mrb_undef_method(mrb,  n, "new");
+  mrb_undef_class_method(mrb, t, "new");
   mrb_define_method(mrb, t, "&",    true_and,       ARGS_REQ(1));  /* 15.2.5.3.1  */
   mrb_define_method(mrb, t, "^",    true_xor,       ARGS_REQ(1));  /* 15.2.5.3.2  */
   mrb_define_method(mrb, t, "to_s", true_to_s,      ARGS_NONE());  /* 15.2.5.3.3  */
   mrb_define_method(mrb, t, "|",    true_or,        ARGS_REQ(1));  /* 15.2.5.3.4  */
 
   f = mrb->false_class = mrb_define_class(mrb, "FalseClass", mrb->object_class);
-  mrb_undef_method(mrb,  n, "new");
+  mrb_undef_class_method(mrb, f, "new");
   mrb_define_method(mrb, f, "&",    false_and,      ARGS_REQ(1));  /* 15.2.6.3.1  */
   mrb_define_method(mrb, f, "^",    false_xor,      ARGS_REQ(1));  /* 15.2.6.3.2  */
   mrb_define_method(mrb, f, "to_s", false_to_s,     ARGS_NONE());  /* 15.2.6.3.3  */
@@ -325,7 +317,7 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *metho
       return mrb_nil_value();
     }
   }
-  return mrb_funcall(mrb, val, method, 0);
+  return mrb_funcall_argv(mrb, val, m, 0, 0);
 }
 
 mrb_value
@@ -335,8 +327,7 @@ mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method)
 
     if (mrb_type(val) == MRB_TT_FIXNUM) return val;
     v = convert_type(mrb, val, "Integer", method, FALSE);
-    if (mrb_nil_p(v)) return (v);
-    if (!mrb_obj_is_kind_of(mrb, v, mrb_obj_class(mrb, v))) {
+    if (mrb_nil_p(v) || mrb_type(v) != MRB_TT_FIXNUM) {
       return mrb_nil_value();
     }
     return v;
@@ -350,8 +341,8 @@ mrb_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *tname,
   if (mrb_type(val) == type) return val;
   v = convert_type(mrb, val, tname, method, 1/*Qtrue*/);
   if (mrb_type(v) != type) {
-    mrb_raise(mrb, E_TYPE_ERROR, "%s#%s should return %s",
-     mrb_obj_classname(mrb, val), method, tname);
+    mrb_raise(mrb, E_TYPE_ERROR, "%s cannot be converted to %s by #%s",
+	      mrb_obj_classname(mrb, val), tname, method);
   }
   return v;
 }
@@ -361,14 +352,9 @@ mrb_check_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *
 {
   mrb_value v;
 
-  /* always convert T_DATA */
   if (mrb_type(val) == type && type != MRB_TT_DATA) return val;
   v = convert_type(mrb, val, tname, method, 0/*Qfalse*/);
-  if (mrb_nil_p(v)) return mrb_nil_value();
-  if (mrb_type(v) != type) {
-    mrb_raise(mrb, E_TYPE_ERROR, "%s#%s should return %s",
-     mrb_obj_classname(mrb, val), method, tname);
-  }
+  if (mrb_nil_p(v) || mrb_type(v) != type) return mrb_nil_value();
   return v;
 }
 
@@ -411,11 +397,6 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
   struct RString *s;
   int xt;
 
-  /*if (x == Qundef) {
-    //mrb_bug("undef leaked to the Ruby space");
-    printf ("undef leaked to the Ruby space\n");
-  }*/
-
   xt = mrb_type(x);
   if ((xt != t) || (xt == MRB_TT_DATA)) {
     while (type->type < MRB_TT_MAXDEFINE) {
@@ -433,18 +414,17 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
         }
         else if (mrb_special_const_p(x)) {
           s = mrb_str_ptr(mrb_obj_as_string(mrb, x));
-          etype = s->buf;
+          etype = s->ptr;
         }
         else {
           etype = mrb_obj_classname(mrb, x);
         }
         mrb_raise(mrb, E_TYPE_ERROR, "wrong argument type %s (expected %s)",
-          etype, type->name);
+		  etype, type->name);
       }
       type++;
     }
-    /*mrb_bug("unknown type 0x%x", t);*/
-    printf ("unknown type 0x%x (0x%x given)", t, mrb_type(x));
+    mrb_raise(mrb, E_TYPE_ERROR, "unknown type 0x%x (0x%x given)", t, mrb_type(x));
   }
 }
 
@@ -470,9 +450,7 @@ mrb_any_to_s(mrb_state *mrb, mrb_value obj)
   len = strlen(cname)+6+16;
   str = mrb_str_new(mrb, 0, len); /* 6:tags 16:addr */
   s = mrb_str_ptr(str);
-  //  snprintf(RSTRING(str)->ptr, len+1, "#<%s:0x%lx>", cname, obj);
-  sprintf(s->buf, "#<%s:0x%lx>", cname, (unsigned long)(obj.value.p));
-  s->len = strlen(s->buf);
+  s->len = sprintf(s->ptr, "#<%s:0x%lx>", cname, (unsigned long)(obj.value.p));
 
   return str;
 }
@@ -532,7 +510,6 @@ mrb_to_integer(mrb_state *mrb, mrb_value val, const char *method)
     mrb_value v;
 
     if (FIXNUM_P(val)) return val;
-    //if (TYPE(val) == T_BIGNUM) return val;
     v = convert_type(mrb, val, "Integer", method, TRUE);
     if (!mrb_obj_is_kind_of(mrb, v, mrb->fixnum_class)) {
       const char *cname = mrb_obj_classname(mrb, val);

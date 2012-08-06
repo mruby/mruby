@@ -49,6 +49,10 @@ struct RProc {
 struct RProc *mrb_proc_new(mrb_state*, mrb_irep*);
 struct RProc *mrb_proc_new_cfunc(mrb_state*, mrb_func_t);
 struct RProc *mrb_closure_new(mrb_state*, mrb_irep*);
+void mrb_proc_copy(struct RProc *a, struct RProc *b);
+
+#include "mruby/khash.h"
+KHASH_DECLARE(mt, mrb_sym, struct RProc*, 1);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */
