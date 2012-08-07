@@ -689,7 +689,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       struct RProc *m;
       struct RClass *c;
       mrb_callinfo *ci;
-      mrb_value recv;
+      mrb_value recv, result;
       mrb_sym mid = syms[GETARG_B(i)];
 
       recv = regs[a];
@@ -731,7 +731,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         else {
           ci->nregs = n + 2;
         }
-        mrb->stack[0] = m->body.func(mrb, recv);
+        result = m->body.func(mrb, recv);
+        mrb->stack[0] = result;
         mrb->arena_idx = ai;
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
