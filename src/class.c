@@ -921,7 +921,7 @@ mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
 void
 mrb_obj_call_init(mrb_state *mrb, mrb_value obj, int argc, mrb_value *argv)
 {
-  mrb_funcall_argv(mrb, obj, mrb_intern(mrb, "initialize"), argc, argv);
+  mrb_funcall_argv(mrb, obj, mrb->init_sym, argc, argv);
 }
 
 /*
@@ -960,7 +960,7 @@ mrb_class_new_instance_m(mrb_state *mrb, mrb_value klass)
   c = (struct RClass*)mrb_obj_alloc(mrb, k->tt, k);
   c->super = k;
   obj = mrb_obj_value(c);
-  mrb_funcall_with_block(mrb, obj, mrb_intern(mrb, "initialize"), argc, argv, blk);
+  mrb_funcall_with_block(mrb, obj, mrb->init_sym, argc, argv, blk);
 
   return obj;
 }
@@ -979,7 +979,7 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
   o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);
   obj = mrb_obj_value(o);
   mrb_get_args(mrb, "*&", &argv, &argc, &blk);
-  mrb_funcall_with_block(mrb, obj, mrb_intern(mrb, "initialize"), argc, argv, blk);
+  mrb_funcall_with_block(mrb, obj, mrb->init_sym, argc, argv, blk);
 
   return obj;
 }

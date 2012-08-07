@@ -404,4 +404,5 @@ mrb_init_symbol(mrb_state *mrb)
   mrb_define_method(mrb, sym, "to_sym",          sym_to_sym,              ARGS_NONE());              /* 15.2.11.3.4  */
   mrb_define_method(mrb, sym, "inspect",         sym_inspect,             ARGS_NONE());              /* 15.2.11.3.5(x)  */
   mrb_define_method(mrb, sym, "<=>",             sym_cmp,                 ARGS_REQ(1));
+  mrb->init_sym = mrb_intern(mrb, "initialize");
 }

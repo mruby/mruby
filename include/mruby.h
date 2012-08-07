@@ -238,6 +238,7 @@ typedef struct mrb_state {
   struct mrb_irep **irep;
   size_t irep_len, irep_capa;
 
+  mrb_sym init_sym;
   struct RClass *object_class;
   struct RClass *class_class;
   struct RClass *module_class;
