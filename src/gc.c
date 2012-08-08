@@ -796,6 +796,7 @@ mrb_incremental_gc(mrb_state *mrb)
 {
   size_t limit = 0, result = 0;
 
+  if (mrb->gc_disabled) return;
   GC_INVOKE_TIME_REPORT;
   GC_TIME_START;
 
@@ -826,6 +827,7 @@ mrb_garbage_collect(mrb_state *mrb)
 {
   size_t max_limit = ~0;
 
+  if (mrb->gc_disabled) return;
   GC_INVOKE_TIME_REPORT;
   GC_TIME_START;
 
@@ -918,6 +920,51 @@ gc_start(mrb_state *mrb, mrb_value obj)
 
 /*
  *  call-seq:
+ *     GC.enable    -> true or false
+ *
+ *  Enables garbage collection, returning <code>true</code> if garbage
+ *  collection was previously disabled.
+ *
+ *     GC.disable   #=> false
+ *     GC.enable    #=> true
+ *     GC.enable    #=> false
+ *
+ */
+
+static mrb_value
+gc_enable(mrb_state *mrb, mrb_value obj)
+{
+  int old = mrb->gc_disabled;
+
+  mrb->gc_disabled = FALSE;
+  if (old) return mrb_true_value();
+  return mrb_false_value();
+}
+
+/*
+ *  call-seq:
+ *     GC.disable    -> true or false
+ *
+ *  Disables garbage collection, returning <code>true</code> if garbage
+ *  collection was already disabled.
+ *
+ *     GC.disable   #=> false
+ *     GC.disable   #=> true
+ *
+ */
+
+static mrb_value
+gc_disable(mrb_state *mrb, mrb_value obj)
+{
+  int old = mrb->gc_disabled;
+
+  mrb->gc_disabled = TRUE;
+  if (old) return mrb_true_value();
+  return mrb_false_value();
+}
+
+/*
+ *  call-seq:
  *     GC.interval_ratio      -> fixnum
  *
  *  Returns ratio of GC interval. Default value is 200(%).
@@ -989,6 +1036,8 @@ mrb_init_gc(mrb_state *mrb)
   gc = mrb_define_module(mrb, "GC");
 
   mrb_define_class_method(mrb, gc, "start", gc_start, ARGS_NONE());
+  mrb_define_class_method(mrb, gc, "enable", gc_enable, ARGS_NONE());
+  mrb_define_class_method(mrb, gc, "disable", gc_disable, ARGS_NONE());
   mrb_define_class_method(mrb, gc, "interval_ratio", gc_interval_ratio_get, ARGS_NONE());
   mrb_define_class_method(mrb, gc, "interval_ratio=", gc_interval_ratio_set, ARGS_REQ(1));
   mrb_define_class_method(mrb, gc, "step_ratio", gc_step_ratio_get, ARGS_NONE());

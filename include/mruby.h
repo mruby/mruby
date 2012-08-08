@@ -268,8 +268,9 @@ typedef struct mrb_state {
   struct RBasic *variable_gray_list; /* list of objects to be traversed atomically */
   size_t gc_live_after_mark;
   size_t gc_threshold;
-  mrb_int gc_interval_ratio;
-  mrb_int gc_step_ratio;
+  int gc_interval_ratio;
+  int gc_step_ratio;
+  int gc_disabled;
 
   mrb_sym symidx;
   struct kh_n2s *name2sym;      /* symbol table */
