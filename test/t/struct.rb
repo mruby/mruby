@@ -16,6 +16,12 @@ if Object.const_defined?(:Struct)
       c.members == [:m1,:m2]
   end
 
+  # Crash bug withStruc.new and no params, should make empty struct?
+  # assert('Struct.new', '15.2.18.3.1') do
+  #   c = Struct.new()
+  #   c.superclass == Struct   
+  # end
+
   assert('Struct#==', '15.2.18.4.1') do
     c = Struct.new(:m1, :m2)
     cc1 = c.new(1,2)
