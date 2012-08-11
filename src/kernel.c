@@ -600,7 +600,7 @@ obj_is_instance_of(mrb_state *mrb, mrb_value self)
 static void
 check_iv_name(mrb_state *mrb, mrb_sym id)
 {
-  char *s;
+  const char *s;
   int len;
 
   s = mrb_sym2name_len(mrb, id, &len);
