@@ -597,6 +597,18 @@ obj_is_instance_of(mrb_state *mrb, mrb_value self)
   }
 }
 
+static void
+check_iv_name(mrb_state *mrb, mrb_sym id)
+{
+  char *s;
+  int len;
+
+  s = mrb_sym2name_len(mrb, id, &len);
+  if (len < 2 && s[0] != '@') {
+    mrb_name_error(mrb, id, "`%s' is not allowed as an instance variable name", s);
+  }
+}
+
 /* 15.3.1.3.20 */
 /*
  *  call-seq:
@@ -618,13 +630,12 @@ obj_is_instance_of(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_ivar_defined(mrb_state *mrb, mrb_value self)
 {
-  mrb_value arg;
   khiter_t k;
   kh_iv_t *h = RCLASS_IV_TBL(self);
   mrb_sym mid;
 
-  mrb_get_args(mrb, "o", &arg);
-  mid = mrb_to_id(mrb, arg);
+  mrb_get_args(mrb, "n", &mid);
+  check_iv_name(mrb, mid);
 
   if (h) {
     k = kh_get(iv, h, mid);
@@ -658,15 +669,11 @@ mrb_obj_ivar_defined(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_ivar_get(mrb_state *mrb, mrb_value self)
 {
-  mrb_value arg;
   mrb_sym id;
 
-  mrb_get_args(mrb, "o", &arg);
-  id = mrb_to_id(mrb, arg);
+  mrb_get_args(mrb, "n", &id);
 
-  //if (!mrb_is_instance_id(id)) {
-  //    mrb_name_error(mrb, id, "`%s' is not allowed as an instance variable name", mrb_sym2name(mrb, id));
-  //}
+  check_iv_name(mrb, id);
   return mrb_iv_get(mrb, self, id);
 }
 
@@ -693,12 +700,11 @@ mrb_obj_ivar_get(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_ivar_set(mrb_state *mrb, mrb_value self)
 {
-  mrb_value key;
-  mrb_value val;
   mrb_sym id;
+  mrb_value val;
 
-  mrb_get_args(mrb, "oo", &key, &val);
-  id = mrb_to_id(mrb, key);
+  mrb_get_args(mrb, "no", &id, &val);
+  check_iv_name(mrb, id);
   mrb_iv_set(mrb, self, id, val);
   return val;
 }
@@ -1011,6 +1017,7 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
   mrb_value val;
 
   mrb_get_args(mrb, "n", &sym);
+  check_iv_name(mrb, sym);
   val = mrb_iv_remove(mrb, self, sym);
   if (mrb_undef_p(val)) {
     mrb_name_error(mrb, sym, "instance variable %s not defined", mrb_sym2name(mrb, sym));
