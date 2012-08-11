@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <setjmp.h>
+#include <string.h>
 #include "error.h"
 #include "mruby/variable.h"
 #include "mruby/string.h"

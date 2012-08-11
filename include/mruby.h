@@ -233,7 +233,7 @@ typedef struct mrb_state {
   int esize;
 
   struct RObject *exc;
-  struct kh_iv *globals;
+  struct iv_tbl *globals;
 
   struct mrb_irep **irep;
   size_t irep_len, irep_capa;

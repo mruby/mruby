@@ -15,7 +15,6 @@
 #include "mruby/array.h"
 #include "error.h"
 
-KHASH_DEFINE(iv, mrb_sym, mrb_value,     1, kh_int_hash_func, kh_int_hash_equal);
 KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal);
 
 typedef struct fc_result {
@@ -63,30 +62,6 @@ mrb_name_class(mrb_state *mrb, struct RClass *c, mrb_sym name)
 {
   mrb_obj_iv_set(mrb, (struct RObject*)c,
                  mrb_intern(mrb, "__classid__"), mrb_symbol_value(name));
-}
-
-static mrb_sym
-class_sym(mrb_state *mrb, struct RClass *c, struct RClass *outer)
-{
-  mrb_value name;
-
-  name = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern(mrb, "__classid__"));
-  if (mrb_nil_p(name)) {
-    khash_t(iv)* h;
-    khiter_t k;
-    mrb_value v;
-
-    if (!outer) outer = mrb->object_class;
-    h = outer->iv;
-    for (k = kh_begin(h); k != kh_end(h); k++) {
-      if (!kh_exist(h,k)) continue;
-      v = kh_value(h,k);
-      if (mrb_type(v) == c->tt && mrb_class_ptr(v) == c) {
-        return kh_key(h,k);
-      }
-    }
-  }
-  return SYM2ID(name);
 }
 
 static void
@@ -1114,15 +1089,15 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
   path = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern(mrb, "__classpath__"));
   if (mrb_nil_p(path)) {
     struct RClass *outer = mrb_class_outer_module(mrb, c);
-    mrb_sym sym = class_sym(mrb, c, outer);
-    if (outer && outer != mrb->object_class) {
+    mrb_sym sym = mrb_class_sym(mrb, c, outer);
+    if (sym == 0) {
+      return mrb_nil_value();
+    }
+    else if (outer && outer != mrb->object_class) {
       mrb_value base = mrb_class_path(mrb, outer);
       path = mrb_str_plus(mrb, base, mrb_str_new(mrb, "::", 2));
       name = mrb_sym2name_len(mrb, sym, &len);
       mrb_str_concat(mrb, path, mrb_str_new(mrb, name, len));
-    }
-    else if (sym == 0) {
-      return mrb_nil_value();
     }
     else {
       name = mrb_sym2name_len(mrb, sym, &len);

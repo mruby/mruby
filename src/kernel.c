@@ -32,43 +32,6 @@ struct obj_ivar_tag {
   void * arg;
 };
 
-static mrb_value
-inspect_obj(mrb_state *mrb, mrb_value obj, mrb_value str, int recur)
-{
-  if (recur) {
-    mrb_str_cat2(mrb, str, " ...");
-  }
-  else {
-    khiter_t k;
-    kh_iv_t *h = RCLASS_IV_TBL(obj);
-
-    if (h) {
-      for (k = kh_begin(h); k != kh_end(h); k++) {
-        if (kh_exist(h, k)){
-          mrb_sym id = kh_key(h, k);
-          mrb_value value = kh_value(h, k);
-
-          /* need not to show internal data */
-          if (RSTRING_PTR(str)[0] == '-') { /* first element */
-            RSTRING_PTR(str)[0] = '#';
-            mrb_str_cat2(mrb, str, " ");
-          }
-          else {
-            mrb_str_cat2(mrb, str, ", ");
-          }
-          mrb_str_cat2(mrb, str, mrb_sym2name(mrb, id));
-          mrb_str_cat2(mrb, str, "=");
-          mrb_str_append(mrb, str, mrb_inspect(mrb, value));
-        }
-      }
-    }
-  }
-  mrb_str_cat2(mrb, str, ">");
-  RSTRING_PTR(str)[0] = '#';
-
-  return str;
-}
-
 int
 mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
@@ -96,16 +59,7 @@ mrb_value
 mrb_obj_inspect(mrb_state *mrb, mrb_value obj)
 {
   if ((mrb_type(obj) == MRB_TT_OBJECT) && mrb_obj_basic_to_s_p(mrb, obj)) {
-    long len = ROBJECT_NUMIV(obj);
-
-    if (len > 0) {
-      mrb_value str;
-      const char *c = mrb_obj_classname(mrb, obj);
-
-      str = mrb_sprintf(mrb, "-<%s:%p", c, (void*)&obj);
-      return inspect_obj(mrb, obj, str, 0);
-    }
-    return mrb_any_to_s(mrb, obj);
+    return mrb_obj_iv_inspect(mrb, mrb_obj_ptr(obj));
   }
   else if (mrb_nil_p(obj)) {
     return mrb_str_new(mrb, "nil", 3);
@@ -347,13 +301,7 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
       case MRB_TT_OBJECT:
       case MRB_TT_CLASS:
       case MRB_TT_MODULE:
-        if (ROBJECT(dest)->iv) {
-            kh_destroy(iv, ROBJECT(dest)->iv);
-            ROBJECT(dest)->iv = 0;
-        }
-        if (ROBJECT(obj)->iv) {
-            ROBJECT(dest)->iv = kh_copy(iv, mrb, ROBJECT(obj)->iv);
-        }
+	mrb_iv_copy(mrb, dest, obj);
         break;
 
       default:
@@ -630,19 +578,12 @@ check_iv_name(mrb_state *mrb, mrb_sym id)
 mrb_value
 mrb_obj_ivar_defined(mrb_state *mrb, mrb_value self)
 {
-  khiter_t k;
-  kh_iv_t *h = RCLASS_IV_TBL(self);
   mrb_sym mid;
 
   mrb_get_args(mrb, "n", &mid);
   check_iv_name(mrb, mid);
-
-  if (h) {
-    k = kh_get(iv, h, mid);
-    if (k != kh_end(h)) {
-      return mrb_true_value();
-    }
-  }
+  if (mrb_obj_iv_defined(mrb, mrb_obj_ptr(self), mid))
+    return mrb_true_value();
   return mrb_false_value();
 }
 
