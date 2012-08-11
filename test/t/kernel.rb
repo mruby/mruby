@@ -217,7 +217,13 @@ assert('Kernel#inspect', '15.3.1.3.17') do
 end
 
 assert('Kernel#instance_variables', '15.3.1.3.23') do
-  instance_variables.class == Array
+  o = Object.new
+  o.instance_eval do
+    @a = 11
+    @b = 12
+  end
+  ivars = o.instance_variables
+  ivars.class == Array and ivars.size == 2 and ivars.include?(:@a) and ivars.include?(:@b)
 end
 
 assert('Kernel#is_a?', '15.3.1.3.24') do
