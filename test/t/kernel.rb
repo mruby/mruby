@@ -213,7 +213,8 @@ assert('Kernel#hash', '15.3.1.3.15') do
 end
 
 assert('Kernel#inspect', '15.3.1.3.17') do
-  inspect.class == String
+  s = nil.inspect
+  s.class == String and s == "nil"
 end
 
 assert('Kernel#instance_variables', '15.3.1.3.23') do
