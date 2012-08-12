@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <setjmp.h>
+#include <stddef.h>
 
 #define STACK_INIT_SIZE 128
 #define CALLINFO_INIT_SIZE 32
@@ -402,6 +403,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   int ai = mrb->arena_idx;
   jmp_buf *prev_jmp = (jmp_buf *)mrb->jmp;
   jmp_buf c_jmp;
+  ptrdiff_t ciidx = mrb->ci - mrb->cibase;
 
 #ifdef DIRECT_THREADED
   static void *optable[] = {
@@ -1028,6 +1030,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         ci = mrb->ci;
 	eidx = mrb->ci->eidx;
         if (ci == mrb->cibase) goto L_STOP;
+        if (ciidx == ci - mrb->cibase){
+          mrb->jmp = prev_jmp;
+          longjmp(*(jmp_buf*)mrb->jmp, 1);
+        }
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           ci = mrb->ci;
