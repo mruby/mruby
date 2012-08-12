@@ -122,16 +122,16 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
       mrb_sym key = seg->key[i];
 
       if (!seg->next && i >= t->last_len) {
-	return 0;
+	return FALSE;
       }
       if (key == sym) {
 	if (vp) *vp = seg->val[i];
-	return 1;
+	return TRUE;
       }
     }
     seg = seg->next;
   }
-  return 0;
+  return FALSE;
 }
 
 static int
@@ -146,18 +146,18 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
       mrb_sym key = seg->key[i];
 
       if (!seg->next && i >= t->last_len) {
-	return 0;
+	return FALSE;
       }
       if (key == sym) {
 	t->size--;
 	seg->key[i] = 0;
 	if (vp) *vp = seg->val[i];
-	return 1;
+	return TRUE;
       }
     }
     seg = seg->next;
   }
-  return 0;
+  return FALSE;
 }
 
 static int
@@ -173,11 +173,11 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 
       /* no value in last segment after last_len */
       if (!seg->next && i >= t->last_len) {
-	return 0;
+	return FALSE;
       }
       if (key != 0) {
 	n =(*func)(mrb, key, seg->val[i], p);
-	if (n > 0) return 0;
+	if (n > 0) return FALSE;
 	if (n < 0) {
 	  t->size--;
 	  seg->key[i] = 0;
@@ -186,7 +186,7 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
     }
     seg = seg->next;
   }
-  return 1;
+  return TRUE;
 }
 
 static int
@@ -290,9 +290,9 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   k = kh_get(iv, h, sym);
   if (k != kh_end(h)) {
     if (vp) *vp = kh_value(h, k);
-    return 1;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 static int
@@ -307,10 +307,10 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
       mrb_value val = kh_value(h, k);
       kh_del(iv, h, k);
       if (vp) *vp = val;
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 static int
@@ -324,14 +324,14 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
     for (k = kh_begin(h); k != kh_end(h); k++) {
       if (kh_exist(h, k)){
 	n = (*func)(mrb, kh_key(h, k), kh_value(h, k), p);
-	if (n > 0) return 0;
+	if (n > 0) return FALSE;
 	if (n < 0) {
 	  kh_del(iv, h, k);
 	}
       }
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static int
@@ -486,13 +486,13 @@ mrb_obj_iv_defined(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
   if (t) {
     return iv_get(mrb, t, sym, NULL);
   }
-  return 0;
+  return FALSE;
 }
 
 int
 mrb_iv_defined(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 {
-  if (!obj_iv_p(obj)) return 0;
+  if (!obj_iv_p(obj)) return FALSE;
   return mrb_obj_iv_defined(mrb, mrb_obj_ptr(obj), sym);
 }
 
@@ -670,7 +670,7 @@ mrb_const_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym)
   struct RClass *m = mrb_class_ptr(mod);
   iv_tbl *t = m->iv;
 
-  if (!t) return 0;
+  if (!t) return FALSE;
   return iv_get(mrb, t, sym, NULL);
 }
 
@@ -846,7 +846,7 @@ mrb_const_defined_0(mrb_state *mrb, struct RClass *klass, mrb_sym id, int exclud
 retry:
   while (tmp) {
     if (tmp->iv && iv_get(mrb, tmp->iv, id, NULL)) {
-      return 1;
+      return TRUE;
     }
     if (!recurse && (klass != mrb->object_class)) break;
     tmp = tmp->super;
@@ -856,7 +856,7 @@ retry:
     tmp = mrb->object_class;
     goto retry;
   }
-  return (int)0/*Qfalse*/;
+  return FALSE;
 }
 
 int
@@ -893,7 +893,7 @@ csym_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 
   if (mrb_type(v) == c->tt && mrb_class_ptr(v) == c) {
     a->sym = sym;
-    return 1;			/* stop iteration*/
+    return 1;			/* stop iteration */
   }
   return 0;
 }

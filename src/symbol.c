@@ -236,7 +236,7 @@ is_special_global_name(const char* m)
         if (is_identchar(*m)) m += 1;
         break;
       default:
-        if (!ISDIGIT(*m)) return 0;
+        if (!ISDIGIT(*m)) return FALSE;
         do ++m; while (ISDIGIT(*m));
     }
     return !*m;

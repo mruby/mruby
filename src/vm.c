@@ -452,9 +452,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_MOVE) {
       /* A B    R(A) := R(B) */
-#if 0
+#if 1
       regs[GETARG_A(i)] = regs[GETARG_B(i)];
-#elif 1
+#elif 0
       int a = GETARG_A(i);
       int b = GETARG_B(i);
 

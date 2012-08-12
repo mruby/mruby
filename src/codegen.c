@@ -610,10 +610,10 @@ static int
 nosplat(node *t)
 {
   while (t) {
-    if ((intptr_t)t->car->car == NODE_SPLAT) return 0;
+    if ((intptr_t)t->car->car == NODE_SPLAT) return FALSE;
     t = t->cdr;
   }
-  return 1;
+  return TRUE;
 }
 
 static mrb_sym

@@ -123,7 +123,7 @@ mrb_pool_can_realloc(mrb_pool *pool, void *p, size_t len)
 {
   struct mrb_pool_page *page;
 
-  if (!pool) return 0;
+  if (!pool) return FALSE;
   len += ALIGN_PADDING(len);
   page = pool->pages;
   while (page) {
@@ -131,12 +131,12 @@ mrb_pool_can_realloc(mrb_pool *pool, void *p, size_t len)
       size_t beg;
 
       beg = (char*)p - page->page;
-      if (beg + len > page->len) return 0;
-      return 1;
+      if (beg + len > page->len) return FALSE;
+      return TRUE;
     }
     page = page->next;
   }
-  return 0;
+  return FALSE;
 }
 
 void*

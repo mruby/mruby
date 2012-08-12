@@ -2296,7 +2296,7 @@ mrb_block_given_p()
 {
   /*if (ruby_frame->iter == ITER_CUR && ruby_block)
     return 1;*//*Qtrue*/
-  return 0/*Qfalse*/;
+  return FALSE;
 }
 
 /* 15.2.10.5.37 */

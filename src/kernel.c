@@ -37,8 +37,8 @@ mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
     struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mrb_intern(mrb, "to_s"));
     if (me && MRB_PROC_CFUNC_P(me) && (me->body.func == mrb_any_to_s))
-      return 1;
-    return 0;
+      return TRUE;
+    return FALSE;
 }
 
 /* 15.3.1.3.17 */
