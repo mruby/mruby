@@ -615,7 +615,7 @@ mrb_obj_instance_variables(mrb_state *mrb, mrb_value self)
   mrb_value ary;
 
   ary = mrb_ary_new(mrb);
-  if (obj_iv_p(self)) {
+  if (obj_iv_p(self) && mrb_obj_ptr(self)->iv) {
     iv_foreach(mrb, mrb_obj_ptr(self)->iv, iv_i, &ary);
   }
   return ary;
