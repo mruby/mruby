@@ -253,3 +253,19 @@ assert('Exception 13') do
   end
   a == :ok
 end
+
+def exception_test14
+  UnknownConstant
+end
+
+assert('Exception 14') do
+  a = :ng
+  begin
+    send(:exception_test14)
+  rescue
+    a = :ok
+  end
+
+  a == :ok
+end
+
