@@ -6,26 +6,6 @@
 	objectVersion = 46;
 	objects = {
 
-/* Begin PBXAggregateTarget section */
-		88D0984E15CFF54A002E0BE8 /* build all */ = {
-			isa = PBXAggregateTarget;
-			buildConfigurationList = 88D0985115CFF54A002E0BE8 /* Build configuration list for PBXAggregateTarget "build all" */;
-			buildPhases = (
-			);
-			dependencies = (
-				88D0985415CFF561002E0BE8 /* PBXTargetDependency */,
-				88D0985615CFF561002E0BE8 /* PBXTargetDependency */,
-				88D0985815CFF561002E0BE8 /* PBXTargetDependency */,
-				88D0985A15CFF561002E0BE8 /* PBXTargetDependency */,
-				88D0985C15CFF561002E0BE8 /* PBXTargetDependency */,
-				88D0985E15CFF561002E0BE8 /* PBXTargetDependency */,
-				88D0986015CFF561002E0BE8 /* PBXTargetDependency */,
-			);
-			name = "build all";
-			productName = "make all";
-		};
-/* End PBXAggregateTarget section */
-
 /* Begin PBXBuildFile section */
 		8844359B157730E1007F95A4 /* mrbtest.c in Sources */ = {isa = PBXBuildFile; fileRef = 8844359A157730DB007F95A4 /* mrbtest.c */; };
 		8844359C15773120007F95A4 /* libmruby.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8844353E1576F1A3007F95A4 /* libmruby.a */; };
@@ -142,55 +122,6 @@
 			proxyType = 1;
 			remoteGlobalIDString = 88760AA115759B4F00113BFB;
 			remoteInfo = ruby_lib;
-		};
-		88D0985315CFF561002E0BE8 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 88760AE415759EFE00113BFB;
-			remoteInfo = mruby_core;
-		};
-		88D0985515CFF561002E0BE8 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 88760A8A157590F000113BFB;
-			remoteInfo = mrbc;
-		};
-		88D0985715CFF561002E0BE8 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 88760AA115759B4F00113BFB;
-			remoteInfo = ruby_lib;
-		};
-		88D0985915CFF561002E0BE8 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 88760B2315769E6100113BFB;
-			remoteInfo = mruby;
-		};
-		88D0985B15CFF561002E0BE8 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 88760B3215769F3000113BFB;
-			remoteInfo = mirb;
-		};
-		88D0985D15CFF561002E0BE8 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 8844358E1577301B007F95A4;
-			remoteInfo = mrbtest;
-		};
-		88D0985F15CFF561002E0BE8 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 88BF3371156C992100F12AC7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 88760B731576A33100113BFB;
-			remoteInfo = mruby_fw;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -877,7 +808,6 @@
 				88760B3215769F3000113BFB /* mirb */,
 				8844358E1577301B007F95A4 /* mrbtest */,
 				88760B731576A33100113BFB /* mruby_fw */,
-				88D0984E15CFF54A002E0BE8 /* build all */,
 			);
 		};
 /* End PBXProject section */
@@ -1076,41 +1006,6 @@
 			isa = PBXTargetDependency;
 			target = 88760AA115759B4F00113BFB /* ruby_lib */;
 			targetProxy = 88760B891576A35C00113BFB /* PBXContainerItemProxy */;
-		};
-		88D0985415CFF561002E0BE8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 88760AE415759EFE00113BFB /* mruby_core */;
-			targetProxy = 88D0985315CFF561002E0BE8 /* PBXContainerItemProxy */;
-		};
-		88D0985615CFF561002E0BE8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 88760A8A157590F000113BFB /* mrbc */;
-			targetProxy = 88D0985515CFF561002E0BE8 /* PBXContainerItemProxy */;
-		};
-		88D0985815CFF561002E0BE8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 88760AA115759B4F00113BFB /* ruby_lib */;
-			targetProxy = 88D0985715CFF561002E0BE8 /* PBXContainerItemProxy */;
-		};
-		88D0985A15CFF561002E0BE8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 88760B2315769E6100113BFB /* mruby */;
-			targetProxy = 88D0985915CFF561002E0BE8 /* PBXContainerItemProxy */;
-		};
-		88D0985C15CFF561002E0BE8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 88760B3215769F3000113BFB /* mirb */;
-			targetProxy = 88D0985B15CFF561002E0BE8 /* PBXContainerItemProxy */;
-		};
-		88D0985E15CFF561002E0BE8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 8844358E1577301B007F95A4 /* mrbtest */;
-			targetProxy = 88D0985D15CFF561002E0BE8 /* PBXContainerItemProxy */;
-		};
-		88D0986015CFF561002E0BE8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 88760B731576A33100113BFB /* mruby_fw */;
-			targetProxy = 88D0985F15CFF561002E0BE8 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1430,22 +1325,6 @@
 			};
 			name = Release;
 		};
-		88D0984F15CFF54A002E0BE8 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = "";
-			};
-			name = Debug;
-		};
-		88D0985015CFF54A002E0BE8 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = "";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1529,14 +1408,6 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
-		};
-		88D0985115CFF54A002E0BE8 /* Build configuration list for PBXAggregateTarget "build all" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				88D0984F15CFF54A002E0BE8 /* Debug */,
-				88D0985015CFF54A002E0BE8 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
 		};
 /* End XCConfigurationList section */
 	};
