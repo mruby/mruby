@@ -233,11 +233,12 @@ typedef struct mrb_state {
   int esize;
 
   struct RObject *exc;
-  struct kh_iv *globals;
+  struct iv_tbl *globals;
 
   struct mrb_irep **irep;
   size_t irep_len, irep_capa;
 
+  mrb_sym init_sym;
   struct RClass *object_class;
   struct RClass *class_class;
   struct RClass *module_class;
@@ -267,8 +268,9 @@ typedef struct mrb_state {
   struct RBasic *variable_gray_list; /* list of objects to be traversed atomically */
   size_t gc_live_after_mark;
   size_t gc_threshold;
-  mrb_int gc_interval_ratio;
-  mrb_int gc_step_ratio;
+  int gc_interval_ratio;
+  int gc_step_ratio;
+  int gc_disabled;
 
   mrb_sym symidx;
   struct kh_n2s *name2sym;      /* symbol table */

@@ -6,6 +6,7 @@
 
 #include "mruby.h"
 #include "mruby/irep.h"
+#include "mruby/variable.h"
 #include <string.h>
 
 void mrb_init_heap(mrb_state*);
@@ -54,6 +55,7 @@ mrb_close(mrb_state *mrb)
   int i;
 
   /* free */
+  mrb_gc_free_gv(mrb);
   mrb_free(mrb, mrb->stbase);
   mrb_free(mrb, mrb->cibase);
   for (i=0; i<mrb->irep_len; i++) {

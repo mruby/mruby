@@ -20,6 +20,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <setjmp.h>
+#include <stddef.h>
+#include <stdarg.h>
 
 #define STACK_INIT_SIZE 128
 #define CALLINFO_INIT_SIZE 32
@@ -178,6 +180,44 @@ ecall(mrb_state *mrb, int i)
   if (!mrb->exc) mrb->exc = exc;
 }
 
+#ifndef MRB_FUNCALL_ARGC_MAX
+#define MRB_FUNCALL_ARGC_MAX 16
+#endif
+
+mrb_value
+mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
+{
+  mrb_sym mid = mrb_intern(mrb, name);
+  va_list ap;
+  int i;
+
+  if (argc == 0) {
+    return mrb_funcall_argv(mrb, self, mid, 0, 0);
+  }
+  else if (argc == 1) {
+    mrb_value v;
+
+    va_start(ap, argc);
+    v = va_arg(ap, mrb_value);
+    va_end(ap);
+    return mrb_funcall_argv(mrb, self, mid, 1, &v);
+  }
+  else {
+    mrb_value argv[MRB_FUNCALL_ARGC_MAX];
+
+    if (argc > MRB_FUNCALL_ARGC_MAX) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=%d)", MRB_FUNCALL_ARGC_MAX);
+    }
+
+    va_start(ap, argc);
+    for (i = 0; i < argc; i++) {
+      argv[i] = va_arg(ap, mrb_value);
+    }
+    va_end(ap);
+    return mrb_funcall_argv(mrb, self, mid, argc, argv);
+  }
+}
+
 mrb_value
 mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mrb_value *argv, mrb_value blk)
 {
@@ -187,6 +227,20 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
   mrb_callinfo *ci;
   int n = mrb->ci->nregs;
   mrb_value val;
+
+  if (!mrb->jmp) {
+    jmp_buf c_jmp;
+
+    if (setjmp(c_jmp) != 0) {	/* error */
+      mrb->jmp = 0;
+      return mrb_nil_value();
+    }
+    mrb->jmp = &c_jmp;
+    /* recursive call */
+    val = mrb_funcall_with_block(mrb, self, mid, argc, argv, blk);
+    mrb->jmp = 0;
+    return val;
+  }
 
   if (argc < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%d)", argc);
@@ -402,6 +456,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   int ai = mrb->arena_idx;
   jmp_buf *prev_jmp = (jmp_buf *)mrb->jmp;
   jmp_buf c_jmp;
+  ptrdiff_t ciidx = mrb->ci - mrb->cibase;
 
 #ifdef DIRECT_THREADED
   static void *optable[] = {
@@ -450,9 +505,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_MOVE) {
       /* A B    R(A) := R(B) */
-#if 0
+#if 1
       regs[GETARG_A(i)] = regs[GETARG_B(i)];
-#elif 1
+#elif 0
       int a = GETARG_A(i);
       int b = GETARG_B(i);
 
@@ -689,7 +744,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       struct RProc *m;
       struct RClass *c;
       mrb_callinfo *ci;
-      mrb_value recv;
+      mrb_value recv, result;
       mrb_sym mid = syms[GETARG_B(i)];
 
       recv = regs[a];
@@ -731,7 +786,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         else {
           ci->nregs = n + 2;
         }
-        mrb->stack[0] = m->body.func(mrb, recv);
+        result = m->body.func(mrb, recv);
+        mrb->stack[0] = result;
         mrb->arena_idx = ai;
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
@@ -1027,6 +1083,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         ci = mrb->ci;
 	eidx = mrb->ci->eidx;
         if (ci == mrb->cibase) goto L_STOP;
+        if (ciidx == ci - mrb->cibase){
+          mrb->jmp = prev_jmp;
+          longjmp(*(jmp_buf*)mrb->jmp, 1);
+        }
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           ci = mrb->ci;

@@ -32,50 +32,13 @@ struct obj_ivar_tag {
   void * arg;
 };
 
-static mrb_value
-inspect_obj(mrb_state *mrb, mrb_value obj, mrb_value str, int recur)
-{
-  if (recur) {
-    mrb_str_cat2(mrb, str, " ...");
-  }
-  else {
-    khiter_t k;
-    kh_iv_t *h = RCLASS_IV_TBL(obj);
-
-    if (h) {
-      for (k = kh_begin(h); k != kh_end(h); k++) {
-        if (kh_exist(h, k)){
-          mrb_sym id = kh_key(h, k);
-          mrb_value value = kh_value(h, k);
-
-          /* need not to show internal data */
-          if (RSTRING_PTR(str)[0] == '-') { /* first element */
-            RSTRING_PTR(str)[0] = '#';
-            mrb_str_cat2(mrb, str, " ");
-          }
-          else {
-            mrb_str_cat2(mrb, str, ", ");
-          }
-          mrb_str_cat2(mrb, str, mrb_sym2name(mrb, id));
-          mrb_str_cat2(mrb, str, "=");
-          mrb_str_append(mrb, str, mrb_inspect(mrb, value));
-        }
-      }
-    }
-  }
-  mrb_str_cat2(mrb, str, ">");
-  RSTRING_PTR(str)[0] = '#';
-
-  return str;
-}
-
 int
 mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
     struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mrb_intern(mrb, "to_s"));
     if (me && MRB_PROC_CFUNC_P(me) && (me->body.func == mrb_any_to_s))
-      return 1;
-    return 0;
+      return TRUE;
+    return FALSE;
 }
 
 /* 15.3.1.3.17 */
@@ -96,16 +59,7 @@ mrb_value
 mrb_obj_inspect(mrb_state *mrb, mrb_value obj)
 {
   if ((mrb_type(obj) == MRB_TT_OBJECT) && mrb_obj_basic_to_s_p(mrb, obj)) {
-    long len = ROBJECT_NUMIV(obj);
-
-    if (len > 0) {
-      mrb_value str;
-      const char *c = mrb_obj_classname(mrb, obj);
-
-      str = mrb_sprintf(mrb, "-<%s:%p", c, (void*)&obj);
-      return inspect_obj(mrb, obj, str, 0);
-    }
-    return mrb_any_to_s(mrb, obj);
+    return mrb_obj_iv_inspect(mrb, mrb_obj_ptr(obj));
   }
   else if (mrb_nil_p(obj)) {
     return mrb_str_new(mrb, "nil", 3);
@@ -347,13 +301,7 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
       case MRB_TT_OBJECT:
       case MRB_TT_CLASS:
       case MRB_TT_MODULE:
-        if (ROBJECT(dest)->iv) {
-            kh_destroy(iv, ROBJECT(dest)->iv);
-            ROBJECT(dest)->iv = 0;
-        }
-        if (ROBJECT(obj)->iv) {
-            ROBJECT(dest)->iv = kh_copy(iv, mrb, ROBJECT(obj)->iv);
-        }
+	mrb_iv_copy(mrb, dest, obj);
         break;
 
       default:
@@ -597,6 +545,18 @@ obj_is_instance_of(mrb_state *mrb, mrb_value self)
   }
 }
 
+static void
+check_iv_name(mrb_state *mrb, mrb_sym id)
+{
+  const char *s;
+  int len;
+
+  s = mrb_sym2name_len(mrb, id, &len);
+  if (len < 2 && s[0] != '@') {
+    mrb_name_error(mrb, id, "`%s' is not allowed as an instance variable name", s);
+  }
+}
+
 /* 15.3.1.3.20 */
 /*
  *  call-seq:
@@ -618,20 +578,12 @@ obj_is_instance_of(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_ivar_defined(mrb_state *mrb, mrb_value self)
 {
-  mrb_value arg;
-  khiter_t k;
-  kh_iv_t *h = RCLASS_IV_TBL(self);
   mrb_sym mid;
 
-  mrb_get_args(mrb, "o", &arg);
-  mid = mrb_to_id(mrb, arg);
-
-  if (h) {
-    k = kh_get(iv, h, mid);
-    if (k != kh_end(h)) {
-      return mrb_true_value();
-    }
-  }
+  mrb_get_args(mrb, "n", &mid);
+  check_iv_name(mrb, mid);
+  if (mrb_obj_iv_defined(mrb, mrb_obj_ptr(self), mid))
+    return mrb_true_value();
   return mrb_false_value();
 }
 
@@ -658,15 +610,11 @@ mrb_obj_ivar_defined(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_ivar_get(mrb_state *mrb, mrb_value self)
 {
-  mrb_value arg;
   mrb_sym id;
 
-  mrb_get_args(mrb, "o", &arg);
-  id = mrb_to_id(mrb, arg);
+  mrb_get_args(mrb, "n", &id);
 
-  //if (!mrb_is_instance_id(id)) {
-  //    mrb_name_error(mrb, id, "`%s' is not allowed as an instance variable name", mrb_sym2name(mrb, id));
-  //}
+  check_iv_name(mrb, id);
   return mrb_iv_get(mrb, self, id);
 }
 
@@ -693,12 +641,11 @@ mrb_obj_ivar_get(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_ivar_set(mrb_state *mrb, mrb_value self)
 {
-  mrb_value key;
-  mrb_value val;
   mrb_sym id;
+  mrb_value val;
 
-  mrb_get_args(mrb, "oo", &key, &val);
-  id = mrb_to_id(mrb, key);
+  mrb_get_args(mrb, "no", &id, &val);
+  check_iv_name(mrb, id);
   mrb_iv_set(mrb, self, id, val);
   return val;
 }
@@ -1011,6 +958,7 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
   mrb_value val;
 
   mrb_get_args(mrb, "n", &sym);
+  check_iv_name(mrb, sym);
   val = mrb_iv_remove(mrb, self, sym);
   if (mrb_undef_p(val)) {
     mrb_name_error(mrb, sym, "instance variable %s not defined", mrb_sym2name(mrb, sym));

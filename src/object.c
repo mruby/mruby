@@ -14,7 +14,7 @@
 int
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
-  if (v1.tt != v2.tt) return 0;
+  if (v1.tt != v2.tt) return FALSE;
   switch (v1.tt) {
   case MRB_TT_TRUE:
     return 1;
@@ -498,10 +498,10 @@ mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
 
   while (cl) {
     if (cl == c || cl->mt == c->mt)
-      return 1/* TRUE */;
+      return TRUE;
     cl = cl->super;
   }
-  return 0/* FALSE */;
+  return FALSE;
 }
 
 static mrb_value

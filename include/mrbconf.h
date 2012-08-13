@@ -19,7 +19,10 @@
 /* number of object per heap page */
 //#define MRB_HEAP_PAGE_SIZE 1024
 
-/* initial size for IV khash */
+/* use segmented list for IV table */
+//#define MRB_USE_IV_SEGLIST
+
+/* initial size for IV khash; ignored when MRB_USE_IV_SEGLIST is set */
 //#define MRB_IV_INITIAL_SIZE 8
 
 /* default size of khash table bucket */

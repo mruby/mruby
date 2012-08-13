@@ -44,7 +44,7 @@ struct RBasic {
 
 struct RObject {
   MRUBY_OBJECT_HEADER;
-  struct kh_iv *iv;
+  struct iv_tbl *iv;
 };
 
 #define mrb_obj_ptr(v)    ((struct RObject*)((v).value.p))

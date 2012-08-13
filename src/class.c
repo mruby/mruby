@@ -15,7 +15,6 @@
 #include "mruby/array.h"
 #include "error.h"
 
-KHASH_DEFINE(iv, mrb_sym, mrb_value,     1, kh_int_hash_func, kh_int_hash_equal);
 KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal);
 
 typedef struct fc_result {
@@ -63,30 +62,6 @@ mrb_name_class(mrb_state *mrb, struct RClass *c, mrb_sym name)
 {
   mrb_obj_iv_set(mrb, (struct RObject*)c,
                  mrb_intern(mrb, "__classid__"), mrb_symbol_value(name));
-}
-
-static mrb_sym
-class_sym(mrb_state *mrb, struct RClass *c, struct RClass *outer)
-{
-  mrb_value name;
-
-  name = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern(mrb, "__classid__"));
-  if (mrb_nil_p(name)) {
-    khash_t(iv)* h;
-    khiter_t k;
-    mrb_value v;
-
-    if (!outer) outer = mrb->object_class;
-    h = outer->iv;
-    for (k = kh_begin(h); k != kh_end(h); k++) {
-      if (!kh_exist(h,k)) continue;
-      v = kh_value(h,k);
-      if (mrb_type(v) == c->tt && mrb_class_ptr(v) == c) {
-        return kh_key(h,k);
-      }
-    }
-  }
-  return SYM2ID(name);
 }
 
 static void
@@ -880,48 +855,10 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
   return m;
 }
 
-#ifndef MRB_FUNCALL_ARGC_MAX
-#define MRB_FUNCALL_ARGC_MAX 16
-#endif
-
-mrb_value
-mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
-{
-  mrb_sym mid = mrb_intern(mrb, name);
-  va_list ap;
-  int i;
-
-  if (argc == 0) {
-    return mrb_funcall_argv(mrb, self, mid, 0, 0);
-  }
-  else if (argc == 1) {
-    mrb_value v;
-
-    va_start(ap, argc);
-    v = va_arg(ap, mrb_value);
-    va_end(ap);
-    return mrb_funcall_argv(mrb, self, mid, 1, &v);
-  }
-  else {
-    mrb_value argv[MRB_FUNCALL_ARGC_MAX];
-
-    if (argc > MRB_FUNCALL_ARGC_MAX) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=%d)", MRB_FUNCALL_ARGC_MAX);
-    }
-
-    va_start(ap, argc);
-    for (i = 0; i < argc; i++) {
-      argv[i] = va_arg(ap, mrb_value);
-    }
-    va_end(ap);
-    return mrb_funcall_argv(mrb, self, mid, argc, argv);
-  }
-}
-
 void
 mrb_obj_call_init(mrb_state *mrb, mrb_value obj, int argc, mrb_value *argv)
 {
-  mrb_funcall_argv(mrb, obj, mrb_intern(mrb, "initialize"), argc, argv);
+  mrb_funcall_argv(mrb, obj, mrb->init_sym, argc, argv);
 }
 
 /*
@@ -960,7 +897,7 @@ mrb_class_new_instance_m(mrb_state *mrb, mrb_value klass)
   c = (struct RClass*)mrb_obj_alloc(mrb, k->tt, k);
   c->super = k;
   obj = mrb_obj_value(c);
-  mrb_funcall_with_block(mrb, obj, mrb_intern(mrb, "initialize"), argc, argv, blk);
+  mrb_funcall_with_block(mrb, obj, mrb->init_sym, argc, argv, blk);
 
   return obj;
 }
@@ -979,7 +916,7 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
   o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);
   obj = mrb_obj_value(o);
   mrb_get_args(mrb, "*&", &argv, &argc, &blk);
-  mrb_funcall_with_block(mrb, obj, mrb_intern(mrb, "initialize"), argc, argv, blk);
+  mrb_funcall_with_block(mrb, obj, mrb->init_sym, argc, argv, blk);
 
   return obj;
 }
@@ -1086,16 +1023,16 @@ mrb_obj_respond_to(struct RClass* c, mrb_sym mid)
       k = kh_get(mt, h, mid);
       if (k != kh_end(h)) {
         if (kh_value(h, k)) {
-          return 1; /* exist method */
+          return TRUE;		/* method exists */
         }
         else {
-          return 0;
+          return FALSE;		/* undefined method */
         }
       }
     }
     c = c->super;
   }
-  return 0;  /* no method */
+  return FALSE;			/* no method */
 }
 
 int
@@ -1114,15 +1051,15 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
   path = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern(mrb, "__classpath__"));
   if (mrb_nil_p(path)) {
     struct RClass *outer = mrb_class_outer_module(mrb, c);
-    mrb_sym sym = class_sym(mrb, c, outer);
-    if (outer && outer != mrb->object_class) {
+    mrb_sym sym = mrb_class_sym(mrb, c, outer);
+    if (sym == 0) {
+      return mrb_nil_value();
+    }
+    else if (outer && outer != mrb->object_class) {
       mrb_value base = mrb_class_path(mrb, outer);
       path = mrb_str_plus(mrb, base, mrb_str_new(mrb, "::", 2));
       name = mrb_sym2name_len(mrb, sym, &len);
       mrb_str_concat(mrb, path, mrb_str_new(mrb, name, len));
-    }
-    else if (sym == 0) {
-      return mrb_nil_value();
     }
     else {
       name = mrb_sym2name_len(mrb, sym, &len);
