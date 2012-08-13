@@ -855,44 +855,6 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
   return m;
 }
 
-#ifndef MRB_FUNCALL_ARGC_MAX
-#define MRB_FUNCALL_ARGC_MAX 16
-#endif
-
-mrb_value
-mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
-{
-  mrb_sym mid = mrb_intern(mrb, name);
-  va_list ap;
-  int i;
-
-  if (argc == 0) {
-    return mrb_funcall_argv(mrb, self, mid, 0, 0);
-  }
-  else if (argc == 1) {
-    mrb_value v;
-
-    va_start(ap, argc);
-    v = va_arg(ap, mrb_value);
-    va_end(ap);
-    return mrb_funcall_argv(mrb, self, mid, 1, &v);
-  }
-  else {
-    mrb_value argv[MRB_FUNCALL_ARGC_MAX];
-
-    if (argc > MRB_FUNCALL_ARGC_MAX) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=%d)", MRB_FUNCALL_ARGC_MAX);
-    }
-
-    va_start(ap, argc);
-    for (i = 0; i < argc; i++) {
-      argv[i] = va_arg(ap, mrb_value);
-    }
-    va_end(ap);
-    return mrb_funcall_argv(mrb, self, mid, argc, argv);
-  }
-}
-
 void
 mrb_obj_call_init(mrb_state *mrb, mrb_value obj, int argc, mrb_value *argv)
 {
