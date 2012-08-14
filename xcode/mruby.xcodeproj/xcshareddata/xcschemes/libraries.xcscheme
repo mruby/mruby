@@ -50,7 +50,7 @@
       debugDocumentVersioning = "YES">
    </ProfileAction>
    <AnalyzeAction
-      buildConfiguration = "Debug">
+      buildConfiguration = "CLANGDebug">
    </AnalyzeAction>
    <ArchiveAction
       buildConfiguration = "Release"

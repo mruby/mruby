@@ -802,8 +802,8 @@
 			targets = (
 				88BF3594156CA10D00F12AC7 /* make_mruby */,
 				88760AE415759EFE00113BFB /* mruby_core */,
-				88760A8A157590F000113BFB /* mrbc */,
 				88760AA115759B4F00113BFB /* ruby_lib */,
+				88760A8A157590F000113BFB /* mrbc */,
 				88760B2315769E6100113BFB /* mruby */,
 				88760B3215769F3000113BFB /* mirb */,
 				8844358E1577301B007F95A4 /* mrbtest */,
@@ -1021,239 +1021,14 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		884435971577301B007F95A4 /* Debug */ = {
+		883AF3B115DA4EEA00AAA509 /* CLANGDebug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../src\"",
-				);
-				INSTALL_PATH = /;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = "";
-			};
-			name = Debug;
-		};
-		884435981577301B007F95A4 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../src\"",
-				);
-				INSTALL_PATH = /;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = "";
-			};
-			name = Release;
-		};
-		88760A93157590F000113BFB /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				DEPLOYMENT_LOCATION = YES;
-				INSTALL_PATH = /;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = "";
-			};
-			name = Debug;
-		};
-		88760A94157590F000113BFB /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				DEPLOYMENT_LOCATION = YES;
-				INSTALL_PATH = /;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = "";
-			};
-			name = Release;
-		};
-		88760AA415759B4F00113BFB /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COMBINE_HIDPI_IMAGES = YES;
-				DEPLOYMENT_LOCATION = YES;
-				EXECUTABLE_PREFIX = lib;
-				GCC_C_LANGUAGE_STANDARD = "compiler-default";
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../src\"",
-				);
-				INSTALL_PATH = /lib;
-				PRODUCT_NAME = mruby;
-				SDKROOT = "";
-			};
-			name = Debug;
-		};
-		88760AA515759B4F00113BFB /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COMBINE_HIDPI_IMAGES = YES;
-				DEPLOYMENT_LOCATION = YES;
-				EXECUTABLE_PREFIX = lib;
-				GCC_C_LANGUAGE_STANDARD = "compiler-default";
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../src\"",
-				);
-				INSTALL_PATH = /lib;
-				PRODUCT_NAME = mruby;
-				SDKROOT = "";
-			};
-			name = Release;
-		};
-		88760AE715759EFE00113BFB /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COMBINE_HIDPI_IMAGES = YES;
-				DEPLOYMENT_LOCATION = YES;
-				EXECUTABLE_PREFIX = lib;
-				GCC_C_LANGUAGE_STANDARD = "compiler-default";
-				GCC_OPTIMIZATION_LEVEL = 3;
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../src\"",
-				);
-				INSTALL_PATH = /lib;
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = "";
-				USE_HEADERMAP = "$(inherited)";
-			};
-			name = Debug;
-		};
-		88760AE815759EFE00113BFB /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COMBINE_HIDPI_IMAGES = YES;
-				DEPLOYMENT_LOCATION = YES;
-				EXECUTABLE_PREFIX = lib;
-				GCC_C_LANGUAGE_STANDARD = "compiler-default";
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../src\"",
-				);
-				INSTALL_PATH = /lib;
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = "";
-				USE_HEADERMAP = "$(inherited)";
-			};
-			name = Release;
-		};
-		88760B2C15769E6100113BFB /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				DEPLOYMENT_LOCATION = YES;
-				GCC_C_LANGUAGE_STANDARD = "compiler-default";
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../src\"",
-				);
-				INSTALL_PATH = /;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = "";
-			};
-			name = Debug;
-		};
-		88760B2D15769E6100113BFB /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				DEPLOYMENT_LOCATION = YES;
-				GCC_C_LANGUAGE_STANDARD = "compiler-default";
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../src\"",
-				);
-				INSTALL_PATH = /;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = "";
-			};
-			name = Release;
-		};
-		88760B3A15769F3000113BFB /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				DEPLOYMENT_LOCATION = YES;
-				GCC_C_LANGUAGE_STANDARD = "compiler-default";
-				INSTALL_PATH = /;
-				PRODUCT_NAME = mirb;
-				SDKROOT = "";
-			};
-			name = Debug;
-		};
-		88760B3B15769F3000113BFB /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				DEPLOYMENT_LOCATION = YES;
-				GCC_C_LANGUAGE_STANDARD = "compiler-default";
-				INSTALL_PATH = /;
-				PRODUCT_NAME = mirb;
-				SDKROOT = "";
-			};
-			name = Release;
-		};
-		88760B871576A33100113BFB /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COMBINE_HIDPI_IMAGES = YES;
-				DEPLOYMENT_LOCATION = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				FRAMEWORK_VERSION = A;
-				GCC_C_LANGUAGE_STANDARD = "compiler-default";
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "mruby_fw/mruby_fw-Prefix.pch";
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../src\"",
-				);
-				INFOPLIST_FILE = "mruby_fw/mruby_fw-Info.plist";
-				INSTALL_PATH = /;
-				PRODUCT_NAME = mruby;
-				SDKROOT = "";
-				WRAPPER_EXTENSION = framework;
-			};
-			name = Debug;
-		};
-		88760B881576A33100113BFB /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COMBINE_HIDPI_IMAGES = YES;
-				DEPLOYMENT_LOCATION = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				FRAMEWORK_VERSION = A;
-				GCC_C_LANGUAGE_STANDARD = "compiler-default";
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "mruby_fw/mruby_fw-Prefix.pch";
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/../src\"",
-				);
-				INFOPLIST_FILE = "mruby_fw/mruby_fw-Info.plist";
-				INSTALL_PATH = /;
-				PRODUCT_NAME = mruby;
-				SDKROOT = "";
-				WRAPPER_EXTENSION = framework;
-			};
-			name = Release;
-		};
-		88BF337C156C992100F12AC7 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				DEPLOYMENT_LOCATION = YES;
-				DSTROOT = "$(SRCROOT)/build";
+				DSTROOT = "$(PROJECT_DIR)";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_OPTIMIZATION_LEVEL = 3;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					HAVE_FLOAT_H,
@@ -1262,15 +1037,267 @@
 					"$(inherited)",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../include\"";
+				HEADER_SEARCH_PATHS = (
+					"\"$(PROJECT_DIR)/../include\"",
+					"\"$(PROJECT_DIR)/../src\"",
+				);
+				INSTALL_PATH = /build;
 				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../lib\"";
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx;
+				RUN_CLANG_STATIC_ANALYZER = YES;
+				STRIP_STYLE = debugging;
+				USE_HEADERMAP = NO;
+			};
+			name = CLANGDebug;
+		};
+		883AF3B215DA4EEA00AAA509 /* CLANGDebug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				DEBUGGING_SYMBOLS = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = CLANGDebug;
+		};
+		883AF3B315DA4EEA00AAA509 /* CLANGDebug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /lib;
+				LIBRARY_STYLE = STATIC;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USE_HEADERMAP = "$(inherited)";
+			};
+			name = CLANGDebug;
+		};
+		883AF3B415DA4EEA00AAA509 /* CLANGDebug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /lib;
+				LIBRARY_STYLE = STATIC;
+				PRODUCT_NAME = mruby;
+			};
+			name = CLANGDebug;
+		};
+		883AF3B515DA4EEA00AAA509 /* CLANGDebug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /bin;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = CLANGDebug;
+		};
+		883AF3B615DA4EEA00AAA509 /* CLANGDebug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /bin;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = CLANGDebug;
+		};
+		883AF3B715DA4EEA00AAA509 /* CLANGDebug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /bin;
+				PRODUCT_NAME = mirb;
+			};
+			name = CLANGDebug;
+		};
+		883AF3B815DA4EEA00AAA509 /* CLANGDebug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				INSTALL_PATH = /bin;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = CLANGDebug;
+		};
+		883AF3B915DA4EEA00AAA509 /* CLANGDebug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				FRAMEWORK_VERSION = A;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "mruby_fw/mruby_fw-Prefix.pch";
+				INFOPLIST_FILE = "mruby_fw/mruby_fw-Info.plist";
+				INSTALL_PATH = /lib;
+				PRODUCT_NAME = mruby;
+				WRAPPER_EXTENSION = framework;
+			};
+			name = CLANGDebug;
+		};
+		884435971577301B007F95A4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				INSTALL_PATH = /bin;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		884435981577301B007F95A4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				INSTALL_PATH = /bin;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		88760A93157590F000113BFB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /bin;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		88760A94157590F000113BFB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /bin;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		88760AA415759B4F00113BFB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /lib;
+				LIBRARY_STYLE = STATIC;
+				PRODUCT_NAME = mruby;
+			};
+			name = Debug;
+		};
+		88760AA515759B4F00113BFB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /lib;
+				LIBRARY_STYLE = STATIC;
+				PRODUCT_NAME = mruby;
+			};
+			name = Release;
+		};
+		88760AE715759EFE00113BFB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /lib;
+				LIBRARY_STYLE = STATIC;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USE_HEADERMAP = "$(inherited)";
+			};
+			name = Debug;
+		};
+		88760AE815759EFE00113BFB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /lib;
+				LIBRARY_STYLE = STATIC;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USE_HEADERMAP = "$(inherited)";
+			};
+			name = Release;
+		};
+		88760B2C15769E6100113BFB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /bin;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		88760B2D15769E6100113BFB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /bin;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		88760B3A15769F3000113BFB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /bin;
+				PRODUCT_NAME = mirb;
+			};
+			name = Debug;
+		};
+		88760B3B15769F3000113BFB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = /bin;
+				PRODUCT_NAME = mirb;
+			};
+			name = Release;
+		};
+		88760B871576A33100113BFB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				FRAMEWORK_VERSION = A;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "mruby_fw/mruby_fw-Prefix.pch";
+				INFOPLIST_FILE = "mruby_fw/mruby_fw-Info.plist";
+				INSTALL_PATH = /lib;
+				PRODUCT_NAME = mruby;
+				WRAPPER_EXTENSION = framework;
+			};
+			name = Debug;
+		};
+		88760B881576A33100113BFB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				FRAMEWORK_VERSION = A;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "mruby_fw/mruby_fw-Prefix.pch";
+				INFOPLIST_FILE = "mruby_fw/mruby_fw-Info.plist";
+				INSTALL_PATH = /lib;
+				PRODUCT_NAME = mruby;
+				WRAPPER_EXTENSION = framework;
+			};
+			name = Release;
+		};
+		88BF337C156C992100F12AC7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DEPLOYMENT_LOCATION = YES;
+				DSTROOT = "$(PROJECT_DIR)";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_OPTIMIZATION_LEVEL = 3;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					HAVE_FLOAT_H,
+					HAVE_STRING_H,
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"\"$(PROJECT_DIR)/../include\"",
+					"\"$(PROJECT_DIR)/../src\"",
+				);
+				INSTALL_PATH = /build;
+				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../lib\"";
+				ONLY_ACTIVE_ARCH = YES;
+				RUN_CLANG_STATIC_ANALYZER = NO;
+				STRIP_STYLE = debugging;
 				USE_HEADERMAP = NO;
 			};
 			name = Debug;
@@ -1278,26 +1305,26 @@
 		88BF337D156C992100F12AC7 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEPLOYMENT_LOCATION = YES;
-				DSTROOT = "$(SRCROOT)/build";
+				DSTROOT = "$(PROJECT_DIR)";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					HAVE_FLOAT_H,
 					HAVE_STRING_H,
-					"DEBUG=1",
 					"$(inherited)",
 				);
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../include\"";
+				HEADER_SEARCH_PATHS = (
+					"\"$(PROJECT_DIR)/../include\"",
+					"\"$(PROJECT_DIR)/../src\"",
+				);
+				INSTALL_PATH = /build;
 				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../lib\"";
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
-				SDKROOT = macosx;
+				STRIP_STYLE = debugging;
 				USE_HEADERMAP = NO;
 			};
 			name = Release;
@@ -1332,6 +1359,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				884435971577301B007F95A4 /* Debug */,
+				883AF3B815DA4EEA00AAA509 /* CLANGDebug */,
 				884435981577301B007F95A4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1341,6 +1369,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				88760A93157590F000113BFB /* Debug */,
+				883AF3B515DA4EEA00AAA509 /* CLANGDebug */,
 				88760A94157590F000113BFB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1350,6 +1379,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				88760AA415759B4F00113BFB /* Debug */,
+				883AF3B415DA4EEA00AAA509 /* CLANGDebug */,
 				88760AA515759B4F00113BFB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1359,6 +1389,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				88760AE715759EFE00113BFB /* Debug */,
+				883AF3B315DA4EEA00AAA509 /* CLANGDebug */,
 				88760AE815759EFE00113BFB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1368,6 +1399,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				88760B2C15769E6100113BFB /* Debug */,
+				883AF3B615DA4EEA00AAA509 /* CLANGDebug */,
 				88760B2D15769E6100113BFB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1377,6 +1409,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				88760B3A15769F3000113BFB /* Debug */,
+				883AF3B715DA4EEA00AAA509 /* CLANGDebug */,
 				88760B3B15769F3000113BFB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1386,6 +1419,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				88760B871576A33100113BFB /* Debug */,
+				883AF3B915DA4EEA00AAA509 /* CLANGDebug */,
 				88760B881576A33100113BFB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1395,6 +1429,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				88BF337C156C992100F12AC7 /* Debug */,
+				883AF3B115DA4EEA00AAA509 /* CLANGDebug */,
 				88BF337D156C992100F12AC7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1404,6 +1439,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				88BF3596156CA10D00F12AC7 /* Debug */,
+				883AF3B215DA4EEA00AAA509 /* CLANGDebug */,
 				88BF3597156CA10D00F12AC7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
