@@ -140,7 +140,7 @@ float_id(mrb_float f)
 mrb_int
 mrb_obj_id(mrb_value obj)
 {
-  mrb_int tt = obj.tt;
+  mrb_int tt = mrb_type(obj);
 
 #define MakeID2(p,t) (((intptr_t)(p))^(t))
 #define MakeID(p)    MakeID2(p,tt)

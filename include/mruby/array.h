@@ -1,5 +1,5 @@
 /*
-** array.h - Array class
+** mruby/array.h - Array class
 **
 ** See Copyright Notice in mruby.h
 */

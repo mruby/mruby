@@ -224,13 +224,13 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep, int type)
     uint16_t nlen =0;
     int len;
 
-    switch (irep->pool[pool_no].tt) {
+    switch (mrb_type(irep->pool[pool_no])) {
     case MRB_TT_FIXNUM:
-      len = sprintf( buf, "%d", irep->pool[pool_no].value.i);
+      len = sprintf( buf, "%d", mrb_fixnum(irep->pool[pool_no]));
       size += (uint32_t)len;
       break;
     case MRB_TT_FLOAT:
-      len = sprintf( buf, "%.16e", irep->pool[pool_no].value.f);
+      len = sprintf( buf, "%.16e", mrb_float(irep->pool[pool_no]));
       size += (uint32_t)len;
       break;
     case MRB_TT_STRING:
@@ -343,16 +343,16 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
   for (pool_no = 0; pool_no < irep->plen; pool_no++) {
     uint16_t nlen =0;
 
-    buf += uint8_dump(irep->pool[pool_no].tt, buf, type); /* data type */
+    buf += uint8_dump(mrb_type(irep->pool[pool_no]), buf, type); /* data type */
     memset(char_buf, 0, buf_size);
 
-    switch (irep->pool[pool_no].tt) {
+    switch (mrb_type(irep->pool[pool_no])) {
     case MRB_TT_FIXNUM:
-      sprintf(char_buf, "%d", irep->pool[pool_no].value.i);
+      sprintf(char_buf, "%d", mrb_fixnum(irep->pool[pool_no]));
       break;
 
     case MRB_TT_FLOAT:
-      sprintf(char_buf, "%.16e", irep->pool[pool_no].value.f);
+      sprintf(char_buf, "%.16e", mrb_float(irep->pool[pool_no]));
       break;
 
     case MRB_TT_STRING:

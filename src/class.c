@@ -204,7 +204,7 @@ class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
   mrb_value c = mrb_const_get(mrb, mrb_obj_value(klass), id);
 
-  if (c.tt != MRB_TT_MODULE && c.tt != MRB_TT_CLASS) {
+  if (mrb_type(c) != MRB_TT_MODULE && mrb_type(c) != MRB_TT_CLASS) {
     mrb_raise(mrb, E_TYPE_ERROR, "%s is not a class/module", mrb_sym2name(mrb, id));
   }
   return mrb_class_ptr(c);
@@ -496,7 +496,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_float*);
 	if (i < argc) {
-	  switch (sp->tt) {
+	  switch (mrb_type(*sp)) {
 	  case MRB_TT_FLOAT:
 	    *p = mrb_float(*sp);
 	    break;
@@ -526,7 +526,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_int*);
 	if (i < argc) {
-	  switch (sp->tt) {
+	  switch (mrb_type(*sp)) {
 	  case MRB_TT_FIXNUM:
 	    *p = mrb_fixnum(*sp);
 	    break;
@@ -1264,8 +1264,7 @@ undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
 {
   mrb_value m;
 
-  m.tt = MRB_TT_PROC;
-  m.value.p = 0;
+  MRB_SET_VALUE(m, MRB_TT_PROC, value.p, 0);
   mrb_define_method_vm(mrb, c, a, m);
 }
 
@@ -1317,10 +1316,10 @@ mod_define_method(mrb_state *mrb, mrb_value self)
 static mrb_sym
 mrb_sym_value(mrb_state *mrb, mrb_value val)
 {
-  if(val.tt == MRB_TT_STRING) {
+  if(mrb_type(val) == MRB_TT_STRING) {
     return mrb_intern_str(mrb, val);
   }
-  else if(val.tt != MRB_TT_SYMBOL) {
+  else if(mrb_type(val) != MRB_TT_SYMBOL) {
     mrb_value obj = mrb_funcall(mrb, val, "inspect", 0);
     mrb_raise(mrb, E_TYPE_ERROR, "%s is not a symbol",
          mrb_string_value_ptr(mrb, obj));

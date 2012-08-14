@@ -392,7 +392,7 @@ range_eql(mrb_state *mrb, mrb_value range)
     return mrb_false_value();
 
   r = mrb_range_ptr(range);
-  if (obj.tt != MRB_TT_RANGE) return mrb_false_value();
+  if (mrb_type(obj) != MRB_TT_RANGE) return mrb_false_value();
   o = mrb_range_ptr(obj);
   if (!mrb_eql(mrb, r->edges->beg, o->edges->beg))
     return mrb_false_value();

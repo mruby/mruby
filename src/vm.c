@@ -78,7 +78,15 @@ stack_extend(mrb_state *mrb, int room, int keep)
     envadjust(mrb, oldbase, mrb->stbase);
   }
   if (room > keep) {
+#ifndef MRB_NAN_BOXING
     memset(mrb->stack+keep, 0, sizeof(mrb_value) * (room-keep));
+#else
+    int i;
+
+    for (i=keep; i<room; i++) {
+      mrb->stack[i] = mrb_nil_value();
+    }
+#endif
   }
 }
 
@@ -380,40 +388,12 @@ argnum_error(mrb_state *mrb, int num)
   mrb->exc = (struct RObject*)mrb_object(exc);
 }
 
-#define SET_TRUE_VALUE(r) {\
-  (r).tt = MRB_TT_TRUE;\
-  (r).value.i = 1;\
-}
-
-#define SET_FALSE_VALUE(r) {\
-  (r).tt = MRB_TT_FALSE;\
-  (r).value.i = 1;\
-}
-
-#define SET_NIL_VALUE(r) { \
-  (r).tt = MRB_TT_FALSE;\
-  (r).value.p = 0;\
-}
-
-#define SET_INT_VALUE(r,n) {\
-  (r).tt = MRB_TT_FIXNUM;\
-  (r).value.i = (n);\
-}
-
-#define SET_FLOAT_VALUE(r,v) {\
-  (r).tt = MRB_TT_FLOAT;\
-  (r).value.f = (v);\
-}
-
-#define SET_SYM_VALUE(r,v) {\
-  (r).tt = MRB_TT_SYMBOL;\
-  (r).value.sym = (v);\
-}
-
-#define SET_OBJ_VALUE(r,v) {\
-  (r).tt = (((struct RObject*)(v))->tt);\
-  (r).value.p = (void*)(v);\
-}
+#define SET_TRUE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
+#define SET_FALSE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
+#define SET_NIL_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
+#define SET_INT_VALUE(r,n) MRB_SET_VALUE(r, MRB_TT_FIXNUM, value.i, (n))
+#define SET_SYM_VALUE(r,v) MRB_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
+#define SET_OBJ_VALUE(r,v) MRB_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
 
 #ifdef __GNUC__
 #define DIRECT_THREADED
@@ -496,6 +476,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   mrb->ci->proc = proc;
   mrb->ci->nregs = irep->nregs + 2;
   regs = mrb->stack;
+  regs[0] = self;
 
   INIT_DISPATCH {
     CASE(OP_NOP) {
@@ -978,7 +959,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         struct RArray *rest;
         int len = 0;
 
-        if (stack[m1].tt == MRB_TT_ARRAY) {
+        if (mrb_type(stack[m1]) == MRB_TT_ARRAY) {
           struct RArray *ary = mrb_ary_ptr(stack[m1]);
 
           pp = ary->ptr;
@@ -1032,7 +1013,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           }
         }
       }
-      else if (len > 1 && argc == 1 && argv[0].tt == MRB_TT_ARRAY) {
+      else if (len > 1 && argc == 1 && mrb_type(argv[0]) == MRB_TT_ARRAY) {
         argc = mrb_ary_ptr(argv[0])->len;
         argv = mrb_ary_ptr(argv[0])->ptr;
       }
@@ -1248,9 +1229,16 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       NEXT;
     }
 
+#define attr_i value.i
+#ifdef MRB_NAN_BOXING
+#define attr_f f
+#else
+#define attr_f value.f
+#endif
+
 #define TYPES2(a,b) (((((int)(a))<<8)|((int)(b)))&0xffff)
 #define OP_MATH_BODY(op,v1,v2) do {\
-  regs[a].value.v1 = regs[a].value.v1 op regs[a+1].value.v2;\
+  regs[a].v1 = regs[a].v1 op regs[a+1].v2;\
 } while(0)
 
 #define OP_MATH(op,iop,s) do {\
@@ -1262,16 +1250,16 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     break;\
   case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):\
     {\
-      mrb_int x = regs[a].value.i;\
-      mrb_float y = regs[a+1].value.f;\
-      SET_FLOAT_VALUE(regs[a], (mrb_float)x op y);\
+      mrb_int x = mrb_fixnum(regs[a]);\
+      mrb_float y = mrb_float(regs[a+1]);\
+      regs[a] = mrb_float_value((mrb_float)x op y);\
     }\
     break;\
   case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):\
-    OP_MATH_BODY(op,f,i);\
+    OP_MATH_BODY(op,attr_f,attr_i);\
     break;\
   case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):\
-    OP_MATH_BODY(op,f,f);\
+    OP_MATH_BODY(op,attr_f,attr_f);\
     break;\
     s\
   default:\
@@ -1316,10 +1304,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       /* need to check if + is overridden */
       switch (mrb_type(regs[a])) {
       case MRB_TT_FIXNUM:
-        regs[a].value.i += GETARG_C(i);
+        regs[a].attr_i += GETARG_C(i);
         break;
       case MRB_TT_FLOAT:
-        regs[a].value.f += GETARG_C(i);
+        regs[a].attr_f += GETARG_C(i);
         break;
       default:
 	SET_NIL_VALUE(regs[a+2]);
@@ -1337,10 +1325,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       /* need to check if + is overridden */
       switch (mrb_type(regs[a])) {
       case MRB_TT_FIXNUM:
-        regs[a].value.i -= GETARG_C(i);
+        regs[a].attr_i -= GETARG_C(i);
         break;
       case MRB_TT_FLOAT:
-        regs[a].value.f -= GETARG_C(i);
+        regs[a].attr_f -= GETARG_C(i);
         break;
       default:
 	SET_NIL_VALUE(regs[a+2]);
@@ -1352,7 +1340,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     }
 
 #define OP_CMP_BODY(op,v1,v2) do {\
-  if (regs[a].value.v1 op regs[a+1].value.v2) {\
+  if (regs[a].v1 op regs[a+1].v2) {\
     SET_TRUE_VALUE(regs[a]);\
   }\
   else {\
@@ -1365,16 +1353,16 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   /* need to check if - is overridden */\
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
   case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):\
-    OP_CMP_BODY(op,i,i);                   \
+    OP_CMP_BODY(op,attr_i,attr_i);\
     break;\
   case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):\
-    OP_CMP_BODY(op,i,f);\
+    OP_CMP_BODY(op,attr_i,attr_f);\
     break;\
   case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):\
-    OP_CMP_BODY(op,f,i);\
+    OP_CMP_BODY(op,attr_f,attr_i);\
     break;\
   case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):\
-    OP_CMP_BODY(op,f,f);\
+    OP_CMP_BODY(op,attr_f,attr_f);\
     break;\
   default:\
     SET_NIL_VALUE(regs[a+2]);\
@@ -1447,7 +1435,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       int c = GETARG_C(i);
       mrb_value v = regs[GETARG_B(i)];
 
-      if (v.tt != MRB_TT_ARRAY) {
+      if (mrb_type(v) != MRB_TT_ARRAY) {
         if (c == 0) {
           regs[GETARG_A(i)] = v;
         }
@@ -1474,7 +1462,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       int pre  = GETARG_B(i);
       int post = GETARG_C(i);
 
-      if (v.tt != MRB_TT_ARRAY) {
+      if (mrb_type(v) != MRB_TT_ARRAY) {
         regs[a++] = mrb_ary_new_capa(mrb, 0);
         while (post--) {
           SET_NIL_VALUE(regs[a]);
