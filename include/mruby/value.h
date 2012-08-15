@@ -134,7 +134,12 @@ mrb_float_value(mrb_float f)
 {
   mrb_value v;
 
-  v.f = f;
+  if (f != f) {
+    v.ttt = 0x7ff80000;
+    v.value.i = 0;
+  } else {
+    v.f = f;
+  }
   return v;
 }
 #endif	/* MRB_NAN_BOXING */
