@@ -996,6 +996,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       */
       int argc = mrb->ci->argc;
       mrb_value *argv = regs+1;
+      mrb_value *argv0 = argv;
       int len = m1 + o + r + m2;
       mrb_value *blk = &argv[argc < 0 ? 1 : argc];
 
@@ -1020,8 +1021,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       mrb->ci->argc = len;
       if (argc < len) {
         regs[len+1] = *blk; /* move block */
-        memmove(&regs[1], argv, sizeof(mrb_value)*(argc-m2)); /* m1 + o */
-        memmove(&regs[len-m2+1], &argv[argc-m2], sizeof(mrb_value)*m2); /* m2 */
+        if (argv0 != argv) {
+          memmove(&regs[1], argv, sizeof(mrb_value)*(argc-m2)); /* m1 + o */
+        }
+        if (m2) {
+          memmove(&regs[len-m2+1], &argv[argc-m2], sizeof(mrb_value)*m2); /* m2 */
+        }
         if (r) {                  /* r */
           regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
         }
@@ -1030,11 +1035,15 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	  pc += argc - m1 - m2 + 1;
       }
       else {
-        memmove(&regs[1], argv, sizeof(mrb_value)*(m1+o)); /* m1 + o */
+        if (argv0 != argv) {
+          memmove(&regs[1], argv, sizeof(mrb_value)*(m1+o)); /* m1 + o */
+        }
         if (r) {                  /* r */
           regs[m1+o+1] = mrb_ary_new_elts(mrb, argc-m1-o-m2, argv+m1+o);
         }
-        memmove(&regs[m1+o+r+1], &argv[argc-m2], sizeof(mrb_value)*m2);
+        if (m2) {
+          memmove(&regs[m1+o+r+1], &argv[argc-m2], sizeof(mrb_value)*m2);
+        }
         regs[len+1] = *blk; /* move block */
         pc += o + 1;
       }
