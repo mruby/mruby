@@ -60,7 +60,6 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 
   memset(args, 0, sizeof(*args));
 
-  if (argc == 1) return -2;
   for (argc--,argv++; argc > 0; argc--,argv++) {
     char *item;
     if (argv[0][0] != '-') break;
