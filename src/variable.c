@@ -677,7 +677,7 @@ mrb_const_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 static void
 mod_const_check(mrb_state *mrb, mrb_value mod)
 {
-  switch (mod.tt) {
+  switch (mrb_type(mod)) {
   case MRB_TT_CLASS:
   case MRB_TT_MODULE:
     break;

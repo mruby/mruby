@@ -1,5 +1,5 @@
 /*
-** range.h - Range class
+** mruby/range.h - Range class
 **
 ** See Copyright Notice in mruby.h
 */

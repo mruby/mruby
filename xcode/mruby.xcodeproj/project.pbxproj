@@ -833,7 +833,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd ../test\ncat ./assert.rb ./t/*.rb > mrbtest.rbtmp\n../Xcode/build/mrbc -Bmrbtest_irep -omrbtest.ctmp mrbtest.rbtmp\ncat init_mrbtest.c mrbtest.ctmp > mrbtest.c";
+			shellScript = "cd ../test\ncat ./assert.rb ./t/*.rb > mrbtest.rbtmp\n../xcode/bin/mrbc -Bmrbtest_irep -omrbtest.ctmp mrbtest.rbtmp\ncat init_mrbtest.c mrbtest.ctmp > mrbtest.c";
 		};
 		88760AE015759C3600113BFB /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -846,7 +846,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd ../mrblib\ncat ./*.rb > mrblib.rbtmp\n../Xcode/build/mrbc -Bmrblib_irep -omrblib.ctmp mrblib.rbtmp\ncat init_mrblib.c mrblib.ctmp > mrblib.c";
+			shellScript = "cd ../mrblib\ncat ./*.rb > mrblib.rbtmp\n../xcode/bin/mrbc -Bmrblib_irep -omrblib.ctmp mrblib.rbtmp\ncat init_mrblib.c mrblib.ctmp > mrblib.c";
 		};
 		88760AE915759F5E00113BFB /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -872,7 +872,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd ../mrblib\ncat ./*.rb > mrblib.rbtmp\n../Xcode/build/mrbc -Bmrblib_irep -omrblib.ctmp mrblib.rbtmp\ncat init_mrblib.c mrblib.ctmp > mrblib.c";
+			shellScript = "cd ../mrblib\ncat ./*.rb > mrblib.rbtmp\n../xcode/bin/mrbc -Bmrblib_irep -omrblib.ctmp mrblib.rbtmp\ncat init_mrblib.c mrblib.ctmp > mrblib.c";
 		};
 /* End PBXShellScriptBuildPhase section */
 

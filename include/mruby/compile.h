@@ -1,5 +1,5 @@
 /*
-** compile.h - mruby parser
+** mruby/compile.h - mruby parser
 **
 ** See Copyright Notice in mruby.h
 */

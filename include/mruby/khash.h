@@ -1,5 +1,5 @@
 /*
-** ritehash.c - Rite Hash for mruby
+** mruby/khash.c - Hash for mruby
 **
 ** See Copyright Notice in mruby.h
 */

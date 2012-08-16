@@ -1,5 +1,5 @@
 /*
-** class.h - Class class
+** mruby/class.h - Class class
 **
 ** See Copyright Notice in mruby.h
 */

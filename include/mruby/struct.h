@@ -1,5 +1,5 @@
 /*
-** struct.h - Struct class
+** mruby/struct.h - Struct class
 **
 ** See Copyright Notice in mruby.h
 */

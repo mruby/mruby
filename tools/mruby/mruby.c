@@ -64,8 +64,11 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
     char *item;
     if (argv[0][0] != '-') break;
 
-    if (strlen(*argv) <= 1)
-      return -1;
+    if (strlen(*argv) <= 1) {
+      argc--; argv++;
+      args->rfp = stdin;
+      break;
+    }
 
     item = argv[0] + 1;
     switch (*item++) {
@@ -121,10 +124,9 @@ append_cmdline:
       else return -3;
       return 0;
     default:
-      break;
+      return -4;
     }
   }
-
 
   if (args->rfp == NULL && args->cmdline == NULL) {
     if (*argv == NULL) args->rfp = stdin;

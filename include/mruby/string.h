@@ -1,5 +1,5 @@
 /*
-** string.h - String class
+** mruby/string.h - String class
 **
 ** See Copyright Notice in mruby.h
 */

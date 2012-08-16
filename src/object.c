@@ -14,8 +14,8 @@
 int
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
-  if (v1.tt != v2.tt) return FALSE;
-  switch (v1.tt) {
+  if (mrb_type(v1) != mrb_type(v2)) return FALSE;
+  switch (mrb_type(v1)) {
   case MRB_TT_TRUE:
     return 1;
 
@@ -26,7 +26,7 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
     return (v1.value.sym == v2.value.sym);
 
   case MRB_TT_FLOAT:
-    return (v1.value.f == v2.value.f);
+    return (mrb_float(v1) == mrb_float(v2));
 
   default:
     return (v1.value.p == v2.value.p);
