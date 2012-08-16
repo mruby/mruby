@@ -11,9 +11,6 @@
 #include "mruby/array.h"
 #include "mruby/string.h"
 #include "mruby/proc.h"
-#ifndef MRB_USE_IV_SEGLIST
-#include "mruby/khash.h"
-#endif
 
 #ifdef ENABLE_REGEXP
 #include "re.h"
