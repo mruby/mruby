@@ -195,7 +195,6 @@
 		88BF34E1156C998200F12AC7 /* error.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = error.h; sourceTree = "<group>"; };
 		88BF34E2156C998200F12AC7 /* etc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = etc.c; sourceTree = "<group>"; };
 		88BF34E5156C998200F12AC7 /* gc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = gc.c; sourceTree = "<group>"; };
-		88BF34E6156C998200F12AC7 /* gc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = gc.h; sourceTree = "<group>"; };
 		88BF34E7156C998200F12AC7 /* hash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hash.c; sourceTree = "<group>"; };
 		88BF34E8156C998200F12AC7 /* init.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = init.c; sourceTree = "<group>"; };
 		88BF34EA156C998200F12AC7 /* init_ext.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = init_ext.c; sourceTree = "<group>"; };
@@ -491,7 +490,6 @@
 				88BF34E1156C998200F12AC7 /* error.h */,
 				88BF34E2156C998200F12AC7 /* etc.c */,
 				88BF34E5156C998200F12AC7 /* gc.c */,
-				88BF34E6156C998200F12AC7 /* gc.h */,
 				88BF34E7156C998200F12AC7 /* hash.c */,
 				88BF34E8156C998200F12AC7 /* init.c */,
 				88BF34EA156C998200F12AC7 /* init_ext.c */,
