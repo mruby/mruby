@@ -354,10 +354,6 @@ iv_free(mrb_state *mrb, iv_tbl *t)
 
 #endif
 
-#ifndef MRB_IV_INITIAL_SIZE
-#define MRB_IV_INITIAL_SIZE 8
-#endif
-
 static int
 iv_mark_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
