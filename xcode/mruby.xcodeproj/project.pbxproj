@@ -169,10 +169,10 @@
 		8844358915772EF0007F95A4 /* typeerror.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = typeerror.rb; sourceTree = "<group>"; };
 		8844358F1577301B007F95A4 /* mrbtest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = mrbtest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8844359A157730DB007F95A4 /* mrbtest.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = mrbtest.c; sourceTree = "<group>"; };
-		88760A9D1575991600113BFB /* mrbc */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = mrbc; path = build/mrbc; sourceTree = "<group>"; };
-		88760B1715769BE400113BFB /* libmruby_core.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; name = libmruby_core.a; path = build/lib/libmruby_core.a; sourceTree = "<group>"; };
+		88760A9D1575991600113BFB /* mrbc */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = mrbc; path = bin/mrbc; sourceTree = SOURCE_ROOT; };
+		88760B1715769BE400113BFB /* libmruby_core.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; name = libmruby_core.a; path = lib/libmruby_core.a; sourceTree = SOURCE_ROOT; };
 		88760B1C15769CEE00113BFB /* mrblib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mrblib.c; sourceTree = "<group>"; };
-		88760B1F15769E2D00113BFB /* libmruby.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; name = libmruby.a; path = build/lib/libmruby.a; sourceTree = "<group>"; };
+		88760B1F15769E2D00113BFB /* libmruby.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; name = libmruby.a; path = lib/libmruby.a; sourceTree = SOURCE_ROOT; };
 		88760B2415769E6100113BFB /* mruby */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = mruby; sourceTree = BUILT_PRODUCTS_DIR; };
 		88760B3C15769F3000113BFB /* mirb */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = mirb; sourceTree = BUILT_PRODUCTS_DIR; };
 		88760B7E1576A33100113BFB /* mruby_fw-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "mruby_fw-Info.plist"; sourceTree = "<group>"; };
@@ -195,7 +195,6 @@
 		88BF34E1156C998200F12AC7 /* error.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = error.h; sourceTree = "<group>"; };
 		88BF34E2156C998200F12AC7 /* etc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = etc.c; sourceTree = "<group>"; };
 		88BF34E5156C998200F12AC7 /* gc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = gc.c; sourceTree = "<group>"; };
-		88BF34E6156C998200F12AC7 /* gc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = gc.h; sourceTree = "<group>"; };
 		88BF34E7156C998200F12AC7 /* hash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hash.c; sourceTree = "<group>"; };
 		88BF34E8156C998200F12AC7 /* init.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = init.c; sourceTree = "<group>"; };
 		88BF34EA156C998200F12AC7 /* init_ext.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = init_ext.c; sourceTree = "<group>"; };
@@ -491,7 +490,6 @@
 				88BF34E1156C998200F12AC7 /* error.h */,
 				88BF34E2156C998200F12AC7 /* etc.c */,
 				88BF34E5156C998200F12AC7 /* gc.c */,
-				88BF34E6156C998200F12AC7 /* gc.h */,
 				88BF34E7156C998200F12AC7 /* hash.c */,
 				88BF34E8156C998200F12AC7 /* init.c */,
 				88BF34EA156C998200F12AC7 /* init_ext.c */,
@@ -835,7 +833,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd ../test\ncat ./assert.rb ./t/*.rb > mrbtest.rbtmp\n../Xcode/build/mrbc -Bmrbtest_irep -omrbtest.ctmp mrbtest.rbtmp\ncat init_mrbtest.c mrbtest.ctmp > mrbtest.c";
+			shellScript = "cd ../test\ncat ./assert.rb ./t/*.rb > mrbtest.rbtmp\n../xcode/bin/mrbc -Bmrbtest_irep -omrbtest.ctmp mrbtest.rbtmp\ncat init_mrbtest.c mrbtest.ctmp > mrbtest.c";
 		};
 		88760AE015759C3600113BFB /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -848,7 +846,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd ../mrblib\ncat ./*.rb > mrblib.rbtmp\n../Xcode/build/mrbc -Bmrblib_irep -omrblib.ctmp mrblib.rbtmp\ncat init_mrblib.c mrblib.ctmp > mrblib.c";
+			shellScript = "cd ../mrblib\ncat ./*.rb > mrblib.rbtmp\n../xcode/bin/mrbc -Bmrblib_irep -omrblib.ctmp mrblib.rbtmp\ncat init_mrblib.c mrblib.ctmp > mrblib.c";
 		};
 		88760AE915759F5E00113BFB /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -874,7 +872,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd ../mrblib\ncat ./*.rb > mrblib.rbtmp\n../Xcode/build/mrbc -Bmrblib_irep -omrblib.ctmp mrblib.rbtmp\ncat init_mrblib.c mrblib.ctmp > mrblib.c";
+			shellScript = "cd ../mrblib\ncat ./*.rb > mrblib.rbtmp\n../xcode/bin/mrbc -Bmrblib_irep -omrblib.ctmp mrblib.rbtmp\ncat init_mrblib.c mrblib.ctmp > mrblib.c";
 		};
 /* End PBXShellScriptBuildPhase section */
 
