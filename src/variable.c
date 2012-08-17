@@ -11,9 +11,6 @@
 #include "mruby/array.h"
 #include "mruby/string.h"
 #include "mruby/proc.h"
-#ifndef MRB_USE_IV_SEGLIST
-#include "mruby/khash.h"
-#endif
 
 #ifdef ENABLE_REGEXP
 #include "re.h"
@@ -355,10 +352,6 @@ iv_free(mrb_state *mrb, iv_tbl *t)
   kh_destroy(iv, &t->h);
 }
 
-#endif
-
-#ifndef MRB_IV_INITIAL_SIZE
-#define MRB_IV_INITIAL_SIZE 8
 #endif
 
 static int
