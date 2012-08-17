@@ -4810,9 +4810,9 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 {
   if (s) {
     int len = strlen(s);
-    char *p = (char *)mrb_malloc(mrb, len);
+    char *p = (char *)mrb_malloc(mrb, len + 1);
 
-    memcpy(p, s, len);
+    memcpy(p, s, len + 1);
     if (c->filename) mrb_free(mrb, c->filename);
     c->filename = p;
     c->lineno = 1;
