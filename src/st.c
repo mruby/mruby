@@ -419,7 +419,7 @@ st_foreach(st_table *table, enum st_retval (*func)(ANYARGS), st_data_t arg)
                 for (tmp = table->bins[i]; tmp != ptr; tmp = tmp->next) {
                     if (!tmp) {
                         /* call func with error notice */
-                        retval = (*func)(0, 0, arg, 1);
+                        (*func)(0, 0, arg, 1);
                         return 1;
                     }
                 }
