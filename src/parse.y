@@ -1026,14 +1026,11 @@ top_stmts	: none
 top_stmt	: stmt
 		| keyword_BEGIN
 		    {
-		      if (p->in_def || p->in_single) {
-			yyerror(p, "BEGIN in method");
-		      }
 		      $<nd>$ = local_switch(p);
 		    }
 		  '{' top_compstmt '}'
 		    {
-		      p->begin_tree = push(p->begin_tree, $4);
+		      yyerror(p, "BEGIN not supported");
 		      local_resume(p, $<nd>2);
 		      $$ = 0;
 		    }
@@ -1119,9 +1116,7 @@ stmt		: keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
 		    }
 		| keyword_END '{' compstmt '}'
 		    {
-		      if (p->in_def || p->in_single) {
-			yywarn(p, "END in method; use at_exit");
-		      }
+		      yyerror(p, "END not suported");
 		      $$ = new_postexe(p, $3);
 		    }
 		| command_asgn
@@ -4714,12 +4709,10 @@ void parser_dump(mrb_state *mrb, node *tree, int offset);
 void
 mrb_parser_parse(parser_state *p, mrbc_context *c)
 {
-  node *tree;
-
   if (setjmp(p->jmp) != 0) {
     yyerror(p, "memory allocation error");
     p->nerr++;
-    p->tree = p->begin_tree = 0;
+    p->tree = 0;
     return;
   }
 
@@ -4730,22 +4723,10 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
 
   parser_init_cxt(p, c);
   yyparse(p);
-  tree = p->tree;
-  if (!tree) {
-    if (p->begin_tree) {
-      tree = p->begin_tree;
-    }
-    else {
-      tree = new_nil(p);
-    }
+  if (!p->tree) {
+    p->tree = new_nil(p);
   }
-  else {
-    parser_update_cxt(p, c);
-    if (p->begin_tree) {
-      tree = new_begin(p, p->begin_tree);
-      append(tree, p->tree);
-    }
-  }
+  parser_update_cxt(p, c);
   if (c && c->dump_result) {
     parser_dump(p->mrb, p->tree, 0);
   }

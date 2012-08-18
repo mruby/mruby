@@ -89,7 +89,7 @@ struct mrb_parser_state {
 
   int nerr;
   int nwarn;
-  mrb_ast_node *tree, *begin_tree;
+  mrb_ast_node *tree;
 
   int capture_errors;
   struct mrb_parser_message error_buffer[10];
