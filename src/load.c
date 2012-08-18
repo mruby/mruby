@@ -281,7 +281,7 @@ mrb_load_irep(mrb_state *mrb, FILE* fp)
     dst += rlen;
   }
   rite_fgets(rfp, hex8, sizeof(hex8), TRUE);                        //dummy record len
-  dst += hex_to_bin32(dst, hex8);
+  hex_to_bin32(dst, hex8);  /* dst += hex_to_bin32(dst, hex8); */
   if (0 != hex_to_uint32(hex8)) {
     ret = MRB_DUMP_INVALID_IREP;
     goto error_exit;
