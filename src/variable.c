@@ -708,7 +708,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
   while (c) {
     if (mrb_respond_to(mrb, mrb_obj_value(c), cm)) {
       mrb_value name = mrb_symbol_value(sym);
-      return mrb_funcall(mrb, mrb_obj_value(c), "const_missing", 1, name);
+      return mrb_funcall_argv(mrb, mrb_obj_value(c), cm, 1, &name);
     }
     c = c->super;
   }

@@ -290,12 +290,15 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
   a1 = RARRAY(ary1); a2 = RARRAY(ary2);
   if (a1->len == a2->len && a1->ptr == a2->ptr) return mrb_fixnum_value(0);
   else {
+    mrb_sym cmp = mrb_intern(mrb, "<=>");
+
     len = RARRAY_LEN(ary1);
     if (len > RARRAY_LEN(ary2)) {
       len = RARRAY_LEN(ary2);
     }
     for (i=0; i<len; i++) {
-      r = mrb_funcall(mrb, ary_elt(ary1, i), "<=>", 1, ary_elt(ary2, i));
+      mrb_value v = ary_elt(ary2, i);
+      r = mrb_funcall_argv(mrb, ary_elt(ary1, i), cmp, 1, &v);
       if (mrb_type(r) != MRB_TT_FIXNUM || mrb_fixnum(r) != 0) return r;
     }
   }

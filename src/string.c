@@ -1721,7 +1721,6 @@ mrb_str_match_m(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 1..2)", argc);
   re = argv[0];
   argv[0] = self;
-  //  result = mrb_funcall2(get_pat(re, 0), mrb_intern("match"), argc, argv);
   result = mrb_funcall(mrb, get_pat(mrb, re, 0), "match", 1, self);
   if (!mrb_nil_p(result) && mrb_block_given_p()) {
     return mrb_yield(mrb, b, result);

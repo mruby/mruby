@@ -65,8 +65,6 @@ static char * option_to_str(char str[4], int options);
 mrb_value
 mrb_reg_s_new_instance(mrb_state *mrb, /*int argc, mrb_value *argv, */mrb_value self)
 {
-  //obj = mrb_obj_alloc(klass);
-  //mrb_obj_call_init(obj, argc, argv);...mrb_funcall2(obj, idInitialize, argc, argv);
   mrb_value argv[16];
   int argc;
   struct RRegexp *re;
@@ -76,7 +74,7 @@ mrb_reg_s_new_instance(mrb_state *mrb, /*int argc, mrb_value *argv, */mrb_value 
   re->ptr = 0;
   re->src = 0;
   re->usecnt = 0;
-  return mrb_funcall_argv(mrb, mrb_obj_value(re), mrb_intern(mrb, "initialize"), argc, argv);
+  return mrb_funcall_argv(mrb, mrb_obj_value(re), mrb->init_sym, argc, argv);
 }
 
 mrb_value
