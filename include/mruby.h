@@ -41,7 +41,7 @@ typedef int32_t mrb_code;
 
 struct mrb_state;
 
-typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t);
+typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 
 #ifndef MRB_ARENA_SIZE
 #define MRB_ARENA_SIZE 1024
@@ -205,7 +205,7 @@ mrb_value mrb_str_new_cstr(mrb_state*, const char*);
 mrb_value mrb_str_new2(mrb_state *mrb, const char *p);
 
 mrb_state* mrb_open(void);
-mrb_state* mrb_open_allocf(mrb_allocf);
+mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
 void mrb_close(mrb_state*);
 int mrb_checkstack(mrb_state*,int);
 

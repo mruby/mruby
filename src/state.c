@@ -14,9 +14,9 @@ void mrb_init_core(mrb_state*);
 void mrb_init_ext(mrb_state*);
 
 mrb_state*
-mrb_open_allocf(mrb_allocf f)
+mrb_open_allocf(mrb_allocf f, void *ud)
 {
-  mrb_state *mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state));
+  mrb_state *mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
   if (mrb == NULL) return NULL;
 
   memset(mrb, 0, sizeof(mrb_state));
@@ -30,7 +30,7 @@ mrb_open_allocf(mrb_allocf f)
 }
 
 static void*
-allocf(mrb_state *mrb, void *p, size_t size)
+allocf(mrb_state *mrb, void *p, size_t size, void *ud)
 {
   if (size == 0) {
     free(p);
@@ -44,7 +44,7 @@ allocf(mrb_state *mrb, void *p, size_t size)
 mrb_state*
 mrb_open()
 {
-  mrb_state *mrb = mrb_open_allocf(allocf);
+  mrb_state *mrb = mrb_open_allocf(allocf, NULL);
 
   return mrb;
 }

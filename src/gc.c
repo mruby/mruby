@@ -153,11 +153,11 @@ mrb_realloc(mrb_state *mrb, void *p, size_t len)
 {
   void *p2;
 
-  p2 = (mrb->allocf)(mrb, p, len);
+  p2 = (mrb->allocf)(mrb, p, len, mrb->ud);
 
   if (!p2 && len > 0 && mrb->heaps) {
     mrb_garbage_collect(mrb);
-    p2 = (mrb->allocf)(mrb, p, len);
+    p2 = (mrb->allocf)(mrb, p, len, mrb->ud);
   }
   return p2;
 }
@@ -188,7 +188,7 @@ mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
 void*
 mrb_free(mrb_state *mrb, void *p)
 {
-  return (mrb->allocf)(mrb, p, 0);
+  return (mrb->allocf)(mrb, p, 0, mrb->ud);
 }
 
 #ifndef MRB_HEAP_PAGE_SIZE
