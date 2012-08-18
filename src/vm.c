@@ -1,5 +1,5 @@
 /*
-** vm.c - virtual machine for mruby (RiteVM)
+** vm.c - virtual machine for mruby
 **
 ** See Copyright Notice in mruby.h
 */

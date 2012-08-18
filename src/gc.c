@@ -1,5 +1,5 @@
 /*
-** gc.c - garbage collector for RiteVM
+** gc.c - garbage collector for mruby
 **
 ** See Copyright Notice in mruby.h
 */
@@ -24,7 +24,7 @@
 /*
   = Tri-color Incremental Garbage Collection
 
-  RiteVM's GC is Tri-color Incremental GC with Mark & Sweep.
+  mruby's GC is Tri-color Incremental GC with Mark & Sweep.
   Algorithm details are omitted.
   Instead, the part about the implementation described below.
 
@@ -61,7 +61,7 @@
 
   = Write Barrier
 
-  RiteVM implementer, C extension library writer must write a write
+  mruby implementer, C extension library writer must write a write
   barrier when writing a pointer to an object on object's field.
   Two different write barrier:
 

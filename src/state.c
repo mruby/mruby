@@ -1,5 +1,5 @@
 /*
-** state.c - RiteVM open/close functions
+** state.c - mrb_state open/close functions
 **
 ** See Copyright Notice in mruby.h
 */
