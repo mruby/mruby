@@ -181,23 +181,20 @@ main(void)
 
     last_code_line[char_index] = '\0';
 
-    if ((strcmp(last_code_line, "quit") == 0) ||
-        (strcmp(last_code_line, "exit") == 0)) {
-      if (code_block_open) {
-        /* cancel the current block and reset */
-        code_block_open = FALSE;
-        memset(ruby_code, 0, sizeof(*ruby_code));
-        memset(last_code_line, 0, sizeof(*last_code_line));
-        continue;
-      }
-      else {
-        /* quit the program */
+    if ((strcmp(last_code_line, "quit") == 0) || (strcmp(last_code_line, "exit") == 0)) {
+      if (!code_block_open || !parser->sterm){
         break;
       }
+      else{
+        /* count the quit/exit commands as strings if in a quote block */
+        strcat(ruby_code, "\n");
+        strcat(ruby_code, last_code_line);
+      }
     }
+
     else {
       if (code_block_open) {
-	strcat(ruby_code, "\n");
+        strcat(ruby_code, "\n");
         strcat(ruby_code, last_code_line);
       }
       else {
