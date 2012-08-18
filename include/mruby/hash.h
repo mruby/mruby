@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 struct RHash {
-  MRUBY_OBJECT_HEADER;
+  MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
   struct kh_ht *ht;
 };

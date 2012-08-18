@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 struct RClass {
-  MRUBY_OBJECT_HEADER;
+  MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
   struct kh_mt *mt;
   struct RClass *super;

@@ -7,7 +7,7 @@
 #ifndef MRUBY_OBJECT_H
 #define MRUBY_OBJECT_H
 
-#define MRUBY_OBJECT_HEADER \
+#define MRB_OBJECT_HEADER \
   enum mrb_vtype tt:8;\
   unsigned int color:3;\
   unsigned int flags:21;\
@@ -34,11 +34,11 @@
 #define other_white_part(s) ((s)->current_white_part ^ MRB_GC_WHITES)
 
 struct RBasic {
-  MRUBY_OBJECT_HEADER;
+  MRB_OBJECT_HEADER;
 };
 
 struct RObject {
-  MRUBY_OBJECT_HEADER;
+  MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
 };
 

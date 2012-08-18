@@ -32,7 +32,7 @@ struct mrb_shared_string {
 };
 
 struct RString {
-  MRUBY_OBJECT_HEADER;
+  MRB_OBJECT_HEADER;
   int len;
   union {
     int capa;

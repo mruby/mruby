@@ -77,7 +77,7 @@
 #endif
 
 struct free_obj {
-  MRUBY_OBJECT_HEADER;
+  MRB_OBJECT_HEADER;
   struct RBasic *next;
 };
 

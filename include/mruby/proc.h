@@ -14,14 +14,14 @@ extern "C" {
 #endif
 
 struct REnv {
-  MRUBY_OBJECT_HEADER;
+  MRB_OBJECT_HEADER;
   mrb_value *stack;
   mrb_sym mid;
   int cioff;
 };
 
 struct RProc {
-  MRUBY_OBJECT_HEADER;
+  MRB_OBJECT_HEADER;
   union {
     mrb_irep *irep;
     mrb_func_t func;

@@ -17,7 +17,7 @@ struct mrb_data_type {
 };
 
 struct RData {
-  MRUBY_OBJECT_HEADER;
+  MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
   struct mrb_data_type *type;
   void *data;
