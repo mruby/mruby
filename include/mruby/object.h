@@ -8,7 +8,7 @@
 #define MRUBY_OBJECT_H
 
 #define MRUBY_OBJECT_HEADER \
-  enum mrb_vtype tt; \
+  enum mrb_vtype tt:8;\
   unsigned int color:3;\
   unsigned int flags:21;\
   struct RClass *c;\
