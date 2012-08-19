@@ -20,6 +20,7 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   if (mrb == NULL) return NULL;
 
   memset(mrb, 0, sizeof(mrb_state));
+  mrb->ud = ud;
   mrb->allocf = f;
   mrb->current_white_part = MRB_GC_WHITE_A;
 
