@@ -206,7 +206,7 @@ main(int argc, char **argv)
       v = mrb_load_string_cxt(mrb, (char*)args.cmdline, c);
     }
     else {
-      mrbc_filename(mrb, c, argv[1]);
+      mrbc_filename(mrb, c, args.argv[0]);
       v = mrb_load_file_cxt(mrb, args.rfp, c);
     }
     mrbc_context_free(mrb, c);
