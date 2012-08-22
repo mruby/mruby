@@ -164,6 +164,9 @@ void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
     mrb->exc = (struct RObject*)mrb_object(exc);
+    if (!mrb->jmp) {
+      abort();
+    }
     longjmp(*(jmp_buf*)mrb->jmp, 1);
 }
 
