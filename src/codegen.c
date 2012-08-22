@@ -53,6 +53,8 @@ typedef struct scope {
 
   struct loopinfo *loop;
   int ensure_level;
+  char *filename;
+  int lineno;
 
   mrb_code *iseq;
   int icapa;
@@ -92,7 +94,12 @@ codegen_error(codegen_scope *s, const char *message)
   }
   mrb_pool_close(s->mpool);
 #ifdef ENABLE_STDIO
-  fprintf(stderr, "codegen error: %s\n", message);
+  if (s->filename && s->lineno) {
+    fprintf(stderr, "codegen error:%s:%d: %s\n", s->filename, s->lineno, message);
+  }
+  else {
+    fprintf(stderr, "codegen error: %s\n", message);
+  }
 #endif
   longjmp(s->jmp, 1);
 }
@@ -911,6 +918,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
   if (!tree) return;
   nt = (intptr_t)tree->car;
+  s->lineno = tree->lineno;
   tree = tree->cdr;
   switch (nt) {
   case NODE_BEGIN:
@@ -2032,6 +2040,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->ai = mrb->arena_idx;
 
   p->idx = mrb->irep_len++;
+  p->filename = prev->filename;
 
   return p;
 }
@@ -2063,7 +2072,10 @@ scope_finish(codegen_scope *s, int idx)
   irep->nlocals = s->nlocals;
   irep->nregs = s->nregs;
 
-  s->mrb->arena_idx = s->ai;
+  mrb->arena_idx = s->ai;
+  if (!s->prev && s->filename) {
+    mrb_free(mrb, s->filename);
+  }
   mrb_pool_close(s->mpool);
 }
 
@@ -2445,7 +2457,7 @@ codedump_all(mrb_state *mrb, int start)
 }
 
 static int
-codegen_start(mrb_state *mrb, node *tree)
+codegen_start(mrb_state *mrb, parser_state *p)
 {
   codegen_scope *scope = scope_new(mrb, 0, 0);
 
@@ -2453,22 +2465,30 @@ codegen_start(mrb_state *mrb, node *tree)
     return -1;
   }
   scope->mrb = mrb;
+  if (p->filename) {
+    int len = strlen(p->filename);
+    char *s = (char*)mrb_malloc(mrb, len+1);
 
+    memcpy(s, p->filename, len + 1);
+    scope->filename = s;
+  }
   if (setjmp(scope->jmp) != 0) {
+    if (scope->filename) mrb_free(mrb, scope->filename);
     return -1;
   }
   // prepare irep
-  codegen(scope, tree, NOVAL);
+  codegen(scope, p->tree, NOVAL);
+    if (scope->filename) mrb_free(mrb, scope->filename);
   return 0;
 }
 
 int
-mrb_generate_code(mrb_state *mrb, node *tree)
+mrb_generate_code(mrb_state *mrb, parser_state *p)
 {
   int start = mrb->irep_len;
   int n;
 
-  n = codegen_start(mrb, tree);
+  n = codegen_start(mrb, p);
   if (n < 0) return n;
 
   return start;

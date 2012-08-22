@@ -99,6 +99,7 @@ cons_gen(parser_state *p, node *car, node *cdr)
 
   c->car = car;
   c->cdr = cdr;
+  c->lineno = p->lineno;
   return c;
 }
 #define cons(a,b) cons_gen(p,(a),(b))
@@ -4862,7 +4863,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
       return mrb_nil_value();
     }
   }
-  n = mrb_generate_code(mrb, p->tree);
+  n = mrb_generate_code(mrb, p);
   mrb_parser_free(p);
   if (n < 0) {
     static const char msg[] = "codegen error";

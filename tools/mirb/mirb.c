@@ -220,7 +220,7 @@ main(void)
         }
 	else {
           /* generate bytecode */
-          n = mrb_generate_code(mrb, parser->tree);
+          n = mrb_generate_code(mrb, parser);
 
           /* evaluate the bytecode */
           result = mrb_run(mrb,
