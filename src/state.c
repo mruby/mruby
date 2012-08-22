@@ -83,10 +83,12 @@ mrb_add_irep(mrb_state *mrb, int idx)
     mrb->irep_capa = max;
   }
   else if (mrb->irep_capa <= idx) {
+    size_t old_capa = mrb->irep_capa;
     while (mrb->irep_capa <= idx) {
       mrb->irep_capa *= 2;
     }
     mrb->irep = (mrb_irep **)mrb_realloc(mrb, mrb->irep, sizeof(mrb_irep*)*mrb->irep_capa);
+    memset(mrb->irep + old_capa, 0, sizeof(mrb_irep*) * (mrb->irep_capa - old_capa));
   }
 }
 
