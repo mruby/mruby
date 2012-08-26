@@ -267,7 +267,12 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
   ci->stackidx = mrb->stack - mrb->stbase;
   ci->argc = argc;
   ci->target_class = p->target_class;
-  ci->nregs = argc + 2;
+  if (MRB_PROC_CFUNC_P(p)) {
+    ci->nregs = argc + 2;
+  }
+  else {
+    ci->nregs = p->body.irep->nregs + 2;
+  }
   ci->acc = -1;
   mrb->stack = mrb->stack + n;
 
@@ -318,7 +323,12 @@ mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_v
   ci->stackidx = mrb->stack - mrb->stbase;
   ci->argc = argc;
   ci->target_class = c;
-  ci->nregs = argc + 2;
+  if (MRB_PROC_CFUNC_P(p)) {
+    ci->nregs = argc + 2;
+  }
+  else {
+    ci->nregs = p->body.irep->nregs + 2;
+  }
   ci->acc = -1;
   mrb->stack = mrb->stack + n;
 
