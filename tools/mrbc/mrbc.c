@@ -17,6 +17,7 @@ void codedump_all(mrb_state*, int);
 struct _args {
   FILE *rfp;
   FILE *wfp;
+  char *filename;
   char *initname;
   char *ext;
   int check_syntax : 1;
@@ -119,7 +120,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
       }
     }
     else if (args->rfp == NULL) {
-      infile = *argv;
+      args->filename = infile = *argv;
       if ((args->rfp = fopen(infile, "r")) == NULL) {
         printf("%s: Cannot open program file. (%s)\n", *origargv, infile);
         return 0;
@@ -181,6 +182,7 @@ main(int argc, char **argv)
   if (args.verbose)
     c->dump_result = 1;
   c->no_exec = 1;
+  c->filename = args.filename;
   result = mrb_load_file_cxt(mrb, args.rfp, c);
   if (mrb_undef_p(result) || mrb_fixnum(result) < 0) {
     cleanup(mrb, &args);
