@@ -284,6 +284,19 @@ mrb_init_heap(mrb_state *mrb)
 #endif
 }
 
+void
+mrb_free_heap(mrb_state *mrb)
+{
+  struct heap_page *page = mrb->heaps;
+  struct heap_page *tmp;
+
+  while (page) {
+    tmp = page;
+    page = page->next;
+    mrb_free(mrb, tmp);
+  }
+}
+
 static void
 gc_protect(mrb_state *mrb, struct RBasic *p)
 {
