@@ -2478,7 +2478,8 @@ codegen_start(mrb_state *mrb, parser_state *p)
   }
   // prepare irep
   codegen(scope, p->tree, NOVAL);
-    if (scope->filename) mrb_free(mrb, scope->filename);
+  if (scope->filename) mrb_free(mrb, scope->filename);
+  mrb_pool_close(scope->mpool);
   return 0;
 }
 
