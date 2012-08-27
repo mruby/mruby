@@ -50,6 +50,8 @@ mrb_open()
   return mrb;
 }
 
+void mrb_free_symtbl(mrb_state *mrb);
+
 void
 mrb_close(mrb_state *mrb)
 {
@@ -69,6 +71,7 @@ mrb_close(mrb_state *mrb)
     mrb_free(mrb, mrb->irep[i]);
   }
   mrb_free(mrb, mrb->irep);
+  mrb_free_symtbl(mrb);
   mrb_free(mrb, mrb);
 }
 

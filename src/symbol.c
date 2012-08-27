@@ -94,7 +94,7 @@ mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, int *lenp)
 }
 
 void
-mrb_free_symtbls(mrb_state *mrb)
+mrb_free_symtbl(mrb_state *mrb)
 {
   khash_t(n2s) *h = mrb->name2sym;
   khiter_t k;
