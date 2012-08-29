@@ -1260,59 +1260,165 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   regs[a].v1 = regs[a].v1 op regs[a+1].v2;\
 } while(0)
 
-#define OP_MATH(op,iop,s) do {\
-  int a = GETARG_A(i);\
-  /* need to check if op is overridden */\
-  switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
-  case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):\
-    regs[a] = iop(mrb, regs[a], regs[a+1]);\
-    break;\
-  case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):\
-    {\
-      mrb_int x = mrb_fixnum(regs[a]);\
-      mrb_float y = mrb_float(regs[a+1]);\
-      regs[a] = mrb_float_value((mrb_float)x op y);\
-    }\
-    break;\
-  case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):\
-    OP_MATH_BODY(op,attr_f,attr_i);\
-    break;\
-  case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):\
-    OP_MATH_BODY(op,attr_f,attr_f);\
-    break;\
-    s\
-  default:\
-    SET_NIL_VALUE(regs[a+2]);\
-    i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));\
-    goto L_SEND;\
-  }\
-} while (0)
-
     CASE(OP_ADD) {
       /* A B C  R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)*/
-      OP_MATH(+,mrb_fixnum_plus,
+      int a = GETARG_A(i);
+
+      /* need to check if op is overridden */
+      switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
+      case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
+	{
+	  mrb_int x, y, z;
+
+	  x = mrb_fixnum(regs[a]);
+	  y = mrb_fixnum(regs[a+1]);
+	  z = x + y;
+	  if (((x < 0) ^ (y < 0)) == 0 && (x < 0) != (z < 0)) {
+	    /* integer overflow */
+	    return mrb_float_value((mrb_float)x + (mrb_float)y);
+	  }
+	  regs[a] = mrb_fixnum_value(z);
+	}
+	break;
+      case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
+	{
+	  mrb_int x = mrb_fixnum(regs[a]);
+	  mrb_float y = mrb_float(regs[a+1]);
+	  regs[a] = mrb_float_value((mrb_float)x + y);
+	}
+	break;
+      case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
+	OP_MATH_BODY(+,attr_f,attr_i);
+	break;
+      case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
+	OP_MATH_BODY(+,attr_f,attr_f);
+	break;
       case TYPES2(MRB_TT_STRING,MRB_TT_STRING):
         regs[a] = mrb_str_plus(mrb, regs[a], regs[a+1]);
-	break;);
+	break;
+      default:
+	SET_NIL_VALUE(regs[a+2]);
+	i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));
+	goto L_SEND;
+      }
       mrb->arena_idx = ai;
       NEXT;
     }
 
     CASE(OP_SUB) {
       /* A B C  R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)*/
-      OP_MATH(-,mrb_fixnum_minus,;);
+      int a = GETARG_A(i);
+
+      /* need to check if op is overridden */
+      switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
+      case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
+	{
+	  mrb_int x, y, z;
+
+	  x = mrb_fixnum(regs[a]);
+	  y = mrb_fixnum(regs[a+1]);
+	  z = x - y;
+	  if (((x < 0) ^ (y < 0)) == 0 && (x < 0) != (z < 0)) {
+	    /* integer overflow */
+	    return mrb_float_value((mrb_float)x - (mrb_float)y);
+	  }
+	  regs[a] = mrb_fixnum_value(z);
+	}
+	break;
+      case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
+	{
+	  mrb_int x = mrb_fixnum(regs[a]);
+	  mrb_float y = mrb_float(regs[a+1]);
+	  regs[a] = mrb_float_value((mrb_float)x - y);
+	}
+	break;
+      case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
+	OP_MATH_BODY(-,attr_f,attr_i);
+	break;
+      case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
+	OP_MATH_BODY(-,attr_f,attr_f);
+	break;
+      default:
+	SET_NIL_VALUE(regs[a+2]);
+	i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));
+	goto L_SEND;
+      }
       NEXT;
     }
 
     CASE(OP_MUL) {
       /* A B C  R(A) := R(A)*R(A+1) (Syms[B]=:*,C=1)*/
-      OP_MATH(*,mrb_fixnum_mul,;);
+      int a = GETARG_A(i);
+
+      /* need to check if op is overridden */
+      switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
+      case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
+	{
+	  mrb_int x, y, z;
+
+	  x = mrb_fixnum(regs[a]);
+	  y = mrb_fixnum(regs[a+1]);
+	  z = x * y;
+	  if (z/x != y) {
+	    regs[a] = mrb_float_value((mrb_float)x * (mrb_float)y);
+	  }
+	  else {
+	    regs[a] = mrb_fixnum_value(z);
+	  }
+	}
+	break;
+      case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
+	{
+	  mrb_int x = mrb_fixnum(regs[a]);
+	  mrb_float y = mrb_float(regs[a+1]);
+	  regs[a] = mrb_float_value((mrb_float)x * y);
+	}
+	break;
+      case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
+	OP_MATH_BODY(*,attr_f,attr_i);
+	break;
+      case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
+	OP_MATH_BODY(*,attr_f,attr_f);
+	break;
+      default:
+	SET_NIL_VALUE(regs[a+2]);
+	i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));
+	goto L_SEND;
+      }
       NEXT;
     }
 
     CASE(OP_DIV) {
       /* A B C  R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)*/
-      OP_MATH(/,mrb_num_div,;);
+      int a = GETARG_A(i);
+
+      /* need to check if op is overridden */
+      switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
+      case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
+	{
+	  mrb_int x = mrb_fixnum(regs[a]);
+	  mrb_int y = mrb_fixnum(regs[a+1]);
+	  regs[a] = mrb_float_value((mrb_float)x / (mrb_float)y);
+	}
+	break;
+      case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
+	{
+	  mrb_int x = mrb_fixnum(regs[a]);
+	  mrb_float y = mrb_float(regs[a+1]);
+	  regs[a] = mrb_float_value((mrb_float)x / y);
+	}
+	break;
+      case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
+	OP_MATH_BODY(/,attr_f,attr_i);
+	break;
+      case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
+	OP_MATH_BODY(/,attr_f,attr_f);
+	break;
+      default:
+	SET_NIL_VALUE(regs[a+2]);
+	i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));
+	goto L_SEND;
+      }
       NEXT;
     }
 
