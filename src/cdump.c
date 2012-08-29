@@ -114,7 +114,6 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
   SOURCE_CODE0     ("  ai = mrb->arena_idx;");
   SOURCE_CODE0     ("  irep = mrb->irep[idx] = mrb_malloc(mrb, sizeof(mrb_irep));");
   SOURCE_CODE0     ("  irep->idx = idx++;");
-  SOURCE_CODE      ("  irep->flags = %d | MRB_ISEQ_NOFREE;",                          irep->flags);
   SOURCE_CODE      ("  irep->nlocals = %d;",                                          irep->nlocals);
   SOURCE_CODE      ("  irep->nregs = %d;",                                            irep->nregs);
   SOURCE_CODE      ("  irep->ilen = %d;",                                             irep->ilen);

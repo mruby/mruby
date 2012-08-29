@@ -152,7 +152,6 @@ mrb_init_proc(mrb_state *mrb)
 
   *call_iseq = MKOP_A(OP_CALL, 0);
   call_irep->idx = -1;
-  call_irep->flags = MRB_IREP_NOFREE;
   call_irep->iseq = call_iseq;
   call_irep->ilen = 1;
 

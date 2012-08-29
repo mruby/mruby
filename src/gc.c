@@ -284,15 +284,22 @@ mrb_init_heap(mrb_state *mrb)
 #endif
 }
 
+static void obj_free(mrb_state *mrb, struct RBasic *obj);
+
 void
 mrb_free_heap(mrb_state *mrb)
 {
   struct heap_page *page = mrb->heaps;
   struct heap_page *tmp;
+  RVALUE *p, *e;
 
   while (page) {
     tmp = page;
     page = page->next;
+    for (p = tmp->objects, e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
+      if (p->as.free.tt != MRB_TT_FREE)
+	obj_free(mrb, &p->as.basic);
+    }
     mrb_free(mrb, tmp);
   }
 }
