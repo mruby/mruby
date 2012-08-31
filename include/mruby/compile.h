@@ -20,7 +20,7 @@ typedef struct mrbc_context {
   mrb_sym *syms;
   int slen;
   char *filename;
-  int lineno;
+  short lineno;
   int capture_errors:1;
   int dump_result:1;
   int no_exec:1;
@@ -33,7 +33,7 @@ const char *mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s);
 /* AST node structure */
 typedef struct mrb_ast_node {
   struct mrb_ast_node *car, *cdr;
-  int lineno;
+  short lineno;
 } mrb_ast_node;
 
 /* lexer states */

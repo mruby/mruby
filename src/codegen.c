@@ -54,9 +54,10 @@ typedef struct scope {
   struct loopinfo *loop;
   int ensure_level;
   char *filename;
-  int lineno;
+  short lineno;
 
   mrb_code *iseq;
+  short *lines;
   int icapa;
 
   mrb_value *pool;
@@ -144,8 +145,10 @@ genop(codegen_scope *s, mrb_code i)
   if (s->pc == s->icapa) {
     s->icapa *= 2;
     s->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->icapa);
+    s->lines = (short*)codegen_realloc(s, s->lines, sizeof(short)*s->icapa);
   }
   s->iseq[s->pc] = i;
+  s->lines[s->pc] = s->lineno;
   s->pc++;
 }
 
@@ -2027,12 +2030,13 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
 
   p->mrb = prev->mrb;
   p->icapa = 1024;
-  p->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code)*p->icapa);
+  p->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*p->icapa);
+  p->lines = (short*)mrb_malloc(mrb, sizeof(short)*p->icapa);
 
   p->pcapa = 32;
-  p->pool = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*p->pcapa);
+  p->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value)*p->pcapa);
 
-  p->syms = (mrb_sym *)mrb_malloc(mrb, sizeof(mrb_sym)*256);
+  p->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*256);
 
   p->lv = lv;
   p->sp += node_len(lv)+2;
@@ -2058,6 +2062,9 @@ scope_finish(codegen_scope *s, int idx)
   if (s->iseq) {
     irep->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc);
     irep->ilen = s->pc;
+    if (s->lines) {
+      irep->lines = (short *)codegen_realloc(s, s->lines, sizeof(short)*s->pc);
+    }
   }
   if (s->pool) {
     irep->pool = (mrb_value *)codegen_realloc(s, s->pool, sizeof(mrb_value)*s->plen);

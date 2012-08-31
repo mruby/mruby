@@ -18,6 +18,7 @@ typedef struct mrb_irep {
   int nregs;
 
   mrb_code *iseq;
+  short *lines;
   mrb_value *pool;
   mrb_sym *syms;
 
