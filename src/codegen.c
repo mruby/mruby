@@ -2074,6 +2074,9 @@ scope_finish(codegen_scope *s, int idx)
     irep->syms = (mrb_sym *)codegen_realloc(s, s->syms, sizeof(mrb_sym)*s->slen);
     irep->slen = s->slen;
   }
+  if (s->filename) {
+    irep->filename = s->filename;
+  }
 
   irep->nlocals = s->nlocals;
   irep->nregs = s->nregs;
@@ -2479,12 +2482,12 @@ codegen_start(mrb_state *mrb, parser_state *p)
     scope->filename = s;
   }
   if (setjmp(scope->jmp) != 0) {
-    if (scope->filename) mrb_free(mrb, scope->filename);
+    //if (scope->filename) mrb_free(mrb, scope->filename);
     return -1;
   }
   // prepare irep
   codegen(scope, p->tree, NOVAL);
-  if (scope->filename) mrb_free(mrb, scope->filename);
+  //  if (scope->filename) mrb_free(mrb, scope->filename);
   mrb_pool_close(scope->mpool);
   return 0;
 }

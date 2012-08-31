@@ -13,6 +13,8 @@
 #include "mruby/variable.h"
 #include "mruby/string.h"
 #include "mruby/class.h"
+#include "mruby/proc.h"
+#include "mruby/irep.h"
 
 #define warn_printf printf
 
@@ -121,14 +123,32 @@ exc_message(mrb_state *mrb, mrb_value exc)
 static mrb_value
 exc_inspect(mrb_state *mrb, mrb_value exc)
 {
-  mrb_value str;
+  mrb_value str, mesg, file, line;
 
-  str = mrb_str_new2(mrb, mrb_obj_classname(mrb, exc));
-  exc = mrb_obj_as_string(mrb, exc);
-
-  if (RSTRING_LEN(exc) > 0) {
+  mesg = mrb_attr_get(mrb, exc, mrb_intern(mrb, "mesg"));
+  file = mrb_attr_get(mrb, exc, mrb_intern(mrb, "file"));
+  line = mrb_attr_get(mrb, exc, mrb_intern(mrb, "line"));
+  
+  if (!mrb_nil_p(file) && !mrb_nil_p(line)) {
+    str = file;
+    mrb_str_cat2(mrb, str, ":");
+    mrb_str_append(mrb, str, line);
     mrb_str_cat2(mrb, str, ": ");
-    mrb_str_append(mrb, str, exc);
+    if (RSTRING_LEN(mesg) > 0) {
+      mrb_str_append(mrb, str, mesg);
+      mrb_str_cat2(mrb, str, " (");
+    }
+    mrb_str_cat2(mrb, str, mrb_obj_classname(mrb, exc));
+    if (RSTRING_LEN(mesg) > 0) {
+      mrb_str_cat2(mrb, str, ")");
+    }
+  }
+  else {
+    str = mrb_str_new2(mrb, mrb_obj_classname(mrb, exc));
+    if (RSTRING_LEN(mesg) > 0) {
+      mrb_str_cat2(mrb, str, ": ");
+      mrb_str_append(mrb, str, mesg);
+    }
   }
   return str;
 }
@@ -160,10 +180,32 @@ exc_equal(mrb_state *mrb, mrb_value exc)
   return mrb_true_value();
 }
 
+static void
+exc_debug_info(mrb_state *mrb, struct RObject *exc)
+{
+  mrb_callinfo *ci = mrb->ci;
+  mrb_code *pc = ci->pc;
+
+  while (ci >= mrb->cibase) {
+    if (!pc && ci->pc) pc = ci->pc;
+    if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
+      mrb_irep *irep = ci->proc->body.irep;      
+
+      if (irep->lines && irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
+	mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "file"), mrb_str_new_cstr(mrb, irep->filename));
+	mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "line"), mrb_fixnum_value(irep->lines[pc - irep->iseq - 1]));
+	return;
+      }
+    }
+    ci--;
+  }
+}
+
 void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
     mrb->exc = (struct RObject*)mrb_object(exc);
+    exc_debug_info(mrb, mrb->exc);
     if (!mrb->jmp) {
       abort();
     }
