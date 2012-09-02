@@ -5175,10 +5175,11 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
       if (n2  && (n2->car || n2->cdr)) {
 	dump_prefix(offset+1);
 	printf("local variables:\n");
+	dump_prefix(offset+2);
 	while (n2) {
 	  if (n2->car) {
-	    dump_prefix(offset+2);
-	    printf("%s ", mrb_sym2name(mrb, (mrb_sym)n2->car));
+	    if (n2 != tree->car) printf(", ");
+	    printf("%s", mrb_sym2name(mrb, (mrb_sym)n2->car));
 	  }
 	  n2 = n2->cdr;
 	}
@@ -5520,11 +5521,11 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
       if (n2 && (n2->car || n2->cdr)) {
 	dump_prefix(offset+1);
 	printf("local variables:\n");
-
+	dump_prefix(offset+2);
 	while (n2) {
 	  if (n2->car) {
-	    dump_prefix(offset+2);
-	    printf("%s ", mrb_sym2name(mrb, (mrb_sym)n2->car));
+	    if (n2 != tree->car) printf(", ");
+	    printf("%s", mrb_sym2name(mrb, (mrb_sym)n2->car));
 	  }
 	  n2 = n2->cdr;
 	}
