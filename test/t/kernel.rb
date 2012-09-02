@@ -338,5 +338,5 @@ end
 
 assert('Kernel#to_s', '15.3.1.3.46') do
   # TODO looks strange..
-  to_s == ''
+  nil.to_s == ''
 end

@@ -39,6 +39,8 @@ mrb_class(mrb_state *mrb, mrb_value v)
     return mrb->fixnum_class;
   case MRB_TT_FLOAT:
     return mrb->float_class;
+  case MRB_TT_MAIN:
+    return mrb->object_class;
 
 #ifdef ENABLE_REGEXP
   case MRB_TT_REGEX:

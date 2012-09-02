@@ -64,6 +64,9 @@ mrb_obj_inspect(mrb_state *mrb, mrb_value obj)
   else if (mrb_nil_p(obj)) {
     return mrb_str_new(mrb, "nil", 3);
   }
+  else if (mrb_type(obj) == MRB_TT_MAIN) {
+    return mrb_str_new(mrb, "main", 4);
+  }
   return mrb_funcall(mrb, obj, "to_s", 0, 0);
 }
 
