@@ -67,7 +67,7 @@ mrb_obj_inspect(mrb_state *mrb, mrb_value obj)
   else if (mrb_type(obj) == MRB_TT_MAIN) {
     return mrb_str_new(mrb, "main", 4);
   }
-  return mrb_funcall(mrb, obj, "to_s", 0, 0);
+  return mrb_any_to_s(mrb, obj);
 }
 
 /* 15.3.1.3.1  */
