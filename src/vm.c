@@ -459,7 +459,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     &&L_OP_GETUPVAR, &&L_OP_SETUPVAR,
     &&L_OP_JMP, &&L_OP_JMPIF, &&L_OP_JMPNOT,
     &&L_OP_ONERR, &&L_OP_RESCUE, &&L_OP_POPERR, &&L_OP_RAISE, &&L_OP_EPUSH, &&L_OP_EPOP,
-    &&L_OP_SEND, &&L_OP_FSEND, &&L_OP_VSEND,
+    &&L_OP_SEND, &&L_OP_SEND, &&L_OP_FSEND,
     &&L_OP_CALL, &&L_OP_SUPER, &&L_OP_ARGARY, &&L_OP_ENTER,
     &&L_OP_KARG, &&L_OP_KDICT, &&L_OP_RETURN, &&L_OP_TAILCALL, &&L_OP_BLKPUSH,
     &&L_OP_ADD, &&L_OP_ADDI, &&L_OP_SUB, &&L_OP_SUBI, &&L_OP_MUL, &&L_OP_DIV,
@@ -739,6 +739,14 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       mrb_sym mid = syms[GETARG_B(i)];
 
       recv = regs[a];
+      if (GET_OPCODE(i) != OP_SENDB) {
+	if (n == CALL_MAXARGS) {
+	  SET_NIL_VALUE(regs[a+2]);
+	}
+	else {
+	  SET_NIL_VALUE(regs[a+n+1]);
+	}
+      }
       c = mrb_class(mrb, recv);
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
@@ -807,11 +815,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_FSEND) {
       /* A B C  R(A) := fcall(R(A),Sym(B),R(A+1),... ,R(A+C)) */
-      NEXT;
-    }
-
-    CASE(OP_VSEND) {
-      /* A B    R(A) := vcall(R(A),Sym(B)) */
       NEXT;
     }
 
@@ -1297,7 +1300,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         regs[a] = mrb_str_plus(mrb, regs[a], regs[a+1]);
 	break;
       default:
-	SET_NIL_VALUE(regs[a+2]);
 	i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));
 	goto L_SEND;
       }
@@ -1339,7 +1341,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	OP_MATH_BODY(-,attr_f,attr_f);
 	break;
       default:
-	SET_NIL_VALUE(regs[a+2]);
 	i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));
 	goto L_SEND;
       }
@@ -1381,7 +1382,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	OP_MATH_BODY(*,attr_f,attr_f);
 	break;
       default:
-	SET_NIL_VALUE(regs[a+2]);
 	i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));
 	goto L_SEND;
       }
@@ -1415,7 +1415,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	OP_MATH_BODY(/,attr_f,attr_f);
 	break;
       default:
-	SET_NIL_VALUE(regs[a+2]);
 	i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));
 	goto L_SEND;
       }
@@ -1435,7 +1434,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         regs[a].attr_f += GETARG_C(i);
         break;
       default:
-	SET_NIL_VALUE(regs[a+2]);
         SET_INT_VALUE(regs[a+1], GETARG_C(i));
         i = MKOP_ABC(OP_SEND, a, GETARG_B(i), 1);
         goto L_SEND;
@@ -1456,7 +1454,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         regs[a].attr_f -= GETARG_C(i);
         break;
       default:
-	SET_NIL_VALUE(regs[a+2]);
         SET_INT_VALUE(regs[a+1], GETARG_C(i));
         i = MKOP_ABC(OP_SEND, a, GETARG_B(i), 1);
         goto L_SEND;
@@ -1490,7 +1487,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     OP_CMP_BODY(op,attr_f,attr_f);\
     break;\
   default:\
-    SET_NIL_VALUE(regs[a+2]);\
     i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));\
     goto L_SEND;\
   }\
