@@ -42,6 +42,35 @@ allocf(mrb_state *mrb, void *p, size_t size, void *ud)
   }
 }
 
+struct alloca_header {
+  struct alloca_header *next;
+  char buf[0];
+};
+
+void*
+mrb_alloca(mrb_state *mrb, size_t size)
+{
+  struct alloca_header *p;
+
+  p = mrb_malloc(mrb, sizeof(struct alloca_header)+size);
+  p->next = mrb->mems;
+  mrb->mems = p;
+  return (void*)p->buf;
+}
+
+static void
+mrb_alloca_free(mrb_state *mrb)
+{
+  struct alloca_header *p = mrb->mems;
+  struct alloca_header *tmp;
+
+  while (p) {
+    tmp = p;
+    p = p->next;
+    mrb_free(mrb, tmp);
+  }
+}
+
 mrb_state*
 mrb_open()
 {
@@ -66,11 +95,13 @@ mrb_close(mrb_state *mrb)
     mrb_free(mrb, mrb->irep[i]->iseq);
     mrb_free(mrb, mrb->irep[i]->pool);
     mrb_free(mrb, mrb->irep[i]->syms);
+    mrb_free(mrb, mrb->irep[i]->lines);
     mrb_free(mrb, mrb->irep[i]);
   }
   mrb_free(mrb, mrb->irep);
   mrb_free_symtbl(mrb);
   mrb_free_heap(mrb);
+  mrb_alloca_free(mrb);
   mrb_free(mrb, mrb);
 }
 

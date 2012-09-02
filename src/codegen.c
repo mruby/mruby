@@ -2091,9 +2091,6 @@ scope_finish(codegen_scope *s, int idx)
   irep->nregs = s->nregs;
 
   mrb->arena_idx = s->ai;
-  if (!s->prev && s->filename) {
-    mrb_free(mrb, s->filename);
-  }
   mrb_pool_close(s->mpool);
 }
 
@@ -2499,19 +2496,13 @@ codegen_start(mrb_state *mrb, parser_state *p)
   }
   scope->mrb = mrb;
   if (p->filename) {
-    int len = strlen(p->filename);
-    char *s = (char*)mrb_malloc(mrb, len+1);
-
-    memcpy(s, p->filename, len + 1);
-    scope->filename = s;
+    scope->filename = p->filename;
   }
   if (setjmp(scope->jmp) != 0) {
-    //if (scope->filename) mrb_free(mrb, scope->filename);
     return -1;
   }
   // prepare irep
   codegen(scope, p->tree, NOVAL);
-  //  if (scope->filename) mrb_free(mrb, scope->filename);
   mrb_pool_close(scope->mpool);
   return 0;
 }

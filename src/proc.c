@@ -144,12 +144,13 @@ void
 mrb_init_proc(mrb_state *mrb)
 {
   struct RProc *m;
-  mrb_code *call_iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code));
-  mrb_irep *call_irep = (mrb_irep *)mrb_calloc(mrb, sizeof(mrb_irep), 1);
+  mrb_code *call_iseq = (mrb_code *)mrb_alloca(mrb, sizeof(mrb_code));
+  mrb_irep *call_irep = (mrb_irep *)mrb_alloca(mrb, sizeof(mrb_irep));
 
   if ( call_iseq == NULL || call_irep == NULL )
     return;
 
+  memset(call_irep, 0, sizeof(mrb_irep));
   *call_iseq = MKOP_A(OP_CALL, 0);
   call_irep->idx = -1;
   call_irep->iseq = call_iseq;

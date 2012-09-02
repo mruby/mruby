@@ -4789,7 +4789,6 @@ void
 mrbc_context_free(mrb_state *mrb, mrbc_context *cxt)
 {
   mrb_free(mrb, cxt->syms);
-  mrb_free(mrb, cxt->filename);
   mrb_free(mrb, cxt);
 }
 
@@ -4798,10 +4797,9 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 {
   if (s) {
     int len = strlen(s);
-    char *p = (char *)mrb_malloc(mrb, len + 1);
+    char *p = (char *)mrb_alloca(mrb, len + 1);
 
     memcpy(p, s, len + 1);
-    if (c->filename) mrb_free(mrb, c->filename);
     c->filename = p;
     c->lineno = 1;
   }
