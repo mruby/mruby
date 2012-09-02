@@ -186,8 +186,8 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
   mrb_callinfo *ci = mrb->ci;
   mrb_code *pc = ci->pc;
 
+  ci--;
   while (ci >= mrb->cibase) {
-    if (!pc && ci->pc) pc = ci->pc;
     if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
       mrb_irep *irep = ci->proc->body.irep;      
 
@@ -197,6 +197,7 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
 	return;
       }
     }
+    pc = ci->pc;
     ci--;
   }
 }
