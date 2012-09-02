@@ -159,13 +159,14 @@ static void
 genop_peep(codegen_scope *s, mrb_code i, int val)
 {
   /* peephole optimization */
-  if (!val && s->lastlabel != s->pc && s->pc > 0) {
+  if (s->lastlabel != s->pc && s->pc > 0) {
     mrb_code i0 = s->iseq[s->pc-1];
     int c1 = GET_OPCODE(i);
     int c0 = GET_OPCODE(i0);
 
     switch (c1) {
     case OP_MOVE:
+      if (val) break;
       switch (c0) {
       case OP_MOVE:
         if (GETARG_B(i) == GETARG_A(i0) && GETARG_A(i) == GETARG_B(i0) && GETARG_A(i) >= s->nlocals) {
@@ -231,6 +232,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
     case OP_SETCONST:
     case OP_SETMCNST:
     case OP_SETGLOBAL:
+      if (val) break;
       if (c0 == OP_MOVE) {
         if (GETARG_A(i) == GETARG_A(i0)) {
           s->iseq[s->pc-1] = MKOP_ABx(c1, GETARG_B(i0), GETARG_Bx(i));
@@ -239,6 +241,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       }
       break;
     case OP_SETUPVAR:
+      if (val) break;
       if (c0 == OP_MOVE) {
         if (GETARG_A(i) == GETARG_A(i0)) {
           s->iseq[s->pc-1] = MKOP_ABC(c1, GETARG_B(i0), GETARG_B(i), GETARG_C(i));
@@ -313,6 +316,19 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
 	break;
       }
       break;
+    case OP_ADD:
+    case OP_SUB:
+      if (c0 == OP_LOADI) {
+	int c = GETARG_sBx(i0);
+	
+	if (c1 == OP_SUB) c = -c;
+	if (c > 127 || c < -127) break;
+	if (0 <= c) 
+	  s->iseq[s->pc-1] = MKOP_ABC(OP_ADDI, GETARG_A(i), GETARG_B(i), c);
+	else
+	  s->iseq[s->pc-1] = MKOP_ABC(OP_SUBI, GETARG_A(i), GETARG_B(i), -c);
+	return;
+      }
     default:
       break;
     }
@@ -723,10 +739,10 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
     const char *name = mrb_sym2name_len(s->mrb, sym, &len);
 
     if (!noop && len == 1 && name[0] == '+')  {
-      genop(s, MKOP_ABC(OP_ADD, cursp(), idx, n));
+      genop_peep(s, MKOP_ABC(OP_ADD, cursp(), idx, n), val);
     }
     else if (!noop && len == 1 && name[0] == '-')  {
-      genop(s, MKOP_ABC(OP_SUB, cursp(), idx, n));
+      genop_peep(s, MKOP_ABC(OP_SUB, cursp(), idx, n), val);
     }
     else if (!noop && len == 1 && name[0] == '*')  {
       genop(s, MKOP_ABC(OP_MUL, cursp(), idx, n));
@@ -1383,10 +1399,10 @@ codegen(codegen_scope *s, node *tree, int val)
 
       idx = new_msym(s, sym);
       if (len == 1 && name[0] == '+')  {
-        genop(s, MKOP_ABC(OP_ADD, cursp(), idx, 1));
+        genop_peep(s, MKOP_ABC(OP_ADD, cursp(), idx, 1), val);
       }
       else if (len == 1 && name[0] == '-')  {
-        genop(s, MKOP_ABC(OP_SUB, cursp(), idx, 1));
+        genop_peep(s, MKOP_ABC(OP_SUB, cursp(), idx, 1), val);
       }
       else if (len == 1 && name[0] == '<')  {
         genop(s, MKOP_ABC(OP_LT, cursp(), idx, 1));
@@ -2328,8 +2344,18 @@ codedump(mrb_state *mrb, int n)
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
+    case OP_ADDI:
+      printf("OP_ADDI\tR%d\t:%s\t%d\n", GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             GETARG_C(c));
+      break;
     case OP_SUB:
       printf("OP_SUB\tR%d\t:%s\t%d\n", GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             GETARG_C(c));
+      break;
+    case OP_SUBI:
+      printf("OP_SUBI\tR%d\t:%s\t%d\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
