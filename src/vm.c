@@ -1360,7 +1360,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	  x = mrb_fixnum(regs[a]);
 	  y = mrb_fixnum(regs[a+1]);
 	  z = x * y;
-	  if (z/x != y) {
+	  if (x != 0 && z/x != y) {
 	    regs[a] = mrb_float_value((mrb_float)x * (mrb_float)y);
 	  }
 	  else {
