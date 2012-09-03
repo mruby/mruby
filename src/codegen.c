@@ -145,10 +145,14 @@ genop(codegen_scope *s, mrb_code i)
   if (s->pc == s->icapa) {
     s->icapa *= 2;
     s->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->icapa);
-    s->lines = (short*)codegen_realloc(s, s->lines, sizeof(short)*s->icapa);
+    if (s->lines) {
+      s->lines = (short*)codegen_realloc(s, s->lines, sizeof(short)*s->icapa);
+    }
   }
   s->iseq[s->pc] = i;
-  s->lines[s->pc] = s->lineno;
+  if (s->lines) {
+    s->lines[s->pc] = s->lineno;
+  }
   s->pc++;
 }
 
@@ -2040,7 +2044,6 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->mrb = prev->mrb;
   p->icapa = 1024;
   p->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*p->icapa);
-  p->lines = (short*)mrb_malloc(mrb, sizeof(short)*p->icapa);
 
   p->pcapa = 32;
   p->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value)*p->pcapa);
@@ -2054,7 +2057,9 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
 
   p->idx = mrb->irep_len++;
   p->filename = prev->filename;
-
+  if (p->filename) {
+    p->lines = (short*)mrb_malloc(mrb, sizeof(short)*p->icapa);
+  }
   return p;
 }
 
@@ -2073,6 +2078,9 @@ scope_finish(codegen_scope *s, int idx)
     irep->ilen = s->pc;
     if (s->lines) {
       irep->lines = (short *)codegen_realloc(s, s->lines, sizeof(short)*s->pc);
+    }
+    else {
+      irep->lines = 0;
     }
   }
   if (s->pool) {

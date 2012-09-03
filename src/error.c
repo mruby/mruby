@@ -191,7 +191,7 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
     if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
       mrb_irep *irep = ci->proc->body.irep;      
 
-      if (irep->lines && irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
+      if (irep->filename && irep->lines && irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
 	mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "file"), mrb_str_new_cstr(mrb, irep->filename));
 	mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "line"), mrb_fixnum_value(irep->lines[pc - irep->iseq - 1]));
 	return;
