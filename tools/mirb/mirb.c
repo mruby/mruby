@@ -182,7 +182,7 @@ main(void)
     last_code_line[char_index] = '\0';
 
     if ((strcmp(last_code_line, "quit") == 0) || (strcmp(last_code_line, "exit") == 0)) {
-      if (!code_block_open || !parser->sterm){
+      if (!code_block_open) {
         break;
       }
       else{
@@ -191,7 +191,6 @@ main(void)
         strcat(ruby_code, last_code_line);
       }
     }
-
     else {
       if (code_block_open) {
         strcat(ruby_code, "\n");
@@ -201,46 +200,46 @@ main(void)
         memset(ruby_code, 0, sizeof(*ruby_code));
         strcat(ruby_code, last_code_line);
       }
+    }
 
-      /* parse code */
-      parser = mrb_parser_new(mrb);
-      parser->s = ruby_code;
-      parser->send = ruby_code + strlen(ruby_code);
-      parser->lineno = 1;
-      mrb_parser_parse(parser, cxt);
-      code_block_open = is_code_block_open(parser); 
+    /* parse code */
+    parser = mrb_parser_new(mrb);
+    parser->s = ruby_code;
+    parser->send = ruby_code + strlen(ruby_code);
+    parser->lineno = 1;
+    mrb_parser_parse(parser, cxt);
+    code_block_open = is_code_block_open(parser); 
 
-      if (code_block_open) {
-        /* no evaluation of code */
+    if (code_block_open) {
+      /* no evaluation of code */
+    }
+    else {
+      if (0 < parser->nerr) {
+	/* syntax error */
+	printf("line %d: %s\n", parser->error_buffer[0].lineno, parser->error_buffer[0].message);
       }
       else {
-        if (0 < parser->nerr) {
-          /* syntax error */
-          printf("line %d: %s\n", parser->error_buffer[0].lineno, parser->error_buffer[0].message);
-        }
-	else {
-          /* generate bytecode */
-          n = mrb_generate_code(mrb, parser);
+	/* generate bytecode */
+	n = mrb_generate_code(mrb, parser);
 
-          /* evaluate the bytecode */
-          result = mrb_run(mrb,
+	/* evaluate the bytecode */
+	result = mrb_run(mrb,
             /* pass a proc for evaulation */
             mrb_proc_new(mrb, mrb->irep[n]),
             mrb_top_self(mrb));
-          /* did an exception occur? */
-          if (mrb->exc) {
-            p(mrb, mrb_obj_value(mrb->exc));
-            mrb->exc = 0;
-          }
-	  else {
-            /* no */
-            printf(" => ");
-            p(mrb, result);
-          }
-        }
-        memset(ruby_code, 0, sizeof(*ruby_code));
-        memset(ruby_code, 0, sizeof(*last_code_line));
+	/* did an exception occur? */
+	if (mrb->exc) {
+	  p(mrb, mrb_obj_value(mrb->exc));
+	  mrb->exc = 0;
+	}
+	else {
+	  /* no */
+	  printf(" => ");
+	  p(mrb, result);
+	}
       }
+      memset(ruby_code, 0, sizeof(*ruby_code));
+      memset(ruby_code, 0, sizeof(*last_code_line));
       mrb_parser_free(parser);
     }
   }
