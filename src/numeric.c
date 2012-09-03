@@ -699,7 +699,7 @@ mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
     if (FIT_SQRT_INT(a) && FIT_SQRT_INT(b))
       return mrb_fixnum_value(a*b);
     c = a * b;
-    if (c/a != b) {
+    if (a != 0 && c/a != b) {
       return mrb_float_value((mrb_float)a*(mrb_float)b);
     }
     return mrb_fixnum_value(c);;
