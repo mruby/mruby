@@ -83,6 +83,11 @@ mrb_value mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2);
 
 int mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2);
 
+#ifdef ENABLE_REGEXP
+mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len);
+mrb_value mrb_str_size(mrb_state *mrb, mrb_value self);
+#endif
+
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif

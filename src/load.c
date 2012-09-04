@@ -329,6 +329,9 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
   mrb_int fix_num;
   mrb_float f;
   int ai = mrb_gc_arena_save(mrb);
+#ifdef ENABLE_REGEXP
+  mrb_value str;
+#endif
 
   recordStart = src;
   buf = (char *)mrb_malloc(mrb, bufsize);

@@ -110,6 +110,10 @@ typedef struct mrb_state {
 #ifdef ENABLE_IO
   struct RClass *io_class;
 #endif
+#ifdef ENABLE_REGEXP
+  struct RClass *regex_class;
+  struct RClass *match_class;
+#endif
 
   struct heap_page *heaps;
   struct heap_page *sweeps;
@@ -131,7 +135,7 @@ typedef struct mrb_state {
 
   mrb_sym symidx;
   struct kh_n2s *name2sym;      /* symbol table */
-#ifdef INCLUDE_REGEXP
+#ifdef ENABLE_REGEXP
   struct RNode *local_svar;/* regexp */
 #endif
 

@@ -844,10 +844,10 @@ resize_property_list(int new_size, const OnigCodePoint*** plist, int* psize)
 
   size = sizeof(OnigCodePoint*) * new_size;
   if (IS_NULL(list)) {
-    list = (const OnigCodePoint** )xmalloc(size);
+    list = (const OnigCodePoint** )malloc(size);
   }
   else {
-    list = (const OnigCodePoint** )xrealloc((void* )list, size);
+    list = (const OnigCodePoint** )realloc((void* )list, size);
   }
 
   if (IS_NULL(list)) return ONIGERR_MEMORY;
