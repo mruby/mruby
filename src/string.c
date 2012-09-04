@@ -26,7 +26,9 @@ const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 static mrb_value get_pat(mrb_state *mrb, mrb_value pat, mrb_int quote);
 #endif //ENABLE_REGEXP
 static mrb_value str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2);
+#ifndef ENABLE_REGEXP
 static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len);
+#endif
 
 #define RESIZE_CAPA(s,capacity) do {\
       s->ptr = (char *)mrb_realloc(mrb, s->ptr, (capacity)+1);\
@@ -638,7 +640,14 @@ mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
 static mrb_value
 mrb_str_match(mrb_state *mrb, mrb_value self/* x */)
 {
+#ifdef ENABLE_REGEXP
+  mrb_value re;
+
+  mrb_get_args(mrb, "o", &re);
+  return mrb_funcall(mrb, get_pat(mrb, re, 0), "=~", 1, self);
+#else
   return mrb_nil_value();
+#endif
 }
 
 static inline long
@@ -720,6 +729,19 @@ mrb_str_dup(mrb_state *mrb, mrb_value str)
   return mrb_str_new(mrb, s->ptr, s->len);
 }
 
+#ifdef ENABLE_REGEXP
+static mrb_value
+mrb_str_subpat(mrb_state *mrb, mrb_value str, mrb_value re, mrb_value backref)
+{
+	if (mrb_reg_search(mrb, re, str, 0, 0) >= 0) {
+		mrb_value match = mrb_backref_get(mrb);
+		int nth = mrb_reg_backref_number(mrb, match, backref);
+		return mrb_reg_nth_match(mrb, nth, match);
+	}
+	return mrb_nil_value();
+}
+#endif
+
 static mrb_value
 mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
 {
@@ -736,7 +758,7 @@ num_index:
 
     case MRB_TT_REGEX:
 #ifdef ENABLE_REGEXP
-      return mrb_str_subpat(mrb, str, indx, 0); //mrb_str_subpat(str, indx, INT2FIX(0));
+      return mrb_str_subpat(mrb, str, indx, mrb_fixnum_value(0)); 
 #else
       mrb_raise(mrb, E_TYPE_ERROR, "Regexp Class not supported");
       return mrb_nil_value();
@@ -828,7 +850,7 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
   if (argc == 2) {
     if (mrb_type(a1) == MRB_TT_REGEX) {
 #ifdef ENABLE_REGEXP
-      return mrb_str_subpat(mrb, str, argv[0], mrb_fixnum(argv[1]));
+      return mrb_str_subpat(mrb, str, a1,  a2);
 #else
       mrb_raise(mrb, E_TYPE_ERROR, "Regexp Class not supported");
       return mrb_nil_value();
@@ -1188,7 +1210,11 @@ mrb_str_eql(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
+#ifdef ENABLE_REGEXP
+mrb_value
+#else
 static mrb_value
+#endif
 mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len)
 {
   struct RString *orig, *s;
@@ -1251,7 +1277,7 @@ str_gsub(mrb_state *mrb, mrb_value str, mrb_int bang)
   mrb_int offset, blen, len, last;
   char *sp, *cp;
 
-  if (bang) str_modify(mrb, mrb_str_ptr(self));
+  if (bang) str_modify(mrb, mrb_str_ptr(str));
   mrb_get_args(mrb, "*", &argv, &argc);
   switch (argc) {
     case 1:
@@ -1369,10 +1395,10 @@ mrb_str_gsub(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_gsub_bang(mrb_state *mrb, mrb_value self)
 {
-  striuct RString *s = mrb_str_ptr(self);
+  struct RString *s = mrb_str_ptr(self);
 
   str_modify(mrb, s);
-  return str_gsub(mrb, s, 1);
+  return str_gsub(mrb, self, 1);
 }
 #endif //ENABLE_REGEXP
 
@@ -1836,7 +1862,7 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 #ifdef INCLUDE_ENCODING
 /* byte offset to char offset */
 int
-mrb_str_sublen(mrb_state *mrb, mrb_value str, long pos)
+mrb_str_sublen(mrb_state *mrb, mrb_value str, int pos)
 {
   return pos;
 }
@@ -2240,14 +2266,17 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
           break;
         }
         else if (last_null == 1) {
-          mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, len));
+          long enc_len = ONIGENC_MBC_ENC_LEN(ONIG_ENCODING_ASCII, (UChar *)ptr+beg, (UChar *)ptr+len);
+          mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, enc_len));
           beg = start;
         }
         else {
-          if (ptr+start == ptr+len)
+          if (ptr+start == ptr+len) {
               start++;
-          else
-              start += len;
+          } else {
+              long enc_len = ONIGENC_MBC_ENC_LEN(ONIG_ENCODING_ASCII, (UChar *)ptr+start, (UChar *)ptr+len);
+              start += enc_len;
+          }
           last_null = 1;
           continue;
         }
@@ -2312,7 +2341,7 @@ mrb_block_given_p()
 static mrb_value
 mrb_str_sub_bang(mrb_state *mrb, mrb_value str)
 {
-  str_modify(mrb, str);
+  str_modify(mrb, RSTRING(str));
   return mrb_nil_value();
 }
 #endif //ENABLE_REGEXP
