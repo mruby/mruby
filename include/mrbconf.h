@@ -48,6 +48,7 @@
 //#define DISABLE_STRUCT	/* Struct class */
 //#define DISABLE_STDIO		/* use of stdio */
 //#define DISABLE_IO
+//#define DISABLE_PROCESS
 
 #undef  HAVE_UNISTD_H /* WINDOWS */
 #define HAVE_UNISTD_H /* LINUX */
@@ -90,6 +91,9 @@ typedef intptr_t mrb_sym;
 #endif
 #ifndef DISABLE_IO
 #define ENABLE_IO
+#endif
+#ifndef DISABLE_PROCESS
+#define ENABLE_PROCESS
 #endif
 
 #ifndef FALSE
