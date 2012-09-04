@@ -239,7 +239,7 @@ main(void)
 	}
       }
       memset(ruby_code, 0, sizeof(*ruby_code));
-      memset(ruby_code, 0, sizeof(*last_code_line));
+      memset(last_code_line, 0, sizeof(*last_code_line));
       mrb_parser_free(parser);
     }
   }
