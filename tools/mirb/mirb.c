@@ -143,7 +143,9 @@ print_cmdline(int code_block_open)
 int
 main(void)
 {
-  char last_char, ruby_code[1024], last_code_line[1024];
+  char last_char;
+  char ruby_code[1024] = { 0 };
+  char last_code_line[1024] = { 0 };
   int char_index;
   mrbc_context *cxt;
   struct mrb_parser_state *parser;
@@ -163,8 +165,6 @@ main(void)
 
   cxt = mrbc_context_new(mrb);
   cxt->capture_errors = 1;
-  memset(ruby_code, 0, sizeof(*ruby_code));
-  memset(last_code_line, 0, sizeof(*last_code_line));
 
   while (TRUE) {
     print_cmdline(code_block_open);
@@ -197,8 +197,7 @@ main(void)
         strcat(ruby_code, last_code_line);
       }
       else {
-        memset(ruby_code, 0, sizeof(*ruby_code));
-        strcat(ruby_code, last_code_line);
+        strcpy(ruby_code, last_code_line);
       }
     }
 
@@ -238,8 +237,8 @@ main(void)
 	  p(mrb, result);
 	}
       }
-      memset(ruby_code, 0, sizeof(*ruby_code));
-      memset(ruby_code, 0, sizeof(*last_code_line));
+      ruby_code[0] = '\0';
+      last_code_line[0] = '\0';
       mrb_parser_free(parser);
     }
   }

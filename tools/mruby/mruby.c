@@ -57,8 +57,9 @@ static int
 parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 {
   char **origargv = argv;
+  static const struct _args args_zero = { 0 };
 
-  memset(args, 0, sizeof(*args));
+  *args = args_zero;
 
   for (argc--,argv++; argc > 0; argc--,argv++) {
     char *item;
