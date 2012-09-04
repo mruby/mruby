@@ -511,9 +511,10 @@ for_body(codegen_scope *s, node *tree)
   }
   codegen(s, tree->cdr->cdr->car, VAL);
   pop();
-  c = s->iseq[s->pc-1];
-  if (GET_OPCODE(c) != OP_RETURN || GETARG_B(c) != OP_R_NORMAL || s->pc == s->lastlabel) {
-    genop_peep(s, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
+  if (s->pc > 0) {
+    c = s->iseq[s->pc-1];
+    if (GET_OPCODE(c) != OP_RETURN || GETARG_B(c) != OP_R_NORMAL || s->pc == s->lastlabel)
+      genop_peep(s, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
   }
   loop_pop(s, NOVAL);
   scope_finish(s, idx);
@@ -593,14 +594,16 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   }
   codegen(s, tree->cdr->car, VAL);
   pop();
-  c = s->iseq[s->pc-1];
-  if (GET_OPCODE(c) != OP_RETURN || GETARG_B(c) != OP_R_NORMAL || s->pc == s->lastlabel) {
-    if (s->nregs == 0) {
-      genop(s, MKOP_A(OP_LOADNIL, 0));
-      genop(s, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
-    }
-    else {
-      genop_peep(s, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
+  if (s->pc > 0) {
+    c = s->iseq[s->pc-1];
+    if (GET_OPCODE(c) != OP_RETURN || GETARG_B(c) != OP_R_NORMAL || s->pc == s->lastlabel) {
+      if (s->nregs == 0) {
+        genop(s, MKOP_A(OP_LOADNIL, 0));
+        genop(s, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
+      }
+      else {
+        genop_peep(s, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
+      }
     }
   }
   if (blk) {
