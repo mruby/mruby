@@ -404,6 +404,11 @@ argnum_error(mrb_state *mrb, int num)
 #define SET_INT_VALUE(r,n) MRB_SET_VALUE(r, MRB_TT_FIXNUM, value.i, (n))
 #define SET_SYM_VALUE(r,v) MRB_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
 #define SET_OBJ_VALUE(r,v) MRB_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
+#ifdef MRB_NAN_BOXING
+#define SET_FLT_VALUE(r,v) r.f = (v)
+#else
+#define SET_FLT_VALUE(r,v) MRB_SET_VALUE(r, MRB_TT_FLOAT, value.f, (v))
+#endif
 
 #ifdef __GNUC__
 #define DIRECT_THREADED
@@ -496,17 +501,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_MOVE) {
       /* A B    R(A) := R(B) */
-#if 1
       regs[GETARG_A(i)] = regs[GETARG_B(i)];
-#elif 0
-      int a = GETARG_A(i);
-      int b = GETARG_B(i);
-
-      regs[a].tt = regs[b].tt;
-      regs[a].value = regs[b].value;
-#else
-      memcpy(regs+GETARG_A(i), regs+GETARG_B(i), sizeof(mrb_value));
-#endif
       NEXT;
     }
 
@@ -530,19 +525,19 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_LOADSELF) {
       /* A      R(A) := self */
-      regs[GETARG_A(i)] = mrb->stack[0];
+      regs[GETARG_A(i)] = regs[0];
       NEXT;
     }
 
     CASE(OP_LOADT) {
       /* A      R(A) := true */
-      regs[GETARG_A(i)] = mrb_true_value();
+      SET_TRUE_VALUE(regs[GETARG_A(i)]);
       NEXT;
     }
 
     CASE(OP_LOADF) {
       /* A      R(A) := false */
-      regs[GETARG_A(i)] = mrb_false_value();
+      SET_FALSE_VALUE(regs[GETARG_A(i)]);
       NEXT;
     }
 
@@ -624,6 +619,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_GETUPVAR) {
       /* A B C  R(A) := uvget(B,C) */
+
       regs[GETARG_A(i)] = uvget(mrb, GETARG_C(i), GETARG_B(i));
       NEXT;
     }
@@ -671,7 +667,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_RESCUE) {
       /* A      R(A) := exc; clear(exc) */
-      SET_OBJ_VALUE(regs[GETARG_A(i)],mrb->exc);
+      SET_OBJ_VALUE(regs[GETARG_A(i)], mrb->exc);
       mrb->exc = 0;
       NEXT;
     }
@@ -1278,16 +1274,17 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	  z = x + y;
 	  if (((x < 0) ^ (y < 0)) == 0 && (x < 0) != (z < 0)) {
 	    /* integer overflow */
-	    return mrb_float_value((mrb_float)x + (mrb_float)y);
+	    SET_FLT_VALUE(regs[a], (mrb_float)x + (mrb_float)y);
+	    break;
 	  }
-	  regs[a] = mrb_fixnum_value(z);
+	  SET_INT_VALUE(regs[a], z);
 	}
 	break;
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
 	{
 	  mrb_int x = mrb_fixnum(regs[a]);
 	  mrb_float y = mrb_float(regs[a+1]);
-	  regs[a] = mrb_float_value((mrb_float)x + y);
+	  SET_FLT_VALUE(regs[a], (mrb_float)x + y);
 	}
 	break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
@@ -1297,10 +1294,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	OP_MATH_BODY(+,attr_f,attr_f);
 	break;
       case TYPES2(MRB_TT_STRING,MRB_TT_STRING):
-        regs[a] = mrb_str_plus(mrb, regs[a], regs[a+1]);
+	regs[a] = mrb_str_plus(mrb, regs[a], regs[a+1]);
 	break;
       default:
-	i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));
 	goto L_SEND;
       }
       mrb->arena_idx = ai;
@@ -1322,16 +1318,17 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	  z = x - y;
 	  if (((x < 0) ^ (y < 0)) == 0 && (x < 0) != (z < 0)) {
 	    /* integer overflow */
-	    return mrb_float_value((mrb_float)x - (mrb_float)y);
+	    SET_FLT_VALUE(regs[a], (mrb_float)x - (mrb_float)y);
+	    break;
 	  }
-	  regs[a] = mrb_fixnum_value(z);
+	  SET_INT_VALUE(regs[a], z);
 	}
 	break;
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
 	{
 	  mrb_int x = mrb_fixnum(regs[a]);
 	  mrb_float y = mrb_float(regs[a+1]);
-	  regs[a] = mrb_float_value((mrb_float)x - y);
+	  SET_FLT_VALUE(regs[a], (mrb_float)x - y);
 	}
 	break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
@@ -1341,7 +1338,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	OP_MATH_BODY(-,attr_f,attr_f);
 	break;
       default:
-	i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));
 	goto L_SEND;
       }
       NEXT;
@@ -1361,10 +1357,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	  y = mrb_fixnum(regs[a+1]);
 	  z = x * y;
 	  if (x != 0 && z/x != y) {
-	    regs[a] = mrb_float_value((mrb_float)x * (mrb_float)y);
+	    SET_FLT_VALUE(regs[a], (mrb_float)x * (mrb_float)y);
 	  }
 	  else {
-	    regs[a] = mrb_fixnum_value(z);
+	    SET_INT_VALUE(regs[a], z);
 	  }
 	}
 	break;
@@ -1372,7 +1368,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	{
 	  mrb_int x = mrb_fixnum(regs[a]);
 	  mrb_float y = mrb_float(regs[a+1]);
-	  regs[a] = mrb_float_value((mrb_float)x * y);
+	  SET_FLT_VALUE(regs[a], (mrb_float)x * y);
 	}
 	break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
@@ -1382,7 +1378,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	OP_MATH_BODY(*,attr_f,attr_f);
 	break;
       default:
-	i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));
 	goto L_SEND;
       }
       NEXT;
@@ -1398,14 +1393,14 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	{
 	  mrb_int x = mrb_fixnum(regs[a]);
 	  mrb_int y = mrb_fixnum(regs[a+1]);
-	  regs[a] = mrb_float_value((mrb_float)x / (mrb_float)y);
+	  SET_FLT_VALUE(regs[a], (mrb_float)x / (mrb_float)y);
 	}
 	break;
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
 	{
 	  mrb_int x = mrb_fixnum(regs[a]);
 	  mrb_float y = mrb_float(regs[a+1]);
-	  regs[a] = mrb_float_value((mrb_float)x / y);
+	  SET_FLT_VALUE(regs[a], (mrb_float)x / y);
 	}
 	break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
@@ -1415,7 +1410,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	OP_MATH_BODY(/,attr_f,attr_f);
 	break;
       default:
-	i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));
 	goto L_SEND;
       }
       NEXT;
@@ -1487,7 +1481,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     OP_CMP_BODY(op,attr_f,attr_f);\
     break;\
   default:\
-    i = MKOP_ABC(OP_SEND, a, GETARG_B(i), GETARG_C(i));\
     goto L_SEND;\
   }\
 } while (0)
@@ -1565,7 +1558,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         }
       }
       else {
-        regs[GETARG_A(i)] = mrb_ary_ref(mrb, v, c);
+	regs[GETARG_A(i)] = mrb_ary_ref(mrb, v, c);
       }
       NEXT;
     }
@@ -1598,13 +1591,13 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         if (len > pre + post) {
           regs[a++] = mrb_ary_new_elts(mrb, len - pre - post, ary->ptr+pre);
           while (post--) {
-            regs[a++] = ary->ptr[len-post-1];
+	    regs[a++] = ary->ptr[len-post-1];
           }
         }
         else {
-          regs[a++] = mrb_ary_new_capa(mrb, 0);
+	  regs[a++] = mrb_ary_new_capa(mrb, 0);
           for (i=0; i+pre<len; i++) {
-            regs[a+i] = ary->ptr[pre+i];
+	    regs[a+i] = ary->ptr[pre+i];
           }
           while (i < post) {
             SET_NIL_VALUE(regs[a+i]);
@@ -1695,7 +1688,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
       base = regs[a];
       if (mrb_nil_p(base)) {
-        base = mrb_obj_value(mrb->ci->target_class);
+	base = mrb_obj_value(mrb->ci->target_class);
       }
       c = mrb_vm_define_module(mrb, base, id);
       regs[a] = mrb_obj_value(c);
