@@ -42,7 +42,10 @@ main(int argc, char *argv[])
     setbuf(outfile, NULL);
 
     for (i = 1; i < argc; i++) {
-      if (strcmp(argv[i], "-o") == 0) { i++; continue; }
+      if (strcmp(argv[i], "-o") == 0) {
+        i++;
+        continue;
+      }
 
       infile = fopen(argv[i], "rb");
       if (!infile) {
