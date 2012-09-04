@@ -26,8 +26,10 @@ main(int argc, char *argv[])
       i++;
       if (i < argc)
         output = argv[i];
-      else
+      else {
+        usage(argv[0]);
         return EXIT_FAILURE;
+      }
     }
   }
 
