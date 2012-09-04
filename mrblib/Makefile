@@ -11,7 +11,8 @@ DLIB := $(TARGET).ctmp
 RLIB := $(TARGET).rbtmp
 DEPLIB := $(TARGET).d
 MRB1 := $(BASEDIR)/*.rb
-MRBS := $(MRB1)
+MRB2 := $(BASEDIR)/io/*.rb
+MRBS := $(MRB1) $(MRB2)
 LIBR0 := ../lib/libmruby_core.a
 LIBR := ../lib/libmruby.a
 

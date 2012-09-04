@@ -16,6 +16,9 @@
 #include "mruby/proc.h"
 #include "mruby/data.h"
 #include "mruby/variable.h"
+#ifdef ENABLE_IO
+#include "mruby/ext/io.h"
+#endif
 
 #ifndef SIZE_MAX
 #include <limits.h> // for SIZE_MAX
@@ -475,6 +478,15 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     break;
 #endif
 
+#ifdef ENABLE_IO
+  case MRB_TT_FILE:
+    {
+      struct RFile *f = (struct RFile*)obj;
+      mrb_gc_mark_value(mrb, f->fptr->path);
+    }
+    break;
+#endif
+
   default:
     break;
   }
@@ -550,6 +562,22 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
 #ifdef ENABLE_STRUCT
   case MRB_TT_STRUCT:
     mrb_free(mrb, ((struct RStruct*)obj)->ptr);
+    break;
+#endif
+
+#ifdef ENABLE_IO
+  case MRB_TT_FILE:
+    {
+      struct RFile *f = (struct RFile*)obj;
+      if (f->fptr != NULL) {
+        /*
+        if (!mrb_nil_p(f->fptr->path)) {
+          mrb_free(mrb, &f->fptr->path);
+        }
+        */
+        fptr_finalize(mrb, f->fptr, FALSE);
+      }
+    }
     break;
 #endif
 
@@ -684,6 +712,14 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
     {
       struct RStruct *s = (struct RStruct*)obj;
       children += s->len;
+    }
+    break;
+#endif
+
+#ifdef ENABLE_IO
+  case MRB_TT_FILE:
+    {
+      children += 2;
     }
     break;
 #endif

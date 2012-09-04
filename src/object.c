@@ -424,7 +424,9 @@ static const struct types {
   {MRB_TT_REGEX,  "Regexp"},
   {MRB_TT_STRUCT, "Struct"},
 //    {MRB_TT_BIGNUM,  "Bignum"},
+#ifdef ENABLE_IO
   {MRB_TT_FILE,   "File"},
+#endif
   {MRB_TT_DATA,   "Data"},  /* internal use: wrapped C pointers */
   {MRB_TT_MATCH,  "MatchData"},  /* data of $~ */
 //    {MRB_TT_VARMAP,  "Varmap"},  /* internal use: dynamic variables */

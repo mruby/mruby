@@ -107,6 +107,9 @@ typedef struct mrb_state {
   struct RClass *nil_class;
   struct RClass *symbol_class;
   struct RClass *kernel_module;
+#ifdef ENABLE_IO
+  struct RClass *io_class;
+#endif
 
   struct heap_page *heaps;
   struct heap_page *sweeps;
