@@ -8,6 +8,7 @@
 #include <string.h>
 #include "mruby/string.h"
 #include <stdio.h>
+#include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/numeric.h"
 
@@ -92,6 +93,45 @@ static mrb_value
 nil_to_s(mrb_state *mrb, mrb_value obj)
 {
     return mrb_str_new(mrb, 0, 0);
+}
+
+/*
+ *  call-seq:
+ *     nil.to_a    -> []
+ *
+ *  Always returns an empty array.
+ */
+
+static mrb_value
+nil_to_a(mrb_state *mrb, mrb_value obj)
+{
+    return mrb_ary_new(mrb);
+}
+
+/*
+ *  call-seq:
+ *     nil.to_f    -> 0.0
+ *
+ *  Always returns zero.
+ */
+
+static mrb_value
+nil_to_f(mrb_state *mrb, mrb_value obj)
+{
+    return mrb_float_value(0.0);
+}
+
+/*
+ *  call-seq:
+ *     nil.to_i    -> 0
+ *
+ *  Always returns zero.
+ */
+
+static mrb_value
+nil_to_i(mrb_state *mrb, mrb_value obj)
+{
+    return mrb_fixnum_value(0);
 }
 
 /***********************************************************************
@@ -281,6 +321,9 @@ mrb_init_object(mrb_state *mrb)
   mrb_define_method(mrb, n, "|",    false_or,       ARGS_REQ(1));  /* 15.2.4.3.3  */
   mrb_define_method(mrb, n, "nil?", mrb_true,       ARGS_NONE());  /* 15.2.4.3.4  */
   mrb_define_method(mrb, n, "to_s", nil_to_s,       ARGS_NONE());  /* 15.2.4.3.5  */
+  mrb_define_method(mrb, n, "to_a", nil_to_a,       ARGS_NONE());
+  mrb_define_method(mrb, n, "to_f", nil_to_f,       ARGS_NONE());
+  mrb_define_method(mrb, n, "to_i", nil_to_i,       ARGS_NONE());
 
   t = mrb->true_class  = mrb_define_class(mrb, "TrueClass",  mrb->object_class);
   mrb_undef_class_method(mrb, t, "new");
