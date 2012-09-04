@@ -549,7 +549,7 @@ mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
     iv_tbl *t = mrb_obj_ptr(obj)->iv;
     mrb_value val;
 
-    if (iv_del(mrb, t, sym, &val)) {
+    if (t && iv_del(mrb, t, sym, &val)) {
       return val;
     }
   }
