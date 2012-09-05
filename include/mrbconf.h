@@ -49,6 +49,7 @@
 //#define DISABLE_STDIO		/* use of stdio */
 //#define DISABLE_IO
 //#define DISABLE_PROCESS
+//#define DISABLE_ENV
 
 #define INCLUDE_ENCODING
 
@@ -96,6 +97,9 @@ typedef intptr_t mrb_sym;
 #endif
 #ifndef DISABLE_PROCESS
 #define ENABLE_PROCESS
+#endif
+#ifndef DISABLE_ENV
+#define ENABLE_ENV
 #endif
 
 #ifndef FALSE
