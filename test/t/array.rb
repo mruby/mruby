@@ -331,18 +331,6 @@ assert("Array#|") do
   (a | b) == [1, 2, 3, 4] and e1.class == TypeError and a == [1, 2, 3, 1]
 end
 
-assert("Array#| (raise)") do
-  a = [1, 2, 3, 1]
-  b = 1
-
-  begin
-    a | b
-  rescue => e1
-  end
-
-  e1.class == TypeError and a == [1, 2, 3, 1]
-end
-
 assert("Array#&") do
   a = [1, 2, 3, 1]
   b = [1, 4]
