@@ -48,6 +48,7 @@
 //#define DISABLE_STRUCT	/* Struct class */
 //#define DISABLE_STDIO		/* use of stdio */
 //#define DISABLE_IO
+//#define DISABLE_SOCKET
 //#define DISABLE_PROCESS
 
 #define INCLUDE_ENCODING
@@ -93,6 +94,9 @@ typedef intptr_t mrb_sym;
 #endif
 #ifndef DISABLE_IO
 #define ENABLE_IO
+#endif
+#ifndef DISABLE_SOCKET
+#define ENABLE_SOCKET
 #endif
 #ifndef DISABLE_PROCESS
 #define ENABLE_PROCESS
