@@ -6,7 +6,7 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
 # 拡張部分
 
  * 追加したクラス/モジュール
-   * ENV: ::[] ::[]= ::clear ::delete ::inspect ::keys ::keys ::store
+   * ENV: ::[] ::[]= ::clear ::delete ::inspect ::keys ::size ::store
           ::to\_a ::to\_hash ::to\_s ::values
    * File
    * IO
