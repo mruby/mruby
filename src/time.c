@@ -710,6 +710,7 @@ mrb_init_time(mrb_state *mrb)
   mrb_define_method(mrb, tc, "+"      , mrb_time_plus   , ARGS_REQ(1)); /* 15.2.19.7.2 */
   mrb_define_method(mrb, tc, "-"      , mrb_time_minus  , ARGS_REQ(1)); /* 15.2.19.7.3 */
   mrb_define_method(mrb, tc, "to_s"   , mrb_time_asctime, ARGS_NONE());
+  mrb_define_method(mrb, tc, "inspect", mrb_time_asctime, ARGS_NONE());
   mrb_define_method(mrb, tc, "asctime", mrb_time_asctime, ARGS_NONE()); /* 15.2.19.7.4 */
   mrb_define_method(mrb, tc, "ctime"  , mrb_time_asctime, ARGS_NONE()); /* 15.2.19.7.5 */
   mrb_define_method(mrb, tc, "day"    , mrb_time_day    , ARGS_NONE()); /* 15.2.19.7.6 */
