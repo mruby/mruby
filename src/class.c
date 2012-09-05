@@ -1090,7 +1090,7 @@ mrb_class_name(mrb_state *mrb, struct RClass* c)
 const char*
 mrb_obj_classname(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_class_name(mrb, mrb_class(mrb, obj));
+  return mrb_class_name(mrb, mrb_obj_class(mrb, obj));
 }
 
 /*!
