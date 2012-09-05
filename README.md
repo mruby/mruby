@@ -1,3 +1,27 @@
+# このリポジトリについて
+
+mruby に対して、主に UNIX 環境に依存する機能を追加した fork です。
+
+
+# 拡張部分
+
+ * 追加したクラス/モジュール
+   * ENV: ::[] ::[]= ::clear ::delete ::inspect ::keys ::keys ::store
+          ::to\_a ::to\_hash ::to\_s ::values
+   * File
+   * IO
+   * Regexp
+   * UNIXSocket: #addr ::new ::open #peeraddr
+
+ * 拡張したクラス/モジュール
+   * Array: #- #& #| #uniq #uniq!
+   * Kernel: #exit #sleep #system
+
+ * その他の拡張
+
+
+(以下はオリジナルの README そのままです)
+***
 # !!Notice!!
     This is a preliminary release for internal team review.
     The URLs and addresses described below are not available yet.
