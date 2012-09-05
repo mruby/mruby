@@ -86,6 +86,45 @@ class Array
       ret
     end
   end
+
+  def uniq!
+    ary = self.dup
+    result = []
+    while ary.size > 0
+      result << ary.shift
+      ary.delete(result.last)
+    end
+    self.replace(result)
+  end
+
+  def uniq
+    self.dup.uniq!
+  end
+
+  def -(elem)
+    raise TypeError, "can't convert to Array" unless elem.class == Array
+
+    ary = self.dup
+    idx = 0
+    size = elem.size
+    while (idx < size)
+      ary.delete(elem[idx])
+      idx += 1
+    end
+    ary
+  end
+
+  def |(elem)
+    raise TypeError, "can't convert to Array" unless elem.class == Array
+
+    (self + elem).uniq!
+  end
+
+  def &(elem)
+    raise TypeError, "can't convert to Array" unless elem.class == Array
+
+    (self | elem) - (self - elem) - (elem - self)
+  end
 end
 
 ##

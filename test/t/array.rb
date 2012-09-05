@@ -292,3 +292,68 @@ assert("Array (Shared Array Corruption)") do
   b.clear
 end
 
+assert("Array#uniq!") do
+  a = [1, 2, 3, 1]
+  a.uniq!
+  a == [1, 2, 3]
+end
+
+assert("Array#uniq") do
+  a = [1, 2, 3, 1]
+  a.uniq == [1, 2, 3] && a == [1, 2, 3, 1]
+end
+
+assert("Array#-") do
+  a = [1, 2, 3, 1]
+  b = [1]
+  c = 1
+  e1 = nil
+
+  begin
+    a - c
+  rescue => e1
+  end
+
+  (a - b) == [2, 3] and e1.class == TypeError and a == [1, 2, 3, 1]
+end
+
+assert("Array#|") do
+  a = [1, 2, 3, 1]
+  b = [1, 4]
+  c = 1
+  e1 = nil
+
+  begin
+    a | c
+  rescue => e1
+  end
+
+  (a | b) == [1, 2, 3, 4] and e1.class == TypeError and a == [1, 2, 3, 1]
+end
+
+assert("Array#| (raise)") do
+  a = [1, 2, 3, 1]
+  b = 1
+
+  begin
+    a | b
+  rescue => e1
+  end
+
+  e1.class == TypeError and a == [1, 2, 3, 1]
+end
+
+assert("Array#&") do
+  a = [1, 2, 3, 1]
+  b = [1, 4]
+  c = 1
+  e1 = nil
+
+  begin
+    a & c
+  rescue => e1
+  end
+
+  (a & b) == [1] and e1.class == TypeError and a == [1, 2, 3, 1]
+end
+
