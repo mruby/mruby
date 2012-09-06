@@ -464,7 +464,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     &&L_OP_GETUPVAR, &&L_OP_SETUPVAR,
     &&L_OP_JMP, &&L_OP_JMPIF, &&L_OP_JMPNOT,
     &&L_OP_ONERR, &&L_OP_RESCUE, &&L_OP_POPERR, &&L_OP_RAISE, &&L_OP_EPUSH, &&L_OP_EPOP,
-    &&L_OP_SEND, &&L_OP_SEND, &&L_OP_FSEND,
+    &&L_OP_SEND, &&L_OP_SENDB, &&L_OP_FSEND,
     &&L_OP_CALL, &&L_OP_SUPER, &&L_OP_ARGARY, &&L_OP_ENTER,
     &&L_OP_KARG, &&L_OP_KDICT, &&L_OP_RETURN, &&L_OP_TAILCALL, &&L_OP_BLKPUSH,
     &&L_OP_ADD, &&L_OP_ADDI, &&L_OP_SUB, &&L_OP_SUBI, &&L_OP_MUL, &&L_OP_DIV,
@@ -723,11 +723,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       NEXT;
     }
 
-#ifndef DIRECT_THREADED
     CASE(OP_SENDB) {
       /* fall through */
     };
-#endif
 
   L_SEND:
     CASE(OP_SEND) {
