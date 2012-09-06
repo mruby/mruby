@@ -23,6 +23,10 @@ mrb_init_ext(mrb_state *mrb)
   extern void mrb_init_process(mrb_state *mrb);
   mrb_init_process(mrb);
 #endif
+#ifdef ENABLE_DIGEST
+  extern void mrb_init_digest(mrb_state *mrb);
+  mrb_init_digest(mrb);
+#endif
 #ifdef ENABLE_ENV
   extern void mrb_init_env(mrb_state *mrb);
   mrb_init_env(mrb);
