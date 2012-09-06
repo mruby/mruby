@@ -11,6 +11,7 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
    * File
    * IO
    * Regexp
+   * TCPSocket: ::new ::open
    * UNIXSocket: #addr ::new ::open #peeraddr
 
  * 拡張したクラス/モジュール
