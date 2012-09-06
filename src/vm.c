@@ -723,6 +723,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       NEXT;
     }
 
+#ifndef DIRECT_THREADED
+    CASE(OP_SENDB) {
+      /* fall through */
+    };
+#endif
+
   L_SEND:
     CASE(OP_SEND) {
       /* A B C  R(A) := call(R(A),Sym(B),R(A+1),... ,R(A+C-1)) */
