@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <netdb.h>
 #include <stddef.h>
 #include <string.h>
 #include "mruby/array.h"
@@ -17,7 +18,58 @@
 #include "mruby/variable.h"
 #include "mruby/ext/io.h"
 
-#include <err.h>	// for debug
+static mrb_value
+mrb_tcpsocket_open(mrb_state *mrb, mrb_value klass)
+{ 
+  struct RFile *f;
+  struct addrinfo hints, *res, *res0;
+  struct mrb_io *io;
+  mrb_value argv[3], servo, so;
+  char *host;
+  int error, s;
+
+  mrb_get_args(mrb, "zo", &host, &servo);
+  if (mrb_type(servo) != MRB_TT_STRING) {
+    if (!mrb_respond_to(mrb, servo, mrb_intern(mrb, "to_s"))) {
+      mrb_raise(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, servo));
+    }
+    servo = mrb_funcall(mrb, servo, "to_s", 0);
+  }
+
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_socktype = SOCK_STREAM;
+  error = getaddrinfo(host, RSTRING_PTR(servo), &hints, &res0);
+  if (error == -1)
+    mrb_raise(mrb, E_RUNTIME_ERROR, "getaddrinfo(2) failed");
+  res = res0;
+
+  s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+  if (s == -1) {
+    freeaddrinfo(res0);
+    mrb_raise(mrb, E_RUNTIME_ERROR, "socket(2) failed");
+  }
+
+  if (connect(s, res->ai_addr, res->ai_addrlen) == -1) {
+    freeaddrinfo(res0);
+    mrb_raise(mrb, E_RUNTIME_ERROR, "connect(2) failed");
+  }
+  freeaddrinfo(res0);
+
+  f = (struct RFile *)mrb_obj_alloc(mrb, MRB_TT_FILE, mrb_class_ptr(klass));
+  f->fptr = NULL;
+  so = mrb_obj_value(f);
+
+  argv[0] = mrb_fixnum_value(s);
+  argv[1] = mrb_fixnum_value(O_RDWR);
+  argv[2] = mrb_nil_value();
+  rb_io_initialize(mrb, 2, argv, so);
+
+  io = RFILE(so)->fptr;
+  io->path = mrb_str_new_cstr(mrb, "");
+
+  return so;
+}
+
 
 static mrb_value
 mrb_unixsocket_open(mrb_state *mrb, mrb_value klass)
@@ -101,9 +153,14 @@ mrb_unixsocket_peeraddr(mrb_state *mrb, mrb_value self)
 void
 mrb_init_socket(mrb_state *mrb)
 {
-  struct RClass *usock, *io;
+  struct RClass *io, *tcpsock, *usock;
 
   io = mrb_class_obj_get(mrb, "IO");
+
+  tcpsock = mrb_define_class(mrb, "TCPSocket", io);
+  mrb_define_class_method(mrb, tcpsock, "open", mrb_tcpsocket_open, ARGS_REQ(2));
+  mrb_define_class_method(mrb, tcpsock, "new", mrb_tcpsocket_open, ARGS_REQ(2));
+  // who uses gethostbyname...?
 
   usock = mrb_define_class(mrb, "UNIXSocket", io);
   mrb_define_class_method(mrb, usock, "open", mrb_unixsocket_open, ARGS_REQ(1));
