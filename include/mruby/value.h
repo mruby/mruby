@@ -17,24 +17,24 @@ enum mrb_vtype {
   MRB_TT_SYMBOL,      /*   4 */
   MRB_TT_UNDEF,       /*   5 */
   MRB_TT_FLOAT,       /*   6 */
-  MRB_TT_OBJECT,      /*   7 */
-  MRB_TT_CLASS,       /*   8 */
-  MRB_TT_MODULE,      /*   9 */
-  MRB_TT_ICLASS,      /*  10 */
-  MRB_TT_SCLASS,      /*  11 */
-  MRB_TT_PROC,        /*  12 */
-  MRB_TT_ARRAY,       /*  13 */
-  MRB_TT_HASH,        /*  14 */
-  MRB_TT_STRING,      /*  15 */
-  MRB_TT_RANGE,       /*  16 */
-  MRB_TT_REGEX,       /*  17 */
-  MRB_TT_STRUCT,      /*  18 */
-  MRB_TT_EXCEPTION,   /*  19 */
-  MRB_TT_MATCH,       /*  20 */
-  MRB_TT_FILE,        /*  21 */
-  MRB_TT_ENV,         /*  22 */
-  MRB_TT_DATA,        /*  23 */
-  MRB_TT_MAIN,        /*  24 */
+  MRB_TT_MAIN,        /*   7 */
+  MRB_TT_OBJECT,      /*   8 */
+  MRB_TT_CLASS,       /*   9 */
+  MRB_TT_MODULE,      /*  10 */
+  MRB_TT_ICLASS,      /*  11 */
+  MRB_TT_SCLASS,      /*  12 */
+  MRB_TT_PROC,        /*  13 */
+  MRB_TT_ARRAY,       /*  14 */
+  MRB_TT_HASH,        /*  15 */
+  MRB_TT_STRING,      /*  16 */
+  MRB_TT_RANGE,       /*  17 */
+  MRB_TT_REGEX,       /*  18 */
+  MRB_TT_STRUCT,      /*  19 */
+  MRB_TT_EXCEPTION,   /*  20 */
+  MRB_TT_MATCH,       /*  21 */
+  MRB_TT_FILE,        /*  22 */
+  MRB_TT_ENV,         /*  23 */
+  MRB_TT_DATA,        /*  24 */
   MRB_TT_MAXDEFINE    /*  25 */
 };
 
@@ -78,25 +78,25 @@ enum mrb_vtype {
   MRB_TT_SYMBOL,      /*   5 */
   MRB_TT_UNDEF,       /*   6 */
   MRB_TT_FLOAT,       /*   7 */
-  MRB_TT_OBJECT,      /*   8 */
-  MRB_TT_CLASS,       /*   9 */
-  MRB_TT_MODULE,      /*  10 */
-  MRB_TT_ICLASS,      /*  11 */
-  MRB_TT_SCLASS,      /*  12 */
-  MRB_TT_PROC,        /*  13 */
-  MRB_TT_ARRAY,       /*  14 */
-  MRB_TT_HASH,        /*  15 */
-  MRB_TT_STRING,      /*  16 */
-  MRB_TT_RANGE,       /*  17 */
-  MRB_TT_REGEX,       /*  18 */
-  MRB_TT_STRUCT,      /*  19 */
-  MRB_TT_EXCEPTION,   /*  20 */
-  MRB_TT_MATCH,       /*  21 */
-  MRB_TT_FILE,        /*  22 */
-  MRB_TT_ENV,         /*  23 */
-  MRB_TT_DATA,        /*  24 */
-  MRB_TT_MAIN,        /*  25 */
-  MRB_TT_MAXDEFINE    /*  26 */
+  MRB_TT_MAIN,        /*   8 */
+  MRB_TT_OBJECT,      /*   9 */
+  MRB_TT_CLASS,       /*  10 */
+  MRB_TT_MODULE,      /*  11 */
+  MRB_TT_ICLASS,      /*  12 */
+  MRB_TT_SCLASS,      /*  13 */
+  MRB_TT_PROC,        /*  14 */
+  MRB_TT_ARRAY,       /*  15 */
+  MRB_TT_HASH,        /*  16 */
+  MRB_TT_STRING,      /*  17 */
+  MRB_TT_RANGE,       /*  18 */
+  MRB_TT_REGEX,       /*  19 */
+  MRB_TT_STRUCT,      /*  20 */
+  MRB_TT_EXCEPTION,   /*  21 */
+  MRB_TT_MATCH,       /*  22 */
+  MRB_TT_FILE,        /*  23 */
+  MRB_TT_ENV,         /*  24 */
+  MRB_TT_DATA,        /*  25 */
+  MRB_TT_MAXDEFINE    /*  27 */
 };
 
 #ifdef MRB_ENDIAN_BIG
@@ -156,7 +156,7 @@ mrb_float_value(mrb_float f)
 
 #include "mruby/object.h"
 
-#define IMMEDIATE_P(x) (mrb_type(x) <= MRB_TT_FLOAT)
+#define IMMEDIATE_P(x) (mrb_type(x) <= MRB_TT_MAIN)
 #define SPECIAL_CONST_P(x) IMMEDIATE_P(x)
 #define SYMBOL_P(o) (mrb_type(o) == MRB_TT_SYMBOL)
 #define RTEST(o) mrb_test(o)
