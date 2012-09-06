@@ -13,7 +13,7 @@ EXCEPT1 := $(YC) $(BASEDIR)/minimain.c
 OBJY := $(patsubst %.c,%.o,$(YC))
 OBJ1 := $(patsubst %.c,%.o,$(filter-out $(EXCEPT1),$(wildcard $(BASEDIR)/*.c)))
 #OBJ2 := $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/ext/regex/*.c))
-#OBJ3 := $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/ext/enc/*.c))
+OBJ3 := $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/ext/enc/*.c))
 OBJS := $(OBJ1) $(OBJ2) $(OBJ3)
 
 # libraries, includes
