@@ -335,3 +335,17 @@ assert('String interpolation (mrb_str_concat for shared strings)') do
   "#{a}:" == "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:"
 end
 
+assert('String strip methods test') do
+  ls = " strip"
+  rs = "strip "
+  bs = " strip "
+  bangs = " strip "
+  res = "strip"
+
+  bangs.strip!
+
+  ls.lstrip == res and
+  rs.rstrip == res and
+  bs.strip == res and
+  bangs == res
+end

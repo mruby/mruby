@@ -136,6 +136,47 @@ class String
     p [b, value, a].join('')
     self.replace([b, value, a].join(''))
   end
+
+  def lstrip
+    i = 0
+    while self[i] == ' '
+      i += 1
+    end
+    j = 0
+    ar = []
+    while i < self.size
+      ar[j] = self[i]
+      i += 1
+      j += 1
+    end
+    ar.join('')
+  end
+
+  def rstrip
+    i = -1
+    while self[i] == ' '
+      i -= 1
+    end
+    j = 0
+    ar = []
+    while j < (self.size + i + 1)
+      ar[j] = self[j]
+      j += 1
+    end
+    ar.join('')
+  end
+
+  def strip
+    a = self.lstrip
+    b = a.rstrip
+    b
+  end
+
+  def strip!
+    a = self.lstrip
+    b = a.rstrip
+    self.replace(b)
+  end
 end
 
 ##
