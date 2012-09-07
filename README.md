@@ -22,6 +22,15 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
  * その他の拡張
 
 
+# ブランチ
+
+ * master : mruby/mruby の master と同じです。
+ * iij : 主な開発ブランチです。UNIX プラットホームに依存した変更を含みます。
+   master からは不具合修正系の commit のみ取り込みます。
+ * pr-hogehoge : master から分岐した、pull-request 送信専用のブランチです。
+   ひとつの pull-request に対してひとつの pr-hogehoge ブランチを作成します。
+   
+
 # ライセンス
 
 オリジナル mruby と同じです。
