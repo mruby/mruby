@@ -41,6 +41,7 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
  * 以下のようにコマンドを実行することで、テストを実施することができます。
 
 > $ cd test/posix # test/posix ディレクトリへ移動
+> 
 > $ sh all.sh     # test/posix 以下にある全てのテストを実行
 
 # ライセンス
