@@ -17,6 +17,8 @@ assert('Digest::MD5.digest') do
   Digest::MD5.digest('ruby') == "X\xE5=\x13$\xEE\xF6&_\xDB\x97\xB0\x8E\xD9\xAA\xDF"
 end
 
+#assert('Digest::MD5.file')
+
 assert('Digest::MD5.hexdigest') do
   Digest::MD5.hexdigest('ruby') == "58e53d1324eef6265fdb97b08ed9aadf"
 end
@@ -77,6 +79,8 @@ assert('Digest::MD5#digest_length') do
   d.length == n and
   d.size == n
 end
+
+#assert('Digest::MD5#file')
 
 assert('Digest::MD5#hexdigest') do
   d = Digest::MD5.new.update("ruby")

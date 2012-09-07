@@ -6,6 +6,8 @@
 
 #include "mruby.h"
 
+void mrb_init_mrblib_ext(mrb_state*);
+
 void
 mrb_init_ext(mrb_state *mrb)
 {
@@ -31,4 +33,6 @@ mrb_init_ext(mrb_state *mrb)
   extern void mrb_init_env(mrb_state *mrb);
   mrb_init_env(mrb);
 #endif
+
+  mrb_init_mrblib_ext(mrb);
 }

@@ -7,12 +7,13 @@ BASEDIR = .
 TARGET := mrblib
 MLIB := $(TARGET).o
 CLIB := $(TARGET).c
-DLIB := $(TARGET).ctmp
-RLIB := $(TARGET).rbtmp
+DLIB1 := $(TARGET)1.ctmp
+DLIB2 := $(TARGET)2.ctmp
+RLIB1 := $(TARGET)1.rbtmp
+RLIB2 := $(TARGET)2.rbtmp
 DEPLIB := $(TARGET).d
 MRB1 := $(BASEDIR)/*.rb
-MRB2 := $(BASEDIR)/io/*.rb
-MRBS := $(MRB1) $(MRB2)
+MRB2 := $(BASEDIR)/ext/*.rb
 LIBR0 := ../lib/libmruby_core.a
 LIBR := ../lib/libmruby.a
 
@@ -63,18 +64,22 @@ $(MLIB) : $(CLIB)
 	$(CC) $(ALL_CFLAGS) -MMD $(INCLUDES) -c $(CLIB) -o $(MLIB)
 
 # Compile C source from merged mruby source
-$(CLIB) : $(RLIB) $(MRBC)
-	$(MRBC) -Bmrblib_irep -o$(DLIB) $(RLIB); $(CAT) init_$(TARGET).c $(DLIB) > $@
+$(CLIB) : $(RLIB1) $(RLIB2) $(MRBC)
+	$(MRBC) -Bmrblib_irep -o$(DLIB1) $(RLIB1)
+	$(MRBC) -Bmrblib_ext_irep -o$(DLIB2) $(RLIB2)
+	$(CAT) init_$(TARGET).c $(DLIB1) $(DLIB2) > $@
 
 $(MRBC) : ../src/opcode.h ../src/codegen.c ../src/parse.y
 	$(MAKE) -C ../tools/mrbc $(MAKE_FLAGS)
 
 # merge mruby sources
-$(RLIB) : $(MRBS)
-	$(CAT) $(MRBS) > $@
+$(RLIB1) : $(MRB1)
+	$(CAT) $(MRB1) > $@
+$(RLIB2) : $(MRB2)
+	$(CAT) $(MRB2) > $@
 
 # clean up
 .PHONY : clean
 clean :
 	@echo "make: removing targets, objects and depend files of `pwd`"
-	-$(RM_F) $(MRBC) $(MLIB) $(CLIB) $(RLIB) $(DLIB) $(DEPLIB) $(LIBR)
+	-$(RM_F) $(MRBC) $(MLIB) $(CLIB) $(RLIB1) $(RLIB2) $(DLIB1) $(DLIB2) $(DEPLIB) $(LIBR)
