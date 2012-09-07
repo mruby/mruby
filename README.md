@@ -7,6 +7,7 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
 
  * 追加したクラス/モジュール
    * Digest::MD5/RIPEMD160/SHA1/SHA256/SHA384/SHA512: ::file #file 以外
+   * Digest::HMAC
    * ENV: ::[] ::[]= ::clear ::delete ::inspect ::keys ::size ::store
           ::to\_a ::to\_hash ::to\_s ::values
    * File
@@ -18,6 +19,7 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
  * 拡張したクラス/モジュール
    * Array: #- #& #| #uniq #uniq!
    * Kernel: #exit #sleep #system
+   * String: #lstrip #rstrip #strip
 
  * その他の拡張
 
