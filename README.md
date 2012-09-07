@@ -10,9 +10,12 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
    * Digest::HMAC
    * ENV: ::[] ::[]= ::clear ::delete ::inspect ::keys ::size ::store
           ::to\_a ::to\_hash ::to\_s ::values
-   * File
-   * IO
-   * Regexp
+   * File: ::open ::umask ::unlink ::delete ::rename ::exist? ::exists?
+           ::dirname #path
+   * IO: ::open ::sysopen ::popen
+         #close #closed? #each #each_byte #each_line #read #sync #sync=
+         #write #to_io
+   * Regexp: ::compile ::last_match #match
    * TCPSocket: ::new ::open
    * UNIXSocket: #addr ::new ::open #peeraddr
 
@@ -31,7 +34,14 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
    master からは不具合修正系の commit のみ取り込みます。
  * pr-hogehoge : master から分岐した、pull-request 送信専用のブランチです。
    ひとつの pull-request に対してひとつの pr-hogehoge ブランチを作成します。
-   
+
+# 機能拡張に関連するテスト
+
+ * UNIX 環境に依存する機能のテストコードは、test/posix ディレクトリに追加しています。
+ * 以下のようにコマンドを実行することで、テストを実施することができます。
+
+> $ cd test/posix # test/posix ディレクトリへ移動
+> $ sh all.sh     # test/posix 以下にある全てのテストを実行
 
 # ライセンス
 
