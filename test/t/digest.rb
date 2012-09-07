@@ -130,3 +130,53 @@ assert('Digest::SHA512#hexdigest') do
   s = "423408d7723a3d80baefa804bd50b61a89667efec1713386a7b8efe28e5d13968307a908778cad210d7aa2dfe7db9a2aa86895f9fc1eeefcc99814310b207a6b"
   d.hexdigest == s
 end
+
+assert('Digest::HMAC') do
+  Digest::HMAC.class == Class
+end
+
+assert('Digest::HMAC.digest') do
+  Digest::HMAC.digest("data", "hash key", Digest::SHA1) == "\xFD \xECC=\xFD\x97\x0E\xEC!FW\xCF\xB5Gl]\x913f"
+end
+
+assert('Digest::HMAC.hexdigest') do
+  Digest::HMAC.hexdigest("data", "hash key", Digest::SHA1) == "fd20ec433dfd970eec214657cfb5476c5d913366"
+end
+
+assert('Digest::HMAC#<<') do
+  a = Digest::HMAC.new('hash key', Digest::SHA1)
+  b = Digest::HMAC.new('hash key', Digest::SHA1)
+  a.update('ruby')
+  b << "r" << "u" << "b" << "y"
+  a.hexdigest == b.hexdigest
+end
+
+assert('Digest::HMAC#block_length') do
+  d = Digest::HMAC.new("hash key", Digest::SHA1)
+  d.block_length == 64
+end
+
+assert('Digest::HMAC#digest_length') do
+  d = Digest::HMAC.new("hash key", Digest::SHA1)
+  d.digest_length == 20
+end
+
+assert('Digest::HMAC#reset') do
+  d = Digest::HMAC.new("hash key", Digest::SHA1)
+  d.update("data")
+  d.reset
+  d.hexdigest == "d9a67f73a03d3d8dcfd18cda5165fad22f66d410"
+end
+
+assert('Digest::HMAC#update') do
+  d = Digest::HMAC.new("hash key", Digest::SHA1)
+  d.update('data')
+  d.hexdigest == "fd20ec433dfd970eec214657cfb5476c5d913366"
+end
+
+assert('Digest::HMAC#update 2') do
+  d = Digest::HMAC.new("hash key", Digest::SHA1)
+  d.update('ruby')
+  d.update('digest')
+  d.hexdigest == "e4be3728777e43deba3aa522a4247ea83b19a1c7"
+end

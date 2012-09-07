@@ -6,6 +6,7 @@
 
 #include "mruby.h"
 #include <openssl/evp.h>
+#include <openssl/hmac.h>
 #include <string.h>
 #include "mruby/array.h"
 #include "mruby/class.h"
@@ -20,8 +21,15 @@
 static mrb_value mrb_digest_hexdigest(mrb_state *, mrb_value);
 
 struct mrb_evp {
-  const EVP_MD *md;
   EVP_MD_CTX ctx;
+  const EVP_MD *md;
+};
+
+struct mrb_hmac {
+  HMAC_CTX ctx;
+  const EVP_MD *md;
+  char *key;
+  int keylen;
 };
 
 static void
@@ -33,7 +41,20 @@ mrb_evp_free(mrb_state *mrb, void *ptr)
   mrb_free(mrb, evp);
 }
 
+static void
+mrb_hmac_free(mrb_state *mrb, void *ptr)
+{
+  struct mrb_hmac *hmac = ptr;
+
+  HMAC_CTX_cleanup(&hmac->ctx);
+  memset(hmac->key, 0, hmac->keylen);
+  mrb_free(mrb, hmac->key);
+  mrb_free(mrb, hmac);
+}
+
 static struct mrb_data_type mrb_evp_type = { "EVP", mrb_evp_free };
+static struct mrb_data_type mrb_hmac_type = { "HMAC", mrb_hmac_free };
+
 
 static void
 basecheck(mrb_state *mrb, mrb_value self, const char **namep, struct mrb_evp **evpp)
@@ -313,10 +334,136 @@ mrb_digest_s_hexdigest(mrb_state *mrb, mrb_value klass)
   return mrb_digest_hexdigest(mrb, d);
 }
 
+static mrb_value
+mrb_hmac_block_length(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_hmac *hmac;
+
+  hmac = (struct mrb_hmac *)mrb_get_datatype(mrb, self, &mrb_hmac_type);
+  if (!hmac) return mrb_nil_value();
+  return mrb_fixnum_value(EVP_MD_block_size(hmac->md));
+}
+
+static mrb_value
+mrb_hmac_digest(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_hmac *hmac;
+  HMAC_CTX ctx;
+  unsigned int mdlen;
+  unsigned char mdstr[EVP_MAX_MD_SIZE];
+
+  hmac = (struct mrb_hmac *)mrb_get_datatype(mrb, self, &mrb_hmac_type);
+  if (!hmac) return mrb_nil_value();
+  HMAC_CTX_copy(&ctx, &hmac->ctx);
+  HMAC_Final(&ctx, mdstr, &mdlen);
+  return mrb_str_new(mrb, mdstr, mdlen);
+}
+
+static mrb_value
+mrb_hmac_digest_length(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_hmac *hmac;
+
+  hmac = (struct mrb_hmac *)mrb_get_datatype(mrb, self, &mrb_hmac_type);
+  if (!hmac) return mrb_nil_value();
+  return mrb_fixnum_value(EVP_MD_size(hmac->md));
+}
+
+static mrb_value
+mrb_hmac_hexdigest(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_hmac *hmac;
+  HMAC_CTX ctx;
+  unsigned int mdlen;
+  int i;
+  unsigned char mdstr[EVP_MAX_MD_SIZE];
+  unsigned char distr[EVP_MAX_MD_SIZE * 2 + 1];
+  unsigned char hex[] = "0123456789abcdef";
+
+  hmac = (struct mrb_hmac *)mrb_get_datatype(mrb, self, &mrb_hmac_type);
+  if (!hmac) return mrb_nil_value();
+  HMAC_CTX_copy(&ctx, &hmac->ctx);
+  HMAC_Final(&ctx, mdstr, &mdlen);
+  for (i = 0; i < mdlen; i++) {
+    distr[i*2] = hex[(mdstr[i] / 16) % 16];
+    distr[i*2+1] = hex[mdstr[i] % 16];
+  }
+  distr[i*2] = '\0';
+  return mrb_str_new2(mrb, distr);
+}
+
+static mrb_value
+mrb_hmac_init(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_hmac *hmac;
+  mrb_value digest, name;
+  int keylen;
+  char *key;
+
+  mrb_get_args(mrb, "so", &key, &keylen, &digest);
+  name = mrb_const_get(mrb, digest, mrb_intern(mrb, NAMESYM));
+  if (mrb_nil_p(name)) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "not a digester");
+  }
+
+  hmac = (struct mrb_hmac *)mrb_get_datatype(mrb, self, &mrb_hmac_type);
+  if (hmac) {
+    mrb_hmac_free(mrb, hmac);
+  }
+
+  hmac = (struct mrb_hmac *)mrb_malloc(mrb, sizeof(*hmac));
+  hmac->md = EVP_get_digestbyname(RSTRING_PTR(name));
+  hmac->key = mrb_malloc(mrb, keylen);
+  memcpy(hmac->key, key, keylen);
+  hmac->keylen = keylen;
+  HMAC_CTX_init(&hmac->ctx);
+  HMAC_Init_ex(&hmac->ctx, key, keylen, hmac->md, NULL);
+
+  DATA_PTR(self) = hmac;
+  DATA_TYPE(self) = &mrb_hmac_type;
+  return self;
+}
+
+static mrb_value
+mrb_hmac_init_copy(mrb_state *mrb, mrb_value copy)
+{
+  mrb_raise(mrb, E_RUNTIME_ERROR, "cannot duplicate HMAC");
+  return copy;
+}
+
+static mrb_value
+mrb_hmac_reset(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_hmac *hmac;
+
+  hmac = (struct mrb_hmac *)mrb_get_datatype(mrb, self, &mrb_hmac_type);
+  if (!hmac) return mrb_nil_value();
+  HMAC_CTX_cleanup(&hmac->ctx);
+  HMAC_CTX_init(&hmac->ctx);
+  HMAC_Init_ex(&hmac->ctx, hmac->key, hmac->keylen, hmac->md, NULL);
+  return self;
+}
+
+static mrb_value
+mrb_hmac_update(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_hmac *hmac;
+  int len;
+  char *str;
+
+  hmac = (struct mrb_hmac *)mrb_get_datatype(mrb, self, &mrb_hmac_type);
+  if (!hmac) return mrb_nil_value();
+  mrb_get_args(mrb, "s", &str, &len);
+  HMAC_Update(&hmac->ctx, str, len);
+  return self;
+}
+
+
 void
 mrb_init_digest(mrb_state *mrb)
 {
-  struct RClass *b, *d, *md5c, *rmd160c, *sha1c, *sha256c, *sha384c, *sha512c;
+  struct RClass *b, *d, *h;
+  struct RClass *md5c, *rmd160c, *sha1c, *sha256c, *sha384c, *sha512c;
 
   OpenSSL_add_all_digests();
 
@@ -366,4 +513,15 @@ mrb_init_digest(mrb_state *mrb)
   sha512c = mrb_define_class_under(mrb, d, "SHA512", b);
   MRB_SET_INSTANCE_TT(sha512c, MRB_TT_DATA);
   mrb_define_const(mrb, sha512c, NAMESYM, mrb_str_new2(mrb, "sha512"));
+
+  h = mrb_define_class_under(mrb, d, "HMAC", mrb->object_class);
+  MRB_SET_INSTANCE_TT(h, MRB_TT_DATA);
+  mrb_define_method(mrb, h, "block_length", mrb_hmac_block_length, ARGS_NONE());
+  mrb_define_method(mrb, h, "digest", mrb_hmac_digest, ARGS_NONE());
+  mrb_define_method(mrb, h, "digest_length", mrb_hmac_digest_length, ARGS_NONE());
+  mrb_define_method(mrb, h, "hexdigest", mrb_hmac_hexdigest, ARGS_NONE());
+  mrb_define_method(mrb, h, "initialize", mrb_hmac_init, ARGS_REQ(2));
+  mrb_define_method(mrb, h, "initialize_copy", mrb_hmac_init_copy, ARGS_REQ(1));
+  mrb_define_method(mrb, h, "reset", mrb_hmac_reset, ARGS_NONE());
+  mrb_define_method(mrb, h, "update", mrb_hmac_update, ARGS_REQ(1));
 }
