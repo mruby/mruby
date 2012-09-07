@@ -59,6 +59,12 @@ if Object.const_defined?(:IO) and Object.const_defined?(:File)
     io.close
     line == "$R_BODY_MSG" + "\n"
   end
+
+  ## Not ISO specified
+  assert('File.dirname') do
+    path = File.dirname("$R_FILENAME")
+    "." == path
+  end
 end
 
 report

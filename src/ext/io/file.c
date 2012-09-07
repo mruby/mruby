@@ -89,6 +89,60 @@ mrb_file_path(mrb_state *mrb, mrb_value self)
   return mrb_str_dup(mrb, fptr->path);
 }
 
+#define isdirsep(x) ((x) == '/')
+
+static inline char *
+skiproot(const char *path)
+{
+  while (isdirsep(*path)) {
+    path++;
+  }
+  return (char *)path;
+}
+
+static char *
+strrdirsep(const char *path)
+{
+  char *last = NULL;
+  while (*path) {
+    if (isdirsep(*path)) {
+      const char *tmp = path++;
+      while (isdirsep(*path))
+        path++;
+      if (!*path)
+        break;
+      last = (char *)tmp;
+    } else {
+      path = path + 1;
+    }
+  }
+  return last;
+}
+
+static mrb_value
+mrb_file_dirname(mrb_state *mrb, mrb_value self)
+{
+  const char *name, *root, *p;
+  mrb_value dirname, fname;
+
+  mrb_get_args(mrb, "o", &fname);
+  name = mrb_string_value_cstr(mrb, &fname);
+  root = skiproot(name);
+
+  if (root > name +1)
+    name = root - 1;
+
+  p = strrdirsep(root);
+  if (!p)
+    p = root;
+  if (p == name)
+    return mrb_str_new2(mrb, ".");
+
+  dirname = mrb_str_new(mrb, name, p - name);
+
+  return dirname;
+}
+
 static int
 mrb_stat(mrb_state *mrb, mrb_value file, struct stat *st)
 {
@@ -201,7 +255,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "exists?",    mrb_file_exist_p,    ARGS_REQ(1));              /* 15.2.21.3.1  */
   mrb_define_method(mrb, file,       "initialize", mrb_file_initialize, ARGS_ANY());               /* 15.2.21.4.1  */
   mrb_define_method(mrb, file,       "path",       mrb_file_path,       ARGS_NONE());              /* 15.2.21.4.2  */
-
+  mrb_define_class_method(mrb, file, "dirname",   mrb_file_dirname,    ARGS_REQ(1));
 }
 
 #endif /* ENABLE_IO */
