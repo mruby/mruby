@@ -23,6 +23,18 @@
 #include <stddef.h>
 #include <stdarg.h>
 
+#define SET_TRUE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
+#define SET_FALSE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
+#define SET_NIL_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
+#define SET_INT_VALUE(r,n) MRB_SET_VALUE(r, MRB_TT_FIXNUM, value.i, (n))
+#define SET_SYM_VALUE(r,v) MRB_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
+#define SET_OBJ_VALUE(r,v) MRB_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
+#ifdef MRB_NAN_BOXING
+#define SET_FLT_VALUE(r,v) r.f = (v)
+#else
+#define SET_FLT_VALUE(r,v) MRB_SET_VALUE(r, MRB_TT_FLOAT, value.f, (v))
+#endif
+
 #define STACK_INIT_SIZE 128
 #define CALLINFO_INIT_SIZE 32
 
@@ -84,7 +96,7 @@ stack_extend(mrb_state *mrb, int room, int keep)
     int i;
 
     for (i=keep; i<room; i++) {
-      mrb->stack[i] = mrb_nil_value();
+      SET_NIL_VALUE(mrb->stack[i]);
     }
 #endif
   }
@@ -401,18 +413,6 @@ argnum_error(mrb_state *mrb, int num)
   exc = mrb_exc_new(mrb, E_ARGUMENT_ERROR, buf, len);
   mrb->exc = (struct RObject*)mrb_object(exc);
 }
-
-#define SET_TRUE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
-#define SET_FALSE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
-#define SET_NIL_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
-#define SET_INT_VALUE(r,n) MRB_SET_VALUE(r, MRB_TT_FIXNUM, value.i, (n))
-#define SET_SYM_VALUE(r,v) MRB_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
-#define SET_OBJ_VALUE(r,v) MRB_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
-#ifdef MRB_NAN_BOXING
-#define SET_FLT_VALUE(r,v) r.f = (v)
-#else
-#define SET_FLT_VALUE(r,v) MRB_SET_VALUE(r, MRB_TT_FLOAT, value.f, (v))
-#endif
 
 #ifdef __GNUC__
 #define DIRECT_THREADED
@@ -754,16 +754,14 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       c = mrb_class(mrb, recv);
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
-        mrb_value sym = mrb_symbol_value(mid);
-
         mid = mrb_intern(mrb, "method_missing");
         m = mrb_method_search_vm(mrb, &c, mid);
         if (n == CALL_MAXARGS) {
-          mrb_ary_unshift(mrb, regs[a+1], sym);
+          mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(mid));
         }
         else {
           memmove(regs+a+2, regs+a+1, sizeof(mrb_value)*(n+1));
-          regs[a+1] = sym;
+	  SET_SYM_VALUE(regs[a+1], mid);
           n++;
         }
       }
@@ -896,7 +894,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         }
         else {
           memmove(regs+a+2, regs+a+1, sizeof(mrb_value)*(n+1));
-          regs[a+1] = mrb_symbol_value(ci->mid);
+	  SET_SYM_VALUE(regs[a+1], ci->mid);
           n++;
         }
       }
