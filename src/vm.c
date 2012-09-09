@@ -233,7 +233,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
   struct RClass *c;
   mrb_sym undef = 0;
   mrb_callinfo *ci;
-  int n = mrb->ci->nregs;
+  int n;
   mrb_value val;
 
   if (!mrb->jmp) {
@@ -250,6 +250,10 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
     return val;
   }
 
+  if (!mrb->stack) {
+    stack_init(mrb);
+  }
+  n = mrb->ci->nregs;
   if (argc < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%d)", argc);
   }
