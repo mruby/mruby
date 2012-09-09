@@ -52,6 +52,7 @@
 //#define DISABLE_PROCESS
 //#define DISABLE_ENV
 //#define DISABLE_DIGEST	/* requires OpenSSL */
+//#define DISABLE_PACK
 
 #define INCLUDE_ENCODING
 
@@ -114,6 +115,9 @@ typedef intptr_t mrb_sym;
 #endif
 #ifndef DISABLE_DIGEST
 #define ENABLE_DIGEST
+#endif
+#ifndef DISABLE_PACK
+#define ENABLE_PACK
 #endif
 
 #ifndef FALSE
