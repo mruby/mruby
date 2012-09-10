@@ -6,8 +6,8 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
 # 拡張部分
 
  * 追加したクラス/モジュール
-   * Digest::MD5/RIPEMD160/SHA1/SHA256/SHA384/SHA512: ::file #file 以外
-   * Digest::HMAC
+   * Digest::MD5/RIPEMD160/SHA1/SHA256/SHA384/SHA512: 全て
+   * Digest::HMAC: #reset 以外
    * ENV: ::[] ::[]= ::clear ::delete ::inspect ::keys ::size ::store
           ::to\_a ::to\_hash ::to\_s ::values
    * File: ::open ::umask ::unlink ::delete ::rename ::exist? ::exists?
@@ -15,7 +15,7 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
    * IO: ::open ::sysopen ::popen
          #close #closed? #each #each_byte #each_line #read #sync #sync=
          #write #to_io
-   * Regexp: ::compile ::last_match #match
+   * Regexp: ::compile ::last\_match #match
    * TCPSocket: ::new ::open
    * UNIXSocket: #addr ::new ::open #peeraddr
 

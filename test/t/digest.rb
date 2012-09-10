@@ -101,34 +101,44 @@ assert('Digest::MD5#reset') do
   d.hexdigest! == "d41d8cd98f00b204e9800998ecf8427e"
 end
 
-assert('Digest::RMD160#hexdigest') do
-  d = Digest::RMD160.new.update("ruby")
-  s = "29d9b710bc50866fa2399c3061cd02c0c8ffa197"
-  d.hexdigest == s
+if Digest.const_defined? :RMD160
+  assert('Digest::RMD160#hexdigest') do
+    d = Digest::RMD160.new.update("ruby")
+    s = "29d9b710bc50866fa2399c3061cd02c0c8ffa197"
+    d.hexdigest == s
+  end
 end
 
-assert('Digest::SHA1#hexdigest') do
-  d = Digest::SHA1.new.update("ruby")
-  s = "18e40e1401eef67e1ae69efab09afb71f87ffb81"
-  d.hexdigest == s
+if Digest.const_defined? :SHA1
+  assert('Digest::SHA1#hexdigest') do
+    d = Digest::SHA1.new.update("ruby")
+    s = "18e40e1401eef67e1ae69efab09afb71f87ffb81"
+    d.hexdigest == s
+  end
 end
 
-assert('Digest::SHA256#hexdigest') do
-  d = Digest::SHA256.new.update("ruby")
-  s = "b9138194ffe9e7c8bb6d79d1ed56259553d18d9cb60b66e3ba5aa2e5b078055a"
-  d.hexdigest == s
+if Digest.const_defined? :SHA1
+  assert('Digest::SHA256#hexdigest') do
+    d = Digest::SHA256.new.update("ruby")
+    s = "b9138194ffe9e7c8bb6d79d1ed56259553d18d9cb60b66e3ba5aa2e5b078055a"
+    d.hexdigest == s
+  end
 end
 
-assert('Digest::SHA384#hexdigest') do
-  d = Digest::SHA384.new.update("ruby")
-  s = "635365ef93ebf2c7a4e40b0b497da727ab8c2914eb9f052e6be40476f95d3daf44786790f5f0e843fab419b43022e069"
-  d.hexdigest == s
+if Digest.const_defined? :SHA1
+  assert('Digest::SHA384#hexdigest') do
+    d = Digest::SHA384.new.update("ruby")
+    s = "635365ef93ebf2c7a4e40b0b497da727ab8c2914eb9f052e6be40476f95d3daf44786790f5f0e843fab419b43022e069"
+    d.hexdigest == s
+  end
 end
 
-assert('Digest::SHA512#hexdigest') do
-  d = Digest::SHA512.new.update("ruby")
-  s = "423408d7723a3d80baefa804bd50b61a89667efec1713386a7b8efe28e5d13968307a908778cad210d7aa2dfe7db9a2aa86895f9fc1eeefcc99814310b207a6b"
-  d.hexdigest == s
+if Digest.const_defined? :SHA1
+  assert('Digest::SHA512#hexdigest') do
+    d = Digest::SHA512.new.update("ruby")
+    s = "423408d7723a3d80baefa804bd50b61a89667efec1713386a7b8efe28e5d13968307a908778cad210d7aa2dfe7db9a2aa86895f9fc1eeefcc99814310b207a6b"
+    d.hexdigest == s
+  end
 end
 
 assert('Digest::HMAC') do
@@ -161,12 +171,7 @@ assert('Digest::HMAC#digest_length') do
   d.digest_length == 20
 end
 
-assert('Digest::HMAC#reset') do
-  d = Digest::HMAC.new("hash key", Digest::SHA1)
-  d.update("data")
-  d.reset
-  d.hexdigest == "d9a67f73a03d3d8dcfd18cda5165fad22f66d410"
-end
+# assert('Digest::HMAC#reset')
 
 assert('Digest::HMAC#update') do
   d = Digest::HMAC.new("hash key", Digest::SHA1)

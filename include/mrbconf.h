@@ -58,6 +58,12 @@
 #undef  HAVE_UNISTD_H /* WINDOWS */
 #define HAVE_UNISTD_H /* LINUX */
 
+#ifdef __APPLE__
+#define USE_DIGEST_OSX_COMMONCRYPTO
+#else
+#define USE_DIGEST_OPENSSL
+#endif
+
 /* end of configuration */
 
 #ifdef MRB_USE_FLOAT
