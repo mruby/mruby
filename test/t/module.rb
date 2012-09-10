@@ -105,3 +105,19 @@ assert('Module#included_modules', '15.2.2.4.30') do
   r = Test4includedModules2.included_modules
   r.class == Array and r.include?(Test4includedModules)
 end
+
+# Not ISO specified
+
+assert('Module#to_s') do
+  module Test4to_sModules
+  end
+
+  Test4to_sModules.to_s == 'Test4to_sModules'
+end
+
+assert('Module#inspect') do
+  module Test4to_sModules
+  end
+
+  Test4to_sModules.inspect == 'Test4to_sModules'
+end
