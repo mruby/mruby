@@ -1054,7 +1054,8 @@ mrb_ary_equal(mrb_state *mrb, mrb_value ary1)
   mrb_value ary2;
 
   mrb_get_args(mrb, "o", &ary2);
-  if (mrb_obj_equal(mrb, ary1,ary2)) return mrb_true_value();
+  if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_true_value();
+  if (SPECIAL_CONST_P(ary2)) return mrb_false_value();
   if (mrb_type(ary2) != MRB_TT_ARRAY) {
     if (!mrb_respond_to(mrb, ary2, mrb_intern(mrb, "to_ary"))) {
         return mrb_false_value();
