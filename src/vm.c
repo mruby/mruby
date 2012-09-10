@@ -754,14 +754,16 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       c = mrb_class(mrb, recv);
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
+        mrb_value sym = mrb_symbol_value(mid);
+
         mid = mrb_intern(mrb, "method_missing");
         m = mrb_method_search_vm(mrb, &c, mid);
         if (n == CALL_MAXARGS) {
-          mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(mid));
+          mrb_ary_unshift(mrb, regs[a+1], sym);
         }
         else {
           memmove(regs+a+2, regs+a+1, sizeof(mrb_value)*(n+1));
-	  SET_SYM_VALUE(regs[a+1], mid);
+	  regs[a+1] = sym;
           n++;
         }
       }
