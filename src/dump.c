@@ -332,7 +332,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
   char *buf_top = buf;
   char *char_buf;
   uint16_t buf_size =0;
-  int len;
+  uint16_t len =0;
 
   buf_size = MRB_DUMP_DEFAULT_STR_LEN;
   if ((char_buf = (char *)mrb_malloc(mrb, buf_size)) == 0)
@@ -341,25 +341,23 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
   buf += uint32_dump((uint32_t)irep->plen, buf, type); /* number of pool */
 
   for (pool_no = 0; pool_no < irep->plen; pool_no++) {
-    uint16_t nlen =0;
-
     buf += uint8_dump(mrb_type(irep->pool[pool_no]), buf, type); /* data type */
     memset(char_buf, 0, buf_size);
 
     switch (mrb_type(irep->pool[pool_no])) {
     case MRB_TT_FIXNUM:
-      sprintf(char_buf, "%d", mrb_fixnum(irep->pool[pool_no]));
+      len = sprintf(char_buf, "%d", mrb_fixnum(irep->pool[pool_no]));
       break;
 
     case MRB_TT_FLOAT:
-      sprintf(char_buf, "%.16e", mrb_float(irep->pool[pool_no]));
+      len = sprintf(char_buf, "%.16e", mrb_float(irep->pool[pool_no]));
       break;
 
     case MRB_TT_STRING:
       str = mrb_string_value( mrb, &irep->pool[pool_no]);
-      nlen = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);
-      if ( nlen > buf_size - 1) {
-        buf_size = nlen + 1;
+      len = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);
+      if ( len > buf_size - 1) {
+        buf_size = len + 1;
         if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == 0)
           goto error_exit;
         memset(char_buf, 0, buf_size);
@@ -370,9 +368,9 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
 #ifdef ENABLE_REGEXP
     case MRB_TT_REGEX:
       str = mrb_reg_to_s(mrb, irep->pool[pool_no]);
-      nlen = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);
-      if ( nlen > buf_size - 1) {
-        buf_size = nlen + 1;
+      len = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);
+      if ( len > buf_size - 1) {
+        buf_size = len + 1;
         if ((char_buf = mrb_realloc(mrb, char_buf, buf_size)) == 0)
           goto error_exit;
         memset(char_buf, 0, buf_size);
@@ -386,9 +384,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
       continue;
     }
 
-    len = strlen(char_buf);
-
-    buf += uint16_dump((uint16_t)len, buf, type); /* data length */
+    buf += uint16_dump(len, buf, type); /* data length */
 
     memcpy(buf, char_buf, len);
     buf += len;
