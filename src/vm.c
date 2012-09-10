@@ -1525,14 +1525,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_ARRAY) {
       /* A B C          R(A) := ary_new(R(B),R(B+1)..R(B+C)) */
-      int b = GETARG_B(i);
-      int lim = b+GETARG_C(i);
-      mrb_value ary = mrb_ary_new_capa(mrb, GETARG_C(i));
-
-      while (b < lim) {
-        mrb_ary_push(mrb, ary, regs[b++]);
-      }
-      regs[GETARG_A(i)] = ary;
+      regs[GETARG_A(i)] = mrb_ary_new_from_values(mrb, GETARG_C(i), &regs[GETARG_B(i)]);
       mrb->arena_idx = ai;
       NEXT;
     }
