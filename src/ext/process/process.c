@@ -83,7 +83,7 @@ mrb_f_system(mrb_state *mrb, mrb_value klass)
   path = mrb_string_value_cstr(mrb, &pname);
   ret = system(path);
 
-  if (WIFEXITED(ret) && WEXITSTATUS(ret)) {
+  if (WIFEXITED(ret) && WEXITSTATUS(ret) == 0) {
     return mrb_true_value();
   }
 
