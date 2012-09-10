@@ -47,17 +47,8 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
   result = mrb_funcall(mrb, obj1, "==", 1, obj2);
-  if (mrb_nil_p(result)) {
-    return FALSE;
-  }
-  else {
-    if (mrb_type(result) == MRB_TT_TRUE) {
-      return TRUE;
-    }
-    else {
-      return FALSE;
-    }
-  }
+  if (mrb_test(result)) return TRUE;
+  return FALSE;
 }
 
 /*
