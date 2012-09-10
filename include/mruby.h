@@ -216,6 +216,7 @@ void mrb_p(mrb_state*, mrb_value);
 mrb_int mrb_obj_id(mrb_value obj);
 mrb_sym mrb_to_id(mrb_state *mrb, mrb_value name);
 
+int mrb_obj_eq(mrb_state*, mrb_value, mrb_value);
 int mrb_obj_equal(mrb_state*, mrb_value, mrb_value);
 int mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 mrb_value mrb_Integer(mrb_state *mrb, mrb_value val);

@@ -1495,7 +1495,13 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_EQ) {
       /* A B C  R(A) := R(A)<R(A+1) (Syms[B]=:<,C=1)*/
-      OP_CMP(==);
+      int a = GETARG_A(i);
+      if (mrb_obj_eq(mrb, regs[a], regs[a+1])) {
+	SET_TRUE_VALUE(regs[a]);
+      }
+      else {
+	OP_CMP(==);
+      }
       NEXT;
     }
 
