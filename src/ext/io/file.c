@@ -13,6 +13,8 @@
 #include "mruby/string.h"
 #include "error.h"
 
+#include <libgen.h>
+
 /*********************************************************/
 #define STAT(p, s)        stat(p, s)
 
@@ -89,58 +91,22 @@ mrb_file_path(mrb_state *mrb, mrb_value self)
   return mrb_str_dup(mrb, fptr->path);
 }
 
-#define isdirsep(x) ((x) == '/')
-
-static inline char *
-skiproot(const char *path)
-{
-  while (isdirsep(*path)) {
-    path++;
-  }
-  return (char *)path;
-}
-
-static char *
-strrdirsep(const char *path)
-{
-  char *last = NULL;
-  while (*path) {
-    if (isdirsep(*path)) {
-      const char *tmp = path++;
-      while (isdirsep(*path))
-        path++;
-      if (!*path)
-        break;
-      last = (char *)tmp;
-    } else {
-      path = path + 1;
-    }
-  }
-  return last;
-}
-
 static mrb_value
 mrb_file_dirname(mrb_state *mrb, mrb_value self)
 {
-  const char *name, *root, *p;
-  mrb_value dirname, fname;
+  char *path, *dname;
+  mrb_value dir, fname;
 
   mrb_get_args(mrb, "o", &fname);
-  name = mrb_string_value_cstr(mrb, &fname);
-  root = skiproot(name);
+  path = mrb_string_value_cstr(mrb, &fname);
 
-  if (root > name +1)
-    name = root - 1;
+  if ((dname = dirname(path)) == NULL) {
+    mrb_sys_fail(mrb, "mrb_file_dirname failed.");
+  }
 
-  p = strrdirsep(root);
-  if (!p)
-    p = root;
-  if (p == name)
-    return mrb_str_new2(mrb, ".");
+  dir = mrb_str_new(mrb, dname, strlen(dname));
 
-  dirname = mrb_str_new(mrb, name, p - name);
-
-  return dirname;
+  return dir;
 }
 
 static int
