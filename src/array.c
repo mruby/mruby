@@ -37,9 +37,6 @@ ary_new_capa(mrb_state *mrb, int capa)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "ary size too big");
   }
 #endif
-  if (capa < ARY_DEFAULT_LEN) {
-    capa = ARY_DEFAULT_LEN;
-  }
   blen = capa * sizeof(mrb_value) ;
   if (blen < capa) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "ary size too big");
@@ -859,9 +856,11 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
 
-  a->len = 0;
   ary_modify(mrb, a);
-  ary_shrink_capa(mrb, a);
+  a->len = 0;
+  a->aux.capa = 0;
+  mrb_free(mrb, a->ptr);
+  a->ptr = 0;
 
   return self;
 }
