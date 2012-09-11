@@ -1,4 +1,4 @@
-# makefile discription.
+# Makefile description.
 # basic build file for mruby library
 
 # project-specific macros
