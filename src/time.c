@@ -27,11 +27,13 @@
 /* #define NO_GMTIME_R */
 
 #ifdef _WIN32
+#if _MSC_VER
 /* Win32 platform do not provide gmtime_r/localtime_r; emulate them using gmtime_s/localtime_s */
 #define gmtime_r(tp, tm)    ((gmtime_s((tm), (tp)) == 0) ? (tm) : NULL)
 #define localtime_r(tp, tm)    ((localtime_s((tm), (tp)) == 0) ? (tm) : NULL)
 #else
 #define NO_GMTIME_R
+#endif
 #endif
 
 /* timegm(3) */
@@ -81,8 +83,8 @@ timegm(struct tm *tm)
 }
 #endif
 
-/* Since we are limited to using ISO C89, this implementation is based 
-* on time_t. That means the resolution of time is only precise to the 
+/* Since we are limited to using ISO C89, this implementation is based
+* on time_t. That means the resolution of time is only precise to the
 * second level. Also, there are only 2 timezones, namely UTC and LOCAL.
 */
 
@@ -93,7 +95,7 @@ timegm(struct tm *tm)
 
 enum mrb_timezone {
   MRB_TIMEZONE_NONE   = 0,
-  MRB_TIMEZONE_UTC    = 1, 
+  MRB_TIMEZONE_UTC    = 1,
   MRB_TIMEZONE_LOCAL  = 2,
   MRB_TIMEZONE_LAST   = 3
 };
@@ -135,7 +137,7 @@ mrb_time_update_datetime(struct mrb_time *self)
 {
   struct tm *aid;
 
-  if (self->timezone == MRB_TIMEZONE_UTC) { 
+  if (self->timezone == MRB_TIMEZONE_UTC) {
     aid = gmtime_r(&self->sec, &self->datetime);
   }
   else {
@@ -146,7 +148,7 @@ mrb_time_update_datetime(struct mrb_time *self)
   self->datetime = *aid; // copy data
 #endif
 
-  return self;  
+  return self;
 }
 
 static mrb_value
@@ -188,7 +190,7 @@ mrb_time_make(mrb_state *mrb, struct RClass *c, double sec, double usec, enum mr
 static struct mrb_time*
 current_mrb_time(mrb_state *mrb)
 {
-  struct mrb_time *tm;  
+  struct mrb_time *tm;
 
   tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
 #ifdef NO_GETTIMEOFDAY
@@ -232,7 +234,7 @@ mrb_time_now(mrb_state *mrb, mrb_value self)
 /* Creates an instance of time at the given time in seconds, etc. */
 static mrb_value
 mrb_time_at(mrb_state *mrb, mrb_value self)
-{ 
+{
   mrb_float f, f2 = 0;
 
   mrb_get_args(mrb, "f|f", &f, &f2);
@@ -271,7 +273,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
 /* Creates an instance of time at the given time in UTC. */
 static mrb_value
 mrb_time_gm(mrb_state *mrb, mrb_value self)
-{ 
+{
   mrb_int ayear = 0, amonth = 1, aday = 1, ahour = 0, amin = 0, asec = 0, ausec = 0;
 
   mrb_get_args(mrb, "i|iiiiii",
@@ -285,7 +287,7 @@ mrb_time_gm(mrb_state *mrb, mrb_value self)
 /* Creates an instance of time at the given time in local time zone. */
 static mrb_value
 mrb_time_local(mrb_state *mrb, mrb_value self)
-{ 
+{
   mrb_int ayear = 0, amonth = 1, aday = 1, ahour = 0, amin = 0, asec = 0, ausec = 0;
 
   mrb_get_args(mrb, "i|iiiiii",
@@ -436,7 +438,7 @@ mrb_time_asctime(mrb_state *mrb, mrb_value self)
   if (!tm) return mrb_nil_value();
   d = &tm->datetime;
   len = snprintf(buf, sizeof(buf), "%s %s %02d %02d:%02d:%02d %s%d",
-		 wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday, 
+		 wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday,
 		 d->tm_hour, d->tm_min, d->tm_sec,
 		 tm->timezone == MRB_TIMEZONE_UTC ? "UTC " : "",
 		 d->tm_year + 1900);
@@ -518,7 +520,7 @@ mrb_time_hour(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_time_initialize(mrb_state *mrb, mrb_value self)
 {
-  mrb_int ayear = 0, amonth = 1, aday = 1, ahour = 0, 
+  mrb_int ayear = 0, amonth = 1, aday = 1, ahour = 0,
   amin = 0, asec = 0, ausec = 0;
   int n;
   struct mrb_time *tm;
@@ -686,7 +688,7 @@ mrb_time_utcp(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(tm->timezone == MRB_TIMEZONE_UTC);
 }
 
-           
+
 
 void
 mrb_init_time(mrb_state *mrb)
@@ -722,10 +724,10 @@ mrb_init_time(mrb_state *mrb)
   mrb_define_method(mrb, tc, "localtime", mrb_time_localtime, ARGS_NONE()); /* 15.2.19.7.18 */
   mrb_define_method(mrb, tc, "mday"   , mrb_time_mday, ARGS_NONE());    /* 15.2.19.7.19 */
   mrb_define_method(mrb, tc, "min"    , mrb_time_min, ARGS_NONE());     /* 15.2.19.7.20 */
-   
+
   mrb_define_method(mrb, tc, "mon"  , mrb_time_mon, ARGS_NONE());       /* 15.2.19.7.21 */
   mrb_define_method(mrb, tc, "month", mrb_time_mon, ARGS_NONE());       /* 15.2.19.7.22 */
-  
+
   mrb_define_method(mrb, tc, "sec" , mrb_time_sec, ARGS_NONE());        /* 15.2.19.7.23 */
   mrb_define_method(mrb, tc, "to_i", mrb_time_to_i, ARGS_NONE());       /* 15.2.19.7.25 */
   mrb_define_method(mrb, tc, "to_f", mrb_time_to_f, ARGS_NONE());       /* 15.2.19.7.24 */
@@ -736,7 +738,7 @@ mrb_init_time(mrb_state *mrb)
   mrb_define_method(mrb, tc, "yday", mrb_time_yday, ARGS_NONE());       /* 15.2.19.7.31 */
   mrb_define_method(mrb, tc, "year", mrb_time_year, ARGS_NONE());       /* 15.2.19.7.32 */
   mrb_define_method(mrb, tc, "zone", mrb_time_zone, ARGS_NONE());       /* 15.2.19.7.33 */
-  
+
   mrb_define_method(mrb, tc, "initialize", mrb_time_initialize, ARGS_REQ(1)); /* 15.2.19.7.16 */
   mrb_define_method(mrb, tc, "initialize_copy", mrb_time_initialize_copy, ARGS_REQ(1)); /* 15.2.19.7.17 */
 
