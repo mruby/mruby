@@ -251,8 +251,8 @@ iv_free(mrb_state *mrb, iv_tbl *t)
 
 #include "mruby/khash.h"
 
-#ifndef MRB_IV_INITIAL_SIZE
-#define MRB_IV_INITIAL_SIZE 8
+#ifndef MRB_IVHASH_INIT_SIZE
+#define MRB_IVHASH_INIT_SIZE 8
 #endif
 
 KHASH_DECLARE(iv, mrb_sym, mrb_value, 1)
@@ -265,7 +265,7 @@ typedef struct iv_tbl {
 static iv_tbl*
 iv_new(mrb_state *mrb)
 {
-  return (iv_tbl*)kh_init_size(iv, mrb, MRB_IV_INITIAL_SIZE);
+  return (iv_tbl*)kh_init_size(iv, mrb, MRB_IVHASH_INIT_SIZE);
 }
 
 static void
@@ -549,7 +549,7 @@ mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
     iv_tbl *t = mrb_obj_ptr(obj)->iv;
     mrb_value val;
 
-    if (iv_del(mrb, t, sym, &val)) {
+    if (t && iv_del(mrb, t, sym, &val)) {
       return val;
     }
   }

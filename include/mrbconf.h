@@ -29,7 +29,7 @@
 //#define MRB_USE_IV_SEGLIST
 
 /* initial size for IV khash; ignored when MRB_USE_IV_SEGLIST is set */
-//#define MRB_IV_INITIAL_SIZE 8
+//#define MRB_IVHASH_INIT_SIZE 8
 
 /* default size of khash table bucket */
 //#define KHASH_DEFAULT_SIZE 32

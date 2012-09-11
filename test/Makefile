@@ -1,5 +1,5 @@
-# makefile discription.
-# basic build file for mruby library (Ruby part)
+# Makefile description.
+# basic build file for the mruby testing environment mrbtest
 
 # project-specific macros
 # extension of the executable-file is modifiable(.exe .out ...)

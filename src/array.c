@@ -37,16 +37,13 @@ ary_new_capa(mrb_state *mrb, int capa)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "ary size too big");
   }
 #endif
-  if (capa < ARY_DEFAULT_LEN) {
-    capa = ARY_DEFAULT_LEN;
-  }
   blen = capa * sizeof(mrb_value) ;
   if (blen < capa) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "ary size too big");
   }
 
   a = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
-  a->ptr = (mrb_value *)mrb_calloc(mrb, blen, 1);
+  a->ptr = (mrb_value *)mrb_malloc(mrb, blen);
   a->aux.capa = capa;
   a->len = 0;
 
@@ -859,9 +856,11 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
 
-  a->len = 0;
   ary_modify(mrb, a);
-  ary_shrink_capa(mrb, a);
+  a->len = 0;
+  a->aux.capa = 0;
+  mrb_free(mrb, a->ptr);
+  a->ptr = 0;
 
   return self;
 }
@@ -1054,7 +1053,8 @@ mrb_ary_equal(mrb_state *mrb, mrb_value ary1)
   mrb_value ary2;
 
   mrb_get_args(mrb, "o", &ary2);
-  if (mrb_obj_equal(mrb, ary1,ary2)) return mrb_true_value();
+  if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_true_value();
+  if (SPECIAL_CONST_P(ary2)) return mrb_false_value();
   if (mrb_type(ary2) != MRB_TT_ARRAY) {
     if (!mrb_respond_to(mrb, ary2, mrb_intern(mrb, "to_ary"))) {
         return mrb_false_value();

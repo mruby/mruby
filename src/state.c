@@ -99,6 +99,8 @@ mrb_close(mrb_state *mrb)
     mrb_free(mrb, mrb->irep[i]);
   }
   mrb_free(mrb, mrb->irep);
+  mrb_free(mrb, mrb->rescue);
+  mrb_free(mrb, mrb->ensure);
   mrb_free_symtbl(mrb);
   mrb_free_heap(mrb);
   mrb_alloca_free(mrb);

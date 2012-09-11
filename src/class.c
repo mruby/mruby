@@ -1090,7 +1090,7 @@ mrb_class_name(mrb_state *mrb, struct RClass* c)
 const char*
 mrb_obj_classname(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_class_name(mrb, mrb_class(mrb, obj));
+  return mrb_class_name(mrb, mrb_obj_class(mrb, obj));
 }
 
 /*!
@@ -1417,6 +1417,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "included_modules", mrb_mod_included_modules, ARGS_NONE()); /* 15.2.2.4.30 */
 
   mrb_define_method(mrb, mod, "to_s", mrb_mod_to_s, ARGS_NONE());
+  mrb_define_method(mrb, mod, "inspect", mrb_mod_to_s, ARGS_NONE());
   mrb_define_method(mrb, mod, "alias_method", mrb_mod_alias, ARGS_ANY());            /* 15.2.2.4.8 */
   mrb_define_method(mrb, mod, "ancestors", mrb_mod_ancestors, ARGS_NONE());          /* 15.2.2.4.9 */
   mrb_define_method(mrb, mod, "undef_method", mrb_mod_undef, ARGS_ANY());            /* 15.2.2.4.41 */

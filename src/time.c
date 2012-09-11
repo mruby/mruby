@@ -28,12 +28,10 @@
 
 #ifdef _WIN32
 /* Win32 platform do not provide gmtime_r/localtime_r; emulate them using gmtime_s/localtime_s */
-#if _MVC_VER
 #define gmtime_r(tp, tm)    ((gmtime_s((tm), (tp)) == 0) ? (tm) : NULL)
 #define localtime_r(tp, tm)    ((localtime_s((tm), (tp)) == 0) ? (tm) : NULL)
 #else
 #define NO_GMTIME_R
-#endif
 #endif
 
 /* timegm(3) */
@@ -710,6 +708,7 @@ mrb_init_time(mrb_state *mrb)
   mrb_define_method(mrb, tc, "+"      , mrb_time_plus   , ARGS_REQ(1)); /* 15.2.19.7.2 */
   mrb_define_method(mrb, tc, "-"      , mrb_time_minus  , ARGS_REQ(1)); /* 15.2.19.7.3 */
   mrb_define_method(mrb, tc, "to_s"   , mrb_time_asctime, ARGS_NONE());
+  mrb_define_method(mrb, tc, "inspect", mrb_time_asctime, ARGS_NONE());
   mrb_define_method(mrb, tc, "asctime", mrb_time_asctime, ARGS_NONE()); /* 15.2.19.7.4 */
   mrb_define_method(mrb, tc, "ctime"  , mrb_time_asctime, ARGS_NONE()); /* 15.2.19.7.5 */
   mrb_define_method(mrb, tc, "day"    , mrb_time_day    , ARGS_NONE()); /* 15.2.19.7.6 */

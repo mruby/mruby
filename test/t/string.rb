@@ -335,6 +335,10 @@ assert('String interpolation (mrb_str_concat for shared strings)') do
   "#{a}:" == "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:"
 end
 
+assert('Check the usage of a NUL character') do
+  "qqq\0ppp"
+end
+
 assert('String strip methods test') do
   ls = " strip"
   rs = "strip "
