@@ -20,9 +20,9 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
    * UNIXSocket: #addr ::new ::open #peeraddr
 
  * 拡張したクラス/モジュール
-   * Array: #- #& #| #uniq #uniq!
+   * Array: #- #& #| #pack #uniq #uniq!
    * Kernel: #exit #sleep #system
-   * String: #lstrip #rstrip #strip
+   * String: #lstrip #rstrip #strip #unpack
 
  * その他の拡張
 
