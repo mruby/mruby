@@ -7,7 +7,7 @@
 #ifndef MRUBY_PROC_H
 #define MRUBY_PROC_H
 
-#include "irep.h"
+#include "mruby/irep.h"
 
 #if defined(__cplusplus)
 extern "C" {
