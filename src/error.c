@@ -134,20 +134,23 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
     mrb_str_cat2(mrb, str, ":");
     mrb_str_append(mrb, str, line);
     mrb_str_cat2(mrb, str, ": ");
-    if (RSTRING_LEN(mesg) > 0) {
+    if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
       mrb_str_append(mrb, str, mesg);
       mrb_str_cat2(mrb, str, " (");
     }
     mrb_str_cat2(mrb, str, mrb_obj_classname(mrb, exc));
-    if (RSTRING_LEN(mesg) > 0) {
+    if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
       mrb_str_cat2(mrb, str, ")");
     }
   }
   else {
     str = mrb_str_new2(mrb, mrb_obj_classname(mrb, exc));
-    if (RSTRING_LEN(mesg) > 0) {
+    if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
       mrb_str_cat2(mrb, str, ": ");
       mrb_str_append(mrb, str, mesg);
+    } else {
+      mrb_str_cat2(mrb, str, ": ");
+      mrb_str_cat2(mrb, str, mrb_obj_classname(mrb, exc));
     }
   }
   return str;
