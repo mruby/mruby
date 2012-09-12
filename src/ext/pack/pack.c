@@ -87,6 +87,7 @@ encodes(mrb_state *mrb, mrb_value str, const char *s, long len, int type, int ta
 static mrb_value
 mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 {
+  static const char nul10[] = "\0\0\0\0\0\0\0\0\0\0";
   const char *p, *pend;
   char type;
   mrb_value result, from, fmt;
@@ -162,6 +163,49 @@ modifiers:
     }
 
     switch (type) {
+      case 'H':		/* hex string (high nibble first) */
+        from = NEXTFROM;
+        if (mrb_nil_p(from)) {
+          ptr = "";
+          plen = 0;
+        } else {
+          mrb_string_value(mrb, &from);
+          ptr = RSTRING_PTR(from);
+          plen = RSTRING_LEN(from);
+        }
+
+        if (p[-1] == '*')
+          len = plen;
+        {
+          int byte = 0;
+          long i, j = 0;
+
+          if (len > plen) {
+            j = (len + 1) / 2 - (plen + 1) / 2;
+            len = plen;
+          }
+          for (i=0; i++ < len; ptr++) {
+            if (ISALPHA(*ptr))
+              byte |= ((*ptr & 15) + 9) & 15;
+            else
+              byte |= *ptr & 15;
+            if (i & 1)
+              byte <<= 4;
+            else {
+              char c = byte & 0xff;
+              mrb_str_buf_cat(mrb, result, &c, 1);
+              byte = 0;
+            }
+          }
+          if (len & 1) {
+            char c = byte & 0xff;
+            mrb_str_buf_cat(mrb, result, &c, 1);
+          }
+          len = j;
+          goto grow;
+        }
+        break;
+
       case 'm':		/* base64 encoded string */
         from = NEXTFROM;
         mrb_string_value(mrb, &from);
@@ -188,6 +232,15 @@ modifiers:
           plen -= todo;
           ptr += todo;
         }
+        break;
+
+      case 'x':		/* null byte */
+      grow:
+        while (len >= 10) {
+          mrb_str_buf_cat(mrb, result, nul10, 10);
+          len -= 10;
+        }
+        mrb_str_buf_cat(mrb, result, nul10, len);
         break;
 
       default:
@@ -223,7 +276,7 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
   char *p, *pend;
   mrb_value ary, fmt, block;
   char type;
-  long len, tmp_len;
+  long len;
   int star;
   int block_p = mrb_block_given_p();
 
@@ -308,6 +361,28 @@ modifiers:
     switch (type) {
       case '%':
         mrb_raise(mrb, E_ARGUMENT_ERROR, "%% is not supported");
+        break;
+
+      case 'H':
+        {
+          mrb_value bitstr;
+          char *t;
+          int bits;
+          long i;
+
+          if (p[-1] == '*' || len > (send - s) * 2)
+            len = (send - s) * 2;
+          bits = 0;
+          UNPACK_PUSH(bitstr = mrb_str_new(mrb, 0, len));
+          t = RSTRING_PTR(bitstr);
+          for (i=0; i<len; i++) {
+            if (i & 1)
+              bits <<= 4;
+            else
+              bits = *s++;
+            *t++ = hexdigits[(bits >> 4) & 15];
+          }
+        }
         break;
 
       case 'm':

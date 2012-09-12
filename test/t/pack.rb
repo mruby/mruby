@@ -3,7 +3,6 @@
 
 if Array.new.methods.include?(:pack) and String.new.methods.include?(:unpack)
 
-
   # pack & unpack 'm' (base64)
   assert('[""].pack("m")') do
     ary = ""
@@ -42,6 +41,22 @@ if Array.new.methods.include?(:pack) and String.new.methods.include?(:unpack)
     "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXpBQkNERUZHSElKS0xNTk9QUVJT\nVFVWV1hZWg==\n".unpack("m") == [str] and
     "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXpBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWg==\n".unpack("m") == [str]
   end
+
+  # pack & unpack 'H'
+  assert('["3031"].pack("H*")') do
+    ary = "3031"
+    str = "01"
+    [ary].pack("H*") == str and
+    str.unpack("H*") == [ary]
+  end
+
+  assert('["10"].pack("H*")') do
+    ary = "10"
+    str = "\020"
+    [ary].pack("H*") == str and
+    str.unpack("H*") == [ary]
+  end
+
 
 end
 
