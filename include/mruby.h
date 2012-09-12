@@ -281,6 +281,8 @@ mrb_value mrb_check_funcall(mrb_state *mrb, mrb_value recv, mrb_sym mid, int arg
 #define ISALPHA(c) (ISASCII(c) && isalpha((int)(unsigned char)(c)))
 #define ISDIGIT(c) (ISASCII(c) && isdigit((int)(unsigned char)(c)))
 #define ISXDIGIT(c) (ISASCII(c) && isxdigit((int)(unsigned char)(c)))
+#define TOUPPER(c) (ISASCII(c) ? toupper((int)(unsigned char)(c)) : (c))
+#define TOLOWER(c) (ISASCII(c) ? tolower((int)(unsigned char)(c)) : (c))
 #endif
 
 mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len);

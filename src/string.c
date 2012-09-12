@@ -888,12 +888,12 @@ mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
   if (s->len == 0 || !s->ptr) return mrb_nil_value();
   p = s->ptr; pend = s->ptr + s->len;
   if (ISLOWER(*p)) {
-    *p = toupper(*p);
+    *p = TOUPPER(*p);
     modify = 1;
   }
   while (++p < pend) {
     if (ISUPPER(*p)) {
-      *p = tolower(*p);
+      *p = TOLOWER(*p);
       modify = 1;
     }
   }
@@ -1101,7 +1101,7 @@ mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
   pend = s->ptr + s->len;
   while (p < pend) {
     if (ISUPPER(*p)) {
-      *p = tolower(*p);
+      *p = TOLOWER(*p);
       modify = 1;
     }
     p++;
@@ -2773,7 +2773,7 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
   pend = RSTRING_END(str);
   while (p < pend) {
     if (ISLOWER(*p)) {
-      *p = toupper(*p);
+      *p = TOUPPER(*p);
       modify = 1;
     }
     p++;
