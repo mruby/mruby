@@ -62,11 +62,10 @@ typedef double mrb_float;
 
 #ifdef MRB_NAN_BOXING
 typedef int32_t mrb_int;
-typedef int32_t mrb_sym;
 #else
 typedef int mrb_int;
-typedef intptr_t mrb_sym;
 #endif
+typedef short mrb_sym;
 
 /* define ENABLE_XXXX from DISABLE_XXX */
 #ifndef DISABLE_REGEXP
