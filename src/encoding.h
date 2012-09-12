@@ -17,8 +17,6 @@ extern "C" {
 
 int mrb_tolower(int c);
 int mrb_toupper(int c);
-#define TOUPPER(c) mrb_toupper((unsigned char)(c))
-#define TOLOWER(c) mrb_tolower((unsigned char)(c))
 
 #define FL_USHIFT    12
 
