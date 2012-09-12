@@ -269,3 +269,6 @@ assert('Exception 14') do
   a == :ok
 end
 
+assert('Exception#inspect without message') do
+  Exception.new.inspect
+end
