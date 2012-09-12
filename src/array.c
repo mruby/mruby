@@ -368,6 +368,7 @@ mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
   if (a->len > 1) {
     mrb_value *p1, *p2;
 
+    ary_modify(mrb, a);
     p1 = a->ptr;
     p2 = a->ptr + a->len - 1;
 

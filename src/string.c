@@ -2627,7 +2627,10 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, int badcheck)
   double d;
 //  const char *ellipsis = "";
 //  int w;
-#define DBL_DIG 16
+#if !defined(DBL_DIG)
+  #define DBL_DIG 16
+#endif
+
   enum {max_width = 20};
 #define OutOfRange() (((w = end - p) > max_width) ? \
       (w = max_width, ellipsis = "...") : \
