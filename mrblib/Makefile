@@ -55,7 +55,7 @@ all : $(LIBR)
 # update libmruby.a
 $(LIBR) : $(MLIB) $(LIBR0)
 	$(CP) $(LIBR0) $(LIBR)
-	$(AR) r $(LIBR) $(MLIB)
+	$(AR) rs $(LIBR) ../mrbgems/md5/md5.o ../mrbgems/md5/mrb_md5.o ../mrbgems/init_gems.o $(MLIB)
 
 # Compile mrblib source
 $(MLIB) : $(CLIB)
