@@ -14,6 +14,7 @@ MRB1 := $(BASEDIR)/*.rb
 MRBS := $(MRB1)
 LIBR0 := ../lib/libmruby_core.a
 LIBR := ../lib/libmruby.a
+GEM0 := ../mrbgems/md5/
 
 # libraries, includes
 INCLUDES = -I../src -I../include
@@ -52,10 +53,12 @@ endif
 .PHONY : all
 all : $(LIBR)
 
+# TODO:
+#   all available GEMS have to be added to the main library
 # update libmruby.a
 $(LIBR) : $(MLIB) $(LIBR0)
 	$(CP) $(LIBR0) $(LIBR)
-	$(AR) rs $(LIBR) ../mrbgems/md5/md5.o ../mrbgems/md5/mrb_md5.o ../mrbgems/init_gems.o $(MLIB)
+	$(AR) rs $(LIBR) $(GEM0)md5.o $(GEM0)mrb_md5.o ../mrbgems/init_gems.o $(MLIB)
 
 # Compile mrblib source
 $(MLIB) : $(CLIB)

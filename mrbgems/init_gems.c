@@ -3,6 +3,8 @@
  * initializing methods necessary to
  * bootstrap every gem.
  *
+ * @TODO:
+ *   this file has to be generated based on the active gems
  */
 
 #include "mruby.h"
