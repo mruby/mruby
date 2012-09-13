@@ -212,3 +212,8 @@ void
 mrb_init_mrblib(mrb_state *mrb)
 {
 }
+
+void
+mrb_init_mrbgems(mrb_state *mrb)
+{
+}
