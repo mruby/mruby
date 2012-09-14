@@ -381,7 +381,10 @@ mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
 static mrb_value
 mrb_str_plus_m(mrb_state *mrb, mrb_value self)
 {
-  return mrb_nil_value();
+  mrb_value str;
+
+  mrb_get_args(mrb, "S", &str);
+  return mrb_str_plus(mrb, self, str);
 }
 
 /*
