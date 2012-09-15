@@ -1,6 +1,6 @@
 ##
 # Integer
-#  
+#
 # ISO 15.2.8
 class Integer
 
@@ -41,6 +41,19 @@ class Integer
     while(i <= num)
       block.call(i)
       i += 1
+    end
+    self
+  end
+
+  ##
+  # Calls the given block from +self+ to +num+
+  # incremented by +step+ (default 1).
+  #
+  def step(num, step=1, &block)
+    i = if num.kind_of? Float then self.to_f else self end
+    while(i <= num)
+      block.call(i)
+      i += step
     end
     self
   end
