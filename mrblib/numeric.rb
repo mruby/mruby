@@ -10,7 +10,6 @@ class Integer
   #
   # ISO 15.2.8.3.15
   def downto(num, &block)
-    raise TypeError, "expected Integer" unless num.kind_of? Integer
     i = self
     while(i >= num)
       block.call(i)
@@ -38,7 +37,6 @@ class Integer
   #
   # ISO 15.2.8.3.27
   def upto(num, &block)
-    raise TypeError, "expected Integer" unless num.kind_of? Integer
     i = self
     while(i <= num)
       block.call(i)
