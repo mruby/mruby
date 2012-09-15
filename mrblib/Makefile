@@ -14,7 +14,7 @@ MRB1 := $(BASEDIR)/*.rb
 MRBS := $(MRB1)
 LIBR0 := ../lib/libmruby_core.a
 LIBR := ../lib/libmruby.a
-GEM0 := ../mrbgems/md5/
+GEM0 := ../mrbgems/md5/src/
 
 # libraries, includes
 INCLUDES = -I../src -I../include
