@@ -1,4 +1,4 @@
-MRUBY_ROOT = ../..
+MRUBY_ROOT = ../../..
 
 INCLUDES = -I$(MRUBY_ROOT)/include -I$(MRUBY_ROOT)/src -I.
 CFLAGS = $(INCLUDES) -O3 -g -Wall -Werror-implicit-function-declaration

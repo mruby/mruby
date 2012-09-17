@@ -5,22 +5,24 @@ LIBRGEMS := ../lib/libmruby_gems.a
 INIT := init_gems
 RM_F := rm -f
 CC_FLAGS := -Wall -Werror-implicit-function-declaration -g -O3 -MMD -I. -I./../include
+GEM_DIRS := $(wildcard g/*)
 
 ##############################
 # generic build targets, rules
 
 .PHONY : all
-all : $(INIT).o
+all : $(GEM_DIRS)
+	echo $(GEM_DIRS)
 
-# @TODO:
-#   all available GEMS have to be built
-$(INIT).o : $(INIT).c
-	gcc $(CC_FLAGS) -c $(INIT).c -o $(INIT).o
-	@$(MAKE) -C md5
+# driver build rule
+#$(INIT).o : $(INIT).c
+#	gcc $(CC_FLAGS) -c $(INIT).c -o $(INIT).o
 
-# @TODO:
-#   all available GEMS have to be cleaned
+$(GEM_DIRS) :
+	echo $@
+
+# clean driver and all gems
 .PHONY : clean
-clean :
+clean : g/*
 	$(RM_F) $(INIT).o $(INIT).d $(LIBRGEMS)
-	@$(MAKE) clean -C md5
+	$(MAKE) clean -C $<
