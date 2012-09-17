@@ -337,5 +337,5 @@ assert('Kernel#singleton_methods', '15.3.1.3.45') do
 end
 
 assert('Kernel#to_s', '15.3.1.3.46') do
-  to_s == '#<Object:0x0>'
+  to_s.class == String
 end
