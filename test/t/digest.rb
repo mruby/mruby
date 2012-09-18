@@ -5,6 +5,20 @@ assert('Digest') do
   Digest.class == Module
 end
 
+assert('Digest::Base') do
+  Digest::Base.class == Class
+end
+
+assert('Digest::Base#new') do
+  e1 = nil
+  begin
+    Digest::Base.new
+  rescue NotImplementedError => e
+    e1 = e
+  end
+  e1.class == NotImplementedError
+end
+
 assert('Digest::MD5') do
   Digest::MD5.class == Class
 end

@@ -563,10 +563,10 @@ mrb_digest_init(mrb_state *mrb, mrb_value self)
   mrb_value t;
 
   c = mrb_obj_class(mrb, self);
-  t = mrb_const_get(mrb, mrb_obj_value(c), mrb_intern(mrb, TYPESYM));
-  if (mrb_nil_p(t)) {
+  if (!mrb_const_defined(mrb, mrb_obj_value(c), mrb_intern(mrb, TYPESYM))) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "Digest::Base is an abstract class");
   }
+  t = mrb_const_get(mrb, mrb_obj_value(c), mrb_intern(mrb, TYPESYM));
 #if 0
   if (lib_md_supported(t)) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "unknown algorithm");
