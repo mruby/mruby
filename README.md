@@ -18,6 +18,7 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
    * Regexp: ::compile ::last\_match #match
    * TCPSocket: ::new ::open
    * UNIXSocket: #addr ::new ::open #peeraddr
+   * Syslog: ::open ::close ::log ::opened? ::ident ::options ::facility
 
  * 拡張したクラス/モジュール
    * Array: #- #& #| #pack #uniq #uniq!
