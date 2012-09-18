@@ -1,19 +1,17 @@
 # How to contribute
 
-mruby is a young open-source project.  
+mruby is an open-source project which is looking forward to each contribution. 
 
-We are looking forward to each pull request. 
+## Your Pull Request
 
-## Pull Request
+To make it easy to review and understand your change please keep the following
+things in mind before submitting your pull request:
 
-To make it easy to review und understand your change please keep the following
-things in mind for your pull request:
-
-* Make you change on the latest possible state of **mruby/master**
+* Work on the latest possible state of **mruby/master**
 * Test your changes before creating a pull request (**make test**)
 * If possible write a test case which confirms your change
 * Don't mix several features or bug-fixes in one pull request
-* Create a branch which is dedicated to change
+* Create a branch which is dedicated to your change
 * Create a meaningful commit message
 * Explain your change (i.e. with a link to the issue you are fixing)
 
