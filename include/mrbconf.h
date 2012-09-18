@@ -54,6 +54,7 @@
 //#define DISABLE_DIGEST	/* requires OpenSSL */
 //#define DISABLE_PACK
 //#define DISABLE_SYSLOG	/* requires Syslog */
+//#define DISABLE_ERRNO
 
 #define INCLUDE_ENCODING
 
@@ -121,6 +122,9 @@ typedef short mrb_sym;
 #endif
 #ifndef DISABLE_SYSLOG
 #define ENABLE_SYSLOG
+#endif
+#ifndef DISABLE_ERRNO
+#define ENABLE_ERRNO
 #endif
 
 #ifndef FALSE

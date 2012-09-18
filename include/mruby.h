@@ -293,6 +293,9 @@ void mrb_raise(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
 void rb_raise(struct RClass *c, const char *fmt, ...);
 void mrb_warn(const char *fmt, ...);
 void mrb_bug(const char *fmt, ...);
+#ifdef ENABLE_ERRNO
+void mrb_sys_fail(mrb_state *mrb, const char *mesg);
+#endif
 
 #define E_RUNTIME_ERROR             (mrb_class_obj_get(mrb, "RuntimeError"))
 #define E_TYPE_ERROR                (mrb_class_obj_get(mrb, "TypeError"))
