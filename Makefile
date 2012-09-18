@@ -43,8 +43,8 @@ export CAT := cat
 .PHONY : all
 all :
 	@$(MAKE) -C src $(MAKE_FLAGS)
-	@$(MAKE) -C mrbgems $(MAKE_FLAGS)
 	@$(MAKE) -C mrblib $(MAKE_FLAGS)
+	@$(MAKE) -C mrbgems $(MAKE_FLAGS)
 	@$(MAKE) -C tools/mruby $(MAKE_FLAGS)
 	@$(MAKE) -C tools/mirb $(MAKE_FLAGS)
 
