@@ -9,8 +9,8 @@ We are looking forward to each pull request.
 To make it easy to review und understand your change please keep the following
 things in mind for your pull request:
 
-* Make you change on the latest possible state of +mruby/master+
-* Test your changes before creating a pull request (+make test+)
+* Make you change on the latest possible state of **mruby/master**
+* Test your changes before creating a pull request (**make test**)
 * If possible write a test case which confirms your change
 * Don't mix several features or bug-fixes in one pull request
 * Create a branch which is dedicated to change
