@@ -10,7 +10,7 @@ one (const struct dirent *unused)
 }
 
 void
-dir_list (char before[1024], char after[1024])
+dir_list (char before[1024], char after[1024], char start[1024], char end[1024])
 {
   struct dirent **eps;
   int n;
@@ -18,6 +18,8 @@ dir_list (char before[1024], char after[1024])
   char gemname_path[4096] = "";
   char complete_line[4096] = "";
   struct stat attribut;
+
+  strcat(complete_line, start);
 
   n = scandir("./g", &eps, one, alphasort);
   if (n >= 0) {
@@ -39,17 +41,22 @@ dir_list (char before[1024], char after[1024])
       strcat(complete_line, before);
       strcat(complete_line, gemname);
       strcat(complete_line, after);
-      strcat(complete_line, "\n");
+
     }
-    puts(complete_line);
   }
-  else
+  else {
     perror("Error while scanning the directory.");
+  }
+
+  strcat(complete_line, end);
+  puts(complete_line);
 }
 
 void
 make_gem_makefile()
 {
+  puts("CFLAGS := -I. -I../../include -I../../src");
+  puts("");
   puts("ifeq ($(OS),Windows_NT)");
   puts("MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)'");
   puts("else");
@@ -59,11 +66,23 @@ make_gem_makefile()
 
   puts(".PHONY : all");
   puts("all :");
-  dir_list("\t@$(MAKE) -C ", " $(MAKE_FLAGS)");
+  dir_list("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "");
+
+  puts(".PHONY : test");
+  puts("test :");
+  dir_list("", "/test/*.rb ", "\tcat ../../test/assert.rb ", "> mrbtest.rbtmp");
+  puts("\t../../bin/mrbc -Bmrbtest_irep -omrbtest.ctmp mrbtest.rbtmp");
+  puts("\tcat ../../test/init_mrbtest.c mrbtest.ctmp > mrbtest.c");
+  puts("\t$(CC) -c ../../test/driver.c -o ./driver.o $(CFLAGS)");
+  puts("\t$(CC) -c ./mrbtest.c -o ./mrbtest.o $(CFLAGS)");
+  puts("\t$(CC) -o ./mrbtest ./mrbtest.o ../../lib/libmruby.a ./driver.o $(CFLAGS) -lm");
+  puts("\t./mrbtest");
+  puts("");
 
   puts(".PHONY : clean");
   puts("clean :");
-  dir_list("\t@$(MAKE) clean -C ", " $(MAKE_FLAGS)");
+  puts("\t$(RM) *.c *.d *.rbtmp *.ctmp *.o mrbtest");
+  dir_list("\t@$(MAKE) clean -C ", " $(MAKE_FLAGS)\n", "", "");
 }
 
 void
@@ -83,12 +102,12 @@ make_init_gems()
   puts("#include \"mruby.h\"");
   puts("");
 
-  dir_list("void mrb_", "_gem_init(mrb_state*);");
+  dir_list("void mrb_", "_gem_init(mrb_state*);\n", "", "");
 
   puts("void");
   puts("mrb_init_mrbgems(mrb_state *mrb)");
   puts("{");
-  dir_list("  mrb_", "_gem_init(mrb);");
+  dir_list("  mrb_", "_gem_init(mrb);\n", "", "");
   puts("}");
 }
 

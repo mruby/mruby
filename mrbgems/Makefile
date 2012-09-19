@@ -41,6 +41,9 @@ all_gems : $(MMAKER_BIN) g/Makefile
 	@echo "Build all gems"
 	$(MAKE) -C g
 
+test :
+	$(MAKE) test -C g
+
 # clean driver and all gems
 .PHONY : clean
 clean : $(MMAKER_BIN)

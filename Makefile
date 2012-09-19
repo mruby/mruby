@@ -52,6 +52,7 @@ all :
 .PHONY : test
 test : all
 	@$(MAKE) -C test $(MAKE_FLAGS)
+	@$(MAKE) test -C mrbgems $(MAKE_FLAGS)
 
 # clean up
 .PHONY : clean
