@@ -1,25 +1,12 @@
-GEMNAME := hello_world
-MRUBY_ROOT = ../../../
+include ../../Makefile4gem
 
-INCLUDES = -I$(MRUBY_ROOT)include -I$(MRUBY_ROOT)src -I.
-CFLAGS = $(INCLUDES) -O3 -g -Wall -Werror-implicit-function-declaration
-RM_F := rm -f
-AR := ar
+GEM := hello_world
 
-ifeq ($(strip $(LIBR)),)
-  # default mruby library
-  LIBR = $(MRUBY_ROOT)lib/libmruby.a
-endif
+GEM_C_FILES := $(wildcard $(SRC_DIR)/*.c)
+GEM_OBJECTS := $(patsubst %.c, %.o, $(GEM_C_FILES))
 
-.PHONY : all
-all : src/hello_world.o
-	@$(AR) rs $(LIBR) src/hello_world.o
-	@echo "Gem '$(GEMNAME)' is done"
+gem-all : $(GEM_OBJECTS)
+	$(AR) rs $(LIBR) $<
 
-src/hello_world.o : src/hello_world.c
-	@gcc -c $(CFLAGS) src/hello_world.c -o src/hello_world.o
-
-.PHONY : clean
-clean :
-	-$(RM_F) src/*.o
-	@echo "Gem '$(GEMNAME)' is clean"
+gem-clean :
+	-$(RM) $(GEM_OBJECTS)

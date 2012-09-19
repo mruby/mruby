@@ -1,6 +1,4 @@
-mruby-md5
+hello world
 =========
 
-MD5 digest function.
-
-This library comes original from mattn (http://github.com/mattn/mruby-md5)
+This is an example gem which implements just one method +HW.say+ in a C extension.
