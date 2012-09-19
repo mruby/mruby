@@ -44,7 +44,7 @@ dir_list (char before[1024], char after[1024])
     puts(complete_line);
   }
   else
-    perror ("Couldn't open the directory");
+    perror("Error while scanning the directory.");
 }
 
 void
@@ -104,7 +104,7 @@ main (int argc, char *argv[])
       return 1;
   }
   else {
-    puts("Argument missing! Options: 'makefile'");
+    puts("Argument missing! Options: 'makefile', 'init_gems'");
     return 1;
   }
 
