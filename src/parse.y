@@ -58,6 +58,9 @@ typedef unsigned int stack_type;
 #define CMDARG_LEXPOP() BITSTACK_LEXPOP(p->cmdarg_stack)
 #define CMDARG_P()      BITSTACK_SET_P(p->cmdarg_stack)
 
+#define sym(x) ((mrb_sym)(intptr_t)(x))
+#define nsym(x) ((node*)(intptr_t)(x))
+
 static mrb_sym
 intern_gen(parser_state *p, const char *s)
 {
@@ -219,7 +222,7 @@ local_var_p(parser_state *p, mrb_sym sym)
   while (l) {
     node *n = l->car;
     while (n) {
-      if ((mrb_sym)n->car == sym) return 1;
+      if (sym(n->car) == sym) return 1;
       n = n->cdr;
     }
     l = l->cdr;
@@ -230,7 +233,7 @@ local_var_p(parser_state *p, mrb_sym sym)
 static void
 local_add_f(parser_state *p, mrb_sym sym)
 {
-  p->locals->car = push(p->locals->car, (node*)sym);
+  p->locals->car = push(p->locals->car, nsym(sym));
 }
 
 static void
@@ -298,7 +301,7 @@ new_false(parser_state *p)
 static node*
 new_alias(parser_state *p, mrb_sym a, mrb_sym b)
 {
-  return cons((node*)NODE_ALIAS, cons((node*)a, (node*)b));
+  return cons((node*)NODE_ALIAS, cons(nsym(a), nsym(b)));
 }
 
 // (:if cond then else)
@@ -368,14 +371,14 @@ new_self(parser_state *p)
 static node*
 new_call(parser_state *p, node *a, mrb_sym b, node *c)
 {
-  return list4((node*)NODE_CALL, a, (node*)b, c);
+  return list4((node*)NODE_CALL, a, nsym(b), c);
 }
 
 // (:fcall self mid args)
 static node*
 new_fcall(parser_state *p, mrb_sym b, node *c)
 {
-  return list4((node*)NODE_FCALL, new_self(p), (node*)b, c);
+  return list4((node*)NODE_FCALL, new_self(p), nsym(b), c);
 }
 
 #if 0
@@ -467,14 +470,14 @@ new_dot3(parser_state *p, node *a, node *b)
 static node*
 new_colon2(parser_state *p, node *b, mrb_sym c)
 {
-  return cons((node*)NODE_COLON2, cons(b, (node*)c));
+  return cons((node*)NODE_COLON2, cons(b, nsym(c)));
 }
 
 // (:colon3 . c)
 static node*
 new_colon3(parser_state *p, mrb_sym c)
 {
-  return cons((node*)NODE_COLON3, (node*)c);
+  return cons((node*)NODE_COLON3, nsym(c));
 }
 
 // (:and a b)
@@ -516,7 +519,7 @@ new_hash(parser_state *p, node *a)
 static node*
 new_sym(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_SYM, (node*)sym);
+  return cons((node*)NODE_SYM, nsym(sym));
 }
 
 static mrb_sym
@@ -532,42 +535,42 @@ new_strsym(parser_state *p, node* str)
 static node*
 new_lvar(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_LVAR, (node*)sym);
+  return cons((node*)NODE_LVAR, nsym(sym));
 }
 
 // (:gvar . a)
 static node*
 new_gvar(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_GVAR, (node*)sym);
+  return cons((node*)NODE_GVAR, nsym(sym));
 }
 
 // (:ivar . a)
 static node*
 new_ivar(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_IVAR, (node*)sym);
+  return cons((node*)NODE_IVAR, nsym(sym));
 }
 
 // (:cvar . a)
 static node*
 new_cvar(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_CVAR, (node*)sym);
+  return cons((node*)NODE_CVAR, nsym(sym));
 }
 
 // (:const . a)
 static node*
 new_const(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_CONST, (node*)sym);
+  return cons((node*)NODE_CONST, nsym(sym));
 }
 
 // (:undef a...)
 static node*
 new_undef(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_UNDEF, (node*)sym);
+  return cons((node*)NODE_UNDEF, nsym(sym));
 }
 
 // (:class class super body)
@@ -595,21 +598,21 @@ new_module(parser_state *p, node *m, node *b)
 static node*
 new_def(parser_state *p, mrb_sym m, node *a, node *b)
 {
-  return list5((node*)NODE_DEF, (node*)m, p->locals->car, a, b);
+  return list5((node*)NODE_DEF, nsym(m), p->locals->car, a, b);
 }
 
 // (:sdef obj m lv (arg . body))
 static node*
 new_sdef(parser_state *p, node *o, mrb_sym m, node *a, node *b)
 {
-  return list6((node*)NODE_SDEF, o, (node*)m, p->locals->car, a, b);
+  return list6((node*)NODE_SDEF, o, nsym(m), p->locals->car, a, b);
 }
 
 // (:arg . sym)
 static node*
 new_arg(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_ARG, (node*)sym);
+  return cons((node*)NODE_ARG, nsym(sym));
 }
 
 // (m o r m2 b)
@@ -623,8 +626,8 @@ new_args(parser_state *p, node *m, node *opt, mrb_sym rest, node *m2, mrb_sym bl
 {
   node *n;
 
-  n = cons(m2, (node*)blk);
-  n = cons((node*)rest, n);
+  n = cons(m2, nsym(blk));
+  n = cons(nsym(rest), n);
   n = cons(opt, n);
   return cons(m, n);
 }
@@ -668,7 +671,7 @@ new_masgn(parser_state *p, node *a, node *b)
 static node*
 new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
 {
-  return list4((node*)NODE_OP_ASGN, a, (node*)op, b);
+  return list4((node*)NODE_OP_ASGN, a, nsym(op), b);
 }
 
 // (:int . i)
@@ -807,7 +810,7 @@ static void
 assignable(parser_state *p, node *lhs)
 {
   if ((int)(intptr_t)lhs->car == NODE_LVAR) {
-    local_add(p, (mrb_sym)lhs->cdr);
+    local_add(p, sym(lhs->cdr));
   }
 }
 
@@ -817,8 +820,8 @@ var_reference(parser_state *p, node *lhs)
   node *n;
 
   if ((int)(intptr_t)lhs->car == NODE_LVAR) {
-    if (!local_var_p(p, (mrb_sym)lhs->cdr)) {
-      n = new_fcall(p, (mrb_sym)lhs->cdr, 0);
+    if (!local_var_p(p, sym(lhs->cdr))) {
+      n = new_fcall(p, sym(lhs->cdr), 0);
       cons_free(lhs);
       return n;
     }
@@ -1451,15 +1454,15 @@ cname		: tIDENTIFIER
 
 cpath		: tCOLON3 cname
 		    {
-		      $$ = cons((node*)1, (node*)$2);
+		      $$ = cons((node*)1, nsym($2));
 		    }
 		| cname
 		    {
-		      $$ = cons((node*)0, (node*)$1);
+		      $$ = cons((node*)0, nsym($1));
 		    }
 		| primary_value tCOLON2 cname
 		    {
-		      $$ = cons($1, (node*)$3);
+		      $$ = cons($1, nsym($3));
 		    }
 		;
 
@@ -2768,14 +2771,14 @@ f_arg		: f_arg_item
 f_opt		: tIDENTIFIER '=' arg_value
 		    {
 		      local_add_f(p, $1);
-		      $$ = cons((node*)$1, $3);
+		      $$ = cons(nsym($1), $3);
 		    }
 		;
 
 f_block_opt	: tIDENTIFIER '=' primary_value
 		    {
 		      local_add_f(p, $1);
-		      $$ = cons((node*)$1, $3);
+		      $$ = cons(nsym($1), $3);
 		    }
 		;
 
@@ -4706,7 +4709,7 @@ parser_update_cxt(parser_state *p, mrbc_context *cxt)
   cxt->syms = (mrb_sym *)mrb_realloc(p->mrb, cxt->syms, i*sizeof(mrb_sym));
   cxt->slen = i;
   for (i=0, n=n0; n; i++,n=n->cdr) {
-    cxt->syms[i] = (mrb_sym)n->car;
+    cxt->syms[i] = sym(n->car);
   }
 }
 
@@ -5034,7 +5037,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 
 	  while (n2) {
 	    dump_prefix(offset+2);
-	    printf("%s=", mrb_sym2name(mrb, (mrb_sym)n2->car->car));
+	    printf("%s=", mrb_sym2name(mrb, sym(n2->car->car)));
 	    parser_dump(mrb, n2->car->cdr, 0);
 	    n2 = n2->cdr;
 	  }
@@ -5043,7 +5046,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
       n = n->cdr;
       if (n->car) {
 	dump_prefix(offset+1);
-	printf("rest=*%s\n", mrb_sym2name(mrb, (mrb_sym)n->car));
+	printf("rest=*%s\n", mrb_sym2name(mrb, sym(n->car)));
       }
       n = n->cdr;
       if (n->car) {
@@ -5054,7 +5057,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
       n = n->cdr;
       if (n) {
 	dump_prefix(offset+1);
-	printf("blk=&%s\n", mrb_sym2name(mrb, (mrb_sym)n));
+	printf("blk=&%s\n", mrb_sym2name(mrb, sym(n)));
       }
     }
     dump_prefix(offset+1);
@@ -5177,7 +5180,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 	while (n2) {
 	  if (n2->car) {
 	    if (n2 != tree->car) printf(", ");
-	    printf("%s", mrb_sym2name(mrb, (mrb_sym)n2->car));
+	    printf("%s", mrb_sym2name(mrb, sym(n2->car)));
 	  }
 	  n2 = n2->cdr;
 	}
@@ -5194,7 +5197,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     parser_dump(mrb, tree->car, offset+1);
     dump_prefix(offset+1);
     printf("method='%s' (%d)\n", 
-	   mrb_sym2name(mrb, (mrb_sym)tree->cdr->car),
+	   mrb_sym2name(mrb, sym(tree->cdr->car)),
 	   (int)(intptr_t)tree->cdr->car);
     tree = tree->cdr->cdr->car;
     if (tree) {
@@ -5225,13 +5228,13 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     printf("NODE_COLON2:\n");
     parser_dump(mrb, tree->car, offset+1);
     dump_prefix(offset+1);
-    printf("::%s\n", mrb_sym2name(mrb, (mrb_sym)tree->cdr));
+    printf("::%s\n", mrb_sym2name(mrb, sym(tree->cdr)));
     break;
 
   case NODE_COLON3:
     printf("NODE_COLON3:\n");
     dump_prefix(offset+1);
-    printf("::%s\n", mrb_sym2name(mrb, (mrb_sym)tree));
+    printf("::%s\n", mrb_sym2name(mrb, sym(tree)));
     break;
 
   case NODE_ARRAY:
@@ -5314,7 +5317,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     parser_dump(mrb, tree->car, offset+2);
     tree = tree->cdr;
     dump_prefix(offset+1);
-    printf("op='%s' (%d)\n", mrb_sym2name(mrb, (mrb_sym)tree->car), (int)(intptr_t)tree->car);
+    printf("op='%s' (%d)\n", mrb_sym2name(mrb, sym(tree->car)), (int)(intptr_t)tree->car);
     tree = tree->cdr;
     parser_dump(mrb, tree->car, offset+1);
     break;
@@ -5366,23 +5369,23 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_LVAR:
-    printf("NODE_LVAR %s\n", mrb_sym2name(mrb, (mrb_sym)tree));
+    printf("NODE_LVAR %s\n", mrb_sym2name(mrb, sym(tree)));
     break;
 
   case NODE_GVAR:
-    printf("NODE_GVAR %s\n", mrb_sym2name(mrb, (mrb_sym)tree));
+    printf("NODE_GVAR %s\n", mrb_sym2name(mrb, sym(tree)));
     break;
 
   case NODE_IVAR:
-    printf("NODE_IVAR %s\n", mrb_sym2name(mrb, (mrb_sym)tree));
+    printf("NODE_IVAR %s\n", mrb_sym2name(mrb, sym(tree)));
     break;
 
   case NODE_CVAR:
-    printf("NODE_CVAR %s\n", mrb_sym2name(mrb, (mrb_sym)tree));
+    printf("NODE_CVAR %s\n", mrb_sym2name(mrb, sym(tree)));
     break;
 
   case NODE_CONST:
-    printf("NODE_CONST %s\n", mrb_sym2name(mrb, (mrb_sym)tree));
+    printf("NODE_CONST %s\n", mrb_sym2name(mrb, sym(tree)));
     break;
 
   case NODE_BACK_REF:
@@ -5394,7 +5397,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_ARG:
-    printf("NODE_ARG %s\n", mrb_sym2name(mrb, (mrb_sym)tree));
+    printf("NODE_ARG %s\n", mrb_sym2name(mrb, sym(tree)));
     break;
 
   case NODE_BLOCK_ARG:
@@ -5425,7 +5428,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_SYM:
-    printf("NODE_SYM :%s\n", mrb_sym2name(mrb, (mrb_sym)tree));
+    printf("NODE_SYM :%s\n", mrb_sym2name(mrb, sym(tree)));
     break;
 
   case NODE_SELF:
@@ -5446,29 +5449,29 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_ALIAS:
     printf("NODE_ALIAS %s %s:\n",
-	   mrb_sym2name(mrb, (mrb_sym)tree->car),
-	   mrb_sym2name(mrb, (mrb_sym)tree->cdr));
+	   mrb_sym2name(mrb, sym(tree->car)),
+	   mrb_sym2name(mrb, sym(tree->cdr)));
     break;
 
   case NODE_UNDEF:
     printf("NODE_UNDEF %s:\n",
-	   mrb_sym2name(mrb, (mrb_sym)tree));
+	   mrb_sym2name(mrb, sym(tree)));
     break;
 
   case NODE_CLASS:
     printf("NODE_CLASS:\n");
     if (tree->car->car == (node*)0) {
       dump_prefix(offset+1);
-      printf(":%s\n", mrb_sym2name(mrb, (mrb_sym)tree->car->cdr));
+      printf(":%s\n", mrb_sym2name(mrb, sym(tree->car->cdr)));
     }
     else if (tree->car->car == (node*)1) {
       dump_prefix(offset+1);
-      printf("::%s\n", mrb_sym2name(mrb, (mrb_sym)tree->car->cdr));
+      printf("::%s\n", mrb_sym2name(mrb, sym(tree->car->cdr)));
     }
     else {
       parser_dump(mrb, tree->car->car, offset+1);
       dump_prefix(offset+1);
-      printf("::%s\n", mrb_sym2name(mrb, (mrb_sym)tree->car->cdr));
+      printf("::%s\n", mrb_sym2name(mrb, sym(tree->car->cdr)));
     }
     if (tree->cdr->car) {
       dump_prefix(offset+1);
@@ -5484,16 +5487,16 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     printf("NODE_MODULE:\n");
     if (tree->car->car == (node*)0) {
       dump_prefix(offset+1);
-      printf(":%s\n", mrb_sym2name(mrb, (mrb_sym)tree->car->cdr));
+      printf(":%s\n", mrb_sym2name(mrb, sym(tree->car->cdr)));
     }
     else if (tree->car->car == (node*)1) {
       dump_prefix(offset+1);
-      printf("::%s\n", mrb_sym2name(mrb, (mrb_sym)tree->car->cdr));
+      printf("::%s\n", mrb_sym2name(mrb, sym(tree->car->cdr)));
     }
     else {
       parser_dump(mrb, tree->car->car, offset+1);
       dump_prefix(offset+1);
-      printf("::%s\n", mrb_sym2name(mrb, (mrb_sym)tree->car->cdr));
+      printf("::%s\n", mrb_sym2name(mrb, sym(tree->car->cdr)));
     }
     dump_prefix(offset+1);
     printf("body:\n");
@@ -5511,7 +5514,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_DEF:
     printf("NODE_DEF:\n");
     dump_prefix(offset+1);
-    printf("%s\n", mrb_sym2name(mrb, (mrb_sym)tree->car));
+    printf("%s\n", mrb_sym2name(mrb, sym(tree->car)));
     tree = tree->cdr;
     {
       node *n2 = tree->car;
@@ -5523,7 +5526,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 	while (n2) {
 	  if (n2->car) {
 	    if (n2 != tree->car) printf(", ");
-	    printf("%s", mrb_sym2name(mrb, (mrb_sym)n2->car));
+	    printf("%s", mrb_sym2name(mrb, sym(n2->car)));
 	  }
 	  n2 = n2->cdr;
 	}
@@ -5548,7 +5551,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 
 	  while (n2) {
 	    dump_prefix(offset+2);
-	    printf("%s=", mrb_sym2name(mrb, (mrb_sym)n2->car->car));
+	    printf("%s=", mrb_sym2name(mrb, sym(n2->car->car)));
 	    parser_dump(mrb, n2->car->cdr, 0);
 	    n2 = n2->cdr;
 	  }
@@ -5557,7 +5560,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
       n = n->cdr;
       if (n->car) {
 	dump_prefix(offset+1);
-	printf("rest=*%s\n", mrb_sym2name(mrb, (mrb_sym)n->car));
+	printf("rest=*%s\n", mrb_sym2name(mrb, sym(n->car)));
       }
       n = n->cdr;
       if (n->car) {
@@ -5568,7 +5571,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
       n = n->cdr;
       if (n) {
 	dump_prefix(offset+1);
-	printf("blk=&%s\n", mrb_sym2name(mrb, (mrb_sym)n));
+	printf("blk=&%s\n", mrb_sym2name(mrb, sym(n)));
       }
     }
     parser_dump(mrb, tree->cdr->car, offset+1);
@@ -5579,7 +5582,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     parser_dump(mrb, tree->car, offset+1);
     tree = tree->cdr;
     dump_prefix(offset+1);
-    printf(":%s\n", mrb_sym2name(mrb, (mrb_sym)tree->car));
+    printf(":%s\n", mrb_sym2name(mrb, sym(tree->car)));
     tree = tree->cdr->cdr;
     if (tree->car) {
       node *n = tree->car;
@@ -5598,7 +5601,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 
 	  while (n2) {
 	    dump_prefix(offset+2);
-	    printf("%s=", mrb_sym2name(mrb, (mrb_sym)n2->car->car));
+	    printf("%s=", mrb_sym2name(mrb, sym(n2->car->car)));
 	    parser_dump(mrb, n2->car->cdr, 0);
 	    n2 = n2->cdr;
 	  }
@@ -5607,7 +5610,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
       n = n->cdr;
       if (n->car) {
 	dump_prefix(offset+1);
-	printf("rest=*%s\n", mrb_sym2name(mrb, (mrb_sym)n->car));
+	printf("rest=*%s\n", mrb_sym2name(mrb, sym(n->car)));
       }
       n = n->cdr;
       if (n->car) {
@@ -5618,7 +5621,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
       n = n->cdr;
       if (n) {
 	dump_prefix(offset+1);
-	printf("blk=&%s\n", mrb_sym2name(mrb, (mrb_sym)n));
+	printf("blk=&%s\n", mrb_sym2name(mrb, sym(n)));
       }
     }
     tree = tree->cdr;
