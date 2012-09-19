@@ -52,9 +52,6 @@ endif
 .PHONY : all
 all : $(LIBR)
 
-# TODO:
-#   all available GEMS have to be added to the main library
-# update libmruby.a
 $(LIBR) : $(MLIB) $(LIBR0)
 	$(CP) $(LIBR0) $(LIBR)
 	$(AR) rs $(LIBR) $(MLIB)
