@@ -1,4 +1,4 @@
-GEMNAME := md5
+GEMNAME := hello_world
 MRUBY_ROOT = ../../../
 
 INCLUDES = -I$(MRUBY_ROOT)include -I$(MRUBY_ROOT)src -I.
@@ -12,15 +12,12 @@ ifeq ($(strip $(LIBR)),)
 endif
 
 .PHONY : all
-all : src/md5.o src/mrb_md5.o
-	@$(AR) rs $(LIBR) src/md5.o src/mrb_md5.o
+all : src/hello_world.o
+	@$(AR) rs $(LIBR) src/hello_world.o
 	@echo "Gem '$(GEMNAME)' is done"
 
-md5.o : src/md5.c
-	@gcc -c -I. src/md5.c
-
-mrb_md5.o : src/mrb_md5.c
-	@gcc -c $(CFLAGS) src/mrb_md5.c
+src/hello_world.o : src/hello_world.c
+	@gcc -c $(CFLAGS) src/hello_world.c -o src/hello_world.o
 
 .PHONY : clean
 clean :
