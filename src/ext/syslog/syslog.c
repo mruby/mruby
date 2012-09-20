@@ -61,15 +61,15 @@ mrb_f_syslog_log(mrb_state *mrb, mrb_value self)
   int argc;
 
   mrb_get_args(mrb, "o*", &pri, &argv, &argc);
-  if (argc < 2) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 2+)", argc);
+  if (argc < 1) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 2+)", argc+1);
   }
 
   if (!syslog_opened) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "must open syslog before write");
   }
 
-  str = mrb_str_format(mrb, argc - 1, argv + 1, argv[0]);
+  str = mrb_str_format(mrb, argc-1, argv+1, argv[0]);
   syslog(mrb_fixnum(pri), "%s", RSTRING_PTR(str)); 
 
   return self;
