@@ -843,12 +843,17 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
       /* prepare stack */
       if (MRB_PROC_CFUNC_P(m)) {
-        mrb->stack[0] = m->body.func(mrb, recv);
+	recv = m->body.func(mrb, recv);
         mrb->arena_idx = ai;
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
         regs = mrb->stack = mrb->stbase + mrb->ci->stackidx;
+	regs[mrb->ci->acc] = recv;
         cipop(mrb);
+        irep = mrb->ci->proc->body.irep;
+        pool = irep->pool;
+        syms = irep->syms;
+	pc = mrb->ci->pc;
         NEXT;
       }
       else {
