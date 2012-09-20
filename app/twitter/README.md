@@ -1,9 +1,9 @@
 # Twitterクライアントの実行方法
 
  * OAuthの設定を twitter.rb に行なって下さい
-   * https://dev.twitter.com にアクセスし、 "Create a new application" のリンクをクリックして、アプリケーションを作成してください
-   * 必要ならば、アプリケーションのアクセスレベルを "Read-Write" に変更してください
-   * アプリケーション詳細画面下部の "Create my access token" のリンクをクリックして、自分のアクセストークンを作成してください
+   * https://dev.twitter.com にアクセスし、 "Create an app" のリンクをクリックして、アプリケーションを作成してください
+   * Settings ペインからアプリケーションのアクセスレベルを "Read and Write" に変更してください。サンプルアプリケーションはメッセージの投稿を行うため Write アクセスを要求します。
+   * Details ペイン最下部の "Create my access token" のリンクをクリックして、自分のアクセストークンを作成してください
    * Consumer key, Consumer secret, Access token, Access token secret の 4つの情報を twitter.rb に記述してください
  * sh run.sh を実行することで、テストメッセージをTwitterに投稿し、最新のツイートを取得することができます
 
