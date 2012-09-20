@@ -42,7 +42,7 @@ all_gems : $(MMAKER_BIN) g/Makefile
 	$(MAKE) -C g
 
 test :
-	$(MAKE) test -C g
+	@$(MAKE) test -C g
 
 # clean driver and all gems
 .PHONY : clean

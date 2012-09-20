@@ -69,14 +69,31 @@ make_gem_makefile()
   dir_list("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "");
 
   puts(".PHONY : test");
-  puts("test :");
-  dir_list("", "/test/*.rb ", "\tcat ../../test/assert.rb ", "> mrbtest.rbtmp");
-  puts("\t../../bin/mrbc -Bmrbtest_irep -omrbtest.ctmp mrbtest.rbtmp");
+  puts("test : mrbtest");
+  puts("\t@./mrbtest");
+  puts("");
+
+  puts("mrbtest : driver.o mrbtest.o");
+  puts("\t$(CC) $(CFLAGS) -o ./mrbtest ./mrbtest.o ../../lib/libmruby.a ./driver.o");
+  puts("");
+
+  puts("driver.o : ../../test/driver.c");
+  puts("\t$(CC) $(CFLAGS) -o $@ -c $<");
+  puts("");
+
+  puts("mrbtest.o : mrbtest.c");
+  puts("");
+
+  puts("mrbtest.c : mrbtest.ctmp");
   puts("\tcat ../../test/init_mrbtest.c mrbtest.ctmp > mrbtest.c");
-  puts("\t$(CC) -c ../../test/driver.c -o ./driver.o $(CFLAGS)");
-  puts("\t$(CC) -c ./mrbtest.c -o ./mrbtest.o $(CFLAGS)");
-  puts("\t$(CC) -o ./mrbtest ./mrbtest.o ../../lib/libmruby.a ./driver.o $(CFLAGS) -lm");
-  puts("\t./mrbtest");
+  puts("");
+
+  puts("mrbtest.ctmp : mrbtest.rbtmp");
+  puts("\t../../bin/mrbc -Bmrbtest_irep -omrbtest.ctmp mrbtest.rbtmp");
+  puts("");
+
+  puts("mrbtest.rbtmp :");
+  dir_list("", "/test/*.rb ", "\tcat ../../test/assert.rb ", "> mrbtest.rbtmp");
   puts("");
 
   puts(".PHONY : clean");
