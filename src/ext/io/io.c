@@ -122,7 +122,7 @@ static long io_fread(mrb_state *mrb,char *ptr,long len,struct mrb_io *fptr);
 static long remain_size(mrb_state *mrb,struct mrb_io *fptr);
 static long io_fwrite(mrb_state *mrb,mrb_value str,struct mrb_io *fptr);
 static mrb_value io_alloc(mrb_state *mrb,struct RClass *klass);
-static void io_fflush(mrb_state *mrb,FILE *f,struct mrb_io *fptr);
+static void io_fflush(mrb_state *mrb, struct mrb_io *fptr);
 
 #include <stdarg.h>
 void
@@ -402,7 +402,7 @@ static struct mrb_io *
 flush_before_seek(mrb_state *mrb, struct mrb_io *fptr)
 {
   if (fptr->mode & FMODE_WBUF) {
-    io_fflush(mrb, GetWriteFile(fptr), fptr);
+    io_fflush(mrb, fptr);
   }
   errno = 0;
   return fptr;
@@ -1395,7 +1395,7 @@ io_fwrite(mrb_state *mrb, mrb_value str, struct mrb_io *fptr)
     return n;
 
   if (fptr->mode & FMODE_SYNC) {
-    io_fflush(mrb, f, fptr);
+    io_fflush(mrb, fptr);
 
     l = n;
     if (PIPE_BUF < l && wsplit_p(fptr)) {
@@ -1443,13 +1443,13 @@ io_alloc(mrb_state *mrb, struct RClass *klass)
 }
 
 static void
-io_fflush(mrb_state *mrb, FILE *f, struct mrb_io *fptr)
+io_fflush(mrb_state *mrb, struct mrb_io *fptr)
 {
   int n;
 
   for (;;) {
     /* TRAP_BEG(mrb); */ /* XXX */
-    n = fflush(f);
+    n = fflush(GetWriteFile(fptr));
     /* TRAP_END(mrb); */ /* XXX */
 
     if (n != EOF)
@@ -1659,6 +1659,16 @@ mrb_io_write(mrb_state *mrb, mrb_value klass)
 }
 
 mrb_value
+mrb_io_flush(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_io *fptr;
+
+  GetOpenFile(mrb, self, fptr);
+  io_fflush(mrb, fptr);
+  return self;
+}
+
+mrb_value
 mrb_io_sync(mrb_state *mrb, mrb_value klass)
 {
   struct mrb_io *fptr;
@@ -1698,9 +1708,9 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
 }
 
 mrb_value
-mrb_io_to_io(mrb_state *mrb, mrb_value klass)
+mrb_io_to_io(mrb_state *mrb, mrb_value self)
 {
-  return klass;
+  return self;
 }
 
 void
@@ -1721,6 +1731,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "each", mrb_io_each_line, ARGS_ANY()); /* 15.2.20.5.3 */
   mrb_define_method(mrb, io, "each_byte", mrb_io_each_byte, ARGS_ANY()); /* 15.2.20.5.4 */
   mrb_define_method(mrb, io, "each_line", mrb_io_each_line, ARGS_ANY()); /* 15.2.20.5.5 */
+  mrb_define_method(mrb, io, "flush", mrb_io_flush, ARGS_NONE()); /* TBD */
   mrb_define_method(mrb, io, "read", mrb_io_read, ARGS_ANY());  /* 15.2.20.5.14 */
   mrb_define_method(mrb, io, "sync", mrb_io_sync, ARGS_NONE()); /* 15.2.20.5.18 */
   mrb_define_method(mrb, io, "sync=", mrb_io_set_sync, ARGS_REQ(1));   /* 15.2.20.5.19 */
