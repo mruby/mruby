@@ -847,14 +847,15 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         mrb->arena_idx = ai;
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
-        regs = mrb->stack = mrb->stbase + mrb->ci->stackidx;
-	regs[mrb->ci->acc] = recv;
+	ci = mrb->ci;
+        regs = mrb->stack = mrb->stbase + ci->stackidx;
+	regs[ci->acc] = recv;
+	pc = ci->pc;
         cipop(mrb);
         irep = mrb->ci->proc->body.irep;
         pool = irep->pool;
         syms = irep->syms;
-	pc = mrb->ci->pc;
-        NEXT;
+        JUMP;
       }
       else {
         /* setup environment for calling method */
