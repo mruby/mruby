@@ -17,29 +17,31 @@ export AR = ar
 .PHONY : all
 all : $(INIT).o all_gems
 
-$(MMAKER_BIN) : $(MMAKER).o
-	@echo "Build the generator which creates the driver and Gem Makefile"
-	$(LL) -o $@ $(CC_FLAGS) $<
+all_gems : g/Makefile
+	@echo "Build all gems"
+	$(MAKE) -C g
 
-$(MMAKER).o : $(MMAKER).c
-	$(CC) $(CC_FLAGS) -MMD -c $< -o $@
+g/Makefile : $(MMAKER_BIN)
+	@echo "Generate Gem Makefile"
+	$(MMAKER_BIN) makefile > $@
 
 $(INIT).c : $(MMAKER_BIN)
 	@echo "Generate Gem driver"
 	$(MMAKER_BIN) $(INIT) > $@
 
 $(INIT).o : $(INIT).c
-	@echo "Build the driver which initiailizes all gems"
-	gcc $(CC_FLAGS) -c $< -o $@
+	@echo "Build the driver which initializes all gems"
+	$(CC) $(CC_FLAGS) -MMD -c $< -o $@
 	$(AR) rs $(LIBR) $@
 
-g/Makefile :
-	@echo "Generate Gem Makefile"
-	$(MMAKER_BIN) makefile > $@
+# Generator
 
-all_gems : $(MMAKER_BIN) g/Makefile
-	@echo "Build all gems"
-	$(MAKE) -C g
+$(MMAKER_BIN) : $(MMAKER).o
+	@echo "Build the generator which creates the driver and Gem Makefile"
+	$(LL) -o $@ $(CC_FLAGS) $<
+
+$(MMAKER).o : $(MMAKER).c
+	$(CC) $(CC_FLAGS) -MMD -c $< -o $@
 
 test :
 	@$(MAKE) test -C g

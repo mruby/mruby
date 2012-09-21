@@ -1,6 +1,6 @@
 include ../../Makefile4gem
 
-GEM := hello_world
+GEM := clib_example
 
 GEM_C_FILES := $(wildcard $(SRC_DIR)/*.c)
 GEM_OBJECTS := $(patsubst %.c, %.o, $(GEM_C_FILES))
