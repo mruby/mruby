@@ -59,7 +59,7 @@ $(GEMDLIB) :
 
 # clean driver and all gems
 .PHONY : clean
-clean : GEM_MAKEFILE
+clean : $(GEM_MAKEFILE)
 	@echo "Cleanup Gems"
 	$(MAKE) clean -C g
 	-$(RM_F) $(INIT).c *.o *.d $(GENERATOR_BIN) $(GEM_MAKEFILE)
