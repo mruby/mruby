@@ -25,11 +25,11 @@ GEMDLIB := g/mrbgemtest.ctmp
 .PHONY : all
 all : $(INIT).o all_gems
 
-all_gems : GEM_MAKEFILE
+all_gems : $(GEM_MAKEFILE)
 	@echo "Build all gems"
 	$(MAKE) -C g
 
-GEM_MAKEFILE : $(GENERATOR_BIN)
+$(GEM_MAKEFILE) : $(GENERATOR_BIN)
 	@echo "Generate Gem Makefile"
 	$(GENERATOR_BIN) makefile > $@
 
@@ -62,4 +62,4 @@ $(GEMDLIB) :
 clean : GEM_MAKEFILE
 	@echo "Cleanup Gems"
 	$(MAKE) clean -C g
-	-$(RM_F) $(INIT).c *.o *.d $(GENERATOR_BIN) GEM_MAKEFILE
+	-$(RM_F) $(INIT).c *.o *.d $(GENERATOR_BIN) $(GEM_MAKEFILE)
