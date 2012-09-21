@@ -10,6 +10,8 @@ MLIB := $(TARGET).o
 CLIB := $(TARGET).c
 INIT := init_$(TARGET).c
 DLIB := $(TARGET).ctmp
+GEMDIR := ../mrbgems
+GEMDLIB := $(GEMDIR)/g/mrbgemtest.ctmp
 RLIB := $(TARGET).rbtmp
 DEPLIB := $(TARGET).d driver.d
 ASSLIB := $(BASEDIR)/assert.rb
@@ -42,13 +44,12 @@ endif
 
 # mruby compiler and test driver
 ifeq ($(OS),Windows_NT)
-MRBC = ../bin/mrbc.exe
-EXE := $(TARGET).exe
+  MRBC = ../bin/mrbc.exe
+  EXE := $(TARGET).exe
 else
-MRBC = ../bin/mrbc
-EXE := $(TARGET)
+  MRBC = ../bin/mrbc
+  EXE := $(TARGET)
 endif
-
 
 ##############################
 # generic build targets, rules
@@ -68,15 +69,18 @@ $(OBJS) : %.o : %.c
 	$(CC) $(ALL_CFLAGS) -MMD $(INCLUDES) -c $< -o $@
 
 # Compile C source from merged mruby source
-$(CLIB) : ../mrbgems/g/mrbgemtest.ctmp $(RLIB) $(MRBC) $(INIT)
-	$(MRBC) -Bmrbtest_irep -o$(DLIB) $(RLIB); $(CAT) $(INIT) $(DLIB) ../mrbgems/g/mrbgemtest.ctmp > $@
+$(CLIB) : $(DLIB) $(GEMDLIB) $(INIT)
+	$(CAT) $(INIT) $(DLIB) $(GEMDLIB) > $@
+
+$(DLIB) : $(RLIB) $(MRBC)
+	$(MRBC) -Bmrbtest_irep -o$@ $(RLIB)
 
 # merge mruby sources
 $(RLIB) : $(ASSLIB) $(MRBS)
 	$(CAT) $(ASSLIB) $(MRBS) > $@
 
-../mrbgems/g/mrbgemtest.ctmp :
-	@$(MAKE) prepare-test -C ../mrbgems
+$(GEMDLIB) :
+	@$(MAKE) prepare-test -C $(GEMDIR)
 
 # clean up
 .PHONY : clean

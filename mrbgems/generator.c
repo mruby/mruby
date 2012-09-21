@@ -102,6 +102,10 @@ for_each_gem (char before[1024], char after[1024],
   puts(complete_line);
 }
 
+/*
+ * Gem Makefile Generator
+ *
+ */
 void
 make_gem_makefile()
 {
@@ -156,6 +160,10 @@ make_gem_makefile()
   for_each_gem("\t@$(MAKE) clean -C ", " $(MAKE_FLAGS)\n", "", "", "");
 }
 
+/*
+ * init_gems.c Generator
+ *
+ */
 void
 make_init_gems()
 {
