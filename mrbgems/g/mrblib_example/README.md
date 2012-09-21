@@ -1,4 +1,4 @@
-hello world
+Pure Ruby Extension Example
 =========
 
-This is an example gem which implements just one method +HW.say+ in a C extension.
+This is an example gem which implements a pure Ruby extension.
