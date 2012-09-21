@@ -68,12 +68,15 @@ $(OBJS) : %.o : %.c
 	$(CC) $(ALL_CFLAGS) -MMD $(INCLUDES) -c $< -o $@
 
 # Compile C source from merged mruby source
-$(CLIB) : $(RLIB) $(MRBC) $(INIT)
-	$(MRBC) -Bmrbtest_irep -o$(DLIB) $(RLIB); $(CAT) $(INIT) $(DLIB) > $@
+$(CLIB) : ../mrbgems/g/mrbgemtest.ctmp $(RLIB) $(MRBC) $(INIT)
+	$(MRBC) -Bmrbtest_irep -o$(DLIB) $(RLIB); $(CAT) $(INIT) $(DLIB) ../mrbgems/g/mrbgemtest.ctmp > $@
 
 # merge mruby sources
 $(RLIB) : $(ASSLIB) $(MRBS)
 	$(CAT) $(ASSLIB) $(MRBS) > $@
+
+../mrbgems/g/mrbgemtest.ctmp :
+	@$(MAKE) prepare-test -C ../mrbgems
 
 # clean up
 .PHONY : clean

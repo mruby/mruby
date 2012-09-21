@@ -138,32 +138,16 @@ make_gem_makefile()
   for_each_gem(" ", "/mrblib/*.rb", "\tcat", "> mrblib_gem.rbtmp", "mrblib");
   puts("");
 
-  puts(".PHONY : test");
-  puts("test : mrbtest");
-  puts("\t@./mrbtest");
+  puts(".PHONY : prepare-test");
+  puts("prepare-test : mrbgemtest.ctmp");
   puts("");
 
-  puts("mrbtest : driver.o mrbtest.o");
-  puts("\t$(CC) $(CFLAGS) -o ./mrbtest ./mrbtest.o ../../lib/libmruby.a ./driver.o");
+  puts("mrbgemtest.ctmp : mrbgemtest.rbtmp");
+  puts("\t../../bin/mrbc -Bmrbgemtest_irep -omrbgemtest.ctmp mrbgemtest.rbtmp");
   puts("");
 
-  puts("driver.o : ../../test/driver.c");
-  puts("\t$(CC) $(CFLAGS) -o $@ -c $<");
-  puts("");
-
-  puts("mrbtest.o : mrbtest.c");
-  puts("");
-
-  puts("mrbtest.c : mrbtest.ctmp");
-  puts("\tcat ../../test/init_mrbtest.c mrbtest.ctmp > mrbtest.c");
-  puts("");
-
-  puts("mrbtest.ctmp : mrbtest.rbtmp");
-  puts("\t../../bin/mrbc -Bmrbtest_irep -omrbtest.ctmp mrbtest.rbtmp");
-  puts("");
-
-  puts("mrbtest.rbtmp :");
-  for_each_gem("", "/test/*.rb ", "\tcat ../../test/assert.rb ", "> mrbtest.rbtmp", "");
+  puts("mrbgemtest.rbtmp :");
+  for_each_gem(" ", "/test/*.rb ", "\tcat", " > mrbgemtest.rbtmp", "");
   puts("");
 
   puts(".PHONY : clean");

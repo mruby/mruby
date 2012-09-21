@@ -5,7 +5,7 @@ LIBR := ../lib/libmruby.a
 INIT := init_gems
 RM_F := rm -f
 CC_FLAGS := -Wall -Werror-implicit-function-declaration -g -O3 -MMD -I. -I./../include
-MMAKER := ./gem_helper
+MMAKER := ./generator
 MMAKER_BIN := $(MMAKER)
 export CC = gcc
 export LL = gcc
@@ -43,8 +43,9 @@ $(MMAKER_BIN) : $(MMAKER).o
 $(MMAKER).o : $(MMAKER).c
 	$(CC) $(CC_FLAGS) -MMD -c $< -o $@
 
-test :
-	@$(MAKE) test -C g
+.PHONY : prepare-test
+prepare-test :
+	@$(MAKE) prepare-test -C g
 
 # clean driver and all gems
 .PHONY : clean
