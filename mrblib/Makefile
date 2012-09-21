@@ -54,7 +54,7 @@ all : $(LIBR)
 
 $(LIBR) : $(MLIB) $(LIBR0)
 	$(CP) $(LIBR0) $(LIBR)
-	$(AR) rs $(LIBR) $(MLIB)
+	$(AR) r $(LIBR) $(MLIB)
 
 # Compile mrblib source
 $(MLIB) : $(CLIB)
