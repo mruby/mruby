@@ -1,6 +1,6 @@
 include ../../Makefile4gem
 
-GEM := mrblib_example
+GEM := ruby_extension_example
 
 gem-all :
 
