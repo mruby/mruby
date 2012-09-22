@@ -45,10 +45,10 @@ directory_exists(char path[4096]) {
  *     FALSE => template for all GEMs
  *
  */
-void
-for_each_gem (char before[1024], char after[1024],
-              char start[1024], char end[1024],
-              char dir_to_skip[1024])
+static char
+*for_each_gem (char before[1024], char after[1024],
+               char start[1024], char end[1024],
+               char dir_to_skip[1024])
 {
   struct dirent **eps;
   int n;
@@ -99,7 +99,7 @@ for_each_gem (char before[1024], char after[1024],
   }
 
   strcat(complete_line, end);
-  puts(complete_line);
+  return complete_line;
 }
 
 /*
@@ -109,6 +109,11 @@ for_each_gem (char before[1024], char after[1024],
 void
 make_gem_makefile()
 {
+  char *gem_check = "";
+  int gem_empty;
+  int gem_c_empty;
+  int gem_ruby_empty;
+
   puts("CFLAGS := -I. -I../../include -I../../src");
   puts("");
   puts("ifeq ($(OS),Windows_NT)");
@@ -118,29 +123,69 @@ make_gem_makefile()
   puts("endif");
   puts("");
 
+  gem_check = for_each_gem("", "", "", "", "");
+  if (strcmp(gem_check, "") == 0)
+    gem_empty = TRUE;
+  else
+    gem_empty = FALSE;
+
+  gem_check = for_each_gem("", "", "", "", "src");
+  if (strcmp(gem_check, "") == 0)
+    gem_c_empty = TRUE;
+  else 
+    gem_c_empty = FALSE;
+
+  gem_check = for_each_gem("", "", "", "", "mrblib");
+  if (strcmp(gem_check, "") == 0)
+    gem_ruby_empty = TRUE;
+  else 
+    gem_ruby_empty = FALSE;
+
   puts(".PHONY : all");
-  puts("all : all_gems mrblib_gem.o");
-  puts("\t$(AR) rs ../../lib/libmruby.a mrblib_gem.o");
-  puts("");
+  if (gem_empty) {
+    puts("all :");
+    puts("");
+  }
+  else {
+    if (gem_c_empty) {
+      puts("all : mrblib_gem.o");
+      puts("\t$(AR) rs ../../lib/libmruby.a mrblib_gem.o");
+    }
+    else if (gem_ruby_empty) {
+      puts("all : all_gems");
+    }
+    else {
+      puts("all : all_gems mrblib_gem.o");
+      puts("\t$(AR) rs ../../lib/libmruby.a mrblib_gem.o");
+    }
 
-  puts("all_gems :");
-  for_each_gem("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "", "");
-  puts("");
+    puts("");
 
-  puts("mrblib_gem.o : mrblib_gem.c");
-  puts("");
+    // Rule for building all C extensions of each Gem
+    if (!gem_c_empty) {
+      puts("all_gems :");
+      puts(for_each_gem("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "", ""));
+      puts("");
+    }
 
-  puts("mrblib_gem.c : mrblib_gem.ctmp");
-  puts("\tcat $< > $@");
-  puts("");
+    // Rule for building all Ruby Extension of each Gem
+    if (!gem_ruby_empty) {
+      puts("mrblib_gem.o : mrblib_gem.c");
+      puts("");
 
-  puts("mrblib_gem.ctmp : mrblib_gem.rbtmp");
-  puts("\t../../bin/mrbc -Bmrblib_gem_irep -o$@ $<");
-  puts("");
+      puts("mrblib_gem.c : mrblib_gem.ctmp");
+      puts("\tcat $< > $@");
+      puts("");
 
-  puts("mrblib_gem.rbtmp :");
-  for_each_gem(" ", "/mrblib/*.rb", "\tcat", "> mrblib_gem.rbtmp", "mrblib");
-  puts("");
+      puts("mrblib_gem.ctmp : mrblib_gem.rbtmp");
+      puts("\t../../bin/mrbc -Bmrblib_gem_irep -o$@ $<");
+      puts("");
+
+      puts("mrblib_gem.rbtmp :");
+      puts(for_each_gem(" ", "/mrblib/*.rb", "\tcat", "> mrblib_gem.rbtmp", "mrblib"));
+      puts("");
+    }
+  }
 
   puts(".PHONY : prepare-test");
   puts("prepare-test : mrbgemtest.ctmp");
@@ -151,13 +196,20 @@ make_gem_makefile()
   puts("");
 
   puts("mrbgemtest.rbtmp :");
-  for_each_gem(" ", "/test/*.rb ", "\tcat", " > mrbgemtest.rbtmp", "");
+
+  if (!gem_empty)
+    puts(for_each_gem(" ", "/test/*.rb ", "\tcat", " > mrbgemtest.rbtmp", ""));
+  else
+    puts("\t../generator rbtmp > mrbgemtest.rbtmp");
+    
   puts("");
 
   puts(".PHONY : clean");
   puts("clean :");
   puts("\t$(RM) *.c *.d *.rbtmp *.ctmp *.o mrbtest");
-  for_each_gem("\t@$(MAKE) clean -C ", " $(MAKE_FLAGS)\n", "", "", "");
+
+  if (!gem_empty)
+    puts(for_each_gem("\t@$(MAKE) clean -C ", " $(MAKE_FLAGS)\n", "", "", ""));
 }
 
 /*
@@ -167,6 +219,29 @@ make_gem_makefile()
 void
 make_init_gems()
 {
+  char *gem_check = "";
+  int gem_empty;
+  int gem_c_empty;
+  int gem_ruby_empty;
+
+  gem_check = for_each_gem("", "", "", "", "");
+  if (strcmp(gem_check, "") == 0)
+    gem_empty = TRUE;
+  else
+    gem_empty = FALSE;
+
+  gem_check = for_each_gem("", "", "", "", "src");
+  if (strcmp(gem_check, "") == 0)
+    gem_c_empty = TRUE;
+  else
+    gem_c_empty = FALSE;
+
+  gem_check = for_each_gem("", "", "", "", "mrblib");
+  if (strcmp(gem_check, "") == 0)
+    gem_ruby_empty = TRUE;
+  else
+    gem_ruby_empty = FALSE;
+
   puts("/*");
   puts(" * This file contains a list of all");
   puts(" * initializing methods which are");
@@ -185,23 +260,36 @@ make_init_gems()
   puts("#include \"mruby/proc.h\"");
   puts("");
 
-  for_each_gem("void mrb_", "_gem_init(mrb_state*);\n", "", "", "src");
+  if (!gem_c_empty)
+    puts(for_each_gem("void mrb_", "_gem_init(mrb_state*);\n", "", "", "src"));
 
-  puts("extern const char mrblib_gem_irep[];");
+  if (!gem_ruby_empty)
+    puts("extern const char mrblib_gem_irep[];");
+
   puts("");
 
   puts("void");
   puts("mrb_init_mrbgems(mrb_state *mrb) {");
 
-  for_each_gem("  mrb_", "_gem_init(mrb);\n", "", "", "src");
+  if (!gem_c_empty)
+    puts(for_each_gem("  mrb_", "_gem_init(mrb);\n", "", "", "src"));
 
-  puts("  int n = mrb_read_irep(mrb, mrblib_gem_irep);");
-  puts("  mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));");
-  puts("  if (mrb->exc) {");
-  puts("    mrb_p(mrb, mrb_obj_value(mrb->exc));");
-  puts("    exit(0);");
-  puts("  }");
+  if (!gem_ruby_empty) {
+    puts("  int n = mrb_read_irep(mrb, mrblib_gem_irep);");
+    puts("  mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));");
+    puts("  if (mrb->exc) {");
+    puts("    mrb_p(mrb, mrb_obj_value(mrb->exc));");
+    puts("    exit(0);");
+    puts("  }");
+  }
+
   puts("}");
+}
+
+void
+make_rbtmp()
+{
+  puts("");
 }
 
 int
@@ -212,11 +300,13 @@ main (int argc, char *argv[])
       make_gem_makefile();
     else if (strcmp(argv[1], "init_gems") == 0)
       make_init_gems();
+    else if (strcmp(argv[1], "rbtmp") == 0)
+      make_rbtmp();
     else
       return 1;
   }
   else {
-    puts("Argument missing! Options: 'makefile', 'init_gems'");
+    puts("Argument missing! Options: 'makefile', 'init_gems', 'rbtmp'");
     return 1;
   }
 
