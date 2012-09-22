@@ -16,6 +16,15 @@ OBJ1 := $(patsubst %.c,%.o,$(filter-out $(EXCEPT1),$(wildcard $(BASEDIR)/*.c)))
 #OBJ3 := $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/ext/enc/*.c))
 OBJS := $(OBJ1) $(OBJ2) $(OBJ3)
 
+MRUBYVM := ../lib/libmrubyvm.a
+EXCEPTVM := $(YC) \
+  $(BASEDIR)/cdump.c \
+  $(BASEDIR)/codegen.c \
+  $(BASEDIR)/dump.c
+
+OBJVM := $(patsubst %.c,%.o,$(filter-out $(EXCEPTVM),$(wildcard $(BASEDIR)/*.c))) \
+         $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/ext/*/*.c))
+
 # libraries, includes
 INCLUDES = -I$(BASEDIR) -I$(BASEDIR)/../include
 
@@ -39,13 +48,19 @@ ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
 # generic build targets, rules
 
 .PHONY : all
-all : $(TARGET)
+all : $(TARGET) mrubyvm
 
 # executable constructed using linker from object files
 $(TARGET) : $(OBJS) $(OBJY)
 	$(AR) r $@ $(OBJS) $(OBJY)
 
 -include $(OBJS:.o=.d) $(OBJY:.o=.d)
+
+mrubyvm : $(MRUBYVM)
+
+$(MRUBYVM) : $(OBJVM)
+	$(AR) r $@ $(OBJVM)
+
 
 # objects compiled from source
 $(OBJS) : %.o : %.c
@@ -66,6 +81,6 @@ $(LDEF) : $(KWD)
 .PHONY : clean #cleandep
 clean :
 	@echo "make: removing targets, objects and depend files of `pwd`"
-	-$(RM_F) $(TARGET) $(OBJS) $(OBJY) $(YC)
+	-$(RM_F) $(TARGET) $(OBJS) $(OBJY) $(YC) $(MRUBYVM)
 	-$(RM_F) $(OBJS:.o=.d) $(OBJY:.o=.d)
 	-$(RM_F) $(patsubst %.c,%.o,$(EXCEPT1)) $(patsubst %.c,%.d,$(EXCEPT1))
