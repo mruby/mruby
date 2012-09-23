@@ -116,6 +116,8 @@ The following limitations are currently existing:
 * Gem _MUST NOT_ have a *mrblib* folder in case it doesn't have a 
   Ruby extension
 * Only Ruby files in the root directory of *mrblib* will be integrated
+* C files in the directory of *src* are overriding object files with
+  the same name.
 
 If you have ideas how to fix these issues without implementing to much
 complexity into the code please provide your code or idea.
