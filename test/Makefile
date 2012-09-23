@@ -69,7 +69,8 @@ $(OBJS) : %.o : %.c
 	$(CC) $(ALL_CFLAGS) -MMD $(INCLUDES) -c $< -o $@
 
 # Compile C source from merged mruby source
-$(CLIB) : $(DLIB) $(GEMDLIB) $(INIT)
+$(CLIB) : $(DLIB) $(INIT)
+	@$(MAKE) prepare-test -C $(GEMDIR)
 	$(CAT) $(INIT) $(DLIB) $(GEMDLIB) > $@
 
 $(DLIB) : $(RLIB) $(MRBC)
@@ -78,9 +79,6 @@ $(DLIB) : $(RLIB) $(MRBC)
 # merge mruby sources
 $(RLIB) : $(ASSLIB) $(MRBS)
 	$(CAT) $(ASSLIB) $(MRBS) > $@
-
-$(GEMDLIB) :
-	@$(MAKE) prepare-test -C $(GEMDIR)
 
 # clean up
 .PHONY : clean

@@ -53,14 +53,14 @@ for_each_gem (char before[1024], char after[1024],
 {
   struct dirent **eps;
   int n;
-  char gemname[1024] = "";
-  char gemname_path[4096] = "";
-  char src_path[4096] = "";
+  char gemname[1024] = { 0 };
+  char gemname_path[4096] = { 0 };
+  char src_path[4096] = { 0 };
   struct stat attribut;
 
   // return value
   char* complete_line = malloc(4096 + sizeof(char));
-
+  strcpy(complete_line, "");
   strcat(complete_line, start);
 
   n = scandir("./g", &eps, one, alphasort);
@@ -114,7 +114,7 @@ for_each_gem (char before[1024], char after[1024],
 void
 make_gem_makefile()
 {
-  char *gem_check = "";
+  char *gem_check = { 0 };
   int gem_empty;
   int gem_c_empty;
   int gem_ruby_empty;
@@ -190,25 +190,19 @@ make_gem_makefile()
   }
 
   printf("\n.PHONY : prepare-test\n"
-         "prepare-test : mrbgemtest.ctmp\n\n"
-
-         "mrbgemtest.ctmp : mrbgemtest.rbtmp\n"
-         "\t../../bin/mrbc -Bmrbgemtest_irep -omrbgemtest.ctmp mrbgemtest.rbtmp\n\n"
-
-         "mrbgemtest.rbtmp :\n"
+         "prepare-test :\n"
         );
-
   if (!gem_empty)
     printf("%s",
            for_each_gem(" ", "/test/*.rb ", "\tcat", " > mrbgemtest.rbtmp", "")
           );
   else
-    printf("\t../generator rbtmp > mrbgemtest.rbtmp\n");
+    printf("\t../generator rbtmp > mrbgemtest.rbtmp");
+  printf("\n\t../../bin/mrbc -Bmrbgemtest_irep -omrbgemtest.ctmp mrbgemtest.rbtmp\n\n");
     
-  printf("\n\n.PHONY : clean\n"
+  printf(".PHONY : clean\n"
          "clean :\n"
          "\t$(RM) *.c *.d *.rbtmp *.ctmp *.o mrbtest\n");
-
   if (!gem_empty)
     printf("%s",
            for_each_gem("\t@$(MAKE) clean -C ", " $(MAKE_FLAGS)\n", "", "", "")
@@ -222,7 +216,7 @@ make_gem_makefile()
 void
 make_init_gems()
 {
-  char *gem_check = "";
+  char *gem_check = { 0 };
   int gem_empty;
   int gem_c_empty;
   int gem_ruby_empty;

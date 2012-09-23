@@ -25,13 +25,12 @@ GEMDLIB := g/mrbgemtest.ctmp
 .PHONY : all
 all : $(INIT).o all_gems
 
-all_gems : $(GEM_MAKEFILE)
+all_gems : $(GENERATOR_BIN)
+	@echo "Generate Gem Makefile"
+	$(GENERATOR_BIN) makefile > $(GEM_MAKEFILE)
 	@echo "Build all gems"
 	$(MAKE) -C g
 
-$(GEM_MAKEFILE) : $(GENERATOR_BIN)
-	@echo "Generate Gem Makefile"
-	$(GENERATOR_BIN) makefile > $@
 
 $(INIT).c : $(GENERATOR_BIN)
 	@echo "Generate Gem driver"
@@ -52,9 +51,7 @@ $(GENERATOR).o : $(GENERATOR).c
 	$(CC) $(CC_FLAGS) -MMD -c $< -o $@
 
 .PHONY : prepare-test
-prepare-test : $(GEMDLIB)
-
-$(GEMDLIB) :
+prepare-test :
 	@$(MAKE) prepare-test -C g
 
 # clean driver and all gems
