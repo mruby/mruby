@@ -166,7 +166,7 @@ make_gem_makefile()
 
     // Rule for building all C extensions of each Gem
     if (!gem_c_empty) {
-      printf("all_gems :\n%s", 
+      printf("all_gems :\n%s\n", 
              for_each_gem("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "", "")
             );
     }
@@ -181,13 +181,13 @@ make_gem_makefile()
              "mrblib_gem.ctmp : mrblib_gem.rbtmp\n"
              "\t../../bin/mrbc -Bmrblib_gem_irep -o$@ $<\n\n"
 
-             "mrblib_gem.rbtmp :\n%s", 
+             "mrblib_gem.rbtmp :\n%s\n", 
              for_each_gem(" ", "/mrblib/*.rb", "\tcat", "> mrblib_gem.rbtmp", "mrblib")
             );
     }
   }
 
-  printf(".PHONY : prepare-test\n"
+  printf("\n.PHONY : prepare-test\n"
          "prepare-test : mrbgemtest.ctmp\n\n"
 
          "mrbgemtest.ctmp : mrbgemtest.rbtmp\n"
@@ -203,7 +203,7 @@ make_gem_makefile()
   else
     printf("\t../generator rbtmp > mrbgemtest.rbtmp\n");
     
-  printf("\n.PHONY : clean\n"
+  printf("\n\n.PHONY : clean\n"
          "clean :\n"
          "\t$(RM) *.c *.d *.rbtmp *.ctmp *.o mrbtest\n");
 
@@ -259,19 +259,18 @@ make_init_gems()
          "#include \"mruby/irep.h\"\n"
          "#include \"mruby/dump.h\"\n"
          "#include \"mruby/string.h\"\n"
-         "#include \"mruby/proc.h\"\n"
-         "");
+         "#include \"mruby/proc.h\"\n");
 
   if (!gem_c_empty)
-    printf("%s",
+    printf("\n%s",
            for_each_gem("void mrb_", "_gem_init(mrb_state*);\n", "", "", "src")
           );
 
   if (!gem_ruby_empty)
-    printf("extern const char mrblib_gem_irep[];\n");
+    printf("\nextern const char mrblib_gem_irep[];\n");
 
   printf("\nvoid\n"
-         "mrb_init_mrbgems(mrb_state *mrb) {");
+         "mrb_init_mrbgems(mrb_state *mrb) {\n");
 
   if (!gem_c_empty)
     printf("%s",
@@ -284,7 +283,7 @@ make_init_gems()
            "  if (mrb->exc) {\n"
            "    mrb_p(mrb, mrb_obj_value(mrb->exc));\n"
            "    exit(0);\n"
-           "  }");
+           "  }\n");
   }
 
   printf("}");
