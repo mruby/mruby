@@ -58,7 +58,7 @@ for_each_gem (char before[1024], char after[1024],
   char src_path[4096] = { 0 };
   struct stat attribut;
 
-  // return value
+  /* return value */
   char* complete_line = malloc(4096 + sizeof(char));
   strcpy(complete_line, "");
   strcat(complete_line, start);
@@ -166,14 +166,14 @@ make_gem_makefile()
 
     printf("\n");
 
-    // Rule for building all C extensions of each Gem
+    /* Rule for building all C extensions of each Gem */
     if (!gem_c_empty) {
       printf("all_gems :\n%s\n", 
              for_each_gem("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "", "")
             );
     }
 
-    // Rule for building all Ruby Extension of each Gem
+    /* Rule for building all Ruby Extension of each Gem */
     if (!gem_ruby_empty) {
       printf("mrblib_gem.o : mrblib_gem.c\n\n"
 
