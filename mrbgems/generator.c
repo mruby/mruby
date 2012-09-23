@@ -217,16 +217,8 @@ void
 make_init_gems()
 {
   char *gem_check = { 0 };
-  int gem_empty;
   int gem_c_empty;
   int gem_ruby_empty;
-
-  /* is there any GEM available? */
-  gem_check = for_each_gem("", "", "", "", "");
-  if (strcmp(gem_check, "") == 0)
-    gem_empty = TRUE;
-  else
-    gem_empty = FALSE;
 
   /* is there a C extension available? */
   gem_check = for_each_gem("", "", "", "", "src");
