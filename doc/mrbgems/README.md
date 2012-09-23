@@ -27,6 +27,8 @@ for testing purposes which will be used by mrbtest. The *Makefile* contains
 rules to build all C files and integrates them into the normal mruby
 build process. *README.md* is a short description of your Gem.
 
+All Gems have to be located under *$(MRUBY_ROOT)/mrbgems/g/*.
+
 ## C Extension
 
 mruby can be extended with C. It is possible by using the C API to integrate C
