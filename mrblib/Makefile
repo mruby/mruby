@@ -52,6 +52,7 @@ endif
 .PHONY : all
 all : $(LIBR)
 
+# update libmruby.a
 $(LIBR) : $(MLIB) $(LIBR0)
 	$(CP) $(LIBR0) $(LIBR)
 	$(AR) r $(LIBR) $(MLIB)
