@@ -44,6 +44,7 @@ export CAT := cat
 all :
 	@$(MAKE) -C src $(MAKE_FLAGS)
 	@$(MAKE) -C mrblib $(MAKE_FLAGS)
+	@$(MAKE) -C mrbgems $(MAKE_FLAGS)
 	@$(MAKE) -C tools/mruby $(MAKE_FLAGS)
 	@$(MAKE) -C tools/mirb $(MAKE_FLAGS)
 
@@ -56,6 +57,7 @@ test : all
 .PHONY : clean
 clean :
 	@$(MAKE) clean -C src $(MAKE_FLAGS)
+	@$(MAKE) clean -C mrbgems $(MAKE_FLAGS)
 	@$(MAKE) clean -C tools/mruby $(MAKE_FLAGS)
 	@$(MAKE) clean -C tools/mirb $(MAKE_FLAGS)
 	@$(MAKE) clean -C test $(MAKE_FLAGS)

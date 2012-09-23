@@ -1,0 +1,37 @@
+# This is the default Makefile integrated
+# by each Gem. It integrates important constants
+# for usage inside of a Gem.
+
+# mruby src root
+MRUBY_ROOT := ../../../
+
+# Tools
+CC := gcc
+RM := rm -f
+AR := ar
+
+SRC_DIR := src
+
+INCLUDES := -I$(SRC_DIR) -I$(MRUBY_ROOT)include -I$(MRUBY_ROOT)src -I.
+CFLAGS := $(INCLUDES) -O3 -g -Wall -Werror-implicit-function-declaration
+
+# LIBR can be manipulated with command line arguments
+ifeq ($(strip $(LIBR)),)
+  # default mruby library
+  LIBR := $(MRUBY_ROOT)lib/libmruby.a
+endif
+
+# Default rules which are calling the
+# gem specific gem-all and gem-clean
+# implementations of a gem
+
+.PHONY : all
+all : gem-info gem-all
+	@echo "Gem '$(GEM)' is done"
+
+gem-info:
+	@echo "Building Gem '$(GEM)'"
+
+.PHONY : clean
+clean : gem-clean
+	@echo "Gem '$(GEM)' is clean"
