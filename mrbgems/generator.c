@@ -77,6 +77,8 @@ for_each_gem (char before[1024], char after[1024],
         continue;
       if (strcmp(gemname, "..") == 0)
         continue;
+      if (strcmp(gemname, ".gitignore") == 0)
+        continue;
 
       stat(gemname_path, &attribut);
       if (S_ISDIR(attribut.st_mode) == 0) {
