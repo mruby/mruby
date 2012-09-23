@@ -1,7 +1,7 @@
 # mrbgems
 
 mrbgems is a library manager to integrate C and Ruby extension in an easy and
-standardized way into mruby.
+standardised way into mruby.
 
 ## GEM Structure
 
