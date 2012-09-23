@@ -194,7 +194,7 @@ make_gem_makefile()
         );
   if (!gem_empty)
     printf("%s",
-           for_each_gem(" ", "/test/*.rb ", "\tcat", " > mrbgemtest.rbtmp", "")
+           for_each_gem(" ", "/test/*.rb ", "\tcat", " > mrbgemtest.rbtmp", "test")
           );
   else
     printf("\t../generator rbtmp > mrbgemtest.rbtmp");
