@@ -7,6 +7,7 @@ standardized way into mruby.
 
 The maximal Gem structure looks like this:
 
+```
 +- GEM_NAME         <- Name of Gem
    |
    +- mrblib/       <- Source for Ruby extension
@@ -18,6 +19,7 @@ The maximal Gem structure looks like this:
    +- Makefile      <- Makefile for Gem
    |
    +- README.md     <- Readme for Gem
+```
 
 The folder *mrblib* contains pure Ruby files to extend mruby. The folder *src*
 contains C files to extend mruby. The folder *test* contains pure Ruby files
@@ -44,17 +46,20 @@ by the name of you Gem. The directory name of your Gem is considered also
 as the name! If you call your Gem directory *c_extension_example*, your
 initialisation method could look like this:
 
-  void
-  mrb_c_extension_example_gem_init(mrb_state* mrb) {
-    _class_cextension = mrb_define_module(mrb, "CExtension");
-    mrb_define_class_method(mrb, _class_cextension, "c_method", mrb_c_method, ARGS_NONE());
-  }
+```
+void
+mrb_c_extension_example_gem_init(mrb_state* mrb) {
+  _class_cextension = mrb_define_module(mrb, "CExtension");
+  mrb_define_class_method(mrb, _class_cextension, "c_method", mrb_c_method, ARGS_NONE());
+}
+```
 
 mrbgems will also use the *gem-clean* make target to clean up your Gem. Implement
 this target with the necessary rules!
 
 ### Example
 
+```
 +- c_extension_example/
    |
    +- src/
@@ -68,6 +73,7 @@ this target with the necessary rules!
    +- Makefile             <- Build rules for C extension
    |
    +- README.md
+```
 
 ## Ruby Extension
 
@@ -83,6 +89,7 @@ process of your Ruby extension you can use the *Makefile* too.
 
 ### Example
 
+```
 +- ruby_extension_example/
    |
    +- mrblib/
@@ -96,3 +103,4 @@ process of your Ruby extension you can use the *Makefile* too.
    +- Makefile
    |
    +- README.md
+```
