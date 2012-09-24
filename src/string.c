@@ -1344,6 +1344,8 @@ str_gsub(mrb_state *mrb, mrb_value str, mrb_int bang)
   }
   mrb_reg_search(mrb, pat, str, last, 0);
   RBASIC(dest)->c = mrb_obj_class(mrb, str);
+  str = dest;
+
   return str;
 }
 
@@ -1395,14 +1397,14 @@ mrb_str_gsub(mrb_state *mrb, mrb_value self)
  *  Performs the substitutions of <code>String#gsub</code> in place, returning
  *  <i>str</i>, or <code>nil</code> if no substitutions were performed.
  */
+/* implemented by mrblib/string.c */
+/*
 static mrb_value
 mrb_str_gsub_bang(mrb_state *mrb, mrb_value self)
 {
-  struct RString *s = mrb_str_ptr(self);
-
-  str_modify(mrb, s);
-  return str_gsub(mrb, self, 1);
+  return mrb_nil_value();
 }
+*/
 #endif //ENABLE_REGEXP
 
 mrb_int
@@ -2341,12 +2343,14 @@ mrb_block_given_p()
  *  performed.
  */
 #ifdef ENABLE_REGEXP
+/* implemented by mrblib/string.c */
+/*
 static mrb_value
 mrb_str_sub_bang(mrb_state *mrb, mrb_value str)
 {
-  str_modify(mrb, RSTRING(str));
   return mrb_nil_value();
 }
+*/
 #endif //ENABLE_REGEXP
 
 /* 15.2.10.5.36 */
@@ -2393,9 +2397,57 @@ static mrb_value
 mrb_str_sub(mrb_state *mrb, mrb_value self)
 {
   mrb_value str = mrb_str_dup(mrb, self);
+  mrb_value *argv;
+  int argc;
+  mrb_value pat, repl;
+  int iter = 0;
+  long plen;
 
-  mrb_str_sub_bang(mrb, str);
-  return str;
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 1 && mrb_block_given_p()) {
+    iter = 1;
+  } else if (argc == 2) {
+    repl = argv[1];
+    mrb_string_value(mrb, &repl);
+  } else {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 2)", argc);
+  }
+
+  pat = get_pat(mrb, argv[0], 1);
+  if (mrb_reg_search(mrb, pat, str, 0, 0) >= 0) {
+    mrb_encoding *enc;
+    mrb_value match = mrb_backref_get(mrb);
+    struct re_registers *regs = RMATCH_REGS(match);
+    long beg0 = BEG(0);
+    long end0 = END(0);
+    char *p, *rp;
+    long len, rlen;
+
+    repl = mrb_reg_regsub(mrb, repl, str, regs, pat);
+    enc = ONIG_ENCODING_ASCII; /* XXX */
+    if (!enc) {
+      mrb_encoding *str_enc = ONIG_ENCODING_ASCII; /* STR_ENC_GET(mrb, str); */
+      enc = str_enc;
+    }
+    str_modify(mrb, RSTRING(str));
+    plen = end0 - beg0;
+    rp = RSTRING_PTR(repl); rlen = RSTRING_LEN(repl);
+    len = RSTRING_LEN(str);
+    if (rlen > plen) {
+      RESIZE_CAPA(RSTRING(str), len + rlen - plen);
+    }
+    p = RSTRING_PTR(str);
+    if (rlen != plen) {
+      memmove(p + beg0 + rlen, p + beg0 + plen, len - beg0 - plen);
+    }
+    memcpy(p + beg0, rp, rlen);
+    len += rlen - plen;
+    RSTRING_LEN(str) =  len;
+    RSTRING_PTR(str)[len] = '\0';
+
+    return str;
+  }
+  return mrb_nil_value();
 }
 #endif //ENABLE_REGEXP
 
@@ -3049,8 +3101,9 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "empty?",          mrb_str_empty_p,         ARGS_NONE());              /* 15.2.10.5.16 */
   mrb_define_method(mrb, s, "eql?",            mrb_str_eql,             ARGS_REQ(1));              /* 15.2.10.5.17 */
 #ifdef ENABLE_REGEXP
-  mrb_define_method(mrb, s, "gsub",            mrb_str_gsub,            ARGS_REQ(1));              /* 15.2.10.5.18 */
-  mrb_define_method(mrb, s, "gsub!",           mrb_str_gsub_bang,       ARGS_REQ(1));              /* 15.2.10.5.19 */
+  /* implemented gsub, gsub! method. see mrblib/string.rb */
+  mrb_define_method(mrb, s, "_gsub",            mrb_str_gsub,            ARGS_REQ(1));              /* 15.2.10.5.18 */
+  /* mrb_define_method(mrb, s, "gsub!",           mrb_str_gsub_bang,       ARGS_REQ(1)); */        /* 15.2.10.5.19 */
 #endif
   mrb_define_method(mrb, s, "hash",            mrb_str_hash_m,          ARGS_REQ(1));              /* 15.2.10.5.20 */
   mrb_define_method(mrb, s, "include?",        mrb_str_include,         ARGS_REQ(1));              /* 15.2.10.5.21 */
@@ -3071,8 +3124,9 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "slice",           mrb_str_aref_m,          ARGS_ANY());               /* 15.2.10.5.34 */
   mrb_define_method(mrb, s, "split",           mrb_str_split_m,         ARGS_ANY());               /* 15.2.10.5.35 */
 #ifdef ENABLE_REGEXP
-  mrb_define_method(mrb, s, "sub",             mrb_str_sub,             ARGS_REQ(1));              /* 15.2.10.5.36 */
-  mrb_define_method(mrb, s, "sub!",            mrb_str_sub_bang,        ARGS_REQ(1));              /* 15.2.10.5.37 */
+  /* implemented sub, sub! method. see mrblib/string.rb */
+  mrb_define_method(mrb, s, "_sub",             mrb_str_sub,             ARGS_REQ(1));              /* 15.2.10.5.36 */
+  /* mrb_define_method(mrb, s, "sub!",            mrb_str_sub_bang,        ARGS_REQ(1)); */         /* 15.2.10.5.37 */
 #endif
   mrb_define_method(mrb, s, "to_i",            mrb_str_to_i,            ARGS_ANY());               /* 15.2.10.5.38 */
   mrb_define_method(mrb, s, "to_f",            mrb_str_to_f,            ARGS_NONE());              /* 15.2.10.5.39 */
