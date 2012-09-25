@@ -23,7 +23,7 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
    * SystemCallError
 
  * 拡張したクラス/モジュール
-   * Array: #- #& #| #pack #uniq #uniq!
+   * Array: #- #& #| #pack #uniq #uniq! #flatten #flatten!
    * Kernel: #exit #sleep #system
    * String: #lstrip #rstrip #strip #unpack
      * Array#pack, String#unpack で利用できるテンプレート文字列は "m"(base64) と "H"(16進文字列/上位ニブルが先) のみです。
