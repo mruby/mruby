@@ -3119,7 +3119,8 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "reverse!",        mrb_str_reverse_bang,    ARGS_NONE());              /* 15.2.10.5.30 */
   mrb_define_method(mrb, s, "rindex",          mrb_str_rindex_m,        ARGS_ANY());               /* 15.2.10.5.31 */
 #ifdef ENABLE_REGEXP
-  mrb_define_method(mrb, s, "scan",            mrb_str_scan,            ARGS_REQ(1));              /* 15.2.10.5.32 */
+  /* implemented scan method. see mrblib/string.rb */
+  mrb_define_method(mrb, s, "_scan",            mrb_str_scan,            ARGS_REQ(1));              /* 15.2.10.5.32 */
 #endif
   mrb_define_method(mrb, s, "slice",           mrb_str_aref_m,          ARGS_ANY());               /* 15.2.10.5.34 */
   mrb_define_method(mrb, s, "split",           mrb_str_split_m,         ARGS_ANY());               /* 15.2.10.5.35 */

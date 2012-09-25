@@ -67,6 +67,8 @@ class String
     ### *** TODO *** ###
     unless Object.const_defined?(:Regexp)
       raise NotImplementedError, "scan not available (yet)"
+    else
+      self._scan(reg, &block)
     end
   end
 
