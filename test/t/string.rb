@@ -264,7 +264,24 @@ assert('String#rindex', '15.2.10.5.31') do
     'abcabc'.rindex('a', 1) == 0 and 'abcabc'.rindex('a', 4) == 3
 end
 
+if Object.const_defined?(:Regexp)
 # TODO Broken ATM assert('String#scan', '15.2.10.5.32') do
+assert('String#scan', '15.2.10.5.32') do
+  re = Regexp.compile('..')
+  result1 = "foobar".scan(re)
+  re = Regexp.compile('ba.')
+  result2 = "foobarbazfoobarbazz".scan(re)
+  re = Regexp.compile('(.)')
+  result3 = "foobar".scan(re)
+  re = Regexp.compile('(ba)(.)')
+  result4 = "foobarbazfoobarbaz".scan(re)
+
+  result1 == ["fo", "ob", "ar"] and
+  result2 == ["bar", "baz", "bar", "baz"] and
+  result3 == [["f"], ["o"], ["o"], ["b"], ["a"], ["r"]] and
+  result4 == [["ba", "r"], ["ba", "z"], ["ba", "r"], ["ba", "z"]]
+end
+end
 
 assert('String#size', '15.2.10.5.33') do
   'abc'.size == 3
