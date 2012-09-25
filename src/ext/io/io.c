@@ -95,7 +95,7 @@ static const char * mrb_io_modenum_to_modestr(mrb_state *mrb,int flags);
 static int mrb_io_modestr_to_modenum(mrb_state *mrb,const char *mode);
 static int mrb_io_oflags_fmode(int oflags);
 static FILE * mrb_fdopen(mrb_state *mrb,int fd,const char *mode);
-static int rb_sysopen(mrb_value fname,int flags,mode_t perm);
+static int rb_sysopen(mrb_state *mrb, mrb_value fname,int flags,mode_t perm);
 static struct mrb_io * flush_before_seek(mrb_state *mrb,struct mrb_io *fptr);
 static void rb_io_check_readable(mrb_state *mrb,struct mrb_io *fptr);
 static void rb_io_check_writable(mrb_state *mrb,struct mrb_io *fptr);
@@ -340,7 +340,7 @@ mrb_open_file(mrb_state *mrb, int argc, mrb_value *argv, mrb_value io)
   MakeOpenFile(mrb, io, fptr);
   fptr->path = mrb_str_new2(mrb, path);
   fptr->mode = mrb_io_oflags_fmode(flags);
-  fd = rb_sysopen(fname, flags, perm);
+  fd = rb_sysopen(mrb, fname, flags, perm);
   fptr->f = mrb_fdopen(mrb, fd, m);
 
   return io;
@@ -386,13 +386,14 @@ rb_io_initialize(mrb_state *mrb, int argc, mrb_value *argv, mrb_value io)
 }
 
 static int
-rb_sysopen(mrb_value fname, int flags, mode_t perm)
+rb_sysopen(mrb_state *mrb, mrb_value fname, int flags, mode_t perm)
 {
   int fd;
 
   fd = open(RSTRING(fname)->ptr, flags, perm);
   if (fd < 0) {
-    return -1;
+    /* return -1; */
+    mrb_sys_fail(mrb, "open failed.");
   }
 
   return fd;
@@ -1508,7 +1509,7 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
     perm = (mode_t)mrb_fixnum(vperm);
   }
 
-  fd = rb_sysopen(fname, oflags, perm);
+  fd = rb_sysopen(mrb, fname, oflags, perm);
 
   return mrb_fixnum_value(fd);
 }
