@@ -166,9 +166,37 @@ assert('String#eql?', '15.2.10.5.17') do
   'abc'.eql?('abc') and not 'abc'.eql?('cba')
 end
 
+if Object.const_defined?(:Regexp)
 # TODO ATM broken assert('String#gsub', '15.2.10.5.18') do
+assert('String#gsub', '15.2.10.5.18') do
+  re = Regexp.compile('def')
+  result1 = 'abcdefg'.gsub(re, '!!')
+  re = Regexp.compile('b')
+  result2 = 'abcabc'.gsub(re, '<<\&>>')
+  re = Regexp.compile('x+(b+)')
+  result3 = 'xxbbxbb'.gsub(re, 'X<<\1>>')
+  result4 = '2.5'.gsub('.', ',')
+
+  result1 == "abc!!g" and
+  result2 == "a<<b>>ca<<b>>c" and
+  result3 == "X<<bb>>X<<bb>>" and
+  result4 == "2,5"
+end
 
 # TODO ATM broken assert('String#gsub!', '15.2.10.5.19') do
+assert('String#gsub!', '15.2.10.5.19') do
+  result1 = "String-String"
+  re = Regexp.compile('in.')
+  result1.gsub!(re, "!!")
+
+  result2 = "String-String"
+  re = Regexp.compile('in.')
+  result2.gsub!(re, '<<\&>>')
+
+  result1 == "Str!!-Str!!" and
+  result2 == "Str<<ing>>-Str<<ing>>"
+end
+end # END: Object.const_defined?(:Regexp)
 
 assert('String#hash', '15.2.10.5.20') do
   a = 'abc'
@@ -281,9 +309,35 @@ assert('String#split', '15.2.10.5.35') do
     'abc'.split("") == ['a', 'b', 'c']
 end
 
+if Object.const_defined?(:Regexp)
 # TODO ATM broken assert('String#sub', '15.2.10.5.36') do
+assert('String#sub', '15.2.10.5.36') do
+  re = Regexp.compile('def')
+  result1 = 'abcdefg'.sub(re, '!!')
+  re = Regexp.compile('b')
+  result2 = 'abcabc'.sub(re, '<<\&>>')
+  re = Regexp.compile('x+(b+)')
+  result3 = 'xbbxbb'.sub(re, 'X<<\1>>')
+
+  result1 == "abc!!g" and
+  result2 == "a<<b>>cabc" and
+  result3 == "X<<bb>>xbb"
+end
 
 # TODO ATM broken assert('String#sub!', '15.2.10.5.37') do
+assert('String#sub!', '15.2.10.5.37') do
+  result1 = "String-String"
+  re = Regexp.compile('in.')
+  result1.sub!(re, "!!")
+
+  result2 = "String-String"
+  re = Regexp.compile('in.')
+  result2.sub!(re, '<<\&>>')
+
+  result1 == "Str!!-String" and
+  result2 == "Str<<ing>>-String"
+end
+end # END: Object.const_defined?(:Regexp)
 
 assert('String#to_i', '15.2.10.5.38') do
   a = ''.to_i
