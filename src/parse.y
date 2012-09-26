@@ -4850,7 +4850,6 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   mrb_value v;
 
   if (!p) {
-    mrb_parser_free(p);
     return mrb_undef_value();
   }
   if (!p->tree || p->nerr) {
