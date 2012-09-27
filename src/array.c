@@ -587,8 +587,7 @@ mrb_value
 mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_value rpl)
 {
   struct RArray *a = mrb_ary_ptr(ary);
-  mrb_int tail;
-  int size;
+  int tail, size;
   mrb_value *argv;
   int i, argc;
 
@@ -599,6 +598,9 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     if (head < 0) {
       mrb_raise(mrb, E_INDEX_ERROR, "index is out of array");
     }
+  }
+  if (a->len < len || a->len < head + len) {
+    len = a->len - head;
   }
   tail = head + len;
 
@@ -614,7 +616,6 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   size = head + argc;
 
   if (tail < a->len) size += a->len - tail;
-
   if (size > a->aux.capa)
     ary_expand_capa(mrb, a, size);
 
