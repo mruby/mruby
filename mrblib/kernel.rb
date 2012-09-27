@@ -32,4 +32,9 @@ module Kernel
       yield
     end
   end
+
+  # XXX: This "require" implementation does nothing at all, but we can run
+  # ruby scripts without commenting out "require 'hoge.rb'".
+  def require(s)
+  end
 end
