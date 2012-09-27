@@ -4850,7 +4850,6 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   mrb_value v;
 
   if (!p) {
-    mrb_parser_free(p);
     return mrb_undef_value();
   }
   if (!p->tree || p->nerr) {
@@ -4867,7 +4866,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
       static const char msg[] = "syntax error";
       mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, msg, sizeof(msg) - 1));
       mrb_parser_free(p);
-      return mrb_nil_value();
+      return mrb_undef_value();
     }
   }
   n = mrb_generate_code(mrb, p);
