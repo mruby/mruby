@@ -57,6 +57,10 @@ class Integer
     end
     self
   end
+
+  def div(other)
+    self.divmod(other)[0]
+  end
 end
 
 ##
