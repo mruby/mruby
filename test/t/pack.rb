@@ -57,6 +57,9 @@ if Array.new.methods.include?(:pack) and String.new.methods.include?(:unpack)
     str.unpack("H*") == [ary]
   end
 
-
+  assert('[0,1,127,128,255].pack("C*")') do
+   ary = [ 0, 1, 127, 128, 255 ]
+   str = "\x00\x01\x7F\x80\xFF"
+   ary.pack("C*") == str and str.unpack("C*") == ary
+  end
 end
-

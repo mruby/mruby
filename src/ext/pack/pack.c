@@ -35,6 +35,8 @@ static const char uu_table[] =
 "`!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_";
 static const char b64_table[] =
 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static const char natstr[] = "sSiIlL";
+static const char endstr[] = "sSiIlLqQ";
 
 
 static void
@@ -89,13 +91,12 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 {
   static const char nul10[] = "\0\0\0\0\0\0\0\0\0\0";
   const char *p, *pend;
-  char type;
+  char ch, type;
   mrb_value result, from, fmt;
   long items, len, idx, plen;
   const char *ptr;
 
-  mrb_get_args(mrb, "o", &fmt);
-  mrb_string_value(mrb, &fmt);
+  mrb_get_args(mrb, "S", &fmt);
 
   p = RSTRING_PTR(fmt);
   pend = RSTRING_END(fmt);
@@ -123,8 +124,6 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
     }
 
     { /* modifiers */
-      static const char natstr[] = "sSiIlL";
-      static const char endstr[] = "sSiIlLqQ";
 modifiers:
       switch (*p) {
         case '_':
@@ -163,6 +162,14 @@ modifiers:
     }
 
     switch (type) {
+      case 'C':		/* unsigned char */
+        while (len-- > 0) {
+          from = NEXTFROM;
+          ch = (unsigned char)mrb_fixnum(from);
+          mrb_str_buf_cat(mrb, result, &ch, sizeof(char));
+        }
+        break;
+
       case 'H':		/* hex string (high nibble first) */
         from = NEXTFROM;
         if (mrb_nil_p(from)) {
@@ -289,8 +296,7 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
   }\
 } while (0)
 
-  mrb_get_args(mrb, "o&", &fmt, &block);
-  mrb_string_value(mrb, &fmt);
+  mrb_get_args(mrb, "S&", &fmt, &block);
 
   s = RSTRING_PTR(str);
   send = s + RSTRING_LEN(str);
@@ -312,9 +318,6 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
 
     star = 0;
     {
-      static const char natstr[] = "sSiIlL";
-      static const char endstr[] = "sSiIlLqQ";
-
 modifiers:
       switch (*p) {
         case '_':
@@ -357,10 +360,22 @@ modifiers:
       len = (type != '@');
     }
 
-
     switch (type) {
       case '%':
         mrb_raise(mrb, E_ARGUMENT_ERROR, "%% is not supported");
+        break;
+
+      case 'C':
+        {
+          unsigned char u8;
+
+          if (p[-1] == '*' || len > send - s)
+            len = send - s;
+	  while (len-- > 0) {
+	    u8 = *s++;
+            UNPACK_PUSH(mrb_fixnum_value(u8));
+	  }
+        }
         break;
 
       case 'H':
