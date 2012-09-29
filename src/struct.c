@@ -11,7 +11,6 @@
 #include "mruby/struct.h"
 #include "mruby/array.h"
 #include <stdarg.h>
-//#include "defines.h"
 
 #ifdef ENABLE_REGEXP
 #include "encoding.h"
@@ -20,8 +19,6 @@
 #include "mruby/string.h"
 #include "mruby/class.h"
 #include "mruby/variable.h"
-//#include "defines.h"
-#define mrb_long2int(n) ((int)(n))
 
 
 static struct RClass *
