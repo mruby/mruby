@@ -215,6 +215,7 @@ main(int argc, char **argv)
       if (!mrb_undef_p(v)) {
 	p(mrb, mrb_obj_value(mrb->exc));
       }
+      n = -1;
     }
     else if (args.check_syntax) {
       printf("Syntax OK\n");
@@ -222,5 +223,5 @@ main(int argc, char **argv)
   }
   cleanup(mrb, &args);
 
-  return n > 0 ? 0 : 1;
+  return n == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
