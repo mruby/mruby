@@ -309,44 +309,6 @@ mrb_fdopen(mrb_state *mrb, int fd, const char *mode)
 }
 
 mrb_value
-mrb_open_file(mrb_state *mrb, int argc, mrb_value *argv, mrb_value io)
-{
-  mrb_value fname, vmode, vperm;
-  const char *path;
-  int flags, fd = 0;
-  mode_t perm;
-  struct mrb_io *fptr;
-
-  fname = argv[0];
-  vmode = argv[1];
-  vperm  = argv[2];
-
-  path = mrb_string_value_cstr(mrb, &fname);
-  if (mrb_nil_p(vmode)) {
-    flags = O_RDONLY;
-  } else if (FIXNUM_P(vmode)) {
-    flags = mrb_fixnum(vmode);
-  } else {
-    flags = mrb_io_modestr_to_modenum(mrb, mrb_string_value_cstr(mrb, &vmode));
-  }
-
-  if (mrb_nil_p(vperm)) {
-    perm = 0666;
-  } else {
-    perm = mrb_fixnum(vperm);
-  }
-
-  const char *m = mrb_io_modenum_to_modestr(mrb, flags);
-  MakeOpenFile(mrb, io, fptr);
-  fptr->path = mrb_str_new2(mrb, path);
-  fptr->mode = mrb_io_oflags_fmode(flags);
-  fd = rb_sysopen(mrb, fname, flags, perm);
-  fptr->f = mrb_fdopen(mrb, fd, m);
-
-  return io;
-}
-
-mrb_value
 rb_io_initialize(mrb_state *mrb, int argc, mrb_value *argv, mrb_value io)
 {
   if (argc < 1 || argc > 2) {
