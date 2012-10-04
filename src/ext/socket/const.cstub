@@ -1,0 +1,42 @@
+#ifdef AF_INET
+  define_const(AF_INET);
+#endif
+#ifdef PF_INET
+  define_const(PF_INET);
+#endif
+#ifdef AF_INET6
+  define_const(AF_INET6);
+#endif
+#ifdef PF_INET6
+  define_const(PF_INET6);
+#endif
+#ifdef AF_LINK
+  define_const(AF_LINK);
+#endif
+#ifdef PF_LINK
+  define_const(PF_LINK);
+#endif
+#ifdef AF_LOCAL
+  define_const(AF_LOCAL);
+#endif
+#ifdef PF_LOCAL
+  define_const(PF_LOCAL);
+#endif
+#ifdef AF_UNIX
+  define_const(AF_UNIX);
+#endif
+#ifdef PF_UNIX
+  define_const(PF_UNIX);
+#endif
+#ifdef AF_MAX
+  define_const(AF_MAX);
+#endif
+#ifdef AF_UNSPEC
+  define_const(AF_UNSPEC);
+#endif
+#ifdef AF_ROUTE
+  define_const(AF_ROUTE);
+#endif
+#ifdef PF_ROUTE
+  define_const(PF_ROUTE);
+#endif

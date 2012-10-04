@@ -8,6 +8,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <stddef.h>
 #include <string.h>
@@ -17,6 +19,48 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/ext/io.h"
+
+static mrb_value
+mrb_ipsocket_ntop(mrb_state *mrb, mrb_value klass)
+{ 
+  mrb_int af, n;
+  char *addr, buf[50];
+
+  mrb_get_args(mrb, "is", &af, &addr, &n);
+  if (n != 4 || inet_ntop(af, addr, buf, sizeof(buf)) == NULL)
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid address");
+  return mrb_str_new2(mrb, buf);
+}
+
+static mrb_value
+mrb_ipsocket_pton(mrb_state *mrb, mrb_value klass)
+{ 
+  mrb_int af, n;
+  char *bp, buf[50];
+
+  mrb_get_args(mrb, "is", &af, &bp, &n);
+  if (n > sizeof(buf) - 1)
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid address");
+  memcpy(buf, bp, n);
+  buf[n] = '\0';
+
+  if (af == AF_INET) {
+    struct in_addr in;
+    if (inet_pton(AF_INET, buf, (void *)&in.s_addr) != 1)
+      goto invalid;
+    return mrb_str_new(mrb, (char *)&in.s_addr, 4);
+  } else if (af == AF_INET6) {
+    struct in6_addr in6;
+    if (inet_pton(AF_INET6, buf, (void *)&in6.s6_addr) != 1)
+      goto invalid;
+    return mrb_str_new(mrb, (char *)&in6.s6_addr, 16);
+  } else
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "unsupported address family");
+
+invalid:
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid address");
+  return mrb_nil_value(); /* dummy */
+}
 
 static mrb_value
 mrb_tcpsocket_open(mrb_state *mrb, mrb_value klass)
@@ -150,12 +194,26 @@ mrb_unixsocket_peeraddr(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
+
 void
 mrb_init_socket(mrb_state *mrb)
 {
-  struct RClass *io, *tcpsock, *usock;
+  struct RClass *io, *sock, *ipsock, *tcpsock, *usock;
+
+  sock = mrb_define_module(mrb, "Socket");
+
+#define define_const(SYM) \
+  do {								\
+    mrb_define_const(mrb, sock, #SYM, mrb_fixnum_value(SYM));	\
+  } while (0)
+
+#include "const.cstub"
 
   io = mrb_class_obj_get(mrb, "IO");
+
+  ipsock = mrb_define_class(mrb, "IPSocket", io);
+  mrb_define_class_method(mrb, ipsock, "ntop", mrb_ipsocket_ntop, ARGS_REQ(1));
+  mrb_define_class_method(mrb, ipsock, "pton", mrb_ipsocket_pton, ARGS_REQ(2));
 
   tcpsock = mrb_define_class(mrb, "TCPSocket", io);
   mrb_define_class_method(mrb, tcpsock, "open", mrb_tcpsocket_open, ARGS_REQ(2));
