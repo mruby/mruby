@@ -3,7 +3,13 @@ if Object.const_defined? :Socket
     def initialize(addr='::', family=Socket::AF_UNSPEC)
       a, m = addr.split('/', 2)
       if family == Socket::AF_UNSPEC
-        initialize_auto_family(a)
+        begin
+          @addr = IPSocket.pton(Socket::AF_INET, addr)
+          @family = Socket::AF_INET
+        rescue ArgumentError
+	  @addr = IPSocket.pton(Socket::AF_INET6, addr)
+          @family = Socket::AF_INET6
+        end
       else
 	@addr = IPSocket.pton(family, a)
 	@family = family
@@ -17,17 +23,6 @@ if Object.const_defined? :Socket
         elsif @family == Socket::AF_INET6
           @mask = "\xff" * 16
         end
-      end
-    end
-
-    # to be removed when issue #480 is fixed
-    def initialize_auto_family(addr)
-      begin
-        @addr = IPSocket.pton(Socket::AF_INET, addr)
-        @family = Socket::AF_INET
-      rescue ArgumentError
-	@addr = IPSocket.pton(Socket::AF_INET6, addr)
-        @family = Socket::AF_INET6
       end
     end
 
