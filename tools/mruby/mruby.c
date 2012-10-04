@@ -25,6 +25,7 @@ void mrb_show_copyright(mrb_state *);
 struct _args {
   FILE *rfp;
   char* cmdline;
+  int fname        : 1;
   int mrbfile      : 1;
   int check_syntax : 1;
   int verbose      : 1;
@@ -131,9 +132,14 @@ append_cmdline:
 
   if (args->rfp == NULL && args->cmdline == NULL) {
     if (*argv == NULL) args->rfp = stdin;
-    else if ((args->rfp = fopen(*argv, args->mrbfile ? "rb" : "r")) == NULL) {
-      printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
-      return 0;
+    else {
+      args->rfp = fopen(argv[0], args->mrbfile ? "rb" : "r");
+      if (args->rfp == NULL) {
+	printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
+	return 0;
+      }
+      args->fname = 1;
+      argc--; argv++;
     }
   }
   args->argv = (char **)mrb_realloc(mrb, args->argv, sizeof(char*) * (argc + 1));
@@ -202,13 +208,13 @@ main(int argc, char **argv)
     if (args.check_syntax)
       c->no_exec = 1;
 
-    if (args.cmdline) {
-      mrbc_filename(mrb, c, "-e");
-      v = mrb_load_string_cxt(mrb, (char*)args.cmdline, c);
+    if (args.rfp) {
+      mrbc_filename(mrb, c, args.cmdline ? args.cmdline : "-");
+      v = mrb_load_file_cxt(mrb, args.rfp, c);
     }
     else {
-      mrbc_filename(mrb, c, args.argv[0]);
-      v = mrb_load_file_cxt(mrb, args.rfp, c);
+      mrbc_filename(mrb, c, "-e");
+      v = mrb_load_string_cxt(mrb, args.cmdline, c);
     }
     mrbc_context_free(mrb, c);
     if (mrb->exc) {
