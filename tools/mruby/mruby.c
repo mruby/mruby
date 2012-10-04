@@ -176,7 +176,7 @@ main(int argc, char **argv)
     return n;
   }
 
-  ARGV = mrb_ary_new(mrb);
+  ARGV = mrb_ary_new_capa(mrb, args.argc);
   for (i = 0; i < args.argc; i++) {
     mrb_ary_push(mrb, ARGV, mrb_str_new(mrb, args.argv[i], strlen(args.argv[i])));
   }
