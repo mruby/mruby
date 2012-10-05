@@ -139,6 +139,7 @@ append_cmdline:
 	return 0;
       }
       args->fname = 1;
+      args->cmdline = argv[0];
       argc--; argv++;
     }
   }
@@ -154,7 +155,7 @@ cleanup(mrb_state *mrb, struct _args *args)
 {
   if (args->rfp && args->rfp != stdin)
     fclose(args->rfp);
-  if (args->cmdline)
+  if (args->cmdline && !args->fname)
     mrb_free(mrb, args->cmdline);
   if (args->argv)
     mrb_free(mrb, args->argv);
