@@ -208,12 +208,12 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
 void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
-    mrb->exc = (struct RObject*)mrb_object(exc);
-    exc_debug_info(mrb, mrb->exc);
-    if (!mrb->jmp) {
-      abort();
-    }
-    longjmp(*(jmp_buf*)mrb->jmp, 1);
+  mrb->exc = (struct RObject*)mrb_object(exc);
+  exc_debug_info(mrb, mrb->exc);
+  if (!mrb->jmp) {
+    abort();
+  }
+  longjmp(*(jmp_buf*)mrb->jmp, 1);
 }
 
 void
