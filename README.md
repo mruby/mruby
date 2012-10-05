@@ -26,7 +26,7 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
    * Array: #- #& #| #pack #uniq #uniq! #flatten #flatten!
    * Kernel: #exit #sleep #system
    * String: #lstrip #rstrip #strip #unpack #gsub #gsub! #sub #sub! #scan
-     * Array#pack, String#unpack で利用できるテンプレート文字列は "m"(base64) と "H"(16進文字列/上位ニブルが先) のみです。
+     * Array#pack, String#unpack で利用できるテンプレート文字列は "m"(base64) 、"H"(16進文字列/上位ニブルが先)と"C"(8bit 符号なし整数) のみです。
 
  * その他の拡張
 
