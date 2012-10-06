@@ -21,6 +21,20 @@
 #include "mruby/ext/io.h"
 
 static mrb_value
+mrb_basicsocket_shutdown(mrb_state *mrb, mrb_value self)
+{ 
+  struct mrb_io *fptr;
+  mrb_int how = SHUT_RDWR;
+
+  fptr = RFILE(self)->fptr;
+  rb_io_check_closed(mrb, fptr);
+  mrb_get_args(mrb, "|i", &how);
+  if (shutdown(fileno(fptr->f), how) != 0)
+    mrb_sys_fail(mrb, "shutdonw");
+  return mrb_fixnum_value(0);
+}
+
+static mrb_value
 mrb_ipsocket_ntop(mrb_state *mrb, mrb_value klass)
 { 
   mrb_int af, n;
@@ -198,7 +212,7 @@ mrb_unixsocket_peeraddr(mrb_state *mrb, mrb_value self)
 void
 mrb_init_socket(mrb_state *mrb)
 {
-  struct RClass *io, *sock, *ipsock, *tcpsock, *usock;
+  struct RClass *io, *sock, *bsock, *ipsock, *tcpsock, *udpsock, *usock;
 
   sock = mrb_define_module(mrb, "Socket");
 
@@ -211,14 +225,34 @@ mrb_init_socket(mrb_state *mrb)
 
   io = mrb_class_obj_get(mrb, "IO");
 
+  bsock = mrb_define_class(mrb, "BasicSocket", io);
+  // .for_fd
+  // #getpeername
+  // #getsockname
+  // #getsockopt(level, optname)
+  // #recv(maxlen, flags=0)
+  // #recv_nonblock(maxlen, flags=0)
+  // #recvmsg(maxlen, flags=0)
+  // #recvmsg_nonblock(maxlen, flags=0)
+  // #send
+  // #sendmsg
+  // #sendmsg_nonblock
+  // #setsockopt
+  // #shutdown
+  mrb_define_method(mrb, bsock, "shutdown", mrb_basicsocket_shutdown, ARGS_OPT(1));
+
   ipsock = mrb_define_class(mrb, "IPSocket", io);
   mrb_define_class_method(mrb, ipsock, "ntop", mrb_ipsocket_ntop, ARGS_REQ(1));
   mrb_define_class_method(mrb, ipsock, "pton", mrb_ipsocket_pton, ARGS_REQ(2));
 
-  tcpsock = mrb_define_class(mrb, "TCPSocket", io);
+  tcpsock = mrb_define_class(mrb, "TCPSocket", bsock);
   mrb_define_class_method(mrb, tcpsock, "open", mrb_tcpsocket_open, ARGS_REQ(2));
   mrb_define_class_method(mrb, tcpsock, "new", mrb_tcpsocket_open, ARGS_REQ(2));
   // who uses gethostbyname...?
+
+  udpsock = mrb_define_class(mrb, "UDPSocket", io);
+  //mrb_define_class_method(mrb, udpsock, "open", mrb_udpsocket_open, ARGS_REQ(2));
+
 
   usock = mrb_define_class(mrb, "UNIXSocket", io);
   mrb_define_class_method(mrb, usock, "open", mrb_unixsocket_open, ARGS_REQ(1));

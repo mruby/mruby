@@ -40,3 +40,12 @@
 #ifdef PF_ROUTE
   define_const(PF_ROUTE);
 #endif
+#ifdef SHUT_RD
+  define_const(SHUT_RD);
+#endif
+#ifdef SHUT_WR
+  define_const(SHUT_WR);
+#endif
+#ifdef SHUT_RDWR
+  define_const(SHUT_RDWR);
+#endif
