@@ -114,5 +114,8 @@ end
 
 exit true
 EOF
+retval=$?
 
 rm -f $logfile
+
+exit $retval

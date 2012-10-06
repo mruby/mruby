@@ -6,6 +6,7 @@ retval=0
 list=`cd ${D}; ls -1 *.sh | grep -v all.sh`
 
 for t in $list; do
+	echo "###################################"
 	echo "# exec test/posix/${t}; start..."
 	sh -c "cd $D; sh $t"
 	retval=`expr $retval + $?`
