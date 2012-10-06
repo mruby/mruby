@@ -13,6 +13,7 @@
 #include "regint.h"
 #include "mruby/class.h"
 #include "error.h"
+#include "mruby/variable.h"
 #ifdef ENABLE_REGEXP
 
 typedef int ID;
@@ -2309,9 +2310,23 @@ mrb_backref_get(mrb_state *mrb)
   return vm_svar_get(mrb, 1);
 }
 
+#define MAX_GLOBAL_MATCH_NUM 10
 void
 mrb_backref_set(mrb_state *mrb, mrb_value val)
 {
+  int i;
+
+  mrb_gv_set(mrb, mrb_intern(mrb, "$&"), mrb_reg_nth_match(mrb, 0, val));
+  mrb_gv_set(mrb, mrb_intern(mrb, "$~"), val);
+  mrb_gv_set(mrb, mrb_intern(mrb, "$`"), mrb_reg_match_pre(mrb, val));
+  mrb_gv_set(mrb, mrb_intern(mrb, "$`"), mrb_reg_match_post(mrb, val));
+
+  for (i = 1; i < MAX_GLOBAL_MATCH_NUM; i++) {
+    char sym[8];
+    snprintf(sym, sizeof(sym), "$%d", i);
+    mrb_gv_set(mrb, mrb_intern(mrb, sym), mrb_reg_nth_match(mrb, i, val));
+  }
+
   vm_svar_set(mrb, 1, val);
 }
 #endif //ENABLE_REGEXP
