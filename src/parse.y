@@ -22,6 +22,7 @@
 #include "mruby/compile.h"
 #include "mruby/proc.h"
 #include "node.h"
+#include "re.h"
 
 #include <stdio.h>
 #include <errno.h>
@@ -744,13 +745,14 @@ call_bin_op(parser_state *p, node *recv, char *m, node *arg1)
   return new_call(p, recv, intern(m), list1(list1(arg1)));
 }
 
+/*
 // (:match (a . b))
 static node*
 match_op(parser_state *p, node *a, node *b)
 {
   return cons((node*)NODE_MATCH, cons((node*)a, (node*)b));
 }
-
+*/
 
 static void
 args_with_block(parser_state *p, node *a, node *b)
@@ -1686,7 +1688,8 @@ arg		: lhs '=' arg
 		    }
 		| arg tMATCH arg
 		    {
-		      $$ = match_op(p, $1, $3);
+		      /* $$ = match_op(p, $1, $3); */
+		      $$ = call_bin_op(p, $1, "=~", $3);
 #if 0
 		      if (nd_type($1) == NODE_LIT && TYPE($1->nd_lit) == T_REGEXP) {
 			$$ = reg_named_capture_assign($1->nd_lit, $$);
