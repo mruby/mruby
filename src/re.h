@@ -57,6 +57,10 @@ typedef struct re_pattern_buffer Regexp;
 #define RMATCH(v)           ((struct RMatch*)((v).value.p))
 #define mrb_match_ptr(v)    ((struct RMatch*)((v).value.p))
 
+#define RE_OPTION_IGNORECASE ONIG_OPTION_IGNORECASE
+#define RE_OPTION_EXTENDED ONIG_OPTION_EXTEND
+#define RE_OPTION_MULTILINE ONIG_OPTION_MULTILINE
+
 int mrb_memcmp(const void *p1, const void *p2, int len);
 
 mrb_int mrb_reg_search (mrb_state *mrb, mrb_value, mrb_value, mrb_int, mrb_int);
@@ -74,5 +78,6 @@ void mrb_backref_set(mrb_state *mrb, mrb_value val);
 mrb_value match_alloc(mrb_state *mrb);
 int mrb_reg_backref_number(mrb_state *mrb, mrb_value match, mrb_value backref);
 mrb_value mrb_reg_regcomp(mrb_state *mrb, mrb_value str);
+mrb_value mrb_reg_new_str(mrb_state *mrb, mrb_value s, int options);
 
 #endif
