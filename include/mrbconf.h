@@ -55,6 +55,7 @@
 //#define DISABLE_PACK
 //#define DISABLE_SYSLOG	/* requires Syslog */
 //#define DISABLE_ERRNO
+//#define DISABLE_REQUIRE
 
 #define INCLUDE_ENCODING
 
@@ -125,6 +126,9 @@ typedef short mrb_sym;
 #endif
 #ifndef DISABLE_ERRNO
 #define ENABLE_ERRNO
+#endif
+#ifndef DISABLE_REQUIRE
+#define ENABLE_REQUIRE
 #endif
 
 #ifndef FALSE

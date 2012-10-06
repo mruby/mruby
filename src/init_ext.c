@@ -11,6 +11,10 @@ void mrb_init_mrblib_ext(mrb_state*);
 void
 mrb_init_ext(mrb_state *mrb)
 {
+#ifdef ENABLE_REQUIRE
+  extern void mrb_init_require(mrb_state *mrb);
+  mrb_init_require(mrb);
+#endif
 #ifdef ENABLE_ERRNO
   extern void mrb_init_errno(mrb_state *mrb);
   mrb_init_errno(mrb);

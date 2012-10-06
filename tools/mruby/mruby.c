@@ -4,6 +4,7 @@
 #include "mruby/string.h"
 #include "mruby/compile.h"
 #include "mruby/dump.h"
+#include "mruby/variable.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -169,7 +170,7 @@ main(int argc, char **argv)
   int n = -1;
   int i;
   struct _args args;
-  mrb_value ARGV;
+  mrb_value ARGV, MRB_BIN;
 
   if (mrb == NULL) {
     fprintf(stderr, "Invalid mrb_state, exiting mruby");
@@ -188,6 +189,9 @@ main(int argc, char **argv)
     mrb_ary_push(mrb, ARGV, mrb_str_new(mrb, args.argv[i], strlen(args.argv[i])));
   }
   mrb_define_global_const(mrb, "ARGV", ARGV);
+
+  MRB_BIN = mrb_str_new(mrb, argv[0], strlen(argv[0]));
+  mrb_define_global_const(mrb, "MRB_BIN", MRB_BIN);
 
   if (args.mrbfile) {
     n = mrb_load_irep(mrb, args.rfp);
@@ -211,10 +215,12 @@ main(int argc, char **argv)
 
     if (args.rfp) {
       mrbc_filename(mrb, c, args.cmdline ? args.cmdline : "-");
+      mrb_gv_set(mrb, mrb_intern(mrb, "$0"), mrb_str_new2(mrb, c->filename));
       v = mrb_load_file_cxt(mrb, args.rfp, c);
     }
     else {
       mrbc_filename(mrb, c, "-e");
+      mrb_gv_set(mrb, mrb_intern(mrb, "$0"), mrb_str_new2(mrb, c->filename));
       v = mrb_load_string_cxt(mrb, args.cmdline, c);
     }
     mrbc_context_free(mrb, c);
