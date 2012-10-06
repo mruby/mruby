@@ -149,6 +149,30 @@ if self.methods.include?(:require) and self.methods.include?(:load) and
     $rb3_exec == nil and $rb3_not_exec == true
   end
 
+  assert('require "rb4" should be RuntimeError') do
+    e = nil
+    e2 = nil
+    begin
+      require "rb4"
+    rescue LoadError => e
+    rescue => e2
+    end
+
+    e == nil and e2.class == RuntimeError and $rb4 == true
+  end
+
+  assert('require "rb5" should be RequireTestError') do
+    e = nil
+    e2 = nil
+    begin
+      require "rb5"
+    rescue LoadError => e
+    rescue => e2
+    end
+
+    e == nil and e2.class == RequireTestError and $rb5 == true
+  end
+
   report
 
 end
