@@ -1676,6 +1676,192 @@ mrb_io_to_io(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+static struct timeval
+time2timeval(mrb_state *mrb, mrb_value time)
+{
+  struct mrb_time *tm;
+  struct timeval t;
+
+  switch (mrb_type(time)) {
+  case MRB_TT_FIXNUM:
+    t.tv_sec = mrb_fixnum(time);
+    t.tv_usec = 0;
+    break;
+
+  case MRB_TT_FLOAT:
+    t.tv_sec = mrb_float(time);
+    t.tv_usec = (mrb_float(time) - t.tv_sec) * 1000000.0;
+    break;
+
+  default:
+    mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
+  }
+
+  return t;
+}
+
+static mrb_value
+mrb_io_select(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value *argv;
+  int argc;
+  mrb_value read, write, except, timeout, list;
+  struct timeval *tp, timerec;
+  fd_set pset, rset, wset, eset;
+  fd_set *rp, *wp, *ep;
+  struct mrb_io *fptr;
+  int pending = 0;
+  mrb_value result;
+  int max = 0;
+  int interrupt_flag = 0;
+  int i, n;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  if (argc < 1 || argc > 4) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR,
+	      "wrong number of arguments (%d for 1..2)", argc);
+    return mrb_nil_value();
+  }
+
+  timeout = mrb_nil_value();
+  except = mrb_nil_value();
+  write = mrb_nil_value();
+  if (argc > 3)
+    timeout = argv[3];
+  if (argc > 2)
+    except = argv[2];
+  if (argc > 1)
+    write = argv[1];
+  read = argv[0];
+
+  if (mrb_nil_p(timeout)) {
+    tp = NULL;
+  } else {
+    timerec = time2timeval(mrb, timeout);
+    tp = &timerec;
+  }
+
+  FD_ZERO(&pset);
+  if (!mrb_nil_p(read)) {
+    mrb_check_type(mrb, read, MRB_TT_ARRAY);
+    rp = &rset;
+    FD_ZERO(rp);
+    for (i = 0; i < RARRAY_LEN(read); i++) {
+      GetOpenFile(mrb, RARRAY_PTR(read)[i], fptr);
+      FD_SET(fileno(fptr->f), rp);
+      if (READ_DATA_PENDING(fptr->f)) {
+        pending++;
+        FD_SET(fileno(fptr->f), &pset);
+      }
+      if (max < fileno(fptr->f)) max = fileno(fptr->f);
+    }
+    if (pending) {
+      timerec.tv_sec = timerec.tv_usec = 0;
+      tp = &timerec;
+    }
+  } else {
+    rp = NULL;
+  }
+
+  if (!mrb_nil_p(write)) {
+    mrb_check_type(mrb, write, MRB_TT_ARRAY);
+    wp = &wset;
+    FD_ZERO(wp);
+    for (i = 0; i < RARRAY_LEN(write); i++) {
+      GetOpenFile(mrb, RARRAY_PTR(write)[i], fptr);
+      FD_SET(fileno(fptr->f), wp);
+      if (max < fileno(fptr->f))
+        max = fileno(fptr->f);
+      if (fptr->f2) {
+        FD_SET(fileno(fptr->f2), wp);
+        if (max < fileno(fptr->f2))
+          max = fileno(fptr->f2);
+      }
+    }
+  } else {
+    wp = NULL;
+  }
+
+  if (!mrb_nil_p(except)) {
+    mrb_check_type(mrb, except, MRB_TT_ARRAY);
+    ep = &eset;
+    FD_ZERO(ep);
+    for (i = 0; i < RARRAY_LEN(except); i++) {
+      GetOpenFile(mrb, RARRAY_PTR(except)[i], fptr);
+      FD_SET(fileno(fptr->f), ep);
+      if (max < fileno(fptr->f))
+        max = fileno(fptr->f);
+      if (fptr->f2) {
+        FD_SET(fileno(fptr->f2), ep);
+        if (max < fileno(fptr->f2))
+          max = fileno(fptr->f2);
+      }
+    }
+  } else {
+    ep = NULL;
+  }
+
+  max++;
+
+retry:
+  n = select(max, rp, wp, ep, tp);
+  if (n < 0) {
+    if (errno != EINTR)
+      mrb_sys_fail(mrb, "select failed");
+    if (tp == NULL)
+      goto retry;
+    interrupt_flag = 1;
+  }
+
+  if (!pending && n == 0)
+    return mrb_nil_value();
+
+  result = mrb_ary_new_capa(mrb, 3);
+  mrb_ary_push(mrb, result, rp? mrb_ary_new(mrb) : mrb_ary_new_capa(mrb, 0));
+  mrb_ary_push(mrb, result, wp? mrb_ary_new(mrb) : mrb_ary_new_capa(mrb, 0));
+  mrb_ary_push(mrb, result, ep? mrb_ary_new(mrb) : mrb_ary_new_capa(mrb, 0));
+
+  if (interrupt_flag == 0) {
+    if (rp) {
+      list = RARRAY_PTR(result)[0];
+      for (i = 0; i < RARRAY_LEN(read); i++) {
+        GetOpenFile(mrb, RARRAY_PTR(read)[i], fptr);
+	if (FD_ISSET(fileno(fptr->f), rp) ||
+	    FD_ISSET(fileno(fptr->f), &pset)) {
+	  mrb_ary_push(mrb, list, RARRAY_PTR(read)[i]);
+	}
+      }
+    }
+
+    if (wp) {
+      list = RARRAY_PTR(result)[1];
+      for (i = 0; i < RARRAY_LEN(write); i++) {
+        GetOpenFile(mrb, RARRAY_PTR(write)[i], fptr);
+	if (FD_ISSET(fileno(fptr->f), wp)) {
+	  mrb_ary_push(mrb, list, RARRAY_PTR(write)[i]);
+	} else if (fptr->f2 && FD_ISSET(fileno(fptr->f2), wp)) {
+	  mrb_ary_push(mrb, list, RARRAY_PTR(write)[i]);
+	}
+      }
+    }
+
+    if (ep) {
+      list = RARRAY_PTR(result)[2];
+      for (i = 0; i < RARRAY_LEN(except); i++) {
+        GetOpenFile(mrb, RARRAY_PTR(except)[i], fptr);
+	if (FD_ISSET(fileno(fptr->f), ep)) {
+	  mrb_ary_push(mrb, list, RARRAY_PTR(except)[i]);
+	} else if (fptr->f2 && FD_ISSET(fileno(fptr->f2), wp)) {
+	  mrb_ary_push(mrb, list, RARRAY_PTR(except)[i]);
+	}
+      }
+    }
+  }
+
+  return result;
+}
+
 void
 mrb_init_io(mrb_state *mrb)
 {
@@ -1688,6 +1874,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_class_method(mrb, io, "open", mrb_io_s_open, ARGS_ANY()); /* 15.2.20.4.1 */
   mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, ARGS_ANY()); /* ??.?.??.?.? */
   mrb_define_class_method(mrb, io, "popen", mrb_io_s_popen, ARGS_REQ(1)); /* ??.?.??.?.? */
+  mrb_define_class_method(mrb, io, "select", mrb_io_select, ARGS_ANY()); /* ?? */
 
   mrb_define_method(mrb, io, "close", mrb_io_close, ARGS_NONE()); /* 15.2.20.5.1 */
   mrb_define_method(mrb, io, "closed?", mrb_io_closed, ARGS_NONE()); /* 15.2.20.5.2 */
