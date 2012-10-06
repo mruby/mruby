@@ -32,6 +32,12 @@ struct _args {
   int verbose      : 1;
   int argc;
   char** argv;
+#ifdef ENABLE_REQUIRE
+  int load_path_len;
+  char** load_path;
+  int library_len;
+  char** library;
+#endif /* ENABLE_REQUIRE */
 };
 
 static void
@@ -42,6 +48,10 @@ usage(const char *name)
   "-b           load and execute RiteBinary (mrb) file",
   "-c           check syntax only",
   "-e 'command' one line of script",
+#ifdef ENABLE_REQUIRE
+  "-Idirectory  specify $LOAD_PATH directory (may be used more than once)",
+  "-rlibrary    require the library, before executing your script",
+#endif /* ENABLE_REQUIRE */
   "-v           print version number, then run in verbose mode",
   "--verbose    run in verbose mode",
   "--version    print the version",
@@ -107,6 +117,32 @@ append_cmdline:
         return 0;
       }
       break;
+#ifdef ENABLE_REQUIRE
+    case 'I':
+      if (args->load_path_len == 0) {
+        args->load_path = (char**) mrb_malloc(mrb, sizeof(char**));
+      } else {
+        args->load_path = (char **)mrb_realloc(mrb, args->load_path, sizeof(char*) * (args->load_path_len + 1));
+      }
+      {
+        char* buf = (char *)mrb_malloc(mrb, strlen((*argv)+2));
+        strcpy(buf, (*argv)+2);
+        args->load_path[args->load_path_len++] = buf;
+      }
+      break;
+    case 'r':
+      if (args->library_len == 0) {
+        args->library = (char**) mrb_malloc(mrb, sizeof(char**));
+      } else {
+        args->library = (char **)mrb_realloc(mrb, args->library, sizeof(char*) * (args->library_len+ 1));
+      }
+      {
+        char* buf = (char *)mrb_malloc(mrb, strlen((*argv)+2));
+        strcpy(buf, (*argv)+2);
+        args->library[args->library_len++] = buf;
+      }
+      break;
+#endif /* ENABLE_REQUIRE */
     case 'v':
       mrb_show_version(mrb);
       args->verbose = 1;
@@ -192,6 +228,20 @@ main(int argc, char **argv)
 
   MRB_BIN = mrb_str_new(mrb, argv[0], strlen(argv[0]));
   mrb_define_global_const(mrb, "MRB_BIN", MRB_BIN);
+
+#ifdef ENABLE_REQUIRE
+  mrb_value LOAD_PATH = mrb_gv_get(mrb, mrb_intern(mrb, "$:"));
+  for (i = 0; i < args.load_path_len; i++) {
+    mrb_value tmp = mrb_str_new2(mrb, args.load_path[i]);
+    mrb_ary_push(mrb, LOAD_PATH, tmp);
+  }
+
+  extern mrb_value mrb_require(mrb_state *mrb, mrb_value filename);
+  for (i = 0; i < args.library_len; i++) {
+    mrb_value tmp = mrb_str_new2(mrb, args.library[i]);
+    mrb_require(mrb, tmp);
+  }
+#endif /* ENABLE_REQUIRE */
 
   if (args.mrbfile) {
     n = mrb_load_irep(mrb, args.rfp);

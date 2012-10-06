@@ -211,6 +211,14 @@ load_file(mrb_state *mrb, mrb_value filepath)
 }
 
 mrb_value
+mrb_load(mrb_state *mrb, mrb_value filename)
+{
+  mrb_value filepath = find_file(mrb, filename);
+  load_file(mrb, filepath);
+  return mrb_true_value(); // TODO: ??
+}
+
+mrb_value
 mrb_f_load(mrb_state *mrb, mrb_value self)
 {
   mrb_value filename;
@@ -221,9 +229,7 @@ mrb_f_load(mrb_state *mrb, mrb_value self)
     return mrb_nil_value();
   }
 
-  mrb_value filepath = find_file(mrb, filename);
-  load_file(mrb, filepath);
-  return mrb_true_value(); // TODO: ??
+  return mrb_load(mrb, filename);
 }
 
 static int
@@ -252,6 +258,19 @@ loaded_files_add(mrb_state *mrb, mrb_value filepath)
 }
 
 mrb_value
+mrb_require(mrb_state *mrb, mrb_value filename)
+{
+  mrb_value filepath = find_file(mrb, filename);
+  if (loaded_files_check(mrb, filepath)) {
+    load_file(mrb, filepath);
+    loaded_files_add(mrb, filepath);
+    return mrb_true_value();
+  }
+
+  return mrb_false_value();
+}
+
+mrb_value
 mrb_f_require(mrb_state *mrb, mrb_value self)
 {
   mrb_value filename;
@@ -262,14 +281,7 @@ mrb_f_require(mrb_state *mrb, mrb_value self)
     return mrb_nil_value();
   }
 
-  mrb_value filepath = find_file(mrb, filename);
-  if (loaded_files_check(mrb, filepath)) {
-    load_file(mrb, filepath);
-    loaded_files_add(mrb, filepath);
-    return mrb_true_value();
-  }
-
-  return mrb_false_value();
+  return mrb_require(mrb, filename);
 }
 
 void
