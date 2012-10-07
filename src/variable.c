@@ -16,6 +16,12 @@
 #include "re.h"
 #endif
 
+static const char *const mrb_gv_alias_names[] = {
+  "$LOAD_PATH=$:",
+  "$CHILD_STATUS=$?",
+  NULL
+};
+
 typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 
 #ifdef MRB_USE_IV_SEGLIST
@@ -762,6 +768,27 @@ mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val)
   mrb_define_const(mrb, mrb->object_class, name, val);
 }
 
+static mrb_sym
+mrb_gv_alias_name_check(mrb_state *mrb, mrb_sym sym)
+{
+  const char *const *ptr = mrb_gv_alias_names;
+  mrb_value sym0 = mrb_str_new2(mrb, mrb_sym2name(mrb, sym));
+
+  for (;*ptr != NULL; ptr++) {
+    char *str = strchr(*ptr, '=');
+    if (str != NULL) {
+      mrb_value key = mrb_str_new(mrb, *ptr, str - *ptr);
+      str++;
+      if (mrb_str_cmp(mrb, key, sym0) == 0) {
+        sym = mrb_intern(mrb, str);
+        break;
+      }
+    }
+  }
+
+  return sym;
+}
+
 mrb_value
 mrb_gv_get(mrb_state *mrb, mrb_sym sym)
 {
@@ -770,6 +797,7 @@ mrb_gv_get(mrb_state *mrb, mrb_sym sym)
   if (!mrb->globals) {
     return mrb_nil_value();
   }
+  sym = mrb_gv_alias_name_check(mrb, sym);
   if (iv_get(mrb, mrb->globals, sym, &v))
     return v;
   return mrb_nil_value();
@@ -780,6 +808,7 @@ mrb_gv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
   iv_tbl *t;
 
+  sym = mrb_gv_alias_name_check(mrb, sym);
   if (!mrb->globals) {
     t = mrb->globals = iv_new(mrb);
   }
