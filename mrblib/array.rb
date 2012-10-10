@@ -104,14 +104,9 @@ class Array
   def -(elem)
     raise TypeError, "can't convert to Array" unless elem.class == Array
 
-    ary = self.dup
-    idx = 0
-    size = elem.size
-    while (idx < size)
-      ary.delete(elem[idx])
-      idx += 1
-    end
-    ary
+    array = []
+    self.each { |x| array << x unless elem.include? x}
+    array
   end
 
   def |(elem)
