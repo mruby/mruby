@@ -720,7 +720,10 @@ mrb_reg_initialize(mrb_state *mrb, mrb_value obj, const char *s, long len,
   re->ptr = make_regexp(RSTRING_PTR(unescaped), RSTRING_LEN(unescaped), enc,
       options & ARG_REG_OPTION_MASK, err,
       sourcefile, sourceline);
-  if (!re->ptr) return -1;
+  if (!re->ptr) {
+    fprintf(stderr, "onig error msg: %s\n", err);
+    return -1;
+  }
   re->src = mrb_str_ptr(mrb_str_new(mrb, s, len));
 
   return 0;
@@ -820,7 +823,7 @@ mrb_reg_initialize_m(mrb_state *mrb, mrb_value self)
     str = argv[0];
     ptr = mrb_string_value_ptr(mrb, str);
     if (mrb_reg_initialize_str(mrb, self, str, flags, err, NULL, 0)) {
-       printf("mrb_reg_raise_str(s, options, err);"); /* XXX: need mrb_reg_raise_str() */
+       mrb_raise(mrb, E_REGEXP_ERROR, "%s", err);
     }
   }
   return self;
