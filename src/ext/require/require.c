@@ -18,11 +18,17 @@
 
 #include "opcode.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <unistd.h>
 #include <libgen.h>
 
 #define E_LOAD_ERROR                (mrb_class_obj_get(mrb, "LoadError"))
+
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 1024
+#endif
 
 #if 0
   #include <stdarg.h>
@@ -61,8 +67,9 @@ find_file_check(mrb_state *mrb, mrb_value path, mrb_value fname, mrb_value ext)
 static mrb_value
 find_file(mrb_state *mrb, mrb_value filename)
 {
+  char *fname = RSTRING_PTR(filename);
   mrb_value filepath = mrb_nil_value();
-  mrb_value load_path = mrb_gv_get(mrb, mrb_intern(mrb, "$:"));
+  mrb_value load_path = mrb_obj_dup(mrb, mrb_gv_get(mrb, mrb_intern(mrb, "$:")));
   load_path = mrb_check_array_type(mrb, load_path);
 
   if(mrb_nil_p(load_path)) {
@@ -70,7 +77,7 @@ find_file(mrb_state *mrb, mrb_value filename)
     return mrb_undef_value();
   }
 
-  char *ext = strrchr(RSTRING_PTR(filename), '.');
+  char *ext = strrchr(fname, '.');
   mrb_value exts = mrb_ary_new(mrb);
   if (ext == NULL) {
     mrb_ary_push(mrb, exts, mrb_str_new2(mrb, ".rb"));
@@ -79,6 +86,10 @@ find_file(mrb_state *mrb, mrb_value filename)
     mrb_ary_push(mrb, exts, mrb_nil_value());
   }
 
+  /* when a filename start with '.', $:.unshift '.' */
+  if (*fname == '.') {
+    mrb_ary_unshift(mrb, load_path, mrb_str_new2(mrb, "."));
+  }
 
   int i, j;
   for (i = 0; i < RARRAY_LEN(load_path); i++) {
