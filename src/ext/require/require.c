@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #define E_LOAD_ERROR                (mrb_class_obj_get(mrb, "LoadError"))
 
@@ -159,22 +160,12 @@ load_rb_file(mrb_state *mrb, mrb_value filepath)
   mrb_str_buf_append(mrb, outfilepath, mrb_fix2str(mrb, pid, 10));
   debug("outfilepath: %s\n", RSTRING_PTR(outfilepath));
 
-  mrb_value mrbc_bin = mrb_str_dup(mrb, mrb_const_get(mrb, mrb_obj_value(mrb->object_class), mrb_intern(mrb, "MRB_BIN")));
+  mrb_value mrbc_bin = mrb_funcall(mrb, mrb_obj_value(mrb->object_class), "find_mrbc", 0);
   if (mrb_nil_p(mrbc_bin)) {
-    mrbc_bin = mrb_str_new2(mrb, "mrbc");
-  } else {
-    mrbc_bin = mrb_str_resize(mrb, mrbc_bin, RSTRING_LEN(mrbc_bin) - 5);
-    mrbc_bin = mrb_str_cat2(mrb, mrbc_bin, "mrbc");
+    mrb_raise(mrb, E_LOAD_ERROR, "can't find mrbc.");
+    return;
   }
-
-  {
-    FILE *fp = fopen(RSTRING_PTR(mrbc_bin), "r");
-    if (fp == NULL) {
-      mrb_raise(mrb, E_LOAD_ERROR, "can't find mrbc binary: %s.", mrbc_bin);
-      return;
-    }
-    fclose(fp);
-  }
+  debug("mrbc_bin: %s\n", RSTRING_PTR(mrbc_bin));
 
   mrb_value params[3];
   params[0] = mrbc_bin;
@@ -205,7 +196,8 @@ load_file(mrb_state *mrb, mrb_value filepath)
   } else if (strcmp(ext, ".rb") == 0) {
     load_rb_file(mrb, filepath);
   } else {
-    mrb_raise(mrb, E_LOAD_ERROR, "Filepath '%s' is invalid extension.", RSTRING_PTR(filepath));
+    mrb_raise(mrb, E_LOAD_ERROR, "Filepath '%s' is invalid extension.",
+        RSTRING_PTR(filepath));
     return;
   }
 }
@@ -225,7 +217,8 @@ mrb_f_load(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "o", &filename);
   if (mrb_type(filename) != MRB_TT_STRING) {
-    mrb_raise(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, filename));
+    mrb_raise(mrb, E_TYPE_ERROR, "can't convert %s into String",
+        mrb_obj_classname(mrb, filename));
     return mrb_nil_value();
   }
 

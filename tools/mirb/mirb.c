@@ -141,7 +141,7 @@ print_cmdline(int code_block_open)
 }
 
 int
-main(void)
+main(int argc, char **argv)
 {
   char last_char;
   char ruby_code[1024] = { 0 };
@@ -153,6 +153,7 @@ main(void)
   mrb_value result;
   int n;
   int code_block_open = FALSE;
+  mrb_value MIRB_BIN;
 
   print_hint();
 
@@ -165,6 +166,9 @@ main(void)
 
   cxt = mrbc_context_new(mrb);
   cxt->capture_errors = 1;
+
+  MIRB_BIN= mrb_str_new(mrb, argv[0], strlen(argv[0]));
+  mrb_define_global_const(mrb, "MIRB_BIN", MIRB_BIN);
 
   while (TRUE) {
     print_cmdline(code_block_open);

@@ -33,8 +33,25 @@ module Kernel
     end
   end
 
-  # XXX: This "require" implementation does nothing at all, but we can run
-  # ruby scripts without commenting out "require 'hoge.rb'".
-  def require(s)
+  # utility method for require
+  def find_mrbc
+    mrbc = nil
+    if Object.const_defined?(:MRUBY_BIN) and MRUBY_BIN != "mruby"
+      mrbc = File.dirname(MRUBY_BIN) + "/mrbc"
+    end
+    if Object.const_defined?(:MIRB_BIN) and MIRB_BIN != "mirb"
+      mrbc = File.dirname(MIRB_BIN) + "/mrbc"
+    end
+    if mrbc and File.exist?(mrbc)
+      return mrbc
+    end
+
+    ENV["PATH"].split(":").each do |path|
+      if File.exist?("#{path}/mrbc")
+        return "#{path}/mrbc"
+      end
+    end
+
+    return nil
   end
 end

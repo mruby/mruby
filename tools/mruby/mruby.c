@@ -206,7 +206,7 @@ main(int argc, char **argv)
   int n = -1;
   int i;
   struct _args args;
-  mrb_value ARGV, MRB_BIN;
+  mrb_value ARGV, MRUBY_BIN;
 
   if (mrb == NULL) {
     fprintf(stderr, "Invalid mrb_state, exiting mruby");
@@ -226,8 +226,8 @@ main(int argc, char **argv)
   }
   mrb_define_global_const(mrb, "ARGV", ARGV);
 
-  MRB_BIN = mrb_str_new(mrb, argv[0], strlen(argv[0]));
-  mrb_define_global_const(mrb, "MRB_BIN", MRB_BIN);
+  MRUBY_BIN = mrb_str_new(mrb, argv[0], strlen(argv[0]));
+  mrb_define_global_const(mrb, "MRUBY_BIN", MRUBY_BIN);
 
 #ifdef ENABLE_REQUIRE
   mrb_value LOAD_PATH = mrb_gv_get(mrb, mrb_intern(mrb, "$:"));
