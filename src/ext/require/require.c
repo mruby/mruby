@@ -53,15 +53,22 @@ find_file_check(mrb_state *mrb, mrb_value path, mrb_value fname, mrb_value ext)
   if (mrb_nil_p(filepath)) {
     return mrb_nil_value();
   }
+  debug("filepath: %s\n", RSTRING_PTR(filepath));
 
-  debug("file: %s\n", RSTRING_PTR(filepath));
-  FILE *fp = fopen(RSTRING_PTR(filepath), "r");
+  char fpath[MAXPATHLEN];
+  realpath(RSTRING_PTR(filepath), fpath);
+  if (fpath == NULL) {
+    return mrb_nil_value();
+  }
+  debug("fpath: %s\n", fpath);
+
+  FILE *fp = fopen(fpath, "r");
   if (fp == NULL) {
     return mrb_nil_value();
   }
   fclose(fp);
 
-  return filepath;
+  return mrb_str_new2(mrb, fpath);
 }
 
 static mrb_value
