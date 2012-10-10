@@ -93,9 +93,10 @@ find_file(mrb_state *mrb, mrb_value filename)
     mrb_ary_push(mrb, exts, mrb_nil_value());
   }
 
-  /* when a filename start with '.', $:.unshift '.' */
+  /* when a filename start with '.', $: = ['.'] */
   if (*fname == '.') {
-    mrb_ary_unshift(mrb, load_path, mrb_str_new2(mrb, "."));
+    load_path = mrb_ary_new(mrb);
+    mrb_ary_push(mrb, load_path, mrb_str_new2(mrb, "."));
   }
 
   int i, j;
