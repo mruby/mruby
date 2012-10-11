@@ -13,7 +13,7 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
    * Errno::EXXX
    * File: ::open ::umask ::unlink ::delete ::rename ::exist? ::exists?
            ::dirname #path
-   * IO: ::open ::sysopen ::popen
+   * IO: ::open ::sysopen ::popen ::select
          #close #closed? #each #each_byte #each_line #read #sync #sync=
          #write #to_io
    * Regexp: ::compile ::last\_match #match
