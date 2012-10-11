@@ -1720,7 +1720,7 @@ mrb_io_select(mrb_state *mrb, mrb_value klass)
 
   if (argc < 1 || argc > 4) {
     mrb_raise(mrb, E_ARGUMENT_ERROR,
-	      "wrong number of arguments (%d for 1..2)", argc);
+	      "wrong number of arguments (%d for 1..4)", argc);
     return mrb_nil_value();
   }
 
