@@ -136,6 +136,17 @@ class Array
   def flatten!
     self.replace(self.flatten)
   end
+
+  def compact
+    result = self.dup
+    result.compact!
+    result
+  end
+
+  def compact!
+    result = self.select { |e| e != nil }
+    self.replace(result)
+  end
 end
 
 ##
