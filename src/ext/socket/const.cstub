@@ -40,6 +40,57 @@
 #ifdef PF_ROUTE
   define_const(PF_ROUTE);
 #endif
+#ifdef IPPROTO_ICMP
+  define_const(IPPROTO_ICMP);
+#endif
+#ifdef IPPROTO_IP
+  define_const(IPPROTO_IP);
+#endif
+#ifdef IPPROTO_IPV6
+  define_const(IPPROTO_IPV6);
+#endif
+#ifdef IPPROTO_RAW
+  define_const(IPPROTO_RAW);
+#endif
+#ifdef IPPROTO_TCP
+  define_const(IPPROTO_TCP);
+#endif
+#ifdef IPPROTO_UDP
+  define_const(IPPROTO_UDP);
+#endif
+#ifdef MSG_BCAST
+  define_const(MSG_BCAST);
+#endif
+#ifdef MSG_CTRUNC
+  define_const(MSG_CTRUNC);
+#endif
+#ifdef MSG_DONTROUTE
+  define_const(MSG_DONTROUTE);
+#endif
+#ifdef MSG_DONTWAIT
+  define_const(MSG_DONTWAIT);
+#endif
+#ifdef MSG_EOR
+  define_const(MSG_EOR);
+#endif
+#ifdef MSG_MCAST
+  define_const(MSG_MCAST);
+#endif
+#ifdef MSG_NOSIGNAL
+  define_const(MSG_NOSIGNAL);
+#endif
+#ifdef MSG_OOB
+  define_const(MSG_OOB);
+#endif
+#ifdef MSG_PEEK
+  define_const(MSG_PEEK);
+#endif
+#ifdef MSG_TRUNC
+  define_const(MSG_TRUNC);
+#endif
+#ifdef MSG_WAITALL
+  define_const(MSG_WAITALL);
+#endif
 #ifdef SHUT_RD
   define_const(SHUT_RD);
 #endif
@@ -48,4 +99,7 @@
 #endif
 #ifdef SHUT_RDWR
   define_const(SHUT_RDWR);
+#endif
+#ifdef SOL_SOCKET
+  define_const(SOL_SOCKET);
 #endif
