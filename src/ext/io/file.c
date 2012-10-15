@@ -58,21 +58,20 @@ mrb_file_path(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-mrb_file_dirname(mrb_state *mrb, mrb_value self)
+mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 {
-  char *path, *dname;
-  mrb_value dir, fname;
+  char *cp, *dname;
+  mrb_int n;
+  mrb_value fname;
 
-  mrb_get_args(mrb, "o", &fname);
-  path = mrb_string_value_cstr(mrb, &fname);
+  mrb_get_args(mrb, "s", &cp, &n);
+  fname = mrb_str_new(mrb, cp, n);
 
-  if ((dname = dirname(path)) == NULL) {
+  if ((dname = dirname(RSTRING_PTR(fname))) == NULL) {
     mrb_sys_fail(mrb, "mrb_file_dirname failed.");
   }
 
-  dir = mrb_str_new(mrb, dname, strlen(dname));
-
-  return dir;
+  return mrb_str_new(mrb, dname, strlen(dname));
 }
 
 static int
