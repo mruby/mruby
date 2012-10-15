@@ -2,7 +2,7 @@
 
 # initial system defaults
 if(CMAKE_COMPILER_IS_GNUCC)
-  set(MRUBY_DEFAULT_CFLAGS "-Wall -Werror-implicit-function-declaration")
+  set(MRUBY_DEFAULT_CFLAGS "-std=gnu99 -Wall -Werror-implicit-function-declaration -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -Wno-pointer-sign -Wno-missing-field-initializers -Wformat=2 -Wstrict-aliasing=2 -Wdisabled-optimization -Wpointer-arith -Wdeclaration-after-statement -Wbad-function-cast -Wcast-align -Wredundant-decls")
   set(CMAKE_C_FLAGS "${MRUBY_DEFAULT_CFLAGS}")
   set(CMAKE_C_FLAGS_DEBUG "-O3 -ggdb")
   set(CMAKE_C_FLAGS_MINSIZEREL "-Os -DNDEBUG")
