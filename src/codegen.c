@@ -1200,17 +1200,17 @@ codegen(codegen_scope *s, node *tree, int val)
           genop(s, MKOP_sBx(OP_JMP, 0));
           dispatch_linked(s, pos2);
         }
-        pop();
+	pop();			/* pop HEAD */
         codegen(s, tree->car->cdr, val);
-	pop();
+	if (val) pop();
         tmp = new_label(s);
         genop(s, MKOP_sBx(OP_JMP, pos3));
         pos3 = tmp;
         if (pos1) dispatch(s, pos1);
         tree = tree->cdr;
-        push();
+	push();			/* push HEAD */
       }
-      pop();
+      pop();			/* pop HEAD */
       genop(s, MKOP_A(OP_LOADNIL, cursp()));
       if (val) push();
       if (pos3) dispatch_linked(s, pos3);
