@@ -235,6 +235,12 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
   bp = mrb->stbase + ci->stackidx + 1;
   ci--;
   if (ci <= mrb->cibase) return mrb_false_value();
+  /* block_given? called within block; check upper scope */
+  if (ci->proc->env && ci->proc->env->stack) {
+    if (ci->proc->env->stack == mrb->stbase || mrb_nil_p(ci->proc->env->stack[1]))
+      return mrb_false_value();
+    return mrb_true_value();
+  }
   if (ci->argc > 0) {
     bp += ci->argc;
   }
