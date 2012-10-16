@@ -91,6 +91,14 @@ mrb_stat(mrb_state *mrb, mrb_value file, struct stat *st)
   return STAT(tmpStr, st);
 }
 
+mrb_value
+mrb_file_exist(mrb_state *mrb, mrb_value fname)
+{
+  struct stat st;
+  if (mrb_stat(mrb, fname, &st) < 0) return mrb_false_value();
+  return mrb_true_value();
+}
+
 static mrb_value
 mrb_file_exist_p(mrb_state *mrb, mrb_value obj)
 {
@@ -99,8 +107,7 @@ mrb_file_exist_p(mrb_state *mrb, mrb_value obj)
 
   mrb_get_args(mrb, "o", &fname);
 
-  if (mrb_stat(mrb, fname, &st) < 0) return mrb_false_value();
-  return mrb_true_value();
+  return mrb_file_exist(mrb, fname);
 }
 
 static mrb_value

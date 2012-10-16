@@ -37,8 +37,77 @@
   #define debug(...)     ((void)0)
 #endif
 
+extern mrb_value mrb_file_exist(mrb_state *mrb, mrb_value fname);
+
 mrb_value
 mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
+
+static mrb_value
+envpath_to_mrb_ary(mrb_state *mrb, const char *name)
+{
+  mrb_value ary = mrb_ary_new(mrb);
+
+  char *env= getenv(name);
+  if (env == NULL) {
+    return ary;
+  }
+
+  int i;
+  int envlen = strlen(env);
+  for (i = 0; i < envlen; i++) {
+    char *ptr = env + i;
+    char *end = strchr(ptr, ':');
+    if (end == NULL) {
+      end = env + envlen;
+    }
+    int len = end - ptr;
+    mrb_ary_push(mrb, ary, mrb_str_new(mrb, ptr, len));
+    i += len;
+  }
+
+  return ary;
+}
+
+
+static mrb_value
+find_mrbc(mrb_state *mrb)
+{
+  mrb_sym sym = mrb_intern(mrb, "MRUBY_BIN");
+  mrb_value bin = mrb_nil_value();
+
+  if (mrb_const_defined_at(mrb, mrb->object_class, sym)) {
+    bin = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), sym);
+  }
+  sym = mrb_intern(mrb, "MIRB_BIN");
+  if (mrb_const_defined_at(mrb, mrb->object_class, sym)) {
+    bin = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), sym);
+  }
+
+  if (!mrb_nil_p(bin) && mrb_str_cmp(mrb, bin, mrb_str_new2(mrb, "mruby")) != 0 &&
+      mrb_str_cmp(mrb, bin, mrb_str_new2(mrb, "mirb")) != 0) {
+    // find mrbc on mruby/mirb same directory...
+    int len = strrchr(RSTRING_PTR(bin), '/') - RSTRING_PTR(bin);
+    mrb_value mrbc = mrb_str_substr(mrb, bin, 0, len);
+    mrb_str_cat2(mrb, mrbc, "/mrbc");
+
+    if (mrb_obj_eq(mrb, mrb_file_exist(mrb, mrbc), mrb_true_value())) {
+      return mrbc;
+    }
+  }
+
+  mrb_value PATH = envpath_to_mrb_ary(mrb, "PATH");
+  int i;
+  for (i = 0; i < RARRAY_LEN(PATH); i++) {
+    mrb_value mrbc = mrb_str_dup(mrb, RARRAY_PTR(PATH)[i]);
+    mrb_str_cat2(mrb, mrbc, "/mrbc");
+
+    if (mrb_obj_eq(mrb, mrb_file_exist(mrb, mrbc), mrb_true_value())) {
+      return mrbc;
+    }
+  }
+
+  return mrb_nil_value();
+}
 
 static mrb_value
 find_file_check(mrb_state *mrb, mrb_value path, mrb_value fname, mrb_value ext)
@@ -179,7 +248,7 @@ load_rb_file(mrb_state *mrb, mrb_value filepath)
   mrb_str_buf_append(mrb, outfilepath, mrb_fix2str(mrb, pid, 10));
   debug("outfilepath: %s\n", RSTRING_PTR(outfilepath));
 
-  mrb_value mrbc_bin = mrb_funcall(mrb, mrb_obj_value(mrb->object_class), "find_mrbc", 0);
+  mrb_value mrbc_bin = find_mrbc(mrb);
   if (mrb_nil_p(mrbc_bin)) {
     mrb_raise(mrb, E_LOAD_ERROR, "can't find mrbc.");
     return;
@@ -321,6 +390,14 @@ mrb_f_require(mrb_state *mrb, mrb_value self)
   return mrb_require(mrb, filename);
 }
 
+extern char **environ;
+
+static mrb_value
+mrb_init_load_path(mrb_state *mrb)
+{
+  return envpath_to_mrb_ary(mrb, "MRBLIB");
+}
+
 void
 mrb_init_require(mrb_state *mrb)
 {
@@ -330,7 +407,7 @@ mrb_init_require(mrb_state *mrb)
   mrb_define_method(mrb, krn, "load",                       mrb_f_load,            ARGS_REQ(1));
   mrb_define_method(mrb, krn, "require",                    mrb_f_require,         ARGS_REQ(1));
 
-  mrb_gv_set(mrb, mrb_intern(mrb, "$:"), mrb_ary_new(mrb));
+  mrb_gv_set(mrb, mrb_intern(mrb, "$:"), mrb_init_load_path(mrb));
   mrb_gv_set(mrb, mrb_intern(mrb, "$\""), mrb_ary_new(mrb));
 }
 

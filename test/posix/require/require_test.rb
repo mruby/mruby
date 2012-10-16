@@ -19,9 +19,10 @@ if self.methods.include?(:require) and self.methods.include?(:load) and
     e.class == TypeError
   end
 
-  assert('$: should be empty array.') do
+  assert('$: should be array / size = 1.') do
     $:.class == Array and
-    $:.size == 0
+    $:.size == 1 and
+    $:.first.include?("/ext")
   end
 
   assert('$" should be empty array.') do

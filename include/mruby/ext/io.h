@@ -102,6 +102,7 @@ void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise);
 mrb_value rb_io_initialize(mrb_state *mrb, int argc, mrb_value *argv, mrb_value io);
 void mrb_io_check_initialized(mrb_state *mrb, struct mrb_io *fptr);
 void rb_io_check_closed(mrb_state *mrb, struct mrb_io *fptr);
+mrb_value mrb_file_exist(mrb_state *mrb, mrb_value fname);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

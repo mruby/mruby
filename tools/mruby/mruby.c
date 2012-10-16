@@ -8,6 +8,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef ENABLE_REQUIRE
+extern mrb_value mrb_file_exist(mrb_state *mrb, mrb_value fname);
+#endif
+
 #ifndef ENABLE_STDIO
 static void
 p(mrb_state *mrb, mrb_value obj)
@@ -233,7 +237,17 @@ main(int argc, char **argv)
   mrb_value LOAD_PATH = mrb_gv_get(mrb, mrb_intern(mrb, "$:"));
   for (i = 0; i < args.load_path_len; i++) {
     mrb_value tmp = mrb_str_new2(mrb, args.load_path[i]);
-    mrb_ary_push(mrb, LOAD_PATH, tmp);
+    mrb_ary_unshift(mrb, LOAD_PATH, tmp);
+  }
+
+  if (mrb_str_cmp(mrb, MRUBY_BIN, mrb_str_new2(mrb, "mruby")) != 0) {
+    int len = strrchr(RSTRING_PTR(MRUBY_BIN), '/') - RSTRING_PTR(MRUBY_BIN);
+    mrb_value extdir = mrb_str_substr(mrb, mrb_str_dup(mrb, MRUBY_BIN), 0, len);
+    mrb_str_cat2(mrb, extdir, "/../ext");
+
+    if (mrb_obj_eq(mrb, mrb_file_exist(mrb, extdir), mrb_true_value())) {
+      mrb_ary_push(mrb, LOAD_PATH, extdir);
+    }
   }
 
   extern mrb_value mrb_require(mrb_state *mrb, mrb_value filename);
