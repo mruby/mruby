@@ -415,7 +415,7 @@ range_initialize_copy(mrb_state *mrb, mrb_value copy)
   if (!mrb_obj_is_instance_of(mrb, src, mrb_obj_class(mrb, copy))) {
     mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
   }
-  memcpy(mrb_range_ptr(copy), mrb_range_ptr(src), sizeof(struct RRange));
+  *mrb_range_ptr(copy) = *mrb_range_ptr(src);
 
   return copy;
 }
