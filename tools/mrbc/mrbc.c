@@ -33,6 +33,7 @@ usage(const char *name)
   "-c           check syntax only",
   "-o<outfile>  place the output into <outfile>",
   "-v           print version number, then trun on verbose mode",
+  "-s           load program from stdin",
   "-B<symbol>   binary <symbol> output in C language format",
   "-C<func>     function <func> output in C language format",
   "--verbose    run at verbose mode",
@@ -81,6 +82,9 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         return -1;
 
       switch ((*argv)[1]) {
+      case 's':
+        args->rfp = stdin;
+        break;
       case 'o':
         outfile = get_outfilename((*argv) + 2, "");
         break;
@@ -129,20 +133,24 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
     }
   }
 
-  if (infile == NULL)
+  if (args->rfp == NULL)
     return -4;
+
   if (args->check_syntax)
     return 0;
 
-  if (outfile == NULL)
-    outfile = get_outfilename(infile, args->ext);
-
-  if (strcmp("-", outfile) == 0) {
-    args->wfp = stdout;
+  if (outfile == NULL) {
+    if (infile == NULL)
+      args->wfp = stdout;
+    else
+      outfile = get_outfilename(infile, args->ext);
   }
-  else if ((args->wfp = fopen(outfile, "wb")) == NULL) {
-    printf("%s: Cannot open output file. (%s)\n", *origargv, outfile);
-    return 0;
+
+  if (args->wfp == NULL) {
+    if ((args->wfp = fopen(outfile, "wb")) == NULL) {
+      printf("%s: Cannot open output file. (%s)\n", *origargv, outfile);
+      return 0;
+    }    
   }
 
   return 0;
