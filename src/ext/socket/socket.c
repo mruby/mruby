@@ -22,15 +22,6 @@
 #include "mruby/variable.h"
 #include "mruby/ext/io.h"
 
-static const char *
-af2str(int af)
-{
-  switch (af) {
-  case AF_INET:		return "AF_INET";
-  case AF_INET6:	return "AF_INET6";
-  default:		return "AF_???";
-  }
-}
 
 static mrb_value
 sa2addrlist(mrb_state *mrb, const struct sockaddr *sa, socklen_t salen)
@@ -69,28 +60,6 @@ static int
 socket_fd(mrb_value sock)
 {
   return fileno(RFILE(sock)->fptr->f);
-}
-
-static mrb_value
-mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
-{ 
-  int opt, s;
-  mrb_int level, optname;
-  mrb_value buf;
-  socklen_t optlen;
-
-  mrb_get_args(mrb, "ii", &level, &optname);
-  // XXX: level and optname can be String or Symbol
-  s = socket_fd(self);
-  optlen = sizeof(opt);
-  getsockopt(s, level, optname, &opt, &optlen);
-
-  buf = mrb_str_buf_new(mrb, maxlen);
-  n = recv(s, RSTRING_PTR(buf), maxlen, flags);
-  if (n == -1)
-    mrb_sys_fail(mrb, "recv");
-  mrb_str_resize(mrb, buf, n);
-  return buf;
 }
 
 static mrb_value
@@ -370,6 +339,7 @@ mrb_udpsocket_send(mrb_state *mrb, mrb_value self)
 
   argc = mrb_get_args(mrb, "si|oo", &msg, &hlen, &flags, &host, &port);
   s = socket_fd(self);
+  n = -1;
   if (argc == 2) {
     n = send(s, msg, hlen, flags);
   } else if (argc == 4) {
@@ -491,7 +461,7 @@ mrb_init_socket(mrb_state *mrb)
   // .for_fd
   // #getpeername
   // #getsockname
-  mrb_define_method(mrb, bsock, "getsockopt", mrb_basicsocket_getsockopt, ARGS_REQ(2));
+  //mrb_define_method(mrb, bsock, "getsockopt", mrb_basicsocket_getsockopt, ARGS_REQ(2));
   // #recv(maxlen, flags=0)
   mrb_define_method(mrb, bsock, "recv", mrb_basicsocket_recv, ARGS_REQ(1)|ARGS_OPT(1));
   // #recv_nonblock(maxlen, flags=0)
