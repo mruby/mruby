@@ -245,6 +245,8 @@ flodivmod(mrb_state *mrb, mrb_float x, mrb_float y, mrb_float *divp, mrb_float *
 {
   mrb_float div, mod;
 
+  if (y == 0.0)
+    mrb_raise(mrb, E_ZERODIVISION_ERROR, "divided by 0");
   mod = fmod(x, y);
   if (isinf(x) && !isinf(y) && !isnan(y))
     div = x;
@@ -278,6 +280,8 @@ flo_mod(mrb_state *mrb, mrb_value x)
   mrb_get_args(mrb, "o", &y);
 
   fy = mrb_to_flo(mrb, y);
+  if (!FIXNUM_P(y) && fy == 0.0)
+    return mrb_float_value(nan(""));
   flodivmod(mrb, mrb_float(x), fy, 0, &mod);
   return mrb_float_value(mod);
 }
@@ -730,6 +734,8 @@ fixdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
 {
   mrb_int div, mod;
 
+  if (y == 0)
+    mrb_raise(mrb, E_ZERODIVISION_ERROR, "divided by 0");
   if (y < 0) {
     if (x < 0)
       div = -x / -y;
@@ -765,11 +771,11 @@ static mrb_value
 fix_mod(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  mrb_int a, b;
+  mrb_int a;
 
   mrb_get_args(mrb, "o", &y);
   a = mrb_fixnum(x);
-  if (FIXNUM_P(y) && (b=mrb_fixnum(y)) != 0) {
+  if (FIXNUM_P(y)) {
     mrb_int mod;
 
     fixdivmod(mrb, a, mrb_fixnum(y), 0, &mod);

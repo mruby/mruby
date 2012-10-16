@@ -42,7 +42,15 @@ assert('Integer#%', '15.2.8.3.5') do
   b = 1%1.0
   c = 2%4
 
-  a == 0 and b == 0.0 and c == 2
+  e2 = nil
+  begin
+    1%0
+  rescue => e1
+    e2 = e1
+  end
+
+  a == 0 and b == 0.0 and c == 2 and 
+    e2.class == ZeroDivisionError
 end
 
 assert('Integer#<=>', '15.2.8.3.6') do
@@ -174,6 +182,18 @@ assert('Integer#upto', '15.2.8.3.27') do
 end
 
 # Not ISO specified
+
+assert('Integer#divmod') do
+  a, b = 3.divmod(2)
+
+  begin
+    1.divmod(0)
+  rescue
+    # should not dump core
+  end
+
+  a == 1 and b == 1
+end
 
 assert('Integer#step') do
   a = []

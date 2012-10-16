@@ -54,3 +54,5 @@ end
 class NotImplementedError < ScriptError
 end
 
+class ZeroDivisionError < StandardError
+end
