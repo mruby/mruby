@@ -298,6 +298,7 @@ void mrb_bug(const char *fmt, ...);
 #define E_SYNTAX_ERROR              (mrb_class_obj_get(mrb, "SyntaxError"))
 #define E_LOCALJUMP_ERROR           (mrb_class_obj_get(mrb, "LocalJumpError"))
 #define E_REGEXP_ERROR              (mrb_class_obj_get(mrb, "RegexpError"))
+#define E_ZERODIVISION_ERROR        (mrb_class_obj_get(mrb, "ZeroDivisionError"))
 
 #define E_NOTIMP_ERROR              (mrb_class_obj_get(mrb, "NotImplementedError"))
 #define E_FLOATDOMAIN_ERROR         (mrb_class_obj_get(mrb, "FloatDomainError"))
