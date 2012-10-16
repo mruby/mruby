@@ -255,7 +255,31 @@ loaded_files_check(mrb_state *mrb, mrb_value filepath)
     }
   }
 
+  mrb_value loading_files = mrb_gv_get(mrb, mrb_intern(mrb, "$\"_"));
+  if (mrb_nil_p(loading_files)) {
+    return 1;
+  }
+  for (i = 0; i < RARRAY_LEN(loading_files); i++) {
+    if (mrb_str_cmp(mrb, RARRAY_PTR(loading_files)[i], filepath) == 0) {
+      return 0;
+    }
+  }
+
   return 1;
+}
+
+static void
+loading_files_add(mrb_state *mrb, mrb_value filepath)
+{
+  mrb_value loading_files = mrb_gv_get(mrb, mrb_intern(mrb, "$\"_"));
+  if (mrb_nil_p(loading_files)) {
+    loading_files = mrb_ary_new(mrb);
+  }
+  mrb_ary_push(mrb, loading_files, filepath);
+
+  mrb_gv_set(mrb, mrb_intern(mrb, "$\"_"), loading_files);
+
+  return;
 }
 
 static void
@@ -274,6 +298,7 @@ mrb_require(mrb_state *mrb, mrb_value filename)
 {
   mrb_value filepath = find_file(mrb, filename);
   if (loaded_files_check(mrb, filepath)) {
+    loading_files_add(mrb, filepath);
     load_file(mrb, filepath);
     loaded_files_add(mrb, filepath);
     return mrb_true_value();

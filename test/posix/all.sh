@@ -13,7 +13,7 @@ for t in $list; do
 	ret=$?
 	retval=`expr $retval + $ret`
 	if [ $ret -ne 0 ]; then
-		result+="  ${t}"
+		result="${result}  ${t}"
 	fi
 	echo
 done

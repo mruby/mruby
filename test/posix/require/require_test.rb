@@ -174,7 +174,28 @@ if self.methods.include?(:require) and self.methods.include?(:load) and
     e == nil and e2.class == RequireTestError and $rb5 == true
   end
 
+  assert('require loop check with "rb6a", "rb6b"') do
+    require "rb6a"
+    $".include?("#{$pwd}/require/rb6a.rb") and
+    $".include?("#{$pwd}/require/rb6b.rb") and
+    $rb6a == "rb6a" and $rb6b == "rb6b"
+  end
+
+  assert('require loop check with "rb6c", "notfound"') do
+    e = nil
+    begin
+      require "rb6c"
+    rescue ScriptError => e
+    end
+
+    (not $".include?("#{$pwd}/require/rb6c.rb")) and
+    e.class == LoadError
+  end
+
   report
 
+  if $ko_test > 0 or $kill_test > 0
+    exit false
+  end
 end
 
