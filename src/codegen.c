@@ -2055,7 +2055,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*256);
 
   p->lv = lv;
-  p->sp += node_len(lv)+2;
+  p->sp += node_len(lv)+1;	/* add self */
   p->nlocals = p->sp;
   p->ai = mrb->arena_idx;
 
