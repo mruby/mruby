@@ -42,7 +42,8 @@ if Object.const_defined?(:IPAddr)
   end
 
   assert('IPAddr#to_s') do
-    IPAddr.new('192.0.2.1').to_s == '192.0.2.1'
+    IPAddr.new('192.0.2.1').to_s == '192.0.2.1' and
+    IPAddr.new('2001:db8::3').to_s == '2001:db8::3'
   end
 
   assert('IPAddr#<=>') do
