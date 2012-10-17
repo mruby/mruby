@@ -102,6 +102,17 @@ if Object.const_defined?(:IO)
     res2 == "$R_BODY_MSG" + "\n"
   end
 
+  assert('IO#puts', '15.2.20.5.13') do
+    str = "mruby put test"
+    io = File.open("$W_FILENAME", "w")
+    io.puts(str)
+    io.close
+    io = File.open("$W_FILENAME")
+    line = io.read
+    io.close
+    line == str + "\n"
+  end
+
   assert('IO#read', '15.2.20.5.14') do
     io = File.open("$R_FILENAME", "r")
     line = io.read
