@@ -1490,6 +1490,7 @@ codegen(codegen_scope *s, node *tree, int val)
     else {
       genop_peep(s, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
     }
+    push();
     break;
 
   case NODE_YIELD:
