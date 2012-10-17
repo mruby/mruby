@@ -245,6 +245,11 @@ flodivmod(mrb_state *mrb, mrb_float x, mrb_float y, mrb_float *divp, mrb_float *
 {
   mrb_float div, mod;
 
+  if (y == 0.0) {
+    *divp = strtod("inf", NULL);
+    *modp = strtod("nan", NULL);
+    return;
+  }
   mod = fmod(x, y);
   if (isinf(x) && !isinf(y) && !isnan(y))
     div = x;
@@ -772,6 +777,9 @@ fix_mod(mrb_state *mrb, mrb_value x)
   if (FIXNUM_P(y) && (b=mrb_fixnum(y)) != 0) {
     mrb_int mod;
 
+    if (mrb_fixnum(y) == 0) {
+      return mrb_float_value(strtod("nan", NULL));
+    }
     fixdivmod(mrb, a, mrb_fixnum(y), 0, &mod);
     return mrb_fixnum_value(mod);
   }
@@ -798,6 +806,10 @@ fix_divmod(mrb_state *mrb, mrb_value x)
   if (FIXNUM_P(y)) {
     mrb_int div, mod;
 
+    if (mrb_fixnum(y) == 0) {
+      return mrb_assoc_new(mrb, mrb_float_value(strtod("inf", NULL)),
+			        mrb_float_value(strtod("nan", NULL)));
+    }
     fixdivmod(mrb, mrb_fixnum(x), mrb_fixnum(y), &div, &mod);
     return mrb_assoc_new(mrb, mrb_fixnum_value(div), mrb_fixnum_value(mod));
   }

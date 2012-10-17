@@ -77,8 +77,11 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 
   for (argc--,argv++; argc > 0; argc--,argv++) {
     if (**argv == '-') {
-      if (strlen(*argv) <= 1)
-        return -1;
+      if (strlen(*argv) == 1) {
+	args->filename = infile = "-";
+	args->rfp = stdin;
+	break;
+      }
 
       switch ((*argv)[1]) {
       case 'o':
@@ -134,9 +137,14 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
   if (args->check_syntax)
     return 0;
 
-  if (outfile == NULL)
-    outfile = get_outfilename(infile, args->ext);
-
+  if (outfile == NULL) {
+    if (strcmp("-", infile) == 0) {
+      outfile = infile;
+    }
+    else {
+      outfile = get_outfilename(infile, args->ext);
+    }
+  }
   if (strcmp("-", outfile) == 0) {
     args->wfp = stdout;
   }

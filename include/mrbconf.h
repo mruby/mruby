@@ -79,8 +79,12 @@ typedef double mrb_float;
 
 #ifdef MRB_NAN_BOXING
 typedef int32_t mrb_int;
+#define MRB_INT_MIN INT32_MIN
+#define MRB_INT_MAX INT32_MAX
 #else
 typedef int mrb_int;
+#define MRB_INT_MIN INT_MIN
+#define MRB_INT_MAX INT_MAX
 #endif
 typedef short mrb_sym;
 

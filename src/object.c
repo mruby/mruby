@@ -83,7 +83,13 @@ mrb_true(mrb_state *mrb, mrb_value obj)
 static mrb_value
 nil_to_s(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_str_new(mrb, 0, 0);
+  return mrb_str_new(mrb, 0, 0);
+}
+
+static mrb_value
+nil_inspect(mrb_state *mrb, mrb_value obj)
+{
+  return mrb_str_new(mrb, "nil", 3);
 }
 
 /*
@@ -315,6 +321,7 @@ mrb_init_object(mrb_state *mrb)
   mrb_define_method(mrb, n, "to_a", nil_to_a,       ARGS_NONE());
   mrb_define_method(mrb, n, "to_f", nil_to_f,       ARGS_NONE());
   mrb_define_method(mrb, n, "to_i", nil_to_i,       ARGS_NONE());
+  mrb_define_method(mrb, n, "inspect", nil_inspect, ARGS_NONE());
 
   t = mrb->true_class  = mrb_define_class(mrb, "TrueClass",  mrb->object_class);
   mrb_undef_class_method(mrb, t, "new");
@@ -322,6 +329,7 @@ mrb_init_object(mrb_state *mrb)
   mrb_define_method(mrb, t, "^",    true_xor,       ARGS_REQ(1));  /* 15.2.5.3.2  */
   mrb_define_method(mrb, t, "to_s", true_to_s,      ARGS_NONE());  /* 15.2.5.3.3  */
   mrb_define_method(mrb, t, "|",    true_or,        ARGS_REQ(1));  /* 15.2.5.3.4  */
+  mrb_define_method(mrb, t, "inspect", true_to_s,   ARGS_NONE());
 
   f = mrb->false_class = mrb_define_class(mrb, "FalseClass", mrb->object_class);
   mrb_undef_class_method(mrb, f, "new");
@@ -329,6 +337,7 @@ mrb_init_object(mrb_state *mrb)
   mrb_define_method(mrb, f, "^",    false_xor,      ARGS_REQ(1));  /* 15.2.6.3.2  */
   mrb_define_method(mrb, f, "to_s", false_to_s,     ARGS_NONE());  /* 15.2.6.3.3  */
   mrb_define_method(mrb, f, "|",    false_or,       ARGS_REQ(1));  /* 15.2.6.3.4  */
+  mrb_define_method(mrb, f, "inspect", false_to_s,  ARGS_NONE());
 }
 
 static mrb_value
