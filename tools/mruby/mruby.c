@@ -172,7 +172,7 @@ main(int argc, char **argv)
   mrb_value ARGV;
 
   if (mrb == NULL) {
-    fprintf(stderr, "Invalid mrb_state, exiting mruby");
+    fprintf(stderr, "Invalid mrb_state, exiting mruby\n");
     return EXIT_FAILURE;
   }
 
@@ -191,12 +191,13 @@ main(int argc, char **argv)
 
   if (args.mrbfile) {
     n = mrb_load_irep(mrb, args.rfp);
-    if (n >= 0) {
-      if (!args.check_syntax) {
-	mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
-	if (mrb->exc) {
-	  p(mrb, mrb_obj_value(mrb->exc));
-	}
+    if (n < 0) {
+      fprintf(stderr, "failed to load mrb file: %s\n", args.cmdline);
+    }
+    else if (!args.check_syntax) {
+      mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
+      if (mrb->exc) {
+	p(mrb, mrb_obj_value(mrb->exc));
       }
     }
   }
