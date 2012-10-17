@@ -99,10 +99,11 @@ module AWS
 
     def sign(proto, date, path)
       sign_str = String.new
-      if proto == :put
+      case proto
+      when :put
         sign_str += "PUT\n\n"
         sign_str += "text/plain\n"
-      else
+      when :get
         sign_str += "GET\n\n\n"
       end
       sign_str += date + "\n"
@@ -111,6 +112,5 @@ module AWS
       digest = Digest::HMAC.digest(sign_str, @secret_key, Digest::SHA1)
       base64(digest).gsub("\n", '')
     end
-
   end
 end
