@@ -111,22 +111,22 @@ load_rite_header(FILE* fp, rite_binary_header* bin_header, unsigned char* hcrc)
   if (fread(&file_header, 1, sizeof(file_header), fp) < sizeof(file_header)) {
     return MRB_DUMP_READ_FAULT;
   }
-  *bin_header->rbfi = *file_header.rbfi;
+  memcpy(bin_header->rbfi, file_header.rbfi, sizeof(file_header.rbfi));
   if (memcmp(bin_header->rbfi, RITE_FILE_IDENFIFIER, sizeof(bin_header->rbfi)) != 0) {
     return MRB_DUMP_INVALID_FILE_HEADER;    //File identifier error
   }
-  *bin_header->rbfv = *file_header.rbfv;
+  memcpy(bin_header->rbfv, file_header.rbfv, sizeof(file_header.rbfv));
   if (memcmp(bin_header->rbfv, RITE_FILE_FORMAT_VER, sizeof(bin_header->rbfv)) != 0) {
     return MRB_DUMP_INVALID_FILE_HEADER;    //File format version error
   }
-  *bin_header->risv = *file_header.risv;
-  *bin_header->rct = *file_header.rct;
-  *bin_header->rcv = *file_header.rcv;
+  memcpy(bin_header->risv, file_header.risv, sizeof(file_header.risv));
+  memcpy(bin_header->rct, file_header.rct, sizeof(file_header.rct));
+  memcpy(bin_header->rcv, file_header.rcv, sizeof(file_header.rcv));
   hex_to_bin32(bin_header->rbds, file_header.rbds);
   hex_to_bin16(bin_header->nirep, file_header.nirep);
   hex_to_bin16(bin_header->sirep, file_header.sirep);
-  *bin_header->rsv = *file_header.rsv;
-  *hcrc = *file_header.hcrc;
+  memcpy(bin_header->rsv, file_header.rsv, sizeof(file_header.rsv));
+  memcpy(hcrc, file_header.hcrc, sizeof(file_header.hcrc));
 
   return MRB_DUMP_OK;
 }
