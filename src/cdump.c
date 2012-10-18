@@ -113,6 +113,7 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
 
   SOURCE_CODE0     ("  ai = mrb->arena_idx;");
   SOURCE_CODE0     ("  irep = mrb->irep[idx] = mrb_malloc(mrb, sizeof(mrb_irep));");
+  SOURCE_CODE0     ("  irep->flags = MRB_ISEQ_NO_FREE;");
   SOURCE_CODE0     ("  irep->idx = idx++;");
   SOURCE_CODE      ("  irep->nlocals = %d;",                                          irep->nlocals);
   SOURCE_CODE      ("  irep->nregs = %d;",                                            irep->nregs);
@@ -124,13 +125,19 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
     SOURCE_CODE    ("  irep->syms = mrb_malloc(mrb, sizeof(mrb_sym)*%d);",            irep->slen);
     for (n=0; n<irep->slen; n++)
       if (irep->syms[n]) {
-        SOURCE_CODE  ("  irep->syms[%d] = mrb_intern(mrb, \"%s\");",                  n, mrb_sym2name(mrb, irep->syms[n]));
+	const char *name;
+	int len;
+
+	name = mrb_sym2name_len(mrb, irep->syms[n], &len);
+        SOURCE_CODE  ("  irep->syms[%d] = mrb_intern2(mrb, \"%s\", %d);",             n, name, len);
       }
   }
   else
     SOURCE_CODE0   ("  irep->syms = NULL;");
 
-  SOURCE_CODE      ("  irep->plen = %d;",                                             irep->plen);
+  SOURCE_CODE0     ("  irep->pool = NULL;");
+  SOURCE_CODE0     ("  mrb->irep_len = idx;");
+  SOURCE_CODE0     ("  irep->plen = 0;");
   if(irep->plen > 0) {
     SOURCE_CODE    ("  irep->pool = mrb_malloc(mrb, sizeof(mrb_value)*%d);",          irep->plen);
     for (n=0; n<irep->plen; n++) {
@@ -148,16 +155,16 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
           }
         }
         memset(buf, 0, buf_len);
-        SOURCE_CODE("  irep->pool[%d] = mrb_str_new(mrb, \"%s\", %d);",               n, str_to_format(irep->pool[n], buf), RSTRING_LEN(irep->pool[n])); break;
+        SOURCE_CODE("  irep->pool[%d] = mrb_str_new(mrb, \"%s\", %d);",               n, str_to_format(irep->pool[n], buf), RSTRING_LEN(irep->pool[n]));
+	SOURCE_CODE0     ("  mrb->arena_idx = ai;");
+	break;
       /* TODO MRB_TT_REGEX */
       default: break;
       }
+      SOURCE_CODE0("  irep->plen++;");
     }
   }
   else
-    SOURCE_CODE0   ("  irep->pool = NULL;");
-  SOURCE_CODE0     ("  mrb->irep_len = idx;");
-  SOURCE_CODE0     ("  mrb->arena_idx = ai;");
   SOURCE_CODE0("");
   return MRB_CDUMP_OK;
 }

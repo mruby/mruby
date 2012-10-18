@@ -949,8 +949,7 @@ fix_xor(mrb_state *mrb, mrb_value x)
 static mrb_value
 lshift(mrb_state *mrb, mrb_int val, unsigned long width)
 {
-  if (width > (sizeof(mrb_int)*CHAR_BIT-1)
-      || ((unsigned long)abs(val))>>(sizeof(mrb_int)*CHAR_BIT-1-width) > 0) {
+  if (width > (sizeof(mrb_int)*CHAR_BIT-1)) {
       mrb_raise(mrb, E_RANGE_ERROR, "width(%d) > (%d:sizeof(mrb_int)*CHAR_BIT-1)", width,
 		sizeof(mrb_int)*CHAR_BIT-1);
   }
