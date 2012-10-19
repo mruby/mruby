@@ -354,9 +354,9 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
       break;
 
     case MRB_TT_STRING:
-      str = mrb_string_value( mrb, &irep->pool[pool_no]);
+      str = irep->pool[pool_no];
       len = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);
-      if ( len > buf_size - 1) {
+      if (len > buf_size - 1) {
         buf_size = len + 1;
         if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == 0)
           goto error_exit;

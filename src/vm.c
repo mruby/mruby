@@ -1126,6 +1126,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
         switch (GETARG_B(i)) {
         case OP_R_NORMAL:
+	NORMAL_RETURN:
           if (ci == mrb->cibase) {
             localjump_error(mrb, "return");
             goto L_RAISE;
@@ -1140,6 +1141,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           ci = mrb->ci = mrb->cibase + proc->env->cioff + 1;
           break;
         case OP_R_RETURN:
+	  if (!proc->env) goto NORMAL_RETURN;
           if (proc->env->cioff < 0) {
             localjump_error(mrb, "return");
             goto L_RAISE;
@@ -1815,8 +1817,14 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_ERR) {
       /* Bx     raise RuntimeError with message Lit(Bx) */
       mrb_value msg = pool[GETARG_Bx(i)];
-      mrb_value exc = mrb_exc_new3(mrb, E_RUNTIME_ERROR, msg);
+      mrb_value exc;
 
+      if (GETARG_A(i) == 0) {
+	exc = mrb_exc_new3(mrb, E_RUNTIME_ERROR, msg);
+      }
+      else {
+	exc = mrb_exc_new3(mrb, E_LOCALJUMP_ERROR, msg);
+      }
       mrb->exc = (struct RObject*)mrb_object(exc);
       goto L_RAISE;
     }

@@ -914,7 +914,7 @@ raise_error(codegen_scope *s, const char *msg)
 {
   int idx = new_lit(s, mrb_str_new_cstr(s->mrb, msg));
 
-  genop(s, MKOP_ABx(OP_ERR, 0, idx));
+  genop(s, MKOP_ABx(OP_ERR, 1, idx));
 }
 
 static double
@@ -954,6 +954,10 @@ codegen(codegen_scope *s, node *tree, int val)
   tree = tree->cdr;
   switch (nt) {
   case NODE_BEGIN:
+    if (val && !tree) {
+      genop(s, MKOP_A(OP_LOADNIL, cursp()));
+      push();
+    }
     while (tree) {
       codegen(s, tree->car, tree->cdr ? NOVAL : val);
       tree = tree->cdr;
@@ -2162,6 +2166,9 @@ loop_break(codegen_scope *s, node *tree)
     loop = s->loop;
     while (loop->type == LOOP_BEGIN) {
       genop_peep(s, MKOP_A(OP_POPERR, 1), NOVAL);
+      loop = loop->prev;
+    }
+    while (loop->type == LOOP_RESCUE) {
       loop = loop->prev;
     }
     if (loop->type == LOOP_NORMAL) {

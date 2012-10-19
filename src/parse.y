@@ -3344,7 +3344,7 @@ read_escape(parser_state *p)
 	  break;
 	}
       }
-      c = scan_hex(buf, i+1, &i);
+      c = scan_hex(buf, i, &i);
       if (i == 0) {
 	yyerror(p, "Invalid escape character syntax");
 	return 0;
