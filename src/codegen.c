@@ -972,6 +972,7 @@ codegen(codegen_scope *s, node *tree, int val)
       lp->pc1 = onerr;
       if (tree->car) {
         codegen(s, tree->car, val);
+	if (val) pop();
       }
       lp->type = LOOP_RESCUE;
       noexc = new_label(s);
