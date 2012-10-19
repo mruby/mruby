@@ -951,6 +951,10 @@ codegen(codegen_scope *s, node *tree, int val)
   tree = tree->cdr;
   switch (nt) {
   case NODE_BEGIN:
+    if (val && !tree) {
+      genop(s, MKOP_A(OP_LOADNIL, cursp()));
+      push();
+    }
     while (tree) {
       codegen(s, tree->car, tree->cdr ? NOVAL : val);
       tree = tree->cdr;
