@@ -199,7 +199,7 @@ module Enumerable
   #
   # ISO 15.3.2.2.11
   def inject(*args, &block)
-    raise ArgumentError, "too many arguments" if args.size > 3
+    raise ArgumentError, "too many arguments" if args.size > 2
     if Symbol === args[-1]
       sym = args[-1]
       block = ->(x,y){x.send(sym,y)}
