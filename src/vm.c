@@ -1817,8 +1817,14 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_ERR) {
       /* Bx     raise RuntimeError with message Lit(Bx) */
       mrb_value msg = pool[GETARG_Bx(i)];
-      mrb_value exc = mrb_exc_new3(mrb, E_RUNTIME_ERROR, msg);
+      mrb_value exc;
 
+      if (GETARG_A(i) == 0) {
+	exc = mrb_exc_new3(mrb, E_RUNTIME_ERROR, msg);
+      }
+      else {
+	exc = mrb_exc_new3(mrb, E_LOCALJUMP_ERROR, msg);
+      }
       mrb->exc = (struct RObject*)mrb_object(exc);
       goto L_RAISE;
     }

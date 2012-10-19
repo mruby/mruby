@@ -911,7 +911,7 @@ raise_error(codegen_scope *s, const char *msg)
 {
   int idx = new_lit(s, mrb_str_new_cstr(s->mrb, msg));
 
-  genop(s, MKOP_ABx(OP_ERR, 0, idx));
+  genop(s, MKOP_ABx(OP_ERR, 1, idx));
 }
 
 static double
