@@ -1134,7 +1134,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           ci = mrb->ci;
           break;
         case OP_R_BREAK:
-	  if (!proc->env) goto NORMAL_RETURN;
           if (proc->env->cioff < 0) {
             localjump_error(mrb, "break");
             goto L_RAISE;

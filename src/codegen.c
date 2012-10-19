@@ -2146,6 +2146,9 @@ loop_break(codegen_scope *s, node *tree)
       genop_peep(s, MKOP_A(OP_POPERR, 1), NOVAL);
       loop = loop->prev;
     }
+    while (loop->type == LOOP_RESCUE) {
+      loop = loop->prev;
+    }
     if (loop->type == LOOP_NORMAL) {
       int tmp;
 
