@@ -63,6 +63,17 @@ mrb_ary_new(mrb_state *mrb)
   return mrb_ary_new_capa(mrb, 0);
 }
 
+static inline void
+array_copy(mrb_value *dst, const mrb_value *src, size_t size)
+{
+  int i;
+
+  for (i = 0; i < size; i++) {
+    dst[i] = src[i];
+  }
+}
+
+
 mrb_value
 mrb_ary_new_from_values(mrb_state *mrb, int size, mrb_value *vals)
 {
@@ -71,7 +82,7 @@ mrb_ary_new_from_values(mrb_state *mrb, int size, mrb_value *vals)
 
   ary = mrb_ary_new_capa(mrb, size);
   a = mrb_ary_ptr(ary);
-  memcpy(a->ptr, vals, sizeof(mrb_value)*size);
+  array_copy(a->ptr, vals, size);
   a->len = size;
 
   return ary;
@@ -115,7 +126,7 @@ ary_modify(mrb_state *mrb, struct RArray *a)
       len = a->len * sizeof(mrb_value);
       ptr = (mrb_value *)mrb_malloc(mrb, len);
       if (p) {
-	memcpy(ptr, p, len);
+	array_copy(ptr, p, a->len);
       }
       a->ptr = ptr;
       a->aux.capa = a->len;
@@ -213,7 +224,7 @@ ary_concat(mrb_state *mrb, struct RArray *a, mrb_value *ptr, int blen)
 
   ary_modify(mrb, a);
   if (a->aux.capa < len) ary_expand_capa(mrb, a, len);
-  memcpy(a->ptr+a->len, ptr, sizeof(mrb_value)*blen);
+  array_copy(a->ptr+a->len, ptr, blen);
   mrb_write_barrier(mrb, (struct RBasic*)a);
   a->len = len;
 }
@@ -249,8 +260,8 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "a", &ptr, &blen);
   ary = mrb_ary_new_capa(mrb, a1->len + blen);
   a2 = mrb_ary_ptr(ary);
-  memcpy(a2->ptr, a1->ptr, sizeof(mrb_value)*a1->len);
-  memcpy(a2->ptr + a1->len, ptr, sizeof(mrb_value)*blen);
+  array_copy(a2->ptr, a1->ptr, a1->len);
+  array_copy(a2->ptr + a1->len, ptr, blen);
   a2->len = a1->len + blen;
 
   return ary;
@@ -309,7 +320,7 @@ ary_replace(mrb_state *mrb, struct RArray *a, mrb_value *argv, int len)
   ary_modify(mrb, a);
   if (a->aux.capa < len)
     ary_expand_capa(mrb, a, len);
-  memcpy(a->ptr, argv, sizeof(mrb_value)*len);
+  array_copy(a->ptr, argv, len);
   mrb_write_barrier(mrb, (struct RBasic*)a);
   a->len = len;
 }
@@ -352,7 +363,7 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
   a2 = mrb_ary_ptr(ary);
   ptr = a2->ptr;
   while(times--) {
-    memcpy(ptr, a1->ptr, sizeof(mrb_value)*(a1->len));
+    array_copy(ptr, a1->ptr, a1->len);
     ptr += a1->len;
     a2->len += a1->len;
   }
@@ -410,7 +421,7 @@ mrb_ary_new4(mrb_state *mrb, int n, const mrb_value *elts)
 
   ary = mrb_ary_new_capa(mrb, n);
   if (n > 0 && elts) {
-    memcpy(RARRAY_PTR(ary), elts, sizeof(mrb_value)*n);
+    array_copy(RARRAY_PTR(ary), elts, n);
     RARRAY_LEN(ary) = n;
   }
 
@@ -540,7 +551,7 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
       ary_expand_capa(mrb, a, a->len + len);
     memmove(a->ptr + len, a->ptr, sizeof(mrb_value)*a->len);
   }
-  memcpy(a->ptr, vals, sizeof(mrb_value)*len);
+  array_copy(a->ptr, vals, len);
   a->len += len;
   mrb_write_barrier(mrb, (struct RBasic*)a);
 
