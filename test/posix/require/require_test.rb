@@ -193,6 +193,32 @@ if self.methods.include?(:require) and self.methods.include?(:load) and
     e.class == LoadError
   end
 
+  assert('load absolute path') do
+    $" = []
+    path = "#{$pwd}/require/rb7.rb"
+
+    e = nil
+    begin
+      t = load path
+    rescue LoadError => e
+    end
+
+    e == nil and t == true and $rb7 == "rb7"
+  end
+
+  assert('require absolute path') do
+    $" = []
+    path = "#{$pwd}/require/rb7.rb"
+
+    e = nil
+    begin
+      t = require path
+    rescue LoadError => e
+    end
+
+    e == nil and t == true and $".include?(path)
+  end
+
   report
 
   if $ko_test > 0 or $kill_test > 0

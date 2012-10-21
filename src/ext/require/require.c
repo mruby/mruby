@@ -162,6 +162,16 @@ find_file(mrb_state *mrb, mrb_value filename)
     mrb_ary_push(mrb, exts, mrb_nil_value());
   }
 
+  /* when absolute path */
+  if (*fname == '/') {
+    FILE *fp = fopen(fname, "r");
+    if (fp == NULL) {
+      return mrb_nil_value();
+    }
+    fclose(fp);
+    return filename;
+  }
+
   /* when a filename start with '.', $: = ['.'] */
   if (*fname == '.') {
     load_path = mrb_ary_new(mrb);
