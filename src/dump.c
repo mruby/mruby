@@ -76,7 +76,7 @@ static int mrb_write_irep(mrb_state*,int,char*);
 
 
 static inline int
-uint8_dump(unsigned char bin, char *hex, int type)
+uint8_dump(uint8_t bin, char *hex, int type)
 {
   if (type == DUMP_TYPE_BIN) {
     *hex = bin;
