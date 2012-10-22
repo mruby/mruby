@@ -2494,7 +2494,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     if (badcheck) goto bad;
     return mrb_fixnum_value(0);
   }
-  len *= strlen(str)*sizeof(char);
+  len *= strlen(str);
 
   val = strtoul((char*)str, &end, base);
 
@@ -2546,7 +2546,7 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, int badcheck)
       char *p = (char *)mrb_malloc(mrb, len+1);
 
       //MEMCPY(p, s, char, len);
-      memcpy(p, s, sizeof(char)*len);
+      memcpy(p, s, len);
       p[len] = '\0';
       s = p;
     }
@@ -2682,7 +2682,7 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, int badcheck)
     if (s[len]) {    /* no sentinel somehow */
       char *p = (char *)mrb_malloc(mrb, len+1);
 
-      memcpy(p, s, sizeof(char)*len);
+      memcpy(p, s, len);
       p[len] = '\0';
       s = p;
     }
