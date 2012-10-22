@@ -84,7 +84,7 @@ uint8_dump(unsigned char bin, char *hex, int type)
     *hex++  = bin2hex[(bin >> 4) & 0x0f];
     *hex    = bin2hex[bin & 0x0f];
   }
-  return DUMP_SIZE(sizeof(char), type);
+  return DUMP_SIZE(MRB_DUMP_SIZE_OF_CHAR, type);
 }
 
 static inline int
