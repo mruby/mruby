@@ -188,7 +188,7 @@ get_irep_header_size(mrb_state *mrb, mrb_irep *irep, int type)
 {
   uint32_t size = 0;
 
-  size += sizeof(char) * 2;
+  size += 2;
   size += DUMP_SIZE(MRB_DUMP_SIZE_OF_SHORT, type) * 4;
 
   return size;
@@ -215,7 +215,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep, int type)
   char buf[32];
 
   size += MRB_DUMP_SIZE_OF_LONG; /* plen */
-  size += irep->plen * sizeof(char); /* tt(n) */
+  size += irep->plen; /* tt(n) */
   size += irep->plen * MRB_DUMP_SIZE_OF_SHORT; /* len(n) */
   size += MRB_DUMP_SIZE_OF_SHORT; /* crc */
   size = DUMP_SIZE(size, type);
