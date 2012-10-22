@@ -94,6 +94,16 @@ mrb_struct_s_members_m(mrb_state *mrb, mrb_value klass)
     return ary;
 }
 
+static inline void
+struct_copy(mrb_value *dst, const mrb_value *src, size_t size)
+{
+  size_t i;
+
+  for (i = 0; i < size; i++) {
+    dst[i] = src[i];
+  }
+}
+
 /* 15.2.18.4.6  */
 /*
  *  call-seq:
@@ -431,7 +441,7 @@ mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_val
   st = RSTRUCT(self);
   st->ptr = (mrb_value *)mrb_calloc(mrb, sizeof(mrb_value), n);
   st->len = n;
-  memcpy(st->ptr, argv, sizeof(mrb_value)*argc);
+  struct_copy(st->ptr, argv, argc);
 
   return self;
 }
@@ -530,7 +540,7 @@ mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
   if (RSTRUCT_LEN(copy) != RSTRUCT_LEN(s)) {
     mrb_raise(mrb, E_TYPE_ERROR, "struct size mismatch");
   }
-  memcpy(RSTRUCT_PTR(copy), RSTRUCT_PTR(s), sizeof(mrb_value)*RSTRUCT_LEN(copy));
+  struct_copy(RSTRUCT_PTR(copy), RSTRUCT_PTR(s), RSTRUCT_LEN(copy));
 
   return copy;
 }
