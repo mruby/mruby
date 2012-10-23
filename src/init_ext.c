@@ -29,6 +29,10 @@ mrb_init_ext(mrb_state *mrb)
   mrb_init_socket(mrb);
 #endif
 #endif
+#ifdef ENABLE_DIR
+  extern void mrb_init_dir(mrb_state *mrb);
+  mrb_init_dir(mrb);
+#endif
 #ifdef ENABLE_PROCESS
   extern void mrb_init_process(mrb_state *mrb);
   mrb_init_process(mrb);
