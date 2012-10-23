@@ -853,8 +853,11 @@ gen_assignment(codegen_scope *s, node *node, int sp, int val)
 
   case NODE_CALL:
     push();
-    gen_call(s, node, attrsym(s, sym(node->cdr->car)), sp, val);
-    val = NOVAL;                /* push should have done in gen_call() */
+    gen_call(s, node, attrsym(s, sym(node->cdr->car)), sp, NOVAL);
+    pop();
+    if (val) {
+      genop_peep(s, MKOP_AB(OP_MOVE, cursp(), sp), val);
+    }
     break;
 
   default:
