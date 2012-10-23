@@ -47,8 +47,10 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
 UNIX 環境に依存する機能のテストコードは test/posix ディレクトリにあり、
 以下のコマンドで実行できます。
 
-> $ cd test/posix   # test/posix ディレクトリへ移動
-> $ sh all.sh       # test/posix 以下にある全てのテストを実行
+```
+$ cd test/posix   # test/posix ディレクトリへ移動
+$ sh all.sh       # test/posix 以下にある全てのテストを実行
+```
 
 # サンプルアプリケーション
 
