@@ -170,6 +170,10 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
 
     switch (c1) {
     case OP_MOVE:
+      if (GETARG_A(i) == GETARG_B(i)) {
+	/* skip useless OP_MOVE */
+	return;
+      }
       if (val) break;
       switch (c0) {
       case OP_MOVE:
