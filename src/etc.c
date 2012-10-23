@@ -44,7 +44,7 @@ mrb_check_datatype(mrb_state *mrb, mrb_value obj, const struct mrb_data_type *ty
   }
   if (DATA_TYPE(obj) != type) {
     const char *etype = DATA_TYPE(obj)->struct_name;
-    mrb_raise(mrb, E_TYPE_ERROR, mesg, etype, type->struct_name);
+    mrb_raisef(mrb, E_TYPE_ERROR, mesg, etype, type->struct_name);
   }
   return DATA_PTR(obj);
 }
@@ -94,7 +94,7 @@ mrb_to_id(mrb_state *mrb, mrb_value name)
       tmp = mrb_check_string_type(mrb, name);
       if (mrb_nil_p(tmp)) {
         tmp = mrb_inspect(mrb, name);
-        mrb_raise(mrb, E_TYPE_ERROR, "%s is not a symbol",
+        mrb_raisef(mrb, E_TYPE_ERROR, "%s is not a symbol",
              RSTRING_PTR(tmp));
       }
       name = tmp;
