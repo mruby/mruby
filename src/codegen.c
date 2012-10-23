@@ -173,6 +173,10 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
 
     switch (c1) {
     case OP_MOVE:
+      if (GETARG_A(i) == GETARG_B(i)) {
+	/* skip useless OP_MOVE */
+	return;
+      }
       if (val) break;
       switch (c0) {
       case OP_MOVE:
@@ -852,8 +856,11 @@ gen_assignment(codegen_scope *s, node *node, int sp, int val)
 
   case NODE_CALL:
     push();
-    gen_call(s, node, attrsym(s, sym(node->cdr->car)), sp, val);
-    val = NOVAL;                /* push should have done in gen_call() */
+    gen_call(s, node, attrsym(s, sym(node->cdr->car)), sp, NOVAL);
+    pop();
+    if (val) {
+      genop_peep(s, MKOP_AB(OP_MOVE, cursp(), sp), val);
+    }
     break;
 
   default:
@@ -1406,6 +1413,7 @@ codegen(codegen_scope *s, node *tree, int val)
 	codegen(s, tree->cdr->cdr->car, VAL);
 	pop();
 	gen_assignment(s, tree->car, cursp(), val);
+	if (val) pop();
 	dispatch(s, pos);
 	break;
       }
