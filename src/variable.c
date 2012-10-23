@@ -712,7 +712,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
     }
     c = c->super;
   }
-  mrb_raise(mrb, E_NAME_ERROR, "uninitialized constant %s",
+  mrb_raisef(mrb, E_NAME_ERROR, "uninitialized constant %s",
             mrb_sym2name(mrb, sym));
   /* not reached */
   return mrb_nil_value();

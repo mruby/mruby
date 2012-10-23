@@ -236,7 +236,7 @@ mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
     mrb_value argv[MRB_FUNCALL_ARGC_MAX];
 
     if (argc > MRB_FUNCALL_ARGC_MAX) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=%d)", MRB_FUNCALL_ARGC_MAX);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=%d)", MRB_FUNCALL_ARGC_MAX);
     }
 
     va_start(ap, argc);
@@ -277,7 +277,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
   }
   n = mrb->ci->nregs;
   if (argc < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%d)", argc);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%d)", argc);
   }
   c = mrb_class(mrb, self);
   p = mrb_method_search_vm(mrb, &c, mid);

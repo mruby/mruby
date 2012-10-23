@@ -171,11 +171,11 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
     c = mrb_class_ptr(v);
     if (!mrb_nil_p(super)) {
       if (mrb_type(super) != MRB_TT_CLASS) {
-        mrb_raise(mrb, E_TYPE_ERROR, "superclass must be a Class (%s given)", mrb_obj_classname(mrb, super));
+        mrb_raisef(mrb, E_TYPE_ERROR, "superclass must be a Class (%s given)", mrb_obj_classname(mrb, super));
       }
 
       if (!c->super || mrb_class_ptr(super) != mrb_class_real(c->super)) {
-        mrb_raise(mrb, E_TYPE_ERROR, "superclass mismatch for class %s", mrb_sym2name(mrb, id));
+        mrb_raisef(mrb, E_TYPE_ERROR, "superclass mismatch for class %s", mrb_sym2name(mrb, id));
       }
     }
 
@@ -184,7 +184,7 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
 
   if (!mrb_nil_p(super)) {
     if (mrb_type(super) != MRB_TT_CLASS) {
-      mrb_raise(mrb, E_TYPE_ERROR, "superclass must be a Class (%s given)", mrb_obj_classname(mrb, super));
+      mrb_raisef(mrb, E_TYPE_ERROR, "superclass must be a Class (%s given)", mrb_obj_classname(mrb, super));
     }
     s = mrb_class_ptr(super);
   }
@@ -205,7 +205,7 @@ class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
   mrb_value c = mrb_const_get(mrb, mrb_obj_value(klass), id);
 
   if (mrb_type(c) != MRB_TT_MODULE && mrb_type(c) != MRB_TT_CLASS) {
-    mrb_raise(mrb, E_TYPE_ERROR, "%s is not a class/module", mrb_sym2name(mrb, id));
+    mrb_raisef(mrb, E_TYPE_ERROR, "%s is not a class/module", mrb_sym2name(mrb, id));
   }
   return mrb_class_ptr(c);
 }
@@ -318,7 +318,7 @@ check_type(mrb_state *mrb, mrb_value val, enum mrb_vtype t, const char *c, const
 
   tmp = mrb_check_convert_type(mrb, val, t, c, m);
   if (mrb_nil_p(tmp)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "expected %s", c);
+    mrb_raisef(mrb, E_TYPE_ERROR, "expected %s", c);
   }
   return tmp;
 }
@@ -618,7 +618,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       }
       break;
     default:
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "invalide argument specifier %c", c);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalide argument specifier %c", c);
       break;
     }
   }
@@ -852,7 +852,7 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
 
   m = mrb_method_search_vm(mrb, &c, mid);
   if (!m) {
-    mrb_raise(mrb, E_NOMETHOD_ERROR, "no method named %s\n", mrb_sym2name(mrb, mid));
+    mrb_raisef(mrb, E_NOMETHOD_ERROR, "no method named %s\n", mrb_sym2name(mrb, mid));
   }
   return m;
 }
@@ -1008,7 +1008,7 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
   if (!SYMBOL_P(name)) {
     mrb_raise(mrb, E_TYPE_ERROR, "name should be a symbol");
   }
-  mrb_raise(mrb, E_NOMETHOD_ERROR, "no method named %s", mrb_sym2name(mrb, mrb_symbol(name)));
+  mrb_raisef(mrb, E_NOMETHOD_ERROR, "no method named %s", mrb_sym2name(mrb, mrb_symbol(name)));
   /* not reached */
   return mrb_nil_value();
 }
@@ -1105,7 +1105,7 @@ void
 mrb_check_inheritable(mrb_state *mrb, struct RClass *super)
 {
   if (super->tt != MRB_TT_CLASS) {
-    mrb_raise(mrb, E_TYPE_ERROR, "superclass must be a Class (%s given)",
+    mrb_raisef(mrb, E_TYPE_ERROR, "superclass must be a Class (%s given)",
            mrb_obj_classname(mrb, mrb_obj_value(super)));
   }
   if (super->tt == MRB_TT_SCLASS) {
@@ -1323,7 +1323,7 @@ mrb_sym_value(mrb_state *mrb, mrb_value val)
   }
   else if(mrb_type(val) != MRB_TT_SYMBOL) {
     mrb_value obj = mrb_funcall(mrb, val, "inspect", 0);
-    mrb_raise(mrb, E_TYPE_ERROR, "%s is not a symbol",
+    mrb_raisef(mrb, E_TYPE_ERROR, "%s is not a symbol",
          mrb_string_value_ptr(mrb, obj));
   }
   return mrb_symbol(val);
