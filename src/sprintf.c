@@ -81,7 +81,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
   char d;
 
   if (base != 2) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid radix %d", base);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %d", base);
   }
 
   if (val >= (1 << 10))
@@ -146,17 +146,17 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 
 #define GETARG() (!mrb_undef_p(nextvalue) ? nextvalue : \
   posarg == -1 ? \
-  (mrb_raise(mrb, E_ARGUMENT_ERROR, "unnumbered(%d) mixed with numbered", nextarg), mrb_undef_value()) : \
+  (mrb_raisef(mrb, E_ARGUMENT_ERROR, "unnumbered(%d) mixed with numbered", nextarg), mrb_undef_value()) : \
   posarg == -2 ? \
-  (mrb_raise(mrb, E_ARGUMENT_ERROR, "unnumbered(%d) mixed with named", nextarg), mrb_undef_value()) : \
+  (mrb_raisef(mrb, E_ARGUMENT_ERROR, "unnumbered(%d) mixed with named", nextarg), mrb_undef_value()) : \
   (posarg = nextarg++, GETNTHARG(posarg)))
 
 #define GETPOSARG(n) (posarg > 0 ? \
-  (mrb_raise(mrb, E_ARGUMENT_ERROR, "numbered(%d) after unnumbered(%d)", n, posarg), mrb_undef_value()) : \
+  (mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%d) after unnumbered(%d)", n, posarg), mrb_undef_value()) : \
   posarg == -2 ? \
-  (mrb_raise(mrb, E_ARGUMENT_ERROR, "numbered(%d) after named", n), mrb_undef_value()) : \
+  (mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%d) after named", n), mrb_undef_value()) : \
   ((n < 1) ? \
-  (mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid index - %d$", n), mrb_undef_value()) : \
+  (mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid index - %d$", n), mrb_undef_value()) : \
   (posarg = -1, GETNTHARG(n))))
 
 #define GETNTHARG(nth) \
@@ -164,9 +164,9 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 
 #define GETNAMEARG(id, name, len) ( \
   posarg > 0 ? \
-  (mrb_raise(mrb, E_ARGUMENT_ERROR, "named%.*s after unnumbered(%d)", (len), (name), posarg), mrb_undef_value()) : \
+  (mrb_raisef(mrb, E_ARGUMENT_ERROR, "named%.*s after unnumbered(%d)", (len), (name), posarg), mrb_undef_value()) : \
   posarg == -1 ? \
-  (mrb_raise(mrb, E_ARGUMENT_ERROR, "named%.*s after numbered", (len), (name)), mrb_undef_value()) :    \
+  (mrb_raisef(mrb, E_ARGUMENT_ERROR, "named%.*s after numbered", (len), (name)), mrb_undef_value()) :    \
   (posarg = -2, mrb_hash_fetch(mrb, get_hash(mrb, &hash, argc, argv), id, mrb_undef_value())))
 
 #define GETNUM(n, val) \
@@ -178,7 +178,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
     n = next_n; \
   } \
   if (p >= end) { \
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed format string - %%*[0-9]"); \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed format string - %*[0-9]"); \
   }
 
 #define GETASTER(num) do { \
@@ -548,7 +548,7 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
 retry:
     switch (*p) {
       default:
-        mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed format string - %%%c", *p);
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed format string - %%%c", *p);
         break;
 
       case ' ':
@@ -587,7 +587,7 @@ retry:
         GETNUM(n, width);
         if (*p == '$') {
           if (!mrb_undef_p(nextvalue)) {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "value given twice - %d$", n);
+            mrb_raisef(mrb, E_ARGUMENT_ERROR, "value given twice - %d$", n);
           }
           nextvalue = GETPOSARG(n);
           p++;
@@ -607,14 +607,14 @@ retry:
         for (; p < end && *p != term; )
           p++;
         if (id) {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "name%.*s after <%s>",
+          mrb_raisef(mrb, E_ARGUMENT_ERROR, "name%.*s after <%s>",
                     (int)(p - start + 1), start, mrb_sym2name(mrb, id));
         }
         symname = mrb_str_new(mrb, start + 1, p - start - 1);
         id = mrb_intern_str(mrb, symname);
         nextvalue = GETNAMEARG(mrb_symbol_value(id), start, (int)(p - start + 1));
         if (mrb_undef_p(nextvalue)) {
-          mrb_raise(mrb, E_KEY_ERROR, "key%.*s not found", (int)(p - start + 1), start);
+          mrb_raisef(mrb, E_KEY_ERROR, "key%.*s not found", (int)(p - start + 1), start);
         }
         if (term == '}') goto format_s;
         p++;
@@ -658,7 +658,7 @@ retry:
         
       case '%':
         if (flags != FNONE) {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid format character - %%");
+          mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid format character - %");
         }
         PUSH("%", 1);
         break;
@@ -1052,7 +1052,7 @@ retry:
    */
   if (posarg >= 0 && nextarg < argc) {
     const char *mesg = "too many arguments for format string";
-    if (RTEST(ruby_debug)) mrb_raise(mrb, E_ARGUMENT_ERROR, "%s", mesg);
+    if (RTEST(ruby_debug)) mrb_raise(mrb, E_ARGUMENT_ERROR, mesg);
     if (RTEST(ruby_verbose)) mrb_warn("%s", mesg);
   }
   mrb_str_resize(mrb, result, blen);

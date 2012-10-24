@@ -76,7 +76,7 @@ static int mrb_write_irep(mrb_state*,int,char*);
 
 
 static inline int
-uint8_dump(unsigned char bin, char *hex, int type)
+uint8_dump(uint8_t bin, char *hex, int type)
 {
   if (type == DUMP_TYPE_BIN) {
     *hex = bin;
@@ -84,7 +84,7 @@ uint8_dump(unsigned char bin, char *hex, int type)
     *hex++  = bin2hex[(bin >> 4) & 0x0f];
     *hex    = bin2hex[bin & 0x0f];
   }
-  return DUMP_SIZE(sizeof(char), type);
+  return DUMP_SIZE(MRB_DUMP_SIZE_OF_CHAR, type);
 }
 
 static inline int
@@ -188,7 +188,7 @@ get_irep_header_size(mrb_state *mrb, mrb_irep *irep, int type)
 {
   uint32_t size = 0;
 
-  size += sizeof(char) * 2;
+  size += 2;
   size += DUMP_SIZE(MRB_DUMP_SIZE_OF_SHORT, type) * 4;
 
   return size;
@@ -215,7 +215,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep, int type)
   char buf[32];
 
   size += MRB_DUMP_SIZE_OF_LONG; /* plen */
-  size += irep->plen * sizeof(char); /* tt(n) */
+  size += irep->plen; /* tt(n) */
   size += irep->plen * MRB_DUMP_SIZE_OF_SHORT; /* len(n) */
   size += MRB_DUMP_SIZE_OF_SHORT; /* crc */
   size = DUMP_SIZE(size, type);

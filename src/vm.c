@@ -38,6 +38,16 @@
 #define STACK_INIT_SIZE 128
 #define CALLINFO_INIT_SIZE 32
 
+static inline void
+stack_copy(mrb_value *dst, const mrb_value *src, size_t size)
+{
+  int i;
+
+  for (i = 0; i < size; i++) {
+    dst[i] = src[i];
+  }
+}
+
 static void
 stack_init(mrb_state *mrb)
 {
@@ -170,7 +180,7 @@ cipop(mrb_state *mrb)
     mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
 
     e->cioff = -1;
-    memcpy(p, e->stack, sizeof(mrb_value)*len);
+    stack_copy(p, e->stack, len);
     e->stack = p;
   }
 
@@ -226,7 +236,7 @@ mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
     mrb_value argv[MRB_FUNCALL_ARGC_MAX];
 
     if (argc > MRB_FUNCALL_ARGC_MAX) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=%d)", MRB_FUNCALL_ARGC_MAX);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=%d)", MRB_FUNCALL_ARGC_MAX);
     }
 
     va_start(ap, argc);
@@ -267,7 +277,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
   }
   n = mrb->ci->nregs;
   if (argc < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%d)", argc);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%d)", argc);
   }
   c = mrb_class(mrb, self);
   p = mrb_method_search_vm(mrb, &c, mid);
@@ -296,10 +306,10 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
   mrb->stack[0] = self;
   if (undef) {
     mrb->stack[1] = mrb_symbol_value(undef);
-    memcpy(mrb->stack+2, argv, sizeof(mrb_value)*(argc-1));
+    stack_copy(mrb->stack+2, argv, argc-1);
   }
   else if (argc > 0) {
-    memcpy(mrb->stack+1, argv, sizeof(mrb_value)*argc);
+    stack_copy(mrb->stack+1, argv, argc);
   }
   mrb->stack[argc+1] = blk;
 
@@ -351,7 +361,7 @@ mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_v
   stack_extend(mrb, ci->nregs, 0);
   mrb->stack[0] = self;
   if (argc > 0) {
-    memcpy(mrb->stack+1, argv, sizeof(mrb_value)*argc);
+    stack_copy(mrb->stack+1, argv, argc);
   }
   mrb->stack[argc+1] = mrb_nil_value();
 
@@ -989,12 +999,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         }
         regs[a] = mrb_ary_new_capa(mrb, m1+len+m2);
         rest = mrb_ary_ptr(regs[a]);
-        memcpy(rest->ptr, stack, sizeof(mrb_value)*m1);
+        stack_copy(rest->ptr, stack, m1);
         if (len > 0) {
-          memcpy(rest->ptr+m1, pp, sizeof(mrb_value)*len);
+          stack_copy(rest->ptr+m1, pp, len);
         }
         if (m2 > 0) {
-          memcpy(rest->ptr+m1+len, stack+m1+1, sizeof(mrb_value)*m2);
+          stack_copy(rest->ptr+m1+len, stack+m1+1, m2);
         }
         rest->len = m1+len+m2;
       }

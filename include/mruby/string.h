@@ -82,6 +82,7 @@ mrb_value mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, long len);
 mrb_value mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2);
 
 int mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2);
+char *mrb_str_to_cstr(mrb_state *mrb, mrb_value str);
 
 #ifdef ENABLE_REGEXP
 mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len);

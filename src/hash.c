@@ -970,9 +970,10 @@ mrb_hash_keys(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
-  mrb_value ary = mrb_ary_new_capa(mrb, kh_size(h));
+  mrb_value ary;
 
-  if (!h) return ary;
+  if (!h) return mrb_ary_new(mrb);
+  ary = mrb_ary_new_capa(mrb, kh_size(h));
   for (k = kh_begin(h); k != kh_end(h); k++) {
     if (kh_exist(h, k)) {
       mrb_value v = kh_key(h,k);
@@ -1000,9 +1001,10 @@ mrb_hash_values(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
-  mrb_value ary = mrb_ary_new_capa(mrb, kh_size(h));
+  mrb_value ary;
 
-  if (!h) return ary;
+  if (!h) return mrb_ary_new(mrb);
+  ary = mrb_ary_new_capa(mrb, kh_size(h));
   for (k = kh_begin(h); k != kh_end(h); k++) {
     if (kh_exist(h, k)){
       mrb_value v = kh_value(h,k);

@@ -296,7 +296,7 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
 
 out_of_range:
   if (err) {
-    mrb_raise(mrb, E_RANGE_ERROR, "%ld..%s%ld out of range",
+    mrb_raisef(mrb, E_RANGE_ERROR, "%ld..%s%ld out of range",
       b, r->excl? "." : "", e);
   }
   return OTHER;
