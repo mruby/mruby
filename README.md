@@ -34,6 +34,10 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
    * 正規表現リテラル
    * C + Ruby の両方の言語で実装可能な拡張モジュール
 
+http://iij.github.com/mruby/lib/ からリファレンス形式でも参照できます。
+ハイライトされているクラス/メソッドが iij/mruby で利用可能なものです。
+
+
 # ブランチ
 
  * master : mruby/mruby の master と同じです。毎日同期します。
