@@ -100,15 +100,16 @@ stack_extend(mrb_state *mrb, int room, int keep)
     envadjust(mrb, oldbase, mrb->stbase);
   }
   if (room > keep) {
-#ifndef MRB_NAN_BOXING
-    memset(mrb->stack+keep, 0, sizeof(mrb_value) * (room-keep));
-#else
     int i;
 
     for (i=keep; i<room; i++) {
+#ifndef MRB_NAN_BOXING
+      static const mrb_value mrb_value_zero = { { 0 } };
+      mrb->stack[i] = mrb_value_zero;
+#else
       SET_NIL_VALUE(mrb->stack[i]);
-    }
 #endif
+    }
   }
 }
 

@@ -453,7 +453,10 @@ new_sym(codegen_scope *s, mrb_sym sym)
   }
   if (s->slen > 125 && s->slen < 256) {
     s->syms = (mrb_sym *)codegen_realloc(s, s->syms, sizeof(mrb_sym)*65536);
-    memset(s->syms+s->slen, 0, sizeof(mrb_sym)*(256-s->slen));
+    for (i = 0; i < 256 - s->slen; i++) {
+      static const mrb_sym mrb_sym_zero = { 0 };
+      s->syms[i + s->slen] = mrb_sym_zero;
+    }
     s->slen = 256;
   }
   s->syms[s->slen] = sym;
@@ -2049,11 +2052,12 @@ codegen(codegen_scope *s, node *tree, int val)
 static codegen_scope*
 scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
 {
+  static const codegen_scope codegen_scope_zero = { 0 };
   mrb_pool *pool = mrb_pool_open(mrb);
   codegen_scope *p = (codegen_scope *)mrb_pool_alloc(pool, sizeof(codegen_scope));
   if (!p) return 0;
 
-  memset(p, 0, sizeof(codegen_scope));
+  *p = codegen_scope_zero;
   p->mrb = mrb;
   p->mpool = pool;
   if (!prev) return p;
