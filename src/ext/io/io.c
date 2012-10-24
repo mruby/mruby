@@ -173,7 +173,7 @@ mrb_io_mode_flags(mrb_state *mrb, const char *mode)
       flags |= FMODE_WRITABLE | FMODE_APPEND | FMODE_CREATE;
       break;
     default:
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
   }
 
   while (*m) {
@@ -187,7 +187,7 @@ mrb_io_mode_flags(mrb_state *mrb, const char *mode)
       case ':':
         /* XXX: PASSTHROUGH*/
       default:
-        mrb_raise(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
     }
   }
 
@@ -221,7 +221,7 @@ mrb_io_modenum_to_modestr(mrb_state *mrb, int flags)
       return MODE_BINARY("r+", "rb+");
   }
 
-  mrb_raise(mrb, E_ARGUMENT_ERROR, "illegal access mode %o", flags);
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %o", flags);
   return NULL;
 }
 
@@ -263,7 +263,7 @@ mrb_io_modestr_to_modenum(mrb_state *mrb, const char *mode)
   }
   return flags;
 error:
-  mrb_raise(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
   /* mrb_raise execute exit(1) */
   return 0; /* UNREACH */
 }
@@ -318,7 +318,7 @@ mrb_value
 rb_io_initialize(mrb_state *mrb, int argc, mrb_value *argv, mrb_value io)
 {
   if (argc < 1 || argc > 2) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR,
+    mrb_raisef(mrb, E_ARGUMENT_ERROR,
         "wrong number of arguments (%d for 1..2)", argc);
     return mrb_nil_value();
   }
@@ -1521,7 +1521,7 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "*", &argv, &argc);
 
   if (argc < 1 || argc > 3) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR,
+    mrb_raisef(mrb, E_ARGUMENT_ERROR,
         "wrong number of arguments (%d for 1..2)", argc);
     return mrb_nil_value();
   }
@@ -1562,7 +1562,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   io = io_alloc(mrb, mrb_class_ptr(klass));
 
   if (argc < 1) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR,
+    mrb_raisef(mrb, E_ARGUMENT_ERROR,
         "wrong number of arguments (%d for 1..)", argc);
     return mrb_nil_value();
   }
@@ -1792,7 +1792,7 @@ mrb_io_select(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "*", &argv, &argc);
 
   if (argc < 1 || argc > 4) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR,
+    mrb_raisef(mrb, E_ARGUMENT_ERROR,
 	      "wrong number of arguments (%d for 1..4)", argc);
     return mrb_nil_value();
   }

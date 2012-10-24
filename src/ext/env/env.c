@@ -23,7 +23,7 @@ static mrb_value
 mrb_env_getenv(mrb_state *mrb, mrb_value name)
 {
   if (mrb_type(name) != MRB_TT_STRING) {
-    mrb_raise(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, name));
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, name));
     return mrb_nil_value();
   }
 
@@ -55,7 +55,7 @@ static mrb_value
 mrb_env_setenv(mrb_state *mrb, mrb_value name, mrb_value value)
 {
   if (mrb_type(name) != MRB_TT_STRING) {
-    mrb_raise(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, name));
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, name));
     return mrb_nil_value();
   }
 
@@ -64,7 +64,7 @@ mrb_env_setenv(mrb_state *mrb, mrb_value name, mrb_value value)
   }
 
   if (mrb_type(value) != MRB_TT_STRING) {
-    mrb_raise(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, value));
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, value));
     return mrb_nil_value();
   }
 

@@ -202,7 +202,7 @@ mrb_tcpsocket_open(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "zo", &host, &servo);
   if (mrb_type(servo) != MRB_TT_STRING) {
     if (!mrb_respond_to(mrb, servo, mrb_intern(mrb, "to_s"))) {
-      mrb_raise(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, servo));
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, servo));
     }
     servo = mrb_funcall(mrb, servo, "to_s", 0);
   }

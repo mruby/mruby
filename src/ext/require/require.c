@@ -188,7 +188,7 @@ find_file(mrb_state *mrb, mrb_value filename)
     }
   }
 
-  mrb_raise(mrb, E_LOAD_ERROR, "cannot load such file -- %s", RSTRING_PTR(filename));
+  mrb_raisef(mrb, E_LOAD_ERROR, "cannot load such file -- %s", RSTRING_PTR(filename));
   return mrb_nil_value();
 }
 
@@ -211,7 +211,7 @@ load_mrb_file(mrb_state *mrb, mrb_value filepath)
   {
     FILE *fp = fopen(fpath, "r");
     if (fp == NULL) {
-      mrb_raise(mrb, E_LOAD_ERROR, "can't load %s", fpath);
+      mrb_raisef(mrb, E_LOAD_ERROR, "can't load %s", fpath);
       return;
     }
     fclose(fp);
@@ -247,7 +247,7 @@ load_rb_file(mrb_state *mrb, mrb_value filepath)
   {
     FILE *fp = fopen(fpath, "r");
     if (fp == NULL) {
-      mrb_raise(mrb, E_LOAD_ERROR, "can't load %s", fpath);
+      mrb_raisef(mrb, E_LOAD_ERROR, "can't load %s", fpath);
       return;
     }
     fclose(fp);
@@ -285,7 +285,7 @@ load_file(mrb_state *mrb, mrb_value filepath)
 {
   char *ext = strrchr(RSTRING_PTR(filepath), '.');
   if (ext == NULL) {
-    mrb_raise(mrb, E_LOAD_ERROR, "Filepath '%s' is invalid.", RSTRING_PTR(filepath));
+    mrb_raisef(mrb, E_LOAD_ERROR, "Filepath '%s' is invalid.", RSTRING_PTR(filepath));
     return ;
   }
 
@@ -294,7 +294,7 @@ load_file(mrb_state *mrb, mrb_value filepath)
   } else if (strcmp(ext, ".rb") == 0) {
     load_rb_file(mrb, filepath);
   } else {
-    mrb_raise(mrb, E_LOAD_ERROR, "Filepath '%s' is invalid extension.",
+    mrb_raisef(mrb, E_LOAD_ERROR, "Filepath '%s' is invalid extension.",
         RSTRING_PTR(filepath));
     return;
   }
@@ -315,7 +315,7 @@ mrb_f_load(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "o", &filename);
   if (mrb_type(filename) != MRB_TT_STRING) {
-    mrb_raise(mrb, E_TYPE_ERROR, "can't convert %s into String",
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String",
         mrb_obj_classname(mrb, filename));
     return mrb_nil_value();
   }
@@ -393,7 +393,7 @@ mrb_f_require(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "o", &filename);
   if (mrb_type(filename) != MRB_TT_STRING) {
-    mrb_raise(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, filename));
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, filename));
     return mrb_nil_value();
   }
 

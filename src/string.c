@@ -1303,7 +1303,7 @@ str_gsub(mrb_state *mrb, mrb_value str, mrb_int bang)
       mrb_string_value(mrb, &repl);
       break;
     default:
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 2)", argc);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 2)", argc);
   }
 
   pat = get_pat(mrb, argv[0], 1);
@@ -1761,7 +1761,7 @@ mrb_str_match_m(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
   if (argc < 1)
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 1..2)", argc);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 1..2)", argc);
   re = argv[0];
   argv[0] = self;
   result = mrb_funcall(mrb, get_pat(mrb, re, 0), "match", 1, self);
@@ -2422,7 +2422,7 @@ mrb_str_sub(mrb_state *mrb, mrb_value self)
     repl = argv[1];
     mrb_string_value(mrb, &repl);
   } else {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 2)", argc);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 2)", argc);
   }
 
   pat = get_pat(mrb, argv[0], 1);

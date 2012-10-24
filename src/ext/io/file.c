@@ -41,7 +41,7 @@ mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
     }
     omask = umask(mrb_fixnum(mask));
   } else {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 0..1)", argc);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 0..1)", argc);
   }
   return mrb_fixnum_value(omask);
 }
@@ -120,7 +120,7 @@ mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
   for (i = 0, n = 0; i < argc; i++) {
     mrb_value pathv = argv[i];
     if (mrb_type(pathv) != MRB_TT_STRING) {
-      mrb_raise(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, pathv));
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, pathv));
     }
     const char *path = mrb_string_value_cstr(mrb, &pathv);;
     if (unlink(path) < 0) {
@@ -158,15 +158,15 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   if (argc != 2) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 2)", argc);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 2)", argc);
     return mrb_nil_value();
   }
   if (mrb_type(argv[0]) != MRB_TT_STRING) {
-    mrb_raise(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, argv[0]));
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, argv[0]));
     return mrb_nil_value();
   }
   if (mrb_type(argv[1]) != MRB_TT_STRING) {
-    mrb_raise(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, argv[1]));
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, argv[1]));
     return mrb_nil_value();
   }
 

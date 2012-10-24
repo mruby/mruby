@@ -131,13 +131,13 @@ modifiers:
           if (strchr(natstr, type)) {
             p++;
           } else {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "'%c' allowed only after types %s", *p, natstr);
+            mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%c' allowed only after types %s", *p, natstr);
           }
           goto modifiers;
         case '<':
         case '>':
           if (!strchr(endstr, type)) {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "'%c' allowed only after types %s", *p, endstr);
+            mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%c' allowed only after types %s", *p, endstr);
           }
           if (explicit_endian) {
             mrb_raise(mrb, E_RANGE_ERROR, "Can't use both '<' and '>'");
@@ -327,14 +327,14 @@ modifiers:
             p++;
           }
           else {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "'%c' allowed only after types %s", *p, natstr);
+            mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%c' allowed only after types %s", *p, natstr);
           }
           goto modifiers;
 
         case '<':
         case '>':
           if (!strchr(endstr, type)) {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "'%c' allowed only after types %s", *p, endstr);
+            mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%c' allowed only after types %s", *p, endstr);
           }
           if (explicit_endian) {
             mrb_raise(mrb, E_RANGE_ERROR, "Can't use both '<' and '>'");
@@ -362,7 +362,7 @@ modifiers:
 
     switch (type) {
       case '%':
-        mrb_raise(mrb, E_ARGUMENT_ERROR, "%% is not supported");
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "%% is not supported");
         break;
 
       case 'C':

@@ -201,7 +201,7 @@ reg_operand(mrb_state *mrb, mrb_value s, int check)
   else {
     mrb_value tmp = mrb_check_string_type(mrb, s);
     if (check && mrb_nil_p(tmp)) {
-      mrb_raise(mrb, E_TYPE_ERROR, "can't convert %s to String",
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s to String",
          mrb_obj_classname(mrb, s));
     }
     return tmp;
@@ -300,7 +300,7 @@ match_backref_number(mrb_state *mrb, mrb_value match, mrb_value backref)
               (const unsigned char*)name + strlen(name),
               regs);
   if (num < 1) {
-    mrb_raise(mrb, E_INDEX_ERROR, "undefined group name reference: %s", name);
+    mrb_raisef(mrb, E_INDEX_ERROR, "undefined group name reference: %s", name);
   }
 
   return num;
@@ -394,7 +394,7 @@ mrb_reg_raise(mrb_state *mrb, const char *s, long len, const char *err, mrb_valu
 {
     mrb_value desc = mrb_reg_desc(mrb, s, len, re);
 
-    mrb_raise(mrb, E_REGEXP_ERROR, "%s: %s", err, RSTRING_PTR(desc));
+    mrb_raisef(mrb, E_REGEXP_ERROR, "%s: %s", err, RSTRING_PTR(desc));
 }
 
 regex_t *
@@ -416,7 +416,7 @@ mrb_reg_prepare_re(mrb_state *mrb, mrb_value re, mrb_value str)
     pattern, pattern + RREGEXP(re)->src->len, err);
 
   if (mrb_nil_p(unescaped)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "regexp preprocess failed: %s", err);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "regexp preprocess failed: %s", err);
   }
 
   r = onig_new(&reg, (UChar* )RSTRING_PTR(unescaped),
@@ -703,7 +703,7 @@ mrb_reg_initialize(mrb_state *mrb, mrb_value obj, const char *s, long len,
   mrb_value unescaped;
   mrb_encoding *enc = ONIG_ENCODING_ASCII; /* mrb_ascii8bit_encoding(mrb);*/
   if (re->ptr)
-    mrb_raise(mrb, E_TYPE_ERROR, "already initialized regexp");
+    mrb_raisef(mrb, E_TYPE_ERROR, "already initialized regexp");
   re->ptr = 0;
 
   unescaped = mrb_reg_preprocess(mrb, s, s+len, err);
@@ -790,7 +790,7 @@ mrb_reg_initialize_m(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   if (argc == 0 || argc > 3) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 1..3)", argc);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 1..3)", argc);
   }
   if (mrb_type(argv[0]) ==  MRB_TT_REGEX) {
     mrb_value re = argv[0];
@@ -823,7 +823,7 @@ mrb_reg_initialize_m(mrb_state *mrb, mrb_value self)
     str = argv[0];
     ptr = mrb_string_value_ptr(mrb, str);
     if (mrb_reg_initialize_str(mrb, self, str, flags, err, NULL, 0)) {
-       mrb_raise(mrb, E_REGEXP_ERROR, "%s", err);
+       mrb_raisef(mrb, E_REGEXP_ERROR, "%s", err);
     }
   }
   return self;
@@ -1151,7 +1151,7 @@ name_to_backref_number(mrb_state *mrb, struct re_registers *regs, struct RRegexp
   }
   else {
     mrb_value s = mrb_str_new(mrb, name, (long )(name_end - name));
-    mrb_raise(mrb, E_INDEX_ERROR, "undefined group name reference: %s",
+    mrb_raisef(mrb, E_INDEX_ERROR, "undefined group name reference: %s",
         mrb_string_value_ptr(mrb, s));
     return num; /* not reach */
   }
@@ -1321,7 +1321,7 @@ mrb_match_begin(mrb_state *mrb, mrb_value match)
   regs = RMATCH_REGS(match);
 
   if (i < 0 || regs->num_regs <= i)
-    mrb_raise(mrb, E_INDEX_ERROR, "index %d out of matches", i);
+    mrb_raisef(mrb, E_INDEX_ERROR, "index %d out of matches", i);
 
   if (BEG(i) < 0)
     return mrb_nil_value();
@@ -1408,7 +1408,7 @@ mrb_match_end(mrb_state *mrb, mrb_value match)
   regs = RMATCH_REGS(match);
 
   if (i < 0 || regs->num_regs <= i)
-    mrb_raise(mrb, E_INDEX_ERROR, "index %d out of matches", i);
+    mrb_raisef(mrb, E_INDEX_ERROR, "index %d out of matches", i);
 
   if (BEG(i) < 0)
     return mrb_nil_value();
@@ -1514,7 +1514,7 @@ mrb_match_offset(mrb_state *mrb, mrb_value match)
   i = match_backref_number(mrb, match, n);
 
   if (i < 0 || regs->num_regs <= i)
-    mrb_raise(mrb, E_INDEX_ERROR, "index %d out of matches", i);
+    mrb_raisef(mrb, E_INDEX_ERROR, "index %d out of matches", i);
 
   if (BEG(i) < 0)
     return mrb_assoc_new(mrb, mrb_nil_value(), mrb_nil_value());

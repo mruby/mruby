@@ -62,7 +62,7 @@ mrb_f_syslog_log(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "o*", &pri, &argv, &argc);
   if (argc < 1) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 2+)", argc+1);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 2+)", argc+1);
   }
 
   if (!syslog_opened) {
