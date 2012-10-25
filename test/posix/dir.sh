@@ -12,7 +12,7 @@ setup()
 
 setup
 
-TMPDIR=`mktemp -d` || exit 1
+TMPDIR=`mktemp -d tmpdir.XXXXXXXX` || exit 1
 
 cat ../assert.rb - <<EOF | (cd $TMPDIR; $RUBY) | tee $LOG_FILENAME
 ##
