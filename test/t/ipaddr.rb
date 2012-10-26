@@ -6,6 +6,14 @@ if Object.const_defined?(:IPAddr)
     IPAddr.class == Class
   end
 
+  assert('IPAddr#initialize') do
+    a = IPAddr.new('192.0.2.1/24')
+    b = IPAddr.new('192.0.2.1/24', Socket::AF_INET)
+    c = IPAddr.new('2001:db8::1/64')
+    d = IPAddr.new('2001:db8::1/64', Socket::AF_INET6)
+    a.inspect == b.inspect and c.inspect == d.inspect
+  end
+
   assert('IPAddr#family') do
     a = IPAddr.new('192.0.2.1', Socket::AF_INET)
     b = IPAddr.new('2001:db8::1', Socket::AF_INET6)
@@ -51,7 +59,8 @@ if Object.const_defined?(:IPAddr)
     a = IPAddr.new('1.1.1.0')
     b = IPAddr.new('1.1.1.2')
     c = IPAddr.new('1.1.1.1')
-    (x <=> a) > 0 and (x <=> b) < 0 and (x <=> c) == 0
+    d = IPAddr.new('2001:db8::1')
+    (x <=> a) > 0 and (x <=> b) < 0 and (x <=> c) == 0 and (x <=> d) == nil
   end
 
   assert('IPAddr#~') do

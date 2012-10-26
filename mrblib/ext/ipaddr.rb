@@ -4,10 +4,10 @@ if Object.const_defined? :Socket
       a, m = addr.split('/', 2)
       if family == Socket::AF_UNSPEC
         begin
-          @addr = IPSocket.pton(Socket::AF_INET, addr)
+          @addr = IPSocket.pton(Socket::AF_INET, a)
           @family = Socket::AF_INET
         rescue ArgumentError
-	  @addr = IPSocket.pton(Socket::AF_INET6, addr)
+	  @addr = IPSocket.pton(Socket::AF_INET6, a)
           @family = Socket::AF_INET6
         end
       else
@@ -89,12 +89,12 @@ if Object.const_defined? :Socket
 
     def mask(prefixlen)
       a = @addr.unpack("C*")
-      if prefixlen % 8 == 0
-        a[prefixlen.div(8)] = 0
-      else
-        a[prefixlen.div(8)] &= ~(0xff >> (prefixlen % 8))
+      i = prefixlen.div(8)
+      if prefixlen % 8 != 0
+        a[i] &= ~(0xff >> (prefixlen % 8))
+        i += 1
       end
-      (prefixlen.div(8)+1..a.size-1).each { |i| a[i] = 0 }
+      (i..a.size-1).each { |i| a[i] = 0 }
       IPAddr.new('::', Socket::AF_INET6).set2(a.pack("C*"), @family)
     end
 
@@ -115,7 +115,11 @@ if Object.const_defined? :Socket
     end
 
     def <=>(other)
-      @addr <=> other.hton
+      if @family == other.family
+        @addr <=> other.hton
+      else
+        nil
+      end
     end
 
     def ~
