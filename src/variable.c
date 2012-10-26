@@ -420,6 +420,7 @@ obj_iv_p(mrb_value obj)
     case MRB_TT_OBJECT:
     case MRB_TT_CLASS:
     case MRB_TT_MODULE:
+    case MRB_TT_SCLASS:
     case MRB_TT_HASH:
     case MRB_TT_DATA:
       return TRUE;
