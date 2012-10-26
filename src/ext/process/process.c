@@ -20,6 +20,38 @@
 #include <signal.h>
 
 #ifdef ENABLE_PROCESS
+mrb_value
+mrb_f_kill(mrb_state *mrb, mrb_value klass)
+{
+  mrb_int pid;
+  mrb_value *argv, sigo;
+  int argc, sent, signo = 0;
+
+  mrb_get_args(mrb, "oi*", &sigo, &pid, &argv, &argc);
+  if (FIXNUM_P(sigo)) {
+    signo = mrb_fixnum(sigo);
+  } else {
+    mrb_raisef(mrb, E_TYPE_ERROR, "bad signal type %s",
+    	       mrb_obj_classname(mrb, sigo));
+  }
+
+  sent = 0;
+  if (kill(pid, signo) == -1)
+    mrb_sys_fail(mrb, "kill");
+  sent++;
+
+  while (argc-- > 0) {
+    if (!FIXNUM_P(*argv)) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %s (expected Fixnum)",
+      	         mrb_obj_classname(mrb, *argv));
+    }
+    if (kill(mrb_fixnum(*argv), signo) == -1)
+      mrb_sys_fail(mrb, "kill");
+    sent++;
+    argv++;
+  }
+  return mrb_fixnum_value(sent);
+}
 
 mrb_value
 mrb_f_sleep(mrb_state *mrb, mrb_value klass)
@@ -113,9 +145,14 @@ mrb_f_exit(mrb_state *mrb, mrb_value klass)
 void
 mrb_init_process(mrb_state *mrb)
 {
+  struct RClass *p;
+
   mrb_define_method(mrb, mrb->kernel_module, "sleep", mrb_f_sleep, ARGS_ANY());
   mrb_define_method(mrb, mrb->kernel_module, "system", mrb_f_system, ARGS_ANY());
   mrb_define_method(mrb, mrb->kernel_module, "exit", mrb_f_exit, ARGS_OPT(1));
+
+  p = mrb_define_module(mrb, "Process");
+  mrb_define_class_method(mrb, p, "kill", mrb_f_kill, ARGS_ANY());
 }
 
 #endif /* ENABLE_PROCESS */
