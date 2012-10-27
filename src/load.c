@@ -405,12 +405,12 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
 
       switch (tt) {                           //pool data
       case MRB_TT_FIXNUM:
-        fix_num = strtol(buf, NULL, 10);
+        fix_num = str_to_mrb_int(buf);
         irep->pool[i] = mrb_fixnum_value(fix_num);
         break;
 
       case MRB_TT_FLOAT:
-        f = readfloat(buf);
+        f = str_to_mrb_float(buf);
         irep->pool[i] = mrb_float_value(f);
         break;
 

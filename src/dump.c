@@ -226,11 +226,11 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep, int type)
 
     switch (mrb_type(irep->pool[pool_no])) {
     case MRB_TT_FIXNUM:
-      len = sprintf( buf, "%d", mrb_fixnum(irep->pool[pool_no]));
+      len = mrb_int_to_str( buf, mrb_fixnum(irep->pool[pool_no]));
       size += (uint32_t)len;
       break;
     case MRB_TT_FLOAT:
-      len = sprintf( buf, "%.16e", mrb_float(irep->pool[pool_no]));
+      len = mrb_float_to_str( buf, mrb_float(irep->pool[pool_no]));
       size += (uint32_t)len;
       break;
     case MRB_TT_STRING:
@@ -346,11 +346,11 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
 
     switch (mrb_type(irep->pool[pool_no])) {
     case MRB_TT_FIXNUM:
-      len = sprintf(char_buf, "%d", mrb_fixnum(irep->pool[pool_no]));
+      len = mrb_int_to_str(char_buf, mrb_fixnum(irep->pool[pool_no]));
       break;
 
     case MRB_TT_FLOAT:
-      len = sprintf(char_buf, "%.16e", mrb_float(irep->pool[pool_no]));
+      len = mrb_float_to_str(char_buf, mrb_float(irep->pool[pool_no]));
       break;
 
     case MRB_TT_STRING:
