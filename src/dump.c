@@ -6,6 +6,7 @@
 
 #include <string.h>
 #include "mruby/dump.h"
+#include <ctype.h>
 
 #include "mruby/string.h"
 #ifdef ENABLE_REGEXP
@@ -119,13 +120,16 @@ uint32_dump(uint32_t bin, char *hex, int type)
   }
 }
 
+#define CHAR_ESC_LEN 13 /* sizeof(\x{ hex of 32bit unsigned int } \0) */
+
 static char*
 str_dump(char *str, char *hex, uint16_t len, int type)
 {
   if (type == DUMP_TYPE_BIN)
     memcpy(hex, str, len);
   else {
-    char *src, *dst;
+    char *src, *dst, buf[CHAR_ESC_LEN + 1];
+    int n;
 
     for (src = str, dst = hex; len > 0; src++, dst++, len--) {
       switch (*src) {
@@ -136,11 +140,19 @@ str_dump(char *str, char *hex, uint16_t len, int type)
       case 0x0B:/* VT  */ *dst++ = '\\'; *dst = 'v'; break;
       case 0x0C:/* FF  */ *dst++ = '\\'; *dst = 'f'; break;
       case 0x0D:/* CR  */ *dst++ = '\\'; *dst = 'r'; break;
+      case 0x5C:/* \   */ *dst++ = '\\'; *dst = '\\'; break;
       case 0x22:/* "   */ /* fall through */
       case 0x27:/* '   */ /* fall through */
   //  case 0x3F:/* ?   */ /* fall through */
-      case 0x5C:/* \   */ /* fall through */
-      default: *dst = *src; break;
+      default:
+        if (*src >= ' ' && *src <= '~') {
+          *dst = *src;
+        } else {
+          n = sprintf(buf, "\\%03o", *src & 0377);
+          memcpy(dst, buf, n);
+          dst += (n-1);
+        }
+        break;
       }
     }
   }
@@ -167,15 +179,21 @@ str_dump_len(char *str, uint16_t len, int type)
       case 0x0B:/* VT  */ /* fall through */
       case 0x0C:/* FF  */ /* fall through */
       case 0x0D:/* CR  */ /* fall through */
+      case 0x5C:/* \   */ /* fall through */
         dump_len += 2;
         break;
 
       case 0x22:/* "   */ /* fall through */
       case 0x27:/* '   */ /* fall through */
   //  case 0x3F:/* ?   */ /* fall through */
-      case 0x5C:/* \   */ /* fall through */
       default:
-        dump_len++; break;
+        if (*src >= ' ' && *src <= '~') {
+          dump_len++;
+        } else {
+          // dump_len += sprintf(buf, "\\%03o", *src & 0377);
+          dump_len += 4;
+        }
+        break;
       }
     }
   }
