@@ -264,8 +264,10 @@ main(int argc, char **argv)
     }
     else if (!args.check_syntax) {
       mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
+      n = 0;
       if (mrb->exc) {
 	p(mrb, mrb_obj_value(mrb->exc));
+	n = -1;
       }
     }
   }
