@@ -16,6 +16,11 @@ ASSLIB := $(BASEDIR)/assert.rb
 MRBS := $(BASEDIR)/t/*.rb
 OBJS := driver.o $(MLIB)
 
+# for mruby/mrbc test
+REPLIB  := $(BASEDIR)/report.rb
+TESTRB  := mrubytest.rb
+TESTMRB := mrubytest.mrb
+
 # libraries, includes
 LIBS = -lm
 INCLUDES = -I$(BASEDIR)/../src -I$(BASEDIR)/../include
@@ -43,9 +48,11 @@ endif
 # mruby compiler and test driver
 ifeq ($(OS),Windows_NT)
 MRBC = ../bin/mrbc.exe
+MRUBY= ../bin/mruby.exe
 EXE := $(TARGET).exe
 else
 MRBC = ../bin/mrbc
+MRUBY= ../bin/mruby
 EXE := $(TARGET)
 endif
 
@@ -54,8 +61,15 @@ endif
 # generic build targets, rules
 
 .PHONY : test
-all : $(EXE)
+all : $(EXE) $(MRUBY) $(TESTRB) $(TESTMRB)
+	@echo "*** mruby test 'mrbtest' ***************"
 	./$(EXE)
+	@echo
+	@echo "*** mruby test with ruby script file ***"
+	$(MRUBY) $(TESTRB)
+	@echo
+	@echo "*** mruby test with mrb file ***********"
+	$(MRUBY) -b $(TESTMRB)
 
 # executable constructed using linker from object files
 $(EXE) : $(OBJS) $(LIBR)
@@ -74,6 +88,14 @@ $(CLIB) : $(RLIB) $(MRBC) $(INIT)
 # merge mruby sources
 $(RLIB) : $(ASSLIB) $(MRBS)
 	$(CAT) $(ASSLIB) $(MRBS) > $@
+
+# Compile mrb file from mruby source
+$(TESTMRB) : $(MRBC) $(TESTRB)
+	$(MRBC) $(TESTRB)
+
+$(TESTRB) : $(ASSLIB) $(MRBS) $(REPLIB)
+	$(CAT) $(ASSLIB) $(MRBS) $(REPLIB) > $@
+
 
 # clean up
 .PHONY : clean
