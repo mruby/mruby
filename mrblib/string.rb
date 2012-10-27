@@ -145,7 +145,7 @@ class String
 
   def lstrip
     i = 0
-    while self[i] == ' '
+    while self.isspace(self[i])
       i += 1
     end
     j = 0
@@ -160,7 +160,7 @@ class String
 
   def rstrip
     i = -1
-    while self[i] == ' '
+    while self.isspace(self[i])
       i -= 1
     end
     j = 0
@@ -182,6 +182,11 @@ class String
     a = self.lstrip
     b = a.rstrip
     self.replace(b)
+  end
+
+  #private
+  def isspace(num)
+    num == ?\s or num == ?\n or num == ?\t or num == ?\r or num == ?\f or num == ?\v
   end
 end
 

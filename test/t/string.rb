@@ -415,6 +415,9 @@ assert('String strip methods test') do
   rs = "strip "
   bs = " strip "
   bangs = " strip "
+  tab = "\tstrip\t"
+  cr = "\rstrip\r"
+  lf = "\nstrip\n"
   res = "strip"
 
   bangs.strip!
@@ -422,5 +425,8 @@ assert('String strip methods test') do
   ls.lstrip == res and
   rs.rstrip == res and
   bs.strip == res and
+  tab.strip ==  res and
+  cr.strip ==  res and
+  lf.strip ==  res and
   bangs == res
 end
