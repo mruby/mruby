@@ -149,11 +149,12 @@ mrb_init_proc(mrb_state *mrb)
 {
   struct RProc *m;
   mrb_irep *call_irep = (mrb_irep *)mrb_alloca(mrb, sizeof(mrb_irep));
+  static const mrb_irep mrb_irep_zero = { 0 };
 
   if ( call_iseq == NULL || call_irep == NULL )
     return;
 
-  memset(call_irep, 0, sizeof(mrb_irep));
+  *call_irep = mrb_irep_zero;
   call_irep->flags = MRB_ISEQ_NO_FREE;
   call_irep->idx = -1;
   call_irep->iseq = call_iseq;

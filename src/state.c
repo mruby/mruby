@@ -16,10 +16,11 @@ void mrb_init_ext(mrb_state*);
 mrb_state*
 mrb_open_allocf(mrb_allocf f, void *ud)
 {
+  static const mrb_state mrb_state_zero = { 0 };
   mrb_state *mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
   if (mrb == NULL) return NULL;
 
-  memset(mrb, 0, sizeof(mrb_state));
+  *mrb = mrb_state_zero;
   mrb->ud = ud;
   mrb->allocf = f;
   mrb->current_white_part = MRB_GC_WHITE_A;
@@ -119,12 +120,15 @@ mrb_add_irep(mrb_state *mrb, int idx)
     mrb->irep_capa = max;
   }
   else if (mrb->irep_capa <= idx) {
+    int i;
     size_t old_capa = mrb->irep_capa;
     while (mrb->irep_capa <= idx) {
       mrb->irep_capa *= 2;
     }
     mrb->irep = (mrb_irep **)mrb_realloc(mrb, mrb->irep, sizeof(mrb_irep*)*mrb->irep_capa);
-    memset(mrb->irep + old_capa, 0, sizeof(mrb_irep*) * (mrb->irep_capa - old_capa));
+    for (i = old_capa; i < mrb->irep_capa - old_capa; i++) {
+      mrb->irep[i] = NULL;
+    }
   }
 }
 
