@@ -408,12 +408,12 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
 
       switch (tt) {                           //pool data
       case MRB_TT_FIXNUM:
-        fix_num = strtol(buf, NULL, 10);
+        fix_num = str_to_mrb_int(buf);
         irep->pool[i] = mrb_fixnum_value(fix_num);
         break;
 
       case MRB_TT_FLOAT:
-        f = readfloat(buf);
+        f = str_to_mrb_float(buf);
         irep->pool[i] = mrb_float_value(f);
         break;
 
@@ -451,7 +451,10 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
       goto error_exit;
     }
 
-    memset(irep->syms, 0, sizeof(mrb_sym)*(irep->slen));
+    for (i = 0; i < irep->slen; i++) {
+      static const mrb_sym mrb_sym_zero = { 0 };
+      *irep->syms = mrb_sym_zero;
+    }
     for (i=0; i<irep->slen; i++) {
       snl = bin_to_uint16(src);               //symbol name length
       src += MRB_DUMP_SIZE_OF_SHORT;
@@ -512,11 +515,12 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
   mrb_add_irep(mrb, sirep + nirep);
 
   for (n=0,i=sirep; n<nirep; n++,i++) {
+    static const mrb_irep mrb_irep_zero = { 0 };
     if ((mrb->irep[i] = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep))) == NULL) {
       ret = MRB_DUMP_GENERAL_FAILURE;
       goto error_exit;
     }
-    memset(mrb->irep[i], 0, sizeof(mrb_irep));
+    *mrb->irep[i] = mrb_irep_zero;
   }
   src += sizeof(bin_header) + MRB_DUMP_SIZE_OF_SHORT;  //header + crc
 

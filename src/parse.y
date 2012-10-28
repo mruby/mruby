@@ -4841,13 +4841,14 @@ mrb_parser_new(mrb_state *mrb)
 {
   mrb_pool *pool;
   parser_state *p;
+  static const parser_state parser_state_zero = { 0 };
 
   pool = mrb_pool_open(mrb);
   if (!pool) return 0;
   p = (parser_state *)mrb_pool_alloc(pool, sizeof(parser_state));
   if (!p) return 0;
 
-  memset(p, 0, sizeof(parser_state));
+  *p = parser_state_zero;
   p->mrb = mrb;
   p->pool = pool;
   p->in_def = p->in_single = 0;
