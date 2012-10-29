@@ -329,6 +329,7 @@ struct RBasic*
 mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
 {
   struct RBasic *p;
+  static const RVALUE RVALUE_zero = { { { 0 } } };
 
 #ifdef MRB_GC_STRESS
   mrb_garbage_collect(mrb);
@@ -348,7 +349,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
 
   mrb->live++;
   gc_protect(mrb, p);
-  memset(p, 0, sizeof(RVALUE));
+  *(RVALUE *)p = RVALUE_zero;
   p->tt = ttype;
   p->c = cls;
   paint_partial_white(mrb, p);
