@@ -75,6 +75,23 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 }
 
 static mrb_value
+mrb_file_basename(mrb_state *mrb, mrb_value klass)
+{
+  char *cp, *bname;
+  mrb_int n;
+  mrb_value fname;
+
+  mrb_get_args(mrb, "s", &cp, &n);
+  fname = mrb_str_new(mrb, cp, n);
+
+  if ((bname = basename(RSTRING_PTR(fname))) == NULL) {
+    mrb_sys_fail(mrb, "mrb_file_basename failed.");
+  }
+
+  return mrb_str_new(mrb, bname, strlen(bname));
+}
+
+static mrb_value
 mrb_file_size(mrb_state *mrb, mrb_value klass)
 {
   char *cp;
@@ -218,6 +235,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "exists?",    mrb_file_exist_p,    ARGS_REQ(1));              /* 15.2.21.3.1  */
   mrb_define_method(mrb, file,       "path",       mrb_file_path,       ARGS_NONE());              /* 15.2.21.4.2  */
   mrb_define_class_method(mrb, file, "dirname",   mrb_file_dirname,    ARGS_REQ(1));
+  mrb_define_class_method(mrb, file, "basename",  mrb_file_basename,   ARGS_REQ(1));
   mrb_define_class_method(mrb, file, "size",      mrb_file_size,       ARGS_REQ(1));
 }
 

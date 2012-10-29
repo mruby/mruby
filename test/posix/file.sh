@@ -66,6 +66,11 @@ if Object.const_defined?(:IO) and Object.const_defined?(:File)
     "." == path
   end
 
+  assert('File.basename') do
+    name = File.basename("../somewhere/$R_FILENAME")
+    name == "$R_FILENAME"
+  end
+
   assert('File.size') do
     File.size("$R_FILENAME") == "$R_BODY_MSG".size + 1  and
     File.size("$W_FILENAME") == 0
