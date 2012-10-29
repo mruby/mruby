@@ -65,6 +65,11 @@ if Object.const_defined?(:IO) and Object.const_defined?(:File)
     path = File.dirname("$R_FILENAME")
     "." == path
   end
+
+  assert('File.size') do
+    File.size("$R_FILENAME") == "$R_BODY_MSG".size + 1  and
+    File.size("$W_FILENAME") == 0
+  end
 end
 
 report
