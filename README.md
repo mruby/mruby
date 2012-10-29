@@ -8,6 +8,7 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
  * 追加したクラス/モジュール
    * Digest::MD5/RIPEMD160/SHA1/SHA256/SHA384/SHA512
    * Digest::HMAC: #reset 以外
+   * Dir: ::[] ::chdir ::chroot ::glob ::home #path #to\_path #inspect 以外
    * ENV: ::[] ::[]= ::clear ::delete ::inspect ::keys ::size ::store
           ::to\_a ::to\_hash ::to\_s ::values
    * Errno::EXXX
