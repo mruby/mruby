@@ -22,7 +22,7 @@ make_cdump_isec(mrb_state *mrb, int irep_no, FILE *f)
   int i;
   mrb_irep *irep = mrb->irep[irep_no];
 
-  if (irep == 0)
+  if (irep == NULL)
     return -1;
 
   /* dump isec struct*/
@@ -103,11 +103,11 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
   char *buf = 0;
   size_t buf_len, str_len;
 
-  if (irep == 0)
+  if (irep == NULL)
     return -1;
 
   buf_len = MRB_CDUMP_LINE_LEN;
-  if ((buf = (char *)mrb_malloc(mrb, buf_len)) == 0 ) {
+  if ((buf = (char *)mrb_malloc(mrb, buf_len)) == NULL) {
     return MRB_CDUMP_GENERAL_FAILURE;
   }
 
@@ -150,7 +150,7 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
         str_len = str_format_len(irep->pool[n]) + 1;
         if ( str_len > buf_len ) {
           buf_len = str_len;
-          if ((buf = (char *)mrb_realloc(mrb, buf, buf_len)) == 0 ) {
+          if ((buf = (char *)mrb_realloc(mrb, buf, buf_len)) == NULL) {
             return MRB_CDUMP_GENERAL_FAILURE;
           }
         }
@@ -174,7 +174,7 @@ mrb_cdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname)
 {
   int irep_no, irep_num;
 
-  if (mrb == 0 || n < 0 || n >= mrb->irep_len || f == 0 || initname == 0)
+  if (mrb == NULL || n < 0 || n >= mrb->irep_len || f == NULL || initname == NULL)
     return -1;
 
   irep_num = mrb->irep_len - n;
