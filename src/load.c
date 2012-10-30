@@ -611,8 +611,8 @@ hex_to_uint32(unsigned char *hex)
 static char*
 hex_to_str(char *hex, char *str, uint16_t *str_len)
 {
-  char *src, *dst;
-  int escape = 0;
+  char *src, *dst, buf[4];
+  int escape = 0, base = 0;
 
   *str_len = 0;
   for (src = hex, dst = str; *src != '\0'; src++) {
@@ -629,7 +629,20 @@ hex_to_str(char *hex, char *str, uint16_t *str_len)
       case '\'': /* fall through */
       case '\?': /* fall through */
       case '\\': *dst++ = *src; break;
-      default:break;
+      default:
+        if (*src >= '0' && *src <= '7') {
+          base = 8;
+          strncpy(buf, src, 3);
+        } else if (*src == 'x' || *src == 'X') {
+          base = 16;
+          src++;
+          strncpy(buf, src, 2);
+        }
+
+        char *err_ptr;
+        *dst++ = (unsigned char) strtol(buf, &err_ptr, base) & 0xff;
+        src += (err_ptr - buf - 1);
+        break;
       }
       escape = 0;
     } else {
