@@ -674,6 +674,7 @@ mod_const_check(mrb_state *mrb, mrb_value mod)
   switch (mrb_type(mod)) {
   case MRB_TT_CLASS:
   case MRB_TT_MODULE:
+  case MRB_TT_SCLASS:
     break;
   default:
     mrb_raise(mrb, E_TYPE_ERROR, "constant look-up for non class/module");
