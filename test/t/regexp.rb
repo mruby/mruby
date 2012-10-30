@@ -115,4 +115,21 @@ if Object.const_defined?(:Regexp)
 
   #assert('Regexp#source', '15.2.15.7.8') do
   #end
+
+  assert('Regexp Literal (1)') do
+    re1 = /aaa/
+    re2 = Regexp.compile("aaa")
+    re3 = /aaa/i
+    re4 = Regexp.compile("aaa", Regexp::IGNORECASE)
+
+    unless re1 == re2
+      p re1, re2
+    end
+    unless re3 == re4
+      p re3, re4
+    end
+
+    re1 == re2 and
+    re3 == re4
+  end
 end
