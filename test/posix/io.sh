@@ -102,7 +102,7 @@ if Object.const_defined?(:IO)
     res2 == "$R_BODY_MSG" + "\n"
   end
 
-  assert('IO#puts', '15.2.20.5.11') do
+  assert('IO#print', '15.2.20.5.11') do
     str = "mruby print test"
     io = File.open("$W_FILENAME", "w")
     io.print(str)
@@ -137,6 +137,14 @@ if Object.const_defined?(:IO)
     count = io.write(str)
     io.close
     count == str.length
+  end
+
+  assert('IO#printf') do
+    io = File.open("$W_FILENAME", "w")
+    io.printf "mruby printf test %d %s %3.1f", 123, "fuga", 4.5
+    io.close
+    x = File.open("$W_FILENAME") { |f| f.read }
+    x == "mruby printf test 123 fuga 4.5"
   end
 end
 

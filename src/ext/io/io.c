@@ -17,7 +17,6 @@
 #include "mruby/ext/io.h"
 #include "error.h"
 
-static mrb_value mrb_rs;
 static mrb_value lineno;
 
 #ifndef PIPE_BUF
@@ -117,7 +116,6 @@ static mrb_value read_all(mrb_state *mrb,struct mrb_io *fptr,long siz,mrb_value 
 static mrb_value io_read(mrb_state *mrb,mrb_value io,int argc,mrb_value *argv);
 static mrb_value io_write(mrb_state *mrb,mrb_value io,mrb_value str,int nosync);
 static mrb_value mrb_io_print(mrb_state *, mrb_value);
-static mrb_value mrb_io_puts(mrb_state *, mrb_value);
 static int wsplit_p(struct mrb_io *fptr);
 static long read_buffered_data(char *ptr,long len,FILE *f);
 static long io_fread(mrb_state *mrb,char *ptr,long len,struct mrb_io *fptr);
@@ -1052,7 +1050,8 @@ retry:
 static void
 prepare_getline_args(mrb_state *mrb, int argc, mrb_value *argv, mrb_value *rsp, long *limit, mrb_value io)
 {
-  mrb_value rs = mrb_rs, lim = mrb_nil_value();
+  mrb_value rs = mrb_str_new_cstr(mrb, "\n");
+  mrb_value lim = mrb_nil_value();
 
   if (argc == 1) {
     mrb_value tmp = mrb_nil_value();
@@ -1220,19 +1219,6 @@ io_write(mrb_state *mrb, mrb_value io, mrb_value str, int nosync)
   return mrb_fixnum_value(n);
 }
 
-static int
-str_end_with_char(mrb_value str_obj, int c)
-{
-  const char *str;
-  int len;
-
-  str = mrb_str_body(str_obj, &len);
-  if (str[len - 1] == c)
-    return 1;
-
-  return 0;
-}
-
 static mrb_value
 mrb_io_print(mrb_state *mrb, mrb_value klass)
 {
@@ -1247,42 +1233,6 @@ mrb_io_print(mrb_state *mrb, mrb_value klass)
 
   for (i = 0; i < argc; i++)
     io_write(mrb, klass, argv[i], 0);
-
-  return mrb_nil_value();
-}
-
-static mrb_value
-mrb_io_puts(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value *argv;
-  mrb_value line;
-  int argc;
-  int i;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-
-  if (argc == 0) {
-    io_write(mrb, klass, mrb_rs, 0);
-    return mrb_nil_value();
-  }
-
-  for (i = 0; i < argc; i++) {
-    if (mrb_type(argv[i]) == MRB_TT_STRING)
-      line = argv[i];
-    else {
-      line = mrb_check_array_type(mrb, argv[i]);
-      if (!mrb_nil_p(line)) {
-	/* XXX implement recursive call */
-	mrb_raise(mrb, E_ARGUMENT_ERROR,
-		  "can't support array");
-	continue;
-      }
-      line = mrb_obj_as_string(mrb, argv[i]);
-    }
-    io_write(mrb, klass, line, 0);
-    if (RSTRING(line)->len == 0 || !str_end_with_char(line, '\n'))
-      io_write(mrb, klass, mrb_rs, 0);
-  }
 
   return mrb_nil_value();
 }
@@ -1956,7 +1906,6 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "each_line", mrb_io_each_line, ARGS_ANY()); /* 15.2.20.5.5 */
   mrb_define_method(mrb, io, "flush", mrb_io_flush, ARGS_NONE()); /* TBD */
   mrb_define_method(mrb, io, "print", mrb_io_print, ARGS_ANY()); /* 15.2.20.5.11 */
-  mrb_define_method(mrb, io, "puts", mrb_io_puts, ARGS_ANY()); /* 15.2.20.5.13 */
   mrb_define_method(mrb, io, "read", mrb_io_read, ARGS_ANY());  /* 15.2.20.5.14 */
   mrb_define_method(mrb, io, "sync", mrb_io_sync, ARGS_NONE()); /* 15.2.20.5.18 */
   mrb_define_method(mrb, io, "sync=", mrb_io_set_sync, ARGS_REQ(1));   /* 15.2.20.5.19 */
@@ -1964,8 +1913,6 @@ mrb_init_io(mrb_state *mrb)
 
   mrb_define_method(mrb, io, "initialize", mrb_io_initialize, ARGS_ANY());    /* 15.2.20.5.21 (x)*/
   mrb_define_method(mrb, io, "to_io", mrb_io_to_io, ARGS_NONE()); /* 15.2.20.5.22 (x) */
-
-  mrb_rs = mrb_str_new_cstr(mrb, "\n");
 
   /* TODO: ADD Kernel Module */
   /* mrb_define_method(mrb, mrb->kernel_module, "open", mrb_io_f_open, ARGS_ANY()); */
