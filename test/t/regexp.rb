@@ -115,4 +115,46 @@ if Object.const_defined?(:Regexp)
 
   #assert('Regexp#source', '15.2.15.7.8') do
   #end
+
+  assert('Regexp#options (literal)') do
+    re1 = /aaa/
+    re2 = /aaa/i
+    re3 = /aaa/x
+    re4 = /aaa/m
+
+    re1.options == 0 and
+    re2.options == 1 and
+    re3.options == 2 and
+    re4.options == 4
+  end
+
+  assert('Regexp#options') do
+    re1 = Regexp.compile("aaa")
+    re2 = Regexp.compile("aaa", Regexp::IGNORECASE)
+    re3 = Regexp.compile("aaa", Regexp::EXTENDED)
+    re4 = Regexp.compile("aaa", Regexp::MULTILINE)
+
+    re1.options == 0 and
+    re2.options == 1 and
+    re3.options == 2 and
+    re4.options == 4
+  end
+
+
+  assert('Regexp Literal (1)') do
+    re1 = /aaa/
+    re2 = Regexp.compile("aaa")
+    re3 = /aaa/i
+    re4 = Regexp.compile("aaa", Regexp::IGNORECASE)
+
+    unless re1 == re2
+      p re1, re2
+    end
+    unless re3 == re4
+      p re3, re4
+    end
+
+    re1 == re2 and
+    re3 == re4
+  end
 end

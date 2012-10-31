@@ -359,8 +359,8 @@ mrb_reg_check(mrb_state *mrb, mrb_value re)
   }
 }
 
-int
-mrb_reg_options(mrb_state *mrb, mrb_value re)
+static int
+reg_options(mrb_state *mrb, mrb_value re)
 {
     int options;
 
@@ -369,6 +369,12 @@ mrb_reg_options(mrb_state *mrb, mrb_value re)
     if (RBASIC(re)->flags & KCODE_FIXED) options |= ARG_ENCODING_FIXED;
     if (RBASIC(re)->flags & REG_ENCODING_NONE) options |= ARG_ENCODING_NONE;
     return options;
+}
+
+static mrb_value
+mrb_reg_options(mrb_state *mrb, mrb_value re)
+{
+  return mrb_fixnum_value(reg_options(mrb, re));
 }
 
 static mrb_value
@@ -799,7 +805,7 @@ mrb_reg_initialize_m(mrb_state *mrb, mrb_value self)
       printf("flags ignored"); /* XXX: need mrb_warn */
     }
     mrb_reg_check(mrb, re);
-    flags = mrb_reg_options(mrb, re);
+    flags = reg_options(mrb, re);
     ptr = RREGEXP_SRC_PTR(re);
     len = RREGEXP_SRC_LEN(re);
     if (mrb_reg_initialize(mrb, self, ptr, len, flags, err, NULL, 0)) {
@@ -852,7 +858,7 @@ mrb_reg_init_copy(mrb_state *mrb, mrb_value re)
   mrb_reg_check(mrb, copy);
   s = RREGEXP_SRC_PTR(copy);
   len = RREGEXP_SRC_LEN(copy);
-  if (mrb_reg_initialize(mrb, re, s, len, mrb_reg_options(mrb, copy),
+  if (mrb_reg_initialize(mrb, re, s, len, reg_options(mrb, copy),
       err, 0/*NULL*/, 0) != 0) {
     mrb_reg_raise(mrb, s, len, err, re);
   }
@@ -1843,6 +1849,83 @@ again:
   return str;
 }
 
+static int
+mrb_reg_option_to_int(char str[4])
+{
+  int i, len = strlen(str);
+  int val = 0;
+
+  for (i = 0; i < len; i++) {
+    switch(str[i]) {
+      case 'm':
+        val |= ONIG_OPTION_MULTILINE;
+        break;
+      case 'i':
+        val |= ONIG_OPTION_IGNORECASE;
+        break;
+      case 'x':
+        val |= ONIG_OPTION_EXTEND;
+        break;
+      default:
+        break;
+    }
+  }
+
+
+  return val;
+}
+
+mrb_value
+mrb_reg_str_to_reg(mrb_state *mrb, mrb_value str)
+{
+  char *s, *send, *t;
+  mrb_value pat, opt;
+
+  s = RSTRING_PTR(str);
+  send = s + RSTRING_LEN(str);
+
+  if (*s == '(')
+    s++;
+  if (*s == '?')
+    s++;
+  if (*(send-1) == ')')
+    *(--send) = '\0';
+
+  t = strchr(s, '-');
+  if (t == NULL) {
+    mrb_sys_fail(mrb, "mrb_str_to_reg: invalid format");
+    return mrb_nil_value();
+  } else if ( t == s ) {
+    opt = mrb_nil_value();
+  } else {
+    opt = mrb_str_new(mrb, s, (t-s));
+    s = t + 1;
+  }
+
+  t = strchr(s, ':');
+  if (t == NULL) {
+    mrb_sys_fail(mrb, "mrb_str_to_reg: invalid format");
+    return mrb_nil_value();
+  }
+  s = t + 1;
+
+  pat = mrb_str_new(mrb, s, (send - s));
+
+
+  mrb_value argv[2];
+  argv[0] = pat;
+  argv[1] = mrb_fixnum_value(mrb_reg_option_to_int(mrb_string_value_ptr(mrb, opt)));
+
+  struct RRegexp *re;
+  re = (struct RRegexp*) mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
+  re->ptr = 0;
+  re->src = 0;
+  re->usecnt = 0;
+
+  return mrb_funcall_argv(mrb, mrb_obj_value(re), mrb->init_sym, 2, argv);
+}
+
+
 /* 15.2.15.7.10(x) */
 /*
  * call-seq:
@@ -2057,6 +2140,7 @@ mrb_init_regexp(mrb_state *mrb)
     mrb_define_method(mrb, s, "to_s",            mrb_reg_to_s,         ARGS_NONE());                     /* 15.2.15.7.9 (x) */
     mrb_define_method(mrb, s, "inspect",         mrb_reg_inspect,      ARGS_NONE());                     /* 15.2.15.7.10(x) */
     mrb_define_method(mrb, s, "eql?",            mrb_reg_equal_m,      ARGS_REQ(1));                     /* 15.2.15.7.11(x) */
+    mrb_define_method(mrb, s, "options",         mrb_reg_options,      ARGS_NONE());  /* XXX */
 
     mrb_define_const(mrb, s, "IGNORECASE", mrb_fixnum_value(ONIG_OPTION_IGNORECASE));
     mrb_define_const(mrb, s, "EXTENDED", mrb_fixnum_value(ONIG_OPTION_EXTEND));

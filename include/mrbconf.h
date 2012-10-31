@@ -57,6 +57,7 @@
 //#define DISABLE_SYSLOG	/* requires Syslog */
 //#define DISABLE_ERRNO
 //#define DISABLE_REQUIRE
+//#define DISABLE_RANDOM
 
 #define INCLUDE_ENCODING
 
@@ -144,6 +145,9 @@ typedef short mrb_sym;
 #endif
 #ifndef DISABLE_REQUIRE
 #define ENABLE_REQUIRE
+#endif
+#ifndef DISABLE_RANDOM
+#define ENABLE_RANDOM
 #endif
 
 #ifndef FALSE

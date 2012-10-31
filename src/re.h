@@ -68,6 +68,7 @@ mrb_value mrb_reg_regsub (mrb_state *mrb, mrb_value, mrb_value, struct re_regist
 mrb_int mrb_reg_adjust_startpos(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos, mrb_int reverse);
 void mrb_match_busy (mrb_value);
 
+mrb_value mrb_reg_str_to_reg(mrb_state *mrb, mrb_value str);
 mrb_value mrb_reg_quote(mrb_state *mrb, mrb_value str);
 mrb_value mrb_reg_regcomp(mrb_state *mrb, mrb_value str);
 mrb_value mrb_reg_match_str(mrb_state *mrb, mrb_value re, mrb_value str);

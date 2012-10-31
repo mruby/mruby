@@ -143,7 +143,7 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
   uint16_t buf_size =0;
 
   buf_size = MRB_DUMP_DEFAULT_STR_LEN;
-  if ((char_buf = (char *)mrb_malloc(mrb, buf_size)) == 0)
+  if ((char_buf = (char *)mrb_malloc(mrb, buf_size)) == NULL)
     goto error_exit;
 
   pStart = dst;
@@ -192,7 +192,7 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
 
     if ( pdl > buf_size - 1) {
       buf_size = pdl + 1;
-      if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == 0)
+      if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == NULL)
         goto error_exit;
     }
     memset(char_buf, '\0', buf_size);
@@ -219,7 +219,7 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
 
     if ( snl > buf_size - 1) {
       buf_size = snl + 1;
-      if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == 0)
+      if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == NULL)
         goto error_exit;
     }
     memset(char_buf, '\0', buf_size);
@@ -424,7 +424,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
 #ifdef ENABLE_REGEXP
       case MRB_TT_REGEX:
         str = mrb_str_new(mrb, buf, pdl);
-        irep->pool[i] = mrb_reg_quote(mrb, str);
+        irep->pool[i] = mrb_reg_str_to_reg(mrb, str);
         break;
 #endif
 
