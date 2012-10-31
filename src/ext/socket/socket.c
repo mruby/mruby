@@ -6,6 +6,7 @@
 // TODO: Addrinfo
 
 #include "mruby.h"
+#ifdef ENABLE_SOCKET
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -506,3 +507,4 @@ mrb_init_socket(mrb_state *mrb)
   //mrb_define_method(mrb, usock, "recvfrom", mrb_unixsocket_peeraddr, ARGS_NONE());
   //mrb_define_method(mrb, usock, "send_io", mrb_unixsocket_peeraddr, ARGS_NONE());
 }
+#endif /* ENABLE_SOCKET */
