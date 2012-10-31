@@ -70,9 +70,13 @@ static void lib_hmac_update(struct mrb_hmac *, unsigned char *, int);
 #define HAVE_MD5
 #define HAVE_RMD160
 #define HAVE_SHA1
+#ifndef OPENSSL_NO_SHA256
 #define HAVE_SHA256
+#endif
+#ifndef OPENSSL_NO_SHA512
 #define HAVE_SHA384
 #define HAVE_SHA512
+#endif
 
 struct mrb_md {
   EVP_MD_CTX *ctx;
@@ -152,9 +156,13 @@ md_type_md(int type)
   case MD_TYPE_MD5:	return EVP_md5();
   case MD_TYPE_RMD160:	return EVP_ripemd160();
   case MD_TYPE_SHA1:	return EVP_sha1();
+#ifdef HAVE_SHA256
   case MD_TYPE_SHA256:	return EVP_sha256();
+#endif
+#ifdef HAVE_SHA512
   case MD_TYPE_SHA384:	return EVP_sha384();
   case MD_TYPE_SHA512:	return EVP_sha512();
+#endif
   default:		return NULL;
   }
 }
