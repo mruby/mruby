@@ -1578,11 +1578,13 @@ mrb_io_each_line(mrb_state *mrb, mrb_value klass)
   mrb_value *argv;
   int argc;
   long limit;
+  int save_point = mrb_gc_arena_save(mrb);
 
   mrb_get_args(mrb, "&*", &b, &argv, &argc);
   prepare_getline_args(mrb, argc, argv, &rs, &limit, klass);
   while (!mrb_nil_p(str = rb_io_getline(mrb, argc, argv, klass))) {
     mrb_yield(mrb, b, str);
+    mrb_gc_arena_restore(mrb, save_point);
   }
 
   return klass;
