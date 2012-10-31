@@ -2562,6 +2562,7 @@ mrb_reg_new_literal(mrb_state *mrb, mrb_value s, int options)
   src = RSTRING_PTR(s);
   len = RSTRING_LEN(s);
   for (i = 0; i < len; i++) {
+    cc = 0;
     switch (src[i]) {
       case '\n': cc = 'n'; break;
       case '\r': cc = 'r'; break;
@@ -2571,14 +2572,31 @@ mrb_reg_new_literal(mrb_state *mrb, mrb_value s, int options)
       case '\010': cc = 'b'; break;
       case '\007': cc = 'a'; break;
       case 033: cc = 'e'; break;
-      case '\\':
-        if (i + 1 < len && src[i+1] == '/') {
-          continue;
-        }
-        cc = '\\';
-        break;
+      case '\\': cc = '\\'; break;
       default: cc = 0; break;
     }
+
+    if (cc == '\\' && i + 1 < len) {
+      char n = src[i+1];
+      if (n == '/') {
+        continue;
+      }
+      if (n >= ' ' && n <= '~' && !(n >= '0' && n <= '9') &&
+          !(n >= 'a' && n <= 'z') && !(n >= 'A' && n <= 'Z')) {
+        /* escape char + symbol char */
+        cc = 0;
+      } else {
+        /* escape char + alphabet */
+        switch (n) {
+          case 'w': case 'W': case 's': case 'S':
+          case 'd': case 'D': case 'A': case 'Z':
+          case 'z': case 'b': case 'B': case 'G':
+            cc = 0;
+            break;
+        }
+      }
+    }
+
     if (cc) {
       mrb_str_buf_cat(mrb, str, &esc, 1);
       mrb_str_buf_cat(mrb, str, &cc, 1);

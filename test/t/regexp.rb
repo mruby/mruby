@@ -169,4 +169,33 @@ if Object.const_defined?(:Regexp)
     re3.source == "a/b"   and
     re4.source == 'a"b'
   end
+
+  assert('Regexp Literal (3)') do
+    re1 = /a\sb/
+    re2 = /a\tb/
+    re3 = /a\:b/
+    re4 = /a\?b/
+
+    if false
+    puts
+    puts re1, re1.source, re1.source == "a\\sb"
+    puts re2, re2.source, re2.source == "a\\tb"
+    puts re3, re3.source, re3.source == "a\\:b"
+    puts re4, re4.source, re4.source == "a\\?b"
+    end
+
+    re1.source == "a\\sb" and
+    re2.source == "a\\tb" and
+    re3.source == "a\\:b"   and
+    re4.source == 'a\\?b'
+  end
+
+  assert('Regexp Literal (4)') do
+    re1 = /\A\w\W\s\S\D\b\B\Z/
+    str = "\\A\\w\\W\\s\\S\\D\\b\\B\\Z"
+    re2 = Regexp.compile(str)
+
+    re1.source == str and
+    re1 == re2
+  end
 end
