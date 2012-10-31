@@ -1559,8 +1559,10 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_sBx(OP_JMP, s->loop->pc1 - s->pc));
     }
     else {
-      codegen(s, tree, VAL);
-      pop();
+      if (tree) {
+        codegen(s, tree, VAL);
+        pop();
+      }
       genop_peep(s, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
     }
     if (val) push();
