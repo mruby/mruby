@@ -1849,6 +1849,32 @@ again:
   return str;
 }
 
+static int
+mrb_reg_option_to_int(char str[4])
+{
+  int i, len = strlen(str);
+  int val = 0;
+
+  for (i = 0; i < len; i++) {
+    switch(str[i]) {
+      case 'm':
+        val |= ONIG_OPTION_MULTILINE;
+        break;
+      case 'i':
+        val |= ONIG_OPTION_IGNORECASE;
+        break;
+      case 'x':
+        val |= ONIG_OPTION_EXTEND;
+        break;
+      default:
+        break;
+    }
+  }
+
+
+  return val;
+}
+
 mrb_value
 mrb_reg_str_to_reg(mrb_state *mrb, mrb_value str)
 {
@@ -1885,9 +1911,10 @@ mrb_reg_str_to_reg(mrb_state *mrb, mrb_value str)
 
   pat = mrb_str_new(mrb, s, (send - s));
 
+
   mrb_value argv[2];
   argv[0] = pat;
-  argv[1] = opt;
+  argv[1] = mrb_fixnum_value(mrb_reg_option_to_int(mrb_string_value_ptr(mrb, opt)));
 
   struct RRegexp *re;
   re = (struct RRegexp*) mrb_obj_alloc(mrb, MRB_TT_REGEX, REGEX_CLASS);
