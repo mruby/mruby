@@ -53,6 +53,10 @@ mrb_init_ext(mrb_state *mrb)
   extern void mrb_init_syslog(mrb_state *mrb);
   mrb_init_syslog(mrb);
 #endif
+#ifdef ENABLE_RANDOM
+  extern void mrb_init_random(mrb_state *mrb);
+  mrb_init_random(mrb);
+#endif
   mrb_gc_arena_restore(mrb, 0);
 
   mrb_init_mrblib_ext(mrb);
