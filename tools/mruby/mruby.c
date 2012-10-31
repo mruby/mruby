@@ -162,6 +162,40 @@ cleanup(mrb_state *mrb, struct _args *args)
   mrb_close(mrb);
 }
 
+static void
+showcallinfo(mrb_state *mrb)
+{
+  mrb_callinfo *ci;
+  const char *filename, *sep;
+  int i;
+
+  printf("trace:\n");
+  for (i = 0; &mrb->cibase[i] < mrb->ciend; i++) {
+    ci = &mrb->cibase[i];
+    if (ci->target_class == NULL)
+      break;
+
+    if (MRB_PROC_CFUNC_P(ci->proc))
+      filename = "(cfunc)";
+    else {
+      filename = ci->proc->body.irep->filename;
+      if (filename == NULL)
+        filename = "(unknown)";
+    }
+
+    if (ci->target_class == ci->proc->target_class)
+      sep = ".";
+    else
+      sep = "#";
+
+    printf("  ci[%d]: %s:in %s%s%s\n",
+    	   i, filename,
+	   mrb_class_name(mrb, ci->proc->target_class),
+	   sep,
+	   mrb_sym2name(mrb, ci->mid));
+  }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -198,6 +232,7 @@ main(int argc, char **argv)
       mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
       n = 0;
       if (mrb->exc) {
+        showcallinfo(mrb);
         p(mrb, mrb_obj_value(mrb->exc));
         n = -1;
       }
@@ -223,6 +258,7 @@ main(int argc, char **argv)
     mrbc_context_free(mrb, c);
     if (mrb->exc) {
       if (!mrb_undef_p(v)) {
+        showcallinfo(mrb);
         p(mrb, mrb_obj_value(mrb->exc));
       }
       n = -1;
