@@ -1860,7 +1860,7 @@ codegen(codegen_scope *s, node *tree, int val)
       size_t opts = (intptr_t)tree->cdr;
       
       int off = new_lit(s,
-          mrb_reg_new_str(s->mrb, mrb_str_new(s->mrb, str, len), opts));
+          mrb_reg_new_literal(s->mrb, mrb_str_new(s->mrb, str, len), opts));
 
       genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
       push();

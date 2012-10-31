@@ -80,5 +80,6 @@ mrb_value match_alloc(mrb_state *mrb);
 int mrb_reg_backref_number(mrb_state *mrb, mrb_value match, mrb_value backref);
 mrb_value mrb_reg_regcomp(mrb_state *mrb, mrb_value str);
 mrb_value mrb_reg_new_str(mrb_state *mrb, mrb_value s, int options);
+mrb_value mrb_reg_new_literal(mrb_state *mrb, mrb_value s, int options);
 
 #endif

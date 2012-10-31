@@ -1909,8 +1909,15 @@ mrb_reg_str_to_reg(mrb_state *mrb, mrb_value str)
   }
   s = t + 1;
 
-  pat = mrb_str_new(mrb, s, (send - s));
-
+  pat = mrb_str_new(mrb, "", 0);
+  for (; s < send; s++) {
+    if (*s == '\\' && s+1 < send && *(s+1) == '/') {
+      s++;
+      mrb_str_buf_cat(mrb, pat, s, 1);
+    } else {
+      mrb_str_buf_cat(mrb, pat, s, 1);
+    }
+  }
 
   mrb_value argv[2];
   argv[0] = pat;
@@ -2543,6 +2550,44 @@ mrb_value
 mrb_reg_new_str(mrb_state *mrb, mrb_value s, int options)
 {
   return mrb_reg_init_str(mrb, mrb_reg_alloc(mrb), s, options);
+}
+
+mrb_value
+mrb_reg_new_literal(mrb_state *mrb, mrb_value s, int options)
+{
+  mrb_value str = mrb_str_new2(mrb, "");
+  char cc, esc = '\\', *src;
+  int i, len;
+
+  src = RSTRING_PTR(s);
+  len = RSTRING_LEN(s);
+  for (i = 0; i < len; i++) {
+    switch (src[i]) {
+      case '\n': cc = 'n'; break;
+      case '\r': cc = 'r'; break;
+      case '\t': cc = 't'; break;
+      case '\f': cc = 'f'; break;
+      case '\013': cc = 'v'; break;
+      case '\010': cc = 'b'; break;
+      case '\007': cc = 'a'; break;
+      case 033: cc = 'e'; break;
+      case '\\':
+        if (i + 1 < len && src[i+1] == '/') {
+          continue;
+        }
+        cc = '\\';
+        break;
+      default: cc = 0; break;
+    }
+    if (cc) {
+      mrb_str_buf_cat(mrb, str, &esc, 1);
+      mrb_str_buf_cat(mrb, str, &cc, 1);
+    } else {
+      mrb_str_buf_cat(mrb, str, &src[i], 1);
+    }
+  }
+
+  return mrb_reg_init_str(mrb, mrb_reg_alloc(mrb), str, options);
 }
 
 mrb_value

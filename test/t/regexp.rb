@@ -157,4 +157,16 @@ if Object.const_defined?(:Regexp)
     re1 == re2 and
     re3 == re4
   end
+
+  assert('Regexp Literal (2)') do
+    re1 = /a\nb/
+    re2 = /a\\nb/
+    re3 = /a\/b/
+    re4 = /a"b/
+
+    re1.source == "a\\nb" and
+    re2.source == "a\\\\nb" and
+    re3.source == "a/b"   and
+    re4.source == 'a"b'
+  end
 end
