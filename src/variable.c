@@ -706,7 +706,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
     }
     c = c->super;
   }
-  if (!retry && base->tt == MRB_TT_MODULE) {
+  if (!retry && base && base->tt == MRB_TT_MODULE) {
     c = mrb->object_class;
     retry = 1;
     goto L_RETRY;
@@ -739,6 +739,22 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   struct RClass *c = mrb->ci->proc->target_class;
 
   if (!c) c = mrb->ci->target_class;
+  if (c) {
+    struct RClass *c2 = c;
+    mrb_value v;
+
+    if (c->iv && iv_get(mrb, c->iv, sym, &v)) {
+      return v;
+    }
+    c2 = c;
+    for (;;) {
+      c2 = mrb_class_outer_module(mrb, c2);
+      if (!c2) break;
+      if (c2->iv && iv_get(mrb, c2->iv, sym, &v)) {
+	return v;
+      }
+    }
+  }
   return const_get(mrb, c, sym);
 }
 
