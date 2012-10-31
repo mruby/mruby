@@ -204,7 +204,7 @@ replace_stop_with_return(mrb_state *mrb, mrb_irep *irep)
 }
 
 static void
-load_mrb_file(mrb_state *mrb, mrb_value filepath)
+load_mrb_file_with_filepath(mrb_state *mrb, mrb_value filepath, mrb_value origfilepath)
 {
   char *fpath = RSTRING_PTR(filepath);
 
@@ -217,6 +217,7 @@ load_mrb_file(mrb_state *mrb, mrb_value filepath)
     fclose(fp);
   }
 
+  int sirep = mrb->irep_len;
   int arena_idx = mrb_gc_arena_save(mrb);
 
   FILE *fp = fopen(fpath, "r");
@@ -228,6 +229,10 @@ load_mrb_file(mrb_state *mrb, mrb_value filepath)
   if (n >= 0) {
     struct RProc *proc;
     mrb_irep *irep = mrb->irep[n];
+    int i;
+    for (i = sirep; i < mrb->irep_len; i++) {
+      mrb->irep[i]->filename = mrb_string_value_ptr(mrb, origfilepath);
+    }
 
     replace_stop_with_return(mrb, irep);
     proc = mrb_proc_new(mrb, irep);
@@ -237,6 +242,12 @@ load_mrb_file(mrb_state *mrb, mrb_value filepath)
     // fail to load
     longjmp(*(jmp_buf*)mrb->jmp, 1);
   }
+}
+
+static void
+load_mrb_file(mrb_state *mrb, mrb_value filepath)
+{
+  load_mrb_file_with_filepath(mrb, filepath, filepath);
 }
 
 static void
@@ -254,9 +265,9 @@ load_rb_file(mrb_state *mrb, mrb_value filepath)
   }
 
   mrb_value pid = mrb_fixnum_value((int)getpid());
-  mrb_value outfilepath = mrb_str_new2(mrb, "/tmp/mruby.");
-  mrb_str_buf_append(mrb, outfilepath, mrb_fix2str(mrb, pid, 10));
-  debug("outfilepath: %s\n", RSTRING_PTR(outfilepath));
+  mrb_value mrbfilepath = mrb_str_new2(mrb, "/tmp/mruby.");
+  mrb_str_buf_append(mrb, mrbfilepath, mrb_fix2str(mrb, pid, 10));
+  debug("mrbfilepath: %s\n", RSTRING_PTR(mrbfilepath));
 
   mrb_value mrbc_bin = find_mrbc(mrb);
   if (mrb_nil_p(mrbc_bin)) {
@@ -267,16 +278,16 @@ load_rb_file(mrb_state *mrb, mrb_value filepath)
 
   mrb_value params[3];
   params[0] = mrbc_bin;
-  params[1] = outfilepath;
+  params[1] = mrbfilepath;
   params[2] = filepath;
   mrb_value fmt = mrb_str_new2(mrb, "%s -o%s %s");
 
   mrb_value mrb_cmd = mrb_str_format(mrb, 3, params, fmt);
 
   system(RSTRING_PTR(mrb_cmd));
-  load_mrb_file(mrb, outfilepath);
+  load_mrb_file_with_filepath(mrb, mrbfilepath, filepath);
 
-  remove(RSTRING_PTR(outfilepath));
+  remove(RSTRING_PTR(mrbfilepath));
 }
 
 
