@@ -168,28 +168,38 @@ showcallinfo(mrb_state *mrb)
   mrb_callinfo *ci;
   mrb_int ciidx;
   const char *filename, *sep;
-  int i;
+  int i, line;
 
   printf("trace:\n");
   ciidx = mrb_fixnum(mrb_obj_iv_get(mrb, mrb->exc, mrb_intern(mrb, "ciidx")));
-  for (i = 1; i <= ciidx; i++) {
+  if (ciidx >= mrb->ciend - mrb->cibase)
+    ciidx = 10; /* ciidx is broken... */
+
+  for (i = ciidx; i >= 0; i--) {
     ci = &mrb->cibase[i];
+    filename = "(unknown)";
+    line = -1;
 
-    if (MRB_PROC_CFUNC_P(ci->proc))
+    if (MRB_PROC_CFUNC_P(ci->proc)) {
       filename = "(cfunc)";
-    else {
-      filename = ci->proc->body.irep->filename;
-      if (filename == NULL)
-        filename = "(unknown)";
+    } else {
+      mrb_irep *irep = ci->proc->body.irep;
+      if (irep->filename != NULL)
+        filename = irep->filename;
+      if (irep->lines != NULL && i+1 <= ciidx) {
+        mrb_code *pc = mrb->cibase[i+1].pc;
+        if (irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
+          line = irep->lines[pc - irep->iseq - 1];
+        }
+      }
     }
-
     if (ci->target_class == ci->proc->target_class)
       sep = ".";
     else
       sep = "#";
 
-    printf("  ci[%d]: %s:in %s%s%s\n",
-    	   i, filename,
+    printf("\t[%d] %s:%d:in %s%s%s\n",
+    	   i, filename, line,
 	   mrb_class_name(mrb, ci->proc->target_class),
 	   sep,
 	   mrb_sym2name(mrb, ci->mid));
