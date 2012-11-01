@@ -10,10 +10,9 @@ if self.methods.include?(:rand) and self.methods.include?(:srand)
   end
 
   assert('Kernel#rand(num)') do
-    r1 = rand(100)
-    r2 = rand(100)
+    r = rand(100)
 
-    r1.class == Fixnum and r1 != r2
+    r.class == Fixnum
   end
 
   assert('Kernel#rand entropy check') do
