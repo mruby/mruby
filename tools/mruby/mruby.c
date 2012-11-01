@@ -207,14 +207,14 @@ static void
 showcallinfo(mrb_state *mrb)
 {
   mrb_callinfo *ci;
+  mrb_int ciidx;
   const char *filename, *sep;
   int i;
 
   printf("trace:\n");
-  for (i = 1; &mrb->cibase[i] < mrb->ciend; i++) {
+  ciidx = mrb_fixnum(mrb_obj_iv_get(mrb, mrb->exc, mrb_intern(mrb, "ciidx")));
+  for (i = 1; i <= ciidx; i++) {
     ci = &mrb->cibase[i];
-    if (ci->mid == 0)
-      break;
 
     if (MRB_PROC_CFUNC_P(ci->proc))
       filename = "(cfunc)";

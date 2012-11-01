@@ -189,6 +189,7 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
   mrb_callinfo *ci = mrb->ci;
   mrb_code *pc = ci->pc;
 
+  mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->cibase));
   ci--;
   while (ci >= mrb->cibase) {
     if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {

@@ -169,9 +169,6 @@ cipush(mrb_state *mrb)
   mrb->ci->eidx = eidx;
   mrb->ci->ridx = ridx;
   mrb->ci->env = 0;
-  if (mrb->ci + 1 != mrb->ciend) {
-    mrb->ci[1].mid = 0;
-  }
   return mrb->ci;
 }
 
