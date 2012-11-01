@@ -339,3 +339,20 @@ assert('Check the usage of a NUL character') do
   "qqq\0ppp"
 end
 
+assert('String#bytes') do
+  str1 = "hello"
+  bytes1 = [104, 101, 108, 108, 111]
+
+  str1.bytes == bytes1
+end
+
+assert('String#each_byte') do
+  str1 = "hello"
+  bytes1 = [104, 101, 108, 108, 111]
+  bytes2 = []
+
+  str1.each_byte {|b| bytes2 << b }
+
+  bytes1 == bytes2
+end
+
