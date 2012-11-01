@@ -55,7 +55,8 @@ if Object.const_defined?(:Syslog)
       Syslog.log(Syslog::LOG_INFO, "Syslog.log message")
       \$stderr.flush
       Syslog.close
-      lastlogs[-1] == "abc: Syslog.log message"	# may fail on some system
+      lastlogs[-1].include? "abc" and
+        lastlogs[-1].include? "Syslog.log message"
     end
 
     assert('Syslog.log with format') do
@@ -63,7 +64,8 @@ if Object.const_defined?(:Syslog)
       Syslog.log(Syslog::LOG_INFO, "Syslog.log %c %d %s", ?1, 2, "3")
       \$stderr.flush
       Syslog.close
-      lastlogs[-1] == "abc: Syslog.log 1 2 3"	# may fail on some system
+      lastlogs[-1].include? "abc" and
+        lastlogs[-1].include? "Syslog.log 1 2 3"
     end
 
     assert('Syslog.open') do
@@ -71,7 +73,8 @@ if Object.const_defined?(:Syslog)
       Syslog.log(Syslog::LOG_INFO, "Syslog.open")
       \$stderr.flush
       Syslog.close
-      lastlogs[-1] == "abc: Syslog.open"
+      lastlogs[-1].include? "abc" and
+        lastlogs[-1].include? "Syslog.open"
     end
 
     assert('Syslog.open already open') do
