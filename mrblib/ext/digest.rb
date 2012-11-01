@@ -1,3 +1,4 @@
+if Object.const_defined? :Digest
 module Digest
   class Base
     def self.digest(data)
@@ -41,4 +42,5 @@ module Digest
 
     alias << update
   end
+end
 end

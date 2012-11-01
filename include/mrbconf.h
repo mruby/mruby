@@ -52,7 +52,7 @@
 //#define DISABLE_SOCKET
 //#define DISABLE_PROCESS
 //#define DISABLE_ENV
-//#define DISABLE_DIGEST	/* requires OpenSSL */
+//#define DISABLE_DIGEST	/* requires CommonCrypto or OpenSSL */
 //#define DISABLE_PACK
 //#define DISABLE_SYSLOG	/* requires Syslog */
 //#define DISABLE_ERRNO
