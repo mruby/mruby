@@ -3162,9 +3162,12 @@ skips(parser_state *p, const char *s)
       int len = strlen(s);
 
       while (len--) {
-	nextc(p);
+        nextc(p);
       }
       return TRUE;
+    }
+	else{
+      s--;
     }
   }
   return FALSE;
