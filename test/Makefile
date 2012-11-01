@@ -20,6 +20,8 @@ OBJS := driver.o $(MLIB)
 REPLIB  := $(BASEDIR)/report.rb
 TESTRB  := mrubytest.rb
 TESTMRB := mrubytest.mrb
+TESTRB_REP  := mrubytest.rb.report
+TESTMRB_REP := mrubytest.mrb.report
 
 # libraries, includes
 LIBS = -lm
@@ -66,10 +68,11 @@ all : $(EXE) $(MRUBY) $(TESTRB) $(TESTMRB)
 	./$(EXE)
 	@echo
 	@echo "*** mruby test with ruby script file ***"
-	$(MRUBY) $(TESTRB)
+	@($(MRUBY) $(TESTRB) > $(TESTRB_REP) && echo "success.") || $(CAT) $(TESTRB_REP)
 	@echo
 	@echo "*** mruby test with mrb file ***********"
-	$(MRUBY) -b $(TESTMRB)
+	@($(MRUBY) -b $(TESTMRB) > $(TESTMRB_REP) && echo "success.") || $(CAT) $(TESTMRB_REP)
+	@echo
 
 # executable constructed using linker from object files
 $(EXE) : $(OBJS) $(LIBR)
@@ -102,3 +105,4 @@ $(TESTRB) : $(ASSLIB) $(MRBS) $(REPLIB)
 clean :
 	@echo "make: removing targets, objects and depend files of `pwd`"
 	-$(RM_F) $(MLIB) $(CLIB) $(RLIB) $(DLIB) $(DEPLIB) $(OBJS) $(EXE)
+	-$(RM_F) $(TESTRB) $(TESTMRB) $(TESTRB_REP) $(TESTMRB_REP)
