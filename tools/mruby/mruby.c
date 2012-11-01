@@ -211,9 +211,9 @@ showcallinfo(mrb_state *mrb)
   int i;
 
   printf("trace:\n");
-  for (i = 0; &mrb->cibase[i] < mrb->ciend; i++) {
+  for (i = 1; &mrb->cibase[i] < mrb->ciend; i++) {
     ci = &mrb->cibase[i];
-    if (ci->target_class == NULL)
+    if (ci->mid == 0)
       break;
 
     if (MRB_PROC_CFUNC_P(ci->proc))
