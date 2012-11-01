@@ -1444,7 +1444,18 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       /* need to check if + is overridden */
       switch (mrb_type(regs[a])) {
       case MRB_TT_FIXNUM:
-        regs[a].attr_i += GETARG_C(i);
+	{
+	  mrb_int x = regs[a].attr_i;
+	  mrb_int y = GETARG_C(i);
+	  mrb_int z = x + y;
+
+	  if (((x < 0) ^ (y < 0)) == 0 && (x < 0) != (z < 0)) {
+	    /* integer overflow */
+	    SET_FLT_VALUE(regs[a], (mrb_float)x + (mrb_float)y);
+	    break;
+	  }
+	  regs[a].attr_i = z;
+	}
         break;
       case MRB_TT_FLOAT:
         regs[a].attr_f += GETARG_C(i);
@@ -1464,7 +1475,18 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       /* need to check if + is overridden */
       switch (mrb_type(regs[a])) {
       case MRB_TT_FIXNUM:
-        regs[a].attr_i -= GETARG_C(i);
+	{
+	  mrb_int x = regs[a].attr_i;
+	  mrb_int y = GETARG_C(i);
+	  mrb_int z = x - y;
+
+	  if (((x < 0) ^ (y < 0)) == 0 && (x < 0) != (z < 0)) {
+	    /* integer overflow */
+	    SET_FLT_VALUE(regs[a], (mrb_float)x - (mrb_float)y);
+	    break;
+	  }
+	  regs[a].attr_i = z;
+	}
         break;
       case MRB_TT_FLOAT:
         regs[a].attr_f -= GETARG_C(i);

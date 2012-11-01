@@ -3082,6 +3082,29 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
     return result;
 }
 
+/*
+ * call-seq:
+ *   str.bytes   -> array of fixnums
+ *
+ * Returns an array of bytes in _str_.
+ *
+ *    str = "hello"
+ *    str.bytes       #=> [104, 101, 108, 108, 111]
+ */
+static mrb_value
+mrb_str_bytes(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  mrb_value a = mrb_ary_new_capa(mrb, s->len);
+  char *p = s->ptr, *pend = p + s->len;
+
+  while (p < pend) {
+    mrb_ary_push(mrb, a, mrb_fixnum_value(p[0]));
+    p++;
+  }
+  return a;
+}
+
 /* ---------------------------*/
 void
 mrb_init_string(mrb_state *mrb)
@@ -3149,4 +3172,5 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "upcase",          mrb_str_upcase,          ARGS_REQ(1));              /* 15.2.10.5.42 */
   mrb_define_method(mrb, s, "upcase!",         mrb_str_upcase_bang,     ARGS_REQ(1));              /* 15.2.10.5.43 */
   mrb_define_method(mrb, s, "inspect",         mrb_str_inspect,         ARGS_NONE());              /* 15.2.10.5.46(x) */
+  mrb_define_method(mrb, s, "bytes",           mrb_str_bytes,           ARGS_NONE());
 }

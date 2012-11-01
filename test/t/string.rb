@@ -430,3 +430,20 @@ assert('String strip methods test') do
   lf.strip ==  res and
   bangs == res
 end
+
+assert('String#bytes') do
+  str1 = "hello"
+  bytes1 = [104, 101, 108, 108, 111]
+
+  str1.bytes == bytes1
+end
+
+assert('String#each_byte') do
+  str1 = "hello"
+  bytes1 = [104, 101, 108, 108, 111]
+  bytes2 = []
+
+  str1.each_byte {|b| bytes2 << b }
+
+  bytes1 == bytes2
+end
