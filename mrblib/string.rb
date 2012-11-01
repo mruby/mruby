@@ -118,7 +118,7 @@ class String
   ##
   # Call the given block for each byte of +self+.
   def each_byte(&block)
-    bytes = self.unpack("C*")
+    bytes = self.bytes
     pos = 0
     while(pos < bytes.size)
       block.call(bytes[pos])

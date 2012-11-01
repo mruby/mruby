@@ -420,6 +420,7 @@ obj_iv_p(mrb_value obj)
     case MRB_TT_OBJECT:
     case MRB_TT_CLASS:
     case MRB_TT_MODULE:
+    case MRB_TT_SCLASS:
     case MRB_TT_HASH:
     case MRB_TT_DATA:
       return TRUE;
@@ -673,6 +674,7 @@ mod_const_check(mrb_state *mrb, mrb_value mod)
   switch (mrb_type(mod)) {
   case MRB_TT_CLASS:
   case MRB_TT_MODULE:
+  case MRB_TT_SCLASS:
     break;
   default:
     mrb_raise(mrb, E_TYPE_ERROR, "constant look-up for non class/module");
@@ -698,7 +700,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
     }
     c = c->super;
   }
-  if (!retry && base->tt == MRB_TT_MODULE) {
+  if (!retry && base && base->tt == MRB_TT_MODULE) {
     c = mrb->object_class;
     retry = 1;
     goto L_RETRY;
@@ -712,7 +714,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
     }
     c = c->super;
   }
-  mrb_raise(mrb, E_NAME_ERROR, "uninitialized constant %s",
+  mrb_raisef(mrb, E_NAME_ERROR, "uninitialized constant %s",
             mrb_sym2name(mrb, sym));
   /* not reached */
   return mrb_nil_value();
@@ -731,6 +733,22 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   struct RClass *c = mrb->ci->proc->target_class;
 
   if (!c) c = mrb->ci->target_class;
+  if (c) {
+    struct RClass *c2 = c;
+    mrb_value v;
+
+    if (c->iv && iv_get(mrb, c->iv, sym, &v)) {
+      return v;
+    }
+    c2 = c;
+    for (;;) {
+      c2 = mrb_class_outer_module(mrb, c2);
+      if (!c2) break;
+      if (c2->iv && iv_get(mrb, c2->iv, sym, &v)) {
+	return v;
+      }
+    }
+  }
   return const_get(mrb, c, sym);
 }
 

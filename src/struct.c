@@ -11,7 +11,6 @@
 #include "mruby/struct.h"
 #include "mruby/array.h"
 #include <stdarg.h>
-//#include "defines.h"
 
 #ifdef ENABLE_REGEXP
 #include "encoding.h"
@@ -20,8 +19,6 @@
 #include "mruby/string.h"
 #include "mruby/class.h"
 #include "mruby/variable.h"
-//#include "defines.h"
-#define mrb_long2int(n) ((int)(n))
 
 
 static struct RClass *
@@ -73,7 +70,7 @@ mrb_struct_members(mrb_state *mrb, mrb_value s)
   mrb_value members = mrb_struct_s_members(mrb, mrb_obj_value(mrb_obj_class(mrb, s)));
   if (mrb_type(s) == MRB_TT_STRUCT) {
     if (RSTRUCT_LEN(s) != RARRAY_LEN(members)) {
-      mrb_raise(mrb, E_TYPE_ERROR, "struct size differs (%ld required %ld given)",
+      mrb_raisef(mrb, E_TYPE_ERROR, "struct size differs (%ld required %ld given)",
              RARRAY_LEN(members), RSTRUCT_LEN(s));
     }
   }
@@ -95,6 +92,16 @@ mrb_struct_s_members_m(mrb_state *mrb, mrb_value klass)
     }
 
     return ary;
+}
+
+static inline void
+struct_copy(mrb_value *dst, const mrb_value *src, size_t size)
+{
+  size_t i;
+
+  for (i = 0; i < size; i++) {
+    dst[i] = src[i];
+  }
 }
 
 /* 15.2.18.4.6  */
@@ -434,7 +441,7 @@ mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_val
   st = RSTRUCT(self);
   st->ptr = (mrb_value *)mrb_calloc(mrb, sizeof(mrb_value), n);
   st->len = n;
-  memcpy(st->ptr, argv, sizeof(mrb_value)*argc);
+  struct_copy(st->ptr, argv, argc);
 
   return self;
 }
@@ -533,7 +540,7 @@ mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
   if (RSTRUCT_LEN(copy) != RSTRUCT_LEN(s)) {
     mrb_raise(mrb, E_TYPE_ERROR, "struct size mismatch");
   }
-  memcpy(RSTRUCT_PTR(copy), RSTRUCT_PTR(s), sizeof(mrb_value)*RSTRUCT_LEN(copy));
+  struct_copy(RSTRUCT_PTR(copy), RSTRUCT_PTR(s), RSTRUCT_LEN(copy));
 
   return copy;
 }
@@ -588,10 +595,10 @@ mrb_struct_aref_n(mrb_state *mrb, mrb_value s, mrb_value idx)
   i = mrb_fixnum(idx);
   if (i < 0) i = RSTRUCT_LEN(s) + i;
   if (i < 0)
-      mrb_raise(mrb, E_INDEX_ERROR, "offset %ld too small for struct(size:%ld)",
+      mrb_raisef(mrb, E_INDEX_ERROR, "offset %ld too small for struct(size:%ld)",
            i, RSTRUCT_LEN(s));
   if (RSTRUCT_LEN(s) <= i)
-      mrb_raise(mrb, E_INDEX_ERROR, "offset %ld too large for struct(size:%ld)",
+      mrb_raisef(mrb, E_INDEX_ERROR, "offset %ld too large for struct(size:%ld)",
            i, RSTRUCT_LEN(s));
   return RSTRUCT_PTR(s)[i];
 }
@@ -615,7 +622,7 @@ mrb_struct_aset_id(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
     len = RARRAY_LEN(members);
     mrb_struct_modify(s);
     if (RSTRUCT_LEN(s) != len) {
-      mrb_raise(mrb, E_TYPE_ERROR, "struct size differs (%ld required %ld given)",
+      mrb_raisef(mrb, E_TYPE_ERROR, "struct size differs (%ld required %ld given)",
              len, RSTRUCT_LEN(s));
     }
     ptr = RSTRUCT_PTR(s);
@@ -668,11 +675,11 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
   i = mrb_fixnum(idx);
   if (i < 0) i = RSTRUCT_LEN(s) + i;
   if (i < 0) {
-    mrb_raise(mrb, E_INDEX_ERROR, "offset %ld too small for struct(size:%ld)",
+    mrb_raisef(mrb, E_INDEX_ERROR, "offset %ld too small for struct(size:%ld)",
 	      i, RSTRUCT_LEN(s));
   }
   if (RSTRUCT_LEN(s) <= i) {
-    mrb_raise(mrb, E_INDEX_ERROR, "offset %ld too large for struct(size:%ld)",
+    mrb_raisef(mrb, E_INDEX_ERROR, "offset %ld too large for struct(size:%ld)",
 	      i, RSTRUCT_LEN(s));
   }
   mrb_struct_modify(s);

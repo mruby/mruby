@@ -296,7 +296,7 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
 
 out_of_range:
   if (err) {
-    mrb_raise(mrb, E_RANGE_ERROR, "%ld..%s%ld out of range",
+    mrb_raisef(mrb, E_RANGE_ERROR, "%ld..%s%ld out of range",
       b, r->excl? "." : "", e);
   }
   return OTHER;
@@ -415,7 +415,7 @@ range_initialize_copy(mrb_state *mrb, mrb_value copy)
   if (!mrb_obj_is_instance_of(mrb, src, mrb_obj_class(mrb, copy))) {
     mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
   }
-  memcpy(mrb_range_ptr(copy), mrb_range_ptr(src), sizeof(struct RRange));
+  *mrb_range_ptr(copy) = *mrb_range_ptr(src);
 
   return copy;
 }

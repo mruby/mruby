@@ -55,15 +55,26 @@
 
 #ifdef MRB_USE_FLOAT
 typedef float mrb_float;
+#define mrb_float_to_str(buf, i) sprintf((buf), "%.7e", (i))
+#define str_to_mrb_float(buf) (mrb_float)strtof((buf),NULL)
 #else
 typedef double mrb_float;
+#define mrb_float_to_str(buf, i) sprintf((buf), "%.16e", (i))
+#define str_to_mrb_float(buf) (mrb_float)strtod((buf),NULL)
 #endif
-#define readfloat(p) (mrb_float)strtod((p),NULL)
 
 #ifdef MRB_NAN_BOXING
 typedef int32_t mrb_int;
+#define MRB_INT_MIN INT32_MIN
+#define MRB_INT_MAX INT32_MAX
+#define mrb_int_to_str(buf, i) sprintf((buf), "%d", (i))
+#define str_to_mrb_int(buf) (mrb_int)strtol((buf), NULL, 10);
 #else
 typedef int mrb_int;
+#define MRB_INT_MIN INT_MIN
+#define MRB_INT_MAX INT_MAX
+#define mrb_int_to_str(buf, i) sprintf((buf), "%d", (i))
+#define str_to_mrb_int(buf) (mrb_int)strtol((buf), NULL, 10);
 #endif
 typedef short mrb_sym;
 

@@ -143,7 +143,7 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
   uint16_t buf_size =0;
 
   buf_size = MRB_DUMP_DEFAULT_STR_LEN;
-  if ((char_buf = (char *)mrb_malloc(mrb, buf_size)) == 0)
+  if ((char_buf = (char *)mrb_malloc(mrb, buf_size)) == NULL)
     goto error_exit;
 
   pStart = dst;
@@ -192,7 +192,7 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
 
     if ( pdl > buf_size - 1) {
       buf_size = pdl + 1;
-      if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == 0)
+      if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == NULL)
         goto error_exit;
     }
     memset(char_buf, '\0', buf_size);
@@ -219,7 +219,7 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
 
     if ( snl > buf_size - 1) {
       buf_size = snl + 1;
-      if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == 0)
+      if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == NULL)
         goto error_exit;
     }
     memset(char_buf, '\0', buf_size);
@@ -267,7 +267,7 @@ mrb_load_irep(mrb_state *mrb, FILE* fp)
 
   dst = rite_dst;
   memset(dst, 0x00, len);
-  memcpy(dst, &bin_header, sizeof(rite_binary_header));
+  *(rite_binary_header *)dst = bin_header;
   dst += sizeof(rite_binary_header);
   dst += hex_to_bin16(dst, hcrc);
 
@@ -302,7 +302,7 @@ read_rite_header(mrb_state *mrb, unsigned char *bin, rite_binary_header*  bin_he
 {
   uint16_t crc;
 
-  memcpy(bin_header, bin, sizeof(rite_binary_header));
+  *bin_header = *(rite_binary_header *)bin;
   bin += sizeof(rite_binary_header);
   if (memcmp(bin_header->rbfi, RITE_FILE_IDENFIFIER, sizeof(bin_header->rbfi)) != 0) {
     return MRB_DUMP_INVALID_FILE_HEADER;    //File identifier error
@@ -405,12 +405,12 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
 
       switch (tt) {                           //pool data
       case MRB_TT_FIXNUM:
-        fix_num = strtol(buf, NULL, 10);
+        fix_num = str_to_mrb_int(buf);
         irep->pool[i] = mrb_fixnum_value(fix_num);
         break;
 
       case MRB_TT_FLOAT:
-        f = readfloat(buf);
+        f = str_to_mrb_float(buf);
         irep->pool[i] = mrb_float_value(f);
         break;
 
@@ -448,7 +448,10 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
       goto error_exit;
     }
 
-    memset(irep->syms, 0, sizeof(mrb_sym)*(irep->slen));
+    for (i = 0; i < irep->slen; i++) {
+      static const mrb_sym mrb_sym_zero = { 0 };
+      *irep->syms = mrb_sym_zero;
+    }
     for (i=0; i<irep->slen; i++) {
       snl = bin_to_uint16(src);               //symbol name length
       src += MRB_DUMP_SIZE_OF_SHORT;
@@ -509,11 +512,12 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
   mrb_add_irep(mrb, sirep + nirep);
 
   for (n=0,i=sirep; n<nirep; n++,i++) {
+    static const mrb_irep mrb_irep_zero = { 0 };
     if ((mrb->irep[i] = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep))) == NULL) {
       ret = MRB_DUMP_GENERAL_FAILURE;
       goto error_exit;
     }
-    memset(mrb->irep[i], 0, sizeof(mrb_irep));
+    *mrb->irep[i] = mrb_irep_zero;
   }
   src += sizeof(bin_header) + MRB_DUMP_SIZE_OF_SHORT;  //header + crc
 
@@ -607,8 +611,8 @@ hex_to_uint32(unsigned char *hex)
 static char*
 hex_to_str(char *hex, char *str, uint16_t *str_len)
 {
-  char *src, *dst;
-  int escape = 0;
+  char *src, *dst, buf[4];
+  int escape = 0, base = 0;
 
   *str_len = 0;
   for (src = hex, dst = str; *src != '\0'; src++) {
@@ -625,7 +629,20 @@ hex_to_str(char *hex, char *str, uint16_t *str_len)
       case '\'': /* fall through */
       case '\?': /* fall through */
       case '\\': *dst++ = *src; break;
-      default:break;
+      default:
+        if (*src >= '0' && *src <= '7') {
+          base = 8;
+          strncpy(buf, src, 3);
+        } else if (*src == 'x' || *src == 'X') {
+          base = 16;
+          src++;
+          strncpy(buf, src, 2);
+        }
+
+        char *err_ptr;
+        *dst++ = (unsigned char) strtol(buf, &err_ptr, base) & 0xff;
+        src += (err_ptr - buf - 1);
+        break;
       }
       escape = 0;
     } else {

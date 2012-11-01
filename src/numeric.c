@@ -245,6 +245,11 @@ flodivmod(mrb_state *mrb, mrb_float x, mrb_float y, mrb_float *divp, mrb_float *
 {
   mrb_float div, mod;
 
+  if (y == 0.0) {
+    *divp = str_to_mrb_float("inf");
+    *modp = str_to_mrb_float("nan");
+    return;
+  }
   mod = fmod(x, y);
   if (isinf(x) && !isinf(y) && !isnan(y))
     div = x;
@@ -772,6 +777,9 @@ fix_mod(mrb_state *mrb, mrb_value x)
   if (FIXNUM_P(y) && (b=mrb_fixnum(y)) != 0) {
     mrb_int mod;
 
+    if (mrb_fixnum(y) == 0) {
+      return mrb_float_value(str_to_mrb_float("nan"));
+    }
     fixdivmod(mrb, a, mrb_fixnum(y), 0, &mod);
     return mrb_fixnum_value(mod);
   }
@@ -798,6 +806,10 @@ fix_divmod(mrb_state *mrb, mrb_value x)
   if (FIXNUM_P(y)) {
     mrb_int div, mod;
 
+    if (mrb_fixnum(y) == 0) {
+      return mrb_assoc_new(mrb, mrb_float_value(str_to_mrb_float("inf")),
+			        mrb_float_value(str_to_mrb_float("nan")));
+    }
     fixdivmod(mrb, mrb_fixnum(x), mrb_fixnum(y), &div, &mod);
     return mrb_assoc_new(mrb, mrb_fixnum_value(div), mrb_fixnum_value(mod));
   }
@@ -937,9 +949,8 @@ fix_xor(mrb_state *mrb, mrb_value x)
 static mrb_value
 lshift(mrb_state *mrb, mrb_int val, unsigned long width)
 {
-  if (width > (sizeof(mrb_int)*CHAR_BIT-1)
-      || ((unsigned long)abs(val))>>(sizeof(mrb_int)*CHAR_BIT-1-width) > 0) {
-      mrb_raise(mrb, E_RANGE_ERROR, "width(%d) > (%d:sizeof(mrb_int)*CHAR_BIT-1)", width,
+  if (width > (sizeof(mrb_int)*CHAR_BIT-1)) {
+      mrb_raisef(mrb, E_RANGE_ERROR, "width(%d) > (%d:sizeof(mrb_int)*CHAR_BIT-1)", width,
 		sizeof(mrb_int)*CHAR_BIT-1);
   }
   val = val << width;
@@ -1153,7 +1164,7 @@ mrb_fix2str(mrb_state *mrb, mrb_value x, int base)
   int neg = 0;
 
   if (base < 2 || 36 < base) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid radix %d", base);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %d", base);
   }
   if (val == 0) {
     return mrb_str_new(mrb, "0", 1);

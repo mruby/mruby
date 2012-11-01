@@ -61,9 +61,6 @@ mrb_obj_inspect(mrb_state *mrb, mrb_value obj)
   if ((mrb_type(obj) == MRB_TT_OBJECT) && mrb_obj_basic_to_s_p(mrb, obj)) {
     return mrb_obj_iv_inspect(mrb, mrb_obj_ptr(obj));
   }
-  else if (mrb_nil_p(obj)) {
-    return mrb_str_new(mrb, "nil", 3);
-  }
   else if (mrb_type(obj) == MRB_TT_MAIN) {
     return mrb_str_new(mrb, "main", 4);
   }
@@ -238,6 +235,12 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
   bp = mrb->stbase + ci->stackidx + 1;
   ci--;
   if (ci <= mrb->cibase) return mrb_false_value();
+  /* block_given? called within block; check upper scope */
+  if (ci->proc->env && ci->proc->env->stack) {
+    if (ci->proc->env->stack == mrb->stbase || mrb_nil_p(ci->proc->env->stack[1]))
+      return mrb_false_value();
+    return mrb_true_value();
+  }
   if (ci->argc > 0) {
     bp += ci->argc;
   }
@@ -345,7 +348,7 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
   struct RObject *clone;
 
   if (mrb_special_const_p(self)) {
-      mrb_raise(mrb, E_TYPE_ERROR, "can't clone %s", mrb_obj_classname(mrb, self));
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't clone %s", mrb_obj_classname(mrb, self));
   }
   clone = (struct RObject*)mrb_obj_alloc(mrb, mrb_type(self), mrb_obj_class(mrb, self));
   clone->c = mrb_singleton_class_clone(mrb, self);
@@ -380,7 +383,7 @@ mrb_obj_dup(mrb_state *mrb, mrb_value obj)
     mrb_value dup;
 
     if (mrb_special_const_p(obj)) {
-        mrb_raise(mrb, E_TYPE_ERROR, "can't dup %s", mrb_obj_classname(mrb, obj));
+        mrb_raisef(mrb, E_TYPE_ERROR, "can't dup %s", mrb_obj_classname(mrb, obj));
     }
     p = mrb_obj_alloc(mrb, mrb_type(obj), mrb_obj_class(mrb, obj));
     dup = mrb_obj_value(p);

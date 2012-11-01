@@ -282,8 +282,8 @@ mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long le
 void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
 
 int mrb_block_given_p(void);
-void mrb_raise(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
-void rb_raise(struct RClass *c, const char *fmt, ...);
+void mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg);
+void mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
 void mrb_warn(const char *fmt, ...);
 void mrb_bug(const char *fmt, ...);
 

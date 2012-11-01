@@ -840,7 +840,7 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
     return mrb_str_substr(mrb, str, mrb_fixnum(a1), mrb_fixnum(a2));
   }
   if (argc != 1) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 1)", argc);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 1)", argc);
   }
   return mrb_str_aref(mrb, str, a1);
 }
@@ -1525,7 +1525,7 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
 
       tmp = mrb_check_string_type(mrb, sub);
       if (mrb_nil_p(tmp)) {
-        mrb_raise(mrb, E_TYPE_ERROR, "type mismatch: %s given",
+        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %s given",
            mrb_obj_classname(mrb, sub));
       }
       sub = tmp;
@@ -1931,7 +1931,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 
       tmp = mrb_check_string_type(mrb, sub);
       if (mrb_nil_p(tmp)) {
-        mrb_raise(mrb, E_TYPE_ERROR, "type mismatch: %s given",
+        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %s given",
                  mrb_obj_classname(mrb, sub));
       }
       sub = tmp;
@@ -2466,7 +2466,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
       break;
     default:
       if (base < 2 || 36 < base) {
-        mrb_raise(mrb, E_ARGUMENT_ERROR, "illegal radix %d", base);
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %d", base);
       }
       if (base <= 32) {
         len = 5;
@@ -2494,7 +2494,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     if (badcheck) goto bad;
     return mrb_fixnum_value(0);
   }
-  len *= strlen(str)*sizeof(char);
+  len *= strlen(str);
 
   val = strtoul((char*)str, &end, base);
 
@@ -2510,7 +2510,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     return mrb_fixnum_value(result);
   }
 bad:
-  mrb_raise(mrb, E_ARGUMENT_ERROR, "invalide string for number(%s)", str);
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalide string for number(%s)", str);
   /* not reached */
   return mrb_fixnum_value(0);
 }
@@ -2546,7 +2546,7 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, int badcheck)
       char *p = (char *)mrb_malloc(mrb, len+1);
 
       //MEMCPY(p, s, char, len);
-      memcpy(p, s, sizeof(char)*len);
+      memcpy(p, s, len);
       p[len] = '\0';
       s = p;
     }
@@ -2589,7 +2589,7 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
     base = mrb_fixnum(argv[0]);
 
   if (base < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "illegal radix %d", base);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %d", base);
   }
   return mrb_str_to_inum(mrb, self, base, 0/*Qfalse*/);
 }
@@ -2620,7 +2620,7 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, int badcheck)
   if (p == end) {
     if (badcheck) {
 bad:
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "invalide string for float(%s)", p);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalide string for float(%s)", p);
       /* not reached */
     }
     return d;
@@ -2682,7 +2682,7 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, int badcheck)
     if (s[len]) {    /* no sentinel somehow */
       char *p = (char *)mrb_malloc(mrb, len+1);
 
-      memcpy(p, s, sizeof(char)*len);
+      memcpy(p, s, len);
       p[len] = '\0';
       s = p;
     }
@@ -2989,6 +2989,29 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
     return result;
 }
 
+/*
+ * call-seq:
+ *   str.bytes   -> array of fixnums
+ *
+ * Returns an array of bytes in _str_.
+ *
+ *    str = "hello"
+ *    str.bytes       #=> [104, 101, 108, 108, 111]
+ */
+static mrb_value
+mrb_str_bytes(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  mrb_value a = mrb_ary_new_capa(mrb, s->len);
+  char *p = s->ptr, *pend = p + s->len;
+
+  while (p < pend) {
+    mrb_ary_push(mrb, a, mrb_fixnum_value(p[0]));
+    p++;
+  }
+  return a;
+}
+
 /* ---------------------------*/
 void
 mrb_init_string(mrb_state *mrb)
@@ -3053,4 +3076,5 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "upcase",          mrb_str_upcase,          ARGS_REQ(1));              /* 15.2.10.5.42 */
   mrb_define_method(mrb, s, "upcase!",         mrb_str_upcase_bang,     ARGS_REQ(1));              /* 15.2.10.5.43 */
   mrb_define_method(mrb, s, "inspect",         mrb_str_inspect,         ARGS_NONE());              /* 15.2.10.5.46(x) */
+  mrb_define_method(mrb, s, "bytes",           mrb_str_bytes,           ARGS_NONE());
 }

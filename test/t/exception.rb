@@ -30,7 +30,7 @@ end
 
 assert('Exception#to_s', '15.2.22.5.3') do
   e = Exception.exception('a')
-  
+
   e.to_s == 'a'
 end
 
@@ -267,6 +267,24 @@ assert('Exception 14') do
   end
 
   a == :ok
+end
+
+assert('Exception 15') do
+  a = begin
+        :ok
+      rescue
+        :ng
+      end
+  a == :ok
+end
+
+assert('Exception 16') do
+  begin
+    raise "foo"
+    false
+  rescue => e
+    e.message == "foo"
+  end
 end
 
 assert('Exception#inspect without message') do

@@ -6,6 +6,7 @@
 
 #include <string.h>
 #include "mruby/dump.h"
+#include <ctype.h>
 
 #include "mruby/string.h"
 #ifdef ENABLE_REGEXP
@@ -76,7 +77,7 @@ static int mrb_write_irep(mrb_state*,int,char*);
 
 
 static inline int
-uint8_dump(unsigned char bin, char *hex, int type)
+uint8_dump(uint8_t bin, char *hex, int type)
 {
   if (type == DUMP_TYPE_BIN) {
     *hex = bin;
@@ -84,7 +85,7 @@ uint8_dump(unsigned char bin, char *hex, int type)
     *hex++  = bin2hex[(bin >> 4) & 0x0f];
     *hex    = bin2hex[bin & 0x0f];
   }
-  return DUMP_SIZE(sizeof(char), type);
+  return DUMP_SIZE(MRB_DUMP_SIZE_OF_CHAR, type);
 }
 
 static inline int
@@ -119,13 +120,16 @@ uint32_dump(uint32_t bin, char *hex, int type)
   }
 }
 
+#define CHAR_ESC_LEN 13 /* sizeof(\x{ hex of 32bit unsigned int } \0) */
+
 static char*
 str_dump(char *str, char *hex, uint16_t len, int type)
 {
   if (type == DUMP_TYPE_BIN)
     memcpy(hex, str, len);
   else {
-    char *src, *dst;
+    char *src, *dst, buf[CHAR_ESC_LEN + 1];
+    int n;
 
     for (src = str, dst = hex; len > 0; src++, dst++, len--) {
       switch (*src) {
@@ -136,11 +140,19 @@ str_dump(char *str, char *hex, uint16_t len, int type)
       case 0x0B:/* VT  */ *dst++ = '\\'; *dst = 'v'; break;
       case 0x0C:/* FF  */ *dst++ = '\\'; *dst = 'f'; break;
       case 0x0D:/* CR  */ *dst++ = '\\'; *dst = 'r'; break;
+      case 0x5C:/* \   */ *dst++ = '\\'; *dst = '\\'; break;
       case 0x22:/* "   */ /* fall through */
       case 0x27:/* '   */ /* fall through */
   //  case 0x3F:/* ?   */ /* fall through */
-      case 0x5C:/* \   */ /* fall through */
-      default: *dst = *src; break;
+      default:
+        if (*src >= ' ' && *src <= '~') {
+          *dst = *src;
+        } else {
+          n = sprintf(buf, "\\%03o", *src & 0377);
+          memcpy(dst, buf, n);
+          dst += (n-1);
+        }
+        break;
       }
     }
   }
@@ -167,15 +179,21 @@ str_dump_len(char *str, uint16_t len, int type)
       case 0x0B:/* VT  */ /* fall through */
       case 0x0C:/* FF  */ /* fall through */
       case 0x0D:/* CR  */ /* fall through */
+      case 0x5C:/* \   */ /* fall through */
         dump_len += 2;
         break;
 
       case 0x22:/* "   */ /* fall through */
       case 0x27:/* '   */ /* fall through */
   //  case 0x3F:/* ?   */ /* fall through */
-      case 0x5C:/* \   */ /* fall through */
       default:
-        dump_len++; break;
+        if (*src >= ' ' && *src <= '~') {
+          dump_len++;
+        } else {
+          // dump_len += sprintf(buf, "\\%03o", *src & 0377);
+          dump_len += 4;
+        }
+        break;
       }
     }
   }
@@ -188,7 +206,7 @@ get_irep_header_size(mrb_state *mrb, mrb_irep *irep, int type)
 {
   uint32_t size = 0;
 
-  size += sizeof(char) * 2;
+  size += 2;
   size += DUMP_SIZE(MRB_DUMP_SIZE_OF_SHORT, type) * 4;
 
   return size;
@@ -215,7 +233,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep, int type)
   char buf[32];
 
   size += MRB_DUMP_SIZE_OF_LONG; /* plen */
-  size += irep->plen * sizeof(char); /* tt(n) */
+  size += irep->plen; /* tt(n) */
   size += irep->plen * MRB_DUMP_SIZE_OF_SHORT; /* len(n) */
   size += MRB_DUMP_SIZE_OF_SHORT; /* crc */
   size = DUMP_SIZE(size, type);
@@ -226,11 +244,11 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep, int type)
 
     switch (mrb_type(irep->pool[pool_no])) {
     case MRB_TT_FIXNUM:
-      len = sprintf( buf, "%d", mrb_fixnum(irep->pool[pool_no]));
+      len = mrb_int_to_str( buf, mrb_fixnum(irep->pool[pool_no]));
       size += (uint32_t)len;
       break;
     case MRB_TT_FLOAT:
-      len = sprintf( buf, "%.16e", mrb_float(irep->pool[pool_no]));
+      len = mrb_float_to_str( buf, mrb_float(irep->pool[pool_no]));
       size += (uint32_t)len;
       break;
     case MRB_TT_STRING:
@@ -335,7 +353,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
   uint16_t len =0;
 
   buf_size = MRB_DUMP_DEFAULT_STR_LEN;
-  if ((char_buf = (char *)mrb_malloc(mrb, buf_size)) == 0)
+  if ((char_buf = (char *)mrb_malloc(mrb, buf_size)) == NULL)
     goto error_exit;
 
   buf += uint32_dump((uint32_t)irep->plen, buf, type); /* number of pool */
@@ -346,19 +364,19 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
 
     switch (mrb_type(irep->pool[pool_no])) {
     case MRB_TT_FIXNUM:
-      len = sprintf(char_buf, "%d", mrb_fixnum(irep->pool[pool_no]));
+      len = mrb_int_to_str(char_buf, mrb_fixnum(irep->pool[pool_no]));
       break;
 
     case MRB_TT_FLOAT:
-      len = sprintf(char_buf, "%.16e", mrb_float(irep->pool[pool_no]));
+      len = mrb_float_to_str(char_buf, mrb_float(irep->pool[pool_no]));
       break;
 
     case MRB_TT_STRING:
-      str = mrb_string_value( mrb, &irep->pool[pool_no]);
+      str = irep->pool[pool_no];
       len = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);
-      if ( len > buf_size - 1) {
+      if (len > buf_size - 1) {
         buf_size = len + 1;
-        if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == 0)
+        if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == NULL)
           goto error_exit;
         memset(char_buf, 0, buf_size);
       }
@@ -371,7 +389,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
       len = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);
       if ( len > buf_size - 1) {
         buf_size = len + 1;
-        if ((char_buf = mrb_realloc(mrb, char_buf, buf_size)) == 0)
+        if ((char_buf = mrb_realloc(mrb, char_buf, buf_size)) == NULL)
           goto error_exit;
         memset(char_buf, 0, buf_size);
       }
@@ -405,7 +423,7 @@ write_syms_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
   uint16_t buf_size =0;
 
   buf_size = MRB_DUMP_DEFAULT_STR_LEN;
-  if ((char_buf = (char *)mrb_malloc(mrb, buf_size)) == 0)
+  if ((char_buf = (char *)mrb_malloc(mrb, buf_size)) == NULL)
     goto error_exit;
 
   buf += uint32_dump((uint32_t)irep->slen, buf, type); /* number of symbol */
@@ -421,7 +439,7 @@ write_syms_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
       nlen = str_dump_len((char*)name, len, type);
       if ( nlen > buf_size - 1) {
         buf_size = nlen + 1;
-        if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == 0)
+        if ((char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size)) == NULL)
           goto error_exit;
       }
       memset(char_buf, 0, buf_size);
@@ -457,7 +475,7 @@ calc_crc_section(mrb_state *mrb, mrb_irep *irep, uint16_t *crc, int section)
   default: return MRB_DUMP_GENERAL_FAILURE;
   }
 
-  if ((buf = (char *)mrb_calloc(mrb, 1, buf_size)) == 0)
+  if ((buf = (char *)mrb_calloc(mrb, 1, buf_size)) == NULL)
     return MRB_DUMP_GENERAL_FAILURE;
 
   buf_top = buf;
@@ -542,7 +560,7 @@ write_irep_record(mrb_state *mrb, int irep_no, char* bin, uint32_t *rlen, int ty
   mrb_irep *irep = mrb->irep[irep_no];
   int section;
 
-  if (irep == 0)
+  if (irep == NULL)
     return MRB_DUMP_INVALID_IREP;
 
   /* buf alloc */
@@ -586,7 +604,7 @@ dump_irep_record(mrb_state *mrb, int irep_no, FILE* fp, uint32_t *rlen)
   char *buf;
   mrb_irep *irep = mrb->irep[irep_no];
 
-  if (irep == 0)
+  if (irep == NULL)
     return MRB_DUMP_INVALID_IREP;
 
   /* buf alloc */
@@ -594,7 +612,7 @@ dump_irep_record(mrb_state *mrb, int irep_no, FILE* fp, uint32_t *rlen)
   if (irep_record_size == 0)
     return MRB_DUMP_GENERAL_FAILURE;
 
-  if ((buf = (char *)mrb_calloc(mrb, 1, irep_record_size)) == 0)
+  if ((buf = (char *)mrb_calloc(mrb, 1, irep_record_size)) == NULL)
     return MRB_DUMP_GENERAL_FAILURE;
 
   if ((rc = write_irep_record(mrb, irep_no, buf, rlen, DUMP_TYPE_HEX)) != MRB_DUMP_OK) {
@@ -620,7 +638,7 @@ mrb_write_irep(mrb_state *mrb, int top, char *bin)
   int irep_no;
   char *bin_top;
 
-  if (mrb == 0 || top < 0 || top >= mrb->irep_len || bin == 0)
+  if (mrb == NULL || top < 0 || top >= mrb->irep_len || bin == NULL)
     return MRB_DUMP_INVALID_ARGUMENT;
 
   bin_top = bin;
@@ -648,7 +666,7 @@ mrb_dump_irep(mrb_state *mrb, int top, FILE* fp)
   uint32_t rlen=0; /* size of irep record */
   int irep_no;
 
-  if (mrb == 0 || top < 0 || top >= mrb->irep_len || fp == 0)
+  if (mrb == NULL || top < 0 || top >= mrb->irep_len || fp == NULL)
     return MRB_DUMP_INVALID_ARGUMENT;
 
   if (fwrite(&def_rite_file_header, sizeof(rite_file_header), 1, fp) != 1) /* dummy write */
@@ -678,7 +696,7 @@ mrb_bdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname)
   int buf_size = 0;
   int buf_idx = 0;
 
-  if (mrb == 0 || n < 0 || n >= mrb->irep_len || f == 0 || initname == 0)
+  if (mrb == NULL || n < 0 || n >= mrb->irep_len || f == NULL || initname == NULL)
     return -1;
 
   buf_size = sizeof(rite_binary_header) + MRB_DUMP_SIZE_OF_SHORT/* crc */;
@@ -686,7 +704,7 @@ mrb_bdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname)
     buf_size += get_irep_record_size(mrb, irep_no, DUMP_TYPE_BIN);
   buf_size += MRB_DUMP_SIZE_OF_LONG; /* end of file */
 
-  if ((buf = (char *)mrb_malloc(mrb, buf_size)) == 0)
+  if ((buf = (char *)mrb_malloc(mrb, buf_size)) == NULL)
     return MRB_DUMP_GENERAL_FAILURE;
 
   rc = mrb_write_irep(mrb, n, buf);
