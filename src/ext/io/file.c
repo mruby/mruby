@@ -14,10 +14,7 @@
 #include "error.h"
 
 #include <libgen.h>
-
-#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#endif
 
 #ifndef LOCK_SH
 #define LOCK_SH 1
