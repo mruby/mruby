@@ -168,7 +168,7 @@ showcallinfo(mrb_state *mrb)
 {
   mrb_callinfo *ci;
   mrb_int ciidx;
-  const char *filename, *sep;
+  const char *filename, *method, *sep;
   int i, line;
 
   printf("trace:\n");
@@ -199,11 +199,15 @@ showcallinfo(mrb_state *mrb)
     else
       sep = "#";
 
+    method = mrb_sym2name(mrb, ci->mid);
+    if (method == NULL)
+      method = "(???)";
+
     printf("\t[%d] %s:%d:in %s%s%s\n",
     	   i, filename, line,
 	   mrb_class_name(mrb, ci->proc->target_class),
 	   sep,
-	   mrb_sym2name(mrb, ci->mid));
+	   method);
   }
 }
 
