@@ -345,16 +345,18 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
 mrb_value
 mrb_obj_clone(mrb_state *mrb, mrb_value self)
 {
-  struct RObject *clone;
+  struct RObject *p;
+  mrb_value clone;
 
   if (mrb_special_const_p(self)) {
       mrb_raisef(mrb, E_TYPE_ERROR, "can't clone %s", mrb_obj_classname(mrb, self));
   }
-  clone = (struct RObject*)mrb_obj_alloc(mrb, mrb_type(self), mrb_obj_class(mrb, self));
-  clone->c = mrb_singleton_class_clone(mrb, self);
-  init_copy(mrb, mrb_obj_value(clone), self);
+  p = (struct RObject*)mrb_obj_alloc(mrb, mrb_type(self), mrb_obj_class(mrb, self));
+  p->c = mrb_singleton_class_clone(mrb, self);
+  clone = mrb_obj_value(p);
+  init_copy(mrb, clone, self);
 
-  return mrb_obj_value(clone);
+  return clone;
 }
 
 /* 15.3.1.3.9  */
