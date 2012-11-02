@@ -68,10 +68,10 @@ all : $(EXE) $(MRUBY) $(TESTRB) $(TESTMRB)
 	./$(EXE)
 	@echo
 	@echo "*** mruby test with ruby script file ***"
-	@($(MRUBY) $(TESTRB) > $(TESTRB_REP) && echo "success.") || $(CAT) $(TESTRB_REP)
+	@($(MRUBY) $(TESTRB) > $(TESTRB_REP) && echo "mrubytest.rb success.") || $(CAT) $(TESTRB_REP)
 	@echo
 	@echo "*** mruby test with mrb file ***********"
-	@($(MRUBY) -b $(TESTMRB) > $(TESTMRB_REP) && echo "success.") || $(CAT) $(TESTMRB_REP)
+	@($(MRUBY) -b $(TESTMRB) > $(TESTMRB_REP) && echo "mrubytest.mrb success.") || $(CAT) $(TESTMRB_REP)
 	@echo
 
 # executable constructed using linker from object files
