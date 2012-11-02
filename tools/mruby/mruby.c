@@ -4,6 +4,7 @@
 #include "mruby/string.h"
 #include "mruby/compile.h"
 #include "mruby/dump.h"
+#include "mruby/variable.h"
 #include <stdio.h>
 #include <string.h>
 
