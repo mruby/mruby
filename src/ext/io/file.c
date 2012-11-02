@@ -15,6 +15,23 @@
 
 #include <libgen.h>
 
+#ifdef HAVE_SYS_FILE_H
+#include <sys/file.h>
+#endif
+
+#ifndef LOCK_SH
+#define LOCK_SH 1
+#endif
+#ifndef LOCK_EX 
+#define LOCK_EX 2
+#endif
+#ifndef LOCK_NB
+#define LOCK_NB 4
+#endif
+#ifndef LOCK_UN
+#define LOCK_UN 8
+#endif
+
 /*********************************************************/
 #define STAT(p, s)        stat(p, s)
 
@@ -135,6 +152,54 @@ mrb_stat(mrb_state *mrb, mrb_value file, struct stat *st)
 }
 
 mrb_value
+mrb_file_flock(mrb_state *mrb, mrb_value file)
+{
+  mrb_value *argv;
+  int argc, op, fd;
+  mrb_value operation = mrb_nil_value();;
+  struct mrb_io *fptr;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc < 1) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR,
+        "wrong number of arguments (%d for 1)", argc);
+    return mrb_nil_value();
+  }
+
+  operation = argv[0];
+  fptr = RFILE(file)->fptr;
+  if (!fptr) {
+    return mrb_false_value();
+  }
+
+  fd = fileno(RFILE(file)->fptr->f);
+  op = mrb_fixnum(operation);
+
+  if (flock(fd, op) < 0) {
+    switch (errno) {
+      case EAGAIN:
+      case EACCES:
+#if defined(EWOULDBLOCK) && EWOULDBLOCK != EAGAIN
+      case EWOULDBLOCK:
+#endif
+        if (mrb_fixnum(operation) & LOCK_NB)
+          return mrb_false_value();
+        rb_io_check_closed(mrb, fptr);
+        break; /* XXX */
+      case EINTR:
+#if defined(ERESTRT)
+      case ERESTRT:
+#endif
+        break;
+      default:
+        mrb_sys_fail(mrb, "flock failed");
+    }
+  }
+
+  return mrb_fixnum_value(0);
+}
+
+mrb_value
 mrb_file_exist(mrb_state *mrb, mrb_value fname)
 {
   struct stat st;
@@ -230,6 +295,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "unlink", mrb_file_s_unlink, ARGS_ANY());
   mrb_define_class_method(mrb, file, "delete", mrb_file_s_unlink, ARGS_ANY());
   mrb_define_class_method(mrb, file, "rename", mrb_file_s_rename, ARGS_REQ(2));
+  mrb_define_method(mrb, file, "flock", mrb_file_flock, ARGS_ANY());
 
   mrb_define_class_method(mrb, file, "exist?",     mrb_file_exist_p,    ARGS_REQ(1));              /* 15.2.21.3.1  */
   mrb_define_class_method(mrb, file, "exists?",    mrb_file_exist_p,    ARGS_REQ(1));              /* 15.2.21.3.1  */
@@ -237,6 +303,10 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "dirname",   mrb_file_dirname,    ARGS_REQ(1));
   mrb_define_class_method(mrb, file, "basename",  mrb_file_basename,   ARGS_REQ(1));
   mrb_define_class_method(mrb, file, "size",      mrb_file_size,       ARGS_REQ(1));
+  mrb_define_const(mrb, file, "LOCK_SH", mrb_fixnum_value(LOCK_SH));
+  mrb_define_const(mrb, file, "LOCK_EX", mrb_fixnum_value(LOCK_EX));
+  mrb_define_const(mrb, file, "LOCK_UN", mrb_fixnum_value(LOCK_UN));
+  mrb_define_const(mrb, file, "LOCK_NB", mrb_fixnum_value(LOCK_NB));
 }
 
 #endif /* ENABLE_IO */
