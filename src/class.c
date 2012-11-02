@@ -503,8 +503,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 	  case MRB_TT_FIXNUM:
 	    *p = (mrb_float)mrb_fixnum(*sp);
 	    break;
-	  case MRB_TT_FALSE:
-	    *p = 0.0;
+	  case MRB_TT_STRING:
+	    mrb_raise(mrb, E_TYPE_ERROR, "String can't be coerced into Float");
 	    break;
 	  default:
 	    {
