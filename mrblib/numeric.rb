@@ -61,6 +61,18 @@ class Integer
   def div(other)
     self.divmod(other)[0]
   end
+
+  def chr
+    if self >= 0 and self <= 255
+      if self.methods.include?(:sprintf)
+        sprintf("%c", self)
+      else
+        raise NotImplementedError.new("can't use sprintf")
+      end
+    else
+      raise RangeError.new("#{self} out of char range")
+    end
+  end
 end
 
 ##
