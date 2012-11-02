@@ -635,7 +635,6 @@ scope_body(codegen_scope *s, node *tree)
     genop(scope, MKOP_A(OP_STOP, 0));
   }
   else {
-    pop_(scope);
     if (scope->nregs == 0) {
       genop(scope, MKOP_A(OP_LOADNIL, 0));
       genop(scope, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
