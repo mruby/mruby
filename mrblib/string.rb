@@ -133,7 +133,6 @@ class String
   def []=(pos, value)
     b = self[0, pos]
     a = self[pos+1..-1]
-    p [b, value, a].join('')
     self.replace([b, value, a].join(''))
   end
 end
