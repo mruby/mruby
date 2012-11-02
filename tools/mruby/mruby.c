@@ -182,8 +182,9 @@ showcallinfo(mrb_state *mrb)
     line = -1;
 
     if (MRB_PROC_CFUNC_P(ci->proc)) {
-      filename = "(cfunc)";
-    } else {
+      continue;
+    }
+    else {
       mrb_irep *irep = ci->proc->body.irep;
       if (irep->filename != NULL)
         filename = irep->filename;
