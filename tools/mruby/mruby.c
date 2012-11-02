@@ -200,14 +200,12 @@ showcallinfo(mrb_state *mrb)
       sep = "#";
 
     method = mrb_sym2name(mrb, ci->mid);
-    if (method == NULL)
-      method = "(???)";
-
-    printf("\t[%d] %s:%d:in %s%s%s\n",
+    printf("\t[%d] %s:%d%s%s%s%s\n",
     	   i, filename, line,
-	   mrb_class_name(mrb, ci->proc->target_class),
-	   sep,
-	   method);
+	   method ? ":in " : "",
+	   method ? mrb_class_name(mrb, ci->proc->target_class) : "",
+	   method ? sep : "",
+	   method ? method : "");
   }
 }
 
