@@ -1117,4 +1117,5 @@ mrb_init_kernel(mrb_state *mrb)
 #endif
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
+  mrb_alias_method(mrb, mrb->module_class, mrb_intern(mrb, "dup"), mrb_intern(mrb, "clone"));
 }
