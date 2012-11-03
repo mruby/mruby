@@ -318,7 +318,7 @@ gc_protect(mrb_state *mrb, struct RBasic *p)
 void
 mrb_gc_protect(mrb_state *mrb, mrb_value obj)
 {
-  if (SPECIAL_CONST_P(obj)) return;
+  if (mrb_special_const_p(obj)) return;
   gc_protect(mrb, RBASIC(obj));
 }
 

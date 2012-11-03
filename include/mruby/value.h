@@ -161,22 +161,8 @@ mrb_float_value(mrb_float f)
 
 #include "mruby/object.h"
 
-#define IMMEDIATE_P(x) (mrb_type(x) <= MRB_TT_MAIN)
-#define SPECIAL_CONST_P(x) IMMEDIATE_P(x)
-
-#define FL_ABLE(x) (!SPECIAL_CONST_P(x))
-#define FL_TEST(x,f) (FL_ABLE(x)?(RBASIC(x)->flags&(f)):0)
-#define FL_ANY(x,f) FL_TEST(x,f)
-#define FL_ALL(x,f) (FL_TEST(x,f) == (f))
-#define FL_SET(x,f) do {if (FL_ABLE(x)) RBASIC(x)->flags |= (f);} while (0)
-#define FL_UNSET(x,f) do {if (FL_ABLE(x)) RBASIC(x)->flags &= ~(f);} while (0)
-
-static inline mrb_int
-mrb_special_const_p(mrb_value obj)
-{
-  if (SPECIAL_CONST_P(obj)) return 1;
-  return 0;
-}
+#define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_MAIN)
+#define mrb_special_const_p(x) mrb_immediate_p(x)
 
 static inline mrb_value
 mrb_fixnum_value(mrb_int i)
