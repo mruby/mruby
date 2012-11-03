@@ -719,7 +719,7 @@ mrb_ary_aset(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "*", &argv, &argc);
   switch(argc) {
   case 2:
-    if (FIXNUM_P(argv[0])) {
+    if (mrb_fixnum_p(argv[0])) {
       mrb_ary_set(mrb, self, mrb_fixnum(argv[0]), argv[1]);
     }
     else {

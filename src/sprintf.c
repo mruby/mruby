@@ -800,7 +800,7 @@ retry:
               goto bin_retry;
             }
             val = mrb_flt2big(mrb, mrb_float(val));
-            if (FIXNUM_P(val)) goto bin_retry;
+            if (mrb_fixnum_p(val)) goto bin_retry;
             break;
           case MRB_TT_STRING:
             val = mrb_str_to_inum(mrb, val, 0, TRUE);
