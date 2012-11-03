@@ -46,8 +46,6 @@ typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 #ifndef MRB_ARENA_SIZE
 #define MRB_ARENA_SIZE 1024
 #endif
-#define ruby_debug   (mrb_nil_value())
-#define ruby_verbose (mrb_nil_value())
 
 typedef struct {
   mrb_sym mid;

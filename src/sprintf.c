@@ -1048,6 +1048,7 @@ retry:
   }
 
   sprint_exit:
+#if 0
   /* XXX - We cannot validate the number of arguments if (digit)$ style used.
    */
   if (posarg >= 0 && nextarg < argc) {
@@ -1055,6 +1056,7 @@ retry:
     if (mrb_test(ruby_debug)) mrb_raise(mrb, E_ARGUMENT_ERROR, mesg);
     if (mrb_test(ruby_verbose)) mrb_warn("%s", mesg);
   }
+#endif
   mrb_str_resize(mrb, result, blen);
 
   return result;
