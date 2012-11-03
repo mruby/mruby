@@ -159,7 +159,7 @@ mrb_float_value(mrb_float f)
 
 #define IMMEDIATE_P(x) (mrb_type(x) <= MRB_TT_MAIN)
 #define SPECIAL_CONST_P(x) IMMEDIATE_P(x)
-#define SYMBOL_P(o) (mrb_type(o) == MRB_TT_SYMBOL)
+#define mrb_symbol_p(o) (mrb_type(o) == MRB_TT_SYMBOL)
 #define RTEST(o) mrb_test(o)
 
 #define FL_ABLE(x) (!SPECIAL_CONST_P(x))

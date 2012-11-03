@@ -1007,7 +1007,7 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
   int alen;
 
   mrb_get_args(mrb, "o*", &name, &a, &alen);
-  if (!SYMBOL_P(name)) {
+  if (!mrb_symbol_p(name)) {
     mrb_raise(mrb, E_TYPE_ERROR, "name should be a symbol");
   }
   mrb_raisef(mrb, E_NOMETHOD_ERROR, "undefined method '%s' for %s",
