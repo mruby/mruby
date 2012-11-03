@@ -1322,10 +1322,10 @@ mod_define_method(mrb_state *mrb, mrb_value self)
 static mrb_sym
 mrb_sym_value(mrb_state *mrb, mrb_value val)
 {
-  if(mrb_type(val) == MRB_TT_STRING) {
+  if (mrb_string_p(val)) {
     return mrb_intern_str(mrb, val);
   }
-  else if(mrb_type(val) != MRB_TT_SYMBOL) {
+  else if(!mrb_symbol_p(val)) {
     mrb_value obj = mrb_funcall(mrb, val, "inspect", 0);
     mrb_raisef(mrb, E_TYPE_ERROR, "%s is not a symbol",
          mrb_string_value_ptr(mrb, obj));

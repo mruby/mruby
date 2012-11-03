@@ -153,13 +153,16 @@ mrb_float_value(mrb_float f)
 #define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
 #define mrb_undef_p(o) (mrb_type(o) == MRB_TT_UNDEF)
 #define mrb_nil_p(o)  (mrb_type(o) == MRB_TT_FALSE && !(o).value.i)
+#define mrb_symbol_p(o) (mrb_type(o) == MRB_TT_SYMBOL)
+#define mrb_array_p(o) (mrb_type(o) == MRB_TT_ARRAY)
+#define mrb_string_p(o) (mrb_type(o) == MRB_TT_STRING)
+#define mrb_hash_p(o) (mrb_type(o) == MRB_TT_HASH)
 #define mrb_test(o)   (mrb_type(o) != MRB_TT_FALSE)
 
 #include "mruby/object.h"
 
 #define IMMEDIATE_P(x) (mrb_type(x) <= MRB_TT_MAIN)
 #define SPECIAL_CONST_P(x) IMMEDIATE_P(x)
-#define mrb_symbol_p(o) (mrb_type(o) == MRB_TT_SYMBOL)
 #define RTEST(o) mrb_test(o)
 
 #define FL_ABLE(x) (!SPECIAL_CONST_P(x))

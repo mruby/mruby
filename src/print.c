@@ -16,7 +16,7 @@ printstr(mrb_state *mrb, mrb_value obj)
   char *s;
   int len;
 
-  if (mrb_type(obj) == MRB_TT_STRING) {
+  if (mrb_string_p(obj)) {
     str = mrb_str_ptr(obj);
     s = str->ptr;
     len = str->len;

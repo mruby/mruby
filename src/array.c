@@ -294,7 +294,7 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
   int i, len;
 
   mrb_get_args(mrb, "o", &ary2);
-  if (mrb_type(ary2) != MRB_TT_ARRAY) return mrb_nil_value();
+  if (!mrb_array_p(ary2)) return mrb_nil_value();
   a1 = RARRAY(ary1); a2 = RARRAY(ary2);
   if (a1->len == a2->len && a1->ptr == a2->ptr) return mrb_fixnum_value(0);
   else {
@@ -616,7 +616,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   tail = head + len;
 
   /* size check */
-  if (mrb_type(rpl) == MRB_TT_ARRAY) {
+  if (mrb_array_p(rpl)) {
     argc = RARRAY_LEN(rpl);
     argv = RARRAY_PTR(rpl);
   }
@@ -848,7 +848,7 @@ mrb_ary_rindex_m(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_ary_splat(mrb_state *mrb, mrb_value v)
 {
-  if (mrb_type(v) == MRB_TT_ARRAY) {
+  if (mrb_array_p(v)) {
     return v;
   }
   else {
@@ -928,7 +928,7 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
     if (i > 0) {
       mrb_str_buf_cat(mrb, arystr, sep, sizeof(sep));
     }
-    if (mrb_type(RARRAY_PTR(ary)[i]) == MRB_TT_ARRAY) {
+    if (mrb_array_p(RARRAY_PTR(ary)[i])) {
       s = inspect_ary(mrb, RARRAY_PTR(ary)[i], list);
     } else {
       s = mrb_inspect(mrb, RARRAY_PTR(ary)[i]);
@@ -1068,7 +1068,7 @@ mrb_ary_equal(mrb_state *mrb, mrb_value ary1)
   mrb_get_args(mrb, "o", &ary2);
   if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_true_value();
   if (SPECIAL_CONST_P(ary2)) return mrb_false_value();
-  if (mrb_type(ary2) != MRB_TT_ARRAY) {
+  if (!mrb_array_p(ary2)) {
     if (!mrb_respond_to(mrb, ary2, mrb_intern(mrb, "to_ary"))) {
         return mrb_false_value();
     }
@@ -1107,7 +1107,7 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
 
   mrb_get_args(mrb, "o", &ary2);
   if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_true_value();
-  if (mrb_type(ary2) != MRB_TT_ARRAY) return mrb_false_value();
+  if (!mrb_array_p(ary2)) return mrb_false_value();
   if (RARRAY_LEN(ary1) != RARRAY_LEN(ary2)) return mrb_false_value();
   else {
     int i;

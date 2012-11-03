@@ -58,7 +58,7 @@ mrb_struct_s_members(mrb_state *mrb, mrb_value klass)
     if (mrb_nil_p(members)) {
       mrb_raise(mrb, E_TYPE_ERROR, "uninitialized struct");
     }
-    if (mrb_type(members) != MRB_TT_ARRAY) {
+    if (!mrb_array_p(members)) {
       mrb_raise(mrb, E_TYPE_ERROR, "corrupted struct");
     }
     return members;
@@ -381,7 +381,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   else {   
     if (argc > 0) name = argv[0];
     if (argc > 1) rest = argv[1];
-    if (mrb_type(rest) == MRB_TT_ARRAY) {
+    if (mrb_array_p(rest)) {
       if (!mrb_nil_p(name) && mrb_symbol_p(name)) {
         /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
         mrb_ary_unshift(mrb, rest, name);
@@ -417,7 +417,7 @@ num_members(mrb_state *mrb, struct RClass *klass)
 {
     mrb_value members;
     members = struct_ivar_get(mrb, mrb_obj_value(klass), mrb_intern(mrb, "__members__"));
-    if (mrb_type(members) != MRB_TT_ARRAY) {
+    if (!mrb_array_p(members)) {
       mrb_raise(mrb, E_TYPE_ERROR, "broken members");
     }
     return RARRAY_LEN(members);
@@ -588,7 +588,7 @@ mrb_struct_aref_n(mrb_state *mrb, mrb_value s, mrb_value idx)
 {
   long i;
 
-  if (mrb_type(idx) == MRB_TT_STRING || mrb_type(idx) == MRB_TT_SYMBOL) {
+  if (mrb_string_p(idx) || mrb_symbol_p(idx)) {
     return mrb_struct_aref_id(mrb, s, mrb_to_id(mrb, idx));
   }
 
@@ -668,7 +668,7 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
 
   mrb_get_args(mrb, "oo", &idx, &val);
 
-  if (mrb_type(idx) == MRB_TT_STRING || mrb_type(idx) == MRB_TT_SYMBOL) {
+  if (mrb_string_p(idx) || mrb_symbol_p(idx)) {
     return mrb_struct_aset_id(mrb, s, mrb_to_id(mrb, idx), val);
   }
 

@@ -37,7 +37,7 @@ static void mrb_hash_modify(mrb_state *mrb, mrb_value hash);
 static inline mrb_value
 mrb_hash_ht_key(mrb_state *mrb, mrb_value key)
 {
-  if (mrb_type(key) == MRB_TT_STRING)
+  if (mrb_string_p(key))
     return mrb_str_dup(mrb, key);
   else
     return key;
@@ -1106,7 +1106,7 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
   khash_t(ht) *h1, *h2;
 
   if (mrb_obj_equal(mrb, hash1, hash2)) return mrb_true_value();
-  if (mrb_type(hash2) != MRB_TT_HASH) {
+  if (!mrb_hash_p(hash2)) {
       if (!mrb_respond_to(mrb, hash2, mrb_intern(mrb, "to_hash"))) {
           return mrb_false_value();
       }
