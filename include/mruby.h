@@ -302,16 +302,6 @@ void mrb_bug(const char *fmt, ...);
 
 #define E_KEY_ERROR                 (mrb_class_obj_get(mrb, "KeyError"))
 
-/* TODO: there is no definitions of RSTRING_* here, so cannot compile.
-static inline char
-NUM2CHR(mrb_value x)
-{
-    return NUM2CHR_internal(x);
-}
-*/
-#define NUM2CHR(x) NUM2CHR_internal(x)
-#endif
-
 mrb_value mrb_yield(mrb_state *mrb, mrb_value v, mrb_value blk);
 mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv);
 mrb_value mrb_class_new_instance(mrb_state *mrb, int, mrb_value*, struct RClass *);
