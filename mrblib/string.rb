@@ -183,6 +183,10 @@ class String
     self.replace(b)
   end
 
+  def %(args)
+    sprintf(self, *args)
+  end
+
   #private
   def isspace(num)
     num == ?\s or num == ?\n or num == ?\t or num == ?\r or num == ?\f or num == ?\v
