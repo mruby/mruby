@@ -103,7 +103,7 @@ mrb_to_id(mrb_state *mrb, mrb_value name)
       name = mrb_str_intern(mrb, name);
       /* fall through */
     case MRB_TT_SYMBOL:
-      return SYM2ID(name);
+      return mrb_symbol(name);
   }
   return id;
 }
@@ -156,7 +156,7 @@ mrb_obj_id(mrb_value obj)
   case  MRB_TT_TRUE:
     return MakeID(1);
   case  MRB_TT_SYMBOL:
-    return MakeID(SYM2ID(obj));
+    return MakeID(mrb_symbol(obj));
   case  MRB_TT_FIXNUM:
     return MakeID2(float_id((mrb_float)mrb_fixnum(obj)), MRB_TT_FLOAT);
   case  MRB_TT_FLOAT:

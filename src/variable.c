@@ -927,5 +927,5 @@ mrb_class_sym(mrb_state *mrb, struct RClass *c, struct RClass *outer)
       return arg.sym;
     }
   }
-  return SYM2ID(name);
+  return mrb_symbol(name);
 }

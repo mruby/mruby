@@ -220,7 +220,7 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
   ptr = RSTRUCT_PTR(obj);
   for (i=0; i<len; i++) {
     slot = ptr_members[i];
-    if (SYM2ID(slot) == mid) {
+    if (mrb_symbol(slot) == mid) {
       return ptr[i] = val;
     }
   }
@@ -290,7 +290,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     ptr_members = RARRAY_PTR(members);
     len = RARRAY_LEN(members);
     for (i=0; i< len; i++) {
-      mrb_sym id = SYM2ID(ptr_members[i]);
+      mrb_sym id = mrb_symbol(ptr_members[i]);
       if (mrb_is_local_id(id) || mrb_is_const_id(id)) {
           if (i < N_REF_FUNC) {
             mrb_define_method_id(mrb, c, id, ref_func[i], ARGS_NONE());
@@ -492,7 +492,7 @@ inspect_struct(mrb_state *mrb, mrb_value s, mrb_value dummy, int recur)
           mrb_str_cat2(mrb, str, " ");
       }
       slot = ptr_members[i];
-      id = SYM2ID(slot);
+      id = mrb_symbol(slot);
       if (mrb_is_local_id(id) || mrb_is_const_id(id)) {
 	const char *name;
 	int len;
@@ -556,7 +556,7 @@ mrb_struct_aref_id(mrb_state *mrb, mrb_value s, mrb_sym id)
     ptr_members = RARRAY_PTR(members);
     len = RARRAY_LEN(members);
     for (i=0; i<len; i++) {
-      if (SYM2ID(ptr_members[i]) == id) {
+      if (mrb_symbol(ptr_members[i]) == id) {
           return ptr[i];
       }
     }
@@ -628,7 +628,7 @@ mrb_struct_aset_id(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
     ptr = RSTRUCT_PTR(s);
     ptr_members = RARRAY_PTR(members);
     for (i=0; i<len; i++) {
-      if (SYM2ID(ptr_members[i]) == id) {
+      if (mrb_symbol(ptr_members[i]) == id) {
           ptr[i] = val;
           return val;
       }

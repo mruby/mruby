@@ -302,8 +302,6 @@ void mrb_bug(const char *fmt, ...);
 
 #define E_KEY_ERROR                 (mrb_class_obj_get(mrb, "KeyError"))
 
-#define SYM2ID(x) ((x).value.sym)
-
 #define NUM2CHR_internal(x) (((mrb_type(x) == MRB_TT_STRING)&&(RSTRING_LEN(x)>=1))?\
                      RSTRING_PTR(x)[0]:(char)(mrb_fixnum_number(x)&0xff))
 #ifdef __GNUC__

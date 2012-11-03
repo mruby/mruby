@@ -260,7 +260,7 @@ match_backref_number(mrb_state *mrb, mrb_value match, mrb_value backref)
       return mrb_fixnum(backref);
 
     case MRB_TT_SYMBOL:
-      name = mrb_sym2name(mrb, SYM2ID(backref));
+      name = mrb_sym2name(mrb, mrb_symbol(backref));
       break;
 
     case MRB_TT_STRING:
@@ -1192,8 +1192,7 @@ mrb_match_aref(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value match)
 
       switch (mrb_type(idx)) {
         case MRB_TT_SYMBOL:
-          //p = mrb_id2name(SYM2ID(idx));
-          p = mrb_sym2name(mrb, SYM2ID(idx));
+          p = mrb_sym2name(mrb, mrb_symbol(idx));
           goto name_to_backref;
           break;
         case MRB_TT_STRING:
