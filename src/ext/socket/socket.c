@@ -102,7 +102,6 @@ mrb_basicsocket_setnonblock(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
-
 static mrb_value
 mrb_basicsocket_shutdown(mrb_state *mrb, mrb_value self)
 { 
@@ -194,23 +193,37 @@ static mrb_value
 mrb_tcpsocket_open(mrb_state *mrb, mrb_value klass)
 {
   struct RFile *f;
-  struct addrinfo hints, *res, *res0;
+  struct addrinfo hints, *lres, *lres0, *res, *res0;
   struct mrb_io *io;
-  mrb_value argv[3], servo, so;
-  char *host;
+  mrb_int argc;
+  mrb_value argv[3], lservo, servo, so;
+  char *host, *lhost, *lserv, *serv;
   int error, s;
 
-  mrb_get_args(mrb, "zo", &host, &servo);
+  argc = mrb_get_args(mrb, "zo|zo", &host, &servo, &lhost, &lservo);
   if (mrb_type(servo) != MRB_TT_STRING) {
     if (!mrb_respond_to(mrb, servo, mrb_intern(mrb, "to_s"))) {
       mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, servo));
     }
     servo = mrb_funcall(mrb, servo, "to_s", 0);
   }
+  serv = mrb_str_to_cstr(mrb, servo);
+
+  if (argc > 3 && mrb_type(lservo) != MRB_TT_STRING) {
+    if (!mrb_respond_to(mrb, lservo, mrb_intern(mrb, "to_s"))) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, lservo));
+    }
+    lservo = mrb_funcall(mrb, lservo, "to_s", 0);
+  }
+  if (argc > 3) {
+    lserv = mrb_str_to_cstr(mrb, lservo);
+  } else {
+    lserv = NULL;
+  }
 
   memset(&hints, 0, sizeof(hints));
   hints.ai_socktype = SOCK_STREAM;
-  error = getaddrinfo(host, RSTRING_PTR(servo), &hints, &res0);
+  error = getaddrinfo(host, serv, &hints, &res0);
   if (error == -1)
     mrb_raise(mrb, E_RUNTIME_ERROR, "getaddrinfo(2) failed");
   res = res0;
@@ -219,6 +232,24 @@ mrb_tcpsocket_open(mrb_state *mrb, mrb_value klass)
   if (s == -1) {
     freeaddrinfo(res0);
     mrb_raise(mrb, E_RUNTIME_ERROR, "socket(2) failed");
+  }
+
+  if (argc > 2) {
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_socktype = SOCK_STREAM;
+    error = getaddrinfo(lhost, lserv, &hints, &lres0);
+    if (error == -1) {
+      freeaddrinfo(res0);
+      close(s);
+      mrb_raise(mrb, E_RUNTIME_ERROR, "getaddrinfo(2) failed");
+    }
+    lres = lres0;
+    if (bind(s, lres->ai_addr, lres->ai_addrlen) == -1) {
+      freeaddrinfo(lres0);
+      close(s);
+      mrb_raise(mrb, E_RUNTIME_ERROR, "bind(2) failed");
+    }
+    freeaddrinfo(lres0);
   }
 
   if (connect(s, res->ai_addr, res->ai_addrlen) == -1) {
@@ -483,8 +514,8 @@ mrb_init_socket(mrb_state *mrb)
   mrb_define_method(mrb, ipsock, "recvfrom", mrb_ipsocket_recvfrom, ARGS_REQ(1)|ARGS_OPT(1));
 
   tcpsock = mrb_define_class(mrb, "TCPSocket", ipsock);
-  mrb_define_class_method(mrb, tcpsock, "open", mrb_tcpsocket_open, ARGS_REQ(2));
-  mrb_define_class_method(mrb, tcpsock, "new", mrb_tcpsocket_open, ARGS_REQ(2));
+  mrb_define_class_method(mrb, tcpsock, "open", mrb_tcpsocket_open, ARGS_REQ(2)|ARGS_OPT(2));
+  mrb_define_class_method(mrb, tcpsock, "new", mrb_tcpsocket_open, ARGS_REQ(2)|ARGS_OPT(2));
   // who uses gethostbyname...?
 
   udpsock = mrb_define_class(mrb, "UDPSocket", ipsock);
