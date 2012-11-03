@@ -373,3 +373,14 @@ end
 assert("Array#flatten!") do
   [1, 2, 3, 4, 5, 6] == [1, 2, [3, [4, 5], 6]].flatten!
 end
+
+assert("Array#compact!") do
+  a = [1, nil, "2", nil, :t, false, nil]
+  a.compact!
+  a == [1, "2", :t, false]
+end
+
+assert("Array#compact") do
+  a = [1, nil, "2", nil, :t, false, nil]
+  a.compact == [1, "2", :t, false] && a == [1, nil, "2", nil, :t, false, nil]
+end
