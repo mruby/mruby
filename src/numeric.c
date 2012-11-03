@@ -878,7 +878,7 @@ static mrb_value
 bit_coerce(mrb_state *mrb, mrb_value x)
 {
     while (!mrb_fixnum_p(x)) {
-        if (mrb_type(x) == MRB_TT_FLOAT) {
+        if (mrb_float_p(x)) {
             mrb_raise(mrb, E_TYPE_ERROR, "can't convert Float into Integer");
         }
         x = mrb_to_int(mrb, x);

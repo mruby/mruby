@@ -150,6 +150,7 @@ mrb_float_value(mrb_float f)
 #define mrb_symbol(o) (o).value.sym
 #define mrb_object(o) ((struct RBasic *) (o).value.p)
 #define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_FIXNUM)
+#define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
 #define mrb_undef_p(o) (mrb_type(o) == MRB_TT_UNDEF)
 #define mrb_nil_p(o)  (mrb_type(o) == MRB_TT_FALSE && !(o).value.i)
 #define mrb_test(o)   (mrb_type(o) != MRB_TT_FALSE)
