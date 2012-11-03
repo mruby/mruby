@@ -1052,8 +1052,8 @@ retry:
    */
   if (posarg >= 0 && nextarg < argc) {
     const char *mesg = "too many arguments for format string";
-    if (RTEST(ruby_debug)) mrb_raise(mrb, E_ARGUMENT_ERROR, mesg);
-    if (RTEST(ruby_verbose)) mrb_warn("%s", mesg);
+    if (mrb_test(ruby_debug)) mrb_raise(mrb, E_ARGUMENT_ERROR, mesg);
+    if (mrb_test(ruby_verbose)) mrb_warn("%s", mesg);
   }
   mrb_str_resize(mrb, result, blen);
 

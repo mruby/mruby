@@ -764,7 +764,7 @@ mrb_obj_singleton_methods(mrb_state *mrb, int argc, mrb_value *argv, mrb_value o
       method_entry_loop(mrb, klass, ary);
       klass = klass->super;
   }
-  if (RTEST(recur)) {
+  if (mrb_test(recur)) {
       while (klass && ((klass->tt == MRB_TT_SCLASS) || (klass->tt == MRB_TT_ICLASS))) {
         method_entry_loop(mrb, klass, ary);
         klass = klass->super;
@@ -1008,7 +1008,7 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   if (argc > 1) priv = argv[1];
   else priv = mrb_nil_value();
   id = mrb_to_id(mrb, mid);
-  if (basic_obj_respond_to(mrb, self, id, !RTEST(priv)))
+  if (basic_obj_respond_to(mrb, self, id, !mrb_test(priv)))
     return mrb_true_value();
   return mrb_false_value();
 }

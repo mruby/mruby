@@ -603,5 +603,5 @@ int
 mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
-  return RTEST(mrb_funcall(mrb, obj1, "eql?", 1, obj2));
+  return mrb_test(mrb_funcall(mrb, obj1, "eql?", 1, obj2));
 }
