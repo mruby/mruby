@@ -44,7 +44,5 @@ struct RObject {
 
 #define mrb_obj_ptr(v)   ((struct RObject*)((v).value.p))
 #define mrb_basic(v)     ((struct RBasic*)((v).value.p))
-#define ROBJECT_IVPTR(v) (((struct RObject*)((v).value.p))->iv)
-#define ROBJECT_NUMIV(v) (ROBJECT_IVPTR(v) ? ROBJECT_IVPTR(v)->size : 0)
 
 #endif  /* MRUBY_OBJECT_H */
