@@ -42,10 +42,8 @@ struct RObject {
   struct iv_tbl *iv;
 };
 
-#define mrb_obj_ptr(v)    ((struct RObject*)((v).value.p))
-#define RBASIC(obj)  ((struct RBasic*)((obj).value.p))
-#define RBASIC_KLASS(v) ((struct RClass *)(((struct RBasic*)((v).value.p))->c))
-#define ROBJECT(v) ((struct RObject*)((v).value.p))
+#define mrb_obj_ptr(v)   ((struct RObject*)((v).value.p))
+#define mrb_basic(v)     ((struct RBasic*)((v).value.p))
 #define ROBJECT_IVPTR(v) (((struct RObject*)((v).value.p))->iv)
 #define ROBJECT_NUMIV(v) (ROBJECT_IVPTR(v) ? ROBJECT_IVPTR(v)->size : 0)
 

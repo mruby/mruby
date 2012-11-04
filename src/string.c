@@ -1317,7 +1317,7 @@ str_gsub(mrb_state *mrb, mrb_value str, mrb_int bang)
     mrb_str_buf_cat(mrb, dest, cp, RSTRING_LEN(str) - offset);
   }
   mrb_reg_search(mrb, pat, str, last, 0);
-  RBASIC(dest)->c = mrb_obj_class(mrb, str);
+  mrb_basic(dest)->c = mrb_obj_class(mrb, str);
   return str;
 }
 

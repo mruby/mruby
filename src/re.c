@@ -344,8 +344,8 @@ mrb_reg_options(mrb_state *mrb, mrb_value re)
 
     mrb_reg_check(mrb, re);
     options = RREGEXP(re)->ptr->options & ARG_REG_OPTION_MASK;
-    if (RBASIC(re)->flags & KCODE_FIXED) options |= ARG_ENCODING_FIXED;
-    if (RBASIC(re)->flags & REG_ENCODING_NONE) options |= ARG_ENCODING_NONE;
+    if (mrb_basic(re)->flags & KCODE_FIXED) options |= ARG_ENCODING_FIXED;
+    if (mrb_basic(re)->flags & REG_ENCODING_NONE) options |= ARG_ENCODING_NONE;
     return options;
 }
 
@@ -361,7 +361,7 @@ mrb_reg_desc(mrb_state *mrb, const char *s, long len, mrb_value re)
     mrb_reg_check(mrb, re);
     if (*option_to_str(opts, RREGEXP(re)->ptr->options))
         mrb_str_buf_cat(mrb, str, opts, strlen(opts));//mrb_str_buf_cat2(str, opts);
-    if (RBASIC(re)->flags & REG_ENCODING_NONE)
+    if (mrb_basic(re)->flags & REG_ENCODING_NONE)
         mrb_str_buf_cat(mrb, str, "n", 1);
   }
 

@@ -269,7 +269,7 @@ mrb_obj_class_m(mrb_state *mrb, mrb_value self)
 struct RClass*
 mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
 {
-  struct RClass *klass = RBASIC(obj)->c;
+  struct RClass *klass = mrb_basic(obj)->c;
 
   if (klass->tt != MRB_TT_SCLASS)
     return klass;
