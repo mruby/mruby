@@ -5,7 +5,6 @@
 */
 
 #include "mruby.h"
-#include "mruby/object.h"
 #include "mruby/class.h"
 #include "mruby/array.h"
 #include "mruby/string.h"
