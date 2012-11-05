@@ -70,46 +70,6 @@ envpath_to_mrb_ary(mrb_state *mrb, const char *name)
 
 
 static mrb_value
-find_mrbc(mrb_state *mrb)
-{
-  mrb_sym sym = mrb_intern(mrb, "MRUBY_BIN");
-  mrb_value bin = mrb_nil_value();
-
-  if (mrb_const_defined_at(mrb, mrb->object_class, sym)) {
-    bin = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), sym);
-  }
-  sym = mrb_intern(mrb, "MIRB_BIN");
-  if (mrb_const_defined_at(mrb, mrb->object_class, sym)) {
-    bin = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), sym);
-  }
-
-  if (!mrb_nil_p(bin) && mrb_str_cmp(mrb, bin, mrb_str_new2(mrb, "mruby")) != 0 &&
-      mrb_str_cmp(mrb, bin, mrb_str_new2(mrb, "mirb")) != 0) {
-    // find mrbc on mruby/mirb same directory...
-    int len = strrchr(RSTRING_PTR(bin), '/') - RSTRING_PTR(bin);
-    mrb_value mrbc = mrb_str_substr(mrb, bin, 0, len);
-    mrb_str_cat2(mrb, mrbc, "/mrbc");
-
-    if (mrb_obj_eq(mrb, mrb_file_exist(mrb, mrbc), mrb_true_value())) {
-      return mrbc;
-    }
-  }
-
-  mrb_value PATH = envpath_to_mrb_ary(mrb, "PATH");
-  int i;
-  for (i = 0; i < RARRAY_LEN(PATH); i++) {
-    mrb_value mrbc = mrb_str_dup(mrb, RARRAY_PTR(PATH)[i]);
-    mrb_str_cat2(mrb, mrbc, "/mrbc");
-
-    if (mrb_obj_eq(mrb, mrb_file_exist(mrb, mrbc), mrb_true_value())) {
-      return mrbc;
-    }
-  }
-
-  return mrb_nil_value();
-}
-
-static mrb_value
 find_file_check(mrb_state *mrb, mrb_value path, mrb_value fname, mrb_value ext)
 {
   mrb_value filepath = mrb_str_dup(mrb, path);
@@ -253,6 +213,34 @@ load_mrb_file(mrb_state *mrb, mrb_value filepath)
   load_mrb_file_with_filepath(mrb, filepath, filepath);
 }
 
+static mrb_value
+mrb_compile(mrb_state *mrb0, char *tmpfilepath, char *filepath)
+{
+  mrb_state *mrb = mrb_open();
+  mrbc_context *c;
+  mrb_value result;
+  FILE *fp;
+  int irep_len = mrb->irep_len;
+
+  debug("irep_len=%d\n", mrb->irep_len);
+  fp = fopen(filepath, "r");
+  c = mrbc_context_new(mrb);
+  c->no_exec = 1;
+  c->filename = filepath;
+  result = mrb_load_file_cxt(mrb, fp, c);
+  fclose(fp);
+  debug("result=%d, irep_len=%d\n", mrb_fixnum(result), mrb->irep_len);
+
+  fp = fopen(tmpfilepath, "w");
+  mrb->irep += mrb_fixnum(result);
+  debug("**dbg : %d\n", mrb->irep_len - irep_len);
+  mrb->irep_len -= irep_len;
+  mrb_dump_irep(mrb, 0, fp);
+  fclose(fp);
+
+  return mrb_nil_value();
+}
+
 static void
 load_rb_file(mrb_state *mrb, mrb_value filepath)
 {
@@ -268,29 +256,15 @@ load_rb_file(mrb_state *mrb, mrb_value filepath)
   }
 
   mrb_value pid = mrb_fixnum_value((int)getpid());
-  mrb_value mrbfilepath = mrb_str_new2(mrb, "/tmp/mruby.");
-  mrb_str_buf_append(mrb, mrbfilepath, mrb_fix2str(mrb, pid, 10));
-  debug("mrbfilepath: %s\n", RSTRING_PTR(mrbfilepath));
+  mrb_value tmpfilepath = mrb_str_new2(mrb, "/tmp/mruby.");
+  mrb_str_buf_append(mrb, tmpfilepath, mrb_fix2str(mrb, pid, 10));
+  debug("tmpfilepath: %s\n", RSTRING_PTR(tmpfilepath));
 
-  mrb_value mrbc_bin = find_mrbc(mrb);
-  if (mrb_nil_p(mrbc_bin)) {
-    mrb_raise(mrb, E_LOAD_ERROR, "can't find mrbc.");
-    return;
-  }
-  debug("mrbc_bin: %s\n", RSTRING_PTR(mrbc_bin));
+  mrb_compile(mrb, mrb_string_value_ptr(mrb, tmpfilepath),
+      mrb_string_value_ptr(mrb, filepath));
+  load_mrb_file_with_filepath(mrb, tmpfilepath, filepath);
 
-  mrb_value params[3];
-  params[0] = mrbc_bin;
-  params[1] = mrbfilepath;
-  params[2] = filepath;
-  mrb_value fmt = mrb_str_new2(mrb, "%s -o%s %s");
-
-  mrb_value mrb_cmd = mrb_str_format(mrb, 3, params, fmt);
-
-  system(RSTRING_PTR(mrb_cmd));
-  load_mrb_file_with_filepath(mrb, mrbfilepath, filepath);
-
-  remove(RSTRING_PTR(mrbfilepath));
+  remove(RSTRING_PTR(tmpfilepath));
 }
 
 
