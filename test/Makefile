@@ -64,13 +64,13 @@ endif
 
 .PHONY : test
 all : $(EXE) $(MRUBY) $(TESTRB) $(TESTMRB)
-	@echo "*** mruby test 'mrbtest' ***************"
+	@echo "# exec mrbtest"
 	./$(EXE)
 	@echo
-	@echo "*** mruby test with ruby script file ***"
+	@echo "# exec mruby test with ruby script"
 	@($(MRUBY) $(TESTRB) > $(TESTRB_REP) && echo "mrubytest.rb success.") || $(CAT) $(TESTRB_REP)
 	@echo
-	@echo "*** mruby test with mrb file ***********"
+	@echo "# exec mruby test with mrb file"
 	@($(MRUBY) -b $(TESTMRB) > $(TESTMRB_REP) && echo "mrubytest.mrb success.") || $(CAT) $(TESTMRB_REP)
 	@echo
 

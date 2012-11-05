@@ -1,4 +1,4 @@
 report
-if self.methods.include?(:exit)
-  exit ($ko_test == 0 and $kill_test == 0)
+if $ko_test > 0 or $kill_test > 0
+  raise "mrbtest failed (KO:#{$ko_test}, Crash:#{$kill_test})"
 end
