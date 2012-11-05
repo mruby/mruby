@@ -22,5 +22,6 @@ cscope.out
 /test/mrbtest
 /test/mrbtest.c
 /test/*.*tmp
+/test/mrubytest.*
 CMakeFiles
 CMakeCache.txt
