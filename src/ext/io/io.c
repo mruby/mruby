@@ -1885,6 +1885,19 @@ retry:
   return result;
 }
 
+static mrb_value
+mrb_io_gets(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value b, rs;
+  mrb_value *argv;
+  int argc;
+  long limit;
+
+  mrb_get_args(mrb, "&*", &b, &argv, &argc);
+  prepare_getline_args(mrb, argc, argv, &rs, &limit, klass);
+  return rb_io_getline(mrb, argc, argv, klass);
+}
+
 void
 mrb_init_io(mrb_state *mrb)
 {
@@ -1913,6 +1926,8 @@ mrb_init_io(mrb_state *mrb)
 
   mrb_define_method(mrb, io, "initialize", mrb_io_initialize, ARGS_ANY());    /* 15.2.20.5.21 (x)*/
   mrb_define_method(mrb, io, "to_io", mrb_io_to_io, ARGS_NONE()); /* 15.2.20.5.22 (x) */
+
+  mrb_define_method(mrb, io, "gets", mrb_io_gets, ARGS_NONE()); /* ??? */
 
   /* TODO: ADD Kernel Module */
   /* mrb_define_method(mrb, mrb->kernel_module, "open", mrb_io_f_open, ARGS_ANY()); */
