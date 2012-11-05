@@ -1,6 +1,6 @@
 #!/bin/sh
 
-RUBY=../../bin/mruby
+RUBY=../bin/mruby
 #RUBY="ruby -rsocket"
 
 D=`dirname $0`
@@ -8,7 +8,7 @@ D=`dirname $0`
 retval=0
 files="simple_http*.rb simple_uri*.rb simple_oauth*.rb"
 
-assertrb="../../test/assert.rb"
+assertrb="../test/assert.rb"
 
 cat $assertrb $files - <<EOF | grep -v require | $RUBY
 report

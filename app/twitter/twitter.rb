@@ -15,7 +15,7 @@ simple_oauth = SimpleOAuth.new(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCE
 # post tweet
 puts "#========== post tweet ============"
 msg = sprintf("test %s ", Time.now.to_s)
-response = simple_oauth.post('http://twitter.com/statuses/update.json', {
+ponse = simple_oauth.post('http://api.twitter.com/1.1/statuses/update.json', {
   :status => msg
 })
 if response.code.to_i == 200
@@ -31,7 +31,7 @@ puts "#=================================="
 
 # get timeline
 puts "#========== get timeline =========="
-response = simple_oauth.get('http://twitter.com/statuses/friends_timeline.json?count=1')
+response = simple_oauth.get('http://api.twitter.com/1.1/statuses/user_timeline.json?count=1')
 puts "#response"
 puts "Status: " + response["status"]
 puts "Content-Type: " + response["content-type"]
