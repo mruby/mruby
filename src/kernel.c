@@ -269,7 +269,7 @@ mrb_obj_class_m(mrb_state *mrb, mrb_value self)
 struct RClass*
 mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
 {
-  struct RClass *klass = RBASIC(obj)->c;
+  struct RClass *klass = mrb_basic(obj)->c;
 
   if (klass->tt != MRB_TT_SCLASS)
     return klass;
@@ -345,16 +345,18 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
 mrb_value
 mrb_obj_clone(mrb_state *mrb, mrb_value self)
 {
-  struct RObject *clone;
+  struct RObject *p;
+  mrb_value clone;
 
   if (mrb_special_const_p(self)) {
       mrb_raisef(mrb, E_TYPE_ERROR, "can't clone %s", mrb_obj_classname(mrb, self));
   }
-  clone = (struct RObject*)mrb_obj_alloc(mrb, mrb_type(self), mrb_obj_class(mrb, self));
-  clone->c = mrb_singleton_class_clone(mrb, self);
-  init_copy(mrb, mrb_obj_value(clone), self);
+  p = (struct RObject*)mrb_obj_alloc(mrb, mrb_type(self), mrb_obj_class(mrb, self));
+  p->c = mrb_singleton_class_clone(mrb, self);
+  clone = mrb_obj_value(p);
+  init_copy(mrb, clone, self);
 
-  return mrb_obj_value(clone);
+  return clone;
 }
 
 /* 15.3.1.3.9  */
@@ -762,7 +764,7 @@ mrb_obj_singleton_methods(mrb_state *mrb, int argc, mrb_value *argv, mrb_value o
       method_entry_loop(mrb, klass, ary);
       klass = klass->super;
   }
-  if (RTEST(recur)) {
+  if (mrb_test(recur)) {
       while (klass && ((klass->tt == MRB_TT_SCLASS) || (klass->tt == MRB_TT_ICLASS))) {
         method_entry_loop(mrb, klass, ary);
         klass = klass->super;
@@ -1006,7 +1008,7 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   if (argc > 1) priv = argv[1];
   else priv = mrb_nil_value();
   id = mrb_to_id(mrb, mid);
-  if (basic_obj_respond_to(mrb, self, id, !RTEST(priv)))
+  if (basic_obj_respond_to(mrb, self, id, !mrb_test(priv)))
     return mrb_true_value();
   return mrb_false_value();
 }
@@ -1115,4 +1117,5 @@ mrb_init_kernel(mrb_state *mrb)
 #endif
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
+  mrb_alias_method(mrb, mrb->module_class, mrb_intern(mrb, "dup"), mrb_intern(mrb, "clone"));
 }

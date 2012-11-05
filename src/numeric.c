@@ -97,7 +97,7 @@ num_pow(mrb_state *mrb, mrb_value x)
   mrb_float d;
 
   mrb_get_args(mrb, "o", &y);
-  if (FIXNUM_P(x) && FIXNUM_P(y)) both_int = TRUE;
+  if (mrb_fixnum_p(x) && mrb_fixnum_p(y)) both_int = TRUE;
   d = pow(mrb_to_flo(mrb, x), mrb_to_flo(mrb, y));
   if (both_int && FIXABLE(d))
     return mrb_fixnum_value((mrb_int)d);
@@ -682,7 +682,7 @@ fix_succ(mrb_state *mrb, mrb_value num)
 static mrb_value
 int_succ(mrb_state *mrb, mrb_value num)
 {
-  if (FIXNUM_P(num)) return fix_succ(mrb, num);
+  if (mrb_fixnum_p(num)) return fix_succ(mrb, num);
   return mrb_funcall(mrb, num, "+", 1, mrb_fixnum_value(1));
 }
 
@@ -697,7 +697,7 @@ mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   
   a = mrb_fixnum(x);
   if (a == 0) return x;
-  if (FIXNUM_P(y)) {
+  if (mrb_fixnum_p(y)) {
     mrb_int b, c;
 
     b = mrb_fixnum(y);
@@ -774,7 +774,7 @@ fix_mod(mrb_state *mrb, mrb_value x)
 
   mrb_get_args(mrb, "o", &y);
   a = mrb_fixnum(x);
-  if (FIXNUM_P(y) && (b=mrb_fixnum(y)) != 0) {
+  if (mrb_fixnum_p(y) && (b=mrb_fixnum(y)) != 0) {
     mrb_int mod;
 
     if (mrb_fixnum(y) == 0) {
@@ -803,7 +803,7 @@ fix_divmod(mrb_state *mrb, mrb_value x)
   mrb_value y;
   mrb_get_args(mrb, "o", &y);
 
-  if (FIXNUM_P(y)) {
+  if (mrb_fixnum_p(y)) {
     mrb_int div, mod;
 
     if (mrb_fixnum(y) == 0) {
@@ -877,8 +877,8 @@ fix_rev(mrb_state *mrb, mrb_value num)
 static mrb_value
 bit_coerce(mrb_state *mrb, mrb_value x)
 {
-    while (!FIXNUM_P(x)) {
-        if (mrb_type(x) == MRB_TT_FLOAT) {
+    while (!mrb_fixnum_p(x)) {
+        if (mrb_float_p(x)) {
             mrb_raise(mrb, E_TYPE_ERROR, "can't convert Float into Integer");
         }
         x = mrb_to_int(mrb, x);
@@ -1076,7 +1076,7 @@ mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y)
   
   a = mrb_fixnum(x);
   if (a == 0) return y;
-  if (FIXNUM_P(y)) {
+  if (mrb_fixnum_p(y)) {
     mrb_int b, c;
 
     b = mrb_fixnum(y);
@@ -1114,7 +1114,7 @@ mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y)
   mrb_int a;
   
   a = mrb_fixnum(x);
-  if (FIXNUM_P(y)) {
+  if (mrb_fixnum_p(y)) {
     mrb_int b, c;
 
     b = mrb_fixnum(y);

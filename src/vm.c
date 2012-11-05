@@ -992,7 +992,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         struct RArray *rest;
         int len = 0;
 
-        if (mrb_type(stack[m1]) == MRB_TT_ARRAY) {
+        if (mrb_array_p(stack[m1])) {
           struct RArray *ary = mrb_ary_ptr(stack[m1]);
 
           pp = ary->ptr;
@@ -1047,7 +1047,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           }
         }
       }
-      else if (len > 1 && argc == 1 && mrb_type(argv[0]) == MRB_TT_ARRAY) {
+      else if (len > 1 && argc == 1 && mrb_array_p(argv[0])) {
         argc = mrb_ary_ptr(argv[0])->len;
         argv = mrb_ary_ptr(argv[0])->ptr;
       }
@@ -1592,7 +1592,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       int c = GETARG_C(i);
       mrb_value v = regs[GETARG_B(i)];
 
-      if (mrb_type(v) != MRB_TT_ARRAY) {
+      if (!mrb_array_p(v)) {
         if (c == 0) {
           regs[GETARG_A(i)] = v;
         }
@@ -1619,7 +1619,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       int pre  = GETARG_B(i);
       int post = GETARG_C(i);
 
-      if (mrb_type(v) != MRB_TT_ARRAY) {
+      if (!mrb_array_p(v)) {
         regs[a++] = mrb_ary_new_capa(mrb, 0);
         while (post--) {
           SET_NIL_VALUE(regs[a]);
