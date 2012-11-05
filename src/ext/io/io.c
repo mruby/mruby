@@ -344,6 +344,7 @@ rb_io_initialize(mrb_state *mrb, int argc, mrb_value *argv, mrb_value io)
 
   MakeOpenFile(mrb, io, fp);
   fp->mode = mrb_io_mode_flags(mrb, m);
+  fp->fd = fd;
   fp->f = mrb_fdopen(mrb, fd, m);
   fp->path = path;
 
@@ -431,7 +432,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise)
   }
 
   errno = 0; /* XXX */
-  if (fptr->f2) {
+  if (fptr->f2 && fptr->fd > 2) {
     f2 = fileno(fptr->f2);
     while (n2 = 0, fflush(fptr->f2) < 0) {
       n2 = errno;
@@ -447,7 +448,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise)
     fptr->f2 = 0;
   }
 
-  if (fptr->f) {
+  if (fptr->f && fptr->fd > 2) {
     f1 = fileno(fptr->f);
     if ((f2 == -1) && (fptr->mode & FMODE_WBUF)) {
       while (n1 = 0, fflush(fptr->f) < 0) {
