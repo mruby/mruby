@@ -57,14 +57,14 @@ mrb_f_rand(mrb_state *mrb, mrb_value self)
     max = mrb_fixnum_value(0);
   } else if (argc == 1) {
     max = argv[0];
-    if (!mrb_nil_p(max) && !FIXNUM_P(max)) {
+    if (!mrb_nil_p(max) && !mrb_fixnum_p(max)) {
       max = mrb_check_convert_type(mrb, max, MRB_TT_FIXNUM, "Fixnum", "to_int");
     }
     if (!mrb_nil_p(max) && mrb_fixnum(max) < 0) {
       max = mrb_fixnum_value(0 - mrb_fixnum(max));
     }
 
-    if (!FIXNUM_P(max)) {
+    if (!mrb_fixnum_p(max)) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument type");
       return mrb_nil_value();
     }
@@ -94,14 +94,14 @@ mrb_f_srand(mrb_state *mrb, mrb_value self)
     seed = mrb_nil_value();
   } else if (argc == 1) {
     seed = argv[0];
-    if (!mrb_nil_p(seed) && !FIXNUM_P(seed)) {
+    if (!mrb_nil_p(seed) && !mrb_fixnum_p(seed)) {
       seed = mrb_check_convert_type(mrb, seed, MRB_TT_FIXNUM, "Fixnum", "to_int");
     }
     if (!mrb_nil_p(seed) && mrb_fixnum(seed) < 0) {
       seed = mrb_fixnum_value(0 - mrb_fixnum(seed));
     }
 
-    if (!FIXNUM_P(seed)) {
+    if (!mrb_fixnum_p(seed)) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument type");
       return mrb_nil_value();
     }

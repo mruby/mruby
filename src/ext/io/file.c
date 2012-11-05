@@ -47,10 +47,10 @@ mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
     umask(omask);
   } else if (argc == 1) {
     mrb_value mask = argv[0];
-    if (!mrb_nil_p(mask) && !FIXNUM_P(mask)) {
+    if (!mrb_nil_p(mask) && !mrb_fixnum_p(mask)) {
       mask = mrb_check_convert_type(mrb, mask, MRB_TT_FIXNUM, "Fixnum", "to_int");
     }
-    if (!FIXNUM_P(mask)) {
+    if (!mrb_fixnum_p(mask)) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument type");
     }
     omask = umask(mrb_fixnum(mask));
@@ -208,7 +208,6 @@ static mrb_value
 mrb_file_exist_p(mrb_state *mrb, mrb_value obj)
 {
   mrb_value fname;
-  struct stat st;
 
   mrb_get_args(mrb, "o", &fname);
 

@@ -82,7 +82,7 @@ mrb_sce_init(mrb_state *mrb, mrb_value self)
   if (!no_errno) {
     c = e2c_lookup(n);
     if (c) {
-      RBASIC(self)->c = c;
+      mrb_obj_ptr(self)->c = c;
       str = mrb_str_new2(mrb, strerror(n));
     } else {
       mrb_iv_set(mrb, self, mrb_intern(mrb, "errno"), mrb_fixnum_value(n));
@@ -160,7 +160,7 @@ mrb_sys_fail(mrb_state *mrb, const char *msg)
     snprintf(name, sizeof(name), "E%03d", no);
     cl = mrb_define_class_under(mrb, mrb_class_get(mrb, "Errno"), name, sce);
     mrb_define_const(mrb, cl, "Errno", mrb_fixnum_value(no));
-    RBASIC(e)->c = cl;
+    mrb_obj_ptr(e)->c = cl;
   }
   mrb_exc_raise(mrb, e);
 }

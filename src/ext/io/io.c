@@ -13,7 +13,6 @@
 #include "mruby/class.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
-#include "mruby/object.h"
 #include "mruby/ext/io.h"
 #include "error.h"
 
@@ -329,7 +328,7 @@ rb_io_initialize(mrb_state *mrb, int argc, mrb_value *argv, mrb_value io)
   mode = argv[1];
   fd = mrb_fixnum(fnum);
   if (argc == 2) {
-    if (FIXNUM_P(mode)) {
+    if (mrb_fixnum_p(mode)) {
       flags = mrb_fixnum(mode);
     } else {
       flags = mrb_io_modestr_to_modenum(mrb, mrb_string_value_cstr(mrb, &mode));
@@ -1482,7 +1481,7 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
 
   if (mrb_nil_p(vmode)) {
     oflags = O_RDONLY;
-  } else if (FIXNUM_P(vmode)) {
+  } else if (mrb_fixnum_p(vmode)) {
     oflags = mrb_fixnum(vmode);
   } else {
     oflags = mrb_io_modestr_to_modenum(mrb, mrb_string_value_cstr(mrb, &vmode));
@@ -1522,7 +1521,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 
   if (mrb_nil_p(pmode)) {
     oflags = O_RDONLY;
-  } else if (FIXNUM_P(pmode)) {
+  } else if (mrb_fixnum_p(pmode)) {
     oflags = mrb_fixnum(pmode);
   } else {
     oflags = mrb_io_modestr_to_modenum(mrb, mrb_string_value_cstr(mrb, &pmode));
@@ -1543,7 +1542,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
     return mrb_nil_value();
   }
 
-  RBASIC(port)->c = mrb_class_ptr(klass);
+  mrb_obj_ptr(port)->c = mrb_class_ptr(klass);
   /* XXX: NOT SUPPORTED yet */
   /*
   if (rb_block_given_p()) {
@@ -1704,7 +1703,6 @@ mrb_io_to_io(mrb_state *mrb, mrb_value self)
 static struct timeval
 time2timeval(mrb_state *mrb, mrb_value time)
 {
-  struct mrb_time *tm;
   struct timeval t;
 
   switch (mrb_type(time)) {

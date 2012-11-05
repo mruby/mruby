@@ -28,7 +28,7 @@ mrb_f_kill(mrb_state *mrb, mrb_value klass)
   int argc, sent, signo = 0;
 
   mrb_get_args(mrb, "oi*", &sigo, &pid, &argv, &argc);
-  if (FIXNUM_P(sigo)) {
+  if (mrb_fixnum_p(sigo)) {
     signo = mrb_fixnum(sigo);
   } else {
     mrb_raisef(mrb, E_TYPE_ERROR, "bad signal type %s",
@@ -41,7 +41,7 @@ mrb_f_kill(mrb_state *mrb, mrb_value klass)
   sent++;
 
   while (argc-- > 0) {
-    if (!FIXNUM_P(*argv)) {
+    if (!mrb_fixnum_p(*argv)) {
       mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %s (expected Fixnum)",
       	         mrb_obj_classname(mrb, *argv));
     }
@@ -68,7 +68,7 @@ mrb_f_sleep(mrb_state *mrb, mrb_value klass)
     struct timeval tv;
     int n;
 
-    if (FIXNUM_P(argv[0])) {
+    if (mrb_fixnum_p(argv[0])) {
       tv.tv_sec = mrb_fixnum(argv[0]);
       tv.tv_usec = 0;
     } else {

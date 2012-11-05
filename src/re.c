@@ -460,7 +460,7 @@ mrb_reg_search(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos, mrb_int
 
   match = mrb_backref_get(mrb);
   if (!mrb_nil_p(match)) {
-    if (FL_TEST(match, MATCH_BUSY)) {
+    if (mrb_special_const_p(match) && (mrb_obj_ptr(match)->flags & MATCH_BUSY)) {
       match = mrb_nil_value();
     }
     else {
@@ -1111,7 +1111,11 @@ mrb_reg_match_m(mrb_state *mrb, mrb_value re)
   }
   result = mrb_backref_get(mrb);
   /*mrb_match_busy(result);*/
-  FL_SET(result, MATCH_BUSY); /* XXX */
+  // FL_SET(result, MATCH_BUSY); /* XXX */
+  if (mrb_special_const_p(result)) {
+    mrb_obj_ptr(result)->flags |= (MATCH_BUSY);
+  }
+
   if (!mrb_nil_p(result) && mrb_block_given_p()) {
     return mrb_yield(mrb, result, b);
   }
