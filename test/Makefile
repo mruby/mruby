@@ -99,7 +99,6 @@ $(TESTMRB) : $(MRBC) $(TESTRB)
 $(TESTRB) : $(ASSLIB) $(MRBS) $(REPLIB)
 	$(CAT) $(ASSLIB) $(MRBS) $(REPLIB) > $@
 
-
 # clean up
 .PHONY : clean
 clean :
