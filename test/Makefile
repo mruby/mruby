@@ -63,7 +63,7 @@ endif
 # generic build targets, rules
 
 .PHONY : test
-all : $(EXE)
+all : $(EXE) $(MRUBY) $(TESTRB) $(TESTMRB)
 	@echo "# exec mrbtest"
 	./$(EXE)
 	@echo
