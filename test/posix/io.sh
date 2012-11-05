@@ -152,12 +152,13 @@ if Object.const_defined?(:IO)
     io.write("a\nb\n")
     io.close
     io = File.open("$W_FILENAME", "r")
-    line1 = io.gets
+    line1  = io.gets
+    line1_ = \$_
     line2 = io.gets
     line3 = io.gets
     io.close
 
-    line1 == "a\n" and line2 == "b\n" and line3 == nil
+    line1 == "a\n" and line1 == line1_ and line2 == "b\n" and line3 == nil
   end
 end
 

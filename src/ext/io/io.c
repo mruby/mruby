@@ -1888,14 +1888,21 @@ retry:
 static mrb_value
 mrb_io_gets(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value b, rs;
+  mrb_value str, b, rs;
   mrb_value *argv;
   int argc;
   long limit;
 
   mrb_get_args(mrb, "&*", &b, &argv, &argc);
   prepare_getline_args(mrb, argc, argv, &rs, &limit, klass);
-  return rb_io_getline(mrb, argc, argv, klass);
+  str = rb_io_getline(mrb, argc, argv, klass);
+  if (mrb_nil_p(str)) {
+    mrb_gv_set(mrb, mrb_intern(mrb, "$_"), mrb_nil_value());
+  } else {
+    mrb_gv_set(mrb, mrb_intern(mrb, "$_"), mrb_str_dup(mrb, str));
+  }
+
+  return str;
 }
 
 void
