@@ -2218,7 +2218,9 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     unsigned int c;
 
     end = beg;
+    int ai = mrb_gc_arena_save(mrb);
     while (ptr < eptr) {
+      mrb_gc_arena_restore(mrb, ai);
       c = (unsigned char)*ptr++;
       if (skip) {
 	if (ascii_isspace(c)) {
@@ -2248,7 +2250,9 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     long slen = RSTRING_LEN(spat);
 
     if (slen == 0) {
+      int ai = mrb_gc_arena_save(mrb);
       while (ptr < eptr) {
+        mrb_gc_arena_restore(mrb, ai);
 	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr-temp, 1));
 	ptr++;
 	if (lim >= 0 && lim <= ++i) break;
@@ -2257,8 +2261,10 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     else {
       char *sptr = RSTRING_PTR(spat);
 
+      int ai = mrb_gc_arena_save(mrb);
       while (ptr < eptr &&
 	     (end = mrb_memsearch(sptr, slen, ptr, eptr - ptr)) >= 0) {
+        mrb_gc_arena_restore(mrb, ai);
 	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr - temp, end));
 	ptr += end + slen;
 	if (lim >= 0 && lim <= ++i) break;
@@ -2275,7 +2281,9 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     int last_null = 0;
     struct re_registers *regs;
 
+    int ai = mrb_gc_arena_save(mrb);
     while ((end = mrb_reg_search(mrb, spat, str, start, 0)) >= 0) {
+      mrb_gc_arena_restore(mrb, ai);
       regs = RMATCH_REGS(mrb_backref_get(mrb));
       if (start == end && BEG(0) == END(0)) {
         if (!ptr) {
