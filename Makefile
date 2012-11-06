@@ -13,14 +13,14 @@ ifeq ($(strip $(COMPILE_MODE)),)
 endif
 
 ifeq ($(COMPILE_MODE),debug)
-  OPTIMIZE = -g -O3
+  CFLAGS = -g -O3
 else ifeq ($(COMPILE_MODE),release)
-  OPTIMIZE = -O3
+  CFLAGS = -O3
 else ifeq ($(COMPILE_MODE),small)
-  OPTIMIZE = -Os
+  CFLAGS = -Os
 endif
 
-ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS) $(OPTIMIZE)
+ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
 ifeq ($(OS),Windows_NT)
   MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)'
 else
