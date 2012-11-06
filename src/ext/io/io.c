@@ -1543,7 +1543,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
     return mrb_nil_value();
   }
 
-  mrb_obj_ptr(port)->c = mrb_class_ptr(klass);
+  mrb_basic(port)->c = mrb_class_ptr(klass);
   /* XXX: NOT SUPPORTED yet */
   /*
   if (rb_block_given_p()) {
