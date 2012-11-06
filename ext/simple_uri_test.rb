@@ -1,6 +1,13 @@
 ##
 # SimpleURI Test
 
+begin
+  require 'assert'
+  require 'simple_uri'
+rescue
+  # nothing todo.
+end
+
 if Object.const_defined?(:SimpleURI)
 
   assert('SimpleURI') do
@@ -129,5 +136,11 @@ if Object.const_defined?(:SimpleURI)
     SimpleURI.escape("ABCabc012-._~", reg) == "ABCabc012-._~" and
     SimpleURI.escape("!@#^&*()=", reg) == "%21%40%23%5E%26%2A%28%29%3D" and
     SimpleURI.escape("http://", reg) == "http%3A%2F%2F"
+  end
+
+  report
+
+  if $ko_test > 0 or $kill_test > 0
+    raise "simple_uri test failed. (KO:#{$ko_test}, Crash:#{$kill_test})"
   end
 end

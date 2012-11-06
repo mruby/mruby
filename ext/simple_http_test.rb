@@ -1,6 +1,13 @@
 ##
 # SimpleHttp Test
 
+begin
+  require 'assert'
+  require 'simple_http'
+rescue
+  # nothing todo.
+end
+
 if Object.const_defined?(:SimpleHttp)
   SEP = SimpleHttp::SEP
 
@@ -44,5 +51,11 @@ if Object.const_defined?(:SimpleHttp)
     rep.content_type == "text/plain" and
     rep.content_length == nil and
     rep['content-type'] == 'text/plain'
+  end
+
+  report
+
+  if $ko_test > 0 or $kill_test > 0
+    raise "simple_http test failed. (KO:#{$ko_test}, Crash:#{$kill_test})"
   end
 end
