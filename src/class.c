@@ -853,7 +853,7 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
   m = mrb_method_search_vm(mrb, &c, mid);
   if (!m) {
     mrb_value inspect = mrb_funcall(mrb, mrb_obj_value(c), "inspect", 0);
-    if (RSTRING_LEN(inspect) > 150) {
+    if (RSTRING_LEN(inspect) > 64) {
       inspect = mrb_any_to_s(mrb, mrb_obj_value(c));
     }
     mrb_raisef(mrb, E_NAME_ERROR, "undefined method '%s' for class %s",
@@ -1015,7 +1015,7 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
   }
 
   mrb_value inspect = mrb_funcall(mrb, mod, "inspect", 0);
-  if (RSTRING_LEN(inspect) > 150) {
+  if (RSTRING_LEN(inspect) > 64) {
     inspect = mrb_any_to_s(mrb, mod);
   }
 
