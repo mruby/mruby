@@ -8,6 +8,7 @@
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/string.h"
+#include "mruby/variable.h"
 #include "error.h"
 
 #include <sys/types.h>
@@ -168,5 +169,7 @@ mrb_init_process(mrb_state *mrb)
   mrb_define_class_method(mrb, p, "kill", mrb_f_kill, ARGS_ANY());
   mrb_define_class_method(mrb, p, "pid", mrb_f_pid, ARGS_NONE());
   mrb_define_class_method(mrb, p, "ppid", mrb_f_ppid, ARGS_NONE());
+
+  mrb_gv_set(mrb, mrb_intern(mrb, "$$"), mrb_fixnum_value((mrb_int)getpid()));
 }
 #endif /* ENABLE_PROCESS */
