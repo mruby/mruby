@@ -1,4 +1,5 @@
-
+$LOAD_PATH.unshift "./" + File.dirname(__FILE__)
+require 'simple_http'
 require 's3'
 
 AWSAccessKeyId = '(AWS Access Key)'
