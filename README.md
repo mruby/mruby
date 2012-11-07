@@ -18,6 +18,7 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
          #close #closed? #each #each_byte #each_line #read #sync #sync=
          #write #to_io
    * IPAddr: ::new #<=> #family #hton #inspect #ipv4? #ipv6? #mask #to\_s #| #~
+   * Process: ::kill ::pid ::ppid
    * Regexp: ::compile ::last\_match #match
    * TCPSocket: ::new ::open
    * UNIXSocket: #addr ::new ::open #peeraddr

@@ -12,7 +12,7 @@ setup()
 
 setup
 
-cat ../assert.rb - <<EOF | $RUBY | tee $LOG_FILENAME
+cat ../assert.rb - <<EOF | env PPID=$$ $RUBY | tee $LOG_FILENAME
 ##
 # Process Test
 
@@ -24,6 +24,19 @@ if Object.const_defined?(:Process)
   assert('Process.kill') do
     pid = IO.popen("process/b.sh").read.to_i
     Process.kill(15, pid) == 1
+  end
+
+  assert('Process.pid') do
+    # how can we test pid?
+    Process.pid.is_a? Integer
+  end
+
+  assert('Process.ppid') do
+    if ENV
+      ENV['PPID'].to_i == Process.ppid
+    else
+      Process.ppid.is_a? Integer
+    end
   end
 end
 
