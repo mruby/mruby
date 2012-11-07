@@ -238,6 +238,10 @@ mrb_compile(mrb_state *mrb0, char *tmpfilepath, char *filepath)
   mrb_dump_irep(mrb, 0, fp);
   fclose(fp);
 
+  mrb->irep -= mrb_fixnum(result);
+  mrb->irep_len += irep_len;
+  mrb_close(mrb);
+
   return mrb_nil_value();
 }
 
