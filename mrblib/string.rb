@@ -187,6 +187,19 @@ class String
     sprintf(self, *args)
   end
 
+  def slice!(arg1, arg2 = 1)
+    if arg1.class == Fixnum
+      rval = self[arg1, arg2]
+      self.replace(self[0...arg1] + self[(arg1 + arg2)...-1]) if arg2 > 0
+    elsif arg1.class == String
+      rval = arg1
+      self.gsub!(arg1, "")
+    else
+      return nil
+    end
+    rval
+  end
+
   #private
   def isspace(num)
     num == ?\s or num == ?\n or num == ?\t or num == ?\r or num == ?\f or num == ?\v
