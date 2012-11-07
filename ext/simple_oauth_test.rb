@@ -1,6 +1,15 @@
 ##
 # SimpleOAuth Test
 
+begin
+  require 'assert'
+  require 'simple_http'
+  require 'simple_uri'
+  require 'simple_oauth'
+rescue
+  # nothing todo.
+end
+
 TESTAPI_URL = "http://term.ie/oauth/example/echo_api.php"
 CONSUMER_KEY        = "key"
 CONSUMER_SECRET     = "secret"
@@ -34,5 +43,10 @@ if Object.const_defined?(:SimpleHttp) and Object.const_defined?(:SimpleURI) and 
     response.code == 200
   end
 
+  report
+
+  if $ko_test > 0 or $kill_test > 0
+    raise "simple_oauth test failed. (KO:#{$ko_test}, Crash:#{$kill_test})"
+  end
 end
 

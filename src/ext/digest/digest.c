@@ -9,6 +9,7 @@
 #if defined(USE_DIGEST_OPENSSL)
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+#include <openssl/sha.h>
 #elif defined(USE_DIGEST_OSX_COMMONCRYPTO)
 #include <CommonCrypto/CommonDigest.h>
 #include <CommonCrypto/CommonHMAC.h>
@@ -70,10 +71,10 @@ static void lib_hmac_update(struct mrb_hmac *, unsigned char *, int);
 #define HAVE_MD5
 #define HAVE_RMD160
 #define HAVE_SHA1
-#ifndef OPENSSL_NO_SHA256
+#ifdef SHA256_DIGEST_LENGTH
 #define HAVE_SHA256
 #endif
-#ifndef OPENSSL_NO_SHA512
+#ifdef SHA512_DIGEST_LENGTH
 #define HAVE_SHA384
 #define HAVE_SHA512
 #endif
