@@ -852,9 +852,12 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
 
   m = mrb_method_search_vm(mrb, &c, mid);
   if (!m) {
+    mrb_value inspect = mrb_funcall(mrb, mrb_obj_value(c), "inspect", 0);
+    if (RSTRING_LEN(inspect) > 150) {
+      inspect = mrb_any_to_s(mrb, mrb_obj_value(c));
+    }
     mrb_raisef(mrb, E_NAME_ERROR, "undefined method '%s' for class %s",
-        mrb_sym2name(mrb, mid),
-        RSTRING_PTR(mrb_funcall(mrb, mrb_obj_value(c), "inspect", 0)));
+        mrb_sym2name(mrb, mid), RSTRING_PTR(inspect));
   }
   return m;
 }
@@ -1010,9 +1013,14 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
   if (!mrb_symbol_p(name)) {
     mrb_raise(mrb, E_TYPE_ERROR, "name should be a symbol");
   }
+
+  mrb_value inspect = mrb_funcall(mrb, mod, "inspect", 0);
+  if (RSTRING_LEN(inspect) > 150) {
+    inspect = mrb_any_to_s(mrb, mod);
+  }
+
   mrb_raisef(mrb, E_NOMETHOD_ERROR, "undefined method '%s' for %s",
-      mrb_sym2name(mrb, mrb_symbol(name)),
-      RSTRING_PTR(mrb_funcall(mrb, mod, "inspect", 0)));
+      mrb_sym2name(mrb, mrb_symbol(name)), RSTRING_PTR(inspect));
   /* not reached */
   return mrb_nil_value();
 }
