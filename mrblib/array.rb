@@ -104,8 +104,10 @@ class Array
   def -(elem)
     raise TypeError, "can't convert to Array" unless elem.class == Array
 
+    hash = {}
     array = []
-    self.each { |x| array << x unless elem.include? x}
+    elem.each { |x| hash[x] = true }
+    self.each { |x| array << x unless hash[x] }
     array
   end
 
