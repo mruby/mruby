@@ -224,7 +224,7 @@ mrb_tcpsocket_open(mrb_state *mrb, mrb_value klass)
   memset(&hints, 0, sizeof(hints));
   hints.ai_socktype = SOCK_STREAM;
   error = getaddrinfo(host, serv, &hints, &res0);
-  if (error == -1)
+  if (error != 0)
     mrb_raise(mrb, E_RUNTIME_ERROR, "getaddrinfo(2) failed");
   res = res0;
 
@@ -238,7 +238,7 @@ mrb_tcpsocket_open(mrb_state *mrb, mrb_value klass)
     memset(&hints, 0, sizeof(hints));
     hints.ai_socktype = SOCK_STREAM;
     error = getaddrinfo(lhost, lserv, &hints, &lres0);
-    if (error == -1) {
+    if (error != 0) {
       freeaddrinfo(res0);
       close(s);
       mrb_raise(mrb, E_RUNTIME_ERROR, "getaddrinfo(2) failed");
@@ -322,7 +322,7 @@ mrb_udpsocket_bind(mrb_state *mrb, mrb_value self)
   hints.ai_flags = AI_NUMERICSERV|AI_PASSIVE;
   snprintf(portbuf, sizeof(portbuf), "%d", port);
   error = getaddrinfo(hostbuf, portbuf, &hints, &res);
-  if (error == -1)
+  if (error != 0)
     mrb_raise(mrb, E_RUNTIME_ERROR, "getaddrinfo(2) failed");
   if (bind(s, res->ai_addr, res->ai_addrlen) == -1) {
     freeaddrinfo(res);
@@ -352,7 +352,7 @@ mrb_udpsocket_connect(mrb_state *mrb, mrb_value self)
   hints.ai_flags = AI_NUMERICSERV;
   snprintf(portbuf, sizeof(portbuf), "%d", port);
   error = getaddrinfo(hostbuf, portbuf, &hints, &res);
-  if (error == -1)
+  if (error != 0)
     mrb_raise(mrb, E_RUNTIME_ERROR, "getaddrinfo(2) failed");
   if (connect(s, res->ai_addr, res->ai_addrlen) == -1) {
     freeaddrinfo(res);
@@ -384,7 +384,7 @@ mrb_udpsocket_send(mrb_state *mrb, mrb_value self)
     memcpy(hostbuf, RSTRING_PTR(host), RSTRING_LEN(host));
     hostbuf[RSTRING_LEN(host)] = '\0';
     snprintf(portbuf, sizeof(portbuf), "%u", mrb_fixnum(port));
-    if (getaddrinfo(hostbuf, portbuf, &hints, &res) == -1)
+    if (getaddrinfo(hostbuf, portbuf, &hints, &res) != 0)
       mrb_sys_fail(mrb, "getaddrinfo");
     // XXX: try all addresses
     n = sendto(s, msg, hlen, flags, res->ai_addr, res->ai_addrlen);
