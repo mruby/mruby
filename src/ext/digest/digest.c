@@ -70,10 +70,10 @@ static void lib_hmac_update(struct mrb_hmac *, unsigned char *, int);
 #define HAVE_MD5
 #define HAVE_RMD160
 #define HAVE_SHA1
-#ifndef OPENSSL_NO_SHA256
+#ifndef SHA256_DIGEST_LENGTH
 #define HAVE_SHA256
 #endif
-#ifndef OPENSSL_NO_SHA512
+#ifndef SHA512_DIGEST_LENGTH
 #define HAVE_SHA384
 #define HAVE_SHA512
 #endif
