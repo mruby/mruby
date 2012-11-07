@@ -104,8 +104,10 @@ class Array
   def -(elem)
     raise TypeError, "can't convert to Array" unless elem.class == Array
 
+    hash = {}
     array = []
-    self.each { |x| array << x unless elem.include? x}
+    elem.each { |x| hash[x] = true }
+    self.each { |x| array << x unless hash[x] }
     array
   end
 
@@ -118,7 +120,16 @@ class Array
   def &(elem)
     raise TypeError, "can't convert to Array" unless elem.class == Array
 
-    (self | elem) - (self - elem) - (elem - self)
+    hash = {}
+    array = []
+    elem.each{|v| hash[v] = true }
+    self.each do |v|
+      if hash[v]
+        array << v
+        hash.delete v
+      end
+    end
+    array
   end
 
   def flatten(depth=nil)
