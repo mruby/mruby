@@ -2119,6 +2119,7 @@ scope_finish(codegen_scope *s, int idx)
   mrb_add_irep(mrb, idx);
   irep = mrb->irep[idx] = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
 
+  irep->flags = 0;
   irep->idx = idx;
   if (s->iseq) {
     irep->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc);
