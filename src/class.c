@@ -1008,13 +1008,14 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
 {
   mrb_value name, *a;
   int alen;
+  mrb_value inspect;
 
   mrb_get_args(mrb, "o*", &name, &a, &alen);
   if (!mrb_symbol_p(name)) {
     mrb_raise(mrb, E_TYPE_ERROR, "name should be a symbol");
   }
 
-  mrb_value inspect = mrb_funcall(mrb, mod, "inspect", 0);
+  inspect = mrb_funcall(mrb, mod, "inspect", 0);
   if (RSTRING_LEN(inspect) > 64) {
     inspect = mrb_any_to_s(mrb, mod);
   }
