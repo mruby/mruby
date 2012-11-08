@@ -135,7 +135,7 @@ mrb_f_exit(mrb_state *mrb, mrb_value klass)
     if (mrb_type(status) == MRB_TT_TRUE)
       istatus = EXIT_SUCCESS;
     else {
-      istatus = EXIT_FAILURE;
+      istatus = mrb_fixnum(status);
     }
   } else {
     istatus = EXIT_SUCCESS;
