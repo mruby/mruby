@@ -89,10 +89,6 @@ module Kernel
     STDOUT.puts(*args)
   end
 
-  def p(*args)
-    STDOUT.puts(*args)
-  end
-
   def printf(*args)
     STDOUT.printf(*args)
   end
