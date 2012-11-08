@@ -325,7 +325,7 @@ struct RBasic*
 mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
 {
   struct RBasic *p;
-  static const RVALUE RVALUE_zero = { { { 0 } } };
+  static const RVALUE RVALUE_zero = { { { MRB_TT_FALSE } } };
 
 #ifdef MRB_GC_STRESS
   mrb_garbage_collect(mrb);
