@@ -973,6 +973,7 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
     else {
       return mrb_nil_value();
     }
+    s->ptr[s->len] = '\0';
     return str;
   }
 
@@ -1004,7 +1005,7 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
      (rslen <= 1 ||
      memcmp(RSTRING_PTR(rs), pp, rslen) == 0)) {
     s->len = len - rslen;
-    p[len] = '\0';
+    p[s->len] = '\0';
     return str;
   }
   return mrb_nil_value();
