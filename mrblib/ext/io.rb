@@ -34,6 +34,25 @@ class IO
     end
   end
 
+  # 15.2.20.5.3
+  def each(&block)
+    while line = self.gets
+      block.call(line)
+    end
+    self
+  end
+
+  # 15.2.20.5.4
+  def each_byte(&block)
+    while char = self.getc
+      block.call(char)
+    end
+    self
+  end
+
+  # 15.2.20.5.5
+  alias each_line each
+
   def puts(*args)
     i = 0
     len = args.size
@@ -80,5 +99,9 @@ module Kernel
 
   def gets(*args)
     STDIN.gets(*args)
+  end
+
+  def getc(*args)
+    STDIN.getc(*args)
   end
 end

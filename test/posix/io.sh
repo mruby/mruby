@@ -160,6 +160,27 @@ if Object.const_defined?(:IO)
 
     line1 == "a\n" and line1 == line1_ and line2 == "b\n" and line3 == nil
   end
+
+  assert('IO#getc') do
+    chars = "a\nb\n"
+
+    io = File.open("$W_FILENAME", "w")
+    io.write chars
+    io.close
+
+    read_chars = []
+    io = File.open("$W_FILENAME", "r")
+    while c = io.getc
+      read_chars << c
+    end
+    read_chars << io.getc
+    io.close
+
+    chars.size + 1 == read_chars.size  and
+    read_chars.last.nil?               and
+    chars == read_chars.join
+  end
+
 end
 
 report

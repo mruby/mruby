@@ -1572,62 +1572,6 @@ mrb_io_closed(mrb_state *mrb, mrb_value klass)
 }
 
 mrb_value
-mrb_io_each_line(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value str, rs, b;
-  mrb_value *argv;
-  int argc;
-  long limit;
-  int save_point = mrb_gc_arena_save(mrb);
-
-  mrb_get_args(mrb, "&*", &b, &argv, &argc);
-  prepare_getline_args(mrb, argc, argv, &rs, &limit, klass);
-  while (!mrb_nil_p(str = rb_io_getline(mrb, argc, argv, klass))) {
-    mrb_yield(mrb, b, str);
-    mrb_gc_arena_restore(mrb, save_point);
-  }
-
-  return klass;
-}
-
-mrb_value
-mrb_io_each_byte(mrb_state *mrb, mrb_value klass)
-{
-  struct mrb_io *fptr;
-  FILE *f;
-  int c;
-  mrb_value *argv, b;
-  int argc;
-
-  mrb_get_args(mrb, "&*", &b, &argv, &argc);
-
-  GetOpenFile(mrb, klass, fptr);
-  for (;;) {
-    rb_io_check_readable(mrb, fptr);
-    f = fptr->f;
-    READ_CHECK(mrb, f);
-    clearerr(f);
-    /* TRAP_BEG(mrb); */
-    c = getc(f);
-    /* TRAP_END(mrb); */
-    if (c == EOF) {
-      if (ferror(f)) {
-        clearerr(f);
-        /* if (!rb_io_wait_readable(mrb, fileno(f))) */
-        mrb_sys_fail(mrb, "mrb_io_each_byte failed");
-        continue;
-      }
-      break;
-    }
-    mrb_yield(mrb, b, mrb_fixnum_value(c & 0xff));
-  }
-  if (ferror(f))
-    mrb_sys_fail(mrb, "mrb_io_each_byte failed");
-
-  return klass;
-}
-
-mrb_value
 mrb_io_read(mrb_state *mrb, mrb_value klass)
 {
   mrb_value *argv;
@@ -1887,6 +1831,16 @@ retry:
 }
 
 static mrb_value
+mrb_io_getc(mrb_state *mrb, mrb_value klass)
+{
+  mrb_int argc = 1;
+  mrb_value length = mrb_fixnum_value(1);
+  mrb_value *argv = &length;
+
+  return io_read(mrb, klass, argc, argv);
+}
+
+static mrb_value
 mrb_io_gets(mrb_state *mrb, mrb_value klass)
 {
   mrb_value str, b, rs;
@@ -1922,9 +1876,6 @@ mrb_init_io(mrb_state *mrb)
 
   mrb_define_method(mrb, io, "close", mrb_io_close, ARGS_NONE()); /* 15.2.20.5.1 */
   mrb_define_method(mrb, io, "closed?", mrb_io_closed, ARGS_NONE()); /* 15.2.20.5.2 */
-  mrb_define_method(mrb, io, "each", mrb_io_each_line, ARGS_ANY()); /* 15.2.20.5.3 */
-  mrb_define_method(mrb, io, "each_byte", mrb_io_each_byte, ARGS_ANY()); /* 15.2.20.5.4 */
-  mrb_define_method(mrb, io, "each_line", mrb_io_each_line, ARGS_ANY()); /* 15.2.20.5.5 */
   mrb_define_method(mrb, io, "flush", mrb_io_flush, ARGS_NONE()); /* TBD */
   mrb_define_method(mrb, io, "print", mrb_io_print, ARGS_ANY()); /* 15.2.20.5.11 */
   mrb_define_method(mrb, io, "read", mrb_io_read, ARGS_ANY());  /* 15.2.20.5.14 */
@@ -1935,6 +1886,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "initialize", mrb_io_initialize, ARGS_ANY());    /* 15.2.20.5.21 (x)*/
   mrb_define_method(mrb, io, "to_io", mrb_io_to_io, ARGS_NONE()); /* 15.2.20.5.22 (x) */
 
+  mrb_define_method(mrb, io, "getc", mrb_io_getc, ARGS_NONE()); /* ??? */
   mrb_define_method(mrb, io, "gets", mrb_io_gets, ARGS_NONE()); /* ??? */
 
   /* TODO: ADD Kernel Module */
