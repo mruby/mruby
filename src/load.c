@@ -613,6 +613,7 @@ hex_to_str(char *hex, char *str, uint16_t *str_len)
 {
   char *src, *dst, buf[4];
   int escape = 0, base = 0;
+  char *err_ptr;
 
   *str_len = 0;
   for (src = hex, dst = str; *src != '\0'; src++) {
@@ -639,7 +640,6 @@ hex_to_str(char *hex, char *str, uint16_t *str_len)
           strncpy(buf, src, 2);
         }
 
-        char *err_ptr;
         *dst++ = (unsigned char) strtol(buf, &err_ptr, base) & 0xff;
         src += (err_ptr - buf - 1);
         break;

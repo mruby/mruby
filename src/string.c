@@ -333,7 +333,7 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
   int len;
 
   str_modify(mrb, s1);
-  if (mrb_type(other) != MRB_TT_STRING) {
+  if (!mrb_string_p(other)) {
     other = mrb_str_to_str(mrb, other);
   }
   s2 = mrb_str_ptr(other);
@@ -519,7 +519,7 @@ mrb_str_cmp_m(mrb_state *mrb, mrb_value str1)
   mrb_int result;
 
   mrb_get_args(mrb, "o", &str2);
-  if (mrb_type(str2) != MRB_TT_STRING) {
+  if (!mrb_string_p(str2)) {
     if (!mrb_respond_to(mrb, str2, mrb_intern(mrb, "to_s"))) {
       return mrb_nil_value();
     }
@@ -557,7 +557,7 @@ int
 mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
   if (mrb_obj_equal(mrb, str1, str2)) return TRUE;
-  if (mrb_type(str2) != MRB_TT_STRING) {
+  if (!mrb_string_p(str2)) {
     if (mrb_nil_p(str2)) return FALSE;
     if (!mrb_respond_to(mrb, str2, mrb_intern(mrb, "to_str"))) {
       return FALSE;
@@ -595,7 +595,7 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
 {
   mrb_value s;
 
-  if (mrb_type(str) != MRB_TT_STRING) {
+  if (!mrb_string_p(str)) {
     s = mrb_check_convert_type(mrb, str, MRB_TT_STRING, "String", "to_str");
     if (mrb_nil_p(s)) {
       s = mrb_convert_type(mrb, str, MRB_TT_STRING, "String", "to_s");
@@ -609,7 +609,7 @@ mrb_value
 mrb_string_value(mrb_state *mrb, mrb_value *ptr)
 {
   mrb_value s = *ptr;
-  if (mrb_type(s) != MRB_TT_STRING) {
+  if (!mrb_string_p(s)) {
     s = mrb_str_to_str(mrb, s);
     *ptr = s;
   }
@@ -1317,7 +1317,7 @@ str_gsub(mrb_state *mrb, mrb_value str, mrb_int bang)
     mrb_str_buf_cat(mrb, dest, cp, RSTRING_LEN(str) - offset);
   }
   mrb_reg_search(mrb, pat, str, last, 0);
-  RBASIC(dest)->c = mrb_obj_class(mrb, str);
+  mrb_basic(dest)->c = mrb_obj_class(mrb, str);
   return str;
 }
 
@@ -1653,11 +1653,11 @@ mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str;
 
-  if (mrb_type(obj) == MRB_TT_STRING) {
+  if (mrb_string_p(obj)) {
     return obj;
   }
   str = mrb_funcall(mrb, obj, "to_s", 0);
-  if (mrb_type(str) != MRB_TT_STRING)
+  if (!mrb_string_p(str))
     return mrb_any_to_s(mrb, obj);
   return str;
 }
@@ -2141,7 +2141,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     split_type = awk;
   }
   else {
-    if (mrb_type(spat) == MRB_TT_STRING) {
+    if (mrb_string_p(spat)) {
       split_type = string;
 #ifdef ENABLE_REGEXP
       if (RSTRING_LEN(spat) == 0) {

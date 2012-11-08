@@ -58,7 +58,7 @@ mrb_struct_s_members(mrb_state *mrb, mrb_value klass)
     if (mrb_nil_p(members)) {
       mrb_raise(mrb, E_TYPE_ERROR, "uninitialized struct");
     }
-    if (mrb_type(members) != MRB_TT_ARRAY) {
+    if (!mrb_array_p(members)) {
       mrb_raise(mrb, E_TYPE_ERROR, "corrupted struct");
     }
     return members;
@@ -220,7 +220,7 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
   ptr = RSTRUCT_PTR(obj);
   for (i=0; i<len; i++) {
     slot = ptr_members[i];
-    if (SYM2ID(slot) == mid) {
+    if (mrb_symbol(slot) == mid) {
       return ptr[i] = val;
     }
   }
@@ -290,7 +290,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     ptr_members = RARRAY_PTR(members);
     len = RARRAY_LEN(members);
     for (i=0; i< len; i++) {
-      mrb_sym id = SYM2ID(ptr_members[i]);
+      mrb_sym id = mrb_symbol(ptr_members[i]);
       if (mrb_is_local_id(id) || mrb_is_const_id(id)) {
           if (i < N_REF_FUNC) {
             mrb_define_method_id(mrb, c, id, ref_func[i], ARGS_NONE());
@@ -381,8 +381,8 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   else {   
     if (argc > 0) name = argv[0];
     if (argc > 1) rest = argv[1];
-    if (mrb_type(rest) == MRB_TT_ARRAY) {
-      if (!mrb_nil_p(name) && SYMBOL_P(name)) {
+    if (mrb_array_p(rest)) {
+      if (!mrb_nil_p(name) && mrb_symbol_p(name)) {
         /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
         mrb_ary_unshift(mrb, rest, name);
         name = mrb_nil_value();
@@ -391,7 +391,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
     else {
       pargv = &argv[1];
       argcnt = argc-1;
-      if (!mrb_nil_p(name) && SYMBOL_P(name)) {
+      if (!mrb_nil_p(name) && mrb_symbol_p(name)) {
         /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
         name = mrb_nil_value();
         pargv = &argv[0];
@@ -417,7 +417,7 @@ num_members(mrb_state *mrb, struct RClass *klass)
 {
     mrb_value members;
     members = struct_ivar_get(mrb, mrb_obj_value(klass), mrb_intern(mrb, "__members__"));
-    if (mrb_type(members) != MRB_TT_ARRAY) {
+    if (!mrb_array_p(members)) {
       mrb_raise(mrb, E_TYPE_ERROR, "broken members");
     }
     return RARRAY_LEN(members);
@@ -492,7 +492,7 @@ inspect_struct(mrb_state *mrb, mrb_value s, mrb_value dummy, int recur)
           mrb_str_cat2(mrb, str, " ");
       }
       slot = ptr_members[i];
-      id = SYM2ID(slot);
+      id = mrb_symbol(slot);
       if (mrb_is_local_id(id) || mrb_is_const_id(id)) {
 	const char *name;
 	int len;
@@ -556,7 +556,7 @@ mrb_struct_aref_id(mrb_state *mrb, mrb_value s, mrb_sym id)
     ptr_members = RARRAY_PTR(members);
     len = RARRAY_LEN(members);
     for (i=0; i<len; i++) {
-      if (SYM2ID(ptr_members[i]) == id) {
+      if (mrb_symbol(ptr_members[i]) == id) {
           return ptr[i];
       }
     }
@@ -588,7 +588,7 @@ mrb_struct_aref_n(mrb_state *mrb, mrb_value s, mrb_value idx)
 {
   long i;
 
-  if (mrb_type(idx) == MRB_TT_STRING || mrb_type(idx) == MRB_TT_SYMBOL) {
+  if (mrb_string_p(idx) || mrb_symbol_p(idx)) {
     return mrb_struct_aref_id(mrb, s, mrb_to_id(mrb, idx));
   }
 
@@ -628,7 +628,7 @@ mrb_struct_aset_id(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
     ptr = RSTRUCT_PTR(s);
     ptr_members = RARRAY_PTR(members);
     for (i=0; i<len; i++) {
-      if (SYM2ID(ptr_members[i]) == id) {
+      if (mrb_symbol(ptr_members[i]) == id) {
           ptr[i] = val;
           return val;
       }
@@ -668,7 +668,7 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
 
   mrb_get_args(mrb, "oo", &idx, &val);
 
-  if (mrb_type(idx) == MRB_TT_STRING || mrb_type(idx) == MRB_TT_SYMBOL) {
+  if (mrb_string_p(idx) || mrb_symbol_p(idx)) {
     return mrb_struct_aset_id(mrb, s, mrb_to_id(mrb, idx), val);
   }
 

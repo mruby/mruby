@@ -4,6 +4,7 @@
 #include "mruby/string.h"
 #include "mruby/compile.h"
 #include "mruby/dump.h"
+#include "mruby/variable.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -162,6 +163,53 @@ cleanup(mrb_state *mrb, struct _args *args)
   mrb_close(mrb);
 }
 
+static void
+showcallinfo(mrb_state *mrb)
+{
+  mrb_callinfo *ci;
+  mrb_int ciidx;
+  const char *filename, *method, *sep;
+  int i, line;
+
+  printf("trace:\n");
+  ciidx = mrb_fixnum(mrb_obj_iv_get(mrb, mrb->exc, mrb_intern(mrb, "ciidx")));
+  if (ciidx >= mrb->ciend - mrb->cibase)
+    ciidx = 10; /* ciidx is broken... */
+
+  for (i = ciidx; i >= 0; i--) {
+    ci = &mrb->cibase[i];
+    filename = "(unknown)";
+    line = -1;
+
+    if (MRB_PROC_CFUNC_P(ci->proc)) {
+      continue;
+    }
+    else {
+      mrb_irep *irep = ci->proc->body.irep;
+      if (irep->filename != NULL)
+        filename = irep->filename;
+      if (irep->lines != NULL && i+1 <= ciidx) {
+        mrb_code *pc = mrb->cibase[i+1].pc;
+        if (irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
+          line = irep->lines[pc - irep->iseq - 1];
+        }
+      }
+    }
+    if (ci->target_class == ci->proc->target_class)
+      sep = ".";
+    else
+      sep = "#";
+
+    method = mrb_sym2name(mrb, ci->mid);
+    printf("\t[%d] %s:%d%s%s%s%s\n",
+    	   i, filename, line,
+	   method ? ":in " : "",
+	   method ? mrb_class_name(mrb, ci->proc->target_class) : "",
+	   method ? sep : "",
+	   method ? method : "");
+  }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -198,6 +246,7 @@ main(int argc, char **argv)
       mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
       n = 0;
       if (mrb->exc) {
+        showcallinfo(mrb);
         p(mrb, mrb_obj_value(mrb->exc));
         n = -1;
       }
@@ -223,6 +272,7 @@ main(int argc, char **argv)
     mrbc_context_free(mrb, c);
     if (mrb->exc) {
       if (!mrb_undef_p(v)) {
+        showcallinfo(mrb);
         p(mrb, mrb_obj_value(mrb->exc));
       }
       n = -1;

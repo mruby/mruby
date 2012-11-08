@@ -503,8 +503,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 	  case MRB_TT_FIXNUM:
 	    *p = (mrb_float)mrb_fixnum(*sp);
 	    break;
-	  case MRB_TT_FALSE:
-	    *p = 0.0;
+	  case MRB_TT_STRING:
+	    mrb_raise(mrb, E_TYPE_ERROR, "String can't be coerced into Float");
 	    break;
 	  default:
 	    {
@@ -852,9 +852,12 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
 
   m = mrb_method_search_vm(mrb, &c, mid);
   if (!m) {
+    mrb_value inspect = mrb_funcall(mrb, mrb_obj_value(c), "inspect", 0);
+    if (RSTRING_LEN(inspect) > 64) {
+      inspect = mrb_any_to_s(mrb, mrb_obj_value(c));
+    }
     mrb_raisef(mrb, E_NAME_ERROR, "undefined method '%s' for class %s",
-        mrb_sym2name(mrb, mid),
-        RSTRING_PTR(mrb_funcall(mrb, mrb_obj_value(c), "inspect", 0)));
+        mrb_sym2name(mrb, mid), RSTRING_PTR(inspect));
   }
   return m;
 }
@@ -1005,14 +1008,20 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
 {
   mrb_value name, *a;
   int alen;
+  mrb_value inspect;
 
   mrb_get_args(mrb, "o*", &name, &a, &alen);
-  if (!SYMBOL_P(name)) {
+  if (!mrb_symbol_p(name)) {
     mrb_raise(mrb, E_TYPE_ERROR, "name should be a symbol");
   }
+
+  inspect = mrb_funcall(mrb, mod, "inspect", 0);
+  if (RSTRING_LEN(inspect) > 64) {
+    inspect = mrb_any_to_s(mrb, mod);
+  }
+
   mrb_raisef(mrb, E_NOMETHOD_ERROR, "undefined method '%s' for %s",
-      mrb_sym2name(mrb, mrb_symbol(name)),
-      RSTRING_PTR(mrb_funcall(mrb, mod, "inspect", 0)));
+      mrb_sym2name(mrb, mrb_symbol(name)), RSTRING_PTR(inspect));
   /* not reached */
   return mrb_nil_value();
 }
@@ -1322,10 +1331,10 @@ mod_define_method(mrb_state *mrb, mrb_value self)
 static mrb_sym
 mrb_sym_value(mrb_state *mrb, mrb_value val)
 {
-  if(mrb_type(val) == MRB_TT_STRING) {
+  if (mrb_string_p(val)) {
     return mrb_intern_str(mrb, val);
   }
-  else if(mrb_type(val) != MRB_TT_SYMBOL) {
+  else if(!mrb_symbol_p(val)) {
     mrb_value obj = mrb_funcall(mrb, val, "inspect", 0);
     mrb_raisef(mrb, E_TYPE_ERROR, "%s is not a symbol",
          mrb_string_value_ptr(mrb, obj));

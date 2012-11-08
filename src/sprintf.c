@@ -800,7 +800,7 @@ retry:
               goto bin_retry;
             }
             val = mrb_flt2big(mrb, mrb_float(val));
-            if (FIXNUM_P(val)) goto bin_retry;
+            if (mrb_fixnum_p(val)) goto bin_retry;
             break;
           case MRB_TT_STRING:
             val = mrb_str_to_inum(mrb, val, 0, TRUE);
@@ -1048,13 +1048,15 @@ retry:
   }
 
   sprint_exit:
+#if 0
   /* XXX - We cannot validate the number of arguments if (digit)$ style used.
    */
   if (posarg >= 0 && nextarg < argc) {
     const char *mesg = "too many arguments for format string";
-    if (RTEST(ruby_debug)) mrb_raise(mrb, E_ARGUMENT_ERROR, mesg);
-    if (RTEST(ruby_verbose)) mrb_warn("%s", mesg);
+    if (mrb_test(ruby_debug)) mrb_raise(mrb, E_ARGUMENT_ERROR, mesg);
+    if (mrb_test(ruby_verbose)) mrb_warn("%s", mesg);
   }
+#endif
   mrb_str_resize(mrb, result, blen);
 
   return result;

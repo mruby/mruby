@@ -580,7 +580,7 @@ iv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 
   ary = *(mrb_value*)p;
   s = mrb_sym2name_len(mrb, sym, &len);
-  if (len > 1 && s[0] == '@') {
+  if (len > 1 && s[0] == '@' && s[1] != '@') {
     mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   }
   return 0;
@@ -927,5 +927,5 @@ mrb_class_sym(mrb_state *mrb, struct RClass *c, struct RClass *outer)
       return arg.sym;
     }
   }
-  return SYM2ID(name);
+  return mrb_symbol(name);
 }

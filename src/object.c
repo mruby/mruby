@@ -509,7 +509,7 @@ mrb_to_integer(mrb_state *mrb, mrb_value val, const char *method)
 {
     mrb_value v;
 
-    if (FIXNUM_P(val)) return val;
+    if (mrb_fixnum_p(val)) return val;
     v = convert_type(mrb, val, "Integer", method, TRUE);
     if (!mrb_obj_is_kind_of(mrb, v, mrb->fixnum_class)) {
       const char *cname = mrb_obj_classname(mrb, val);
@@ -603,5 +603,5 @@ int
 mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
-  return RTEST(mrb_funcall(mrb, obj1, "eql?", 1, obj2));
+  return mrb_test(mrb_funcall(mrb, obj1, "eql?", 1, obj2));
 }
