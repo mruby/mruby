@@ -51,13 +51,6 @@ endif
 
 # mruby compiler and test driver
 ifeq ($(OS),Windows_NT)
-<<<<<<< HEAD
-  MRBC = ../bin/mrbc.exe
-  EXE := $(TARGET).exe
-else
-  MRBC = ../bin/mrbc
-  EXE := $(TARGET)
-=======
 MRBC = ../bin/mrbc.exe
 MRUBY= ../bin/mruby.exe
 EXE := $(TARGET).exe
@@ -65,7 +58,6 @@ else
 MRBC = ../bin/mrbc
 MRUBY= ../bin/mruby
 EXE := $(TARGET)
->>>>>>> upstream/master
 endif
 
 ##############################
