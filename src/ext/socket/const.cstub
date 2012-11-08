@@ -103,3 +103,66 @@
 #ifdef SOL_SOCKET
   define_const(SOL_SOCKET);
 #endif
+#ifdef SO_BINDANY
+  define_const(SO_BINDANY);
+#endif
+#ifdef SO_BROADCAST
+  define_const(SO_BROADCAST);
+#endif
+#ifdef SO_DEBUG
+  define_const(SO_DEBUG);
+#endif
+#ifdef SO_DONTROUTE
+  define_const(SO_DONTROUTE);
+#endif
+#ifdef SO_ERROR
+  define_const(SO_ERROR);
+#endif
+#ifdef SO_KEEPALIVE
+  define_const(SO_KEEPALIVE);
+#endif
+#ifdef SO_LINGER
+  define_const(SO_LINGER);
+#endif
+#ifdef SO_OOBINLINE
+  define_const(SO_OOBINLINE);
+#endif
+#ifdef SO_PEERCRED
+  define_const(SO_PEERCRED);
+#endif
+#ifdef SO_RCVBUF
+  define_const(SO_RCVBUF);
+#endif
+#ifdef SO_RCVLOWAT
+  define_const(SO_RCVLOWAT);
+#endif
+#ifdef SO_RCVTIMEO
+  define_const(SO_RCVTIMEO);
+#endif
+#ifdef SO_REUSEADDR
+  define_const(SO_REUSEADDR);
+#endif
+#ifdef SO_REUSEPORT
+  define_const(SO_REUSEPORT);
+#endif
+#ifdef SO_RTABLE
+  define_const(SO_RTABLE);
+#endif
+#ifdef SO_SNDBUF
+  define_const(SO_SNDBUF);
+#endif
+#ifdef SO_SNDLOWAT
+  define_const(SO_SNDLOWAT);
+#endif
+#ifdef SO_SNDTIMEO
+  define_const(SO_SNDTIMEO);
+#endif
+#ifdef SO_SPLICE
+  define_const(SO_SPLICE);
+#endif
+#ifdef SO_TIMESTAMP
+  define_const(SO_TIMESTAMP);
+#endif
+#ifdef SO_TYPE
+  define_const(SO_TYPE);
+#endif

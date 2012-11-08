@@ -170,6 +170,14 @@ modifiers:
         }
         break;
 
+      case 'i':		/* int */
+        while (len-- > 0) {
+          from = NEXTFROM;
+          int i = (int)mrb_fixnum(from);
+          mrb_str_buf_cat(mrb, result, (char *)&i, sizeof(int));
+        }
+        break;
+
       case 'H':		/* hex string (high nibble first) */
         from = NEXTFROM;
         if (mrb_nil_p(from)) {
@@ -374,6 +382,22 @@ modifiers:
 	  while (len-- > 0) {
 	    u8 = *s++;
             UNPACK_PUSH(mrb_fixnum_value(u8));
+	  }
+        }
+        break;
+
+      case 'i':
+        {
+          int i, k;
+          unsigned char *q;
+
+          if (p[-1] == '*' || len  > (send - s) / sizeof(int))
+            len = (send - s) / sizeof(int);
+	  while (len-- > 0) {
+	    q = (unsigned char *)&i;
+	    for (k = 0; k < sizeof(int); k++)
+	      q[k] = s[k];
+            UNPACK_PUSH(mrb_fixnum_value(i));
 	  }
         }
         break;

@@ -63,6 +63,37 @@ socket_fd(mrb_value sock)
   return fileno(RFILE(sock)->fptr->f);
 }
 
+static int
+socket_family(int s)
+{
+  struct sockaddr_storage ss;
+  socklen_t salen;
+
+  salen = sizeof(ss);
+  if (getsockname(s, (struct sockaddr *)&ss, &salen) == -1)
+    return AF_UNSPEC;
+  return ss.ss_family;
+}
+
+static mrb_value
+mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
+{ 
+  int opt, s;
+  mrb_int family, level, optname;
+  mrb_value c, data;
+  socklen_t optlen;
+
+  mrb_get_args(mrb, "ii", &level, &optname);
+  s = socket_fd(self);
+  optlen = sizeof(opt);
+  if (getsockopt(s, level, optname, &opt, &optlen) == -1)
+    mrb_sys_fail(mrb, "getsockopt");
+  c = mrb_const_get(mrb, mrb_obj_value(mrb_class_get(mrb, "Socket")), mrb_intern(mrb, "Option"));
+  family = socket_family(s);
+  data = mrb_str_new(mrb, (char *)&opt, sizeof(int));
+  return mrb_funcall(mrb, c, "new", 4, mrb_fixnum_value(family), mrb_fixnum_value(level), mrb_fixnum_value(optname), data);
+}
+
 static mrb_value
 mrb_basicsocket_recv(mrb_state *mrb, mrb_value self)
 { 
@@ -100,6 +131,46 @@ mrb_basicsocket_setnonblock(mrb_state *mrb, mrb_value self)
   if (fcntl(fd, F_SETFL, flags) == -1)
     mrb_sys_fail(mrb, "fcntl");
   return mrb_nil_value();
+}
+
+static mrb_value
+mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
+{ 
+  int argc, s;
+  mrb_int level = 0, optname;
+  mrb_value optval, so;
+
+  argc = mrb_get_args(mrb, "o|io", &so, &optname, &optval);
+  if (argc == 3) {
+    if (!mrb_fixnum_p(so)) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "level is not an integer");
+    }
+    level = mrb_fixnum(so);
+    if (mrb_string_p(optval)) {
+      /* that's good */
+    } else if (mrb_type(optval) == MRB_TT_TRUE || mrb_type(optval) == MRB_TT_FALSE) {
+      mrb_int i = mrb_test(optval) ? 1 : 0;
+      optval = mrb_str_new(mrb, (char *)&i, sizeof(i));
+    } else if (mrb_fixnum_p(optval)) {
+      mrb_int i = mrb_fixnum(optval);
+      optval = mrb_str_new(mrb, (char *)&i, sizeof(i));
+    } else {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "optval should be true, false, an integer, or a string");
+    }
+  } else if (argc == 1) {
+    if (strcmp(mrb_obj_classname(mrb, so), "Socket::Option") != 0)
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "not an instance of Socket::Option");
+    level = mrb_fixnum(mrb_funcall(mrb, so, "level", 0));
+    optname = mrb_fixnum(mrb_funcall(mrb, so, "optname", 0));
+    optval = mrb_funcall(mrb, so, "data", 0);
+  } else {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 3)", argc);
+  }
+
+  s = socket_fd(self);
+  if (setsockopt(s, level, optname, RSTRING_PTR(optval), RSTRING_LEN(optval)) == -1)
+    mrb_sys_fail(mrb, "setsockopt");
+  return mrb_fixnum_value(0);
 }
 
 static mrb_value
@@ -495,7 +566,7 @@ mrb_init_socket(mrb_state *mrb)
   // .for_fd
   // #getpeername
   // #getsockname
-  //mrb_define_method(mrb, bsock, "getsockopt", mrb_basicsocket_getsockopt, ARGS_REQ(2));
+  mrb_define_method(mrb, bsock, "getsockopt", mrb_basicsocket_getsockopt, ARGS_REQ(2));
   // #recv(maxlen, flags=0)
   mrb_define_method(mrb, bsock, "recv", mrb_basicsocket_recv, ARGS_REQ(1)|ARGS_OPT(1));
   // #recv_nonblock(maxlen, flags=0)
@@ -504,7 +575,7 @@ mrb_init_socket(mrb_state *mrb)
   // #send
   // #sendmsg
   // #sendmsg_nonblock
-  // #setsockopt
+  mrb_define_method(mrb, bsock, "setsockopt", mrb_basicsocket_setsockopt, ARGS_REQ(1)|ARGS_OPT(2));
   mrb_define_method(mrb, bsock, "setnonblock", mrb_basicsocket_setnonblock, ARGS_REQ(1));
   mrb_define_method(mrb, bsock, "shutdown", mrb_basicsocket_shutdown, ARGS_OPT(1));
 
