@@ -1917,7 +1917,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_include_module(mrb, io, mrb_class_get(mrb, "Enumerable")); /* 15.2.20.3 */
   mrb_define_class_method(mrb, io, "open", mrb_io_s_open, ARGS_ANY()); /* 15.2.20.4.1 */
   mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, ARGS_ANY()); /* ??.?.??.?.? */
-  mrb_define_class_method(mrb, io, "__popen__", mrb_io_s_popen, ARGS_REQ(1)); /* ??.?.??.?.? */
+  mrb_define_class_method(mrb, io, "__popen__", mrb_io_s_popen, ARGS_ANY()); /* ??.?.??.?.? */
   mrb_define_class_method(mrb, io, "select", mrb_io_select, ARGS_ANY()); /* ?? */
 
   mrb_define_method(mrb, io, "close", mrb_io_close, ARGS_NONE()); /* 15.2.20.5.1 */
