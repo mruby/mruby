@@ -18,6 +18,22 @@ class IO
     end
   end
 
+  def self.popen(command, mode = 'r', &block)
+    io = self.__popen__(command, mode)
+
+    return io unless block
+
+    begin
+      yield io
+    ensure
+      begin
+        io.close unless io.closed?
+      rescue StandardError
+        # nothing
+      end
+    end
+  end
+
   def puts(*args)
     i = 0
     len = args.size
