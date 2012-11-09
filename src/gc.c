@@ -449,19 +449,19 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     break;
 
 #ifdef ENABLE_REGEXP
+  case MRB_TT_REGEX:
+    {
+      struct RRegexp *r = (struct RRegexp*)obj;
+
+      mrb_gc_mark(mrb, (struct RBasic*)r->src);
+    }
+    break;
   case MRB_TT_MATCH:
     {
       struct RMatch *m = (struct RMatch*)obj;
 
       mrb_gc_mark(mrb, (struct RBasic*)m->str);
       mrb_gc_mark(mrb, (struct RBasic*)m->regexp);
-    }
-    break;
-  case MRB_TT_REGEX:
-    {
-      struct RRegexp *r = (struct RRegexp*)obj;
-
-      mrb_gc_mark(mrb, (struct RBasic*)r->src);
     }
     break;
 #endif
@@ -558,6 +558,16 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_RANGE:
     mrb_free(mrb, ((struct RRange*)obj)->edges);
     break;
+
+#ifdef ENABLE_REGEXP
+  case MRB_TT_REGEX:
+    onig_free(((struct RRegexp*)obj)->ptr);
+    break;
+
+  case MRB_TT_MATCH:
+    mrb_free(mrb, ((struct RMatch*)obj)->rmatch);
+    break;
+#endif
 
 #ifdef ENABLE_STRUCT
   case MRB_TT_STRUCT:
