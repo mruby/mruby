@@ -5535,7 +5535,7 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_REGX:
-    printf("NODE_REGX /%s/\n", (char*)tree->cdr->car);
+    printf("NODE_REGX /%s/\n", (char*)tree->car->cdr->car);
     break;
 
   case NODE_SYM:
