@@ -48,12 +48,7 @@ struct RNode {
 #define MATCH_BUSY FL_USER2
 
 /* from opcode.h */
-#define GETARG_A(i)   ((((mrb_code)(i)) >> 24) & 0xff)
-#define GETARG_B(i)   ((((mrb_code)(i)) >> 16) & 0xff)
 #define GETARG_C(i)   ((((mrb_code)(i)) >>  8) & 0xff)
-#define MKARG_A(c)    (((c) & 0xff) << 24)
-#define MKARG_B(c)    (((c) & 0xff) << 16)
-#define MKARG_C(c)    (((c) & 0xff) <<  8)
 
 #define ARG_REG_OPTION_MASK \
     (ONIG_OPTION_IGNORECASE|ONIG_OPTION_MULTILINE|ONIG_OPTION_EXTEND)
