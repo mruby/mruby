@@ -171,7 +171,7 @@
 #define xalloca     _alloca
 #define xvsnprintf  _vsnprintf
 #else
-#define xalloca     malloc
+#define xalloca     alloca
 #define xvsnprintf  vsnprintf
 #endif
 
