@@ -75,6 +75,17 @@ if Object.const_defined?(:IO) and Object.const_defined?(:File)
     File.size("$R_FILENAME") == "$R_BODY_MSG".size + 1  and
     File.size("$W_FILENAME") == 0
   end
+
+  assert('File.join') do
+    File.join() == "" and
+    File.join("a") == "a" and
+    File.join("/a") == "/a" and
+    File.join("a/") == "a/" and
+    File.join("a", "b", "c") == "a/b/c" and
+    File.join("/a", "b", "c") == "/a/b/c" and
+    File.join("a", "b", "c/") == "a/b/c/" and
+    File.join("a/", "/b/", "/c") == "a/b/c"
+  end
 end
 
 report

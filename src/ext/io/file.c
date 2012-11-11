@@ -303,6 +303,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_const(mrb, file, "LOCK_EX", mrb_fixnum_value(LOCK_EX));
   mrb_define_const(mrb, file, "LOCK_UN", mrb_fixnum_value(LOCK_UN));
   mrb_define_const(mrb, file, "LOCK_NB", mrb_fixnum_value(LOCK_NB));
+  mrb_define_const(mrb, file, "SEPARATOR", mrb_str_new2(mrb, "/"));
 }
 
 #endif /* ENABLE_IO */
