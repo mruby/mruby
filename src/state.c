@@ -126,7 +126,7 @@ mrb_add_irep(mrb_state *mrb, int idx)
       mrb->irep_capa *= 2;
     }
     mrb->irep = (mrb_irep **)mrb_realloc(mrb, mrb->irep, sizeof(mrb_irep*)*mrb->irep_capa);
-    for (i = old_capa; i < mrb->irep_capa - old_capa; i++) {
+    for (i = old_capa; i < mrb->irep_capa; i++) {
       mrb->irep[i] = NULL;
     }
   }
