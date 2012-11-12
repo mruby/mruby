@@ -30,7 +30,12 @@ if Object.const_defined? :Dir
 
     def self.open(path, &block)
       if block
-	block.call(self.new(path))
+	d = self.new(path)
+	begin
+	  block.call(d)
+	ensure
+	  d.close
+	end
       else
         self.new(path)
       end
