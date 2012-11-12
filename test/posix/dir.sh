@@ -140,7 +140,7 @@ if Object.const_defined?(:Dir)
       while s = d.read
         a << s
       end
-      a == files and d0.is_a? Dir
+      a.sort == files and d0.is_a? Dir
     }
   end
 
