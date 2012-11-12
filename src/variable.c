@@ -621,6 +621,50 @@ mrb_obj_instance_variables(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
+static int
+cv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
+{
+  mrb_value ary;
+  const char* s;
+  int len;
+
+  ary = *(mrb_value*)p;
+  s = mrb_sym2name_len(mrb, sym, &len);
+  if (len > 2 && s[0] == '@' && s[1] == '@') {
+    mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
+  }
+  return 0;
+}
+
+/* 15.2.2.4.19 */
+/*
+ *  call-seq:
+ *     mod.class_variables   -> array
+ *
+ *  Returns an array of the names of class variables in <i>mod</i>.
+ *
+ *     class One
+ *       @@var1 = 1
+ *     end
+ *     class Two < One
+ *       @@var2 = 2
+ *     end
+ *     One.class_variables   #=> [:@@var1]
+ *     Two.class_variables   #=> [:@@var2]
+ */
+mrb_value
+mrb_mod_class_variables(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value ary;
+
+  ary = mrb_ary_new(mrb);
+  if (obj_iv_p(mod) && mrb_obj_ptr(mod)->iv) {
+    iv_foreach(mrb, mrb_obj_ptr(mod)->iv, cv_i, &ary);
+  }
+  return ary;
+}
+
+
 mrb_value
 mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
 {
