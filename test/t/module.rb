@@ -36,9 +36,10 @@ assert('Module#class_variables', '15.2.2.4.19') do
     @@var1 = 1
     @@var2 = 2
   end
-  class Test4ClassVariables2
-    @@var3 =2
+  class Test4ClassVariables2 < Test4ClassVariables1
+    @@var3 = 2
   end
+
   Test4ClassVariables1.class_variables == [:@@var1, :@@var2] &&
   Test4ClassVariables2.class_variables == [:@@var3]
 end
