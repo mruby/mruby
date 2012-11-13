@@ -27,8 +27,9 @@ mruby に対して、主に UNIX 環境に依存する機能を追加した fork
 
  * 拡張したクラス/モジュール
    * Array: #- #& #| #pack #uniq #uniq! #flatten #flatten!
-   * Kernel: #exit #load #require #sleep #system
+   * Kernel: #exit #load #require #sleep #system #rand #srand
      * load, require については https://github.com/iij/mruby/wiki/require も参照してください
+     * rand, srand は、rand(3) 相当の実装です
    * String: #lstrip #rstrip #strip #unpack #gsub #gsub! #sub #sub! #scan
      * Array#pack, String#unpack で利用できるテンプレート文字列は "m"(base64) 、"H"(16進文字列/上位ニブルが先)と"C"(8bit 符号なし整数) のみです。
 
