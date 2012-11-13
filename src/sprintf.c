@@ -671,7 +671,7 @@ retry:
         tmp = mrb_check_string_type(mrb, val);
         if (!mrb_nil_p(tmp)) {
           if (RSTRING_LEN(tmp) != 1 ) {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "%%c requires a character");
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "%c requires a character");
           }
           c = RSTRING_PTR(tmp)[0];
           n = 1;
