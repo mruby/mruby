@@ -8,17 +8,18 @@ W_FILENAME="" # fname for write test
 R_FILENAME="" # fname  for read test
 R_BODY_MSG="mruby file test"
 
-setup()
-{
-  LOG_FILENAME=`mktemp log.XXXXXXXX` || exit 1
-  R_FILENAME=`mktemp tmp.XXXXXXXX` || exit 1
-  echo $R_BODY_MSG >> $R_FILENAME
-  W_FILENAME=`mktemp tmp.XXXXXXXX` || exit 1
-}
+cd `dirname $0`
+BASEDIR=`pwd`
+TESTDIR=`mktemp -d -t mrbtest.XXXXXX` || exit 1
+cd $TESTDIR
 
-setup
+LOG_FILENAME=`mktemp log.XXXXXXXX` || exit 1
+R_FILENAME=`mktemp tmp.XXXXXXXX` || exit 1
+echo $R_BODY_MSG >> $R_FILENAME
+W_FILENAME=`mktemp tmp.XXXXXXXX` || exit 1
+ln -s /usr/bin		# for File.realpath
 
-cat ../assert.rb - <<EOF | $RUBY | tee $LOG_FILENAME
+cat $BASEDIR/../assert.rb - <<EOF | $BASEDIR/$RUBY | tee $LOG_FILENAME
 ##
 # File Test
 
@@ -86,6 +87,12 @@ if Object.const_defined?(:IO) and Object.const_defined?(:File)
     File.join("a", "b", "c/") == "a/b/c/" and
     File.join("a/", "/b/", "/c") == "a/b/c"
   end
+
+  assert('File.realpath') do
+    usrbin = IO.popen("cd bin; /bin/pwd -P") { |f| f.read.strip }
+    File.realpath("bin") == usrbin and
+      File.realpath(".", "/usr/bin") == usrbin
+  end
 end
 
 report
@@ -97,16 +104,13 @@ retval=`expr $retval + $?`
 grep "Crash: 0" $LOG_FILENAME > /dev/null
 retval=`expr $retval + $?`
 
-if [ -e "$LOG_FILENAME" ]; then
-  rm $LOG_FILENAME
-fi
+cd $TESTDIR
+rm -f $LOG_FILENAME
+rm -f $R_FILENAME
+rm -f $W_FILENAME
+rm bin
 
-if [ -e "$R_FILENAME" ]; then
-  rm $R_FILENAME
-fi
-
-if [ -e "$W_FILENAME" ]; then
-  rm $W_FILENAME
-fi
+cd $BASEDIR
+rmdir $TESTDIR
 
 exit $retval

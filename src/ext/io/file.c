@@ -13,8 +13,13 @@
 #include "mruby/string.h"
 #include "error.h"
 
-#include <libgen.h>
 #include <sys/file.h>
+#include <libgen.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define FILE_SEPARATOR "/"
 
 #ifndef LOCK_SH
 #define LOCK_SH 1
@@ -103,6 +108,28 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
   }
 
   return mrb_str_new(mrb, bname, strlen(bname));
+}
+
+static mrb_value
+mrb_file_realpath(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value pathname, dir_string, s, result;
+  int argc;
+  char *cpath;
+
+  argc = mrb_get_args(mrb, "S|S", &pathname, &dir_string);
+  if (argc == 2) {
+    s = mrb_str_dup(mrb, dir_string);
+    s = mrb_str_append(mrb, s, mrb_str_new2(mrb, FILE_SEPARATOR));
+    s = mrb_str_append(mrb, s, pathname);
+    pathname = s;
+  }
+  cpath = mrb_str_to_cstr(mrb, pathname);
+  result = mrb_str_buf_new(mrb, PATH_MAX);
+  if (realpath(cpath, RSTRING_PTR(result)) == NULL)
+    mrb_sys_fail(mrb, cpath);
+  mrb_str_resize(mrb, result, strlen(RSTRING_PTR(result)));
+  return result;
 }
 
 static mrb_value
@@ -298,12 +325,13 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_method(mrb, file,       "path",       mrb_file_path,       ARGS_NONE());              /* 15.2.21.4.2  */
   mrb_define_class_method(mrb, file, "dirname",   mrb_file_dirname,    ARGS_REQ(1));
   mrb_define_class_method(mrb, file, "basename",  mrb_file_basename,   ARGS_REQ(1));
+  mrb_define_class_method(mrb, file, "realpath",  mrb_file_realpath,   ARGS_REQ(1)|ARGS_OPT(1));
   mrb_define_class_method(mrb, file, "size",      mrb_file_size,       ARGS_REQ(1));
   mrb_define_const(mrb, file, "LOCK_SH", mrb_fixnum_value(LOCK_SH));
   mrb_define_const(mrb, file, "LOCK_EX", mrb_fixnum_value(LOCK_EX));
   mrb_define_const(mrb, file, "LOCK_UN", mrb_fixnum_value(LOCK_UN));
   mrb_define_const(mrb, file, "LOCK_NB", mrb_fixnum_value(LOCK_NB));
-  mrb_define_const(mrb, file, "SEPARATOR", mrb_str_new2(mrb, "/"));
+  mrb_define_const(mrb, file, "SEPARATOR", mrb_str_new2(mrb, FILE_SEPARATOR));
 }
 
 #endif /* ENABLE_IO */
