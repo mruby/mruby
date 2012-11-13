@@ -286,7 +286,7 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
     if (end > len) end = len;
   }
   if (end < 0) end += len;
-  if (!r->excl) end++;  /* include end point */
+  if (!r->excl && end < len) end++;  /* include end point */
   len = end - beg;
   if (len < 0) len = 0;
 
