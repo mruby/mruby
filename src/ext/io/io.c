@@ -813,7 +813,7 @@ rb_io_getline_1(mrb_state *mrb, mrb_value rs, long limit, mrb_value io)
       return mrb_nil_value();
   } else if (limit == 0) {
     return mrb_str_new(mrb, 0, 0);
-  } else if (limit < 0) {
+  } else if (RSTRING_LEN(rs) > 0 && limit < 0) {
     return rb_io_getline_fast(mrb, fptr, '\n');
   }
 
