@@ -142,33 +142,43 @@ class String
     self.replace([b, value, a].join(''))
   end
 
-  # for strip family
-  SPACES__ = " \f\n\r\t\v"
-
+  LSPACES__ = " \f\n\r\t\v"
   def lstrip
     a = 0
     z = self.size - 1
-    a += 1 while SPACES__.include?(self[a]) and a <= z
+    a += 1 while LSPACES__.include?(self[a]) and a <= z
     (z >= 0) ? self[a..z] : ""
   end
 
+  RSPACES__ = " \f\n\r\t\v\0"
   def rstrip
     a = 0
     z = self.size - 1
-    z -= 1 while SPACES__.include?(self[z]) and a <= z
+    z -= 1 while RSPACES__.include?(self[z]) and a <= z
     (z >= 0) ? self[a..z] : ""
   end
 
   def strip
     a = 0
     z = self.size - 1
-    a += 1 while SPACES__.include?(self[a]) and a <= z
-    z -= 1 while SPACES__.include?(self[z]) and a <= z
+    a += 1 while LSPACES__.include?(self[a]) and a <= z
+    z -= 1 while RSPACES__.include?(self[z]) and a <= z
     (z >= 0) ? self[a..z] : ""
   end
 
+  def lstrip!
+    s = self.lstrip
+    (s == self) ? nil : self.replace(s)
+  end
+
+  def rstrip!
+    s = self.rstrip
+    (s == self) ? nil : self.replace(s)
+  end
+
   def strip!
-    self.replace(self.strip)
+    s = self.strip
+    (s == self) ? nil : self.replace(s)
   end
 
   def %(args)
