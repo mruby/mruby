@@ -142,45 +142,33 @@ class String
     self.replace([b, value, a].join(''))
   end
 
+  # for strip family
+  SPACES__ = " \f\n\r\t\v"
+
   def lstrip
-    i = 0
-    while self.isspace(self[i])
-      i += 1
-    end
-    j = 0
-    ar = []
-    while i < self.size
-      ar[j] = self[i]
-      i += 1
-      j += 1
-    end
-    ar.join('')
+    a = 0
+    z = self.size
+    a += 1 while SPACES__.include?(self[a]) and a <= z
+    self[a..z]
   end
 
   def rstrip
-    i = -1
-    while self.isspace(self[i])
-      i -= 1
-    end
-    j = 0
-    ar = []
-    while j < (self.size + i + 1)
-      ar[j] = self[j]
-      j += 1
-    end
-    ar.join('')
+    a = 0
+    z = self.size
+    z -= 1 while SPACES__.include?(self[z]) and a <= z
+    self[a..z]
   end
 
   def strip
-    a = self.lstrip
-    b = a.rstrip
-    b
+    a = 0
+    z = self.size
+    a += 1 while SPACES__.include?(self[a]) and a <= z
+    z -= 1 while SPACES__.include?(self[z]) and a <= z
+    self[a..z]
   end
 
   def strip!
-    a = self.lstrip
-    b = a.rstrip
-    self.replace(b)
+    self.replace(self.strip)
   end
 
   def %(args)
@@ -198,11 +186,6 @@ class String
       return nil
     end
     rval
-  end
-
-  #private
-  def isspace(num)
-    num == ?\s or num == ?\n or num == ?\t or num == ?\r or num == ?\f or num == ?\v
   end
 end
 
