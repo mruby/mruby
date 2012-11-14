@@ -161,6 +161,33 @@ if Object.const_defined?(:IO)
     line1 == "a\n" and line1 == line1_ and line2 == "b\n" and line3 == nil
   end
 
+  assert('IO#gets with nil') do
+    io = File.open("$W_FILENAME", "w")
+    io.write("a\nb\n")
+    io.close
+    io = File.open("$W_FILENAME", "r")
+    body = io.gets(nil)
+    io.close
+    $/ = nil
+    io = File.open("$W_FILENAME", "r")
+    body2 = io.gets
+    io.close
+
+    body == "a\nb\n" and body == body2 and $/ == nil
+  end
+
+  assert('IO#gets with empty string (paragrah mode)') do
+    io = File.open("$W_FILENAME", "w")
+    io.write("a\nb\n\nc\n")
+    io.close
+    io = File.open("$W_FILENAME", "r")
+    para1 = io.gets("")
+    para2 = io.gets("")
+    io.close
+
+    para1 == "a\nb\n\n" and para2 == "c\n"
+  end
+
   assert('IO#getc') do
     chars = "a\nb\n"
 
