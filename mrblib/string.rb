@@ -147,24 +147,24 @@ class String
 
   def lstrip
     a = 0
-    z = self.size
+    z = self.size - 1
     a += 1 while SPACES__.include?(self[a]) and a <= z
-    self[a..z]
+    (z >= 0) ? self[a..z] : ""
   end
 
   def rstrip
     a = 0
-    z = self.size
+    z = self.size - 1
     z -= 1 while SPACES__.include?(self[z]) and a <= z
-    self[a..z]
+    (z >= 0) ? self[a..z] : ""
   end
 
   def strip
     a = 0
-    z = self.size
+    z = self.size - 1
     a += 1 while SPACES__.include?(self[a]) and a <= z
     z -= 1 while SPACES__.include?(self[z]) and a <= z
-    self[a..z]
+    (z >= 0) ? self[a..z] : ""
   end
 
   def strip!

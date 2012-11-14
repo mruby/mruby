@@ -436,25 +436,40 @@ assert('Check the usage of a NUL character') do
   "qqq\0ppp"
 end
 
-assert('String strip methods test') do
-  ls = " strip"
-  rs = "strip "
-  bs = " strip "
-  bangs = " strip "
-  tab = "\tstrip\t"
-  cr = "\rstrip\r"
-  lf = "\nstrip\n"
-  res = "strip"
+assert('String#strip') do
+  s = "  abc  " 
+  s.strip
+  "".strip == "" and " \t\r\n\f\v".strip == "" and "abc".strip == "abc" and
+  "  abc".strip   == "abc" and
+  "abc  ".strip   == "abc" and
+  "  abc  ".strip == "abc" and
+  s == "  abc  "
+end
 
-  bangs.strip!
+assert('String#lstrip') do
+  s = "  abc  " 
+  s.rstrip
+  "".lstrip == "" and " \t\r\n\f\v".lstrip == "" and "abc".lstrip == "abc" and
+  "  abc".lstrip   == "abc"   and
+  "abc  ".lstrip   == "abc  " and
+  "  abc  ".lstrip == "abc  " and
+  s == "  abc  "
+end
 
-  ls.lstrip == res and
-  rs.rstrip == res and
-  bs.strip == res and
-  tab.strip ==  res and
-  cr.strip ==  res and
-  lf.strip ==  res and
-  bangs == res
+assert('String#rstrip') do
+  s = "  abc  " 
+  s.rstrip
+  "".rstrip == "" and " \t\r\n\f\v".rstrip == "" and "abc".rstrip == "abc" and
+  "  abc".rstrip   == "  abc" and
+  "abc  ".rstrip   == "abc"   and
+  "  abc  ".rstrip == "  abc" and
+  s == "  abc  "
+end
+
+assert('String#strip!') do
+  s = "  abc  "
+  s.strip!
+  s == "abc"
 end
 
 assert('String#bytes') do
