@@ -1050,7 +1050,7 @@ retry:
 static void
 prepare_getline_args(mrb_state *mrb, int argc, mrb_value *argv, mrb_value *rsp, long *limit, mrb_value io)
 {
-  mrb_value rs = mrb_str_new_cstr(mrb, "\n");
+  mrb_value rs = mrb_gv_get(mrb, mrb_intern(mrb, "$/"));
   mrb_value lim = mrb_nil_value();
 
   if (argc == 1) {
@@ -1889,5 +1889,7 @@ mrb_init_io(mrb_state *mrb)
 
   /* TODO: ADD Kernel Module */
   /* mrb_define_method(mrb, mrb->kernel_module, "open", mrb_io_f_open, ARGS_ANY()); */
+
+  mrb_gv_set(mrb, mrb_intern(mrb, "$/"), mrb_str_new_cstr(mrb, "\n"));
 }
 #endif /* ENABLE_IO */
