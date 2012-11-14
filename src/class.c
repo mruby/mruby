@@ -74,6 +74,7 @@ make_metaclass(mrb_state *mrb, struct RClass *c)
   }
   sc = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_SCLASS, mrb->class_class);
   sc->mt = 0;
+  sc->iv = 0;
   if (!c->super) {
     sc->super = mrb->class_class;
   }
@@ -763,9 +764,7 @@ mrb_singleton_class_ptr(mrb_state *mrb, struct RClass *c)
 {
   struct RClass *sc;
 
-  if (c->tt == MRB_TT_SCLASS) {
-    return c;
-  }
+  if (o->c->tt == MRB_TT_SCLASS) return;
   sc = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_SCLASS, mrb->class_class);
   sc->mt = 0;
   sc->super = c;
