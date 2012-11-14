@@ -1223,6 +1223,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
     switch (mrb_type(v)) {
       case MRB_TT_CLASS:
       case MRB_TT_MODULE:
+      case MRB_TT_SCLASS:
         mrb_str_append(mrb, s, mrb_inspect(mrb, v));
         break;
       default:
