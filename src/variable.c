@@ -71,13 +71,13 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 	t->size++;
 	return;
       }
-      if (key == 0 && !matched_seg) {
+      if (!matched_seg && key == 0) {
 	matched_seg = seg;
 	matched_idx = i;
       }
       else if (key == sym) {
-        seg->val[i] = val;
-        return;
+	seg->val[i] = val;
+	return;
       }
     }
     prev = seg;
@@ -223,10 +223,10 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
       mrb_sym key = seg->key[i];
       mrb_value val = seg->val[i];
 
-      iv_put(mrb, t2, key, val);
       if ((seg->next == NULL) && (i >= t->last_len)) {
         return t2;
       }
+      iv_put(mrb, t2, key, val);
     }
     seg = seg->next;
   }
