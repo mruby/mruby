@@ -90,6 +90,7 @@ static mrb_value
 mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 {
   static const char nul10[] = "\0\0\0\0\0\0\0\0\0\0";
+  static const char spc10[] = "          ";
   const char *p, *pend;
   char ch, type;
   mrb_value result, from, fmt;
@@ -178,8 +179,9 @@ modifiers:
         }
         break;
 
-      case 'H':		/* hex string (high nibble first) */
-        from = NEXTFROM;
+      case 'A': case 'a':
+      case 'H':
+	from = NEXTFROM;
         if (mrb_nil_p(from)) {
           ptr = "";
           plen = 0;
@@ -191,8 +193,25 @@ modifiers:
 
         if (p[-1] == '*')
           len = plen;
-        {
-          int byte = 0;
+
+	switch (type) {
+	case 'a':	/* arbitrary binary string (null padded) */
+	case 'A':	/* arbitrary binary string (ASCII space padded) */
+	  if (plen >= len) {
+	    mrb_str_buf_cat(mrb, result, ptr, len);
+	  } else {
+	    mrb_str_buf_cat(mrb, result, ptr, plen);
+	    len -= plen;
+	    while (len >= 10) {
+	      mrb_str_buf_cat(mrb, result, (type == 'A')?spc10:nul10, 10);
+	      len -= 10;
+	    }
+	    mrb_str_buf_cat(mrb, result, (type == 'A')? spc10:nul10, len);
+	  }
+	  break;
+
+	case 'H': {	/* hex string (high nibble first) */
+	  int byte = 0;
           long i, j = 0;
 
           if (len > plen) {
@@ -218,8 +237,10 @@ modifiers:
           }
           len = j;
           goto grow;
-        }
-        break;
+	}
+	break;
+      }
+      break;
 
       case 'm':		/* base64 encoded string */
         from = NEXTFROM;
@@ -373,6 +394,27 @@ modifiers:
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "%% is not supported");
         break;
 
+      case 'A':
+	if (len > send - s) len = send - s;
+	{
+	  long end = len;
+	  char *t = s + len - 1;
+
+	  while (t >= s) {
+	    if (*t != ' ' && *t != '\0') break;
+	    t--; len--;
+	  }
+	  UNPACK_PUSH(mrb_str_new(mrb, RSTRING_PTR(str), len));
+	  s += end;
+	}
+	break;
+
+      case 'a':
+	if (len > send - s) len = send - s;
+	UNPACK_PUSH(mrb_str_new(mrb, RSTRING_PTR(str), len));
+	s += len;
+	break;
+      
       case 'C':
         {
           unsigned char u8;

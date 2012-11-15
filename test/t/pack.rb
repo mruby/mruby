@@ -62,4 +62,30 @@ if Array.new.methods.include?(:pack) and String.new.methods.include?(:unpack)
    str = "\x00\x01\x7F\x80\xFF"
    ary.pack("C*") == str and str.unpack("C*") == ary
   end
+
+  # pack "a"
+  assert('["abc"].pack("a")') do
+    ["abc"].pack("a") == "a" and
+    ["abc"].pack("a*") == "abc" and
+    ["abc"].pack("a4") == "abc\0"
+  end
+
+  # upack "a"
+  assert('["abc"].pack("a")') do
+    "abc\0".unpack("a4") == ["abc\0"] and
+    "abc ".unpack("a4") == ["abc "]
+  end
+
+  # pack "A"
+  assert('["abc"].pack("A")') do
+    ["abc"].pack("A") == "a" and
+    ["abc"].pack("A*") == "abc" and
+    ["abc"].pack("A4") == "abc "
+  end
+
+  # upack "A"
+  assert('["abc"].pack("A")') do
+    "abc\0".unpack("A4") == ["abc"] and
+    "abc ".unpack("A4") == ["abc"]
+  end
 end
