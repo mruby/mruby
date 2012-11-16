@@ -1,3 +1,5 @@
 # no installation...
 
-script: "make all test"
+script:
+ - "make all test"
+ - "make clean all test CFLAGS=\"-DMRB_INT64 -O3\""
