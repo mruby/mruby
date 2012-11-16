@@ -523,7 +523,8 @@ static mrb_value
 flo_round(mrb_state *mrb, mrb_value num)
 {
   double number, f;
-  int ndigits = 0, i;
+  mrb_int ndigits = 0;
+  int i;
 
   mrb_get_args(mrb, "|i", &ndigits);
   number = mrb_float(num);
