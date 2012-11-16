@@ -13,6 +13,9 @@
 /* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
 //#define MRB_USE_FLOAT
 
+/* add -DMRB_INT64 to use 64bit integer for mrb_int */
+//#define MRB_INT64
+
 /* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT */
 //#define MRB_NAN_BOXING
 
@@ -54,27 +57,39 @@
 /* end of configuration */
 
 #ifdef MRB_USE_FLOAT
-typedef float mrb_float;
-#define mrb_float_to_str(buf, i) sprintf((buf), "%.7e", (i))
-#define str_to_mrb_float(buf) (mrb_float)strtof((buf),NULL)
+  typedef float mrb_float;
+# define mrb_float_to_str(buf, i) sprintf((buf), "%.7e", (i))
+# define str_to_mrb_float(buf) (mrb_float)strtof((buf),NULL)
 #else
-typedef double mrb_float;
-#define mrb_float_to_str(buf, i) sprintf((buf), "%.16e", (i))
-#define str_to_mrb_float(buf) (mrb_float)strtod((buf),NULL)
+  typedef double mrb_float;
+# define mrb_float_to_str(buf, i) sprintf((buf), "%.16e", (i))
+# define str_to_mrb_float(buf) (mrb_float)strtod((buf),NULL)
 #endif
 
 #ifdef MRB_NAN_BOXING
-typedef int32_t mrb_int;
-#define MRB_INT_MIN INT32_MIN
-#define MRB_INT_MAX INT32_MAX
-#define mrb_int_to_str(buf, i) sprintf((buf), "%d", (i))
-#define str_to_mrb_int(buf) (mrb_int)strtol((buf), NULL, 10);
+# ifdef MRB_INT64
+#  error Cannot use NaN boxing when mrb_int is 64bit
+# else
+   typedef int32_t mrb_int;
+#  define MRB_INT_MIN INT32_MIN
+#  define MRB_INT_MAX INT32_MAX
+#  define mrb_int_to_str(buf, i) sprintf((buf), "%d", (i))
+#  define str_to_mrb_int(buf) (mrb_int)strtol((buf), NULL, 10)
+# endif
 #else
-typedef int mrb_int;
-#define MRB_INT_MIN INT_MIN
-#define MRB_INT_MAX INT_MAX
-#define mrb_int_to_str(buf, i) sprintf((buf), "%d", (i))
-#define str_to_mrb_int(buf) (mrb_int)strtol((buf), NULL, 10);
+# ifdef MRB_INT64
+   typedef int64_t mrb_int;
+#  define MRB_INT_MIN INT64_MIN
+#  define MRB_INT_MAX INT64_MAX
+#  define mrb_int_to_str(buf, i) sprintf((buf), "%ld", (i))
+#  define str_to_mrb_int(buf) (mrb_int)strtoll((buf), NULL, 10)
+# else
+   typedef int mrb_int;
+#  define MRB_INT_MIN INT_MIN
+#  define MRB_INT_MAX INT_MAX
+#  define mrb_int_to_str(buf, i) sprintf((buf), "%d", (i))
+#  define str_to_mrb_int(buf) (mrb_int)strtol((buf), NULL, 10)
+# endif
 #endif
 typedef short mrb_sym;
 
