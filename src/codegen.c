@@ -925,6 +925,73 @@ raise_error(codegen_scope *s, const char *msg)
   genop(s, MKOP_ABx(OP_ERR, 1, idx));
 }
 
+static int
+readint(codegen_scope *s, const char *p, int base, mrb_int *i, mrb_float *f)
+{
+  const char *e = p + strlen(p);
+  int n;
+  int is_float = 0;
+  *i = *f = 0;
+
+  if (*p == '+') p++;
+  while (p < e) {
+    char c = *p;
+    c = tolower((unsigned char)c);
+    for (n=0; n<base; n++) {
+      if (mrb_digitmap[n] == c) {
+        if(!is_float && *i >= MRB_INT_MAX / base && n > MRB_INT_MAX % base) {
+          is_float = 1;
+        }
+        *i *= base;
+        *i += n;
+        *f *= base;
+        *f += n;
+        break;
+      }
+    }
+    if (n == base) {
+      codegen_error(s, "malformed readint input");
+    }
+    p++;
+  }
+  return is_float;
+}
+
+static int
+readnegateint(codegen_scope *s, const char *p, int base, mrb_int *i, mrb_float *f)
+{
+  const char *e = p + strlen(p);
+  int n;
+  int is_float = 0;
+  *i = *f = 0;
+
+  while (p < e) {
+    char c = *p;
+    c = tolower((unsigned char)c);
+    for (n=0; n<base; n++) {
+      if (mrb_digitmap[n] == c) {
+        if(!is_float &&
+          (
+            (*i >= MRB_INT_MAX / base && n > MRB_INT_MAX % base) || 
+            (*i <= MRB_INT_MIN / base && n > -1 * (MRB_INT_MIN % base))
+          )) {
+          is_float = 1;
+        }
+        *i *= base;
+        *i -= n;
+        *f *= base;
+        *f -= n;
+        break;
+      }
+    }
+    if (n == base) {
+      codegen_error(s, "malformed readint input");
+    }
+    p++;
+  }
+  return is_float;
+}
+
 static double
 readint_float(codegen_scope *s, const char *p, int base)
 {
@@ -1714,18 +1781,18 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       char *p = (char*)tree->car;
       int base = (intptr_t)tree->cdr->car;
-      double f;
+      mrb_float f;
       mrb_int i;
       mrb_code co;
 
-      f = readint_float(s, p, base);
-      if (!FIXABLE(f)) {
+      int is_float = readint(s, p, base, &i, &f);
+
+      if (is_float) {
 	int off = new_lit(s, mrb_float_value(f));
 
 	genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
       }
       else {
-	i = (mrb_int)f;
 	if (i < MAXARG_sBx && i > -MAXARG_sBx) {
 	  co = MKOP_AsBx(OP_LOADI, cursp(), i);
 	}
@@ -1770,27 +1837,26 @@ codegen(codegen_scope *s, node *tree, int val)
         {
           char *p = (char*)tree->car;
           int base = (intptr_t)tree->cdr->car;
-	  mrb_float f;
+          mrb_float f;
           mrb_int i;
           mrb_code co;
 
-	  f = readint_float(s, p, base);
-	  if (!FIXABLE(f)) {
-	    int off = new_lit(s, mrb_float_value(-f));
-	    
-	    genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
-	  }
-	  else {
-	    i = (mrb_int)-f;
-	    if (i < MAXARG_sBx && i > -MAXARG_sBx) {
-	      co = MKOP_AsBx(OP_LOADI, cursp(), i);
-	    }
-	    else {
-	      int off = new_lit(s, mrb_fixnum_value(i));
-	      co = MKOP_ABx(OP_LOADL, cursp(), off);
-	    }
-	    genop(s, co);
-	  }
+          int is_float = readnegateint(s, p, base, &i, &f);
+
+          if (is_float) {
+            int off = new_lit(s, mrb_float_value(f));
+            genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
+          }
+          else {
+            if (i < MAXARG_sBx && i > -MAXARG_sBx) {
+              co = MKOP_AsBx(OP_LOADI, cursp(), i);
+            }
+            else {
+              int off = new_lit(s, mrb_fixnum_value(i));
+              co = MKOP_ABx(OP_LOADL, cursp(), off);
+            }
+            genop(s, co);
+          }
           push();
         }
         break;
