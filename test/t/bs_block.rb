@@ -388,3 +388,17 @@ assert('BS Block [ruby-core:14395]') do
   t = Controller.new
   t.test_for_bug
 end
+
+assert("BS Block 32") do
+  module TestReturnFromNestedBlock
+    def self.test
+      1.times do
+        1.times do
+          return :ok
+        end
+      end
+      :bad
+    end
+  end
+  TestReturnFromNestedBlock.test == :ok
+end

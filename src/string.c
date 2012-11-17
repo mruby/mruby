@@ -2125,7 +2125,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   mrb_value spat = mrb_nil_value();
   enum {awk, string, regexp} split_type = string;
   long beg, end, i = 0;
-  int lim = -1;
+  mrb_int lim = -1;
   mrb_value result, tmp;
 
   argc = mrb_get_args(mrb, "|oi", &spat, &lim);

@@ -1749,7 +1749,7 @@ aref_args	: none
 		    }
 		| assocs trailer
 		    {
-		      $$ = new_hash(p, $1);
+		      $$ = cons(new_hash(p, $1), 0);
 		    }
 		;
 

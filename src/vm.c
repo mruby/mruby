@@ -151,6 +151,18 @@ uvset(mrb_state *mrb, int up, int idx, mrb_value v)
   mrb_write_barrier(mrb, (struct RBasic*)e);
 }
 
+struct REnv*
+top_env(struct RProc *proc)
+{
+  struct REnv *e = proc->env;
+
+  while (e->c) {
+    if (!e) return 0;
+    e = (struct REnv*)e->c;
+  }
+  return e;
+}
+
 static mrb_callinfo*
 cipush(mrb_state *mrb)
 {
@@ -1153,11 +1165,15 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           break;
         case OP_R_RETURN:
 	  if (!proc->env) goto NORMAL_RETURN;
-          if (proc->env->cioff < 0) {
-            localjump_error(mrb, "return");
-            goto L_RAISE;
-          }
-          ci = mrb->ci = mrb->cibase + proc->env->cioff;
+	  else {
+	    struct REnv *e = top_env(proc);
+
+	    if (e->cioff < 0) {
+	      localjump_error(mrb, "return");
+	      goto L_RAISE;
+	    }
+	    ci = mrb->ci = mrb->cibase + e->cioff;
+	  }
           break;
         default:
           /* cannot happen */

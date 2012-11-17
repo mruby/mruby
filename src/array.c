@@ -772,7 +772,7 @@ mrb_value
 mrb_ary_first(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  int size;
+  mrb_int size;
 
   if (mrb_get_args(mrb, "|i", &size) == 0) {
     return (a->len > 0)? a->ptr[0]: mrb_nil_value();

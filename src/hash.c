@@ -965,7 +965,7 @@ mrb_hash_to_hash(mrb_state *mrb, mrb_value hash)
  *
  */
 
-static mrb_value
+mrb_value
 mrb_hash_keys(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);

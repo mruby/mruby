@@ -287,7 +287,8 @@ mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
 
     clone->super = klass->super;
     if (klass->iv) {
-      clone->iv = klass->iv;
+      mrb_iv_copy(mrb, mrb_obj_value(clone), mrb_obj_value(klass));
+      mrb_obj_iv_set(mrb, (struct RObject*)clone, mrb_intern(mrb, "__attached__"), obj);
     }
     if (klass->mt) {
       clone->mt = kh_copy(mt, mrb, klass->mt);
@@ -307,6 +308,9 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
       case MRB_TT_OBJECT:
       case MRB_TT_CLASS:
       case MRB_TT_MODULE:
+      case MRB_TT_SCLASS:
+      case MRB_TT_HASH:
+      case MRB_TT_DATA:
 	mrb_iv_copy(mrb, dest, obj);
         break;
 
