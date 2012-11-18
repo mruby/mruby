@@ -948,7 +948,7 @@ fix_xor(mrb_state *mrb, mrb_value x)
 }
 
 static mrb_value
-lshift(mrb_state *mrb, mrb_int val, unsigned long width)
+lshift(mrb_state *mrb, mrb_int val, int width)
 {
   if (width > (sizeof(mrb_int)*CHAR_BIT-1)) {
       mrb_raisef(mrb, E_RANGE_ERROR, "width(%d) > (%d:sizeof(mrb_int)*CHAR_BIT-1)", width,
@@ -959,7 +959,7 @@ lshift(mrb_state *mrb, mrb_int val, unsigned long width)
 }
 
 static mrb_value
-rshift(mrb_int val, unsigned long i)
+rshift(mrb_int val, int i)
 {
     if (i >= sizeof(mrb_int)*CHAR_BIT-1) {
         if (val < 0) return mrb_fixnum_value(-1);
@@ -988,7 +988,7 @@ fix_lshift(mrb_state *mrb, mrb_value x)
   y = bit_coerce(mrb, y);
   width = mrb_fixnum(y);
   if (width < 0)
-      return rshift(val, (unsigned long)-width);
+      return rshift(val, -width);
   return lshift(mrb, val, width);
 }
 
@@ -1012,7 +1012,7 @@ fix_rshift(mrb_state *mrb, mrb_value x)
   i = mrb_fixnum(y);
     if (i == 0) return x;
     if (i < 0)
-        return lshift(mrb, val, (unsigned long)-i);
+        return lshift(mrb, val, -i);
     return rshift(val, i);
 }
 
