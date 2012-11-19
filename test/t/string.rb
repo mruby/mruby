@@ -343,13 +343,51 @@ assert('String#slice', '15.2.10.5.34') do
     a3 == 'bc' and b3 == nil
 end
 
-# TODO Broken ATM
+if Object.const_defined?(:Regexp)
 assert('String#split', '15.2.10.5.35') do
-  # without RegExp behavior is actually unspecified
-  'abc abc abc'.split == ['abc', 'abc', 'abc'] and
-    'a,b,c,,d'.split(',') == ["a", "b", "c", "", "d"] and
-    'abc abc abc'.split(nil) == ['abc', 'abc', 'abc'] and
-    'abc'.split("") == ['a', 'b', 'c']
+  ''.split(//)               == []                          and
+  ''.split(/x/)              == []                          and
+  'abc'.split(//)            == ['a', 'b', 'c']             and
+  'abc'.split(/,/)           == ['abc']                     and
+  'a1b23c45'.split(/\d/)     == ['a', 'b', '', 'c']         and
+  'a1b23c45'.split(/\d/, 0)  == ['a', 'b', '', 'c']         and
+  'a1b23c45'.split(/\d/, 1)  == ['a1b23c45']                and
+  'a1b23c45'.split(/\d/, 4)  == ['a', 'b', '', 'c45']       and
+  'a1b23c45'.split(/\d/, -4) == ['a', 'b', '', 'c', '', ''] and
+  'abc'.split(//, 2)         == ['a', 'bc']                 and
+  'a bc'.split(/\s*/)        == ['a', 'b', 'c']             and
+  ' abc  abc abc'.split(/ /) == ['', 'abc', '', 'abc', 'abc'] and
+  '1, 2.34,56, 7'.split(/,\s*/) == ['1', '2.34', '56', '7']
+end
+end
+
+assert('String#split with non-Regexp separator') do
+  r = false
+  oldsep = $;
+  begin
+    $; = ','
+    r = (
+      ''.split(',', 1)          == []                    and  # not ['']
+      'abc'.split(',', 1)       == ['abc']               and
+      'abc'.split('')           == ['a', 'b', 'c']       and
+      'a,b,,c,,'.split(',')     == ['a', 'b', '', 'c']   and
+      'a,b,,c,,'.split          == ['a', 'b', '', 'c']   and
+      'a,b,,c,,'.split(',', 0)  == ['a', 'b', '', 'c']   and
+      'a,b,,c,,'.split(',', 1)  == ['a,b,,c,,']          and
+      'a,b,,c,,'.split(',', 4)  == ['a', 'b', '', 'c,,'] and
+      'a,b,,c,,'.split(',', -4) == ['a', 'b', '', 'c', '', ''] and
+      '      abc'.split(' ')    == ['abc']               and
+      'abc      '.split(' ')    == ['abc']               and
+      ' a  bc d '.split(' ')    == ['a', 'bc', 'd']      and
+      ' a  bc d '.split(' ')    == ['a', 'bc', 'd']      and
+      ' a  bc d '.split(nil)    == ['a', 'bc', 'd']      and
+      ' a  bc d '.split(' ', 1) == [' a  bc d ']         and
+      ' a  bc d '.split(' ', 2) == ['a', 'bc d ']
+    )
+  ensure
+    $; = oldsep
+  end
+  r
 end
 
 if Object.const_defined?(:Regexp)

@@ -6,25 +6,26 @@
 
 #include "mruby.h"
 
-#include <stdarg.h>
-#include <string.h>
-#include "mruby/string.h"
 #include <ctype.h>
 #include <limits.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+#include "mruby/string.h"
 #include "mruby/range.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
-#include <stdio.h>
+#include "mruby/variable.h"
 #ifdef ENABLE_REGEXP
 #include "re.h"
 #include "regex.h"
-#endif //ENABLE_REGEXP
+#endif
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 #ifdef ENABLE_REGEXP
 static mrb_value get_pat(mrb_state *mrb, mrb_value pat, mrb_int quote);
-#endif //ENABLE_REGEXP
+#endif
 static mrb_value str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2);
 #ifndef ENABLE_REGEXP
 static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len);
@@ -2137,7 +2138,7 @@ static const char isspacetable[256] = {
  *  <code>$;</code> is <code>nil</code> (which is the default), <i>str</i> is
  *  split on whitespace as if ` ' were specified.
  *
- *  If the <i>limit</i> parameter is omitted, trailing null fields are
+ *  If the <i>limit</i> parameter is omitted or zero, trailing null fields are
  *  suppressed. If <i>limit</i> is a positive number, at most that number of
  *  fields will be returned (if <i>limit</i> is <code>1</code>, the entire
  *  string is returned as the only entry in an array). If negative, there is no
@@ -2162,42 +2163,34 @@ static mrb_value
 mrb_str_split_m(mrb_state *mrb, mrb_value str)
 {
   int argc;
-  mrb_value spat = mrb_nil_value();
+  mrb_value spat;
   enum {awk, string, regexp} split_type = string;
   long beg, end, i = 0;
-  mrb_int lim = -1;
+  mrb_int lim = 0;
   mrb_value result, tmp;
 
+  if (RSTRING_LEN(str) == 0)
+    return mrb_ary_new_capa(mrb, 0);
+
   argc = mrb_get_args(mrb, "|oi", &spat, &lim);
-  if (argc == 2) {
+  if (argc == 0) {
+    spat = mrb_gv_get(mrb, mrb_intern(mrb, "$;"));
+  } else if (argc == 2) {
     if (lim == 1) {
-      if (RSTRING_LEN(str) == 0)
-        return mrb_ary_new_capa(mrb, 0);
       return mrb_ary_new_from_values(mrb, 1, &str);
     }
     i = 1;
   }
 
-  if (argc == 0 || mrb_nil_p(spat)) {
+  if (mrb_nil_p(spat)) {
     split_type = awk;
   }
   else {
     if (mrb_string_p(spat)) {
       split_type = string;
-#ifdef ENABLE_REGEXP
-      if (RSTRING_LEN(spat) == 0) {
-        /* Special case - split into chars */
-        spat = mrb_reg_regcomp(mrb, spat);
-        split_type = regexp;
+      if (RSTRING_LEN(spat) == 1 && RSTRING_PTR(spat)[0] == ' ') {
+        split_type = awk;
       }
-      else {
-#endif //ENABLE_REGEXP
-        if (RSTRING_LEN(spat) == 1 && RSTRING_PTR(spat)[0] == ' '){
-            split_type = awk;
-        }
-#ifdef ENABLE_REGEXP
-      }
-#endif //ENABLE_REGEXP
     }
     else {
 #ifdef ENABLE_REGEXP
@@ -2205,73 +2198,72 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       split_type = regexp;
 #else
       mrb_raise(mrb, E_TYPE_ERROR, "Regexp Class not supported");
-#endif //ENABLE_REGEXP
+#endif
     }
   }
 
   result = mrb_ary_new(mrb);
   beg = 0;
   if (split_type == awk) {
-    char *ptr = RSTRING_PTR(str);
-    char *eptr = RSTRING_END(str);
-    char *bptr = ptr;
+    long len = RSTRING_LEN(str);
+    long n = 0;
+    int spc;
     int skip = 1;
-    unsigned int c;
-
-    end = beg;
     int ai = mrb_gc_arena_save(mrb);
-    while (ptr < eptr) {
-      mrb_gc_arena_restore(mrb, ai);
-      c = (unsigned char)*ptr++;
+    end = beg;
+    while (n < len) {
+      spc = ascii_isspace(RSTRING_PTR(str)[n++]);
       if (skip) {
-	if (ascii_isspace(c)) {
-	  beg = ptr - bptr;
-	}
-	else {
-	  end = ptr - bptr;
-	  skip = 0;
-	  if (lim >= 0 && lim <= i) break;
-	}
-      }
-      else if (ascii_isspace(c)) {
-	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
-	skip = 1;
-	beg = ptr - bptr;
-	if (lim >= 0) ++i;
+        if (spc) {
+          beg = n;
+        }
+        else {
+          end = n;
+          skip = 0;
+          if (lim > 0 && lim <= i) break;
+        }
       }
       else {
-	end = ptr - bptr;
+        if (spc) {
+          mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
+          mrb_gc_arena_restore(mrb, ai);
+          skip = 1;
+          beg = n;
+          i++;
+        }
+        else {
+          end = n;
+        }
       }
     }
   }
   else if (split_type == string) {
-    char *ptr = RSTRING_PTR(str);
-    char *temp = ptr;
-    char *eptr = RSTRING_END(str);
+    long len = RSTRING_LEN(str);
     long slen = RSTRING_LEN(spat);
+    long n = 0;
 
     if (slen == 0) {
       int ai = mrb_gc_arena_save(mrb);
-      while (ptr < eptr) {
+      while (n < len) {
+	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, n, 1));
         mrb_gc_arena_restore(mrb, ai);
-	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr-temp, 1));
-	ptr++;
-	if (lim >= 0 && lim <= ++i) break;
+        n += 1;
+	if (lim > 0 && lim <= ++i) break;
       }
     }
     else {
       char *sptr = RSTRING_PTR(spat);
-
       int ai = mrb_gc_arena_save(mrb);
-      while (ptr < eptr &&
-	     (end = mrb_memsearch(sptr, slen, ptr, eptr - ptr)) >= 0) {
+      while (n < len) {
+        end = mrb_memsearch(sptr, slen, RSTRING_PTR(str) + n, len - n);
+        if (end < 0) break;
+        mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, n, end));
         mrb_gc_arena_restore(mrb, ai);
-	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr - temp, end));
-	ptr += end + slen;
-	if (lim >= 0 && lim <= ++i) break;
+	n += end + slen;
+	if (lim > 0 && lim <= ++i) break;
       }
     }
-    beg = ptr - temp;
+    beg = n;
   }
   else {
 #ifdef ENABLE_REGEXP
@@ -2287,13 +2279,10 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       mrb_gc_arena_restore(mrb, ai);
       regs = RMATCH_REGS(mrb_backref_get(mrb));
       if (start == end && BEG(0) == END(0)) {
-        if (!ptr) {
-          mrb_ary_push(mrb, result, mrb_str_new_empty(mrb, str));
-          break;
-        }
-        else if (last_null == 1) {
+        if (last_null == 1) {
           long enc_len = ONIGENC_MBC_ENC_LEN(ONIG_ENCODING_ASCII, (UChar *)ptr+beg, (UChar *)ptr+len);
           mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, enc_len));
+          ptr = RSTRING_PTR(str);
           beg = start;
         }
         else {
@@ -2321,20 +2310,18 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
             tmp = mrb_str_subseq(mrb, str, BEG(idx), END(idx)-BEG(idx));
         mrb_ary_push(mrb, result, tmp);
       }
-      if (lim >= 0 && lim <= ++i) break;
+      if (lim > 0 && lim <= ++i) break;
     }
-#else
-    mrb_raise(mrb, E_TYPE_ERROR, "Regexp Class not supported");
 #endif //ENABLE_REGEXP
   }
-  if (RSTRING_LEN(str) > 0 && (lim >= 0 || RSTRING_LEN(str) > beg || lim < 0)) {
-    if (RSTRING_LEN(str) == beg)
-        tmp = mrb_str_new_empty(mrb, str);
-    else
-        tmp = mrb_str_subseq(mrb, str, beg, RSTRING_LEN(str)-beg);
-    mrb_ary_push(mrb, result, tmp);
-  }
-  if (lim < 0) {
+
+  if (RSTRING_LEN(str) == beg)
+    tmp = mrb_str_new_empty(mrb, str);
+  else
+    tmp = mrb_str_subseq(mrb, str, beg, RSTRING_LEN(str)-beg);
+  mrb_ary_push(mrb, result, tmp);
+
+  if (lim == 0) {
     long len;
     while ((len = RARRAY_LEN(result)) > 0 &&
            (tmp = RARRAY_PTR(result)[len-1], RSTRING_LEN(tmp) == 0))
@@ -3182,4 +3169,6 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "upcase!",         mrb_str_upcase_bang,     ARGS_REQ(1));              /* 15.2.10.5.43 */
   mrb_define_method(mrb, s, "inspect",         mrb_str_inspect,         ARGS_NONE());              /* 15.2.10.5.46(x) */
   mrb_define_method(mrb, s, "bytes",           mrb_str_bytes,           ARGS_NONE());
+
+  mrb_gv_set(mrb, mrb_intern(mrb, "$;"), mrb_nil_value());
 }
