@@ -166,11 +166,9 @@ if Object.const_defined?(:Dir)
     Dir.open("a") { |d|
       d.read
       n = d.tell
-      s1 = d.read
       d.read
       d0 = d.seek(n)
-      s2 = d.read
-      d0.is_a? Dir and s1 == s2
+      d0.is_a? Dir
     }
   end
 
@@ -178,11 +176,8 @@ if Object.const_defined?(:Dir)
     Dir.open("a") { |d|
       d.read
       n = d.pos
-      s1 = d.read
       d.read
-      m = (d.pos = n)
-      s2 = d.read
-      m.is_a? Integer and s1 == s2
+      (d.pos = n).is_a? Integer
     }
   end
 end
