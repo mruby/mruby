@@ -151,15 +151,14 @@ if Object.const_defined?(:Dir)
   assert('Dir#tell') do
     Dir.open("a") { |d|
       d.read
-      n = d.tell
-      n.is_a? Integer
+      d.tell.is_a? Integer
     }
   end
 
   assert('Dir#pos') do
     Dir.open("a") { |d|
       d.read
-      d.tell == d.pos
+      d.pos.is_a? Integer
     }
   end
 
@@ -167,9 +166,11 @@ if Object.const_defined?(:Dir)
     Dir.open("a") { |d|
       d.read
       n = d.tell
+      s1 = d.read
       d.read
       d0 = d.seek(n)
-      d0.is_a? Dir
+      s2 = d.read
+      d0.is_a? Dir and s1 == s2
     }
   end
 
@@ -177,8 +178,11 @@ if Object.const_defined?(:Dir)
     Dir.open("a") { |d|
       d.read
       n = d.pos
+      s1 = d.read
       d.read
-      (d.pos = n).is_a? Integer
+      m = (d.pos = n)
+      s2 = d.read
+      m.is_a? Integer and s1 == s2
     }
   end
 end
