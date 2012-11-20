@@ -38,11 +38,11 @@ if Object.const_defined?(:Dir)
   end
 
   assert('Dir.getwd') do
-    File.realpath(Dir.getwd) == File.realpath(ENV['PWD'])
+    File.realpath(Dir.getwd) == File.realpath(tmpdir)
   end
 
   assert('Dir.pwd') do
-    File.realpath(Dir.pwd) == File.realpath(ENV['PWD'])
+    File.realpath(Dir.pwd) == File.realpath(tmpdir)
   end
 
   assert('Dir.mkdir') do
