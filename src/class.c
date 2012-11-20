@@ -1400,6 +1400,7 @@ mrb_init_class(mrb_state *mrb)
   make_metaclass(mrb, cls);
 
   /* name basic classes */
+  mrb_define_const(mrb, bob, "BasicObject", mrb_obj_value(bob));
   mrb_define_const(mrb, obj, "BasicObject", mrb_obj_value(bob));
   mrb_define_const(mrb, obj, "Object", mrb_obj_value(obj));
   mrb_define_const(mrb, obj, "Module", mrb_obj_value(mod));
