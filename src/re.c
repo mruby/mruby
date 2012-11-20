@@ -505,7 +505,7 @@ mrb_reg_search(mrb_state *mrb, mrb_value re, mrb_value str, mrb_int pos, mrb_int
     onig_region_free(regs, 0);
   }
 
-  RMATCH(match)->str = RSTRING(mrb_str_new2(mrb, RSTRING(str)->ptr));
+  RMATCH(match)->str = RSTRING(mrb_str_dup(mrb, str));
   RMATCH(match)->regexp = mrb_regex_ptr(re);
   RMATCH(match)->rmatch->char_offset_updated = 0;
   mrb_backref_set(mrb, match);
