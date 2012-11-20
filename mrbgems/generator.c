@@ -41,9 +41,8 @@ directory_exists(char path[4096]) {
  *     String at the start of the template
  *   end:
  *     String at the end of the template
- *   skip_if_src_not_exist:
- *     TRUE => skip template for GEMs with SRC directory
- *     FALSE => template for all GEMs
+ *   dir_to_skip:
+ *     Name of a directory which will be skipped
  *
  */
 static char*
@@ -166,12 +165,10 @@ make_gem_makefile()
 
     printf("\n");
 
-    /* Rule for building all C extensions of each Gem */
-    if (!gem_c_empty) {
-      printf("all_gems :\n%s\n", 
-             for_each_gem("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "", "")
-            );
-    }
+    /* Rule to make every GEM */
+    printf("all_gems :\n%s\n", 
+            for_each_gem("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "", "")
+          );
 
     /* Rule for building all Ruby Extension of each Gem */
     if (!gem_ruby_empty) {
