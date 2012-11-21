@@ -151,14 +151,27 @@ uvset(mrb_state *mrb, int up, int idx, mrb_value v)
   mrb_write_barrier(mrb, (struct RBasic*)e);
 }
 
+static inline int
+is_strict(mrb_state *mrb, struct REnv *e)
+{
+  int cioff = e->cioff;
+
+  if (cioff >= 0 && mrb->cibase[cioff].proc &&
+      MRB_PROC_STRICT_P(mrb->cibase[cioff].proc)) {
+    return 1;
+  }
+  return 0;
+}
+
 struct REnv*
-top_env(struct RProc *proc)
+top_env(mrb_state *mrb, struct RProc *proc)
 {
   struct REnv *e = proc->env;
 
+  if (is_strict(mrb, e)) return e;
   while (e->c) {
-    if (!e) return 0;
     e = (struct REnv*)e->c;
+    if (is_strict(mrb, e)) return e;
   }
   return e;
 }
@@ -1165,8 +1178,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           break;
         case OP_R_RETURN:
 	  if (!proc->env) goto NORMAL_RETURN;
+	  if (MRB_PROC_STRICT_P(proc)) goto NORMAL_RETURN;
 	  else {
-	    struct REnv *e = top_env(proc);
+	    struct REnv *e = top_env(mrb, proc);
 
 	    if (e->cioff < 0) {
 	      localjump_error(mrb, "return");
