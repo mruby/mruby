@@ -115,8 +115,6 @@ make_gem_makefile()
 {
   char *gem_check = { 0 };
   int gem_empty;
-  int gem_c_empty;
-  int gem_ruby_empty;
 
   printf("CFLAGS := -I. -I../../include -I../../src\n\n"
          "ifeq ($(OS),Windows_NT)\n"
@@ -132,36 +130,11 @@ make_gem_makefile()
   else
     gem_empty = FALSE;
 
-  /* is there a C extension available? */
-  gem_check = for_each_gem("", "", "", "", "src");
-  if (strcmp(gem_check, "") == 0)
-    gem_c_empty = TRUE;
-  else
-    gem_c_empty = FALSE;
-
-  /* is there a Ruby extension available */
-  gem_check = for_each_gem("", "", "", "", "mrblib");
-  if (strcmp(gem_check, "") == 0)
-    gem_ruby_empty = TRUE;
-  else
-    gem_ruby_empty = FALSE;
-
   printf(".PHONY : all\n");
-  if (gem_empty) {
+  if (gem_empty)
     printf("all :\n\n");
-  }
   else {
-    if (gem_c_empty) {
-      printf("all : mrblib_gem.o\n"
-             "\t$(AR) rs ../../lib/libmruby.a mrblib_gem.o\n");
-    }
-    else if (gem_ruby_empty) {
-      printf("all : all_gems\n");
-    }
-    else {
-      printf("all : all_gems mrblib_gem.o\n"
-             "\t$(AR) rs ../../lib/libmruby.a mrblib_gem.o\n");
-    }
+    printf("all : all_gems\n");
 
     printf("\n");
 
@@ -169,21 +142,6 @@ make_gem_makefile()
     printf("all_gems :\n%s\n", 
             for_each_gem("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "", "")
           );
-
-    /* Rule for building all Ruby Extension of each Gem */
-    if (!gem_ruby_empty) {
-      printf("mrblib_gem.o : mrblib_gem.c\n\n"
-
-             "mrblib_gem.c : mrblib_gem.ctmp\n"
-             "\tcat $< > $@\n\n"
-
-             "mrblib_gem.ctmp : mrblib_gem.rbtmp\n"
-             "\t../../bin/mrbc -Bmrblib_gem_irep -o$@ $<\n\n"
-
-             "mrblib_gem.rbtmp :\n%s\n", 
-             for_each_gem(" ", "/mrblib/*.rb", "\tcat", "> mrblib_gem.rbtmp", "mrblib")
-            );
-    }
   }
 
   printf("\n.PHONY : prepare-test\n"
@@ -207,30 +165,28 @@ make_gem_makefile()
 }
 
 /*
+ * Gem Makefile List Generator
+ *
+ */
+void
+make_gem_makefile_list()
+{
+  printf("%s",
+         for_each_gem(" ", "", "GEM_LIST := ", "\n", "")
+        );
+
+  printf("GEM_ARCHIVE_FILES := $(addprefix $(MRUBY_ROOT)/mrbgems/g/, $(GEM_LIST))\n"
+         "GEM_ARCHIVE_FILES := $(addsuffix /gem.a, $(GEM_ARCHIVE_FILES))\n"
+         "GEM_ARCHIVE_FILES += $(MRUBY_ROOT)/mrbgems/gem_init.a\n\n");
+}
+
+/*
  * init_gems.c Generator
  *
  */
 void
 make_init_gems()
 {
-  char *gem_check = { 0 };
-  int gem_c_empty;
-  int gem_ruby_empty;
-
-  /* is there a C extension available? */
-  gem_check = for_each_gem("", "", "", "", "src");
-  if (strcmp(gem_check, "") == 0)
-    gem_c_empty = TRUE;
-  else
-    gem_c_empty = FALSE;
-
-  /* is there a Ruby extension available */
-  gem_check = for_each_gem("", "", "", "", "mrblib");
-  if (strcmp(gem_check, "") == 0)
-    gem_ruby_empty = TRUE;
-  else
-    gem_ruby_empty = FALSE;
-
   printf("/*\n"
          " * This file contains a list of all\n"
          " * initializing methods which are\n"
@@ -240,37 +196,19 @@ make_init_gems()
          " *   This file was generated!\n"
          " *   All manual changes will get lost.\n"
          " */\n\n"
-         "#include \"mruby.h\"\n"
-         "#include \"mruby/irep.h\"\n"
-         "#include \"mruby/dump.h\"\n"
-         "#include \"mruby/string.h\"\n"
-         "#include \"mruby/proc.h\"\n");
+         "#include \"mruby.h\"\n");
 
-  if (!gem_c_empty)
-    printf("\n%s",
-           for_each_gem("void mrb_", "_gem_init(mrb_state*);\n", "", "", "src")
-          );
+  /* Protoype definition of all initialization methods */
+  printf("\n%s",
+         for_each_gem("void GENERATED_TMP_mrb_", "_gem_init(mrb_state*);\n", "", "", "")
+        );
 
-  if (!gem_ruby_empty)
-    printf("\nextern const char mrblib_gem_irep[];\n");
-
+  /* mrb_init_mrbgems(mrb) method for initialization of all GEMs */
   printf("\nvoid\n"
          "mrb_init_mrbgems(mrb_state *mrb) {\n");
-
-  if (!gem_c_empty)
-    printf("%s",
-           for_each_gem("  mrb_", "_gem_init(mrb);\n", "", "", "src")
-          );
-
-  if (!gem_ruby_empty) {
-    printf("  int n = mrb_read_irep(mrb, mrblib_gem_irep);\n"
-           "  mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));\n"
-           "  if (mrb->exc) {\n"
-           "    mrb_p(mrb, mrb_obj_value(mrb->exc));\n"
-           "    exit(0);\n"
-           "  }\n");
-  }
-
+  printf(   "%s",
+            for_each_gem("  GENERATED_TMP_mrb_", "_gem_init(mrb);\n", "", "", "")
+        );
   printf("}");
 }
 
@@ -280,21 +218,114 @@ make_rbtmp()
   printf("\n");
 }
 
+void
+make_gem_mrblib_header()
+{
+  printf("/*\n"
+         " * This file is loading the irep\n"
+         " * Ruby GEM code.\n"
+         " *\n"
+         " * IMPORTANT:\n"
+         " *   This file was generated!\n"
+         " *   All manual changes will get lost.\n"
+         " */\n\n"
+         "#include \"mruby.h\"\n"
+         "#include \"mruby/irep.h\"\n"
+         "#include \"mruby/dump.h\"\n"
+         "#include \"mruby/string.h\"\n"
+         "#include \"mruby/proc.h\"\n\n");
+}
+
+void
+make_gem_mrblib(char argv[1024])
+{
+  printf("\n"
+         "void\n"
+         "GENERATED_TMP_mrb_%s_gem_init(mrb_state *mrb) {\n"
+         "  int n = mrb_read_irep(mrb, gem_mrblib_irep_%s);\n"
+         "  mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));\n"
+         "  if (mrb->exc) {\n"
+         "    mrb_p(mrb, mrb_obj_value(mrb->exc));\n"
+         "    exit(0);\n"
+         "  }\n"
+         "}", argv, argv);
+}
+
+void
+make_gem_srclib(char argv[1024])
+{
+  printf("/*\n"
+         " * This file is loading the irep\n"
+         " * Ruby GEM code.\n"
+         " *\n"
+         " * IMPORTANT:\n"
+         " *   This file was generated!\n"
+         " *   All manual changes will get lost.\n"
+         " */\n\n"
+         "#include \"mruby.h\"\n");
+
+  printf("\n"
+         "void mrb_%s_gem_init(mrb_state*);\n", argv);
+
+  printf("\n"
+         "void\n"
+         "GENERATED_TMP_mrb_%s_gem_init(mrb_state *mrb) {\n"
+         "  mrb_%s_gem_init(mrb);\n"
+         "}", argv, argv);
+}
+
+void
+make_gem_mixlib(char argv[1024])
+{
+  printf("\n"
+         "void mrb_%s_gem_init(mrb_state*);\n", argv);
+
+  printf("\n"
+         "void\n"
+         "GENERATED_TMP_mrb_%s_gem_init(mrb_state *mrb) {\n"
+         "  mrb_%s_gem_init(mrb);\n"
+         "  int n = mrb_read_irep(mrb, gem_mrblib_irep_%s);\n"
+         "  mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));\n"
+         "  if (mrb->exc) {\n"
+         "    mrb_p(mrb, mrb_obj_value(mrb->exc));\n"
+         "    exit(0);\n"
+         "  }\n"
+         "}", argv, argv, argv);
+}
+
 int
 main (int argc, char *argv[])
 {
   if (argc == 2) {
     if (strcmp(argv[1], "makefile") == 0)
       make_gem_makefile();
+    else  if (strcmp(argv[1], "makefile_list") == 0)
+      make_gem_makefile_list();
     else if (strcmp(argv[1], "init_gems") == 0)
       make_init_gems();
     else if (strcmp(argv[1], "rbtmp") == 0)
       make_rbtmp();
-    else
+    else if (strcmp(argv[1], "gem_mrblib") == 0)
+      make_gem_mrblib_header();
+    else {
+      printf("Wrong argument! Options: 'makefile', 'init_gems', 'rbtmp', 'gem_mrblib', gem_srclib\n");
       return 1;
+    }
+  }
+  else if (argc == 3) {
+    if (strcmp(argv[1], "gem_mrblib") == 0)
+      make_gem_mrblib(argv[2]);
+    else if (strcmp(argv[1], "gem_srclib") == 0)
+      make_gem_srclib(argv[2]);
+    else if (strcmp(argv[1], "gem_mixlib") == 0)
+      make_gem_mixlib(argv[2]);
+    else {
+      printf("Wrong argument! Options: 'makefile', 'init_gems', 'rbtmp', 'gem_mrblib', gem_srclib\n");
+      return 1;
+    }
   }
   else {
-    printf("Argument missing! Options: 'makefile', 'init_gems', 'rbtmp'");
+    printf("Argument missing! Options: 'makefile', 'init_gems', 'rbtmp', 'gem_mrblib, gem_srclib'\n");
     return 1;
   }
 
