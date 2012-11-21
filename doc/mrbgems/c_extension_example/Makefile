@@ -5,8 +5,6 @@ GEM := c_extension_example
 GEM_C_FILES := $(wildcard $(SRC_DIR)/*.c)
 GEM_OBJECTS := $(patsubst %.c, %.o, $(GEM_C_FILES))
 
-gem-all : $(GEM_OBJECTS)
-	$(AR) rs $(LIBR) $<
+gem-all : $(GEM_OBJECTS) gem-c-files
 
-gem-clean :
-	-$(RM) $(GEM_OBJECTS)
+gem-clean : gem-clean-c-files
