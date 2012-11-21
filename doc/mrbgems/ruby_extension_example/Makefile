@@ -2,6 +2,8 @@ include ../../Makefile4gem
 
 GEM := ruby_extension_example
 
-gem-all :
+GEM_RB_FILES := $(wildcard $(MRB_DIR)/*.rb)
 
-gem-clean :
+gem-all : gem-rb-files
+
+gem-clean : gem-clean-rb-files
