@@ -17,20 +17,25 @@ else
   GENERATOR_BIN := $(GENERATOR)
 endif
 GEM_MAKEFILE := g/Makefile
+GEM_MAKEFILE_LIST := g/MakefileGemList
 GEMDLIB := g/mrbgemtest.ctmp
 
 ##############################
 # generic build targets, rules
 
 .PHONY : all
-all : $(INIT).o all_gems
+all : all_gems gem_init.a
+
+gem_init.a : $(INIT).o
+	$(AR) rs gem_init.a $(INIT).o
 
 all_gems : $(GENERATOR_BIN)
+	@echo "Generate Gem List Makefile"
+	$(GENERATOR_BIN) makefile_list > $(GEM_MAKEFILE_LIST)
 	@echo "Generate Gem Makefile"
 	$(GENERATOR_BIN) makefile > $(GEM_MAKEFILE)
 	@echo "Build all gems"
 	$(MAKE) -C g
-
 
 $(INIT).c : $(GENERATOR_BIN)
 	@echo "Generate Gem driver"
@@ -39,7 +44,6 @@ $(INIT).c : $(GENERATOR_BIN)
 $(INIT).o : $(INIT).c
 	@echo "Build the driver which initializes all gems"
 	$(CC) $(CC_FLAGS) -MMD -c $< -o $@
-	$(AR) rs $(LIBR) $@
 
 # Generator
 
@@ -60,4 +64,4 @@ clean : $(GENERATOR_BIN)
 	@echo "Cleanup Gems"
 	$(GENERATOR_BIN) makefile > $(GEM_MAKEFILE)
 	$(MAKE) clean -C g
-	-$(RM_F) $(INIT).c *.o *.d $(GENERATOR_BIN) $(GEM_MAKEFILE)
+	-$(RM_F) $(INIT).c *.o *.d $(GENERATOR_BIN) $(GEM_MAKEFILE) $(GEM_MAKEFILE_LIST) gem_init.a
