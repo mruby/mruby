@@ -2083,7 +2083,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   //because of a potential bad memory access in case of gc let's allocate the irep right now
   mrb_add_irep(mrb, mrb->irep_len);
   mrb->irep[mrb->irep_len] = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
-    
+    mrb->irep[mrb->irep_len]->plen = 0;
   p->idx = mrb->irep_len++;
   p->filename = prev->filename;
   if (p->filename) {
