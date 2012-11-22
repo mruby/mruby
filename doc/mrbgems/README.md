@@ -33,8 +33,8 @@ All GEMs have to be located under *$(MRUBY_ROOT)/mrbgems/g/*.
 ## Build process
 
 mrbgems will call *make* to build and *make clean* to clean your GEM. You
-have to create *gem.a* file during the build process. How you are going
-to do this is you decision.
+have to build a *gem.a* file during this build process. How you are going
+to do this is up to you.
 
 To make your build process more easier and more standardized we suggest
 to include *mrbgems/Makefile4gem* which defines some helper rules. In
@@ -99,7 +99,7 @@ classes or add new ones in this way. Put all Ruby files into the *mrblib*
 folder.
 
 The *Makefile* is used for building a Ruby extension. You should  define
-define *GEM* (GEM name) and *GEM_RB_FILES* (all Ruby files). You can use
+*GEM* (GEM name) and *GEM_RB_FILES* (all Ruby files). You can use
 *gem-rb-files* to build a *gem.a* out of your Ruby code and use
 *gem-clean-rb-files* to clean the generated C files.
 
