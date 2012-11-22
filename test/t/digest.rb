@@ -132,7 +132,7 @@ if Object.const_defined?(:Digest)
     end
   end
 
-  if Digest.const_defined? :SHA1
+  if Digest.const_defined? :SHA256
     assert('Digest::SHA256#hexdigest') do
       d = Digest::SHA256.new.update("ruby")
       s = "b9138194ffe9e7c8bb6d79d1ed56259553d18d9cb60b66e3ba5aa2e5b078055a"
@@ -140,7 +140,7 @@ if Object.const_defined?(:Digest)
     end
   end
 
-  if Digest.const_defined? :SHA1
+  if Digest.const_defined? :SHA384
     assert('Digest::SHA384#hexdigest') do
       d = Digest::SHA384.new.update("ruby")
       s = "635365ef93ebf2c7a4e40b0b497da727ab8c2914eb9f052e6be40476f95d3daf44786790f5f0e843fab419b43022e069"
@@ -148,7 +148,7 @@ if Object.const_defined?(:Digest)
     end
   end
 
-  if Digest.const_defined? :SHA1
+  if Digest.const_defined? :SHA512
     assert('Digest::SHA512#hexdigest') do
       d = Digest::SHA512.new.update("ruby")
       s = "423408d7723a3d80baefa804bd50b61a89667efec1713386a7b8efe28e5d13968307a908778cad210d7aa2dfe7db9a2aa86895f9fc1eeefcc99814310b207a6b"
