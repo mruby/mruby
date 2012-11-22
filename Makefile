@@ -7,6 +7,11 @@ export LL = gcc
 export AR = ar
 export YACC = bison
 
+ifeq ($(strip $(ENABLE_GEMS)),)
+  # by default GEMs are deactivated
+  ENABLE_GEMS = false
+endif
+
 ifeq ($(strip $(COMPILE_MODE)),)
   # default compile option
   COMPILE_MODE = debug
@@ -22,9 +27,9 @@ endif
 
 ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
 ifeq ($(OS),Windows_NT)
-  MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)'
+  MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)' ENABLE_GEMS='$(ENABLE_GEMS)'
 else
-  MAKE_FLAGS = --no-print-directory CC='$(CC)' LL='$(LL)' ALL_CFLAGS='$(ALL_CFLAGS)'
+  MAKE_FLAGS = --no-print-directory CC='$(CC)' LL='$(LL)' ALL_CFLAGS='$(ALL_CFLAGS)' ENABLE_GEMS='$(ENABLE_GEMS)'
 endif
 
 ##############################
@@ -44,8 +49,11 @@ export CAT := cat
 all :
 	@$(MAKE) -C src $(MAKE_FLAGS)
 	@$(MAKE) -C mrblib $(MAKE_FLAGS)
+ifeq ($(ENABLE_GEMS),true)
+	@echo "-- MAKE mrbgems --"
 	@$(MAKE) -C mrbgems $(MAKE_FLAGS)
-	@$(MAKE) -C tools/mruby $(MAKE_FLAGS)
+endif
+	$(MAKE) -C tools/mruby $(MAKE_FLAGS)
 	@$(MAKE) -C tools/mirb $(MAKE_FLAGS)
 
 # mruby test
@@ -57,7 +65,10 @@ test : all
 .PHONY : clean
 clean :
 	@$(MAKE) clean -C src $(MAKE_FLAGS)
+ifeq ($(ENABLE_GEMS),true)
+	@echo "-- CLEAN mrbgems --"
 	@$(MAKE) clean -C mrbgems $(MAKE_FLAGS)
+endif
 	@$(MAKE) clean -C tools/mruby $(MAKE_FLAGS)
 	@$(MAKE) clean -C tools/mirb $(MAKE_FLAGS)
 	@$(MAKE) clean -C test $(MAKE_FLAGS)
