@@ -30,7 +30,7 @@ directory_exists(char path[4096]) {
 }
 
 /*
- * Template generator for each GEM
+ * Template generator for each active GEM
  *
  * Arguments:
  *   before:
@@ -50,17 +50,18 @@ for_each_gem (char before[1024], char after[1024],
                char start[1024], char end[1024],
                char dir_to_skip[1024])
 {
-  FILE *fp;
-  char *active_gems = NULL;
-  char ch;
+  /* active GEM check */
+  FILE *active_gem_file;
+  char gem_char;
   char gem_name[1024] = { 0 };
   int char_index;
   char gem_list[1024][1024] = { { 0 }, { 0 } };
   int gem_index;
   int i;
-  int b;
+  int gem_active;
   int cnt;
 
+  /* folder check */
   struct dirent **eps;
   int n;
   char gemname[1024] = { 0 };
@@ -68,39 +69,47 @@ for_each_gem (char before[1024], char after[1024],
   char src_path[4096] = { 0 };
   struct stat attribut;
 
-  fp = fopen("GEMS.active", "r+");
-  if (fp != NULL) {
+  /* return value */
+  char* complete_line = malloc(4096 + sizeof(char));
+  strcpy(complete_line, "");
+  strcat(complete_line, start);
+
+  /* Read out the active GEMs */
+  active_gem_file = fopen("GEMS.active", "r+");
+  if (active_gem_file != NULL) {
     char_index = 0;
     gem_index = 0;
-    while((ch = fgetc(fp)) != EOF) {
-      if (ch == '\n') {
+    while((gem_char = fgetc(active_gem_file)) != EOF) {
+      if (gem_char == '\n') {
+        /* Every line contains one active GEM */
         gem_name[char_index++] = '\0';
         strcpy(gem_list[gem_index++], gem_name);
 
         gem_name[0] = '\0';
         char_index = 0;
       }
-      else {
-        gem_name[char_index++] = ch;
-      }
+      else
+        gem_name[char_index++] = gem_char;
+    }
+    if (gem_index > 0) {
+      /* clean close of the last GEM name */
+      gem_name[char_index++] = '\0';
+      strcpy(gem_list[gem_index++], gem_name);
     }
 
-    fclose(fp);
+    fclose(active_gem_file);
   }
   else { /* Error: Active GEM list couldn't be loaded */ }
 
-  /* return value */
-  char* complete_line = malloc(4096 + sizeof(char));
-  strcpy(complete_line, "");
-  strcat(complete_line, start);
-
   n = scandir("./g", &eps, one, alphasort);
   if (n >= 0) {
+    /* iterate over each file and figure out what is a GEM and what not */
     for (cnt = 0; cnt < n; ++cnt) {
       strcpy(gemname, eps[cnt]->d_name);
       strcpy(gemname_path, "./g/");
       strcat(gemname_path, gemname);
 
+      /* we ignore all the default files */
       if (strcmp(gemname, ".") == 0)
         continue;
       if (strcmp(gemname, "..") == 0)
@@ -108,26 +117,30 @@ for_each_gem (char before[1024], char after[1024],
       if (strcmp(gemname, ".gitignore") == 0)
         continue;
 
+      /* In case the current location isn't a folder we skip it */
       stat(gemname_path, &attribut);
       if (S_ISDIR(attribut.st_mode) == 0) {
         continue;
       }
 
-      b = 0;
+      /* Check if user has activated this GEM */
+      gem_active = 0;
       for(i = 0; i <= gem_index; i++) {
         if (strcmp(gem_list[i], gemname) != 0)
-          b = 0;
+          gem_active = FALSE;
         else {
           /* Current GEM is active */
-          b = 1;
+          gem_active = TRUE;
           break;
         }
       }
-
       /* In case the current GEM isn't active we skip it */
-      if (b == 0)
+      if (gem_active == FALSE)
         continue;
 
+      /* sometimes we are only interested in GEMs
+         with a specific folder.
+       */
       if (strcmp(dir_to_skip, "") != 0) {
         strcpy(src_path, gemname_path);
         strcat(src_path, "/");
@@ -153,6 +166,9 @@ for_each_gem (char before[1024], char after[1024],
 /*
  * Gem Makefile Generator
  *
+ * Global Makefile which starts the build process
+ * for every active GEM.
+ *
  */
 void
 make_gem_makefile()
@@ -174,21 +190,24 @@ make_gem_makefile()
   else
     gem_empty = FALSE;
 
+  /* Makefile Rules to build every single GEM */
+
   printf(".PHONY : all\n");
   if (gem_empty)
     printf("all :\n\n");
   else {
-    printf("all : all_gems\n");
+    printf("all : all_gems\n\n");
 
-    printf("\n");
-
-    /* Rule to make every GEM */
+    /* Call make for every GEM */
     printf("all_gems :\n%s\n", 
             for_each_gem("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "", "")
           );
+    printf("\n");
   }
 
-  printf("\n.PHONY : prepare-test\n"
+  /* Makefile Rules to Test GEMs */
+
+  printf(".PHONY : prepare-test\n"
          "prepare-test :\n"
         );
   if (!gem_empty)
@@ -197,8 +216,11 @@ make_gem_makefile()
           );
   else
     printf("\t../generator rbtmp > mrbgemtest.rbtmp");
+
   printf("\n\t../../bin/mrbc -Bmrbgemtest_irep -omrbgemtest.ctmp mrbgemtest.rbtmp\n\n");
-    
+
+  /* Makefile Rules to Clean GEMs */
+
   printf(".PHONY : clean\n"
          "clean :\n"
          "\t$(RM) *.c *.d *.rbtmp *.ctmp *.o mrbtest\n");
@@ -210,6 +232,9 @@ make_gem_makefile()
 
 /*
  * Gem Makefile List Generator
+ *
+ * Creates a Makefile which will be included by other Makefiles
+ * which need to know which GEMs are active.
  *
  */
 void
@@ -225,11 +250,11 @@ make_gem_makefile_list()
 }
 
 /*
- * init_gems.c Generator
+ * gem_init.c Generator
  *
  */
 void
-make_init_gems()
+make_gem_init()
 {
   printf("/*\n"
          " * This file contains a list of all\n"
@@ -246,9 +271,10 @@ make_init_gems()
   printf("\n%s",
          for_each_gem("void GENERATED_TMP_mrb_", "_gem_init(mrb_state*);\n", "", "", "")
         );
+  printf("\n");
 
   /* mrb_init_mrbgems(mrb) method for initialization of all GEMs */
-  printf("\nvoid\n"
+  printf("void\n"
          "mrb_init_mrbgems(mrb_state *mrb) {\n");
   printf(   "%s",
             for_each_gem("  GENERATED_TMP_mrb_", "_gem_init(mrb);\n", "", "", "")
@@ -256,12 +282,24 @@ make_init_gems()
   printf("}");
 }
 
+/*
+ * Empty Generator
+ *
+ * Generates a clean file.
+ *
+ */
 void
 make_rbtmp()
 {
   printf("\n");
 }
 
+/*
+ * Header Generator
+ *
+ * Head of the C Code for loading the GEMs into the interpreter.
+ *
+ */
 void
 make_gem_mrblib_header()
 {
@@ -280,6 +318,13 @@ make_gem_mrblib_header()
          "#include \"mruby/proc.h\"\n\n");
 }
 
+/*
+ * mrblib Generator
+ *
+ * Generates the C Code for loading
+ * the pure Ruby GEMs into the interpreter.
+ *
+ */
 void
 make_gem_mrblib(char argv[1024])
 {
@@ -295,6 +340,13 @@ make_gem_mrblib(char argv[1024])
          "}", argv, argv);
 }
 
+/*
+ * srclib Generator
+ *
+ * Generates the C Code for loading
+ * the pure C GEMs into the interpreter.
+ *
+ */
 void
 make_gem_srclib(char argv[1024])
 {
@@ -318,6 +370,14 @@ make_gem_srclib(char argv[1024])
          "}", argv, argv);
 }
 
+/*
+ * mixlib Generator
+ *
+ * Generates the C Code for loading
+ * the mixed Ruby and C GEMs
+ * into the interpreter.
+ *
+ */
 void
 make_gem_mixlib(char argv[1024])
 {
@@ -337,22 +397,27 @@ make_gem_mixlib(char argv[1024])
          "}", argv, argv, argv);
 }
 
+/*
+ * Start the generator and decide what to generate. 
+ *
+ */
 int
 main (int argc, char *argv[])
 {
+  const char * argument_info = "Wrong argument! Options: 'makefile', 'gem_init', 'rbtmp', 'gem_mrblib', gem_srclib\n";
   if (argc == 2) {
     if (strcmp(argv[1], "makefile") == 0)
       make_gem_makefile();
     else  if (strcmp(argv[1], "makefile_list") == 0)
       make_gem_makefile_list();
-    else if (strcmp(argv[1], "init_gems") == 0)
-      make_init_gems();
+    else if (strcmp(argv[1], "gem_init") == 0)
+      make_gem_init();
     else if (strcmp(argv[1], "rbtmp") == 0)
       make_rbtmp();
     else if (strcmp(argv[1], "gem_mrblib") == 0)
       make_gem_mrblib_header();
     else {
-      printf("Wrong argument! Options: 'makefile', 'init_gems', 'rbtmp', 'gem_mrblib', gem_srclib\n");
+      printf("%s", argument_info);
       return 1;
     }
   }
@@ -364,12 +429,12 @@ main (int argc, char *argv[])
     else if (strcmp(argv[1], "gem_mixlib") == 0)
       make_gem_mixlib(argv[2]);
     else {
-      printf("Wrong argument! Options: 'makefile', 'init_gems', 'rbtmp', 'gem_mrblib', gem_srclib\n");
+      printf("%s", argument_info);
       return 1;
     }
   }
   else {
-    printf("Argument missing! Options: 'makefile', 'init_gems', 'rbtmp', 'gem_mrblib, gem_srclib'\n");
+    printf("%s", argument_info);
     return 1;
   }
 
