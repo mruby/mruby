@@ -50,12 +50,44 @@ for_each_gem (char before[1024], char after[1024],
                char start[1024], char end[1024],
                char dir_to_skip[1024])
 {
+  FILE *fp;
+  char *active_gems = NULL;
+  char ch;
+  char gem_name[1024] = { 0 };
+  int char_index;
+  char gem_list[1024][1024] = { { 0 }, { 0 } };
+  int gem_index;
+  int i;
+  int b;
+  int cnt;
+
   struct dirent **eps;
   int n;
   char gemname[1024] = { 0 };
   char gemname_path[4096] = { 0 };
   char src_path[4096] = { 0 };
   struct stat attribut;
+
+  fp = fopen("GEMS.active", "r+");
+  if (fp != NULL) {
+    char_index = 0;
+    gem_index = 0;
+    while((ch = fgetc(fp)) != EOF) {
+      if (ch == '\n') {
+        gem_name[char_index++] = '\0';
+        strcpy(gem_list[gem_index++], gem_name);
+
+        gem_name[0] = '\0';
+        char_index = 0;
+      }
+      else {
+        gem_name[char_index++] = ch;
+      }
+    }
+
+    fclose(fp);
+  }
+  else { /* Error: Active GEM list couldn't be loaded */ }
 
   /* return value */
   char* complete_line = malloc(4096 + sizeof(char));
@@ -64,13 +96,10 @@ for_each_gem (char before[1024], char after[1024],
 
   n = scandir("./g", &eps, one, alphasort);
   if (n >= 0) {
-    int cnt;
     for (cnt = 0; cnt < n; ++cnt) {
       strcpy(gemname, eps[cnt]->d_name);
       strcpy(gemname_path, "./g/");
       strcat(gemname_path, gemname);
-      strcpy(src_path, gemname_path);
-      strcat(src_path, "/src");
 
       if (strcmp(gemname, ".") == 0)
         continue;
@@ -83,6 +112,21 @@ for_each_gem (char before[1024], char after[1024],
       if (S_ISDIR(attribut.st_mode) == 0) {
         continue;
       }
+
+      b = 0;
+      for(i = 0; i <= gem_index; i++) {
+        if (strcmp(gem_list[i], gemname) != 0)
+          b = 0;
+        else {
+          /* Current GEM is active */
+          b = 1;
+          break;
+        }
+      }
+
+      /* In case the current GEM isn't active we skip it */
+      if (b == 0)
+        continue;
 
       if (strcmp(dir_to_skip, "") != 0) {
         strcpy(src_path, gemname_path);
