@@ -8,11 +8,20 @@ BASEDIR = $(MRUBY_ROOT)/src
 TARGET := $(MRUBY_ROOT)/bin/mruby
 LIBR := $(MRUBY_ROOT)/lib/libmruby.a
 
-MAKEFILE_GEM_LIST := $(MRUBY_ROOT)/mrbgems/g/MakefileGemList
-ifeq ($(wildcard $(MAKEFILE_GEM_LIST)),)
+ifeq ($(strip $(ENABLE_GEMS)),)
+  # by default GEMs are deactivated
+  ENABLE_GEMS = false
+endif
+
+ifeq ($(ENABLE_GEMS),false)
   GEM_ARCHIVE_FILES =
 else
-  include $(MAKEFILE_GEM_LIST)
+  MAKEFILE_GEM_LIST := $(MRUBY_ROOT)/mrbgems/g/MakefileGemList
+  ifeq ($(wildcard $(MAKEFILE_GEM_LIST)),)
+    GEM_ARCHIVE_FILES =
+  else
+    include $(MAKEFILE_GEM_LIST)
+  endif
 endif
 
 ifeq ($(OS),Windows_NT)
