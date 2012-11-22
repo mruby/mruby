@@ -8,19 +8,28 @@ BASEDIR = .
 TARGET := mrbtest
 LIBR := ../lib/libmruby.a
 
-MAKEFILE_GEM_LIST := $(MRUBY_ROOT)/mrbgems/g/MakefileGemList
-ifeq ($(wildcard $(MAKEFILE_GEM_LIST)),)
+ifeq ($(strip $(ENABLE_GEMS)),)
+  # by default GEMs are deactivated
+  ENABLE_GEMS = false
+endif
+
+ifeq ($(ENABLE_GEMS),false)
   GEM_ARCHIVE_FILES =
 else
-  include $(MAKEFILE_GEM_LIST)
+  GEMDIR := ../mrbgems
+  GEMDLIB := $(GEMDIR)/g/mrbgemtest.ctmp
+  MAKEFILE_GEM_LIST := $(MRUBY_ROOT)/mrbgems/g/MakefileGemList
+  ifeq ($(wildcard $(MAKEFILE_GEM_LIST)),)
+    GEM_ARCHIVE_FILES =
+  else
+    include $(MAKEFILE_GEM_LIST)
+  endif
 endif
 
 MLIB := $(TARGET).o
 CLIB := $(TARGET).c
 INIT := init_$(TARGET).c
 DLIB := $(TARGET).ctmp
-GEMDIR := ../mrbgems
-GEMDLIB := $(GEMDIR)/g/mrbgemtest.ctmp
 RLIB := $(TARGET).rbtmp
 DEPLIB := $(TARGET).d driver.d
 ASSLIB := $(BASEDIR)/assert.rb
@@ -96,7 +105,9 @@ $(OBJS) : %.o : %.c
 
 # Compile C source from merged mruby source
 $(CLIB) : $(DLIB) $(INIT)
+ifeq ($(ENABLE_GEMS),true)
 	@$(MAKE) prepare-test -C $(GEMDIR)
+endif
 	$(CAT) $(INIT) $(DLIB) $(GEMDLIB) > $@
 
 $(DLIB) : $(RLIB) $(MRBC)
