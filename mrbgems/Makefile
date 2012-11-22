@@ -2,7 +2,6 @@
 # add gems to the ruby library
 
 LIBR := ../lib/libmruby.a
-INIT := init_gems
 RM_F := rm -f
 CC_FLAGS := -Wall -Werror-implicit-function-declaration -g -O3 -MMD -I. -I./../include
 
@@ -16,6 +15,7 @@ ifeq ($(OS),Windows_NT)
 else
   GENERATOR_BIN := $(GENERATOR)
 endif
+GEM_INIT := gem_init
 GEM_MAKEFILE := g/Makefile
 GEM_MAKEFILE_LIST := g/MakefileGemList
 GEMDLIB := g/mrbgemtest.ctmp
@@ -24,10 +24,10 @@ GEMDLIB := g/mrbgemtest.ctmp
 # generic build targets, rules
 
 .PHONY : all
-all : all_gems gem_init.a
+all : all_gems $(GEM_INIT).a
 
-gem_init.a : $(INIT).o
-	$(AR) rs gem_init.a $(INIT).o
+$(GEM_INIT).a : $(GEM_INIT).o
+	$(AR) rs gem_init.a $(GEM_INIT).o
 
 all_gems : $(GENERATOR_BIN)
 	@echo "Generate Gem List Makefile"
@@ -37,11 +37,11 @@ all_gems : $(GENERATOR_BIN)
 	@echo "Build all gems"
 	$(MAKE) -C g
 
-$(INIT).c : $(GENERATOR_BIN)
+$(GEM_INIT).c : $(GENERATOR_BIN)
 	@echo "Generate Gem driver"
-	$(GENERATOR_BIN) $(INIT) > $@
+	$(GENERATOR_BIN) $(GEM_INIT) > $@
 
-$(INIT).o : $(INIT).c
+$(GEM_INIT).o : $(GEM_INIT).c
 	@echo "Build the driver which initializes all gems"
 	$(CC) $(CC_FLAGS) -MMD -c $< -o $@
 
@@ -64,4 +64,4 @@ clean : $(GENERATOR_BIN)
 	@echo "Cleanup Gems"
 	$(GENERATOR_BIN) makefile > $(GEM_MAKEFILE)
 	$(MAKE) clean -C g
-	-$(RM_F) $(INIT).c *.o *.d $(GENERATOR_BIN) $(GEM_MAKEFILE) $(GEM_MAKEFILE_LIST) gem_init.a
+	-$(RM_F) $(GEM_INIT).c *.o *.d $(GENERATOR_BIN) $(GEM_MAKEFILE) $(GEM_MAKEFILE_LIST) gem_init.a
