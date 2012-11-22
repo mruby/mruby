@@ -9,6 +9,7 @@
 #include "mruby/class.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
+#include "mruby/proc.h"
 #include "error.h"
 
 #include <sys/types.h>
@@ -53,6 +54,31 @@ mrb_f_kill(mrb_state *mrb, mrb_value klass)
     argv++;
   }
   return mrb_fixnum_value(sent);
+}
+
+static mrb_value
+mrb_f_fork(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value b, result;
+  int pid;
+
+  mrb_get_args(mrb, "&", &b);
+
+  switch (pid = fork()) {
+  case 0:
+    if (!mrb_nil_p(b)) {
+      mrb_yield(mrb, b, result);
+      _exit(0);
+    }
+    return mrb_nil_value();
+
+  case -1:
+    mrb_sys_fail(mrb, "fork failed");
+    return mrb_nil_value();
+
+  default:
+    return mrb_fixnum_value(pid);
+  }
 }
 
 mrb_value
@@ -167,6 +193,7 @@ mrb_init_process(mrb_state *mrb)
 
   p = mrb_define_module(mrb, "Process");
   mrb_define_class_method(mrb, p, "kill", mrb_f_kill, ARGS_ANY());
+  mrb_define_class_method(mrb, p, "fork", mrb_f_fork, ARGS_NONE());
   mrb_define_class_method(mrb, p, "pid", mrb_f_pid, ARGS_NONE());
   mrb_define_class_method(mrb, p, "ppid", mrb_f_ppid, ARGS_NONE());
 
