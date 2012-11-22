@@ -7,26 +7,10 @@
 #include <mrbconf.h>
 #include <stdlib.h>
  
-static int
-one (const struct dirent *unused)
+char *get_file_name(char *path)
 {
-  return 1;
-}
-
-/*
- * Does a directory exist?
- *   yes => TRUE
- *   no => FALSE
- *   fs error => FALSE
- *
- */
-static int
-directory_exists(char path[4096]) {
-  DIR* dir = opendir(path);
-  if (dir)
-    return TRUE;
-  else
-    return FALSE;
+    char *base = strrchr(path, '/');
+    return base ? base+1 : path;
 }
 
 /*
@@ -48,7 +32,7 @@ directory_exists(char path[4096]) {
 static char*
 for_each_gem (char before[1024], char after[1024],
                char start[1024], char end[1024],
-               char dir_to_skip[1024])
+               int full_path)
 {
   /* active GEM check */
   FILE *active_gem_file;
@@ -58,16 +42,6 @@ for_each_gem (char before[1024], char after[1024],
   char gem_list[1024][1024] = { { 0 }, { 0 } };
   int gem_index;
   int i;
-  int gem_active;
-  int cnt;
-
-  /* folder check */
-  struct dirent **eps;
-  int n;
-  char gemname[1024] = { 0 };
-  char gemname_path[4096] = { 0 };
-  char src_path[4096] = { 0 };
-  struct stat attribut;
 
   /* return value */
   char* complete_line = malloc(4096 + sizeof(char));
@@ -91,72 +65,18 @@ for_each_gem (char before[1024], char after[1024],
       else
         gem_name[char_index++] = gem_char;
     }
-    if (gem_index > 0) {
-      /* clean close of the last GEM name */
-      gem_name[char_index++] = '\0';
-      strcpy(gem_list[gem_index++], gem_name);
-    }
 
     fclose(active_gem_file);
   }
   else { /* Error: Active GEM list couldn't be loaded */ }
 
-  n = scandir("./g", &eps, one, alphasort);
-  if (n >= 0) {
-    /* iterate over each file and figure out what is a GEM and what not */
-    for (cnt = 0; cnt < n; ++cnt) {
-      strcpy(gemname, eps[cnt]->d_name);
-      strcpy(gemname_path, "./g/");
-      strcat(gemname_path, gemname);
-
-      /* we ignore all the default files */
-      if (strcmp(gemname, ".") == 0)
-        continue;
-      if (strcmp(gemname, "..") == 0)
-        continue;
-      if (strcmp(gemname, ".gitignore") == 0)
-        continue;
-
-      /* In case the current location isn't a folder we skip it */
-      stat(gemname_path, &attribut);
-      if (S_ISDIR(attribut.st_mode) == 0) {
-        continue;
-      }
-
-      /* Check if user has activated this GEM */
-      gem_active = 0;
-      for(i = 0; i <= gem_index; i++) {
-        if (strcmp(gem_list[i], gemname) != 0)
-          gem_active = FALSE;
-        else {
-          /* Current GEM is active */
-          gem_active = TRUE;
-          break;
-        }
-      }
-      /* In case the current GEM isn't active we skip it */
-      if (gem_active == FALSE)
-        continue;
-
-      /* sometimes we are only interested in GEMs
-         with a specific folder.
-       */
-      if (strcmp(dir_to_skip, "") != 0) {
-        strcpy(src_path, gemname_path);
-        strcat(src_path, "/");
-        strcat(src_path, dir_to_skip);
-
-        if (directory_exists(src_path) != TRUE)
-          continue;
-      }
-
-      strcat(complete_line, before);
-      strcat(complete_line, gemname);
-      strcat(complete_line, after);
-    }
-  }
-  else {
-    perror("Error while scanning the directory.");
+  for(i = 0; i < gem_index; i++) {
+    strcat(complete_line, before);
+    if (full_path == TRUE)
+      strcat(complete_line, gem_list[i]);
+    else
+      strcat(complete_line, get_file_name(gem_list[i]));
+    strcat(complete_line, after);
   }
 
   strcat(complete_line, end);
@@ -184,7 +104,7 @@ make_gem_makefile()
          "endif\n\n");
 
   /* is there any GEM available? */
-  gem_check = for_each_gem("", "", "", "", "");
+  gem_check = for_each_gem("", "", "", "", TRUE);
   if (strcmp(gem_check, "") == 0)
     gem_empty = TRUE;
   else
@@ -200,7 +120,7 @@ make_gem_makefile()
 
     /* Call make for every GEM */
     printf("all_gems :\n%s\n", 
-            for_each_gem("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "", "")
+            for_each_gem("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "", TRUE)
           );
     printf("\n");
   }
@@ -212,7 +132,7 @@ make_gem_makefile()
         );
   if (!gem_empty)
     printf("%s",
-           for_each_gem(" ", "/test/*.rb ", "\tcat", " > mrbgemtest.rbtmp", "test")
+           for_each_gem(" ", "/test/*.rb ", "\tcat", " > mrbgemtest.rbtmp", TRUE)
           );
   else
     printf("\t../generator rbtmp > mrbgemtest.rbtmp");
@@ -226,7 +146,7 @@ make_gem_makefile()
          "\t$(RM) *.c *.d *.rbtmp *.ctmp *.o mrbtest\n");
   if (!gem_empty)
     printf("%s",
-           for_each_gem("\t@$(MAKE) clean -C ", " $(MAKE_FLAGS)\n", "", "", "")
+           for_each_gem("\t@$(MAKE) clean -C ", " $(MAKE_FLAGS)\n", "", "", TRUE)
           );
 }
 
@@ -241,11 +161,10 @@ void
 make_gem_makefile_list()
 {
   printf("%s",
-         for_each_gem(" ", "", "GEM_LIST := ", "\n", "")
+         for_each_gem(" ", "", "GEM_LIST := ", "\n", TRUE)
         );
 
-  printf("GEM_ARCHIVE_FILES := $(addprefix $(MRUBY_ROOT)/mrbgems/g/, $(GEM_LIST))\n"
-         "GEM_ARCHIVE_FILES := $(addsuffix /gem.a, $(GEM_ARCHIVE_FILES))\n"
+  printf("GEM_ARCHIVE_FILES := $(addsuffix /gem.a, $(GEM_LIST))\n"
          "GEM_ARCHIVE_FILES += $(MRUBY_ROOT)/mrbgems/gem_init.a\n\n");
 }
 
@@ -269,7 +188,7 @@ make_gem_init()
 
   /* Protoype definition of all initialization methods */
   printf("\n%s",
-         for_each_gem("void GENERATED_TMP_mrb_", "_gem_init(mrb_state*);\n", "", "", "")
+         for_each_gem("void GENERATED_TMP_mrb_", "_gem_init(mrb_state*);\n", "", "", FALSE)
         );
   printf("\n");
 
@@ -277,7 +196,7 @@ make_gem_init()
   printf("void\n"
          "mrb_init_mrbgems(mrb_state *mrb) {\n");
   printf(   "%s",
-            for_each_gem("  GENERATED_TMP_mrb_", "_gem_init(mrb);\n", "", "", "")
+            for_each_gem("  GENERATED_TMP_mrb_", "_gem_init(mrb);\n", "", "", FALSE)
         );
   printf("}");
 }

@@ -2,8 +2,10 @@
 # by each Gem. It integrates important constants
 # for usage inside of a Gem.
 
-# mruby src root
-MRUBY_ROOT := ../../../
+ifeq ($(strip $(MRUBY_ROOT)),)
+  # mruby src root
+  MRUBY_ROOT := ../../../
+endif
 
 # Tools
 CC := gcc
@@ -40,14 +42,14 @@ gem_mixlib.c : gem_mrblib_header.ctmp gem_mrblib_irep.ctmp gem_mixlib_init.ctmp
 	cat $^ > $@
 
 gem_mixlib_init.ctmp :
-	../../generator gem_mixlib $(GEM) > $@
+	$(MRUBY_ROOT)mrbgems/generator gem_mixlib $(GEM) > $@
 
 # Building target for C files
 gem-c-files : gem_srclib.o
 	$(AR) rs gem.a $(GEM_OBJECTS) $<
 
 gem_srclib.c :
-	../../generator gem_srclib $(GEM) > $@
+	$(MRUBY_ROOT)mrbgems/generator gem_srclib $(GEM) > $@
 
 # Building target for Ruby Files
 gem-rb-files : gem_mrblib.o
@@ -57,13 +59,13 @@ gem_mrblib.c : gem_mrblib_header.ctmp gem_mrblib_irep.ctmp gem_mrblib_init.ctmp
 	cat $^ > $@
 
 gem_mrblib_header.ctmp :
-	../../generator gem_mrblib > $@
+	$(MRUBY_ROOT)mrbgems/generator gem_mrblib > $@
 
 gem_mrblib_init.ctmp :
-	../../generator gem_mrblib $(GEM) > $@
+	$(MRUBY_ROOT)mrbgems/generator gem_mrblib $(GEM) > $@
 
 gem_mrblib_irep.ctmp : gem_mrblib.rbtmp
-	../../../bin/mrbc -Bgem_mrblib_irep_$(GEM) -o$@ $<
+	$(MRUBY_ROOT)bin/mrbc -Bgem_mrblib_irep_$(GEM) -o$@ $<
 
 gem_mrblib.rbtmp :
 	cat $(GEM_RB_FILES) > $@
