@@ -30,6 +30,19 @@ description of your GEM.
 
 All GEMs have to be located under *$(MRUBY_ROOT)/mrbgems/g/*.
 
+## Build process
+
+mrbgems will call *make* to build and *make clean* to clean your GEM. You
+have to create *gem.a* file during the build process. How you are going
+to do this is you decision.
+
+To make your build process more easier and more standardized we suggest
+to include *mrbgems/Makefile4gem* which defines some helper rules. In
+case you include this Makefile you have to define specific pre-defined
+rules like *gem-all* for the build process and *gem-clean* for the clean
+process. There are additional helper rules for specific GEM examples 
+below.
+
 ## C Extension
 
 mruby can be extended with C. It is possible by using the C API to
@@ -38,12 +51,11 @@ integrate C libraries into mruby.
 The *Makefile* is used for building a C extension. You should
 define *GEM* (GEM name), *GEM_C_FILES* (all C files) and
 *GEM_OBJECTS* (all Object files). Pay also attention that your
-*Makefile* has to build the object files.
+*Makefile* has to build the object files. You can use
+*gem-c-files* to build a *gem.a* out of your Object code and use
+*gem-clean-c-files* to clean the object files.
 
 ### Pre-Conditions
-
-mrbgems will automatically call the *gem-all* make target of your GEM. Make
-sure that you build all files in this target.
 
 mrbgems expects that you have implemented a C method called
 *mrb_YOURGEMNAME_gem_init(mrb_state)*. YOURGEMNAME will be replaced
@@ -83,10 +95,13 @@ this target with the necessary rules!
 ## Ruby Extension
 
 mruby can be extended with pure Ruby. It is possible to override existing
-or add new ones in this way. Put all Ruby files into the *mrblib* folder.
+classes or add new ones in this way. Put all Ruby files into the *mrblib*
+folder.
 
 The *Makefile* is used for building a Ruby extension. You should  define
-define *GEM* (GEM name) and *GEM_RB_FILES* (all Ruby files).
+define *GEM* (GEM name) and *GEM_RB_FILES* (all Ruby files). You can use
+*gem-rb-files* to build a *gem.a* out of your Ruby code and use
+*gem-clean-rb-files* to clean the generated C files.
 
 ### Pre-Conditions
 
@@ -117,33 +132,17 @@ this target with the necessary rules!
 
 mruby can be extended with C and Ruby at the same time. It is possible to
 override existing classes or add new ones in this way. Put all Ruby files
-into the *mrblib* folder and all C files into the *srclib* folder.
+into the *mrblib* folder and all C files into the *src* folder.
 
 The *Makefile* is used for building a C and Ruby extension. You should
 define *GEM* (GEM name), *GEM_C_FILES* (all C files), *GEM_OBJECTS*
-(all Object files) and *GEM_RB_FILES* (all Ruby files).
+(all Object files) and *GEM_RB_FILES* (all Ruby files). You can use
+*gem-c-and-rb-files* to build a *gem.a* out of your Object and Ruby code
+and use *gem-clean-c-and-rb-files* to clean the generated C files.
 
 ### Pre-Conditions
 
-mrbgems will automatically call the *gem-all* make target of your GEM. Make
-sure that you build all files in this target.
-
-mrbgems expects that you have implemented a C method called
-*mrb_YOURGEMNAME_gem_init(mrb_state)*. YOURGEMNAME will be replaced
-by the name of you GEM. The directory name of your GEM is considered also
-as the name! If you call your GEM directory *c_extension_example*, your
-initialisation method could look like this:
-
-```
-void
-mrb_c_extension_example_gem_init(mrb_state* mrb) {
-  _class_cextension = mrb_define_module(mrb, "CExtension");
-  mrb_define_class_method(mrb, _class_cextension, "c_method", mrb_c_method, ARGS_NONE());
-}
-```
-
-mrbgems will also use the *gem-clean* make target to clean up your GEM. Implement
-this target with the necessary rules!
+See C and Ruby example.
 
 ### Example
 
