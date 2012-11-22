@@ -5,10 +5,10 @@ standardised way into mruby.
 
 ## GEM Structure
 
-The maximal Gem structure looks like this:
+The maximal GEM structure looks like this:
 
 ```
-+- GEM_NAME         <- Name of Gem
++- GEM_NAME         <- Name of GEM
    |
    +- mrblib/       <- Source for Ruby extension
    |
@@ -16,36 +16,39 @@ The maximal Gem structure looks like this:
    |
    +- test/         <- Test code (Ruby)
    |
-   +- Makefile      <- Makefile for Gem
+   +- Makefile      <- Makefile for GEM
    |
-   +- README.md     <- Readme for Gem
+   +- README.md     <- Readme for GEM
 ```
 
 The folder *mrblib* contains pure Ruby files to extend mruby. The folder *src*
 contains C files to extend mruby. The folder *test* contains pure Ruby files
 for testing purposes which will be used by mrbtest. The *Makefile* contains
-rules to build all C files and integrates them into the normal mruby
-build process. *README.md* is a short description of your Gem.
+rules to build a *gem.a* file inside of the GEM directory. Which will be used
+for integration into the normal mruby build process. *README.md* is a short 
+description of your GEM.
 
-All Gems have to be located under *$(MRUBY_ROOT)/mrbgems/g/*.
+All GEMs have to be located under *$(MRUBY_ROOT)/mrbgems/g/*.
 
 ## C Extension
 
-mruby can be extended with C. It is possible by using the C API to integrate C
-libraries into mruby. You need to use the folder *src* for all C files. Pay
-attention that your *Makefile* has to build the source and also add the object
-files to libmruby.a
+mruby can be extended with C. It is possible by using the C API to
+integrate C libraries into mruby.
+
+The *Makefile* is used for building a C extension. You should
+define *GEM* (GEM name), *GEM_C_FILES* (all C files) and
+*GEM_OBJECTS* (all Object files). Pay also attention that your
+*Makefile* has to build the object files.
 
 ### Pre-Conditions
 
-mrbgems will automatically call the *gem-all* make target of your Gem. Make
-sure that you build all files in this target and that you add your object
-files to libmruby.a
+mrbgems will automatically call the *gem-all* make target of your GEM. Make
+sure that you build all files in this target.
 
 mrbgems expects that you have implemented a C method called
 *mrb_YOURGEMNAME_gem_init(mrb_state)*. YOURGEMNAME will be replaced
-by the name of you Gem. The directory name of your Gem is considered also
-as the name! If you call your Gem directory *c_extension_example*, your
+by the name of you GEM. The directory name of your GEM is considered also
+as the name! If you call your GEM directory *c_extension_example*, your
 initialisation method could look like this:
 
 ```
@@ -56,7 +59,7 @@ mrb_c_extension_example_gem_init(mrb_state* mrb) {
 }
 ```
 
-mrbgems will also use the *gem-clean* make target to clean up your Gem. Implement
+mrbgems will also use the *gem-clean* make target to clean up your GEM. Implement
 this target with the necessary rules!
 
 ### Example
@@ -80,14 +83,17 @@ this target with the necessary rules!
 ## Ruby Extension
 
 mruby can be extended with pure Ruby. It is possible to override existing
-classes or add new ones in this way. Put all Ruby files into the *mrblib*
-folder. At the moment only one directory layer is supported. So don't
-use a deeper structure for now!
+or add new ones in this way. Put all Ruby files into the *mrblib* folder.
 
-The *Makefile* is not used for building a Ruby extension. But you still
-should maintain this file so that during the build process the progress
-can be visualized. If you want to do additional things during the build
-process of your Ruby extension you can use the *Makefile* too.
+The *Makefile* is used for building a Ruby extension. You should  define
+define *GEM* (GEM name) and *GEM_RB_FILES* (all Ruby files).
+
+### Pre-Conditions
+
+mrbgems will automatically call the *gem-all* make target of your GEM.
+
+mrbgems will also use the *gem-clean* make target to clean up your GEM. Implement
+this target with the necessary rules!
 
 ### Example
 
@@ -107,17 +113,55 @@ process of your Ruby extension you can use the *Makefile* too.
    +- README.md
 ```
 
-## Current Limitations
+## C and Ruby Extension
 
-The following limitations are currently existing:
+mruby can be extended with C and Ruby at the same time. It is possible to
+override existing classes or add new ones in this way. Put all Ruby files
+into the *mrblib* folder and all C files into the *srclib* folder.
 
-* Gem _MUST NOT_ have a *src* folder in case it doesn't have a 
-  C extension
-* Gem _MUST NOT_ have a *mrblib* folder in case it doesn't have a 
-  Ruby extension
-* Only Ruby files in the root directory of *mrblib* will be integrated
-* C files in the directory of *src* are overriding object files with
-  the same name.
+The *Makefile* is used for building a C and Ruby extension. You should
+define *GEM* (GEM name), *GEM_C_FILES* (all C files), *GEM_OBJECTS*
+(all Object files) and *GEM_RB_FILES* (all Ruby files).
 
-If you have ideas how to fix these issues without implementing to much
-complexity into the code please provide your code or idea.
+### Pre-Conditions
+
+mrbgems will automatically call the *gem-all* make target of your GEM. Make
+sure that you build all files in this target.
+
+mrbgems expects that you have implemented a C method called
+*mrb_YOURGEMNAME_gem_init(mrb_state)*. YOURGEMNAME will be replaced
+by the name of you GEM. The directory name of your GEM is considered also
+as the name! If you call your GEM directory *c_extension_example*, your
+initialisation method could look like this:
+
+```
+void
+mrb_c_extension_example_gem_init(mrb_state* mrb) {
+  _class_cextension = mrb_define_module(mrb, "CExtension");
+  mrb_define_class_method(mrb, _class_cextension, "c_method", mrb_c_method, ARGS_NONE());
+}
+```
+
+mrbgems will also use the *gem-clean* make target to clean up your GEM. Implement
+this target with the necessary rules!
+
+### Example
+
+```
++- c_and_ruby_extension_example/
+   |
+   +- mrblib/
+   |  |
+   |  +- example.rb        <- Ruby extension source
+   |
+   +- src/
+   |  |
+   |  +- example.c         <- C extension source
+   |
+   +- test/
+   |  |
+   |  +- example.rb        <- Test code for C and Ruby extension
+   |
+   +- Makefile
+   |
+   +- README.md
