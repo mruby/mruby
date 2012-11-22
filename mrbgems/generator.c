@@ -13,6 +13,39 @@ char *get_file_name(char *path)
     return base ? base+1 : path;
 }
 
+char *replace(const char *s, const char *old, const char *new)
+{
+  char *ret;
+  int i, count = 0;
+  size_t newlen = strlen(new);
+  size_t oldlen = strlen(old);
+
+  for (i = 0; s[i] != '\0'; i++) {
+    if (strstr(&s[i], old) == &s[i]) {
+      count++;
+      i += oldlen - 1;
+    }
+  }
+
+  ret = malloc(i + count * (newlen - oldlen));
+  if (ret == NULL)
+    exit(EXIT_FAILURE);
+
+  i = 0;
+  while (*s) {
+    if (strstr(s, old) == s) {
+      strcpy(&ret[i], new);
+      i += newlen;
+      s += oldlen;
+    }
+    else
+      ret[i++] = *s++;
+  }
+  ret[i] = '\0';
+
+  return ret;
+}
+
 /*
  * Template generator for each active GEM
  *
@@ -25,8 +58,8 @@ char *get_file_name(char *path)
  *     String at the start of the template
  *   end:
  *     String at the end of the template
- *   dir_to_skip:
- *     Name of a directory which will be skipped
+ *   full_path
+ *     Should the full path of the GEM be used?
  *
  */
 static char*
@@ -76,7 +109,7 @@ for_each_gem (char before[1024], char after[1024],
       strcat(complete_line, gem_list[i]);
     else
       strcat(complete_line, get_file_name(gem_list[i]));
-    strcat(complete_line, after);
+    strcat(complete_line, replace(after, "#GEMNAME#", get_file_name(gem_list[i])));
   }
 
   strcat(complete_line, end);
@@ -161,10 +194,10 @@ void
 make_gem_makefile_list()
 {
   printf("%s",
-         for_each_gem(" ", "", "GEM_LIST := ", "\n", TRUE)
+         for_each_gem(" ", "/mrb-#GEMNAME#-gem.a", "GEM_LIST := ", "\n", TRUE)
         );
 
-  printf("GEM_ARCHIVE_FILES := $(addsuffix /gem.a, $(GEM_LIST))\n"
+  printf("GEM_ARCHIVE_FILES := $(GEM_LIST)\n"
          "GEM_ARCHIVE_FILES += $(MRUBY_ROOT)/mrbgems/gem_init.a\n\n");
 }
 
