@@ -67,7 +67,9 @@ mrb_init_core(mrb_state *mrb)
 #endif
 
   mrb_init_mrblib(mrb);
+#ifdef ENABLE_GEMS
   mrb_init_mrbgems(mrb);
+#endif
 
   mrb_gc_arena_restore(mrb, 0);
 }
