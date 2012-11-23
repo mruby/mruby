@@ -1,6 +1,6 @@
 GEM := c_and_ruby_extension_example
 
-include ../../Makefile4gem
+include $(MAKEFILE_4_GEM)
 
 GEM_C_FILES := $(wildcard $(SRC_DIR)/*.c)
 GEM_OBJECTS := $(patsubst %.c, %.o, $(GEM_C_FILES))

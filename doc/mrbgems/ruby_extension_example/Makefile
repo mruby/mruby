@@ -1,6 +1,6 @@
 GEM := ruby_extension_example
 
-include ../../Makefile4gem
+include $(MAKEFILE_4_GEM)
 
 GEM_RB_FILES := $(wildcard $(MRB_DIR)/*.rb)
 
