@@ -1501,7 +1501,7 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_RETURN:
     codegen(s, tree, VAL);
     pop();
-    if (s->loop && s->loop->type != LOOP_NORMAL) {
+    if (s->loop) {
       genop(s, MKOP_AB(OP_RETURN, cursp(), OP_R_RETURN));
     }
     else {

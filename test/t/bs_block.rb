@@ -389,7 +389,7 @@ assert('BS Block [ruby-core:14395]') do
   t.test_for_bug
 end
 
-assert("BS Block 32") do
+assert("BS Block 33") do
   module TestReturnFromNestedBlock
     def self.test
       1.times do
@@ -401,4 +401,32 @@ assert("BS Block 32") do
     end
   end
   TestReturnFromNestedBlock.test == :ok
+end
+
+assert("BS Block 34") do
+  module TestReturnFromNestedBlock_BSBlock34
+    def self.test
+      1.times do
+        while true
+          return :ok
+        end
+      end
+      :bad
+    end
+  end
+  TestReturnFromNestedBlock_BSBlock34.test == :ok
+end
+
+assert("BS Block 35") do
+  module TestReturnFromNestedBlock_BSBlock35
+    def self.test
+      1.times do
+        until false
+          return :ok
+        end
+      end
+      :bad
+    end
+  end
+  TestReturnFromNestedBlock_BSBlock35.test == :ok
 end
