@@ -12,6 +12,11 @@ ifeq ($(strip $(ENABLE_GEMS)),)
   ENABLE_GEMS = false
 endif
 
+ifeq ($(strip $(ACTIVE_GEMS)),)
+  # the default file which contains the active GEMs
+  ACTIVE_GEMS = mrbgems/GEMS.active
+endif
+
 ifeq ($(strip $(COMPILE_MODE)),)
   # default compile option
   COMPILE_MODE = debug
@@ -27,9 +32,9 @@ endif
 
 ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
 ifeq ($(OS),Windows_NT)
-  MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)' ENABLE_GEMS='$(ENABLE_GEMS)'
+  MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)' ENABLE_GEMS='$(ENABLE_GEMS)' ACTIVE_GEMS='$(ACTIVE_GEMS)'
 else
-  MAKE_FLAGS = --no-print-directory CC='$(CC)' LL='$(LL)' ALL_CFLAGS='$(ALL_CFLAGS)' ENABLE_GEMS='$(ENABLE_GEMS)'
+  MAKE_FLAGS = --no-print-directory CC='$(CC)' LL='$(LL)' ALL_CFLAGS='$(ALL_CFLAGS)' ENABLE_GEMS='$(ENABLE_GEMS)' ACTIVE_GEMS='$(ACTIVE_GEMS)'
 endif
 
 ##############################
