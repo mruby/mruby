@@ -14,7 +14,7 @@ endif
 
 ifeq ($(strip $(ACTIVE_GEMS)),)
   # the default file which contains the active GEMs
-  ACTIVE_GEMS = mrbgems/GEMS.active
+  ACTIVE_GEMS = GEMS.active
 endif
 
 ifeq ($(strip $(COMPILE_MODE)),)
