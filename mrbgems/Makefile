@@ -20,6 +20,11 @@ GEM_MAKEFILE := g/Makefile
 GEM_MAKEFILE_LIST := g/MakefileGemList
 GEMDLIB := g/mrbgemtest.ctmp
 
+ifeq ($(strip $(ACTIVE_GEMS)),)
+  # the default file which contains the active GEMs
+  ACTIVE_GEMS = GEMS.active
+endif
+
 ##############################
 # generic build targets, rules
 
@@ -31,15 +36,15 @@ $(GEM_INIT).a : $(GEM_INIT).o
 
 all_gems : $(GENERATOR_BIN)
 	@echo "Generate Gem List Makefile"
-	$(GENERATOR_BIN) makefile_list > $(GEM_MAKEFILE_LIST)
+	$(GENERATOR_BIN) makefile_list "$(ACTIVE_GEMS)" > $(GEM_MAKEFILE_LIST)
 	@echo "Generate Gem Makefile"
-	$(GENERATOR_BIN) makefile > $(GEM_MAKEFILE)
+	$(GENERATOR_BIN) makefile "$(ACTIVE_GEMS)" > $(GEM_MAKEFILE)
 	@echo "Build all gems"
 	$(MAKE) -C g
 
 $(GEM_INIT).c : $(GENERATOR_BIN)
 	@echo "Generate Gem driver"
-	$(GENERATOR_BIN) $(GEM_INIT) > $@
+	$(GENERATOR_BIN) $(GEM_INIT) "$(ACTIVE_GEMS)" > $@
 
 $(GEM_INIT).o : $(GEM_INIT).c
 	@echo "Build the driver which initializes all gems"
@@ -56,12 +61,12 @@ $(GENERATOR).o : $(GENERATOR).c
 
 .PHONY : prepare-test
 prepare-test :
-	@$(MAKE) prepare-test -C g
+	@$(MAKE) prepare-test -C g ACTIVE_GEMS="$(ACTIVE_GEMS)"
 
 # clean driver and all gems
 .PHONY : clean
 clean : $(GENERATOR_BIN)
 	@echo "Cleanup Gems"
-	$(GENERATOR_BIN) makefile > $(GEM_MAKEFILE)
+	$(GENERATOR_BIN) makefile "$(ACTIVE_GEMS)" > $(GEM_MAKEFILE)
 	$(MAKE) clean -C g
 	-$(RM_F) $(GEM_INIT).c *.o *.d $(GENERATOR_BIN) $(GEM_MAKEFILE) $(GEM_MAKEFILE_LIST) gem_init.a
