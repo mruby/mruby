@@ -402,17 +402,3 @@ assert("BS Block 32") do
   end
   TestReturnFromNestedBlock.test == :ok
 end
-
-assert("BS Block 33") do
-  module TestReturnFromWhileBlockInIteratorBlock
-    def self.test
-      1.times do
-        while true
-          return :ok
-        end
-      end
-      :bad
-    end
-  end
-  TestReturnFromWhileBlockInIteratorBlock.test == :ok
-end
