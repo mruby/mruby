@@ -1,6 +1,10 @@
 # makefile description.
 # add gems to the ruby library
 
+ifeq ($(strip $(MRUBY_ROOT)),)
+  MRUBY_ROOT := $(realpath ..)
+endif
+
 LIBR := ../lib/libmruby.a
 RM_F := rm -f
 CC_FLAGS := -Wall -Werror-implicit-function-declaration -g -O3 -MMD -I. -I./../include
@@ -9,7 +13,7 @@ export CC = gcc
 export LL = gcc
 export AR = ar
 
-GENERATOR := ./generator
+GENERATOR := $(MRUBY_ROOT)/mrbgems/generator
 ifeq ($(OS),Windows_NT)
   GENERATOR_BIN := $(GENERATOR).exe
 else
@@ -40,7 +44,7 @@ all_gems : $(GENERATOR_BIN)
 	@echo "Generate Gem Makefile"
 	$(GENERATOR_BIN) makefile "$(ACTIVE_GEMS)" > $(GEM_MAKEFILE)
 	@echo "Build all gems"
-	$(MAKE) -C g
+	$(MAKE) -C g MRUBY_ROOT='$(MRUBY_ROOT)' ACTIVE_GEMS="$(ACTIVE_GEMS)"
 
 $(GEM_INIT).c : $(GENERATOR_BIN)
 	@echo "Generate Gem driver"
@@ -61,12 +65,12 @@ $(GENERATOR).o : $(GENERATOR).c
 
 .PHONY : prepare-test
 prepare-test :
-	@$(MAKE) prepare-test -C g ACTIVE_GEMS="$(ACTIVE_GEMS)"
+	@$(MAKE) prepare-test -C g ACTIVE_GEMS="$(ACTIVE_GEMS)" MRUBY_ROOT='$(MRUBY_ROOT)'
 
 # clean driver and all gems
 .PHONY : clean
 clean : $(GENERATOR_BIN)
 	@echo "Cleanup Gems"
 	$(GENERATOR_BIN) makefile "$(ACTIVE_GEMS)" > $(GEM_MAKEFILE)
-	$(MAKE) clean -C g
+	$(MAKE) clean -C g ACTIVE_GEMS="$(ACTIVE_GEMS)" MRUBY_ROOT='$(MRUBY_ROOT)'
 	-$(RM_F) $(GEM_INIT).c *.o *.d $(GENERATOR_BIN) $(GEM_MAKEFILE) $(GEM_MAKEFILE_LIST) gem_init.a

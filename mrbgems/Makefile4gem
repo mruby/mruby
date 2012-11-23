@@ -4,7 +4,7 @@
 
 ifeq ($(strip $(MRUBY_ROOT)),)
   # mruby src root
-  MRUBY_ROOT := ../../../
+  MRUBY_ROOT := $(realpath ../../..)
 endif
 
 # Tools
@@ -15,13 +15,13 @@ AR := ar
 SRC_DIR := src
 MRB_DIR := mrblib
 
-INCLUDES := -I$(SRC_DIR) -I$(MRUBY_ROOT)include -I$(MRUBY_ROOT)src -I.
+INCLUDES := -I$(SRC_DIR) -I$(MRUBY_ROOT)/include -I$(MRUBY_ROOT)/src -I.
 CFLAGS := $(INCLUDES) -O3 -g -Wall -Werror-implicit-function-declaration
 
 # LIBR can be manipulated with command line arguments
 ifeq ($(strip $(LIBR)),)
   # default mruby library
-  LIBR := $(MRUBY_ROOT)lib/libmruby.a
+  LIBR := $(MRUBY_ROOT)/lib/libmruby.a
 endif
 
 GEM_PACKAGE := mrb-$(GEM)-gem.a
@@ -49,14 +49,14 @@ gem_mixlib.c : gem_mrblib_header.ctmp gem_mrblib_irep.ctmp gem_mixlib_init.ctmp
 	cat $^ > $@
 
 gem_mixlib_init.ctmp :
-	$(MRUBY_ROOT)mrbgems/generator gem_mixlib $(GEM) "$(ACTIVE_GEMS)" > $@
+	$(MRUBY_ROOT)/mrbgems/generator gem_mixlib $(GEM) "$(ACTIVE_GEMS)" > $@
 
 # Building target for C files
 gem-c-files : gem_srclib.o
 	$(AR) rs $(GEM_PACKAGE) $(GEM_OBJECTS) $<
 
 gem_srclib.c :
-	$(MRUBY_ROOT)mrbgems/generator gem_srclib $(GEM) "$(ACTIVE_GEMS)" > $@
+	$(MRUBY_ROOT)/mrbgems/generator gem_srclib $(GEM) "$(ACTIVE_GEMS)" > $@
 
 # Building target for Ruby Files
 gem-rb-files : gem_mrblib.o
@@ -66,13 +66,13 @@ gem_mrblib.c : gem_mrblib_header.ctmp gem_mrblib_irep.ctmp gem_mrblib_init.ctmp
 	cat $^ > $@
 
 gem_mrblib_header.ctmp :
-	$(MRUBY_ROOT)mrbgems/generator gem_mrblib "$(ACTIVE_GEMS)" > $@
+	$(MRUBY_ROOT)/mrbgems/generator gem_mrblib "$(ACTIVE_GEMS)" > $@
 
 gem_mrblib_init.ctmp :
-	$(MRUBY_ROOT)mrbgems/generator gem_mrblib $(GEM) "$(ACTIVE_GEMS)" > $@
+	$(MRUBY_ROOT)/mrbgems/generator gem_mrblib $(GEM) "$(ACTIVE_GEMS)" > $@
 
 gem_mrblib_irep.ctmp : gem_mrblib.rbtmp
-	$(MRUBY_ROOT)bin/mrbc -Bgem_mrblib_irep_$(GEM) -o$@ $<
+	$(MRUBY_ROOT)/bin/mrbc -Bgem_mrblib_irep_$(GEM) -o$@ $<
 
 gem_mrblib.rbtmp :
 	cat $(GEM_RB_FILES) > $@

@@ -129,11 +129,15 @@ make_gem_makefile(char active_gems[1024])
   char *gem_check = { 0 };
   int gem_empty;
 
-  printf("CFLAGS := -I. -I../../include -I../../src\n\n"
+  printf("ifeq ($(strip $(MRUBY_ROOT)),)\n"
+         "  MRUBY_ROOT := $(realpath ../../..)\n"
+         "endif\n\n"
+         "MAKEFILE_4_GEM := $(MRUBY_ROOT)/mrbgems/Makefile4gem\n\n"
+         "CFLAGS := -I. -I$(MRUBY_ROOT)/include -I$(MRUBY_ROOT)/src\n\n"
          "ifeq ($(OS),Windows_NT)\n"
-         "MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)'\n"
+         "  MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)' MRUBY_ROOT='$(MRUBY_ROOT)' MAKEFILE_4_GEM='$(MAKEFILE_4_GEM)'\n"
          "else\n"
-         "MAKE_FLAGS = --no-print-directory CC='$(CC)' LL='$(LL)' ALL_CFLAGS='$(ALL_CFLAGS)'\n"
+         "  MAKE_FLAGS = --no-print-directory CC='$(CC)' LL='$(LL)' ALL_CFLAGS='$(ALL_CFLAGS)' MRUBY_ROOT='$(MRUBY_ROOT)' MAKEFILE_4_GEM='$(MAKEFILE_4_GEM)'\n"
          "endif\n\n");
 
   /* is there any GEM available? */
@@ -168,9 +172,9 @@ make_gem_makefile(char active_gems[1024])
            for_each_gem(" ", "/test/*.rb ", "\tcat", " > mrbgemtest.rbtmp", TRUE, active_gems)
           );
   else
-    printf("\t../generator rbtmp \"%s\"> mrbgemtest.rbtmp", active_gems);
+    printf("\t$(MRUBY_ROOT)/mrbgems/generator rbtmp \"%s\"> mrbgemtest.rbtmp", active_gems);
 
-  printf("\n\t../../bin/mrbc -Bmrbgemtest_irep -omrbgemtest.ctmp mrbgemtest.rbtmp\n\n");
+  printf("\n\t$(MRUBY_ROOT)/bin/mrbc -Bmrbgemtest_irep -omrbgemtest.ctmp mrbgemtest.rbtmp\n\n");
 
   /* Makefile Rules to Clean GEMs */
 
