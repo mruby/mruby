@@ -389,7 +389,7 @@ assert('BS Block [ruby-core:14395]') do
   t.test_for_bug
 end
 
-assert("BS Block 32") do
+assert("BS Block 33") do
   module TestReturnFromNestedBlock
     def self.test
       1.times do
