@@ -416,3 +416,17 @@ assert("BS Block 34") do
   end
   TestReturnFromNestedBlock_BSBlock34.test == :ok
 end
+
+assert("BS Block 35") do
+  module TestReturnFromNestedBlock_BSBlock35
+    def self.test
+      1.times do
+        until false
+          return :ok
+        end
+      end
+      :bad
+    end
+  end
+  TestReturnFromNestedBlock_BSBlock35.test == :ok
+end
