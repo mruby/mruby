@@ -402,3 +402,17 @@ assert("BS Block 33") do
   end
   TestReturnFromNestedBlock.test == :ok
 end
+
+assert("BS Block 34") do
+  module TestReturnFromNestedBlock_BSBlock34
+    def self.test
+      1.times do
+        while true
+          return :ok
+        end
+      end
+      :bad
+    end
+  end
+  TestReturnFromNestedBlock_BSBlock34.test == :ok
+end
