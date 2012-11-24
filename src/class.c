@@ -723,6 +723,24 @@ mrb_mod_include(mrb_state *mrb, mrb_value klass)
 }
 
 static mrb_value
+mrb_mod_include_p(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value mod2;
+  struct RClass *c = mrb_class_ptr(mod);
+
+  mrb_get_args(mrb, "o", &mod2);
+  mrb_check_type(mrb, mod2, MRB_TT_MODULE);
+
+  while (c) {
+    if (c->tt == MRB_TT_ICLASS) {
+      if (c->c == mrb_class_ptr(mod2)) return mrb_true_value();
+    }
+    c = c->super;
+  }
+  return mrb_false_value();
+}
+ 
+static mrb_value
 mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
 {
   mrb_value result;
@@ -1424,6 +1442,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "extend_object", mrb_mod_extend_object, ARGS_REQ(1));  /* 15.2.2.4.25 */
   mrb_define_method(mrb, mod, "extended", mrb_bob_init, ARGS_REQ(1));                /* 15.2.2.4.26 */
   mrb_define_method(mrb, mod, "include", mrb_mod_include, ARGS_ANY());               /* 15.2.2.4.27 */
+  mrb_define_method(mrb, mod, "include?", mrb_mod_include_p, ARGS_REQ(1));           /* 15.2.2.4.28 */
   mrb_define_method(mrb, mod, "append_features", mrb_mod_append_features, ARGS_REQ(1)); /* 15.2.2.4.10 */
   mrb_define_method(mrb, mod, "included", mrb_bob_init, ARGS_REQ(1));                /* 15.2.2.4.29 */
   mrb_define_method(mrb, mod, "included_modules", mrb_mod_included_modules, ARGS_NONE()); /* 15.2.2.4.30 */
