@@ -3,6 +3,20 @@
 mrbgems is a library manager to integrate C and Ruby extension in an easy and
 standardised way into mruby.
 
+## Usage
+
+By default mrbgems is currently deactivated. As long as mrbgems is deactivated
+there is no overhead inside of the mruby interpreter.
+
+To activate you have to make the following changes:
+* set *ENABLE_GEMS* to *true* in *$(MRUBY_ROOT)/Makefile*
+* define *ENABLE_GEMS* in *$(MRUBY_ROOT)/include/mrbconf.h*
+* activate GEMs in *$(MRUBY_ROOT)/mrbgems/GEMS.active*
+
+Every activated GEM has to be listed with his absolute path in *GEMS.active*. It
+is possible to point to an alternative activate file:
+* set *ACTIVE_GEMS* to your customized GEM list in *$(MRUBY_ROOT)/Makefile*
+
 ## GEM Structure
 
 The maximal GEM structure looks like this:
@@ -27,8 +41,6 @@ for testing purposes which will be used by mrbtest. The *Makefile* contains
 rules to build a *gem.a* file inside of the GEM directory. Which will be used
 for integration into the normal mruby build process. *README.md* is a short 
 description of your GEM.
-
-All GEMs have to be located under *$(MRUBY_ROOT)/mrbgems/g/*.
 
 ## Build process
 
