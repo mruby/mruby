@@ -92,6 +92,20 @@ assert('Module#include', '15.2.2.4.27') do
   Test4Include2.const_get(:Const4Include) == 42
 end
 
+assert('Module#include?', '15.2.2.4.28') do
+  module Test4IncludeP
+  end
+  class Test4IncludeP2
+    include Test4IncludeP
+  end
+  class Test4IncludeP3 < Test4IncludeP2
+  end
+
+  Test4IncludeP2.include?(Test4IncludeP) &&
+  Test4IncludeP3.include?(Test4IncludeP) &&
+  ! Test4IncludeP.include?(Test4IncludeP)
+end
+
 assert('Module#included', '15.2.2.4.29') do
   module Test4Included
     Const4Included = 42
