@@ -722,6 +722,25 @@ mrb_mod_include(mrb_state *mrb, mrb_value klass)
   return klass;
 }
 
+/* 15.2.2.4.28 */
+/*
+ *  call-seq:
+ *     mod.include?(module)    -> true or false
+ *
+ *  Returns <code>true</code> if <i>module</i> is included in
+ *  <i>mod</i> or one of <i>mod</i>'s ancestors.
+ *
+ *     module A
+ *     end
+ *     class B
+ *       include A
+ *     end
+ *     class C < B
+ *     end
+ *     B.include?(A)   #=> true
+ *     C.include?(A)   #=> true
+ *     A.include?(A)   #=> false
+ */
 static mrb_value
 mrb_mod_include_p(mrb_state *mrb, mrb_value mod)
 {
