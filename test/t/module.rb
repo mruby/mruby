@@ -132,6 +132,26 @@ assert('Module#included_modules', '15.2.2.4.30') do
   r.class == Array and r.include?(Test4includedModules)
 end
 
+assert('Module#instance_methods', '15.2.2.4.33') do
+   module Test4InstanceMethodsA
+     def method1()  end
+   end
+   class Test4InstanceMethodsB
+     def method2()  end
+   end
+   class Test4InstanceMethodsC < Test4InstanceMethodsB
+     def method3()  end
+   end
+
+   r = Test4InstanceMethodsC.instance_methods(true)
+
+   Test4InstanceMethodsA.instance_methods              == [:method1] and
+   Test4InstanceMethodsB.instance_methods(false)       == [:method2] and
+   Test4InstanceMethodsC.instance_methods(false)       == [:method3] and
+   r.class == Array and r.include?(:method3) and r.include?(:method2)
+end
+
+
 # Not ISO specified
 
 assert('Module#to_s') do
