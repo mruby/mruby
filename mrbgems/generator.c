@@ -201,8 +201,8 @@ make_gem_makefile_list(char active_gems[1024])
          for_each_gem(" ", "/mrb-#GEMNAME#-gem.a", "GEM_LIST := ", "\n", TRUE, active_gems)
         );
 
-  printf("GEM_ARCHIVE_FILES := $(GEM_LIST)\n"
-         "GEM_ARCHIVE_FILES += $(MRUBY_ROOT)/mrbgems/gem_init.a\n\n");
+  printf("GEM_ARCHIVE_FILES := $(MRUBY_ROOT)/mrbgems/gem_init.a\n"
+         "GEM_ARCHIVE_FILES += $(GEM_LIST)\n\n");
 }
 
 /*
