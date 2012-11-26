@@ -807,6 +807,19 @@ mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
   return result;
 }
 
+mrb_value class_instance_method_list(mrb_state*, int, mrb_value*, struct RClass*, int);
+
+static mrb_value
+mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value *argv;
+  int argc;
+  struct RClass *c = mrb_class_ptr(mod);
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  return class_instance_method_list(mrb, argc, argv, c, 0);
+}
+
 mrb_value
 mrb_singleton_class(mrb_state *mrb, mrb_value v)
 {
@@ -1465,6 +1478,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "append_features", mrb_mod_append_features, ARGS_REQ(1)); /* 15.2.2.4.10 */
   mrb_define_method(mrb, mod, "included", mrb_bob_init, ARGS_REQ(1));                /* 15.2.2.4.29 */
   mrb_define_method(mrb, mod, "included_modules", mrb_mod_included_modules, ARGS_NONE()); /* 15.2.2.4.30 */
+  mrb_define_method(mrb, mod, "instance_methods", mrb_mod_instance_methods, ARGS_ANY());  /* 15.2.2.4.33 */
 
   mrb_define_method(mrb, mod, "to_s", mrb_mod_to_s, ARGS_NONE());
   mrb_define_method(mrb, mod, "inspect", mrb_mod_to_s, ARGS_NONE());
