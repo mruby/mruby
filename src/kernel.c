@@ -717,7 +717,7 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, mrb_value ary)
   }
 }
 
-static mrb_value
+mrb_value
 class_instance_method_list(mrb_state *mrb, int argc, mrb_value *argv, struct RClass* klass, int obj)
 {
   mrb_value ary;
