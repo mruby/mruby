@@ -850,6 +850,17 @@ mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
 
 mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
 
+/* 15.2.2.4.35 */
+/*
+ *  call-seq:
+ *     mod.class_eval {| | block }  -> obj
+ *     mod.module_eval {| | block } -> obj
+ *
+ *  Evaluates block in the context of _mod_. This can
+ *  be used to add methods to a class. <code>module_eval</code> returns
+ *  the result of evaluating its argument.
+ */
+
 mrb_value
 mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
 {
