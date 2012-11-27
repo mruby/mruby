@@ -5,6 +5,7 @@
 */
 
 #include "mruby.h"
+#ifdef ENABLE_ERRNO
 #include "mruby/array.h"
 #include "mruby/hash.h"
 #include "mruby/class.h"
@@ -15,57 +16,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef ENABLE_ERRNO
-static struct _errno2class {
-  mrb_int no;
-  struct RClass *cl;
-} errno2class[] = {
-#include "known_errors_e2c.cstub"
-};
-
-#define ERRNO2CLASS_LEN		(sizeof(errno2class) / sizeof(errno2class[0]))
-
-static int
-e2c_cmp(const void *a0, const void *b0)
-{
-  const struct _errno2class *a = a0, *b = b0;
-  return a->no - b->no;
-}
-
-static struct RClass *
-e2c_lookup(mrb_int no)
-{
-  int i;
-  for (i = 0; i < ERRNO2CLASS_LEN; i++) {
-    if (errno2class[i].no == no)
-      return errno2class[i].cl;
-  }
-  return NULL;
-}
-
-static void
-e2c_set(int no, struct RClass *c)
-{
-  int i;
-  for (i = 0; i < ERRNO2CLASS_LEN; i++) {
-    if (errno2class[i].no == no) {
-      errno2class[i].cl = c;
-      return;
-    }
-  }
-}
-
-static void
-e2c_sort(void)
-{
-  qsort(errno2class, ERRNO2CLASS_LEN, sizeof(errno2class[0]), e2c_cmp);
-}
-
 static mrb_value
 mrb_sce_init(mrb_state *mrb, mrb_value self)
 {
-  struct RClass *c;
-  mrb_value m, str;
+  mrb_value c, m, str;
   mrb_int n;
   int argc, no_errno = 0;
   char buf[20];
@@ -80,9 +34,11 @@ mrb_sce_init(mrb_state *mrb, mrb_value self)
     }
   }
   if (!no_errno) {
-    c = e2c_lookup(n);
-    if (c) {
-      mrb_basic(self)->c = c;
+    struct RClass *eno = mrb_class_get(mrb, "Errno");
+    mrb_value e2c = mrb_const_get(mrb, mrb_obj_value(eno), mrb_intern(mrb, "Errno2class"));
+    c = mrb_hash_fetch(mrb, e2c, mrb_fixnum_value(n), mrb_nil_value());
+    if (!mrb_nil_p(c)) {
+      mrb_basic(self)->c = mrb_class_ptr(c);
       str = mrb_str_new2(mrb, strerror(n));
     } else {
       mrb_iv_set(mrb, self, mrb_intern(mrb, "errno"), mrb_fixnum_value(n));
@@ -169,9 +125,7 @@ void
 mrb_init_errno(mrb_state *mrb)
 {
   struct RClass *e, *eno, *sce, *ste;
-  mrb_value noerror;
-
-  e2c_sort();
+  mrb_value h, noerror;
 
   ste = mrb_class_obj_get(mrb, "StandardError");
 
@@ -181,6 +135,8 @@ mrb_init_errno(mrb_state *mrb)
   mrb_define_method(mrb, sce, "initialize", mrb_sce_init, ARGS_REQ(1)|ARGS_OPT(1));
 
   eno = mrb_define_module(mrb, "Errno");
+  h = mrb_hash_new(mrb);
+  mrb_define_const(mrb, eno, "Errno2class", h);
 
   e = mrb_define_class_under(mrb, eno, "NOERROR", sce);
   mrb_define_const(mrb, e, "Errno", mrb_fixnum_value(0));
@@ -194,7 +150,7 @@ mrb_init_errno(mrb_state *mrb)
     e = mrb_define_class_under(mrb, eno, #SYM, sce);			\
     mrb_define_const(mrb, e, "Errno", mrb_fixnum_value(SYM));		\
     mrb_define_method(mrb, e, "initialize", mrb_exxx_init, ARGS_OPT(1)); \
-    e2c_set(SYM, e);							\
+    mrb_hash_set(mrb, h, mrb_fixnum_value(SYM), mrb_obj_value(e));	\
     mrb_gc_arena_restore(mrb, ai);					\
   } while (0)
 
