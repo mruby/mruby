@@ -848,6 +848,21 @@ mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
   return class_instance_method_list(mrb, argc, argv, c, 0);
 }
 
+mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
+
+mrb_value
+mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value a, b;
+  struct RClass *c;
+
+  if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
+    mrb_raise(mrb, E_NOTIMP_ERROR, "module_eval/class_eval with string not implemented");
+  }
+  c = mrb_class_ptr(mod);
+  return mrb_yield_internal(mrb, b, 0, 0, mod, c);
+}
+
 mrb_value
 mrb_singleton_class(mrb_state *mrb, mrb_value v)
 {
@@ -1507,6 +1522,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "included", mrb_bob_init, ARGS_REQ(1));                /* 15.2.2.4.29 */
   mrb_define_method(mrb, mod, "included_modules", mrb_mod_included_modules, ARGS_NONE()); /* 15.2.2.4.30 */
   mrb_define_method(mrb, mod, "instance_methods", mrb_mod_instance_methods, ARGS_ANY());  /* 15.2.2.4.33 */
+  mrb_define_method(mrb, mod, "module_eval", mrb_mod_module_eval, ARGS_ANY());            /* 15.2.2.4.35 */
 
   mrb_define_method(mrb, mod, "to_s", mrb_mod_to_s, ARGS_NONE());
   mrb_define_method(mrb, mod, "inspect", mrb_mod_to_s, ARGS_NONE());
