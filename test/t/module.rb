@@ -151,6 +151,14 @@ assert('Module#instance_methods', '15.2.2.4.33') do
    r.class == Array and r.include?(:method3) and r.include?(:method2)
 end
 
+assert('Module#module_eval', '15.2.2.4.35') do
+   module Test4ModuleEval
+     @a = 11
+     @b = 12
+   end
+   Test4ModuleEval.module_eval{ @a } == 11 and
+   Test4ModuleEval.module_eval{ @b } == 12
+end
 
 # Not ISO specified
 
