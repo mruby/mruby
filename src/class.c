@@ -807,6 +807,47 @@ mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
   return result;
 }
 
+mrb_value class_instance_method_list(mrb_state*, int, mrb_value*, struct RClass*, int);
+
+/* 15.2.2.4.33 */
+/*
+ *  call-seq:
+ *     mod.instance_methods(include_super=true)   -> array
+ *
+ *  Returns an array containing the names of the public and protected instance
+ *  methods in the receiver. For a module, these are the public and protected methods;
+ *  for a class, they are the instance (not singleton) methods. With no
+ *  argument, or with an argument that is <code>false</code>, the
+ *  instance methods in <i>mod</i> are returned, otherwise the methods
+ *  in <i>mod</i> and <i>mod</i>'s superclasses are returned.
+ *
+ *     module A
+ *       def method1()  end
+ *     end
+ *     class B
+ *       def method2()  end
+ *     end
+ *     class C < B
+ *       def method3()  end
+ *     end
+ *
+ *     A.instance_methods                #=> [:method1]
+ *     B.instance_methods(false)         #=> [:method2]
+ *     C.instance_methods(false)         #=> [:method3]
+ *     C.instance_methods(true).length   #=> 43
+ */
+
+static mrb_value
+mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value *argv;
+  int argc;
+  struct RClass *c = mrb_class_ptr(mod);
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  return class_instance_method_list(mrb, argc, argv, c, 0);
+}
+
 mrb_value
 mrb_singleton_class(mrb_state *mrb, mrb_value v)
 {
@@ -1465,6 +1506,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "append_features", mrb_mod_append_features, ARGS_REQ(1)); /* 15.2.2.4.10 */
   mrb_define_method(mrb, mod, "included", mrb_bob_init, ARGS_REQ(1));                /* 15.2.2.4.29 */
   mrb_define_method(mrb, mod, "included_modules", mrb_mod_included_modules, ARGS_NONE()); /* 15.2.2.4.30 */
+  mrb_define_method(mrb, mod, "instance_methods", mrb_mod_instance_methods, ARGS_ANY());  /* 15.2.2.4.33 */
 
   mrb_define_method(mrb, mod, "to_s", mrb_mod_to_s, ARGS_NONE());
   mrb_define_method(mrb, mod, "inspect", mrb_mod_to_s, ARGS_NONE());
