@@ -37,7 +37,7 @@ The maximal GEM structure looks like this:
 
 The folder *mrblib* contains pure Ruby files to extend mruby. The folder *src*
 contains C files to extend mruby. The folder *test* contains pure Ruby files
-for testing purposes which will be used by mrbtest. The *Makefile* contains
+for testing purposes which will be used by *mrbtest*. The *Makefile* contains
 rules to build a *gem.a* file inside of the GEM directory. Which will be used
 for integration into the normal mruby build process. *README.md* is a short 
 description of your GEM.
