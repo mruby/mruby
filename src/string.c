@@ -2511,7 +2511,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     return mrb_fixnum_value(result);
   }
 bad:
-  mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalide string for number(%s)", str);
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for number(%s)", str);
   /* not reached */
   return mrb_fixnum_value(0);
 }
@@ -2621,7 +2621,7 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, int badcheck)
   if (p == end) {
     if (badcheck) {
 bad:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalide string for float(%s)", p);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for float(%s)", p);
       /* not reached */
     }
     return d;
