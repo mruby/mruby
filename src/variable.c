@@ -256,7 +256,7 @@ iv_free(mrb_state *mrb, iv_tbl *t)
 #endif
 
 KHASH_DECLARE(iv, mrb_sym, mrb_value, 1)
-KHASH_DEFINE(iv, mrb_sym, mrb_value, 1, kh_int_hash_func, kh_int_hash_equal);
+KHASH_DEFINE(iv, mrb_sym, mrb_value, 1, kh_int_hash_func, kh_int_hash_equal)
 
 typedef struct iv_tbl {
   khash_t(iv) h;
