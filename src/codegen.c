@@ -1412,7 +1412,6 @@ codegen(codegen_scope *s, node *tree, int val)
 	codegen(s, tree->cdr->cdr->car, VAL);
 	pop();
 	gen_assignment(s, tree->car, cursp(), val);
-	if (val) pop();
 	dispatch(s, pos);
 	break;
       }
