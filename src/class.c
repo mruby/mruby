@@ -15,7 +15,7 @@
 #include "mruby/array.h"
 #include "error.h"
 
-KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal);
+KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal)
 
 typedef struct fc_result {
     mrb_sym name;
