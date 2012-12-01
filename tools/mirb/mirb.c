@@ -5,7 +5,7 @@
 ** an interactive way and executes it
 ** immediately. It's a REPL...
 */
- 
+
 #include <string.h>
 
 #include <mruby.h>
@@ -150,7 +150,7 @@ print_cmdline(int code_block_open)
 int
 main(int argc, char **argv)
 {
-  char last_char;
+  int last_char;
   char ruby_code[1024] = { 0 };
   char last_code_line[1024] = { 0 };
   int char_index;
@@ -164,7 +164,7 @@ main(int argc, char **argv)
 
   print_hint();
 
-  /* new interpreter instance */ 
+  /* new interpreter instance */
   mrb = mrb_open();
   if (mrb == NULL) {
     fprintf(stderr, "Invalid mrb interpreter, exiting mirb");
@@ -233,7 +233,7 @@ main(int argc, char **argv)
     parser->send = ruby_code + strlen(ruby_code);
     parser->lineno = 1;
     mrb_parser_parse(parser, cxt);
-    code_block_open = is_code_block_open(parser); 
+    code_block_open = is_code_block_open(parser);
 
     if (code_block_open) {
       /* no evaluation of code */
