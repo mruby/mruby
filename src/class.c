@@ -7,6 +7,7 @@
 #include "mruby.h"
 #include <stdarg.h>
 #include <stdio.h>
+#include <ctype.h>
 #include "mruby/class.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
@@ -1440,6 +1441,18 @@ mrb_sym_value(mrb_state *mrb, mrb_value val)
          mrb_string_value_ptr(mrb, obj));
   }
   return mrb_symbol(val);
+}
+
+static void
+check_const_name(mrb_state *mrb, mrb_sym id)
+{
+  const char *s;
+  int len;
+
+  s = mrb_sym2name_len(mrb, id, &len);
+  if (len < 1 || !ISUPPER(*s)) {
+    mrb_name_error(mrb, id, "wrong constant name %s", s);
+  }
 }
 
 mrb_value
