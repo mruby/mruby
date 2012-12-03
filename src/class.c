@@ -1460,6 +1460,8 @@ mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_value sym;
   mrb_get_args(mrb, "o", &sym);
+
+  check_const_name(mrb, mrb_sym_value(mrb,sym));
   if(mrb_const_defined(mrb, mod, mrb_sym_value(mrb, sym))) {
     return mrb_true_value();
   }
