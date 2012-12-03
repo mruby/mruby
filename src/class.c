@@ -7,6 +7,7 @@
 #include "mruby.h"
 #include <stdarg.h>
 #include <stdio.h>
+#include <ctype.h>
 #include "mruby/class.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
@@ -1442,11 +1443,25 @@ mrb_sym_value(mrb_state *mrb, mrb_value val)
   return mrb_symbol(val);
 }
 
+static void
+check_const_name(mrb_state *mrb, mrb_sym id)
+{
+  const char *s;
+  int len;
+
+  s = mrb_sym2name_len(mrb, id, &len);
+  if (len < 1 || !ISUPPER(*s)) {
+    mrb_name_error(mrb, id, "wrong constant name %s", s);
+  }
+}
+
 mrb_value
 mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_value sym;
   mrb_get_args(mrb, "o", &sym);
+
+  check_const_name(mrb, mrb_sym_value(mrb,sym));
   if(mrb_const_defined(mrb, mod, mrb_sym_value(mrb, sym))) {
     return mrb_true_value();
   }
@@ -1458,6 +1473,8 @@ mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
 {
   mrb_value sym;
   mrb_get_args(mrb, "o", &sym);
+
+  check_const_name(mrb, mrb_sym_value(mrb,sym));
   return mrb_const_get(mrb, mod, mrb_sym_value(mrb, sym));
 }
 
@@ -1466,6 +1483,8 @@ mrb_mod_const_set(mrb_state *mrb, mrb_value mod)
 {
   mrb_value sym, value;
   mrb_get_args(mrb, "oo", &sym, &value);
+
+  check_const_name(mrb, mrb_sym_value(mrb,sym));
   mrb_const_set(mrb, mod, mrb_sym_value(mrb, sym), value);
   return value;
 }
