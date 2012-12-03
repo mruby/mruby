@@ -1483,6 +1483,8 @@ mrb_mod_const_set(mrb_state *mrb, mrb_value mod)
 {
   mrb_value sym, value;
   mrb_get_args(mrb, "oo", &sym, &value);
+
+  check_const_name(mrb, mrb_sym_value(mrb,sym));
   mrb_const_set(mrb, mod, mrb_sym_value(mrb, sym), value);
   return value;
 }
