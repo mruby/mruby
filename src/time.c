@@ -395,7 +395,7 @@ mrb_time_yday(mrb_state *mrb, mrb_value self)
 
   tm = (struct mrb_time *)mrb_check_datatype(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
-  return mrb_fixnum_value(tm->datetime.tm_yday);
+  return mrb_fixnum_value(tm->datetime.tm_yday + 1);
 }
 
 /* 15.2.19.7.32 */
