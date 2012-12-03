@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <errno.h>
 
 #ifdef ENABLE_PROCESS
 mrb_value
@@ -79,6 +80,37 @@ mrb_f_fork(mrb_state *mrb, mrb_value klass)
   default:
     return mrb_fixnum_value(pid);
   }
+}
+
+static int
+mrb_waitpid(int pid, int flags, int *st)
+{
+  int result;
+
+ retry:
+  result = waitpid(pid, st, flags);
+  if (result < 0) {
+    if (errno == EINTR) {
+      goto retry;
+    }
+    return -1;
+  }
+
+  return result;
+}
+
+static mrb_value
+mrb_f_waitpid(mrb_state *mrb, mrb_value klass)
+{
+  mrb_int pid, flags = 0;
+  int status;
+
+  mrb_get_args(mrb, "i|i", &pid, &flags);
+
+  if ((pid = mrb_waitpid(pid, flags, &status)) < 0)
+    mrb_sys_fail(mrb, "waitpid failed");
+
+  return mrb_fixnum_value(pid);
 }
 
 mrb_value
@@ -194,6 +226,7 @@ mrb_init_process(mrb_state *mrb)
   p = mrb_define_module(mrb, "Process");
   mrb_define_class_method(mrb, p, "kill", mrb_f_kill, ARGS_ANY());
   mrb_define_class_method(mrb, p, "fork", mrb_f_fork, ARGS_NONE());
+  mrb_define_class_method(mrb, p, "waitpid", mrb_f_waitpid, ARGS_ANY());
   mrb_define_class_method(mrb, p, "pid", mrb_f_pid, ARGS_NONE());
   mrb_define_class_method(mrb, p, "ppid", mrb_f_ppid, ARGS_NONE());
 

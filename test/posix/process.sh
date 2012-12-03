@@ -38,6 +38,22 @@ if Object.const_defined?(:Process)
       Process.ppid.is_a? Integer
     end
   end
+
+  assert('Process.fork') do
+    pid = Process.fork { sleep 0 }
+    Process.waitpid(pid, 0) == pid
+  end
+
+  assert('Process.waitpid') do
+    proc_ary = []
+    3.times {|n|
+      proc_ary.push(Process.fork { sleep n * 0.1 })
+    }
+    proc_ary.each do |p|
+      Process.waitpid(p)
+      puts "wait #{p} done"
+    end
+  end
 end
 
 report
