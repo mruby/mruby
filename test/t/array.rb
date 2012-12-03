@@ -74,8 +74,8 @@ assert('Array#[]=', '15.2.12.5.5') do
     e3 = e1
   end
 
-  [1,2,3].[]=(1,4) == [1, 4, 3] and
-  [1,2,3].[]=(1,2,3) == [1, 3] and
+  [1,2,3].[]=(1,4) == 4 and
+  [1,2,3].[]=(1,2,3) == 3 and
     e2.class == ArgumentError and
     e3.class == ArgumentError
 end
