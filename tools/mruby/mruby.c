@@ -238,7 +238,7 @@ main(int argc, char **argv)
   mrb_define_global_const(mrb, "ARGV", ARGV);
 
   if (args.mrbfile) {
-    n = mrb_load_irep(mrb, args.rfp);
+    n = mrb_read_irep_file(mrb, args.rfp);
     if (n < 0) {
       fprintf(stderr, "failed to load mrb file: %s\n", args.cmdline);
     }

@@ -16,9 +16,10 @@ extern "C" {
 #include <stdint.h>
 
 int mrb_dump_irep(mrb_state*,int,FILE*);
-int mrb_load_irep(mrb_state*,FILE*);
-int mrb_load_irep_offset(mrb_state*,FILE*,long);
 int mrb_read_irep(mrb_state*,const char*);
+int mrb_read_irep_file(mrb_state*,FILE*);
+mrb_value mrb_load_irep(mrb_state*,const char*);
+mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 
 int mrb_bdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname);
 
