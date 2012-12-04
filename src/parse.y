@@ -3307,7 +3307,8 @@ read_escape(parser_state *p)
        int buf[3];
        int i;
 
-       for (i=0; i<3; i++) {
+       buf[0] = c;
+       for (i=1; i<3; i++) {
 	 buf[i] = nextc(p);
 	 if (buf[i] == -1) goto eof;
 	 if (buf[i] < '0' || '7' < buf[i]) {
