@@ -26,3 +26,15 @@ end
 assert('Numeric#**') do
   2.0**3 == 8.0
 end
+
+assert('Numeric#chr') do
+  e = nil
+  begin
+    256.chr
+  rescue => e
+  end
+
+  0.chr == "\x00" and
+  65.chr == 'A' and
+  e.class == RangeError
+end

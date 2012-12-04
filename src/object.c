@@ -8,6 +8,7 @@
 #include <string.h>
 #include "mruby/string.h"
 #include <stdio.h>
+#include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/numeric.h"
 
@@ -89,6 +90,45 @@ static mrb_value
 nil_inspect(mrb_state *mrb, mrb_value obj)
 {
   return mrb_str_new(mrb, "nil", 3);
+}
+
+/*
+ *  call-seq:
+ *     nil.to_a    -> []
+ *
+ *  Always returns an empty array.
+ */
+
+static mrb_value
+nil_to_a(mrb_state *mrb, mrb_value obj)
+{
+    return mrb_ary_new(mrb);
+}
+
+/*
+ *  call-seq:
+ *     nil.to_f    -> 0.0
+ *
+ *  Always returns zero.
+ */
+
+static mrb_value
+nil_to_f(mrb_state *mrb, mrb_value obj)
+{
+    return mrb_float_value(0.0);
+}
+
+/*
+ *  call-seq:
+ *     nil.to_i    -> 0
+ *
+ *  Always returns zero.
+ */
+
+static mrb_value
+nil_to_i(mrb_state *mrb, mrb_value obj)
+{
+    return mrb_fixnum_value(0);
 }
 
 /***********************************************************************
@@ -278,6 +318,9 @@ mrb_init_object(mrb_state *mrb)
   mrb_define_method(mrb, n, "|",    false_or,       ARGS_REQ(1));  /* 15.2.4.3.3  */
   mrb_define_method(mrb, n, "nil?", mrb_true,       ARGS_NONE());  /* 15.2.4.3.4  */
   mrb_define_method(mrb, n, "to_s", nil_to_s,       ARGS_NONE());  /* 15.2.4.3.5  */
+  mrb_define_method(mrb, n, "to_a", nil_to_a,       ARGS_NONE());
+  mrb_define_method(mrb, n, "to_f", nil_to_f,       ARGS_NONE());
+  mrb_define_method(mrb, n, "to_i", nil_to_i,       ARGS_NONE());
   mrb_define_method(mrb, n, "inspect", nil_inspect, ARGS_NONE());
 
   t = mrb->true_class  = mrb_define_class(mrb, "TrueClass",  mrb->object_class);
@@ -381,7 +424,9 @@ static const struct types {
   {MRB_TT_REGEX,  "Regexp"},
   {MRB_TT_STRUCT, "Struct"},
 //    {MRB_TT_BIGNUM,  "Bignum"},
+#ifdef ENABLE_IO
   {MRB_TT_FILE,   "File"},
+#endif
   {MRB_TT_DATA,   "Data"},  /* internal use: wrapped C pointers */
   {MRB_TT_MATCH,  "MatchData"},  /* data of $~ */
 //    {MRB_TT_VARMAP,  "Varmap"},  /* internal use: dynamic variables */

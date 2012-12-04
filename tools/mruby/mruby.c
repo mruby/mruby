@@ -8,6 +8,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef ENABLE_REQUIRE
+extern mrb_value mrb_file_exist(mrb_state *mrb, mrb_value fname);
+#endif
+
 #ifndef ENABLE_STDIO
 static void
 p(mrb_state *mrb, mrb_value obj)
@@ -32,6 +36,12 @@ struct _args {
   int verbose      : 1;
   int argc;
   char** argv;
+#ifdef ENABLE_REQUIRE
+  int load_path_len;
+  char** load_path;
+  int library_len;
+  char** library;
+#endif /* ENABLE_REQUIRE */
 };
 
 static void
@@ -42,6 +52,10 @@ usage(const char *name)
   "-b           load and execute RiteBinary (mrb) file",
   "-c           check syntax only",
   "-e 'command' one line of script",
+#ifdef ENABLE_REQUIRE
+  "-Idirectory  specify $LOAD_PATH directory (may be used more than once)",
+  "-rlibrary    require the library, before executing your script",
+#endif /* ENABLE_REQUIRE */
   "-v           print version number, then run in verbose mode",
   "--verbose    run in verbose mode",
   "--version    print the version",
@@ -107,6 +121,32 @@ append_cmdline:
         return 0;
       }
       break;
+#ifdef ENABLE_REQUIRE
+    case 'I':
+      if (args->load_path_len == 0) {
+        args->load_path = (char**) mrb_malloc(mrb, sizeof(char**));
+      } else {
+        args->load_path = (char **)mrb_realloc(mrb, args->load_path, sizeof(char*) * (args->load_path_len + 1));
+      }
+      {
+        char* buf = (char *)mrb_malloc(mrb, strlen((*argv)+2));
+        strcpy(buf, (*argv)+2);
+        args->load_path[args->load_path_len++] = buf;
+      }
+      break;
+    case 'r':
+      if (args->library_len == 0) {
+        args->library = (char**) mrb_malloc(mrb, sizeof(char**));
+      } else {
+        args->library = (char **)mrb_realloc(mrb, args->library, sizeof(char*) * (args->library_len+ 1));
+      }
+      {
+        char* buf = (char *)mrb_malloc(mrb, strlen((*argv)+2));
+        strcpy(buf, (*argv)+2);
+        args->library[args->library_len++] = buf;
+      }
+      break;
+#endif /* ENABLE_REQUIRE */
     case 'v':
       mrb_show_version(mrb);
       args->verbose = 1;
@@ -217,7 +257,7 @@ main(int argc, char **argv)
   int n = -1;
   int i;
   struct _args args;
-  mrb_value ARGV;
+  mrb_value ARGV, MRUBY_BIN;
 
   if (mrb == NULL) {
     fprintf(stderr, "Invalid mrb_state, exiting mruby\n");
@@ -236,6 +276,33 @@ main(int argc, char **argv)
     mrb_ary_push(mrb, ARGV, mrb_str_new(mrb, args.argv[i], strlen(args.argv[i])));
   }
   mrb_define_global_const(mrb, "ARGV", ARGV);
+
+  MRUBY_BIN = mrb_str_new(mrb, argv[0], strlen(argv[0]));
+  mrb_define_global_const(mrb, "MRUBY_BIN", MRUBY_BIN);
+
+#ifdef ENABLE_REQUIRE
+  mrb_value LOAD_PATH = mrb_gv_get(mrb, mrb_intern(mrb, "$:"));
+  for (i = 0; i < args.load_path_len; i++) {
+    mrb_value tmp = mrb_str_new2(mrb, args.load_path[i]);
+    mrb_ary_unshift(mrb, LOAD_PATH, tmp);
+  }
+
+  if (mrb_str_cmp(mrb, MRUBY_BIN, mrb_str_new2(mrb, "mruby")) != 0) {
+    int len = strrchr(RSTRING_PTR(MRUBY_BIN), '/') - RSTRING_PTR(MRUBY_BIN);
+    mrb_value extdir = mrb_str_substr(mrb, mrb_str_dup(mrb, MRUBY_BIN), 0, len);
+    mrb_str_cat2(mrb, extdir, "/../ext");
+
+    if (mrb_obj_eq(mrb, mrb_file_exist(mrb, extdir), mrb_true_value())) {
+      mrb_ary_push(mrb, LOAD_PATH, extdir);
+    }
+  }
+
+  extern mrb_value mrb_require(mrb_state *mrb, mrb_value filename);
+  for (i = 0; i < args.library_len; i++) {
+    mrb_value tmp = mrb_str_new2(mrb, args.library[i]);
+    mrb_require(mrb, tmp);
+  }
+#endif /* ENABLE_REQUIRE */
 
   if (args.mrbfile) {
     n = mrb_load_irep(mrb, args.rfp);
@@ -263,10 +330,12 @@ main(int argc, char **argv)
 
     if (args.rfp) {
       mrbc_filename(mrb, c, args.cmdline ? args.cmdline : "-");
+      mrb_gv_set(mrb, mrb_intern(mrb, "$0"), mrb_str_new2(mrb, c->filename));
       v = mrb_load_file_cxt(mrb, args.rfp, c);
     }
     else {
       mrbc_filename(mrb, c, "-e");
+      mrb_gv_set(mrb, mrb_intern(mrb, "$0"), mrb_str_new2(mrb, c->filename));
       v = mrb_load_string_cxt(mrb, args.cmdline, c);
     }
     mrbc_context_free(mrb, c);

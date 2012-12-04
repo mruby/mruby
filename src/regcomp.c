@@ -58,7 +58,7 @@ str_dup(UChar* s, UChar* end)
   ptrdiff_t len = end - s;
 
   if (len > 0) {
-    UChar* r = (UChar* )xmalloc(len + 1);
+    UChar* r = (UChar* )malloc(len + 1);
     CHECK_NULL_RETURN(r);
     xmemcpy(r, s, len);
     r[len] = (UChar )0;
@@ -146,7 +146,7 @@ onig_bbuf_init(BBuf* buf, int size)
     buf->p = NULL;
   }
   else {
-    buf->p = (UChar* )xmalloc(size);
+    buf->p = (UChar* )malloc(size);
     if (IS_NULL(buf->p)) return(ONIGERR_MEMORY);
   }
 
@@ -163,7 +163,7 @@ unset_addr_list_init(UnsetAddrList* uslist, int size)
 {
   UnsetAddr* p;
 
-  p = (UnsetAddr* )xmalloc(sizeof(UnsetAddr)* size);
+  p = (UnsetAddr* )malloc(sizeof(UnsetAddr)* size);
   CHECK_NULL_RETURN_MEMERR(p);
   uslist->num   = 0;
   uslist->alloc = size;
@@ -175,7 +175,7 @@ static void
 unset_addr_list_end(UnsetAddrList* uslist)
 {
   if (IS_NOT_NULL(uslist->us))
-    xfree(uslist->us);
+    free(uslist->us);
 }
 
 static int
@@ -186,7 +186,7 @@ unset_addr_list_add(UnsetAddrList* uslist, int offset, struct _Node* node)
 
   if (uslist->num >= uslist->alloc) {
     size = uslist->alloc * 2;
-    p = (UnsetAddr* )xrealloc(uslist->us, sizeof(UnsetAddr) * size);
+    p = (UnsetAddr* )realloc(uslist->us, sizeof(UnsetAddr) * size);
     CHECK_NULL_RETURN_MEMERR(p);
     uslist->alloc = size;
     uslist->us    = p;
@@ -657,7 +657,7 @@ entry_repeat_range(regex_t* reg, int id, int lower, int upper)
   OnigRepeatRange* p;
 
   if (reg->repeat_range_alloc == 0) {
-    p = (OnigRepeatRange* )xmalloc(sizeof(OnigRepeatRange) * REPEAT_RANGE_ALLOC);
+    p = (OnigRepeatRange* )malloc(sizeof(OnigRepeatRange) * REPEAT_RANGE_ALLOC);
     CHECK_NULL_RETURN_MEMERR(p);
     reg->repeat_range = p;
     reg->repeat_range_alloc = REPEAT_RANGE_ALLOC;
@@ -665,7 +665,7 @@ entry_repeat_range(regex_t* reg, int id, int lower, int upper)
   else if (reg->repeat_range_alloc <= id) {
     int n;
     n = reg->repeat_range_alloc + REPEAT_RANGE_ALLOC;
-    p = (OnigRepeatRange* )xrealloc(reg->repeat_range,
+    p = (OnigRepeatRange* )realloc(reg->repeat_range,
                                     sizeof(OnigRepeatRange) * n);
     CHECK_NULL_RETURN_MEMERR(p);
     reg->repeat_range = p;
@@ -3229,7 +3229,7 @@ update_string_node_case_fold(regex_t* reg, Node *node)
 
   end = sn->end;
   sbuf_size = (end - sn->s) * 2;
-  sbuf = (UChar* )xmalloc(sbuf_size);
+  sbuf = (UChar* )malloc(sbuf_size);
   CHECK_NULL_RETURN_MEMERR(sbuf);
   ebuf = sbuf + sbuf_size;
 
@@ -3240,7 +3240,7 @@ update_string_node_case_fold(regex_t* reg, Node *node)
     q = buf;
     for (i = 0; i < len; i++) {
       if (sp >= ebuf) {
-        sbuf = (UChar* )xrealloc(sbuf, sbuf_size * 2);
+        sbuf = (UChar* )realloc(sbuf, sbuf_size * 2);
         CHECK_NULL_RETURN_MEMERR(sbuf);
         sp = sbuf + sbuf_size;
         sbuf_size *= 2;
@@ -3253,11 +3253,11 @@ update_string_node_case_fold(regex_t* reg, Node *node)
 
   r = onig_node_str_set(node, sbuf, sp);
   if (r != 0) {
-    xfree(sbuf);
+    free(sbuf);
     return r;
   }
 
-  xfree(sbuf);
+  free(sbuf);
   return 0;
 }
 
@@ -3936,7 +3936,7 @@ set_bm_skip(UChar* s, UChar* end, OnigEncoding enc ARG_UNUSED,
   }
   else {
     if (IS_NULL(*int_skip)) {
-      *int_skip = (int* )xmalloc(sizeof(int) * ONIG_CHAR_TABLE_SIZE);
+      *int_skip = (int* )malloc(sizeof(int) * ONIG_CHAR_TABLE_SIZE);
       if (IS_NULL(*int_skip)) return ONIGERR_MEMORY;
     }
     for (i = 0; i < ONIG_CHAR_TABLE_SIZE; i++) (*int_skip)[i] = len;
@@ -4900,7 +4900,7 @@ set_optimize_exact_info(regex_t* reg, OptExactInfo* e)
   if (e->len == 0) return 0;
 
   if (e->ignore_case) {
-    reg->exact = (UChar* )xmalloc(e->len);
+    reg->exact = (UChar* )malloc(e->len);
     CHECK_NULL_RETURN_MEMERR(reg->exact);
     xmemcpy(reg->exact, e->s, e->len);
     reg->exact_end = reg->exact + e->len;
@@ -5033,7 +5033,7 @@ clear_optimize_info(regex_t* reg)
   reg->exact_end     = (UChar* )NULL;
   reg->threshold_len = 0;
   if (IS_NOT_NULL(reg->exact)) {
-    xfree(reg->exact);
+    free(reg->exact);
     reg->exact = (UChar* )NULL;
   }
 }
@@ -5195,11 +5195,11 @@ extern void
 onig_free_body(regex_t* reg)
 {
   if (IS_NOT_NULL(reg)) {
-    if (IS_NOT_NULL(reg->p))                xfree(reg->p);
-    if (IS_NOT_NULL(reg->exact))            xfree(reg->exact);
-    if (IS_NOT_NULL(reg->int_map))          xfree(reg->int_map);
-    if (IS_NOT_NULL(reg->int_map_backward)) xfree(reg->int_map_backward);
-    if (IS_NOT_NULL(reg->repeat_range))     xfree(reg->repeat_range);
+    if (IS_NOT_NULL(reg->p))                free(reg->p);
+    if (IS_NOT_NULL(reg->exact))            free(reg->exact);
+    if (IS_NOT_NULL(reg->int_map))          free(reg->int_map);
+    if (IS_NOT_NULL(reg->int_map_backward)) free(reg->int_map_backward);
+    if (IS_NOT_NULL(reg->repeat_range))     free(reg->repeat_range);
     if (IS_NOT_NULL(reg->chain))            onig_free(reg->chain);
 
 #ifdef USE_NAMED_GROUP
@@ -5213,7 +5213,7 @@ onig_free(regex_t* reg)
 {
   if (IS_NOT_NULL(reg)) {
     onig_free_body(reg);
-    xfree(reg);
+    free(reg);
   }
 }
 
@@ -5235,7 +5235,7 @@ onig_memsize(regex_t *reg)
   (to)->state = ONIG_STATE_MODIFY;\
   onig_free_body(to);\
   xmemcpy(to, from, sizeof(regex_t));\
-  xfree(from);\
+  free(from);\
 } while (0)
 
 extern void
@@ -5413,7 +5413,7 @@ onig_compile(regex_t* reg, const UChar* pattern, const UChar* pattern_end,
 #endif
 
   if (IS_NOT_NULL(scan_env.mem_nodes_dynamic)) {
-    xfree(scan_env.mem_nodes_dynamic);
+    free(scan_env.mem_nodes_dynamic);
     scan_env.mem_nodes_dynamic = (Node** )NULL;
   }
 
@@ -5472,7 +5472,7 @@ onig_compile(regex_t* reg, const UChar* pattern, const UChar* pattern_end,
 
   onig_node_free(root);
   if (IS_NOT_NULL(scan_env.mem_nodes_dynamic))
-      xfree(scan_env.mem_nodes_dynamic);
+      free(scan_env.mem_nodes_dynamic);
   return r;
 }
 
@@ -5566,7 +5566,7 @@ onig_new(regex_t** reg, const UChar* pattern, const UChar* pattern_end,
 {
   int r;
 
-  *reg = (regex_t* )xmalloc(sizeof(regex_t));
+  *reg = (regex_t* )malloc(sizeof(regex_t));
   if (IS_NULL(*reg)) return ONIGERR_MEMORY;
 
   r = onig_reg_init(*reg, option, ONIGENC_CASE_FOLD_DEFAULT, enc, syntax);

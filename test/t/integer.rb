@@ -175,6 +175,16 @@ end
 
 # Not ISO specified
 
+assert('Integer#div') do
+  0.div(1) == 0 and
+  1.div(3) == 0 and
+  3.div(1) == 3 and
+  20.div(7) == 2 and
+  -3.div(5) == -1 and
+  25.div(-13) == -2 and
+  -13.div(-7) == 1
+end
+
 assert('Integer#step') do
   a = []
   b = []

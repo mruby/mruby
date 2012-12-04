@@ -35,6 +35,8 @@ class String
     ### *** TODO *** ###
     unless Object.const_defined?(:Regexp)
       raise NotImplementedError, "gsub not available (yet)"
+    else
+      self._gsub(*args, &block)
     end
   end
 
@@ -65,6 +67,8 @@ class String
     ### *** TODO *** ###
     unless Object.const_defined?(:Regexp)
       raise NotImplementedError, "scan not available (yet)"
+    else
+      self._scan(reg, &block)
     end
   end
 
@@ -83,6 +87,8 @@ class String
     ### *** TODO *** ###
     unless Object.const_defined?(:Regexp)
       raise NotImplementedError, "sub not available (yet)"
+    else
+      self._sub(*args, &block)
     end
   end
 
@@ -134,6 +140,62 @@ class String
     b = self[0, pos]
     a = self[pos+1..-1]
     self.replace([b, value, a].join(''))
+  end
+
+  LSPACES__ = " \f\n\r\t\v"
+  def lstrip
+    a = 0
+    z = self.size - 1
+    a += 1 while LSPACES__.include?(self[a]) and a <= z
+    (z >= 0) ? self[a..z] : ""
+  end
+
+  RSPACES__ = " \f\n\r\t\v\0"
+  def rstrip
+    a = 0
+    z = self.size - 1
+    z -= 1 while RSPACES__.include?(self[z]) and a <= z
+    (z >= 0) ? self[a..z] : ""
+  end
+
+  def strip
+    a = 0
+    z = self.size - 1
+    a += 1 while LSPACES__.include?(self[a]) and a <= z
+    z -= 1 while RSPACES__.include?(self[z]) and a <= z
+    (z >= 0) ? self[a..z] : ""
+  end
+
+  def lstrip!
+    s = self.lstrip
+    (s == self) ? nil : self.replace(s)
+  end
+
+  def rstrip!
+    s = self.rstrip
+    (s == self) ? nil : self.replace(s)
+  end
+
+  def strip!
+    s = self.strip
+    (s == self) ? nil : self.replace(s)
+  end
+
+  def %(args)
+    sprintf(self, *args)
+  end
+
+  def slice!(arg1, arg2 = 1)
+    if arg1.class == Fixnum
+      rval = self[arg1, arg2]
+      self.replace(self[0...arg1] + self[(arg1 + arg2)...-1]) if arg2 > 0
+    elsif arg1.class == String
+      rval = arg1
+      self.gsub!(arg1, "")
+    else
+      return nil
+    end
+    rval
   end
 end
 

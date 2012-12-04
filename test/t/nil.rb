@@ -24,3 +24,15 @@ end
 assert('NilClass#to_s', '15.2.4.3.5') do
   nil.to_s == ''
 end
+
+assert('NilClass#to_a') do
+  nil.to_a == []
+end
+
+assert('NilClass#to_f') do
+  nil.to_f == 0.0
+end
+
+assert('NilClass#to_i') do
+  nil.to_i == 0
+end

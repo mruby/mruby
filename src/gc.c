@@ -15,6 +15,9 @@
 #include "mruby/proc.h"
 #include "mruby/data.h"
 #include "mruby/variable.h"
+#ifdef ENABLE_IO
+#include "mruby/ext/io.h"
+#endif
 
 #ifndef SIZE_MAX
 #include <limits.h> // for SIZE_MAX
@@ -446,19 +449,19 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     break;
 
 #ifdef ENABLE_REGEXP
+  case MRB_TT_REGEX:
+    {
+      struct RRegexp *r = (struct RRegexp*)obj;
+
+      mrb_gc_mark(mrb, (struct RBasic*)r->src);
+    }
+    break;
   case MRB_TT_MATCH:
     {
       struct RMatch *m = (struct RMatch*)obj;
 
       mrb_gc_mark(mrb, (struct RBasic*)m->str);
       mrb_gc_mark(mrb, (struct RBasic*)m->regexp);
-    }
-    break;
-  case MRB_TT_REGEX:
-    {
-      struct RRegexp *r = (struct RRegexp*)obj;
-
-      mrb_gc_mark(mrb, (struct RBasic*)r->src);
     }
     break;
 #endif
@@ -471,6 +474,15 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
       for (i=0; i<s->len; i++){
         mrb_gc_mark_value(mrb, s->ptr[i]);
       }
+    }
+    break;
+#endif
+
+#ifdef ENABLE_IO
+  case MRB_TT_FILE:
+    {
+      struct RFile *f = (struct RFile*)obj;
+      mrb_gc_mark_value(mrb, f->fptr->path);
     }
     break;
 #endif
@@ -547,9 +559,35 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     mrb_free(mrb, ((struct RRange*)obj)->edges);
     break;
 
+#ifdef ENABLE_REGEXP
+  case MRB_TT_REGEX:
+    onig_free(((struct RRegexp*)obj)->ptr);
+    break;
+
+  case MRB_TT_MATCH:
+    mrb_free(mrb, ((struct RMatch*)obj)->rmatch);
+    break;
+#endif
+
 #ifdef ENABLE_STRUCT
   case MRB_TT_STRUCT:
     mrb_free(mrb, ((struct RStruct*)obj)->ptr);
+    break;
+#endif
+
+#ifdef ENABLE_IO
+  case MRB_TT_FILE:
+    {
+      struct RFile *f = (struct RFile*)obj;
+      if (f->fptr != NULL) {
+        /*
+        if (!mrb_nil_p(f->fptr->path)) {
+          mrb_free(mrb, &f->fptr->path);
+        }
+        */
+        fptr_finalize(mrb, f->fptr, FALSE);
+      }
+    }
     break;
 #endif
 
@@ -684,6 +722,14 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
     {
       struct RStruct *s = (struct RStruct*)obj;
       children += s->len;
+    }
+    break;
+#endif
+
+#ifdef ENABLE_IO
+  case MRB_TT_FILE:
+    {
+      children += 2;
     }
     break;
 #endif

@@ -225,3 +225,8 @@ void
 mrb_init_mrblib(mrb_state *mrb)
 {
 }
+
+void
+mrb_init_mrblib_ext(mrb_state *mrb)
+{
+}

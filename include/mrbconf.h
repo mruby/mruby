@@ -44,15 +44,34 @@
 //#define POOL_PAGE_SIZE 16000
 
 /* -DDISABLE_XXXX to drop the feature */
-#define DISABLE_REGEXP	        /* regular expression classes */
+//#define DISABLE_REGEXP	        /* regular expression classes */
 //#define DISABLE_SPRINTF	/* Kernel.sprintf method */
 //#define DISABLE_MATH		/* Math functions */
 //#define DISABLE_TIME		/* Time class */
 //#define DISABLE_STRUCT	/* Struct class */
 //#define DISABLE_STDIO		/* use of stdio */
+//#define DISABLE_IO
+//#define DISABLE_DIR
+//#define DISABLE_SOCKET
+//#define DISABLE_PROCESS
+//#define DISABLE_ENV
+//#define DISABLE_DIGEST	/* requires CommonCrypto or OpenSSL */
+//#define DISABLE_PACK
+//#define DISABLE_SYSLOG	/* requires Syslog */
+//#define DISABLE_ERRNO
+//#define DISABLE_REQUIRE
+//#define DISABLE_RANDOM
+
+#define INCLUDE_ENCODING
 
 #undef  HAVE_UNISTD_H /* WINDOWS */
 #define HAVE_UNISTD_H /* LINUX */
+
+#ifdef __APPLE__
+#define USE_DIGEST_OSX_COMMONCRYPTO
+#else
+#define USE_DIGEST_OPENSSL
+#endif
 
 /* end of configuration */
 
@@ -111,6 +130,39 @@ typedef short mrb_sym;
 #endif
 #ifndef DISABLE_STDIO
 #define ENABLE_STDIO
+#endif
+#ifndef DISABLE_IO
+#define ENABLE_IO
+#endif
+#ifndef DISABLE_DIR
+#define ENABLE_DIR
+#endif
+#ifndef DISABLE_SOCKET
+#define ENABLE_SOCKET
+#endif
+#ifndef DISABLE_PROCESS
+#define ENABLE_PROCESS
+#endif
+#ifndef DISABLE_ENV
+#define ENABLE_ENV
+#endif
+#ifndef DISABLE_DIGEST
+#define ENABLE_DIGEST
+#endif
+#ifndef DISABLE_PACK
+#define ENABLE_PACK
+#endif
+#ifndef DISABLE_SYSLOG
+#define ENABLE_SYSLOG
+#endif
+#ifndef DISABLE_ERRNO
+#define ENABLE_ERRNO
+#endif
+#ifndef DISABLE_REQUIRE
+#define ENABLE_REQUIRE
+#endif
+#ifndef DISABLE_RANDOM
+#define ENABLE_RANDOM
 #endif
 
 #ifndef FALSE

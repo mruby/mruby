@@ -13,6 +13,13 @@
 #include <mruby/data.h>
 #include <mruby/compile.h>
 
+#ifdef ENABLE_REQUIRE
+#include "mruby/array.h"
+#include "mruby/string.h"
+#include "mruby/variable.h"
+extern mrb_value mrb_file_exist(mrb_state *mrb, mrb_value fname);
+#endif
+
 #ifndef ENABLE_STDIO
 #include <mruby/string.h>
 static void
@@ -141,7 +148,7 @@ print_cmdline(int code_block_open)
 }
 
 int
-main(void)
+main(int argc, char **argv)
 {
   int last_char;
   char ruby_code[1024] = { 0 };
@@ -153,6 +160,7 @@ main(void)
   mrb_value result;
   int n;
   int code_block_open = FALSE;
+  mrb_value MIRB_BIN;
 
   print_hint();
 
@@ -165,6 +173,24 @@ main(void)
 
   cxt = mrbc_context_new(mrb);
   cxt->capture_errors = 1;
+
+  MIRB_BIN= mrb_str_new(mrb, argv[0], strlen(argv[0]));
+  mrb_define_global_const(mrb, "MIRB_BIN", MIRB_BIN);
+
+#ifdef ENABLE_REQUIRE
+  mrb_value LOAD_PATH = mrb_gv_get(mrb, mrb_intern(mrb, "$:"));
+
+  if (mrb_str_cmp(mrb, MIRB_BIN, mrb_str_new2(mrb, "mirb")) != 0) {
+    int len = strrchr(RSTRING_PTR(MIRB_BIN), '/') - RSTRING_PTR(MIRB_BIN);
+    mrb_value extdir = mrb_str_substr(mrb, mrb_str_dup(mrb, MIRB_BIN), 0, len);
+    mrb_str_cat2(mrb, extdir, "/../ext");
+
+    if (mrb_obj_eq(mrb, mrb_file_exist(mrb, extdir), mrb_true_value())) {
+      mrb_ary_push(mrb, LOAD_PATH, extdir);
+    }
+  }
+#endif /* ENABLE_REQUIRE */
+
 
   while (TRUE) {
     print_cmdline(code_block_open);

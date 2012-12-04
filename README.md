@@ -1,105 +1,75 @@
-# !!Notice!!
-    This is a preliminary release for internal team review.
-    The URLs and addresses described below are not available yet.
-    The official release will be announced later.
-    Any suggestion for modification is welcome.
-    Delays in replies are to be expected. Sorry in advance.
+# このリポジトリについて
 
-## What's mruby
-
-mruby is the lightweight implementation of the Ruby language complying to (part of)
-the [ISO standard](http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579). 
-mruby can be linked and embedded within your application.  We provide the interpreter program "mruby" and 
-the interactive mruby shell "mirb" as examples.  You can also compile Ruby programs into compiled byte code
-using the mruby compiler "mrbc".  All those tools reside in "bin" directory.  The "mrbc" is also able to
-generate compiled byte code in a C source file.  You can check the "mrbtest" program under the "test" directory.
-
-This achievement was sponsored by the Regional Innovation Creation R&D Programs of
-the Ministry of Economy, Trade and Industry of Japan.
+mruby に対して、主に UNIX 環境に依存する機能を追加した fork です。
 
 
-## How to get mruby
+# 拡張部分
 
-The mruby distribution files can be found in the following site:
+ * 追加したクラス/モジュール
+   * Digest::MD5/RIPEMD160/SHA1/SHA256/SHA384/SHA512
+   * Digest::HMAC: #reset 以外
+   * Dir: ::[] ::chdir ::chroot ::glob ::home #path #to\_path #inspect 以外
+   * ENV: ::[] ::[]= ::clear ::delete ::inspect ::keys ::size ::store
+          ::to\_a ::to\_hash ::to\_s ::values
+   * Errno::EXXX
+   * File: ::open ::umask ::unlink ::delete ::rename ::exist? ::exists?
+           ::dirname ::basename ::size #path
+   * IO: ::open ::sysopen ::popen ::select
+         #close #closed? #each #each_byte #each_line #read #sync #sync=
+         #write #to_io
+   * IPAddr: ::new #<=> #family #hton #inspect #ipv4? #ipv6? #mask #to\_s #| #~
+   * Process: ::kill ::pid ::ppid
+   * Regexp: ::compile ::last\_match #match
+   * TCPSocket: ::new ::open
+   * UNIXSocket: #addr ::new ::open #peeraddr
+   * Syslog: ::open ::close ::log ::opened? ::ident ::options ::facility
+   * SystemCallError
 
-  https://github.com/mruby/mruby/zipball/master
+ * 拡張したクラス/モジュール
+   * Array: #- #& #| #pack #uniq #uniq! #flatten #flatten!
+   * Kernel: #exit #load #require #sleep #system #rand #srand
+     * load, require については https://github.com/iij/mruby/wiki/require も参照してください
+     * rand, srand は、rand(3) 相当の実装です
+   * String: #lstrip #rstrip #strip #unpack #gsub #gsub! #sub #sub! #scan
+     * Array#pack, String#unpack で利用できるテンプレート文字列は "m"(base64) 、"H"(16進文字列/上位ニブルが先)と"C"(8bit 符号なし整数) のみです。
 
-The trunk of the mruby source tree can be checked out with the
-following command:
+ * その他の拡張
+   * 正規表現リテラル
+   * C + Ruby の両方の言語で実装可能な拡張モジュール
 
-    $ git clone https://github.com/mruby/mruby.git
-
-There are some other branches under development. Try the following
-command and see the list of branches:
-
-    $ git branch -r
-
-
-## mruby home-page
-
-mruby's website is not launched yet but we are actively working on it.
-
-The URL of the mruby home-page will be:
-
-  http://www.mruby.org/
+http://iij.github.com/mruby/lib/ からリファレンス形式でも参照できます。
+ハイライトされているクラス/メソッドが iij/mruby で利用可能なものです。
 
 
-## Mailing list
+# ブランチ
 
-To subscribe to the mruby mailing list....[T.B.D.]
+ * master : mruby/mruby の master と同じです。毎日同期します。
+ * iij : 主な開発ブランチです。master (=mruby/mruby) をベースに
+   UNIX プラットホームに依存した拡張を含みます。
+ * pr-hogehoge : master から分岐した、pull-request 送信専用のブランチです。
+   ひとつの pull-request に対してひとつの pr-hogehoge ブランチを作成します。
 
+# 機能拡張に関連するテスト
 
-## How to compile and install
+UNIX 環境に依存する機能のテストコードは test/posix ディレクトリにあり、
+以下のコマンドで実行できます。
 
-See the INSTALL file.
+```
+$ cd test/posix   # test/posix ディレクトリへ移動
+$ sh all.sh       # test/posix 以下にある全てのテストを実行
+```
 
-## Running Tests
+ * 各種OSでのテスト結果を http://iij.github.com/mruby/report/ で公開しています
 
-To run the tests, execute the following from the project's root directory.
+# サンプルアプリケーション
 
-    $ make test
+このリポジトリで追加した拡張を利用した mruby アプリケーションのサンプルを
+app ディレクトリ以下に置いています。
 
-## License
+# ライセンス
 
-Copyright (c) 2012 mruby developers
+オリジナル mruby と同じです。
 
-Permission is hereby granted, free of charge, to any person obtaining a 
-copy of this software and associated documentation files (the "Software"), 
-to deal in the Software without restriction, including without limitation 
-the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-and/or sell copies of the Software, and to permit persons to whom the 
-Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in 
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
-DEALINGS IN THE SOFTWARE.
-
-## Note for License
-
-mruby has chosen a MIT License due to its permissive license allowing
-developers to target various environments such as embedded systems.
-However, the license requires the display of the copyright notice and license
-information in manuals for instance. Doing so for big projects can be 
-complicated or troublesome.
-This is why mruby has decided to display "mruby developers" as the copyright name
-to make it simple conventionally.
-In the future, mruby might ask you to distribute your new code
-(that you will commit,) under the MIT License as a member of
-"mruby developers" but contributors will keep their copyright.
-(We did not intend for contributors to transfer or waive their copyrights,
- Actual copyright holder name (contributors) will be listed in the AUTHORS file.)
-
-Please ask us if you want to distribute your code under another license.
-
-## How to Contribute
-
-Send pull request to <http://github.com/mruby/mruby>.   We consider you have granted
-non-exclusive right to your contributed code under MIT license.  If you want to be named
-as one of mruby developers, include update to the AUTHORS file in your pull request.
+# 謝辞
+ * 正規表現リテラルの実装には、以下のレポジトリのコードを一部流用させていただきました。
+    * https://github.com/junjis0203/mruby
