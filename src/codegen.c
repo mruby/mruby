@@ -330,10 +330,10 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
     case OP_SUB:
       if (c0 == OP_LOADI) {
 	int c = GETARG_sBx(i0);
-	
+
 	if (c1 == OP_SUB) c = -c;
 	if (c > 127 || c < -127) break;
-	if (0 <= c) 
+	if (0 <= c)
 	  s->iseq[s->pc-1] = MKOP_ABC(OP_ADDI, GETARG_A(i), GETARG_B(i), c);
 	else
 	  s->iseq[s->pc-1] = MKOP_ABC(OP_SUBI, GETARG_A(i), GETARG_B(i), -c);
@@ -1776,7 +1776,7 @@ codegen(codegen_scope *s, node *tree, int val)
 	  f = readint_float(s, p, base);
 	  if (!FIXABLE(f)) {
 	    int off = new_lit(s, mrb_float_value(-f));
-	    
+
 	    genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
 	  }
 	  else {
@@ -2096,12 +2096,12 @@ scope_finish(codegen_scope *s, int idx)
 {
   mrb_state *mrb = s->mrb;
   mrb_irep *irep;
-    
+
   //Comment out these instructions already done in scope_new
   //mrb_add_irep(mrb, idx);
   //irep = mrb->irep[idx] = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
   irep = mrb->irep[idx];
-    
+
   irep->flags = 0;
   irep->idx = idx;
   if (s->iseq) {
@@ -2249,36 +2249,35 @@ codedump(mrb_state *mrb, int n)
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETGLOBAL:
-      printf("OP_SETGLOBAL\t:%s\tR%d\n",
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
-             GETARG_A(c));
+      printf("OP_SETGLOBAL\tR%d\t:%s\n",
+             GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_GETCONST:
       printf("OP_GETCONST\tR%d\t:%s\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETCONST:
-      printf("OP_SETCONST\t:%s\tR%d\n",
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
-             GETARG_A(c));
+      printf("OP_SETCONST\tR%d\t:%s\n",
+             GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_GETMCNST:
-      printf("OP_GETMCNST\tR%d\tR%d::%s\n", GETARG_A(c), GETARG_A(c),
+      printf("OP_GETMCNST\tR%d\t:%s\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETMCNST:
-      printf("OP_SETMCNST\tR%d::%s\tR%d\n", GETARG_A(c)+1,
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
-             GETARG_A(c));
+      printf("OP_SETMCNST\tR%d\t:%s\n", GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_GETIV:
-      printf("OP_GETIV\tR%d\t%s\n", GETARG_A(c),
+      printf("OP_GETIV\tR%d\t:%s\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETIV:
-      printf("OP_SETIV\t%s\tR%d\n",
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
-             GETARG_A(c));
+      printf("OP_SETIV\tR%d\t:%s\n",
+             GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_GETUPVAR:
       printf("OP_GETUPVAR\tR%d\t%d\t%d\n",
@@ -2289,13 +2288,13 @@ codedump(mrb_state *mrb, int n)
              GETARG_A(c), GETARG_B(c), GETARG_C(c));
       break;
     case OP_GETCV:
-      printf("OP_GETCV\tR%d\t%s\n", GETARG_A(c),
+      printf("OP_GETCV\tR%d\t:%s\n", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETCV:
-      printf("OP_SETCV\t%s\tR%d\n",
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
-             GETARG_A(c));
+      printf("OP_SETCV\tR%d\t:%s\n",
+             GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_JMP:
       printf("OP_JMP\t\t%03d\n", i+GETARG_sBx(c));
@@ -2322,7 +2321,7 @@ codedump(mrb_state *mrb, int n)
              GETARG_C(c));
       break;
     case OP_SUPER:
-      printf("OP_SUPER\tR%d\t%d\n", GETARG_A(c),
+      printf("OP_SUPER\tR%d\t\t%d\n", GETARG_A(c),
              GETARG_C(c));
       break;
     case OP_ARGARY:
@@ -2453,10 +2452,10 @@ codedump(mrb_state *mrb, int n)
       break;
     case OP_STRING:
       {
-	mrb_value s = irep->pool[GETARG_Bx(c)];
-	
-	s = mrb_str_dump(mrb, s);
-	printf("OP_STRING\tR%d\t%s\n", GETARG_A(c), RSTRING_PTR(s));
+  mrb_value s = irep->pool[GETARG_Bx(c)];
+
+  s = mrb_str_dump(mrb, s);
+  printf("OP_STRING\tR%d\t%s\n", GETARG_A(c), RSTRING_PTR(s));
       }
       break;
     case OP_STRCAT:
