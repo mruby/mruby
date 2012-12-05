@@ -11,6 +11,7 @@
 #ifdef ENABLE_REGEXP
 #include "re.h"
 #endif
+#include "mruby/proc.h"
 #include "mruby/irep.h"
 
 typedef struct _RiteFILE
@@ -28,7 +29,7 @@ const char hex2bin[256] = {
   0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  0,  0,  0,  0,  0,  0,  //30-3f
   0, 10, 11, 12, 13, 14, 15,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //40-4f
   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //50-5f
-  0, 10, 11, 12, 13, 14, 15,  0,  0,  0,  0,  0,  0,  0,  0,  0  //60-6f
+  0, 10, 11, 12, 13, 14, 15,  0,  0,  0,  0,  0,  0,  0,  0,  0   //60-6f
   //70-ff
 };
 
@@ -241,7 +242,7 @@ error_exit:
 }
 
 int
-mrb_load_irep(mrb_state *mrb, FILE* fp)
+mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
   int ret, i;
   uint32_t  len, rlen = 0;
@@ -658,4 +659,35 @@ hex_to_str(char *hex, char *str, uint16_t *str_len)
     }
   }
   return str;
+}
+
+static void
+irep_error(mrb_state *mrb, int n)
+{
+  static const char msg[] = "irep load error";
+  mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SCRIPT_ERROR, msg, sizeof(msg) - 1));
+}
+
+mrb_value
+mrb_load_irep_file(mrb_state *mrb, FILE* fp)
+{
+  int n = mrb_read_irep_file(mrb, fp);
+
+  if (n < 0) {
+    irep_error(mrb, n);
+    return mrb_nil_value();
+  }
+  return mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
+}
+
+mrb_value
+mrb_load_irep(mrb_state *mrb, const char *bin)
+{
+  int n = mrb_read_irep(mrb, bin);
+
+  if (n < 0) {
+    irep_error(mrb, n);
+    return mrb_nil_value();
+  }
+  return mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
 }
