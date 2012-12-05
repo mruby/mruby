@@ -3316,7 +3316,7 @@ read_escape(parser_state *p)
 	   break;
 	 }
        }
-       c = scan_oct(buf, i+1, &i);
+       c = scan_oct(buf, i, &i);
     }
     return c;
 
