@@ -2055,8 +2055,9 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   static const codegen_scope codegen_scope_zero = { 0 };
   mrb_pool *pool = mrb_pool_open(mrb);
   codegen_scope *p = (codegen_scope *)mrb_pool_alloc(pool, sizeof(codegen_scope));
-  if (!p) return 0;
+  mrb_irep *irep;
 
+  if (!p) return 0;
   *p = codegen_scope_zero;
   p->mrb = mrb;
   p->mpool = pool;
@@ -2079,11 +2080,9 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->nlocals = p->sp;
   p->ai = mrb->arena_idx;
 
-  //because of a potential bad memory access in case of gc let's allocate the irep right now
-  mrb_add_irep(mrb, mrb->irep_len);
-  mrb->irep[mrb->irep_len] = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
-    mrb->irep[mrb->irep_len]->plen = 0;
-  p->idx = mrb->irep_len++;
+  irep = mrb_add_irep(mrb);
+  p->idx = irep->idx;
+
   p->filename = prev->filename;
   if (p->filename) {
     p->lines = (short*)mrb_malloc(mrb, sizeof(short)*p->icapa);
@@ -2097,13 +2096,8 @@ scope_finish(codegen_scope *s, int idx)
   mrb_state *mrb = s->mrb;
   mrb_irep *irep;
     
-  //Comment out these instructions already done in scope_new
-  //mrb_add_irep(mrb, idx);
-  //irep = mrb->irep[idx] = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
   irep = mrb->irep[idx];
-    
   irep->flags = 0;
-  irep->idx = idx;
   if (s->iseq) {
     irep->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc);
     irep->ilen = s->pc;

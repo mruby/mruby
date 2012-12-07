@@ -47,7 +47,7 @@ static unsigned char* rite_fgets(RiteFILE*,unsigned char*,int,int);
 static int load_rite_header(FILE*,rite_binary_header*,unsigned char*);
 static int load_rite_irep_record(mrb_state*, RiteFILE*,unsigned char*,uint32_t*);
 static int read_rite_header(mrb_state*,unsigned char*,rite_binary_header*);
-static int read_rite_irep_record(mrb_state*,unsigned char*,mrb_irep*,uint32_t*);
+static int read_rite_irep_record(mrb_state*,unsigned char*,uint32_t*);
 
 
 static unsigned char
@@ -321,7 +321,7 @@ read_rite_header(mrb_state *mrb, unsigned char *bin, rite_binary_header*  bin_he
 }
 
 static int
-read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32_t* len)
+read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
 {
   int i, ret = MRB_DUMP_OK;
   char *buf;
@@ -330,6 +330,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
   mrb_int fix_num;
   mrb_float f;
   int ai = mrb_gc_arena_save(mrb);
+  mrb_irep *irep = mrb_add_irep(mrb);
 
   recordStart = src;
   buf = (char *)mrb_malloc(mrb, bufsize);
@@ -509,25 +510,13 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
   //Read File Header Section
   if ((nirep = read_rite_header(mrb, src, &bin_header)) < 0)
     return nirep;
-
-  mrb_add_irep(mrb, sirep + nirep);
-
-  for (n=0,i=sirep; n<nirep; n++,i++) {
-    static const mrb_irep mrb_irep_zero = { 0 };
-    if ((mrb->irep[i] = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep))) == NULL) {
-      ret = MRB_DUMP_GENERAL_FAILURE;
-      goto error_exit;
-    }
-    *mrb->irep[i] = mrb_irep_zero;
-  }
   src += sizeof(bin_header) + MRB_DUMP_SIZE_OF_SHORT;  //header + crc
 
   //Read Binary Data Section
   for (n=0,i=sirep; n<nirep; n++,i++) {
     src += MRB_DUMP_SIZE_OF_LONG;                      //record ren
-    if ((ret = read_rite_irep_record(mrb, src, mrb->irep[i], &len)) != MRB_DUMP_OK)
+    if ((ret = read_rite_irep_record(mrb, src, &len)) != MRB_DUMP_OK)
       goto error_exit;
-    mrb->irep[mrb->irep_len++]->idx = i;
     src += len;
   }
   if (0 != bin_to_uint32(src)) {              //dummy record len
