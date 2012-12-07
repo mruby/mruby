@@ -1,19 +1,43 @@
+/*
+** generator.c - Generator for mrbgems
+**
+** See Copyright Notice in mruby.h
+*/
+
 #include <string.h>
 #include <stdio.h>
-#include <dirent.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <mrbconf.h>
 #include <stdlib.h>
- 
-char *get_file_name(char *path)
+#include <mrbconf.h>
+
+/*
+ * Get the file name part of *path*
+ *
+ * Arguments:
+ *   path:
+ *     String which represents the path
+ *
+ */ 
+static char
+*get_file_name(char *path)
 {
     char *base = strrchr(path, '/');
     return base ? base+1 : path;
 }
 
-char *replace(const char *s, const char *old, const char *new)
+/*
+ * Search in *s* for *old* and replace with *new*.
+ *
+ * Arguments:
+ *   s:
+ *     String in which the the replacement will be done
+ *   old:
+ *     String which will be replaced
+ *   new:
+ *     String which will be the replacement
+ *
+ */
+static char
+*replace(const char *s, const char *old, const char *new)
 {
   char *ret;
   int i, count = 0;
@@ -123,7 +147,7 @@ for_each_gem (char before[1024], char after[1024],
  * for every active GEM.
  *
  */
-void
+static void
 make_gem_makefile(char active_gems[1024])
 {
   char *gem_check = { 0 };
@@ -194,7 +218,7 @@ make_gem_makefile(char active_gems[1024])
  * which need to know which GEMs are active.
  *
  */
-void
+static void
 make_gem_makefile_list(char active_gems[1024])
 {
   printf("%s",
@@ -209,7 +233,7 @@ make_gem_makefile_list(char active_gems[1024])
  * gem_init.c Generator
  *
  */
-void
+static void
 make_gem_init(char active_gems[1024])
 {
   printf("/*\n"
@@ -241,10 +265,10 @@ make_gem_init(char active_gems[1024])
 /*
  * Empty Generator
  *
- * Generates a clean file.
+ * Generates a clean file with one new line.
  *
  */
-void
+static void
 make_rbtmp(char active_gems[1024])
 {
   printf("\n");
@@ -256,7 +280,7 @@ make_rbtmp(char active_gems[1024])
  * Head of the C Code for loading the GEMs into the interpreter.
  *
  */
-void
+static void
 make_gem_mrblib_header(char active_gems[1024])
 {
   printf("/*\n"
@@ -281,7 +305,7 @@ make_gem_mrblib_header(char active_gems[1024])
  * the pure Ruby GEMs into the interpreter.
  *
  */
-void
+static void
 make_gem_mrblib(char argv[1024], char active_gems[1024])
 {
   printf("\n"
@@ -303,7 +327,7 @@ make_gem_mrblib(char argv[1024], char active_gems[1024])
  * the pure C GEMs into the interpreter.
  *
  */
-void
+static void
 make_gem_srclib(char argv[1024], char active_gems[1024])
 {
   printf("/*\n"
@@ -334,7 +358,7 @@ make_gem_srclib(char argv[1024], char active_gems[1024])
  * into the interpreter.
  *
  */
-void
+static void
 make_gem_mixlib(char argv[1024], char active_gems[1024])
 {
   printf("\n"
