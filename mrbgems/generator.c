@@ -71,6 +71,21 @@ static char
 }
 
 /*
+ * Escape GEM Name for integration into source code.
+ *
+ * Due to the reason that the GEM Name is used for
+ * directory names, files and C functions, some safety
+ * replacements have to be applied. I.e. a directory
+ * can contain a dash "-" but a C function can't.
+ *
+ */
+static char
+*escape_gem_name(const char *s)
+{
+  return replace(s, "-", "_");
+}
+
+/*
  * Template generator for each active GEM
  *
  * Arguments:
@@ -82,14 +97,19 @@ static char
  *     String at the start of the template
  *   end:
  *     String at the end of the template
- *   full_path
+ *   full_path:
  *     Should the full path of the GEM be used?
+ *   active_gems:
+ *     GEMS.active file location
+ *   escape:
+ *     Should the gem name be escaped?
  *
  */
 static char*
 for_each_gem (char before[1024], char after[1024],
                char start[1024], char end[1024],
-               int full_path, char active_gems[1024])
+               int full_path, char active_gems[1024],
+               int escape)
 {
   /* active GEM check */
   FILE *active_gem_file;
@@ -114,6 +134,10 @@ for_each_gem (char before[1024], char after[1024],
       if (gem_char == '\n') {
         /* Every line contains one active GEM */
         gem_name[char_index++] = '\0';
+
+        if (escape == TRUE)
+          strcpy(gem_name, escape_gem_name(gem_name));
+
         strcpy(gem_list[gem_index++], gem_name);
 
         gem_name[0] = '\0';
@@ -165,7 +189,7 @@ make_gem_makefile(char active_gems[1024])
          "endif\n\n");
 
   /* is there any GEM available? */
-  gem_check = for_each_gem("", "", "", "", TRUE, active_gems);
+  gem_check = for_each_gem("", "", "", "", TRUE, active_gems, FALSE);
   if (strcmp(gem_check, "") == 0)
     gem_empty = TRUE;
   else
@@ -181,7 +205,7 @@ make_gem_makefile(char active_gems[1024])
 
     /* Call make for every GEM */
     printf("all_gems :\n%s\n", 
-            for_each_gem("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "", TRUE, active_gems)
+            for_each_gem("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "", TRUE, active_gems, FALSE)
           );
     printf("\n");
   }
@@ -193,10 +217,10 @@ make_gem_makefile(char active_gems[1024])
         );
   if (!gem_empty)
     printf("%s",
-           for_each_gem(" ", "/test/*.rb ", "\tcat", " > mrbgemtest.rbtmp", TRUE, active_gems)
+           for_each_gem(" ", "/test/*.rb ", "\tcat", " > mrbgemtest.rbtmp", TRUE, active_gems, FALSE)
           );
   else
-    printf("\t$(MRUBY_ROOT)/mrbgems/generator rbtmp \"%s\"> mrbgemtest.rbtmp", active_gems);
+    printf("\t$(MRUBY_ROOT)/mrbgems/generator rbtmp> mrbgemtest.rbtmp");
 
   printf("\n\t$(MRUBY_ROOT)/bin/mrbc -Bmrbgemtest_irep -omrbgemtest.ctmp mrbgemtest.rbtmp\n\n");
 
@@ -207,7 +231,7 @@ make_gem_makefile(char active_gems[1024])
          "\t$(RM) *.c *.d *.rbtmp *.ctmp *.o mrbtest\n");
   if (!gem_empty)
     printf("%s",
-           for_each_gem("\t@$(MAKE) clean -C ", " $(MAKE_FLAGS)\n", "", "", TRUE, active_gems)
+           for_each_gem("\t@$(MAKE) clean -C ", " $(MAKE_FLAGS)\n", "", "", TRUE, active_gems, FALSE)
           );
 }
 
@@ -222,7 +246,7 @@ static void
 make_gem_makefile_list(char active_gems[1024])
 {
   printf("%s",
-         for_each_gem(" ", "/mrb-#GEMNAME#-gem.a", "GEM_LIST := ", "\n", TRUE, active_gems)
+         for_each_gem(" ", "/mrb-#GEMNAME#-gem.a", "GEM_LIST := ", "\n", TRUE, active_gems, FALSE)
         );
 
   printf("GEM_ARCHIVE_FILES := $(MRUBY_ROOT)/mrbgems/gem_init.a\n"
@@ -249,7 +273,7 @@ make_gem_init(char active_gems[1024])
 
   /* Protoype definition of all initialization methods */
   printf("\n%s",
-         for_each_gem("void GENERATED_TMP_mrb_", "_gem_init(mrb_state*);\n", "", "", FALSE, active_gems)
+         for_each_gem("void GENERATED_TMP_mrb_", "_gem_init(mrb_state*);\n", "", "", FALSE, active_gems, TRUE)
         );
   printf("\n");
 
@@ -257,7 +281,7 @@ make_gem_init(char active_gems[1024])
   printf("void\n"
          "mrb_init_mrbgems(mrb_state *mrb) {\n");
   printf(   "%s",
-            for_each_gem("  GENERATED_TMP_mrb_", "_gem_init(mrb);\n", "", "", FALSE, active_gems)
+            for_each_gem("  GENERATED_TMP_mrb_", "_gem_init(mrb);\n", "", "", FALSE, active_gems, TRUE)
         );
   printf("}");
 }
@@ -269,7 +293,7 @@ make_gem_init(char active_gems[1024])
  *
  */
 static void
-make_rbtmp(char active_gems[1024])
+make_rbtmp()
 {
   printf("\n");
 }
@@ -281,7 +305,7 @@ make_rbtmp(char active_gems[1024])
  *
  */
 static void
-make_gem_mrblib_header(char active_gems[1024])
+make_gem_mrblib_header()
 {
   printf("/*\n"
          " * This file is loading the irep\n"
@@ -306,7 +330,7 @@ make_gem_mrblib_header(char active_gems[1024])
  *
  */
 static void
-make_gem_mrblib(char argv[1024], char active_gems[1024])
+make_gem_mrblib(char gem_name[1024])
 {
   printf("\n"
          "void\n"
@@ -316,7 +340,7 @@ make_gem_mrblib(char argv[1024], char active_gems[1024])
          "    mrb_p(mrb, mrb_obj_value(mrb->exc));\n"
          "    exit(0);\n"
          "  }\n"
-         "}", argv, argv);
+         "}", gem_name, gem_name);
 }
 
 /*
@@ -327,7 +351,7 @@ make_gem_mrblib(char argv[1024], char active_gems[1024])
  *
  */
 static void
-make_gem_srclib(char argv[1024], char active_gems[1024])
+make_gem_srclib(char gem_name[1024])
 {
   printf("/*\n"
          " * This file is loading the irep\n"
@@ -340,13 +364,13 @@ make_gem_srclib(char argv[1024], char active_gems[1024])
          "#include \"mruby.h\"\n");
 
   printf("\n"
-         "void mrb_%s_gem_init(mrb_state*);\n", argv);
+         "void mrb_%s_gem_init(mrb_state*);\n", gem_name);
 
   printf("\n"
          "void\n"
          "GENERATED_TMP_mrb_%s_gem_init(mrb_state *mrb) {\n"
          "  mrb_%s_gem_init(mrb);\n"
-         "}", argv, argv);
+         "}", gem_name, gem_name);
 }
 
 /*
@@ -358,10 +382,10 @@ make_gem_srclib(char argv[1024], char active_gems[1024])
  *
  */
 static void
-make_gem_mixlib(char argv[1024], char active_gems[1024])
+make_gem_mixlib(char gem_name[1024])
 {
   printf("\n"
-         "void mrb_%s_gem_init(mrb_state*);\n", argv);
+         "void mrb_%s_gem_init(mrb_state*);\n", gem_name);
 
   printf("\n"
          "void\n"
@@ -372,7 +396,7 @@ make_gem_mixlib(char argv[1024], char active_gems[1024])
          "    mrb_p(mrb, mrb_obj_value(mrb->exc));\n"
          "    exit(0);\n"
          "  }\n"
-         "}", argv, argv, argv);
+         "}", gem_name, gem_name, gem_name);
 }
 
 /*
@@ -383,29 +407,30 @@ int
 main (int argc, char *argv[])
 {
   const char * argument_info = "Wrong argument! Options: 'makefile', 'gem_init', 'rbtmp', 'gem_mrblib', gem_srclib\n";
-  if (argc == 3) {
+
+  if (argc == 2) {
+    if (strcmp(argv[1], "rbtmp") == 0)
+      make_rbtmp();
+    else if (strcmp(argv[1], "gem_mrblib") == 0)
+      make_gem_mrblib_header();
+    else {
+      printf("%s", argument_info);
+      return 1;
+    }
+  }
+  else if (argc == 3) {
     if (strcmp(argv[1], "makefile") == 0)
       make_gem_makefile(argv[2]);
     else  if (strcmp(argv[1], "makefile_list") == 0)
       make_gem_makefile_list(argv[2]);
     else if (strcmp(argv[1], "gem_init") == 0)
       make_gem_init(argv[2]);
-    else if (strcmp(argv[1], "rbtmp") == 0)
-      make_rbtmp(argv[2]);
     else if (strcmp(argv[1], "gem_mrblib") == 0)
-      make_gem_mrblib_header(argv[2]);
-    else {
-      printf("%s", argument_info);
-      return 1;
-    }
-  }
-  else if (argc == 4) {
-    if (strcmp(argv[1], "gem_mrblib") == 0)
-      make_gem_mrblib(argv[2], argv[3]);
+      make_gem_mrblib(escape_gem_name(argv[2]));
     else if (strcmp(argv[1], "gem_srclib") == 0)
-      make_gem_srclib(argv[2], argv[3]);
+      make_gem_srclib(escape_gem_name(argv[2]));
     else if (strcmp(argv[1], "gem_mixlib") == 0)
-      make_gem_mixlib(argv[2], argv[3]);
+      make_gem_mixlib(escape_gem_name(argv[2]));
     else {
       printf("%s", argument_info);
       return 1;
