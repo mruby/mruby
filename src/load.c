@@ -329,6 +329,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
   uint16_t crc, tt, pdl, snl, offset, bufsize=MRB_DUMP_DEFAULT_STR_LEN;
   mrb_int fix_num;
   mrb_float f;
+  int plen;
   int ai = mrb_gc_arena_save(mrb);
   mrb_irep *irep = mrb_add_irep(mrb);
 
@@ -379,16 +380,16 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
 
   //POOL BLOCK
   pStart = src;
-  irep->plen = bin_to_uint32(src);          //pool length
+  plen = bin_to_uint32(src);          //pool length
   src += MRB_DUMP_SIZE_OF_LONG;
-  if (irep->plen > 0) {
-    irep->pool = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value) * irep->plen);
+  if (plen > 0) {
+    irep->pool = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value) * plen);
     if (irep->pool == NULL) {
       ret = MRB_DUMP_INVALID_IREP;
       goto error_exit;
     }
 
-    for (i=0; i<irep->plen; i++) {
+    for (i=0; i<plen; i++) {
       tt = *src;                              //pool TT
       src += sizeof(unsigned char);
       pdl = bin_to_uint16(src);               //pool data length
@@ -431,6 +432,8 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
         irep->pool[i] = mrb_nil_value();
         break;
       }
+      irep->plen++;
+      mrb_gc_arena_restore(mrb, ai);
     }
   }
   crc = calc_crc_16_ccitt((unsigned char*)pStart, src - pStart);     //Calculate CRC
@@ -486,7 +489,6 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
 
   *len = src - recordStart;
 error_exit:
-  mrb_gc_arena_restore(mrb, ai);
   if (buf)
     mrb_free(mrb, buf);
 
@@ -510,6 +512,7 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
   //Read File Header Section
   if ((nirep = read_rite_header(mrb, src, &bin_header)) < 0)
     return nirep;
+  
   src += sizeof(bin_header) + MRB_DUMP_SIZE_OF_SHORT;  //header + crc
 
   //Read Binary Data Section
@@ -525,7 +528,7 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
 
 error_exit:
   if (ret != MRB_DUMP_OK) {
-    for (n=0,i=sirep; n<nirep; n++,i++) {
+    for (n=0,i=sirep; i<mrb->irep_len; n++,i++) {
       if (mrb->irep[i]) {
         if (mrb->irep[i]->iseq)
           mrb_free(mrb, mrb->irep[i]->iseq);
@@ -539,6 +542,7 @@ error_exit:
         mrb_free(mrb, mrb->irep[i]);
       }
     }
+    //    mrb->irep_len = sirep;
     return ret;
   }
   return sirep + hex_to_uint8(bin_header.sirep);
