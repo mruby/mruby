@@ -136,6 +136,7 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
     SOURCE_CODE0   ("  irep->syms = NULL;");
 
   SOURCE_CODE0     ("  irep->pool = NULL;");
+  SOURCE_CODE0     ("  irep->lines = NULL;");
   SOURCE_CODE0     ("  mrb->irep_len = idx;");
   SOURCE_CODE0     ("  irep->plen = 0;");
   if(irep->plen > 0) {
