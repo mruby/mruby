@@ -225,3 +225,10 @@ void
 mrb_init_mrblib(mrb_state *mrb)
 {
 }
+
+#ifdef ENABLE_GEMS
+void
+mrb_init_mrbgems(mrb_state *mrb)
+{
+}
+#endif
