@@ -36,4 +36,6 @@ mrb_irep *mrb_add_irep(mrb_state *mrb);
 }  /* extern "C" { */
 #endif
 
+mrb_value mrb_load_irep(mrb_state*,const char*);
+
 #endif  /* MRUBY_IREP_H */
