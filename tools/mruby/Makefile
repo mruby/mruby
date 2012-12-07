@@ -3,9 +3,27 @@
 
 # project-specific macros
 # extension of the executable-file is modifiable(.exe .out ...)
-BASEDIR = ../../src
-TARGET := ../../bin/mruby
-LIBR := ../../lib/libmruby.a
+MRUBY_ROOT := ../..
+BASEDIR = $(MRUBY_ROOT)/src
+TARGET := $(MRUBY_ROOT)/bin/mruby
+LIBR := $(MRUBY_ROOT)/lib/libmruby.a
+
+ifeq ($(strip $(ENABLE_GEMS)),)
+  # by default GEMs are deactivated
+  ENABLE_GEMS = false
+endif
+
+ifeq ($(ENABLE_GEMS),false)
+  GEM_ARCHIVE_FILES =
+else
+  MAKEFILE_GEM_LIST := $(MRUBY_ROOT)/mrbgems/g/MakefileGemList
+  ifeq ($(wildcard $(MAKEFILE_GEM_LIST)),)
+    GEM_ARCHIVE_FILES =
+  else
+    include $(MAKEFILE_GEM_LIST)
+  endif
+endif
+
 ifeq ($(OS),Windows_NT)
 EXE := $(TARGET).exe
 else
@@ -54,7 +72,7 @@ all : $(LIBR) $(EXE)
 
 # executable constructed using linker from object files
 $(EXE) : $(LIBR) $(OBJS) $(EXTS)
-	$(LL) -o $@ $(CFLAGS) $(OBJS) $(LIBR) $(EXTS) $(LIBS)
+	$(LL) -o $@ $(CFLAGS) $(OBJS) $(LIBR) $(GEM_ARCHIVE_FILES) $(EXTS) $(LIBS)
 
 -include $(OBJS:.o=.d)
 
