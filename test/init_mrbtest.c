@@ -11,7 +11,7 @@ void
 mrb_init_mrbtest(mrb_state *mrb)
 {
   mrb_load_irep(mrb, mrbtest_irep);
-#ifdef ENABLE_GEMS
+#ifndef DISABLE_GEMS
   mrb_load_irep(mrb, mrbgemtest_irep);
 #endif
   if (mrb->exc) {

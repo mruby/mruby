@@ -226,7 +226,7 @@ mrb_init_mrblib(mrb_state *mrb)
 {
 }
 
-#ifdef ENABLE_GEMS
+#ifndef DISABLE_GEMS
 void
 mrb_init_mrbgems(mrb_state *mrb)
 {
