@@ -241,6 +241,72 @@ error_exit:
   return MRB_DUMP_OK;
 }
 
+#ifdef MRB_DEBUG_DUMP
+static int
+load_debug_info_irep(mrb_state *mrb, mrb_irep *irep)
+{
+  char *c;
+  int i, len, n = -1, base = -1, ret = 0;
+  const char *mrb_debug_dump_mark = "**MRB_DEBUG_DUMP**";
+  len = (int) sizeof(mrb_debug_dump_mark);
+
+  if (irep->plen < 3)
+    return ret;
+
+  for (i=0; i<irep->plen; i++) {
+    if (!mrb_string_p(irep->pool[i]))
+        continue;
+
+    c = mrb_string_value_ptr(mrb, irep->pool[i]);
+    if (sizeof(c) == len && strncmp(c, mrb_debug_dump_mark, len) == 0) {
+      i++;
+      /* fetch filename */
+      if (mrb_nil_p(irep->pool[i])) {
+        irep->filename = NULL;
+      } else {
+        irep->filename = mrb_string_value_ptr(mrb, irep->pool[i]);
+      }
+      i++;
+      /* fetch lines size */
+      n = mrb_fixnum(irep->pool[i]);
+      i++;
+      /* set lines start pos */
+      base = i;
+      break;
+    }
+  }
+
+  if (base > 0 && n > 0 && irep->plen >= base+n) {
+    irep->lines = mrb_malloc(mrb, sizeof(mrb_value) * n);
+    if (irep->lines == NULL) {
+      return MRB_DUMP_INVALID_IREP;
+    }
+    for (i=0; i<n; i++) {
+      irep->lines[i] = mrb_fixnum(irep->pool[base+i]);
+    }
+  }
+
+  return ret;
+}
+
+static int
+load_debug_info(mrb_state *mrb)
+{
+  int irep_no, ret = 0;
+  for (irep_no = 0; irep_no < mrb->irep_len; irep_no++) {
+    mrb_irep *irep = mrb->irep[irep_no];
+    if (irep != NULL && irep->plen > 0) {
+      ret = load_debug_info_irep(mrb, irep);
+      if (ret != 0)
+        return ret;
+    }
+  }
+
+  return ret;
+}
+#endif
+
+
 int
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
@@ -290,6 +356,10 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 
   if (ret == MRB_DUMP_OK)
     ret = mrb_read_irep(mrb, (char*)rite_dst);
+
+#ifdef MRB_DEBUG_DUMP
+  load_debug_info(mrb);
+#endif
 
 error_exit:
   if (rite_dst)

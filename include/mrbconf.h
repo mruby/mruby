@@ -43,6 +43,9 @@
 /* page size of memory pool */
 //#define POOL_PAGE_SIZE 16000
 
+/* Add line numbers to mrb file */
+#define MRB_DEBUG_DUMP		"**MRB_DEBUG_DUMP**"
+
 /* -DDISABLE_XXXX to drop the feature */
 #define DISABLE_REGEXP	        /* regular expression classes */
 //#define DISABLE_SPRINTF	/* Kernel.sprintf method */
