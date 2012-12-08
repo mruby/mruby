@@ -30,6 +30,13 @@ static char
 {
   char full_path[1024] = { 0 };
   if (path[0] == '/') {
+    /* An absolute UNIX path starts with a slash */
+    strcpy(full_path, path);
+  }
+  else if (path[1] == ':') {
+    /* An absolute path on WIN32 starts
+     * with a drive like "c://path/to/somewhere"
+     */
     strcpy(full_path, path);
   }
   else {
