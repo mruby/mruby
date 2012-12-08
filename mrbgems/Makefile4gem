@@ -15,9 +15,6 @@ AR := ar
 SRC_DIR := src
 MRB_DIR := mrblib
 
-INCLUDES := -I$(SRC_DIR) -I$(MRUBY_ROOT)/include -I$(MRUBY_ROOT)/src -I.
-CFLAGS := $(INCLUDES) -O3 -g -Wall -Werror-implicit-function-declaration
-
 # LIBR can be manipulated with command line arguments
 ifeq ($(strip $(LIBR)),)
   # default mruby library

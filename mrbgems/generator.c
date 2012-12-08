@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <mrbconf.h>
 
 /*
@@ -103,13 +104,19 @@ static char
  *     GEMS.active file location
  *   escape:
  *     Should the gem name be escaped?
+ *   check_suffix:
+ *     If not empty it will be added to the GEM
+ *     path and a check will be performed if this
+ *     full path is a directory. Every GEM which
+ *     doesn't contain this path will be skipped
+ *     in the iteration.
  *
  */
 static char*
 for_each_gem (char before[1024], char after[1024],
                char start[1024], char end[1024],
                int full_path, char active_gems[1024],
-               int escape)
+               int escape, char check_suffix[1024])
 {
   /* active GEM check */
   FILE *active_gem_file;
@@ -119,6 +126,9 @@ for_each_gem (char before[1024], char after[1024],
   char gem_list[1024][1024] = { { 0 }, { 0 } };
   int gem_index;
   int i;
+  int skip;
+  FILE *check;
+  char check_name[1024] = { 0 };
 
   /* return value */
   char* complete_line = malloc(4096 + sizeof(char));
@@ -130,6 +140,7 @@ for_each_gem (char before[1024], char after[1024],
   if (active_gem_file != NULL) {
     char_index = 0;
     gem_index = 0;
+    skip = FALSE;
     while((gem_char = fgetc(active_gem_file)) != EOF) {
       if (gem_char == '\n') {
         /* Every line contains one active GEM */
@@ -138,7 +149,21 @@ for_each_gem (char before[1024], char after[1024],
         if (escape == TRUE)
           strcpy(gem_name, escape_gem_name(gem_name));
 
-        strcpy(gem_list[gem_index++], gem_name);
+        if (strcmp(check_suffix, "") == 0) { /* No suffix passed */ }
+        else {
+          /* Check the path with suffix if it is a directory */
+
+          strcpy(check_name, gem_name);
+          strcat(check_name, check_suffix);
+          check = fopen(check_name, "r+");
+          if (errno == EISDIR)
+            skip = FALSE;
+          else
+            skip = TRUE;
+        }
+
+        if (skip == FALSE)
+          strcpy(gem_list[gem_index++], gem_name);
 
         gem_name[0] = '\0';
         char_index = 0;
@@ -180,16 +205,26 @@ make_gem_makefile(char active_gems[1024])
   printf("ifeq ($(strip $(MRUBY_ROOT)),)\n"
          "  MRUBY_ROOT := $(realpath ../../..)\n"
          "endif\n\n"
+
          "MAKEFILE_4_GEM := $(MRUBY_ROOT)/mrbgems/Makefile4gem\n\n"
-         "CFLAGS := -I. -I$(MRUBY_ROOT)/include -I$(MRUBY_ROOT)/src\n\n"
+
+         "INCLUDE := ");
+
+  /* collect all GEM include directories if they exist */
+  printf("%s\n",
+           for_each_gem("-I", "/include ", "", "", TRUE, active_gems, FALSE, "/include")
+          );
+
+  printf("CFLAGS := -I. -I$(MRUBY_ROOT)/include -I$(MRUBY_ROOT)/src $(INCLUDE)\n\n"
+
          "ifeq ($(OS),Windows_NT)\n"
-         "  MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)' MRUBY_ROOT='$(MRUBY_ROOT)' MAKEFILE_4_GEM='$(MAKEFILE_4_GEM)'\n"
+         "  MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) CFLAGS='$(CFLAGS)' MRUBY_ROOT='$(MRUBY_ROOT)' MAKEFILE_4_GEM='$(MAKEFILE_4_GEM)'\n"
          "else\n"
-         "  MAKE_FLAGS = --no-print-directory CC='$(CC)' LL='$(LL)' ALL_CFLAGS='$(ALL_CFLAGS)' MRUBY_ROOT='$(MRUBY_ROOT)' MAKEFILE_4_GEM='$(MAKEFILE_4_GEM)'\n"
+         "  MAKE_FLAGS = --no-print-directory CC='$(CC)' LL='$(LL)' CFLAGS='$(CFLAGS)' MRUBY_ROOT='$(MRUBY_ROOT)' MAKEFILE_4_GEM='$(MAKEFILE_4_GEM)'\n"
          "endif\n\n");
 
   /* is there any GEM available? */
-  gem_check = for_each_gem("", "", "", "", TRUE, active_gems, FALSE);
+  gem_check = for_each_gem("", "", "", "", TRUE, active_gems, FALSE, "");
   if (strcmp(gem_check, "") == 0)
     gem_empty = TRUE;
   else
@@ -205,7 +240,7 @@ make_gem_makefile(char active_gems[1024])
 
     /* Call make for every GEM */
     printf("all_gems :\n%s\n", 
-            for_each_gem("\t@$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "", TRUE, active_gems, FALSE)
+            for_each_gem("\t$(MAKE) -C ", " $(MAKE_FLAGS)\n", "", "", TRUE, active_gems, FALSE, "")
           );
     printf("\n");
   }
@@ -217,7 +252,7 @@ make_gem_makefile(char active_gems[1024])
         );
   if (!gem_empty)
     printf("%s",
-           for_each_gem(" ", "/test/*.rb ", "\tcat", " > mrbgemtest.rbtmp", TRUE, active_gems, FALSE)
+           for_each_gem(" ", "/test/*.rb ", "\tcat", " > mrbgemtest.rbtmp", TRUE, active_gems, FALSE, "")
           );
   else
     printf("\t$(MRUBY_ROOT)/mrbgems/generator rbtmp> mrbgemtest.rbtmp");
@@ -231,7 +266,7 @@ make_gem_makefile(char active_gems[1024])
          "\t$(RM) *.c *.d *.rbtmp *.ctmp *.o mrbtest\n");
   if (!gem_empty)
     printf("%s",
-           for_each_gem("\t@$(MAKE) clean -C ", " $(MAKE_FLAGS)\n", "", "", TRUE, active_gems, FALSE)
+           for_each_gem("\t@$(MAKE) clean -C ", " $(MAKE_FLAGS)\n", "", "", TRUE, active_gems, FALSE, "")
           );
 }
 
@@ -246,7 +281,7 @@ static void
 make_gem_makefile_list(char active_gems[1024])
 {
   printf("%s",
-         for_each_gem(" ", "/mrb-#GEMNAME#-gem.a", "GEM_LIST := ", "\n", TRUE, active_gems, FALSE)
+         for_each_gem(" ", "/mrb-#GEMNAME#-gem.a", "GEM_LIST := ", "\n", TRUE, active_gems, FALSE, "")
         );
 
   printf("GEM_ARCHIVE_FILES := $(MRUBY_ROOT)/mrbgems/gem_init.a\n"
@@ -273,7 +308,7 @@ make_gem_init(char active_gems[1024])
 
   /* Protoype definition of all initialization methods */
   printf("\n%s",
-         for_each_gem("void GENERATED_TMP_mrb_", "_gem_init(mrb_state*);\n", "", "", FALSE, active_gems, TRUE)
+         for_each_gem("void GENERATED_TMP_mrb_", "_gem_init(mrb_state*);\n", "", "", FALSE, active_gems, TRUE, "")
         );
   printf("\n");
 
@@ -281,7 +316,7 @@ make_gem_init(char active_gems[1024])
   printf("void\n"
          "mrb_init_mrbgems(mrb_state *mrb) {\n");
   printf(   "%s",
-            for_each_gem("  GENERATED_TMP_mrb_", "_gem_init(mrb);\n", "", "", FALSE, active_gems, TRUE)
+            for_each_gem("  GENERATED_TMP_mrb_", "_gem_init(mrb);\n", "", "", FALSE, active_gems, TRUE, "")
         );
   printf("}");
 }
@@ -363,6 +398,7 @@ make_gem_srclib(char gem_name[1024])
          " */\n\n"
          "#include \"mruby.h\"\n");
 
+  /* Prototype method for GEM initialization */
   printf("\n"
          "void mrb_%s_gem_init(mrb_state*);\n", gem_name);
 
@@ -384,6 +420,7 @@ make_gem_srclib(char gem_name[1024])
 static void
 make_gem_mixlib(char gem_name[1024])
 {
+  /* Prototype method for GEM initialization */
   printf("\n"
          "void mrb_%s_gem_init(mrb_state*);\n", gem_name);
 
