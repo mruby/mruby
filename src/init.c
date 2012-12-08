@@ -66,7 +66,7 @@ mrb_init_core(mrb_state *mrb)
   mrb_init_math(mrb); DONE;
 #endif
   mrb_init_mrblib(mrb); DONE;
-#ifdef ENABLE_GEMS
+#ifndef DISABLE_GEMS
   mrb_init_mrbgems(mrb); DONE;
 #endif
 }
