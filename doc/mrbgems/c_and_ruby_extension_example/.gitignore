@@ -1,0 +1,5 @@
+*.ctmp
+*.rbtmp
+/gem_srclib.c
+/gem_mixlib.c
+/gem_mrblib.c

@@ -7,7 +7,7 @@ endif
 
 LIBR := ../lib/libmruby.a
 RM_F := rm -f
-CC_FLAGS := -Wall -Werror-implicit-function-declaration -g -O3 -MMD -I. -I./../include
+CFLAGS := $(ALL_CFLAGS) -I. -I./../include
 
 export CC = gcc
 export LL = gcc
@@ -22,6 +22,7 @@ endif
 GEM_INIT := gem_init
 GEM_MAKEFILE := g/Makefile
 GEM_MAKEFILE_LIST := g/MakefileGemList
+GEM_GEMSCONF := ../include/gemsconf.h
 GEMDLIB := g/mrbgemtest.ctmp
 
 ifeq ($(strip $(ACTIVE_GEMS)),)
@@ -29,11 +30,22 @@ ifeq ($(strip $(ACTIVE_GEMS)),)
   ACTIVE_GEMS = GEMS.active
 endif
 
+ifeq ($(OS),Windows_NT)
+  MAKE_FLAGS = CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)' LDFLAGS='$(LDFLAGS)' ACTIVE_GEMS='$(ACTIVE_GEMS)' MRUBY_ROOT='$(MRUBY_ROOT)'
+else
+  MAKE_FLAGS = CC='$(CC)' LL='$(LL)' ALL_CFLAGS='$(ALL_CFLAGS)' LDFLAGS='$(LDFLAGS)' ACTIVE_GEMS='$(ACTIVE_GEMS)' MRUBY_ROOT='$(MRUBY_ROOT)'
+endif
+
 ##############################
 # generic build targets, rules
 
 .PHONY : all
 all : all_gems $(GEM_INIT).a
+
+.PHONY : gemsconf
+gemsconf : $(GENERATOR_BIN)
+	@echo "Generate gemsconf.h"
+	$(GENERATOR_BIN) gemsconf "$(ACTIVE_GEMS)" > $(GEM_GEMSCONF)
 
 $(GEM_INIT).a : $(GEM_INIT).o
 	$(AR) rs gem_init.a $(GEM_INIT).o
@@ -44,7 +56,7 @@ all_gems : $(GENERATOR_BIN)
 	@echo "Generate Gem Makefile"
 	$(GENERATOR_BIN) makefile "$(ACTIVE_GEMS)" "$(MRUBY_ROOT)" > $(GEM_MAKEFILE)
 	@echo "Build all gems"
-	$(MAKE) -C g MRUBY_ROOT='$(MRUBY_ROOT)' ACTIVE_GEMS="$(ACTIVE_GEMS)"
+	$(MAKE) -C g $(MAKE_FLAGS)
 
 $(GEM_INIT).c : $(GENERATOR_BIN)
 	@echo "Generate Gem driver"
@@ -52,16 +64,16 @@ $(GEM_INIT).c : $(GENERATOR_BIN)
 
 $(GEM_INIT).o : $(GEM_INIT).c
 	@echo "Build the driver which initializes all gems"
-	$(CC) $(CC_FLAGS) -MMD -c $< -o $@
+	$(CC) $(CFLAGS) -MMD -c $< -o $@
 
 # Generator
 
 $(GENERATOR_BIN) : $(GENERATOR).o
 	@echo "Build the generator which creates the driver and Gem Makefile"
-	$(LL) -o $@ $(CC_FLAGS) $<
+	$(LL) -o $@ $(CFLAGS) $<
 
 $(GENERATOR).o : $(GENERATOR).c
-	$(CC) $(CC_FLAGS) -MMD -c $< -o $@
+	$(CC) $(CFLAGS) -MMD -c $< -o $@
 
 .PHONY : prepare-test
 prepare-test :
@@ -73,4 +85,4 @@ clean : $(GENERATOR_BIN)
 	@echo "Cleanup Gems"
 	$(GENERATOR_BIN) makefile "$(ACTIVE_GEMS)" "$(MRUBY_ROOT)" > $(GEM_MAKEFILE)
 	$(MAKE) clean -C g ACTIVE_GEMS="$(ACTIVE_GEMS)" MRUBY_ROOT='$(MRUBY_ROOT)'
-	-$(RM_F) $(GEM_INIT).c *.o *.d $(GENERATOR_BIN) $(GEM_MAKEFILE) $(GEM_MAKEFILE_LIST) gem_init.a
+	-$(RM_F) $(GEM_INIT).c *.o *.d $(GENERATOR_BIN) $(GEM_MAKEFILE) $(GEM_MAKEFILE_LIST) gem_init.a ../include/gemsconf.h
