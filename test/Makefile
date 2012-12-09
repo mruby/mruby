@@ -62,9 +62,9 @@ endif
 
 ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
 ifeq ($(OS),Windows_NT)
-  MAKE_FLAGS = CC=$(CC) LL=$(LL) ALL_CFLAGS="$(ALL_CFLAGS)"
+  MAKE_FLAGS = CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)' LDFLAGS='$(LDFLAGS)' 
 else
-  MAKE_FLAGS = CC='$(CC)' LL='$(LL)' ALL_CFLAGS='$(ALL_CFLAGS)'
+  MAKE_FLAGS = CC='$(CC)' LL='$(LL)' ALL_CFLAGS='$(ALL_CFLAGS)' LDFLAGS='$(LDFLAGS)' 
 endif
 
 # mruby compiler and test driver
@@ -95,7 +95,7 @@ all : $(EXE) $(MRUBY) $(TESTRB) $(TESTMRB)
 
 # executable constructed using linker from object files
 $(EXE) : $(OBJS) $(LIBR)
-	$(LL) -o $@ $(CFLAGS) $(OBJS) $(LIBR) $(GEM_ARCHIVE_FILES) $(LIBS)
+	$(LL) -o $@ $(LDFLAGS) $(OBJS) $(LIBR) $(GEM_ARCHIVE_FILES) $(LIBS)
 
 -include $(OBJS:.o=.d)
 
