@@ -14,7 +14,7 @@
 //#define MRB_USE_FLOAT
 
 /* add -DMRB_INT64 to use 64bit integer for mrb_int */
-//#define MRB_INT64
+#define MRB_INT64
 
 /* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT */
 //#define MRB_NAN_BOXING
@@ -50,7 +50,7 @@
 //#define DISABLE_TIME		/* Time class */
 //#define DISABLE_STRUCT	/* Struct class */
 //#define DISABLE_STDIO		/* use of stdio */
-#define DISABLE_GEMS		/* Package Manager mrbgems */
+//#define DISABLE_GEMS		/* Package Manager mrbgems */
 
 #undef  HAVE_UNISTD_H /* WINDOWS */
 #define HAVE_UNISTD_H /* LINUX */

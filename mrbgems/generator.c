@@ -246,9 +246,9 @@ make_gem_makefile(char active_gems[1024], char mruby_root[1024])
   printf("CFLAGS := -I. -I$(MRUBY_ROOT)/include -I$(MRUBY_ROOT)/src $(INCLUDE)\n\n"
 
          "ifeq ($(OS),Windows_NT)\n"
-         "  MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) CFLAGS='$(CFLAGS)' MRUBY_ROOT='$(MRUBY_ROOT)' MAKEFILE_4_GEM='$(MAKEFILE_4_GEM)'\n"
+         "  MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) LDFLAGS='$(LDFLAGS)' CFLAGS='$(CFLAGS)' MRUBY_ROOT='$(MRUBY_ROOT)' MAKEFILE_4_GEM='$(MAKEFILE_4_GEM)'\n"
          "else\n"
-         "  MAKE_FLAGS = --no-print-directory CC='$(CC)' LL='$(LL)' CFLAGS='$(CFLAGS)' MRUBY_ROOT='$(MRUBY_ROOT)' MAKEFILE_4_GEM='$(MAKEFILE_4_GEM)'\n"
+         "  MAKE_FLAGS = --no-print-directory CC='$(CC)' LL='$(LL)' LDFLAGS='$(LDFLAGS)' CFLAGS='$(CFLAGS)' MRUBY_ROOT='$(MRUBY_ROOT)' MAKEFILE_4_GEM='$(MAKEFILE_4_GEM)'\n"
          "endif\n\n");
 
   /* is there any GEM available? */
