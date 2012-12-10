@@ -43,7 +43,6 @@ closure_setup(mrb_state *mrb, struct RProc *p, int nlocals)
     e = mrb->ci->env;
   }
   p->env = e;
-  return;
 }
 
 struct RProc *
