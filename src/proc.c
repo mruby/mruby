@@ -27,14 +27,13 @@ mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
 }
 
 struct RProc *
-mrb_closure_new(mrb_state *mrb, mrb_irep *irep)
+mrb_proc2closure(mrb_state *mrb, struct RProc *p, unsigned int nlocals)
 {
-  struct RProc *p = mrb_proc_new(mrb, irep);
   struct REnv *e;
 
   if (!mrb->ci->env) {
     e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)mrb->ci->proc->env);
-    e->flags= (unsigned int)mrb->ci->proc->body.irep->nlocals;
+    e->flags= nlocals;
     e->mid = mrb->ci->mid;
     e->cioff = mrb->ci - mrb->cibase;
     e->stack = mrb->stack;
@@ -45,6 +44,14 @@ mrb_closure_new(mrb_state *mrb, mrb_irep *irep)
   }
   p->env = e;
   return p;
+}
+
+struct RProc *
+mrb_closure_new(mrb_state *mrb, mrb_irep *irep)
+{
+  struct RProc *p = mrb_proc_new(mrb, irep);
+  return mrb_proc2closure(mrb, p,
+    (unsigned int)mrb->ci->proc->body.irep->nlocals);
 }
 
 struct RProc *
