@@ -9,6 +9,8 @@
 *.sav
 *.swp
 *.d
+*.ctmp
+*.rbtmp
 *~
 .DS_Store
 .ccmalloc
@@ -29,5 +31,4 @@ CMakeCache.txt
 /mrbgems/gem_init.c
 /mrbgems/g/Makefile
 /mrbgems/g/MakefileGemList
-/mrbgems/g/mrbgemtest.ctmp
-/mrbgems/g/mrbgemtest.rbtmp
+/include/gemsconf.h

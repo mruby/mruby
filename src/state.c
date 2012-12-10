@@ -12,6 +12,9 @@
 void mrb_init_heap(mrb_state*);
 void mrb_init_core(mrb_state*);
 void mrb_init_ext(mrb_state*);
+#ifndef DISABLE_GEMS
+void mrb_final_mrbgems(mrb_state*);
+#endif
 
 mrb_state*
 mrb_open_allocf(mrb_allocf f, void *ud)
@@ -87,6 +90,10 @@ void
 mrb_close(mrb_state *mrb)
 {
   int i;
+
+#ifndef DISABLE_GEMS
+  mrb_final_mrbgems(mrb);
+#endif
 
   /* free */
   mrb_gc_free_gv(mrb);

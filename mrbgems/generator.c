@@ -243,7 +243,7 @@ make_gem_makefile(char active_gems[1024], char mruby_root[1024])
            for_each_gem("-I", "/include ", "", "", TRUE, active_gems, FALSE, "/include", mruby_root)
           );
 
-  printf("CFLAGS := -I. -I$(MRUBY_ROOT)/include -I$(MRUBY_ROOT)/src $(INCLUDE)\n\n"
+  printf("CFLAGS := $(ALL_CFLAGS) -I. -I$(MRUBY_ROOT)/include -I$(MRUBY_ROOT)/src $(INCLUDE)\n\n"
 
          "ifeq ($(OS),Windows_NT)\n"
          "  MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) LDFLAGS='$(LDFLAGS)' CFLAGS='$(CFLAGS)' MRUBY_ROOT='$(MRUBY_ROOT)' MAKEFILE_4_GEM='$(MAKEFILE_4_GEM)'\n"
@@ -299,6 +299,56 @@ make_gem_makefile(char active_gems[1024], char mruby_root[1024])
 }
 
 /*
+ * gemsconf.h Generator
+ *
+ * Creates a gemsconf.h what will be used for to access to GEMs data.
+ *
+ */
+static void
+make_gemsconf(char active_gems[1024])
+{
+  /* active GEM check */
+  FILE *active_gem_file;
+  char gem_char;
+  int char_index;
+  int gem_index;
+  int i;
+  char gem_name[1024] = { 0 };
+
+  printf("#ifndef GEMSCONF_H\n"
+         "#define GEMSCONF_H\n"
+         "\n"
+        );
+
+  /* Read out the active GEMs */
+  active_gem_file = fopen(active_gems, "r+");
+  if (active_gem_file != NULL) {
+    char_index = 0;
+    gem_index = 0;
+    while((gem_char = fgetc(active_gem_file)) != EOF) {
+      if (gem_char == '\n') {
+        /* Every line contains one active GEM */
+        gem_name[char_index++] = '\0';
+        char* name = escape_gem_name(get_file_name(gem_name));
+        printf("#define mrb_%s_gem_index (%d)\n", name, gem_index);
+        printf("#define mrb_%s_gem_data(mrb) ((mrb)->gems_data[%d])\n", name, gem_index);
+        gem_index++;
+
+        char_index = 0;
+      }
+      else
+        gem_name[char_index++] = gem_char;
+    }
+    fclose(active_gem_file);
+    printf("\n#define GEMS_COUNT (%d)\n", gem_index);
+  }
+
+  printf("\n"
+         "#endif\n"
+        );
+}
+
+/*
  * Gem Makefile List Generator
  *
  * Creates a Makefile which will be included by other Makefiles
@@ -338,6 +388,9 @@ make_gem_init(char active_gems[1024])
   printf("\n%s",
          for_each_gem("void GENERATED_TMP_mrb_", "_gem_init(mrb_state*);\n", "", "", FALSE, active_gems, TRUE, "", "")
         );
+  printf("\n%s",
+         for_each_gem("void mrb_", "_gem_final(mrb_state*);\n", "", "", FALSE, active_gems, TRUE, "", "")
+        );
   printf("\n");
 
   /* mrb_init_mrbgems(mrb) method for initialization of all GEMs */
@@ -346,7 +399,15 @@ make_gem_init(char active_gems[1024])
   printf(   "%s",
             for_each_gem("  GENERATED_TMP_mrb_", "_gem_init(mrb);\n", "", "", FALSE, active_gems, TRUE, "", "")
         );
-  printf("}");
+  printf("}\n");
+
+  /* mrb_final_mrbgems(mrb) method for finalization of all GEMs */
+  printf("\nvoid\n"
+         "mrb_final_mrbgems(mrb_state *mrb) {\n");
+  printf(   "%s",
+            for_each_gem("  mrb_", "_gem_final(mrb);\n", "", "", FALSE, active_gems, TRUE, "", "")
+        );
+  printf("}\n");
 }
 
 /*
@@ -403,7 +464,12 @@ make_gem_mrblib(char gem_name[1024])
          "    mrb_p(mrb, mrb_obj_value(mrb->exc));\n"
          "    exit(0);\n"
          "  }\n"
-         "}", gem_name, gem_name);
+         "}\n", gem_name, gem_name);
+
+  printf("\n"
+         "void\n"
+         "mrb_%s_gem_final(mrb_state *mrb) {\n"
+         "}", gem_name);
 }
 
 /*
@@ -461,7 +527,7 @@ make_gem_mixlib(char gem_name[1024])
          "    mrb_p(mrb, mrb_obj_value(mrb->exc));\n"
          "    exit(0);\n"
          "  }\n"
-         "}", gem_name, gem_name, gem_name);
+         "}\n", gem_name, gem_name, gem_name);
 }
 
 /*
@@ -494,6 +560,8 @@ main (int argc, char *argv[])
       make_gem_srclib(escape_gem_name(argv[2]));
     else if (strcmp(argv[1], "gem_mixlib") == 0)
       make_gem_mixlib(escape_gem_name(argv[2]));
+    else if (strcmp(argv[1], "gemsconf") == 0)
+      make_gemsconf(escape_gem_name(argv[2]));
     else {
       printf("%s", argument_info);
       return 1;

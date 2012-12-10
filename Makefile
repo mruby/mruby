@@ -54,6 +54,9 @@ export CAT := cat
 
 .PHONY : all
 all :
+ifeq ($(ENABLE_GEMS),true)
+	@$(MAKE) -C mrbgems gemsconf $(MAKE_FLAGS)
+endif
 	@$(MAKE) -C src $(MAKE_FLAGS)
 	@$(MAKE) -C mrblib $(MAKE_FLAGS)
 ifeq ($(ENABLE_GEMS),true)

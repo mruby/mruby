@@ -37,6 +37,11 @@ extern "C" {
 
 #include "mruby/value.h"
 
+#ifndef DISABLE_GEMS
+#include "gemsconf.h"
+#endif
+
+
 typedef int32_t mrb_code;
 
 struct mrb_state;
@@ -134,6 +139,9 @@ typedef struct mrb_state {
   struct RClass *eStandardError_class;
 
   void *ud; /* auxiliary data */
+#ifdef GEMS_COUNT
+  void *gems_data[GEMS_COUNT];
+#endif
 } mrb_state;
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
