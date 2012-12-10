@@ -213,7 +213,7 @@ cipush(mrb_state *mrb)
     mrb->ciend = mrb->cibase + size * 2;
   }
   mrb->ci++;
-  mrb->ci->nregs = 2;
+  mrb->ci->nregs = 2;		/* protect method_missing arg and block */
   mrb->ci->eidx = eidx;
   mrb->ci->ridx = ridx;
   mrb->ci->env = 0;
