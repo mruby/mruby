@@ -52,7 +52,7 @@ all : $(EXE)
 
 # executable constructed using linker from object files
 $(EXE) : $(OBJS) $(LIBR)
-	$(LL) -o $@ $(OBJS) $(LIBR) $(LIBS)
+	$(LL) -o $@ $(LDFLAGS) $(OBJS) $(LIBR) $(LIBS)
 
 -include $(OBJS:.o=.d)
 
