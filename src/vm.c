@@ -43,7 +43,7 @@
 #define MRB_STACK_GROWTH 128
 #endif
 
-/* Maximum stack depth. Should be set lower on memory constrained systems. 
+/* Maximum stack depth. Should be set lower on memory constrained systems.
 The value below allows about 60000 recursive calls in the simplest case. */
 #ifndef MRB_STACK_MAX
 #define MRB_STACK_MAX ((1<<18) - MRB_STACK_GROWTH)
@@ -103,26 +103,26 @@ stack_extend(mrb_state *mrb, int room, int keep)
 
     size = mrb->stend - mrb->stbase;
     off = mrb->stack - mrb->stbase;
-    
-    /* Use linear stack growth. 
-       It is slightly slower than doubling thestack space, 
+
+    /* Use linear stack growth.
+       It is slightly slower than doubling thestack space,
        but it saves memory on small devices. */
-    if (room <= size)  
+    if (room <= size)
       size += MRB_STACK_GROWTH;
     else
       size += room;
-    
+
     mrb->stbase = (mrb_value *)mrb_realloc(mrb, mrb->stbase, sizeof(mrb_value) * size);
     mrb->stack = mrb->stbase + off;
     mrb->stend = mrb->stbase + size;
     envadjust(mrb, oldbase, mrb->stbase);
-    /* Raise an exception if the new stack size will be too large, 
+    /* Raise an exception if the new stack size will be too large,
     to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raisef has stack space to work with. */
     if(size > MRB_STACK_MAX) {
       mrb_raisef(mrb, E_RUNTIME_ERROR, "stack level too deep. (limit=%d)", MRB_STACK_MAX);
     }
   }
-  
+
   if (room > keep) {
     int i;
     for (i=keep; i<room; i++) {
@@ -1184,8 +1184,19 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         mrb_value v = regs[GETARG_A(i)];
 
         switch (GETARG_B(i)) {
+        case OP_R_RETURN:
+          // Fall through to OP_R_NORMAL otherwise
+          if (proc->env && !MRB_PROC_STRICT_P(proc)) {
+            struct REnv *e = top_env(mrb, proc);
+
+            if (e->cioff < 0) {
+              localjump_error(mrb, "return");
+              goto L_RAISE;
+            }
+            ci = mrb->ci = mrb->cibase + e->cioff;
+            break;
+          }
         case OP_R_NORMAL:
-	NORMAL_RETURN:
           if (ci == mrb->cibase) {
             localjump_error(mrb, "return");
             goto L_RAISE;
@@ -1198,19 +1209,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
             goto L_RAISE;
           }
           ci = mrb->ci = mrb->cibase + proc->env->cioff + 1;
-          break;
-        case OP_R_RETURN:
-	  if (!proc->env) goto NORMAL_RETURN;
-	  if (MRB_PROC_STRICT_P(proc)) goto NORMAL_RETURN;
-	  else {
-	    struct REnv *e = top_env(mrb, proc);
-
-	    if (e->cioff < 0) {
-	      localjump_error(mrb, "return");
-	      goto L_RAISE;
-	    }
-	    ci = mrb->ci = mrb->cibase + e->cioff;
-	  }
           break;
         default:
           /* cannot happen */
