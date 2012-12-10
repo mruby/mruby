@@ -301,8 +301,7 @@ make_gem_makefile(char active_gems[1024], char mruby_root[1024])
 /*
  * gemsconf.h Generator
  *
- * Creates a Makefile which will be included by other Makefiles
- * which need to know which GEMs are active.
+ * Creates a gemsconf.h what will be used for to access to GEMs data.
  *
  */
 static void
