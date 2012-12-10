@@ -26,7 +26,7 @@ mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
   return p;
 }
 
-static void
+static inline void
 closure_setup(mrb_state *mrb, struct RProc *p, int nlocals)
 {
   struct REnv *e;
