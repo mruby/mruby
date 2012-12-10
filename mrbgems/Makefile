@@ -85,4 +85,4 @@ clean : $(GENERATOR_BIN)
 	@echo "Cleanup Gems"
 	$(GENERATOR_BIN) makefile "$(ACTIVE_GEMS)" "$(MRUBY_ROOT)" > $(GEM_MAKEFILE)
 	$(MAKE) clean -C g ACTIVE_GEMS="$(ACTIVE_GEMS)" MRUBY_ROOT='$(MRUBY_ROOT)'
-	-$(RM_F) $(GEM_INIT).c *.o *.d $(GENERATOR_BIN) $(GEM_MAKEFILE) $(GEM_MAKEFILE_LIST) gem_init.a ../include/gemsconf.h
+	-$(RM_F) $(GEM_INIT).c *.o *.d $(GENERATOR_BIN) $(GEM_MAKEFILE) $(GEM_MAKEFILE_LIST) $(GEM_GEMSCONF) gem_init.a
