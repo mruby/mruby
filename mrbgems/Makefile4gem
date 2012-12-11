@@ -69,7 +69,7 @@ gem_mrblib_init.ctmp :
 	$(MRUBY_ROOT)/mrbgems/generator gem_mrblib $(GEM) > $@
 
 gem_mrblib_irep.ctmp : gem_mrblib.rbtmp
-	$(MRUBY_ROOT)/bin/mrbc -Bgem_mrblib_irep_$(GEM) -o$@ $<
+	$(MRUBY_ROOT)/bin/mrbc -Bgem_mrblib_irep_$(subst -,_,$(GEM)) -o$@ $<
 
 gem_mrblib.rbtmp :
 	cat $(GEM_RB_FILES) > $@
