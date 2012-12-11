@@ -60,8 +60,9 @@ static char
  *     String which will be the replacement
  *
  */
-static char
-*replace(const char *s, const char *old, const char *new)
+
+static char *
+replace(const char *s, const char *old, const char *new)
 {
   char *ret;
   int i, count = 0;
