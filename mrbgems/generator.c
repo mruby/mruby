@@ -28,7 +28,7 @@ static char
 static char
 *get_full_path(char *path, char *mruby_root)
 {
-  char full_path[1024] = { 0 };
+  static char full_path[1024] = { 0 };
   if (path[0] == '/') {
     /* An absolute UNIX path starts with a slash */
     strcpy(full_path, path);
@@ -75,7 +75,7 @@ static char
     }
   }
 
-  ret = malloc(i + count * (newlen - oldlen));
+  ret = malloc(i + count * (newlen - oldlen) + 1);
   if (ret == NULL)
     exit(EXIT_FAILURE);
 
@@ -148,7 +148,7 @@ for_each_gem (char before[1024], char after[1024],
   char gem_name[1024] = { 0 };
   int char_index;
   char gem_list[1024][1024] = { { 0 }, { 0 } };
-  int gem_index;
+  int gem_index = 0;
   int i;
   int skip;
   FILE *check;
@@ -184,6 +184,8 @@ for_each_gem (char before[1024], char after[1024],
             skip = FALSE;
           else
             skip = TRUE;
+          if (check)
+            fclose(check);
         }
 
         if (skip == FALSE)
