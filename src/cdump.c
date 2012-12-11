@@ -172,12 +172,10 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
 int
 mrb_cdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname)
 {
-  int irep_no, irep_num;
+  int irep_no;
 
   if (mrb == NULL || n < 0 || n >= mrb->irep_len || f == NULL || initname == NULL)
     return -1;
-
-  irep_num = mrb->irep_len - n;
 
   SOURCE_CODE0("#include \"mruby.h\"");
   SOURCE_CODE0("#include \"mruby/irep.h\"");
