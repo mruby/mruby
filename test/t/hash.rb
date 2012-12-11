@@ -229,6 +229,13 @@ assert('Hash#values', '15.2.13.4.28') do
   a.values == ['abc_value']
 end
 
+assert('Hash#inspect', '15.2.13.4.30') do
+  a = {}
+  a[a] = a
+
+  a.inspect == '{{...}=>{...}}'
+end
+#
 # Not ISO specified
 
 assert('Hash#reject') do
