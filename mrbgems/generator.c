@@ -148,7 +148,7 @@ for_each_gem (char before[1024], char after[1024],
   char gem_name[1024] = { 0 };
   int char_index;
   char gem_list[1024][1024] = { { 0 }, { 0 } };
-  int gem_index;
+  int gem_index = 0;
   int i;
   int skip;
   FILE *check;
