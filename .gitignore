@@ -31,3 +31,4 @@ CMakeCache.txt
 /mrbgems/g/MakefileGemList
 /mrbgems/g/mrbgemtest.ctmp
 /mrbgems/g/mrbgemtest.rbtmp
+/mrbgems/g/*/gem_srclib.c
