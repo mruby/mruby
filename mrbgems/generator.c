@@ -184,7 +184,8 @@ for_each_gem (char before[1024], char after[1024],
             skip = FALSE;
           else
             skip = TRUE;
-          fclose(check);
+          if (check)
+            fclose(check);
         }
 
         if (skip == FALSE)
