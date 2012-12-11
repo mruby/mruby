@@ -40,15 +40,15 @@ $(GEM_INIT).a : $(GEM_INIT).o
 
 all_gems : $(GENERATOR_BIN)
 	@echo "Generate Gem List Makefile"
-	$(GENERATOR_BIN) makefile_list "$(ACTIVE_GEMS)" > $(GEM_MAKEFILE_LIST)
+	$(GENERATOR_BIN) makefile_list $(ACTIVE_GEMS) > $(GEM_MAKEFILE_LIST)
 	@echo "Generate Gem Makefile"
-	$(GENERATOR_BIN) makefile "$(ACTIVE_GEMS)" "$(MRUBY_ROOT)" > $(GEM_MAKEFILE)
+	$(GENERATOR_BIN) makefile $(ACTIVE_GEMS) "$(MRUBY_ROOT)" > $(GEM_MAKEFILE)
 	@echo "Build all gems"
 	$(MAKE) -C g MRUBY_ROOT='$(MRUBY_ROOT)' ACTIVE_GEMS="$(ACTIVE_GEMS)"
 
 $(GEM_INIT).c : $(GENERATOR_BIN)
 	@echo "Generate Gem driver"
-	$(GENERATOR_BIN) $(GEM_INIT) "$(ACTIVE_GEMS)" > $@
+	$(GENERATOR_BIN) $(GEM_INIT) $(ACTIVE_GEMS) > $@
 
 $(GEM_INIT).o : $(GEM_INIT).c
 	@echo "Build the driver which initializes all gems"
@@ -71,6 +71,6 @@ prepare-test :
 .PHONY : clean
 clean : $(GENERATOR_BIN)
 	@echo "Cleanup Gems"
-	$(GENERATOR_BIN) makefile "$(ACTIVE_GEMS)" "$(MRUBY_ROOT)" > $(GEM_MAKEFILE)
+	$(GENERATOR_BIN) makefile $(ACTIVE_GEMS) "$(MRUBY_ROOT)" > $(GEM_MAKEFILE)
 	$(MAKE) clean -C g ACTIVE_GEMS="$(ACTIVE_GEMS)" MRUBY_ROOT='$(MRUBY_ROOT)'
 	-$(RM_F) $(GEM_INIT).c *.o *.d $(GENERATOR_BIN) $(GEM_MAKEFILE) $(GEM_MAKEFILE_LIST) gem_init.a
