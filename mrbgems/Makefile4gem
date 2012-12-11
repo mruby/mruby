@@ -76,6 +76,7 @@ gem_mrblib.rbtmp :
 
 gem-clean-c-and-rb-files :
 	-$(RM) $(GEM_PACKAGE) gem_mixlib.o gem_mixlib.c gem_mrblib_header.ctmp gem_mrblib_irep.ctmp gem_mixlib_init.ctmp gem_mrblib.rbtmp
+	-$(RM) gem_srclib.c gem_srclib.o $(GEM_OBJECTS)
 
 gem-clean-c-files :
 	-$(RM) $(GEM_PACKAGE) gem_srclib.c gem_srclib.o $(GEM_OBJECTS)
