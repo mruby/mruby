@@ -1812,10 +1812,10 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       char *p = (char*)tree->car;
       size_t len = (intptr_t)tree->cdr;
-      int ai = s->mrb->arena_idx;
+      int ai = mrb_gc_arena_save(s->mrb);
       int off = new_lit(s, mrb_str_new(s->mrb, p, len));
 
-      s->mrb->arena_idx = ai;
+      mrb_gc_arena_restore(s->mrb, ai);
       genop(s, MKOP_ABx(OP_STRING, cursp(), off));
       push();
     }
@@ -2083,7 +2083,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->lv = lv;
   p->sp += node_len(lv)+1;	/* add self */
   p->nlocals = p->sp;
-  p->ai = mrb->arena_idx;
+  p->ai = mrb_gc_arena_save(mrb);
 
   p->filename = prev->filename;
   if (p->filename) {
@@ -2118,7 +2118,7 @@ scope_finish(codegen_scope *s)
   irep->nlocals = s->nlocals;
   irep->nregs = s->nregs;
 
-  mrb->arena_idx = s->ai;
+  mrb_gc_arena_restore(mrb, s->ai);
   mrb_pool_close(s->mpool);
 }
 
