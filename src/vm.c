@@ -363,9 +363,9 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
   mrb->stack[argc+1] = blk;
 
   if (MRB_PROC_CFUNC_P(p)) {
-    int ai = mrb->arena_idx;
+    int ai = mrb_gc_arena_save(mrb);
     val = p->body.func(mrb, self);
-    mrb->arena_idx = ai;
+    mrb_gc_arena_restore(mrb, ai);
     mrb_gc_protect(mrb, val);
     mrb->stack = mrb->stbase + mrb->ci->stackidx;
     cipop(mrb);
@@ -511,7 +511,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   mrb_sym *syms = irep->syms;
   mrb_value *regs = NULL;
   mrb_code i;
-  int ai = mrb->arena_idx;
+  int ai = mrb_gc_arena_save(mrb);
   jmp_buf *prev_jmp = (jmp_buf *)mrb->jmp;
   jmp_buf c_jmp;
 
@@ -761,7 +761,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         mrb->ensure = (struct RProc **)mrb_realloc(mrb, mrb->ensure, sizeof(struct RProc*) * mrb->esize);
       }
       mrb->ensure[mrb->ci->eidx++] = p;
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -773,7 +773,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       for (n=0; n<a; n++) {
         ecall(mrb, --mrb->ci->eidx);
       }
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -849,7 +849,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         }
         result = m->body.func(mrb, recv);
         mrb->stack[0] = result;
-        mrb->arena_idx = ai;
+        mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
         regs = mrb->stack = mrb->stbase + mrb->ci->stackidx;
@@ -902,7 +902,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       /* prepare stack */
       if (MRB_PROC_CFUNC_P(m)) {
 	recv = m->body.func(mrb, recv);
-        mrb->arena_idx = ai;
+        mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
 	ci = mrb->ci;
@@ -981,7 +981,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
       if (MRB_PROC_CFUNC_P(m)) {
         mrb->stack[0] = m->body.func(mrb, recv);
-        mrb->arena_idx = ai;
+        mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
         regs = mrb->stack = mrb->stbase + mrb->ci->stackidx;
@@ -1058,7 +1058,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         rest->len = m1+len+m2;
       }
       regs[a+1] = stack[m1+r+m2];
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -1278,7 +1278,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
       if (MRB_PROC_CFUNC_P(m)) {
         mrb->stack[0] = m->body.func(mrb, recv);
-        mrb->arena_idx = ai;
+        mrb_gc_arena_restore(mrb, ai);
         goto L_RETURN;
       }
       else {
@@ -1373,7 +1373,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       default:
 	goto L_SEND;
       }
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -1620,7 +1620,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_ARRAY) {
       /* A B C          R(A) := ary_new(R(B),R(B+1)..R(B+C)) */
       regs[GETARG_A(i)] = mrb_ary_new_from_values(mrb, GETARG_C(i), &regs[GETARG_B(i)]);
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -1628,7 +1628,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       /* A B            mrb_ary_concat(R(A),R(B)) */
       mrb_ary_concat(mrb, regs[GETARG_A(i)],
                      mrb_ary_splat(mrb, regs[GETARG_B(i)]));
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -1700,14 +1700,14 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           }
         }
       }
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
     CASE(OP_STRING) {
       /* A Bx           R(A) := str_new(Lit(Bx)) */
       regs[GETARG_A(i)] = mrb_str_literal(mrb, pool[GETARG_Bx(i)]);
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -1729,7 +1729,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         b+=2;
       }
       regs[GETARG_A(i)] = hash;
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -1746,7 +1746,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       }
       if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
       regs[GETARG_A(i)] = mrb_obj_value(p);
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -1770,7 +1770,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       }
       c = mrb_vm_define_class(mrb, base, super, id);
       regs[a] = mrb_obj_value(c);
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -1787,7 +1787,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       }
       c = mrb_vm_define_module(mrb, base, id);
       regs[a] = mrb_obj_value(c);
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -1816,7 +1816,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
       if (MRB_PROC_CFUNC_P(p)) {
         mrb->stack[0] = p->body.func(mrb, recv);
-        mrb->arena_idx = ai;
+        mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
         regs = mrb->stack = mrb->stbase + mrb->ci->stackidx;
@@ -1841,14 +1841,14 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       struct RClass *c = mrb_class_ptr(regs[a]);
 
       mrb_define_method_vm(mrb, c, syms[GETARG_B(i)], regs[a+1]);
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
     CASE(OP_SCLASS) {
       /* A B    R(A) := R(B).singleton_class */
       regs[GETARG_A(i)] = mrb_singleton_class(mrb, regs[GETARG_B(i)]);
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -1868,7 +1868,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       /* A B C  R(A) := range_new(R(B),R(B+1),C) */
       int b = GETARG_B(i);
       regs[GETARG_A(i)] = mrb_range_new(mrb, regs[b], regs[b+1], GETARG_C(i));
-      mrb->arena_idx = ai;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
