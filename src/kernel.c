@@ -920,8 +920,9 @@ mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
-  mrb_value a[2];
+  mrb_value a[2], exc;
   int argc;
+  
 
   argc = mrb_get_args(mrb, "|oo", &a[0], &a[1]);
   switch (argc) {
@@ -936,7 +937,9 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
     }
     /* fall through */
   default:
-    mrb_exc_raise(mrb, mrb_make_exception(mrb, argc, a));
+    exc = mrb_make_exception(mrb, argc, a);
+    mrb_obj_iv_set(mrb, mrb_obj_ptr(exc), mrb_intern(mrb, "lastpc"), mrb_voidp_value(mrb->ci->pc));
+    mrb_exc_raise(mrb, exc);
   }
   return mrb_nil_value();            /* not reached */
 }

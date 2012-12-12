@@ -188,8 +188,15 @@ showcallinfo(mrb_state *mrb)
       mrb_irep *irep = ci->proc->body.irep;
       if (irep->filename != NULL)
         filename = irep->filename;
-      if (irep->lines != NULL && i+1 <= ciidx) {
-        mrb_code *pc = mrb->cibase[i+1].pc;
+      if (irep->lines != NULL) {
+	mrb_code *pc;
+
+	if (i+1 <= ciidx) {
+	  pc = mrb->cibase[i+1].pc;
+	}
+	else {
+	  pc = (mrb_code*)mrb_voidp(mrb_obj_iv_get(mrb, mrb->exc, mrb_intern(mrb, "lastpc")));
+	}
         if (irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
           line = irep->lines[pc - irep->iseq - 1];
         }
@@ -201,12 +208,22 @@ showcallinfo(mrb_state *mrb)
       sep = "#";
 
     method = mrb_sym2name(mrb, ci->mid);
-    printf("\t[%d] %s:%d%s%s%s%s\n",
-    	   i, filename, line,
-	   method ? ":in " : "",
-	   method ? mrb_class_name(mrb, ci->proc->target_class) : "",
-	   method ? sep : "",
-	   method ? method : "");
+    if (method) {
+      const char *cn = mrb_class_name(mrb, ci->proc->target_class);
+    
+      if (cn) {
+	printf("\t[%d] %s:%d:in %s%s%s\n",
+	       i, filename, line, cn, sep, method);
+      }
+      else {
+	printf("\t[%d] %s:%d:in %s\n",
+	       i, filename, line, method);
+      }
+    }
+    else {
+      printf("\t[%d] %s:%d\n",
+	     i, filename, line);
+    }
   }
 }
 

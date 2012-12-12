@@ -1151,6 +1151,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         int eidx;
 
       L_RAISE:
+	mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "lastpc"), mrb_voidp_value(pc));
         ci = mrb->ci;
 	eidx = mrb->ci->eidx;
         if (ci == mrb->cibase) goto L_STOP;
