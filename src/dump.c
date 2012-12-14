@@ -658,7 +658,6 @@ mrb_write_irep(mrb_state *mrb, int top, char *bin)
   return rc;
 }
 
-#ifdef MRB_DEBUG_DUMP
 static int
 dump_debug_info(mrb_state *mrb, int irep_no)
 {
@@ -675,14 +674,20 @@ dump_debug_info(mrb_state *mrb, int irep_no)
     ret = -1;
     goto error_exit;
   }
+
   irep->pool[irep->plen++] = mrb_str_new2(mrb, mrb_debug_dump_mark);
+
+  /* set filename */
   if (irep->filename == NULL) {
     irep->pool[irep->plen++] = mrb_nil_value();
   } else {
     irep->pool[irep->plen++] = mrb_str_new2(mrb, irep->filename);
   }
+
+  /* set lines size */
   irep->pool[irep->plen++] = mrb_fixnum_value(sizeof(irep->lines));
 
+  /* set lines data */
   for (i=0; i<n; i++) {
     irep->pool[irep->plen++] = mrb_fixnum_value(irep->lines[i]);
   }
@@ -692,10 +697,9 @@ error_exit:
 
   return ret;
 }
-#endif
 
 int
-mrb_dump_irep(mrb_state *mrb, int top, FILE* fp)
+mrb_dump_irep(mrb_state *mrb, int top, FILE* fp, int debug)
 {
   int rc;
   uint32_t rbds=0; /* size of Rite Binary Data */
@@ -709,10 +713,9 @@ mrb_dump_irep(mrb_state *mrb, int top, FILE* fp)
     return MRB_DUMP_WRITE_FAULT;
 
   for (irep_no=top; irep_no<mrb->irep_len; irep_no++) {
-#ifdef MRB_DEBUG_DUMP
-    if ((rc = dump_debug_info(mrb, irep_no)) != 0)
+    if (debug && (rc = dump_debug_info(mrb, irep_no)) != 0)
       return rc;
-#endif
+
     if ((rc = dump_irep_record(mrb, irep_no, fp, &rlen)) != 0)
       return rc;
 

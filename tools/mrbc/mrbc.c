@@ -23,6 +23,7 @@ struct _args {
   int check_syntax : 1;
   int dump_type    : 2;
   int verbose      : 1;
+  int debug        : 1;
 };
 
 static void
@@ -35,6 +36,7 @@ usage(const char *name)
   "-v           print version number, then trun on verbose mode",
   "-B<symbol>   binary <symbol> output in C language format",
   "-C<func>     function <func> output in C language format",
+  "-g           produce debugging information with mrb file",
   "--verbose    run at verbose mode",
   "--version    print the version",
   "--copyright  print the copyright",
@@ -105,6 +107,9 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
       case 'v':
         mrb_show_version(mrb);
         args->verbose = 1;
+        break;
+      case 'g':
+        args->debug = 1;
         break;
       case '-':
         if (strcmp((*argv) + 2, "version") == 0) {
@@ -214,7 +219,7 @@ main(int argc, char **argv)
       n = mrb_cdump_irep(mrb, n, args.wfp, args.initname);
   }
   else {
-    n = mrb_dump_irep(mrb, n, args.wfp);
+    n = mrb_dump_irep(mrb, n, args.wfp, args.debug);
   }
 
   cleanup(mrb, &args);

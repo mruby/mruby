@@ -241,7 +241,6 @@ error_exit:
   return MRB_DUMP_OK;
 }
 
-#ifdef MRB_DEBUG_DUMP
 static int
 load_debug_info_irep(mrb_state *mrb, mrb_irep *irep)
 {
@@ -304,7 +303,6 @@ load_debug_info(mrb_state *mrb)
 
   return ret;
 }
-#endif
 
 
 int
@@ -357,9 +355,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   if (ret == MRB_DUMP_OK)
     ret = mrb_read_irep(mrb, (char*)rite_dst);
 
-#ifdef MRB_DEBUG_DUMP
   load_debug_info(mrb);
-#endif
 
 error_exit:
   if (rite_dst)
