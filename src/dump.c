@@ -658,8 +658,52 @@ mrb_write_irep(mrb_state *mrb, int top, char *bin)
   return rc;
 }
 
+static int
+dump_debug_info(mrb_state *mrb, int irep_no)
+{
+  mrb_irep *irep;
+  int i, n, ai, ret = 0;
+  const char *mrb_debug_dump_mark = "**MRB_DEBUG_DUMP**";
+  irep = mrb->irep[irep_no];
+
+  if (irep->lines == NULL) {
+    return ret;
+  }
+
+  ai = mrb_gc_arena_save(mrb);
+  n = irep->ilen;
+
+  irep->pool = mrb_realloc(mrb, irep->pool, sizeof(mrb_value)*(irep->plen+3+n));
+  if (irep->pool == NULL) {
+    ret = -1;
+    goto error_exit;
+  }
+
+  irep->pool[irep->plen++] = mrb_str_new2(mrb, mrb_debug_dump_mark);
+
+  /* set filename */
+  if (irep->filename == NULL) {
+    irep->pool[irep->plen++] = mrb_nil_value();
+  } else {
+    irep->pool[irep->plen++] = mrb_str_new2(mrb, irep->filename);
+  }
+
+  /* set lines size */
+  irep->pool[irep->plen++] = mrb_fixnum_value(n);
+
+  /* set lines data */
+  for (i=0; i<n; i++) {
+    irep->pool[irep->plen++] = mrb_fixnum_value(irep->lines[i]);
+  }
+
+error_exit:
+  mrb_gc_arena_restore(mrb, ai);
+
+  return ret;
+}
+
 int
-mrb_dump_irep(mrb_state *mrb, int top, FILE* fp)
+mrb_dump_irep(mrb_state *mrb, int top, FILE* fp, int debug)
 {
   int rc;
   uint32_t rbds=0; /* size of Rite Binary Data */
@@ -673,6 +717,9 @@ mrb_dump_irep(mrb_state *mrb, int top, FILE* fp)
     return MRB_DUMP_WRITE_FAULT;
 
   for (irep_no=top; irep_no<mrb->irep_len; irep_no++) {
+    if (debug && (rc = dump_debug_info(mrb, irep_no)) != 0)
+      return rc;
+
     if ((rc = dump_irep_record(mrb, irep_no, fp, &rlen)) != 0)
       return rc;
 
