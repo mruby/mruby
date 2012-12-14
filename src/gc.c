@@ -365,9 +365,11 @@ add_gray_list(mrb_state *mrb, struct RBasic *obj)
   mrb->gray_list = obj;
 }
 
-static void
+static size_t
 gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 {
+  size_t children = 0;
+
   gc_assert(is_gray(obj));
   paint_black(obj);
   mrb->gray_list = obj->gcnext;
@@ -375,6 +377,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
   switch (obj->tt) {
   case MRB_TT_ICLASS:
     mrb_gc_mark(mrb, (struct RBasic*)((struct RClass*)obj)->super);
+    children++;
     break;
 
   case MRB_TT_CLASS:
@@ -385,12 +388,15 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 
       mrb_gc_mark_mt(mrb, c);
       mrb_gc_mark(mrb, (struct RBasic*)c->super);
+      children += mrb_gc_mark_mt_size(mrb, c);
+      children++;
     }
     /* fall through */
 
   case MRB_TT_OBJECT:
   case MRB_TT_DATA:
     mrb_gc_mark_iv(mrb, (struct RObject*)obj);
+    children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
     break;
 
   case MRB_TT_PROC:
@@ -399,6 +405,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 
       mrb_gc_mark(mrb, (struct RBasic*)p->env);
       mrb_gc_mark(mrb, (struct RBasic*)p->target_class);
+      children += 2;
     }
     break;
 
@@ -414,6 +421,8 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
           mrb_gc_mark_value(mrb, e->stack[i]);
         }
       }
+
+      children += (int)obj->flags;
     }
     break;
 
@@ -425,12 +434,16 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
       for (i=0,e=a->len; i<e; i++) {
         mrb_gc_mark_value(mrb, a->ptr[i]);
       }
+
+      children += a->len;
     }
     break;
 
   case MRB_TT_HASH:
     mrb_gc_mark_iv(mrb, (struct RObject*)obj);
     mrb_gc_mark_ht(mrb, (struct RHash*)obj);
+    children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
+    children += mrb_gc_mark_ht_size(mrb, (struct RHash*)obj);
     break;
 
   case MRB_TT_STRING:
@@ -442,6 +455,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 
       mrb_gc_mark_value(mrb, r->edges->beg);
       mrb_gc_mark_value(mrb, r->edges->end);
+      children += 2;
     }
     break;
 
@@ -452,6 +466,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 
       mrb_gc_mark(mrb, (struct RBasic*)m->str);
       mrb_gc_mark(mrb, (struct RBasic*)m->regexp);
+      children += 2;
     }
     break;
   case MRB_TT_REGEX:
@@ -459,6 +474,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
       struct RRegexp *r = (struct RRegexp*)obj;
 
       mrb_gc_mark(mrb, (struct RBasic*)r->src);
+      children++;
     }
     break;
 #endif
@@ -471,6 +487,8 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
       for (i=0; i<s->len; i++){
         mrb_gc_mark_value(mrb, s->ptr[i]);
       }
+
+      children += s->len;
     }
     break;
 #endif
@@ -478,6 +496,8 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
   default:
     break;
   }
+
+  return children;
 }
 
 void
@@ -623,75 +643,7 @@ root_scan_phase(mrb_state *mrb)
 static size_t
 gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
 {
-  size_t children = 0;
-
-  gc_mark_children(mrb, obj);
-
-  switch (obj->tt) {
-  case MRB_TT_ICLASS:
-    children++;
-    break;
-
-  case MRB_TT_CLASS:
-  case MRB_TT_SCLASS:
-  case MRB_TT_MODULE:
-    {
-      struct RClass *c = (struct RClass*)obj;
-
-      children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
-      children += mrb_gc_mark_mt_size(mrb, c);
-      children++;
-    }
-    break;
-
-  case MRB_TT_OBJECT:
-  case MRB_TT_DATA:
-    children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
-    break;
-
-  case MRB_TT_ENV:
-    children += (int)obj->flags;
-    break;
-
-  case MRB_TT_ARRAY:
-    {
-      struct RArray *a = (struct RArray*)obj;
-      children += a->len;
-    }
-    break;
-
-  case MRB_TT_HASH:
-    children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
-    children += mrb_gc_mark_ht_size(mrb, (struct RHash*)obj);
-    break;
-
-  case MRB_TT_PROC:
-  case MRB_TT_RANGE:
-    children+=2;
-    break;
-
-#ifdef ENABLE_REGEXP
-  case MRB_TT_MATCH:
-    children+=2;
-    break;
-  case MRB_TT_REGEX:
-    children+=1;
-    break;
-#endif
-
-#ifdef ENABLE_STRUCT
-  case MRB_TT_STRUCT:
-    {
-      struct RStruct *s = (struct RStruct*)obj;
-      children += s->len;
-    }
-    break;
-#endif
-
-  default:
-    break;
-  }
-  return children;
+  return gc_mark_children(mrb, obj);
 }
 
 static size_t
