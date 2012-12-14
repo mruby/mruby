@@ -244,8 +244,9 @@ error_exit:
 static int
 load_debug_info_irep(mrb_state *mrb, mrb_irep *irep)
 {
+  mrb_value *pool;
   char *c;
-  int i, len, n = -1, base = -1, ret = 0;
+  int i, len, plen, n = -1, base = -1, ret = 0;
   const char *mrb_debug_dump_mark = "**MRB_DEBUG_DUMP**";
   len = (int) sizeof(mrb_debug_dump_mark);
 
@@ -258,6 +259,7 @@ load_debug_info_irep(mrb_state *mrb, mrb_irep *irep)
 
     c = mrb_string_value_ptr(mrb, irep->pool[i]);
     if (sizeof(c) == len && strncmp(c, mrb_debug_dump_mark, len) == 0) {
+      plen = i;
       i++;
       /* fetch filename */
       if (mrb_nil_p(irep->pool[i])) {
@@ -280,9 +282,23 @@ load_debug_info_irep(mrb_state *mrb, mrb_irep *irep)
     if (irep->lines == NULL) {
       return MRB_DUMP_INVALID_IREP;
     }
+
+    /* copy irep -> lines */
     for (i=0; i<n; i++) {
       irep->lines[i] = mrb_fixnum(irep->pool[base+i]);
     }
+
+    /* remove debug info from irep->pool */
+    pool = mrb_malloc(mrb, sizeof(mrb_value) * plen);
+    if (pool == NULL) {
+      return MRB_DUMP_INVALID_IREP;
+    }
+    for (i=0; i<plen; i++) {
+      pool[i] = irep->pool[i];
+    }
+    mrb_free(mrb, irep->pool);
+    irep->pool = pool;
+    irep->plen = plen;
   }
 
   return ret;

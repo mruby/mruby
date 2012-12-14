@@ -664,10 +664,14 @@ dump_debug_info(mrb_state *mrb, int irep_no)
   mrb_irep *irep;
   int i, n, ai, ret = 0;
   const char *mrb_debug_dump_mark = "**MRB_DEBUG_DUMP**";
+  irep = mrb->irep[irep_no];
+
+  if (irep->lines == NULL) {
+    return ret;
+  }
 
   ai = mrb_gc_arena_save(mrb);
-  irep = mrb->irep[irep_no];
-  n = (int) sizeof(irep->lines);
+  n = irep->ilen;
 
   irep->pool = mrb_realloc(mrb, irep->pool, sizeof(mrb_value)*(irep->plen+3+n));
   if (irep->pool == NULL) {
@@ -685,7 +689,7 @@ dump_debug_info(mrb_state *mrb, int irep_no)
   }
 
   /* set lines size */
-  irep->pool[irep->plen++] = mrb_fixnum_value(sizeof(irep->lines));
+  irep->pool[irep->plen++] = mrb_fixnum_value(n);
 
   /* set lines data */
   for (i=0; i<n; i++) {
