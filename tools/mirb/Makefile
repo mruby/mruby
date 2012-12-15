@@ -66,7 +66,7 @@ endif
 all : $(LIBR) $(EXE)
 
 # executable constructed using linker from object files
-$(EXE) : $(LIBR) $(OBJS) $(EXTS)
+$(EXE) : $(LIBR) $(OBJS) $(GEM_ARCHIVE_FILES) $(EXTS)
 	$(LL) -o $@ $(LDFLAGS) $(OBJS) $(LIBR) $(GEM_ARCHIVE_FILES) $(EXTS) $(LIBS)
 
 -include $(OBJS:.o=.d)
