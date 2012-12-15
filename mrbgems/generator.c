@@ -145,7 +145,7 @@ for_each_gem (char before[1024], char after[1024],
 {
   /* active GEM check */
   FILE *active_gem_file;
-  char gem_char;
+  int gem_char;
   char gem_name[1024] = { 0 };
   int char_index;
   char gem_list[1024][1024] = { { 0 }, { 0 } };
@@ -166,7 +166,7 @@ for_each_gem (char before[1024], char after[1024],
     char_index = 0;
     gem_index = 0;
     skip = FALSE;
-    while((gem_char = fgetc(active_gem_file)) != EOF) {
+    while ((gem_char = fgetc(active_gem_file)) != EOF) {
       if (gem_char == '\n') {
         /* Every line contains one active GEM */
         gem_name[char_index++] = '\0';

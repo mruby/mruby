@@ -1390,7 +1390,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	  x = mrb_fixnum(regs[a]);
 	  y = mrb_fixnum(regs[a+1]);
 	  z = x - y;
-	  if (((x < 0) ^ (y < 0)) == 0 && (x < 0) != (z < 0)) {
+	  if (((x < 0) ^ (y < 0)) != 0 && (x < 0) != (z < 0)) {
 	    /* integer overflow */
 	    SET_FLT_VALUE(regs[a], (mrb_float)x - (mrb_float)y);
 	    break;
@@ -1532,7 +1532,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	  mrb_int y = GETARG_C(i);
 	  mrb_int z = x - y;
 
-	  if (((x < 0) ^ (y < 0)) == 0 && (x < 0) != (z < 0)) {
+	  if (((x < 0) ^ (y < 0)) != 0 && (x < 0) != (z < 0)) {
 	    /* integer overflow */
 	    SET_FLT_VALUE(regs[a], (mrb_float)x - (mrb_float)y);
 	    break;

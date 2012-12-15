@@ -888,6 +888,7 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
   case MRB_TT_TRUE:
     return mrb_obj_value(mrb->true_class);
   case MRB_TT_MAIN:
+  case MRB_TT_VOIDP:
     return mrb_obj_value(mrb->object_class);
   case MRB_TT_SYMBOL:
   case MRB_TT_FIXNUM:

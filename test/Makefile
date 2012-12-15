@@ -96,7 +96,7 @@ all : $(EXE) $(MRUBY) $(TESTRB) $(TESTMRB)
 	@echo
 
 # executable constructed using linker from object files
-$(EXE) : $(OBJS) $(LIBR)
+$(EXE) : $(OBJS) $(LIBR) $(GEM_ARCHIVE_FILES)
 	$(LL) -o $@ $(LDFLAGS) $(OBJS) $(LIBR) $(GEM_ARCHIVE_FILES) $(LIBS)
 
 -include $(OBJS:.o=.d)
