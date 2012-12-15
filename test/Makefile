@@ -78,6 +78,8 @@ MRUBY= ../bin/mruby
 EXE := $(TARGET)
 endif
 
+RAKE  = ../minirake
+
 ##############################
 # generic build targets, rules
 
@@ -106,7 +108,7 @@ $(OBJS) : %.o : %.c
 # Compile C source from merged mruby source
 $(CLIB) : $(DLIB) $(INIT)
 ifeq ($(ENABLE_GEMS),true)
-	@$(MAKE) prepare-test -C $(GEMDIR)
+	@$(RAKE) mrbgems_prepare_test
 endif
 	$(CAT) $(INIT) $(DLIB) $(GEMDLIB) > $@
 
