@@ -390,7 +390,18 @@ class RakeApp
         display_tasks
       else
         ARGV.push("default") if ARGV.size == 0
-        ARGV.each { |task_name| MiniRake::Task[task_name].invoke }
+        p ARGV
+        tasks = []
+        ARGV.each do |task_name|
+          if /^(\w+)=(.*)/.match(task_name)
+            ENV[$1] = $2
+          else
+            tasks << task_name
+          end
+        end
+        tasks.each do |task_name|
+          MiniRake::Task[task_name].invoke
+        end
       end
     rescue Exception => ex
       puts "rake aborted!"

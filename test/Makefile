@@ -78,7 +78,8 @@ MRUBY= ../bin/mruby
 EXE := $(TARGET)
 endif
 
-RAKE  = ../minirake
+RAKE = ../minirake
+
 
 ##############################
 # generic build targets, rules

@@ -88,6 +88,7 @@ task :clean do
   end
   sh "#{MAKE} clean -C tools/mruby #{MAKE_FLAGS}"
   sh "#{MAKE} clean -C tools/mirb #{MAKE_FLAGS}"
+  sh "#{MAKE} clean -C test #{MAKE_FLAGS}"
 end
 
 desc "show build config summary"
