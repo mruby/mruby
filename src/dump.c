@@ -495,6 +495,18 @@ calc_crc_section(mrb_state *mrb, mrb_irep *irep, uint16_t *crc, int section)
   return MRB_DUMP_OK;
 }
 
+static uint16_t
+calc_rite_header_crc(mrb_state *mrb, int top, rite_binary_header *binary_header, uint32_t rbds, int type)
+{
+  memcpy( binary_header, def_rite_binary_header, sizeof(*binary_header));
+
+  uint32_dump(rbds, (char*)binary_header->rbds, type);
+  uint16_dump((uint16_t)mrb->irep_len, (char*)binary_header->nirep, type);
+  uint16_dump((uint16_t)top, (char*)binary_header->sirep, type);
+
+  return calc_crc_16_ccitt((unsigned char*)binary_header, sizeof(*binary_header));
+}
+
 static int
 write_rite_header(mrb_state *mrb, int top, char* bin, uint32_t rbds)
 {
@@ -503,14 +515,7 @@ write_rite_header(mrb_state *mrb, int top, char* bin, uint32_t rbds)
   int type = DUMP_TYPE_BIN;
 
   binary_header = (rite_binary_header*)bin;
-
-  memcpy( binary_header, def_rite_binary_header, sizeof(*binary_header));
-
-  uint32_dump(rbds, (char*)binary_header->rbds, type);
-  uint16_dump((uint16_t)mrb->irep_len, (char*)binary_header->nirep, type);
-  uint16_dump((uint16_t)top, (char*)binary_header->sirep, type);
-
-  crc = calc_crc_16_ccitt((unsigned char*)binary_header, sizeof(*binary_header));
+  crc = calc_rite_header_crc(mrb, top, binary_header, rbds, type);
   bin += sizeof(*binary_header);
   uint16_dump(crc, bin, type);
 
@@ -518,34 +523,41 @@ write_rite_header(mrb_state *mrb, int top, char* bin, uint32_t rbds)
 }
 
 static int
-dump_rite_header(mrb_state *mrb, int top, FILE* fp, uint32_t rbds)
+calc_rite_file_header(mrb_state *mrb, int top, uint32_t rbds, rite_file_header *file_header)
 {
-  rite_binary_header binary_header;
-  rite_file_header file_header;
+  rite_binary_header *binary_header, b_header;
   uint16_t crc;
   int type;
+
+  /* calc crc */
+  type = DUMP_TYPE_BIN;
+  binary_header = &b_header;
+  crc = calc_rite_header_crc(mrb, top, binary_header, rbds, type);
+
+  /* dump rbc header */
+  memcpy( file_header, def_rite_file_header, sizeof(*file_header));
+
+  type = DUMP_TYPE_HEX;
+  uint32_dump(rbds, (char*)file_header->rbds, type);
+  uint16_dump((uint16_t)mrb->irep_len, (char*)file_header->nirep, type);
+  uint16_dump((uint16_t)top, (char*)file_header->sirep, type);
+  uint16_dump(crc, (char*)file_header->hcrc, type);
+
+  return MRB_DUMP_OK;
+}
+
+static int
+dump_rite_header(mrb_state *mrb, int top, FILE* fp, uint32_t rbds)
+{
+  int rc = MRB_DUMP_OK;
+  rite_file_header file_header;
 
   if (fseek(fp, 0, SEEK_SET) != 0)
     return MRB_DUMP_GENERAL_FAILURE;
 
-  /* calc crc */
-  memcpy( &binary_header, def_rite_binary_header, sizeof(binary_header));
-
-  type = DUMP_TYPE_BIN;
-  uint32_dump(rbds, (char*)&binary_header.rbds, type);
-  uint16_dump((uint16_t)mrb->irep_len, (char*)&binary_header.nirep, type);
-  uint16_dump((uint16_t)top, (char*)&binary_header.sirep, type);
-
-  crc = calc_crc_16_ccitt((unsigned char*)&binary_header, sizeof(binary_header));
-
-  /* dump rbc header */
-  memcpy( &file_header, def_rite_file_header, sizeof(file_header));
-
-  type = DUMP_TYPE_HEX;
-  uint32_dump(rbds, (char*)&file_header.rbds, type);
-  uint16_dump((uint16_t)mrb->irep_len, (char*)&file_header.nirep, type);
-  uint16_dump((uint16_t)top, (char*)&file_header.sirep, type);
-  uint16_dump(crc, (char*)&file_header.hcrc, type);
+  rc = calc_rite_file_header(mrb, top, rbds, &file_header);
+  if (rc != MRB_DUMP_OK)
+    return rc;
 
   if (fwrite(&file_header, sizeof(file_header), 1, fp) != 1)
     return MRB_DUMP_WRITE_FAULT;
