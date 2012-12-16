@@ -127,6 +127,7 @@ typedef short mrb_sym;
 # define snprintf _snprintf
 # define isnan _isnan
 # define isinf(n) (!_finite(n) && !_isnan(n))
+# define strtoll _strtoi64
 #endif
 
 #endif  /* MRUBYCONF_H */
