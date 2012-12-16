@@ -20,7 +20,7 @@ class Array
 
   ##
   # Calls the given block for each element of +self+
-  # and pass the index of the respective elment.
+  # and pass the index of the respective element.
   #
   # ISO 15.2.12.5.11
   def each_index(&block)
