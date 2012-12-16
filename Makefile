@@ -32,7 +32,11 @@ else ifeq ($(COMPILE_MODE),small)
   CFLAGS = -Os
 endif
 
-ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
+ifeq ($(ENABLE_GEMS),false)
+	GEMS_FLAG = -DDISABLE_GEMS
+endif
+
+ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS) $(GEMS_FLAG)
 ifeq ($(OS),Windows_NT)
   MAKE_FLAGS = --no-print-directory CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)' LDFLAGS='$(LDFLAGS)' ENABLE_GEMS='$(ENABLE_GEMS)' ACTIVE_GEMS='$(ACTIVE_GEMS)' MRUBY_ROOT='$(MRUBY_ROOT)'
 else

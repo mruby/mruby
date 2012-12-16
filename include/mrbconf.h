@@ -50,7 +50,9 @@
 //#define DISABLE_TIME		/* Time class */
 //#define DISABLE_STRUCT	/* Struct class */
 //#define DISABLE_STDIO		/* use of stdio */
-#define DISABLE_GEMS		/* Package Manager mrbgems */
+
+/* Now DISABLE_GEMS is added as a command line flag in Makefile, */
+/* we do not need to set it here. */
 
 #undef  HAVE_UNISTD_H /* WINDOWS */
 #define HAVE_UNISTD_H /* LINUX */
