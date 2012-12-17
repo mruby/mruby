@@ -26,7 +26,7 @@ COMPILE_MODE = :debug
 
 case COMPILE_MODE.to_s
 when 'debug'
-  CFLAGS = ['-g', '-O3']
+  CFLAGS = ['-g', '-O3', ENV['CFLAGS']]
 when 'release'
   CFLAGS = ['-O3']
 when 'small'
