@@ -1153,8 +1153,11 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       L_RAISE:
 	mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "lastpc"), mrb_voidp_value(pc));
         ci = mrb->ci;
-	eidx = mrb->ci->eidx;
-        if (ci == mrb->cibase) goto L_STOP;
+	eidx = ci->eidx;
+        if (ci == mrb->cibase) {
+	  if (ci->ridx == 0) goto L_STOP;
+	  goto L_RESCUE;
+	}
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           ci = mrb->ci;
@@ -1173,6 +1176,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
             break;
           }
         }
+      L_RESCUE:
         irep = ci->proc->body.irep;
         pool = irep->pool;
         syms = irep->syms;
