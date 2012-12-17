@@ -315,7 +315,7 @@ class RakeApp
 
   # Display the tasks and dependencies.
   def display_tasks
-    Task.tasks.each do |t|
+    MiniRake::Task.tasks.each do |t|
       puts "#{t.class} #{t.name}"
       t.prerequisites.each { |pre| puts "    #{pre}" }
     end
