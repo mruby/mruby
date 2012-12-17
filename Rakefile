@@ -25,14 +25,13 @@ COMPILE_MODE = :debug
 # compile flags
 
 case COMPILE_MODE.to_s
-when 'debug'
-  CFLAGS = ['-g', '-O3', ENV['CFLAGS']]
 when 'release'
   CFLAGS = ['-O3']
 when 'small'
   CFLAGS = ['-Os']
-else
-  CFLAGS = [ENV['CFLAGS']]
+else  # including 'debug'
+  e = ENV['CFLAGS']
+  CFLAGS = if e then [e] else ['-g', '-O3'] end
 end
 LDFLAGS = [ENV['LDFLAGS']]
 
