@@ -2355,7 +2355,7 @@ codedump(mrb_state *mrb, int n)
       break;
 
     case OP_LAMBDA:
-      printf("OP_LAMBDA\tR%d\tI(%d)\t%d\n", GETARG_A(c), n+GETARG_b(c), GETARG_c(c));
+      printf("OP_LAMBDA\tR%d\tI(%+d)\t%d\n", GETARG_A(c), GETARG_b(c), GETARG_c(c));
       break;
     case OP_RANGE:
       printf("OP_RANGE\tR%d\tR%d\t%d\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
