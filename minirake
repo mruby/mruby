@@ -411,6 +411,7 @@ class RakeApp
       else
         puts ex.backtrace.find {|str| str =~ /#{@rakefile}/ } || ""
       end
+      exit 1
     end    
   end
 end
