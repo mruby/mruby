@@ -64,6 +64,10 @@ end
 def for_each_gem(&block)
   IO.readlines(ACTIVE_GEMS).map { |line|
     path = line.chomp
+    if not File.exist?(path)
+      path2 = File.join MRUBY_ROOT, 'mrbgems', 'g', path
+      path = path2 if File.exist? path2
+    end
     gemname = File.basename(path)
     escaped_gemname = gemname.gsub(/-/, '_')
     block.call(path, gemname, escaped_gemname)
