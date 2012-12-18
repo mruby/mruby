@@ -34,7 +34,7 @@ else  # including 'debug'
   CFLAGS = if e then [e] else ['-g', '-O3'] end
 end
 LDFLAGS = [ENV['LDFLAGS']]
-LIBS = [ENV['LIBS']]
+LIBS = [ENV['LIBS'] || '-lm']
 
 CFLAGS << "-Wall" << "-Werror-implicit-function-declaration" << "-I#{MRUBY_ROOT}/include"
 if ENV['OS'] == 'Windows_NT'
