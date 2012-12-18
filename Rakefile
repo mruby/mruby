@@ -34,12 +34,13 @@ else  # including 'debug'
   CFLAGS = if e then [e] else ['-g', '-O3'] end
 end
 LDFLAGS = [ENV['LDFLAGS']]
+LIBS = [ENV['LIBS']]
 
 CFLAGS << "-Wall" << "-Werror-implicit-function-declaration" << "-I#{MRUBY_ROOT}/include"
 if ENV['OS'] == 'Windows_NT'
-  MAKE_FLAGS = "--no-print-directory CC=#{CC} LL=#{LL} CFLAGS='#{CFLAGS.join(' ')}' LDFLAGS='#{LDFLAGS.join(' ')}' ENABLE_GEMS='#{ENABLE_GEMS}' MRUBY_ROOT='#{MRUBY_ROOT}'"
+  MAKE_FLAGS = "--no-print-directory CC=#{CC} LL=#{LL} CFLAGS=\"#{CFLAGS.join(' ')}\" LDFLAGS=\"#{LDFLAGS.join(' ')}\" LIBS=\"#{LIBS.join(' ')}\" ENABLE_GEMS=\"#{ENABLE_GEMS}\" MRUBY_ROOT=\"#{MRUBY_ROOT}\""
 else
-  MAKE_FLAGS = "--no-print-directory CC='#{CC}' LL='#{LL}' CFLAGS='#{CFLAGS.join(' ')}' LDFLAGS='#{LDFLAGS.join(' ')}' ENABLE_GEMS='#{ENABLE_GEMS}' MRUBY_ROOT='#{MRUBY_ROOT}'"
+  MAKE_FLAGS = "--no-print-directory CC='#{CC}' LL='#{LL}' CFLAGS='#{CFLAGS.join(' ')}' LDFLAGS='#{LDFLAGS.join(' ')}' LIBS='#{LIBS.join(' ')}' ENABLE_GEMS='#{ENABLE_GEMS}' MRUBY_ROOT='#{MRUBY_ROOT}'"
 end
 
 
@@ -98,4 +99,5 @@ task :showconfig do
   puts ""
   puts "  CFLAGS = #{CFLAGS.join(' ')}"
   puts "  LDFLAGS = #{LDFLAGS.join(' ')}"
+  puts "  LIBS = #{LIBS.join(' ')}"
 end

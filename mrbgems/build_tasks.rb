@@ -5,7 +5,11 @@ GEM_MAKEFILE = "#{MRBGEMS_PATH}/g/Makefile"
 GEM_MAKEFILE_LIST = "#{MRBGEMS_PATH}/g/MakefileGemList"
 MAKEFILE_4_GEM = "#{MRUBY_ROOT}/mrbgems/Makefile4gem"
 
+if ENV['OS'] == 'Windows_NT'
+GEM_MAKE_FLAGS = "#{MAKE_FLAGS} MAKEFILE_4_GEM=\"#{MAKEFILE_4_GEM}\""
+else
 GEM_MAKE_FLAGS = "#{MAKE_FLAGS} MAKEFILE_4_GEM='#{MAKEFILE_4_GEM}'"
+end
 
 task :mrbgems_all => ["#{GEM_INIT}.a", :mrbgems_generate_gem_makefile_list] do
   for_each_gem do |path, gemname|
