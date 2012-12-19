@@ -17,6 +17,10 @@
 #include <math.h>
 #include <ctype.h>
 
+#ifdef _MSC_VER
+#include <float.h>
+#endif
+
 #ifdef HAVE_IEEEFP_H
 #include <ieeefp.h>
 #endif
