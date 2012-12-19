@@ -57,7 +57,11 @@ See the INSTALL file.
 
 To run the tests, execute the following from the project's root directory.
 
-    $ ./minirake test
+    $ make test
+
+Or
+
+    $ ruby ./minirake test
 
 ## Customization
 
