@@ -36,6 +36,10 @@ end
 LDFLAGS = [ENV['LDFLAGS']]
 LIBS = [ENV['LIBS'] || '-lm']
 
+if !ENABLE_GEMS
+  CFLAGS << "-DDISABLE_GEMS"
+end
+
 CFLAGS << "-Wall" << "-Werror-implicit-function-declaration" << "-I#{MRUBY_ROOT}/include"
 if ENV['OS'] == 'Windows_NT'
   MAKE_FLAGS = "--no-print-directory CC=#{CC} LL=#{LL} AR=#{AR} YACC=#{YACC} CFLAGS=\"#{CFLAGS.join(' ')}\" LDFLAGS=\"#{LDFLAGS.join(' ')}\" LIBS=\"#{LIBS.join(' ')}\" ENABLE_GEMS=\"#{ENABLE_GEMS}\" MRUBY_ROOT=\"#{MRUBY_ROOT}\""
