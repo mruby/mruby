@@ -1,6 +1,7 @@
 * Prerequisites
   
   1. Make sure you have bison (http://www.gnu.org/software/bison/) installed in your system. 
+  2. Make sure you have ruby installed in your system. (Required by Minirake.)
 
 * Compilation and Installation
 
