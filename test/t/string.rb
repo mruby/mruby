@@ -369,7 +369,10 @@ assert('String#bytes') do
   str1 = "hello"
   bytes1 = [104, 101, 108, 108, 111]
 
-  str1.bytes == bytes1
+  str2 = "\xFF"
+  bytes2 = [0xFF]
+
+  str1.bytes == bytes1 and str2.bytes == bytes2
 end
 
 assert('String#each_byte') do
