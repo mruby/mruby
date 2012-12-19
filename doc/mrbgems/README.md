@@ -10,8 +10,11 @@ there is no overhead inside of the mruby interpreter.
 
 To activate you have to make the following changes:
 * set ```ENABLE_GEMS``` to ```true``` in *$(MRUBY_ROOT)/Makefile*
-* comment out ```DISABLE_GEMS``` in *$(MRUBY_ROOT)/include/mrbconf.h*
 * activate GEMs in *$(MRUBY_ROOT)/mrbgems/GEMS.active*
+
+Notice that we do not need to comment out ```DISABLE_GEMS```
+in *$(MRUBY_ROOT)/include/mrbconf.h*, since this flag will now be included as
+a command line flag in *$(MRUBY_ROOT)/Rakefile*.
 
 Every activated GEM has to be listed in *GEMS.active*. You have to point to
 the GEM directory absolute or relative (based on *mrbgems/g*). It is possible
