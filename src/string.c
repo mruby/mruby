@@ -2997,7 +2997,7 @@ mrb_str_bytes(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
   mrb_value a = mrb_ary_new_capa(mrb, s->len);
-  char *p = s->ptr, *pend = p + s->len;
+  unsigned char *p = (unsigned char *)(s->ptr), *pend = p + s->len;
 
   while (p < pend) {
     mrb_ary_push(mrb, a, mrb_fixnum_value(p[0]));
