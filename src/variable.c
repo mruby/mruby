@@ -701,17 +701,8 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
   struct RClass *c = mrb->ci->proc->target_class;
 
   if (!c) c = mrb->ci->target_class;
-  while (c) {
-    if (c->iv) {
-      iv_tbl *t = c->iv;
-      mrb_value v;
-
-      if (iv_get(mrb, t, sym, &v))
-	return v;
-    }
-    c = c->super;
-  }
-  return mrb_nil_value();
+ 
+  return mrb_mod_cv_get(mrb, c, sym);
 }
 
 void
