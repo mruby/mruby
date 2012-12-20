@@ -673,6 +673,21 @@ mrb_mod_class_variables(mrb_state *mrb, mrb_value mod)
   return ary;
 }
 
+mrb_value
+mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym)
+{
+  while (c) {
+    if (c->iv) {
+      iv_tbl *t = c->iv;
+      mrb_value v;
+
+      if (iv_get(mrb, t, sym, &v))
+        return v;
+    }
+    c = c->super;
+  }
+  return mrb_nil_value();
+}
 
 mrb_value
 mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
