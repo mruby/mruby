@@ -673,6 +673,27 @@ mrb_mod_class_variables(mrb_state *mrb, mrb_value mod)
   return ary;
 }
 
+mrb_value
+mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym)
+{
+  while (c) {
+    if (c->iv) {
+      iv_tbl *t = c->iv;
+      mrb_value v;
+
+      if (iv_get(mrb, t, sym, &v))
+        return v;
+    }
+    c = c->super;
+  }
+  return mrb_nil_value();
+}
+
+mrb_value
+mrb_cv_get(mrb_state *mrb, mrb_value mod, mrb_sym sym)
+{
+  return mrb_mod_cv_get(mrb, mrb_class_ptr(mod), sym);
+}
 
 mrb_value
 mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
@@ -680,17 +701,8 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
   struct RClass *c = mrb->ci->proc->target_class;
 
   if (!c) c = mrb->ci->target_class;
-  while (c) {
-    if (c->iv) {
-      iv_tbl *t = c->iv;
-      mrb_value v;
-
-      if (iv_get(mrb, t, sym, &v))
-	return v;
-    }
-    c = c->super;
-  }
-  return mrb_nil_value();
+ 
+  return mrb_mod_cv_get(mrb, c, sym);
 }
 
 void

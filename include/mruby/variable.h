@@ -55,6 +55,8 @@ mrb_value mrb_obj_instance_variables(mrb_state*, mrb_value);
 mrb_value mrb_obj_iv_inspect(mrb_state*, struct RObject*);
 mrb_sym mrb_class_sym(mrb_state *mrb, struct RClass *c, struct RClass *outer);
 mrb_value mrb_mod_class_variables(mrb_state*, mrb_value);
+mrb_value mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym);
+mrb_value mrb_cv_get(mrb_state *mrb, mrb_value mod, mrb_sym sym);
 
 /* GC functions */
 void mrb_gc_mark_gv(mrb_state*);

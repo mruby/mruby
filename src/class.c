@@ -1445,6 +1445,45 @@ mrb_sym_value(mrb_state *mrb, mrb_value val)
 }
 
 static void
+check_cv_name(mrb_state *mrb, mrb_sym id)
+{
+  const char *s;
+  int len;
+
+  s = mrb_sym2name_len(mrb, id, &len);
+  if (len < 3 || !(s[0] == '@' && s[1] == '@')) {
+    mrb_name_error(mrb, id, "`%s' is not allowed as a class variable name", s);
+  }
+}
+
+/* 15.2.2.4.17 */
+/*
+ *  call-seq:
+ *     mod.class_variable_get(symbol)    -> obj
+ *
+ *  Returns the value of the given class variable (or throws a
+ *  <code>NameError</code> exception). The <code>@@</code> part of the
+ *  variable name should be included for regular class variables
+ *
+ *     class Fred
+ *       @@foo = 99
+ *     end
+ *     Fred.class_variable_get(:@@foo)     #=> 99
+ */
+
+static mrb_value
+mrb_mod_cvar_get(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value sym;
+  mrb_sym id;
+  mrb_get_args(mrb, "o", &sym);
+
+  id = mrb_sym_value(mrb,sym);
+  check_cv_name(mrb, id);
+  return mrb_cv_get(mrb, mod, id);
+}
+
+static void
 check_const_name(mrb_state *mrb, mrb_sym id)
 {
   const char *s;
@@ -1545,6 +1584,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, cls, "superclass", mrb_class_superclass, ARGS_NONE());      /* 15.2.3.3.4 */
   mrb_define_method(mrb, cls, "new", mrb_instance_new, ARGS_ANY());                  /* 15.2.3.3.3 */
   mrb_define_method(mrb, cls, "inherited", mrb_bob_init, ARGS_REQ(1));
+  mrb_define_method(mrb, mod, "class_variable_get", mrb_mod_cvar_get, ARGS_REQ(1));  /* 15.2.2.4.17 */
   mrb_define_method(mrb, mod, "extend_object", mrb_mod_extend_object, ARGS_REQ(1));  /* 15.2.2.4.25 */
   mrb_define_method(mrb, mod, "extended", mrb_bob_init, ARGS_REQ(1));                /* 15.2.2.4.26 */
   mrb_define_method(mrb, mod, "include", mrb_mod_include, ARGS_ANY());               /* 15.2.2.4.27 */

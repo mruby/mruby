@@ -46,6 +46,14 @@ assert('Module#class_eval', '15.2.2.4.15') do
   r.class == Array and r.include?(:method1)
 end
 
+assert('Module#class_variable_get', '15.2.2.4.17') do
+  class Test4ClassVariableGet
+    @@cv = 99
+  end
+
+  Test4ClassVariableGet.class_variable_get(:@@cv) == 99
+end
+
 
 assert('Module#class_variables', '15.2.2.4.19') do
   class Test4ClassVariables1
