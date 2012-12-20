@@ -1444,6 +1444,18 @@ mrb_sym_value(mrb_state *mrb, mrb_value val)
   return mrb_symbol(val);
 }
 
+static void
+check_cv_name(mrb_state *mrb, mrb_sym id)
+{
+  const char *s;
+  int len;
+
+  s = mrb_sym2name_len(mrb, id, &len);
+  if (len < 3 || !(s[0] == '@' && s[1] == '@')) {
+    mrb_name_error(mrb, id, "`%s' is not allowed as a class variable name", s);
+  }
+}
+
 /* 15.2.2.4.17 */
 /*
  *  call-seq:
@@ -1467,7 +1479,7 @@ mrb_mod_cvar_get(mrb_state *mrb, mrb_value mod)
   mrb_get_args(mrb, "o", &sym);
 
   id = mrb_sym_value(mrb,sym);
-  check_cvar_name(mrb, id);
+  check_cv_name(mrb, id);
   return mrb_cv_get(mrb, mod, id);
 }
 
