@@ -690,6 +690,12 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym)
 }
 
 mrb_value
+mrb_cv_get(mrb_state *mrb, mrb_value mod, mrb_sym sym)
+{
+  return mrb_mod_cv_get(mrb, mrb_class_ptr(mod), sym);
+}
+
+mrb_value
 mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
 {
   struct RClass *c = mrb->ci->proc->target_class;
