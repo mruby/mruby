@@ -389,7 +389,6 @@ class RakeApp
       if $show_tasks
         display_tasks
       else
-        ARGV.push("default") if ARGV.size == 0
         p ARGV
         tasks = []
         ARGV.each do |task_name|
@@ -399,6 +398,7 @@ class RakeApp
             tasks << task_name
           end
         end
+        tasks.push("default") if tasks.size == 0
         tasks.each do |task_name|
           MiniRake::Task[task_name].invoke
         end
@@ -412,7 +412,7 @@ class RakeApp
         puts ex.backtrace.find {|str| str =~ /#{@rakefile}/ } || ""
       end
       exit 1
-    end    
+    end
   end
 end
 
