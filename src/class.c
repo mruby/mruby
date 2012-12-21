@@ -1483,6 +1483,38 @@ mrb_mod_cvar_get(mrb_state *mrb, mrb_value mod)
   return mrb_cv_get(mrb, mod, id);
 }
 
+/* 15.2.2.4.18 */
+/*
+ *  call-seq:
+ *     obj.class_variable_set(symbol, obj)    -> obj
+ *
+ *  Sets the class variable names by <i>symbol</i> to
+ *  <i>object</i>.
+ *
+ *     class Fred
+ *       @@foo = 99
+ *       def foo
+ *         @@foo
+ *       end
+ *     end
+ *     Fred.class_variable_set(:@@foo, 101)     #=> 101
+ *     Fred.new.foo                             #=> 101
+ */
+
+static mrb_value
+mrb_mod_cvar_set(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value sym, value;
+  mrb_sym id;
+  mrb_get_args(mrb, "oo", &sym, &value);
+
+  id = mrb_sym_value(mrb,sym);
+
+  check_cv_name(mrb, id);
+  mrb_cv_set(mrb, mod, id, value);
+  return value;
+}
+
 static void
 check_const_name(mrb_state *mrb, mrb_sym id)
 {
@@ -1585,6 +1617,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, cls, "new", mrb_instance_new, ARGS_ANY());                  /* 15.2.3.3.3 */
   mrb_define_method(mrb, cls, "inherited", mrb_bob_init, ARGS_REQ(1));
   mrb_define_method(mrb, mod, "class_variable_get", mrb_mod_cvar_get, ARGS_REQ(1));  /* 15.2.2.4.17 */
+  mrb_define_method(mrb, mod, "class_variable_set", mrb_mod_cvar_set, ARGS_REQ(2));  /* 15.2.2.4.18 */
   mrb_define_method(mrb, mod, "extend_object", mrb_mod_extend_object, ARGS_REQ(1));  /* 15.2.2.4.25 */
   mrb_define_method(mrb, mod, "extended", mrb_bob_init, ARGS_REQ(1));                /* 15.2.2.4.26 */
   mrb_define_method(mrb, mod, "include", mrb_mod_include, ARGS_ANY());               /* 15.2.2.4.27 */
