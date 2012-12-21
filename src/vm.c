@@ -1199,6 +1199,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
               goto L_RAISE;
             }
             ci = mrb->ci = mrb->cibase + e->cioff;
+	    if (ci == mrb->cibase) {
+              localjump_error(mrb, "return");
+              goto L_RAISE;
+	    }
             break;
           }
         case OP_R_NORMAL:
