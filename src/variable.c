@@ -698,6 +698,8 @@ mrb_cv_get(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 void
 mrb_mod_cv_set(mrb_state *mrb, struct RClass * c, mrb_sym sym, mrb_value v)
 {
+  struct RClass * cls = c;
+
   while (c) {
     if (c->iv) {
       iv_tbl *t = c->iv;
@@ -710,11 +712,11 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass * c, mrb_sym sym, mrb_value v)
     c = c->super;
   }
 
-  if (!c->iv) {
-    c->iv = iv_new(mrb);
+  if (!cls->iv) {
+    cls->iv = iv_new(mrb);
   }
 
-  iv_put(mrb, c->iv, sym, v);
+  iv_put(mrb, cls->iv, sym, v);
 }
 
 void
