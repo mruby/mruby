@@ -12,8 +12,19 @@ CC := gcc
 RM := rm -f
 AR := ar
 
+# mruby compiler
+ifeq ($(OS),Windows_NT)
+MRBC = $(MRUBY_ROOT)/bin/mrbc.exe
+else
+MRBC = $(MRUBY_ROOT)/bin/mrbc
+endif
+
 SRC_DIR := src
 MRB_DIR := mrblib
+TEST_DIR := test
+
+GEM_TEST_RB_FILES := $(wildcard $(TEST_DIR)/*.rb)
+GEM_TEST_C_FILES := $(wildcard $(TEST_DIR)/*.c)
 
 # LIBR can be manipulated with command line arguments
 ifeq ($(strip $(LIBR)),)
@@ -29,7 +40,7 @@ ifeq ($(strip $(ACTIVE_GEMS)),)
 endif
 
 MAKEFILE_GEM_LIST := $(MRUBY_ROOT)/mrbgems/g/MakefileGemList
-include $(MAKEFILE_GEM_LIST)
+-include $(MAKEFILE_GEM_LIST)
 
 # Default rules which are calling the
 # gem specific gem-all and gem-clean
@@ -72,20 +83,45 @@ gem_mrblib_init.ctmp :
 	ruby $(MRUBY_ROOT)/mrbgems/generate_gem_mrblib.rb '$(GEM)' > $@
 
 gem_mrblib_irep.ctmp : gem_mrblib.rbtmp
-	$(MRUBY_ROOT)/bin/mrbc -Bgem_mrblib_irep_$(subst -,_,$(GEM)) -o$@ $<
+	$(MRBC) -Bgem_mrblib_irep_$(subst -,_,$(GEM)) -o$@ $<
 
 gem_mrblib.rbtmp :
-	cat $(GEM_RB_FILES) > $@
+		cat $(GEM_RB_FILES) > $@
+
+
+gem_test.ctmp : gem_test.rbtmp $(GEM_TEST_C_FILES)
+	$(MRBC) -Bgem_mrblib_irep_$(subst -,_,$(GEM))_test -o$@ $<
+ifeq ($(GEM_TEST_C_FILES),)
+		echo "void mrb_$(subst -,_,$(GEM))_gem_test_init(mrb_state* mrb) { }" >> $@
+else
+		cat $(GEM_TEST_C_FILES) >> $@
+endif
+
+gem_test.rbtmp : $(GEM_TEST_RB_FILES)
+ifeq ($(GEM_TEST_RB_FILES),)
+		echo > $@
+else
+		cat $(GEM_TEST_RB_FILES) > $@
+endif
+
+gem-test-c-and-rb-files : gem_test.ctmp
+
+gem-test-c-files : gem_test.ctmp
+
+gem-test-rb-files : gem_test.ctmp
+
 
 gem-clean-c-and-rb-files :
 	-$(RM) $(GEM_PACKAGE) gem_mixlib.o gem_mixlib.c gem_mrblib_header.ctmp gem_mrblib_irep.ctmp gem_mixlib_init.ctmp gem_mrblib.rbtmp
-	-$(RM) gem_srclib.c gem_srclib.o $(GEM_OBJECTS)
+	-$(RM) gem_srclib.c gem_srclib.o $(GEM_OBJECTS) gem_test.ctmp gem_test.rbtmp gem-cflags.tmp gem-ldflags.tmp
 
 gem-clean-c-files :
-	-$(RM) $(GEM_PACKAGE) gem_srclib.c gem_srclib.o $(GEM_OBJECTS)
+	-$(RM) $(GEM_PACKAGE) gem_srclib.c gem_srclib.o $(GEM_OBJECTS) gem_test.ctmp gem_test.rbtmp gem-cflags.tmp gem-ldflags.tmp
 
 gem-clean-rb-files :
 	-$(RM) $(GEM_PACKAGE) gem_mrblib.o gem_mrblib.c gem_mrblib_header.ctmp gem_mrblib_init.ctmp gem_mrblib_irep.ctmp gem_mrblib.rbtmp
+	-$(RM) gem_test.ctmp gem_test.rbtmp gem-cflags.tmp gem-ldflags.tmp
+
 
 %.o : %.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $(GEM_INCLUDE_LIST) $< -o $@
@@ -93,3 +129,9 @@ gem-clean-rb-files :
 .PHONY : clean
 clean : gem-clean
 	@echo "Gem '$(GEM)' is clean"
+
+.PHONY : gem-flags
+gem-flags :
+	@echo "$(MRUBY_CFLAGS) -I`pwd`/include" >  gem-cflags.tmp
+	@echo "$(MRUBY_LDFLAGS)" >  gem-ldflags.tmp
+
