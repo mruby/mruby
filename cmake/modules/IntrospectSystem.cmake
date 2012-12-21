@@ -20,6 +20,8 @@ else()
   endif()
 endif()
 
+add_definitions(-DDISABLE_GEMS)
+
 if(MSVC)
   add_definitions(
     -DRUBY_EXPORT   # required by oniguruma.h
