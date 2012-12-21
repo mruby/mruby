@@ -54,6 +54,21 @@ assert('Module#class_variable_get', '15.2.2.4.17') do
   Test4ClassVariableGet.class_variable_get(:@@cv) == 99
 end
 
+assert('Module#class_variable_set', '15.2.2.4.18') do
+  class Test4ClassVariableSet
+    @@foo = 100
+    def foo
+      @@foo
+    end
+  end
+
+  Test4ClassVariableSet.class_variable_set(:@@cv, 99)
+  Test4ClassVariableSet.class_variable_set(:@@foo, 101)
+
+  Test4ClassVariableSet.class_variables.include? :@@cv and
+  Test4ClassVariableSet.class_variable_get(:@@cv) == 99 and
+  Test4ClassVariableSet.new.foo == 101
+end
 
 assert('Module#class_variables', '15.2.2.4.19') do
   class Test4ClassVariables1
