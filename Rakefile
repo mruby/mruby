@@ -15,10 +15,10 @@ MRUBY_ROOT = ENV['MRUBY_ROOT'] || File.expand_path(File.dirname(__FILE__))
 ENABLE_GEMS = ENV['ENABLE_GEMS'] == 'true'
 
 # the default file which contains the active GEMs
-ACTIVE_GEMS = File.join(File.dirname(__FILE__), 'mrbgems', 'GEMS.active')
+ACTIVE_GEMS = ENV['ACTIVE_GEMS'] || File.join(MRUBY_ROOT, '/mrbgems/GEMS.active')
 
 # default compile option
-COMPILE_MODE = :debug
+COMPILE_MODE = ENV['COMPILE_MODE'] || :debug
 
 
 ##############################
