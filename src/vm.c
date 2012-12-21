@@ -1151,8 +1151,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         int eidx;
 
       L_RAISE:
+	ci = mrb->ci;
 	mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "lastpc"), mrb_voidp_value(pc));
-        ci = mrb->ci;
+	mrb_obj_iv_set(mrb, mrb->exc, mrb_intern(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->cibase));
 	eidx = ci->eidx;
         if (ci == mrb->cibase) {
 	  if (ci->ridx == 0) goto L_STOP;
@@ -1198,11 +1199,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
               localjump_error(mrb, "return");
               goto L_RAISE;
             }
-            ci = mrb->ci = mrb->cibase + e->cioff;
+            ci = mrb->cibase + e->cioff;
 	    if (ci == mrb->cibase) {
               localjump_error(mrb, "return");
               goto L_RAISE;
 	    }
+	    mrb->ci = ci;
             break;
           }
         case OP_R_NORMAL:
