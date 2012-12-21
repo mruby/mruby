@@ -18,7 +18,7 @@ ENABLE_GEMS = ENV['ENABLE_GEMS'] == 'true'
 ACTIVE_GEMS = File.join(File.dirname(__FILE__), 'mrbgems', 'GEMS.active')
 
 # default compile option
-COMPILE_MODE = :debug
+COMPILE_MODE = ENV['COMPILE_MODE'] || :debug
 
 
 ##############################
