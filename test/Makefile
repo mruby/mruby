@@ -52,14 +52,6 @@ ifeq ($(strip $(COMPILE_MODE)),)
   COMPILE_MODE = debug
 endif
 
-ifeq ($(COMPILE_MODE),debug)
-  CFLAGS = -g -O3
-else ifeq ($(COMPILE_MODE),release)
-  CFLAGS = -O3
-else ifeq ($(COMPILE_MODE),small)
-  CFLAGS = -Os
-endif
-
 ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
 ifeq ($(OS),Windows_NT)
   MAKE_FLAGS = CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)' LDFLAGS='$(LDFLAGS)' 
@@ -85,7 +77,7 @@ RAKE = ../minirake
 # generic build targets, rules
 
 .PHONY : test
-all : $(EXE) $(MRUBY) $(TESTRB) $(TESTMRB)
+all : $(EXE) $(MRUBY) $(TESTRB) $(TESTMRB) 
 	@echo "# exec mrbtest"
 	./$(EXE)
 	@echo
@@ -97,8 +89,13 @@ all : $(EXE) $(MRUBY) $(TESTRB) $(TESTMRB)
 	@echo
 
 # executable constructed using linker from object files
-$(EXE) : $(OBJS) $(LIBR) $(GEM_ARCHIVE_FILES)
+$(EXE) : generate-mrbgems-test $(OBJS) $(LIBR) $(GEM_ARCHIVE_FILES)
 	$(LL) -o $@ $(LDFLAGS) $(OBJS) $(LIBR) $(GEM_ARCHIVE_FILES) $(LIBS)
+
+generate-mrbgems-test :
+ifeq ($(ENABLE_GEMS),true)
+	@$(RAKE) mrbgems_prepare_test
+endif
 
 -include $(OBJS:.o=.d)
 
@@ -107,10 +104,7 @@ $(OBJS) : %.o : %.c
 	$(CC) $(ALL_CFLAGS) -MMD $(INCLUDES) -c $< -o $@
 
 # Compile C source from merged mruby source
-$(CLIB) : $(DLIB) $(INIT)
-ifeq ($(ENABLE_GEMS),true)
-	@$(RAKE) mrbgems_prepare_test
-endif
+$(CLIB) : $(DLIB) $(INIT) $(GEMDLIB)
 	$(CAT) $(INIT) $(DLIB) $(GEMDLIB) > $@
 
 $(DLIB) : $(RLIB) $(MRBC)

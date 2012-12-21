@@ -389,7 +389,6 @@ class RakeApp
       if $show_tasks
         display_tasks
       else
-        p ARGV
         tasks = []
         ARGV.each do |task_name|
           if /^(\w+)=(.*)/.match(task_name)

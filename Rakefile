@@ -36,8 +36,13 @@ end
 LDFLAGS = [ENV['LDFLAGS']]
 LIBS    = [ENV['LIBS'] || '-lm']
 
+if ENABLE_GEMS
+  require './mrbgems/build_tasks'
+  Rake::Task[:load_mrbgems_flags].invoke
+else
+  CFLAGS << "-DDISABLE_GEMS"
+end
 
-CFLAGS << "-DDISABLE_GEMS" unless ENABLE_GEMS
 CFLAGS << "-Wall" << "-Werror-implicit-function-declaration" << "-I#{MRUBY_ROOT}/include"
 
 if ENV['OS'] == 'Windows_NT'
@@ -57,10 +62,6 @@ CAT = ENV['CAT'] ||= 'cat'
 
 ##############################
 # generic build targets, rules
-
-if ENABLE_GEMS
-  require './mrbgems/build_tasks'
-end
 
 task :default => :all
 

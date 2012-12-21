@@ -5,15 +5,25 @@ GEM_MAKEFILE = "#{MRBGEMS_PATH}/g/Makefile"
 GEM_MAKEFILE_LIST = "#{MRBGEMS_PATH}/g/MakefileGemList"
 MAKEFILE_4_GEM = "#{MRUBY_ROOT}/mrbgems/Makefile4gem"
 
-if ENV['OS'] == 'Windows_NT'
-GEM_MAKE_FLAGS = "#{MAKE_FLAGS} MAKEFILE_4_GEM=\"#{MAKEFILE_4_GEM}\""
-else
-GEM_MAKE_FLAGS = "#{MAKE_FLAGS} MAKEFILE_4_GEM='#{MAKEFILE_4_GEM}'"
+def gem_make_flags
+  if ENV['OS'] == 'Windows_NT'
+    "#{MAKE_FLAGS rescue ''} MAKEFILE_4_GEM=\"#{MAKEFILE_4_GEM}\""
+  else
+    "#{MAKE_FLAGS rescue ''} MAKEFILE_4_GEM='#{MAKEFILE_4_GEM}'"
+  end
 end
 
 task :mrbgems_all => ["#{GEM_INIT}.a", :mrbgems_generate_gem_makefile_list] do
   for_each_gem do |path, gemname|
-    sh "#{MAKE} -C #{path} #{GEM_MAKE_FLAGS}"
+    sh "#{MAKE} -C #{path} #{gem_make_flags}"
+  end
+end
+
+task :load_mrbgems_flags do
+  for_each_gem do |path, gemname|
+    sh "#{MAKE} gem-flags -C #{path} #{gem_make_flags}"
+    CFLAGS << File.read("#{path}/gem-cflags.tmp").chomp
+    LDFLAGS << File.read("#{path}/gem-ldflags.tmp").chomp
   end
 end
 
@@ -21,13 +31,30 @@ task :mrbgems_clean do
   sh "cd #{MRUBY_ROOT}/mrbgems && #{RM_F} *.c *.d *.a *.o"
   sh "cd #{MRUBY_ROOT}/mrbgems/g && #{RM_F} *.c *.d *.rbtmp *.ctmp *.o mrbtest"
   for_each_gem do |path, gemname|
-    sh "#{MAKE} clean -C #{path} #{GEM_MAKE_FLAGS}"
+    sh "#{MAKE} gem-clean -C #{path} #{gem_make_flags}"
   end
 end
 
 task :mrbgems_prepare_test do
-  sh "#{CAT} #{for_each_gem{|path, gemname| "#{path}/test/*.rb "}} > #{MRUBY_ROOT}/mrbgems/g/mrbgemtest.rbtmp"
-  sh "#{MRUBY_ROOT}/bin/mrbc -Bmrbgemtest_irep -o#{MRUBY_ROOT}/mrbgems/g/mrbgemtest.ctmp #{MRUBY_ROOT}/mrbgems/g/mrbgemtest.rbtmp"
+  for_each_gem do |path, gemname, escaped_gemname|
+    sh "#{MAKE} gem-test -C #{path} #{gem_make_flags}"
+  end
+  open("#{MRUBY_ROOT}/mrbgems/g/mrbgemtest.ctmp", 'w') do |f|
+    for_each_gem do |path, gemname, escaped_gemname|
+      f.puts "void mrb_#{escaped_gemname}_gem_test_init(mrb_state *mrb);"
+      f.puts "extern const char gem_mrblib_irep_#{escaped_gemname}_test[];"
+    end
+    f.puts "void mrbgemtest_init(mrb_state* mrb) {"
+    for_each_gem do |path, gemname, escaped_gemname|
+      f.puts "mrb_#{escaped_gemname}_gem_test_init(mrb);"
+    end
+    for_each_gem do |path, gemname, escaped_gemname|
+      f.puts "mrb_load_irep(mrb, gem_mrblib_irep_#{escaped_gemname}_test);"
+    end
+    f.puts "}"
+
+  end
+  sh "#{CAT} #{for_each_gem{|path, gemname| "#{path}/gem_test.ctmp "}} >> #{MRUBY_ROOT}/mrbgems/g/mrbgemtest.ctmp"
 end
 
 file "#{GEM_INIT}.a" => ["#{GEM_INIT}.c", "#{GEM_INIT}.o"] do |t|
