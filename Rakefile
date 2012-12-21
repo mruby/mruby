@@ -2,9 +2,9 @@
 # basic build file for mruby
 
 # compiler, linker (gcc), archiver, parser generator
-CC = ENV['CC'] || 'gcc'
-LL = ENV['LL'] || 'gcc'
-AR = ENV['AR'] || 'ar'
+CC   = ENV['CC']   || 'gcc'
+LL   = ENV['LL']   || 'gcc'
+AR   = ENV['AR']   || 'ar'
 YACC = ENV['YACC'] || 'bison'
 MAKE = ENV['MAKE'] || 'make'
 
@@ -34,19 +34,17 @@ else  # including 'debug'
   CFLAGS = if e then [e] else ['-g', '-O3'] end
 end
 LDFLAGS = [ENV['LDFLAGS']]
-LIBS = [ENV['LIBS'] || '-lm']
+LIBS    = [ENV['LIBS'] || '-lm']
 
-if !ENABLE_GEMS
-  CFLAGS << "-DDISABLE_GEMS"
-end
 
+CFLAGS << "-DDISABLE_GEMS" unless ENABLE_GEMS
 CFLAGS << "-Wall" << "-Werror-implicit-function-declaration" << "-I#{MRUBY_ROOT}/include"
+
 if ENV['OS'] == 'Windows_NT'
   MAKE_FLAGS = "--no-print-directory CC=#{CC} LL=#{LL} AR=#{AR} YACC=#{YACC} CFLAGS=\"#{CFLAGS.join(' ')}\" LDFLAGS=\"#{LDFLAGS.join(' ')}\" LIBS=\"#{LIBS.join(' ')}\" ENABLE_GEMS=\"#{ENABLE_GEMS}\" MRUBY_ROOT=\"#{MRUBY_ROOT}\""
 else
   MAKE_FLAGS = "--no-print-directory CC='#{CC}' LL='#{LL}' AR='#{AR}' YACC='#{YACC}' CFLAGS='#{CFLAGS.join(' ')}' LDFLAGS='#{LDFLAGS.join(' ')}' LIBS='#{LIBS.join(' ')}' ENABLE_GEMS='#{ENABLE_GEMS}' MRUBY_ROOT='#{MRUBY_ROOT}'"
 end
-
 
 
 ##############################
@@ -59,6 +57,7 @@ CAT = ENV['CAT'] ||= 'cat'
 
 ##############################
 # generic build targets, rules
+
 if ENABLE_GEMS
   require './mrbgems/build_tasks'
 end
