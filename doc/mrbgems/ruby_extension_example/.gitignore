@@ -1,3 +1,8 @@
-gem_mrblib.c
+# mrbgems
+*.tmp
 *.ctmp
 *.rbtmp
+gem_mixlib.c
+gem_mrblib.c
+gem_srclib.c
+

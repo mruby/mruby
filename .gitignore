@@ -9,6 +9,9 @@
 *.sav
 *.swp
 *.d
+*.tmp
+*.ctmp
+*.rbtmp
 *~
 .DS_Store
 .ccmalloc
