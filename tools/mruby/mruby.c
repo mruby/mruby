@@ -202,6 +202,7 @@ showcallinfo(mrb_state *mrb)
         }
       }
     }
+    if (line == -1) continue;
     if (ci->target_class == ci->proc->target_class)
       sep = ".";
     else
