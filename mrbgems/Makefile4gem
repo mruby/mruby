@@ -124,7 +124,7 @@ gem-clean-rb-files :
 
 
 %.o : %.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) $(GEM_INCLUDE_LIST) $< -o $@
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) $(GEM_CFLAGS_LIST) $< -o $@
 
 .PHONY : clean
 clean : gem-clean
