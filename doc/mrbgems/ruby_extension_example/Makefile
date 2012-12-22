@@ -6,6 +6,7 @@ GEM_RB_FILES := $(wildcard $(MRB_DIR)/*.rb)
 
 MRUBY_CFLAGS := 
 MRUBY_LDFLAGS := 
+MRUBY_LIBS := 
 
 gem-all : gem-rb-files
 
