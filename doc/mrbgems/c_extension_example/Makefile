@@ -7,6 +7,7 @@ GEM_OBJECTS := $(patsubst %.c, %.o, $(GEM_C_FILES))
 
 MRUBY_CFLAGS := 
 MRUBY_LDFLAGS := 
+MRUBY_LIBS := 
 
 gem-all : $(GEM_OBJECTS) gem-c-files
 
