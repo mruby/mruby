@@ -24,6 +24,7 @@ task :load_mrbgems_flags do
     sh "#{MAKE} gem-flags -C #{path} #{gem_make_flags}"
     CFLAGS << File.read("#{path}/gem-cflags.tmp").chomp
     LDFLAGS << File.read("#{path}/gem-ldflags.tmp").chomp
+    LIBS << File.read("#{path}/gem-libs.tmp").chomp
   end
 end
 
