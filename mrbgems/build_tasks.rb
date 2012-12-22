@@ -113,7 +113,8 @@ GEM_LIST := #{for_each_gem{|path, gemname| "#{path}/mrb-#{gemname}-gem.a "}}
 GEM_ARCHIVE_FILES := #{MRUBY_ROOT}/mrbgems/gem_init.a
 GEM_ARCHIVE_FILES += $(GEM_LIST)
 
-GEM_INCLUDE_LIST := #{for_each_gem{|path, gemname| "-I#{path}/include "}}
+GEM_CFLAGS_LIST := #{for_each_gem{|path, gemname| "#{File.read("#{path}/gem-cflags.tmp").chomp} "}}
+GEM_LDFLAGS_LIST := #{for_each_gem{|path, gemname| "#{File.read("#{path}/gem-ldflags.tmp").chomp} "}}
 __EOF__
   end
 end
