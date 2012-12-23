@@ -1456,6 +1456,36 @@ check_cv_name(mrb_state *mrb, mrb_sym id)
   }
 }
 
+/* 15.2.2.4.16 */
+/*
+ *  call-seq:
+ *     obj.class_variable_defined?(symbol)    -> true or false
+ *
+ *  Returns <code>true</code> if the given class variable is defined
+ *  in <i>obj</i>.
+ *
+ *     class Fred
+ *       @@foo = 99
+ *     end
+ *     Fred.class_variable_defined?(:@@foo)    #=> true
+ *     Fred.class_variable_defined?(:@@bar)    #=> false
+ */
+
+static mrb_value
+mrb_mod_cvar_defined(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value sym;
+  mrb_sym id;
+  mrb_get_args(mrb, "o", &sym);
+
+  id = mrb_sym_value(mrb,sym);
+  check_cv_name(mrb, id);
+
+  if(mrb_cv_defined(mrb, mod, id))
+    return mrb_true_value();
+  return mrb_false_value();
+}
+
 /* 15.2.2.4.17 */
 /*
  *  call-seq:
@@ -1616,6 +1646,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, cls, "superclass", mrb_class_superclass, ARGS_NONE());      /* 15.2.3.3.4 */
   mrb_define_method(mrb, cls, "new", mrb_instance_new, ARGS_ANY());                  /* 15.2.3.3.3 */
   mrb_define_method(mrb, cls, "inherited", mrb_bob_init, ARGS_REQ(1));
+  mrb_define_method(mrb, mod, "class_variable_defined?", mrb_mod_cvar_defined, ARGS_REQ(1));  /* 15.2.2.4.16 */
   mrb_define_method(mrb, mod, "class_variable_get", mrb_mod_cvar_get, ARGS_REQ(1));  /* 15.2.2.4.17 */
   mrb_define_method(mrb, mod, "class_variable_set", mrb_mod_cvar_set, ARGS_REQ(2));  /* 15.2.2.4.18 */
   mrb_define_method(mrb, mod, "extend_object", mrb_mod_extend_object, ARGS_REQ(1));  /* 15.2.2.4.25 */
