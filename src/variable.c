@@ -730,6 +730,26 @@ mrb_cv_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
   mrb_mod_cv_set(mrb, mrb_class_ptr(mod), sym, v);
 }
 
+int
+mrb_mod_cv_defined(mrb_state *mrb, struct RClass * c, mrb_sym sym)
+{
+  while (c) {
+    if (c->iv) {
+      iv_tbl *t = c->iv;
+      if (iv_get(mrb, t, sym, NULL)) return TRUE;
+    }
+    c = c->super;
+  }
+
+  return FALSE;
+}
+
+int
+mrb_cv_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym)
+{
+  return mrb_mod_cv_defined(mrb, mrb_class_ptr(mod), sym);
+}
+
 mrb_value
 mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
 {
