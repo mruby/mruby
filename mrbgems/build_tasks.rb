@@ -116,6 +116,7 @@ GEM_ARCHIVE_FILES += $(GEM_LIST)
 
 GEM_CFLAGS_LIST := #{for_each_gem{|path, gemname| "#{File.read("#{path}/gem-cflags.tmp").chomp} "}}
 GEM_LDFLAGS_LIST := #{for_each_gem{|path, gemname| "#{File.read("#{path}/gem-ldflags.tmp").chomp} "}}
+GEM_LIBS_LIST := #{for_each_gem{|path, gemname| "#{File.read("#{path}/gem-libs.tmp").chomp} "}}
 __EOF__
   end
 end
