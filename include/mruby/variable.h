@@ -59,6 +59,8 @@ mrb_value mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym);
 mrb_value mrb_cv_get(mrb_state *mrb, mrb_value mod, mrb_sym sym);
 void mrb_mod_cv_set(mrb_state *mrb, struct RClass * c, mrb_sym sym, mrb_value v);
 void mrb_cv_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v);
+int mrb_mod_cv_defined(mrb_state *mrb, struct RClass * c, mrb_sym sym);
+int mrb_cv_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym);
 
 /* GC functions */
 void mrb_gc_mark_gv(mrb_state*);
