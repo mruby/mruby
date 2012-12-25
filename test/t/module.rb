@@ -208,6 +208,16 @@ assert('Module#module_eval', '15.2.2.4.35') do
    Test4ModuleEval.module_eval{ @b } == 12
 end
 
+assert('Module#remove_class_variable', '15.2.2.4.39') do
+  class Test4RemoveClassVariable
+    @@cv = 99
+  end
+
+  Test4RemoveClassVariable.remove_class_variable(:@@cv) == 99 and
+  not Test4RemoveClassVariable.class_variables.include? :@@cv
+end
+
+
 # Not ISO specified
 
 assert('Module#to_s') do
