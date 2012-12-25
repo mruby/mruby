@@ -1545,6 +1545,56 @@ mrb_mod_cvar_set(mrb_state *mrb, mrb_value mod)
   return value;
 }
 
+/* 15.2.2.4.39 */
+/*
+ *  call-seq:
+ *     remove_class_variable(sym)    -> obj
+ *
+ *  Removes the definition of the <i>sym</i>, returning that
+ *  constant's value.
+ *
+ *     class Dummy
+ *       @@var = 99
+ *       puts @@var
+ *       p class_variables
+ *       remove_class_variable(:@@var)
+ *       p class_variables
+ *     end
+ *
+ *  <em>produces:</em>
+ *
+ *     99
+ *     [:@@var]
+ *     []
+ */
+
+mrb_value
+mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value sym, val;
+  mrb_sym id;
+
+  mrb_get_args(mrb, "o", &sym);
+
+  id = mrb_sym_value(mrb,sym);
+  check_cv_name(mrb, id);
+
+  val = mrb_iv_remove(mrb, mod, id);
+
+  if (!mrb_undef_p(val)) return val;
+
+  if (mrb_cv_defined(mrb, mod, id)){
+    mrb_name_error(mrb, id, "cannot remove %s for %s",
+        mrb_sym2name(mrb, id), mrb_class_name(mrb, mrb_class_ptr(mod)));
+  }
+
+  mrb_name_error(mrb, id, "class variable %s not defined for %s",
+      mrb_sym2name(mrb, id), mrb_class_name(mrb, mrb_class_ptr(mod)));
+
+ /* not reached */
+ return mrb_nil_value();
+}
+
 static void
 check_const_name(mrb_state *mrb, mrb_sym id)
 {
@@ -1659,6 +1709,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "included_modules", mrb_mod_included_modules, ARGS_NONE()); /* 15.2.2.4.30 */
   mrb_define_method(mrb, mod, "instance_methods", mrb_mod_instance_methods, ARGS_ANY());  /* 15.2.2.4.33 */
   mrb_define_method(mrb, mod, "module_eval", mrb_mod_module_eval, ARGS_ANY());            /* 15.2.2.4.35 */
+  mrb_define_method(mrb, mod, "remove_class_variable", mrb_mod_remove_cvar, ARGS_REQ(1)); /* 15.2.2.4.39 */
 
   mrb_define_method(mrb, mod, "to_s", mrb_mod_to_s, ARGS_NONE());
   mrb_define_method(mrb, mod, "inspect", mrb_mod_to_s, ARGS_NONE());
