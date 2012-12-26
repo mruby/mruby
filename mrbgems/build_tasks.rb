@@ -29,8 +29,13 @@ task :load_mrbgems_flags do
 end
 
 task :mrbgems_clean do
-  sh "cd #{MRUBY_ROOT}/mrbgems && #{RM_F} *.c *.d *.a *.o"
-  sh "cd #{MRUBY_ROOT}/mrbgems/g && #{RM_F} *.c *.d *.rbtmp *.ctmp *.o mrbtest"
+  if ENV['OS'] == 'Windows_NT'
+    sh "cd #{MRUBY_ROOT.gsub('/', '\\')}\\mrbgems && #{RM_F} *.c *.d *.a *.o"
+    sh "cd #{MRUBY_ROOT.gsub('/', '\\')}\\mrbgems\\g && #{RM_F} *.c *.d *.rbtmp *.ctmp *.o mrbtest"
+  else
+    sh "cd #{MRUBY_ROOT}/mrbgems && #{RM_F} *.c *.d *.a *.o"
+    sh "cd #{MRUBY_ROOT}/mrbgems/g && #{RM_F} *.c *.d *.rbtmp *.ctmp *.o mrbtest"
+  end
   for_each_gem do |path, gemname|
     sh "#{MAKE} gem-clean -C #{path} #{gem_make_flags}"
   end
