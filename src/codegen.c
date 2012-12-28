@@ -1205,6 +1205,7 @@ codegen(codegen_scope *s, node *tree, int val)
             pop();
             genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern(s->mrb, "===")), 1));
           }
+	  pop();
           tmp = new_label(s);
           genop(s, MKOP_AsBx(OP_JMPIF, cursp(), pos2));
           pos2 = tmp;
@@ -1215,7 +1216,6 @@ codegen(codegen_scope *s, node *tree, int val)
           genop(s, MKOP_sBx(OP_JMP, 0));
           dispatch_linked(s, pos2);
         }
-	pop();			/* pop HEAD */
         codegen(s, tree->car->cdr, val);
 	if (val) pop();
         tmp = new_label(s);
@@ -1223,11 +1223,11 @@ codegen(codegen_scope *s, node *tree, int val)
         pos3 = tmp;
         if (pos1) dispatch(s, pos1);
         tree = tree->cdr;
-	push();			/* push HEAD */
       }
-      pop();			/* pop HEAD */
-      genop(s, MKOP_A(OP_LOADNIL, cursp()));
-      if (val) push();
+      if (val) {
+	genop(s, MKOP_A(OP_LOADNIL, cursp()));
+	push();
+      }
       if (pos3) dispatch_linked(s, pos3);
     }
     break;
