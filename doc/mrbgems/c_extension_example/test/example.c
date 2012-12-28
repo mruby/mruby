@@ -1,9 +1,7 @@
-/*
-  if *.c exists in test directory, auto generate this file
-*/
+#include <mruby.h>
 
 void
-mrb_c_extension_example_gem_test_init(mrb_state *mrb)
+mrb_c_extension_example_gem_test(mrb_state *mrb)
 {
   /* test initializer in C */
 }

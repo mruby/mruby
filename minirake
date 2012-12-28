@@ -5,6 +5,54 @@
 # License: MIT-LICENSE
 
 require 'getoptlong'
+require 'fileutils'
+
+class String
+  def ext(newext='')
+    return self.dup if ['.', '..'].include? self
+    if newext != ''
+      newext = (newext =~ /^\./) ? newext : ("." + newext)
+    end
+    self.chomp(File.extname(self)) << newext
+  end
+
+  def pathmap(spec=nil, &block)
+    return self if spec.nil?
+    result = ''
+    spec.scan(/%\{[^}]*\}-?\d*[sdpfnxX%]|%-?\d+d|%.|[^%]+/) do |frag|
+      case frag
+      when '%f'
+        result << File.basename(self)
+      when '%n'
+        result << File.basename(self).ext
+      when '%d'
+        result << File.dirname(self)
+      when '%x'
+        result << File.extname(self)
+      when '%X'
+        result << self.ext
+      when '%p'
+        result << self
+      when '%s'
+        result << (File::ALT_SEPARATOR || File::SEPARATOR)
+      when '%-'
+        # do nothing
+      when '%%'
+        result << "%"
+      when /%(-?\d+)d/
+        result << pathmap_partial($1.to_i)
+      when /^%\{([^}]*)\}(\d*[dpfnxX])/
+        patterns, operator = $1, $2
+        result << pathmap('%' + operator).pathmap_replace(patterns, &block)
+      when /^%/
+        fail ArgumentError, "Unknown pathmap specifier #{frag} in '#{spec}'"
+      else
+        result << frag
+      end
+    end
+    result
+  end
+end
 
 module MiniRake
   class Task
@@ -43,7 +91,8 @@ module MiniRake
       puts "Invoke #{name} (already=[#{@already_invoked}], needed=[#{needed?}])" if $trace
       return if @already_invoked
       @already_invoked = true
-      @prerequisites.each { |n| Task[n].invoke }
+      prerequisites = @prerequisites.collect{ |n| n.is_a?(Proc) ? n.call(name) : n }.flatten
+      prerequisites.each { |n| Task[n].invoke }
       execute if needed?
     end
 
@@ -64,7 +113,8 @@ module MiniRake
     # Timestamp for this task.  Basic tasks return the current time for
     # their time stamp.  Other tasks can be more sophisticated.
     def timestamp
-      @prerequisites.collect { |p| Task[p].timestamp }.max || Time.now
+      prerequisites = @prerequisites.collect{ |n| n.is_a?(Proc) ? n.call(name) : n }.flatten
+      prerequisites.collect { |n| Task[n].timestamp }.max || Time.now
     end
 
     # Class Methods ----------------------------------------------------
@@ -107,15 +157,12 @@ module MiniRake
       # added to the existing task.
       def define_task(args, &block)
         task_name, deps = resolve_args(args)
-        deps = [deps] if (Symbol === deps) || (String === deps)
-        deps = deps.collect {|d| d.to_s }
-        lookup(task_name).enhance(deps, &block)
+        lookup(task_name).enhance([deps].flatten, &block)
       end
 
       # Define a rule for synthesizing tasks.  
       def create_rule(args, &block)
         pattern, deps = resolve_args(args)
-        fail "Too many dependents specified in rule #{pattern}: #{deps.inspect}" if deps.size > 1
         pattern = Regexp.new(Regexp.quote(pattern) + '$') if String === pattern
         RULES << [pattern, deps, block]
       end
@@ -136,6 +183,7 @@ module MiniRake
         RULES.each do |pattern, extensions, block|
           if md = pattern.match(task_name)
             ext = extensions.first
+            deps = extensions[1..-1]
             case ext
             when String
               source = task_name.sub(/\.[^.]*$/, ext)
@@ -145,7 +193,7 @@ module MiniRake
               fail "Don't know how to handle rule dependent: #{ext.inspect}"
             end
             if File.exist?(source)
-              task = FileTask.define_task({task_name => [source]}, &block)
+              task = FileTask.define_task({task_name => [source]+deps}, &block)
               task.source = source
               return task
             end
@@ -181,7 +229,8 @@ module MiniRake
     # stamp is out of date.
     def needed?
       return true unless File.exist?(name)
-      latest_prereq = @prerequisites.collect{|n| Task[n].timestamp}.max
+      prerequisites = @prerequisites.collect{ |n| n.is_a?(Proc) ? n.call(name) : n }.flatten
+      latest_prereq = prerequisites.collect{|n| Task[n].timestamp}.max
       return false if latest_prereq.nil?
       timestamp < latest_prereq
     end
@@ -191,55 +240,58 @@ module MiniRake
       File.new(name.to_s).mtime
     end
   end
-end
 
-Rake = MiniRake
+  module DSL
+    # Declare a basic task.
+    def task(args, &block)
+      MiniRake::Task.define_task(args, &block)
+    end
 
+    # Declare a file task.
+    def file(args, &block)
+      MiniRake::FileTask.define_task(args, &block)
+    end
 
-######################################################################
-# Task Definition Functions ...
+    # Declare a set of files tasks to create the given directories on
+    # demand.
+    def directory(dir)
+      path = []
+      Sys.split_all(dir).each do |p| 
+        path << p
+        FileTask.define_task(File.join(path)) do |t|
+          Sys.makedirs(t.name)
+        end
+      end
+    end
 
-# Declare a basic task.
-def task(args, &block)
-  MiniRake::Task.define_task(args, &block)
-end
+    # Declare a rule for auto-tasks.
+    def rule(args, &block)
+      MiniRake::Task.create_rule(args, &block)
+    end
 
-# Declare a file task.
-def file(args, &block)
-  MiniRake::FileTask.define_task(args, &block)
-end
+    # Write a message to standard out if $verbose is enabled.
+    def log(msg)
+      print "  " if $trace && $verbose
+      puts msg if $verbose
+    end
 
-# Declare a set of files tasks to create the given directories on
-# demand.
-def directory(dir)
-  path = []
-  Sys.split_all(dir).each do |p| 
-    path << p
-    FileTask.define_task(File.join(path)) do |t|
-      Sys.makedirs(t.name)
+    # Run the system command +cmd+.
+    def sh(cmd)
+      puts cmd
+      system(cmd) or fail "Command Failed: [#{cmd}]"
+    end
+
+    def desc(text)
     end
   end
 end
 
-# Declare a rule for auto-tasks.
-def rule(args, &block)
-  MiniRake::Task.create_rule(args, &block)
-end
+Rake = MiniRake
+include MiniRake::DSL
 
-# Write a message to standard out if $verbose is enabled.
-def log(msg)
-  print "  " if $trace && $verbose
-  puts msg if $verbose
-end
 
-# Run the system command +cmd+.
-def sh(cmd)
-  log cmd
-  system(cmd) or fail "Command Failed: [#{cmd}]"
-end
-
-def desc(text)
-end
+######################################################################
+# Task Definition Functions ...
 
 ######################################################################
 # Rake main application object.  When invoking +rake+ from the command
