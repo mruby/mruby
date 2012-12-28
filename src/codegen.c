@@ -1205,9 +1205,9 @@ codegen(codegen_scope *s, node *tree, int val)
             pop();
             genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern(s->mrb, "===")), 1));
           }
-          else
-	          pop();
-
+          else {
+	    pop();
+	  }
           tmp = new_label(s);
           genop(s, MKOP_AsBx(OP_JMPIF, cursp(), pos2));
           pos2 = tmp;
