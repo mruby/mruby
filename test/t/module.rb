@@ -217,6 +217,25 @@ assert('Module#remove_class_variable', '15.2.2.4.39') do
   not Test4RemoveClassVariable.class_variables.include? :@@cv
 end
 
+assert('Module#remove_method', '15.2.2.4.41') do
+  module Test4RemoveMethod
+    class Parent
+      def hello
+      end
+     end
+
+     class Child < Parent
+      def hello
+      end
+     end
+  end
+
+  Test4RemoveMethod::Child.class_eval{ remove_method :hello }
+
+  Test4RemoveMethod::Child.instance_methods.include? :hello and
+  not Test4RemoveMethod::Child.instance_methods(false).include? :hello
+end
+
 
 # Not ISO specified
 
