@@ -1596,6 +1596,48 @@ mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
 }
 
 static void
+remove_method(mrb_state *mrb, struct RClass *c, mrb_sym mid)
+{
+  khash_t(mt) *h = c->mt;
+  khiter_t k;
+
+  if (h) {
+    k = kh_get(mt, h, mid);
+    if (k != kh_end(h)) {
+      kh_del(mt, h, k);
+      return;
+    }
+  }
+
+  mrb_name_error(mrb, mid, "method `%s' not defined in %s",
+    mrb_sym2name(mrb, mid), mrb_class_name(mrb, c));
+}
+
+/* 15.2.2.4.41 */
+/*
+ *  call-seq:
+ *     remove_method(symbol)   -> self
+ *
+ *  Removes the method identified by _symbol_ from the current
+ *  class. For an example, see <code>Module.undef_method</code>.
+ */
+
+mrb_value
+mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
+{
+  struct RClass *c = mrb_class_ptr(mod);
+  int argc;
+  mrb_value *argv;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  while (argc--) {
+    remove_method(mrb, c, mrb_symbol(*argv));
+    argv++;
+  }
+  return mod;
+}
+
+static void
 check_const_name(mrb_state *mrb, mrb_sym id)
 {
   const char *s;
@@ -1710,6 +1752,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "instance_methods", mrb_mod_instance_methods, ARGS_ANY());  /* 15.2.2.4.33 */
   mrb_define_method(mrb, mod, "module_eval", mrb_mod_module_eval, ARGS_ANY());            /* 15.2.2.4.35 */
   mrb_define_method(mrb, mod, "remove_class_variable", mrb_mod_remove_cvar, ARGS_REQ(1)); /* 15.2.2.4.39 */
+  mrb_define_method(mrb, mod, "remove_method", mrb_mod_remove_method, ARGS_ANY());        /* 15.2.2.4.41 */
 
   mrb_define_method(mrb, mod, "to_s", mrb_mod_to_s, ARGS_NONE());
   mrb_define_method(mrb, mod, "inspect", mrb_mod_to_s, ARGS_NONE());
