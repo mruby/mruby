@@ -883,7 +883,7 @@ mrb_gc_arena_restore(mrb_state *mrb, int idx)
 
 /*
  * Field write barrier
- *   Paint obj(Black) -> value(White) to obj(Black) -> value(Black).
+ *   Paint obj(Black) -> value(White) to obj(Black) -> value(Gray).
  */
 
 void
