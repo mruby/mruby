@@ -20,6 +20,7 @@
 cscope.out
 /src/y.tab.c
 /bin
+/build
 /mrblib/mrblib.c
 /mrblib/*.*tmp
 /mrblib/mrblib.mrb
