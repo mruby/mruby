@@ -20,6 +20,7 @@ MRuby::Build.new do |conf|
   # conf.gem 'doc/mrbgems/c_extension_example'
   # conf.gem 'doc/mrbgems/c_and_ruby_extension_example'
   # conf.gem :git => 'git@github.com:masuidrive/mrbgems-example.git', :branch => 'master'
+  conf.gem '/Users/masuidrive/Develop/mobiruby/mruby-cfunc'
 end
 
 =begin
