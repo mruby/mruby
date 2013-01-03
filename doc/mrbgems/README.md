@@ -5,11 +5,11 @@ standardised way into mruby.
 
 ## Usage
 
-By default mrbgems is currently deactivated. As soon as you add a GEM to the
-build configuration (build_config.rb), mrbgems will be activated and the
-extension will be integrated.
+By default mrbgems is currently deactivated. As soon as you add a GEM to your
+build configuration (*build_config.rb*), mrbgems will be activated and the
+extension integrated.
 
-To add a GEM into the build_config.rb add the following line:
+To add a GEM into the build_config.rb add the following line for example:
 
 ```
 conf.gem '/path/to/your/gem/dir'
@@ -49,14 +49,13 @@ The maximal GEM structure looks like this:
 The folder *mrblib* contains pure Ruby files to extend mruby. The folder *src*
 contains C files to extend mruby. The folder *test* contains C and pure Ruby files
 for testing purposes which will be used by ```mrbtest```. *mrbgem.rake* contains
-rules to build a *libmrb-GEMNAME-gem.a* file inside of the GEM directory. Which
-will be used for integration into the normal mruby build process. *README.md*
-is a short description of your GEM.
+the specification to compile C and Ruby files. *README.md* is a short description
+of your GEM.
 
 ## Build process
 
-mrbgems expects a file called *mrbgem.rake* inside of your GEM directory. A
-typical file could for example look like this:
+mrbgems expects a specifcation file called *mrbgem.rake* inside of your
+GEM direcotry. A typical GEM specification could look like this for example:
 
 ```
 MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
@@ -65,35 +64,35 @@ MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
 end
 ```
 
-The mrbgems build process will use this file to create a archive file
-*libmrb-GEMNAME-gem.a* during the build process. This file will be used
-by tools like *mruby* and *mirb* to integrate the GEM functionality.
+The mrbgems build process will use this specification to compile Object and Ruby
+files. The compilation results will be add to *lib/libmruby.a*. This file is used
+by tools like ```mruby``` and ```mirb``` to empower the GEM functionality.
 
-In case your GEM has more complex build requirements you can empower
+In case your GEM has more complex build requirements you can use
 the following options additionally inside of your GEM specification:
 
-* spec.cflags (flags for the C compiler)
-* spec.mruby_cflags (flags for the C compiler)
-* spec.mruby_ldflags (flags for the linker)
-* spec.mruby_libs (Libraries to include)
-* spec.mruby_includes (Directories for include)
+* spec.cflags (C compiler flags for this GEM)
+* spec.mruby_cflags (global C compiler flags for everything)
+* spec.mruby_ldflags (global linker flags for everything)
+* spec.mruby_libs (global libraries for everything)
+* spec.mruby_includes (global includes for everything)
 * spec.rbfiles (Ruby files to compile)
-* spec.objs
+* spec.objs (Object files to compile)
 * spec.test_rbfiles (Ruby test files for integration into mrbtest)
-* spec.test_objs
+* spec.test_objs (Object test files for integration into mrbtest)
 * spec.test_preload (Initialization files for mrbtest)
 
 ## C Extension
 
-mruby can be extended with C. It is possible by using the C API to
+mruby can be extended with C. This is possible by using the C API to
 integrate C libraries into mruby.
 
 ### Pre-Conditions
 
 mrbgems expects that you have implemented a C method called
 ```mrb_YOURGEMNAME_gem_init(mrb_state)```. ```YOURGEMNAME``` will be replaced
-by the name of you GEM. If you call your GEM directory *c_extension_example*,
-your initialisation method could look like this:
+by the name of your GEM. If you call your GEM *c_extension_example*, your
+initialisation method could look like this:
 
 ```
 void
