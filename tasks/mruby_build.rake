@@ -20,7 +20,7 @@ module MRuby
     attr_accessor :ld, :ldflags, :libs
     attr_accessor :ar
     attr_writer :cxx, :cxxflags
-    attr_writer :objcc, :objccflags
+    attr_writer :objcc, :objcflags
     attr_writer :asm, :asmflags
     attr_accessor :gperf, :yacc
     attr_accessor :cat, :git
@@ -46,13 +46,13 @@ module MRuby
     end
 
     def cxx; @cxx || cc; end
-    def cxxflags; @cxxflags.empty? ? cflags : @cxxflags; end
+    def cxxflags; !@cxxflags || @cxxflags.empty? ? cflags : @cxxflags; end
 
     def objcc; @objcc || cc; end
-    def objccflags; @objccflags.empty? ? cflags : @objccflags; end
+    def objcflags; !@objcflags || @objcflags.empty? ? cflags : @objcflags; end
 
     def asm; @asm || cc; end
-    def asmflags; @asmflags.empty? ? cflags : @asmflags; end
+    def asmflags; !@asmflags || @asmflags.empty? ? cflags : @asmflags; end
 
     def ld; @ld || cc; end
 
