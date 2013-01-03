@@ -147,7 +147,7 @@ __EOF__
           build.compile_mruby f, rbfiles, "gem_mrblib_irep_#{funcname}" unless rbfiles.empty?
           f.puts "void mrb_#{funcname}_gem_init(mrb_state *mrb);"
           f.puts "void GENERATED_TMP_mrb_#{funcname}_gem_init(mrb_state *mrb) {"
-          f.puts "  mrb_#{funcname}_gem_init(mrb);" unless objs.empty?
+          f.puts "  mrb_#{funcname}_gem_init(mrb);" if objs != ["#{build_dir}/gem_init.o"]
           f.puts <<__EOF__ unless rbfiles.empty?
   mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});
   if (mrb->exc) {
