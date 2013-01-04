@@ -1595,6 +1595,48 @@ mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
  return mrb_nil_value();
 }
 
+/* 15.2.2.4.34 */
+/*
+ *  call-seq:
+ *     mod.method_defined?(symbol)    -> true or false
+ *
+ *  Returns +true+ if the named method is defined by
+ *  _mod_ (or its included modules and, if _mod_ is a class,
+ *  its ancestors). Public and protected methods are matched.
+ *
+ *     module A
+ *       def method1()  end
+ *     end
+ *     class B
+ *       def method2()  end
+ *     end
+ *     class C < B
+ *       include A
+ *       def method3()  end
+ *     end
+ *
+ *     A.method_defined? :method1    #=> true
+ *     C.method_defined? "method1"   #=> true
+ *     C.method_defined? "method2"   #=> true
+ *     C.method_defined? "method3"   #=> true
+ *     C.method_defined? "method4"   #=> false
+ */
+
+static mrb_value
+mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value sym;
+  mrb_sym id;
+
+  mrb_get_args(mrb, "o", &sym);
+  id = mrb_sym_value(mrb,sym);
+
+  if (mrb_obj_respond_to(mrb_class_ptr(mod), id)) {
+    return mrb_true_value();
+  }
+  return mrb_false_value();
+}
+
 static void
 remove_method(mrb_state *mrb, struct RClass *c, mrb_sym mid)
 {
@@ -1750,6 +1792,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "included", mrb_bob_init, ARGS_REQ(1));                     /* 15.2.2.4.29 */
   mrb_define_method(mrb, mod, "included_modules", mrb_mod_included_modules, ARGS_NONE()); /* 15.2.2.4.30 */
   mrb_define_method(mrb, mod, "instance_methods", mrb_mod_instance_methods, ARGS_ANY());  /* 15.2.2.4.33 */
+  mrb_define_method(mrb, mod, "method_defined?", mrb_mod_method_defined, ARGS_REQ(1));    /* 15.2.2.4.34 */
   mrb_define_method(mrb, mod, "module_eval", mrb_mod_module_eval, ARGS_ANY());            /* 15.2.2.4.35 */
   mrb_define_method(mrb, mod, "remove_class_variable", mrb_mod_remove_cvar, ARGS_REQ(1)); /* 15.2.2.4.39 */
   mrb_define_method(mrb, mod, "remove_method", mrb_mod_remove_method, ARGS_ANY());        /* 15.2.2.4.41 */
