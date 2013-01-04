@@ -199,6 +199,30 @@ assert('Module#instance_methods', '15.2.2.4.33') do
    r.class == Array and r.include?(:method3) and r.include?(:method2)
 end
 
+assert('Module#method_defined?', '15.2.2.4.34') do
+  module Test4MethodDefined
+    module A
+      def method1()  end
+    end
+
+    class B
+      def method2()  end
+    end
+
+    class C < B
+      include A
+      def method3()  end
+    end
+  end
+
+  Test4MethodDefined::A.method_defined? :method1   and
+  Test4MethodDefined::C.method_defined? :method1   and
+  Test4MethodDefined::C.method_defined? "method2"  and
+  Test4MethodDefined::C.method_defined? "method3"  and
+  not Test4MethodDefined::C.method_defined? "method4"
+end
+
+
 assert('Module#module_eval', '15.2.2.4.35') do
    module Test4ModuleEval
      @a = 11
