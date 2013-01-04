@@ -33,7 +33,7 @@ module MRuby
         @name = name
         @build = MRuby.build
         @dir = Gem.processing_path
-        @cflags = []
+        @cflags, @cxxflags, @objcflags, @asmflags = [], [], [], []
         @mruby_cflags, @mruby_ldflags, @mruby_libs = [], [], []
         @mruby_includes = ["#{dir}/include"]
         @rbfiles = Dir.glob("#{dir}/mrblib/*.rb")
@@ -113,9 +113,11 @@ __EOF__
         obj_matcher = Regexp.new("^#{build_dir}/(.*)\\.o$")
         {
           '.c' => proc { |t| build.compile_c t.name, t.prerequisites.first, cflags },
-          '.cpp' => proc { |t| build.compile_cxx t.name, t.prerequisites.first, cflags },
-          '.m' => proc { |t| build.compile_objc t.name, t.prerequisites.first, cflags },
-          '.S' => proc { |t| build.compile_asm t.name, t.prerequisites.first, cflags }
+          '.cpp' => proc { |t| build.compile_cxx t.name, t.prerequisites.first, cxxflags },
+          '.cxx' => proc { |t| build.compile_cxx t.name, t.prerequisites.first, cxxflags },
+          '.cc' => proc { |t| build.compile_cxx t.name, t.prerequisites.first, cxxflags },
+          '.m' => proc { |t| build.compile_objc t.name, t.prerequisites.first, objcflags },
+          '.S' => proc { |t| build.compile_asm t.name, t.prerequisites.first, asmflags }
         }.each do |ext, compile|
           rule obj_matcher => [
             proc { |file|
@@ -147,7 +149,7 @@ __EOF__
           build.compile_mruby f, rbfiles, "gem_mrblib_irep_#{funcname}" unless rbfiles.empty?
           f.puts "void mrb_#{funcname}_gem_init(mrb_state *mrb);"
           f.puts "void GENERATED_TMP_mrb_#{funcname}_gem_init(mrb_state *mrb) {"
-          f.puts "  mrb_#{funcname}_gem_init(mrb);" unless objs.empty?
+          f.puts "  mrb_#{funcname}_gem_init(mrb);" if objs != ["#{build_dir}/gem_init.o"]
           f.puts <<__EOF__ unless rbfiles.empty?
   mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});
   if (mrb->exc) {
