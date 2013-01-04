@@ -12,6 +12,8 @@ MRuby.each_target do |t|
   {
     '.c' => proc { |t| compile_c t.name, t.prerequisites.first },
     '.cpp' => proc { |t| compile_cxx t.name, t.prerequisites.first },
+    '.cxx' => proc { |t| compile_cxx t.name, t.prerequisites.first },
+    '.cc' => proc { |t| compile_cxx t.name, t.prerequisites.first },
     '.m' => proc { |t| compile_objc t.name, t.prerequisites.first },
     '.S' => proc { |t| compile_asm t.name, t.prerequisites.first }
   }.each do |ext, compile|
