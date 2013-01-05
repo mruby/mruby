@@ -11,7 +11,7 @@ MRuby.each_target do
   objs = ["#{build_dir}/#{dir}/driver.o", mlib]
 
   file exec => objs + gems.map{ |g| g.testlib } + ["#{build_dir}/lib/libmruby.a"] do |t|
-    link t.name, t.prerequisites, [], gems.map { |g| g.mruby_libs }
+    link t.name, t.prerequisites, gems.map { |g| g.mruby_ldflags }, gems.map { |g| g.mruby_libs }
   end
 
   file mlib => [clib]
