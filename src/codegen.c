@@ -1100,7 +1100,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
       codegen(s, tree->cdr->car, val);
       if (e) {
-        if (val) pop();
+        if (val && tree->cdr->car) pop();
         pos2 = new_label(s);
         genop(s, MKOP_sBx(OP_JMP, 0));
         dispatch(s, pos1);
