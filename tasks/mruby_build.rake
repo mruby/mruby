@@ -139,8 +139,8 @@ module MRuby
     
     def link(outfile, objfiles, flags=[], libs=[])
       FileUtils.mkdir_p File.dirname(outfile)
-      flags = [ldflags, flags]
-      libs = [libs, self.libs]
+      flags = [ldflags, gems.map { |g| g.mruby_ldflags }, flags].flatten.uniq
+      libs = [libs, gems.map { |g| g.mruby_libs }, self.libs].flatten.uniq
       sh "#{filename ld} -o #{filename outfile} #{flags.join(' ')} #{filenames objfiles} #{libs.flatten.join(' ')}"
     end
     
