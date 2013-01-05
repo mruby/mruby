@@ -1099,8 +1099,12 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_AsBx(OP_JMPNOT, cursp(), 0));
 
       codegen(s, tree->cdr->car, val);
+      if (val && !(tree->cdr->car)) {
+        genop(s, MKOP_A(OP_LOADNIL, cursp()));
+        push();
+      }
       if (e) {
-        if (val && tree->cdr->car) pop();
+        if (val) pop();
         pos2 = new_label(s);
         genop(s, MKOP_sBx(OP_JMP, 0));
         dispatch(s, pos1);
