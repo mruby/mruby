@@ -117,8 +117,11 @@ gettimeofday_time(void)
     return tv.tv_sec + tv.tv_usec * 1e-6;
 }
 
-#define GC_INVOKE_TIME_REPORT do {\
+#define GC_INVOKE_TIME_REPORT(with) do {\
+  fprintf(stderr, "%s\n", with);\
   fprintf(stderr, "gc_invoke: %19.3f\n", gettimeofday_time() - program_invoke_time);\
+  fprintf(stderr, "is_generational: %d\n", is_generational(mrb));\
+  fprintf(stderr, "is_major_gc: %d\n", is_major_gc(mrb));\
 } while(0)
 
 #define GC_TIME_START do {\
@@ -129,11 +132,14 @@ gettimeofday_time(void)
   gc_time = gettimeofday_time() - gc_time;\
   gc_total_time += gc_time;\
   fprintf(stderr, "gc_state: %d\n", mrb->gc_state);\
+  fprintf(stderr, "live: %d\n", mrb->live);\
+  fprintf(stderr, "majorgc_old_threshold: %d\n", mrb->majorgc_old_threshold);\
+  fprintf(stderr, "gc_threshold: %d\n", mrb->gc_threshold);\
   fprintf(stderr, "gc_time: %30.20f\n", gc_time);\
   fprintf(stderr, "gc_total_time: %30.20f\n\n", gc_total_time);\
 } while(0)
 #else
-#define GC_INVOKE_TIME_REPORT
+#define GC_INVOKE_TIME_REPORT(s)
 #define GC_TIME_START
 #define GC_TIME_STOP_AND_REPORT
 #endif
@@ -268,6 +274,10 @@ add_heap(mrb_state *mrb)
 
 #define DEFAULT_GC_INTERVAL_RATIO 200
 #define DEFAULT_GC_STEP_RATIO 200
+#define DEFAULT_MAJOR_GC_INC_RATIO 200
+#define is_generational(mrb) (mrb->is_generational_gc_mode)
+#define is_major_gc(mrb) (is_generational(mrb) && mrb->gc_full)
+#define is_minor_gc(mrb) (is_generational(mrb) && !mrb->gc_full)
 
 void
 mrb_init_heap(mrb_state *mrb)
@@ -277,6 +287,8 @@ mrb_init_heap(mrb_state *mrb)
   add_heap(mrb);
   mrb->gc_interval_ratio = DEFAULT_GC_INTERVAL_RATIO;
   mrb->gc_step_ratio = DEFAULT_GC_STEP_RATIO;
+  mrb->is_generational_gc_mode = TRUE;
+  mrb->gc_full = TRUE;
 
 #ifdef GC_PROFILE
   program_invoke_time = gettimeofday_time();
@@ -485,7 +497,7 @@ mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
 {
   if (obj == 0) return;
   if (!is_white(obj)) return;
-  gc_assert(!is_dead(mrb, obj));
+  gc_assert((obj)->tt != MRB_TT_FREE);
   add_gray_list(mrb, obj);
 }
 
@@ -575,8 +587,10 @@ root_scan_phase(mrb_state *mrb)
   int i, j, e;
   mrb_callinfo *ci;
 
-  mrb->gray_list = 0;
-  mrb->variable_gray_list = 0;
+  if (!is_minor_gc(mrb)) {
+    mrb->gray_list = 0;
+    mrb->variable_gray_list = 0;
+  }
 
   mrb_gc_mark_gv(mrb);
   /* mark arena */
@@ -710,13 +724,19 @@ static void
 final_marking_phase(mrb_state *mrb)
 {
   while (mrb->gray_list) {
-    gc_mark_children(mrb, mrb->gray_list);
+    if (is_gray(mrb->gray_list))
+      gc_mark_children(mrb, mrb->gray_list);
+    else
+      mrb->gray_list = mrb->gray_list->gcnext;
   }
   gc_assert(mrb->gray_list == NULL);
   mrb->gray_list = mrb->variable_gray_list;
   mrb->variable_gray_list = 0;
   while (mrb->gray_list) {
-    gc_mark_children(mrb, mrb->gray_list);
+    if (is_gray(mrb->gray_list))
+      gc_mark_children(mrb, mrb->gray_list);
+    else
+      mrb->gray_list = mrb->gray_list->gcnext;
   }
   gc_assert(mrb->gray_list == NULL);
 }
@@ -752,7 +772,8 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
         }
       }
       else {
-        paint_partial_white(mrb, &p->as.basic); /* next gc target */
+        if (!is_minor_gc(mrb))
+          paint_partial_white(mrb, &p->as.basic); /* next gc target */
         dead_slot = 0;
       }
       p++;
@@ -813,20 +834,53 @@ incremental_gc(mrb_state *mrb, size_t limit)
   }
 }
 
+static void
+advance_phase(mrb_state *mrb, enum gc_state to_state)
+{
+  while (mrb->gc_state != to_state) {
+    incremental_gc(mrb, ~0);
+  }
+}
+
+static void
+clear_all_old(mrb_state *mrb)
+{
+  size_t origin_mode = mrb->is_generational_gc_mode;
+
+  gc_assert(is_generational(mrb));
+  if (is_major_gc(mrb)) {
+    advance_phase(mrb, GC_STATE_NONE);
+  }
+  else {
+    mrb->is_generational_gc_mode = FALSE;
+    prepare_incremental_sweep(mrb);
+    advance_phase(mrb, GC_STATE_NONE);
+  }
+  mrb->variable_gray_list = mrb->gray_list = NULL;
+  mrb->is_generational_gc_mode = origin_mode;
+}
+
 void
 mrb_incremental_gc(mrb_state *mrb)
 {
-  size_t limit = 0, result = 0;
-
   if (mrb->gc_disabled) return;
-  GC_INVOKE_TIME_REPORT;
+
+  GC_INVOKE_TIME_REPORT("mrb_incremental_gc()");
   GC_TIME_START;
 
-  limit = (GC_STEP_SIZE/100) * mrb->gc_step_ratio;
-  while (result < limit) {
-    result += incremental_gc(mrb, limit);
-    if (mrb->gc_state == GC_STATE_NONE)
-      break;
+  if (is_minor_gc(mrb)) {
+    do {
+      incremental_gc(mrb, ~0);
+    } while (mrb->gc_state != GC_STATE_NONE);
+  }
+  else {
+    size_t limit = 0, result = 0;
+    limit = (GC_STEP_SIZE/100) * mrb->gc_step_ratio;
+    while (result < limit) {
+      result += incremental_gc(mrb, limit);
+      if (mrb->gc_state == GC_STATE_NONE)
+        break;
+    }
   }
 
   if (mrb->gc_state == GC_STATE_NONE) {
@@ -834,6 +888,16 @@ mrb_incremental_gc(mrb_state *mrb)
     mrb->gc_threshold = (mrb->gc_live_after_mark/100) * mrb->gc_interval_ratio;
     if (mrb->gc_threshold < GC_STEP_SIZE) {
       mrb->gc_threshold = GC_STEP_SIZE;
+    }
+    if (is_major_gc(mrb)) {
+      mrb->majorgc_old_threshold = mrb->gc_live_after_mark/100 * DEFAULT_MAJOR_GC_INC_RATIO;
+      mrb->gc_full = FALSE;
+    }
+    else if (is_minor_gc(mrb)) {
+      if (mrb->live > mrb->majorgc_old_threshold) {
+        clear_all_old(mrb);
+        mrb->gc_full = TRUE;
+      }
     }
   }
   else {
@@ -850,7 +914,7 @@ mrb_garbage_collect(mrb_state *mrb)
   size_t max_limit = ~0;
 
   if (mrb->gc_disabled) return;
-  GC_INVOKE_TIME_REPORT;
+  GC_INVOKE_TIME_REPORT("mrb_garbage_collect()");
   GC_TIME_START;
 
   if (mrb->gc_state == GC_STATE_SWEEP) {
@@ -860,11 +924,22 @@ mrb_garbage_collect(mrb_state *mrb)
     }
   }
 
+  /* clean all black object as old */
+  if (is_generational(mrb)) {
+    clear_all_old(mrb);
+    mrb->gc_full = TRUE;
+  }
+
   do {
     incremental_gc(mrb, max_limit);
   } while (mrb->gc_state != GC_STATE_NONE);
 
   mrb->gc_threshold = (mrb->gc_live_after_mark/100) * mrb->gc_interval_ratio;
+
+  if (is_generational(mrb)) {
+    mrb->majorgc_old_threshold = mrb->gc_live_after_mark/100 * DEFAULT_MAJOR_GC_INC_RATIO;
+    mrb->gc_full = FALSE;
+  }
 
   GC_TIME_STOP_AND_REPORT;
 }
@@ -893,9 +968,9 @@ mrb_field_write_barrier(mrb_state *mrb, struct RBasic *obj, struct RBasic *value
   if (!is_white(value)) return;
 
   gc_assert(!is_dead(mrb, value) && !is_dead(mrb, obj));
-  gc_assert(mrb->gc_state != GC_STATE_NONE);
+  gc_assert(is_generational(mrb) || mrb->gc_state != GC_STATE_NONE);
 
-  if (mrb->gc_state == GC_STATE_MARK) {
+  if (is_minor_gc(mrb) || mrb->gc_state == GC_STATE_MARK) {
     add_gray_list(mrb, value);
   }
   else {
@@ -919,7 +994,7 @@ mrb_write_barrier(mrb_state *mrb, struct RBasic *obj)
   if (!is_black(obj)) return;
 
   gc_assert(!is_dead(mrb, obj));
-  gc_assert(mrb->gc_state != GC_STATE_NONE);
+  gc_assert(is_generational(mrb) || mrb->gc_state != GC_STATE_NONE);
   paint_gray(obj);
   obj->gcnext = mrb->variable_gray_list;
   mrb->variable_gray_list = obj;
@@ -1051,6 +1126,73 @@ gc_step_ratio_set(mrb_state *mrb, mrb_value obj)
   return mrb_nil_value();
 }
 
+static void
+change_gen_gc_mode(mrb_state *mrb, mrb_int enable)
+{
+  if (is_generational(mrb) && !enable) {
+    if (is_major_gc(mrb)) {
+      advance_phase(mrb, GC_STATE_NONE);
+    }
+    else {
+      clear_all_old(mrb);
+      gc_assert(mrb->gc_state == GC_STATE_NONE);
+    }
+    mrb->gc_full = FALSE;
+  }
+  else if (!is_generational(mrb) && enable) {
+    advance_phase(mrb, GC_STATE_NONE);
+    mrb->majorgc_old_threshold = mrb->gc_live_after_mark/100 * DEFAULT_MAJOR_GC_INC_RATIO;
+    mrb->gc_full = FALSE;
+  }
+  mrb->is_generational_gc_mode = enable;
+}
+
+/*
+ *  call-seq:
+ *     GC.generational_mode -> true or false
+ *
+ *  Returns generational or normal gc mode.
+ *
+ */
+
+static mrb_value
+gc_generational_mode_get(mrb_state *mrb, mrb_value self)
+{
+  if (mrb->is_generational_gc_mode)
+    return mrb_true_value();
+  else
+    return mrb_false_value();
+}
+
+/*
+ *  call-seq:
+ *     GC.generational_mode = true or false -> true or false
+ *
+ *  Changes to generational or normal gc mode.
+ *
+ */
+
+static mrb_value
+gc_generational_mode_set(mrb_state *mrb, mrb_value self)
+{
+  mrb_value enable;
+
+  mrb_get_args(mrb, "o", &enable);
+  if (mrb->is_generational_gc_mode != mrb_test(enable))
+    change_gen_gc_mode(mrb, mrb_test(enable));
+
+  if (mrb_test(enable))
+    return mrb_true_value();
+  else
+    return mrb_false_value();
+}
+
+#ifdef GC_TEST
+#ifdef GC_DEBUG
+static mrb_value gc_test(mrb_state *, mrb_value);
+#endif
+#endif
+
 void
 mrb_init_gc(mrb_state *mrb)
 {
@@ -1064,6 +1206,13 @@ mrb_init_gc(mrb_state *mrb)
   mrb_define_class_method(mrb, gc, "interval_ratio=", gc_interval_ratio_set, ARGS_REQ(1));
   mrb_define_class_method(mrb, gc, "step_ratio", gc_step_ratio_get, ARGS_NONE());
   mrb_define_class_method(mrb, gc, "step_ratio=", gc_step_ratio_set, ARGS_REQ(1));
+  mrb_define_class_method(mrb, gc, "generational_mode=", gc_generational_mode_set, ARGS_REQ(1));
+  mrb_define_class_method(mrb, gc, "generational_mode", gc_generational_mode_get, ARGS_NONE());
+#ifdef GC_TEST
+#ifdef GC_DEBUG
+  mrb_define_class_method(mrb, gc, "test", gc_test, ARGS_NONE());
+#endif
+#endif
 }
 
 #ifdef GC_TEST
@@ -1075,6 +1224,7 @@ test_mrb_field_write_barrier(void)
   struct RBasic *obj, *value;
 
   puts("test_mrb_field_write_barrier");
+  mrb->is_generational_gc_mode = FALSE;
   obj = mrb_basic(mrb_ary_new(mrb));
   value = mrb_basic(mrb_str_new_cstr(mrb, "value"));
   paint_black(obj);
@@ -1094,7 +1244,7 @@ test_mrb_field_write_barrier(void)
   mrb_field_write_barrier(mrb, obj, value);
 
   gc_assert(obj->color & mrb->current_white_part);
-  gc_assert(obj->color & mrb->current_white_part);
+  gc_assert(value->color & mrb->current_white_part);
 
 
   puts("  fail with black");
@@ -1165,6 +1315,7 @@ test_add_gray_list(void)
   struct RBasic *obj1, *obj2;
 
   puts("test_add_gray_list");
+  change_gen_gc_mode(mrb, FALSE);
   gc_assert(mrb->gray_list == NULL);
   obj1 = mrb_basic(mrb_str_new_cstr(mrb, "test"));
   add_gray_list(mrb, obj1);
@@ -1220,19 +1371,20 @@ test_incremental_gc(void)
   struct heap_page *page;
 
   puts("test_incremental_gc");
+  change_gen_gc_mode(mrb, FALSE);
 
+  puts("  in mrb_garbage_collect");
   mrb_garbage_collect(mrb);
 
   gc_assert(mrb->gc_state == GC_STATE_NONE);
+  puts("  in GC_STATE_NONE");
   incremental_gc(mrb, max);
   gc_assert(mrb->gc_state == GC_STATE_MARK);
-
-  incremental_gc(mrb, max);
-  gc_assert(mrb->gc_state == GC_STATE_MARK);
-
-  incremental_gc(mrb, max);
+  puts("  in GC_STATE_MARK");
+  advance_phase(mrb, GC_STATE_SWEEP);
   gc_assert(mrb->gc_state == GC_STATE_SWEEP);
 
+  puts("  in GC_STATE_SWEEP");
   page = mrb->heaps;
   while (page) {
     RVALUE *p = page->objects;
@@ -1267,6 +1419,28 @@ test_incremental_gc(void)
   gc_assert(mrb->live == live);
   gc_assert(mrb->live == total-freed);
 
+  puts("test_incremental_gc(gen)");
+  advance_phase(mrb, GC_STATE_SWEEP);
+  change_gen_gc_mode(mrb, TRUE);
+
+  gc_assert(mrb->gc_full == FALSE);
+  gc_assert(mrb->gc_state == GC_STATE_NONE);
+
+  puts("  in minor");
+  gc_assert(is_minor_gc(mrb));
+  gc_assert(mrb->majorgc_old_threshold > 0);
+  mrb->majorgc_old_threshold = 0;
+  mrb_incremental_gc(mrb);
+  gc_assert(mrb->gc_full == TRUE);
+  gc_assert(mrb->gc_state == GC_STATE_NONE);
+
+  puts("  in major");
+  gc_assert(is_major_gc(mrb));
+  do {
+    mrb_incremental_gc(mrb);
+  } while (mrb->gc_state != GC_STATE_NONE);
+  gc_assert(mrb->gc_full == FALSE);
+
   mrb_close(mrb);
 }
 
@@ -1290,63 +1464,8 @@ test_incremental_sweep_phase(void)
   mrb_close(mrb);
 }
 
-void
-test_gc_api(void)
-{
-  mrb_state *mrb = mrb_open();
-  mrb_value res;
-
-  mrb_value argv[1];
-
-  puts("test_gc_api");
-
-  gc_start(mrb, mrb_nil_value());
-
-  res = gc_interval_ratio_get(mrb, mrb_nil_value());
-  gc_assert(mrb_fixnum(res) == 200);
-
-  argv[0] = mrb_fixnum_value(300);
-  mrb->argv = &argv;
-  mrb->argc = 1;
-
-  gc_interval_ratio_set(mrb, mrb_nil_value());
-  res = gc_interval_ratio_get(mrb, mrb_nil_value());
-  gc_assert(mrb_fixnum(res) == 300);
-
-  res = gc_step_ratio_get(mrb, mrb_nil_value());
-  gc_assert(mrb_fixnum(res) == 200);
-
-  gc_step_ratio_set(mrb, mrb_nil_value());
-  res = gc_step_ratio_get(mrb, mrb_nil_value());
-  gc_assert(mrb_fixnum(res) == 300);
-
-  mrb_close(mrb);
-}
-
-static void
-test_many_object_benchmark(void)
-{
-  mrb_state *mrb = mrb_open();
-  size_t i = 0, j=0;
-  mrb_value ary = mrb_ary_new(mrb);
-  int save_point = mrb_gc_arena_save(mrb);
-
-  puts("test_many_object_benchmark");
-
-  for (i=0; i<1000; i++) {
-    mrb_value cary = mrb_ary_new(mrb);
-    mrb_ary_push(mrb, ary, cary);
-    for (j=0; j<1000; j++) {
-      mrb_ary_push(mrb, cary, mrb_str_new_cstr(mrb, "t"));
-    }
-    mrb_gc_arena_restore(mrb, save_point);
-  }
-
-  mrb_close(mrb);
-}
-
-int
-main(void)
+static mrb_value
+gc_test(mrb_state *mrb, mrb_value self)
 {
   test_mrb_field_write_barrier();
   test_mrb_write_barrier();
@@ -1354,9 +1473,7 @@ main(void)
   test_gc_gray_mark();
   test_incremental_gc();
   test_incremental_sweep_phase();
-  test_gc_api();
-  test_many_object_benchmark();
-  return 0;
+  return mrb_nil_value();
 }
 #endif
 #endif
