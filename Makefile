@@ -16,6 +16,3 @@ test :
 clean :
 	$(RAKE) clean
 
-.PHONY : showconfig
-showconfig :
-	$(RAKE) showconfig
