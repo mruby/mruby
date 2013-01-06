@@ -22,7 +22,7 @@ module MRuby
       attr_array :licenses, :authors
       alias :license= :licenses=
       alias :author= :authors=
-      attr_array :cflags
+      attr_array :cflags, :cxxflags, :objcflags, :asmflags
       attr_array :mruby_cflags, :mruby_includes, :mruby_ldflags, :mruby_libs
 
       attr_array :rbfiles, :objs
