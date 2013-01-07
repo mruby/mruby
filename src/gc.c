@@ -208,6 +208,7 @@ struct heap_page {
   struct heap_page *next;
   struct heap_page *free_next;
   struct heap_page *free_prev;
+  unsigned int old:1;
   RVALUE objects[MRB_HEAP_PAGE_SIZE];
 };
 
@@ -764,6 +765,11 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
     int dead_slot = 1;
     int full = (page->freelist == NULL);
 
+    if (is_minor_gc(mrb) && page->old) {
+      /* skip a slot which doesn't contain any young object */
+      p = e;
+      dead_slot = 0;
+    }
     while (p<e) {
       if (is_dead(mrb, &p->as.basic)) {
         if (p->as.basic.tt != MRB_TT_FREE) {
@@ -794,6 +800,10 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
       if (full && freed > 0) {
         link_free_heap_page(mrb, page);
       }
+      if (page->freelist == NULL && is_minor_gc(mrb))
+        page->old = TRUE;
+      else
+        page->old = FALSE;
       page = page->next;
     }
     tried_sweep += MRB_HEAP_PAGE_SIZE;
