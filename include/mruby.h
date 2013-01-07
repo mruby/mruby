@@ -121,9 +121,9 @@ typedef struct mrb_state {
   size_t gc_threshold;
   int gc_interval_ratio;
   int gc_step_ratio;
-  int gc_disabled;
-  int gc_full;
-  int is_generational_gc_mode;
+  unsigned int gc_disabled:1;
+  unsigned int gc_full:1;
+  unsigned int is_generational_gc_mode:1;
   size_t majorgc_old_threshold;
   struct alloca_header *mems;
 
