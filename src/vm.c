@@ -49,7 +49,11 @@ The value below allows about 60000 recursive calls in the simplest case. */
 #define MRB_STACK_MAX ((1<<18) - MRB_STACK_GROWTH)
 #endif
 
-
+#ifdef VM_DEBUG
+# define DEBUG(x) (x)
+#else
+# define DEBUG(x)
+#endif
 
 static inline void
 stack_copy(mrb_value *dst, const mrb_value *src, size_t size)
