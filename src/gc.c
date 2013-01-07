@@ -147,8 +147,10 @@ gettimeofday_time(void)
 #ifdef GC_DEBUG
 #include <assert.h>
 #define gc_assert(expect) assert(expect)
+#define DEBUG(x) (x)
 #else
 #define gc_assert(expect) ((void)0)
+#define DEBUG(x)
 #endif
 
 #define GC_STEP_SIZE 1024
