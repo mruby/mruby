@@ -67,6 +67,10 @@ module MRuby
     end
 
     def load_external_gem(params)
+      if params[:github]
+        params[:git] = "git@github.com:#{params[:github]}.git"
+      end
+
       if params[:git]
         url = params[:git]
         gemdir = "build/mrbgems/#{url.match(/([-_\w]+)(\.[-_\w]+|)$/).to_a[1]}"
