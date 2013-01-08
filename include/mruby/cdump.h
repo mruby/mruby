@@ -12,7 +12,11 @@ extern "C" {
 #endif
 
 #include "mruby.h"
-#include <stdio.h>
+#ifdef DISABLE_STDIO
+# error "Configuration conflict. Can't use with DISABLE_STDIO option."
+#else
+# include <stdio.h>
+#endif
 
 int mrb_cdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname);
 
