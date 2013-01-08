@@ -27,6 +27,10 @@ A remote GIT repository location for a GEM is also supported:
 conf.gem :git => 'https://github.com/masuidrive/mrbgems-example.git', :branch => 'master'
 ```
 
+```
+conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
+```
+
 
 ## GEM Structure
 
