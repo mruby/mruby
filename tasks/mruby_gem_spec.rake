@@ -22,7 +22,7 @@ module MRuby
       attr_array :licenses, :authors
       alias :license= :licenses=
       alias :author= :authors=
-      attr_array :cflags
+      attr_array :cflags, :cxxflags, :objcflags, :asmflags
       attr_array :mruby_cflags, :mruby_includes, :mruby_ldflags, :mruby_libs
 
       attr_array :rbfiles, :objs
@@ -66,46 +66,15 @@ module MRuby
       end
 
       def build_dir
-        return @build_dir if @build_dir
-        @build_dir = "#{build.build_dir}/mrbgems/#{name}"
+        @build_dir ||= "#{build.build_dir}/mrbgems/#{name}"
         FileUtils.mkdir_p @build_dir
         @build_dir
       end
 
       def add_tasks
-        test_rbc = "#{build_dir}/gem_test.c"
-        test_rbobj = test_rbc.ext('o')
-
-        Rake::FileTask.define_task testlib => test_objs + [test_rbobj] do |t|
-          build.archive t.name, 'rs', t.prerequisites
-        end
-
-        Rake::FileTask.define_task test_rbobj => test_rbc
-        Rake::FileTask.define_task test_rbc => [build.mrbcfile] + test_rbfiles do |t|
-          open(t.name, 'w') do |f|
-            f.puts gem_init_header
-            build.compile_mruby f, test_rbfiles, "gem_test_irep_#{funcname}" unless test_rbfiles.empty?
-          end
-
-          open(t.name, 'a') do |f|
-            f.puts "void mrb_#{funcname}_gem_test(mrb_state *mrb);" unless test_objs.empty?
-            f.puts "void GENERATED_TMP_mrb_#{funcname}_gem_test(mrb_state *mrb) {"
-            f.puts "  mrb_#{funcname}_gem_test(mrb);" unless test_objs.empty? 
-            f.puts <<__EOF__ unless test_rbfiles.empty?
-  mrb_load_irep(mrb, gem_test_irep_#{funcname});
-  if (mrb->exc) {
-    mrb_p(mrb, mrb_obj_value(mrb->exc));
-    exit(0);
-  }
-
-__EOF__
-            f.puts "}"
-          end
-        end
-
         Rake::FileTask.define_task "#{build_dir}/gem_init.o" => "#{build_dir}/gem_init.c"
         Rake::FileTask.define_task "#{build_dir}/gem_init.c" => [build.mrbcfile] + rbfiles do |t|
-          generate_gem_init(t.name)
+          generate_gem_init("#{build_dir}/gem_init.c")
         end
       end
 
@@ -149,6 +118,7 @@ __EOF__
           build.compile_mruby f, rbfiles, "gem_mrblib_irep_#{funcname}" unless rbfiles.empty?
           f.puts "void mrb_#{funcname}_gem_init(mrb_state *mrb);"
           f.puts "void GENERATED_TMP_mrb_#{funcname}_gem_init(mrb_state *mrb) {"
+          f.puts "  int ai = mrb_gc_arena_save(mrb);"
           f.puts "  mrb_#{funcname}_gem_init(mrb);" if objs != ["#{build_dir}/gem_init.o"]
           f.puts <<__EOF__ unless rbfiles.empty?
   mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});
@@ -158,6 +128,8 @@ __EOF__
   }
 
 __EOF__
+          f.puts "  mrb_gc_arena_restore(mrb, ai);"
+
           f.puts "}"
         end
       end # generate_gem_init
@@ -177,6 +149,9 @@ __EOF__
 #include "mruby/dump.h"
 #include "mruby/string.h"
 #include "mruby/proc.h"
+#include "mruby/variable.h"
+#include "mruby/array.h"
+#include "mruby/string.h"
 __EOF__
       end # gem_init_header
 

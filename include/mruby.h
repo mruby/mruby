@@ -121,7 +121,10 @@ typedef struct mrb_state {
   size_t gc_threshold;
   int gc_interval_ratio;
   int gc_step_ratio;
-  int gc_disabled;
+  unsigned int gc_disabled:1;
+  unsigned int gc_full:1;
+  unsigned int is_generational_gc_mode:1;
+  size_t majorgc_old_threshold;
   struct alloca_header *mems;
 
   mrb_sym symidx;
@@ -237,16 +240,6 @@ void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
 void mrb_write_barrier(mrb_state *, struct RBasic*);
 
 #define MRUBY_VERSION "Rite"
-
-#ifdef DEBUG
-#undef DEBUG
-#endif
-
-#if 0
-#define DEBUG(x) x
-#else
-#define DEBUG(x)
-#endif
 
 mrb_value mrb_check_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *tname, const char *method);
 mrb_value mrb_any_to_s(mrb_state *mrb, mrb_value obj);
