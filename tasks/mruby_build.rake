@@ -3,11 +3,11 @@ module MRuby
     attr_accessor :build
 
     def targets
-      @targets ||= []
+      @targets ||= {}
     end
 
     def each_target(&block)
-      @targets.each do |target|
+      @targets.each do |key, target|
         target.instance_eval(&block)
       end
     end
@@ -22,6 +22,7 @@ module MRuby
     attr_writer :cxx, :cxxflags
     attr_writer :objcc, :objcflags
     attr_writer :asm, :asmflags
+    attr_accessor :bins
     attr_accessor :gperf, :yacc
     attr_accessor :cat, :git
     attr_reader :root, :gems
@@ -38,9 +39,11 @@ module MRuby
       @yacc, @gperf = 'bison', 'gperf'
       @cat, @git = 'cat', 'git'
 
+      @bins = %w(mruby mrbc mirb)
+
       @gems, @libmruby = [], []
 
-      MRuby.targets << self
+      MRuby.targets[name.to_s] = self
       MRuby.build = self
       instance_eval(&block)
     end

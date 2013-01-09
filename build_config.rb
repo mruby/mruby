@@ -2,6 +2,7 @@ MRuby::Build.new do |conf|
   conf.cc = ENV['CC'] || 'gcc'
   conf.ld = ENV['LD'] || 'gcc'
   conf.ar = ENV['AR'] || 'ar'
+  # conf.bins = %w(mrbc mruby mirb)
   # conf.cxx = conf.cc
   # conf.objcc = conf.cc
   # conf.asm = conf.cc
@@ -27,6 +28,7 @@ MRuby::CrossBuild.new('i386') do |conf|
   conf.cc = ENV['CC'] || 'gcc'
   conf.ld = ENV['LD'] || 'gcc'
   conf.ar = ENV['AR'] || 'ar'
+  # conf.bins = %w(mrbc mruby mirb)
   # conf.cxx = 'gcc'
   # conf.objcc = 'gcc'
   # conf.asm = 'gcc'
