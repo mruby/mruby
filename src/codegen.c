@@ -1106,18 +1106,24 @@ codegen(codegen_scope *s, node *tree, int val)
       if (e) {
         if (val) pop();
         pos2 = new_label(s);
-        genop(s, MKOP_sBx(OP_JMP, 0));
-        dispatch(s, pos1);
+        genop(s, MKOP_sBx(OP_JMP, 0)); 
+       dispatch(s, pos1);
         codegen(s, e, val);
         dispatch(s, pos2);
       }
       else {
         if (val) {
           pop();
+	  pos2 = new_label(s);
+	  genop(s, MKOP_sBx(OP_JMP, 0));
+	  dispatch(s, pos1);
           genop(s, MKOP_A(OP_LOADNIL, cursp()));
+	  dispatch(s, pos2);
           push();
         }
-        dispatch(s, pos1);
+	else {
+	  dispatch(s, pos1);
+	}
       }
     }
     break;
