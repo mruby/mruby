@@ -239,8 +239,6 @@ void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
 } while (0);
 void mrb_write_barrier(mrb_state *, struct RBasic*);
 
-#define MRUBY_VERSION "Rite"
-
 mrb_value mrb_check_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *tname, const char *method);
 mrb_value mrb_any_to_s(mrb_state *mrb, mrb_value obj);
 const char * mrb_obj_classname(mrb_state *mrb, mrb_value obj);
