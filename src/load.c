@@ -142,11 +142,14 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
   unsigned char *pStart;
   char *char_buf;
   uint16_t buf_size =0;
+  int result;
 
   buf_size = MRB_DUMP_DEFAULT_STR_LEN;
   char_buf = (char *)mrb_malloc(mrb, buf_size);
-  if (char_buf == NULL)
+  if (char_buf == NULL) {
+    result = MRB_DUMP_GENERAL_FAILURE;
     goto error_exit;
+  }
 
   pStart = dst;
 
@@ -195,8 +198,10 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
     if ( pdl > buf_size - 1) {
       buf_size = pdl + 1;
       char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size);
-      if (char_buf == NULL)
+      if (char_buf == NULL) {
+        result = MRB_DUMP_GENERAL_FAILURE;
         goto error_exit;
+      }
     }
     memset(char_buf, '\0', buf_size);
     rite_fgets(rfp, (unsigned char*)char_buf, pdl, FALSE); //pool
@@ -223,8 +228,10 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
     if ( snl > buf_size - 1) {
       buf_size = snl + 1;
       char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size);
-      if (char_buf == NULL)
+      if (char_buf == NULL) {
+        result = MRB_DUMP_GENERAL_FAILURE;
         goto error_exit;
+      }
     }
     memset(char_buf, '\0', buf_size);
     rite_fgets(rfp, (unsigned char*)char_buf, snl, FALSE); //symbol name
@@ -237,10 +244,11 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
 
   *len = dst - pStart;
 
+  result = MRB_DUMP_OK;
 error_exit:
   mrb_free(mrb, char_buf);
 
-  return MRB_DUMP_OK;
+  return result;
 }
 
 int
@@ -340,7 +348,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
   recordStart = src;
   buf = (char *)mrb_malloc(mrb, bufsize);
   if (buf == NULL) {
-    ret = MRB_DUMP_INVALID_IREP;
+    ret = MRB_DUMP_GENERAL_FAILURE;
     goto error_exit;
   }
 
@@ -390,7 +398,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
   if (plen > 0) {
     irep->pool = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value) * plen);
     if (irep->pool == NULL) {
-      ret = MRB_DUMP_INVALID_IREP;
+      ret = MRB_DUMP_GENERAL_FAILURE;
       goto error_exit;
     }
 
@@ -456,7 +464,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
   if (irep->slen > 0) {
     irep->syms = (mrb_sym *)mrb_malloc(mrb, sizeof(mrb_sym) * irep->slen);
     if (irep->syms == NULL) {
-      ret = MRB_DUMP_INVALID_IREP;
+      ret = MRB_DUMP_GENERAL_FAILURE;
       goto error_exit;
     }
 
