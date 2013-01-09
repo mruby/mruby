@@ -167,8 +167,7 @@ make_cdump_irep(mrb_state *mrb, int irep_no, FILE *f)
   else
   SOURCE_CODE0("");
 
-  if (buf)
-    mrb_free(mrb, buf);
+  mrb_free(mrb, buf);
 
   return MRB_CDUMP_OK;
 }
