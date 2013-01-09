@@ -412,8 +412,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
   }
 
 error_exit:
-  if (char_buf)
-    mrb_free(mrb, char_buf);
+  mrb_free(mrb, char_buf);
   return (int)(buf - buf_top);
 }
 
@@ -460,8 +459,7 @@ write_syms_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
   }
 
 error_exit:
-  if (char_buf)
-    mrb_free(mrb, char_buf);
+  mrb_free(mrb, char_buf);
   return (int)(buf - buf_top);
 }
 

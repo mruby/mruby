@@ -238,8 +238,7 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
   *len = dst - pStart;
 
 error_exit:
-  if (char_buf)
-    mrb_free(mrb, char_buf);
+  mrb_free(mrb, char_buf);
 
   return MRB_DUMP_OK;
 }
@@ -298,8 +297,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
     ret = mrb_read_irep(mrb, (char*)rite_dst);
 
 error_exit:
-  if (rite_dst)
-    mrb_free(mrb, rite_dst);
+  mrb_free(mrb, rite_dst);
 
   return ret;
 }
@@ -499,8 +497,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
 
   *len = src - recordStart;
 error_exit:
-  if (buf)
-    mrb_free(mrb, buf);
+  mrb_free(mrb, buf);
 
   return ret;
 }
