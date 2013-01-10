@@ -187,6 +187,12 @@ mrb_hash_modify_check(mrb_state *mrb, mrb_value hash)
   //if (OBJ_FROZEN(hash)) mrb_error_frozen("hash");
 }
 
+mrb_value
+mrb_check_hash_type(mrb_state *mrb, mrb_value hash)
+{
+  return mrb_check_convert_type(mrb, hash, MRB_TT_HASH, "Hash", "to_hash");
+}
+
 khash_t(ht) *
 mrb_hash_tbl(mrb_state *mrb, mrb_value hash)
 {
