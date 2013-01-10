@@ -32,7 +32,7 @@ module MRuby
       @name ||= 'host'
       @root = File.expand_path("#{File.dirname(__FILE__)}/..")
       @cc, @cflags, @includes = 'gcc', %W(-DDISABLE_GEMS -MMD), %W(#{@root}/include)
-      @ldflags, @libs = [], %w(-lonig -lm)
+      @ldflags, @libs = [], %w(-lm)
       @ar = 'ar'
       @cxxflags, @objccflags, @asmflags = [], [], []
 
