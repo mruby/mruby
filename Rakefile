@@ -27,25 +27,21 @@ load 'test/mrbtest.rake'
 # generic build targets, rules
 task :default => :all
 
-binfiles = [exefile('bin/mruby'), exefile('bin/mirb'), exefile('bin/mrbc')]
+binfiles = MRuby.targets['host'].bins.map do |bin|
+  install_path = exefile("bin/#{bin}")
+  
+  file install_path => exefile("build/host/bin/#{bin}") do |t|
+    FileUtils.cp t.prerequisites.first, t.name
+  end
+
+  install_path
+end
 
 desc "build all targets, install (locally) in-repo"
-task :all => binfiles + MRuby.targets.map { |t| [exefile("#{t.build_dir}/bin/mruby"), exefile("#{t.build_dir}/bin/mirb"), exefile("#{t.build_dir}/bin/mrbc")] }.flatten
-
-file exefile('bin/mruby') => exefile('build/host/bin/mruby') do |t|
-  FileUtils.cp t.prerequisites.first, t.name
-end
-
-file exefile('bin/mirb') => exefile('build/host/bin/mirb') do |t|
-  FileUtils.cp t.prerequisites.first, t.name
-end
-
-file exefile('bin/mrbc') => exefile('build/host/bin/mrbc') do |t|
-  FileUtils.cp t.prerequisites.first, t.name
-end
+task :all => binfiles + MRuby.targets.values.map { |t| [exefile("#{t.build_dir}/bin/mruby"), exefile("#{t.build_dir}/bin/mirb"), exefile("#{t.build_dir}/bin/mrbc")] }.flatten
 
 desc "run all mruby tests"
-task :test => MRuby.targets.map { |t| exefile("#{t.build_dir}/test/mrbtest") } do
+task :test => MRuby.targets.values.map { |t| exefile("#{t.build_dir}/test/mrbtest") } do
   sh "#{filename exefile('build/host/test/mrbtest')}"
   if MRuby.targets.count > 1
     puts "\nYou should run #{MRuby.targets.map{ |t| t.name == 'host' ? nil : "#{t.build_dir}/test/mrbtest" }.compact.join(', ')} on target device."
@@ -54,7 +50,7 @@ end
 
 desc "clean all built and in-repo installed artifacts"
 task :clean do
-  MRuby.targets.each do |t|
+  MRuby.each_target do |t|
     FileUtils.rm_rf t.build_dir
   end
   FileUtils.rm_f binfiles
