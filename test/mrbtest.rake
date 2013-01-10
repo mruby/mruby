@@ -15,7 +15,7 @@ MRuby.each_target do
   end
 
   file mlib => [clib]
-  file clib => [exefile("#{build_dir}/bin/mrbc"), init, asslib] + mrbs do |t|
+  file clib => [mrbcfile, init, asslib] + mrbs do |t|
     open(clib, 'w') do |f|
       f.puts File.read(init)
       compile_mruby f, [asslib] + mrbs, 'mrbtest_irep'
