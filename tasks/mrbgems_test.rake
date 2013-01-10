@@ -43,9 +43,9 @@ MRuby.each_target do
             f.puts %Q[  ]
 
             %w(ok_test ko_test kill_test).each do |vname|
-              f.puts %Q[  val1 = mrb_gv_get(mrb2, mrb_intern(mrb, "$#{vname}"));]
-              f.puts %Q[  if(mrb_fixnum_p(val1)) {]
-              f.puts %Q[    val2 = mrb_gv_get(mrb, mrb_intern(mrb, "$#{vname}"));]
+              f.puts %Q[  val2 = mrb_gv_get(mrb2, mrb_intern(mrb2, "$#{vname}"));]
+              f.puts %Q[  if(mrb_fixnum_p(val2)) {]
+              f.puts %Q[    val1 = mrb_gv_get(mrb, mrb_intern(mrb, "$#{vname}"));]
               f.puts %Q[    mrb_gv_set(mrb, mrb_intern(mrb, "$#{vname}"), mrb_fixnum_value(mrb_fixnum(val1) + mrb_fixnum(val2)));]
               f.puts %Q[  }\n]
             end
