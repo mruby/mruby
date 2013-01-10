@@ -35,6 +35,8 @@ class String
     ### *** TODO *** ###
     unless Object.const_defined?(:Regexp)
       raise NotImplementedError, "gsub not available (yet)"
+    else
+      self._gsub(*args, &block)
     end
   end
 
@@ -65,6 +67,8 @@ class String
     ### *** TODO *** ###
     unless Object.const_defined?(:Regexp)
       raise NotImplementedError, "scan not available (yet)"
+    else
+      self._scan(reg, &block)
     end
   end
 
@@ -83,6 +87,8 @@ class String
     ### *** TODO *** ###
     unless Object.const_defined?(:Regexp)
       raise NotImplementedError, "sub not available (yet)"
+    else
+      self._sub(*args, &block)
     end
   end
 

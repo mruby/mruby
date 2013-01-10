@@ -171,7 +171,7 @@
 #define xalloca     _alloca
 #define xvsnprintf  _vsnprintf
 #else
-#define xalloca     malloc
+#define xalloca     alloca
 #define xvsnprintf  vsnprintf
 #endif
 
@@ -374,13 +374,13 @@ typedef struct _BBuf {
 
 #define BBUF_SIZE_INC(buf,inc) do{\
   (buf)->alloc += (inc);\
-  (buf)->p = (UChar* )xrealloc((buf)->p, (buf)->alloc);\
+  (buf)->p = (UChar* )realloc((buf)->p, (buf)->alloc);\
   if (IS_NULL((buf)->p)) return(ONIGERR_MEMORY);\
 } while (0)
 
 #define BBUF_EXPAND(buf,low) do{\
   do { (buf)->alloc *= 2; } while ((buf)->alloc < (unsigned int )low);\
-  (buf)->p = (UChar* )xrealloc((buf)->p, (buf)->alloc);\
+  (buf)->p = (UChar* )realloc((buf)->p, (buf)->alloc);\
   if (IS_NULL((buf)->p)) return(ONIGERR_MEMORY);\
 } while (0)
 
@@ -388,7 +388,7 @@ typedef struct _BBuf {
   unsigned int new_alloc = (buf)->alloc;\
   while (new_alloc < (unsigned int )(size)) { new_alloc *= 2; }\
   if ((buf)->alloc != new_alloc) {\
-    (buf)->p = (UChar* )xrealloc((buf)->p, new_alloc);\
+    (buf)->p = (UChar* )realloc((buf)->p, new_alloc);\
     if (IS_NULL((buf)->p)) return(ONIGERR_MEMORY);\
     (buf)->alloc = new_alloc;\
   }\

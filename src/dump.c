@@ -351,6 +351,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
   char *char_buf;
   uint16_t buf_size =0;
   uint16_t len =0;
+  int ai;
   int result;
 
   buf_size = MRB_DUMP_DEFAULT_STR_LEN;
@@ -392,7 +393,9 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
 
 #ifdef ENABLE_REGEXP
     case MRB_TT_REGEX:
+      ai = mrb_gc_arena_save(mrb);
       str = mrb_reg_to_s(mrb, irep->pool[pool_no]);
+      mrb_gc_arena_restore(mrb, ai);
       len = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);
       if ( len > buf_size - 1) {
         buf_size = len + 1;
