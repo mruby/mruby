@@ -37,9 +37,9 @@ depfiles = MRuby.targets['host'].bins.map do |bin|
   install_path
 end
 
-depfiles += MRuby.targets.reject {|n,t| n == 'host' }.map do |n, t|
+depfiles += MRuby.targets.reject {|n,t| n == 'host' }.map { |n, t|
   ["#{t.build_dir}/lib/libmruby.a"] + t.bins.map { |bin| exefile("#{t.build_dir}/bin/#{bin}") }
-end
+}.flatten
 
 desc "build all targets, install (locally) in-repo"
 task :all => depfiles
