@@ -1114,44 +1114,6 @@ mrb_str_downcase(mrb_state *mrb, mrb_value self)
   return str;
 }
 
-/* 15.2.10.5.15 */
-/*
- *  call-seq:
- *     str.each(separator=$/) {|substr| block }        => str
- *     str.each_line(separator=$/) {|substr| block }   => str
- *
- *  Splits <i>str</i> using the supplied parameter as the record separator
- *  (<code>$/</code> by default), passing each substring in turn to the supplied
- *  block. If a zero-length record separator is supplied, the string is split
- *  into paragraphs delimited by multiple successive newlines.
- *
- *     print "Example one\n"
- *     "hello\nworld".each {|s| p s}
- *     print "Example two\n"
- *     "hello\nworld".each('l') {|s| p s}
- *     print "Example three\n"
- *     "hello\n\n\nworld".each('') {|s| p s}
- *
- *  <em>produces:</em>
- *
- *     Example one
- *     "hello\n"
- *     "world"
- *     Example two
- *     "hel"
- *     "l"
- *     "o\nworl"
- *     "d"
- *     Example three
- *     "hello\n\n\n"
- *     "world"
- */
-static mrb_value
-mrb_str_each_line(mrb_state *mrb, mrb_value str)
-{
-  return mrb_nil_value();
-}
-
 /* 15.2.10.5.16 */
 /*
  *  call-seq:
@@ -3033,7 +2995,6 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "chop!",           mrb_str_chop_bang,       ARGS_REQ(1));              /* 15.2.10.5.12 */
   mrb_define_method(mrb, s, "downcase",        mrb_str_downcase,        ARGS_NONE());              /* 15.2.10.5.13 */
   mrb_define_method(mrb, s, "downcase!",       mrb_str_downcase_bang,   ARGS_NONE());              /* 15.2.10.5.14 */
-  mrb_define_method(mrb, s, "each_line",       mrb_str_each_line,       ARGS_REQ(1));              /* 15.2.10.5.15 */
   mrb_define_method(mrb, s, "empty?",          mrb_str_empty_p,         ARGS_NONE());              /* 15.2.10.5.16 */
   mrb_define_method(mrb, s, "eql?",            mrb_str_eql,             ARGS_REQ(1));              /* 15.2.10.5.17 */
 #ifdef ENABLE_REGEXP
