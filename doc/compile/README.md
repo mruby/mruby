@@ -204,6 +204,11 @@ link with *build/i386/lib/libmruby.a*
 * create ```build/i386/bin/mrbc``` by cross-compile *tools/mrbc/mrbc.c* and
 link with *build/i386/lib/libmruby_core.a* 
 
+### Compile Minimum Executable
+
+mruby's build provides *build/host/lib/libmruby_mrblib_stub.a* and *build/host/lib/libmruby_mrbgems_stub.a* to link to *mrb_init_mrblib()* and *mrb_init_mrbgems()*.
+There are empty stub functions. If you want to make minimum executable which using mruby, or dynamic loadable library, it may be useful.
+
 ## Test Environment
 
 mruby's build process includes a test environment. In case you start the testing
