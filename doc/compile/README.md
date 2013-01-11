@@ -83,7 +83,7 @@ MRuby::CrossBuild.new('i386') do |conf|
 end
 ```
 
-You can configurate the same options as for a normal build.
+You can configurate the same options as for a normal build. You can specified your own build_config.rb with *$MRUBY_CONFIG*.
 
 ## Build process
 
