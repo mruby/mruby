@@ -29,5 +29,7 @@ mrb_init_mrbgems(mrb_state *mrb) {
 __EOF__
       end
     end
+
+    file "#{build_dir}/mrbgems/gem_init.c" => MRUBY_CONFIG
   end
 end
