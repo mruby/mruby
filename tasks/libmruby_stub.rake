@@ -21,7 +21,7 @@ void mrb_init_mrbgems(mrb_state *mrb) {}
 __EOF__
     end
   end
-  file "#{build_dir}/lib/mrbgems/libmruby_mrbgems_stub.a" => ["#{build_dir}/mrbgems/gem_stub.o"] do |t|
+  file "#{build_dir}/lib/libmruby_mrbgems_stub.a" => ["#{build_dir}/mrbgems/gem_stub.o"] do |t|
     archive t.name, 'rs', t.prerequisites
   end
 end
