@@ -8,7 +8,8 @@ load 'tasks/mruby_gem_spec.rake'
 
 ##############################
 # compile flags
-load File.expand_path(ENV['CONFIG'] || './build_config.rb')
+MRUBY_CONFIG = File.expand_path(ENV['MRUBY_CONFIG'] || './build_config.rb')
+load MRUBY_CONFIG
 
 load 'tasks/rules.rake'
 load 'src/mruby_core.rake'
