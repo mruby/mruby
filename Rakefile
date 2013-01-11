@@ -42,8 +42,9 @@ depfiles += MRuby.targets.reject {|n,t| n == 'host' }.map do |n, t|
   ["#{t.build_dir}/lib/libmruby.a"] + t.bins.map { |bin| exefile("#{t.build_dir}/bin/#{bin}") }
 end
 
-depfiles += ["build/host/lib/libmruby_mrblib_stub.a"]
-depfiles += ["build/host/lib/libmruby_mrbgems_stub.a"] if enable_gems?
+depfiles += ["build/host/lib/libmruby_mrblib_stub.a"] + MRuby.targets.reject {|n,t| !t.enable_gems? }.map do |n, t|
+  "build/host/lib/libmruby_mrbgems_stub.a"
+end
 
 desc "build all targets, install (locally) in-repo"
 task :all => depfiles
