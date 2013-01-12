@@ -9,7 +9,7 @@ all :
 	$(RAKE)
 
 .PHONY : test
-test :
+test : all
 	$(RAKE) test
 
 .PHONY : clean
