@@ -1264,20 +1264,20 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_DOT2:
-    codegen(s, tree->car, VAL);
-    codegen(s, tree->cdr, VAL);
-    pop(); pop();
+    codegen(s, tree->car, val);
+    codegen(s, tree->cdr, val);
     if (val) {
+      pop(); pop();
       genop(s, MKOP_ABC(OP_RANGE, cursp(), cursp(), 0));
       push();
     }
     break;
 
   case NODE_DOT3:
-    codegen(s, tree->car, VAL);
-    codegen(s, tree->cdr, VAL);
-    pop(); pop();
+    codegen(s, tree->car, val);
+    codegen(s, tree->cdr, val);
     if (val) {
+      pop(); pop();
       genop(s, MKOP_ABC(OP_RANGE, cursp(), cursp(), 1));
       push();
     }
@@ -1290,7 +1290,7 @@ codegen(codegen_scope *s, node *tree, int val)
       codegen(s, tree->car, VAL);
       pop();
       genop(s, MKOP_ABx(OP_GETMCNST, cursp(), sym));
-      push();
+      if (val) push();
     }
     break;
 
@@ -1300,7 +1300,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
       genop(s, MKOP_A(OP_OCLASS, cursp()));
       genop(s, MKOP_ABx(OP_GETMCNST, cursp(), sym));
-      push();
+      if (val) push();
     }
     break;
 
