@@ -674,35 +674,45 @@ attrsym(codegen_scope *s, mrb_sym a)
 }
 
 static int
-gen_values(codegen_scope *s, node *t)
+gen_values(codegen_scope *s, node *t, int val)
 {
   int n = 0;
 
   while (t) {
     if ((intptr_t)t->car->car == NODE_SPLAT) { // splat mode
-      pop_n(n);
-      genop(s, MKOP_ABC(OP_ARRAY, cursp(), cursp(), n));
-      push();
-      codegen(s, t->car, VAL);
-      pop(); pop();
-      genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
-      t = t->cdr;
-      while (t) {
-        push();
-        codegen(s, t->car, VAL);
-        pop(); pop();
-        if ((intptr_t)t->car->car == NODE_SPLAT) {
-          genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
-        }
-        else {
-          genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
-        }
-        t = t->cdr;
+      if (val) {
+	pop_n(n);
+	genop(s, MKOP_ABC(OP_ARRAY, cursp(), cursp(), n));
+	push();
+	codegen(s, t->car, VAL);
+	pop(); pop();
+	genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
+	t = t->cdr;
+	while (t) {
+	  push();
+	  codegen(s, t->car, VAL);
+	  pop(); pop();
+	  if ((intptr_t)t->car->car == NODE_SPLAT) {
+	    genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
+	  }
+	  else {
+	    genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
+	  }
+	  t = t->cdr;
+	}
+      }
+      else {
+	codegen(s, t->car->cdr, NOVAL);
+	t = t->cdr;
+	while (t) {
+	  codegen(s, t->car, NOVAL);
+	  t = t->cdr;
+	}
       }
       return -1;
     }
     // normal (no splat) mode
-    codegen(s, t->car, VAL);
+    codegen(s, t->car, val);
     n++;
     t = t->cdr;
   }
@@ -722,7 +732,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
   idx = new_msym(s, sym);
   tree = tree->cdr->cdr->car;
   if (tree) {
-    n = gen_values(s, tree->car);
+    n = gen_values(s, tree->car, VAL);
     if (n < 0) {
       n = noop = sendv = 1;
       push();
@@ -1298,10 +1308,10 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       int n;
 
-      n = gen_values(s, tree);
+      n = gen_values(s, tree, val);
       if (n >= 0) {
-        pop_n(n);
         if (val) {
+	  pop_n(n);
           genop(s, MKOP_ABC(OP_ARRAY, cursp(), cursp(), n));
           push();
         }
@@ -1463,7 +1473,7 @@ codegen(codegen_scope *s, node *tree, int val)
       if (tree) {
         node *args = tree->car;
 	if (args) {
-	  n = gen_values(s, args);
+	  n = gen_values(s, args, VAL);
 	  if (n < 0) {
 	    n = noop = sendv = 1;
 	    push();
@@ -1535,7 +1545,7 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_ABx(OP_BLKPUSH, cursp(), (ainfo<<4)|(lv & 0xf)));
       push();
       if (tree) {
-        n = gen_values(s, tree);
+        n = gen_values(s, tree, VAL);
         if (n < 0) {
           n = sendv = 1;
           push();
