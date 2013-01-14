@@ -477,7 +477,7 @@ calc_crc_section(mrb_state *mrb, mrb_irep *irep, uint16_t *crc, int section)
   char *buf, *buf_top;
   uint32_t buf_size;
   int type = DUMP_TYPE_BIN;
-  int result;
+  int result = 0;
 
   switch (section) {
   case DUMP_IREP_HEADER: buf_size = get_irep_header_size(mrb, irep, type); break;
