@@ -455,8 +455,10 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     {
       struct RRange *r = (struct RRange*)obj;
 
-      mrb_gc_mark_value(mrb, r->edges->beg);
-      mrb_gc_mark_value(mrb, r->edges->end);
+      if (r->edges) {
+        mrb_gc_mark_value(mrb, r->edges->beg);
+        mrb_gc_mark_value(mrb, r->edges->end);
+      }
     }
     break;
 
