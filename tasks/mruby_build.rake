@@ -101,7 +101,7 @@ module MRuby
     end
 
     def mrbcfile
-      @mrbcfile ||= exefile("build/host/bin/mrbc")
+      @mrbcfile ||= (ENV['MRBC_BIN'] || exefile("build/host/bin/mrbc"))
     end
 
     def compile_c(outfile, infile, flags=[], includes=[])
