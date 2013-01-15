@@ -23,6 +23,9 @@ int mrb_cdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname);
 /* error code */
 #define MRB_CDUMP_OK                     0
 #define MRB_CDUMP_GENERAL_FAILURE        -1
+#define MRB_CDUMP_WRITE_FAULT            -2
+#define MRB_CDUMP_INVALID_IREP           -6
+#define MRB_CDUMP_INVALID_ARGUMENT       -7
 
 #if defined(__cplusplus)
 }  /* extern "C" { */
