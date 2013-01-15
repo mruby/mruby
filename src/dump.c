@@ -507,6 +507,7 @@ calc_crc_section(mrb_state *mrb, mrb_irep *irep, uint16_t *crc, int section)
     result = write_syms_block(mrb, irep, buf, type);
     break;
   default:
+    result = MRB_DUMP_GENERAL_FAILURE;
     break; /* Already checked above. */
   }
   if (result < 0) {
