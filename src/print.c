@@ -59,13 +59,13 @@ mrb_init_print(mrb_state *mrb)
 void
 mrb_show_version(mrb_state *mrb)
 {
-  printf("mruby - Embeddable Ruby  Copyright (c) 2010-2012 mruby developers\n");
+  printf("mruby - Embeddable Ruby  Copyright (c) 2010-2013 mruby developers\n");
 }
 
 void
 mrb_show_copyright(mrb_state *mrb)
 {
-  printf("mruby - Copyright (c) 2010-2012 mruby developers\n");
+  printf("mruby - Copyright (c) 2010-2013 mruby developers\n");
 }
 #else
 void

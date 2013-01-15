@@ -455,8 +455,10 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     {
       struct RRange *r = (struct RRange*)obj;
 
-      mrb_gc_mark_value(mrb, r->edges->beg);
-      mrb_gc_mark_value(mrb, r->edges->end);
+      if (r->edges) {
+        mrb_gc_mark_value(mrb, r->edges->beg);
+        mrb_gc_mark_value(mrb, r->edges->end);
+      }
     }
     break;
 
@@ -790,7 +792,7 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
         }
       }
       else {
-        if (!is_minor_gc(mrb))
+        if (!is_generational(mrb))
           paint_partial_white(mrb, &p->as.basic); /* next gc target */
         dead_slot = 0;
       }
@@ -873,11 +875,10 @@ clear_all_old(mrb_state *mrb)
   if (is_major_gc(mrb)) {
     advance_phase(mrb, GC_STATE_NONE);
   }
-  else {
-    mrb->is_generational_gc_mode = FALSE;
-    prepare_incremental_sweep(mrb);
-    advance_phase(mrb, GC_STATE_NONE);
-  }
+
+  mrb->is_generational_gc_mode = FALSE;
+  prepare_incremental_sweep(mrb);
+  advance_phase(mrb, GC_STATE_NONE);
   mrb->variable_gray_list = mrb->gray_list = NULL;
   mrb->is_generational_gc_mode = origin_mode;
 }

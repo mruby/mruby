@@ -372,6 +372,7 @@ to_hash(mrb_state *mrb, mrb_value val)
    a: Array [mrb_value*,int]
    f: Float [mrb_float]
    i: Integer [mrb_int]
+   b: Binary [int]
    n: Symbol [mrb_sym]
    &: Block [mrb_value]
    *: rest argument [mrb_value*,int]
@@ -566,6 +567,17 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 	    break;
 	  }
 	  sp++;
+	  i++;
+	}
+      }
+      break;
+    case 'b':
+      {
+	int *boolp = va_arg(ap, int*);
+
+	if (i < argc) {
+	  mrb_value b = *sp++;
+	  *boolp = mrb_test(b);
 	  i++;
 	}
       }

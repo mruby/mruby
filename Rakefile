@@ -8,7 +8,8 @@ load 'tasks/mruby_gem_spec.rake'
 
 ##############################
 # compile flags
-load File.expand_path(ENV['CONFIG'] || './build_config.rb')
+MRUBY_CONFIG = File.expand_path(ENV['MRUBY_CONFIG'] || './build_config.rb')
+load MRUBY_CONFIG
 
 load 'tasks/rules.rake'
 load 'src/mruby_core.rake'
@@ -37,9 +38,9 @@ depfiles = MRuby.targets['host'].bins.map do |bin|
   install_path
 end
 
-depfiles += MRuby.targets.reject {|n,t| n == 'host' }.map do |n, t|
+depfiles += MRuby.targets.reject {|n,t| n == 'host' }.map { |n, t|
   ["#{t.build_dir}/lib/libmruby.a"] + t.bins.map { |bin| exefile("#{t.build_dir}/bin/#{bin}") }
-end
+}.flatten
 
 desc "build all targets, install (locally) in-repo"
 task :all => depfiles
