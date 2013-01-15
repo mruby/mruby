@@ -18,6 +18,7 @@ load 'tools/mrbc/mrbc.rake'
 
 load 'tasks/mrbgems.rake'
 load 'tasks/libmruby.rake'
+load 'tasks/libmruby_stub.rake'
 load 'tools/mruby/mruby.rake'
 load 'tools/mirb/mirb.rake'
 
@@ -41,6 +42,10 @@ end
 depfiles += MRuby.targets.reject {|n,t| n == 'host' }.map { |n, t|
   ["#{t.build_dir}/lib/libmruby.a"] + t.bins.map { |bin| exefile("#{t.build_dir}/bin/#{bin}") }
 }.flatten
+
+depfiles += ["build/host/lib/libmruby_mrblib_stub.a"] + MRuby.targets.reject {|n,t| !t.enable_gems? }.map do |n, t|
+  "build/host/lib/libmruby_mrbgems_stub.a"
+end
 
 desc "build all targets, install (locally) in-repo"
 task :all => depfiles
