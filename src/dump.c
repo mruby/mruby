@@ -507,6 +507,7 @@ calc_crc_section(mrb_state *mrb, mrb_irep *irep, uint16_t *crc, int section)
     result = write_syms_block(mrb, irep, buf, type);
     break;
   default:
+    result = MRB_DUMP_GENERAL_FAILURE;
     break; /* Already checked above. */
   }
   if (result < 0) {
@@ -689,7 +690,7 @@ mrb_write_irep(mrb_state *mrb, int top, char *bin)
 
   for (irep_no=top; irep_no<mrb->irep_len; irep_no++) {
     rc = write_irep_record(mrb, irep_no, bin, &rlen, DUMP_TYPE_BIN);
-    if (rc != 0)
+    if (rc != MRB_DUMP_OK)
       return rc;
 
     bin += (rlen + DUMP_SIZE(MRB_DUMP_SIZE_OF_LONG, DUMP_TYPE_BIN));
@@ -718,7 +719,7 @@ mrb_dump_irep(mrb_state *mrb, int top, FILE* fp)
 
   for (irep_no=top; irep_no<mrb->irep_len; irep_no++) {
     rc = dump_irep_record(mrb, irep_no, fp, &rlen);
-    if (rc != 0)
+    if (rc != MRB_DUMP_OK)
       return rc;
 
     rbds += rlen;
