@@ -80,6 +80,7 @@ module MRuby
         return gemdir if File.exists?(gemdir)
         options = []
         options << "--branch \"#{params[:branch]}\"" if params[:branch]
+        options.concat(params[:advancedoptions]) if params[:advancedoptions]
         run_git_clone gemdir, url, options
         gemdir
       else
