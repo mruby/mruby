@@ -12,7 +12,13 @@ class Array
   def each(&block)
     idx, length = -1, self.length-1
     while(idx < length)
-      block.call(self[idx += 1])
+      elm = self[idx += 1]
+      unless elm
+        if elm == nil and length >= self.length
+          break
+        end
+      end
+      block.call(elm)
     end
     self
   end
