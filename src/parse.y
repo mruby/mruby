@@ -1050,7 +1050,7 @@ bodystmt	: compstmt
 		      }
 		      else if ($3) {
 			yywarn(p, "else without rescue is useless");
-			$$ = append($$, $3);
+			$$ = push($1, $3);
 		      }
 		      else {
 			$$ = $1;
