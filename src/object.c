@@ -112,10 +112,10 @@ nil_inspect(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_and(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value obj2;
+  int obj2;
 
-  mrb_get_args(mrb, "o", &obj2);
-  return mrb_test(obj2)?mrb_true_value():mrb_false_value();
+  mrb_get_args(mrb, "b", &obj2);
+  return obj2 ? mrb_true_value() : mrb_false_value();
 }
 
 /* 15.2.5.3.2  */
@@ -131,10 +131,10 @@ true_and(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_xor(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value obj2;
+  int obj2;
 
-  mrb_get_args(mrb, "o", &obj2);
-  return mrb_test(obj2)?mrb_false_value():mrb_true_value();
+  mrb_get_args(mrb, "b", &obj2);
+  return obj2 ? mrb_false_value() : mrb_true_value();
 }
 
 /* 15.2.5.3.3  */
@@ -171,9 +171,9 @@ true_to_s(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_or(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value obj2;
+  int obj2;
 
-  mrb_get_args(mrb, "o", &obj2);
+  mrb_get_args(mrb, "b", &obj2);
   return mrb_true_value();
 }
 
@@ -202,9 +202,9 @@ true_or(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_and(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value obj2;
+  int obj2;
 
-  mrb_get_args(mrb, "o", &obj2);
+  mrb_get_args(mrb, "b", &obj2);
   return mrb_false_value();
 }
 
@@ -224,10 +224,10 @@ false_and(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_xor(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value obj2;
+  int obj2;
 
-  mrb_get_args(mrb, "o", &obj2);
-  return mrb_test(obj2)?mrb_true_value():mrb_false_value();
+  mrb_get_args(mrb, "b", &obj2);
+  return obj2 ? mrb_true_value() : mrb_false_value();
 }
 
 /* 15.2.4.3.3  */
@@ -244,10 +244,10 @@ false_xor(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_or(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value obj2;
+  int obj2;
 
-  mrb_get_args(mrb, "o", &obj2);
-  return mrb_test(obj2)?mrb_true_value():mrb_false_value();
+  mrb_get_args(mrb, "b", &obj2);
+  return obj2 ? mrb_true_value() : mrb_false_value();
 }
 
 /* 15.2.6.3.3  */
