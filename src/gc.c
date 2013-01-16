@@ -983,7 +983,7 @@ mrb_field_write_barrier(mrb_state *mrb, struct RBasic *obj, struct RBasic *value
   gc_assert(!is_dead(mrb, value) && !is_dead(mrb, obj));
   gc_assert(is_generational(mrb) || mrb->gc_state != GC_STATE_NONE);
 
-  if (is_minor_gc(mrb) || mrb->gc_state == GC_STATE_MARK) {
+  if (is_generational(mrb) || mrb->gc_state == GC_STATE_MARK) {
     add_gray_list(mrb, value);
   }
   else {
