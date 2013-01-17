@@ -1143,13 +1143,8 @@ static void
 change_gen_gc_mode(mrb_state *mrb, mrb_int enable)
 {
   if (is_generational(mrb) && !enable) {
-    if (is_major_gc(mrb)) {
-      advance_phase(mrb, GC_STATE_NONE);
-    }
-    else {
-      clear_all_old(mrb);
-      gc_assert(mrb->gc_state == GC_STATE_NONE);
-    }
+    clear_all_old(mrb);
+    gc_assert(mrb->gc_state == GC_STATE_NONE);
     mrb->gc_full = FALSE;
   }
   else if (!is_generational(mrb) && enable) {
