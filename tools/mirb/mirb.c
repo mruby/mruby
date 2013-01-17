@@ -159,6 +159,7 @@ main(void)
   mrb_value result;
   int n;
   int code_block_open = FALSE;
+  int ai;
 
   print_hint();
 
@@ -172,6 +173,7 @@ main(void)
   cxt = mrbc_context_new(mrb);
   cxt->capture_errors = 1;
 
+  ai = mrb_gc_arena_save(mrb);
   while (TRUE) {
 #ifndef ENABLE_READLINE
     print_cmdline(code_block_open);
@@ -253,6 +255,7 @@ main(void)
       ruby_code[0] = '\0';
       last_code_line[0] = '\0';
       mrb_parser_free(parser);
+      mrb_gc_arena_restore(mrb, ai);
     }
   }
   mrbc_context_free(mrb, cxt);

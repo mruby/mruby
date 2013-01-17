@@ -1137,7 +1137,7 @@ stmt		: keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
 		| command_asgn
 		| mlhs '=' command_call
 		    {
-		      $$ = new_masgn(p, $1, list1($3));
+		      $$ = new_masgn(p, $1, $3);
 		    }
 		| var_lhs tOP_ASGN command_call
 		    {
