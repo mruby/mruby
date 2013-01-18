@@ -49,7 +49,7 @@ desc "run all mruby tests"
 task :test => MRuby.targets.values.map { |t| exefile("#{t.build_dir}/test/mrbtest") } do
   sh "#{filename exefile('build/host/test/mrbtest')}"
   if MRuby.targets.count > 1
-    puts "\nYou should run #{MRuby.targets.map{ |t| t.name == 'host' ? nil : "#{t.build_dir}/test/mrbtest" }.compact.join(', ')} on target device."
+    puts "\nYou should run #{MRuby.targets.values.map{ |t| t.name == 'host' ? nil : "#{t.build_dir}/test/mrbtest" }.compact.join(', ')} on target device."
   end
 end
 
