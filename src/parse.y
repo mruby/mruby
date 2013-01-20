@@ -3434,36 +3434,39 @@ parse_string(parser_state *p, int term)
 }
 
 static node*
-qstring_node(parser_state *p, int term)
+qstring_node(parser_state *p, int beg, int end)
 {
   int c;
+  int nest_level = 0;
 
   newtok(p);
-  while ((c = nextc(p)) != term) {
+  while ((c = nextc(p)) != end || nest_level != 0) {
     if (c  == -1)  {
       yyerror(p, "unterminated string meets end of file");
       return 0;
     }
-    if (c == '\\') {
+    else if (c == beg) {
+      nest_level++;
+    }
+    else if (c == end) {
+      nest_level--;
+    }
+    else if (c == '\\') {
       c = nextc(p);
-      switch (c) {
-      case '\n':
-	p->lineno++;
-	p->column = 0;
-	continue;
+      if (c != beg && c != end) {
+        switch (c) {
+        case '\n':
+          p->lineno++;
+          p->column = 0;
+          continue;
 
-      case '\\':
-	c = '\\';
-	break;
+        case '\\':
+          c = '\\';
+          break;
 
-      case '\'':
-	if (term == '\'') {
-	  c = '\'';
-	  break;
-	}
-	/* fall through */
-      default:
-	tokadd(p, '\\');
+        default:
+          tokadd(p, '\\');
+        }
       }
     }
     tokadd(p, c);
@@ -3475,12 +3478,12 @@ qstring_node(parser_state *p, int term)
 }
 
 static int
-parse_qstring(parser_state *p, int term)
+parse_qstring(parser_state *p, int beg, int end)
 {
-  node *nd = qstring_node(p, term);
+  node *nd = qstring_node(p, beg, end);
 
   if (nd) {
-    yylval.nd = new_str(p, tok(p), toklen(p));
+    yylval.nd = nd;
     return tSTRING;
   }
   return 0;
@@ -3714,7 +3717,7 @@ parser_yylex(parser_state *p)
     return tSTRING_BEG;
 
   case '\'':
-    return parse_qstring(p, c);
+    return parse_qstring(p, '\'', '\'');
 
   case '?':
     if (IS_END()) {
@@ -4317,7 +4320,7 @@ parser_yylex(parser_state *p)
 
   case '%':
     if (IS_BEG()) {
-      int term;
+      int beg = 0, term;
 #if 0
       int paren;
 #endif
@@ -4329,7 +4332,7 @@ parser_yylex(parser_state *p)
 	c = 'Q';
       }
       else {
-	term = nextc(p);
+	beg = term = nextc(p);
 	if (isalnum(term)) {
 	  yyerror(p, "unknown type of %string");
 	  return 0;
@@ -4362,7 +4365,8 @@ parser_yylex(parser_state *p)
 #if 0
 	p->lex_strterm = new_strterm(p, str_squote, term, paren);
 #endif
-	return tSTRING_BEG;
+	p->sterm = 0;
+	return parse_qstring(p, beg, term);
 
       case 'W':
 #if 0
