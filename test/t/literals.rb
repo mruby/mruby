@@ -40,9 +40,10 @@ assert('Literals Strings Quoted Non-Expanded', '8.7.6.3.4') do
   d = %q<abc>
   e = %q/abc/
   f = %q/ab\/c/
+  g = %q{#{a}}
 
   a == 'abc' and b == 'abc' and c == 'abc' and d == 'abc' and
-    e == 'abc' and f == 'ab/c'
+    e == 'abc' and f == 'ab/c' and g == '#{a}'
 end
 
 assert('Literals Strings Quoted Expanded', '8.7.6.3.5') do
