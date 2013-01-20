@@ -25,39 +25,154 @@ of mruby and looks like this for example:
 
 ```
 MRuby::Build.new do |conf|
-  conf.cc = ENV['CC'] || 'gcc'
-  conf.ld = ENV['LD'] || 'gcc'
-  conf.ar = ENV['AR'] || 'ar'
-
-  conf.cflags << (ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration))
-  conf.ldflags << (ENV['LDFLAGS'] || %w(-lm))
+  toolchain :gcc
 end
 ```
 
 All tools necessary to compile mruby can be set or modified here.
-The following options can be configurated:
-
-* conf.cc (C compiler)
-* conf.ld (Linker)
-* conf.ar (Archive utility)
-* conf.cxx (C++ compiler)
-* conf.objcc (Object compiler)
-* conf.asm (Assembler)
-* conf.yacc (Parser Generator)
-* conf.gperf (Hash function Generator)
-* conf.cat (Concatenate utility)
-* conf.git (GIT content tracker)
-* conf.cflags (C compiler flags)
-* conf.ldflags (Linker flags)
-* conf.cxxflags (C++ compiler flags) 
-* conf.objccflags (Object compiler flags)
-* conf.asmflags (Assembler flags)
-* conf.gem (A GEM which should be integrated - can be set several times)
-* conf.bins (Build binaries)
 
 To compile just call ```./minirake``` inside of the mruby source root. To
 generate the test tool environment call ```./minirake test```. To clean
 all build files call ```./minirake clean```.
+
+## Build Configuration
+
+The following options can be configurated:
+
+### Toolchains
+
+A template for a specific toolchain setting:
+
+### GCC
+
+Toolchain configuration for the GNU C Compiler.
+
+```
+toolchain :gcc
+```
+
+### clang
+
+Toolchain configuration based on GCC using the LLVM C Compiler clang.
+
+```
+toolchain :clang
+```
+
+### Visual Studio 2012
+
+Toolchain configuration for Visual Studio 2012 on Windows.
+
+```
+toolchain :vs2012
+```
+
+### Binaries
+
+Which tools should be compiled?
+* mrbc (mruby compiler)
+* mruby (mruby interpreter)
+* mirb (mruby interactive shell
+
+```
+conf.bins = %(mrbc mruby mirb)
+```
+
+### File Separator
+
+Which file separator is used?
+
+```
+conf.file_separator = '/'
+```
+
+### C Compiler
+
+Configuration of the C compiler binary, flags and include paths.
+
+```
+conf.cc do |cc|
+  cc.command = ...
+  cc.flags = ...
+  cc.include_paths = ...
+  cc.defines = ...
+  cc.option_include_path = ...
+  cc.option_define = ...
+  cc.compile_options = ...
+end
+```
+
+### Linker
+
+Configuration of the Linker binary, flags and library paths.
+
+```
+conf.linker do |linker|
+  linker.command = ...
+  linker.flags = ...
+  linker.libraries = ...
+  linker.library_paths = ....
+  linker.option_library = ...
+  linker.option_library_path = ...
+  linker.link_options = ...
+end
+```
+
+### Archiver
+
+Configuration of the Archiver binary and flags.
+
+```
+conf.archiver do |archiver|
+  archiver.command = ...
+  archiver.archive_options = ...
+end
+```
+
+### Parser Generator
+
+Configuration of the Parser Generator binary and flags.
+
+```
+conf.yacc do |yacc|
+  yacc.command = ...
+  yacc.compile_options = ...
+end
+```
+
+### GPerf
+
+Configuration of the GPerf binary and flags.
+```
+conf.gperf do |gperf|
+  gperf.command = ...
+  gperf.compile_options = ...
+end
+```
+
+### File Extensions
+
+```
+conf.exts do |exts
+  exts.object = ...
+  exts.executable = ...
+  exts.library = ...
+end
+```
+
+### Mrbgems
+
+Integrate GEMs in the build process.
+
+```
+# Integrate GEM with additional configuration
+conf.gem 'path/to/gem' do |g|
+  g.cc.flags << ...
+end
+
+# Integrate GEM without additional configuration
+conf.gem 'path/to/another/gem'
+```
 
 ### Cross-Compilation
 
@@ -68,18 +183,11 @@ tools and flags for the target platform. An example could look
 like this for example:
 
 ```
-MRuby::CrossBuild.new('i386') do |conf|
-  conf.cc = ENV['CC'] || 'gcc'
-  conf.ld = ENV['LD'] || 'gcc'
-  conf.ar = ENV['AR'] || 'ar'
+MRuby::CrossBuild.new('32bit') do |conf|
+  toolchain :gcc
 
-  if ENV['OS'] == 'Windows_NT' # MinGW
-    conf.cflags = %w(-g -O3 -Wall -Werror-implicit-function-declaration -Di386_MARK)
-    conf.ldflags = %w(-s -static)
-  else
-    conf.cflags << %w(-g -O3 -Wall -Werror-implicit-function-declaration -arch i386)
-    conf.ldflags << %w(-arch i386)
-  end
+  conf.cc.flags << "-m32"
+  conf.linker.flags << "-m32
 end
 ```
 
