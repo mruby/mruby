@@ -1,32 +1,35 @@
-dir = File.dirname(__FILE__).sub(%r|^\./|, '')
-
 MRuby.each_target do
+  dir = File.dirname(__FILE__).relative_path_from(root)
+
   exec = exefile("#{build_dir}/#{dir}/mrbtest")
   clib = "#{build_dir}/#{dir}/mrbtest.c"
-  mlib = clib.ext('o')
+  mlib = clib.ext(exts.object)
   mrbs = Dir.glob("#{dir}/t/*.rb")
   init = "#{dir}/init_mrbtest.c"
   asslib = "#{dir}/assert.rb"
 
-  objs = ["#{build_dir}/#{dir}/driver.o", mlib]
+  objs = [objfile("#{build_dir}/#{dir}/driver"), mlib]
 
-  file exec => objs + gems.map{ |g| g.testlib } + ["#{build_dir}/lib/libmruby.a"] do |t|
-    link t.name, t.prerequisites, gems.map { |g| g.mruby_ldflags }, gems.map { |g| g.mruby_libs }
+  file exec => objs + gems.map(&:testlib) + [libfile("#{build_dir}/lib/libmruby")] do |t|
+    gem_flags = gems.map { |g| g.linker.flags }
+    gem_libraries = gems.map { |g| g.linker.libraries }
+    gem_library_paths = gems.map { |g| g.linker.library_paths }
+    linker.run t.name, t.prerequisites, gem_libraries, gem_library_paths, gem_flags
   end
 
   file mlib => [clib]
   file clib => [mrbcfile, init, asslib] + mrbs do |t|
     open(clib, 'w') do |f|
-      f.puts File.read(init)
-      compile_mruby f, [asslib] + mrbs, 'mrbtest_irep'
+      f.puts IO.read(init)
+      mrbc.run f, [asslib] + mrbs, 'mrbtest_irep'
       gems.each do |g|
-        f.puts "void GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb_state *mrb);"
+        f.puts %Q[void GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb_state *mrb);]
       end
-      f.puts "void mrbgemtest_init(mrb_state* mrb) {"
+      f.puts %Q[void mrbgemtest_init(mrb_state* mrb) {]
       gems.each do |g|
-        f.puts "    GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb);"
+        f.puts %Q[    GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb);]
       end
-      f.puts "}"
+      f.puts %Q[}]
     end
   end
 end

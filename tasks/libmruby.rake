@@ -1,5 +1,5 @@
 MRuby.each_target do
-  file "#{build_dir}/lib/libmruby.a" => libmruby.flatten do |t|
-    archive t.name, 'rs', t.prerequisites
+  file libfile("#{build_dir}/lib/libmruby") => libmruby.flatten do |t|
+    archiver.run t.name, t.prerequisites
   end
 end
