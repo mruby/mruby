@@ -570,7 +570,7 @@ new_const(parser_state *p, mrb_sym sym)
 static node*
 new_undef(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_UNDEF, nsym(sym));
+  return list2((node*)NODE_UNDEF, nsym(sym));
 }
 
 // (:class class super body)
@@ -917,7 +917,7 @@ var_reference(parser_state *p, node *lhs)
 %type <nd> assoc_list assocs assoc undef_list backref for_var
 %type <nd> block_param opt_block_param block_param_def f_opt
 %type <nd> bv_decls opt_bv_decl bvar f_larglist lambda_body
-%type <nd> brace_block cmd_brace_block do_block lhs none fitem f_bad_arg
+%type <nd> brace_block cmd_brace_block do_block lhs none f_bad_arg
 %type <nd> mlhs mlhs_list mlhs_post mlhs_basic mlhs_item mlhs_node mlhs_inner
 %type <id> fsym sym basic_symbol operation operation2 operation3
 %type <id> cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg
@@ -1485,19 +1485,13 @@ fsym		: fname
 		| basic_symbol
 		;
 
-fitem		: fsym
-		    {
-		      $$ = new_sym(p, $1);
-		    }
-		;
-
 undef_list	: fsym
 		    {
 		      $$ = new_undef(p, $1);
 		    }
-		| undef_list ',' {p->lstate = EXPR_FNAME;} fitem
+		| undef_list ',' {p->lstate = EXPR_FNAME;} fsym
 		    {
-		      $$ = push($1, (node*)$4);
+		      $$ = push($1, nsym($4));
 		    }
 		;
 
@@ -5462,8 +5456,15 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_UNDEF:
-    printf("NODE_UNDEF %s:\n",
-	   mrb_sym2name(mrb, sym(tree)));
+    printf("NODE_UNDEF");
+    {
+      node *t = tree;
+      while (t) {
+        printf(" %s", mrb_sym2name(mrb, sym(t->car)));
+        t = t->cdr;
+      }
+    }
+    printf(":\n");
     break;
 
   case NODE_CLASS:

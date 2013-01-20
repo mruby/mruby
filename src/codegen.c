@@ -1938,16 +1938,21 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_UNDEF:
     {
-      int sym = new_msym(s, sym(tree));
       int undef = new_msym(s, mrb_intern(s->mrb, "undef_method"));
+      int num = 0;
+      node *t = tree;
 
       genop(s, MKOP_A(OP_TCLASS, cursp()));
       push();
-      genop(s, MKOP_ABx(OP_LOADSYM, cursp(), sym));
-      push();
-      genop(s, MKOP_A(OP_LOADNIL, cursp()));
-      pop_n(2);
-      genop(s, MKOP_ABC(OP_SEND, cursp(), undef, 2));
+      while (t) {
+        int symbol = new_msym(s, sym(t->car));
+        genop(s, MKOP_ABx(OP_LOADSYM, cursp(), symbol));
+        push();
+        t = t->cdr;
+        num++;
+      }
+      pop_n(num + 1);
+      genop(s, MKOP_ABC(OP_SEND, cursp(), undef, num));
       if (val) {
         push();
       }
