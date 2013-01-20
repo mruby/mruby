@@ -1,12 +1,15 @@
-dir = File.dirname(__FILE__).sub(%r|^\./|, '')
-
 MRuby.each_target do
-  if bins.select { |s| s.to_s == 'mirb' }
-    exec = exefile("#{build_dir}/bin/mirb")
-    objs = Dir.glob("#{dir}/*.{c}").map { |f| f.pathmap("#{build_dir}/%X.o") }
+  dir = File.dirname(__FILE__).relative_path_from(root)
 
-    file exec => objs + ["#{build_dir}/lib/libmruby.a"] do |t|
-      link t.name, t.prerequisites, gems.map { |g| g.mruby_ldflags }, gems.map { |g| g.mruby_libs }
+  if bins.find { |s| s.to_s == 'mirb' }
+    exec = exefile("#{build_dir}/bin/mirb")
+    objs = Dir.glob("#{dir}/*.c").map { |f| objfile(f.pathmap("#{build_dir}/%X")) }
+
+    file exec => objs + [libfile("#{build_dir}/lib/libmruby")] do |t|
+      gem_flags = gems.map { |g| g.linker.flags }
+      gem_libraries = gems.map { |g| g.linker.libraries }
+      gem_library_paths = gems.map { |g| g.linker.library_paths }
+      linker.run t.name, t.prerequisites, gem_libraries, gem_library_paths, gem_flags
     end
   end
 end

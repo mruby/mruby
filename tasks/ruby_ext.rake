@@ -1,24 +1,35 @@
-def exefile(filename)
-  if ENV['OS'] == 'Windows_NT'
-    "#{filename}.exe"
-  else
-    filename
+class Object
+  class << self
+    def attr_block(*syms)
+      syms.flatten.each do |sym|
+        class_eval "def #{sym}(&block);block.call(@#{sym}) if block_given?;@#{sym};end"
+      end
+    end
   end
-end
-
-def filename(name)
-  if ENV['OS'] == 'Windows_NT'
-    '"'+name.gsub('/', '\\')+'"'
-  end
-  '"'+name+'"'
-end
-
-def filenames(names)
-  [names].flatten.map { |n| filename(n) }.join(' ')
 end
 
 class String
   def relative_path_from(dir)
-    Pathname.new(self).relative_path_from(Pathname.new(dir)).to_s
+    Pathname.new(File.expand_path(self)).relative_path_from(Pathname.new(File.expand_path(dir))).to_s
+  end
+  
+  # Compatible with 1.9 on 1.8
+  def %(params)
+    if params.is_a?(Hash)
+      str = self.clone
+      params.each do |k, v|
+        str.gsub!("%{#{k}}", v)
+      end
+      str
+    else
+      sprintf(self, params)
+    end
+  end
+end
+
+class Symbol
+  # Compatible with 1.9 on 1.8
+  def to_proc
+    proc { |obj, *args| obj.send(self, *args) }
   end
 end
