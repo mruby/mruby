@@ -29,10 +29,6 @@ module MRuby
       conf.instance_eval(&@initializer)
     end
 
-    def toolchain(name)
-      @@toolchains[name.to_s].setup(self)
-    end
-
     def self.load
       Dir.glob("#{File.dirname(__FILE__)}/toolchains/*.rake").each do |file|
         Kernel.load file
@@ -93,7 +89,9 @@ module MRuby
     end
 
     def toolchain(name)
-      Toolchain.toolchains[name.to_s].setup(self)
+      tc = Toolchain.toolchains[name.to_s]
+      fail "Unknown #{name} toolchain" unless tc
+      tc.setup(self)
     end
 
     def build_dir
