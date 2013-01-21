@@ -35,15 +35,15 @@ module MRuby
 
       def setup
         MRuby::Gem.current = self
+
+        @build.compilers.each do |compiler|
+          compiler.defines -= %w(DISABLE_GEMS)
+          compiler.include_paths << "#{dir}/include"
+        end
         MRuby::Build::COMMANDS.each do |command|
           instance_variable_set("@#{command}", @build.send(command).clone)
         end
         @linker = LinkerConfig.new([], [], [])
-
-        compilers.each do |compiler|
-          compiler.defines -= %w(DISABLE_GEMS)
-          compiler.include_paths << "#{dir}/include"
-        end
 
         @rbfiles = Dir.glob("#{dir}/mrblib/*.rb")
         @objs = Dir.glob("#{dir}/src/*.{c,cpp,m,asm,S}").map { |f| objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X")) }
