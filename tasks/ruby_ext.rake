@@ -22,7 +22,11 @@ class String
       end
       str
     else
-      sprintf(self, params)
+      if params.is_a?(Array)
+        sprintf(self, *params)
+      else
+        sprintf(self, params)
+      end
     end
   end
 end
