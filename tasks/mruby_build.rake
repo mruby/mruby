@@ -113,7 +113,7 @@ module MRuby
 
     def filename(name)
       if name.is_a?(Array)
-        name.map { |n| filename(n) }
+        name.flatten.map { |n| filename(n) }
       else
         '"%s"' % name.gsub('/', file_separator)
       end
@@ -121,7 +121,7 @@ module MRuby
 
     def exefile(name)
       if name.is_a?(Array)
-        name.map { |n| exefile(n) }
+        name.flatten.map { |n| exefile(n) }
       else
         "#{name}#{exts.executable}"
       end
@@ -129,7 +129,7 @@ module MRuby
 
     def objfile(name)
       if name.is_a?(Array)
-        name.map { |n| objfile(n) }
+        name.flatten.map { |n| objfile(n) }
       else
         "#{name}#{exts.object}"
       end
@@ -137,7 +137,7 @@ module MRuby
 
     def libfile(name)
       if name.is_a?(Array)
-        name.map { |n| libfile(n) }
+        name.flatten.map { |n| libfile(n) }
       else
         "#{name}#{exts.library}"
       end

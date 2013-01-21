@@ -3,7 +3,7 @@ MRuby.each_target do
 
   if bins.find { |s| s.to_s == 'mirb' }
     exec = exefile("#{build_dir}/bin/mirb")
-    objs = Dir.glob("#{dir}/*.c").map { |f| objfile(f.pathmap("#{build_dir}/%X")) }
+    objs = Dir.glob("#{dir}/*.c").map { |f| objfile(f.pathmap("#{build_dir}/%X")) }.flatten
 
     file exec => objs + [libfile("#{build_dir}/lib/libmruby")] do |t|
       gem_flags = gems.map { |g| g.linker.flags }

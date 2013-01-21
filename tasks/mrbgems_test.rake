@@ -5,16 +5,16 @@ MRuby.each_target do
     test_rbc = "#{g.build_dir}/gem_test.c"
     test_rbobj = test_rbc.ext(exts.object)
 
-    file g.testlib => g.test_objs + [test_rbobj] do |t|
+    file g.testlib => [g.test_objs, test_rbobj].flatten do |t|
       g.build.archiver.run t.name, t.prerequisites
     end
 
     file test_rbobj => test_rbc
-    file test_rbc => g.test_rbfiles + [g.build.mrbcfile, libfile("#{build_dir}/lib/libmruby")] do |t|
+    file test_rbc => [g.test_rbfiles].flatten + [g.build.mrbcfile, libfile("#{build_dir}/lib/libmruby")] do |t|
       open(t.name, 'w') do |f|
         g.print_gem_init_header(f)
         g.build.mrbc.run f, g.test_preload, "gem_test_irep_#{g.funcname}_preload"
-        g.test_rbfiles.each_with_index do |rbfile, i|
+        g.test_rbfiles.flatten.each_with_index do |rbfile, i|
           g.build.mrbc.run f, rbfile, "gem_test_irep_#{g.funcname}_#{i}"
         end
         f.puts %Q[void mrb_#{g.funcname}_gem_test(mrb_state *mrb);] unless g.test_objs.empty?
