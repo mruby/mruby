@@ -7,6 +7,7 @@ MRuby.each_target do
     mrbc_, *rbfiles = t.prerequisites
     FileUtils.mkdir_p File.dirname(t.name)
     open(t.name, 'w') do |f|
+      _pp "GEN *.rb > #{t.name}"
       f.puts File.read("#{dir}/init_mrblib.c")
       mrbc.run f, rbfiles, 'mrblib_irep'
     end

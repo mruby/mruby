@@ -12,8 +12,8 @@ MRuby::Toolchain.new(:vs2012) do |conf|
   conf.linker do |linker|
     linker.command = ENV['LD'] || 'link.exe'
     linker.flags = [ENV['LDFLAGS'] || %w(/nologo)]
-    linkerraries = %w(kernel32 user32 gdi32 winspool comdlg32 advapi32 shell32 ole32 oleaut32 uuid odbc32 odbccp32)
-    linkerrary_paths = []
+    linker.libraries = %w(kernel32 user32 gdi32 winspool comdlg32 advapi32 shell32 ole32 oleaut32 uuid odbc32 odbccp32)
+    linker.library_paths = []
     linker.option_library = '-l%s'
     linker.option_library_path = '-L%s'
     linker.link_options = "%{flags} /OUT:%{outfile} %{objs} %{libs}"
