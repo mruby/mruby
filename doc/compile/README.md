@@ -10,7 +10,7 @@ To compile mruby out of the source code you need the following tools:
 * Linker (i.e. ```gcc```)
 * Archive utility (i.e. ```ar```)
 * Parser generator (i.e. ```bison```)
-* Ruby 1.8 or 1.9
+* Ruby 1.8 or 1.9 (i.e. ```ruby``` or ```jruby```)
 
 Optional:
 * GIT (to update mruby source and integrate mrbgems easier)
@@ -29,21 +29,25 @@ MRuby::Build.new do |conf|
 end
 ```
 
-All tools necessary to compile mruby can be set or modified here.
+All tools necessary to compile mruby can be set or modified here. In case
+you want to maintain an additional *build_config.rb* you can define a
+customized path using the  *$MRUBY_CONFIG* environment variable.
 
 To compile just call ```./minirake``` inside of the mruby source root. To
-generate the test tool environment call ```./minirake test```. To clean
+generate and execute the test tools call ```./minirake test```. To clean
 all build files call ```./minirake clean```.
 
 ## Build Configuration
 
-The following options can be configurated:
+Inside of the *build_config.rb* the following options can be configurated
+based on your environment.
 
 ### Toolchains
 
-A template for a specific toolchain setting:
+The mruby build system contains already a set of toolchain templates which
+configurates the build environment for specific compiler infrastructures.
 
-### GCC
+#### GCC
 
 Toolchain configuration for the GNU C Compiler.
 
@@ -51,15 +55,16 @@ Toolchain configuration for the GNU C Compiler.
 toolchain :gcc
 ```
 
-### clang
+#### clang
 
-Toolchain configuration based on GCC using the LLVM C Compiler clang.
+Toolchain configuration for the LLVM C Compiler clang. Mainly equal to the
+GCC toolchain.
 
 ```
 toolchain :clang
 ```
 
-### Visual Studio 2012
+#### Visual Studio 2012
 
 Toolchain configuration for Visual Studio 2012 on Windows.
 
@@ -69,18 +74,21 @@ toolchain :vs2012
 
 ### Binaries
 
-Which tools should be compiled?
+It is possible to select which tools should be compiled during the compilation
+process. The following tools can be selected:
 * mrbc (mruby compiler)
 * mruby (mruby interpreter)
 * mirb (mruby interactive shell
 
+To select all define an array in ```conf.bins```:
 ```
 conf.bins = %(mrbc mruby mirb)
 ```
 
 ### File Separator
 
-Which file separator is used?
+Some environments require a different file separator character. It is possible to
+set the character via ```conf.file_separator```.
 
 ```
 conf.file_separator = '/'
@@ -174,13 +182,13 @@ end
 conf.gem 'path/to/another/gem'
 ```
 
-### Cross-Compilation
+## Cross-Compilation
 
 mruby can also be cross-compiled from one platform to another. To
 achive this the *build_config.rb* needs to contain an instance of
 ```MRuby::CrossBuild```. This instance defines the compilation
 tools and flags for the target platform. An example could look
-like this for example:
+like this:
 
 ```
 MRuby::CrossBuild.new('32bit') do |conf|
@@ -191,12 +199,13 @@ MRuby::CrossBuild.new('32bit') do |conf|
 end
 ```
 
-You can configurate the same options as for a normal build. You can specified your own build_config.rb with *$MRUBY_CONFIG*.
+All configuration options of ```MRuby::Build``` can also be used
+in ```MRuby::CrossBuild```.
 
 ## Build process
 
-During the build process the directory *build* will be created. The
-directory structure will look like this:
+During the build process the directory *build* will be created in the
+root directory. The structure of this directory will look like this:
 
 ```
 +- build
@@ -239,6 +248,11 @@ under *mrblib* with ```build/host/bin/mrbc```
 link with *build/host/lib/libmruby.a*
 * create ```build/host/bin/mirb``` by compile *tools/mirb/mirb.c* and
 link with *build/host/lib/libmruby.a*
+
+ _____    _____    ______    ____    ____    _____    _____    ____
+| CC  |->|GEN  |->|AR    |->|CC  |->|CC  |->|AR   |->|CC   |->|CC  |
+| *.c |  |y.tab|  |core.a|  |mrbc|  |*.rb|  |lib.a|  |mruby|  |mirb|
+ -----    -----    ------    ----    ----    -----    -----    ----
 
 ### Cross-Compilation
 
@@ -311,6 +325,24 @@ link with *build/i386/lib/libmruby.a*
 * create *build/i386/lib/libmruby_core.a* out of all object files (C only)
 * create ```build/i386/bin/mrbc``` by cross-compile *tools/mrbc/mrbc.c* and
 link with *build/i386/lib/libmruby_core.a* 
+
+ _____________________________________________________________
+|              Native Compilation for Host System             |
+| _____      ______      _____      ____      ____      _____ |
+|| CC  | -> |AR    | -> |GEN  | -> |CC  | -> |CC  | -> |AR   ||
+|| *.c |    |core.a|    |y.tab|    |mrbc|    |*.rb|    |lib.a||
+| -----      ------      -----      ----      ----      ----- |
+ -------------------------------------------------------------
+                                ||
+                               \||/
+                                \/
+ ______________________________________________________________
+|             Cross Compilation for Target System              |
+| _____      _____      _____      ____      ______      _____ |
+|| CC  | -> |AR   | -> |CC   | -> |CC  | -> |AR    | -> |CC   ||
+|| *.c |    |lib.a|    |mruby|    |mirb|    |core.a|    |mrbc ||
+| -----      -----      -----      ----      ------      ----- |
+ --------------------------------------------------------------
 
 ## Test Environment
 
