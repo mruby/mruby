@@ -33,3 +33,26 @@ class Symbol
     proc { |obj, *args| obj.send(self, *args) }
   end
 end
+
+$pp_show = true
+
+if $verbose.nil?
+  unless Rake.verbose.nil?
+    if Rake.verbose.class == TrueClass
+      # verbose message logging
+      $pp_show = false
+    else
+      $pp_show = true
+      Rake.verbose(false)
+    end
+  else
+    # could not identify rake version
+    $pp_show = false
+  end
+else
+  $pp_show = false if $verbose
+end
+
+def _pp(msg)
+  puts msg if $pp_show
+end

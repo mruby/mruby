@@ -277,7 +277,7 @@ module MiniRake
 
     # Run the system command +cmd+.
     def sh(cmd)
-      puts cmd
+      puts cmd if $verbose
       system(cmd) or fail "Command Failed: [#{cmd}]"
     end
 
@@ -418,7 +418,7 @@ class RakeApp
   
   # Read and handle the command line options.
   def handle_options
-    $verbose = true
+    $verbose = false
     opts = GetoptLong.new(*command_line_options)
     opts.each { |opt, value| do_option(opt, value) }
   end
