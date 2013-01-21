@@ -63,12 +63,11 @@ module MRuby
 
       if ENV['OS'] == 'Windows_NT'
         @exts = Exts.new('.o', '.exe', '.a')
-        @file_separator = '\\'
       else
         @exts = Exts.new('.o', '', '.a')
-        @file_separator = '/'
       end
 
+      @file_separator = '/'
       @cc = Command::Compiler.new(self, %w(.c))
       @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp))
       @objc = Command::Compiler.new(self, %w(.m))
