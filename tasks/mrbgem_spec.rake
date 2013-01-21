@@ -46,11 +46,15 @@ module MRuby
         end
 
         @rbfiles = Dir.glob("#{dir}/mrblib/*.rb")
-        @objs = Dir.glob("#{dir}/src/*.{c,cpp,m,asm,S}").map { |f| objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X")) }
+        @objs = Dir.glob("#{dir}/src/*.{c,cpp,m,asm,S}").map do |f|
+          objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
+        end
         @objs << objfile("#{build_dir}/gem_init")
 
         @test_rbfiles = Dir.glob("#{dir}/test/*.rb")
-        @test_objs = Dir.glob("#{dir}/test/*.{c,cpp,m,asm,S}").map { |f| objfile(f.relative_path_from(dir).to_s.pathmap("#{build_dir}/%X")) }
+        @test_objs = Dir.glob("#{dir}/test/*.{c,cpp,m,asm,S}").map do |f|
+          objfile(f.relative_path_from(dir).to_s.pathmap("#{build_dir}/%X"))
+        end
         @test_preload = 'test/assert.rb'
 
         instance_eval(&@initializer)
