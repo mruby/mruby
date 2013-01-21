@@ -16,6 +16,6 @@ MRuby::Toolchain.new(:gcc) do |conf|
     linker.library_paths = []
     linker.option_library = '-l%s'
     linker.option_library_path = '-L%s'
-    linker.link_options = '%{flags} -o %{outfile} %{objs} %{libs}'
+    linker.link_options = '%{flags} -o %{outfile} %{objs} %{flags_before_libraries} %{libs}'
   end
 end
