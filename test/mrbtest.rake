@@ -8,7 +8,7 @@ MRuby.each_target do
   init = "#{dir}/init_mrbtest.c"
   asslib = "#{dir}/assert.rb"
 
-  objs = [objfile("#{build_dir}/#{dir}/driver"), mlib]
+  objs = [objfile("#{build_dir}/#{dir}/driver"), mlib].flatten
 
   file exec => objs + gems.map(&:testlib) + [libfile("#{build_dir}/lib/libmruby")] do |t|
     gem_flags = gems.map { |g| g.linker.flags }

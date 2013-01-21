@@ -50,7 +50,7 @@ module MRuby
       FileUtils.mkdir_p File.dirname(outfile)
       define_flags = [defines, _defineds].flatten.map{ |d| option_define % d }
       include_path_flags = [include_paths, _include_paths, File.dirname(infile)].flatten.map{ |f| option_include_path % filename(f) }
-      _run compile_options, { :flags => (flags + define_flags + include_path_flags + _flags).join(' '), :infile => filename(infile), :outfile => filename(outfile) }
+      _run compile_options, { :flags => [flags, define_flags, include_path_flags, _flags].flatten.join(' '), :infile => filename(infile), :outfile => filename(outfile) }
     end
 
     def define_rules(build_dir, source_dir='')
@@ -112,7 +112,7 @@ module MRuby
       FileUtils.mkdir_p File.dirname(outfile)
       library_flags = [libraries, _libraries].flatten.reverse.map{ |d| option_library % d }
       library_path_flags = [library_paths, _library_paths].flatten.map{ |f| option_library_path % filename(f) }
-      _run link_options, { :flags => (flags + library_path_flags + _flags).join(' '), :outfile => filename(outfile) , :objs => filename(objfiles).join(' '), :libs => library_flags.join(' ') }
+      _run link_options, { :flags => [flags, library_path_flags, _flags].flatten.join(' '), :outfile => filename(outfile) , :objs => filename(objfiles).join(' '), :libs => library_flags.join(' ') }
     end
   end
 
