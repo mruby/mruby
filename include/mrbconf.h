@@ -132,7 +132,7 @@ typedef short mrb_sym;
 # define isinf(n) (!_finite(n) && !_isnan(n))
 # define strtoll _strtoi64
 # define PRId32 "I32d"
-# define PRId32 "I64d"
+# define PRId64 "I64d"
 #else
 # include <inttypes.h>
 #endif
