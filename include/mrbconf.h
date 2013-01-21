@@ -76,7 +76,7 @@
    typedef int32_t mrb_int;
 #  define MRB_INT_MIN INT32_MIN
 #  define MRB_INT_MAX INT32_MAX
-#  define mrb_int_to_str(buf, i) sprintf((buf), "%d", (i))
+#  define mrb_int_to_str(buf, i) sprintf((buf), "%" PRId32, (i))
 #  define str_to_mrb_int(buf) (mrb_int)strtol((buf), NULL, 10)
 # endif
 #else
@@ -84,13 +84,13 @@
    typedef int64_t mrb_int;
 #  define MRB_INT_MIN INT64_MIN
 #  define MRB_INT_MAX INT64_MAX
-#  define mrb_int_to_str(buf, i) sprintf((buf), "%ld", (i))
+#  define mrb_int_to_str(buf, i) sprintf((buf), "%" PRId64, (i))
 #  define str_to_mrb_int(buf) (mrb_int)strtoll((buf), NULL, 10)
 # else
-   typedef int mrb_int;
-#  define MRB_INT_MIN INT_MIN
-#  define MRB_INT_MAX INT_MAX
-#  define mrb_int_to_str(buf, i) sprintf((buf), "%d", (i))
+   typedef int32_t mrb_int;
+#  define MRB_INT_MIN INT32_MIN
+#  define MRB_INT_MAX INT32_MAX
+#  define mrb_int_to_str(buf, i) sprintf((buf), "%" PRId32, (i))
 #  define str_to_mrb_int(buf) (mrb_int)strtol((buf), NULL, 10)
 # endif
 #endif
@@ -131,6 +131,10 @@ typedef short mrb_sym;
 # define isnan _isnan
 # define isinf(n) (!_finite(n) && !_isnan(n))
 # define strtoll _strtoi64
+# define PRId32 "I32d"
+# define PRId32 "I64d"
+#else
+# include <inttypes.h>
 #endif
 
 #endif  /* MRUBYCONF_H */
