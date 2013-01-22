@@ -4,24 +4,24 @@ MRuby::Toolchain.new(:vs2012) do |conf|
     cc.flags = [ENV['CFLAGS'] || %w(/c /nologo /W3 /D_DEBUG /MDd /Zi /Od /RTC1 /DDISABLE_GEMS /DHAVE_STRING_H /DNO_GETTIMEOFDAY /D_CRT_SECURE_NO_WARNINGS)]
     cc.include_paths = ["#{root}/include"]
     cc.defines = %w(DISABLE_GEMS)
-    cc.option_include_path = '-I%s'
-    cc.option_define = '-D%s'
-    cc.compile_options = "%{flags} /Fo%{outfile} -c %{infile}"
+    cc.option_include_path = '/I%s'
+    cc.option_define = '/D%s'
+    cc.compile_options = "%{flags} /Fo%{outfile} %{infile}"
   end
 
   conf.linker do |linker|
     linker.command = ENV['LD'] || 'link.exe'
     linker.flags = [ENV['LDFLAGS'] || %w(/nologo)]
-    linker.libraries = %w(kernel32 user32 gdi32 winspool comdlg32 advapi32 shell32 ole32 oleaut32 uuid odbc32 odbccp32)
-    linker.library_paths = []
-    linker.option_library = '-l%s'
-    linker.option_library_path = '-L%s'
+    linker.libraries = %w()
+    linker.library_paths = %w()
+    linker.option_library = '%s'
+    linker.option_library_path = '/LIBPATH:%s'
     linker.link_options = "%{flags} /OUT:%{outfile} %{objs} %{libs}"
   end
  
   conf.archiver do |archiver|
     archiver.command = ENV['AR'] || 'lib.exe'
-    archiver.archive_options = '/OUT:%{outfile} %{objs}'
+    archiver.archive_options = '/nologo /OUT:%{outfile} %{objs}'
   end
  
   conf.yacc do |yacc|

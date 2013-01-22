@@ -2,7 +2,11 @@ module MRuby
   module LoadGems
     def gem(gemdir, &block)
       gemdir = load_external_gem(gemdir) if gemdir.is_a?(Hash)
-      load File.join(gemdir, "mrbgem.rake")
+      gemrake = File.join(gemdir, "mrbgem.rake")
+
+      fail "Can't find #{gemrake}" unless File.exists?(gemrake)
+      load gemrake
+
       Gem.current.dir = gemdir
       Gem.current.build = MRuby::Build.current
       Gem.current.build_config_initializer = block
