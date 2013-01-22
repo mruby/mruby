@@ -57,6 +57,6 @@ else
   $pp_show = false if $verbose
 end
 
-def _pp(msg)
-  puts msg if $pp_show
+def _pp(cmd, src, tgt=nil)
+  puts '%-5s %s %s' % [cmd, src, tgt ? "-> #{tgt}" : nil] if $pp_show
 end
