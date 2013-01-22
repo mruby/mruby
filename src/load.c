@@ -144,6 +144,11 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
   uint16_t buf_size =0;
   int result;
 
+  memset(hex2, 0, sizeof(hex2));
+  memset(hex4, 0, sizeof(hex4));
+  memset(hex8, 0, sizeof(hex8));
+  memset(hcrc, 0, sizeof(hcrc));
+
   buf_size = MRB_DUMP_DEFAULT_STR_LEN;
   char_buf = (char *)mrb_malloc(mrb, buf_size);
   if (char_buf == NULL) {
