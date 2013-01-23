@@ -231,4 +231,9 @@ void
 mrb_init_mrbgems(mrb_state *mrb)
 {
 }
+
+void
+mrb_final_mrbgems(mrb_state *mrb)
+{
+}
 #endif
