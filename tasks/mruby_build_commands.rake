@@ -58,7 +58,7 @@ module MRuby
       include_path_flags = [include_paths, _include_paths, File.dirname(infile)].flatten.map do |f|
         option_include_path % filename(f)
       end
-      _pp "CC #{filename(infile)} > #{filename(outfile)}"
+      _pp "CC", "#{filename(infile)}", "#{filename(outfile)}"
       _run compile_options, { :flags => (flags + define_flags + include_path_flags + _flags).join(' '),
                               :infile => filename(infile), :outfile => filename(outfile) }
     end
@@ -131,7 +131,7 @@ module MRuby
       FileUtils.mkdir_p File.dirname(outfile)
       library_flags = [libraries, _libraries].flatten.reverse.map{ |d| option_library % d }
       library_path_flags = [library_paths, _library_paths].flatten.map{ |f| option_library_path % filename(f) }
-      _pp "LD #{filename(outfile)}"
+      _pp "LD", "#{filename(outfile)}"
       _run link_options, { :flags => (flags + library_path_flags + _flags).join(' '),
                            :outfile => filename(outfile) , :objs => filename(objfiles).join(' '),
                            :libs => library_flags.join(' ') }
@@ -149,7 +149,7 @@ module MRuby
 
     def run(outfile, objfiles)
       FileUtils.mkdir_p File.dirname(outfile)
-      _pp "AR #{filename(outfile)}"
+      _pp "AR", "#{filename(outfile)}"
       _run archive_options, { :outfile => filename(outfile), :objs => filename(objfiles).join(' ') }
     end
   end
@@ -165,7 +165,7 @@ module MRuby
 
     def run(outfile, infile)
       FileUtils.mkdir_p File.dirname(outfile)
-      _pp "YACC #{filename(infile)} > #{filename(outfile)}"
+      _pp "YACC", "#{filename(infile)}", "#{filename(outfile)}"
       _run compile_options, { :outfile => filename(outfile) , :infile => filename(infile) }
     end
   end
@@ -181,7 +181,7 @@ module MRuby
 
     def run(outfile, infile)
       FileUtils.mkdir_p File.dirname(outfile)
-      _pp "GPERF #{filename(infile)} > #{filename(outfile)}"
+      _pp "GPERF", "#{filename(infile)}", "#{filename(outfile)}"
       _run compile_options, { :outfile => filename(outfile) , :infile => filename(infile) }
     end
   end
@@ -198,7 +198,7 @@ module MRuby
     end
 
     def run_clone(dir, url, _flags = [])
-      _pp "GIT #{url} > #{filename(dir)}"
+      _pp "GIT", "#{url}", "#{filename(dir)}"
       _run clone_options, { :flags => [flags, _flags].flatten.join(' '), :url => url, :dir => filename(dir) }
     end
   end
@@ -214,7 +214,7 @@ module MRuby
       @command ||= @build.mrbcfile
       IO.popen("#{filename @command} #{@compile_options % {:funcname => funcname}}", 'r+') do |io|
         [infiles].flatten.each do |f|
-          _pp "  MRBC #{f}"
+          _pp "MRBC", "#{f}", nil, :indent => 2
           io.write IO.read(f)
         end
         io.close_write
