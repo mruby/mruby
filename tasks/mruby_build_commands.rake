@@ -124,12 +124,12 @@ module MRuby
     end
 
     def library_flags(_libraries)
-      [libraries, _libraries].flatten.reverse.map{ |d| option_library % d }.join(' ')
+      [libraries, _libraries].flatten.map{ |d| option_library % d }.join(' ')
     end
 
     def run(outfile, objfiles, _libraries=[], _library_paths=[], _flags=[])
       FileUtils.mkdir_p File.dirname(outfile)
-      library_flags = [libraries, _libraries].flatten.reverse.map{ |d| option_library % d }
+      library_flags = [libraries, _libraries].flatten.map{ |d| option_library % d }
       library_path_flags = [library_paths, _library_paths].flatten.map{ |f| option_library_path % filename(f) }
       _pp "LD", "#{filename(outfile)}"
       _run link_options, { :flags => (flags + library_path_flags + _flags).join(' '),
