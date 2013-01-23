@@ -57,6 +57,10 @@ else
   $pp_show = false if $verbose
 end
 
-def _pp(msg)
-  puts msg if $pp_show
+def _pp(cmd, src, tgt=nil, options={})
+  return unless $pp_show
+
+  width = 5
+  template = options[:indent] ? "%#{width*options[:indent]}s %s %s" : "%-#{width}s %s %s"
+  puts template % [cmd, src, tgt ? "-> #{tgt}" : nil]
 end
