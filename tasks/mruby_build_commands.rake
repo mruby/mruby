@@ -214,7 +214,7 @@ module MRuby
       @command ||= @build.mrbcfile
       IO.popen("#{filename @command} #{@compile_options % {:funcname => funcname}}", 'r+') do |io|
         [infiles].flatten.each do |f|
-          _pp "  MRBC", "#{f}"
+          _pp "MRBC", "#{f}", nil, :indent => 2
           io.write IO.read(f)
         end
         io.close_write
