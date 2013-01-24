@@ -48,7 +48,9 @@ module MRuby
 
     def all_flags(_defineds=[], _include_paths=[], _flags=[])
       define_flags = [defines, _defineds].flatten.map{ |d| option_define % d }
-      include_path_flags = [include_paths, _include_paths].flatten.map{ |f| option_include_path % filename(f) }
+      include_path_flags = [include_paths, _include_paths].flatten.map do |f|
+        option_include_path % filename(f)
+      end
       [flags, define_flags, include_path_flags, _flags].flatten.join(' ')
     end
     
@@ -59,7 +61,7 @@ module MRuby
         option_include_path % filename(f)
       end
       _pp "CC", "#{filename(infile)}", "#{filename(outfile)}"
-      _run compile_options, { :flags => (flags + define_flags + include_path_flags + _flags).join(' '),
+      _run compile_options, { :flags => all_flags(_defineds, _include_paths, _flags),
                               :infile => filename(infile), :outfile => filename(outfile) }
     end
 
@@ -104,22 +106,25 @@ module MRuby
   end
 
   class Command::Linker < Command
-    attr_accessor :flags, :libraries, :library_paths
+    attr_accessor :flags, :library_paths, :flags_before_libraries, :libraries, :flags_after_libraries
     attr_accessor :link_options, :option_library, :option_library_path
 
     def initialize(build)
       super
       @command = ENV['LD'] || 'gcc'
       @flags = (ENV['LDFLAGS'] || [])
+      @flags_before_libraries, @flags_after_libraries = [], []
       @libraries = []
       @library_paths = []
       @option_library = '-l%s'
       @option_library_path = '-L%s'
-      @link_options = "%{flags} -o %{outfile} %{objs} %{libs}"
+      @link_options = "%{flags} -o %{outfile} %{objs} %{flags_before_libraries} %{libs} %{flags_after_libraries}"
     end
 
     def all_flags(_library_paths=[], _flags=[])
-      library_path_flags = [library_paths, _library_paths].flatten.map{ |f| option_library_path % filename(f) }
+      library_path_flags = [library_paths, _library_paths].flatten.map do |f|
+        option_library_path % filename(f)
+      end
       [flags, library_path_flags, _flags].flatten.join(' ')
     end
 
@@ -127,13 +132,15 @@ module MRuby
       [libraries, _libraries].flatten.map{ |d| option_library % d }.join(' ')
     end
 
-    def run(outfile, objfiles, _libraries=[], _library_paths=[], _flags=[])
+    def run(outfile, objfiles, _libraries=[], _library_paths=[], _flags=[], _flags_before_libraries=[], _flags_after_libraries=[])
       FileUtils.mkdir_p File.dirname(outfile)
-      library_flags = [libraries, _libraries].flatten.map{ |d| option_library % d }
-      library_path_flags = [library_paths, _library_paths].flatten.map{ |f| option_library_path % filename(f) }
+      library_flags = [libraries, _libraries].flatten.map { |d| option_library % d }
+      library_path_flags = [library_paths, _library_paths].flatten.map { |f| option_library_path % filename(f) }
       _pp "LD", "#{filename(outfile)}"
-      _run link_options, { :flags => (flags + library_path_flags + _flags).join(' '),
+      _run link_options, { :flags => all_flags(_library_paths, _flags),
                            :outfile => filename(outfile) , :objs => filename(objfiles).join(' '),
+                           :flags_before_libraries => [flags_before_libraries, _flags_before_libraries].flatten.join(' '),
+                           :flags_after_libraries => [flags_after_libraries, _flags_after_libraries].flatten.join(' '),
                            :libs => library_flags.join(' ') }
     end
   end
