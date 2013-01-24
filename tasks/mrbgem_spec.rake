@@ -6,7 +6,7 @@ module MRuby
     class << self
       attr_accessor :current
     end
-    LinkerConfig = Struct.new(:libraries, :library_paths, :flags, :flags_before_libraries) 
+    LinkerConfig = Struct.new(:libraries, :library_paths, :flags, :flags_before_libraries, :flags_after_libraries) 
 
     class Specification
       include Rake::DSL
