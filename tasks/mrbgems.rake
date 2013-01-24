@@ -24,9 +24,17 @@ MRuby.each_target do
         f.puts %Q[#include "mruby.h"]
         f.puts %Q[]
         f.puts %Q[#{gems.map{|g| "void GENERATED_TMP_mrb_%s_gem_init(mrb_state* mrb);" % g.funcname}.join("\n")}]
+        f.puts %Q[]
+        f.puts %Q[#{gems.map{|g| "void GENERATED_TMP_mrb_%s_gem_final(mrb_state* mrb);" % g.funcname}.join("\n")}]
+        f.puts %Q[]
         f.puts %Q[void]
         f.puts %Q[mrb_init_mrbgems(mrb_state *mrb) {]
         f.puts %Q[#{gems.map{|g| "GENERATED_TMP_mrb_%s_gem_init(mrb);" % g.funcname}.join("\n")}]
+        f.puts %Q[}]
+        f.puts %Q[]
+        f.puts %Q[void]
+        f.puts %Q[mrb_final_mrbgems(mrb_state *mrb) {]
+        f.puts %Q[#{gems.map{|g| "GENERATED_TMP_mrb_%s_gem_final(mrb);" % g.funcname}.join("\n")}]
         f.puts %Q[}]
       end
     end

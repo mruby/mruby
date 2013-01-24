@@ -42,7 +42,14 @@ depfiles += MRuby.targets.reject { |n, t| n == 'host' }.map { |n, t|
 }.flatten
 
 desc "build all targets, install (locally) in-repo"
-task :all => depfiles
+task :all => depfiles do
+  puts
+  puts "Build summary:"
+  puts
+  MRuby.each_target do
+    print_build_summary
+  end
+end
 
 desc "run all mruby tests"
 task :test => MRuby.targets.values.map { |t| t.exefile("#{t.build_dir}/test/mrbtest") } do

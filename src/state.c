@@ -11,7 +11,7 @@
 
 void mrb_init_heap(mrb_state*);
 void mrb_init_core(mrb_state*);
-void mrb_init_ext(mrb_state*);
+void mrb_final_core(mrb_state*);
 
 mrb_state*
 mrb_open_allocf(mrb_allocf f, void *ud)
@@ -27,7 +27,6 @@ mrb_open_allocf(mrb_allocf f, void *ud)
 
   mrb_init_heap(mrb);
   mrb_init_core(mrb);
-  mrb_init_ext(mrb);
   return mrb;
 }
 
@@ -87,6 +86,8 @@ void
 mrb_close(mrb_state *mrb)
 {
   int i;
+
+  mrb_final_core(mrb);
 
   /* free */
   mrb_gc_free_gv(mrb);
