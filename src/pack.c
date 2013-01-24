@@ -792,3 +792,8 @@ mrb_mruby_pack_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, cArray, "pack", mrb_pack_pack, ARGS_REQ(1));
   mrb_define_method(mrb, cString, "unpack", mrb_pack_unpack, ARGS_REQ(1));
 }
+
+void
+mrb_mruby_pack_gem_final(mrb_state *mrb)
+{
+}
