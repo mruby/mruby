@@ -226,3 +226,8 @@ mrb_mruby_dir_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, d, "seek", mrb_dir_seek, ARGS_REQ(1));
   mrb_define_method(mrb, d, "tell", mrb_dir_tell, ARGS_NONE());
 }
+
+void
+mrb_mruby_dir_gem_final(mrb_state *mrb)
+{
+}
