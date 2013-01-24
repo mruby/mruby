@@ -152,7 +152,12 @@ module MRuby
       puts "      Config Name: #{@name}"
       puts " Output Directory: #{self.build_dir}"
       puts "         Binaries: #{@bins.join(', ')}" unless @bins.empty?
-      puts "    Included Gems: #{@gems.map{|g| g.name }.join(', ')}" unless @gems.empty?
+      unless @gems.empty?
+        puts "    Included Gems:"
+        @gems.map{|g| g.name }.each do |name|
+          puts "             #{name}"
+        end
+      end
       puts "================================================"
       puts
     end
