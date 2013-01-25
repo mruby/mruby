@@ -138,7 +138,7 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
   int i;
   uint32_t blocklen;
   uint16_t offset, pdl, snl, clen;
-  unsigned char hex2[2], hex4[4], hex8[8], hcrc[4];
+  unsigned char hex2[2] = {0}, hex4[4] = {0}, hex8[8] = {0}, hcrc[4] = {0};
   unsigned char *pStart;
   char *char_buf;
   uint16_t buf_size =0;

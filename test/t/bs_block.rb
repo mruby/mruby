@@ -332,6 +332,14 @@ assert('BS Block [ruby-dev:31160]') do
   m {|(v,(*))|} == nil
 end
 
+assert('BS Block [issue #750]') do
+  def m(a, *b)
+    yield
+  end
+  args = [1, 2, 3]
+  m(*args){ 1 } == 1
+end
+
 assert('BS Block 31') do
   def m()
     yield

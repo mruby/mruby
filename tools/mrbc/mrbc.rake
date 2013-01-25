@@ -1,12 +1,12 @@
-dir = File.dirname(__FILE__).sub(%r|^\./|, '')
-
 MRuby.each_target do
-  if bins.select { |s| s.to_s == 'mrbc' }
-    exec = exefile("#{build_dir}/bin/mrbc")
-    objs = Dir.glob("#{dir}/*.{c}").map { |f| f.pathmap("#{build_dir}/%X.o") }
+  dir = File.dirname(__FILE__).relative_path_from(root)
 
-    file exec => objs + ["#{build_dir}/lib/libmruby_core.a"] do |t|
-      link t.name, t.prerequisites
+  if bins.find { |s| s.to_s == 'mrbc' }
+    exec = exefile("#{build_dir}/bin/mrbc")
+    objs = Dir.glob("#{dir}/*.c").map { |f| objfile(f.pathmap("#{build_dir}/%X")) }.flatten
+
+    file exec => objs + [libfile("#{build_dir}/lib/libmruby_core")] do |t|
+      linker.run t.name, t.prerequisites
     end
   end
 end

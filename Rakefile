@@ -4,14 +4,13 @@
 
 load 'tasks/ruby_ext.rake'
 load 'tasks/mruby_build.rake'
-load 'tasks/mruby_gem_spec.rake'
+load 'tasks/mrbgem_spec.rake'
 
 ##############################
 # compile flags
 MRUBY_CONFIG = File.expand_path(ENV['MRUBY_CONFIG'] || './build_config.rb')
 load MRUBY_CONFIG
 
-load 'tasks/rules.rake'
 load 'src/mruby_core.rake'
 load 'mrblib/mrblib.rake'
 load 'tools/mrbc/mrbc.rake'
@@ -29,27 +28,33 @@ load 'test/mrbtest.rake'
 task :default => :all
 
 depfiles = MRuby.targets['host'].bins.map do |bin|
-  install_path = exefile("bin/#{bin}")
+  install_path = MRuby.targets['host'].exefile("bin/#{bin}")
   
-  file install_path => exefile("build/host/bin/#{bin}") do |t|
+  file install_path => MRuby.targets['host'].exefile("build/host/bin/#{bin}") do |t|
     FileUtils.cp t.prerequisites.first, t.name
   end
    
   install_path
 end
 
-depfiles += MRuby.targets.reject {|n,t| n == 'host' }.map { |n, t|
-  ["#{t.build_dir}/lib/libmruby.a"] + t.bins.map { |bin| exefile("#{t.build_dir}/bin/#{bin}") }
+depfiles += MRuby.targets.reject { |n, t| n == 'host' }.map { |n, t|
+  [t.libfile("#{t.build_dir}/lib/libmruby")] + t.bins.map { |bin| t.exefile("#{t.build_dir}/bin/#{bin}") }
 }.flatten
 
 desc "build all targets, install (locally) in-repo"
-task :all => depfiles
+task :all => depfiles do
+  puts
+  puts "Build summary:"
+  puts
+  MRuby.each_target do
+    print_build_summary
+  end
+end
 
 desc "run all mruby tests"
-task :test => MRuby.targets.values.map { |t| exefile("#{t.build_dir}/test/mrbtest") } do
-  sh "#{filename exefile('build/host/test/mrbtest')}"
-  if MRuby.targets.count > 1
-    puts "\nYou should run #{MRuby.targets.map{ |t| t.name == 'host' ? nil : "#{t.build_dir}/test/mrbtest" }.compact.join(', ')} on target device."
+task :test => MRuby.targets.values.map { |t| t.exefile("#{t.build_dir}/test/mrbtest") } do
+  MRuby.each_target do
+    run_test
   end
 end
 
@@ -59,4 +64,5 @@ task :clean do
     FileUtils.rm_rf t.build_dir
   end
   FileUtils.rm_f depfiles
+  puts "Cleaned up build folder"
 end

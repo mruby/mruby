@@ -11,44 +11,34 @@ extension integrated.
 
 To add a GEM into the build_config.rb add the following line for example:
 
-```
-conf.gem '/path/to/your/gem/dir'
-```
+	conf.gem '/path/to/your/gem/dir'
 
 You can also use a relative path which would be relative from the mruby root:
 
-```
-conf.gem 'doc/mrbgems/ruby_extension_example'
-```
+	conf.gem 'doc/mrbgems/ruby_extension_example'
 
 A remote GIT repository location for a GEM is also supported:
 
-```
-conf.gem :git => 'https://github.com/masuidrive/mrbgems-example.git', :branch => 'master'
-```
+	conf.gem :git => 'https://github.com/masuidrive/mrbgems-example.git', :branch => 'master'
 
-```
-conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
-```
+	conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
 
 
 ## GEM Structure
 
 The maximal GEM structure looks like this:
 
-```
-+- GEM_NAME         <- Name of GEM
-   |
-   +- mrblib/       <- Source for Ruby extension
-   |
-   +- src/          <- Source for C extension
-   |
-   +- test/         <- Test code (Ruby)
-   |
-   +- mrbgem.rake   <- GEM Specification
-   |
-   +- README.md     <- Readme for GEM
-```
+	+- GEM_NAME         <- Name of GEM
+	   |
+	   +- mrblib/       <- Source for Ruby extension
+	   |
+	   +- src/          <- Source for C extension
+	   |
+	   +- test/         <- Test code (Ruby)
+	   |
+	   +- mrbgem.rake   <- GEM Specification
+	   |
+	   +- README.md     <- Readme for GEM
 
 The folder *mrblib* contains pure Ruby files to extend mruby. The folder *src*
 contains C files to extend mruby. The folder *test* contains C and pure Ruby files
@@ -61,12 +51,10 @@ of your GEM.
 mrbgems expects a specifcation file called *mrbgem.rake* inside of your
 GEM direcotry. A typical GEM specification could look like this for example:
 
-```
-MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
-  spec.license = 'MIT'
-  spec.authors = 'mruby developers'
-end
-```
+	MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
+	  spec.license = 'MIT'
+	  spec.authors = 'mruby developers'
+	end
 
 The mrbgems build process will use this specification to compile Object and Ruby
 files. The compilation results will be add to *lib/libmruby.a*. This file is used
@@ -98,31 +86,42 @@ mrbgems expects that you have implemented a C method called
 by the name of your GEM. If you call your GEM *c_extension_example*, your
 initialisation method could look like this:
 
+	void
+	mrb_c_extension_example_gem_init(mrb_state* mrb) {
+	  struct RClass *class_cextension = mrb_define_module(mrb, "CExtension");
+	  mrb_define_class_method(mrb, class_cextension, "c_method", mrb_c_method, ARGS_NONE());
+	}
+
+### Finalize
+
+mrbgems expects that you have implemented a C method called
+```mrb_YOURGEMNAME_gem_final(mrb_state)```. ```YOURGEMNAME``` will be replaced
+by the name of your GEM. If you call your GEM *c_extension_example*, your
+finalizer method could look like this:
+
 ```
 void
-mrb_c_extension_example_gem_init(mrb_state* mrb) {
-  struct RClass *class_cextension = mrb_define_module(mrb, "CExtension");
-  mrb_define_class_method(mrb, class_cextension, "c_method", mrb_c_method, ARGS_NONE());
+mrb_c_extension_example_gem_final(mrb_state* mrb) {
+   free(someone);
 }
 ```
 
+
 ### Example
 
-```
-+- c_extension_example/
-   |
-   +- src/
-   |  |
-   |  +- example.c         <- C extension source
-   |
-   +- test/
-   |  |
-   |  +- example.rb        <- Test code for C extension
-   |
-   +- mrbgem.rake          <- GEM specification
-   |
-   +- README.md
-```
+	+- c_extension_example/
+	   |
+	   +- src/
+	   |  |
+	   |  +- example.c         <- C extension source
+	   |
+	   +- test/
+	   |  |
+	   |  +- example.rb        <- Test code for C extension
+	   |
+	   +- mrbgem.rake          <- GEM specification
+	   |
+	   +- README.md
 
 ## Ruby Extension
 
@@ -136,21 +135,19 @@ none
 
 ### Example
 
-```
-+- ruby_extension_example/
-   |
-   +- mrblib/
-   |  |
-   |  +- example.rb        <- Ruby extension source
-   |
-   +- test/
-   |  |
-   |  +- example.rb        <- Test code for Ruby extension
-   |
-   +- mrbgem.rake          <- GEM specification
-   |
-   +- README.md
-```
+	+- ruby_extension_example/
+	   |
+	   +- mrblib/
+	   |  |
+	   |  +- example.rb        <- Ruby extension source
+	   |
+	   +- test/
+	   |  |
+	   |  +- example.rb        <- Test code for Ruby extension
+	   |
+	   +- mrbgem.rake          <- GEM specification
+	   |
+	   +- README.md
 
 ## C and Ruby Extension
 
@@ -164,21 +161,20 @@ See C and Ruby example.
 
 ### Example
 
-```
-+- c_and_ruby_extension_example/
-   |
-   +- mrblib/
-   |  |
-   |  +- example.rb        <- Ruby extension source
-   |
-   +- src/
-   |  |
-   |  +- example.c         <- C extension source
-   |
-   +- test/
-   |  |
-   |  +- example.rb        <- Test code for C and Ruby extension
-   |
-   +- mrbgem.rake          <- GEM specification
-   |
-   +- README.md
+	+- c_and_ruby_extension_example/
+	   |
+	   +- mrblib/
+	   |  |
+	   |  +- example.rb        <- Ruby extension source
+	   |
+	   +- src/
+	   |  |
+	   |  +- example.c         <- C extension source
+	   |
+	   +- test/
+	   |  |
+	   |  +- example.rb        <- Test code for C and Ruby extension
+	   |
+	   +- mrbgem.rake          <- GEM specification
+	   |
+	   +- README.md

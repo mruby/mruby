@@ -209,3 +209,78 @@ end
 assert('Class Dup 2') do
   module M; end;  M.dup.class == Module
 end
+
+assert('Class Alias 1') do
+  class A
+    def test; 1; end
+
+    alias test2 test
+    alias :test3 :test
+  end
+
+  A.new.test2 == 1 and A.new.test3 == 1
+end
+
+assert('Class Alias 2') do
+  class A
+    def test; 1; end
+
+    alias test2 test
+
+    def test; 2; end
+  end
+
+  A.new.test == 2 and A.new.test2 == 1
+end
+
+assert('Class Undef 1') do
+  class A
+    def test1; 1; end
+    def test2; 2; end
+
+    undef test1
+    undef :test2
+  end
+
+  result1 = false
+  begin
+    A.new.test1
+  rescue NoMethodError
+    result1 = true
+  end
+
+  result2 = false
+  begin
+    A.new.test2
+  rescue NoMethodError
+    result2 = true
+  end
+
+  result1 == true and result2 == true
+end
+
+assert('Class Undef 2') do
+  class A
+    def test1; 1; end
+    def test2; 2; end
+
+    undef test1, test2
+  end
+
+  result1 = false
+  begin
+    A.new.test1
+  rescue NoMethodError
+    result1 = true
+  end
+
+  result2 = false
+  begin
+    A.new.test2
+  rescue NoMethodError
+    result2 = true
+  end
+
+  result1 == true and result2 == true
+end
+
