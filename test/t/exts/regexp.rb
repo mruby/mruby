@@ -244,3 +244,19 @@ assert('String#scan', '15.2.10.5.32') do
   result3 == [["f"], ["o"], ["o"], ["b"], ["a"], ["r"]] and
   result4 == [["ba", "r"], ["ba", "z"], ["ba", "r"], ["ba", "z"]]
 end
+
+assert('String#split', '15.2.10.5.35') do
+  ''.split(//)               == []                          and
+  ''.split(/x/)              == []                          and
+  'abc'.split(//)            == ['a', 'b', 'c']             and
+  'abc'.split(/,/)           == ['abc']                     and
+  'a1b23c45'.split(/\d/)     == ['a', 'b', '', 'c']         and
+  'a1b23c45'.split(/\d/, 0)  == ['a', 'b', '', 'c']         and
+  'a1b23c45'.split(/\d/, 1)  == ['a1b23c45']                and
+  'a1b23c45'.split(/\d/, 4)  == ['a', 'b', '', 'c45']       and
+  'a1b23c45'.split(/\d/, -4) == ['a', 'b', '', 'c', '', ''] and
+  'abc'.split(//, 2)         == ['a', 'bc']                 and
+  'a bc'.split(/\s*/)        == ['a', 'b', 'c']             and
+  ' abc  abc abc'.split(/ /) == ['', 'abc', '', 'abc', 'abc'] and
+  '1, 2.34,56, 7'.split(/,\s*/) == ['1', '2.34', '56', '7']
+end
