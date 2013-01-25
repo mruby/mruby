@@ -1211,7 +1211,12 @@ const char*
 mrb_class_name(mrb_state *mrb, struct RClass* c)
 {
   mrb_value path = mrb_class_path(mrb, c);
-  if (mrb_nil_p(path)) return 0;
+  if (mrb_nil_p(path)) {
+    char buf[32];
+
+    snprintf(buf, 32, "#<Class:%p>", c);
+    path = mrb_str_new_cstr(mrb, buf);
+  }
   return mrb_str_ptr(path)->ptr;
 }
 
