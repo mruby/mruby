@@ -8,6 +8,14 @@ MRuby.each_target do
   init = "#{dir}/init_mrbtest.c"
   asslib = "#{dir}/assert.rb"
 
+  command = File.expand_path "#{build_dir}/bin/mrbc"
+  if ENV['OS'] == 'Windows_NT'
+    command = "#{command.gsub('/', '\\')}.exe"
+  end
+  if `echo // | #{command} -c - 2>&1`.strip == 'Syntax OK'
+    mrbs << "#{dir}/t/exts/regexp.rb"
+  end
+
   objs = [objfile("#{build_dir}/#{dir}/driver"), mlib].flatten
 
   file exec => objs + gems.map(&:testlib).flatten + [libfile("#{build_dir}/lib/libmruby")] do |t|
