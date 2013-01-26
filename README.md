@@ -67,7 +67,7 @@ Or
 
 mruby contains a package manager called *mrbgems*. To create extensions
 in C and/or Ruby you should create a *GEM*. You will find a complete
-documentation with examples under *doc/mrbgems*.
+documentation with examples under *examples/mrbgems*.
 
 ## License
 
