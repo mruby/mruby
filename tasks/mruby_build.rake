@@ -99,7 +99,7 @@ module MRuby
     end
 
     def mrbcfile
-      exefile("build/host/bin/mrbc")
+      MRuby.targets['host'].exefile("build/host/bin/mrbc")
     end
 
     def compilers
