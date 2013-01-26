@@ -7,6 +7,7 @@
 #include "mruby.h"
 #include "mruby/irep.h"
 #include "mruby/variable.h"
+#include "monitor.h"
 #include <string.h>
 
 void mrb_init_heap(mrb_state*);
@@ -76,6 +77,8 @@ mrb_open()
 {
   mrb_state *mrb = mrb_open_allocf(allocf, NULL);
 
+  HOOK_MRB_OPEN(mrb);
+
   return mrb;
 }
 
@@ -86,6 +89,8 @@ void
 mrb_close(mrb_state *mrb)
 {
   int i;
+
+  HOOK_MRB_CLOSE(mrb);
 
   mrb_final_core(mrb);
 

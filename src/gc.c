@@ -15,6 +15,7 @@
 #include "mruby/proc.h"
 #include "mruby/data.h"
 #include "mruby/variable.h"
+#include "monitor.h"
 
 #ifndef SIZE_MAX
 #include <limits.h> // for SIZE_MAX
@@ -166,6 +167,9 @@ mrb_realloc(mrb_state *mrb, void *p, size_t len)
     mrb_garbage_collect(mrb);
     p2 = (mrb->allocf)(mrb, p, len, mrb->ud);
   }
+
+  HOOK_MRB_REALLOC(mrb, p2, p, len);
+
   return p2;
 }
 
@@ -195,6 +199,7 @@ mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
 void*
 mrb_free(mrb_state *mrb, void *p)
 {
+  HOOK_MRB_FREE(mrb, p);
   return (mrb->allocf)(mrb, p, 0, mrb->ud);
 }
 
@@ -928,6 +933,7 @@ mrb_garbage_collect(mrb_state *mrb)
 
   if (mrb->gc_disabled) return;
   GC_INVOKE_TIME_REPORT("mrb_garbage_collect()");
+  HOOK_GC_START(mrb);
   GC_TIME_START;
 
   if (mrb->gc_state == GC_STATE_SWEEP) {
@@ -955,6 +961,7 @@ mrb_garbage_collect(mrb_state *mrb)
   }
 
   GC_TIME_STOP_AND_REPORT;
+  HOOK_GC_STOP(mrb);
 }
 
 int

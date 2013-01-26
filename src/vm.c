@@ -16,6 +16,7 @@
 #include "mruby/class.h"
 #include "mruby/numeric.h"
 #include "error.h"
+#include "monitor.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -483,7 +484,7 @@ argnum_error(mrb_state *mrb, int num)
 
 #ifndef DIRECT_THREADED
 
-#define INIT_DISPATCH for (;;) { i = *pc; switch (GET_OPCODE(i)) {
+#define INIT_DISPATCH for (;;) { i = *pc; HOOK_VM_STEP(mrb, pc); switch (GET_OPCODE(i)) {
 #define CASE(op) case op:
 #define NEXT pc++; break
 #define JUMP break
@@ -493,8 +494,8 @@ argnum_error(mrb_state *mrb, int num)
 
 #define INIT_DISPATCH JUMP; return mrb_nil_value();
 #define CASE(op) L_ ## op:
-#define NEXT i=*++pc; goto *optable[GET_OPCODE(i)]
-#define JUMP i=*pc; goto *optable[GET_OPCODE(i)]
+#define NEXT i=*++pc; HOOK_VM_STEP(mrb, pc); goto *optable[GET_OPCODE(i)]
+#define JUMP i=*pc; HOOK_VM_STEP(mrb, pc); goto *optable[GET_OPCODE(i)]
 
 #define END_DISPATCH
 
@@ -543,7 +544,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     &&L_OP_DEBUG, &&L_OP_STOP, &&L_OP_ERR,
   };
 #endif
-
+  HOOK_MRB_RUN_ENTER(mrb, proc, self);
 
   if (setjmp(c_jmp) == 0) {
     mrb->jmp = &c_jmp;
@@ -1241,6 +1242,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         }
         if (acc < 0) {
           mrb->jmp = prev_jmp;
+          HOOK_MRB_RUN_EXIT(mrb, v, proc, self);
           return v;
         }
         DEBUG(printf("from :%s\n", mrb_sym2name(mrb, ci->mid)));
@@ -1911,8 +1913,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       }
       mrb->jmp = prev_jmp;
       if (mrb->exc) {
-	return mrb_obj_value(mrb->exc);
+  HOOK_MRB_RUN_EXIT(mrb, mrb_obj_value(mrb->exc), proc, self);
+  return mrb_obj_value(mrb->exc);
       }
+      HOOK_MRB_RUN_EXIT(mrb, regs[irep->nlocals], proc, self);
       return regs[irep->nlocals];
     }
 

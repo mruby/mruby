@@ -49,7 +49,8 @@
 //#define DISABLE_MATH		/* Math functions */
 //#define DISABLE_TIME		/* Time class */
 //#define DISABLE_STRUCT	/* Struct class */
-//#define DISABLE_STDIO		/* use of stdio */
+//#define DISABLE_STDIO   /* use of stdio */
+//#define DISABLE_HOOKS   /* hooks for debugger */
 
 /* Now DISABLE_GEMS is added as a command line flag in Rakefile, */
 /* we do not need to set it here. */
@@ -114,6 +115,9 @@ typedef short mrb_sym;
 #endif
 #ifndef DISABLE_STDIO
 #define ENABLE_STDIO
+#endif
+#ifndef DISABLE_HOOKS
+#define ENABLE_HOOKS
 #endif
 
 #ifndef FALSE

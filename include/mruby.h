@@ -137,6 +137,22 @@ typedef struct mrb_state {
   struct RClass *eStandardError_class;
 
   void *ud; /* auxiliary data */
+
+#ifdef ENABLE_HOOKS
+  void (*hook_mrb_open)(struct mrb_state* mrb);
+  void (*hook_mrb_close)(struct mrb_state* mrb);
+
+  void (*hook_mrb_realloc)(struct mrb_state* mrb, void *resultp, void* srcp, size_t size);
+  void (*hook_mrb_free)(struct mrb_state* mrb, void* p);
+
+  void (*hook_mrb_read_irep)(struct mrb_state* mrb, int ret, const char *bin);
+  void (*hook_mrb_run_enter)(struct mrb_state* mrb, struct RProc *proc, mrb_value self);
+  void (*hook_mrb_run_exit)(struct mrb_state* mrb, mrb_value result, struct RProc *proc, mrb_value self);
+
+  void (*hook_vm_step)(struct mrb_state* mrb, mrb_code *pc);
+  void (*hook_gc_start)(struct mrb_state* mrb);
+  void (*hook_gc_stop)(struct mrb_state* mrb);
+#endif
 } mrb_state;
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
