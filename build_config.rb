@@ -3,11 +3,11 @@ MRuby::Build.new do |conf|
   toolchain :gcc
 
   # Use mrbgems
-  # conf.gem 'doc/mrbgems/ruby_extension_example'
-  # conf.gem 'doc/mrbgems/c_extension_example' do |g|
+  # conf.gem 'examples/mrbgems/ruby_extension_example'
+  # conf.gem 'examples/mrbgems/c_extension_example' do |g|
   #   g.cc.flags << '-g' # append cflags in this gem
   # end
-  # conf.gem 'doc/mrbgems/c_and_ruby_extension_example'
+  # conf.gem 'examples/mrbgems/c_and_ruby_extension_example'
   # conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
   # conf.gem :git => 'git@github.com:masuidrive/mrbgems-example.git', :branch => 'master', :options => '-v'
 
@@ -74,5 +74,5 @@ end
 #   conf.cc.flags << "-m32"
 #   conf.linker.flags << "-m32"
 #   
-#   conf.gem 'doc/mrbgems/c_and_ruby_extension_example'
+#   conf.gem 'examples/mrbgems/c_and_ruby_extension_example'
 # end
