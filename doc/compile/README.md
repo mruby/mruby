@@ -23,11 +23,9 @@ Inside of the root directory of the mruby source exist a file
 called *build_config.rb*. This file contains the build configuration
 of mruby and looks like this for example:
 
-```
-MRuby::Build.new do |conf|
-  toolchain :gcc
-end
-```
+	MRuby::Build.new do |conf|
+	  toolchain :gcc
+	end
 
 All tools necessary to compile mruby can be set or modified here. In case
 you want to maintain an additional *build_config.rb* you can define a
@@ -51,26 +49,20 @@ configurates the build environment for specific compiler infrastructures.
 
 Toolchain configuration for the GNU C Compiler.
 
-```
-toolchain :gcc
-```
+	toolchain :gcc
 
 #### clang
 
 Toolchain configuration for the LLVM C Compiler clang. Mainly equal to the
 GCC toolchain.
 
-```
-toolchain :clang
-```
+	toolchain :clang
 
 #### Visual Studio 2012
 
 Toolchain configuration for Visual Studio 2012 on Windows.
 
-```
-toolchain :vs2012
-```
+	toolchain :vs2012
 
 ### Binaries
 
@@ -81,108 +73,92 @@ process. The following tools can be selected:
 * mirb (mruby interactive shell
 
 To select all define an array in ```conf.bins```:
-```
-conf.bins = %(mrbc mruby mirb)
-```
+
+	conf.bins = %(mrbc mruby mirb)
 
 ### File Separator
 
 Some environments require a different file separator character. It is possible to
 set the character via ```conf.file_separator```.
 
-```
-conf.file_separator = '/'
-```
+	conf.file_separator = '/'
 
 ### C Compiler
 
 Configuration of the C compiler binary, flags and include paths.
 
-```
-conf.cc do |cc|
-  cc.command = ...
-  cc.flags = ...
-  cc.include_paths = ...
-  cc.defines = ...
-  cc.option_include_path = ...
-  cc.option_define = ...
-  cc.compile_options = ...
-end
-```
+	conf.cc do |cc|
+	  cc.command = ...
+	  cc.flags = ...
+	  cc.include_paths = ...
+	  cc.defines = ...
+	  cc.option_include_path = ...
+	  cc.option_define = ...
+	  cc.compile_options = ...
+	end
 
 ### Linker
 
 Configuration of the Linker binary, flags and library paths.
 
-```
-conf.linker do |linker|
-  linker.command = ...
-  linker.flags = ...
-  linker.flags_before_libraries = ...
-  linker.libraries = ...
-  linker.flags_after_libraries = ...
-  linker.library_paths = ....
-  linker.option_library = ...
-  linker.option_library_path = ...
-  linker.link_options = ...
-end
-```
+	conf.linker do |linker|
+	  linker.command = ...
+	  linker.flags = ...
+	  linker.flags_before_libraries = ...
+	  linker.libraries = ...
+	  linker.flags_after_libraries = ...
+	  linker.library_paths = ....
+	  linker.option_library = ...
+	  linker.option_library_path = ...
+	  linker.link_options = ...
+	end
 
 ### Archiver
 
 Configuration of the Archiver binary and flags.
 
-```
-conf.archiver do |archiver|
-  archiver.command = ...
-  archiver.archive_options = ...
-end
-```
+	conf.archiver do |archiver|
+	  archiver.command = ...
+	  archiver.archive_options = ...
+	end
 
 ### Parser Generator
 
 Configuration of the Parser Generator binary and flags.
 
-```
-conf.yacc do |yacc|
-  yacc.command = ...
-  yacc.compile_options = ...
-end
-```
+	conf.yacc do |yacc|
+	  yacc.command = ...
+	  yacc.compile_options = ...
+	end
 
 ### GPerf
 
 Configuration of the GPerf binary and flags.
-```
-conf.gperf do |gperf|
-  gperf.command = ...
-  gperf.compile_options = ...
-end
-```
+
+	conf.gperf do |gperf|
+	  gperf.command = ...
+	  gperf.compile_options = ...
+	end
 
 ### File Extensions
 
-```
-conf.exts do |exts
-  exts.object = ...
-  exts.executable = ...
-  exts.library = ...
-end
-```
+	conf.exts do |exts
+	  exts.object = ...
+	  exts.executable = ...
+	  exts.library = ...
+	end
 
 ### Mrbgems
 
 Integrate GEMs in the build process.
 
-```
-# Integrate GEM with additional configuration
-conf.gem 'path/to/gem' do |g|
-  g.cc.flags << ...
-end
+	# Integrate GEM with additional configuration
+	conf.gem 'path/to/gem' do |g|
+	  g.cc.flags << ...
+	end
 
-# Integrate GEM without additional configuration
-conf.gem 'path/to/another/gem'
-```
+	# Integrate GEM without additional configuration
+	conf.gem 'path/to/another/gem'
 
 ## Cross-Compilation
 
@@ -192,14 +168,12 @@ achive this the *build_config.rb* needs to contain an instance of
 tools and flags for the target platform. An example could look
 like this:
 
-```
-MRuby::CrossBuild.new('32bit') do |conf|
-  toolchain :gcc
+	MRuby::CrossBuild.new('32bit') do |conf|
+	  toolchain :gcc
 
-  conf.cc.flags << "-m32"
-  conf.linker.flags << "-m32
-end
-```
+	  conf.cc.flags << "-m32"
+	  conf.linker.flags << "-m32
+	end
 
 All configuration options of ```MRuby::Build``` can also be used
 in ```MRuby::CrossBuild```.
@@ -209,29 +183,27 @@ in ```MRuby::CrossBuild```.
 During the build process the directory *build* will be created in the
 root directory. The structure of this directory will look like this:
 
-```
-+- build
-   |
-   +-  host
-       |
-       +- bin          <- Binaries (mirb, mrbc and mruby)
-       |
-       +- lib          <- Libraries (libmruby.a and libmruby_core.a)
-       |
-       +- mrblib
-       |
-       +- src
-       |
-       +- test         <- mrbtest tool
-       |
-       +- tools
-          |
-          +- mirb
-          |
-          +- mrbc
-          | 
-          +- mruby
-```
+	+- build
+	   |
+	   +-  host
+	       |
+	       +- bin          <- Binaries (mirb, mrbc and mruby)
+	       |
+	       +- lib          <- Libraries (libmruby.a and libmruby_core.a)
+	       |
+	       +- mrblib
+	       |
+	       +- src
+	       |
+	       +- test         <- mrbtest tool
+	       |
+	       +- tools
+	          |
+	          +- mirb
+	          |
+	          +- mrbc
+	          | 
+	          +- mruby
 
 The compilation workflow will look like this:
 * compile all files under *src* (object files will be stored 
@@ -263,48 +235,46 @@ link with *build/host/lib/libmruby.a*
 In case of a cross-compilation to *i386* the *build* directory structure looks
 like this:
 
-```
-+- build
-   |
-   +-  host
-   |   |
-   |   +- bin           <- Native Binaries
-   |   |
-   |   +- lib           <- Native Libraries
-   |   |
-   |   +- mrblib
-   |   |
-   |   +- src
-   |   |
-   |   +- test          <- Native mrbtest tool
-   |   |
-   |   +- tools
-   |      |
-   |      +- mirb
-   |      |
-   |      +- mrbc
-   |      | 
-   |      +- mruby 
-   +- i386
-      |
-      +- bin            <- Cross-compiled Binaries
-      |
-      +- lib            <- Cross-compiled Libraries
-      |
-      +- mrblib
-      |
-      +- src
-      |
-      +- test           <- Cross-compiled mrbtest tool
-      |
-      +- tools
-         |
-         +- mirb
-         |
-         +- mrbc
-         | 
-         +- mruby
-```
+	+- build
+	   |
+	   +-  host
+	   |   |
+	   |   +- bin           <- Native Binaries
+	   |   |
+	   |   +- lib           <- Native Libraries
+	   |   |
+	   |   +- mrblib
+	   |   |
+	   |   +- src
+	   |   |
+	   |   +- test          <- Native mrbtest tool
+	   |   |
+	   |   +- tools
+	   |      |
+	   |      +- mirb
+	   |      |
+	   |      +- mrbc
+	   |      | 
+	   |      +- mruby 
+	   +- i386
+	      |
+	      +- bin            <- Cross-compiled Binaries
+	      |
+	      +- lib            <- Cross-compiled Libraries
+	      |
+	      +- mrblib
+	      |
+	      +- src
+	      |
+	      +- test           <- Cross-compiled mrbtest tool
+	      |
+	      +- tools
+	         |
+	         +- mirb
+	         |
+	         +- mrbc
+	         | 
+	         +- mruby
 
 An extra directory is created for the target platform. In case you
 compile for *i386* a directory called *i386* is created under the
@@ -331,23 +301,23 @@ link with *build/i386/lib/libmruby.a*
 link with *build/i386/lib/libmruby_core.a* 
 
 ```
- _____________________________________________________________
-|              Native Compilation for Host System             |
-| _____      ______      _____      ____      ____      _____ |
-|| CC  | -> |AR    | -> |GEN  | -> |CC  | -> |CC  | -> |AR   ||
-|| *.c |    |core.a|    |y.tab|    |mrbc|    |*.rb|    |lib.a||
-| -----      ------      -----      ----      ----      ----- |
- -------------------------------------------------------------
+ _______________________________________________________________
+|              Native Compilation for Host System               |
+|  _____      ______      _____      ____      ____      _____  |
+| | CC  | -> |AR    | -> |GEN  | -> |CC  | -> |CC  | -> |AR   | |
+| | *.c |    |core.a|    |y.tab|    |mrbc|    |*.rb|    |lib.a| |
+|  -----      ------      -----      ----      ----      -----  |
+ ---------------------------------------------------------------
                                 ||
                                \||/
                                 \/
- ______________________________________________________________
-|             Cross Compilation for Target System              |
-| _____      _____      _____      ____      ______      _____ |
-|| CC  | -> |AR   | -> |CC   | -> |CC  | -> |AR    | -> |CC   ||
-|| *.c |    |lib.a|    |mruby|    |mirb|    |core.a|    |mrbc ||
-| -----      -----      -----      ----      ------      ----- |
- --------------------------------------------------------------
+ ________________________________________________________________
+|             Cross Compilation for Target System                |
+|  _____      _____      _____      ____      ______      _____  |
+| | CC  | -> |AR   | -> |CC   | -> |CC  | -> |AR    | -> |CC   | |
+| | *.c |    |lib.a|    |mruby|    |mirb|    |core.a|    |mrbc | |
+|  -----      -----      -----      ----      ------      -----  |
+ ----------------------------------------------------------------
 ```
 
 ## Test Environment
