@@ -66,7 +66,7 @@ mrb_ary_new(mrb_state *mrb)
 static inline void
 array_copy(mrb_value *dst, const mrb_value *src, size_t size)
 {
-  int i;
+  size_t i;
 
   for (i = 0; i < size; i++) {
     dst[i] = src[i];

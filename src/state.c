@@ -85,7 +85,7 @@ void mrb_free_heap(mrb_state *mrb);
 void
 mrb_close(mrb_state *mrb)
 {
-  int i;
+  size_t i;
 
   mrb_final_core(mrb);
 
