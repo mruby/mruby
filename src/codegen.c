@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#undef CODEGEN_TEST
 #define CODEGEN_DUMP
 
 #include "mruby.h"
@@ -2577,35 +2576,3 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
 
   return start;
 }
-
-#ifdef CODEGEN_TEST
-int
-main()
-{
-  mrb_state *mrb = mrb_open();
-  int n;
-
-#if 1
-  n = mrb_compile_string(mrb, "p(__FILE__)\np(__LINE__)");
-#else
-  n = mrb_compile_string(mrb, "\
-def fib(n)\n\
-  if n<2\n\
-    n\n\
-  else\n\
-    fib(n-2)+fib(n-1)\n\
-  end\n\
-end\n\
-p(fib(30), \"\\n\")\n\
-");
-#endif
-  printf("ret: %d\n", n);
-#ifdef CODEGEN_DUMP
-  codedump_all(mrb, n);
-#endif
-  mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[0]), mrb_nil_value());
-  mrb_close(mrb);
-
-  return 0;
-}
-#endif
