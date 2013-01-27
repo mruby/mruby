@@ -2537,7 +2537,7 @@ codedump(mrb_state *mrb, int n)
 void
 codedump_all(mrb_state *mrb, int start)
 {
-  int i;
+  size_t i;
 
   for (i=start; i<mrb->irep_len; i++) {
     codedump(mrb, i);
