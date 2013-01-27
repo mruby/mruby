@@ -99,13 +99,10 @@ mrbgems expects that you have implemented a C method called
 by the name of your GEM. If you call your GEM *c_extension_example*, your
 finalizer method could look like this:
 
-```
-void
-mrb_c_extension_example_gem_final(mrb_state* mrb) {
-   free(someone);
-}
-```
-
+	void
+	mrb_c_extension_example_gem_final(mrb_state* mrb) {
+	  free(someone);
+	}
 
 ### Example
 
