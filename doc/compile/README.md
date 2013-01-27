@@ -223,10 +223,12 @@ link with *build/host/lib/libmruby.a*
 * create ```build/host/bin/mirb``` by compile *tools/mirb/mirb.c* and
 link with *build/host/lib/libmruby.a*
 
-	 _____    _____    ______    ____    ____    _____    _____    ____
-	| CC  |->|GEN  |->|AR    |->|CC  |->|CC  |->|AR   |->|CC   |->|CC  |
-	| *.c |  |y.tab|  |core.a|  |mrbc|  |*.rb|  |lib.a|  |mruby|  |mirb|
-	 -----    -----    ------    ----    ----    -----    -----    ----
+```
+ _____    _____    ______    ____    ____    _____    _____    ____
+| CC  |->|GEN  |->|AR    |->|CC  |->|CC  |->|AR   |->|CC   |->|CC  |
+| *.c |  |y.tab|  |core.a|  |mrbc|  |*.rb|  |lib.a|  |mruby|  |mirb|
+ -----    -----    ------    ----    ----    -----    -----    ----
+```
 
 ### Cross-Compilation
 
@@ -298,23 +300,25 @@ link with *build/i386/lib/libmruby.a*
 * create ```build/i386/bin/mrbc``` by cross-compile *tools/mrbc/mrbc.c* and
 link with *build/i386/lib/libmruby_core.a* 
 
-	 _____________________________________________________________
-	|              Native Compilation for Host System             |
-	| _____      ______      _____      ____      ____      _____ |
-	|| CC  | -> |AR    | -> |GEN  | -> |CC  | -> |CC  | -> |AR   ||
-	|| *.c |    |core.a|    |y.tab|    |mrbc|    |*.rb|    |lib.a||
-	| -----      ------      -----      ----      ----      ----- |
-	 -------------------------------------------------------------
-	                                ||
-	                               \||/
-	                                \/
-	 ______________________________________________________________
-	|             Cross Compilation for Target System              |
-	| _____      _____      _____      ____      ______      _____ |
-	|| CC  | -> |AR   | -> |CC   | -> |CC  | -> |AR    | -> |CC   ||
-	|| *.c |    |lib.a|    |mruby|    |mirb|    |core.a|    |mrbc ||
-	| -----      -----      -----      ----      ------      ----- |
-	 --------------------------------------------------------------
+```
+ _______________________________________________________________
+|              Native Compilation for Host System               |
+|  _____      ______      _____      ____      ____      _____  |
+| | CC  | -> |AR    | -> |GEN  | -> |CC  | -> |CC  | -> |AR   | |
+| | *.c |    |core.a|    |y.tab|    |mrbc|    |*.rb|    |lib.a| |
+|  -----      ------      -----      ----      ----      -----  |
+ ---------------------------------------------------------------
+                                ||
+                               \||/
+                                \/
+ ________________________________________________________________
+|             Cross Compilation for Target System                |
+|  _____      _____      _____      ____      ______      _____  |
+| | CC  | -> |AR   | -> |CC   | -> |CC  | -> |AR    | -> |CC   | |
+| | *.c |    |lib.a|    |mruby|    |mirb|    |core.a|    |mrbc | |
+|  -----      -----      -----      ----      ------      -----  |
+ ----------------------------------------------------------------
+```
 
 ## Test Environment
 
