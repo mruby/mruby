@@ -395,7 +395,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
 {
   const struct types *type = builtin_types;
   struct RString *s;
-  int xt;
+  enum mrb_vtype xt;
 
   xt = mrb_type(x);
   if ((xt != t) || (xt == MRB_TT_DATA)) {
