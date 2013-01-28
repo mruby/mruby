@@ -83,7 +83,11 @@ module MRuby
       instance_eval(&block)
 
       compilers.each do |compiler|
-        compiler.defines -= %w(DISABLE_GEMS) if respond_to?(:enable_gems?) && enable_gems?
+        if respond_to?(:enable_gems?) && enable_gems?
+          compiler.defines -= %w(DISABLE_GEMS) 
+        else
+          compiler.defines += %w(DISABLE_GEMS) 
+        end
         compiler.define_rules build_dir
       end
     end

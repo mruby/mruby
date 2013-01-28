@@ -37,7 +37,6 @@ module MRuby
         MRuby::Gem.current = self
 
         @build.compilers.each do |compiler|
-          compiler.defines -= %w(DISABLE_GEMS)
           compiler.include_paths << "#{dir}/include"
         end
         MRuby::Build::COMMANDS.each do |command|
