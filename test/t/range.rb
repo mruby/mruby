@@ -48,14 +48,13 @@ assert('Range#include', '15.2.14.4.8') do
   a.include?(5) and not a.include?(20)
 end
 
-# TODO SEGFAULT ATM
-#assert('Range#initialize', '15.2.14.4.9') do
-#  a = Range.new(1, 10, true)
-#  b = Range.new(1, 10, false)
-#
-#  a == (1..10) and a.exclude_end? and b == (1..10) and
-#    not b.exclude_end?
-#end
+assert('Range#initialize', '15.2.14.4.9') do
+  a = Range.new(1, 10, true)
+  b = Range.new(1, 10, false)
+
+  a == (1...10) and a.exclude_end? and b == (1..10) and
+    not b.exclude_end?
+end
 
 assert('Range#last', '15.2.14.4.10') do
   (1..10).last == 10
