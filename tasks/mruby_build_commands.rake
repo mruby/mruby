@@ -36,14 +36,14 @@ module MRuby
 
     def initialize(build, source_exts=[])
       super(build)
-      @command = ENV['CC'] || 'gcc'
+      @command = ENV['CC'] || 'cc'
       @flags = [ENV['CFLAGS'] || []]
       @source_exts = source_exts
       @include_paths = ["#{build.root}/include"]
       @defines = %w(DISABLE_GEMS)
       @option_include_path = '-I%s'
       @option_define = '-D%s'
-      @compile_options = "%{flags} -MMD -o %{outfile} -c %{infile}"
+      @compile_options = '%{flags} -o %{outfile} -c %{infile}'
     end
 
     def all_flags(_defineds=[], _include_paths=[], _flags=[])
@@ -111,7 +111,7 @@ module MRuby
 
     def initialize(build)
       super
-      @command = ENV['LD'] || 'gcc'
+      @command = ENV['LD'] || 'ld'
       @flags = (ENV['LDFLAGS'] || [])
       @flags_before_libraries, @flags_after_libraries = [], []
       @libraries = []

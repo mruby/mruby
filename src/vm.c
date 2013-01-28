@@ -477,7 +477,7 @@ argnum_error(mrb_state *mrb, int num)
   mrb->exc = (struct RObject*)mrb_object(exc);
 }
 
-#ifdef __GNUC__
+#ifdef __GNUC__dummy
 #define DIRECT_THREADED
 #endif
 
