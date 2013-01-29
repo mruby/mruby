@@ -40,7 +40,7 @@ module MRuby
       @flags = [ENV['CFLAGS'] || []]
       @source_exts = source_exts
       @include_paths = ["#{build.root}/include"]
-      @defines = %w(DISABLE_GEMS)
+      @defines = %w()
       @option_include_path = '-I%s'
       @option_define = '-D%s'
       @compile_options = "%{flags} -MMD -o %{outfile} -c %{infile}"
