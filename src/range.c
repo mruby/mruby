@@ -43,8 +43,8 @@ mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, int excl)
   struct RRange *r;
 
   r = (struct RRange*)mrb_obj_alloc(mrb, MRB_TT_RANGE, RANGE_CLASS);
-  r->edges = (struct mrb_range_edges *)mrb_malloc(mrb, sizeof(struct mrb_range_edges));
   range_check(mrb, beg, end);
+  r->edges = (struct mrb_range_edges *)mrb_malloc(mrb, sizeof(struct mrb_range_edges));
   r->edges->beg = beg;
   r->edges->end = end;
   r->excl = excl;
