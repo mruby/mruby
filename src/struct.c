@@ -463,7 +463,7 @@ mrb_struct_initialize(mrb_state *mrb, mrb_value self, mrb_value values)
 }
 
 static mrb_value
-inspect_struct(mrb_state *mrb, mrb_value s, mrb_value dummy, int recur)
+inspect_struct(mrb_state *mrb, mrb_value s, int recur)
 {
     const char *cn = mrb_class_name(mrb, mrb_obj_class(mrb, s));
     mrb_value members, str = mrb_str_new(mrb, "#<struct ", 9);
@@ -521,7 +521,7 @@ inspect_struct(mrb_state *mrb, mrb_value s, mrb_value dummy, int recur)
 static mrb_value
 mrb_struct_inspect(mrb_state *mrb, mrb_value s)
 {
-    return inspect_struct(mrb, s, s, 0);
+    return inspect_struct(mrb, s, 0);
 }
 
 /* 15.2.18.4.9  */
