@@ -53,43 +53,37 @@ module MRuby
     Exts = Struct.new(:object, :executable, :library)
 
     def initialize(name='host', &block)
-      MRuby::Build.current = self
-      @name = name
-      @root = File.expand_path("#{File.dirname(__FILE__)}/..")
+      @name = name.to_s
 
-      if ENV['OS'] == 'Windows_NT'
-        @exts = Exts.new('.o', '.exe', '.a')
-      else
-        @exts = Exts.new('.o', '', '.a')
-      end
+      unless MRuby.targets[@name]
+        @root = File.expand_path("#{File.dirname(__FILE__)}/..")
 
-      @file_separator = '/'
-      @cc = Command::Compiler.new(self, %w(.c))
-      @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp))
-      @objc = Command::Compiler.new(self, %w(.m))
-      @asm = Command::Compiler.new(self, %w(.S .asm))
-      @linker = Command::Linker.new(self)
-      @archiver = Command::Archiver.new(self)
-      @yacc = Command::Yacc.new(self)
-      @gperf = Command::Gperf.new(self)
-      @git = Command::Git.new(self)
-      @mrbc = Command::Mrbc.new(self)
-
-      @bins = %w(mruby mrbc mirb)
-      @gems, @libmruby = [], []
-
-      MRuby.targets[name.to_s] = self
-
-      instance_eval(&block)
-
-      compilers.each do |compiler|
-        if respond_to?(:enable_gems?) && enable_gems?
-          compiler.defines -= %w(DISABLE_GEMS) 
+        if ENV['OS'] == 'Windows_NT'
+          @exts = Exts.new('.o', '.exe', '.a')
         else
-          compiler.defines += %w(DISABLE_GEMS) 
+          @exts = Exts.new('.o', '', '.a')
         end
-        compiler.define_rules build_dir
+
+        @file_separator = '/'
+        @cc = Command::Compiler.new(self, %w(.c))
+        @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp))
+        @objc = Command::Compiler.new(self, %w(.m))
+        @asm = Command::Compiler.new(self, %w(.S .asm))
+        @linker = Command::Linker.new(self)
+        @archiver = Command::Archiver.new(self)
+        @yacc = Command::Yacc.new(self)
+        @gperf = Command::Gperf.new(self)
+        @git = Command::Git.new(self)
+        @mrbc = Command::Mrbc.new(self)
+
+        @bins = %w(mruby mrbc mirb)
+        @gems, @libmruby = [], []
+
+        MRuby.targets[@name] = self
       end
+
+      MRuby::Build.current = MRuby.targets[@name]
+      MRuby.targets[@name].instance_eval(&block)
     end
 
     def toolchain(name)
@@ -109,6 +103,17 @@ module MRuby
     def compilers
       COMPILERS.map do |c|
         instance_variable_get("@#{c}")
+      end
+    end
+
+    def define_rules
+      compilers.each do |compiler|
+        if respond_to?(:enable_gems?) && enable_gems?
+          compiler.defines -= %w(DISABLE_GEMS) 
+        else
+          compiler.defines += %w(DISABLE_GEMS) 
+        end
+        compiler.define_rules build_dir
       end
     end
 
