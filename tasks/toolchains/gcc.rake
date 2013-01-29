@@ -1,5 +1,5 @@
 MRuby::Toolchain.new(:gcc) do |conf|
-  [conf.cc, conf.cxx, conf.objc].each do |cc|
+  [conf.cc, conf.cxx, conf.objc, conf.asm].each do |cc|
     cc.command = ENV['CC'] || 'gcc'
     cc.flags = [ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration)]
     cc.include_paths = ["#{root}/include"]
