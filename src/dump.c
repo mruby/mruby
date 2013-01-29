@@ -59,7 +59,7 @@ static inline int uint16_dump(uint16_t,char*,int);
 static inline int uint32_dump(uint32_t,char*,int);
 static char* str_dump(char*,char*,uint16_t,int);
 static uint16_t str_dump_len(char*,uint16_t, int);
-static uint32_t get_irep_header_size(mrb_state*,mrb_irep*,int);
+static uint32_t get_irep_header_size(mrb_state*,int);
 static uint32_t get_iseq_block_size(mrb_state*,mrb_irep*,int);
 static uint32_t get_pool_block_size(mrb_state*,mrb_irep*,int);
 static uint32_t get_syms_block_size(mrb_state*,mrb_irep*,int);
@@ -202,7 +202,7 @@ str_dump_len(char *str, uint16_t len, int type)
 }
 
 static uint32_t
-get_irep_header_size(mrb_state *mrb, mrb_irep *irep, int type)
+get_irep_header_size(mrb_state *mrb, int type)
 {
   uint32_t size = 0;
 
@@ -305,7 +305,7 @@ get_irep_record_size(mrb_state *mrb, int irep_no, int type)
   mrb_irep *irep = mrb->irep[irep_no];
 
   size += DUMP_SIZE(MRB_DUMP_SIZE_OF_LONG, type); /* rlen */
-  size += get_irep_header_size(mrb, irep, type);
+  size += get_irep_header_size(mrb, type);
   size += get_iseq_block_size(mrb, irep, type);
   size += get_pool_block_size(mrb, irep, type);
   size += get_syms_block_size(mrb, irep, type);
@@ -480,7 +480,7 @@ calc_crc_section(mrb_state *mrb, mrb_irep *irep, uint16_t *crc, int section)
   int result;
 
   switch (section) {
-  case DUMP_IREP_HEADER: buf_size = get_irep_header_size(mrb, irep, type); break;
+  case DUMP_IREP_HEADER: buf_size = get_irep_header_size(mrb, type); break;
   case DUMP_ISEQ_BLOCK:  buf_size = get_iseq_block_size(mrb, irep, type); break;
   case DUMP_POOL_BLOCK:  buf_size = get_pool_block_size(mrb, irep, type); break;
   case DUMP_SYMS_BLOCK:  buf_size = get_syms_block_size(mrb, irep, type); break;
