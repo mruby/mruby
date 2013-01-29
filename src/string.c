@@ -6,7 +6,6 @@
 
 #include "mruby.h"
 
-#include <stdarg.h>
 #include <string.h>
 #include "mruby/string.h"
 #include <ctype.h>
@@ -2852,27 +2851,6 @@ mrb_value
 mrb_str_cat2(mrb_state *mrb, mrb_value str, const char *ptr)
 {
   return mrb_str_cat(mrb, str, ptr, strlen(ptr));
-}
-
-static mrb_value
-mrb_str_vcatf(mrb_state *mrb, mrb_value str, const char *fmt, va_list ap)
-{
-    mrb_string_value(mrb, &str);
-    mrb_str_resize(mrb, str, (char*)RSTRING_END(str) - RSTRING_PTR(str));
-
-    return str;
-}
-
-mrb_value
-mrb_str_catf(mrb_state *mrb, mrb_value str, const char *format, ...)
-{
-    va_list ap;
-
-    va_start(ap, format);
-    str = mrb_str_vcatf(mrb, str, format, ap);
-    va_end(ap);
-
-    return str;
 }
 
 mrb_value
