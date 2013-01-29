@@ -899,7 +899,6 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
     return mrb_obj_value(mrb->false_class);
   case MRB_TT_TRUE:
     return mrb_obj_value(mrb->true_class);
-  case MRB_TT_MAIN:
   case MRB_TT_VOIDP:
     return mrb_obj_value(mrb->object_class);
   case MRB_TT_SYMBOL:
@@ -1754,6 +1753,12 @@ mrb_mod_eqq(mrb_state *mrb, mrb_value mod)
   return mrb_true_value();
 }
 
+static mrb_value
+mrb_top_self_to_s(mrb_state *mrb, mrb_value top_self)
+{
+  return mrb_str_new(mrb, "main", 4);
+}
+
 void
 mrb_init_class(mrb_state *mrb)
 {
@@ -1828,4 +1833,8 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "===", mrb_mod_eqq, ARGS_REQ(1));
   mrb_undef_method(mrb, cls, "append_features");
   mrb_undef_method(mrb, cls, "extend_object");
+
+  mrb->top_self = (struct RObject*)mrb_obj_alloc(mrb, MRB_TT_OBJECT, obj);
+  mrb_define_singleton_method(mrb, mrb->top_self, "to_s", mrb_top_self_to_s, ARGS_NONE());
+  mrb_define_singleton_method(mrb, mrb->top_self, "inspect", mrb_top_self_to_s, ARGS_NONE());
 }

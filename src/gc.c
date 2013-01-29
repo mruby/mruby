@@ -604,6 +604,8 @@ root_scan_phase(mrb_state *mrb)
   }
   /* mark class hierarchy */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->object_class);
+  /* mark top self */
+  mrb_gc_mark(mrb, (struct RBasic*)mrb->top_self);
   /* mark exception */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
   /* mark stack */

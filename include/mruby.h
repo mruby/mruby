@@ -106,6 +106,8 @@ typedef struct mrb_state {
   struct RClass *symbol_class;
   struct RClass *kernel_module;
 
+  struct RObject *top_self;
+
   struct heap_page *heaps;
   struct heap_page *sweeps;
   struct heap_page *free_heaps;
