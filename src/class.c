@@ -293,7 +293,9 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
   if (!h) h = c->mt = kh_init(mt, mrb);
   k = kh_put(mt, h, mid);
   kh_value(h, k) = p;
-  mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
+  if (p) {
+    mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
+  }
 }
 
 void
@@ -304,7 +306,6 @@ mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t f
   p = mrb_proc_new_cfunc(mrb, func);
   p->target_class = c;
   mrb_define_method_raw(mrb, c, mid, p);
-  mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
 }
 
 void
@@ -324,6 +325,9 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
   k = kh_put(mt, h, name);
   p = mrb_proc_ptr(body);
   kh_value(h, k) = p;
+  if (p) {
+    mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
+  }
 }
 
 static mrb_value
