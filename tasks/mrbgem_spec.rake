@@ -22,7 +22,7 @@ module MRuby
       alias :author= :authors=
 
       attr_accessor :rbfiles, :objs
-      attr_accessor :test_objs, :test_rbfiles
+      attr_accessor :test_objs, :test_rbfiles, :test_args
       attr_accessor :test_preload
 
       attr_block MRuby::Build::COMMANDS
@@ -54,6 +54,7 @@ module MRuby
           objfile(f.relative_path_from(dir).to_s.pathmap("#{build_dir}/%X"))
         end
         @test_preload = 'test/assert.rb'
+        @test_args = {}
 
         instance_eval(&@initializer)
 
@@ -140,6 +141,7 @@ module MRuby
         f.puts %Q[#include "mruby/proc.h"]
         f.puts %Q[#include "mruby/variable.h"]
         f.puts %Q[#include "mruby/array.h"]
+        f.puts %Q[#include "mruby/hash.h"]
       end
 
     end # Specification
