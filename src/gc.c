@@ -628,12 +628,13 @@ root_scan_phase(mrb_state *mrb)
   /* mark irep pool */
   if (mrb->irep) {
     size_t len = mrb->irep_len;
+    size_t irep_count;
     if (len > mrb->irep_capa) len = mrb->irep_capa;
-    for (i=0; i<len; i++) {
-      mrb_irep *irep = mrb->irep[i];
+    for (irep_count=0; irep_count<len; irep_count++) {
+      mrb_irep *irep = mrb->irep[irep_count];
       if (!irep) continue;
       for (j=0; j<irep->plen; j++) {
-	mrb_gc_mark_value(mrb, irep->pool[j]);
+        mrb_gc_mark_value(mrb, irep->pool[j]);
       }
     }
   }
