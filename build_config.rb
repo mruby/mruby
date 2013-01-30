@@ -74,5 +74,5 @@ end
 #   conf.cc.flags << "-m32"
 #   conf.linker.flags << "-m32"
 #   
-#   conf.gem 'doc/mrbgems/c_and_ruby_extension_example'
+#   conf.gem 'examples/mrbgems/c_and_ruby_extension_example'
 # end
