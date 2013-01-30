@@ -36,7 +36,9 @@ MRuby.each_target do
             if not g.test_args.empty?
               f.puts %Q[  mrb_value test_args_hash = mrb_hash_new_capa(mrb, #{g.test_args.length}); ]
               g.test_args.each do |arg_name, arg_value|
-                f.puts %Q[  mrb_hash_set(mrb2, test_args_hash, mrb_str_new(mrb2, "#{arg_name.to_s}", #{arg_name.to_s.length}), mrb_str_new(mrb2, "#{arg_value.to_s}", #{arg_value.to_s.length})); ]
+                escaped_arg_name = arg_name.gsub('\\', '\\\\\\\\').gsub('"', '\"')
+                escaped_arg_value = arg_value.gsub('\\', '\\\\\\\\').gsub('"', '\"')
+                f.puts %Q[  mrb_hash_set(mrb2, test_args_hash, mrb_str_new(mrb2, "#{escaped_arg_name.to_s}", #{escaped_arg_name.to_s.length}), mrb_str_new(mrb2, "#{escaped_arg_value.to_s}", #{escaped_arg_value.to_s.length})); ]
               end
               f.puts %Q[  mrb_gv_set(mrb2, mrb_intern(mrb2, "$test_args"), test_args_hash); ]
             end
