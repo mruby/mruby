@@ -18,6 +18,6 @@ MRuby::Gem::Specification.new('ruby_extension_example') do |spec|
   # spec.test_objs = Dir.glob("#{dir}/test/*.{c,cpp,m,asm,S}").map { |f| objfile(f.relative_path_from(dir).pathmap("#{build_dir}/%X")) }
   # spec.test_preload = 'test/assert.rb'
 
-  # Values accessible as $test_args inside test scripts
+  # Values accessible as TEST_ARGS inside test scripts
   # spec.test_args = {'tmp_dir' => Dir::tmpdir}
 end
