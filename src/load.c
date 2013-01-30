@@ -135,8 +135,7 @@ load_rite_header(FILE* fp, rite_binary_header* bin_header, unsigned char* hcrc)
 static int
 load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_t* len)
 {
-  int i;
-  uint32_t blocklen;
+  uint32_t block_count, blocklen;
   uint16_t offset, pdl, snl, clen;
   unsigned char hex2[2] = {0}, hex4[4] = {0}, hex8[8] = {0}, hcrc[4] = {0};
   unsigned char *pStart;
@@ -178,7 +177,7 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
   rite_fgets(rfp, hex8, sizeof(hex8), TRUE);            //iseq length
   dst += hex_to_bin32(dst, hex8);
   blocklen = hex_to_uint32(hex8);
-  for (i=0; i<blocklen; i++) {
+  for (block_count=0; block_count<blocklen; block_count++) {
     rite_fgets(rfp, hex8, sizeof(hex8), TRUE);          //iseq
     dst += hex_to_bin32(dst, hex8);
   }
@@ -189,7 +188,7 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
   rite_fgets(rfp, hex8, sizeof(hex8), TRUE);            //pool length
   dst += hex_to_bin32(dst, hex8);
   blocklen = hex_to_uint32(hex8);
-  for (i=0; i<blocklen; i++) {
+  for (block_count=0; block_count<blocklen; block_count++) {
     rite_fgets(rfp, hex2, sizeof(hex2), TRUE);          //TT
     dst += hex_to_bin8(dst, hex2);
     rite_fgets(rfp, hex4, sizeof(hex4), TRUE);          //pool data length
@@ -216,7 +215,7 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
   rite_fgets(rfp, hex8, sizeof(hex8), TRUE);            //syms length
   dst += hex_to_bin32(dst, hex8);
   blocklen = hex_to_uint32(hex8);
-  for (i=0; i<blocklen; i++) {
+  for (block_count=0; block_count<blocklen; block_count++) {
     rite_fgets(rfp, hex4, sizeof(hex4), TRUE);          //symbol name length
     snl = hex_to_uint16(hex4);
 
@@ -254,8 +253,8 @@ error_exit:
 int
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
-  int ret, i;
-  uint32_t  len, rlen = 0;
+  int ret;
+  uint32_t lc, len, rlen = 0;
   unsigned char hex8[8], hcrc[4];
   unsigned char *dst, *rite_dst = NULL;
   rite_binary_header  bin_header;
@@ -286,7 +285,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 
   //Read Binary Data Section
   len = bin_to_uint16(bin_header.nirep);
-  for (i=0; i<len; i++) {
+  for (lc=0; lc<len; lc++) {
     rite_fgets(rfp, hex8, sizeof(hex8), TRUE);                      //record len
     dst += hex_to_bin32(dst, hex8);
     ret = load_rite_irep_record(mrb, rfp, dst, &rlen);
@@ -513,7 +512,8 @@ error_exit:
 int
 mrb_read_irep(mrb_state *mrb, const char *bin)
 {
-  int ret = MRB_DUMP_OK, i, n, nirep, sirep;
+  int ret = MRB_DUMP_OK, n, nirep;
+  size_t sirep, sirep_count;
   uint32_t len = 0;
   unsigned char *src;
   rite_binary_header  bin_header;
@@ -532,7 +532,7 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
   src += sizeof(bin_header) + MRB_DUMP_SIZE_OF_SHORT;  //header + crc
 
   //Read Binary Data Section
-  for (n=0,i=sirep; n<nirep; n++,i++) {
+  for (n=0,sirep_count=sirep; n<nirep; n++,sirep_count++) {
     src += MRB_DUMP_SIZE_OF_LONG;                      //record ren
     ret = read_rite_irep_record(mrb, src, &len);
     if (ret != MRB_DUMP_OK)
@@ -545,18 +545,18 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
 
 error_exit:
   if (ret != MRB_DUMP_OK) {
-    for (n=0,i=sirep; i<mrb->irep_len; n++,i++) {
-      if (mrb->irep[i]) {
-        if (mrb->irep[i]->iseq)
-          mrb_free(mrb, mrb->irep[i]->iseq);
+    for (n=0,sirep_count=sirep; sirep_count<mrb->irep_len; n++,sirep_count++) {
+      if (mrb->irep[sirep_count]) {
+        if (mrb->irep[sirep_count]->iseq)
+          mrb_free(mrb, mrb->irep[sirep_count]->iseq);
 
-        if (mrb->irep[i]->pool)
-          mrb_free(mrb, mrb->irep[i]->pool);
+        if (mrb->irep[sirep_count]->pool)
+          mrb_free(mrb, mrb->irep[sirep_count]->pool);
 
-        if (mrb->irep[i]->syms)
-          mrb_free(mrb, mrb->irep[i]->syms);
+        if (mrb->irep[sirep_count]->syms)
+          mrb_free(mrb, mrb->irep[sirep_count]->syms);
 
-        mrb_free(mrb, mrb->irep[i]);
+        mrb_free(mrb, mrb->irep[sirep_count]);
       }
     }
     //    mrb->irep_len = sirep;
