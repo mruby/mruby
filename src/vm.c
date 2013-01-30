@@ -1236,6 +1236,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         acc = ci->acc;
         pc = ci->pc;
         regs = mrb->stack = mrb->stbase + ci->stackidx;
+        {
+          int idx = eidx;
+          while (idx > mrb->ci->eidx) {
+            mrb_gc_protect(mrb, mrb_obj_value(mrb->ensure[--idx]));
+          }
+        }
         while (eidx > mrb->ci->eidx) {
           ecall(mrb, --eidx);
         }
