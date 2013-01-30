@@ -32,7 +32,17 @@ MRuby.each_target do
             f.puts %Q[    exit(0);]
             f.puts %Q[  }]
             f.puts %Q[  mrb_const_set(mrb2, mrb_obj_value(mrb2->object_class), mrb_intern(mrb2, "GEMNAME"), mrb_str_new(mrb2, "#{g.name}", #{g.name.length}));]
-            
+
+            if not g.test_args.empty?
+              f.puts %Q[  mrb_value test_args_hash = mrb_hash_new_capa(mrb, #{g.test_args.length}); ]
+              g.test_args.each do |arg_name, arg_value|
+                escaped_arg_name = arg_name.gsub('\\', '\\\\\\\\').gsub('"', '\"')
+                escaped_arg_value = arg_value.gsub('\\', '\\\\\\\\').gsub('"', '\"')
+                f.puts %Q[  mrb_hash_set(mrb2, test_args_hash, mrb_str_new(mrb2, "#{escaped_arg_name.to_s}", #{escaped_arg_name.to_s.length}), mrb_str_new(mrb2, "#{escaped_arg_value.to_s}", #{escaped_arg_value.to_s.length})); ]
+              end
+              f.puts %Q[  mrb_const_set(mrb2, mrb_obj_value(mrb2->object_class), mrb_intern(mrb2, "TEST_ARGS"), test_args_hash); ]
+            end
+
             f.puts %Q[  mrb_#{g.funcname}_gem_test(mrb2);] unless g.test_objs.empty? 
             
             f.puts %Q[  mrb_load_irep(mrb2, gem_test_irep_#{g.funcname}_#{i});]
