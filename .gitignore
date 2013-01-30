@@ -2,3 +2,4 @@ gem_*
 gem-*
 mrb-*.a
 src/*.o
+/tmp
