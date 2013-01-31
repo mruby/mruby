@@ -336,7 +336,12 @@ write_iseq_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
   buf += uint32_dump((uint32_t)irep->ilen, buf, type); /* number of opcode */
 
   for (iseq_no = 0; iseq_no < irep->ilen; iseq_no++) {
-    buf += uint32_dump((uint32_t)irep->iseq[iseq_no], buf, type); /* opcode */
+    if (type == DUMP_TYPE_BIN){
+      *(uint32_t *)buf = irep->iseq[iseq_no];
+      buf += MRB_DUMP_SIZE_OF_LONG;
+    }else{
+      buf += uint32_dump((uint32_t)irep->iseq[iseq_no], buf, type); /* opcode */
+    }
   }
 
   return (int)(buf - buf_top);
