@@ -374,15 +374,9 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
   irep->ilen = bin_to_uint32(src);          //iseq length
   src += MRB_DUMP_SIZE_OF_LONG;
   if (irep->ilen > 0) {
-    /*irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);
-    if (irep->iseq == NULL) {
-      ret = MRB_DUMP_GENERAL_FAILURE;
-      goto error_exit;
-    }*/
     irep->iseq = (mrb_code *)src;               //iseq
     irep->flags = MRB_ISEQ_NO_FREE;
     for (i=0; i<irep->ilen; i++) {
-      //irep->iseq[i] = bin_to_uint32(src);     //iseq
       src += MRB_DUMP_SIZE_OF_LONG;
     }
   }
