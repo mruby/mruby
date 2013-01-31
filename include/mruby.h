@@ -140,7 +140,6 @@ typedef struct mrb_state {
 } mrb_state;
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
-typedef mrb_value (*mrb_funcargv_t)(mrb_state *mrb, mrb_value, int argc, mrb_value* argv);
 struct RClass *mrb_define_class(mrb_state *, const char*, struct RClass*);
 struct RClass *mrb_define_module(mrb_state *, const char*);
 mrb_value mrb_singleton_class(mrb_state*, mrb_value);
@@ -248,7 +247,6 @@ mrb_value mrb_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const ch
 int mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c);
 mrb_value mrb_obj_inspect(mrb_state *mrb, mrb_value self);
 mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
-mrb_value mrb_check_funcall(mrb_state *mrb, mrb_value recv, mrb_sym mid, int argc, mrb_value *argv);
 
 /* need to include <ctype.h> to use these macros */
 #ifndef ISPRINT
