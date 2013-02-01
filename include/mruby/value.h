@@ -55,7 +55,7 @@ typedef struct mrb_value {
 #define MRB_SET_VALUE(o, ttt, attr, v) do {\
   (o).tt = ttt;\
   (o).attr = v;\
-} while (0);
+} while (0)
 
 static inline mrb_value
 mrb_float_value(mrb_float f)
@@ -131,7 +131,7 @@ typedef struct mrb_value {
 #define MRB_SET_VALUE(o, tt, attr, v) do {\
   (o).ttt = mrb_mktt(tt);\
   (o).attr = v;\
-} while (0);
+} while (0)
 
 static inline mrb_value
 mrb_float_value(mrb_float f)
