@@ -1,7 +1,7 @@
 MRuby::Toolchain.new(:vs2012) do |conf|
   [conf.cc, conf.cxx].each do |cc|
     cc.command = ENV['CC'] || 'cl.exe'
-    cc.flags = [ENV['CFLAGS'] || %w(/c /nologo /W3 /D_DEBUG /MDd /Zi /Od /RTC1 /DDISABLE_GEMS /DHAVE_STRING_H /DNO_GETTIMEOFDAY /D_CRT_SECURE_NO_WARNINGS)]
+    cc.flags = [ENV['CFLAGS'] || %w(/c /nologo /W3 /D_DEBUG /MDd /Zi /Od /RTC1 /DHAVE_STRING_H /DNO_GETTIMEOFDAY /D_CRT_SECURE_NO_WARNINGS)]
     cc.include_paths = ["#{root}/include"]
     cc.defines = %w(DISABLE_GEMS)
     cc.option_include_path = '/I%s'
