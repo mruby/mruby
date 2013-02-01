@@ -40,6 +40,7 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   mrb->jmp = &c_jmp;
 
   mrb_init_core(mrb);
+  mrb->jmp = NULL;
   return mrb;
 }
 
