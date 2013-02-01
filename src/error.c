@@ -16,8 +16,6 @@
 #include "mruby/proc.h"
 #include "mruby/irep.h"
 
-#define warn_printf printf
-
 mrb_value
 mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
 {
@@ -27,7 +25,6 @@ mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
 mrb_value
 mrb_exc_new3(mrb_state *mrb, struct RClass* c, mrb_value str)
 {
-  //StringValue(str);
   mrb_string_value(mrb, &str);
   return mrb_funcall(mrb, mrb_obj_value(c), "new", 1, str);
 }
