@@ -11,7 +11,7 @@
 #include <math.h>
 
 #define domain_error(msg) \
-    mrb_raise(mrb, E_RANGE_ERROR, "Numerical argument is out of domain - " #msg);
+    mrb_raise(mrb, E_RANGE_ERROR, "Numerical argument is out of domain - " #msg)
 
 /* math functions not provided under Microsoft Visual C++ */
 #ifdef _MSC_VER

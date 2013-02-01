@@ -231,11 +231,11 @@ void mrb_gc_arena_restore(mrb_state*,int);
 void mrb_gc_mark(mrb_state*,struct RBasic*);
 #define mrb_gc_mark_value(mrb,val) do {\
   if (mrb_type(val) >= MRB_TT_OBJECT) mrb_gc_mark((mrb), mrb_object(val));\
-} while (0);
+} while (0)
 void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
 #define mrb_field_write_barrier_value(mrb, obj, val) do{\
   if ((val.tt >= MRB_TT_OBJECT)) mrb_field_write_barrier((mrb), (obj), mrb_object(val));\
-} while (0);
+} while (0)
 void mrb_write_barrier(mrb_state *, struct RBasic*);
 
 mrb_value mrb_check_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *tname, const char *method);
