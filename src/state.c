@@ -8,6 +8,8 @@
 #include "mruby/irep.h"
 #include "mruby/variable.h"
 #include <string.h>
+#include <setjmp.h>
+#include <stdio.h>
 
 void mrb_init_heap(mrb_state*);
 void mrb_init_core(mrb_state*);
@@ -16,6 +18,7 @@ void mrb_final_core(mrb_state*);
 mrb_state*
 mrb_open_allocf(mrb_allocf f, void *ud)
 {
+  jmp_buf c_jmp;
   static const mrb_state mrb_state_zero = { 0 };
   mrb_state *mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
   if (mrb == NULL) return NULL;
@@ -26,6 +29,16 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   mrb->current_white_part = MRB_GC_WHITE_A;
 
   mrb_init_heap(mrb);
+
+  if (setjmp(c_jmp) != 0) {
+    if (mrb->exc) {
+      mrb_p(mrb, mrb_obj_value(mrb->exc));
+      mrb->jmp = NULL;
+    }
+    return NULL;
+  }
+  mrb->jmp = &c_jmp;
+
   mrb_init_core(mrb);
   return mrb;
 }
