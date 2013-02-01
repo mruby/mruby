@@ -32,7 +32,9 @@ mrb_open_allocf(mrb_allocf f, void *ud)
 
   if (setjmp(c_jmp) != 0) {
     if (mrb->exc) {
+#ifdef ENABLE_STDIO
       mrb_p(mrb, mrb_obj_value(mrb->exc));
+#endif
       mrb->jmp = NULL;
     }
     return NULL;
