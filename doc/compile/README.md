@@ -160,6 +160,16 @@ Integrate GEMs in the build process.
 	# Integrate GEM without additional configuration
 	conf.gem 'path/to/another/gem'
 
+
+### Mrbtest
+
+Configuration Mrbtest build process.
+
+If you want mrbtest.a only, You should set ```conf.build_mrbtest_lib_only```
+
+	conf.build_mrbtest_lib_only
+
+
 ## Cross-Compilation
 
 mruby can also be cross-compiled from one platform to another. To

@@ -78,6 +78,7 @@ module MRuby
 
         @bins = %w(mruby mrbc mirb)
         @gems, @libmruby = [], []
+        @build_mrbtest_lib_only = false
 
         MRuby.targets[@name] = self
       end
@@ -147,6 +148,14 @@ module MRuby
       else
         "#{name}#{exts.library}"
       end
+    end
+
+    def build_mrbtest_lib_only
+      @build_mrbtest_lib_only = true
+    end
+
+    def build_mrbtest_lib_only?
+      @build_mrbtest_lib_only
     end
 
     def run_test
