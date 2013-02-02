@@ -77,8 +77,8 @@ module MRuby
         "#{build.build_dir}/mrbgems/#{name}"
       end
 
-      def testlib
-        libfile("#{build_dir}/libmrb-#{name}-gem-test")
+      def test_rbireps
+        "#{build_dir}/gem_test.c"
       end
 
       def funcname
