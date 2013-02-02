@@ -36,7 +36,7 @@ check_error(mrb_state *mrb)
 }
 
 int
-main(void)
+main(int argc, char **argv)
 {
   mrb_state *mrb;
   mrb_value return_value;
@@ -50,6 +50,11 @@ main(void)
   if (mrb == NULL) {
     fprintf(stderr, "Invalid mrb_state, exiting test driver");
     return EXIT_FAILURE;
+  }
+
+  if (argc == 2 && strncmp(argv[1], "-v", 2) == 0) {
+    printf("verbose mode: enable\n\n");
+    mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_verbose"), mrb_true_value());
   }
 
   mrb_init_mrbtest(mrb);
