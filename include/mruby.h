@@ -307,10 +307,6 @@ typedef enum call_type {
     CALL_TYPE_MAX
 } call_type;
 
-/* compar.c */
-void mrb_cmperr(mrb_state *mrb, mrb_value x, mrb_value y);
-int mrb_cmpint(mrb_state *mrb, mrb_value val, mrb_value a, mrb_value b);
-
 #ifndef ANYARGS
 # ifdef __cplusplus
 #   define ANYARGS ...
