@@ -2141,6 +2141,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
 
     end = beg;
     while (ptr < eptr) {
+      int ai = mrb_gc_arena_save(mrb);
       c = (unsigned char)*ptr++;
       if (skip) {
 	if (ascii_isspace(c)) {
@@ -2154,6 +2155,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       }
       else if (ascii_isspace(c)) {
 	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
+        mrb_gc_arena_restore(mrb, ai);
 	skip = 1;
 	beg = ptr - bptr;
 	if (lim >= 0) ++i;
@@ -2170,18 +2172,22 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     long slen = RSTRING_LEN(spat);
 
     if (slen == 0) {
+      int ai = mrb_gc_arena_save(mrb);
       while (ptr < eptr) {
 	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr-temp, 1));
+        mrb_gc_arena_restore(mrb, ai);
 	ptr++;
 	if (lim >= 0 && lim <= ++i) break;
       }
     }
     else {
       char *sptr = RSTRING_PTR(spat);
+      int ai = mrb_gc_arena_save(mrb);
 
       while (ptr < eptr &&
 	     (end = mrb_memsearch(sptr, slen, ptr, eptr - ptr)) >= 0) {
 	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr - temp, end));
+        mrb_gc_arena_restore(mrb, ai);
 	ptr += end + slen;
 	if (lim >= 0 && lim <= ++i) break;
       }
@@ -2198,14 +2204,18 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     struct re_registers *regs;
 
     while ((end = mrb_reg_search(mrb, spat, str, start, 0)) >= 0) {
+      int ai;
       regs = RMATCH_REGS(mrb_backref_get(mrb));
+      ai = mrb_gc_arena_save(mrb);
       if (start == end && BEG(0) == END(0)) {
         if (!ptr) {
           mrb_ary_push(mrb, result, mrb_str_new_empty(mrb, str));
+          mrb_gc_arena_restore(mrb, ai);
           break;
         }
         else if (last_null == 1) {
           mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, len));
+          mrb_gc_arena_restore(mrb, ai);
           beg = start;
         }
         else {
@@ -2219,6 +2229,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       }
       else {
         mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
+        mrb_gc_arena_restore(mrb, ai);
         beg = start = END(0);
       }
       last_null = 0;
@@ -2230,6 +2241,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
         else
             tmp = mrb_str_subseq(mrb, str, BEG(idx), END(idx)-BEG(idx));
         mrb_ary_push(mrb, result, tmp);
+        mrb_gc_arena_restore(mrb, ai);
       }
       if (lim >= 0 && lim <= ++i) break;
     }
