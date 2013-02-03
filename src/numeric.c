@@ -1160,7 +1160,7 @@ fix_minus(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_fix2str(mrb_state *mrb, mrb_value x, int base)
 {
-  char buf[64], *b = buf + sizeof buf;
+  char buf[sizeof(mrb_int)*CHAR_BIT+2], *b = buf + sizeof buf;
   mrb_int val = mrb_fixnum(x);
   int neg = 0;
 
