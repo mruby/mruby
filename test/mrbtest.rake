@@ -28,7 +28,7 @@ MRuby.each_target do
   file mlib => [clib]
   file clib => [mrbcfile, init, asslib] + mrbs do |t|
     _pp "GEN", "*.rb", "#{clib}"
-    FileUtils.mkdir_p File.dirname(__FILE__)
+    FileUtils.mkdir_p File.dirname(clib)
     open(clib, 'w') do |f|
       f.puts IO.read(init)
       mrbc.run f, [asslib] + mrbs, 'mrbtest_irep'
