@@ -72,7 +72,6 @@ mrb_value mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, int badcheck)
 double mrb_str_to_dbl(mrb_state *mrb, mrb_value str, int badcheck);
 mrb_value mrb_str_to_str(mrb_state *mrb, mrb_value str);
 mrb_int mrb_str_hash(mrb_state *mrb, mrb_value str);
-int mrb_str_hash_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2);
 mrb_value mrb_str_buf_append(mrb_state *mrb, mrb_value str, mrb_value str2);
 mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
 int mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2);
