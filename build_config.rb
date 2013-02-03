@@ -71,8 +71,13 @@ end
 # MRuby::CrossBuild.new('32bit') do |conf|
 #   toolchain :gcc
 #   
-#   conf.cc.flags << "-m32"
-#   conf.linker.flags << "-m32"
+#   conf.cc do |cc|
+#     cc.flags = %w(-m32)
+#   end
+#
+#   conf.linker do |linker|
+#     linker.flags = %w(-m32)
+#    end
 #   
 #   conf.gem 'examples/mrbgems/c_and_ruby_extension_example'
 # end
