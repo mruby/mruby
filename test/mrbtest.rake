@@ -8,20 +8,27 @@ MRuby.each_target do
   init = "#{dir}/init_mrbtest.c"
   asslib = "#{dir}/assert.rb"
 
-  objs = [objfile("#{build_dir}/#{dir}/driver"), mlib].flatten
+  mrbtest_lib = libfile("#{build_dir}/#{dir}/mrbtest")
+  file mrbtest_lib => [mlib, gems.map(&:test_objs), gems.map { |g| g.test_rbireps.ext(exts.object) }].flatten do |t|
+    archiver.run t.name, t.prerequisites
+  end
 
-  file exec => objs + gems.map(&:testlib).flatten + [libfile("#{build_dir}/lib/libmruby")] do |t|
-    gem_flags = gems.map { |g| g.linker.flags }
-    gem_flags_before_libraries = gems.map { |g| g.linker.flags_before_libraries }
-    gem_flags_after_libraries = gems.map { |g| g.linker.flags_after_libraries }
-    gem_libraries = gems.map { |g| g.linker.libraries }
-    gem_library_paths = gems.map { |g| g.linker.library_paths }
-    linker.run t.name, t.prerequisites, gem_libraries, gem_library_paths, gem_flags, gem_flags_before_libraries
+  unless build_mrbtest_lib_only?
+    driver_obj = objfile("#{build_dir}/#{dir}/driver")
+    file exec => [driver_obj, mrbtest_lib, libfile("#{build_dir}/lib/libmruby")] do |t|
+      gem_flags = gems.map { |g| g.linker.flags }
+      gem_flags_before_libraries = gems.map { |g| g.linker.flags_before_libraries }
+      gem_flags_after_libraries = gems.map { |g| g.linker.flags_after_libraries }
+      gem_libraries = gems.map { |g| g.linker.libraries }
+      gem_library_paths = gems.map { |g| g.linker.library_paths }
+      linker.run t.name, t.prerequisites, gem_libraries, gem_library_paths, gem_flags, gem_flags_before_libraries
+    end
   end
 
   file mlib => [clib]
   file clib => [mrbcfile, init, asslib] + mrbs do |t|
     _pp "GEN", "*.rb", "#{clib}"
+    FileUtils.mkdir_p File.dirname(clib)
     open(clib, 'w') do |f|
       f.puts IO.read(init)
       mrbc.run f, [asslib] + mrbs, 'mrbtest_irep'
