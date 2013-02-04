@@ -821,8 +821,9 @@ mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
   if (h) {
     if (kh_size(h) == 0)
       return mrb_true_value();
+    return mrb_false_value();
   }
-  return mrb_false_value();
+  return mrb_true_value();
 }
 
 /* 15.2.13.4.11 */
@@ -1123,7 +1124,7 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
   }
   h1 = RHASH_TBL(hash1);
   h2 = RHASH_TBL(hash2);
-  if (!h2) {
+  if (!h1) {
     if (!h2)  return mrb_true_value();
     return mrb_false_value();
   }
