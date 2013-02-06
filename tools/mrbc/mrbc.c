@@ -19,6 +19,7 @@ struct _args {
   char *filename;
   char *initname;
   char *ext;
+  int endian;
   int check_syntax : 1;
   int verbose      : 1;
 };
@@ -32,6 +33,8 @@ usage(const char *name)
   "-o<outfile>  place the output into <outfile>",
   "-v           print version number, then trun on verbose mode",
   "-B<symbol>   binary <symbol> output in C language format",
+  "-E[little|big] specify endian for binary output(default is little)",
+  "-Ebig        use big endian for binary output",
   "--verbose    run at verbose mode",
   "--version    print the version",
   "--copyright  print the copyright",
@@ -72,6 +75,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 
   *args = args_zero;
   args->ext = RITEBIN_EXT;
+  args->endian = MRB_DUMP_ENDIAN_LITTLE;
 
   for (argc--,argv++; argc > 0; argc--,argv++) {
     if (**argv == '-') {
@@ -91,6 +95,18 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         if (*args->initname == '\0') {
           printf("%s: Function name is not specified.\n", *origargv);
           result = -2;
+          goto exit;
+        }
+        break;
+      case 'E':
+        if (strcmp((*argv) + 2, "little") == 0) {
+          args->endian = MRB_DUMP_ENDIAN_LITTLE;
+        }
+        else if (strcmp((*argv) + 2, "big") == 0) {
+          args->endian = MRB_DUMP_ENDIAN_BIG;
+        }else{
+          result = -2;
+          printf("%s: Endian should be little or big.\n", *origargv);
           goto exit;
         }
         break;
@@ -203,7 +219,7 @@ main(int argc, char **argv)
     return EXIT_SUCCESS;
   }
   if (args.initname) {
-    n = mrb_bdump_irep(mrb, n, args.wfp, args.initname);
+    n = mrb_bdump_irep(mrb, n, args.wfp, args.initname, args.endian);
   }
   else {
     n = mrb_dump_irep(mrb, n, args.wfp);
