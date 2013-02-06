@@ -131,7 +131,7 @@ uint32_to_bin_flip(uint32_t l, char *bin)
   *bin++ = p[3];
   *bin++ = p[2];
   *bin++ = p[1];
-  *bin++ = p[0];
+  *bin   = p[0];
   return (MRB_DUMP_SIZE_OF_LONG);
 }
 

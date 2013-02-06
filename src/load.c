@@ -379,6 +379,7 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
     for (i=0; i<irep->ilen; i++) {
       src += MRB_DUMP_SIZE_OF_LONG;
     }
+    printf("iLen = %d\n", irep->ilen);
   }
   crc = calc_crc_16_ccitt((unsigned char*)pStart, src - pStart);     //Calculate CRC
   if (crc != bin_to_uint16(src)) {          //iseq CRC
@@ -689,7 +690,9 @@ mrb_load_irep_file(mrb_state *mrb, FILE* fp)
 mrb_value
 mrb_load_irep(mrb_state *mrb, const char *bin)
 {
+  printf("before\n");
   int n = mrb_read_irep(mrb, bin);
+  printf("after\n");
 
   if (n < 0) {
     irep_error(mrb, n);
