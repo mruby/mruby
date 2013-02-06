@@ -105,18 +105,32 @@ module MRuby
           build.mrbc.run f, rbfiles, "gem_mrblib_irep_#{funcname}" unless rbfiles.empty?
           f.puts %Q[void mrb_#{funcname}_gem_init(mrb_state *mrb);]
           f.puts %Q[void mrb_#{funcname}_gem_final(mrb_state *mrb);]
+          f.puts %Q[mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);]
           f.puts %Q[]
           f.puts %Q[void GENERATED_TMP_mrb_#{funcname}_gem_init(mrb_state *mrb) {]
-          f.puts %Q[  int ai = mrb_gc_arena_save(mrb);]
+          f.puts %Q[  int n, ai = mrb_gc_arena_save(mrb);]
           f.puts %Q[  mrb_#{funcname}_gem_init(mrb);] if objs != [objfile("#{build_dir}/gem_init")]
           unless rbfiles.empty?
-            f.puts %Q[  mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});]
-            f.puts %Q[  if (mrb->exc) {]
-            f.puts %Q[    mrb_p(mrb, mrb_obj_value(mrb->exc));]
-            f.puts %Q[    exit(0);]
+            f.puts %Q[  n = mrb_read_irep(mrb, gem_mrblib_irep_#{funcname});]
+            f.puts %Q[  mrb_gc_arena_restore(mrb, ai);]
+            f.puts %Q[  if (n >= 0) {]
+            f.puts %Q[    struct RProc *proc;]
+            f.puts %Q[    mrb_irep *irep = mrb->irep[n];]
+            f.puts %Q[    if (irep->iseq[irep->ilen - 1] == MKOP_A(OP_STOP, 0)) {]
+            f.puts %Q[      irep->iseq = mrb_realloc(mrb, irep->iseq, (irep->ilen + 1) * sizeof(mrb_code));]
+            f.puts %Q[      irep->iseq[irep->ilen - 1] = MKOP_A(OP_LOADNIL, 0);]
+            f.puts %Q[      irep->iseq[irep->ilen] = MKOP_AB(OP_RETURN, 0, OP_R_NORMAL);]
+            f.puts %Q[      irep->ilen++;]
+            f.puts %Q[    }]
+            f.puts %Q[    proc = mrb_proc_new(mrb, irep);]
+            f.puts %Q[    proc->target_class = mrb->object_class;]
+            f.puts %Q[    mrb_yield_internal(mrb, mrb_obj_value(proc), 0, NULL, mrb_top_self(mrb), mrb->object_class);]
+            f.puts %Q[  } else {]
+            f.puts %Q[    longjmp(*(jmp_buf*)mrb->jmp, 1);]
             f.puts %Q[  }]
+          else
+            f.puts %Q[  mrb_gc_arena_restore(mrb, ai);]
           end
-          f.puts %Q[  mrb_gc_arena_restore(mrb, ai);]
           f.puts %Q[}]
           f.puts %Q[]
           f.puts %Q[void GENERATED_TMP_mrb_#{funcname}_gem_final(mrb_state *mrb) {]
@@ -142,6 +156,8 @@ module MRuby
         f.puts %Q[#include "mruby/variable.h"]
         f.puts %Q[#include "mruby/array.h"]
         f.puts %Q[#include "mruby/hash.h"]
+        f.puts %Q[#include "mruby/opcode.h"]
+        f.puts %Q[#include <setjmp.h>]
       end
 
     end # Specification

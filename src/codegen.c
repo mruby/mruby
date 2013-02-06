@@ -11,7 +11,7 @@
 #include "mruby/irep.h"
 #include "mruby/compile.h"
 #include "mruby/numeric.h"
-#include "opcode.h"
+#include "mruby/opcode.h"
 #include "node.h"
 #include <string.h>
 #include <stdlib.h>
