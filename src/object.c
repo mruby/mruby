@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include "mruby/class.h"
 #include "mruby/numeric.h"
+#include "error.h"
 
 int
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
@@ -443,16 +444,7 @@ mrb_value
 mrb_any_to_s(mrb_state *mrb, mrb_value obj)
 {
   const char *cname = mrb_obj_classname(mrb, obj);
-  size_t len;
-  mrb_value str;
-  struct RString *s;
-
-  len = strlen(cname)+6+16;
-  str = mrb_str_new(mrb, 0, len); /* 6:tags 16:addr */
-  s = mrb_str_ptr(str);
-  s->len = sprintf(s->ptr, "#<%s:0x%lx>", cname, (unsigned long)(obj.value.p));
-
-  return str;
+  return mrb_sprintf(mrb, "#<%s:%p>", cname, mrb_voidp(obj));
 }
 
 /*
