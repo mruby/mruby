@@ -5,7 +5,7 @@
 */
 
 #include "mruby.h"
-#include "opcode.h"
+#include "mruby/opcode.h"
 #include "mruby/irep.h"
 #include "mruby/variable.h"
 #include "mruby/proc.h"
