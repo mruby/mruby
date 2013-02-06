@@ -108,7 +108,8 @@ module MRuby
           f.puts %Q[mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);]
           f.puts %Q[]
           f.puts %Q[void GENERATED_TMP_mrb_#{funcname}_gem_init(mrb_state *mrb) {]
-          f.puts %Q[  int n, ai = mrb_gc_arena_save(mrb);]
+          f.puts %Q[  int ai = mrb_gc_arena_save(mrb);]
+          f.puts %Q[  int n;] unless rbfiles.empty?
           f.puts %Q[  mrb_#{funcname}_gem_init(mrb);] if objs != [objfile("#{build_dir}/gem_init")]
           unless rbfiles.empty?
             f.puts %Q[  n = mrb_read_irep(mrb, gem_mrblib_irep_#{funcname});]
