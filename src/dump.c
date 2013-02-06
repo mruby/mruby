@@ -4,8 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <stdio.h>
-
 #include <string.h>
 #include "mruby/dump.h"
 #include <ctype.h>
@@ -351,9 +349,8 @@ write_iseq_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type, int endian
     if (type == DUMP_TYPE_BIN){
       if ( (endian == MRB_DUMP_ENDIAN_LITTLE && is_little_endian())
           || (endian == MRB_DUMP_ENDIAN_BIG && !is_little_endian()) ){
-        *(uint32_t *)buf = irep->iseq[iseq_no];
+        *(uint32_t *)buf = (uint32_t)irep->iseq[iseq_no];
         buf += MRB_DUMP_SIZE_OF_LONG;
-        //puts("gggggg-");
       }else{
         buf += uint32_to_bin_flip((uint32_t)irep->iseq[iseq_no], buf);
       }
