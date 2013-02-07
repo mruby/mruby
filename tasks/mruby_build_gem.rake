@@ -5,7 +5,9 @@ module MRuby
       gemrake = File.join(gemdir, "mrbgem.rake")
 
       fail "Can't find #{gemrake}" unless File.exists?(gemrake)
+      Gem.current = nil
       load gemrake
+      return nil unless Gem.current
 
       Gem.current.dir = gemdir
       Gem.current.build = MRuby::Build.current
