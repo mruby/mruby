@@ -367,7 +367,8 @@ flo_hash(mrb_state *mrb, mrb_value num)
 {
   mrb_float d;
   char *c;
-  int i, hash;
+  int hash;
+  size_t i;
 
   d = (mrb_float)mrb_fixnum(num);
   /* normalize -0.0 to 0.0 */
@@ -948,7 +949,7 @@ fix_xor(mrb_state *mrb, mrb_value x)
 }
 
 static mrb_value
-lshift(mrb_state *mrb, mrb_int val, int width)
+lshift(mrb_state *mrb, mrb_int val, size_t width)
 {
   if (width > (sizeof(mrb_int)*CHAR_BIT-1)) {
       mrb_raisef(mrb, E_RANGE_ERROR, "width(%d) > (%d:sizeof(mrb_int)*CHAR_BIT-1)", width,
@@ -959,14 +960,14 @@ lshift(mrb_state *mrb, mrb_int val, int width)
 }
 
 static mrb_value
-rshift(mrb_int val, int i)
+rshift(mrb_int val, size_t width)
 {
-    if (i >= sizeof(mrb_int)*CHAR_BIT-1) {
-        if (val < 0) return mrb_fixnum_value(-1);
-        return mrb_fixnum_value(0);
-    }
-    val = RSHIFT(val, i);
-    return mrb_fixnum_value(val);
+  if (width >= sizeof(mrb_int)*CHAR_BIT-1) {
+      if (val < 0) return mrb_fixnum_value(-1);
+      return mrb_fixnum_value(0);
+  }
+  val = RSHIFT(val, width);
+  return mrb_fixnum_value(val);
 }
 
 /* 15.2.8.3.12 */
