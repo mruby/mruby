@@ -1,0 +1,2 @@
+include/* usr/include/
+build/host/lib/*.a usr/lib/

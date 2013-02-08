@@ -1,0 +1,5 @@
+mruby (0.0.0~20130209+git94204089-1) experimental; urgency=low
+
+  * Initial release. (Closes: #697835)
+
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Sat, 09 Feb 2013 00:15:35 +0900
