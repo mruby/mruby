@@ -64,6 +64,15 @@ Toolchain configuration for Visual Studio 2012 on Windows.
 
 	toolchain :vs2012
 
+#### Android
+
+Toolchain configuration for Android.
+
+	toolchain :androideabi
+
+Requires the custom standalone Android NDK and the toolchain path
+in ```ANDROID_STANDALONE_TOOLCHAIN```.
+
 ### Binaries
 
 It is possible to select which tools should be compiled during the compilation
