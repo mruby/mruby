@@ -3000,7 +3000,7 @@ yywarn(parser_state *p, const char *s)
     }
 #endif
   }
-  else if (p->nerr < sizeof(p->warn_buffer) / sizeof(p->warn_buffer[0])) {
+  else if (p->nwarn < sizeof(p->warn_buffer) / sizeof(p->warn_buffer[0])) {
     n = strlen(s);
     c = (char *)parser_palloc(p, n + 1);
     memcpy(c, s, n + 1);
