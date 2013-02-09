@@ -1,4 +1,20 @@
 #!/usr/bin/make -f
 
+orig_config_exists := $(shell ls | grep build_config.rb.orig)
+define evert_config
+	mv build_config.rb.orig build_config.rb
+endef
+
 %:
 	dh $@
+
+override_dh_auto_configure:
+	mv build_config.rb build_config.rb.orig
+	cp debian/build_config.rb build_config.rb
+
+	dh_auto_configure
+
+override_dh_auto_clean:
+	$(if $(orig_config_exists) ,$(evert_config),)
+
+	dh_auto_clean
