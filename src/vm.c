@@ -554,6 +554,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   if (!mrb->stack) {
     stack_init(mrb);
   }
+  int stack_shortfall = proc->body.irep->nregs - (mrb->stend - mrb->stack);
+  if( 0 < stack_shortfall ) {
+    stack_extend(mrb, proc->body.irep->nregs, 0);
+  }
   mrb->ci->proc = proc;
   mrb->ci->nregs = irep->nregs + 2;
   regs = mrb->stack;
