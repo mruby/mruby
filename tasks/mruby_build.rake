@@ -163,6 +163,28 @@ module MRuby
       mrbtest = exefile("#{build_dir}/test/mrbtest")
       sh "#{filename mrbtest}"
       puts 
+
+      catrb  = "#{build_dir}/test/mrbtest.rb"
+      catmrb = "#{build_dir}/test/mrbtest.mrb"
+      mruby = exefile("#{build_dir}/bin/mruby")
+      puts "*** Test with tools/mruby (rb file) ***"
+      sh2 "#{filename mruby} #{catrb}"
+      puts
+
+      puts "*** Test with tools/mruby (mrb file) ***"
+      sh2 "#{filename mruby} -b #{catmrb}"
+      puts
+    end
+
+    def sh2(cmd)
+      puts cmd if $verbose
+      out = `#{cmd}`
+      if $?
+        puts "Success"
+      else
+        print out
+        fail "Command Failed: [#{cmd}]"
+      end
     end
 
     def print_build_summary
