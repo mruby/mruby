@@ -257,6 +257,18 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
   return mrb_obj_value(s);
 }
 
+char *
+mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
+{
+  mrb_value str;
+
+  str = mrb_str_new(mrb, RSTRING_PTR(str0), RSTRING_LEN(str0));
+  if (strlen(RSTRING_PTR(str)) != RSTRING_LEN(str)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
+  }
+  return RSTRING_PTR(str);
+}
+
 static void
 str_make_shared(mrb_state *mrb, struct RString *s)
 {
