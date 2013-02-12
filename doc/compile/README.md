@@ -19,7 +19,7 @@ Optional:
 
 ## Usage
 
-Inside of the root directory of the mruby source exist a file
+Inside of the root directory of the mruby source a file exists
 called *build_config.rb*. This file contains the build configuration
 of mruby and looks like this for example:
 
@@ -29,7 +29,7 @@ of mruby and looks like this for example:
 
 All tools necessary to compile mruby can be set or modified here. In case
 you want to maintain an additional *build_config.rb* you can define a
-customized path using the  *$MRUBY_CONFIG* environment variable.
+customized path using the *$MRUBY_CONFIG* environment variable.
 
 To compile just call ```./minirake``` inside of the mruby source root. To
 generate and execute the test tools call ```./minirake test```. To clean
@@ -37,13 +37,13 @@ all build files call ```./minirake clean```.
 
 ## Build Configuration
 
-Inside of the *build_config.rb* the following options can be configurated
+Inside of the *build_config.rb* the following options can be configured
 based on your environment.
 
 ### Toolchains
 
-The mruby build system contains already a set of toolchain templates which
-configurates the build environment for specific compiler infrastructures.
+The mruby build system already contains a set of toolchain templates which
+configure the build environment for specific compiler infrastructures.
 
 #### GCC
 
@@ -79,7 +79,7 @@ It is possible to select which tools should be compiled during the compilation
 process. The following tools can be selected:
 * mrbc (mruby compiler)
 * mruby (mruby interpreter)
-* mirb (mruby interactive shell
+* mirb (mruby interactive shell)
 
 To select all define an array in ```conf.bins```:
 
@@ -182,7 +182,7 @@ If you want mrbtest.a only, You should set ```conf.build_mrbtest_lib_only```
 ## Cross-Compilation
 
 mruby can also be cross-compiled from one platform to another. To
-achive this the *build_config.rb* needs to contain an instance of
+achieve this the *build_config.rb* needs to contain an instance of
 ```MRuby::CrossBuild```. This instance defines the compilation
 tools and flags for the target platform. An example could look
 like this:
@@ -226,21 +226,21 @@ root directory. The structure of this directory will look like this:
 
 The compilation workflow will look like this:
 * compile all files under *src* (object files will be stored 
-in *build/host/src*
+in *build/host/src*)
 * generate parser grammar out of *src/parse.y* (generated
-result will be stored in *build/host/src/y.tab.c*
+result will be stored in *build/host/src/y.tab.c*)
 * compile  *build/host/src/y.tab.c* to  *build/host/src/y.tab.o*
 * create *build/host/lib/libmruby_core.a* out of all object files (C only)
-* create ```build/host/bin/mrbc``` by compile *tools/mrbc/mrbc.c* and
-link with *build/host/lib/libmruby_core.a* 
+* create ```build/host/bin/mrbc``` by compiling *tools/mrbc/mrbc.c* and
+linking with *build/host/lib/libmruby_core.a* 
 * create *build/host/mrblib/mrblib.c* by compiling all *.rb files
 under *mrblib* with ```build/host/bin/mrbc```
 * compile *build/host/mrblib/mrblib.c* to *build/host/mrblib/mrblib.o* 
 * create *build/host/lib/libmruby.a* out of all object files (C and Ruby)
-* create ```build/host/bin/mruby``` by compile *tools/mruby/mruby.c* and
-link with *build/host/lib/libmruby.a*
-* create ```build/host/bin/mirb``` by compile *tools/mirb/mirb.c* and
-link with *build/host/lib/libmruby.a*
+* create ```build/host/bin/mruby``` by compiling *tools/mruby/mruby.c* and
+linking with *build/host/lib/libmruby.a*
+* create ```build/host/bin/mirb``` by compiling *tools/mirb/mirb.c* and
+linking with *build/host/lib/libmruby.a*
 
 ```
  _____    _____    ______    ____    ____    _____    _____    ____
@@ -301,23 +301,23 @@ build direcotry.
 
 The cross compilation workflow starts in the same way as the normal
 compilation by compiling all *native* libraries and binaries.
-Aftwards the cross compilation process proceeds like this:
+Afterwards the cross compilation process proceeds like this:
 * cross-compile all files under *src* (object files will be stored 
-in *build/i386/src*
+in *build/i386/src*)
 * generate parser grammar out of *src/parse.y* (generated
-result will be stored in *build/i386/src/y.tab.c*
-* cross-compile  *build/i386/src/y.tab.c* to  *build/i386/src/y.tab.o*
+result will be stored in *build/i386/src/y.tab.c*)
+* cross-compile *build/i386/src/y.tab.c* to *build/i386/src/y.tab.o*
 * create *build/i386/mrblib/mrblib.c* by compiling all *.rb files
 under *mrblib* with the native ```build/host/bin/mrbc```
 * cross-compile *build/host/mrblib/mrblib.c* to *build/host/mrblib/mrblib.o*
 * create *build/i386/lib/libmruby.a* out of all object files (C and Ruby)
-* create ```build/i386/bin/mruby``` by cross-compile *tools/mruby/mruby.c* and
-link with *build/i386/lib/libmruby.a*
-* create ```build/i386/bin/mirb``` by cross-compile *tools/mirb/mirb.c* and
-link with *build/i386/lib/libmruby.a*
+* create ```build/i386/bin/mruby``` by cross-compiling *tools/mruby/mruby.c* and
+linking with *build/i386/lib/libmruby.a*
+* create ```build/i386/bin/mirb``` by cross-compiling *tools/mirb/mirb.c* and
+linking with *build/i386/lib/libmruby.a*
 * create *build/i386/lib/libmruby_core.a* out of all object files (C only)
-* create ```build/i386/bin/mrbc``` by cross-compile *tools/mrbc/mrbc.c* and
-link with *build/i386/lib/libmruby_core.a* 
+* create ```build/i386/bin/mrbc``` by cross-compiling *tools/mrbc/mrbc.c* and
+linking with *build/i386/lib/libmruby_core.a* 
 
 ```
  _______________________________________________________________
@@ -345,4 +345,4 @@ mruby's build process includes a test environment. In case you start the testing
 of mruby, a native binary called ```mrbtest``` will be generated and executed.
 This binary contains all test cases which are defined under *test/t*. In case
 of a cross-compilation an additional cross-compiled *mrbtest* binary is 
-generated. This binary you can copy and run on your target system.
+generated. You can copy this binary and run on your target system.
