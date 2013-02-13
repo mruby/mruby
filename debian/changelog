@@ -1,4 +1,4 @@
-mruby (0.0.0_20130211+git8578cd62-1) experimental; urgency=low
+mruby (0.0.0~20130211+git8578cd62-1) experimental; urgency=low
 
   * Initial release. (Closes: #697835)
 
