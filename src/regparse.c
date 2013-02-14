@@ -108,8 +108,8 @@ static void
 bbuf_free(BBuf* bbuf)
 {
   if (IS_NOT_NULL(bbuf)) {
-    if (IS_NOT_NULL(bbuf->p)) xfree(bbuf->p);
-    xfree(bbuf);
+    if (IS_NOT_NULL(bbuf->p)) free(bbuf->p);
+    free(bbuf);
   }
 }
 
@@ -119,7 +119,7 @@ bbuf_clone(BBuf** rto, BBuf* from)
   int r;
   BBuf *to;
 
-  *rto = to = (BBuf* )xmalloc(sizeof(BBuf));
+  *rto = to = (BBuf* )malloc(sizeof(BBuf));
   CHECK_NULL_RETURN_MEMERR(to);
   r = BBUF_INIT(to, from->alloc);
   if (r != 0) return r;
@@ -239,7 +239,7 @@ strdup_with_null(OnigEncoding enc, UChar* s, UChar* end)
   slen = end - s;
   term_len = ONIGENC_MBC_MINLEN(enc);
 
-  r = (UChar* )xmalloc(slen + term_len);
+  r = (UChar* )malloc(slen + term_len);
   CHECK_NULL_RETURN(r);
   xmemcpy(r, s, slen);
 
@@ -276,9 +276,9 @@ strcat_capa(UChar* dest, UChar* dest_end, const UChar* src, const UChar* src_end
   UChar* r;
 
   if (dest)
-    r = (UChar* )xrealloc(dest, capa + 1);
+    r = (UChar* )realloc(dest, capa + 1);
   else
-    r = (UChar* )xmalloc(capa + 1);
+    r = (UChar* )malloc(capa + 1);
 
   CHECK_NULL_RETURN(r);
   onig_strcpy(r + (dest_end - dest), src, src_end);
@@ -292,7 +292,7 @@ strcat_capa_from_static(UChar* dest, UChar* dest_end,
 {
   UChar* r;
 
-  r = (UChar* )xmalloc(capa + 1);
+  r = (UChar* )malloc(capa + 1);
   CHECK_NULL_RETURN(r);
   onig_strcpy(r, dest, dest_end);
   onig_strcpy(r + (dest_end - dest), src, src_end);
@@ -380,12 +380,12 @@ onig_st_insert_strend(hash_table_type* table, const UChar* str_key,
   st_str_end_key* key;
   int result;
 
-  key = (st_str_end_key* )xmalloc(sizeof(st_str_end_key));
+  key = (st_str_end_key* )malloc(sizeof(st_str_end_key));
   key->s   = (UChar* )str_key;
   key->end = (UChar* )end_key;
   result = onig_st_insert(table, (st_data_t )key, value);
   if (result) {
-    xfree(key);
+    free(key);
   }
   return result;
 }
@@ -454,10 +454,10 @@ onig_print_names(FILE* fp, regex_t* reg)
 static enum st_retval
 i_free_name_entry(UChar* key, NameEntry* e, void* arg ARG_UNUSED)
 {
-  xfree(e->name);
-  if (IS_NOT_NULL(e->back_refs)) xfree(e->back_refs);
-  xfree(key);
-  xfree(e);
+  free(e->name);
+  if (IS_NOT_NULL(e->back_refs)) free(e->back_refs);
+  free(key);
+  free(e);
   return ST_DELETE;
 }
 
@@ -635,17 +635,17 @@ names_clear(regex_t* reg)
     for (i = 0; i < t->num; i++) {
       e = &(t->e[i]);
       if (IS_NOT_NULL(e->name)) {
-        xfree(e->name);
+        free(e->name);
         e->name       = NULL;
         e->name_len   = 0;
         e->back_num   = 0;
         e->back_alloc = 0;
-        if (IS_NOT_NULL(e->back_refs)) xfree(e->back_refs);
+        if (IS_NOT_NULL(e->back_refs)) free(e->back_refs);
         e->back_refs = (int* )NULL;
       }
     }
     if (IS_NOT_NULL(t->e)) {
-      xfree(t->e);
+      free(t->e);
       t->e = NULL;
     }
     t->num = 0;
@@ -663,7 +663,7 @@ onig_names_free(regex_t* reg)
   if (r) return r;
 
   t = (NameTable* )reg->name_table;
-  if (IS_NOT_NULL(t)) xfree(t);
+  if (IS_NOT_NULL(t)) free(t);
   reg->name_table = NULL;
   return 0;
 }
@@ -736,12 +736,12 @@ name_add(regex_t* reg, UChar* name, UChar* name_end, int backref, ScanEnv* env)
       t = onig_st_init_strend_table_with_size(5);
       reg->name_table = (void* )t;
     }
-    e = (NameEntry* )xmalloc(sizeof(NameEntry));
+    e = (NameEntry* )malloc(sizeof(NameEntry));
     CHECK_NULL_RETURN_MEMERR(e);
 
     e->name = strdup_with_null(reg->enc, name, name_end);
     if (IS_NULL(e->name)) {
-      xfree(e);
+      free(e);
       return ONIGERR_MEMORY;
     }
     onig_st_insert_strend(t, e->name, (e->name + (name_end - name)),
@@ -756,15 +756,15 @@ name_add(regex_t* reg, UChar* name, UChar* name_end, int backref, ScanEnv* env)
 
     if (IS_NULL(t)) {
       alloc = INIT_NAMES_ALLOC_NUM;
-      t = (NameTable* )xmalloc(sizeof(NameTable));
+      t = (NameTable* )malloc(sizeof(NameTable));
       CHECK_NULL_RETURN_MEMERR(t);
       t->e     = NULL;
       t->alloc = 0;
       t->num   = 0;
 
-      t->e = (NameEntry* )xmalloc(sizeof(NameEntry) * alloc);
+      t->e = (NameEntry* )malloc(sizeof(NameEntry) * alloc);
       if (IS_NULL(t->e)) {
-        xfree(t);
+        free(t);
         return ONIGERR_MEMORY;
       }
       t->alloc = alloc;
@@ -775,7 +775,7 @@ name_add(regex_t* reg, UChar* name, UChar* name_end, int backref, ScanEnv* env)
       int i;
 
       alloc = t->alloc * 2;
-      t->e = (NameEntry* )xrealloc(t->e, sizeof(NameEntry) * alloc);
+      t->e = (NameEntry* )realloc(t->e, sizeof(NameEntry) * alloc);
       CHECK_NULL_RETURN_MEMERR(t->e);
       t->alloc = alloc;
 
@@ -810,7 +810,7 @@ name_add(regex_t* reg, UChar* name, UChar* name_end, int backref, ScanEnv* env)
   else {
     if (e->back_num == 2) {
       alloc = INIT_NAME_BACKREFS_ALLOC_NUM;
-      e->back_refs = (int* )xmalloc(sizeof(int) * alloc);
+      e->back_refs = (int* )malloc(sizeof(int) * alloc);
       CHECK_NULL_RETURN_MEMERR(e->back_refs);
       e->back_alloc = alloc;
       e->back_refs[0] = e->back_ref1;
@@ -819,7 +819,7 @@ name_add(regex_t* reg, UChar* name, UChar* name_end, int backref, ScanEnv* env)
     else {
       if (e->back_num > e->back_alloc) {
         alloc = e->back_alloc * 2;
-        e->back_refs = (int* )xrealloc(e->back_refs, sizeof(int) * alloc);
+        e->back_refs = (int* )realloc(e->back_refs, sizeof(int) * alloc);
         CHECK_NULL_RETURN_MEMERR(e->back_refs);
         e->back_alloc = alloc;
       }
@@ -968,13 +968,13 @@ scan_env_add_mem_entry(ScanEnv* env)
     if (env->mem_alloc <= need) {
       if (IS_NULL(env->mem_nodes_dynamic)) {
         alloc = INIT_SCANENV_MEMNODES_ALLOC_SIZE;
-        p = (Node** )xmalloc(sizeof(Node*) * alloc);
+        p = (Node** )malloc(sizeof(Node*) * alloc);
         xmemcpy(p, env->mem_nodes_static,
                 sizeof(Node*) * SCANENV_MEMNODES_SIZE);
       }
       else {
         alloc = env->mem_alloc * 2;
-        p = (Node** )xrealloc(env->mem_nodes_dynamic, sizeof(Node*) * alloc);
+        p = (Node** )realloc(env->mem_nodes_dynamic, sizeof(Node*) * alloc);
       }
       CHECK_NULL_RETURN_MEMERR(p);
 
@@ -1019,7 +1019,7 @@ onig_node_free(Node* node)
   case NT_STR:
     if (NSTR(node)->capa != 0 &&
         IS_NOT_NULL(NSTR(node)->s) && NSTR(node)->s != NSTR(node)->buf) {
-      xfree(NSTR(node)->s);
+      free(NSTR(node)->s);
     }
     break;
 
@@ -1039,7 +1039,7 @@ onig_node_free(Node* node)
         THREAD_ATOMIC_END;
       }
 #else
-      xfree(node);
+      free(node);
 #endif
       node = next_node;
       goto start;
@@ -1068,7 +1068,7 @@ onig_node_free(Node* node)
 
   case NT_BREF:
     if (IS_NOT_NULL(NBREF(node)->back_dynamic))
-      xfree(NBREF(node)->back_dynamic);
+      free(NBREF(node)->back_dynamic);
     break;
 
   case NT_ANCHOR:
@@ -1087,7 +1087,7 @@ onig_node_free(Node* node)
     THREAD_ATOMIC_END;
   }
 #else
-  xfree(node);
+  free(node);
 #endif
 }
 
@@ -1101,7 +1101,7 @@ onig_free_node_list(void)
   while (IS_NOT_NULL(FreeNodeList)) {
     n = FreeNodeList;
     FreeNodeList = FreeNodeList->next;
-    xfree(n);
+    free(n);
   }
   /* THREAD_ATOMIC_END; */
   return 0;
@@ -1124,7 +1124,7 @@ node_new(void)
   THREAD_ATOMIC_END;
 #endif
 
-  node = (Node* )xmalloc(sizeof(Node));
+  node = (Node* )malloc(sizeof(Node));
   /* xmemset(node, 0, sizeof(Node)); */
   return node;
 }
@@ -1188,7 +1188,7 @@ node_new_cclass_by_codepoint_range(int is_not, OnigCodePoint sb_out,
     n = ONIGENC_CODE_RANGE_NUM(ranges);
     if (n == 0) goto is_null;
 
-    bbuf = (BBuf* )xmalloc(sizeof(BBuf));
+    bbuf = (BBuf* )malloc(sizeof(BBuf));
     CHECK_NULL_RETURN(bbuf);
     bbuf->alloc = n + 1;
     bbuf->used  = n + 1;
@@ -1322,7 +1322,7 @@ node_new_backref(int back_num, int* backrefs, int by_name,
       NBREF(node)->back_static[i] = backrefs[i];
   }
   else {
-    int* p = (int* )xmalloc(sizeof(int) * back_num);
+    int* p = (int* )malloc(sizeof(int) * back_num);
     if (IS_NULL(p)) {
       onig_node_free(node);
       return NULL;
@@ -1490,7 +1490,7 @@ onig_node_str_clear(Node* node)
 {
   if (NSTR(node)->capa != 0 &&
       IS_NOT_NULL(NSTR(node)->s) && NSTR(node)->s != NSTR(node)->buf) {
-    xfree(NSTR(node)->s);
+    free(NSTR(node)->s);
   }
 
   NSTR(node)->capa = 0;
@@ -1672,7 +1672,7 @@ new_code_range(BBuf** pbuf)
   OnigCodePoint n;
   BBuf* bbuf;
 
-  bbuf = *pbuf = (BBuf* )xmalloc(sizeof(BBuf));
+  bbuf = *pbuf = (BBuf* )malloc(sizeof(BBuf));
   CHECK_NULL_RETURN_MEMERR(*pbuf);
   r = BBUF_INIT(*pbuf, INIT_MULTI_BYTE_RANGE_SIZE);
   if (r) return r;
@@ -4927,11 +4927,11 @@ i_free_shared_class(type_cclass_key* key, Node* node, void* arg ARG_UNUSED)
 {
   if (IS_NOT_NULL(node)) {
     CClassNode* cc = NCCLASS(node);
-    if (IS_NOT_NULL(cc->mbuf)) xfree(cc->mbuf);
-    xfree(node);
+    if (IS_NOT_NULL(cc->mbuf)) free(cc->mbuf);
+    free(node);
   }
 
-  if (IS_NOT_NULL(key)) xfree(key);
+  if (IS_NOT_NULL(key)) free(key);
   return ST_DELETE;
 }
 
@@ -5266,7 +5266,7 @@ parse_exp(Node** np, OnigToken* tok, int term,
 
             cc = NCCLASS(*np);
             NCCLASS_SET_SHARE(cc);
-            new_key = (type_cclass_key* )xmalloc(sizeof(type_cclass_key));
+            new_key = (type_cclass_key* )malloc(sizeof(type_cclass_key));
             xmemcpy(new_key, &key, sizeof(type_cclass_key));
             onig_st_add_direct(OnigTypeCClassTable, (st_data_t )new_key,
                                (st_data_t )*np);

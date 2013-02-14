@@ -2,7 +2,7 @@ MRuby.each_target do
   dir = File.dirname(__FILE__).relative_path_from(root)
 
   lex_def = "#{dir}/lex.def"
-  objs = Dir.glob("src/*.{c}").map { |f| objfile(f.pathmap("#{build_dir}/%X")) } + [objfile("#{build_dir}/#{dir}/y.tab")]
+  objs = Dir["src/*.{c}", "src/ext/enc/*.{c}"].map { |f| objfile(f.pathmap("#{build_dir}/%X")) } + [objfile("#{build_dir}/#{dir}/y.tab")]
   self.libmruby << objs
 
   file libfile("#{build_dir}/lib/libmruby_core") => objs do |t|

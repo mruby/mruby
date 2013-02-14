@@ -30,6 +30,7 @@
 #include "mruby.h"
 #ifdef ENABLE_REGEXP
 #include <string.h>
+#include <malloc.h>
 #include "regint.h"
 
 /* #define USE_MATCH_RANGE_MUST_BE_INSIDE_OF_SPECIFIED_RANGE */
@@ -68,7 +69,7 @@ static void
 history_tree_free(OnigCaptureTreeNode* node)
 {
   history_tree_clear(node);
-  xfree(node);
+  free(node);
 }
 
 static void
@@ -85,7 +86,7 @@ history_node_new(void)
 {
   OnigCaptureTreeNode* node;
 
-  node = (OnigCaptureTreeNode* )xmalloc(sizeof(OnigCaptureTreeNode));
+  node = (OnigCaptureTreeNode* )malloc(sizeof(OnigCaptureTreeNode));
   CHECK_NULL_RETURN(node);
   node->childs     = (OnigCaptureTreeNode** )0;
   node->allocated  = 0;
@@ -108,12 +109,12 @@ history_tree_add_child(OnigCaptureTreeNode* parent, OnigCaptureTreeNode* child)
     if (IS_NULL(parent->childs)) {
       n = HISTORY_TREE_INIT_ALLOC_SIZE;
       parent->childs =
-        (OnigCaptureTreeNode** )xmalloc(sizeof(OnigCaptureTreeNode*) * n);
+        (OnigCaptureTreeNode** )malloc(sizeof(OnigCaptureTreeNode*) * n);
     }
     else {
       n = parent->allocated * 2;
       parent->childs =
-        (OnigCaptureTreeNode** )xrealloc(parent->childs,
+        (OnigCaptureTreeNode** )realloc(parent->childs,
                                          sizeof(OnigCaptureTreeNode*) * n);
     }
     CHECK_NULL_RETURN_MEMERR(parent->childs);
@@ -180,35 +181,21 @@ onig_region_resize(OnigRegion* region, int n)
     n = ONIG_NREGION;
 
   if (region->allocated == 0) {
-    region->beg = (int* )xmalloc(n * sizeof(int));
+    region->beg = (int* )malloc(n * sizeof(int));
     if (region->beg == 0)
       return ONIGERR_MEMORY;
 
-    region->end = (int* )xmalloc(n * sizeof(int));
+    region->end = (int* )malloc(n * sizeof(int));
     if (region->end == 0) {
-      xfree(region->beg);
+      free(region->beg);
       return ONIGERR_MEMORY;
     }
 
     region->allocated = n;
   }
   else if (region->allocated < n) {
-    int *tmp;
-
-    region->allocated = 0;
-    tmp = (int* )xrealloc(region->beg, n * sizeof(int));
-    if (tmp == 0) {
-      xfree(region->beg);
-      xfree(region->end);
-      return ONIGERR_MEMORY;
-    }
-    region->beg = tmp;
-    tmp = (int* )xrealloc(region->end, n * sizeof(int));
-    if (tmp == 0) {
-      xfree(region->beg);
-      return ONIGERR_MEMORY;
-    }
-    region->end = tmp;
+    region->beg = (int *)realloc(region->beg, n * sizeof(int));
+    region->end = (int *)realloc(region->end, n * sizeof(int));
 
     if (region->beg == 0 || region->end == 0)
       return ONIGERR_MEMORY;
@@ -260,7 +247,7 @@ onig_region_new(void)
 {
   OnigRegion* r;
 
-  r = (OnigRegion* )xmalloc(sizeof(OnigRegion));
+  r = (OnigRegion* )malloc(sizeof(OnigRegion));
   if (r)
     onig_region_init(r);
   return r;
@@ -271,14 +258,14 @@ onig_region_free(OnigRegion* r, int free_self)
 {
   if (r) {
     if (r->allocated > 0) {
-      if (r->beg) xfree(r->beg);
-      if (r->end) xfree(r->end);
+      if (r->beg) free(r->beg);
+      if (r->end) free(r->end);
       r->allocated = 0;
     }
 #ifdef USE_CAPTURE_HISTORY
     history_root_free(r);
 #endif
-    if (free_self) xfree(r);
+    if (free_self) free(r);
   }
 }
 
@@ -363,7 +350,7 @@ onig_region_copy(OnigRegion* to, OnigRegion* from)
     offset = ((offset) * (state_num)) >> 3;\
     if (size > 0 && offset < size && size < STATE_CHECK_BUFF_MAX_SIZE) {\
       if (size >= STATE_CHECK_BUFF_MALLOC_THRESHOLD_SIZE) {\
-        (msa).state_check_buff = (void* )xmalloc(size);\
+        (msa).state_check_buff = (void* )malloc(size);\
         CHECK_NULL_RETURN_MEMERR((msa).state_check_buff);\
       }\
       else \
@@ -384,13 +371,13 @@ onig_region_copy(OnigRegion* to, OnigRegion* from)
   } while(0)
 
 #define MATCH_ARG_FREE(msa) do {\
-  if ((msa).stack_p) xfree((msa).stack_p);\
+  if ((msa).stack_p) free((msa).stack_p);\
   if ((msa).state_check_buff_size >= STATE_CHECK_BUFF_MALLOC_THRESHOLD_SIZE) { \
-    if ((msa).state_check_buff) xfree((msa).state_check_buff);\
+    if ((msa).state_check_buff) free((msa).state_check_buff);\
   }\
 } while(0)
 #else
-#define MATCH_ARG_FREE(msa)  if ((msa).stack_p) xfree((msa).stack_p)
+#define MATCH_ARG_FREE(msa)  if ((msa).stack_p) free((msa).stack_p)
 #endif
 
 
@@ -448,7 +435,7 @@ stack_double(OnigStackType** arg_stk_base, OnigStackType** arg_stk_end,
 
   n = stk_end - stk_base;
   if (stk_base == stk_alloc && IS_NULL(msa->stack_p)) {
-    x = (OnigStackType* )xmalloc(sizeof(OnigStackType) * n * 2);
+    x = (OnigStackType* )malloc(sizeof(OnigStackType) * n * 2);
     if (IS_NULL(x)) {
       STACK_SAVE;
       return ONIGERR_MEMORY;
@@ -465,7 +452,7 @@ stack_double(OnigStackType** arg_stk_base, OnigStackType** arg_stk_end,
       else
         n = limit_size;
     }
-    x = (OnigStackType* )xrealloc(stk_base, sizeof(OnigStackType) * n);
+    x = (OnigStackType* )realloc(stk_base, sizeof(OnigStackType) * n);
     if (IS_NULL(x)) {
       STACK_SAVE;
       return ONIGERR_MEMORY;
@@ -2944,7 +2931,7 @@ set_bm_backward_skip(UChar* s, UChar* end, OnigEncoding enc ARG_UNUSED,
   int i, len;
 
   if (IS_NULL(*skip)) {
-    *skip = (int* )xmalloc(sizeof(int) * ONIG_CHAR_TABLE_SIZE);
+    *skip = (int* )malloc(sizeof(int) * ONIG_CHAR_TABLE_SIZE);
     if (IS_NULL(*skip)) return ONIGERR_MEMORY;
   }
 

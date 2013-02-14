@@ -272,8 +272,6 @@ assert('String#rindex', '15.2.10.5.31') do
     'abcabc'.rindex('a', 1) == 0 and 'abcabc'.rindex('a', 4) == 3
 end
 
-# TODO Broken ATM assert('String#scan', '15.2.10.5.32') do
-
 assert('String#size', '15.2.10.5.33') do
   'abc'.size == 3
 end
@@ -308,29 +306,78 @@ assert('String#slice', '15.2.10.5.34') do
     a3 == 'bc' and b3 == nil
 end
 
-# TODO Broken ATM
-assert('String#split', '15.2.10.5.35') do
-  # without RegExp behavior is actually unspecified
-  'abc abc abc'.split == ['abc', 'abc', 'abc'] and
-    'a,b,c,,d'.split(',') == ["a", "b", "c", "", "d"] and
-    'abc abc abc'.split(nil) == ['abc', 'abc', 'abc'] and
-    'abc'.split("") == ['a', 'b', 'c']
+assert('String#split with non-Regexp separator') do
+  r = false
+  oldsep = $;
+  begin
+    $; = ','
+    r = (
+      ''.split(',', 1)          == []                    and  # not ['']
+      'abc'.split(',', 1)       == ['abc']               and
+      'abc'.split('')           == ['a', 'b', 'c']       and
+      'a,b,,c,,'.split(',')     == ['a', 'b', '', 'c']   and
+      'a,b,,c,,'.split          == ['a', 'b', '', 'c']   and
+      'a,b,,c,,'.split(',', 0)  == ['a', 'b', '', 'c']   and
+      'a,b,,c,,'.split(',', 1)  == ['a,b,,c,,']          and
+      'a,b,,c,,'.split(',', 4)  == ['a', 'b', '', 'c,,'] and
+      'a,b,,c,,'.split(',', -4) == ['a', 'b', '', 'c', '', ''] and
+      '      abc'.split(' ')    == ['abc']               and
+      'abc      '.split(' ')    == ['abc']               and
+      ' a  bc d '.split(' ')    == ['a', 'bc', 'd']      and
+      ' a  bc d '.split(' ')    == ['a', 'bc', 'd']      and
+      ' a  bc d '.split(nil)    == ['a', 'bc', 'd']      and
+      ' a  bc d '.split(' ', 1) == [' a  bc d ']         and
+      ' a  bc d '.split(' ', 2) == ['a', 'bc d ']
+    )
+  ensure
+    $; = oldsep
+  end
+  r
 end
 
-assert('String#sub', '15.2.10.5.36') do
-  'abcabc'.sub('b', 'B') == 'aBcabc' && 'abcabc'.sub('b') { |w| w.capitalize } == 'aBcabc' 
-end
+if Object.const_defined?(:Regexp)
+  # TODO ATM broken assert('String#sub', '15.2.10.5.36') do
+  assert('String#sub', '15.2.10.5.36') do
+    re = Regexp.compile('def')
+    result1 = 'abcdefg'.sub(re, '!!')
+    re = Regexp.compile('b')
+    result2 = 'abcabc'.sub(re, '<<\&>>')
+    re = Regexp.compile('x+(b+)')
+    result3 = 'xbbxbb'.sub(re, 'X<<\1>>')
 
-assert('String#sub!', '15.2.10.5.37') do
-  a = 'abcabc'
-  a.sub!('b', 'B')
+    result1 == "abc!!g" and
+    result2 == "a<<b>>cabc" and
+    result3 == "X<<bb>>xbb"
+  end
 
-  b = 'abcabc'
-  b.sub!('b') { |w| w.capitalize }
+  # TODO ATM broken assert('String#sub!', '15.2.10.5.37') do
+  assert('String#sub!', '15.2.10.5.37') do
+    result1 = "String-String"
+    re = Regexp.compile('in.')
+    result1.sub!(re, "!!")
 
-  a == 'aBcabc' && b == 'aBcabc'
-end
+    result2 = "String-String"
+    re = Regexp.compile('in.')
+    result2.sub!(re, '<<\&>>')
 
+    result1 == "Str!!-String" and
+    result2 == "Str<<ing>>-String"
+  end
+else
+  assert('String#sub', '15.2.10.5.36') do
+    'abcabc'.sub('b', 'B') == 'aBcabc' && 'abcabc'.sub('b') { |w| w.capitalize } == 'aBcabc' 
+  end
+
+  assert('String#sub!', '15.2.10.5.37') do
+    a = 'abcabc'
+    a.sub!('b', 'B')
+
+    b = 'abcabc'
+    b.sub!('b') { |w| w.capitalize }
+
+    a == 'aBcabc' && b == 'aBcabc'
+  end
+end # END: Object.const_defined?(:Regexp)
 
 assert('String#to_i', '15.2.10.5.38') do
   a = ''.to_i
