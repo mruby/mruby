@@ -708,6 +708,13 @@ new_dsym(parser_state *p, node *a)
   return cons((node*)NODE_DSYM, new_dstr(p, a));
 }
 
+// (:str . (s . len))
+static node*
+new_regx(parser_state *p, const char *s, int len)
+{
+  return cons((node*)NODE_REGX, cons((node*)strndup(s, len), (node*)(intptr_t)len));
+}
+
 // (:backref . n)
 static node*
 new_back_ref(parser_state *p, int n)
@@ -743,13 +750,14 @@ call_bin_op(parser_state *p, node *recv, char *m, node *arg1)
   return new_call(p, recv, intern(m), list1(list1(arg1)));
 }
 
+/*
 // (:match (a . b))
 static node*
 match_op(parser_state *p, node *a, node *b)
 {
   return cons((node*)NODE_MATCH, cons((node*)a, (node*)b));
 }
-
+*/
 
 static void
 args_with_block(parser_state *p, node *a, node *b)
@@ -1679,7 +1687,7 @@ arg		: lhs '=' arg
 		    }
 		| arg tMATCH arg
 		    {
-		      $$ = match_op(p, $1, $3);
+		      $$ = call_bin_op(p, $1, "=~", $3);
 #if 0
 		      if (nd_type($1) == NODE_LIT && TYPE($1->nd_lit) == T_REGEXP) {
 			$$ = reg_named_capture_assign($1->nd_lit, $$);
@@ -2498,7 +2506,10 @@ string_interp	: tSTRING_PART
 		    }
 		;
 
-regexp		: tREGEXP
+regexp		: tREGEXP_BEG tREGEXP
+		    {
+			$$ = $2;
+		    }
 		;
 
 symbol		: basic_symbol
@@ -3335,9 +3346,17 @@ read_escape(parser_state *p)
     return c;
 
   case 'b':	/* backspace */
+    if (p->regexp) {
+      tokadd(p, '\\');
+      return 'b';
+    }
     return '\010';
 
   case 's':	/* space */
+    if (p->regexp) {
+      tokadd(p, '\\');
+      return 's';
+    }
     return ' ';
 
   case 'M':
@@ -3375,7 +3394,30 @@ read_escape(parser_state *p)
     return '\0';
 
   default:
+    if (p->regexp) {
+      tokadd(p, '\\');
+    }
     return c;
+  }
+}
+
+static void
+regx_options(parser_state *p)
+{
+  int c;
+
+  newtok(p);
+  while (c = nextc(p), ISALPHA(c)) {
+    tokadd(p, c);
+  }
+
+  pushback(p, c);
+  if (toklen(p)) {
+    char msg[128];
+    tokfix(p);
+    snprintf(msg, sizeof(msg), "unknown regexp option %s - %s",
+        toklen(p) > 1 ? "s" : "", tok(p));
+    yyerror(p, msg);
   }
 }
 
@@ -3385,7 +3427,6 @@ parse_string(parser_state *p, int term)
   int c;
 
   newtok(p);
-
   while ((c = nextc(p)) != term) {
     if (c  == -1) {
       yyerror(p, "unterminated string meets end of file");
@@ -3422,6 +3463,15 @@ parse_string(parser_state *p, int term)
   tokfix(p);
   p->lstate = EXPR_END;
   p->sterm = 0;
+
+  if (p->regexp) {
+    //regx_options(p);
+    yylval.nd = new_regx(p, tok(p), toklen(p));
+    p->regexp = 0;
+
+    return tREGEXP;
+  }
+
   yylval.nd = new_str(p, tok(p), toklen(p));
   return tSTRING;
 }
@@ -4186,6 +4236,8 @@ parser_yylex(parser_state *p)
 #if 0
       p->lex_strterm = new_strterm(p, str_regexp, '/', 0);
 #endif
+      p->regexp = 1;
+      p->sterm = '/';
       return tREGEXP_BEG;
     }
     if ((c = nextc(p)) == '=') {
@@ -4199,6 +4251,8 @@ parser_yylex(parser_state *p)
 #if 0
       p->lex_strterm = new_strterm(p, str_regexp, '/', 0);
 #endif
+      p->regexp = 1;
+      p->sterm = '/';
       return tREGEXP_BEG;
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
@@ -4381,6 +4435,8 @@ parser_yylex(parser_state *p)
 #if 0
 	p->lex_strterm = new_strterm(p, str_regexp, term, paren);
 #endif
+	p->regexp = 1;
+	p->sterm = '/';
 	return tREGEXP_BEG;
 
       case 's':
@@ -5389,6 +5445,16 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     printf("NODE_CONST %s\n", mrb_sym2name(mrb, sym(tree)));
     break;
 
+  case NODE_MATCH:
+    printf("NODE_MATCH:\n");
+    dump_prefix(offset + 1);
+    printf("lhs:\n");
+    parser_dump(mrb, tree->car, offset + 2);
+    dump_prefix(offset + 1);
+    printf("rhs:\n");
+    parser_dump(mrb, tree->cdr, offset + 2);
+    break;
+
   case NODE_BACK_REF:
     printf("NODE_BACK_REF: $%c\n", (int)(intptr_t)tree);
     break;
@@ -5426,6 +5492,10 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_DSTR:
     printf("NODE_DSTR\n");
     dump_recur(mrb, tree, offset+1);
+    break;
+
+  case NODE_REGX:
+    printf("NODE_REGX /%s/\n", (char*)tree->car->cdr->car);
     break;
 
   case NODE_SYM:

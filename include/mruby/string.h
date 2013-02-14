@@ -11,10 +11,6 @@
 extern "C" {
 #endif
 
-#ifdef INCLUDE_ENCODING
-#include "encoding.h"
-#endif
-
 #ifndef RB_GC_GUARD
 #define RB_GC_GUARD(v) v
 #endif

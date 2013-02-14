@@ -54,9 +54,7 @@ mrb_init_core(mrb_state *mrb)
   mrb_init_struct(mrb); DONE;
 #endif
   mrb_init_gc(mrb); DONE;
-#ifdef ENABLE_REGEXP
   mrb_init_regexp(mrb); DONE;
-#endif
 #ifdef ENABLE_STDIO
   mrb_init_print(mrb); DONE;
 #endif
