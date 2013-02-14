@@ -23,6 +23,7 @@ end
 #       which will be tested by this
 #       assertion
 def assert(str = 'Assertion failed', iso = '')
+  print(str, (iso != '' ? " [#{iso}]" : ''), ' : ') if $mrbtest_verbose
   begin
     if(!yield)
       $asserts.push(assertion_string('Fail: ', str, iso))
@@ -37,6 +38,7 @@ def assert(str = 'Assertion failed', iso = '')
     $kill_test += 1
     print('X')
   end
+  print("\n") if $mrbtest_verbose
 end
 
 ##

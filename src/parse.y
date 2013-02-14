@@ -5,7 +5,6 @@
 */
 
 %{
-#undef PARSER_TEST
 #undef PARSER_DEBUG
 
 #define YYDEBUG 1
@@ -3016,7 +3015,7 @@ yywarn(parser_state *p, const char *s)
     }
 #endif
   }
-  else if (p->nerr < sizeof(p->warn_buffer) / sizeof(p->warn_buffer[0])) {
+  else if (p->nwarn < sizeof(p->warn_buffer) / sizeof(p->warn_buffer[0])) {
     n = strlen(s);
     c = (char *)parser_palloc(p, n + 1);
     memcpy(c, s, n + 1);
@@ -5756,26 +5755,3 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
   }
 #endif
 }
-
-#ifdef PARSER_TEST
-int
-main()
-{
-  mrb_state *mrb = mrb_open();
-  int n;
-
-  n = mrb_compile_string(mrb, "\
-def fib(n)\n\
-  if n<2\n\
-    n\n\
-  else\n\
-    fib(n-2)+fib(n-1)\n\
-  end\n\
-end\n\
-print(fib(20), \"\\n\")\n\
-");
-  printf("ret: %d\n", n);
-
-  return 0;
-}
-#endif

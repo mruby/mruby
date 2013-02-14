@@ -28,7 +28,11 @@ class String
   #
   # ISO 15.2.10.5.18
   def gsub(*args, &block)
-    unless (args.size == 1 && block) || args.size == 2
+    if args.size == 2
+      split(args[0]).join(args[1])
+    elsif args.size == 1 && block
+      split(args[0]).join(block.call(args[0]))
+    else
       raise ArgumentError, "wrong number of arguments"
     end
 
@@ -80,7 +84,11 @@ class String
   #
   # ISO 15.2.10.5.36
   def sub(*args, &block)
-    unless (args.size == 1 && block) || args.size == 2
+    if args.size == 2
+      split(args[0], 2).join(args[1])
+    elsif args.size == 1 && block
+      split(args[0], 2).join(block.call(args[0]))
+    else
       raise ArgumentError, "wrong number of arguments"
     end
 

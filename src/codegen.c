@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#undef CODEGEN_TEST
 #define CODEGEN_DUMP
 
 #include "mruby.h"
@@ -963,6 +962,48 @@ readint_float(codegen_scope *s, const char *p, int base)
   return f;
 }
 
+static mrb_int
+readint_mrb_int(codegen_scope *s, const char *p, int base, int neg, int *overflow)
+{
+  const char *e = p + strlen(p);
+  mrb_int result = 0;
+  int n;
+
+  if (*p == '+') p++;
+  while (p < e) {
+    char c = *p;
+    c = tolower((unsigned char)c);
+    for (n=0; n<base; n++) {
+      if (mrb_digitmap[n] == c) {
+	break;
+      }
+    }
+    if (n == base) {
+      codegen_error(s, "malformed readint input");
+    }
+
+    if (neg) {
+      if ((MRB_INT_MIN + n)/base > result) {
+        *overflow = TRUE;
+        return 0;
+      }
+      result *= base;
+      result -= n;
+    }
+    else {
+      if ((MRB_INT_MAX - n)/base < result) {
+        *overflow = TRUE;
+        return 0;
+      }
+      result *= base;
+      result += n;
+    }
+    p++;
+  }
+  *overflow = FALSE;
+  return result;
+}
+
 static void
 codegen(codegen_scope *s, node *tree, int val)
 {
@@ -1737,18 +1778,18 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       char *p = (char*)tree->car;
       int base = (intptr_t)tree->cdr->car;
-      double f;
       mrb_int i;
       mrb_code co;
+      int overflow;
 
-      f = readint_float(s, p, base);
-      if (!FIXABLE(f)) {
+      i = readint_mrb_int(s, p, base, FALSE, &overflow);
+      if (overflow) {
+	double f = readint_float(s, p, base);
 	int off = new_lit(s, mrb_float_value(f));
 
 	genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
       }
       else {
-	i = (mrb_int)f;
 	if (i < MAXARG_sBx && i > -MAXARG_sBx) {
 	  co = MKOP_AsBx(OP_LOADI, cursp(), i);
 	}
@@ -1793,18 +1834,18 @@ codegen(codegen_scope *s, node *tree, int val)
         {
           char *p = (char*)tree->car;
           int base = (intptr_t)tree->cdr->car;
-	  mrb_float f;
           mrb_int i;
           mrb_code co;
+          int overflow;
 
-	  f = readint_float(s, p, base);
-	  if (!FIXABLE(f)) {
+          i = readint_mrb_int(s, p, base, TRUE, &overflow);
+          if (overflow) {
+	    double f = readint_float(s, p, base);
 	    int off = new_lit(s, mrb_float_value(-f));
-	    
+
 	    genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
 	  }
 	  else {
-	    i = (mrb_int)-f;
 	    if (i < MAXARG_sBx && i > -MAXARG_sBx) {
 	      co = MKOP_AsBx(OP_LOADI, cursp(), i);
 	    }
@@ -2560,7 +2601,7 @@ codedump(mrb_state *mrb, int n)
 void
 codedump_all(mrb_state *mrb, int start)
 {
-  int i;
+  size_t i;
 
   for (i=start; i<mrb->irep_len; i++) {
     codedump(mrb, i);
@@ -2599,35 +2640,3 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
 
   return start;
 }
-
-#ifdef CODEGEN_TEST
-int
-main()
-{
-  mrb_state *mrb = mrb_open();
-  int n;
-
-#if 1
-  n = mrb_compile_string(mrb, "p(__FILE__)\np(__LINE__)");
-#else
-  n = mrb_compile_string(mrb, "\
-def fib(n)\n\
-  if n<2\n\
-    n\n\
-  else\n\
-    fib(n-2)+fib(n-1)\n\
-  end\n\
-end\n\
-p(fib(30), \"\\n\")\n\
-");
-#endif
-  printf("ret: %d\n", n);
-#ifdef CODEGEN_DUMP
-  codedump_all(mrb, n);
-#endif
-  mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[0]), mrb_nil_value());
-  mrb_close(mrb);
-
-  return 0;
-}
-#endif

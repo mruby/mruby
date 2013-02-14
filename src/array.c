@@ -66,7 +66,7 @@ mrb_ary_new(mrb_state *mrb)
 static inline void
 array_copy(mrb_value *dst, const mrb_value *src, size_t size)
 {
-  int i;
+  size_t i;
 
   for (i = 0; i < size; i++) {
     dst[i] = src[i];
@@ -647,7 +647,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
 }
 
 int
-mrb_ary_alen(mrb_state *mrb, mrb_value ary)
+mrb_ary_len(mrb_state *mrb, mrb_value ary)
 {
   return RARRAY_LEN(ary);
 }

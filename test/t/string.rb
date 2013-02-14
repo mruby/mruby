@@ -192,6 +192,20 @@ assert('String#eql?', '15.2.10.5.17') do
   'abc'.eql?('abc') and not 'abc'.eql?('cba')
 end
 
+assert('String#gsub', '15.2.10.5.18') do
+  'abcabc'.gsub('b', 'B') == 'aBcaBc' && 'abcabc'.gsub('b') { |w| w.capitalize } == 'aBcaBc' 
+end
+
+assert('String#gsub!', '15.2.10.5.19') do
+  a = 'abcabc'
+  a.gsub!('b', 'B')
+
+  b = 'abcabc'
+  b.gsub!('b') { |w| w.capitalize }
+
+  a == 'aBcaBc' && b == 'aBcaBc' 
+end
+
 assert('String#hash', '15.2.10.5.20') do
   a = 'abc'
 
@@ -322,33 +336,47 @@ assert('String#split with non-Regexp separator') do
 end
 
 if Object.const_defined?(:Regexp)
-# TODO ATM broken assert('String#sub', '15.2.10.5.36') do
-assert('String#sub', '15.2.10.5.36') do
-  re = Regexp.compile('def')
-  result1 = 'abcdefg'.sub(re, '!!')
-  re = Regexp.compile('b')
-  result2 = 'abcabc'.sub(re, '<<\&>>')
-  re = Regexp.compile('x+(b+)')
-  result3 = 'xbbxbb'.sub(re, 'X<<\1>>')
+  # TODO ATM broken assert('String#sub', '15.2.10.5.36') do
+  assert('String#sub', '15.2.10.5.36') do
+    re = Regexp.compile('def')
+    result1 = 'abcdefg'.sub(re, '!!')
+    re = Regexp.compile('b')
+    result2 = 'abcabc'.sub(re, '<<\&>>')
+    re = Regexp.compile('x+(b+)')
+    result3 = 'xbbxbb'.sub(re, 'X<<\1>>')
 
-  result1 == "abc!!g" and
-  result2 == "a<<b>>cabc" and
-  result3 == "X<<bb>>xbb"
-end
+    result1 == "abc!!g" and
+    result2 == "a<<b>>cabc" and
+    result3 == "X<<bb>>xbb"
+  end
 
-# TODO ATM broken assert('String#sub!', '15.2.10.5.37') do
-assert('String#sub!', '15.2.10.5.37') do
-  result1 = "String-String"
-  re = Regexp.compile('in.')
-  result1.sub!(re, "!!")
+  # TODO ATM broken assert('String#sub!', '15.2.10.5.37') do
+  assert('String#sub!', '15.2.10.5.37') do
+    result1 = "String-String"
+    re = Regexp.compile('in.')
+    result1.sub!(re, "!!")
 
-  result2 = "String-String"
-  re = Regexp.compile('in.')
-  result2.sub!(re, '<<\&>>')
+    result2 = "String-String"
+    re = Regexp.compile('in.')
+    result2.sub!(re, '<<\&>>')
 
-  result1 == "Str!!-String" and
-  result2 == "Str<<ing>>-String"
-end
+    result1 == "Str!!-String" and
+    result2 == "Str<<ing>>-String"
+  end
+else
+  assert('String#sub', '15.2.10.5.36') do
+    'abcabc'.sub('b', 'B') == 'aBcabc' && 'abcabc'.sub('b') { |w| w.capitalize } == 'aBcabc' 
+  end
+
+  assert('String#sub!', '15.2.10.5.37') do
+    a = 'abcabc'
+    a.sub!('b', 'B')
+
+    b = 'abcabc'
+    b.sub!('b') { |w| w.capitalize }
+
+    a == 'aBcabc' && b == 'aBcabc'
+  end
 end # END: Object.const_defined?(:Regexp)
 
 assert('String#to_i', '15.2.10.5.38') do

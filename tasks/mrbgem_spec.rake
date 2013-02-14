@@ -22,7 +22,7 @@ module MRuby
       alias :author= :authors=
 
       attr_accessor :rbfiles, :objs
-      attr_accessor :test_objs, :test_rbfiles
+      attr_accessor :test_objs, :test_rbfiles, :test_args
       attr_accessor :test_preload
 
       attr_block MRuby::Build::COMMANDS
@@ -35,9 +35,7 @@ module MRuby
 
       def setup
         MRuby::Gem.current = self
-
         @build.compilers.each do |compiler|
-          compiler.defines -= %w(DISABLE_GEMS)
           compiler.include_paths << "#{dir}/include"
         end
         MRuby::Build::COMMANDS.each do |command|
@@ -56,6 +54,7 @@ module MRuby
           objfile(f.relative_path_from(dir).to_s.pathmap("#{build_dir}/%X"))
         end
         @test_preload = 'test/assert.rb'
+        @test_args = {}
 
         instance_eval(&@initializer)
 
@@ -78,8 +77,8 @@ module MRuby
         "#{build.build_dir}/mrbgems/#{name}"
       end
 
-      def testlib
-        libfile("#{build_dir}/libmrb-#{name}-gem-test")
+      def test_rbireps
+        "#{build_dir}/gem_test.c"
       end
 
       def funcname
@@ -142,6 +141,7 @@ module MRuby
         f.puts %Q[#include "mruby/proc.h"]
         f.puts %Q[#include "mruby/variable.h"]
         f.puts %Q[#include "mruby/array.h"]
+        f.puts %Q[#include "mruby/hash.h"]
       end
 
     end # Specification

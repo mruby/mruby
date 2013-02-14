@@ -15,7 +15,7 @@ To add a GEM into the build_config.rb add the following line for example:
 
 You can also use a relative path which would be relative from the mruby root:
 
-	conf.gem 'doc/mrbgems/ruby_extension_example'
+	conf.gem 'examples/mrbgems/ruby_extension_example'
 
 A remote GIT repository location for a GEM is also supported:
 
@@ -99,13 +99,10 @@ mrbgems expects that you have implemented a C method called
 by the name of your GEM. If you call your GEM *c_extension_example*, your
 finalizer method could look like this:
 
-```
-void
-mrb_c_extension_example_gem_final(mrb_state* mrb) {
-   free(someone);
-}
-```
-
+	void
+	mrb_c_extension_example_gem_final(mrb_state* mrb) {
+	  free(someone);
+	}
 
 ### Example
 

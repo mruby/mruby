@@ -8,8 +8,17 @@ load 'tasks/mrbgem_spec.rake'
 
 ##############################
 # compile flags
-MRUBY_CONFIG = File.expand_path(ENV['MRUBY_CONFIG'] || './build_config.rb')
-load MRUBY_CONFIG
+load 'build_config.rb'
+
+MRUBY_CONFIGS = ['build_config.rb']
+if ENV['MRUBY_CONFIG']
+  MRUBY_CONFIGS << ENV['MRUBY_CONFIG']
+  load ENV['MRUBY_CONFIG']
+end
+
+MRuby.each_target do |build|
+  build.define_rules
+end
 
 load 'src/mruby_core.rake'
 load 'mrblib/mrblib.rake'
@@ -31,9 +40,10 @@ depfiles = MRuby.targets['host'].bins.map do |bin|
   install_path = MRuby.targets['host'].exefile("bin/#{bin}")
   
   file install_path => MRuby.targets['host'].exefile("build/host/bin/#{bin}") do |t|
+    FileUtils.rm t.name, :force => true
     FileUtils.cp t.prerequisites.first, t.name
   end
-   
+  
   install_path
 end
 
@@ -52,9 +62,9 @@ task :all => depfiles do
 end
 
 desc "run all mruby tests"
-task :test => MRuby.targets.values.map { |t| t.exefile("#{t.build_dir}/test/mrbtest") } do
+task :test => MRuby.targets.values.map { |t| t.build_mrbtest_lib_only? ? t.libfile("#{t.build_dir}/test/mrbtest") : t.exefile("#{t.build_dir}/test/mrbtest") } do
   MRuby.each_target do
-    run_test
+    run_test unless build_mrbtest_lib_only?
   end
 end
 

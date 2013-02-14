@@ -144,7 +144,6 @@ typedef struct mrb_state {
 } mrb_state;
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
-typedef mrb_value (*mrb_funcargv_t)(mrb_state *mrb, mrb_value, int argc, mrb_value* argv);
 struct RClass *mrb_define_class(mrb_state *, const char*, struct RClass*);
 struct RClass *mrb_define_module(mrb_state *, const char*);
 mrb_value mrb_singleton_class(mrb_state*, mrb_value);
@@ -236,11 +235,11 @@ void mrb_gc_arena_restore(mrb_state*,int);
 void mrb_gc_mark(mrb_state*,struct RBasic*);
 #define mrb_gc_mark_value(mrb,val) do {\
   if (mrb_type(val) >= MRB_TT_OBJECT) mrb_gc_mark((mrb), mrb_object(val));\
-} while (0);
+} while (0)
 void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
 #define mrb_field_write_barrier_value(mrb, obj, val) do{\
   if ((val.tt >= MRB_TT_OBJECT)) mrb_field_write_barrier((mrb), (obj), mrb_object(val));\
-} while (0);
+} while (0)
 void mrb_write_barrier(mrb_state *, struct RBasic*);
 
 mrb_value mrb_check_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *tname, const char *method);
@@ -252,7 +251,6 @@ mrb_value mrb_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const ch
 int mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c);
 mrb_value mrb_obj_inspect(mrb_state *mrb, mrb_value self);
 mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
-mrb_value mrb_check_funcall(mrb_state *mrb, mrb_value recv, mrb_sym mid, int argc, mrb_value *argv);
 
 /* need to include <ctype.h> to use these macros */
 #ifndef ISPRINT
@@ -312,10 +310,6 @@ typedef enum call_type {
     CALL_VCALL,
     CALL_TYPE_MAX
 } call_type;
-
-/* compar.c */
-void mrb_cmperr(mrb_state *mrb, mrb_value x, mrb_value y);
-int mrb_cmpint(mrb_state *mrb, mrb_value val, mrb_value a, mrb_value b);
 
 #ifndef ANYARGS
 # ifdef __cplusplus

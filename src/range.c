@@ -43,8 +43,8 @@ mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, int excl)
   struct RRange *r;
 
   r = (struct RRange*)mrb_obj_alloc(mrb, MRB_TT_RANGE, RANGE_CLASS);
-  r->edges = (struct mrb_range_edges *)mrb_malloc(mrb, sizeof(struct mrb_range_edges));
   range_check(mrb, beg, end);
+  r->edges = (struct mrb_range_edges *)mrb_malloc(mrb, sizeof(struct mrb_range_edges));
   r->edges->beg = beg;
   r->edges->end = end;
   r->excl = excl;
@@ -333,7 +333,7 @@ range_to_s(mrb_state *mrb, mrb_value range)
 }
 
 static mrb_value
-inspect_range(mrb_state *mrb, mrb_value range, mrb_value dummy, int recur)
+inspect_range(mrb_state *mrb, mrb_value range, int recur)
 {
   mrb_value str, str2;
   struct RRange *r = mrb_range_ptr(range);
@@ -368,7 +368,7 @@ inspect_range(mrb_state *mrb, mrb_value range, mrb_value dummy, int recur)
 static mrb_value
 range_inspect(mrb_state *mrb, mrb_value range)
 {
-    return inspect_range(mrb, range, range, 0);
+    return inspect_range(mrb, range, 0);
 }
 
 /* 15.2.14.4.14(x) */

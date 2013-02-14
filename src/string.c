@@ -65,7 +65,7 @@ str_modify(mrb_state *mrb, struct RString *s)
       len = s->len;
       ptr = (char *)mrb_malloc(mrb, len+1);
       if (p) {
-	memcpy(ptr, p, len);
+        memcpy(ptr, p, len);
       }
       ptr[len] = 0;
       s->ptr = ptr;
@@ -749,12 +749,12 @@ mrb_str_dup(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_subpat(mrb_state *mrb, mrb_value str, mrb_value re, mrb_value backref)
 {
-	if (mrb_reg_search(mrb, re, str, 0, 0) >= 0) {
-		mrb_value match = mrb_backref_get(mrb);
-		int nth = mrb_reg_backref_number(mrb, match, backref);
-		return mrb_reg_nth_match(mrb, nth, match);
-	}
-	return mrb_nil_value();
+  if (mrb_reg_search(mrb, re, str, 0, 0) >= 0) {
+    mrb_value match = mrb_backref_get(mrb);
+    int nth = mrb_reg_backref_number(mrb, match, backref);
+    return mrb_reg_nth_match(mrb, nth, match);
+  }
+  return mrb_nil_value();
 }
 #endif
 
@@ -963,9 +963,8 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
   smart_chomp:
     if (s->ptr[len-1] == '\n') {
       s->len--;
-      if (s->len > 0 &&
-	  s->ptr[s->len-1] == '\r') {
-	s->len--;
+      if (s->len > 0 && s->ptr[s->len-1] == '\r') {
+        s->len--;
       }
     }
     else if (s->ptr[len-1] == '\r') {
@@ -2167,65 +2166,66 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   result = mrb_ary_new(mrb);
   beg = 0;
   if (split_type == awk) {
-    long len = RSTRING_LEN(str);
-    long n = 0;
-    int spc;
+    char *ptr = RSTRING_PTR(str);
+    char *eptr = RSTRING_END(str);
+    char *bptr = ptr;
     int skip = 1;
-    int ai = mrb_gc_arena_save(mrb);
+    unsigned int c;
+
     end = beg;
-    while (n < len) {
-      spc = ascii_isspace(RSTRING_PTR(str)[n++]);
+    while (ptr < eptr) {
+      int ai = mrb_gc_arena_save(mrb);
+      c = (unsigned char)*ptr++;
       if (skip) {
-        if (spc) {
-          beg = n;
+        if (ascii_isspace(c)) {
+          beg = ptr - bptr;
         }
         else {
-          end = n;
+          end = ptr - bptr;
           skip = 0;
-          if (lim > 0 && lim <= i) break;
+          if (lim >= 0 && lim <= i) break;
         }
       }
+      else if (ascii_isspace(c)) {
+        mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
+        mrb_gc_arena_restore(mrb, ai);
+        skip = 1;
+        beg = ptr - bptr;
+        if (lim >= 0) ++i;
+      }
       else {
-        if (spc) {
-          mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
-          mrb_gc_arena_restore(mrb, ai);
-          skip = 1;
-          beg = n;
-          i++;
-        }
-        else {
-          end = n;
-        }
+        end = ptr - bptr;
       }
     }
   }
   else if (split_type == string) {
-    long len = RSTRING_LEN(str);
+    char *ptr = RSTRING_PTR(str);
+    char *temp = ptr;
+    char *eptr = RSTRING_END(str);
     long slen = RSTRING_LEN(spat);
-    long n = 0;
 
     if (slen == 0) {
       int ai = mrb_gc_arena_save(mrb);
-      while (n < len) {
-	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, n, 1));
+      while (ptr < eptr) {
+        mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr-temp, 1));
         mrb_gc_arena_restore(mrb, ai);
-        n += 1;
-	if (lim > 0 && lim <= ++i) break;
+        ptr++;
+        if (lim >= 0 && lim <= ++i) break;
       }
     }
     else {
       char *sptr = RSTRING_PTR(spat);
       int ai = mrb_gc_arena_save(mrb);
-      while (n < len) {
-        end = mrb_memsearch(sptr, slen, RSTRING_PTR(str) + n, len - n);
-        if (end < 0) break;
-        mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, n, end));
+
+      while (ptr < eptr &&
+             (end = mrb_memsearch(sptr, slen, ptr, eptr - ptr)) >= 0) {
+        mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr - temp, end));
         mrb_gc_arena_restore(mrb, ai);
-	n += end + slen;
-	if (lim > 0 && lim <= ++i) break;
+        ptr += end + slen;
+        if (lim >= 0 && lim <= ++i) break;
       }
     }
-    beg = n;
+    beg = ptr - temp;
   }
   else {
 #ifdef ENABLE_REGEXP
@@ -2236,10 +2236,10 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     int last_null = 0;
     struct re_registers *regs;
 
-    int ai = mrb_gc_arena_save(mrb);
     while ((end = mrb_reg_search(mrb, spat, str, start, 0)) >= 0) {
-      mrb_gc_arena_restore(mrb, ai);
+      int ai;
       regs = RMATCH_REGS(mrb_backref_get(mrb));
+      ai = mrb_gc_arena_save(mrb);
       if (start == end && BEG(0) == END(0)) {
         if (last_null == 1) {
           long enc_len = ONIGENC_MBC_ENC_LEN(ONIG_ENCODING_ASCII, (UChar *)ptr+beg, (UChar *)ptr+len);
@@ -2260,6 +2260,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       }
       else {
         mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
+        mrb_gc_arena_restore(mrb, ai);
         beg = start = END(0);
       }
       last_null = 0;
@@ -2271,6 +2272,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
         else
             tmp = mrb_str_subseq(mrb, str, BEG(idx), END(idx)-BEG(idx));
         mrb_ary_push(mrb, result, tmp);
+        mrb_gc_arena_restore(mrb, ai);
       }
       if (lim > 0 && lim <= ++i) break;
     }
@@ -2370,12 +2372,10 @@ mrb_str_sub(mrb_state *mrb, mrb_value self)
   mrb_value *argv;
   int argc;
   mrb_value pat, repl;
-  int iter = 0;
   long plen;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   if (argc == 1 && mrb_block_given_p()) {
-    iter = 1;
   } else if (argc == 2) {
     repl = argv[1];
     mrb_string_value(mrb, &repl);
@@ -2942,27 +2942,6 @@ mrb_str_cat2(mrb_state *mrb, mrb_value str, const char *ptr)
   return mrb_str_cat(mrb, str, ptr, strlen(ptr));
 }
 
-static mrb_value
-mrb_str_vcatf(mrb_state *mrb, mrb_value str, const char *fmt, va_list ap)
-{
-    mrb_string_value(mrb, &str);
-    mrb_str_resize(mrb, str, (char*)RSTRING_END(str) - RSTRING_PTR(str));
-
-    return str;
-}
-
-mrb_value
-mrb_str_catf(mrb_state *mrb, mrb_value str, const char *format, ...)
-{
-    va_list ap;
-
-    va_start(ap, format);
-    str = mrb_str_vcatf(mrb, str, format, ap);
-    va_end(ap);
-
-    return str;
-}
-
 mrb_value
 mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2)
 {
@@ -3017,15 +2996,15 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
         default: cc = 0; break;
       }
       if (cc) {
-          buf[0] = '\\';
-          buf[1] = (char)cc;
-          mrb_str_buf_cat(mrb, result, buf, 2);
-          continue;
+        buf[0] = '\\';
+        buf[1] = (char)cc;
+        mrb_str_buf_cat(mrb, result, buf, 2);
+        continue;
       }
       else {
-	int n = sprintf(buf, "\\%03o", c & 0377);
-	mrb_str_buf_cat(mrb, result, buf, n);
-          continue;
+        int n = sprintf(buf, "\\%03o", c & 0377);
+        mrb_str_buf_cat(mrb, result, buf, n);
+        continue;
       }
     }
     mrb_str_buf_cat(mrb, result, "\"", 1);

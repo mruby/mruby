@@ -41,7 +41,7 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
   v |= v >> 8;\
   v |= v >> 16;\
   v++;\
-} while (0);
+} while (0)
 
 /* declare struct kh_xxx and kh_xxx_funcs
 
