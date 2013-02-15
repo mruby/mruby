@@ -20,6 +20,8 @@ rake ENABLE_GEMS="true"
  - l : 32-bit signed, native endian (int32_t)
  - n : 16-bit unsigned, network (big-endian) byte order
  - N : 32-bit unsigned, network (big-endian) byte order
+ - v : 16-bit unsigned, VAX (little-endian) byte order
+ - V : 32-bit unsigned, VAX (little-endian) byte order
  - A : arbitrary binary string (space padded, count is width)
  - a : arbitrary binary string (null padded, count is width)
  - Z : same as "a", except that null is added with *
