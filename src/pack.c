@@ -562,6 +562,11 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, 
     size = 4;
     flags |= PACK_FLAG_SIGNED;
     break;
+  case 'm':
+    dir = PACK_DIR_BASE64;
+    type = PACK_TYPE_STRING;
+    flags |= PACK_FLAG_WIDTH;
+    break;
   case 'N':  /* = "L>" */
     dir = PACK_DIR_LONG;
     type = PACK_TYPE_INTEGER;
@@ -585,10 +590,17 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, 
     size = 2;
     flags |= PACK_FLAG_SIGNED;
     break;
-  case 'm':
-    dir = PACK_DIR_BASE64;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_WIDTH;
+  case 'V':  /* = "L<" */
+    dir = PACK_DIR_LONG;
+    type = PACK_TYPE_INTEGER;
+    size = 4;
+    flags |= PACK_FLAG_LT;
+    break;
+  case 'v':  /* = "S<" */
+    dir = PACK_DIR_SHORT;
+    type = PACK_TYPE_INTEGER;
+    size = 2;
+    flags |= PACK_FLAG_LT;
     break;
   case 'Z':
     dir = PACK_DIR_STR;
