@@ -652,6 +652,7 @@ mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
 static mrb_value
 mrb_str_match(mrb_state *mrb, mrb_value self/* x */)
 {
+  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
   return mrb_nil_value();
 }
 

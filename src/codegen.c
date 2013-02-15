@@ -1915,14 +1915,14 @@ codegen(codegen_scope *s, node *tree, int val)
       char *p = (char*)tree->car;
       size_t len = (intptr_t)tree->cdr;
       int ai = mrb_gc_arena_save(s->mrb);
-	  struct RClass* c = mrb_class_get(s->mrb, "Regexp");
+      struct RClass* c = mrb_class_get(s->mrb, "Regexp");
       mrb_value args[1];
       args[0] = mrb_str_new(s->mrb, p, len);
       int off = new_lit(s,
           mrb_class_new_instance(s->mrb, 1, args, c));
 
       mrb_gc_arena_restore(s->mrb, ai);
-      genop(s, MKOP_ABx(OP_STRING, cursp(), off));
+      genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
       push();
     }
     break;
