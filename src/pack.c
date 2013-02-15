@@ -1,7 +1,5 @@
 /*
  ** pack.c - Array#pack, String#unpack
- **
- ** See Copyright Notice in mruby.h
  */
 
 #include "mruby.h"
@@ -139,7 +137,8 @@ unpack_c(mrb_state *mrb, const void *src, int srclen, mrb_value ary, unsigned in
 static int
 pack_s(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  short n;
+  unsigned short n;
+
   str = str_len_ensure(mrb, str, sidx + 2);
   n = mrb_fixnum(o);
   if (flags & PACK_FLAG_LITTLEENDIAN) {
@@ -172,7 +171,7 @@ unpack_s(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
 static int
 pack_l(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  long n;
+  unsigned long n;
   str = str_len_ensure(mrb, str, sidx + 4);
   n = mrb_fixnum(o);
   if (flags & PACK_FLAG_LITTLEENDIAN) {
@@ -192,7 +191,7 @@ pack_l(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
 static int
 unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
-  long n;
+  unsigned long n;
 
   if (flags & PACK_FLAG_LITTLEENDIAN) {
     n = (src[3] << 24) + (src[2] << 16) + (src[1] << 8) + src[0];
@@ -200,13 +199,11 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
     n = (src[0] << 24) + (src[1] << 16) + (src[2] << 8) + src[3];
   }
   if (flags & PACK_FLAG_SIGNED) {
-    if (sizeof(long) > sizeof(int))
-      n = 0L - n;
-    if (!FIXABLE(n))
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot unpack to 32bit signed number: %ld", n);
+    if (!FIXABLE((mrb_int)n))
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot unpack to 32bit signed number: %ld", (mrb_int)n);
   } else {
     if (!POSFIXABLE(n))
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot unpack to 32bit unsigned number: %ld", n);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot unpack to 32bit unsigned number: %lu", n);
   }
   mrb_ary_push(mrb, ary, mrb_fixnum_value(n));
   return 4;
