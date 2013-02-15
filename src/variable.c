@@ -889,13 +889,20 @@ mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
   mrb_iv_set(mrb, mod, sym, v);
 }
 
-void
+ void
 mrb_vm_const_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
   struct RClass *c = mrb->ci->proc->target_class;
 
   if (!c) c = mrb->ci->target_class;
   mrb_obj_iv_set(mrb, (struct RObject*)c, sym, v);
+}
+
+void
+mrb_const_remove(mrb_state *mrb, mrb_value mod, mrb_sym sym)
+{
+  mod_const_check(mrb, mod);
+  mrb_iv_remove(mrb, mod, sym);
 }
 
 void
