@@ -38,7 +38,5 @@
 void
 mrb_init_regexp(mrb_state *mrb)
 {
-  struct RClass *s;
-  s = mrb_define_class(mrb, "Regexp", mrb->object_class);
-  //MRB_SET_INSTANCE_TT(s, MRB_TT_REGEX);
+  //mrb_define_class(mrb, REGEXP_CLASS, mrb->object_class);
 }

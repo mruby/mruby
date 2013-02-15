@@ -15,6 +15,7 @@
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include <stdio.h>
+#include "re.h"
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -740,7 +741,7 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
 {
   long idx;
 
-  if (!strcmp(_obj_classname(mrb, indx), "Regexp")) {
+  if (!strcmp(_obj_classname(mrb, indx), REGEXP_CLASS)) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
   }
   switch (mrb_type(indx)) {
@@ -836,7 +837,7 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 
   argc = mrb_get_args(mrb, "o|o", &a1, &a2);
   if (argc == 2) {
-    if (!strcmp(mrb_obj_classname(mrb, a1), "Regexp")) {
+    if (!strcmp(mrb_obj_classname(mrb, a1), REGEXP_CLASS)) {
       mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
     }
     return mrb_str_substr(mrb, str, mrb_fixnum(a1), mrb_fixnum(a2));
@@ -1369,7 +1370,7 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
       sub = mrb_nil_value();
 
   }
-  if (!strcmp(mrb_obj_classname(mrb, sub), "Regexp")) {
+  if (!strcmp(mrb_obj_classname(mrb, sub), REGEXP_CLASS)) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
   }
   if (pos < 0) {
@@ -1708,7 +1709,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     if (pos < 0) {
       pos += len;
       if (pos < 0) {
-        if (!strcmp(mrb_obj_classname(mrb, sub), "Regexp")) {
+        if (!strcmp(mrb_obj_classname(mrb, sub), REGEXP_CLASS)) {
           mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
         }
         return mrb_nil_value();
@@ -1723,7 +1724,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     else
       sub = mrb_nil_value();
   }
-  if (!strcmp(mrb_obj_classname(mrb, sub), "Regexp")) {
+  if (!strcmp(mrb_obj_classname(mrb, sub), REGEXP_CLASS)) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
   }
 
