@@ -708,11 +708,11 @@ new_dsym(parser_state *p, node *a)
   return cons((node*)NODE_DSYM, new_dstr(p, a));
 }
 
-// (:str . (s . len))
+// (:str . (a . a))
 static node*
-new_regx(parser_state *p, const char *s, int len)
+new_regx(parser_state *p, const char *p1, const char* p2)
 {
-  return cons((node*)NODE_REGX, cons((node*)strndup(s, len), (node*)(intptr_t)len));
+  return cons((node*)NODE_REGX, cons((node*)p1, (node*)p2));
 }
 
 // (:backref . n)
@@ -3401,26 +3401,6 @@ read_escape(parser_state *p)
   }
 }
 
-static void
-regx_options(parser_state *p)
-{
-  int c;
-
-  newtok(p);
-  while (c = nextc(p), ISALPHA(c)) {
-    tokadd(p, c);
-  }
-
-  pushback(p, c);
-  if (toklen(p)) {
-    char msg[128];
-    tokfix(p);
-    snprintf(msg, sizeof(msg), "unknown regexp option %s - %s",
-        toklen(p) > 1 ? "s" : "", tok(p));
-    yyerror(p, msg);
-  }
-}
-
 static int
 parse_string(parser_state *p, int term)
 {
@@ -3465,8 +3445,33 @@ parse_string(parser_state *p, int term)
   p->sterm = 0;
 
   if (p->regexp) {
-    //regx_options(p);
-    yylval.nd = new_regx(p, tok(p), toklen(p));
+    int f = 0;
+    int c;
+    char* s;
+	s = strndup(tok(p), toklen(p));
+    newtok(p);
+    while (c = nextc(p), ISALPHA(c)) {
+      switch (c) {
+      case 'i': f |= 1; break;
+      case 'x': f |= 2; break;
+      case 'm': f |= 4; break;
+      default: tokadd(p, c); break;
+      }
+    }
+    pushback(p, c);
+    if (toklen(p)) {
+      char msg[128];
+      free(s);
+      tokfix(p);
+      snprintf(msg, sizeof(msg), "unknown regexp option %s - %s",
+          toklen(p) > 1 ? "s" : "", tok(p));
+      yyerror(p, msg);
+    }
+	char flag[4] = {0};
+    if (f & 1) strcat(flag, "i");
+    if (f & 2) strcat(flag, "x");
+    if (f & 4) strcat(flag, "m");
+    yylval.nd = new_regx(p, s, strdup(flag));
     p->regexp = 0;
 
     return tREGEXP;
