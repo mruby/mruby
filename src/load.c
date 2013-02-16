@@ -13,6 +13,7 @@
 #endif
 #include "mruby/proc.h"
 #include "mruby/irep.h"
+#include "monitor.h"
 
 typedef struct _RiteFILE
 {
@@ -519,6 +520,7 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
   rite_binary_header  bin_header;
 
   if ((mrb == NULL) || (bin == NULL)) {
+    HOOK_MRB_READ_IREP(mrb, MRB_DUMP_INVALID_ARGUMENT, bin);
     return MRB_DUMP_INVALID_ARGUMENT;
   }
   src = (unsigned char*)bin;
@@ -526,8 +528,10 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
 
   //Read File Header Section
   nirep = read_rite_header(mrb, src, &bin_header);
-  if (nirep < 0)
+  if (nirep < 0) {
+    HOOK_MRB_READ_IREP(mrb, nirep, bin);
     return nirep;
+  }
   
   src += sizeof(bin_header) + MRB_DUMP_SIZE_OF_SHORT;  //header + crc
 
@@ -560,9 +564,13 @@ error_exit:
       }
     }
     //    mrb->irep_len = sirep;
+    HOOK_MRB_READ_IREP(mrb, ret, bin);
     return ret;
   }
-  return sirep + hex_to_uint8(bin_header.sirep);
+
+  ret = sirep + hex_to_uint8(bin_header.sirep);
+  HOOK_MRB_READ_IREP(mrb, ret, bin);
+  return ret;
 }
 
 static uint16_t
