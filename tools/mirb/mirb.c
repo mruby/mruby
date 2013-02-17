@@ -191,6 +191,10 @@ main(void)
     last_code_line[char_index] = '\0';
 #else
     char* line = readline(code_block_open ? "* " : "> ");
+    if(line == NULL) {
+      printf("\n");
+      break;
+    }
     strncat(last_code_line, line, sizeof(last_code_line)-1);
     add_history(line);
     free(line);
