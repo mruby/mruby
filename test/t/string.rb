@@ -205,7 +205,7 @@ assert('String#gsub!', '15.2.10.5.19') do
   b = 'abcabc'
   b.gsub!('b') { |w| w.capitalize }
 
-  a == 'aBcaBc' && b == 'aBcaBc' 
+  a == 'aBcaBc' && b == 'aBcaBc'
 end
 
 assert('String#hash', '15.2.10.5.20') do

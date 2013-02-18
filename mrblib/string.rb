@@ -28,12 +28,10 @@ class String
   #
   # ISO 15.2.10.5.18
   def gsub(*args, &block)
-    lc = ''
     if args.size == 2
-      lc = args[1] if self[-1] == args[0]
-      split(args[0]).join(args[1]) + lc
+      split(args[0], -1).join(args[1])
     elsif args.size == 1 && block
-      split(args[0]).join(block.call(args[0]))
+      split(args[0], -1).join(block.call(args[0]))
     else
       raise ArgumentError, "wrong number of arguments"
     end
