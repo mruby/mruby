@@ -41,12 +41,6 @@ mrb_class(mrb_state *mrb, mrb_value v)
     return mrb->float_class;
   case MRB_TT_MAIN:
     return mrb->object_class;
-
-  case MRB_TT_REGEX:
-  case MRB_TT_MATCH:
-    mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %s given",
-         mrb_obj_classname(mrb, v));
-    return mrb->nil_class; /* not reach */
   default:
     return mrb_object(v)->c;
   }
