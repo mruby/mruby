@@ -1868,11 +1868,12 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   int argc;
   mrb_value spat = mrb_nil_value();
   enum {awk, string, regexp} split_type = string;
-  long beg, end, i = 0;
-  mrb_int lim = -1;
+  long beg, end, i = 0, lim_p;
+  mrb_int lim = 0;
   mrb_value result, tmp;
 
   argc = mrb_get_args(mrb, "|oi", &spat, &lim);
+  lim_p = (lim > 0 && argc == 2);
   if (argc == 2) {
     if (lim == 1) {
       if (RSTRING_LEN(str) == 0)
@@ -1917,7 +1918,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
 	else {
 	  end = ptr - bptr;
 	  skip = 0;
-	  if (lim >= 0 && lim <= i) break;
+	  if (lim_p && lim <= i) break;
 	}
       }
       else if (ascii_isspace(c)) {
@@ -1925,7 +1926,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
         mrb_gc_arena_restore(mrb, ai);
 	skip = 1;
 	beg = ptr - bptr;
-	if (lim >= 0) ++i;
+	if (lim_p) ++i;
       }
       else {
 	end = ptr - bptr;
@@ -1944,7 +1945,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
 	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr-temp, 1));
         mrb_gc_arena_restore(mrb, ai);
 	ptr++;
-	if (lim >= 0 && lim <= ++i) break;
+	if (lim_p && lim <= ++i) break;
       }
     }
     else {
@@ -1956,7 +1957,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
 	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr - temp, end));
         mrb_gc_arena_restore(mrb, ai);
 	ptr += end + slen;
-	if (lim >= 0 && lim <= ++i) break;
+	if (lim_p && lim <= ++i) break;
       }
     }
     beg = ptr - temp;
@@ -1964,14 +1965,16 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   else {
     mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
   }
-  if (RSTRING_LEN(str) > 0 && (lim >= 0 || RSTRING_LEN(str) > beg || lim < 0)) {
-    if (RSTRING_LEN(str) == beg)
-        tmp = mrb_str_new_empty(mrb, str);
-    else
-        tmp = mrb_str_subseq(mrb, str, beg, RSTRING_LEN(str)-beg);
+  if (RSTRING_LEN(str) > 0 && (lim_p || RSTRING_LEN(str) > beg || lim < 0)) {
+    if (RSTRING_LEN(str) == beg) {
+      tmp = mrb_str_new_empty(mrb, str);
+    }
+    else {
+      tmp = mrb_str_subseq(mrb, str, beg, RSTRING_LEN(str)-beg);
+    }
     mrb_ary_push(mrb, result, tmp);
   }
-  if (lim < 0) {
+  if (!lim_p && lim == 0) {
     long len;
     while ((len = RARRAY_LEN(result)) > 0 &&
            (tmp = RARRAY_PTR(result)[len-1], RSTRING_LEN(tmp) == 0))
