@@ -71,10 +71,6 @@
 
 */
 
-#ifdef ENABLE_REGEXP
-#include "re.h"
-#endif
-
 struct free_obj {
   MRB_OBJECT_HEADER;
   struct RBasic *next;
@@ -94,10 +90,6 @@ typedef struct {
     struct RStruct structdata;
 #endif
     struct RProc procdata;
-#ifdef ENABLE_REGEXP
-    struct RMatch match;
-    struct RRegexp regexp;
-#endif
   } as;
 } RVALUE;
 
@@ -462,24 +454,6 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     }
     break;
 
-#ifdef ENABLE_REGEXP
-  case MRB_TT_MATCH:
-    {
-      struct RMatch *m = (struct RMatch*)obj;
-
-      mrb_gc_mark(mrb, (struct RBasic*)m->str);
-      mrb_gc_mark(mrb, (struct RBasic*)m->regexp);
-    }
-    break;
-  case MRB_TT_REGEX:
-    {
-      struct RRegexp *r = (struct RRegexp*)obj;
-
-      mrb_gc_mark(mrb, (struct RBasic*)r->src);
-    }
-    break;
-#endif
-
 #ifdef ENABLE_STRUCT
   case MRB_TT_STRUCT:
     {
@@ -688,15 +662,6 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_RANGE:
     children+=2;
     break;
-
-#ifdef ENABLE_REGEXP
-  case MRB_TT_MATCH:
-    children+=2;
-    break;
-  case MRB_TT_REGEX:
-    children+=1;
-    break;
-#endif
 
 #ifdef ENABLE_STRUCT
   case MRB_TT_STRUCT:

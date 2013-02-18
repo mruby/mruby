@@ -9,9 +9,6 @@
 #include <ctype.h>
 
 #include "mruby/string.h"
-#ifdef ENABLE_REGEXP
-#include "re.h"
-#endif
 #include "mruby/irep.h"
 
 static const unsigned char def_rite_binary_header[] =
@@ -256,13 +253,6 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep, int type)
       nlen = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);
       size += nlen;
       break;
-#ifdef ENABLE_REGEXP
-    case MRB_TT_REGEX:
-      str = mrb_reg_to_s(mrb, irep->pool[pool_no]);
-      nlen = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);
-      size += nlen;
-      break;
-#endif
     default:
       break;
     }
@@ -389,23 +379,6 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
       }
       str_dump(RSTRING_PTR(str), char_buf, RSTRING_LEN(str), type);
       break;
-
-#ifdef ENABLE_REGEXP
-    case MRB_TT_REGEX:
-      str = mrb_reg_to_s(mrb, irep->pool[pool_no]);
-      len = str_dump_len(RSTRING_PTR(str), RSTRING_LEN(str), type);
-      if ( len > buf_size - 1) {
-        buf_size = len + 1;
-        char_buf = mrb_realloc(mrb, char_buf, buf_size);
-        if (char_buf == NULL) {
-          result = MRB_DUMP_GENERAL_FAILURE;
-          goto error_exit;
-        }
-        memset(char_buf, 0, buf_size);
-      }
-      str_dump(RSTRING_PTR(str), char_buf, RSTRING_LEN(str), type);
-      break;
-#endif
 
     default:
       buf += uint16_dump(0, buf, type); /* data length = 0 */

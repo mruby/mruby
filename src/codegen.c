@@ -16,6 +16,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include "re.h"
 
 typedef mrb_ast_node node;
 typedef struct mrb_parser_state parser_state;
@@ -1907,6 +1908,25 @@ codegen(codegen_scope *s, node *tree, int val)
         }
         n = n->cdr;
       }
+    }
+    break;
+
+  case NODE_REGX:
+    if (val) {
+      char *p1 = (char*)tree->car;
+      //char *p2 = (char*)tree->cdr;
+      int ai = mrb_gc_arena_save(s->mrb);
+      struct RClass* c = mrb_class_get(s->mrb, REGEXP_CLASS);
+      mrb_value args[2];
+      args[0] = mrb_str_new(s->mrb, p1, strlen(p1));
+      // TODO: Some regexp implementation does not have second argument
+      //args[1] = mrb_str_new(s->mrb, p2, strlen(p2));
+      int off = new_lit(s,
+          mrb_class_new_instance(s->mrb, 1, args, c));
+
+      mrb_gc_arena_restore(s->mrb, ai);
+      genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
+      push();
     }
     break;
 

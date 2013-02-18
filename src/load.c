@@ -8,9 +8,6 @@
 #include "mruby/dump.h"
 
 #include "mruby/string.h"
-#ifdef ENABLE_REGEXP
-#include "re.h"
-#endif
 #include "mruby/proc.h"
 #include "mruby/irep.h"
 
@@ -434,13 +431,6 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
       case MRB_TT_STRING:
         irep->pool[i] = mrb_str_new(mrb, buf, pdl);
         break;
-
-#ifdef ENABLE_REGEXP
-      case MRB_TT_REGEX:
-        str = mrb_str_new(mrb, buf, pdl);
-        irep->pool[i] = mrb_reg_quote(mrb, str);
-        break;
-#endif
 
       default:
         irep->pool[i] = mrb_nil_value();

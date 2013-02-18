@@ -10,7 +10,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "encoding.h"
 #include "mruby/string.h"
 #include "mruby/hash.h"
 #include "mruby/numeric.h"

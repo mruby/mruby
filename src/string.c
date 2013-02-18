@@ -8,22 +8,17 @@
 
 #include <string.h>
 #include "mruby/string.h"
+#include "mruby/class.h"
 #include <ctype.h>
 #include <limits.h>
 #include "mruby/range.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include <stdio.h>
-#ifdef ENABLE_REGEXP
 #include "re.h"
-#include "regex.h"
-#endif //ENABLE_REGEXP
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
-#ifdef ENABLE_REGEXP
-static mrb_value get_pat(mrb_state *mrb, mrb_value pat, mrb_int quote);
-#endif //ENABLE_REGEXP
 static mrb_value str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2);
 static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len);
 
@@ -31,6 +26,12 @@ static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len)
       s->ptr = (char *)mrb_realloc(mrb, s->ptr, (capacity)+1);\
       s->aux.capa = capacity;\
 } while (0)
+
+static const char*
+_obj_classname(mrb_state *mrb, mrb_value obj)
+{
+  return mrb_class_name(mrb, mrb_obj_class(mrb, obj));
+}
 
 void
 mrb_str_decref(mrb_state *mrb, struct mrb_shared_string *shared)
@@ -652,6 +653,7 @@ mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
 static mrb_value
 mrb_str_match(mrb_state *mrb, mrb_value self/* x */)
 {
+  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
   return mrb_nil_value();
 }
 
@@ -739,6 +741,9 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
 {
   long idx;
 
+  if (!strcmp(_obj_classname(mrb, indx), REGEXP_CLASS)) {
+    mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
+  }
   switch (mrb_type(indx)) {
     case MRB_TT_FIXNUM:
       idx = mrb_fixnum(indx);
@@ -747,14 +752,6 @@ num_index:
       str = mrb_str_substr(mrb, str, idx, 1);
       if (!mrb_nil_p(str) && RSTRING_LEN(str) == 0) return mrb_nil_value();
       return str;
-
-    case MRB_TT_REGEX:
-#ifdef ENABLE_REGEXP
-      return mrb_str_subpat(mrb, str, indx, 0); //mrb_str_subpat(str, indx, INT2FIX(0));
-#else
-      mrb_raise(mrb, E_TYPE_ERROR, "Regexp Class not supported");
-      return mrb_nil_value();
-#endif //ENABLE_REGEXP
 
     case MRB_TT_STRING:
       if (mrb_str_index(mrb, str, indx, 0) != -1)
@@ -840,13 +837,8 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 
   argc = mrb_get_args(mrb, "o|o", &a1, &a2);
   if (argc == 2) {
-    if (mrb_type(a1) == MRB_TT_REGEX) {
-#ifdef ENABLE_REGEXP
-      return mrb_str_subpat(mrb, str, argv[0], mrb_fixnum(argv[1]));
-#else
-      mrb_raise(mrb, E_TYPE_ERROR, "Regexp Class not supported");
-      return mrb_nil_value();
-#endif //ENABLE_REGEXP
+    if (!strcmp(mrb_obj_classname(mrb, a1), REGEXP_CLASS)) {
+      mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
     }
     return mrb_str_substr(mrb, str, mrb_fixnum(a1), mrb_fixnum(a2));
   }
@@ -1215,86 +1207,6 @@ mrb_str_buf_append(mrb_state *mrb, mrb_value str, mrb_value str2)
   return str;
 }
 
-#ifdef ENABLE_REGEXP
-static mrb_value
-str_gsub(mrb_state *mrb, mrb_value str, mrb_int bang)
-{
-  mrb_value *argv;
-  int argc;
-  mrb_value pat, val, repl, match, dest = mrb_nil_value();
-  struct re_registers *regs;
-  mrb_int beg, n;
-  mrb_int beg0, end0;
-  mrb_int offset, blen, len, last;
-  char *sp, *cp;
-
-  if (bang) str_modify(mrb, mrb_str_ptr(self));
-  mrb_get_args(mrb, "*", &argv, &argc);
-  switch (argc) {
-    case 1:
-      /*RETURN_ENUMERATOR(str, argc, argv);*/
-      break;
-    case 2:
-      repl = argv[1];
-      mrb_string_value(mrb, &repl);
-      break;
-    default:
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 2)", argc);
-  }
-
-  pat = get_pat(mrb, argv[0], 1);
-  beg = mrb_reg_search(mrb, pat, str, 0, 0);
-  if (beg < 0) {
-    if (bang) return mrb_nil_value();  /* no match, no substitution */
-    return mrb_str_dup(mrb, str);
-  }
-
-  offset = 0;
-  n = 0;
-  blen = RSTRING_LEN(str) + 30;
-  dest = mrb_str_buf_new(mrb, blen);
-  sp = RSTRING_PTR(str);
-  cp = sp;
-
-  do {
-    n++;
-    match = mrb_backref_get(mrb);
-    regs = RMATCH_REGS(match);
-    beg0 = BEG(0);
-    end0 = END(0);
-      val = mrb_reg_regsub(mrb, repl, str, regs, pat);
-
-    len = beg - offset;  /* copy pre-match substr */
-    if (len) {
-      mrb_str_buf_cat(mrb, dest, cp, len);
-    }
-
-    mrb_str_buf_append(mrb, dest, val);
-
-    last = offset;
-    offset = end0;
-    if (beg0 == end0) {
-      /*
-       * Always consume at least one character of the input string
-       * in order to prevent infinite loops.
-       */
-      if (RSTRING_LEN(str) <= end0) break;
-      len = RSTRING_LEN(str)-end0;
-      mrb_str_buf_cat(mrb, dest, RSTRING_PTR(str)+end0, len);
-      offset = end0 + len;
-    }
-    cp = RSTRING_PTR(str) + offset;
-    if (offset > RSTRING_LEN(str)) break;
-    beg = mrb_reg_search(mrb, pat, str, offset, 0);
-  } while (beg >= 0);
-  if (RSTRING_LEN(str) > offset) {
-    mrb_str_buf_cat(mrb, dest, cp, RSTRING_LEN(str) - offset);
-  }
-  mrb_reg_search(mrb, pat, str, last, 0);
-  mrb_basic(dest)->c = mrb_obj_class(mrb, str);
-  return str;
-}
-
 /* 15.2.10.5.18 */
 /*
  *  call-seq:
@@ -1331,7 +1243,8 @@ str_gsub(mrb_state *mrb, mrb_value str, mrb_int bang)
 static mrb_value
 mrb_str_gsub(mrb_state *mrb, mrb_value self)
 {
-  return str_gsub(mrb, self, 0);
+  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
+  return mrb_nil_value();
 }
 
 /* 15.2.10.5.19 */
@@ -1346,12 +1259,9 @@ mrb_str_gsub(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_gsub_bang(mrb_state *mrb, mrb_value self)
 {
-  striuct RString *s = mrb_str_ptr(self);
-
-  str_modify(mrb, s);
-  return str_gsub(mrb, s, 1);
+  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
+  return mrb_nil_value();
 }
-#endif //ENABLE_REGEXP
 
 mrb_int
 mrb_str_hash(mrb_state *mrb, mrb_value str)
@@ -1460,29 +1370,17 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
       sub = mrb_nil_value();
 
   }
+  if (!strcmp(mrb_obj_classname(mrb, sub), REGEXP_CLASS)) {
+    mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
+  }
   if (pos < 0) {
     pos += RSTRING_LEN(str);
     if (pos < 0) {
-      if (mrb_type(sub) == MRB_TT_REGEX) {
-        mrb_raise(mrb, E_TYPE_ERROR, "Regexp class not supported");
-      }
       return mrb_nil_value();
     }
   }
 
   switch (mrb_type(sub)) {
-    case MRB_TT_REGEX:
-#ifdef ENABLE_REGEXP
-      if (pos > RSTRING_LEN(str))
-        return mrb_nil_value();
-      pos = mrb_str_offset(mrb, str, pos);
-      pos = mrb_reg_search(mrb, sub, str, pos, 0);
-      pos = mrb_str_sublen(mrb, str, pos);
-#else
-      mrb_raise(mrb, E_TYPE_ERROR, "Regexp Class not supported");
-#endif //ENABLE_REGEXP
-      break;
-
     case MRB_TT_FIXNUM: {
       int c = mrb_fixnum(sub);
       long len = RSTRING_LEN(str);
@@ -1500,7 +1398,7 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
       tmp = mrb_check_string_type(mrb, sub);
       if (mrb_nil_p(tmp)) {
         mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %s given",
-           mrb_obj_classname(mrb, sub));
+           _obj_classname(mrb, sub));
       }
       sub = tmp;
     }
@@ -1642,36 +1540,6 @@ mrb_check_string_type(mrb_state *mrb, mrb_value str)
   return mrb_check_convert_type(mrb, str, MRB_TT_STRING, "String", "to_str");
 }
 
-#ifdef ENABLE_REGEXP
-static mrb_value
-get_pat(mrb_state *mrb, mrb_value pat, mrb_int quote)
-{
-  mrb_value val;
-
-  switch (mrb_type(pat)) {
-    case MRB_TT_REGEX:
-      return pat;
-
-    case MRB_TT_STRING:
-      break;
-
-    default:
-      val = mrb_check_string_type(mrb, pat);
-      if (mrb_nil_p(val)) {
-        //Check_Type(pat, T_REGEXP);
-        mrb_check_type(mrb, pat, MRB_TT_REGEX);
-      }
-      pat = val;
-  }
-
-  if (quote) {
-    pat = mrb_reg_quote(mrb, pat);
-  }
-
-  return mrb_reg_regcomp(mrb, pat);
-}
-#endif //ENABLE_REGEXP
-
 /* 15.2.10.5.27 */
 /*
  *  call-seq:
@@ -1685,26 +1553,12 @@ get_pat(mrb_state *mrb, mrb_value pat, mrb_int quote)
  *     'hello'.match(/(.)\1/)[0]   #=> "ll"
  *     'hello'.match('xx')         #=> nil
  */
-#ifdef ENABLE_REGEXP
 static mrb_value
 mrb_str_match_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
-  int argc;
-  mrb_value re, result, b;
-
-  mrb_get_args(mrb, "*&", &argv, &argc, &b);
-  if (argc < 1)
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 1..2)", argc);
-  re = argv[0];
-  argv[0] = self;
-  result = mrb_funcall(mrb, get_pat(mrb, re, 0), "match", 1, self);
-  if (!mrb_nil_p(result) && mrb_block_given_p()) {
-    return mrb_yield(mrb, b, result);
-  }
-  return result;
+  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
+  return mrb_nil_value();
 }
-#endif //ENABLE_REGEXP
 
 /* ---------------------------------- */
 /* 15.2.10.5.29 */
@@ -1855,12 +1709,8 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     if (pos < 0) {
       pos += len;
       if (pos < 0) {
-        if (mrb_type(sub) == MRB_TT_REGEX) {
-#ifdef ENABLE_REGEXP
-          mrb_backref_set(mrb, mrb_nil_value());
-#else
-          mrb_raise(mrb, E_TYPE_ERROR, "Regexp Class not supported");
-#endif //ENABLE_REGEXP
+        if (!strcmp(mrb_obj_classname(mrb, sub), REGEXP_CLASS)) {
+          mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
         }
         return mrb_nil_value();
       }
@@ -1874,21 +1724,11 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     else
       sub = mrb_nil_value();
   }
+  if (!strcmp(mrb_obj_classname(mrb, sub), REGEXP_CLASS)) {
+    mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
+  }
 
   switch (mrb_type(sub)) {
-    case MRB_TT_REGEX:
-#ifdef ENABLE_REGEXP
-      pos = mrb_str_offset(mrb, str, pos);
-      if (!RREGEXP(sub)->ptr || RREGEXP_SRC_LEN(sub)) {
-        pos = mrb_reg_search(mrb, sub, str, pos, 1);
-        pos = mrb_str_sublen(mrb, str, pos);
-      }
-      if (pos >= 0) return mrb_fixnum_value(pos);
-#else
-      mrb_raise(mrb, E_TYPE_ERROR, "Regexp Class not supported");
-#endif //ENABLE_REGEXP
-      break;
-
     case MRB_TT_FIXNUM: {
       int c = mrb_fixnum(sub);
       long len = RSTRING_LEN(str);
@@ -1919,46 +1759,6 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
   } /* end of switch (TYPE(sub)) */
   return mrb_nil_value();
 }
-
-#ifdef ENABLE_REGEXP
-static mrb_value
-scan_once(mrb_state *mrb, mrb_value str, mrb_value pat, mrb_int *start)
-{
-  mrb_value result, match;
-  struct re_registers *regs;
-  long i;
-  struct RString *ps = mrb_str_ptr(str);
-  struct RMatch *pmatch;
-
-  if (mrb_reg_search(mrb, pat, str, *start, 0) >= 0) {
-    match = mrb_backref_get(mrb);
-    pmatch = mrb_match_ptr(match);
-    regs = &pmatch->rmatch->regs;
-    if (regs->beg[0] == regs->end[0]) {
-      /*
-       * Always consume at least one character of the input string
-       */
-      if (ps->len > regs->end[0])
-        *start = regs->end[0] + RSTRING_LEN(str)-regs->end[0];
-      else
-        *start = regs->end[0] + 1;
-    }
-    else {
-      *start = regs->end[0];
-    }
-    if (regs->num_regs == 1) {
-      return mrb_reg_nth_match(mrb, 0, match);
-    }
-    result = mrb_ary_new_capa(mrb, regs->num_regs);
-    for (i=1; i < regs->num_regs; i++) {
-      mrb_ary_push(mrb, result, mrb_reg_nth_match(mrb, i, match));
-    }
-
-    return result;
-  }
-  return mrb_nil_value();
-}
-#endif //ENABLE_REGEXP
 
 /* 15.2.10.5.32 */
 /*
@@ -1991,41 +1791,12 @@ scan_once(mrb_state *mrb, mrb_value str, mrb_value pat, mrb_int *start)
  *     <<cruel>> <<world>>
  *     rceu lowlr
  */
-#ifdef ENABLE_REGEXP
 static mrb_value
 mrb_str_scan(mrb_state *mrb, mrb_value str)
 {
-  mrb_value result;
-  mrb_value pat, b;
-  mrb_int start = 0;
-  mrb_value match = mrb_nil_value();
-  struct RString *ps = mrb_str_ptr(str);
-  char *p = ps->ptr;
-  long len = ps->len;
-
-  mrb_get_args(mrb, "o&", &pat, &b);
-  pat = get_pat(mrb, pat, 1);
-  if (!mrb_block_given_p()) {
-    mrb_value ary = mrb_ary_new(mrb);
-
-    while (!mrb_nil_p(result = scan_once(mrb, str, pat, &start))) {
-      match = mrb_backref_get(mrb);
-      mrb_ary_push(mrb, ary, result);
-    }
-    mrb_backref_set(mrb, match);
-    return ary;
-  }
-
-  while (!mrb_nil_p(result = scan_once(mrb, str, pat, &start))) {
-    match = mrb_backref_get(mrb);
-    mrb_yield(mrb, b, result);
-    str_mod_check(mrb, str, p, len);
-    mrb_backref_set(mrb, match);  /* restore $~ value */
-  }
-  mrb_backref_set(mrb, match);
-  return str;
+  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
+  return mrb_nil_value();
 }
-#endif //ENABLE_REGEXP
 
 static const char isspacetable[256] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0,
@@ -2117,28 +1888,12 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   else {
     if (mrb_string_p(spat)) {
       split_type = string;
-#ifdef ENABLE_REGEXP
-      if (RSTRING_LEN(spat) == 0) {
-        /* Special case - split into chars */
-        spat = mrb_reg_regcomp(mrb, spat);
-        split_type = regexp;
+      if (RSTRING_LEN(spat) == 1 && RSTRING_PTR(spat)[0] == ' '){
+          split_type = awk;
       }
-      else {
-#endif //ENABLE_REGEXP
-        if (RSTRING_LEN(spat) == 1 && RSTRING_PTR(spat)[0] == ' '){
-            split_type = awk;
-        }
-#ifdef ENABLE_REGEXP
-      }
-#endif //ENABLE_REGEXP
     }
     else {
-#ifdef ENABLE_REGEXP
-      spat = get_pat(mrb, spat, 1);
-      split_type = regexp;
-#else
-      mrb_raise(mrb, E_TYPE_ERROR, "Regexp Class not supported");
-#endif //ENABLE_REGEXP
+      mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
     }
   }
 
@@ -2207,59 +1962,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     beg = ptr - temp;
   }
   else {
-#ifdef ENABLE_REGEXP
-    char *ptr = RSTRING_PTR(str);
-    long len = RSTRING_LEN(str);
-    long start = beg;
-    long idx;
-    int last_null = 0;
-    struct re_registers *regs;
-
-    while ((end = mrb_reg_search(mrb, spat, str, start, 0)) >= 0) {
-      int ai;
-      regs = RMATCH_REGS(mrb_backref_get(mrb));
-      ai = mrb_gc_arena_save(mrb);
-      if (start == end && BEG(0) == END(0)) {
-        if (!ptr) {
-          mrb_ary_push(mrb, result, mrb_str_new_empty(mrb, str));
-          mrb_gc_arena_restore(mrb, ai);
-          break;
-        }
-        else if (last_null == 1) {
-          mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, len));
-          mrb_gc_arena_restore(mrb, ai);
-          beg = start;
-        }
-        else {
-          if (ptr+start == ptr+len)
-              start++;
-          else
-              start += len;
-          last_null = 1;
-          continue;
-        }
-      }
-      else {
-        mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
-        mrb_gc_arena_restore(mrb, ai);
-        beg = start = END(0);
-      }
-      last_null = 0;
-
-      for (idx=1; idx < regs->num_regs; idx++) {
-        if (BEG(idx) == -1) continue;
-        if (BEG(idx) == END(idx))
-            tmp = mrb_str_new_empty(mrb, str);
-        else
-            tmp = mrb_str_subseq(mrb, str, BEG(idx), END(idx)-BEG(idx));
-        mrb_ary_push(mrb, result, tmp);
-        mrb_gc_arena_restore(mrb, ai);
-      }
-      if (lim >= 0 && lim <= ++i) break;
-    }
-#else
-    mrb_raise(mrb, E_TYPE_ERROR, "Regexp Class not supported");
-#endif //ENABLE_REGEXP
+    mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
   }
   if (RSTRING_LEN(str) > 0 && (lim >= 0 || RSTRING_LEN(str) > beg || lim < 0)) {
     if (RSTRING_LEN(str) == beg)
@@ -2297,14 +2000,12 @@ mrb_block_given_p()
  *  returning <i>str</i>, or <code>nil</code> if no substitutions were
  *  performed.
  */
-#ifdef ENABLE_REGEXP
 static mrb_value
 mrb_str_sub_bang(mrb_state *mrb, mrb_value str)
 {
-  str_modify(mrb, str);
+  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
   return mrb_nil_value();
 }
-#endif //ENABLE_REGEXP
 
 /* 15.2.10.5.36 */
 
@@ -2345,16 +2046,12 @@ mrb_str_sub_bang(mrb_state *mrb, mrb_value str)
  *      #=> "Is /bin/bash your preferred shell?"
  */
 
-#ifdef ENABLE_REGEXP
 static mrb_value
 mrb_str_sub(mrb_state *mrb, mrb_value self)
 {
-  mrb_value str = mrb_str_dup(mrb, self);
-
-  mrb_str_sub_bang(mrb, str);
-  return str;
+  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
+  return mrb_nil_value();
 }
-#endif //ENABLE_REGEXP
 
 mrb_value
 mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
@@ -2999,32 +2696,36 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "downcase!",       mrb_str_downcase_bang,   ARGS_NONE());              /* 15.2.10.5.14 */
   mrb_define_method(mrb, s, "empty?",          mrb_str_empty_p,         ARGS_NONE());              /* 15.2.10.5.16 */
   mrb_define_method(mrb, s, "eql?",            mrb_str_eql,             ARGS_REQ(1));              /* 15.2.10.5.17 */
-#ifdef ENABLE_REGEXP
+
+  // NOTE: Regexp not implemented
   mrb_define_method(mrb, s, "gsub",            mrb_str_gsub,            ARGS_REQ(1));              /* 15.2.10.5.18 */
   mrb_define_method(mrb, s, "gsub!",           mrb_str_gsub_bang,       ARGS_REQ(1));              /* 15.2.10.5.19 */
-#endif
+
   mrb_define_method(mrb, s, "hash",            mrb_str_hash_m,          ARGS_REQ(1));              /* 15.2.10.5.20 */
   mrb_define_method(mrb, s, "include?",        mrb_str_include,         ARGS_REQ(1));              /* 15.2.10.5.21 */
   mrb_define_method(mrb, s, "index",           mrb_str_index_m,         ARGS_ANY());               /* 15.2.10.5.22 */
   mrb_define_method(mrb, s, "initialize",      mrb_str_init,            ARGS_REQ(1));              /* 15.2.10.5.23 */
   mrb_define_method(mrb, s, "initialize_copy", mrb_str_replace,         ARGS_REQ(1));              /* 15.2.10.5.24 */
   mrb_define_method(mrb, s, "intern",          mrb_str_intern,          ARGS_NONE());              /* 15.2.10.5.25 */
-#ifdef ENABLE_REGEXP
+
+  // NOTE: Regexp not implemented
   mrb_define_method(mrb, s, "match",           mrb_str_match_m,         ARGS_REQ(1));              /* 15.2.10.5.27 */
-#endif
+
   mrb_define_method(mrb, s, "replace",         mrb_str_replace,         ARGS_REQ(1));              /* 15.2.10.5.28 */
   mrb_define_method(mrb, s, "reverse",         mrb_str_reverse,         ARGS_NONE());              /* 15.2.10.5.29 */
   mrb_define_method(mrb, s, "reverse!",        mrb_str_reverse_bang,    ARGS_NONE());              /* 15.2.10.5.30 */
   mrb_define_method(mrb, s, "rindex",          mrb_str_rindex_m,        ARGS_ANY());               /* 15.2.10.5.31 */
-#ifdef ENABLE_REGEXP
+
+  // NOTE: Regexp not implemented
   mrb_define_method(mrb, s, "scan",            mrb_str_scan,            ARGS_REQ(1));              /* 15.2.10.5.32 */
-#endif
+
   mrb_define_method(mrb, s, "slice",           mrb_str_aref_m,          ARGS_ANY());               /* 15.2.10.5.34 */
   mrb_define_method(mrb, s, "split",           mrb_str_split_m,         ARGS_ANY());               /* 15.2.10.5.35 */
-#ifdef ENABLE_REGEXP
+
+  // NOTE: Regexp not implemented
   mrb_define_method(mrb, s, "sub",             mrb_str_sub,             ARGS_REQ(1));              /* 15.2.10.5.36 */
   mrb_define_method(mrb, s, "sub!",            mrb_str_sub_bang,        ARGS_REQ(1));              /* 15.2.10.5.37 */
-#endif
+
   mrb_define_method(mrb, s, "to_i",            mrb_str_to_i,            ARGS_ANY());               /* 15.2.10.5.38 */
   mrb_define_method(mrb, s, "to_f",            mrb_str_to_f,            ARGS_NONE());              /* 15.2.10.5.39 */
   mrb_define_method(mrb, s, "to_s",            mrb_str_to_s,            ARGS_NONE());              /* 15.2.10.5.40 */
