@@ -133,6 +133,10 @@ typedef struct mrb_state {
   struct RNode *local_svar;/* regexp */
 #endif
 
+#ifdef ENABLE_DEBUG
+  void (*hook_vm_fetch_code)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
+#endif
+
   struct RClass *eException_class;
   struct RClass *eStandardError_class;
 
