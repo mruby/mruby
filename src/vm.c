@@ -481,9 +481,9 @@ argnum_error(mrb_state *mrb, int num)
 }
 
 #ifdef ENABLE_DEBUG
-#define HOOK_MRB_VM_FETCH_CODE(mrb, irep, pc, regs) ((mrb)->hook_vm_fetch_code ? (mrb)->hook_vm_fetch_code((mrb), (irep), (pc), (regs)) : NULL)
+#define CODE_FETCH_HOOK(mrb, irep, pc, regs) ((mrb)->code_fetch_hook ? (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs)) : NULL)
 #else
-#define HOOK_MRB_VM_FETCH_CODE(mrb, irep, pc, regs)
+#define CODE_FETCH_HOOK(mrb, irep, pc, regs)
 #endif
 
 #ifdef __GNUC__
@@ -492,7 +492,7 @@ argnum_error(mrb_state *mrb, int num)
 
 #ifndef DIRECT_THREADED
 
-#define INIT_DISPATCH for (;;) { i = *pc; HOOK_MRB_VM_FETCH_CODE(mrb, irep, pc, regs); switch (GET_OPCODE(i)) {
+#define INIT_DISPATCH for (;;) { i = *pc; CODE_FETCH_HOOK(mrb, irep, pc, regs); switch (GET_OPCODE(i)) {
 #define CASE(op) case op:
 #define NEXT pc++; break
 #define JUMP break
@@ -502,8 +502,8 @@ argnum_error(mrb_state *mrb, int num)
 
 #define INIT_DISPATCH JUMP; return mrb_nil_value();
 #define CASE(op) L_ ## op:
-#define NEXT i=*++pc; HOOK_MRB_VM_FETCH_CODE(mrb, irep, pc, regs); goto *optable[GET_OPCODE(i)]
-#define JUMP i=*pc; HOOK_MRB_VM_FETCH_CODE(mrb, irep, pc, regs); goto *optable[GET_OPCODE(i)]
+#define NEXT i=*++pc; CODE_FETCH_HOOK(mrb, irep, pc, regs); goto *optable[GET_OPCODE(i)]
+#define JUMP i=*pc; CODE_FETCH_HOOK(mrb, irep, pc, regs); goto *optable[GET_OPCODE(i)]
 
 #define END_DISPATCH
 
