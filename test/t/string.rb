@@ -193,7 +193,9 @@ assert('String#eql?', '15.2.10.5.17') do
 end
 
 assert('String#gsub', '15.2.10.5.18') do
-  'abcabc'.gsub('b', 'B') == 'aBcaBc' && 'abcabc'.gsub('b') { |w| w.capitalize } == 'aBcaBc' 
+  'abcabc'.gsub('b', 'B') == 'aBcaBc' and
+    'abcabc'.gsub('b') { |w| w.capitalize } == 'aBcaBc' and
+    '#a#a#'.gsub('#', '$') == '$a$a$'
 end
 
 assert('String#gsub!', '15.2.10.5.19') do
@@ -318,7 +320,9 @@ assert('String#split', '15.2.10.5.35') do
 end
 
 assert('String#sub', '15.2.10.5.36') do
-  'abcabc'.sub('b', 'B') == 'aBcabc' && 'abcabc'.sub('b') { |w| w.capitalize } == 'aBcabc' 
+  'abcabc'.sub('b', 'B') == 'aBcabc' and
+    'abcabc'.sub('b') { |w| w.capitalize } == 'aBcabc' and
+    'aa#'.sub('#', '$') == 'aa$'
 end
 
 assert('String#sub!', '15.2.10.5.37') do
