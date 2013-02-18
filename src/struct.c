@@ -12,10 +12,6 @@
 #include "mruby/array.h"
 #include <stdarg.h>
 
-#ifdef ENABLE_REGEXP
-#include "encoding.h"
-#endif
-
 #include "mruby/string.h"
 #include "mruby/class.h"
 #include "mruby/variable.h"

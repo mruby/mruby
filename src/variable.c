@@ -12,10 +12,6 @@
 #include "mruby/string.h"
 #include "mruby/proc.h"
 
-#ifdef ENABLE_REGEXP
-#include "re.h"
-#endif
-
 typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 
 #ifdef MRB_USE_IV_SEGLIST

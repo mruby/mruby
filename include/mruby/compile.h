@@ -72,6 +72,7 @@ struct mrb_parser_state {
 
   enum mrb_lex_state_enum lstate;
   int sterm;
+  int regexp;
 
   unsigned int cond_stack;
   unsigned int cmdarg_stack;
