@@ -11,6 +11,11 @@ def assertion_string(err, str, iso=nil, e=nil)
   msg += " [#{iso}]" if iso && iso != ''
   msg += " => #{e.message}" if e
   msg += " (mrbgems: #{GEMNAME})" if Object.const_defined?(:GEMNAME)
+  if $mrbtest_assert && $mrbtest_assert.size > 0
+    $mrbtest_assert.each do |idx, str, diff|
+      msg += "\n - Assertion[#{idx}] Failed: #{str}\n#{diff}"
+    end
+  end
   msg
 end
 
@@ -25,8 +30,10 @@ end
 def assert(str = 'Assertion failed', iso = '')
   print(str, (iso != '' ? " [#{iso}]" : ''), ' : ') if $mrbtest_verbose
   begin
-    if(!yield)
-      $asserts.push(assertion_string('Fail: ', str, iso))
+    $mrbtest_assert = []
+    $mrbtest_assert_idx = 0
+    if(!yield || $mrbtest_assert.size > 0)
+      $asserts.push(assertion_string('Fail: ', str, iso, nil))
       $ko_test += 1
       print('F')
     else
@@ -37,8 +44,39 @@ def assert(str = 'Assertion failed', iso = '')
     $asserts.push(assertion_string('Error: ', str, iso, e))
     $kill_test += 1
     print('X')
+  ensure
+    $mrbtest_assert = nil
   end
   print("\n") if $mrbtest_verbose
+end
+
+def assertion_diff(exp, act)
+  "    Expected: #{exp.inspect}\n" +
+  "      Actual: #{act.inspect}"
+end
+
+def assert_true(ret, msg = nil, diff = nil)
+  if $mrbtest_assert
+    $mrbtest_assert_idx += 1
+    if !ret
+      msg = "Expected #{ret.inspect} to be true" unless msg
+      diff = assertion_diff(true, ret)  unless diff
+      $mrbtest_assert.push([$mrbtest_assert_idx, msg, diff])
+    end
+  end
+  ret
+end
+
+def assert_equal(exp, act, msg = nil)
+  msg = "Expected to be equal" unless msg
+  diff = assertion_diff(exp, act)
+  assert_true(exp == act, msg, diff)
+end
+
+def assert_nil(obj, msg = nil)
+  msg = "Expected #{obj.inspect} to be nil" unless msg
+  diff = assertion_diff(nil, obj)
+  assert_true(obj.nil?, msg, diff)
 end
 
 ##
