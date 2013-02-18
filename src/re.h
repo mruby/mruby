@@ -8,7 +8,12 @@
 #define RE_H
 
 #define REGEXP_CLASS "Regexp"
+#define REGEXP_FLAG_IGNORECASE  0x01
+#define REGEXP_FLAG_MULTILINE   0x02
 
-mrb_value mrb_regexp_new(mrb_state *mrb, mrb_value str, mrb_value flag);
+#define REGEXP_CHAR_IGNORECASE  'i'
+#define REGEXP_CHAR_MULTILINE   'm'
+
+mrb_value mrb_regexp_new(mrb_state *mrb, mrb_value str, int flag);
 
 #endif

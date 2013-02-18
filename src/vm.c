@@ -1908,7 +1908,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_REGX) {
       /* A B C  R(A) := regexp_new(R(B),R(B+1),C) */
-      regs[GETARG_A(i)] = mrb_regexp_new(mrb, pool[GETARG_B(i)], pool[GETARG_C(i)]);
+      regs[GETARG_A(i)] = mrb_regexp_new(mrb, pool[GETARG_B(i)], GETARG_C(i));
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }

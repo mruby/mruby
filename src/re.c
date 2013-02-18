@@ -25,11 +25,13 @@
  */
 
 mrb_value
-mrb_regexp_new(mrb_state *mrb, mrb_value str, mrb_value flag)
+mrb_regexp_new(mrb_state *mrb, mrb_value str, int flag)
 {
     struct RClass *cls = mrb_class_get(mrb, REGEXP_CLASS);
-    // Currently, flag is ignored...
-    return mrb_funcall_argv(mrb, mrb_obj_value(cls), mrb_intern(mrb, "new"), 1, &str);
+    mrb_value args[2];
+    args[0] = str;
+    args[1] = mrb_fixnum_value(flag);
+    return mrb_funcall_argv(mrb, mrb_obj_value(cls), mrb_intern(mrb, "new"), 2, args);
 }
 
 /*

@@ -1916,10 +1916,16 @@ codegen(codegen_scope *s, node *tree, int val)
       char *p1 = (char*)tree->car;
       char *p2 = (char*)tree->cdr;
       int ai = mrb_gc_arena_save(s->mrb);
-      int off1 = new_lit(s, mrb_str_new(s->mrb, p1, strlen(p1)));
-      int off2 = new_lit(s, mrb_str_new(s->mrb, p2, strlen(p2)));
+      int off = new_lit(s, mrb_str_new(s->mrb, p1, strlen(p1)));
+      int flag = 0;
+      if (strchr(p2, REGEXP_CHAR_IGNORECASE)) {
+        flag |= REGEXP_FLAG_IGNORECASE;
+      }
+      if (strchr(p2, REGEXP_CHAR_MULTILINE)) {
+        flag |= REGEXP_FLAG_MULTILINE;
+      }
       mrb_gc_arena_restore(s->mrb, ai);
-      genop(s, MKOP_ABC(OP_REGX, cursp(), off1, off2));
+      genop(s, MKOP_ABC(OP_REGX, cursp(), off, flag));
       push();
     }
     break;
