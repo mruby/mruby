@@ -241,6 +241,28 @@ assert('Module#remove_class_variable', '15.2.2.4.39') do
   not Test4RemoveClassVariable.class_variables.include? :@@cv
 end
 
+assert('Module#remove_const', '15.2.2.4.40') do
+  module Test4RemoveConst
+    ExistingConst = 23 
+  end
+
+  result = Test4RemoveConst.module_eval { remove_const :ExistingConst } 
+
+  name_error = false
+  begin
+    Test4RemoveConst.module_eval { remove_const :NonExistingConst }
+  rescue NameError
+    name_error = true
+  end
+
+  # Constant removed from Module
+  not Test4RemoveConst.const_defined? :ExistingConst and
+    # Return value of binding
+    result == 23 and
+    # Name Error raised when Constant doesn't exist
+    name_error
+end
+
 assert('Module#remove_method', '15.2.2.4.41') do
   module Test4RemoveMethod
     class Parent

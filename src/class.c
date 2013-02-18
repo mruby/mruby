@@ -1737,7 +1737,7 @@ mrb_mod_remove_const(mrb_state *mrb, mrb_value mod)
   check_const_name(mrb, id);
   val = mrb_iv_remove(mrb, mod, id);
   if (mrb_undef_p(val)) {
-    mrb_name_error(mrb, id, "instance variable %s not defined", mrb_sym2name(mrb, id));
+    mrb_name_error(mrb, sym, "constant %s not defined", mrb_sym2name(mrb, sym));
   }
   return val;
 }
