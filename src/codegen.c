@@ -11,6 +11,7 @@
 #include "mruby/irep.h"
 #include "mruby/compile.h"
 #include "mruby/numeric.h"
+#include "mruby/variable.h"
 #include "opcode.h"
 #include "node.h"
 #include <string.h>
@@ -1914,15 +1915,26 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_REGX:
     if (val) {
       char *p1 = (char*)tree->car;
-      //char *p2 = (char*)tree->cdr;
+      char *p2 = (char*)tree->cdr;
       int ai = mrb_gc_arena_save(s->mrb);
       struct RClass* c = mrb_class_get(s->mrb, REGEXP_CLASS);
+      struct mrb_value co = mrb_obj_value(c);
+      int icase = mrb_fixnum(mrb_const_get(s->mrb, co, mrb_intern(s->mrb, "IGNORECASE")));
+      int extended = mrb_fixnum(mrb_const_get(s->mrb, co, mrb_intern(s->mrb, "EXTENDED")));
+      int multiline = mrb_fixnum(mrb_const_get(s->mrb, co, mrb_intern(s->mrb, "MULTILINE")));
       mrb_value args[2];
+      int nargs = 1;
       args[0] = mrb_str_new(s->mrb, p1, strlen(p1));
-      // TODO: Some regexp implementation does not have second argument
-      //args[1] = mrb_str_new(s->mrb, p2, strlen(p2));
+      if (*p2) {
+        int flag = 0;
+        if (strchr(p2, 'i')) flag |= icase;
+        if (strchr(p2, 'x')) flag |= extended;
+        if (strchr(p2, 'm')) flag |= multiline;
+        nargs++;
+        args[1] = mrb_fixnum_value(flag);
+      }
       int off = new_lit(s,
-          mrb_class_new_instance(s->mrb, 1, args, c));
+          mrb_class_new_instance(s->mrb, nargs, args, c));
 
       mrb_gc_arena_restore(s->mrb, ai);
       genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
