@@ -3447,8 +3447,9 @@ parse_string(parser_state *p, int term)
   if (p->regexp) {
     int f = 0;
     int c;
-    char* s;
-	s = strndup(tok(p), toklen(p));
+    char *s = strndup(tok(p), toklen(p));
+    char flag[4] = { '\0' };
+
     newtok(p);
     while (c = nextc(p), ISALPHA(c)) {
       switch (c) {
@@ -3467,7 +3468,6 @@ parse_string(parser_state *p, int term)
           toklen(p) > 1 ? "s" : "", tok(p));
       yyerror(p, msg);
     }
-	char flag[4] = {0};
     if (f & 1) strcat(flag, "i");
     if (f & 2) strcat(flag, "x");
     if (f & 4) strcat(flag, "m");

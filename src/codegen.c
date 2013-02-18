@@ -1918,12 +1918,12 @@ codegen(codegen_scope *s, node *tree, int val)
       int ai = mrb_gc_arena_save(s->mrb);
       struct RClass* c = mrb_class_get(s->mrb, REGEXP_CLASS);
       mrb_value args[2];
+      int off;
+
       args[0] = mrb_str_new(s->mrb, p1, strlen(p1));
       // TODO: Some regexp implementation does not have second argument
-      //args[1] = mrb_str_new(s->mrb, p2, strlen(p2));
-      int off = new_lit(s,
-          mrb_class_new_instance(s->mrb, 1, args, c));
-
+      //args[1] = mrb_str_new(s->mrb, p2, strlen(p2))
+      off = new_lit(s, mrb_class_new_instance(s->mrb, 1, args, c));
       mrb_gc_arena_restore(s->mrb, ai);
       genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
       push();
