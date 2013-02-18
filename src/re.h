@@ -9,4 +9,6 @@
 
 #define REGEXP_CLASS "Regexp"
 
+mrb_value mrb_regexp_new(mrb_state *mrb, mrb_value str, mrb_value flag);
+
 #endif

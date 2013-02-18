@@ -121,6 +121,7 @@ OP_STRCAT,/*    A B     str_cat(R(A),R(B))                              */
 OP_HASH,/*      A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C))           */
 OP_LAMBDA,/*    A Bz Cz R(A) := lambda(SEQ[Bz],Cm)                      */
 OP_RANGE,/*     A B C   R(A) := range_new(R(B),R(B+1),C)                */
+OP_REGX,
 
 OP_OCLASS,/*    A       R(A) := ::Object                                */
 OP_CLASS,/*     A B     R(A) := newclass(R(A),mSym(B),R(A+1))           */

@@ -16,6 +16,7 @@
 #include "mruby/class.h"
 #include "mruby/numeric.h"
 #include "error.h"
+#include "re.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -546,7 +547,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     &&L_OP_EQ, &&L_OP_LT, &&L_OP_LE, &&L_OP_GT, &&L_OP_GE,
     &&L_OP_ARRAY, &&L_OP_ARYCAT, &&L_OP_ARYPUSH, &&L_OP_AREF, &&L_OP_ASET, &&L_OP_APOST,
     &&L_OP_STRING, &&L_OP_STRCAT, &&L_OP_HASH,
-    &&L_OP_LAMBDA, &&L_OP_RANGE, &&L_OP_OCLASS,
+    &&L_OP_LAMBDA, &&L_OP_RANGE, &&L_OP_REGX, &&L_OP_OCLASS,
     &&L_OP_CLASS, &&L_OP_MODULE, &&L_OP_EXEC,
     &&L_OP_METHOD, &&L_OP_SCLASS, &&L_OP_TCLASS,
     &&L_OP_DEBUG, &&L_OP_STOP, &&L_OP_ERR,
@@ -1901,6 +1902,13 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       /* A B C  R(A) := range_new(R(B),R(B+1),C) */
       int b = GETARG_B(i);
       regs[GETARG_A(i)] = mrb_range_new(mrb, regs[b], regs[b+1], GETARG_C(i));
+      mrb_gc_arena_restore(mrb, ai);
+      NEXT;
+    }
+
+    CASE(OP_REGX) {
+      /* A B C  R(A) := regexp_new(R(B),R(B+1),C) */
+      regs[GETARG_A(i)] = mrb_regexp_new(mrb, pool[GETARG_B(i)], pool[GETARG_C(i)]);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }

@@ -24,6 +24,14 @@
  *     RegexpError: target of repeat operator is not specified: /?/
  */
 
+mrb_value
+mrb_regexp_new(mrb_state *mrb, mrb_value str, mrb_value flag)
+{
+    struct RClass *cls = mrb_class_get(mrb, REGEXP_CLASS);
+    // Currently, flag is ignored...
+    return mrb_funcall_argv(mrb, mrb_obj_value(cls), mrb_intern(mrb, "new"), 1, &str);
+}
+
 /*
  *  Document-class: Regexp
  *
