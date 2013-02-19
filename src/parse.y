@@ -3462,9 +3462,8 @@ parse_string(parser_state *p, int term)
     pushback(p, c);
     if (toklen(p)) {
       char msg[128];
-      free(s);
       tokfix(p);
-      snprintf(msg, sizeof(msg), "unknown regexp option %s - %s",
+      snprintf(msg, sizeof(msg), "unknown regexp option%s - %s",
           toklen(p) > 1 ? "s" : "", tok(p));
       yyerror(p, msg);
     }
