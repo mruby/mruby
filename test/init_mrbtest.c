@@ -7,10 +7,12 @@
 extern const char mrbtest_irep[];
 
 void mrbgemtest_init(mrb_state* mrb);
+void mrbctest_init(mrb_state* mrb);
 
 void
 mrb_init_mrbtest(mrb_state *mrb)
 {
+  mrbctest_init(mrb);
   mrb_load_irep(mrb, mrbtest_irep);
 #ifndef DISABLE_GEMS
   mrbgemtest_init(mrb);
