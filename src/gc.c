@@ -396,8 +396,17 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     /* fall through */
 
   case MRB_TT_OBJECT:
-  case MRB_TT_DATA:
     mrb_gc_mark_iv(mrb, (struct RObject*)obj);
+    break;
+
+  case MRB_TT_DATA:
+    {
+      struct RData *d = (struct RData*)obj;
+      if (d->type && d->type->dmark) {
+        d->type->dmark(mrb, d->data);
+      }
+      mrb_gc_mark_iv(mrb, (struct RObject*)obj);
+    }
     break;
 
   case MRB_TT_PROC:
@@ -547,7 +556,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_DATA:
     {
       struct RData *d = (struct RData*)obj;
-      if (d->type->dfree) {
+      if (d->type && d->type->dfree) {
         d->type->dfree(mrb, d->data);
       }
       mrb_gc_free_iv(mrb, (struct RObject*)obj);
@@ -638,8 +647,17 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_OBJECT:
-  case MRB_TT_DATA:
     children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
+    break;
+
+  case MRB_TT_DATA:
+    {
+      struct RData *d = (struct RData*)obj;
+      if (d->type && d->type->dmarksize) {
+        children += d->type->dmarksize(mrb, d->data);
+      }
+      children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
+    }
     break;
 
   case MRB_TT_ENV:

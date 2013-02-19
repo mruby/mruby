@@ -14,6 +14,8 @@ extern "C" {
 struct mrb_data_type {
   const char *struct_name;
   void (*dfree)(mrb_state *mrb, void*);
+  void (*dmark)(mrb_state *mrb, void*);
+  size_t (*dmarksize)(mrb_state *mrb, void*);
 };
 
 struct RData {
