@@ -19,7 +19,7 @@ MRuby.each_target do
   unless build_mrbtest_lib_only?
     driver_obj = objfile("#{current_build_dir}/driver")
 
-    cobjs = csrc.map { |f| "#{build_dir}/#{objfile(f.pathmap("%X"))}" }
+    cobjs = csrc.map { |f| "#{current_build_dir}/t/#{objfile(f.pathmap("%n"))}" }
 
     file exec => [driver_obj, cobjs, mrbtest_lib, libfile("#{build_dir}/lib/libmruby")] do |t|
       gem_flags = gems.map { |g| g.linker.flags }
