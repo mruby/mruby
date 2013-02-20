@@ -89,6 +89,7 @@ typedef struct {
 #ifdef ENABLE_STRUCT
     struct RStruct structdata;
 #endif
+    struct RData data;
     struct RProc procdata;
   } as;
 } RVALUE;
