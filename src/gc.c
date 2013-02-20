@@ -87,10 +87,10 @@ typedef struct {
     struct RHash hash;
     struct RRange range;
 #ifdef ENABLE_STRUCT
-    struct RStruct structdata;
+    struct RStruct strct;
 #endif
     struct RData data;
-    struct RProc procdata;
+    struct RProc proc;
   } as;
 } RVALUE;
 
