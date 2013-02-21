@@ -54,9 +54,6 @@
 /* Now DISABLE_GEMS is added as a command line flag in Rakefile, */
 /* we do not need to set it here. */
 
-//#undef  HAVE_UNISTD_H /* WINDOWS */
-#define HAVE_UNISTD_H /* LINUX */
-
 /* end of configuration */
 
 #ifdef MRB_USE_FLOAT
