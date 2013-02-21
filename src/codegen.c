@@ -1914,18 +1914,27 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_REGX:
     if (val) {
       char *p1 = (char*)tree->car;
-      //char *p2 = (char*)tree->cdr;
+      char *p2 = (char*)tree->cdr;
       int ai = mrb_gc_arena_save(s->mrb);
-      struct RClass* c = mrb_class_get(s->mrb, REGEXP_CLASS);
-      mrb_value args[2];
-      int off;
+      int sym = new_sym(s, mrb_intern(s->mrb, REGEXP_CLASS));
+      int off = new_lit(s, mrb_str_new(s->mrb, p1, strlen(p1)));
+      int n = 1;
 
-      args[0] = mrb_str_new(s->mrb, p1, strlen(p1));
-      // TODO: Some regexp implementation does not have second argument
-      //args[1] = mrb_str_new(s->mrb, p2, strlen(p2))
-      off = new_lit(s, mrb_class_new_instance(s->mrb, 1, args, c));
-      mrb_gc_arena_restore(s->mrb, ai);
-      genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
+      genop(s, MKOP_A(OP_OCLASS, cursp()));
+      genop(s, MKOP_ABx(OP_GETMCNST, cursp(), sym));
+      push();
+      genop(s, MKOP_ABx(OP_STRING, cursp(), off));
+      if (p2) {
+	push();
+	off = new_lit(s, mrb_str_new(s->mrb, p2, strlen(p2)));
+	genop(s, MKOP_ABx(OP_STRING, cursp(), off));
+	n++;
+	pop();
+      }
+      pop();
+      sym = new_sym(s, mrb_intern(s->mrb, "new"));
+      genop(s, MKOP_ABC(OP_SEND, cursp(), sym, n));
+      mrb_gc_arena_restore(s->mrb, ai); 
       push();
     }
     break;
