@@ -237,7 +237,7 @@ module MiniRake
 
     # Time stamp for file task.
     def timestamp
-      File.new(name.to_s).mtime
+      File::stat(name.to_s).mtime
     end
   end
 
