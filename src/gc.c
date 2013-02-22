@@ -542,7 +542,8 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
 static void
 root_scan_phase(mrb_state *mrb)
 {
-  int i, j, e;
+  size_t i;
+  size_t e;
   mrb_callinfo *ci;
 
   if (!is_minor_gc(mrb)) {
@@ -560,6 +561,7 @@ root_scan_phase(mrb_state *mrb)
   /* mark exception */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
   /* mark stack */
+  /* TODO: assert(mrb->stack > mrb->stbase) */
   e = mrb->stack - mrb->stbase;
   if (mrb->ci) e += mrb->ci->nregs;
   if (mrb->stbase + e > mrb->stend) e = mrb->stend - mrb->stbase;
@@ -583,6 +585,7 @@ root_scan_phase(mrb_state *mrb)
     size_t len = mrb->irep_len;
     if (len > mrb->irep_capa) len = mrb->irep_capa;
     for (i=0; i<len; i++) {
+      int j;
       mrb_irep *irep = mrb->irep[i];
       if (!irep) continue;
       for (j=0; j<irep->plen; j++) {

@@ -89,8 +89,8 @@ struct mrb_parser_state {
 
   void *ylval;
 
-  int nerr;
-  int nwarn;
+  size_t nerr;
+  size_t nwarn;
   mrb_ast_node *tree;
 
   int capture_errors;
