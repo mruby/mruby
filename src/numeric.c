@@ -1157,14 +1157,6 @@ fix_minus(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_minus(mrb, self, other);
 }
 
-/* 15.2.8.3.29 (x) */
-/*
- * call-seq:
- *   fix > other     => true or false
- *
- * Returns <code>true</code> if the value of <code>fix</code> is
- * greater than that of <code>other</code>.
- */
 
 mrb_value
 mrb_fix2str(mrb_state *mrb, mrb_value x, int base)
