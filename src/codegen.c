@@ -1932,7 +1932,7 @@ codegen(codegen_scope *s, node *tree, int val)
         pop();
       }
       pop();
-      sym = new_sym(s, mrb_intern(s->mrb, "new"));
+      sym = new_sym(s, mrb_intern(s->mrb, "compile"));
       genop(s, MKOP_ABC(OP_SEND, cursp(), sym, n));
       mrb_gc_arena_restore(s->mrb, ai); 
       push();
