@@ -184,6 +184,7 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
 {
   char buf[32];
   int n;
+
   mrb_float value = mrb_float(flt);
 
   if (isinf(value)) {
@@ -280,6 +281,7 @@ flo_mod(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
   mrb_float fy, mod;
+
   mrb_get_args(mrb, "o", &y);
 
   fy = mrb_to_flo(mrb, y);
@@ -339,6 +341,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
   volatile mrb_float a, b;
+
   mrb_get_args(mrb, "o", &y);
 
   switch (mrb_type(y)) {
@@ -727,6 +730,7 @@ static mrb_value
 fix_mul(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
+
   mrb_get_args(mrb, "o", &y);
   return mrb_fixnum_mul(mrb, x, y);
 }
@@ -802,6 +806,7 @@ static mrb_value
 fix_divmod(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
+
   mrb_get_args(mrb, "o", &y);
 
   if (mrb_fixnum_p(y)) {
@@ -841,6 +846,7 @@ static mrb_value
 fix_equal(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
+
   mrb_get_args(mrb, "o", &y);
 
   if (mrb_obj_equal(mrb, x, y)) return mrb_true_value();
@@ -900,6 +906,7 @@ fix_and(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
   mrb_int val;
+
   mrb_get_args(mrb, "o", &y);
 
   y = bit_coerce(mrb, y);
@@ -920,6 +927,7 @@ fix_or(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
   mrb_int val;
+
   mrb_get_args(mrb, "o", &y);
 
   y = bit_coerce(mrb, y);
@@ -942,6 +950,7 @@ fix_xor(mrb_state *mrb, mrb_value x)
   mrb_int val;
 
   mrb_get_args(mrb, "o", &y);
+
   y = bit_coerce(mrb, y);
   val = mrb_fixnum(x) ^ mrb_fixnum(y);
   return mrb_fixnum_value(val);
@@ -1279,6 +1288,7 @@ void
 mrb_init_numeric(mrb_state *mrb)
 {
   struct RClass *numeric, *integer, *fixnum, *fl;
+
   /* Numeric Class */
   numeric = mrb_define_class(mrb, "Numeric",  mrb->object_class);
   mrb_include_module(mrb, numeric, mrb_class_get(mrb, "Comparable"));
