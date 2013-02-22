@@ -25,8 +25,6 @@
 #include <ieeefp.h>
 #endif
 
-#define RSHIFT(x,y) ((x)>>(int)(y))
-
 #ifdef MRB_USE_FLOAT
 #define floor(f) floorf(f)
 #define ceil(f) ceilf(f)
@@ -961,26 +959,45 @@ fix_xor(mrb_state *mrb, mrb_value x)
   return mrb_fixnum_value(val);
 }
 
+#define NUMERIC_SHIFT_WIDTH_MAX		(sizeof(mrb_int)*CHAR_BIT-1)
+
 static mrb_value
 lshift(mrb_state *mrb, mrb_int val, int width)
 {
-  if (width > (sizeof(mrb_int)*CHAR_BIT-1)) {
+  if (width > NUMERIC_SHIFT_WIDTH_MAX) {
       mrb_raisef(mrb, E_RANGE_ERROR, "width(%d) > (%d:sizeof(mrb_int)*CHAR_BIT-1)", width,
-		sizeof(mrb_int)*CHAR_BIT-1);
+		NUMERIC_SHIFT_WIDTH_MAX);
   }
   val = val << width;
   return mrb_fixnum_value(val);
 }
 
 static mrb_value
-rshift(mrb_int val, int i)
+rshift(mrb_int val, int width)
 {
-    if (i >= sizeof(mrb_int)*CHAR_BIT-1) {
-        if (val < 0) return mrb_fixnum_value(-1);
-        return mrb_fixnum_value(0);
+  if (width >= NUMERIC_SHIFT_WIDTH_MAX) {
+    if (val < 0) {
+      val = -1;
     }
-    val = RSHIFT(val, i);
-    return mrb_fixnum_value(val);
+    else {
+      val = 0;
+    }
+  }
+  else {
+    val = val >> width;
+  }
+
+  return mrb_fixnum_value(val);
+}
+
+static inline void
+fix_shift_get_width(mrb_state *mrb, mrb_int *width)
+{
+  mrb_value y;
+
+  mrb_get_args(mrb, "o", &y);
+  y = bit_coerce(mrb, y);
+  *width = mrb_fixnum(y);
 }
 
 /* 15.2.8.3.12 */
@@ -994,16 +1011,27 @@ rshift(mrb_int val, int i)
 static mrb_value
 fix_lshift(mrb_state *mrb, mrb_value x)
 {
-  mrb_value y;
-  mrb_int val, width;
+  mrb_int width;
+  mrb_value result;
 
-  mrb_get_args(mrb, "o", &y);
-  val = mrb_fixnum(x);
-  y = bit_coerce(mrb, y);
-  width = mrb_fixnum(y);
-  if (width < 0)
-      return rshift(val, -width);
-  return lshift(mrb, val, width);
+  fix_shift_get_width(mrb, &width);
+
+  if (width == 0) {
+    result = x;
+  }
+  else {
+    mrb_int val;
+
+    val = mrb_fixnum(x);
+    if (width < 0) {
+      result = rshift(val, -width);
+    }
+    else {
+      result = lshift(mrb, val, width);
+    }
+  }
+
+  return result;
 }
 
 /* 15.2.8.3.13 */
@@ -1017,17 +1045,27 @@ fix_lshift(mrb_state *mrb, mrb_value x)
 static mrb_value
 fix_rshift(mrb_state *mrb, mrb_value x)
 {
-  mrb_value y;
-  mrb_int i, val;
+  mrb_int width;
+  mrb_value result;
 
-  mrb_get_args(mrb, "o", &y);
-  val = mrb_fixnum(x);
-  y = bit_coerce(mrb, y);
-  i = mrb_fixnum(y);
-    if (i == 0) return x;
-    if (i < 0)
-        return lshift(mrb, val, -i);
-    return rshift(val, i);
+  fix_shift_get_width(mrb, &width);
+
+  if (width == 0) {
+    result = x;
+  }
+  else {
+    mrb_int val;
+
+    val = mrb_fixnum(x);
+    if (width < 0) {
+      result = lshift(mrb, val, -width);
+    }
+    else {
+      result = rshift(val, width);
+    }
+  }
+
+  return result;
 }
 
 /* 15.2.8.3.23 */
