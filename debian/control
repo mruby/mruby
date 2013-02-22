@@ -15,6 +15,11 @@ Description: lightweight implementation of the Ruby language
  mruby is the lightweight implementation of the Ruby language complying to
  the ISO standard.
  This can be linked and embedded within your application.
+ .
+ This package contains the following tools:
+  * mirb: Embeddable interactive ruby shell
+  * mrbc: mruby compiler
+  * mruby: mruby interpreter
 
 Package: libmruby-dev
 Architecture: any
