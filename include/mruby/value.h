@@ -43,7 +43,7 @@ typedef struct mrb_value {
     mrb_int i;
     mrb_sym sym;
   } value;
-  enum mrb_vtype tt:8;
+  enum mrb_vtype tt;
 } mrb_value;
 
 #define mrb_type(o)   (o).tt
