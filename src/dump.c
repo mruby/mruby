@@ -50,6 +50,8 @@ enum {
   DUMP_SECTION_NUM,
 };
 
+#ifdef ENABLE_STDIO
+
 uint16_t calc_crc_16_ccitt(unsigned char*,int);
 static inline int uint8_dump(uint8_t,char*,int);
 static inline int uint16_dump(uint16_t,char*,int);
@@ -742,3 +744,5 @@ mrb_bdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname)
 
   return rc;
 }
+
+#endif /* ENABLE_STDIO */
