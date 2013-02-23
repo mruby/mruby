@@ -740,6 +740,8 @@ fixdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
 {
   mrb_int div, mod;
 
+  /* TODO: add assert(y != 0) to make sure */
+
   if (y < 0) {
     if (x < 0)
       div = -x / -y;
