@@ -244,22 +244,25 @@ flo_mul(mrb_state *mrb, mrb_value x)
 static void
 flodivmod(mrb_state *mrb, mrb_float x, mrb_float y, mrb_float *divp, mrb_float *modp)
 {
-  mrb_float div, mod;
+  mrb_float div;
+  mrb_float mod;
 
   if (y == 0.0) {
-    *divp = str_to_mrb_float("inf");
-    *modp = str_to_mrb_float("nan");
-    return;
+    div = str_to_mrb_float("inf");
+    mod = str_to_mrb_float("nan");
   }
-  mod = fmod(x, y);
-  if (isinf(x) && !isinf(y) && !isnan(y))
-    div = x;
-  else
-    div = (x - mod) / y;
-  if (y*mod < 0) {
-    mod += y;
-    div -= 1.0;
+  else {
+    mod = fmod(x, y);
+    if (isinf(x) && !isinf(y) && !isnan(y))
+      div = x;
+    else
+      div = (x - mod) / y;
+    if (y*mod < 0) {
+      mod += y;
+      div -= 1.0;
+    }
   }
+
   if (modp) *modp = mod;
   if (divp) *divp = div;
 }
