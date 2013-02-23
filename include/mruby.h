@@ -272,7 +272,6 @@ mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len);
 void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
 
-int mrb_block_given_p(void);
 void mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg);
 void mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
 void mrb_warn(const char *fmt, ...);

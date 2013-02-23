@@ -172,12 +172,6 @@ static mrb_value (*const ref_func[])(mrb_state*, mrb_value) = {
     mrb_struct_ref9,
 };
 
-static void
-mrb_struct_modify(mrb_value s)
-{
-    //if (OBJ_FROZEN(s)) mrb_error_frozen("Struct");
-}
-
 mrb_sym
 mrb_id_attrset(mrb_state *mrb, mrb_sym id)
 {
@@ -212,7 +206,6 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
   members = mrb_struct_members(mrb, obj);
   ptr_members = RARRAY_PTR(members);
   len = RARRAY_LEN(members);
-  mrb_struct_modify(obj);
   ptr = RSTRUCT_PTR(obj);
   for (i=0; i<len; i++) {
     slot = ptr_members[i];
@@ -429,7 +422,6 @@ mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_val
   int n;
   struct RStruct *st;
 
-  mrb_struct_modify(self);
   n = num_members(mrb, klass);
   if (n < argc) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "struct size differs");
@@ -616,7 +608,6 @@ mrb_struct_aset_id(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
 
     members = mrb_struct_members(mrb, s);
     len = RARRAY_LEN(members);
-    mrb_struct_modify(s);
     if (RSTRUCT_LEN(s) != len) {
       mrb_raisef(mrb, E_TYPE_ERROR, "struct size differs (%ld required %ld given)",
              len, RSTRUCT_LEN(s));
@@ -678,7 +669,6 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
     mrb_raisef(mrb, E_INDEX_ERROR, "offset %ld too large for struct(size:%ld)",
 	      i, RSTRUCT_LEN(s));
   }
-  mrb_struct_modify(s);
   return RSTRUCT_PTR(s)[i] = val;
 }
 
