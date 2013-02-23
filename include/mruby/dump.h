@@ -21,7 +21,7 @@ int mrb_read_irep_file(mrb_state*,FILE*);
 /* mrb_value mrb_load_irep(mrb_state*,const char*); */ /* declared in <irep.h> */
 mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 
-int mrb_bdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname);
+int mrb_bdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname, int endian);
 
 /* dump type */
 #define DUMP_TYPE_CODE 0
@@ -41,6 +41,10 @@ int mrb_bdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname);
 #define MRB_DUMP_INVALID_FILE_HEADER    -5
 #define MRB_DUMP_INVALID_IREP           -6
 #define MRB_DUMP_INVALID_ARGUMENT       -7
+
+ /* endian for binary output */
+ #define MRB_DUMP_ENDIAN_LITTLE        0
+ #define MRB_DUMP_ENDIAN_BIG           1
 
 /* size of long/int/short value on dump/load */
 #define MRB_DUMP_SIZE_OF_LONG          4
@@ -117,6 +121,17 @@ uint32_to_bin(uint32_t l, char *bin)
   *bin++ = (l >> 16) & 0xff;
   *bin++ = (l >> 8) & 0xff;
   *bin   = l & 0xff;
+  return (MRB_DUMP_SIZE_OF_LONG);
+}
+
+static inline int
+uint32_to_bin_flip(uint32_t l, char *bin)
+{
+  char *p = (char *)&l;
+  *bin++ = p[3];
+  *bin++ = p[2];
+  *bin++ = p[1];
+  *bin   = p[0];
   return (MRB_DUMP_SIZE_OF_LONG);
 }
 
