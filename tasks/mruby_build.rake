@@ -1,5 +1,5 @@
-load 'tasks/mruby_build_gem.rake'
-load 'tasks/mruby_build_commands.rake'
+load "#{MRUBY_ROOT}/tasks/mruby_build_gem.rake"
+load "#{MRUBY_ROOT}/tasks/mruby_build_commands.rake"
 
 module MRuby
   class << self
@@ -30,7 +30,7 @@ module MRuby
     end
 
     def self.load
-      Dir.glob("#{File.dirname(__FILE__)}/toolchains/*.rake").each do |file|
+      Dir.glob("#{MRUBY_ROOT}/tasks/toolchains/*.rake").each do |file|
         Kernel.load file
       end
     end
@@ -44,7 +44,7 @@ module MRuby
     include Rake::DSL
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator
-    attr_reader :root, :libmruby, :gems
+    attr_reader :libmruby, :gems
 
     COMPILERS = %w(cc cxx objc asm)
     COMMANDS = COMPILERS + %w(linker archiver yacc gperf git exts mrbc)
@@ -56,8 +56,6 @@ module MRuby
       @name = name.to_s
 
       unless MRuby.targets[@name]
-        @root = File.expand_path("#{File.dirname(__FILE__)}/..")
-
         if ENV['OS'] == 'Windows_NT'
           @exts = Exts.new('.o', '.exe', '.a')
         else
@@ -93,12 +91,16 @@ module MRuby
       tc.setup(self)
     end
 
+    def root
+      MRUBY_ROOT
+    end
+
     def build_dir
-      "build/#{self.name}"
+      "#{MRUBY_ROOT}/build/#{self.name}"
     end
 
     def mrbcfile
-      MRuby.targets['host'].exefile("build/host/bin/mrbc")
+      MRuby.targets['host'].exefile("#{MRuby.targets['host'].build_dir}/bin/mrbc")
     end
 
     def compilers
@@ -114,7 +116,7 @@ module MRuby
         else
           compiler.defines += %w(DISABLE_GEMS) 
         end
-        compiler.define_rules build_dir
+        compiler.define_rules build_dir, File.expand_path(File.join(File.dirname(__FILE__), '..'))
       end
     end
 
@@ -161,14 +163,14 @@ module MRuby
     def run_test
       puts ">>> Test #{name} <<<"
       mrbtest = exefile("#{build_dir}/test/mrbtest")
-      sh "#{filename mrbtest}"
+      sh "#{filename mrbtest.relative_path}"
       puts 
     end
 
     def print_build_summary
       puts "================================================"
       puts "      Config Name: #{@name}"
-      puts " Output Directory: #{self.build_dir}"
+      puts " Output Directory: #{self.build_dir.relative_path}"
       puts "         Binaries: #{@bins.join(', ')}" unless @bins.empty?
       unless @gems.empty?
         puts "    Included Gems:"

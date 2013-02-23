@@ -1,8 +1,11 @@
 MRuby.each_target do
-  dir = File.dirname(__FILE__).relative_path_from(root)
-
-  lex_def = "#{dir}/lex.def"
-  objs = Dir.glob("src/*.{c}").map { |f| objfile(f.pathmap("#{build_dir}/%X")) } + [objfile("#{build_dir}/#{dir}/y.tab")]
+  current_dir = File.dirname(__FILE__).relative_path_from(Dir.pwd)
+  relative_from_root = File.dirname(__FILE__).relative_path_from(MRUBY_ROOT)
+  current_build_dir = "#{build_dir}/#{relative_from_root}"
+  
+  lex_def = "#{current_dir}/lex.def"
+  objs = Dir.glob("#{current_dir}/*.c").map { |f| objfile(f.pathmap("#{current_build_dir}/%n")) }
+  objs += [objfile("#{current_build_dir}/y.tab")]
   self.libmruby << objs
 
   file libfile("#{build_dir}/lib/libmruby_core") => objs do |t|
@@ -10,16 +13,16 @@ MRuby.each_target do
   end
 
   # Parser
-  file "#{build_dir}/#{dir}/y.tab.c" => ["#{dir}/parse.y"] do |t|
+  file "#{current_build_dir}/y.tab.c" => ["#{current_dir}/parse.y"] do |t|
     yacc.run t.name, t.prerequisites.first
   end
 
-  file objfile("#{build_dir}/#{dir}/y.tab") => ["#{build_dir}/#{dir}/y.tab.c", lex_def] do |t|
-    cc.run t.name, t.prerequisites.first, [], [dir]
+  file objfile("#{current_build_dir}/y.tab") => ["#{current_build_dir}/y.tab.c", lex_def] do |t|
+    cc.run t.name, t.prerequisites.first, [], [current_dir]
   end
 
   # Lexical analyzer
-  file lex_def => "#{dir}/keywords" do |t|
+  file lex_def => "#{current_dir}/keywords" do |t|
     gperf.run t.name, t.prerequisites.first
   end
 end

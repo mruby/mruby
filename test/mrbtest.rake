@@ -1,20 +1,22 @@
 MRuby.each_target do
-  dir = File.dirname(__FILE__).relative_path_from(root)
+  current_dir = File.dirname(__FILE__).relative_path_from(Dir.pwd)
+  relative_from_root = File.dirname(__FILE__).relative_path_from(MRUBY_ROOT)
+  current_build_dir = "#{build_dir}/#{relative_from_root}"
 
-  exec = exefile("#{build_dir}/#{dir}/mrbtest")
-  clib = "#{build_dir}/#{dir}/mrbtest.c"
+  exec = exefile("#{current_build_dir}/mrbtest")
+  clib = "#{current_build_dir}/mrbtest.c"
   mlib = clib.ext(exts.object)
-  mrbs = Dir.glob("#{dir}/t/*.rb")
-  init = "#{dir}/init_mrbtest.c"
-  asslib = "#{dir}/assert.rb"
+  mrbs = Dir.glob("#{current_dir}/t/*.rb")
+  init = "#{current_dir}/init_mrbtest.c"
+  asslib = "#{current_dir}/assert.rb"
 
-  mrbtest_lib = libfile("#{build_dir}/#{dir}/mrbtest")
+  mrbtest_lib = libfile("#{current_build_dir}/mrbtest")
   file mrbtest_lib => [mlib, gems.map(&:test_objs), gems.map { |g| g.test_rbireps.ext(exts.object) }].flatten do |t|
     archiver.run t.name, t.prerequisites
   end
 
   unless build_mrbtest_lib_only?
-    driver_obj = objfile("#{build_dir}/#{dir}/driver")
+    driver_obj = objfile("#{current_build_dir}/driver")
     file exec => [driver_obj, mrbtest_lib, libfile("#{build_dir}/lib/libmruby")] do |t|
       gem_flags = gems.map { |g| g.linker.flags }
       gem_flags_before_libraries = gems.map { |g| g.linker.flags_before_libraries }
@@ -27,7 +29,7 @@ MRuby.each_target do
 
   file mlib => [clib]
   file clib => [mrbcfile, init, asslib] + mrbs do |t|
-    _pp "GEN", "*.rb", "#{clib}"
+    _pp "GEN", "*.rb", "#{clib.relative_path}"
     FileUtils.mkdir_p File.dirname(clib)
     open(clib, 'w') do |f|
       f.puts IO.read(init)
