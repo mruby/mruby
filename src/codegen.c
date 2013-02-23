@@ -1925,9 +1925,18 @@ codegen(codegen_scope *s, node *tree, int val)
       push();
       genop(s, MKOP_ABx(OP_STRING, cursp(), off));
       if (p2) {
+        int flag = 0;
         push();
-        off = new_lit(s, mrb_str_new(s->mrb, p2, strlen(p2)));
-        genop(s, MKOP_ABx(OP_STRING, cursp(), off));
+        if (strchr(p2, 'i')) {
+          flag |= REGEXP_FLAG_IGNORECASE;
+        }
+        if (strchr(p2, 'x')) {
+          flag |= REGEXP_FLAG_EXTENDED;
+        }
+        if (strchr(p2, 'm')) {
+          flag |= REGEXP_FLAG_MULTILINE;
+        }
+        genop(s, MKOP_AsBx(OP_LOADI, cursp(), flag));
         n++;
         pop();
       }
