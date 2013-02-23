@@ -1204,36 +1204,28 @@ fix_minus(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_fix2str(mrb_state *mrb, mrb_value x, int base)
 {
-  char buf[sizeof(mrb_int)*CHAR_BIT+2], *b = buf + sizeof buf;
+  char buf[sizeof(mrb_int)*CHAR_BIT+1];
+  char *b = buf + sizeof buf;
   mrb_int val = mrb_fixnum(x);
-  int neg = 0;
 
   if (base < 2 || 36 < base) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %d", base);
   }
+
   if (val == 0) {
-    return mrb_str_new(mrb, "0", 1);
-  }
-  if (val < 0) {
-    val = -val;
-    neg = 1;
-  }
-  *--b = '\0';
-  if (neg && val < 0) {
+    *--b = '0';
+  } else if (val < 0) {
     do {
-      *--b = mrb_digitmap[abs(val % base)];
+      *--b = mrb_digitmap[-(val % base)];
     } while (val /= base);
-  }
-  else {
+    *--b = '-';
+  } else {
     do {
       *--b = mrb_digitmap[(int)(val % base)];
     } while (val /= base);
   }
-  if (neg) {
-    *--b = '-';
-  }
 
-  return mrb_str_new2(mrb, b);
+  return mrb_str_new(mrb, b, buf + sizeof(buf) - b);
 }
 
 /* 15.2.8.3.25 */
