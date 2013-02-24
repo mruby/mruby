@@ -80,7 +80,7 @@ static int
 is_little_endian()
 {
   uint32_t val = 0x00000001;
-  return (*(char *)&val == 0x01);  
+  return (*(char *)&val == 0x01);
 }
 
 static inline int
