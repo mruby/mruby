@@ -543,7 +543,7 @@ error_exit:
   if (ret != MRB_DUMP_OK) {
     for (n=0,i=sirep; i<mrb->irep_len; n++,i++) {
       if (mrb->irep[i]) {
-        if (mrb->irep[i]->iseq)
+        if (mrb->irep[i]->iseq && mrb->irep[i]->flags != MRB_ISEQ_NO_FREE)
           mrb_free(mrb, mrb->irep[i]->iseq);
 
         if (mrb->irep[i]->pool)
