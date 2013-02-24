@@ -1488,6 +1488,12 @@ codegen(codegen_scope *s, node *tree, int val)
       else if (len == 1 && name[0] == '-')  {
         genop_peep(s, MKOP_ABC(OP_SUB, cursp(), idx, 1), val);
       }
+      else if (len == 1 && name[0] == '*')  {
+        genop(s, MKOP_ABC(OP_MUL, cursp(), idx, 1));
+      }
+      else if (len == 1 && name[0] == '/')  {
+        genop(s, MKOP_ABC(OP_DIV, cursp(), idx, 1));
+      }
       else if (len == 1 && name[0] == '<')  {
         genop(s, MKOP_ABC(OP_LT, cursp(), idx, 1));
       }
