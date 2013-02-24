@@ -11,7 +11,7 @@ MRuby::CrossBuild.new("chipKitMax32") do |conf|
   # Mac OS X
   # MPIDE_PATH = '/Applications/mpide.app/Contents/Resources/Java'
   # GNU Linux
-  MPIDE_PATH = '/home/daniel/Downloads/mpide-0023-linux-20120903'
+  MPIDE_PATH = '/opt/mpide-0023-linux-20120903'
 
   PIC32_PATH = "#{MPIDE_PATH}/hardware/pic32"  
 
