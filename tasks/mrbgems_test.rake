@@ -1,5 +1,7 @@
 MRuby.each_target do
-  dir = File.dirname(__FILE__).relative_path_from(root)
+  current_dir = File.dirname(__FILE__).relative_path_from(Dir.pwd)
+  relative_from_root = File.dirname(__FILE__).relative_path_from(MRUBY_ROOT)
+  current_build_dir = "#{build_dir}/#{relative_from_root}"
 
   gems.each do |g|
     test_rbobj = g.test_rbireps.ext(exts.object)

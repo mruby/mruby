@@ -1,5 +1,6 @@
 MRuby.each_target do
-  dir = File.dirname(__FILE__).relative_path_from(root)
+  current_dir = File.dirname(__FILE__).relative_path_from(Dir.pwd)
+  relative_from_root = File.dirname(__FILE__).relative_path_from(MRUBY_ROOT)
 
   if enable_gems?
     # set up all gems
@@ -8,7 +9,7 @@ MRuby.each_target do
     # loader all gems
     self.libmruby << objfile("#{build_dir}/mrbgems/gem_init")
     file objfile("#{build_dir}/mrbgems/gem_init") => "#{build_dir}/mrbgems/gem_init.c"
-    file "#{build_dir}/mrbgems/gem_init.c" => [MRUBY_CONFIGS].flatten do |t|
+    file "#{build_dir}/mrbgems/gem_init.c" => MRUBY_CONFIGS.flatten do |t|
       FileUtils.mkdir_p "#{build_dir}/mrbgems"
       open(t.name, 'w') do |f|
         f.puts %Q[/*]

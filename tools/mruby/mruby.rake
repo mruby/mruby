@@ -1,9 +1,11 @@
 MRuby.each_target do
-  dir = File.dirname(__FILE__).relative_path_from(root)
+  current_dir = File.dirname(__FILE__).relative_path_from(Dir.pwd)
+  relative_from_root = File.dirname(__FILE__).relative_path_from(MRUBY_ROOT)
+  current_build_dir = "#{build_dir}/#{relative_from_root}"
 
   if bins.find { |s| s.to_s == 'mruby' }
     exec = exefile("#{build_dir}/bin/mruby")
-    objs = Dir.glob("#{dir}/*.c").map { |f| objfile(f.pathmap("#{build_dir}/%X")) }.flatten
+    objs = Dir.glob("#{current_dir}/*.c").map { |f| objfile(f.pathmap("#{current_build_dir}/%n")) }.flatten
 
     file exec => objs + [libfile("#{build_dir}/lib/libmruby")] do |t|
       gem_flags = gems.map { |g| g.linker.flags }
