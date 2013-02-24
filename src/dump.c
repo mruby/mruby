@@ -187,8 +187,7 @@ str_dump_len(char *str, uint16_t len, int type)
         if (*src >= ' ' && *src <= '~') {
           dump_len++;
         } else {
-          // dump_len += sprintf(buf, "\\%03o", *src & 0377);
-          dump_len += 4;
+          dump_len += 4; /* octet "\\nnn" */
         }
         break;
       }
