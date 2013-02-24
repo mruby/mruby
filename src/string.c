@@ -1319,7 +1319,6 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
       return mrb_true_value();
     return mrb_false_value();
   }
-  //StringValue(arg);
   mrb_string_value(mrb, &str2);
   i = mrb_str_index(mrb, self, str2, 0);
 
@@ -1985,14 +1984,6 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
 }
 
 
-int
-mrb_block_given_p()
-{
-  /*if (ruby_frame->iter == ITER_CUR && ruby_block)
-    return 1;*//*Qtrue*/
-  return FALSE;
-}
-
 /* 15.2.10.5.37 */
 /*
  *  call-seq:
@@ -2281,8 +2272,6 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, int badcheck)
 {
   char *end;
   double d;
-//  const char *ellipsis = "";
-//  int w;
 #if !defined(DBL_DIG)
   #define DBL_DIG 16
 #endif
@@ -2353,7 +2342,6 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, int badcheck)
   char *s;
   int len;
 
-  //StringValue(str);
   mrb_string_value(mrb, &str);
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);

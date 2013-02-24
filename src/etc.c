@@ -74,7 +74,6 @@ mrb_lastline_get(mrb_state *mrb)
 mrb_value
 mrb_exec_recursive(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mrb_value, int), mrb_value obj, void *arg)
 {
-  //  return mrb_exec_recursive(mrb, io_puts_ary, line, &out);
   return func(mrb, obj, *(mrb_value*)arg, 0);
 }
 
@@ -118,7 +117,7 @@ mrb_to_id(mrb_state *mrb, mrb_value name)
 mrb_value
 mrb_block_proc(void)
 {
-  return mrb_nil_value();//proc_new(mrb_cProc, FALSE);
+  return mrb_nil_value();
 }
 
 static mrb_int
