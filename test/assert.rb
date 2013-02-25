@@ -79,6 +79,49 @@ def assert_nil(obj, msg = nil)
   assert_true(obj.nil?, msg, diff)
 end
 
+def assert_includes(collection, obj, msg = nil)
+  msg = "Expected #{collection.inspect} to include #{obj.inspect}" unless msg
+  diff = "    Collection: #{collection.inspect}\n" +
+         "        Object: #{obj.inspect}"
+  assert_true(collection.include?(obj), msg, diff)
+end
+
+def assert_instance_of(klass, obj, msg = nil)
+  msg = "Expected #{obj.inspect} to be an instance of #{klass}, not #{obj.class}" unless msg
+  assert_true(obj.instance_of?(klass), msg)
+end
+
+def assert_kind_of(klass, obj, msg = nil)
+  msg = "Expected #{obj.inspect} to be an kind of #{klass}, not #{obj.class}" unless msg
+  assert_true(obj.kind_of?(klass), msg)
+end
+
+def assert_raises(*exp)
+  if $mrbtest_assert
+    $mrbtest_assert_idx += 1
+    msg = exp.last.class == String ? exp.pop : nil
+    msg = msg.to_s + " : " if msg
+    should_raise = false
+    begin
+      yield
+      should_raise = true
+    rescue Exception => e
+      msg = "#{msg}#{exp.inspect} exception expected, not"
+      diff = "      Class: <#{e.class}>\n" +
+             "    Message: #{e.message}"
+      if exp.any?{|ex| ex.instance_of?(Module) ? e.kind_of?(ex) : ex == e.class }
+        $mrbtest_assert.push([$mrbtest_assert_idx, msg, diff])
+      end
+    end
+
+    exp = exp.first if exp.first
+    if should_raise
+      msg = "#{msg}#{exp.inspect} expected but nothing was raised."
+      $mrbtest_assert.push([$mrbtest_assert_idx, msg, nil])
+    end
+  end
+end
+
 ##
 # Report the test result and print all assertions
 # which were reported broken.
