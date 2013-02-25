@@ -14,7 +14,7 @@ void mrb_init_core(mrb_state*);
 void mrb_final_core(mrb_state*);
 
 mrb_state*
-mrb_open_allocf(mrb_allocf f, void *ud)
+mrb_open_allocf(mrb_allocf f, intptr_t ud)
 {
   static const mrb_state mrb_state_zero = { 0 };
   mrb_state *mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
@@ -31,7 +31,7 @@ mrb_open_allocf(mrb_allocf f, void *ud)
 }
 
 static void*
-allocf(mrb_state *mrb, void *p, size_t size, void *ud)
+allocf(mrb_state *mrb, void *p, size_t size, intptr_t ud)
 {
   if (size == 0) {
     free(p);
@@ -74,7 +74,7 @@ mrb_alloca_free(mrb_state *mrb)
 mrb_state*
 mrb_open()
 {
-  mrb_state *mrb = mrb_open_allocf(allocf, NULL);
+  mrb_state *mrb = mrb_open_allocf(allocf, (intptr_t)NULL);
 
   return mrb;
 }
