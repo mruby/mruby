@@ -79,7 +79,7 @@ def assert_nil(obj, msg = nil)
   assert_true(obj.nil?, msg, diff)
 end
 
-def assert_includes(collection, obj, msg = nil)
+def assert_include(collection, obj, msg = nil)
   msg = "Expected #{collection.inspect} to include #{obj.inspect}" unless msg
   diff = "    Collection: #{collection.inspect}\n" +
          "        Object: #{obj.inspect}"
