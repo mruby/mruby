@@ -1083,6 +1083,7 @@ codegen(codegen_scope *s, node *tree, int val)
           }
           if (n3->cdr->cdr->car) {
             codegen(s, n3->cdr->cdr->car, val);
+            if (val) pop();
           }
           tmp = new_label(s);
           genop(s, MKOP_sBx(OP_JMP, exend));
@@ -1101,6 +1102,9 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_A(OP_POPERR, 1));
       if (tree->car) {
         codegen(s, tree->car, val);
+      }
+      else if (val) {
+        push();
       }
       dispatch_linked(s, exend);
       loop_pop(s, NOVAL);

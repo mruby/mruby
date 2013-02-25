@@ -287,6 +287,34 @@ assert('Exception 16') do
   end
 end
 
+assert('Exception 17') do
+  begin
+    raise "a"  # StandardError
+  rescue ArgumentError
+    1
+  rescue StandardError
+    2
+  else
+    3
+  ensure
+    4
+  end == 2
+end
+
+assert('Exception 18') do
+  begin
+    0
+  rescue ArgumentError
+    1
+  rescue StandardError
+    2
+  else
+    3
+  ensure
+    4
+  end == 3
+end
+
 assert('Exception#inspect without message') do
   Exception.new.inspect
 end
