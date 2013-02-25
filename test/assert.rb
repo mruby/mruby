@@ -86,7 +86,7 @@ def assert_include(collection, obj, msg = nil)
   assert_true(collection.include?(obj), msg, diff)
 end
 
-def assert_raises(*exp)
+def assert_raise(*exp)
   if $mrbtest_assert
     $mrbtest_assert_idx += 1
     msg = exp.last.class == String ? exp.pop : nil
