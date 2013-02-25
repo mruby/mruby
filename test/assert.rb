@@ -86,16 +86,6 @@ def assert_include(collection, obj, msg = nil)
   assert_true(collection.include?(obj), msg, diff)
 end
 
-def assert_instance_of(klass, obj, msg = nil)
-  msg = "Expected #{obj.inspect} to be an instance of #{klass}, not #{obj.class}" unless msg
-  assert_true(obj.instance_of?(klass), msg)
-end
-
-def assert_kind_of(klass, obj, msg = nil)
-  msg = "Expected #{obj.inspect} to be an kind of #{klass}, not #{obj.class}" unless msg
-  assert_true(obj.kind_of?(klass), msg)
-end
-
 def assert_raises(*exp)
   if $mrbtest_assert
     $mrbtest_assert_idx += 1
