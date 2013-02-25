@@ -41,9 +41,14 @@ def assert(str = 'Assertion failed', iso = '')
       print('.')
     end
   rescue Exception => e
-    $asserts.push(assertion_string('Error: ', str, iso, e))
-    $kill_test += 1
-    print('X')
+    if e.class.to_s == 'MRubyTestSkip'
+      $asserts.push "Skip: #{str} #{iso} #{e.cause}"
+      print('?')
+    else
+      $asserts.push(assertion_string('Error: ', str, iso, e))
+      $kill_test += 1
+      print('X')
+	end
   ensure
     $mrbtest_assert = nil
   end
@@ -156,4 +161,17 @@ def check_float(a, b)
   else
     true
   end
+end
+
+##
+# Skip the test
+class MRubyTestSkip < NotImplementedError
+  attr_accessor :cause
+  def initialize(cause)
+    @cause = cause
+  end
+end
+
+def skip(cause = "")
+  raise MRubyTestSkip.new(cause)
 end
