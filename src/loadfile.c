@@ -4,8 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#ifdef ENABLE_STDIO
-
 #include <string.h>
 #include "mruby/dump.h"
 
@@ -13,6 +11,8 @@
 #include "mruby/proc.h"
 #include "mruby/irep.h"
 #include "load.h"
+
+#ifdef ENABLE_STDIO
 
 typedef struct _RiteFILE
 {
