@@ -271,9 +271,9 @@ add_heap(mrb_state *mrb)
 #define DEFAULT_GC_INTERVAL_RATIO 200
 #define DEFAULT_GC_STEP_RATIO 200
 #define DEFAULT_MAJOR_GC_INC_RATIO 200
-#define is_generational(mrb) (mrb->is_generational_gc_mode)
-#define is_major_gc(mrb) (is_generational(mrb) && mrb->gc_full)
-#define is_minor_gc(mrb) (is_generational(mrb) && !mrb->gc_full)
+#define is_generational(mrb) ((mrb)->is_generational_gc_mode)
+#define is_major_gc(mrb) (is_generational(mrb) && (mrb)->gc_full)
+#define is_minor_gc(mrb) (is_generational(mrb) && !(mrb)->gc_full)
 
 void
 mrb_init_heap(mrb_state *mrb)

@@ -152,7 +152,6 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val) /* mr
 mrb_value
 mrb_hash_freeze(mrb_value hash)
 {
-  //return mrb_obj_freeze(hash);
   return (hash);
 }
 
