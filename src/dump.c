@@ -54,9 +54,9 @@ enum {
 };
 
 #ifdef MRB_ENDIAN_BIG
-# define MRB_CHECK_ENDIAN(x) ((x) == MRB_DUMP_ENDIAN_BIG)
+# define MRB_SAME_ENDIAN(x) ((x) == MRB_DUMP_ENDIAN_BIG)
 #else
-# define MRB_CHECK_ENDIAN(x) ((x) == MRB_DUMP_ENDIAN_LITTLE)
+# define MRB_SAME_ENDIAN(x) ((x) == MRB_DUMP_ENDIAN_LITTLE)
 #endif
 
 uint16_t calc_crc_16_ccitt(unsigned char*,int);
@@ -345,7 +345,7 @@ write_iseq_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type, int endian
   for (iseq_no = 0; iseq_no < irep->ilen; iseq_no++){
 
     if (type == DUMP_TYPE_BIN){
-      if ( MRB_CHECK_ENDIAN(endian) ) {
+      if ( MRB_SAME_ENDIAN(endian) ) {
         *(uint32_t *)buf = (uint32_t)irep->iseq[iseq_no];
         buf += MRB_DUMP_SIZE_OF_LONG;
       }else{

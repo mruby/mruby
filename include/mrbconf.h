@@ -19,7 +19,7 @@
 /* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT */
 //#define MRB_NAN_BOXING
 
-/* define on big endian machines; used by MRB_NAN_BOXING */
+/* define on big endian machines; used by MRB_NAN_BOXING and when dump C bytecode for cross-compile*/
 //#define MRB_ENDIAN_BIG
 
 /* argv max size in mrb_funcall */
