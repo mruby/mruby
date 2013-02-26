@@ -46,7 +46,6 @@
 /* -DDISABLE_XXXX to drop following features */
 //#define DISABLE_SPRINTF	/* Kernel.sprintf method */
 //#define DISABLE_MATH		/* Math functions */
-//#define DISABLE_TIME		/* Time class */
 //#define DISABLE_STRUCT	/* Struct class */
 //#define DISABLE_STDIO		/* use of stdio */
 
@@ -83,17 +82,11 @@
 typedef short mrb_sym;
 
 /* define ENABLE_XXXX from DISABLE_XXX */
-#ifndef DISABLE_REGEXP
-#define ENABLE_REGEXP
-#endif
 #ifndef DISABLE_SPRINTF
 #define ENABLE_SPRINTF
 #endif
 #ifndef DISABLE_MATH
 #define ENABLE_MATH
-#endif
-#ifndef DISABLE_TIME
-#define ENABLE_TIME
 #endif
 #ifndef DISABLE_STRUCT
 #define ENABLE_STRUCT
