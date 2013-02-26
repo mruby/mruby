@@ -838,7 +838,6 @@ gen_assignment(codegen_scope *s, node *node, int sp, int val)
         lv++;
         up = up->prev;
       }
-      //      assert(up!=0);
     }
     break;
   case NODE_IVAR:
