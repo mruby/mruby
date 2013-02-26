@@ -53,8 +53,13 @@ enum {
   DUMP_SECTION_NUM,
 };
 
+#ifdef MRB_ENDIAN_BIG
+# define MRB_CHECK_ENDIAN(x) ((x) == MRB_DUMP_ENDIAN_BIG)
+#else
+# define MRB_CHECK_ENDIAN(x) ((x) == MRB_DUMP_ENDIAN_LITTLE)
+#endif
+
 uint16_t calc_crc_16_ccitt(unsigned char*,int);
-static int is_little_endian();
 static inline int uint8_dump(uint8_t,char*,int);
 static inline int uint16_dump(uint16_t,char*,int);
 static inline int uint32_dump(uint32_t,char*,int);
@@ -75,13 +80,6 @@ static int dump_rite_header(mrb_state*,int,FILE*,uint32_t);
 static int write_irep_record(mrb_state*,int,char*,uint32_t*,int,int);
 static int dump_irep_record(mrb_state*,int,FILE*,uint32_t*);
 static int mrb_write_irep(mrb_state*,int,char*,int);
-
-static int
-is_little_endian()
-{
-  uint32_t val = 0x00000001;
-  return (*(char *)&val == 0x01);
-}
 
 static inline int
 uint8_dump(uint8_t bin, char *hex, int type)
@@ -347,8 +345,7 @@ write_iseq_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type, int endian
   for (iseq_no = 0; iseq_no < irep->ilen; iseq_no++){
 
     if (type == DUMP_TYPE_BIN){
-      if ( (endian == MRB_DUMP_ENDIAN_LITTLE && is_little_endian())
-          || (endian == MRB_DUMP_ENDIAN_BIG && !is_little_endian()) ){
+      if ( MRB_CHECK_ENDIAN(endian) ) {
         *(uint32_t *)buf = (uint32_t)irep->iseq[iseq_no];
         buf += MRB_DUMP_SIZE_OF_LONG;
       }else{
