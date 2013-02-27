@@ -150,12 +150,6 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val) /* mr
 }
 
 mrb_value
-mrb_hash_freeze(mrb_value hash)
-{
-  return (hash);
-}
-
-mrb_value
 mrb_hash_dup(mrb_state *mrb, mrb_value hash)
 {
   struct RHash* ret;
