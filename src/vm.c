@@ -316,8 +316,13 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
 
   if (!mrb->jmp) {
     jmp_buf c_jmp;
+    mrb_callinfo *old_ci = mrb->ci;
 
     if (setjmp(c_jmp) != 0) {	/* error */
+      while (old_ci != mrb->ci) {
+        mrb->stack = mrb->stbase + mrb->ci->stackidx;
+        cipop(mrb);
+      }
       mrb->jmp = 0;
       return mrb_nil_value();
     }
