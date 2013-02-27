@@ -807,7 +807,7 @@ retry:
  *       end
  *     end
  *     k = Klass.new
- *     k.methods[0..9]    #=> [:kMethod, :freeze, :nil?, :is_a?,
+ *     k.methods[0..9]    #=> [:kMethod, :respond_to?, :nil?, :is_a?,
  *                        #    :class, :instance_variable_set,
  *                        #    :methods, :extend, :__send__, :instance_eval]
  *     k.methods.length   #=> 42
