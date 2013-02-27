@@ -251,7 +251,6 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     long i, len;
     struct RClass *c;
 
-    //OBJ_FREEZE(members);
     if (mrb_nil_p(name)) {
       c = mrb_class_new(mrb, klass);
     }
