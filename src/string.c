@@ -759,23 +759,22 @@ num_index:
         return mrb_str_dup(mrb, indx);
       return mrb_nil_value();
 
-    default:
+    case MRB_TT_RANGE:
       /* check if indx is Range */
       {
         mrb_int beg, len;
         mrb_value tmp;
 
         len = RSTRING_LEN(str);
-        switch (mrb_range_beg_len(mrb, indx, &beg, &len, len, 0)) {
-          case FALSE:
-            break;
-          case 2/*OTHER*/:
-            return mrb_nil_value();
-          default:
-            tmp = mrb_str_subseq(mrb, str, beg, len);
-            return tmp;
+        if (mrb_range_beg_len(mrb, indx, &beg, &len, len)) {
+          tmp = mrb_str_subseq(mrb, str, beg, len);
+          return tmp;
+        }
+        else {
+          return mrb_nil_value();
         }
       }
+    default:
       idx = mrb_fixnum(indx);
       goto num_index;
     }
