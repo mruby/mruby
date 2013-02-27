@@ -2132,6 +2132,7 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_AB(OP_METHOD, cursp(), sym));
       if (val) {
         genop(s, MKOP_A(OP_LOADNIL, cursp()));
+        push();
       }
     }
     break;
@@ -2151,6 +2152,7 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_AB(OP_METHOD, cursp(), sym));
       if (val) {
         genop(s, MKOP_A(OP_LOADNIL, cursp()));
+        push();
       }
     }
     break;
