@@ -1,5 +1,7 @@
 # /
 *.bak
+*.d
+*.o
 *.orig
 *.rej
 *.sav
@@ -14,3 +16,4 @@ cscope.out
 /src/y.tab.c
 /bin
 /build
+/lib
