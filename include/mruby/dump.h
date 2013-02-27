@@ -16,7 +16,7 @@ extern "C" {
 #include <stdint.h>
 
 int mrb_dump_irep(mrb_state*,int,FILE*);
-int mrb_read_irep(mrb_state*,const char*);
+int mrb_read_irep(mrb_state*,const char*,int);
 int mrb_read_irep_file(mrb_state*,FILE*);
 /* mrb_value mrb_load_irep(mrb_state*,const char*); */ /* declared in <irep.h> */
 mrb_value mrb_load_irep_file(mrb_state*,FILE*);
@@ -42,9 +42,12 @@ int mrb_bdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname, int endi
 #define MRB_DUMP_INVALID_IREP           -6
 #define MRB_DUMP_INVALID_ARGUMENT       -7
 
- /* endian for binary output */
- #define MRB_DUMP_ENDIAN_LITTLE        0
- #define MRB_DUMP_ENDIAN_BIG           1
+/* endian for binary output */
+#define MRB_DUMP_ENDIAN_LITTLE        0
+#define MRB_DUMP_ENDIAN_BIG           1
+
+#define MRB_COPY_ISEQ_BLOCK           0
+#define MRB_NOCOPY_ISEQ_BLOCK         1
 
 /* size of long/int/short value on dump/load */
 #define MRB_DUMP_SIZE_OF_LONG          4

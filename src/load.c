@@ -47,7 +47,7 @@ static unsigned char* rite_fgets(RiteFILE*,unsigned char*,int,int);
 static int load_rite_header(FILE*,rite_binary_header*,unsigned char*);
 static int load_rite_irep_record(mrb_state*, RiteFILE*,unsigned char*,uint32_t*);
 static int read_rite_header(mrb_state*,unsigned char*,rite_binary_header*);
-static int read_rite_irep_record(mrb_state*,unsigned char*,uint32_t*);
+static int read_rite_irep_record(mrb_state*,unsigned char*,uint32_t*,int);
 
 
 static unsigned char
@@ -302,7 +302,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   }
 
   if (ret == MRB_DUMP_OK)
-    ret = mrb_read_irep(mrb, (char*)rite_dst);
+    ret = mrb_read_irep(mrb, (char*)rite_dst, MRB_COPY_ISEQ_BLOCK);
 
 error_exit:
   mrb_free(mrb, rite_dst);
@@ -333,7 +333,7 @@ read_rite_header(mrb_state *mrb, unsigned char *bin, rite_binary_header*  bin_he
 }
 
 static int
-read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
+read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len, int copymode)
 {
   int i, ret = MRB_DUMP_OK;
   char *buf;
@@ -373,11 +373,23 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
   pStart = src;
   irep->ilen = bin_to_uint32(src);          //iseq length
   src += MRB_DUMP_SIZE_OF_LONG;
-  if (irep->ilen > 0) {
-    irep->iseq = (mrb_code *)src;               //iseq
-    irep->flags = MRB_ISEQ_NO_FREE;
-    for (i=0; i<irep->ilen; i++) {
-      src += MRB_DUMP_SIZE_OF_LONG;
+  if (irep->ilen > 0) {                     //iseq
+    if (copymode == MRB_COPY_ISEQ_BLOCK){
+      irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);
+      if (irep->iseq == NULL) {
+        ret = MRB_DUMP_GENERAL_FAILURE;
+        goto error_exit;
+      }
+      for (i=0; i<irep->ilen; i++) {
+        irep->iseq[i] = bin_to_uint32(src);
+        src += MRB_DUMP_SIZE_OF_LONG;
+      }
+    }else{
+      irep->iseq = (mrb_code *)src;
+      irep->flags = MRB_ISEQ_NO_FREE;
+      for (i=0; i<irep->ilen; i++) {
+        src += MRB_DUMP_SIZE_OF_LONG;
+      }
     }
   }
   crc = calc_crc_16_ccitt((unsigned char*)pStart, src - pStart);     //Calculate CRC
@@ -507,7 +519,7 @@ error_exit:
 }
 
 int
-mrb_read_irep(mrb_state *mrb, const char *bin)
+mrb_read_irep(mrb_state *mrb, const char *bin, int copymode)
 {
   int ret = MRB_DUMP_OK, i, n, nirep, sirep;
   uint32_t len = 0;
@@ -530,7 +542,7 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
   //Read Binary Data Section
   for (n=0,i=sirep; n<nirep; n++,i++) {
     src += MRB_DUMP_SIZE_OF_LONG;                      //record ren
-    ret = read_rite_irep_record(mrb, src, &len);
+    ret = read_rite_irep_record(mrb, src, &len, copymode);
     if (ret != MRB_DUMP_OK)
       goto error_exit;
     src += len;
@@ -556,6 +568,7 @@ error_exit:
       }
     }
     //    mrb->irep_len = sirep;
+    mrb->irep_len = sirep;
     return ret;
   }
   return sirep + hex_to_uint8(bin_header.sirep);
@@ -689,7 +702,7 @@ mrb_load_irep_file(mrb_state *mrb, FILE* fp)
 mrb_value
 mrb_load_irep(mrb_state *mrb, const char *bin)
 {
-  int n = mrb_read_irep(mrb, bin);
+  int n = mrb_read_irep(mrb, bin, MRB_NOCOPY_ISEQ_BLOCK);
 
   if (n < 0) {
     irep_error(mrb, n);

@@ -71,10 +71,10 @@ static uint32_t get_pool_block_size(mrb_state*,mrb_irep*,int);
 static uint32_t get_syms_block_size(mrb_state*,mrb_irep*,int);
 static uint32_t get_irep_record_size(mrb_state*,int,int);
 static int write_irep_header(mrb_state*,mrb_irep*,char*,int);
-static int write_iseq_block(mrb_state*,mrb_irep*,char*,int,int);
+static int write_iseq_block(mrb_state*,mrb_irep*,char*,int,int,int);
 static int write_pool_block(mrb_state*,mrb_irep*,char*,int);
 static int write_syms_block(mrb_state*,mrb_irep*,char*,int);
-static int calc_crc_section(mrb_state*,mrb_irep*,uint16_t*,int,int);
+static int calc_crc_section(mrb_state*,mrb_irep*,uint16_t*,int,int,int);
 static int write_rite_header(mrb_state*,int,char*,uint32_t);
 static int dump_rite_header(mrb_state*,int,FILE*,uint32_t);
 static int write_irep_record(mrb_state*,int,char*,uint32_t*,int,int);
@@ -334,7 +334,7 @@ write_irep_header(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
 
 
 static int
-write_iseq_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type, int endian)
+write_iseq_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type, int target_type, int endian)
 {
   char *buf_top = buf;
   int iseq_no;
@@ -344,7 +344,7 @@ write_iseq_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type, int endian
   /* opcode */
   for (iseq_no = 0; iseq_no < irep->ilen; iseq_no++){
 
-    if (type == DUMP_TYPE_BIN){
+    if ((type == DUMP_TYPE_BIN) && (target_type == DUMP_TYPE_BIN)){
       if ( MRB_SAME_ENDIAN(endian) ) {
         *(uint32_t *)buf = (uint32_t)irep->iseq[iseq_no];
         buf += MRB_DUMP_SIZE_OF_LONG;
@@ -489,7 +489,7 @@ error_exit:
 }
 
 static int
-calc_crc_section(mrb_state *mrb, mrb_irep *irep, uint16_t *crc, int section, int endian)
+calc_crc_section(mrb_state *mrb, mrb_irep *irep, uint16_t *crc, int section, int target_type, int endian)
 {
   char *buf, *buf_top;
   uint32_t buf_size;
@@ -515,7 +515,7 @@ calc_crc_section(mrb_state *mrb, mrb_irep *irep, uint16_t *crc, int section, int
     result = write_irep_header(mrb, irep, buf, type);
     break;
   case DUMP_ISEQ_BLOCK:
-    result = write_iseq_block(mrb, irep, buf, type, endian);
+    result = write_iseq_block(mrb, irep, buf, type, target_type, endian);
     break;
   case DUMP_POOL_BLOCK:
     result = write_pool_block(mrb, irep, buf, type);
@@ -639,13 +639,13 @@ write_irep_record(mrb_state *mrb, int irep_no, char* bin, uint32_t *rlen, int ty
 
     switch (section) {
     case DUMP_IREP_HEADER: bin += write_irep_header(mrb, irep, bin, type); break;
-    case DUMP_ISEQ_BLOCK: bin += write_iseq_block(mrb, irep, bin, type, endian); break;
+    case DUMP_ISEQ_BLOCK: bin += write_iseq_block(mrb, irep, bin, type, type, endian); break;
     case DUMP_POOL_BLOCK: bin += write_pool_block(mrb, irep, bin, type); break;
     case DUMP_SYMS_BLOCK: bin += write_syms_block(mrb, irep, bin, type); break;
     default: break;
     }
 
-    rc = calc_crc_section(mrb, irep, &crc, section, endian);
+    rc = calc_crc_section(mrb, irep, &crc, section, type, endian);
     if (rc != MRB_DUMP_OK)
       return rc;
 
