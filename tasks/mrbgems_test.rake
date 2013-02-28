@@ -18,7 +18,11 @@ MRuby.each_target do
         f.puts %Q[void GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb_state *mrb) {]
         unless g.test_rbfiles.empty?
           f.puts %Q[  mrb_state *mrb2;]
-          f.puts %Q[  mrb_value val1, val2, ary1, ary2, test_args_hash;]
+          if g.test_args.empty?
+            f.puts %Q[  mrb_value val1, val2, ary1, ary2;]
+          else
+            f.puts %Q[  mrb_value val1, val2, ary1, ary2, test_args_hash;]
+          end
           f.puts %Q[  int ai;]
           g.test_rbfiles.count.times do |i|
             f.puts %Q[  ai = mrb_gc_arena_save(mrb);]
