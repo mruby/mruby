@@ -12,7 +12,7 @@ MRuby::Build.new do |conf|
   # conf.gem :git => 'git@github.com:masuidrive/mrbgems-example.git', :branch => 'master', :options => '-v'
 
   # Use standard Time class
-  conf.gem 'mgems/mruby-time'
+  conf.gem 'mrbgems/mruby-time'
 
   # Generate binaries
   # conf.bins = %w(mrbc mruby mirb)
