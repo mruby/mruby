@@ -7,7 +7,6 @@
 #include "mruby.h"
 #include "mruby/array.h"
 
-#ifdef ENABLE_MATH
 #include <math.h>
 
 #define domain_error(msg) \
@@ -630,7 +629,7 @@ math_erfc(mrb_state *mrb, mrb_value obj)
 
 /* ------------------------------------------------------------------------*/
 void
-mrb_init_math(mrb_state *mrb)
+mrb_mruby_math_gem_init(mrb_state* mrb)
 {
   struct RClass *mrb_math;
   mrb_math = mrb_define_module(mrb, "Math");
@@ -685,4 +684,8 @@ mrb_init_math(mrb_state *mrb)
   mrb_define_module_function(mrb, mrb_math, "erf",  math_erf,  ARGS_REQ(1));
   mrb_define_module_function(mrb, mrb_math, "erfc", math_erfc, ARGS_REQ(1));
 }
-#endif	/* ENABLE_MATH */
+
+void
+mrb_mruby_math_gem_final(mrb_state* mrb)
+{
+}

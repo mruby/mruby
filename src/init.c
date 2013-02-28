@@ -57,9 +57,6 @@ mrb_init_core(mrb_state *mrb)
 #ifdef ENABLE_STDIO
   mrb_init_print(mrb); DONE;
 #endif
-#ifdef ENABLE_MATH
-  mrb_init_math(mrb); DONE;
-#endif
   mrb_init_mrblib(mrb); DONE;
 #ifndef DISABLE_GEMS
   mrb_init_mrbgems(mrb); DONE;
