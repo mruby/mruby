@@ -32,7 +32,6 @@ load "#{MRUBY_ROOT}/tools/mirb/mirb.rake"
 load "#{MRUBY_ROOT}/tasks/mrbgems_test.rake"
 load "#{MRUBY_ROOT}/test/mrbtest.rake"
 
-
 ##############################
 # generic build targets, rules
 task :default => :all
@@ -42,7 +41,7 @@ depfiles = MRuby.targets['host'].bins.map do |bin|
   source_path = MRuby.targets['host'].exefile("#{MRuby.targets['host'].build_dir}/bin/#{bin}")
 
   file install_path => source_path do |t|
-    FileUtils.cp t.prerequisites.first, t.name
+    FileUtils.cp t.prerequisites.first, t.name, { :verbose => $verbose }
   end
   
   install_path
@@ -72,8 +71,8 @@ end
 desc "clean all built and in-repo installed artifacts"
 task :clean do
   MRuby.each_target do |t|
-    FileUtils.rm_rf t.build_dir
+    FileUtils.rm_rf t.build_dir, { :verbose => $verbose }
   end
-  FileUtils.rm_f depfiles
+  FileUtils.rm_f depfiles, { :verbose => $verbose }
   puts "Cleaned up build folder"
 end
