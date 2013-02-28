@@ -1777,9 +1777,9 @@ mrb_init_class(mrb_state *mrb)
   /* name basic classes */
   mrb_define_const(mrb, bob, "BasicObject", mrb_obj_value(bob));
   mrb_define_const(mrb, obj, "BasicObject", mrb_obj_value(bob));
-  mrb_define_const(mrb, obj, "Object", mrb_obj_value(obj));
-  mrb_define_const(mrb, obj, "Module", mrb_obj_value(mod));
-  mrb_define_const(mrb, obj, "Class", mrb_obj_value(cls));
+  mrb_define_const(mrb, obj, "Object",      mrb_obj_value(obj));
+  mrb_define_const(mrb, obj, "Module",      mrb_obj_value(mod));
+  mrb_define_const(mrb, obj, "Class",       mrb_obj_value(cls));
 
   /* name each classes */
   mrb_name_class(mrb, bob, mrb_intern(mrb, "BasicObject"));
@@ -1789,43 +1789,44 @@ mrb_init_class(mrb_state *mrb)
 
   mrb_undef_method(mrb, mod, "new");
   MRB_SET_INSTANCE_TT(cls, MRB_TT_CLASS);
-  mrb_define_method(mrb, bob, "initialize", mrb_bob_init, ARGS_NONE());
-  mrb_define_method(mrb, bob, "!", mrb_bob_not, ARGS_NONE());
-  mrb_define_method(mrb, bob, "method_missing", mrb_bob_missing, ARGS_ANY());        /* 15.3.1.3.30 */
-  mrb_define_class_method(mrb, cls, "new", mrb_class_new_class, ARGS_ANY());
-  mrb_define_method(mrb, cls, "superclass", mrb_class_superclass, ARGS_NONE());      /* 15.2.3.3.4 */
-  mrb_define_method(mrb, cls, "new", mrb_instance_new, ARGS_ANY());                  /* 15.2.3.3.3 */
-  mrb_define_method(mrb, cls, "inherited", mrb_bob_init, ARGS_REQ(1));
-  mrb_define_method(mrb, mod, "class_variable_defined?", mrb_mod_cvar_defined, ARGS_REQ(1));  /* 15.2.2.4.16 */
-  mrb_define_method(mrb, mod, "class_variable_get", mrb_mod_cvar_get, ARGS_REQ(1));  /* 15.2.2.4.17 */
-  mrb_define_method(mrb, mod, "class_variable_set", mrb_mod_cvar_set, ARGS_REQ(2));  /* 15.2.2.4.18 */
-  mrb_define_method(mrb, mod, "extend_object", mrb_mod_extend_object, ARGS_REQ(1));  /* 15.2.2.4.25 */
-  mrb_define_method(mrb, mod, "extended", mrb_bob_init, ARGS_REQ(1));                /* 15.2.2.4.26 */
-  mrb_define_method(mrb, mod, "include", mrb_mod_include, ARGS_ANY());               /* 15.2.2.4.27 */
-  mrb_define_method(mrb, mod, "include?", mrb_mod_include_p, ARGS_REQ(1));           /* 15.2.2.4.28 */
-  mrb_define_method(mrb, mod, "append_features", mrb_mod_append_features, ARGS_REQ(1)); /* 15.2.2.4.10 */
-  mrb_define_method(mrb, mod, "class_eval", mrb_mod_module_eval, ARGS_ANY());           /* 15.2.2.4.15 */
-  mrb_define_method(mrb, mod, "included", mrb_bob_init, ARGS_REQ(1));                     /* 15.2.2.4.29 */
-  mrb_define_method(mrb, mod, "included_modules", mrb_mod_included_modules, ARGS_NONE()); /* 15.2.2.4.30 */
-  mrb_define_method(mrb, mod, "instance_methods", mrb_mod_instance_methods, ARGS_ANY());  /* 15.2.2.4.33 */
-  mrb_define_method(mrb, mod, "method_defined?", mrb_mod_method_defined, ARGS_REQ(1));    /* 15.2.2.4.34 */
-  mrb_define_method(mrb, mod, "module_eval", mrb_mod_module_eval, ARGS_ANY());            /* 15.2.2.4.35 */
-  mrb_define_method(mrb, mod, "remove_class_variable", mrb_mod_remove_cvar, ARGS_REQ(1)); /* 15.2.2.4.39 */
-  mrb_define_method(mrb, mod, "remove_method", mrb_mod_remove_method, ARGS_ANY());        /* 15.2.2.4.41 */
+  mrb_define_method(mrb, bob, "initialize",              mrb_bob_init,             ARGS_NONE());
+  mrb_define_method(mrb, bob, "!",                       mrb_bob_not,              ARGS_NONE());
+  mrb_define_method(mrb, bob, "method_missing",          mrb_bob_missing,          ARGS_ANY());  /* 15.3.1.3.30 */
 
-  mrb_define_method(mrb, mod, "to_s", mrb_mod_to_s, ARGS_NONE());
-  mrb_define_method(mrb, mod, "inspect", mrb_mod_to_s, ARGS_NONE());
-  mrb_define_method(mrb, mod, "alias_method", mrb_mod_alias, ARGS_ANY());            /* 15.2.2.4.8 */
-  mrb_define_method(mrb, mod, "ancestors", mrb_mod_ancestors, ARGS_NONE());          /* 15.2.2.4.9 */
-  mrb_define_method(mrb, mod, "undef_method", mrb_mod_undef, ARGS_ANY());            /* 15.2.2.4.41 */
-  mrb_define_method(mrb, mod, "const_defined?", mrb_mod_const_defined, ARGS_REQ(1)); /* 15.2.2.4.20 */
-  mrb_define_method(mrb, mod, "const_get", mrb_mod_const_get, ARGS_REQ(1));          /* 15.2.2.4.21 */
-  mrb_define_method(mrb, mod, "const_set", mrb_mod_const_set, ARGS_REQ(2));          /* 15.2.2.4.23 */
-  mrb_define_method(mrb, mod, "remove_const", mrb_mod_remove_const, ARGS_REQ(1));    /* 15.2.2.4.40 */
-  mrb_define_method(mrb, mod, "define_method", mod_define_method, ARGS_REQ(1));
-  mrb_define_method(mrb, mod, "class_variables", mrb_mod_class_variables, ARGS_NONE()); /* 15.2.2.4.19 */
+  mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      ARGS_ANY());
+  mrb_define_method(mrb, cls, "superclass",              mrb_class_superclass,     ARGS_NONE()); /* 15.2.3.3.4 */
+  mrb_define_method(mrb, cls, "new",                     mrb_instance_new,         ARGS_ANY());  /* 15.2.3.3.3 */
+  mrb_define_method(mrb, cls, "inherited",               mrb_bob_init,             ARGS_REQ(1));
 
-  mrb_define_method(mrb, mod, "===", mrb_mod_eqq, ARGS_REQ(1));
+  mrb_define_method(mrb, mod, "class_variable_defined?", mrb_mod_cvar_defined,     ARGS_REQ(1)); /* 15.2.2.4.16 */
+  mrb_define_method(mrb, mod, "class_variable_get",      mrb_mod_cvar_get,         ARGS_REQ(1)); /* 15.2.2.4.17 */
+  mrb_define_method(mrb, mod, "class_variable_set",      mrb_mod_cvar_set,         ARGS_REQ(2)); /* 15.2.2.4.18 */
+  mrb_define_method(mrb, mod, "extend_object",           mrb_mod_extend_object,    ARGS_REQ(1)); /* 15.2.2.4.25 */
+  mrb_define_method(mrb, mod, "extended",                mrb_bob_init,             ARGS_REQ(1)); /* 15.2.2.4.26 */
+  mrb_define_method(mrb, mod, "include",                 mrb_mod_include,          ARGS_ANY());  /* 15.2.2.4.27 */
+  mrb_define_method(mrb, mod, "include?",                mrb_mod_include_p,        ARGS_REQ(1)); /* 15.2.2.4.28 */
+  mrb_define_method(mrb, mod, "append_features",         mrb_mod_append_features,  ARGS_REQ(1)); /* 15.2.2.4.10 */
+  mrb_define_method(mrb, mod, "class_eval",              mrb_mod_module_eval,      ARGS_ANY());  /* 15.2.2.4.15 */
+  mrb_define_method(mrb, mod, "included",                mrb_bob_init,             ARGS_REQ(1)); /* 15.2.2.4.29 */
+  mrb_define_method(mrb, mod, "included_modules",        mrb_mod_included_modules, ARGS_NONE()); /* 15.2.2.4.30 */
+  mrb_define_method(mrb, mod, "instance_methods",        mrb_mod_instance_methods, ARGS_ANY());  /* 15.2.2.4.33 */
+  mrb_define_method(mrb, mod, "method_defined?",         mrb_mod_method_defined,   ARGS_REQ(1)); /* 15.2.2.4.34 */
+  mrb_define_method(mrb, mod, "module_eval",             mrb_mod_module_eval,      ARGS_ANY());  /* 15.2.2.4.35 */
+  mrb_define_method(mrb, mod, "remove_class_variable",   mrb_mod_remove_cvar,      ARGS_REQ(1)); /* 15.2.2.4.39 */
+  mrb_define_method(mrb, mod, "remove_method",           mrb_mod_remove_method,    ARGS_ANY());  /* 15.2.2.4.41 */
+  mrb_define_method(mrb, mod, "to_s",                    mrb_mod_to_s,             ARGS_NONE());
+  mrb_define_method(mrb, mod, "inspect",                 mrb_mod_to_s,             ARGS_NONE());
+  mrb_define_method(mrb, mod, "alias_method",            mrb_mod_alias,            ARGS_ANY());  /* 15.2.2.4.8 */
+  mrb_define_method(mrb, mod, "ancestors",               mrb_mod_ancestors,        ARGS_NONE()); /* 15.2.2.4.9 */
+  mrb_define_method(mrb, mod, "undef_method",            mrb_mod_undef,            ARGS_ANY());  /* 15.2.2.4.41 */
+  mrb_define_method(mrb, mod, "const_defined?",          mrb_mod_const_defined,    ARGS_REQ(1)); /* 15.2.2.4.20 */
+  mrb_define_method(mrb, mod, "const_get",               mrb_mod_const_get,        ARGS_REQ(1)); /* 15.2.2.4.21 */
+  mrb_define_method(mrb, mod, "const_set",               mrb_mod_const_set,        ARGS_REQ(2)); /* 15.2.2.4.23 */
+  mrb_define_method(mrb, mod, "remove_const",            mrb_mod_remove_const,     ARGS_REQ(1)); /* 15.2.2.4.40 */
+  mrb_define_method(mrb, mod, "define_method",           mod_define_method,        ARGS_REQ(1));
+  mrb_define_method(mrb, mod, "class_variables",         mrb_mod_class_variables,  ARGS_NONE()); /* 15.2.2.4.19 */
+  mrb_define_method(mrb, mod, "===",                     mrb_mod_eqq,              ARGS_REQ(1));
+
   mrb_undef_method(mrb, cls, "append_features");
   mrb_undef_method(mrb, cls, "extend_object");
 }
