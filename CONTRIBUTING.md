@@ -31,8 +31,8 @@ mruby should be highly portable to other systems and compilers. For this it is
 recommended to keep your code as close as possible to the C99 standard
 (http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf).
 
-Although we target C99, Visual C++ is also an important target for mruby, so
-you should local variable declarations in the middle.
+Although we target C99, Visual C++ is also an important target for mruby. For this
+reason a declaration of a local variable has to be at the beginning of a scope block.
 
 #### Reduce library dependencies to a minimum
 
