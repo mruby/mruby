@@ -35,7 +35,7 @@ _obj_classname(mrb_state *mrb, mrb_value obj)
 }
 
 void
-mrb_str_decref(mrb_state *mrb, struct mrb_shared_string *shared)
+mrb_str_decref(mrb_state *mrb, mrb_shared_string *shared)
 {
   shared->refcnt--;
   if (shared->refcnt == 0) {
@@ -48,7 +48,7 @@ static void
 str_modify(mrb_state *mrb, struct RString *s)
 {
   if (s->flags & MRB_STR_SHARED) {
-    struct mrb_shared_string *shared = s->aux.shared;
+    mrb_shared_string *shared = s->aux.shared;
 
     if (shared->refcnt == 1 && s->ptr == shared->ptr) {
       s->ptr = shared->ptr;
@@ -275,7 +275,7 @@ static void
 str_make_shared(mrb_state *mrb, struct RString *s)
 {
   if (!(s->flags & MRB_STR_SHARED)) {
-    struct mrb_shared_string *shared = (struct mrb_shared_string *)mrb_malloc(mrb, sizeof(struct mrb_shared_string));
+    mrb_shared_string *shared = (mrb_shared_string *)mrb_malloc(mrb, sizeof(mrb_shared_string));
 
     shared->refcnt = 1;
     if (s->aux.capa > s->len) {
@@ -301,7 +301,7 @@ mrb_value
 mrb_str_literal(mrb_state *mrb, mrb_value str)
 {
   struct RString *s, *orig;
-  struct mrb_shared_string *shared;
+  mrb_shared_string *shared;
 
   s = str_alloc(mrb, mrb->string_class);
   orig = mrb_str_ptr(str);
@@ -1161,7 +1161,7 @@ static mrb_value
 mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len)
 {
   struct RString *orig, *s;
-  struct mrb_shared_string *shared;
+  mrb_shared_string *shared;
 
   orig = mrb_str_ptr(str);
   str_make_shared(mrb, orig);

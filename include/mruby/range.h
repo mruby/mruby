@@ -11,14 +11,14 @@
 extern "C" {
 #endif
 
-struct mrb_range_edges {
+typedef struct mrb_range_edges {
   mrb_value beg;
   mrb_value end;
-};
+} mrb_range_edges;
 
 struct RRange {
   MRB_OBJECT_HEADER;
-  struct mrb_range_edges *edges;
+  mrb_range_edges *edges;
   int excl;
 };
 
