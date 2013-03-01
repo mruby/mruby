@@ -13,22 +13,11 @@
 #include "mruby/data.h"
 #include "mruby/variable.h"
 
-struct RStruct {
-  struct RBasic basic;
-  mrb_value values;
-};
+static struct mrb_data_type mrb_struct_type = { "mrb_struct", NULL };
 
-static void
-rstruct_free(mrb_state *mrb, void *ptr)
-{
-  mrb_free(mrb, ptr);
-}
-
-static struct mrb_data_type mrb_struct_type = { "mrb_struct", rstruct_free };
-
-#define RSTRUCT(st)     ((struct RStruct*)(DATA_PTR(st)))
-#define RSTRUCT_LEN(st) ((int)(RARRAY_LEN(RSTRUCT(st)->values)))
-#define RSTRUCT_PTR(st) (RARRAY_PTR(RSTRUCT(st)->values))
+#define RSTRUCT_ARY(st) ((struct RArray*)DATA_PTR(st))
+#define RSTRUCT_LEN(st) RSTRUCT_ARY(st)->len
+#define RSTRUCT_PTR(st) RSTRUCT_ARY(st)->ptr
 
 static struct RClass *
 struct_class(mrb_state *mrb)
@@ -420,23 +409,23 @@ mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_val
 {
   struct RClass *klass = mrb_obj_class(mrb, self);
   int i, n;
-  struct RStruct *st;
+  mrb_value values;
 
   n = num_members(mrb, klass);
   if (n < argc) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "struct size differs");
   }
-  st = (struct RStruct *) mrb_malloc(mrb, sizeof(struct RStruct));
-  DATA_PTR(self) = st;
+
+  values = mrb_ary_new_capa(mrb, n);
+  DATA_PTR(self) = mrb_ary_ptr(values);
   DATA_TYPE(self) = &mrb_struct_type;
-  st->values = mrb_ary_new_capa(mrb, n);
   for (i = 0; i < argc; i++) {
-    mrb_ary_set(mrb, st->values, i, argv[i]);
+    mrb_ary_set(mrb, values, i, argv[i]);
   }
   for (i = argc; i < n; i++) {
-    mrb_ary_set(mrb, st->values, i, mrb_nil_value());
+    mrb_ary_set(mrb, values, i, mrb_nil_value());
   }
-  mrb_iv_set(mrb, self, mrb_intern(mrb, "__values__"), st->values);
+  mrb_iv_set(mrb, self, mrb_intern(mrb, "__values__"), values);
 
   return self;
 }
@@ -524,7 +513,7 @@ mrb_struct_inspect(mrb_state *mrb, mrb_value s)
 mrb_value
 mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
 {
-  mrb_value s;
+  mrb_value s, a;
   int i, len;
 
   mrb_get_args(mrb, "o", &s);
@@ -537,8 +526,9 @@ mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
     mrb_raise(mrb, E_TYPE_ERROR, "struct size mismatch");
   }
   len = RSTRUCT_LEN(copy);
+  a = mrb_obj_value(RSTRUCT_ARY(copy));
   for (i = 0; i < len; i++) {
-    mrb_ary_set(mrb, RSTRUCT(copy)->values, i, RSTRUCT_PTR(s)[i]);
+    mrb_ary_set(mrb, a, i, RSTRUCT_PTR(s)[i]);
   }
   return copy;
 }
