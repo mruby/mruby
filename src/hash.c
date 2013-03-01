@@ -526,11 +526,6 @@ mrb_hash_delete(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o", &key);
   return mrb_hash_delete_key(mrb, self, key);
 }
-struct shift_var {
-    mrb_value key;
-    mrb_value val;
-};
-
 
 /* 15.2.13.4.24 */
 /*
