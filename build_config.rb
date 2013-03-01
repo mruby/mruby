@@ -17,6 +17,9 @@ MRuby::Build.new do |conf|
   # Use standard Time class
   conf.gem 'mrbgems/mruby-time'
 
+  # Use standard Struct class
+  conf.gem 'mrbgems/mruby-struct'
+
   # Generate binaries
   # conf.bins = %w(mrbc mruby mirb)
   

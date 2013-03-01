@@ -4,18 +4,31 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#ifdef ENABLE_STRUCT
 #include <string.h>
-#include "error.h"
-#include "mruby/struct.h"
-#include "mruby/array.h"
 #include <stdarg.h>
-
+#include "mruby.h"
+#include "mruby/array.h"
 #include "mruby/string.h"
 #include "mruby/class.h"
+#include "mruby/data.h"
 #include "mruby/variable.h"
 
+struct RStruct {
+    struct RBasic basic;
+    mrb_value values;
+};
+
+static void
+rstruct_free(mrb_state *mrb, void *ptr)
+{
+    mrb_free(mrb, ptr);
+}
+
+static struct mrb_data_type mrb_struct_type = { "mrb_struct", rstruct_free };
+
+#define RSTRUCT(st)     ((struct RStruct*)(DATA_PTR(st)))
+#define RSTRUCT_LEN(st) ((int)(RARRAY_LEN(RSTRUCT(st)->values)))
+#define RSTRUCT_PTR(st) (RARRAY_PTR(RSTRUCT(st)->values))
 
 static struct RClass *
 struct_class(mrb_state *mrb)
@@ -64,7 +77,7 @@ mrb_value
 mrb_struct_members(mrb_state *mrb, mrb_value s)
 {
   mrb_value members = mrb_struct_s_members(mrb, mrb_obj_value(mrb_obj_class(mrb, s)));
-  if (mrb_type(s) == MRB_TT_STRUCT) {
+  if (!strcmp(mrb_class_name(mrb, mrb_obj_class(mrb, s)), "Struct")) {
     if (RSTRUCT_LEN(s) != RARRAY_LEN(members)) {
       mrb_raisef(mrb, E_TYPE_ERROR, "struct size differs (%ld required %ld given)",
              RARRAY_LEN(members), RSTRUCT_LEN(s));
@@ -135,7 +148,7 @@ mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
           return ptr[i];
       }
     }
-    mrb_name_error(mrb, id, "%s is not struct member", mrb_sym2name(mrb, id));
+    mrb_raisef(mrb, E_NAME_ERROR, "%s is not struct member", mrb_sym2name(mrb, id));
     return mrb_nil_value();            /* not reached */
 }
 
@@ -214,7 +227,7 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
     }
   }
 
-  mrb_name_error(mrb, mid, "`%s' is not a struct member",
+  mrb_raisef(mrb, E_NAME_ERROR, "`%s' is not a struct member",
 		 mrb_sym2name(mrb, mid));
   return mrb_nil_value();            /* not reached */
 }
@@ -259,7 +272,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
       name = mrb_str_to_str(mrb, name);
       id = mrb_to_id(mrb, name);
       if (!mrb_is_const_id(id)) {
-          mrb_name_error(mrb, id, "identifier %s needs to be constant", mrb_string_value_ptr(mrb, name));
+          mrb_raisef(mrb, E_NAME_ERROR, "identifier %s needs to be constant", mrb_string_value_ptr(mrb, name));
       }
       if (mrb_const_defined_at(mrb, klass, id)) {
           mrb_warn("redefining constant Struct::%s", mrb_string_value_ptr(mrb, name));
@@ -267,7 +280,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
       }
       c = mrb_define_class_under(mrb, klass, RSTRING_PTR(name), klass);
     }
-    MRB_SET_INSTANCE_TT(c, MRB_TT_STRUCT);
+	//MRB_SET_INSTANCE_TT(c, MRB_TT_DATA);
     nstr = mrb_obj_value(c);
     mrb_iv_set(mrb, nstr, mrb_intern(mrb, "__members__"), members);
 
@@ -418,17 +431,22 @@ static mrb_value
 mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_value self)
 {
   struct RClass *klass = mrb_obj_class(mrb, self);
-  int n;
+  int i, n;
   struct RStruct *st;
 
   n = num_members(mrb, klass);
   if (n < argc) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "struct size differs");
   }
-  st = RSTRUCT(self);
-  st->ptr = (mrb_value *)mrb_calloc(mrb, sizeof(mrb_value), n);
-  st->len = n;
-  struct_copy(st->ptr, argv, argc);
+  st = (struct RStruct *) mrb_malloc(mrb, sizeof(struct RStruct));
+  DATA_PTR(self) = st;
+  DATA_TYPE(self) = &mrb_struct_type;
+  st->values = mrb_ary_new_capa(mrb, n);
+  for (i = argc; i < n; i++) {
+    mrb_ary_set(mrb, st->values, i, mrb_nil_value());
+  }
+  struct_copy(RARRAY_PTR(st->values), argv, argc);
+  mrb_iv_set(mrb, self, mrb_intern(mrb, "__values__"), st->values);
 
   return self;
 }
@@ -547,7 +565,7 @@ mrb_struct_aref_id(mrb_state *mrb, mrb_value s, mrb_sym id)
           return ptr[i];
       }
     }
-    mrb_name_error(mrb, id, "no member '%s' in struct", mrb_sym2name(mrb, id));
+    mrb_raisef(mrb, E_NAME_ERROR, "no member '%s' in struct", mrb_sym2name(mrb, id));
     return mrb_nil_value();            /* not reached */
 }
 
@@ -619,7 +637,7 @@ mrb_struct_aset_id(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
           return val;
       }
     }
-    mrb_name_error(mrb, id, "no member '%s' in struct", mrb_sym2name(mrb, id));
+    mrb_raisef(mrb, E_NAME_ERROR, "no member '%s' in struct", mrb_sym2name(mrb, id));
     return val; /* not reach */
 }
 
@@ -698,7 +716,7 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
 
   mrb_get_args(mrb, "o", &s2);
   if (mrb_obj_equal(mrb, s, s2)) return mrb_true_value();
-  if (mrb_type(s2) != MRB_TT_STRUCT) return mrb_false_value();
+  if (!strcmp(mrb_class_name(mrb, mrb_obj_class(mrb, s)), "Struct")) return mrb_false_value();
   if (mrb_obj_class(mrb, s) != mrb_obj_class(mrb, s2)) return mrb_false_value();
   if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
     mrb_bug("inconsistent struct"); /* should never happen */
@@ -729,7 +747,7 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
 
   mrb_get_args(mrb, "o", &s2);
   if (mrb_obj_equal(mrb, s, s2)) return mrb_true_value();
-  if (mrb_type(s2) != MRB_TT_STRUCT) return mrb_false_value();
+  if (strcmp(mrb_class_name(mrb, mrb_obj_class(mrb, s2)), "Struct")) return mrb_false_value();
   if (mrb_obj_class(mrb, s) != mrb_obj_class(mrb, s2)) return mrb_false_value();
   if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
     mrb_bug("inconsistent struct"); /* should never happen */
@@ -760,7 +778,7 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
  *  <code>Symbol</code> (such as <code>:name</code>).
  */
 void
-mrb_init_struct(mrb_state *mrb)
+mrb_mruby_struct_gem_init(mrb_state* mrb)
 {
   struct RClass *st;
   st = mrb_define_class(mrb, "Struct",  mrb->object_class);
@@ -778,4 +796,8 @@ mrb_init_struct(mrb_state *mrb)
   mrb_define_method(mrb, st,       "eql?",            mrb_struct_eql,         ARGS_REQ(1)); /* 15.2.18.4.12(x)  */
 
 }
-#endif	/* ENABLE_STRUCT */
+
+void
+mrb_mruby_struct_gem_final(mrb_state* mrb)
+{
+}
