@@ -431,7 +431,7 @@ static mrb_value
 mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_value self)
 {
   struct RClass *klass = mrb_obj_class(mrb, self);
-  int n;
+  int i, n;
   struct RStruct *st;
 
   n = num_members(mrb, klass);
@@ -442,6 +442,9 @@ mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_val
   DATA_PTR(self) = st;
   DATA_TYPE(self) = &mrb_struct_type;
   st->values = mrb_ary_new_capa(mrb, n);
+  for (i = argc; i < n; i++) {
+    mrb_ary_set(mrb, st->values, i, mrb_nil_value());
+  }
   struct_copy(RARRAY_PTR(st->values), argv, argc);
   mrb_iv_set(mrb, self, mrb_intern(mrb, "__values__"), st->values);
 
