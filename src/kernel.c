@@ -26,12 +26,6 @@ typedef enum {
     NOEX_RESPONDS  = 0x80
 } mrb_method_flag_t;
 
-struct obj_ivar_tag {
-  mrb_value obj;
-  int (*func)(mrb_sym key, mrb_value val, void * arg);
-  void * arg;
-};
-
 int
 mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
