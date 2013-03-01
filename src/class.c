@@ -407,7 +407,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       break;
     default:
       if (argc <= i && !opt) {
-	mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
       }
     }
 
@@ -417,10 +417,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-	if (i < argc) {
-	  *p = *sp++;
-	  i++;
-	}
+        if (i < argc) {
+          *p = *sp++;
+          i++;
+        }
       }
       break;
     case 'S':
@@ -428,10 +428,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-	if (i < argc) {
-	  *p = to_str(mrb, *sp++);
-	  i++;
-	}
+        if (i < argc) {
+          *p = to_str(mrb, *sp++);
+          i++;
+        }
       }
       break;
     case 'A':
@@ -439,10 +439,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-	if (i < argc) {
-	  *p = to_ary(mrb, *sp++);
-	  i++;
-	}
+        if (i < argc) {
+          *p = to_ary(mrb, *sp++);
+          i++;
+        }
       }
       break;
     case 'H':
@@ -450,64 +450,64 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-	if (i < argc) {
-	  *p = to_hash(mrb, *sp++);
-	  i++;
-	}
+        if (i < argc) {
+          *p = to_hash(mrb, *sp++);
+          i++;
+        }
       }
       break;
     case 's':
       {
-	mrb_value ss;
+        mrb_value ss;
         struct RString *s;
         char **ps = 0;
         int *pl = 0;
 
-	ps = va_arg(ap, char**);
-	pl = va_arg(ap, int*);
-	if (i < argc) {
-	  ss = to_str(mrb, *sp++);
-	  s = mrb_str_ptr(ss);
-	  *ps = s->ptr;
-	  *pl = s->len;
-	  i++;
-	}
+        ps = va_arg(ap, char**);
+        pl = va_arg(ap, int*);
+        if (i < argc) {
+          ss = to_str(mrb, *sp++);
+          s = mrb_str_ptr(ss);
+          *ps = s->ptr;
+          *pl = s->len;
+          i++;
+        }
       }
       break;
     case 'z':
       {
-	mrb_value ss;
+        mrb_value ss;
         struct RString *s;
         char **ps;
 
-	ps = va_arg(ap, char**);
-	if (i < argc) {
-	  ss = to_str(mrb, *sp++);
-	  s = mrb_str_ptr(ss);
-	  if (strlen(s->ptr) != s->len) {
-	    mrb_raise(mrb, E_ARGUMENT_ERROR, "String contains NUL");
-	  }
-	  *ps = s->ptr;
-	  i++;
-	}
+        ps = va_arg(ap, char**);
+        if (i < argc) {
+          ss = to_str(mrb, *sp++);
+          s = mrb_str_ptr(ss);
+          if (strlen(s->ptr) != s->len) {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "String contains NUL");
+          }
+          *ps = s->ptr;
+          i++;
+        }
       }
       break;
     case 'a':
       {
-	mrb_value aa;
+        mrb_value aa;
         struct RArray *a;
         mrb_value **pb;
         int *pl;
 
-	pb = va_arg(ap, mrb_value**);
-	pl = va_arg(ap, int*);
-	if (i < argc) {
-	  aa = to_ary(mrb, *sp++);
-	  a = mrb_ary_ptr(aa);
-	  *pb = a->ptr;
-	  *pl = a->len;
-	  i++;
-	}
+        pb = va_arg(ap, mrb_value**);
+        pl = va_arg(ap, int*);
+        if (i < argc) {
+          aa = to_ary(mrb, *sp++);
+          a = mrb_ary_ptr(aa);
+          *pb = a->ptr;
+          *pl = a->len;
+          i++;
+        }
       }
       break;
     case 'f':
@@ -515,29 +515,29 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_float *p;
 
         p = va_arg(ap, mrb_float*);
-	if (i < argc) {
-	  switch (mrb_type(*sp)) {
-	  case MRB_TT_FLOAT:
-	    *p = mrb_float(*sp);
-	    break;
-	  case MRB_TT_FIXNUM:
-	    *p = (mrb_float)mrb_fixnum(*sp);
-	    break;
-	  case MRB_TT_STRING:
-	    mrb_raise(mrb, E_TYPE_ERROR, "String can't be coerced into Float");
-	    break;
-	  default:
-	    {
-	      mrb_value tmp;
+        if (i < argc) {
+          switch (mrb_type(*sp)) {
+            case MRB_TT_FLOAT:
+              *p = mrb_float(*sp);
+              break;
+            case MRB_TT_FIXNUM:
+              *p = (mrb_float)mrb_fixnum(*sp);
+              break;
+            case MRB_TT_STRING:
+              mrb_raise(mrb, E_TYPE_ERROR, "String can't be coerced into Float");
+              break;
+            default:
+              {
+                mrb_value tmp;
 
-	      tmp = mrb_convert_type(mrb, *sp, MRB_TT_FLOAT, "Float", "to_f");
-	      *p = mrb_float(tmp);
-	    }
-	    break;
-	  }
-	  sp++;
-	  i++;
-	}
+                tmp = mrb_convert_type(mrb, *sp, MRB_TT_FLOAT, "Float", "to_f");
+                *p = mrb_float(tmp);
+              }
+              break;
+          }
+          sp++;
+          i++;
+        }
       }
       break;
     case 'i':
@@ -545,71 +545,71 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_int *p;
 
         p = va_arg(ap, mrb_int*);
-	if (i < argc) {
-	  switch (mrb_type(*sp)) {
-	  case MRB_TT_FIXNUM:
-	    *p = mrb_fixnum(*sp);
-	    break;
-	  case MRB_TT_FLOAT:
-	    {
-	      mrb_float f = mrb_float(*sp);
+        if (i < argc) {
+          switch (mrb_type(*sp)) {
+            case MRB_TT_FIXNUM:
+              *p = mrb_fixnum(*sp);
+              break;
+            case MRB_TT_FLOAT:
+              {
+                mrb_float f = mrb_float(*sp);
 
-	      if (!FIXABLE(f)) {
-		mrb_raise(mrb, E_RANGE_ERROR, "float too big for int");
-	      }
-	      *p = (mrb_int)f;
-	    }
-	    break;
-	  case MRB_TT_FALSE:
-	    *p = 0;
-	    break;
-	  default:
-	    {
-	      mrb_value tmp;
+                if (!FIXABLE(f)) {
+                  mrb_raise(mrb, E_RANGE_ERROR, "float too big for int");
+                }
+                *p = (mrb_int)f;
+              }
+              break;
+            case MRB_TT_FALSE:
+              *p = 0;
+              break;
+            default:
+              {
+                mrb_value tmp;
 
-	      tmp = mrb_convert_type(mrb, *sp, MRB_TT_FIXNUM, "Integer", "to_int");
-	      *p = mrb_fixnum(tmp);
-	    }
-	    break;
-	  }
-	  sp++;
-	  i++;
-	}
+                tmp = mrb_convert_type(mrb, *sp, MRB_TT_FIXNUM, "Integer", "to_int");
+                *p = mrb_fixnum(tmp);
+              }
+              break;
+          }
+          sp++;
+          i++;
+        }
       }
       break;
     case 'b':
       {
-	int *boolp = va_arg(ap, int*);
+        int *boolp = va_arg(ap, int*);
 
-	if (i < argc) {
-	  mrb_value b = *sp++;
-	  *boolp = mrb_test(b);
-	  i++;
-	}
+        if (i < argc) {
+          mrb_value b = *sp++;
+          *boolp = mrb_test(b);
+          i++;
+        }
       }
       break;
     case 'n':
       {
-	mrb_sym *symp;
+        mrb_sym *symp;
 
-	symp = va_arg(ap, mrb_sym*);
-	if (i < argc) {
-	  mrb_value ss;
+        symp = va_arg(ap, mrb_sym*);
+        if (i < argc) {
+          mrb_value ss;
 
-	  ss = *sp++;
-	  if (mrb_type(ss) == MRB_TT_SYMBOL) {
-	    *symp = mrb_symbol(ss);
-	  }
-	  else if (mrb_string_p(ss)) {
-	    *symp = mrb_intern_str(mrb, to_str(mrb, ss));
-	  }
-	  else {
-	    mrb_value obj = mrb_funcall(mrb, ss, "inspect", 0);
-	    mrb_raisef(mrb, E_TYPE_ERROR, "%s is not a symbol",
-		       mrb_string_value_ptr(mrb, obj));
-	  }
-	  i++;
-	}
+          ss = *sp++;
+          if (mrb_type(ss) == MRB_TT_SYMBOL) {
+            *symp = mrb_symbol(ss);
+          }
+          else if (mrb_string_p(ss)) {
+            *symp = mrb_intern_str(mrb, to_str(mrb, ss));
+          }
+          else {
+            mrb_value obj = mrb_funcall(mrb, ss, "inspect", 0);
+            mrb_raisef(mrb, E_TYPE_ERROR, "%s is not a symbol",
+                mrb_string_value_ptr(mrb, obj));
+          }
+          i++;
+        }
       }
       break;
 
@@ -621,9 +621,9 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         if (mrb->ci->argc < 0) {
           bp = mrb->stack + 2;
         }
-	else {
+        else {
           bp = mrb->stack + mrb->ci->argc + 1;
-	}
+        }
         *p = *bp;
       }
       break;
@@ -634,18 +634,18 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     case '*':
       {
         mrb_value **var;
-	int *pl;
+        int *pl;
 
         var = va_arg(ap, mrb_value**);
         pl = va_arg(ap, int*);
         if (argc > i) {
           *pl = argc-i;
           if (*pl > 0) {
-	    *var = sp;
+            *var = sp;
             i = argc;
           }
-	  i = argc;
-	  sp += *pl;
+          i = argc;
+          sp += *pl;
         }
         else {
           *pl = 0;
@@ -689,13 +689,13 @@ mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 
     while(p) {
       if (c != p && p->tt == MRB_TT_CLASS) {
-	superclass_seen = 1;
+        superclass_seen = 1;
       }
       else if (p->mt == m->mt){
-	if (p->tt == MRB_TT_ICLASS && !superclass_seen) {
-	  ins_pos = p;
-	}
-	goto skip;
+        if (p->tt == MRB_TT_ICLASS && !superclass_seen) {
+          ins_pos = p;
+        }
+        goto skip;
       }
       p = p->super;
     }
