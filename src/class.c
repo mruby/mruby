@@ -18,14 +18,6 @@
 
 KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal)
 
-typedef struct fc_result {
-    mrb_sym name;
-    struct RClass * klass;
-    mrb_value path;
-    struct RClass * track;
-    struct fc_result *prev;
-} fcresult_t;
-
 void
 mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
 {

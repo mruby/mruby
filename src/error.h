@@ -7,10 +7,6 @@
 #ifndef MRUBY_ERROR_H
 #define MRUBY_ERROR_H
 
-struct RException {
-  MRB_OBJECT_HEADER;
-};
-
 void mrb_sys_fail(mrb_state *mrb, const char *mesg);
 void mrb_bug_errno(const char*, int);
 int sysexit_status(mrb_state *mrb, mrb_value err);
