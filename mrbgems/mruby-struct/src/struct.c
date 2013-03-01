@@ -13,7 +13,7 @@
 #include "mruby/data.h"
 #include "mruby/variable.h"
 
-static struct mrb_data_type mrb_struct_type = { "mrb_struct", NULL };
+static mrb_data_type mrb_struct_type = { "mrb_struct", NULL };
 
 #define RSTRUCT_ARY(st) ((struct RArray*)DATA_PTR(st))
 #define RSTRUCT_LEN(st) RSTRUCT_ARY(st)->len
@@ -514,21 +514,20 @@ mrb_value
 mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
 {
   mrb_value s, a;
+  struct RArray *sv;
   int i, len;
 
   mrb_get_args(mrb, "o", &s);
 
   if (mrb_obj_equal(mrb, copy, s)) return copy;
-  if (!mrb_obj_is_instance_of(mrb, s, mrb_obj_class(mrb, copy))) {
-    mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
-  }
-  if (RSTRUCT_LEN(copy) != RSTRUCT_LEN(s)) {
+  Data_Get_Struct(mrb,s,&mrb_struct_type,sv);
+  if (RSTRUCT_LEN(copy) != sv->len) {
     mrb_raise(mrb, E_TYPE_ERROR, "struct size mismatch");
   }
-  len = RSTRUCT_LEN(copy);
+  len = sv->len;
   a = mrb_obj_value(RSTRUCT_ARY(copy));
   for (i = 0; i < len; i++) {
-    mrb_ary_set(mrb, a, i, RSTRUCT_PTR(s)[i]);
+    mrb_ary_set(mrb, a, i, sv->ptr[i]);
   }
   return copy;
 }
