@@ -310,7 +310,7 @@ mrb_free_heap(mrb_state *mrb)
 static void
 gc_protect(mrb_state *mrb, struct RBasic *p)
 {
-  if (mrb->arena_idx > MRB_ARENA_SIZE) {
+  if (mrb->arena_idx >= MRB_ARENA_SIZE) {
     /* arena overflow error */
     mrb->arena_idx = MRB_ARENA_SIZE - 4; /* force room in arena */
     mrb_raise(mrb, E_RUNTIME_ERROR, "arena overflow error");
