@@ -21,18 +21,18 @@ extern "C" {
 
 extern const char mrb_digitmap[];
 
-struct mrb_shared_string {
+typedef struct mrb_shared_string {
   int refcnt;
   char *ptr;
   int len;
-};
+} mrb_shared_string;
 
 struct RString {
   MRB_OBJECT_HEADER;
   int len;
   union {
     int capa;
-    struct mrb_shared_string *shared;
+    mrb_shared_string *shared;
   } aux;
   char *ptr;
 };
@@ -45,7 +45,7 @@ struct RString {
 #define RSTRING_END(s)    (RSTRING(s)->ptr + RSTRING(s)->len)
 #define MRB_STR_SHARED      256
 
-void mrb_str_decref(mrb_state*, struct mrb_shared_string*);
+void mrb_str_decref(mrb_state*, mrb_shared_string*);
 mrb_value mrb_str_literal(mrb_state*, mrb_value);
 void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
 mrb_value mrb_str_plus(mrb_state*, mrb_value, mrb_value);
