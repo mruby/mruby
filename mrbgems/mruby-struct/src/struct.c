@@ -10,17 +10,25 @@
 #include "mruby/array.h"
 #include "mruby/string.h"
 #include "mruby/class.h"
+#include "mruby/data.h"
 #include "mruby/variable.h"
 
 struct RStruct {
     struct RBasic basic;
-    long len;
-    mrb_value *ptr;
+    mrb_value values;
 };
 
-#define RSTRUCT(st)     ((struct RStruct*)((st).value.p))
-#define RSTRUCT_LEN(st) ((int)(RSTRUCT(st)->len))
-#define RSTRUCT_PTR(st) (RSTRUCT(st)->ptr)
+static void
+rstruct_free(mrb_state *mrb, void *ptr)
+{
+    mrb_free(mrb, ptr);
+}
+
+static struct mrb_data_type mrb_struct_type = { "mrb_struct", rstruct_free };
+
+#define RSTRUCT(st)     ((struct RStruct*)(DATA_PTR(st)))
+#define RSTRUCT_LEN(st) ((int)(RARRAY_LEN(RSTRUCT(st)->values)))
+#define RSTRUCT_PTR(st) (RARRAY_PTR(RSTRUCT(st)->values))
 
 static struct RClass *
 struct_class(mrb_state *mrb)
@@ -272,6 +280,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
       }
       c = mrb_define_class_under(mrb, klass, RSTRING_PTR(name), klass);
     }
+	//MRB_SET_INSTANCE_TT(c, MRB_TT_DATA);
     nstr = mrb_obj_value(c);
     mrb_iv_set(mrb, nstr, mrb_intern(mrb, "__members__"), members);
 
@@ -429,10 +438,11 @@ mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_val
   if (n < argc) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "struct size differs");
   }
-  st = RSTRUCT(self);
-  st->ptr = (mrb_value *)mrb_calloc(mrb, sizeof(mrb_value), n);
-  st->len = n;
-  struct_copy(st->ptr, argv, argc);
+  st = (struct RStruct *) mrb_malloc(mrb, sizeof(struct RStruct));
+  DATA_PTR(self) = st;
+  DATA_TYPE(self) = &mrb_struct_type;
+  st->values = mrb_ary_new_from_values(mrb, argc, argv);
+  mrb_iv_set(mrb, self, mrb_intern(mrb, "__values__"), mrb_nil_value());
 
   return self;
 }
