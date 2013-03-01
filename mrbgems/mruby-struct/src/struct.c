@@ -442,7 +442,7 @@ mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_val
   DATA_PTR(self) = st;
   DATA_TYPE(self) = &mrb_struct_type;
   st->values = mrb_ary_new_from_values(mrb, argc, argv);
-  mrb_iv_set(mrb, self, mrb_intern(mrb, "__values__"), mrb_nil_value());
+  mrb_iv_set(mrb, self, mrb_intern(mrb, "__values__"), st->values);
 
   return self;
 }
