@@ -86,9 +86,6 @@ typedef struct {
     struct RArray array;
     struct RHash hash;
     struct RRange range;
-#ifdef ENABLE_STRUCT
-    struct RStruct strct;
-#endif
     struct RData data;
     struct RProc proc;
   } as;

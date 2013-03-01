@@ -4,18 +4,23 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#ifdef ENABLE_STRUCT
 #include <string.h>
-#include "error.h"
-#include "mruby/struct.h"
-#include "mruby/array.h"
 #include <stdarg.h>
-
+#include "mruby.h"
+#include "mruby/array.h"
 #include "mruby/string.h"
 #include "mruby/class.h"
 #include "mruby/variable.h"
 
+struct RStruct {
+    struct RBasic basic;
+    long len;
+    mrb_value *ptr;
+};
+
+#define RSTRUCT(st)     ((struct RStruct*)((st).value.p))
+#define RSTRUCT_LEN(st) ((int)(RSTRUCT(st)->len))
+#define RSTRUCT_PTR(st) (RSTRUCT(st)->ptr)
 
 static struct RClass *
 struct_class(mrb_state *mrb)
@@ -778,4 +783,3 @@ mrb_init_struct(mrb_state *mrb)
   mrb_define_method(mrb, st,       "eql?",            mrb_struct_eql,         ARGS_REQ(1)); /* 15.2.18.4.12(x)  */
 
 }
-#endif	/* ENABLE_STRUCT */
