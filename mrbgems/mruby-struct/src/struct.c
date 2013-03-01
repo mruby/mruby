@@ -506,7 +506,6 @@ mrb_value
 mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
 {
   mrb_value s;
-  struct RArray *sv;
   int i, len;
 
   mrb_get_args(mrb, "o", &s);
