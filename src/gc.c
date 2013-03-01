@@ -11,7 +11,6 @@
 #include "mruby/hash.h"
 #include "mruby/range.h"
 #include <string.h>
-#include "mruby/struct.h"
 #include "mruby/proc.h"
 #include "mruby/data.h"
 #include "mruby/variable.h"
@@ -86,9 +85,6 @@ typedef struct {
     struct RArray array;
     struct RHash hash;
     struct RRange range;
-#ifdef ENABLE_STRUCT
-    struct RStruct strct;
-#endif
     struct RData data;
     struct RProc proc;
   } as;
@@ -455,18 +451,6 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     }
     break;
 
-#ifdef ENABLE_STRUCT
-  case MRB_TT_STRUCT:
-    {
-      struct RStruct *s = (struct RStruct*)obj;
-      long i;
-      for (i=0; i<s->len; i++){
-        mrb_gc_mark_value(mrb, s->ptr[i]);
-      }
-    }
-    break;
-#endif
-
   default:
     break;
   }
@@ -538,12 +522,6 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_RANGE:
     mrb_free(mrb, ((struct RRange*)obj)->edges);
     break;
-
-#ifdef ENABLE_STRUCT
-  case MRB_TT_STRUCT:
-    mrb_free(mrb, ((struct RStruct*)obj)->ptr);
-    break;
-#endif
 
   case MRB_TT_DATA:
     {
@@ -663,15 +641,6 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_RANGE:
     children+=2;
     break;
-
-#ifdef ENABLE_STRUCT
-  case MRB_TT_STRUCT:
-    {
-      struct RStruct *s = (struct RStruct*)obj;
-      children += s->len;
-    }
-    break;
-#endif
 
   default:
     break;
