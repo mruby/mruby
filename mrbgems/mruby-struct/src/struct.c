@@ -103,16 +103,6 @@ mrb_struct_s_members_m(mrb_state *mrb, mrb_value klass)
     return ary;
 }
 
-static inline void
-struct_copy(mrb_value *dst, const mrb_value *src, size_t size)
-{
-  size_t i;
-
-  for (i = 0; i < size; i++) {
-    dst[i] = src[i];
-  }
-}
-
 /* 15.2.18.4.6  */
 /*
  *  call-seq:
@@ -280,7 +270,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
       }
       c = mrb_define_class_under(mrb, klass, RSTRING_PTR(name), klass);
     }
-	//MRB_SET_INSTANCE_TT(c, MRB_TT_DATA);
+    MRB_SET_INSTANCE_TT(c, MRB_TT_DATA);
     nstr = mrb_obj_value(c);
     mrb_iv_set(mrb, nstr, mrb_intern(mrb, "__members__"), members);
 
@@ -442,10 +432,12 @@ mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_val
   DATA_PTR(self) = st;
   DATA_TYPE(self) = &mrb_struct_type;
   st->values = mrb_ary_new_capa(mrb, n);
+  for (i = 0; i < argc; i++) {
+    mrb_ary_set(mrb, st->values, i, argv[i]);
+  }
   for (i = argc; i < n; i++) {
     mrb_ary_set(mrb, st->values, i, mrb_nil_value());
   }
-  struct_copy(RARRAY_PTR(st->values), argv, argc);
   mrb_iv_set(mrb, self, mrb_intern(mrb, "__values__"), st->values);
 
   return self;
@@ -535,6 +527,7 @@ mrb_value
 mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
 {
   mrb_value s;
+  int i, len;
 
   mrb_get_args(mrb, "o", &s);
 
@@ -545,8 +538,10 @@ mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
   if (RSTRUCT_LEN(copy) != RSTRUCT_LEN(s)) {
     mrb_raise(mrb, E_TYPE_ERROR, "struct size mismatch");
   }
-  struct_copy(RSTRUCT_PTR(copy), RSTRUCT_PTR(s), RSTRUCT_LEN(copy));
-
+  len = RSTRUCT_LEN(copy);
+  for (i = 0; i < len; i++) {
+    mrb_ary_set(mrb, RSTRUCT(copy)->values, i, RSTRUCT_PTR(s)[i]);
+  }
   return copy;
 }
 
