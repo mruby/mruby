@@ -183,6 +183,9 @@ mrb_time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezo
 static mrb_value
 mrb_time_make(mrb_state *mrb, struct RClass *c, double sec, double usec, enum mrb_timezone timezone)
 {
+  if (sec < 0 || usec < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time.");
+  }
   return mrb_time_wrap(mrb, c, mrb_time_alloc(mrb, sec, usec, timezone));
 }
 
