@@ -41,6 +41,7 @@ depfiles = MRuby.targets['host'].bins.map do |bin|
   source_path = MRuby.targets['host'].exefile("#{MRuby.targets['host'].build_dir}/bin/#{bin}")
 
   file install_path => source_path do |t|
+    FileUtils.rm_f t.name, { :verbose => $verbose }
     FileUtils.cp t.prerequisites.first, t.name, { :verbose => $verbose }
   end
   
