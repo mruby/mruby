@@ -92,6 +92,7 @@ def assert_include(collection, obj, msg = nil)
 end
 
 def assert_raise(*exp)
+  ret = true
   if $mrbtest_assert
     $mrbtest_assert_idx += 1
     msg = exp.last.class == String ? exp.pop : nil
@@ -104,8 +105,9 @@ def assert_raise(*exp)
       msg = "#{msg}#{exp.inspect} exception expected, not"
       diff = "      Class: <#{e.class}>\n" +
              "    Message: #{e.message}"
-      if exp.any?{|ex| ex.instance_of?(Module) ? e.kind_of?(ex) : ex == e.class }
+      if not exp.any?{|ex| ex.instance_of?(Module) ? e.kind_of?(ex) : ex == e.class }
         $mrbtest_assert.push([$mrbtest_assert_idx, msg, diff])
+        ret = false
       end
     end
 
@@ -113,8 +115,10 @@ def assert_raise(*exp)
     if should_raise
       msg = "#{msg}#{exp.inspect} expected but nothing was raised."
       $mrbtest_assert.push([$mrbtest_assert_idx, msg, nil])
+      ret = false
     end
   end
+  ret
 end
 
 ##
