@@ -31,7 +31,7 @@ typedef struct mrb_irep {
 #define MRB_ISEQ_NO_FREE 1
 
 mrb_irep *mrb_add_irep(mrb_state *mrb);
-mrb_value mrb_load_irep(mrb_state*,const char*);
+mrb_value mrb_load_irep(mrb_state*,const unsigned char*);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */

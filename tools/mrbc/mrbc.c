@@ -203,10 +203,10 @@ main(int argc, char **argv)
     return EXIT_SUCCESS;
   }
   if (args.initname) {
-    n = mrb_bdump_irep(mrb, n, args.wfp, args.initname);
+    n = mrb_dump_irep_cfunc(mrb, n, args.wfp, args.initname);
   }
   else {
-    n = mrb_dump_irep(mrb, n, args.wfp);
+    n = mrb_dump_irep_binary(mrb, n, args.wfp);
   }
 
   cleanup(mrb, &args);
