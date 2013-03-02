@@ -1979,16 +1979,16 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       n = tree->cdr->cdr;
       if (n->car) {
-	p = (char*)n->car;
-	off = new_lit(s, mrb_str_new(s->mrb, p, strlen(p)));
-	codegen(s, tree->car, VAL);
-	genop(s, MKOP_ABx(OP_STRING, cursp(), off));
-	pop();
-	genop(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1));
+        p = (char*)n->car;
+        off = new_lit(s, mrb_str_new(s->mrb, p, strlen(p)));
+        codegen(s, tree->car, VAL);
+        genop(s, MKOP_ABx(OP_STRING, cursp(), off));
+        pop();
+        genop(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1));
       }
       if (n->cdr) {
-	char *p2 = (char*)n->cdr;
-	int off;
+        char *p2 = (char*)n->cdr;
+        int off;
 
         push();
         off = new_lit(s, mrb_str_new(s->mrb, p2, strlen(p2)));
