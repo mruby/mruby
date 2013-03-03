@@ -16,6 +16,9 @@
 void
 mrb_init_mrbtest(mrb_state *);
 
+void
+mrb_init_string_test(mrb_state *);
+
 /* Print a short remark for the user */
 void print_hint(void)
 {

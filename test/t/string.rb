@@ -415,3 +415,20 @@ assert('String#each_byte') do
   bytes1 == bytes2
 end
 
+assert('String str_to_cstr test') do
+  rone = false
+  begin
+    StringTest::test_str_to_cstr("asdfasfd\0asdfasfd")
+  rescue
+    rone = true
+  end
+
+  rtwo = true
+  begin
+    StringTest::test_str_to_cstr("asdfasfd")
+  rescue
+    rtwo = false
+  end
+
+  rone && rtwo
+end

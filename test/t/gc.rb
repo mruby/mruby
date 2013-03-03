@@ -43,3 +43,12 @@ assert('GC.generational_mode=') do
     GC.generational_mode = origin
   end
 end
+
+assert('Native call tests') do
+
+  # Test for https://github.com/mruby/mruby/issues/903
+  assert_raise('GC protect issue 903', RuntimeError) do
+    GCTest::gc_protect_stress_test()
+  end
+
+end
