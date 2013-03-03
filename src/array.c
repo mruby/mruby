@@ -223,10 +223,10 @@ mrb_value
 mrb_ary_s_create(mrb_state *mrb, mrb_value self)
 {
   mrb_value *vals;
-  mrb_int len;
+  int len;
 
   mrb_get_args(mrb, "*", &vals, &len);
-  return mrb_ary_new_from_values(mrb, (int)len, vals);
+  return mrb_ary_new_from_values(mrb, len, vals);
 }
 
 static void
@@ -462,7 +462,7 @@ mrb_value
 mrb_ary_push_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  mrb_int len;
+  int len;
 
   mrb_get_args(mrb, "*", &argv, &len);
   while(len--) {
@@ -548,7 +548,7 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
   mrb_value *vals;
-  mrb_int len;
+  int len;
 
   mrb_get_args(mrb, "*", &vals, &len);
   if ((a->flags & MRB_ARY_SHARED)
@@ -658,7 +658,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   return ary;
 }
 
-int
+mrb_int
 mrb_ary_len(mrb_state *mrb, mrb_value ary)
 {
   return RARRAY_LEN(ary);
@@ -696,7 +696,7 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
   struct RArray *a = mrb_ary_ptr(self);
   mrb_int index, len;
   mrb_value *argv;
-  mrb_int size;
+  int size;
 
   mrb_get_args(mrb, "i*", &index, &argv, &size);
   switch(size) {
@@ -712,7 +712,7 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
     len = mrb_fixnum(argv[0]);
     if (len < 0) return mrb_nil_value();
     if (a->len == (int)index) return mrb_ary_new(mrb);
-    if ((int)len > a->len - index) len = a->len - index;
+    if (len > a->len - index) len = a->len - index;
     return ary_subseq(mrb, a, index, len);
 
   default:
@@ -726,7 +726,7 @@ mrb_value
 mrb_ary_aset(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  mrb_int argc;
+  int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   switch(argc) {
@@ -803,7 +803,7 @@ mrb_ary_last(mrb_state *mrb, mrb_value self)
   struct RArray *a = mrb_ary_ptr(self);
   mrb_int size;
   mrb_value *vals;
-  mrb_int len;
+  int len;
 
   mrb_get_args(mrb, "*", &vals, &len);
   if (len > 1) {

@@ -367,7 +367,7 @@ to_hash(mrb_state *mrb, mrb_value val)
    H: Hash [mrb_value]
    s: String [char*,int]
    z: String [char*]
-   a: Array [mrb_value*,int]
+   a: Array [mrb_value*,mrb_int]
    f: Float [mrb_float]
    i: Integer [mrb_int]
    b: Binary [int]
@@ -489,10 +489,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value aa;
         struct RArray *a;
         mrb_value **pb;
-        int *pl;
+        mrb_int *pl;
 
         pb = va_arg(ap, mrb_value**);
-        pl = va_arg(ap, int*);
+        pl = va_arg(ap, mrb_int*);
         if (i < argc) {
           aa = to_ary(mrb, *sp++);
           a = mrb_ary_ptr(aa);
