@@ -189,10 +189,10 @@ struct RBasic {
 
 #define mrb_basic(v)     ((struct RBasic*)((v).value.p))
 
-struct RObject {
+typedef struct RObject {
   MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
-};
+} mrb_obj;
 
 #define mrb_obj_ptr(v)   ((struct RObject*)((v).value.p))
 #define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_MAIN)
