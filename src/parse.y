@@ -3093,7 +3093,7 @@ rbracket	: opt_nl ']'
 		;
 
 trailer		: /* none */
-		| nl 
+		| nl
 		| ','
 		;
 
