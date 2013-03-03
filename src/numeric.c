@@ -306,7 +306,7 @@ static mrb_value
 num_eql(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  
+
   mrb_get_args(mrb, "o", &y);
   if (mrb_type(x) != mrb_type(y)) return mrb_false_value();
   if (mrb_equal(mrb, x, y)) {
@@ -699,7 +699,7 @@ mrb_value
 mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mrb_int a;
-  
+
   a = mrb_fixnum(x);
   if (a == 0) return x;
   if (mrb_fixnum_p(y)) {
@@ -1126,7 +1126,7 @@ mrb_value
 mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mrb_int a;
-  
+
   a = mrb_fixnum(x);
   if (a == 0) return y;
   if (mrb_fixnum_p(y)) {
@@ -1165,7 +1165,7 @@ mrb_value
 mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mrb_int a;
-  
+
   a = mrb_fixnum(x);
   if (mrb_fixnum_p(y)) {
     mrb_int b, c;

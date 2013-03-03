@@ -191,7 +191,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   mrb_sym name;
   mrb_value block, *argv;
   int argc;
-  
+
   mrb_get_args(mrb, "n*&", &name, &argv, &argc, &block);
   return mrb_funcall_with_block(mrb,self, name, argc, argv, block);
 }
@@ -483,7 +483,7 @@ mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *a
  *  call-seq:
  *     obj.instance_eval {| | block }                       -> obj
  *
- *  Evaluates the given block,within  the context of the receiver (_obj_). 
+ *  Evaluates the given block,within  the context of the receiver (_obj_).
  *  In order to set the context, the variable +self+ is set to _obj_ while
  *  the code is executing, giving the code access to _obj_'s
  *  instance variables. In the version of <code>instance_eval</code>
@@ -913,7 +913,7 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
   mrb_value a[2], exc;
   int argc;
-  
+
 
   argc = mrb_get_args(mrb, "|oo", &a[0], &a[1]);
   switch (argc) {

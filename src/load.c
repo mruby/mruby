@@ -536,7 +536,7 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
   nirep = read_rite_header(mrb, src, &bin_header);
   if (nirep < 0)
     return nirep;
-  
+
   src += sizeof(bin_header) + MRB_DUMP_SIZE_OF_SHORT;  //header + crc
 
   //Read Binary Data Section
