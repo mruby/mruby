@@ -29,7 +29,7 @@ mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
     if (kh_exist(h, k)){
       struct RProc *m = kh_value(h, k);
       if (m) {
-	mrb_gc_mark(mrb, (struct RBasic*)m);
+        mrb_gc_mark(mrb, (struct RBasic*)m);
       }
     }
   }

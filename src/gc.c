@@ -301,7 +301,7 @@ mrb_free_heap(mrb_state *mrb)
     page = page->next;
     for (p = tmp->objects, e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
       if (p->as.free.tt != MRB_TT_FREE)
-	obj_free(mrb, &p->as.basic);
+        obj_free(mrb, &p->as.basic);
     }
     mrb_free(mrb, tmp);
   }
@@ -586,7 +586,7 @@ root_scan_phase(mrb_state *mrb)
       mrb_irep *irep = mrb->irep[i];
       if (!irep) continue;
       for (j=0; j<irep->plen; j++) {
-	mrb_gc_mark_value(mrb, irep->pool[j]);
+        mrb_gc_mark_value(mrb, irep->pool[j]);
       }
     }
   }
