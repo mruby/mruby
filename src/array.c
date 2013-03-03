@@ -140,7 +140,7 @@ ary_modify(mrb_state *mrb, struct RArray *a)
       len = a->len * sizeof(mrb_value);
       ptr = (mrb_value *)mrb_malloc(mrb, len);
       if (p) {
-	array_copy(ptr, p, a->len);
+        array_copy(ptr, p, a->len);
       }
       a->ptr = ptr;
       a->aux.capa = a->len;
@@ -1125,7 +1125,7 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
 
     for (i=0; i<RARRAY_LEN(ary1); i++) {
       if (!mrb_eql(mrb, ary_elt(ary1, i), ary_elt(ary2, i)))
-	return mrb_false_value();
+        return mrb_false_value();
     }
     return mrb_true_value();
   }

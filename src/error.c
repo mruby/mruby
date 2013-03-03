@@ -193,9 +193,9 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
       mrb_irep *irep = ci->proc->body.irep;
 
       if (irep->filename && irep->lines && irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
-	mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "file"), mrb_str_new_cstr(mrb, irep->filename));
-	mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "line"), mrb_fixnum_value(irep->lines[pc - irep->iseq - 1]));
-	return;
+        mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "file"), mrb_str_new_cstr(mrb, irep->filename));
+        mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "line"), mrb_fixnum_value(irep->lines[pc - irep->iseq - 1]));
+        return;
       }
     }
     pc = ci->pc;
@@ -366,14 +366,14 @@ make_exception(mrb_state *mrb, int argc, mrb_value *argv, int isstr)
       n = 1;
 exception_call:
       {
-	mrb_sym exc = mrb_intern(mrb, "exception");
-	if (mrb_respond_to(mrb, argv[0], exc)) {
-	  mesg = mrb_funcall_argv(mrb, argv[0], exc, n, argv+1);
-	}
-	else {
-	  /* undef */
-	  mrb_raise(mrb, E_TYPE_ERROR, "exception class/object expected");
-	}
+        mrb_sym exc = mrb_intern(mrb, "exception");
+        if (mrb_respond_to(mrb, argv[0], exc)) {
+          mesg = mrb_funcall_argv(mrb, argv[0], exc, n, argv+1);
+        }
+        else {
+          /* undef */
+          mrb_raise(mrb, E_TYPE_ERROR, "exception class/object expected");
+        }
       }
 
       break;
