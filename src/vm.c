@@ -232,7 +232,7 @@ cipop(mrb_state *mrb)
 {
   if (mrb->ci->env) {
     struct REnv *e = mrb->ci->env;
-    int len = (int)e->flags;
+    size_t len = (size_t)e->flags;
     mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
 
     e->cioff = -1;

@@ -371,7 +371,8 @@ flo_hash(mrb_state *mrb, mrb_value num)
 {
   mrb_float d;
   char *c;
-  int i, hash;
+  size_t i;
+  int hash;
 
   d = (mrb_float)mrb_fixnum(num);
   /* normalize -0.0 to 0.0 */
@@ -962,7 +963,7 @@ fix_xor(mrb_state *mrb, mrb_value x)
 #define NUMERIC_SHIFT_WIDTH_MAX		(sizeof(mrb_int)*CHAR_BIT-1)
 
 static mrb_value
-lshift(mrb_state *mrb, mrb_int val, int width)
+lshift(mrb_state *mrb, mrb_int val, size_t width)
 {
   if (width > NUMERIC_SHIFT_WIDTH_MAX) {
       mrb_raisef(mrb, E_RANGE_ERROR, "width(%d) > (%d:sizeof(mrb_int)*CHAR_BIT-1)", width,
@@ -973,7 +974,7 @@ lshift(mrb_state *mrb, mrb_int val, int width)
 }
 
 static mrb_value
-rshift(mrb_int val, int width)
+rshift(mrb_int val, size_t width)
 {
   if (width >= NUMERIC_SHIFT_WIDTH_MAX) {
     if (val < 0) {

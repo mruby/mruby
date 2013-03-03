@@ -117,14 +117,14 @@ mrb_add_irep(mrb_state *mrb)
   mrb_irep *irep;
 
   if (!mrb->irep) {
-    int max = 256;
+    size_t max = 256;
 
     if (mrb->irep_len > max) max = mrb->irep_len+1;
     mrb->irep = (mrb_irep **)mrb_calloc(mrb, max, sizeof(mrb_irep*));
     mrb->irep_capa = max;
   }
   else if (mrb->irep_capa <= mrb->irep_len) {
-    int i;
+    size_t i;
     size_t old_capa = mrb->irep_capa;
     while (mrb->irep_capa <= mrb->irep_len) {
       mrb->irep_capa *= 2;
