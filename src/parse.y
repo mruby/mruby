@@ -757,15 +757,6 @@ call_bin_op(parser_state *p, node *recv, char *m, node *arg1)
   return new_call(p, recv, intern(m), list1(list1(arg1)));
 }
 
-/*
-// (:match (a . b))
-static node*
-match_op(parser_state *p, node *a, node *b)
-{
-  return cons((node*)NODE_MATCH, cons((node*)a, (node*)b));
-}
-*/
-
 static void
 args_with_block(parser_state *p, node *a, node *b)
 {
