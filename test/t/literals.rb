@@ -59,7 +59,74 @@ assert('Literals Strings Quoted Expanded', '8.7.6.3.5') do
     e == 'abc' and f == 'ab/c' and g == 'abc'
 end
 
-# Not Implemented ATM assert('Literals Strings Here documents', '8.7.6.3.6') do
+assert('Literals Strings Here documents', '8.7.6.3.6') do
+  a = <<AAA
+aaa
+AAA
+   b = <<b_b
+bbb
+b_b
+    c = [<<CCC1, <<"CCC2", <<'CCC3']
+c1
+CCC1
+c 2
+CCC2
+c  3
+CCC3
+
+      d = <<DDD
+d#{1+2}DDD
+d\t
+DDD\n
+DDD
+  e = <<'EEE'
+e#{1+2}EEE
+e\t
+EEE\n
+EEE
+  f = <<"FFF"
+F
+FF#{"f"}FFF
+F
+FFF
+
+  g = <<-GGG
+  ggg
+  GGG
+  h = <<-"HHH"
+  hhh
+  HHH
+  i = <<-'III'
+  iii
+  III
+  j = [<<-JJJ1   , <<-"JJJ2"   , <<-'JJJ3' ]
+  j#{1}j
+  JJJ1
+  j#{2}j
+  JJJ2
+  j#{3}j
+  JJJ3
+
+  k = <<'KKK'.to_i
+123
+KKK
+
+  z = <<'ZZZ'
+ZZZ
+
+  a == "aaa\n" and
+  b == "bbb\n" and
+  c == ["c1\n", "c 2\n", "c  3\n"] and
+  d == "d3DDD\nd\t\nDDD\n\n" and
+  e == "e\#{1+2}EEE\ne\\t\nEEE\\n\n" and
+  f == "F\nFFfFFF\nF\n" and
+  g == "  ggg\n" and
+  h == "  hhh\n" and
+  i == "  iii\n" and
+  j == ["  j1j\n", "  j2j\n", "  j\#{3}j\n"] and
+  k == 123 and
+  z == ""
+end
 
 # Not Implemented ATM assert('Literals Array', '8.7.6.4') do
 
