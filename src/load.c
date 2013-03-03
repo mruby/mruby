@@ -145,7 +145,7 @@ load_rite_header(FILE* fp, rite_binary_header* bin_header, unsigned char* hcrc)
 static int
 load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_t* len)
 {
-  int i;
+  uint32_t i;
   uint32_t blocklen;
   uint16_t offset, pdl, snl, clen;
   unsigned char hex2[2] = {0}, hex4[4] = {0}, hex8[8] = {0}, hcrc[4] = {0};
@@ -268,7 +268,8 @@ error_exit:
 int
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
-  int ret, i;
+  int ret;
+  uint32_t i;
   uint32_t  len, rlen = 0;
   unsigned char hex8[8], hcrc[4];
   unsigned char *dst, *rite_dst = NULL;
@@ -521,7 +522,8 @@ error_exit:
 int
 mrb_read_irep(mrb_state *mrb, const char *bin)
 {
-  int ret = MRB_DUMP_OK, i, n, nirep, sirep;
+  int ret = MRB_DUMP_OK, n, nirep, sirep;
+  size_t i;
   uint32_t len = 0;
   unsigned char *src;
   rite_binary_header  bin_header;
