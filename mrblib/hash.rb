@@ -64,7 +64,7 @@ class Hash
   # it will be called for each element with
   # a duplicate key. The value of the block
   # will be the final value of this element.
-  # 
+  #
   # ISO 15.2.13.4.22
   def merge(other, &block)
     h = {}

@@ -11,7 +11,6 @@
 #include "mruby/hash.h"
 #include "mruby/range.h"
 #include <string.h>
-#include "mruby/struct.h"
 #include "mruby/proc.h"
 #include "mruby/data.h"
 #include "mruby/variable.h"
@@ -86,9 +85,6 @@ typedef struct {
     struct RArray array;
     struct RHash hash;
     struct RRange range;
-#ifdef ENABLE_STRUCT
-    struct RStruct strct;
-#endif
     struct RData data;
     struct RProc proc;
   } as;
@@ -305,7 +301,7 @@ mrb_free_heap(mrb_state *mrb)
     page = page->next;
     for (p = tmp->objects, e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
       if (p->as.free.tt != MRB_TT_FREE)
-	obj_free(mrb, &p->as.basic);
+        obj_free(mrb, &p->as.basic);
     }
     mrb_free(mrb, tmp);
   }
@@ -314,7 +310,7 @@ mrb_free_heap(mrb_state *mrb)
 static void
 gc_protect(mrb_state *mrb, struct RBasic *p)
 {
-  if (mrb->arena_idx > MRB_ARENA_SIZE) {
+  if (mrb->arena_idx >= MRB_ARENA_SIZE) {
     /* arena overflow error */
     mrb->arena_idx = MRB_ARENA_SIZE - 4; /* force room in arena */
     mrb_raise(mrb, E_RUNTIME_ERROR, "arena overflow error");
@@ -455,18 +451,6 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     }
     break;
 
-#ifdef ENABLE_STRUCT
-  case MRB_TT_STRUCT:
-    {
-      struct RStruct *s = (struct RStruct*)obj;
-      long i;
-      for (i=0; i<s->len; i++){
-        mrb_gc_mark_value(mrb, s->ptr[i]);
-      }
-    }
-    break;
-#endif
-
   default:
     break;
   }
@@ -539,12 +523,6 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     mrb_free(mrb, ((struct RRange*)obj)->edges);
     break;
 
-#ifdef ENABLE_STRUCT
-  case MRB_TT_STRUCT:
-    mrb_free(mrb, ((struct RStruct*)obj)->ptr);
-    break;
-#endif
-
   case MRB_TT_DATA:
     {
       struct RData *d = (struct RData*)obj;
@@ -608,7 +586,7 @@ root_scan_phase(mrb_state *mrb)
       mrb_irep *irep = mrb->irep[i];
       if (!irep) continue;
       for (j=0; j<irep->plen; j++) {
-	mrb_gc_mark_value(mrb, irep->pool[j]);
+        mrb_gc_mark_value(mrb, irep->pool[j]);
       }
     }
   }
@@ -663,15 +641,6 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_RANGE:
     children+=2;
     break;
-
-#ifdef ENABLE_STRUCT
-  case MRB_TT_STRUCT:
-    {
-      struct RStruct *s = (struct RStruct*)obj;
-      children += s->len;
-    }
-    break;
-#endif
 
   default:
     break;

@@ -82,7 +82,7 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 #define MRB_DUMP_DEFAULT_STR_LEN       128
 
 //Rite Binary file_header
-typedef struct _rite_binary_header {
+typedef struct {
   unsigned char    rbfi[4];        //Rite Binary File Identify
   unsigned char    rbfv[8];        //Rite Binary File Format Version
   unsigned char    risv[8];        //Rite Instruction Specification Version
@@ -95,7 +95,7 @@ typedef struct _rite_binary_header {
 } rite_binary_header;
 
 // Rite File file_header
-typedef struct _rite_file_header {
+typedef struct {
   unsigned char    rbfi[4];        //Rite Binary File Identify
   unsigned char    rbfv[8];        //Rite Binary File Format Version
   unsigned char    risv[8];        //Rite Instruction Specification Version

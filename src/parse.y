@@ -715,6 +715,13 @@ new_regx(parser_state *p, const char *p1, const char* p2)
   return cons((node*)NODE_REGX, cons((node*)p1, (node*)p2));
 }
 
+// (:dregx . a)
+static node*
+new_dregx(parser_state *p, node *a, node *b)
+{
+  return cons((node*)NODE_DREGX, cons(a, b));
+}
+
 // (:backref . n)
 static node*
 new_back_ref(parser_state *p, int n)
@@ -749,15 +756,6 @@ call_bin_op(parser_state *p, node *recv, char *m, node *arg1)
 {
   return new_call(p, recv, intern(m), list1(list1(arg1)));
 }
-
-/*
-// (:match (a . b))
-static node*
-match_op(parser_state *p, node *a, node *b)
-{
-  return cons((node*)NODE_MATCH, cons((node*)a, (node*)b));
-}
-*/
 
 static void
 args_with_block(parser_state *p, node *a, node *b)
@@ -2509,6 +2507,10 @@ string_interp	: tSTRING_PART
 regexp		: tREGEXP_BEG tREGEXP
 		    {
 			$$ = $2;
+		    }
+		| tREGEXP_BEG string_interp tREGEXP
+		    {
+		      $$ = new_dregx(p, $2, $3);
 		    }
 		;
 
@@ -4440,7 +4442,7 @@ parser_yylex(parser_state *p)
 	p->lex_strterm = new_strterm(p, str_regexp, term, paren);
 #endif
 	p->regexp = 1;
-	p->sterm = '/';
+	p->sterm = term;
 	return tREGEXP_BEG;
 
       case 's':
@@ -5500,6 +5502,15 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_REGX:
     printf("NODE_REGX /%s/%s\n", (char*)tree->car, (char*)tree->cdr);
+    break;
+
+  case NODE_DREGX:
+    printf("NODE_DREGX\n");
+    dump_recur(mrb, tree->car, offset+1);
+    dump_prefix(offset);
+    printf("tail: %s\n", (char*)tree->cdr->cdr->car);
+    dump_prefix(offset);
+    printf("opt: %s\n", (char*)tree->cdr->cdr->cdr);
     break;
 
   case NODE_SYM:

@@ -20,8 +20,7 @@ typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 #define MRB_SEGMENT_SIZE 4
 #endif
 
-typedef struct segment
-{
+typedef struct segment {
   mrb_sym key[MRB_SEGMENT_SIZE];
   mrb_value val[MRB_SEGMENT_SIZE];
   struct segment *next;
@@ -754,7 +753,7 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
   struct RClass *c = mrb->ci->proc->target_class;
 
   if (!c) c = mrb->ci->target_class;
- 
+
   return mrb_mod_cv_get(mrb, c, sym);
 }
 

@@ -35,7 +35,7 @@ _obj_classname(mrb_state *mrb, mrb_value obj)
 }
 
 void
-mrb_str_decref(mrb_state *mrb, struct mrb_shared_string *shared)
+mrb_str_decref(mrb_state *mrb, mrb_shared_string *shared)
 {
   shared->refcnt--;
   if (shared->refcnt == 0) {
@@ -48,7 +48,7 @@ static void
 str_modify(mrb_state *mrb, struct RString *s)
 {
   if (s->flags & MRB_STR_SHARED) {
-    struct mrb_shared_string *shared = s->aux.shared;
+    mrb_shared_string *shared = s->aux.shared;
 
     if (shared->refcnt == 1 && s->ptr == shared->ptr) {
       s->ptr = shared->ptr;
@@ -275,7 +275,7 @@ static void
 str_make_shared(mrb_state *mrb, struct RString *s)
 {
   if (!(s->flags & MRB_STR_SHARED)) {
-    struct mrb_shared_string *shared = (struct mrb_shared_string *)mrb_malloc(mrb, sizeof(struct mrb_shared_string));
+    mrb_shared_string *shared = (mrb_shared_string *)mrb_malloc(mrb, sizeof(mrb_shared_string));
 
     shared->refcnt = 1;
     if (s->aux.capa > s->len) {
@@ -301,7 +301,7 @@ mrb_value
 mrb_str_literal(mrb_state *mrb, mrb_value str)
 {
   struct RString *s, *orig;
-  struct mrb_shared_string *shared;
+  mrb_shared_string *shared;
 
   s = str_alloc(mrb, mrb->string_class);
   orig = mrb_str_ptr(str);
@@ -1161,7 +1161,7 @@ static mrb_value
 mrb_str_subseq(mrb_state *mrb, mrb_value str, int beg, int len)
 {
   struct RString *orig, *s;
-  struct mrb_shared_string *shared;
+  mrb_shared_string *shared;
 
   orig = mrb_str_ptr(str);
   str_make_shared(mrb, orig);
@@ -2056,7 +2056,6 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
   char *end;
   char sign = 1;
   int c;
-  long len;
   unsigned long val;
 
 #undef ISDIGIT
@@ -2113,30 +2112,25 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
   }
   switch (base) {
     case 2:
-      len = 1;
       if (str[0] == '0' && (str[1] == 'b'||str[1] == 'B')) {
         str += 2;
       }
       break;
     case 3:
-      len = 2;
       break;
     case 8:
       if (str[0] == '0' && (str[1] == 'o'||str[1] == 'O')) {
         str += 2;
       }
     case 4: case 5: case 6: case 7:
-      len = 3;
       break;
     case 10:
       if (str[0] == '0' && (str[1] == 'd'||str[1] == 'D')) {
         str += 2;
       }
     case 9: case 11: case 12: case 13: case 14: case 15:
-      len = 4;
       break;
     case 16:
-      len = 4;
       if (str[0] == '0' && (str[1] == 'x'||str[1] == 'X')) {
         str += 2;
       }
@@ -2144,12 +2138,6 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     default:
       if (base < 2 || 36 < base) {
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %d", base);
-      }
-      if (base <= 32) {
-        len = 5;
-      }
-      else {
-        len = 6;
       }
       break;
   } /* end of switch (base) { */
@@ -2171,7 +2159,6 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     if (badcheck) goto bad;
     return mrb_fixnum_value(0);
   }
-  len *= strlen(str);
 
   val = strtoul((char*)str, &end, base);
 

@@ -125,7 +125,7 @@ static void
 ary_modify(mrb_state *mrb, struct RArray *a)
 {
   if (a->flags & MRB_ARY_SHARED) {
-    struct mrb_shared_array *shared = a->aux.shared;
+    mrb_shared_array *shared = a->aux.shared;
 
     if (shared->refcnt == 1 && a->ptr == shared->ptr) {
       a->ptr = shared->ptr;
@@ -140,7 +140,7 @@ ary_modify(mrb_state *mrb, struct RArray *a)
       len = a->len * sizeof(mrb_value);
       ptr = (mrb_value *)mrb_malloc(mrb, len);
       if (p) {
-	array_copy(ptr, p, a->len);
+        array_copy(ptr, p, a->len);
       }
       a->ptr = ptr;
       a->aux.capa = a->len;
@@ -154,7 +154,7 @@ static void
 ary_make_shared(mrb_state *mrb, struct RArray *a)
 {
   if (!(a->flags & MRB_ARY_SHARED)) {
-    struct mrb_shared_array *shared = (struct mrb_shared_array *)mrb_malloc(mrb, sizeof(struct mrb_shared_array));
+    mrb_shared_array *shared = (mrb_shared_array *)mrb_malloc(mrb, sizeof(mrb_shared_array));
 
     shared->refcnt = 1;
     if (a->aux.capa > a->len) {
@@ -667,7 +667,7 @@ mrb_ary_len(mrb_state *mrb, mrb_value ary)
 }
 
 void
-mrb_ary_decref(mrb_state *mrb, struct mrb_shared_array *shared)
+mrb_ary_decref(mrb_state *mrb, mrb_shared_array *shared)
 {
   shared->refcnt--;
   if (shared->refcnt == 0) {
@@ -1125,7 +1125,7 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
 
     for (i=0; i<RARRAY_LEN(ary1); i++) {
       if (!mrb_eql(mrb, ary_elt(ary1, i), ary_elt(ary2, i)))
-	return mrb_false_value();
+        return mrb_false_value();
     }
     return mrb_true_value();
   }

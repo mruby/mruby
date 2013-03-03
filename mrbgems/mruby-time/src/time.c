@@ -662,7 +662,7 @@ mrb_time_usec(mrb_state *mrb, mrb_value self)
 }
 
 /* 15.2.19.7.27 */
-/* Sets the timzeone attribute of the Time object to UTC. */
+/* Sets the timezone attribute of the Time object to UTC. */
 static mrb_value
 mrb_time_utc(mrb_state *mrb, mrb_value self)
 {
@@ -677,7 +677,7 @@ mrb_time_utc(mrb_state *mrb, mrb_value self)
 }
 
 /* 15.2.19.7.28 */
-/* Returns true if this time is in the UTC timze zone false if not. */
+/* Returns true if this time is in the UTC timezone false if not. */
 static mrb_value
 mrb_time_utcp(mrb_state *mrb, mrb_value self)
 {

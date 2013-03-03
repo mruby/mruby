@@ -26,12 +26,6 @@ typedef enum {
     NOEX_RESPONDS  = 0x80
 } mrb_method_flag_t;
 
-struct obj_ivar_tag {
-  mrb_value obj;
-  int (*func)(mrb_sym key, mrb_value val, void * arg);
-  void * arg;
-};
-
 int
 mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
@@ -197,7 +191,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   mrb_sym name;
   mrb_value block, *argv;
   int argc;
-  
+
   mrb_get_args(mrb, "n*&", &name, &argv, &argc, &block);
   return mrb_funcall_with_block(mrb,self, name, argc, argv, block);
 }
@@ -311,7 +305,7 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
       case MRB_TT_SCLASS:
       case MRB_TT_HASH:
       case MRB_TT_DATA:
-	mrb_iv_copy(mrb, dest, obj);
+        mrb_iv_copy(mrb, dest, obj);
         break;
 
       default:
@@ -489,7 +483,7 @@ mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *a
  *  call-seq:
  *     obj.instance_eval {| | block }                       -> obj
  *
- *  Evaluates the given block,within  the context of the receiver (_obj_). 
+ *  Evaluates the given block,within  the context of the receiver (_obj_).
  *  In order to set the context, the variable +self+ is set to _obj_ while
  *  the code is executing, giving the code access to _obj_'s
  *  instance variables. In the version of <code>instance_eval</code>
@@ -919,7 +913,7 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
   mrb_value a[2], exc;
   int argc;
-  
+
 
   argc = mrb_get_args(mrb, "|oo", &a[0], &a[1]);
   switch (argc) {

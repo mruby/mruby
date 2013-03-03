@@ -11,18 +11,18 @@
 extern "C" {
 #endif
 
-struct mrb_shared_array {
+typedef struct mrb_shared_array {
   int refcnt;
   mrb_value *ptr;
   int len;
-};
+} mrb_shared_array;
 
 struct RArray {
   MRB_OBJECT_HEADER;
   int len;
   union {
     int capa;
-    struct mrb_shared_array *shared;
+    mrb_shared_array *shared;
   } aux;
   mrb_value *ptr;
 };
@@ -35,7 +35,7 @@ struct RArray {
 #define RARRAY_PTR(a) (RARRAY(a)->ptr)
 #define MRB_ARY_SHARED      256
 
-void mrb_ary_decref(mrb_state*, struct mrb_shared_array*);
+void mrb_ary_decref(mrb_state*, mrb_shared_array*);
 mrb_value mrb_ary_new_capa(mrb_state*, int);
 mrb_value mrb_ary_new(mrb_state *mrb);
 mrb_value mrb_ary_new_elts(mrb_state *mrb, int n, const mrb_value *elts);

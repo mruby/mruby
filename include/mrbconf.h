@@ -23,7 +23,7 @@
 //#define MRB_ENDIAN_BIG
 
 /* argv max size in mrb_funcall */
-//#define MRB_FUNCALL_ARGC_MAX 16 
+//#define MRB_FUNCALL_ARGC_MAX 16
 
 /* number of object per heap page */
 //#define MRB_HEAP_PAGE_SIZE 1024
@@ -45,8 +45,6 @@
 
 /* -DDISABLE_XXXX to drop following features */
 //#define DISABLE_SPRINTF	/* Kernel.sprintf method */
-//#define DISABLE_MATH		/* Math functions */
-//#define DISABLE_STRUCT	/* Struct class */
 //#define DISABLE_STDIO		/* use of stdio */
 
 /* -DENABLE_XXXX to enable following features */
@@ -84,12 +82,6 @@ typedef short mrb_sym;
 /* define ENABLE_XXXX from DISABLE_XXX */
 #ifndef DISABLE_SPRINTF
 #define ENABLE_SPRINTF
-#endif
-#ifndef DISABLE_MATH
-#define ENABLE_MATH
-#endif
-#ifndef DISABLE_STRUCT
-#define ENABLE_STRUCT
 #endif
 #ifndef DISABLE_STDIO
 #define ENABLE_STDIO
