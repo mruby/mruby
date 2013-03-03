@@ -352,8 +352,8 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
   if (argc == 0) { /* special case to avoid crash */
     rest = mrb_ary_new(mrb);
-  } 
-  else {   
+  }
+  else {
     if (argc > 0) name = argv[0];
     if (argc > 1) rest = argv[1];
     if (mrb_array_p(rest)) {
@@ -378,7 +378,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
       id = mrb_to_id(mrb, RARRAY_PTR(rest)[i]);
       RARRAY_PTR(rest)[i] = mrb_symbol_value(id);
     }
-  }  
+  }
   st = make_struct(mrb, name, rest, struct_class(mrb));
   if (!mrb_nil_p(b)) {
     mrb_funcall(mrb, b, "call", 1, &st);

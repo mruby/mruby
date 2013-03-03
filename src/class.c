@@ -356,7 +356,7 @@ to_hash(mrb_state *mrb, mrb_value val)
   retrieve arguments from mrb_state.
 
   mrb_get_args(mrb, format, ...)
-  
+
   returns number of arguments parsed.
 
   fortmat specifiers:
@@ -774,7 +774,7 @@ mrb_mod_include_p(mrb_state *mrb, mrb_value mod)
   }
   return mrb_false_value();
 }
- 
+
 static mrb_value
 mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
 {

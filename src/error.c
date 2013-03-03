@@ -125,7 +125,7 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
   mesg = mrb_attr_get(mrb, exc, mrb_intern(mrb, "mesg"));
   file = mrb_attr_get(mrb, exc, mrb_intern(mrb, "file"));
   line = mrb_attr_get(mrb, exc, mrb_intern(mrb, "line"));
-  
+
   if (!mrb_nil_p(file) && !mrb_nil_p(line)) {
     str = file;
     mrb_str_cat2(mrb, str, ":");
@@ -190,7 +190,7 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
   ci--;
   while (ci >= mrb->cibase) {
     if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
-      mrb_irep *irep = ci->proc->body.irep;      
+      mrb_irep *irep = ci->proc->body.irep;
 
       if (irep->filename && irep->lines && irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
 	mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "file"), mrb_str_new_cstr(mrb, irep->filename));

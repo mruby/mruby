@@ -753,7 +753,7 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
   struct RClass *c = mrb->ci->proc->target_class;
 
   if (!c) c = mrb->ci->target_class;
- 
+
   return mrb_mod_cv_get(mrb, c, sym);
 }
 
