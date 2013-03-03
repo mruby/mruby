@@ -623,7 +623,7 @@ retry:
         p++;
         goto retry;
       }
-        
+
       case '*':
         CHECK_FOR_WIDTH(flags);
         flags |= FWIDTH;
@@ -658,7 +658,7 @@ retry:
       case '\n':
       case '\0':
         p--;
-        
+
       case '%':
         if (flags != FNONE) {
           mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid format character - %");

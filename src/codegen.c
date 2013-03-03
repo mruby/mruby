@@ -330,7 +330,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
 
         if (c1 == OP_SUB) c = -c;
         if (c > 127 || c < -127) break;
-        if (0 <= c) 
+        if (0 <= c)
           s->iseq[s->pc-1] = MKOP_ABC(OP_ADDI, GETARG_A(i), GETARG_B(i), c);
         else
           s->iseq[s->pc-1] = MKOP_ABC(OP_SUBI, GETARG_A(i), GETARG_B(i), -c);
@@ -1161,7 +1161,7 @@ codegen(codegen_scope *s, node *tree, int val)
       if (e) {
         if (val) pop();
         pos2 = new_label(s);
-        genop(s, MKOP_sBx(OP_JMP, 0)); 
+        genop(s, MKOP_sBx(OP_JMP, 0));
        dispatch(s, pos1);
         codegen(s, e, val);
         dispatch(s, pos2);
@@ -1951,7 +1951,7 @@ codegen(codegen_scope *s, node *tree, int val)
       pop();
       sym = new_sym(s, mrb_intern(s->mrb, "compile"));
       genop(s, MKOP_ABC(OP_SEND, cursp(), sym, argc));
-      mrb_gc_arena_restore(s->mrb, ai); 
+      mrb_gc_arena_restore(s->mrb, ai);
       push();
     }
     break;
@@ -1999,7 +1999,7 @@ codegen(codegen_scope *s, node *tree, int val)
       pop();
       sym = new_sym(s, mrb_intern(s->mrb, "compile"));
       genop(s, MKOP_ABC(OP_SEND, cursp(), sym, argc));
-      mrb_gc_arena_restore(s->mrb, ai); 
+      mrb_gc_arena_restore(s->mrb, ai);
       push();
     }
     else {

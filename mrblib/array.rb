@@ -52,7 +52,7 @@ class Array
 
   ##
   # Alias for collect!
-  #  
+  #
   # ISO 15.2.12.5.20
   alias map! collect!
 
