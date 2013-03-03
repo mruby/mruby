@@ -129,9 +129,6 @@ typedef struct mrb_state {
 
   mrb_sym symidx;
   struct kh_n2s *name2sym;      /* symbol table */
-#ifdef INCLUDE_REGEXP
-  struct RNode *local_svar;/* regexp */
-#endif
 
 #ifdef ENABLE_DEBUG
   void (*code_fetch_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
