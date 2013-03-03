@@ -823,7 +823,7 @@ mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
   return result;
 }
 
-mrb_value class_instance_method_list(mrb_state*, int, mrb_value*, struct RClass*, int);
+mrb_value class_instance_method_list(mrb_state*, mrb_int, mrb_value*, struct RClass*, int);
 
 /* 15.2.2.4.33 */
 /*
@@ -857,7 +857,7 @@ static mrb_value
 mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
   struct RClass *c = mrb_class_ptr(mod);
 
   mrb_get_args(mrb, "*", &argv, &argc);

@@ -190,7 +190,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
 {
   mrb_sym name;
   mrb_value block, *argv;
-  int argc;
+  mrb_int argc;
   
   mrb_get_args(mrb, "n*&", &name, &argv, &argc, &block);
   return mrb_funcall_with_block(mrb,self, name, argc, argv, block);
@@ -393,9 +393,9 @@ mrb_obj_dup(mrb_state *mrb, mrb_value obj)
 }
 
 static mrb_value
-mrb_obj_extend(mrb_state *mrb, int argc, mrb_value *argv, mrb_value obj)
+mrb_obj_extend(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb_value obj)
 {
-  int i;
+  mrb_int i;
 
   if (argc == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (at least 1)");
@@ -439,7 +439,7 @@ mrb_value
 mrb_obj_extend_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   return mrb_obj_extend(mrb, argc, argv, self);
@@ -476,7 +476,7 @@ mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
+mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, mrb_int argc, mrb_value *argv, mrb_value self, struct RClass *c);
 
 /* 15.3.1.3.18 */
 /*
@@ -712,7 +712,7 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, mrb_value ary)
 }
 
 mrb_value
-class_instance_method_list(mrb_state *mrb, int argc, mrb_value *argv, struct RClass* klass, int obj)
+class_instance_method_list(mrb_state *mrb, mrb_int argc, mrb_value *argv, struct RClass* klass, int obj)
 {
   mrb_value ary;
   int recur;
@@ -742,7 +742,7 @@ class_instance_method_list(mrb_state *mrb, int argc, mrb_value *argv, struct RCl
 }
 
 mrb_value
-mrb_obj_singleton_methods(mrb_state *mrb, int argc, mrb_value *argv, mrb_value obj)
+mrb_obj_singleton_methods(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb_value obj)
 {
   mrb_value recur, ary;
   struct RClass* klass;
@@ -770,7 +770,7 @@ mrb_obj_singleton_methods(mrb_state *mrb, int argc, mrb_value *argv, mrb_value o
 }
 
 mrb_value
-mrb_obj_methods(mrb_state *mrb, int argc, mrb_value *argv, mrb_value obj, mrb_method_flag_t flag)
+mrb_obj_methods(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb_value obj, mrb_method_flag_t flag)
 {
 retry:
   if (argc == 0) {
@@ -810,7 +810,7 @@ mrb_value
 mrb_obj_methods_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   return mrb_obj_methods(mrb, argc, argv, self, (mrb_method_flag_t)0); /* everything but private */
@@ -843,7 +843,7 @@ mrb_value
 mrb_obj_private_methods(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   return mrb_obj_methods(mrb, argc, argv, self, NOEX_PRIVATE); /* private attribute not define */
@@ -862,7 +862,7 @@ mrb_value
 mrb_obj_protected_methods(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   return mrb_obj_methods(mrb, argc, argv, self, NOEX_PROTECTED); /* protected attribute not define */
@@ -881,7 +881,7 @@ mrb_value
 mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   return mrb_obj_methods(mrb, argc, argv, self, NOEX_PUBLIC); /* public attribute not define */
@@ -997,7 +997,7 @@ mrb_value
 obj_respond_to(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
   mrb_value mid, priv;
   mrb_sym id;
 
@@ -1048,7 +1048,7 @@ mrb_value
 mrb_obj_singleton_methods_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   return mrb_obj_singleton_methods(mrb, argc, argv, self);
