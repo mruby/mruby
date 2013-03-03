@@ -72,7 +72,7 @@ mrb_alloca_free(mrb_state *mrb)
 }
 
 mrb_state*
-mrb_open()
+mrb_open(void)
 {
   mrb_state *mrb = mrb_open_allocf(allocf, NULL);
 
