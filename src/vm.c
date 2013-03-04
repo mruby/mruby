@@ -453,15 +453,24 @@ mrb_yield(mrb_state *mrb, mrb_value b, mrb_value v)
   return mrb_yield_internal(mrb, b, 1, &v, mrb->stack[0], p->target_class);
 }
 
+typedef enum {
+  LOCALJUMP_ERROR_RETURN = 0,
+  LOCALJUMP_ERROR_BREAK = 1,
+  LOCALJUMP_ERROR_YIELD = 2
+} localjump_error_kind;
+
 static void
-localjump_error(mrb_state *mrb, const char *kind)
+localjump_error(mrb_state *mrb, localjump_error_kind kind)
 {
-  char buf[256];
-  int len;
+  char kind_str[3][7] = { "return", "break", "yield" };
+  char kind_str_len[] = { 6, 5, 5 };
+  static const char lead[] = "unexpected ";
+  mrb_value msg;
   mrb_value exc;
 
-  len = snprintf(buf, sizeof(buf), "unexpected %s", kind);
-  exc = mrb_exc_new(mrb, E_LOCALJUMP_ERROR, buf, len);
+  msg = mrb_str_new(mrb, lead, sizeof(lead) - 1);
+  mrb_str_buf_cat(mrb, msg, kind_str[kind], kind_str_len[kind]);
+  exc = mrb_exc_new3(mrb, E_LOCALJUMP_ERROR, msg);
   mrb->exc = (struct RObject*)mrb_object(exc);
 }
 
@@ -1218,12 +1227,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
             struct REnv *e = top_env(mrb, proc);
 
             if (e->cioff < 0) {
-              localjump_error(mrb, "return");
+              localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
               goto L_RAISE;
             }
             ci = mrb->cibase + e->cioff;
             if (ci == mrb->cibase) {
-              localjump_error(mrb, "return");
+              localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
               goto L_RAISE;
             }
             mrb->ci = ci;
@@ -1231,14 +1240,14 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           }
         case OP_R_NORMAL:
           if (ci == mrb->cibase) {
-            localjump_error(mrb, "return");
+            localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
             goto L_RAISE;
           }
           ci = mrb->ci;
           break;
         case OP_R_BREAK:
           if (proc->env->cioff < 0) {
-            localjump_error(mrb, "break");
+            localjump_error(mrb, LOCALJUMP_ERROR_BREAK);
             goto L_RAISE;
           }
           ci = mrb->ci = mrb->cibase + proc->env->cioff + 1;
@@ -1350,7 +1359,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       else {
         struct REnv *e = uvenv(mrb, lv-1);
         if (!e) {
-          localjump_error(mrb, "yield");
+          localjump_error(mrb, LOCALJUMP_ERROR_YIELD);
           goto L_RAISE;
         }
         stack = e->stack + 1;
