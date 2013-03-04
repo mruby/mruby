@@ -20,6 +20,9 @@ MRuby::Build.new do |conf|
   # Use standard Struct class
   conf.gem 'mrbgems/mruby-struct'
 
+  # Use standard Kernel#sprintf method
+  conf.gem 'mrbgems/mruby-sprintf'
+
   # Generate binaries
   # conf.bins = %w(mrbc mruby mirb)
   
