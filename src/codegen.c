@@ -2375,13 +2375,14 @@ codedump(mrb_state *mrb, int n)
 {
 #ifdef ENABLE_STDIO
   mrb_irep *irep = mrb->irep[n];
-  int i;
+  int i, ai;
   mrb_code c;
 
   if (!irep) return;
   printf("irep %d nregs=%d nlocals=%d pools=%d syms=%d\n", n,
          irep->nregs, irep->nlocals, irep->plen, irep->slen);
   for (i=0; i<irep->ilen; i++) {
+    ai = mrb_gc_arena_save(mrb);
     printf("%03d ", i);
     c = irep->iseq[i];
     switch (GET_OPCODE(c)) {
@@ -2682,6 +2683,7 @@ codedump(mrb_state *mrb, int n)
              GETARG_A(c), GETARG_B(c), GETARG_C(c));
       break;
     }
+    mrb_gc_arena_restore(mrb, ai);
   }
   printf("\n");
 #endif
