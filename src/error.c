@@ -6,7 +6,6 @@
 
 #include "mruby.h"
 #include <stdarg.h>
-#include <stdio.h>
 #include <setjmp.h>
 #include <string.h>
 #include "error.h"

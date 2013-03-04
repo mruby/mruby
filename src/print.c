@@ -7,7 +7,6 @@
 #include "mruby.h"
 #ifdef ENABLE_STDIO
 #include "mruby/string.h"
-#include <stdio.h>
 
 static void
 printstr(mrb_state *mrb, mrb_value obj)

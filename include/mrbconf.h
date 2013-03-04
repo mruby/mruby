@@ -110,4 +110,8 @@ typedef short mrb_sym;
 # include <inttypes.h>
 #endif
 
+#ifdef ENABLE_STDIO
+# include <stdio.h>
+#endif
+
 #endif  /* MRUBYCONF_H */
