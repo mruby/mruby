@@ -6,7 +6,6 @@
 
 #include "mruby.h"
 #include <stdarg.h>
-#include <stdio.h>
 #include <ctype.h>
 #include "mruby/class.h"
 #include "mruby/proc.h"

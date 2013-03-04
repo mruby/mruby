@@ -10,7 +10,6 @@
 #include "mruby/array.h"
 
 #include <math.h>
-#include <stdio.h>
 #include <assert.h>
 
 #if defined(__FreeBSD__) && __FreeBSD__ < 4
