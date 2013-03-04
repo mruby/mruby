@@ -2,7 +2,7 @@
 # We provide a minimalistic version called minirake inside of our 
 # codebase.
 
-RAKE = ruby ./minirake
+RAKE = ruby ./minirake --verbose
 
 .PHONY : all
 all :
