@@ -110,6 +110,7 @@ Please ask us if you want to distribute your code under another license.
 
 ## How to Contribute
 
-Send pull request to <http://github.com/mruby/mruby>.   We consider you have granted
+See the [contribution guidelines](https://github.com/mruby/mruby/blob/master/CONTRIBUTING.md)
+then send a pull request to <http://github.com/mruby/mruby>.  We consider you have granted
 non-exclusive right to your contributed code under MIT license.  If you want to be named
 as one of mruby developers, include update to the AUTHORS file in your pull request.
