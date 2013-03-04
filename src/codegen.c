@@ -1902,6 +1902,11 @@ codegen(codegen_scope *s, node *tree, int val)
     }
     break;
 
+  case NODE_HEREDOC:
+    /*if(tree == NULL){printf("heredoc error 1\n");exit(11);}*/
+    tree = ((struct mrb_parser_heredoc_info *)tree)->doc;
+    /*if(tree == NULL){printf("heredoc error 2\n");exit(12);}*/
+    /* fall through */
   case NODE_DSTR:
     if (val) {
       node *n = tree;

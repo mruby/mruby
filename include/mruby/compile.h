@@ -59,6 +59,21 @@ struct mrb_parser_message {
   char* message;
 };
 
+/* heredoc parse type */
+enum heredoc_type {
+  heredoc_type_norm,            /* <<EOH */
+  heredoc_type_quote,		/* <<'EOH' */
+};
+/* heredoc structure */
+struct mrb_parser_heredoc_info {
+  enum heredoc_type type;
+  int allow_indent:1;
+  int line_head:1;
+  const char *term;
+  int term_len;
+  mrb_ast_node *doc;
+};
+
 /* parser structure */
 struct mrb_parser_state {
   mrb_state *mrb;
@@ -71,7 +86,7 @@ struct mrb_parser_state {
   int column;
 
   enum mrb_lex_state_enum lstate;
-  int sterm;
+  int sterm;	/* string terminator :  ' ' means heredoc */
   int regexp;
 
   unsigned int cond_stack;
@@ -85,7 +100,10 @@ struct mrb_parser_state {
   char buf[1024];
   int bidx;
 
-  mrb_ast_node *heredoc;
+  mrb_ast_node *heredocs;	/* list of mrb_parser_heredoc_info* */
+  mrb_ast_node *parsing_heredoc;
+  int heredoc_starts_nextline:1;
+  int heredoc_end_now:1;	/* for mirb */
 
   void *ylval;
 
