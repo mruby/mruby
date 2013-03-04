@@ -47,7 +47,6 @@
 //#define POOL_PAGE_SIZE 16000
 
 /* -DDISABLE_XXXX to drop following features */
-//#define DISABLE_SPRINTF	/* Kernel.sprintf method */
 //#define DISABLE_STDIO		/* use of stdio */
 
 /* -DENABLE_XXXX to enable following features */
@@ -83,9 +82,6 @@
 typedef short mrb_sym;
 
 /* define ENABLE_XXXX from DISABLE_XXX */
-#ifndef DISABLE_SPRINTF
-#define ENABLE_SPRINTF
-#endif
 #ifndef DISABLE_STDIO
 #define ENABLE_STDIO
 #endif
