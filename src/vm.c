@@ -17,7 +17,6 @@
 #include "mruby/numeric.h"
 #include "error.h"
 
-#include <stdio.h>
 #include <string.h>
 #include <setjmp.h>
 #include <stddef.h>

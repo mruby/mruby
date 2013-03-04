@@ -15,7 +15,6 @@
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/numeric.h"
-#include <stdio.h>
 #include "re.h"
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
