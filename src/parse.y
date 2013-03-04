@@ -3692,6 +3692,7 @@ parse_heredoc_line(parser_state *p)
   parser_heredoc_info *inf = parsing_heredoc_inf(p);
   /* assert(inf != NULL); */
   int c;
+  int line_head;
 
   newtok(p);
   while ((c = nextc(p)) != '\n') {
@@ -3725,7 +3726,7 @@ parse_heredoc_line(parser_state *p)
   tokfix(p);
   p->lineno++;
   p->column = 0;
-  int line_head = inf->line_head;
+  line_head = inf->line_head;
   inf->line_head = TRUE;
   if (line_head) {
     /* check whether end of heredoc */
@@ -3765,6 +3766,7 @@ static int
 parser_yylex(parser_state *p)
 {
   register int c;
+  int c2;
   int space_seen = 0;
   int cmd_state;
   enum mrb_lex_state_enum last_state;
@@ -3931,7 +3933,7 @@ parser_yylex(parser_state *p)
 	(!IS_ARG() || space_seen)) {
       /* heredocument check */
       newtok(p); tokadd(p, '<'); tokadd(p, '<');
-      int c2 = nextc(p);
+      c2 = nextc(p);
       if (c2 == '-') {
 	tokadd(p, c2);
 	c2 = nextc(p);
