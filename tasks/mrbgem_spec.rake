@@ -17,6 +17,9 @@ module MRuby
       alias mruby build
       attr_accessor :build_config_initializer
 
+      attr_accessor :version
+      attr_accessor :description, :summary
+      attr_accessor :homepage
       attr_accessor :licenses, :authors
       alias :license= :licenses=
       alias :author= :authors=
