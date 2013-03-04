@@ -10,18 +10,14 @@
 #include "mruby/string.h"
 #include <string.h>
 
-#ifndef OTHER
-#define OTHER 2
-#endif
-
 #define RANGE_CLASS (mrb_class_obj_get(mrb, "Range"))
 
 static void
 range_check(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   mrb_value ans;
-  int ta;
-  int tb;
+  enum mrb_vtype ta;
+  enum mrb_vtype tb;
 
   ta = mrb_type(a);
   tb = mrb_type(b);
@@ -44,7 +40,7 @@ mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, int excl)
 
   r = (struct RRange*)mrb_obj_alloc(mrb, MRB_TT_RANGE, RANGE_CLASS);
   range_check(mrb, beg, end);
-  r->edges = (struct mrb_range_edges *)mrb_malloc(mrb, sizeof(struct mrb_range_edges));
+  r->edges = (mrb_range_edges *)mrb_malloc(mrb, sizeof(mrb_range_edges));
   r->edges->beg = beg;
   r->edges->end = end;
   r->excl = excl;
@@ -107,7 +103,7 @@ range_init(mrb_state *mrb, mrb_value range, mrb_value beg, mrb_value end, int ex
   range_check(mrb, beg, end);
   r->excl = exclude_end;
   if (!r->edges) {
-    r->edges = (struct mrb_range_edges *)mrb_malloc(mrb, sizeof(struct mrb_range_edges));
+    r->edges = (mrb_range_edges *)mrb_malloc(mrb, sizeof(mrb_range_edges));
   }
   r->edges->beg = beg;
   r->edges->end = end;
@@ -185,7 +181,7 @@ r_le(mrb_state *mrb, mrb_value a, mrb_value b)
   /* output :a < b => -1, a = b =>  0, a > b => +1 */
 
   if (mrb_type(r) == MRB_TT_FIXNUM) {
-    int c = mrb_fixnum(r);
+    mrb_int c = mrb_fixnum(r);
     if (c == 0 || c == -1) return TRUE;
   }
 
@@ -212,7 +208,7 @@ r_ge(mrb_state *mrb, mrb_value a, mrb_value b)
   /* output :a < b => -1, a = b =>  0, a > b => +1 */
 
   if (mrb_type(r) == MRB_TT_FIXNUM) {
-    int c = mrb_fixnum(r);
+    mrb_int c = mrb_fixnum(r);
     if (c == 0 || c == 1) return TRUE;
   }
 
@@ -274,12 +270,14 @@ mrb_range_each(mrb_state *mrb, mrb_value range)
 }
 
 mrb_int
-mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len, mrb_int err)
+mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len)
 {
   mrb_int beg, end, b, e;
   struct RRange *r = mrb_range_ptr(range);
 
-  if (mrb_type(range) != MRB_TT_RANGE) return FALSE;
+  if (mrb_type(range) != MRB_TT_RANGE) {
+    mrb_raise(mrb, E_TYPE_ERROR, "expected Range.");
+  }
 
   beg = b = mrb_fixnum(r->edges->beg);
   end = e = mrb_fixnum(r->edges->end);
@@ -288,10 +286,10 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
     beg += len;
     if (beg < 0) goto out_of_range;
   }
-  if (err == 0 || err == 2) {
-    if (beg > len) goto out_of_range;
-    if (end > len) end = len;
-  }
+
+  if (beg > len) goto out_of_range;
+  if (end > len) end = len;
+
   if (end < 0) end += len;
   if (!r->excl && end < len) end++;  /* include end point */
   len = end - beg;
@@ -302,11 +300,7 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
   return TRUE;
 
 out_of_range:
-  if (err) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "%ld..%s%ld out of range",
-      b, r->excl? "." : "", e);
-  }
-  return OTHER;
+  return FALSE;
 }
 
 /* 15.2.14.4.12(x) */

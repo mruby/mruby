@@ -11,19 +11,19 @@
 #include "mruby/data.h"
 
 struct RData*
-mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const struct mrb_data_type *type)
+mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb_data_type *type)
 {
   struct RData *data;
 
   data = (struct RData*)mrb_obj_alloc(mrb, MRB_TT_DATA, klass);
   data->data = ptr;
-  data->type = (struct mrb_data_type*) type;
+  data->type = (mrb_data_type*) type;
 
   return data;
 }
 
 void *
-mrb_get_datatype(mrb_state *mrb, mrb_value obj, const struct mrb_data_type *type)
+mrb_get_datatype(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 {
   if (mrb_special_const_p(obj) || (mrb_type(obj) != MRB_TT_DATA)) {
     return NULL;
@@ -35,7 +35,7 @@ mrb_get_datatype(mrb_state *mrb, mrb_value obj, const struct mrb_data_type *type
 }
 
 void *
-mrb_check_datatype(mrb_state *mrb, mrb_value obj, const struct mrb_data_type *type)
+mrb_check_datatype(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 {
   static const char mesg[] = "wrong argument type %s (expected %s)";
 
@@ -74,7 +74,6 @@ mrb_lastline_get(mrb_state *mrb)
 mrb_value
 mrb_exec_recursive(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mrb_value, int), mrb_value obj, void *arg)
 {
-  //  return mrb_exec_recursive(mrb, io_puts_ary, line, &out);
   return func(mrb, obj, *(mrb_value*)arg, 0);
 }
 
@@ -118,7 +117,7 @@ mrb_to_id(mrb_state *mrb, mrb_value name)
 mrb_value
 mrb_block_proc(void)
 {
-  return mrb_nil_value();//proc_new(mrb_cProc, FALSE);
+  return mrb_nil_value();
 }
 
 static mrb_int
@@ -171,10 +170,7 @@ mrb_obj_id(mrb_value obj)
   case  MRB_TT_ARRAY:
   case  MRB_TT_HASH:
   case  MRB_TT_RANGE:
-  case  MRB_TT_REGEX:
-  case  MRB_TT_STRUCT:
   case  MRB_TT_EXCEPTION:
-  case  MRB_TT_MATCH:
   case  MRB_TT_FILE:
   case  MRB_TT_DATA:
   default:

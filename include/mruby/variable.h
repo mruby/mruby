@@ -37,6 +37,7 @@ void mrb_vm_const_set(mrb_state*, mrb_sym, mrb_value);
 mrb_value mrb_const_get(mrb_state*, mrb_value, mrb_sym);
 void mrb_const_set(mrb_state*, mrb_value, mrb_sym, mrb_value);
 int mrb_const_defined(mrb_state*, mrb_value, mrb_sym);
+void mrb_const_remove(mrb_state*, mrb_value, mrb_sym);
 
 mrb_value mrb_obj_iv_get(mrb_state *mrb, struct RObject *obj, mrb_sym sym);
 void mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v);

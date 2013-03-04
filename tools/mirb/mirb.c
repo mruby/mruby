@@ -40,6 +40,13 @@ is_code_block_open(struct mrb_parser_state *parser)
   /* check for unterminated string */
   if (parser->sterm) return TRUE;
 
+  /* check for heredoc */
+  if (parser->heredoc_starts_nextline) return TRUE;
+  if (parser->heredoc_end_now) {
+    parser->heredoc_end_now = FALSE;
+    return FALSE;
+  }
+
   /* check if parser error are available */
   if (0 < parser->nerr) {
     const char *unexpected_end = "syntax error, unexpected $end";
@@ -191,6 +198,10 @@ main(void)
     last_code_line[char_index] = '\0';
 #else
     char* line = readline(code_block_open ? "* " : "> ");
+    if(line == NULL) {
+      printf("\n");
+      break;
+    }
     strncat(last_code_line, line, sizeof(last_code_line)-1);
     add_history(line);
     free(line);

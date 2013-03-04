@@ -11,14 +11,14 @@
 extern "C" {
 #endif
 
-struct mrb_range_edges {
+typedef struct mrb_range_edges {
   mrb_value beg;
   mrb_value end;
-};
+} mrb_range_edges;
 
 struct RRange {
   MRB_OBJECT_HEADER;
-  struct mrb_range_edges *edges;
+  mrb_range_edges *edges;
   int excl;
 };
 
@@ -26,7 +26,7 @@ struct RRange {
 #define mrb_range_value(p)  mrb_obj_value((void*)(p))
 
 mrb_value mrb_range_new(mrb_state*, mrb_value, mrb_value, int);
-mrb_int mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len, mrb_int err);
+mrb_int mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */

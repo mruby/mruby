@@ -7,7 +7,6 @@
 #include "mruby.h"
 #include "mruby/array.h"
 
-#ifdef ENABLE_MATH
 #include <math.h>
 
 #define domain_error(msg) \
@@ -27,13 +26,13 @@
 double
 erfc(double x);
 
-/* 
+/*
 ** Implementations of error functions
 ** credits to http://www.digitalmars.com/archives/cplusplus/3634.html
 */
 
 /* Implementation of Error function */
-double 
+double
 erf(double x)
 {
   static const double two_sqrtpi =  1.128379167095512574;
@@ -56,24 +55,24 @@ erf(double x)
 }
 
 /* Implementation of complementary Error function */
-double 
+double
 erfc(double x)
 {
-  static const double one_sqrtpi=  0.564189583547756287;        
-  double a = 1; 
-  double b = x;               
-  double c = x; 
-  double d = x*x+0.5;         
+  static const double one_sqrtpi=  0.564189583547756287;
+  double a = 1;
+  double b = x;
+  double c = x;
+  double d = x*x+0.5;
   double q1;
   double q2 = b/d;
   double n = 1.0;
   double t;
   if (fabs(x) < 2.2) {
-    return 1.0 - erf(x);       
-  }                              
-  if (x < 0.0) { /*signbit(x)*/              
-    return 2.0 - erfc(-x);     
-  }                              
+    return 1.0 - erf(x);
+  }
+  if (x < 0.0) { /*signbit(x)*/
+    return 2.0 - erfc(-x);
+  }
   do {
     t  = a*n+b*x;
     a  = b;
@@ -307,7 +306,7 @@ math_asinh(mrb_state *mrb, mrb_value obj)
   mrb_float x;
 
   mrb_get_args(mrb, "f", &x);
-  
+
   x = asinh(x);
 
   return mrb_float_value(x);
@@ -478,10 +477,10 @@ static mrb_value
 math_sqrt(mrb_state *mrb, mrb_value obj)
 {
   mrb_float x;
-  
+
   mrb_get_args(mrb, "f", &x);
   x = sqrt(x);
-  
+
   return mrb_float_value(x);
 }
 
@@ -545,7 +544,7 @@ math_frexp(mrb_state *mrb, mrb_value obj)
 {
   mrb_float x;
   int exp;
-  
+
   mrb_get_args(mrb, "f", &x);
   x = frexp(x, &exp);
 
@@ -630,17 +629,17 @@ math_erfc(mrb_state *mrb, mrb_value obj)
 
 /* ------------------------------------------------------------------------*/
 void
-mrb_init_math(mrb_state *mrb)
+mrb_mruby_math_gem_init(mrb_state* mrb)
 {
   struct RClass *mrb_math;
   mrb_math = mrb_define_module(mrb, "Math");
-  
+
 #ifdef M_PI
   mrb_define_const(mrb, mrb_math, "PI", mrb_float_value(M_PI));
 #else
   mrb_define_const(mrb, mrb_math, "PI", mrb_float_value(atan(1.0)*4.0));
 #endif
-  
+
 #ifdef M_E
   mrb_define_const(mrb, mrb_math, "E", mrb_float_value(M_E));
 #else
@@ -661,7 +660,7 @@ mrb_init_math(mrb_state *mrb)
   mrb_define_module_function(mrb, mrb_math, "acos", math_acos, ARGS_REQ(1));
   mrb_define_module_function(mrb, mrb_math, "atan", math_atan, ARGS_REQ(1));
   mrb_define_module_function(mrb, mrb_math, "atan2", math_atan2, ARGS_REQ(2));
-  
+
   mrb_define_module_function(mrb, mrb_math, "sinh", math_sinh, ARGS_REQ(1));
   mrb_define_module_function(mrb, mrb_math, "cosh", math_cosh, ARGS_REQ(1));
   mrb_define_module_function(mrb, mrb_math, "tanh", math_tanh, ARGS_REQ(1));
@@ -685,4 +684,8 @@ mrb_init_math(mrb_state *mrb)
   mrb_define_module_function(mrb, mrb_math, "erf",  math_erf,  ARGS_REQ(1));
   mrb_define_module_function(mrb, mrb_math, "erfc", math_erfc, ARGS_REQ(1));
 }
-#endif	/* ENABLE_MATH */
+
+void
+mrb_mruby_math_gem_final(mrb_state* mrb)
+{
+}

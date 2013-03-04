@@ -20,11 +20,8 @@ void mrb_init_array(mrb_state*);
 void mrb_init_hash(mrb_state*);
 void mrb_init_numeric(mrb_state*);
 void mrb_init_range(mrb_state*);
-void mrb_init_struct(mrb_state*);
 void mrb_init_gc(mrb_state*);
-void mrb_init_regexp(mrb_state*);
 void mrb_init_print(mrb_state*);
-void mrb_init_time(mrb_state*);
 void mrb_init_math(mrb_state*);
 void mrb_init_mrblib(mrb_state*);
 void mrb_init_mrbgems(mrb_state*);
@@ -50,21 +47,9 @@ mrb_init_core(mrb_state *mrb)
   mrb_init_hash(mrb); DONE;
   mrb_init_numeric(mrb); DONE;
   mrb_init_range(mrb); DONE;
-#ifdef ENABLE_STRUCT
-  mrb_init_struct(mrb); DONE;
-#endif
   mrb_init_gc(mrb); DONE;
-#ifdef ENABLE_REGEXP
-  mrb_init_regexp(mrb); DONE;
-#endif
 #ifdef ENABLE_STDIO
   mrb_init_print(mrb); DONE;
-#endif
-#ifdef ENABLE_TIME
-  mrb_init_time(mrb); DONE;
-#endif
-#ifdef ENABLE_MATH
-  mrb_init_math(mrb); DONE;
 #endif
   mrb_init_mrblib(mrb); DONE;
 #ifndef DISABLE_GEMS

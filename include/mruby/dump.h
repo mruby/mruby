@@ -12,16 +12,22 @@ extern "C" {
 #endif
 
 #include "mruby.h"
+#ifdef ENABLE_STDIO
 #include <stdio.h>
+#endif
 #include <stdint.h>
 
+#ifdef ENABLE_STDIO
 int mrb_dump_irep(mrb_state*,int,FILE*);
-int mrb_read_irep(mrb_state*,const char*);
-int mrb_read_irep_file(mrb_state*,FILE*);
-/* mrb_value mrb_load_irep(mrb_state*,const char*); */ /* declared in <irep.h> */
-mrb_value mrb_load_irep_file(mrb_state*,FILE*);
-
 int mrb_bdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname);
+
+int mrb_read_irep_file(mrb_state*,FILE*);
+#endif
+int mrb_read_irep(mrb_state*,const char*);
+
+#ifdef ENABLE_STDIO
+mrb_value mrb_load_irep_file(mrb_state*,FILE*);
+#endif
 
 /* dump type */
 #define DUMP_TYPE_CODE 0
@@ -76,7 +82,7 @@ int mrb_bdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname);
 #define MRB_DUMP_DEFAULT_STR_LEN       128
 
 //Rite Binary file_header
-typedef struct _rite_binary_header {
+typedef struct {
   unsigned char    rbfi[4];        //Rite Binary File Identify
   unsigned char    rbfv[8];        //Rite Binary File Format Version
   unsigned char    risv[8];        //Rite Instruction Specification Version
@@ -89,7 +95,7 @@ typedef struct _rite_binary_header {
 } rite_binary_header;
 
 // Rite File file_header
-typedef struct _rite_file_header {
+typedef struct {
   unsigned char    rbfi[4];        //Rite Binary File Identify
   unsigned char    rbfv[8];        //Rite Binary File Format Version
   unsigned char    risv[8];        //Rite Instruction Specification Version

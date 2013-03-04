@@ -150,13 +150,6 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val) /* mr
 }
 
 mrb_value
-mrb_hash_freeze(mrb_value hash)
-{
-  //return mrb_obj_freeze(hash);
-  return (hash);
-}
-
-mrb_value
 mrb_hash_dup(mrb_state *mrb, mrb_value hash)
 {
   struct RHash* ret;
@@ -181,12 +174,6 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
   return mrb_obj_value(ret);
 }
 
-static void
-mrb_hash_modify_check(mrb_state *mrb, mrb_value hash)
-{
-  //if (OBJ_FROZEN(hash)) mrb_error_frozen("hash");
-}
-
 mrb_value
 mrb_check_hash_type(mrb_state *mrb, mrb_value hash)
 {
@@ -207,7 +194,6 @@ mrb_hash_tbl(mrb_state *mrb, mrb_value hash)
 static void
 mrb_hash_modify(mrb_state *mrb, mrb_value hash)
 {
-  //mrb_hash_modify_check(mrb, hash);
   mrb_hash_tbl(mrb, hash);
 }
 
@@ -540,11 +526,6 @@ mrb_hash_delete(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o", &key);
   return mrb_hash_delete_key(mrb, self, key);
 }
-struct shift_var {
-    mrb_value key;
-    mrb_value val;
-};
-
 
 /* 15.2.13.4.24 */
 /*
@@ -578,7 +559,7 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
         delVal = mrb_hash_delete_key(mrb, hash, delKey);
         mrb_gc_protect(mrb, delVal);
 
-	return mrb_assoc_new(mrb, delKey, delVal);
+        return mrb_assoc_new(mrb, delKey, delVal);
       }
     }
   }
@@ -755,7 +736,6 @@ mrb_hash_replace(mrb_state *mrb, mrb_value hash)
   khiter_t k;
 
   mrb_get_args(mrb, "o", &hash2);
-  mrb_hash_modify_check(mrb, hash);
   hash2 = to_hash(mrb, hash2);
   if (mrb_obj_equal(mrb, hash, hash2)) return hash;
   mrb_hash_clear(mrb, hash);
@@ -1139,9 +1119,9 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
       key = kh_key(h1,k1);
       k2 = kh_get(ht, h2, key);
       if (k2 != kh_end(h2)) {
-	if (mrb_equal(mrb, kh_value(h1,k1), kh_value(h2,k2))) {
-	  continue; /* next key */
-	}
+        if (mrb_equal(mrb, kh_value(h1,k1), kh_value(h2,k2))) {
+          continue; /* next key */
+        }
       }
       return mrb_false_value();
     }

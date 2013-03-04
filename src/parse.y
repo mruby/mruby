@@ -31,6 +31,7 @@
 
 typedef mrb_ast_node node;
 typedef struct mrb_parser_state parser_state;
+typedef struct mrb_parser_heredoc_info parser_heredoc_info;
 
 static int yylex(void *lval, parser_state *p);
 static void yyerror(parser_state *p, const char *s);
@@ -708,6 +709,20 @@ new_dsym(parser_state *p, node *a)
   return cons((node*)NODE_DSYM, new_dstr(p, a));
 }
 
+// (:str . (a . a))
+static node*
+new_regx(parser_state *p, const char *p1, const char* p2)
+{
+  return cons((node*)NODE_REGX, cons((node*)p1, (node*)p2));
+}
+
+// (:dregx . a)
+static node*
+new_dregx(parser_state *p, node *a, node *b)
+{
+  return cons((node*)NODE_DREGX, cons(a, b));
+}
+
 // (:backref . n)
 static node*
 new_back_ref(parser_state *p, int n)
@@ -720,6 +735,14 @@ static node*
 new_nth_ref(parser_state *p, int n)
 {
   return cons((node*)NODE_NTH_REF, (node*)(intptr_t)n);
+}
+
+// (:heredoc . a)
+static node*
+new_heredoc(parser_state *p)
+{
+  parser_heredoc_info *inf = parser_palloc(p, sizeof(parser_heredoc_info));
+  return cons((node*)NODE_HEREDOC, (node*)inf);
 }
 
 static void
@@ -742,14 +765,6 @@ call_bin_op(parser_state *p, node *recv, char *m, node *arg1)
 {
   return new_call(p, recv, intern(m), list1(list1(arg1)));
 }
-
-// (:match (a . b))
-static node*
-match_op(parser_state *p, node *a, node *b)
-{
-  return cons((node*)NODE_MATCH, cons((node*)a, (node*)b));
-}
-
 
 static void
 args_with_block(parser_state *p, node *a, node *b)
@@ -829,10 +844,80 @@ var_reference(parser_state *p, node *lhs)
   return lhs;
 }
 
+
+static node*
+heredoc_start_sb(parser_state *p, const char* term, size_t term_len, enum heredoc_type type, int allow_indent)
+{
+  node *newnode = new_heredoc(p);
+  parser_heredoc_info *inf = (parser_heredoc_info*)newnode->cdr;
+  inf->term = term;
+  inf->term_len = term_len;
+  inf->type = type;
+  inf->allow_indent = allow_indent;
+  inf->line_head = TRUE;
+  inf->doc = NULL;
+  p->heredocs = push(p->heredocs, newnode);
+  if (p->parsing_heredoc == NULL) {
+    node *c = p->heredocs;
+    while (c->cdr)
+      c = c->cdr;
+    p->parsing_heredoc = c;
+  }
+  p->heredoc_starts_nextline = TRUE;
+  p->lstate = EXPR_END;
+  return newnode;
+}
+
+static node*
+heredoc_start(parser_state *p, node *beg, node *str, enum heredoc_type type)
+{
+  char *bs = (char*)beg->cdr->car;
+  int allow_indent = (bs[2] == '-');
+  const char *s = (char*)str->cdr->car;
+  size_t len = (intptr_t)str->cdr->cdr;
+  return heredoc_start_sb(p, s, len, type, allow_indent);
+}
+
+static node*
+heredoc_start_sym(parser_state *p, node *beg, mrb_sym sym, enum heredoc_type type)
+{
+  char *bs = (char*)beg->cdr->car;
+  int allow_indent = (bs[2] == '-');
+  int len;
+  const char *s = mrb_sym2name_len(p->mrb, sym, &len);
+  return heredoc_start_sb(p, s, len, type, allow_indent);
+}
+
+parser_heredoc_info *
+parsing_heredoc_inf(parser_state *p)
+{
+  node *nd = p->parsing_heredoc;
+  if (nd == NULL)
+    return NULL;
+  /* assert(nd->car->car == NODE_HEREDOC); */
+  return (parser_heredoc_info*)nd->car->cdr;
+}
+
+static void
+heredoc_end(parser_state *p)
+{
+  p->parsing_heredoc = p->parsing_heredoc->cdr;
+  if (p->parsing_heredoc == NULL) {
+    p->lstate = EXPR_BEG;
+    p->cmd_start = TRUE;
+    p->sterm = 0;
+    p->heredoc_end_now = TRUE;
+  } else {
+    p->sterm = ' ';	/* next heredoc */
+  }
+}
+
+
 // xxx -----------------------------
 
 %}
 
+%expect 2
 %pure_parser
 %parse-param {parser_state *p}
 %lex-param {parser_state *p}
@@ -920,6 +1005,7 @@ var_reference(parser_state *p, node *lhs)
 %type <nd> mlhs mlhs_list mlhs_post mlhs_basic mlhs_item mlhs_node mlhs_inner
 %type <id> fsym sym basic_symbol operation operation2 operation3
 %type <id> cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg
+%type <nd> heredoc heredoc_rep heredoc_interp
 
 %token tUPLUS		/* unary+ */
 %token tUMINUS		/* unary- */
@@ -950,6 +1036,8 @@ var_reference(parser_state *p, node *lhs)
 %token tLAMBDA		/* -> */
 %token tSYMBEG tREGEXP_BEG tWORDS_BEG tQWORDS_BEG
 %token tSTRING_BEG tSTRING_DVAR tLAMBEG
+%token <nd> tHEREDOC_BEG	/* <<, <<- */
+%token tHEREDOC_END
 
 /*
  *	precedence table
@@ -1679,7 +1767,7 @@ arg		: lhs '=' arg
 		    }
 		| arg tMATCH arg
 		    {
-		      $$ = match_op(p, $1, $3);
+		      $$ = call_bin_op(p, $1, "=~", $3);
 #if 0
 		      if (nd_type($1) == NODE_LIT && TYPE($1->nd_lit) == T_REGEXP) {
 			$$ = reg_named_capture_assign($1->nd_lit, $$);
@@ -1856,6 +1944,7 @@ mrhs		: args ',' arg_value
 primary		: literal
 		| string
 		| regexp
+		| heredoc
 		| var_ref
 		| backref
 		| tFID
@@ -2498,7 +2587,79 @@ string_interp	: tSTRING_PART
 		    }
 		;
 
-regexp		: tREGEXP
+regexp		: tREGEXP_BEG tREGEXP
+		    {
+			$$ = $2;
+		    }
+		| tREGEXP_BEG string_interp tREGEXP
+		    {
+		      $$ = new_dregx(p, $2, $3);
+		    }
+		;
+
+heredoc		: tHEREDOC_BEG tSTRING_BEG tSTRING
+		    {
+		      $$ = heredoc_start(p, $1, $3, heredoc_type_norm);
+		    }
+		| tHEREDOC_BEG tSTRING
+		    {
+		      $$ = heredoc_start(p, $1, $2, heredoc_type_quote);
+		    }
+		| tHEREDOC_BEG tIDENTIFIER
+		    {
+		      $$ = heredoc_start_sym(p, $1, $2, heredoc_type_norm);
+		    }
+		| tHEREDOC_BEG tCONSTANT
+		    {
+		      $$ = heredoc_start_sym(p, $1, $2, heredoc_type_norm);
+		    }
+		;
+
+
+opt_heredoc_bodies : none
+		   | heredoc_bodies
+		   ;
+
+heredoc_bodies	: heredoc_body
+		| heredoc_bodies heredoc_body
+		;
+
+heredoc_body	: tHEREDOC_END
+		    {
+		      /* assert(parsing_heredoc_inf(p) != NULL); */
+		      parsing_heredoc_inf(p)->doc = list1(new_str(p, "", 0));
+		      heredoc_end(p);
+		    }
+		| heredoc_rep tHEREDOC_END
+		    {
+		      /* assert(parsing_heredoc_inf(p) != NULL); */
+		      parsing_heredoc_inf(p)->doc = $1;
+		      heredoc_end(p);
+		    }
+		;
+
+heredoc_rep	: heredoc_interp
+		| heredoc_rep heredoc_interp
+		    {
+		      $$ = append($1, $2);
+		    }
+		;
+
+heredoc_interp	: tSTRING
+		    {
+		      $$ = list1($1);
+		    }
+		| tSTRING_PART
+		    {
+		      $<num>$ = p->sterm;
+		      p->sterm = 0;
+		    }
+		  compstmt
+		  '}'
+		    {
+		      p->sterm = $<num>2;
+		      $$ = list2($1, $3);
+		    }
 		;
 
 symbol		: basic_symbol
@@ -2851,6 +3012,7 @@ singleton	: var_ref
 			case NODE_MATCH:
 			case NODE_FLOAT:
 			case NODE_ARRAY:
+			case NODE_HEREDOC:
 			  yyerror(p, "can't define singleton method for literals");
 			default:
 			  break;
@@ -2935,6 +3097,7 @@ nl		: '\n'
 		      p->lineno++;
 		      p->column = 0;
 		    }
+		  opt_heredoc_bodies
 
 terms		: term
 		| terms ';' {yyerrok;}
@@ -3070,9 +3233,7 @@ nextc(parser_state *p)
     else {
       c = (unsigned char)*p->s++;
     }
-    if (c == '\n') {
-      // must understand heredoc
-    }
+    /* if (c == '\n') { } */ /* heredoc treated in parser_yylex() */
   }
   p->column++;
   return c;
@@ -3335,9 +3496,17 @@ read_escape(parser_state *p)
     return c;
 
   case 'b':	/* backspace */
+    if (p->regexp) {
+      tokadd(p, '\\');
+      return 'b';
+    }
     return '\010';
 
   case 's':	/* space */
+    if (p->regexp) {
+      tokadd(p, '\\');
+      return 's';
+    }
     return ' ';
 
   case 'M':
@@ -3375,6 +3544,9 @@ read_escape(parser_state *p)
     return '\0';
 
   default:
+    if (p->regexp) {
+      tokadd(p, '\\');
+    }
     return c;
   }
 }
@@ -3385,7 +3557,6 @@ parse_string(parser_state *p, int term)
   int c;
 
   newtok(p);
-
   while ((c = nextc(p)) != term) {
     if (c  == -1) {
       yyerror(p, "unterminated string meets end of file");
@@ -3422,6 +3593,39 @@ parse_string(parser_state *p, int term)
   tokfix(p);
   p->lstate = EXPR_END;
   p->sterm = 0;
+
+  if (p->regexp) {
+    int f = 0;
+    int c;
+    char *s = strndup(tok(p), toklen(p));
+    char flag[4] = { '\0' };
+
+    newtok(p);
+    while (c = nextc(p), ISALPHA(c)) {
+      switch (c) {
+      case 'i': f |= 1; break;
+      case 'x': f |= 2; break;
+      case 'm': f |= 4; break;
+      default: tokadd(p, c); break;
+      }
+    }
+    pushback(p, c);
+    if (toklen(p)) {
+      char msg[128];
+      tokfix(p);
+      snprintf(msg, sizeof(msg), "unknown regexp option%s - %s",
+          toklen(p) > 1 ? "s" : "", tok(p));
+      yyerror(p, msg);
+    }
+    if (f & 1) strcat(flag, "i");
+    if (f & 2) strcat(flag, "x");
+    if (f & 4) strcat(flag, "m");
+    yylval.nd = new_regx(p, s, strdup(flag));
+    p->regexp = 0;
+
+    return tREGEXP;
+  }
+
   yylval.nd = new_str(p, tok(p), toklen(p));
   return tSTRING;
 }
@@ -3483,6 +3687,73 @@ parse_qstring(parser_state *p, int beg, int end)
 }
 
 static int
+parse_heredoc_line(parser_state *p)
+{
+  parser_heredoc_info *inf = parsing_heredoc_inf(p);
+  /* assert(inf != NULL); */
+  int c;
+  int line_head;
+
+  newtok(p);
+  while ((c = nextc(p)) != '\n') {
+    if (c == -1)
+      break;
+    if (inf->type != heredoc_type_quote) {
+      if (c == '\\') {
+	tokadd(p, read_escape(p));
+	inf->line_head = FALSE;
+        continue;
+      }
+      if (c == '#') {
+	c = nextc(p);
+	if (c == '{') {
+	  tokfix(p);
+	  p->lstate = EXPR_BEG;
+	  p->sterm = ' ';
+	  p->cmd_start = TRUE;
+	  yylval.nd = new_str(p, tok(p), toklen(p));
+	  inf->line_head = FALSE;
+	  return tSTRING_PART;
+	}
+	tokadd(p, '#');
+	pushback(p, c);
+	continue;
+      }
+    }
+    tokadd(p, c);
+  }
+  tokadd(p, '\n');
+  tokfix(p);
+  p->lineno++;
+  p->column = 0;
+  line_head = inf->line_head;
+  inf->line_head = TRUE;
+  if (line_head) {
+    /* check whether end of heredoc */
+    const char *s = tok(p);
+    int len = toklen(p);
+    if (inf->allow_indent) {
+      while (ISSPACE(*s) && len > 0) {
+	++s;
+	--len;
+      }
+    }
+    if ((len-1 == inf->term_len) && (strncmp(s, inf->term, len-1) == 0)) {
+      return tHEREDOC_END;
+    }
+  }
+  if (c == -1) {
+    char buf[256];
+    snprintf(buf, sizeof(buf), "can't find string \"%s\" anywhere before EOF", inf->term);
+    yyerror(p, buf);
+    return 0;
+  }
+
+  yylval.nd = new_str(p, tok(p), toklen(p));
+  return tSTRING;
+}
+
+static int
 arg_ambiguous(parser_state *p)
 {
   yywarning(p, "ambiguous first argument; put parentheses or even spaces");
@@ -3495,11 +3766,15 @@ static int
 parser_yylex(parser_state *p)
 {
   register int c;
+  int c2;
   int space_seen = 0;
   int cmd_state;
   enum mrb_lex_state_enum last_state;
   int token_column;
 
+  if ((p->sterm == ' ') && (p->parsing_heredoc != NULL) && (! p->heredoc_starts_nextline)) {
+    return parse_heredoc_line(p);
+  }
   if (p->sterm) {
     return parse_string(p, p->sterm);
   }
@@ -3524,6 +3799,11 @@ parser_yylex(parser_state *p)
     skip(p, '\n');
     /* fall through */
   case '\n':
+    p->heredoc_starts_nextline = FALSE;
+    if (p->parsing_heredoc != NULL) {
+      p->sterm = ' ';
+      goto normal_newline;
+    }
     switch (p->lstate) {
     case EXPR_BEG:
     case EXPR_FNAME:
@@ -3646,17 +3926,26 @@ parser_yylex(parser_state *p)
   case '<':
     last_state = p->lstate;
     c = nextc(p);
-#if 0
-    // no heredoc supported yet
     if (c == '<' &&
 	p->lstate != EXPR_DOT &&
 	p->lstate != EXPR_CLASS &&
 	!IS_END() &&
 	(!IS_ARG() || space_seen)) {
-      int token = heredoc_identifier();
-      if (token) return token;
+      /* heredocument check */
+      newtok(p); tokadd(p, '<'); tokadd(p, '<');
+      c2 = nextc(p);
+      if (c2 == '-') {
+	tokadd(p, c2);
+	c2 = nextc(p);
+      }
+      pushback(p, c2);
+      if (!ISSPACE(c2)) {
+	tokfix(p);
+	yylval.nd = new_str(p, tok(p), toklen(p));
+        p->lstate = EXPR_DOT;
+	return tHEREDOC_BEG;
+      }
     }
-#endif
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
     } else {
@@ -4186,6 +4475,8 @@ parser_yylex(parser_state *p)
 #if 0
       p->lex_strterm = new_strterm(p, str_regexp, '/', 0);
 #endif
+      p->regexp = 1;
+      p->sterm = '/';
       return tREGEXP_BEG;
     }
     if ((c = nextc(p)) == '=') {
@@ -4199,6 +4490,8 @@ parser_yylex(parser_state *p)
 #if 0
       p->lex_strterm = new_strterm(p, str_regexp, '/', 0);
 #endif
+      p->regexp = 1;
+      p->sterm = '/';
       return tREGEXP_BEG;
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
@@ -4381,6 +4674,8 @@ parser_yylex(parser_state *p)
 #if 0
 	p->lex_strterm = new_strterm(p, str_regexp, term, paren);
 #endif
+	p->regexp = 1;
+	p->sterm = term;
 	return tREGEXP_BEG;
 
       case 's':
@@ -4772,6 +5067,8 @@ mrb_parser_new(mrb_state *mrb)
 #if defined(PARSER_TEST) || defined(PARSER_DEBUG)
   yydebug = 1;
 #endif
+
+  p->heredocs = p->parsing_heredoc = NULL;
 
   return p;
 }
@@ -5389,6 +5686,16 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     printf("NODE_CONST %s\n", mrb_sym2name(mrb, sym(tree)));
     break;
 
+  case NODE_MATCH:
+    printf("NODE_MATCH:\n");
+    dump_prefix(offset + 1);
+    printf("lhs:\n");
+    parser_dump(mrb, tree->car, offset + 2);
+    dump_prefix(offset + 1);
+    printf("rhs:\n");
+    parser_dump(mrb, tree->cdr, offset + 2);
+    break;
+
   case NODE_BACK_REF:
     printf("NODE_BACK_REF: $%c\n", (int)(intptr_t)tree);
     break;
@@ -5426,6 +5733,19 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_DSTR:
     printf("NODE_DSTR\n");
     dump_recur(mrb, tree, offset+1);
+    break;
+
+  case NODE_REGX:
+    printf("NODE_REGX /%s/%s\n", (char*)tree->car, (char*)tree->cdr);
+    break;
+
+  case NODE_DREGX:
+    printf("NODE_DREGX\n");
+    dump_recur(mrb, tree->car, offset+1);
+    dump_prefix(offset);
+    printf("tail: %s\n", (char*)tree->cdr->cdr->car);
+    dump_prefix(offset);
+    printf("opt: %s\n", (char*)tree->cdr->cdr->cdr);
     break;
 
   case NODE_SYM:
@@ -5639,6 +5959,11 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_POSTEXE:
     printf("NODE_POSTEXE:\n");
     parser_dump(mrb, tree, offset+1);
+    break;
+
+  case NODE_HEREDOC:
+    printf("NODE_HEREDOC:\n");
+    parser_dump(mrb, ((parser_heredoc_info*)tree)->doc, offset+1);
     break;
 
   default:

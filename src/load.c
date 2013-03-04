@@ -8,12 +8,10 @@
 #include "mruby/dump.h"
 
 #include "mruby/string.h"
-#ifdef ENABLE_REGEXP
-#include "re.h"
-#endif
 #include "mruby/proc.h"
 #include "mruby/irep.h"
 
+#ifdef ENABLE_STDIO
 typedef struct _RiteFILE
 {
   FILE* fp;
@@ -21,6 +19,7 @@ typedef struct _RiteFILE
   int cnt;
   int readlen;
 } RiteFILE;
+#endif
 
 const char hex2bin[256] = {
   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //00-0f
@@ -41,15 +40,18 @@ static uint16_t hex_to_uint16(unsigned char*);
 static uint32_t hex_to_uint32(unsigned char*);
 static char* hex_to_str(char*,char*,uint16_t*);
 uint16_t calc_crc_16_ccitt(unsigned char*,int);
+#ifdef ENABLE_STDIO
 static unsigned char rite_fgetcSub(RiteFILE*);
 static unsigned char rite_fgetc(RiteFILE*,int);
 static unsigned char* rite_fgets(RiteFILE*,unsigned char*,int,int);
 static int load_rite_header(FILE*,rite_binary_header*,unsigned char*);
 static int load_rite_irep_record(mrb_state*, RiteFILE*,unsigned char*,uint32_t*);
+#endif
 static int read_rite_header(mrb_state*,unsigned char*,rite_binary_header*);
 static int read_rite_irep_record(mrb_state*,unsigned char*,uint32_t*);
 
 
+#ifdef ENABLE_STDIO
 static unsigned char
 rite_fgetcSub(RiteFILE* rfp)
 {
@@ -68,7 +70,9 @@ rite_fgetcSub(RiteFILE* rfp)
   }
   return rfp->buf[(rfp->cnt)++];
 }
+#endif /* ENABLE_STDIO */
 
+#ifdef ENABLE_STDIO
 static unsigned char
 rite_fgetc(RiteFILE* rfp, int ignorecomment)
 {
@@ -90,7 +94,9 @@ rite_fgetc(RiteFILE* rfp, int ignorecomment)
     }
   }
 }
+#endif /* ENABLE_STDIO */
 
+#ifdef ENABLE_STDIO
 static unsigned char*
 rite_fgets(RiteFILE* rfp, unsigned char* dst, int len, int ignorecomment)
 {
@@ -103,7 +109,9 @@ rite_fgets(RiteFILE* rfp, unsigned char* dst, int len, int ignorecomment)
   }
   return dst;
 }
+#endif /* ENABLE_STDIO */
 
+#ifdef ENABLE_STDIO
 static int
 load_rite_header(FILE* fp, rite_binary_header* bin_header, unsigned char* hcrc)
 {
@@ -131,7 +139,9 @@ load_rite_header(FILE* fp, rite_binary_header* bin_header, unsigned char* hcrc)
 
   return MRB_DUMP_OK;
 }
+#endif /* ENABLE_STDIO */
 
+#ifdef ENABLE_STDIO
 static int
 load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_t* len)
 {
@@ -155,8 +165,10 @@ load_rite_irep_record(mrb_state *mrb, RiteFILE* rfp, unsigned char* dst, uint32_
 
   //IREP HEADER BLOCK
   *dst = rite_fgetc(rfp, TRUE);                         //record identifier
-  if (*dst != RITE_IREP_IDENFIFIER)
-    return MRB_DUMP_INVALID_IREP;
+  if (*dst != RITE_IREP_IDENFIFIER) {
+    result = MRB_DUMP_INVALID_IREP;
+    goto error_exit;
+  }
   dst += sizeof(unsigned char);
   *dst = rite_fgetc(rfp, TRUE);                         //class or module
   dst += sizeof(unsigned char);
@@ -250,7 +262,9 @@ error_exit:
 
   return result;
 }
+#endif /* ENABLE_STDIO */
 
+#ifdef ENABLE_STDIO
 int
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
@@ -309,6 +323,7 @@ error_exit:
 
   return ret;
 }
+#endif /* ENABLE_STDIO */
 
 static int
 read_rite_header(mrb_state *mrb, unsigned char *bin, rite_binary_header*  bin_header)
@@ -435,13 +450,6 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
         irep->pool[i] = mrb_str_new(mrb, buf, pdl);
         break;
 
-#ifdef ENABLE_REGEXP
-      case MRB_TT_REGEX:
-        str = mrb_str_new(mrb, buf, pdl);
-        irep->pool[i] = mrb_reg_quote(mrb, str);
-        break;
-#endif
-
       default:
         irep->pool[i] = mrb_nil_value();
         break;
@@ -528,7 +536,7 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
   nirep = read_rite_header(mrb, src, &bin_header);
   if (nirep < 0)
     return nirep;
-  
+
   src += sizeof(bin_header) + MRB_DUMP_SIZE_OF_SHORT;  //header + crc
 
   //Read Binary Data Section
@@ -678,6 +686,7 @@ irep_error(mrb_state *mrb, int n)
   mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SCRIPT_ERROR, msg, sizeof(msg) - 1));
 }
 
+#ifdef ENABLE_STDIO
 mrb_value
 mrb_load_irep_file(mrb_state *mrb, FILE* fp)
 {
@@ -689,6 +698,7 @@ mrb_load_irep_file(mrb_state *mrb, FILE* fp)
   }
   return mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
 }
+#endif
 
 mrb_value
 mrb_load_irep(mrb_state *mrb, const char *bin)

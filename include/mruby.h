@@ -129,8 +129,9 @@ typedef struct mrb_state {
 
   mrb_sym symidx;
   struct kh_n2s *name2sym;      /* symbol table */
-#ifdef INCLUDE_REGEXP
-  struct RNode *local_svar;/* regexp */
+
+#ifdef ENABLE_DEBUG
+  void (*code_fetch_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
 #endif
 
   struct RClass *eException_class;
@@ -268,7 +269,6 @@ mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len);
 void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
 
-int mrb_block_given_p(void);
 void mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg);
 void mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
 void mrb_warn(const char *fmt, ...);

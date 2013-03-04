@@ -72,7 +72,7 @@ mrb_alloca_free(mrb_state *mrb)
 }
 
 mrb_state*
-mrb_open()
+mrb_open(void)
 {
   mrb_state *mrb = mrb_open_allocf(allocf, NULL);
 
@@ -110,6 +110,10 @@ mrb_close(mrb_state *mrb)
   mrb_free(mrb, mrb);
 }
 
+#ifndef MRB_IREP_ARRAY_INIT_SIZE
+# define MRB_IREP_ARRAY_INIT_SIZE (256u)
+#endif
+
 mrb_irep*
 mrb_add_irep(mrb_state *mrb)
 {
@@ -117,7 +121,7 @@ mrb_add_irep(mrb_state *mrb)
   mrb_irep *irep;
 
   if (!mrb->irep) {
-    int max = 256;
+    size_t max = MRB_IREP_ARRAY_INIT_SIZE;
 
     if (mrb->irep_len > max) max = mrb->irep_len+1;
     mrb->irep = (mrb_irep **)mrb_calloc(mrb, max, sizeof(mrb_irep*));
