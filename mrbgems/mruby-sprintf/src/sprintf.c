@@ -6,8 +6,6 @@
 
 #include "mruby.h"
 
-#ifdef ENABLE_SPRINTF
-
 #include <stdio.h>
 #include <string.h>
 #include "mruby/string.h"
@@ -1091,5 +1089,3 @@ fmt_setup(char *buf, size_t size, int c, int flags, int width, int prec)
   *buf++ = c;
   *buf = '\0';
 }
-
-#endif	/* ENABLE_SPRINTF */
