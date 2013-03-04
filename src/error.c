@@ -277,23 +277,27 @@ mrb_sprintf(mrb_state *mrb, const char *fmt, ...)
 void
 mrb_warn(const char *fmt, ...)
 {
+#ifdef ENABLE_STDIO
   va_list args;
 
   va_start(args, fmt);
   printf("warning: ");
   vprintf(fmt, args);
   va_end(args);
+#endif
 }
 
 void
 mrb_bug(const char *fmt, ...)
 {
+#ifdef ENABLE_STDIO
   va_list args;
 
   va_start(args, fmt);
   printf("bug: ");
   vprintf(fmt, args);
   va_end(args);
+#endif
   exit(EXIT_FAILURE);
 }
 
