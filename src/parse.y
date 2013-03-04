@@ -3942,6 +3942,7 @@ parser_yylex(parser_state *p)
       if (!ISSPACE(c2)) {
 	tokfix(p);
 	yylval.nd = new_str(p, tok(p), toklen(p));
+        p->lstate = EXPR_DOT;
 	return tHEREDOC_BEG;
       }
     }
