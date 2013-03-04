@@ -208,9 +208,7 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
   mrb->exc = (struct RObject*)mrb_object(exc);
   exc_debug_info(mrb, mrb->exc);
   if (!mrb->jmp) {
-#ifdef ENABLE_STDIO
     mrb_p(mrb, exc);
-#endif
     abort();
   }
   longjmp(*(jmp_buf*)mrb->jmp, 1);
