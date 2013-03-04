@@ -24,14 +24,14 @@ extern const char mrb_digitmap[];
 typedef struct mrb_shared_string {
   int refcnt;
   char *ptr;
-  int len;
+  mrb_int len;
 } mrb_shared_string;
 
 struct RString {
   MRB_OBJECT_HEADER;
-  int len;
+  mrb_int len;
   union {
-    int capa;
+    mrb_int capa;
     mrb_shared_string *shared;
   } aux;
   char *ptr;
