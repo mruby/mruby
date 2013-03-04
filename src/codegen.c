@@ -410,9 +410,27 @@ new_lit(codegen_scope *s, mrb_value val)
 {
   int i;
 
-  for (i=0; i<s->irep->plen; i++) {
-    if (mrb_obj_equal(s->mrb, s->irep->pool[i], val)) return i;
+  
+  switch (mrb_type(val)) {
+  case MRB_TT_STRING:
+    for (i=0; i<s->irep->plen; i++) {
+      mrb_value pv = s->irep->pool[i];
+      mrb_int len;
+
+      if (mrb_type(pv) != MRB_TT_STRING) continue;
+      if ((len = RSTRING_LEN(pv)) != RSTRING_LEN(val)) continue;
+      if (memcmp(RSTRING_PTR(pv), RSTRING_PTR(val), len) == 0)
+        return i;
+    }
+    break;
+  case MRB_TT_FLOAT:
+  default:
+    for (i=0; i<s->irep->plen; i++) {
+      if (mrb_obj_equal(s->mrb, s->irep->pool[i], val)) return i;
+    }
+    break;
   }
+    
   if (s->irep->plen == s->pcapa) {
     s->pcapa *= 2;
     s->irep->pool = (mrb_value *)codegen_realloc(s, s->irep->pool, sizeof(mrb_value)*s->pcapa);
