@@ -11,10 +11,6 @@
 extern "C" {
 #endif
 
-#ifndef RB_GC_GUARD
-#define RB_GC_GUARD(v) v
-#endif
-
 #define IS_EVSTR(p,e) ((p) < (e) && (*(p) == '$' || *(p) == '@' || *(p) == '{'))
 
 #define STR_BUF_MIN_SIZE 128

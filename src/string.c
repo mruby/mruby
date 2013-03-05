@@ -1511,9 +1511,8 @@ mrb_value
 mrb_str_intern(mrb_state *mrb, mrb_value self)
 {
   mrb_sym id;
-  mrb_value str = RB_GC_GUARD(self);
 
-  id = mrb_intern_str(mrb, str);
+  id = mrb_intern_str(mrb, self);
   return mrb_symbol_value(id);
 
 }
