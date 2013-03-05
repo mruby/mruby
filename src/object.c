@@ -323,14 +323,14 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *metho
 mrb_value
 mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method)
 {
-    mrb_value v;
+  mrb_value v;
 
-    if (mrb_type(val) == MRB_TT_FIXNUM) return val;
-    v = convert_type(mrb, val, "Integer", method, FALSE);
-    if (mrb_nil_p(v) || mrb_type(v) != MRB_TT_FIXNUM) {
-      return mrb_nil_value();
-    }
-    return v;
+  if (mrb_type(val) == MRB_TT_FIXNUM) return val;
+  v = convert_type(mrb, val, "Integer", method, FALSE);
+  if (mrb_nil_p(v) || mrb_type(v) != MRB_TT_FIXNUM) {
+    return mrb_nil_value();
+  }
+  return v;
 }
 
 mrb_value
@@ -342,7 +342,7 @@ mrb_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *tname,
   v = convert_type(mrb, val, tname, method, 1/*Qtrue*/);
   if (mrb_type(v) != type) {
     mrb_raisef(mrb, E_TYPE_ERROR, "%s cannot be converted to %s by #%s",
-	      mrb_obj_classname(mrb, val), tname, method);
+              mrb_obj_classname(mrb, val), tname, method);
   }
   return v;
 }
@@ -495,22 +495,22 @@ mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
 static mrb_value
 mrb_to_integer(mrb_state *mrb, mrb_value val, const char *method)
 {
-    mrb_value v;
+  mrb_value v;
 
-    if (mrb_fixnum_p(val)) return val;
-    v = convert_type(mrb, val, "Integer", method, TRUE);
-    if (!mrb_obj_is_kind_of(mrb, v, mrb->fixnum_class)) {
-      const char *cname = mrb_obj_classname(mrb, val);
-      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s to Integer (%s#%s gives %s)",
-               cname, cname, method, mrb_obj_classname(mrb, v));
-    }
-    return v;
+  if (mrb_fixnum_p(val)) return val;
+  v = convert_type(mrb, val, "Integer", method, TRUE);
+  if (!mrb_obj_is_kind_of(mrb, v, mrb->fixnum_class)) {
+    const char *cname = mrb_obj_classname(mrb, val);
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s to Integer (%s#%s gives %s)",
+        cname, cname, method, mrb_obj_classname(mrb, v));
+  }
+  return v;
 }
 
 mrb_value
 mrb_to_int(mrb_state *mrb, mrb_value val)
 {
-    return mrb_to_integer(mrb, val, "to_int");
+  return mrb_to_integer(mrb, val, "to_int");
 }
 
 static mrb_value
@@ -557,7 +557,7 @@ string_conv:
 mrb_value
 mrb_Integer(mrb_state *mrb, mrb_value val)
 {
-    return mrb_convert_to_integer(mrb, val, 0);
+  return mrb_convert_to_integer(mrb, val, 0);
 }
 
 mrb_value

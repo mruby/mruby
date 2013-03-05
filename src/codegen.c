@@ -421,7 +421,6 @@ new_lit(codegen_scope *s, mrb_value val)
 {
   int i;
 
-  
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
     for (i=0; i<s->irep->plen; i++) {
