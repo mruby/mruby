@@ -483,12 +483,12 @@ argnum_error(mrb_state *mrb, int num)
 
   if (mrb->ci->mid) {
     len = snprintf(buf, sizeof(buf), "'%s': wrong number of arguments (%d for %d)",
-		   mrb_sym2name(mrb, mrb->ci->mid),
-		   mrb->ci->argc, num);
+                  mrb_sym2name(mrb, mrb->ci->mid),
+                  mrb->ci->argc, num);
   }
   else {
     len = snprintf(buf, sizeof(buf), "wrong number of arguments (%d for %d)",
-		   mrb->ci->argc, num);
+                  mrb->ci->argc, num);
   }
   exc = mrb_exc_new(mrb, E_ARGUMENT_ERROR, buf, len);
   mrb->exc = (struct RObject*)mrb_object(exc);

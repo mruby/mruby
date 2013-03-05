@@ -62,7 +62,7 @@ str_modify(mrb_state *mrb, struct RString *s)
       len = s->len;
       ptr = (char *)mrb_malloc(mrb, len+1);
       if (p) {
-	memcpy(ptr, p, len);
+        memcpy(ptr, p, len);
       }
       ptr[len] = 0;
       s->ptr = ptr;
@@ -931,8 +931,8 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
     if (s->ptr[len-1] == '\n') {
       s->len--;
       if (s->len > 0 &&
-	  s->ptr[s->len-1] == '\r') {
-	s->len--;
+          s->ptr[s->len-1] == '\r') {
+        s->len--;
       }
     }
     else if (s->ptr[len-1] == '\r') {
