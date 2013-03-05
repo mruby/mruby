@@ -4,6 +4,9 @@
 ** See Copyright Notice in mruby.h
 */
 
+#ifndef NODE_H
+#define NODE_H
+
 enum node_type {
     NODE_METHOD,
     NODE_FBODY,
@@ -105,3 +108,5 @@ enum node_type {
     NODE_HEREDOC,
     NODE_LAST
 };
+
+#endif  /* NODE_H */
