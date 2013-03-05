@@ -19,7 +19,7 @@ uint16_t
 calc_crc_16_ccitt(unsigned char *src, int nbytes)
 {
   uint32_t   crcwk = 0ul;
-  int             ibyte, ibit;
+  int        ibyte, ibit;
 
   for (ibyte = 0; ibyte < nbytes; ibyte++) {
     crcwk |= *src++;
