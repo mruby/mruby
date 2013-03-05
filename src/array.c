@@ -192,8 +192,14 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
   if (capa > ARY_MAX_SIZE) capa = ARY_MAX_SIZE; /* len <= capa <= ARY_MAX_SIZE */
 
   if (capa > a->aux.capa) {
+    mrb_value *expanded_ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
+
+    if(!expanded_ptr) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "out of memory");
+    }
+
     a->aux.capa = capa;
-    a->ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
+    a->ptr = expanded_ptr;
   }
 }
 
