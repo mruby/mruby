@@ -336,6 +336,17 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
           s->iseq[s->pc-1] = MKOP_ABC(OP_SUBI, GETARG_A(i), GETARG_B(i), -c);
         return;
       }
+    case OP_STRCAT:
+      if (c0 == OP_STRING) {
+        int i = GETARG_Bx(i0);
+
+        if (mrb_type(s->irep->pool[i]) == MRB_TT_STRING &&
+            RSTRING_LEN(s->irep->pool[i]) == 0) {
+          s->pc--;
+          return;
+        }
+      }
+      break;
     default:
       break;
     }
@@ -1934,7 +1945,7 @@ codegen(codegen_scope *s, node *tree, int val)
       while (n) {
         codegen(s, n->car, VAL);
         pop(); pop();
-        genop(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1));
+        genop_peep(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1), VAL);
         push();
         n = n->cdr;
       }
@@ -1996,7 +2007,7 @@ codegen(codegen_scope *s, node *tree, int val)
       while (n) {
         codegen(s, n->car, VAL);
         pop(); pop();
-        genop(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1));
+        genop_peep(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1), VAL);
         push();
         n = n->cdr;
       }
@@ -2007,7 +2018,7 @@ codegen(codegen_scope *s, node *tree, int val)
         codegen(s, tree->car, VAL);
         genop(s, MKOP_ABx(OP_STRING, cursp(), off));
         pop();
-        genop(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1));
+        genop_peep(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1), VAL);
       }
       if (n->cdr) {
         char *p2 = (char*)n->cdr;
