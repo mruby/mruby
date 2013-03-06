@@ -83,6 +83,17 @@ void mrb_free_symtbl(mrb_state *mrb);
 void mrb_free_heap(mrb_state *mrb);
 
 void
+mrb_irep_free(mrb_state *mrb, struct mrb_irep *irep)
+{
+  if (!(irep->flags & MRB_ISEQ_NO_FREE))
+    mrb_free(mrb, irep->iseq);
+  mrb_free(mrb, irep->pool);
+  mrb_free(mrb, irep->syms);
+  mrb_free(mrb, irep->lines);
+  mrb_free(mrb, irep);
+}
+
+void
 mrb_close(mrb_state *mrb)
 {
   size_t i;
@@ -94,12 +105,7 @@ mrb_close(mrb_state *mrb)
   mrb_free(mrb, mrb->stbase);
   mrb_free(mrb, mrb->cibase);
   for (i=0; i<mrb->irep_len; i++) {
-    if (!(mrb->irep[i]->flags & MRB_ISEQ_NO_FREE))
-      mrb_free(mrb, mrb->irep[i]->iseq);
-    mrb_free(mrb, mrb->irep[i]->pool);
-    mrb_free(mrb, mrb->irep[i]->syms);
-    mrb_free(mrb, mrb->irep[i]->lines);
-    mrb_free(mrb, mrb->irep[i]);
+    mrb_irep_free(mrb, mrb->irep[i]);
   }
   mrb_free(mrb, mrb->irep);
   mrb_free(mrb, mrb->rescue);
