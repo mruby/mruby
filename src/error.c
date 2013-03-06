@@ -309,7 +309,7 @@ mrb_strerrno(int err)
 //#include "known_errors.inc"
 #undef defined_error
 #undef undefined_error
-    return NULL;
+  return NULL;
 }
 
 void
@@ -348,7 +348,7 @@ make_exception(mrb_state *mrb, int argc, mrb_value *argv, int isstr)
   mesg = mrb_nil_value();
   switch (argc) {
     case 0:
-    break;
+      break;
     case 1:
       if (mrb_nil_p(argv[0]))
         break;
