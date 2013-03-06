@@ -2658,6 +2658,28 @@ mrb_str_bytes(mrb_state *mrb, mrb_value str)
   return a;
 }
 
+static mrb_value
+mrb_str_getbyte(mrb_state *mrb, mrb_value str)
+{
+  mrb_int idx;
+  struct RString *s;
+  mrb_value str2;
+  unsigned char *p;
+
+  mrb_get_args(mrb, "i", &idx);
+  str2 = mrb_str_substr(mrb, str, idx, 1);
+  if (mrb_nil_p(str2) || RSTRING_LEN(str2) == 0) {
+    return mrb_nil_value();
+  }
+
+  s = mrb_str_ptr(str2);
+  p = (unsigned char *)(s->ptr);
+
+  return mrb_fixnum_value(p[0]);
+}
+
+
+
 /* ---------------------------*/
 void
 mrb_init_string(mrb_state *mrb)
@@ -2726,4 +2748,5 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "upcase!",         mrb_str_upcase_bang,     ARGS_REQ(1));              /* 15.2.10.5.43 */
   mrb_define_method(mrb, s, "inspect",         mrb_str_inspect,         ARGS_NONE());              /* 15.2.10.5.46(x) */
   mrb_define_method(mrb, s, "bytes",           mrb_str_bytes,           ARGS_NONE());
+  mrb_define_method(mrb, s, "getbyte",         mrb_str_getbyte,         ARGS_REQ(1));
 }
