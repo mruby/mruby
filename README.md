@@ -1,8 +1,6 @@
 mruby-dir
 =========
 
-Note: mruby-dir requires iij/mruby now.
-
 ## License
 
 Copyright (c) 2012 Internet Initiative Japan Inc.
