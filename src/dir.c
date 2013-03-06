@@ -8,6 +8,7 @@
 #include "mruby/class.h"
 #include "mruby/data.h"
 #include "mruby/string.h"
+#include "error.h"
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -16,6 +17,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <unistd.h>
+#include <string.h>
 
 /* with/without IO module */
 #ifdef ENABLE_IO
