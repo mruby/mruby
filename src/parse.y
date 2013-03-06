@@ -4485,7 +4485,6 @@ parser_yylex(parser_state *p)
     }
     pushback(p, c);
     if (IS_SPCARG(c)) {
-      arg_ambiguous(p);
 #if 0
       p->lex_strterm = new_strterm(p, str_regexp, '/', 0);
 #endif
