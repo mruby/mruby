@@ -28,6 +28,9 @@ module MRuby
       attr_accessor :test_objs, :test_rbfiles, :test_args
       attr_accessor :test_preload
 
+      attr_accessor :bins
+      alias :bin= :bins=
+
       attr_block MRuby::Build::COMMANDS
 
       def initialize(name, &block)
@@ -58,6 +61,8 @@ module MRuby
         end
         @test_preload = 'test/assert.rb'
         @test_args = {}
+
+        @bins = []
 
         instance_eval(&@initializer)
 

@@ -174,8 +174,9 @@ module MRuby
       puts "         Binaries: #{@bins.join(', ')}" unless @bins.empty?
       unless @gems.empty?
         puts "    Included Gems:"
-        @gems.map(&:name).each do |name|
-          puts "             #{name}"
+        @gems.map do |gem|
+          puts "             #{gem.name}"
+          puts "               - Binaries: #{gem.bins.join(', ')}" unless gem.bins.empty?
         end
       end
       puts "================================================"
