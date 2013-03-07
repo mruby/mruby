@@ -28,6 +28,8 @@ module MRuby
       attr_accessor :test_objs, :test_rbfiles, :test_args
       attr_accessor :test_preload
 
+      attr_accessor :bins
+
       attr_block MRuby::Build::COMMANDS
 
       def initialize(name, &block)
@@ -59,6 +61,8 @@ module MRuby
         @test_preload = 'test/assert.rb'
         @test_args = {}
 
+        @bins = []
+
         instance_eval(&@initializer)
 
         if !name || !licenses || !authors
@@ -74,6 +78,10 @@ module MRuby
         end
 
         define_gem_init_builder
+      end
+
+      def self.bin=(bin)
+        @bins = [bin].flatten
       end
 
       def build_dir
