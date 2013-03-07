@@ -21,7 +21,8 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
   struct RClass * s = mrb->string_class;
 
-  mrb_define_method(mrb, s, "getbyte", mrb_str_getbyte, ARGS_REQ(1));
+  mrb_define_method(mrb, s, "dump",            mrb_str_dump,            ARGS_NONE());
+  mrb_define_method(mrb, s, "getbyte",         mrb_str_getbyte,         ARGS_REQ(1));
 }
 
 void

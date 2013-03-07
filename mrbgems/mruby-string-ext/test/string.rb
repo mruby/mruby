@@ -13,3 +13,6 @@ assert('String#getbyte') do
   assert_equal bytes2[0], str2.getbyte(0)
 end
 
+assert('String#dump') do
+  "foo".dump == "\"foo\""
+end
