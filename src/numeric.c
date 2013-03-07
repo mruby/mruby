@@ -263,6 +263,21 @@ flodivmod(mrb_state *mrb, mrb_float x, mrb_float y, mrb_float *divp, mrb_float *
   if (modp) *modp = mod;
   if (divp) *divp = div;
 }
+  
+static mrb_value
+int_chr(mrb_state *mrb, mrb_value x)
+{
+  mrb_int chr;
+  char c;
+
+  chr = mrb_fixnum(x);
+  if (chr >= (1 << CHAR_BIT)) {
+    mrb_raisef(mrb, E_RANGE_ERROR, "%ld out of char range", chr);
+  }
+  c = (char)chr;
+
+  return mrb_str_new(mrb, &c, 1);
+}
 
 /* 15.2.9.3.5  */
 /*
@@ -1374,6 +1389,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "to_f",      flo_to_f,         ARGS_NONE()); /* 15.2.9.3.13 */
   mrb_define_method(mrb, fl,      "to_i",      flo_truncate,     ARGS_NONE()); /* 15.2.9.3.14 */
   mrb_define_method(mrb, fl,      "truncate",  flo_truncate,     ARGS_NONE()); /* 15.2.9.3.15 */
+  mrb_define_method(mrb, fixnum,  "chr",       int_chr,          ARGS_NONE());
 
   mrb_define_method(mrb, fl,      "to_s",      flo_to_s,         ARGS_NONE()); /* 15.2.9.3.16(x) */
   mrb_define_method(mrb, fl,      "inspect",   flo_to_s,         ARGS_NONE());
