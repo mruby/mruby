@@ -48,6 +48,30 @@ depfiles = MRuby.targets['host'].bins.map do |bin|
   install_path
 end
 
+MRuby.each_target do
+  gems.map do | gem |
+    current_dir = gem.dir.relative_path_from(Dir.pwd)
+    relative_from_root = gem.dir.relative_path_from(MRUBY_ROOT)
+    current_build_dir = "#{build_dir}/#{relative_from_root}"
+
+    gem.bins.each do | bin |
+      exec = exefile("#{build_dir}/bin/#{bin}")
+      objs = Dir.glob("#{current_dir}/tool/#{bin}/*.c").map { |f| objfile(f.pathmap("#{current_build_dir}/tool/#{bin}/%n")) }
+
+      file exec => objs + [libfile("#{build_dir}/lib/libmruby")] do |t|
+        gem_flags = gems.map { |g| g.linker.flags }
+        gem_flags_before_libraries = gems.map { |g| g.linker.flags_before_libraries }
+        gem_flags_after_libraries = gems.map { |g| g.linker.flags_after_libraries }
+        gem_libraries = gems.map { |g| g.linker.libraries }
+        gem_library_paths = gems.map { |g| g.linker.library_paths }
+        linker.run t.name, t.prerequisites, gem_libraries, gem_library_paths, gem_flags, gem_flags_before_libraries
+      end
+
+      depfiles += [ exec ]
+    end
+  end
+end
+
 depfiles += MRuby.targets.reject { |n, t| n == 'host' }.map { |n, t|
   [t.libfile("#{t.build_dir}/lib/libmruby")] + t.bins.map { |bin| t.exefile("#{t.build_dir}/bin/#{bin}") }
 }.flatten
