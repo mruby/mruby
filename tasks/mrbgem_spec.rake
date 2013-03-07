@@ -29,7 +29,6 @@ module MRuby
       attr_accessor :test_preload
 
       attr_accessor :bins
-      alias :bin= :bins=
 
       attr_block MRuby::Build::COMMANDS
 
@@ -79,6 +78,10 @@ module MRuby
         end
 
         define_gem_init_builder
+      end
+
+      def self.bin=(bin)
+        @bins = [bin].flatten
       end
 
       def build_dir
