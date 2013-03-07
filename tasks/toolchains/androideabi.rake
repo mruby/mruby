@@ -16,7 +16,7 @@ MRuby::Toolchain.new(:androideabi) do |conf|
 
   [conf.cc, conf.cxx, conf.objc, conf.asm].each do |cc|
     cc.command = ENV['CC'] || ANDROID_STANDALONE_TOOLCHAIN + 'gcc'
-    cc.flags = [ENV['CFLAGS'] || ['--sysroot ' + SYSROOT]]
+    cc.flags = [ENV['CFLAGS'] || ['--sysroot=' + SYSROOT]]
   end
   conf.linker.command = ENV['LD'] || ANDROID_STANDALONE_TOOLCHAIN + 'gcc'
   conf.archiver.command = ENV['AR'] || ANDROID_STANDALONE_TOOLCHAIN + 'ar'
