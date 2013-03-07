@@ -23,6 +23,9 @@ MRuby::Build.new do |conf|
   # Use standard Kernel#sprintf method
   conf.gem 'mrbgems/mruby-sprintf'
 
+  # Use extensional String class
+  conf.gem 'mrbgems/mruby-string-ext'
+
   # Generate binaries
   # conf.bins = %w(mrbc mruby mirb)
   
