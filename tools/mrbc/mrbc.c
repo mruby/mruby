@@ -83,6 +83,12 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 
       switch ((*argv)[1]) {
       case 'o':
+        if (outfile) {
+          printf("%s: An output file is already specified. (%s)\n",
+                 *origargv, outfile);
+          result = -5;
+          goto exit;
+        }
         outfile = get_outfilename((*argv) + 2, "");
         break;
       case 'B':
