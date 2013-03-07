@@ -27,7 +27,7 @@ module MRuby
         return gemdir if File.exists?(gemdir)
 
         options = [params[:options]] || []
-        options << "--branch \"#{params[:branch]}\"" if params[:tag]
+        options << "--branch \"#{params[:branch]}\"" if params[:branch]
 
         FileUtils.mkdir_p "build/mrbgems"
         git.run_clone gemdir, url, options
