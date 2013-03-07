@@ -89,21 +89,6 @@ array_copy(mrb_value *dst, const mrb_value *src, size_t size)
   }
 }
 
-
-mrb_value
-mrb_ary_new_from_values(mrb_state *mrb, mrb_int size, mrb_value *vals)
-{
-  mrb_value ary;
-  struct RArray *a;
-
-  ary = mrb_ary_new_capa(mrb, size);
-  a = mrb_ary_ptr(ary);
-  array_copy(a->ptr, vals, size);
-  a->len = size;
-
-  return ary;
-}
-
 mrb_value
 mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr)
 {
@@ -433,23 +418,17 @@ mrb_ary_reverse(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
-mrb_ary_new4(mrb_state *mrb, mrb_int n, const mrb_value *elts)
+mrb_ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals)
 {
   mrb_value ary;
+  struct RArray *a;
 
-  ary = mrb_ary_new_capa(mrb, n);
-  if (n > 0 && elts) {
-    array_copy(RARRAY_PTR(ary), elts, n);
-    RARRAY_LEN(ary) = n;
-  }
+  ary = mrb_ary_new_capa(mrb, size);
+  a = mrb_ary_ptr(ary);
+  array_copy(a->ptr, vals, size);
+  a->len = size;
 
   return ary;
-}
-
-mrb_value
-mrb_ary_new_elts(mrb_state *mrb, mrb_int n, const mrb_value *elts)
-{
-  return mrb_ary_new4(mrb, n, elts);
 }
 
 void

@@ -1061,7 +1061,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         stack = e->stack + 1;
       }
       if (r == 0) {
-        regs[a] = mrb_ary_new_elts(mrb, m1+m2, stack);
+        regs[a] = mrb_ary_new_from_values(mrb, m1+m2, stack);
       }
       else {
         mrb_value *pp = NULL;
@@ -1149,7 +1149,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           memmove(&regs[1], argv, sizeof(mrb_value)*(m1+o)); /* m1 + o */
         }
         if (r) {                  /* r */
-          regs[m1+o+1] = mrb_ary_new_elts(mrb, argc-m1-o-m2, argv+m1+o);
+          regs[m1+o+1] = mrb_ary_new_from_values(mrb, argc-m1-o-m2, argv+m1+o);
         }
         if (m2) {
           memmove(&regs[m1+o+r+1], &argv[argc-m2], sizeof(mrb_value)*m2);
@@ -1731,7 +1731,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         int i;
 
         if (len > pre + post) {
-          regs[a++] = mrb_ary_new_elts(mrb, len - pre - post, ary->ptr+pre);
+          regs[a++] = mrb_ary_new_from_values(mrb, len - pre - post, ary->ptr+pre);
           while (post--) {
             regs[a++] = ary->ptr[len-post-1];
           }
