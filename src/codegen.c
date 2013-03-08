@@ -708,7 +708,7 @@ gen_values(codegen_scope *s, node *t, int val)
   int n = 0;
 
   while (t) {
-    if ((intptr_t)t->car->car == NODE_SPLAT) { // splat mode
+    if (n >= 127 || (intptr_t)t->car->car == NODE_SPLAT) { // splat mode
       if (val) {
         pop_n(n);
         genop(s, MKOP_ABC(OP_ARRAY, cursp(), cursp(), n));
