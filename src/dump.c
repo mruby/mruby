@@ -348,7 +348,7 @@ write_rite_binary_header(mrb_state *mrb, uint32_t binary_size, uint8_t* bin)
 static int
 mrb_dump_irep(mrb_state *mrb, int start_index, uint8_t **bin, uint32_t *bin_size)
 {
-  int result = MRB_DUMP_OK, irep_no, section_irep_size;
+  int result, irep_no, section_irep_size;
   uint8_t *cur = NULL;
 
   if (mrb == NULL || start_index < 0 || start_index >= mrb->irep_len) {

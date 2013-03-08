@@ -22,7 +22,7 @@ offset_crc_body()
 static int
 read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
 {
-  int i, ret = MRB_DUMP_OK;
+  int i, ret;
   char *char_buf;
   const uint8_t *src = bin;
   uint16_t tt, pool_data_len, snl, buf_size = MRB_DUMP_DEFAULT_STR_LEN;
@@ -155,6 +155,7 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
   }
   *len = src - bin;
 
+  ret = MRB_DUMP_OK;
 error_exit:
   mrb_free(mrb, char_buf);
   return ret;
@@ -163,7 +164,7 @@ error_exit:
 static int
 read_rite_section_irep(mrb_state *mrb, const uint8_t *bin)
 {
-  int n, i, result = MRB_DUMP_OK;
+  int n, i, result;
   uint32_t len, sirep;
   uint16_t nirep;
   const struct rite_section_irep_header *header;
@@ -182,6 +183,7 @@ read_rite_section_irep(mrb_state *mrb, const uint8_t *bin)
     bin += len;
   }
 
+  result = MRB_DUMP_OK;
 error_exit:
   if (result != MRB_DUMP_OK) {
     for (n = 0, i = sirep; i < mrb->irep_len; n++, i++) {
@@ -225,7 +227,7 @@ read_rite_binary_header(const uint8_t *bin, uint32_t *bin_size, uint16_t *crc)
 int
 mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
 {
-  int total_nirep = 0, result = MRB_DUMP_OK;
+  int total_nirep = 0, result;
   const struct rite_section_header *section_header;
   uint16_t crc;
   uint32_t bin_size = 0, n;
@@ -285,7 +287,7 @@ mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 static int
 read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
 {
-  int n, i, result = MRB_DUMP_OK;
+  int n, i, result;
   uint16_t sirep, nirep;
   uint32_t len, buf_size;
   uint8_t *buf = NULL;
@@ -311,6 +313,7 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
       goto error_exit;
   }
 
+  result = MRB_DUMP_OK;
 error_exit:
   mrb_free(mrb, buf);
   if (result != MRB_DUMP_OK) {
@@ -336,7 +339,7 @@ error_exit:
 int
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
-  int total_nirep = 0, result = MRB_DUMP_OK;
+  int total_nirep = 0, result;
   uint8_t *buf;
   uint16_t crc, crcwk = 0;
   uint32_t bin_size = 0, buf_size = 0, section_size = 0;
