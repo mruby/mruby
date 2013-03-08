@@ -577,7 +577,7 @@ mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val) /* rb_ary_s
   if (n < 0) {
     n += a->len;
     if (n < 0) {
-      mrb_raisef(mrb, E_INDEX_ERROR, "index %ld out of array", n - a->len);
+      mrb_raisef(mrb, E_INDEX_ERROR, "index %" PRIdMRB_INT " out of array", n - a->len);
     }
   }
   if (a->len <= (int)n) {
