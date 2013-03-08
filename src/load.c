@@ -349,14 +349,14 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   struct rite_section_header section_header;
   long fpos;
   const size_t block_size = 1 << 14;
+  const size_t buf_size = sizeof(struct rite_binary_header);
 
   if ((mrb == NULL) || (fp == NULL)) {
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
-  buf_size = sizeof(struct rite_binary_header);
   buf = mrb_malloc(mrb, buf_size);
-  fread(buf, sizeof(struct rite_binary_header), 1, fp);
+  fread(buf, buf_size, 1, fp);
   result = read_rite_binary_header(buf, NULL, &crc);
   mrb_free(mrb, buf);
   if(result != MRB_DUMP_OK) {
