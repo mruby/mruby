@@ -69,9 +69,9 @@ module MRuby
       @out_ext = build.exts.object
 
       if build_dir.include? "mrbgems/"
-        generated_file_matcher = Regexp.new("^#{build_dir}/(.*)#{Regexp.escape out_ext}$")
+        generated_file_matcher = Regexp.new("^#{Regexp.escape build_dir}/(.*)#{Regexp.escape out_ext}$")
       else
-        generated_file_matcher = Regexp.new("^#{build_dir}/(?!mrbgems/.+/)(.*)#{Regexp.escape out_ext}$")
+        generated_file_matcher = Regexp.new("^#{Regexp.escape build_dir}/(?!mrbgems/.+/)(.*)#{Regexp.escape out_ext}$")
       end
       source_exts.each do |ext, compile|
         rule generated_file_matcher => [
