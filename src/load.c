@@ -12,6 +12,12 @@
 #include "mruby/irep.h"
 
 
+#ifndef _WIN32
+# if SIZE_MAX < UINT32_MAX
+#  error "It can't be run this code on this environment (SIZE_MAX < UINT32_MAX)"
+# endif
+#endif
+
 static size_t
 offset_crc_body()
 {
