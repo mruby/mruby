@@ -219,7 +219,9 @@ read_rite_binary_header(const uint8_t *bin, uint32_t *bin_size, uint16_t *crc)
   }
 
   *crc = bin_to_uint16(header->binary_crc);
-  *bin_size = bin_to_uint32(header->binary_size);
+  if (bin_size) {
+    *bin_size = bin_to_uint32(header->binary_size);
+  }
 
   return MRB_DUMP_OK;
 }
@@ -355,7 +357,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   buf_size = sizeof(struct rite_binary_header);
   buf = mrb_malloc(mrb, buf_size);
   fread(buf, sizeof(struct rite_binary_header), 1, fp);
-  result = read_rite_binary_header(buf, &bin_size, &crc);
+  result = read_rite_binary_header(buf, NULL, &crc);
   mrb_free(mrb, buf);
   if(result != MRB_DUMP_OK) {
     return result;
