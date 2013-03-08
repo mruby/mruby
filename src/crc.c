@@ -18,7 +18,7 @@
 #define  CRC_CARRY_BIT      (1 << 24)
 
 uint16_t
-calc_crc_16_ccitt(const unsigned char *src, uint32_t nbytes, uint16_t crc)
+calc_crc_16_ccitt(const uint8_t *src, uint32_t nbytes, uint16_t crc)
 {
   uint32_t ibyte, ibit;
   uint32_t crcwk = crc << 8;
