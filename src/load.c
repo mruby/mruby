@@ -12,23 +12,30 @@
 #include "mruby/irep.h"
 
 
+#ifndef _WIN32
+# if SIZE_MAX < UINT32_MAX
+#  error "It can't be run this code on this environment (SIZE_MAX < UINT32_MAX)"
+# endif
+#endif
+
 static size_t
 offset_crc_body()
 {
   struct rite_binary_header header;
-  return ((void*)header.binary_crc - (void*)&header) + sizeof(header.binary_crc);
+  return ((char *)header.binary_crc - (char *)&header) + sizeof(header.binary_crc);
 }
 
 static int
 read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
 {
-  int i, ret = MRB_DUMP_OK;
+  int ret;
+  size_t i;
   char *char_buf;
   const uint8_t *src = bin;
   uint16_t tt, pool_data_len, snl, buf_size = MRB_DUMP_DEFAULT_STR_LEN;
   mrb_int fix_num;
   mrb_float f;
-  int plen;
+  size_t plen;
   int ai = mrb_gc_arena_save(mrb);
   mrb_irep *irep = mrb_add_irep(mrb);
 
@@ -155,6 +162,7 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
   }
   *len = src - bin;
 
+  ret = MRB_DUMP_OK;
 error_exit:
   mrb_free(mrb, char_buf);
   return ret;
@@ -163,9 +171,12 @@ error_exit:
 static int
 read_rite_section_irep(mrb_state *mrb, const uint8_t *bin)
 {
-  int n, i, result = MRB_DUMP_OK;
-  uint32_t len, sirep;
+  int result;
+  size_t sirep;
+  size_t i;
+  uint32_t len;
   uint16_t nirep;
+  uint16_t n;
   const struct rite_section_irep_header *header;
 
   header = (const struct rite_section_irep_header*)bin;
@@ -182,9 +193,10 @@ read_rite_section_irep(mrb_state *mrb, const uint8_t *bin)
     bin += len;
   }
 
+  result = MRB_DUMP_OK;
 error_exit:
   if (result != MRB_DUMP_OK) {
-    for (n = 0, i = sirep; i < mrb->irep_len; n++, i++) {
+    for (i = sirep; i < mrb->irep_len; i++) {
       if (mrb->irep[i]) {
         if (mrb->irep[i]->iseq)
           mrb_free(mrb, mrb->irep[i]->iseq);
@@ -204,7 +216,7 @@ error_exit:
 }
 
 static int
-read_rite_binary_header(const uint8_t *bin, uint32_t *bin_size, uint16_t *crc)
+read_rite_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc)
 {
   const struct rite_binary_header *header = (const struct rite_binary_header *)bin;
 
@@ -217,18 +229,22 @@ read_rite_binary_header(const uint8_t *bin, uint32_t *bin_size, uint16_t *crc)
   }
 
   *crc = bin_to_uint16(header->binary_crc);
-  *bin_size = bin_to_uint32(header->binary_size);
+  if (bin_size) {
+    *bin_size = bin_to_uint32(header->binary_size);
+  }
 
   return MRB_DUMP_OK;
 }
 
-int
+int32_t
 mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
 {
-  int total_nirep = 0, result = MRB_DUMP_OK;
+  int result;
+  int32_t total_nirep = 0;
   const struct rite_section_header *section_header;
   uint16_t crc;
-  uint32_t bin_size = 0, n;
+  size_t bin_size = 0;
+  size_t n;
 
   if ((mrb == NULL) || (bin == NULL)) {
     return MRB_DUMP_INVALID_ARGUMENT;
@@ -270,7 +286,7 @@ irep_error(mrb_state *mrb, const char *msg)
 mrb_value
 mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 {
-  int n;
+  int32_t n;
 
   n = mrb_read_irep(mrb, bin);
   if (n < 0) {
@@ -282,14 +298,17 @@ mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 
 #ifdef ENABLE_STDIO
 
-static int
+static int32_t
 read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
 {
-  int n, i, result = MRB_DUMP_OK;
-  uint16_t sirep, nirep;
+  int32_t result;
+  size_t sirep;
+  size_t i;
+  uint16_t nirep;
+  uint16_t n;
   uint32_t len, buf_size;
   uint8_t *buf = NULL;
-  const int record_header_size = 1 + 4;
+  const size_t record_header_size = 1 + 4;
 
   struct rite_section_irep_header header;
   fread(&header, sizeof(struct rite_section_irep_header), 1, fp);
@@ -311,10 +330,11 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
       goto error_exit;
   }
 
+  result = MRB_DUMP_OK;
 error_exit:
   mrb_free(mrb, buf);
   if (result != MRB_DUMP_OK) {
-    for (n = 0, i = sirep; i < mrb->irep_len; n++, i++) {
+    for (i = sirep; i < mrb->irep_len; i++) {
       if (mrb->irep[i]) {
         if (mrb->irep[i]->iseq)
           mrb_free(mrb, mrb->irep[i]->iseq);
@@ -333,26 +353,27 @@ error_exit:
   return sirep + bin_to_uint16(header.sirep);
 }
 
-int
+int32_t
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
-  int total_nirep = 0, result = MRB_DUMP_OK;
+  int result;
+  int32_t total_nirep = 0;
   uint8_t *buf;
   uint16_t crc, crcwk = 0;
-  uint32_t bin_size = 0, buf_size = 0, section_size = 0;
+  uint32_t section_size = 0;
   size_t nbytes;
   struct rite_section_header section_header;
   long fpos;
   const size_t block_size = 1 << 14;
+  const size_t buf_size = sizeof(struct rite_binary_header);
 
   if ((mrb == NULL) || (fp == NULL)) {
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
-  buf_size = sizeof(struct rite_binary_header);
   buf = mrb_malloc(mrb, buf_size);
-  fread(buf, sizeof(struct rite_binary_header), 1, fp);
-  result = read_rite_binary_header(buf, &bin_size, &crc);
+  fread(buf, buf_size, 1, fp);
+  result = read_rite_binary_header(buf, NULL, &crc);
   mrb_free(mrb, buf);
   if(result != MRB_DUMP_OK) {
     return result;
