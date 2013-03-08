@@ -186,7 +186,7 @@ read_rite_section_irep(mrb_state *mrb, const uint8_t *bin)
   result = MRB_DUMP_OK;
 error_exit:
   if (result != MRB_DUMP_OK) {
-    for (n = 0, i = sirep; i < mrb->irep_len; n++, i++) {
+    for (i = sirep; i < mrb->irep_len; i++) {
       if (mrb->irep[i]) {
         if (mrb->irep[i]->iseq)
           mrb_free(mrb, mrb->irep[i]->iseq);
@@ -317,7 +317,7 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
 error_exit:
   mrb_free(mrb, buf);
   if (result != MRB_DUMP_OK) {
-    for (n = 0, i = sirep; i < mrb->irep_len; n++, i++) {
+    for (i = sirep; i < mrb->irep_len; i++) {
       if (mrb->irep[i]) {
         if (mrb->irep[i]->iseq)
           mrb_free(mrb, mrb->irep[i]->iseq);
