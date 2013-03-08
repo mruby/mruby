@@ -22,7 +22,7 @@ int mrb_dump_irep_binary(mrb_state*, int, FILE*);
 int mrb_dump_irep_cfunc(mrb_state *mrb, int n, FILE *f, const char *initname);
 int mrb_read_irep_file(mrb_state*, FILE*);
 #endif
-int mrb_read_irep(mrb_state*, const unsigned char*);
+int mrb_read_irep(mrb_state*, const uint8_t*);
 
 #ifdef ENABLE_STDIO
 mrb_value mrb_load_irep_file(mrb_state*,FILE*);
@@ -60,18 +60,18 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 
 // Rite binary header
 struct rite_binary_header {
-  unsigned char binary_identify[4]; // Rite Binary Identify
-  unsigned char binary_version[4];  // Rite Binary Format Version
-  unsigned char binary_crc[2];      // Rite Binary CRC
-  unsigned char binary_size[4];     // Rite Binary Size
-  unsigned char compiler_name[4];   // Rite Compiler name
-  unsigned char compiler_version[4];
+  uint8_t binary_identify[4]; // Rite Binary Identify
+  uint8_t binary_version[4];  // Rite Binary Format Version
+  uint8_t binary_crc[2];      // Rite Binary CRC
+  uint8_t binary_size[4];     // Rite Binary Size
+  uint8_t compiler_name[4];   // Rite Compiler name
+  uint8_t compiler_version[4];
 };
 
 // Rite section header
 #define RITE_SECTION_HEADER \
-  unsigned char section_identify[4]; \
-  unsigned char section_size[4];
+  uint8_t section_identify[4]; \
+  uint8_t section_size[4];
 
 struct rite_section_header {
   RITE_SECTION_HEADER;
@@ -80,9 +80,9 @@ struct rite_section_header {
 struct rite_section_irep_header {
   RITE_SECTION_HEADER;
 
-  unsigned char rite_version[4];    // Rite Instruction Specification Version
-  unsigned char nirep[2];           // Number of ireps
-  unsigned char sirep[2];           // Start index  
+  uint8_t rite_version[4];    // Rite Instruction Specification Version
+  uint8_t nirep[2];           // Number of ireps
+  uint8_t sirep[2];           // Start index  
 };
 
 struct rite_binary_footer {
@@ -90,14 +90,14 @@ struct rite_binary_footer {
 };
 
 static inline int
-uint8_to_bin(uint8_t s, unsigned char *bin)
+uint8_to_bin(uint8_t s, uint8_t *bin)
 {
   *bin = s;
   return sizeof(uint8_t);
 }
 
 static inline int
-uint16_to_bin(uint16_t s, unsigned char *bin)
+uint16_to_bin(uint16_t s, uint8_t *bin)
 {
   *bin++ = (s >> 8) & 0xff;
   *bin   = s & 0xff;
@@ -105,7 +105,7 @@ uint16_to_bin(uint16_t s, unsigned char *bin)
 }
 
 static inline int
-uint32_to_bin(uint32_t l, unsigned char *bin)
+uint32_to_bin(uint32_t l, uint8_t *bin)
 {
   *bin++ = (l >> 24) & 0xff;
   *bin++ = (l >> 16) & 0xff;
@@ -115,7 +115,7 @@ uint32_to_bin(uint32_t l, unsigned char *bin)
 }
 
 static inline uint32_t
-bin_to_uint32(const unsigned char *bin)
+bin_to_uint32(const uint8_t *bin)
 {
   return (uint32_t)bin[0] << 24 |
          (uint32_t)bin[1] << 16 |
@@ -124,21 +124,21 @@ bin_to_uint32(const unsigned char *bin)
 }
 
 static inline uint16_t
-bin_to_uint16(const unsigned char *bin)
+bin_to_uint16(const uint8_t *bin)
 {
   return (uint16_t)bin[0] << 8 |
          (uint16_t)bin[1];
 }
 
 static inline uint8_t
-bin_to_uint8(const unsigned char *bin)
+bin_to_uint8(const uint8_t *bin)
 {
   return (uint8_t)bin[0];
 }
 
 /* crc.c */
 uint32_t
-calc_crc_16_ccitt(const unsigned char *src, uint32_t nbytes, uint16_t crcwk);
+calc_crc_16_ccitt(const uint8_t *src, uint32_t nbytes, uint16_t crcwk);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */
