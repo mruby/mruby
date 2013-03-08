@@ -16,7 +16,7 @@ static size_t
 offset_crc_body()
 {
   struct rite_binary_header header;
-  return ((void*)header.binary_crc - (void*)&header) + sizeof(header.binary_crc);
+  return ((char *)header.binary_crc - (char *)&header) + sizeof(header.binary_crc);
 }
 
 static int
