@@ -9,7 +9,7 @@ mrb_int_chr(mrb_state *mrb, mrb_value x)
 
   chr = mrb_fixnum(x);
   if (chr >= (1 << CHAR_BIT)) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "%ld out of char range", chr);
+    mrb_raisef(mrb, E_RANGE_ERROR, "%" PRIdMRB_INT " out of char range", chr);
   }
   c = (char)chr;
 
