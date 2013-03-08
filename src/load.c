@@ -28,13 +28,14 @@ offset_crc_body()
 static int
 read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
 {
-  int i, ret;
+  int ret;
+  size_t i;
   char *char_buf;
   const uint8_t *src = bin;
   uint16_t tt, pool_data_len, snl, buf_size = MRB_DUMP_DEFAULT_STR_LEN;
   mrb_int fix_num;
   mrb_float f;
-  int plen;
+  size_t plen;
   int ai = mrb_gc_arena_save(mrb);
   mrb_irep *irep = mrb_add_irep(mrb);
 
@@ -170,9 +171,12 @@ error_exit:
 static int
 read_rite_section_irep(mrb_state *mrb, const uint8_t *bin)
 {
-  int n, i, result;
-  uint32_t len, sirep;
+  int result;
+  size_t sirep;
+  size_t i;
+  uint32_t len;
   uint16_t nirep;
+  uint16_t n;
   const struct rite_section_irep_header *header;
 
   header = (const struct rite_section_irep_header*)bin;
@@ -212,7 +216,7 @@ error_exit:
 }
 
 static int
-read_rite_binary_header(const uint8_t *bin, uint32_t *bin_size, uint16_t *crc)
+read_rite_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc)
 {
   const struct rite_binary_header *header = (const struct rite_binary_header *)bin;
 
@@ -232,13 +236,15 @@ read_rite_binary_header(const uint8_t *bin, uint32_t *bin_size, uint16_t *crc)
   return MRB_DUMP_OK;
 }
 
-int
+int32_t
 mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
 {
-  int total_nirep = 0, result;
+  int result;
+  int32_t total_nirep = 0;
   const struct rite_section_header *section_header;
   uint16_t crc;
-  uint32_t bin_size = 0, n;
+  size_t bin_size = 0;
+  size_t n;
 
   if ((mrb == NULL) || (bin == NULL)) {
     return MRB_DUMP_INVALID_ARGUMENT;
@@ -280,7 +286,7 @@ irep_error(mrb_state *mrb, const char *msg)
 mrb_value
 mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 {
-  int n;
+  int32_t n;
 
   n = mrb_read_irep(mrb, bin);
   if (n < 0) {
@@ -292,14 +298,17 @@ mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 
 #ifdef ENABLE_STDIO
 
-static int
+static int32_t
 read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
 {
-  int n, i, result;
-  uint16_t sirep, nirep;
+  int32_t result;
+  size_t sirep;
+  size_t i;
+  uint16_t nirep;
+  uint16_t n;
   uint32_t len, buf_size;
   uint8_t *buf = NULL;
-  const int record_header_size = 1 + 4;
+  const size_t record_header_size = 1 + 4;
 
   struct rite_section_irep_header header;
   fread(&header, sizeof(struct rite_section_irep_header), 1, fp);
@@ -344,13 +353,14 @@ error_exit:
   return sirep + bin_to_uint16(header.sirep);
 }
 
-int
+int32_t
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
-  int total_nirep = 0, result;
+  int result;
+  int32_t total_nirep = 0;
   uint8_t *buf;
   uint16_t crc, crcwk = 0;
-  uint32_t bin_size = 0, buf_size = 0, section_size = 0;
+  uint32_t section_size = 0;
   size_t nbytes;
   struct rite_section_header section_header;
   long fpos;

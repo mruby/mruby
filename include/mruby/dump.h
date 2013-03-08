@@ -18,9 +18,9 @@ extern "C" {
 #include <stdint.h>
 
 #ifdef ENABLE_STDIO
-int mrb_dump_irep_binary(mrb_state*, int, FILE*);
-int mrb_dump_irep_cfunc(mrb_state *mrb, int n, FILE *f, const char *initname);
-int mrb_read_irep_file(mrb_state*, FILE*);
+int mrb_dump_irep_binary(mrb_state*, size_t, FILE*);
+int mrb_dump_irep_cfunc(mrb_state *mrb, size_t n, FILE *f, const char *initname);
+int32_t mrb_read_irep_file(mrb_state*, FILE*);
 #endif
 int mrb_read_irep(mrb_state*, const uint8_t*);
 

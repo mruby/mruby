@@ -25,7 +25,7 @@ typedef struct mrb_irep {
   const char *filename;
   short *lines;
 
-  int ilen, plen, slen;
+  size_t ilen, plen, slen;
 } mrb_irep;
 
 #define MRB_ISEQ_NO_FREE 1
