@@ -26,10 +26,10 @@ void mrb_show_copyright(mrb_state *);
 struct _args {
   FILE *rfp;
   char* cmdline;
-  int fname        : 1;
-  int mrbfile      : 1;
-  int check_syntax : 1;
-  int verbose      : 1;
+  int fname;
+  int mrbfile;
+  int check_syntax;
+  int verbose;
   int argc;
   char** argv;
 };

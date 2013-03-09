@@ -67,8 +67,8 @@ enum heredoc_type {
 /* heredoc structure */
 struct mrb_parser_heredoc_info {
   enum heredoc_type type;
-  int allow_indent:1;
-  int line_head:1;
+  int allow_indent;
+  int line_head;
   const char *term;
   int term_len;
   mrb_ast_node *doc;
