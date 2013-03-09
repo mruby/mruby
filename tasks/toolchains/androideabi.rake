@@ -25,6 +25,7 @@ MRuby::Toolchain.new(:androideabi) do |conf|
   ANDROID_NDK_HOME = ENV['ANDROID_NDK_HOME']
 
   ANDROID_TARGET_ARCH = ENV['ANDROID_TARGET_ARCH'] || DEFAULT_ANDROID_TARGET_ARCH
+  ANDROID_TARGET_ARCH_ABI = ENV['ANDROID_TARGET_ARCH_ABI'] || DEFAULT_ANDROID_TARGET_ARCH_ABI
   ANDROID_TOOLCHAIN = ENV['ANDROID_TOOLCHAIN'] || DEFAULT_ANDROID_TOOLCHAIN
 
   case ANDROID_TARGET_ARCH.downcase
@@ -79,13 +80,32 @@ MRuby::Toolchain.new(:androideabi) do |conf|
 
   SYSROOT = path_to_sysroot
 
+  case ANDROID_TARGET_ARCH.downcase
+  when 'arch-arm',  'arm'  then
+    if ANDROID_TARGET_ARCH_ABI.downcase == 'armeabi-v7a' then
+      ARCH_CFLAGS  = %W(-march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16)
+      ARCH_LDFLAGS = %W(-march=armv7-a -Wl,--fix-cortex-a8)
+    else
+      ARCH_CFLAGS  = %W(-march=armv5te -mtune=xscale -msoft-float)
+      ARCH_LDFLAGS = %W()
+    end
+  when 'arch-x86',  'x86'  then
+    ARCH_CFLAGS  = %W()
+    ARCH_LDFLAGS = %W()
+  when 'arch-mips', 'mips' then
+    ARCH_CFLAGS  = %W(-fpic -fno-strict-aliasing -finline-functions -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers)
+    ARCH_LDFLAGS = %W()
+  else
+    # Notify error
+  end
+
   case ANDROID_TOOLCHAIN.downcase
   when 'gcc' then
     ANDROID_CC = path_to_toolchain + '/bin/' + toolchain_prefix + 'gcc'
     ANDROID_LD = path_to_toolchain + '/bin/' + toolchain_prefix + 'gcc'
     ANDROID_AR = path_to_toolchain + '/bin/' + toolchain_prefix + 'ar'
-    ANDROID_CFLAGS  = GCC_COMMON_CFLAGS + %W(-mandroid --sysroot=#{SYSROOT})
-    ANDROID_LDFLAGS = GCC_COMMON_LDFLAGS + %W(-mandroid --sysroot=#{SYSROOT})
+    ANDROID_CFLAGS  = GCC_COMMON_CFLAGS  + %W(-mandroid --sysroot=#{SYSROOT}) + ARCH_CFLAGS
+    ANDROID_LDFLAGS = GCC_COMMON_LDFLAGS + %W(-mandroid --sysroot=#{SYSROOT}) + ARCH_LDFLAGS
   when 'clang' then
     # clang is not supported yet.
   when 'clang31', 'clang3.1' then
