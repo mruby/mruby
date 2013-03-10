@@ -1,7 +1,12 @@
 module MRuby
   module LoadGems
     def gem(gemdir, &block)
-      gemdir = load_external_gem(gemdir) if gemdir.is_a?(Hash)
+      caller_dir = File.dirname(/^(.*?):\d/.match(caller.first).to_a[1])
+      if gemdir.is_a?(Hash)
+        gemdir = load_external_gem(gemdir)
+      else
+        gemdir = File.expand_path(gemdir)
+      end
       gemrake = File.join(gemdir, "mrbgem.rake")
 
       fail "Can't find #{gemrake}" unless File.exists?(gemrake)
