@@ -9,10 +9,8 @@ load "#{MRUBY_ROOT}/tasks/mruby_build.rake"
 load "#{MRUBY_ROOT}/tasks/mrbgem_spec.rake"
 
 # load configuration file
-MRUBY_CONFIGS = ["#{MRUBY_ROOT}/build_config.rb", ENV['MRUBY_CONFIG']].compact
-MRUBY_CONFIGS.each do |config|
-  load config unless config.empty?
-end
+MRUBY_CONFIG = (ENV['MRUBY_CONFIG'] && ENV['MRUBY_CONFIG'] != '') ? ENV['MRUBY_CONFIG'] : "#{MRUBY_ROOT}/build_config.rb"
+load MRUBY_CONFIG
 
 # load basic rules
 MRuby.each_target do |build|
