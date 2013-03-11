@@ -12,22 +12,22 @@ MRuby::Build.new do |conf|
   # conf.gem :git => 'git@github.com:masuidrive/mrbgems-example.git', :branch => 'master', :options => '-v'
 
   # Use standard Math module
-  conf.gem 'mrbgems/mruby-math'
+  conf.gem "#{root}/mrbgems/mruby-math"
 
   # Use standard Time class
-  conf.gem 'mrbgems/mruby-time'
+  conf.gem "#{root}/mrbgems/mruby-time"
 
   # Use standard Struct class
-  conf.gem 'mrbgems/mruby-struct'
+  conf.gem "#{root}/mrbgems/mruby-struct"
 
   # Use standard Kernel#sprintf method
-  conf.gem 'mrbgems/mruby-sprintf'
+  conf.gem "#{root}/mrbgems/mruby-sprintf"
 
   # Use extensional String class
-  conf.gem 'mrbgems/mruby-string-ext'
+  conf.gem "#{root}/mrbgems/mruby-string-ext"
 
   # Use extensional Numeric class
-  conf.gem 'mrbgems/mruby-numeric-ext'
+  conf.gem "#{root}/mrbgems/mruby-numeric-ext"
 
   # Generate binaries
   # conf.bins = %w(mrbc mruby mirb)
