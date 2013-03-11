@@ -130,7 +130,7 @@ mrb_time_free(mrb_state *mrb, void *ptr)
 static struct mrb_data_type mrb_time_type = { "Time", mrb_time_free };
 
 /** Updates the datetime of a mrb_time based on it's timezone and
-seconds setting. Returns self on cussess, NULL of failure. */
+seconds setting. Returns self on success, NULL of failure. */
 static struct mrb_time*
 mrb_time_update_datetime(struct mrb_time *self)
 {
