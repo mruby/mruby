@@ -917,7 +917,7 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
   mrb_str_buf_cat(mrb, arystr, head, sizeof(head));
 
   for(i=0; i<RARRAY_LEN(ary); i++) {
-    mrb_int ai = mrb_gc_arena_save(mrb);
+    int ai = mrb_gc_arena_save(mrb);
 
     if (i > 0) {
       mrb_str_buf_cat(mrb, arystr, sep, sizeof(sep));
