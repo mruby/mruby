@@ -1404,10 +1404,10 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
     case MRB_TT_STRING:
       pos = mrb_str_index(mrb, str, sub, pos);
       break;
-    }
+  }
 
-    if (pos == -1) return mrb_nil_value();
-    return mrb_fixnum_value(pos);
+  if (pos == -1) return mrb_nil_value();
+  return mrb_fixnum_value(pos);
 }
 
 #define STR_REPLACE_SHARED_MIN 10
