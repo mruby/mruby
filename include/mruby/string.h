@@ -13,8 +13,6 @@ extern "C" {
 
 #define IS_EVSTR(p,e) ((p) < (e) && (*(p) == '$' || *(p) == '@' || *(p) == '{'))
 
-#define STR_BUF_MIN_SIZE 128
-
 extern const char mrb_digitmap[];
 
 typedef struct mrb_shared_string {
