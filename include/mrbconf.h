@@ -46,6 +46,10 @@
 /* page size of memory pool */
 //#define POOL_PAGE_SIZE 16000
 
+/* initial minimum size for string buffer */
+//#define MRB_STR_BUF_MIN_SIZE 128
+
+
 /* -DDISABLE_XXXX to drop following features */
 //#define DISABLE_STDIO		/* use of stdio */
 

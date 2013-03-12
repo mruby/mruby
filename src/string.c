@@ -156,6 +156,10 @@ mrb_str_new_empty(mrb_state *mrb, mrb_value str)
   return mrb_obj_value(s);
 }
 
+#ifndef MRB_STR_BUF_MIN_SIZE
+# define MRB_STR_BUF_MIN_SIZE 128
+#endif
+
 mrb_value
 mrb_str_buf_new(mrb_state *mrb, int capa)
 {
@@ -163,8 +167,8 @@ mrb_str_buf_new(mrb_state *mrb, int capa)
 
   s = mrb_obj_alloc_string(mrb);
 
-  if (capa < STR_BUF_MIN_SIZE) {
-    capa = STR_BUF_MIN_SIZE;
+  if (capa < MRB_STR_BUF_MIN_SIZE) {
+    capa = MRB_STR_BUF_MIN_SIZE;
   }
   s->len = 0;
   s->aux.capa = capa;
