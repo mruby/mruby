@@ -125,7 +125,6 @@ append_cmdline:
         exit(0);
       }
       else return -3;
-      return 0;
     default:
       return -4;
     }
