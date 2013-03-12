@@ -3415,7 +3415,7 @@ scan_hex(const int *start, int len, int *retlen)
   register unsigned long retval = 0;
   char *tmp;
 
-  while (len-- && *s && (tmp = (char *)strchr(hexdigit, *s))) {
+  while (len-- && *s && (tmp = strchr(hexdigit, *s))) {
     retval <<= 4;
     retval |= (tmp - hexdigit) & 15;
     s++;
