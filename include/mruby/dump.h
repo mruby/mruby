@@ -126,22 +126,6 @@ uint32_to_bin(uint32_t l, char *bin)
   return (MRB_DUMP_SIZE_OF_LONG);
 }
 
-static inline uint32_t
-bin_to_uint32(unsigned char bin[])
-{
-  return (uint32_t)bin[0] << 24 |
-         (uint32_t)bin[1] << 16 |
-         (uint32_t)bin[2] << 8  |
-         (uint32_t)bin[3];
-}
-
-static inline uint16_t
-bin_to_uint16(unsigned char bin[])
-{
-  return (uint16_t)bin[0] << 8 |
-         (uint16_t)bin[1];
-}
-
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif
