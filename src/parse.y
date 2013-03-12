@@ -3399,11 +3399,14 @@ scan_oct(const int *start, int len, int *retlen)
   const int *s = start;
   unsigned long retval = 0;
 
+  /* PARANOID: assert(len <= 3) */
+
   while (len-- && *s >= '0' && *s <= '7') {
     retval <<= 3;
     retval |= *s++ - '0';
   }
   *retlen = s - start;
+
   return retval;
 }
 
@@ -3415,12 +3418,15 @@ scan_hex(const int *start, int len, int *retlen)
   register unsigned long retval = 0;
   char *tmp;
 
+  /* PARANOID: assert(len <= 2) */
+
   while (len-- && *s && (tmp = strchr(hexdigit, *s))) {
     retval <<= 4;
     retval |= (tmp - hexdigit) & 15;
     s++;
   }
   *retlen = s - start;
+
   return retval;
 }
 
