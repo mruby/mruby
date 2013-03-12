@@ -26,7 +26,7 @@
 #define BITSPERDIG (sizeof(mrb_int)*CHAR_BIT)
 #define EXTENDSIGN(n, l) (((~0 << (n)) >> (((n)*(l)) % BITSPERDIG)) & ~(~0 << (n)))
 
-static void fmt_setup(char*,size_t,int,int,int,int);
+static void fmt_setup(char*,size_t,int,int,mrb_int,mrb_int);
 
 static char*
 remove_sign_bits(char *str, int base)
@@ -78,7 +78,8 @@ static mrb_value
 mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 {
   char buf[64], *b = buf + sizeof buf;
-  unsigned long val = mrb_fixnum(x);
+  mrb_int num = mrb_fixnum(x);
+  unsigned long val = (unsigned long)num;
   char d;
 
   if (base != 2) {
@@ -96,7 +97,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
     *--b = mrb_digitmap[(int)(val % base)];
   } while (val /= base);
 
-  if (mrb_fixnum(x) < 0) {
+  if (num < 0) {
     b = remove_sign_bits(b, base);
     switch (base) {
     case 16: d = 'f'; break;
@@ -495,10 +496,13 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
 {
   const char *p, *end;
   char *buf;
-  long blen, bsiz;
+  mrb_int blen;
+  mrb_int bsiz;
   mrb_value result;
-  int n;
-  int width, prec, flags = FNONE;
+  mrb_int n;
+  mrb_int width;
+  mrb_int prec;
+  int flags = FNONE;
   int nextarg = 1;
   int posarg = 0;
   mrb_value nextvalue;
@@ -709,7 +713,8 @@ retry:
   format_s:
       {
         mrb_value arg = GETARG();
-        long len, slen;
+        mrb_int len;
+        mrb_int slen;
 
         if (*p == 'p') arg = mrb_inspect(mrb, arg);
         str = mrb_obj_as_string(mrb, arg);
@@ -760,12 +765,12 @@ retry:
       case 'u': {
         mrb_value val = GETARG();
         char fbuf[32], nbuf[64], *s;
-        const char *prefix = 0;
+        const char *prefix = NULL;
         int sign = 0, dots = 0;
         char sc = 0;
-        long v = 0, org_v = 0;
+        mrb_int v = 0, org_v = 0;
         int base;
-        int len;
+        mrb_int len;
 
         switch (*p) {
           case 'd':
@@ -807,7 +812,7 @@ retry:
             val = mrb_str_to_inum(mrb, val, 0, TRUE);
             goto bin_retry;
           case MRB_TT_FIXNUM:
-            v = (long)mrb_fixnum(val);
+            v = mrb_fixnum(val);
             break;
           default:
             val = mrb_Integer(mrb, val);
@@ -888,7 +893,12 @@ retry:
             }
           }
         }
-        len = (int)strlen(s);
+        {
+          size_t size;
+          size = strlen(s);
+          /* PARANOID: assert(size <= MRB_INT_MAX) */
+          len = (mrb_int)size;
+        }
 
         if (dots) {
           prec -= 2;
@@ -906,22 +916,26 @@ retry:
 
         if (prefix && !prefix[1]) { /* octal */
           if (dots) {
-            prefix = 0;
+            prefix = NULL;
           }
           else if (len == 1 && *s == '0') {
             len = 0;
             if (flags & FPREC) prec--;
           }
           else if ((flags & FPREC) && (prec > len)) {
-            prefix = 0;
+            prefix = NULL;
           }
         }
         else if (len == 1 && *s == '0') {
-          prefix = 0;
+          prefix = NULL;
         }
 
         if (prefix) {
-          width -= (int)strlen(prefix);
+          size_t size;
+          size = strlen(prefix);
+          /* PARANOID: assert(size <= MRB_INT_MAX).
+           *  this check is absolutely paranoid. */
+          width -= (mrb_int)size;
         }
 
         if ((flags & (FZERO|FMINUS|FPREC)) == FZERO) {
@@ -1064,7 +1078,7 @@ retry:
 }
 
 static void
-fmt_setup(char *buf, size_t size, int c, int flags, int width, int prec)
+fmt_setup(char *buf, size_t size, int c, int flags, mrb_int width, mrb_int prec)
 {
   char *end = buf + size;
   int n;
@@ -1077,12 +1091,12 @@ fmt_setup(char *buf, size_t size, int c, int flags, int width, int prec)
   if (flags & FSPACE) *buf++ = ' ';
 
   if (flags & FWIDTH) {
-    n = snprintf(buf, end - buf, "%d", width);
+    n = snprintf(buf, end - buf, "%d", (int)width);
     buf += n;
   }
 
   if (flags & FPREC) {
-    n = snprintf(buf, end - buf, ".%d", prec);
+    n = snprintf(buf, end - buf, ".%d", (int)prec);
     buf += n;
   }
 
