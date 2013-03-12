@@ -110,7 +110,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
     }
   }
 
-  return mrb_str_new2(mrb, b);
+  return mrb_str_new_cstr(mrb, b);
 }
 
 #define FNONE  0

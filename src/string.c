@@ -224,17 +224,6 @@ mrb_str_new(mrb_state *mrb, const char *p, int len)
   return mrb_obj_value(s);
 }
 
-mrb_value
-mrb_str_new2(mrb_state *mrb, const char *ptr)
-{
-  struct RString *s;
-  if (!ptr) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "NULL pointer given");
-  }
-  s = str_new(mrb, ptr, strlen(ptr));
-  return mrb_obj_value(s);
-}
-
 /*
  *  call-seq: (Caution! NULL string)
  *     String.new(str="")   => new_str
@@ -246,11 +235,23 @@ mrb_value
 mrb_str_new_cstr(mrb_state *mrb, const char *p)
 {
   struct RString *s;
-  int len = strlen(p);
+  size_t len;
+
+  if (p) {
+    len = strlen(p);
+    if (len > MRB_INT_MAX) {
+      len = MRB_INT_MAX;
+    }
+  }
+  else {
+    len = 0;
+  }
 
   s = mrb_obj_alloc_string(mrb);
   s->ptr = (char *)mrb_malloc(mrb, len+1);
-  memcpy(s->ptr, p, len);
+  if (p) {
+    memcpy(s->ptr, p, len);
+  }
   s->ptr[len] = 0;
   s->len = len;
   s->aux.capa = len;
