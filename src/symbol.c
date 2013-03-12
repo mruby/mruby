@@ -83,12 +83,16 @@ mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, int *lenp)
     if (kh_exist(h, k)) {
       if (kh_value(h, k) == sym) {
         sname = kh_key(h, k);
-        *lenp = sname.len;
+        if (lenp) {
+          *lenp = sname.len;
+        }
         return sname.name;
       }
     }
   }
-  *lenp = 0;
+  if (lenp) {
+    *lenp = 0;
+  }
   return NULL;	/* missing */
 }
 
