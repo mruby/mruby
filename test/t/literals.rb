@@ -195,9 +195,11 @@ assert('Literals Symbol', '8.7.6.6') do
   f = %s[asd \[
 qwe]
   g = %s/foo#{1+2}bar/
+  h = %s{{foo bar}}
 
   a == :'asd qwe' and b == :"foo bar" and c == :a3b and d == :asd and
-  e == :' foo )' and f == :"asd [\nqwe" and g == :'foo#{1+2}bar'
+  e == :' foo )' and f == :"asd [\nqwe" and g == :'foo#{1+2}bar' and
+  h == :'{foo bar}'
 end
 
 # Not Implemented ATM assert('Literals Regular expression', '8.7.6.5') do

@@ -74,8 +74,7 @@ enum mrb_string_type {
   str_sword   = (STR_FUNC_PARSING|STR_FUNC_WORD|STR_FUNC_ARRAY),
   str_dword   = (STR_FUNC_PARSING|STR_FUNC_WORD|STR_FUNC_ARRAY|STR_FUNC_EXPAND),
   str_ssym    = (STR_FUNC_PARSING|STR_FUNC_SYMBOL),
-  str_sheredoc = (STR_FUNC_PARSING|STR_FUNC_HEREDOC),
-  str_dheredoc = (STR_FUNC_PARSING|STR_FUNC_HEREDOC|STR_FUNC_EXPAND),
+  str_heredoc = (STR_FUNC_PARSING|STR_FUNC_HEREDOC),
 };
 
 /* heredoc structure */
