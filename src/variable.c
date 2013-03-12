@@ -548,6 +548,7 @@ mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
     mrb_value str = mrb_sprintf(mrb, "-<%s:%p", cn, (void*)obj);
 
     iv_foreach(mrb, t, inspect_i, &str);
+    mrb_str_cat(mrb, str, ">", 1);
     return str;
   }
   return mrb_any_to_s(mrb, mrb_obj_value(obj));
