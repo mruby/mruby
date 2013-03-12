@@ -874,49 +874,6 @@ end_strterm(parser_state *p)
   p->lex_strterm = NULL;
 }
 
-static node*
-heredoc_start_sb(parser_state *p, const char* term, size_t term_len, string_type type, int allow_indent)
-{
-  node *newnode = new_heredoc(p);
-  parser_heredoc_info *inf = (parser_heredoc_info*)newnode->cdr;
-  inf->term = term;
-  inf->term_len = term_len;
-  inf->type = type;
-  inf->allow_indent = allow_indent;
-  inf->line_head = TRUE;
-  inf->doc = NULL;
-  p->heredocs = push(p->heredocs, newnode);
-  if (p->parsing_heredoc == NULL) {
-    node *c = p->heredocs;
-    while (c->cdr)
-      c = c->cdr;
-    p->parsing_heredoc = c;
-  }
-  p->heredoc_starts_nextline = TRUE;
-  p->lstate = EXPR_END;
-  return newnode;
-}
-
-static node*
-heredoc_start(parser_state *p, node *beg, node *str, string_type type)
-{
-  char *bs = (char*)beg->cdr->car;
-  int allow_indent = (bs[2] == '-');
-  const char *s = (char*)str->cdr->car;
-  size_t len = (intptr_t)str->cdr->cdr;
-  return heredoc_start_sb(p, s, len, type, allow_indent);
-}
-
-static node*
-heredoc_start_sym(parser_state *p, node *beg, mrb_sym sym, string_type type)
-{
-  char *bs = (char*)beg->cdr->car;
-  int allow_indent = (bs[2] == '-');
-  size_t len;
-  const char *s = mrb_sym2name_len(p->mrb, sym, &len);
-  return heredoc_start_sb(p, s, len, type, allow_indent);
-}
-
 parser_heredoc_info *
 parsing_heredoc_inf(parser_state *p)
 {
@@ -947,7 +904,6 @@ heredoc_end(parser_state *p)
 
 %}
 
-%expect 2
 %pure_parser
 %parse-param {parser_state *p}
 %lex-param {parser_state *p}
@@ -1064,7 +1020,7 @@ heredoc_end(parser_state *p)
 %token tSTAR              /* * */
 %token tAMPER             /* & */
 %token tLAMBDA            /* -> */
-%token tSYMBEG tREGEXP_BEG tWORDS_BEG tQWORDS_BEG
+%token tSYMBEG tREGEXP_BEG tWORDS_BEG
 %token tSTRING_BEG tSTRING_DVAR tLAMBEG
 %token <nd> tHEREDOC_BEG  /* <<, <<- */
 %token tHEREDOC_END tLITERAL_DELIM
@@ -2615,18 +2571,6 @@ string_interp	: tSTRING_MID
 		      p->lex_strterm = $<nd>2;
 		      $$ = list2($1, $3);
 		    }
-		| string_interp
-		  tSTRING_PART
-		    {
-		      $<nd>$ = p->lex_strterm;
-		      p->lex_strterm = NULL;
-		    }
-		  compstmt
-		  '}'
-		    {
-		      p->lex_strterm = $<nd>3;
-		      $$ = push(push($1, $2), $4);
-		    }
 		| tLITERAL_DELIM
 		    {
 		      $$ = list1(new_literal_delim(p));
@@ -2643,24 +2587,8 @@ regexp		: tREGEXP_BEG tREGEXP
 		    }
 		;
 
-heredoc		: tHEREDOC_BEG tSTRING_BEG tSTRING
-		    {
-		      $$ = heredoc_start(p, $1, $3, str_dheredoc);
-		    }
-		| tHEREDOC_BEG tSTRING
-		    {
-		      $$ = heredoc_start(p, $1, $2, str_sheredoc);
-		    }
-		| tHEREDOC_BEG tIDENTIFIER
-		    {
-		      $$ = heredoc_start_sym(p, $1, $2, str_dheredoc);
-		    }
-		| tHEREDOC_BEG tCONSTANT
-		    {
-		      $$ = heredoc_start_sym(p, $1, $2, str_dheredoc);
-		    }
+heredoc		: tHEREDOC_BEG
 		;
-
 
 opt_heredoc_bodies : none
 		   | heredoc_bodies
@@ -2687,14 +2615,6 @@ words		: tWORDS_BEG tSTRING
 		      $$ = new_words(p, list1($2));
 		    }
 		| tWORDS_BEG string_rep tSTRING
-		    {
-		      $$ = new_words(p, push($2, $3));
-		    }
-		| tQWORDS_BEG tSTRING
-		    {
-		      $$ = new_words(p, list1($2));
-		    }
-		| tQWORDS_BEG string_rep tSTRING
 		    {
 		      $$ = new_words(p, push($2, $3));
 		    }
@@ -3734,7 +3654,77 @@ parse_string(parser_state *p)
   yylval.nd = new_str(p, tok(p), toklen(p));
   return tSTRING;
 }
-  
+ 
+
+static int
+heredoc_identifier(parser_state *p)
+{
+  int c;
+  int type = str_heredoc;
+  int indent = FALSE;
+  int quote = FALSE;
+  node *newnode;
+  parser_heredoc_info *info;
+
+  c = nextc(p);
+  if (ISSPACE(c) || c == '=') {
+    pushback(p, c);
+    return 0;
+  }
+  if (c == '-') {
+    indent = TRUE;
+    c = nextc(p);
+  }
+  if (c == '\'' || c == '"') {
+    int term = c;
+    if (c == '\'')
+      quote = TRUE;
+    newtok(p);
+    while ((c = nextc(p)) != -1 && c != term) {
+      if (c == '\n')
+        c = -1;
+      tokadd(p, c);
+    }
+    if (c == -1) {
+      yyerror(p, "unterminated here document identifier");
+      return 0;
+    }
+  } else {
+    if (! identchar(c)) {
+      pushback(p, c);
+      if (indent) pushback(p, '-');
+      return 0;
+    }
+    newtok(p);
+    do {
+      tokadd(p, c);
+    } while ((c = nextc(p)) != -1 && identchar(c));
+    pushback(p, c);
+  }
+  tokfix(p);
+  newnode = new_heredoc(p);
+  info = (parser_heredoc_info*)newnode->cdr;
+  info->term = strndup(tok(p), toklen(p));
+  info->term_len = toklen(p);
+  if (! quote)
+    type |= STR_FUNC_EXPAND;
+  info->type = type;
+  info->allow_indent = indent;
+  info->line_head = TRUE;
+  info->doc = NULL;
+  p->heredocs = push(p->heredocs, newnode);
+  if (p->parsing_heredoc == NULL) {
+    node *n = p->heredocs;
+    while (n->cdr)
+      n = n->cdr;
+    p->parsing_heredoc = n;
+  }
+  p->heredoc_starts_nextline = TRUE;
+  p->lstate = EXPR_END;
+
+  yylval.nd = newnode;
+  return tHEREDOC_BEG;
+}
 
 static int
 arg_ambiguous(parser_state *p)
@@ -3749,7 +3739,6 @@ static int
 parser_yylex(parser_state *p)
 {
   register int c;
-  int c2;
   int space_seen = 0;
   int cmd_state;
   enum mrb_lex_state_enum last_state;
@@ -3916,20 +3905,9 @@ parser_yylex(parser_state *p)
 	p->lstate != EXPR_CLASS &&
 	!IS_END() &&
 	(!IS_ARG() || space_seen)) {
-      /* heredocument check */
-      newtok(p); tokadd(p, '<'); tokadd(p, '<');
-      c2 = nextc(p);
-      if (c2 == '-') {
-	tokadd(p, c2);
-	c2 = nextc(p);
-      }
-      pushback(p, c2);
-      if (!ISSPACE(c2)) {
-	tokfix(p);
-	yylval.nd = new_str(p, tok(p), toklen(p));
-	p->lstate = EXPR_DOT;
-	return tHEREDOC_BEG;
-      }
+      int token = heredoc_identifier(p);
+      if (token)
+	return token;
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
@@ -4625,7 +4603,7 @@ parser_yylex(parser_state *p)
 
       case 'w':
 	p->lex_strterm = new_strterm(p, str_sword, term, paren);
-	return tQWORDS_BEG;
+	return tWORDS_BEG;
 
       case 'r':
 	p->lex_strterm = new_strterm(p, str_regexp, term, paren);
