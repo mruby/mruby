@@ -17,7 +17,8 @@ void
 mrb_init_mrbtest(mrb_state *);
 
 /* Print a short remark for the user */
-void print_hint(void)
+static void
+print_hint(void)
 {
   printf("mrbtest - Embeddable Ruby Test\n");
   printf("\nThis is a very early version, please test and report errors.\n");
