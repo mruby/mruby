@@ -13,7 +13,7 @@
 
 /* ------------------------------------------------------ */
 typedef struct symbol_name {
-  int len;
+  mrb_int len;
   const char *name;
 } symbol_name;
 
@@ -21,7 +21,7 @@ static inline khint_t
 sym_hash_func(mrb_state *mrb, const symbol_name s)
 {
   khint_t h = 0;
-  size_t i;
+  mrb_int i;
   const char *p = s.name;
 
   for (i=0; i<s.len; i++) {
@@ -35,13 +35,18 @@ KHASH_DECLARE(n2s, symbol_name, mrb_sym, 1)
 KHASH_DEFINE (n2s, symbol_name, mrb_sym, 1, sym_hash_func, sym_hash_equal)
 /* ------------------------------------------------------ */
 mrb_sym
-mrb_intern2(mrb_state *mrb, const char *name, int len)
+mrb_intern2(mrb_state *mrb, const char *name, mrb_int len)
 {
   khash_t(n2s) *h = mrb->name2sym;
   symbol_name sname;
   khiter_t k;
   mrb_sym sym;
   char *p;
+
+  if (len > MRB_INT_MAX - 1) {
+    /* In case inspect method called, the result is ":" + symname. */
+    len = MRB_INT_MAX - 1;
+  }
 
   sname.len = len;
   sname.name = name;
@@ -50,8 +55,8 @@ mrb_intern2(mrb_state *mrb, const char *name, int len)
     return kh_value(h, k);
 
   sym = ++mrb->symidx;
-  p = (char *)mrb_malloc(mrb, len+1);
-  memcpy(p, name, len);
+  p = (char *)mrb_malloc(mrb, (size_t)len+1);
+  memcpy(p, name, (size_t)len);
   p[len] = 0;
   sname.name = (const char*)p;
   k = kh_put(n2s, h, sname);
@@ -63,7 +68,14 @@ mrb_intern2(mrb_state *mrb, const char *name, int len)
 mrb_sym
 mrb_intern(mrb_state *mrb, const char *name)
 {
-  return mrb_intern2(mrb, name, strlen(name));
+  size_t len;
+
+  len = strlen(name);
+  if (len > MRB_INT_MAX) {
+    len = MRB_INT_MAX;
+  }
+
+  return mrb_intern2(mrb, name, (mrb_int)len);
 }
 
 mrb_sym
@@ -73,7 +85,7 @@ mrb_intern_str(mrb_state *mrb, mrb_value str)
 }
 
 const char*
-mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, int *lenp)
+mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 {
   khash_t(n2s) *h = mrb->name2sym;
   khiter_t k;
@@ -182,7 +194,7 @@ mrb_sym_to_s(mrb_state *mrb, mrb_value sym)
 {
   mrb_sym id = mrb_symbol(sym);
   const char *p;
-  int len;
+  mrb_int len;
 
   p = mrb_sym2name_len(mrb, id, &len);
   return mrb_str_new(mrb, p, len);
@@ -333,7 +345,7 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
 {
   mrb_value str;
   const char *name;
-  int len;
+  mrb_int len;
   mrb_sym id = mrb_symbol(sym);
 
   name = mrb_sym2name_len(mrb, id, &len);
@@ -350,7 +362,7 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
 const char*
 mrb_sym2name(mrb_state *mrb, mrb_sym sym)
 {
-  int len;
+  mrb_int len;
   const char *name = mrb_sym2name_len(mrb, sym, &len);
 
   if (!name) return NULL;
@@ -378,7 +390,10 @@ sym_cmp(mrb_state *mrb, mrb_value s1)
   if (sym1 == sym2) return mrb_fixnum_value(0);
   else {
     const char *p1, *p2;
-    int len, len1, len2, retval;
+    int retval;
+    mrb_int len;
+    mrb_int len1;
+    mrb_int len2;
 
     p1 = mrb_sym2name_len(mrb, sym1, &len1);
     p2 = mrb_sym2name_len(mrb, sym2, &len2);
