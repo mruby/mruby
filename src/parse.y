@@ -3457,19 +3457,19 @@ read_escape(parser_state *p)
   case '0': case '1': case '2': case '3': /* octal constant */
   case '4': case '5': case '6': case '7':
     {
-       int buf[3];
-       int i;
+      int buf[3];
+      int i;
 
-       buf[0] = c;
-       for (i=1; i<3; i++) {
+      buf[0] = c;
+      for (i=1; i<3; i++) {
         buf[i] = nextc(p);
         if (buf[i] == -1) goto eof;
-          if (buf[i] < '0' || '7' < buf[i]) {
-            pushback(p, buf[i]);
-            break;
-          }
-       }
-       c = scan_oct(buf, i, &i);
+        if (buf[i] < '0' || '7' < buf[i]) {
+          pushback(p, buf[i]);
+          break;
+        }
+      }
+      c = scan_oct(buf, i, &i);
     }
     return c;
 
