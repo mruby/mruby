@@ -104,21 +104,6 @@ str_mod_check(mrb_state *mrb, mrb_value str, char *p, mrb_int len)
 
 #define mrb_obj_alloc_string(mrb) ((struct RString*)mrb_obj_alloc((mrb), MRB_TT_STRING, (mrb)->string_class))
 
-static struct RString*
-str_alloc(mrb_state *mrb, struct RClass *c)
-{
-  struct RString* s;
-
-  s = mrb_obj_alloc_string(mrb);
-
-  s->c = c;
-  s->ptr = 0;
-  s->len = 0;
-  s->aux.capa = 0;
-
-  return s;
-}
-
 /* char offset to byte offset */
 int
 mrb_str_offset(mrb_state *mrb, mrb_value str, int pos)
@@ -129,8 +114,9 @@ mrb_str_offset(mrb_state *mrb, mrb_value str, int pos)
 static struct RString*
 str_new(mrb_state *mrb, const char *p, int len)
 {
-  struct RString *s = str_alloc(mrb, mrb->string_class);
+  struct RString *s;
 
+  s = mrb_obj_alloc_string(mrb);
   s->len = len;
   s->aux.capa = len;
   s->ptr = (char *)mrb_malloc(mrb, len+1);
@@ -302,7 +288,7 @@ mrb_str_literal(mrb_state *mrb, mrb_value str)
   struct RString *s, *orig;
   mrb_shared_string *shared;
 
-  s = str_alloc(mrb, mrb->string_class);
+  s = mrb_obj_alloc_string(mrb);
   orig = mrb_str_ptr(str);
   if (!(orig->flags & MRB_STR_SHARED)) {
     str_make_shared(mrb, mrb_str_ptr(str));
@@ -311,6 +297,7 @@ mrb_str_literal(mrb_state *mrb, mrb_value str)
   shared->refcnt++;
   s->ptr = shared->ptr;
   s->len = shared->len;
+  s->aux.capa = 0;
   s->aux.shared = shared;
   s->flags |= MRB_STR_SHARED;
 
