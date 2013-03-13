@@ -55,6 +55,16 @@ The value below allows about 60000 recursive calls in the simplest case. */
 #endif
 
 static inline void
+stack_clear(mrb_value *from, size_t count)
+{
+  const mrb_value mrb_value_zero = { { 0 } };
+
+  while(count-- > 0) {
+    *from++ = mrb_value_zero;
+  }
+}
+
+static inline void
 stack_copy(mrb_value *dst, const mrb_value *src, size_t size)
 {
   while (size-- > 0) {
@@ -128,15 +138,14 @@ stack_extend(mrb_state *mrb, int room, int keep)
   }
 
   if (room > keep) {
+#ifndef MRB_NAN_BOXING
+    stack_clear(&(mrb->stack[keep]), room - keep);
+#else
     int i;
     for (i=keep; i<room; i++) {
-#ifndef MRB_NAN_BOXING
-      static const mrb_value mrb_value_zero = { { 0 } };
-      mrb->stack[i] = mrb_value_zero;
-#else
       SET_NIL_VALUE(mrb->stack[i]);
-#endif
     }
+#endif
   }
 }
 
