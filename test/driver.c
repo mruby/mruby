@@ -36,13 +36,31 @@ check_error(mrb_state *mrb)
   return mrb_fixnum_p(ko_test) && mrb_fixnum(ko_test) == 0 && mrb_fixnum_p(kill_test) && mrb_fixnum(kill_test) == 0;
 }
 
+static int
+eval_test(mrb_state *mrb)
+{
+  mrb_value return_value;
+  const char *prog = "report()";
+
+  /* evaluate the test */
+  return_value = mrb_load_string(mrb, prog);
+  /* did an exception occur? */
+  if (mrb->exc) {
+    mrb_p(mrb, return_value);
+    mrb->exc = 0;
+    return EXIT_FAILURE;
+  }
+  else if (!check_error(mrb)) {
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
+}
+
 int
 main(int argc, char **argv)
 {
   mrb_state *mrb;
-  mrb_value return_value;
-  const char *prog = "report()";
-  int ret = EXIT_SUCCESS;
+  int ret;
 
   print_hint();
 
@@ -59,17 +77,7 @@ main(int argc, char **argv)
   }
 
   mrb_init_mrbtest(mrb);
-  /* evaluate the test */
-  return_value = mrb_load_string(mrb, prog);
-  /* did an exception occur? */
-  if (mrb->exc) {
-    mrb_p(mrb, return_value);
-    mrb->exc = 0;
-    ret = EXIT_FAILURE;
-  }
-  else if (!check_error(mrb)) {
-    ret = EXIT_FAILURE;
-  }
+  ret = eval_test(mrb);
   mrb_close(mrb);
 
   return ret;
