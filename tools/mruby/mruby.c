@@ -52,7 +52,7 @@ usage(const char *name)
 
   printf("Usage: %s [switches] programfile\n", name);
   while(*p)
-  printf("  %s\n", *p++);
+    printf("  %s\n", *p++);
 }
 
 static int
@@ -125,7 +125,6 @@ append_cmdline:
         exit(0);
       }
       else return -3;
-      return 0;
     default:
       return -4;
     }
@@ -189,14 +188,14 @@ showcallinfo(mrb_state *mrb)
       if (irep->filename != NULL)
         filename = irep->filename;
       if (irep->lines != NULL) {
-	mrb_code *pc;
+        mrb_code *pc;
 
-	if (i+1 <= ciidx) {
-	  pc = mrb->cibase[i+1].pc;
-	}
-	else {
-	  pc = (mrb_code*)mrb_voidp(mrb_obj_iv_get(mrb, mrb->exc, mrb_intern(mrb, "lastpc")));
-	}
+        if (i+1 <= ciidx) {
+          pc = mrb->cibase[i+1].pc;
+        }
+        else {
+          pc = (mrb_code*)mrb_voidp(mrb_obj_iv_get(mrb, mrb->exc, mrb_intern(mrb, "lastpc")));
+        }
         if (irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
           line = irep->lines[pc - irep->iseq - 1];
         }
@@ -211,19 +210,16 @@ showcallinfo(mrb_state *mrb)
     method = mrb_sym2name(mrb, ci->mid);
     if (method) {
       const char *cn = mrb_class_name(mrb, ci->proc->target_class);
-    
+
       if (cn) {
-	printf("\t[%d] %s:%d:in %s%s%s\n",
-	       i, filename, line, cn, sep, method);
+        printf("\t[%d] %s:%d:in %s%s%s\n", i, filename, line, cn, sep, method);
       }
       else {
-	printf("\t[%d] %s:%d:in %s\n",
-	       i, filename, line, method);
+        printf("\t[%d] %s:%d:in %s\n", i, filename, line, method);
       }
     }
     else {
-      printf("\t[%d] %s:%d\n",
-	     i, filename, line);
+      printf("\t[%d] %s:%d\n", i, filename, line);
     }
   }
 }

@@ -132,7 +132,8 @@ is_code_block_open(struct mrb_parser_state *parser)
 }
 
 /* Print a short remark for the user */
-void print_hint(void)
+static void
+print_hint(void)
 {
   printf("mirb - Embeddable Interactive Ruby Shell\n");
   printf("\nThis is a very early version, please test and report errors.\n");
