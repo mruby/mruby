@@ -262,6 +262,10 @@ mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
 {
   mrb_value str;
 
+  if (!mrb_string_p(str0)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "expected String");
+  }
+
   str = mrb_str_new(mrb, RSTRING_PTR(str0), RSTRING_LEN(str0));
   if (strlen(RSTRING_PTR(str)) != RSTRING_LEN(str)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
