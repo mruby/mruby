@@ -160,7 +160,7 @@ mrb_dir_read(mrb_state *mrb, mrb_value self)
   }
   dp = readdir(mdir->dir);
   if (dp != NULL) {
-    return mrb_str_new2(mrb, dp->d_name);
+    return mrb_str_new_cstr(mrb, dp->d_name);
   } else {
     return mrb_nil_value();
   }
