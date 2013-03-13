@@ -21,9 +21,9 @@ typedef struct mrbc_context {
   int slen;
   char *filename;
   short lineno;
-  int capture_errors:1;
-  int dump_result:1;
-  int no_exec:1;
+  mrb_bool capture_errors:1;
+  mrb_bool dump_result:1;
+  mrb_bool no_exec:1;
 } mrbc_context;
 
 mrbc_context* mrbc_context_new(mrb_state *mrb);
@@ -67,8 +67,8 @@ enum heredoc_type {
 /* heredoc structure */
 struct mrb_parser_heredoc_info {
   enum heredoc_type type;
-  int allow_indent:1;
-  int line_head:1;
+  mrb_bool allow_indent:1;
+  mrb_bool line_head:1;
   const char *term;
   int term_len;
   mrb_ast_node *doc;
@@ -102,8 +102,8 @@ struct mrb_parser_state {
 
   mrb_ast_node *heredocs;	/* list of mrb_parser_heredoc_info* */
   mrb_ast_node *parsing_heredoc;
-  int heredoc_starts_nextline:1;
-  int heredoc_end_now:1;	/* for mirb */
+  mrb_bool heredoc_starts_nextline:1;
+  mrb_bool heredoc_end_now:1; /* for mirb */
 
   void *ylval;
 
