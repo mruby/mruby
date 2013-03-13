@@ -19,6 +19,48 @@
 #include "mruby/numeric.h"
 #include "re.h"
 
+/* MSVC doesn't have SIZE_MAX */
+#ifndef SIZE_MAX
+# define SIZE_MAX ((size_t)-1)
+#endif
+
+/* NOTE:
+ *  Referring to C99, it's possible SIZE_MAX is smaller than max values of
+ * another int types.
+ * So when SIZE_MAX < MRB_INT_MAX, we limit the length of string to SIZE_MAX.
+ * Otherwise, some standard functions like memcmp() won't work as expected.
+ *
+ * You might want to compare like (SIZE_MAX < MRB_INT_MAX). This sounds a simple way.
+ * But we can't do.
+ * Because they are diferrent signedness between size_t and mrb_int.
+ * And we can't expect INTnn_MAX always in target environments. This is also a reason.
+ * So they are compared by their sizeof values. This may be slightly tricky.
+ *
+ * You might feel STR_SIZE_MAX confused.
+ * But probably it is compiled to a integer constant on the compile time.
+ */
+#define STR_SIZE_MAX (sizeof(size_t) < sizeof(mrb_int) ? (mrb_int)SIZE_MAX : MRB_INT_MAX)
+
+static void
+mrb_str_check_int_value_range(mrb_state *mrb, mrb_int len)
+{
+  if (len < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size");
+  }
+  else if (len > STR_SIZE_MAX) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, " string size too big");
+  }
+}
+
+static void
+mrb_str_check_size_value_range(mrb_state *mrb, size_t len)
+{
+  if (len > STR_SIZE_MAX) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, " string size too big");
+  }
+}
+
+
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 static mrb_value str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2);
@@ -76,10 +118,12 @@ str_modify(mrb_state *mrb, struct RString *s)
 }
 
 mrb_value
-mrb_str_resize(mrb_state *mrb, mrb_value str, int len)
+mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
 {
   int slen;
   struct RString *s = mrb_str_ptr(str);
+
+  mrb_str_check_int_value_range(mrb, len);
 
   str_modify(mrb, s);
   slen = s->len;
@@ -99,6 +143,8 @@ str_mod_check(mrb_state *mrb, mrb_value str, char *p, mrb_int len)
 {
   struct RString *s = mrb_str_ptr(str);
 
+  mrb_str_check_int_value_range(mrb, len);
+
   if (s->ptr != p || s->len != len) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
   }
@@ -114,14 +160,16 @@ mrb_str_offset(mrb_state *mrb, mrb_value str, int pos)
 }
 
 static struct RString*
-str_new(mrb_state *mrb, const char *p, int len)
+str_new(mrb_state *mrb, const char *p, mrb_int len)
 {
   struct RString *s;
+
+  mrb_str_check_int_value_range(mrb, len);
 
   s = mrb_obj_alloc_string(mrb);
   s->len = len;
   s->aux.capa = len;
-  s->ptr = (char *)mrb_malloc(mrb, len+1);
+  s->ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
   if (p) {
     memcpy(s->ptr, p, len);
   }
@@ -149,7 +197,7 @@ mrb_str_new_empty(mrb_state *mrb, mrb_value str)
 #endif
 
 mrb_value
-mrb_str_buf_new(mrb_state *mrb, int capa)
+mrb_str_buf_new(mrb_state *mrb, mrb_int capa)
 {
   struct RString *s;
 
@@ -157,6 +205,13 @@ mrb_str_buf_new(mrb_state *mrb, int capa)
 
   if (capa < MRB_STR_BUF_MIN_SIZE) {
     capa = MRB_STR_BUF_MIN_SIZE;
+  }
+  if (capa > STR_SIZE_MAX - 1) {
+    /* Don't throw expception here
+     * as not all user will fill
+     * allocated area.
+     */
+    capa = STR_SIZE_MAX - 1;
   }
   s->len = 0;
   s->aux.capa = capa;
@@ -167,11 +222,13 @@ mrb_str_buf_new(mrb_state *mrb, int capa)
 }
 
 static void
-str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
+str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, mrb_int len)
 {
   mrb_int capa;
   mrb_int total;
   ptrdiff_t off = -1;
+
+  mrb_str_check_int_value_range(mrb, len);
 
   str_modify(mrb, s);
   if (ptr >= s->ptr && ptr <= s->ptr + s->len) {
@@ -179,13 +236,13 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
   }
   if (len == 0) return;
   capa = s->aux.capa;
-  if (s->len >= MRB_INT_MAX - len) {
+  if (s->len >= STR_SIZE_MAX - len) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string sizes too big");
   }
   total = s->len+len;
   if (capa <= total) {
     while (total > capa) {
-        if (capa + 1 >= MRB_INT_MAX / 2) {
+        if (capa + 1 >= STR_SIZE_MAX / 2) {
           capa = (total + 4095) / 4096;
           break;
         }
@@ -205,7 +262,10 @@ mrb_value
 mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 {
   if (len == 0) return str;
+  mrb_str_check_size_value_range(mrb, len);
+
   str_buf_cat(mrb, mrb_str_ptr(str), ptr, len);
+
   return str;
 }
 
@@ -214,7 +274,9 @@ mrb_str_new(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s;
 
+  mrb_str_check_size_value_range(mrb, len);
   s = str_new(mrb, p, len);
+
   return mrb_obj_value(s);
 }
 
@@ -233,9 +295,7 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
 
   if (p) {
     len = strlen(p);
-    if ((mrb_int)len < 0) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "argument too big");
-    }
+    mrb_str_check_size_value_range(mrb, len + 1);
   }
   else {
     len = 0;
@@ -446,7 +506,7 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
   if (times < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argument");
   }
-  if (times && MRB_INT_MAX / times < RSTRING_LEN(self)) {
+  if (times && STR_SIZE_MAX / times < RSTRING_LEN(self)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "argument too big");
   }
 
@@ -559,7 +619,6 @@ str_eql(mrb_state *mrb, const mrb_value str1, const mrb_value str2)
 {
   const size_t len = RSTRING_LEN(str1);
 
-  /* assert(SIZE_MAX >= MRB_INT_MAX) */
   if (len != RSTRING_LEN(str2)) return FALSE;
   if (memcmp(RSTRING_PTR(str1), RSTRING_PTR(str2), len) == 0)
     return TRUE;
@@ -2538,19 +2597,24 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
 }
 
 mrb_value
-mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, mrb_int len)
+mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 {
-  if (len < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
-  }
+  mrb_str_check_size_value_range(mrb, len);
+
   str_buf_cat(mrb, mrb_str_ptr(str), ptr, len);
+
   return str;
 }
 
 mrb_value
 mrb_str_cat2(mrb_state *mrb, mrb_value str, const char *ptr)
 {
-  return mrb_str_cat(mrb, str, ptr, strlen(ptr));
+  size_t len;
+
+  len = strlen(ptr);
+  mrb_str_check_size_value_range(mrb, len);
+
+  return mrb_str_cat(mrb, str, ptr, len);
 }
 
 mrb_value
