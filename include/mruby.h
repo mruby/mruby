@@ -156,6 +156,7 @@ void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
 struct RClass * mrb_module_new(mrb_state *mrb);
+int mrb_class_defined(mrb_state *mrb, const char *name);
 struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
 struct RClass * mrb_class_obj_get(mrb_state *mrb, const char *name);
 
