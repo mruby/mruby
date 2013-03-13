@@ -90,7 +90,7 @@ exc_to_s(mrb_state *mrb, mrb_value exc)
 {
   mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern(mrb, "mesg"));
 
-  if (mrb_nil_p(mesg)) return mrb_str_new2(mrb, mrb_obj_classname(mrb, exc));
+  if (mrb_nil_p(mesg)) return mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, exc));
   return mesg;
 }
 
@@ -141,7 +141,7 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
     }
   }
   else {
-    str = mrb_str_new2(mrb, mrb_obj_classname(mrb, exc));
+    str = mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, exc));
     if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
       mrb_str_cat2(mrb, str, ": ");
       mrb_str_append(mrb, str, mesg);
@@ -219,7 +219,7 @@ void
 mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg)
 {
   mrb_value mesg;
-  mesg = mrb_str_new2(mrb, msg);
+  mesg = mrb_str_new_cstr(mrb, msg);
   mrb_exc_raise(mrb, mrb_exc_new3(mrb, c, mesg));
 }
 

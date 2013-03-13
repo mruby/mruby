@@ -106,21 +106,6 @@ str_mod_check(mrb_state *mrb, mrb_value str, char *p, mrb_int len)
 
 #define mrb_obj_alloc_string(mrb) ((struct RString*)mrb_obj_alloc((mrb), MRB_TT_STRING, (mrb)->string_class))
 
-static struct RString*
-str_alloc(mrb_state *mrb, struct RClass *c)
-{
-  struct RString* s;
-
-  s = mrb_obj_alloc_string(mrb);
-
-  s->c = c;
-  s->ptr = 0;
-  s->len = 0;
-  s->aux.capa = 0;
-
-  return s;
-}
-
 /* char offset to byte offset */
 int
 mrb_str_offset(mrb_state *mrb, mrb_value str, int pos)
@@ -131,8 +116,9 @@ mrb_str_offset(mrb_state *mrb, mrb_value str, int pos)
 static struct RString*
 str_new(mrb_state *mrb, const char *p, int len)
 {
-  struct RString *s = str_alloc(mrb, mrb->string_class);
+  struct RString *s;
 
+  s = mrb_obj_alloc_string(mrb);
   s->len = len;
   s->aux.capa = len;
   s->ptr = (char *)mrb_malloc(mrb, len+1);
@@ -158,6 +144,10 @@ mrb_str_new_empty(mrb_state *mrb, mrb_value str)
   return mrb_obj_value(s);
 }
 
+#ifndef MRB_STR_BUF_MIN_SIZE
+# define MRB_STR_BUF_MIN_SIZE 128
+#endif
+
 mrb_value
 mrb_str_buf_new(mrb_state *mrb, int capa)
 {
@@ -165,8 +155,8 @@ mrb_str_buf_new(mrb_state *mrb, int capa)
 
   s = mrb_obj_alloc_string(mrb);
 
-  if (capa < STR_BUF_MIN_SIZE) {
-    capa = STR_BUF_MIN_SIZE;
+  if (capa < MRB_STR_BUF_MIN_SIZE) {
+    capa = MRB_STR_BUF_MIN_SIZE;
   }
   s->len = 0;
   s->aux.capa = capa;
@@ -232,17 +222,6 @@ mrb_str_new(mrb_state *mrb, const char *p, mrb_int len)
   return mrb_obj_value(s);
 }
 
-mrb_value
-mrb_str_new2(mrb_state *mrb, const char *ptr)
-{
-  struct RString *s;
-  if (!ptr) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "NULL pointer given");
-  }
-  s = str_new(mrb, ptr, strlen(ptr));
-  return mrb_obj_value(s);
-}
-
 /*
  *  call-seq: (Caution! NULL string)
  *     String.new(str="")   => new_str
@@ -254,11 +233,23 @@ mrb_value
 mrb_str_new_cstr(mrb_state *mrb, const char *p)
 {
   struct RString *s;
-  int len = strlen(p);
+  size_t len;
+
+  if (p) {
+    len = strlen(p);
+    if (len > MRB_INT_MAX) {
+      len = MRB_INT_MAX;
+    }
+  }
+  else {
+    len = 0;
+  }
 
   s = mrb_obj_alloc_string(mrb);
   s->ptr = (char *)mrb_malloc(mrb, len+1);
-  memcpy(s->ptr, p, len);
+  if (p) {
+    memcpy(s->ptr, p, len);
+  }
   s->ptr[len] = 0;
   s->len = len;
   s->aux.capa = len;
@@ -310,7 +301,7 @@ mrb_str_literal(mrb_state *mrb, mrb_value str)
   struct RString *s, *orig;
   mrb_shared_string *shared;
 
-  s = str_alloc(mrb, mrb->string_class);
+  s = mrb_obj_alloc_string(mrb);
   orig = mrb_str_ptr(str);
   if (!(orig->flags & MRB_STR_SHARED)) {
     str_make_shared(mrb, mrb_str_ptr(str));
@@ -319,6 +310,7 @@ mrb_str_literal(mrb_state *mrb, mrb_value str)
   shared->refcnt++;
   s->ptr = shared->ptr;
   s->len = shared->len;
+  s->aux.capa = 0;
   s->aux.shared = shared;
   s->flags |= MRB_STR_SHARED;
 
@@ -1672,15 +1664,6 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
     return pos;
   }
 }
-
-#ifdef INCLUDE_ENCODING
-/* byte offset to char offset */
-int
-mrb_str_sublen(mrb_state *mrb, mrb_value str, long pos)
-{
-  return pos;
-}
-#endif //INCLUDE_ENCODING
 
 /* 15.2.10.5.31 */
 /*

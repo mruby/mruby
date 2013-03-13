@@ -288,7 +288,7 @@ mrb_struct_define(mrb_state *mrb, const char *name, ...)
   char *mem;
 
   if (!name) nm = mrb_nil_value();
-  else nm = mrb_str_new2(mrb, name);
+  else nm = mrb_str_new_cstr(mrb, name);
   ary = mrb_ary_new(mrb);
 
   va_start(ar, name);
