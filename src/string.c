@@ -1678,15 +1678,6 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
   }
 }
 
-#ifdef INCLUDE_ENCODING
-/* byte offset to char offset */
-int
-mrb_str_sublen(mrb_state *mrb, mrb_value str, long pos)
-{
-  return pos;
-}
-#endif //INCLUDE_ENCODING
-
 /* 15.2.10.5.31 */
 /*
  *  call-seq:
