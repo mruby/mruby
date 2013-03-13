@@ -18,7 +18,11 @@
 #define ARY_DEFAULT_LEN   4
 #define ARY_SHRINK_RATIO  5 /* must be larger than 2 */
 #define ARY_C_MAX_SIZE (SIZE_MAX / sizeof(mrb_value))
-#define ARY_MAX_SIZE ((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? (mrb_int)ARY_C_MAX_SIZE : MRB_INT_MAX)
+#define ARY_MAX_SIZE ((ARY_C_MAX_SIZE < (uint64_t)MRB_INT_MAX) ? (mrb_int)ARY_C_MAX_SIZE : MRB_INT_MAX)
+
+#if MRB_INT_MAX > UINT64_MAX
+# error You can't build this code on your environment. Fix ARY_MAX_SIZE.
+#endif
 
 static inline mrb_value
 ary_elt(mrb_value ary, mrb_int offset)
