@@ -409,7 +409,7 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
   if (mrb_class_defined(mrb, "SystemCallError")) {
     sce = mrb_class_get(mrb, "SystemCallError");
     if (mesg != NULL) {
-      mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 2, mrb_fixnum_value(no), mrb_str_new2(mrb, mesg));
+      mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 2, mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
     } else {
       mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 1, mrb_fixnum_value(no));
     }
