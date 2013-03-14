@@ -279,7 +279,7 @@ get_syms_block_size(mrb_state *mrb, mrb_irep *irep, int type)
 
     size += DUMP_SIZE(MRB_DUMP_SIZE_OF_SHORT, type); /* snl(n) */
     if (irep->syms[sym_no] != 0) {
-      int len;
+      size_t len;
 
       name = mrb_sym2name_len(mrb, irep->syms[sym_no], &len);
       nlen = str_dump_len((char*)name, len, type);
@@ -421,9 +421,10 @@ write_syms_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
     uint16_t nlen =0;
 
     if (irep->syms[sym_no] != 0) {
-      int len;
+      size_t len;
 
       name = mrb_sym2name_len(mrb, irep->syms[sym_no], &len);
+      if (len > UINT16_MAX) goto error_exit;
       nlen = str_dump_len((char*)name, len, type);
       if ( nlen > buf_size - 1) {
         buf_size = nlen + 1;

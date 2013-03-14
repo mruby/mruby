@@ -555,7 +555,7 @@ static void
 check_iv_name(mrb_state *mrb, mrb_sym id)
 {
   const char *s;
-  int len;
+  size_t len;
 
   s = mrb_sym2name_len(mrb, id, &len);
   if (len < 2 || !(s[0] == '@' && s[1] != '@')) {

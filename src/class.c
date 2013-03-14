@@ -1184,7 +1184,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
 {
   mrb_value path;
   const char *name;
-  int len;
+  size_t len;
 
   path = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern(mrb, "__classpath__"));
   if (mrb_nil_p(path)) {
@@ -1461,7 +1461,7 @@ static void
 check_cv_name(mrb_state *mrb, mrb_sym id)
 {
   const char *s;
-  int len;
+  size_t len;
 
   s = mrb_sym2name_len(mrb, id, &len);
   if (len < 3 || !(s[0] == '@' && s[1] == '@')) {
@@ -1683,7 +1683,7 @@ static void
 check_const_name(mrb_state *mrb, mrb_sym id)
 {
   const char *s;
-  int len;
+  size_t len;
 
   s = mrb_sym2name_len(mrb, id, &len);
   if (len < 1 || !ISUPPER(*s)) {

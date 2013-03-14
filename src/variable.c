@@ -520,7 +520,7 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   mrb_value str = *(mrb_value*)p;
   const char *s;
-  int len;
+  size_t len;
 
   /* need not to show internal data */
   if (RSTRING_PTR(str)[0] == '-') { /* first element */
@@ -587,7 +587,7 @@ iv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   mrb_value ary;
   const char* s;
-  int len;
+  size_t len;
 
   ary = *(mrb_value*)p;
   s = mrb_sym2name_len(mrb, sym, &len);
@@ -631,7 +631,7 @@ cv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   mrb_value ary;
   const char* s;
-  int len;
+  size_t len;
 
   ary = *(mrb_value*)p;
   s = mrb_sym2name_len(mrb, sym, &len);
