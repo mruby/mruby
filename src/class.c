@@ -203,6 +203,12 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
   return c;
 }
 
+int
+mrb_class_defined(mrb_state *mrb, const char *name)
+{
+  return mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), mrb_intern(mrb, name));
+}
+
 static struct RClass *
 class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {

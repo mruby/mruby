@@ -5,6 +5,7 @@
 */
 
 #include "mruby.h"
+#include <errno.h>
 #include <stdarg.h>
 #include <setjmp.h>
 #include <string.h>
@@ -401,7 +402,20 @@ mrb_make_exception(mrb_state *mrb, int argc, mrb_value *argv)
 void
 mrb_sys_fail(mrb_state *mrb, const char *mesg)
 {
-  mrb_raise(mrb, E_RUNTIME_ERROR, mesg);
+  struct RClass *sce;
+  mrb_int no;
+
+  no = (mrb_int)errno;
+  if (mrb_class_defined(mrb, "SystemCallError")) {
+    sce = mrb_class_get(mrb, "SystemCallError");
+    if (mesg != NULL) {
+      mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 2, mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
+    } else {
+      mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 1, mrb_fixnum_value(no));
+    }
+  } else {
+    mrb_raise(mrb, E_RUNTIME_ERROR, mesg);
+  }
 }
 
 void
