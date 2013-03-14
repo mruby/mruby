@@ -197,7 +197,7 @@ struct heap_page {
   struct heap_page *next;
   struct heap_page *free_next;
   struct heap_page *free_prev;
-  unsigned int old:1;
+  mrb_bool old:1;
   RVALUE objects[MRB_HEAP_PAGE_SIZE];
 };
 

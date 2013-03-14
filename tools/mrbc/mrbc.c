@@ -19,8 +19,8 @@ struct _args {
   char *filename;
   char *initname;
   char *ext;
-  int check_syntax : 1;
-  int verbose      : 1;
+  mrb_bool check_syntax : 1;
+  mrb_bool verbose      : 1;
 };
 
 static void
