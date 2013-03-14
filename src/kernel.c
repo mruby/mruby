@@ -518,6 +518,7 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
   default:
     cv = mrb_singleton_class(mrb, self);
     c = mrb_class_ptr(cv);
+    break;
   }
   return mrb_yield_internal(mrb, b, 0, 0, self, c);
 }
@@ -931,6 +932,7 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
     exc = mrb_make_exception(mrb, argc, a);
     mrb_obj_iv_set(mrb, mrb_obj_ptr(exc), mrb_intern(mrb, "lastpc"), mrb_voidp_value(mrb->ci->pc));
     mrb_exc_raise(mrb, exc);
+    break;
   }
   return mrb_nil_value();            /* not reached */
 }
