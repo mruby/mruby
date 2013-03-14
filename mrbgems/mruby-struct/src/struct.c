@@ -166,7 +166,7 @@ mrb_id_attrset(mrb_state *mrb, mrb_sym id)
 {
   const char *name;
   char *buf;
-  int len;
+  size_t len;
   mrb_sym mid;
 
   name = mrb_sym2name_len(mrb, id, &len);
@@ -184,7 +184,8 @@ static mrb_value
 mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
 {
   const char *name;
-  int i, len;
+  int i;
+  size_t len;
   mrb_sym mid;
   mrb_value members, slot, *ptr, *ptr_members;
 
@@ -471,7 +472,7 @@ inspect_struct(mrb_state *mrb, mrb_value s, int recur)
     id = mrb_symbol(slot);
     if (mrb_is_local_id(id) || mrb_is_const_id(id)) {
       const char *name;
-      int len;
+      size_t len;
 
       name = mrb_sym2name_len(mrb, id, &len);
       mrb_str_append(mrb, str, mrb_str_new(mrb, name, len));

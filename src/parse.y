@@ -882,7 +882,7 @@ heredoc_start_sym(parser_state *p, node *beg, mrb_sym sym, enum heredoc_type typ
 {
   char *bs = (char*)beg->cdr->car;
   int allow_indent = (bs[2] == '-');
-  int len;
+  size_t len;
   const char *s = mrb_sym2name_len(p->mrb, sym, &len);
   return heredoc_start_sb(p, s, len, type, allow_indent);
 }

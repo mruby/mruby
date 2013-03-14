@@ -167,7 +167,7 @@ mrb_str_buf_new(mrb_state *mrb, int capa)
 }
 
 static void
-str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, mrb_int len)
+str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
 {
   mrb_int capa;
   mrb_int total;
@@ -202,7 +202,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, mrb_int len)
 }
 
 mrb_value
-mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, mrb_int len)
+mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 {
   if (len == 0) return str;
   str_buf_cat(mrb, mrb_str_ptr(str), ptr, len);
@@ -210,13 +210,9 @@ mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, mrb_int len)
 }
 
 mrb_value
-mrb_str_new(mrb_state *mrb, const char *p, mrb_int len)
+mrb_str_new(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s;
-
-  if (len < 0) {
-    len = 0;
-  }
 
   s = str_new(mrb, p, len);
   return mrb_obj_value(s);
@@ -237,8 +233,8 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
 
   if (p) {
     len = strlen(p);
-    if (len > MRB_INT_MAX) {
-      len = MRB_INT_MAX;
+    if ((mrb_int)len < 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "argument too big");
     }
   }
   else {
@@ -2550,14 +2546,7 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, mrb_int len)
 mrb_value
 mrb_str_cat2(mrb_state *mrb, mrb_value str, const char *ptr)
 {
-  size_t len;
-
-  len = strlen(ptr);
-  if (len > MRB_INT_MAX) {
-    len = MRB_INT_MAX;
-  }
-
-  return mrb_str_cat(mrb, str, ptr, len);
+  return mrb_str_cat(mrb, str, ptr, strlen(ptr));
 }
 
 mrb_value
