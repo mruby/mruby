@@ -130,7 +130,7 @@ module MRuby
 
     def cygwin_filename(name)
       if name.is_a?(Array)
-        name.flatten.map { |n| cyg_filename(n) }
+        name.flatten.map { |n| cygwin_filename(n) }
       else
         '"%s"' % `cygpath -w "#{filename(name)}"`.strip
       end
