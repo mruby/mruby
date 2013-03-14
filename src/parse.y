@@ -3393,34 +3393,40 @@ toklen(parser_state *p)
 #define IS_LABEL_POSSIBLE() ((p->lstate == EXPR_BEG && !cmd_state) || IS_ARG())
 #define IS_LABEL_SUFFIX(n) (peek_n(p, ':',(n)) && !peek_n(p, ':', (n)+1))
 
-static unsigned long
+static int
 scan_oct(const int *start, int len, int *retlen)
 {
   const int *s = start;
-  unsigned long retval = 0;
+  int retval = 0;
+
+  /* PARANOID: assert(len <= 3) */
 
   while (len-- && *s >= '0' && *s <= '7') {
     retval <<= 3;
     retval |= *s++ - '0';
   }
   *retlen = s - start;
+
   return retval;
 }
 
-static unsigned long
+static int
 scan_hex(const int *start, int len, int *retlen)
 {
   static const char hexdigit[] = "0123456789abcdef0123456789ABCDEF";
   register const int *s = start;
-  register unsigned long retval = 0;
+  register int retval = 0;
   char *tmp;
 
-  while (len-- && *s && (tmp = (char *)strchr(hexdigit, *s))) {
+  /* PARANOID: assert(len <= 2) */
+
+  while (len-- && *s && (tmp = strchr(hexdigit, *s))) {
     retval <<= 4;
     retval |= (tmp - hexdigit) & 15;
     s++;
   }
   *retlen = s - start;
+
   return retval;
 }
 
