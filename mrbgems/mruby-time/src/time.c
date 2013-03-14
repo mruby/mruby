@@ -528,6 +528,8 @@ mrb_time_initialize(mrb_state *mrb, mrb_value self)
   if (tm) {
     mrb_time_free(mrb, tm);
   }
+  DATA_TYPE(self) = &mrb_time_type;
+  DATA_PTR(self) = NULL;
 
   n = mrb_get_args(mrb, "|iiiiiii",
 		   &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
@@ -538,7 +540,6 @@ mrb_time_initialize(mrb_state *mrb, mrb_value self)
     tm = time_mktime(mrb, ayear, amonth, aday, ahour, amin, asec, ausec, MRB_TIMEZONE_LOCAL);
   }
   DATA_PTR(self) = tm;
-  DATA_TYPE(self) = &mrb_time_type;
   return self;
 }
 
