@@ -43,9 +43,9 @@ MRuby::Toolchain.new(:androideabi) do |conf|
   if ANDROID_STANDALONE_TOOLCHAIN == nil then
     if RUBY_PLATFORM.include?('darwin') then
       HOST_PLATFORM = 'darwin-x86'
-    elsif RUBY_PLATFORM.include('linux') then
+    elsif RUBY_PLATFORM.include?('linux') then
       HOST_PLATFORM = 'linux-x86'
-    elsif RUBY_PLATFORM.include('win') then
+    elsif RUBY_PLATFORM.include?('win') then
       HOST_PLATFORM = 'windows'
     else
       # Unknown host platform.
@@ -104,8 +104,8 @@ MRuby::Toolchain.new(:androideabi) do |conf|
     ANDROID_CC = path_to_toolchain + '/bin/' + toolchain_prefix + 'gcc'
     ANDROID_LD = path_to_toolchain + '/bin/' + toolchain_prefix + 'gcc'
     ANDROID_AR = path_to_toolchain + '/bin/' + toolchain_prefix + 'ar'
-    ANDROID_CFLAGS  = GCC_COMMON_CFLAGS  + %W(-mandroid --sysroot=#{SYSROOT}) + ARCH_CFLAGS
-    ANDROID_LDFLAGS = GCC_COMMON_LDFLAGS + %W(-mandroid --sysroot=#{SYSROOT}) + ARCH_LDFLAGS
+    ANDROID_CFLAGS  = GCC_COMMON_CFLAGS  + %W(-mandroid --sysroot="#{SYSROOT}") + ARCH_CFLAGS
+    ANDROID_LDFLAGS = GCC_COMMON_LDFLAGS + %W(-mandroid --sysroot="#{SYSROOT}") + ARCH_LDFLAGS
   when 'clang' then
     # clang is not supported yet.
   when 'clang31', 'clang3.1' then
