@@ -65,7 +65,7 @@ mrb_alloca_free(mrb_state *mrb)
   struct alloca_header *p;
   struct alloca_header *tmp;
 
-  if (mrb == NULL) return NULL;
+  if (mrb == NULL) return;
   p = mrb->mems;
 
   while (p) {
