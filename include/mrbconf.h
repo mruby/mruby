@@ -68,7 +68,7 @@
 # define str_to_mrb_float(buf) strtod(buf, NULL)
 #endif
 
-#ifdef MRB_INT64
+#if defined(MRB_INT64)
 # ifdef MRB_NAN_BOXING
 #  error Cannot use NaN boxing when mrb_int is 64bit
 # else
@@ -77,6 +77,11 @@
 #  define MRB_INT_MAX INT64_MAX
 #  define str_to_mrb_int(buf) strtoll(buf, NULL, 10)
 # endif
+#elif defined(MRB_INT16)
+  typedef int16_t mrb_int;
+# define MRB_INT_MIN INT16_MIN
+# define MRB_INT_MAX INT16_MAX
+# define str_to_mrb_int(buf) strtol(buf, NULL, 10)
 #else
   typedef int32_t mrb_int;
 # define MRB_INT_MIN INT32_MIN
