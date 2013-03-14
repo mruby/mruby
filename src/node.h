@@ -108,6 +108,7 @@ enum node_type {
     NODE_HEREDOC,
     NODE_LITERAL_DELIM,
     NODE_WORDS,
+    NODE_SYMBOLS,
     NODE_LAST
 };
 
