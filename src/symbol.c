@@ -240,6 +240,7 @@ is_special_global_name(const char* m)
       default:
         if (!ISDIGIT(*m)) return FALSE;
         do ++m; while (ISDIGIT(*m));
+        break;
     }
     return !*m;
 }
