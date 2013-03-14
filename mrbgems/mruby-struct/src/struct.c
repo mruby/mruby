@@ -112,7 +112,7 @@ mrb_value
 mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
 {
   mrb_value members, slot, *ptr, *ptr_members;
-  long i, len;
+  mrb_int i, len;
 
   ptr = RSTRUCT_PTR(obj);
   members = mrb_struct_members(mrb, obj);
@@ -237,7 +237,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
 {
   mrb_value nstr, *ptr_members;
   mrb_sym id;
-  long i, len;
+  mrb_int i, len;
   struct RClass *c;
 
   if (mrb_nil_p(name)) {
@@ -342,7 +342,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   mrb_value name, rest;
   mrb_value *pargv;
   int argcnt;
-  long i;
+  mrb_int i;
   mrb_value b, st;
   mrb_sym id;
   mrb_value *argv;
@@ -445,7 +445,7 @@ inspect_struct(mrb_state *mrb, mrb_value s, int recur)
   const char *cn = mrb_class_name(mrb, mrb_obj_class(mrb, s));
   mrb_value members, str = mrb_str_new(mrb, "#<struct ", 9);
   mrb_value *ptr, *ptr_members;
-  long i, len;
+  mrb_int i, len;
 
   if (cn) {
     mrb_str_append(mrb, str, mrb_str_new_cstr(mrb, cn));
@@ -532,7 +532,7 @@ static mrb_value
 mrb_struct_aref_id(mrb_state *mrb, mrb_value s, mrb_sym id)
 {
   mrb_value *ptr, members, *ptr_members;
-  long i, len;
+  mrb_int i, len;
 
   ptr = RSTRUCT_PTR(s);
   members = mrb_struct_members(mrb, s);
@@ -569,7 +569,7 @@ mrb_struct_aref_id(mrb_state *mrb, mrb_value s, mrb_sym id)
 mrb_value
 mrb_struct_aref_n(mrb_state *mrb, mrb_value s, mrb_value idx)
 {
-  long i;
+  mrb_int i;
 
   if (mrb_string_p(idx) || mrb_symbol_p(idx)) {
     return mrb_struct_aref_id(mrb, s, mrb_to_id(mrb, idx));
@@ -599,7 +599,7 @@ static mrb_value
 mrb_struct_aset_id(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
 {
   mrb_value members, *ptr, *ptr_members;
-  long i, len;
+  mrb_int i, len;
 
   members = mrb_struct_members(mrb, s);
   len = RARRAY_LEN(members);
@@ -644,7 +644,7 @@ mrb_struct_aset_id(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
 mrb_value
 mrb_struct_aset(mrb_state *mrb, mrb_value s)
 {
-  long i;
+  mrb_int i;
   mrb_value idx;
   mrb_value val;
 
@@ -690,7 +690,7 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
 {
   mrb_value s2;
   mrb_value *ptr, *ptr2;
-  long i, len;
+  mrb_int i, len;
 
   mrb_get_args(mrb, "o", &s2);
   if (mrb_obj_equal(mrb, s, s2)) return mrb_true_value();
@@ -721,7 +721,7 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
 {
   mrb_value s2;
   mrb_value *ptr, *ptr2;
-  long i, len;
+  mrb_int i, len;
 
   mrb_get_args(mrb, "o", &s2);
   if (mrb_obj_equal(mrb, s, s2)) return mrb_true_value();
