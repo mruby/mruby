@@ -162,7 +162,7 @@ sym_equal(mrb_state *mrb, mrb_value sym1)
 
   mrb_get_args(mrb, "o", &sym2);
   if (mrb_obj_equal(mrb, sym1, sym2)) return mrb_true_value();
-    return mrb_false_value();
+  return mrb_false_value();
 }
 
 /* 15.2.11.3.2  */
@@ -201,7 +201,7 @@ mrb_sym_to_s(mrb_state *mrb, mrb_value sym)
 static mrb_value
 sym_to_sym(mrb_state *mrb, mrb_value sym)
 {
-    return sym;
+  return sym;
 }
 
 /* 15.2.11.3.5(x)  */
@@ -225,106 +225,107 @@ sym_to_sym(mrb_state *mrb, mrb_value sym)
 static int
 is_special_global_name(const char* m)
 {
-    switch (*m) {
-      case '~': case '*': case '$': case '?': case '!': case '@':
-      case '/': case '\\': case ';': case ',': case '.': case '=':
-      case ':': case '<': case '>': case '\"':
-      case '&': case '`': case '\'': case '+':
-      case '0':
-        ++m;
-        break;
-      case '-':
-        ++m;
-        if (is_identchar(*m)) m += 1;
-        break;
-      default:
-        if (!ISDIGIT(*m)) return FALSE;
-        do ++m; while (ISDIGIT(*m));
-    }
-    return !*m;
+  switch (*m) {
+    case '~': case '*': case '$': case '?': case '!': case '@':
+    case '/': case '\\': case ';': case ',': case '.': case '=':
+    case ':': case '<': case '>': case '\"':
+    case '&': case '`': case '\'': case '+':
+    case '0':
+      ++m;
+      break;
+    case '-':
+      ++m;
+      if (is_identchar(*m)) m += 1;
+      break;
+    default:
+      if (!ISDIGIT(*m)) return FALSE;
+      do ++m; while (ISDIGIT(*m));
+      break;
+  }
+  return !*m;
 }
 
 static int
 symname_p(const char *name)
 {
-    const char *m = name;
-    int localid = FALSE;
+  const char *m = name;
+  int localid = FALSE;
 
-    if (!m) return FALSE;
-    switch (*m) {
-      case '\0':
-        return FALSE;
+  if (!m) return FALSE;
+  switch (*m) {
+    case '\0':
+      return FALSE;
 
-      case '$':
-        if (is_special_global_name(++m)) return TRUE;
-        goto id;
+    case '$':
+      if (is_special_global_name(++m)) return TRUE;
+      goto id;
 
-      case '@':
-        if (*++m == '@') ++m;
-        goto id;
+    case '@':
+      if (*++m == '@') ++m;
+      goto id;
 
-      case '<':
-        switch (*++m) {
-          case '<': ++m; break;
-          case '=': if (*++m == '>') ++m; break;
-          default: break;
-        }
-        break;
+    case '<':
+      switch (*++m) {
+        case '<': ++m; break;
+        case '=': if (*++m == '>') ++m; break;
+        default: break;
+      }
+      break;
 
-      case '>':
-        switch (*++m) {
-          case '>': case '=': ++m; break;
-	default: break;
-        }
-        break;
+    case '>':
+      switch (*++m) {
+        case '>': case '=': ++m; break;
+        default: break;
+      }
+      break;
 
-      case '=':
-        switch (*++m) {
-          case '~': ++m; break;
-          case '=': if (*++m == '=') ++m; break;
-          default: return FALSE;
-        }
-        break;
+    case '=':
+      switch (*++m) {
+        case '~': ++m; break;
+        case '=': if (*++m == '=') ++m; break;
+        default: return FALSE;
+      }
+      break;
 
-      case '*':
-        if (*++m == '*') ++m;
-        break;
-      case '!':
-        if (*++m == '=') ++m;
-        break;
-      case '+': case '-':
-        if (*++m == '@') ++m;
-        break;
-      case '|':
-        if (*++m == '|') ++m;
-        break;
-      case '&':
-        if (*++m == '&') ++m;
-        break;
+    case '*':
+      if (*++m == '*') ++m;
+      break;
+    case '!':
+      if (*++m == '=') ++m;
+      break;
+    case '+': case '-':
+      if (*++m == '@') ++m;
+      break;
+    case '|':
+      if (*++m == '|') ++m;
+      break;
+    case '&':
+      if (*++m == '&') ++m;
+      break;
 
-      case '^': case '/': case '%': case '~': case '`':
-        ++m;
-        break;
+    case '^': case '/': case '%': case '~': case '`':
+      ++m;
+      break;
 
-      case '[':
-        if (*++m != ']') return FALSE;
-        if (*++m == '=') ++m;
-        break;
+    case '[':
+      if (*++m != ']') return FALSE;
+      if (*++m == '=') ++m;
+      break;
 
-      default:
-        localid = !ISUPPER(*m);
+    default:
+      localid = !ISUPPER(*m);
 id:
-        if (*m != '_' && !ISALPHA(*m)) return FALSE;
-        while (is_identchar(*m)) m += 1;
-        if (localid) {
-            switch (*m) {
-	    case '!': case '?': case '=': ++m;
-	    default: break;
+      if (*m != '_' && !ISALPHA(*m)) return FALSE;
+      while (is_identchar(*m)) m += 1;
+      if (localid) {
+        switch (*m) {
+          case '!': case '?': case '=': ++m;
+          default: break;
             }
         }
-        break;
-    }
-    return *m ? FALSE : TRUE;
+      break;
+  }
+  return *m ? FALSE : TRUE;
 }
 
 static mrb_value
