@@ -379,6 +379,7 @@ dispatch(codegen_scope *s, int pc)
     fprintf(stderr, "bug: dispatch on non JMP op\n");
 #endif
     scope_error(s);
+    break;
   }
   s->iseq[pc] = MKOP_AsBx(c, GETARG_A(i), diff);
 }
