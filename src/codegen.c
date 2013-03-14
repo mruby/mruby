@@ -49,7 +49,7 @@ typedef struct scope {
   int pc;
   int lastlabel;
   int ainfo:15;
-  int mscope:1;
+  mrb_bool mscope:1;
 
   struct loopinfo *loop;
   int ensure_level;
