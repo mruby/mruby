@@ -702,6 +702,7 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
 
   default:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+    break;
   }
 
   return mrb_nil_value(); /* dummy to avoid warning : not reach here */

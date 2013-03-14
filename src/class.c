@@ -408,6 +408,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       if (argc <= i && !opt) {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
       }
+      break;
     }
 
     switch (c) {
