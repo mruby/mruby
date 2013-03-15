@@ -128,7 +128,20 @@ ZZZ
   z == ""
 end
 
-# Not Implemented ATM assert('Literals Array', '8.7.6.4') do
+# Not Implemented quoted-expanded-array(%W literal)
+assert('Literals Array', '8.7.6.4') do
+  a = %w(a b c)
+  b = %w((abc))
+  c = %w[[ab cd][ef]]
+  d = %w(a\nb 
+  test\ abc
+         c)
+
+  a == ['a', 'b', 'c'] and
+  b == ['(abc)'] and
+  c == ['[ab', 'cd][ef]'] and
+  d == ['a\nb', 'test abc', 'c']
+end
 
 # Not Implemented ATM assert('Literals Regular expression', '8.7.6.5') do
 
