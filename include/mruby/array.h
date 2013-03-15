@@ -39,9 +39,6 @@ void mrb_ary_decref(mrb_state*, mrb_shared_array*);
 mrb_value mrb_ary_new_capa(mrb_state*, mrb_int);
 mrb_value mrb_ary_new(mrb_state *mrb);
 mrb_value mrb_ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals);
-/* compatibility macros - soon to be removed */
-#define mrb_ary_new_elts(mrb,size,vals) mrb_ary_new_from_values(mrb,size,vals)
-#define mrb_ary_new4(mrb,size,vals) mrb_ary_new_from_values(mrb,size,vals)
 void mrb_ary_concat(mrb_state*, mrb_value, mrb_value);
 mrb_value mrb_ary_splat(mrb_state*, mrb_value);
 void mrb_ary_push(mrb_state*, mrb_value, mrb_value);
