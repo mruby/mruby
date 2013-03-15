@@ -1139,8 +1139,13 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
     mrb_raise(mrb, E_TYPE_ERROR, "name should be a symbol");
   }
 
-  inspect = mrb_funcall(mrb, mod, "inspect", 0);
-  if (RSTRING_LEN(inspect) > 64) {
+  if (mrb_respond_to(mrb,mod,mrb_intern(mrb,"inspect"))){
+    inspect = mrb_funcall(mrb, mod, "inspect", 0);
+    if (RSTRING_LEN(inspect) > 64) {
+      inspect = mrb_any_to_s(mrb, mod);
+    }
+  }
+  else {
     inspect = mrb_any_to_s(mrb, mod);
   }
 
