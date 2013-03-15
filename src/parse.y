@@ -5153,13 +5153,13 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
 
       n = snprintf(buf, sizeof(buf), "line %d: %s\n",
       p->error_buffer[0].lineno, p->error_buffer[0].message);
-      mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, buf, n));
+      mrb->exc = mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, buf, n));
       mrb_parser_free(p);
       return mrb_undef_value();
     }
     else {
       static const char msg[] = "syntax error";
-      mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, msg, sizeof(msg) - 1));
+      mrb->exc = mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, msg, sizeof(msg) - 1));
       mrb_parser_free(p);
       return mrb_undef_value();
     }
@@ -5168,7 +5168,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   mrb_parser_free(p);
   if (n < 0) {
     static const char msg[] = "codegen error";
-    mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SCRIPT_ERROR, msg, sizeof(msg) - 1));
+    mrb->exc = mrb_object(mrb_exc_new(mrb, E_SCRIPT_ERROR, msg, sizeof(msg) - 1));
     return mrb_nil_value();
   }
   if (c) {
