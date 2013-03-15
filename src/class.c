@@ -921,7 +921,7 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
   default:
     break;
   }
-  obj = mrb_basic(v);
+  obj = mrb_basic_ptr(v);
   prepare_singleton_class(mrb, obj);
   return mrb_obj_value(obj->c);
 }

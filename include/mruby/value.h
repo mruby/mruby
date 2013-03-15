@@ -186,7 +186,9 @@ struct RBasic {
   MRB_OBJECT_HEADER;
 };
 
-#define mrb_basic(v)     ((struct RBasic*)((v).value.p))
+#define mrb_basic_ptr(v) ((struct RBasic*)((v).value.p))
+/* obsolete macro mrb_basic; will be removed soon */
+#define mrb_basic(v)     mrb_basic_ptr(v)
 
 struct RObject {
   MRB_OBJECT_HEADER;
