@@ -3677,6 +3677,77 @@ qstring_node(parser_state *p, int beg, int end)
   return new_str(p, tok(p), toklen(p));
 }
 
+static node*
+qwords_node(parser_state *p, int beg, int end)
+{
+  int c;
+  int nest_level = 0;
+  node *list = 0;
+
+  newtok(p);
+  while ((c = nextc(p)) != end || nest_level != 0) {
+    if (c  == -1)  {
+      yyerror(p, "unterminated string meets end of file");
+      return 0;
+    }
+    else if (c == beg) {
+      nest_level++;
+    }
+    else if (c == end) {
+      nest_level--;
+    }
+    else if (c == ' ' || c == '\n') {
+      tokfix(p);
+      if (toklen(p)) {
+        list = push(list, (node*)new_str(p, tok(p), toklen(p)));
+      }
+      newtok(p);
+      continue;
+    }
+    else if (c == '\\') {
+      c = nextc(p);
+      if (c != beg && c != end) {
+        switch (c) {
+        case '\n':
+          p->lineno++;
+          p->column = 0;
+          continue;
+
+        case '\\':
+          c = '\\';
+          break;
+
+        case ' ':
+          break;
+
+        default:
+          tokadd(p, '\\');
+        }
+      }
+    }
+    tokadd(p, c);
+  }
+
+  tokfix(p);
+  if (toklen(p))
+    list = push(list, (node*)new_str(p, tok(p), toklen(p)));
+
+  p->lstate = EXPR_END;
+  return new_array(p, list);
+}
+
+static int
+parse_qwords(parser_state *p, int beg, int end)
+{
+  node *nd = qwords_node(p, beg, end);
+
+  if (nd) {
+    yylval.nd = nd;
+    return tSTRING;
+  }
+  return 0;
+}
+
 static int
 parse_qstring(parser_state *p, int beg, int end)
 {
@@ -4668,9 +4739,10 @@ parser_yylex(parser_state *p)
 #if 0
         p->lex_strterm = new_strterm(p, str_sword, term, paren);
 #endif
+        p->sterm = 0;
         do {c = nextc(p);} while (isspace(c));
         pushback(p, c);
-        return tQWORDS_BEG;
+        return parse_qwords(p, beg, term);
 
       case 'r':
 #if 0
