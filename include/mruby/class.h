@@ -42,7 +42,7 @@ mrb_class(mrb_state *mrb, mrb_value v)
   case MRB_TT_MAIN:
     return mrb->object_class;
   default:
-    return mrb_object(v)->c;
+    return mrb_obj_ptr(v)->c;
   }
 }
 

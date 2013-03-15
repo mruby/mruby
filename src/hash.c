@@ -52,11 +52,15 @@ mrb_gc_mark_ht(mrb_state *mrb, struct RHash *hash)
   khash_t(ht) *h = hash->ht;
 
   if (!h) return;
-  for (k = kh_begin(h); k != kh_end(h); k++)
+  for (k = kh_begin(h); k != kh_end(h); k++) {
     if (kh_exist(h, k)) {
-      mrb_gc_mark_value(mrb, kh_key(h, k));
-      mrb_gc_mark_value(mrb, kh_value(h, k));
+      mrb_value key = kh_key(h, k);
+      mrb_value val = kh_value(h, k);
+
+      mrb_gc_mark_value(mrb, key);
+      mrb_gc_mark_value(mrb, val);
     }
+  }
 }
 
 size_t
