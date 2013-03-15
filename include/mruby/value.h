@@ -144,7 +144,7 @@ mrb_float_value(mrb_float f)
 
 #define mrb_fixnum(o) (o).value.i
 #define mrb_symbol(o) (o).value.sym
-#define mrb_object(o) ((struct RBasic *) (o).value.p)
+#define mrb_object(o) ((struct RObject *) (o).value.p)
 #define mrb_voidp(o) (o).value.p
 #define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_FIXNUM)
 #define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
@@ -194,7 +194,6 @@ struct RObject {
   struct iv_tbl *iv;
 };
 
-#define mrb_obj_ptr(v)   ((struct RObject*)((v).value.p))
 #define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_MAIN)
 #define mrb_special_const_p(x) mrb_immediate_p(x)
 

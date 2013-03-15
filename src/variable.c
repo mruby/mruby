@@ -438,7 +438,7 @@ mrb_value
 mrb_iv_get(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 {
   if (obj_iv_p(obj)) {
-    return mrb_obj_iv_get(mrb, mrb_obj_ptr(obj), sym);
+    return mrb_obj_iv_get(mrb, mrb_object(obj), sym);
   }
   return mrb_nil_value();
 }
@@ -474,7 +474,7 @@ void
 mrb_iv_set(mrb_state *mrb, mrb_value obj, mrb_sym sym, mrb_value v)
 {
   if (obj_iv_p(obj)) {
-    mrb_obj_iv_set(mrb, mrb_obj_ptr(obj), sym, v);
+    mrb_obj_iv_set(mrb, mrb_object(obj), sym, v);
   }
   else {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "cannot set instance variable");
@@ -497,14 +497,14 @@ int
 mrb_iv_defined(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 {
   if (!obj_iv_p(obj)) return FALSE;
-  return mrb_obj_iv_defined(mrb, mrb_obj_ptr(obj), sym);
+  return mrb_obj_iv_defined(mrb, mrb_object(obj), sym);
 }
 
 void
 mrb_iv_copy(mrb_state *mrb, mrb_value dest, mrb_value src)
 {
-  struct RObject *d = mrb_obj_ptr(dest);
-  struct RObject *s = mrb_obj_ptr(src);
+  struct RObject *d = mrb_object(dest);
+  struct RObject *s = mrb_object(src);
 
   if (d->iv) {
     iv_free(mrb, d->iv);
@@ -558,7 +558,7 @@ mrb_value
 mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 {
   if (obj_iv_p(obj)) {
-    iv_tbl *t = mrb_obj_ptr(obj)->iv;
+    iv_tbl *t = mrb_object(obj)->iv;
     mrb_value val;
 
     if (t && iv_del(mrb, t, sym, &val)) {
@@ -620,8 +620,8 @@ mrb_obj_instance_variables(mrb_state *mrb, mrb_value self)
   mrb_value ary;
 
   ary = mrb_ary_new(mrb);
-  if (obj_iv_p(self) && mrb_obj_ptr(self)->iv) {
-    iv_foreach(mrb, mrb_obj_ptr(self)->iv, iv_i, &ary);
+  if (obj_iv_p(self) && mrb_object(self)->iv) {
+    iv_foreach(mrb, mrb_object(self)->iv, iv_i, &ary);
   }
   return ary;
 }
@@ -663,8 +663,8 @@ mrb_mod_class_variables(mrb_state *mrb, mrb_value mod)
   mrb_value ary;
 
   ary = mrb_ary_new(mrb);
-  if (obj_iv_p(mod) && mrb_obj_ptr(mod)->iv) {
-    iv_foreach(mrb, mrb_obj_ptr(mod)->iv, cv_i, &ary);
+  if (obj_iv_p(mod) && mrb_object(mod)->iv) {
+    iv_foreach(mrb, mrb_object(mod)->iv, cv_i, &ary);
   }
   return ary;
 }

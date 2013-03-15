@@ -53,7 +53,7 @@ mrb_value
 mrb_obj_inspect(mrb_state *mrb, mrb_value obj)
 {
   if ((mrb_type(obj) == MRB_TT_OBJECT) && mrb_obj_basic_to_s_p(mrb, obj)) {
-    return mrb_obj_iv_inspect(mrb, mrb_obj_ptr(obj));
+    return mrb_obj_iv_inspect(mrb, mrb_object(obj));
   }
   else if (mrb_type(obj) == MRB_TT_MAIN) {
     return mrb_str_new(mrb, "main", 4);
@@ -589,7 +589,7 @@ mrb_obj_ivar_defined(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "n", &mid);
   check_iv_name(mrb, mid);
-  if (mrb_obj_iv_defined(mrb, mrb_obj_ptr(self), mid))
+  if (mrb_obj_iv_defined(mrb, mrb_object(self), mid))
     return mrb_true_value();
   return mrb_false_value();
 }
@@ -930,7 +930,7 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
     /* fall through */
   default:
     exc = mrb_make_exception(mrb, argc, a);
-    mrb_obj_iv_set(mrb, mrb_obj_ptr(exc), mrb_intern(mrb, "lastpc"), mrb_voidp_value(mrb->ci->pc));
+    mrb_obj_iv_set(mrb, mrb_object(exc), mrb_intern(mrb, "lastpc"), mrb_voidp_value(mrb->ci->pc));
     mrb_exc_raise(mrb, exc);
     break;
   }

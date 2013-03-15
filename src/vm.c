@@ -478,7 +478,7 @@ localjump_error(mrb_state *mrb, localjump_error_kind kind)
   mrb_str_buf_cat(mrb, msg, lead, sizeof(lead) - 1);
   mrb_str_buf_cat(mrb, msg, kind_str[kind], kind_str_len[kind]);
   exc = mrb_exc_new3(mrb, E_LOCALJUMP_ERROR, msg);
-  mrb->exc = (struct RObject*)mrb_object(exc);
+  mrb->exc = mrb_object(exc);
 }
 
 static void
@@ -498,7 +498,7 @@ argnum_error(mrb_state *mrb, int num)
                   mrb->ci->argc, num);
   }
   exc = mrb_exc_new(mrb, E_ARGUMENT_ERROR, buf, len);
-  mrb->exc = (struct RObject*)mrb_object(exc);
+  mrb->exc = mrb_object(exc);
 }
 
 #ifdef ENABLE_DEBUG
@@ -780,7 +780,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_RAISE) {
       /* A      raise(R(A)) */
-      mrb->exc = (struct RObject*)mrb_object(regs[GETARG_A(i)]);
+      mrb->exc = mrb_object(regs[GETARG_A(i)]);
       goto L_RAISE;
     }
 
@@ -1062,7 +1062,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           mrb_value exc;
           static const char m[] = "super called outside of method";
           exc = mrb_exc_new(mrb, E_NOMETHOD_ERROR, m, sizeof(m) - 1);
-          mrb->exc = (struct RObject*)mrb_object(exc);
+          mrb->exc = mrb_object(exc);
           goto L_RAISE;
         }
         stack = e->stack + 1;
@@ -1911,7 +1911,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       if (!mrb->ci->target_class) {
         static const char msg[] = "no target class or module";
         mrb_value exc = mrb_exc_new(mrb, E_TYPE_ERROR, msg, sizeof(msg) - 1);
-        mrb->exc = (struct RObject*)mrb_object(exc);
+        mrb->exc = mrb_object(exc);
         goto L_RAISE;
       }
       regs[GETARG_A(i)] = mrb_obj_value(mrb->ci->target_class);
@@ -1964,7 +1964,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       else {
         exc = mrb_exc_new3(mrb, E_LOCALJUMP_ERROR, msg);
       }
-      mrb->exc = (struct RObject*)mrb_object(exc);
+      mrb->exc = mrb_object(exc);
       goto L_RAISE;
     }
   }
