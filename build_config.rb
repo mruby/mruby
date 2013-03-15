@@ -29,6 +29,9 @@ MRuby::Build.new do |conf|
   # Use extensional Numeric class
   conf.gem "#{root}/mrbgems/mruby-numeric-ext"
 
+  # Use extensional Array class
+  conf.gem "#{root}/mrbgems/mruby-array-ext"
+
   # Generate binaries
   # conf.bins = %w(mrbc mruby mirb)
   
