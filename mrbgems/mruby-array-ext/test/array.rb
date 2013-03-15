@@ -21,7 +21,7 @@ assert("Array#at") do
   a.at(0)  == "a" and a.at(-1) == "e"
 end
 
-assert("Array::rassoc") do
+assert("Array#rassoc") do
   a = [ [ 1, "one"], [2, "two"], [3, "three"], ["ii", "two"] ]
 
   a.rassoc("two") == [2, "two"] and
