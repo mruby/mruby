@@ -261,6 +261,9 @@ main(void)
 	else {
 	  /* no */
 	  printf(" => ");
+	  if (!mrb_respond_to(mrb,result,mrb_intern(mrb,"inspect"))){
+	    result = mrb_any_to_s(mrb,result);
+	  }
 	  p(mrb, result);
 	}
       }
