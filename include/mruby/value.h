@@ -194,7 +194,6 @@ struct RObject {
   struct iv_tbl *iv;
 };
 
-#define mrb_obj_ptr(v)   ((struct RObject*)((v).value.p))
 #define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_MAIN)
 #define mrb_special_const_p(x) mrb_immediate_p(x)
 
