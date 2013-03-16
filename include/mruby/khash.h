@@ -12,7 +12,6 @@ extern "C" {
 #endif
 
 #include <stdint.h>
-#include <string.h>
 
 typedef uint32_t khint_t;
 typedef khint_t khiter_t;
