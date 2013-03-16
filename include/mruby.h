@@ -32,7 +32,6 @@
 extern "C" {
 #endif
 
-#include <stdlib.h>
 #include "mrbconf.h"
 
 #include "mruby/value.h"

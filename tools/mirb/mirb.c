@@ -6,6 +6,7 @@
 ** immediately. It's a REPL...
 */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include <mruby.h>

@@ -5,6 +5,10 @@
 ** against the current mruby implementation.
 */
 
+
+#include <stdlib.h>
+#include <string.h>
+
 #include <mruby.h>
 #include <mruby/proc.h>
 #include <mruby/data.h>

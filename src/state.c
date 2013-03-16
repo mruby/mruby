@@ -7,6 +7,8 @@
 #include "mruby.h"
 #include "mruby/irep.h"
 #include "mruby/variable.h"
+#include <stdlib.h>
+#include <string.h>
 
 void mrb_init_heap(mrb_state*);
 void mrb_init_core(mrb_state*);

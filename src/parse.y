@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define YYLEX_PARAM p
 

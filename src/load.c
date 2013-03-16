@@ -4,6 +4,7 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <stdlib.h>
 #include <string.h>
 #include "mruby/dump.h"
 

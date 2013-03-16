@@ -12,10 +12,6 @@ extern "C" {
 #endif
 
 #include "mruby.h"
-#ifdef ENABLE_STDIO
-#include <stdio.h>
-#endif
-#include <stdint.h>
 
 #ifdef ENABLE_STDIO
 int mrb_dump_irep(mrb_state*,int,FILE*);
