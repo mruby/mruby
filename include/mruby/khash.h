@@ -22,7 +22,7 @@ typedef khint_t khiter_t;
 #endif
 #define KHASH_MIN_SIZE 8
 
-#define UPPER_BOUND(x) ((x)>>2|(x>>1))
+#define UPPER_BOUND(x) ((x)>>2|(x)>>1)
 
 //extern uint8_t __m[];
 
