@@ -12,7 +12,6 @@ extern "C" {
 #endif
 
 #include "mruby.h"
-#include <stdio.h>
 #include <setjmp.h>
 
 /* load context */
