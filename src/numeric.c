@@ -163,6 +163,99 @@ num_abs(mrb_state *mrb, mrb_value num)
  *  representation.
  */
 
+mrb_value
+mrb_flo_to_str(mrb_state *mrb, mrb_float n, int max_digit)
+{
+  mrb_value result;
+
+  if (max_digit > 40) {
+    mrb_raise(mrb, E_RANGE_ERROR, "Too large max_digit.");
+  }
+
+  if (isnan(n)) {
+    result = mrb_str_new(mrb, "NaN", 3);
+  }
+  else if (isinf(n)) {
+    if (n < 0) {
+      result = mrb_str_new(mrb, "-inf", 4);
+    }
+    else {
+      result = mrb_str_new(mrb, "inf", 3);
+    }
+  }
+  else {
+    int digit;
+    int m;
+    int exp;
+    int e = 0;
+    char s[48];
+    char *c = &s[0];
+
+    if (n < 0) {
+      n = -n;
+      *(c++) = '-';
+    }
+
+    exp = log10(n);
+
+    if ((exp < 0 ? -exp : exp) > max_digit) {
+      /* exponent representation */
+      e = 1;
+      m = exp;
+      if (m < 0) {
+        m -= 1;
+      }
+      n = n / pow(10.0, m);
+      m = 0;
+    }
+    else {
+      /* un-exponent (normal) representation */
+      m = exp;
+      if (m < 0) {
+        m = 0;
+      }
+    }
+
+    /* puts digits */
+    while (max_digit >= 0) {
+      mrb_float weight = pow(10.0, m);
+      digit = floor(n / weight + FLT_EPSILON);
+      *(c++) = '0' + digit;
+      n -= (digit * weight);
+      max_digit--;
+      if (m-- == 0) {
+        *(c++) = '.';
+      }
+      else if (m < -1 && n < FLT_EPSILON) {
+        break;
+      }
+    }
+
+    if (e) {
+      *(c++) = 'e';
+      if (exp > 0) {
+        *(c++) = '+';
+      } else {
+        *(c++) = '-';
+        exp = -exp;
+      }
+
+      if (exp >= 100) {
+        mrb_raise(mrb, E_RANGE_ERROR, "Too large expornent.");
+      }
+
+      *(c++) = '0' + exp / 10;
+      *(c++) = '0' + exp % 10;
+    }
+
+    *c = '\0';
+
+    result = mrb_str_new(mrb, &s[0], c - &s[0]);
+  }
+
+  return result;
+}
+
 /* 15.2.9.3.16(x) */
 /*
  *  call-seq:
@@ -177,27 +270,15 @@ num_abs(mrb_state *mrb, mrb_value num)
 static mrb_value
 flo_to_s(mrb_state *mrb, mrb_value flt)
 {
-  char buf[32];
-  int n;
-
-  mrb_float value = mrb_float(flt);
-
-  if (isinf(value)) {
-    static const char s[2][5] = { "-inf", "inf" };
-    static const int n[] = { 4, 3 };
-    int idx;
-    idx = (value < 0) ? 0 : 1;
-    return mrb_str_new(mrb, s[idx], n[idx]);
-  } else if(isnan(value))
-    return mrb_str_new(mrb, "NaN", 3);
+  int max_digit;
 
 #ifdef MRB_USE_FLOAT
-  n = sprintf(buf, "%.7g", value);
+  max_digit = 7;
 #else
-  n = sprintf(buf, "%.14g", value);
+  max_digit = 14;
 #endif
-  assert(n >= 0);
-  return mrb_str_new(mrb, buf, n);
+
+  return mrb_flo_to_str(mrb, mrb_float(flt), max_digit);
 }
 
 /* 15.2.9.3.2  */
