@@ -11,6 +11,7 @@
 extern "C" {
 #endif
 
+#include "mruby.h"
 #include <stdint.h>
 #include <string.h>
 
