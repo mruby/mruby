@@ -71,9 +71,11 @@ main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  if (argc == 2 && strncmp(argv[1], "-v", 2) == 0) {
-    printf("verbose mode: enable\n\n");
-    mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_verbose"), mrb_true_value());
+  if (argc == 2 && argv[1][0] == '-') {
+    if (argv[1][1] == 'v') {
+      printf("verbose mode: enable\n\n");
+      mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_verbose"), mrb_true_value());
+    }
   }
 
   mrb_init_mrbtest(mrb);
