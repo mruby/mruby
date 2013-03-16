@@ -9,16 +9,13 @@
 #include "mruby/string.h"
 #include "mruby/array.h"
 
+#include <float.h>
 #include <math.h>
 #include <assert.h>
 #include <stdlib.h>
 
 #if defined(__FreeBSD__) && __FreeBSD__ < 4
 #include <floatingpoint.h>
-#endif
-
-#ifdef HAVE_FLOAT_H
-#include <float.h>
 #endif
 
 #ifdef HAVE_IEEEFP_H
