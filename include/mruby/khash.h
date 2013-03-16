@@ -12,7 +12,6 @@ extern "C" {
 #endif
 
 #include <stdint.h>
-#include <string.h>
 
 typedef uint32_t khint_t;
 typedef khint_t khiter_t;
@@ -22,7 +21,7 @@ typedef khint_t khiter_t;
 #endif
 #define KHASH_MIN_SIZE 8
 
-#define UPPER_BOUND(x) ((x)>>2|(x>>1))
+#define UPPER_BOUND(x) ((x)>>2|(x)>>1)
 
 //extern uint8_t __m[];
 
@@ -75,6 +74,14 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
   void kh_del_##name(kh_##name##_t *h, khint_t x);                      \
   kh_##name##_t *kh_copy_##name(mrb_state *mrb, kh_##name##_t *h);
 
+static inline void
+kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
+{
+  while (len-- > 0) {
+    *p++ = c;
+  }
+}
+
 /* define kh_xxx_funcs
 
    name: hash name
@@ -92,8 +99,8 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
     h->upper_bound = UPPER_BOUND(sz);                                   \
     h->e_flags = (uint8_t *)mrb_malloc(h->mrb, sizeof(uint8_t)*sz/4);   \
     h->d_flags = h->e_flags + sz/8;                                     \
-    memset(h->e_flags, 0xff, sz/8*sizeof(uint8_t));                     \
-    memset(h->d_flags, 0x00, sz/8*sizeof(uint8_t));                     \
+    kh_fill_flags(h->e_flags, 0xff, sz/8);                              \
+    kh_fill_flags(h->d_flags, 0x00, sz/8);                              \
     h->keys = (khkey_t *)mrb_malloc(h->mrb, sizeof(khkey_t)*sz);        \
     h->vals = (khval_t *)mrb_malloc(h->mrb, sizeof(khval_t)*sz);        \
     h->mask = sz-1;                                                     \
@@ -124,8 +131,8 @@ static const uint8_t __m[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
   void kh_clear_##name(kh_##name##_t *h)                                \
   {                                                                     \
     if (h && h->e_flags) {                                              \
-      memset(h->e_flags, 0xff, h->n_buckets/8*sizeof(uint8_t));         \
-      memset(h->d_flags, 0x00, h->n_buckets/8*sizeof(uint8_t));         \
+      kh_fill_flags(h->e_flags, 0xff, h->n_buckets/8);                  \
+      kh_fill_flags(h->d_flags, 0x00, h->n_buckets/8);                  \
       h->size = h->n_occupied = 0;                                      \
     }                                                                   \
   }                                                                     \

@@ -7,6 +7,7 @@
 #include "mruby.h"
 #include <stdarg.h>
 #include <ctype.h>
+#include <string.h>
 #include "mruby/class.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
