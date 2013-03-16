@@ -8,7 +8,6 @@
 #include "mruby/class.h"
 #include "mruby/range.h"
 #include "mruby/string.h"
-#include <string.h>
 
 #define RANGE_CLASS (mrb_class_obj_get(mrb, "Range"))
 
