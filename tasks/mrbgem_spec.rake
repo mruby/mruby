@@ -145,6 +145,7 @@ module MRuby
         f.puts %Q[ *   This file was generated!]
         f.puts %Q[ *   All manual changes will get lost.]
         f.puts %Q[ */]
+        f.puts %Q[#include <stdlib.h>]
         f.puts %Q[#include "mruby.h"]
         f.puts %Q[#include "mruby/irep.h"]
         f.puts %Q[#include "mruby/dump.h"]
