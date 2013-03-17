@@ -158,8 +158,8 @@ mrb_float_value(mrb_float f)
 
 #define MRB_OBJECT_HEADER \
   enum mrb_vtype tt:8;\
-  unsigned int color:3;\
-  unsigned int flags:21;\
+  uint32_t color:3;\
+  uint32_t flags:21;\
   struct RClass *c;\
   struct RBasic *gcnext
 
