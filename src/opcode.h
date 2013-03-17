@@ -7,7 +7,7 @@
 #ifndef OPCODE_H
 #define OPCODE_H
 
-#define MAXARG_Bx        ((1<<16)-1)
+#define MAXARG_Bx        (0xffff)
 #define MAXARG_sBx       (MAXARG_Bx>>1)         /* `sBx' is signed */
 
 /* instructions OP:A:B:C = 7:9:9:7 (32 bits) */
