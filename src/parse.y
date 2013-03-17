@@ -3535,7 +3535,7 @@ parse_string(parser_state *p)
 	char buf[256];
 	snprintf(buf, sizeof(buf), "can't find string \"%s\" anywhere before EOF", hinf->term);
 	yyerror(p, buf);
-        return 0;
+	return 0;
       }
       yylval.nd = new_str(p, tok(p), toklen(p));
       return tSTRING_MID;
@@ -3558,6 +3558,11 @@ parse_string(parser_state *p)
 	if (c == end || c == beg) {
 	  tokadd(p, c);
 	}
+	else if ((c == '\n') && (type & STR_FUNC_ARRAY)) {
+	  p->lineno++;
+	  p->column = 0;
+	  tokadd(p, '\n');
+	}
 	else {
 	  pushback(p, c);
 	  tokadd(p, read_escape(p));
@@ -3570,14 +3575,14 @@ parse_string(parser_state *p)
 	  case '\n':
 	    p->lineno++;
 	    p->column = 0;
-	    continue;
+	    break;
 
 	  case '\\':
-	    c = '\\';
 	    break;
 
 	  default:
-	    tokadd(p, '\\');
+	    if (! ISSPACE(c))
+	      tokadd(p, '\\');
 	  }
 	}
 	tokadd(p, c);
@@ -3601,7 +3606,12 @@ parse_string(parser_state *p)
     }
     if ((type & STR_FUNC_ARRAY) && ISSPACE(c)) {
       if (toklen(p) == 0) {
-	do {} while (ISSPACE(c = nextc(p)));
+	do {
+	  if (c == '\n') {
+	    p->lineno++;
+	    p->column = 0;
+	  }
+	} while (ISSPACE(c = nextc(p)));
 	pushback(p, c);
 	return tLITERAL_DELIM;
       } else {
@@ -3681,8 +3691,10 @@ heredoc_identifier(parser_state *p)
       quote = TRUE;
     newtok(p);
     while ((c = nextc(p)) != -1 && c != term) {
-      if (c == '\n')
-        c = -1;
+      if (c == '\n') {
+	c = -1;
+	break;
+      }
       tokadd(p, c);
     }
     if (c == -1) {

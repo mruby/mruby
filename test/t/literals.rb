@@ -140,6 +140,11 @@ assert('Literals Array', '8.7.6.4') do
     #{-1}1
     2#{2}
   }
+  h = %W(a\nb
+         test\ abc
+         c\
+d
+         x\y x\\y x\\\y)
 
   test1 = (a == ['abc3def', '}g'] and
            b == ['abc', '5', 'def', '(g'] and
@@ -147,7 +152,8 @@ assert('Literals Array', '8.7.6.4') do
            d == ['9'] and
            e == [] and
            f == ['[ab', 'cd][ef]'] and
-           g == ['ab', '-11', '22']
+           g == ['ab', '-11', '22'] and
+           h == ["a\nb", 'test abc', "c\nd", "xy", "x\\y", "x\\y"]
           )
 
   a = %w{abc#{1+2}def \}g}
@@ -161,6 +167,11 @@ assert('Literals Array', '8.7.6.4') do
     #{-1}1
     2#{2}
   }
+  h = %w(a\nb
+         test\ abc
+         c\
+d
+         x\y x\\y x\\\y)
 
   test2 = (a == ['abc#{1+2}def', '}g'] and
            b == ['abc', '#{2+3}', 'def', '(g'] and
@@ -168,8 +179,9 @@ assert('Literals Array', '8.7.6.4') do
            d == ['#{4+5}'] and
            e == [] and
            f == ['[ab', 'cd][ef]'] and
-           g == ['ab', '#{-1}1', '2#{2}']
-          )
+           g == ['ab', '#{-1}1', '2#{2}'] and
+           h == ["a\\nb", "test abc", "c\nd", "x\\y", "x\\y", "x\\\\y"]
+          ) 
 
   test1 and test2
 end
