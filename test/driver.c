@@ -14,17 +14,18 @@
 #include <mruby/data.h>
 #include <mruby/compile.h>
 #include <mruby/variable.h>
+#include <mruby/log.h>
 
 void
 mrb_init_mrbtest(mrb_state *);
 
 /* Print a short remark for the user */
 static void
-print_hint(void)
+print_hint(mrb_state *mrb)
 {
-  printf("mrbtest - Embeddable Ruby Test\n");
-  printf("\nThis is a very early version, please test and report errors.\n");
-  printf("Thanks :)\n\n");
+  mrb_log_print(mrb, MRB_LOGGING_NORMAL, "mrbtest - Embeddable Ruby Test\n"
+    "\nThis is a very early version, please test and report errors.\n"
+    "Thanks :)\n\n");
 }
 
 static int
@@ -64,8 +65,6 @@ main(int argc, char **argv)
   mrb_state *mrb;
   int ret;
 
-  print_hint();
-
   /* new interpreter instance */
   mrb = mrb_open();
   if (mrb == NULL) {
@@ -73,8 +72,10 @@ main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
+  print_hint(mrb);
+
   if (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'v') {
-    printf("verbose mode: enable\n\n");
+    mrb_log_print(mrb, MRB_LOGGING_NORMAL, "verbose mode: enable\n");
     mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_verbose"), mrb_true_value());
   }
 
