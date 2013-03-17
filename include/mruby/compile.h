@@ -58,13 +58,15 @@ struct mrb_parser_message {
   char* message;
 };
 
-#define STR_FUNC_PARSING 0x01
-#define STR_FUNC_EXPAND  0x02
-#define STR_FUNC_REGEXP  0x04
-#define STR_FUNC_WORD    0x08
-#define STR_FUNC_SYMBOL  0x10
-#define STR_FUNC_ARRAY   0x20
-#define STR_FUNC_HEREDOC 0x40
+#define STR_FUNC_PARSING 0x0001
+#define STR_FUNC_EXPAND  0x0002
+#define STR_FUNC_REGEXP  0x0004
+#define STR_FUNC_WORD    0x0008
+#define STR_FUNC_SYMBOL  0x0010
+#define STR_FUNC_ARRAY   0x0020
+#define STR_FUNC_HEREDOC 0x0040
+#define STR_FUNC_PROC    0x0080
+#define STR_FUNC_INT_SP  0x0100
 
 enum mrb_string_type {
   str_not_parsing  = (0),
@@ -76,7 +78,9 @@ enum mrb_string_type {
   str_ssym     = (STR_FUNC_PARSING|STR_FUNC_SYMBOL),
   str_ssymbols = (STR_FUNC_PARSING|STR_FUNC_SYMBOL|STR_FUNC_ARRAY),
   str_dsymbols = (STR_FUNC_PARSING|STR_FUNC_SYMBOL|STR_FUNC_ARRAY|STR_FUNC_EXPAND),
-  str_heredoc  = (STR_FUNC_PARSING|STR_FUNC_HEREDOC),
+  str_heredoc  = (STR_FUNC_PARSING|STR_FUNC_HEREDOC|STR_FUNC_EXPAND),
+  str_alcs     = (STR_FUNC_PARSING|STR_FUNC_WORD|STR_FUNC_ARRAY|STR_FUNC_PROC),
+  str_alcs_sp  = (STR_FUNC_PARSING|STR_FUNC_WORD|STR_FUNC_ARRAY|STR_FUNC_PROC|STR_FUNC_INT_SP),
 };
 
 /* heredoc structure */
