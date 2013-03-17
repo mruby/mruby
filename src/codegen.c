@@ -987,9 +987,6 @@ gen_literal_array(codegen_scope *s, node *tree, int sym, int val)
             gen_send_intern(s);
         }
         break;
-
-      default:
-        codegen_error(s, "compiler bug on %W %w %I %i");
       }
       if (j >= 2) {
         pop(); pop();
@@ -2028,9 +2025,6 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_WORDS:
     gen_literal_array(s, tree, FALSE, val);
-    break;
-  case NODE_LITERAL_DELIM:
-    codegen_error(s, "compiler bug on %W %w %I %i");
     break;
 
   case NODE_REGX:
