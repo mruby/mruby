@@ -45,7 +45,7 @@
 /* Maximum stack depth. Should be set lower on memory constrained systems.
 The value below allows about 60000 recursive calls in the simplest case. */
 #ifndef MRB_STACK_MAX
-#define MRB_STACK_MAX ((1<<18) - MRB_STACK_GROWTH)
+#define MRB_STACK_MAX (0x40000 - MRB_STACK_GROWTH)
 #endif
 
 #ifdef VM_DEBUG
