@@ -55,6 +55,27 @@ The value below allows about 60000 recursive calls in the simplest case. */
 #endif
 
 static inline void
+value_move(mrb_value *s1, const mrb_value *s2, size_t n)
+{
+  if (s1 > s2 && s1 < s2 + n)
+  {
+    s1 += n;
+    s2 += n;
+    while (n-- > 0) {
+      *--s1 = *--s2;
+    }
+  }
+  else if (s1 != s2) {
+    while (n-- > 0) {
+      *s1++ = *s2++;
+    }
+  }
+  else {
+    /* nothing to do. */
+  }
+}
+
+static inline void
 stack_clear(mrb_value *from, size_t count)
 {
   const mrb_value mrb_value_zero = { { 0 } };
@@ -855,7 +876,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           mrb_ary_unshift(mrb, regs[a+1], sym);
         }
         else {
-          memmove(regs+a+2, regs+a+1, sizeof(mrb_value)*(n+1));
+          value_move(regs+a+2, regs+a+1, n+1);
           regs[a+1] = sym;
           n++;
         }
@@ -994,7 +1015,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(ci->mid));
         }
         else {
-          memmove(regs+a+2, regs+a+1, sizeof(mrb_value)*(n+1));
+          value_move(regs+a+2, regs+a+1, n+1);
           SET_SYM_VALUE(regs[a+1], ci->mid);
           n++;
         }
@@ -1138,10 +1159,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       if (argc < len) {
         regs[len+1] = *blk; /* move block */
         if (argv0 != argv) {
-          memmove(&regs[1], argv, sizeof(mrb_value)*(argc-m2)); /* m1 + o */
+          value_move(&regs[1], argv, argc-m2); /* m1 + o */
         }
         if (m2) {
-          memmove(&regs[len-m2+1], &argv[argc-m2], sizeof(mrb_value)*m2); /* m2 */
+          value_move(&regs[len-m2+1], &argv[argc-m2], m2); /* m2 */
         }
         if (r) {                  /* r */
           regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
@@ -1153,13 +1174,13 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       else {
         if (argv0 != argv) {
           regs[len+1] = *blk; /* move block */
-          memmove(&regs[1], argv, sizeof(mrb_value)*(m1+o)); /* m1 + o */
+          value_move(&regs[1], argv, m1+o); /* m1 + o */
         }
         if (r) {                  /* r */
           regs[m1+o+1] = mrb_ary_new_from_values(mrb, argc-m1-o-m2, argv+m1+o);
         }
         if (m2) {
-          memmove(&regs[m1+o+r+1], &argv[argc-m2], sizeof(mrb_value)*m2);
+          value_move(&regs[m1+o+r+1], &argv[argc-m2], m2);
         }
         if (argv0 == argv) {
           regs[len+1] = *blk; /* move block */
@@ -1313,7 +1334,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           mrb_ary_unshift(mrb, regs[a+1], sym);
         }
         else {
-          memmove(regs+a+2, regs+a+1, sizeof(mrb_value)*(n+1));
+          value_move(regs+a+2, regs+a+1, n+1);
           regs[a+1] = sym;
           n++;
         }
@@ -1328,7 +1349,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       if (ci->argc == CALL_MAXARGS) ci->argc = -1;
 
       /* move stack */
-      memmove(mrb->stack, &regs[a], (ci->argc+1)*sizeof(mrb_value));
+      value_move(mrb->stack, &regs[a], ci->argc+1);
 
       if (MRB_PROC_CFUNC_P(m)) {
         mrb->stack[0] = m->body.func(mrb, recv);
