@@ -2574,6 +2574,8 @@ string_interp	: tSTRING_MID
 		    }
 		| tSTRING_PART
 		    {
+		      if (is_strterm_type(p, STR_FUNC_PROC))
+			local_nest(p);
 		      $<nd>$ = p->lex_strterm;
 		      p->lex_strterm = NULL;
 		    }
@@ -2586,6 +2588,7 @@ string_interp	: tSTRING_MID
 			  $$ = list1(new_block(p, 0, $3));
 			else
 			  $$ = list2($1, new_block(p, 0, $3));
+			local_unnest(p);
 		      }
 		      else
 			$$ = list2($1, $3);

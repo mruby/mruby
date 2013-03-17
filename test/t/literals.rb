@@ -134,6 +134,7 @@ def concat_m(arr)
 end
 
 assert('ALCS: Array Literal of Closures and Strings') do
+  x = 42
   a = %P(aa#{1+1}bb)
   b = %P[ aa #{1+2} bb ]
   c = %P{aa
@@ -143,13 +144,13 @@ assert('ALCS: Array Literal of Closures and Strings') do
     #{1+4}
     bb
     /
-  e = %P(#{1+5}#{1+6})
+  e = %P(#{1+5}#{x})
   f = %P{aa bb}
   test1 = (concat_m(a) == 'aa-2-bb' and
            concat_m(b) == 'aa-3-bb' and
            concat_m(c) == 'aa-4-bb' and
            concat_m(d) == 'aa-5-bb' and
-           concat_m(e) == '6-7' and
+           concat_m(e) == '6-42' and
            concat_m(f) == 'aa-bb'
           )
 
@@ -162,13 +163,13 @@ assert('ALCS: Array Literal of Closures and Strings') do
     #{1+4}        
     bb     
     /
-  e = %p(#{1+5}#{1+6})
+  e = %p(#{1+5}#{x})
   f = %p{aa bb}
   test2 = (concat_m(a) == 'aa-2-bb' and
            concat_m(b) == ' aa -3- bb ' and
            concat_m(c) == "aa\n-4-\n-bb" and
             concat_m(d) == " aa\n-5-\n-bb\n" and
-           concat_m(e) == '6-7' and
+           concat_m(e) == '6-42' and
            concat_m(f) == 'aa bb'
           )
 
