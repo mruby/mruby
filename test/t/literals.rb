@@ -128,6 +128,91 @@ ZZZ
   z == ""
 end
 
+
+def concat_m(arr)
+  arr.map{|x| x.class == Proc ?  x.call().to_s : x }.join('-')
+end
+
+assert('ALCS: Array Literal of Closures and Strings') do
+  a = %P(aa#{1+1}bb)
+  b = %P[ aa #{1+2} bb ]
+  c = %P{aa
+    #{1+3}
+    bb}
+  d = %P/ aa
+    #{1+4}
+    bb
+    /
+  e = %P(#{1+5}#{1+6})
+  f = %P{aa bb}
+  test1 = (concat_m(a) == 'aa-2-bb' and
+           concat_m(b) == 'aa-3-bb' and
+           concat_m(c) == 'aa-4-bb' and
+           concat_m(d) == 'aa-5-bb' and
+           concat_m(e) == '6-7' and
+           concat_m(f) == 'aa-bb'
+          )
+
+  a = %p(aa#{1+1}bb)
+  b = %p[ aa #{1+2} bb ]
+  c = %p{aa 
+    #{1+3} 
+    bb}
+  d = %p/ aa   
+    #{1+4}        
+    bb     
+    /
+  e = %p(#{1+5}#{1+6})
+  f = %p{aa bb}
+  test2 = (concat_m(a) == 'aa-2-bb' and
+           concat_m(b) == ' aa -3- bb ' and
+           concat_m(c) == "aa\n-4-\n-bb" and
+            concat_m(d) == " aa\n-5-\n-bb\n" and
+           concat_m(e) == '6-7' and
+           concat_m(f) == 'aa bb'
+          )
+
+  a = <<<AAA
+aaa
+AAA
+
+  b = <<<BBB
+aa#{1+2}bb
+BBB
+  bb = b.map{|x| x.class}
+  bbb = concat_m(b)
+
+  c = <<<CCC
+CCC
+
+  d = [<<<DDD1, <<<"DD D2", <<<'DD D3'].map{|a| concat_m(a)}
+#{1}
+DDD1
+#{3-1}
+DD D2
+#{9/3}
+ddd
+DD D3
+
+  e = [<<<-EEE, <<<-"EE EE", <<<-'EE EE'].map{|a| concat_m(a)}
+  e#{0+1}#{1+1}e
+  EEE
+  e#{1+2}#{2+2}e
+  EE EE
+  e#{2+3}#{3+3}e
+  eee
+  EE EE
+  test3 = (a == ["aaa\n"] and
+           bb == [String, Proc, String] and
+           bbb == "aa-3-bb\n" and
+           c == [''] and
+           d == ["1-\n", "2-\n", "\#{9/3}\n-ddd\n"] and
+           e == ["  e-1-2-e\n", "  e-3-4-e\n", "  e\#{2+3}\#{3+3}e\n-  eee\n"]
+          )
+
+  test1 and test2 and test3
+end
+
 assert('Literals Array', '8.7.6.4') do
   a = %W{abc#{1+2}def \}g}
   b = %W(abc #{2+3} def \(g)

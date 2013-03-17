@@ -987,6 +987,12 @@ gen_literal_array(codegen_scope *s, node *tree, int sym, int val)
             gen_send_intern(s);
         }
         break;
+
+      case NODE_BLOCK:
+        codegen(s, tree->car, VAL);
+        i += j + 1;
+        j = 0;
+        break;
       }
       if (j >= 2) {
         pop(); pop();
@@ -1995,7 +2001,24 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_HEREDOC:
-    tree = ((struct mrb_parser_heredoc_info *)tree)->doc;
+    {
+      struct mrb_parser_heredoc_info *inf = (struct mrb_parser_heredoc_info *)tree;
+      tree = inf->doc;
+      if (inf->type & STR_FUNC_ARRAY) {
+        int n = gen_values(s, tree, val);
+        if (n >= 0) {
+          if (val) {
+            pop_n(n);
+            genop(s, MKOP_ABC(OP_ARRAY, cursp(), cursp(), n));
+            push();
+          }
+        }
+        else if (val) {
+          push();
+        }
+        break;
+      }
+    }
     /* fall through */
   case NODE_DSTR:
     if (val) {
