@@ -13,7 +13,7 @@
 //        carry
 #define  CRC_16_CCITT       0x11021ul        //x^16+x^12+x^5+1
 #define  CRC_XOR_PATTERN    (CRC_16_CCITT << 8)
-#define  CRC_CARRY_BIT      (1 << 24)
+#define  CRC_CARRY_BIT      (0x01000000)
 
 uint16_t
 calc_crc_16_ccitt(unsigned char *src, int nbytes)
