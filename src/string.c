@@ -2050,7 +2050,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
   char *end;
   char sign = 1;
   int c;
-  unsigned int n;
+  unsigned long n;
   mrb_int val;
 
 #undef ISDIGIT
