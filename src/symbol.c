@@ -44,7 +44,6 @@ mrb_intern2(mrb_state *mrb, const char *name, size_t len)
   mrb_sym sym;
   char *p;
 
-  if (len < 0) len = 0;
   sname.len = len;
   sname.name = name;
   k = kh_get(n2s, h, sname);
