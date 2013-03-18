@@ -297,7 +297,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
 }
 
 void
-mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, int aspec)
+mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec)
 {
   struct RProc *p;
   int ai = mrb_gc_arena_save(mrb);
@@ -309,7 +309,7 @@ mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t f
 }
 
 void
-mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, int aspec)
+mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
   mrb_define_method_id(mrb, c, mrb_intern(mrb, name), func, aspec);
 }
@@ -928,20 +928,20 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
 }
 
 void
-mrb_define_singleton_method(mrb_state *mrb, struct RObject *o, const char *name, mrb_func_t func, int aspec)
+mrb_define_singleton_method(mrb_state *mrb, struct RObject *o, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
   prepare_singleton_class(mrb, (struct RBasic*)o);
   mrb_define_method_id(mrb, o->c, mrb_intern(mrb, name), func, aspec);
 }
 
 void
-mrb_define_class_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, int aspec)
+mrb_define_class_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
   mrb_define_singleton_method(mrb, (struct RObject*)c, name, func, aspec);
 }
 
 void
-mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, int aspec)
+mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
   mrb_define_class_method(mrb, c, name, func, aspec);
   mrb_define_method(mrb, c, name, func, aspec);

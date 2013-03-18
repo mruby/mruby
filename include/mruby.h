@@ -37,6 +37,7 @@ extern "C" {
 #include "mruby/value.h"
 
 typedef int32_t mrb_code;
+typedef int32_t mrb_aspec;
 
 struct mrb_state;
 
@@ -145,10 +146,10 @@ struct RClass *mrb_define_module(mrb_state *, const char*);
 mrb_value mrb_singleton_class(mrb_state*, mrb_value);
 void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
 
-void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t,int);
-void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, int);
-void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t,int);
-void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t,int);
+void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
+void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
+void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
+void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
 void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
@@ -166,22 +167,22 @@ struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, con
 struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
 /* required arguments */
-#define ARGS_REQ(n)     (((n)&0x1f) << 19)
+#define ARGS_REQ(n)     ((mrb_aspec)((n)&0x1f) << 19)
 /* optional arguments */
-#define ARGS_OPT(n)     (((n)&0x1f) << 14)
+#define ARGS_OPT(n)     ((mrb_aspec)((n)&0x1f) << 14)
 /* rest argument */
-#define ARGS_REST()     (1 << 13)
+#define ARGS_REST()     ((mrb_aspec)(1 << 13))
 /* required arguments after rest */
-#define ARGS_POST(n)    (((n)&0x1f) << 8)
+#define ARGS_POST(n)    ((mrb_aspec)((n)&0x1f) << 8)
 /* keyword arguments (n of keys, kdict) */
-#define ARGS_KEY(n1,n2) ((((n1)&0x1f) << 3) | ((n2)?(1<<2):0))
+#define ARGS_KEY(n1,n2) ((mrb_aspec)((((n1)&0x1f) << 3) | ((n2)?(1<<2):0)))
 /* block argument */
-#define ARGS_BLOCK()    (1 << 1)
+#define ARGS_BLOCK()    ((mrb_aspec)(1 << 1))
 
 /* accept any number of arguments */
 #define ARGS_ANY()      ARGS_REST()
 /* accept no arguments */
-#define ARGS_NONE()     0
+#define ARGS_NONE()     ((mrb_aspec)0)
 
 int mrb_get_args(mrb_state *mrb, const char *format, ...);
 
