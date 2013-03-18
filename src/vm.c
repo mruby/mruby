@@ -870,9 +870,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           mrb_ary_unshift(mrb, regs[a+1], sym);
         }
         else {
-          value_move(regs+a+2, regs+a+1, n+1);
+          value_move(regs+a+2, regs+a+1, ++n);
           regs[a+1] = sym;
-          n++;
         }
       }
 
@@ -1009,9 +1008,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(ci->mid));
         }
         else {
-          value_move(regs+a+2, regs+a+1, n+1);
+          value_move(regs+a+2, regs+a+1, ++n);
           SET_SYM_VALUE(regs[a+1], ci->mid);
-          n++;
         }
       }
 
@@ -1328,9 +1326,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           mrb_ary_unshift(mrb, regs[a+1], sym);
         }
         else {
-          value_move(regs+a+2, regs+a+1, n+1);
+          value_move(regs+a+2, regs+a+1, ++n);
           regs[a+1] = sym;
-          n++;
         }
       }
 
