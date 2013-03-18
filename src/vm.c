@@ -170,13 +170,6 @@ stack_extend(mrb_state *mrb, int room, int keep)
   }
 }
 
-int
-mrb_checkstack(mrb_state *mrb, int size)
-{
-  stack_extend(mrb, size+1, 1);
-  return 0;
-}
-
 struct REnv*
 uvenv(mrb_state *mrb, int up)
 {
