@@ -763,6 +763,13 @@ new_words(parser_state *p, node *a)
   return cons((node*)NODE_WORDS, a);
 }
 
+// (:symbols . a)
+static node*
+new_symbols(parser_state *p, node *a)
+{
+  return cons((node*)NODE_SYMBOLS, a);
+}
+
 // xxx -----------------------------
 
 // (:call a op)
@@ -991,7 +998,7 @@ heredoc_end(parser_state *p)
 %type <nd> mlhs mlhs_list mlhs_post mlhs_basic mlhs_item mlhs_node mlhs_inner
 %type <id> fsym sym basic_symbol operation operation2 operation3
 %type <id> cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg
-%type <nd> heredoc words
+%type <nd> heredoc words symbols
 
 %token tUPLUS             /* unary+ */
 %token tUMINUS            /* unary- */
@@ -1020,7 +1027,7 @@ heredoc_end(parser_state *p)
 %token tSTAR              /* * */
 %token tAMPER             /* & */
 %token tLAMBDA            /* -> */
-%token tSYMBEG tREGEXP_BEG tWORDS_BEG
+%token tSYMBEG tREGEXP_BEG tWORDS_BEG tSYMBOLS_BEG
 %token tSTRING_BEG tSTRING_DVAR tLAMBEG
 %token <nd> tHEREDOC_BEG  /* <<, <<- */
 %token tHEREDOC_END tLITERAL_DELIM
@@ -2535,6 +2542,7 @@ opt_ensure	: keyword_ensure compstmt
 literal		: numeric
 		| symbol
 		| words
+		| symbols
 		;
 
 string		: tCHAR
@@ -2650,6 +2658,16 @@ sym		: fname
 		| tSTRING_BEG tSTRING
 		    {
 		      $$ = new_strsym(p, $2);
+		    }
+		;
+
+symbols		: tSYMBOLS_BEG tSTRING
+		    {
+		      $$ = new_symbols(p, list1($2));
+		    }
+		| tSYMBOLS_BEG string_rep tSTRING
+		    {
+		      $$ = new_symbols(p, push($2, $3));
 		    }
 		;
 
@@ -4624,6 +4642,14 @@ parser_yylex(parser_state *p)
       case 's':
 	p->lex_strterm = new_strterm(p, str_ssym, term, paren);
 	return tSYMBEG;
+
+      case 'I':
+	p->lex_strterm = new_strterm(p, str_dsymbols, term, paren);
+	return tSYMBOLS_BEG;
+
+      case 'i':
+	p->lex_strterm = new_strterm(p, str_ssymbols, term, paren);
+	return tSYMBOLS_BEG;
 
       default:
 	yyerror(p, "unknown type of %string");
