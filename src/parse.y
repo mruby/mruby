@@ -3419,7 +3419,7 @@ scan_hex(const int *start, int len, int *retlen)
   char *tmp;
 
   /* assert(len <= 2) */
-  while (len-- && *s && (tmp = strchr(hexdigit, *s))) {
+  while (len-- && *s && (tmp = strchr(hexdigit, *s)) != NULL) {
     retval <<= 4;
     retval |= (tmp - hexdigit) & 15;
     s++;
