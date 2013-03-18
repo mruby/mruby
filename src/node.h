@@ -106,6 +106,8 @@ enum node_type {
     NODE_DSYM,
     NODE_ATTRASGN,
     NODE_HEREDOC,
+    NODE_LITERAL_DELIM,
+    NODE_WORDS,
     NODE_LAST
 };
 
