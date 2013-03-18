@@ -885,8 +885,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       ci->mid = mid;
       ci->proc = m;
       ci->stackidx = mrb->stack - mrb->stbase;
-      ci->argc = n;
-      if (ci->argc == CALL_MAXARGS) ci->argc = -1;
+      if (n == CALL_MAXARGS) {
+        ci->argc = -1;
+      }
+      else {
+        ci->argc = n;
+      }
       ci->target_class = c;
       ci->pc = pc + 1;
       ci->acc = a;
@@ -1023,8 +1027,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       ci->mid = mid;
       ci->proc = m;
       ci->stackidx = mrb->stack - mrb->stbase;
-      ci->argc = n;
-      if (ci->argc == CALL_MAXARGS) ci->argc = -1;
+      if (n == CALL_MAXARGS) {
+        ci->argc = -1;
+      }
+      else {
+        ci->argc = n;
+      }
       ci->target_class = m->target_class;
       ci->pc = pc + 1;
 
@@ -1051,7 +1059,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         pool = irep->pool;
         syms = irep->syms;
         ci->nregs = irep->nregs;
-        if (ci->argc < 0) {
+        if (n == CALL_MAXARGS) {
           stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs, 3);
         }
         else {
@@ -1341,8 +1349,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       ci = mrb->ci;
       ci->mid = mid;
       ci->target_class = m->target_class;
-      ci->argc = n;
-      if (ci->argc == CALL_MAXARGS) ci->argc = -1;
+      if (n == CALL_MAXARGS) {
+        ci->argc = -1;
+      }
+      else {
+        ci->argc = n;
+      }
 
       /* move stack */
       value_move(mrb->stack, &regs[a], ci->argc+1);
