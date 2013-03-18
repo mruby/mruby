@@ -1403,7 +1403,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 #define attr_f value.f
 #endif
 
-#define TYPES2(a,b) (((((int)(a))<<8)|((int)(b)))&0xffff)
+#define TYPES2(a,b) ((((uint16_t)(a))<<8)|(((uint16_t)(b))&0xff))
 #define OP_MATH_BODY(op,v1,v2) do {\
   regs[a].v1 = regs[a].v1 op regs[a+1].v2;\
 } while(0)
@@ -1417,16 +1417,18 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
         {
           mrb_int x, y, z;
+          mrb_value *regs_a = regs + a;
 
-          x = mrb_fixnum(regs[a]);
-          y = mrb_fixnum(regs[a+1]);
+          x = mrb_fixnum(regs_a[0]);
+          y = mrb_fixnum(regs_a[1]);
           z = x + y;
-          if (((x < 0) ^ (y < 0)) == 0 && (x < 0) != (z < 0)) {
+          if ((x < 0) != (z < 0) && ((x < 0) ^ (y < 0)) == 0) {
             /* integer overflow */
-            SET_FLT_VALUE(regs[a], (mrb_float)x + (mrb_float)y);
-            break;
+            SET_FLT_VALUE(regs_a[0], (mrb_float)x + (mrb_float)y);
           }
-          SET_INT_VALUE(regs[a], z);
+          else {
+            regs_a[0].attr_i = z;
+          }
         }
         break;
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
