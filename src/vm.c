@@ -108,7 +108,7 @@ stack_init(mrb_state *mrb)
   mrb->ci->target_class = mrb->object_class;
 }
 
-static void
+static inline void
 envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
 {
   mrb_callinfo *ci = mrb->cibase;
@@ -170,7 +170,7 @@ stack_extend(mrb_state *mrb, int room, int keep)
   }
 }
 
-struct REnv*
+static inline struct REnv*
 uvenv(mrb_state *mrb, int up)
 {
   struct REnv *e = mrb->ci->proc->env;
