@@ -270,15 +270,11 @@ mrb_flo_to_str(mrb_state *mrb, mrb_float n, int max_digit)
 static mrb_value
 flo_to_s(mrb_state *mrb, mrb_value flt)
 {
-  int max_digit;
-
 #ifdef MRB_USE_FLOAT
-  max_digit = 7;
+  return mrb_flo_to_str(mrb, mrb_float(flt), 7);
 #else
-  max_digit = 14;
+  return mrb_flo_to_str(mrb, mrb_float(flt), 14);
 #endif
-
-  return mrb_flo_to_str(mrb, mrb_float(flt), max_digit);
 }
 
 /* 15.2.9.3.2  */
