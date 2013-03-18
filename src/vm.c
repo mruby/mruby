@@ -182,25 +182,6 @@ uvenv(mrb_state *mrb, int up)
   return e;
 }
 
-static mrb_value
-uvget(mrb_state *mrb, int up, int idx)
-{
-  struct REnv *e = uvenv(mrb, up);
-
-  if (!e) return mrb_nil_value();
-  return e->stack[idx];
-}
-
-static void
-uvset(mrb_state *mrb, int up, int idx, mrb_value v)
-{
-  struct REnv *e = uvenv(mrb, up);
-
-  if (!e) return;
-  e->stack[idx] = v;
-  mrb_write_barrier(mrb, (struct RBasic*)e);
-}
-
 static inline int
 is_strict(mrb_state *mrb, struct REnv *e)
 {
@@ -730,14 +711,34 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_GETUPVAR) {
       /* A B C  R(A) := uvget(B,C) */
+      mrb_value *regs_a = regs + GETARG_A(i);
+      int up = GETARG_C(i);
 
-      regs[GETARG_A(i)] = uvget(mrb, GETARG_C(i), GETARG_B(i));
+      struct REnv *e = uvenv(mrb, up);
+
+      if (!e) {
+        *regs_a = mrb_nil_value();
+      }
+      else {
+        int idx = GETARG_B(i);
+        *regs_a = e->stack[idx];
+      }
       NEXT;
     }
 
     CASE(OP_SETUPVAR) {
       /* A B C  uvset(B,C,R(A)) */
-      uvset(mrb, GETARG_C(i), GETARG_B(i), regs[GETARG_A(i)]);
+      /* A B C  R(A) := uvget(B,C) */
+      int up = GETARG_C(i);
+
+      struct REnv *e = uvenv(mrb, up);
+
+      if (e) {
+        mrb_value *regs_a = regs + GETARG_A(i);
+        int idx = GETARG_B(i);
+        e->stack[idx] = *regs_a;
+        mrb_write_barrier(mrb, (struct RBasic*)e);
+      }
       NEXT;
     }
 
