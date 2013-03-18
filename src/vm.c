@@ -1600,28 +1600,30 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_SUBI) {
       /* A B C  R(A) := R(A)-C (Syms[B]=:+)*/
       int a = GETARG_A(i);
+      mrb_value *regs_a = regs + a;
 
       /* need to check if + is overridden */
-      switch (mrb_type(regs[a])) {
+      switch (mrb_type(regs_a[0])) {
       case MRB_TT_FIXNUM:
         {
-          mrb_int x = regs[a].attr_i;
+          mrb_int x = regs_a[0].attr_i;
           mrb_int y = GETARG_C(i);
           mrb_int z = x - y;
 
-          if (((x < 0) ^ (y < 0)) != 0 && (x < 0) != (z < 0)) {
+          if ((x < 0) != (z < 0) && ((x < 0) ^ (y < 0)) != 0) {
             /* integer overflow */
-            SET_FLT_VALUE(regs[a], (mrb_float)x - (mrb_float)y);
-            break;
+            SET_FLT_VALUE(regs_a[0], (mrb_float)x - (mrb_float)y);
           }
-          regs[a].attr_i = z;
+          else {
+            regs_a[0].attr_i = z;
+          }
         }
         break;
       case MRB_TT_FLOAT:
-        regs[a].attr_f -= GETARG_C(i);
+        regs_a[0].attr_f -= GETARG_C(i);
         break;
       default:
-        SET_INT_VALUE(regs[a+1], GETARG_C(i));
+        SET_INT_VALUE(regs_a[1], GETARG_C(i));
         i = MKOP_ABC(OP_SEND, a, GETARG_B(i), 1);
         goto L_SEND;
       }
