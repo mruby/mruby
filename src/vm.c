@@ -194,7 +194,7 @@ is_strict(mrb_state *mrb, struct REnv *e)
   return 0;
 }
 
-struct REnv*
+inline struct REnv*
 top_env(mrb_state *mrb, struct RProc *proc)
 {
   struct REnv *e = proc->env;
