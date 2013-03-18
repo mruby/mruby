@@ -4573,7 +4573,7 @@ parser_yylex(parser_state *p)
 
   case '%':
     if (IS_BEG()) {
-      int beg = 0, term;
+      int term;
       int paren;
 
       c = nextc(p);
@@ -4583,7 +4583,7 @@ parser_yylex(parser_state *p)
 	c = 'Q';
       }
       else {
-	beg = term = nextc(p);
+	term = nextc(p);
 	if (isalnum(term)) {
 	  yyerror(p, "unknown type of %string");
 	  return 0;
