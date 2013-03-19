@@ -227,7 +227,7 @@ false_xor(mrb_state *mrb, mrb_value obj)
   int obj2;
 
   mrb_get_args(mrb, "b", &obj2);
-  return obj2 ? mrb_true_value() : mrb_false_value();
+  return mrb_true_or_false_value(obj2);
 }
 
 /* 15.2.4.3.3  */
