@@ -1101,10 +1101,7 @@ change_gen_gc_mode(mrb_state *mrb, mrb_int enable)
 static mrb_value
 gc_generational_mode_get(mrb_state *mrb, mrb_value self)
 {
-  if (mrb->is_generational_gc_mode)
-    return mrb_true_value();
-  else
-    return mrb_false_value();
+  return mrb_true_or_false_value(mrb->is_generational_gc_mode);
 }
 
 /*
