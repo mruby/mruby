@@ -1634,12 +1634,11 @@ static mrb_value
 mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_sym id;
+  mrb_bool method_defined_p;
 
   mrb_get_args(mrb, "n", &id);
-  if (mrb_obj_respond_to(mrb_class_ptr(mod), id)) {
-    return mrb_true_value();
-  }
-  return mrb_false_value();
+  method_defined_p = mrb_obj_respond_to(mrb_class_ptr(mod), id);
+  return mrb_true_or_false_value(method_defined_p);
 }
 
 static void
