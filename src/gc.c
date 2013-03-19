@@ -982,8 +982,8 @@ gc_enable(mrb_state *mrb, mrb_value obj)
   int old = mrb->gc_disabled;
 
   mrb->gc_disabled = FALSE;
-  if (old) return mrb_true_value();
-  return mrb_false_value();
+
+  return mrb_true_or_false_value(old);
 }
 
 /*
