@@ -91,7 +91,7 @@ mrb_range_excl(mrb_state *mrb, mrb_value range)
 {
   struct RRange *r = mrb_range_ptr(range);
 
-  return r->excl ? mrb_true_value() : mrb_false_value();
+  return mrb_true_or_false_value(r->excl);
 }
 
 static void
