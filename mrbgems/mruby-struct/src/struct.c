@@ -691,21 +691,34 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
   mrb_value s2;
   mrb_value *ptr, *ptr2;
   mrb_int i, len;
+  mrb_bool equal_p;
 
   mrb_get_args(mrb, "o", &s2);
-  if (mrb_obj_equal(mrb, s, s2)) return mrb_true_value();
-  if (!strcmp(mrb_class_name(mrb, mrb_obj_class(mrb, s)), "Struct")) return mrb_false_value();
-  if (mrb_obj_class(mrb, s) != mrb_obj_class(mrb, s2)) return mrb_false_value();
-  if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
+  if (mrb_obj_equal(mrb, s, s2)) {
+    equal_p = 1;
+  }
+  else if (!strcmp(mrb_class_name(mrb, mrb_obj_class(mrb, s)), "Struct") ||
+           mrb_obj_class(mrb, s) != mrb_obj_class(mrb, s2)) {
+    equal_p = 0;
+  }
+  else if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
     mrb_bug("inconsistent struct"); /* should never happen */
+    equal_p = 0; /* This substuture is just to suppress warnings. never called. */
   }
-  ptr = RSTRUCT_PTR(s);
-  ptr2 = RSTRUCT_PTR(s2);
-  len = RSTRUCT_LEN(s);
-  for (i=0; i<len; i++) {
-    if (!mrb_equal(mrb, ptr[i], ptr2[i])) return mrb_false_value();
+  else {
+    ptr = RSTRUCT_PTR(s);
+    ptr2 = RSTRUCT_PTR(s2);
+    len = RSTRUCT_LEN(s);
+    equal_p = 1;
+    for (i=0; i<len; i++) {
+      if (!mrb_equal(mrb, ptr[i], ptr2[i])) {
+        equal_p = 0;
+        break;
+      }
+    }
   }
-  return mrb_true_value();
+
+  return mrb_true_or_false_value(equal_p);
 }
 
 /* 15.2.18.4.12(x)  */
