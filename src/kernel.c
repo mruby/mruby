@@ -585,12 +585,13 @@ mrb_value
 mrb_obj_ivar_defined(mrb_state *mrb, mrb_value self)
 {
   mrb_sym mid;
+  mrb_bool defined_p;
 
   mrb_get_args(mrb, "n", &mid);
   check_iv_name(mrb, mid);
-  if (mrb_obj_iv_defined(mrb, mrb_obj_ptr(self), mid))
-    return mrb_true_value();
-  return mrb_false_value();
+  defined_p = mrb_obj_iv_defined(mrb, mrb_obj_ptr(self), mid);
+
+  return mrb_true_or_false_value(defined_p);
 }
 
 /* 15.3.1.3.21 */
