@@ -801,13 +801,16 @@ static mrb_value
 mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
 {
   khash_t(ht) *h = RHASH_TBL(self);
+  mrb_bool empty_p;
 
   if (h) {
-    if (kh_size(h) == 0)
-      return mrb_true_value();
-    return mrb_false_value();
+    empty_p = (kh_size(h) == 0);
   }
-  return mrb_true_value();
+  else {
+    empty_p = 1;
+  }
+
+  return mrb_true_or_false_value(empty_p);
 }
 
 /* 15.2.13.4.11 */
