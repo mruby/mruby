@@ -380,15 +380,17 @@ static mrb_value
 num_eql(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
+  mrb_bool eql_p;
 
   mrb_get_args(mrb, "o", &y);
-  if (mrb_type(x) != mrb_type(y)) return mrb_false_value();
-  if (mrb_equal(mrb, x, y)) {
-      return mrb_true_value();
+  if (mrb_type(x) != mrb_type(y)) {
+    eql_p = 0;
   }
   else {
-      return mrb_false_value();
+    eql_p = mrb_equal(mrb, x, y);
   }
+
+  return mrb_true_or_false_value(eql_p);
 }
 
 static mrb_value
@@ -430,7 +432,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
     return num_equal(mrb, x, y);
   }
   a = mrb_float(x);
-  return (a == b)?mrb_true_value():mrb_false_value();
+  return mrb_true_or_false_value(a == b);
 }
 
 /* 15.2.8.3.18 */
@@ -511,10 +513,11 @@ static mrb_value
 flo_finite_p(mrb_state *mrb, mrb_value num)
 {
   mrb_float value = mrb_float(num);
+  mrb_bool finite_p;
 
-  if (isinf(value) || isnan(value))
-    return mrb_false_value();
-  return mrb_true_value();
+  finite_p = !(isinf(value) || isnan(value));
+
+  return mrb_true_or_false_value(finite_p);
 }
 
 /* 15.2.9.3.10 */
@@ -923,19 +926,15 @@ static mrb_value
 fix_equal(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
+  mrb_bool equal_p;
 
   mrb_get_args(mrb, "o", &y);
 
-  if (mrb_obj_equal(mrb, x, y)) return mrb_true_value();
-  switch (mrb_type(y)) {
-  case MRB_TT_FLOAT:
-    if ((mrb_float)mrb_fixnum(x) == mrb_float(y))
-      return mrb_true_value();
-    /* fall through */
-  case MRB_TT_FIXNUM:
-  default:
-    return mrb_false_value();
-  }
+  equal_p = mrb_obj_equal(mrb, x, y) ||
+      (mrb_type(y) == MRB_TT_FLOAT &&
+       (mrb_float)mrb_fixnum(x) == mrb_float(y));
+
+  return mrb_true_or_false_value(equal_p);
 }
 
 /* 15.2.8.3.8  */
