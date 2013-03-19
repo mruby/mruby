@@ -274,4 +274,20 @@ mrb_undef_value(void)
   return v;
 }
 
+static inline mrb_value
+mrb_true_or_false_value(mrb_bool boolean)
+{
+  mrb_value v;
+
+  v.value.i = 1;
+  if (boolean) {
+    v.tt = MRB_TT_TRUE;
+  }
+  else {
+    v.tt = MRB_TT_FALSE;
+  }
+
+  return v;
+}
+
 #endif  /* MRUBY_OBJECT_H */
