@@ -1000,15 +1000,17 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   int argc;
   mrb_value mid, priv;
   mrb_sym id;
+  mrb_bool respond_to_p;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   mid = argv[0];
   if (argc > 1) priv = argv[1];
   else priv = mrb_nil_value();
   id = mrb_to_id(mrb, mid);
-  if (basic_obj_respond_to(mrb, self, id, !mrb_test(priv)))
-    return mrb_true_value();
-  return mrb_false_value();
+
+  respond_to_p = basic_obj_respond_to(mrb, self, id, !mrb_test(priv));
+
+  return mrb_true_or_false_value(respond_to_p);
 }
 
 /* 15.3.1.3.45 */
