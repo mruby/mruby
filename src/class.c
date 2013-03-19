@@ -1493,12 +1493,12 @@ static mrb_value
 mrb_mod_cvar_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_sym id;
+  mrb_bool defined_p;
   mrb_get_args(mrb, "n", &id);
 
   check_cv_name(mrb, id);
-  if(mrb_cv_defined(mrb, mod, id))
-    return mrb_true_value();
-  return mrb_false_value();
+  defined_p = mrb_cv_defined(mrb, mod, id);
+  return mrb_true_or_false_value(defined_p);
 }
 
 /* 15.2.2.4.17 */
