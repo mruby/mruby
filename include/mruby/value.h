@@ -154,7 +154,8 @@ mrb_float_value(mrb_float f)
 #define mrb_string_p(o) (mrb_type(o) == MRB_TT_STRING)
 #define mrb_hash_p(o) (mrb_type(o) == MRB_TT_HASH)
 #define mrb_voidp_p(o) (mrb_type(o) == MRB_TT_VOIDP)
-#define mrb_test(o)   (mrb_type(o) != MRB_TT_FALSE)
+#define mrb_bool(o)   (mrb_type(o) != MRB_TT_FALSE)
+#define mrb_test(o)   mrb_bool(o)
 
 #define MRB_OBJECT_HEADER \
   enum mrb_vtype tt:8;\
