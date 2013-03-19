@@ -1699,13 +1699,13 @@ mrb_value
 mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_sym id;
+  mrb_bool const_defined_p;
 
   mrb_get_args(mrb, "n", &id);
   check_const_name(mrb, id);
-  if(mrb_const_defined(mrb, mod, id)) {
-    return mrb_true_value();
-  }
-  return mrb_false_value();
+  const_defined_p = mrb_const_defined(mrb, mod, id);
+
+  return mrb_true_or_false_value(const_defined_p);
 }
 
 mrb_value
