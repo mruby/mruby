@@ -1115,8 +1115,7 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
   h1 = RHASH_TBL(hash1);
   h2 = RHASH_TBL(hash2);
   if (!h1) {
-    if (!h2)  return mrb_true_value();
-    return mrb_false_value();
+    return mrb_true_or_false_value(!h2);
   }
   if (!h2) return mrb_false_value();
   if (kh_size(h1) != kh_size(h2)) return mrb_false_value();
