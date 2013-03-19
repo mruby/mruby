@@ -1312,18 +1312,20 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
 {
   mrb_int i;
   mrb_value str2;
+  mrb_bool include_p;
 
   mrb_get_args(mrb, "o", &str2);
   if (mrb_type(str2) == MRB_TT_FIXNUM) {
-    if (memchr(RSTRING_PTR(self), mrb_fixnum(str2), RSTRING_LEN(self)))
-      return mrb_true_value();
-    return mrb_false_value();
+    include_p = memchr(RSTRING_PTR(self), mrb_fixnum(str2), RSTRING_LEN(self));
   }
-  mrb_string_value(mrb, &str2);
-  i = mrb_str_index(mrb, self, str2, 0);
+  else {
+    mrb_string_value(mrb, &str2);
+    i = mrb_str_index(mrb, self, str2, 0);
 
-  if (i == -1) return mrb_false_value();
-  return mrb_true_value();
+    include_p = (i != -1);
+  }
+
+  return mrb_true_or_false_value(include_p);
 }
 
 /* 15.2.10.5.22 */
