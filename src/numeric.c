@@ -432,7 +432,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
     return num_equal(mrb, x, y);
   }
   a = mrb_float(x);
-  return (a == b)?mrb_true_value():mrb_false_value();
+  return mrb_true_or_false_value(a == b);
 }
 
 /* 15.2.8.3.18 */
