@@ -1149,13 +1149,12 @@ static mrb_value
 mrb_str_eql(mrb_state *mrb, mrb_value self)
 {
   mrb_value str2;
+  mrb_bool eql_p;
 
   mrb_get_args(mrb, "o", &str2);
-  if (mrb_type(str2) != MRB_TT_STRING)
-    return mrb_false_value();
-  if (str_eql(mrb, self, str2))
-    return mrb_true_value();
-  return mrb_false_value();
+  eql_p = (mrb_type(str2) == MRB_TT_STRING) && str_eql(mrb, self, str2);
+
+  return mrb_true_or_false_value(eql_p);
 }
 
 static mrb_value
