@@ -926,19 +926,15 @@ static mrb_value
 fix_equal(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
+  mrb_bool equal_p;
 
   mrb_get_args(mrb, "o", &y);
 
-  if (mrb_obj_equal(mrb, x, y)) return mrb_true_value();
-  switch (mrb_type(y)) {
-  case MRB_TT_FLOAT:
-    if ((mrb_float)mrb_fixnum(x) == mrb_float(y))
-      return mrb_true_value();
-    /* fall through */
-  case MRB_TT_FIXNUM:
-  default:
-    return mrb_false_value();
-  }
+  equal_p = mrb_obj_equal(mrb, x, y) ||
+      (mrb_type(y) == MRB_TT_FLOAT &&
+       (mrb_float)mrb_fixnum(x) == mrb_float(y));
+
+  return mrb_true_or_false_value(equal_p);
 }
 
 /* 15.2.8.3.8  */
