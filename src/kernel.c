@@ -96,28 +96,24 @@ static mrb_value
 mrb_obj_equal_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg;
+  mrb_bool eql_p;
 
   mrb_get_args(mrb, "o", &arg);
-  if (mrb_obj_equal(mrb, self, arg)) {
-    return mrb_true_value();
-  }
-  else {
-    return mrb_false_value();
-  }
+  eql_p = mrb_obj_equal(mrb, self, arg);
+
+  return mrb_true_or_false_value(eql_p);
 }
 
 static mrb_value
 mrb_obj_not_equal_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg;
+  mrb_bool eql_p;
 
   mrb_get_args(mrb, "o", &arg);
-  if (mrb_equal(mrb, self, arg)) {
-    return mrb_false_value();
-  }
-  else {
-    return mrb_true_value();
-  }
+  eql_p = mrb_obj_equal(mrb, self, arg);
+
+  return mrb_true_or_false_value(!eql_p);
 }
 
 /* 15.3.1.3.2  */
@@ -133,14 +129,12 @@ static mrb_value
 mrb_equal_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg;
+  mrb_bool equal_p;
 
   mrb_get_args(mrb, "o", &arg);
-  if (mrb_equal(mrb, self, arg)){
-    return mrb_true_value();
-  }
-  else {
-    return mrb_false_value();
-  }
+  equal_p = mrb_equal(mrb, self, arg);
+
+  return mrb_true_or_false_value(equal_p);
 }
 
 /* 15.3.1.3.3  */
@@ -225,21 +219,28 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
 {
   mrb_callinfo *ci = mrb->ci;
   mrb_value *bp;
+  mrb_bool given_p;
 
   bp = mrb->stbase + ci->stackidx + 1;
   ci--;
-  if (ci <= mrb->cibase) return mrb_false_value();
-  /* block_given? called within block; check upper scope */
-  if (ci->proc->env && ci->proc->env->stack) {
-    if (ci->proc->env->stack == mrb->stbase || mrb_nil_p(ci->proc->env->stack[1]))
-      return mrb_false_value();
-    return mrb_true_value();
+  if (ci <= mrb->cibase) {
+    given_p = 0;
   }
-  if (ci->argc > 0) {
-    bp += ci->argc;
+  else {
+    /* block_given? called within block; check upper scope */
+    if (ci->proc->env && ci->proc->env->stack) {
+      given_p = !(ci->proc->env->stack == mrb->stbase ||
+                  mrb_nil_p(ci->proc->env->stack[1]));
+    }
+    else {
+      if (ci->argc > 0) {
+        bp += ci->argc;
+      }
+      given_p = !mrb_nil_p(*bp);
+    }
   }
-  if (mrb_nil_p(*bp)) return mrb_false_value();
-  return mrb_true_value();
+
+  return mrb_true_or_false_value(given_p);
 }
 
 /* 15.3.1.3.7  */
@@ -542,14 +543,12 @@ static mrb_value
 obj_is_instance_of(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg;
+  mrb_bool instance_of_p;
 
   mrb_get_args(mrb, "o", &arg);
-  if (mrb_obj_is_instance_of(mrb, self, mrb_class_ptr(arg))){
-    return mrb_true_value();
-  }
-  else {
-    return mrb_false_value();
-  }
+  instance_of_p = mrb_obj_is_instance_of(mrb, self, mrb_class_ptr(arg));
+
+  return mrb_true_or_false_value(instance_of_p);
 }
 
 static void
@@ -586,12 +585,13 @@ mrb_value
 mrb_obj_ivar_defined(mrb_state *mrb, mrb_value self)
 {
   mrb_sym mid;
+  mrb_bool defined_p;
 
   mrb_get_args(mrb, "n", &mid);
   check_iv_name(mrb, mid);
-  if (mrb_obj_iv_defined(mrb, mrb_obj_ptr(self), mid))
-    return mrb_true_value();
-  return mrb_false_value();
+  defined_p = mrb_obj_iv_defined(mrb, mrb_obj_ptr(self), mid);
+
+  return mrb_true_or_false_value(defined_p);
 }
 
 /* 15.3.1.3.21 */
@@ -688,14 +688,12 @@ mrb_value
 mrb_obj_is_kind_of_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg;
+  mrb_bool kind_of_p;
 
   mrb_get_args(mrb, "o", &arg);
-  if (mrb_obj_is_kind_of(mrb, self, mrb_class_ptr(arg))) {
-    return mrb_true_value();
-  }
-  else {
-    return mrb_false_value();
-  }
+  kind_of_p = mrb_obj_is_kind_of(mrb, self, mrb_class_ptr(arg));
+
+  return mrb_true_or_false_value(kind_of_p);
 }
 
 static void
@@ -1002,15 +1000,17 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   int argc;
   mrb_value mid, priv;
   mrb_sym id;
+  mrb_bool respond_to_p;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   mid = argv[0];
   if (argc > 1) priv = argv[1];
   else priv = mrb_nil_value();
   id = mrb_to_id(mrb, mid);
-  if (basic_obj_respond_to(mrb, self, id, !mrb_test(priv)))
-    return mrb_true_value();
-  return mrb_false_value();
+
+  respond_to_p = basic_obj_respond_to(mrb, self, id, !mrb_test(priv));
+
+  return mrb_true_or_false_value(respond_to_p);
 }
 
 /* 15.3.1.3.45 */

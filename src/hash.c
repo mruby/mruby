@@ -801,13 +801,16 @@ static mrb_value
 mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
 {
   khash_t(ht) *h = RHASH_TBL(self);
+  mrb_bool empty_p;
 
   if (h) {
-    if (kh_size(h) == 0)
-      return mrb_true_value();
-    return mrb_false_value();
+    empty_p = (kh_size(h) == 0);
   }
-  return mrb_true_value();
+  else {
+    empty_p = 1;
+  }
+
+  return mrb_true_or_false_value(empty_p);
 }
 
 /* 15.2.13.4.11 */
@@ -1010,14 +1013,17 @@ mrb_hash_has_keyWithKey(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
+  mrb_bool result;
 
   if (h) {
     k = kh_get(ht, h, key);
-    if (k != kh_end(h))
-      return mrb_true_value();
+    result = (k != kh_end(h));
+  }
+  else {
+    result = 0;
   }
 
-  return mrb_false_value();
+  return mrb_true_or_false_value(result);
 }
 
 /* 15.2.13.4.13 */
@@ -1109,8 +1115,7 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
   h1 = RHASH_TBL(hash1);
   h2 = RHASH_TBL(hash2);
   if (!h1) {
-    if (!h2)  return mrb_true_value();
-    return mrb_false_value();
+    return mrb_true_or_false_value(!h2);
   }
   if (!h2) return mrb_false_value();
   if (kh_size(h1) != kh_size(h2)) return mrb_false_value();

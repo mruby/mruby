@@ -1090,9 +1090,7 @@ mrb_bob_init(mrb_state *mrb, mrb_value cv)
 static mrb_value
 mrb_bob_not(mrb_state *mrb, mrb_value cv)
 {
-  if (mrb_test(cv))
-    return mrb_false_value();
-  return mrb_true_value();
+  return mrb_true_or_false_value(!mrb_test(cv));
 }
 
 /* 15.3.1.3.30 */
@@ -1495,12 +1493,12 @@ static mrb_value
 mrb_mod_cvar_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_sym id;
+  mrb_bool defined_p;
   mrb_get_args(mrb, "n", &id);
 
   check_cv_name(mrb, id);
-  if(mrb_cv_defined(mrb, mod, id))
-    return mrb_true_value();
-  return mrb_false_value();
+  defined_p = mrb_cv_defined(mrb, mod, id);
+  return mrb_true_or_false_value(defined_p);
 }
 
 /* 15.2.2.4.17 */
@@ -1636,12 +1634,11 @@ static mrb_value
 mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_sym id;
+  mrb_bool method_defined_p;
 
   mrb_get_args(mrb, "n", &id);
-  if (mrb_obj_respond_to(mrb_class_ptr(mod), id)) {
-    return mrb_true_value();
-  }
-  return mrb_false_value();
+  method_defined_p = mrb_obj_respond_to(mrb_class_ptr(mod), id);
+  return mrb_true_or_false_value(method_defined_p);
 }
 
 static void
@@ -1702,13 +1699,13 @@ mrb_value
 mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_sym id;
+  mrb_bool const_defined_p;
 
   mrb_get_args(mrb, "n", &id);
   check_const_name(mrb, id);
-  if(mrb_const_defined(mrb, mod, id)) {
-    return mrb_true_value();
-  }
-  return mrb_false_value();
+  const_defined_p = mrb_const_defined(mrb, mod, id);
+
+  return mrb_true_or_false_value(const_defined_p);
 }
 
 mrb_value
@@ -1752,11 +1749,12 @@ static mrb_value
 mrb_mod_eqq(mrb_state *mrb, mrb_value mod)
 {
   mrb_value obj;
+  mrb_bool eqq;
 
   mrb_get_args(mrb, "o", &obj);
-  if (!mrb_obj_is_kind_of(mrb, obj, mrb_class_ptr(mod)))
-    return mrb_false_value();
-  return mrb_true_value();
+  eqq = mrb_obj_is_kind_of(mrb, obj, mrb_class_ptr(mod));
+
+  return mrb_true_or_false_value(eqq);
 }
 
 void

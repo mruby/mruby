@@ -160,25 +160,29 @@ exc_equal(mrb_state *mrb, mrb_value exc)
 {
   mrb_value obj;
   mrb_value mesg;
+  mrb_bool equal_p;
   mrb_sym id_mesg = mrb_intern(mrb, "mesg");
 
   mrb_get_args(mrb, "o", &obj);
-  if (mrb_obj_equal(mrb, exc, obj)) return mrb_true_value();
-
-  if (mrb_obj_class(mrb, exc) != mrb_obj_class(mrb, obj)) {
-    if (mrb_respond_to(mrb, obj, mrb_intern(mrb, "message"))) {
-      mesg = mrb_funcall(mrb, obj, "message", 0);
-    }
-    else
-      return mrb_false_value();
+  if (mrb_obj_equal(mrb, exc, obj)) {
+    equal_p = 1;
   }
   else {
-    mesg = mrb_attr_get(mrb, obj, id_mesg);
+    if (mrb_obj_class(mrb, exc) != mrb_obj_class(mrb, obj)) {
+      if (mrb_respond_to(mrb, obj, mrb_intern(mrb, "message"))) {
+        mesg = mrb_funcall(mrb, obj, "message", 0);
+      }
+      else
+        return mrb_false_value();
+    }
+    else {
+      mesg = mrb_attr_get(mrb, obj, id_mesg);
+    }
+
+    equal_p = mrb_equal(mrb, mrb_attr_get(mrb, exc, id_mesg), mesg);
   }
 
-  if (!mrb_equal(mrb, mrb_attr_get(mrb, exc, id_mesg), mesg))
-    return mrb_false_value();
-  return mrb_true_value();
+  return mrb_true_or_false_value(equal_p);
 }
 
 static void
