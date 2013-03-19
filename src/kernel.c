@@ -688,14 +688,12 @@ mrb_value
 mrb_obj_is_kind_of_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg;
+  mrb_bool kind_of_p;
 
   mrb_get_args(mrb, "o", &arg);
-  if (mrb_obj_is_kind_of(mrb, self, mrb_class_ptr(arg))) {
-    return mrb_true_value();
-  }
-  else {
-    return mrb_false_value();
-  }
+  kind_of_p = mrb_obj_is_kind_of(mrb, self, mrb_class_ptr(arg));
+
+  return mrb_true_or_false_value(kind_of_p);
 }
 
 static void
