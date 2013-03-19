@@ -1121,10 +1121,7 @@ gc_generational_mode_set(mrb_state *mrb, mrb_value self)
   if (mrb->is_generational_gc_mode != enable)
     change_gen_gc_mode(mrb, enable);
 
-  if (enable)
-    return mrb_true_value();
-  else
-    return mrb_false_value();
+  return mrb_true_or_false_value(enable);
 }
 
 #ifdef GC_TEST
