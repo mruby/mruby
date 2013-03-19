@@ -878,7 +878,7 @@ mrb_ary_empty_p(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
 
-  return ((a->len == 0)? mrb_true_value(): mrb_false_value());
+  return mrb_true_or_false_value(a->len == 0);
 }
 
 mrb_value
