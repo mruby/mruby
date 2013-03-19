@@ -232,21 +232,17 @@ mrb_range_include(mrb_state *mrb, mrb_value range)
   mrb_value val;
   struct RRange *r = mrb_range_ptr(range);
   mrb_value beg, end;
+  mrb_bool include_p;
 
   mrb_get_args(mrb, "o", &val);
 
   beg = r->edges->beg;
   end = r->edges->end;
-  if (r_le(mrb, beg, val)) {
-    /* beg <= val */
-    if (r->excl) {
-      if (r_gt(mrb, end, val)) return mrb_true_value(); /* end >  val */
-    }
-    else {
-      if (r_ge(mrb, end, val)) return mrb_true_value(); /* end >= val */
-    }
-  }
-  return mrb_false_value();
+  include_p = r_le(mrb, beg, val) && /* beg <= val */
+              ((r->excl && r_gt(mrb, end, val)) || /* end >  val */
+              (r_ge(mrb, end, val))); /* end >= val */
+
+  return mrb_true_or_false_value(include_p);
 }
 
 /*
