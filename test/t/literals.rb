@@ -186,8 +186,54 @@ d
   test1 and test2
 end
 
+assert('Literals Array of symbols') do
+  a = %I{abc#{1+2}def \}g}
+  b = %I(abc #{2+3} def \(g)
+  c = %I[#{3+4}]
+  d = %I< #{4+5} >
+  e = %I//
+  f = %I[[ab cd][ef]]
+  g = %I{
+    ab
+    #{-1}1
+    2#{2}
+  }
+
+  test1 = (a == [:'abc3def', :'}g'] and
+           b == [:'abc', :'5', :'def', :'(g'] and
+           c == [:'7'] and
+           d == [:'9'] and
+           e == [] and
+           f == [:'[ab', :'cd][ef]'] and
+           g == [:'ab', :'-11', :'22']
+          )
+
+  a = %i{abc#{1+2}def \}g}
+  b = %i(abc #{2+3} def \(g)
+  c = %i[#{3+4}]
+  d = %i< #{4+5} >
+  e = %i//
+  f = %i[[ab cd][ef]]
+  g = %i{
+    ab
+    #{-1}1
+    2#{2}
+  }
+
+  test2 = (a == [:'abc#{1+2}def', :'}g'] and
+           b == [:'abc', :'#{2+3}', :'def', :'(g'] and
+           c == [:'#{3+4}'] and
+           d == [:'#{4+5}'] and
+           e == [] and
+           f == [:'[ab', :'cd][ef]'] and
+           g == [:'ab', :'#{-1}1', :'2#{2}']
+          )
+
+  test1 and test2
+end
+
 assert('Literals Symbol', '8.7.6.6') do
-  /* do not compile error */
+  # do not compile error
   :$asd
   :@asd
   :@@asd

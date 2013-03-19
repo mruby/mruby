@@ -2027,6 +2027,10 @@ codegen(codegen_scope *s, node *tree, int val)
     gen_literal_array(s, tree, FALSE, val);
     break;
 
+  case NODE_SYMBOLS:
+    gen_literal_array(s, tree, TRUE, val);
+    break;
+
   case NODE_REGX:
     if (val) {
       char *p1 = (char*)tree->car;
