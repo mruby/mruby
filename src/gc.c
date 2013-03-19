@@ -983,7 +983,7 @@ gc_enable(mrb_state *mrb, mrb_value obj)
 
   mrb->gc_disabled = FALSE;
 
-  return mrb_true_or_false_value(old);
+  return mrb_bool_value(old);
 }
 
 /*
@@ -1005,7 +1005,7 @@ gc_disable(mrb_state *mrb, mrb_value obj)
 
   mrb->gc_disabled = TRUE;
 
-  return mrb_true_or_false_value(old);
+  return mrb_bool_value(old);
 }
 
 /*
@@ -1101,7 +1101,7 @@ change_gen_gc_mode(mrb_state *mrb, mrb_int enable)
 static mrb_value
 gc_generational_mode_get(mrb_state *mrb, mrb_value self)
 {
-  return mrb_true_or_false_value(mrb->is_generational_gc_mode);
+  return mrb_bool_value(mrb->is_generational_gc_mode);
 }
 
 /*
@@ -1121,7 +1121,7 @@ gc_generational_mode_set(mrb_state *mrb, mrb_value self)
   if (mrb->is_generational_gc_mode != enable)
     change_gen_gc_mode(mrb, enable);
 
-  return mrb_true_or_false_value(enable);
+  return mrb_bool_value(enable);
 }
 
 #ifdef GC_TEST

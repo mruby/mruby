@@ -302,7 +302,7 @@ mrb_time_eq(mrb_state *mrb, mrb_value self)
   tm2 = (struct mrb_time *)mrb_get_datatype(mrb, other, &mrb_time_type);
   eq_p = tm1 && tm2 && tm1->sec == tm2->sec && tm1->usec == tm2->usec;
 
-  return mrb_true_or_false_value(eq_p);
+  return mrb_bool_value(eq_p);
 }
 
 static mrb_value
@@ -459,7 +459,7 @@ mrb_time_dstp(mrb_state *mrb, mrb_value self)
 
   tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
-  return mrb_true_or_false_value(tm->datetime.tm_isdst);
+  return mrb_bool_value(tm->datetime.tm_isdst);
 }
 
 /* 15.2.19.7.8 */
@@ -678,7 +678,7 @@ mrb_time_utcp(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm;
   tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
-  return mrb_true_or_false_value(tm->timezone == MRB_TIMEZONE_UTC);
+  return mrb_bool_value(tm->timezone == MRB_TIMEZONE_UTC);
 }
 
 

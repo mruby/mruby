@@ -878,7 +878,7 @@ mrb_ary_empty_p(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
 
-  return mrb_true_or_false_value(a->len == 0);
+  return mrb_bool_value(a->len == 0);
 }
 
 mrb_value
@@ -1091,7 +1091,7 @@ mrb_ary_equal(mrb_state *mrb, mrb_value ary1)
     }
   }
 
-  return mrb_true_or_false_value(equal_p);
+  return mrb_bool_value(equal_p);
 }
 
 /* 15.2.12.5.34 (x) */
@@ -1130,7 +1130,7 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
     }
   }
 
-  return mrb_true_or_false_value(eql_p);
+  return mrb_bool_value(eql_p);
 }
 
 void

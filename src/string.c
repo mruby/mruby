@@ -601,7 +601,7 @@ mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
   mrb_get_args(mrb, "o", &str2);
   equal_p = mrb_str_equal(mrb, str1, str2);
 
-  return mrb_true_or_false_value(equal_p);
+  return mrb_bool_value(equal_p);
 }
 /* ---------------------------------- */
 mrb_value
@@ -1135,7 +1135,7 @@ mrb_str_empty_p(mrb_state *mrb, mrb_value self)
 {
   struct RString *s = mrb_str_ptr(self);
 
-  return mrb_true_or_false_value(s->len == 0);
+  return mrb_bool_value(s->len == 0);
 }
 
 /* 15.2.10.5.17 */
@@ -1154,7 +1154,7 @@ mrb_str_eql(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o", &str2);
   eql_p = (mrb_type(str2) == MRB_TT_STRING) && str_eql(mrb, self, str2);
 
-  return mrb_true_or_false_value(eql_p);
+  return mrb_bool_value(eql_p);
 }
 
 static mrb_value
@@ -1325,7 +1325,7 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
     include_p = (i != -1);
   }
 
-  return mrb_true_or_false_value(include_p);
+  return mrb_bool_value(include_p);
 }
 
 /* 15.2.10.5.22 */

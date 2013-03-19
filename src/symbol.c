@@ -163,7 +163,7 @@ sym_equal(mrb_state *mrb, mrb_value sym1)
   mrb_get_args(mrb, "o", &sym2);
   equal_p = mrb_obj_equal(mrb, sym1, sym2);
 
-  return mrb_true_or_false_value(equal_p);
+  return mrb_bool_value(equal_p);
 }
 
 /* 15.2.11.3.2  */

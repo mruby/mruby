@@ -390,7 +390,7 @@ num_eql(mrb_state *mrb, mrb_value x)
     eql_p = mrb_equal(mrb, x, y);
   }
 
-  return mrb_true_or_false_value(eql_p);
+  return mrb_bool_value(eql_p);
 }
 
 static mrb_value
@@ -432,7 +432,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
     return num_equal(mrb, x, y);
   }
   a = mrb_float(x);
-  return mrb_true_or_false_value(a == b);
+  return mrb_bool_value(a == b);
 }
 
 /* 15.2.8.3.18 */
@@ -517,7 +517,7 @@ flo_finite_p(mrb_state *mrb, mrb_value num)
 
   finite_p = !(isinf(value) || isnan(value));
 
-  return mrb_true_or_false_value(finite_p);
+  return mrb_bool_value(finite_p);
 }
 
 /* 15.2.9.3.10 */
@@ -934,7 +934,7 @@ fix_equal(mrb_state *mrb, mrb_value x)
       (mrb_type(y) == MRB_TT_FLOAT &&
        (mrb_float)mrb_fixnum(x) == mrb_float(y));
 
-  return mrb_true_or_false_value(equal_p);
+  return mrb_bool_value(equal_p);
 }
 
 /* 15.2.8.3.8  */

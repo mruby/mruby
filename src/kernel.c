@@ -101,7 +101,7 @@ mrb_obj_equal_m(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o", &arg);
   eql_p = mrb_obj_equal(mrb, self, arg);
 
-  return mrb_true_or_false_value(eql_p);
+  return mrb_bool_value(eql_p);
 }
 
 static mrb_value
@@ -113,7 +113,7 @@ mrb_obj_not_equal_m(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o", &arg);
   eql_p = mrb_obj_equal(mrb, self, arg);
 
-  return mrb_true_or_false_value(!eql_p);
+  return mrb_bool_value(!eql_p);
 }
 
 /* 15.3.1.3.2  */
@@ -134,7 +134,7 @@ mrb_equal_m(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o", &arg);
   equal_p = mrb_equal(mrb, self, arg);
 
-  return mrb_true_or_false_value(equal_p);
+  return mrb_bool_value(equal_p);
 }
 
 /* 15.3.1.3.3  */
@@ -240,7 +240,7 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
     }
   }
 
-  return mrb_true_or_false_value(given_p);
+  return mrb_bool_value(given_p);
 }
 
 /* 15.3.1.3.7  */
@@ -548,7 +548,7 @@ obj_is_instance_of(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o", &arg);
   instance_of_p = mrb_obj_is_instance_of(mrb, self, mrb_class_ptr(arg));
 
-  return mrb_true_or_false_value(instance_of_p);
+  return mrb_bool_value(instance_of_p);
 }
 
 static void
@@ -591,7 +591,7 @@ mrb_obj_ivar_defined(mrb_state *mrb, mrb_value self)
   check_iv_name(mrb, mid);
   defined_p = mrb_obj_iv_defined(mrb, mrb_obj_ptr(self), mid);
 
-  return mrb_true_or_false_value(defined_p);
+  return mrb_bool_value(defined_p);
 }
 
 /* 15.3.1.3.21 */
@@ -693,7 +693,7 @@ mrb_obj_is_kind_of_m(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o", &arg);
   kind_of_p = mrb_obj_is_kind_of(mrb, self, mrb_class_ptr(arg));
 
-  return mrb_true_or_false_value(kind_of_p);
+  return mrb_bool_value(kind_of_p);
 }
 
 static void
@@ -1010,7 +1010,7 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
 
   respond_to_p = basic_obj_respond_to(mrb, self, id, !mrb_test(priv));
 
-  return mrb_true_or_false_value(respond_to_p);
+  return mrb_bool_value(respond_to_p);
 }
 
 /* 15.3.1.3.45 */

@@ -810,7 +810,7 @@ mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
     empty_p = 1;
   }
 
-  return mrb_true_or_false_value(empty_p);
+  return mrb_bool_value(empty_p);
 }
 
 /* 15.2.13.4.11 */
@@ -1023,7 +1023,7 @@ mrb_hash_has_keyWithKey(mrb_state *mrb, mrb_value hash, mrb_value key)
     result = 0;
   }
 
-  return mrb_true_or_false_value(result);
+  return mrb_bool_value(result);
 }
 
 /* 15.2.13.4.13 */
@@ -1115,7 +1115,7 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
   h1 = RHASH_TBL(hash1);
   h2 = RHASH_TBL(hash2);
   if (!h1) {
-    return mrb_true_or_false_value(!h2);
+    return mrb_bool_value(!h2);
   }
   if (!h2) return mrb_false_value();
   if (kh_size(h1) != kh_size(h2)) return mrb_false_value();

@@ -275,7 +275,7 @@ mrb_undef_value(void)
 }
 
 static inline mrb_value
-mrb_true_or_false_value(mrb_bool boolean)
+mrb_bool_value(mrb_bool boolean)
 {
   mrb_value v;
 

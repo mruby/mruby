@@ -91,7 +91,7 @@ mrb_range_excl(mrb_state *mrb, mrb_value range)
 {
   struct RRange *r = mrb_range_ptr(range);
 
-  return mrb_true_or_false_value(r->excl);
+  return mrb_bool_value(r->excl);
 }
 
 static void
@@ -175,7 +175,7 @@ mrb_range_eq(mrb_state *mrb, mrb_value range)
     }
   }
 
-  return mrb_true_or_false_value(eq_p);
+  return mrb_bool_value(eq_p);
 }
 
 static int
@@ -242,7 +242,7 @@ mrb_range_include(mrb_state *mrb, mrb_value range)
               ((r->excl && r_gt(mrb, end, val)) || /* end >  val */
               (r_ge(mrb, end, val))); /* end >= val */
 
-  return mrb_true_or_false_value(include_p);
+  return mrb_bool_value(include_p);
 }
 
 /*
@@ -412,7 +412,7 @@ range_eql(mrb_state *mrb, mrb_value range)
     }
   }
 
-  return mrb_true_or_false_value(eql_p);
+  return mrb_bool_value(eql_p);
 }
 
 /* 15.2.14.4.15(x) */

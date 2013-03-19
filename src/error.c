@@ -182,7 +182,7 @@ exc_equal(mrb_state *mrb, mrb_value exc)
     equal_p = mrb_equal(mrb, mrb_attr_get(mrb, exc, id_mesg), mesg);
   }
 
-  return mrb_true_or_false_value(equal_p);
+  return mrb_bool_value(equal_p);
 }
 
 static void

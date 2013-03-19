@@ -718,7 +718,7 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
     }
   }
 
-  return mrb_true_or_false_value(equal_p);
+  return mrb_bool_value(equal_p);
 }
 
 /* 15.2.18.4.12(x)  */
@@ -762,7 +762,7 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
     }
   }
 
-  return mrb_true_or_false_value(eql_p);
+  return mrb_bool_value(eql_p);
 }
 
 /*
