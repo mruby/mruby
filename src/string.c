@@ -1135,9 +1135,7 @@ mrb_str_empty_p(mrb_state *mrb, mrb_value self)
 {
   struct RString *s = mrb_str_ptr(self);
 
-  if (s->len == 0)
-    return mrb_true_value();
-  return mrb_false_value();
+  return mrb_true_or_false_value(s->len == 0);
 }
 
 /* 15.2.10.5.17 */
