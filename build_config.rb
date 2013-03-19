@@ -23,7 +23,7 @@ MRuby::Build.new do |conf|
   # Use standard Kernel#sprintf method
   conf.gem "#{root}/mrbgems/mruby-sprintf"
 
-  # Use extensional Enumerable class
+  # Use extensional Enumerable module
   conf.gem "#{root}/mrbgems/mruby-enum-ext"
 
   # Use extensional String class
