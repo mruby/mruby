@@ -68,13 +68,15 @@ struct mrb_parser_message {
 
 enum mrb_string_type {
   str_not_parsing  = (0),
-  str_squote  = (STR_FUNC_PARSING),
-  str_dquote  = (STR_FUNC_PARSING|STR_FUNC_EXPAND),
-  str_regexp  = (STR_FUNC_PARSING|STR_FUNC_REGEXP|STR_FUNC_EXPAND),
-  str_sword   = (STR_FUNC_PARSING|STR_FUNC_WORD|STR_FUNC_ARRAY),
-  str_dword   = (STR_FUNC_PARSING|STR_FUNC_WORD|STR_FUNC_ARRAY|STR_FUNC_EXPAND),
-  str_ssym    = (STR_FUNC_PARSING|STR_FUNC_SYMBOL),
-  str_heredoc = (STR_FUNC_PARSING|STR_FUNC_HEREDOC),
+  str_squote   = (STR_FUNC_PARSING),
+  str_dquote   = (STR_FUNC_PARSING|STR_FUNC_EXPAND),
+  str_regexp   = (STR_FUNC_PARSING|STR_FUNC_REGEXP|STR_FUNC_EXPAND),
+  str_sword    = (STR_FUNC_PARSING|STR_FUNC_WORD|STR_FUNC_ARRAY),
+  str_dword    = (STR_FUNC_PARSING|STR_FUNC_WORD|STR_FUNC_ARRAY|STR_FUNC_EXPAND),
+  str_ssym     = (STR_FUNC_PARSING|STR_FUNC_SYMBOL),
+  str_ssymbols = (STR_FUNC_PARSING|STR_FUNC_SYMBOL|STR_FUNC_ARRAY),
+  str_dsymbols = (STR_FUNC_PARSING|STR_FUNC_SYMBOL|STR_FUNC_ARRAY|STR_FUNC_EXPAND),
+  str_heredoc  = (STR_FUNC_PARSING|STR_FUNC_HEREDOC),
 };
 
 /* heredoc structure */
