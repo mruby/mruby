@@ -86,11 +86,6 @@ timegm(struct tm *tm)
 * second level. Also, there are only 2 timezones, namely UTC and LOCAL.
 */
 
-#ifndef mrb_bool_value
-#define mrb_bool_value(val) ((val) ? mrb_true_value() : mrb_false_value())
-#endif
-
-
 enum mrb_timezone {
   MRB_TIMEZONE_NONE   = 0,
   MRB_TIMEZONE_UTC    = 1,
@@ -300,15 +295,14 @@ mrb_time_eq(mrb_state *mrb, mrb_value self)
 {
   mrb_value other;
   struct mrb_time *tm1, *tm2;
+  mrb_bool eq_p;
 
   mrb_get_args(mrb, "o", &other);
   tm1 = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
   tm2 = (struct mrb_time *)mrb_get_datatype(mrb, other, &mrb_time_type);
-  if (!tm1 || !tm2) return mrb_false_value();
-  if (tm1->sec == tm2->sec && tm1->usec == tm2->usec) {
-    return mrb_true_value();
-  }
-  return mrb_false_value();
+  eq_p = tm1 && tm2 && tm1->sec == tm2->sec && tm1->usec == tm2->usec;
+
+  return mrb_true_or_false_value(eq_p);
 }
 
 static mrb_value
@@ -465,7 +459,7 @@ mrb_time_dstp(mrb_state *mrb, mrb_value self)
 
   tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
-  return mrb_bool_value(tm->datetime.tm_isdst);
+  return mrb_true_or_false_value(tm->datetime.tm_isdst);
 }
 
 /* 15.2.19.7.8 */
@@ -684,7 +678,7 @@ mrb_time_utcp(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm;
   tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
-  return mrb_bool_value(tm->timezone == MRB_TIMEZONE_UTC);
+  return mrb_true_or_false_value(tm->timezone == MRB_TIMEZONE_UTC);
 }
 
 
