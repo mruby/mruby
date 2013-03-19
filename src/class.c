@@ -1090,9 +1090,7 @@ mrb_bob_init(mrb_state *mrb, mrb_value cv)
 static mrb_value
 mrb_bob_not(mrb_state *mrb, mrb_value cv)
 {
-  if (mrb_test(cv))
-    return mrb_false_value();
-  return mrb_true_value();
+  return mrb_true_or_false_value(!mrb_test(cv));
 }
 
 /* 15.3.1.3.30 */
