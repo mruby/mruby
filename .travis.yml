@@ -1,3 +1,6 @@
 # no installation...
 
+install:
+ - sudo apt-get -q install gperf
+
 script: "./minirake all test"
