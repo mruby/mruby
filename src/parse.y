@@ -3328,7 +3328,7 @@ newtok(parser_state *p)
 static void
 tokadd(parser_state *p, int c)
 {
-  if (p->bidx < 1024) {
+  if (p->bidx < PARSER_TOKEN_BUF_SIZE) {
     p->buf[p->bidx++] = c;
   }
 }
@@ -3342,17 +3342,10 @@ toklast(parser_state *p)
 static void
 tokfix(parser_state *p)
 {
-  if (p->bidx >= 1024) {
+  if (p->bidx >= PARSER_TOKEN_BUF_SIZE) {
     yyerror(p, "string too long (truncated)");
   }
   p->buf[p->bidx] = '\0';
-}
-
-static void
-tokchompspc(parser_state *p)
-{
-  while (p->bidx > 0 && ISSPACE(p->buf[p->bidx-1]))
-    p->bidx--;
 }
 
 static const char*
@@ -3628,7 +3621,7 @@ parse_string(parser_state *p)
       }
       continue;
     }
-  else if ((c == '#') && (type & (STR_FUNC_EXPAND|STR_FUNC_PROC))) {
+    if ((c == '#') && (type & (STR_FUNC_EXPAND|STR_FUNC_PROC))) {
       c = nextc(p);
       if (c == '{') {
 	tokfix(p);
@@ -3643,31 +3636,42 @@ parse_string(parser_state *p)
       pushback(p, c);
       continue;
     }
-    if ((c == '\n') && (type & STR_FUNC_INT_SP)) {
-      tokchompspc(p);
-      tokadd(p, '\n');
-      tokfix(p);
-      while (((c = nextc(p)) != -1) && (c != '\n') && ISSPACE(c))
-        ;
-      pushback(p, c);
-      yylval.nd = new_str(p, tok(p), toklen(p));
-      return tSTRING_SP;
-    }
-    if (ISSPACE(c) && ((type & (STR_FUNC_ARRAY|STR_FUNC_HEREDOC|STR_FUNC_INT_SP)) == STR_FUNC_ARRAY)) {
-      if (toklen(p) == 0) {
-	do {
-	  if (c == '\n') {
-	    p->lineno++;
-	    p->column = 0;
-	  }
-	} while (ISSPACE(c = nextc(p)));
-	pushback(p, c);
-	return tLITERAL_DELIM;
-      } else {
-	pushback(p, c);
-	tokfix(p);
-	yylval.nd = new_str(p, tok(p), toklen(p));
-	return tSTRING_MID;
+    if (ISSPACE(c)) {
+      if (type & STR_FUNC_INT_SP) {
+        int save_bidx = p->bidx;
+        do {
+          if (c == '\n') {
+            p->bidx = save_bidx;
+            tokadd(p, '\n');
+            tokfix(p);
+            while (((c = nextc(p)) != -1) && (c != '\n') && ISSPACE(c))
+              ;
+            pushback(p, c);
+            yylval.nd = new_str(p, tok(p), toklen(p));
+            return tSTRING_SP;
+          }
+          tokadd(p, c);
+          c = nextc(p);
+        } while (ISSPACE(c));
+        pushback(p, c);
+        continue;
+      }
+      if ((type & (STR_FUNC_ARRAY|STR_FUNC_HEREDOC)) == STR_FUNC_ARRAY) {
+        if (toklen(p) == 0) {
+	  do {
+	    if (c == '\n') {
+	      p->lineno++;
+	      p->column = 0;
+	    }
+	  } while (ISSPACE(c = nextc(p)));
+	  pushback(p, c);
+	  return tLITERAL_DELIM;
+        } else {
+	  pushback(p, c);
+	  tokfix(p);
+	  yylval.nd = new_str(p, tok(p), toklen(p));
+	  return tSTRING_MID;
+        }
       }
     }
 

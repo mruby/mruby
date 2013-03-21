@@ -129,8 +129,8 @@ ZZZ
 end
 
 
-def concat_m(arr)
-  arr.map{|x| x.class == Proc ?  x.call().to_s : x }.join('-')
+def p2s(arr)
+  arr.map{|x| Proc === x ?  x.call.to_s : x }
 end
 
 assert('ALCS: Array Literal of Closures and Strings') do
@@ -146,12 +146,17 @@ assert('ALCS: Array Literal of Closures and Strings') do
     /
   e = %P(#{1+5}#{x})
   f = %P{aa bb}
-  test1 = (concat_m(a) == 'aa-2-bb' and
-           concat_m(b) == 'aa-3-bb' and
-           concat_m(c) == 'aa-4-bb' and
-           concat_m(d) == 'aa-5-bb' and
-           concat_m(e) == '6-42' and
-           concat_m(f) == 'aa-bb'
+  # 5 spaces afrer \t
+  g = %P(a\r \nb \t     
+  \  c \
+  d)
+  test1 = (p2s(a) == ['aa', '2', 'bb'] and
+           p2s(b) == ['aa', '3', 'bb'] and
+           p2s(c) == ['aa', '4', 'bb'] and
+           p2s(d) == ['aa', '5', 'bb'] and
+           p2s(e) == ['6', '42'] and
+           p2s(f) == ['aa', 'bb'] and
+           p2s(g) == ["a\r", "\nb", "\t", " ", "c", "\n", "d"] 
           )
 
   a = %p(aa#{1+1}bb)
@@ -165,12 +170,17 @@ assert('ALCS: Array Literal of Closures and Strings') do
     /
   e = %p(#{1+5}#{x})
   f = %p{aa bb}
-  test2 = (concat_m(a) == 'aa-2-bb' and
-           concat_m(b) == ' aa -3- bb ' and
-           concat_m(c) == "aa\n-4-\n-bb" and
-            concat_m(d) == " aa\n-5-\n-bb\n" and
-           concat_m(e) == '6-42' and
-           concat_m(f) == 'aa bb'
+  # 5 spaces afrer \t
+  g = %p(a\r \nb \t     
+  \  c \
+  d)
+  test2 = (p2s(a) == ['aa', '2', 'bb'] and
+           p2s(b) == [' aa ', '3', ' bb '] and
+           p2s(c) == ["aa\n", '4', "\n", 'bb'] and
+           p2s(d) == [" aa\n", '5', "\n", "bb\n"] and
+           p2s(e) == ['6', '42'] and
+           p2s(f) == ['aa bb'] and
+           p2s(g) == ["a\r \nb \t\n", "  c \n  d"]
           )
 
   a = <<<AAA
@@ -180,13 +190,11 @@ AAA
   b = <<<BBB
 aa#{1+2}bb
 BBB
-  bb = b.map{|x| x.class}
-  bbb = concat_m(b)
 
   c = <<<CCC
 CCC
 
-  d = [<<<DDD1, <<<"DD D2", <<<'DD D3'].map{|a| concat_m(a)}
+  d = [<<<DDD1, <<<"DD D2", <<<'DD D3'].map{|a| p2s(a)}
 #{1}
 DDD1
 #{3-1}
@@ -195,7 +203,7 @@ DD D2
 ddd
 DD D3
 
-  e = [<<<-EEE, <<<-"EE EE", <<<-'EE EE'].map{|a| concat_m(a)}
+  e = [<<<-EEE, <<<-"EE EE", <<<-'EE EE'].map{|a| p2s(a)}
   e#{0+1}#{1+1}e
   EEE
   e#{1+2}#{2+2}e
@@ -204,11 +212,11 @@ DD D3
   eee
   EE EE
   test3 = (a == ["aaa\n"] and
-           bb == [String, Proc, String] and
-           bbb == "aa-3-bb\n" and
+           b.map{|x| x.class} == [String, Proc, String] and
+           p2s(b) == ["aa", "3", "bb\n"] and
            c == [''] and
-           d == ["1-\n", "2-\n", "\#{9/3}\n-ddd\n"] and
-           e == ["  e-1-2-e\n", "  e-3-4-e\n", "  e\#{2+3}\#{3+3}e\n-  eee\n"]
+           d == [["1", "\n"], ["2", "\n"], ["\#{9/3}\n", "ddd\n"]] and
+           e == [["  e", "1", "2", "e\n"], ["  e", "3", "4", "e\n"], ["  e\#{2+3}\#{3+3}e\n", "  eee\n"]]
           )
 
   test1 and test2 and test3
