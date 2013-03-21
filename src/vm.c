@@ -1126,7 +1126,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_ENTER) {
       /* Ax             arg setup according to flags (24=5:5:1:5:5:1:1) */
       /* number of optional arguments times OP_JMP should follow */
-      int ax = GETARG_Ax(i);
+      int32_t ax = GETARG_Ax(i);
       int m1 = (ax>>18)&0x1f;
       int o  = (ax>>13)&0x1f;
       int r  = (ax>>12)&0x1;
