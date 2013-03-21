@@ -10,9 +10,12 @@
 #define MAXARG_Bx        (0xffff)
 #define MAXARG_sBx       (MAXARG_Bx>>1)         /* `sBx' is signed */
 
-/* instructions OP:A:B:C = 7:9:9:7 (32 bits) */
-/*              OP:A:Bx  = 7:9:16            */
-/*              OP:Ax    = 7:25              */
+/* instructions: packed 32 bit      */
+/* -------------------------------  */
+/*     A:B:C:OP = 9: 9: 7: 7        */
+/*      A:Bx:OP =    9:16: 7        */
+/*        Ax:OP =      25: 7        */
+/*   A:Bz:Cz:OP = 9:14: 2: 7        */
 
 #define GET_OPCODE(i) ((int)(((mrb_code)(i)) & 0x7f))
 #define GETARG_A(i)   ((int)((((mrb_code)(i)) >> 23) & 0x1ff))
