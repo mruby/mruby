@@ -65,6 +65,8 @@ enum node_type {
     NODE_SYM,
     NODE_STR,
     NODE_DSTR,
+    NODE_XSTR,
+    NODE_DXSTR,
     NODE_REGX,
     NODE_DREGX,
     NODE_DREGX_ONCE,
