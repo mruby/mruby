@@ -4,8 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#define CODEGEN_DUMP
-
 #include "mruby.h"
 #include "mruby/string.h"
 #include "mruby/irep.h"
