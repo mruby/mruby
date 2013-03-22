@@ -1617,6 +1617,7 @@ op		: '|'		{ $$ = intern("|"); }
 		| tUMINUS	{ $$ = intern("-@"); }
 		| tAREF		{ $$ = intern("[]"); }
 		| tASET		{ $$ = intern("[]="); }
+		| '`'		{ $$ = intern("`"); }
 		;
 
 reswords	: keyword__LINE__ | keyword__FILE__ | keyword__ENCODING__
@@ -4021,6 +4022,17 @@ parser_yylex(parser_state *p)
     return parse_string(p);
 
   case '`':
+    if (p->lstate == EXPR_FNAME) {
+      p->lstate = EXPR_ENDFN;
+      return '`';
+    }
+    if (p->lstate == EXPR_DOT) {
+      if (cmd_state)
+        p->lstate = EXPR_CMDARG;
+      else
+        p->lstate = EXPR_ARG;
+      return '`';
+    }
     p->lex_strterm = new_strterm(p, str_xquote, '`', 0);
     return tXSTRING_BEG;
 
