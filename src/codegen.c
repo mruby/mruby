@@ -2043,8 +2043,8 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_ABx(OP_GETMCNST, cursp(), sym));
       push();
       genop(s, MKOP_ABx(OP_STRING, cursp(), off));
-	  pop();
-      sym = new_sym(s, mrb_intern(s->mrb, "__backtick__"));
+      pop();
+      sym = new_sym(s, mrb_intern(s->mrb, "`"));
       genop(s, MKOP_ABC(OP_SEND, cursp(), sym, 1));
       mrb_gc_arena_restore(s->mrb, ai);
       push();
