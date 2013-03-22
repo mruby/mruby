@@ -301,7 +301,7 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
   a1 = RARRAY(ary1); a2 = RARRAY(ary2);
   if (a1->len == a2->len && a1->ptr == a2->ptr) return mrb_fixnum_value(0);
   else {
-    mrb_sym cmp = mrb_intern(mrb, "<=>");
+    mrb_sym cmp = mrb_intern2(mrb, "<=>", 3);
 
     len = RARRAY_LEN(ary1);
     if (len > RARRAY_LEN(ary2)) {
@@ -1069,7 +1069,7 @@ mrb_ary_equal(mrb_state *mrb, mrb_value ary1)
     equal_p = 0;
   }
   else if (!mrb_array_p(ary2)) {
-    if (!mrb_respond_to(mrb, ary2, mrb_intern(mrb, "to_ary"))) {
+    if (!mrb_respond_to(mrb, ary2, mrb_intern2(mrb, "to_ary", 6))) {
         equal_p = 0;
     }
     else {

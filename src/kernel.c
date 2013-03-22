@@ -29,7 +29,7 @@ typedef enum {
 int
 mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
-    struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mrb_intern(mrb, "to_s"));
+    struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mrb_intern2(mrb, "to_s", 4));
     if (me && MRB_PROC_CFUNC_P(me) && (me->body.func == mrb_any_to_s))
       return TRUE;
     return FALSE;
@@ -283,7 +283,7 @@ mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
     clone->super = klass->super;
     if (klass->iv) {
       mrb_iv_copy(mrb, mrb_obj_value(clone), mrb_obj_value(klass));
-      mrb_obj_iv_set(mrb, (struct RObject*)clone, mrb_intern(mrb, "__attached__"), obj);
+      mrb_obj_iv_set(mrb, (struct RObject*)clone, mrb_intern2(mrb, "__attached__", 12), obj);
     }
     if (klass->mt) {
       clone->mt = kh_copy(mt, mrb, klass->mt);
@@ -928,7 +928,7 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
     /* fall through */
   default:
     exc = mrb_make_exception(mrb, argc, a);
-    mrb_obj_iv_set(mrb, mrb_obj_ptr(exc), mrb_intern(mrb, "lastpc"), mrb_voidp_value(mrb->ci->pc));
+    mrb_obj_iv_set(mrb, mrb_obj_ptr(exc), mrb_intern2(mrb, "lastpc", 6), mrb_voidp_value(mrb->ci->pc));
     mrb_exc_raise(mrb, exc);
     break;
   }
