@@ -116,7 +116,7 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
   while (ci <= mrb->ci) {
     struct REnv *e = ci->env;
     if (e && e->cioff >= 0) {
-      int off = e->stack - oldbase;
+      ptrdiff_t off = e->stack - oldbase;
 
       e->stack = newbase + off;
     }
