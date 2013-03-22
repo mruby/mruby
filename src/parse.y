@@ -3342,7 +3342,7 @@ newtok(parser_state *p)
 static void
 tokadd(parser_state *p, int c)
 {
-  if (p->bidx < 1024) {
+  if (p->bidx < MRB_PARSER_BUF_SIZE) {
     p->buf[p->bidx++] = c;
   }
 }
@@ -3356,7 +3356,7 @@ toklast(parser_state *p)
 static void
 tokfix(parser_state *p)
 {
-  if (p->bidx >= 1024) {
+  if (p->bidx >= MRB_PARSER_BUF_SIZE) {
     yyerror(p, "string too long (truncated)");
   }
   p->buf[p->bidx] = '\0';

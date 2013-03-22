@@ -49,6 +49,8 @@
 /* initial minimum size for string buffer */
 //#define MRB_STR_BUF_MIN_SIZE 128
 
+/* array size for parser buffer */
+//#define MRB_PARSER_BUF_SIZE 1024
 
 /* -DDISABLE_XXXX to drop following features */
 //#define DISABLE_STDIO		/* use of stdio */
