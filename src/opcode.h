@@ -34,7 +34,7 @@
 #define MKARG_C(c)    (((c) & 0x7f) <<  7)
 #define MKARG_Bx(v)   ((mrb_code)((v) & 0xffff) << 7)
 #define MKARG_sBx(v)  MKARG_Bx((v)+MAXARG_sBx)
-#define MKARG_Ax(v)   (((v) & 0x1ffffff) << 7)
+#define MKARG_Ax(v)   ((mrb_code)((v) & 0x1ffffff) << 7)
 #define MKARG_PACK(b,n1,c,n2) ((((b) & ((1<<n1)-1)) << (7+n2))|(((c) & ((1<<n2)-1)) << 7))
 #define MKARG_bc(b,c) MKARG_PACK(b,14,c,2)
 
