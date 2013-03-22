@@ -65,6 +65,7 @@ struct mrb_parser_message {
 #define STR_FUNC_SYMBOL  0x10
 #define STR_FUNC_ARRAY   0x20
 #define STR_FUNC_HEREDOC 0x40
+#define STR_FUNC_XQUOTE  0x80
 
 enum mrb_string_type {
   str_not_parsing  = (0),
@@ -77,6 +78,7 @@ enum mrb_string_type {
   str_ssymbols = (STR_FUNC_PARSING|STR_FUNC_SYMBOL|STR_FUNC_ARRAY),
   str_dsymbols = (STR_FUNC_PARSING|STR_FUNC_SYMBOL|STR_FUNC_ARRAY|STR_FUNC_EXPAND),
   str_heredoc  = (STR_FUNC_PARSING|STR_FUNC_HEREDOC),
+  str_xquote   = (STR_FUNC_PARSING|STR_FUNC_XQUOTE|STR_FUNC_EXPAND),
 };
 
 /* heredoc structure */
