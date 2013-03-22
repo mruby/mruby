@@ -142,4 +142,23 @@ module Enumerable
     block.call(ary) unless ary.empty?
   end
 
+  ##
+  # call-seq:
+  #    enum.group_by {| obj | block }  -> a_hash
+  #
+  # Returns a hash, which keys are evaluated result from the
+  # block, and values are arrays of elements in <i>enum</i>
+  # corresponding to the key.
+  #
+  #    (1..6).group_by {|i| i%3}   #=> {0=>[3, 6], 1=>[1, 4], 2=>[2, 5]}
+
+  def group_by(&block)
+    h = {}
+    self.each do |e|
+      key = block.call(e)
+      h.key?(key) ? (h[key] << e) : (h[key] = [e])
+    end
+    h
+  end
+
 end

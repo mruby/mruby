@@ -35,3 +35,10 @@ assert("Enumerable#each_slice") do
   assert_equal  a, [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]]
 end
 
+assert("Enumerable#group_by") do
+  r = (1..6).group_by {|i| i % 3 }
+  assert_equal r[0], [3, 6]
+  assert_equal r[1], [1, 4]
+  assert_equal r[2], [2, 5]
+end
+
