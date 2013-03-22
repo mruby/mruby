@@ -2054,6 +2054,26 @@ codegen(codegen_scope *s, node *tree, int val)
     gen_literal_array(s, tree, TRUE, val);
     break;
 
+  case NODE_XSTR:
+    if (val) {
+      char *p = (char*)tree->car;
+      size_t len = (intptr_t)tree->cdr;
+      int ai = mrb_gc_arena_save(s->mrb);
+      int sym = new_sym(s, mrb_intern2(s->mrb, "Kernel", 6));
+      int off = new_lit(s, mrb_str_new(s->mrb, p, len));
+
+      genop(s, MKOP_A(OP_OCLASS, cursp()));
+      genop(s, MKOP_ABx(OP_GETMCNST, cursp(), sym));
+      push();
+      genop(s, MKOP_ABx(OP_STRING, cursp(), off));
+      pop();
+      sym = new_sym(s, mrb_intern2(s->mrb, "`", 1));
+      genop(s, MKOP_ABC(OP_SEND, cursp(), sym, 1));
+      mrb_gc_arena_restore(s->mrb, ai);
+      push();
+    }
+    break;
+
   case NODE_REGX:
     if (val) {
       char *p1 = (char*)tree->car;

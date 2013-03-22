@@ -702,6 +702,20 @@ new_dstr(parser_state *p, node *a)
   return cons((node*)NODE_DSTR, a);
 }
 
+// (:str . (s . len))
+static node*
+new_xstr(parser_state *p, const char *s, int len)
+{
+  return cons((node*)NODE_XSTR, cons((node*)strndup(s, len), (node*)(intptr_t)len));
+}
+
+// (:xstr . a)
+static node*
+new_dxstr(parser_state *p, node *a)
+{
+  return cons((node*)NODE_DXSTR, a);
+}
+
 // (:dsym . a)
 static node*
 new_dsym(parser_state *p, node *a)
@@ -974,12 +988,12 @@ heredoc_end(parser_state *p)
 	keyword__ENCODING__
 
 %token <id>  tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL
-%token <nd>  tINTEGER tFLOAT tCHAR tREGEXP
+%token <nd>  tINTEGER tFLOAT tCHAR tXSTRING tREGEXP
 %token <nd>  tSTRING tSTRING_PART tSTRING_MID tSTRING_SP
 %token <nd>  tNTH_REF tBACK_REF
 %token <num> tREGEXP_END
 
-%type <nd> singleton string string_rep string_interp regexp
+%type <nd> singleton string string_rep string_interp xstring regexp
 %type <nd> literal numeric cpath symbol
 %type <nd> top_compstmt top_stmts top_stmt
 %type <nd> bodystmt compstmt stmts stmt expr arg primary command command_call method_call
@@ -1028,7 +1042,7 @@ heredoc_end(parser_state *p)
 %token tAMPER             /* & */
 %token tLAMBDA            /* -> */
 %token tSYMBEG tREGEXP_BEG tWORDS_BEG tSYMBOLS_BEG
-%token tSTRING_BEG tSTRING_DVAR tLAMBEG
+%token tSTRING_BEG tXSTRING_BEG tSTRING_DVAR tLAMBEG
 %token <nd> tHEREDOC_BEG
 %token tHEREDOC_END tLITERAL_DELIM
 
@@ -1603,6 +1617,7 @@ op		: '|'		{ $$ = intern("|"); }
 		| tUMINUS	{ $$ = intern("-@"); }
 		| tAREF		{ $$ = intern("[]"); }
 		| tASET		{ $$ = intern("[]="); }
+		| '`'		{ $$ = intern("`"); }
 		;
 
 reswords	: keyword__LINE__ | keyword__FILE__ | keyword__ENCODING__
@@ -1936,6 +1951,7 @@ mrhs		: args ',' arg_value
 
 primary		: literal
 		| string
+		| xstring
 		| regexp
 		| heredoc
 		| var_ref
@@ -2599,6 +2615,16 @@ string_interp	: tSTRING_MID
 		    }
 		;
 
+xstring		: tXSTRING_BEG tXSTRING
+		    {
+			$$ = $2;
+		    }
+		| tXSTRING_BEG string_rep tXSTRING
+		    {
+		      $$ = new_dxstr(p, push($2, $3));
+		    }
+		;
+
 regexp		: tREGEXP_BEG tREGEXP
 		    {
 			$$ = $2;
@@ -2999,6 +3025,8 @@ singleton	: var_ref
 			switch ((enum node_type)(int)(intptr_t)$3->car) {
 			case NODE_STR:
 			case NODE_DSTR:
+			case NODE_XSTR:
+			case NODE_DXSTR:
 			case NODE_DREGX:
 			case NODE_MATCH:
 			case NODE_FLOAT:
@@ -3676,6 +3704,11 @@ parse_string(parser_state *p)
   p->lstate = EXPR_END;
   end_strterm(p);
 
+  if (type & STR_FUNC_XQUOTE) {
+    yylval.nd = new_xstr(p, tok(p), toklen(p));
+    return tXSTRING;
+  }
+
   if (type & STR_FUNC_REGEXP) {
     int f = 0;
     int c;
@@ -4030,6 +4063,21 @@ parser_yylex(parser_state *p)
   case '\'':
     p->lex_strterm = new_strterm(p, str_squote, '\'', 0);
     return parse_string(p);
+
+  case '`':
+    if (p->lstate == EXPR_FNAME) {
+      p->lstate = EXPR_ENDFN;
+      return '`';
+    }
+    if (p->lstate == EXPR_DOT) {
+      if (cmd_state)
+        p->lstate = EXPR_CMDARG;
+      else
+        p->lstate = EXPR_ARG;
+      return '`';
+    }
+    p->lex_strterm = new_strterm(p, str_xquote, '`', 0);
+    return tXSTRING_BEG;
 
   case '?':
     if (IS_END()) {
@@ -4670,6 +4718,10 @@ parser_yylex(parser_state *p)
       case 'w':
 	p->lex_strterm = new_strterm(p, str_sword, term, paren);
 	return tWORDS_BEG;
+
+      case 'x':
+	p->lex_strterm = new_strterm(p, str_xquote, term, paren);
+	return tXSTRING_BEG;
 
       case 'r':
 	p->lex_strterm = new_strterm(p, str_regexp, term, paren);
@@ -5741,6 +5793,15 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_DSTR:
     printf("NODE_DSTR\n");
+    dump_recur(mrb, tree, offset+1);
+    break;
+
+  case NODE_XSTR:
+    printf("NODE_XSTR \"%s\" len %d\n", (char*)tree->car, (int)(intptr_t)tree->cdr);
+    break;
+
+  case NODE_DXSTR:
+    printf("NODE_DXSTR\n");
     dump_recur(mrb, tree, offset+1);
     break;
 
