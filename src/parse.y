@@ -61,7 +61,7 @@ typedef unsigned int stack_type;
 #define sym(x) ((mrb_sym)(intptr_t)(x))
 #define nsym(x) ((node*)(intptr_t)(x))
 
-static mrb_sym
+static inline mrb_sym
 intern_gen(parser_state *p, const char *s)
 {
   return mrb_intern(p->mrb, s);
