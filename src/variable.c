@@ -102,7 +102,7 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
   return;
 }
 
-static int
+static mrb_bool
 iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
   segment *seg;
@@ -126,7 +126,7 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   return FALSE;
 }
 
-static int
+static mrb_bool
 iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
   segment *seg;
@@ -152,7 +152,7 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   return FALSE;
 }
 
-static int
+static mrb_bool
 iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 {
   segment *seg;
@@ -273,7 +273,7 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
   kh_value(h, k) = val;
 }
 
-static int
+static mrb_bool
 iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
   khash_t(iv) *h = &t->h;
@@ -287,7 +287,7 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   return FALSE;
 }
 
-static int
+static mrb_bool
 iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
   khash_t(iv) *h = &t->h;
@@ -305,7 +305,7 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   return FALSE;
 }
 
-static int
+static mrb_bool
 iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 {
   khash_t(iv) *h = &t->h;
@@ -408,7 +408,7 @@ mrb_vm_special_set(mrb_state *mrb, mrb_sym i, mrb_value v)
 {
 }
 
-static int
+static mrb_bool
 obj_iv_p(mrb_value obj)
 {
   switch (mrb_type(obj)) {
@@ -481,7 +481,7 @@ mrb_iv_set(mrb_state *mrb, mrb_value obj, mrb_sym sym, mrb_value v)
   }
 }
 
-int
+mrb_bool
 mrb_obj_iv_defined(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
 {
   iv_tbl *t;
@@ -493,7 +493,7 @@ mrb_obj_iv_defined(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
   return FALSE;
 }
 
-int
+mrb_bool
 mrb_iv_defined(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 {
   if (!obj_iv_p(obj)) return FALSE;
@@ -515,7 +515,7 @@ mrb_iv_copy(mrb_state *mrb, mrb_value dest, mrb_value src)
   }
 }
 
-static int
+static mrb_int
 inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   mrb_value str = *(mrb_value*)p;
@@ -728,7 +728,7 @@ mrb_cv_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
   mrb_mod_cv_set(mrb, mrb_class_ptr(mod), sym, v);
 }
 
-int
+mrb_bool
 mrb_mod_cv_defined(mrb_state *mrb, struct RClass * c, mrb_sym sym)
 {
   while (c) {
@@ -742,7 +742,7 @@ mrb_mod_cv_defined(mrb_state *mrb, struct RClass * c, mrb_sym sym)
   return FALSE;
 }
 
-int
+mrb_bool
 mrb_cv_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 {
   return mrb_mod_cv_defined(mrb, mrb_class_ptr(mod), sym);
@@ -784,7 +784,7 @@ mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
   iv_put(mrb, c->iv, sym, v);
 }
 
-int
+mrb_bool
 mrb_const_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 {
   struct RClass *m = mrb_class_ptr(mod);
@@ -814,7 +814,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
   struct RClass *c = base;
   mrb_value v;
   iv_tbl *t;
-  int retry = 0;
+  mrb_bool retry = 0;
   mrb_sym cm;
 
 L_RETRY:
@@ -940,7 +940,7 @@ mrb_gv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
   iv_put(mrb, t, sym, v);
 }
 
-static int
+static mrb_int
 gv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   mrb_value ary;
@@ -980,11 +980,11 @@ mrb_f_global_variables(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
-static int
-mrb_const_defined_0(mrb_state *mrb, struct RClass *klass, mrb_sym id, int exclude, int recurse)
+static mrb_bool
+mrb_const_defined_0(mrb_state *mrb, struct RClass *klass, mrb_sym id, mrb_bool exclude, mrb_bool recurse)
 {
   struct RClass * tmp;
-  int mod_retry = 0;
+  mrb_bool mod_retry = 0;
 
   tmp = klass;
 retry:
