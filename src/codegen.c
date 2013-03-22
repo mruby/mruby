@@ -2036,7 +2036,7 @@ codegen(codegen_scope *s, node *tree, int val)
       char *p = (char*)tree->car;
       size_t len = (intptr_t)tree->cdr;
       int ai = mrb_gc_arena_save(s->mrb);
-      int sym = new_sym(s, mrb_intern(s->mrb, "Kernel"));
+      int sym = new_sym(s, mrb_intern2(s->mrb, "Kernel", 6));
       int off = new_lit(s, mrb_str_new(s->mrb, p, len));
 
       genop(s, MKOP_A(OP_OCLASS, cursp()));
@@ -2044,7 +2044,7 @@ codegen(codegen_scope *s, node *tree, int val)
       push();
       genop(s, MKOP_ABx(OP_STRING, cursp(), off));
       pop();
-      sym = new_sym(s, mrb_intern(s->mrb, "`"));
+      sym = new_sym(s, mrb_intern2(s->mrb, "`", 1));
       genop(s, MKOP_ABC(OP_SEND, cursp(), sym, 1));
       mrb_gc_arena_restore(s->mrb, ai);
       push();
