@@ -23,8 +23,8 @@
 #define GETARG_Bx(i)  ((int_fast16_t)((((mrb_code)(i)) >>  7) & 0xffff))
 #define GETARG_sBx(i) ((int_fast16_t)(GETARG_Bx(i)-MAXARG_sBx))
 #define GETARG_Ax(i)  ((int_fast32_t)((((mrb_code)(i)) >>  7) & 0x1ffffff))
-#define GETARG_UNPACK_b(i,n1,n2) ((int)((((mrb_code)(i)) >> (7+n2)) & (((1<<n1)-1))))
-#define GETARG_UNPACK_c(i,n1,n2) ((int)((((mrb_code)(i)) >> 7) & (((1<<n2)-1))))
+#define GETARG_UNPACK_b(i,n1,n2) ((int)((((mrb_code)(i)) >> (7+(n2))) & (((1<<(n1))-1))))
+#define GETARG_UNPACK_c(i,n1,n2) ((int)((((mrb_code)(i)) >> 7) & (((1<<(n2))-1))))
 #define GETARG_b(i)   GETARG_UNPACK_b(i,14,2)
 #define GETARG_c(i)   GETARG_UNPACK_c(i,14,2)
 
