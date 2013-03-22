@@ -3473,17 +3473,9 @@ read_escape(parser_state *p)
     return c;
 
   case 'b':	/* backspace */
-    if (is_strterm_type(p, STR_FUNC_REGEXP)) {
-      tokadd(p, '\\');
-      return 'b';
-    }
     return '\010';
 
   case 's':	/* space */
-    if (is_strterm_type(p, STR_FUNC_REGEXP)) {
-      tokadd(p, '\\');
-      return 's';
-    }
     return ' ';
 
   case 'M':
@@ -3521,9 +3513,6 @@ read_escape(parser_state *p)
     return '\0';
 
   default:
-    if (is_strterm_type(p, STR_FUNC_REGEXP)) {
-      tokadd(p, '\\');
-    }
     return c;
   }
 }
@@ -3597,6 +3586,10 @@ parse_string(parser_state *p)
 	}
 	else {
 	  pushback(p, c);
+
+	  if(type & STR_FUNC_REGEXP)
+	    tokadd(p, '\\');
+
 	  tokadd(p, read_escape(p));
 	  if (hinf)
 	    hinf->line_head = FALSE;
