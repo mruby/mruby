@@ -23,3 +23,8 @@ assert("Enumerable#take_while") do
   assert_equal a.take_while {|i| i < 3 }, [1, 2]
 end
 
+assert("Enumrable#each_cons") do
+  a = []
+  (1..5).each_cons(3){|e| a << e}
+  assert_equal a, [[1, 2, 3], [2, 3, 4], [3, 4, 5]]
+end
