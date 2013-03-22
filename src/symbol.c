@@ -62,7 +62,7 @@ mrb_intern2(mrb_state *mrb, const char *name, size_t len)
 }
 
 mrb_sym
-mrb_intern(mrb_state *mrb, const char *name)
+mrb_intern_cstr(mrb_state *mrb, const char *name)
 {
   return mrb_intern2(mrb, name, strlen(name));
 }
