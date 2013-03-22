@@ -113,4 +113,33 @@ module Enumerable
     end
   end
 
+  ##
+  # call-seq:
+  #   enum.each_slice(n) {...}  ->  nil
+  #
+  # Iterates the given block for each slice of <n> elements.
+  #
+  # e.g.:
+  #     (1..10).each_slice(3) {|a| p a}
+  #     # outputs below
+  #     [1, 2, 3]
+  #     [4, 5, 6]
+  #     [7, 8, 9]
+  #     [10]
+
+  def each_slice(n, &block)
+    raise TypeError, "expected Integer for 1st argument" unless n.kind_of? Integer
+    raise ArgumentError, "invalid slice size" if n <= 0
+
+    ary = []
+    self.each do |e|
+      ary << e
+      if ary.size == n
+        block.call(ary)
+        ary = []
+      end
+    end
+    block.call(ary) unless ary.empty?
+  end
+
 end
