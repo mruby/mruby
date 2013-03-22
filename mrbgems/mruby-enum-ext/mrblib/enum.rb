@@ -82,4 +82,83 @@ module Enumerable
     ary
   end
   
+  ##
+  # call-seq:
+  #   enum.each_cons(n) {...}   ->  nil
+  #
+  # Iterates the given block for each array of consecutive <n>
+  # elements.
+  #
+  # e.g.:
+  #     (1..10).each_cons(3) {|a| p a}
+  #     # outputs below
+  #     [1, 2, 3]
+  #     [2, 3, 4]
+  #     [3, 4, 5]
+  #     [4, 5, 6]
+  #     [5, 6, 7]
+  #     [6, 7, 8]
+  #     [7, 8, 9]
+  #     [8, 9, 10]
+
+  def each_cons(n, &block)
+    raise TypeError, "expected Integer for 1st argument" unless n.kind_of? Integer
+    raise ArgumentError, "invalid size" if n <= 0
+
+    ary = []
+    self.each do |e|
+      ary.shift if ary.size == n
+      ary << e
+      block.call(ary.dup) if ary.size == n
+    end
+  end
+
+  ##
+  # call-seq:
+  #   enum.each_slice(n) {...}  ->  nil
+  #
+  # Iterates the given block for each slice of <n> elements.
+  #
+  # e.g.:
+  #     (1..10).each_slice(3) {|a| p a}
+  #     # outputs below
+  #     [1, 2, 3]
+  #     [4, 5, 6]
+  #     [7, 8, 9]
+  #     [10]
+
+  def each_slice(n, &block)
+    raise TypeError, "expected Integer for 1st argument" unless n.kind_of? Integer
+    raise ArgumentError, "invalid slice size" if n <= 0
+
+    ary = []
+    self.each do |e|
+      ary << e
+      if ary.size == n
+        block.call(ary)
+        ary = []
+      end
+    end
+    block.call(ary) unless ary.empty?
+  end
+
+  ##
+  # call-seq:
+  #    enum.group_by {| obj | block }  -> a_hash
+  #
+  # Returns a hash, which keys are evaluated result from the
+  # block, and values are arrays of elements in <i>enum</i>
+  # corresponding to the key.
+  #
+  #    (1..6).group_by {|i| i%3}   #=> {0=>[3, 6], 1=>[1, 4], 2=>[2, 5]}
+
+  def group_by(&block)
+    h = {}
+    self.each do |e|
+      key = block.call(e)
+      h.key?(key) ? (h[key] << e) : (h[key] = [e])
+    end
+    h
+  end
+
 end
