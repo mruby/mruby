@@ -35,6 +35,9 @@ MRuby::Build.new do |conf|
   # Use extensional Array class
   conf.gem "#{root}/mrbgems/mruby-array-ext"
 
+  # Use extensional Hash class
+  conf.gem "#{root}/mrbgems/mruby-hash-ext"
+
   # Generate binaries
   # conf.bins = %w(mrbc mruby mirb)
   
