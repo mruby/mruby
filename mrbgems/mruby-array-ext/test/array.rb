@@ -28,3 +28,82 @@ assert("Array#rassoc") do
   a.rassoc("four").nil?
 end
 
+assert("Array#uniq!") do
+  a = [1, 2, 3, 1]
+  a.uniq!
+  a == [1, 2, 3]
+end
+
+assert("Array#uniq") do
+  a = [1, 2, 3, 1]
+  a.uniq == [1, 2, 3] && a == [1, 2, 3, 1]
+end
+
+assert("Array#-") do
+  a = [1, 2, 3, 1]
+  b = [1]
+  c = 1
+  e1 = nil
+
+  begin
+    a - c
+  rescue => e1
+  end
+
+  (a - b) == [2, 3] and e1.class == TypeError and a == [1, 2, 3, 1]
+end
+
+assert("Array#|") do
+  a = [1, 2, 3, 1]
+  b = [1, 4]
+  c = 1
+  e1 = nil
+
+  begin
+    a | c
+  rescue => e1
+  end
+
+  (a | b) == [1, 2, 3, 4] and e1.class == TypeError and a == [1, 2, 3, 1]
+end
+
+assert("Array#&") do
+  a = [1, 2, 3, 1]
+  b = [1, 4]
+  c = 1
+  e1 = nil
+
+  begin
+    a & c
+  rescue => e1
+  end
+
+  (a & b) == [1] and e1.class == TypeError and a == [1, 2, 3, 1]
+end
+
+assert("Array#flatten") do
+  [1, 2, "3", {4=>5}, :'6'] == [1, 2, "3", {4=>5}, :'6'].flatten and
+  [1, 2, 3, 4, 5, 6] == [1, 2, [3, 4, 5], 6].flatten and
+  [1, 2, 3, 4, 5, 6] == [1, 2, [3, [4, 5], 6]].flatten and
+  [1, [2, [3, [4, [5, [6]]]]]] == [1, [2, [3, [4, [5, [6]]]]]].flatten(0) and
+  [1, 2, [3, [4, [5, [6]]]]] == [1, [2, [3, [4, [5, [6]]]]]].flatten(1) and
+  [1, 2, 3, [4, [5, [6]]]] == [1, [2, [3, [4, [5, [6]]]]]].flatten(2) and
+  [1, 2, 3, 4, [5, [6]]] == [1, [2, [3, [4, [5, [6]]]]]].flatten(3) and
+  [1, 2, 3, 4, 5, [6]] == [1, [2, [3, [4, [5, [6]]]]]].flatten(4) and
+  [1, 2, 3, 4, 5, 6] == [1, [2, [3, [4, [5, [6]]]]]].flatten(5)
+end
+
+assert("Array#flatten!") do
+  [1, 2, 3, 4, 5, 6] == [1, 2, [3, [4, 5], 6]].flatten!
+end
+
+assert("Array#compact") do
+  a = [1, nil, "2", nil, :t, false, nil]
+  a.compact == [1, "2", :t, false] && a == [1, nil, "2", nil, :t, false, nil]
+end
+
+assert("Array#compact!") do
+  a = [1, nil, "2", nil, :t, false, nil]
+  a.compact!
+  a == [1, "2", :t, false]
+end
