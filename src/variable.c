@@ -28,8 +28,8 @@ typedef struct segment {
 
 typedef struct iv_tbl {
   segment *rootseg;
-  int size;
-  int last_len;
+  size_t size;
+  size_t last_len;
 } iv_tbl;
 
 static iv_tbl*
@@ -52,8 +52,8 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
   segment *seg = t->rootseg;
   segment *prev = NULL;
   segment *matched_seg = NULL;
-  int matched_idx = 0;
-  int i;
+  size_t matched_idx = 0;
+  size_t i;
 
   while (seg) {
     for (i=0; i<MRB_SEGMENT_SIZE; i++) {
@@ -106,7 +106,7 @@ static mrb_bool
 iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
   segment *seg;
-  int i;
+  size_t i;
 
   seg = t->rootseg;
   while (seg) {
@@ -130,7 +130,7 @@ static mrb_bool
 iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
   segment *seg;
-  int i;
+  size_t i;
 
   seg = t->rootseg;
   while (seg) {
@@ -156,7 +156,8 @@ static mrb_bool
 iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 {
   segment *seg;
-  int i, n;
+  size_t i;
+  int n;
 
   seg = t->rootseg;
   while (seg) {
@@ -181,11 +182,11 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
   return TRUE;
 }
 
-static int
+static size_t
 iv_size(mrb_state *mrb, iv_tbl *t)
 {
   segment *seg;
-  int size = 0;
+  size_t size = 0;
 
   if (!t) return 0;
   if (t->size > 0) return t->size;
@@ -208,7 +209,7 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
   segment *seg;
   iv_tbl *t2;
 
-  int i;
+  size_t i;
 
   seg = t->rootseg;
   t2 = iv_new(mrb);
@@ -326,7 +327,7 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
   return TRUE;
 }
 
-static int
+static size_t
 iv_size(mrb_state *mrb, iv_tbl *t)
 {
   khash_t(iv) *h = &t->h;
@@ -541,7 +542,7 @@ mrb_value
 mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
 {
   iv_tbl *t = obj->iv;
-  int len = iv_size(mrb, t);
+  size_t len = iv_size(mrb, t);
 
   if (len > 0) {
     const char *cn = mrb_obj_classname(mrb, mrb_obj_value(obj));
@@ -965,7 +966,7 @@ mrb_f_global_variables(mrb_state *mrb, mrb_value self)
 {
   iv_tbl *t = mrb->globals;
   mrb_value ary = mrb_ary_new(mrb);
-  int i;
+  size_t i;
   char buf[3];
 
   if (t) {

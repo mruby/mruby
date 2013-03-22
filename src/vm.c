@@ -234,7 +234,7 @@ cipop(mrb_state *mrb)
 {
   if (mrb->ci->env) {
     struct REnv *e = mrb->ci->env;
-    int len = (int)e->flags;
+    size_t len = (size_t)e->flags;
     mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
 
     e->cioff = -1;
@@ -482,10 +482,10 @@ localjump_error(mrb_state *mrb, localjump_error_kind kind)
 }
 
 static void
-argnum_error(mrb_state *mrb, int num)
+argnum_error(mrb_state *mrb, mrb_int num)
 {
   char buf[256];
-  int len;
+  size_t len;
   mrb_value exc;
 
   if (mrb->ci->mid) {
