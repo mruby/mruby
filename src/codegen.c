@@ -160,8 +160,8 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
   /* peephole optimization */
   if (s->lastlabel != s->pc && s->pc > 0) {
     mrb_code i0 = s->iseq[s->pc-1];
-    int c1 = GET_OPCODE(i);
-    int c0 = GET_OPCODE(i0);
+    int_fast8_t c1 = GET_OPCODE(i);
+    int_fast8_t c0 = GET_OPCODE(i0);
 
     switch (c1) {
     case OP_MOVE:
@@ -324,7 +324,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
     case OP_ADD:
     case OP_SUB:
       if (c0 == OP_LOADI) {
-        int c = GETARG_sBx(i0);
+        int_fast16_t c = GETARG_sBx(i0);
 
         if (c1 == OP_SUB) c = -c;
         if (c > 127 || c < -127) break;
@@ -336,7 +336,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       }
     case OP_STRCAT:
       if (c0 == OP_STRING) {
-        int i = GETARG_Bx(i0);
+        int_fast16_t i = GETARG_Bx(i0);
 
         if (mrb_type(s->irep->pool[i]) == MRB_TT_STRING &&
             RSTRING_LEN(s->irep->pool[i]) == 0) {
@@ -363,7 +363,7 @@ dispatch(codegen_scope *s, int pc)
 {
   int diff = s->pc - pc;
   mrb_code i = s->iseq[pc];
-  int c = GET_OPCODE(i);
+  int_fast8_t c = GET_OPCODE(i);
 
   s->lastlabel = s->pc;
   switch (c) {
@@ -386,7 +386,7 @@ static void
 dispatch_linked(codegen_scope *s, int pc)
 {
   mrb_code i;
-  int pos;
+  int_fast16_t pos;
 
   if (!pc) return;
   for (;;) {

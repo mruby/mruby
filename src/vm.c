@@ -172,7 +172,7 @@ stack_extend(mrb_state *mrb, int room, int keep)
 }
 
 static inline struct REnv*
-uvenv(mrb_state *mrb, int up)
+uvenv(mrb_state *mrb, int_fast8_t up)
 {
   struct REnv *e = mrb->ci->proc->env;
 
@@ -700,7 +700,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_GETMCNST) {
       /* A B C  R(A) := R(C)::Sym(B) */
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
 
       regs[a] = mrb_const_get(mrb, regs[a], syms[GETARG_Bx(i)]);
       NEXT;
@@ -708,7 +708,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_SETMCNST) {
       /* A B C  R(A+1)::Sym(B) := R(A) */
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
 
       mrb_const_set(mrb, regs[a+1], syms[GETARG_Bx(i)], regs[a]);
       NEXT;
@@ -717,7 +717,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_GETUPVAR) {
       /* A B C  R(A) := uvget(B,C) */
       mrb_value *regs_a = regs + GETARG_A(i);
-      int up = GETARG_C(i);
+      int_fast8_t up = GETARG_C(i);
 
       struct REnv *e = uvenv(mrb, up);
 
@@ -725,7 +725,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         *regs_a = mrb_nil_value();
       }
       else {
-        int idx = GETARG_B(i);
+        int_fast16_t idx = GETARG_B(i);
         *regs_a = e->stack[idx];
       }
       NEXT;
@@ -734,13 +734,13 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_SETUPVAR) {
       /* A B C  uvset(B,C,R(A)) */
       /* A B C  R(A) := uvget(B,C) */
-      int up = GETARG_C(i);
+      int_fast8_t up = GETARG_C(i);
 
       struct REnv *e = uvenv(mrb, up);
 
       if (e) {
         mrb_value *regs_a = regs + GETARG_A(i);
-        int idx = GETARG_B(i);
+        int_fast16_t idx = GETARG_B(i);
         e->stack[idx] = *regs_a;
         mrb_write_barrier(mrb, (struct RBasic*)e);
       }
@@ -790,7 +790,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     }
 
     CASE(OP_POPERR) {
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
 
       while (a--) {
         mrb->ci->ridx--;
@@ -822,8 +822,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_EPOP) {
       /* A      A.times{ensure_pop().call} */
-      int n;
-      int a = GETARG_A(i);
+      int_fast16_t n;
+      int_fast16_t a = GETARG_A(i);
 
       for (n=0; n<a; n++) {
         ecall(mrb, --mrb->ci->eidx);
@@ -834,7 +834,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_LOADNIL) {
       /* A B    R(A) := nil */
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
 
       SET_NIL_VALUE(regs[a]);
       NEXT;
@@ -847,8 +847,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   L_SEND:
     CASE(OP_SEND) {
       /* A B C  R(A) := call(R(A),Sym(B),R(A+1),... ,R(A+C-1)) */
-      int a = GETARG_A(i);
-      int n = GETARG_C(i);
+      int_fast16_t a = GETARG_A(i);
+      int_fast8_t n = GETARG_C(i);
       struct RProc *m;
       struct RClass *c;
       mrb_callinfo *ci;
@@ -1004,8 +1004,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       struct RProc *m;
       struct RClass *c;
       mrb_sym mid = ci->mid;
-      int a = GETARG_A(i);
-      int n = GETARG_C(i);
+      int_fast16_t a = GETARG_A(i);
+      int_fast8_t n = GETARG_C(i);
 
       recv = regs[0];
       c = mrb->ci->target_class->super;
@@ -1073,12 +1073,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_ARGARY) {
       /* A Bx   R(A) := argument array (16=6:1:5:4) */
-      int a = GETARG_A(i);
-      int bx = GETARG_Bx(i);
-      int m1 = (bx>>10)&0x3f;
-      int r  = (bx>>9)&0x1;
-      int m2 = (bx>>4)&0x1f;
-      int lv = (bx>>0)&0xf;
+      int_fast16_t a = GETARG_A(i);
+      int_fast16_t bx = GETARG_Bx(i);
+      int_fast8_t m1 = (bx>>10)&0x3f;
+      int_fast8_t r  = (bx>>9)&0x1;
+      int_fast8_t m2 = (bx>>4)&0x1f;
+      int_fast8_t lv = (bx>>0)&0xf;
       mrb_value *stack;
 
       if (lv == 0) stack = regs + 1;
@@ -1126,15 +1126,15 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_ENTER) {
       /* Ax             arg setup according to flags (24=5:5:1:5:5:1:1) */
       /* number of optional arguments times OP_JMP should follow */
-      int ax = GETARG_Ax(i);
-      int m1 = (ax>>18)&0x1f;
-      int o  = (ax>>13)&0x1f;
-      int r  = (ax>>12)&0x1;
-      int m2 = (ax>>7)&0x1f;
+      uint32_t ax = GETARG_Ax(i);
+      int_fast8_t m1 = (ax>>18)&0x1f;
+      int_fast8_t o  = (ax>>13)&0x1f;
+      int_fast8_t r  = (ax>>12)&0x1;
+      int_fast8_t m2 = (ax>>7)&0x1f;
       /* unused
-      int k  = (ax>>2)&0x1f;
-      int kd = (ax>>1)&0x1;
-      int b  = (ax>>0)& 0x1;
+      int_fast8_t k  = (ax>>2)&0x1f;
+      int_fast8_t kd = (ax>>1)&0x1;
+      int_fast8_t b  = (ax>>0)& 0x1;
       */
       int argc = mrb->ci->argc;
       mrb_value *argv = regs+1;
@@ -1319,8 +1319,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_TAILCALL) {
       /* A B C  return call(R(A),Sym(B),R(A+1),... ,R(A+C-1)) */
-      int a = GETARG_A(i);
-      int n = GETARG_C(i);
+      int_fast16_t a = GETARG_A(i);
+      int_fast8_t n = GETARG_C(i);
       struct RProc *m;
       struct RClass *c;
       mrb_callinfo *ci;
@@ -1383,12 +1383,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_BLKPUSH) {
       /* A Bx   R(A) := block (16=6:1:5:4) */
-      int a = GETARG_A(i);
-      int bx = GETARG_Bx(i);
-      int m1 = (bx>>10)&0x3f;
-      int r  = (bx>>9)&0x1;
-      int m2 = (bx>>4)&0x1f;
-      int lv = (bx>>0)&0xf;
+      int_fast16_t a = GETARG_A(i);
+      int_fast16_t bx = GETARG_Bx(i);
+      int_fast8_t m1 = (bx>>10)&0x3f;
+      int_fast8_t r  = (bx>>9)&0x1;
+      int_fast8_t m2 = (bx>>4)&0x1f;
+      int_fast8_t lv = (bx>>0)&0xf;
       mrb_value *stack;
 
       if (lv == 0) stack = regs + 1;
@@ -1418,7 +1418,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_ADD) {
       /* A B C  R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)*/
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
 
       /* need to check if op is overridden */
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
@@ -1464,7 +1464,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_SUB) {
       /* A B C  R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)*/
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
 
       /* need to check if op is overridden */
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
@@ -1504,7 +1504,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_MUL) {
       /* A B C  R(A) := R(A)*R(A+1) (Syms[B]=:*,C=1)*/
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
 
       /* need to check if op is overridden */
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
@@ -1544,7 +1544,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_DIV) {
       /* A B C  R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)*/
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
 
       /* need to check if op is overridden */
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
@@ -1576,7 +1576,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_ADDI) {
       /* A B C  R(A) := R(A)+C (Syms[B]=:+)*/
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
 
       /* need to check if + is overridden */
       switch (mrb_type(regs[a])) {
@@ -1607,7 +1607,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_SUBI) {
       /* A B C  R(A) := R(A)-C (Syms[B]=:+)*/
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
       mrb_value *regs_a = regs + a;
 
       /* need to check if + is overridden */
@@ -1648,7 +1648,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 } while(0)
 
 #define OP_CMP(op) do {\
-  int a = GETARG_A(i);\
+  int_fast16_t a = GETARG_A(i);\
   /* need to check if - is overridden */\
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
   case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):\
@@ -1670,7 +1670,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_EQ) {
       /* A B C  R(A) := R(A)<R(A+1) (Syms[B]=:<,C=1)*/
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
       if (mrb_obj_eq(mrb, regs[a], regs[a+1])) {
         SET_TRUE_VALUE(regs[a]);
       }
@@ -1727,8 +1727,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_AREF) {
       /* A B C          R(A) := R(B)[C] */
-      int a = GETARG_A(i);
-      int c = GETARG_C(i);
+      int_fast16_t a = GETARG_A(i);
+      int_fast8_t c = GETARG_C(i);
       mrb_value v = regs[GETARG_B(i)];
 
       if (!mrb_array_p(v)) {
@@ -1753,10 +1753,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_APOST) {
       /* A B C  *R(A),R(A+1)..R(A+C) := R(A) */
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
       mrb_value v = regs[a];
-      int pre  = GETARG_B(i);
-      int post = GETARG_C(i);
+      int_fast16_t pre  = GETARG_B(i);
+      int_fast8_t post = GETARG_C(i);
 
       if (!mrb_array_p(v)) {
         regs[a++] = mrb_ary_new_capa(mrb, 0);
@@ -1806,8 +1806,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_HASH) {
       /* A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C)) */
-      int b = GETARG_B(i);
-      int c = GETARG_C(i);
+      int_fast16_t b = GETARG_B(i);
+      int_fast8_t c = GETARG_C(i);
       int lim = b+c*2;
       mrb_value hash = mrb_hash_new_capa(mrb, c);
 
@@ -1846,7 +1846,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_CLASS) {
       /* A B    R(A) := newclass(R(A),Sym(B),R(A+1)) */
       struct RClass *c = 0;
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
       mrb_value base, super;
       mrb_sym id = syms[GETARG_B(i)];
 
@@ -1864,7 +1864,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_MODULE) {
       /* A B            R(A) := newmodule(R(A),Sym(B)) */
       struct RClass *c = 0;
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
       mrb_value base;
       mrb_sym id = syms[GETARG_B(i)];
 
@@ -1880,7 +1880,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_EXEC) {
       /* A Bx   R(A) := blockexec(R(A),SEQ[Bx]) */
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
       mrb_callinfo *ci;
       mrb_value recv = regs[a];
       struct RProc *p;
@@ -1924,7 +1924,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_METHOD) {
       /* A B            R(A).newmethod(Sym(B),R(A+1)) */
-      int a = GETARG_A(i);
+      int_fast16_t a = GETARG_A(i);
       struct RClass *c = mrb_class_ptr(regs[a]);
 
       mrb_define_method_vm(mrb, c, syms[GETARG_B(i)], regs[a+1]);
@@ -1953,7 +1953,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_RANGE) {
       /* A B C  R(A) := range_new(R(B),R(B+1),C) */
-      int b = GETARG_B(i);
+      int_fast16_t b = GETARG_B(i);
       regs[GETARG_A(i)] = mrb_range_new(mrb, regs[b], regs[b+1], GETARG_C(i));
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
