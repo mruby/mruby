@@ -38,9 +38,12 @@ MRuby::Build.new do |conf|
   # Use extensional Hash class
   conf.gem "#{root}/mrbgems/mruby-hash-ext"
 
+  # No use eval method
+  # conf.gem "#{root}/mrbgems/mruby-eval
+
   # Generate binaries
   # conf.bins = %w(mrbc mruby mirb)
-  
+
   # C compiler settings
   # conf.cc do |cc|
   #   cc.command = ENV['CC'] || 'gcc'
