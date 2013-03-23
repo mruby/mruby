@@ -9,6 +9,7 @@
 #include <string.h>
 #include "mruby/string.h"
 #include "mruby/class.h"
+#include "value_array.h"
 
 /* SIZE_MAX is not supported by VC++. */
 #ifndef SIZE_MAX
@@ -519,7 +520,7 @@ mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item)
     ary_modify(mrb, a);
     if (a->aux.capa < a->len + 1)
       ary_expand_capa(mrb, a, a->len + 1);
-    memmove(a->ptr + 1, a->ptr, sizeof(mrb_value)*a->len);
+    value_move(a->ptr + 1, a->ptr, a->len);
     a->ptr[0] = item;
   }
   a->len++;
@@ -546,7 +547,7 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
     if (len == 0) return self;
     if (a->aux.capa < a->len + len)
       ary_expand_capa(mrb, a, a->len + len);
-    memmove(a->ptr + len, a->ptr, sizeof(mrb_value)*a->len);
+    value_move(a->ptr + len, a->ptr, a->len);
   }
   array_copy(a->ptr, vals, len);
   a->len += len;
@@ -631,7 +632,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     ary_fill_with_nil(a->ptr + a->len, (int)(head - a->len));
   }
   else if (head < a->len) {
-    memmove(a->ptr + head + argc, a->ptr + tail, sizeof(mrb_value)*(a->len - tail));
+    value_move(a->ptr + head + argc, a->ptr + tail, a->len - tail);
   }
 
   for(i = 0; i < argc; i++) {
