@@ -34,29 +34,6 @@ mrb_p(mrb_state *mrb, mrb_value obj)
 #endif
 }
 
-/* 15.3.1.2.9  */
-/* 15.3.1.3.34 */
-mrb_value
-mrb_printstr(mrb_state *mrb, mrb_value self)
-{
-  mrb_value argv;
-
-  mrb_get_args(mrb, "o", &argv);
-  printstr(mrb, argv);
-
-  return argv;
-}
-
-void
-mrb_init_print(mrb_state *mrb)
-{
-  struct RClass *krn;
-
-  krn = mrb->kernel_module;
-
-  mrb_define_method(mrb, krn, "__printstr__", mrb_printstr, ARGS_REQ(1));
-}
-
 void
 mrb_show_version(mrb_state *mrb)
 {
