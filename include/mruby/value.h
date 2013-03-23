@@ -280,14 +280,7 @@ mrb_bool_value(mrb_bool boolean)
 {
   mrb_value v;
 
-  v.value.i = 1;
-  if (boolean) {
-    v.tt = MRB_TT_TRUE;
-  }
-  else {
-    v.tt = MRB_TT_FALSE;
-  }
-
+  MRB_SET_VALUE(v, boolean ? MRB_TT_TRUE : MRB_TT_FALSE, value.i, 1);
   return v;
 }
 
