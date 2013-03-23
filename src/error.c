@@ -136,7 +136,7 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
       mrb_str_append(mrb, str, mesg);
       mrb_str_cat(mrb, str, " (", 2);
     }
-    mrb_str_cat2(mrb, str, mrb_obj_classname(mrb, exc));
+    mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, exc));
     if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
       mrb_str_cat(mrb, str, ")", 1);
     }
@@ -148,7 +148,7 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
       mrb_str_append(mrb, str, mesg);
     } else {
       mrb_str_cat(mrb, str, ": ", 2);
-      mrb_str_cat2(mrb, str, mrb_obj_classname(mrb, exc));
+      mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, exc));
     }
   }
   return str;

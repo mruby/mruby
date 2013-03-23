@@ -2548,7 +2548,7 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, mrb_int len)
 }
 
 mrb_value
-mrb_str_cat2(mrb_state *mrb, mrb_value str, const char *ptr)
+mrb_str_cat_cstr(mrb_state *mrb, mrb_value str, const char *ptr)
 {
   return mrb_str_cat(mrb, str, ptr, strlen(ptr));
 }
