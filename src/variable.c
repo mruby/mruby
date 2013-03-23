@@ -525,10 +525,10 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   /* need not to show internal data */
   if (RSTRING_PTR(str)[0] == '-') { /* first element */
     RSTRING_PTR(str)[0] = '#';
-    mrb_str_cat2(mrb, str, " ");
+    mrb_str_cat(mrb, str, " ", 1);
   }
   else {
-    mrb_str_cat2(mrb, str, ", ");
+    mrb_str_cat(mrb, str, ", ", 2);
   }
   s = mrb_sym2name_len(mrb, sym, &len);
   mrb_str_cat(mrb, str, s, len);
