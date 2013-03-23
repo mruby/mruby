@@ -24,6 +24,8 @@ module MRuby
     def load_external_gem(params)
       if params[:github]
         params[:git] = "https://github.com/#{params[:github]}.git"
+      elsif params[:bitbucket]
+        params[:git] = "https://bitbucket.org/#{params[:bitbucket]}.git"
       end
 
       if params[:git]
