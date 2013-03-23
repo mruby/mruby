@@ -545,7 +545,12 @@ mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
 
   if (len > 0) {
     const char *cn = mrb_obj_classname(mrb, mrb_obj_value(obj));
-    mrb_value str = mrb_sprintf(mrb, "-<%s:%p", cn, (void*)obj);
+    mrb_value str = mrb_str_buf_new(mrb, 30);
+
+    mrb_str_buf_cat(mrb, str, "-<", 2);
+    mrb_str_cat2(mrb, str, cn);
+    mrb_str_cat(mrb, str, ":", 1);
+    mrb_str_concat(mrb, str, mrb_ptr_as_string(mrb, obj));
 
     iv_foreach(mrb, t, inspect_i, &str);
     mrb_str_cat(mrb, str, ">", 1);
