@@ -139,7 +139,7 @@ mrb_add_irep(mrb_state *mrb)
     mrb->irep_capa = max;
   }
   else if (mrb->irep_capa <= mrb->irep_len) {
-    int i;
+    size_t i;
     size_t old_capa = mrb->irep_capa;
     while (mrb->irep_capa <= mrb->irep_len) {
       mrb->irep_capa *= 2;

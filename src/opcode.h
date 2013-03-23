@@ -7,6 +7,8 @@
 #ifndef OPCODE_H
 #define OPCODE_H
 
+#include <stdint.h>
+
 #define MAXARG_Bx        (0xffff)
 #define MAXARG_sBx       (MAXARG_Bx>>1)         /* `sBx' is signed */
 
@@ -14,25 +16,25 @@
 /*              OP:A:Bx  = 7:9:16            */
 /*              OP:Ax    = 7:25              */
 
-#define GET_OPCODE(i) ((int)(((mrb_code)(i)) & 0x7f))
-#define GETARG_A(i)   ((int)((((mrb_code)(i)) >> 23) & 0x1ff))
-#define GETARG_B(i)   ((int)((((mrb_code)(i)) >> 14) & 0x1ff))
-#define GETARG_C(i)   ((int)((((mrb_code)(i)) >>  7) & 0x7f))
-#define GETARG_Bx(i)  ((int)((((mrb_code)(i)) >>  7) & 0xffff))
-#define GETARG_sBx(i) ((int)(GETARG_Bx(i)-MAXARG_sBx))
-#define GETARG_Ax(i)  ((int)((((mrb_code)(i)) >>  7) & 0x1ffffff))
-#define GETARG_UNPACK_b(i,n1,n2) ((int)((((mrb_code)(i)) >> (7+n2)) & (((1<<n1)-1))))
-#define GETARG_UNPACK_c(i,n1,n2) ((int)((((mrb_code)(i)) >> 7) & (((1<<n2)-1))))
+#define GET_OPCODE(i) ((int_fast8_t)(((mrb_code)(i)) & 0x7f))
+#define GETARG_A(i)   ((int_fast16_t)((((mrb_code)(i)) >> 23) & 0x1ff))
+#define GETARG_B(i)   ((int_fast16_t)((((mrb_code)(i)) >> 14) & 0x1ff))
+#define GETARG_C(i)   ((int_fast8_t)((((mrb_code)(i)) >>  7) & 0x7f))
+#define GETARG_Bx(i)  ((int_fast16_t)((((mrb_code)(i)) >>  7) & 0xffff))
+#define GETARG_sBx(i) ((int_fast16_t)(GETARG_Bx(i)-MAXARG_sBx))
+#define GETARG_Ax(i)  ((int_fast32_t)((((mrb_code)(i)) >>  7) & 0x1ffffff))
+#define GETARG_UNPACK_b(i,n1,n2) ((int)((((mrb_code)(i)) >> (7+(n2))) & (((1<<(n1))-1))))
+#define GETARG_UNPACK_c(i,n1,n2) ((int)((((mrb_code)(i)) >> 7) & (((1<<(n2))-1))))
 #define GETARG_b(i)   GETARG_UNPACK_b(i,14,2)
 #define GETARG_c(i)   GETARG_UNPACK_c(i,14,2)
 
 #define MKOPCODE(op)  ((op) & 0x7f)
-#define MKARG_A(c)    (((c) & 0x1ff) << 23)
-#define MKARG_B(c)    (((c) & 0x1ff) << 14)
+#define MKARG_A(c)    ((mrb_code)((c) & 0x1ff) << 23)
+#define MKARG_B(c)    ((mrb_code)((c) & 0x1ff) << 14)
 #define MKARG_C(c)    (((c) & 0x7f) <<  7)
-#define MKARG_Bx(v)   (((v) & 0xffff) << 7)
+#define MKARG_Bx(v)   ((mrb_code)((v) & 0xffff) << 7)
 #define MKARG_sBx(v)  MKARG_Bx((v)+MAXARG_sBx)
-#define MKARG_Ax(v)   (((v) & 0x1ffffff) << 7)
+#define MKARG_Ax(v)   ((mrb_code)((v) & 0x1ffffff) << 7)
 #define MKARG_PACK(b,n1,c,n2) ((((b) & ((1<<n1)-1)) << (7+n2))|(((c) & ((1<<n2)-1)) << 7))
 #define MKARG_bc(b,c) MKARG_PACK(b,14,c,2)
 
