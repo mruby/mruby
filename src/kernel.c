@@ -1056,8 +1056,6 @@ mrb_obj_singleton_methods_m(mrb_state *mrb, mrb_value self)
   return mrb_obj_singleton_methods(mrb, argc, argv, self);
 }
 
-mrb_value mrb_f_sprintf(mrb_state *mrb, mrb_value obj); /* in sprintf.c */
-
 void
 mrb_init_kernel(mrb_state *mrb)
 {
