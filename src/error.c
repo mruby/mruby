@@ -264,22 +264,6 @@ mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
   mrb_exc_raise(mrb, exc);
 }
 
-mrb_value
-mrb_sprintf(mrb_state *mrb, const char *fmt, ...)
-{
-  va_list args;
-  char buf[256];
-  int n;
-
-  va_start(args, fmt);
-  n = vsnprintf(buf, sizeof(buf), fmt, args);
-  va_end(args);
-  if (n < 0) {
-    n = 0;
-  }
-  return mrb_str_new(mrb, buf, n);
-}
-
 void
 mrb_warn(const char *fmt, ...)
 {
