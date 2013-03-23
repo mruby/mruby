@@ -6,11 +6,17 @@ class Array
       result << ary.shift
       ary.delete(result.last)
     end
-    self.replace(result)
+    if result.size == self.size
+      nil
+    else
+      self.replace(result)
+    end
   end
 
   def uniq
-    self.dup.uniq!
+    ary = self.dup
+    ary.uniq!
+    ary
   end
 
   def -(elem)
@@ -26,7 +32,8 @@ class Array
   def |(elem)
     raise TypeError, "can't convert to Array" unless elem.class == Array
 
-    (self + elem).uniq!
+    ary = self + elem
+    ary.uniq! or ary
   end
 
   def &(elem)
@@ -56,8 +63,22 @@ class Array
     ar
   end
 
-  def flatten!
-    self.replace(self.flatten)
+  def flatten!(depth=nil)
+    modified = false
+    ar = []
+    self.each do |e|
+      if e.is_a?(Array) && (depth.nil? || depth > 0)
+        ar += e.flatten(depth.nil? ? nil : depth - 1)
+        modified = true
+      else
+        ar << e
+      end
+    end
+    if modified
+      self.replace(ar)
+    else
+      nil
+    end
   end
 
   def compact
@@ -68,6 +89,10 @@ class Array
 
   def compact!
     result = self.select { |e| e != nil }
-    self.replace(result)
+    if result.size == self.size
+      nil
+    else
+      self.replace(result)
+    end
   end
 end
