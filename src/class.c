@@ -54,7 +54,7 @@ void
 mrb_name_class(mrb_state *mrb, struct RClass *c, mrb_sym name)
 {
   mrb_obj_iv_set(mrb, (struct RObject*)c,
-                 mrb_intern(mrb, "__classid__"), mrb_symbol_value(name));
+                 mrb_intern2(mrb, "__classid__", 11), mrb_symbol_value(name));
 }
 
 #define make_metaclass(mrb, c) prepare_singleton_class((mrb), (struct RBasic*)(c))
@@ -88,7 +88,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   o->c = sc;
   mrb_field_write_barrier(mrb, (struct RBasic*)o, (struct RBasic*)sc);
   mrb_field_write_barrier(mrb, (struct RBasic*)sc, (struct RBasic*)o);
-  mrb_obj_iv_set(mrb, (struct RObject*)sc, mrb_intern(mrb, "__attached__"), mrb_obj_value(o));
+  mrb_obj_iv_set(mrb, (struct RObject*)sc, mrb_intern2(mrb, "__attached__", 12), mrb_obj_value(o));
 }
 
 struct RClass*
@@ -115,7 +115,7 @@ setup_class(mrb_state *mrb, mrb_value outer, struct RClass *c, mrb_sym id)
   mrb_name_class(mrb, c, id);
   mrb_const_set(mrb, outer, id, mrb_obj_value(c));
   mrb_obj_iv_set(mrb, (struct RObject*)c,
-                 mrb_intern(mrb, "__outer__"), outer);
+                 mrb_intern2(mrb, "__outer__", 9), outer);
 }
 
 struct RClass*
@@ -123,7 +123,7 @@ mrb_class_outer_module(mrb_state *mrb, struct RClass *c)
 {
   mrb_value outer;
 
-  outer = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern(mrb, "__outer__"));
+  outer = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern2(mrb, "__outer__", 9));
   if (mrb_nil_p(outer)) return 0;
   return mrb_class_ptr(outer);
 }
@@ -1138,7 +1138,7 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
     mrb_raise(mrb, E_TYPE_ERROR, "name should be a symbol");
   }
 
-  if (mrb_respond_to(mrb,mod,mrb_intern(mrb,"inspect"))){
+  if (mrb_respond_to(mrb,mod,mrb_intern2(mrb,"inspect",7))){
     inspect = mrb_funcall(mrb, mod, "inspect", 0);
     if (RSTRING_LEN(inspect) > 64) {
       inspect = mrb_any_to_s(mrb, mod);
@@ -1190,8 +1190,9 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
   mrb_value path;
   const char *name;
   size_t len;
+  mrb_sym classpath = mrb_intern2(mrb, "__classpath__", 13);
 
-  path = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern(mrb, "__classpath__"));
+  path = mrb_obj_iv_get(mrb, (struct RObject*)c, classpath);
   if (mrb_nil_p(path)) {
     struct RClass *outer = mrb_class_outer_module(mrb, c);
     mrb_sym sym = mrb_class_sym(mrb, c, outer);
@@ -1208,7 +1209,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
       name = mrb_sym2name_len(mrb, sym, &len);
       path = mrb_str_new(mrb, name, len);
     }
-    mrb_obj_iv_set(mrb, (struct RObject*)c, mrb_intern(mrb, "__classpath__"), path);
+    mrb_obj_iv_set(mrb, (struct RObject*)c, classpath, path);
   }
   return path;
 }
@@ -1351,7 +1352,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 {
   if (mrb_type(klass) == MRB_TT_SCLASS) {
     mrb_value s = mrb_str_new(mrb, "#<", 2);
-    mrb_value v = mrb_iv_get(mrb, klass, mrb_intern(mrb, "__attached__"));
+    mrb_value v = mrb_iv_get(mrb, klass, mrb_intern2(mrb, "__attached__", 12));
 
     mrb_str_cat2(mrb, s, "Class:");
     switch (mrb_type(v)) {

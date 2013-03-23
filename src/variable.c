@@ -832,7 +832,7 @@ L_RETRY:
     goto L_RETRY;
   }
   c = base;
-  cm = mrb_intern(mrb, "const_missing");
+  cm = mrb_intern2(mrb, "const_missing", 13);
   while (c) {
     if (mrb_respond_to(mrb, mrb_obj_value(c), cm)) {
       mrb_value name = mrb_symbol_value(sym);
@@ -1047,7 +1047,7 @@ mrb_class_sym(mrb_state *mrb, struct RClass *c, struct RClass *outer)
 {
   mrb_value name;
 
-  name = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern(mrb, "__classid__"));
+  name = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern2(mrb, "__classid__", 11));
   if (mrb_nil_p(name)) {
 
     if (!outer) return 0;
