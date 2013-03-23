@@ -43,6 +43,7 @@ void mrb_str_decref(mrb_state*, mrb_shared_string*);
 mrb_value mrb_str_literal(mrb_state*, mrb_value);
 void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
 mrb_value mrb_str_plus(mrb_state*, mrb_value, mrb_value);
+mrb_value mrb_ptr_as_string(mrb_state *, void *);
 mrb_value mrb_obj_as_string(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_str_resize(mrb_state *mrb, mrb_value str, int len); /* mrb_str_resize */
 mrb_value mrb_string_value(mrb_state *mrb, mrb_value *ptr); /* StringValue */

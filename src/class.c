@@ -1228,10 +1228,9 @@ mrb_class_name(mrb_state *mrb, struct RClass* c)
 {
   mrb_value path = mrb_class_path(mrb, c);
   if (mrb_nil_p(path)) {
-    char buf[32];
-
-    snprintf(buf, 32, "#<Class:%p>", c);
-    path = mrb_str_new_cstr(mrb, buf);
+    path = mrb_str_new(mrb, "#<Class:", 8);
+    mrb_str_concat(mrb, path, mrb_ptr_as_string(mrb, c));
+    mrb_str_cat(mrb, path, ">", 1);
   }
   return mrb_str_ptr(path)->ptr;
 }
@@ -1350,51 +1349,54 @@ mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const 
 static mrb_value
 mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 {
+  mrb_value str;
+
   if (mrb_type(klass) == MRB_TT_SCLASS) {
-    mrb_value s = mrb_str_new(mrb, "#<", 2);
     mrb_value v = mrb_iv_get(mrb, klass, mrb_intern2(mrb, "__attached__", 12));
 
-    mrb_str_cat(mrb, s, "Class:", 6);
+    str = mrb_str_new(mrb, "#<Class:", 8);
+
     switch (mrb_type(v)) {
       case MRB_TT_CLASS:
       case MRB_TT_MODULE:
       case MRB_TT_SCLASS:
-        mrb_str_append(mrb, s, mrb_inspect(mrb, v));
+        mrb_str_append(mrb, str, mrb_inspect(mrb, v));
         break;
       default:
-        mrb_str_append(mrb, s, mrb_any_to_s(mrb, v));
+        mrb_str_append(mrb, str, mrb_any_to_s(mrb, v));
         break;
     }
-    mrb_str_cat(mrb, s, ">", 1);
-
-    return s;
+    mrb_str_cat(mrb, str, ">", 1);
   }
   else {
+    str = mrb_str_buf_new(mrb, 32);
     struct RClass *c = mrb_class_ptr(klass);
-    const char *cn = mrb_class_name(mrb, c);
+    mrb_value path = mrb_class_path(mrb, c);
 
-    if (!cn) {
-      char buf[256];
-      int n = 0;
-
+    if (mrb_nil_p(path)) {
       switch (mrb_type(klass)) {
         case MRB_TT_CLASS:
-          n = snprintf(buf, sizeof(buf), "#<Class:%p>", c);
+          mrb_str_cat(mrb, str, "#<Class:", 8);
           break;
 
         case MRB_TT_MODULE:
-          n = snprintf(buf, sizeof(buf), "#<Module:%p>", c);
+          mrb_str_cat(mrb, str, "#<Module:", 9);
           break;
 
         default:
+          /* Shouldn't be happened? */
+          mrb_str_cat(mrb, str, "#<??????:", 9);
           break;
       }
-      return mrb_str_dup(mrb, mrb_str_new(mrb, buf, n));
+      mrb_str_concat(mrb, str, mrb_ptr_as_string(mrb, c));
+      mrb_str_cat(mrb, str, ">", 1);
     }
     else {
-      return mrb_str_dup(mrb, mrb_str_new_cstr(mrb, cn));
+      str = path;
     }
   }
+
+  return str;
 }
 
 mrb_value
