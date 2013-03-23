@@ -1535,6 +1535,36 @@ mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
 }
 
 mrb_value
+mrb_ptr_as_string(mrb_state *mrb, void *p)
+{
+  struct RString *p_str;
+  char *p1;
+  char *p2;
+  intptr_t n = (intptr_t)p;
+
+  p_str = str_new(mrb, NULL, 2 + sizeof(uintptr_t) * CHAR_BIT / 4);
+  p1 = p_str->ptr;
+  *p1++ = '0';
+  *p1++ = 'x';
+  p2 = p1;
+
+  do {
+    *p2++ = mrb_digitmap[n % 16];
+    n /= 16;
+  } while (n > 0);
+  *p2 = '\0';
+  p_str->len = (mrb_int)(p2 - p_str->ptr);
+
+  while (p1 < p2) {
+    const char  c = *p1;
+    *p1++ = *--p2;
+    *p2 = c;
+  }
+
+  return mrb_obj_value(p_str);
+}
+
+mrb_value
 mrb_check_string_type(mrb_state *mrb, mrb_value str)
 {
   return mrb_check_convert_type(mrb, str, MRB_TT_STRING, "String", "to_str");
