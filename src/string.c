@@ -29,12 +29,6 @@ static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_
       s->aux.capa = capacity;\
 } while (0)
 
-static const char*
-_obj_classname(mrb_state *mrb, mrb_value obj)
-{
-  return mrb_class_name(mrb, mrb_obj_class(mrb, obj));
-}
-
 void
 mrb_str_decref(mrb_state *mrb, mrb_shared_string *shared)
 {
@@ -744,7 +738,7 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
 {
   mrb_int idx;
 
-  if (!strcmp(_obj_classname(mrb, indx), REGEXP_CLASS)) {
+  if (!strcmp(mrb_obj_classname(mrb, indx), REGEXP_CLASS)) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
   }
   switch (mrb_type(indx)) {
@@ -1399,7 +1393,7 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
       tmp = mrb_check_string_type(mrb, sub);
       if (mrb_nil_p(tmp)) {
         mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %s given",
-           _obj_classname(mrb, sub));
+           mrb_obj_classname(mrb, sub));
       }
       sub = tmp;
     }
