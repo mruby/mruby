@@ -744,7 +744,7 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
 {
   mrb_int idx;
 
-  if (!strcmp(_obj_classname(mrb, indx), REGEXP_CLASS)) {
+  if (!strcmp(mrb_obj_classname(mrb, indx), REGEXP_CLASS)) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
   }
   switch (mrb_type(indx)) {
@@ -1399,7 +1399,7 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
       tmp = mrb_check_string_type(mrb, sub);
       if (mrb_nil_p(tmp)) {
         mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %s given",
-           _obj_classname(mrb, sub));
+           mrb_obj_classname(mrb, sub));
       }
       sub = tmp;
     }
