@@ -29,12 +29,6 @@ static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_
       s->aux.capa = capacity;\
 } while (0)
 
-static const char*
-_obj_classname(mrb_state *mrb, mrb_value obj)
-{
-  return mrb_class_name(mrb, mrb_obj_class(mrb, obj));
-}
-
 void
 mrb_str_decref(mrb_state *mrb, mrb_shared_string *shared)
 {
