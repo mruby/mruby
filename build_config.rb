@@ -11,6 +11,9 @@ MRuby::Build.new do |conf|
   # conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
   # conf.gem :git => 'git@github.com:masuidrive/mrbgems-example.git', :branch => 'master', :options => '-v'
 
+  # Use standard print/puts/p
+  conf.gem "#{root}/mrbgems/mruby-print"
+
   # Use standard Math module
   conf.gem "#{root}/mrbgems/mruby-math"
 
