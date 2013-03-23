@@ -77,6 +77,11 @@
    typedef int64_t mrb_int;
 #  define MRB_INT_MIN INT64_MIN
 #  define MRB_INT_MAX INT64_MAX
+#  define PRIdMRB_INT PRId64
+#  define PRIiMRB_INT PRIi64
+#  define PRIoMRB_INT PRIo64
+#  define PRIxMRB_INT PRIx64
+#  define PRIXMRB_INT PRIX64
 #  define str_to_mrb_int(buf) strtoll(buf, NULL, 10)
 # endif
 #elif defined(MRB_INT16)
@@ -88,6 +93,11 @@
   typedef int32_t mrb_int;
 # define MRB_INT_MIN INT32_MIN
 # define MRB_INT_MAX INT32_MAX
+# define PRIdMRB_INT PRId32
+# define PRIiMRB_INT PRIi32
+# define PRIoMRB_INT PRIo32
+# define PRIxMRB_INT PRIx32
+# define PRIXMRB_INT PRIX32
 # define str_to_mrb_int(buf) strtol(buf, NULL, 10)
 #endif
 typedef short mrb_sym;
@@ -116,7 +126,15 @@ typedef short mrb_sym;
 # define isinf(n) (!_finite(n) && !_isnan(n))
 # define strtoll _strtoi64
 # define PRId32 "I32d"
+# define PRIi32 "I32i"
+# define PRIo32 "I32o"
+# define PRIx32 "I32x"
+# define PRIX32 "I32X"
 # define PRId64 "I64d"
+# define PRIi64 "I64i"
+# define PRIo64 "I64o"
+# define PRIx64 "I64x"
+# define PRIX64 "I64X"
 # ifdef __cplusplus
 typedef bool mrb_bool;
 # else
