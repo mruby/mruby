@@ -91,6 +91,10 @@ struct mrb_parser_heredoc_info {
   mrb_ast_node *doc;
 };
 
+#ifndef MRB_PARSER_BUF_SIZE
+# define MRB_PARSER_BUF_SIZE 1024
+#endif
+
 /* parser structure */
 struct mrb_parser_state {
   mrb_state *mrb;
@@ -113,7 +117,7 @@ struct mrb_parser_state {
   mrb_ast_node *locals;
 
   mrb_ast_node *pb;
-  char buf[1024];
+  char buf[MRB_PARSER_BUF_SIZE];
   int bidx;
 
   mrb_ast_node *heredocs;	/* list of mrb_parser_heredoc_info* */
