@@ -1803,6 +1803,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, cls, "new",                     mrb_instance_new,         ARGS_ANY());  /* 15.2.3.3.3 */
   mrb_define_method(mrb, cls, "inherited",               mrb_bob_init,             ARGS_REQ(1));
 
+  MRB_SET_INSTANCE_TT(mod, MRB_TT_MODULE);
   mrb_define_method(mrb, mod, "class_variable_defined?", mrb_mod_cvar_defined,     ARGS_REQ(1)); /* 15.2.2.4.16 */
   mrb_define_method(mrb, mod, "class_variable_get",      mrb_mod_cvar_get,         ARGS_REQ(1)); /* 15.2.2.4.17 */
   mrb_define_method(mrb, mod, "class_variable_set",      mrb_mod_cvar_set,         ARGS_REQ(2)); /* 15.2.2.4.18 */
