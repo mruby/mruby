@@ -1529,7 +1529,7 @@ mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
 }
 
 mrb_value
-mrb_ptr_as_string(mrb_state *mrb, void *p)
+mrb_ptr_to_str(mrb_state *mrb, void *p)
 {
   struct RString *p_str;
   char *p1;

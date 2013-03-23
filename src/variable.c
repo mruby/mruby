@@ -550,7 +550,7 @@ mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
     mrb_str_buf_cat(mrb, str, "-<", 2);
     mrb_str_cat2(mrb, str, cn);
     mrb_str_cat(mrb, str, ":", 1);
-    mrb_str_concat(mrb, str, mrb_ptr_as_string(mrb, obj));
+    mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, obj));
 
     iv_foreach(mrb, t, inspect_i, &str);
     mrb_str_cat(mrb, str, ">", 1);

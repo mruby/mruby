@@ -1229,7 +1229,7 @@ mrb_class_name(mrb_state *mrb, struct RClass* c)
   mrb_value path = mrb_class_path(mrb, c);
   if (mrb_nil_p(path)) {
     path = mrb_str_new(mrb, "#<Class:", 8);
-    mrb_str_concat(mrb, path, mrb_ptr_as_string(mrb, c));
+    mrb_str_concat(mrb, path, mrb_ptr_to_str(mrb, c));
     mrb_str_cat(mrb, path, ">", 1);
   }
   return mrb_str_ptr(path)->ptr;
@@ -1388,7 +1388,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
           mrb_str_cat(mrb, str, "#<??????:", 9);
           break;
       }
-      mrb_str_concat(mrb, str, mrb_ptr_as_string(mrb, c));
+      mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, c));
       mrb_str_cat(mrb, str, ">", 1);
     }
     else {
