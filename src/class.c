@@ -1354,7 +1354,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
     mrb_value s = mrb_str_new(mrb, "#<", 2);
     mrb_value v = mrb_iv_get(mrb, klass, mrb_intern2(mrb, "__attached__", 12));
 
-    mrb_str_cat2(mrb, s, "Class:");
+    mrb_str_cat(mrb, s, "Class:", 6);
     switch (mrb_type(v)) {
       case MRB_TT_CLASS:
       case MRB_TT_MODULE:
@@ -1365,7 +1365,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
         mrb_str_append(mrb, s, mrb_any_to_s(mrb, v));
         break;
     }
-    mrb_str_cat2(mrb, s, ">");
+    mrb_str_cat(mrb, s, ">", 1);
 
     return s;
   }

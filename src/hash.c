@@ -894,7 +894,7 @@ inspect_hash(mrb_state *mrb, mrb_value hash, int recur)
 
       ai = mrb_gc_arena_save(mrb);
 
-      if (RSTRING_LEN(str) > 1) mrb_str_cat2(mrb, str, ", ");
+      if (RSTRING_LEN(str) > 1) mrb_str_cat(mrb, str, ", ", 2);
 
       str2 = mrb_inspect(mrb, kh_key(h,k));
       mrb_str_append(mrb, str, str2);
