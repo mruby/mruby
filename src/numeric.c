@@ -895,7 +895,7 @@ fix_divmod(mrb_state *mrb, mrb_value x)
 
     if (mrb_fixnum(y) == 0) {
       return mrb_assoc_new(mrb, mrb_float_value(str_to_mrb_float("inf")),
-			        mrb_float_value(str_to_mrb_float("nan")));
+        mrb_float_value(str_to_mrb_float("nan")));
     }
     fixdivmod(mrb, mrb_fixnum(x), mrb_fixnum(y), &div, &mod);
     return mrb_assoc_new(mrb, mrb_fixnum_value(div), mrb_fixnum_value(mod));
@@ -1033,14 +1033,14 @@ fix_xor(mrb_state *mrb, mrb_value x)
   return mrb_fixnum_value(val);
 }
 
-#define NUMERIC_SHIFT_WIDTH_MAX		(sizeof(mrb_int)*CHAR_BIT-1)
+#define NUMERIC_SHIFT_WIDTH_MAX (sizeof(mrb_int)*CHAR_BIT-1)
 
 static mrb_value
 lshift(mrb_state *mrb, mrb_int val, int width)
 {
   if (width > NUMERIC_SHIFT_WIDTH_MAX) {
       mrb_raisef(mrb, E_RANGE_ERROR, "width(%d) > (%d:sizeof(mrb_int)*CHAR_BIT-1)", width,
-		NUMERIC_SHIFT_WIDTH_MAX);
+        NUMERIC_SHIFT_WIDTH_MAX);
   }
   val = val << width;
   return mrb_fixnum_value(val);

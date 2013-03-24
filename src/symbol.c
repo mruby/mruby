@@ -91,7 +91,7 @@ mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, size_t *lenp)
     }
   }
   *lenp = 0;
-  return NULL;	/* missing */
+  return NULL;  /* missing */
 }
 
 void

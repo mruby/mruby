@@ -236,8 +236,8 @@ mrb_time_at(mrb_state *mrb, mrb_value self)
 
 static struct mrb_time*
 time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
-	    mrb_int ahour, mrb_int amin, mrb_int asec, mrb_int ausec,
-	    enum mrb_timezone timezone)
+  mrb_int ahour, mrb_int amin, mrb_int asec, mrb_int ausec,
+  enum mrb_timezone timezone)
 {
   time_t nowsecs;
   struct tm nowtime = { 0 };
@@ -272,7 +272,7 @@ mrb_time_gm(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "i|iiiiii",
                 &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
   return mrb_time_wrap(mrb, mrb_class_ptr(self),
-		       time_mktime(mrb, ayear, amonth, aday, ahour, amin, asec, ausec, MRB_TIMEZONE_UTC));
+          time_mktime(mrb, ayear, amonth, aday, ahour, amin, asec, ausec, MRB_TIMEZONE_UTC));
 }
 
 
@@ -286,7 +286,7 @@ mrb_time_local(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "i|iiiiii",
                 &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
   return mrb_time_wrap(mrb, mrb_class_ptr(self),
-		       time_mktime(mrb, ayear, amonth, aday, ahour, amin, asec, ausec, MRB_TIMEZONE_LOCAL));
+          time_mktime(mrb, ayear, amonth, aday, ahour, amin, asec, ausec, MRB_TIMEZONE_LOCAL));
 }
 
 
@@ -430,10 +430,10 @@ mrb_time_asctime(mrb_state *mrb, mrb_value self)
   if (!tm) return mrb_nil_value();
   d = &tm->datetime;
   len = snprintf(buf, sizeof(buf), "%s %s %02d %02d:%02d:%02d %s%d",
-		 wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday,
-		 d->tm_hour, d->tm_min, d->tm_sec,
-		 tm->timezone == MRB_TIMEZONE_UTC ? "UTC " : "",
-		 d->tm_year + 1900);
+  wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday,
+  d->tm_hour, d->tm_min, d->tm_sec,
+  tm->timezone == MRB_TIMEZONE_UTC ? "UTC " : "",
+  d->tm_year + 1900);
   return mrb_str_new(mrb, buf, len);
 }
 
@@ -525,7 +525,7 @@ mrb_time_initialize(mrb_state *mrb, mrb_value self)
   DATA_PTR(self) = NULL;
 
   n = mrb_get_args(mrb, "|iiiiiii",
-		   &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
+       &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
   if (n == 0) {
     tm = current_mrb_time(mrb);
   }
