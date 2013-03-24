@@ -83,7 +83,7 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, int len)
     }
     s->aux.capa = len;
     s->len = len;
-    s->ptr[len] = '\0';		/* sentinel */
+    s->ptr[len] = '\0';   /* sentinel */
   }
   return str;
 }
@@ -192,7 +192,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
   }
   memcpy(s->ptr + s->len, ptr, len);
   s->len = total;
-  s->ptr[total] = '\0';		/* sentinel */
+  s->ptr[total] = '\0';   /* sentinel */
 }
 
 mrb_value
@@ -1929,24 +1929,24 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       int ai = mrb_gc_arena_save(mrb);
       c = (unsigned char)*ptr++;
       if (skip) {
-	if (ascii_isspace(c)) {
-	  beg = ptr - bptr;
-	}
-	else {
-	  end = ptr - bptr;
-	  skip = 0;
-	  if (lim_p && lim <= i) break;
-	}
+        if (ascii_isspace(c)) {
+          beg = ptr - bptr;
+        }
+        else {
+          end = ptr - bptr;
+          skip = 0;
+          if (lim_p && lim <= i) break;
+        }
       }
       else if (ascii_isspace(c)) {
-	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
+        mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
         mrb_gc_arena_restore(mrb, ai);
-	skip = 1;
-	beg = ptr - bptr;
-	if (lim_p) ++i;
+        skip = 1;
+        beg = ptr - bptr;
+        if (lim_p) ++i;
       }
       else {
-	end = ptr - bptr;
+        end = ptr - bptr;
       }
     }
   }
@@ -1959,10 +1959,10 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     if (slen == 0) {
       int ai = mrb_gc_arena_save(mrb);
       while (ptr < eptr) {
-	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr-temp, 1));
+        mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr-temp, 1));
         mrb_gc_arena_restore(mrb, ai);
-	ptr++;
-	if (lim_p && lim <= ++i) break;
+        ptr++;
+        if (lim_p && lim <= ++i) break;
       }
     }
     else {
@@ -1970,11 +1970,11 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       int ai = mrb_gc_arena_save(mrb);
 
       while (ptr < eptr &&
-	     (end = mrb_memsearch(sptr, slen, ptr, eptr - ptr)) >= 0) {
-	mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr - temp, end));
+        (end = mrb_memsearch(sptr, slen, ptr, eptr - ptr)) >= 0) {
+        mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr - temp, end));
         mrb_gc_arena_restore(mrb, ai);
-	ptr += end + slen;
-	if (lim_p && lim <= ++i) break;
+        ptr += end + slen;
+        if (lim_p && lim <= ++i) break;
       }
     }
     beg = ptr - temp;

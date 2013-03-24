@@ -342,7 +342,7 @@ mrb_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *tname,
   v = convert_type(mrb, val, tname, method, 1/*Qtrue*/);
   if (mrb_type(v) != type) {
     mrb_raisef(mrb, E_TYPE_ERROR, "%s cannot be converted to %s by #%s",
-	      mrb_obj_classname(mrb, val), tname, method);
+      mrb_obj_classname(mrb, val), tname, method);
   }
   return v;
 }
@@ -417,7 +417,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
           etype = mrb_obj_classname(mrb, x);
         }
         mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %s (expected %s)",
-		  etype, type->name);
+          etype, type->name);
       }
       type++;
     }
