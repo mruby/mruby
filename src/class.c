@@ -15,6 +15,7 @@
 #include "mruby/variable.h"
 #include "mruby/array.h"
 #include "error.h"
+#include "format.h"
 
 KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal)
 
@@ -1148,8 +1149,15 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
     inspect = mrb_any_to_s(mrb, mod);
   }
 
-  mrb_raisef(mrb, E_NOMETHOD_ERROR, "undefined method '%s' for %s",
-      mrb_sym2name(mrb, mrb_symbol(name)), RSTRING_PTR(inspect));
+  {
+    mrb_value message;
+    mrb_value array = mrb_ary_new_capa(mrb, 2);
+    mrb_ary_push(mrb, array, name);
+    mrb_ary_push(mrb, array, inspect);
+    message = mrb_format_message(mrb, "undefined method '{0}' for {1}", array);
+    mrb_exc_raise(mrb, mrb_exc_new3(mrb, E_NOMETHOD_ERROR, message));
+  }
+
   /* not reached */
   return mrb_nil_value();
 }
