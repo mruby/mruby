@@ -8,6 +8,7 @@
 #define MRUBYCONF_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 /* configuration options: */
 /* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
