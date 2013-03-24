@@ -1043,7 +1043,7 @@ csym_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 
   if (mrb_type(v) == c->tt && mrb_class_ptr(v) == c) {
     a->sym = sym;
-    return 1;			/* stop iteration */
+    return 1;     /* stop iteration */
   }
   return 0;
 }

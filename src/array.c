@@ -1125,8 +1125,8 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
     eql_p = 1;
     for (i=0; i<RARRAY_LEN(ary1); i++) {
       if (!mrb_eql(mrb, ary_elt(ary1, i), ary_elt(ary2, i))) {
-	eql_p = 0;
-	break;
+        eql_p = 0;
+        break;
       }
     }
   }

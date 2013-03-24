@@ -202,7 +202,7 @@ cipush(mrb_state *mrb)
     mrb->ciend = mrb->cibase + size * 2;
   }
   mrb->ci++;
-  mrb->ci->nregs = 2;		/* protect method_missing arg and block */
+  mrb->ci->nregs = 2;   /* protect method_missing arg and block */
   mrb->ci->eidx = eidx;
   mrb->ci->ridx = ridx;
   mrb->ci->env = 0;
@@ -296,7 +296,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
     jmp_buf c_jmp;
     mrb_callinfo *old_ci = mrb->ci;
 
-    if (setjmp(c_jmp) != 0) {	/* error */
+    if (setjmp(c_jmp) != 0) { /* error */
       while (old_ci != mrb->ci) {
         mrb->stack = mrb->stbase + mrb->ci->stackidx;
         cipop(mrb);
