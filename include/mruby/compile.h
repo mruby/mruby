@@ -101,7 +101,9 @@ struct mrb_parser_state {
   struct mrb_pool *pool;
   mrb_ast_node *cells;
   const char *s, *send;
+#ifdef ENABLE_STDIO
   FILE *f;
+#endif
   char *filename;
   int lineno;
   int column;
@@ -143,16 +145,22 @@ void mrb_parser_free(struct mrb_parser_state*);
 void mrb_parser_parse(struct mrb_parser_state*,mrbc_context*);
 
 /* utility functions */
+#ifdef ENABLE_STDIO
 struct mrb_parser_state* mrb_parse_file(mrb_state*,FILE*,mrbc_context*);
+#endif
 struct mrb_parser_state* mrb_parse_string(mrb_state*,const char*,mrbc_context*);
 struct mrb_parser_state* mrb_parse_nstring(mrb_state*,const char*,int,mrbc_context*);
 int mrb_generate_code(mrb_state*, struct mrb_parser_state*);
 
 /* program load functions */
+#ifdef ENABLE_STDIO
 mrb_value mrb_load_file(mrb_state*,FILE*);
+#endif
 mrb_value mrb_load_string(mrb_state *mrb, const char *s);
 mrb_value mrb_load_nstring(mrb_state *mrb, const char *s, int len);
+#ifdef ENABLE_STDIO
 mrb_value mrb_load_file_cxt(mrb_state*,FILE*, mrbc_context *cxt);
+#endif
 mrb_value mrb_load_string_cxt(mrb_state *mrb, const char *s, mrbc_context *cxt);
 mrb_value mrb_load_nstring_cxt(mrb_state *mrb, const char *s, int len, mrbc_context *cxt);
 
