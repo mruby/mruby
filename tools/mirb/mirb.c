@@ -242,31 +242,31 @@ main(void)
     }
     else {
       if (0 < parser->nerr) {
-	/* syntax error */
-	printf("line %d: %s\n", parser->error_buffer[0].lineno, parser->error_buffer[0].message);
+        /* syntax error */
+        printf("line %d: %s\n", parser->error_buffer[0].lineno, parser->error_buffer[0].message);
       }
       else {
-	/* generate bytecode */
-	n = mrb_generate_code(mrb, parser);
+        /* generate bytecode */
+        n = mrb_generate_code(mrb, parser);
 
-	/* evaluate the bytecode */
-	result = mrb_run(mrb,
+        /* evaluate the bytecode */
+        result = mrb_run(mrb,
             /* pass a proc for evaulation */
             mrb_proc_new(mrb, mrb->irep[n]),
             mrb_top_self(mrb));
-	/* did an exception occur? */
-	if (mrb->exc) {
-	  p(mrb, mrb_obj_value(mrb->exc));
-	  mrb->exc = 0;
-	}
-	else {
-	  /* no */
-	  printf(" => ");
-	  if (!mrb_respond_to(mrb,result,mrb_intern(mrb,"inspect"))){
-	    result = mrb_any_to_s(mrb,result);
-	  }
-	  p(mrb, result);
-	}
+        /* did an exception occur? */
+        if (mrb->exc) {
+          p(mrb, mrb_obj_value(mrb->exc));
+          mrb->exc = 0;
+        }
+        else {
+          /* no */
+          printf(" => ");
+          if (!mrb_respond_to(mrb,result,mrb_intern(mrb,"inspect"))){
+            result = mrb_any_to_s(mrb,result);
+          }
+          p(mrb, result);
+        }
       }
       ruby_code[0] = '\0';
       last_code_line[0] = '\0';
