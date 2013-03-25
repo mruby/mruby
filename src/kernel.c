@@ -306,6 +306,7 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
       case MRB_TT_SCLASS:
       case MRB_TT_HASH:
       case MRB_TT_DATA:
+      case MRB_TT_MAIN:
         mrb_iv_copy(mrb, dest, obj);
         break;
 

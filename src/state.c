@@ -7,6 +7,7 @@
 #include "mruby.h"
 #include "mruby/irep.h"
 #include "mruby/variable.h"
+#include "mruby/class.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -160,8 +161,11 @@ mrb_add_irep(mrb_state *mrb)
 mrb_value
 mrb_top_self(mrb_state *mrb)
 {
-  mrb_value v;
-
-  MRB_SET_VALUE(v, MRB_TT_MAIN, value.i, 0);
-  return v;
+  if(mrb->top_self == NULL)
+  {
+    mrb->top_self = (mrb_value *)mrb_calloc(mrb, 1, sizeof(mrb_value));
+    *(mrb->top_self) = mrb_class_new_instance(mrb, 0, NULL, mrb->object_class);
+    mrb->top_self->tt = MRB_TT_MAIN;
+  }
+  return *(mrb->top_self);
 }
