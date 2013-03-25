@@ -291,31 +291,6 @@ mrb_bug(const char *fmt, ...)
   exit(EXIT_FAILURE);
 }
 
-static const char *
-mrb_strerrno(int err)
-{
-#define defined_error(name, num) if (err == num) return name;
-#define undefined_error(name)
-//#include "known_errors.inc"
-#undef defined_error
-#undef undefined_error
-    return NULL;
-}
-
-void
-mrb_bug_errno(const char *mesg, int errno_arg)
-{
-  if (errno_arg == 0)
-    mrb_bug("%s: errno == 0 (NOERROR)", mesg);
-  else {
-    const char *errno_str = mrb_strerrno(errno_arg);
-    if (errno_str)
-      mrb_bug("%s: %s (%s)", mesg, strerror(errno_arg), errno_str);
-    else
-      mrb_bug("%s: %s (%d)", mesg, strerror(errno_arg), errno_arg);
-  }
-}
-
 int
 sysexit_status(mrb_state *mrb, mrb_value err)
 {
