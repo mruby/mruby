@@ -952,11 +952,7 @@ static mrb_value
 mrb_ary_inspect(mrb_state *mrb, mrb_value ary)
 {
   if (RARRAY_LEN(ary) == 0) return mrb_str_new(mrb, "[]", 2);
-  #if 0 /* THREAD */
-    return mrb_exec_recursive(inspect_ary_r, ary, 0);
-  #else
     return inspect_ary(mrb, ary, mrb_ary_new(mrb));
-  #endif
 }
 
 static mrb_value
