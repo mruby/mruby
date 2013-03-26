@@ -2068,9 +2068,6 @@ mrb_str_sub(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
 {
-  #define BDIGIT unsigned int
-  #define BDIGIT_DBL unsigned long
-
   char *end;
   char sign = 1;
   int c;
