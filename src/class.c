@@ -1369,9 +1369,12 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
     mrb_str_cat(mrb, str, ">", 1);
   }
   else {
+    struct RClass *c;
+    mrb_value path;
+
     str = mrb_str_buf_new(mrb, 32);
-    struct RClass *c = mrb_class_ptr(klass);
-    mrb_value path = mrb_class_path(mrb, c);
+    c = mrb_class_ptr(klass);
+    path = mrb_class_path(mrb, c);
 
     if (mrb_nil_p(path)) {
       switch (mrb_type(klass)) {
