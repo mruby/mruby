@@ -1,4 +1,4 @@
 # no installation...
 
-before-script: ruby -pi -e 'gsub(/\s*#\s*conf.gem\s*"#\{root\}/, "conf.gem \"\#{root}")' build_config.rb
+before_script: ruby -pi -e 'gsub(/\s*#\s*conf.gem\s*"#\{root\}/, "conf.gem \"\#{root}")' build_config.rb
 script: "./minirake all test"
