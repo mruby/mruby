@@ -10,7 +10,7 @@
 
 #include <time.h>
 
-#define RAND_SEED_KEY "$mrb_ext_rand_seed"
+#define GLOBAL_RAND_SEED_KEY "$mrb_g_rand_seed"
  
 void mt_srand(unsigned long seed)
 {
@@ -54,7 +54,7 @@ mrb_value mrb_random_mt_rand(mrb_state *mrb, mrb_value max)
   return value;
 }
 
-static mrb_value mrb_random_rand(mrb_state *mrb, mrb_value self)
+static mrb_value mrb_random_g_rand(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
   mrb_int argc;
@@ -82,14 +82,14 @@ static mrb_value mrb_random_rand(mrb_state *mrb, mrb_value self)
     return mrb_nil_value();
   }
 
-  mrb_value seed = mrb_gv_get(mrb, mrb_intern(mrb, RAND_SEED_KEY));
+  mrb_value seed = mrb_gv_get(mrb, mrb_intern(mrb, GLOBAL_RAND_SEED_KEY));
   if (mrb_nil_p(seed))
     mrb_random_mt_srand(mrb, mrb_nil_value());
 
   return mrb_random_mt_rand(mrb, max);
 }
 
-static mrb_value mrb_random_srand(mrb_state *mrb, mrb_value self)
+static mrb_value mrb_random_g_srand(mrb_state *mrb, mrb_value self)
 {
   mrb_int argc;
   mrb_value *argv;
@@ -118,8 +118,8 @@ static mrb_value mrb_random_srand(mrb_state *mrb, mrb_value self)
   }
 
   seed = mrb_random_mt_srand(mrb, seed);
-  mrb_value old_seed = mrb_gv_get(mrb, mrb_intern(mrb, RAND_SEED_KEY));
-  mrb_gv_set(mrb, mrb_intern(mrb, RAND_SEED_KEY), seed);
+  mrb_value old_seed = mrb_gv_get(mrb, mrb_intern(mrb, GLOBAL_RAND_SEED_KEY));
+  mrb_gv_set(mrb, mrb_intern(mrb, GLOBAL_RAND_SEED_KEY), seed);
 
   return old_seed;
 }
@@ -128,10 +128,9 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
 {
   struct RClass *random;
 
-  random = mrb_define_module(mrb, "Random");
-
-  mrb_define_class_method(mrb, random, "rand", mrb_random_rand, ARGS_ANY());
-  mrb_define_class_method(mrb, random, "srand", mrb_random_srand, ARGS_ANY());
+  random = mrb_define_class(mrb, "Random", mrb->object_class);
+  mrb_define_class_method(mrb, random, "rand", mrb_random_g_rand, ARGS_ANY());
+  mrb_define_class_method(mrb, random, "srand", mrb_random_g_srand, ARGS_ANY());
 }
 
 void mrb_mruby_random_gem_final(mrb_state *mrb)
