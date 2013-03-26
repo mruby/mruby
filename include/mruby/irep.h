@@ -25,13 +25,13 @@ typedef struct mrb_irep {
   const char *filename;
   short *lines;
 
-  int ilen, plen, slen;
+  size_t ilen, plen, slen;
 } mrb_irep;
 
 #define MRB_ISEQ_NO_FREE 1
 
 mrb_irep *mrb_add_irep(mrb_state *mrb);
-mrb_value mrb_load_irep(mrb_state*,const char*);
+mrb_value mrb_load_irep(mrb_state*, const uint8_t*);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */
