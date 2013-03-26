@@ -18,22 +18,21 @@ enum mrb_vtype {
   MRB_TT_UNDEF,       /*   5 */
   MRB_TT_FLOAT,       /*   6 */
   MRB_TT_VOIDP,       /*   7 */
-  MRB_TT_MAIN,        /*   8 */
-  MRB_TT_OBJECT,      /*   9 */
-  MRB_TT_CLASS,       /*  10 */
-  MRB_TT_MODULE,      /*  11 */
-  MRB_TT_ICLASS,      /*  12 */
-  MRB_TT_SCLASS,      /*  13 */
-  MRB_TT_PROC,        /*  14 */
-  MRB_TT_ARRAY,       /*  15 */
-  MRB_TT_HASH,        /*  16 */
-  MRB_TT_STRING,      /*  17 */
-  MRB_TT_RANGE,       /*  18 */
-  MRB_TT_EXCEPTION,   /*  19 */
-  MRB_TT_FILE,        /*  20 */
-  MRB_TT_ENV,         /*  21 */
-  MRB_TT_DATA,        /*  22 */
-  MRB_TT_MAXDEFINE    /*  23 */
+  MRB_TT_OBJECT,      /*   8 */
+  MRB_TT_CLASS,       /*   9 */
+  MRB_TT_MODULE,      /*  10 */
+  MRB_TT_ICLASS,      /*  11 */
+  MRB_TT_SCLASS,      /*  12 */
+  MRB_TT_PROC,        /*  13 */
+  MRB_TT_ARRAY,       /*  14 */
+  MRB_TT_HASH,        /*  15 */
+  MRB_TT_STRING,      /*  16 */
+  MRB_TT_RANGE,       /*  17 */
+  MRB_TT_EXCEPTION,   /*  18 */
+  MRB_TT_FILE,        /*  19 */
+  MRB_TT_ENV,         /*  20 */
+  MRB_TT_DATA,        /*  21 */
+  MRB_TT_MAXDEFINE    /*  22 */
 };
 
 typedef struct mrb_value {
@@ -77,22 +76,21 @@ enum mrb_vtype {
   MRB_TT_UNDEF,       /*   6 */
   MRB_TT_FLOAT,       /*   7 */
   MRB_TT_VOIDP,       /*   8 */
-  MRB_TT_MAIN,        /*   9 */
-  MRB_TT_OBJECT,      /*  10 */
-  MRB_TT_CLASS,       /*  11 */
-  MRB_TT_MODULE,      /*  12 */
-  MRB_TT_ICLASS,      /*  13 */
-  MRB_TT_SCLASS,      /*  14 */
-  MRB_TT_PROC,        /*  15 */
-  MRB_TT_ARRAY,       /*  16 */
-  MRB_TT_HASH,        /*  17 */
-  MRB_TT_STRING,      /*  18 */
-  MRB_TT_RANGE,       /*  19 */
-  MRB_TT_EXCEPTION,   /*  20 */
-  MRB_TT_FILE,        /*  21 */
-  MRB_TT_ENV,         /*  22 */
-  MRB_TT_DATA,        /*  23 */
-  MRB_TT_MAXDEFINE    /*  24 */
+  MRB_TT_OBJECT,      /*   9 */
+  MRB_TT_CLASS,       /*  10 */
+  MRB_TT_MODULE,      /*  11 */
+  MRB_TT_ICLASS,      /*  12 */
+  MRB_TT_SCLASS,      /*  13 */
+  MRB_TT_PROC,        /*  14 */
+  MRB_TT_ARRAY,       /*  15 */
+  MRB_TT_HASH,        /*  16 */
+  MRB_TT_STRING,      /*  17 */
+  MRB_TT_RANGE,       /*  18 */
+  MRB_TT_EXCEPTION,   /*  19 */
+  MRB_TT_FILE,        /*  20 */
+  MRB_TT_ENV,         /*  21 */
+  MRB_TT_DATA,        /*  22 */
+  MRB_TT_MAXDEFINE    /*  23 */
 };
 
 #ifdef MRB_ENDIAN_BIG
@@ -199,7 +197,7 @@ struct RObject {
 #define mrb_obj_ptr(v)   ((struct RObject*)((v).value.p))
 /* obsolete macro mrb_object; will be removed soon */
 #define mrb_object(o) mrb_obj_ptr(o)
-#define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_MAIN)
+#define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_VOIDP)
 #define mrb_special_const_p(x) mrb_immediate_p(x)
 
 static inline mrb_value

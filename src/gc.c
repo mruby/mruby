@@ -392,7 +392,6 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     }
     /* fall through */
 
-  case MRB_TT_MAIN:
   case MRB_TT_OBJECT:
   case MRB_TT_DATA:
     mrb_gc_mark_iv(mrb, (struct RObject*)obj);
@@ -479,7 +478,6 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     /* cannot happen */
     return;
 
-  case MRB_TT_MAIN:
   case MRB_TT_OBJECT:
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
     break;
@@ -561,6 +559,8 @@ root_scan_phase(mrb_state *mrb)
   }
   /* mark class hierarchy */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->object_class);
+  /* mark top_self */
+  mrb_gc_mark(mrb, (struct RBasic*)mrb->top_self);
   /* mark exception */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
   /* mark stack */
@@ -620,7 +620,6 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
     }
     break;
 
-  case MRB_TT_MAIN:
   case MRB_TT_OBJECT:
   case MRB_TT_DATA:
     children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);

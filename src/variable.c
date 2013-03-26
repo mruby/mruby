@@ -419,7 +419,6 @@ obj_iv_p(mrb_value obj)
     case MRB_TT_SCLASS:
     case MRB_TT_HASH:
     case MRB_TT_DATA:
-    case MRB_TT_MAIN:
       return TRUE;
     default:
       return FALSE;

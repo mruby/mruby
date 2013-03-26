@@ -74,7 +74,6 @@ typedef struct mrb_state {
 
   mrb_value *stack;
   mrb_value *stbase, *stend;
-  mrb_value *top_self;
 
   mrb_callinfo *ci;
   mrb_callinfo *cibase, *ciend;
@@ -91,6 +90,7 @@ typedef struct mrb_state {
   size_t irep_len, irep_capa;
 
   mrb_sym init_sym;
+  struct RObject *top_self;
   struct RClass *object_class;
   struct RClass *class_class;
   struct RClass *module_class;
@@ -240,11 +240,11 @@ int mrb_gc_arena_save(mrb_state*);
 void mrb_gc_arena_restore(mrb_state*,int);
 void mrb_gc_mark(mrb_state*,struct RBasic*);
 #define mrb_gc_mark_value(mrb,val) do {\
-  if (mrb_type(val) >= MRB_TT_MAIN) mrb_gc_mark((mrb), mrb_basic_ptr(val));\
+  if (mrb_type(val) >= MRB_TT_OBJECT) mrb_gc_mark((mrb), mrb_basic_ptr(val));\
 } while (0)
 void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
 #define mrb_field_write_barrier_value(mrb, obj, val) do{\
-  if ((val.tt >= MRB_TT_MAIN)) mrb_field_write_barrier((mrb), (obj), mrb_basic_ptr(val));\
+  if ((val.tt >= MRB_TT_OBJECT)) mrb_field_write_barrier((mrb), (obj), mrb_basic_ptr(val));\
 } while (0)
 void mrb_write_barrier(mrb_state *, struct RBasic*);
 

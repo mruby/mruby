@@ -15,6 +15,12 @@ void mrb_init_heap(mrb_state*);
 void mrb_init_core(mrb_state*);
 void mrb_final_core(mrb_state*);
 
+static mrb_value
+inspect_main(mrb_state *mrb, mrb_value mod)
+{
+  return mrb_str_new(mrb, "main", 4);
+}
+
 mrb_state*
 mrb_open_allocf(mrb_allocf f, void *ud)
 {
@@ -161,11 +167,9 @@ mrb_add_irep(mrb_state *mrb)
 mrb_value
 mrb_top_self(mrb_state *mrb)
 {
-  if(mrb->top_self == NULL)
-  {
-    mrb->top_self = (mrb_value *)mrb_calloc(mrb, 1, sizeof(mrb_value));
-    *(mrb->top_self) = mrb_class_new_instance(mrb, 0, NULL, mrb->object_class);
-    mrb->top_self->tt = MRB_TT_MAIN;
+  if (!mrb->top_self) {
+    mrb->top_self = (struct RObject*)mrb_obj_alloc(mrb, MRB_TT_OBJECT, mrb->object_class);  
+    mrb_define_singleton_method(mrb, mrb->top_self, "inspect", inspect_main, ARGS_NONE());
   }
-  return *(mrb->top_self);
+  return mrb_obj_value(mrb->top_self);
 }
