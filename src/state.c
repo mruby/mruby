@@ -45,7 +45,7 @@ allocf(mrb_state *mrb, void *p, size_t size, void *ud)
 
 struct alloca_header {
   struct alloca_header *next;
-  char buf[1];
+  char buf[];
 };
 
 void*
@@ -53,7 +53,7 @@ mrb_alloca(mrb_state *mrb, size_t size)
 {
   struct alloca_header *p;
 
-  p = (struct alloca_header*) mrb_malloc(mrb, sizeof(struct alloca_header)+size-1);
+  p = (struct alloca_header*) mrb_malloc(mrb, sizeof(struct alloca_header)+size);
   if (p == NULL) return NULL;
   p->next = mrb->mems;
   mrb->mems = p;
