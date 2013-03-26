@@ -12,22 +12,22 @@
 
 #define GLOBAL_RAND_SEED_KEY "$mrb_g_rand_seed"
  
-void mt_srand(unsigned long seed)
+static void mt_srand(unsigned long seed)
 {
   init_genrand(seed);
 }  
 
-unsigned long mt_rand()
+static unsigned long mt_rand()
 {
   return genrand_int32();
 }  
 
-double mt_rand_real()
+static double mt_rand_real()
 {
   return genrand_real1();
 }  
 
-mrb_value mrb_random_mt_srand(mrb_state *mrb, mrb_value seed)
+static mrb_value mrb_random_mt_srand(mrb_state *mrb, mrb_value seed)
 { 
   if (mrb_nil_p(seed)) {
     seed = mrb_fixnum_value(time(NULL) + mt_rand());
@@ -41,7 +41,7 @@ mrb_value mrb_random_mt_srand(mrb_state *mrb, mrb_value seed)
   return seed;
 }
 
-mrb_value mrb_random_mt_rand(mrb_state *mrb, mrb_value max)
+static mrb_value mrb_random_mt_rand(mrb_state *mrb, mrb_value max)
 { 
   mrb_value value;
 
