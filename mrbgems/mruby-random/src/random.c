@@ -128,6 +128,9 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
 {
   struct RClass *random;
 
+  mrb_define_method(mrb, mrb->kernel_module, "rand", mrb_random_g_rand, ARGS_ANY());
+  mrb_define_method(mrb, mrb->kernel_module, "srand", mrb_random_g_rand, ARGS_ANY());
+
   random = mrb_define_class(mrb, "Random", mrb->object_class);
   mrb_define_class_method(mrb, random, "rand", mrb_random_g_rand, ARGS_ANY());
   mrb_define_class_method(mrb, random, "srand", mrb_random_g_srand, ARGS_ANY());
