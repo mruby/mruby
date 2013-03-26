@@ -395,15 +395,6 @@ new_fcall(parser_state *p, mrb_sym b, node *c)
   return list4((node*)NODE_FCALL, new_self(p), nsym(b), c);
 }
 
-#if 0
-// (:vcall self mid)
-static node*
-new_vcall(parser_state *p, mrb_sym b)
-{
-  return list3((node*)NODE_VCALL, new_self(p), (node*)b);
-}
-#endif
-
 // (:super . c)
 static node*
 new_super(parser_state *p, node *c)
@@ -1790,11 +1781,6 @@ arg		: lhs '=' arg
 		| arg tMATCH arg
 		    {
 		      $$ = call_bin_op(p, $1, "=~", $3);
-#if 0
-		      if (nd_type($1) == NODE_LIT && TYPE($1->nd_lit) == T_REGEXP) {
-			$$ = reg_named_capture_assign($1->nd_lit, $$);
-		      }
-#endif
 		    }
 		| arg tNMATCH arg
 		    {
