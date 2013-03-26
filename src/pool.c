@@ -25,7 +25,7 @@ struct mrb_pool_page {
   size_t offset;
   size_t len;
   void *last;
-  char page[1];
+  char page[];
 };
 
 struct mrb_pool {
@@ -81,7 +81,7 @@ page_alloc(mrb_pool *pool, size_t len)
 
   if (len < POOL_PAGE_SIZE)
     len = POOL_PAGE_SIZE;
-  page = (struct mrb_pool_page *)mrb_malloc(pool->mrb, sizeof(struct mrb_pool_page)+len-1);
+  page = (struct mrb_pool_page *)mrb_malloc(pool->mrb, sizeof(struct mrb_pool_page)+len);
   if (page) {
     page->offset = 0;
     page->len = len;
