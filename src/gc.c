@@ -392,6 +392,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     }
     /* fall through */
 
+  case MRB_TT_MAIN:
   case MRB_TT_OBJECT:
   case MRB_TT_DATA:
     mrb_gc_mark_iv(mrb, (struct RObject*)obj);
@@ -478,6 +479,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     /* cannot happen */
     return;
 
+  case MRB_TT_MAIN:
   case MRB_TT_OBJECT:
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
     break;
@@ -618,6 +620,7 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
     }
     break;
 
+  case MRB_TT_MAIN:
   case MRB_TT_OBJECT:
   case MRB_TT_DATA:
     children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
