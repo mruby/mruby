@@ -1944,7 +1944,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 #ifdef ENABLE_STDIO
       printf("OP_DEBUG %d %d %d\n", GETARG_A(i), GETARG_B(i), GETARG_C(i));
 #else
-      abort();
+      MRB_PANIC_ABORT();
 #endif
       NEXT;
     }
