@@ -43,6 +43,21 @@
    email: m-mat @ math.sci.hiroshima-u.ac.jp (remove space)
 */
 
+#define N 624
+
+typedef struct {
+  unsigned long mt[N];
+  int mti;
+  union {
+    unsigned long gen_int;
+    double gen_dbl;
+  };
+} mt_state;
+
+void mrb_random_init_genrand(mt_state *, unsigned long);
+unsigned long mrb_random_genrand_int32(mt_state *);
+double mrb_random_genrand_real1(mt_state *t);
+
 /* initializes mt[N] with a seed */
 void init_genrand(unsigned long s);
 

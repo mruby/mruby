@@ -41,11 +41,12 @@ MRuby::Build.new do |conf|
   # Use extensional Hash class
   conf.gem "#{root}/mrbgems/mruby-hash-ext"
 
+  # Use Random class
+  conf.gem "#{root}/mrbgems/mruby-random"
+  
   # No use eval method
   # conf.gem "#{root}/mrbgems/mruby-eval"
 
-  # No use Random module
-  # conf.gem "#{root}/mrbgems/mruby-random"
 
   # Generate binaries
   # conf.bins = %w(mrbc mruby mirb)

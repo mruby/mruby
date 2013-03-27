@@ -47,7 +47,7 @@
 #include "mt19937ar.h"
 
 /* Period parameters */  
-#define N 624
+//#define N 624
 #define M 397
 #define MATRIX_A 0x9908b0dfUL   /* constant vector a */
 #define UPPER_MASK 0x80000000UL /* most significant w-r bits */
@@ -55,6 +55,63 @@
 
 static unsigned long mt[N]; /* the array for the state vector  */
 static int mti=N+1; /* mti==N+1 means mt[N] is not initialized */
+
+void mrb_random_init_genrand(mt_state *t, unsigned long s)
+{
+    t->mt[0]= s & 0xffffffffUL;
+    for (t->mti=1; t->mti<N; t->mti++) {
+        t->mt[t->mti] = 
+	    (1812433253UL * (t->mt[t->mti-1] ^ (t->mt[t->mti-1] >> 30)) + t->mti); 
+        t->mt[t->mti] &= 0xffffffffUL;
+    }
+}
+
+unsigned long mrb_random_genrand_int32(mt_state *t)
+{
+    unsigned long y;
+    static unsigned long mag01[2]={0x0UL, MATRIX_A};
+    /* mag01[x] = x * MATRIX_A  for x=0,1 */
+
+    if (t->mti >= N) { /* generate N words at one time */
+        int kk;
+
+        if (t->mti == N+1)   /* if init_genrand() has not been called, */
+            mrb_random_init_genrand(t, 5489UL); /* a default initial seed is used */
+
+        for (kk=0;kk<N-M;kk++) {
+            y = (t->mt[kk]&UPPER_MASK)|(t->mt[kk+1]&LOWER_MASK);
+            t->mt[kk] = t->mt[kk+M] ^ (y >> 1) ^ mag01[y & 0x1UL];
+        }
+        for (;kk<N-1;kk++) {
+            y = (t->mt[kk]&UPPER_MASK)|(t->mt[kk+1]&LOWER_MASK);
+            t->mt[kk] = t->mt[kk+(M-N)] ^ (y >> 1) ^ mag01[y & 0x1UL];
+        }
+        y = (t->mt[N-1]&UPPER_MASK)|(t->mt[0]&LOWER_MASK);
+        t->mt[N-1] = t->mt[M-1] ^ (y >> 1) ^ mag01[y & 0x1UL];
+
+        t->mti = 0;
+    }
+  
+    y = t->mt[t->mti++];
+
+    /* Tempering */
+    y ^= (y >> 11);
+    y ^= (y << 7) & 0x9d2c5680UL;
+    y ^= (y << 15) & 0xefc60000UL;
+    y ^= (y >> 18);
+    
+    t->gen_int = y;
+
+    return y;
+}
+
+double mrb_random_genrand_real1(mt_state *t)
+{
+    mrb_random_genrand_int32(t);
+    t->gen_dbl =  t->gen_int*(1.0/4294967295.0); 
+    return t->gen_dbl;
+    /* divided by 2^32-1 */ 
+}
 
 /* initializes mt[N] with a seed */
 void init_genrand(unsigned long s)
