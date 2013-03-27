@@ -16,6 +16,9 @@ assert("Kernel::srand") do
 end
 
 assert("fixnum") do
-  r = rand(3)
-  r.to_i == r
+  rand(3).class == Fixnum
+end
+
+assert("float") do
+  rand.class == Float
 end
