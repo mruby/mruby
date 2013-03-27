@@ -322,7 +322,7 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
   const size_t record_header_size = 1 + 4;
   struct rite_section_irep_header header;
 
-  if (fread(&header, sizeof(struct rite_section_irep_header), 1, fp) != sizeof(struct rite_section_irep_header)) {
+  if (fread(&header, sizeof(struct rite_section_irep_header), 1, fp) == 0) {
     return MRB_DUMP_READ_FAULT;
   }
 
@@ -334,13 +334,13 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
   
   //Read Binary Data Section
   for (n = 0, i = sirep; n < nirep; n++, i++) {
-    if (fread(buf, record_header_size, 1, fp) != record_header_size) {
+    if (fread(buf, record_header_size, 1, fp) == 0) {
       result = MRB_DUMP_READ_FAULT;
       goto error_exit;
     }
     buf_size = bin_to_uint32(&buf[0]);
     buf = (uint8_t *)mrb_realloc(mrb, buf, buf_size);
-    if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) != buf_size - record_header_size) {
+    if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) == 0) {
       result = MRB_DUMP_READ_FAULT;
       goto error_exit;
     }
@@ -375,6 +375,7 @@ error_exit:
 int32_t
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
+  size_t n;
   int result;
   int32_t total_nirep = 0;
   uint8_t *buf;
@@ -391,7 +392,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   }
 
   buf = mrb_malloc(mrb, buf_size);
-  if (fread(buf, buf_size, 1, fp) != buf_size) {
+  if (fread(buf, buf_size, 1, fp) == 0) {
     mrb_free(mrb, buf);
     return MRB_DUMP_READ_FAULT;
   }
@@ -409,7 +410,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
     crcwk = calc_crc_16_ccitt(buf, nbytes, crcwk);
   }
   mrb_free(mrb, buf);
-  if (nbytes < 0) {
+  if (nbytes == 0 && ferror(fp)) {
     return MRB_DUMP_READ_FAULT;
   }
   if(crcwk != crc) {
@@ -420,7 +421,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   // read sections
   do {
     fpos = ftell(fp);
-    if (fread(&section_header, sizeof(struct rite_section_header), 1, fp) != sizeof(struct rite_section_header)) {
+    if (fread(&section_header, sizeof(struct rite_section_header), 1, fp) == 0) {
       return MRB_DUMP_READ_FAULT;
     }
     section_size = bin_to_uint32(section_header.section_size);
