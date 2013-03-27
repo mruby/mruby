@@ -67,7 +67,7 @@ struct rite_binary_header {
 // section header
 #define RITE_SECTION_HEADER \
   uint8_t section_identify[4]; \
-  uint8_t section_size[4];
+  uint8_t section_size[4]
 
 struct rite_section_header {
   RITE_SECTION_HEADER;
