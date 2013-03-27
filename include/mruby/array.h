@@ -54,6 +54,7 @@ mrb_value mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr);
 mrb_value mrb_ary_entry(mrb_value ary, mrb_int offset);
 mrb_value mrb_ary_shift(mrb_state *mrb, mrb_value self);
 mrb_value mrb_ary_clear(mrb_state *mrb, mrb_value self);
+mrb_value mrb_ary_join(mrb_state *mrb, mrb_value ary, mrb_value sep);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */
