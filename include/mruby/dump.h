@@ -14,8 +14,8 @@ extern "C" {
 #include "mruby.h"
 
 #ifdef ENABLE_STDIO
-int mrb_dump_irep_binary(mrb_state*, size_t, FILE*);
-int mrb_dump_irep_cfunc(mrb_state *mrb, size_t n, FILE *f, const char *initname);
+int mrb_dump_irep_binary(mrb_state*, size_t, int, FILE*);
+int mrb_dump_irep_cfunc(mrb_state *mrb, size_t n, int, FILE *f, const char *initname);
 int32_t mrb_read_irep_file(mrb_state*, FILE*);
 #endif
 int mrb_read_irep(mrb_state*, const uint8_t*);
@@ -51,6 +51,7 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 
 #define RITE_BINARY_EOF               "END\0"
 #define RITE_SECTION_IREP_IDENTIFIER  "IREP"
+#define RITE_SECTION_LIENO_IDENTIFIER "LINE"
 
 #define MRB_DUMP_DEFAULT_STR_LEN      128
 
@@ -77,6 +78,13 @@ struct rite_section_irep_header {
   RITE_SECTION_HEADER;
 
   uint8_t rite_version[4];    // Rite Instruction Specification Version
+  uint8_t nirep[2];           // Number of ireps
+  uint8_t sirep[2];           // Start index  
+};
+
+struct rite_section_lineno_header {
+  RITE_SECTION_HEADER;
+
   uint8_t nirep[2];           // Number of ireps
   uint8_t sirep[2];           // Start index  
 };
