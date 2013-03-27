@@ -1,5 +1,5 @@
 /*
-** mruby/dump.h - mruby binary dumper (Rite binary format)
+** mruby/dump.h - mruby binary dumper (mrbc binary format)
 **
 ** See Copyright Notice in mruby.h
 */
@@ -43,7 +43,7 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 
 /* Rite Binary File header */
 #define RITE_BINARY_IDENFIFIER        "RITE"
-#define RITE_BINARY_FORMAT_VER        "0000"
+#define RITE_BINARY_FORMAT_VER        "0001"
 #define RITE_COMPILER_NAME            "MATZ"
 #define RITE_COMPILER_VERSION         "0000"
 
@@ -54,17 +54,17 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 
 #define MRB_DUMP_DEFAULT_STR_LEN      128
 
-// Rite binary header
+// binary header
 struct rite_binary_header {
-  uint8_t binary_identify[4]; // Rite Binary Identify
-  uint8_t binary_version[4];  // Rite Binary Format Version
-  uint8_t binary_crc[2];      // Rite Binary CRC
-  uint8_t binary_size[4];     // Rite Binary Size
-  uint8_t compiler_name[4];   // Rite Compiler name
+  uint8_t binary_identify[4]; // Binary Identifier
+  uint8_t binary_version[4];  // Binary Format Version
+  uint8_t binary_crc[2];      // Binary CRC
+  uint8_t binary_size[4];     // Binary Size
+  uint8_t compiler_name[4];   // Compiler name
   uint8_t compiler_version[4];
 };
 
-// Rite section header
+// section header
 #define RITE_SECTION_HEADER \
   uint8_t section_identify[4]; \
   uint8_t section_size[4];
