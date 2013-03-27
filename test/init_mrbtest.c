@@ -5,7 +5,7 @@
 #include "mruby/string.h"
 #include "mruby/proc.h"
 
-extern const char mrbtest_irep[];
+extern const uint8_t mrbtest_irep[];
 
 void mrbgemtest_init(mrb_state* mrb);
 

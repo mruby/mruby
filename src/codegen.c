@@ -2498,7 +2498,7 @@ codedump(mrb_state *mrb, int n)
 
   if (!irep) return;
   printf("irep %d nregs=%d nlocals=%d pools=%d syms=%d\n", n,
-         irep->nregs, irep->nlocals, irep->plen, irep->slen);
+         irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen);
   for (i=0; i<irep->ilen; i++) {
     ai = mrb_gc_arena_save(mrb);
     printf("%03d ", i);

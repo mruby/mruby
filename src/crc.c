@@ -6,6 +6,8 @@
 
 #include <limits.h>
 #include <stdint.h>
+#include <sys/types.h>
+
 // Calculate CRC (CRC-16-CCITT)
 //
 //  0000_0000_0000_0000_0000_0000_0000_0000
@@ -16,10 +18,11 @@
 #define  CRC_CARRY_BIT      (0x01000000)
 
 uint16_t
-calc_crc_16_ccitt(unsigned char *src, int nbytes)
+calc_crc_16_ccitt(const uint8_t *src, size_t nbytes, uint16_t crc)
 {
-  uint32_t   crcwk = 0ul;
-  int        ibyte, ibit;
+  size_t ibyte;
+  uint32_t ibit;
+  uint32_t crcwk = crc << 8;
 
   for (ibyte = 0; ibyte < nbytes; ibyte++) {
     crcwk |= *src++;
@@ -32,3 +35,4 @@ calc_crc_16_ccitt(unsigned char *src, int nbytes)
   }
   return (uint16_t)(crcwk >> 8);
 }
+
