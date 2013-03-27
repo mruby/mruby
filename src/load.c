@@ -375,7 +375,6 @@ error_exit:
 int32_t
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
-  size_t n;
   int result;
   int32_t total_nirep = 0;
   uint8_t *buf;
