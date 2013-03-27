@@ -305,12 +305,7 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *metho
   m = mrb_intern(mrb, method);
   if (!mrb_respond_to(mrb, val, m)) {
     if (raise) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into %s",
-         mrb_nil_p(val) ? "nil" :
-         (mrb_type(val) == MRB_TT_TRUE) ? "true" :
-         (mrb_type(val) == MRB_TT_FALSE) ? "false" :
-         mrb_obj_classname(mrb, val),
-         tname);
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into %S", val, mrb_str_new_cstr(mrb, tname));
       return mrb_nil_value();
     }
     else {
@@ -341,8 +336,8 @@ mrb_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *tname,
   if (mrb_type(val) == type) return val;
   v = convert_type(mrb, val, tname, method, 1/*Qtrue*/);
   if (mrb_type(v) != type) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "%s cannot be converted to %s by #%s",
-      mrb_obj_classname(mrb, val), tname, method);
+    mrb_raisef(mrb, E_TYPE_ERROR, "%S cannot be converted to %S by #%S", val,
+               mrb_str_new_cstr(mrb, tname), mrb_str_new_cstr(mrb, method));
   }
   return v;
 }
@@ -416,12 +411,13 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
         else {
           etype = mrb_obj_classname(mrb, x);
         }
-        mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %s (expected %s)",
-          etype, type->name);
+        mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %S (expected %S)",
+                   mrb_str_new_cstr(mrb, etype), mrb_str_new_cstr(mrb, type->name));
       }
       type++;
     }
-    mrb_raisef(mrb, E_TYPE_ERROR, "unknown type 0x%x (0x%x given)", t, mrb_type(x));
+    mrb_raisef(mrb, E_TYPE_ERROR, "unknown type %S (%S given)",
+               mrb_fixnum_value(t), mrb_fixnum_value(mrb_type(x)));
   }
 }
 
@@ -507,9 +503,8 @@ mrb_to_integer(mrb_state *mrb, mrb_value val, const char *method)
     if (mrb_fixnum_p(val)) return val;
     v = convert_type(mrb, val, "Integer", method, TRUE);
     if (!mrb_obj_is_kind_of(mrb, v, mrb->fixnum_class)) {
-      const char *cname = mrb_obj_classname(mrb, val);
-      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s to Integer (%s#%s gives %s)",
-               cname, cname, method, mrb_obj_classname(mrb, v));
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s to Integer (%S#%S gives %S)",
+                 val, val, mrb_str_new_cstr(mrb, method), v);
     }
     return v;
 }

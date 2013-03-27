@@ -134,8 +134,8 @@ stack_extend(mrb_state *mrb, int room, int keep)
     envadjust(mrb, oldbase, mrb->stbase);
     /* Raise an exception if the new stack size will be too large,
     to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raisef has stack space to work with. */
-    if(size > MRB_STACK_MAX) {
-      mrb_raisef(mrb, E_RUNTIME_ERROR, "stack level too deep. (limit=%d)", MRB_STACK_MAX);
+    if (size > MRB_STACK_MAX) {
+      mrb_raisef(mrb, E_RUNTIME_ERROR, "stack level too deep. (limit=%S)", mrb_fixnum_value(MRB_STACK_MAX));
     }
   }
 
@@ -275,7 +275,7 @@ mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
     int i;
 
     if (argc > MRB_FUNCALL_ARGC_MAX) {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=%d)", MRB_FUNCALL_ARGC_MAX);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=%S)", mrb_fixnum_value(MRB_FUNCALL_ARGC_MAX));
     }
 
     va_start(ap, argc);
@@ -323,7 +323,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
     }
     n = mrb->ci->nregs;
     if (argc < 0) {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%d)", argc);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%S)", mrb_fixnum_value(argc));
     }
     c = mrb_class(mrb, self);
     p = mrb_method_search_vm(mrb, &c, mid);

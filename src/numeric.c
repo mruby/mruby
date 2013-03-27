@@ -1039,8 +1039,9 @@ static mrb_value
 lshift(mrb_state *mrb, mrb_int val, int width)
 {
   if (width > NUMERIC_SHIFT_WIDTH_MAX) {
-      mrb_raisef(mrb, E_RANGE_ERROR, "width(%d) > (%d:sizeof(mrb_int)*CHAR_BIT-1)", width,
-        NUMERIC_SHIFT_WIDTH_MAX);
+    mrb_raisef(mrb, E_RANGE_ERROR, "width(%S) > (%S:sizeof(mrb_int)*CHAR_BIT-1)",
+               mrb_fixnum_value(width),
+               mrb_fixnum_value(NUMERIC_SHIFT_WIDTH_MAX));
   }
   val = val << width;
   return mrb_fixnum_value(val);
@@ -1283,7 +1284,7 @@ mrb_fix2str(mrb_state *mrb, mrb_value x, int base)
   mrb_int val = mrb_fixnum(x);
 
   if (base < 2 || 36 < base) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %d", base);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %S", mrb_fixnum_value(base));
   }
 
   if (val == 0) {

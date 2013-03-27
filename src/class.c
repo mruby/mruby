@@ -177,11 +177,11 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
     c = mrb_class_ptr(v);
     if (!mrb_nil_p(super)) {
       if (mrb_type(super) != MRB_TT_CLASS) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "superclass must be a Class (%s given)", mrb_obj_classname(mrb, super));
+        mrb_raisef(mrb, E_TYPE_ERROR, "superclass must be a Class (%S given)", super);
       }
 
       if (!c->super || mrb_class_ptr(super) != mrb_class_real(c->super)) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "superclass mismatch for class %s", mrb_sym2name(mrb, id));
+        mrb_raisef(mrb, E_TYPE_ERROR, "superclass mismatch for class %S", mrb_sym2str(mrb, id));
       }
     }
     return c;
@@ -189,7 +189,7 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
 
   if (!mrb_nil_p(super)) {
     if (mrb_type(super) != MRB_TT_CLASS) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "superclass must be a Class (%s given)", mrb_obj_classname(mrb, super));
+      mrb_raisef(mrb, E_TYPE_ERROR, "superclass must be a Class (%S given)", super);
     }
     s = mrb_class_ptr(super);
   }
@@ -216,7 +216,7 @@ class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
   mrb_value c = mrb_const_get(mrb, mrb_obj_value(klass), id);
 
   if (mrb_type(c) != MRB_TT_MODULE && mrb_type(c) != MRB_TT_CLASS) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "%s is not a class/module", mrb_sym2name(mrb, id));
+    mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a class/module", mrb_sym2str(mrb, id));
   }
   return mrb_class_ptr(c);
 }
@@ -252,13 +252,13 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
   if (mrb_const_defined_at(mrb, outer, id)) {
     c = class_from_sym(mrb, outer, id);
     if (mrb_class_real(c->super) != super) {
-        mrb_name_error(mrb, id, "%s is already defined", mrb_sym2name(mrb, id));
+        mrb_name_error(mrb, id, "%S is already defined", mrb_sym2str(mrb, id));
     }
     return c;
   }
   if (!super) {
-    mrb_warn("no super class for `%s::%s', Object assumed",
-             mrb_obj_classname(mrb, mrb_obj_value(outer)), mrb_sym2name(mrb, id));
+    mrb_warn("no super class for `%S::%S', Object assumed",
+             mrb_obj_value(outer), mrb_sym2str(mrb, id));
   }
   c = mrb_class_new(mrb, super);
   setup_class(mrb, mrb_obj_value(outer), c, id);
@@ -337,7 +337,7 @@ check_type(mrb_state *mrb, mrb_value val, enum mrb_vtype t, const char *c, const
 
   tmp = mrb_check_convert_type(mrb, val, t, c, m);
   if (mrb_nil_p(tmp)) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "expected %s", c);
+    mrb_raisef(mrb, E_TYPE_ERROR, "expected %S", mrb_str_new_cstr(mrb, c));
   }
   return tmp;
 }
@@ -606,8 +606,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           }
           else {
             mrb_value obj = mrb_funcall(mrb, ss, "inspect", 0);
-            mrb_raisef(mrb, E_TYPE_ERROR, "%s is not a symbol",
-                mrb_string_value_ptr(mrb, obj));
+            mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol", obj);
           }
           i++;
         }
@@ -655,7 +654,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       }
       break;
     default:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid argument specifier %c", c);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid argument specifier %S", mrb_str_new(mrb, &c, 1));
       break;
     }
   }
@@ -981,8 +980,8 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
     if (RSTRING_LEN(inspect) > 64) {
       inspect = mrb_any_to_s(mrb, mrb_obj_value(c));
     }
-    mrb_raisef(mrb, E_NAME_ERROR, "undefined method '%s' for class %s",
-        mrb_sym2name(mrb, mid), RSTRING_PTR(inspect));
+    mrb_raisef(mrb, E_NAME_ERROR, "undefined method '%S' for class %S",
+               mrb_sym2str(mrb, mid), inspect);
   }
   return m;
 }
@@ -1147,8 +1146,8 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
     inspect = mrb_any_to_s(mrb, mod);
   }
 
-  mrb_raisef(mrb, E_NOMETHOD_ERROR, "undefined method '%s' for %s",
-      mrb_sym2name(mrb, mrb_symbol(name)), RSTRING_PTR(inspect));
+  mrb_raisef(mrb, E_NOMETHOD_ERROR, "undefined method '%S' for %S",
+             mrb_sym2str(mrb, mrb_symbol(name)), inspect);
   /* not reached */
   return mrb_nil_value();
 }
@@ -1250,8 +1249,7 @@ void
 mrb_check_inheritable(mrb_state *mrb, struct RClass *super)
 {
   if (super->tt != MRB_TT_CLASS) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "superclass must be a Class (%s given)",
-           mrb_obj_classname(mrb, mrb_obj_value(super)));
+    mrb_raisef(mrb, E_TYPE_ERROR, "superclass must be a Class (%S given)", mrb_obj_value(super));
   }
   if (super->tt == MRB_TT_SCLASS) {
     mrb_raise(mrb, E_TYPE_ERROR, "can't make subclass of singleton class");

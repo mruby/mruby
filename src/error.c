@@ -281,16 +281,12 @@ void
 mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
 {
   va_list args;
-  char buf[256];
-  int n;
+  mrb_value mesg;
 
   va_start(args, fmt);
-  n = vsnprintf(buf, sizeof(buf), fmt, args);
+  mesg = mrb_vformat(mrb, fmt, args);
   va_end(args);
-  if (n < 0) {
-    n = 0;
-  }
-  mrb_exc_raise(mrb, mrb_exc_new(mrb, c, buf, n));
+  mrb_exc_raise(mrb, mrb_exc_new3(mrb, c, mesg));
 }
 
 void
@@ -393,7 +389,7 @@ exception_call:
 
       break;
     default:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 0..3)", argc);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for 0..3)", mrb_fixnum_value(argc));
       break;
   }
   if (argc > 0) {
