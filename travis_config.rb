@@ -1,7 +1,6 @@
 MRuby::Build.new do |conf|
   toolchain :gcc
 
-
   conf.gem "#{root}/mrbgems/mruby-sprintf"
   conf.gem "#{root}/mrbgems/mruby-print"
 
