@@ -235,7 +235,7 @@ main(int argc, char **argv)
   /* new interpreter instance */
   mrb = mrb_open();
   if (mrb == NULL) {
-    fprintf(stderr, "Invalid mrb interpreter, exiting mirb");
+    fputs("Invalid mrb interpreter, exiting mirb\n", stderr);
     return EXIT_FAILURE;
   }
 
@@ -262,7 +262,7 @@ main(int argc, char **argv)
       last_code_line[char_index++] = last_char;
     }
     if (last_char == EOF) {
-      printf("\n");
+      fputs("\n", stdout);
       break;
     }
 

@@ -235,7 +235,7 @@ main(int argc, char **argv)
   mrb_value ARGV;
 
   if (mrb == NULL) {
-    fprintf(stderr, "Invalid mrb_state, exiting mruby\n");
+    fputs("Invalid mrb_state, exiting mruby\n", stderr);
     return EXIT_FAILURE;
   }
 

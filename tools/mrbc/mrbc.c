@@ -182,7 +182,7 @@ main(int argc, char **argv)
   mrb_value result;
 
   if (mrb == NULL) {
-    fprintf(stderr, "Invalid mrb_state, exiting mrbc");
+    fputs("Invalid mrb_state, exiting mrbc\n", stderr);
     return EXIT_FAILURE;
   }
 
@@ -204,7 +204,7 @@ main(int argc, char **argv)
     return EXIT_FAILURE;
   }
   if (args.check_syntax) {
-    printf("Syntax OK\n");
+    puts("Syntax OK");
     cleanup(mrb, &args);
     return EXIT_SUCCESS;
   }
