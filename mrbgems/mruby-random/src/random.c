@@ -29,7 +29,7 @@ static mt_state *mrb_mt_get_context(mrb_state *mrb,  mrb_value self)
   mrb_value context;
 
   context = mrb_iv_get(mrb, self, mrb_intern(mrb, MT_STATE_KEY));
-  Data_Get_Struct(mrb, context, &mt_state_type, t);
+  t = (mt_state *)mrb_check_datatype(mrb, context, &mt_state_type);
   if (!t)
     mrb_raise(mrb, E_RUNTIME_ERROR, "mt_state get from mrb_iv_get failed");
 
