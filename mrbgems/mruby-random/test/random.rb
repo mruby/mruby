@@ -15,6 +15,14 @@ assert("Kernel::srand") do
   r1 == r2
 end
 
+assert("Random::srand") do
+  Random.srand(345)
+  r1 = rand
+  srand(345)
+  r2 = Random.rand
+  r1 == r2
+end
+
 assert("fixnum") do
   rand(3).class == Fixnum
 end
