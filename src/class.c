@@ -1473,7 +1473,7 @@ check_cv_name(mrb_state *mrb, mrb_sym id)
 
   s = mrb_sym2name_len(mrb, id, &len);
   if (len < 3 || !(s[0] == '@' && s[1] == '@')) {
-    mrb_name_error(mrb, id, "`%s' is not allowed as a class variable name", s);
+    mrb_name_error(mrb, id, "`%S' is not allowed as a class variable name", mrb_sym2str(mrb, id));
   }
 }
 
@@ -1595,12 +1595,12 @@ mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
   if (!mrb_undef_p(val)) return val;
 
   if (mrb_cv_defined(mrb, mod, id)){
-    mrb_name_error(mrb, id, "cannot remove %s for %s",
-        mrb_sym2name(mrb, id), mrb_class_name(mrb, mrb_class_ptr(mod)));
+    mrb_name_error(mrb, id, "cannot remove %S for %S",
+                   mrb_sym2str(mrb, id), mod);
   }
 
-  mrb_name_error(mrb, id, "class variable %s not defined for %s",
-      mrb_sym2name(mrb, id), mrb_class_name(mrb, mrb_class_ptr(mod)));
+  mrb_name_error(mrb, id, "class variable %S not defined for %S",
+                 mrb_sym2str(mrb, id), mod);
 
  /* not reached */
  return mrb_nil_value();
@@ -1645,8 +1645,9 @@ mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
 }
 
 static void
-remove_method(mrb_state *mrb, struct RClass *c, mrb_sym mid)
+remove_method(mrb_state *mrb, mrb_value mod, mrb_sym mid)
 {
+  struct RClass *c = mrb_class_ptr(mod);
   khash_t(mt) *h = c->mt;
   khiter_t k;
 
@@ -1658,8 +1659,8 @@ remove_method(mrb_state *mrb, struct RClass *c, mrb_sym mid)
     }
   }
 
-  mrb_name_error(mrb, mid, "method `%s' not defined in %s",
-    mrb_sym2name(mrb, mid), mrb_class_name(mrb, c));
+  mrb_name_error(mrb, mid, "method `%S' not defined in %S",
+    mrb_sym2str(mrb, mid), mod);
 }
 
 /* 15.2.2.4.41 */
@@ -1674,13 +1675,12 @@ remove_method(mrb_state *mrb, struct RClass *c, mrb_sym mid)
 mrb_value
 mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
 {
-  struct RClass *c = mrb_class_ptr(mod);
   int argc;
   mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   while (argc--) {
-    remove_method(mrb, c, mrb_symbol(*argv));
+    remove_method(mrb, mod, mrb_symbol(*argv));
     argv++;
   }
   return mod;
@@ -1694,7 +1694,7 @@ check_const_name(mrb_state *mrb, mrb_sym id)
 
   s = mrb_sym2name_len(mrb, id, &len);
   if (len < 1 || !ISUPPER(*s)) {
-    mrb_name_error(mrb, id, "wrong constant name %s", s);
+    mrb_name_error(mrb, id, "wrong constant name %S", mrb_sym2str(mrb, id));
   }
 }
 
@@ -1743,7 +1743,7 @@ mrb_mod_remove_const(mrb_state *mrb, mrb_value mod)
   check_const_name(mrb, id);
   val = mrb_iv_remove(mrb, mod, id);
   if (mrb_undef_p(val)) {
-    mrb_name_error(mrb, id, "constant %s not defined", mrb_sym2name(mrb, id));
+    mrb_name_error(mrb, id, "constant %S not defined", mrb_sym2str(mrb, id));
   }
   return val;
 }

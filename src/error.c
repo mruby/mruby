@@ -292,18 +292,14 @@ mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
 void
 mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
 {
-  mrb_value exc, argv[2];
+  mrb_value exc;
+  mrb_value argv[2];
   va_list args;
-  char buf[256];
-  int n;
 
   va_start(args, fmt);
-  n = vsnprintf(buf, sizeof(buf), fmt, args);
+  argv[0] = mrb_vformat(mrb, fmt, args);
   va_end(args);
-  if (n < 0) {
-    n = 0;
-  }
-  argv[0] = mrb_str_new(mrb, buf, n);
+
   argv[1] = mrb_symbol_value(id); /* ignore now */
   exc = mrb_class_new_instance(mrb, 1, argv, E_NAME_ERROR);
   mrb_exc_raise(mrb, exc);
