@@ -67,8 +67,8 @@ mrb_struct_members(mrb_state *mrb, mrb_value s)
   if (!strcmp(mrb_class_name(mrb, mrb_obj_class(mrb, s)), "Struct")) {
     if (RSTRUCT_LEN(s) != RARRAY_LEN(members)) {
       mrb_raisef(mrb, E_TYPE_ERROR,
-                 "struct size differs (%" PRIdMRB_INT " required %" PRIdMRB_INT " given)",
-                 RARRAY_LEN(members), RSTRUCT_LEN(s));
+                 "struct size differs (%S required %S given)",
+                 mrb_fixnum_value(RARRAY_LEN(members)), mrb_fixnum_value(RSTRUCT_LEN(s)));
     }
   }
   return members;
@@ -125,7 +125,7 @@ mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
       return ptr[i];
     }
   }
-  mrb_raisef(mrb, E_NAME_ERROR, "%s is not struct member", mrb_sym2name(mrb, id));
+  mrb_raisef(mrb, E_NAME_ERROR, "%S is not struct member", mrb_sym2str(mrb, id));
   return mrb_nil_value();       /* not reached */
 }
 
@@ -204,8 +204,8 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
       return ptr[i] = val;
     }
   }
-  mrb_raisef(mrb, E_NAME_ERROR, "`%s' is not a struct member",
-             mrb_sym2name(mrb, mid));
+  mrb_raisef(mrb, E_NAME_ERROR, "`%S' is not a struct member",
+             mrb_sym2str(mrb, mid));
   return mrb_nil_value();            /* not reached */
 }
 
@@ -249,7 +249,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     name = mrb_str_to_str(mrb, name);
     id = mrb_to_id(mrb, name);
     if (!mrb_is_const_id(id)) {
-      mrb_raisef(mrb, E_NAME_ERROR, "identifier %s needs to be constant", mrb_string_value_ptr(mrb, name));
+      mrb_raisef(mrb, E_NAME_ERROR, "identifier %S needs to be constant", name);
     }
     if (mrb_const_defined_at(mrb, klass, id)) {
       mrb_warn("redefining constant Struct::%s", mrb_string_value_ptr(mrb, name));
@@ -544,7 +544,7 @@ mrb_struct_aref_id(mrb_state *mrb, mrb_value s, mrb_sym id)
       return ptr[i];
     }
   }
-  mrb_raisef(mrb, E_NAME_ERROR, "no member '%s' in struct", mrb_sym2name(mrb, id));
+  mrb_raisef(mrb, E_NAME_ERROR, "no member '%S' in struct", mrb_sym2str(mrb, id));
   return mrb_nil_value();       /* not reached */
 }
 
@@ -580,12 +580,12 @@ mrb_struct_aref_n(mrb_state *mrb, mrb_value s, mrb_value idx)
   if (i < 0) i = RSTRUCT_LEN(s) + i;
   if (i < 0)
       mrb_raisef(mrb, E_INDEX_ERROR,
-                 "offset %" PRIdMRB_INT " too small for struct(size:%" PRIdMRB_INT ")",
-                 i, RSTRUCT_LEN(s));
+                 "offset %S too small for struct(size:%S)",
+                 mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
   if (RSTRUCT_LEN(s) <= i)
     mrb_raisef(mrb, E_INDEX_ERROR,
-               "offset %" PRIdMRB_INT " too large for struct(size:%" PRIdMRB_INT ")",
-               i, RSTRUCT_LEN(s));
+               "offset %S too large for struct(size:%S)",
+               mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
   return RSTRUCT_PTR(s)[i];
 }
 
@@ -608,8 +608,8 @@ mrb_struct_aset_id(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
   len = RARRAY_LEN(members);
   if (RSTRUCT_LEN(s) != len) {
     mrb_raisef(mrb, E_TYPE_ERROR,
-               "struct size differs (%" PRIdMRB_INT " required %" PRIdMRB_INT " given)",
-               len, RSTRUCT_LEN(s));
+               "struct size differs (%S required %S given)",
+               mrb_fixnum_value(len), mrb_fixnum_value(RSTRUCT_LEN(s)));
   }
   ptr = RSTRUCT_PTR(s);
   ptr_members = RARRAY_PTR(members);
@@ -619,7 +619,7 @@ mrb_struct_aset_id(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
       return val;
     }
   }
-  mrb_raisef(mrb, E_NAME_ERROR, "no member '%s' in struct", mrb_sym2name(mrb, id));
+  mrb_raisef(mrb, E_NAME_ERROR, "no member '%S' in struct", mrb_sym2str(mrb, id));
   return val;                   /* not reach */
 }
 
@@ -662,13 +662,13 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
   if (i < 0) i = RSTRUCT_LEN(s) + i;
   if (i < 0) {
     mrb_raisef(mrb, E_INDEX_ERROR,
-               "offset %" PRIdMRB_INT " too small for struct(size:%" PRIdMRB_INT ")",
-               i, RSTRUCT_LEN(s));
+               "offset %S too small for struct(size:%S)",
+               mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
   }
   if (RSTRUCT_LEN(s) <= i) {
     mrb_raisef(mrb, E_INDEX_ERROR,
-               "offset %" PRIdMRB_INT " too large for struct(size:%" PRIdMRB_INT ")",
-               i, RSTRUCT_LEN(s));
+               "offset %S too large for struct(size:%S)",
+               mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
   }
   return RSTRUCT_PTR(s)[i] = val;
 }
