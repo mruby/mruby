@@ -249,10 +249,16 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
       }
     }
     else if (c == '\\') {
-      if (!*p) break;
-      p++;
+      if (*p) {
+        size = p - b - 1;
+        mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
+        mrb_ary_push(mrb, ary, mrb_str_new(mrb, p, 1));
+        b = ++p;
+      }
+      else {
+        break;
+      }
     }
-    p++;
   }
   if (b == format) {
     return mrb_str_new_cstr(mrb, format);
