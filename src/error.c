@@ -259,7 +259,6 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
         break;
       }
     }
-    p++;
   }
   if (b == format) {
     return mrb_str_new_cstr(mrb, format);
