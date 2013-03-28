@@ -233,6 +233,7 @@ read_rite_lineno_record(mrb_state *mrb, const uint8_t *bin, size_t irepno, uint3
   char *fname;
   short *lines;
 
+  ret = MRB_DUMP_OK;
   bin += sizeof(uint32_t); // record size
   fname_len = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
@@ -258,7 +259,7 @@ read_rite_lineno_record(mrb_state *mrb, const uint8_t *bin, size_t irepno, uint3
   mrb->irep[irepno]->lines = lines;
 
 error_exit:
-  return MRB_DUMP_OK;
+  return ret;
 }
 
 static int
@@ -271,6 +272,7 @@ read_rite_section_lineno(mrb_state *mrb, const uint8_t *bin, size_t sirep)
   uint16_t n;
   const struct rite_section_lineno_header *header;
 
+  len = 0;
   header = (const struct rite_section_lineno_header*)bin;
   bin += sizeof(struct rite_section_lineno_header);
 
@@ -397,7 +399,9 @@ read_rite_section_lineno_file(mrb_state *mrb, FILE *fp, size_t sirep)
   const size_t record_header_size = 4;
 
   struct rite_section_lineno_header header;
-  fread(&header, sizeof(struct rite_section_lineno_header), 1, fp);
+  if (fread(&header, sizeof(struct rite_section_lineno_header), 1, fp) == 0) {
+    /* 0 Items read */
+  }
 
   nirep = bin_to_uint16(header.nirep);
 
@@ -406,11 +410,15 @@ read_rite_section_lineno_file(mrb_state *mrb, FILE *fp, size_t sirep)
   
   //Read Binary Data Section
   for (n = 0, i = sirep; n < nirep; n++, i++) {
-    fread(buf, record_header_size, 1, fp);
+    if (fread(buf, record_header_size, 1, fp) == 0) {
+      /* 0 Items read */
+    }
     buf_size = bin_to_uint32(&buf[0]);
     buf = (uint8_t *)mrb_realloc(mrb, buf, buf_size);
 
-    fread(&buf[record_header_size], buf_size - record_header_size, 1, fp);
+    if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) == 0) {
+      /* 0 Items read */
+    }
     result = read_rite_lineno_record(mrb, buf, i, &len);
     if (result != MRB_DUMP_OK)
       goto error_exit;
