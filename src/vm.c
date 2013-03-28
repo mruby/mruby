@@ -464,20 +464,19 @@ localjump_error(mrb_state *mrb, localjump_error_kind kind)
 static void
 argnum_error(mrb_state *mrb, int num)
 {
-  char buf[256];
-  size_t len;
   mrb_value exc;
+  mrb_value str;
 
   if (mrb->ci->mid) {
-    len = snprintf(buf, sizeof(buf), "'%s': wrong number of arguments (%d for %d)",
-                  mrb_sym2name(mrb, mrb->ci->mid),
-                  mrb->ci->argc, num);
+    str = mrb_format(mrb, "'%S': wrong number of arguments (%S for %S)",
+                  mrb_sym2str(mrb, mrb->ci->mid),
+                  mrb_fixnum_value(mrb->ci->argc), mrb_fixnum_value(num));
   }
   else {
-    len = snprintf(buf, sizeof(buf), "wrong number of arguments (%d for %d)",
-                  mrb->ci->argc, num);
+    str = mrb_format(mrb, "wrong number of arguments (%S for %S)",
+                  mrb_fixnum_value(mrb->ci->argc), mrb_fixnum_value(num));
   }
-  exc = mrb_exc_new(mrb, E_ARGUMENT_ERROR, buf, len);
+  exc = mrb_exc_new3(mrb, E_ARGUMENT_ERROR, str);
   mrb->exc = mrb_obj_ptr(exc);
 }
 
