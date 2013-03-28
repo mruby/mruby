@@ -76,6 +76,8 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
   size += irep->plen * (sizeof(uint8_t) + sizeof(uint16_t)); /* len(n) */
 
   for (pool_no = 0; pool_no < irep->plen; pool_no++) {
+    int ai = mrb_gc_arena_save(mrb);
+
     switch (mrb_type(irep->pool[pool_no])) {
     case MRB_TT_FIXNUM:
       str = mrb_fix2str(mrb, irep->pool[pool_no], 10);
@@ -95,6 +97,8 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
     default:
       break;
     }
+
+    mrb_gc_arena_restore(mrb, ai);
   }
 
   return size;
@@ -120,6 +124,8 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
   cur += uint32_to_bin(irep->plen, cur); /* number of pool */
 
   for (pool_no = 0; pool_no < irep->plen; pool_no++) {
+    int ai = mrb_gc_arena_save(mrb);
+
     cur += uint8_to_bin(mrb_type(irep->pool[pool_no]), cur); /* data type */
     memset(char_buf, 0, buf_size);
 
@@ -141,6 +147,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
         buf_size = len + 1;
         char_buf = (char *)mrb_realloc(mrb, char_buf, buf_size);
         if (char_buf == NULL) {
+          mrb_gc_arena_restore(mrb, ai);
           result = MRB_DUMP_GENERAL_FAILURE;
           goto error_exit;
         }
@@ -157,6 +164,8 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
     cur += uint16_to_bin(len, cur); /* data length */
     memcpy(cur, char_buf, len);
     cur += len;
+
+    mrb_gc_arena_restore(mrb, ai);
   }
   result = (int)(cur - buf);
 
