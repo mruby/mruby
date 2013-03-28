@@ -503,7 +503,7 @@ mrb_to_integer(mrb_state *mrb, mrb_value val, const char *method)
     if (mrb_fixnum_p(val)) return val;
     v = convert_type(mrb, val, "Integer", method, TRUE);
     if (!mrb_obj_is_kind_of(mrb, v, mrb->fixnum_class)) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s to Integer (%S#%S gives %S)",
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S to Integer (%S#%S gives %S)",
                  val, val, mrb_str_new_cstr(mrb, method), v);
     }
     return v;
