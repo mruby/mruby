@@ -5,7 +5,12 @@
 */
 
 #include <ctype.h>
-#include <limits.h>
+#ifndef SIZE_MAX
+ /* Some versions of VC++
+  * has SIZE_MAX in stdint.h
+  */
+# include <limits.h>
+#endif
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
