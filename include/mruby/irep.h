@@ -23,7 +23,7 @@ typedef struct mrb_irep {
 
   /* debug info */
   const char *filename;
-  short *lines;
+  uint16_t *lines;
 
   size_t ilen, plen, slen;
 } mrb_irep;
