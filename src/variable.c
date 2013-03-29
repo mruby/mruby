@@ -531,7 +531,7 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   else {
     mrb_str_cat(mrb, str, ", ", 2);
   }
-  s = mrb_sym2name_len(mrb, sym, &len);
+  s = mrb_sym_to_name_len(mrb, sym, &len);
   mrb_str_cat(mrb, str, s, len);
   mrb_str_cat(mrb, str, "=", 1);
   mrb_str_append(mrb, str, mrb_inspect(mrb, v));
@@ -596,7 +596,7 @@ iv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   size_t len;
 
   ary = *(mrb_value*)p;
-  s = mrb_sym2name_len(mrb, sym, &len);
+  s = mrb_sym_to_name_len(mrb, sym, &len);
   if (len > 1 && s[0] == '@' && s[1] != '@') {
     mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   }
@@ -640,7 +640,7 @@ cv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   size_t len;
 
   ary = *(mrb_value*)p;
-  s = mrb_sym2name_len(mrb, sym, &len);
+  s = mrb_sym_to_name_len(mrb, sym, &len);
   if (len > 2 && s[0] == '@' && s[1] == '@') {
     mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   }
@@ -691,7 +691,7 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym)
     c = c->super;
   }
   mrb_raisef(mrb, E_NAME_ERROR, "uninitialized class variable %S in %S",
-             mrb_sym2str(mrb, sym), cls);
+             mrb_sym_to_str(mrb, sym), cls);
   /* not reached */
   return mrb_nil_value();
 }
@@ -847,7 +847,7 @@ L_RETRY:
     c = c->super;
   }
   mrb_raisef(mrb, E_NAME_ERROR, "uninitialized constant %S",
-             mrb_sym2str(mrb, sym));
+             mrb_sym_to_str(mrb, sym));
   /* not reached */
   return mrb_nil_value();
 }

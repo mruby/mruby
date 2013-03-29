@@ -180,7 +180,7 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
       }
 
       if (!c->super || mrb_class_ptr(super) != mrb_class_real(c->super)) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "superclass mismatch for class %S", mrb_sym2str(mrb, id));
+        mrb_raisef(mrb, E_TYPE_ERROR, "superclass mismatch for class %S", mrb_sym_to_str(mrb, id));
       }
     }
     return c;
@@ -215,7 +215,7 @@ class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
   mrb_value c = mrb_const_get(mrb, mrb_obj_value(klass), id);
 
   if (mrb_type(c) != MRB_TT_MODULE && mrb_type(c) != MRB_TT_CLASS) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a class/module", mrb_sym2str(mrb, id));
+    mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a class/module", mrb_sym_to_str(mrb, id));
   }
   return mrb_class_ptr(c);
 }
@@ -251,13 +251,13 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
   if (mrb_const_defined_at(mrb, outer, id)) {
     c = class_from_sym(mrb, outer, id);
     if (mrb_class_real(c->super) != super) {
-        mrb_name_error(mrb, id, "%S is already defined", mrb_sym2str(mrb, id));
+        mrb_name_error(mrb, id, "%S is already defined", mrb_sym_to_str(mrb, id));
     }
     return c;
   }
   if (!super) {
     mrb_warn("no super class for `%S::%S', Object assumed",
-             mrb_obj_value(outer), mrb_sym2str(mrb, id));
+             mrb_obj_value(outer), mrb_sym_to_str(mrb, id));
   }
   c = mrb_class_new(mrb, super);
   setup_class(mrb, mrb_obj_value(outer), c, id);
@@ -980,7 +980,7 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
       inspect = mrb_any_to_s(mrb, mrb_obj_value(c));
     }
     mrb_raisef(mrb, E_NAME_ERROR, "undefined method '%S' for class %S",
-               mrb_sym2str(mrb, mid), inspect);
+               mrb_sym_to_str(mrb, mid), inspect);
   }
   return m;
 }
@@ -1146,7 +1146,7 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
   }
 
   mrb_raisef(mrb, E_NOMETHOD_ERROR, "undefined method '%S' for %S",
-             mrb_sym2str(mrb, mrb_symbol(name)), inspect);
+             mrb_sym_to_str(mrb, mrb_symbol(name)), inspect);
   /* not reached */
   return mrb_nil_value();
 }
@@ -1199,11 +1199,11 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
     else if (outer && outer != mrb->object_class) {
       mrb_value base = mrb_class_path(mrb, outer);
       path = mrb_str_plus(mrb, base, mrb_str_new(mrb, "::", 2));
-      name = mrb_sym2name_len(mrb, sym, &len);
+      name = mrb_sym_to_name_len(mrb, sym, &len);
       mrb_str_concat(mrb, path, mrb_str_new(mrb, name, len));
     }
     else {
-      name = mrb_sym2name_len(mrb, sym, &len);
+      name = mrb_sym_to_name_len(mrb, sym, &len);
       path = mrb_str_new(mrb, name, len);
     }
     mrb_obj_iv_set(mrb, (struct RObject*)c, classpath, path);
@@ -1470,9 +1470,9 @@ check_cv_name(mrb_state *mrb, mrb_sym id)
   const char *s;
   size_t len;
 
-  s = mrb_sym2name_len(mrb, id, &len);
+  s = mrb_sym_to_name_len(mrb, id, &len);
   if (len < 3 || !(s[0] == '@' && s[1] == '@')) {
-    mrb_name_error(mrb, id, "`%S' is not allowed as a class variable name", mrb_sym2str(mrb, id));
+    mrb_name_error(mrb, id, "`%S' is not allowed as a class variable name", mrb_sym_to_str(mrb, id));
   }
 }
 
@@ -1595,11 +1595,11 @@ mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
 
   if (mrb_cv_defined(mrb, mod, id)){
     mrb_name_error(mrb, id, "cannot remove %S for %S",
-                   mrb_sym2str(mrb, id), mod);
+                   mrb_sym_to_str(mrb, id), mod);
   }
 
   mrb_name_error(mrb, id, "class variable %S not defined for %S",
-                 mrb_sym2str(mrb, id), mod);
+                 mrb_sym_to_str(mrb, id), mod);
 
  /* not reached */
  return mrb_nil_value();
@@ -1659,7 +1659,7 @@ remove_method(mrb_state *mrb, mrb_value mod, mrb_sym mid)
   }
 
   mrb_name_error(mrb, mid, "method `%S' not defined in %S",
-    mrb_sym2str(mrb, mid), mod);
+    mrb_sym_to_str(mrb, mid), mod);
 }
 
 /* 15.2.2.4.41 */
@@ -1691,9 +1691,9 @@ check_const_name(mrb_state *mrb, mrb_sym id)
   const char *s;
   size_t len;
 
-  s = mrb_sym2name_len(mrb, id, &len);
+  s = mrb_sym_to_name_len(mrb, id, &len);
   if (len < 1 || !ISUPPER(*s)) {
-    mrb_name_error(mrb, id, "wrong constant name %S", mrb_sym2str(mrb, id));
+    mrb_name_error(mrb, id, "wrong constant name %S", mrb_sym_to_str(mrb, id));
   }
 }
 
@@ -1742,7 +1742,7 @@ mrb_mod_remove_const(mrb_state *mrb, mrb_value mod)
   check_const_name(mrb, id);
   val = mrb_iv_remove(mrb, mod, id);
   if (mrb_undef_p(val)) {
-    mrb_name_error(mrb, id, "constant %S not defined", mrb_sym2str(mrb, id));
+    mrb_name_error(mrb, id, "constant %S not defined", mrb_sym_to_str(mrb, id));
   }
   return val;
 }

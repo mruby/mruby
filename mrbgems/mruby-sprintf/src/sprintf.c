@@ -614,7 +614,7 @@ retry:
           p++;
         if (id) {
           mrb_raisef(mrb, E_ARGUMENT_ERROR, "name%S after <%S>",
-                     mrb_str_new(mrb, start, p - start + 1), mrb_sym2str(mrb, id));
+                     mrb_str_new(mrb, start, p - start + 1), mrb_sym_to_str(mrb, id));
         }
         symname = mrb_str_new(mrb, start + 1, p - start - 1);
         id = mrb_intern_str(mrb, symname);

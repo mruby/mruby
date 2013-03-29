@@ -74,7 +74,7 @@ mrb_intern_str(mrb_state *mrb, mrb_value str)
 
 /* lenp must be a pointer to a size_t variable */
 const char*
-mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, size_t *lenp)
+mrb_sym_to_name_len(mrb_state *mrb, mrb_sym sym, size_t *lenp)
 {
   khash_t(n2s) *h = mrb->name2sym;
   khiter_t k;
@@ -183,7 +183,7 @@ mrb_sym_to_s(mrb_state *mrb, mrb_value sym)
   const char *p;
   size_t len;
 
-  p = mrb_sym2name_len(mrb, id, &len);
+  p = mrb_sym_to_name_len(mrb, id, &len);
   return mrb_str_new(mrb, p, len);
 }
 
@@ -336,7 +336,7 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   size_t len;
   mrb_sym id = mrb_symbol(sym);
 
-  name = mrb_sym2name_len(mrb, id, &len);
+  name = mrb_sym_to_name_len(mrb, id, &len);
   str = mrb_str_new(mrb, 0, len+1);
   RSTRING(str)->ptr[0] = ':';
   memcpy(RSTRING(str)->ptr+1, name, len);
@@ -348,10 +348,10 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
 }
 
 mrb_value
-mrb_sym2str(mrb_state *mrb, mrb_sym sym)
+mrb_sym_to_str(mrb_state *mrb, mrb_sym sym)
 {
   size_t len;
-  const char *name = mrb_sym2name_len(mrb, sym, &len);
+  const char *name = mrb_sym_to_name_len(mrb, sym, &len);
 
   if (!name) return mrb_undef_value(); /* can't happen */
   if (symname_p(name) && strlen(name) == len) {
@@ -363,10 +363,10 @@ mrb_sym2str(mrb_state *mrb, mrb_sym sym)
 }
 
 const char*
-mrb_sym2name(mrb_state *mrb, mrb_sym sym)
+mrb_sym_to_name(mrb_state *mrb, mrb_sym sym)
 {
   size_t len;
-  const char *name = mrb_sym2name_len(mrb, sym, &len);
+  const char *name = mrb_sym_to_name_len(mrb, sym, &len);
 
   if (!name) return NULL;
   if (symname_p(name) && strlen(name) == len) {
@@ -396,8 +396,8 @@ sym_cmp(mrb_state *mrb, mrb_value s1)
     int retval;
     size_t len, len1, len2;
 
-    p1 = mrb_sym2name_len(mrb, sym1, &len1);
-    p2 = mrb_sym2name_len(mrb, sym2, &len2);
+    p1 = mrb_sym_to_name_len(mrb, sym1, &len1);
+    p2 = mrb_sym_to_name_len(mrb, sym2, &len2);
     len = lesser(len1, len2);
     retval = memcmp(p1, p2, len);
     if (retval == 0) {

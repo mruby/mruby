@@ -554,9 +554,9 @@ check_iv_name(mrb_state *mrb, mrb_sym id)
   const char *s;
   size_t len;
 
-  s = mrb_sym2name_len(mrb, id, &len);
+  s = mrb_sym_to_name_len(mrb, id, &len);
   if (len < 2 || !(s[0] == '@' && s[1] != '@')) {
-    mrb_name_error(mrb, id, "`%S' is not allowed as an instance variable name", mrb_sym2str(mrb, id));
+    mrb_name_error(mrb, id, "`%S' is not allowed as an instance variable name", mrb_sym_to_str(mrb, id));
   }
 }
 
@@ -964,7 +964,7 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
   check_iv_name(mrb, sym);
   val = mrb_iv_remove(mrb, self, sym);
   if (mrb_undef_p(val)) {
-    mrb_name_error(mrb, sym, "instance variable %S not defined", mrb_sym2str(mrb, sym));
+    mrb_name_error(mrb, sym, "instance variable %S not defined", mrb_sym_to_str(mrb, sym));
   }
   return val;
 }
