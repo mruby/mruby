@@ -83,13 +83,11 @@
 #  define PRIoMRB_INT PRIo64
 #  define PRIxMRB_INT PRIx64
 #  define PRIXMRB_INT PRIX64
-#  define str_to_mrb_int(buf) strtoll(buf, NULL, 10)
 # endif
 #elif defined(MRB_INT16)
   typedef int16_t mrb_int;
 # define MRB_INT_MIN INT16_MIN
 # define MRB_INT_MAX INT16_MAX
-# define str_to_mrb_int(buf) strtol(buf, NULL, 10)
 #else
   typedef int32_t mrb_int;
 # define MRB_INT_MIN INT32_MIN
@@ -99,7 +97,6 @@
 # define PRIoMRB_INT PRIo32
 # define PRIxMRB_INT PRIx32
 # define PRIXMRB_INT PRIX32
-# define str_to_mrb_int(buf) strtol(buf, NULL, 10)
 #endif
 typedef short mrb_sym;
 
