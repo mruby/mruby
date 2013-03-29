@@ -23,6 +23,10 @@
 # endif
 #endif
 
+#if CHAR_BIT != 8
+# error This code assumes CHAR_BIT == 8
+#endif
+
 static size_t
 offset_crc_body()
 {
