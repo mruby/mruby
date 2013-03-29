@@ -226,7 +226,7 @@ read_rite_lineno_record(mrb_state *mrb, const uint8_t *bin, size_t irepno, uint3
   int ret;
   size_t i, fname_len, niseq;
   char *fname;
-  short *lines;
+  uint16_t *lines;
 
   ret = MRB_DUMP_OK;
   *len = 0;
@@ -249,7 +249,7 @@ read_rite_lineno_record(mrb_state *mrb, const uint8_t *bin, size_t irepno, uint3
   bin += sizeof(uint32_t); // niseq
   *len += sizeof(uint32_t);
 
-  lines = (short *)mrb_malloc(mrb, niseq * sizeof(short));
+  lines = (uint16_t *)mrb_malloc(mrb, niseq * sizeof(uint16_t));
   for (i = 0; i < niseq; i++) {
     lines[i] = bin_to_uint16(bin);
     bin += sizeof(uint16_t); // niseq
