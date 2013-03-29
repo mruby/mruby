@@ -20,6 +20,7 @@
 #include "mruby.h"
 #include "mruby/compile.h"
 #include "mruby/proc.h"
+#include "mruby/panic.h"
 #include "node.h"
 
 #include <errno.h>
@@ -3206,7 +3207,8 @@ backref_error(parser_state *p, node *n)
   } else if (c == NODE_BACK_REF) {
     yyerror_i(p, "can't set variable $%c", (int)(intptr_t)n->cdr);
   } else {
-    mrb_bug("Internal error in backref_error() : n=>car == %d", c);
+    yyerror_i(p, "Internal error in backref_error() : n=>car == %d", c);
+    mrb_panic(p->mrb);
   }
 }
 

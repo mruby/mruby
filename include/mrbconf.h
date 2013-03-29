@@ -53,6 +53,9 @@
 /* array size for parser buffer */
 //#define MRB_PARSER_BUF_SIZE 1024
 
+/* Default panic behavior */
+//#define MRB_PANIC_ABORT() abort()
+
 /* -DDISABLE_XXXX to drop following features */
 //#define DISABLE_STDIO		/* use of stdio */
 

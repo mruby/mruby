@@ -16,6 +16,7 @@
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/proc.h"
+#include "mruby/panic.h"
 #include "mruby/irep.h"
 
 mrb_value
@@ -216,7 +217,7 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
   exc_debug_info(mrb, mrb->exc);
   if (!mrb->jmp) {
     mrb_p(mrb, exc);
-    abort();
+    mrb_panic(mrb);
   }
   longjmp(*(jmp_buf*)mrb->jmp, 1);
 }
@@ -335,7 +336,7 @@ mrb_bug(const char *fmt, ...)
   vprintf(fmt, args);
   va_end(args);
 #endif
-  exit(EXIT_FAILURE);
+  mrb_panic(NULL);
 }
 
 int

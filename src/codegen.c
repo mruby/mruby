@@ -9,6 +9,7 @@
 #include "mruby/irep.h"
 #include "mruby/compile.h"
 #include "mruby/numeric.h"
+#include "mruby/panic.h"
 #include "opcode.h"
 #include "node.h"
 #include <string.h>
@@ -355,7 +356,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
 static void
 scope_error(codegen_scope *s)
 {
-  exit(1);
+  mrb_panic(s->mrb);
 }
 
 static inline void

@@ -42,6 +42,7 @@ typedef int32_t mrb_aspec;
 struct mrb_state;
 
 typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
+typedef void (*mrb_panic_hook) (struct mrb_state *mrb);
 
 #ifndef MRB_ARENA_SIZE
 #define MRB_ARENA_SIZE 100
@@ -69,6 +70,8 @@ enum gc_state {
 
 typedef struct mrb_state {
   void *jmp;
+
+  mrb_panic_hook panic_hook;
 
   mrb_allocf allocf;
 

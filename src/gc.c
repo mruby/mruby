@@ -361,7 +361,7 @@ add_gray_list(mrb_state *mrb, struct RBasic *obj)
 {
 #ifdef MRB_GC_STRESS
   if (obj->tt > MRB_TT_MAXDEFINE) {
-    abort();
+    mrb_panic(mrb);
   }
 #endif
   paint_gray(obj);
