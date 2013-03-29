@@ -208,7 +208,7 @@ showcallinfo(mrb_state *mrb)
     else
       sep = "#";
 
-    method = mrb_sym2name(mrb, ci->mid);
+    method = mrb_sym_to_name(mrb, ci->mid);
     if (method) {
       const char *cn = mrb_class_name(mrb, ci->proc->target_class);
 

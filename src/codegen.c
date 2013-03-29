@@ -693,7 +693,7 @@ attrsym(codegen_scope *s, mrb_sym a)
   size_t len;
   char *name2;
 
-  name = mrb_sym2name_len(s->mrb, a, &len);
+  name = mrb_sym_to_name_len(s->mrb, a, &len);
   name2 = (char *)codegen_palloc(s, len+1);
   memcpy(name2, name, len);
   name2[len] = '=';
@@ -790,7 +790,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
   pop_n(n+1);
   {
     size_t len;
-    const char *name = mrb_sym2name_len(s->mrb, sym, &len);
+    const char *name = mrb_sym_to_name_len(s->mrb, sym, &len);
 
     if (!noop && len == 1 && name[0] == '+')  {
       genop_peep(s, MKOP_ABC(OP_ADD, cursp(), idx, n), val);
@@ -1554,7 +1554,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       mrb_sym sym = sym(tree->cdr->car);
       size_t len;
-      const char *name = mrb_sym2name_len(s->mrb, sym, &len);
+      const char *name = mrb_sym_to_name_len(s->mrb, sym, &len);
       int idx;
 
       codegen(s, tree->car, VAL);
@@ -2518,7 +2518,7 @@ codedump(mrb_state *mrb, int n)
       break;
     case OP_LOADSYM:
       printf("OP_LOADSYM\tR%d\t:%s\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
+             mrb_sym_to_name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_LOADNIL:
       printf("OP_LOADNIL\tR%d\n", GETARG_A(c));
@@ -2534,38 +2534,38 @@ codedump(mrb_state *mrb, int n)
       break;
     case OP_GETGLOBAL:
       printf("OP_GETGLOBAL\tR%d\t:%s\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
+             mrb_sym_to_name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETGLOBAL:
       printf("OP_SETGLOBAL\t:%s\tR%d\n",
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
       break;
     case OP_GETCONST:
       printf("OP_GETCONST\tR%d\t:%s\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
+             mrb_sym_to_name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETCONST:
       printf("OP_SETCONST\t:%s\tR%d\n",
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
       break;
     case OP_GETMCNST:
       printf("OP_GETMCNST\tR%d\tR%d::%s\n", GETARG_A(c), GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
+             mrb_sym_to_name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETMCNST:
       printf("OP_SETMCNST\tR%d::%s\tR%d\n", GETARG_A(c)+1,
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
       break;
     case OP_GETIV:
       printf("OP_GETIV\tR%d\t%s\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
+             mrb_sym_to_name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETIV:
       printf("OP_SETIV\t%s\tR%d\n",
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
       break;
     case OP_GETUPVAR:
@@ -2578,11 +2578,11 @@ codedump(mrb_state *mrb, int n)
       break;
     case OP_GETCV:
       printf("OP_GETCV\tR%d\t%s\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
+             mrb_sym_to_name(mrb, irep->syms[GETARG_Bx(c)]));
       break;
     case OP_SETCV:
       printf("OP_SETCV\t%s\tR%d\n",
-             mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
       break;
     case OP_JMP:
@@ -2596,17 +2596,17 @@ codedump(mrb_state *mrb, int n)
       break;
     case OP_SEND:
       printf("OP_SEND\tR%d\t:%s\t%d\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_SENDB:
       printf("OP_SENDB\tR%d\t:%s\t%d\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_TAILCALL:
       printf("OP_TAILCALL\tR%d\t:%s\t%d\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_SUPER:
@@ -2661,62 +2661,62 @@ codedump(mrb_state *mrb, int n)
       break;
     case OP_METHOD:
       printf("OP_METHOD\tR%d\t:%s\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]));
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]));
       break;
 
     case OP_ADD:
       printf("OP_ADD\tR%d\t:%s\t%d\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_ADDI:
       printf("OP_ADDI\tR%d\t:%s\t%d\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_SUB:
       printf("OP_SUB\tR%d\t:%s\t%d\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_SUBI:
       printf("OP_SUBI\tR%d\t:%s\t%d\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_MUL:
       printf("OP_MUL\tR%d\t:%s\t%d\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_DIV:
       printf("OP_DIV\tR%d\t:%s\t%d\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_LT:
       printf("OP_LT\tR%d\t:%s\t%d\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_LE:
       printf("OP_LE\tR%d\t:%s\t%d\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_GT:
       printf("OP_GT\tR%d\t:%s\t%d\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_GE:
       printf("OP_GE\tR%d\t:%s\t%d\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
     case OP_EQ:
       printf("OP_EQ\tR%d\t:%s\t%d\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
       break;
 
@@ -2759,11 +2759,11 @@ codedump(mrb_state *mrb, int n)
       break;
     case OP_CLASS:
       printf("OP_CLASS\tR%d\t:%s\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]));
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]));
       break;
     case OP_MODULE:
       printf("OP_MODULE\tR%d\t:%s\n", GETARG_A(c),
-             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]));
+             mrb_sym_to_name(mrb, irep->syms[GETARG_B(c)]));
       break;
     case OP_EXEC:
       printf("OP_EXEC\tR%d\tI(%d)\n", GETARG_A(c), n+GETARG_Bx(c));

@@ -469,7 +469,7 @@ argnum_error(mrb_state *mrb, int num)
 
   if (mrb->ci->mid) {
     str = mrb_format(mrb, "'%S': wrong number of arguments (%S for %S)",
-                  mrb_sym2str(mrb, mrb->ci->mid),
+                  mrb_sym_to_str(mrb, mrb->ci->mid),
                   mrb_fixnum_value(mrb->ci->argc), mrb_fixnum_value(num));
   }
   else {
@@ -1285,7 +1285,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           mrb->jmp = prev_jmp;
           return v;
         }
-        DEBUG(printf("from :%s\n", mrb_sym2name(mrb, ci->mid)));
+        DEBUG(printf("from :%s\n", mrb_sym_to_name(mrb, ci->mid)));
         proc = mrb->ci->proc;
         irep = proc->body.irep;
         pool = irep->pool;
