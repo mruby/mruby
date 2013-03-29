@@ -163,13 +163,19 @@ num_abs(mrb_state *mrb, mrb_value num)
  */
 
 mrb_value
-mrb_flo_to_str(mrb_state *mrb, mrb_float n, int max_digit)
+mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
 {
   mrb_value result;
+  mrb_float n;
 
   if (max_digit > 40) {
     mrb_raise(mrb, E_RANGE_ERROR, "Too large max_digit.");
   }
+  else if (!mrb_float_p(flo)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "non float value");
+  }
+
+  n = mrb_float(flo);
 
   if (isnan(n)) {
     result = mrb_str_new(mrb, "NaN", 3);
@@ -270,9 +276,9 @@ static mrb_value
 flo_to_s(mrb_state *mrb, mrb_value flt)
 {
 #ifdef MRB_USE_FLOAT
-  return mrb_flo_to_str(mrb, mrb_float(flt), 7);
+  return mrb_flo_to_str(mrb, flt, 7);
 #else
-  return mrb_flo_to_str(mrb, mrb_float(flt), 14);
+  return mrb_flo_to_str(mrb, flt, 14);
 #endif
 }
 

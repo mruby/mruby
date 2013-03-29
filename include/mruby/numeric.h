@@ -16,6 +16,8 @@ extern "C" {
 #define FIXABLE(f) (POSFIXABLE(f) && NEGFIXABLE(f))
 
 mrb_value mrb_flo_to_fixnum(mrb_state *mrb, mrb_value val);
+mrb_value mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit);
+
 mrb_value mrb_fix2str(mrb_state *mrb, mrb_value x, int base);
 
 mrb_value mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y);
