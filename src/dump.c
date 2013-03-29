@@ -90,7 +90,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
       break;
 
     case MRB_TT_STRING:
-      str = mrb_string_value(mrb, &irep->pool[pool_no]);
+      str = mrb_str_to_str(mrb, irep->pool[pool_no]);
       size += RSTRING_LEN(str);
       break;
 

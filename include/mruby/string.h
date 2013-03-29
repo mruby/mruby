@@ -46,7 +46,6 @@ mrb_value mrb_str_plus(mrb_state*, mrb_value, mrb_value);
 mrb_value mrb_ptr_to_str(mrb_state *, void *);
 mrb_value mrb_obj_as_string(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_str_resize(mrb_state *mrb, mrb_value str, int len); /* mrb_str_resize */
-mrb_value mrb_string_value(mrb_state *mrb, mrb_value *ptr); /* StringValue */
 mrb_value mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
 mrb_value mrb_check_string_type(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_buf_new(mrb_state *mrb, int capa);
