@@ -27,7 +27,7 @@ mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
 mrb_value
 mrb_exc_new3(mrb_state *mrb, struct RClass* c, mrb_value str)
 {
-  mrb_string_value(mrb, &str);
+  str = mrb_str_to_str(mrb, str);
   return mrb_funcall(mrb, mrb_obj_value(c), "new", 1, str);
 }
 

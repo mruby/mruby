@@ -616,21 +616,10 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
   return str;
 }
 
-mrb_value
-mrb_string_value(mrb_state *mrb, mrb_value *ptr)
-{
-  mrb_value s = *ptr;
-  if (!mrb_string_p(s)) {
-    s = mrb_str_to_str(mrb, s);
-    *ptr = s;
-  }
-  return s;
-}
-
 char *
 mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
 {
-    mrb_value str = mrb_string_value(mrb, &ptr);
+    mrb_value str = mrb_str_to_str(mrb, ptr);
     return RSTRING_PTR(str);
 }
 /* 15.2.10.5.5  */
@@ -1316,7 +1305,7 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
     include_p = memchr(RSTRING_PTR(self), mrb_fixnum(str2), RSTRING_LEN(self));
   }
   else {
-    mrb_string_value(mrb, &str2);
+    str2 = mrb_str_to_str(mrb, str2);
     i = mrb_str_index(mrb, self, str2, 0);
 
     include_p = (i != -1);
@@ -2213,7 +2202,7 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, int badcheck)
   char *s;
   int len;
 
-  mrb_string_value(mrb, &str);
+  str = mrb_str_to_str(mrb, str);
   if (badcheck) {
     s = mrb_string_value_cstr(mrb, &str);
   }
@@ -2345,7 +2334,7 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, int badcheck)
   char *s;
   int len;
 
-  mrb_string_value(mrb, &str);
+  str = mrb_str_to_str(mrb, str);
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
   if (s) {
@@ -2578,7 +2567,7 @@ mrb_str_cat_cstr(mrb_state *mrb, mrb_value str, const char *ptr)
 mrb_value
 mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2)
 {
-  mrb_string_value(mrb, &str2);
+  str2 = mrb_str_to_str(mrb, str2);
   return mrb_str_buf_append(mrb, str, str2);
 }
 

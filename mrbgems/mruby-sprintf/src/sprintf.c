@@ -528,7 +528,7 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
 
   ++argc;
   --argv;
-  mrb_string_value(mrb, &fmt);
+  fmt = mrb_str_to_str(mrb, fmt);
   p = RSTRING_PTR(fmt);
   end = p + RSTRING_LEN(fmt);
   blen = 0;
