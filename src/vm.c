@@ -302,7 +302,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
         cipop(mrb);
       }
       mrb->jmp = 0;
-      val = mrb_nil_value();
+      val = mrb_obj_value(mrb->exc);
     }
     else {
       mrb->jmp = &c_jmp;
