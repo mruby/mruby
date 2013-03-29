@@ -567,7 +567,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
               {
                 mrb_value tmp;
 
-                tmp = mrb_convert_type(mrb, *sp, MRB_TT_FIXNUM, "Integer", "to_int");
+                tmp = mrb_convert_type(mrb, *sp, MRB_TT_FIXNUM, "Integer", "to_i");
                 *p = mrb_fixnum(tmp);
               }
               break;

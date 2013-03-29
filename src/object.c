@@ -512,7 +512,7 @@ mrb_to_integer(mrb_state *mrb, mrb_value val, const char *method)
 mrb_value
 mrb_to_int(mrb_state *mrb, mrb_value val)
 {
-    return mrb_to_integer(mrb, val, "to_int");
+    return mrb_to_integer(mrb, val, "to_i");
 }
 
 static mrb_value
@@ -549,7 +549,7 @@ string_conv:
     arg_error:
       mrb_raise(mrb, E_ARGUMENT_ERROR, "base specified for non string value");
   }
-  tmp = convert_type(mrb, val, "Integer", "to_int", FALSE);
+  tmp = convert_type(mrb, val, "Integer", "to_i", FALSE);
   if (mrb_nil_p(tmp)) {
       return mrb_to_integer(mrb, val, "to_i");
   }
