@@ -111,14 +111,6 @@ typedef short mrb_sym;
 #define DISABLE_DEBUG
 #endif
 
-#ifndef FALSE
-# define FALSE 0
-#endif
-
-#ifndef TRUE
-# define TRUE 1
-#endif
-
 #ifdef _MSC_VER
 # include <float.h>
 # define inline __inline
@@ -152,6 +144,14 @@ typedef _Bool mrb_bool;
 
 #ifdef ENABLE_STDIO
 # include <stdio.h>
+#endif
+
+#ifndef FALSE
+# define FALSE 0
+#endif
+
+#ifndef TRUE
+# define TRUE 1
 #endif
 
 #endif  /* MRUBYCONF_H */

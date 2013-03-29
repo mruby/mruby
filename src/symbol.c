@@ -4,13 +4,12 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include "mruby/khash.h"
-#include <string.h>
-
-#include "mruby/string.h"
 #include <ctype.h>
 #include <limits.h>
+#include <string.h>
+#include "mruby.h"
+#include "mruby/khash.h"
+#include "mruby/string.h"
 
 /* ------------------------------------------------------ */
 typedef struct symbol_name {

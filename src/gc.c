@@ -4,20 +4,22 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include "mruby/class.h"
-#include "mruby/array.h"
-#include "mruby/string.h"
-#include "mruby/hash.h"
-#include "mruby/range.h"
-#include <string.h>
-#include "mruby/proc.h"
-#include "mruby/data.h"
-#include "mruby/variable.h"
-
 #ifndef SIZE_MAX
-#include <limits.h> // for SIZE_MAX
+ /* Some versions of VC++
+  * has SIZE_MAX in stdint.h
+  */
+# include <limits.h>
 #endif
+#include <string.h>
+#include "mruby.h"
+#include "mruby/array.h"
+#include "mruby/class.h"
+#include "mruby/data.h"
+#include "mruby/hash.h"
+#include "mruby/proc.h"
+#include "mruby/range.h"
+#include "mruby/string.h"
+#include "mruby/variable.h"
 
 /*
   = Tri-color Incremental Garbage Collection

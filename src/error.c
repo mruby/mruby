@@ -4,19 +4,19 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
 #include <errno.h>
+#include <setjmp.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <setjmp.h>
 #include <string.h>
-#include "error.h"
-#include "mruby/variable.h"
-#include "mruby/string.h"
+#include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
-#include "mruby/proc.h"
 #include "mruby/irep.h"
+#include "mruby/proc.h"
+#include "mruby/string.h"
+#include "mruby/variable.h"
+#include "error.h"
 
 mrb_value
 mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
