@@ -1,9 +1,9 @@
-#include <stdlib.h>
 #include "mruby.h"
 #include "mruby/irep.h"
 #include "mruby/dump.h"
 #include "mruby/string.h"
 #include "mruby/proc.h"
+#include "mruby/panic.h"
 
 extern const uint8_t mrbtest_irep[];
 
@@ -18,7 +18,7 @@ mrb_init_mrbtest(mrb_state *mrb)
 #endif
   if (mrb->exc) {
     mrb_p(mrb, mrb_obj_value(mrb->exc));
-    exit(0);
+    mrb_panic(mrb);
   }
 }
 
