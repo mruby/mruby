@@ -1175,25 +1175,27 @@ fix_to_f(mrb_state *mrb, mrb_value num)
  *     FloatDomainError: Infinity
  */
 /* ------------------------------------------------------------------------*/
-static mrb_int
-flt2big(mrb_state *mrb, mrb_float d)
+mrb_value
+mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
 {
   mrb_int z;
 
-  if (isinf(d)) {
-    mrb_raise(mrb, E_FLOATDOMAIN_ERROR, d < 0 ? "-Infinity" : "Infinity");
+  if (mrb_float_p(x)) {
+     mrb_raise(mrb, E_TYPE_ERROR, "non float value");
+     z = 0; /* not reached. just supress warnings. */
   }
-  if (isnan(d)) {
-    mrb_raise(mrb, E_FLOATDOMAIN_ERROR, "NaN");
-  }
-  z = (mrb_int)d;
-  return z;
-}
+  else {
+    mrb_float d = mrb_float(x);
 
-mrb_value
-mrb_flt2big(mrb_state *mrb, mrb_float d)
-{
-  return mrb_fixnum_value(flt2big(mrb, d));
+    if (isinf(d)) {
+      mrb_raise(mrb, E_FLOATDOMAIN_ERROR, d < 0 ? "-Infinity" : "Infinity");
+    }
+    if (isnan(d)) {
+      mrb_raise(mrb, E_FLOATDOMAIN_ERROR, "NaN");
+    }
+    z = (mrb_int)d;
+  }
+  return mrb_fixnum_value(z);
 }
 
 mrb_value
