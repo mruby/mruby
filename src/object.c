@@ -5,9 +5,9 @@
 */
 
 #include "mruby.h"
-#include "mruby/string.h"
 #include "mruby/class.h"
 #include "mruby/numeric.h"
+#include "mruby/string.h"
 #include "error.h"
 
 int

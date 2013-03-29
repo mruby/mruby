@@ -4,24 +4,22 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <assert.h>
+#include <float.h>
+#if defined(__FreeBSD__) && __FreeBSD__ < 4
+# include <floatingpoint.h>
+#endif
+#ifdef HAVE_IEEEFP_H
+# include <ieeefp.h>
+#endif
+#include <limits.h>
+#include <math.h>
+#include <stdlib.h>
+
 #include "mruby.h"
+#include "mruby/array.h"
 #include "mruby/numeric.h"
 #include "mruby/string.h"
-#include "mruby/array.h"
-
-#include <float.h>
-#include <math.h>
-#include <assert.h>
-#include <stdlib.h>
-#include <limits.h>
-
-#if defined(__FreeBSD__) && __FreeBSD__ < 4
-#include <floatingpoint.h>
-#endif
-
-#ifdef HAVE_IEEEFP_H
-#include <ieeefp.h>
-#endif
 
 #ifdef MRB_USE_FLOAT
 #define floor(f) floorf(f)

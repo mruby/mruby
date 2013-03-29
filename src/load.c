@@ -7,10 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "mruby/dump.h"
-
-#include "mruby/string.h"
-#include "mruby/proc.h"
 #include "mruby/irep.h"
+#include "mruby/proc.h"
+#include "mruby/string.h"
 
 #ifdef ENABLE_STDIO
 typedef struct _RiteFILE

@@ -6,9 +6,8 @@
 
 #include "mruby.h"
 #include "mruby/array.h"
-#include <string.h>
-#include "mruby/string.h"
 #include "mruby/class.h"
+#include "mruby/string.h"
 #include "value_array.h"
 
 /* SIZE_MAX is not supported by VC++. */

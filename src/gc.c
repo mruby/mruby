@@ -4,15 +4,15 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include "mruby/class.h"
-#include "mruby/array.h"
-#include "mruby/string.h"
-#include "mruby/hash.h"
-#include "mruby/range.h"
 #include <string.h>
-#include "mruby/proc.h"
+#include "mruby.h"
+#include "mruby/array.h"
+#include "mruby/class.h"
 #include "mruby/data.h"
+#include "mruby/hash.h"
+#include "mruby/proc.h"
+#include "mruby/range.h"
+#include "mruby/string.h"
 #include "mruby/variable.h"
 
 #ifndef SIZE_MAX
