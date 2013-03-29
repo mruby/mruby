@@ -80,7 +80,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
 
     switch (mrb_type(irep->pool[pool_no])) {
     case MRB_TT_FIXNUM:
-      str = mrb_fix2str(mrb, irep->pool[pool_no], 10);
+      str = mrb_fixnum_to_str(mrb, irep->pool[pool_no], 10);
       size += RSTRING_LEN(str);
       break;
 
@@ -123,7 +123,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
 
     switch (mrb_type(irep->pool[pool_no])) {
     case MRB_TT_FIXNUM:
-      str = mrb_fix2str(mrb, irep->pool[pool_no], 10);
+      str = mrb_fixnum_to_str(mrb, irep->pool[pool_no], 10);
       char_ptr = RSTRING_PTR(str);
       len = RSTRING_LEN(str);
       break;

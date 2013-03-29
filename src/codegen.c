@@ -1868,7 +1868,7 @@ codegen(codegen_scope *s, node *tree, int val)
       mrb_value str = mrb_str_buf_new(mrb, 4);
 
       mrb_str_buf_cat(mrb, str, "$", 1);
-      mrb_str_buf_append(mrb, str, mrb_fix2str(mrb, fix, 10));
+      mrb_str_buf_append(mrb, str, mrb_fixnum_to_str(mrb, fix, 10));
       sym = new_sym(s, mrb_intern_str(mrb, str));
       genop(s, MKOP_ABx(OP_GETGLOBAL, cursp(), sym));
       push();

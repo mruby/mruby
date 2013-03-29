@@ -1284,7 +1284,7 @@ fix_minus(mrb_state *mrb, mrb_value self)
 
 
 mrb_value
-mrb_fix2str(mrb_state *mrb, mrb_value x, int base)
+mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, int base)
 {
   char buf[sizeof(mrb_int)*CHAR_BIT+1];
   char *b = buf + sizeof buf;
@@ -1332,7 +1332,7 @@ fix_to_s(mrb_state *mrb, mrb_value self)
   mrb_int base = 10;
 
   mrb_get_args(mrb, "|i", &base);
-  return mrb_fix2str(mrb, self, base);
+  return mrb_fixnum_to_str(mrb, self, base);
 }
 
 /* 15.2.9.3.6  */

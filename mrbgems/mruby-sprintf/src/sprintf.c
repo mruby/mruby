@@ -843,7 +843,7 @@ retry:
             dots = 1;
           }
           else {
-            val = mrb_fix2str(mrb, mrb_fixnum_value(v), base);
+            val = mrb_fixnum_to_str(mrb, mrb_fixnum_value(v), base);
           }
           v = mrb_fixnum(mrb_str_to_inum(mrb, val, 10, 0/*Qfalse*/));
         }
