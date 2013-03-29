@@ -4729,6 +4729,11 @@ parser_yylex(parser_state *p)
     switch (c) {
     case '_':     /* $_: last read line string */
       c = nextc(p);
+      if (c != -1 && identchar(c)) { /* if there is more after _ it is a variable */
+        tokadd(p, '$');
+        tokadd(p, c);
+        break;
+      }
       pushback(p, c);
       c = '_';
       /* fall through */
