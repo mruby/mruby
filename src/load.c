@@ -17,16 +17,6 @@
 #include "mruby/proc.h"
 #include "mruby/string.h"
 
-#ifdef ENABLE_STDIO
-typedef struct _RiteFILE
-{
-  FILE* fp;
-  unsigned char buf[256];
-  int cnt;
-  int readlen;
-} RiteFILE;
-#endif
-
 #ifndef _WIN32
 # if SIZE_MAX < UINT32_MAX
 #  error "It can't be run this code on this environment (SIZE_MAX < UINT32_MAX)"
