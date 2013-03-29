@@ -10,7 +10,8 @@ assert('String superclass', '15.2.10.2') do
 end
 
 assert('String#*', '15.2.10.5.1') do
-  'a' * 5 == 'aaaaa'
+  'a' * 5 == 'aaaaa' and
+  'a' * '5' == 'aaaaa'
 end
 
 assert('String#+', '15.2.10.5.2') do
