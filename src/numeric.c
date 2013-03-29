@@ -13,6 +13,7 @@
 #include <math.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #if defined(__FreeBSD__) && __FreeBSD__ < 4
 #include <floatingpoint.h>
