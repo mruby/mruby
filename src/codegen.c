@@ -4,16 +4,16 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include "mruby/string.h"
-#include "mruby/irep.h"
-#include "mruby/compile.h"
-#include "mruby/numeric.h"
-#include "opcode.h"
-#include "node.h"
-#include <string.h>
-#include <stdlib.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
+#include "mruby.h"
+#include "mruby/compile.h"
+#include "mruby/irep.h"
+#include "mruby/numeric.h"
+#include "mruby/string.h"
+#include "node.h"
+#include "opcode.h"
 #include "re.h"
 
 typedef mrb_ast_node node;

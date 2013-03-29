@@ -4,17 +4,17 @@
 ** See Copyright Notice in mruby.h
 */
 
+#ifndef SIZE_MAX
+ /* Some versions of VC++
+  * has SIZE_MAX in stdint.h
+  */
+# include <limits.h>
+#endif
 #include "mruby.h"
 #include "mruby/array.h"
-#include <string.h>
-#include "mruby/string.h"
 #include "mruby/class.h"
+#include "mruby/string.h"
 #include "value_array.h"
-
-/* SIZE_MAX is not supported by VC++. */
-#ifndef SIZE_MAX
-# define SIZE_MAX ((size_t)-1)
-#endif
 
 #define ARY_DEFAULT_LEN   4
 #define ARY_SHRINK_RATIO  5 /* must be larger than 2 */

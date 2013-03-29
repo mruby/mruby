@@ -17,15 +17,14 @@
 #define YYFREE(o)      mrb_free(p->mrb, (o))
 #define YYSTACK_USE_ALLOCA 0
 
+#include <ctype.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 #include "mruby.h"
 #include "mruby/compile.h"
 #include "mruby/proc.h"
 #include "node.h"
-
-#include <errno.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdlib.h>
 
 #define YYLEX_PARAM p
 

@@ -4,19 +4,22 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-
+#include <ctype.h>
+#ifndef SIZE_MAX
+ /* Some versions of VC++
+  * has SIZE_MAX in stdint.h
+  */
+# include <limits.h>
+#endif
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include "mruby/string.h"
-#include "mruby/class.h"
-#include <ctype.h>
-#include <limits.h>
-#include "mruby/range.h"
+#include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/numeric.h"
+#include "mruby/range.h"
+#include "mruby/string.h"
 #include "re.h"
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";

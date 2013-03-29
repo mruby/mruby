@@ -4,13 +4,18 @@
 ** See Copyright Notice in mruby.h
 */
 
+#ifndef SIZE_MAX
+ /* Some versions of VC++
+  * has SIZE_MAX in stdint.h
+  */
+# include <limits.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include "mruby/dump.h"
-
-#include "mruby/string.h"
-#include "mruby/proc.h"
 #include "mruby/irep.h"
+#include "mruby/proc.h"
+#include "mruby/string.h"
 
 #ifdef ENABLE_STDIO
 typedef struct _RiteFILE

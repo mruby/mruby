@@ -1,3 +1,4 @@
+#include <limits.h>
 #include "mruby.h"
 #include "mruby/numeric.h"
 

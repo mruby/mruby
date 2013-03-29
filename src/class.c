@@ -7,13 +7,12 @@
 #include "mruby.h"
 #include <stdarg.h>
 #include <ctype.h>
-#include <string.h>
+#include "mruby/array.h"
 #include "mruby/class.h"
+#include "mruby/numeric.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
-#include "mruby/numeric.h"
 #include "mruby/variable.h"
-#include "mruby/array.h"
 #include "error.h"
 
 KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal)
