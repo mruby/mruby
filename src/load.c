@@ -35,20 +35,11 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
 {
   int ret;
   size_t i;
-  char *char_buf;
   const uint8_t *src = bin;
-  uint16_t tt, pool_data_len, snl, buf_size = MRB_DUMP_DEFAULT_STR_LEN;
-  mrb_int fix_num;
-  mrb_float f;
+  uint16_t tt, pool_data_len, snl;
   size_t plen;
   int ai = mrb_gc_arena_save(mrb);
   mrb_irep *irep = mrb_add_irep(mrb);
-
-  char_buf = (char *)mrb_malloc(mrb, buf_size);
-  if (char_buf == NULL) {
-    ret = MRB_DUMP_GENERAL_FAILURE;
-    goto error_exit;
-  }
 
   // skip record size
   src += sizeof(uint32_t);
@@ -88,34 +79,23 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
     }
 
     for (i = 0; i < plen; i++) {
+      mrb_value s;
       tt = *src++; //pool TT
       pool_data_len = bin_to_uint16(src); //pool data length
       src += sizeof(uint16_t);
-      if (pool_data_len > buf_size - 1) {
-        mrb_free(mrb, char_buf);
-        buf_size = pool_data_len + 1;
-        char_buf = (char *)mrb_malloc(mrb, buf_size);
-        if (char_buf == NULL) {
-          ret = MRB_DUMP_GENERAL_FAILURE;
-          goto error_exit;
-        }
-      }
-      memcpy(char_buf, src, pool_data_len);
+      s = mrb_str_new(mrb, (char *)src, pool_data_len);
       src += pool_data_len;
-      char_buf[pool_data_len] = '\0';
       switch (tt) { //pool data
       case MRB_TT_FIXNUM:
-        fix_num = str_to_mrb_int(char_buf);
-        irep->pool[i] = mrb_fixnum_value(fix_num);
+        irep->pool[i] = mrb_str_to_inum(mrb, s, 10, FALSE);
         break;
 
       case MRB_TT_FLOAT:
-        f = str_to_mrb_float(char_buf);
-        irep->pool[i] = mrb_float_value(f);
+        irep->pool[i] = mrb_float_value(mrb_str_to_dbl(mrb, s, FALSE));
         break;
 
       case MRB_TT_STRING:
-        irep->pool[i] = mrb_str_new(mrb, char_buf, pool_data_len);
+        irep->pool[i] = s;
         break;
 
       default:
@@ -138,10 +118,6 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
     }
 
     for (i = 0; i < irep->slen; i++) {
-      static const mrb_sym mrb_sym_zero = { 0 };
-      *irep->syms = mrb_sym_zero;
-    }
-    for (i = 0; i < irep->slen; i++) {
       snl = bin_to_uint16(src);               //symbol name length
       src += sizeof(uint16_t);
 
@@ -150,26 +126,16 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
         continue;
       }
 
-      if (snl > buf_size - 1) {
-        mrb_free(mrb, char_buf);
-        buf_size = snl + 1;
-        char_buf = (char *)mrb_malloc(mrb, buf_size);
-        if (char_buf == NULL) {
-          ret = MRB_DUMP_GENERAL_FAILURE;
-          goto error_exit;
-        }
-      }
-      memcpy(char_buf, src, snl); //symbol name
+      irep->syms[i] = mrb_intern2(mrb, (char *)src, snl);
       src += snl;
-      char_buf[snl] = '\0';
-      irep->syms[i] = mrb_intern2(mrb, char_buf, snl);
+
+      mrb_gc_arena_restore(mrb, ai);
     }
   }
   *len = src - bin;
 
   ret = MRB_DUMP_OK;
 error_exit:
-  mrb_free(mrb, char_buf);
   return ret;
 }
 
