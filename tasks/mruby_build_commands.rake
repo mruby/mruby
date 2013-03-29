@@ -249,9 +249,11 @@ module MRuby
 
     def run(out, infiles, funcname)
       @command ||= @build.mrbcfile
-      IO.popen("#{filename @command} #{@compile_options % {:funcname => funcname}}", 'r+') do |io|
+      commandline = "#{filename @command} #{@compile_options % {:funcname => funcname}}"
+      IO.popen(commandline, 'r+') do |io|
         [infiles].flatten.each do |f|
           _pp "MRBC", f.relative_path, nil, :indent => 2
+          log "#{commandline} ## #{f}"
           io.write IO.read(f)
         end
         io.close_write
