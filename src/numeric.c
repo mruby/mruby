@@ -1412,6 +1412,8 @@ mrb_init_numeric(mrb_state *mrb)
 
   /* Integer Class */
   integer = mrb_define_class(mrb, "Integer",  numeric);
+  mrb_undef_class_method(mrb,  integer, "new");
+
   fixnum = mrb->fixnum_class = mrb_define_class(mrb, "Fixnum", integer);
 
   mrb_undef_class_method(mrb,  fixnum, "new");
