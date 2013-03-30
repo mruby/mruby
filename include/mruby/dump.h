@@ -141,9 +141,8 @@ bin_to_uint8(const uint8_t *bin)
 }
 
 /* crc.c */
-uint32_t
-calc_crc_16_ccitt(const uint8_t *src, uint32_t nbytes, uint16_t crcwk);
-
+uint16_t
+calc_crc_16_ccitt(const uint8_t *src, size_t nbytes, uint16_t crc);
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif
