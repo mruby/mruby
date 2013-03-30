@@ -163,13 +163,19 @@ num_abs(mrb_state *mrb, mrb_value num)
  */
 
 mrb_value
-mrb_flo_to_str(mrb_state *mrb, mrb_float n, int max_digit)
+mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
 {
   mrb_value result;
+  mrb_float n;
 
   if (max_digit > 40) {
     mrb_raise(mrb, E_RANGE_ERROR, "Too large max_digit.");
   }
+  else if (!mrb_float_p(flo)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "non float value");
+  }
+
+  n = mrb_float(flo);
 
   if (isnan(n)) {
     result = mrb_str_new(mrb, "NaN", 3);
@@ -270,9 +276,9 @@ static mrb_value
 flo_to_s(mrb_state *mrb, mrb_value flt)
 {
 #ifdef MRB_USE_FLOAT
-  return mrb_flo_to_str(mrb, mrb_float(flt), 7);
+  return mrb_flo_to_str(mrb, flt, 7);
 #else
-  return mrb_flo_to_str(mrb, mrb_float(flt), 14);
+  return mrb_flo_to_str(mrb, flt, 14);
 #endif
 }
 
@@ -1175,25 +1181,27 @@ fix_to_f(mrb_state *mrb, mrb_value num)
  *     FloatDomainError: Infinity
  */
 /* ------------------------------------------------------------------------*/
-static mrb_int
-flt2big(mrb_state *mrb, mrb_float d)
+mrb_value
+mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
 {
   mrb_int z;
 
-  if (isinf(d)) {
-    mrb_raise(mrb, E_FLOATDOMAIN_ERROR, d < 0 ? "-Infinity" : "Infinity");
+  if (mrb_float_p(x)) {
+     mrb_raise(mrb, E_TYPE_ERROR, "non float value");
+     z = 0; /* not reached. just supress warnings. */
   }
-  if (isnan(d)) {
-    mrb_raise(mrb, E_FLOATDOMAIN_ERROR, "NaN");
-  }
-  z = (mrb_int)d;
-  return z;
-}
+  else {
+    mrb_float d = mrb_float(x);
 
-mrb_value
-mrb_flt2big(mrb_state *mrb, mrb_float d)
-{
-  return mrb_fixnum_value(flt2big(mrb, d));
+    if (isinf(d)) {
+      mrb_raise(mrb, E_FLOATDOMAIN_ERROR, d < 0 ? "-Infinity" : "Infinity");
+    }
+    if (isnan(d)) {
+      mrb_raise(mrb, E_FLOATDOMAIN_ERROR, "NaN");
+    }
+    z = (mrb_int)d;
+  }
+  return mrb_fixnum_value(z);
 }
 
 mrb_value
@@ -1276,7 +1284,7 @@ fix_minus(mrb_state *mrb, mrb_value self)
 
 
 mrb_value
-mrb_fix2str(mrb_state *mrb, mrb_value x, int base)
+mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, int base)
 {
   char buf[sizeof(mrb_int)*CHAR_BIT+1];
   char *b = buf + sizeof buf;
@@ -1324,7 +1332,7 @@ fix_to_s(mrb_state *mrb, mrb_value self)
   mrb_int base = 10;
 
   mrb_get_args(mrb, "|i", &base);
-  return mrb_fix2str(mrb, self, base);
+  return mrb_fixnum_to_str(mrb, self, base);
 }
 
 /* 15.2.9.3.6  */

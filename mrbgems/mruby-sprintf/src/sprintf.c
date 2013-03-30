@@ -806,7 +806,7 @@ retry:
               val = mrb_fixnum_value((mrb_int)mrb_float(val));
               goto bin_retry;
             }
-            val = mrb_flt2big(mrb, mrb_float(val));
+            val = mrb_flo_to_fixnum(mrb, val);
             if (mrb_fixnum_p(val)) goto bin_retry;
             break;
           case MRB_TT_STRING:
@@ -843,7 +843,7 @@ retry:
             dots = 1;
           }
           else {
-            val = mrb_fix2str(mrb, mrb_fixnum_value(v), base);
+            val = mrb_fixnum_to_str(mrb, mrb_fixnum_value(v), base);
           }
           v = mrb_fixnum(mrb_str_to_inum(mrb, val, 10, 0/*Qfalse*/));
         }
