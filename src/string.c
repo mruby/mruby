@@ -2537,7 +2537,7 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
         const char *ptr;
         int len;
         chr = mrb_fixnum_value(c & 0xff);
-        octstr = mrb_fix2str(mrb, chr, 8);
+        octstr = mrb_fixnum_to_str(mrb, chr, 8);
         ptr = mrb_str_body(octstr, &len);
         memcpy(q, "\\000", 4);
         memcpy(q + 4 - len, ptr, len);
@@ -2629,7 +2629,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
         const char *ptr;
         int len;
         chr = mrb_fixnum_value(c & 0xff);
-        octstr = mrb_fix2str(mrb, chr, 8);
+        octstr = mrb_fixnum_to_str(mrb, chr, 8);
         ptr = mrb_str_body(octstr, &len);
         memcpy(buf, "\\000", 4);
         memcpy(buf + 4 - len, ptr, len);
