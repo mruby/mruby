@@ -131,7 +131,7 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
       }
 
       irep->syms[i] = mrb_intern2(mrb, (char *)src, snl);
-      src += snl;
+      src += snl + 1;
 
       mrb_gc_arena_restore(mrb, ai);
     }
