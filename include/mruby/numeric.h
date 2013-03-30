@@ -7,8 +7,6 @@
 #ifndef MRUBY_NUMERIC_H
 #define MRUBY_NUMERIC_H
 
-#include "mrbconf.h"
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
