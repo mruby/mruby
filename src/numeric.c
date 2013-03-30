@@ -651,7 +651,6 @@ flo_round(mrb_state *mrb, mrb_value num)
 /*
  *  call-seq:
  *     flt.to_i      ->  integer
- *     flt.to_int    ->  integer
  *     flt.truncate  ->  integer
  *
  *  Returns <i>flt</i> truncated to an <code>Integer</code>.
@@ -722,7 +721,6 @@ num_round(mrb_state *mrb, mrb_value num)
 /*
  *  call-seq:
  *     int.to_i      ->  integer
- *     int.to_int    ->  integer
  *     int.floor     ->  integer
  *     int.ceil      ->  integer
  *     int.round     ->  integer
@@ -1413,6 +1411,7 @@ mrb_init_numeric(mrb_state *mrb)
   /* Integer Class */
   integer = mrb_define_class(mrb, "Integer",  numeric);
   mrb_undef_class_method(mrb, integer, "new");
+  mrb_define_method(mrb, integer, "to_i", int_to_i, ARGS_NONE());              /* 15.2.8.3.24 */
   fixnum = mrb->fixnum_class = mrb_define_class(mrb, "Fixnum", integer);
 
   mrb_undef_class_method(mrb,  fixnum, "new");
@@ -1436,7 +1435,6 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fixnum,  "round",    num_round,         ARGS_ANY());  /* 15.2.8.3.20 */
   mrb_define_method(mrb, fixnum,  "succ",     fix_succ,          ARGS_NONE()); /* 15.2.8.3.21 */
   mrb_define_method(mrb, fixnum,  "to_f",     fix_to_f,          ARGS_NONE()); /* 15.2.8.3.23 */
-  mrb_define_method(mrb, fixnum,  "to_i",     int_to_i,          ARGS_NONE()); /* 15.2.8.3.24 */
   mrb_define_method(mrb, fixnum,  "to_s",     fix_to_s,          ARGS_NONE()); /* 15.2.8.3.25 */
   mrb_define_method(mrb, fixnum,  "inspect",  fix_to_s,          ARGS_NONE());
   mrb_define_method(mrb, fixnum,  "truncate", int_to_i,          ARGS_NONE()); /* 15.2.8.3.26 */
