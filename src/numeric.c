@@ -1408,7 +1408,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "finite?",   flo_finite_p,     ARGS_NONE()); /* 15.2.9.3.9  */
   mrb_define_method(mrb, fl,      "floor",     flo_floor,        ARGS_NONE()); /* 15.2.9.3.10 */
   mrb_define_method(mrb, fl,      "infinite?", flo_infinite_p,   ARGS_NONE()); /* 15.2.9.3.11 */
-  mrb_define_method(mrb, fl,      "round",     flo_round,        ARGS_ANY());  /* 15.2.9.3.12 */
+  mrb_define_method(mrb, fl,      "round",     flo_round,        ARGS_NONE()); /* 15.2.9.3.12 */
   mrb_define_method(mrb, fl,      "to_f",      flo_to_f,         ARGS_NONE()); /* 15.2.9.3.13 */
   mrb_define_method(mrb, fl,      "to_i",      flo_truncate,     ARGS_NONE()); /* 15.2.9.3.14 */
   mrb_define_method(mrb, fl,      "to_int",    flo_truncate,     ARGS_NONE());
