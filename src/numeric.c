@@ -651,7 +651,6 @@ flo_round(mrb_state *mrb, mrb_value num)
 /*
  *  call-seq:
  *     flt.to_i      ->  integer
- *     flt.to_int    ->  integer
  *     flt.truncate  ->  integer
  *
  *  Returns <i>flt</i> truncated to an <code>Integer</code>.
@@ -671,42 +670,6 @@ flo_truncate(mrb_state *mrb, mrb_value num)
   return mrb_fixnum_value((mrb_int)f);
 }
 
-/* 15.2.8.3.17 */
-/*
- *  call-seq:
- *     num.floor  ->  integer
- *
- *  Returns the largest integer less than or equal to <i>num</i>.
- *  <code>Numeric</code> implements this by converting <i>anInteger</i>
- *  to a <code>Float</code> and invoking <code>Float#floor</code>.
- *
- *     1.floor      #=> 1
- *     (-1).floor   #=> -1
- */
-
-static mrb_value
-num_floor(mrb_state *mrb, mrb_value num)
-{
-  return flo_floor(mrb, mrb_Float(mrb, num));
-}
-
-/* 15.2.8.3.20 */
-/*
- *  call-seq:
- *     num.round([ndigits])  ->  integer or float
- *
- *  Rounds <i>num</i> to a given precision in decimal digits (default 0 digits).
- *  Precision may be negative.  Returns a floating point number when ndigits
- *  is more than zero.  <code>Numeric</code> implements this by converting itself
- *  to a <code>Float</code> and invoking <code>Float#round</code>.
- */
-
-static mrb_value
-num_round(mrb_state *mrb, mrb_value num)
-{
-  return flo_round(mrb, mrb_Float(mrb, num));
-}
-
 /*
  * Document-class: Integer
  *
@@ -716,17 +679,9 @@ num_round(mrb_state *mrb, mrb_value num)
  */
 
 
-/* 15.2.8.3.14 */
-/* 15.2.8.3.24 */
-/* 15.2.8.3.26 */
 /*
  *  call-seq:
  *     int.to_i      ->  integer
- *     int.to_int    ->  integer
- *     int.floor     ->  integer
- *     int.ceil      ->  integer
- *     int.round     ->  integer
- *     int.truncate  ->  integer
  *
  *  As <i>int</i> is already an <code>Integer</code>, all these
  *  methods simply return the receiver.
@@ -1414,7 +1369,6 @@ mrb_init_numeric(mrb_state *mrb)
   integer = mrb_define_class(mrb, "Integer",  numeric);
   mrb_undef_class_method(mrb, integer, "new");
   mrb_define_method(mrb, integer, "to_i", int_to_i, ARGS_NONE());              /* 15.2.8.3.24 */
-  mrb_define_method(mrb, integer, "to_int", int_to_i, ARGS_NONE());
   fixnum = mrb->fixnum_class = mrb_define_class(mrb, "Fixnum", integer);
 
   mrb_undef_class_method(mrb,  fixnum, "new");
@@ -1430,17 +1384,13 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fixnum,  "^",        fix_xor,           ARGS_REQ(1)); /* 15.2.8.3.11 */
   mrb_define_method(mrb, fixnum,  "<<",       fix_lshift,        ARGS_REQ(1)); /* 15.2.8.3.12 */
   mrb_define_method(mrb, fixnum,  ">>",       fix_rshift,        ARGS_REQ(1)); /* 15.2.8.3.13 */
-  mrb_define_method(mrb, fixnum,  "ceil",     int_to_i,          ARGS_NONE()); /* 15.2.8.3.14 */
   mrb_define_method(mrb, fixnum,  "eql?",     num_eql,           ARGS_REQ(1)); /* 15.2.8.3.16 */
-  mrb_define_method(mrb, fixnum,  "floor",    num_floor,         ARGS_NONE()); /* 15.2.8.3.17 */
   mrb_define_method(mrb, fixnum,  "hash",     flo_hash,          ARGS_NONE()); /* 15.2.8.3.18 */
   mrb_define_method(mrb, fixnum,  "next",     int_succ,          ARGS_NONE()); /* 15.2.8.3.19 */
-  mrb_define_method(mrb, fixnum,  "round",    num_round,         ARGS_ANY());  /* 15.2.8.3.20 */
   mrb_define_method(mrb, fixnum,  "succ",     fix_succ,          ARGS_NONE()); /* 15.2.8.3.21 */
   mrb_define_method(mrb, fixnum,  "to_f",     fix_to_f,          ARGS_NONE()); /* 15.2.8.3.23 */
   mrb_define_method(mrb, fixnum,  "to_s",     fix_to_s,          ARGS_NONE()); /* 15.2.8.3.25 */
   mrb_define_method(mrb, fixnum,  "inspect",  fix_to_s,          ARGS_NONE());
-  mrb_define_method(mrb, fixnum,  "truncate", int_to_i,          ARGS_NONE()); /* 15.2.8.3.26 */
   mrb_define_method(mrb, fixnum,  "divmod",   fix_divmod,        ARGS_REQ(1)); /* 15.2.8.3.30 (x) */
 
   /* Float Class */
@@ -1455,10 +1405,9 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "finite?",   flo_finite_p,     ARGS_NONE()); /* 15.2.9.3.9  */
   mrb_define_method(mrb, fl,      "floor",     flo_floor,        ARGS_NONE()); /* 15.2.9.3.10 */
   mrb_define_method(mrb, fl,      "infinite?", flo_infinite_p,   ARGS_NONE()); /* 15.2.9.3.11 */
-  mrb_define_method(mrb, fl,      "round",     flo_round,        ARGS_ANY());  /* 15.2.9.3.12 */
+  mrb_define_method(mrb, fl,      "round",     flo_round,        ARGS_NONE()); /* 15.2.9.3.12 */
   mrb_define_method(mrb, fl,      "to_f",      flo_to_f,         ARGS_NONE()); /* 15.2.9.3.13 */
   mrb_define_method(mrb, fl,      "to_i",      flo_truncate,     ARGS_NONE()); /* 15.2.9.3.14 */
-  mrb_define_method(mrb, fl,      "to_int",    flo_truncate,     ARGS_NONE());
   mrb_define_method(mrb, fl,      "truncate",  flo_truncate,     ARGS_NONE()); /* 15.2.9.3.15 */
 
   mrb_define_method(mrb, fl,      "to_s",      flo_to_s,         ARGS_NONE()); /* 15.2.9.3.16(x) */
