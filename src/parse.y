@@ -5022,6 +5022,9 @@ parser_update_cxt(parser_state *p, mrbc_context *cxt)
     n = n->cdr;
   }
   cxt->syms = (mrb_sym *)mrb_realloc(p->mrb, cxt->syms, i*sizeof(mrb_sym));
+  if (cxt->syms == NULL && i) {
+    yyerror(p, "memory allocation error: mrb_realloc");
+  }
   cxt->slen = i;
   for (i=0, n=n0; n; i++,n=n->cdr) {
     cxt->syms[i] = sym(n->car);

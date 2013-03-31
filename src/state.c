@@ -138,26 +138,46 @@ mrb_add_irep(mrb_state *mrb)
   static const mrb_irep mrb_irep_zero = { 0 };
   mrb_irep *irep;
 
+  irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
+  if (!irep) {
+    return NULL;
+  }
+  *irep = mrb_irep_zero;
+
   if (!mrb->irep) {
     size_t max = MRB_IREP_ARRAY_INIT_SIZE;
+    mrb_irep **pp_new;
 
     if (mrb->irep_len > max) max = mrb->irep_len+1;
-    mrb->irep = (mrb_irep **)mrb_calloc(mrb, max, sizeof(mrb_irep*));
+    pp_new = (mrb_irep **)mrb_calloc(mrb, max, sizeof(mrb_irep*));
+    if (!pp_new) {
+      mrb_free(mrb, irep);
+      return NULL;
+    }
+    mrb->irep = pp_new;
     mrb->irep_capa = max;
   }
   else if (mrb->irep_capa <= mrb->irep_len) {
     size_t i;
     size_t old_capa = mrb->irep_capa;
-    while (mrb->irep_capa <= mrb->irep_len) {
-      mrb->irep_capa *= 2;
+    size_t tmp_capa = mrb->irep_capa;
+    mrb_irep **pp_new;
+
+    while (tmp_capa <= mrb->irep_len) {
+      tmp_capa *= 2;
     }
-    mrb->irep = (mrb_irep **)mrb_realloc(mrb, mrb->irep, sizeof(mrb_irep*)*mrb->irep_capa);
-    for (i = old_capa; i < mrb->irep_capa; i++) {
+    pp_new = (mrb_irep **)mrb_realloc(mrb, mrb->irep, sizeof(mrb_irep*)*tmp_capa);
+    if (!pp_new && tmp_capa) {
+      mrb_free(mrb, irep);
+      return NULL;
+    }
+    mrb->irep = pp_new;
+    mrb->irep_capa = tmp_capa;
+    for (i = old_capa; i < tmp_capa; i++) {
       mrb->irep[i] = NULL;
     }
   }
-  irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
-  *irep = mrb_irep_zero;
+
   mrb->irep[mrb->irep_len] = irep;
   irep->idx = mrb->irep_len++;
 

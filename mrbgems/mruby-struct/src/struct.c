@@ -172,6 +172,9 @@ mrb_id_attrset(mrb_state *mrb, mrb_sym id)
 
   name = mrb_sym2name_len(mrb, id, &len);
   buf = (char *)mrb_malloc(mrb, len+2);
+  if (!buf) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+  }
   memcpy(buf, name, len);
   buf[len] = '=';
   buf[len+1] = '\0';

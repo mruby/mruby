@@ -51,6 +51,9 @@ mrb_intern2(mrb_state *mrb, const char *name, size_t len)
 
   sym = ++mrb->symidx;
   p = (char *)mrb_malloc(mrb, len+1);
+  if (!p) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+  }
   memcpy(p, name, len);
   p[len] = 0;
   sname.name = (const char*)p;

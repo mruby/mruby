@@ -111,7 +111,7 @@ stack_extend(mrb_state *mrb, int room, int keep)
 {
   if (mrb->stack + room >= mrb->stend) {
     int size, off;
-
+    mrb_value *p_new;
     mrb_value *oldbase = mrb->stbase;
 
     size = mrb->stend - mrb->stbase;
@@ -121,14 +121,18 @@ stack_extend(mrb_state *mrb, int room, int keep)
     if (keep > size) keep = size;
 
     /* Use linear stack growth.
-       It is slightly slower than doubling thestack space,
+       It is slightly slower than doubling the stack space,
        but it saves memory on small devices. */
     if (room <= size)
       size += MRB_STACK_GROWTH;
     else
       size += room;
 
-    mrb->stbase = (mrb_value *)mrb_realloc(mrb, mrb->stbase, sizeof(mrb_value) * size);
+    p_new = (mrb_value *)mrb_realloc(mrb, mrb->stbase, sizeof(mrb_value) * size);
+    if (!p_new && size) {
+      /* mrb_panic(mrb); */
+    }
+    mrb->stbase = p_new;
     mrb->stack = mrb->stbase + off;
     mrb->stend = mrb->stbase + size;
     envadjust(mrb, oldbase, mrb->stbase);
@@ -196,8 +200,13 @@ cipush(mrb_state *mrb)
 
   if (mrb->ci + 1 == mrb->ciend) {
     size_t size = mrb->ci - mrb->cibase;
+    mrb_callinfo *p_new;
 
-    mrb->cibase = (mrb_callinfo *)mrb_realloc(mrb, mrb->cibase, sizeof(mrb_callinfo)*size*2);
+    p_new = (mrb_callinfo *)mrb_realloc(mrb, mrb->cibase, sizeof(mrb_callinfo)*size*2);
+    if (!p_new && size) {
+      /* mrb_panic(mrb); */
+    }
+    mrb->cibase = p_new;
     mrb->ci = mrb->cibase + size;
     mrb->ciend = mrb->cibase + size * 2;
   }
@@ -216,6 +225,9 @@ cipop(mrb_state *mrb)
     struct REnv *e = mrb->ci->env;
     size_t len = (size_t)e->flags;
     mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
+    if (!p) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+    }
 
     e->cioff = -1;
     stack_copy(p, e->stack, len);
@@ -753,9 +765,14 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_ONERR) {
       /* sBx    pc+=sBx on exception */
       if (mrb->rsize <= mrb->ci->ridx) {
+        mrb_code **pp_new;
         if (mrb->rsize == 0) mrb->rsize = 16;
         else mrb->rsize *= 2;
-        mrb->rescue = (mrb_code **)mrb_realloc(mrb, mrb->rescue, sizeof(mrb_code*) * mrb->rsize);
+        pp_new = (mrb_code **)mrb_realloc(mrb, mrb->rescue, sizeof(mrb_code*) * mrb->rsize);
+        if (!pp_new && mrb->rsize) {
+          /* mrb_panic(mrb); */
+        }
+        mrb->rescue = pp_new;
       }
       mrb->rescue[mrb->ci->ridx++] = pc + GETARG_sBx(i);
       NEXT;
@@ -790,9 +807,15 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       p = mrb_closure_new(mrb, mrb->irep[irep->idx+GETARG_Bx(i)]);
       /* push ensure_stack */
       if (mrb->esize <= mrb->ci->eidx) {
+        struct RProc **pp_new;
+
         if (mrb->esize == 0) mrb->esize = 16;
         else mrb->esize *= 2;
-        mrb->ensure = (struct RProc **)mrb_realloc(mrb, mrb->ensure, sizeof(struct RProc*) * mrb->esize);
+        pp_new = (struct RProc **)mrb_realloc(mrb, mrb->ensure, sizeof(struct RProc*) * mrb->esize);
+        if (!pp_new && mrb->esize) {
+          /* mrb_panic(mrb); */
+        }
+        mrb->ensure = pp_new;
       }
       mrb->ensure[mrb->ci->eidx++] = p;
       mrb_gc_arena_restore(mrb, ai);

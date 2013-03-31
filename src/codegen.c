@@ -2364,29 +2364,50 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->mscope = 0;
 
   p->irep = mrb_add_irep(mrb);
-  p->idx = p->irep->idx;
-
-  p->icapa = 1024;
-  p->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*p->icapa);
-
-  p->pcapa = 32;
-  p->irep->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value)*p->pcapa);
-  p->irep->plen = 0;
-
-  p->scapa = 256;
-  p->irep->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*256);
-  p->irep->slen = 0;
-
-  p->lv = lv;
-  p->sp += node_len(lv)+1;        /* add self */
-  p->nlocals = p->sp;
-  p->ai = mrb_gc_arena_save(mrb);
-
-  p->filename = prev->filename;
-  if (p->filename) {
-    p->lines = (short*)mrb_malloc(mrb, sizeof(short)*p->icapa);
+  if (p->irep == NULL) {
+    mrb_free(mrb, p);
+    p = 0;
   }
-  p->lineno = prev->lineno;
+  else {
+    p->idx = p->irep->idx;
+
+    p->icapa = 1024;
+    p->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*p->icapa);
+
+    p->pcapa = 32;
+    p->irep->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value)*p->pcapa);
+    p->irep->plen = 0;
+
+    p->scapa = 256;
+    p->irep->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * p->scapa);
+    p->irep->slen = 0;
+
+    p->lv = lv;
+    p->sp += node_len(lv)+1;        /* add self */
+    p->nlocals = p->sp;
+    p->ai = mrb_gc_arena_save(mrb);
+
+    p->filename = prev->filename;
+    if (p->filename) {
+      p->lines = (short*)mrb_malloc(mrb, sizeof(short)*p->icapa);
+    }
+    p->lineno = prev->lineno;
+
+    if (!((p->iseq || !p->icapa) &&
+          p->irep &&
+          (p->irep->pool || !p->pcapa) &&
+          p->irep->syms &&
+          ((p->lines || !p->filename) || !p->icapa))) {
+      mrb_free(mrb, p->iseq);
+      if (p->irep) {
+        mrb_free(mrb, p->irep->pool);
+        mrb_free(mrb, p->irep->syms);
+        mrb_free(mrb, p->irep);
+      }
+      mrb_free(mrb, p->lines);
+      p = 0;
+    }
+  }
   return p;
 }
 

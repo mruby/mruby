@@ -36,17 +36,19 @@ ary_new_capa(mrb_state *mrb, mrb_int capa)
 {
   struct RArray *a;
   mrb_int blen;
+  mrb_value *p_new;
 
   if (capa > ARY_MAX_SIZE) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "ary size too big");
   }
   blen = capa * sizeof(mrb_value) ;
-  if (blen < capa) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "ary size too big");
+  p_new = (mrb_value *)mrb_malloc(mrb, blen);
+  if (!p_new && blen) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
   }
 
   a = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
-  a->ptr = (mrb_value *)mrb_malloc(mrb, blen);
+  a->ptr = p_new;
   a->aux.capa = capa;
   a->len = 0;
 
@@ -124,9 +126,12 @@ ary_modify(mrb_state *mrb, struct RArray *a)
       mrb_value *ptr, *p;
       mrb_int len;
 
-      p = a->ptr;
       len = a->len * sizeof(mrb_value);
       ptr = (mrb_value *)mrb_malloc(mrb, len);
+      if (!ptr && len) {
+        mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+      }
+      p = a->ptr;
       if (p) {
         array_copy(ptr, p, a->len);
       }
@@ -143,14 +148,24 @@ ary_make_shared(mrb_state *mrb, struct RArray *a)
 {
   if (!(a->flags & MRB_ARY_SHARED)) {
     mrb_shared_array *shared = (mrb_shared_array *)mrb_malloc(mrb, sizeof(mrb_shared_array));
+    if (!shared) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+    }
 
-    shared->refcnt = 1;
     if (a->aux.capa > a->len) {
-      a->ptr = shared->ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*a->len+1);
+      mrb_value *p_new;
+      p_new = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value) * (a->len + 1));
+      if (!p_new) {
+        mrb_free(mrb, shared);
+        mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+      }
+      a->ptr = p_new;
+      shared->ptr = p_new;
     }
     else {
       shared->ptr = a->ptr;
     }
+    shared->refcnt = 1;
     shared->len = a->len;
     a->aux.shared = shared;
     a->flags |= MRB_ARY_SHARED;
@@ -179,7 +194,6 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
 
   if (capa > a->aux.capa) {
     mrb_value *expanded_ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
-
     if(!expanded_ptr) {
       mrb_raise(mrb, E_RUNTIME_ERROR, "out of memory");
     }
@@ -206,8 +220,12 @@ ary_shrink_capa(mrb_state *mrb, struct RArray *a)
   } while(capa > a->len * ARY_SHRINK_RATIO);
 
   if (capa > a->len && capa < a->aux.capa) {
+    mrb_value *p_new = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
+    if (!p_new && capa) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+    }
+    a->ptr = p_new;
     a->aux.capa = capa;
-    a->ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
   }
 }
 

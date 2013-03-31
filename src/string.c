@@ -27,10 +27,6 @@ const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 static mrb_value str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2);
 static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
 
-#define RESIZE_CAPA(s,capacity) do {\
-      s->ptr = (char *)mrb_realloc(mrb, s->ptr, (capacity)+1);\
-      s->aux.capa = capacity;\
-} while (0)
 
 void
 mrb_str_decref(mrb_state *mrb, mrb_shared_string *shared)
@@ -57,9 +53,12 @@ str_modify(mrb_state *mrb, struct RString *s)
       char *ptr, *p;
       mrb_int len;
 
-      p = s->ptr;
       len = s->len;
       ptr = (char *)mrb_malloc(mrb, (size_t)len + 1);
+      if (!ptr) {
+        mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+      }
+      p = s->ptr;
       if (p) {
         memcpy(ptr, p, len);
       }
@@ -114,11 +113,17 @@ static struct RString*
 str_new(mrb_state *mrb, const char *p, int len)
 {
   struct RString *s;
+  char *p_new;
+
+  p_new = (char *)mrb_malloc(mrb, len+1);
+  if (!p_new) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+  }
 
   s = mrb_obj_alloc_string(mrb);
   s->len = len;
   s->aux.capa = len;
-  s->ptr = (char *)mrb_malloc(mrb, len+1);
+  s->ptr = p_new;
   if (p) {
     memcpy(s->ptr, p, len);
   }
@@ -149,6 +154,12 @@ mrb_value
 mrb_str_buf_new(mrb_state *mrb, int capa)
 {
   struct RString *s;
+  char *p_new;
+
+  p_new = (char *)mrb_malloc(mrb, capa+1);
+  if (!p_new) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+  }
 
   s = mrb_obj_alloc_string(mrb);
 
@@ -157,7 +168,7 @@ mrb_str_buf_new(mrb_state *mrb, int capa)
   }
   s->len = 0;
   s->aux.capa = capa;
-  s->ptr = (char *)mrb_malloc(mrb, capa+1);
+  s->ptr = p_new;
   s->ptr[0] = '\0';
 
   return mrb_obj_value(s);
@@ -188,7 +199,11 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
         }
         capa = (capa + 1) * 2;
     }
-    RESIZE_CAPA(s, capa);
+    s->ptr = (char *)mrb_realloc(mrb, s->ptr, capa+1);
+    if (!s->ptr) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+    }
+    s->aux.capa = capa;
   }
   if (off != -1) {
       ptr = s->ptr + off;
@@ -227,6 +242,7 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
 {
   struct RString *s;
   size_t len;
+  char *p_new;
 
   if (p) {
     len = strlen(p);
@@ -238,12 +254,17 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
     len = 0;
   }
 
+  p_new = (char *)mrb_malloc(mrb, len+1);
+  if (!p_new) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+  }
+
   s = mrb_obj_alloc_string(mrb);
-  s->ptr = (char *)mrb_malloc(mrb, len+1);
+  s->ptr = p_new;
   if (p) {
     memcpy(s->ptr, p, len);
   }
-  s->ptr[len] = 0;
+  s->ptr[len] = '\0';
   s->len = len;
   s->aux.capa = len;
 
@@ -271,7 +292,9 @@ str_make_shared(mrb_state *mrb, struct RString *s)
 {
   if (!(s->flags & MRB_STR_SHARED)) {
     mrb_shared_string *shared = (mrb_shared_string *)mrb_malloc(mrb, sizeof(mrb_shared_string));
-
+    if (!shared) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+    }
     shared->refcnt = 1;
     if (s->aux.capa > s->len) {
       s->ptr = shared->ptr = (char *)mrb_realloc(mrb, s->ptr, s->len+1);
@@ -1422,14 +1445,21 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
     goto L_SHARE;
   }
   else {
+    char *p_new;
     if (s1->flags & MRB_STR_SHARED) {
-      mrb_str_decref(mrb, s1->aux.shared);
-      s1->flags &= ~MRB_STR_SHARED;
-      s1->ptr = (char *)mrb_malloc(mrb, s2->len+1);
+      p_new = (char *)mrb_malloc(mrb, s2->len+1);
+      if (p_new) {
+        mrb_str_decref(mrb, s1->aux.shared);
+        s1->flags &= ~MRB_STR_SHARED;
+      }
     }
     else {
-      s1->ptr = (char *)mrb_realloc(mrb, s1->ptr, s2->len+1);
+      p_new = (char *)mrb_realloc(mrb, s1->ptr, s2->len+1);
     }
+    if (!p_new) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+    }
+    s1->ptr = p_new;
     memcpy(s1->ptr, s2->ptr, s2->len);
     s1->ptr[s2->len] = 0;
     s1->len = s2->len;
