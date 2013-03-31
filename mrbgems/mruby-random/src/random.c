@@ -170,6 +170,10 @@ static mrb_value mrb_random_init(mrb_state *mrb, mrb_value self)
 
 
   mt_state *t = (mt_state *)mrb_malloc(mrb, sizeof(mt_state));
+  if (!t) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+  }
+
   t->mti = N + 1;
 
   seed = get_opt(mrb);

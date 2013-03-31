@@ -40,6 +40,9 @@ mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, int excl)
   r = (struct RRange*)mrb_obj_alloc(mrb, MRB_TT_RANGE, RANGE_CLASS);
   range_check(mrb, beg, end);
   r->edges = (mrb_range_edges *)mrb_malloc(mrb, sizeof(mrb_range_edges));
+  if (!r->edges) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+  }
   r->edges->beg = beg;
   r->edges->end = end;
   r->excl = excl;
@@ -103,6 +106,9 @@ range_init(mrb_state *mrb, mrb_value range, mrb_value beg, mrb_value end, int ex
   r->excl = exclude_end;
   if (!r->edges) {
     r->edges = (mrb_range_edges *)mrb_malloc(mrb, sizeof(mrb_range_edges));
+    if (!r->edges) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+    }
   }
   r->edges->beg = beg;
   r->edges->end = end;

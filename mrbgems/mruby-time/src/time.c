@@ -158,6 +158,9 @@ mrb_time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezo
   struct mrb_time *tm;
 
   tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(struct mrb_time));
+  if (!tm) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+  }
   tm->sec  = (time_t)sec;
   tm->usec = (sec - tm->sec) * 1.0e6 + usec;
   while (tm->usec < 0) {
@@ -185,7 +188,10 @@ current_mrb_time(mrb_state *mrb)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
+  tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(struct mrb_time));
+  if (!tm) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+  }
 #ifdef NO_GETTIMEOFDAY
   {
     static time_t last_sec = 0, last_usec = 0;
@@ -472,7 +478,10 @@ mrb_time_getutc(mrb_state *mrb, mrb_value self)
 
   tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
   if (!tm) return self;
-  tm2 = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
+  tm2 = (struct mrb_time *)mrb_malloc(mrb, sizeof(struct mrb_time));
+  if (!tm2) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+  }
   *tm2 = *tm;
   tm2->timezone = MRB_TIMEZONE_UTC;
   mrb_time_update_datetime(tm2);
@@ -488,7 +497,10 @@ mrb_time_getlocal(mrb_state *mrb, mrb_value self)
 
   tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
   if (!tm) return self;
-  tm2 = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
+  tm2 = (struct mrb_time *)mrb_malloc(mrb, sizeof(struct mrb_time));
+  if (!tm2) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+  }
   *tm2 = *tm;
   tm2->timezone = MRB_TIMEZONE_LOCAL;
   mrb_time_update_datetime(tm2);
@@ -549,7 +561,11 @@ mrb_time_initialize_copy(mrb_state *mrb, mrb_value copy)
     mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
   }
   if (!DATA_PTR(copy)) {
-    DATA_PTR(copy) = mrb_malloc(mrb, sizeof(struct mrb_time));
+    void *p_new = mrb_malloc(mrb, sizeof(struct mrb_time));
+    if (!p_new) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+    }
+    DATA_PTR(copy) = p_new;
     DATA_TYPE(copy) = &mrb_time_type;
   }
   *(struct mrb_time *)DATA_PTR(copy) = *(struct mrb_time *)DATA_PTR(src);
