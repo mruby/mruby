@@ -651,7 +651,6 @@ flo_round(mrb_state *mrb, mrb_value num)
 /*
  *  call-seq:
  *     flt.to_i      ->  integer
- *     flt.to_int    ->  integer
  *     flt.truncate  ->  integer
  *
  *  Returns <i>flt</i> truncated to an <code>Integer</code>.
@@ -683,7 +682,6 @@ flo_truncate(mrb_state *mrb, mrb_value num)
 /*
  *  call-seq:
  *     int.to_i      ->  integer
- *     int.to_int    ->  integer
  *
  *  As <i>int</i> is already an <code>Integer</code>, all these
  *  methods simply return the receiver.
@@ -1371,7 +1369,6 @@ mrb_init_numeric(mrb_state *mrb)
   integer = mrb_define_class(mrb, "Integer",  numeric);
   mrb_undef_class_method(mrb, integer, "new");
   mrb_define_method(mrb, integer, "to_i", int_to_i, ARGS_NONE());              /* 15.2.8.3.24 */
-  mrb_define_method(mrb, integer, "to_int", int_to_i, ARGS_NONE());
   fixnum = mrb->fixnum_class = mrb_define_class(mrb, "Fixnum", integer);
 
   mrb_undef_class_method(mrb,  fixnum, "new");
@@ -1411,7 +1408,6 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "round",     flo_round,        ARGS_NONE()); /* 15.2.9.3.12 */
   mrb_define_method(mrb, fl,      "to_f",      flo_to_f,         ARGS_NONE()); /* 15.2.9.3.13 */
   mrb_define_method(mrb, fl,      "to_i",      flo_truncate,     ARGS_NONE()); /* 15.2.9.3.14 */
-  mrb_define_method(mrb, fl,      "to_int",    flo_truncate,     ARGS_NONE());
   mrb_define_method(mrb, fl,      "truncate",  flo_truncate,     ARGS_NONE()); /* 15.2.9.3.15 */
 
   mrb_define_method(mrb, fl,      "to_s",      flo_to_s,         ARGS_NONE()); /* 15.2.9.3.16(x) */

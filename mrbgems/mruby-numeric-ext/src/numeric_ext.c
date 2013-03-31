@@ -21,8 +21,12 @@ void
 mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *i = mrb_class_get(mrb, "Integer");
+  struct RClass *f = mrb_class_get(mrb, "Float");
 
   mrb_define_method(mrb, i, "chr",    mrb_int_chr,            ARGS_NONE());
+  mrb_define_alias(mrb,  i, "to_int", "to_i");
+
+  mrb_define_alias(mrb,  f, "to_int", "to_i");
 }
 
 void
