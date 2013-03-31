@@ -671,42 +671,6 @@ flo_truncate(mrb_state *mrb, mrb_value num)
   return mrb_fixnum_value((mrb_int)f);
 }
 
-/* 15.2.8.3.17 */
-/*
- *  call-seq:
- *     num.floor  ->  integer
- *
- *  Returns the largest integer less than or equal to <i>num</i>.
- *  <code>Numeric</code> implements this by converting <i>anInteger</i>
- *  to a <code>Float</code> and invoking <code>Float#floor</code>.
- *
- *     1.floor      #=> 1
- *     (-1).floor   #=> -1
- */
-
-static mrb_value
-num_floor(mrb_state *mrb, mrb_value num)
-{
-  return flo_floor(mrb, mrb_Float(mrb, num));
-}
-
-/* 15.2.8.3.20 */
-/*
- *  call-seq:
- *     num.round([ndigits])  ->  integer or float
- *
- *  Rounds <i>num</i> to a given precision in decimal digits (default 0 digits).
- *  Precision may be negative.  Returns a floating point number when ndigits
- *  is more than zero.  <code>Numeric</code> implements this by converting itself
- *  to a <code>Float</code> and invoking <code>Float#round</code>.
- */
-
-static mrb_value
-num_round(mrb_state *mrb, mrb_value num)
-{
-  return flo_round(mrb, mrb_Float(mrb, num));
-}
-
 /*
  * Document-class: Integer
  *
