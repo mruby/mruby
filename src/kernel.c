@@ -108,7 +108,7 @@ mrb_obj_not_equal_m(mrb_state *mrb, mrb_value self)
   mrb_bool eql_p;
 
   mrb_get_args(mrb, "o", &arg);
-  eql_p = mrb_obj_equal(mrb, self, arg);
+  eql_p = mrb_equal(mrb, self, arg);
 
   return mrb_bool_value(!eql_p);
 }
