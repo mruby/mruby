@@ -349,3 +349,13 @@ end
 assert('Kernel#to_s', '15.3.1.3.46') do
   to_s.class == String
 end
+
+assert('Kernel#!=') do
+  str1 = "hello"
+  str2 = str1
+  str3 = "world"
+
+  (str1[1] != 'e') == false and
+  (str1 != str3) == true and
+  (str2 != str1) == false
+end
