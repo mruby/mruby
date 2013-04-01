@@ -440,6 +440,7 @@ mrb_any_to_s(mrb_state *mrb, mrb_value obj)
 
   mrb_str_buf_cat(mrb, str, "#<", 2);
   mrb_str_cat2(mrb, str, cname);
+  mrb_str_cat(mrb, str, ":", 1);
   mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, mrb_voidp(obj)));
   mrb_str_buf_cat(mrb, str, ">", 1);
 
