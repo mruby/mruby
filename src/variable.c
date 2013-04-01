@@ -11,6 +11,7 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "error.h"
+#include <ctype.h>
 
 typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 
@@ -917,6 +918,40 @@ void
 mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val)
 {
   mrb_define_const(mrb, mrb->object_class, name, val);
+}
+
+static int
+const_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
+{
+  mrb_value ary;
+  const char* s;
+  size_t len;
+
+  ary = *(mrb_value*)p;
+  s = mrb_sym2name_len(mrb, sym, &len);
+  if (len > 1 && ISUPPER(s[0])) {
+    mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
+  }
+  return 0;
+}
+
+/* 15.2.2.4.24 */
+/*
+ *  call-seq:
+ *     mod.constants    -> array
+ *
+ *  Returns an array of all names of contants defined in the receiver.
+ */
+mrb_value
+mrb_mod_constants(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value ary;
+
+  ary = mrb_ary_new(mrb);
+  if (obj_iv_p(mod) && mrb_obj_ptr(mod)->iv) {
+    iv_foreach(mrb, mrb_obj_ptr(mod)->iv, const_i, &ary);
+  }
+  return ary;
 }
 
 mrb_value

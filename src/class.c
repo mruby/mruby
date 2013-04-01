@@ -1829,6 +1829,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "const_defined?",          mrb_mod_const_defined,    ARGS_REQ(1)); /* 15.2.2.4.20 */
   mrb_define_method(mrb, mod, "const_get",               mrb_mod_const_get,        ARGS_REQ(1)); /* 15.2.2.4.21 */
   mrb_define_method(mrb, mod, "const_set",               mrb_mod_const_set,        ARGS_REQ(2)); /* 15.2.2.4.23 */
+  mrb_define_method(mrb, mod, "constants",               mrb_mod_constants,        ARGS_NONE()); /* 15.2.2.4.24 */
   mrb_define_method(mrb, mod, "remove_const",            mrb_mod_remove_const,     ARGS_REQ(1)); /* 15.2.2.4.40 */
   mrb_define_method(mrb, mod, "define_method",           mod_define_method,        ARGS_REQ(1));
   mrb_define_method(mrb, mod, "class_variables",         mrb_mod_class_variables,  ARGS_NONE()); /* 15.2.2.4.19 */
