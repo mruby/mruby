@@ -253,7 +253,7 @@ module MRuby
       IO.popen(commandline, 'r+') do |io|
         [infiles].flatten.each do |f|
           _pp "MRBC", f.relative_path, nil, :indent => 2
-          log "#{commandline} ## #{f}"
+          log "#{commandline} ## #{f}" if respond_to? :log
           io.write IO.read(f)
         end
         io.close_write
