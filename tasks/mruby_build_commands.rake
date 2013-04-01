@@ -85,7 +85,7 @@ module MRuby
       source_exts.each do |ext, compile|
         rule generated_file_matcher => [
           proc { |file|
-            file.sub(generated_file_matcher, "#{source_dir}/\\1#{ext}")
+            file.sub(generated_file_matcher, "#{build_dir}/\\1#{ext}")
           },
           proc { |file|
             get_dependencies(file)
@@ -96,7 +96,7 @@ module MRuby
 
         rule generated_file_matcher => [
           proc { |file|
-            file.sub(generated_file_matcher, "#{build_dir}/\\1#{ext}")
+            file.sub(generated_file_matcher, "#{source_dir}/\\1#{ext}")
           },
           proc { |file|
             get_dependencies(file)

@@ -24,7 +24,7 @@ module MRuby
       alias :license= :licenses=
       alias :author= :authors=
 
-      attr_accessor :rbfiles, :objs
+      attr_accessor :rbfiles, :objs, :coreobjs
       attr_accessor :test_objs, :test_rbfiles, :test_args
       attr_accessor :test_preload
 
@@ -44,11 +44,27 @@ module MRuby
           compiler.include_paths << "#{dir}/include"
         end
         MRuby::Build::COMMANDS.each do |command|
-          instance_variable_set("@#{command}", @build.send(command).clone)
+          val = @build.send(command)
+          val = val.clone unless command =~ /^(cc|cxx)$/
+          instance_variable_set("@#{command}", val)
         end
         @linker = LinkerConfig.new([], [], [], [])
 
         @rbfiles = Dir.glob("#{dir}/mrblib/*.rb")
+        @coreobjs = Dir.glob("#{dir}/core/src/*.{c,cc,cpp,m,asm,S}").map do |f|
+          o = objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
+          case f[/[^.]*$/].intern
+          when :c
+            file o => f do |t|
+              cc.run t.name, t.prerequisites.first, [], ["#{build.build_dir}/src", "#{MRUBY_ROOT}/src"]
+            end
+          when :cpp, :cc
+            file o => f do |t|
+              cxx.run t.name, t.prerequisites.first, [], ["#{build.build_dir}/src", "#{MRUBY_ROOT}/src"]
+            end
+          end
+          o
+        end
         @objs = Dir.glob("#{dir}/src/*.{c,cpp,m,asm,S}").map do |f|
           objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
         end
@@ -69,6 +85,8 @@ module MRuby
           fail "#{name || dir} required to set name, license(s) and author(s)"
         end
 
+        build.libmruby_core << @coreobjs
+        build.libmruby << @coreobjs
         build.libmruby << @objs
 
         instance_eval(&@build_config_initializer) if @build_config_initializer
