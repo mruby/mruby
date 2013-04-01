@@ -55,6 +55,9 @@ The value below allows about 60000 recursive calls in the simplest case. */
 # define DEBUG(x)
 #endif
 
+#define TO_STR(x) TO_STR_(x)
+#define TO_STR_(x) #x
+
 static inline void
 stack_clear(mrb_value *from, size_t count)
 {
@@ -133,9 +136,9 @@ stack_extend(mrb_state *mrb, int room, int keep)
     mrb->stend = mrb->stbase + size;
     envadjust(mrb, oldbase, mrb->stbase);
     /* Raise an exception if the new stack size will be too large,
-    to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raisef has stack space to work with. */
+    to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raise has stack space to work with. */
     if (size > MRB_STACK_MAX) {
-      mrb_raisef(mrb, E_RUNTIME_ERROR, "stack level too deep. (limit=%S)", mrb_fixnum_value(MRB_STACK_MAX));
+      mrb_raise(mrb, E_RUNTIME_ERROR, "stack level too deep. (limit=" TO_STR(MRB_STACK_MAX) ")");
     }
   }
 
@@ -275,7 +278,7 @@ mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
     int i;
 
     if (argc > MRB_FUNCALL_ARGC_MAX) {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=%S)", mrb_fixnum_value(MRB_FUNCALL_ARGC_MAX));
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=" TO_STR(MRB_FUNCALL_ARGC_MAX) ")");
     }
 
     va_start(ap, argc);

@@ -38,11 +38,11 @@ ary_new_capa(mrb_state *mrb, mrb_int capa)
   mrb_int blen;
 
   if (capa > ARY_MAX_SIZE) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "ary size too big");
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
   }
   blen = capa * sizeof(mrb_value) ;
   if (blen < capa) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "ary size too big");
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
   }
 
   a = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
