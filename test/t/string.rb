@@ -32,7 +32,7 @@ assert('String#==', '15.2.10.5.4') do
   'abc' == 'abc' and not 'abc' == 'cba'
 end
 
-# TODO: SEGFAULT ATM assert('String#=~', '15.2.10.5.5')
+# 'String#=~', '15.2.10.5.5' will be tested in mrbgems.
 
 assert('String#[]', '15.2.10.5.6') do
   # length of args is 1
@@ -49,7 +49,7 @@ assert('String#[]', '15.2.10.5.6') do
   e1 = 'abc'[1, 2]
 
   # args is RegExp
-  # TODO SEGFAULT ATM
+  # It will be tested in mrbgems.
 
   # args is String
   a3 = 'abc'['bc']
@@ -251,7 +251,7 @@ assert('String#length', '15.2.10.5.26') do
   'abc'.length == 3
 end
 
-# TODO Broken ATM assert('String#match', '15.2.10.5.27') do
+# 'String#match', '15.2.10.5.27' will be tested in mrbgems.
 
 assert('String#replace', '15.2.10.5.28') do
   a = ''
@@ -279,7 +279,7 @@ assert('String#rindex', '15.2.10.5.31') do
     'abcabc'.rindex('a', 1) == 0 and 'abcabc'.rindex('a', 4) == 3
 end
 
-# TODO Broken ATM assert('String#scan', '15.2.10.5.32') do
+# 'String#scan', '15.2.10.5.32' will be tested in mrbgems.
 
 assert('String#size', '15.2.10.5.33') do
   'abc'.size == 3
@@ -303,7 +303,7 @@ assert('String#slice', '15.2.10.5.34') do
   e11 = e1.slice(0)
 
   # args is RegExp
-  # TODO SEGFAULT ATM
+  # It will be tested in mrbgems.
 
   # args is String
   a3 = 'abc'.slice('bc')

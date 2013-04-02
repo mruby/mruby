@@ -291,6 +291,10 @@ assert('Kernel#object_id', '15.3.1.3.33') do
   object_id.class == Fixnum
 end
 
+# Kernel#p is defined in mruby-print mrbgem. '15.3.1.3.34'
+
+# Kernel#print is defined in mruby-print mrbgem. '15.3.1.3.35'
+
 assert('Kernel#private_methods', '15.3.1.3.36') do
   private_methods.class == Array
 end
@@ -302,6 +306,8 @@ end
 assert('Kernel#public_methods', '15.3.1.3.38') do
   public_methods.class == Array
 end
+
+# Kernel#puts is defined in mruby-print mrbgem. '15.3.1.3.39'
 
 assert('Kernel#raise', '15.3.1.3.40') do
   e_list = []
