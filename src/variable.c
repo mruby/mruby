@@ -946,10 +946,15 @@ mrb_value
 mrb_mod_constants(mrb_state *mrb, mrb_value mod)
 {
   mrb_value ary;
+  struct RClass *c = mrb_class_ptr(mod);
 
   ary = mrb_ary_new(mrb);
-  if (obj_iv_p(mod) && mrb_obj_ptr(mod)->iv) {
-    iv_foreach(mrb, mrb_obj_ptr(mod)->iv, const_i, &ary);
+  while (c) {
+    if (c->iv) {
+      iv_foreach(mrb, c->iv, const_i, &ary);
+    }
+    c = c->super;
+    if (c == mrb->object_class) break;
   }
   return ary;
 }
