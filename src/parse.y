@@ -3116,28 +3116,40 @@ none		: /* none */
 #define yylval  (*((YYSTYPE*)(p->ylval)))
 
 static void
-yyerror(parser_state *p, const char *s)
+log_error(parser_state *p, const char *s)
+{
+#ifdef ENABLE_STDIO
+  if (p->filename) {
+    fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
+  }
+  else {
+    fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column, s);
+  }
+#endif
+}
+
+static void
+log_store(parser_state *p, struct mrb_parser_message *p_buf, const char *s)
 {
   char* c;
   int n;
 
+  n = strlen(s);
+  c = (char *)parser_palloc(p, n + 1);
+  memcpy(c, s, n + 1);
+  p_buf->message = c;
+  p_buf->lineno = p->lineno;
+  p_buf->column = p->column;
+}
+
+static void
+yyerror(parser_state *p, const char *s)
+{
   if (! p->capture_errors) {
-#ifdef ENABLE_STDIO
-    if (p->filename) {
-      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
-    }
-    else {
-      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column, s);
-    }
-#endif
+    log_error(p, s);
   }
   else if (p->nerr < sizeof(p->error_buffer) / sizeof(p->error_buffer[0])) {
-    n = strlen(s);
-    c = (char *)parser_palloc(p, n + 1);
-    memcpy(c, s, n + 1);
-    p->error_buffer[p->nerr].message = c;
-    p->error_buffer[p->nerr].lineno = p->lineno;
-    p->error_buffer[p->nerr].column = p->column;
+    log_store(p, &(p->error_buffer[p->nerr]), s);
   }
   p->nerr++;
 }
@@ -3154,26 +3166,11 @@ yyerror_i(parser_state *p, const char *fmt, int i)
 static void
 yywarn(parser_state *p, const char *s)
 {
-  char* c;
-  int n;
-
   if (! p->capture_errors) {
-#ifdef ENABLE_STDIO
-    if (p->filename) {
-      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
-    }
-    else {
-      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column, s);
-    }
-#endif
+    log_error(p, s);
   }
   else if (p->nwarn < sizeof(p->warn_buffer) / sizeof(p->warn_buffer[0])) {
-    n = strlen(s);
-    c = (char *)parser_palloc(p, n + 1);
-    memcpy(c, s, n + 1);
-    p->warn_buffer[p->nwarn].message = c;
-    p->warn_buffer[p->nwarn].lineno = p->lineno;
-    p->warn_buffer[p->nwarn].column = p->column;
+    log_store(p, &(p->warn_buffer[p->nwarn]), s);
   }
   p->nwarn++;
 }
