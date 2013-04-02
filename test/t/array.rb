@@ -272,7 +272,7 @@ assert('Array#unshift', '15.2.12.5.30') do
   a == [1,2,3] and b == [1,2,3] and c == [0,1,2,3] and d == [0,1,2,3] 
 end
 
-assert('Array#to_s', '15.2.12.5.31') do
+assert('Array#to_s', '15.2.12.5.31 / 15.2.12.5.32') do
   a = [2, 3,   4, 5]
   r1 = a.to_s
   r2 = a.inspect
@@ -286,6 +286,20 @@ assert('Array#==', '15.2.12.5.33') do
   r3 = [ "a", "c", 7 ] == [ "a", "d", "f" ]   #=> false
 
   r1 == false and r2 == true and r3 == false
+end
+
+assert('Array#eql?', '15.2.12.5.34') do
+  a1 = [ 1, 2, 3 ]
+  a2 = [ 1, 2, 3 ]
+  a3 = [ 1.0, 2.0, 3.0 ]
+
+  (a1.eql? a2) and (not a1.eql? a3)
+end
+
+assert('Array#hash', '15.2.12.5.35') do
+  a = [ 1, 2, 3 ]
+
+  a.hash.is_a? Integer
 end
 
 assert('Array#<=>', '15.2.12.5.36') do

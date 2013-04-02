@@ -129,6 +129,21 @@ assert('Module#const_get', '15.2.2.4.23') do
   Test4ConstSet.const_get(:Const4Test4ConstSet) == 23
 end
 
+assert('Module.constants', '15.2.2.4.24') do
+  $n = []
+  module TestA
+    Const = 1
+  end
+  class TestB
+    include TestA
+    Const2 = 1
+    $n = constants.sort
+  end
+
+  TestA.constants == [ :Const ] and
+  $n == [ :Const, :Const2 ]
+end
+
 assert('Module#include', '15.2.2.4.27') do
   module Test4Include
     Const4Include = 42

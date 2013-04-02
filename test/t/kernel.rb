@@ -23,6 +23,8 @@ assert('Kernel.block_given?', '15.3.1.2.2') do
     ((bg_try do "block" end) == "block")
 end
 
+# Kernel.eval is provided by the mruby-gem mrbgem. '15.3.1.2.3'
+
 assert('Kernel.global_variables', '15.3.1.2.4') do
   Kernel.global_variables.class == Array
 end
@@ -189,6 +191,8 @@ assert('Kernel#dup', '15.3.1.3.9') do
     c.respond_to?(:test) == false
 end
 
+# Kernel#eval is provided by mruby-eval mrbgem '15.3.1.3.12'
+
 assert('Kernel#extend', '15.3.1.3.13') do
   class Test4ExtendClass
   end
@@ -287,6 +291,10 @@ assert('Kernel#object_id', '15.3.1.3.33') do
   object_id.class == Fixnum
 end
 
+# Kernel#p is defined in mruby-print mrbgem. '15.3.1.3.34'
+
+# Kernel#print is defined in mruby-print mrbgem. '15.3.1.3.35'
+
 assert('Kernel#private_methods', '15.3.1.3.36') do
   private_methods.class == Array
 end
@@ -298,6 +306,8 @@ end
 assert('Kernel#public_methods', '15.3.1.3.38') do
   public_methods.class == Array
 end
+
+# Kernel#puts is defined in mruby-print mrbgem. '15.3.1.3.39'
 
 assert('Kernel#raise', '15.3.1.3.40') do
   e_list = []
