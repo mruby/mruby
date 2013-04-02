@@ -215,7 +215,7 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
   mrb->exc = mrb_obj_ptr(exc);
   exc_debug_info(mrb, mrb->exc);
   if (!mrb->jmp) {
-    mrb_p(mrb, exc);
+    mrb_error_print(mrb, exc);
     abort();
   }
   longjmp(*(jmp_buf*)mrb->jmp, 1);

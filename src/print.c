@@ -7,20 +7,26 @@
 #include "mruby.h"
 #include "mruby/string.h"
 
-static void
-printstr(mrb_state *mrb, mrb_value obj)
+void
+mrb_error_print(mrb_state *mrb, mrb_value obj)
 {
 #ifdef ENABLE_STDIO
   struct RString *str;
   char *s;
   int len;
 
-  if (mrb_string_p(obj)) {
-    str = mrb_str_ptr(obj);
-    s = str->ptr;
-    len = str->len;
-    fwrite(s, len, 1, stdout);
+  if (!mrb_string_p(obj)) {
+    mrb_value v = mrb_funcall(mrb, obj, "inspect", 0);
+    str = mrb_str_ptr(v);
   }
+  else {
+    str = mrb_str_ptr(obj);
+  }
+
+  s = str->ptr;
+  len = str->len;
+  fwrite(s, len, 1, stderr);
+  fwrite("\n", 1, 1, stderr);
 #endif
 }
 
