@@ -23,6 +23,8 @@ assert('Kernel.block_given?', '15.3.1.2.2') do
     ((bg_try do "block" end) == "block")
 end
 
+# Kernel.eval is provided by the mruby-gem mrbgem. '15.3.1.2.3'
+
 assert('Kernel.global_variables', '15.3.1.2.4') do
   Kernel.global_variables.class == Array
 end
@@ -188,6 +190,8 @@ assert('Kernel#dup', '15.3.1.3.9') do
     b.respond_to?(:test) == false and
     c.respond_to?(:test) == false
 end
+
+# Kernel#eval is provided by mruby-eval mrbgem '15.3.1.3.12'
 
 assert('Kernel#extend', '15.3.1.3.13') do
   class Test4ExtendClass
