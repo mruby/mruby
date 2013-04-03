@@ -346,7 +346,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
       ci->nregs = argc + 2;
     }
     else {
-      ci->nregs = p->body.irep->nregs + 2;
+      ci->nregs = p->body.irep->nregs + n;
     }
     ci->acc = -1;
     mrb->stack = mrb->stack + n;
