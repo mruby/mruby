@@ -9,18 +9,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef ENABLE_STDIO
-static void
-p(mrb_state *mrb, mrb_value obj)
-{
-  obj = mrb_funcall(mrb, obj, "inspect", 0);
-  fwrite(RSTRING_PTR(obj), RSTRING_LEN(obj), 1, stdout);
-  putc('\n', stdout);
-}
-#else
-#define p(mrb,obj) mrb_p(mrb,obj)
-#endif
-
 void mrb_show_version(mrb_state *);
 void mrb_show_copyright(mrb_state *);
 
@@ -262,7 +250,7 @@ main(int argc, char **argv)
       n = 0;
       if (mrb->exc) {
         showcallinfo(mrb);
-        p(mrb, mrb_obj_value(mrb->exc));
+        mrb_error_print(mrb, mrb_obj_value(mrb->exc));
         n = -1;
       }
     }
@@ -288,7 +276,7 @@ main(int argc, char **argv)
     if (mrb->exc) {
       if (!mrb_undef_p(v)) {
         showcallinfo(mrb);
-        p(mrb, mrb_obj_value(mrb->exc));
+        mrb_error_print(mrb, mrb_obj_value(mrb->exc));
       }
       n = -1;
     }

@@ -18,19 +18,6 @@
 #include <readline/history.h>
 #endif
 
-#ifndef ENABLE_STDIO
-#include <mruby/string.h>
-static void
-p(mrb_state *mrb, mrb_value obj)
-{
-  obj = mrb_funcall(mrb, obj, "inspect", 0);
-  fwrite(RSTRING_PTR(obj), RSTRING_LEN(obj), 1, stdout);
-  putc('\n', stdout);
-}
-#else
-#define p(mrb,obj) mrb_p(mrb,obj)
-#endif
-
 /* Guess if the user might want to enter more
  * or if he wants an evaluation of his code now */
 int
@@ -325,7 +312,9 @@ main(int argc, char **argv)
             mrb_top_self(mrb));
         /* did an exception occur? */
         if (mrb->exc) {
-          p(mrb, mrb_obj_value(mrb->exc));
+          mrb_value exc = mrb_obj_value(mrb->exc);
+          mrb->exc = 0;
+          mrb_p(mrb, exc);
           mrb->exc = 0;
         }
         else {
@@ -334,7 +323,7 @@ main(int argc, char **argv)
           if (!mrb_respond_to(mrb,result,mrb_intern(mrb,"inspect"))){
             result = mrb_any_to_s(mrb,result);
           }
-          p(mrb, result);
+          mrb_p(mrb, result);
         }
       }
       ruby_code[0] = '\0';
