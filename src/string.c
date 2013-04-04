@@ -622,27 +622,20 @@ mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
     mrb_value str = mrb_str_to_str(mrb, ptr);
     return RSTRING_PTR(str);
 }
-/* 15.2.10.5.5  */
-
-/*
- *  call-seq:
- *     str =~ obj   -> fixnum or nil
- *
- *  Match---If <i>obj</i> is a <code>Regexp</code>, use it as a pattern to match
- *  against <i>str</i>,and returns the position the match starts, or
- *  <code>nil</code> if there is no match. Otherwise, invokes
- *  <i>obj.=~</i>, passing <i>str</i> as an argument. The default
- *  <code>=~</code> in <code>Object</code> returns <code>nil</code>.
- *
- *     "cat o' 9 tails" =~ /\d/   #=> 7
- *     "cat o' 9 tails" =~ 9      #=> nil
- */
 
 static mrb_value
-mrb_str_match(mrb_state *mrb, mrb_value self/* x */)
+noregexp(mrb_state *mrb, mrb_value self)
 {
-  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
+  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp class not implemented");
   return mrb_nil_value();
+}
+
+static void
+regexp_check(mrb_state *mrb, mrb_value obj)
+{
+  if (!strcmp(mrb_obj_classname(mrb, obj), REGEXP_CLASS)) {
+    noregexp(mrb, obj);
+  }
 }
 
 static inline mrb_int
@@ -730,9 +723,7 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
 {
   mrb_int idx;
 
-  if (!strcmp(mrb_obj_classname(mrb, indx), REGEXP_CLASS)) {
-    mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
-  }
+  regexp_check(mrb, indx);
   switch (mrb_type(indx)) {
     case MRB_TT_FIXNUM:
       idx = mrb_fixnum(indx);
@@ -825,9 +816,7 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 
   argc = mrb_get_args(mrb, "o|o", &a1, &a2);
   if (argc == 2) {
-    if (!strcmp(mrb_obj_classname(mrb, a1), REGEXP_CLASS)) {
-      mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
-    }
+    regexp_check(mrb, a1);
     return mrb_str_substr(mrb, str, mrb_fixnum(a1), mrb_fixnum(a2));
   }
   if (argc != 1) {
@@ -1193,62 +1182,6 @@ mrb_str_buf_append(mrb_state *mrb, mrb_value str, mrb_value str2)
   return str;
 }
 
-/* 15.2.10.5.18 */
-/*
- *  call-seq:
- *     str.gsub(pattern, replacement)       => new_str
- *     str.gsub(pattern) {|match| block }   => new_str
- *
- *  Returns a copy of <i>str</i> with <em>all</em> occurrences of <i>pattern</i>
- *  replaced with either <i>replacement</i> or the value of the block. The
- *  <i>pattern</i> will typically be a <code>Regexp</code>; if it is a
- *  <code>String</code> then no regular expression metacharacters will be
- *  interpreted (that is <code>/\d/</code> will match a digit, but
- *  <code>'\d'</code> will match a backslash followed by a 'd').
- *
- *  If a string is used as the replacement, special variables from the match
- *  (such as <code>$&</code> and <code>$1</code>) cannot be substituted into it,
- *  as substitution into the string occurs before the pattern match
- *  starts. However, the sequences <code>\1</code>, <code>\2</code>, and so on
- *  may be used to interpolate successive groups in the match.
- *
- *  In the block form, the current match string is passed in as a parameter, and
- *  variables such as <code>$1</code>, <code>$2</code>, <code>$`</code>,
- *  <code>$&</code>, and <code>$'</code> will be set appropriately. The value
- *  returned by the block will be substituted for the match on each call.
- *
- *  When neither a block nor a second argument is supplied, an
- *  <code>Enumerator</code> is returned.
- *
- *     "hello".gsub(/[aeiou]/, '*')                  #=> "h*ll*"
- *     "hello".gsub(/([aeiou])/, '<\1>')             #=> "h<e>ll<o>"
- *     "hello".gsub(/./) {|s| s.ord.to_s + ' '}      #=> "104 101 108 108 111 "
- *     "hello".gsub(/(?<foo>[aeiou])/, '{\k<foo>}')  #=> "h{e}ll{o}"
- *     'hello'.gsub(/[eo]/, 'e' => 3, 'o' => '*')    #=> "h3ll*"
- */
-static mrb_value
-mrb_str_gsub(mrb_state *mrb, mrb_value self)
-{
-  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
-  return mrb_nil_value();
-}
-
-/* 15.2.10.5.19 */
-/*
- *  call-seq:
- *     str.gsub!(pattern, replacement)        => str or nil
- *     str.gsub!(pattern) {|match| block }    => str or nil
- *
- *  Performs the substitutions of <code>String#gsub</code> in place, returning
- *  <i>str</i>, or <code>nil</code> if no substitutions were performed.
- */
-static mrb_value
-mrb_str_gsub_bang(mrb_state *mrb, mrb_value self)
-{
-  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
-  return mrb_nil_value();
-}
-
 mrb_int
 mrb_str_hash(mrb_state *mrb, mrb_value str)
 {
@@ -1357,9 +1290,7 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
       sub = mrb_nil_value();
 
   }
-  if (!strcmp(mrb_obj_classname(mrb, sub), REGEXP_CLASS)) {
-    mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
-  }
+  regexp_check(mrb, sub);
   if (pos < 0) {
     pos += RSTRING_LEN(str);
     if (pos < 0) {
@@ -1555,26 +1486,6 @@ mrb_check_string_type(mrb_state *mrb, mrb_value str)
   return mrb_check_convert_type(mrb, str, MRB_TT_STRING, "String", "to_str");
 }
 
-/* 15.2.10.5.27 */
-/*
- *  call-seq:
- *     str.match(pattern)   => matchdata or nil
- *
- *  Converts <i>pattern</i> to a <code>Regexp</code> (if it isn't already one),
- *  then invokes its <code>match</code> method on <i>str</i>.
- *
- *     'hello'.match('(.)\1')      #=> #<MatchData:0x401b3d30>
- *     'hello'.match('(.)\1')[0]   #=> "ll"
- *     'hello'.match(/(.)\1/)[0]   #=> "ll"
- *     'hello'.match('xx')         #=> nil
- */
-static mrb_value
-mrb_str_match_m(mrb_state *mrb, mrb_value self)
-{
-  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
-  return mrb_nil_value();
-}
-
 /* ---------------------------------- */
 /* 15.2.10.5.29 */
 /*
@@ -1715,9 +1626,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     if (pos < 0) {
       pos += len;
       if (pos < 0) {
-        if (!strcmp(mrb_obj_classname(mrb, sub), REGEXP_CLASS)) {
-          mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
-        }
+        regexp_check(mrb, sub);
         return mrb_nil_value();
       }
     }
@@ -1730,9 +1639,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     else
       sub = mrb_nil_value();
   }
-  if (!strcmp(mrb_obj_classname(mrb, sub), REGEXP_CLASS)) {
-    mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
-  }
+  regexp_check(mrb, sub);
 
   switch (mrb_type(sub)) {
     case MRB_TT_FIXNUM: {
@@ -1762,44 +1669,6 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
       break;
 
   } /* end of switch (TYPE(sub)) */
-  return mrb_nil_value();
-}
-
-/* 15.2.10.5.32 */
-/*
- *  call-seq:
- *     str.scan(pattern)                         => array
- *     str.scan(pattern) {|match, ...| block }   => str
- *
- *  Both forms iterate through <i>str</i>, matching the pattern (which may be a
- *  <code>Regexp</code> or a <code>String</code>). For each match, a result is
- *  generated and either added to the result array or passed to the block. If
- *  the pattern contains no groups, each individual result consists of the
- *  matched string, <code>$&</code>.  If the pattern contains groups, each
- *  individual result is itself an array containing one entry per group.
- *
- *     a = "cruel world"
- *     a.scan(/\w+/)        #=> ["cruel", "world"]
- *     a.scan(/.../)        #=> ["cru", "el ", "wor"]
- *     a.scan(/(...)/)      #=> [["cru"], ["el "], ["wor"]]
- *     a.scan(/(..)(..)/)   #=> [["cr", "ue"], ["l ", "wo"]]
- *
- *  And the block form:
- *
- *     a.scan(/\w+/) {|w| print "<<#{w}>> " }
- *     print "\n"
- *     a.scan(/(.)(.)/) {|x,y| print y, x }
- *     print "\n"
- *
- *  <em>produces:</em>
- *
- *     <<cruel>> <<world>>
- *     rceu lowlr
- */
-static mrb_value
-mrb_str_scan(mrb_state *mrb, mrb_value str)
-{
-  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
   return mrb_nil_value();
 }
 
@@ -1901,7 +1770,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       }
     }
     else {
-      mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
+      noregexp(mrb, str);
     }
   }
 
@@ -1970,7 +1839,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     beg = ptr - temp;
   }
   else {
-    mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
+    noregexp(mrb, str);
   }
   if (RSTRING_LEN(str) > 0 && (lim_p || RSTRING_LEN(str) > beg || lim < 0)) {
     if (RSTRING_LEN(str) == beg) {
@@ -1989,70 +1858,6 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   }
 
   return result;
-}
-
-
-/* 15.2.10.5.37 */
-/*
- *  call-seq:
- *     str.sub!(pattern, replacement)          => str or nil
- *     str.sub!(pattern) {|match| block }      => str or nil
- *
- *  Performs the substitutions of <code>String#sub</code> in place,
- *  returning <i>str</i>, or <code>nil</code> if no substitutions were
- *  performed.
- */
-static mrb_value
-mrb_str_sub_bang(mrb_state *mrb, mrb_value str)
-{
-  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
-  return mrb_nil_value();
-}
-
-/* 15.2.10.5.36 */
-
-/*
- *  call-seq:
- *     str.sub(pattern, replacement)         -> new_str
- *     str.sub(pattern, hash)                -> new_str
- *     str.sub(pattern) {|match| block }     -> new_str
- *
- *  Returns a copy of <i>str</i> with the <em>first</em> occurrence of
- *  <i>pattern</i> substituted for the second argument. The <i>pattern</i> is
- *  typically a <code>Regexp</code>; if given as a <code>String</code>, any
- *  regular expression metacharacters it contains will be interpreted
- *  literally, e.g. <code>'\\\d'</code> will match a backlash followed by 'd',
- *  instead of a digit.
- *
- *  If <i>replacement</i> is a <code>String</code> it will be substituted for
- *  the matched text. It may contain back-references to the pattern's capture
- *  groups of the form <code>\\\d</code>, where <i>d</i> is a group number, or
- *  <code>\\\k<n></code>, where <i>n</i> is a group name. If it is a
- *  double-quoted string, both back-references must be preceded by an
- *  additional backslash. However, within <i>replacement</i> the special match
- *  variables, such as <code>&$</code>, will not refer to the current match.
- *
- *  If the second argument is a <code>Hash</code>, and the matched text is one
- *  of its keys, the corresponding value is the replacement string.
- *
- *  In the block form, the current match string is passed in as a parameter,
- *  and variables such as <code>$1</code>, <code>$2</code>, <code>$`</code>,
- *  <code>$&</code>, and <code>$'</code> will be set appropriately. The value
- *  returned by the block will be substituted for the match on each call.
- *
- *     "hello".sub(/[aeiou]/, '*')                  #=> "h*llo"
- *     "hello".sub(/([aeiou])/, '<\1>')             #=> "h<e>llo"
- *     "hello".sub(/./) {|s| s.ord.to_s + ' ' }     #=> "104 ello"
- *     "hello".sub(/(?<foo>[aeiou])/, '*\k<foo>*')  #=> "h*e*llo"
- *     'Is SHELL your preferred shell?'.sub(/[[:upper:]]{2,}/, ENV)
- *      #=> "Is /bin/bash your preferred shell?"
- */
-
-static mrb_value
-mrb_str_sub(mrb_state *mrb, mrb_value self)
-{
-  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp Class not implemented");
-  return mrb_nil_value();
 }
 
 mrb_value
@@ -2682,7 +2487,7 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "*",               mrb_str_times,           ARGS_REQ(1));              /* 15.2.10.5.1  */
   mrb_define_method(mrb, s, "<=>",             mrb_str_cmp_m,           ARGS_REQ(1));              /* 15.2.10.5.3  */
   mrb_define_method(mrb, s, "==",              mrb_str_equal_m,         ARGS_REQ(1));              /* 15.2.10.5.4  */
-  mrb_define_method(mrb, s, "=~",              mrb_str_match,           ARGS_REQ(1));              /* 15.2.10.5.5  */
+  mrb_define_method(mrb, s, "=~",              noregexp,                ARGS_REQ(1));              /* 15.2.10.5.5  */
   mrb_define_method(mrb, s, "[]",              mrb_str_aref_m,          ARGS_ANY());               /* 15.2.10.5.6  */
   mrb_define_method(mrb, s, "capitalize",      mrb_str_capitalize,      ARGS_NONE());              /* 15.2.10.5.7  */
   mrb_define_method(mrb, s, "capitalize!",     mrb_str_capitalize_bang, ARGS_REQ(1));              /* 15.2.10.5.8  */
@@ -2696,8 +2501,8 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "eql?",            mrb_str_eql,             ARGS_REQ(1));              /* 15.2.10.5.17 */
 
   // NOTE: Regexp not implemented
-  mrb_define_method(mrb, s, "gsub",            mrb_str_gsub,            ARGS_REQ(1));              /* 15.2.10.5.18 */
-  mrb_define_method(mrb, s, "gsub!",           mrb_str_gsub_bang,       ARGS_REQ(1));              /* 15.2.10.5.19 */
+  mrb_define_method(mrb, s, "gsub",            noregexp,                ARGS_REQ(1));              /* 15.2.10.5.18 */
+  mrb_define_method(mrb, s, "gsub!",           noregexp,                ARGS_REQ(1));              /* 15.2.10.5.19 */
 
   mrb_define_method(mrb, s, "hash",            mrb_str_hash_m,          ARGS_REQ(1));              /* 15.2.10.5.20 */
   mrb_define_method(mrb, s, "include?",        mrb_str_include,         ARGS_REQ(1));              /* 15.2.10.5.21 */
@@ -2705,24 +2510,16 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "initialize",      mrb_str_init,            ARGS_REQ(1));              /* 15.2.10.5.23 */
   mrb_define_method(mrb, s, "initialize_copy", mrb_str_replace,         ARGS_REQ(1));              /* 15.2.10.5.24 */
   mrb_define_method(mrb, s, "intern",          mrb_str_intern,          ARGS_NONE());              /* 15.2.10.5.25 */
-
-  // NOTE: Regexp not implemented
-  mrb_define_method(mrb, s, "match",           mrb_str_match_m,         ARGS_REQ(1));              /* 15.2.10.5.27 */
-
+  mrb_define_method(mrb, s, "match",           noregexp,                ARGS_REQ(1));              /* 15.2.10.5.27 */
   mrb_define_method(mrb, s, "replace",         mrb_str_replace,         ARGS_REQ(1));              /* 15.2.10.5.28 */
   mrb_define_method(mrb, s, "reverse",         mrb_str_reverse,         ARGS_NONE());              /* 15.2.10.5.29 */
   mrb_define_method(mrb, s, "reverse!",        mrb_str_reverse_bang,    ARGS_NONE());              /* 15.2.10.5.30 */
   mrb_define_method(mrb, s, "rindex",          mrb_str_rindex_m,        ARGS_ANY());               /* 15.2.10.5.31 */
-
-  // NOTE: Regexp not implemented
-  mrb_define_method(mrb, s, "scan",            mrb_str_scan,            ARGS_REQ(1));              /* 15.2.10.5.32 */
-
+  mrb_define_method(mrb, s, "scan",            noregexp,                ARGS_REQ(1));              /* 15.2.10.5.32 */
   mrb_define_method(mrb, s, "slice",           mrb_str_aref_m,          ARGS_ANY());               /* 15.2.10.5.34 */
   mrb_define_method(mrb, s, "split",           mrb_str_split_m,         ARGS_ANY());               /* 15.2.10.5.35 */
-
-  // NOTE: Regexp not implemented
-  mrb_define_method(mrb, s, "sub",             mrb_str_sub,             ARGS_REQ(1));              /* 15.2.10.5.36 */
-  mrb_define_method(mrb, s, "sub!",            mrb_str_sub_bang,        ARGS_REQ(1));              /* 15.2.10.5.37 */
+  mrb_define_method(mrb, s, "sub",             noregexp,                ARGS_REQ(1));              /* 15.2.10.5.36 */
+  mrb_define_method(mrb, s, "sub!",            noregexp,                ARGS_REQ(1));              /* 15.2.10.5.37 */
 
   mrb_define_method(mrb, s, "to_i",            mrb_str_to_i,            ARGS_ANY());               /* 15.2.10.5.38 */
   mrb_define_method(mrb, s, "to_f",            mrb_str_to_f,            ARGS_NONE());              /* 15.2.10.5.39 */
