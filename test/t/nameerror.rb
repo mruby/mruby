@@ -24,7 +24,9 @@ assert('NameError#name', '15.2.31.2.1') do
 end
 
 assert('NameError#initialize', '15.2.31.2.2') do
-   e = NameError.new.initialize('a')
+   e = NameError.new('a', :foo)
 
-   e.class == NameError and e.message == 'a'
+   e.class == NameError and
+   e.message == 'a' and
+   e.name == :foo
 end
