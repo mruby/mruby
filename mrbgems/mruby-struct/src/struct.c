@@ -125,7 +125,7 @@ mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
       return ptr[i];
     }
   }
-  mrb_raisef(mrb, E_NAME_ERROR, "%S is not struct member", mrb_sym2str(mrb, id));
+  mrb_name_error(mrb, id, "%S is not struct member", mrb_sym2str(mrb, id));
   return mrb_nil_value();       /* not reached */
 }
 
@@ -204,7 +204,7 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
       return ptr[i] = val;
     }
   }
-  mrb_raisef(mrb, E_NAME_ERROR, "`%S' is not a struct member",
+  mrb_name_error(mrb, mid, "`%S' is not a struct member",
              mrb_sym2str(mrb, mid));
   return mrb_nil_value();            /* not reached */
 }
@@ -249,7 +249,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     name = mrb_str_to_str(mrb, name);
     id = mrb_to_id(mrb, name);
     if (!mrb_is_const_id(id)) {
-      mrb_raisef(mrb, E_NAME_ERROR, "identifier %S needs to be constant", name);
+      mrb_name_error(mrb, id, "identifier %S needs to be constant", name);
     }
     if (mrb_const_defined_at(mrb, klass, id)) {
       mrb_warn("redefining constant Struct::%s", mrb_string_value_ptr(mrb, name));
@@ -544,7 +544,7 @@ mrb_struct_aref_id(mrb_state *mrb, mrb_value s, mrb_sym id)
       return ptr[i];
     }
   }
-  mrb_raisef(mrb, E_NAME_ERROR, "no member '%S' in struct", mrb_sym2str(mrb, id));
+  mrb_name_error(mrb, id, "no member '%S' in struct", mrb_sym2str(mrb, id));
   return mrb_nil_value();       /* not reached */
 }
 
@@ -619,7 +619,7 @@ mrb_struct_aset_id(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
       return val;
     }
   }
-  mrb_raisef(mrb, E_NAME_ERROR, "no member '%S' in struct", mrb_sym2str(mrb, id));
+  mrb_name_error(mrb, id, "no member '%S' in struct", mrb_sym2str(mrb, id));
   return val;                   /* not reach */
 }
 

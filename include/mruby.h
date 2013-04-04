@@ -282,6 +282,7 @@ void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
 
 void mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg);
 void mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
+void mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...);
 void mrb_warn(const char *fmt, ...);
 void mrb_bug(const char *fmt, ...);
 
