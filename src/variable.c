@@ -691,7 +691,7 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym)
     }
     c = c->super;
   }
-  mrb_raisef(mrb, E_NAME_ERROR, "uninitialized class variable %S in %S",
+  mrb_name_error(mrb, sym, "uninitialized class variable %S in %S",
              mrb_sym2str(mrb, sym), cls);
   /* not reached */
   return mrb_nil_value();
@@ -847,7 +847,7 @@ L_RETRY:
     }
     c = c->super;
   }
-  mrb_raisef(mrb, E_NAME_ERROR, "uninitialized constant %S",
+  mrb_name_error(mrb, sym, "uninitialized constant %S",
              mrb_sym2str(mrb, sym));
   /* not reached */
   return mrb_nil_value();
