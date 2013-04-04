@@ -1748,6 +1748,12 @@ mrb_mod_remove_const(mrb_state *mrb, mrb_value mod)
 }
 
 static mrb_value
+mrb_mod_s_constants(mrb_state *mrb, mrb_value mod)
+{
+  mrb_raise(mrb, E_NOTIMP_ERROR, "Module.constants not implemented");
+}
+
+static mrb_value
 mrb_mod_eqq(mrb_state *mrb, mrb_value mod)
 {
   mrb_value obj;
@@ -1834,6 +1840,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "define_method",           mod_define_method,        ARGS_REQ(1));
   mrb_define_method(mrb, mod, "class_variables",         mrb_mod_class_variables,  ARGS_NONE()); /* 15.2.2.4.19 */
   mrb_define_method(mrb, mod, "===",                     mrb_mod_eqq,              ARGS_REQ(1));
+  mrb_define_class_method(mrb, mod, "constants",         mrb_mod_s_constants,      ARGS_ANY());  /* 15.2.2.3.1 */
 
   mrb_undef_method(mrb, cls, "append_features");
   mrb_undef_method(mrb, cls, "extend_object");
