@@ -979,7 +979,7 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
     if (RSTRING_LEN(inspect) > 64) {
       inspect = mrb_any_to_s(mrb, mrb_obj_value(c));
     }
-    mrb_raisef(mrb, E_NAME_ERROR, "undefined method '%S' for class %S",
+    mrb_name_error(mrb, mid, "undefined method '%S' for class %S",
                mrb_sym2str(mrb, mid), inspect);
   }
   return m;
