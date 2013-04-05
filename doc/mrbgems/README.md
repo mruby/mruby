@@ -23,6 +23,9 @@ A remote GIT repository location for a GEM is also supported:
 
 	conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
 
+	conf.gem :bitbucket => 'mruby/mrbgems-example', :branch => 'master'
+
+NOTE: ':bitbucket' option supports only git. Hg is unsupported in this version.
 
 ## GEM Structure
 

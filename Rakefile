@@ -2,6 +2,7 @@
 # Build description.
 # basic build file for mruby
 MRUBY_ROOT = File.dirname(File.expand_path(__FILE__))
+MRUBY_BUILD_HOST_IS_CYGWIN = RUBY_PLATFORM.include?('cygwin')
 
 # load build systems
 load "#{MRUBY_ROOT}/tasks/ruby_ext.rake"
@@ -9,10 +10,8 @@ load "#{MRUBY_ROOT}/tasks/mruby_build.rake"
 load "#{MRUBY_ROOT}/tasks/mrbgem_spec.rake"
 
 # load configuration file
-MRUBY_CONFIGS = ["#{MRUBY_ROOT}/build_config.rb", ENV['MRUBY_CONFIG']].compact
-MRUBY_CONFIGS.each do |config|
-  load config unless config.empty?
-end
+MRUBY_CONFIG = (ENV['MRUBY_CONFIG'] && ENV['MRUBY_CONFIG'] != '') ? ENV['MRUBY_CONFIG'] : "#{MRUBY_ROOT}/build_config.rb"
+load MRUBY_CONFIG
 
 # load basic rules
 MRuby.each_target do |build|
@@ -46,6 +45,30 @@ depfiles = MRuby.targets['host'].bins.map do |bin|
   end
   
   install_path
+end
+
+MRuby.each_target do
+  gems.map do | gem |
+    current_dir = gem.dir.relative_path_from(Dir.pwd)
+    relative_from_root = gem.dir.relative_path_from(MRUBY_ROOT)
+    current_build_dir = "#{build_dir}/#{relative_from_root}"
+
+    gem.bins.each do | bin |
+      exec = exefile("#{build_dir}/bin/#{bin}")
+      objs = Dir.glob("#{current_dir}/tool/#{bin}/*.c").map { |f| objfile(f.pathmap("#{current_build_dir}/tool/#{bin}/%n")) }
+
+      file exec => objs + [libfile("#{build_dir}/lib/libmruby")] do |t|
+        gem_flags = gems.map { |g| g.linker.flags }
+        gem_flags_before_libraries = gems.map { |g| g.linker.flags_before_libraries }
+        gem_flags_after_libraries = gems.map { |g| g.linker.flags_after_libraries }
+        gem_libraries = gems.map { |g| g.linker.libraries }
+        gem_library_paths = gems.map { |g| g.linker.library_paths }
+        linker.run t.name, t.prerequisites, gem_libraries, gem_library_paths, gem_flags, gem_flags_before_libraries
+      end
+
+      depfiles += [ exec ]
+    end
+  end
 end
 
 depfiles += MRuby.targets.reject { |n, t| n == 'host' }.map { |n, t|

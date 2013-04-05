@@ -18,22 +18,21 @@ enum mrb_vtype {
   MRB_TT_UNDEF,       /*   5 */
   MRB_TT_FLOAT,       /*   6 */
   MRB_TT_VOIDP,       /*   7 */
-  MRB_TT_MAIN,        /*   8 */
-  MRB_TT_OBJECT,      /*   9 */
-  MRB_TT_CLASS,       /*  10 */
-  MRB_TT_MODULE,      /*  11 */
-  MRB_TT_ICLASS,      /*  12 */
-  MRB_TT_SCLASS,      /*  13 */
-  MRB_TT_PROC,        /*  14 */
-  MRB_TT_ARRAY,       /*  15 */
-  MRB_TT_HASH,        /*  16 */
-  MRB_TT_STRING,      /*  17 */
-  MRB_TT_RANGE,       /*  18 */
-  MRB_TT_EXCEPTION,   /*  19 */
-  MRB_TT_FILE,        /*  20 */
-  MRB_TT_ENV,         /*  21 */
-  MRB_TT_DATA,        /*  22 */
-  MRB_TT_MAXDEFINE    /*  23 */
+  MRB_TT_OBJECT,      /*   8 */
+  MRB_TT_CLASS,       /*   9 */
+  MRB_TT_MODULE,      /*  10 */
+  MRB_TT_ICLASS,      /*  11 */
+  MRB_TT_SCLASS,      /*  12 */
+  MRB_TT_PROC,        /*  13 */
+  MRB_TT_ARRAY,       /*  14 */
+  MRB_TT_HASH,        /*  15 */
+  MRB_TT_STRING,      /*  16 */
+  MRB_TT_RANGE,       /*  17 */
+  MRB_TT_EXCEPTION,   /*  18 */
+  MRB_TT_FILE,        /*  19 */
+  MRB_TT_ENV,         /*  20 */
+  MRB_TT_DATA,        /*  21 */
+  MRB_TT_MAXDEFINE    /*  22 */
 };
 
 typedef struct mrb_value {
@@ -43,7 +42,7 @@ typedef struct mrb_value {
     mrb_int i;
     mrb_sym sym;
   } value;
-  enum mrb_vtype tt:8;
+  enum mrb_vtype tt;
 } mrb_value;
 
 #define mrb_type(o)   (o).tt
@@ -77,22 +76,21 @@ enum mrb_vtype {
   MRB_TT_UNDEF,       /*   6 */
   MRB_TT_FLOAT,       /*   7 */
   MRB_TT_VOIDP,       /*   8 */
-  MRB_TT_MAIN,        /*   9 */
-  MRB_TT_OBJECT,      /*  10 */
-  MRB_TT_CLASS,       /*  11 */
-  MRB_TT_MODULE,      /*  12 */
-  MRB_TT_ICLASS,      /*  13 */
-  MRB_TT_SCLASS,      /*  14 */
-  MRB_TT_PROC,        /*  15 */
-  MRB_TT_ARRAY,       /*  16 */
-  MRB_TT_HASH,        /*  17 */
-  MRB_TT_STRING,      /*  18 */
-  MRB_TT_RANGE,       /*  19 */
-  MRB_TT_EXCEPTION,   /*  20 */
-  MRB_TT_FILE,        /*  21 */
-  MRB_TT_ENV,         /*  22 */
-  MRB_TT_DATA,        /*  23 */
-  MRB_TT_MAXDEFINE    /*  24 */
+  MRB_TT_OBJECT,      /*   9 */
+  MRB_TT_CLASS,       /*  10 */
+  MRB_TT_MODULE,      /*  11 */
+  MRB_TT_ICLASS,      /*  12 */
+  MRB_TT_SCLASS,      /*  13 */
+  MRB_TT_PROC,        /*  14 */
+  MRB_TT_ARRAY,       /*  15 */
+  MRB_TT_HASH,        /*  16 */
+  MRB_TT_STRING,      /*  17 */
+  MRB_TT_RANGE,       /*  18 */
+  MRB_TT_EXCEPTION,   /*  19 */
+  MRB_TT_FILE,        /*  20 */
+  MRB_TT_ENV,         /*  21 */
+  MRB_TT_DATA,        /*  22 */
+  MRB_TT_MAXDEFINE    /*  23 */
 };
 
 #ifdef MRB_ENDIAN_BIG
@@ -144,7 +142,6 @@ mrb_float_value(mrb_float f)
 
 #define mrb_fixnum(o) (o).value.i
 #define mrb_symbol(o) (o).value.sym
-#define mrb_object(o) ((struct RBasic *) (o).value.p)
 #define mrb_voidp(o) (o).value.p
 #define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_FIXNUM)
 #define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
@@ -155,12 +152,13 @@ mrb_float_value(mrb_float f)
 #define mrb_string_p(o) (mrb_type(o) == MRB_TT_STRING)
 #define mrb_hash_p(o) (mrb_type(o) == MRB_TT_HASH)
 #define mrb_voidp_p(o) (mrb_type(o) == MRB_TT_VOIDP)
-#define mrb_test(o)   (mrb_type(o) != MRB_TT_FALSE)
+#define mrb_bool(o)   (mrb_type(o) != MRB_TT_FALSE)
+#define mrb_test(o)   mrb_bool(o)
 
 #define MRB_OBJECT_HEADER \
   enum mrb_vtype tt:8;\
-  unsigned int color:3;\
-  unsigned int flags:21;\
+  uint32_t color:3;\
+  uint32_t flags:21;\
   struct RClass *c;\
   struct RBasic *gcnext
 
@@ -187,7 +185,9 @@ struct RBasic {
   MRB_OBJECT_HEADER;
 };
 
-#define mrb_basic(v)     ((struct RBasic*)((v).value.p))
+#define mrb_basic_ptr(v) ((struct RBasic*)((v).value.p))
+/* obsolete macro mrb_basic; will be removed soon */
+#define mrb_basic(v)     mrb_basic_ptr(v)
 
 struct RObject {
   MRB_OBJECT_HEADER;
@@ -195,7 +195,9 @@ struct RObject {
 };
 
 #define mrb_obj_ptr(v)   ((struct RObject*)((v).value.p))
-#define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_MAIN)
+/* obsolete macro mrb_object; will be removed soon */
+#define mrb_object(o) mrb_obj_ptr(o)
+#define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_VOIDP)
 #define mrb_special_const_p(x) mrb_immediate_p(x)
 
 static inline mrb_value
@@ -268,6 +270,15 @@ mrb_undef_value(void)
   mrb_value v;
 
   MRB_SET_VALUE(v, MRB_TT_UNDEF, value.i, 0);
+  return v;
+}
+
+static inline mrb_value
+mrb_bool_value(mrb_bool boolean)
+{
+  mrb_value v;
+
+  MRB_SET_VALUE(v, boolean ? MRB_TT_TRUE : MRB_TT_FALSE, value.i, 1);
   return v;
 }
 

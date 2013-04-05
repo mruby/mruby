@@ -9,6 +9,26 @@ assert('Class superclass', '15.2.3.2') do
   Class.superclass == Module
 end
 
+# Class#initialize '15.2.3.3.1' is tested in Class#new
+
+assert('Class#initialize_copy', '15.2.3.3.2') do
+  class TestClass
+    attr_accessor :n
+    def initialize(n)
+      @n = n
+    end
+    def initialize_copy(obj)
+      @n = n
+    end
+  end
+
+  c1 = TestClass.new('Foo')
+  c2 = c1.dup
+  c3 = TestClass.new('Bar')
+
+  c1.n == c2.n and c1.n != c3.n
+end
+
 assert('Class#new', '15.2.3.3.3') do
   # at the moment no exception on singleton class
   #e1 = nil

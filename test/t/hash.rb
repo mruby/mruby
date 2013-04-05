@@ -138,7 +138,18 @@ assert('Hash#include?', '15.2.13.4.15') do
   a.include?('abc_key') and not b.include?('cba')
 end
 
-assert('Hash#initialize copy', '15.2.13.4.17') do
+assert('Hash#initialize', '15.2.13.4.16') do
+  # Testing initialize by new.
+  h = Hash.new
+  h2 = Hash.new(:not_found)
+
+  h.is_a? Hash and
+  h == { } and
+  h["hello"] == nil and
+  h2["hello"] == :not_found
+end
+
+assert('Hash#initialize_copy', '15.2.13.4.17') do
   a = { 'abc_key' => 'abc_value' }
   b = Hash.new.initialize_copy(a)
 

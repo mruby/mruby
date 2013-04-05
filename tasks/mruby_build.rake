@@ -128,6 +128,14 @@ module MRuby
       end
     end
 
+    def cygwin_filename(name)
+      if name.is_a?(Array)
+        name.flatten.map { |n| cygwin_filename(n) }
+      else
+        '"%s"' % `cygpath -w "#{filename(name)}"`.strip
+      end
+    end
+
     def exefile(name)
       if name.is_a?(Array)
         name.flatten.map { |n| exefile(n) }
@@ -174,8 +182,10 @@ module MRuby
       puts "         Binaries: #{@bins.join(', ')}" unless @bins.empty?
       unless @gems.empty?
         puts "    Included Gems:"
-        @gems.map(&:name).each do |name|
-          puts "             #{name}"
+        @gems.map do |gem|
+          gem_version = "- #{gem.version}" if gem.version
+          puts "             #{gem.name} #{gem_version}"
+          puts "               - Binaries: #{gem.bins.join(', ')}" unless gem.bins.empty?
         end
       end
       puts "================================================"

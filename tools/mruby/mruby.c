@@ -6,6 +6,7 @@
 #include "mruby/dump.h"
 #include "mruby/variable.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifndef ENABLE_STDIO
@@ -26,10 +27,10 @@ void mrb_show_copyright(mrb_state *);
 struct _args {
   FILE *rfp;
   char* cmdline;
-  int fname        : 1;
-  int mrbfile      : 1;
-  int check_syntax : 1;
-  int verbose      : 1;
+  mrb_bool fname        : 1;
+  mrb_bool mrbfile      : 1;
+  mrb_bool check_syntax : 1;
+  mrb_bool verbose      : 1;
   int argc;
   char** argv;
 };
@@ -52,7 +53,7 @@ usage(const char *name)
 
   printf("Usage: %s [switches] programfile\n", name);
   while(*p)
-  printf("  %s\n", *p++);
+    printf("  %s\n", *p++);
 }
 
 static int
@@ -125,7 +126,6 @@ append_cmdline:
         exit(0);
       }
       else return -3;
-      return 0;
     default:
       return -4;
     }
@@ -189,14 +189,14 @@ showcallinfo(mrb_state *mrb)
       if (irep->filename != NULL)
         filename = irep->filename;
       if (irep->lines != NULL) {
-	mrb_code *pc;
+        mrb_code *pc;
 
-	if (i+1 <= ciidx) {
-	  pc = mrb->cibase[i+1].pc;
-	}
-	else {
-	  pc = (mrb_code*)mrb_voidp(mrb_obj_iv_get(mrb, mrb->exc, mrb_intern(mrb, "lastpc")));
-	}
+        if (i+1 <= ciidx) {
+          pc = mrb->cibase[i+1].pc;
+        }
+        else {
+          pc = (mrb_code*)mrb_voidp(mrb_obj_iv_get(mrb, mrb->exc, mrb_intern(mrb, "lastpc")));
+        }
         if (irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
           line = irep->lines[pc - irep->iseq - 1];
         }
@@ -211,19 +211,16 @@ showcallinfo(mrb_state *mrb)
     method = mrb_sym2name(mrb, ci->mid);
     if (method) {
       const char *cn = mrb_class_name(mrb, ci->proc->target_class);
-    
+
       if (cn) {
-	printf("\t[%d] %s:%d:in %s%s%s\n",
-	       i, filename, line, cn, sep, method);
+        printf("\t[%d] %s:%d:in %s%s%s\n", i, filename, line, cn, sep, method);
       }
       else {
-	printf("\t[%d] %s:%d:in %s\n",
-	       i, filename, line, method);
+        printf("\t[%d] %s:%d:in %s\n", i, filename, line, method);
       }
     }
     else {
-      printf("\t[%d] %s:%d\n",
-	     i, filename, line);
+      printf("\t[%d] %s:%d\n", i, filename, line);
     }
   }
 }
@@ -238,7 +235,7 @@ main(int argc, char **argv)
   mrb_value ARGV;
 
   if (mrb == NULL) {
-    fprintf(stderr, "Invalid mrb_state, exiting mruby\n");
+    fputs("Invalid mrb_state, exiting mruby\n", stderr);
     return EXIT_FAILURE;
   }
 

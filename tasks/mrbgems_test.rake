@@ -10,7 +10,11 @@ MRuby.each_target do
     file g.test_rbireps => [g.test_rbfiles].flatten + [g.build.mrbcfile, libfile("#{build_dir}/lib/libmruby")] do |t|
       open(t.name, 'w') do |f|
         g.print_gem_init_header(f)
-        g.build.mrbc.run f, g.test_preload, "gem_test_irep_#{g.funcname}_preload"
+        test_preload = [g.dir, MRUBY_ROOT].map {|dir|
+          File.expand_path(g.test_preload, dir)
+        }.find {|file| File.exists?(file) }
+
+        g.build.mrbc.run f, test_preload, "gem_test_irep_#{g.funcname}_preload"
         g.test_rbfiles.flatten.each_with_index do |rbfile, i|
           g.build.mrbc.run f, rbfile, "gem_test_irep_#{g.funcname}_#{i}"
         end
@@ -68,7 +72,7 @@ MRuby.each_target do
             f.puts %Q[    ]
             f.puts %Q[    while(mrb_test(val2)) {]
             f.puts %Q[      char *str = mrb_string_value_cstr(mrb2, &val2);]
-            f.puts %Q[      mrb_ary_push(mrb, ary1, mrb_str_new(mrb, str, strlen(str)));]
+            f.puts %Q[      mrb_ary_push(mrb, ary1, mrb_str_new_cstr(mrb, str));]
             f.puts %Q[      val2 = mrb_ary_shift(mrb2, ary2);]
             f.puts %Q[    }]
             f.puts %Q[  }]

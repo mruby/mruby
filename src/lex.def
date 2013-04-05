@@ -1,4 +1,4 @@
-/* ANSI-C code produced by gperf version 3.0.4 */
+/* ANSI-C code produced by gperf version 3.0.3 */
 /* Command-line: gperf -L ANSI-C -C -p -j1 -i 1 -g -o -t -N mrb_reserved_word -k'1,3,$' src/keywords  */
 
 #if !((' ' == 32) && ('!' == 33) && ('"' == 34) && ('#' == 35) \
@@ -44,10 +44,12 @@ struct kwtable;
 #define MAX_HASH_VALUE 50
 /* maximum key range = 43, duplicates = 0 */
 
-#if (defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) || defined(__cplusplus) || defined(__GNUC_STDC_INLINE__)
-inline
-#elif defined(__GNUC__)
+#ifdef __GNUC__
 __inline
+#else
+#ifdef __cplusplus
+inline
+#endif
 #endif
 static unsigned int
 hash (register const char *str, register unsigned int len)
@@ -98,7 +100,7 @@ hash (register const char *str, register unsigned int len)
 
 #ifdef __GNUC__
 __inline
-#if defined __GNUC_STDC_INLINE__ || defined __GNUC_GNU_INLINE__
+#ifdef __GNUC_STDC_INLINE__
 __attribute__ ((__gnu_inline__))
 #endif
 #endif
@@ -109,87 +111,87 @@ mrb_reserved_word (register const char *str, register unsigned int len)
     {
       {""}, {""}, {""}, {""}, {""}, {""}, {""}, {""},
 #line 18 "src/keywords"
-      {"break", {keyword_break, keyword_break}, EXPR_MID},
+      {"break",        {keyword_break,       keyword_break},       EXPR_MID},
 #line 23 "src/keywords"
-      {"else", {keyword_else, keyword_else}, EXPR_BEG},
+      {"else",         {keyword_else,        keyword_else},        EXPR_BEG},
 #line 33 "src/keywords"
-      {"nil", {keyword_nil, keyword_nil}, EXPR_END},
+      {"nil",          {keyword_nil,         keyword_nil},         EXPR_END},
 #line 26 "src/keywords"
-      {"ensure", {keyword_ensure, keyword_ensure}, EXPR_BEG},
+      {"ensure",       {keyword_ensure,      keyword_ensure},      EXPR_BEG},
 #line 25 "src/keywords"
-      {"end", {keyword_end, keyword_end}, EXPR_END},
+      {"end",          {keyword_end,         keyword_end},         EXPR_END},
 #line 42 "src/keywords"
-      {"then", {keyword_then, keyword_then}, EXPR_BEG},
+      {"then",         {keyword_then,        keyword_then},        EXPR_BEG},
 #line 34 "src/keywords"
-      {"not", {keyword_not, keyword_not}, EXPR_ARG},
+      {"not",          {keyword_not,         keyword_not},         EXPR_ARG},
 #line 27 "src/keywords"
-      {"false", {keyword_false, keyword_false}, EXPR_END},
+      {"false",        {keyword_false,       keyword_false},       EXPR_END},
 #line 40 "src/keywords"
-      {"self", {keyword_self, keyword_self}, EXPR_END},
+      {"self",         {keyword_self,        keyword_self},        EXPR_END},
 #line 24 "src/keywords"
-      {"elsif", {keyword_elsif, keyword_elsif}, EXPR_VALUE},
+      {"elsif",        {keyword_elsif,       keyword_elsif},       EXPR_VALUE},
 #line 37 "src/keywords"
-      {"rescue", {keyword_rescue, modifier_rescue}, EXPR_MID},
+      {"rescue",       {keyword_rescue,      modifier_rescue},     EXPR_MID},
 #line 43 "src/keywords"
-      {"true", {keyword_true, keyword_true}, EXPR_END},
+      {"true",         {keyword_true,        keyword_true},        EXPR_END},
 #line 46 "src/keywords"
-      {"until", {keyword_until, modifier_until}, EXPR_VALUE},
+      {"until",        {keyword_until,       modifier_until},      EXPR_VALUE},
 #line 45 "src/keywords"
-      {"unless", {keyword_unless, modifier_unless}, EXPR_VALUE},
+      {"unless",       {keyword_unless,      modifier_unless},     EXPR_VALUE},
 #line 39 "src/keywords"
-      {"return", {keyword_return, keyword_return}, EXPR_MID},
+      {"return",       {keyword_return,      keyword_return},      EXPR_MID},
 #line 21 "src/keywords"
-      {"def", {keyword_def, keyword_def}, EXPR_FNAME},
+      {"def",          {keyword_def,         keyword_def},         EXPR_FNAME},
 #line 16 "src/keywords"
-      {"and", {keyword_and, keyword_and}, EXPR_VALUE},
+      {"and",          {keyword_and,         keyword_and},         EXPR_VALUE},
 #line 22 "src/keywords"
-      {"do", {keyword_do, keyword_do}, EXPR_BEG},
+      {"do",           {keyword_do,          keyword_do},          EXPR_BEG},
 #line 49 "src/keywords"
-      {"yield", {keyword_yield, keyword_yield}, EXPR_ARG},
+      {"yield",        {keyword_yield,       keyword_yield},       EXPR_ARG},
 #line 28 "src/keywords"
-      {"for", {keyword_for, keyword_for}, EXPR_VALUE},
+      {"for",          {keyword_for,         keyword_for},         EXPR_VALUE},
 #line 44 "src/keywords"
-      {"undef", {keyword_undef, keyword_undef}, EXPR_FNAME},
+      {"undef",        {keyword_undef,       keyword_undef},       EXPR_FNAME},
 #line 35 "src/keywords"
-      {"or", {keyword_or, keyword_or}, EXPR_VALUE},
+      {"or",           {keyword_or,          keyword_or},          EXPR_VALUE},
 #line 30 "src/keywords"
-      {"in", {keyword_in, keyword_in}, EXPR_VALUE},
+      {"in",           {keyword_in,          keyword_in},          EXPR_VALUE},
 #line 47 "src/keywords"
-      {"when", {keyword_when, keyword_when}, EXPR_VALUE},
+      {"when",         {keyword_when,        keyword_when},        EXPR_VALUE},
 #line 38 "src/keywords"
-      {"retry", {keyword_retry, keyword_retry}, EXPR_END},
+      {"retry",        {keyword_retry,       keyword_retry},       EXPR_END},
 #line 29 "src/keywords"
-      {"if", {keyword_if, modifier_if}, EXPR_VALUE},
+      {"if",           {keyword_if,          modifier_if},         EXPR_VALUE},
 #line 19 "src/keywords"
-      {"case", {keyword_case, keyword_case}, EXPR_VALUE},
+      {"case",         {keyword_case,        keyword_case},        EXPR_VALUE},
 #line 36 "src/keywords"
-      {"redo", {keyword_redo, keyword_redo}, EXPR_END},
+      {"redo",         {keyword_redo,        keyword_redo},        EXPR_END},
 #line 32 "src/keywords"
-      {"next", {keyword_next, keyword_next}, EXPR_MID},
+      {"next",         {keyword_next,        keyword_next},        EXPR_MID},
 #line 41 "src/keywords"
-      {"super", {keyword_super, keyword_super}, EXPR_ARG},
+      {"super",        {keyword_super,       keyword_super},       EXPR_ARG},
 #line 31 "src/keywords"
-      {"module", {keyword_module, keyword_module}, EXPR_VALUE},
+      {"module",       {keyword_module,      keyword_module},      EXPR_VALUE},
 #line 17 "src/keywords"
-      {"begin", {keyword_begin, keyword_begin}, EXPR_BEG},
-#line 11 "src/keywords"
-      {"__LINE__", {keyword__LINE__, keyword__LINE__}, EXPR_END},
+      {"begin",        {keyword_begin,       keyword_begin},       EXPR_BEG},
 #line 12 "src/keywords"
-      {"__FILE__", {keyword__FILE__, keyword__FILE__}, EXPR_END},
+      {"__LINE__",     {keyword__LINE__,     keyword__LINE__},     EXPR_END},
+#line 11 "src/keywords"
+      {"__FILE__",     {keyword__FILE__,     keyword__FILE__},     EXPR_END},
 #line 10 "src/keywords"
       {"__ENCODING__", {keyword__ENCODING__, keyword__ENCODING__}, EXPR_END},
 #line 14 "src/keywords"
-      {"END", {keyword_END, keyword_END}, EXPR_END},
+      {"END",          {keyword_END,         keyword_END},         EXPR_END},
 #line 15 "src/keywords"
-      {"alias", {keyword_alias, keyword_alias}, EXPR_FNAME},
+      {"alias",        {keyword_alias,       keyword_alias},       EXPR_FNAME},
 #line 13 "src/keywords"
-      {"BEGIN", {keyword_BEGIN, keyword_BEGIN}, EXPR_END},
+      {"BEGIN",        {keyword_BEGIN,       keyword_BEGIN},       EXPR_END},
       {""},
 #line 20 "src/keywords"
-      {"class", {keyword_class, keyword_class}, EXPR_CLASS},
+      {"class",        {keyword_class,       keyword_class},       EXPR_CLASS},
       {""}, {""},
 #line 48 "src/keywords"
-      {"while", {keyword_while, modifier_while}, EXPR_VALUE}
+      {"while",        {keyword_while,       modifier_while},      EXPR_VALUE}
     };
 
   if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH)

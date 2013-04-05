@@ -5,6 +5,9 @@
 ** against the current mruby implementation.
 */
 
+
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <mruby.h>
@@ -17,7 +20,8 @@ void
 mrb_init_mrbtest(mrb_state *);
 
 /* Print a short remark for the user */
-void print_hint(void)
+static void
+print_hint(void)
 {
   printf("mrbtest - Embeddable Ruby Test\n");
   printf("\nThis is a very early version, please test and report errors.\n");
@@ -35,13 +39,31 @@ check_error(mrb_state *mrb)
   return mrb_fixnum_p(ko_test) && mrb_fixnum(ko_test) == 0 && mrb_fixnum_p(kill_test) && mrb_fixnum(kill_test) == 0;
 }
 
+static int
+eval_test(mrb_state *mrb)
+{
+  mrb_value return_value;
+  const char *prog = "report()";
+
+  /* evaluate the test */
+  return_value = mrb_load_string(mrb, prog);
+  /* did an exception occur? */
+  if (mrb->exc) {
+    mrb_p(mrb, return_value);
+    mrb->exc = 0;
+    return EXIT_FAILURE;
+  }
+  else if (!check_error(mrb)) {
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
+}
+
 int
 main(int argc, char **argv)
 {
   mrb_state *mrb;
-  mrb_value return_value;
-  const char *prog = "report()";
-  int ret = EXIT_SUCCESS;
+  int ret;
 
   print_hint();
 
@@ -52,23 +74,13 @@ main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  if (argc == 2 && strncmp(argv[1], "-v", 2) == 0) {
+  if (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'v') {
     printf("verbose mode: enable\n\n");
     mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_verbose"), mrb_true_value());
   }
 
   mrb_init_mrbtest(mrb);
-  /* evaluate the test */
-  return_value = mrb_load_string(mrb, prog);
-  /* did an exception occur? */
-  if (mrb->exc) {
-    mrb_p(mrb, return_value);
-    mrb->exc = 0;
-    ret = EXIT_FAILURE;
-  }
-  else if (!check_error(mrb)) {
-    ret = EXIT_FAILURE;
-  }
+  ret = eval_test(mrb);
   mrb_close(mrb);
 
   return ret;

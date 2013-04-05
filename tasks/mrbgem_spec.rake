@@ -17,6 +17,9 @@ module MRuby
       alias mruby build
       attr_accessor :build_config_initializer
 
+      attr_accessor :version
+      attr_accessor :description, :summary
+      attr_accessor :homepage
       attr_accessor :licenses, :authors
       alias :license= :licenses=
       alias :author= :authors=
@@ -24,6 +27,8 @@ module MRuby
       attr_accessor :rbfiles, :objs
       attr_accessor :test_objs, :test_rbfiles, :test_args
       attr_accessor :test_preload
+
+      attr_accessor :bins
 
       attr_block MRuby::Build::COMMANDS
 
@@ -56,6 +61,8 @@ module MRuby
         @test_preload = 'test/assert.rb'
         @test_args = {}
 
+        @bins = []
+
         instance_eval(&@initializer)
 
         if !name || !licenses || !authors
@@ -71,6 +78,10 @@ module MRuby
         end
 
         define_gem_init_builder
+      end
+
+      def self.bin=(bin)
+        @bins = [bin].flatten
       end
 
       def build_dir
@@ -134,6 +145,7 @@ module MRuby
         f.puts %Q[ *   This file was generated!]
         f.puts %Q[ *   All manual changes will get lost.]
         f.puts %Q[ */]
+        f.puts %Q[#include <stdlib.h>]
         f.puts %Q[#include "mruby.h"]
         f.puts %Q[#include "mruby/irep.h"]
         f.puts %Q[#include "mruby/dump.h"]

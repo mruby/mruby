@@ -4,17 +4,19 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include <stdarg.h>
-#include <stdio.h>
+#include <errno.h>
 #include <setjmp.h>
+#include <stdarg.h>
+#include <stdlib.h>
 #include <string.h>
-#include "error.h"
-#include "mruby/variable.h"
-#include "mruby/string.h"
+#include "mruby.h"
+#include "mruby/array.h"
 #include "mruby/class.h"
-#include "mruby/proc.h"
 #include "mruby/irep.h"
+#include "mruby/proc.h"
+#include "mruby/string.h"
+#include "mruby/variable.h"
+#include "error.h"
 
 mrb_value
 mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
@@ -25,7 +27,7 @@ mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
 mrb_value
 mrb_exc_new3(mrb_state *mrb, struct RClass* c, mrb_value str)
 {
-  mrb_string_value(mrb, &str);
+  str = mrb_str_to_str(mrb, str);
   return mrb_funcall(mrb, mrb_obj_value(c), "new", 1, str);
 }
 
@@ -43,7 +45,7 @@ exc_initialize(mrb_state *mrb, mrb_value exc)
   mrb_value mesg;
 
   if (mrb_get_args(mrb, "|o", &mesg) == 1) {
-    mrb_iv_set(mrb, exc, mrb_intern(mrb, "mesg"), mesg);
+    mrb_iv_set(mrb, exc, mrb_intern2(mrb, "mesg", 4), mesg);
   }
   return exc;
 }
@@ -72,7 +74,7 @@ exc_exception(mrb_state *mrb, mrb_value self)
   if (argc == 0) return self;
   if (mrb_obj_equal(mrb, self, a)) return self;
   exc = mrb_obj_clone(mrb, self);
-  mrb_iv_set(mrb, exc, mrb_intern(mrb, "mesg"), a);
+  mrb_iv_set(mrb, exc, mrb_intern2(mrb, "mesg", 4), a);
 
   return exc;
 }
@@ -88,9 +90,9 @@ exc_exception(mrb_state *mrb, mrb_value self)
 static mrb_value
 exc_to_s(mrb_state *mrb, mrb_value exc)
 {
-  mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern(mrb, "mesg"));
+  mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern2(mrb, "mesg", 4));
 
-  if (mrb_nil_p(mesg)) return mrb_str_new2(mrb, mrb_obj_classname(mrb, exc));
+  if (mrb_nil_p(mesg)) return mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, exc));
   return mesg;
 }
 
@@ -122,32 +124,32 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
 {
   mrb_value str, mesg, file, line;
 
-  mesg = mrb_attr_get(mrb, exc, mrb_intern(mrb, "mesg"));
-  file = mrb_attr_get(mrb, exc, mrb_intern(mrb, "file"));
-  line = mrb_attr_get(mrb, exc, mrb_intern(mrb, "line"));
+  mesg = mrb_attr_get(mrb, exc, mrb_intern2(mrb, "mesg", 4));
+  file = mrb_attr_get(mrb, exc, mrb_intern2(mrb, "file", 4));
+  line = mrb_attr_get(mrb, exc, mrb_intern2(mrb, "line", 4));
 
   if (!mrb_nil_p(file) && !mrb_nil_p(line)) {
     str = file;
-    mrb_str_cat2(mrb, str, ":");
+    mrb_str_cat(mrb, str, ":", 1);
     mrb_str_append(mrb, str, line);
-    mrb_str_cat2(mrb, str, ": ");
+    mrb_str_cat(mrb, str, ": ", 2);
     if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
       mrb_str_append(mrb, str, mesg);
-      mrb_str_cat2(mrb, str, " (");
+      mrb_str_cat(mrb, str, " (", 2);
     }
-    mrb_str_cat2(mrb, str, mrb_obj_classname(mrb, exc));
+    mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, exc));
     if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
-      mrb_str_cat2(mrb, str, ")");
+      mrb_str_cat(mrb, str, ")", 1);
     }
   }
   else {
-    str = mrb_str_new2(mrb, mrb_obj_classname(mrb, exc));
+    str = mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, exc));
     if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
-      mrb_str_cat2(mrb, str, ": ");
+      mrb_str_cat(mrb, str, ": ", 2);
       mrb_str_append(mrb, str, mesg);
     } else {
-      mrb_str_cat2(mrb, str, ": ");
-      mrb_str_cat2(mrb, str, mrb_obj_classname(mrb, exc));
+      mrb_str_cat(mrb, str, ": ", 2);
+      mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, exc));
     }
   }
   return str;
@@ -159,25 +161,29 @@ exc_equal(mrb_state *mrb, mrb_value exc)
 {
   mrb_value obj;
   mrb_value mesg;
-  mrb_sym id_mesg = mrb_intern(mrb, "mesg");
+  mrb_bool equal_p;
+  mrb_sym id_mesg = mrb_intern2(mrb, "mesg", 4);
 
   mrb_get_args(mrb, "o", &obj);
-  if (mrb_obj_equal(mrb, exc, obj)) return mrb_true_value();
-
-  if (mrb_obj_class(mrb, exc) != mrb_obj_class(mrb, obj)) {
-    if (mrb_respond_to(mrb, obj, mrb_intern(mrb, "message"))) {
-      mesg = mrb_funcall(mrb, obj, "message", 0);
-    }
-    else
-      return mrb_false_value();
+  if (mrb_obj_equal(mrb, exc, obj)) {
+    equal_p = 1;
   }
   else {
-    mesg = mrb_attr_get(mrb, obj, id_mesg);
+    if (mrb_obj_class(mrb, exc) != mrb_obj_class(mrb, obj)) {
+      if (mrb_respond_to(mrb, obj, mrb_intern2(mrb, "message", 7))) {
+        mesg = mrb_funcall(mrb, obj, "message", 0);
+      }
+      else
+        return mrb_false_value();
+    }
+    else {
+      mesg = mrb_attr_get(mrb, obj, id_mesg);
+    }
+
+    equal_p = mrb_equal(mrb, mrb_attr_get(mrb, exc, id_mesg), mesg);
   }
 
-  if (!mrb_equal(mrb, mrb_attr_get(mrb, exc, id_mesg), mesg))
-    return mrb_false_value();
-  return mrb_true_value();
+  return mrb_bool_value(equal_p);
 }
 
 static void
@@ -186,15 +192,15 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
   mrb_callinfo *ci = mrb->ci;
   mrb_code *pc = ci->pc;
 
-  mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->cibase));
+  mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->cibase));
   ci--;
   while (ci >= mrb->cibase) {
     if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
       mrb_irep *irep = ci->proc->body.irep;
 
       if (irep->filename && irep->lines && irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
-        mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "file"), mrb_str_new_cstr(mrb, irep->filename));
-        mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "line"), mrb_fixnum_value(irep->lines[pc - irep->iseq - 1]));
+        mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "file", 4), mrb_str_new_cstr(mrb, irep->filename));
+        mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "line", 4), mrb_fixnum_value(irep->lines[pc - irep->iseq - 1]));
         return;
       }
     }
@@ -206,12 +212,10 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
 void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
-  mrb->exc = (struct RObject*)mrb_object(exc);
+  mrb->exc = mrb_obj_ptr(exc);
   exc_debug_info(mrb, mrb->exc);
   if (!mrb->jmp) {
-#ifdef ENABLE_STDIO
     mrb_p(mrb, exc);
-#endif
     abort();
   }
   longjmp(*(jmp_buf*)mrb->jmp, 1);
@@ -221,114 +225,123 @@ void
 mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg)
 {
   mrb_value mesg;
-  mesg = mrb_str_new2(mrb, msg);
+  mesg = mrb_str_new_cstr(mrb, msg);
   mrb_exc_raise(mrb, mrb_exc_new3(mrb, c, mesg));
+}
+
+mrb_value
+mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
+{
+  const char *p = format;
+  const char *b = p;
+  ptrdiff_t size;
+  mrb_value ary = mrb_ary_new_capa(mrb, 4);
+
+  while (*p) {
+    const char c = *p++;
+
+    if (c == '%') {
+      if (*p == 'S') {
+        size = p - b - 1;
+        mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
+        mrb_ary_push(mrb, ary, va_arg(ap, mrb_value));
+        b = p + 1;
+      }
+    }
+    else if (c == '\\') {
+      if (*p) {
+        size = p - b - 1;
+        mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
+        mrb_ary_push(mrb, ary, mrb_str_new(mrb, p, 1));
+        b = ++p;
+      }
+      else {
+        break;
+      }
+    }
+  }
+  if (b == format) {
+    return mrb_str_new_cstr(mrb, format);
+  }
+  else {
+    size = p - b;
+    mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
+    return mrb_ary_join(mrb, ary, mrb_str_new(mrb,NULL,0));
+  }
+}
+
+mrb_value
+mrb_format(mrb_state *mrb, const char *format, ...)
+{
+  va_list ap;
+  mrb_value str;
+
+  va_start(ap, format);
+  str = mrb_vformat(mrb, format, ap);
+  va_end(ap);
+
+  return str;
 }
 
 void
 mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
 {
   va_list args;
-  char buf[256];
-  int n;
+  mrb_value mesg;
 
   va_start(args, fmt);
-  n = vsnprintf(buf, sizeof(buf), fmt, args);
+  mesg = mrb_vformat(mrb, fmt, args);
   va_end(args);
-  if (n < 0) {
-    n = 0;
-  }
-  mrb_exc_raise(mrb, mrb_exc_new(mrb, c, buf, n));
+  mrb_exc_raise(mrb, mrb_exc_new3(mrb, c, mesg));
 }
 
 void
 mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
 {
-  mrb_value exc, argv[2];
+  mrb_value exc;
+  mrb_value argv[2];
   va_list args;
-  char buf[256];
-  int n;
 
   va_start(args, fmt);
-  n = vsnprintf(buf, sizeof(buf), fmt, args);
+  argv[0] = mrb_vformat(mrb, fmt, args);
   va_end(args);
-  if (n < 0) {
-    n = 0;
-  }
-  argv[0] = mrb_str_new(mrb, buf, n);
-  argv[1] = mrb_symbol_value(id); /* ignore now */
-  exc = mrb_class_new_instance(mrb, 1, argv, E_NAME_ERROR);
+
+  argv[1] = mrb_symbol_value(id);
+  exc = mrb_class_new_instance(mrb, 2, argv, E_NAME_ERROR);
   mrb_exc_raise(mrb, exc);
-}
-
-mrb_value
-mrb_sprintf(mrb_state *mrb, const char *fmt, ...)
-{
-  va_list args;
-  char buf[256];
-  int n;
-
-  va_start(args, fmt);
-  n = vsnprintf(buf, sizeof(buf), fmt, args);
-  va_end(args);
-  if (n < 0) {
-    n = 0;
-  }
-  return mrb_str_new(mrb, buf, n);
 }
 
 void
 mrb_warn(const char *fmt, ...)
 {
+#ifdef ENABLE_STDIO
   va_list args;
 
   va_start(args, fmt);
   printf("warning: ");
   vprintf(fmt, args);
   va_end(args);
+#endif
 }
 
 void
 mrb_bug(const char *fmt, ...)
 {
+#ifdef ENABLE_STDIO
   va_list args;
 
   va_start(args, fmt);
   printf("bug: ");
   vprintf(fmt, args);
   va_end(args);
+#endif
   exit(EXIT_FAILURE);
-}
-
-static const char *
-mrb_strerrno(int err)
-{
-#define defined_error(name, num) if (err == num) return name;
-#define undefined_error(name)
-//#include "known_errors.inc"
-#undef defined_error
-#undef undefined_error
-    return NULL;
-}
-
-void
-mrb_bug_errno(const char *mesg, int errno_arg)
-{
-  if (errno_arg == 0)
-    mrb_bug("%s: errno == 0 (NOERROR)", mesg);
-  else {
-    const char *errno_str = mrb_strerrno(errno_arg);
-    if (errno_str)
-      mrb_bug("%s: %s (%s)", mesg, strerror(errno_arg), errno_str);
-    else
-      mrb_bug("%s: %s (%d)", mesg, strerror(errno_arg), errno_arg);
-  }
 }
 
 int
 sysexit_status(mrb_state *mrb, mrb_value err)
 {
-  mrb_value st = mrb_iv_get(mrb, err, mrb_intern(mrb, "status"));
+  mrb_value st = mrb_iv_get(mrb, err, mrb_intern2(mrb, "status", 6));
   return mrb_fixnum(st);
 }
 
@@ -366,7 +379,7 @@ make_exception(mrb_state *mrb, int argc, mrb_value *argv, int isstr)
       n = 1;
 exception_call:
       {
-        mrb_sym exc = mrb_intern(mrb, "exception");
+        mrb_sym exc = mrb_intern2(mrb, "exception", 9);
         if (mrb_respond_to(mrb, argv[0], exc)) {
           mesg = mrb_funcall_argv(mrb, argv[0], exc, n, argv+1);
         }
@@ -378,7 +391,7 @@ exception_call:
 
       break;
     default:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 0..3)", argc);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for 0..3)", mrb_fixnum_value(argc));
       break;
   }
   if (argc > 0) {
@@ -400,7 +413,20 @@ mrb_make_exception(mrb_state *mrb, int argc, mrb_value *argv)
 void
 mrb_sys_fail(mrb_state *mrb, const char *mesg)
 {
-  mrb_raise(mrb, E_RUNTIME_ERROR, mesg);
+  struct RClass *sce;
+  mrb_int no;
+
+  no = (mrb_int)errno;
+  if (mrb_class_defined(mrb, "SystemCallError")) {
+    sce = mrb_class_get(mrb, "SystemCallError");
+    if (mesg != NULL) {
+      mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 2, mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
+    } else {
+      mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 1, mrb_fixnum_value(no));
+    }
+  } else {
+    mrb_raise(mrb, E_RUNTIME_ERROR, mesg);
+  }
 }
 
 void

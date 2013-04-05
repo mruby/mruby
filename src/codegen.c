@@ -4,18 +4,16 @@
 ** See Copyright Notice in mruby.h
 */
 
-#define CODEGEN_DUMP
-
-#include "mruby.h"
-#include "mruby/string.h"
-#include "mruby/irep.h"
-#include "mruby/compile.h"
-#include "mruby/numeric.h"
-#include "opcode.h"
-#include "node.h"
-#include <string.h>
-#include <stdlib.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
+#include "mruby.h"
+#include "mruby/compile.h"
+#include "mruby/irep.h"
+#include "mruby/numeric.h"
+#include "mruby/string.h"
+#include "node.h"
+#include "opcode.h"
 #include "re.h"
 
 typedef mrb_ast_node node;
@@ -49,7 +47,7 @@ typedef struct scope {
   int pc;
   int lastlabel;
   int ainfo:15;
-  int mscope:1;
+  mrb_bool mscope:1;
 
   struct loopinfo *loop;
   int ensure_level;
@@ -336,6 +334,17 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
           s->iseq[s->pc-1] = MKOP_ABC(OP_SUBI, GETARG_A(i), GETARG_B(i), -c);
         return;
       }
+    case OP_STRCAT:
+      if (c0 == OP_STRING) {
+        int i = GETARG_Bx(i0);
+
+        if (mrb_type(s->irep->pool[i]) == MRB_TT_STRING &&
+            RSTRING_LEN(s->irep->pool[i]) == 0) {
+          s->pc--;
+          return;
+        }
+      }
+      break;
     default:
       break;
     }
@@ -368,6 +377,7 @@ dispatch(codegen_scope *s, int pc)
     fprintf(stderr, "bug: dispatch on non JMP op\n");
 #endif
     scope_error(s);
+    break;
   }
   s->iseq[pc] = MKOP_AsBx(c, GETARG_A(i), diff);
 }
@@ -410,9 +420,27 @@ new_lit(codegen_scope *s, mrb_value val)
 {
   int i;
 
-  for (i=0; i<s->irep->plen; i++) {
-    if (mrb_obj_equal(s->mrb, s->irep->pool[i], val)) return i;
+  
+  switch (mrb_type(val)) {
+  case MRB_TT_STRING:
+    for (i=0; i<s->irep->plen; i++) {
+      mrb_value pv = s->irep->pool[i];
+      mrb_int len;
+
+      if (mrb_type(pv) != MRB_TT_STRING) continue;
+      if ((len = RSTRING_LEN(pv)) != RSTRING_LEN(val)) continue;
+      if (memcmp(RSTRING_PTR(pv), RSTRING_PTR(val), len) == 0)
+        return i;
+    }
+    break;
+  case MRB_TT_FLOAT:
+  default:
+    for (i=0; i<s->irep->plen; i++) {
+      if (mrb_obj_equal(s->mrb, s->irep->pool[i], val)) return i;
+    }
+    break;
   }
+    
   if (s->irep->plen == s->pcapa) {
     s->pcapa *= 2;
     s->irep->pool = (mrb_value *)codegen_realloc(s, s->irep->pool, sizeof(mrb_value)*s->pcapa);
@@ -511,11 +539,11 @@ for_body(codegen_scope *s, node *tree)
   // generate loop variable
   n2 = tree->car;
   if (n2->car && !n2->car->cdr && !n2->cdr) {
-    genop(s, MKOP_Ax(OP_ENTER, 1<<18));
+    genop(s, MKOP_Ax(OP_ENTER, 0x40000));
     gen_assignment(s, n2->car->car, 1, NOVAL);
   }
   else {
-    genop(s, MKOP_Ax(OP_ENTER, 1<<18));
+    genop(s, MKOP_Ax(OP_ENTER, 0x40000));
     gen_vmassignment(s, n2, 1, VAL);
   }
   codegen(s, tree->cdr->cdr->car, VAL);
@@ -530,7 +558,7 @@ for_body(codegen_scope *s, node *tree)
   s = prev;
   genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx - base, OP_L_BLOCK));
   pop();
-  idx = new_msym(s, mrb_intern(s->mrb, "each"));
+  idx = new_msym(s, mrb_intern2(s->mrb, "each", 4));
   genop(s, MKOP_ABC(OP_SENDB, cursp(), idx, 0));
 }
 
@@ -550,7 +578,8 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   }
   tree = tree->cdr;
   if (tree->car) {
-    int ma, oa, ra, pa, ka, kd, ba, a;
+    int32_t a;
+    int ma, oa, ra, pa, ka, kd, ba;
     int pos, i;
     node *n, *opt;
 
@@ -565,8 +594,8 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     ka = kd = 0;
     ba = tree->car->cdr->cdr->cdr->cdr ? 1 : 0;
 
-    a = ((ma & 0x1f) << 18)
-      | ((oa & 0x1f) << 13)
+    a = ((int32_t)(ma & 0x1f) << 18)
+      | ((int32_t)(oa & 0x1f) << 13)
       | ((ra & 1) << 12)
       | ((pa & 0x1f) << 7)
       | ((ka & 0x1f) << 2)
@@ -661,7 +690,7 @@ static mrb_sym
 attrsym(codegen_scope *s, mrb_sym a)
 {
   const char *name;
-  int len;
+  size_t len;
   char *name2;
 
   name = mrb_sym2name_len(s->mrb, a, &len);
@@ -679,7 +708,7 @@ gen_values(codegen_scope *s, node *t, int val)
   int n = 0;
 
   while (t) {
-    if ((intptr_t)t->car->car == NODE_SPLAT) { // splat mode
+    if (n >= 127 || (intptr_t)t->car->car == NODE_SPLAT) { // splat mode
       if (val) {
         pop_n(n);
         genop(s, MKOP_ABC(OP_ARRAY, cursp(), cursp(), n));
@@ -760,7 +789,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
   }
   pop_n(n+1);
   {
-    int len;
+    size_t len;
     const char *name = mrb_sym2name_len(s->mrb, sym, &len);
 
     if (!noop && len == 1 && name[0] == '+')  {
@@ -926,6 +955,68 @@ gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val)
 }
 
 static void
+gen_send_intern(codegen_scope *s)
+{
+  pop();
+  genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern2(s->mrb, "intern", 6)), 0));
+  push();
+}
+static void
+gen_literal_array(codegen_scope *s, node *tree, int sym, int val)
+{
+  if (val) {
+    int i = 0, j = 0;
+
+    while (tree) {
+      switch ((intptr_t)tree->car->car) {
+      case NODE_STR:
+        if ((tree->cdr == NULL) && ((intptr_t)tree->car->cdr->cdr == 0))
+          break;
+        /* fall through */
+      case NODE_BEGIN:
+        codegen(s, tree->car, VAL);
+        ++j;
+        break;
+
+      case NODE_LITERAL_DELIM:
+        if (j > 0) {
+          j = 0;
+          ++i;
+          if (sym)
+            gen_send_intern(s);
+        }
+        break;
+      }
+      if (j >= 2) {
+        pop(); pop();
+        genop_peep(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1), VAL);
+        push();
+        j = 1;
+      }
+      tree = tree->cdr;
+    }
+    if (j > 0) {
+      j = 0;
+      ++i;
+      if (sym)
+        gen_send_intern(s);
+    }
+    pop_n(i);
+    genop(s, MKOP_ABC(OP_ARRAY, cursp(), cursp(), i));
+    push();
+  }
+  else {
+    while (tree) {
+      switch ((intptr_t)tree->car->car) {
+      case NODE_BEGIN: case NODE_BLOCK:
+        codegen(s, tree->car, NOVAL);
+      }
+      tree = tree->cdr;
+    }
+  }
+}
+
+static void
 raise_error(codegen_scope *s, const char *msg)
 {
   int idx = new_lit(s, mrb_str_new_cstr(s->mrb, msg));
@@ -1059,12 +1150,12 @@ codegen(codegen_scope *s, node *tree, int val)
               codegen(s, n4->car, VAL);
             }
             else {
-              genop(s, MKOP_ABx(OP_GETCONST, cursp(), new_msym(s, mrb_intern(s->mrb, "StandardError"))));
+              genop(s, MKOP_ABx(OP_GETCONST, cursp(), new_msym(s, mrb_intern2(s->mrb, "StandardError", 13))));
               push();
             }
             genop(s, MKOP_AB(OP_MOVE, cursp(), exc));
             pop();
-            genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern(s->mrb, "===")), 1));
+            genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern2(s->mrb, "===", 3)), 1));
             tmp = new_label(s);
             genop(s, MKOP_AsBx(OP_JMPIF, cursp(), pos2));
             pos2 = tmp;
@@ -1268,7 +1359,7 @@ codegen(codegen_scope *s, node *tree, int val)
           if (head) {
             genop(s, MKOP_AB(OP_MOVE, cursp(), head));
             pop();
-            genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern(s->mrb, "===")), 1));
+            genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern2(s->mrb, "===", 3)), 1));
           }
           else {
             pop();
@@ -1462,7 +1553,7 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_OP_ASGN:
     {
       mrb_sym sym = sym(tree->cdr->car);
-      int len;
+      size_t len;
       const char *name = mrb_sym2name_len(s->mrb, sym, &len);
       int idx;
 
@@ -1609,7 +1700,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       pop_n(n+1);
       if (sendv) n = CALL_MAXARGS;
-      genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern(s->mrb, "call")), n));
+      genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern2(s->mrb, "call", 4)), n));
       if (val) push();
     }
     break;
@@ -1757,12 +1848,13 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_BACK_REF:
     {
-      char buf[4];
-      int len;
+      char buf[2] = { '$' };
+      mrb_value str;
       int sym;
 
-      len = snprintf(buf, sizeof(buf), "$%c", (int)(intptr_t)tree);
-      sym = new_sym(s, mrb_intern2(s->mrb, buf, len));
+      buf[1] = (char)(intptr_t)tree;
+      str = mrb_str_new(s->mrb, buf, 2);
+      sym = new_sym(s, mrb_intern_str(s->mrb, str));
       genop(s, MKOP_ABx(OP_GETGLOBAL, cursp(), sym));
       push();
     }
@@ -1770,12 +1862,14 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_NTH_REF:
     {
-      char buf[4];
-      int len;
       int sym;
+      mrb_state *mrb = s->mrb;
+      mrb_value fix = mrb_fixnum_value((intptr_t)tree);
+      mrb_value str = mrb_str_buf_new(mrb, 4);
 
-      len = snprintf(buf, sizeof(buf), "$%d", (int)(intptr_t)tree);
-      sym = new_sym(s, mrb_intern2(s->mrb, buf, len));
+      mrb_str_buf_cat(mrb, str, "$", 1);
+      mrb_str_buf_append(mrb, str, mrb_fixnum_to_str(mrb, fix, 10));
+      sym = new_sym(s, mrb_intern_str(mrb, str));
       genop(s, MKOP_ABx(OP_GETGLOBAL, cursp(), sym));
       push();
     }
@@ -1876,7 +1970,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
       default:
         {
-          int sym = new_msym(s, mrb_intern(s->mrb, "-"));
+          int sym = new_msym(s, mrb_intern2(s->mrb, "-", 1));
 
           genop(s, MKOP_ABx(OP_LOADI, cursp(), 0));
           push();
@@ -1903,9 +1997,7 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_HEREDOC:
-    /*if(tree == NULL){printf("heredoc error 1\n");exit(11);}*/
     tree = ((struct mrb_parser_heredoc_info *)tree)->doc;
-    /*if(tree == NULL){printf("heredoc error 2\n");exit(12);}*/
     /* fall through */
   case NODE_DSTR:
     if (val) {
@@ -1916,7 +2008,7 @@ codegen(codegen_scope *s, node *tree, int val)
       while (n) {
         codegen(s, n->car, VAL);
         pop(); pop();
-        genop(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1));
+        genop_peep(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1), VAL);
         push();
         n = n->cdr;
       }
@@ -1930,6 +2022,34 @@ codegen(codegen_scope *s, node *tree, int val)
         }
         n = n->cdr;
       }
+    }
+    break;
+
+  case NODE_WORDS:
+    gen_literal_array(s, tree, FALSE, val);
+    break;
+
+  case NODE_SYMBOLS:
+    gen_literal_array(s, tree, TRUE, val);
+    break;
+
+  case NODE_XSTR:
+    if (val) {
+      char *p = (char*)tree->car;
+      size_t len = (intptr_t)tree->cdr;
+      int ai = mrb_gc_arena_save(s->mrb);
+      int sym = new_sym(s, mrb_intern2(s->mrb, "Kernel", 6));
+      int off = new_lit(s, mrb_str_new(s->mrb, p, len));
+
+      genop(s, MKOP_A(OP_OCLASS, cursp()));
+      genop(s, MKOP_ABx(OP_GETMCNST, cursp(), sym));
+      push();
+      genop(s, MKOP_ABx(OP_STRING, cursp(), off));
+      pop();
+      sym = new_sym(s, mrb_intern2(s->mrb, "`", 1));
+      genop(s, MKOP_ABC(OP_SEND, cursp(), sym, 1));
+      mrb_gc_arena_restore(s->mrb, ai);
+      push();
     }
     break;
 
@@ -1954,7 +2074,7 @@ codegen(codegen_scope *s, node *tree, int val)
         pop();
       }
       pop();
-      sym = new_sym(s, mrb_intern(s->mrb, "compile"));
+      sym = new_sym(s, mrb_intern2(s->mrb, "compile", 7));
       genop(s, MKOP_ABC(OP_SEND, cursp(), sym, argc));
       mrb_gc_arena_restore(s->mrb, ai);
       push();
@@ -1978,7 +2098,7 @@ codegen(codegen_scope *s, node *tree, int val)
       while (n) {
         codegen(s, n->car, VAL);
         pop(); pop();
-        genop(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1));
+        genop_peep(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1), VAL);
         push();
         n = n->cdr;
       }
@@ -1989,7 +2109,7 @@ codegen(codegen_scope *s, node *tree, int val)
         codegen(s, tree->car, VAL);
         genop(s, MKOP_ABx(OP_STRING, cursp(), off));
         pop();
-        genop(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1));
+        genop_peep(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1), VAL);
       }
       if (n->cdr) {
         char *p2 = (char*)n->cdr;
@@ -2002,7 +2122,7 @@ codegen(codegen_scope *s, node *tree, int val)
         pop();
       }
       pop();
-      sym = new_sym(s, mrb_intern(s->mrb, "compile"));
+      sym = new_sym(s, mrb_intern2(s->mrb, "compile", 7));
       genop(s, MKOP_ABC(OP_SEND, cursp(), sym, argc));
       mrb_gc_arena_restore(s->mrb, ai);
       push();
@@ -2031,9 +2151,7 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_DSYM:
     codegen(s, tree, val);
     if (val) {
-      pop();
-      genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern(s->mrb, "intern")), 0));
-      push();
+      gen_send_intern(s);
     }
     break;
 
@@ -2069,7 +2187,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       int a = new_msym(s, sym(tree->car));
       int b = new_msym(s, sym(tree->cdr));
-      int c = new_msym(s, mrb_intern(s->mrb, "alias_method"));
+      int c = new_msym(s, mrb_intern2(s->mrb, "alias_method", 12));
 
       genop(s, MKOP_A(OP_TCLASS, cursp()));
       push();
@@ -2088,7 +2206,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_UNDEF:
     {
-      int undef = new_msym(s, mrb_intern(s->mrb, "undef_method"));
+      int undef = new_msym(s, mrb_intern2(s->mrb, "undef_method", 12));
       int num = 0;
       node *t = tree;
 
@@ -2283,7 +2401,7 @@ scope_finish(codegen_scope *s)
     irep->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc);
     irep->ilen = s->pc;
     if (s->lines) {
-      irep->lines = (short *)codegen_realloc(s, s->lines, sizeof(short)*s->pc);
+      irep->lines = (uint16_t *)codegen_realloc(s, s->lines, sizeof(uint16_t)*s->pc);
     }
     else {
       irep->lines = 0;
@@ -2375,13 +2493,14 @@ codedump(mrb_state *mrb, int n)
 {
 #ifdef ENABLE_STDIO
   mrb_irep *irep = mrb->irep[n];
-  int i;
+  int i, ai;
   mrb_code c;
 
   if (!irep) return;
   printf("irep %d nregs=%d nlocals=%d pools=%d syms=%d\n", n,
-         irep->nregs, irep->nlocals, irep->plen, irep->slen);
+         irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen);
   for (i=0; i<irep->ilen; i++) {
+    ai = mrb_gc_arena_save(mrb);
     printf("%03d ", i);
     c = irep->iseq[i];
     switch (GET_OPCODE(c)) {
@@ -2682,6 +2801,7 @@ codedump(mrb_state *mrb, int n)
              GETARG_A(c), GETARG_B(c), GETARG_C(c));
       break;
     }
+    mrb_gc_arena_restore(mrb, ai);
   }
   printf("\n");
 #endif

@@ -1,7 +1,12 @@
 module MRuby
   module LoadGems
     def gem(gemdir, &block)
-      gemdir = load_external_gem(gemdir) if gemdir.is_a?(Hash)
+      caller_dir = File.expand_path(File.dirname(/^(.*?):\d/.match(caller.first).to_a[1]))
+      if gemdir.is_a?(Hash)
+        gemdir = load_external_gem(gemdir)
+      else
+        gemdir = File.expand_path(gemdir, caller_dir)
+      end
       gemrake = File.join(gemdir, "mrbgem.rake")
 
       fail "Can't find #{gemrake}" unless File.exists?(gemrake)
@@ -19,6 +24,8 @@ module MRuby
     def load_external_gem(params)
       if params[:github]
         params[:git] = "https://github.com/#{params[:github]}.git"
+      elsif params[:bitbucket]
+        params[:git] = "https://bitbucket.org/#{params[:bitbucket]}.git"
       end
 
       if params[:git]
@@ -27,7 +34,7 @@ module MRuby
         return gemdir if File.exists?(gemdir)
 
         options = [params[:options]] || []
-        options << "--branch \"#{params[:branch]}\"" if params[:tag]
+        options << "--branch \"#{params[:branch]}\"" if params[:branch]
 
         FileUtils.mkdir_p "build/mrbgems"
         git.run_clone gemdir, url, options

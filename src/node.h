@@ -4,6 +4,9 @@
 ** See Copyright Notice in mruby.h
 */
 
+#ifndef NODE_H
+#define NODE_H
+
 enum node_type {
     NODE_METHOD,
     NODE_FBODY,
@@ -62,6 +65,8 @@ enum node_type {
     NODE_SYM,
     NODE_STR,
     NODE_DSTR,
+    NODE_XSTR,
+    NODE_DXSTR,
     NODE_REGX,
     NODE_DREGX,
     NODE_DREGX_ONCE,
@@ -103,5 +108,10 @@ enum node_type {
     NODE_DSYM,
     NODE_ATTRASGN,
     NODE_HEREDOC,
+    NODE_LITERAL_DELIM,
+    NODE_WORDS,
+    NODE_SYMBOLS,
     NODE_LAST
 };
+
+#endif  /* NODE_H */

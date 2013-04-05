@@ -6,7 +6,6 @@
 
 
 #include "mruby.h"
-#include <string.h>
 #include <stdio.h>
 #include <time.h>
 #include "mruby/class.h"
@@ -87,11 +86,6 @@ timegm(struct tm *tm)
 * second level. Also, there are only 2 timezones, namely UTC and LOCAL.
 */
 
-#ifndef mrb_bool_value
-#define mrb_bool_value(val) ((val) ? mrb_true_value() : mrb_false_value())
-#endif
-
-
 enum mrb_timezone {
   MRB_TIMEZONE_NONE   = 0,
   MRB_TIMEZONE_UTC    = 1,
@@ -130,7 +124,7 @@ mrb_time_free(mrb_state *mrb, void *ptr)
 static struct mrb_data_type mrb_time_type = { "Time", mrb_time_free };
 
 /** Updates the datetime of a mrb_time based on it's timezone and
-seconds setting. Returns self on cussess, NULL of failure. */
+seconds setting. Returns self on success, NULL of failure. */
 static struct mrb_time*
 mrb_time_update_datetime(struct mrb_time *self)
 {
@@ -242,8 +236,8 @@ mrb_time_at(mrb_state *mrb, mrb_value self)
 
 static struct mrb_time*
 time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
-	    mrb_int ahour, mrb_int amin, mrb_int asec, mrb_int ausec,
-	    enum mrb_timezone timezone)
+  mrb_int ahour, mrb_int amin, mrb_int asec, mrb_int ausec,
+  enum mrb_timezone timezone)
 {
   time_t nowsecs;
   struct tm nowtime = { 0 };
@@ -278,7 +272,7 @@ mrb_time_gm(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "i|iiiiii",
                 &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
   return mrb_time_wrap(mrb, mrb_class_ptr(self),
-		       time_mktime(mrb, ayear, amonth, aday, ahour, amin, asec, ausec, MRB_TIMEZONE_UTC));
+          time_mktime(mrb, ayear, amonth, aday, ahour, amin, asec, ausec, MRB_TIMEZONE_UTC));
 }
 
 
@@ -292,7 +286,7 @@ mrb_time_local(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "i|iiiiii",
                 &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
   return mrb_time_wrap(mrb, mrb_class_ptr(self),
-		       time_mktime(mrb, ayear, amonth, aday, ahour, amin, asec, ausec, MRB_TIMEZONE_LOCAL));
+          time_mktime(mrb, ayear, amonth, aday, ahour, amin, asec, ausec, MRB_TIMEZONE_LOCAL));
 }
 
 
@@ -301,15 +295,14 @@ mrb_time_eq(mrb_state *mrb, mrb_value self)
 {
   mrb_value other;
   struct mrb_time *tm1, *tm2;
+  mrb_bool eq_p;
 
   mrb_get_args(mrb, "o", &other);
-  tm1 = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
-  tm2 = (struct mrb_time *)mrb_get_datatype(mrb, other, &mrb_time_type);
-  if (!tm1 || !tm2) return mrb_false_value();
-  if (tm1->sec == tm2->sec && tm1->usec == tm2->usec) {
-    return mrb_true_value();
-  }
-  return mrb_false_value();
+  tm1 = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
+  tm2 = (struct mrb_time*)mrb_data_get_ptr(mrb, other, &mrb_time_type);
+  eq_p = tm1 && tm2 && tm1->sec == tm2->sec && tm1->usec == tm2->usec;
+
+  return mrb_bool_value(eq_p);
 }
 
 static mrb_value
@@ -319,8 +312,8 @@ mrb_time_cmp(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm1, *tm2;
 
   mrb_get_args(mrb, "o", &other);
-  tm1 = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
-  tm2 = (struct mrb_time *)mrb_get_datatype(mrb, other, &mrb_time_type);
+  tm1 = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
+  tm2 = (struct mrb_time*)mrb_data_get_ptr(mrb, other, &mrb_time_type);
   if (!tm1 || !tm2) return mrb_nil_value();
   if (tm1->sec > tm2->sec) {
     return mrb_fixnum_value(1);
@@ -345,7 +338,7 @@ mrb_time_plus(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm;
 
   mrb_get_args(mrb, "f", &f);
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_time_make(mrb, mrb_obj_class(mrb, self), (double)tm->sec+f, tm->usec, tm->timezone);
 }
@@ -358,10 +351,10 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm, *tm2;
 
   mrb_get_args(mrb, "o", &other);
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
 
-  tm2 = (struct mrb_time *)mrb_get_datatype(mrb, other, &mrb_time_type);
+  tm2 = (struct mrb_time*)mrb_data_get_ptr(mrb, other, &mrb_time_type);
   if (tm2) {
     f = (mrb_float)(tm->sec - tm2->sec)
       + (mrb_float)(tm->usec - tm2->usec) / 1.0e6;
@@ -380,7 +373,7 @@ mrb_time_wday(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_fixnum_value(tm->datetime.tm_wday);
 }
@@ -392,7 +385,7 @@ mrb_time_yday(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_check_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_fixnum_value(tm->datetime.tm_yday + 1);
 }
@@ -404,7 +397,7 @@ mrb_time_year(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_fixnum_value(tm->datetime.tm_year + 1900);
 }
@@ -416,7 +409,7 @@ mrb_time_zone(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   if (tm->timezone <= MRB_TIMEZONE_NONE) return mrb_nil_value();
   if (tm->timezone >= MRB_TIMEZONE_LAST) return mrb_nil_value();
@@ -433,14 +426,14 @@ mrb_time_asctime(mrb_state *mrb, mrb_value self)
   char buf[256];
   int len;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   d = &tm->datetime;
   len = snprintf(buf, sizeof(buf), "%s %s %02d %02d:%02d:%02d %s%d",
-		 wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday,
-		 d->tm_hour, d->tm_min, d->tm_sec,
-		 tm->timezone == MRB_TIMEZONE_UTC ? "UTC " : "",
-		 d->tm_year + 1900);
+  wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday,
+  d->tm_hour, d->tm_min, d->tm_sec,
+  tm->timezone == MRB_TIMEZONE_UTC ? "UTC " : "",
+  d->tm_year + 1900);
   return mrb_str_new(mrb, buf, len);
 }
 
@@ -451,7 +444,7 @@ mrb_time_day(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_fixnum_value(tm->datetime.tm_mday);
 }
@@ -464,7 +457,7 @@ mrb_time_dstp(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_bool_value(tm->datetime.tm_isdst);
 }
@@ -477,7 +470,7 @@ mrb_time_getutc(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm, *tm2;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return self;
   tm2 = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
   *tm2 = *tm;
@@ -493,7 +486,7 @@ mrb_time_getlocal(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm, *tm2;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return self;
   tm2 = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
   *tm2 = *tm;
@@ -509,7 +502,7 @@ mrb_time_hour(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_fixnum_value(tm->datetime.tm_hour);
 }
@@ -524,13 +517,15 @@ mrb_time_initialize(mrb_state *mrb, mrb_value self)
   int n;
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)DATA_PTR(self);
   if (tm) {
     mrb_time_free(mrb, tm);
   }
+  DATA_TYPE(self) = &mrb_time_type;
+  DATA_PTR(self) = NULL;
 
   n = mrb_get_args(mrb, "|iiiiiii",
-		   &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
+       &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
   if (n == 0) {
     tm = current_mrb_time(mrb);
   }
@@ -538,7 +533,6 @@ mrb_time_initialize(mrb_state *mrb, mrb_value self)
     tm = time_mktime(mrb, ayear, amonth, aday, ahour, amin, asec, ausec, MRB_TIMEZONE_LOCAL);
   }
   DATA_PTR(self) = tm;
-  DATA_TYPE(self) = &mrb_time_type;
   return self;
 }
 
@@ -569,7 +563,7 @@ mrb_time_localtime(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return self;
   tm->timezone = MRB_TIMEZONE_LOCAL;
   mrb_time_update_datetime(tm);
@@ -583,7 +577,7 @@ mrb_time_mday(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_fixnum_value(tm->datetime.tm_mday);
 }
@@ -595,7 +589,7 @@ mrb_time_min(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_fixnum_value(tm->datetime.tm_min);
 }
@@ -607,7 +601,7 @@ mrb_time_mon(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_fixnum_value(tm->datetime.tm_mon + 1);
 }
@@ -619,7 +613,7 @@ mrb_time_sec(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_fixnum_value(tm->datetime.tm_sec);
 }
@@ -632,7 +626,7 @@ mrb_time_to_f(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_float_value((mrb_float)tm->sec + (mrb_float)tm->usec/1.0e6);
 }
@@ -644,7 +638,7 @@ mrb_time_to_i(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_fixnum_value(tm->sec);
 }
@@ -656,7 +650,7 @@ mrb_time_usec(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_fixnum_value(tm->usec);
 }
@@ -668,7 +662,7 @@ mrb_time_utc(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (tm) {
     tm->timezone = MRB_TIMEZONE_UTC;
     mrb_time_update_datetime(tm);
@@ -682,7 +676,7 @@ static mrb_value
 mrb_time_utcp(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
-  tm = (struct mrb_time *)mrb_get_datatype(mrb, self, &mrb_time_type);
+  tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
   return mrb_bool_value(tm->timezone == MRB_TIMEZONE_UTC);
 }
