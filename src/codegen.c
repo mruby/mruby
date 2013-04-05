@@ -355,7 +355,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
 static void
 scope_error(codegen_scope *s)
 {
-  exit(1);
+  exit(EXIT_FAILURE);
 }
 
 static inline void
