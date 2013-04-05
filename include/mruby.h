@@ -286,6 +286,11 @@ void mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...);
 void mrb_warn(const char *fmt, ...);
 void mrb_bug(const char *fmt, ...);
 
+/* macros to get typical exception objects
+   note:
+   + those E_* macros requires mrb_state* variable named mrb.
+   + exception objects obtained from those macros are local to mrb
+*/
 #define E_RUNTIME_ERROR             (mrb_class_obj_get(mrb, "RuntimeError"))
 #define E_TYPE_ERROR                (mrb_class_obj_get(mrb, "TypeError"))
 #define E_ARGUMENT_ERROR            (mrb_class_obj_get(mrb, "ArgumentError"))
