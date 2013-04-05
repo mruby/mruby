@@ -4726,6 +4726,10 @@ parser_yylex(parser_state *p)
     p->lstate = EXPR_END;
     token_column = newtok(p);
     c = nextc(p);
+    if (c == -1) {
+      yyerror(p, "incomplete global variable syntax");
+      return 0;
+    }
     switch (c) {
     case '_':     /* $_: last read line string */
       c = nextc(p);
