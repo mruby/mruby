@@ -45,7 +45,7 @@ end
 $pp_show = true
 
 if $verbose.nil?
-  unless Rake.verbose.nil?
+  if Rake.respond_to?(:verbose) && !Rake.verbose.nil?
     if Rake.verbose.class == TrueClass
       # verbose message logging
       $pp_show = false
