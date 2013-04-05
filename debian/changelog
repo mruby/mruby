@@ -1,5 +1,5 @@
-mruby (0.0.0~20130304+gitabecb781-1) experimental; urgency=low
+mruby (0.0.0~20130405+git97aee949-1) experimental; urgency=low
 
   * Initial release. (Closes: #697835)
 
- -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Mon, 04 Mar 2013 13:50:48 +0900
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Fri, 05 Apr 2013 13:51:18 +0900
