@@ -105,7 +105,7 @@ append_cmdline:
       }
       else {
         printf("%s: No code specified for -e\n", *origargv);
-        return 0;
+        return EXIT_SUCCESS;
       }
       break;
     case 'v':
@@ -125,9 +125,8 @@ append_cmdline:
         mrb_show_copyright(mrb);
         exit(EXIT_SUCCESS);
       }
-      else return -3;
     default:
-      return -4;
+      return EXIT_FAILURE;
     }
   }
 
@@ -148,7 +147,7 @@ append_cmdline:
   memcpy(args->argv, argv, (argc+1) * sizeof(char*));
   args->argc = argc;
 
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 static void
@@ -240,7 +239,7 @@ main(int argc, char **argv)
   }
 
   n = parse_args(mrb, argc, argv, &args);
-  if (n < 0 || (args.cmdline == NULL && args.rfp == NULL)) {
+  if (n == EXIT_FAILURE || (args.cmdline == NULL && args.rfp == NULL)) {
     cleanup(mrb, &args);
     usage(argv[0]);
     return n;

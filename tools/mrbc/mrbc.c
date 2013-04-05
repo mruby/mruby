@@ -69,7 +69,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
   char *infile = NULL;
   char *outfile = NULL;
   char **origargv = argv;
-  int result = 0;
+  int result = EXIT_SUCCESS;
   static const struct _args args_zero = { 0 };
 
   *args = args_zero;
@@ -88,7 +88,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         if (outfile) {
           printf("%s: An output file is already specified. (%s)\n",
                  *origargv, outfile);
-          result = -5;
+          result = EXIT_FAILURE;
           goto exit;
         }
         outfile = get_outfilename((*argv) + 2, "");
@@ -98,7 +98,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         args->initname = (*argv) + 2;
         if (*args->initname == '\0') {
           printf("%s: Function name is not specified.\n", *origargv);
-          result = -2;
+          result = EXIT_FAILURE;
           goto exit;
         }
         break;
@@ -125,7 +125,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
           mrb_show_copyright(mrb);
           exit(EXIT_SUCCESS);
         }
-        result = -3;
+        result = EXIT_FAILURE;
         goto exit;
       default:
         break;
@@ -141,7 +141,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
   }
 
   if (infile == NULL) {
-    result = -4;
+    result = EXIT_FAILURE;
     goto exit;
   }
   if (!args->check_syntax) {
@@ -158,7 +158,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
     }
     else if ((args->wfp = fopen(outfile, "wb")) == NULL) {
       printf("%s: Cannot open output file. (%s)\n", *origargv, outfile);
-      result = -1;
+      result = EXIT_FAILURE;
       goto exit;
     }
   }
@@ -192,7 +192,7 @@ main(int argc, char **argv)
   }
 
   n = parse_args(mrb, argc, argv, &args);
-  if (n < 0 || args.rfp == NULL) {
+  if (n == EXIT_FAILURE || args.rfp == NULL) {
     cleanup(mrb, &args);
     usage(argv[0]);
     return n;
