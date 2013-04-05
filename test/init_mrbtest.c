@@ -18,7 +18,7 @@ mrb_init_mrbtest(mrb_state *mrb)
 #endif
   if (mrb->exc) {
     mrb_p(mrb, mrb_obj_value(mrb->exc));
-    exit(0);
+    exit(EXIT_FAILURE);
   }
 }
 
