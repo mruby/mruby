@@ -29,5 +29,7 @@ MRuby::Build.new do |conf|
     conf.gem x unless x =~ /\/mruby-(print|sprintf)$/
   end
 
+  conf.gem :github => 'iij/mruby-env'
+
   conf.gem File.expand_path(File.dirname(__FILE__))
 end

@@ -63,6 +63,71 @@ class File < IO
     end
   end
 
+  def self.expand_path(path, default_dir = '.')
+    def concat_path(path, base_path)
+      if path[0] == "/"
+        expanded_path = path
+      elsif path[0] == "~"
+        if (path[1] == "/" || path[1] == nil)
+          dir = path[1, path.size]
+          home_dir = _gethome
+
+          unless home_dir
+            raise ArgumentError, "couldn't find HOME environment -- expanding '~'"
+          end
+
+          expanded_path = home_dir
+          expanded_path += dir if dir
+          expanded_path += "/"
+        else
+          splitted_path = path.split("/")
+          user = splitted_path[0][1, splitted_path[0].size]
+          dir = "/" + splitted_path[1, splitted_path.size].join("/")
+
+          home_dir = _gethome(user)
+
+          unless home_dir
+            raise ArgumentError, "user #{user} doesn't exist"
+          end
+
+          expanded_path = home_dir
+          expanded_path += dir if dir
+          expanded_path += "/"
+        end
+      else
+        expanded_path = concat_path(base_path, _getwd)
+        expanded_path += "/" + path
+      end
+
+      expanded_path
+    end
+
+    expanded_path = concat_path(path, default_dir)
+    expand_path_array = []
+    while expanded_path.include?('//')
+      expanded_path = expanded_path.gsub('//', '/')
+    end
+
+    if expanded_path == "/"
+      expanded_path
+    else
+      expanded_path.split('/').each do |path_token|
+        if path_token == '..'
+          if expand_path_array.size > 1
+            expand_path_array.pop
+          end
+        elsif path_token == '.'
+          # nothing to do.
+        else
+          expand_path_array << path_token
+        end
+      end
+
+      expand_path = expand_path_array.join("/")
+      expand_path.empty? ? '/' : expand_path
+    end
+  end
+
   def self.directory?(file)
     FileTest.directory?(file)
   end

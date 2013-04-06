@@ -73,3 +73,26 @@ end
 assert('File TEST CLEANUP') do
   assert_nil MRubyIOTestUtil.io_test_cleanup
 end
+
+assert('File.expand_path') do
+  assert_equal "/",    File.expand_path("..", "/tmp"),       "parent path with base_dir (1)"
+  assert_equal "/tmp", File.expand_path("..", "/tmp/mruby"), "parent path with base_dir (2)"
+
+  assert_equal "/home", File.expand_path("/home"),      "absolute"
+  assert_equal "/home", File.expand_path("/home", "."), "absolute with base_dir"
+
+  assert_equal "/hoge", File.expand_path("/tmp/..//hoge")
+  assert_equal "/hoge", File.expand_path("////tmp/..///////hoge")
+
+  assert_equal "/", File.expand_path("../../../..", "/")
+  assert_equal "/", File.expand_path(([".."] * 100).join("/"))
+end
+
+assert('File.expand_path (with ENV)') do
+  skip unless Object.const_defined?(:ENV) && ENV['HOME']
+
+  assert_equal ENV['HOME'], File.expand_path("~/"),      "home"
+  assert_equal ENV['HOME'], File.expand_path("~/", "/"), "home with base_dir"
+
+  assert_equal "#{ENV['HOME']}/user", File.expand_path("user", ENV['HOME']), "relative with base_dir"
+end
