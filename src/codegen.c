@@ -1842,10 +1842,6 @@ codegen(codegen_scope *s, node *tree, int val)
     }
     break;
 
-  case NODE_DEFINED:
-    codegen(s, tree, VAL);
-    break;
-
   case NODE_BACK_REF:
     {
       char buf[2] = { '$' };
