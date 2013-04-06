@@ -351,6 +351,8 @@ assert('Kernel#raise', '15.3.1.3.40') do
     e_list[1].class == RuntimeError
 end
 
+# Kernel#require is defined in mruby-require. '15.3.1.3.42'
+
 assert('Kernel#respond_to?', '15.3.1.3.43') do
   class Test4RespondTo
     def test_method; end
