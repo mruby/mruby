@@ -512,6 +512,7 @@ mrb_dump_irep_cfunc(mrb_state *mrb, size_t start_index, int debug_info, FILE *fp
 
   result = mrb_dump_irep(mrb, start_index, debug_info, &bin, &bin_size);
   if (result == MRB_DUMP_OK) {
+    fprintf(fp, "#include <stdint.h>\n"); // for uint8_t under at least Darwin
     fprintf(fp, "const uint8_t %s[] = {", initname);
     while (bin_idx < bin_size) {
       if (bin_idx % 16 == 0 ) fputs("\n", fp);
