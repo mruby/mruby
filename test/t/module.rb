@@ -297,6 +297,29 @@ assert('Module#remove_method', '15.2.2.4.41') do
   not Test4RemoveMethod::Child.instance_methods(false).include? :hello
 end
 
+assert('Module.undef_method', '15.2.2.4.42') do
+  module Test4UndefMethod
+    class Parent
+      def hello
+      end
+     end
+
+     class Child < Parent
+      def hello
+      end
+     end
+
+     class GrandChild < Child
+     end
+  end
+
+  Test4UndefMethod::Child.class_eval{ undef_method :hello }
+
+  Test4UndefMethod::Parent.new.respond_to?(:hello) and
+  not Test4UndefMethod::Child.new.respond_to?(:hello) and
+  not Test4UndefMethod::GrandChild.new.respond_to?(:hello)
+end
+
 
 # Not ISO specified
 
