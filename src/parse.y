@@ -38,6 +38,10 @@ static void yywarn(parser_state *p, const char *s);
 static void yywarning(parser_state *p, const char *s);
 static void backref_error(parser_state *p, node *n);
 
+#ifndef isascii
+#define isascii(c) (((c) & ~0x7f) == 0)
+#endif
+
 #define identchar(c) (isalnum(c) || (c) == '_' || !isascii(c))
 
 typedef unsigned int stack_type;
