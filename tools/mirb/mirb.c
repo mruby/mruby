@@ -38,9 +38,6 @@ is_code_block_open(struct mrb_parser_state *parser)
 {
   int code_block_open = FALSE;
 
-  /* check for unterminated string */
-  if (parser->lex_strterm) return TRUE;
-
   /* check for heredoc */
   if (parser->heredoc_starts_nextline) return TRUE;
   if (parser->heredoc_end_now) {
@@ -69,6 +66,9 @@ is_code_block_open(struct mrb_parser_state *parser)
     }
     return code_block_open;
   }
+
+  /* check for unterminated string */
+  if (parser->lex_strterm) return TRUE;
 
   switch (parser->lstate) {
 
