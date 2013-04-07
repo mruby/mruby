@@ -268,6 +268,7 @@ main(int argc, char **argv)
   }
   else {
     mrbc_context *c = mrbc_context_new(mrb);
+    mrb_sym zero_sym = mrb_intern2(mrb, "$0", 2);
     mrb_value v;
 
     if (args.verbose)
@@ -276,13 +277,18 @@ main(int argc, char **argv)
       c->no_exec = 1;
 
     if (args.rfp) {
-      mrbc_filename(mrb, c, args.cmdline ? args.cmdline : "-");
+      char *cmdline;
+      cmdline = args.cmdline ? args.cmdline : "-";
+      mrbc_filename(mrb, c, cmdline);
+      mrb_gv_set(mrb, zero_sym, mrb_str_new_cstr(mrb, cmdline));
       v = mrb_load_file_cxt(mrb, args.rfp, c);
     }
     else {
       mrbc_filename(mrb, c, "-e");
+      mrb_gv_set(mrb, zero_sym, mrb_str_new(mrb, "-e", 2));
       v = mrb_load_string_cxt(mrb, args.cmdline, c);
     }
+
     mrbc_context_free(mrb, c);
     if (mrb->exc) {
       if (!mrb_undef_p(v)) {
