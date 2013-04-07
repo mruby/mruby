@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include <mruby.h>
+#include "mruby/array.h"
 #include <mruby/proc.h>
 #include <mruby/data.h>
 #include <mruby/compile.h>
@@ -236,6 +237,7 @@ main(int argc, char **argv)
     fputs("Invalid mrb interpreter, exiting mirb\n", stderr);
     return EXIT_FAILURE;
   }
+  mrb_define_global_const(mrb, "ARGV", mrb_ary_new_capa(mrb, 0));
 
   n = parse_args(mrb, argc, argv, &args);
   if (n == EXIT_FAILURE) {
