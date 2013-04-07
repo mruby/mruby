@@ -11,6 +11,12 @@
 #include "mruby/khash.h"
 #include "mruby/string.h"
 
+#ifdef MRB_ENABLE_ROMED
+extern mrb_bool on_rodata_p(void *ptr);
+#else
+# define on_rodata_p(ptr) FALSE
+#endif
+
 /* ------------------------------------------------------ */
 typedef struct symbol_name {
   size_t len;
@@ -50,10 +56,15 @@ mrb_intern2(mrb_state *mrb, const char *name, size_t len)
     return kh_value(h, k);
 
   sym = ++mrb->symidx;
-  p = (char *)mrb_malloc(mrb, len+1);
-  memcpy(p, name, len);
-  p[len] = 0;
-  sname.name = (const char*)p;
+  if (on_rodata_p(name)) {
+    sname.name = name;
+  }
+  else {
+    p = (char *)mrb_malloc(mrb, len+1);
+    memcpy(p, name, len);
+    p[len] = 0;
+    sname.name = (const char*)p;
+  }
   k = kh_put(n2s, h, sname);
   kh_value(h, k) = sym;
 
@@ -99,8 +110,14 @@ mrb_free_symtbl(mrb_state *mrb)
   khash_t(n2s) *h = mrb->name2sym;
   khiter_t k;
 
-  for (k = kh_begin(h); k != kh_end(h); k++)
-    if (kh_exist(h, k)) mrb_free(mrb, (char*)kh_key(h, k).name);
+  for (k = kh_begin(h); k != kh_end(h); k++) {
+    if (kh_exist(h, k)) {
+      char *name = (char *)kh_key(h, k).name;
+      if (!on_rodata_p(name)) {
+        mrb_free(mrb, name);
+      }
+    }
+  }
   kh_destroy(n2s,mrb->name2sym);
 }
 
