@@ -114,4 +114,7 @@ end
 #   conf.build_mrbtest_lib_only
 #   
 #   conf.gem 'examples/mrbgems/c_and_ruby_extension_example'
+#
+#   conf.test_runner.command = 'env'
+#
 # end
