@@ -337,9 +337,9 @@ main(int argc, char **argv)
       }
       ruby_code[0] = '\0';
       last_code_line[0] = '\0';
-      mrb_parser_free(parser);
       mrb_gc_arena_restore(mrb, ai);
     }
+    mrb_parser_free(parser);
   }
   mrbc_context_free(mrb, cxt);
   mrb_close(mrb);
