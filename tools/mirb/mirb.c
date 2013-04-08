@@ -13,6 +13,7 @@
 #include <mruby/proc.h>
 #include <mruby/data.h>
 #include <mruby/compile.h>
+#include <mruby/variable.h>
 #ifdef ENABLE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -191,6 +192,33 @@ cleanup(mrb_state *mrb, struct _args *args)
   mrb_close(mrb);
 }
 
+static mrb_value mirb_exit(mrb_state *mrb, mrb_value self);
+
+/* define mirb specific functions */
+static void
+define_mirb_funcs(mrb_state *mrb)
+{
+  mrb_define_module_function(mrb, mrb->kernel_module, "exit", mirb_exit, ARGS_NONE());
+  mrb_define_alias(mrb, mrb->kernel_module, "quit", "exit");
+  mrb_define_alias(mrb, mrb->kernel_module, "mirb_exit", "exit");
+  mrb_define_alias(mrb, mrb->kernel_module, "mirb_quit", "exit");
+}
+
+static mrb_value
+mirb_exit(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym mirb_exiting_sym = mrb_intern_cstr(mrb, "mirb_exiting");
+  mrb_mod_cv_set(mrb, mrb->kernel_module, mirb_exiting_sym, mrb_true_value());
+  return mrb_nil_value();
+}
+
+static int
+is_mirb_exiting(mrb_state *mrb)
+{
+  mrb_sym mirb_exiting_sym = mrb_intern_cstr(mrb, "mirb_exiting");
+  return mrb_mod_cv_defined(mrb, mrb->kernel_module, mirb_exiting_sym);
+}
+
 /* Print a short remark for the user */
 static void
 print_hint(void)
@@ -244,6 +272,7 @@ main(int argc, char **argv)
     return n;
   }
 
+  define_mirb_funcs(mrb);
   print_hint();
 
   cxt = mrbc_context_new(mrb);
@@ -276,24 +305,12 @@ main(int argc, char **argv)
     free(line);
 #endif
 
-    if ((strcmp(last_code_line, "quit") == 0) || (strcmp(last_code_line, "exit") == 0)) {
-      if (!code_block_open) {
-        break;
-      }
-      else{
-        /* count the quit/exit commands as strings if in a quote block */
-        strcat(ruby_code, "\n");
-        strcat(ruby_code, last_code_line);
-      }
+    if (code_block_open) {
+      strcat(ruby_code, "\n");
+      strcat(ruby_code, last_code_line);
     }
     else {
-      if (code_block_open) {
-        strcat(ruby_code, "\n");
-        strcat(ruby_code, last_code_line);
-      }
-      else {
-        strcpy(ruby_code, last_code_line);
-      }
+      strcpy(ruby_code, last_code_line);
     }
 
     /* parse code */
@@ -327,12 +344,19 @@ main(int argc, char **argv)
           mrb->exc = 0;
         }
         else {
-          /* no */
-          printf(" => ");
-          if (!mrb_respond_to(mrb,result,mrb_intern(mrb,"inspect"))){
-            result = mrb_any_to_s(mrb,result);
+          /* was exit command given? */
+          if (is_mirb_exiting(mrb))
+          {
+            break;
           }
-          p(mrb, result);
+          else {
+            /* no */
+            printf(" => ");
+            if (!mrb_respond_to(mrb,result,mrb_intern(mrb,"inspect"))){
+              result = mrb_any_to_s(mrb,result);
+            }
+            p(mrb, result);
+          }
         }
       }
       ruby_code[0] = '\0';
