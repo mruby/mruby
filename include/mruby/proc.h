@@ -13,14 +13,14 @@
 extern "C" {
 #endif
 
-struct REnv {
+typedef struct REnv {
   MRB_OBJECT_HEADER;
   mrb_value *stack;
   mrb_sym mid;
   int cioff;
-};
+} mrb_env;
 
-struct RProc {
+typedef struct RProc {
   MRB_OBJECT_HEADER;
   union {
     mrb_irep *irep;
@@ -28,7 +28,7 @@ struct RProc {
   } body;
   struct RClass *target_class;
   struct REnv *env;
-};
+} mrb_proc;
 
 /* aspec access */
 #define ARGS_GETREQ(a)          (((a) >> 19) & 0x1f)

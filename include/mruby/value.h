@@ -189,10 +189,10 @@ struct RBasic {
 /* obsolete macro mrb_basic; will be removed soon */
 #define mrb_basic(v)     mrb_basic_ptr(v)
 
-struct RObject {
+typedef struct RObject {
   MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
-};
+} mrb_obj;
 
 #define mrb_obj_ptr(v)   ((struct RObject*)((v).value.p))
 /* obsolete macro mrb_object; will be removed soon */

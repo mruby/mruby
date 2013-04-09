@@ -21,7 +21,7 @@ typedef struct mrb_shared_string {
   mrb_int len;
 } mrb_shared_string;
 
-struct RString {
+typedef struct RString {
   MRB_OBJECT_HEADER;
   mrb_int len;
   union {
@@ -29,7 +29,7 @@ struct RString {
     mrb_shared_string *shared;
   } aux;
   char *ptr;
-};
+} mrb_str;
 
 #define mrb_str_ptr(s)    ((struct RString*)((s).value.p))
 #define RSTRING(s)        ((struct RString*)((s).value.p))
