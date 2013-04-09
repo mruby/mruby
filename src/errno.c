@@ -31,15 +31,15 @@ mrb_sce_init(mrb_state *mrb, mrb_value self)
     c = mrb_hash_fetch(mrb, e2c, mrb_fixnum_value(n), mrb_nil_value());
     if (!mrb_nil_p(c)) {
       mrb_basic(self)->c = mrb_class_ptr(c);
-      str = mrb_str_new2(mrb, strerror(n));
+      str = mrb_str_new_cstr(mrb, strerror(n));
     } else {
       mrb_iv_set(mrb, self, mrb_intern(mrb, "errno"), mrb_fixnum_value(n));
-      str = mrb_str_new2(mrb, "Unknown error: ");
+      str = mrb_str_new_cstr(mrb, "Unknown error: ");
       snprintf(buf, sizeof(buf), "%d", n);
       mrb_str_cat2(mrb, str, buf);
     }
   } else {
-    str = mrb_str_new2(mrb, "unknown error");
+    str = mrb_str_new_cstr(mrb, "unknown error");
   }
   if (!mrb_nil_p(m)) {
     mrb_str_cat2(mrb, str, " - ");
@@ -103,7 +103,7 @@ mrb_exxx_init(mrb_state *mrb, mrb_value self)
   mrb_value m, no, str;
 
   no = mrb_const_get(mrb, mrb_obj_value(mrb_class(mrb, self)), mrb_intern(mrb, "Errno"));
-  str = mrb_str_new2(mrb, strerror(mrb_fixnum(no)));
+  str = mrb_str_new_cstr(mrb, strerror(mrb_fixnum(no)));
 
   m = mrb_nil_value();
   mrb_get_args(mrb, "|S", &m);
