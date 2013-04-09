@@ -8,10 +8,12 @@
 extern const uint8_t mrbtest_irep[];
 
 void mrbgemtest_init(mrb_state* mrb);
+void mrb_capitest_init(mrb_state* mrb);
 
 void
 mrb_init_mrbtest(mrb_state *mrb)
 {
+  mrb_capitest_init(mrb);
   mrb_load_irep(mrb, mrbtest_irep);
 #ifndef DISABLE_GEMS
   mrbgemtest_init(mrb);

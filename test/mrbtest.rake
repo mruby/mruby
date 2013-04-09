@@ -7,8 +7,10 @@ MRuby.each_target do
   clib = "#{current_build_dir}/mrbtest.c"
   mlib = clib.ext(exts.object)
   mrbs = Dir.glob("#{current_dir}/t/*.rb")
+  mrbs += Dir.glob("#{current_dir}/capi/*.rb")
   init = "#{current_dir}/init_mrbtest.c"
   asslib = "#{current_dir}/assert.rb"
+  csrc = Dir.glob("#{current_dir}/capi/*.{c}")
 
   mrbtest_lib = libfile("#{current_build_dir}/mrbtest")
   file mrbtest_lib => [mlib, gems.map(&:test_objs), gems.map { |g| g.test_rbireps.ext(exts.object) }].flatten do |t|
@@ -17,7 +19,10 @@ MRuby.each_target do
 
   unless build_mrbtest_lib_only?
     driver_obj = objfile("#{current_build_dir}/driver")
-    file exec => [driver_obj, mrbtest_lib, libfile("#{build_dir}/lib/libmruby")] do |t|
+
+    cobjs = csrc.map { |f| "#{current_build_dir}/capi/#{objfile(f.pathmap("%n"))}" }
+
+    file exec => [driver_obj, cobjs, mrbtest_lib, libfile("#{build_dir}/lib/libmruby")] do |t|
       gem_flags = gems.map { |g| g.linker.flags }
       gem_flags_before_libraries = gems.map { |g| g.linker.flags_before_libraries }
       gem_flags_after_libraries = gems.map { |g| g.linker.flags_after_libraries }
@@ -28,12 +33,22 @@ MRuby.each_target do
   end
 
   file mlib => [clib]
-  file clib => [mrbcfile, init, asslib] + mrbs do |t|
+  file clib => [mrbcfile, init, asslib] + mrbs + csrc do |t|
     _pp "GEN", "*.rb", "#{clib.relative_path}"
     FileUtils.mkdir_p File.dirname(clib)
     open(clib, 'w') do |f|
       f.puts IO.read(init)
       mrbc.run f, [asslib] + mrbs, 'mrbtest_irep'
+
+      csrc.each do |c|
+        f.puts %Q[void test_#{File.basename(c, ".c")}_init(mrb_state *mrb);]
+      end
+      f.puts %Q[void mrb_capitest_init(mrb_state* mrb) {]
+      csrc.each do |c|
+        f.puts %Q[    test_#{File.basename(c, ".c")}_init(mrb);]
+      end
+      f.puts %Q[}]
+
       gems.each do |g|
         f.puts %Q[void GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb_state *mrb);]
       end
