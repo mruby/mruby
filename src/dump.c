@@ -499,6 +499,22 @@ mrb_dump_irep_binary(mrb_state *mrb, size_t start_index, int debug_info, FILE* f
   return result;
 }
 
+static int
+is_valid_c_symbol_name(const char *name)
+{
+   const char *c = NULL;
+
+   if (name == NULL || name[0] == '\0') return 0;
+   if (!ISALPHA(name[0]) && name[0] != '_') return 0;
+
+   c = &name[1];
+   for (; *c != '\0'; ++c) {
+     if (!ISALNUM(*c) && *c != '_') return 0;
+   }
+
+   return 1;
+}
+
 int
 mrb_dump_irep_cfunc(mrb_state *mrb, size_t start_index, int debug_info, FILE *fp, const char *initname)
 {
@@ -506,7 +522,7 @@ mrb_dump_irep_cfunc(mrb_state *mrb, size_t start_index, int debug_info, FILE *fp
   size_t bin_size = 0, bin_idx = 0;
   int result;
 
-  if (fp == NULL || initname == NULL) {
+  if (fp == NULL || initname == NULL || !is_valid_c_symbol_name(initname)) {
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
