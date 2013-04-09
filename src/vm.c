@@ -1195,9 +1195,11 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       NEXT;
     }
 
+    L_RETURN:
+      i = MKOP_AB(OP_RETURN, GETARG_A(i), OP_R_NORMAL);
+      /* fall through */
     CASE(OP_RETURN) {
       /* A      return R(A) */
-    L_RETURN:
       if (mrb->exc) {
         mrb_callinfo *ci;
         int eidx;
@@ -1332,7 +1334,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           regs[a+1] = sym;
         }
       }
-
 
       /* replace callinfo */
       ci = mrb->ci;
@@ -1658,7 +1659,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 } while (0)
 
     CASE(OP_EQ) {
-      /* A B C  R(A) := R(A)<R(A+1) (Syms[B]=:<,C=1)*/
+      /* A B C  R(A) := R(A)<R(A+1) (Syms[B]=:==,C=1)*/
       int a = GETARG_A(i);
       if (mrb_obj_eq(mrb, regs[a], regs[a+1])) {
         SET_TRUE_VALUE(regs[a]);
@@ -1676,7 +1677,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     }
 
     CASE(OP_LE) {
-      /* A B C  R(A) := R(A)<R(A+1) (Syms[B]=:<,C=1)*/
+      /* A B C  R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)*/
       OP_CMP(<=);
       NEXT;
     }
@@ -1688,7 +1689,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     }
 
     CASE(OP_GE) {
-      /* A B C  R(A) := R(A)<R(A+1) (Syms[B]=:<,C=1)*/
+      /* A B C  R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)*/
       OP_CMP(>=);
       NEXT;
     }
