@@ -42,6 +42,7 @@ typedef int32_t mrb_aspec;
 struct mrb_state;
 
 typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
+typedef int (*mrb_log_printer)(const char *);
 
 #ifndef MRB_ARENA_SIZE
 #define MRB_ARENA_SIZE 100
@@ -66,6 +67,12 @@ enum gc_state {
   GC_STATE_MARK,
   GC_STATE_SWEEP
 };
+
+enum mrb_log_level {
+  MRB_LOGGING_NORMAL = 0,
+  MRB_LOGGING_EXPRESS = 1
+};
+#define MRB_LOG_LEVEL_MAX 1
 
 typedef struct mrb_state {
   void *jmp;
@@ -138,6 +145,8 @@ typedef struct mrb_state {
 
   struct RClass *eException_class;
   struct RClass *eStandardError_class;
+
+  mrb_log_printer log_printer[MRB_LOG_LEVEL_MAX + 1];
 
   void *ud; /* auxiliary data */
 
