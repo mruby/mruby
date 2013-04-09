@@ -109,7 +109,7 @@ append_cmdline:
       }
       break;
     case 'v':
-      mrb_show_version(mrb);
+      if (!args->verbose) mrb_show_version(mrb);
       args->verbose = 1;
       break;
     case '-':
