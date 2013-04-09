@@ -273,7 +273,7 @@ main(int argc, char **argv)
       printf("\n");
       break;
     }
-    strncat(last_code_line, line, sizeof(last_code_line)-1);
+    strncpy(last_code_line, line, sizeof(last_code_line)-1);
     add_history(line);
     free(line);
 #endif
