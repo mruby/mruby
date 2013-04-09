@@ -215,6 +215,10 @@ main(int argc, char **argv)
   }
   if (args.initname) {
     n = mrb_dump_irep_cfunc(mrb, n, args.debug_info, args.wfp, args.initname);
+    if (n == MRB_DUMP_INVALID_ARGUMENT) {
+      printf("%s: Invalid C language symbol name\n", args.initname);
+      return EXIT_FAILURE;
+    }
   }
   else {
     n = mrb_dump_irep_binary(mrb, n, args.debug_info, args.wfp);
