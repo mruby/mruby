@@ -106,7 +106,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         args->check_syntax = 1;
         break;
       case 'v':
-        mrb_show_version(mrb);
+        if(!args->verbose) mrb_show_version(mrb);
         args->verbose = 1;
         break;
       case 'g':
