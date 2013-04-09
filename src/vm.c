@@ -403,7 +403,7 @@ mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_v
     ci->nregs = argc + 2;
   }
   else {
-    ci->nregs = p->body.irep->nregs + 2;
+    ci->nregs = p->body.irep->nregs + 1;
   }
   ci->acc = -1;
   mrb->stack = mrb->stack + n;
@@ -568,7 +568,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   }
   stack_extend(mrb, irep->nregs, irep->nregs);
   mrb->ci->proc = proc;
-  mrb->ci->nregs = irep->nregs + 2;
+  mrb->ci->nregs = irep->nregs + 1;
   regs = mrb->stack;
   regs[0] = self;
 
