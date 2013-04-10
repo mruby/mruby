@@ -2252,105 +2252,119 @@ mrb_str_upcase(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_str_dump(mrb_state *mrb, mrb_value str)
 {
-    mrb_int len;
-    const char *p, *pend;
-    char *q;
-    struct RString *result;
+  mrb_int len;
+  const char *p, *pend;
+  char *q;
+  struct RString *result;
 
-    len = 2;                  /* "" */
-    p = RSTRING_PTR(str); pend = p + RSTRING_LEN(str);
-    while (p < pend) {
-      unsigned char c = *p++;
-      switch (c) {
-        case '"':  case '\\':
-        case '\n': case '\r':
-        case '\t': case '\f':
-        case '\013': case '\010': case '\007': case '\033':
-          len += 2;
-          break;
+  len = 2;                  /* "" */
+  p = RSTRING_PTR(str); pend = p + RSTRING_LEN(str);
+  while (p < pend) {
+    unsigned char c = *p++;
+    switch (c) {
+      case '"':  case '\\':
+      case '\n': case '\r':
+      case '\t': case '\f':
+      case '\013': case '\010': case '\007': case '\033':
+        len += 2;
+        break;
 
-        case '#':
-          len += IS_EVSTR(p, pend) ? 2 : 1;
-          break;
+      case '#':
+        len += IS_EVSTR(p, pend) ? 2 : 1;
+        break;
 
-        default:
-          if (ISPRINT(c)) {
-            len++;
-          }
-          else {
-            len += 4;                /* \NNN */
-          }
-          break;
-      }
+      default:
+        if (ISPRINT(c)) {
+          len++;
+        }
+        else {
+          len += 4;                /* \NNN */
+        }
+        break;
     }
+  }
 
-    result = str_new(mrb, 0, len);
-    str_with_class(mrb, result, str);
-    p = RSTRING_PTR(str); pend = p + RSTRING_LEN(str);
-    q = result->ptr;
+  result = str_new(mrb, 0, len);
+  str_with_class(mrb, result, str);
+  p = RSTRING_PTR(str); pend = p + RSTRING_LEN(str);
+  q = result->ptr;
 
-    *q++ = '"';
-    while (p < pend) {
-      unsigned char c = *p++;
+  *q++ = '"';
+  while (p < pend) {
+    unsigned char c = *p++;
 
-      if (c == '"' || c == '\\') {
-          *q++ = '\\';
+    switch (c) {
+      case '"':
+      case '\\':
+        *q++ = '\\';
+        *q++ = c;
+        break;
+
+      case '\n':
+        *q++ = '\\';
+        *q++ = 'n';
+        break;
+    
+      case '\r':
+        *q++ = '\\';
+        *q++ = 'r';
+        break;
+    
+      case '\t':
+        *q++ = '\\';
+        *q++ = 't';
+        break;
+    
+      case '\f':
+        *q++ = '\\';
+        *q++ = 'f';
+        break;
+    
+      case '\013':
+        *q++ = '\\';
+        *q++ = 'v';
+        break;
+    
+      case '\010':
+        *q++ = '\\';
+        *q++ = 'b';
+        break;
+    
+      case '\007':
+        *q++ = '\\';
+        *q++ = 'a';
+        break;
+    
+      case '\033':
+        *q++ = '\\';
+        *q++ = 'e';
+        break;
+    
+      case '#':
+        if (IS_EVSTR(p, pend)) *q++ = '\\';
+        *q++ = '#';
+        break;
+  
+      default:
+        if (ISPRINT(c)) {
           *q++ = c;
-      }
-      else if (c == '#') {
-          if (IS_EVSTR(p, pend)) *q++ = '\\';
-          *q++ = '#';
-      }
-      else if (c == '\n') {
-          *q++ = '\\';
-          *q++ = 'n';
-      }
-      else if (c == '\r') {
-          *q++ = '\\';
-          *q++ = 'r';
-      }
-      else if (c == '\t') {
-          *q++ = '\\';
-          *q++ = 't';
-      }
-      else if (c == '\f') {
-          *q++ = '\\';
-          *q++ = 'f';
-      }
-      else if (c == '\013') {
-          *q++ = '\\';
-          *q++ = 'v';
-      }
-      else if (c == '\010') {
-          *q++ = '\\';
-          *q++ = 'b';
-      }
-      else if (c == '\007') {
-          *q++ = '\\';
-          *q++ = 'a';
-      }
-      else if (c == '\033') {
-          *q++ = '\\';
-          *q++ = 'e';
-      }
-      else if (ISPRINT(c)) {
-          *q++ = c;
-      }
-      else {
-        mrb_value octstr;
-        mrb_value chr;
-        const char *ptr;
-        int len;
-        chr = mrb_fixnum_value(c & 0xff);
-        octstr = mrb_fixnum_to_str(mrb, chr, 8);
-        ptr = mrb_str_body(octstr, &len);
-        memcpy(q, "\\000", 4);
-        memcpy(q + 4 - len, ptr, len);
-        q += 4;
-      }
+        }
+        else {
+          mrb_value octstr;
+          mrb_value chr;
+          const char *ptr;
+          int len;
+          chr = mrb_fixnum_value(c & 0xff);
+          octstr = mrb_fixnum_to_str(mrb, chr, 8);
+          ptr = mrb_str_body(octstr, &len);
+          memcpy(q, "\\000", 4);
+          memcpy(q + 4 - len, ptr, len);
+          q += 4;
+        }
     }
-    *q++ = '"';
-    return mrb_obj_value(result);
+  }
+  *q++ = '"';
+  return mrb_obj_value(result);
 }
 
 mrb_value
