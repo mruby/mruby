@@ -43,13 +43,20 @@ MRuby::Build.new do |conf|
 
   # Use Random class
   conf.gem "#{root}/mrbgems/mruby-random"
-  
+
   # No use eval method
   # conf.gem "#{root}/mrbgems/mruby-eval"
 
 
   # Generate binaries
-  # conf.bins = %w(mrbc mruby mirb)
+  # conf.bins = %w(mrbc)
+
+  # Generate mirb command
+  conf.gem "#{root}/mrbgems/mruby-bin-mirb"
+
+  # Generate mruby command
+  conf.gem "#{root}/mrbgems/mruby-bin-mruby"
+
 
   # C compiler settings
   # conf.cc do |cc|
