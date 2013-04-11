@@ -137,6 +137,7 @@ void mrb_show_version(mrb_state *);
 void mrb_show_copyright(mrb_state *);
 
 struct _args {
+  mrb_bool verbose      : 1;
   int argc;
   char** argv;
 };
@@ -146,6 +147,8 @@ usage(const char *name)
 {
   static const char *const usage_msg[] = {
   "switches:",
+  "-v           print version number, then run in verbose mode",
+  "--verbose    run in verbose mode",
   "--version    print the version",
   "--copyright  print the copyright",
   NULL
@@ -170,10 +173,18 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 
     item = argv[0] + 1;
     switch (*item++) {
+    case 'v':
+      if (!args->verbose) mrb_show_version(mrb);
+      args->verbose = 1;
+      break;
     case '-':
       if (strcmp((*argv) + 2, "version") == 0) {
         mrb_show_version(mrb);
         exit(EXIT_SUCCESS);
+      }
+      else if (strcmp((*argv) + 2, "verbose") == 0) {
+        args->verbose = 1;
+        break;
       }
       else if (strcmp((*argv) + 2, "copyright") == 0) {
         mrb_show_copyright(mrb);
@@ -250,6 +261,7 @@ main(int argc, char **argv)
 
   cxt = mrbc_context_new(mrb);
   cxt->capture_errors = 1;
+  if (args.verbose) cxt->dump_result = 1;
 
   ai = mrb_gc_arena_save(mrb);
   while (TRUE) {
