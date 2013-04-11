@@ -49,7 +49,14 @@ MRuby::Build.new do |conf|
 
 
   # Generate binaries
-  # conf.bins = %w(mrbc mruby mirb)
+  # conf.bins = %w(mrbc)
+
+  # Generate mirb command
+  conf.gem "#{root}/mrbgems/mruby-tool-mirb"
+
+  # Generate mruby command
+  conf.gem "#{root}/mrbgems/mruby-tool-mruby"
+
 
   # C compiler settings
   # conf.cc do |cc|

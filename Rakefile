@@ -25,8 +25,6 @@ load "#{MRUBY_ROOT}/tools/mrbc/mrbc.rake"
 
 load "#{MRUBY_ROOT}/tasks/mrbgems.rake"
 load "#{MRUBY_ROOT}/tasks/libmruby.rake"
-load "#{MRUBY_ROOT}/tools/mruby/mruby.rake"
-load "#{MRUBY_ROOT}/tools/mirb/mirb.rake"
 
 load "#{MRUBY_ROOT}/tasks/mrbgems_test.rake"
 load "#{MRUBY_ROOT}/test/mrbtest.rake"
