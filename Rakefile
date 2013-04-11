@@ -47,7 +47,7 @@ depfiles = MRuby.targets['host'].bins.map do |bin|
   install_path
 end
 
-MRuby.each_target do
+MRuby.each_target do |target|
   gems.map do |gem|
     current_dir = gem.dir.relative_path_from(Dir.pwd)
     relative_from_root = gem.dir.relative_path_from(MRUBY_ROOT)
@@ -66,7 +66,17 @@ MRuby.each_target do
         linker.run t.name, t.prerequisites, gem_libraries, gem_library_paths, gem_flags, gem_flags_before_libraries
       end
 
-      depfiles += [ exec ]
+      if target == MRuby.targets['host']
+        install_path = MRuby.targets['host'].exefile("#{MRUBY_ROOT}/bin/#{bin}")
+
+        file install_path => exec do |t|
+          FileUtils.rm_f t.name, { :verbose => $verbose }
+          FileUtils.cp t.prerequisites.first, t.name, { :verbose => $verbose }
+        end
+        depfiles += [ install_path ]
+      else
+        depfiles += [ exec ]
+      end
     end
   end
 end
