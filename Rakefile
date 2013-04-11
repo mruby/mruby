@@ -48,12 +48,12 @@ depfiles = MRuby.targets['host'].bins.map do |bin|
 end
 
 MRuby.each_target do
-  gems.map do | gem |
+  gems.map do |gem|
     current_dir = gem.dir.relative_path_from(Dir.pwd)
     relative_from_root = gem.dir.relative_path_from(MRUBY_ROOT)
     current_build_dir = "#{build_dir}/#{relative_from_root}"
 
-    gem.bins.each do | bin |
+    gem.bins.each do |bin|
       exec = exefile("#{build_dir}/bin/#{bin}")
       objs = Dir.glob("#{current_dir}/tool/#{bin}/*.c").map { |f| objfile(f.pathmap("#{current_build_dir}/tool/#{bin}/%n")) }
 
