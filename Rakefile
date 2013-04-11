@@ -55,7 +55,7 @@ MRuby.each_target do
 
     gem.bins.each do |bin|
       exec = exefile("#{build_dir}/bin/#{bin}")
-      objs = Dir.glob("#{current_dir}/tool/#{bin}/*.c").map { |f| objfile(f.pathmap("#{current_build_dir}/tool/#{bin}/%n")) }
+      objs = Dir.glob("#{current_dir}/tools/#{bin}/*.c").map { |f| objfile(f.pathmap("#{current_build_dir}/tools/#{bin}/%n")) }
 
       file exec => objs + [libfile("#{build_dir}/lib/libmruby")] do |t|
         gem_flags = gems.map { |g| g.linker.flags }
