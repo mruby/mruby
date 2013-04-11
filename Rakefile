@@ -79,8 +79,12 @@ MRuby.each_target do |target|
   end
 end
 
+depfiles += MRuby.targets.map { |n, t|
+  [t.libfile("#{t.build_dir}/lib/libmruby")]
+}.flatten
+
 depfiles += MRuby.targets.reject { |n, t| n == 'host' }.map { |n, t|
-  [t.libfile("#{t.build_dir}/lib/libmruby")] + t.bins.map { |bin| t.exefile("#{t.build_dir}/bin/#{bin}") }
+  t.bins.map { |bin| t.exefile("#{t.build_dir}/bin/#{bin}") }
 }.flatten
 
 desc "build all targets, install (locally) in-repo"
