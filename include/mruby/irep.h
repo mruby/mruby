@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 typedef struct mrb_irep {
-  uint16_t idx;
+  uint32_t idx;
   uint16_t nlocals;
   uint16_t nregs;
   uint8_t flags;
