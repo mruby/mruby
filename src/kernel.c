@@ -507,6 +507,9 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
   if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "instance_eval with string not implemented");
   }
+  if (mrb_nil_p(b)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
+  }
   switch (mrb_type(self)) {
   case MRB_TT_SYMBOL:
   case MRB_TT_FIXNUM:
