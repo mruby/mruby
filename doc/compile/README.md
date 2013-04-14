@@ -191,7 +191,7 @@ like this:
 	  toolchain :gcc
 
 	  conf.cc.flags << "-m32"
-	  conf.linker.flags << "-m32
+	  conf.linker.flags << "-m32"
 	end
 
 All configuration options of ```MRuby::Build``` can also be used
