@@ -41,6 +41,9 @@ MRuby::Build.new do |conf|
   # Use extensional Hash class
   conf.gem "#{root}/mrbgems/mruby-hash-ext"
 
+  # Use extensional Range class
+  conf.gem "#{root}/mrbgems/mruby-range-ext"
+
   # Use Random class
   conf.gem "#{root}/mrbgems/mruby-random"
 
