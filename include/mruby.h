@@ -1,5 +1,5 @@
 /*
-** mruby - An embeddable Ruby implementaion
+** mruby - An embeddable Ruby implementation
 **
 ** Copyright (c) mruby developers 2010-2012
 **
