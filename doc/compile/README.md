@@ -58,6 +58,12 @@ GCC toolchain.
 
 	toolchain :clang
 
+#### Visual Studio 2010
+
+Toolchain configuration for Visual Studio 2010 on Windows.
+
+	toolchain :vs2010
+
 #### Visual Studio 2012
 
 Toolchain configuration for Visual Studio 2012 on Windows.
