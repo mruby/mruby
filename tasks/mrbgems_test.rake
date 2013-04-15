@@ -34,7 +34,7 @@ MRuby.each_target do
             f.puts %Q[  mrb_load_irep(mrb2, gem_test_irep_#{g.funcname}_preload);]
             f.puts %Q[  if (mrb2->exc) {]
             f.puts %Q[    mrb_p(mrb2, mrb_obj_value(mrb2->exc));]
-            f.puts %Q[    exit(0);]
+            f.puts %Q[    exit(EXIT_FAILURE);]
             f.puts %Q[  }]
             f.puts %Q[  mrb_const_set(mrb2, mrb_obj_value(mrb2->object_class), mrb_intern(mrb2, "GEMNAME"), mrb_str_new(mrb2, "#{g.name}", #{g.name.length}));]
 
@@ -53,7 +53,7 @@ MRuby.each_target do
             f.puts %Q[  mrb_load_irep(mrb2, gem_test_irep_#{g.funcname}_#{i});]
             f.puts %Q[  if (mrb2->exc) {]
             f.puts %Q[    mrb_p(mrb2, mrb_obj_value(mrb2->exc));]
-            f.puts %Q[    exit(0);]
+            f.puts %Q[    exit(EXIT_FAILURE);]
             f.puts %Q[  }]
             f.puts %Q[  ]
 

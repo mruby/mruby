@@ -317,6 +317,14 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
         s->iseq[s->pc-1] = MKOP_A(c0, 0);
         genop(s, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
         return;
+#if 0
+      case OP_SEND:
+        if (GETARG_B(i) == OP_R_NORMAL && GETARG_A(i) == GETARG_A(i0)) {
+          s->iseq[s->pc-1] = MKOP_ABC(OP_TAILCALL, GETARG_A(i0), GETARG_B(i0), GETARG_C(i0));
+          return;
+        }
+        break;
+#endif
       default:
         break;
       }
@@ -355,7 +363,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
 static void
 scope_error(codegen_scope *s)
 {
-  exit(1);
+  exit(EXIT_FAILURE);
 }
 
 static inline void

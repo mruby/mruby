@@ -58,6 +58,12 @@ GCC toolchain.
 
 	toolchain :clang
 
+#### Visual Studio 2010
+
+Toolchain configuration for Visual Studio 2010 on Windows.
+
+	toolchain :vs2010
+
 #### Visual Studio 2012
 
 Toolchain configuration for Visual Studio 2012 on Windows.
@@ -77,13 +83,14 @@ in ```ANDROID_STANDALONE_TOOLCHAIN```.
 
 It is possible to select which tools should be compiled during the compilation
 process. The following tools can be selected:
-* mrbc (mruby compiler)
 * mruby (mruby interpreter)
 * mirb (mruby interactive shell)
 
-To select all define an array in ```conf.bins```:
+To select them declare conf.gem as follows:
 
-	conf.bins = %(mrbc mruby mirb)
+	conf.gem "#{root}/mrbgems/mruby-bin-mruby"
+
+	conf.gem "#{root}/mrbgems/mruby-bin-mirb"
 
 ### File Separator
 
@@ -191,7 +198,7 @@ like this:
 	  toolchain :gcc
 
 	  conf.cc.flags << "-m32"
-	  conf.linker.flags << "-m32
+	  conf.linker.flags << "-m32"
 	end
 
 All configuration options of ```MRuby::Build``` can also be used
@@ -237,9 +244,9 @@ linking with *build/host/lib/libmruby_core.a*
 under *mrblib* with ```build/host/bin/mrbc```
 * compile *build/host/mrblib/mrblib.c* to *build/host/mrblib/mrblib.o* 
 * create *build/host/lib/libmruby.a* out of all object files (C and Ruby)
-* create ```build/host/bin/mruby``` by compiling *tools/mruby/mruby.c* and
+* create ```build/host/bin/mruby``` by compiling *mrbgems/mruby-bin-mruby/tools/mruby/mruby.c* and
 linking with *build/host/lib/libmruby.a*
-* create ```build/host/bin/mirb``` by compiling *tools/mirb/mirb.c* and
+* create ```build/host/bin/mirb``` by compiling *mrbgems/mruby-bin-mirb/tools/mirb/mirb.c* and
 linking with *build/host/lib/libmruby.a*
 
 ```
@@ -311,9 +318,9 @@ result will be stored in *build/i386/src/y.tab.c*)
 under *mrblib* with the native ```build/host/bin/mrbc```
 * cross-compile *build/host/mrblib/mrblib.c* to *build/host/mrblib/mrblib.o*
 * create *build/i386/lib/libmruby.a* out of all object files (C and Ruby)
-* create ```build/i386/bin/mruby``` by cross-compiling *tools/mruby/mruby.c* and
+* create ```build/i386/bin/mruby``` by cross-compiling *mrbgems/mruby-bin-mruby/tools/mruby/mruby.c* and
 linking with *build/i386/lib/libmruby.a*
-* create ```build/i386/bin/mirb``` by cross-compiling *tools/mirb/mirb.c* and
+* create ```build/i386/bin/mirb``` by cross-compiling *mrbgems/mruby-bin-mirb/tools/mirb/mirb.c* and
 linking with *build/i386/lib/libmruby.a*
 * create *build/i386/lib/libmruby_core.a* out of all object files (C only)
 * create ```build/i386/bin/mrbc``` by cross-compiling *tools/mrbc/mrbc.c* and

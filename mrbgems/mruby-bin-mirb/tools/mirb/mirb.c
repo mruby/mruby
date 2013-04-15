@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include <mruby.h>
+#include "mruby/array.h"
 #include <mruby/proc.h>
 #include <mruby/data.h>
 #include <mruby/compile.h>
@@ -38,11 +39,8 @@ is_code_block_open(struct mrb_parser_state *parser)
 {
   int code_block_open = FALSE;
 
-  /* check for unterminated string */
-  if (parser->lex_strterm) return TRUE;
-
   /* check for heredoc */
-  if (parser->heredoc_starts_nextline) return TRUE;
+  if (parser->parsing_heredoc != NULL) return TRUE;
   if (parser->heredoc_end_now) {
     parser->heredoc_end_now = FALSE;
     return FALSE;
@@ -69,6 +67,9 @@ is_code_block_open(struct mrb_parser_state *parser)
     }
     return code_block_open;
   }
+
+  /* check for unterminated string */
+  if (parser->lex_strterm) return TRUE;
 
   switch (parser->lstate) {
 
@@ -136,6 +137,7 @@ void mrb_show_version(mrb_state *);
 void mrb_show_copyright(mrb_state *);
 
 struct _args {
+  mrb_bool verbose      : 1;
   int argc;
   char** argv;
 };
@@ -145,6 +147,8 @@ usage(const char *name)
 {
   static const char *const usage_msg[] = {
   "switches:",
+  "-v           print version number, then run in verbose mode",
+  "--verbose    run in verbose mode",
   "--version    print the version",
   "--copyright  print the copyright",
   NULL
@@ -169,22 +173,28 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 
     item = argv[0] + 1;
     switch (*item++) {
+    case 'v':
+      if (!args->verbose) mrb_show_version(mrb);
+      args->verbose = 1;
+      break;
     case '-':
       if (strcmp((*argv) + 2, "version") == 0) {
         mrb_show_version(mrb);
-        exit(0);
+        exit(EXIT_SUCCESS);
+      }
+      else if (strcmp((*argv) + 2, "verbose") == 0) {
+        args->verbose = 1;
+        break;
       }
       else if (strcmp((*argv) + 2, "copyright") == 0) {
         mrb_show_copyright(mrb);
-        exit(0);
+        exit(EXIT_SUCCESS);
       }
-      else return -3;
     default:
-      return -4;
+      return EXIT_FAILURE;
     }
   }
-
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 static void
@@ -238,9 +248,10 @@ main(int argc, char **argv)
     fputs("Invalid mrb interpreter, exiting mirb\n", stderr);
     return EXIT_FAILURE;
   }
+  mrb_define_global_const(mrb, "ARGV", mrb_ary_new_capa(mrb, 0));
 
   n = parse_args(mrb, argc, argv, &args);
-  if (n < 0) {
+  if (n == EXIT_FAILURE) {
     cleanup(mrb, &args);
     usage(argv[0]);
     return n;
@@ -250,6 +261,7 @@ main(int argc, char **argv)
 
   cxt = mrbc_context_new(mrb);
   cxt->capture_errors = 1;
+  if (args.verbose) cxt->dump_result = 1;
 
   ai = mrb_gc_arena_save(mrb);
   while (TRUE) {
@@ -273,7 +285,7 @@ main(int argc, char **argv)
       printf("\n");
       break;
     }
-    strncat(last_code_line, line, sizeof(last_code_line)-1);
+    strncpy(last_code_line, line, sizeof(last_code_line)-1);
     add_history(line);
     free(line);
 #endif
@@ -339,9 +351,9 @@ main(int argc, char **argv)
       }
       ruby_code[0] = '\0';
       last_code_line[0] = '\0';
-      mrb_parser_free(parser);
       mrb_gc_arena_restore(mrb, ai);
     }
+    mrb_parser_free(parser);
   }
   mrbc_context_free(mrb, cxt);
   mrb_close(mrb);

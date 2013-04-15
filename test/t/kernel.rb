@@ -155,6 +155,16 @@ assert('Kernel#clone', '15.3.1.3.8') do
   a.set(2)
   c = a.clone
 
+  immutables = [ 1, :foo, true, false, nil ]
+  error_count = 0
+  immutables.each do |i|
+    begin
+      i.clone
+    rescue TypeError
+      error_count += 1
+    end
+  end
+
   a.get == 2 and b.get == 1 and c.get == 2 &&
     a.respond_to?(:test) == true and
     b.respond_to?(:test) == false and
@@ -185,7 +195,18 @@ assert('Kernel#dup', '15.3.1.3.9') do
   a.set(2)
   c = a.dup
 
-  a.get == 2 and b.get == 1 and c.get == 2 and
+  immutables = [ 1, :foo, true, false, nil ]
+  error_count = 0
+  immutables.each do |i|
+    begin
+      i.dup
+    rescue TypeError
+      error_count += 1
+    end
+  end
+
+  error_count == immutables.size and
+    a.get == 2 and b.get == 1 and c.get == 2 and
     a.respond_to?(:test) == true and
     b.respond_to?(:test) == false and
     c.respond_to?(:test) == false
@@ -329,6 +350,8 @@ assert('Kernel#raise', '15.3.1.3.40') do
     # result with RuntimeError argument
     e_list[1].class == RuntimeError
 end
+
+# Kernel#require is defined in mruby-require. '15.3.1.3.42'
 
 assert('Kernel#respond_to?', '15.3.1.3.43') do
   class Test4RespondTo

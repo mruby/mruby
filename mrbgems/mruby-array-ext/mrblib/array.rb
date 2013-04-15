@@ -20,7 +20,7 @@ class Array
   end
 
   def -(elem)
-    raise TypeError, "can't convert to Array" unless elem.class == Array
+    raise TypeError, "can't convert #{elem.class} into Array" unless elem.class == Array
 
     hash = {}
     array = []
@@ -30,14 +30,14 @@ class Array
   end
 
   def |(elem)
-    raise TypeError, "can't convert to Array" unless elem.class == Array
+    raise TypeError, "can't convert #{elem.class} into Array" unless elem.class == Array
 
     ary = self + elem
     ary.uniq! or ary
   end
 
   def &(elem)
-    raise TypeError, "can't convert to Array" unless elem.class == Array
+    raise TypeError, "can't convert #{elem.class} into Array" unless elem.class == Array
 
     hash = {}
     array = []
