@@ -6,7 +6,7 @@ MRuby::Build.new do |conf|
     cc.flags = '-g -O2 -fstack-protector --param=ssp-buffer-size=4 -Wformat -Werror=format-security'
   end
   # Linker settings
-  conf.linker do |linker|
+    conf.linker do |linker|
     linker.flags = '-Wl,-z,relro'
   end
 
@@ -49,15 +49,25 @@ MRuby::Build.new do |conf|
   # Use extensional Hash class
   conf.gem "#{root}/mrbgems/mruby-hash-ext"
 
+  # Use extensional Range class
+  conf.gem "#{root}/mrbgems/mruby-range-ext"
+
   # Use Random class
   conf.gem "#{root}/mrbgems/mruby-random"
-  
+
   # No use eval method
   # conf.gem "#{root}/mrbgems/mruby-eval"
 
 
   # Generate binaries
-  # conf.bins = %w(mrbc mruby mirb)
+  # conf.bins = %w(mrbc)
+
+  # Generate mirb command
+  conf.gem "#{root}/mrbgems/mruby-bin-mirb"
+
+  # Generate mruby command
+  conf.gem "#{root}/mrbgems/mruby-bin-mruby"
+
 
   # C compiler settings
   # conf.cc do |cc|
@@ -122,4 +132,7 @@ end
 #   conf.build_mrbtest_lib_only
 #   
 #   conf.gem 'examples/mrbgems/c_and_ruby_extension_example'
+#
+#   conf.test_runner.command = 'env'
+#
 # end
