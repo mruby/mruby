@@ -321,7 +321,7 @@ assert('Exception 19') do
       r = @e = false
       begin
         b
-      rescue
+      rescue TypeError
         r = self.z
       end
       [ r, @e ]
