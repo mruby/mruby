@@ -1219,9 +1219,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           ci = mrb->ci;
+          mrb->stack = mrb->stbase + ci[1].stackidx;
           if (ci[1].acc < 0 && prev_jmp) {
             mrb->jmp = prev_jmp;
-            mrb->stack = mrb->stbase + ci[1].stackidx;
             longjmp(*(jmp_buf*)mrb->jmp, 1);
           }
           while (eidx > mrb->ci->eidx) {
