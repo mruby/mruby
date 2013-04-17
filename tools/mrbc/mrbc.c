@@ -8,6 +8,7 @@
 
 #define RITEBIN_EXT ".mrb"
 #define C_EXT       ".c"
+
 void mrb_show_version(mrb_state *);
 void mrb_show_copyright(mrb_state *);
 void parser_dump(mrb_state*, struct mrb_ast_node*, int);
@@ -43,7 +44,7 @@ usage(const char *name)
 
   printf("Usage: %s [switches] programfile\n", name);
   while(*p)
-  printf("  %s\n", *p++);
+    printf("  %s\n", *p++);
 }
 
 static char *
@@ -162,7 +163,8 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
       goto exit;
     }
   }
- exit:
+
+exit:
   if (outfile && infile != outfile) mrb_free(mrb, outfile);
   return result;
 }
