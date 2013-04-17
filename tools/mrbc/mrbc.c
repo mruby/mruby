@@ -32,7 +32,7 @@ usage(const char *name)
   "switches:",
   "-c           check syntax only",
   "-o<outfile>  place the output into <outfile>",
-  "-v           print version number, then trun on verbose mode",
+  "-v           print version number, then turn on verbose mode",
   "-g           produce debugging information",
   "-B<symbol>   binary <symbol> output in C language format",
   "--verbose    run at verbose mode",
