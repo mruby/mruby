@@ -3,7 +3,7 @@ Upstream-Name: mruby
 Source: https://github.com/mruby/mruby
 
 Files: *
-Copyright: Copyright (c) 2012 mruby developers
+Copyright: Copyright (c) 2010-2013 mruby developers
 License: MIT
 
 Files: debian/*
