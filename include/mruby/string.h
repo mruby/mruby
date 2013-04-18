@@ -40,6 +40,7 @@ struct RString {
 #define MRB_STR_SHARED      256
 
 void mrb_str_decref(mrb_state*, mrb_shared_string*);
+void mrb_str_modify(mrb_state*, struct RString*);
 mrb_value mrb_str_literal(mrb_state*, mrb_value);
 void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
 mrb_value mrb_str_plus(mrb_state*, mrb_value, mrb_value);
