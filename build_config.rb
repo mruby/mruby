@@ -44,6 +44,9 @@ MRuby::Build.new do |conf|
   # Use extensional Range class
   conf.gem "#{root}/mrbgems/mruby-range-ext"
 
+  # Use extensional Proc class
+  conf.gem "#{root}/mrbgems/mruby-proc-ext"
+
   # Use Random class
   conf.gem "#{root}/mrbgems/mruby-random"
 
