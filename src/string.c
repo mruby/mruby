@@ -42,8 +42,8 @@ mrb_str_decref(mrb_state *mrb, mrb_shared_string *shared)
   }
 }
 
-static void
-str_modify(mrb_state *mrb, struct RString *s)
+void
+mrb_str_modify(mrb_state *mrb, struct RString *s)
 {
   if (s->flags & MRB_STR_SHARED) {
     mrb_shared_string *shared = s->aux.shared;
@@ -78,7 +78,7 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, int len)
   int slen;
   struct RString *s = mrb_str_ptr(str);
 
-  str_modify(mrb, s);
+  mrb_str_modify(mrb, s);
   slen = s->len;
   if (len != slen) {
     if (slen < len || slen -len > 1024) {
@@ -170,7 +170,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
   mrb_int total;
   ptrdiff_t off = -1;
 
-  str_modify(mrb, s);
+  mrb_str_modify(mrb, s);
   if (ptr >= s->ptr && ptr <= s->ptr + s->len) {
       off = ptr - s->ptr;
   }
@@ -341,7 +341,7 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
   struct RString *s1 = mrb_str_ptr(self), *s2;
   int len;
 
-  str_modify(mrb, s1);
+  mrb_str_modify(mrb, s1);
   if (!mrb_string_p(other)) {
     other = mrb_str_to_str(mrb, other);
   }
@@ -845,7 +845,7 @@ mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
   int modify = 0;
   struct RString *s = mrb_str_ptr(str);
 
-  str_modify(mrb, s);
+  mrb_str_modify(mrb, s);
   if (s->len == 0 || !s->ptr) return mrb_nil_value();
   p = s->ptr; pend = s->ptr + s->len;
   if (ISLOWER(*p)) {
@@ -902,7 +902,7 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
   mrb_int len;
   struct RString *s = mrb_str_ptr(str);
 
-  str_modify(mrb, s);
+  mrb_str_modify(mrb, s);
   len = s->len;
   if (mrb_get_args(mrb, "|S", &rs) == 0) {
     if (len == 0) return mrb_nil_value();
@@ -1001,7 +1001,7 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
 
-  str_modify(mrb, s);
+  mrb_str_modify(mrb, s);
   if (s->len > 0) {
     int len;
     len = s->len - 1;
@@ -1059,7 +1059,7 @@ mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
   int modify = 0;
   struct RString *s = mrb_str_ptr(str);
 
-  str_modify(mrb, s);
+  mrb_str_modify(mrb, s);
   p = s->ptr;
   pend = s->ptr + s->len;
   while (p < pend) {
@@ -1529,7 +1529,7 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
   char *p, *e;
   char c;
 
-  str_modify(mrb, s);
+  mrb_str_modify(mrb, s);
   if (s->len > 1) {
     p = s->ptr;
     e = p + s->len - 1;
@@ -2206,7 +2206,7 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
   char *p, *pend;
   int modify = 0;
 
-  str_modify(mrb, s);
+  mrb_str_modify(mrb, s);
   p = RSTRING_PTR(str);
   pend = RSTRING_END(str);
   while (p < pend) {
