@@ -70,3 +70,41 @@ assert('String#rstrip!') do
   t = "  abc"
   s.rstrip! == "  abc" and s == "  abc" and t.rstrip! == nil
 end
+
+assert('String#swapcase') do
+  assert_equal "Hello".swapcase, "hELLO"
+  assert_equal "cYbEr_PuNk11".swapcase, "CyBeR_pUnK11"
+end
+
+assert('String#swapcase!') do
+  s = "Hello"
+  t = s.clone
+  t.swapcase!
+  assert_equal s.swapcase, t
+end
+
+assert('String#concat') do
+  s = "Hello "
+  s.concat "World!"
+  t = "Hello "
+  t << "World!"
+  assert_equal "Hello World!", t
+  assert_equal "Hello World!", s
+end
+
+assert('String#casecmp') do
+  assert_equal "abcdef".casecmp("abcde"), 1
+  assert_equal "aBcDeF".casecmp("abcdef"), 0
+  assert_equal "abcdef".casecmp("abcdefg"),-1
+  assert_equal "abcdef".casecmp("ABCDEF"), 0
+end
+
+assert('String#start_with?') do
+  assert_true "hello".start_with?("heaven", "hell")
+  assert_true !"hello".start_with?("heaven", "paradise")
+end
+
+assert('String#end_with?') do
+  assert_true "string".end_with?("ing", "mng")
+  assert_true !"string".end_with?("str", "tri")
+end
