@@ -3482,7 +3482,7 @@ read_escape(parser_state *p)
       for (i=0; i<2; i++) {
 	buf[i] = nextc(p);
 	if (buf[i] == -1) goto eof;
-	if (!isxdigit(buf[i])) {
+	if (!ISXDIGIT(buf[i])) {
 	  pushback(p, buf[i]);
 	  break;
 	}
