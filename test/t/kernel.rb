@@ -392,3 +392,16 @@ assert('Kernel#!=') do
   (str1 != str3) == true and
   (str2 != str1) == false
 end
+
+assert('Kernel#respond_to_missing?') do
+
+  class Test4RespondToMissing
+    def respond_to_missing?(method_name, include_private = false)
+      method_name == :a_method
+    end
+  end
+
+  Test4RespondToMissing.new.respond_to?(:a_method) == true and
+  Test4RespondToMissing.new.respond_to?(:no_method) == false
+
+end
