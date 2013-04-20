@@ -671,7 +671,7 @@ mrb_mod_class_variables(mrb_state *mrb, mrb_value mod)
   struct RClass *c;
 
   ary = mrb_ary_new(mrb);
-  c = mrb_obj_ptr(mod);
+  c = mrb_class_ptr(mod);
   while (c) {
     if (c->iv) {
       iv_foreach(mrb, c->iv, cv_i, &ary);
