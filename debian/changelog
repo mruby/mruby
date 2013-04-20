@@ -1,4 +1,4 @@
-mruby (0.0.0~20130415+gita06e0ab3-1) experimental; urgency=low
+mruby (0.0.0~20130415+gita06e0ab3-1) unstable; urgency=low
 
   * Initial release. (Closes: #697835)
 
