@@ -10,13 +10,13 @@
 #include "opcode.h"
 
 /* aspec access */
-#define ARGS_GETREQ(a)          (((a) >> 19) & 0x1f)
-#define ARGS_GETOPT(a)          (((a) >> 14) & 0x1f)
-#define ARGS_GETREST(a)         ((a) & (1<<13))
-#define ARGS_GETPOST(a)         (((a) >> 8) & 0x1f)
-#define ARGS_GETKEY(a)          (((a) >> 3) & 0x1f))
-#define ARGS_GETKDICT(a)        ((a) & (1<<2))
-#define ARGS_GETBLOCK(a)        ((a) & (1<<1))
+#define ARGS_GETREQ(a)          (((a) >> 18) & 0x1f)
+#define ARGS_GETOPT(a)          (((a) >> 13) & 0x1f)
+#define ARGS_GETREST(a)         ((a) & (1 << 12))
+#define ARGS_GETPOST(a)         (((a) >> 7) & 0x1f)
+#define ARGS_GETKEY(a)          (((a) >> 2) & 0x1f))
+#define ARGS_GETKDICT(a)        ((a) & 2)
+#define ARGS_GETBLOCK(a)        ((a) & 1)
 
 static mrb_code call_iseq[] = {
   MKOP_A(OP_CALL, 0),
@@ -146,7 +146,7 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
 {
   struct RProc *p = mrb_proc_ptr(self);
   mrb_code *iseq = mrb_proc_iseq(mrb, p);
-  mrb_aspec aspec = *iseq >> 6;
+  mrb_aspec aspec = GETARG_Ax(*iseq);
   int ma, ra, pa, arity;
   
   ma = ARGS_GETREQ(aspec);
