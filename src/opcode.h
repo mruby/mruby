@@ -15,7 +15,7 @@
 /*     A:B:C:OP = 9: 9: 7: 7        */
 /*      A:Bx:OP =    9:16: 7        */
 /*        Ax:OP =      25: 7        */
-/*   A:Bz:Cz:OP = 9:14: 2: 7        */
+/*     A:b:c:OP = 9:14: 2: 7        */
 
 #define GET_OPCODE(i) ((int)(((mrb_code)(i)) & 0x7f))
 #define GETARG_A(i)   ((int)((((mrb_code)(i)) >> 23) & 0x1ff))
@@ -122,7 +122,7 @@ OP_STRING,/*    A Bx    R(A) := str_dup(Lit(Bx))                        */
 OP_STRCAT,/*    A B     str_cat(R(A),R(B))                              */
 
 OP_HASH,/*      A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C))           */
-OP_LAMBDA,/*    A Bz Cz R(A) := lambda(SEQ[Bz],Cm)                      */
+OP_LAMBDA,/*    A b c   R(A) := lambda(SEQ[b],c)                        */
 OP_RANGE,/*     A B C   R(A) := range_new(R(B),R(B+1),C)                */
 
 OP_OCLASS,/*    A       R(A) := ::Object                                */
