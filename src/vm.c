@@ -63,7 +63,7 @@ stack_clear(mrb_value *from, size_t count)
 {
   const mrb_value mrb_value_zero = { { 0 } };
 
-  while(count-- > 0) {
+  while (count-- > 0) {
     *from++ = mrb_value_zero;
   }
 }
@@ -1659,7 +1659,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   default:\
     goto L_SEND;\
   }\
-} while (0)
+} while(0)
 
     CASE(OP_EQ) {
       /* A B C  R(A) := R(A)<R(A+1) (Syms[B]=:==,C=1)*/

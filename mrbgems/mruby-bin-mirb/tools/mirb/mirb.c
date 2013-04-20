@@ -156,7 +156,7 @@ usage(const char *name)
   const char *const *p = usage_msg;
 
   printf("Usage: %s [switches]\n", name);
-  while(*p)
+  while (*p)
     printf("  %s\n", *p++);
 }
 
@@ -281,7 +281,7 @@ main(int argc, char **argv)
     last_code_line[char_index] = '\0';
 #else
     char* line = readline(code_block_open ? "* " : "> ");
-    if(line == NULL) {
+    if (line == NULL) {
       printf("\n");
       break;
     }

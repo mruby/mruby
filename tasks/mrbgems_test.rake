@@ -59,18 +59,18 @@ MRuby.each_target do
 
             %w(ok_test ko_test kill_test).each do |vname|
               f.puts %Q[  val2 = mrb_gv_get(mrb2, mrb_intern(mrb2, "$#{vname}"));]
-              f.puts %Q[  if(mrb_fixnum_p(val2)) {]
+              f.puts %Q[  if (mrb_fixnum_p(val2)) {]
               f.puts %Q[    val1 = mrb_gv_get(mrb, mrb_intern(mrb, "$#{vname}"));]
               f.puts %Q[    mrb_gv_set(mrb, mrb_intern(mrb, "$#{vname}"), mrb_fixnum_value(mrb_fixnum(val1) + mrb_fixnum(val2)));]
               f.puts %Q[  }\n]
             end
 
             f.puts %Q[  ary2 = mrb_gv_get(mrb2, mrb_intern(mrb2, "$asserts"));]
-            f.puts %Q[  if(mrb_test(ary2)) {]
+            f.puts %Q[  if (mrb_test(ary2)) {]
             f.puts %Q[    ary1 = mrb_gv_get(mrb, mrb_intern(mrb, "$asserts"));]
             f.puts %Q[    val2 = mrb_ary_shift(mrb2, ary2);]
             f.puts %Q[    ]
-            f.puts %Q[    while(mrb_test(val2)) {]
+            f.puts %Q[    while (mrb_test(val2)) {]
             f.puts %Q[      char *str = mrb_string_value_cstr(mrb2, &val2);]
             f.puts %Q[      mrb_ary_push(mrb, ary1, mrb_str_new_cstr(mrb, str));]
             f.puts %Q[      val2 = mrb_ary_shift(mrb2, ary2);]

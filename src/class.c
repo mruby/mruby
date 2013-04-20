@@ -686,7 +686,7 @@ mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
     struct RClass *p = c, *ic;
     int superclass_seen = 0;
 
-    while(p) {
+    while (p) {
       if (c != p && p->tt == MRB_TT_CLASS) {
         superclass_seen = 1;
       }

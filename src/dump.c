@@ -320,11 +320,11 @@ get_debug_record_size(mrb_state *mrb, mrb_irep *irep)
 
   size += sizeof(uint32_t); // record size
   size += sizeof(uint16_t); // filename size
-  if(irep->filename) {
+  if (irep->filename) {
     size += strlen(irep->filename); // filename
   }
   size += sizeof(uint32_t); // niseq
-  if(irep->lines) {
+  if (irep->lines) {
     size += sizeof(uint16_t) * irep->ilen; // lineno
   }
 
@@ -340,17 +340,17 @@ write_lineno_record(mrb_state *mrb, mrb_irep *irep, uint8_t* bin)
 
   cur += sizeof(uint32_t); /* record size */
 
-  if(irep->filename) {
+  if (irep->filename) {
     filename_len = strlen(irep->filename);
   }
   cur += uint16_to_bin(filename_len, cur); /* filename size */
 
-  if(filename_len) {
+  if (filename_len) {
     memcpy(cur, irep->filename, filename_len);
     cur += filename_len; /* filename */
   }
 
-  if(irep->lines) {
+  if (irep->lines) {
     cur += uint32_to_bin(irep->ilen, cur); /* niseq */
     for (iseq_no = 0; iseq_no < irep->ilen; iseq_no++) {
       cur += uint16_to_bin(irep->lines[iseq_no], cur); /* opcode */
@@ -432,7 +432,7 @@ mrb_dump_irep(mrb_state *mrb, size_t start_index, int debug_info, uint8_t **bin,
   section_size += section_irep_size;
 
   /* DEBUG section size */
-  if(debug_info) {
+  if (debug_info) {
     section_lineno_size += sizeof(struct rite_section_lineno_header);
     for (irep_no = start_index; irep_no < mrb->irep_len; irep_no++) {
       section_lineno_size += get_debug_record_size(mrb, mrb->irep[irep_no]);
@@ -442,7 +442,7 @@ mrb_dump_irep(mrb_state *mrb, size_t start_index, int debug_info, uint8_t **bin,
 
   *bin_size += sizeof(struct rite_binary_header) + section_size + sizeof(struct rite_binary_footer);
   cur = *bin = (uint8_t *)mrb_malloc(mrb, *bin_size);
-  if(cur == NULL) {
+  if (cur == NULL) {
     goto error_exit;
   }
 
@@ -456,7 +456,7 @@ mrb_dump_irep(mrb_state *mrb, size_t start_index, int debug_info, uint8_t **bin,
   cur += section_irep_size;
   
   /* write DEBUG section */
-  if(debug_info) {
+  if (debug_info) {
     result = mrb_write_section_lineno(mrb, start_index, cur);
     if (result != MRB_DUMP_OK) {
       goto error_exit;

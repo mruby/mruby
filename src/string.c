@@ -30,7 +30,7 @@ static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_
 #define RESIZE_CAPA(s,capacity) do {\
       s->ptr = (char *)mrb_realloc(mrb, s->ptr, (capacity)+1);\
       s->aux.capa = capacity;\
-} while (0)
+} while(0)
 
 void
 mrb_str_decref(mrb_state *mrb, mrb_shared_string *shared)

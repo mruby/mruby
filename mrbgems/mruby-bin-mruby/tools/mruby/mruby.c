@@ -52,7 +52,7 @@ usage(const char *name)
   const char *const *p = usage_msg;
 
   printf("Usage: %s [switches] programfile\n", name);
-  while(*p)
+  while (*p)
     printf("  %s\n", *p++);
 }
 

@@ -43,7 +43,7 @@ usage(const char *name)
   const char *const *p = usage_msg;
 
   printf("Usage: %s [switches] programfile\n", name);
-  while(*p)
+  while (*p)
     printf("  %s\n", *p++);
 }
 
@@ -107,7 +107,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         args->check_syntax = 1;
         break;
       case 'v':
-        if(!args->verbose) mrb_show_version(mrb);
+        if (!args->verbose) mrb_show_version(mrb);
         args->verbose = 1;
         break;
       case 'g':

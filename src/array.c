@@ -104,7 +104,7 @@ ary_fill_with_nil(mrb_value *ptr, mrb_int size)
 {
   mrb_value nil = mrb_nil_value();
 
-  while((int)(size--)) {
+  while ((int)(size--)) {
     *ptr++ = nil;
   }
 }
@@ -166,7 +166,7 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
   }
 
-  while(capa < len) {
+  while (capa < len) {
     if (capa == 0) {
       capa = ARY_DEFAULT_LEN;
     }
@@ -180,7 +180,7 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
   if (capa > a->aux.capa) {
     mrb_value *expanded_ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
 
-    if(!expanded_ptr) {
+    if (!expanded_ptr) {
       mrb_raise(mrb, E_RUNTIME_ERROR, "out of memory");
     }
 
@@ -203,7 +203,7 @@ ary_shrink_capa(mrb_state *mrb, struct RArray *a)
       capa = ARY_DEFAULT_LEN;
       break;
     }
-  } while(capa > a->len * ARY_SHRINK_RATIO);
+  } while (capa > a->len * ARY_SHRINK_RATIO);
 
   if (capa > a->len && capa < a->aux.capa) {
     a->aux.capa = capa;
@@ -366,7 +366,7 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
   ary = mrb_ary_new_capa(mrb, a1->len * times);
   a2 = mrb_ary_ptr(ary);
   ptr = a2->ptr;
-  while(times--) {
+  while (times--) {
     array_copy(ptr, a1->ptr, a1->len);
     ptr += a1->len;
     a2->len += a1->len;
@@ -387,7 +387,7 @@ mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
     p1 = a->ptr;
     p2 = a->ptr + a->len - 1;
 
-    while(p1 < p2) {
+    while (p1 < p2) {
       mrb_value tmp = *p1;
       *p1++ = *p2;
       *p2-- = tmp;
@@ -410,7 +410,7 @@ mrb_ary_reverse(mrb_state *mrb, mrb_value self)
     p1 = a->ptr;
     e  = p1 + a->len;
     p2 = b->ptr + a->len - 1;
-    while(p1 < e) {
+    while (p1 < e) {
       *p2-- = *p1++;
     }
     b->len = a->len;
@@ -451,7 +451,7 @@ mrb_ary_push_m(mrb_state *mrb, mrb_value self)
   int len;
 
   mrb_get_args(mrb, "*", &argv, &len);
-  while(len--) {
+  while (len--) {
     mrb_ary_push(mrb, self, *argv++);
   }
 
@@ -492,7 +492,7 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
     mrb_int size = a->len;
 
     val = *ptr;
-    while((int)(--size)) {
+    while ((int)(--size)) {
       *ptr = *(ptr+1);
       ++ptr;
     }
@@ -753,7 +753,7 @@ mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
 
   ptr = a->ptr + index;
   len = a->len - index;
-  while((int)(--len)) {
+  while ((int)(--len)) {
     *ptr = *(ptr+1);
     ++ptr;
   }
