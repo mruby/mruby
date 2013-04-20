@@ -88,7 +88,7 @@ assert('Module#class_variables', '15.2.2.4.19') do
   end
 
   Test4ClassVariables1.class_variables == [:@@var1] &&
-  Test4ClassVariables2.class_variables == [:@@var2]
+  Test4ClassVariables2.class_variables == [:@@var2, :@@var1]
 end
 
 assert('Module#const_defined?', '15.2.2.4.20') do
