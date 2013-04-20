@@ -586,7 +586,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   }
   tree = tree->cdr;
   if (tree->car) {
-    int32_t a;
+    mrb_aspec a;
     int ma, oa, ra, pa, ka, kd, ba;
     int pos, i;
     node *n, *opt;
@@ -602,8 +602,8 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     ka = kd = 0;
     ba = tree->car->cdr->cdr->cdr->cdr ? 1 : 0;
 
-    a = ((int32_t)(ma & 0x1f) << 18)
-      | ((int32_t)(oa & 0x1f) << 13)
+    a = ((mrb_aspec)(ma & 0x1f) << 18)
+      | ((mrb_aspec)(oa & 0x1f) << 13)
       | ((ra & 1) << 12)
       | ((pa & 0x1f) << 7)
       | ((ka & 0x1f) << 2)
