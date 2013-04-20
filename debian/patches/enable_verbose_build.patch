@@ -1,3 +1,8 @@
+Description: Enable verbose build
+Forwarded: not need
+Author: Nobuhiro Iwamatsu <iwamatsu@debian.org>
+Last-Update: 2013-04-20
+
 diff --git a/Makefile b/Makefile
 index d9a3437..02a27a8 100644
 --- a/Makefile
