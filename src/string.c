@@ -556,7 +556,6 @@ str_eql(mrb_state *mrb, const mrb_value str1, const mrb_value str2)
 {
   const mrb_int len = RSTRING_LEN(str1);
 
-  /* assert(SIZE_MAX >= MRB_INT_MAX) */
   if (len != RSTRING_LEN(str2)) return FALSE;
   if (memcmp(RSTRING_PTR(str1), RSTRING_PTR(str2), (size_t)len) == 0)
     return TRUE;
