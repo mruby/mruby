@@ -632,7 +632,7 @@ noregexp(mrb_state *mrb, mrb_value self)
 static void
 regexp_check(mrb_state *mrb, mrb_value obj)
 {
-  if (!strcmp(mrb_obj_classname(mrb, obj), REGEXP_CLASS)) {
+  if (!memcmp(mrb_obj_classname(mrb, obj), REGEXP_CLASS, sizeof(REGEXP_CLASS) - 1)) {
     noregexp(mrb, obj);
   }
 }
