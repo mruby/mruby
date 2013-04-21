@@ -109,8 +109,6 @@ assert('Module#const_get', '15.2.2.4.21') do
 end
 
 assert('Module.const_missing', '15.2.2.4.22') do
-  e1 = nil
-
   module Test4ConstMissing
     def self.const_missing(sym)
       42 # the answer to everything
