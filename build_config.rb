@@ -47,6 +47,9 @@ MRuby::Build.new do |conf|
   # Use extensional Proc class
   conf.gem "#{root}/mrbgems/mruby-proc-ext"
 
+  # Use extensional Symbol class
+  conf.gem "#{root}/mrbgems/mruby-symbol-ext"
+
   # Use Random class
   conf.gem "#{root}/mrbgems/mruby-random"
 
