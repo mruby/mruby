@@ -1135,7 +1135,7 @@ gc_generational_mode_get(mrb_state *mrb, mrb_value self)
 static mrb_value
 gc_generational_mode_set(mrb_state *mrb, mrb_value self)
 {
-  int enable;
+  mrb_bool enable;
 
   mrb_get_args(mrb, "b", &enable);
   if (mrb->is_generational_gc_mode != enable)

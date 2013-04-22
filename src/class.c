@@ -377,7 +377,7 @@ to_hash(mrb_state *mrb, mrb_value val)
    a: Array [mrb_value*,mrb_int]
    f: Float [mrb_float]
    i: Integer [mrb_int]
-   b: Binary [int]
+   b: Boolean [mrb_bool]
    n: Symbol [mrb_sym]
    &: Block [mrb_value]
    *: rest argument [mrb_value*,int]
@@ -579,7 +579,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       break;
     case 'b':
       {
-        int *boolp = va_arg(ap, int*);
+        mrb_bool *boolp = va_arg(ap, mrb_bool*);
 
         if (i < argc) {
           mrb_value b = *sp++;
@@ -864,7 +864,7 @@ static mrb_value
 mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
 {
   struct RClass *c = mrb_class_ptr(mod);
-  int recur = TRUE;
+  mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
   return class_instance_method_list(mrb, recur, c, 0);
 }
