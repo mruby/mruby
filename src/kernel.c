@@ -782,7 +782,7 @@ mrb_obj_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj, mrb_method_flag_t
 mrb_value
 mrb_obj_methods_m(mrb_state *mrb, mrb_value self)
 {
-  int recur = TRUE;
+  mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
   return mrb_obj_methods(mrb, recur, self, (mrb_method_flag_t)0); /* everything but private */
 }
@@ -813,7 +813,7 @@ mrb_false(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_private_methods(mrb_state *mrb, mrb_value self)
 {
-  int recur = TRUE;
+  mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
   return mrb_obj_methods(mrb, recur, self, NOEX_PRIVATE); /* private attribute not define */
 }
@@ -830,7 +830,7 @@ mrb_obj_private_methods(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_protected_methods(mrb_state *mrb, mrb_value self)
 {
-  int recur = TRUE;
+  mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
   return mrb_obj_methods(mrb, recur, self, NOEX_PROTECTED); /* protected attribute not define */
 }
@@ -847,7 +847,7 @@ mrb_obj_protected_methods(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
 {
-  int recur = TRUE;
+  mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
   return mrb_obj_methods(mrb, recur, self, NOEX_PUBLIC); /* public attribute not define */
 }
@@ -1021,7 +1021,7 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_singleton_methods_m(mrb_state *mrb, mrb_value self)
 {
-  int recur = TRUE;
+  mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
   return mrb_obj_singleton_methods(mrb, recur, self);
 }
