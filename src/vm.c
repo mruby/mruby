@@ -811,7 +811,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       int a = GETARG_A(i);
 
       for (n=0; n<a; n++) {
-        ecall(mrb, --mrb->ci->eidx);
+        ecall(mrb, mrb->ci->eidx-1);
+        --mrb->ci->eidx;
       }
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
@@ -1283,19 +1284,13 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           /* cannot happen */
           break;
         }
+        while (eidx > mrb->ci[-1].eidx) {
+          ecall(mrb, --eidx);
+        }
         cipop(mrb);
         acc = ci->acc;
         pc = ci->pc;
         regs = mrb->stack = mrb->stbase + ci->stackidx;
-        {
-          int idx = eidx;
-          while (idx > mrb->ci->eidx) {
-            mrb_gc_protect(mrb, mrb_obj_value(mrb->ensure[--idx]));
-          }
-        }
-        while (eidx > mrb->ci->eidx) {
-          ecall(mrb, --eidx);
-        }
         if (acc < 0) {
           mrb->jmp = prev_jmp;
           return v;
