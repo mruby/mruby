@@ -111,7 +111,7 @@ nil_inspect(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_and(mrb_state *mrb, mrb_value obj)
 {
-  int obj2;
+  mrb_bool obj2;
 
   mrb_get_args(mrb, "b", &obj2);
 
@@ -131,7 +131,7 @@ true_and(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_xor(mrb_state *mrb, mrb_value obj)
 {
-  int obj2;
+  mrb_bool obj2;
 
   mrb_get_args(mrb, "b", &obj2);
   return mrb_bool_value(!obj2);
@@ -171,7 +171,7 @@ true_to_s(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_or(mrb_state *mrb, mrb_value obj)
 {
-  int obj2;
+  mrb_bool obj2;
 
   mrb_get_args(mrb, "b", &obj2);
   return mrb_true_value();
@@ -202,7 +202,7 @@ true_or(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_and(mrb_state *mrb, mrb_value obj)
 {
-  int obj2;
+  mrb_bool obj2;
 
   mrb_get_args(mrb, "b", &obj2);
   return mrb_false_value();
@@ -224,7 +224,7 @@ false_and(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_xor(mrb_state *mrb, mrb_value obj)
 {
-  int obj2;
+  mrb_bool obj2;
 
   mrb_get_args(mrb, "b", &obj2);
   return mrb_bool_value(obj2);
@@ -244,7 +244,7 @@ false_xor(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_or(mrb_state *mrb, mrb_value obj)
 {
-  int obj2;
+  mrb_bool obj2;
 
   mrb_get_args(mrb, "b", &obj2);
   return mrb_bool_value(obj2);

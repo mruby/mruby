@@ -120,7 +120,7 @@ mrb_value
 mrb_range_initialize(mrb_state *mrb, mrb_value range)
 {
   mrb_value beg, end;
-  int exclusive;
+  mrb_bool exclusive;
   int n;
 
   n = mrb_get_args(mrb, "oo|b", &beg, &end, &exclusive);
