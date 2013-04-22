@@ -27,6 +27,31 @@
 # error This code assumes CHAR_BIT == 8
 #endif
 
+static void
+irep_free(size_t sirep, mrb_state *mrb)
+{
+  size_t i;
+  void *p;
+
+  for (i = sirep; i < mrb->irep_len; i++) {
+    if (mrb->irep[i]) {
+      p = mrb->irep[i]->iseq;
+      if (p)
+        mrb_free(mrb, p);
+
+      p = mrb->irep[i]->pool;
+      if (p)
+        mrb_free(mrb, p);
+
+      p = mrb->irep[i]->syms;
+      if (p)
+        mrb_free(mrb, p);
+
+      mrb_free(mrb, mrb->irep[i]);
+    }
+  }
+}
+
 static size_t
 offset_crc_body()
 {
@@ -168,26 +193,12 @@ read_rite_section_irep(mrb_state *mrb, const uint8_t *bin)
     bin += len;
   }
 
-  result = MRB_DUMP_OK;
+  result = sirep + bin_to_uint16(header->sirep);
 error_exit:
-  if (result != MRB_DUMP_OK) {
-    for (i = sirep; i < mrb->irep_len; i++) {
-      if (mrb->irep[i]) {
-        if (mrb->irep[i]->iseq)
-          mrb_free(mrb, mrb->irep[i]->iseq);
-
-        if (mrb->irep[i]->pool)
-          mrb_free(mrb, mrb->irep[i]->pool);
-
-        if (mrb->irep[i]->syms)
-          mrb_free(mrb, mrb->irep[i]->syms);
-
-        mrb_free(mrb, mrb->irep[i]);
-      }
-    }
-    return result;
+  if (result < MRB_DUMP_OK) {
+    irep_free(sirep, mrb);
   }
-  return sirep + bin_to_uint16(header->sirep);
+  return result;
 }
 
 static int
@@ -257,12 +268,9 @@ read_rite_section_lineno(mrb_state *mrb, const uint8_t *bin, size_t sirep)
     bin += len;
   }
 
-  result = MRB_DUMP_OK;
+  result = sirep + bin_to_uint16(header->sirep);
 error_exit:
-  if (result != MRB_DUMP_OK) {
-    return result;
-  }
-  return sirep + bin_to_uint16(header->sirep);
+  return result;
 }
 
 
@@ -397,27 +405,13 @@ read_rite_section_lineno_file(mrb_state *mrb, FILE *fp, size_t sirep)
       goto error_exit;
   }
 
-  result = MRB_DUMP_OK;
+  result = sirep + bin_to_uint16(header.sirep);
 error_exit:
   mrb_free(mrb, buf);
-  if (result != MRB_DUMP_OK) {
-    for (i = sirep; i < mrb->irep_len; i++) {
-      if (mrb->irep[i]) {
-        if (mrb->irep[i]->iseq)
-          mrb_free(mrb, mrb->irep[i]->iseq);
-
-        if (mrb->irep[i]->pool)
-          mrb_free(mrb, mrb->irep[i]->pool);
-
-        if (mrb->irep[i]->syms)
-          mrb_free(mrb, mrb->irep[i]->syms);
-
-        mrb_free(mrb, mrb->irep[i]);
-      }
-    }
-    return result;
+  if (result < MRB_DUMP_OK) {
+    irep_free(sirep, mrb);
   }
-  return sirep + bin_to_uint16(header.sirep);
+  return result;
 }
 
 static int32_t
@@ -460,27 +454,13 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
       goto error_exit;
   }
 
-  result = MRB_DUMP_OK;
+  result = sirep + bin_to_uint16(header.sirep);
 error_exit:
   mrb_free(mrb, buf);
   if (result != MRB_DUMP_OK) {
-    for (i = sirep; i < mrb->irep_len; i++) {
-      if (mrb->irep[i]) {
-        if (mrb->irep[i]->iseq)
-          mrb_free(mrb, mrb->irep[i]->iseq);
-
-        if (mrb->irep[i]->pool)
-          mrb_free(mrb, mrb->irep[i]->pool);
-
-        if (mrb->irep[i]->syms)
-          mrb_free(mrb, mrb->irep[i]->syms);
-
-        mrb_free(mrb, mrb->irep[i]);
-      }
-    }
-    return result;
+    irep_free(sirep, mrb);
   }
-  return sirep + bin_to_uint16(header.sirep);
+  return result;
 }
 
 int32_t
