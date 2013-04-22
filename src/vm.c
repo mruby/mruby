@@ -237,6 +237,7 @@ ecall(mrb_state *mrb, int i)
   struct RObject *exc;
 
   p = mrb->ensure[i];
+  if (!p) return;
   ci = cipush(mrb);
   ci->stackidx = mrb->stack - mrb->stbase;
   ci->mid = ci[-1].mid;
@@ -248,6 +249,7 @@ ecall(mrb_state *mrb, int i)
   mrb->stack = mrb->stack + ci[-1].nregs;
   exc = mrb->exc; mrb->exc = 0;
   mrb_run(mrb, p, *self);
+  mrb->ensure[i] = NULL;
   if (!mrb->exc) mrb->exc = exc;
 }
 
@@ -811,8 +813,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       int a = GETARG_A(i);
 
       for (n=0; n<a; n++) {
-        ecall(mrb, mrb->ci->eidx-1);
-        --mrb->ci->eidx;
+        ecall(mrb, --mrb->ci->eidx);
       }
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
@@ -1217,6 +1218,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           if (ci->ridx == 0) goto L_STOP;
           goto L_RESCUE;
         }
+        while (eidx > ci[-1].eidx) {
+          ecall(mrb, --eidx);
+        }
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           ci = mrb->ci;
@@ -1225,7 +1229,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
             mrb->jmp = prev_jmp;
             longjmp(*(jmp_buf*)mrb->jmp, 1);
           }
-          while (eidx > mrb->ci->eidx) {
+          while (eidx > ci->eidx) {
             ecall(mrb, --eidx);
           }
           if (ci == mrb->cibase) {
