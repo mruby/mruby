@@ -457,7 +457,7 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
   result = sirep + bin_to_uint16(header.sirep);
 error_exit:
   mrb_free(mrb, buf);
-  if (result != MRB_DUMP_OK) {
+  if (result < MRB_DUMP_OK) {
     irep_free(sirep, mrb);
   }
   return result;
