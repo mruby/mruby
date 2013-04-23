@@ -23,14 +23,18 @@ MRuby.each_target do
         unless g.test_rbfiles.empty?
           f.puts %Q[  mrb_state *mrb2;]
           if g.test_args.empty?
-            f.puts %Q[  mrb_value val1, val2, ary1, ary2;]
+            f.puts %Q[  mrb_value val1, val2, val3, ary1, ary2;]
           else
-            f.puts %Q[  mrb_value val1, val2, ary1, ary2, test_args_hash;]
+            f.puts %Q[  mrb_value val1, val2, val3, ary1, ary2, test_args_hash;]
           end
           f.puts %Q[  int ai;]
           g.test_rbfiles.count.times do |i|
             f.puts %Q[  ai = mrb_gc_arena_save(mrb);]
             f.puts %Q[  mrb2 = mrb_open();]
+            f.puts %Q[  val3 = mrb_gv_get(mrb, mrb_intern(mrb, "$mrbtest_verbose"));]
+            f.puts %Q[  if (mrb_test(val3)) {]
+            f.puts %Q[    mrb_gv_set(mrb2, mrb_intern(mrb2, "$mrbtest_verbose"), val3);]
+            f.puts %Q[  }]
             f.puts %Q[  mrb_load_irep(mrb2, gem_test_irep_#{g.funcname}_preload);]
             f.puts %Q[  if (mrb2->exc) {]
             f.puts %Q[    mrb_p(mrb2, mrb_obj_value(mrb2->exc));]
