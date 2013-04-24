@@ -1598,7 +1598,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     }
 
     CASE(OP_SUBI) {
-      /* A B C  R(A) := R(A)-C (Syms[B]=:+)*/
+      /* A B C  R(A) := R(A)-C (Syms[B]=:-)*/
       int a = GETARG_A(i);
       mrb_value *regs_a = regs + a;
 
