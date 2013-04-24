@@ -30,15 +30,6 @@ struct RProc {
   struct REnv *env;
 };
 
-/* aspec access */
-#define ARGS_GETREQ(a)          (((a) >> 19) & 0x1f)
-#define ARGS_GETOPT(a)          (((a) >> 14) & 0x1f)
-#define ARGS_GETREST(a)         ((a) & (1<<13))
-#define ARGS_GETPOST(a)         (((a) >> 8) & 0x1f)
-#define ARGS_GETKEY(a)          (((a) >> 3) & 0x1f))
-#define ARGS_GETKDICT(a)        ((a) & (1<<2))
-#define ARGS_GETBLOCK(a)        ((a) & (1<<1))
-
 #define MRB_PROC_CFUNC 128
 #define MRB_PROC_CFUNC_P(p) ((p)->flags & MRB_PROC_CFUNC)
 #define MRB_PROC_STRICT 256
