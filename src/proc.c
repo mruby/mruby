@@ -140,9 +140,9 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
   mrb_aspec aspec = *iseq >> 6;
   int ma, ra, pa, arity;
   
-  ma = ARGS_GETREQ(aspec);
-  ra = ARGS_GETREST(aspec);
-  pa = ARGS_GETPOST(aspec);
+  ma = MRB_ARGS_REQ(aspec);
+  ra = MRB_ARGS_REST(aspec);
+  pa = MRB_ARGS_POST(aspec);
   arity = ra ? -(ma + pa + 1) : ma + pa;
 
   return mrb_fixnum_value(arity);
