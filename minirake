@@ -435,20 +435,20 @@ class RakeApp
         end
         here = Dir.pwd
       end
+      tasks = []
+      ARGV.each do |task_name|
+        if /^(\w+)=(.*)/.match(task_name)
+          ENV[$1] = $2
+        else
+          tasks << task_name
+        end
+      end
       puts "(in #{Dir.pwd})"
       $rakefile = @rakefile
       load @rakefile
       if $show_tasks
         display_tasks
       else
-        tasks = []
-        ARGV.each do |task_name|
-          if /^(\w+)=(.*)/.match(task_name)
-            ENV[$1] = $2
-          else
-            tasks << task_name
-          end
-        end
         tasks.push("default") if tasks.size == 0
         tasks.each do |task_name|
           MiniRake::Task[task_name].invoke
