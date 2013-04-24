@@ -7,6 +7,7 @@
 #include "mruby.h"
 #include "mruby/class.h"
 #include "mruby/proc.h"
+#include "mrbgem/proc.h"
 #include "opcode.h"
 
 static mrb_code call_iseq[] = {
