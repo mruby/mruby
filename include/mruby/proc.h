@@ -31,13 +31,13 @@ struct RProc {
 };
 
 /* aspec access */
-#define MRB_ARGS_REQ(a)          (((a) >> 19) & 0x1f)
-#define MRB_ARGS_OPT(a)          (((a) >> 14) & 0x1f)
-#define MRB_ARGS_REST(a)         ((a) & (1<<13))
-#define MRB_ARGS_POST(a)         (((a) >> 8) & 0x1f)
-#define MRB_ARGS_KEY(a)          (((a) >> 3) & 0x1f))
-#define MRB_ARGS_KDICT(a)        ((a) & (1<<2))
-#define MRB_ARGS_BLOCK(a)        ((a) & (1<<1))
+#define MRB_ASPEC_REQ(a)          (((a) >> 19) & 0x1f)
+#define MRB_ASPEC_OPT(a)          (((a) >> 14) & 0x1f)
+#define MRB_ASPEC_REST(a)         ((a) & (1<<13))
+#define MRB_ASPEC_POST(a)         (((a) >> 8) & 0x1f)
+#define MRB_ASPEC_KEY(a)          (((a) >> 3) & 0x1f))
+#define MRB_ASPEC_KDICT(a)        ((a) & (1<<2))
+#define MRB_ASPEC_BLOCK(a)        ((a) & (1<<1))
 
 #define MRB_PROC_CFUNC 128
 #define MRB_PROC_CFUNC_P(p) ((p)->flags & MRB_PROC_CFUNC)
