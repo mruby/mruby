@@ -170,20 +170,20 @@ struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, con
 struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
 /* required arguments */
-#define MRB_ARGS_REQ(n)     ((mrb_aspec)((n)&0x1f) << 19)
+#define MRB_ARGS_REQ(n)     ((mrb_aspec)((n)&0x1f) << 18)
 /* optional arguments */
-#define MRB_ARGS_OPT(n)     ((mrb_aspec)((n)&0x1f) << 14)
+#define MRB_ARGS_OPT(n)     ((mrb_aspec)((n)&0x1f) << 13)
 /* mandatory and optinal arguments */
 #define MRB_ARGS_ARG(n1,n2)   (MRB_ARGS_REQ(n1)|MRB_ARGS_OPT(n2))
 
 /* rest argument */
-#define MRB_ARGS_REST()     ((mrb_aspec)(1 << 13))
+#define MRB_ARGS_REST()     ((mrb_aspec)(1 << 12))
 /* required arguments after rest */
-#define MRB_ARGS_POST(n)    ((mrb_aspec)((n)&0x1f) << 8)
+#define MRB_ARGS_POST(n)    ((mrb_aspec)((n)&0x1f) << 7)
 /* keyword arguments (n of keys, kdict) */
-#define MRB_ARGS_KEY(n1,n2) ((mrb_aspec)((((n1)&0x1f) << 3) | ((n2)?(1<<2):0)))
+#define MRB_ARGS_KEY(n1,n2) ((mrb_aspec)((((n1)&0x1f) << 2) | ((n2)?(1<<1):0)))
 /* block argument */
-#define MRB_ARGS_BLOCK()    ((mrb_aspec)(1 << 1))
+#define MRB_ARGS_BLOCK()    ((mrb_aspec)1)
 
 /* accept any number of arguments */
 #define MRB_ARGS_ANY()      ARGS_REST()

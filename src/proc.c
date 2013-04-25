@@ -137,7 +137,7 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
 {
   struct RProc *p = mrb_proc_ptr(self);
   mrb_code *iseq = mrb_proc_iseq(mrb, p);
-  mrb_aspec aspec = *iseq >> 6;
+  mrb_aspec aspec = GETARG_Ax(*iseq);
   int ma, ra, pa, arity;
   
   ma = MRB_ASPEC_REQ(aspec);
