@@ -966,15 +966,35 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   int argc;
   mrb_value mid, priv;
   mrb_sym id, rtm_id;
-  mrb_bool respond_to_p;
+  mrb_bool respond_to_p = TRUE;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   mid = argv[0];
   if (argc > 1) priv = argv[1];
   else priv = mrb_nil_value();
-  id = mrb_to_id(mrb, mid);
 
-  respond_to_p = basic_obj_respond_to(mrb, self, id, !mrb_test(priv));
+  if (mrb_symbol_p(mid)) {
+    id = mrb_symbol(mid);
+  } else {
+    mrb_value tmp;
+    if (!mrb_string_p(mid)) {
+      tmp = mrb_check_string_type(mrb, mid);
+      if (mrb_nil_p(tmp)) {
+        tmp = mrb_inspect(mrb, mid);
+        mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol", tmp);
+      }
+    }
+    tmp = mrb_str_interned(mrb, mid);
+    if (mrb_nil_p(tmp)) {
+      respond_to_p = FALSE;
+    } else {
+      id = mrb_intern_str(mrb, mid);
+    }
+  }
+
+  if (respond_to_p) {
+    respond_to_p = basic_obj_respond_to(mrb, self, id, !mrb_test(priv));
+  }
 
   if (!respond_to_p) {
     rtm_id = mrb_intern2(mrb, "respond_to_missing?", 19);
