@@ -793,7 +793,7 @@ mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
     if (c->tt == MRB_TT_ICLASS) {
       mrb_ary_push(mrb, result, mrb_obj_value(c->c));
     }
-    else {
+    else if (c->tt != MRB_TT_SCLASS) {
       mrb_ary_push(mrb, result, mrb_obj_value(c));
     }
     c = c->super;

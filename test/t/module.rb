@@ -14,8 +14,12 @@ end
 # TODO not implemented ATM assert('Module.nesting', '15.2.2.3.2') do
 
 assert('Module#ancestors', '15.2.2.4.9') do
+  class Test4ModuleAncestors
+  end
+  sc = Test4ModuleAncestors.singleton_class
   r = String.ancestors
-  r.class == Array and r.include?(String) and r.include?(Object)
+  r.class == Array and r.include?(String) and r.include?(Object) and
+  ! sc.ancestors.include?(sc)
 end
 
 assert('Module#append_features', '15.2.2.4.10') do
