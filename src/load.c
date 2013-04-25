@@ -80,7 +80,7 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
   src += sizeof(uint16_t);
 
   // number of register variable
-  irep->nregs = bin_to_uint16(src);         
+  irep->nregs = bin_to_uint16(src);
   src += sizeof(uint16_t);
 
   // Binary Data Section
@@ -312,7 +312,7 @@ read_rite_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc)
   if (memcmp(header->binary_identify, RITE_BINARY_IDENFIFIER, sizeof(header->binary_identify)) != 0) {
     return MRB_DUMP_INVALID_FILE_HEADER;
   }
-  
+
   if (memcmp(header->binary_version, RITE_BINARY_FORMAT_VER, sizeof(header->binary_version)) != 0) {
     return MRB_DUMP_INVALID_FILE_HEADER;
   }
