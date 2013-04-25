@@ -417,4 +417,5 @@ end
 
 assert('String#inspect') do
   ("\1" * 100).inspect  # should not raise an exception - regress #1210
+  "\0".inspect == "\"\\000\""
 end

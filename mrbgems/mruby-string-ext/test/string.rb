@@ -15,6 +15,7 @@ end
 
 assert('String#dump') do
   ("\1" * 100).dump     # should not raise an exception - regress #1210
+  "\0".inspect == "\"\\000\"" and
   "foo".dump == "\"foo\""
 end
 
