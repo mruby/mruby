@@ -173,6 +173,9 @@ struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, co
 #define MRB_ARGS_REQ(n)     ((mrb_aspec)((n)&0x1f) << 19)
 /* optional arguments */
 #define MRB_ARGS_OPT(n)     ((mrb_aspec)((n)&0x1f) << 14)
+/* mandatory and optinal arguments */
+#define MRB_ARGS_ARG(n1,n2)   (MRB_ARGS_REQ(n1)|MRB_ARGS_OPT(n2))
+
 /* rest argument */
 #define MRB_ARGS_REST()     ((mrb_aspec)(1 << 13))
 /* required arguments after rest */
