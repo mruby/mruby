@@ -18,3 +18,8 @@ assert('Hash#merge!') do
                'xyz_key' => 'xyz_value' }
 end
 
+assert("Hash::try_convert") do
+ Hash.try_convert({1=>2}) == {1=>2} and
+ Hash.try_convert("1=>2").nil?
+end
+
