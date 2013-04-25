@@ -2348,8 +2348,12 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
           *q++ = c;
         }
         else {
+          int oct = c & 0xff;
+
           *q++ = '\\';
-          sprintf(q, "%03o", c&0xff);
+          q[2] = '0' + oct % 8; oct /= 8;
+          q[1] = '0' + oct % 8; oct /= 8;
+          q[0] = '0' + oct % 8;
           q += 3;
         }
     }
