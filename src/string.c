@@ -17,7 +17,6 @@
 #include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
-#include "mruby/numeric.h"
 #include "mruby/range.h"
 #include "mruby/string.h"
 #include "re.h"
@@ -2349,16 +2348,9 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
           *q++ = c;
         }
         else {
-          mrb_value octstr;
-          mrb_value chr;
-          const char *ptr;
-          int len;
-          chr = mrb_fixnum_value(c & 0xff);
-          octstr = mrb_fixnum_to_str(mrb, chr, 8);
-          ptr = mrb_str_body(octstr, &len);
-          memcpy(q, "\\000", 4);
-          memcpy(q + 4 - len, ptr, len);
-          q += 4;
+          *q++ = '\\';
+          sprintf(q, "%03o", c&0xff);
+          q += 3;
         }
     }
   }
@@ -2442,16 +2434,8 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
           continue;
       }
       else {
-        mrb_value octstr;
-        mrb_value chr;
-        const char *ptr;
-        int len;
-        chr = mrb_fixnum_value(c & 0xff);
-        octstr = mrb_fixnum_to_str(mrb, chr, 8);
-        ptr = mrb_str_body(octstr, &len);
-        memcpy(buf, "\\000", 4);
-        memcpy(buf + 4 - len, ptr, len);
-        mrb_str_buf_cat(mrb, result, buf, 4);
+        int n = sprintf(buf, "\\%03o", c & 0377);
+        mrb_str_buf_cat(mrb, result, buf, n);
         continue;
       }
     }
