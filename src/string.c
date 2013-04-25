@@ -2438,8 +2438,11 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
           continue;
       }
       else {
-        int n = sprintf(buf, "\\%03o", c & 0377);
-        mrb_str_buf_cat(mrb, result, buf, n);
+        buf[0] = '\\';
+        buf[3] = '0' + c % 8; c /= 8;
+        buf[2] = '0' + c % 8; c /= 8;
+        buf[1] = '0' + c % 8;
+        mrb_str_buf_cat(mrb, result, buf, 4);
         continue;
       }
     }
