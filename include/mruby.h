@@ -195,6 +195,9 @@ mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, int, mrb_value*
 mrb_sym mrb_intern_cstr(mrb_state*,const char*);
 mrb_sym mrb_intern2(mrb_state*,const char*,size_t);
 mrb_sym mrb_intern_str(mrb_state*,mrb_value);
+mrb_bool mrb_cstr_interned(mrb_state*,const char*);
+mrb_bool mrb_interned(mrb_state*,const char*,size_t);
+mrb_bool mrb_str_interned(mrb_state*,mrb_value);
 const char *mrb_sym2name(mrb_state*,mrb_sym);
 const char *mrb_sym2name_len(mrb_state*,mrb_sym,size_t*);
 mrb_value mrb_sym2str(mrb_state*,mrb_sym);
