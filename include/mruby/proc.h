@@ -35,7 +35,7 @@ struct RProc {
 #define MRB_ASPEC_OPT(a)          (((a) >> 14) & 0x1f)
 #define MRB_ASPEC_REST(a)         ((a) & (1<<13))
 #define MRB_ASPEC_POST(a)         (((a) >> 8) & 0x1f)
-#define MRB_ASPEC_KEY(a)          (((a) >> 3) & 0x1f))
+#define MRB_ASPEC_KEY(a)          (((a) >> 3) & 0x1f)
 #define MRB_ASPEC_KDICT(a)        ((a) & (1<<2))
 #define MRB_ASPEC_BLOCK(a)        ((a) & (1<<1))
 
