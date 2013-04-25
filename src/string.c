@@ -2348,12 +2348,10 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
           *q++ = c;
         }
         else {
-          int oct = c & 0xff;
-
           *q++ = '\\';
-          q[2] = '0' + oct % 8; oct /= 8;
-          q[1] = '0' + oct % 8; oct /= 8;
-          q[0] = '0' + oct % 8;
+          q[2] = '0' + c % 8; c /= 8;
+          q[1] = '0' + c % 8; c /= 8;
+          q[0] = '0' + c % 8;
           q += 3;
         }
     }
