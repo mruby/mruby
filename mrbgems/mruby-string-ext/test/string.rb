@@ -14,6 +14,7 @@ assert('String#getbyte') do
 end
 
 assert('String#dump') do
+  ("\1" * 100).dump     # should not raise an exception - regress #1210
   "foo".dump == "\"foo\""
 end
 
