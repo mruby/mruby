@@ -231,6 +231,10 @@ read_rite_lineno_record(mrb_state *mrb, const uint8_t *bin, size_t irepno, uint3
   *len += sizeof(uint32_t);
 
   lines = (uint16_t *)mrb_malloc(mrb, niseq * sizeof(uint16_t));
+  if (lines == NULL) {
+    ret = MRB_DUMP_GENERAL_FAILURE;
+    goto error_exit;
+  }
   for (i = 0; i < niseq; i++) {
     lines[i] = bin_to_uint16(bin);
     bin += sizeof(uint16_t); // niseq
@@ -241,6 +245,10 @@ read_rite_lineno_record(mrb_state *mrb, const uint8_t *bin, size_t irepno, uint3
   mrb->irep[irepno]->lines = lines;
 
 error_exit:
+  if (fname) {
+    mrb_free(mrb, fname);
+  }
+
   return ret;
 }
 
@@ -386,7 +394,11 @@ read_rite_section_lineno_file(mrb_state *mrb, FILE *fp, size_t sirep)
 
   buf_size = record_header_size;
   buf = (uint8_t *)mrb_malloc(mrb, buf_size);
-  
+  if (!buf) {
+    result = MRB_DUMP_GENERAL_FAILURE;
+    goto error_exit;
+  }
+
   //Read Binary Data Section
   for (n = 0, i = sirep; n < nirep; n++, i++) {
     void *ptr;
@@ -414,7 +426,9 @@ read_rite_section_lineno_file(mrb_state *mrb, FILE *fp, size_t sirep)
 
   result = sirep + bin_to_uint16(header.sirep);
 error_exit:
-  mrb_free(mrb, buf);
+  if (buf) {
+    mrb_free(mrb, buf);
+  }
   if (result < MRB_DUMP_OK) {
     irep_free(sirep, mrb);
   }
@@ -443,7 +457,11 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
 
   buf_size = record_header_size;
   buf = (uint8_t *)mrb_malloc(mrb, buf_size);
-  
+  if (!buf) {
+    result = MRB_DUMP_GENERAL_FAILURE;
+    goto error_exit;
+  }
+
   //Read Binary Data Section
   for (n = 0, i = sirep; n < nirep; n++, i++) {
     void *ptr;
@@ -471,7 +489,9 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
 
   result = sirep + bin_to_uint16(header.sirep);
 error_exit:
-  mrb_free(mrb, buf);
+  if (buf) {
+    mrb_free(mrb, buf);
+  }
   if (result < MRB_DUMP_OK) {
     irep_free(sirep, mrb);
   }
@@ -498,6 +518,9 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   }
 
   buf = mrb_malloc(mrb, buf_size);
+  if (!buf) {
+    return MRB_DUMP_GENERAL_FAILURE;
+  }
   if (fread(buf, buf_size, 1, fp) == 0) {
     mrb_free(mrb, buf);
     return MRB_DUMP_READ_FAULT;
@@ -511,6 +534,9 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   /* verify CRC */
   fpos = ftell(fp);
   buf = mrb_malloc(mrb, block_size);
+  if (!buf) {
+    return MRB_DUMP_GENERAL_FAILURE;
+  }
   fseek(fp, offset_crc_body(), SEEK_SET);
   while ((nbytes = fread(buf, 1, block_size, fp)) > 0) {
     crcwk = calc_crc_16_ccitt(buf, nbytes, crcwk);
