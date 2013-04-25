@@ -415,6 +415,7 @@ read_rite_section_lineno_file(mrb_state *mrb, FILE *fp, size_t sirep)
   nirep = bin_to_uint16(header.nirep);
 
   buf_size = record_header_size;
+  /* We don't need to check buf_size. As it is enough small. */
   buf = (uint8_t *)mrb_malloc(mrb, buf_size);
   if (!buf) {
     result = MRB_DUMP_GENERAL_FAILURE;
@@ -482,6 +483,7 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
   nirep = bin_to_uint16(header.nirep);
 
   buf_size = record_header_size;
+  /* You don't need use SIZE_ERROR as buf_size is enough small. */
   buf = (uint8_t *)mrb_malloc(mrb, buf_size);
   if (!buf) {
     result = MRB_DUMP_GENERAL_FAILURE;
@@ -547,6 +549,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
+  /* You don't need use SIZE_ERROR as buf_size is enough small. */
   buf = mrb_malloc(mrb, buf_size);
   if (!buf) {
     return MRB_DUMP_GENERAL_FAILURE;
@@ -563,6 +566,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 
   /* verify CRC */
   fpos = ftell(fp);
+  /* You don't need use SIZE_ERROR as block_size is enough small. */
   buf = mrb_malloc(mrb, block_size);
   if (!buf) {
     return MRB_DUMP_GENERAL_FAILURE;
