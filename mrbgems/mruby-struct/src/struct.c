@@ -261,9 +261,9 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   nstr = mrb_obj_value(c);
   mrb_iv_set(mrb, nstr, mrb_intern2(mrb, "__members__", 11), members);
 
-  mrb_define_class_method(mrb, c, "new", mrb_instance_new, ARGS_ANY());
-  mrb_define_class_method(mrb, c, "[]", mrb_instance_new, ARGS_ANY());
-  mrb_define_class_method(mrb, c, "members", mrb_struct_s_members_m, ARGS_NONE());
+  mrb_define_class_method(mrb, c, "new", mrb_instance_new, MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, c, "[]", mrb_instance_new, MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, c, "members", mrb_struct_s_members_m, MRB_ARGS_NONE());
   //RSTRUCT(nstr)->basic.c->super = c->c;
   ptr_members = RARRAY_PTR(members);
   len = RARRAY_LEN(members);
@@ -271,12 +271,12 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     mrb_sym id = mrb_symbol(ptr_members[i]);
     if (mrb_is_local_id(id) || mrb_is_const_id(id)) {
       if (i < N_REF_FUNC) {
-        mrb_define_method_id(mrb, c, id, ref_func[i], ARGS_NONE());
+        mrb_define_method_id(mrb, c, id, ref_func[i], MRB_ARGS_NONE());
       }
       else {
-        mrb_define_method_id(mrb, c, id, mrb_struct_ref, ARGS_NONE());
+        mrb_define_method_id(mrb, c, id, mrb_struct_ref, MRB_ARGS_NONE());
       }
-      mrb_define_method_id(mrb, c, mrb_id_attrset(mrb, id), mrb_struct_set_m, ARGS_REQ(1));
+      mrb_define_method_id(mrb, c, mrb_id_attrset(mrb, id), mrb_struct_set_m, MRB_ARGS_REQ(1));
     }
   }
   return nstr;
@@ -792,18 +792,17 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
   struct RClass *st;
   st = mrb_define_class(mrb, "Struct",  mrb->object_class);
 
-  mrb_define_class_method(mrb, st, "new",             mrb_struct_s_def,       ARGS_ANY());  /* 15.2.18.3.1  */
+  mrb_define_class_method(mrb, st, "new",             mrb_struct_s_def,       MRB_ARGS_ANY());  /* 15.2.18.3.1  */
 
-  mrb_define_method(mrb, st,       "==",              mrb_struct_equal,       ARGS_REQ(1)); /* 15.2.18.4.1  */
-  mrb_define_method(mrb, st,       "[]",              mrb_struct_aref,        ARGS_REQ(1)); /* 15.2.18.4.2  */
-  mrb_define_method(mrb, st,       "[]=",             mrb_struct_aset,        ARGS_REQ(2)); /* 15.2.18.4.3  */
-  mrb_define_method(mrb, st,       "members",         mrb_struct_members_m,   ARGS_NONE()); /* 15.2.18.4.6  */
-  mrb_define_method(mrb, st,       "initialize",      mrb_struct_initialize_m,ARGS_ANY());  /* 15.2.18.4.8  */
-  mrb_define_method(mrb, st,       "initialize_copy", mrb_struct_init_copy,   ARGS_REQ(1)); /* 15.2.18.4.9  */
-  mrb_define_method(mrb, st,       "inspect",         mrb_struct_inspect,     ARGS_NONE()); /* 15.2.18.4.10(x)  */
+  mrb_define_method(mrb, st,       "==",              mrb_struct_equal,       MRB_ARGS_REQ(1)); /* 15.2.18.4.1  */
+  mrb_define_method(mrb, st,       "[]",              mrb_struct_aref,        MRB_ARGS_REQ(1)); /* 15.2.18.4.2  */
+  mrb_define_method(mrb, st,       "[]=",             mrb_struct_aset,        MRB_ARGS_REQ(2)); /* 15.2.18.4.3  */
+  mrb_define_method(mrb, st,       "members",         mrb_struct_members_m,   MRB_ARGS_NONE()); /* 15.2.18.4.6  */
+  mrb_define_method(mrb, st,       "initialize",      mrb_struct_initialize_m,MRB_ARGS_ANY());  /* 15.2.18.4.8  */
+  mrb_define_method(mrb, st,       "initialize_copy", mrb_struct_init_copy,   MRB_ARGS_REQ(1)); /* 15.2.18.4.9  */
+  mrb_define_method(mrb, st,       "inspect",         mrb_struct_inspect,     MRB_ARGS_NONE()); /* 15.2.18.4.10(x)  */
   mrb_define_alias(mrb, st,        "to_s", "inspect");                                      /* 15.2.18.4.11(x)  */
-  mrb_define_method(mrb, st,       "eql?",            mrb_struct_eql,         ARGS_REQ(1)); /* 15.2.18.4.12(x)  */
-
+  mrb_define_method(mrb, st,       "eql?",            mrb_struct_eql,         MRB_ARGS_REQ(1)); /* 15.2.18.4.12(x)  */
 }
 
 void

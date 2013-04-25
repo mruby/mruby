@@ -445,20 +445,20 @@ mrb_init_range(mrb_state *mrb)
 
   mrb_include_module(mrb, r, mrb_class_get(mrb, "Enumerable"));
 
-  mrb_define_method(mrb, r, "begin",           mrb_range_beg,         ARGS_NONE());      /* 15.2.14.4.3  */
-  mrb_define_method(mrb, r, "end",             mrb_range_end,         ARGS_NONE());      /* 15.2.14.4.5  */
-  mrb_define_method(mrb, r, "==",              mrb_range_eq,          ARGS_REQ(1));      /* 15.2.14.4.1  */
-  mrb_define_method(mrb, r, "===",             mrb_range_include,     ARGS_REQ(1));      /* 15.2.14.4.2  */
-  mrb_define_method(mrb, r, "each",            mrb_range_each,        ARGS_NONE());      /* 15.2.14.4.4  */
-  mrb_define_method(mrb, r, "exclude_end?",    mrb_range_excl,        ARGS_NONE());      /* 15.2.14.4.6  */
-  mrb_define_method(mrb, r, "first",           mrb_range_beg,         ARGS_NONE());      /* 15.2.14.4.7  */
-  mrb_define_method(mrb, r, "include?",        mrb_range_include,     ARGS_REQ(1));      /* 15.2.14.4.8  */
-  mrb_define_method(mrb, r, "initialize",      mrb_range_initialize,  ARGS_ANY());       /* 15.2.14.4.9  */
-  mrb_define_method(mrb, r, "last",            mrb_range_end,         ARGS_NONE());      /* 15.2.14.4.10 */
-  mrb_define_method(mrb, r, "member?",         mrb_range_include,     ARGS_REQ(1));      /* 15.2.14.4.11 */
+  mrb_define_method(mrb, r, "begin",           mrb_range_beg,         MRB_ARGS_NONE()); /* 15.2.14.4.3  */
+  mrb_define_method(mrb, r, "end",             mrb_range_end,         MRB_ARGS_NONE()); /* 15.2.14.4.5  */
+  mrb_define_method(mrb, r, "==",              mrb_range_eq,          MRB_ARGS_REQ(1)); /* 15.2.14.4.1  */
+  mrb_define_method(mrb, r, "===",             mrb_range_include,     MRB_ARGS_REQ(1)); /* 15.2.14.4.2  */
+  mrb_define_method(mrb, r, "each",            mrb_range_each,        MRB_ARGS_NONE()); /* 15.2.14.4.4  */
+  mrb_define_method(mrb, r, "exclude_end?",    mrb_range_excl,        MRB_ARGS_NONE()); /* 15.2.14.4.6  */
+  mrb_define_method(mrb, r, "first",           mrb_range_beg,         MRB_ARGS_NONE()); /* 15.2.14.4.7  */
+  mrb_define_method(mrb, r, "include?",        mrb_range_include,     MRB_ARGS_REQ(1)); /* 15.2.14.4.8  */
+  mrb_define_method(mrb, r, "initialize",      mrb_range_initialize,  MRB_ARGS_ANY());  /* 15.2.14.4.9  */
+  mrb_define_method(mrb, r, "last",            mrb_range_end,         MRB_ARGS_NONE()); /* 15.2.14.4.10 */
+  mrb_define_method(mrb, r, "member?",         mrb_range_include,     MRB_ARGS_REQ(1)); /* 15.2.14.4.11 */
 
-  mrb_define_method(mrb, r, "to_s",            range_to_s,            ARGS_NONE());      /* 15.2.14.4.12(x) */
-  mrb_define_method(mrb, r, "inspect",         range_inspect,         ARGS_NONE());      /* 15.2.14.4.13(x) */
-  mrb_define_method(mrb, r, "eql?",            range_eql,             ARGS_REQ(1));      /* 15.2.14.4.14(x) */
-  mrb_define_method(mrb, r, "initialize_copy", range_initialize_copy, ARGS_REQ(1));      /* 15.2.14.4.15(x) */
+  mrb_define_method(mrb, r, "to_s",            range_to_s,            MRB_ARGS_NONE()); /* 15.2.14.4.12(x) */
+  mrb_define_method(mrb, r, "inspect",         range_inspect,         MRB_ARGS_NONE()); /* 15.2.14.4.13(x) */
+  mrb_define_method(mrb, r, "eql?",            range_eql,             MRB_ARGS_REQ(1)); /* 15.2.14.4.14(x) */
+  mrb_define_method(mrb, r, "initialize_copy", range_initialize_copy, MRB_ARGS_REQ(1)); /* 15.2.14.4.15(x) */
 }

@@ -159,14 +159,14 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
   struct RClass * s = mrb->string_class;
 
-  mrb_define_method(mrb, s, "dump",            mrb_str_dump,            ARGS_NONE());
-  mrb_define_method(mrb, s, "getbyte",         mrb_str_getbyte,         ARGS_REQ(1));
-  mrb_define_method(mrb, s, "swapcase!",       mrb_str_swapcase_bang,   ARGS_NONE());
-  mrb_define_method(mrb, s, "swapcase",        mrb_str_swapcase,        ARGS_NONE());
-  mrb_define_method(mrb, s, "concat",          mrb_str_concat2,         ARGS_REQ(1));
-  mrb_define_method(mrb, s, "<<",              mrb_str_concat2,         ARGS_REQ(1));
-  mrb_define_method(mrb, s, "start_with?",     mrb_str_start_with,      ARGS_REST());
-  mrb_define_method(mrb, s, "end_with?",       mrb_str_end_with,        ARGS_REST());
+  mrb_define_method(mrb, s, "dump",            mrb_str_dump,            MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "getbyte",         mrb_str_getbyte,         MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, s, "swapcase!",       mrb_str_swapcase_bang,   MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "swapcase",        mrb_str_swapcase,        MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "concat",          mrb_str_concat2,         MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, s, "<<",              mrb_str_concat2,         MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, s, "start_with?",     mrb_str_start_with,      MRB_ARGS_REST());
+  mrb_define_method(mrb, s, "end_with?",       mrb_str_end_with,        MRB_ARGS_REST());
 }
 
 void
