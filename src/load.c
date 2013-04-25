@@ -17,10 +17,12 @@
 #include "mruby/proc.h"
 #include "mruby/string.h"
 
-#ifndef _WIN32
-# if SIZE_MAX < UINT32_MAX
-#  error "It can't be run this code on this environment (SIZE_MAX < UINT32_MAX)"
-# endif
+#if !defined(_WIN32) && SIZE_MAX < UINT32_MAX
+# define SIZE_ERROR_MUL(x, y) ((x) > SIZE_MAX / (y))
+# define SIZE_ERROR(x) ((x) > SIZE_MAX)
+#else
+# define SIZE_ERROR_MUL(x, y) (0)
+# define SIZE_ERROR(x) (0)
 #endif
 
 #if CHAR_BIT != 8
@@ -86,6 +88,10 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
   irep->ilen = bin_to_uint32(src);
   src += sizeof(uint32_t);
   if (irep->ilen > 0) {
+    if (SIZE_ERROR_MUL(sizeof(mrb_code), irep->ilen)) {
+      ret = MRB_DUMP_GENERAL_FAILURE;
+      goto error_exit;
+    }
     irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);
     if (irep->iseq == NULL) {
       ret = MRB_DUMP_GENERAL_FAILURE;
@@ -101,6 +107,10 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
   plen = bin_to_uint32(src); /* number of pool */
   src += sizeof(uint32_t);
   if (plen > 0) {
+    if (SIZE_ERROR_MUL(sizeof(mrb_value), plen)) {
+      ret = MRB_DUMP_GENERAL_FAILURE;
+      goto error_exit;
+    }
     irep->pool = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value) * plen);
     if (irep->pool == NULL) {
       ret = MRB_DUMP_GENERAL_FAILURE;
@@ -140,6 +150,10 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
   irep->slen = bin_to_uint32(src);  //syms length
   src += sizeof(uint32_t);
   if (irep->slen > 0) {
+    if (SIZE_ERROR_MUL(sizeof(mrb_sym), irep->slen)) {
+      ret = MRB_DUMP_GENERAL_FAILURE;
+      goto error_exit;
+    }
     irep->syms = (mrb_sym *)mrb_malloc(mrb, sizeof(mrb_sym) * irep->slen);
     if (irep->syms == NULL) {
       ret = MRB_DUMP_GENERAL_FAILURE;
@@ -216,6 +230,10 @@ read_rite_lineno_record(mrb_state *mrb, const uint8_t *bin, size_t irepno, uint3
   fname_len = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
   *len += sizeof(uint16_t);
+  if (SIZE_ERROR(fname_len + 1)) {
+    ret = MRB_DUMP_GENERAL_FAILURE;
+    goto error_exit;
+  }
   fname = (char *)mrb_malloc(mrb, fname_len + 1);
   if (fname == NULL) {
     ret = MRB_DUMP_GENERAL_FAILURE;
@@ -230,6 +248,10 @@ read_rite_lineno_record(mrb_state *mrb, const uint8_t *bin, size_t irepno, uint3
   bin += sizeof(uint32_t); // niseq
   *len += sizeof(uint32_t);
 
+  if (SIZE_ERROR_MUL(niseq, sizeof(uint16_t))) {
+    ret = MRB_DUMP_GENERAL_FAILURE;
+    goto error_exit;
+  }
   lines = (uint16_t *)mrb_malloc(mrb, niseq * sizeof(uint16_t));
   if (lines == NULL) {
     ret = MRB_DUMP_GENERAL_FAILURE;
@@ -408,6 +430,10 @@ read_rite_section_lineno_file(mrb_state *mrb, FILE *fp, size_t sirep)
       goto error_exit;
     }
     buf_size = bin_to_uint32(&buf[0]);
+    if (SIZE_ERROR(buf_size)) {
+      result = MRB_DUMP_GENERAL_FAILURE;
+      goto error_exit;
+    }
     ptr = mrb_realloc(mrb, buf, buf_size);
     if (!ptr) {
       result = MRB_DUMP_GENERAL_FAILURE;
@@ -471,6 +497,10 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
       goto error_exit;
     }
     buf_size = bin_to_uint32(&buf[0]);
+    if (SIZE_ERROR(buf_size)) {
+      result = MRB_DUMP_GENERAL_FAILURE;
+      goto error_exit;
+    }
     ptr = mrb_realloc(mrb, buf, buf_size);
     if (!ptr) {
       result = MRB_DUMP_GENERAL_FAILURE;
