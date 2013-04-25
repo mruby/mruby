@@ -389,12 +389,19 @@ read_rite_section_lineno_file(mrb_state *mrb, FILE *fp, size_t sirep)
   
   //Read Binary Data Section
   for (n = 0, i = sirep; n < nirep; n++, i++) {
+    void *ptr;
+
     if (fread(buf, record_header_size, 1, fp) == 0) {
       result = MRB_DUMP_READ_FAULT;
       goto error_exit;
     }
     buf_size = bin_to_uint32(&buf[0]);
-    buf = (uint8_t *)mrb_realloc(mrb, buf, buf_size);
+    ptr = mrb_realloc(mrb, buf, buf_size);
+    if (!ptr) {
+      result = MRB_DUMP_GENERAL_FAILURE;
+      goto error_exit;
+    }
+    buf = (uint8_t *)ptr;
 
     if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) == 0) {
       result = MRB_DUMP_READ_FAULT;
@@ -439,12 +446,20 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
   
   //Read Binary Data Section
   for (n = 0, i = sirep; n < nirep; n++, i++) {
+    void *ptr;
+
     if (fread(buf, record_header_size, 1, fp) == 0) {
       result = MRB_DUMP_READ_FAULT;
       goto error_exit;
     }
     buf_size = bin_to_uint32(&buf[0]);
-    buf = (uint8_t *)mrb_realloc(mrb, buf, buf_size);
+    ptr = mrb_realloc(mrb, buf, buf_size);
+    if (!ptr) {
+      result = MRB_DUMP_GENERAL_FAILURE;
+      goto error_exit;
+    }
+    buf = (uint8_t *)ptr;
+
     if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) == 0) {
       result = MRB_DUMP_READ_FAULT;
       goto error_exit;
