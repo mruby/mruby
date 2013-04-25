@@ -415,3 +415,10 @@ assert('String#each_byte') do
   bytes1 == bytes2
 end
 
+assert('String#dump') do
+  ("\1" * 100).dump     # should not raise an exception - regress #1210
+end
+
+assert('String#inspect') do
+  ("\1" * 100).inspect  # should not raise an exception - regress #1210
+end
