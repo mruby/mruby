@@ -14,7 +14,10 @@
 /* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
 //#define MRB_USE_FLOAT
 
-/* add -DMRB_INT64 to use 64bit integer for mrb_int */
+/* add -DMRB_INT16 to use 16bit integer for mrb_int; conflict with MRB_INT64 */
+//#define MRB_INT16
+
+/* add -DMRB_INT64 to use 64bit integer for mrb_int; conflict with MRB_INT16 */
 //#define MRB_INT64
 
 /* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT */
