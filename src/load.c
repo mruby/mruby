@@ -17,10 +17,12 @@
 #include "mruby/proc.h"
 #include "mruby/string.h"
 
-#ifndef _WIN32
-# if SIZE_MAX < UINT32_MAX
-#  error "It can't be run this code on this environment (SIZE_MAX < UINT32_MAX)"
-# endif
+#if !defined(_WIN32) && SIZE_MAX < UINT32_MAX
+# define SIZE_ERROR_MUL(x, y) ((x) > SIZE_MAX / (y))
+# define SIZE_ERROR(x) ((x) > SIZE_MAX)
+#else
+# define SIZE_ERROR_MUL(x, y) (0)
+# define SIZE_ERROR(x) (0)
 #endif
 
 #if CHAR_BIT != 8
@@ -78,7 +80,7 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
   src += sizeof(uint16_t);
 
   // number of register variable
-  irep->nregs = bin_to_uint16(src);         
+  irep->nregs = bin_to_uint16(src);
   src += sizeof(uint16_t);
 
   // Binary Data Section
@@ -86,6 +88,10 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
   irep->ilen = bin_to_uint32(src);
   src += sizeof(uint32_t);
   if (irep->ilen > 0) {
+    if (SIZE_ERROR_MUL(sizeof(mrb_code), irep->ilen)) {
+      ret = MRB_DUMP_GENERAL_FAILURE;
+      goto error_exit;
+    }
     irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);
     if (irep->iseq == NULL) {
       ret = MRB_DUMP_GENERAL_FAILURE;
@@ -101,6 +107,10 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
   plen = bin_to_uint32(src); /* number of pool */
   src += sizeof(uint32_t);
   if (plen > 0) {
+    if (SIZE_ERROR_MUL(sizeof(mrb_value), plen)) {
+      ret = MRB_DUMP_GENERAL_FAILURE;
+      goto error_exit;
+    }
     irep->pool = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value) * plen);
     if (irep->pool == NULL) {
       ret = MRB_DUMP_GENERAL_FAILURE;
@@ -140,6 +150,10 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
   irep->slen = bin_to_uint32(src);  //syms length
   src += sizeof(uint32_t);
   if (irep->slen > 0) {
+    if (SIZE_ERROR_MUL(sizeof(mrb_sym), irep->slen)) {
+      ret = MRB_DUMP_GENERAL_FAILURE;
+      goto error_exit;
+    }
     irep->syms = (mrb_sym *)mrb_malloc(mrb, sizeof(mrb_sym) * irep->slen);
     if (irep->syms == NULL) {
       ret = MRB_DUMP_GENERAL_FAILURE;
@@ -216,6 +230,10 @@ read_rite_lineno_record(mrb_state *mrb, const uint8_t *bin, size_t irepno, uint3
   fname_len = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
   *len += sizeof(uint16_t);
+  if (SIZE_ERROR(fname_len + 1)) {
+    ret = MRB_DUMP_GENERAL_FAILURE;
+    goto error_exit;
+  }
   fname = (char *)mrb_malloc(mrb, fname_len + 1);
   if (fname == NULL) {
     ret = MRB_DUMP_GENERAL_FAILURE;
@@ -230,7 +248,15 @@ read_rite_lineno_record(mrb_state *mrb, const uint8_t *bin, size_t irepno, uint3
   bin += sizeof(uint32_t); // niseq
   *len += sizeof(uint32_t);
 
+  if (SIZE_ERROR_MUL(niseq, sizeof(uint16_t))) {
+    ret = MRB_DUMP_GENERAL_FAILURE;
+    goto error_exit;
+  }
   lines = (uint16_t *)mrb_malloc(mrb, niseq * sizeof(uint16_t));
+  if (lines == NULL) {
+    ret = MRB_DUMP_GENERAL_FAILURE;
+    goto error_exit;
+  }
   for (i = 0; i < niseq; i++) {
     lines[i] = bin_to_uint16(bin);
     bin += sizeof(uint16_t); // niseq
@@ -241,6 +267,10 @@ read_rite_lineno_record(mrb_state *mrb, const uint8_t *bin, size_t irepno, uint3
   mrb->irep[irepno]->lines = lines;
 
 error_exit:
+  if (fname) {
+    mrb_free(mrb, fname);
+  }
+
   return ret;
 }
 
@@ -282,7 +312,7 @@ read_rite_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc)
   if (memcmp(header->binary_identify, RITE_BINARY_IDENFIFIER, sizeof(header->binary_identify)) != 0) {
     return MRB_DUMP_INVALID_FILE_HEADER;
   }
-  
+
   if (memcmp(header->binary_version, RITE_BINARY_FORMAT_VER, sizeof(header->binary_version)) != 0) {
     return MRB_DUMP_INVALID_FILE_HEADER;
   }
@@ -385,16 +415,32 @@ read_rite_section_lineno_file(mrb_state *mrb, FILE *fp, size_t sirep)
   nirep = bin_to_uint16(header.nirep);
 
   buf_size = record_header_size;
+  /* We don't need to check buf_size. As it is enough small. */
   buf = (uint8_t *)mrb_malloc(mrb, buf_size);
-  
+  if (!buf) {
+    result = MRB_DUMP_GENERAL_FAILURE;
+    goto error_exit;
+  }
+
   //Read Binary Data Section
   for (n = 0, i = sirep; n < nirep; n++, i++) {
+    void *ptr;
+
     if (fread(buf, record_header_size, 1, fp) == 0) {
       result = MRB_DUMP_READ_FAULT;
       goto error_exit;
     }
     buf_size = bin_to_uint32(&buf[0]);
-    buf = (uint8_t *)mrb_realloc(mrb, buf, buf_size);
+    if (SIZE_ERROR(buf_size)) {
+      result = MRB_DUMP_GENERAL_FAILURE;
+      goto error_exit;
+    }
+    ptr = mrb_realloc(mrb, buf, buf_size);
+    if (!ptr) {
+      result = MRB_DUMP_GENERAL_FAILURE;
+      goto error_exit;
+    }
+    buf = (uint8_t *)ptr;
 
     if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) == 0) {
       result = MRB_DUMP_READ_FAULT;
@@ -407,7 +453,9 @@ read_rite_section_lineno_file(mrb_state *mrb, FILE *fp, size_t sirep)
 
   result = sirep + bin_to_uint16(header.sirep);
 error_exit:
-  mrb_free(mrb, buf);
+  if (buf) {
+    mrb_free(mrb, buf);
+  }
   if (result < MRB_DUMP_OK) {
     irep_free(sirep, mrb);
   }
@@ -435,16 +483,33 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
   nirep = bin_to_uint16(header.nirep);
 
   buf_size = record_header_size;
+  /* You don't need use SIZE_ERROR as buf_size is enough small. */
   buf = (uint8_t *)mrb_malloc(mrb, buf_size);
-  
+  if (!buf) {
+    result = MRB_DUMP_GENERAL_FAILURE;
+    goto error_exit;
+  }
+
   //Read Binary Data Section
   for (n = 0, i = sirep; n < nirep; n++, i++) {
+    void *ptr;
+
     if (fread(buf, record_header_size, 1, fp) == 0) {
       result = MRB_DUMP_READ_FAULT;
       goto error_exit;
     }
     buf_size = bin_to_uint32(&buf[0]);
-    buf = (uint8_t *)mrb_realloc(mrb, buf, buf_size);
+    if (SIZE_ERROR(buf_size)) {
+      result = MRB_DUMP_GENERAL_FAILURE;
+      goto error_exit;
+    }
+    ptr = mrb_realloc(mrb, buf, buf_size);
+    if (!ptr) {
+      result = MRB_DUMP_GENERAL_FAILURE;
+      goto error_exit;
+    }
+    buf = (uint8_t *)ptr;
+
     if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) == 0) {
       result = MRB_DUMP_READ_FAULT;
       goto error_exit;
@@ -456,7 +521,9 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
 
   result = sirep + bin_to_uint16(header.sirep);
 error_exit:
-  mrb_free(mrb, buf);
+  if (buf) {
+    mrb_free(mrb, buf);
+  }
   if (result < MRB_DUMP_OK) {
     irep_free(sirep, mrb);
   }
@@ -482,7 +549,11 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
+  /* You don't need use SIZE_ERROR as buf_size is enough small. */
   buf = mrb_malloc(mrb, buf_size);
+  if (!buf) {
+    return MRB_DUMP_GENERAL_FAILURE;
+  }
   if (fread(buf, buf_size, 1, fp) == 0) {
     mrb_free(mrb, buf);
     return MRB_DUMP_READ_FAULT;
@@ -495,7 +566,11 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 
   /* verify CRC */
   fpos = ftell(fp);
+  /* You don't need use SIZE_ERROR as block_size is enough small. */
   buf = mrb_malloc(mrb, block_size);
+  if (!buf) {
+    return MRB_DUMP_GENERAL_FAILURE;
+  }
   fseek(fp, offset_crc_body(), SEEK_SET);
   while ((nbytes = fread(buf, 1, block_size, fp)) > 0) {
     crcwk = calc_crc_16_ccitt(buf, nbytes, crcwk);
