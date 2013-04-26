@@ -71,6 +71,10 @@
 # define str_to_mrb_float(buf) strtod(buf, NULL)
 #endif
 
+#if defined(MRB_INT16) && defined(MRB_INT64)
+# error You can't define MRB_INT16 and MRB_INT64 at the same time.
+#endif
+
 #if defined(MRB_INT64)
 # ifdef MRB_NAN_BOXING
 #  error Cannot use NaN boxing when mrb_int is 64bit
