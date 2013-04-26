@@ -73,13 +73,7 @@ mrb_intern_str(mrb_state *mrb, mrb_value str)
 }
 
 mrb_value
-mrb_cstr_interned(mrb_state *mrb, const char *name)
-{
-  return mrb_interned(mrb, name, strlen(name));
-}
-
-mrb_value
-mrb_interned(mrb_state *mrb, const char *name, size_t len)
+mrb_check_intern(mrb_state *mrb, const char *name, size_t len)
 {
   khash_t(n2s) *h = mrb->name2sym;
   symbol_name sname;
@@ -96,9 +90,15 @@ mrb_interned(mrb_state *mrb, const char *name, size_t len)
 }
 
 mrb_value
-mrb_str_interned(mrb_state *mrb, mrb_value str)
+mrb_check_intern_cstr(mrb_state *mrb, const char *name)
 {
-  return mrb_interned(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
+  return mrb_check_intern(mrb, name, strlen(name));
+}
+
+mrb_value
+mrb_check_intern_str(mrb_state *mrb, mrb_value str)
+{
+  return mrb_check_intern(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
 }
 
 /* lenp must be a pointer to a size_t variable */
