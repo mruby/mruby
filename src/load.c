@@ -55,7 +55,7 @@ irep_free(size_t sirep, mrb_state *mrb)
 }
 
 static size_t
-offset_crc_body()
+offset_crc_body(void)
 {
   struct rite_binary_header header;
   return ((uint8_t *)header.binary_crc - (uint8_t *)&header) + sizeof(header.binary_crc);
