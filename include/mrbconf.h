@@ -75,7 +75,7 @@
 #endif
 
 #if defined(MRB_INT16) && defined(MRB_INT64)
-# error You can't define MRB_INT16 and MRB_INT64 at the same time.
+# error "You can't define MRB_INT16 and MRB_INT64 at the same time."
 #endif
 
 #if defined(MRB_INT64)
