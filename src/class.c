@@ -1535,7 +1535,8 @@ mrb_mod_cvar_defined(mrb_state *mrb, mrb_value mod)
     sym = mrb_check_intern_str(mrb, id);
     if (mrb_nil_p(sym)) {
       defined_p = FALSE;
-    } else {
+    }
+    else {
       defined_p = mrb_cv_defined(mrb, mod, mrb_symbol(sym));
     }
   }
@@ -1684,7 +1685,8 @@ mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
     mrb_value sym = mrb_check_intern_str(mrb, id);
     if (mrb_nil_p(sym)) {
       method_defined_p = FALSE;
-    } else {
+    }
+    else {
       method_defined_p = mrb_obj_respond_to(mrb_class_ptr(mod), mrb_symbol(sym));
     }
   }
@@ -1769,7 +1771,8 @@ mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
     sym = mrb_check_intern_str(mrb, id);
     if (mrb_nil_p(sym)) {
       const_defined_p = FALSE;
-    } else {
+    }
+    else {
       const_defined_p = mrb_const_defined(mrb, mod, mrb_symbol(sym));
     }
   }

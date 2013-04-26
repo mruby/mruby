@@ -975,7 +975,8 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
 
   if (mrb_symbol_p(mid)) {
     id = mrb_symbol(mid);
-  } else {
+  }
+  else {
     mrb_value tmp;
     if (!mrb_string_p(mid)) {
       tmp = mrb_check_string_type(mrb, mid);
@@ -987,8 +988,9 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
     tmp = mrb_check_intern_str(mrb, mid);
     if (mrb_nil_p(tmp)) {
       respond_to_p = FALSE;
-    } else {
-      id = mrb_intern_str(mrb, mid);
+    }
+    else {
+      id = mrb_symbol(tmp);
     }
   }
 
