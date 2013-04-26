@@ -72,6 +72,35 @@ mrb_intern_str(mrb_state *mrb, mrb_value str)
   return mrb_intern2(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
 }
 
+mrb_value
+mrb_cstr_interned(mrb_state *mrb, const char *name)
+{
+  return mrb_interned(mrb, name, strlen(name));
+}
+
+mrb_value
+mrb_interned(mrb_state *mrb, const char *name, size_t len)
+{
+  khash_t(n2s) *h = mrb->name2sym;
+  symbol_name sname;
+  khiter_t k;
+
+  sname.len = len;
+  sname.name = name;
+
+  k = kh_get(n2s, h, sname);
+  if (k != kh_end(h)) {
+    return mrb_symbol_value(kh_value(h, k));
+  }
+  return mrb_nil_value();
+}
+
+mrb_value
+mrb_str_interned(mrb_state *mrb, mrb_value str)
+{
+  return mrb_interned(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
+}
+
 /* lenp must be a pointer to a size_t variable */
 const char*
 mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, size_t *lenp)
