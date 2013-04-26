@@ -14,7 +14,10 @@
 /* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
 //#define MRB_USE_FLOAT
 
-/* add -DMRB_INT64 to use 64bit integer for mrb_int */
+/* add -DMRB_INT16 to use 16bit integer for mrb_int; conflict with MRB_INT64 */
+//#define MRB_INT16
+
+/* add -DMRB_INT64 to use 64bit integer for mrb_int; conflict with MRB_INT16 */
 //#define MRB_INT64
 
 /* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT */
@@ -69,6 +72,10 @@
   typedef double mrb_float;
 # define mrb_float_to_str(buf, i) sprintf(buf, "%.16e", i)
 # define str_to_mrb_float(buf) strtod(buf, NULL)
+#endif
+
+#if defined(MRB_INT16) && defined(MRB_INT64)
+# error You can't define MRB_INT16 and MRB_INT64 at the same time.
 #endif
 
 #if defined(MRB_INT64)
