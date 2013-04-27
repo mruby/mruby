@@ -12,7 +12,7 @@ MRuby::Build.new do |conf|
   # conf.gem :git => 'git@github.com:masuidrive/mrbgems-example.git', :branch => 'master', :options => '-v'
 
   # include the default GEMs
-  conf.gembox 'full-core'
+  conf.gembox 'default'
 
   # C compiler settings
   # conf.cc do |cc|
