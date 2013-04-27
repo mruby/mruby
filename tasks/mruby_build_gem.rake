@@ -1,11 +1,4 @@
 module MRuby
-  GemBox = BasicObject.new
-  class << GemBox
-    def new(&block); block.call(self); end
-    def config=(obj); @config = obj; end
-    def gem(gemdir, &block); @config.gem(gemdir, &block); end
-  end
-
   module LoadGems
     def gembox(gemboxfile)
       gembox = File.absolute_path("#{gemboxfile}.gembox", "#{MRUBY_ROOT}/mrbgems")
