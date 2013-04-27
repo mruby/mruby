@@ -690,6 +690,9 @@ mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
     struct RClass *p = c, *ic;
     int superclass_seen = 0;
 
+    if (c->mt == m->mt) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic include detected");
+    }
     while (p) {
       if (c != p && p->tt == MRB_TT_CLASS) {
         superclass_seen = 1;
