@@ -213,7 +213,7 @@ mrb_sym_to_s(mrb_state *mrb, mrb_value sym)
   size_t len;
 
   p = mrb_sym2name_len(mrb, id, &len);
-  return mrb_str_new(mrb, p, len);
+  return mrb_str_new_static(mrb, p, len);
 }
 
 /* 15.2.11.3.4  */
@@ -381,14 +381,14 @@ mrb_sym2str(mrb_state *mrb, mrb_sym sym)
 {
   size_t len;
   const char *name = mrb_sym2name_len(mrb, sym, &len);
-
+  mrb_value str;
+  
   if (!name) return mrb_undef_value(); /* can't happen */
+  str = mrb_str_new_static(mrb, name, len);
   if (symname_p(name) && strlen(name) == len) {
-    return mrb_str_new(mrb, name, len);
+    return str;
   }
-  else {
-    return mrb_str_dump(mrb, mrb_str_new(mrb, name, len));
-  }
+  return mrb_str_dump(mrb, str);
 }
 
 const char*
@@ -402,7 +402,7 @@ mrb_sym2name(mrb_state *mrb, mrb_sym sym)
     return name;
   }
   else {
-    mrb_value str = mrb_str_dump(mrb, mrb_str_new(mrb, name, len));
+    mrb_value str = mrb_str_dump(mrb, mrb_str_new_static(mrb, name, len));
     return RSTRING(str)->ptr;
   }
 }

@@ -37,7 +37,8 @@ struct RString {
 #define RSTRING_LEN(s)    (RSTRING(s)->len)
 #define RSTRING_CAPA(s)   (RSTRING(s)->aux.capa)
 #define RSTRING_END(s)    (RSTRING(s)->ptr + RSTRING(s)->len)
-#define MRB_STR_SHARED      256
+#define MRB_STR_SHARED    1
+#define MRB_STR_STATIC    (1<<1)
 
 void mrb_str_decref(mrb_state*, mrb_shared_string*);
 void mrb_str_modify(mrb_state*, struct RString*);

@@ -34,6 +34,7 @@ static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_
 void
 mrb_str_decref(mrb_state *mrb, mrb_shared_string *shared)
 {
+  if (shared->refcnt < 0) return;
   shared->refcnt--;
   if (shared->refcnt == 0) {
     mrb_free(mrb, shared->ptr);
@@ -44,6 +45,18 @@ mrb_str_decref(mrb_state *mrb, mrb_shared_string *shared)
 void
 mrb_str_modify(mrb_state *mrb, struct RString *s)
 {
+  if (s->flags & MRB_STR_STATIC) {
+    char *p = s->ptr;
+
+    s->ptr = (char *)mrb_malloc(mrb, (size_t)s->len+1);
+    if (p) {
+      memcpy(s->ptr, p, s->len);
+    }
+    s->ptr[s->len] = '\0';
+    s->flags &= ~MRB_STR_STATIC;
+    return;
+  }
+
   if (s->flags & MRB_STR_SHARED) {
     mrb_shared_string *shared = s->aux.shared;
 
@@ -68,6 +81,7 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
       mrb_str_decref(mrb, shared);
     }
     s->flags &= ~MRB_STR_SHARED;
+    return;
   }
 }
 
@@ -249,6 +263,19 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
   return mrb_obj_value(s);
 }
 
+mrb_value
+mrb_str_new_static(mrb_state *mrb, const char *p, size_t len)
+{
+  struct RString *s;
+
+  s = mrb_obj_alloc_string(mrb);
+  s->len = len;
+  s->aux.capa = len;
+  s->ptr = (char *)p;
+  s->flags |= MRB_STR_STATIC;
+  return mrb_obj_value(s);
+}
+
 char *
 mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
 {
@@ -271,12 +298,19 @@ str_make_shared(mrb_state *mrb, struct RString *s)
   if (!(s->flags & MRB_STR_SHARED)) {
     mrb_shared_string *shared = (mrb_shared_string *)mrb_malloc(mrb, sizeof(mrb_shared_string));
 
-    shared->refcnt = 1;
-    if (s->aux.capa > s->len) {
-      s->ptr = shared->ptr = (char *)mrb_realloc(mrb, s->ptr, s->len+1);
+    if (s->flags & MRB_STR_STATIC) {
+      shared->refcnt = -1;      /* should never be freed */
+      shared->ptr = s->ptr;
+      s->flags &= ~MRB_STR_STATIC;
     }
     else {
-      shared->ptr = s->ptr;
+      shared->refcnt = 1;
+      if (s->aux.capa > s->len) {
+        s->ptr = shared->ptr = (char *)mrb_realloc(mrb, s->ptr, s->len+1);
+      }
+      else {
+        shared->ptr = s->ptr;
+      }
     }
     shared->len = s->len;
     s->aux.shared = shared;
