@@ -273,17 +273,17 @@ mrb_init_file(mrb_state *mrb)
   io   = mrb_class_obj_get(mrb, "IO");
   file = mrb_define_class(mrb, "File", io);
   MRB_SET_INSTANCE_TT(file, MRB_TT_DATA);
-  mrb_define_class_method(mrb, file, "umask", mrb_file_s_umask, ARGS_REQ(1));
-  mrb_define_class_method(mrb, file, "unlink", mrb_file_s_unlink, ARGS_ANY());
-  mrb_define_class_method(mrb, file, "delete", mrb_file_s_unlink, ARGS_ANY());
-  mrb_define_class_method(mrb, file, "rename", mrb_file_s_rename, ARGS_REQ(2));
+  mrb_define_class_method(mrb, file, "umask",  mrb_file_s_umask, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, file, "unlink", mrb_file_s_unlink, MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, file, "delete", mrb_file_s_unlink, MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, file, "rename", mrb_file_s_rename, MRB_ARGS_REQ(2));
 
-  mrb_define_class_method(mrb, file, "dirname",   mrb_file_dirname,    ARGS_REQ(1));
-  mrb_define_class_method(mrb, file, "basename",  mrb_file_basename,   ARGS_REQ(1));
-  mrb_define_class_method(mrb, file, "realpath",  mrb_file_realpath,   ARGS_REQ(1)|ARGS_OPT(1));
-  mrb_define_class_method(mrb, file, "size",      mrb_file_size,       ARGS_REQ(1));
-  mrb_define_class_method(mrb, file, "_getwd", mrb_file__getwd, ARGS_NONE());
-  mrb_define_class_method(mrb, file, "_gethome", mrb_file__gethome, ARGS_OPT(1));
+  mrb_define_class_method(mrb, file, "dirname",   mrb_file_dirname,    MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, file, "basename",  mrb_file_basename,   MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, file, "realpath",  mrb_file_realpath,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_class_method(mrb, file, "size",      mrb_file_size,       MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, file, "_getwd",    mrb_file__getwd,     MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, file, "_gethome",  mrb_file__gethome,   MRB_ARGS_OPT(1));
 
   cnst = mrb_define_module_under(mrb, file, "Constants");
   mrb_define_const(mrb, cnst, "LOCK_SH", mrb_fixnum_value(LOCK_SH));

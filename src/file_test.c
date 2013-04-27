@@ -295,13 +295,13 @@ mrb_init_file_test(mrb_state *mrb)
 
   f = mrb_define_class(mrb, "FileTest", mrb->object_class);
 
-  mrb_define_class_method(mrb, f, "directory?", mrb_filetest_s_directory_p, ARGS_REQ(1));
-  mrb_define_class_method(mrb, f, "exist?",     mrb_filetest_s_exist_p,     ARGS_REQ(1));
-  mrb_define_class_method(mrb, f, "exists?",    mrb_filetest_s_exist_p,     ARGS_REQ(1));
-  mrb_define_class_method(mrb, f, "file?",      mrb_filetest_s_file_p,      ARGS_REQ(1));
-  mrb_define_class_method(mrb, f, "pipe?",      mrb_filetest_s_pipe_p,      ARGS_REQ(1));
-  mrb_define_class_method(mrb, f, "size?",      mrb_filetest_s_size_p,      ARGS_REQ(1));
-  mrb_define_class_method(mrb, f, "socket?",    mrb_filetest_s_socket_p,    ARGS_REQ(1));
-  mrb_define_class_method(mrb, f, "symlink?",   mrb_filetest_s_symlink_p,   ARGS_REQ(1));
-  mrb_define_class_method(mrb, f, "zero?",      mrb_filetest_s_zero_p,      ARGS_REQ(1));
+  mrb_define_class_method(mrb, f, "directory?", mrb_filetest_s_directory_p, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, f, "exist?",     mrb_filetest_s_exist_p,     MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, f, "exists?",    mrb_filetest_s_exist_p,     MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, f, "file?",      mrb_filetest_s_file_p,      MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, f, "pipe?",      mrb_filetest_s_pipe_p,      MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, f, "size?",      mrb_filetest_s_size_p,      MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, f, "socket?",    mrb_filetest_s_socket_p,    MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, f, "symlink?",   mrb_filetest_s_symlink_p,   MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, f, "zero?",      mrb_filetest_s_zero_p,      MRB_ARGS_REQ(1));
 }

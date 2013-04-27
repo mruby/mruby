@@ -737,19 +737,19 @@ mrb_init_io(mrb_state *mrb)
 
   mrb_include_module(mrb, io, mrb_class_get(mrb, "Enumerable")); /* 15.2.20.3 */
 
-  mrb_define_class_method(mrb, io, "_popen",  mrb_io_s_popen,   ARGS_ANY());
-  mrb_define_class_method(mrb, io, "for_fd",  mrb_io_s_for_fd,  ARGS_REQ(1)|ARGS_OPT(2));
-  mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, ARGS_ANY());
+  mrb_define_class_method(mrb, io, "_popen",  mrb_io_s_popen,   MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, io, "for_fd",  mrb_io_s_for_fd,  MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2));
+  mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, MRB_ARGS_ANY());
 
-  mrb_define_method(mrb, io, "_bless",     mrb_io_bless,       ARGS_NONE());
-  mrb_define_method(mrb, io, "initialize", mrb_io_initialize,  ARGS_ANY());    /* 15.2.20.5.21 (x)*/
-  mrb_define_method(mrb, io, "sysread",    mrb_io_sysread,     ARGS_ANY());
-  mrb_define_method(mrb, io, "sysseek",    mrb_io_sysseek,     ARGS_REQ(1));
-  mrb_define_method(mrb, io, "syswrite",   mrb_io_syswrite,    ARGS_REQ(1));
-  mrb_define_method(mrb, io, "close",      mrb_io_close,       ARGS_NONE());   /* 15.2.20.5.1 */
-  mrb_define_method(mrb, io, "closed?",    mrb_io_closed,      ARGS_NONE());   /* 15.2.20.5.2 */
-  mrb_define_method(mrb, io, "pid",        mrb_io_pid,         ARGS_NONE());   /* 15.2.20.5.2 */
-  mrb_define_method(mrb, io, "fileno",     mrb_io_fileno,      ARGS_NONE());
+  mrb_define_method(mrb, io, "_bless",     mrb_io_bless,       MRB_ARGS_NONE());
+  mrb_define_method(mrb, io, "initialize", mrb_io_initialize,  MRB_ARGS_ANY());    /* 15.2.20.5.21 (x)*/
+  mrb_define_method(mrb, io, "sysread",    mrb_io_sysread,     MRB_ARGS_ANY());
+  mrb_define_method(mrb, io, "sysseek",    mrb_io_sysseek,     MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, io, "syswrite",   mrb_io_syswrite,    MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, io, "close",      mrb_io_close,       MRB_ARGS_NONE());   /* 15.2.20.5.1 */
+  mrb_define_method(mrb, io, "closed?",    mrb_io_closed,      MRB_ARGS_NONE());   /* 15.2.20.5.2 */
+  mrb_define_method(mrb, io, "pid",        mrb_io_pid,         MRB_ARGS_NONE());   /* 15.2.20.5.2 */
+  mrb_define_method(mrb, io, "fileno",     mrb_io_fileno,      MRB_ARGS_NONE());
 
   mrb_gv_set(mrb, mrb_intern(mrb, "$/"), mrb_str_new_cstr(mrb, "\n"));
 }
