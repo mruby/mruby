@@ -11,61 +11,8 @@ MRuby::Build.new do |conf|
   # conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
   # conf.gem :git => 'git@github.com:masuidrive/mrbgems-example.git', :branch => 'master', :options => '-v'
 
-  # Use standard Kernel#sprintf method
-  conf.gem "#{root}/mrbgems/mruby-sprintf"
-
-  # Use standard print/puts/p
-  conf.gem "#{root}/mrbgems/mruby-print"
-
-  # Use standard Math module
-  conf.gem "#{root}/mrbgems/mruby-math"
-
-  # Use standard Time class
-  conf.gem "#{root}/mrbgems/mruby-time"
-
-  # Use standard Struct class
-  conf.gem "#{root}/mrbgems/mruby-struct"
-
-  # Use extensional Enumerable module
-  conf.gem "#{root}/mrbgems/mruby-enum-ext"
-
-  # Use extensional String class
-  conf.gem "#{root}/mrbgems/mruby-string-ext"
-
-  # Use extensional Numeric class
-  conf.gem "#{root}/mrbgems/mruby-numeric-ext"
-
-  # Use extensional Array class
-  conf.gem "#{root}/mrbgems/mruby-array-ext"
-
-  # Use extensional Hash class
-  conf.gem "#{root}/mrbgems/mruby-hash-ext"
-
-  # Use extensional Range class
-  conf.gem "#{root}/mrbgems/mruby-range-ext"
-
-  # Use extensional Proc class
-  conf.gem "#{root}/mrbgems/mruby-proc-ext"
-
-  # Use extensional Symbol class
-  conf.gem "#{root}/mrbgems/mruby-symbol-ext"
-
-  # Use Random class
-  conf.gem "#{root}/mrbgems/mruby-random"
-
-  # No use eval method
-  # conf.gem "#{root}/mrbgems/mruby-eval"
-
-
-  # Generate binaries
-  # conf.bins = %w(mrbc)
-
-  # Generate mirb command
-  conf.gem "#{root}/mrbgems/mruby-bin-mirb"
-
-  # Generate mruby command
-  conf.gem "#{root}/mrbgems/mruby-bin-mruby"
-
+  # include the default GEMs
+  conf.gembox 'full-core'
 
   # C compiler settings
   # conf.cc do |cc|
