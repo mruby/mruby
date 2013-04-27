@@ -218,16 +218,17 @@ mrb_mruby_dir_gem_init(mrb_state *mrb)
 
   d = mrb_define_class(mrb, "Dir", mrb->object_class);
   MRB_SET_INSTANCE_TT(d, MRB_TT_DATA);
-  mrb_define_class_method(mrb, d, "delete", mrb_dir_delete, ARGS_REQ(1));
-  mrb_define_class_method(mrb, d, "exist?", mrb_dir_existp, ARGS_REQ(1));
-  mrb_define_class_method(mrb, d, "getwd", mrb_dir_getwd, ARGS_NONE());
-  mrb_define_class_method(mrb, d, "mkdir", mrb_dir_mkdir, ARGS_REQ(1)|ARGS_OPT(1));
-  mrb_define_method(mrb, d, "close", mrb_dir_close, ARGS_NONE());
-  mrb_define_method(mrb, d, "initialize", mrb_dir_init, ARGS_REQ(1));
-  mrb_define_method(mrb, d, "read", mrb_dir_read, ARGS_NONE());
-  mrb_define_method(mrb, d, "rewind", mrb_dir_rewind, ARGS_NONE());
-  mrb_define_method(mrb, d, "seek", mrb_dir_seek, ARGS_REQ(1));
-  mrb_define_method(mrb, d, "tell", mrb_dir_tell, ARGS_NONE());
+  mrb_define_class_method(mrb, d, "delete", mrb_dir_delete, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, d, "exist?", mrb_dir_existp, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, d, "getwd",  mrb_dir_getwd,  MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, d, "mkdir",  mrb_dir_mkdir,  MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+
+  mrb_define_method(mrb, d, "close",      mrb_dir_close,  MRB_ARGS_NONE());
+  mrb_define_method(mrb, d, "initialize", mrb_dir_init,   MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, d, "read",       mrb_dir_read,   MRB_ARGS_NONE());
+  mrb_define_method(mrb, d, "rewind",     mrb_dir_rewind, MRB_ARGS_NONE());
+  mrb_define_method(mrb, d, "seek",       mrb_dir_seek,   MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, d, "tell",       mrb_dir_tell,   MRB_ARGS_NONE());
 }
 
 void
