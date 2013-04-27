@@ -1,7 +1,7 @@
 module MRuby
   module LoadGems
     def gembox(gemboxfile)
-      gembox = File.absolute_path("#{gemboxfile}.gembox", "#{MRUBY_ROOT}/mrbgems")
+      gembox = File.expand_path("#{gemboxfile}.gembox", "#{MRUBY_ROOT}/mrbgems")
       fail "Can't find gembox '#{gembox}'" unless File.exists?(gembox)
       GemBox.config = self
       instance_eval File.read(gembox)

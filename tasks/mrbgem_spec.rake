@@ -159,7 +159,7 @@ module MRuby
     end # Specification
   end # Gem
 
-  GemBox = BasicObject.new
+  GemBox = Object.new
   class << GemBox
     def new(&block); block.call(self); end
     def config=(obj); @config = obj; end
