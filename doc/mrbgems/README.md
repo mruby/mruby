@@ -9,7 +9,7 @@ By default mrbgems is currently deactivated. As soon as you add a GEM to your
 build configuration (*build_config.rb*), mrbgems will be activated and the
 extension integrated.
 
-To add a GEM into the build_config.rb add the following line for example:
+To add a GEM into the *build_config.rb* add the following line for example:
 
 	conf.gem '/path/to/your/gem/dir'
 
@@ -26,6 +26,41 @@ A remote GIT repository location for a GEM is also supported:
 	conf.gem :bitbucket => 'mruby/mrbgems-example', :branch => 'master'
 
 NOTE: ':bitbucket' option supports only git. Hg is unsupported in this version.
+
+## GemBox
+
+There are instances when you wish to add a collection of gems into mruby at 
+once, or be able to substitute gems based on configuration, without having to
+add each gem to the *build_config.rb* file.  A packaged collection of mrbgems 
+is called a Gembox.  A Gembox is a file that contains a list of gems to load 
+into mruby, in the same format as if you were adding them to *build_config.rb*
+via `config.gem`, but wrapped in an ```Mruby::GemBox``` object.  Gemboxes are 
+loaded into mruby via `config.gembox boxname`.
+
+Below we have created a Gembox containing mruby-time and mrbgems-example:
+
+    MRuby::GemBox.new do |conf|
+      conf.gem "#{root}/mrbgems/mruby-time"
+      conf.gem :github => 'masuidrive/mrbgems-example'
+    end
+
+As mentioned, the Gembox uses the same conventions as `MRuby::Build`.  The Gembox
+must be saved with a *.gembox* extension inside the *mrbgems* directory to to be
+picked up by mruby.
+
+To use this example Gembox, we save it as 'custom.box' inside the *mrbgems* 
+directory in mruby, and add the following to our *build_config.rb* file inside 
+the build block:
+
+    conf.gembox 'custom'
+
+This will cause the 'custom' gembox to be read in during the build process,
+adding mruby-time and mrbgems-example to the build.
+
+There are two Gemboxes that ship with mruby: [default](mrbgems/default.gembox)
+and [full-core](mrbgems/full-core). The [default](mrbgems/default.gembox) Gembox
+contains several core components of mruby, and [full-core](mrbgems/full-core)
+contains every gem found in the *mrbgems* directory.
 
 ## GEM Structure
 
