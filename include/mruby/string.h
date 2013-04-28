@@ -31,10 +31,8 @@ struct RString {
 #define RSTRING_LEN(s)    (RSTRING(s)->len)
 #define RSTRING_CAPA(s)   (RSTRING(s)->aux.capa)
 #define RSTRING_END(s)    (RSTRING(s)->ptr + RSTRING(s)->len)
-#define MRB_STR_SHARED    1
-#define MRB_STR_STATIC    (1<<1)
 
-void mrb_str_decref(mrb_state*, struct mrb_shared_string*);
+void mrb_gc_free_str(mrb_state*, struct RString*);
 void mrb_str_modify(mrb_state*, struct RString*);
 mrb_value mrb_str_literal(mrb_state*, mrb_value);
 void mrb_str_concat(mrb_state*, mrb_value, mrb_value);

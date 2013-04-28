@@ -529,10 +529,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_STRING:
-    if (obj->flags & MRB_STR_SHARED)
-      mrb_str_decref(mrb, ((struct RString*)obj)->aux.shared);
-    else if ((obj->flags & MRB_STR_STATIC) == 0)
-      mrb_free(mrb, ((struct RString*)obj)->ptr);
+    mrb_gc_free_str(mrb, (struct RString*)obj);
     break;
 
   case MRB_TT_RANGE:
