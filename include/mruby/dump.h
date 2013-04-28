@@ -140,11 +140,12 @@ bin_to_uint8(const uint8_t *bin)
   return (uint8_t)bin[0];
 }
 
-/* crc.c */
-uint16_t
-calc_crc_16_ccitt(const uint8_t *src, size_t nbytes, uint16_t crc);
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif
+
+/* crc.c */
+uint16_t
+calc_crc_16_ccitt(const uint8_t *src, size_t nbytes, uint16_t crc);
 
 #endif  /* MRUBY_DUMP_H */

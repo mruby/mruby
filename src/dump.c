@@ -12,6 +12,8 @@
 #include "mruby/irep.h"
 #include "mruby/numeric.h"
 
+int sprintf(char*, const char*, ...);
+
 static size_t
 get_irep_record_size(mrb_state *mrb, mrb_irep *irep);
 

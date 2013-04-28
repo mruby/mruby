@@ -22,6 +22,15 @@
 #include "opcode.h"
 #include "value_array.h"
 
+#ifndef ENABLE_STDIO
+#if defined(__cplusplus)
+extern "C" {
+#endif
+void abort(void);
+#if defined(__cplusplus)
+}  /* extern "C" { */
+#endif
+#endif
 
 #define SET_TRUE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
 #define SET_FALSE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)

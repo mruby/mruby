@@ -763,7 +763,7 @@ new_nth_ref(parser_state *p, int n)
 static node*
 new_heredoc(parser_state *p)
 {
-  parser_heredoc_info *inf = parser_palloc(p, sizeof(parser_heredoc_info));
+  parser_heredoc_info *inf = (parser_heredoc_info *)parser_palloc(p, sizeof(parser_heredoc_info));
   return cons((node*)NODE_HEREDOC, (node*)inf);
 }
 
@@ -3415,7 +3415,7 @@ scan_hex(const int *start, int len, int *retlen)
   char *tmp;
 
   /* assert(len <= 2) */
-  while (len-- && *s && (tmp = strchr(hexdigit, *s))) {
+  while (len-- && *s && (tmp = (char*)strchr(hexdigit, *s))) {
     retval <<= 4;
     retval |= (tmp - hexdigit) & 15;
     s++;
@@ -3773,7 +3773,7 @@ heredoc_identifier(parser_state *p)
   info->term_len = toklen(p);
   if (! quote)
     type |= STR_FUNC_EXPAND;
-  info->type = type;
+  info->type = (string_type)type;
   info->allow_indent = indent;
   info->line_head = TRUE;
   info->doc = NULL;
