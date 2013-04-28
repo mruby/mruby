@@ -837,7 +837,7 @@ mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
   return result;
 }
 
-mrb_value class_instance_method_list(mrb_state*, int, struct RClass*, int);
+mrb_value class_instance_method_list(mrb_state*, mrb_bool, struct RClass*, int);
 
 /* 15.2.2.4.33 */
 /*
