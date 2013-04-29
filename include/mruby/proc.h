@@ -40,9 +40,9 @@ struct RProc {
 #define MRB_ASPEC_BLOCK(a)        ((a) & 1)
 
 #define MRB_PROC_CFUNC 128
-#define MRB_PROC_CFUNC_P(p) ((p)->flags & MRB_PROC_CFUNC)
+#define MRB_PROC_CFUNC_P(p) (((p)->flags & MRB_PROC_CFUNC) != 0)
 #define MRB_PROC_STRICT 256
-#define MRB_PROC_STRICT_P(p) ((p)->flags & MRB_PROC_STRICT)
+#define MRB_PROC_STRICT_P(p) (((p)->flags & MRB_PROC_STRICT) != 0)
 
 #define mrb_proc_ptr(v)    ((struct RProc*)((v).value.p))
 
