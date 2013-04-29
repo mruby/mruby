@@ -247,7 +247,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   else {
     /* old style: should we warn? */
     name = mrb_str_to_str(mrb, name);
-    id = mrb_to_id(mrb, name);
+    id = mrb_obj_to_sym(mrb, name);
     if (!mrb_is_const_id(id)) {
       mrb_name_error(mrb, id, "identifier %S needs to be constant", name);
     }
@@ -377,7 +377,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
       rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
     }
     for (i=0; i<RARRAY_LEN(rest); i++) {
-      id = mrb_to_id(mrb, RARRAY_PTR(rest)[i]);
+      id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
       RARRAY_PTR(rest)[i] = mrb_symbol_value(id);
     }
   }
@@ -573,7 +573,7 @@ mrb_struct_aref_n(mrb_state *mrb, mrb_value s, mrb_value idx)
   mrb_int i;
 
   if (mrb_string_p(idx) || mrb_symbol_p(idx)) {
-    return mrb_struct_aref_id(mrb, s, mrb_to_id(mrb, idx));
+    return mrb_struct_aref_id(mrb, s, mrb_obj_to_sym(mrb, idx));
   }
 
   i = mrb_fixnum(idx);
@@ -655,7 +655,7 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
   mrb_get_args(mrb, "oo", &idx, &val);
 
   if (mrb_string_p(idx) || mrb_symbol_p(idx)) {
-    return mrb_struct_aset_id(mrb, s, mrb_to_id(mrb, idx), val);
+    return mrb_struct_aset_id(mrb, s, mrb_obj_to_sym(mrb, idx), val);
   }
 
   i = mrb_fixnum(idx);
