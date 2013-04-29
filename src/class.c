@@ -796,6 +796,8 @@ mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
   struct RClass *c = mrb_class_ptr(self);
 
   result = mrb_ary_new(mrb);
+  mrb_ary_push(mrb, result, mrb_obj_value(c));
+  c = c->super;
   while (c) {
     if (c->tt == MRB_TT_ICLASS) {
       mrb_ary_push(mrb, result, mrb_obj_value(c->c));
