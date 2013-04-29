@@ -227,7 +227,7 @@ void *mrb_malloc(mrb_state*, size_t);
 void *mrb_calloc(mrb_state*, size_t, size_t);
 void *mrb_realloc(mrb_state*, void*, size_t);
 struct RBasic *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*);
-void *mrb_free(mrb_state*, void*);
+void mrb_free(mrb_state*, void*);
 
 mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
 mrb_value mrb_str_new_cstr(mrb_state*, const char*);

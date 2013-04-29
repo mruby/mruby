@@ -197,10 +197,10 @@ mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
   return p;
 }
 
-void*
+void
 mrb_free(mrb_state *mrb, void *p)
 {
-  return (mrb->allocf)(mrb, p, 0, mrb->ud);
+  (mrb->allocf)(mrb, p, 0, mrb->ud);
 }
 
 #ifndef MRB_HEAP_PAGE_SIZE
