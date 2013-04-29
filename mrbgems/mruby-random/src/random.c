@@ -15,13 +15,8 @@
 #define INSTANCE_RAND_SEED_KEY  "$mrb_i_rand_seed"
 #define MT_STATE_KEY            "$mrb_i_mt_state"
 
-static void mt_state_free(mrb_state *mrb, void *p)
-{
-  mrb_free(mrb, p);
-}
-
 static const struct mrb_data_type mt_state_type = {
-    MT_STATE_KEY, mt_state_free,
+    MT_STATE_KEY, mrb_free,
 };
 
 static mt_state *mrb_mt_get_context(mrb_state *mrb,  mrb_value self)
