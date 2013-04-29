@@ -7,8 +7,6 @@
 #ifndef MRUBY_VALUE_H
 #define MRUBY_VALUE_H
 
-typedef unsigned int mrb_bool;
-
 #ifndef MRB_NAN_BOXING
 
 enum mrb_vtype {
