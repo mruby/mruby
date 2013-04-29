@@ -132,8 +132,14 @@ typedef short mrb_sym;
 # define PRIo64 "I64o"
 # define PRIx64 "I64x"
 # define PRIX64 "I64X"
+typedef uint8_t mrb_bool;
 #else
 # include <inttypes.h>
+# ifdef __cplusplus
+typedef bool mrb_bool;
+# else
+typedef _Bool mrb_bool;
+# endif
 #endif
 
 #ifdef ENABLE_STDIO
