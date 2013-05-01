@@ -1066,15 +1066,6 @@ mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id)
   return mrb_iv_get(mrb, obj, id);
 }
 
-struct RClass *
-mrb_class_obj_get(mrb_state *mrb, const char *name)
-{
-  mrb_value mod = mrb_obj_value(mrb->object_class);
-  mrb_sym sym = mrb_intern(mrb, name);
-
-  return mrb_class_ptr(mrb_const_get(mrb, mod, sym));
-}
-
 struct csym_arg {
   struct RClass *c;
   mrb_sym sym;

@@ -9,7 +9,7 @@
 #include "mruby/range.h"
 #include "mruby/string.h"
 
-#define RANGE_CLASS (mrb_class_obj_get(mrb, "Range"))
+#define RANGE_CLASS (mrb_class_get(mrb, "Range"))
 
 static void
 range_check(mrb_state *mrb, mrb_value a, mrb_value b)
