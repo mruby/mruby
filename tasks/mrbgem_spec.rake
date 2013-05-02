@@ -30,6 +30,9 @@ module MRuby
 
       attr_accessor :bins
 
+      attr_accessor :requirements
+      attr_reader :dependencies
+
       attr_block MRuby::Build::COMMANDS
 
       def initialize(name, &block)
@@ -63,6 +66,9 @@ module MRuby
 
         @bins = []
 
+        @requirements = []
+        @dependencies = []
+
         instance_eval(&@initializer)
 
         if !name || !licenses || !authors
@@ -78,6 +84,12 @@ module MRuby
         end
 
         define_gem_init_builder
+      end
+
+      def add_dependency(name, *requirements)
+        requirements = ['> 0.0.0'] if requirements.empty?
+        requirements.flatten!
+        @dependencies << [:gem => name, :requirements => requirements]
       end
 
       def self.bin=(bin)

@@ -98,19 +98,50 @@ The mrbgems build process will use this specification to compile Object and Ruby
 files. The compilation results will be add to *lib/libmruby.a*. This file is used
 by tools like `mruby` and `mirb` to empower the GEM functionality.
 
+The following properties can be set inside of your `MRuby::Gem::Specification` for
+information purpose:
+
+* `spec.license` or `spec.licenses` (A single license or a list of them under which this GEM is licensed)
+* `spec.author` or `spec.authors` (Developer name or a list of them)
+* `spec.version` (Current version)
+* `spec.description` (Detailed description)
+* `spec.summary` (Short summary)
+* `spec.homepage` (Homepage)
+* `spec.requirements` (External requirements as information for user)
+
+It is required for every GEM to have a license and an author!
+
+In case your GEM is depending on other GEMs please use
+`spec.add_dependency(gem, *requirements)` like:
+
+	MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
+	  spec.license = 'MIT'
+	  spec.authors = 'mruby developers'
+
+	  # add GEM dependency mruby-parser.
+	  # Version has to be between 1.0.0 and 1.5.2
+	  spec.add_dependency('mruby-parser', '> 1.0.0', '< 1.5.2')
+	end
+
+The usage of versions is optional.
+
+__ATTENTION:__
+The dependency system is currently (May 2013) under development and doesn't check
+or resolve dependencies!
+
 In case your GEM has more complex build requirements you can use
 the following options additionally inside of your GEM specification:
 
-* spec.cflags (C compiler flags for this GEM)
-* spec.mruby_cflags (global C compiler flags for everything)
-* spec.mruby_ldflags (global linker flags for everything)
-* spec.mruby_libs (global libraries for everything)
-* spec.mruby_includes (global includes for everything)
-* spec.rbfiles (Ruby files to compile)
-* spec.objs (Object files to compile)
-* spec.test_rbfiles (Ruby test files for integration into mrbtest)
-* spec.test_objs (Object test files for integration into mrbtest)
-* spec.test_preload (Initialization files for mrbtest)
+* `spec.cflags` (C compiler flags)
+* `spec.mruby_cflags` (global C compiler flags for everything)
+* `spec.mruby_ldflags` (global linker flags for everything)
+* `spec.mruby_libs` (global libraries for everything)
+* `spec.mruby_includes` (global includes for everything)
+* `spec.rbfiles` (Ruby files to compile)
+* `spec.objs` (Object files to compile)
+* `spec.test_rbfiles` (Ruby test files for integration into mrbtest)
+* `spec.test_objs` (Object test files for integration into mrbtest)
+* `spec.test_preload` (Initialization files for mrbtest)
 
 ## C Extension
 
