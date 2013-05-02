@@ -239,6 +239,8 @@ void mrb_close(mrb_state*);
 
 mrb_value mrb_top_self(mrb_state *);
 mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
+mrb_value mrb_run_argv(mrb_state *mrb, struct RProc*, mrb_value self, int argc, mrb_value *argv);
+mrb_value mrb_run_with_block(mrb_state *mrb, struct RProc*, mrb_value self, int argc, mrb_value *argv, mrb_value blk);
 
 void mrb_p(mrb_state*, mrb_value);
 mrb_int mrb_obj_id(mrb_value obj);

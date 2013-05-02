@@ -2004,3 +2004,62 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   }
   END_DISPATCH;
 }
+
+mrb_value
+mrb_run_with_block(mrb_state *mrb, struct RProc *p, mrb_value self, int argc, mrb_value *argv, mrb_value blk)
+{
+  mrb_value val;
+  struct RClass *c;
+  mrb_callinfo *ci;
+  int n;
+  
+  if (!mrb->stack) {
+    stack_init(mrb);
+  }
+  n = mrb->ci->nregs;
+  if (argc < 0) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%S)", mrb_fixnum_value(argc));
+  }
+  c = mrb_class(mrb, self);
+  ci = cipush(mrb);
+  ci->mid = 0;
+  ci->proc = p;
+  ci->stackidx = mrb->stack - mrb->stbase;
+  ci->argc = argc;
+  ci->target_class = p->target_class;
+  if (MRB_PROC_CFUNC_P(p)) {
+    ci->nregs = argc + 2;
+  }
+  else {
+    ci->nregs = p->body.irep->nregs + n;
+  }
+  ci->acc = -1;
+  mrb->stack = mrb->stack + n;
+  
+  stack_extend(mrb, ci->nregs, 0);
+  mrb->stack[0] = self;
+  if (argc > 0) {
+    stack_copy(mrb->stack+1, argv, argc);
+  }
+  mrb->stack[argc+1] = blk;
+  
+  if (MRB_PROC_CFUNC_P(p)) {
+    int ai = mrb_gc_arena_save(mrb);
+    val = p->body.func(mrb, self);
+    mrb_gc_arena_restore(mrb, ai);
+    mrb_gc_protect(mrb, val);
+    mrb->stack = mrb->stbase + mrb->ci->stackidx;
+    cipop(mrb);
+  }
+  else {
+    val = mrb_run(mrb, p, self);
+  }
+  
+  return val;
+}
+
+mrb_value
+mrb_run_argv(mrb_state *mrb, struct RProc *p, mrb_value self, int argc, mrb_value *argv)
+{
+  return mrb_run_with_block(mrb, p, self, argc, argv, mrb_nil_value());
+}
