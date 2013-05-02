@@ -1,4 +1,4 @@
-# Cross Compiling configuration for Arduino Duea
+# Cross Compiling configuration for Arduino Due
 # http://arduino.cc/en/Main/ArduinoBoardDue
 #
 # Requires Arduino IDE >= 1.5

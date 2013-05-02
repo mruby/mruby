@@ -10,7 +10,7 @@ module MRuby
     def gem(gemdir, &block)
       caller_dir = File.expand_path(File.dirname(/^(.*?):\d/.match(caller.first).to_a[1]))
       if gemdir.is_a?(Hash)
-        gemdir = load_external_gem(gemdir)
+        gemdir = load_special_path_gem(gemdir)
       else
         gemdir = File.expand_path(gemdir, caller_dir)
       end
@@ -28,14 +28,16 @@ module MRuby
       Gem.current
     end
 
-    def load_external_gem(params)
+    def load_special_path_gem(params)
       if params[:github]
         params[:git] = "https://github.com/#{params[:github]}.git"
       elsif params[:bitbucket]
         params[:git] = "https://bitbucket.org/#{params[:bitbucket]}.git"
       end
 
-      if params[:git]
+      if params[:core]
+        gemdir = "#{root}/mrbgems/#{params[:core]}"
+      elsif params[:git]
         url = params[:git]
         gemdir = "build/mrbgems/#{url.match(/([-_\w]+)(\.[-_\w]+|)$/).to_a[1]}"
         return gemdir if File.exists?(gemdir)
@@ -45,11 +47,11 @@ module MRuby
 
         FileUtils.mkdir_p "build/mrbgems"
         git.run_clone gemdir, url, options
-        
-        gemdir
       else
         fail "unknown gem option #{params}"
       end
+
+      gemdir
     end
 
     def enable_gems?
