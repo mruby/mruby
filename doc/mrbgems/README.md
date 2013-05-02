@@ -112,7 +112,7 @@ information purpose:
 It is required for every GEM to have a license and an author!
 
 In case your GEM is depending on other GEMs please use
-`spec.add_dependency(gem, requirements)` like:
+`spec.add_dependency(gem, *requirements)` like:
 
 	MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
 	  spec.license = 'MIT'
