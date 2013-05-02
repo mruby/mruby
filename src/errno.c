@@ -80,7 +80,7 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
   int argc;
   char name[8];
 
-  sce = mrb_class_obj_get(mrb, "SystemCallError");
+  sce = mrb_class_get(mrb, "SystemCallError");
   argc = mrb_get_args(mrb, "i|S", &no, &msg);
   if (argc == 1) {
     e = mrb_funcall(mrb, mrb_obj_value(sce), "new", 1, mrb_fixnum_value(no));
@@ -121,7 +121,7 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
   struct RClass *e, *eno, *sce, *ste;
   mrb_value h, noerror;
 
-  ste = mrb_class_obj_get(mrb, "StandardError");
+  ste = mrb_class_get(mrb, "StandardError");
 
   sce = mrb_define_class(mrb, "SystemCallError", ste);
   mrb_define_class_method(mrb, sce, "_sys_fail", mrb_sce_sys_fail, ARGS_REQ(1));
