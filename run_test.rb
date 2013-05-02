@@ -20,16 +20,8 @@ end
 
 MRuby::Build.new do |conf|
   toolchain :gcc
-  conf.gems.clear
-
-  conf.gem "#{root}/mrbgems/mruby-sprintf"
-  conf.gem "#{root}/mrbgems/mruby-print"
-
-  Dir.glob("#{root}/mrbgems/mruby-*") do |x|
-    conf.gem x unless x =~ /\/mruby-(print|sprintf)$/
-  end
+  conf.gembox 'default'
 
   conf.gem :github => 'iij/mruby-env'
-
   conf.gem File.expand_path(File.dirname(__FILE__))
 end
