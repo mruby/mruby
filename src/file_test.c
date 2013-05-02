@@ -26,8 +26,8 @@ mrb_stat(mrb_state *mrb, mrb_value obj, struct stat *st)
   mrb_value tmp;
   mrb_value io_klass, str_klass;
 
-  io_klass  = mrb_obj_value(mrb_class_obj_get(mrb, "IO"));
-  str_klass = mrb_obj_value(mrb_class_obj_get(mrb, "String"));
+  io_klass  = mrb_obj_value(mrb_class_get(mrb, "IO"));
+  str_klass = mrb_obj_value(mrb_class_get(mrb, "String"));
 
   tmp = mrb_funcall(mrb, obj, "is_a?", 1, io_klass);
   if (mrb_test(tmp)) {

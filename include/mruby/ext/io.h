@@ -47,8 +47,8 @@ struct mrb_io_type {
 #define FMODE_TEXTMODE             0x00001000
 #define FMODE_SETENC_BY_BOM        0x00100000
 
-#define E_IO_ERROR                 (mrb_class_obj_get(mrb, "IOError"))
-#define E_EOF_ERROR                (mrb_class_obj_get(mrb, "EOFError"))
+#define E_IO_ERROR                 (mrb_class_get(mrb, "IOError"))
+#define E_EOF_ERROR                (mrb_class_get(mrb, "EOFError"))
 
 mrb_value mrb_open_file(mrb_state *mrb, int argc, mrb_value *argv, mrb_value io);
 void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise);
