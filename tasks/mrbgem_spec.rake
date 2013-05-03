@@ -169,6 +169,30 @@ module MRuby
       end
 
     end # Specification
+
+    class List
+      include Enumerable
+
+      def initialize
+        @ary = []
+      end
+
+      def each(&b)
+        @ary.each(&b)
+      end
+
+      def <<(gem)
+        unless @ary.detect {|g| g.dir == gem.dir }
+          @ary << gem
+        else
+          # GEM was already added to this list
+        end
+      end
+
+      def empty?
+        @ary.empty?
+      end
+    end # List
   end # Gem
 
   GemBox = Object.new
