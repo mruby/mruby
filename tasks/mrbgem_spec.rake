@@ -170,19 +170,28 @@ module MRuby
 
     end # Specification
 
-    class List < Array
+    class List
+      include Enumerable
+
+      def initialize
+        @ary = []
+      end
+
+      def each(&b)
+        @ary.each(&b)
+      end
+
       def <<(gem)
         fail ArgumentError.new("Don't find directory for this GEM") unless gem.respond_to? :dir
-        unless include?(gem)
-          super(gem)
+        unless @ary.detect {|g| g.dir == gem.dir }
+          @ary << gem
         else
           # GEM was already added to this list
         end
       end
 
-      # we assume that a gem with the same directory is equal
-      def include?(gem)
-        detect {|g| g.dir == gem.dir }
+      def empty?
+        @ary.empty?
       end
     end # List
   end # Gem
