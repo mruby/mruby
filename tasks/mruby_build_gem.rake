@@ -1,4 +1,20 @@
 module MRuby
+  class GemList < Array
+    def <<(gem)
+      fail ArgumentError.new("Don't find directory for this GEM") unless gem.respond_to? :dir
+      unless include?(gem)
+        super(gem)
+      else
+        # GEM was already added to this list
+      end
+    end
+
+    # we assume that a gem with the same directory is equal
+    def include?(gem)
+      detect {|g| g.dir == gem.dir }
+    end
+  end
+
   module LoadGems
     def gembox(gemboxfile)
       gembox = File.expand_path("#{gemboxfile}.gembox", "#{MRUBY_ROOT}/mrbgems")
