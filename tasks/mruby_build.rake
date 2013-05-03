@@ -75,7 +75,7 @@ module MRuby
         @mrbc = Command::Mrbc.new(self)
 
         @bins = %w(mrbc)
-        @gems, @libmruby = [], []
+        @gems, @libmruby = GemList.new, []
         @build_mrbtest_lib_only = false
 
         MRuby.targets[@name] = self
