@@ -182,7 +182,6 @@ module MRuby
       end
 
       def <<(gem)
-        fail ArgumentError.new("Don't find directory for this GEM") unless gem.respond_to? :dir
         unless @ary.detect {|g| g.dir == gem.dir }
           @ary << gem
         else
