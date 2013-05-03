@@ -51,7 +51,7 @@ module MRuby
         end
         @linker = LinkerConfig.new([], [], [], [])
 
-        @rbfiles = Dir.glob("#{dir}/mrblib/*.rb")
+        @rbfiles = Dir.glob("#{dir}/mrblib/*.rb").sort
         @objs = Dir.glob("#{dir}/src/*.{c,cpp,m,asm,S}").map do |f|
           objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
         end
