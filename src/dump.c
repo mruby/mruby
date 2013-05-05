@@ -304,7 +304,7 @@ mrb_write_section_lineno_header(mrb_state *mrb, uint32_t section_size, uint16_t 
   struct rite_section_lineno_header *header = (struct rite_section_lineno_header*)bin;
 
   // TODO
-  memcpy(header->section_identify, RITE_SECTION_LIENO_IDENTIFIER, sizeof(header->section_identify));
+  memcpy(header->section_identify, RITE_SECTION_LINENO_IDENTIFIER, sizeof(header->section_identify));
   uint32_to_bin(section_size, header->section_size);
   uint16_to_bin(nirep, header->nirep);
   uint16_to_bin(sirep, header->sirep);
@@ -396,7 +396,7 @@ write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t* bin)
   uint16_t crc;
   size_t offset;
 
-  memcpy(header->binary_identify, RITE_BINARY_IDENFIFIER, sizeof(header->binary_identify));
+  memcpy(header->binary_identify, RITE_BINARY_IDENTIFIER, sizeof(header->binary_identify));
   memcpy(header->binary_version, RITE_BINARY_FORMAT_VER, sizeof(header->binary_version));
   memcpy(header->compiler_name, RITE_COMPILER_NAME, sizeof(header->compiler_name));
   memcpy(header->compiler_version, RITE_COMPILER_VERSION, sizeof(header->compiler_version));
