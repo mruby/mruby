@@ -309,7 +309,7 @@ read_rite_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc)
 {
   const struct rite_binary_header *header = (const struct rite_binary_header *)bin;
 
-  if (memcmp(header->binary_identify, RITE_BINARY_IDENFIFIER, sizeof(header->binary_identify)) != 0) {
+  if (memcmp(header->binary_identify, RITE_BINARY_IDENTIFIER, sizeof(header->binary_identify)) != 0) {
     return MRB_DUMP_INVALID_FILE_HEADER;
   }
 
@@ -362,7 +362,7 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
       }
       total_nirep += result;
     }
-    else if (memcmp(section_header->section_identify, RITE_SECTION_LIENO_IDENTIFIER, sizeof(section_header->section_identify)) == 0) {
+    else if (memcmp(section_header->section_identify, RITE_SECTION_LINENO_IDENTIFIER, sizeof(section_header->section_identify)) == 0) {
       result = read_rite_section_lineno(mrb, bin, sirep);
       if (result < MRB_DUMP_OK) {
         return result;
@@ -601,7 +601,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
       }
       total_nirep += result;
     }
-    else if (memcmp(section_header.section_identify, RITE_SECTION_LIENO_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
+    else if (memcmp(section_header.section_identify, RITE_SECTION_LINENO_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
       fseek(fp, fpos, SEEK_SET);
       result = read_rite_section_lineno_file(mrb, fp, sirep);
       if (result < MRB_DUMP_OK) {
