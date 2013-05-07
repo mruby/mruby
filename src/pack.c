@@ -232,7 +232,7 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
 static int
 pack_a(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, unsigned int flags)
 {
-  int copylen, dlen, slen, padlen;
+  int copylen, slen, padlen;
   char *dptr, *dptr0, pad, *sptr;
 
   sptr = RSTRING_PTR(src);
@@ -269,7 +269,7 @@ static int
 unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, unsigned int flags)
 {
   mrb_value dst;
-  const char *sptr, *sptr0;
+  const char *sptr;
   char *dptr, *dptr0;
 
   sptr = src;
@@ -298,7 +298,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
 static int
 pack_h(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, unsigned int flags)
 {
-  unsigned int a, ashift, b, bshift, x;
+  unsigned int a, ashift, b, bshift;
   int slen;
   char *dptr, *dptr0, *sptr;
 
@@ -343,9 +343,7 @@ static int
 unpack_h(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
 {
   mrb_value dst;
-  unsigned long l;
-  int a, ashift, b, bshift, i, padding;
-  unsigned char c, ch[4];
+  int a, ashift, b, bshift, padding;
   const char *sptr, *sptr0;
   char *dptr, *dptr0;
   const char hexadecimal[] = "0123456789abcdef";
