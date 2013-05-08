@@ -18,19 +18,23 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #endif
-
-#ifndef ENABLE_STDIO
 #include <mruby/string.h>
+
 static void
-p(mrb_state *mrb, mrb_value obj)
+p(mrb_state *mrb, mrb_value obj, int prompt)
 {
   obj = mrb_funcall(mrb, obj, "inspect", 0);
+  if (prompt) {
+    if (!mrb->exc) {
+      fputs(" => ", stdout);
+    }
+    else {
+      obj = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
+    }
+  }
   fwrite(RSTRING_PTR(obj), RSTRING_LEN(obj), 1, stdout);
   putc('\n', stdout);
 }
-#else
-#define p(mrb,obj) mrb_p(mrb,obj)
-#endif
 
 /* Guess if the user might want to enter more
  * or if he wants an evaluation of his code now */
@@ -337,16 +341,15 @@ main(int argc, char **argv)
             mrb_top_self(mrb));
         /* did an exception occur? */
         if (mrb->exc) {
-          p(mrb, mrb_obj_value(mrb->exc));
+          p(mrb, mrb_obj_value(mrb->exc), 0);
           mrb->exc = 0;
         }
         else {
           /* no */
-          printf(" => ");
           if (!mrb_respond_to(mrb,result,mrb_intern(mrb,"inspect"))){
             result = mrb_any_to_s(mrb,result);
           }
-          p(mrb, result);
+          p(mrb, result, 1);
         }
       }
       ruby_code[0] = '\0';
