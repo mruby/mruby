@@ -90,6 +90,7 @@ int
 main(int argc, char **argv)
 {
   mrb_state *mrb;
+  struct RClass *krn;
   int ret;
 
   print_hint();
@@ -106,7 +107,6 @@ main(int argc, char **argv)
     mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_verbose"), mrb_true_value());
   }
 
-  struct RClass *krn;
   krn = mrb->kernel_module;
   mrb_define_method(mrb, krn, "__t_printstr__", mrb_t_printstr, MRB_ARGS_REQ(1));
 
