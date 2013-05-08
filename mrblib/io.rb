@@ -262,6 +262,15 @@ class IO
     nil
   end
 
+  def print(*args)
+    i = 0
+    len = args.size
+    while i < len
+      write args[i].to_s
+      i += 1
+    end
+  end
+
   def printf(*args)
     write sprintf(*args)
     nil
