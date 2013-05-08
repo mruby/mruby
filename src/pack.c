@@ -664,6 +664,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
   prepare_tmpl(mrb, &tmpl);
 
   result = mrb_str_new(mrb, NULL, 128);  /* allocate initial buffer */
+  aidx = 0;
   ridx = 0;
   while (has_tmpl(&tmpl)) {
     read_tmpl(mrb, &tmpl, &dir, &type, &size, &count, &flags);
@@ -671,7 +672,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
     if (dir == PACK_DIR_INVALID)
       continue;
 
-    for (aidx = 0; aidx < RARRAY_LEN(ary); aidx++) {
+    for (; aidx < RARRAY_LEN(ary); aidx++) {
       if (count == 0 && !(flags & PACK_FLAG_WIDTH))
         break;
 

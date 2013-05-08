@@ -83,3 +83,8 @@ assert('["abc"].pack("A")') do
   "abc\0".unpack("A4") == ["abc"] and
   "abc ".unpack("A4") == ["abc"]
 end
+
+# regression tests
+assert('issue #1') do
+  [1, 2].pack("nn") == "\000\001\000\002"
+end
