@@ -52,9 +52,12 @@ end
 
 assert('Hash#default_proc', '15.2.13.4.7') do
   a = Hash.new
-  b = Hash.new {|s,k| s[k] = k}
+  b = Hash.new {|s,k| s[k] = k + k}
+  c = b[2]
+  d = b['cat']
 
-  a.default_proc == nil and b.default_proc.class == Proc
+  a.default_proc == nil and b.default_proc.class == Proc and
+  c = 4 and d = 'catcat'
 end
 
 assert('Hash#delete', '15.2.13.4.8') do
@@ -278,3 +281,11 @@ assert('Hash#select!') do
     h == {:two => 2, :four => 4}
 end
 
+# Not ISO specified
+
+assert('Hash#inspect') do
+  h = { "c" => 300, "a" => 100, "d" => 400, "c" => 300  }
+  ret = h.to_s
+
+  ret = "{\"c\"=>300, \"a\"=>100, \"d\"=>400}"
+end

@@ -18,3 +18,9 @@ assert('Hash#merge!') do
                'xyz_key' => 'xyz_value' }
 end
 
+assert('Hash#values_at') do
+  h = { "cat" => "feline", "dog" => "canine", "cow" => "bovine" }
+  result = h.values_at("cow", "cat")
+
+  result == ["bovine", "feline"]
+end
