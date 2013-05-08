@@ -611,29 +611,6 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
  */
 
 /*
- * call-seq:
- *   hsh.values_at(key, ...)   -> array
- *
- * Return an array containing the values associated with the given keys.
- * Also see <code>Hash.select</code>.
- *
- *   h = { "cat" => "feline", "dog" => "canine", "cow" => "bovine" }
- *   h.values_at("cow", "cat")  #=> ["bovine", "feline"]
- */
-
-mrb_value
-mrb_hash_values_at(mrb_state *mrb, int argc, mrb_value *argv, mrb_value hash)
-{
-    mrb_value result = mrb_ary_new_capa(mrb, argc);
-    long i;
-
-    for (i=0; i<argc; i++) {
-        mrb_ary_push(mrb, result, mrb_hash_get(mrb, hash, argv[i]));
-    }
-    return result;
-}
-
-/*
  *  call-seq:
  *     hsh.select {|key, value| block}   -> a_hash
  *     hsh.select                        -> an_enumerator
