@@ -278,3 +278,33 @@ class IO
 
   alias_method :to_i, :fileno
 end
+
+STDIN  = IO.open(0, "r")
+STDOUT = IO.open(1, "w")
+STDERR = IO.open(1, "w")
+
+$stdin  = STDIN
+$stdout = STDOUT
+$stderr = STDERR
+
+module Kernel
+  def print(*args)
+    STDOUT.print(*args)
+  end
+
+  def puts(*args)
+    STDOUT.puts(*args)
+  end
+
+  def printf(*args)
+    STDOUT.printf(*args)
+  end
+
+  def gets(*args)
+    STDIN.gets(*args)
+  end
+
+  def getc(*args)
+    STDIN.getc(*args)
+  end
+end
