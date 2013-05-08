@@ -342,11 +342,19 @@ main(int argc, char **argv)
         }
         else {
           /* no */
-          printf(" => ");
           if (!mrb_respond_to(mrb,result,mrb_intern(mrb,"inspect"))){
             result = mrb_any_to_s(mrb,result);
           }
-          p(mrb, result);
+          /* check if inspect throws an exception */
+          mrb_funcall(mrb, result, "inspect", 0);
+          if (mrb->exc) {
+            p(mrb, mrb_obj_value(mrb->exc));
+            mrb->exc = 0;
+          }
+          else {
+            printf(" => ");
+            p(mrb, result);
+          }
         }
       }
       ruby_code[0] = '\0';
