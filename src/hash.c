@@ -324,12 +324,6 @@ mrb_hash_aget(mrb_state *mrb, mrb_value self)
   return mrb_hash_get(mrb, self, key);
 }
 
-mrb_value
-mrb_hash_lookup(mrb_state *mrb, mrb_value hash, mrb_value key)
-{
-  return mrb_hash_get(mrb, hash, key);
-}
-
 /*
  *  call-seq:
  *     hsh.fetch(key [, default] )       -> obj
@@ -611,29 +605,6 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
  */
 
 /*
- * call-seq:
- *   hsh.values_at(key, ...)   -> array
- *
- * Return an array containing the values associated with the given keys.
- * Also see <code>Hash.select</code>.
- *
- *   h = { "cat" => "feline", "dog" => "canine", "cow" => "bovine" }
- *   h.values_at("cow", "cat")  #=> ["bovine", "feline"]
- */
-
-mrb_value
-mrb_hash_values_at(mrb_state *mrb, int argc, mrb_value *argv, mrb_value hash)
-{
-    mrb_value result = mrb_ary_new_capa(mrb, argc);
-    long i;
-
-    for (i=0; i<argc; i++) {
-        mrb_ary_push(mrb, result, mrb_hash_get(mrb, hash, argv[i]));
-    }
-    return result;
-}
-
-/*
  *  call-seq:
  *     hsh.select {|key, value| block}   -> a_hash
  *     hsh.select                        -> an_enumerator
@@ -812,69 +783,6 @@ mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
 
   return mrb_bool_value(empty_p);
 }
-
-/* 15.2.13.4.11 */
-/*
- *  call-seq:
- *     hsh.each_value {| value | block } -> hsh
- *     hsh.each_value                    -> an_enumerator
- *
- *  Calls <i>block</i> once for each key in <i>hsh</i>, passing the
- *  value as a parameter.
- *
- *  If no block is given, an enumerator is returned instead.
- *
- *     h = { "a" => 100, "b" => 200 }
- *     h.each_value {|value| puts value }
- *
- *  <em>produces:</em>
- *
- *     100
- *     200
- */
-
-/* 15.2.13.4.10 */
-/*
- *  call-seq:
- *     hsh.each_key {| key | block } -> hsh
- *     hsh.each_key                  -> an_enumerator
- *
- *  Calls <i>block</i> once for each key in <i>hsh</i>, passing the key
- *  as a parameter.
- *
- *  If no block is given, an enumerator is returned instead.
- *
- *     h = { "a" => 100, "b" => 200 }
- *     h.each_key {|key| puts key }
- *
- *  <em>produces:</em>
- *
- *     a
- *     b
- */
-
-/* 15.2.13.4.9  */
-/*
- *  call-seq:
- *     hsh.each      {| key, value | block } -> hsh
- *     hsh.each_pair {| key, value | block } -> hsh
- *     hsh.each                              -> an_enumerator
- *     hsh.each_pair                         -> an_enumerator
- *
- *  Calls <i>block</i> once for each key in <i>hsh</i>, passing the key-value
- *  pair as parameters.
- *
- *  If no block is given, an enumerator is returned instead.
- *
- *     h = { "a" => 100, "b" => 200 }
- *     h.each {|key, value| puts "#{key} is #{value}" }
- *
- *  <em>produces:</em>
- *
- *     a is 100
- *     b is 200
- *
- */
 
 static mrb_value
 inspect_hash(mrb_state *mrb, mrb_value hash, int recur)
