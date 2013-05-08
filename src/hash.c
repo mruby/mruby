@@ -790,69 +790,6 @@ mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(empty_p);
 }
 
-/* 15.2.13.4.11 */
-/*
- *  call-seq:
- *     hsh.each_value {| value | block } -> hsh
- *     hsh.each_value                    -> an_enumerator
- *
- *  Calls <i>block</i> once for each key in <i>hsh</i>, passing the
- *  value as a parameter.
- *
- *  If no block is given, an enumerator is returned instead.
- *
- *     h = { "a" => 100, "b" => 200 }
- *     h.each_value {|value| puts value }
- *
- *  <em>produces:</em>
- *
- *     100
- *     200
- */
-
-/* 15.2.13.4.10 */
-/*
- *  call-seq:
- *     hsh.each_key {| key | block } -> hsh
- *     hsh.each_key                  -> an_enumerator
- *
- *  Calls <i>block</i> once for each key in <i>hsh</i>, passing the key
- *  as a parameter.
- *
- *  If no block is given, an enumerator is returned instead.
- *
- *     h = { "a" => 100, "b" => 200 }
- *     h.each_key {|key| puts key }
- *
- *  <em>produces:</em>
- *
- *     a
- *     b
- */
-
-/* 15.2.13.4.9  */
-/*
- *  call-seq:
- *     hsh.each      {| key, value | block } -> hsh
- *     hsh.each_pair {| key, value | block } -> hsh
- *     hsh.each                              -> an_enumerator
- *     hsh.each_pair                         -> an_enumerator
- *
- *  Calls <i>block</i> once for each key in <i>hsh</i>, passing the key-value
- *  pair as parameters.
- *
- *  If no block is given, an enumerator is returned instead.
- *
- *     h = { "a" => 100, "b" => 200 }
- *     h.each {|key, value| puts "#{key} is #{value}" }
- *
- *  <em>produces:</em>
- *
- *     a is 100
- *     b is 200
- *
- */
-
 static mrb_value
 inspect_hash(mrb_state *mrb, mrb_value hash, int recur)
 {
