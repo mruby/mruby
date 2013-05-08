@@ -180,7 +180,6 @@ module MRuby
           when '>=' then cmp_result >= 0
           when '<=' then cmp_result <= 0
           when '~>'
-            # todo: implement twiddle-waka
             Version.new(version).twiddle_wakka_ok?(Version.new(ver))
           else
             fail "Comparison not possible with '#{cmp}'"
