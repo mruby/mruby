@@ -30,7 +30,7 @@ enum {
   //PACK_DIR_VAX,
   //PACK_DIR_UTF8,	/* U */
   //PACK_DIR_BER,
-  //PACK_DIR_DOUBLE,	/* d */
+  PACK_DIR_DOUBLE,	/* E */
   //PACK_DIR_FLOAT,	/* f */
   PACK_DIR_STR,		/* A */
   PACK_DIR_HEX,		/* h */
@@ -189,6 +189,26 @@ pack_l(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
 }
 
 static int
+pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
+{
+  int i;
+  double d;
+  str = str_len_ensure(mrb, str, sidx + 8);
+  d = mrb_float(o);
+  uint8_t *buffer = (uint8_t *)&d;
+
+#ifdef MRB_ENDIAN_BIG
+  #error unsupported
+#else
+  for(i = 0; i< 8; i++){
+    RSTRING_PTR(str)[sidx+i] = buffer[i];
+  }
+#endif
+  
+  return 8;
+}
+
+static int
 unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
   unsigned long n;
@@ -212,7 +232,7 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
 static int
 pack_a(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, unsigned int flags)
 {
-  int copylen, dlen, slen, padlen;
+  int copylen, slen, padlen;
   char *dptr, *dptr0, pad, *sptr;
 
   sptr = RSTRING_PTR(src);
@@ -249,7 +269,7 @@ static int
 unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, unsigned int flags)
 {
   mrb_value dst;
-  const char *sptr, *sptr0;
+  const char *sptr;
   char *dptr, *dptr0;
 
   sptr = src;
@@ -278,7 +298,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
 static int
 pack_h(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, unsigned int flags)
 {
-  unsigned int a, ashift, b, bshift, x;
+  unsigned int a, ashift, b, bshift;
   int slen;
   char *dptr, *dptr0, *sptr;
 
@@ -323,9 +343,7 @@ static int
 unpack_h(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
 {
   mrb_value dst;
-  unsigned long l;
-  int a, ashift, b, bshift, i, padding;
-  unsigned char c, ch[4];
+  int a, ashift, b, bshift, padding;
   const char *sptr, *sptr0;
   char *dptr, *dptr0;
   const char hexadecimal[] = "0123456789abcdef";
@@ -541,6 +559,12 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, 
     size = 1;
     flags |= PACK_FLAG_SIGNED;
     break;
+  case 'E':
+    dir = PACK_DIR_DOUBLE;
+    type = PACK_TYPE_FLOAT;
+    size = 8;
+    flags |= PACK_FLAG_SIGNED;
+    break;
   case 'H':
     dir = PACK_DIR_HEX;
     type = PACK_TYPE_STRING;
@@ -683,6 +707,10 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 	} else if (!mrb_fixnum_p(o)) {
 	  mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into Integer", mrb_obj_classname(mrb, o));
 	}
+      } else if (type == PACK_TYPE_FLOAT) {
+        if (!mrb_float_p(o)) {
+          o = mrb_funcall(mrb, o, "to_f", 0);
+        }
       } else if (type == PACK_TYPE_STRING) {
         if (!mrb_string_p(o)) {
 	  mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, o));
@@ -707,6 +735,9 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
         break;
       case PACK_DIR_STR:
         ridx += pack_a(mrb, o, result, ridx, count, flags);
+        break;
+      case PACK_DIR_DOUBLE:
+        ridx += pack_double(mrb, o, result, ridx, flags);
         break;
       default:
         break;
