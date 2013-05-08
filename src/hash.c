@@ -324,12 +324,6 @@ mrb_hash_aget(mrb_state *mrb, mrb_value self)
   return mrb_hash_get(mrb, self, key);
 }
 
-mrb_value
-mrb_hash_lookup(mrb_state *mrb, mrb_value hash, mrb_value key)
-{
-  return mrb_hash_get(mrb, hash, key);
-}
-
 /*
  *  call-seq:
  *     hsh.fetch(key [, default] )       -> obj
