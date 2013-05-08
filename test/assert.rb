@@ -4,6 +4,20 @@ $kill_test = 0
 $asserts  = []
 $test_start = Time.now if Object.const_defined?(:Time)
 
+# Implementation of print due to the reason that there might be no print
+def t_print(*args)
+  i = 0
+  len = args.size
+  while i < len
+    begin
+      __printstr__ args[i].to_s
+    rescue NoMethodError
+      __t_printstr__ args[i].to_s
+    end
+    i += 1
+  end
+end
+
 ##
 # Create the assertion in a readable way
 def assertion_string(err, str, iso=nil, e=nil)
@@ -28,31 +42,31 @@ end
 #       which will be tested by this
 #       assertion
 def assert(str = 'Assertion failed', iso = '')
-  print(str, (iso != '' ? " [#{iso}]" : ''), ' : ') if $mrbtest_verbose
+  t_print(str, (iso != '' ? " [#{iso}]" : ''), ' : ') if $mrbtest_verbose
   begin
     $mrbtest_assert = []
     $mrbtest_assert_idx = 0
     if(!yield || $mrbtest_assert.size > 0)
       $asserts.push(assertion_string('Fail: ', str, iso, nil))
       $ko_test += 1
-      print('F')
+      t_print('F')
     else
       $ok_test += 1
-      print('.')
+      t_print('.')
     end
   rescue Exception => e
     if e.class.to_s == 'MRubyTestSkip'
       $asserts.push "Skip: #{str} #{iso} #{e.cause}"
-      print('?')
+      t_print('?')
     else
       $asserts.push(assertion_string('Error: ', str, iso, e))
       $kill_test += 1
-      print('X')
+      t_print('X')
 	end
   ensure
     $mrbtest_assert = nil
   end
-  print("\n") if $mrbtest_verbose
+  t_print("\n") if $mrbtest_verbose
 end
 
 def assertion_diff(exp, act)
@@ -125,31 +139,21 @@ end
 # Report the test result and print all assertions
 # which were reported broken.
 def report()
-  print "\n"
+  t_print("\n")
 
   $asserts.each do |msg|
     puts msg
   end
 
   $total_test = $ok_test.+($ko_test)
-  print('Total: ')
-  print($total_test)
-  print("\n")
+  t_print("Total: #{$total_test}\n")
 
-  print('   OK: ')
-  print($ok_test)
-  print("\n")
-  print('   KO: ')
-  print($ko_test)
-  print("\n")
-  print('Crash: ')
-  print($kill_test)
-  print("\n")
+  t_print("   OK: #{$ok_test}\n")
+  t_print("   KO: #{$ko_test}\n")
+  t_print("Crash: #{$kill_test}\n")
 
   if Object.const_defined?(:Time)
-    print(' Time: ')
-    print(Time.now - $test_start)
-    print(" seconds\n")
+    t_print(" Time: #{Time.now - $test_start} seconds\n")
   end
 end
 
