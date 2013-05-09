@@ -38,6 +38,7 @@ module MRuby
       def initialize(name, &block)
         @name = name
         @initializer = block
+        @version = "0.0.0"
         MRuby::Gem.current = self
       end
 
@@ -87,7 +88,7 @@ module MRuby
       end
 
       def add_dependency(name, *requirements)
-        requirements = ['> 0.0.0'] if requirements.empty?
+        requirements = ['>= 0.0.0'] if requirements.empty?
         requirements.flatten!
         @dependencies << {:gem => name, :requirements => requirements}
       end
