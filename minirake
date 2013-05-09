@@ -101,7 +101,7 @@ module MiniRake
       puts "Execute #{name}" if $trace
       self.class.enhance_with_matching_rule(name) if @actions.empty?
       unless $dryrun
-        @actions.each { |act| result = act.call(self) }
+        @actions.each { |act| act.call(self) }
       end
     end
 
@@ -160,14 +160,14 @@ module MiniRake
         lookup(task_name).enhance([deps].flatten, &block)
       end
 
-      # Define a rule for synthesizing tasks.  
+      # Define a rule for synthesizing tasks.
       def create_rule(args, &block)
         pattern, deps = resolve_args(args)
         pattern = Regexp.new(Regexp.quote(pattern) + '$') if String === pattern
         RULES << [pattern, deps, block]
       end
 
-      
+
       # Lookup a task.  Return an existing task if found, otherwise
       # create a task of the current type.
       def lookup(task_name)
@@ -181,7 +181,7 @@ module MiniRake
       # the enhanced task or nil of no rule was found.
       def enhance_with_matching_rule(task_name)
         RULES.each do |pattern, extensions, block|
-          if md = pattern.match(task_name)
+          if pattern.match(task_name)
             ext = extensions.first
             deps = extensions[1..-1]
             case ext
@@ -201,8 +201,8 @@ module MiniRake
         end
         nil
       end
-      
-      private 
+
+      private
 
       # Resolve the arguments for a task/rule.
       def resolve_args(args)
@@ -256,7 +256,7 @@ module MiniRake
     # demand.
     def directory(dir)
       path = []
-      Sys.split_all(dir).each do |p| 
+      Sys.split_all(dir).each do |p|
         path << p
         FileTask.define_task(File.join(path)) do |t|
           Sys.makedirs(t.name)
@@ -415,7 +415,7 @@ class RakeApp
       fail "Unknown option: #{opt}"
     end
   end
-  
+
   # Read and handle the command line options.
   def handle_options
     $verbose = false
