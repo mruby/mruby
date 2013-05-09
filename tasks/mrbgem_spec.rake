@@ -38,6 +38,7 @@ module MRuby
       def initialize(name, &block)
         @name = name
         @initializer = block
+        @version = "0.0.0"
         MRuby::Gem.current = self
       end
 
