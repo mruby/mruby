@@ -29,7 +29,7 @@ module MRuby
       sh build.filename(command) + ' ' + ( options % params )
     end
   end
- 
+
   class Command::Compiler < Command
     attr_accessor :flags, :include_paths, :defines, :source_exts
     attr_accessor :compile_options, :option_define, :option_include_path, :out_ext
@@ -57,13 +57,9 @@ module MRuby
       end
       [flags, define_flags, include_path_flags, _flags].flatten.join(' ')
     end
-    
+
     def run(outfile, infile, _defineds=[], _include_paths=[], _flags=[])
       FileUtils.mkdir_p File.dirname(outfile)
-      define_flags = [defines, _defineds].flatten.map{ |d| option_define % d }
-      include_path_flags = [include_paths, _include_paths, File.dirname(infile)].flatten.map do |f|
-        option_include_path % filename(f)
-      end
       _pp "CC", infile.relative_path, outfile.relative_path
       if MRUBY_BUILD_HOST_IS_CYGWIN
         _run compile_options, { :flags => all_flags(_defineds, _include_paths, _flags),
@@ -152,7 +148,6 @@ module MRuby
     def run(outfile, objfiles, _libraries=[], _library_paths=[], _flags=[], _flags_before_libraries=[], _flags_after_libraries=[])
       FileUtils.mkdir_p File.dirname(outfile)
       library_flags = [libraries, _libraries].flatten.map { |d| option_library % d }
-      library_path_flags = [library_paths, _library_paths].flatten.map { |f| option_library_path % filename(f) }
 
       _pp "LD", outfile.relative_path
       if MRUBY_BUILD_HOST_IS_CYGWIN
