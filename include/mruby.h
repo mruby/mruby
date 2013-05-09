@@ -324,7 +324,7 @@ void mrb_bug(const char *fmt, ...);
 
 #define E_KEY_ERROR                 (mrb_class_get(mrb, "KeyError"))
 
-mrb_value mrb_yield(mrb_state *mrb, mrb_value v, mrb_value blk);
+mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
 mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv);
 mrb_value mrb_class_new_instance(mrb_state *mrb, int, mrb_value*, struct RClass *);
 mrb_value mrb_class_new_instance_m(mrb_state *mrb, mrb_value klass);
