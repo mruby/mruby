@@ -39,7 +39,7 @@ module MRuby
         gemdir = "#{root}/mrbgems/#{params[:core]}"
       elsif params[:git]
         url = params[:git]
-        gemdir = "build/mrbgems/#{url.match(/([-_\w]+)(\.[-_\w]+|)$/).to_a[1]}"
+        gemdir = "build/mrbgems/#{url.match(/([-\w]+)(\.[-\w]+|)$/).to_a[1]}"
         return gemdir if File.exists?(gemdir)
 
         options = [params[:options]] || []
