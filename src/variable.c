@@ -697,7 +697,7 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym)
     c = c->super;
   }
   mrb_name_error(mrb, sym, "uninitialized class variable %S in %S",
-             mrb_sym2str(mrb, sym), mrb_obj_value(cls));
+                 mrb_sym2str(mrb, sym), mrb_obj_value(cls));
   /* not reached */
   return mrb_nil_value();
 }
