@@ -5,6 +5,7 @@ MRuby.each_target do
   if enable_gems?
     # set up all gems
     gems.each(&:setup)
+    gems.check
     
     # loader all gems
     self.libmruby << objfile("#{build_dir}/mrbgems/gem_init")
