@@ -716,7 +716,7 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
     equal_p = 0;
   }
   else if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
-    mrb_bug("inconsistent struct"); /* should never happen */
+    mrb_bug(mrb, "inconsistent struct"); /* should never happen */
     equal_p = 0; /* This substuture is just to suppress warnings. never called. */
   }
   else {
@@ -760,7 +760,7 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
     eql_p = 0;
   }
   else if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
-    mrb_bug("inconsistent struct"); /* should never happen */
+    mrb_bug(mrb, "inconsistent struct"); /* should never happen */
     eql_p = 0; /* This substuture is just to suppress warnings. never called. */
   }
   else {

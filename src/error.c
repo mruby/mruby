@@ -327,15 +327,17 @@ mrb_warn(mrb_state *mrb, const char *fmt, ...)
 }
 
 void
-mrb_bug(const char *fmt, ...)
+mrb_bug(mrb_state *mrb, const char *fmt, ...)
 {
 #ifdef ENABLE_STDIO
-  va_list args;
+  va_list ap;
+  mrb_value str;
 
-  va_start(args, fmt);
-  printf("bug: ");
-  vprintf(fmt, args);
-  va_end(args);
+  va_start(ap, fmt);
+  str = mrb_vformat(mrb, fmt, ap);
+  fputs("bug: ", stderr);
+  fwrite(RSTRING_PTR(str), RSTRING_LEN(str), 1, stderr);
+  va_end(ap);
 #endif
   exit(EXIT_FAILURE);
 }
