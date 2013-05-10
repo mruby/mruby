@@ -255,13 +255,12 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
   if (mrb_const_defined_at(mrb, outer, id)) {
     c = class_from_sym(mrb, outer, id);
     if (mrb_class_real(c->super) != super) {
-        mrb_name_error(mrb, id, "%S is already defined", mrb_sym2str(mrb, id));
+      mrb_name_error(mrb, id, "%S is already defined", name);
     }
     return c;
   }
   if (!super) {
-    mrb_warn("no super class for `%S::%S', Object assumed",
-             mrb_obj_value(outer), mrb_sym2str(mrb, id));
+    mrb_warn(mrb, "no super class for `%S::%S', Object assumed", outer, name);
   }
   c = mrb_class_new(mrb, super);
   setup_class(mrb, mrb_obj_value(outer), c, id);

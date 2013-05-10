@@ -312,15 +312,17 @@ mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
 }
 
 void
-mrb_warn(const char *fmt, ...)
+mrb_warn(mrb_state *mrb, const char *fmt, ...)
 {
 #ifdef ENABLE_STDIO
-  va_list args;
+  va_list ap;
+  mrb_value str;
 
-  va_start(args, fmt);
-  printf("warning: ");
-  vprintf(fmt, args);
-  va_end(args);
+  va_start(ap, fmt);
+  str = mrb_vformat(mrb, fmt, ap);
+  fputs("warning: ", stderr);
+  fwrite(RSTRING_PTR(str), RSTRING_LEN(str), 1, stderr);
+  va_end(ap);
 #endif
 }
 
