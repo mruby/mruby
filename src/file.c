@@ -265,8 +265,8 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
     }
   }
 
-  result = mrb_str_buf_new(mrb, strlen(home));
-  strncpy(RSTRING_PTR(result), home, strlen(home));
+  result = mrb_str_buf_new(mrb, MAXPATHLEN);
+  strncpy(RSTRING_PTR(result), home, MAXPATHLEN);
   mrb_str_resize(mrb, result, strlen(RSTRING_PTR(result)));
 
   return result;
