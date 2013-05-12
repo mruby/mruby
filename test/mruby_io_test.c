@@ -5,18 +5,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 static mrb_value
 mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
 {
-  char rfname[] = "tmp.XXXXXXXX";
-  char wfname[] = "tmp.XXXXXXXX";
+  char rfname[] = "tmp.mruby-io-test.XXXXXXXX";
+  char wfname[] = "tmp.mruby-io-test.XXXXXXXX";
   char msg[] = "mruby io test";
+  mode_t mask;
+  int fd0 = -1, fd1 = -1;
   FILE *fp;
   mrb_value ary = mrb_ary_new(mrb);
 
-  mktemp(rfname);
-  mktemp(wfname);
+  mask = umask(077);
+  fd0 = mkstemp(rfname);
+  fd1 = mkstemp(wfname);
+  if (fd0 == -1 || fd1 == -1) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "can't create temporary file");
+    return mrb_nil_value();
+  }
+  umask(mask);
+
   mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_io_rfname"), mrb_str_new_cstr(mrb, rfname));
   mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_io_wfname"), mrb_str_new_cstr(mrb, wfname));
   mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_io_msg"), mrb_str_new_cstr(mrb, msg));
