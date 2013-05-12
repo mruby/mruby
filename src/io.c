@@ -303,7 +303,7 @@ mrb_value
 mrb_io_initialize(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
-  mrb_int fd, flags;
+  mrb_int fd;
   mrb_value mode, opt;
 
   DATA_TYPE(io) = &mrb_io_type;
@@ -319,8 +319,6 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
     opt = mrb_hash_new(mrb);
   }
 
-  flags   = mrb_io_modestr_to_flags(mrb, mrb_string_value_cstr(mrb, &mode));
-
   mrb_iv_set(mrb, io, mrb_intern(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
   mrb_iv_set(mrb, io, mrb_intern(mrb, "@pos"), mrb_fixnum_value(0));
 
@@ -328,8 +326,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
   if (fptr == NULL) {
     fptr = mrb_io_alloc(mrb);
   }
-  fptr->fd    = fd;
-
+  fptr->fd     = fd;
   DATA_PTR(io) = fptr;
 
   return io;
