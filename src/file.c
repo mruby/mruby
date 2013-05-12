@@ -200,7 +200,10 @@ mrb_file_size(mrb_state *mrb, mrb_value klass)
     return mrb_nil_value();
   }
 
-  fseek(fp, 0, SEEK_END);
+  if (fseek(fp, 0, SEEK_END) != 0) {
+    mrb_sys_fail(mrb, "mrb_file_size failed.");
+    return mrb_nil_value();
+  }
   filesize = (mrb_int) ftell(fp);
 
   fclose(fp);
