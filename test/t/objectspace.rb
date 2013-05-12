@@ -16,4 +16,20 @@ assert('ObjectSpace.count_objects') do
     h0 = {:MRB_TT_FOO=>1000}
     h = ObjectSpace.count_objects(h0)
     assert_false(h0.has_key?(:MRB_TT_FOO))
+
+    GC.start
+    h_after = {}
+    h_before = ObjectSpace.count_objects
+
+    objs = []
+    1000.times do
+        objs << {}
+    end
+    objs = nil
+    ObjectSpace.count_objects(h)
+    GC.start
+    ObjectSpace.count_objects(h_after)
+
+    assert_equal(h_before[:MRB_TT_HASH] + 1000, h[:MRB_TT_HASH])
+    assert_equal(h_before[:MRB_TT_HASH], h_after[:MRB_TT_HASH])
   end

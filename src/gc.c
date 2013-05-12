@@ -1168,6 +1168,7 @@ mrb_value os_count_objects(mrb_state *mrb, mrb_value self)
     size_t total = 0;
     size_t i;
     mrb_value hash;
+    RVALUE *free;
     struct heap_page* page = mrb->heaps;
 
     if (mrb_get_args(mrb, "|H", &hash) == 0) {
@@ -1188,13 +1189,15 @@ mrb_value os_count_objects(mrb_state *mrb, mrb_value self)
         p = page->objects;
         pend = p + MRB_HEAP_PAGE_SIZE;
         for (;p < pend; p++) {
-            if (p->as.basic.flags) {
-                counts[mrb_type(p->as.basic)]++;
-            }
-            else {
-                freed++;
-            }
+            counts[mrb_type(p->as.basic)]++;
         }
+
+        free = (RVALUE*)page->freelist;
+        while (free) {
+            freed++;
+            free = (RVALUE*)free->as.free.next;
+        }
+
         total += MRB_HEAP_PAGE_SIZE;
         page = page->next;
     }
