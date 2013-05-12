@@ -250,6 +250,10 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
     }
   }
 
+  if (home == NULL) {
+    return mrb_nil_value();
+  }
+
   if (!mrb_file_is_absolute_path(home)) {
     if (argc && strlen(cuser) > 0) {
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "non-absolute home of ~%s", cuser);
