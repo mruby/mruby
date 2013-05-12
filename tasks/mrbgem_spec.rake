@@ -210,7 +210,7 @@ module MRuby
         ret
       end
 
-      # ~> compare alghorithm
+      # ~> compare algorithm
       # 
       # Example:
       #    ~> 2.2   means >= 2.2.0 and < 3.0.0
