@@ -29,6 +29,8 @@ mrb_value mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_valu
 mrb_value mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key);
 mrb_value mrb_hash_keys(mrb_state *mrb, mrb_value hash);
 mrb_value mrb_check_hash_type(mrb_state *mrb, mrb_value hash);
+mrb_value mrb_hash_empty_p(mrb_state *mrb, mrb_value self);
+mrb_value mrb_hash_clear(mrb_state *mrb, mrb_value hash);
 
 /* RHASH_TBL allocates st_table if not available. */
 #define RHASH(obj)   ((struct RHash*)((obj).value.p))

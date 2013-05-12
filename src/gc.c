@@ -1141,6 +1141,103 @@ gc_generational_mode_set(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(enable);
 }
 
+/*
+ *  call-seq:
+ *     ObjectSpace.count_objects([result_hash]) -> hash
+ *
+ *  Counts objects for each type.
+ *
+ *  It returns a hash, such as:
+ *  {
+ *    :TOTAL=>10000,
+ *    :FREE=>3011,
+ *    :MRB_TT_OBJECT=>6,
+ *    :MRB_TT_CLASS=>404,
+ *    # ...
+ *  }
+ *
+ *  If the optional argument +result_hash+ is given,
+ *  it is overwritten and returned. This is intended to avoid probe effect.
+ *
+ */
+
+mrb_value os_count_objects(mrb_state *mrb, mrb_value self)
+{
+    size_t counts[MRB_TT_MAXDEFINE+1];
+    size_t freed = 0;
+    size_t total = 0;
+    size_t i;
+    mrb_value hash;
+    struct heap_page* page = mrb->heaps;
+
+    if (mrb_get_args(mrb, "|H", &hash) == 0) {
+        hash = mrb_hash_new(mrb);
+    }
+
+    if (!mrb_test(mrb_hash_empty_p(mrb, hash))) {
+        mrb_hash_clear(mrb, hash);
+    }
+
+    for (i = 0; i <= MRB_TT_MAXDEFINE; i++) {
+        counts[i] = 0;
+    }
+
+    while (page != NULL) {
+        RVALUE *p, *pend;
+
+        p = page->objects;
+        pend = p + MRB_HEAP_PAGE_SIZE;
+        for (;p < pend; p++) {
+            if (p->as.basic.flags) {
+                counts[mrb_type(p->as.basic)]++;
+            }
+            else {
+                freed++;
+            }
+        }
+        total += MRB_HEAP_PAGE_SIZE;
+        page = page->next;
+    }
+
+    mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_cstr(mrb, "TOTAL")), mrb_fixnum_value(total));
+    mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_cstr(mrb, "FREE")), mrb_fixnum_value(freed));
+
+    for (i = 0; i < MRB_TT_MAXDEFINE; i++) {
+        mrb_value type;
+        switch (i) {
+#define COUNT_TYPE(t) case (t): type = mrb_symbol_value(mrb_intern_cstr(mrb, #t)); break;
+      COUNT_TYPE(MRB_TT_FALSE);
+      COUNT_TYPE(MRB_TT_FREE);
+      COUNT_TYPE(MRB_TT_TRUE);
+      COUNT_TYPE(MRB_TT_FIXNUM);
+      COUNT_TYPE(MRB_TT_SYMBOL);
+      COUNT_TYPE(MRB_TT_UNDEF);
+      COUNT_TYPE(MRB_TT_FLOAT);
+      COUNT_TYPE(MRB_TT_VOIDP);
+      COUNT_TYPE(MRB_TT_OBJECT);
+      COUNT_TYPE(MRB_TT_CLASS);
+      COUNT_TYPE(MRB_TT_MODULE);
+      COUNT_TYPE(MRB_TT_ICLASS);
+      COUNT_TYPE(MRB_TT_SCLASS);
+      COUNT_TYPE(MRB_TT_PROC);
+      COUNT_TYPE(MRB_TT_ARRAY);
+      COUNT_TYPE(MRB_TT_HASH);
+      COUNT_TYPE(MRB_TT_STRING);
+      COUNT_TYPE(MRB_TT_RANGE);
+      COUNT_TYPE(MRB_TT_EXCEPTION);
+      COUNT_TYPE(MRB_TT_FILE);
+      COUNT_TYPE(MRB_TT_ENV);
+      COUNT_TYPE(MRB_TT_DATA);
+#undef COUNT_TYPE
+          default:              type = mrb_fixnum_value(i); break;
+        }
+        if (counts[i])
+            mrb_hash_set(mrb, hash, type, mrb_fixnum_value(counts[i]));
+    }
+
+    return hash;
+}
+
 #ifdef GC_TEST
 #ifdef GC_DEBUG
 static mrb_value gc_test(mrb_state *, mrb_value);
@@ -1151,6 +1248,8 @@ void
 mrb_init_gc(mrb_state *mrb)
 {
   struct RClass *gc;
+  struct RClass *os;
+
   gc = mrb_define_module(mrb, "GC");
 
   mrb_define_class_method(mrb, gc, "start", gc_start, MRB_ARGS_NONE());
@@ -1167,6 +1266,9 @@ mrb_init_gc(mrb_state *mrb)
   mrb_define_class_method(mrb, gc, "test", gc_test, MRB_ARGS_NONE());
 #endif
 #endif
+
+  os = mrb_define_module(mrb, "ObjectSpace");
+  mrb_define_class_method(mrb, os, "count_objects", os_count_objects, MRB_ARGS_ANY());
 }
 
 #ifdef GC_TEST
