@@ -1161,7 +1161,8 @@ gc_generational_mode_set(mrb_state *mrb, mrb_value self)
  *
  */
 
-mrb_value os_count_objects(mrb_state *mrb, mrb_value self)
+mrb_value
+os_count_objects(mrb_state *mrb, mrb_value self)
 {
     size_t counts[MRB_TT_MAXDEFINE+1];
     size_t freed = 0;
