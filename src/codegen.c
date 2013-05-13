@@ -2423,7 +2423,7 @@ scope_finish(codegen_scope *s)
     fname_len = strlen(s->filename);
     fname = codegen_malloc(s, fname_len + 1);
     memcpy(fname, s->filename, fname_len);
-    fname[fname_len + 1] = '\0';
+    fname[fname_len] = '\0';
     irep->filename = fname;
   }
 
