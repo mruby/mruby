@@ -2403,6 +2403,8 @@ scope_finish(codegen_scope *s)
 {
   mrb_state *mrb = s->mrb;
   mrb_irep *irep = s->irep;
+  size_t fname_len;
+  char *fname;
 
   irep->flags = 0;
   if (s->iseq) {
@@ -2418,7 +2420,11 @@ scope_finish(codegen_scope *s)
   irep->pool = (mrb_value *)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
   irep->syms = (mrb_sym *)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
   if (s->filename) {
-    irep->filename = s->filename;
+    fname_len = strlen(s->filename);
+    fname = codegen_malloc(s, fname_len + 1);
+    memcpy(fname, s->filename, fname_len);
+    fname[fname_len + 1] = '\0';
+    irep->filename = fname;
   }
 
   irep->nlocals = s->nlocals;
