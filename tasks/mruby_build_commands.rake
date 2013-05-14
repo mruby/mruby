@@ -236,6 +236,8 @@ module MRuby
   end
 
   class Command::Mrbc < Command
+    attr_accessor :compile_options
+
     def initialize(build)
       super
       @command = nil

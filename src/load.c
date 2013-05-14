@@ -267,9 +267,6 @@ read_rite_lineno_record(mrb_state *mrb, const uint8_t *bin, size_t irepno, uint3
   mrb->irep[irepno]->lines = lines;
 
 error_exit:
-  if (fname) {
-    mrb_free(mrb, fname);
-  }
 
   return ret;
 }
