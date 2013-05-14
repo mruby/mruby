@@ -42,16 +42,16 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 #define MRB_DUMP_NULL_SYM_LEN         0xFFFF
 
 /* Rite Binary File header */
-#define RITE_BINARY_IDENFIFIER        "RITE"
-#define RITE_BINARY_FORMAT_VER        "0001"
-#define RITE_COMPILER_NAME            "MATZ"
-#define RITE_COMPILER_VERSION         "0000"
+#define RITE_BINARY_IDENTIFIER         "RITE"
+#define RITE_BINARY_FORMAT_VER         "0001"
+#define RITE_COMPILER_NAME             "MATZ"
+#define RITE_COMPILER_VERSION          "0000"
 
-#define RITE_VM_VER                   "0000"
+#define RITE_VM_VER                    "0000"
 
-#define RITE_BINARY_EOF               "END\0"
-#define RITE_SECTION_IREP_IDENTIFIER  "IREP"
-#define RITE_SECTION_LIENO_IDENTIFIER "LINE"
+#define RITE_BINARY_EOF                "END\0"
+#define RITE_SECTION_IREP_IDENTIFIER   "IREP"
+#define RITE_SECTION_LINENO_IDENTIFIER "LINE"
 
 #define MRB_DUMP_DEFAULT_STR_LEN      128
 
@@ -140,11 +140,12 @@ bin_to_uint8(const uint8_t *bin)
   return (uint8_t)bin[0];
 }
 
-/* crc.c */
-uint16_t
-calc_crc_16_ccitt(const uint8_t *src, size_t nbytes, uint16_t crc);
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif
+
+/* crc.c */
+uint16_t
+calc_crc_16_ccitt(const uint8_t *src, size_t nbytes, uint16_t crc);
 
 #endif  /* MRUBY_DUMP_H */

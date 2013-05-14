@@ -315,6 +315,33 @@ assert('Exception 18') do
   end == 3
 end
 
+assert('Exception 19') do
+  class Class4Exception19
+    def a
+      r = @e = false
+      begin
+        b
+      rescue TypeError
+        r = self.z
+      end
+      [ r, @e ]
+    end
+  
+    def b
+      begin
+        1 * "b"
+      ensure
+        @e = self.z
+      end
+    end
+  
+    def z
+      true
+    end
+  end
+  Class4Exception19.new.a == [true,  true]
+end
+
 assert('Exception#inspect without message') do
   Exception.new.inspect
 end

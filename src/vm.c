@@ -22,6 +22,15 @@
 #include "opcode.h"
 #include "value_array.h"
 
+#ifndef ENABLE_STDIO
+#if defined(__cplusplus)
+extern "C" {
+#endif
+void abort(void);
+#if defined(__cplusplus)
+}  /* extern "C" { */
+#endif
+#endif
 
 #define SET_TRUE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
 #define SET_FALSE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
@@ -63,7 +72,7 @@ stack_clear(mrb_value *from, size_t count)
 {
   const mrb_value mrb_value_zero = { { 0 } };
 
-  while(count-- > 0) {
+  while (count-- > 0) {
     *from++ = mrb_value_zero;
   }
 }
@@ -237,6 +246,7 @@ ecall(mrb_state *mrb, int i)
   struct RObject *exc;
 
   p = mrb->ensure[i];
+  if (!p) return;
   ci = cipush(mrb);
   ci->stackidx = mrb->stack - mrb->stbase;
   ci->mid = ci[-1].mid;
@@ -248,6 +258,7 @@ ecall(mrb_state *mrb, int i)
   mrb->stack = mrb->stack + ci[-1].nregs;
   exc = mrb->exc; mrb->exc = 0;
   mrb_run(mrb, p, *self);
+  mrb->ensure[i] = NULL;
   if (!mrb->exc) mrb->exc = exc;
 }
 
@@ -438,11 +449,11 @@ mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv)
 }
 
 mrb_value
-mrb_yield(mrb_state *mrb, mrb_value b, mrb_value v)
+mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg)
 {
   struct RProc *p = mrb_proc_ptr(b);
 
-  return mrb_yield_internal(mrb, b, 1, &v, mrb->stack[0], p->target_class);
+  return mrb_yield_internal(mrb, b, 1, &arg, mrb->stack[0], p->target_class);
 }
 
 typedef enum {
@@ -1117,7 +1128,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     CASE(OP_ENTER) {
       /* Ax             arg setup according to flags (24=5:5:1:5:5:1:1) */
       /* number of optional arguments times OP_JMP should follow */
-      int32_t ax = GETARG_Ax(i);
+      mrb_aspec ax = GETARG_Ax(i);
       int m1 = (ax>>18)&0x1f;
       int o  = (ax>>13)&0x1f;
       int r  = (ax>>12)&0x1;
@@ -1216,15 +1227,18 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           if (ci->ridx == 0) goto L_STOP;
           goto L_RESCUE;
         }
+        while (eidx > ci[-1].eidx) {
+          ecall(mrb, --eidx);
+        }
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           ci = mrb->ci;
+          mrb->stack = mrb->stbase + ci[1].stackidx;
           if (ci[1].acc < 0 && prev_jmp) {
             mrb->jmp = prev_jmp;
-            mrb->stack = mrb->stbase + ci[1].stackidx;
             longjmp(*(jmp_buf*)mrb->jmp, 1);
           }
-          while (eidx > mrb->ci->eidx) {
+          while (eidx > ci->eidx) {
             ecall(mrb, --eidx);
           }
           if (ci == mrb->cibase) {
@@ -1283,19 +1297,13 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           /* cannot happen */
           break;
         }
+        while (eidx > mrb->ci[-1].eidx) {
+          ecall(mrb, --eidx);
+        }
         cipop(mrb);
         acc = ci->acc;
         pc = ci->pc;
         regs = mrb->stack = mrb->stbase + ci->stackidx;
-        {
-          int idx = eidx;
-          while (idx > mrb->ci->eidx) {
-            mrb_gc_protect(mrb, mrb_obj_value(mrb->ensure[--idx]));
-          }
-        }
-        while (eidx > mrb->ci->eidx) {
-          ecall(mrb, --eidx);
-        }
         if (acc < 0) {
           mrb->jmp = prev_jmp;
           return v;
@@ -1599,7 +1607,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     }
 
     CASE(OP_SUBI) {
-      /* A B C  R(A) := R(A)-C (Syms[B]=:+)*/
+      /* A B C  R(A) := R(A)-C (Syms[B]=:-)*/
       int a = GETARG_A(i);
       mrb_value *regs_a = regs + a;
 
@@ -1659,7 +1667,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   default:\
     goto L_SEND;\
   }\
-} while (0)
+} while(0)
 
     CASE(OP_EQ) {
       /* A B C  R(A) := R(A)<R(A+1) (Syms[B]=:==,C=1)*/

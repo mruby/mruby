@@ -35,6 +35,15 @@ assert('Proc#[]', '15.2.17.4.1') do
   a == 1 and a2 == 5
 end
 
+assert('Proc#arity', '15.2.17.4.2') do
+  a = Proc.new {|x, y|}.arity
+  b = Proc.new {|x, *y, z|}.arity
+  c = Proc.new {|x=0, y|}.arity
+  d = Proc.new {|(x, y), z=0|}.arity
+
+  a == 2 and b == -3 and c == 1 and d == 1
+end
+
 assert('Proc#call', '15.2.17.4.3') do
   a = 0
   b = Proc.new { a += 1 }

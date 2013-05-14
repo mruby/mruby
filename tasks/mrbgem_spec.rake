@@ -30,11 +30,15 @@ module MRuby
 
       attr_accessor :bins
 
+      attr_accessor :requirements
+      attr_reader :dependencies
+
       attr_block MRuby::Build::COMMANDS
 
       def initialize(name, &block)
         @name = name
         @initializer = block
+        @version = "0.0.0"
         MRuby::Gem.current = self
       end
 
@@ -48,7 +52,7 @@ module MRuby
         end
         @linker = LinkerConfig.new([], [], [], [])
 
-        @rbfiles = Dir.glob("#{dir}/mrblib/*.rb")
+        @rbfiles = Dir.glob("#{dir}/mrblib/*.rb").sort
         @objs = Dir.glob("#{dir}/src/*.{c,cpp,m,asm,S}").map do |f|
           objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
         end
@@ -62,6 +66,9 @@ module MRuby
         @test_args = {}
 
         @bins = []
+
+        @requirements = []
+        @dependencies = []
 
         instance_eval(&@initializer)
 
@@ -78,6 +85,12 @@ module MRuby
         end
 
         define_gem_init_builder
+      end
+
+      def add_dependency(name, *requirements)
+        requirements = ['>= 0.0.0'] if requirements.empty?
+        requirements.flatten!
+        @dependencies << {:gem => name, :requirements => requirements}
       end
 
       def self.bin=(bin)
@@ -123,6 +136,7 @@ module MRuby
           unless rbfiles.empty?
             f.puts %Q[  mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});]
             f.puts %Q[  if (mrb->exc) {]
+            f.puts %Q[    mrb_print_backtrace(mrb);]
             f.puts %Q[    mrb_p(mrb, mrb_obj_value(mrb->exc));]
             f.puts %Q[    exit(EXIT_FAILURE);]
             f.puts %Q[  }]
@@ -156,6 +170,129 @@ module MRuby
         f.puts %Q[#include "mruby/hash.h"]
       end
 
+      def version_ok?(req_versions)
+        req_versions.map do |req|
+          cmp, ver = req.split
+          cmp_result = Version.new(version) <=> Version.new(ver)
+          case cmp
+          when '=' then cmp_result == 0
+          when '!=' then cmp_result != 0
+          when '>' then cmp_result == 1
+          when '<' then cmp_result == -1
+          when '>=' then cmp_result >= 0
+          when '<=' then cmp_result <= 0
+          when '~>'
+            Version.new(version).twiddle_wakka_ok?(Version.new(ver))
+          else
+            fail "Comparison not possible with '#{cmp}'"
+          end
+        end.all?
+      end
     end # Specification
+
+    class Version
+      include Comparable
+      include Enumerable
+
+      def <=>(other)
+        ret = 0
+        own = to_enum
+
+        other.each do |oth|
+          begin
+            ret = own.next <=> oth
+          rescue StopIteration
+            ret = 0 <=> oth
+          end
+
+          break unless ret == 0
+        end
+
+        ret
+      end
+
+      # ~> compare algorithm
+      # 
+      # Example:
+      #    ~> 2.2   means >= 2.2.0 and < 3.0.0
+      #    ~> 2.2.0 means >= 2.2.0 and < 2.3.0
+      def twiddle_wakka_ok?(other)
+        gr_or_eql = (self <=> other) >= 0
+        still_minor = (self <=> other.skip_minor) < 0
+        gr_or_eql and still_minor
+      end
+
+      def skip_minor
+        a = @ary.dup
+        a.slice!(-1)
+        a[-1] = a[-1].succ
+        a
+      end
+
+      def initialize(str)
+        @str = str
+        @ary = @str.split('.').map(&:to_i)
+      end
+
+      def each(&block); @ary.each(&block); end
+      def [](index); @ary[index]; end
+      def []=(index, value)
+        @ary[index] = value
+        @str = @ary.join('.')
+      end
+      def slice!(index)
+        @ary.slice!(index)
+        @str = @ary.join('.')
+      end
+    end # Version
+
+    class List
+      include Enumerable
+
+      def initialize
+        @ary = []
+      end
+
+      def each(&b)
+        @ary.each(&b)
+      end
+
+      def <<(gem)
+        unless @ary.detect {|g| g.dir == gem.dir }
+          @ary << gem
+        else
+          # GEM was already added to this list
+        end
+      end
+
+      def empty?
+        @ary.empty?
+      end
+
+      def check
+        each do |g|
+          g.dependencies.each do |dep|
+            name = dep[:gem]
+            req_versions = dep[:requirements]
+
+            # check each GEM dependency against all available GEMs
+            each do |dep_g|
+              if name == dep_g.name
+                unless dep_g.version_ok?(req_versions)
+                  fail "#{name} version should be #{req_versions.join(' and ')} but was '#{dep_g.version}'"
+                end
+              end
+            end
+          end
+        end
+      end
+    end # List
   end # Gem
+
+  GemBox = Object.new
+  class << GemBox
+    def new(&block); block.call(self); end
+    def config=(obj); @config = obj; end
+    def gem(gemdir, &block); @config.gem(gemdir, &block); end
+  end # GemBox
 end # MRuby

@@ -354,12 +354,26 @@ end
 # Kernel#require is defined in mruby-require. '15.3.1.3.42'
 
 assert('Kernel#respond_to?', '15.3.1.3.43') do
+  e_list = []
+
   class Test4RespondTo
+    def valid_method; end
+
     def test_method; end
     undef test_method
   end
 
-  respond_to?(:nil?) and Test4RespondTo.new.respond_to?(:test_method) == false
+  begin
+    Test4RespondTo.new.respond_to?(1)
+  rescue => e
+    e_list << e.class
+  end
+
+  e_list[0] == TypeError and
+  respond_to?(:nil?) and 
+  Test4RespondTo.new.respond_to?(:valid_method) == true and
+  Test4RespondTo.new.respond_to?('valid_method') == true and
+  Test4RespondTo.new.respond_to?(:test_method) == false 
 end
 
 assert('Kernel#send', '15.3.1.3.44') do
@@ -391,4 +405,17 @@ assert('Kernel#!=') do
   (str1[1] != 'e') == false and
   (str1 != str3) == true and
   (str2 != str1) == false
+end
+
+assert('Kernel#respond_to_missing?') do
+
+  class Test4RespondToMissing
+    def respond_to_missing?(method_name, include_private = false)
+      method_name == :a_method
+    end
+  end
+
+  Test4RespondToMissing.new.respond_to?(:a_method) == true and
+  Test4RespondToMissing.new.respond_to?(:no_method) == false
+
 end

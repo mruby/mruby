@@ -125,7 +125,7 @@ mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
       return ptr[i];
     }
   }
-  mrb_name_error(mrb, id, "%S is not struct member", mrb_sym2str(mrb, id));
+  mrb_raisef(mrb, E_INDEX_ERROR, "%S is not struct member", mrb_sym2str(mrb, id));
   return mrb_nil_value();       /* not reached */
 }
 
@@ -204,7 +204,7 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
       return ptr[i] = val;
     }
   }
-  mrb_name_error(mrb, mid, "`%S' is not a struct member",
+  mrb_raisef(mrb, E_INDEX_ERROR, "`%S' is not a struct member",
              mrb_sym2str(mrb, mid));
   return mrb_nil_value();            /* not reached */
 }
@@ -247,12 +247,12 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   else {
     /* old style: should we warn? */
     name = mrb_str_to_str(mrb, name);
-    id = mrb_to_id(mrb, name);
+    id = mrb_obj_to_sym(mrb, name);
     if (!mrb_is_const_id(id)) {
       mrb_name_error(mrb, id, "identifier %S needs to be constant", name);
     }
     if (mrb_const_defined_at(mrb, klass, id)) {
-      mrb_warn("redefining constant Struct::%s", mrb_string_value_ptr(mrb, name));
+      mrb_warn(mrb, "redefining constant Struct::%S", name);
       //?rb_mod_remove_const(klass, mrb_sym2name(mrb, id));
     }
     c = mrb_define_class_under(mrb, klass, RSTRING_PTR(name), klass);
@@ -261,9 +261,9 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   nstr = mrb_obj_value(c);
   mrb_iv_set(mrb, nstr, mrb_intern2(mrb, "__members__", 11), members);
 
-  mrb_define_class_method(mrb, c, "new", mrb_instance_new, ARGS_ANY());
-  mrb_define_class_method(mrb, c, "[]", mrb_instance_new, ARGS_ANY());
-  mrb_define_class_method(mrb, c, "members", mrb_struct_s_members_m, ARGS_NONE());
+  mrb_define_class_method(mrb, c, "new", mrb_instance_new, MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, c, "[]", mrb_instance_new, MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, c, "members", mrb_struct_s_members_m, MRB_ARGS_NONE());
   //RSTRUCT(nstr)->basic.c->super = c->c;
   ptr_members = RARRAY_PTR(members);
   len = RARRAY_LEN(members);
@@ -271,12 +271,12 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     mrb_sym id = mrb_symbol(ptr_members[i]);
     if (mrb_is_local_id(id) || mrb_is_const_id(id)) {
       if (i < N_REF_FUNC) {
-        mrb_define_method_id(mrb, c, id, ref_func[i], ARGS_NONE());
+        mrb_define_method_id(mrb, c, id, ref_func[i], MRB_ARGS_NONE());
       }
       else {
-        mrb_define_method_id(mrb, c, id, mrb_struct_ref, ARGS_NONE());
+        mrb_define_method_id(mrb, c, id, mrb_struct_ref, MRB_ARGS_NONE());
       }
-      mrb_define_method_id(mrb, c, mrb_id_attrset(mrb, id), mrb_struct_set_m, ARGS_REQ(1));
+      mrb_define_method_id(mrb, c, mrb_id_attrset(mrb, id), mrb_struct_set_m, MRB_ARGS_REQ(1));
     }
   }
   return nstr;
@@ -377,7 +377,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
       rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
     }
     for (i=0; i<RARRAY_LEN(rest); i++) {
-      id = mrb_to_id(mrb, RARRAY_PTR(rest)[i]);
+      id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
       RARRAY_PTR(rest)[i] = mrb_symbol_value(id);
     }
   }
@@ -544,7 +544,7 @@ mrb_struct_aref_id(mrb_state *mrb, mrb_value s, mrb_sym id)
       return ptr[i];
     }
   }
-  mrb_name_error(mrb, id, "no member '%S' in struct", mrb_sym2str(mrb, id));
+  mrb_raisef(mrb, E_INDEX_ERROR, "no member '%S' in struct", mrb_sym2str(mrb, id));
   return mrb_nil_value();       /* not reached */
 }
 
@@ -572,8 +572,16 @@ mrb_struct_aref_n(mrb_state *mrb, mrb_value s, mrb_value idx)
 {
   mrb_int i;
 
-  if (mrb_string_p(idx) || mrb_symbol_p(idx)) {
-    return mrb_struct_aref_id(mrb, s, mrb_to_id(mrb, idx));
+  if (mrb_string_p(idx)) {
+    mrb_value sym = mrb_check_intern_str(mrb, idx);
+
+    if (mrb_nil_p(sym)) {
+      mrb_raisef(mrb, E_INDEX_ERROR, "no member '%S' in struct", idx);
+    }
+    idx = sym;
+  }
+  if (mrb_symbol_p(idx)) {
+    return mrb_struct_aref_id(mrb, s, mrb_symbol(idx));
   }
 
   i = mrb_fixnum(idx);
@@ -619,7 +627,7 @@ mrb_struct_aset_id(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
       return val;
     }
   }
-  mrb_name_error(mrb, id, "no member '%S' in struct", mrb_sym2str(mrb, id));
+  mrb_raisef(mrb, E_INDEX_ERROR, "no member '%S' in struct", mrb_sym2str(mrb, id));
   return val;                   /* not reach */
 }
 
@@ -655,7 +663,7 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
   mrb_get_args(mrb, "oo", &idx, &val);
 
   if (mrb_string_p(idx) || mrb_symbol_p(idx)) {
-    return mrb_struct_aset_id(mrb, s, mrb_to_id(mrb, idx), val);
+    return mrb_struct_aset_id(mrb, s, mrb_obj_to_sym(mrb, idx), val);
   }
 
   i = mrb_fixnum(idx);
@@ -708,7 +716,7 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
     equal_p = 0;
   }
   else if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
-    mrb_bug("inconsistent struct"); /* should never happen */
+    mrb_bug(mrb, "inconsistent struct"); /* should never happen */
     equal_p = 0; /* This substuture is just to suppress warnings. never called. */
   }
   else {
@@ -752,7 +760,7 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
     eql_p = 0;
   }
   else if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
-    mrb_bug("inconsistent struct"); /* should never happen */
+    mrb_bug(mrb, "inconsistent struct"); /* should never happen */
     eql_p = 0; /* This substuture is just to suppress warnings. never called. */
   }
   else {
@@ -792,18 +800,17 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
   struct RClass *st;
   st = mrb_define_class(mrb, "Struct",  mrb->object_class);
 
-  mrb_define_class_method(mrb, st, "new",             mrb_struct_s_def,       ARGS_ANY());  /* 15.2.18.3.1  */
+  mrb_define_class_method(mrb, st, "new",             mrb_struct_s_def,       MRB_ARGS_ANY());  /* 15.2.18.3.1  */
 
-  mrb_define_method(mrb, st,       "==",              mrb_struct_equal,       ARGS_REQ(1)); /* 15.2.18.4.1  */
-  mrb_define_method(mrb, st,       "[]",              mrb_struct_aref,        ARGS_REQ(1)); /* 15.2.18.4.2  */
-  mrb_define_method(mrb, st,       "[]=",             mrb_struct_aset,        ARGS_REQ(2)); /* 15.2.18.4.3  */
-  mrb_define_method(mrb, st,       "members",         mrb_struct_members_m,   ARGS_NONE()); /* 15.2.18.4.6  */
-  mrb_define_method(mrb, st,       "initialize",      mrb_struct_initialize_m,ARGS_ANY());  /* 15.2.18.4.8  */
-  mrb_define_method(mrb, st,       "initialize_copy", mrb_struct_init_copy,   ARGS_REQ(1)); /* 15.2.18.4.9  */
-  mrb_define_method(mrb, st,       "inspect",         mrb_struct_inspect,     ARGS_NONE()); /* 15.2.18.4.10(x)  */
+  mrb_define_method(mrb, st,       "==",              mrb_struct_equal,       MRB_ARGS_REQ(1)); /* 15.2.18.4.1  */
+  mrb_define_method(mrb, st,       "[]",              mrb_struct_aref,        MRB_ARGS_REQ(1)); /* 15.2.18.4.2  */
+  mrb_define_method(mrb, st,       "[]=",             mrb_struct_aset,        MRB_ARGS_REQ(2)); /* 15.2.18.4.3  */
+  mrb_define_method(mrb, st,       "members",         mrb_struct_members_m,   MRB_ARGS_NONE()); /* 15.2.18.4.6  */
+  mrb_define_method(mrb, st,       "initialize",      mrb_struct_initialize_m,MRB_ARGS_ANY());  /* 15.2.18.4.8  */
+  mrb_define_method(mrb, st,       "initialize_copy", mrb_struct_init_copy,   MRB_ARGS_REQ(1)); /* 15.2.18.4.9  */
+  mrb_define_method(mrb, st,       "inspect",         mrb_struct_inspect,     MRB_ARGS_NONE()); /* 15.2.18.4.10(x)  */
   mrb_define_alias(mrb, st,        "to_s", "inspect");                                      /* 15.2.18.4.11(x)  */
-  mrb_define_method(mrb, st,       "eql?",            mrb_struct_eql,         ARGS_REQ(1)); /* 15.2.18.4.12(x)  */
-
+  mrb_define_method(mrb, st,       "eql?",            mrb_struct_eql,         MRB_ARGS_REQ(1)); /* 15.2.18.4.12(x)  */
 }
 
 void

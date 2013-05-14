@@ -586,7 +586,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   }
   tree = tree->cdr;
   if (tree->car) {
-    int32_t a;
+    mrb_aspec a;
     int ma, oa, ra, pa, ka, kd, ba;
     int pos, i;
     node *n, *opt;
@@ -602,8 +602,8 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     ka = kd = 0;
     ba = tree->car->cdr->cdr->cdr->cdr ? 1 : 0;
 
-    a = ((int32_t)(ma & 0x1f) << 18)
-      | ((int32_t)(oa & 0x1f) << 13)
+    a = ((mrb_aspec)(ma & 0x1f) << 18)
+      | ((mrb_aspec)(oa & 0x1f) << 13)
       | ((ra & 1) << 12)
       | ((pa & 0x1f) << 7)
       | ((ka & 0x1f) << 2)
@@ -2403,6 +2403,8 @@ scope_finish(codegen_scope *s)
 {
   mrb_state *mrb = s->mrb;
   mrb_irep *irep = s->irep;
+  size_t fname_len;
+  char *fname;
 
   irep->flags = 0;
   if (s->iseq) {
@@ -2418,7 +2420,11 @@ scope_finish(codegen_scope *s)
   irep->pool = (mrb_value *)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
   irep->syms = (mrb_sym *)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
   if (s->filename) {
-    irep->filename = s->filename;
+    fname_len = strlen(s->filename);
+    fname = codegen_malloc(s, fname_len + 1);
+    memcpy(fname, s->filename, fname_len);
+    fname[fname_len] = '\0';
+    irep->filename = fname;
   }
 
   irep->nlocals = s->nlocals;

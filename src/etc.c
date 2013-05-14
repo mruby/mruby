@@ -85,13 +85,8 @@ mrb_exec_recursive(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mr
   return func(mrb, obj, *(mrb_value*)arg, 0);
 }
 
-/*
- * Calls func(obj, arg, recursive), where recursive is non-zero if the
- * current method is called recursively on the ordered pair <obj, paired_obj>
- */
-
 mrb_sym
-mrb_to_id(mrb_state *mrb, mrb_value name)
+mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
 {
   mrb_value tmp;
   mrb_sym id;

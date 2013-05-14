@@ -14,6 +14,7 @@
 #include <mruby/proc.h>
 #include <mruby/data.h>
 #include <mruby/compile.h>
+#include <mruby/string.h>
 #include <mruby/variable.h>
 
 void
@@ -59,10 +60,37 @@ eval_test(mrb_state *mrb)
   return EXIT_SUCCESS;
 }
 
+static void
+t_printstr(mrb_state *mrb, mrb_value obj)
+{
+  struct RString *str;
+  char *s;
+  int len;
+   
+  if (mrb_string_p(obj)) {
+    str = mrb_str_ptr(obj);
+    s = str->ptr;
+    len = str->len;
+    fwrite(s, len, 1, stdout);
+  }
+}
+
+mrb_value
+mrb_t_printstr(mrb_state *mrb, mrb_value self)
+{
+  mrb_value argv;
+
+  mrb_get_args(mrb, "o", &argv);
+  t_printstr(mrb, argv);
+
+  return argv;
+}
+
 int
 main(int argc, char **argv)
 {
   mrb_state *mrb;
+  struct RClass *krn;
   int ret;
 
   print_hint();
@@ -78,6 +106,9 @@ main(int argc, char **argv)
     printf("verbose mode: enable\n\n");
     mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_verbose"), mrb_true_value());
   }
+
+  krn = mrb->kernel_module;
+  mrb_define_method(mrb, krn, "__t_printstr__", mrb_t_printstr, MRB_ARGS_REQ(1));
 
   mrb_init_mrbtest(mrb);
   ret = eval_test(mrb);

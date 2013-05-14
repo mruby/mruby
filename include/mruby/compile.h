@@ -14,12 +14,15 @@ extern "C" {
 #include "mruby.h"
 #include <setjmp.h>
 
+struct mrb_parser_state;
 /* load context */
 typedef struct mrbc_context {
   mrb_sym *syms;
   int slen;
   char *filename;
   short lineno;
+  int (*partial_hook)(struct mrb_parser_state*);
+  void *partial_data;
   mrb_bool capture_errors:1;
   mrb_bool dump_result:1;
   mrb_bool no_exec:1;
@@ -28,6 +31,7 @@ typedef struct mrbc_context {
 mrbc_context* mrbc_context_new(mrb_state *mrb);
 void mrbc_context_free(mrb_state *mrb, mrbc_context *cxt);
 const char *mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s);
+void mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*partial_hook)(struct mrb_parser_state*), void*data);
 
 /* AST node structure */
 typedef struct mrb_ast_node {
@@ -104,6 +108,7 @@ struct mrb_parser_state {
 #ifdef ENABLE_STDIO
   FILE *f;
 #endif
+  mrbc_context *cxt;
   char *filename;
   int lineno;
   int column;

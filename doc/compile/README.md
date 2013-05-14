@@ -346,6 +346,25 @@ linking with *build/i386/lib/libmruby_core.a*
  ----------------------------------------------------------------
 ```
 
+## Build Configuration Examples
+
+### Minimal Library
+
+To build a minimal mruby library you need to use the Cross Compiling 
+feature due to the reason that there are functions (i.e. stdio) which 
+can't be disabled for the main build.
+
+	MRuby::CrossBuild.new('Minimal') do |conf|
+	  toolchain :gcc
+
+	  conf.cc.defines = %w(DISABLE_STDIO)
+	  conf.bins = []  
+	end
+
+This configuration defines a cross compile build called 'Minimal' which
+is using the GCC and compiles for the host machine. It also disables
+all usages of stdio and doesn't compile any binaries (i.e. mrbc).
+
 ## Test Environment
 
 mruby's build process includes a test environment. In case you start the testing

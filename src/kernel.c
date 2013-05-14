@@ -708,18 +708,11 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, mrb_value ary)
 }
 
 mrb_value
-class_instance_method_list(mrb_state *mrb, int argc, mrb_value *argv, struct RClass* klass, int obj)
+class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass, int obj)
 {
   mrb_value ary;
-  int recur;
   struct RClass* oldklass;
 
-  if (argc == 0) {
-      recur = TRUE;
-  }
-  else {
-      mrb_get_args(mrb, "b", &recur);
-  }
   ary = mrb_ary_new(mrb);
   oldklass = 0;
   while (klass && (klass != oldklass)) {
@@ -738,24 +731,18 @@ class_instance_method_list(mrb_state *mrb, int argc, mrb_value *argv, struct RCl
 }
 
 mrb_value
-mrb_obj_singleton_methods(mrb_state *mrb, int argc, mrb_value *argv, mrb_value obj)
+mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
 {
-  mrb_value recur, ary;
+  mrb_value ary;
   struct RClass* klass;
 
-  if (argc == 0) {
-      recur = mrb_true_value();
-  }
-  else {
-      recur = argv[0];
-  }
   klass = mrb_class(mrb, obj);
   ary = mrb_ary_new(mrb);
   if (klass && (klass->tt == MRB_TT_SCLASS)) {
       method_entry_loop(mrb, klass, ary);
       klass = klass->super;
   }
-  if (mrb_test(recur)) {
+  if (recur) {
       while (klass && ((klass->tt == MRB_TT_SCLASS) || (klass->tt == MRB_TT_ICLASS))) {
         method_entry_loop(mrb, klass, ary);
         klass = klass->super;
@@ -766,22 +753,12 @@ mrb_obj_singleton_methods(mrb_state *mrb, int argc, mrb_value *argv, mrb_value o
 }
 
 mrb_value
-mrb_obj_methods(mrb_state *mrb, int argc, mrb_value *argv, mrb_value obj, mrb_method_flag_t flag)
+mrb_obj_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj, mrb_method_flag_t flag)
 {
-retry:
-  if (argc == 0) {
-      return class_instance_method_list(mrb, argc, argv, mrb_class(mrb, obj), 0);
-  }
-  else {
-      mrb_value recur;
-
-      recur = argv[0];
-      if (mrb_test(recur)) {
-          argc = 0;
-          goto retry;
-      }
-      return mrb_obj_singleton_methods(mrb, argc, argv, obj);
-  }
+  if (recur)
+      return class_instance_method_list(mrb, recur, mrb_class(mrb, obj), 0);
+  else
+      return mrb_obj_singleton_methods(mrb, recur, obj);
 }
 /* 15.3.1.3.31 */
 /*
@@ -805,11 +782,9 @@ retry:
 mrb_value
 mrb_obj_methods_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
-  int argc;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  return mrb_obj_methods(mrb, argc, argv, self, (mrb_method_flag_t)0); /* everything but private */
+  mrb_bool recur = TRUE;
+  mrb_get_args(mrb, "|b", &recur);
+  return mrb_obj_methods(mrb, recur, self, (mrb_method_flag_t)0); /* everything but private */
 }
 
 /* 15.3.1.3.32 */
@@ -838,11 +813,9 @@ mrb_false(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_private_methods(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
-  int argc;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  return mrb_obj_methods(mrb, argc, argv, self, NOEX_PRIVATE); /* private attribute not define */
+  mrb_bool recur = TRUE;
+  mrb_get_args(mrb, "|b", &recur);
+  return mrb_obj_methods(mrb, recur, self, NOEX_PRIVATE); /* private attribute not define */
 }
 
 /* 15.3.1.3.37 */
@@ -857,11 +830,9 @@ mrb_obj_private_methods(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_protected_methods(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
-  int argc;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  return mrb_obj_methods(mrb, argc, argv, self, NOEX_PROTECTED); /* protected attribute not define */
+  mrb_bool recur = TRUE;
+  mrb_get_args(mrb, "|b", &recur);
+  return mrb_obj_methods(mrb, recur, self, NOEX_PROTECTED); /* protected attribute not define */
 }
 
 /* 15.3.1.3.38 */
@@ -876,11 +847,9 @@ mrb_obj_protected_methods(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
-  int argc;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  return mrb_obj_methods(mrb, argc, argv, self, NOEX_PUBLIC); /* public attribute not define */
+  mrb_bool recur = TRUE;
+  mrb_get_args(mrb, "|b", &recur);
+  return mrb_obj_methods(mrb, recur, self, NOEX_PUBLIC); /* public attribute not define */
 }
 
 /* 15.3.1.2.12  */
@@ -996,17 +965,45 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   mrb_value *argv;
   int argc;
   mrb_value mid, priv;
-  mrb_sym id;
-  mrb_bool respond_to_p;
+  mrb_sym id, rtm_id;
+  mrb_bool respond_to_p = TRUE;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   mid = argv[0];
   if (argc > 1) priv = argv[1];
   else priv = mrb_nil_value();
-  id = mrb_to_id(mrb, mid);
 
-  respond_to_p = basic_obj_respond_to(mrb, self, id, !mrb_test(priv));
+  if (mrb_symbol_p(mid)) {
+    id = mrb_symbol(mid);
+  }
+  else {
+    mrb_value tmp;
+    if (!mrb_string_p(mid)) {
+      tmp = mrb_check_string_type(mrb, mid);
+      if (mrb_nil_p(tmp)) {
+        tmp = mrb_inspect(mrb, mid);
+        mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol", tmp);
+      }
+    }
+    tmp = mrb_check_intern_str(mrb, mid);
+    if (mrb_nil_p(tmp)) {
+      respond_to_p = FALSE;
+    }
+    else {
+      id = mrb_symbol(tmp);
+    }
+  }
 
+  if (respond_to_p) {
+    respond_to_p = basic_obj_respond_to(mrb, self, id, !mrb_test(priv));
+  }
+
+  if (!respond_to_p) {
+    rtm_id = mrb_intern2(mrb, "respond_to_missing?", 19);
+    if (basic_obj_respond_to(mrb, self, rtm_id, !mrb_test(priv))) {
+      return mrb_funcall_argv(mrb, self, rtm_id, argc, argv);
+    }
+  }
   return mrb_bool_value(respond_to_p);
 }
 
@@ -1046,11 +1043,9 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_singleton_methods_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
-  int argc;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  return mrb_obj_singleton_methods(mrb, argc, argv, self);
+  mrb_bool recur = TRUE;
+  mrb_get_args(mrb, "|b", &recur);
+  return mrb_obj_singleton_methods(mrb, recur, self);
 }
 
 void
@@ -1059,51 +1054,51 @@ mrb_init_kernel(mrb_state *mrb)
   struct RClass *krn;
 
   krn = mrb->kernel_module = mrb_define_module(mrb, "Kernel");
-  mrb_define_class_method(mrb, krn, "block_given?",         mrb_f_block_given_p_m,           ARGS_NONE());    /* 15.3.1.2.2  */
-  mrb_define_class_method(mrb, krn, "global_variables",     mrb_f_global_variables,          ARGS_NONE());    /* 15.3.1.2.4  */
-  mrb_define_class_method(mrb, krn, "iterator?",            mrb_f_block_given_p_m,           ARGS_NONE());    /* 15.3.1.2.5  */
+  mrb_define_class_method(mrb, krn, "block_given?",         mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.2  */
+  mrb_define_class_method(mrb, krn, "global_variables",     mrb_f_global_variables,          MRB_ARGS_NONE());    /* 15.3.1.2.4  */
+  mrb_define_class_method(mrb, krn, "iterator?",            mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.5  */
 ;     /* 15.3.1.2.11 */
-  mrb_define_class_method(mrb, krn, "raise",                mrb_f_raise,                     ARGS_ANY());     /* 15.3.1.2.12 */
+  mrb_define_class_method(mrb, krn, "raise",                mrb_f_raise,                     MRB_ARGS_ANY());     /* 15.3.1.2.12 */
 
-  mrb_define_method(mrb, krn, "singleton_class",            mrb_singleton_class,             ARGS_NONE());
+  mrb_define_method(mrb, krn, "singleton_class",            mrb_singleton_class,             MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, krn, "==",                         mrb_obj_equal_m,                 ARGS_REQ(1));    /* 15.3.1.3.1  */
-  mrb_define_method(mrb, krn, "!=",                         mrb_obj_not_equal_m,             ARGS_REQ(1));
-  mrb_define_method(mrb, krn, "===",                        mrb_equal_m,                     ARGS_REQ(1));    /* 15.3.1.3.2  */
-  mrb_define_method(mrb, krn, "__id__",                     mrb_obj_id_m,                    ARGS_NONE());    /* 15.3.1.3.3  */
-  mrb_define_method(mrb, krn, "__send__",                   mrb_f_send,                      ARGS_ANY());     /* 15.3.1.3.4  */
-  mrb_define_method(mrb, krn, "block_given?",               mrb_f_block_given_p_m,           ARGS_NONE());    /* 15.3.1.3.6  */
-  mrb_define_method(mrb, krn, "class",                      mrb_obj_class_m,                 ARGS_NONE());    /* 15.3.1.3.7  */
-  mrb_define_method(mrb, krn, "clone",                      mrb_obj_clone,                   ARGS_NONE());    /* 15.3.1.3.8  */
-  mrb_define_method(mrb, krn, "dup",                        mrb_obj_dup,                     ARGS_NONE());    /* 15.3.1.3.9  */
-  mrb_define_method(mrb, krn, "eql?",                       mrb_obj_equal_m,                 ARGS_REQ(1));    /* 15.3.1.3.10 */
-  mrb_define_method(mrb, krn, "equal?",                     mrb_obj_equal_m,                 ARGS_REQ(1));    /* 15.3.1.3.11 */
-  mrb_define_method(mrb, krn, "extend",                     mrb_obj_extend_m,                ARGS_ANY());     /* 15.3.1.3.13 */
-  mrb_define_method(mrb, krn, "global_variables",           mrb_f_global_variables,          ARGS_NONE());    /* 15.3.1.3.14 */
-  mrb_define_method(mrb, krn, "hash",                       mrb_obj_hash,                    ARGS_NONE());    /* 15.3.1.3.15 */
-  mrb_define_method(mrb, krn, "initialize_copy",            mrb_obj_init_copy,               ARGS_REQ(1));    /* 15.3.1.3.16 */
-  mrb_define_method(mrb, krn, "inspect",                    mrb_obj_inspect,                 ARGS_NONE());    /* 15.3.1.3.17 */
-  mrb_define_method(mrb, krn, "instance_eval",              mrb_obj_instance_eval,           ARGS_ANY());     /* 15.3.1.3.18 */
-  mrb_define_method(mrb, krn, "instance_of?",               obj_is_instance_of,              ARGS_REQ(1));    /* 15.3.1.3.19 */
-  mrb_define_method(mrb, krn, "instance_variable_defined?", mrb_obj_ivar_defined,            ARGS_REQ(1));    /* 15.3.1.3.20 */
-  mrb_define_method(mrb, krn, "instance_variable_get",      mrb_obj_ivar_get,                ARGS_REQ(1));    /* 15.3.1.3.21 */
-  mrb_define_method(mrb, krn, "instance_variable_set",      mrb_obj_ivar_set,                ARGS_REQ(2));    /* 15.3.1.3.22 */
-  mrb_define_method(mrb, krn, "instance_variables",         mrb_obj_instance_variables,      ARGS_NONE());    /* 15.3.1.3.23 */
-  mrb_define_method(mrb, krn, "is_a?",                      mrb_obj_is_kind_of_m,            ARGS_REQ(1));    /* 15.3.1.3.24 */
-  mrb_define_method(mrb, krn, "iterator?",                  mrb_f_block_given_p_m,           ARGS_NONE());    /* 15.3.1.3.25 */
-  mrb_define_method(mrb, krn, "kind_of?",                   mrb_obj_is_kind_of_m,            ARGS_REQ(1));    /* 15.3.1.3.26 */
-  mrb_define_method(mrb, krn, "methods",                    mrb_obj_methods_m,               ARGS_ANY());     /* 15.3.1.3.31 */
-  mrb_define_method(mrb, krn, "nil?",                       mrb_false,                       ARGS_NONE());    /* 15.3.1.3.32 */
-  mrb_define_method(mrb, krn, "object_id",                  mrb_obj_id_m,                    ARGS_NONE());    /* 15.3.1.3.33 */
-  mrb_define_method(mrb, krn, "private_methods",            mrb_obj_private_methods,         ARGS_ANY());     /* 15.3.1.3.36 */
-  mrb_define_method(mrb, krn, "protected_methods",          mrb_obj_protected_methods,       ARGS_ANY());     /* 15.3.1.3.37 */
-  mrb_define_method(mrb, krn, "public_methods",             mrb_obj_public_methods,          ARGS_ANY());     /* 15.3.1.3.38 */
-  mrb_define_method(mrb, krn, "raise",                      mrb_f_raise,                     ARGS_ANY());     /* 15.3.1.3.40 */
-  mrb_define_method(mrb, krn, "remove_instance_variable",   mrb_obj_remove_instance_variable,ARGS_REQ(1));    /* 15.3.1.3.41 */
-  mrb_define_method(mrb, krn, "respond_to?",                obj_respond_to,                  ARGS_ANY());     /* 15.3.1.3.43 */
-  mrb_define_method(mrb, krn, "send",                       mrb_f_send,                      ARGS_ANY());     /* 15.3.1.3.44 */
-  mrb_define_method(mrb, krn, "singleton_methods",          mrb_obj_singleton_methods_m,     ARGS_ANY());     /* 15.3.1.3.45 */
-  mrb_define_method(mrb, krn, "to_s",                       mrb_any_to_s,                    ARGS_NONE());    /* 15.3.1.3.46 */
+  mrb_define_method(mrb, krn, "==",                         mrb_obj_equal_m,                 MRB_ARGS_REQ(1));    /* 15.3.1.3.1  */
+  mrb_define_method(mrb, krn, "!=",                         mrb_obj_not_equal_m,             MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, krn, "===",                        mrb_equal_m,                     MRB_ARGS_REQ(1));    /* 15.3.1.3.2  */
+  mrb_define_method(mrb, krn, "__id__",                     mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.3  */
+  mrb_define_method(mrb, krn, "__send__",                   mrb_f_send,                      MRB_ARGS_ANY());     /* 15.3.1.3.4  */
+  mrb_define_method(mrb, krn, "block_given?",               mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.6  */
+  mrb_define_method(mrb, krn, "class",                      mrb_obj_class_m,                 MRB_ARGS_NONE());    /* 15.3.1.3.7  */
+  mrb_define_method(mrb, krn, "clone",                      mrb_obj_clone,                   MRB_ARGS_NONE());    /* 15.3.1.3.8  */
+  mrb_define_method(mrb, krn, "dup",                        mrb_obj_dup,                     MRB_ARGS_NONE());    /* 15.3.1.3.9  */
+  mrb_define_method(mrb, krn, "eql?",                       mrb_obj_equal_m,                 MRB_ARGS_REQ(1));    /* 15.3.1.3.10 */
+  mrb_define_method(mrb, krn, "equal?",                     mrb_obj_equal_m,                 MRB_ARGS_REQ(1));    /* 15.3.1.3.11 */
+  mrb_define_method(mrb, krn, "extend",                     mrb_obj_extend_m,                MRB_ARGS_ANY());     /* 15.3.1.3.13 */
+  mrb_define_method(mrb, krn, "global_variables",           mrb_f_global_variables,          MRB_ARGS_NONE());    /* 15.3.1.3.14 */
+  mrb_define_method(mrb, krn, "hash",                       mrb_obj_hash,                    MRB_ARGS_NONE());    /* 15.3.1.3.15 */
+  mrb_define_method(mrb, krn, "initialize_copy",            mrb_obj_init_copy,               MRB_ARGS_REQ(1));    /* 15.3.1.3.16 */
+  mrb_define_method(mrb, krn, "inspect",                    mrb_obj_inspect,                 MRB_ARGS_NONE());    /* 15.3.1.3.17 */
+  mrb_define_method(mrb, krn, "instance_eval",              mrb_obj_instance_eval,           MRB_ARGS_ANY());     /* 15.3.1.3.18 */
+  mrb_define_method(mrb, krn, "instance_of?",               obj_is_instance_of,              MRB_ARGS_REQ(1));    /* 15.3.1.3.19 */
+  mrb_define_method(mrb, krn, "instance_variable_defined?", mrb_obj_ivar_defined,            MRB_ARGS_REQ(1));    /* 15.3.1.3.20 */
+  mrb_define_method(mrb, krn, "instance_variable_get",      mrb_obj_ivar_get,                MRB_ARGS_REQ(1));    /* 15.3.1.3.21 */
+  mrb_define_method(mrb, krn, "instance_variable_set",      mrb_obj_ivar_set,                MRB_ARGS_REQ(2));    /* 15.3.1.3.22 */
+  mrb_define_method(mrb, krn, "instance_variables",         mrb_obj_instance_variables,      MRB_ARGS_NONE());    /* 15.3.1.3.23 */
+  mrb_define_method(mrb, krn, "is_a?",                      mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.24 */
+  mrb_define_method(mrb, krn, "iterator?",                  mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.25 */
+  mrb_define_method(mrb, krn, "kind_of?",                   mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.26 */
+  mrb_define_method(mrb, krn, "methods",                    mrb_obj_methods_m,               MRB_ARGS_OPT(1));    /* 15.3.1.3.31 */
+  mrb_define_method(mrb, krn, "nil?",                       mrb_false,                       MRB_ARGS_NONE());    /* 15.3.1.3.32 */
+  mrb_define_method(mrb, krn, "object_id",                  mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.33 */
+  mrb_define_method(mrb, krn, "private_methods",            mrb_obj_private_methods,         MRB_ARGS_OPT(1));    /* 15.3.1.3.36 */
+  mrb_define_method(mrb, krn, "protected_methods",          mrb_obj_protected_methods,       MRB_ARGS_OPT(1));    /* 15.3.1.3.37 */
+  mrb_define_method(mrb, krn, "public_methods",             mrb_obj_public_methods,          MRB_ARGS_OPT(1));    /* 15.3.1.3.38 */
+  mrb_define_method(mrb, krn, "raise",                      mrb_f_raise,                     MRB_ARGS_ANY());     /* 15.3.1.3.40 */
+  mrb_define_method(mrb, krn, "remove_instance_variable",   mrb_obj_remove_instance_variable,MRB_ARGS_REQ(1));    /* 15.3.1.3.41 */
+  mrb_define_method(mrb, krn, "respond_to?",                obj_respond_to,                  MRB_ARGS_ANY());     /* 15.3.1.3.43 */
+  mrb_define_method(mrb, krn, "send",                       mrb_f_send,                      MRB_ARGS_ANY());     /* 15.3.1.3.44 */
+  mrb_define_method(mrb, krn, "singleton_methods",          mrb_obj_singleton_methods_m,     MRB_ARGS_OPT(1));    /* 15.3.1.3.45 */
+  mrb_define_method(mrb, krn, "to_s",                       mrb_any_to_s,                    MRB_ARGS_NONE());    /* 15.3.1.3.46 */
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
   mrb_alias_method(mrb, mrb->module_class, mrb_intern(mrb, "dup"), mrb_intern(mrb, "clone"));

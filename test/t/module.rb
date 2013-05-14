@@ -14,6 +14,9 @@ end
 # TODO not implemented ATM assert('Module.nesting', '15.2.2.3.2') do
 
 assert('Module#ancestors', '15.2.2.4.9') do
+  class Test4ModuleAncestors
+  end
+  sc = Test4ModuleAncestors.singleton_class
   r = String.ancestors
   r.class == Array and r.include?(String) and r.include?(Object)
 end
@@ -88,7 +91,7 @@ assert('Module#class_variables', '15.2.2.4.19') do
   end
 
   Test4ClassVariables1.class_variables == [:@@var1] &&
-  Test4ClassVariables2.class_variables == [:@@var2]
+  Test4ClassVariables2.class_variables == [:@@var2, :@@var1]
 end
 
 assert('Module#const_defined?', '15.2.2.4.20') do
@@ -109,8 +112,6 @@ assert('Module#const_get', '15.2.2.4.21') do
 end
 
 assert('Module.const_missing', '15.2.2.4.22') do
-  e1 = nil
-
   module Test4ConstMissing
     def self.const_missing(sym)
       42 # the answer to everything

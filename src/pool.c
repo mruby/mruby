@@ -171,7 +171,7 @@ mrb_pool_realloc(mrb_pool *pool, void *p, size_t oldlen, size_t newlen)
 
 #ifdef TEST_POOL
 int
-main()
+main(void)
 {
   int i, len = 250;
   mrb_pool *pool;

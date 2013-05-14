@@ -14,7 +14,10 @@
 /* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
 //#define MRB_USE_FLOAT
 
-/* add -DMRB_INT64 to use 64bit integer for mrb_int */
+/* add -DMRB_INT16 to use 16bit integer for mrb_int; conflict with MRB_INT64 */
+//#define MRB_INT16
+
+/* add -DMRB_INT64 to use 64bit integer for mrb_int; conflict with MRB_INT16 */
 //#define MRB_INT64
 
 /* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT */
@@ -71,6 +74,10 @@
 # define str_to_mrb_float(buf) strtod(buf, NULL)
 #endif
 
+#if defined(MRB_INT16) && defined(MRB_INT64)
+# error "You can't define MRB_INT16 and MRB_INT64 at the same time."
+#endif
+
 #if defined(MRB_INT64)
 # ifdef MRB_NAN_BOXING
 #  error Cannot use NaN boxing when mrb_int is 64bit
@@ -109,6 +116,7 @@ typedef short mrb_sym;
 #endif
 
 #ifdef _MSC_VER
+# define _ALLOW_KEYWORD_MACROS
 # include <float.h>
 # define inline __inline
 # define snprintf _snprintf
@@ -125,18 +133,8 @@ typedef short mrb_sym;
 # define PRIo64 "I64o"
 # define PRIx64 "I64x"
 # define PRIX64 "I64X"
-# ifdef __cplusplus
-typedef bool mrb_bool;
-# else
-typedef unsigned int mrb_bool;
-# endif
 #else
 # include <inttypes.h>
-# ifdef __cplusplus
-typedef bool mrb_bool;
-# else
-typedef _Bool mrb_bool;
-# endif
 #endif
 
 #ifdef ENABLE_STDIO

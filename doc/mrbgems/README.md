@@ -6,10 +6,10 @@ standardised way into mruby.
 ## Usage
 
 By default mrbgems is currently deactivated. As soon as you add a GEM to your
-build configuration (*build_config.rb*), mrbgems will be activated and the
+build configuration (i.e. *build_config.rb*), mrbgems will be activated and the
 extension integrated.
 
-To add a GEM into the build_config.rb add the following line for example:
+To add a GEM into the *build_config.rb* add the following line for example:
 
 	conf.gem '/path/to/your/gem/dir'
 
@@ -25,7 +25,42 @@ A remote GIT repository location for a GEM is also supported:
 
 	conf.gem :bitbucket => 'mruby/mrbgems-example', :branch => 'master'
 
-NOTE: ':bitbucket' option supports only git. Hg is unsupported in this version.
+NOTE: `:bitbucket` option supports only git. Hg is unsupported in this version.
+
+## GemBox
+
+There are instances when you wish to add a collection of gems into mruby at 
+once, or be able to substitute gems based on configuration, without having to
+add each gem to the *build_config.rb* file.  A packaged collection of mrbgems 
+is called a GemBox.  A GemBox is a file that contains a list of gems to load 
+into mruby, in the same format as if you were adding them to *build_config.rb*
+via `config.gem`, but wrapped in an `MRuby::GemBox` object.  GemBoxes are 
+loaded into mruby via `config.gembox 'boxname'`.
+
+Below we have created a GemBox containing *mruby-time* and *mrbgems-example*:
+
+    MRuby::GemBox.new do |conf|
+      conf.gem "#{root}/mrbgems/mruby-time"
+      conf.gem :github => 'masuidrive/mrbgems-example'
+    end
+
+As mentioned, the GemBox uses the same conventions as `MRuby::Build`.  The GemBox
+must be saved with a *.gembox* extension inside the *mrbgems* directory to to be
+picked up by mruby.
+
+To use this example GemBox, we save it as `custom.gembox` inside the *mrbgems* 
+directory in mruby, and add the following to our *build_config.rb* file inside 
+the build block:
+
+    conf.gembox 'custom'
+
+This will cause the *custom* GemBox to be read in during the build process,
+adding *mruby-time* and *mrbgems-example* to the build.
+
+There are two GemBoxes that ship with mruby: [default](../../mrbgems/default.gembox)
+and [full-core](../../mrbgems/full-core.gembox). The [default](../../mrbgems/default.gembox) GemBox
+contains several core components of mruby, and [full-core](../../mrbgems/full-core.gembox)
+contains every gem found in the *mrbgems* directory.
 
 ## GEM Structure
 
@@ -45,7 +80,7 @@ The maximal GEM structure looks like this:
 
 The folder *mrblib* contains pure Ruby files to extend mruby. The folder *src*
 contains C files to extend mruby. The folder *test* contains C and pure Ruby files
-for testing purposes which will be used by ```mrbtest```. *mrbgem.rake* contains
+for testing purposes which will be used by `mrbtest`. *mrbgem.rake* contains
 the specification to compile C and Ruby files. *README.md* is a short description
 of your GEM.
 
@@ -61,21 +96,52 @@ GEM direcotry. A typical GEM specification could look like this for example:
 
 The mrbgems build process will use this specification to compile Object and Ruby
 files. The compilation results will be add to *lib/libmruby.a*. This file is used
-by tools like ```mruby``` and ```mirb``` to empower the GEM functionality.
+by tools like `mruby` and `mirb` to empower the GEM functionality.
+
+The following properties can be set inside of your `MRuby::Gem::Specification` for
+information purpose:
+
+* `spec.license` or `spec.licenses` (A single license or a list of them under which this GEM is licensed)
+* `spec.author` or `spec.authors` (Developer name or a list of them)
+* `spec.version` (Current version)
+* `spec.description` (Detailed description)
+* `spec.summary` (Short summary)
+* `spec.homepage` (Homepage)
+* `spec.requirements` (External requirements as information for user)
+
+It is required for every GEM to have a license and an author!
+
+In case your GEM is depending on other GEMs please use
+`spec.add_dependency(gem, *requirements)` like:
+
+	MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
+	  spec.license = 'MIT'
+	  spec.authors = 'mruby developers'
+
+	  # add GEM dependency mruby-parser.
+	  # Version has to be between 1.0.0 and 1.5.2
+	  spec.add_dependency('mruby-parser', '> 1.0.0', '< 1.5.2')
+	end
+
+The usage of versions is optional.
+
+__ATTENTION:__
+The dependency system is currently (May 2013) under development and doesn't check
+or resolve dependencies!
 
 In case your GEM has more complex build requirements you can use
 the following options additionally inside of your GEM specification:
 
-* spec.cflags (C compiler flags for this GEM)
-* spec.mruby_cflags (global C compiler flags for everything)
-* spec.mruby_ldflags (global linker flags for everything)
-* spec.mruby_libs (global libraries for everything)
-* spec.mruby_includes (global includes for everything)
-* spec.rbfiles (Ruby files to compile)
-* spec.objs (Object files to compile)
-* spec.test_rbfiles (Ruby test files for integration into mrbtest)
-* spec.test_objs (Object test files for integration into mrbtest)
-* spec.test_preload (Initialization files for mrbtest)
+* `spec.cflags` (C compiler flags)
+* `spec.mruby_cflags` (global C compiler flags for everything)
+* `spec.mruby_ldflags` (global linker flags for everything)
+* `spec.mruby_libs` (global libraries for everything)
+* `spec.mruby_includes` (global includes for everything)
+* `spec.rbfiles` (Ruby files to compile)
+* `spec.objs` (Object files to compile)
+* `spec.test_rbfiles` (Ruby test files for integration into mrbtest)
+* `spec.test_objs` (Object test files for integration into mrbtest)
+* `spec.test_preload` (Initialization files for mrbtest)
 
 ## C Extension
 
@@ -85,20 +151,20 @@ integrate C libraries into mruby.
 ### Pre-Conditions
 
 mrbgems expects that you have implemented a C method called
-```mrb_YOURGEMNAME_gem_init(mrb_state)```. ```YOURGEMNAME``` will be replaced
+`mrb_YOURGEMNAME_gem_init(mrb_state)`. `YOURGEMNAME` will be replaced
 by the name of your GEM. If you call your GEM *c_extension_example*, your
 initialisation method could look like this:
 
 	void
 	mrb_c_extension_example_gem_init(mrb_state* mrb) {
 	  struct RClass *class_cextension = mrb_define_module(mrb, "CExtension");
-	  mrb_define_class_method(mrb, class_cextension, "c_method", mrb_c_method, ARGS_NONE());
+	  mrb_define_class_method(mrb, class_cextension, "c_method", mrb_c_method, MRB_ARGS_NONE());
 	}
 
 ### Finalize
 
 mrbgems expects that you have implemented a C method called
-```mrb_YOURGEMNAME_gem_final(mrb_state)```. ```YOURGEMNAME``` will be replaced
+`mrb_YOURGEMNAME_gem_final(mrb_state)`. `YOURGEMNAME` will be replaced
 by the name of your GEM. If you call your GEM *c_extension_example*, your
 finalizer method could look like this:
 

@@ -22,7 +22,7 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *i = mrb_class_get(mrb, "Integer");
 
-  mrb_define_method(mrb, i, "chr",    mrb_int_chr,            ARGS_NONE());
+  mrb_define_method(mrb, i, "chr", mrb_int_chr, MRB_ARGS_NONE());
 }
 
 void

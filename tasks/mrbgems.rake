@@ -1,11 +1,9 @@
 MRuby.each_target do
-  current_dir = File.dirname(__FILE__).relative_path_from(Dir.pwd)
-  relative_from_root = File.dirname(__FILE__).relative_path_from(MRUBY_ROOT)
-
   if enable_gems?
     # set up all gems
     gems.each(&:setup)
-    
+    gems.check
+
     # loader all gems
     self.libmruby << objfile("#{build_dir}/mrbgems/gem_init")
     file objfile("#{build_dir}/mrbgems/gem_init") => ["#{build_dir}/mrbgems/gem_init.c", "#{build_dir}/LEGAL"]
@@ -74,7 +72,7 @@ Additional Licenses
 Due to the reason that you choosed additional mruby packages (GEMS),
 please check the following additional licenses too:
 GEMS_LEGAL
- 
+
         gems.map do |g|
           f.puts
           f.puts "GEM: #{g.name}"

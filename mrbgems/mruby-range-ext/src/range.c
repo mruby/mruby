@@ -130,9 +130,9 @@ mrb_mruby_range_ext_gem_init(mrb_state* mrb)
 {
   struct RClass * s = mrb_class_get(mrb, "Range");
 
-  mrb_define_method(mrb, s, "cover?",          mrb_range_cover,         ARGS_REQ(1));
-  mrb_define_method(mrb, s, "first",           mrb_range_first,         ARGS_OPT(1));
-  mrb_define_method(mrb, s, "last",            mrb_range_last,          ARGS_OPT(1));
+  mrb_define_method(mrb, s, "cover?", mrb_range_cover, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, s, "first",  mrb_range_first, MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, s, "last",   mrb_range_last,  MRB_ARGS_OPT(1));
 }
 
 void

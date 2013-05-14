@@ -206,7 +206,11 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
 int
 mrb_class_defined(mrb_state *mrb, const char *name)
 {
-  return mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), mrb_intern(mrb, name));
+  mrb_value sym = mrb_check_intern_cstr(mrb, name);
+  if (mrb_nil_p(sym)) {
+    return FALSE;
+  }
+  return mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), mrb_symbol(sym));
 }
 
 static struct RClass *
@@ -251,13 +255,12 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
   if (mrb_const_defined_at(mrb, outer, id)) {
     c = class_from_sym(mrb, outer, id);
     if (mrb_class_real(c->super) != super) {
-        mrb_name_error(mrb, id, "%S is already defined", mrb_sym2str(mrb, id));
+      mrb_name_error(mrb, id, "%S is already defined", name);
     }
     return c;
   }
   if (!super) {
-    mrb_warn("no super class for `%S::%S', Object assumed",
-             mrb_obj_value(outer), mrb_sym2str(mrb, id));
+    mrb_warn(mrb, "no super class for `%S::%S', Object assumed", outer, name);
   }
   c = mrb_class_new(mrb, super);
   setup_class(mrb, mrb_obj_value(outer), c, id);
@@ -377,7 +380,7 @@ to_hash(mrb_state *mrb, mrb_value val)
    a: Array [mrb_value*,mrb_int]
    f: Float [mrb_float]
    i: Integer [mrb_int]
-   b: Binary [int]
+   b: Boolean [mrb_bool]
    n: Symbol [mrb_sym]
    &: Block [mrb_value]
    *: rest argument [mrb_value*,int]
@@ -579,7 +582,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       break;
     case 'b':
       {
-        int *boolp = va_arg(ap, int*);
+        mrb_bool *boolp = va_arg(ap, mrb_bool*);
 
         if (i < argc) {
           mrb_value b = *sp++;
@@ -686,7 +689,10 @@ mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
     struct RClass *p = c, *ic;
     int superclass_seen = 0;
 
-    while(p) {
+    if (c->mt == m->mt) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic include detected");
+    }
+    while (p) {
       if (c != p && p->tt == MRB_TT_CLASS) {
         superclass_seen = 1;
       }
@@ -789,11 +795,13 @@ mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
   struct RClass *c = mrb_class_ptr(self);
 
   result = mrb_ary_new(mrb);
+  mrb_ary_push(mrb, result, mrb_obj_value(c));
+  c = c->super;
   while (c) {
     if (c->tt == MRB_TT_ICLASS) {
       mrb_ary_push(mrb, result, mrb_obj_value(c->c));
     }
-    else {
+    else if (c->tt != MRB_TT_SCLASS) {
       mrb_ary_push(mrb, result, mrb_obj_value(c));
     }
     c = c->super;
@@ -830,7 +838,7 @@ mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
   return result;
 }
 
-mrb_value class_instance_method_list(mrb_state*, int, mrb_value*, struct RClass*, int);
+mrb_value class_instance_method_list(mrb_state*, mrb_bool, struct RClass*, int);
 
 /* 15.2.2.4.33 */
 /*
@@ -863,12 +871,10 @@ mrb_value class_instance_method_list(mrb_state*, int, mrb_value*, struct RClass*
 static mrb_value
 mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value *argv;
-  int argc;
   struct RClass *c = mrb_class_ptr(mod);
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  return class_instance_method_list(mrb, argc, argv, c, 0);
+  mrb_bool recur = TRUE;
+  mrb_get_args(mrb, "|b", &recur);
+  return class_instance_method_list(mrb, recur, c, 0);
 }
 
 mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
@@ -1465,7 +1471,7 @@ mod_define_method(mrb_state *mrb, mrb_value self)
 }
 
 static void
-check_cv_name(mrb_state *mrb, mrb_sym id)
+check_cv_name_sym(mrb_state *mrb, mrb_sym id)
 {
   const char *s;
   size_t len;
@@ -1473,6 +1479,32 @@ check_cv_name(mrb_state *mrb, mrb_sym id)
   s = mrb_sym2name_len(mrb, id, &len);
   if (len < 3 || !(s[0] == '@' && s[1] == '@')) {
     mrb_name_error(mrb, id, "`%S' is not allowed as a class variable name", mrb_sym2str(mrb, id));
+  }
+}
+
+static void
+check_cv_name_str(mrb_state *mrb, mrb_value str)
+{
+  const char *s = RSTRING_PTR(str);
+  size_t const len = RSTRING_LEN(str);
+  if (len < 3 || !(s[0] == '@' && s[1] == '@')) {
+    mrb_name_error(mrb, mrb_intern_str(mrb, str), "`%S' is not allowed as a class variable name", str);
+  }
+}
+
+static mrb_value
+get_sym_or_str_arg(mrb_state *mrb)
+{
+  mrb_value sym_or_str;
+
+  mrb_get_args(mrb, "o", &sym_or_str);
+
+  if (mrb_symbol_p(sym_or_str) || mrb_string_p(sym_or_str)) {
+    return sym_or_str;
+  } else {
+    mrb_value obj = mrb_funcall(mrb, sym_or_str, "inspect", 0);
+    mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol", obj);
+    return mrb_nil_value();
   }
 }
 
@@ -1494,12 +1526,24 @@ check_cv_name(mrb_state *mrb, mrb_sym id)
 static mrb_value
 mrb_mod_cvar_defined(mrb_state *mrb, mrb_value mod)
 {
-  mrb_sym id;
+  mrb_value id;
   mrb_bool defined_p;
-  mrb_get_args(mrb, "n", &id);
 
-  check_cv_name(mrb, id);
-  defined_p = mrb_cv_defined(mrb, mod, id);
+  id = get_sym_or_str_arg(mrb);
+  if (mrb_symbol_p(id)) {
+    check_cv_name_sym(mrb, mrb_symbol(id));
+    defined_p = mrb_cv_defined(mrb, mod, mrb_symbol(id));
+  } else {
+    mrb_value sym;
+    check_cv_name_str(mrb, id);
+    sym = mrb_check_intern_str(mrb, id);
+    if (mrb_nil_p(sym)) {
+      defined_p = FALSE;
+    }
+    else {
+      defined_p = mrb_cv_defined(mrb, mod, mrb_symbol(sym));
+    }
+  }
   return mrb_bool_value(defined_p);
 }
 
@@ -1524,7 +1568,7 @@ mrb_mod_cvar_get(mrb_state *mrb, mrb_value mod)
   mrb_sym id;
 
   mrb_get_args(mrb, "n", &id);
-  check_cv_name(mrb, id);
+  check_cv_name_sym(mrb, id);
   return mrb_cv_get(mrb, mod, id);
 }
 
@@ -1553,7 +1597,7 @@ mrb_mod_cvar_set(mrb_state *mrb, mrb_value mod)
   mrb_sym id;
 
   mrb_get_args(mrb, "no", &id, &value);
-  check_cv_name(mrb, id);
+  check_cv_name_sym(mrb, id);
   mrb_cv_set(mrb, mod, id, value);
   return value;
 }
@@ -1588,7 +1632,7 @@ mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
   mrb_sym id;
 
   mrb_get_args(mrb, "n", &id);
-  check_cv_name(mrb, id);
+  check_cv_name_sym(mrb, id);
 
   val = mrb_iv_remove(mrb, mod, id);
   if (!mrb_undef_p(val)) return val;
@@ -1635,11 +1679,21 @@ mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
 static mrb_value
 mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
 {
-  mrb_sym id;
+  mrb_value id;
   mrb_bool method_defined_p;
 
-  mrb_get_args(mrb, "n", &id);
-  method_defined_p = mrb_obj_respond_to(mrb_class_ptr(mod), id);
+  id = get_sym_or_str_arg(mrb);
+  if (mrb_symbol_p(id)) {
+    method_defined_p = mrb_obj_respond_to(mrb_class_ptr(mod), mrb_symbol(id));
+  } else {
+    mrb_value sym = mrb_check_intern_str(mrb, id);
+    if (mrb_nil_p(sym)) {
+      method_defined_p = FALSE;
+    }
+    else {
+      method_defined_p = mrb_obj_respond_to(mrb_class_ptr(mod), mrb_symbol(sym));
+    }
+  }
   return mrb_bool_value(method_defined_p);
 }
 
@@ -1686,7 +1740,7 @@ mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
 }
 
 static void
-check_const_name(mrb_state *mrb, mrb_sym id)
+check_const_name_sym(mrb_state *mrb, mrb_sym id)
 {
   const char *s;
   size_t len;
@@ -1697,15 +1751,35 @@ check_const_name(mrb_state *mrb, mrb_sym id)
   }
 }
 
+static void
+check_const_name_str(mrb_state *mrb, mrb_value str)
+{
+  if (RSTRING_LEN(str) < 1 || !ISUPPER(*RSTRING_PTR(str))) {
+    mrb_name_error(mrb, mrb_intern_str(mrb, str), "wrong constant name %S", str);
+  }
+}
+
 mrb_value
 mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 {
-  mrb_sym id;
+  mrb_value id;
   mrb_bool const_defined_p;
 
-  mrb_get_args(mrb, "n", &id);
-  check_const_name(mrb, id);
-  const_defined_p = mrb_const_defined(mrb, mod, id);
+  id = get_sym_or_str_arg(mrb);
+  if (mrb_type(id) == MRB_TT_SYMBOL) {
+    check_const_name_sym(mrb, mrb_symbol(id));
+    const_defined_p = mrb_const_defined(mrb, mod, mrb_symbol(id));
+  } else {
+    mrb_value sym;
+    check_const_name_str(mrb, id);
+    sym = mrb_check_intern_str(mrb, id);
+    if (mrb_nil_p(sym)) {
+      const_defined_p = FALSE;
+    }
+    else {
+      const_defined_p = mrb_const_defined(mrb, mod, mrb_symbol(sym));
+    }
+  }
 
   return mrb_bool_value(const_defined_p);
 }
@@ -1716,7 +1790,7 @@ mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
   mrb_sym id;
 
   mrb_get_args(mrb, "n", &id);
-  check_const_name(mrb, id);
+  check_const_name_sym(mrb, id);
   return mrb_const_get(mrb, mod, id);
 }
 
@@ -1727,7 +1801,7 @@ mrb_mod_const_set(mrb_state *mrb, mrb_value mod)
   mrb_value value;
 
   mrb_get_args(mrb, "no", &id, &value);
-  check_const_name(mrb, id);
+  check_const_name_sym(mrb, id);
   mrb_const_set(mrb, mod, id, value);
   return value;
 }
@@ -1739,7 +1813,7 @@ mrb_mod_remove_const(mrb_state *mrb, mrb_value mod)
   mrb_value val;
 
   mrb_get_args(mrb, "n", &id);
-  check_const_name(mrb, id);
+  check_const_name_sym(mrb, id);
   val = mrb_iv_remove(mrb, mod, id);
   if (mrb_undef_p(val)) {
     mrb_name_error(mrb, id, "constant %S not defined", mrb_sym2str(mrb, id));
@@ -1802,46 +1876,46 @@ mrb_init_class(mrb_state *mrb)
 
   mrb_undef_method(mrb, mod, "new");
   MRB_SET_INSTANCE_TT(cls, MRB_TT_CLASS);
-  mrb_define_method(mrb, bob, "initialize",              mrb_bob_init,             ARGS_NONE());
-  mrb_define_method(mrb, bob, "!",                       mrb_bob_not,              ARGS_NONE());
-  mrb_define_method(mrb, bob, "method_missing",          mrb_bob_missing,          ARGS_ANY());  /* 15.3.1.3.30 */
+  mrb_define_method(mrb, bob, "initialize",              mrb_bob_init,             MRB_ARGS_NONE());
+  mrb_define_method(mrb, bob, "!",                       mrb_bob_not,              MRB_ARGS_NONE());
+  mrb_define_method(mrb, bob, "method_missing",          mrb_bob_missing,          MRB_ARGS_ANY());  /* 15.3.1.3.30 */
 
-  mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      ARGS_ANY());
-  mrb_define_method(mrb, cls, "superclass",              mrb_class_superclass,     ARGS_NONE()); /* 15.2.3.3.4 */
-  mrb_define_method(mrb, cls, "new",                     mrb_instance_new,         ARGS_ANY());  /* 15.2.3.3.3 */
-  mrb_define_method(mrb, cls, "inherited",               mrb_bob_init,             ARGS_REQ(1));
+  mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      MRB_ARGS_ANY());
+  mrb_define_method(mrb, cls, "superclass",              mrb_class_superclass,     MRB_ARGS_NONE()); /* 15.2.3.3.4 */
+  mrb_define_method(mrb, cls, "new",                     mrb_instance_new,         MRB_ARGS_ANY());  /* 15.2.3.3.3 */
+  mrb_define_method(mrb, cls, "inherited",               mrb_bob_init,             MRB_ARGS_REQ(1));
 
   MRB_SET_INSTANCE_TT(mod, MRB_TT_MODULE);
-  mrb_define_method(mrb, mod, "class_variable_defined?", mrb_mod_cvar_defined,     ARGS_REQ(1)); /* 15.2.2.4.16 */
-  mrb_define_method(mrb, mod, "class_variable_get",      mrb_mod_cvar_get,         ARGS_REQ(1)); /* 15.2.2.4.17 */
-  mrb_define_method(mrb, mod, "class_variable_set",      mrb_mod_cvar_set,         ARGS_REQ(2)); /* 15.2.2.4.18 */
-  mrb_define_method(mrb, mod, "extend_object",           mrb_mod_extend_object,    ARGS_REQ(1)); /* 15.2.2.4.25 */
-  mrb_define_method(mrb, mod, "extended",                mrb_bob_init,             ARGS_REQ(1)); /* 15.2.2.4.26 */
-  mrb_define_method(mrb, mod, "include",                 mrb_mod_include,          ARGS_ANY());  /* 15.2.2.4.27 */
-  mrb_define_method(mrb, mod, "include?",                mrb_mod_include_p,        ARGS_REQ(1)); /* 15.2.2.4.28 */
-  mrb_define_method(mrb, mod, "append_features",         mrb_mod_append_features,  ARGS_REQ(1)); /* 15.2.2.4.10 */
-  mrb_define_method(mrb, mod, "class_eval",              mrb_mod_module_eval,      ARGS_ANY());  /* 15.2.2.4.15 */
-  mrb_define_method(mrb, mod, "included",                mrb_bob_init,             ARGS_REQ(1)); /* 15.2.2.4.29 */
-  mrb_define_method(mrb, mod, "included_modules",        mrb_mod_included_modules, ARGS_NONE()); /* 15.2.2.4.30 */
-  mrb_define_method(mrb, mod, "instance_methods",        mrb_mod_instance_methods, ARGS_ANY());  /* 15.2.2.4.33 */
-  mrb_define_method(mrb, mod, "method_defined?",         mrb_mod_method_defined,   ARGS_REQ(1)); /* 15.2.2.4.34 */
-  mrb_define_method(mrb, mod, "module_eval",             mrb_mod_module_eval,      ARGS_ANY());  /* 15.2.2.4.35 */
-  mrb_define_method(mrb, mod, "remove_class_variable",   mrb_mod_remove_cvar,      ARGS_REQ(1)); /* 15.2.2.4.39 */
-  mrb_define_method(mrb, mod, "remove_method",           mrb_mod_remove_method,    ARGS_ANY());  /* 15.2.2.4.41 */
-  mrb_define_method(mrb, mod, "to_s",                    mrb_mod_to_s,             ARGS_NONE());
-  mrb_define_method(mrb, mod, "inspect",                 mrb_mod_to_s,             ARGS_NONE());
-  mrb_define_method(mrb, mod, "alias_method",            mrb_mod_alias,            ARGS_ANY());  /* 15.2.2.4.8 */
-  mrb_define_method(mrb, mod, "ancestors",               mrb_mod_ancestors,        ARGS_NONE()); /* 15.2.2.4.9 */
-  mrb_define_method(mrb, mod, "undef_method",            mrb_mod_undef,            ARGS_ANY());  /* 15.2.2.4.41 */
-  mrb_define_method(mrb, mod, "const_defined?",          mrb_mod_const_defined,    ARGS_REQ(1)); /* 15.2.2.4.20 */
-  mrb_define_method(mrb, mod, "const_get",               mrb_mod_const_get,        ARGS_REQ(1)); /* 15.2.2.4.21 */
-  mrb_define_method(mrb, mod, "const_set",               mrb_mod_const_set,        ARGS_REQ(2)); /* 15.2.2.4.23 */
-  mrb_define_method(mrb, mod, "constants",               mrb_mod_constants,        ARGS_NONE()); /* 15.2.2.4.24 */
-  mrb_define_method(mrb, mod, "remove_const",            mrb_mod_remove_const,     ARGS_REQ(1)); /* 15.2.2.4.40 */
-  mrb_define_method(mrb, mod, "define_method",           mod_define_method,        ARGS_REQ(1));
-  mrb_define_method(mrb, mod, "class_variables",         mrb_mod_class_variables,  ARGS_NONE()); /* 15.2.2.4.19 */
-  mrb_define_method(mrb, mod, "===",                     mrb_mod_eqq,              ARGS_REQ(1));
-  mrb_define_class_method(mrb, mod, "constants",         mrb_mod_s_constants,      ARGS_ANY());  /* 15.2.2.3.1 */
+  mrb_define_method(mrb, mod, "class_variable_defined?", mrb_mod_cvar_defined,     MRB_ARGS_REQ(1)); /* 15.2.2.4.16 */
+  mrb_define_method(mrb, mod, "class_variable_get",      mrb_mod_cvar_get,         MRB_ARGS_REQ(1)); /* 15.2.2.4.17 */
+  mrb_define_method(mrb, mod, "class_variable_set",      mrb_mod_cvar_set,         MRB_ARGS_REQ(2)); /* 15.2.2.4.18 */
+  mrb_define_method(mrb, mod, "extend_object",           mrb_mod_extend_object,    MRB_ARGS_REQ(1)); /* 15.2.2.4.25 */
+  mrb_define_method(mrb, mod, "extended",                mrb_bob_init,             MRB_ARGS_REQ(1)); /* 15.2.2.4.26 */
+  mrb_define_method(mrb, mod, "include",                 mrb_mod_include,          MRB_ARGS_ANY());  /* 15.2.2.4.27 */
+  mrb_define_method(mrb, mod, "include?",                mrb_mod_include_p,        MRB_ARGS_REQ(1)); /* 15.2.2.4.28 */
+  mrb_define_method(mrb, mod, "append_features",         mrb_mod_append_features,  MRB_ARGS_REQ(1)); /* 15.2.2.4.10 */
+  mrb_define_method(mrb, mod, "class_eval",              mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.15 */
+  mrb_define_method(mrb, mod, "included",                mrb_bob_init,             MRB_ARGS_REQ(1)); /* 15.2.2.4.29 */
+  mrb_define_method(mrb, mod, "included_modules",        mrb_mod_included_modules, MRB_ARGS_NONE()); /* 15.2.2.4.30 */
+  mrb_define_method(mrb, mod, "instance_methods",        mrb_mod_instance_methods, MRB_ARGS_ANY());  /* 15.2.2.4.33 */
+  mrb_define_method(mrb, mod, "method_defined?",         mrb_mod_method_defined,   MRB_ARGS_REQ(1)); /* 15.2.2.4.34 */
+  mrb_define_method(mrb, mod, "module_eval",             mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.35 */
+  mrb_define_method(mrb, mod, "remove_class_variable",   mrb_mod_remove_cvar,      MRB_ARGS_REQ(1)); /* 15.2.2.4.39 */
+  mrb_define_method(mrb, mod, "remove_method",           mrb_mod_remove_method,    MRB_ARGS_ANY());  /* 15.2.2.4.41 */
+  mrb_define_method(mrb, mod, "to_s",                    mrb_mod_to_s,             MRB_ARGS_NONE());
+  mrb_define_method(mrb, mod, "inspect",                 mrb_mod_to_s,             MRB_ARGS_NONE());
+  mrb_define_method(mrb, mod, "alias_method",            mrb_mod_alias,            MRB_ARGS_ANY());  /* 15.2.2.4.8 */
+  mrb_define_method(mrb, mod, "ancestors",               mrb_mod_ancestors,        MRB_ARGS_NONE()); /* 15.2.2.4.9 */
+  mrb_define_method(mrb, mod, "undef_method",            mrb_mod_undef,            MRB_ARGS_ANY());  /* 15.2.2.4.41 */
+  mrb_define_method(mrb, mod, "const_defined?",          mrb_mod_const_defined,    MRB_ARGS_REQ(1)); /* 15.2.2.4.20 */
+  mrb_define_method(mrb, mod, "const_get",               mrb_mod_const_get,        MRB_ARGS_REQ(1)); /* 15.2.2.4.21 */
+  mrb_define_method(mrb, mod, "const_set",               mrb_mod_const_set,        MRB_ARGS_REQ(2)); /* 15.2.2.4.23 */
+  mrb_define_method(mrb, mod, "constants",               mrb_mod_constants,        MRB_ARGS_NONE()); /* 15.2.2.4.24 */
+  mrb_define_method(mrb, mod, "remove_const",            mrb_mod_remove_const,     MRB_ARGS_REQ(1)); /* 15.2.2.4.40 */
+  mrb_define_method(mrb, mod, "define_method",           mod_define_method,        MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mod, "class_variables",         mrb_mod_class_variables,  MRB_ARGS_NONE()); /* 15.2.2.4.19 */
+  mrb_define_method(mrb, mod, "===",                     mrb_mod_eqq,              MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, mod, "constants",         mrb_mod_s_constants,      MRB_ARGS_ANY());  /* 15.2.2.3.1 */
 
   mrb_undef_method(mrb, cls, "append_features");
   mrb_undef_method(mrb, cls, "extend_object");

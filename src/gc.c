@@ -197,10 +197,10 @@ mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
   return p;
 }
 
-void*
+void
 mrb_free(mrb_state *mrb, void *p)
 {
-  return (mrb->allocf)(mrb, p, 0, mrb->ud);
+  (mrb->allocf)(mrb, p, 0, mrb->ud);
 }
 
 #ifndef MRB_HEAP_PAGE_SIZE
@@ -450,7 +450,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 
   case MRB_TT_HASH:
     mrb_gc_mark_iv(mrb, (struct RObject*)obj);
-    mrb_gc_mark_ht(mrb, (struct RHash*)obj);
+    mrb_gc_mark_hash(mrb, (struct RHash*)obj);
     break;
 
   case MRB_TT_STRING:
@@ -525,14 +525,11 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
 
   case MRB_TT_HASH:
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
-    mrb_gc_free_ht(mrb, (struct RHash*)obj);
+    mrb_gc_free_hash(mrb, (struct RHash*)obj);
     break;
 
   case MRB_TT_STRING:
-    if (obj->flags & MRB_STR_SHARED)
-      mrb_str_decref(mrb, ((struct RString*)obj)->aux.shared);
-    else
-      mrb_free(mrb, ((struct RString*)obj)->ptr);
+    mrb_gc_free_str(mrb, (struct RString*)obj);
     break;
 
   case MRB_TT_RANGE:
@@ -654,7 +651,7 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
 
   case MRB_TT_HASH:
     children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
-    children += mrb_gc_mark_ht_size(mrb, (struct RHash*)obj);
+    children += mrb_gc_mark_hash_size(mrb, (struct RHash*)obj);
     break;
 
   case MRB_TT_PROC:
@@ -1135,7 +1132,7 @@ gc_generational_mode_get(mrb_state *mrb, mrb_value self)
 static mrb_value
 gc_generational_mode_set(mrb_state *mrb, mrb_value self)
 {
-  int enable;
+  mrb_bool enable;
 
   mrb_get_args(mrb, "b", &enable);
   if (mrb->is_generational_gc_mode != enable)
@@ -1156,18 +1153,18 @@ mrb_init_gc(mrb_state *mrb)
   struct RClass *gc;
   gc = mrb_define_module(mrb, "GC");
 
-  mrb_define_class_method(mrb, gc, "start", gc_start, ARGS_NONE());
-  mrb_define_class_method(mrb, gc, "enable", gc_enable, ARGS_NONE());
-  mrb_define_class_method(mrb, gc, "disable", gc_disable, ARGS_NONE());
-  mrb_define_class_method(mrb, gc, "interval_ratio", gc_interval_ratio_get, ARGS_NONE());
-  mrb_define_class_method(mrb, gc, "interval_ratio=", gc_interval_ratio_set, ARGS_REQ(1));
-  mrb_define_class_method(mrb, gc, "step_ratio", gc_step_ratio_get, ARGS_NONE());
-  mrb_define_class_method(mrb, gc, "step_ratio=", gc_step_ratio_set, ARGS_REQ(1));
-  mrb_define_class_method(mrb, gc, "generational_mode=", gc_generational_mode_set, ARGS_REQ(1));
-  mrb_define_class_method(mrb, gc, "generational_mode", gc_generational_mode_get, ARGS_NONE());
+  mrb_define_class_method(mrb, gc, "start", gc_start, MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, gc, "enable", gc_enable, MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, gc, "disable", gc_disable, MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, gc, "interval_ratio", gc_interval_ratio_get, MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, gc, "interval_ratio=", gc_interval_ratio_set, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, gc, "step_ratio", gc_step_ratio_get, MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, gc, "step_ratio=", gc_step_ratio_set, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, gc, "generational_mode=", gc_generational_mode_set, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, gc, "generational_mode", gc_generational_mode_get, MRB_ARGS_NONE());
 #ifdef GC_TEST
 #ifdef GC_DEBUG
-  mrb_define_class_method(mrb, gc, "test", gc_test, ARGS_NONE());
+  mrb_define_class_method(mrb, gc, "test", gc_test, MRB_ARGS_NONE());
 #endif
 #endif
 }

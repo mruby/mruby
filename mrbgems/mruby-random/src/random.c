@@ -15,12 +15,8 @@
 #define INSTANCE_RAND_SEED_KEY  "$mrb_i_rand_seed"
 #define MT_STATE_KEY            "$mrb_i_mt_state"
 
-static void mt_state_free(mrb_state *mrb, void *p)
-{
-}
-
 static const struct mrb_data_type mt_state_type = {
-    MT_STATE_KEY, mt_state_free,
+    MT_STATE_KEY, mrb_free,
 };
 
 static mt_state *mrb_mt_get_context(mrb_state *mrb,  mrb_value self)
@@ -191,8 +187,6 @@ static mrb_value mrb_random_rand(mrb_state *mrb, mrb_value self)
   if (mrb_nil_p(seed)) {
     mrb_random_mt_srand(mrb, t, mrb_nil_value());
   }
-  mrb_iv_set(mrb, self, mrb_intern(mrb, MT_STATE_KEY),
-    mrb_obj_value(Data_Wrap_Struct(mrb, mrb->object_class, &mt_state_type, (void*) t)));
   return mrb_random_mt_rand(mrb, t, max);
 }
 
@@ -206,8 +200,7 @@ static mrb_value mrb_random_srand(mrb_state *mrb, mrb_value self)
   seed = mrb_random_mt_srand(mrb, t, seed);
   old_seed = mrb_iv_get(mrb, self, mrb_intern(mrb, INSTANCE_RAND_SEED_KEY));
   mrb_iv_set(mrb, self, mrb_intern(mrb, INSTANCE_RAND_SEED_KEY), seed);
-  mrb_iv_set(mrb, self, mrb_intern(mrb, MT_STATE_KEY),
-    mrb_obj_value(Data_Wrap_Struct(mrb, mrb->object_class, &mt_state_type, (void*) t)));
+
   return old_seed;
 }
 
@@ -215,16 +208,16 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
 {
   struct RClass *random;
 
-  mrb_define_method(mrb, mrb->kernel_module, "rand", mrb_random_g_rand, ARGS_OPT(1));
-  mrb_define_method(mrb, mrb->kernel_module, "srand", mrb_random_g_srand, ARGS_OPT(1));
+  mrb_define_method(mrb, mrb->kernel_module, "rand", mrb_random_g_rand, MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, mrb->kernel_module, "srand", mrb_random_g_srand, MRB_ARGS_OPT(1));
 
   random = mrb_define_class(mrb, "Random", mrb->object_class);
-  mrb_define_class_method(mrb, random, "rand", mrb_random_g_rand, ARGS_OPT(1));
-  mrb_define_class_method(mrb, random, "srand", mrb_random_g_srand, ARGS_OPT(1));
+  mrb_define_class_method(mrb, random, "rand", mrb_random_g_rand, MRB_ARGS_OPT(1));
+  mrb_define_class_method(mrb, random, "srand", mrb_random_g_srand, MRB_ARGS_OPT(1));
 
-  mrb_define_method(mrb, random, "initialize", mrb_random_init, ARGS_OPT(1));
-  mrb_define_method(mrb, random, "rand", mrb_random_rand, ARGS_OPT(1));
-  mrb_define_method(mrb, random, "srand", mrb_random_srand, ARGS_OPT(1));
+  mrb_define_method(mrb, random, "initialize", mrb_random_init, MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, random, "rand", mrb_random_rand, MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, random, "srand", mrb_random_srand, MRB_ARGS_OPT(1));
 }
 
 void mrb_mruby_random_gem_final(mrb_state *mrb)
