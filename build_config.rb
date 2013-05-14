@@ -27,7 +27,7 @@ MRuby::Build.new do |conf|
 
   # mrbc settings
   # conf.mrbc do |mrbc|
-  #   mrbc.compile_options = "-g -B%{funcname} -o- -" # The -g option is required for line numbers
+  #   mrbc.compile_options = "-g -B%{funcname} -o-" # The -g option is required for line numbers
   # end
 
   # Linker settings
