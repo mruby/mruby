@@ -18,6 +18,7 @@ struct _args {
   FILE *rfp;
   FILE *wfp;
   char *filename;
+  char *source_label;
   char *initname;
   char *ext;
   mrb_bool check_syntax : 1;
@@ -35,6 +36,7 @@ usage(const char *name)
   "-v           print version number, then turn on verbose mode",
   "-g           produce debugging information",
   "-B<symbol>   binary <symbol> output in C language format",
+  "-L<label>    give stdin source a label for use in backtraces",
   "--verbose    run at verbose mode",
   "--version    print the version",
   "--copyright  print the copyright",
@@ -102,6 +104,9 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
           result = EXIT_FAILURE;
           goto exit;
         }
+        break;
+      case 'L':
+        args->source_label = (*argv) + 2;
         break;
       case 'c':
         args->check_syntax = 1;
@@ -204,7 +209,12 @@ main(int argc, char **argv)
   if (args.verbose)
     c->dump_result = 1;
   c->no_exec = 1;
-  c->filename = args.filename;
+  if (strcmp("-", args.filename) == 0 && args.source_label != NULL) {
+    c->filename = args.source_label;
+  }
+  else {
+    c->filename = args.filename;
+  }
   result = mrb_load_file_cxt(mrb, args.rfp, c);
   if (mrb_undef_p(result) || mrb_fixnum(result) < 0) {
     cleanup(mrb, &args);
