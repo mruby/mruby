@@ -26,9 +26,10 @@ MRuby::Build.new do |conf|
   # end
 
   # mrbc settings
-  # conf.mrbc do |mrbc|
-  #   mrbc.compile_options = "-g -B%{funcname} -o- -" # The -g option is required for line numbers
-  # end
+  #conf.mrbc do |mrbc|
+  #  # The -g option is required for line numbers, the -L option gives the stdin input a fake filename
+  #  mrbc.compile_options = "-g -L%{sourcelabel} -B%{funcname} -o- -" 
+  #end
 
   # Linker settings
   # conf.linker do |linker|

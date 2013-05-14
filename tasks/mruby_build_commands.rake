@@ -244,9 +244,9 @@ module MRuby
       @compile_options = "-B%{funcname} -o- -"
     end
 
-    def run(out, infiles, funcname)
+    def run(out, infiles, funcname, sourcelabel)
       @command ||= @build.mrbcfile
-      IO.popen("#{filename @command} #{@compile_options % {:funcname => funcname}}", 'r+') do |io|
+      IO.popen("#{filename @command} #{@compile_options % {:funcname => funcname, :sourcelabel => sourcelabel}}", 'r+') do |io|
         [infiles].flatten.each do |f|
           _pp "MRBC", f.relative_path, nil, :indent => 2
           io.write IO.read(f)

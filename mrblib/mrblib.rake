@@ -12,7 +12,7 @@ MRuby.each_target do
     open(t.name, 'w') do |f|
       _pp "GEN", "*.rb", "#{t.name.relative_path}"
       f.puts File.read("#{current_dir}/init_mrblib.c")
-      mrbc.run f, rbfiles, 'mrblib_irep'
+      mrbc.run f, rbfiles, 'mrblib_irep', 'mrblib_irep'
     end
   end
 end
