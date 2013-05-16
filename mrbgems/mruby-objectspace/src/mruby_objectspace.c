@@ -1,7 +1,9 @@
+#include <stdio.h>
+
 #include <mruby.h>
 #include <mruby/gc.h>
 #include <mruby/hash.h>
-#include <stdio.h>
+#include <mruby/value.h>
 
 /*
  *  call-seq:
@@ -25,22 +27,30 @@
 
 struct os_count_struct {
   size_t total;
+ 	size_t freed;
   size_t counts[MRB_TT_MAXDEFINE+1];
 };
 
-void os_count_object_type(RVALUE *obj, void *data)
+void os_count_object_type(mrb_state *mrb, struct RBasic obj, void *data)
 {
   struct os_count_struct* obj_count;
   obj_count = (struct os_count_struct*)(data);
-  obj_count->counts[mrb_type(obj->as.basic)]++;
-  obj_count->total++;
+  obj_count->counts[mrb_type(obj)]++;
+  if (is_dead(mrb, &obj))
+  {
+  	obj_count->freed++;
+  }
+  else
+  {
+  	obj_count->total++;
+  }
+
 }
 
 mrb_value
 os_count_objects(mrb_state *mrb, mrb_value self)
 {
     struct os_count_struct obj_count;
-    size_t freed = 0;
     size_t i;
     mrb_value hash;
     struct heap_page* page = mrb->heaps;
@@ -56,11 +66,13 @@ os_count_objects(mrb_state *mrb, mrb_value self)
     for (i = 0; i <= MRB_TT_MAXDEFINE; i++) {
         obj_count.counts[i] = 0;
     }
+    obj_count.total = 0;
+    obj_count.freed = 0;
 
     mrb_objspace_each_objects(mrb, os_count_object_type, &obj_count);
 
     mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_cstr(mrb, "TOTAL")), mrb_fixnum_value(obj_count.total));
-    mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_cstr(mrb, "FREE")), mrb_fixnum_value(freed));
+    mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_cstr(mrb, "FREE")), mrb_fixnum_value(obj_count.freed));
 
     for (i = 0; i < MRB_TT_MAXDEFINE; i++) {
         mrb_value type;

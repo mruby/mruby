@@ -73,6 +73,26 @@
 
 */
 
+struct free_obj {
+  MRB_OBJECT_HEADER;
+  struct RBasic *next;
+};
+
+typedef struct {
+  union {
+    struct free_obj free;
+    struct RBasic basic;
+    struct RObject object;
+    struct RClass klass;
+    struct RString string;
+    struct RArray array;
+    struct RHash hash;
+    struct RRange range;
+    struct RData data;
+    struct RProc proc;
+  } as;
+} RVALUE;
+
 #ifdef GC_PROFILE
 #include <stdio.h>
 #include <sys/time.h>
@@ -1133,7 +1153,7 @@ mrb_objspace_each_objects(mrb_state *mrb, each_object_callback* callback, void *
         p = page->objects;
         pend = p + MRB_HEAP_PAGE_SIZE;
         for (;p < pend; p++) {
-           callback(p, data);
+           callback(mrb, p->as.basic, data);
         }
 
         page = page->next;

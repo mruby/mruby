@@ -5,12 +5,19 @@ assert('ObjectSpace.count_objects') do
 	assert_true(h.keys.all? {|x| x.is_a?(Symbol) || x.is_a?(Integer) })
 	assert_true(h.values.all? {|x| x.is_a?(Integer) })
 
+	assert_true(h.has_key?(:TOTAL))
+	assert_true(h.has_key?(:FREE))
+
+	p h.inspect
+
 	h = ObjectSpace.count_objects
 	assert_kind_of(Hash, h)
 	assert_true(h.keys.all? {|x| x.is_a?(Symbol) || x.is_a?(Integer) })
 	assert_true(h.values.all? {|x| x.is_a?(Integer) })
 
 	assert_raise(TypeError) { ObjectSpace.count_objects(1) }
+
+	p h.inspect
 
 	h0 = {:MRB_TT_FOO=>1000}
 	h = ObjectSpace.count_objects(h0)
@@ -31,4 +38,8 @@ assert('ObjectSpace.count_objects') do
 
 	assert_equal(h_before[:MRB_TT_HASH] + 1000, h[:MRB_TT_HASH])
 	assert_equal(h_before[:MRB_TT_HASH], h_after[:MRB_TT_HASH])
+
+	p h.inspect
+	p h_after.inspect
+
 end
