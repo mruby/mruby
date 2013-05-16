@@ -285,6 +285,10 @@ main(int argc, char **argv)
       return EXIT_FAILURE;
     }
   }
+  else {
+    fprintf(stderr, "Output file is required\n");
+    return EXIT_FAILURE;
+  }
   result = dump_file(mrb, wfp, args.outfile, &args);
   fclose(wfp);
   cleanup(mrb, &args);
