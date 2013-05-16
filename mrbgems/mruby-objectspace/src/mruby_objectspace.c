@@ -36,15 +36,12 @@ void os_count_object_type(mrb_state *mrb, struct RBasic* obj, void *data)
   struct os_count_struct* obj_count;
   obj_count = (struct os_count_struct*)(data);
   obj_count->counts[obj->tt]++;
-  if (is_dead(mrb, obj))
-  {
+
+  if (is_dead(mrb, obj)) {
   	obj_count->freed++;
-  }
-  else
-  {
+  } else {
   	obj_count->total++;
   }
-
 }
 
 mrb_value
