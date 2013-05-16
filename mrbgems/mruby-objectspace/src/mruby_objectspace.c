@@ -31,12 +31,12 @@ struct os_count_struct {
   size_t counts[MRB_TT_MAXDEFINE+1];
 };
 
-void os_count_object_type(mrb_state *mrb, struct RBasic obj, void *data)
+void os_count_object_type(mrb_state *mrb, struct RBasic* obj, void *data)
 {
   struct os_count_struct* obj_count;
   obj_count = (struct os_count_struct*)(data);
-  obj_count->counts[mrb_type(obj)]++;
-  if (is_dead(mrb, &obj))
+  obj_count->counts[obj->tt]++;
+  if (is_dead(mrb, obj))
   {
   	obj_count->freed++;
   }
