@@ -872,7 +872,7 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
 
   if (!c) c = mrb->ci->target_class;
   if (c) {
-    struct RClass *c2 = c;
+    struct RClass *c2;
     mrb_value v;
 
     if (c->iv && iv_get(mrb, c->iv, sym, &v)) {

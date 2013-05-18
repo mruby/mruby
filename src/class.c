@@ -644,7 +644,6 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           *pl = argc-i;
           if (*pl > 0) {
             *var = sp;
-            i = argc;
           }
           i = argc;
           sp += *pl;

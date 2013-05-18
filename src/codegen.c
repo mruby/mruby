@@ -1004,7 +1004,6 @@ gen_literal_array(codegen_scope *s, node *tree, int sym, int val)
       tree = tree->cdr;
     }
     if (j > 0) {
-      j = 0;
       ++i;
       if (sym)
         gen_send_intern(s);
