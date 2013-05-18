@@ -49,7 +49,6 @@ os_count_objects(mrb_state *mrb, mrb_value self)
     struct os_count_struct obj_count;
     size_t i;
     mrb_value hash;
-    struct heap_page* page = mrb->heaps;
 
     if (mrb_get_args(mrb, "|H", &hash) == 0) {
         hash = mrb_hash_new(mrb);
