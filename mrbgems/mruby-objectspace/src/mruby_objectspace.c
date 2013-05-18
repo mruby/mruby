@@ -1,9 +1,27 @@
-#include <stdio.h>
-
 #include <mruby.h>
 #include <mruby/gc.h>
 #include <mruby/hash.h>
 #include <mruby/value.h>
+
+struct os_count_struct {
+  size_t total;
+ 	size_t freed;
+  size_t counts[MRB_TT_MAXDEFINE+1];
+};
+
+void
+os_count_object_type(mrb_state *mrb, struct RBasic* obj, void *data)
+{
+  struct os_count_struct* obj_count;
+  obj_count = (struct os_count_struct*)(data);
+
+  if (is_dead(mrb, obj)) {
+  	obj_count->freed++;
+  } else {
+  	obj_count->counts[obj->tt]++;
+  	obj_count->total++;
+  }
+}
 
 /*
  *  call-seq:
@@ -24,25 +42,6 @@
  *  it is overwritten and returned. This is intended to avoid probe effect.
  *
  */
-
-struct os_count_struct {
-  size_t total;
- 	size_t freed;
-  size_t counts[MRB_TT_MAXDEFINE+1];
-};
-
-void os_count_object_type(mrb_state *mrb, struct RBasic* obj, void *data)
-{
-  struct os_count_struct* obj_count;
-  obj_count = (struct os_count_struct*)(data);
-
-  if (is_dead(mrb, obj)) {
-  	obj_count->freed++;
-  } else {
-  	obj_count->counts[obj->tt]++;
-  	obj_count->total++;
-  }
-}
 
 mrb_value
 os_count_objects(mrb_state *mrb, mrb_value self)
@@ -109,12 +108,10 @@ os_count_objects(mrb_state *mrb, mrb_value self)
 
 void
 mrb_mruby_objectspace_gem_init(mrb_state* mrb) {
-  struct RClass *os;
-  os = mrb_define_module(mrb, "ObjectSpace");
+  struct RClass *os = mrb_define_module(mrb, "ObjectSpace");
   mrb_define_class_method(mrb, os, "count_objects", os_count_objects, MRB_ARGS_ANY());
 }
 
 void
 mrb_mruby_objectspace_gem_final(mrb_state* mrb) {
-  // finalizer
 }
