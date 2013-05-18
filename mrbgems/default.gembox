@@ -41,6 +41,9 @@ MRuby::GemBox.new do |conf|
   # Use Random class
   conf.gem :core => "mruby-random"
 
+  # Use ObjectSpace class
+  conf.gem :core => "mruby-objectspace"
+
   # Generate mirb command
   conf.gem :core => "mruby-bin-mirb"
 

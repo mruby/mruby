@@ -20,6 +20,7 @@
 #include "mruby/range.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
+#include "mruby/gc.h"
 
 /*
   = Tri-color Incremental Garbage Collection
@@ -1141,6 +1142,24 @@ gc_generational_mode_set(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(enable);
 }
 
+void
+mrb_objspace_each_objects(mrb_state *mrb, each_object_callback* callback, void *data)
+{
+    struct heap_page* page = mrb->heaps;
+
+    while (page != NULL) {
+        RVALUE *p, *pend;
+
+        p = page->objects;
+        pend = p + MRB_HEAP_PAGE_SIZE;
+        for (;p < pend; p++) {
+           (*callback)(mrb, &p->as.basic, data);
+        }
+
+        page = page->next;
+    }
+}
+
 #ifdef GC_TEST
 #ifdef GC_DEBUG
 static mrb_value gc_test(mrb_state *, mrb_value);
@@ -1151,6 +1170,7 @@ void
 mrb_init_gc(mrb_state *mrb)
 {
   struct RClass *gc;
+
   gc = mrb_define_module(mrb, "GC");
 
   mrb_define_class_method(mrb, gc, "start", gc_start, MRB_ARGS_NONE());
