@@ -86,6 +86,19 @@ def assert_true(ret, msg = nil, diff = nil)
   ret
 end
 
+def assert_false(ret, msg = nil, diff = nil)
+  if $mrbtest_assert
+    $mrbtest_assert_idx += 1
+    if ret
+      msg = "Expected #{ret.inspect} to be false" unless msg
+      diff = assertion_diff(false, ret) unless diff
+
+      $mrbtest_assert.push([$mrbtest_assert_idx, msg, diff])
+    end
+  end
+  !ret
+end
+
 def assert_equal(exp, act, msg = nil)
   msg = "Expected to be equal" unless msg
   diff = assertion_diff(exp, act)
@@ -133,6 +146,14 @@ def assert_raise(*exp)
     end
   end
   ret
+end
+
+##
+# Fails unless +obj+ is a kind of +cls+.
+def assert_kind_of(cls, obj, msg = nil)
+  msg = "Expected #{obj.inspect} to be a kind of #{cls}, not #{obj.class}" unless msg
+  diff = assertion_diff(cls, obj.class)
+  assert_true(obj.kind_of?(cls), msg, diff)
 end
 
 ##
