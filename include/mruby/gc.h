@@ -10,7 +10,7 @@
 #include "mruby.h"
 #include "mruby/value.h"
 
-typedef int each_object_callback(mrb_state *mrb, struct RBasic* obj, void *data);
+typedef void (each_object_callback)(mrb_state *mrb, struct RBasic* obj, void *data);
 void mrb_objspace_each_objects(mrb_state *mrb, each_object_callback* callback, void *data);
 
 #endif  /* MRUBY_GC_H */
