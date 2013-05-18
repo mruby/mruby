@@ -282,7 +282,7 @@ main(int argc, char **argv)
     if (strcmp("-", args.outfile) == 0) {
       wfp = stdout;
     }
-    else if ((wfp = fopen(args.outfile, "w")) == NULL) {
+    else if ((wfp = fopen(args.outfile, "wb")) == NULL) {
       fprintf(stderr, "%s: cannot open output file:(%s)\n", args.prog, args.outfile);
       return EXIT_FAILURE;
     }
