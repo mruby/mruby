@@ -25,6 +25,11 @@ MRuby::Build.new do |conf|
   #   cc.compile_options = "%{flags} -MMD -o %{outfile} -c %{infile}"
   # end
 
+  # mrbc settings
+  # conf.mrbc do |mrbc|
+  #   mrbc.compile_options = "-g -B%{funcname} -o-" # The -g option is required for line numbers
+  # end
+
   # Linker settings
   # conf.linker do |linker|
   #   linker.command = ENV['LD'] || 'gcc'

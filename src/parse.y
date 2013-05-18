@@ -3232,14 +3232,14 @@ nextc(parser_state *p)
   else {
 #ifdef ENABLE_STDIO
     if (p->f) {
-      if (feof(p->f)) return -1;
+      if (feof(p->f)) goto end_retry;
       c = fgetc(p->f);
-      if (c == EOF) return -1;
+      if (c == EOF) goto end_retry;
     }
     else
 #endif
     if (!p->s || p->s >= p->send) {
-      return -1;
+       goto end_retry;
     }
     else {
       c = (unsigned char)*p->s++;
@@ -3247,6 +3247,18 @@ nextc(parser_state *p)
   }
   p->column++;
   return c;
+
+ end_retry:
+  if (!p->cxt) return -1;
+  else {
+    mrbc_context *cxt = p->cxt;
+
+    if (cxt->partial_hook(p) < 0) return -1;
+    p->cxt = NULL;
+    c = nextc(p);
+    p->cxt = cxt;
+    return c;
+  }
 }
 
 static void
@@ -5023,6 +5035,9 @@ parser_init_cxt(parser_state *p, mrbc_context *cxt)
     }
   }
   p->capture_errors = cxt->capture_errors;
+  if (cxt->partial_hook) {
+    p->cxt = cxt;
+  }
 }
 
 static void
@@ -5145,6 +5160,13 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
     c->lineno = 1;
   }
   return c->filename;
+}
+
+void
+mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*func)(struct mrb_parser_state*), void *data)
+{
+  c->partial_hook = func;
+  c->partial_data = data;
 }
 
 #ifdef ENABLE_STDIO

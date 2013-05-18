@@ -236,20 +236,21 @@ module MRuby
   end
 
   class Command::Mrbc < Command
+    attr_accessor :compile_options
+
     def initialize(build)
       super
       @command = nil
-      @compile_options = "-B%{funcname} -o- -"
+      @compile_options = "-B%{funcname} -o-"
     end
 
     def run(out, infiles, funcname)
       @command ||= @build.mrbcfile
-      IO.popen("#{filename @command} #{@compile_options % {:funcname => funcname}}", 'r+') do |io|
-        [infiles].flatten.each do |f|
-          _pp "MRBC", f.relative_path, nil, :indent => 2
-          io.write IO.read(f)
-        end
-        io.close_write
+      infiles = [infiles].flatten
+      infiles.each do |f|
+        _pp "MRBC", f.relative_path, nil, :indent => 2
+      end
+      IO.popen("#{filename @command} #{@compile_options % {:funcname => funcname}} #{infiles.join(' ')}", 'r+') do |io|
         out.puts io.read
       end
     end

@@ -301,6 +301,7 @@ void mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
 void mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...);
 void mrb_warn(mrb_state *mrb, const char *fmt, ...);
 void mrb_bug(mrb_state *mrb, const char *fmt, ...);
+void mrb_print_backtrace(mrb_state *mrb);
 
 /* macros to get typical exception objects
    note:

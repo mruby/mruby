@@ -101,6 +101,7 @@ mrb_irep_free(mrb_state *mrb, struct mrb_irep *irep)
     mrb_free(mrb, irep->iseq);
   mrb_free(mrb, irep->pool);
   mrb_free(mrb, irep->syms);
+  mrb_free(mrb, (void *)irep->filename);
   mrb_free(mrb, irep->lines);
   mrb_free(mrb, irep);
 }
