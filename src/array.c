@@ -294,7 +294,7 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
 {
   mrb_value ary2;
   struct RArray *a1, *a2;
-  mrb_value r = mrb_nil_value();
+  mrb_value r;
   mrb_int i, len;
 
   mrb_get_args(mrb, "o", &ary2);
