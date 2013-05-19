@@ -369,7 +369,7 @@ to_hash(mrb_state *mrb, mrb_value val)
 
   returns number of arguments parsed.
 
-  fortmat specifiers:
+  format specifiers:
 
    o: Object [mrb_value]
    S: String [mrb_value]
