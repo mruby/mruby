@@ -12,14 +12,51 @@
  *
  *  Creates an fiber, whose execution is suspend until it explicitly
  *  resumed using <code>Fibder#resume</code> method.  
- *  <code>resume</code>. Arguments passed to resume will be the value of
- *  the <code>Fiber.yield</code> expression or will be passed as block
- *  parameters to the fiber's block if this is the first <code>resume</code>.
+ *  The code running inside the fiber can give up control by calling
+ *  <code>Fiber.yield</code> in which case it yields control back to caller
+ *  (the caller of the <code>Fiber#resume</code>).
  *
- *  Alternatively, when resume is called it evaluates to the arguments passed
- *  to the next <code>Fiber.yield</code> statement inside the fiber's block
- *  or to the block value if it runs to completion without any
- *  <code>Fiber.yield</code>
+ *  Upon yielding or termination the Fiber returns the value of the last
+ *  executed expression
+ *
+ *  For instance:
+ *
+ *    fiber = Fiber.new do
+ *      Fiber.yield 1
+ *      2
+ *    end
+ *
+ *    puts fiber.resume
+ *    puts fiber.resume
+ *    puts fiber.resume
+ *
+ *  <em>produces</em>
+ *
+ *    1
+ *    2
+ *    FiberError: dead fiber called
+ *
+ *  The <code>Fiber#resume</code> method accepts an arbitrary number of
+ *  parameters, if it is the first call to <code>resume</code> then they
+ *  will be passed as block arguments. Otherwise they will be the return
+ *  value of the call to <code>Fiber.yield</code>
+ *
+ *  Example:
+ *
+ *    fiber = Fiber.new do |first|
+ *      second = Fiber.yield first + 2
+ *    end
+ *
+ *    puts fiber.resume 10
+ *    puts fiber.resume 14
+ *    puts fiber.resume 18
+ *
+ *  <em>produces</em>
+ *
+ *    12
+ *    14
+ *    FiberError: dead fiber called
+ *
  */
 static mrb_value
 fiber_init(mrb_state *mrb, mrb_value self)
