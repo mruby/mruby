@@ -126,6 +126,9 @@ fiber_result(mrb_state *mrb, mrb_value *a, int len)
   return mrb_ary_new_from_values(mrb, len, a);
 }
 
+/* mark return from context modifying method */
+#define MARK_CONTEXT_MODIFY(c) (c)->ci->target_class = NULL
+
 /*
  *  call-seq:
  *     fiber.resume(args, ...) -> obj
@@ -160,11 +163,13 @@ fiber_resume(mrb_state *mrb, mrb_value self)
     c->prev = mrb->c;
     mrb->c = c;
 
+    MARK_CONTEXT_MODIFY(c);
     return c->ci->proc->env->stack[0];
   }
   if (c->ci == c->cibase) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "resuming dead fiber");
   }
+  MARK_CONTEXT_MODIFY(c);
   c->prev = mrb->c;
   mrb->c = c;
   return fiber_result(mrb, a, len);
@@ -193,6 +198,7 @@ fiber_yield(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "*", &a, &len);
 
   mrb->c = c->prev;
+  MARK_CONTEXT_MODIFY(mrb->c);
   return fiber_result(mrb, a, len);
 }
 
