@@ -19,7 +19,7 @@ mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
   struct RProc *p;
 
   p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
-  p->target_class = (mrb->ci) ? mrb->ci->target_class : 0;
+  p->target_class = (mrb->c->ci) ? mrb->c->ci->target_class : 0;
   p->body.irep = irep;
   p->env = 0;
 
@@ -31,16 +31,16 @@ closure_setup(mrb_state *mrb, struct RProc *p, int nlocals)
 {
   struct REnv *e;
 
-  if (!mrb->ci->env) {
-    e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)mrb->ci->proc->env);
+  if (!mrb->c->ci->env) {
+    e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)mrb->c->ci->proc->env);
     e->flags= (unsigned int)nlocals;
-    e->mid = mrb->ci->mid;
-    e->cioff = mrb->ci - mrb->cibase;
-    e->stack = mrb->stack;
-    mrb->ci->env = e;
+    e->mid = mrb->c->ci->mid;
+    e->cioff = mrb->c->ci - mrb->c->cibase;
+    e->stack = mrb->c->stack;
+    mrb->c->ci->env = e;
   }
   else {
-    e = mrb->ci->env;
+    e = mrb->c->ci->env;
   }
   p->env = e;
 }
@@ -50,7 +50,7 @@ mrb_closure_new(mrb_state *mrb, mrb_irep *irep)
 {
   struct RProc *p = mrb_proc_new(mrb, irep);
 
-  closure_setup(mrb, p, mrb->ci->proc->body.irep->nlocals);
+  closure_setup(mrb, p, mrb->c->ci->proc->body.irep->nlocals);
   return p;
 }
 

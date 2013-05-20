@@ -61,16 +61,8 @@ typedef struct {
   struct REnv *env;
 } mrb_callinfo;
 
-enum gc_state {
-  GC_STATE_NONE = 0,
-  GC_STATE_MARK,
-  GC_STATE_SWEEP
-};
-
-typedef struct mrb_state {
-  void *jmp;
-
-  mrb_allocf allocf;
+struct mrb_context {
+  struct mrb_context *prev;
 
   mrb_value *stack;
   mrb_value *stbase, *stend;
@@ -82,10 +74,24 @@ typedef struct mrb_state {
   int rsize;
   struct RProc **ensure;
   int esize;
+};
+
+enum gc_state {
+  GC_STATE_NONE = 0,
+  GC_STATE_MARK,
+  GC_STATE_SWEEP
+};
+
+typedef struct mrb_state {
+  void *jmp;
+
+  mrb_allocf allocf;
+
+  struct mrb_context *c;
+  struct mrb_context *root_c;
 
   struct RObject *exc;
   struct iv_tbl *globals;
-
   struct mrb_irep **irep;
   size_t irep_len, irep_capa;
 
@@ -140,7 +146,6 @@ typedef struct mrb_state {
   struct RClass *eStandardError_class;
 
   void *ud; /* auxiliary data */
-
 } mrb_state;
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);

@@ -34,7 +34,8 @@ enum mrb_vtype {
   MRB_TT_FILE,        /*  19 */
   MRB_TT_ENV,         /*  20 */
   MRB_TT_DATA,        /*  21 */
-  MRB_TT_MAXDEFINE    /*  22 */
+  MRB_TT_FIBER,       /*  22 */
+  MRB_TT_MAXDEFINE    /*  23 */
 };
 
 typedef struct mrb_value {
@@ -92,7 +93,8 @@ enum mrb_vtype {
   MRB_TT_FILE,        /*  20 */
   MRB_TT_ENV,         /*  21 */
   MRB_TT_DATA,        /*  22 */
-  MRB_TT_MAXDEFINE    /*  23 */
+  MRB_TT_FIBER,       /*  23 */
+  MRB_TT_MAXDEFINE    /*  24 */
 };
 
 #ifdef MRB_ENDIAN_BIG
@@ -201,6 +203,11 @@ struct RObject {
 #define mrb_object(o) mrb_obj_ptr(o)
 #define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_VOIDP)
 #define mrb_special_const_p(x) mrb_immediate_p(x)
+
+struct RFiber {
+  MRB_OBJECT_HEADER;
+  struct mrb_context *cxt;
+};
 
 static inline mrb_value
 mrb_fixnum_value(mrb_int i)

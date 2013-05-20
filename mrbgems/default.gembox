@@ -44,6 +44,9 @@ MRuby::GemBox.new do |conf|
   # Use ObjectSpace class
   conf.gem :core => "mruby-objectspace"
 
+  # Use Fiber class
+  conf.gem :core => "mruby-fiber"
+
   # Generate mirb command
   conf.gem :core => "mruby-bin-mirb"
 

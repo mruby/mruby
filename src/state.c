@@ -25,6 +25,7 @@ mrb_state*
 mrb_open_allocf(mrb_allocf f, void *ud)
 {
   static const mrb_state mrb_state_zero = { 0 };
+  static const struct mrb_context mrb_context_zero = { 0 };
   mrb_state *mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
   if (mrb == NULL) return NULL;
 
@@ -34,7 +35,11 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   mrb->current_white_part = MRB_GC_WHITE_A;
 
   mrb_init_heap(mrb);
+  mrb->c = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
+  *mrb->c = mrb_context_zero;
+  mrb->root_c = mrb->c;
   mrb_init_core(mrb);
+
   return mrb;
 }
 
@@ -107,6 +112,17 @@ mrb_irep_free(mrb_state *mrb, struct mrb_irep *irep)
 }
 
 void
+mrb_free_context(mrb_state *mrb, struct mrb_context *c)
+{
+  if (!c) return;
+  mrb_free(mrb, c->stbase);
+  mrb_free(mrb, c->cibase);
+  mrb_free(mrb, c->rescue);
+  mrb_free(mrb, c->ensure);
+  mrb_free(mrb, c);
+}
+
+void
 mrb_close(mrb_state *mrb)
 {
   size_t i;
@@ -115,14 +131,11 @@ mrb_close(mrb_state *mrb)
 
   /* free */
   mrb_gc_free_gv(mrb);
-  mrb_free(mrb, mrb->stbase);
-  mrb_free(mrb, mrb->cibase);
   for (i=0; i<mrb->irep_len; i++) {
     mrb_irep_free(mrb, mrb->irep[i]);
   }
   mrb_free(mrb, mrb->irep);
-  mrb_free(mrb, mrb->rescue);
-  mrb_free(mrb, mrb->ensure);
+  mrb_free_context(mrb, mrb->root_c);
   mrb_free_symtbl(mrb);
   mrb_free_heap(mrb);
   mrb_alloca_free(mrb);

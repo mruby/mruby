@@ -132,7 +132,7 @@ mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
 static mrb_value
 mrb_struct_ref(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_struct_getmember(mrb, obj, mrb->ci->mid);
+  return mrb_struct_getmember(mrb, obj, mrb->c->ci->mid);
 }
 
 static mrb_value mrb_struct_ref0(mrb_state* mrb, mrb_value obj) {return RSTRUCT_PTR(obj)[0];}
@@ -191,7 +191,7 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
   mrb_value members, slot, *ptr, *ptr_members;
 
   /* get base id */
-  name = mrb_sym2name_len(mrb, mrb->ci->mid, &len);
+  name = mrb_sym2name_len(mrb, mrb->c->ci->mid, &len);
   mid = mrb_intern2(mrb, name, len-1); /* omit last "=" */
 
   members = mrb_struct_members(mrb, obj);
