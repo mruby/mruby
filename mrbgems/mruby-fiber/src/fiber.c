@@ -34,7 +34,7 @@
  *
  *    1
  *    2
- *    FiberError: dead fiber called
+ *    resuming dead fiber (RuntimeError)
  *
  *  The <code>Fiber#resume</code> method accepts an arbitrary number of
  *  parameters, if it is the first call to <code>resume</code> then they
@@ -55,7 +55,7 @@
  *
  *    12
  *    14
- *    FiberError: dead fiber called
+ *    resuming dead fiber (RuntimeError)
  *
  */
 static mrb_value
@@ -163,7 +163,7 @@ fiber_resume(mrb_state *mrb, mrb_value self)
     return c->ci->proc->env->stack[0];
   }
   if (c->ci == c->cibase) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "resuming dead Fiber");
+    mrb_raise(mrb, E_RUNTIME_ERROR, "resuming dead fiber");
   }
   c->prev = mrb->c;
   mrb->c = c;
@@ -188,7 +188,7 @@ fiber_yield(mrb_state *mrb, mrb_value self)
   int len;
 
   if (!c->prev) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "can't yield from root Fiber");
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "can't yield from root fiber");
   }
   mrb_get_args(mrb, "*", &a, &len);
 
