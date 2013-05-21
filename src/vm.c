@@ -215,7 +215,7 @@ cipush(mrb_state *mrb)
     size_t size = ci - c->cibase;
 
     c->cibase = (mrb_callinfo *)mrb_realloc(mrb, c->cibase, sizeof(mrb_callinfo)*size*2);
-    c->ci = ci = c->cibase + size;
+    c->ci = c->cibase + size;
     c->ciend = c->cibase + size * 2;
   }
   ci = ++c->ci;
