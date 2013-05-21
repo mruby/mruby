@@ -19,18 +19,9 @@ end
 
 assert('Addrinfo.foreach') do
   # assume Addrinfo.getaddrinfo works well
+  a = Addrinfo.getaddrinfo("localhost", "domain")
   b = []
-  a = Addrinfo.foreach("localhost", "domain") { |ai|
-    assert_include([Socket::AF_INET, Socket::AF_INET6], ai.afamily)
-    if ai.afamily == Socket::AF_INET
-      assert_equal(ai.ip_address, '127.0.0.1')
-    else
-      assert_equal(ai.ip_address, '::1')
-    end
-    assert_equal(ai.ip_port, 53)
-    assert_include([Socket::SOCK_STREAM, Socket::SOCK_DGRAM], ai.socktype)
-    b << ai
-  }
+  Addrinfo.foreach("localhost", "domain") { |ai| b << ai }
   assert_equal(a.size, b.size)
 end
 
