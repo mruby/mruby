@@ -6,9 +6,9 @@ assert('super class of Addrinfo') do
   assert_equal(Object, Addrinfo.superclass)
 end
 
-assert('Addrinfo.getadrinfo') do
+assert('Addrinfo.getaddrinfo') do
   ary = Addrinfo.getaddrinfo("localhost", "domain", Socket::AF_INET, Socket::SOCK_STREAM)
-  assert_equal(ary.size, 1)
+  assert_true(ary.size >= 1)
   ai = ary[0]
   assert_equal(ai.afamily, Socket::AF_INET)
   assert_equal(ai.pfamily, Socket::PF_INET)
