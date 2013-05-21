@@ -76,8 +76,8 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   }
 
   lastai = mrb_cv_get(mrb, klass, mrb_intern_cstr(mrb, "_lastai"));
-  if (mrb_voidp_p(ai)) {
-    freeaddrinfo(mrb_voidp(ai));
+  if (mrb_voidp_p(lastai)) {
+    freeaddrinfo(mrb_voidp(lastai));
     mrb_cv_set(mrb, klass, mrb_intern_cstr(mrb, "_lastai"), mrb_nil_value());
   }
 
