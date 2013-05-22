@@ -74,6 +74,8 @@ struct mrb_context {
   int rsize;
   struct RProc **ensure;
   int esize;
+
+  struct RFiber *fib;
 };
 
 enum gc_state {

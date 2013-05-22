@@ -412,7 +412,9 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
     mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
     mrb_gc_mark(mrb, (struct RBasic*)ci->target_class);
   }
-  if (c->prev) mark_context(mrb, c->prev);
+  if (c->prev && c->prev->fib) {
+    mrb_gc_mark(mrb, (struct RBasic*)c->prev->fib);
+  }
 }
 
 static void
@@ -472,7 +474,6 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
       struct mrb_context *c = ((struct RFiber*)obj)->cxt;
 
       mark_context(mrb, c);
-      ((struct RFiber*)obj)->cxt = NULL;
     }
     break;
 

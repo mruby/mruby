@@ -80,9 +80,9 @@ fiber_init(mrb_state *mrb, mrb_value self)
 
   f->cxt = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
   *f->cxt = mrb_context_zero;
+  c = f->cxt;
 
   /* initialize VM stack */
-  c = f->cxt;
   c->stbase = (mrb_value *)mrb_calloc(mrb, FIBER_STACK_INIT_SIZE, sizeof(mrb_value));
   c->stend = c->stbase + FIBER_STACK_INIT_SIZE;
   c->stack = c->stbase;
@@ -103,6 +103,8 @@ fiber_init(mrb_state *mrb, mrb_value self)
   ci->nregs = p->body.irep->nregs;
   ci[1] = ci[0];
   c->ci++;                      /* push dummy callinfo */
+
+  c->fib = f;
 
   return self;
 }
