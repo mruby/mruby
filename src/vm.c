@@ -384,7 +384,6 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
       int ai = mrb_gc_arena_save(mrb);
       val = p->body.func(mrb, self);
       mrb_gc_arena_restore(mrb, ai);
-      mrb_gc_protect(mrb, val);
       mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
       cipop(mrb);
     }
@@ -392,6 +391,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
       val = mrb_run(mrb, p, self);
     }
   }
+  mrb_gc_protect(mrb, val);
   return val;
 }
 
