@@ -105,6 +105,7 @@ fiber_init(mrb_state *mrb, mrb_value self)
   c->ci++;                      /* push dummy callinfo */
 
   c->fib = f;
+  c->status = MRB_FIBER_CREATED;
 
   return self;
 }
@@ -153,8 +154,15 @@ fiber_resume(mrb_state *mrb, mrb_value self)
   mrb_value *a;
   int len;
 
+  if (c->status == MRB_FIBER_RESUMED) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "double resume");
+  }
+  if (c->status == MRB_FIBER_TERMINATED) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "resuming dead fiber");
+  }
   mrb_get_args(mrb, "*", &a, &len);
-  if (!c->prev) {               /* first call */
+  mrb->c->status = MRB_FIBER_RESUMED;
+  if (c->status == MRB_FIBER_CREATED) {
     mrb_value *b = c->stack+1;
     mrb_value *e = b + len;
 
@@ -163,16 +171,15 @@ fiber_resume(mrb_state *mrb, mrb_value self)
     }
     c->ci->argc = len;
     c->prev = mrb->c;
+    c->status = MRB_FIBER_RUNNING;
     mrb->c = c;
 
     MARK_CONTEXT_MODIFY(c);
     return c->ci->proc->env->stack[0];
   }
-  if (c->ci == c->cibase) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "resuming dead fiber");
-  }
   MARK_CONTEXT_MODIFY(c);
   c->prev = mrb->c;
+  c->status = MRB_FIBER_RUNNING;
   mrb->c = c;
   return fiber_result(mrb, a, len);
 }
@@ -198,8 +205,9 @@ fiber_yield(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "can't yield from root fiber");
   }
   mrb_get_args(mrb, "*", &a, &len);
-
+  c->prev->status = MRB_FIBER_RUNNING;
   mrb->c = c->prev;
+  c->prev = NULL;
   MARK_CONTEXT_MODIFY(mrb->c);
   return fiber_result(mrb, a, len);
 }

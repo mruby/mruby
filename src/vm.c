@@ -1301,7 +1301,14 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
               localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
               goto L_RAISE;
             }
-            mrb->c = mrb->c->prev; /* automatic yield at the end */
+            if (mrb->c->prev->ci == mrb->c->prev->cibase) {
+              mrb_value exc = mrb_exc_new3(mrb, E_RUNTIME_ERROR, mrb_str_new(mrb, "double resume", 13));
+              mrb->exc = mrb_obj_ptr(exc);
+              goto L_RAISE;
+            }
+            /* automatic yield at the end */
+            mrb->c->status = MRB_FIBER_TERMINATED;
+            mrb->c = mrb->c->prev;
           }
           ci = mrb->c->ci;
           break;
