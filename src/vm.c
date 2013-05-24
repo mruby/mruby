@@ -157,9 +157,10 @@ stack_extend(mrb_state *mrb, int room, int keep)
 #ifndef MRB_NAN_BOXING
     stack_clear(&(mrb->c->stack[keep]), room - keep);
 #else
+    struct mrb_context *c = mrb->c;
     int i;
     for (i=keep; i<room; i++) {
-      SET_NIL_VALUE(mrb->stack[i]);
+      SET_NIL_VALUE(c->stack[i]);
     }
 #endif
   }
