@@ -27,3 +27,7 @@ assert('Fiber iteration') {
   }
   a == [1,9,2,8,3,7]
 }
+
+assert('Fiber with splat in the block argument list') {
+  Fiber.new{|*x|x}.resume(1) == [1]
+}
