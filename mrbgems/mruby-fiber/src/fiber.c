@@ -169,7 +169,7 @@ fiber_resume(mrb_state *mrb, mrb_value self)
     while (b<e) {
       *b++ = *a++;
     }
-    c->ci->argc = len;
+    c->cibase->argc = len;
     c->prev = mrb->c;
     c->status = MRB_FIBER_RUNNING;
     mrb->c = c;
