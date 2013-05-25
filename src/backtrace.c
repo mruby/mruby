@@ -17,7 +17,7 @@ mrb_print_backtrace(mrb_state *mrb)
   const char *filename, *method, *sep;
   int i, line;
 
-  printf("trace:\n");
+  fputs("trace:\n", stderr);
   ciidx = mrb_fixnum(mrb_obj_iv_get(mrb, mrb->exc, mrb_intern(mrb, "ciidx")));
   if (ciidx >= mrb->c->ciend - mrb->c->cibase)
     ciidx = 10; /* ciidx is broken... */
@@ -59,14 +59,14 @@ mrb_print_backtrace(mrb_state *mrb)
       const char *cn = mrb_class_name(mrb, ci->proc->target_class);
 
       if (cn) {
-        printf("\t[%d] %s:%d:in %s%s%s\n", i, filename, line, cn, sep, method);
+        fprintf(stderr, "\t[%d] %s:%d:in %s%s%s\n", i, filename, line, cn, sep, method);
       }
       else {
-        printf("\t[%d] %s:%d:in %s\n", i, filename, line, method);
+        fprintf(stderr, "\t[%d] %s:%d:in %s\n", i, filename, line, method);
       }
     }
     else {
-      printf("\t[%d] %s:%d\n", i, filename, line);
+      fprintf(stderr, "\t[%d] %s:%d\n", i, filename, line);
     }
   }
 #endif
