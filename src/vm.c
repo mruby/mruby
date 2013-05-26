@@ -39,9 +39,11 @@ void abort(void);
 #define SET_SYM_VALUE(r,v) MRB_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
 #define SET_OBJ_VALUE(r,v) MRB_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
 #ifdef MRB_NAN_BOXING
-#define SET_FLT_VALUE(r,v) r.f = (v)
+#define SET_FLT_VALUE(mrb,r,v) r.f = (v)
+#elif defined(MRB_WORD_BOXING)
+#define SET_FLT_VALUE(mrb,r,v) r = mrb_float_value(mrb, (v))
 #else
-#define SET_FLT_VALUE(r,v) MRB_SET_VALUE(r, MRB_TT_FLOAT, value.f, (v))
+#define SET_FLT_VALUE(mrb,r,v) MRB_SET_VALUE(r, MRB_TT_FLOAT, value.f, (v))
 #endif
 
 #define STACK_INIT_SIZE 128
@@ -1243,7 +1245,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
       L_RAISE:
         ci = mrb->c->ci;
-        mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern2(mrb, "lastpc", 6), mrb_voidp_value(pc));
+        mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern2(mrb, "lastpc", 6), mrb_voidp_value(mrb, pc));
         mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern2(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
         eidx = ci->eidx;
         if (ci == mrb->c->cibase) {
@@ -1441,6 +1443,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 #define attr_i value.i
 #ifdef MRB_NAN_BOXING
 #define attr_f f
+#elif defined(MRB_WORD_BOXING)
+#define attr_f value.fp->f
 #else
 #define attr_f value.f
 #endif
@@ -1464,27 +1468,45 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           x = mrb_fixnum(regs_a[0]);
           y = mrb_fixnum(regs_a[1]);
           z = x + y;
+#ifdef MRB_WORD_BOXING
+          z = (z << MRB_FIXNUM_SHIFT) / (1 << MRB_FIXNUM_SHIFT);
+#endif
           if ((x < 0) != (z < 0) && ((x < 0) ^ (y < 0)) == 0) {
             /* integer overflow */
-            SET_FLT_VALUE(regs_a[0], (mrb_float)x + (mrb_float)y);
+            SET_FLT_VALUE(mrb, regs_a[0], (mrb_float)x + (mrb_float)y);
+            break;
           }
-          else {
-            regs_a[0].attr_i = z;
-          }
+          SET_INT_VALUE(regs[a], z);
         }
         break;
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
         {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_float y = mrb_float(regs[a+1]);
-          SET_FLT_VALUE(regs[a], (mrb_float)x + y);
+          SET_FLT_VALUE(mrb, regs[a], (mrb_float)x + y);
         }
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
+#ifdef MRB_WORD_BOXING
+        {
+          mrb_float x = mrb_float(regs[a]);
+          mrb_int y = mrb_fixnum(regs[a+1]);
+          SET_FLT_VALUE(mrb, regs[a], x + y);
+        }
+#else
         OP_MATH_BODY(+,attr_f,attr_i);
+#endif
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
+#ifdef MRB_WORD_BOXING
+        {
+          mrb_float x = mrb_float(regs[a]);
+          mrb_float y = mrb_float(regs[a+1]);
+          SET_FLT_VALUE(mrb, regs[a], x + y);
+        }
+#else
         OP_MATH_BODY(+,attr_f,attr_f);
+#endif
         break;
       case TYPES2(MRB_TT_STRING,MRB_TT_STRING):
         regs[a] = mrb_str_plus(mrb, regs[a], regs[a+1]);
@@ -1509,9 +1531,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           x = mrb_fixnum(regs[a]);
           y = mrb_fixnum(regs[a+1]);
           z = x - y;
+#ifdef MRB_WORD_BOXING
+          z = (z << MRB_FIXNUM_SHIFT) / (1 << MRB_FIXNUM_SHIFT);
+#endif
           if (((x < 0) ^ (y < 0)) != 0 && (x < 0) != (z < 0)) {
             /* integer overflow */
-            SET_FLT_VALUE(regs[a], (mrb_float)x - (mrb_float)y);
+            SET_FLT_VALUE(mrb, regs[a], (mrb_float)x - (mrb_float)y);
             break;
           }
           SET_INT_VALUE(regs[a], z);
@@ -1521,14 +1546,30 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_float y = mrb_float(regs[a+1]);
-          SET_FLT_VALUE(regs[a], (mrb_float)x - y);
+          SET_FLT_VALUE(mrb, regs[a], (mrb_float)x - y);
         }
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
+#ifdef MRB_WORD_BOXING
+        {
+          mrb_float x = mrb_float(regs[a]);
+          mrb_int y = mrb_fixnum(regs[a+1]);
+          SET_FLT_VALUE(mrb, regs[a], x - y);
+        }
+#else
         OP_MATH_BODY(-,attr_f,attr_i);
+#endif
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
+#ifdef MRB_WORD_BOXING
+        {
+          mrb_float x = mrb_float(regs[a]);
+          mrb_float y = mrb_float(regs[a+1]);
+          SET_FLT_VALUE(mrb, regs[a], x - y);
+        }
+#else
         OP_MATH_BODY(-,attr_f,attr_f);
+#endif
         break;
       default:
         goto L_SEND;
@@ -1549,8 +1590,11 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           x = mrb_fixnum(regs[a]);
           y = mrb_fixnum(regs[a+1]);
           z = x * y;
+#ifdef MRB_WORD_BOXING
+          z = (z << MRB_FIXNUM_SHIFT) / (1 << MRB_FIXNUM_SHIFT);
+#endif
           if (x != 0 && z/x != y) {
-            SET_FLT_VALUE(regs[a], (mrb_float)x * (mrb_float)y);
+            SET_FLT_VALUE(mrb, regs[a], (mrb_float)x * (mrb_float)y);
           }
           else {
             SET_INT_VALUE(regs[a], z);
@@ -1561,14 +1605,30 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_float y = mrb_float(regs[a+1]);
-          SET_FLT_VALUE(regs[a], (mrb_float)x * y);
+          SET_FLT_VALUE(mrb, regs[a], (mrb_float)x * y);
         }
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
+#ifdef MRB_WORD_BOXING
+        {
+          mrb_float x = mrb_float(regs[a]);
+          mrb_int y = mrb_fixnum(regs[a+1]);
+          SET_FLT_VALUE(mrb, regs[a], x * y);
+        }
+#else
         OP_MATH_BODY(*,attr_f,attr_i);
+#endif
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
+#ifdef MRB_WORD_BOXING
+        {
+          mrb_float x = mrb_float(regs[a]);
+          mrb_float y = mrb_float(regs[a+1]);
+          SET_FLT_VALUE(mrb, regs[a], x * y);
+        }
+#else
         OP_MATH_BODY(*,attr_f,attr_f);
+#endif
         break;
       default:
         goto L_SEND;
@@ -1586,21 +1646,37 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_int y = mrb_fixnum(regs[a+1]);
-          SET_FLT_VALUE(regs[a], (mrb_float)x / (mrb_float)y);
+          SET_FLT_VALUE(mrb, regs[a], (mrb_float)x / (mrb_float)y);
         }
         break;
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
         {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_float y = mrb_float(regs[a+1]);
-          SET_FLT_VALUE(regs[a], (mrb_float)x / y);
+          SET_FLT_VALUE(mrb, regs[a], (mrb_float)x / y);
         }
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
+#ifdef MRB_WORD_BOXING
+        {
+          mrb_float x = mrb_float(regs[a]);
+          mrb_int y = mrb_fixnum(regs[a+1]);
+          SET_FLT_VALUE(mrb, regs[a], x / y);
+        }
+#else
         OP_MATH_BODY(/,attr_f,attr_i);
+#endif
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
+#ifdef MRB_WORD_BOXING
+        {
+          mrb_float x = mrb_float(regs[a]);
+          mrb_float y = mrb_float(regs[a+1]);
+          SET_FLT_VALUE(mrb, regs[a], x / y);
+        }
+#else
         OP_MATH_BODY(/,attr_f,attr_f);
+#endif
         break;
       default:
         goto L_SEND;
@@ -1622,14 +1698,21 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
           if (((x < 0) ^ (y < 0)) == 0 && (x < 0) != (z < 0)) {
             /* integer overflow */
-            SET_FLT_VALUE(regs[a], (mrb_float)x + (mrb_float)y);
+            SET_FLT_VALUE(mrb, regs[a], (mrb_float)x + (mrb_float)y);
             break;
           }
           regs[a].attr_i = z;
         }
         break;
       case MRB_TT_FLOAT:
+#ifdef MRB_WORD_BOXING
+        {
+          mrb_float x = mrb_float(regs[a]);
+          SET_FLT_VALUE(mrb, regs[a], x + GETARG_C(i));
+        }
+#else
         regs[a].attr_f += GETARG_C(i);
+#endif
         break;
       default:
         SET_INT_VALUE(regs[a+1], GETARG_C(i));
@@ -1654,7 +1737,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
           if ((x < 0) != (z < 0) && ((x < 0) ^ (y < 0)) != 0) {
             /* integer overflow */
-            SET_FLT_VALUE(regs_a[0], (mrb_float)x - (mrb_float)y);
+            SET_FLT_VALUE(mrb, regs_a[0], (mrb_float)x - (mrb_float)y);
           }
           else {
             regs_a[0].attr_i = z;
@@ -1662,7 +1745,14 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         }
         break;
       case MRB_TT_FLOAT:
+#ifdef MRB_WORD_BOXING
+        {
+          mrb_float x = mrb_float(regs[a]);
+          SET_FLT_VALUE(mrb, regs[a], x - GETARG_C(i));
+        }
+#else
         regs_a[0].attr_f -= GETARG_C(i);
+#endif
         break;
       default:
         SET_INT_VALUE(regs_a[1], GETARG_C(i));

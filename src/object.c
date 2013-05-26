@@ -571,13 +571,13 @@ mrb_Float(mrb_state *mrb, mrb_value val)
   }
   switch (mrb_type(val)) {
     case MRB_TT_FIXNUM:
-      return mrb_float_value((mrb_float)mrb_fixnum(val));
+      return mrb_float_value(mrb, (mrb_float)mrb_fixnum(val));
 
     case MRB_TT_FLOAT:
       return val;
 
     case MRB_TT_STRING:
-      return mrb_float_value(mrb_str_to_dbl(mrb, val, TRUE));
+      return mrb_float_value(mrb, mrb_str_to_dbl(mrb, val, TRUE));
 
     default:
       return mrb_convert_type(mrb, val, MRB_TT_FLOAT, "Float", "to_f");
