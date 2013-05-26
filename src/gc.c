@@ -530,9 +530,15 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_TRUE:
   case MRB_TT_FIXNUM:
   case MRB_TT_SYMBOL:
-  case MRB_TT_FLOAT:
     /* cannot happen */
     return;
+
+  case MRB_TT_FLOAT:
+#ifdef MRB_WORD_BOXING
+    break;
+#else
+    return;
+#endif
 
   case MRB_TT_OBJECT:
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
