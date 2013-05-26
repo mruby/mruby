@@ -2222,7 +2222,7 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, int badcheck)
 static mrb_value
 mrb_str_to_f(mrb_state *mrb, mrb_value self)
 {
-  return mrb_float_value(mrb_str_to_dbl(mrb, self, 0/*Qfalse*/));
+  return mrb_float_value(mrb, mrb_str_to_dbl(mrb, self, 0/*Qfalse*/));
 }
 
 /* 15.2.10.5.40 */

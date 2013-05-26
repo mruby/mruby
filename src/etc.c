@@ -180,3 +180,25 @@ mrb_obj_id(mrb_value obj)
   }
 }
 
+#ifdef MRB_WORD_BOXING
+mrb_value
+mrb_float_value(mrb_state *mrb, mrb_float f)
+{
+  mrb_value v;
+
+  v.value.p = mrb_obj_alloc(mrb, MRB_TT_FLOAT, mrb->float_class);
+  v.value.fp->f = f;
+  return v;
+}
+
+mrb_value
+mrb_voidp_value(mrb_state *mrb, void *p)
+{
+  mrb_value v;
+
+  v.value.p = mrb_obj_alloc(mrb, MRB_TT_VOIDP, mrb->object_class);
+  v.value.vp->p = p;
+  return v;
+}
+#endif  /* MRB_WORD_BOXING */
+
