@@ -66,7 +66,7 @@ static mrb_value mrb_random_mt_g_rand(mrb_state *mrb, mrb_value max)
   mrb_value value;
 
   if (mrb_fixnum(max) == 0) {
-    value = mrb_float_value(mt_g_rand_real());
+    value = mrb_float_value(mrb, mt_g_rand_real());
   } else {
     value = mrb_fixnum_value(mt_g_rand() % mrb_fixnum(max));
   }
@@ -108,7 +108,7 @@ static mrb_value mrb_random_mt_rand(mrb_state *mrb, mt_state *t, mrb_value max)
   mrb_value value;
 
   if (mrb_fixnum(max) == 0) {
-    value = mrb_float_value(mt_rand_real(t));
+    value = mrb_float_value(mrb, mt_rand_real(t));
   } else {
     value = mrb_fixnum_value(mt_rand(t) % mrb_fixnum(max));
   }

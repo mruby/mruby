@@ -358,7 +358,7 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
   if (tm2) {
     f = (mrb_float)(tm->sec - tm2->sec)
       + (mrb_float)(tm->usec - tm2->usec) / 1.0e6;
-    return mrb_float_value(f);
+    return mrb_float_value(mrb, f);
   }
   else {
     mrb_get_args(mrb, "f", &f);
@@ -628,7 +628,7 @@ mrb_time_to_f(mrb_state *mrb, mrb_value self)
 
   tm = (struct mrb_time*)mrb_data_get_ptr(mrb, self, &mrb_time_type);
   if (!tm) return mrb_nil_value();
-  return mrb_float_value((mrb_float)tm->sec + (mrb_float)tm->usec/1.0e6);
+  return mrb_float_value(mrb, (mrb_float)tm->sec + (mrb_float)tm->usec/1.0e6);
 }
 
 /* 15.2.19.7.25 */
