@@ -190,6 +190,20 @@ fiber_resume(mrb_state *mrb, mrb_value self)
 
 /*
  *  call-seq:
+ *     fiber.alive? -> true or false
+ *
+ *  Returns true if the fiber can still be resumed. After finishing
+ *  execution of the fiber block this method will always return false.
+ */
+static mrb_value
+fiber_alive_p(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_context *c = fiber_check(mrb, self);
+  return mrb_bool_value(c->status != MRB_FIBER_TERMINATED);
+}
+
+/*
+ *  call-seq:
  *     Fiber.yield(args, ...) -> obj
  *
  *  Yields control back to the context that resumed the fiber, passing
@@ -224,8 +238,9 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
   c = mrb_define_class(mrb, "Fiber", mrb->object_class);
   MRB_SET_INSTANCE_TT(c, MRB_TT_FIBER);
 
-  mrb_define_method(mrb, c, "initialize", fiber_init, MRB_ARGS_NONE());
-  mrb_define_method(mrb, c, "resume", fiber_resume, MRB_ARGS_ANY());
+  mrb_define_method(mrb, c, "initialize", fiber_init,    MRB_ARGS_NONE());
+  mrb_define_method(mrb, c, "resume",     fiber_resume,  MRB_ARGS_ANY());
+  mrb_define_method(mrb, c, "alive?",     fiber_alive_p, MRB_ARGS_NONE());
 
   mrb_define_class_method(mrb, c, "yield", fiber_yield, MRB_ARGS_ANY());
 }
