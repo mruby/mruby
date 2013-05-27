@@ -8,6 +8,15 @@ assert('Fiber#resume') {
   f.resume(2)
 }
 
+assert('Fiber#alive?') {
+  f = Fiber.new{ Fiber.yield }
+  f.resume
+  r1 = f.alive?
+  f.resume
+  r2 = f.alive?
+  r1 == true and r2 == false
+}
+
 assert('Fiber.yield') {
   f = Fiber.new{|x| Fiber.yield(x == 3)}
   f.resume(3)
