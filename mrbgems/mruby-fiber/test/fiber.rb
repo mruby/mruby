@@ -40,3 +40,17 @@ assert('Fiber iteration') {
 assert('Fiber with splat in the block argument list') {
   Fiber.new{|*x|x}.resume(1) == [1]
 }
+
+assert('Fiber raises on resume when dead') {
+  e2 = nil
+  r1 = true
+  begin
+    f = Fiber.new{}
+    f.resume
+    r1 = f.alive?
+    f.resume
+  rescue => e1
+    e2 = e1
+  end
+  r1 == false and e2.class == RuntimeError
+}
