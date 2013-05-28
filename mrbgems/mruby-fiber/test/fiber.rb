@@ -54,3 +54,13 @@ assert('Fiber raises on resume when dead') {
   end
   r1 == false and e2.class == RuntimeError
 }
+
+assert('Yield raises when called on root fiber') {
+  e2 = nil
+  begin
+    Fiber.yield
+  rescue => e1
+    e2 = e1
+  end
+  e2.class == ArgumentError
+}
