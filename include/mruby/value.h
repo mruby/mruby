@@ -91,7 +91,7 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
   return v;
 }
 
-#elif defined(MRB_WORD_BOXING)
+#else
 
 enum mrb_vtype {
   MRB_TT_FALSE = 0,   /*   0 */
@@ -120,6 +120,8 @@ enum mrb_vtype {
   MRB_TT_MAXDEFINE    /*  23 */
 };
 
+#if defined(MRB_WORD_BOXING)
+
 #define MRB_TT_HAS_BASIC  MRB_TT_FLOAT
 
 enum mrb_special_consts {
@@ -127,12 +129,12 @@ enum mrb_special_consts {
   MRB_Qfalse  = 2,
   MRB_Qtrue   = 4,
   MRB_Qundef  = 6,
-
-  MRB_FIXNUM_FLAG   = 0x01,
-  MRB_FIXNUM_SHIFT  = 1,
-  MRB_SYMBOL_FLAG   = 0x0e,
-  MRB_SPECIAL_SHIFT = 8,
 };
+
+#define MRB_FIXNUM_FLAG   0x01
+#define MRB_FIXNUM_SHIFT  1
+#define MRB_SYMBOL_FLAG   0x0e
+#define MRB_SPECIAL_SHIFT 8
 
 typedef union mrb_value {
   union {
@@ -172,33 +174,6 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f);
 
 #else /* No MRB_xxx_BOXING */
 
-enum mrb_vtype {
-  MRB_TT_FALSE = 0,   /*   0 */
-  MRB_TT_FREE,        /*   1 */
-  MRB_TT_TRUE,        /*   2 */
-  MRB_TT_FIXNUM,      /*   3 */
-  MRB_TT_SYMBOL,      /*   4 */
-  MRB_TT_UNDEF,       /*   5 */
-  MRB_TT_FLOAT,       /*   6 */
-  MRB_TT_VOIDP,       /*   7 */
-  MRB_TT_OBJECT,      /*   8 */
-  MRB_TT_CLASS,       /*   9 */
-  MRB_TT_MODULE,      /*  10 */
-  MRB_TT_ICLASS,      /*  11 */
-  MRB_TT_SCLASS,      /*  12 */
-  MRB_TT_PROC,        /*  13 */
-  MRB_TT_ARRAY,       /*  14 */
-  MRB_TT_HASH,        /*  15 */
-  MRB_TT_STRING,      /*  16 */
-  MRB_TT_RANGE,       /*  17 */
-  MRB_TT_EXCEPTION,   /*  18 */
-  MRB_TT_FILE,        /*  19 */
-  MRB_TT_ENV,         /*  20 */
-  MRB_TT_DATA,        /*  21 */
-  MRB_TT_FIBER,       /*  22 */
-  MRB_TT_MAXDEFINE    /*  23 */
-};
-
 #define MRB_TT_HAS_BASIC  MRB_TT_OBJECT
 
 typedef struct mrb_value {
@@ -227,43 +202,38 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
   MRB_SET_VALUE(v, MRB_TT_FLOAT, value.f, f);
   return v;
 }
+
 #endif  /* no boxing */
+
+#endif
 
 #ifdef MRB_WORD_BOXING
 
-#define mrb_fixnum(o) (o).value.i
-#define mrb_symbol(o) (o).value.sym
 #define mrb_voidp(o) (o).value.vp->p
 #define mrb_fixnum_p(o) ((o).value.i_flag == MRB_FIXNUM_FLAG)
-#define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
 #define mrb_undef_p(o) ((o).w == MRB_Qundef)
 #define mrb_nil_p(o)  ((o).w == MRB_Qnil)
-#define mrb_symbol_p(o) ((o).value.sym_flag == MRB_SYMBOL_FLAG)
-#define mrb_array_p(o) (mrb_type(o) == MRB_TT_ARRAY)
-#define mrb_string_p(o) (mrb_type(o) == MRB_TT_STRING)
-#define mrb_hash_p(o) (mrb_type(o) == MRB_TT_HASH)
-#define mrb_voidp_p(o) (mrb_type(o) == MRB_TT_VOIDP)
 #define mrb_bool(o)   ((o).w != MRB_Qnil && (o).w != MRB_Qfalse)
-#define mrb_test(o)   mrb_bool(o)
 
 #else
 
-#define mrb_fixnum(o) (o).value.i
-#define mrb_symbol(o) (o).value.sym
 #define mrb_voidp(o) (o).value.p
 #define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_FIXNUM)
-#define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
 #define mrb_undef_p(o) (mrb_type(o) == MRB_TT_UNDEF)
 #define mrb_nil_p(o)  (mrb_type(o) == MRB_TT_FALSE && !(o).value.i)
+#define mrb_bool(o)   (mrb_type(o) != MRB_TT_FALSE)
+
+#endif  /* no boxing */
+
+#define mrb_fixnum(o) (o).value.i
+#define mrb_symbol(o) (o).value.sym
+#define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
 #define mrb_symbol_p(o) (mrb_type(o) == MRB_TT_SYMBOL)
 #define mrb_array_p(o) (mrb_type(o) == MRB_TT_ARRAY)
 #define mrb_string_p(o) (mrb_type(o) == MRB_TT_STRING)
 #define mrb_hash_p(o) (mrb_type(o) == MRB_TT_HASH)
 #define mrb_voidp_p(o) (mrb_type(o) == MRB_TT_VOIDP)
-#define mrb_bool(o)   (mrb_type(o) != MRB_TT_FALSE)
 #define mrb_test(o)   mrb_bool(o)
-
-#endif  /* no boxing */
 
 #define MRB_OBJECT_HEADER \
   enum mrb_vtype tt:8;\
