@@ -85,7 +85,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   if (error) {
     mrb_raisef(mrb, E_SOCKET_ERROR, "getaddrinfo: %S", mrb_str_new_cstr(mrb, gai_strerror(error)));
   }
-  mrb_cv_set(mrb, klass, mrb_intern_cstr(mrb, "_lastai"), mrb_voidp_value(res0));
+  mrb_cv_set(mrb, klass, mrb_intern_cstr(mrb, "_lastai"), mrb_voidp_value(mrb, res0));
 
   for (res = res0; res != NULL; res = res->ai_next) {
     sa = mrb_str_new(mrb, (void *)res->ai_addr, res->ai_addrlen);
