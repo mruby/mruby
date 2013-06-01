@@ -1018,7 +1018,7 @@ retry:
             need = width;
 
           CHECK(need + 1);
-          n = snprintf(&buf[blen], need + 1, "%*s", need, "");
+          snprintf(&buf[blen], need + 1, "%*s", need, "");
           if (flags & FMINUS) {
             if (!isnan(fval) && fval < 0.0)
               buf[blen++] = '-';

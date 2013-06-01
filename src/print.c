@@ -35,6 +35,22 @@ mrb_p(mrb_state *mrb, mrb_value obj)
 }
 
 void
+mrb_print_error(mrb_state *mrb)
+{
+#ifdef ENABLE_STDIO
+  mrb_value s;
+  
+  mrb_print_backtrace(mrb);
+  s = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
+  if (mrb_string_p(s)) {
+    struct RString *str = mrb_str_ptr(s);
+    fwrite(str->ptr, str->len, 1, stderr);
+    putc('\n', stderr);
+  }
+#endif
+}
+
+void
 mrb_show_version(mrb_state *mrb)
 {
   static const char version_msg[] = "mruby - Embeddable Ruby  Copyright (c) 2010-2013 mruby developers\n";

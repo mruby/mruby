@@ -136,8 +136,7 @@ module MRuby
           unless rbfiles.empty?
             f.puts %Q[  mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});]
             f.puts %Q[  if (mrb->exc) {]
-            f.puts %Q[    mrb_print_backtrace(mrb);]
-            f.puts %Q[    mrb_p(mrb, mrb_obj_value(mrb->exc));]
+            f.puts %Q[    mrb_print_error(mrb);]
             f.puts %Q[    exit(EXIT_FAILURE);]
             f.puts %Q[  }]
           end

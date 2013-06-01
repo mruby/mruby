@@ -158,18 +158,20 @@ partial_hook(struct mrb_parser_state *p)
 {
   mrbc_context *c = p->cxt;
   struct mrbc_args *args = (struct mrbc_args *)c->partial_data;
+  const char *fn;
 
   if (p->f) fclose(p->f);
   if (args->idx >= args->argc) {
     p->f = NULL;
     return -1;
   }
-  mrbc_filename(p->mrb, c, args->argv[args->idx++]);
-  p->f = fopen(c->filename, "r");
+  fn = args->argv[args->idx++];
+  p->f = fopen(fn, "r");
   if (p->f == NULL) {
-    fprintf(stderr, "%s: cannot open program file. (%s)\n", args->prog, c->filename);
+    fprintf(stderr, "%s: cannot open program file. (%s)\n", args->prog, fn);
     return -1;
   }
+  mrbc_filename(p->mrb, c, fn);
   p->filename = c->filename;
   p->lineno = 1;
   return 0;
@@ -280,10 +282,14 @@ main(int argc, char **argv)
     if (strcmp("-", args.outfile) == 0) {
       wfp = stdout;
     }
-    else if ((wfp = fopen(args.outfile, "w")) == NULL) {
+    else if ((wfp = fopen(args.outfile, "wb")) == NULL) {
       fprintf(stderr, "%s: cannot open output file:(%s)\n", args.prog, args.outfile);
       return EXIT_FAILURE;
     }
+  }
+  else {
+    fprintf(stderr, "Output file is required\n");
+    return EXIT_FAILURE;
   }
   result = dump_file(mrb, wfp, args.outfile, &args);
   fclose(wfp);

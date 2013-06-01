@@ -1004,7 +1004,6 @@ gen_literal_array(codegen_scope *s, node *tree, int sym, int val)
       tree = tree->cdr;
     }
     if (j > 0) {
-      j = 0;
       ++i;
       if (sym)
         gen_send_intern(s);
@@ -1902,7 +1901,7 @@ codegen(codegen_scope *s, node *tree, int val)
       i = readint_mrb_int(s, p, base, FALSE, &overflow);
       if (overflow) {
         double f = readint_float(s, p, base);
-        int off = new_lit(s, mrb_float_value(f));
+        int off = new_lit(s, mrb_float_value(s->mrb, f));
 
         genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
       }
@@ -1924,7 +1923,7 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       char *p = (char*)tree;
       mrb_float f = str_to_mrb_float(p);
-      int off = new_lit(s, mrb_float_value(f));
+      int off = new_lit(s, mrb_float_value(s->mrb, f));
 
       genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
       push();
@@ -1940,7 +1939,7 @@ codegen(codegen_scope *s, node *tree, int val)
         {
           char *p = (char*)tree;
           mrb_float f = str_to_mrb_float(p);
-          int off = new_lit(s, mrb_float_value(-f));
+          int off = new_lit(s, mrb_float_value(s->mrb, -f));
 
           genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
           push();
@@ -1958,7 +1957,7 @@ codegen(codegen_scope *s, node *tree, int val)
           i = readint_mrb_int(s, p, base, TRUE, &overflow);
           if (overflow) {
             double f = readint_float(s, p, base);
-            int off = new_lit(s, mrb_float_value(-f));
+            int off = new_lit(s, mrb_float_value(s->mrb, -f));
 
             genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
           }

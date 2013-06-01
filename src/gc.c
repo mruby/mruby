@@ -20,6 +20,7 @@
 #include "mruby/range.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
+#include "mruby/gc.h"
 
 /*
   = Tri-color Incremental Garbage Collection
@@ -386,6 +387,37 @@ add_gray_list(mrb_state *mrb, struct RBasic *obj)
 }
 
 static void
+mark_context(mrb_state *mrb, struct mrb_context *c)
+{
+  size_t i;
+  size_t e;
+  mrb_callinfo *ci;
+
+  /* mark stack */
+  e = c->stack - c->stbase;
+  if (c->ci) e += c->ci->nregs;
+  if (c->stbase + e > c->stend) e = c->stend - c->stbase;
+  for (i=0; i<e; i++) {
+    mrb_gc_mark_value(mrb, c->stbase[i]);
+  }
+  /* mark ensure stack */
+  e = (c->ci) ? c->ci->eidx : 0;
+  for (i=0; i<e; i++) {
+    mrb_gc_mark(mrb, (struct RBasic*)c->ensure[i]);
+  }
+  /* mark closure */
+  for (ci = c->cibase; ci <= c->ci; ci++) {
+    if (!ci) continue;
+    mrb_gc_mark(mrb, (struct RBasic*)ci->env);
+    mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
+    mrb_gc_mark(mrb, (struct RBasic*)ci->target_class);
+  }
+  if (c->prev && c->prev->fib) {
+    mrb_gc_mark(mrb, (struct RBasic*)c->prev->fib);
+  }
+}
+
+static void
 gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 {
   gc_assert(is_gray(obj));
@@ -434,6 +466,14 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
           mrb_gc_mark_value(mrb, e->stack[i]);
         }
       }
+    }
+    break;
+
+  case MRB_TT_FIBER:
+    {
+      struct mrb_context *c = ((struct RFiber*)obj)->cxt;
+
+      mark_context(mrb, c);
     }
     break;
 
@@ -490,9 +530,15 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_TRUE:
   case MRB_TT_FIXNUM:
   case MRB_TT_SYMBOL:
-  case MRB_TT_FLOAT:
     /* cannot happen */
     return;
+
+  case MRB_TT_FLOAT:
+#ifdef MRB_WORD_BOXING
+    break;
+#else
+    return;
+#endif
 
   case MRB_TT_OBJECT:
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
@@ -513,6 +559,14 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
         mrb_free(mrb, e->stack);
         e->stack = 0;
       }
+    }
+    break;
+
+  case MRB_TT_FIBER:
+    {
+      struct mrb_context *c = ((struct RFiber*)obj)->cxt;
+
+      mrb_free_context(mrb, c);
     }
     break;
 
@@ -556,9 +610,7 @@ static void
 root_scan_phase(mrb_state *mrb)
 {
   int j;
-  size_t i;
-  size_t e;
-  mrb_callinfo *ci;
+  size_t i, e;
 
   if (!is_minor_gc(mrb)) {
     mrb->gray_list = 0;
@@ -576,25 +628,8 @@ root_scan_phase(mrb_state *mrb)
   mrb_gc_mark(mrb, (struct RBasic*)mrb->top_self);
   /* mark exception */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
-  /* mark stack */
-  e = mrb->stack - mrb->stbase;
-  if (mrb->ci) e += mrb->ci->nregs;
-  if (mrb->stbase + e > mrb->stend) e = mrb->stend - mrb->stbase;
-  for (i=0; i<e; i++) {
-    mrb_gc_mark_value(mrb, mrb->stbase[i]);
-  }
-  /* mark ensure stack */
-  e = (mrb->ci) ? mrb->ci->eidx : 0;
-  for (i=0; i<e; i++) {
-    mrb_gc_mark(mrb, (struct RBasic*)mrb->ensure[i]);
-  }
-  /* mark closure */
-  for (ci = mrb->cibase; ci <= mrb->ci; ci++) {
-    if (!ci) continue;
-    mrb_gc_mark(mrb, (struct RBasic*)ci->env);
-    mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
-    mrb_gc_mark(mrb, (struct RBasic*)ci->target_class);
-  }
+
+  mark_context(mrb, mrb->root_c);
   /* mark irep pool */
   if (mrb->irep) {
     size_t len = mrb->irep_len;
@@ -640,6 +675,30 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
 
   case MRB_TT_ENV:
     children += (int)obj->flags;
+    break;
+
+  case MRB_TT_FIBER:
+    {
+      struct mrb_context *c = ((struct RFiber*)obj)->cxt;
+      size_t i;
+      mrb_callinfo *ci;
+
+      /* mark stack */
+      i = c->stack - c->stbase;
+      if (c->ci) i += c->ci->nregs;
+      if (c->stbase + i > c->stend) i = c->stend - c->stbase;
+      children += i;
+
+      /* mark ensure stack */
+      children += (c->ci) ? c->ci->eidx : 0;
+
+      /* mark closure */
+      if (c->cibase) {
+        for (i=0, ci = c->cibase; ci <= c->ci; i++, ci++)
+          ;
+      }
+      children += i;
+    }
     break;
 
   case MRB_TT_ARRAY:
@@ -1141,6 +1200,24 @@ gc_generational_mode_set(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(enable);
 }
 
+void
+mrb_objspace_each_objects(mrb_state *mrb, each_object_callback* callback, void *data)
+{
+    struct heap_page* page = mrb->heaps;
+
+    while (page != NULL) {
+        RVALUE *p, *pend;
+
+        p = page->objects;
+        pend = p + MRB_HEAP_PAGE_SIZE;
+        for (;p < pend; p++) {
+           (*callback)(mrb, &p->as.basic, data);
+        }
+
+        page = page->next;
+    }
+}
+
 #ifdef GC_TEST
 #ifdef GC_DEBUG
 static mrb_value gc_test(mrb_state *, mrb_value);
@@ -1151,6 +1228,7 @@ void
 mrb_init_gc(mrb_state *mrb)
 {
   struct RClass *gc;
+
   gc = mrb_define_module(mrb, "GC");
 
   mrb_define_class_method(mrb, gc, "start", gc_start, MRB_ARGS_NONE());
