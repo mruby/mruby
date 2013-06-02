@@ -551,12 +551,22 @@ time2timeval(mrb_state *mrb, mrb_value time)
   return t;
 }
 
+static int
+mrb_io_read_data_pending(mrb_state *mrb, mrb_value io)
+{
+  mrb_value buf = mrb_iv_get(mrb, io, mrb_intern(mrb, "@buf"));
+  if (mrb_type(buf) == MRB_TT_STRING && RSTRING_LEN(buf) > 0) {
+    return 1;
+  }
+  return 0;
+}
+
 static mrb_value
-mrb_io_select(mrb_state *mrb, mrb_value klass)
+mrb_io_s_select(mrb_state *mrb, mrb_value klass)
 {
   mrb_value *argv;
   int argc;
-  mrb_value read, write, except, timeout, list;
+  mrb_value read, read_io, write, except, timeout, list;
   struct timeval *tp, timerec;
   fd_set pset, rset, wset, eset;
   fd_set *rp, *wp, *ep;
@@ -599,14 +609,13 @@ mrb_io_select(mrb_state *mrb, mrb_value klass)
     rp = &rset;
     FD_ZERO(rp);
     for (i = 0; i < RARRAY_LEN(read); i++) {
-      fptr = (struct mrb_io *)mrb_get_datatype(mrb, RARRAY_PTR(read)[i], &mrb_io_type);
+      read_io = RARRAY_PTR(read)[i];
+      fptr = (struct mrb_io *)mrb_get_datatype(mrb, read_io, &mrb_io_type);
       FD_SET(fptr->fd, rp);
-      /* XXX: .....
-      if (READ_DATA_PENDING(fptr->f)) {
+      if (!mrb_io_read_data_pending(mrb, read_io)) {
         pending++;
-        FD_SET(fileno(fptr->f), &pset);
+        FD_SET(fptr->fd, &pset);
       }
-      */
       if (max < fptr->fd)
         max = fptr->fd;
     }
@@ -737,6 +746,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_class_method(mrb, io, "_popen",  mrb_io_s_popen,   MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "for_fd",  mrb_io_s_for_fd,  MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2));
   mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, io, "select",  mrb_io_s_select,  MRB_ARGS_ANY());
 
   mrb_define_method(mrb, io, "_bless",     mrb_io_bless,       MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "initialize", mrb_io_initialize,  MRB_ARGS_ANY());    /* 15.2.20.5.21 (x)*/
