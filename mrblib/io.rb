@@ -55,7 +55,8 @@ class IO
   end
 
   def eof?
-    # XXX: @buf のことを考えなくてよい？？
+    return true if @buf && @buf.size > 0
+
     ret = false
     char = ''
 
