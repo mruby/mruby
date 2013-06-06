@@ -1,4 +1,7 @@
 # no installation...
 
+install:
+ - sudo apt-get -q install gperf
+
 env: MRUBY_CONFIG=travis_config.rb
 script: "./minirake all test"
