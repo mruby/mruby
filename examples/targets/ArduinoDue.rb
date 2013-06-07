@@ -27,6 +27,4 @@ MRuby::CrossBuild.new("Arduino Due") do |conf|
     archiver.archive_options = 'rcs %{outfile} %{objs}'
   end
 
-  # No binaries necessary
-  conf.bins = []
 end

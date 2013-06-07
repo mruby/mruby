@@ -31,6 +31,4 @@ MRuby::CrossBuild.new("chipKitMax32") do |conf|
     archiver.archive_options = 'rcs %{outfile} %{objs}'
   end
 
-  # No binaries necessary
-  conf.bins = []
 end
