@@ -57,6 +57,11 @@ the build block:
 This will cause the *custom* GemBox to be read in during the build process,
 adding *mruby-time* and *mrbgems-example* to the build.
 
+If you want, you can put GemBox outside of mruby directory. In that case you must 
+specify absolute path like below.
+
+	conf.gembox "#{ENV["HOME"]}/mygemboxes/custom"
+
 There are two GemBoxes that ship with mruby: [default](../../mrbgems/default.gembox)
 and [full-core](../../mrbgems/full-core.gembox). The [default](../../mrbgems/default.gembox) GemBox
 contains several core components of mruby, and [full-core](../../mrbgems/full-core.gembox)
