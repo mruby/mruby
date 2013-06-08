@@ -1414,14 +1414,20 @@ mrb_mod_alias(mrb_state *mrb, mrb_value mod)
   return mrb_nil_value();
 }
 
-
 static void
 undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
 {
-  mrb_value m;
+  mrb_value m, val;
 
-  MRB_SET_VALUE(m, MRB_TT_PROC, value.p, 0);
-  mrb_define_method_vm(mrb, c, a, m);
+  if (!mrb_obj_respond_to(c, a)) {
+    val = mrb_iv_remove(mrb, mrb_obj_value(c), a);
+    if (mrb_undef_p(val)) {
+      mrb_name_error(mrb, a, "undefined method '%S' for class '%S'", mrb_sym2str(mrb, a), mrb_obj_value(c));
+    }
+  } else {
+    MRB_SET_VALUE(m, MRB_TT_PROC, value.p, 0);
+    mrb_define_method_vm(mrb, c, a, m);
+  }
 }
 
 void
