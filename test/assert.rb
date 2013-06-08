@@ -124,6 +124,13 @@ def assert_include(collection, obj, msg = nil)
   assert_true(collection.include?(obj), msg, diff)
 end
 
+def assert_not_include(collection, obj, msg = nil)
+  msg = "Expected #{collection.inspect} to not include #{obj.inspect}" unless msg
+  diff = "    Collection: #{collection.inspect}\n" +
+         "        Object: #{obj.inspect}"
+  assert_false(collection.include?(obj), msg, diff)
+end
+
 def assert_raise(*exp)
   ret = true
   if $mrbtest_assert
