@@ -229,26 +229,3 @@ end
 assert('Class Dup 2') do
   module M; end;  M.dup.class == Module
 end
-
-assert('Class Alias 1') do
-  class A
-    def test; 1; end
-
-    alias test2 test
-    alias :test3 :test
-  end
-
-  A.new.test2 == 1 and A.new.test3 == 1
-end
-
-assert('Class Alias 2') do
-  class A
-    def test; 1; end
-
-    alias test2 test
-
-    def test; 2; end
-  end
-
-  A.new.test == 2 and A.new.test2 == 1
-end

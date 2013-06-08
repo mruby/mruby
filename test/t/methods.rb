@@ -1,5 +1,49 @@
 ##
-# Chapter 13 "Class and modules" ISO Test
+# Chapter 13.3 "Methods" ISO Test
+
+assert('The alias statement', '13.3.6 a) 4)') do
+  # check aliasing in all possible ways
+
+  def alias_test_method_original; true; end
+
+  alias alias_test_method_a alias_test_method_original
+  alias :alias_test_method_b :alias_test_method_original
+
+  assert_true(alias_test_method_original)
+  assert_true(alias_test_method_a)
+  assert_true(alias_test_method_b)
+end
+
+assert('The alias statement (overwrite original)', '13.3.6 a) 4)') do
+  # check that an aliased method can be overwritten
+  # without side effect
+
+  def alias_test_method_original; true; end
+
+  alias alias_test_method_a alias_test_method_original
+  alias :alias_test_method_b :alias_test_method_original
+
+  assert_true(alias_test_method_original)
+
+  def alias_test_method_original; false; end
+
+  assert_false(alias_test_method_original)
+  assert_true(alias_test_method_a)
+  assert_true(alias_test_method_b)
+end
+
+assert('The alias statement', '13.3.6 a) 5)') do
+  # check that alias is raising NameError if
+  # non-existing method should be undefined
+
+  assert_raise(NameError) do
+    alias new_name_a non_existing_method
+  end
+
+  assert_raise(NameError) do
+    alias :new_name_b :non_existing_method
+  end
+end
 
 assert('The undef statement', '13.3.7 a) 4)') do
   # check that undef is undefining method
