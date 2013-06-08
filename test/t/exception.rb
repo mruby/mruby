@@ -2,62 +2,55 @@
 # Exception ISO Test
 
 assert('Exception', '15.2.22') do
-  Exception.class == Class
+  assert_equal Exception.class, Class
 end
 
 assert('Exception superclass', '15.2.22.2') do
-  Exception.superclass == Object
+  assert_equal Exception.superclass, Object
 end
 
 assert('Exception.exception', '15.2.22.4.1') do
   e = Exception.exception('a')
 
-  e.class == Exception
+  assert_equal e.class, Exception
 end
 
 assert('Exception#exception', '15.2.22.5.1') do
   e1 = Exception.exception()
   e2 = Exception.exception('b')
 
-  e1.class == Exception and e2.class == Exception
+  assert_equal e1.class, Exception
+  assert_equal e2.class, Exception
 end
 
 assert('Exception#message', '15.2.22.5.2') do
   e = Exception.exception('a')
 
-  e.message == 'a'
+  assert_equal e.message, 'a'
 end
 
 assert('Exception#to_s', '15.2.22.5.3') do
   e = Exception.exception('a')
 
-  e.to_s == 'a'
+  assert_equal e.to_s, 'a'
 end
 
 assert('Exception.exception', '15.2.22.4.1') do
   e = Exception.exception()
   e.initialize('a')
 
-  e.message == 'a'
+  assert_equal e.message, 'a'
 end
 
 assert('ScriptError', '15.2.37') do
-  begin
+  assert_raise(ScriptError) do
     raise ScriptError.new
-  rescue ScriptError
-    true
-  else
-    false
   end
 end
 
 assert('SyntaxError', '15.2.38') do
-  begin
+  assert_raise(SyntaxError) do
     raise SyntaxError.new
-  rescue SyntaxError
-    true
-  else
-    false
   end
 end
 
@@ -110,7 +103,7 @@ assert('Exception 4') do
     end
     a = err.class
   }
-  a == NilClass
+  assert_equal a, NilClass
 end
 
 assert('Exception 5') do
@@ -128,7 +121,7 @@ assert('Exception 5') do
     }
   end
   m2
-  $ans == [nil]
+  assert_equal $ans, [nil]
 end
 
 assert('Exception 6') do
@@ -154,7 +147,7 @@ assert('Exception 6') do
     yield
   end
   m
-  $i == 7
+  assert_equal $i, 7
 end
 
 assert('Exception 7') do
@@ -174,7 +167,7 @@ assert('Exception 7') do
     p :end
   end
   m
-  $i == 10
+  assert_equal $i, 10
 end
 
 assert('Exception 8') do
@@ -228,7 +221,7 @@ assert('Exception 11') do
     end
   rescue Exception
   end
-  a == :ok
+  assert_equal a, :ok
 end
 
 assert('Exception 12') do
@@ -237,7 +230,7 @@ assert('Exception 12') do
     raise Exception rescue a = :ng
   rescue Exception
   end
-  a == :ok
+  assert_equal a, :ok
 end
 
 assert('Exception 13') do
@@ -251,14 +244,11 @@ assert('Exception 13') do
   else
     a = :ng
   end
-  a == :ok
-end
-
-def exception_test14
-  UnknownConstant
+  assert_equal a, :ok
 end
 
 assert('Exception 14') do
+  def exception_test14; UnknownConstant; end
   a = :ng
   begin
     send(:exception_test14)
@@ -266,16 +256,16 @@ assert('Exception 14') do
     a = :ok
   end
 
-  a == :ok
+  assert_equal a, :ok
 end
 
 assert('Exception 15') do
   a = begin
         :ok
       rescue
-        :ng
+        :ko
       end
-  a == :ok
+  assert_equal a, :ok
 end
 
 assert('Exception 16') do
@@ -339,7 +329,7 @@ assert('Exception 19') do
       true
     end
   end
-  Class4Exception19.new.a == [true,  true]
+  assert_equal Class4Exception19.new.a, [true,  true]
 end
 
 assert('Exception#inspect without message') do
