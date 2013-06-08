@@ -293,9 +293,9 @@ assert('Array#<=>', '15.2.12.5.36') do
   r2 = [ 1, 2, 3, 4, 5, 6 ] <=> [ 1, 2 ]            #=> +1
   r3 = [ "a", "b", "c" ]    <=> [ "a", "b", "c" ]   #=> 0
 
-  assert_equal(r1 == -1)
-  assert_equal(r2 == +1)
-  assert_equal(r3 == 0)
+  assert_equal(r1, -1)
+  assert_equal(r2, +1)
+  assert_equal(r3, 0)
 end
 
 # Not ISO specified
