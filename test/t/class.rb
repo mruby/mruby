@@ -304,3 +304,10 @@ assert('Class Undef 2') do
   result1 == true and result2 == true
 end
 
+assert('Var undef') do
+  assert_raise(NameError) do
+    a=1
+    undef a
+  end
+end
+
