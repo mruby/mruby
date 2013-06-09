@@ -1047,6 +1047,9 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
   mrb_value *argv;
   int argc;
 
+  if (c->tt == MRB_TT_SCLASS)
+    mrb_raise(mrb, E_TYPE_ERROR, "can't create instance of singleton class");
+
   if (ttype == 0) ttype = MRB_TT_OBJECT;
   o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);
   obj = mrb_obj_value(o);
