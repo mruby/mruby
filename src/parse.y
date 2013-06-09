@@ -42,10 +42,6 @@ static void backref_error(parser_state *p, node *n);
 #define isascii(c) (((c) & ~0x7f) == 0)
 #endif
 
-#ifdef _MSC_VER
-#define isupper(c) ((c) >= 'A' && (c) <= 'Z')
-#endif
-
 #define identchar(c) (isalnum(c) || (c) == '_' || !isascii(c))
 
 typedef unsigned int stack_type;
@@ -4929,7 +4925,7 @@ parser_yylex(parser_state *p)
 	    pushback(p, c);
 	  }
 	}
-	if (result == 0 && isupper((int)tok(p)[0])) {
+	if (result == 0 && isupper((int)(unsigned char)tok(p)[0])) {
 	  result = tCONSTANT;
 	}
 	else {
