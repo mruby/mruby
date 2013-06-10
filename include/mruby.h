@@ -32,8 +32,10 @@
 extern "C" {
 #endif
 
-#include "mrbconf.h"
+#include <stdint.h>
+#include <stddef.h>
 
+#include "mrbconf.h"
 #include "mruby/value.h"
 
 typedef uint32_t mrb_code;
