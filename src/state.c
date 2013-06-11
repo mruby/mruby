@@ -21,12 +21,22 @@ inspect_main(mrb_state *mrb, mrb_value mod)
   return mrb_str_new(mrb, "main", 4);
 }
 
+#ifdef MRB_NAN_BOXING
+#include <assert.h>
+#endif
+
 mrb_state*
 mrb_open_allocf(mrb_allocf f, void *ud)
 {
   static const mrb_state mrb_state_zero = { 0 };
   static const struct mrb_context mrb_context_zero = { 0 };
-  mrb_state *mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
+  mrb_state *mrb;
+
+#ifdef MRB_NAN_BOXING
+  assert(sizeof(void*) == 4);
+#endif
+
+  mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
   if (mrb == NULL) return NULL;
 
   *mrb = mrb_state_zero;
