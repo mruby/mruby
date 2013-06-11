@@ -184,15 +184,19 @@ mrb_malloc(mrb_state *mrb, size_t len)
 void*
 mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
 {
-  void *p = NULL;
-  size_t size;
+  void *p;
 
-  if (nelem <= SIZE_MAX / len) {
+  if (nelem > 0 && len > 0 &&
+      nelem <= SIZE_MAX / len) {
+    size_t size;
     size = nelem * len;
     p = mrb_realloc(mrb, 0, size);
 
-    if (p && size > 0)
+    if (p) {
       memset(p, 0, size);
+    }
+  } else {
+    p = NULL;
   }
 
   return p;
