@@ -141,5 +141,5 @@ end
 
 assert('Float#truncate', '15.2.9.3.15') do
   assert_equal 3.123456789.truncate, 3
-  assert_equal -3.1.truncate, -3
+  assert_equal(-3.1.truncate, -3)
 end
