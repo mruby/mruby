@@ -99,7 +99,16 @@ def assert_false(ret, msg = nil, diff = nil)
   !ret
 end
 
-def assert_equal(exp, act, msg = nil)
+def assert_equal(arg1, arg2 = nil, arg3 = nil)
+  if block_given?
+    exp = yield
+    act = arg1
+    msg = arg2
+  else
+    exp = arg1
+    act = arg2
+    msg = arg3
+  end
   msg = "Expected to be equal" unless msg
   diff = assertion_diff(exp, act)
   assert_true(exp == act, msg, diff)
