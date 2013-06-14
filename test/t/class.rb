@@ -30,13 +30,9 @@ assert('Class#initialize_copy', '15.2.3.3.2') do
 end
 
 assert('Class#new', '15.2.3.3.3') do
-  # at the moment no exception on singleton class
-  #e1 = nil
-  #begin
-  #  class1 = e1.singleton_class.new
-  #rescue => e1
-  #  e2 = e1
-  #end
+  assert_raise(TypeError, 'Singleton should raise TypeError') do
+    "a".singleton_class.new
+  end
 
   class TestClass
     def initialize args, &block
@@ -302,5 +298,12 @@ assert('Class Undef 2') do
   end
 
   result1 == true and result2 == true
+end
+
+assert('Var undef') do
+  assert_raise(NameError) do
+    a=1
+    undef a
+  end
 end
 

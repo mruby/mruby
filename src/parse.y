@@ -4925,7 +4925,7 @@ parser_yylex(parser_state *p)
 	    pushback(p, c);
 	  }
 	}
-	if (result == 0 && isupper((int)tok(p)[0])) {
+	if (result == 0 && isupper((int)(unsigned char)tok(p)[0])) {
 	  result = tCONSTANT;
 	}
 	else {
