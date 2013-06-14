@@ -105,6 +105,12 @@ def assert_equal(exp, act, msg = nil)
   assert_true(exp == act, msg, diff)
 end
 
+def assert_not_equal(exp, act, msg = nil)
+  msg = "Expected to be not equal" unless msg
+  diff = assertion_diff(exp, act)
+  assert_false(exp == act, msg, diff)
+end
+
 def assert_nil(obj, msg = nil)
   msg = "Expected #{obj.inspect} to be nil" unless msg
   diff = assertion_diff(nil, obj)
@@ -116,6 +122,13 @@ def assert_include(collection, obj, msg = nil)
   diff = "    Collection: #{collection.inspect}\n" +
          "        Object: #{obj.inspect}"
   assert_true(collection.include?(obj), msg, diff)
+end
+
+def assert_not_include(collection, obj, msg = nil)
+  msg = "Expected #{collection.inspect} to not include #{obj.inspect}" unless msg
+  diff = "    Collection: #{collection.inspect}\n" +
+         "        Object: #{obj.inspect}"
+  assert_false(collection.include?(obj), msg, diff)
 end
 
 def assert_raise(*exp)
