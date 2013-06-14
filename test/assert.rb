@@ -101,20 +101,23 @@ end
 
 def assert_equal(arg1, arg2 = nil, arg3 = nil)
   if block_given?
-    exp = yield
-    act = arg1
-    msg = arg2
+    exp, act, msg = yield, arg1, arg2
   else
-    exp = arg1
-    act = arg2
-    msg = arg3
+    exp, act, msg = arg1, arg2, arg3
   end
+  
   msg = "Expected to be equal" unless msg
   diff = assertion_diff(exp, act)
   assert_true(exp == act, msg, diff)
 end
 
-def assert_not_equal(exp, act, msg = nil)
+def assert_not_equal(arg1, arg2 = nil, arg3 = nil)
+  if block_given?
+    exp, act, msg = yield, arg1, arg2
+  else
+    exp, act, msg = arg1, arg2, arg3
+  end
+
   msg = "Expected to be not equal" unless msg
   diff = assertion_diff(exp, act)
   assert_false(exp == act, msg, diff)
