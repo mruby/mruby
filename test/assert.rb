@@ -179,6 +179,14 @@ def assert_kind_of(cls, obj, msg = nil)
 end
 
 ##
+# Fails unless +exp+ is equal to +act+ in terms of a Float
+def assert_float(exp, act, msg = nil)
+  msg = "Float #{exp} expected to be equal to float #{act}" unless msg
+  diff = assertion_diff(exp, act)
+  assert_true check_float(exp, act), msg, diff
+end
+
+##
 # Report the test result and print all assertions
 # which were reported broken.
 def report()
