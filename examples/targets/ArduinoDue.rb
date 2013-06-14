@@ -13,18 +13,27 @@ MRuby::CrossBuild.new("Arduino Due") do |conf|
 
   conf.cc do |cc|
     cc.command = "#{BIN_PATH}/arm-none-eabi-gcc"
-    cc.include_paths = ["#{SAM_PATH}/system/libsam -I#{SAM_PATH}/system/CMSIS/CMSIS/Include/",
+    cc.include_paths << ["#{SAM_PATH}/system/libsam -I#{SAM_PATH}/system/CMSIS/CMSIS/Include/",
                         "#{SAM_PATH}/system/CMSIS/Device/ATMEL/",
-                        "#{SAM_PATH}/cores/arduino -I#{TARGET_PATH}",
-                        "#{MRUBY_ROOT}/include"]
-    cc.flags << '-g -Os -w -ffunction-sections -fdata-sections -nostdlib --param max-inline-insns-single=500 ' +
-                '-Dprintf=iprintf -mcpu=cortex-m3 -DF_CPU=84000000L -DARDUINO=152 -D__SAM3X8E__ -mthumb -DUSB_PID=0x003e -DUSB_VID=0x2341 -DUSBCON'
+                        "#{SAM_PATH}/cores/arduino -I#{TARGET_PATH}"]
+    cc.flags = %w(-g -Os -w -ffunction-sections -fdata-sections -nostdlib --param max-inline-insns-single=500 
+                -Dprintf=iprintf -mcpu=cortex-m3 -DF_CPU=84000000L -DARDUINO=152 -D__SAM3X8E__ -mthumb -DUSB_PID=0x003e -DUSB_VID=0x2341 -DUSBCON)
     cc.compile_options = "%{flags} -o %{outfile} -c %{infile}"
+  end
+
+  conf.cxx do |cxx|
+    cxx.command = conf.cc.command.dup
+    cxx.include_paths = conf.cc.include_paths.dup
+    cxx.flags = conf.cc.flags.dup
+    cxx.compile_options = conf.cc.compile_options.dup
   end
 
   conf.archiver do |archiver|
     archiver.command = "#{BIN_PATH}/arm-none-eabi-ar"
     archiver.archive_options = 'rcs %{outfile} %{objs}'
   end
+
+  #no executables
+  conf.bins = []
 
 end
