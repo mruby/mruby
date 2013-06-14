@@ -25,6 +25,9 @@ A remote GIT repository location for a GEM is also supported:
 
 	conf.gem :bitbucket => 'mruby/mrbgems-example', :branch => 'master'
 
+To pull all gems from remote GIT repository on build, call ```./minirake -p```, 
+or ```./minirake --pull-gems```.
+
 NOTE: `:bitbucket` option supports only git. Hg is unsupported in this version.
 
 ## GemBox
@@ -96,7 +99,7 @@ GEM directory. A typical GEM specification could look like this for example:
 
 	MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
 	  spec.license = 'MIT'
-	  spec.authors = 'mruby developers'
+	  spec.author  = 'mruby developers'
 	end
 
 The mrbgems build process will use this specification to compile Object and Ruby
@@ -121,7 +124,7 @@ In case your GEM is depending on other GEMs please use
 
 	MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
 	  spec.license = 'MIT'
-	  spec.authors = 'mruby developers'
+	  spec.author  = 'mruby developers'
 
 	  # add GEM dependency mruby-parser.
 	  # Version has to be between 1.0.0 and 1.5.2

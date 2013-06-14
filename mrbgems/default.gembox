@@ -41,11 +41,17 @@ MRuby::GemBox.new do |conf|
   # Use Random class
   conf.gem :core => "mruby-random"
 
+  # Use extensional Object class
+  conf.gem :core => "mruby-object-ext"
+
   # Use ObjectSpace class
   conf.gem :core => "mruby-objectspace"
 
   # Use Fiber class
   conf.gem :core => "mruby-fiber"
+
+  # Use extended toplevel object (main) methods
+  conf.gem :core => "mruby-toplevel-ext"
 
   # Generate mirb command
   conf.gem :core => "mruby-bin-mirb"

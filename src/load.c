@@ -187,7 +187,6 @@ read_rite_section_irep(mrb_state *mrb, const uint8_t *bin)
 {
   int result;
   size_t sirep;
-  size_t i;
   uint32_t len;
   uint16_t nirep;
   uint16_t n;
@@ -200,14 +199,14 @@ read_rite_section_irep(mrb_state *mrb, const uint8_t *bin)
   nirep = bin_to_uint16(header->nirep);
 
   //Read Binary Data Section
-  for (n = 0, i = sirep; n < nirep; n++, i++) {
+  for (n = 0; n < nirep; n++) {
     result = read_rite_irep_record(mrb, bin, &len);
     if (result != MRB_DUMP_OK)
       goto error_exit;
     bin += len;
   }
 
-  result = sirep + bin_to_uint16(header->sirep);
+  result = nirep;
 error_exit:
   if (result < MRB_DUMP_OK) {
     irep_free(sirep, mrb);
@@ -368,7 +367,7 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
     bin += bin_to_uint32(section_header->section_size);
   } while (memcmp(section_header->section_identify, RITE_BINARY_EOF, sizeof(section_header->section_identify)) != 0);
 
-  return total_nirep;
+  return sirep;
 }
 
 static void
@@ -464,7 +463,6 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
 {
   int32_t result;
   size_t sirep;
-  size_t i;
   uint16_t nirep;
   uint16_t n;
   uint32_t len, buf_size;
@@ -488,7 +486,7 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
   }
 
   //Read Binary Data Section
-  for (n = 0, i = sirep; n < nirep; n++, i++) {
+  for (n = 0; n < nirep; n++) {
     void *ptr;
 
     if (fread(buf, record_header_size, 1, fp) == 0) {
@@ -516,7 +514,7 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
       goto error_exit;
   }
 
-  result = sirep + bin_to_uint16(header.sirep);
+  result = nirep;
 error_exit:
   if (buf) {
     mrb_free(mrb, buf);
@@ -539,7 +537,9 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   size_t sirep;
   struct rite_section_header section_header;
   long fpos;
-  const size_t block_size = 1 << 14;
+  size_t block_size = 1 << 14;
+  const uint8_t block_fallback_count = 4;
+  int i;
   const size_t buf_size = sizeof(struct rite_binary_header);
 
   if ((mrb == NULL) || (fp == NULL)) {
@@ -564,7 +564,10 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   /* verify CRC */
   fpos = ftell(fp);
   /* You don't need use SIZE_ERROR as block_size is enough small. */
-  buf = mrb_malloc(mrb, block_size);
+  for (i = 0; i < block_fallback_count; i++,block_size >>= 1){
+    buf = mrb_malloc_simple(mrb, block_size);
+    if (buf) break;  
+  }
   if (!buf) {
     return MRB_DUMP_GENERAL_FAILURE;
   }
@@ -609,7 +612,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
     fseek(fp, fpos + section_size, SEEK_SET);
   } while (memcmp(section_header.section_identify, RITE_BINARY_EOF, sizeof(section_header.section_identify)) != 0);
 
-  return total_nirep;
+  return sirep;
 }
 
 mrb_value

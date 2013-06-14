@@ -43,7 +43,7 @@ module MRuby
     end
     include Rake::DSL
     include LoadGems
-    attr_accessor :name, :bins, :exts, :file_separator
+    attr_accessor :name, :bins, :exts, :file_separator, :build_dir
     attr_reader :libmruby, :gems
 
     COMPILERS = %w(cc cxx objc asm)
@@ -63,6 +63,7 @@ module MRuby
         end
 
         @file_separator = '/'
+        @build_dir = "#{MRUBY_ROOT}/build/#{@name}"
         @cc = Command::Compiler.new(self, %w(.c))
         @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp))
         @objc = Command::Compiler.new(self, %w(.m))
@@ -93,10 +94,6 @@ module MRuby
 
     def root
       MRUBY_ROOT
-    end
-
-    def build_dir
-      "#{MRUBY_ROOT}/build/#{self.name}"
     end
 
     def mrbcfile

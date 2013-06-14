@@ -12,8 +12,8 @@
 #define domain_error(msg) \
     mrb_raise(mrb, E_RANGE_ERROR, "Numerical argument is out of domain - " #msg)
 
-/* math functions not provided under Microsoft Visual C++ */
-#ifdef _MSC_VER
+/* math functions not provided by Microsoft Visual C++ 2012 or older */
+#if defined _MSC_VER && _MSC_VER < 1800
 
 #define MATH_TOLERANCE 1E-12
 
@@ -85,6 +85,12 @@ erfc(double x)
     q2 = b/d;
   } while (fabs(q1-q2)/q2 > MATH_TOLERANCE);
   return one_sqrtpi*exp(-x*x)*q2;
+}
+
+double
+log2(double x)
+{
+    return log10(x)/log10(2.0);
 }
 
 #endif
@@ -356,18 +362,6 @@ math_atanh(mrb_state *mrb, mrb_value obj)
 # endif
 # define log(x) ((x) < 0.0 ? nan("") : log(x))
 # define log10(x) ((x) < 0.0 ? nan("") : log10(x))
-#endif
-
-#ifndef log2
-#ifndef HAVE_LOG2
-double
-log2(double x)
-{
-    return log10(x)/log10(2.0);
-}
-#else
-extern double log2(double);
-#endif
 #endif
 
 /*

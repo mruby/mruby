@@ -15,10 +15,18 @@
 #include <mruby/data.h>
 #include <mruby/compile.h>
 #ifdef ENABLE_READLINE
+#include <limits.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #endif
 #include <mruby/string.h>
+
+
+#ifdef ENABLE_READLINE
+static const char *history_file_name = ".mirb_history";
+char history_path[PATH_MAX];
+#endif
+
 
 static void
 p(mrb_state *mrb, mrb_value obj, int prompt)
@@ -38,7 +46,7 @@ p(mrb_state *mrb, mrb_value obj, int prompt)
 
 /* Guess if the user might want to enter more
  * or if he wants an evaluation of his code now */
-int
+mrb_bool
 is_code_block_open(struct mrb_parser_state *parser)
 {
   int code_block_open = FALSE;
@@ -236,6 +244,8 @@ main(int argc, char **argv)
 #ifndef ENABLE_READLINE
   int last_char;
   int char_index;
+#else
+  char *home = NULL;
 #endif
   mrbc_context *cxt;
   struct mrb_parser_state *parser;
@@ -268,6 +278,23 @@ main(int argc, char **argv)
   if (args.verbose) cxt->dump_result = 1;
 
   ai = mrb_gc_arena_save(mrb);
+
+#ifdef ENABLE_READLINE
+  using_history();
+  home = getenv("HOME");
+#ifdef _WIN32
+  if (!home)
+    home = getenv("USERPROFILE");
+#endif
+  if (home) {
+    strcpy(history_path, home);
+    strcat(history_path, "/");
+    strcat(history_path, history_file_name);
+    read_history(history_path);
+  }
+#endif
+
+
   while (TRUE) {
 #ifndef ENABLE_READLINE
     print_cmdline(code_block_open);
@@ -346,7 +373,7 @@ main(int argc, char **argv)
         }
         else {
           /* no */
-          if (!mrb_respond_to(mrb,result,mrb_intern(mrb,"inspect"))){
+          if (!mrb_respond_to(mrb, result, mrb_intern2(mrb, "inspect", 7))){
             result = mrb_any_to_s(mrb,result);
           }
           p(mrb, result, 1);
@@ -360,6 +387,10 @@ main(int argc, char **argv)
   }
   mrbc_context_free(mrb, cxt);
   mrb_close(mrb);
+
+#ifdef ENABLE_READLINE
+  write_history(history_path);
+#endif
 
   return 0;
 }

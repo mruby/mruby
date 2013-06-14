@@ -39,14 +39,20 @@ module MRuby
         gemdir = "#{root}/mrbgems/#{params[:core]}"
       elsif params[:git]
         url = params[:git]
-        gemdir = "build/mrbgems/#{url.match(/([-\w]+)(\.[-\w]+|)$/).to_a[1]}"
-        return gemdir if File.exists?(gemdir)
+        gemdir = "#{build_dir}/mrbgems/#{url.match(/([-\w]+)(\.[-\w]+|)$/).to_a[1]}"
 
-        options = [params[:options]] || []
-        options << "--branch \"#{params[:branch]}\"" if params[:branch]
-
-        FileUtils.mkdir_p "build/mrbgems"
-        git.run_clone gemdir, url, options
+        if File.exists?(gemdir)
+          if $pull_gems
+            git.run_pull gemdir, url
+          else
+            gemdir
+          end
+        else
+          options = [params[:options]] || []
+          options << "--branch \"#{params[:branch]}\"" if params[:branch]
+          FileUtils.mkdir_p "#{build_dir}/mrbgems"
+          git.run_clone gemdir, url, options
+        end
       else
         fail "unknown gem option #{params}"
       end

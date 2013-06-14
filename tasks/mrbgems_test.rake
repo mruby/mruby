@@ -38,7 +38,7 @@ MRuby.each_target do
             f.puts %Q[  }]
             f.puts %Q[  mrb_const_set(mrb2, mrb_obj_value(mrb2->object_class), mrb_intern(mrb2, "GEMNAME"), mrb_str_new(mrb2, "#{g.name}", #{g.name.length}));]
 
-            if not g.test_args.empty?
+            unless g.test_args.empty?
               f.puts %Q[  test_args_hash = mrb_hash_new_capa(mrb, #{g.test_args.length}); ]
               g.test_args.each do |arg_name, arg_value|
                 escaped_arg_name = arg_name.gsub('\\', '\\\\\\\\').gsub('"', '\"')
