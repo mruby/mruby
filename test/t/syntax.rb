@@ -1,9 +1,6 @@
 assert('super', '11.3.4') do
-  test = false
-  begin
+  assert_raise NoMethodError do
     super
-  rescue NoMethodError
-    test = true
   end
 
   class SuperFoo
@@ -23,18 +20,14 @@ assert('super', '11.3.4') do
     end
   end
   bar = SuperBar.new
-  test &&= bar.foo
-  test &&= (bar.bar(1,2,3) == [1,2,3])
-  test
+
+  assert_true bar.foo
+  assert_equal bar.bar(1,2,3), [1,2,3]
 end
 
 assert('yield', '11.3.5') do
-  begin
+  assert_raise LocalJumpError do
     yield
-  rescue LocalJumpError
-    true
-  else
-    false
   end
 end
 
@@ -43,7 +36,10 @@ assert('Abbreviated variable assignment', '11.4.2.3.2') do
   b &&= 1
   c = 1
   c += 2
-  a == 1 and b == nil and c == 3
+
+  assert_equal a, 1
+  assert_nil b
+  assert_equal c, 3
 end
 
 assert('Nested const reference') do
@@ -55,8 +51,8 @@ assert('Nested const reference') do
       end
     end
   end
-  Syntax4Const::CONST1 == "hello world" and
-  Syntax4Const::Const2.new.const1 == "hello world"
+  assert_equal Syntax4Const::CONST1, "hello world"
+  assert_equal Syntax4Const::Const2.new.const1, "hello world"
 end
 
 assert('Abbreviated variable assignment as returns') do
@@ -67,5 +63,5 @@ assert('Abbreviated variable assignment as returns') do
       end
     end
   end
-  Syntax4AbbrVarAsgnAsReturns::A.new.b == 1
+  assert_equal Syntax4AbbrVarAsgnAsReturns::A.new.b, 1
 end
