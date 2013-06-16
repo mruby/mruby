@@ -14,7 +14,7 @@ assert('Literals Numerical', '8.7.6.2') do
     0xff == 255 and 0Xff == 255 and
     # decimal
     0d999 == 999 and 0D999 == 999 and
-    # decimal seperator
+    # decimal separator
     10_000_000 == 10000000 and 1_0 == 10 and
     # integer with exponent
     1e1 == 10.0 and 1e-1 == 0.1 and 1e+1 == 10.0
