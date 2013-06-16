@@ -1135,7 +1135,7 @@ mrb_init_array(mrb_state *mrb)
 {
   struct RClass *a;
 
-  a = mrb->array_class = mrb_define_class(mrb, "Array", mrb->object_class);
+  a = mrb->array_class = mrb_define_class(mrb, "Array", mrb->object_class);            /* 15.2.12 */
   MRB_SET_INSTANCE_TT(a, MRB_TT_ARRAY);
   mrb_include_module(mrb, a, mrb_class_get(mrb, "Enumerable"));
 
