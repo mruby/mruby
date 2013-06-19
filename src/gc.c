@@ -152,24 +152,29 @@ mrb_realloc(mrb_state *mrb, void *p, size_t len)
 {
   void *p2;
 
-  p2 = (mrb->allocf)(mrb, p, len, mrb->ud);
-
-  if (!p2 && len > 0 && mrb->heaps) {
-    mrb_garbage_collect(mrb);
+  if (len > 0) {
     p2 = (mrb->allocf)(mrb, p, len, mrb->ud);
-  }
 
-  if (!p2 && len) {
-    if (mrb->out_of_memory) {
-      /* mrb_panic(mrb); */
+    if (!p2 && mrb->heaps) {
+      mrb_garbage_collect(mrb);
+      p2 = (mrb->allocf)(mrb, p, len, mrb->ud);
+    }
+
+    if (!p2) {
+      if (mrb->out_of_memory) {
+        /* mrb_panic(mrb); */
+      }
+      else {
+        mrb->out_of_memory = 1;
+        mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+      }
     }
     else {
-      mrb->out_of_memory = 1;
-      mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+      mrb->out_of_memory = 0;
     }
   }
   else {
-    mrb->out_of_memory = 0;
+    p2 = NULL;
   }
 
   return p2;
