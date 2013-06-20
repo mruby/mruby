@@ -274,6 +274,20 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
 }
 
 mrb_value
+mrb_str_new_cstrl(mrb_state *mrb, const char *p, size_t len)
+{
+  struct RString *s;
+
+  if ((mrb_int)len < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "argument too big");
+  }
+
+  s = str_new(mrb, p, len);
+
+  return mrb_obj_value(s);
+}
+
+mrb_value
 mrb_str_new_static(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s;
