@@ -11,6 +11,7 @@
 # include <limits.h>
 #endif
 #include <string.h>
+#include <stdlib.h>
 #include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
