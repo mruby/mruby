@@ -539,7 +539,9 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   size_t sirep;
   struct rite_section_header section_header;
   long fpos;
-  const size_t block_size = 1 << 14;
+  size_t block_size = 1 << 14;
+  const uint8_t block_fallback_count = 4;
+  int i;
   const size_t buf_size = sizeof(struct rite_binary_header);
 
   if ((mrb == NULL) || (fp == NULL)) {
@@ -564,7 +566,10 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   /* verify CRC */
   fpos = ftell(fp);
   /* You don't need use SIZE_ERROR as block_size is enough small. */
-  buf = mrb_malloc(mrb, block_size);
+  for (i = 0; i < block_fallback_count; i++,block_size >>= 1){
+    buf = mrb_malloc(mrb, block_size);
+    if (buf) break;  
+  }
   if (!buf) {
     return MRB_DUMP_GENERAL_FAILURE;
   }
