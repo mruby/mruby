@@ -247,6 +247,7 @@ void mrb_free(mrb_state*, void*);
 
 mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
 mrb_value mrb_str_new_cstr(mrb_state*, const char*);
+mrb_value mrb_str_new_cstrl(mrb_state*, const char*p, size_t len);
 mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
 
 mrb_state* mrb_open(void);
