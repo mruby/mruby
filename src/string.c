@@ -261,14 +261,7 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
     len = 0;
   }
 
-  s = mrb_obj_alloc_string(mrb);
-  s->ptr = (char *)mrb_malloc(mrb, len+1);
-  if (p) {
-    memcpy(s->ptr, p, len);
-  }
-  s->ptr[len] = 0;
-  s->len = (mrb_int)len;
-  s->aux.capa = (mrb_int)len;
+  s = str_new(mrb, p, len);
 
   return mrb_obj_value(s);
 }
