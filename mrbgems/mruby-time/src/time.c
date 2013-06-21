@@ -105,7 +105,7 @@ static const char *mon_names[] = {
 };
 
 static const char *wday_names[] = {
-  "Sun", "Mon", "Tus", "Wed", "Thu", "Fri", "Sat",
+  "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat",
 };
 
 struct mrb_time {
