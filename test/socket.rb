@@ -128,3 +128,8 @@ end
 #assert('TCPSocket.new') do
 #assert('TCPSocket#close') do
 #assert('TCPSocket#write') do
+
+assert('Socket.gethostname') do
+  assert_true(Socket.gethostname.is_a? String)
+end
+

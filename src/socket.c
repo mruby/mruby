@@ -560,14 +560,17 @@ static mrb_value
 mrb_socket_gethostname(mrb_state *mrb, mrb_value cls)
 {
   mrb_value buf;
+  size_t bufsize;
   
 #ifdef HOST_NAME_MAX
-  buf = mrb_str_buf_new(mrb, HOST_NAME_MAX+1);
+  bufsize = HOST_NAME_MAX + 1;
 #else
-  buf = mrb_str_buf_new(mrb, 256);
+  bufsize = 256;
 #endif
-  if (gethostname(RSTRING_PTR(buf), RSTRING_LEN(buf)) != 0)
+  buf = mrb_str_buf_new(mrb, bufsize);
+  if (gethostname(RSTRING_PTR(buf), bufsize) != 0)
     mrb_sys_fail(mrb, "gethostname");
+  mrb_str_resize(mrb, buf, strlen(RSTRING_PTR(buf)));
   return buf;
 }
 
