@@ -1,21 +1,16 @@
 class MRBDoc
-  DOC_DIR = 'language'
-
   def write_documentation dir, &block
-    block.call "MRBDOC\tStart Building Documentation to #{doc_dir(dir)}"
+    block.call "MRBDOC\twrite to #{File.expand_path(dir)}"
 
     write(dir) do |progress|
       block.call progress
     end
-
-    block.call "MRBDOC\tFinish Building Documentation"
   end
 
   private
 
   def write dir
-    # io = STDOUT
-    File.open(File.expand_path('Core_Classes.md', dir), 'w+') do |io|
+    File.open(File.expand_path('Core.md', dir), 'w+') do |io|
       print_core_classes(io)
       print_core_modules(io)
     end
@@ -44,14 +39,16 @@ class MRBDoc
       file = find_c_file_by_class(name)
       file = file.split("#{@dir}/")[1]
       iso = hsh[:data][:iso]
-      iso = 'n/a' if iso.nil?
+      iso = 'n/a' if iso.nil? or iso == ''
+      mixins = hsh[:data][:include].join(', ') unless hsh[:data][:include].nil?
+      mixins = 'n/a' if mixins.nil? or mixins == ''
 
       io.puts <<CLASS
 ## #{name}
 
 ISO Code | Mixins | Source File
 --- | --- | ---
-#{hsh[:data][:iso]} |  n/a | #{file}
+#{iso} |  #{mixins} | #{file}
 
 CLASS
       print_class_methods(io, hsh)
@@ -65,8 +62,8 @@ CLASS
     core_list.sort.each do |name, hsh|
       file = find_c_file_by_module(name)
       file = file.split("#{@dir}/")[1]
-      iso = hsh[:iso]
-      iso = 'n/a' if iso.nil?
+      iso = hsh[:data][:iso]
+      iso = 'n/a' if iso.nil? or iso == ''
 
       io.puts <<CLASS
 ## #{name}
@@ -101,16 +98,16 @@ CLASS
     line_no = find_c_func(met_hsh[:c_func])[:line_no]
     file = find_c_file(met_hsh[:rb_class], met_hsh[:c_func])
     file = file.split("#{@dir}/")[1]
+    iso = met_hsh[:iso]
+    iso = 'n/a' if iso.nil? or iso == ''
 
     io.puts <<METHOD
 #### #{met_name}
 
 ISO Code | Source File | C Function | Line
 --- | --- | ---
-#{met_hsh[:iso]} | #{file} | #{met_hsh[:c_func]} | #{line_no}
+#{iso} | #{file} | #{met_hsh[:c_func]} | #{line_no}
 
 METHOD
   end
-
-  def doc_dir dir; File.expand_path DOC_DIR, dir; end
 end

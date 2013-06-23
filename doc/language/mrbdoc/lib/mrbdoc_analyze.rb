@@ -6,13 +6,11 @@ class MRBDoc
     @mrb_files = {}
     @dir = File.expand_path(dir)
 
-    block.call "MRBDOC\tStart Analyzing Source of #{@dir}"
+    block.call "MRBDOC\tanalyze #{@dir}"
 
     analyze(dir) do |progress|
       block.call progress
     end
-
-    block.call "MRBDOC\tFinish Analyzing Source"
   end
 
   def each_file(&block); @mrb_files.each {|k,v| block.call k,v}; end
@@ -97,6 +95,13 @@ class MRBFile
     @last_line = nil
     @assignments = {}
 
+    @assignments['mrb->object_class'] = 'Object'
+    @assignments['mrb->kernel_module'] = 'Kernel'
+    @assignments['mrb->module_class'] = 'Module'
+    @assignments['mrb->nil_class'] = 'NilClass'
+    @assignments['mrb->true_class'] = 'TrueClass'
+    @assignments['mrb->class_class'] = 'Class'
+
     analyze
   end
 
@@ -121,8 +126,8 @@ class MRBFile
   end
 
   def each_module &block
-    @rb_module_c_def.each_key do |module_name|
-      block.call module_name
+    @rb_module_c_def.each do |module_name, module_hsh|
+      block.call module_name, module_hsh
     end
   end
 
@@ -202,6 +207,17 @@ class MRBFile
       iso = $5.clone
       iso.strip!
       @rb_class_method_c_def["#{class_name}_#{$2}"] = {:c_func => $3, :args => $4, :rb_class => class_name, :iso => iso}
+    when /mrb_name_class\(.*?\,#{RXP_C_VAR}\,\s*mrb_intern\(.*?,#{RXP_C_STR}\)\)#{RXP_C_ISO}/
+      class_name = $2.clone
+      iso = $3.clone
+      iso.strip!
+      @rb_class_c_def[class_name] = {:c_object => $1, :iso => iso}
+      @assignments[$1] = class_name
+    when /mrb_include_module\(.*?\,#{RXP_C_VAR}\,\s*mrb_class_get\(.*?\,#{RXP_C_STR}\)\)/
+      class_name = resolve_obj($1)
+      mod = $2.clone
+      @rb_class_c_def[class_name][:include] = [] unless @rb_class_c_def[class_name].has_key? :include
+      @rb_class_c_def[class_name][:include] << mod
     end
   end
 
