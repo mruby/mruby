@@ -104,10 +104,9 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
   mrb_str_modify(mrb, s);
   slen = s->len;
   if (len != slen) {
-    if (slen < len || slen -len > 1024) {
-      s->ptr = (char *)mrb_realloc(mrb, s->ptr, len+1);
+    if (slen < len || slen - len > 256) {
+      RESIZE_CAPA(s, len);
     }
-    s->aux.capa = len;
     s->len = len;
     s->ptr[len] = '\0';   /* sentinel */
   }
@@ -261,14 +260,7 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
     len = 0;
   }
 
-  s = mrb_obj_alloc_string(mrb);
-  s->ptr = (char *)mrb_malloc(mrb, len+1);
-  if (p) {
-    memcpy(s->ptr, p, len);
-  }
-  s->ptr[len] = 0;
-  s->len = (mrb_int)len;
-  s->aux.capa = (mrb_int)len;
+  s = str_new(mrb, p, len);
 
   return mrb_obj_value(s);
 }
