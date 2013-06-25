@@ -183,6 +183,19 @@ mrb_malloc(mrb_state *mrb, size_t len)
 }
 
 void*
+mrb_malloc_simple(mrb_state *mrb, size_t len)
+{
+  void *p2;
+
+  p2 = (mrb->allocf)(mrb, 0, len, mrb->ud);
+  if (!p2 && len > 0 && mrb->heaps) {
+    mrb_garbage_collect(mrb);
+    p2 = (mrb->allocf)(mrb, 0, len, mrb->ud);
+  }
+  return p2;
+}
+
+void*
 mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
 {
   void *p;
