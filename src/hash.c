@@ -717,9 +717,11 @@ mrb_hash_replace(mrb_state *mrb, mrb_value hash)
 
   h2 = RHASH_TBL(hash2);
   if (h2) {
+    int hi = mrb_gc_arena_save(mrb);
     for (k = kh_begin(h2); k != kh_end(h2); k++) {
       if (kh_exist(h2, k))
         mrb_hash_set(mrb, hash, kh_key(h2, k), kh_value(h2, k));
+      mrb_gc_arena_restore(mrb, hi);
     }
   }
 
