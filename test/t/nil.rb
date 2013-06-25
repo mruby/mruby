@@ -27,4 +27,3 @@ end
 assert('NilClass#to_s', '15.2.4.3.5') do
   assert_equal nil.to_s, ''
 end
-
