@@ -921,17 +921,12 @@ mrb_hash_has_keyWithKey(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
-  mrb_bool result;
 
   if (h) {
     k = kh_get(ht, h, key);
-    result = (k != kh_end(h));
+    return mrb_bool_value(k != kh_end(h));
   }
-  else {
-    result = 0;
-  }
-
-  return mrb_bool_value(result);
+  return mrb_false_value();
 }
 
 /* 15.2.13.4.13 */
