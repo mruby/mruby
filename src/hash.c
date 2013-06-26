@@ -145,7 +145,9 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val) /* mr
   k = kh_get(ht, h, key);
   if (k == kh_end(h)) {
     /* expand */
+    int ai = mrb_gc_arena_save(mrb);
     k = kh_put(ht, h, KEY(key));
+    mrb_gc_arena_restore(mrb, ai);
   }
 
   kh_value(h, k) = val;
@@ -169,7 +171,9 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
 
     for (k = kh_begin(h); k != kh_end(h); k++) {
       if (kh_exist(h,k)) {
+        int ai = mrb_gc_arena_save(mrb);
         ret_k = kh_put(ht, ret_h, KEY(kh_key(h,k)));
+        mrb_gc_arena_restore(mrb, ai);
         kh_val(ret_h, ret_k) = kh_val(h,k);
       }
     }
