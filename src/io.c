@@ -612,7 +612,7 @@ mrb_io_s_select(mrb_state *mrb, mrb_value klass)
       read_io = RARRAY_PTR(read)[i];
       fptr = (struct mrb_io *)mrb_get_datatype(mrb, read_io, &mrb_io_type);
       FD_SET(fptr->fd, rp);
-      if (!mrb_io_read_data_pending(mrb, read_io)) {
+      if (mrb_io_read_data_pending(mrb, read_io)) {
         pending++;
         FD_SET(fptr->fd, &pset);
       }
