@@ -74,6 +74,8 @@ typedef short mrb_sym;
 # else
 #  include <inttypes.h>
 # endif
+#else
+# include <inttypes.h>
 #endif
 
 typedef uint8_t mrb_bool;
