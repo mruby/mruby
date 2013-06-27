@@ -3620,12 +3620,14 @@ parse_string(parser_state *p)
 	  tokadd(p, '\n');
 	}
 	else {
-	  pushback(p, c);
-
-	  if(type & STR_FUNC_REGEXP)
+	  if (type & STR_FUNC_REGEXP) {
 	    tokadd(p, '\\');
-
-	  tokadd(p, read_escape(p));
+	    if (c != -1)
+	      tokadd(p, c);
+	  } else {
+	    pushback(p, c);
+	    tokadd(p, read_escape(p));
+	  }
 	  if (hinf)
 	    hinf->line_head = FALSE;
 	}
