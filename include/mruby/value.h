@@ -51,25 +51,29 @@
 typedef short mrb_sym;
 
 #ifdef _MSC_VER
-# define _ALLOW_KEYWORD_MACROS
-# include <float.h>
-# define inline __inline
+# ifndef __cplusplus
+#  define inline __inline
+# endif
 # define snprintf _snprintf
-# define isnan _isnan
-# define isinf(n) (!_finite(n) && !_isnan(n))
-# define strtoll _strtoi64
-# define PRId32 "I32d"
-# define PRIi32 "I32i"
-# define PRIo32 "I32o"
-# define PRIx32 "I32x"
-# define PRIX32 "I32X"
-# define PRId64 "I64d"
-# define PRIi64 "I64i"
-# define PRIo64 "I64o"
-# define PRIx64 "I64x"
-# define PRIX64 "I64X"
-#else
-# include <inttypes.h>
+# if _MSC_VER < 1800
+#  include <float.h>
+#  define isnan _isnan
+#  define isinf(n) (!_finite(n) && !_isnan(n))
+#  define strtoll _strtoi64
+#  define strtof (float)strtod
+#  define PRId32 "I32d"
+#  define PRIi32 "I32i"
+#  define PRIo32 "I32o"
+#  define PRIx32 "I32x"
+#  define PRIX32 "I32X"
+#  define PRId64 "I64d"
+#  define PRIi64 "I64i"
+#  define PRIo64 "I64o"
+#  define PRIx64 "I64x"
+#  define PRIX64 "I64X"
+# else
+#  include <inttypes.h>
+# endif
 #endif
 
 typedef uint8_t mrb_bool;
