@@ -381,13 +381,30 @@ mrb_value
 mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 {
   int32_t n;
+  size_t i;
+  mrb_value result;
+  int ai;
 
   n = mrb_read_irep(mrb, bin);
   if (n < 0) {
     irep_error(mrb, n);
     return mrb_nil_value();
   }
-  return mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
+
+  ai = mrb_gc_arena_save(mrb);
+  for (i = n; i < mrb->irep_len; i++){
+    if (mrb_irep_stop_p(mrb, mrb->irep[i])){
+      result = mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[i]), mrb_top_self(mrb));
+      if (mrb->exc) {
+        mrb_print_error(mrb);
+        mrb_gc_arena_restore(mrb, ai);
+        return mrb_nil_value();
+      }
+      mrb_gc_arena_restore(mrb, ai);      
+    }
+  }
+
+  return result;
 }
 
 #ifdef ENABLE_STDIO

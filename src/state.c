@@ -10,6 +10,7 @@
 #include "mruby/class.h"
 #include "mruby/irep.h"
 #include "mruby/variable.h"
+#include "opcode.h"
 
 void mrb_init_heap(mrb_state*);
 void mrb_init_core(mrb_state*);
@@ -186,6 +187,14 @@ mrb_add_irep(mrb_state *mrb)
   irep->idx = mrb->irep_len++;
 
   return irep;
+}
+
+int
+mrb_irep_stop_p(mrb_state *mrb, mrb_irep *irep)
+{
+
+  return (GET_OPCODE( irep->iseq[irep->ilen - 1] ) == OP_STOP);
+
 }
 
 mrb_value

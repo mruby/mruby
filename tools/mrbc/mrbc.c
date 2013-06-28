@@ -154,53 +154,24 @@ cleanup(mrb_state *mrb, struct mrbc_args *args)
 }
 
 static int
-partial_hook(struct mrb_parser_state *p)
-{
-  mrbc_context *c = p->cxt;
-  struct mrbc_args *args = (struct mrbc_args *)c->partial_data;
-  const char *fn;
-
-  if (p->f) fclose(p->f);
-  if (args->idx >= args->argc) {
-    p->f = NULL;
-    return -1;
-  }
-  fn = args->argv[args->idx++];
-  p->f = fopen(fn, "r");
-  if (p->f == NULL) {
-    fprintf(stderr, "%s: cannot open program file. (%s)\n", args->prog, fn);
-    return -1;
-  }
-  mrbc_filename(p->mrb, c, fn);
-  p->filename = c->filename;
-  p->lineno = 1;
-  return 0;
-}
-
-static int
-load_file(mrb_state *mrb, struct mrbc_args *args)
+load_file(mrb_state *mrb, const char *prog, int verbose, const char *input)
 {
   mrbc_context *c;
   mrb_value result;
-  char *input = args->argv[args->idx];
   FILE *infile;
 
   c = mrbc_context_new(mrb);
-  if (args->verbose)
+  if (verbose)
     c->dump_result = 1;
   c->no_exec = 1;
   if (input[0] == '-' && input[1] == '\0') {
     infile = stdin;
   }
   else if ((infile = fopen(input, "r")) == NULL) {
-    fprintf(stderr, "%s: cannot open program file. (%s)\n", args->prog, input);
-    return EXIT_FAILURE;
+    fprintf(stderr, "%s: cannot open program file. (%s)\n", prog, input);
+    return EXIT_FAILURE;    
   }
   mrbc_filename(mrb, c, input);
-  args->idx++;
-  if (args->idx < args->argc) {
-    mrbc_partial_hook(mrb, c, partial_hook, (void*)args);
-  }
 
   result = mrb_load_file_cxt(mrb, infile, c);
   if (mrb_undef_p(result) || mrb_fixnum(result) < 0) {
@@ -208,6 +179,19 @@ load_file(mrb_state *mrb, struct mrbc_args *args)
     return EXIT_FAILURE;
   }
   mrbc_context_free(mrb, c);
+  return EXIT_SUCCESS;
+}
+
+static int
+load_files(mrb_state *mrb, struct mrbc_args *args)
+{
+  size_t i;
+ 
+  for (i = args->idx; i < args->argc; i++) {
+    int result = load_file(mrb, args->prog, args->verbose, args->argv[i]);
+    if (result < EXIT_SUCCESS)
+      return result;
+  }
   return EXIT_SUCCESS;
 }
 
@@ -265,7 +249,7 @@ main(int argc, char **argv)
   }
 
   args.idx = n;
-  if (load_file(mrb, &args) == EXIT_FAILURE) {
+  if (load_files(mrb, &args) == EXIT_FAILURE) {
     cleanup(mrb, &args);
     return EXIT_FAILURE;
   }

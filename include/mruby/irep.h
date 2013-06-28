@@ -32,6 +32,7 @@ typedef struct mrb_irep {
 
 mrb_irep *mrb_add_irep(mrb_state *mrb);
 mrb_value mrb_load_irep(mrb_state*, const uint8_t*);
+int mrb_irep_stop_p(mrb_state *mrb, mrb_irep *irep);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */

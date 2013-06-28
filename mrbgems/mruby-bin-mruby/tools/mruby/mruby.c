@@ -166,6 +166,7 @@ int
 main(int argc, char **argv)
 {
   mrb_state *mrb = mrb_open();
+  int ai = mrb_gc_arena_save(mrb);
   int n = -1;
   int i;
   struct _args args;
@@ -195,11 +196,17 @@ main(int argc, char **argv)
       fprintf(stderr, "failed to load mrb file: %s\n", args.cmdline);
     }
     else if (!args.check_syntax) {
-      mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
-      n = 0;
-      if (mrb->exc) {
-        mrb_print_error(mrb);
-        n = -1;
+      for (i = n; i < mrb->irep_len; i++){
+        if (mrb_irep_stop_p(mrb, mrb->irep[i])) {
+          mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[i]), mrb_top_self(mrb));
+          if (mrb->exc) {
+            mrb_print_error(mrb);
+            n = -1;
+            break;
+          }
+          mrb_gc_arena_restore(mrb, ai);
+        }
+        n = 0;
       }
     }
   }
