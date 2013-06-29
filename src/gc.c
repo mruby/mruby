@@ -148,18 +148,28 @@ gettimeofday_time(void)
 
 #define GC_STEP_SIZE 1024
 
+
 void*
-mrb_realloc(mrb_state *mrb, void *p, size_t len)
+mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
 {
   void *p2;
 
   p2 = (mrb->allocf)(mrb, p, len, mrb->ud);
-
   if (!p2 && len > 0 && mrb->heaps) {
     mrb_garbage_collect(mrb);
     p2 = (mrb->allocf)(mrb, p, len, mrb->ud);
   }
 
+  return p2;
+}
+
+
+void*
+mrb_realloc(mrb_state *mrb, void *p, size_t len)
+{
+  void *p2;
+
+  p2 = mrb_realloc_simple(mrb, p, len);
   if (!p2 && len) {
     if (mrb->out_of_memory) {
       /* mrb_panic(mrb); */
@@ -185,14 +195,7 @@ mrb_malloc(mrb_state *mrb, size_t len)
 void*
 mrb_malloc_simple(mrb_state *mrb, size_t len)
 {
-  void *p2;
-
-  p2 = (mrb->allocf)(mrb, 0, len, mrb->ud);
-  if (!p2 && len > 0 && mrb->heaps) {
-    mrb_garbage_collect(mrb);
-    p2 = (mrb->allocf)(mrb, 0, len, mrb->ud);
-  }
-  return p2;
+  return mrb_realloc_simple(mrb, 0, len);
 }
 
 void*
