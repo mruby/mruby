@@ -776,16 +776,9 @@ mrb_value
 mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
 {
   khash_t(ht) *h = RHASH_TBL(self);
-  mrb_bool empty_p;
 
-  if (h) {
-    empty_p = (kh_size(h) == 0);
-  }
-  else {
-    empty_p = 1;
-  }
-
-  return mrb_bool_value(empty_p);
+  if (h) return mrb_bool_value(kh_size(h) == 0);
+  return mrb_true_value();
 }
 
 static mrb_value
