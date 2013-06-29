@@ -41,6 +41,9 @@ MRuby::GemBox.new do |conf|
   # Use Random class
   conf.gem :core => "mruby-random"
 
+  # Use extensional Object class
+  conf.gem :core => "mruby-object-ext"
+
   # Use ObjectSpace class
   conf.gem :core => "mruby-objectspace"
 
