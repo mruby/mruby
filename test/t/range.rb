@@ -72,3 +72,9 @@ assert('Range#member?', '15.2.14.4.11') do
   assert_true a.member?(5)
   assert_false a.member?(20)
 end
+
+assert('Range#eql?', '15.2.14.4.14') do
+  assert_true (1..10).eql? (1..10)
+  assert_false (1..10).eql? (1..100)
+  assert_false (1..10).eql? "1..10"
+end
