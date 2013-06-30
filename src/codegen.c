@@ -426,8 +426,7 @@ push_(codegen_scope *s)
 static inline int
 new_lit(codegen_scope *s, mrb_value val)
 {
-  int i;
-
+  size_t i;
   
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
@@ -462,7 +461,7 @@ new_lit(codegen_scope *s, mrb_value val)
 static inline int
 new_msym(codegen_scope *s, mrb_sym sym)
 {
-  int i, len;
+  size_t i, len;
 
   len = s->irep->slen;
   if (len > 256) len = 256;
@@ -481,7 +480,7 @@ new_msym(codegen_scope *s, mrb_sym sym)
 static inline int
 new_sym(codegen_scope *s, mrb_sym sym)
 {
-  int i;
+  size_t i;
 
   for (i=0; i<s->irep->slen; i++) {
     if (s->irep->syms[i] == sym) return i;
