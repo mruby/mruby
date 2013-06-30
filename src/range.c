@@ -162,8 +162,8 @@ mrb_range_eq(mrb_state *mrb, mrb_value range)
 
   rr = mrb_range_ptr(range);
   ro = mrb_range_ptr(obj);
-  if (!mrb_obj_equal(mrb, rr->edges->beg, ro->edges->beg) ||
-      !mrb_obj_equal(mrb, rr->edges->end, ro->edges->end) ||
+  if (!mrb_bool(mrb_funcall(mrb, rr->edges->beg, "==", 1, ro->edges->beg)) ||
+      !mrb_bool(mrb_funcall(mrb, rr->edges->end, "==", 1, ro->edges->end)) ||
       rr->excl != ro->excl) {
     return mrb_false_value();
   }
