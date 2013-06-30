@@ -12,6 +12,7 @@ end
 assert('Range#==', '15.2.14.4.1') do
   assert_true (1..10) == (1..10)
   assert_false (1..10) == (1..100)
+  assert_true (1..10) == Range.new(1.0, 10.0)
 end
 
 assert('Range#===', '15.2.14.4.2') do
