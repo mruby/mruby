@@ -480,7 +480,7 @@ new_msym(codegen_scope *s, mrb_sym sym)
 static inline int
 new_sym(codegen_scope *s, mrb_sym sym)
 {
-  int i;
+  size_t i;
 
   for (i=0; i<s->irep->slen; i++) {
     if (s->irep->syms[i] == sym) return i;
