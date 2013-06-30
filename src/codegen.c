@@ -426,8 +426,7 @@ push_(codegen_scope *s)
 static inline int
 new_lit(codegen_scope *s, mrb_value val)
 {
-  int i;
-
+  size_t i;
   
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
