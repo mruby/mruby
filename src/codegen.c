@@ -461,7 +461,7 @@ new_lit(codegen_scope *s, mrb_value val)
 static inline int
 new_msym(codegen_scope *s, mrb_sym sym)
 {
-  int i, len;
+  size_t i, len;
 
   len = s->irep->slen;
   if (len > 256) len = 256;
