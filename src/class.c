@@ -227,7 +227,13 @@ class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 struct RClass *
 mrb_class_get(mrb_state *mrb, const char *name)
 {
-  return class_from_sym(mrb, mrb->object_class, mrb_intern(mrb, name));
+  return mrb_class_get_under(mrb, mrb->object_class, name);
+}
+
+struct RClass *
+mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name)
+{
+  return class_from_sym(mrb, outer, mrb_intern(mrb, name));
 }
 
 /*!
