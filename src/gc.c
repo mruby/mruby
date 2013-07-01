@@ -175,12 +175,12 @@ mrb_realloc(mrb_state *mrb, void *p, size_t len)
       /* mrb_panic(mrb); */
     }
     else {
-      mrb->out_of_memory = 1;
+      mrb->out_of_memory = TRUE;
       mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
     }
   }
   else {
-    mrb->out_of_memory = 0;
+    mrb->out_of_memory = FALSE;
   }
 
   return p2;
