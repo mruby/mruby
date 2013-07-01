@@ -334,8 +334,7 @@ static int
 write_lineno_record(mrb_state *mrb, mrb_irep *irep, uint8_t* bin)
 {
   uint8_t *cur = bin;
-  size_t filename_len = 0;
-  int iseq_no;
+  size_t filename_len = 0, iseq_no;
 
   cur += sizeof(uint32_t); /* record size */
 
