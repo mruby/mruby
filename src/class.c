@@ -159,9 +159,7 @@ mrb_define_class_id(mrb_state *mrb, mrb_sym name, struct RClass *super)
 struct RClass*
 mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
 {
-  struct RClass *c;
-  c = mrb_define_class_id(mrb, mrb_intern(mrb, name), super);
-  return c;
+  return mrb_define_class_id(mrb, mrb_intern(mrb, name), super);
 }
 
 struct RClass*
