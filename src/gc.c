@@ -630,8 +630,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
 static void
 root_scan_phase(mrb_state *mrb)
 {
-  int j;
-  size_t i, e;
+  size_t i, e, j;
 
   if (!is_minor_gc(mrb)) {
     mrb->gray_list = 0;
