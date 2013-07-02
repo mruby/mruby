@@ -1056,39 +1056,26 @@ static mrb_value
 mrb_ary_equal(mrb_state *mrb, mrb_value ary1)
 {
   mrb_value ary2;
-  mrb_bool equal_p;
+  mrb_int i;
 
   mrb_get_args(mrb, "o", &ary2);
-  if (mrb_obj_equal(mrb, ary1, ary2)) {
-    equal_p = 1;
-  }
-  else if (mrb_special_const_p(ary2)) {
-    equal_p = 0;
-  }
-  else if (!mrb_array_p(ary2)) {
+  if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_true_value();
+  if (mrb_special_const_p(ary2)) return mrb_false_value();
+  if (!mrb_array_p(ary2)) {
     if (!mrb_respond_to(mrb, ary2, mrb_intern2(mrb, "to_ary", 6))) {
-        equal_p = 0;
+      return mrb_false_value();
     }
     else {
-      equal_p = mrb_equal(mrb, ary2, ary1);
+      return mrb_bool_value(mrb_equal(mrb, ary2, ary1));
     }
   }
-  else if (RARRAY_LEN(ary1) != RARRAY_LEN(ary2)) {
-    equal_p = 0;
-  }
-  else {
-    mrb_int i;
-
-    equal_p = 1;
-    for (i=0; i<RARRAY_LEN(ary1); i++) {
-      if (!mrb_equal(mrb, ary_elt(ary1, i), ary_elt(ary2, i))) {
-        equal_p = 0;
-        break;
-      }
+  if (RARRAY_LEN(ary1) != RARRAY_LEN(ary2)) return mrb_false_value();
+  for (i=0; i<RARRAY_LEN(ary1); i++) {
+    if (!mrb_equal(mrb, ary_elt(ary1, i), ary_elt(ary2, i))) {
+      return mrb_false_value();
     }
   }
-
-  return mrb_bool_value(equal_p);
+  return mrb_true_value();
 }
 
 /* 15.2.12.5.34 (x) */
@@ -1104,30 +1091,18 @@ static mrb_value
 mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
 {
   mrb_value ary2;
-  mrb_bool eql_p;
+  mrb_int i;
 
   mrb_get_args(mrb, "o", &ary2);
-  if (mrb_obj_equal(mrb, ary1, ary2)) {
-    eql_p = 1;
-  }
-  else if (!mrb_array_p(ary2)) {
-    eql_p = 0;
-  }
-  else if (RARRAY_LEN(ary1) != RARRAY_LEN(ary2)) {
-    eql_p = 0;
-  }
-  else {
-    mrb_int i;
-    eql_p = 1;
-    for (i=0; i<RARRAY_LEN(ary1); i++) {
-      if (!mrb_eql(mrb, ary_elt(ary1, i), ary_elt(ary2, i))) {
-        eql_p = 0;
-        break;
-      }
+  if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_true_value();
+  if (!mrb_array_p(ary2)) return mrb_false_value();
+  if (RARRAY_LEN(ary1) != RARRAY_LEN(ary2)) return mrb_false_value();
+  for (i=0; i<RARRAY_LEN(ary1); i++) {
+    if (!mrb_eql(mrb, ary_elt(ary1, i), ary_elt(ary2, i))) {
+      return mrb_false_value();
     }
   }
-
-  return mrb_bool_value(eql_p);
+  return mrb_true_value();
 }
 
 void
