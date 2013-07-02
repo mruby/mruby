@@ -218,6 +218,8 @@ struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, co
 #define ARGS_NONE()         MRB_ARGS_NONE()
 
 int mrb_get_args(mrb_state *mrb, const char *format, ...);
+int mrb_retrieve_values(mrb_state *mrb, int argc, mrb_value *sp, const char *format, ...);
+
 
 mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, int,...);
 mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, int, mrb_value*);

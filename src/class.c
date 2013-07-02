@@ -366,6 +366,8 @@ to_hash(mrb_state *mrb, mrb_value val)
   return check_type(mrb, val, MRB_TT_HASH, "Hash", "to_hash");
 }
 
+static int mrb_retrieve_values_v(mrb_state *, int, mrb_value *, const char *, va_list);
+
 /*
   retrieve arguments from mrb_state.
 
@@ -393,12 +395,9 @@ to_hash(mrb_state *mrb, mrb_value val)
 int
 mrb_get_args(mrb_state *mrb, const char *format, ...)
 {
-  char c;
-  int i = 0;
   mrb_value *sp = mrb->c->stack + 1;
   va_list ap;
   int argc = mrb->c->ci->argc;
-  int opt = 0;
 
   va_start(ap, format);
   if (argc < 0) {
@@ -407,6 +406,25 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     argc = a->len;
     sp = a->ptr;
   }
+  return mrb_retrieve_values_v(mrb, argc, sp, format, ap);
+}
+
+int
+mrb_retrive_values(mrb_state *mrb, int argc, mrb_value *sp, const char *format, ...)
+{
+  va_list ap;
+
+  va_start(ap, format);
+  return mrb_retrieve_values_v(mrb, argc, sp, format, ap);
+}
+
+static int
+mrb_retrieve_values_v(mrb_state *mrb, int argc, mrb_value *sp, const char *format, va_list ap)
+{
+  char c;
+  int i = 0;
+  int opt = 0;
+
   while ((c = *format++)) {
     switch (c) {
     case '|': case '*': case '&':
