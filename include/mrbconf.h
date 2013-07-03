@@ -7,9 +7,6 @@
 #ifndef MRUBYCONF_H
 #define MRUBYCONF_H
 
-#include <stdint.h>
-#include <stddef.h>
-
 /* configuration options: */
 /* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
 //#define MRB_USE_FLOAT
@@ -67,77 +64,12 @@
 
 /* end of configuration */
 
-#ifdef MRB_USE_FLOAT
-  typedef float mrb_float;
-# define mrb_float_to_str(buf, i) sprintf(buf, "%.7e", i)
-# define str_to_mrb_float(buf) strtof(buf, NULL)
-#else
-  typedef double mrb_float;
-# define mrb_float_to_str(buf, i) sprintf(buf, "%.16e", i)
-# define str_to_mrb_float(buf) strtod(buf, NULL)
-#endif
-
-#if defined(MRB_INT16) && defined(MRB_INT64)
-# error "You can't define MRB_INT16 and MRB_INT64 at the same time."
-#endif
-
-#if defined(MRB_INT64)
-# ifdef MRB_NAN_BOXING
-#  error Cannot use NaN boxing when mrb_int is 64bit
-# else
-   typedef int64_t mrb_int;
-#  define MRB_INT_MIN INT64_MIN
-#  define MRB_INT_MAX INT64_MAX
-#  define PRIdMRB_INT PRId64
-#  define PRIiMRB_INT PRIi64
-#  define PRIoMRB_INT PRIo64
-#  define PRIxMRB_INT PRIx64
-#  define PRIXMRB_INT PRIX64
-# endif
-#elif defined(MRB_INT16)
-  typedef int16_t mrb_int;
-# define MRB_INT_MIN INT16_MIN
-# define MRB_INT_MAX INT16_MAX
-#else
-  typedef int32_t mrb_int;
-# define MRB_INT_MIN INT32_MIN
-# define MRB_INT_MAX INT32_MAX
-# define PRIdMRB_INT PRId32
-# define PRIiMRB_INT PRIi32
-# define PRIoMRB_INT PRIo32
-# define PRIxMRB_INT PRIx32
-# define PRIXMRB_INT PRIX32
-#endif
-typedef short mrb_sym;
-
 /* define ENABLE_XXXX from DISABLE_XXX */
 #ifndef DISABLE_STDIO
 #define ENABLE_STDIO
 #endif
 #ifndef ENABLE_DEBUG
 #define DISABLE_DEBUG
-#endif
-
-#ifdef _MSC_VER
-# define _ALLOW_KEYWORD_MACROS
-# include <float.h>
-# define inline __inline
-# define snprintf _snprintf
-# define isnan _isnan
-# define isinf(n) (!_finite(n) && !_isnan(n))
-# define strtoll _strtoi64
-# define PRId32 "I32d"
-# define PRIi32 "I32i"
-# define PRIo32 "I32o"
-# define PRIx32 "I32x"
-# define PRIX32 "I32X"
-# define PRId64 "I64d"
-# define PRIi64 "I64i"
-# define PRIo64 "I64o"
-# define PRIx64 "I64x"
-# define PRIX64 "I64X"
-#else
-# include <inttypes.h>
 #endif
 
 #ifdef ENABLE_STDIO

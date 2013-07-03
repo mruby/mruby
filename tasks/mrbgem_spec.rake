@@ -81,7 +81,7 @@ module MRuby
         instance_eval(&@build_config_initializer) if @build_config_initializer
 
         compilers.each do |compiler|
-          compiler.define_rules build_dir, "#{dir}/"
+          compiler.define_rules build_dir, "#{dir}"
         end
 
         define_gem_init_builder

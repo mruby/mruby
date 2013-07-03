@@ -32,8 +32,10 @@
 extern "C" {
 #endif
 
-#include "mrbconf.h"
+#include <stdint.h>
+#include <stddef.h>
 
+#include "mrbconf.h"
 #include "mruby/value.h"
 
 typedef uint32_t mrb_code;
@@ -176,6 +178,7 @@ struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
 struct RClass * mrb_module_new(mrb_state *mrb);
 int mrb_class_defined(mrb_state *mrb, const char *name);
 struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
+struct RClass * mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
 mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
@@ -237,9 +240,11 @@ mrb_sym mrb_intern(mrb_state *mrb,const char *cstr)
   return mrb_intern_cstr(mrb, cstr);
 }
 
-void *mrb_malloc(mrb_state*, size_t);
-void *mrb_calloc(mrb_state*, size_t, size_t);
-void *mrb_realloc(mrb_state*, void*, size_t);
+void *mrb_malloc(mrb_state*, size_t);         /* raise RuntimeError if no mem */
+void *mrb_calloc(mrb_state*, size_t, size_t); /* ditto */
+void *mrb_realloc(mrb_state*, void*, size_t); /* ditto */
+void *mrb_realloc_simple(mrb_state*, void*, size_t); /* return NULL if no memory available */
+void *mrb_malloc_simple(mrb_state*, size_t);  /* return NULL if no memory available */
 struct RBasic *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*);
 void mrb_free(mrb_state*, void*);
 

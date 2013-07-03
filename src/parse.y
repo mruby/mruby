@@ -3293,7 +3293,7 @@ peek_n(parser_state *p, int c, int n)
     list = push(list, (node*)(intptr_t)c0);
   } while(n--);
   if (p->pb) {
-    p->pb = push(p->pb, (node*)list);
+    p->pb = append(p->pb, (node*)list);
   }
   else {
     p->pb = list;
@@ -3620,12 +3620,14 @@ parse_string(parser_state *p)
 	  tokadd(p, '\n');
 	}
 	else {
-	  pushback(p, c);
-
-	  if(type & STR_FUNC_REGEXP)
+	  if (type & STR_FUNC_REGEXP) {
 	    tokadd(p, '\\');
-
-	  tokadd(p, read_escape(p));
+	    if (c != -1)
+	      tokadd(p, c);
+	  } else {
+	    pushback(p, c);
+	    tokadd(p, read_escape(p));
+	  }
 	  if (hinf)
 	    hinf->line_head = FALSE;
 	}
@@ -4925,7 +4927,7 @@ parser_yylex(parser_state *p)
 	    pushback(p, c);
 	  }
 	}
-	if (result == 0 && isupper((int)tok(p)[0])) {
+	if (result == 0 && isupper((int)(unsigned char)tok(p)[0])) {
 	  result = tCONSTANT;
 	}
 	else {

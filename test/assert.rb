@@ -62,7 +62,7 @@ def assert(str = 'Assertion failed', iso = '')
       $asserts.push(assertion_string('Error: ', str, iso, e))
       $kill_test += 1
       t_print('X')
-	end
+  end
   ensure
     $mrbtest_assert = nil
   end
@@ -99,10 +99,28 @@ def assert_false(ret, msg = nil, diff = nil)
   !ret
 end
 
-def assert_equal(exp, act, msg = nil)
+def assert_equal(arg1, arg2 = nil, arg3 = nil)
+  if block_given?
+    exp, act, msg = yield, arg1, arg2
+  else
+    exp, act, msg = arg1, arg2, arg3
+  end
+  
   msg = "Expected to be equal" unless msg
   diff = assertion_diff(exp, act)
   assert_true(exp == act, msg, diff)
+end
+
+def assert_not_equal(arg1, arg2 = nil, arg3 = nil)
+  if block_given?
+    exp, act, msg = yield, arg1, arg2
+  else
+    exp, act, msg = arg1, arg2, arg3
+  end
+
+  msg = "Expected to be not equal" unless msg
+  diff = assertion_diff(exp, act)
+  assert_false(exp == act, msg, diff)
 end
 
 def assert_nil(obj, msg = nil)
@@ -116,6 +134,13 @@ def assert_include(collection, obj, msg = nil)
   diff = "    Collection: #{collection.inspect}\n" +
          "        Object: #{obj.inspect}"
   assert_true(collection.include?(obj), msg, diff)
+end
+
+def assert_not_include(collection, obj, msg = nil)
+  msg = "Expected #{collection.inspect} to not include #{obj.inspect}" unless msg
+  diff = "    Collection: #{collection.inspect}\n" +
+         "        Object: #{obj.inspect}"
+  assert_false(collection.include?(obj), msg, diff)
 end
 
 def assert_raise(*exp)
@@ -154,6 +179,14 @@ def assert_kind_of(cls, obj, msg = nil)
   msg = "Expected #{obj.inspect} to be a kind of #{cls}, not #{obj.class}" unless msg
   diff = assertion_diff(cls, obj.class)
   assert_true(obj.kind_of?(cls), msg, diff)
+end
+
+##
+# Fails unless +exp+ is equal to +act+ in terms of a Float
+def assert_float(exp, act, msg = nil)
+  msg = "Float #{exp} expected to be equal to float #{act}" unless msg
+  diff = assertion_diff(exp, act)
+  assert_true check_float(exp, act), msg, diff
 end
 
 ##

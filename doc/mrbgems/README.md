@@ -29,10 +29,10 @@ NOTE: `:bitbucket` option supports only git. Hg is unsupported in this version.
 
 ## GemBox
 
-There are instances when you wish to add a collection of gems into mruby at 
-once, or be able to substitute gems based on configuration, without having to
+There are instances when you wish to add a collection of mrbgems into mruby at 
+once, or be able to substitute mrbgems based on configuration, without having to
 add each gem to the *build_config.rb* file.  A packaged collection of mrbgems 
-is called a GemBox.  A GemBox is a file that contains a list of gems to load 
+is called a GemBox.  A GemBox is a file that contains a list of mrbgems to load 
 into mruby, in the same format as if you were adding them to *build_config.rb*
 via `config.gem`, but wrapped in an `MRuby::GemBox` object.  GemBoxes are 
 loaded into mruby via `config.gembox 'boxname'`.
@@ -56,6 +56,11 @@ the build block:
 
 This will cause the *custom* GemBox to be read in during the build process,
 adding *mruby-time* and *mrbgems-example* to the build.
+
+If you want, you can put GemBox outside of mruby directory. In that case you must 
+specify absolute path like below.
+
+	conf.gembox "#{ENV["HOME"]}/mygemboxes/custom"
 
 There are two GemBoxes that ship with mruby: [default](../../mrbgems/default.gembox)
 and [full-core](../../mrbgems/full-core.gembox). The [default](../../mrbgems/default.gembox) GemBox
@@ -86,8 +91,8 @@ of your GEM.
 
 ## Build process
 
-mrbgems expects a specifcation file called *mrbgem.rake* inside of your
-GEM direcotry. A typical GEM specification could look like this for example:
+mrbgems expects a specification file called *mrbgem.rake* inside of your
+GEM directory. A typical GEM specification could look like this for example:
 
 	MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
 	  spec.license = 'MIT'
@@ -95,8 +100,8 @@ GEM direcotry. A typical GEM specification could look like this for example:
 	end
 
 The mrbgems build process will use this specification to compile Object and Ruby
-files. The compilation results will be add to *lib/libmruby.a*. This file is used
-by tools like `mruby` and `mirb` to empower the GEM functionality.
+files. The compilation results will be added to *lib/libmruby.a*. This file exposes
+the GEM functionality to tools like `mruby` and `mirb`.
 
 The following properties can be set inside of your `MRuby::Gem::Specification` for
 information purpose:
@@ -109,7 +114,7 @@ information purpose:
 * `spec.homepage` (Homepage)
 * `spec.requirements` (External requirements as information for user)
 
-It is required for every GEM to have a license and an author!
+The license and author properties are required in every GEM!
 
 In case your GEM is depending on other GEMs please use
 `spec.add_dependency(gem, *requirements)` like:

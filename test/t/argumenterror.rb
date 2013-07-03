@@ -11,10 +11,11 @@ assert('ArgumentError', '15.2.24') do
     e2 = e1
   end
 
-  ArgumentError.class == Class and e2.class == ArgumentError
+  assert_equal(ArgumentError.class, Class)
+  assert_equal(e2.class, ArgumentError)
 end
 
 assert('ArgumentError superclass', '15.2.24.2') do
-  ArgumentError.superclass == StandardError
+  assert_equal(ArgumentError.superclass, StandardError)
 end
 
