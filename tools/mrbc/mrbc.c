@@ -21,6 +21,7 @@ struct mrbc_args {
   const char *prog;
   const char *outfile;
   const char *initname;
+  int endian;
   mrb_bool check_syntax : 1;
   mrb_bool verbose      : 1;
   mrb_bool debug_info   : 1;
@@ -36,6 +37,7 @@ usage(const char *name)
   "-v           print version number, then turn on verbose mode",
   "-g           produce debugging information",
   "-B<symbol>   binary <symbol> output in C language format",
+  "-E<endian>   endian for C language format. neutral|little|big",
   "--verbose    run at verbose mode",
   "--version    print the version",
   "--copyright  print the copyright",
@@ -104,6 +106,21 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
         }
         if (*args->initname == '\0') {
           fprintf(stderr, "%s: function name is not specified.\n", args->prog);
+          return -1;
+        }
+        break;
+      case 'E':
+        if (strcmp(argv[i]+2, "neutral") == 0) {
+          args->endian = RITE_ISEQ_ENDIAN_NEUTRAL;
+        }
+        else if (strcmp(argv[i]+2, "little") == 0) {
+          args->endian = RITE_ISEQ_ENDIAN_LITTLE;
+        }
+        else if (strcmp(argv[i]+2, "big") == 0) {
+          args->endian = RITE_ISEQ_ENDIAN_BIG;
+        }
+        else{
+          fprintf(stderr,"%s: endian should be neutral,little,or big\n", args->prog);
           return -1;
         }
         break;
@@ -217,7 +234,7 @@ dump_file(mrb_state *mrb, FILE *wfp, const char *outfile, struct mrbc_args *args
   int n = MRB_DUMP_OK;
 
   if (args->initname) {
-    n = mrb_dump_irep_cfunc(mrb, 0, args->debug_info, wfp, args->initname);
+    n = mrb_dump_irep_cfunc(mrb, 0, args->debug_info, args->endian, wfp, args->initname);
     if (n == MRB_DUMP_INVALID_ARGUMENT) {
       fprintf(stderr, "%s: invalid C language symbol name\n", args->initname);
     }

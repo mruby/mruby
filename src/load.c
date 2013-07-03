@@ -29,6 +29,13 @@
 # error This code assumes CHAR_BIT == 8
 #endif
 
+static int
+check_endian()
+{
+    uint32_t val = 0x12345678;
+    return (*((uint8_t *)&val) == 0x78) ? RITE_ISEQ_ENDIAN_LITTLE : RITE_ISEQ_ENDIAN_BIG;
+}
+
 static void
 irep_free(size_t sirep, mrb_state *mrb)
 {
@@ -62,7 +69,7 @@ offset_crc_body(void)
 }
 
 static int
-read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
+read_rite_irep_record(mrb_state *mrb, int endian, const uint8_t *bin, uint32_t *len)
 {
   int ret;
   size_t i;
@@ -92,14 +99,22 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
       ret = MRB_DUMP_GENERAL_FAILURE;
       goto error_exit;
     }
-    irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);
-    if (irep->iseq == NULL) {
-      ret = MRB_DUMP_GENERAL_FAILURE;
-      goto error_exit;
+
+    if (endian == RITE_ISEQ_ENDIAN_NEUTRAL){
+      irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);
+      if (irep->iseq == NULL) {
+        ret = MRB_DUMP_GENERAL_FAILURE;
+        goto error_exit;
+      }
+      for (i = 0; i < irep->ilen; i++) {
+        irep->iseq[i] = bin_to_uint32(src);     //iseq
+        src += sizeof(uint32_t);
+      }
     }
-    for (i = 0; i < irep->ilen; i++) {
-      irep->iseq[i] = bin_to_uint32(src);     //iseq
-      src += sizeof(uint32_t);
+    else{
+      irep->iseq = (mrb_code *)src;
+      irep->flags |= MRB_ISEQ_NO_FREE;
+      src += sizeof(uint32_t) * irep->ilen;
     }
   }
 
@@ -183,7 +198,7 @@ error_exit:
 }
 
 static int
-read_rite_section_irep(mrb_state *mrb, const uint8_t *bin)
+read_rite_section_irep(mrb_state *mrb, int endian, const uint8_t *bin)
 {
   int result;
   size_t sirep;
@@ -200,7 +215,7 @@ read_rite_section_irep(mrb_state *mrb, const uint8_t *bin)
 
   //Read Binary Data Section
   for (n = 0; n < nirep; n++) {
-    result = read_rite_irep_record(mrb, bin, &len);
+    result = read_rite_irep_record(mrb, endian, bin, &len);
     if (result != MRB_DUMP_OK)
       goto error_exit;
     bin += len;
@@ -301,7 +316,7 @@ error_exit:
 
 
 static int
-read_rite_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc)
+read_rite_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc, int *endian)
 {
   const struct rite_binary_header *header = (const struct rite_binary_header *)bin;
 
@@ -311,6 +326,15 @@ read_rite_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc)
 
   if (memcmp(header->binary_version, RITE_BINARY_FORMAT_VER, sizeof(header->binary_version)) != 0) {
     return MRB_DUMP_INVALID_FILE_HEADER;
+  }
+
+  if (endian) {
+    if (header->endian != RITE_ISEQ_ENDIAN_NEUTRAL) {
+      if (header->endian != check_endian())
+        return MRB_DUMP_ENDIAN_MISMATCH;
+    }
+
+    *endian = header->endian;
   }
 
   *crc = bin_to_uint16(header->binary_crc);
@@ -329,6 +353,7 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
   const struct rite_section_header *section_header;
   uint16_t crc;
   size_t bin_size = 0;
+  int endian;
   size_t n;
   size_t sirep;
 
@@ -336,7 +361,7 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
-  result = read_rite_binary_header(bin, &bin_size, &crc);
+  result = read_rite_binary_header(bin, &bin_size, &crc, &endian);
   if (result != MRB_DUMP_OK) {
     return result;
   }
@@ -352,7 +377,7 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
   do {
     section_header = (const struct rite_section_header *)bin;
     if (memcmp(section_header->section_identify, RITE_SECTION_IREP_IDENTIFIER, sizeof(section_header->section_identify)) == 0) {
-      result = read_rite_section_irep(mrb, bin);
+      result = read_rite_section_irep(mrb, endian, bin);
       if (result < MRB_DUMP_OK) {
         return result;
       }
@@ -509,7 +534,7 @@ read_rite_section_irep_file(mrb_state *mrb, FILE *fp)
       result = MRB_DUMP_READ_FAULT;
       goto error_exit;
     }
-    result = read_rite_irep_record(mrb, buf, &len);
+    result = read_rite_irep_record(mrb, RITE_ISEQ_ENDIAN_NEUTRAL, buf, &len);
     if (result != MRB_DUMP_OK)
       goto error_exit;
   }
@@ -555,7 +580,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
     mrb_free(mrb, buf);
     return MRB_DUMP_READ_FAULT;
   }
-  result = read_rite_binary_header(buf, NULL, &crc);
+  result = read_rite_binary_header(buf, NULL, &crc, NULL);
   mrb_free(mrb, buf);
   if (result != MRB_DUMP_OK) {
     return result;

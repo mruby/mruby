@@ -44,7 +44,7 @@ module MRuby
     include Rake::DSL
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator
-    attr_reader :libmruby, :gems
+    attr_reader :libmruby, :gems, :endian
 
     COMPILERS = %w(cc cxx objc asm)
     COMMANDS = COMPILERS + %w(linker archiver yacc gperf git exts mrbc)
@@ -89,6 +89,10 @@ module MRuby
       tc = Toolchain.toolchains[name.to_s]
       fail "Unknown #{name} toolchain" unless tc
       tc.setup(self)
+    end
+
+    def endian(name)
+      @mrbc.endian = name.to_s
     end
 
     def root

@@ -15,7 +15,7 @@ extern "C" {
 
 #ifdef ENABLE_STDIO
 int mrb_dump_irep_binary(mrb_state*, size_t, int, FILE*);
-int mrb_dump_irep_cfunc(mrb_state *mrb, size_t n, int, FILE *f, const char *initname);
+int mrb_dump_irep_cfunc(mrb_state *mrb, size_t n, int, int, FILE *f, const char *initname);
 int32_t mrb_read_irep_file(mrb_state*, FILE*);
 #endif
 int32_t mrb_read_irep(mrb_state*, const uint8_t*);
@@ -37,6 +37,7 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 #define MRB_DUMP_INVALID_FILE_HEADER  -5
 #define MRB_DUMP_INVALID_IREP         -6
 #define MRB_DUMP_INVALID_ARGUMENT     -7
+#define MRB_DUMP_ENDIAN_MISMATCH      -8
 
 /* null symbol length */
 #define MRB_DUMP_NULL_SYM_LEN         0xFFFF
@@ -55,6 +56,10 @@ mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 
 #define MRB_DUMP_DEFAULT_STR_LEN      128
 
+#define RITE_ISEQ_ENDIAN_NEUTRAL  0
+#define RITE_ISEQ_ENDIAN_LITTLE   1
+#define RITE_ISEQ_ENDIAN_BIG      2
+
 // binary header
 struct rite_binary_header {
   uint8_t binary_identify[4]; // Binary Identifier
@@ -63,6 +68,7 @@ struct rite_binary_header {
   uint8_t binary_size[4];     // Binary Size
   uint8_t compiler_name[4];   // Compiler name
   uint8_t compiler_version[4];
+  uint8_t endian;
 };
 
 // section header
@@ -139,6 +145,24 @@ bin_to_uint8(const uint8_t *bin)
 {
   return (uint8_t)bin[0];
 }
+
+static inline int
+uint32_to_little(uint32_t l, uint8_t *bin)
+{
+  *bin++ = l & 0xff;
+  *bin++ = (l >> 8) & 0xff;
+  *bin++ = (l >> 16) & 0xff;
+  *bin = (l >>24) & 0xff;
+
+  return sizeof(uint32_t);
+}
+
+static inline int
+uint32_to_big(uint32_t l, uint8_t *bin)
+{
+  return uint32_to_bin(l, bin);
+}
+
 
 #if defined(__cplusplus)
 }  /* extern "C" { */
