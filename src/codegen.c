@@ -2505,7 +2505,8 @@ codedump(mrb_state *mrb, int n)
 {
 #ifdef ENABLE_STDIO
   mrb_irep *irep = mrb->irep[n];
-  int i, ai;
+  uint32_t i;
+  int ai;
   mrb_code c;
 
   if (!irep) return;
