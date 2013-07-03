@@ -59,7 +59,7 @@ typedef struct scope {
   int icapa;
 
   mrb_irep *irep;
-  int pcapa;
+  size_t pcapa;
   int scapa;
 
   int nlocals;
