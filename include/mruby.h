@@ -73,15 +73,15 @@ enum mrb_fiber_state {
 struct mrb_context {
   struct mrb_context *prev;
 
-  mrb_value *stack;
+  mrb_value *stack;                       /* stack of virtual machine */
   mrb_value *stbase, *stend;
 
   mrb_callinfo *ci;
   mrb_callinfo *cibase, *ciend;
 
-  mrb_code **rescue;
+  mrb_code **rescue;                      /* exception handler stack */
   int rsize;
-  struct RProc **ensure;
+  struct RProc **ensure;                  /* ensure handler stack */
   int esize;
 
   uint8_t status;
@@ -97,19 +97,19 @@ enum gc_state {
 typedef struct mrb_state {
   void *jmp;
 
-  mrb_allocf allocf;
+  mrb_allocf allocf;                      /* memory allocation function */
 
   struct mrb_context *c;
   struct mrb_context *root_c;
 
-  struct RObject *exc;
-  struct iv_tbl *globals;
-  struct mrb_irep **irep;
+  struct RObject *exc;                    /* exception */
+  struct iv_tbl *globals;                 /* global variable table */
+  struct mrb_irep **irep;                 /* program data array */
   size_t irep_len, irep_capa;
 
   mrb_sym init_sym;
   struct RObject *top_self;
-  struct RClass *object_class;
+  struct RClass *object_class;            /* Object class */
   struct RClass *class_class;
   struct RClass *module_class;
   struct RClass *proc_class;
@@ -125,11 +125,11 @@ typedef struct mrb_state {
   struct RClass *symbol_class;
   struct RClass *kernel_module;
 
-  struct heap_page *heaps;
+  struct heap_page *heaps;                /* heaps for GC */
   struct heap_page *sweeps;
   struct heap_page *free_heaps;
   size_t live; /* count of live objects */
-  struct RBasic *arena[MRB_ARENA_SIZE];
+  struct RBasic *arena[MRB_ARENA_SIZE];   /* GC protection array */
   int arena_idx;
 
   enum gc_state gc_state; /* state of gc */
