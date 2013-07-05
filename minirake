@@ -317,6 +317,8 @@ class RakeApp
       "Require MODULE before executing rakefile."],
     ['--tasks',    '-T', GetoptLong::NO_ARGUMENT,
       "Display the tasks and dependencies, then exit."],
+    ['--pull_gems','-p', GetoptLong::NO_ARGUMENT,
+      "Pull all git mrbgems."],
     ['--trace',    '-t', GetoptLong::NO_ARGUMENT,
       "Turn on invoke/execute tracing."],
     ['--usage',    '-h', GetoptLong::NO_ARGUMENT,
@@ -401,6 +403,8 @@ class RakeApp
       require value
     when '--tasks'
       $show_tasks = true
+    when '--pull_gems'
+      $pull_gems = true
     when '--trace'
       $trace = true
     when '--usage'
@@ -419,6 +423,7 @@ class RakeApp
   # Read and handle the command line options.
   def handle_options
     $verbose = false
+    $pull_gems = false
     opts = GetoptLong.new(*command_line_options)
     opts.each { |opt, value| do_option(opt, value) }
   end

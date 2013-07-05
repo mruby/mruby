@@ -334,8 +334,7 @@ static int
 write_lineno_record(mrb_state *mrb, mrb_irep *irep, uint8_t* bin)
 {
   uint8_t *cur = bin;
-  size_t filename_len = 0;
-  int iseq_no;
+  size_t filename_len = 0, iseq_no;
 
   cur += sizeof(uint32_t); /* record size */
 
@@ -365,13 +364,13 @@ write_lineno_record(mrb_state *mrb, mrb_irep *irep, uint8_t* bin)
 }
 
 static int
-mrb_write_section_lineno(mrb_state *mrb, int start_index, uint8_t *bin)
+mrb_write_section_lineno(mrb_state *mrb, size_t start_index, uint8_t *bin)
 {
-  int irep_no;
+  size_t irep_no;
   uint32_t section_size = 0, rlen = 0; /* size of irep record */
   uint8_t *cur = bin;
 
-  if (mrb == NULL || start_index < 0 || start_index >= mrb->irep_len || bin == NULL) {
+  if (mrb == NULL || start_index >= mrb->irep_len || bin == NULL) {
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 

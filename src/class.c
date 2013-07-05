@@ -159,9 +159,7 @@ mrb_define_class_id(mrb_state *mrb, mrb_sym name, struct RClass *super)
 struct RClass*
 mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
 {
-  struct RClass *c;
-  c = mrb_define_class_id(mrb, mrb_intern(mrb, name), super);
-  return c;
+  return mrb_define_class_id(mrb, mrb_intern(mrb, name), super);
 }
 
 struct RClass*
@@ -227,7 +225,13 @@ class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 struct RClass *
 mrb_class_get(mrb_state *mrb, const char *name)
 {
-  return class_from_sym(mrb, mrb->object_class, mrb_intern(mrb, name));
+  return mrb_class_get_under(mrb, mrb->object_class, name);
+}
+
+struct RClass *
+mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name)
+{
+  return class_from_sym(mrb, outer, mrb_intern(mrb, name));
 }
 
 /*!
@@ -371,20 +375,22 @@ to_hash(mrb_state *mrb, mrb_value val)
 
   format specifiers:
 
-   o: Object [mrb_value]
-   S: String [mrb_value]
-   A: Array [mrb_value]
-   H: Hash [mrb_value]
-   s: String [char*,int]
-   z: String [char*]
-   a: Array [mrb_value*,mrb_int]
-   f: Float [mrb_float]
-   i: Integer [mrb_int]
-   b: Boolean [mrb_bool]
-   n: Symbol [mrb_sym]
-   &: Block [mrb_value]
-   *: rest argument [mrb_value*,int]
-   |: optional
+    string  mruby type     C type                 note
+    ----------------------------------------------------------------------------------------------
+    o:      Object         [mrb_value]
+    S:      String         [mrb_value]
+    A:      Array          [mrb_value]
+    H:      Hash           [mrb_value]
+    s:      String         [char*,int]            Receive two arguments.
+    z:      String         [char*]                NUL terminated string.
+    a:      Array          [mrb_value*,mrb_int]   Receive two arguments.
+    f:      Float          [mrb_float]
+    i:      Integer        [mrb_int]
+    b:      Boolean        [mrb_bool]
+    n:      Symbol         [mrb_sym]
+    &:      Block          [mrb_value]
+    *:      rest argument  [mrb_value*,int]       Receive the rest of the arguments as an array.
+    |:      optional                              Next argument of '|' and later are optional.
  */
 int
 mrb_get_args(mrb_state *mrb, const char *format, ...)
@@ -487,7 +493,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         if (i < argc) {
           ss = to_str(mrb, *sp++);
           s = mrb_str_ptr(ss);
-          if (strlen(s->ptr) != s->len) {
+          if (strlen(s->ptr) < s->len) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "String contains NUL");
           }
           *ps = s->ptr;

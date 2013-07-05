@@ -6,7 +6,7 @@
 
 #include <limits.h>
 #include <stdint.h>
-#include <sys/types.h>
+#include <stddef.h>
 
 // Calculate CRC (CRC-16-CCITT)
 //
