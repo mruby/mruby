@@ -25,6 +25,9 @@ A remote GIT repository location for a GEM is also supported:
 
 	conf.gem :bitbucket => 'mruby/mrbgems-example', :branch => 'master'
 
+To pull all gems from remote GIT repository on build, call ```./minirake -p```, 
+or ```./minirake --pull_gems```.
+
 NOTE: `:bitbucket` option supports only git. Hg is unsupported in this version.
 
 ## GemBox
