@@ -33,7 +33,8 @@ customized path using the *$MRUBY_CONFIG* environment variable.
 
 To compile just call ```./minirake``` inside of the mruby source root. To
 generate and execute the test tools call ```./minirake test```. To clean
-all build files call ```./minirake clean```.
+all build files call ```./minirake clean```. To see full command line on 
+build, call ```./minirake -v```.
 
 ## Build Configuration
 
