@@ -177,6 +177,7 @@ Integrate GEMs in the build process.
 	conf.gem 'path/to/another/gem'
 
 
+See doc/mrbgems/README.md for more option about mrbgems.
 ### Mrbtest
 
 Configuration Mrbtest build process.
