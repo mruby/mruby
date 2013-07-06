@@ -104,6 +104,14 @@ assert('Integer#<<', '15.2.8.3.12') do
   #   00010111 (23)
   # = 00101110 (46)
   assert_equal 23 << 1, 46
+
+  # Left Shift by a negative is Right Shift
+  assert_equal 46 << -1, 23
+
+  # Raise when shift is too large
+  assert_raise(RangeError) do
+    2 << 128
+  end
 end
 
 assert('Integer#>>', '15.2.8.3.13') do
@@ -111,6 +119,17 @@ assert('Integer#>>', '15.2.8.3.13') do
   #   00101110 (46)
   # = 00010111 (23)
   assert_equal 46 >> 1, 23
+
+  # Right Shift by a negative is Left Shift
+  assert_equal 23 >> -1, 46
+
+  # Don't raise on large Right Shift
+  assert_equal 23 >> 128, 0
+
+  # Raise when shift is too large
+  assert_raise(RangeError) do
+    2 >> -128
+  end
 end
 
 assert('Integer#ceil', '15.2.8.3.14') do
