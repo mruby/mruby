@@ -1075,6 +1075,7 @@ mrb_class_new_class(mrb_state *mrb, mrb_value cv)
     super = mrb_obj_value(mrb->object_class);
   }
   new_class = mrb_class_new(mrb, mrb_class_ptr(super));
+  mrb_funcall(mrb, super, "inherited", 1, mrb_obj_value(new_class));
   return mrb_obj_value(new_class);
 }
 
