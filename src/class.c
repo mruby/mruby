@@ -493,7 +493,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         if (i < argc) {
           ss = to_str(mrb, *sp++);
           s = mrb_str_ptr(ss);
-          if (strlen(s->ptr) < s->len) {
+          if (strlen(s->ptr) < (size_t)s->len) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "String contains NUL");
           }
           *ps = s->ptr;
