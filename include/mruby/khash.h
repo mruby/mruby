@@ -161,7 +161,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
       kh_alloc_##name(h);                                               \
       /* relocate */                                                    \
       for (i=0 ; i<old_n_buckets ; i++) {                               \
-        if (!__ac_isempty(old_ed_flags, i)) {                           \
+        if (!__ac_iseither(old_ed_flags, i)) {                          \
           khint_t k = kh_put_##name(h, old_keys[i]);                    \
           kh_value(h,k) = old_vals[i];                                  \
         }                                                               \
