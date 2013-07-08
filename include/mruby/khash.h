@@ -97,12 +97,13 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
   void kh_alloc_##name(kh_##name##_t *h)                                \
   {                                                                     \
     khint_t sz = h->n_buckets;                                          \
+    uint8_t *p = mrb_malloc(h->mrb, sizeof(uint8_t)*sz/4+(sizeof(khkey_t)+sizeof(khval_t))*sz); \
     h->size = h->n_occupied = 0;                                        \
     h->upper_bound = UPPER_BOUND(sz);                                   \
-    h->ed_flags = (uint8_t *)mrb_malloc(h->mrb, sizeof(uint8_t)*sz/4);  \
+    h->ed_flags = p;                                                    \
     kh_fill_flags(h->ed_flags, 0xaa, sz/4);                             \
-    h->keys = (khkey_t *)mrb_malloc(h->mrb, sizeof(khkey_t)*sz);        \
-    h->vals = (khval_t *)mrb_malloc(h->mrb, sizeof(khval_t)*sz);        \
+    h->keys = (khkey_t *)(p+sizeof(uint8_t)*sz/4);                      \
+    h->vals = (khval_t *)(p+sizeof(uint8_t)*sz/4+sizeof(khkey_t)*sz);   \
     h->mask = sz-1;                                                     \
     h->inc = sz/2-1;                                                    \
   }                                                                     \
@@ -122,8 +123,6 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
   void kh_destroy_##name(kh_##name##_t *h)                              \
   {                                                                     \
     if (h) {                                                            \
-      mrb_free(h->mrb, h->keys);                                        \
-      mrb_free(h->mrb, h->vals);                                        \
       mrb_free(h->mrb, h->ed_flags);                                    \
       mrb_free(h->mrb, h);                                              \
     }                                                                   \
@@ -167,8 +166,6 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
         }                                                               \
       }                                                                 \
       mrb_free(h->mrb, old_ed_flags);                                   \
-      mrb_free(h->mrb, old_keys);                                       \
-      mrb_free(h->mrb, old_vals);                                       \
     }                                                                   \
   }                                                                     \
   khint_t kh_put_##name(kh_##name##_t *h, khkey_t key)                  \
