@@ -172,9 +172,6 @@ true_to_s(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_or(mrb_state *mrb, mrb_value obj)
 {
-  mrb_bool obj2;
-
-  mrb_get_args(mrb, "b", &obj2);
   return mrb_true_value();
 }
 
@@ -203,9 +200,6 @@ true_or(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_and(mrb_state *mrb, mrb_value obj)
 {
-  mrb_bool obj2;
-
-  mrb_get_args(mrb, "b", &obj2);
   return mrb_false_value();
 }
 
