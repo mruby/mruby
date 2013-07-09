@@ -41,20 +41,21 @@ MRuby::Toolchain.new(:androideabi) do |conf|
   end
 
   if ANDROID_STANDALONE_TOOLCHAIN == nil then
-    if RUBY_PLATFORM.include?('darwin') then
-      HOST_PLATFORM = 'darwin-x86'
-    elsif RUBY_PLATFORM.include?('linux') then
-      HOST_PLATFORM = 'linux-x86'
-    elsif RUBY_PLATFORM.include?('win') then
+    case RUBY_PLATFORM
+    when /cygwin|mswin|mingw|bccwin|wince|emx/i
       HOST_PLATFORM = 'windows'
+    when /darwin/i
+      HOST_PLATFORM = 'darwin-x86'
+    when /linux/i
+      HOST_PLATFORM = 'linux-x86'
     else
-      # Unknown host platform.
+      # Unknown host platform
     end
 
     ANDROID_TARGET_PLATFORM = ENV['ANDROID_TARGET_PLATFORM'] || DEFAULT_ANDROID_TARGET_PLATFORM
 
     path_to_toolchain = ANDROID_NDK_HOME + '/toolchains/'
-	path_to_sysroot   = ANDROID_NDK_HOME + '/platforms/' + ANDROID_TARGET_PLATFORM
+    path_to_sysroot   = ANDROID_NDK_HOME + '/platforms/' + ANDROID_TARGET_PLATFORM
     if ANDROID_TOOLCHAIN.downcase == 'gcc' then
       case ANDROID_TARGET_ARCH.downcase
       when 'arch-arm',  'arm'  then
