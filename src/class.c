@@ -1141,14 +1141,12 @@ mrb_bob_not(mrb_state *mrb, mrb_value cv)
 static mrb_value
 mrb_bob_missing(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value name, *a;
+  mrb_sym name;
+  mrb_value *a;
   int alen;
   mrb_value inspect;
 
-  mrb_get_args(mrb, "o*", &name, &a, &alen);
-  if (!mrb_symbol_p(name)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "name should be a symbol");
-  }
+  mrb_get_args(mrb, "n*", &name, &a, &alen);
 
   if (mrb_respond_to(mrb,mod,mrb_intern2(mrb,"inspect",7))){
     inspect = mrb_funcall(mrb, mod, "inspect", 0);
@@ -1161,7 +1159,7 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
   }
 
   mrb_raisef(mrb, E_NOMETHOD_ERROR, "undefined method '%S' for %S",
-             mrb_sym2str(mrb, mrb_symbol(name)), inspect);
+             mrb_sym2str(mrb, name), inspect);
   /* not reached */
   return mrb_nil_value();
 }
