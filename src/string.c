@@ -74,7 +74,7 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
       if (p) {
         memcpy(ptr, p, len);
       }
-      ptr[len] = 0;
+      ptr[len] =  '\0';
       s->ptr = ptr;
       s->aux.capa = len;
       str_decref(mrb, shared);
@@ -398,7 +398,7 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
   }
   memcpy(s1->ptr+s1->len, s2->ptr, s2->len);
   s1->len = len;
-  s1->ptr[len] = 0;
+  s1->ptr[len] =  '\0';
 }
 
 /*
