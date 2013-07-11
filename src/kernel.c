@@ -1101,5 +1101,5 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "to_s",                       mrb_any_to_s,                    MRB_ARGS_NONE());    /* 15.3.1.3.46 */
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
-  mrb_alias_method(mrb, mrb->module_class, mrb_intern(mrb, "dup"), mrb_intern(mrb, "clone"));
+  mrb_alias_method(mrb, mrb->module_class, mrb_intern2(mrb, "dup", 3), mrb_intern2(mrb, "clone", 5));
 }
