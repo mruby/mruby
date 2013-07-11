@@ -916,7 +916,7 @@ mrb_const_remove(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 void
 mrb_define_const(mrb_state *mrb, struct RClass *mod, const char *name, mrb_value v)
 {
-  mrb_obj_iv_set(mrb, (struct RObject*)mod, mrb_intern(mrb, name), v);
+  mrb_obj_iv_set(mrb, (struct RObject*)mod, mrb_intern_cstr(mrb, name), v);
 }
 
 void

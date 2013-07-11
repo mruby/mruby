@@ -382,7 +382,7 @@ mrb_sym2str(mrb_state *mrb, mrb_sym sym)
   size_t len;
   const char *name = mrb_sym2name_len(mrb, sym, &len);
   mrb_value str;
-  
+
   if (!name) return mrb_undef_value(); /* can't happen */
   str = mrb_str_new_static(mrb, name, len);
   if (symname_p(name) && strlen(name) == len) {
@@ -452,5 +452,5 @@ mrb_init_symbol(mrb_state *mrb)
   mrb_define_method(mrb, sym, "to_sym",          sym_to_sym,     MRB_ARGS_NONE());              /* 15.2.11.3.4  */
   mrb_define_method(mrb, sym, "inspect",         sym_inspect,    MRB_ARGS_NONE());              /* 15.2.11.3.5(x)  */
   mrb_define_method(mrb, sym, "<=>",             sym_cmp,        MRB_ARGS_REQ(1));
-  mrb->init_sym = mrb_intern(mrb, "initialize");
+  mrb->init_sym = mrb_intern2(mrb, "initialize", 10);
 }
