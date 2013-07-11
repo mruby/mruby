@@ -769,6 +769,7 @@ incremental_marking_phase(mrb_state *mrb, size_t limit)
 static void
 final_marking_phase(mrb_state *mrb)
 {
+  mark_context_stack(mrb, mrb->root_c);
   while (mrb->gray_list) {
     if (is_gray(mrb->gray_list))
       gc_mark_children(mrb, mrb->gray_list);
