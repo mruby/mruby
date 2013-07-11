@@ -759,6 +759,22 @@ incremental_marking_phase(mrb_state *mrb, size_t limit)
 static void
 final_marking_phase(mrb_state *mrb)
 {
+  size_t i;
+  size_t e;
+  struct mrb_context *c = mrb->root_c;
+
+  /* rescan stack */
+  e = c->stack - c->stbase;
+  if (c->ci) e += c->ci->nregs;
+  if (c->stbase + e > c->stend) e = c->stend - c->stbase;
+  for (i=0; i<e; i++) {
+    mrb_gc_mark_value(mrb, c->stbase[i]);
+  }
+  e = (c->ci) ? c->ci->eidx : 0;
+  for (i=0; i<e; i++) {
+    mrb_gc_mark(mrb, (struct RBasic*)c->ensure[i]);
+  }
+
   while (mrb->gray_list) {
     if (is_gray(mrb->gray_list))
       gc_mark_children(mrb, mrb->gray_list);
