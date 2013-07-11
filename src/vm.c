@@ -279,7 +279,7 @@ ecall(mrb_state *mrb, int i)
 mrb_value
 mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
 {
-  mrb_sym mid = mrb_intern(mrb, name);
+  mrb_sym mid = mrb_intern_cstr(mrb, name);
 
   if (argc == 0) {
     return mrb_funcall_argv(mrb, self, mid, 0, 0);
