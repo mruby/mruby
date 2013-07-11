@@ -50,6 +50,9 @@ MRuby::GemBox.new do |conf|
   # Use Fiber class
   conf.gem :core => "mruby-fiber"
 
+  # Use extended toplevel object (main) methods
+  conf.gem :core => "mruby-toplevel-ext"
+
   # Generate mirb command
   conf.gem :core => "mruby-bin-mirb"
 
