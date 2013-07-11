@@ -105,7 +105,7 @@ mrb_define_module_id(mrb_state *mrb, mrb_sym name)
 struct RClass*
 mrb_define_module(mrb_state *mrb, const char *name)
 {
-  return mrb_define_module_id(mrb, mrb_intern(mrb, name));
+  return mrb_define_module_id(mrb, mrb_intern_cstr(mrb, name));
 }
 
 static void
@@ -159,7 +159,7 @@ mrb_define_class_id(mrb_state *mrb, mrb_sym name, struct RClass *super)
 struct RClass*
 mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
 {
-  return mrb_define_class_id(mrb, mrb_intern(mrb, name), super);
+  return mrb_define_class_id(mrb, mrb_intern_cstr(mrb, name), super);
 }
 
 struct RClass*
@@ -231,7 +231,7 @@ mrb_class_get(mrb_state *mrb, const char *name)
 struct RClass *
 mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
-  return class_from_sym(mrb, outer, mrb_intern(mrb, name));
+  return class_from_sym(mrb, outer, mrb_intern_cstr(mrb, name));
 }
 
 /*!
@@ -254,7 +254,7 @@ struct RClass *
 mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super)
 {
   struct RClass * c;
-  mrb_sym id = mrb_intern(mrb, name);
+  mrb_sym id = mrb_intern_cstr(mrb, name);
 
   if (mrb_const_defined_at(mrb, outer, id)) {
     c = class_from_sym(mrb, outer, id);
@@ -276,7 +276,7 @@ struct RClass *
 mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
   struct RClass * c;
-  mrb_sym id = mrb_intern(mrb, name);
+  mrb_sym id = mrb_intern_cstr(mrb, name);
 
   if (mrb_const_defined_at(mrb, outer, id)) {
     c = class_from_sym(mrb, outer, id);
@@ -317,7 +317,7 @@ mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t f
 void
 mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
-  mrb_define_method_id(mrb, c, mrb_intern(mrb, name), func, aspec);
+  mrb_define_method_id(mrb, c, mrb_intern_cstr(mrb, name), func, aspec);
 }
 
 void
@@ -945,7 +945,7 @@ void
 mrb_define_singleton_method(mrb_state *mrb, struct RObject *o, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
   prepare_singleton_class(mrb, (struct RBasic*)o);
-  mrb_define_method_id(mrb, o->c, mrb_intern(mrb, name), func, aspec);
+  mrb_define_method_id(mrb, o->c, mrb_intern_cstr(mrb, name), func, aspec);
 }
 
 void
@@ -1154,7 +1154,7 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
 
   mrb_get_args(mrb, "n*", &name, &a, &alen);
 
-  if (mrb_respond_to(mrb,mod,mrb_intern2(mrb,"inspect",7))){
+  if (mrb_respond_to(mrb,mod,mrb_intern2(mrb, "inspect",7))){
     inspect = mrb_funcall(mrb, mod, "inspect", 0);
     if (RSTRING_LEN(inspect) > 64) {
       inspect = mrb_any_to_s(mrb, mod);
@@ -1349,7 +1349,7 @@ mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
 void
 mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const char *name2)
 {
-  mrb_alias_method(mrb, klass, mrb_intern(mrb, name1), mrb_intern(mrb, name2));
+  mrb_alias_method(mrb, klass, mrb_intern_cstr(mrb, name1), mrb_intern_cstr(mrb, name2));
 }
 
 /*
@@ -1444,7 +1444,7 @@ undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
 void
 mrb_undef_method(mrb_state *mrb, struct RClass *c, const char *name)
 {
-  undef_method(mrb, c, mrb_intern(mrb, name));
+  undef_method(mrb, c, mrb_intern_cstr(mrb, name));
 }
 
 void
@@ -1885,10 +1885,10 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_const(mrb, obj, "Class",       mrb_obj_value(cls));
 
   /* name each classes */
-  mrb_name_class(mrb, bob, mrb_intern(mrb, "BasicObject"));
-  mrb_name_class(mrb, obj, mrb_intern(mrb, "Object"));
-  mrb_name_class(mrb, mod, mrb_intern(mrb, "Module"));
-  mrb_name_class(mrb, cls, mrb_intern(mrb, "Class"));
+  mrb_name_class(mrb, bob, mrb_intern2(mrb, "BasicObject", 11));
+  mrb_name_class(mrb, obj, mrb_intern2(mrb, "Object", 6));
+  mrb_name_class(mrb, mod, mrb_intern2(mrb, "Module", 6));
+  mrb_name_class(mrb, cls, mrb_intern2(mrb, "Class", 5));
 
   MRB_SET_INSTANCE_TT(cls, MRB_TT_CLASS);
   mrb_define_method(mrb, bob, "initialize",              mrb_bob_init,             MRB_ARGS_NONE());
