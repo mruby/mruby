@@ -408,6 +408,20 @@ add_gray_list(mrb_state *mrb, struct RBasic *obj)
 }
 
 static void
+mark_context_stack(mrb_state *mrb, struct mrb_context *c)
+{
+  size_t i;
+  size_t e;
+
+  e = c->stack - c->stbase;
+  if (c->ci) e += c->ci->nregs;
+  if (c->stbase + e > c->stend) e = c->stend - c->stbase;
+  for (i=0; i<e; i++) {
+    mrb_gc_mark_value(mrb, c->stbase[i]);
+  }
+}
+
+static void
 mark_context(mrb_state *mrb, struct mrb_context *c)
 {
   size_t i;
@@ -415,12 +429,8 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
   mrb_callinfo *ci;
 
   /* mark stack */
-  e = c->stack - c->stbase;
-  if (c->ci) e += c->ci->nregs;
-  if (c->stbase + e > c->stend) e = c->stend - c->stbase;
-  for (i=0; i<e; i++) {
-    mrb_gc_mark_value(mrb, c->stbase[i]);
-  }
+  mark_context_stack(mrb, c);
+
   /* mark ensure stack */
   e = (c->ci) ? c->ci->eidx : 0;
   for (i=0; i<e; i++) {
