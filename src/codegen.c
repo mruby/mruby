@@ -427,7 +427,7 @@ static inline int
 new_lit(codegen_scope *s, mrb_value val)
 {
   size_t i;
-  
+
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
     for (i=0; i<s->irep->plen; i++) {
@@ -447,7 +447,7 @@ new_lit(codegen_scope *s, mrb_value val)
     }
     break;
   }
-    
+
   if (s->irep->plen == s->pcapa) {
     s->pcapa *= 2;
     s->irep->pool = (mrb_value *)codegen_realloc(s, s->irep->pool, sizeof(mrb_value)*s->pcapa);
@@ -2064,7 +2064,7 @@ codegen(codegen_scope *s, node *tree, int val)
       char *p1 = (char*)tree->car;
       char *p2 = (char*)tree->cdr;
       int ai = mrb_gc_arena_save(s->mrb);
-      int sym = new_sym(s, mrb_intern(s->mrb, REGEXP_CLASS));
+      int sym = new_sym(s, mrb_intern2(s->mrb, REGEXP_CLASS, REGEXP_CLASS_CSTR_LEN));
       int off = new_lit(s, mrb_str_new(s->mrb, p1, strlen(p1)));
       int argc = 1;
 
@@ -2091,7 +2091,7 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       node *n = tree->car;
       int ai = mrb_gc_arena_save(s->mrb);
-      int sym = new_sym(s, mrb_intern(s->mrb, REGEXP_CLASS));
+      int sym = new_sym(s, mrb_intern2(s->mrb, REGEXP_CLASS, REGEXP_CLASS_CSTR_LEN));
       int argc = 1;
       int off;
       char *p;
