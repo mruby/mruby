@@ -180,7 +180,7 @@ uvenv(mrb_state *mrb, int up)
   return e;
 }
 
-static inline int
+static inline mrb_bool
 is_strict(mrb_state *mrb, struct REnv *e)
 {
   int cioff = e->cioff;
