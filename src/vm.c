@@ -174,7 +174,7 @@ uvenv(mrb_state *mrb, int up)
   struct REnv *e = mrb->c->ci->proc->env;
 
   while (up--) {
-    if (!e) return 0;
+    if (!e) return NULL;
     e = (struct REnv*)e->c;
   }
   return e;
