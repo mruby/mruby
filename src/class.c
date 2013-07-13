@@ -69,15 +69,14 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   sc->iv = 0;
   if (o->tt == MRB_TT_CLASS) {
     c = (struct RClass*)o;
-    if (!c->super) {
-      sc->super = mrb->class_class;
-    }
-    else {
+    if (c->super) {
       sc->super = c->super->c;
     }
   }
   else if (o->tt == MRB_TT_SCLASS) {
     c = (struct RClass*)o;
+    while (c->super->tt == MRB_TT_ICLASS)
+      c = c->super;
     make_metaclass(mrb, c->super);
     sc->super = c->super->c;
   }
