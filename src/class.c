@@ -55,7 +55,7 @@ mrb_name_class(mrb_state *mrb, struct RClass *c, mrb_sym name)
   mrb_obj_iv_set(mrb, (struct RObject*)c,
                  mrb_intern2(mrb, "__classid__", 11), mrb_symbol_value(name));
 }
-
+                                
 #define make_metaclass(mrb, c) prepare_singleton_class((mrb), (struct RBasic*)(c))
 
 static void
