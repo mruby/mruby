@@ -346,7 +346,7 @@ main(int argc, char **argv)
         }
         else {
           /* no */
-          if (!mrb_respond_to(mrb,result,mrb_intern(mrb,"inspect"))){
+          if (!mrb_respond_to(mrb, result, mrb_intern2(mrb, "inspect", 7))){
             result = mrb_any_to_s(mrb,result);
           }
           p(mrb, result, 1);
