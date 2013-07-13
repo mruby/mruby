@@ -187,9 +187,9 @@ is_strict(mrb_state *mrb, struct REnv *e)
 
   if (cioff >= 0 && mrb->c->cibase[cioff].proc &&
       MRB_PROC_STRICT_P(mrb->c->cibase[cioff].proc)) {
-    return 1;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 static inline struct REnv*
