@@ -11,12 +11,17 @@
 
 #include <time.h>
 
-#define GLOBAL_RAND_SEED_KEY    "$mrb_g_rand_seed"
-#define INSTANCE_RAND_SEED_KEY  "$mrb_i_rand_seed"
-#define MT_STATE_KEY            "$mrb_i_mt_state"
+#define GLOBAL_RAND_SEED_KEY          "$mrb_g_rand_seed"
+#define GLOBAL_RAND_SEED_KEY_CSTR_LEN 16
+
+#define INSTANCE_RAND_SEED_KEY          "$mrb_i_rand_seed"
+#define INSTANCE_RAND_SEED_KEY_CSTR_LEN 16
+
+#define MT_STATE_KEY          "$mrb_i_mt_state"
+#define MT_STATE_KEY_CSTR_LEN 15
 
 static const struct mrb_data_type mt_state_type = {
-    MT_STATE_KEY, mrb_free,
+  MT_STATE_KEY, mrb_free,
 };
 
 static mt_state *mrb_mt_get_context(mrb_state *mrb,  mrb_value self)
@@ -24,7 +29,7 @@ static mt_state *mrb_mt_get_context(mrb_state *mrb,  mrb_value self)
   mt_state *t;
   mrb_value context;
 
-  context = mrb_iv_get(mrb, self, mrb_intern(mrb, MT_STATE_KEY));
+  context = mrb_iv_get(mrb, self, mrb_intern2(mrb, MT_STATE_KEY, MT_STATE_KEY_CSTR_LEN));
   t = (mt_state*)mrb_data_get_ptr(mrb, context, &mt_state_type);
   if (!t)
     mrb_raise(mrb, E_RUNTIME_ERROR, "mt_state get from mrb_iv_get failed");
@@ -141,7 +146,7 @@ static mrb_value mrb_random_g_rand(mrb_state *mrb, mrb_value self)
   mrb_value seed;
 
   max = get_opt(mrb);
-  seed = mrb_gv_get(mrb, mrb_intern(mrb, GLOBAL_RAND_SEED_KEY));
+  seed = mrb_gv_get(mrb, mrb_intern2(mrb, GLOBAL_RAND_SEED_KEY, GLOBAL_RAND_SEED_KEY_CSTR_LEN));
   if (mrb_nil_p(seed)) {
     mrb_random_mt_g_srand(mrb, mrb_nil_value());
   }
@@ -155,8 +160,8 @@ static mrb_value mrb_random_g_srand(mrb_state *mrb, mrb_value self)
 
   seed = get_opt(mrb);
   seed = mrb_random_mt_g_srand(mrb, seed);
-  old_seed = mrb_gv_get(mrb, mrb_intern(mrb, GLOBAL_RAND_SEED_KEY));
-  mrb_gv_set(mrb, mrb_intern(mrb, GLOBAL_RAND_SEED_KEY), seed);
+  old_seed = mrb_gv_get(mrb, mrb_intern2(mrb, GLOBAL_RAND_SEED_KEY, GLOBAL_RAND_SEED_KEY_CSTR_LEN));
+  mrb_gv_set(mrb, mrb_intern2(mrb, GLOBAL_RAND_SEED_KEY, GLOBAL_RAND_SEED_KEY_CSTR_LEN), seed);
   return old_seed;
 }
 
@@ -170,8 +175,8 @@ static mrb_value mrb_random_init(mrb_state *mrb, mrb_value self)
 
   seed = get_opt(mrb);
   seed = mrb_random_mt_srand(mrb, t, seed);
-  mrb_iv_set(mrb, self, mrb_intern(mrb, INSTANCE_RAND_SEED_KEY), seed);
-  mrb_iv_set(mrb, self, mrb_intern(mrb, MT_STATE_KEY),
+  mrb_iv_set(mrb, self, mrb_intern2(mrb, INSTANCE_RAND_SEED_KEY, INSTANCE_RAND_SEED_KEY_CSTR_LEN), seed);
+  mrb_iv_set(mrb, self, mrb_intern2(mrb, MT_STATE_KEY, MT_STATE_KEY_CSTR_LEN),
     mrb_obj_value(Data_Wrap_Struct(mrb, mrb->object_class, &mt_state_type, (void*) t)));
   return self;
 }
@@ -183,7 +188,7 @@ static mrb_value mrb_random_rand(mrb_state *mrb, mrb_value self)
   mt_state *t = mrb_mt_get_context(mrb, self);
 
   max = get_opt(mrb);
-  seed = mrb_iv_get(mrb, self, mrb_intern(mrb, INSTANCE_RAND_SEED_KEY));
+  seed = mrb_iv_get(mrb, self, mrb_intern2(mrb, INSTANCE_RAND_SEED_KEY, INSTANCE_RAND_SEED_KEY_CSTR_LEN));
   if (mrb_nil_p(seed)) {
     mrb_random_mt_srand(mrb, t, mrb_nil_value());
   }
@@ -198,8 +203,8 @@ static mrb_value mrb_random_srand(mrb_state *mrb, mrb_value self)
 
   seed = get_opt(mrb);
   seed = mrb_random_mt_srand(mrb, t, seed);
-  old_seed = mrb_iv_get(mrb, self, mrb_intern(mrb, INSTANCE_RAND_SEED_KEY));
-  mrb_iv_set(mrb, self, mrb_intern(mrb, INSTANCE_RAND_SEED_KEY), seed);
+  old_seed = mrb_iv_get(mrb, self, mrb_intern2(mrb, INSTANCE_RAND_SEED_KEY, INSTANCE_RAND_SEED_KEY_CSTR_LEN));
+  mrb_iv_set(mrb, self, mrb_intern2(mrb, INSTANCE_RAND_SEED_KEY, INSTANCE_RAND_SEED_KEY_CSTR_LEN), seed);
 
   return old_seed;
 }
