@@ -118,7 +118,7 @@ mrb_pool_alloc(mrb_pool *pool, size_t len)
   return page->last;
 }
 
-int
+mrb_bool
 mrb_pool_can_realloc(mrb_pool *pool, void *p, size_t len)
 {
   struct mrb_pool_page *page;
@@ -180,7 +180,7 @@ main(void)
   pool = mrb_pool_open(0);
   p = mrb_pool_alloc(pool, len);
   for (i=1; i<20; i++) {
-    printf("%p (len=%d) %d\n", p, len, mrb_pool_can_realloc(pool, p, len*2));
+    printf("%p (len=%d) %ud\n", p, len, mrb_pool_can_realloc(pool, p, len*2));
     p = mrb_pool_realloc(pool, p, len, len*2);
     len *= 2;
   }

@@ -378,7 +378,7 @@ struct mrb_pool* mrb_pool_open(mrb_state*);
 void mrb_pool_close(struct mrb_pool*);
 void* mrb_pool_alloc(struct mrb_pool*, size_t);
 void* mrb_pool_realloc(struct mrb_pool*, void*, size_t oldlen, size_t newlen);
-int mrb_pool_can_realloc(struct mrb_pool*, void*, size_t);
+mrb_bool mrb_pool_can_realloc(struct mrb_pool*, void*, size_t);
 void* mrb_alloca(mrb_state *mrb, size_t);
 
 #if defined(__cplusplus)
