@@ -38,7 +38,7 @@ p(mrb_state *mrb, mrb_value obj, int prompt)
 
 /* Guess if the user might want to enter more
  * or if he wants an evaluation of his code now */
-int
+mrb_bool
 is_code_block_open(struct mrb_parser_state *parser)
 {
   int code_block_open = FALSE;

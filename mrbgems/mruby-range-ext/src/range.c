@@ -1,7 +1,7 @@
 #include "mruby.h"
 #include "mruby/range.h"
 
-static int
+static mrb_bool
 r_le(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   mrb_value r = mrb_funcall(mrb, a, "<=>", 1, b); /* compare result */
@@ -15,7 +15,7 @@ r_le(mrb_state *mrb, mrb_value a, mrb_value b)
   return FALSE;
 }
 
-static int
+static mrb_bool
 r_lt(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   mrb_value r = mrb_funcall(mrb, a, "<=>", 1, b);
