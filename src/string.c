@@ -595,7 +595,7 @@ mrb_str_cmp_m(mrb_state *mrb, mrb_value str1)
   return mrb_fixnum_value(result);
 }
 
-static int
+static mrb_bool
 str_eql(mrb_state *mrb, const mrb_value str1, const mrb_value str2)
 {
   const mrb_int len = RSTRING_LEN(str1);
@@ -606,7 +606,7 @@ str_eql(mrb_state *mrb, const mrb_value str1, const mrb_value str2)
   return FALSE;
 }
 
-int
+mrb_bool
 mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
   if (mrb_obj_equal(mrb, str1, str2)) return TRUE;
