@@ -11,7 +11,7 @@
 #include "mruby/string.h"
 #include "error.h"
 
-int
+mrb_bool
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
   if (mrb_type(v1) != mrb_type(v2)) return FALSE;
@@ -33,14 +33,14 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
   }
 }
 
-int
+mrb_bool
 mrb_obj_equal(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
   /* temporary definition */
   return mrb_obj_eq(mrb, v1, v2);
 }
 
-int
+mrb_bool
 mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   mrb_value result;
@@ -468,7 +468,7 @@ mrb_any_to_s(mrb_state *mrb, mrb_value obj)
  *     b.kind_of? M       #=> true
  */
 
-int
+mrb_bool
 mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
 {
   struct RClass *cl = mrb_class(mrb, obj);
@@ -585,7 +585,7 @@ mrb_inspect(mrb_state *mrb, mrb_value obj)
   return mrb_obj_as_string(mrb, mrb_funcall(mrb, obj, "inspect", 0, 0));
 }
 
-int
+mrb_bool
 mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;

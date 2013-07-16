@@ -251,7 +251,7 @@ sym_to_sym(mrb_state *mrb, mrb_value sym)
 #endif
 #define is_identchar(c) (SIGN_EXTEND_CHAR(c)!=-1&&(ISALNUM(c) || (c) == '_'))
 
-static int
+static mrb_bool
 is_special_global_name(const char* m)
 {
   switch (*m) {
@@ -274,7 +274,7 @@ is_special_global_name(const char* m)
   return !*m;
 }
 
-static int
+static mrb_bool
 symname_p(const char *name)
 {
   const char *m = name;

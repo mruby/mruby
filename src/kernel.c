@@ -26,7 +26,7 @@ typedef enum {
     NOEX_RESPONDS  = 0x80
 } mrb_method_flag_t;
 
-int
+mrb_bool
 mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
     struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mrb_intern2(mrb, "to_s", 4));
@@ -521,7 +521,7 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
   return mrb_yield_internal(mrb, b, 0, 0, self, c);
 }
 
-int
+mrb_bool
 mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c)
 {
   if (mrb_obj_class(mrb, obj) == c) return TRUE;
@@ -938,7 +938,7 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
   return val;
 }
 
-static inline int
+static inline mrb_bool
 basic_obj_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym id, int pub)
 {
   return mrb_respond_to(mrb, obj, id);

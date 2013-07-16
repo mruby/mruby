@@ -683,7 +683,7 @@ scope_body(codegen_scope *s, node *tree)
   return idx - s->idx;
 }
 
-static int
+static mrb_bool
 nosplat(node *t)
 {
   while (t) {
