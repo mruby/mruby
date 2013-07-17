@@ -549,15 +549,37 @@ obj_is_instance_of(mrb_state *mrb, mrb_value self)
 }
 
 static void
+valid_iv_name(mrb_state *mrb, mrb_sym id, const char* s, size_t len) 
+{
+  if (len < 2 || !(s[0] == '@' && s[1] != '@')) {
+    mrb_name_error(mrb, id, "`%S' is not allowed as an instance variable name", mrb_sym2str(mrb, id));
+  }
+}
+
+static void
 check_iv_name(mrb_state *mrb, mrb_sym id)
 {
   const char *s;
   size_t len;
 
   s = mrb_sym2name_len(mrb, id, &len);
-  if (len < 2 || !(s[0] == '@' && s[1] != '@')) {
-    mrb_name_error(mrb, id, "`%S' is not allowed as an instance variable name", mrb_sym2str(mrb, id));
+  valid_iv_name(mrb, id, s, len);
+}
+
+static mrb_sym
+get_valid_iv_sym(mrb_state *mrb, mrb_value val)
+{
+  mrb_sym id;
+
+  if (mrb_string_p(val)) {
+    id = mrb_intern_cstr(mrb, RSTRING_PTR(val));
+    valid_iv_name(mrb, id, RSTRING_PTR(val), RSTRING_LEN(val));
+  } else if(mrb_symbol_p(val)) {
+    id = mrb_symbol(val);
+    check_iv_name(mrb, id);
   }
+
+  return id;
 }
 
 /* 15.3.1.3.20 */
@@ -582,10 +604,11 @@ mrb_value
 mrb_obj_ivar_defined(mrb_state *mrb, mrb_value self)
 {
   mrb_sym mid;
+  mrb_value sym;
   mrb_bool defined_p;
 
-  mrb_get_args(mrb, "n", &mid);
-  check_iv_name(mrb, mid);
+  mrb_get_args(mrb, "o", &sym);
+  mid = get_valid_iv_sym(mrb, sym);
   defined_p = mrb_obj_iv_defined(mrb, mrb_obj_ptr(self), mid);
 
   return mrb_bool_value(defined_p);
@@ -615,10 +638,11 @@ mrb_value
 mrb_obj_ivar_get(mrb_state *mrb, mrb_value self)
 {
   mrb_sym id;
+  mrb_value sym;
+  
+  mrb_get_args(mrb, "o", &sym);
 
-  mrb_get_args(mrb, "n", &id);
-
-  check_iv_name(mrb, id);
+  id = get_valid_iv_sym(mrb, sym);
   return mrb_iv_get(mrb, self, id);
 }
 
@@ -646,10 +670,11 @@ mrb_value
 mrb_obj_ivar_set(mrb_state *mrb, mrb_value self)
 {
   mrb_sym id;
-  mrb_value val;
+  mrb_value sym, val;
 
-  mrb_get_args(mrb, "no", &id, &val);
-  check_iv_name(mrb, id);
+  mrb_get_args(mrb, "oo", &sym, &val);
+  
+  id = get_valid_iv_sym(mrb, sym);
   mrb_iv_set(mrb, self, id, val);
   return val;
 }
