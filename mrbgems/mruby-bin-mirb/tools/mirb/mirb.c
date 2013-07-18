@@ -253,6 +253,7 @@ main(int argc, char **argv)
   int n;
   int code_block_open = FALSE;
   int ai;
+  char *home = NULL;
 
   /* new interpreter instance */
   mrb = mrb_open();
@@ -279,7 +280,12 @@ main(int argc, char **argv)
 
 #ifdef ENABLE_READLINE
   using_history();
-  strcpy(history_path, getenv("HOME"));
+  home = getenv("HOME");
+#ifdef _WIN32
+  if (!home)
+    home = getenv("USERPROFILE");
+#endif
+  strcpy(history_path, home);
   strcat(history_path, "/");
   strcat(history_path, history_file_name);
   read_history(history_path);
