@@ -891,7 +891,7 @@ incremental_gc(mrb_state *mrb, size_t limit)
 }
 
 static void
-advance_phase(mrb_state *mrb, enum gc_state to_state)
+incremental_gc_until(mrb_state *mrb, enum gc_state to_state)
 {
   while (mrb->gc_state != to_state) {
     incremental_gc(mrb, ~0);
@@ -905,12 +905,12 @@ clear_all_old(mrb_state *mrb)
 
   gc_assert(is_generational(mrb));
   if (is_major_gc(mrb)) {
-    advance_phase(mrb, GC_STATE_NONE);
+    incremental_gc_until(mrb, GC_STATE_NONE);
   }
 
   mrb->is_generational_gc_mode = FALSE;
   prepare_incremental_sweep(mrb);
-  advance_phase(mrb, GC_STATE_NONE);
+  incremental_gc_until(mrb, GC_STATE_NONE);
   mrb->variable_gray_list = mrb->gray_list = NULL;
   mrb->is_generational_gc_mode = origin_mode;
 }
@@ -1190,7 +1190,7 @@ change_gen_gc_mode(mrb_state *mrb, mrb_int enable)
     mrb->gc_full = FALSE;
   }
   else if (!is_generational(mrb) && enable) {
-    advance_phase(mrb, GC_STATE_NONE);
+    incremental_gc_until(mrb, GC_STATE_NONE);
     mrb->majorgc_old_threshold = mrb->gc_live_after_mark/100 * DEFAULT_MAJOR_GC_INC_RATIO;
     mrb->gc_full = FALSE;
   }
@@ -1444,7 +1444,7 @@ test_incremental_gc(void)
   incremental_gc(mrb, max);
   gc_assert(mrb->gc_state == GC_STATE_MARK);
   puts("  in GC_STATE_MARK");
-  advance_phase(mrb, GC_STATE_SWEEP);
+  incremental_gc_until(mrb, GC_STATE_SWEEP);
   gc_assert(mrb->gc_state == GC_STATE_SWEEP);
 
   puts("  in GC_STATE_SWEEP");
@@ -1483,7 +1483,7 @@ test_incremental_gc(void)
   gc_assert(mrb->live == total-freed);
 
   puts("test_incremental_gc(gen)");
-  advance_phase(mrb, GC_STATE_SWEEP);
+  incremental_gc_until(mrb, GC_STATE_SWEEP);
   change_gen_gc_mode(mrb, TRUE);
 
   gc_assert(mrb->gc_full == FALSE);
