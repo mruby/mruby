@@ -15,10 +15,18 @@
 #include <mruby/data.h>
 #include <mruby/compile.h>
 #ifdef ENABLE_READLINE
+#include <limits.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #endif
 #include <mruby/string.h>
+
+
+#ifdef ENABLE_READLINE
+static const char *history_file_name = ".mirb_history";
+char history_path[PATH_MAX];
+#endif
+
 
 static void
 p(mrb_state *mrb, mrb_value obj, int prompt)
@@ -245,6 +253,7 @@ main(int argc, char **argv)
   int n;
   int code_block_open = FALSE;
   int ai;
+  char *home = NULL;
 
   /* new interpreter instance */
   mrb = mrb_open();
@@ -268,6 +277,21 @@ main(int argc, char **argv)
   if (args.verbose) cxt->dump_result = 1;
 
   ai = mrb_gc_arena_save(mrb);
+
+#ifdef ENABLE_READLINE
+  using_history();
+  home = getenv("HOME");
+#ifdef _WIN32
+  if (!home)
+    home = getenv("USERPROFILE");
+#endif
+  strcpy(history_path, home);
+  strcat(history_path, "/");
+  strcat(history_path, history_file_name);
+  read_history(history_path);
+#endif
+
+
   while (TRUE) {
 #ifndef ENABLE_READLINE
     print_cmdline(code_block_open);
@@ -360,6 +384,10 @@ main(int argc, char **argv)
   }
   mrbc_context_free(mrb, cxt);
   mrb_close(mrb);
+
+#ifdef ENABLE_READLINE
+  write_history(history_path);
+#endif
 
   return 0;
 }
