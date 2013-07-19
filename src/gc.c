@@ -893,9 +893,9 @@ incremental_gc(mrb_state *mrb, size_t limit)
 static void
 incremental_gc_until(mrb_state *mrb, enum gc_state to_state)
 {
-  while (mrb->gc_state != to_state) {
+  do {
     incremental_gc(mrb, ~0);
-  }
+  } while (mrb->gc_state != to_state);
 }
 
 static void
@@ -924,9 +924,7 @@ mrb_incremental_gc(mrb_state *mrb)
   GC_TIME_START;
 
   if (is_minor_gc(mrb)) {
-    do {
-      incremental_gc(mrb, ~0);
-    } while (mrb->gc_state != GC_STATE_NONE);
+    incremental_gc_until(mrb, GC_STATE_NONE);
   }
   else {
     size_t limit = 0, result = 0;
@@ -966,17 +964,13 @@ mrb_incremental_gc(mrb_state *mrb)
 void
 mrb_garbage_collect(mrb_state *mrb)
 {
-  size_t max_limit = ~0;
-
   if (mrb->gc_disabled) return;
   GC_INVOKE_TIME_REPORT("mrb_garbage_collect()");
   GC_TIME_START;
 
   if (mrb->gc_state == GC_STATE_SWEEP) {
     /* finish sweep phase */
-    while (mrb->gc_state != GC_STATE_NONE) {
-      incremental_gc(mrb, max_limit);
-    }
+    incremental_gc_until(mrb, GC_STATE_NONE);
   }
 
   /* clean all black object as old */
@@ -985,10 +979,7 @@ mrb_garbage_collect(mrb_state *mrb)
     mrb->gc_full = TRUE;
   }
 
-  do {
-    incremental_gc(mrb, max_limit);
-  } while (mrb->gc_state != GC_STATE_NONE);
-
+  incremental_gc_until(mrb, GC_STATE_NONE);
   mrb->gc_threshold = (mrb->gc_live_after_mark/100) * mrb->gc_interval_ratio;
 
   if (is_generational(mrb)) {
