@@ -797,8 +797,11 @@ num_index:
         }
       }
     default:
-      idx = mrb_fixnum(indx);
-      goto num_index;
+      if (mrb_fixnum_p(indx)) {
+        idx = mrb_fixnum(indx);
+        goto num_index;
+      }
+      else break;
     }
     return mrb_nil_value();    /* not reached */
 }
