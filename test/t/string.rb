@@ -399,12 +399,12 @@ end
 
 assert('String#to_i', '15.2.10.5.38') do
   a = ''.to_i
-  b = '123456789'.to_i
+  b = '32143'.to_i
   c = 'a'.to_i(16)
   d = '100'.to_i(2)
 
   assert_equal a, 0
-  assert_equal b, 123456789
+  assert_equal b, 32143
   assert_equal c, 10
   assert_equal d, 4
 end
