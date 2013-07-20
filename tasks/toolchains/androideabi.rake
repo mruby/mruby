@@ -46,6 +46,8 @@ MRuby::Toolchain.new(:androideabi) do |conf|
       HOST_PLATFORM = 'windows'
     when /darwin/i
       HOST_PLATFORM = 'darwin-x86'
+    when /x86_64-linux/i
+      HOST_PLATFORM = 'linux-x86_64'
     when /linux/i
       HOST_PLATFORM = 'linux-x86'
     else
