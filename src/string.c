@@ -2038,7 +2038,7 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
   struct RString *ps = mrb_str_ptr(*ptr);
   char *s = ps->ptr;
 
-  if (!s || ps->len != strlen(s)) {
+  if (!s || (size_t)ps->len != strlen(s)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
   }
   return s;
