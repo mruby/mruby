@@ -6,8 +6,8 @@
 # mruby version by Hideki Miura
 #
 
-IMAGE_WIDTH = 64
-IMAGE_HEIGHT = 64
+IMAGE_WIDTH = 256
+IMAGE_HEIGHT = 256
 NSUBSAMPLES = 2
 NAO_SAMPLES = 8
 
@@ -30,13 +30,18 @@ module Rand
 end
 
 class Vec
-  attr_accessor :x, :y, :z
-
   def initialize(x, y, z)
     @x = x
     @y = y
     @z = z
   end
+
+  def x=(v); @x = v; end
+  def y=(v); @y = v; end
+  def z=(v); @z = v; end
+  def x; @x; end
+  def y; @y; end
+  def z; @z; end
 
   def vadd(b)
     Vec.new(@x + b.x, @y + b.y, @z + b.z)
@@ -75,12 +80,13 @@ end
 
 
 class Sphere
-  attr_reader :center, :radius
-
   def initialize(center, radius)
     @center = center
     @radius = radius
   end
+
+  def center; @center; end
+  def radius; @radius; end
 
   def intersect(ray, isect)
     rs = ray.org.vsub(@center)
@@ -134,23 +140,33 @@ class Plane
 end
 
 class Ray
-  attr_accessor :org, :dir
-
   def initialize(org, dir)
     @org = org
     @dir = dir
   end
+
+  def org; @org; end
+  def org=(v); @org = v; end
+  def dir; @dir; end
+  def dir=(v); @dir = v; end
 end
 
 class Isect
-  attr_accessor :t, :hit, :pl, :n
-
   def initialize
     @t = 10000000.0
     @hit = false
     @pl = Vec.new(0.0, 0.0, 0.0)
     @n = Vec.new(0.0, 0.0, 0.0)
   end
+
+  def t; @t; end
+  def t=(v); @t = v; end
+  def hit; @hit; end
+  def hit=(v); @hit = v; end
+  def pl; @pl; end
+  def pl=(v); @pl = v; end
+  def n; @n; end
+  def n=(v); @n = v; end
 end
 
 def clamp(f)
@@ -282,9 +298,9 @@ class Scene
         r = rad.x / (nsf * nsf)
         g = rad.y / (nsf * nsf)
         b = rad.z / (nsf * nsf)
-        # printf("%c", clamp(r))
-        # printf("%c", clamp(g))
-        # printf("%c", clamp(b))
+        printf("%c", clamp(r))
+        printf("%c", clamp(g))
+        printf("%c", clamp(b))
       end
     end
   end
