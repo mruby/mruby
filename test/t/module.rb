@@ -37,34 +37,43 @@ assert('Module#append_features', '15.2.2.4.10') do
   assert_equal Test4AppendFeatures2.const_get(:Const4AppendFeatures2), Test4AppendFeatures2
 end
 
-assert('Module#attr', '15.2.2.4.11') do
+assert('Module#attr NameError') do
   %w[
     foo?
     @foo
     @@foo
     $foo
   ].each do |name|
+    module NameTest; end
+
     assert_raise(NameError) do
-      module NameTest; end
       NameTest.module_eval { attr_reader name.to_sym }
+    end
+
+    assert_raise(NameError) do
+      NameTest.module_eval { attr_writer name.to_sym }
+    end
+
+    assert_raise(NameError) do
+      NameTest.module_eval { attr name.to_sym }
+    end
+
+    assert_raise(NameError) do
+      NameTest.module_eval { attr_accessor name.to_sym }
     end
   end
 
+end
+
+assert('Module#attr', '15.2.2.4.11') do
   class AttrTest
     class << self
       attr :cattr
-      def cattr_val
-        @cattr
-      end
       def cattr_val=(val)
         @cattr = val
       end
     end
     attr :iattr
-
-    def iattr_val
-      @iattr
-    end
     def iattr_val=(val)
       @iattr = val
     end
@@ -85,18 +94,6 @@ assert('Module#attr', '15.2.2.4.11') do
 end
 
 assert('Module#attr_accessor', '15.2.2.4.12') do
-  %w[
-    foo?
-    @foo
-    @@foo
-    $foo
-  ].each do |name|
-    assert_raise(NameError) do
-      module NameTest; end
-      NameTest.module_eval { attr_reader name.to_sym }
-    end
-  end
-
   class AttrTestAccessor
     class << self
       attr_accessor :cattr
@@ -120,33 +117,14 @@ assert('Module#attr_accessor', '15.2.2.4.12') do
 end
 
 assert('Module#attr_reader', '15.2.2.4.13') do
-  %w[
-    foo?
-    @foo
-    @@foo
-    $foo
-  ].each do |name|
-    assert_raise(NameError) do
-      module NameTest; end
-      NameTest.module_eval { attr_reader name.to_sym }
-    end
-  end
-
   class AttrTestReader
     class << self
       attr_reader :cattr
-      def cattr_val
-        @cattr
-      end
       def cattr_val=(val)
         @cattr = val
       end
     end
     attr_reader :iattr, 'iattr2'
-
-    def iattr_val
-      @iattr
-    end
     def iattr_val=(val)
       @iattr = val
     end
@@ -169,35 +147,16 @@ assert('Module#attr_reader', '15.2.2.4.13') do
 end
 
 assert('Module#attr_writer', '15.2.2.4.14') do
-  %w[
-    foo?
-    @foo
-    @@foo
-    $foo
-  ].each do |name|
-    assert_raise(NameError) do
-      module NameTest; end
-      NameTest.module_eval { attr_reader name.to_sym }
-    end
-  end
-
   class AttrTestWriter
     class << self
       attr_writer :cattr
       def cattr_val
         @cattr
       end
-      def cattr_val=(val)
-        @cattr = val
-      end
     end
     attr_writer :iattr, 'iattr2'
-
     def iattr_val
       @iattr
-    end
-    def iattr_val=(val)
-      @iattr = val
     end
   end
 
