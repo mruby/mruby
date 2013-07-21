@@ -549,37 +549,37 @@ obj_is_instance_of(mrb_state *mrb, mrb_value self)
 }
 
 static void
-valid_iv_name(mrb_state *mrb, mrb_sym id, const char* s, size_t len) 
+valid_iv_name(mrb_state *mrb, mrb_sym iv_name_id, const char* s, size_t len) 
 {
   if (len < 2 || !(s[0] == '@' && s[1] != '@')) {
-    mrb_name_error(mrb, id, "`%S' is not allowed as an instance variable name", mrb_sym2str(mrb, id));
+    mrb_name_error(mrb, iv_name_id, "`%S' is not allowed as an instance variable name", mrb_sym2str(mrb, iv_name_id));
   }
 }
 
 static void
-check_iv_name(mrb_state *mrb, mrb_sym id)
+check_iv_name(mrb_state *mrb, mrb_sym iv_name_id)
 {
   const char *s;
   size_t len;
 
-  s = mrb_sym2name_len(mrb, id, &len);
-  valid_iv_name(mrb, id, s, len);
+  s = mrb_sym2name_len(mrb, iv_name_id, &len);
+  valid_iv_name(mrb, iv_name_id, s, len);
 }
 
 static mrb_sym
-get_valid_iv_sym(mrb_state *mrb, mrb_value val)
+get_valid_iv_sym(mrb_state *mrb, mrb_value iv_name)
 {
-  mrb_sym id;
+  mrb_sym iv_name_id;
 
-  if (mrb_string_p(val)) {
-    id = mrb_intern_cstr(mrb, RSTRING_PTR(val));
-    valid_iv_name(mrb, id, RSTRING_PTR(val), RSTRING_LEN(val));
-  } else if(mrb_symbol_p(val)) {
-    id = mrb_symbol(val);
-    check_iv_name(mrb, id);
+  if (mrb_string_p(iv_name)) {
+    iv_name_id = mrb_intern_cstr(mrb, RSTRING_PTR(iv_name));
+    valid_iv_name(mrb, iv_name_id, RSTRING_PTR(iv_name), RSTRING_LEN(iv_name));
+  } else if(mrb_symbol_p(iv_name)) {
+    iv_name_id = mrb_symbol(iv_name);
+    check_iv_name(mrb, iv_name_id);
   }
 
-  return id;
+  return iv_name_id;
 }
 
 /* 15.3.1.3.20 */
@@ -637,13 +637,13 @@ mrb_obj_ivar_defined(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_ivar_get(mrb_state *mrb, mrb_value self)
 {
-  mrb_sym id;
-  mrb_value sym;
+  mrb_sym iv_name_id;
+  mrb_value iv_name;
   
-  mrb_get_args(mrb, "o", &sym);
+  mrb_get_args(mrb, "o", &iv_name);
 
-  id = get_valid_iv_sym(mrb, sym);
-  return mrb_iv_get(mrb, self, id);
+  iv_name_id = get_valid_iv_sym(mrb, iv_name);
+  return mrb_iv_get(mrb, self, iv_name_id);
 }
 
 /* 15.3.1.3.22 */
@@ -669,13 +669,13 @@ mrb_obj_ivar_get(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_ivar_set(mrb_state *mrb, mrb_value self)
 {
-  mrb_sym id;
-  mrb_value sym, val;
+  mrb_sym iv_name_id;
+  mrb_value iv_name, val;
 
-  mrb_get_args(mrb, "oo", &sym, &val);
+  mrb_get_args(mrb, "oo", &iv_name, &val);
   
-  id = get_valid_iv_sym(mrb, sym);
-  mrb_iv_set(mrb, self, id, val);
+  iv_name_id = get_valid_iv_sym(mrb, iv_name);
+  mrb_iv_set(mrb, self, iv_name_id, val);
   return val;
 }
 
