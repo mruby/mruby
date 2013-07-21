@@ -5,8 +5,8 @@ class Module
       name = name.to_s
       raise(NameError, "#{name.inspect} is not allowed as an instance variable name") if name.include?('@') || name.include?('?')  || name.include?('$')
       
-      name2 = ('@'+name).intern
-      define_method(name){self.instance_variable_get(name2)}
+      attr_name = '@'+name
+      define_method(name){self.instance_variable_get(attr_name)}
     end
   end
   # 15.2.2.4.14
@@ -15,9 +15,9 @@ class Module
       name = name.to_s
       raise(NameError, "#{name.inspect} is not allowed as an instance variable name") if name.include?('@') || name.include?('?')  || name.include?('$')
       
-      name2 = ('@'+name).intern
+      attr_name = '@'+name
       name = (name+"=").intern
-      define_method(name){|v|self.instance_variable_set(name2,v)}
+      define_method(name){|v|self.instance_variable_set(attr_name,v)}
     end
   end
   # 15.2.2.4.12
