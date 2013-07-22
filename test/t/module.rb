@@ -37,6 +37,145 @@ assert('Module#append_features', '15.2.2.4.10') do
   assert_equal Test4AppendFeatures2.const_get(:Const4AppendFeatures2), Test4AppendFeatures2
 end
 
+assert('Module#attr NameError') do
+  %w[
+    foo?
+    @foo
+    @@foo
+    $foo
+  ].each do |name|
+    module NameTest; end
+
+    assert_raise(NameError) do
+      NameTest.module_eval { attr_reader name.to_sym }
+    end
+
+    assert_raise(NameError) do
+      NameTest.module_eval { attr_writer name.to_sym }
+    end
+
+    assert_raise(NameError) do
+      NameTest.module_eval { attr name.to_sym }
+    end
+
+    assert_raise(NameError) do
+      NameTest.module_eval { attr_accessor name.to_sym }
+    end
+  end
+
+end
+
+assert('Module#attr', '15.2.2.4.11') do
+  class AttrTest
+    class << self
+      attr :cattr
+      def cattr_val=(val)
+        @cattr = val
+      end
+    end
+    attr :iattr
+    def iattr_val=(val)
+      @iattr = val
+    end
+  end
+
+  test = AttrTest.new
+  assert_true AttrTest.respond_to?(:cattr)
+  assert_true test.respond_to?(:iattr)
+
+  assert_false AttrTest.respond_to?(:vattr=)
+  assert_false test.respond_to?(:iattr=)
+
+  test.iattr_val = 'test'
+  assert_equal 'test', test.iattr
+
+  AttrTest.cattr_val = 'test'
+  assert_equal 'test', AttrTest.cattr
+end
+
+assert('Module#attr_accessor', '15.2.2.4.12') do
+  class AttrTestAccessor
+    class << self
+      attr_accessor :cattr
+    end
+    attr_accessor :iattr, 'iattr2'
+  end
+
+  attr_instance = AttrTestAccessor.new
+  assert_true AttrTestAccessor.respond_to?(:cattr=)
+  assert_true attr_instance.respond_to?(:iattr=)
+  assert_true attr_instance.respond_to?(:iattr2=)
+  assert_true AttrTestAccessor.respond_to?(:cattr)
+  assert_true attr_instance.respond_to?(:iattr)
+  assert_true attr_instance.respond_to?(:iattr2)
+
+  attr_instance.iattr = 'test'
+  assert_equal 'test', attr_instance.iattr
+
+  AttrTestAccessor.cattr = 'test'
+  assert_equal 'test', AttrTestAccessor.cattr
+end
+
+assert('Module#attr_reader', '15.2.2.4.13') do
+  class AttrTestReader
+    class << self
+      attr_reader :cattr
+      def cattr_val=(val)
+        @cattr = val
+      end
+    end
+    attr_reader :iattr, 'iattr2'
+    def iattr_val=(val)
+      @iattr = val
+    end
+  end
+
+  attr_instance = AttrTestReader.new
+  assert_true AttrTestReader.respond_to?(:cattr)
+  assert_true attr_instance.respond_to?(:iattr)
+  assert_true attr_instance.respond_to?(:iattr2)
+
+  assert_false AttrTestReader.respond_to?(:cattr=)
+  assert_false attr_instance.respond_to?(:iattr=)
+  assert_false attr_instance.respond_to?(:iattr2=)
+
+  attr_instance.iattr_val = 'test'
+  assert_equal 'test', attr_instance.iattr
+
+  AttrTestReader.cattr_val = 'test'
+  assert_equal 'test', AttrTestReader.cattr
+end
+
+assert('Module#attr_writer', '15.2.2.4.14') do
+  class AttrTestWriter
+    class << self
+      attr_writer :cattr
+      def cattr_val
+        @cattr
+      end
+    end
+    attr_writer :iattr, 'iattr2'
+    def iattr_val
+      @iattr
+    end
+  end
+
+  attr_instance = AttrTestWriter.new
+  assert_true AttrTestWriter.respond_to?(:cattr=)
+  assert_true attr_instance.respond_to?(:iattr=)
+  assert_true attr_instance.respond_to?(:iattr2=)
+
+  assert_false AttrTestWriter.respond_to?(:cattr)
+  assert_false attr_instance.respond_to?(:iattr)
+  assert_false attr_instance.respond_to?(:iattr2)
+
+  attr_instance.iattr = 'test'
+  assert_equal 'test', attr_instance.iattr_val
+
+  AttrTestWriter.cattr = 'test'
+  assert_equal 'test', AttrTestWriter.cattr_val
+end
+
 assert('Module#class_eval', '15.2.2.4.15') do
   class Test4ClassEval
     @a = 11
