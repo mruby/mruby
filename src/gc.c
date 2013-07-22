@@ -212,7 +212,8 @@ mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
     if (p) {
       memset(p, 0, size);
     }
-  } else {
+  }
+  else {
     p = NULL;
   }
 

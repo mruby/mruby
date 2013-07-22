@@ -926,7 +926,8 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
     }
     if (mrb_array_p(RARRAY_PTR(ary)[i])) {
       s = inspect_ary(mrb, RARRAY_PTR(ary)[i], list);
-    } else {
+    }
+    else {
       s = mrb_inspect(mrb, RARRAY_PTR(ary)[i]);
     }
     mrb_str_buf_cat(mrb, arystr, RSTRING_PTR(s), RSTRING_LEN(s));

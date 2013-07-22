@@ -1437,7 +1437,8 @@ undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
 
   if (!mrb_obj_respond_to(c, a)) {
     mrb_name_error(mrb, a, "undefined method '%S' for class '%S'", mrb_sym2str(mrb, a), mrb_obj_value(c));
-  } else {
+  }
+  else {
     MRB_SET_VALUE(m, MRB_TT_PROC, value.p, 0);
     mrb_define_method_vm(mrb, c, a, m);
   }
@@ -1519,7 +1520,8 @@ get_sym_or_str_arg(mrb_state *mrb)
 
   if (mrb_symbol_p(sym_or_str) || mrb_string_p(sym_or_str)) {
     return sym_or_str;
-  } else {
+  }
+  else {
     mrb_value obj = mrb_funcall(mrb, sym_or_str, "inspect", 0);
     mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol", obj);
     return mrb_nil_value();
@@ -1551,7 +1553,8 @@ mrb_mod_cvar_defined(mrb_state *mrb, mrb_value mod)
   if (mrb_symbol_p(id)) {
     check_cv_name_sym(mrb, mrb_symbol(id));
     defined_p = mrb_cv_defined(mrb, mod, mrb_symbol(id));
-  } else {
+  }
+  else {
     mrb_value sym;
     check_cv_name_str(mrb, id);
     sym = mrb_check_intern_str(mrb, id);
@@ -1703,7 +1706,8 @@ mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
   id = get_sym_or_str_arg(mrb);
   if (mrb_symbol_p(id)) {
     method_defined_p = mrb_obj_respond_to(mrb_class_ptr(mod), mrb_symbol(id));
-  } else {
+  }
+  else {
     mrb_value sym = mrb_check_intern_str(mrb, id);
     if (mrb_nil_p(sym)) {
       method_defined_p = FALSE;
@@ -1787,7 +1791,8 @@ mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
   if (mrb_type(id) == MRB_TT_SYMBOL) {
     check_const_name_sym(mrb, mrb_symbol(id));
     const_defined_p = mrb_const_defined(mrb, mod, mrb_symbol(id));
-  } else {
+  }
+  else {
     mrb_value sym;
     check_const_name_str(mrb, id);
     sym = mrb_check_intern_str(mrb, id);

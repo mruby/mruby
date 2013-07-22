@@ -147,7 +147,8 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
     if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
       mrb_str_cat(mrb, str, ": ", 2);
       mrb_str_append(mrb, str, mesg);
-    } else {
+    }
+    else {
       mrb_str_cat(mrb, str, ": ", 2);
       mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, exc));
     }
@@ -425,10 +426,12 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
     sce = mrb_class_get(mrb, "SystemCallError");
     if (mesg != NULL) {
       mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 2, mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
-    } else {
+    }
+    else {
       mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 1, mrb_fixnum_value(no));
     }
-  } else {
+  }
+  else {
     mrb_raise(mrb, E_RUNTIME_ERROR, mesg);
   }
 }

@@ -240,7 +240,8 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
       *(c++) = 'e';
       if (exp > 0) {
         *(c++) = '+';
-      } else {
+      }
+      else {
         *(c++) = '-';
         exp = -exp;
       }
@@ -1253,12 +1254,14 @@ mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, int base)
 
   if (val == 0) {
     *--b = '0';
-  } else if (val < 0) {
+  }
+  else if (val < 0) {
     do {
       *--b = mrb_digitmap[-(val % base)];
     } while (val /= base);
     *--b = '-';
-  } else {
+  }
+  else {
     do {
       *--b = mrb_digitmap[(int)(val % base)];
     } while (val /= base);
