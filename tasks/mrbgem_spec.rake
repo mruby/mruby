@@ -275,13 +275,20 @@ module MRuby
             req_versions = dep[:requirements]
 
             # check each GEM dependency against all available GEMs
+            found_dep_gem = false
             each do |dep_g|
               if name == dep_g.name
                 unless dep_g.version_ok?(req_versions)
                   fail "#{name} version should be #{req_versions.join(' and ')} but was '#{dep_g.version}'"
                 end
+
+                found_dep_gem = true
+                break
               end
             end
+
+            fail "The GEM '#{g.name}' depends on the GEM '#{name}' but it could not be found" unless found_dep_gem
+
           end
         end
       end
