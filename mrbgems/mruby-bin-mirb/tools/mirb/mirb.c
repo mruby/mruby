@@ -286,10 +286,12 @@ main(int argc, char **argv)
   if (!home)
     home = getenv("USERPROFILE");
 #endif
-  strcpy(history_path, home);
-  strcat(history_path, "/");
-  strcat(history_path, history_file_name);
-  read_history(history_path);
+  if (home) {
+    strcpy(history_path, home);
+    strcat(history_path, "/");
+    strcat(history_path, history_file_name);
+    read_history(history_path);
+  }
 #endif
 
 
