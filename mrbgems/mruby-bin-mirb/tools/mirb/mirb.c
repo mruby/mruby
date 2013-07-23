@@ -244,6 +244,8 @@ main(int argc, char **argv)
 #ifndef ENABLE_READLINE
   int last_char;
   int char_index;
+#else
+  char *home = NULL;
 #endif
   mrbc_context *cxt;
   struct mrb_parser_state *parser;
@@ -253,7 +255,6 @@ main(int argc, char **argv)
   int n;
   int code_block_open = FALSE;
   int ai;
-  char *home = NULL;
 
   /* new interpreter instance */
   mrb = mrb_open();
