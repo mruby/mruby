@@ -66,7 +66,7 @@
 
   For details, see the comments for each function.
 
-  = Write Barrier
+  == Write Barrier
 
   mruby implementer, C extension library writer must write a write
   barrier when writing a pointer to an object on object's field.
@@ -74,6 +74,20 @@
 
     * mrb_field_write_barrier
     * mrb_write_barrier
+
+  == Generational Mode
+
+  mruby's GC offers an Generational Mode while re-using the tri-color GC
+  infrastructure. It will treat the Black objects as Old objects after each
+  sweep phase, instead of paint them to White. The key idea are still same as
+  the traditional generational GC:
+
+    * Minor GC - just traverse the Young objects (Gray objects) in the mark
+                 phase, then only sweep the newly created objects, and leave
+                 the Old objects live.
+
+    * Major GC - same as a full round of regular GC.
+
 
   For details, see the comments for each function.
 
