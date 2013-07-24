@@ -4,6 +4,8 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <assert.h>
+
 #include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
@@ -549,7 +551,7 @@ obj_is_instance_of(mrb_state *mrb, mrb_value self)
 }
 
 static void
-valid_iv_name(mrb_state *mrb, mrb_sym iv_name_id, const char* s, size_t len) 
+valid_iv_name(mrb_state *mrb, mrb_sym iv_name_id, const char* s, size_t len)
 {
   if (len < 2 || !(s[0] == '@' && s[1] != '@')) {
     mrb_name_error(mrb, iv_name_id, "`%S' is not allowed as an instance variable name", mrb_sym2str(mrb, iv_name_id));
@@ -575,7 +577,8 @@ get_valid_iv_sym(mrb_state *mrb, mrb_value iv_name)
     iv_name_id = mrb_intern_cstr(mrb, RSTRING_PTR(iv_name));
     valid_iv_name(mrb, iv_name_id, RSTRING_PTR(iv_name), RSTRING_LEN(iv_name));
   }
-  else if(mrb_symbol_p(iv_name)) {
+  else {
+    assert(mrb_symbol_p(iv_name));
     iv_name_id = mrb_symbol(iv_name);
     check_iv_name(mrb, iv_name_id);
   }
@@ -640,7 +643,7 @@ mrb_obj_ivar_get(mrb_state *mrb, mrb_value self)
 {
   mrb_sym iv_name_id;
   mrb_value iv_name;
-  
+
   mrb_get_args(mrb, "o", &iv_name);
 
   iv_name_id = get_valid_iv_sym(mrb, iv_name);
@@ -674,7 +677,7 @@ mrb_obj_ivar_set(mrb_state *mrb, mrb_value self)
   mrb_value iv_name, val;
 
   mrb_get_args(mrb, "oo", &iv_name, &val);
-  
+
   iv_name_id = get_valid_iv_sym(mrb, iv_name);
   mrb_iv_set(mrb, self, iv_name_id, val);
   return val;
