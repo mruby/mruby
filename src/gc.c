@@ -774,6 +774,20 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
   return children;
 }
 
+
+static void
+gc_mark_gray_list(mrb_state *mrb, struct RBasic **gray_list) {
+  struct RBasic *obj;
+
+  while (obj = *gray_list) {
+    if (is_gray(obj)) {
+      gc_mark_children(mrb, obj);
+    }
+    *gray_list = obj->gcnext;
+  }
+}
+
+
 static size_t
 incremental_marking_phase(mrb_state *mrb, size_t limit)
 {
@@ -790,21 +804,9 @@ static void
 final_marking_phase(mrb_state *mrb)
 {
   mark_context_stack(mrb, mrb->root_c);
-  while (mrb->gray_list) {
-    if (is_gray(mrb->gray_list))
-      gc_mark_children(mrb, mrb->gray_list);
-    else
-      mrb->gray_list = mrb->gray_list->gcnext;
-  }
+  gc_mark_gray_list(mrb, &mrb->gray_list);
+  gc_mark_gray_list(mrb, &mrb->variable_gray_list);
   gc_assert(mrb->gray_list == NULL);
-  mrb->gray_list = mrb->variable_gray_list;
-  mrb->variable_gray_list = NULL;
-  while (mrb->gray_list) {
-    if (is_gray(mrb->gray_list))
-      gc_mark_children(mrb, mrb->gray_list);
-    else
-      mrb->gray_list = mrb->gray_list->gcnext;
-  }
   gc_assert(mrb->gray_list == NULL);
 }
 
