@@ -42,18 +42,18 @@
 
   There're two white color types in a flip-flop fassion: White-A and White-B,
   which respectively represent the Current White color (the newly allocated
-  objects in the current round of GC) and the Sweep Target White color (the
+  objects in the current GC cycle) and the Sweep Target White color (the
   dead objects to be swept).
 
-  A and B will be switched just at the beginning of the next round of GC. At
+  A and B will be switched just at the beginning of the next GC cycle. At
   that time, all the dead objects have been swept, while the newly created
-  objects in the current round of GC which finally remains White are now
+  objects in the current GC cycle which finally remains White are now
   regarded as dead objects. Instead of traversing all the White-A objects and
   paint them as White-B, just switch the meaning of White-A and White-B would
   be much cheaper.
 
-  As a result, the objects we sweep in the current round of GC are always
-  left from the previous round of GC. This allows us to sweep objects
+  As a result, the objects we sweep in the current GC cycle are always
+  left from the previous GC cycle. This allows us to sweep objects
   incrementally, without the disturbance of the newly created objects.
 
   == Execution Timing
@@ -86,7 +86,7 @@
                  phase, then only sweep the newly created objects, and leave
                  the Old objects live.
 
-    * Major GC - same as a full round of regular GC.
+    * Major GC - same as a full regular GC cycle.
 
 
   For details, see the comments for each function.
