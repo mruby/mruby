@@ -175,7 +175,7 @@ mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
 
   p2 = (mrb->allocf)(mrb, p, len, mrb->ud);
   if (!p2 && len > 0 && mrb->heaps) {
-    mrb_garbage_collect(mrb);
+    mrb_full_gc(mrb);
     p2 = (mrb->allocf)(mrb, p, len, mrb->ud);
   }
 
@@ -390,7 +390,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   static const RVALUE RVALUE_zero = { { { MRB_TT_FALSE } } };
 
 #ifdef MRB_GC_STRESS
-  mrb_garbage_collect(mrb);
+  mrb_full_gc(mrb);
 #endif
   if (mrb->gc_threshold < mrb->live) {
     mrb_incremental_gc(mrb);
@@ -986,11 +986,12 @@ mrb_incremental_gc(mrb_state *mrb)
   GC_TIME_STOP_AND_REPORT;
 }
 
+/* Perform a full gc cycle */
 void
-mrb_garbage_collect(mrb_state *mrb)
+mrb_full_gc(mrb_state *mrb)
 {
   if (mrb->gc_disabled) return;
-  GC_INVOKE_TIME_REPORT("mrb_garbage_collect()");
+  GC_INVOKE_TIME_REPORT("mrb_full_gc()");
   GC_TIME_START;
 
   if (mrb->gc_state == GC_STATE_SWEEP) {
@@ -1082,7 +1083,7 @@ mrb_write_barrier(mrb_state *mrb, struct RBasic *obj)
 static mrb_value
 gc_start(mrb_state *mrb, mrb_value obj)
 {
-  mrb_garbage_collect(mrb);
+  mrb_full_gc(mrb);
   return mrb_nil_value();
 }
 
@@ -1452,8 +1453,8 @@ test_incremental_gc(void)
   puts("test_incremental_gc");
   change_gen_gc_mode(mrb, FALSE);
 
-  puts("  in mrb_garbage_collect");
-  mrb_garbage_collect(mrb);
+  puts("  in mrb_full_gc");
+  mrb_full_gc(mrb);
 
   gc_assert(mrb->gc_state == GC_STATE_NONE);
   puts("  in GC_STATE_NONE");
