@@ -134,8 +134,8 @@ typedef struct mrb_state {
 
   enum gc_state gc_state; /* state of gc */
   int current_white_part; /* make white object by white_part */
-  struct RBasic *gray_list; /* list of gray objects */
-  struct RBasic *variable_gray_list; /* list of objects to be traversed atomically */
+  struct RBasic *gray_list; /* list of gray objects to be traversed incrementally */
+  struct RBasic *atomic_gray_list; /* list of objects to be traversed atomically */
   size_t gc_live_after_mark;
   size_t gc_threshold;
   int gc_interval_ratio;
