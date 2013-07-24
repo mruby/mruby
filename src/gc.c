@@ -779,7 +779,7 @@ static void
 gc_mark_gray_list(mrb_state *mrb, struct RBasic **gray_list) {
   struct RBasic *obj;
 
-  while (obj = *gray_list) {
+  while ((obj = *gray_list)) {
     if (is_gray(obj)) {
       gc_mark_children(mrb, obj);
     }
