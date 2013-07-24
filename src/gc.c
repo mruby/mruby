@@ -42,18 +42,18 @@
 
   There're two white color types in a flip-flop fassion: White-A and White-B,
   which respectively represent the Current White color (the newly allocated
-  objects in the current round of GC) and the Sweep Target White color (the
+  objects in the current GC cycle) and the Sweep Target White color (the
   dead objects to be swept).
 
-  A and B will be switched just at the beginning of the next round of GC. At
+  A and B will be switched just at the beginning of the next GC cycle. At
   that time, all the dead objects have been swept, while the newly created
-  objects in the current round of GC which finally remains White are now
+  objects in the current GC cycle which finally remains White are now
   regarded as dead objects. Instead of traversing all the White-A objects and
   paint them as White-B, just switch the meaning of White-A and White-B would
   be much cheaper.
 
-  As a result, the objects we sweep in the current round of GC are always
-  left from the previous round of GC. This allows us to sweep objects
+  As a result, the objects we sweep in the current GC cycle are always
+  left from the previous GC cycle. This allows us to sweep objects
   incrementally, without the disturbance of the newly created objects.
 
   == Execution Timing
@@ -86,7 +86,7 @@
                  phase, then only sweep the newly created objects, and leave
                  the Old objects live.
 
-    * Major GC - same as a full round of regular GC.
+    * Major GC - same as a full regular GC cycle.
 
 
   For details, see the comments for each function.
@@ -175,7 +175,7 @@ mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
 
   p2 = (mrb->allocf)(mrb, p, len, mrb->ud);
   if (!p2 && len > 0 && mrb->heaps) {
-    mrb_garbage_collect(mrb);
+    mrb_full_gc(mrb);
     p2 = (mrb->allocf)(mrb, p, len, mrb->ud);
   }
 
@@ -390,7 +390,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   static const RVALUE RVALUE_zero = { { { MRB_TT_FALSE } } };
 
 #ifdef MRB_GC_STRESS
-  mrb_garbage_collect(mrb);
+  mrb_full_gc(mrb);
 #endif
   if (mrb->gc_threshold < mrb->live) {
     mrb_incremental_gc(mrb);
@@ -921,6 +921,20 @@ incremental_gc_until(mrb_state *mrb, enum gc_state to_state)
 }
 
 static void
+incremental_gc_step(mrb_state *mrb)
+{
+  size_t limit = 0, result = 0;
+  limit = (GC_STEP_SIZE/100) * mrb->gc_step_ratio;
+  while (result < limit) {
+    result += incremental_gc(mrb, limit);
+    if (mrb->gc_state == GC_STATE_NONE)
+      break;
+  }
+
+  mrb->gc_threshold = mrb->live + GC_STEP_SIZE;
+}
+
+static void
 clear_all_old(mrb_state *mrb)
 {
   size_t origin_mode = mrb->is_generational_gc_mode;
@@ -949,13 +963,7 @@ mrb_incremental_gc(mrb_state *mrb)
     incremental_gc_until(mrb, GC_STATE_NONE);
   }
   else {
-    size_t limit = 0, result = 0;
-    limit = (GC_STEP_SIZE/100) * mrb->gc_step_ratio;
-    while (result < limit) {
-      result += incremental_gc(mrb, limit);
-      if (mrb->gc_state == GC_STATE_NONE)
-        break;
-    }
+    incremental_gc_step(mrb);
   }
 
   if (mrb->gc_state == GC_STATE_NONE) {
@@ -964,6 +972,7 @@ mrb_incremental_gc(mrb_state *mrb)
     if (mrb->gc_threshold < GC_STEP_SIZE) {
       mrb->gc_threshold = GC_STEP_SIZE;
     }
+
     if (is_major_gc(mrb)) {
       mrb->majorgc_old_threshold = mrb->gc_live_after_mark/100 * DEFAULT_MAJOR_GC_INC_RATIO;
       mrb->gc_full = FALSE;
@@ -975,19 +984,16 @@ mrb_incremental_gc(mrb_state *mrb)
       }
     }
   }
-  else {
-    mrb->gc_threshold = mrb->live + GC_STEP_SIZE;
-  }
-
 
   GC_TIME_STOP_AND_REPORT;
 }
 
+/* Perform a full gc cycle */
 void
-mrb_garbage_collect(mrb_state *mrb)
+mrb_full_gc(mrb_state *mrb)
 {
   if (mrb->gc_disabled) return;
-  GC_INVOKE_TIME_REPORT("mrb_garbage_collect()");
+  GC_INVOKE_TIME_REPORT("mrb_full_gc()");
   GC_TIME_START;
 
   if (mrb->gc_state == GC_STATE_SWEEP) {
@@ -1079,7 +1085,7 @@ mrb_write_barrier(mrb_state *mrb, struct RBasic *obj)
 static mrb_value
 gc_start(mrb_state *mrb, mrb_value obj)
 {
-  mrb_garbage_collect(mrb);
+  mrb_full_gc(mrb);
   return mrb_nil_value();
 }
 
@@ -1449,8 +1455,8 @@ test_incremental_gc(void)
   puts("test_incremental_gc");
   change_gen_gc_mode(mrb, FALSE);
 
-  puts("  in mrb_garbage_collect");
-  mrb_garbage_collect(mrb);
+  puts("  in mrb_full_gc");
+  mrb_full_gc(mrb);
 
   gc_assert(mrb->gc_state == GC_STATE_NONE);
   puts("  in GC_STATE_NONE");
