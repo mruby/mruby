@@ -35,7 +35,7 @@ typedef struct iv_tbl {
 } iv_tbl;
 
 /*
- * Creates instance variable table.
+ * Creates the instance variable table.
  *
  * Parameters
  *   mrb
@@ -128,7 +128,7 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
  *   mrb
  *   t     the variable table to be searched.
  *   sym   the symbol to be used as the key.
- *   vp    the value pointer. Recieves the value if if the specified symbol contains
+ *   vp    the value pointer. Recieves the value if the specified symbol contains
  *         in the instance variable table.
  * Returns
  *   true if the specfiyed symbol contains in the instance variable table.
