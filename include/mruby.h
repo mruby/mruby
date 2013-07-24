@@ -272,6 +272,7 @@ mrb_value mrb_Float(mrb_state *mrb, mrb_value val);
 mrb_value mrb_inspect(mrb_state *mrb, mrb_value obj);
 mrb_bool mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 
+void mrb_garbage_collect(mrb_state*);
 void mrb_full_gc(mrb_state*);
 void mrb_incremental_gc(mrb_state *);
 int mrb_gc_arena_save(mrb_state*);

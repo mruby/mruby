@@ -1018,6 +1018,12 @@ mrb_full_gc(mrb_state *mrb)
   GC_TIME_STOP_AND_REPORT;
 }
 
+void
+mrb_garbage_collect(mrb_state *mrb)
+{
+  mrb_full_gc(mrb);
+}
+
 int
 mrb_gc_arena_save(mrb_state *mrb)
 {
