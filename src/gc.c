@@ -919,6 +919,20 @@ incremental_gc_until(mrb_state *mrb, enum gc_state to_state)
 }
 
 static void
+incremental_gc_step(mrb_state *mrb)
+{
+  size_t limit = 0, result = 0;
+  limit = (GC_STEP_SIZE/100) * mrb->gc_step_ratio;
+  while (result < limit) {
+    result += incremental_gc(mrb, limit);
+    if (mrb->gc_state == GC_STATE_NONE)
+      break;
+  }
+
+  mrb->gc_threshold = mrb->live + GC_STEP_SIZE;
+}
+
+static void
 clear_all_old(mrb_state *mrb)
 {
   size_t origin_mode = mrb->is_generational_gc_mode;
@@ -947,13 +961,7 @@ mrb_incremental_gc(mrb_state *mrb)
     incremental_gc_until(mrb, GC_STATE_NONE);
   }
   else {
-    size_t limit = 0, result = 0;
-    limit = (GC_STEP_SIZE/100) * mrb->gc_step_ratio;
-    while (result < limit) {
-      result += incremental_gc(mrb, limit);
-      if (mrb->gc_state == GC_STATE_NONE)
-        break;
-    }
+    incremental_gc_step(mrb);
   }
 
   if (mrb->gc_state == GC_STATE_NONE) {
@@ -962,6 +970,7 @@ mrb_incremental_gc(mrb_state *mrb)
     if (mrb->gc_threshold < GC_STEP_SIZE) {
       mrb->gc_threshold = GC_STEP_SIZE;
     }
+
     if (is_major_gc(mrb)) {
       mrb->majorgc_old_threshold = mrb->gc_live_after_mark/100 * DEFAULT_MAJOR_GC_INC_RATIO;
       mrb->gc_full = FALSE;
@@ -973,10 +982,6 @@ mrb_incremental_gc(mrb_state *mrb)
       }
     }
   }
-  else {
-    mrb->gc_threshold = mrb->live + GC_STEP_SIZE;
-  }
-
 
   GC_TIME_STOP_AND_REPORT;
 }
