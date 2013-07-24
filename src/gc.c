@@ -664,7 +664,7 @@ root_scan_phase(mrb_state *mrb)
 
   if (!is_minor_gc(mrb)) {
     mrb->gray_list = NULL;
-    mrb->variable_gray_list = NULL;
+    mrb->atomic_gray_list = NULL;
   }
 
   mrb_gc_mark_gv(mrb);
@@ -774,6 +774,20 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
   return children;
 }
 
+
+static void
+gc_mark_gray_list(mrb_state *mrb, struct RBasic **gray_list) {
+  struct RBasic *obj;
+
+  while ((obj = *gray_list)) {
+    if (is_gray(obj)) {
+      gc_mark_children(mrb, obj);
+    }
+    *gray_list = obj->gcnext;
+  }
+}
+
+
 static size_t
 incremental_marking_phase(mrb_state *mrb, size_t limit)
 {
@@ -790,21 +804,9 @@ static void
 final_marking_phase(mrb_state *mrb)
 {
   mark_context_stack(mrb, mrb->root_c);
-  while (mrb->gray_list) {
-    if (is_gray(mrb->gray_list))
-      gc_mark_children(mrb, mrb->gray_list);
-    else
-      mrb->gray_list = mrb->gray_list->gcnext;
-  }
+  gc_mark_gray_list(mrb, &mrb->gray_list);
+  gc_mark_gray_list(mrb, &mrb->atomic_gray_list);
   gc_assert(mrb->gray_list == NULL);
-  mrb->gray_list = mrb->variable_gray_list;
-  mrb->variable_gray_list = NULL;
-  while (mrb->gray_list) {
-    if (is_gray(mrb->gray_list))
-      gc_mark_children(mrb, mrb->gray_list);
-    else
-      mrb->gray_list = mrb->gray_list->gcnext;
-  }
   gc_assert(mrb->gray_list == NULL);
 }
 
@@ -931,7 +933,7 @@ clear_all_old(mrb_state *mrb)
   mrb->is_generational_gc_mode = FALSE;
   prepare_incremental_sweep(mrb);
   incremental_gc_until(mrb, GC_STATE_NONE);
-  mrb->variable_gray_list = mrb->gray_list = NULL;
+  mrb->atomic_gray_list = mrb->gray_list = NULL;
   mrb->is_generational_gc_mode = origin_mode;
 }
 
@@ -1062,8 +1064,8 @@ mrb_write_barrier(mrb_state *mrb, struct RBasic *obj)
   gc_assert(!is_dead(mrb, obj));
   gc_assert(is_generational(mrb) || mrb->gc_state != GC_STATE_NONE);
   paint_gray(obj);
-  obj->gcnext = mrb->variable_gray_list;
-  mrb->variable_gray_list = obj;
+  obj->gcnext = mrb->atomic_gray_list;
+  mrb->atomic_gray_list = obj;
 }
 
 /*
@@ -1370,7 +1372,7 @@ test_mrb_write_barrier(void)
   mrb_write_barrier(mrb, obj);
 
   gc_assert(is_gray(obj));
-  gc_assert(mrb->variable_gray_list == obj);
+  gc_assert(mrb->atomic_gray_list == obj);
 
 
   puts("  fail with gray");
