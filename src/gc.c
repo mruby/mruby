@@ -776,14 +776,14 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
 
 
 static void
-gc_mark_gray_list(mrb_state *mrb, struct RBasic **gray_list) {
+gc_mark_gray_list(mrb_state *mrb) {
   struct RBasic *obj;
 
-  while ((obj = *gray_list)) {
-    if (is_gray(obj)) {
-      gc_mark_children(mrb, obj);
-    }
-    *gray_list = obj->gcnext;
+  while (mrb->gray_list) {
+    if (is_gray(mrb->gray_list))
+      gc_mark_children(mrb, mrb->gray_list);
+    else
+      mrb->gray_list = mrb->gray_list->gcnext;
   }
 }
 
@@ -804,9 +804,11 @@ static void
 final_marking_phase(mrb_state *mrb)
 {
   mark_context_stack(mrb, mrb->root_c);
-  gc_mark_gray_list(mrb, &mrb->gray_list);
-  gc_mark_gray_list(mrb, &mrb->atomic_gray_list);
+  gc_mark_gray_list(mrb);
   gc_assert(mrb->gray_list == NULL);
+  mrb->gray_list = mrb->atomic_gray_list;
+  mrb->atomic_gray_list = NULL;
+  gc_mark_gray_list(mrb);
   gc_assert(mrb->gray_list == NULL);
 }
 
