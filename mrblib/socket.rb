@@ -33,11 +33,11 @@ class Addrinfo
   end
 
   def self.tcp(host, port)
-    Addrinfo.new(Socket.sockaddr_in(port, host), nil, Socket::SOCK_STREAM, Socket::IPPROTO_TCP)
+    Addrinfo.getaddrinfo(host, port, nil, Socket::SOCK_STREAM, Socket::IPPROTO_TCP)[0]
   end
 
   def self.udp(host, port)
-    Addrinfo.new(Socket.sockaddr_in(port, host), nil, Socket::SOCK_DGRAM, Socket::IPPROTO_UDP)
+    Addrinfo.getaddrinfo(host, port, nil, Socket::SOCK_DGRAM, Socket::IPPROTO_UDP)[0]
   end
 
   def self.unix(path, socktype=Socket::SOCK_STREAM)
@@ -331,7 +331,7 @@ class Socket
   end
 
   def self.sockaddr_in(port, host)
-    ai = Addrinfo.getaddrinfo(host, port)[0]
+    ai = Addrinfo.getaddrinfo(host, port, nil, Socket::SOCK_DGRAM)[0]
     ai.to_sockaddr
   end
 
