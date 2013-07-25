@@ -2842,13 +2842,15 @@ codegen_start(mrb_state *mrb, parser_state *p)
   if (p->filename) {
     scope->filename = p->filename;
   }
-  if (setjmp(scope->jmp) != 0) {
+  if (setjmp(scope->jmp) == 0) {
+    // prepare irep
+    codegen(scope, p->tree, NOVAL);
+    mrb_pool_close(scope->mpool);
+    return 0;
+  }
+  else {
     return -1;
   }
-  // prepare irep
-  codegen(scope, p->tree, NOVAL);
-  mrb_pool_close(scope->mpool);
-  return 0;
 }
 
 int

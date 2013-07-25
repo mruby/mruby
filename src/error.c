@@ -5,7 +5,6 @@
 */
 
 #include <errno.h>
-#include <setjmp.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -219,7 +218,7 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
     mrb_p(mrb, exc);
     abort();
   }
-  longjmp(*(jmp_buf*)mrb->jmp, 1);
+  mrb_longjmp(mrb);
 }
 
 void

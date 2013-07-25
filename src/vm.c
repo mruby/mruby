@@ -1,4 +1,4 @@
-/*
+ /*
 ** vm.c - virtual machine for mruby
 **
 ** See Copyright Notice in mruby.h
@@ -1261,7 +1261,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           mrb->c->stack = mrb->c->stbase + ci[1].stackidx;
           if (ci[1].acc < 0 && prev_jmp) {
             mrb->jmp = prev_jmp;
-            longjmp(*(jmp_buf*)mrb->jmp, 1);
+            mrb_longjmp(mrb);
           }
           while (eidx > ci->eidx) {
             ecall(mrb, --eidx);
@@ -2126,4 +2126,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     }
   }
   END_DISPATCH;
+}
+
+void
+mrb_longjmp(mrb_state *mrb)
+{
+  longjmp(*(jmp_buf*)mrb->jmp, 1);
 }
