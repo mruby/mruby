@@ -58,6 +58,123 @@
 #ifdef AI_PASSIVE
   define_const(AI_PASSIVE);
 #endif
+#ifdef IP_ADD_MEMBERSHIP
+  define_const(IP_ADD_MEMBERSHIP);
+#endif
+#ifdef IP_ADD_SOURCE_MEMBERSHIP
+  define_const(IP_ADD_SOURCE_MEMBERSHIP);
+#endif
+#ifdef IP_BLOCK_SOURCE
+  define_const(IP_BLOCK_SOURCE);
+#endif
+#ifdef IP_DROP_MEMBERSHIP
+  define_const(IP_DROP_MEMBERSHIP);
+#endif
+#ifdef IP_DROP_SOURCE_MEMBERSHIP
+  define_const(IP_DROP_SOURCE_MEMBERSHIP);
+#endif
+#ifdef IP_FREEBIND
+  define_const(IP_FREEBIND);
+#endif
+#ifdef IP_HDRINCL
+  define_const(IP_HDRINCL);
+#endif
+#ifdef IP_IPSEC_POLICY
+  define_const(IP_IPSEC_POLICY);
+#endif
+#ifdef IP_MINTTL
+  define_const(IP_MINTTL);
+#endif
+#ifdef IP_MSFILTER
+  define_const(IP_MSFILTER);
+#endif
+#ifdef IP_MTU
+  define_const(IP_MTU);
+#endif
+#ifdef IP_MTU_DISCOVER
+  define_const(IP_MTU_DISCOVER);
+#endif
+#ifdef IP_MULTICAST_ALL
+  define_const(IP_MULTICAST_ALL);
+#endif
+#ifdef IP_MULTICAST_IF
+  define_const(IP_MULTICAST_IF);
+#endif
+#ifdef IP_MULTICAST_LOOP
+  define_const(IP_MULTICAST_LOOP);
+#endif
+#ifdef IP_MULTICAST_TTL
+  define_const(IP_MULTICAST_TTL);
+#endif
+#ifdef IP_OPTIONS
+  define_const(IP_OPTIONS);
+#endif
+#ifdef IP_ORIGDSTADDR
+  define_const(IP_ORIGDSTADDR);
+#endif
+#ifdef IP_PASSSEC
+  define_const(IP_PASSSEC);
+#endif
+#ifdef IP_PKTINFO
+  define_const(IP_PKTINFO);
+#endif
+#ifdef IP_PKTOPTIONS
+  define_const(IP_PKTOPTIONS);
+#endif
+#ifdef IP_PMTUDISC_DO
+  define_const(IP_PMTUDISC_DO);
+#endif
+#ifdef IP_PMTUDISC_DONT
+  define_const(IP_PMTUDISC_DONT);
+#endif
+#ifdef IP_PMTUDISC_PROBE
+  define_const(IP_PMTUDISC_PROBE);
+#endif
+#ifdef IP_PMTUDISC_WANT
+  define_const(IP_PMTUDISC_WANT);
+#endif
+#ifdef IP_RECVDSTADDR
+  define_const(IP_RECVDSTADDR);
+#endif
+#ifdef IP_RECVERR
+  define_const(IP_RECVERR);
+#endif
+#ifdef IP_RECVOPTS
+  define_const(IP_RECVOPTS);
+#endif
+#ifdef IP_RECVORIGDSTADDR
+  define_const(IP_RECVORIGDSTADDR);
+#endif
+#ifdef IP_RECVRETOPTS
+  define_const(IP_RECVRETOPTS);
+#endif
+#ifdef IP_RECVTOS
+  define_const(IP_RECVTOS);
+#endif
+#ifdef IP_RECVTTL
+  define_const(IP_RECVTTL);
+#endif
+#ifdef IP_RETOPTS
+  define_const(IP_RETOPTS);
+#endif
+#ifdef IP_ROUTER_ALERT
+  define_const(IP_ROUTER_ALERT);
+#endif
+#ifdef IP_TOS
+  define_const(IP_TOS);
+#endif
+#ifdef IP_TRANSPARENT
+  define_const(IP_TRANSPARENT);
+#endif
+#ifdef IP_TTL
+  define_const(IP_TTL);
+#endif
+#ifdef IP_UNBLOCK_SOURCE
+  define_const(IP_UNBLOCK_SOURCE);
+#endif
+#ifdef IP_XFRM_POLICY
+  define_const(IP_XFRM_POLICY);
+#endif
 #ifdef IPPROTO_ICMP
   define_const(IPPROTO_ICMP);
 #endif
@@ -75,6 +192,27 @@
 #endif
 #ifdef IPPROTO_UDP
   define_const(IPPROTO_UDP);
+#endif
+#ifdef MCAST_BLOCK_SOURCE
+  define_const(MCAST_BLOCK_SOURCE);
+#endif
+#ifdef MCAST_JOIN_GROUP
+  define_const(MCAST_JOIN_GROUP);
+#endif
+#ifdef MCAST_JOIN_SOURCE_GROUP
+  define_const(MCAST_JOIN_SOURCE_GROUP);
+#endif
+#ifdef MCAST_LEAVE_GROUP
+  define_const(MCAST_LEAVE_GROUP);
+#endif
+#ifdef MCAST_LEAVE_SOURCE_GROUP
+  define_const(MCAST_LEAVE_SOURCE_GROUP);
+#endif
+#ifdef MCAST_MSFILTER
+  define_const(MCAST_MSFILTER);
+#endif
+#ifdef MCAST_UNBLOCK_SOURCE
+  define_const(MCAST_UNBLOCK_SOURCE);
 #endif
 #ifdef MSG_BCAST
   define_const(MSG_BCAST);
