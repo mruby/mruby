@@ -58,7 +58,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
     servname = mrb_str_to_cstr(mrb, service);
   } else if (mrb_fixnum_p(service)) {
     servname = mrb_str_to_cstr(mrb, mrb_funcall(mrb, service, "to_s", 0));
-  } else if (mrb_nil_p(nodename)) {
+  } else if (mrb_nil_p(service)) {
     servname = NULL;
   } else {
     mrb_raise(mrb, E_TYPE_ERROR, "service must be String, Fixnum, or nil");
