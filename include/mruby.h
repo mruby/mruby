@@ -382,6 +382,13 @@ void* mrb_pool_realloc(struct mrb_pool*, void*, size_t oldlen, size_t newlen);
 mrb_bool mrb_pool_can_realloc(struct mrb_pool*, void*, size_t);
 void* mrb_alloca(mrb_state *mrb, size_t);
 
+#ifdef MRB_DEBUG
+#include <assert.h>
+#define mrb_assert(p) assert(p)
+#else
+#define mrb_assert(p) ((void)0)
+#endif
+
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif
