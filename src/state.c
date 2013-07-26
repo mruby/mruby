@@ -21,10 +21,6 @@ inspect_main(mrb_state *mrb, mrb_value mod)
   return mrb_str_new(mrb, "main", 4);
 }
 
-#ifdef MRB_NAN_BOXING
-#include <assert.h>
-#endif
-
 mrb_state*
 mrb_open_allocf(mrb_allocf f, void *ud)
 {
@@ -33,7 +29,7 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   mrb_state *mrb;
 
 #ifdef MRB_NAN_BOXING
-  assert(sizeof(void*) == 4);
+  mrb_assert(sizeof(void*) == 4);
 #endif
 
   mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
@@ -192,7 +188,7 @@ mrb_value
 mrb_top_self(mrb_state *mrb)
 {
   if (!mrb->top_self) {
-    mrb->top_self = (struct RObject*)mrb_obj_alloc(mrb, MRB_TT_OBJECT, mrb->object_class);  
+    mrb->top_self = (struct RObject*)mrb_obj_alloc(mrb, MRB_TT_OBJECT, mrb->object_class);
     mrb_define_singleton_method(mrb, mrb->top_self, "inspect", inspect_main, MRB_ARGS_NONE());
     mrb_define_singleton_method(mrb, mrb->top_self, "to_s", inspect_main, MRB_ARGS_NONE());
   }

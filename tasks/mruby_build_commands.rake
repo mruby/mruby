@@ -262,6 +262,11 @@ module MRuby
       IO.popen("#{filename @command} #{@compile_options % {:funcname => funcname}} #{filename(infiles).join(' ')}", 'r+') do |io|
         out.puts io.read
       end
+      # if mrbc execution fail, drop the file
+      if not $?.exitstatus
+        File.delete(out.path)
+        exit -1
+      end
     end
   end
 
