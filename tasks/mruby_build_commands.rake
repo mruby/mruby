@@ -263,7 +263,7 @@ module MRuby
         out.puts io.read
       end
       # if mrbc execution fail, drop the file
-      if not $?.exitstatus
+      unless $?.exitstatus
         File.delete(out.path)
         exit -1
       end
