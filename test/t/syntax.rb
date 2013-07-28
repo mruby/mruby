@@ -65,3 +65,12 @@ assert('Abbreviated variable assignment as returns') do
   end
   assert_equal Syntax4AbbrVarAsgnAsReturns::A.new.b, 1
 end
+
+assert('Splat and mass assignment') do
+  *a = *[1,2,3]
+  b, *c = *[7,8,9]
+
+  assert_equal [1,2,3], a
+  assert_equal 7, b
+  assert_equal [8,9], c
+end
