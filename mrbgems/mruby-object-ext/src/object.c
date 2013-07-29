@@ -59,7 +59,7 @@ nil_to_i(mrb_state *mrb, mrb_value obj)
  *     k.instance_exec(5) {|x| @secret+x }   #=> 104
  */
 
-mrb_value 
+mrb_value
 mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
 
 static mrb_value
@@ -69,7 +69,7 @@ mrb_obj_instance_exec(mrb_state *mrb, mrb_value self)
   int argc;
   mrb_value blk;
   struct RClass *c;
-  
+
   mrb_get_args(mrb, "*&", &argv, &argc, &blk);
 
   if (mrb_nil_p(blk)) {
@@ -80,7 +80,7 @@ mrb_obj_instance_exec(mrb_state *mrb, mrb_value self)
   case MRB_TT_SYMBOL:
   case MRB_TT_FIXNUM:
   case MRB_TT_FLOAT:
-    c = 0;
+    c = NULL;
     break;
   default:
     c = mrb_class_ptr(mrb_singleton_class(mrb, self));
