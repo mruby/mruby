@@ -5207,8 +5207,6 @@ mrb_parse_string(mrb_state *mrb, const char *s, mrbc_context *c)
   return mrb_parse_nstring(mrb, s, strlen(s), c);
 }
 
-struct RProc* mrb_proc_new_with_target(mrb_state *mrb, mrb_irep *irep, struct RClass *target);
-
 static mrb_value
 load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
 {
