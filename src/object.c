@@ -11,7 +11,7 @@
 #include "mruby/string.h"
 #include "error.h"
 
-int
+mrb_bool
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
   if (mrb_type(v1) != mrb_type(v2)) return FALSE;
@@ -33,14 +33,14 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
   }
 }
 
-int
+mrb_bool
 mrb_obj_equal(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
   /* temporary definition */
   return mrb_obj_eq(mrb, v1, v2);
 }
 
-int
+mrb_bool
 mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   mrb_value result;
@@ -68,7 +68,7 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 static mrb_value
 mrb_true(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_true_value();
+  return mrb_true_value();
 }
 
 /* 15.2.4.3.5  */
@@ -172,9 +172,6 @@ true_to_s(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_or(mrb_state *mrb, mrb_value obj)
 {
-  mrb_bool obj2;
-
-  mrb_get_args(mrb, "b", &obj2);
   return mrb_true_value();
 }
 
@@ -203,9 +200,6 @@ true_or(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_and(mrb_state *mrb, mrb_value obj)
 {
-  mrb_bool obj2;
-
-  mrb_get_args(mrb, "b", &obj2);
   return mrb_false_value();
 }
 
@@ -303,7 +297,7 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *metho
 {
   mrb_sym m = 0;
 
-  m = mrb_intern(mrb, method);
+  m = mrb_intern_cstr(mrb, method);
   if (!mrb_respond_to(mrb, val, m)) {
     if (raise) {
       mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into %S", val, mrb_str_new_cstr(mrb, tname));
@@ -319,18 +313,18 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *metho
 mrb_value
 mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method)
 {
-    mrb_value v;
+  mrb_value v;
 
-    if (mrb_type(val) == MRB_TT_FIXNUM) return val;
-    v = convert_type(mrb, val, "Integer", method, FALSE);
-    if (mrb_nil_p(v) || mrb_type(v) != MRB_TT_FIXNUM) {
-      return mrb_nil_value();
-    }
-    return v;
+  if (mrb_type(val) == MRB_TT_FIXNUM) return val;
+  v = convert_type(mrb, val, "Integer", method, FALSE);
+  if (mrb_nil_p(v) || mrb_type(v) != MRB_TT_FIXNUM) {
+    return mrb_nil_value();
+  }
+  return v;
 }
 
 mrb_value
-mrb_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *tname, const char *method)
+mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method)
 {
   mrb_value v;
 
@@ -344,7 +338,7 @@ mrb_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *tname,
 }
 
 mrb_value
-mrb_check_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *tname, const char *method)
+mrb_check_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method)
 {
   mrb_value v;
 
@@ -355,8 +349,8 @@ mrb_check_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *
 }
 
 static const struct types {
-    unsigned char type;
-    const char *name;
+  unsigned char type;
+  const char *name;
 } builtin_types[] = {
 //    {MRB_TT_NIL,  "nil"},
   {MRB_TT_FALSE,  "false"},
@@ -474,7 +468,7 @@ mrb_any_to_s(mrb_state *mrb, mrb_value obj)
  *     b.kind_of? M       #=> true
  */
 
-int
+mrb_bool
 mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
 {
   struct RClass *cl = mrb_class(mrb, obj);
@@ -500,21 +494,21 @@ mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
 static mrb_value
 mrb_to_integer(mrb_state *mrb, mrb_value val, const char *method)
 {
-    mrb_value v;
+  mrb_value v;
 
-    if (mrb_fixnum_p(val)) return val;
-    v = convert_type(mrb, val, "Integer", method, TRUE);
-    if (!mrb_obj_is_kind_of(mrb, v, mrb->fixnum_class)) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S to Integer (%S#%S gives %S)",
-                 val, val, mrb_str_new_cstr(mrb, method), v);
-    }
-    return v;
+  if (mrb_fixnum_p(val)) return val;
+  v = convert_type(mrb, val, "Integer", method, TRUE);
+  if (!mrb_obj_is_kind_of(mrb, v, mrb->fixnum_class)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S to Integer (%S#%S gives %S)",
+               val, val, mrb_str_new_cstr(mrb, method), v);
+  }
+  return v;
 }
 
 mrb_value
 mrb_to_int(mrb_state *mrb, mrb_value val)
 {
-    return mrb_to_integer(mrb, val, "to_int");
+  return mrb_to_integer(mrb, val, "to_int");
 }
 
 static mrb_value
@@ -530,7 +524,7 @@ mrb_convert_to_integer(mrb_state *mrb, mrb_value val, int base)
     case MRB_TT_FLOAT:
       if (base != 0) goto arg_error;
       if (FIXABLE(mrb_float(val))) {
-          break;
+        break;
       }
       return mrb_flo_to_fixnum(mrb, val);
 
@@ -546,14 +540,14 @@ string_conv:
       break;
   }
   if (base != 0) {
-      tmp = mrb_check_string_type(mrb, val);
-      if (!mrb_nil_p(tmp)) goto string_conv;
-    arg_error:
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "base specified for non string value");
+    tmp = mrb_check_string_type(mrb, val);
+    if (!mrb_nil_p(tmp)) goto string_conv;
+arg_error:
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "base specified for non string value");
   }
   tmp = convert_type(mrb, val, "Integer", "to_int", FALSE);
   if (mrb_nil_p(tmp)) {
-      return mrb_to_integer(mrb, val, "to_i");
+    return mrb_to_integer(mrb, val, "to_i");
   }
   return tmp;
 }
@@ -561,14 +555,14 @@ string_conv:
 mrb_value
 mrb_Integer(mrb_state *mrb, mrb_value val)
 {
-    return mrb_convert_to_integer(mrb, val, 0);
+  return mrb_convert_to_integer(mrb, val, 0);
 }
 
 mrb_value
 mrb_Float(mrb_state *mrb, mrb_value val)
 {
   if (mrb_nil_p(val)) {
-      mrb_raise(mrb, E_TYPE_ERROR, "can't convert nil into Float");
+    mrb_raise(mrb, E_TYPE_ERROR, "can't convert nil into Float");
   }
   switch (mrb_type(val)) {
     case MRB_TT_FIXNUM:
@@ -591,7 +585,7 @@ mrb_inspect(mrb_state *mrb, mrb_value obj)
   return mrb_obj_as_string(mrb, mrb_funcall(mrb, obj, "inspect", 0, 0));
 }
 
-int
+mrb_bool
 mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;

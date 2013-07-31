@@ -74,9 +74,10 @@ please check the following additional licenses too:
 GEMS_LEGAL
 
         gems.map do |g|
+          authors = [g.authors].flatten.sort.join(", ")
           f.puts
           f.puts "GEM: #{g.name}"
-          f.puts "Copyright (c) #{Time.now.year} #{g.authors}"
+          f.puts "Copyright (c) #{Time.now.year} #{authors}"
           f.puts "License: #{g.licenses}"
         end
       end

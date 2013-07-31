@@ -170,7 +170,7 @@ mrb_range_eq(mrb_state *mrb, mrb_value range)
   return mrb_true_value();
 }
 
-static int
+static mrb_bool
 r_le(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   mrb_value r = mrb_funcall(mrb, a, "<=>", 1, b); /* compare result */
@@ -184,7 +184,7 @@ r_le(mrb_state *mrb, mrb_value a, mrb_value b)
   return FALSE;
 }
 
-static int
+static mrb_bool
 r_gt(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   mrb_value r = mrb_funcall(mrb, a, "<=>", 1, b);
@@ -197,7 +197,7 @@ r_gt(mrb_state *mrb, mrb_value a, mrb_value b)
   return FALSE;
 }
 
-static int
+static mrb_bool
 r_ge(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   mrb_value r = mrb_funcall(mrb, a, "<=>", 1, b); /* compare result */
@@ -276,10 +276,10 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
 
   if (beg < 0) {
     beg += len;
-    if (beg < 0) goto out_of_range;
+    if (beg < 0) return FALSE;
   }
 
-  if (beg > len) goto out_of_range;
+  if (beg > len) return FALSE;
   if (end > len) end = len;
 
   if (end < 0) end += len;
@@ -290,9 +290,6 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
   *begp = beg;
   *lenp = len;
   return TRUE;
-
-out_of_range:
-  return FALSE;
 }
 
 /* 15.2.14.4.12(x) */

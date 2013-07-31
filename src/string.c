@@ -74,7 +74,7 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
       if (p) {
         memcpy(ptr, p, len);
       }
-      ptr[len] = 0;
+      ptr[len] =  '\0';
       s->ptr = ptr;
       s->aux.capa = len;
       str_decref(mrb, shared);
@@ -398,7 +398,7 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
   }
   memcpy(s1->ptr+s1->len, s2->ptr, s2->len);
   s1->len = len;
-  s1->ptr[len] = 0;
+  s1->ptr[len] =  '\0';
 }
 
 /*
@@ -595,7 +595,7 @@ mrb_str_cmp_m(mrb_state *mrb, mrb_value str1)
   return mrb_fixnum_value(result);
 }
 
-static int
+static mrb_bool
 str_eql(mrb_state *mrb, const mrb_value str1, const mrb_value str2)
 {
   const mrb_int len = RSTRING_LEN(str1);
@@ -606,7 +606,7 @@ str_eql(mrb_state *mrb, const mrb_value str1, const mrb_value str2)
   return FALSE;
 }
 
-int
+mrb_bool
 mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
   if (mrb_obj_equal(mrb, str1, str2)) return TRUE;
@@ -2534,7 +2534,6 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "*",               mrb_str_times,           MRB_ARGS_REQ(1)); /* 15.2.10.5.1  */
   mrb_define_method(mrb, s, "<=>",             mrb_str_cmp_m,           MRB_ARGS_REQ(1)); /* 15.2.10.5.3  */
   mrb_define_method(mrb, s, "==",              mrb_str_equal_m,         MRB_ARGS_REQ(1)); /* 15.2.10.5.4  */
-  mrb_define_method(mrb, s, "=~",              noregexp,                MRB_ARGS_REQ(1)); /* 15.2.10.5.5  */
   mrb_define_method(mrb, s, "[]",              mrb_str_aref_m,          MRB_ARGS_ANY());  /* 15.2.10.5.6  */
   mrb_define_method(mrb, s, "capitalize",      mrb_str_capitalize,      MRB_ARGS_NONE()); /* 15.2.10.5.7  */
   mrb_define_method(mrb, s, "capitalize!",     mrb_str_capitalize_bang, MRB_ARGS_REQ(1)); /* 15.2.10.5.8  */
@@ -2547,26 +2546,18 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "empty?",          mrb_str_empty_p,         MRB_ARGS_NONE()); /* 15.2.10.5.16 */
   mrb_define_method(mrb, s, "eql?",            mrb_str_eql,             MRB_ARGS_REQ(1)); /* 15.2.10.5.17 */
 
-  // NOTE: Regexp not implemented
-  mrb_define_method(mrb, s, "gsub",            noregexp,                MRB_ARGS_REQ(1)); /* 15.2.10.5.18 */
-  mrb_define_method(mrb, s, "gsub!",           noregexp,                MRB_ARGS_REQ(1)); /* 15.2.10.5.19 */
-
   mrb_define_method(mrb, s, "hash",            mrb_str_hash_m,          MRB_ARGS_REQ(1)); /* 15.2.10.5.20 */
   mrb_define_method(mrb, s, "include?",        mrb_str_include,         MRB_ARGS_REQ(1)); /* 15.2.10.5.21 */
   mrb_define_method(mrb, s, "index",           mrb_str_index_m,         MRB_ARGS_ANY());  /* 15.2.10.5.22 */
   mrb_define_method(mrb, s, "initialize",      mrb_str_init,            MRB_ARGS_REQ(1)); /* 15.2.10.5.23 */
   mrb_define_method(mrb, s, "initialize_copy", mrb_str_replace,         MRB_ARGS_REQ(1)); /* 15.2.10.5.24 */
   mrb_define_method(mrb, s, "intern",          mrb_str_intern,          MRB_ARGS_NONE()); /* 15.2.10.5.25 */
-  mrb_define_method(mrb, s, "match",           noregexp,                MRB_ARGS_REQ(1)); /* 15.2.10.5.27 */
   mrb_define_method(mrb, s, "replace",         mrb_str_replace,         MRB_ARGS_REQ(1)); /* 15.2.10.5.28 */
   mrb_define_method(mrb, s, "reverse",         mrb_str_reverse,         MRB_ARGS_NONE()); /* 15.2.10.5.29 */
   mrb_define_method(mrb, s, "reverse!",        mrb_str_reverse_bang,    MRB_ARGS_NONE()); /* 15.2.10.5.30 */
   mrb_define_method(mrb, s, "rindex",          mrb_str_rindex_m,        MRB_ARGS_ANY());  /* 15.2.10.5.31 */
-  mrb_define_method(mrb, s, "scan",            noregexp,                MRB_ARGS_REQ(1)); /* 15.2.10.5.32 */
   mrb_define_method(mrb, s, "slice",           mrb_str_aref_m,          MRB_ARGS_ANY());  /* 15.2.10.5.34 */
   mrb_define_method(mrb, s, "split",           mrb_str_split_m,         MRB_ARGS_ANY());  /* 15.2.10.5.35 */
-  mrb_define_method(mrb, s, "sub",             noregexp,                MRB_ARGS_REQ(1)); /* 15.2.10.5.36 */
-  mrb_define_method(mrb, s, "sub!",            noregexp,                MRB_ARGS_REQ(1)); /* 15.2.10.5.37 */
 
   mrb_define_method(mrb, s, "to_i",            mrb_str_to_i,            MRB_ARGS_ANY());  /* 15.2.10.5.38 */
   mrb_define_method(mrb, s, "to_f",            mrb_str_to_f,            MRB_ARGS_NONE()); /* 15.2.10.5.39 */

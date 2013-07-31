@@ -19,7 +19,7 @@
 #define ARY_DEFAULT_LEN   4
 #define ARY_SHRINK_RATIO  5 /* must be larger than 2 */
 #define ARY_C_MAX_SIZE (SIZE_MAX / sizeof(mrb_value))
-#define ARY_MAX_SIZE ((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? (mrb_int)ARY_C_MAX_SIZE : MRB_INT_MAX)
+#define ARY_MAX_SIZE ((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? (mrb_int)ARY_C_MAX_SIZE : MRB_INT_MAX-1)
 
 static inline mrb_value
 ary_elt(mrb_value ary, mrb_int offset)
@@ -40,7 +40,7 @@ ary_new_capa(mrb_state *mrb, mrb_int capa)
   if (capa > ARY_MAX_SIZE) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
   }
-  blen = capa * sizeof(mrb_value) ;
+  blen = capa * sizeof(mrb_value);
   if (blen < capa) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
   }
@@ -926,7 +926,8 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
     }
     if (mrb_array_p(RARRAY_PTR(ary)[i])) {
       s = inspect_ary(mrb, RARRAY_PTR(ary)[i], list);
-    } else {
+    }
+    else {
       s = mrb_inspect(mrb, RARRAY_PTR(ary)[i]);
     }
     mrb_str_buf_cat(mrb, arystr, RSTRING_PTR(s), RSTRING_LEN(s));

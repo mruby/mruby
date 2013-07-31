@@ -427,7 +427,7 @@ static inline int
 new_lit(codegen_scope *s, mrb_value val)
 {
   size_t i;
-  
+
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
     for (i=0; i<s->irep->plen; i++) {
@@ -447,7 +447,7 @@ new_lit(codegen_scope *s, mrb_value val)
     }
     break;
   }
-    
+
   if (s->irep->plen == s->pcapa) {
     s->pcapa *= 2;
     s->irep->pool = (mrb_value *)codegen_realloc(s, s->irep->pool, sizeof(mrb_value)*s->pcapa);
@@ -683,7 +683,7 @@ scope_body(codegen_scope *s, node *tree)
   return idx - s->idx;
 }
 
-static int
+static mrb_bool
 nosplat(node *t)
 {
   while (t) {
@@ -1551,7 +1551,6 @@ codegen(codegen_scope *s, node *tree, int val)
         // variable rhs
         codegen(s, t, VAL);
         gen_vmassignment(s, tree->car, rhs, val);
-        if (!val) pop();
       }
     }
     break;
@@ -2064,7 +2063,7 @@ codegen(codegen_scope *s, node *tree, int val)
       char *p1 = (char*)tree->car;
       char *p2 = (char*)tree->cdr;
       int ai = mrb_gc_arena_save(s->mrb);
-      int sym = new_sym(s, mrb_intern(s->mrb, REGEXP_CLASS));
+      int sym = new_sym(s, mrb_intern2(s->mrb, REGEXP_CLASS, REGEXP_CLASS_CSTR_LEN));
       int off = new_lit(s, mrb_str_new(s->mrb, p1, strlen(p1)));
       int argc = 1;
 
@@ -2091,7 +2090,7 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       node *n = tree->car;
       int ai = mrb_gc_arena_save(s->mrb);
-      int sym = new_sym(s, mrb_intern(s->mrb, REGEXP_CLASS));
+      int sym = new_sym(s, mrb_intern2(s->mrb, REGEXP_CLASS, REGEXP_CLASS_CSTR_LEN));
       int argc = 1;
       int off;
       char *p;
@@ -2842,13 +2841,15 @@ codegen_start(mrb_state *mrb, parser_state *p)
   if (p->filename) {
     scope->filename = p->filename;
   }
-  if (setjmp(scope->jmp) != 0) {
+  if (setjmp(scope->jmp) == 0) {
+    // prepare irep
+    codegen(scope, p->tree, NOVAL);
+    mrb_pool_close(scope->mpool);
+    return 0;
+  }
+  else {
     return -1;
   }
-  // prepare irep
-  codegen(scope, p->tree, NOVAL);
-  mrb_pool_close(scope->mpool);
-  return 0;
 }
 
 int

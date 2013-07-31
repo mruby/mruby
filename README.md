@@ -2,7 +2,7 @@
     This is a preliminary release for internal team review.
     The URLs and addresses described below are not available yet.
     The official release will be announced later.
-    Any suggestion for modification is welcome.
+    Any suggestions for modification are welcome.
     Delays in replies are to be expected. Sorry in advance.
 
 ## What's mruby
@@ -113,4 +113,4 @@ Please ask us if you want to distribute your code under another license.
 See the [contribution guidelines](https://github.com/mruby/mruby/blob/master/CONTRIBUTING.md)
 then send a pull request to <http://github.com/mruby/mruby>.  We consider you have granted
 non-exclusive right to your contributed code under MIT license.  If you want to be named
-as one of mruby developers, include update to the AUTHORS file in your pull request.
+as one of mruby developers, please include an update to the AUTHORS file in your pull request.

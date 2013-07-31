@@ -220,18 +220,27 @@ module MRuby
 
   class Command::Git < Command
     attr_accessor :flags
-    attr_accessor :clone_options
+    attr_accessor :clone_options, :pull_options
 
     def initialize(build)
       super
       @command = 'git'
       @flags = []
       @clone_options = "clone %{flags} %{url} %{dir}"
+      @pull_options = "pull"
     end
 
     def run_clone(dir, url, _flags = [])
       _pp "GIT", url, dir.relative_path
       _run clone_options, { :flags => [flags, _flags].flatten.join(' '), :url => url, :dir => filename(dir) }
+    end
+
+    def run_pull(dir, url)
+      root = Dir.pwd
+      Dir.chdir dir
+      _pp "GIT PULL", url, dir.relative_path
+      _run pull_options
+      Dir.chdir root
     end
   end
 
@@ -250,8 +259,13 @@ module MRuby
       infiles.each do |f|
         _pp "MRBC", f.relative_path, nil, :indent => 2
       end
-      IO.popen("#{filename @command} #{@compile_options % {:funcname => funcname}} #{infiles.join(' ')}", 'r+') do |io|
+      IO.popen("#{filename @command} #{@compile_options % {:funcname => funcname}} #{filename(infiles).join(' ')}", 'r+') do |io|
         out.puts io.read
+      end
+      # if mrbc execution fail, drop the file
+      unless $?.exitstatus
+        File.delete(out.path)
+        exit -1
       end
     end
   end
