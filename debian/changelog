@@ -1,3 +1,9 @@
+mruby (0.0.0~20130801+gitc550a0f8-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Thu, 01 Aug 2013 07:43:27 +0900
+
 mruby (0.0.0~20130704+git4c8fd521-1) experimental; urgency=low
 
   * New upstream release.
