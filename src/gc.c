@@ -964,7 +964,7 @@ mrb_incremental_gc(mrb_state *mrb)
   GC_INVOKE_TIME_REPORT("mrb_incremental_gc()");
   GC_TIME_START;
 
-  if (is_minor_gc(mrb)) {
+  if (is_generational(mrb)) {
     incremental_gc_until(mrb, GC_STATE_NONE);
   }
   else {
