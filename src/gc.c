@@ -1002,7 +1002,7 @@ mrb_full_gc(mrb_state *mrb)
     incremental_gc_until(mrb, GC_STATE_NONE);
   }
 
-  /* clean all black object as old */
+  /* clear all the old objects back to young */
   if (is_generational(mrb)) {
     clear_all_old(mrb);
     mrb->gc_full = TRUE;
