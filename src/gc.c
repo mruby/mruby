@@ -941,11 +941,15 @@ clear_all_old(mrb_state *mrb)
     incremental_gc_until(mrb, GC_STATE_NONE);
   }
 
+  /* Sweep the dead objects, then reset all the live objects
+   * (including all the old objects, of course) to white. */
   mrb->is_generational_gc_mode = FALSE;
   prepare_incremental_sweep(mrb);
   incremental_gc_until(mrb, GC_STATE_NONE);
-  mrb->atomic_gray_list = mrb->gray_list = NULL;
   mrb->is_generational_gc_mode = origin_mode;
+
+  /* The gray objects has already been painted as white */
+  mrb->atomic_gray_list = mrb->gray_list = NULL;
 }
 
 void
@@ -998,7 +1002,7 @@ mrb_full_gc(mrb_state *mrb)
     incremental_gc_until(mrb, GC_STATE_NONE);
   }
 
-  /* clean all black object as old */
+  /* clear all the old objects back to young */
   if (is_generational(mrb)) {
     clear_all_old(mrb);
     mrb->gc_full = TRUE;
