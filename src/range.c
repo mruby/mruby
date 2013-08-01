@@ -418,7 +418,7 @@ mrb_init_range(mrb_state *mrb)
 {
   struct RClass *r;
 
-  r = mrb_define_class(mrb, "Range", mrb->object_class);
+  r = mrb_define_class(mrb, "Range", mrb->object_class);                                /* 15.2.14 */
   MRB_SET_INSTANCE_TT(r, MRB_TT_RANGE);
 
   mrb_include_module(mrb, r, mrb_class_get(mrb, "Enumerable"));

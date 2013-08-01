@@ -1891,10 +1891,10 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_const(mrb, obj, "Class",       mrb_obj_value(cls));
 
   /* name each classes */
-  mrb_name_class(mrb, bob, mrb_intern2(mrb, "BasicObject", 11));
-  mrb_name_class(mrb, obj, mrb_intern2(mrb, "Object", 6));
-  mrb_name_class(mrb, mod, mrb_intern2(mrb, "Module", 6));
-  mrb_name_class(mrb, cls, mrb_intern2(mrb, "Class", 5));
+  mrb_name_class(mrb, bob, mrb_intern2(mrb, "BasicObject", 11)); /* 15.2.1 */
+  mrb_name_class(mrb, obj, mrb_intern2(mrb, "Object", 6));       /* 15.2.1 */
+  mrb_name_class(mrb, mod, mrb_intern2(mrb, "Module", 6));       /* 15.2.2 */
+  mrb_name_class(mrb, cls, mrb_intern2(mrb, "Class", 5));        /* 15.2.3 */
 
   MRB_SET_INSTANCE_TT(cls, MRB_TT_CLASS);
   mrb_define_method(mrb, bob, "initialize",              mrb_bob_init,             MRB_ARGS_NONE());
