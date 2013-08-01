@@ -949,6 +949,13 @@ clear_all_old(mrb_state *mrb)
   mrb->atomic_gray_list = mrb->gray_list = NULL;
 }
 
+static void
+prepare_major_gc(mrb_state *mrb)
+{
+  clear_all_old(mrb);
+  mrb->gc_full = TRUE;
+}
+
 void
 mrb_incremental_gc(mrb_state *mrb)
 {
@@ -977,8 +984,7 @@ mrb_incremental_gc(mrb_state *mrb)
     }
     else if (is_minor_gc(mrb)) {
       if (mrb->live > mrb->majorgc_old_threshold) {
-        clear_all_old(mrb);
-        mrb->gc_full = TRUE;
+        prepare_major_gc(mrb);
       }
     }
   }
@@ -1001,8 +1007,7 @@ mrb_full_gc(mrb_state *mrb)
 
   /* clear all the old objects back to young */
   if (is_generational(mrb)) {
-    clear_all_old(mrb);
-    mrb->gc_full = TRUE;
+    prepare_major_gc(mrb);
   }
 
   incremental_gc_until(mrb, GC_STATE_NONE);
