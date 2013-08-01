@@ -5245,10 +5245,15 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   if (c) {
     if (c->dump_result) codedump_all(mrb, n);
     if (c->no_exec) return mrb_fixnum_value(n);
-    if (c->target_class) target = c->target_class;
+    if (c->target_class) {
+      target = c->target_class;
+    }
   }
   proc = mrb_proc_new(mrb, mrb->irep[n]);
   proc->target_class = target;
+  if (mrb->c->ci) {
+    mrb->c->ci->target_class = target;
+  }
   v = mrb_run(mrb, proc, mrb_top_self(mrb));
   if (mrb->exc) return mrb_nil_value();
   return v;
