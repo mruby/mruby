@@ -315,29 +315,6 @@ range_to_s(mrb_state *mrb, mrb_value range)
   return str;
 }
 
-static mrb_value
-inspect_range(mrb_state *mrb, mrb_value range, int recur)
-{
-  mrb_value str, str2;
-  struct RRange *r = mrb_range_ptr(range);
-
-  if (recur) {
-    static const char s[2][14] = { "(... ... ...)", "(... .. ...)" };
-    static const int n[] = { 13, 12 };
-    int idx;
-
-    idx = (r->excl) ? 0 : 1;
-    return mrb_str_new(mrb, s[idx], n[idx]);
-  }
-  str  = mrb_inspect(mrb, r->edges->beg);
-  str2 = mrb_inspect(mrb, r->edges->end);
-  str  = mrb_str_dup(mrb, str);
-  mrb_str_cat(mrb, str, "...", r->excl ? 3 : 2);
-  mrb_str_append(mrb, str, str2);
-
-  return str;
-}
-
 /* 15.2.14.4.13(x) */
 /*
  * call-seq:
@@ -351,7 +328,16 @@ inspect_range(mrb_state *mrb, mrb_value range, int recur)
 static mrb_value
 range_inspect(mrb_state *mrb, mrb_value range)
 {
-    return inspect_range(mrb, range, 0);
+  mrb_value str, str2;
+  struct RRange *r = mrb_range_ptr(range);
+
+  str  = mrb_inspect(mrb, r->edges->beg);
+  str2 = mrb_inspect(mrb, r->edges->end);
+  str  = mrb_str_dup(mrb, str);
+  mrb_str_cat(mrb, str, "...", r->excl ? 3 : 2);
+  mrb_str_append(mrb, str, str2);
+
+  return str;
 }
 
 /* 15.2.14.4.14(x) */
