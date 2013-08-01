@@ -386,9 +386,9 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
     if (MRB_PROC_CFUNC_P(p)) {
       int ai = mrb_gc_arena_save(mrb);
       val = p->body.func(mrb, self);
-      mrb_gc_arena_restore(mrb, ai);
       mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
       cipop(mrb);
+      mrb_gc_arena_restore(mrb, ai);
     }
     else {
       val = mrb_run(mrb, p, self);

@@ -23,6 +23,7 @@ typedef struct mrbc_context {
   short lineno;
   int (*partial_hook)(struct mrb_parser_state*);
   void *partial_data;
+  struct RClass *target_class;
   mrb_bool capture_errors:1;
   mrb_bool dump_result:1;
   mrb_bool no_exec:1;

@@ -5210,6 +5210,8 @@ mrb_parse_string(mrb_state *mrb, const char *s, mrbc_context *c)
 static mrb_value
 load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
 {
+  struct RClass *target = mrb->object_class;
+  struct RProc *proc;
   int n;
   mrb_value v;
 
@@ -5243,8 +5245,16 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   if (c) {
     if (c->dump_result) codedump_all(mrb, n);
     if (c->no_exec) return mrb_fixnum_value(n);
+    if (c->target_class) {
+      target = c->target_class;
+    }
   }
-  v = mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
+  proc = mrb_proc_new(mrb, mrb->irep[n]);
+  proc->target_class = target;
+  if (mrb->c->ci) {
+    mrb->c->ci->target_class = target;
+  }
+  v = mrb_run(mrb, proc, mrb_top_self(mrb));
   if (mrb->exc) return mrb_nil_value();
   return v;
 }

@@ -156,7 +156,7 @@ the following options additionally inside of your GEM specification:
 mruby can be extended with C. This is possible by using the C API to
 integrate C libraries into mruby.
 
-### Pre-Conditions
+### Preconditions
 
 mrbgems expects that you have implemented a C method called
 `mrb_YOURGEMNAME_gem_init(mrb_state)`. `YOURGEMNAME` will be replaced
