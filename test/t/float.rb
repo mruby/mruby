@@ -2,51 +2,51 @@
 # Float ISO Test
 
 assert('Float', '15.2.9') do
-  assert_equal Float.class, Class
+  assert_equal Class, Float.class
 end
 
 assert('Float superclass', '15.2.9.2') do
-  assert_equal Float.superclass, Numeric
+  assert_equal Numeric, Float.superclass
 end
 
 assert('Float#+', '15.2.9.3.1') do
   a = 3.123456788 + 0.000000001
   b = 3.123456789 + 1
 
-  assert_float(a, 3.123456789)
-  assert_float(b, 4.123456789)
+  assert_float(3.123456789, a)
+  assert_float(4.123456789, b)
 end
 
 assert('Float#-', '15.2.9.3.2') do
   a = 3.123456790 - 0.000000001
   b = 5.123456789 - 1
 
-  assert_float(a, 3.123456789)
-  assert_float(b, 4.123456789)
+  assert_float(3.123456789, a)
+  assert_float(4.123456789, b)
 end
 
 assert('Float#*', '15.2.9.3.3') do
   a = 3.125 * 3.125
   b = 3.125 * 1
 
-  assert_float(a, 9.765625)
-  assert_float(b, 3.125)
+  assert_float(9.765625, a)
+  assert_float(3.125   , b)
 end
 
 assert('Float#/', '15.2.9.3.4') do
   a = 3.123456789 / 3.123456789
   b = 3.123456789 / 1
 
-  assert_float(a, 1.0)
-  assert_float(b, 3.123456789)
+  assert_float(1.0        , a)
+  assert_float(3.123456789, b)
 end
 
 assert('Float#%', '15.2.9.3.5') do
   a = 3.125 % 3.125
   b = 3.125 % 1
 
-  assert_float(a, 0.0)
-  assert_float(b, 0.125)
+  assert_float(0.0  , a)
+  assert_float(0.125, b)
 end
 
 assert('Float#<=>', '15.2.9.3.6') do
@@ -56,11 +56,11 @@ assert('Float#<=>', '15.2.9.3.6') do
   a2 = 3.125 <=> 3
   c2 = 3.125 <=> 4
 
-  assert_equal a, 1
-  assert_equal b, 0
-  assert_equal c, -1
-  assert_equal a2, 1
-  assert_equal c2, -1
+  assert_equal( 1, a)
+  assert_equal( 0, b)
+  assert_equal(-1, c)
+  assert_equal( 1, a2)
+  assert_equal(-1, c2)
 end
 
 assert('Float#==', '15.2.9.3.7') do
@@ -74,10 +74,10 @@ assert('Float#ceil', '15.2.9.3.8') do
   c = -3.123456789.ceil
   d = -3.0.ceil
 
-  assert_equal a, 4
-  assert_equal b, 3
-  assert_equal c, -3
-  assert_equal d, -3
+  assert_equal( 4, a)
+  assert_equal( 3, b)
+  assert_equal(-3, c)
+  assert_equal(-3, d)
 end
 
 assert('Float#finite?', '15.2.9.3.9') do
@@ -91,10 +91,10 @@ assert('Float#floor', '15.2.9.3.10') do
   c = -3.123456789.floor
   d = -3.0.floor
 
-  assert_equal a, 3
-  assert_equal b, 3
-  assert_equal c, -4
-  assert_equal d, -3
+  assert_equal( 3, a)
+  assert_equal( 3, b)
+  assert_equal(-4, c)
+  assert_equal(-3, d)
 end
 
 assert('Float#infinite?', '15.2.9.3.11') do
@@ -103,8 +103,8 @@ assert('Float#infinite?', '15.2.9.3.11') do
   c = (-1.0 / 0.0).infinite?
 
   assert_nil a
-  assert_equal b, 1
-  assert_equal c, -1
+  assert_equal( 1, b)
+  assert_equal(-1, c)
 end
 
 assert('Float#round', '15.2.9.3.12') do
@@ -118,28 +118,28 @@ assert('Float#round', '15.2.9.3.12') do
   h = 3.423456789.round(1)
   i = 3.423456789.round(3)
 
-  assert_equal a, 3
-  assert_equal b, 4
-  assert_equal c, 3
-  assert_equal d, -3
-  assert_equal e, -4
-  assert_equal f, 12350
-  assert_equal g, 3
-  assert_float(h, 3.4)
-  assert_float(i, 3.423)
+  assert_equal(    3, a)
+  assert_equal(    4, b)
+  assert_equal(    3, c)
+  assert_equal(   -3, d)
+  assert_equal(   -4, e)
+  assert_equal(12350, f)
+  assert_equal(    3, g)
+  assert_float(  3.4, h)
+  assert_float(3.423, i)
 end
 
 assert('Float#to_f', '15.2.9.3.13') do
   a = 3.123456789
 
-  assert_float(a.to_f, a)
+  assert_float(a, a.to_f)
 end
 
 assert('Float#to_i', '15.2.9.3.14') do
-  assert_equal 3.123456789.to_i, 3
+  assert_equal(3, 3.123456789.to_i)
 end
 
 assert('Float#truncate', '15.2.9.3.15') do
-  assert_equal 3.123456789.truncate, 3
-  assert_equal(-3.1.truncate, -3)
+  assert_equal( 3,  3.123456789.truncate)
+  assert_equal(-3, -3.1.truncate)
 end
