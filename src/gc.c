@@ -937,9 +937,6 @@ clear_all_old(mrb_state *mrb)
   size_t origin_mode = mrb->is_generational_gc_mode;
 
   mrb_assert(is_generational(mrb));
-  if (is_major_gc(mrb)) {
-    incremental_gc_until(mrb, GC_STATE_NONE);
-  }
 
   /* Sweep the dead objects, then reset all the live objects
    * (including all the old objects, of course) to white. */
