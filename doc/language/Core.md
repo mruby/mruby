@@ -202,7 +202,7 @@ ISO Code | Mixins | Source File
 
 ISO Code | Source File | C Function | Line
 --- | --- | ---
-n/a | src/class.c | mrb_instance_new | 1055
+n/a | src/class.c | mrb_instance_new | 1054
 
 ### Methods
 
@@ -1604,7 +1604,7 @@ ISO Code | Source File | C Function | Line
 
 ISO Code | Source File | C Function | Line
 --- | --- | ---
-n/a | src/kernel.c | mrb_singleton_class | 920
+n/a | src/kernel.c | mrb_singleton_class | 919
 
 #### singleton_methods
 
