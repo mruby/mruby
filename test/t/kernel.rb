@@ -2,7 +2,7 @@
 # Kernel ISO Test
 
 assert('Kernel', '15.3.1') do
-  assert_equal Kernel.class, Module
+  assert_equal Module, Kernel.class
 end
 
 assert('Kernel.block_given?', '15.3.1.2.2') do
@@ -16,7 +16,7 @@ assert('Kernel.block_given?', '15.3.1.2.2') do
 
   assert_false Kernel.block_given?
   # test without block
-  assert_equal bg_try, "no block"
+  assert_equal "no block", bg_try
   # test with block
   assert_equal "block" do
     bg_try { "block" }
@@ -32,7 +32,7 @@ end
 # Kernel.eval is provided by the mruby-gem mrbgem. '15.3.1.2.3'
 
 assert('Kernel.global_variables', '15.3.1.2.4') do
-  assert_equal Kernel.global_variables.class, Array
+  assert_equal Array, Kernel.global_variables.class
 end
 
 assert('Kernel.iterator?', '15.3.1.2.5') do
@@ -47,9 +47,9 @@ assert('Kernel.lambda', '15.3.1.2.6') do
   m = Kernel.lambda(&l)
 
   assert_true l.call
-  assert_equal l.class, Proc
+  assert_equal Proc, l.class
   assert_true m.call
-  assert_equal m.class, Proc
+  assert_equal Proc, m.class
 end
 
 # Not implemented at the moment
@@ -65,7 +65,7 @@ assert('Kernel.loop', '15.3.1.2.8') do
     break if i == 100
   end
 
-  assert_equal i, 100
+  assert_equal 100, i
 end
 
 assert('Kernel.p', '15.3.1.2.9') do
@@ -94,7 +94,7 @@ assert('Kernel.raise', '15.3.1.2.12') do
 end
 
 assert('Kernel#__id__', '15.3.1.3.3') do
-  assert_equal __id__.class, Fixnum
+  assert_equal Fixnum, __id__.class
 end
 
 assert('Kernel#__send__', '15.3.1.3.4') do
@@ -102,13 +102,13 @@ assert('Kernel#__send__', '15.3.1.3.4') do
   l = __send__(:lambda) do
     true
   end
- 
+
   assert_true l.call
-  assert_equal l.class, Proc
+  assert_equal Proc, l.class
   # test with argument
   assert_true __send__(:respond_to?, :nil?)
   # test without argument and without block
-  assert_equal __send__(:public_methods).class, Array
+  assert_equal  Array, __send__(:public_methods).class
 end
 
 assert('Kernel#block_given?', '15.3.1.3.6') do
@@ -121,7 +121,7 @@ assert('Kernel#block_given?', '15.3.1.3.6') do
   end
 
   assert_false block_given?
-  assert_equal bg_try, "no block"
+  assert_equal "no block", bg_try
   assert_equal "block" do
     bg_try { "block" }
   end
@@ -133,7 +133,7 @@ assert('Kernel#block_given?', '15.3.1.3.6') do
 end
 
 assert('Kernel#class', '15.3.1.3.7') do
-  assert_equal Kernel.class, Module
+  assert_equal Module, Kernel.class
 end
 
 assert('Kernel#clone', '15.3.1.3.8') do
@@ -170,9 +170,9 @@ assert('Kernel#clone', '15.3.1.3.8') do
     end
   end
 
-  assert_equal a.get, 2
-  assert_equal b.get, 1
-  assert_equal c.get, 2
+  assert_equal 2, a.get
+  assert_equal 1, b.get
+  assert_equal 2, c.get
   assert_true a.respond_to?(:test)
   assert_false b.respond_to?(:test)
   assert_true c.respond_to?(:test)
@@ -212,10 +212,10 @@ assert('Kernel#dup', '15.3.1.3.9') do
     end
   end
 
-  assert_equal error_count, immutables.size
-  assert_equal a.get, 2
-  assert_equal b.get, 1
-  assert_equal c.get, 2
+  assert_equal immutables.size, error_count
+  assert_equal 2, a.get
+  assert_equal 1, b.get
+  assert_equal 2, c.get
   assert_true a.respond_to?(:test)
   assert_false b.respond_to?(:test)
   assert_false c.respond_to?(:test)
@@ -243,14 +243,14 @@ assert('Kernel#extend works on toplevel', '15.3.1.3.13') do
   module Test4ExtendModule
     def test_method; end
   end
-  # This would crash... 
+  # This would crash...
   extend(Test4ExtendModule)
 
   assert_true respond_to?(:test_method)
 end
 
 assert('Kernel#global_variables', '15.3.1.3.14') do
-  assert_equal global_variables.class, Array
+  assert_equal Array, global_variables.class
 end
 
 assert('Kernel#hash', '15.3.1.3.15') do
@@ -260,8 +260,8 @@ end
 assert('Kernel#inspect', '15.3.1.3.17') do
   s = inspect
 
-  assert_equal s.class, String
-  assert_equal s, "main"
+  assert_equal String, s.class
+  assert_equal "main", s
 end
 
 assert('Kernel#instance_variables', '15.3.1.3.23') do
@@ -272,8 +272,8 @@ assert('Kernel#instance_variables', '15.3.1.3.23') do
   end
   ivars = o.instance_variables
 
-  assert_equal ivars.class, Array
-  assert_equal ivars.size, 2
+  assert_equal Array, ivars.class,
+  assert_equal(2, ivars.size)
   assert_true ivars.include?(:@a)
   assert_true ivars.include?(:@b)
 end
@@ -300,9 +300,9 @@ assert('Kernel#lambda', '15.3.1.3.27') do
   m = lambda(&l)
 
   assert_true l.call
-  assert_equal l.class, Proc
+  assert_equal Proc, l.class
   assert_true m.call
-  assert_equal m.class, Proc
+  assert_equal Proc, m.class
 end
 
 # Not implemented yet
@@ -322,7 +322,7 @@ assert('Kernel#loop', '15.3.1.3.29') do
 end
 
 assert('Kernel#methods', '15.3.1.3.31') do
-  assert_equal methods.class, Array
+  assert_equal Array, methods.class
 end
 
 assert('Kernel#nil?', '15.3.1.3.32') do
@@ -330,7 +330,7 @@ assert('Kernel#nil?', '15.3.1.3.32') do
 end
 
 assert('Kernel#object_id', '15.3.1.3.33') do
-  assert_equal object_id.class, Fixnum
+  assert_equal Fixnum, object_id.class
 end
 
 # Kernel#p is defined in mruby-print mrbgem. '15.3.1.3.34'
@@ -338,15 +338,15 @@ end
 # Kernel#print is defined in mruby-print mrbgem. '15.3.1.3.35'
 
 assert('Kernel#private_methods', '15.3.1.3.36') do
-  assert_equal private_methods.class, Array
+  assert_equal Array, private_methods.class
 end
 
 assert('Kernel#protected_methods', '15.3.1.3.37') do
-  assert_equal protected_methods.class, Array
+  assert_equal Array, protected_methods.class
 end
 
 assert('Kernel#public_methods', '15.3.1.3.38') do
-  assert_equal public_methods.class, Array
+  assert_equal Array, public_methods.class
 end
 
 # Kernel#puts is defined in mruby-print mrbgem. '15.3.1.3.39'
@@ -378,7 +378,7 @@ assert('Kernel#respond_to?', '15.3.1.3.43') do
   assert_true respond_to?(:nil?)
   assert_true Test4RespondTo.new.respond_to?(:valid_method)
   assert_true Test4RespondTo.new.respond_to?('valid_method')
-  assert_false Test4RespondTo.new.respond_to?(:test_method) 
+  assert_false Test4RespondTo.new.respond_to?(:test_method)
 end
 
 assert('Kernel#send', '15.3.1.3.44') do

@@ -2,7 +2,7 @@
 # BasicObject
 
 assert('BasicObject') do
-  assert_equal(BasicObject.class, Class)
+  assert_equal(Class, BasicObject.class)
 end
 
 assert('BasicObject superclass') do
