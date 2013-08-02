@@ -117,6 +117,8 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
       case 'g':
         args->debug_info = 1;
         break;
+      case 'h':
+        return -1;
       case '-':
         if (argv[i][1] == '\n') {
           return i;
