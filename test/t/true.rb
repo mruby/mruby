@@ -2,11 +2,11 @@
 # TrueClass ISO Test
 
 assert('TrueClass', '15.2.5') do
-  assert_equal TrueClass.class, Class
+  assert_equal Class, TrueClass.class
 end
 
 assert('TrueClass superclass', '15.2.5.2') do
-  assert_equal TrueClass.superclass, Object
+  assert_equal Object, TrueClass.superclass
 end
 
 assert('TrueClass true', '15.2.5.1') do
@@ -24,7 +24,7 @@ assert('TrueClass#^', '15.2.5.3.2') do
 end
 
 assert('TrueClass#to_s', '15.2.5.3.3') do
-  assert_equal true.to_s, 'true'
+  assert_equal 'true', true.to_s
 end
 
 assert('TrueClass#|', '15.2.5.3.4') do
