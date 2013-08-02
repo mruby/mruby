@@ -22,7 +22,7 @@ assert('super', '11.3.4') do
   bar = SuperBar.new
 
   assert_true bar.foo
-  assert_equal bar.bar(1,2,3), [1,2,3]
+  assert_equal [1,2,3], bar.bar(1,2,3)
 end
 
 assert('yield', '11.3.5') do
@@ -37,9 +37,9 @@ assert('Abbreviated variable assignment', '11.4.2.3.2') do
   c = 1
   c += 2
 
-  assert_equal a, 1
+  assert_equal 1, a
   assert_nil b
-  assert_equal c, 3
+  assert_equal 3, c
 end
 
 assert('Nested const reference') do
@@ -51,8 +51,8 @@ assert('Nested const reference') do
       end
     end
   end
-  assert_equal Syntax4Const::CONST1, "hello world"
-  assert_equal Syntax4Const::Const2.new.const1, "hello world"
+  assert_equal "hello world", Syntax4Const::CONST1
+  assert_equal "hello world", Syntax4Const::Const2.new.const1
 end
 
 assert('Abbreviated variable assignment as returns') do
@@ -63,7 +63,7 @@ assert('Abbreviated variable assignment as returns') do
       end
     end
   end
-  assert_equal Syntax4AbbrVarAsgnAsReturns::A.new.b, 1
+  assert_equal 1, Syntax4AbbrVarAsgnAsReturns::A.new.b
 end
 
 assert('Splat and mass assignment') do
