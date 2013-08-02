@@ -3704,7 +3704,7 @@ parse_string(parser_state *p)
     char flag[4] = { '\0' };
 
     newtok(p);
-    while (c = nextc(p), ISALPHA(c)) {
+    while (c = nextc(p), c != -1 && ISALPHA(c)) {
       switch (c) {
       case 'i': f |= 1; break;
       case 'x': f |= 2; break;
