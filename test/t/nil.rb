@@ -2,7 +2,7 @@
 # NilClass ISO Test
 
 assert('NilClass', '15.2.4') do
-  assert_equal NilClass.class, Class
+  assert_equal Class, NilClass.class
 end
 
 assert('NilClass#&', '15.2.4.3.1') do
@@ -25,5 +25,5 @@ assert('NilClass#nil?', '15.2.4.3.4') do
 end
 
 assert('NilClass#to_s', '15.2.4.3.5') do
-  assert_equal nil.to_s, ''
+  assert_equal '', nil.to_s
 end
