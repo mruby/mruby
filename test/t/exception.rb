@@ -2,44 +2,44 @@
 # Exception ISO Test
 
 assert('Exception', '15.2.22') do
-  assert_equal Exception.class, Class
+  assert_equal Class, Exception.class
 end
 
 assert('Exception superclass', '15.2.22.2') do
-  assert_equal Exception.superclass, Object
+  assert_equal Object, Exception.superclass
 end
 
 assert('Exception.exception', '15.2.22.4.1') do
   e = Exception.exception('a')
 
-  assert_equal e.class, Exception
+  assert_equal Exception, e.class
 end
 
 assert('Exception#exception', '15.2.22.5.1') do
   e1 = Exception.exception()
   e2 = Exception.exception('b')
 
-  assert_equal e1.class, Exception
-  assert_equal e2.class, Exception
+  assert_equal Exception, e1.class
+  assert_equal Exception, e2.class
 end
 
 assert('Exception#message', '15.2.22.5.2') do
   e = Exception.exception('a')
 
-  assert_equal e.message, 'a'
+  assert_equal 'a', e.message
 end
 
 assert('Exception#to_s', '15.2.22.5.3') do
   e = Exception.exception('a')
 
-  assert_equal e.to_s, 'a'
+  assert_equal 'a', e.to_s
 end
 
 assert('Exception.exception', '15.2.22.4.1') do
   e = Exception.exception()
   e.initialize('a')
 
-  assert_equal e.message, 'a'
+  assert_equal 'a', e.message
 end
 
 assert('ScriptError', '15.2.37') do
@@ -103,7 +103,7 @@ assert('Exception 4') do
     end
     a = err.class
   }
-  assert_equal a, NilClass
+  assert_equal NilClass, a
 end
 
 assert('Exception 5') do
@@ -121,7 +121,7 @@ assert('Exception 5') do
     }
   end
   m2
-  assert_equal $ans, [nil]
+  assert_equal [nil], $ans
 end
 
 assert('Exception 6') do
@@ -147,7 +147,7 @@ assert('Exception 6') do
     yield
   end
   m
-  assert_equal $i, 7
+  assert_equal 7, $i
 end
 
 assert('Exception 7') do
@@ -167,7 +167,7 @@ assert('Exception 7') do
     p :end
   end
   m
-  assert_equal $i, 10
+  assert_equal 10, $i
 end
 
 assert('Exception 8') do
@@ -221,7 +221,7 @@ assert('Exception 11') do
     end
   rescue Exception
   end
-  assert_equal a, :ok
+  assert_equal :ok, a
 end
 
 assert('Exception 12') do
@@ -230,7 +230,7 @@ assert('Exception 12') do
     raise Exception rescue a = :ng
   rescue Exception
   end
-  assert_equal a, :ok
+  assert_equal :ok, a
 end
 
 assert('Exception 13') do
@@ -244,7 +244,7 @@ assert('Exception 13') do
   else
     a = :ng
   end
-  assert_equal a, :ok
+  assert_equal :ok, a
 end
 
 assert('Exception 14') do
@@ -256,7 +256,7 @@ assert('Exception 14') do
     a = :ok
   end
 
-  assert_equal a, :ok
+  assert_equal :ok, a
 end
 
 assert('Exception 15') do
@@ -265,7 +265,7 @@ assert('Exception 15') do
       rescue
         :ko
       end
-  assert_equal a, :ok
+  assert_equal :ok, a
 end
 
 assert('Exception 16') do
@@ -316,7 +316,7 @@ assert('Exception 19') do
       end
       [ r, @e ]
     end
-  
+
     def b
       begin
         1 * "b"
@@ -324,12 +324,12 @@ assert('Exception 19') do
         @e = self.z
       end
     end
-  
+
     def z
       true
     end
   end
-  assert_equal Class4Exception19.new.a, [true,  true]
+  assert_equal [true, true], Class4Exception19.new.a
 end
 
 assert('Exception#inspect without message') do

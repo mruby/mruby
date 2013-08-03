@@ -2,11 +2,11 @@
 # Symbol ISO Test
 
 assert('Symbol', '15.2.11') do
-  assert_equal Symbol.class, Class
+  assert_equal Class, Symbol.class
 end
 
 assert('Symbol superclass', '15.2.11.2') do
-  assert_equal Symbol.superclass, Object
+  assert_equal Object, Symbol.superclass
 end
 
 assert('Symbol#===', '15.2.11.3.1') do
@@ -15,13 +15,13 @@ assert('Symbol#===', '15.2.11.3.1') do
 end
 
 assert('Symbol#id2name', '15.2.11.3.2') do
-  assert_equal :abc.id2name, 'abc'
+  assert_equal 'abc', :abc.id2name
 end
 
 assert('Symbol#to_s', '15.2.11.3.3') do
-  assert_equal :abc.to_s, 'abc'
+  assert_equal  'abc', :abc.to_s
 end
 
 assert('Symbol#to_sym', '15.2.11.3.4') do
-  assert_equal :abc.to_sym, :abc
+  assert_equal :abc, :abc.to_sym
 end
