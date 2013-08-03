@@ -18,10 +18,10 @@ struct RClass {
   struct RClass *super;
 };
 
-#define mrb_class_ptr(v)    ((struct RClass*)((v).value.p))
-#define RCLASS_SUPER(v)     (((struct RClass*)((v).value.p))->super)
-#define RCLASS_IV_TBL(v)    (((struct RClass*)((v).value.p))->iv)
-#define RCLASS_M_TBL(v)     (((struct RClass*)((v).value.p))->mt)
+#define mrb_class_ptr(v)    ((struct RClass*)(mrb_value_p(v)))
+#define RCLASS_SUPER(v)     (((struct RClass*)(mrb_value_p(v)))->super)
+#define RCLASS_IV_TBL(v)    (((struct RClass*)(mrb_value_p(v)))->iv)
+#define RCLASS_M_TBL(v)     (((struct RClass*)(mrb_value_p(v)))->mt)
 
 static inline struct RClass*
 mrb_class(mrb_state *mrb, mrb_value v)

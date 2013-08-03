@@ -37,7 +37,7 @@ void abort(void);
 #define SET_NIL_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
 #define SET_INT_VALUE(r,n) MRB_SET_VALUE(r, MRB_TT_FIXNUM, value.i, (n))
 #define SET_SYM_VALUE(r,v) MRB_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
-#define SET_OBJ_VALUE(r,v) MRB_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
+#define SET_OBJ_VALUE(r,v) MRB_SET_VALUE_P(r, (((struct RObject*)(v))->tt), (v))
 #ifdef MRB_NAN_BOXING
 #define SET_FLT_VALUE(mrb,r,v) r.f = (v)
 #elif defined(MRB_WORD_BOXING)
