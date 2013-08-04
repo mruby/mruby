@@ -173,6 +173,7 @@ fiber_resume(mrb_state *mrb, mrb_value self)
     c->prev = mrb->c;
     if (c->prev->fib) 
       mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
+    mrb_write_barrier(mrb, (struct RBasic*)c->fib);
     c->status = MRB_FIBER_RUNNING;
     mrb->c = c;
 
@@ -183,6 +184,7 @@ fiber_resume(mrb_state *mrb, mrb_value self)
   c->prev = mrb->c;
   if (c->prev->fib) 
     mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
+  mrb_write_barrier(mrb, (struct RBasic*)c->fib);
   c->status = MRB_FIBER_RUNNING;
   mrb->c = c;
   return fiber_result(mrb, a, len);
