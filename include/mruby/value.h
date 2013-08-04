@@ -130,16 +130,16 @@ typedef struct mrb_value {
   union {
     mrb_float f;
     union {
-    void *p;
-    struct {
-      MRB_ENDIAN_LOHI(
- 	uint32_t ttt;
-        ,union {
-	  mrb_int i;
-	  mrb_sym sym;
-	};
-       )
-    };
+      void *p;
+      struct {
+	MRB_ENDIAN_LOHI(
+ 	  uint32_t ttt;
+          ,union {
+	    mrb_int i;
+	    mrb_sym sym;
+	  };
+        )
+      };
     } value;
   };
 } mrb_value;
@@ -157,7 +157,7 @@ typedef struct mrb_value {
 #define MRB_SET_VALUE_P(o, tt, v) do {\
   (o).value.ttt = mrb_mktt(tt);\
   (o).value.i = 0;\
-  (o).value.p = (void*)((uint64_t)(o).value.p | (((uint64_t)(v))>>2));	\
+  (o).value.p = (void*)((uint64_t)(o).value.p | (((uint64_t)(v))>>2));\
 } while (0)
 
 static inline mrb_value
