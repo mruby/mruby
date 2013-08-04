@@ -144,6 +144,14 @@ typedef struct mrb_value {
   };
 } mrb_value;
 
+/* value representation by nan-boxing:
+ *   float : FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF
+ *   object: 111111111111TTTT TTPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP
+ *   int   : 1111111111110000 1000000000000000 IIIIIIIIIIIIIIII IIIIIIIIIIIIIIII
+ *   sym   : 1111111111110000 1010000000000000 SSSSSSSSSSSSSSSS SSSSSSSSSSSSSSSS
+ * In order to get enough bit size to save TT, all pointers are shifted 2 bits
+ * in the right direction.
+ */
 #define mrb_tt(o)       (((o).value.ttt & 0xfc000)>>14)
 #define mrb_mktt(tt)    (0xfff00000|((tt)<<14))
 #define mrb_type(o)     ((uint32_t)0xfff00000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
