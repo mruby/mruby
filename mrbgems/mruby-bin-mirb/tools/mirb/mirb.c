@@ -275,6 +275,7 @@ main(int argc, char **argv)
 
   cxt = mrbc_context_new(mrb);
   cxt->capture_errors = 1;
+  mrbc_filename(mrb, cxt, "(mirb)");
   if (args.verbose) cxt->dump_result = 1;
 
   ai = mrb_gc_arena_save(mrb);
