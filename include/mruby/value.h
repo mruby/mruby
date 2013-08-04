@@ -152,12 +152,14 @@ typedef struct mrb_value {
 
 #define MRB_SET_VALUE(o, tt, attr, v) do {\
   (o).value.ttt = mrb_mktt(tt);\
-  (o).attr = v;\
-} while (0)
-#define MRB_SET_VALUE_P(o, tt, v) do {\
-  (o).value.ttt = mrb_mktt(tt);\
-  (o).value.i = 0;\
-  (o).value.p = (void*)((uint64_t)(o).value.p | (((uint64_t)(v))>>2));\
+  switch (tt) {\
+  case MRB_TT_FALSE:\
+  case MRB_TT_TRUE:\
+  case MRB_TT_UNDEF:\
+  case MRB_TT_FIXNUM:\
+  case MRB_TT_SYMBOL: (o).attr = (v); break;\
+  default: (o).value.i = 0; (o).value.p = (void*)((uint64_t)(o).value.p | (((uint64_t)(v))>>2)); break;\
+  }\
 } while (0)
 
 static inline mrb_value
@@ -252,7 +254,6 @@ typedef union mrb_value {
   default:            if ((o).value.bp) (o).value.bp->tt = ttt; break;\
   }\
 } while (0)
-#define MRB_SET_VALUE_P(o, ttt, v) MRB_SET_VALUE(o, ttt, value.p, v)
 
 extern mrb_value
 mrb_float_value(struct mrb_state *mrb, mrb_float f);
@@ -279,7 +280,6 @@ typedef struct mrb_value {
   (o).tt = ttt;\
   (o).attr = v;\
 } while (0)
-#define MRB_SET_VALUE_P(o, ttt, v) MRB_SET_VALUE(o, ttt, value.p, v)
 
 static inline mrb_value
 mrb_float_value(struct mrb_state *mrb, mrb_float f)
@@ -426,7 +426,7 @@ mrb_obj_value(void *p)
   mrb_value v;
   struct RBasic *b = (struct RBasic*)p;
 
-  MRB_SET_VALUE_P(v, b->tt, p);
+  MRB_SET_VALUE(v, b->tt, value.p, p);
   return v;
 }
 
@@ -439,7 +439,7 @@ mrb_voidp_value(struct mrb_state *mrb, void *p)
 {
   mrb_value v;
 
-  MRB_SET_VALUE_P(v, MRB_TT_VOIDP, p);
+  MRB_SET_VALUE(v, MRB_TT_VOIDP, value.p, p);
   return v;
 }
 #endif
