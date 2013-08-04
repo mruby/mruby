@@ -12,15 +12,13 @@ assert('Hash#merge!') do
     original
   end
 
-  result_1 == {'abc_key' => 'abc_value', 'cba_key' => 'XXX',
-               'xyz_key' => 'xyz_value' } and
-  result_2 == {'abc_key' => 'abc_value', 'cba_key' => 'cba_value',
-               'xyz_key' => 'xyz_value' }
+  assert_equal({'abc_key' => 'abc_value', 'cba_key' => 'XXX',
+               'xyz_key' => 'xyz_value' }, result_1)
+  assert_equal({'abc_key' => 'abc_value', 'cba_key' => 'cba_value',
+               'xyz_key' => 'xyz_value' }, result_2)
 end
 
 assert('Hash#values_at') do
   h = { "cat" => "feline", "dog" => "canine", "cow" => "bovine" }
-  result = h.values_at("cow", "cat")
-
-  result == ["bovine", "feline"]
+  assert_equal ["bovine", "feline"], h.values_at("cow", "cat")
 end
