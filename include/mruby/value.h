@@ -129,30 +129,36 @@ enum mrb_vtype {
 typedef struct mrb_value {
   union {
     mrb_float f;
+    union {
+    void *p;
     struct {
       MRB_ENDIAN_LOHI(
  	uint32_t ttt;
         ,union {
-	  void *p;
 	  mrb_int i;
 	  mrb_sym sym;
-	} value;
+	};
        )
     };
+    } value;
   };
 } mrb_value;
 
-#define mrb_tt(o)       ((o).ttt & 0xff)
-#define mrb_mktt(tt)    (0xfff00000|(tt))
-#define mrb_type(o)     ((uint32_t)0xfff00000 < (o).ttt ? mrb_tt(o) : MRB_TT_FLOAT)
-#define mrb_value_p(o)  (o).value.p
+#define mrb_tt(o)       (((o).value.ttt & 0xfc000)>>14)
+#define mrb_mktt(tt)    (0xfff00000|((tt)<<14))
+#define mrb_type(o)     ((uint32_t)0xfff00000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
+#define mrb_value_p(o)  ((void*)((((uint64_t)0x3ffffffffff)&((uint64_t)((o).value.p)))<<2))
 #define mrb_float(o)    (o).f
 
 #define MRB_SET_VALUE(o, tt, attr, v) do {\
-  (o).ttt = mrb_mktt(tt);\
+  (o).value.ttt = mrb_mktt(tt);\
   (o).attr = v;\
 } while (0)
-#define MRB_SET_VALUE_P(o, tt, v) MRB_SET_VALUE(o, tt, value.p, v)
+#define MRB_SET_VALUE_P(o, tt, v) do {\
+  (o).value.ttt = mrb_mktt(tt);\
+  (o).value.i = 0;\
+  (o).value.p = (void*)((uint64_t)(o).value.p | (((uint64_t)(v))>>2));	\
+} while (0)
 
 static inline mrb_value
 mrb_float_value(struct mrb_state *mrb, mrb_float f)
@@ -160,7 +166,7 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
   mrb_value v;
 
   if (f != f) {
-    v.ttt = 0x7ff80000;
+    v.value.ttt = 0x7ff80000;
     v.value.i = 0;
   } else {
     v.f = f;
