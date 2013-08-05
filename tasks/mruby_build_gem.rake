@@ -39,7 +39,7 @@ module MRuby
         gemdir = "#{root}/mrbgems/#{params[:core]}"
       elsif params[:git]
         url = params[:git]
-        gemdir = "#{build_dir}/mrbgems/#{url.match(/([-\w]+)(\.[-\w]+|)$/).to_a[1]}"
+        gemdir = "#{gem_clone_dir}/#{url.match(/([-\w]+)(\.[-\w]+|)$/).to_a[1]}"
 
         if File.exists?(gemdir)
           if $pull_gems
@@ -50,7 +50,7 @@ module MRuby
         else
           options = [params[:options]] || []
           options << "--branch \"#{params[:branch]}\"" if params[:branch]
-          FileUtils.mkdir_p "#{build_dir}/mrbgems"
+          FileUtils.mkdir_p "#{gem_clone_dir}"
           git.run_clone gemdir, url, options
         end
       else
