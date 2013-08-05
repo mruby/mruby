@@ -74,8 +74,8 @@ assert('String#rstrip!') do
 end
 
 assert('String#swapcase') do
-  assert_equal "Hello".swapcase, "hELLO"
-  assert_equal "cYbEr_PuNk11".swapcase, "CyBeR_pUnK11"
+  assert_equal "hELLO", "Hello".swapcase
+  assert_equal "CyBeR_pUnK11", "cYbEr_PuNk11".swapcase
 end
 
 assert('String#swapcase!') do
@@ -95,10 +95,10 @@ assert('String#concat') do
 end
 
 assert('String#casecmp') do
-  assert_equal "abcdef".casecmp("abcde"), 1
-  assert_equal "aBcDeF".casecmp("abcdef"), 0
-  assert_equal "abcdef".casecmp("abcdefg"),-1
-  assert_equal "abcdef".casecmp("ABCDEF"), 0
+  assert_equal 1, "abcdef".casecmp("abcde")
+  assert_equal 0, "aBcDeF".casecmp("abcdef")
+  assert_equal(-1, "abcdef".casecmp("abcdefg"))
+  assert_equal 0, "abcdef".casecmp("ABCDEF")
 end
 
 assert('String#start_with?') do
