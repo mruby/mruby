@@ -115,13 +115,7 @@ struct mrb_time {
   struct tm           datetime;
 };
 
-static void
-mrb_time_free(mrb_state *mrb, void *ptr)
-{
-  mrb_free(mrb, ptr);
-}
-
-static struct mrb_data_type mrb_time_type = { "Time", mrb_time_free };
+static struct mrb_data_type mrb_time_type = { "Time", mrb_free };
 
 /** Updates the datetime of a mrb_time based on it's timezone and
 seconds setting. Returns self on success, NULL of failure. */
@@ -519,7 +513,7 @@ mrb_time_initialize(mrb_state *mrb, mrb_value self)
 
   tm = (struct mrb_time*)DATA_PTR(self);
   if (tm) {
-    mrb_time_free(mrb, tm);
+    mrb_free(mrb, tm);
   }
   DATA_TYPE(self) = &mrb_time_type;
   DATA_PTR(self) = NULL;
