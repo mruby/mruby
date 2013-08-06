@@ -5,6 +5,8 @@
     Any suggestions for modification are welcome.
     Delays in replies are to be expected. Sorry in advance.
 
+[![Build Status](https://travis-ci.org/mruby/mruby.png?branch=master)](https://travis-ci.org/mruby/mruby)
+
 ## What's mruby
 
 mruby is the lightweight implementation of the Ruby language complying to (part of)
