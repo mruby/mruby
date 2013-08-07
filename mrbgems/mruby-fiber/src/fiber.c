@@ -62,7 +62,7 @@ static mrb_value
 fiber_init(mrb_state *mrb, mrb_value self)
 {
   static const struct mrb_context mrb_context_zero = { 0 };
-  struct RFiber *f = (struct RFiber*)self.value.p;
+  struct RFiber *f = (struct RFiber*)mrb_value_p(self);
   struct mrb_context *c;
   struct RProc *p;
   mrb_callinfo *ci;
@@ -113,7 +113,7 @@ fiber_init(mrb_state *mrb, mrb_value self)
 static struct mrb_context*
 fiber_check(mrb_state *mrb, mrb_value fib)
 {
-  struct RFiber *f = (struct RFiber*)fib.value.p;
+  struct RFiber *f = (struct RFiber*)mrb_value_p(fib);
 
   if (!f->cxt) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Fiber");
