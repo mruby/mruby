@@ -176,7 +176,7 @@ mrb_obj_id(mrb_value obj)
   case  MRB_TT_FILE:
   case  MRB_TT_DATA:
   default:
-    return MakeID(mrb_value_p(obj));
+    return MakeID(mrb_ptr(obj));
   }
 }
 

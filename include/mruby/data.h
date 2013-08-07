@@ -34,7 +34,7 @@ struct RData *mrb_data_object_alloc(mrb_state *mrb, struct RClass* klass, void *
   data = Data_Wrap_Struct(mrb,klass,type,sval);\
 } while (0)
 
-#define RDATA(obj)         ((struct RData *)(mrb_value_p(obj)))
+#define RDATA(obj)         ((struct RData *)(mrb_ptr(obj)))
 #define DATA_PTR(d)        (RDATA(d)->data)
 #define DATA_TYPE(d)       (RDATA(d)->type)
 void mrb_data_check_type(mrb_state *mrb, mrb_value, const mrb_data_type*);

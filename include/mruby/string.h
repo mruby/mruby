@@ -25,8 +25,8 @@ struct RString {
   char *ptr;
 };
 
-#define mrb_str_ptr(s)    ((struct RString*)(mrb_value_p(s)))
-#define RSTRING(s)        ((struct RString*)(mrb_value_p(s)))
+#define mrb_str_ptr(s)    ((struct RString*)(mrb_ptr(s)))
+#define RSTRING(s)        ((struct RString*)(mrb_ptr(s)))
 #define RSTRING_PTR(s)    (RSTRING(s)->ptr)
 #define RSTRING_LEN(s)    (RSTRING(s)->len)
 #define RSTRING_CAPA(s)   (RSTRING(s)->aux.capa)
