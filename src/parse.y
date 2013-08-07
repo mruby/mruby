@@ -3701,7 +3701,9 @@ parse_string(parser_state *p)
     int f = 0;
     int c;
     char *s = strndup(tok(p), toklen(p));
-    char flag[4] = { '\0' };
+    char flags[3];
+    char *flag = flags;
+    char *dup;
 
     newtok(p);
     while (c = nextc(p), c != -1 && ISALPHA(c)) {
@@ -3720,10 +3722,16 @@ parse_string(parser_state *p)
 	  toklen(p) > 1 ? "s" : "", tok(p));
       yyerror(p, msg);
     }
-    if (f & 1) strcat(flag, "i");
-    if (f & 2) strcat(flag, "x");
-    if (f & 4) strcat(flag, "m");
-    yylval.nd = new_regx(p, s, strdup(flag));
+    if (f != 0) {
+      if (f & 1) *flag++ = 'i';
+      if (f & 2) *flag++ = 'x';
+      if (f & 4) *flag++ = 'm';
+      dup = strndup(flags, (size_t)(flag - flags));
+    }
+    else {
+      dup = NULL;
+    }
+    yylval.nd = new_regx(p, s, dup);
 
     return tREGEXP;
   }
