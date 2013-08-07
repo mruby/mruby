@@ -200,7 +200,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
       *(c++) = '-';
     }
 
-    exp = log10(n);
+    exp = (int)log10(n);
 
     if ((exp < 0 ? -exp : exp) > max_digit) {
       /* exponent representation */
@@ -223,7 +223,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
     /* puts digits */
     while (max_digit >= 0) {
       mrb_float weight = pow(10.0, m);
-      digit = floor(n / weight + FLT_EPSILON);
+      digit = (int)floor(n / weight + FLT_EPSILON);
       *(c++) = '0' + digit;
       n -= (digit * weight);
       max_digit--;
