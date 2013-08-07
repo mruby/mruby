@@ -209,7 +209,7 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
   }
 }
 
-void
+mrb_noreturn void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
   mrb->exc = mrb_obj_ptr(exc);
@@ -221,7 +221,7 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
   mrb_longjmp(mrb);
 }
 
-void
+mrb_noreturn void
 mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg)
 {
   mrb_value mesg;
@@ -283,7 +283,7 @@ mrb_format(mrb_state *mrb, const char *format, ...)
   return str;
 }
 
-void
+mrb_noreturn void
 mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
 {
   va_list args;
@@ -295,7 +295,7 @@ mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
   mrb_exc_raise(mrb, mrb_exc_new3(mrb, c, mesg));
 }
 
-void
+mrb_noreturn void
 mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
 {
   mrb_value exc;
@@ -326,7 +326,7 @@ mrb_warn(mrb_state *mrb, const char *fmt, ...)
 #endif
 }
 
-void
+mrb_noreturn void
 mrb_bug(mrb_state *mrb, const char *fmt, ...)
 {
 #ifdef ENABLE_STDIO
