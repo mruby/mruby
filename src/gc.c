@@ -677,6 +677,10 @@ root_scan_phase(mrb_state *mrb)
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
 
   mark_context(mrb, mrb->root_c);
+  if (mrb->root_c != mrb->c) {
+    mark_context(mrb, mrb->c);
+  }
+
   /* mark irep pool */
   if (mrb->irep) {
     size_t len = mrb->irep_len;
