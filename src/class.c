@@ -1484,6 +1484,7 @@ mod_define_method(mrb_state *mrb, mrb_value self)
   }
   p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
   mrb_proc_copy(p, mrb_proc_ptr(blk));
+  p->flags |= MRB_PROC_STRICT;
   mrb_define_method_raw(mrb, c, mid, p);
   return blk;
 }
