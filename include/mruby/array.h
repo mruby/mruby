@@ -27,9 +27,9 @@ struct RArray {
   mrb_value *ptr;
 };
 
-#define mrb_ary_ptr(v)    ((struct RArray*)((v).value.p))
+#define mrb_ary_ptr(v)    ((struct RArray*)(mrb_value_p(v)))
 #define mrb_ary_value(p)  mrb_obj_value((void*)(p))
-#define RARRAY(v)  ((struct RArray*)((v).value.p))
+#define RARRAY(v)  ((struct RArray*)(mrb_value_p(v)))
 
 #define RARRAY_LEN(a) (RARRAY(a)->len)
 #define RARRAY_PTR(a) (RARRAY(a)->ptr)
