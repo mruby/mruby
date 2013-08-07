@@ -2128,7 +2128,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   END_DISPATCH;
 }
 
-void
+mrb_noreturn void
 mrb_longjmp(mrb_state *mrb)
 {
   longjmp(*(jmp_buf*)mrb->jmp, 1);
