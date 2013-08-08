@@ -941,9 +941,6 @@ clear_all_old(mrb_state *mrb)
   size_t origin_mode = mrb->is_generational_gc_mode;
 
   mrb_assert(is_generational(mrb));
-  if (is_major_gc(mrb)) {
-    incremental_gc_until(mrb, GC_STATE_NONE);
-  }
 
   /* Sweep the dead objects, then reset all the live objects
    * (including all the old objects, of course) to white. */
@@ -956,6 +953,13 @@ clear_all_old(mrb_state *mrb)
   mrb->atomic_gray_list = mrb->gray_list = NULL;
 }
 
+static void
+prepare_major_gc(mrb_state *mrb)
+{
+  clear_all_old(mrb);
+  mrb->gc_full = TRUE;
+}
+
 void
 mrb_incremental_gc(mrb_state *mrb)
 {
@@ -964,7 +968,7 @@ mrb_incremental_gc(mrb_state *mrb)
   GC_INVOKE_TIME_REPORT("mrb_incremental_gc()");
   GC_TIME_START;
 
-  if (is_minor_gc(mrb)) {
+  if (is_generational(mrb)) {
     incremental_gc_until(mrb, GC_STATE_NONE);
   }
   else {
@@ -984,8 +988,7 @@ mrb_incremental_gc(mrb_state *mrb)
     }
     else if (is_minor_gc(mrb)) {
       if (mrb->live > mrb->majorgc_old_threshold) {
-        clear_all_old(mrb);
-        mrb->gc_full = TRUE;
+        prepare_major_gc(mrb);
       }
     }
   }
@@ -1008,8 +1011,7 @@ mrb_full_gc(mrb_state *mrb)
 
   /* clear all the old objects back to young */
   if (is_generational(mrb)) {
-    clear_all_old(mrb);
-    mrb->gc_full = TRUE;
+    prepare_major_gc(mrb);
   }
 
   incremental_gc_until(mrb, GC_STATE_NONE);
@@ -1217,6 +1219,7 @@ change_gen_gc_mode(mrb_state *mrb, mrb_int enable)
   if (is_generational(mrb) && !enable) {
     clear_all_old(mrb);
     mrb_assert(mrb->gc_state == GC_STATE_NONE);
+    incremental_gc_until(mrb, GC_STATE_NONE);
     mrb->gc_full = FALSE;
   }
   else if (!is_generational(mrb) && enable) {
