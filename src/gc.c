@@ -334,8 +334,6 @@ mrb_init_heap(mrb_state *mrb)
   add_heap(mrb);
   mrb->gc_interval_ratio = DEFAULT_GC_INTERVAL_RATIO;
   mrb->gc_step_ratio = DEFAULT_GC_STEP_RATIO;
-  mrb->is_generational_gc_mode = TRUE;
-  mrb->gc_full = TRUE;
 
 #ifdef GC_PROFILE
   program_invoke_time = gettimeofday_time();
