@@ -56,11 +56,11 @@ assert("FileTest.size?") do
 end
 
 assert("FileTest.socket?") do
-  skip
+  assert_true FileTest.socket?($mrbtest_io_socketname)
 end
 
 assert("FileTest.symlink?") do
-  skip
+  assert_true FileTest.symlink?($mrbtest_io_symlinkname)
 end
 
 assert("FileTest.zero?") do
