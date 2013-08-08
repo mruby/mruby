@@ -1003,8 +1003,8 @@ mrb_full_gc(mrb_state *mrb)
   GC_INVOKE_TIME_REPORT("mrb_full_gc()");
   GC_TIME_START;
 
-  if (mrb->gc_state == GC_STATE_SWEEP) {
-    /* finish sweep phase */
+  if (mrb->gc_state != GC_STATE_NONE) {
+    /* finish half baked GC cycle */
     incremental_gc_until(mrb, GC_STATE_NONE);
   }
 
