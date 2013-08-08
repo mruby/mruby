@@ -1215,6 +1215,7 @@ change_gen_gc_mode(mrb_state *mrb, mrb_int enable)
   if (is_generational(mrb) && !enable) {
     clear_all_old(mrb);
     mrb_assert(mrb->gc_state == GC_STATE_NONE);
+    incremental_gc_until(mrb, GC_STATE_NONE);
     mrb->gc_full = FALSE;
   }
   else if (!is_generational(mrb) && enable) {
