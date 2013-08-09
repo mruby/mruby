@@ -147,9 +147,9 @@ gettimeofday_time(void)
   gc_time = gettimeofday_time() - gc_time;\
   gc_total_time += gc_time;\
   fprintf(stderr, "gc_state: %d\n", mrb->gc_state);\
-  fprintf(stderr, "live: %d\n", mrb->live);\
-  fprintf(stderr, "majorgc_old_threshold: %d\n", mrb->majorgc_old_threshold);\
-  fprintf(stderr, "gc_threshold: %d\n", mrb->gc_threshold);\
+  fprintf(stderr, "live: %zu\n", mrb->live);\
+  fprintf(stderr, "majorgc_old_threshold: %zu\n", mrb->majorgc_old_threshold);\
+  fprintf(stderr, "gc_threshold: %zu\n", mrb->gc_threshold);\
   fprintf(stderr, "gc_time: %30.20f\n", gc_time);\
   fprintf(stderr, "gc_total_time: %30.20f\n\n", gc_total_time);\
 } while(0)
