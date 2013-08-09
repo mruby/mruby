@@ -946,7 +946,7 @@ clear_all_old(mrb_state *mrb)
   size_t origin_mode = mrb->is_generational_gc_mode;
 
   mrb_assert(is_generational(mrb));
-  if (is_major_gc(mrb)) {
+  if (is_major_gc(mrb) && mrb->gc_state != GC_STATE_NONE) {
     /* finish the half baked GC */
     incremental_gc_until(mrb, GC_STATE_NONE);
   }
