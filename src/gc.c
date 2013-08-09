@@ -1007,15 +1007,14 @@ mrb_full_gc(mrb_state *mrb)
   GC_INVOKE_TIME_REPORT("mrb_full_gc()");
   GC_TIME_START;
 
-  if (mrb->gc_state != GC_STATE_NONE) {
-    /* finish half baked GC cycle */
-    incremental_gc_until(mrb, GC_STATE_NONE);
-  }
-
-  /* clear all the old objects back to young */
   if (is_generational(mrb)) {
+    /* clear all the old objects back to young */
     clear_all_old(mrb);
     mrb->gc_full = TRUE;
+  }
+  else if (mrb->gc_state != GC_STATE_NONE) {
+    /* finish half baked GC cycle */
+    incremental_gc_until(mrb, GC_STATE_NONE);
   }
 
   incremental_gc_until(mrb, GC_STATE_NONE);
