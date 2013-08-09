@@ -1486,7 +1486,7 @@ mod_define_method(mrb_state *mrb, mrb_value self)
   mrb_proc_copy(p, mrb_proc_ptr(blk));
   p->flags |= MRB_PROC_STRICT;
   mrb_define_method_raw(mrb, c, mid, p);
-  return blk;
+  return mrb_symbol_value(mid);
 }
 
 static void
