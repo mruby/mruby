@@ -933,7 +933,7 @@ heredoc_end(parser_state *p)
 
 %}
 
-%pure_parser
+%pure-parser
 %parse-param {parser_state *p}
 %lex-param {parser_state *p}
 
