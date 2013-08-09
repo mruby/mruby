@@ -947,7 +947,8 @@ clear_all_old(mrb_state *mrb)
 
   mrb_assert(is_generational(mrb));
   if (is_major_gc(mrb) && mrb->gc_state != GC_STATE_NONE) {
-    /* finish the half baked GC */
+    /* major gc is incremental, we have to finish the half
+     * baked GC before clear the old objects */
     incremental_gc_until(mrb, GC_STATE_NONE);
   }
 
