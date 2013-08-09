@@ -88,6 +88,9 @@
 
     * Major GC - same as a full regular GC cycle.
 
+  the difference between "tranditional" generational GC is that, the major GC
+  in mruby is triggered incrementally in a tri-color manner.
+
 
   For details, see the comments for each function.
 
@@ -944,6 +947,7 @@ clear_all_old(mrb_state *mrb)
 
   mrb_assert(is_generational(mrb));
   if (is_major_gc(mrb)) {
+    /* finish the half baked GC */
     incremental_gc_until(mrb, GC_STATE_NONE);
   }
 
