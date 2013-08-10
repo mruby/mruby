@@ -292,6 +292,7 @@ typedef struct mrb_value {
 static inline mrb_value
 mrb_float_value(struct mrb_state *mrb, mrb_float f)
 {
+  (void) mrb;
   mrb_value v;
 
   MRB_SET_VALUE(v, MRB_TT_FLOAT, value.f, f);
@@ -445,6 +446,7 @@ mrb_voidp_value(struct mrb_state *mrb, void *p);
 static inline mrb_value
 mrb_voidp_value(struct mrb_state *mrb, void *p)
 {
+  (void) mrb;
   mrb_value v;
 
   MRB_SET_VALUE(v, MRB_TT_VOIDP, value.p, p);
