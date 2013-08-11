@@ -43,3 +43,9 @@ assert('GC.generational_mode=') do
     GC.generational_mode = origin
   end
 end
+
+if GC.respond_to? :test
+  assert('GC.test') do
+    assert_true GC.test
+  end
+end

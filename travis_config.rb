@@ -3,5 +3,5 @@ MRuby::Build.new do |conf|
 
   # include all core GEMs
   conf.gembox 'full-core'
-  conf.cc.defines = %w(MRB_DEBUG)
+  conf.cc.defines = %w(MRB_DEBUG GC_TEST)
 end
