@@ -1032,7 +1032,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       recv = regs[0];
       c = mrb->c->ci->target_class->super;
       method = mrb_method_search_vm(mrb, &mrb->c->ci->target_class, mid);
-      if (MRB_PROC_METHOD_ALIAS_P(method)) {
+      if (MRB_PROC_ALIAS_METHOD_P(method)) {
         /* Change an original method name from an aliased method name */
         mid = method->org_mid;
       }

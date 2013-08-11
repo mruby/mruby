@@ -1339,7 +1339,7 @@ mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym new, mrb_sym org)
   struct RProc *m = mrb_method_search(mrb, c, org);
 
   m->org_mid = org;
-  m->flags |= MRB_PROC_METHOD_ALIAS;
+  m->flags |= MRB_PROC_ALIAS_METHOD;
   mrb_define_method_vm(mrb, c, new, mrb_obj_value(m));
 }
 
