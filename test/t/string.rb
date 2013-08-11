@@ -9,15 +9,7 @@ assert('String superclass', '15.2.10.2') do
   assert_equal Object, String.superclass
 end
 
-assert('String#*', '15.2.10.5.1') do
-  assert_equal 'aaaaa', 'a' * 5
-end
-
-assert('String#+', '15.2.10.5.2') do
-  assert_equal 'ab', 'a' + 'b'
-end
-
-assert('String#<=>', '15.2.10.5.3') do
+assert('String#<=>', '15.2.10.5.1') do
   a = '' <=> ''
   b = '' <=> 'not empty'
   c = 'not empty' <=> ''
@@ -31,9 +23,17 @@ assert('String#<=>', '15.2.10.5.3') do
   assert_equal  1, e
 end
 
-assert('String#==', '15.2.10.5.4') do
+assert('String#==', '15.2.10.5.2') do
   assert_equal 'abc', 'abc'
   assert_not_equal 'abc', 'cba'
+end
+
+assert('String#+', '15.2.10.5.4') do
+  assert_equal 'ab', 'a' + 'b'
+end
+
+assert('String#*', '15.2.10.5.5') do
+  assert_equal 'aaaaa', 'a' * 5
 end
 
 # 'String#=~', '15.2.10.5.5' will be tested in mrbgems.
@@ -396,8 +396,17 @@ assert('String#sub!', '15.2.10.5.37') do
   assert_equal 'aBcabc', b
 end
 
+assert('String#to_f', '15.2.10.5.38') do
+  a = ''.to_f
+  b = '123456789'.to_f
+  c = '12345.6789'.to_f
 
-assert('String#to_i', '15.2.10.5.38') do
+  assert_float(0.0, a)
+  assert_float(123456789.0, b)
+  assert_float(12345.6789, c)
+end
+
+assert('String#to_i', '15.2.10.5.39') do
   a = ''.to_i
   b = '32143'.to_i
   c = 'a'.to_i(16)
@@ -407,16 +416,6 @@ assert('String#to_i', '15.2.10.5.38') do
   assert_equal 32143, b
   assert_equal 10, c
   assert_equal 4, d
-end
-
-assert('String#to_f', '15.2.10.5.39') do
-  a = ''.to_f
-  b = '123456789'.to_f
-  c = '12345.6789'.to_f
-
-  assert_float(0.0, a)
-  assert_float(123456789.0, b)
-  assert_float(12345.6789, c)
 end
 
 assert('String#to_s', '15.2.10.5.40') do
