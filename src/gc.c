@@ -1285,9 +1285,7 @@ mrb_objspace_each_objects(mrb_state *mrb, each_object_callback* callback, void *
 }
 
 #ifdef GC_TEST
-#ifdef GC_DEBUG
 static mrb_value gc_test(mrb_state *, mrb_value);
-#endif
 #endif
 
 void
@@ -1307,14 +1305,11 @@ mrb_init_gc(mrb_state *mrb)
   mrb_define_class_method(mrb, gc, "generational_mode=", gc_generational_mode_set, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, gc, "generational_mode", gc_generational_mode_get, MRB_ARGS_NONE());
 #ifdef GC_TEST
-#ifdef GC_DEBUG
   mrb_define_class_method(mrb, gc, "test", gc_test, MRB_ARGS_NONE());
-#endif
 #endif
 }
 
 #ifdef GC_TEST
-#ifdef GC_DEBUG
 void
 test_mrb_field_write_barrier(void)
 {
@@ -1574,5 +1569,4 @@ gc_test(mrb_state *mrb, mrb_value self)
   fprintf(stderr, "all GC tests passed\n");
   return mrb_true_value();
 }
-#endif
 #endif
