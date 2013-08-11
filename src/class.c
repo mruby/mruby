@@ -55,7 +55,7 @@ mrb_name_class(mrb_state *mrb, struct RClass *c, mrb_sym name)
   mrb_obj_iv_set(mrb, (struct RObject*)c,
                  mrb_intern2(mrb, "__classid__", 11), mrb_symbol_value(name));
 }
-                                
+
 #define make_metaclass(mrb, c) prepare_singleton_class((mrb), (struct RBasic*)(c))
 
 static void
@@ -1334,11 +1334,13 @@ mrb_obj_class(mrb_state *mrb, mrb_value obj)
 }
 
 void
-mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
+mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym new, mrb_sym org)
 {
-  struct RProc *m = mrb_method_search(mrb, c, b);
+  struct RProc *m = mrb_method_search(mrb, c, org);
 
-  mrb_define_method_vm(mrb, c, a, mrb_obj_value(m));
+  m->org_mid = org;
+  m->flags |= MRB_PROC_METHOD_ALIAS;
+  mrb_define_method_vm(mrb, c, new, mrb_obj_value(m));
 }
 
 /*!

@@ -28,6 +28,7 @@ struct RProc {
   } body;
   struct RClass *target_class;
   struct REnv *env;
+  mrb_sym org_mid;              /* Original method */
 };
 
 /* aspec access */
@@ -39,6 +40,8 @@ struct RProc {
 #define MRB_ASPEC_KDICT(a)        ((a) & (1<<1))
 #define MRB_ASPEC_BLOCK(a)        ((a) & 1)
 
+#define MRB_PROC_METHOD_ALIAS 64
+#define MRB_PROC_METHOD_ALIAS_P(p) (((p)->flags & MRB_PROC_METHOD_ALIAS) != 0)
 #define MRB_PROC_CFUNC 128
 #define MRB_PROC_CFUNC_P(p) (((p)->flags & MRB_PROC_CFUNC) != 0)
 #define MRB_PROC_STRICT 256
