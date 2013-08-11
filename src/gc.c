@@ -577,7 +577,7 @@ mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
 static void
 obj_free(mrb_state *mrb, struct RBasic *obj)
 {
-  DEBUG(printf("obj_free(%p,tt=%d)\n",obj,obj->tt));
+  DEBUG(fprintf(stderr, "obj_free(%p,tt=%d)\n",obj,obj->tt));
   switch (obj->tt) {
     /* immediate - no mark */
   case MRB_TT_TRUE:
@@ -1321,7 +1321,7 @@ test_mrb_field_write_barrier(void)
   mrb_state *mrb = mrb_open();
   struct RBasic *obj, *value;
 
-  puts("test_mrb_field_write_barrier");
+  fprintf(stderr, "test_mrb_field_write_barrier\n");
   mrb->is_generational_gc_mode = FALSE;
   obj = mrb_basic_ptr(mrb_ary_new(mrb));
   value = mrb_basic_ptr(mrb_str_new_cstr(mrb, "value"));
@@ -1329,14 +1329,14 @@ test_mrb_field_write_barrier(void)
   paint_partial_white(mrb,value);
 
 
-  puts("  in GC_STATE_MARK");
+  fprintf(stderr, "  in GC_STATE_MARK\n");
   mrb->gc_state = GC_STATE_MARK;
   mrb_field_write_barrier(mrb, obj, value);
 
   mrb_assert(is_gray(value));
 
 
-  puts("  in GC_STATE_SWEEP");
+  fprintf(stderr, "  in GC_STATE_SWEEP\n");
   paint_partial_white(mrb,value);
   mrb->gc_state = GC_STATE_SWEEP;
   mrb_field_write_barrier(mrb, obj, value);
@@ -1345,7 +1345,7 @@ test_mrb_field_write_barrier(void)
   mrb_assert(value->color & mrb->current_white_part);
 
 
-  puts("  fail with black");
+  fprintf(stderr, "  fail with black\n");
   mrb->gc_state = GC_STATE_MARK;
   paint_white(obj);
   paint_partial_white(mrb,value);
@@ -1354,7 +1354,7 @@ test_mrb_field_write_barrier(void)
   mrb_assert(obj->color & mrb->current_white_part);
 
 
-  puts("  fail with gray");
+  fprintf(stderr, "  fail with gray\n");
   mrb->gc_state = GC_STATE_MARK;
   paint_black(obj);
   paint_gray(value);
@@ -1364,7 +1364,7 @@ test_mrb_field_write_barrier(void)
 
 
   {
-    puts("test_mrb_field_write_barrier_value");
+    fprintf(stderr, "test_mrb_field_write_barrier_value\n");
     obj = mrb_basic_ptr(mrb_ary_new(mrb));
     mrb_value value = mrb_str_new_cstr(mrb, "value");
     paint_black(obj);
@@ -1385,11 +1385,11 @@ test_mrb_write_barrier(void)
   mrb_state *mrb = mrb_open();
   struct RBasic *obj;
 
-  puts("test_mrb_write_barrier");
+  fprintf(stderr, "test_mrb_write_barrier\n");
   obj = mrb_basic_ptr(mrb_ary_new(mrb));
   paint_black(obj);
 
-  puts("  in GC_STATE_MARK");
+  fprintf(stderr, "  in GC_STATE_MARK\n");
   mrb->gc_state = GC_STATE_MARK;
   mrb_write_barrier(mrb, obj);
 
@@ -1397,7 +1397,7 @@ test_mrb_write_barrier(void)
   mrb_assert(mrb->atomic_gray_list == obj);
 
 
-  puts("  fail with gray");
+  fprintf(stderr, "  fail with gray\n");
   paint_gray(obj);
   mrb_write_barrier(mrb, obj);
 
@@ -1412,7 +1412,7 @@ test_add_gray_list(void)
   mrb_state *mrb = mrb_open();
   struct RBasic *obj1, *obj2;
 
-  puts("test_add_gray_list");
+  fprintf(stderr, "test_add_gray_list\n");
   change_gen_gc_mode(mrb, FALSE);
   mrb_assert(mrb->gray_list == NULL);
   obj1 = mrb_basic_ptr(mrb_str_new_cstr(mrb, "test"));
@@ -1437,16 +1437,16 @@ test_gc_gray_mark(void)
   struct RBasic *obj;
   size_t gray_num = 0;
 
-  puts("test_gc_gray_mark");
+  fprintf(stderr, "test_gc_gray_mark\n");
 
-  puts("  in MRB_TT_CLASS");
+  fprintf(stderr, "  in MRB_TT_CLASS\n");
   obj = (struct RBasic*)mrb->object_class;
   paint_gray(obj);
   gray_num = gc_gray_mark(mrb, obj);
   mrb_assert(is_black(obj));
   mrb_assert(gray_num > 1);
 
-  puts("  in MRB_TT_ARRAY");
+  fprintf(stderr, "  in MRB_TT_ARRAY\n");
   obj_v = mrb_ary_new(mrb);
   value_v = mrb_str_new_cstr(mrb, "test");
   paint_gray(mrb_basic_ptr(obj_v));
@@ -1468,21 +1468,21 @@ test_incremental_gc(void)
   RVALUE *free;
   struct heap_page *page;
 
-  puts("test_incremental_gc");
+  fprintf(stderr, "test_incremental_gc\n");
   change_gen_gc_mode(mrb, FALSE);
 
-  puts("  in mrb_full_gc");
+  fprintf(stderr, "  in mrb_full_gc\n");
   mrb_full_gc(mrb);
 
   mrb_assert(mrb->gc_state == GC_STATE_NONE);
-  puts("  in GC_STATE_NONE");
+  fprintf(stderr, "  in GC_STATE_NONE\n");
   incremental_gc(mrb, max);
   mrb_assert(mrb->gc_state == GC_STATE_MARK);
-  puts("  in GC_STATE_MARK");
+  fprintf(stderr, "  in GC_STATE_MARK\n");
   incremental_gc_until(mrb, GC_STATE_SWEEP);
   mrb_assert(mrb->gc_state == GC_STATE_SWEEP);
 
-  puts("  in GC_STATE_SWEEP");
+  fprintf(stderr, "  in GC_STATE_SWEEP\n");
   page = mrb->heaps;
   while (page) {
     RVALUE *p = page->objects;
@@ -1517,14 +1517,14 @@ test_incremental_gc(void)
   mrb_assert(mrb->live == live);
   mrb_assert(mrb->live == total-freed);
 
-  puts("test_incremental_gc(gen)");
+  fprintf(stderr, "test_incremental_gc(gen)\n");
   incremental_gc_until(mrb, GC_STATE_SWEEP);
   change_gen_gc_mode(mrb, TRUE);
 
   mrb_assert(mrb->gc_full == FALSE);
   mrb_assert(mrb->gc_state == GC_STATE_NONE);
 
-  puts("  in minor");
+  fprintf(stderr, "  in minor\n");
   mrb_assert(is_minor_gc(mrb));
   mrb_assert(mrb->majorgc_old_threshold > 0);
   mrb->majorgc_old_threshold = 0;
@@ -1532,7 +1532,7 @@ test_incremental_gc(void)
   mrb_assert(mrb->gc_full == TRUE);
   mrb_assert(mrb->gc_state == GC_STATE_NONE);
 
-  puts("  in major");
+  fprintf(stderr, "  in major\n");
   mrb_assert(is_major_gc(mrb));
   do {
     mrb_incremental_gc(mrb);
@@ -1547,7 +1547,7 @@ test_incremental_sweep_phase(void)
 {
   mrb_state *mrb = mrb_open();
 
-  puts("test_incremental_sweep_phase");
+  fprintf(stderr, "test_incremental_sweep_phase\n");
 
   add_heap(mrb);
   mrb->sweeps = mrb->heaps;
@@ -1571,7 +1571,8 @@ gc_test(mrb_state *mrb, mrb_value self)
   test_gc_gray_mark();
   test_incremental_gc();
   test_incremental_sweep_phase();
-  return mrb_nil_value();
+  fprintf(stderr, "all GC tests passed\n");
+  return mrb_true_value();
 }
 #endif
 #endif
