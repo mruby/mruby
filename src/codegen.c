@@ -959,6 +959,9 @@ gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val)
       }
     }
   }
+  else {
+    pop();
+  }
 }
 
 static void
