@@ -74,3 +74,19 @@ assert('Splat and mass assignment') do
   assert_equal 7, b
   assert_equal [8,9], c
 end
+
+# regression test for #1459
+assert('implicit return and multiple value assignment') do
+  def test
+    x = [ 1, 2 ]
+    if true
+      a, b = [ 1, 2 ]
+      a
+    else
+      c, d = x
+      c
+    end
+  end
+
+  assert_equal 1, test, 'mruby/mruby#1459'
+end
