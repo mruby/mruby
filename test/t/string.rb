@@ -9,7 +9,7 @@ assert('String superclass', '15.2.10.2') do
   assert_equal Object, String.superclass
 end
 
-assert('Upper-case and lower-case character', '15.2.10.4') do
+assert('Upper-case and lower-case characters', '15.2.10.4') do
   ALPHABET_NUM = 26
   lower_case = "abcdefghijklmnopqrstuvwxyz"
   up_case =    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
