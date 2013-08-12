@@ -9,6 +9,26 @@ assert('String superclass', '15.2.10.2') do
   assert_equal Object, String.superclass
 end
 
+assert('Upper-case and lower-case character', '15.2.10.4') do
+  ALPHABET_NUM = 26
+  lower_case = "abcdefghijklmnopqrstuvwxyz"
+  up_case =    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+  i = 0
+  ALPHABET_NUM.times do
+    assert_equal lower_case[i], up_case[i].downcase
+    i += 1
+  end
+
+  i = 0
+  ALPHABET_NUM.times do
+    assert_equal up_case[i], lower_case[i].upcase
+    i += 1
+  end
+
+  true  # If not, it causes KO
+end
+
 assert('String#*', '15.2.10.5.1') do
   assert_equal 'aaaaa', 'a' * 5
 end
