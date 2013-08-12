@@ -234,11 +234,11 @@ typedef union mrb_value {
     void *p;
     struct {
       unsigned int i_flag : MRB_FIXNUM_SHIFT;
-      mrb_int i : (sizeof(mrb_int) * 8 - MRB_FIXNUM_SHIFT);
+      mrb_int i : (sizeof(mrb_int) * CHAR_BIT - MRB_FIXNUM_SHIFT);
     };
     struct {
       unsigned int sym_flag : MRB_SPECIAL_SHIFT;
-      int sym : (sizeof(mrb_sym) * 8);
+      int sym : (sizeof(mrb_sym) * CHAR_BIT);
     };
     struct RBasic *bp;
     struct RFloat *fp;
