@@ -9,6 +9,10 @@ assert('Array superclass', '15.2.12.2') do
   assert_equal(Object, Array.superclass)
 end
 
+assert('Array inclueded modules', '15.2.12.3') do
+  assert_true(Array.include?(Enumerable))
+end
+
 assert('Array.[]', '15.2.12.4.1') do
   assert_equal([1, 2, 3], Array.[](1,2,3))
 end
