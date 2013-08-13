@@ -1003,10 +1003,19 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
   return m;
 }
 
-void
-mrb_obj_call_init(mrb_state *mrb, mrb_value obj, int argc, mrb_value *argv)
+static mrb_value
+mrb_instance_alloc(mrb_state *mrb, mrb_value cv)
 {
-  mrb_funcall_argv(mrb, obj, mrb->init_sym, argc, argv);
+  struct RClass *c = mrb_class_ptr(cv);
+  struct RObject *o;
+  enum mrb_vtype ttype = MRB_INSTANCE_TT(c);
+
+  if (c->tt == MRB_TT_SCLASS)
+    mrb_raise(mrb, E_TYPE_ERROR, "can't create instance of singleton class");
+
+  if (ttype == 0) ttype = MRB_TT_OBJECT;
+  o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);
+  return mrb_obj_value(o);
 }
 
 /*
@@ -1020,70 +1029,30 @@ mrb_obj_call_init(mrb_state *mrb, mrb_value obj, int argc, mrb_value *argv)
  *  an object is constructed using .new.
  *
  */
-mrb_value
-mrb_class_new_instance(mrb_state *mrb, int argc, mrb_value *argv, struct RClass * klass)
-{
-  mrb_value obj;
-  struct RClass * c = (struct RClass*)mrb_obj_alloc(mrb, klass->tt, klass);
-  c->super = klass;
-  obj = mrb_obj_value(c);
-  mrb_obj_call_init(mrb, obj, argc, argv);
-  return obj;
-}
-
-mrb_value
-mrb_class_new_instance_m(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value *argv;
-  mrb_value blk;
-  struct RClass *k = mrb_class_ptr(klass);
-  struct RClass *c;
-  int argc;
-  mrb_value obj;
-
-  mrb_get_args(mrb, "*&", &argv, &argc, &blk);
-  c = (struct RClass*)mrb_obj_alloc(mrb, k->tt, k);
-  c->super = k;
-  obj = mrb_obj_value(c);
-  mrb_funcall_with_block(mrb, obj, mrb->init_sym, argc, argv, blk);
-
-  return obj;
-}
 
 mrb_value
 mrb_instance_new(mrb_state *mrb, mrb_value cv)
 {
-  struct RClass *c = mrb_class_ptr(cv);
-  struct RObject *o;
-  enum mrb_vtype ttype = MRB_INSTANCE_TT(c);
   mrb_value obj, blk;
   mrb_value *argv;
   int argc;
 
-  if (c->tt == MRB_TT_SCLASS)
-    mrb_raise(mrb, E_TYPE_ERROR, "can't create instance of singleton class");
-
-  if (ttype == 0) ttype = MRB_TT_OBJECT;
-  o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);
-  obj = mrb_obj_value(o);
+  obj = mrb_instance_alloc(mrb, cv);
   mrb_get_args(mrb, "*&", &argv, &argc, &blk);
-  mrb_funcall_with_block(mrb, obj, mrb->init_sym, argc, argv, blk);
+  mrb_funcall_with_block(mrb, obj, mrb_intern(mrb, "initialize"), argc, argv, blk);
 
   return obj;
 }
 
 mrb_value
-mrb_class_new_class(mrb_state *mrb, mrb_value cv)
+mrb_obj_new(mrb_state *mrb, struct RClass *c, int argc, mrb_value *argv)
 {
-  mrb_value super;
-  struct RClass *new_class;
+  mrb_value obj;
 
-  if (mrb_get_args(mrb, "|o", &super) == 0) {
-    super = mrb_obj_value(mrb->object_class);
-  }
-  new_class = mrb_class_new(mrb, mrb_class_ptr(super));
-  mrb_funcall(mrb, super, "inherited", 1, mrb_obj_value(new_class));
-  return mrb_obj_value(new_class);
+  obj = mrb_instance_alloc(mrb, mrb_obj_value(c));
+  mrb_funcall_argv(mrb, obj, mrb_intern(mrb, "initialize"), argc, argv);
+
+  return obj;
 }
 
 mrb_value
@@ -1902,8 +1871,8 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, bob, "!",                       mrb_bob_not,              MRB_ARGS_NONE());
   mrb_define_method(mrb, bob, "method_missing",          mrb_bob_missing,          MRB_ARGS_ANY());  /* 15.3.1.3.30 */
 
-  mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      MRB_ARGS_ANY());
   mrb_define_method(mrb, cls, "superclass",              mrb_class_superclass,     MRB_ARGS_NONE()); /* 15.2.3.3.4 */
+  mrb_define_method(mrb, cls, "alloc",                   mrb_instance_alloc,       MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "new",                     mrb_instance_new,         MRB_ARGS_ANY());  /* 15.2.3.3.3 */
   mrb_define_method(mrb, cls, "inherited",               mrb_bob_init,             MRB_ARGS_REQ(1));
 

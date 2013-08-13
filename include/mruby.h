@@ -107,7 +107,6 @@ typedef struct mrb_state {
   struct mrb_irep **irep;                 /* program data array */
   size_t irep_len, irep_capa;
 
-  mrb_sym init_sym;
   struct RObject *top_self;
   struct RClass *object_class;            /* Object class */
   struct RClass *class_class;
@@ -173,6 +172,7 @@ void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_fun
 void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
+mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, int argc, mrb_value *argv);
 mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
 struct RClass * mrb_module_new(mrb_state *mrb);
@@ -349,8 +349,6 @@ void mrb_print_error(mrb_state *mrb);
 
 mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
 mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv);
-mrb_value mrb_class_new_instance(mrb_state *mrb, int, mrb_value*, struct RClass *);
-mrb_value mrb_class_new_instance_m(mrb_state *mrb, mrb_value klass);
 
 void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);

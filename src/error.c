@@ -307,7 +307,7 @@ mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
   va_end(args);
 
   argv[1] = mrb_symbol_value(id);
-  exc = mrb_class_new_instance(mrb, 2, argv, E_NAME_ERROR);
+  exc = mrb_obj_new(mrb, E_NAME_ERROR, 2, argv);
   mrb_exc_raise(mrb, exc);
 }
 
