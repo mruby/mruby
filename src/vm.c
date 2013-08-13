@@ -362,7 +362,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
     ci->proc = p;
     ci->stackidx = mrb->c->stack - mrb->c->stbase;
     ci->argc = argc;
-    ci->target_class = p->target_class;
+    ci->target_class = c;
     if (MRB_PROC_CFUNC_P(p)) {
       ci->nregs = argc + 2;
     }
@@ -1034,6 +1034,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       if (!m) {
         mid = mrb_intern2(mrb, "method_missing", 14);
         m = mrb_method_search_vm(mrb, &c, mid);
+        if (!m) {
+          printf("c=%p mid=%s\n", c, mrb_sym2name(mrb, ci->mid));
+        }
         if (n == CALL_MAXARGS) {
           mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(ci->mid));
         }
@@ -1054,7 +1057,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       else {
         ci->argc = n;
       }
-      ci->target_class = m->target_class;
+      ci->target_class = c;
       ci->pc = pc + 1;
 
       /* prepare stack */
@@ -1384,7 +1387,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       /* replace callinfo */
       ci = mrb->c->ci;
       ci->mid = mid;
-      ci->target_class = m->target_class;
+      ci->target_class = c;
       if (n == CALL_MAXARGS) {
         ci->argc = -1;
       }
