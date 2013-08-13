@@ -14,16 +14,12 @@ assert('Upper-case and lower-case characters', '15.2.10.4') do
   lower_case = "abcdefghijklmnopqrstuvwxyz"
   up_case =    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-  i = 0
-  ALPHABET_NUM.times do
+  ALPHABET_NUM.times do |i|
     assert_equal lower_case[i], up_case[i].downcase
-    i += 1
   end
 
-  i = 0
-  ALPHABET_NUM.times do
+  ALPHABET_NUM.times do |i|
     assert_equal up_case[i], lower_case[i].upcase
-    i += 1
   end
 
   true  # If not, it causes KO
