@@ -646,7 +646,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_DATA:
     {
       struct RData *d = (struct RData*)obj;
-      if (d->type->dfree) {
+      if (d->type && d->type->dfree) {
         d->type->dfree(mrb, d->data);
       }
       mrb_gc_free_iv(mrb, (struct RObject*)obj);
