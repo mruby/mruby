@@ -70,7 +70,6 @@ class Addrinfo
       else
         proto = '???'
       end
-      # how can we get the last part?
       "#<Addrinfo: #{inspect_sockaddr} #{proto}>"
     else
       "#<Addrinfo: #{self.unix_path} SOCK_STREAM>"
@@ -228,11 +227,19 @@ class TCPSocket
     if self.is_a? TCPServer
       super(host, service)
     else
-      ai = Addrinfo.getaddrinfo(host, service)[0]
-      super(Socket._socket(ai.afamily, Socket::SOCK_STREAM, 0), "r+")
-      # XXX: bind(2)
-      Socket._connect(self.fileno, ai.to_sockaddr)
-      self
+      s = nil
+      e = SocketError
+      Addrinfo.foreach(host, service) { |ai|
+        begin
+          s = Socket._socket(ai.afamily, Socket::SOCK_STREAM, 0)
+          Socket._connect(s, ai.to_sockaddr)
+          super(s, "r+")
+          return
+        rescue => e0
+          e = e0
+        end
+      }
+      raise e
     end
   end
 
