@@ -4,11 +4,6 @@ class Class
     obj.initialize(*args,&b)
     obj
   end
-  def self.new(*args)
-    obj = super
-    obj.inherited
-    obj
-  end
 end
 
 class Module
