@@ -217,3 +217,7 @@ assert('Class Dup 2') do
   module M; end
   assert_equal(Module, M.dup.class)
 end
+
+assert('Class new') do
+  assert_equal(Class, Class.new.class)
+end
