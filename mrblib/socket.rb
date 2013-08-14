@@ -283,16 +283,17 @@ class UDPSocket
   def initialize(af=Socket::AF_INET)
     self._bless
     super(Socket._socket(af, Socket::SOCK_DGRAM, 0), "r+")
+    @af = af
     self
   end
 
   def bind(host, port)
-    Socket._bind(self.fileno, Socket.sockaddr_in(port, host))
+    Socket._bind(self.fileno, _sockaddr_in(port, host))
     0
   end
 
   def connect(host, port)
-    Socket._connect(self.fileno, Socket.sockaddr_in(port, host))
+    Socket._connect(self.fileno, _sockaddr_in(port, host))
     0
   end
 
@@ -309,12 +310,17 @@ class UDPSocket
 
   def send(mesg, flags, host=nil, port=nil)
     if port
-      super(mesg, flags, Socket.sockaddr_in(port, host))
+      super(mesg, flags, _sockaddr_in(port, host))
     elsif host
       super(mesg, flags, host)
     else
       super(mesg, flags)
     end
+  end
+
+  def _sockaddr_in(port, host)
+    ai = Addrinfo.getaddrinfo(host, port, @af, Socket::SOCK_DGRAM)[0]
+    ai.to_sockaddr
   end
 end
 
