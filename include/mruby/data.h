@@ -39,7 +39,12 @@ struct RData *mrb_data_object_alloc(mrb_state *mrb, struct RClass* klass, void *
 #define DATA_TYPE(d)       (RDATA(d)->type)
 void mrb_data_check_type(mrb_state *mrb, mrb_value, const mrb_data_type*);
 void *mrb_data_get_ptr(mrb_state *mrb, mrb_value, const mrb_data_type*);
-void *mrb_data_check_and_get(mrb_state *mrb, mrb_value, const mrb_data_type*);
+#define DATA_GET_PTR(mrb,obj,dtype,type) (type*)mrb_data_get_ptr(mrb,obj,dtype)
+void *mrb_data_check_get_ptr(mrb_state *mrb, mrb_value, const mrb_data_type*);
+#define DATA_CHECK_GET_PTR(mrb,obj,dtype,type) (type*)mrb_data_check_get_ptr(mrb,obj,dtype)
+
+/* obsolete functions and macros */
+#define mrb_data_check_and_get(mrb,obj,dtype) mrb_data_get_ptr(mrb,obj,dtype)
 #define mrb_get_datatype(mrb,val,type) mrb_data_get_ptr(mrb, val, type)
 #define mrb_check_datatype(mrb,val,type) mrb_data_check_and_get(mrb, val, type)
 #define Data_Get_Struct(mrb,obj,type,sval) do {\
