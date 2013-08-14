@@ -1886,7 +1886,6 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, bob, "method_missing",          mrb_bob_missing,          MRB_ARGS_ANY());  /* 15.3.1.3.30 */
 
   mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      MRB_ARGS_ANY());
-  mrb_define_method(mrb, cls, "alloc",                   mrb_instance_alloc,       MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "superclass",              mrb_class_superclass,     MRB_ARGS_NONE()); /* 15.2.3.3.4 */
   mrb_define_method(mrb, cls, "new",                     mrb_instance_new,         MRB_ARGS_ANY());  /* 15.2.3.3.3 */
   mrb_define_method(mrb, cls, "inherited",               mrb_bob_init,             MRB_ARGS_REQ(1));
