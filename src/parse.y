@@ -5167,7 +5167,6 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 
     memcpy(p, s, len + 1);
     c->filename = p;
-    c->lineno = 1;
   }
   return c->filename;
 }
