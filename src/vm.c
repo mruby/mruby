@@ -1034,9 +1034,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       if (!m) {
         mid = mrb_intern2(mrb, "method_missing", 14);
         m = mrb_method_search_vm(mrb, &c, mid);
-        if (!m) {
-          printf("c=%p mid=%s\n", c, mrb_sym2name(mrb, ci->mid));
-        }
         if (n == CALL_MAXARGS) {
           mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(ci->mid));
         }
