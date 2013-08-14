@@ -6,7 +6,7 @@ class Class
   end
   def self.new(*args)
     obj = super
-    obj.inerited
+    obj.inherited
     obj
   end
 end
