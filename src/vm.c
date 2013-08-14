@@ -205,6 +205,9 @@ top_env(mrb_state *mrb, struct RProc *proc)
   return e;
 }
 
+#define CI_ACC_SKIP    -1
+#define CI_ACC_DIRECT  -2
+
 static mrb_callinfo*
 cipush(mrb_state *mrb)
 {
@@ -260,7 +263,7 @@ ecall(mrb_state *mrb, int i)
   ci = cipush(mrb);
   ci->stackidx = mrb->c->stack - mrb->c->stbase;
   ci->mid = ci[-1].mid;
-  ci->acc = -1;
+  ci->acc = CI_ACC_SKIP;
   ci->argc = 0;
   ci->proc = p;
   ci->nregs = p->body.irep->nregs;
@@ -369,7 +372,6 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
     else {
       ci->nregs = p->body.irep->nregs + n;
     }
-    ci->acc = -1;
     mrb->c->stack = mrb->c->stack + n;
 
     stack_extend(mrb, ci->nregs, 0);
@@ -385,12 +387,15 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
 
     if (MRB_PROC_CFUNC_P(p)) {
       int ai = mrb_gc_arena_save(mrb);
+
+      ci->acc = CI_ACC_DIRECT;
       val = p->body.func(mrb, self);
       mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
       cipop(mrb);
       mrb_gc_arena_restore(mrb, ai);
     }
     else {
+      ci->acc = CI_ACC_SKIP;
       val = mrb_run(mrb, p, self);
     }
   }
@@ -429,7 +434,7 @@ mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_v
   else {
     ci->nregs = p->body.irep->nregs + 1;
   }
-  ci->acc = -1;
+  ci->acc = CI_ACC_SKIP;
   mrb->c->stack = mrb->c->stack + n;
 
   stack_extend(mrb, ci->nregs, 0);
@@ -1254,7 +1259,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           cipop(mrb);
           ci = mrb->c->ci;
           mrb->c->stack = mrb->c->stbase + ci[1].stackidx;
-          if (ci[1].acc < 0 && prev_jmp) {
+          if (ci[1].acc == CI_ACC_SKIP && prev_jmp) {
             mrb->jmp = prev_jmp;
             mrb_longjmp(mrb);
           }
@@ -1334,7 +1339,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         acc = ci->acc;
         pc = ci->pc;
         regs = mrb->c->stack = mrb->c->stbase + ci->stackidx;
-        if (acc < 0) {
+        if (acc == CI_ACC_SKIP) {
           mrb->jmp = prev_jmp;
           return v;
         }
