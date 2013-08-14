@@ -217,3 +217,31 @@ assert('Class Dup 2') do
   module M; end
   assert_equal(Module, M.dup.class)
 end
+
+assert('Class new') do
+  assert_equal(Class, Class.new.class)
+end
+
+assert('Class#inherited') do
+  class Foo
+    @@subclass_name = nil
+    def self.inherited(subclass)
+      @@subclass_name = subclass
+    end
+    def self.subclass_name
+      @@subclass_name
+    end
+  end
+
+  assert_equal(nil, Foo.subclass_name)
+
+  class Bar < Foo
+  end
+
+  assert_equal(Bar, Foo.subclass_name)
+
+  class Baz < Bar
+  end
+
+  assert_equal(Baz, Foo.subclass_name)
+end
