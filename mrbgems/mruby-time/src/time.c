@@ -292,8 +292,8 @@ mrb_time_eq(mrb_state *mrb, mrb_value self)
   mrb_bool eq_p;
 
   mrb_get_args(mrb, "o", &other);
-  tm1 = DATA_CHECK_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
-  tm2 = DATA_CHECK_GET_PTR(mrb, other, &mrb_time_type, struct mrb_time);
+  tm1 = DATA_GET_UNCHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm2 = DATA_GET_UNCHECKED_PTR(mrb, other, &mrb_time_type, struct mrb_time);
   eq_p = tm1 && tm2 && tm1->sec == tm2->sec && tm1->usec == tm2->usec;
 
   return mrb_bool_value(eq_p);
@@ -306,8 +306,8 @@ mrb_time_cmp(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm1, *tm2;
 
   mrb_get_args(mrb, "o", &other);
-  tm1 = DATA_CHECK_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
-  tm2 = DATA_CHECK_GET_PTR(mrb, other, &mrb_time_type, struct mrb_time);
+  tm1 = DATA_GET_UNCHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm2 = DATA_GET_UNCHECKED_PTR(mrb, other, &mrb_time_type, struct mrb_time);
   if (!tm1 || !tm2) return mrb_nil_value();
   if (tm1->sec > tm2->sec) {
     return mrb_fixnum_value(1);
@@ -332,7 +332,7 @@ mrb_time_plus(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm;
 
   mrb_get_args(mrb, "f", &f);
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   return mrb_time_make(mrb, mrb_obj_class(mrb, self), (double)tm->sec+f, tm->usec, tm->timezone);
 }
 
@@ -344,9 +344,9 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm, *tm2;
 
   mrb_get_args(mrb, "o", &other);
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
 
-  tm2 = DATA_CHECK_GET_PTR(mrb, other, &mrb_time_type, struct mrb_time);
+  tm2 = DATA_GET_UNCHECKED_PTR(mrb, other, &mrb_time_type, struct mrb_time);
   if (tm2) {
     f = (mrb_float)(tm->sec - tm2->sec)
       + (mrb_float)(tm->usec - tm2->usec) / 1.0e6;
@@ -365,7 +365,7 @@ mrb_time_wday(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   return mrb_fixnum_value(tm->datetime.tm_wday);
 }
 
@@ -376,7 +376,7 @@ mrb_time_yday(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   return mrb_fixnum_value(tm->datetime.tm_yday + 1);
 }
 
@@ -387,7 +387,7 @@ mrb_time_year(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   return mrb_fixnum_value(tm->datetime.tm_year + 1900);
 }
 
@@ -398,7 +398,7 @@ mrb_time_zone(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   if (tm->timezone <= MRB_TIMEZONE_NONE) return mrb_nil_value();
   if (tm->timezone >= MRB_TIMEZONE_LAST) return mrb_nil_value();
   return mrb_str_new_cstr(mrb, timezone_names[tm->timezone]);
@@ -414,7 +414,7 @@ mrb_time_asctime(mrb_state *mrb, mrb_value self)
   char buf[256];
   int len;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   d = &tm->datetime;
   len = snprintf(buf, sizeof(buf), "%s %s %02d %02d:%02d:%02d %s%d",
   wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday,
@@ -431,7 +431,7 @@ mrb_time_day(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   if (!tm) return mrb_nil_value();
   return mrb_fixnum_value(tm->datetime.tm_mday);
 }
@@ -444,7 +444,7 @@ mrb_time_dst_p(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   return mrb_bool_value(tm->datetime.tm_isdst);
 }
 
@@ -456,7 +456,7 @@ mrb_time_getutc(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm, *tm2;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   tm2 = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
   *tm2 = *tm;
   tm2->timezone = MRB_TIMEZONE_UTC;
@@ -471,7 +471,7 @@ mrb_time_getlocal(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm, *tm2;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   tm2 = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
   *tm2 = *tm;
   tm2->timezone = MRB_TIMEZONE_LOCAL;
@@ -486,7 +486,7 @@ mrb_time_hour(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   return mrb_fixnum_value(tm->datetime.tm_hour);
 }
 
@@ -546,7 +546,7 @@ mrb_time_localtime(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   tm->timezone = MRB_TIMEZONE_LOCAL;
   mrb_time_update_datetime(tm);
   return self;
@@ -559,7 +559,7 @@ mrb_time_mday(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   return mrb_fixnum_value(tm->datetime.tm_mday);
 }
 
@@ -570,7 +570,7 @@ mrb_time_min(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   return mrb_fixnum_value(tm->datetime.tm_min);
 }
 
@@ -581,7 +581,7 @@ mrb_time_mon(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   return mrb_fixnum_value(tm->datetime.tm_mon + 1);
 }
 
@@ -592,7 +592,7 @@ mrb_time_sec(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   return mrb_fixnum_value(tm->datetime.tm_sec);
 }
 
@@ -604,7 +604,7 @@ mrb_time_to_f(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   return mrb_float_value(mrb, (mrb_float)tm->sec + (mrb_float)tm->usec/1.0e6);
 }
 
@@ -615,7 +615,7 @@ mrb_time_to_i(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   return mrb_fixnum_value(tm->sec);
 }
 
@@ -626,7 +626,7 @@ mrb_time_usec(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   return mrb_fixnum_value(tm->usec);
 }
 
@@ -637,7 +637,7 @@ mrb_time_utc(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   tm->timezone = MRB_TIMEZONE_UTC;
   mrb_time_update_datetime(tm);
   return self;
@@ -650,7 +650,7 @@ mrb_time_utc_p(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
-  tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
+  tm = DATA_GET_CHECKED_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   return mrb_bool_value(tm->timezone == MRB_TIMEZONE_UTC);
 }
 

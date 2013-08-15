@@ -38,10 +38,10 @@ struct RData *mrb_data_object_alloc(mrb_state *mrb, struct RClass* klass, void *
 #define DATA_PTR(d)        (RDATA(d)->data)
 #define DATA_TYPE(d)       (RDATA(d)->type)
 void mrb_data_check_type(mrb_state *mrb, mrb_value, const mrb_data_type*);
-void *mrb_data_get_ptr(mrb_state *mrb, mrb_value, const mrb_data_type*);
-#define DATA_GET_PTR(mrb,obj,dtype,type) (type*)mrb_data_get_ptr(mrb,obj,dtype)
-void *mrb_data_check_get_ptr(mrb_state *mrb, mrb_value, const mrb_data_type*);
-#define DATA_CHECK_GET_PTR(mrb,obj,dtype,type) (type*)mrb_data_check_get_ptr(mrb,obj,dtype)
+void *mrb_data_get_checked_ptr(mrb_state *mrb, mrb_value, const mrb_data_type*);
+#define DATA_GET_CHECKED_PTR(mrb,obj,dtype,type) (type*)mrb_data_get_checked_ptr(mrb,obj,dtype)
+void *mrb_data_get_unchecked_ptr(mrb_state *mrb, mrb_value, const mrb_data_type*);
+#define DATA_GET_UNCHECKED_PTR(mrb,obj,dtype,type) (type*)mrb_data_get_unchecked_ptr(mrb,obj,dtype)
 
 /* obsolete functions and macros */
 #define mrb_data_check_and_get(mrb,obj,dtype) mrb_data_get_ptr(mrb,obj,dtype)

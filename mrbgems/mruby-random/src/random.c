@@ -30,7 +30,7 @@ static mt_state *mrb_mt_get_context(mrb_state *mrb,  mrb_value self)
   mrb_value context;
 
   context = mrb_iv_get(mrb, self, mrb_intern2(mrb, MT_STATE_KEY, MT_STATE_KEY_CSTR_LEN));
-  t = DATA_GET_PTR(mrb, context, &mt_state_type, mt_state);
+  t = DATA_GET_CHECKED_PTR(mrb, context, &mt_state_type, mt_state);
 
   return t;
 }
