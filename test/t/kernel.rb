@@ -281,6 +281,10 @@ end
 assert('Kernel#is_a?', '15.3.1.3.24') do
   assert_true is_a?(Kernel)
   assert_false is_a?(Array)
+
+  assert_raise TypeError do
+    42.is_a?(42)
+  end
 end
 
 assert('Kernel#iterator?', '15.3.1.3.25') do
