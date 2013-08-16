@@ -716,7 +716,7 @@ mrb_obj_is_kind_of_m(mrb_state *mrb, mrb_value self)
   mrb_bool kind_of_p;
 
   mrb_get_args(mrb, "o", &arg);
-  kind_of_p = mrb_obj_is_kind_of(mrb, self, mrb_class_ptr(arg));
+  kind_of_p = mrb_obj_is_kind_of_value(mrb, self, arg);
 
   return mrb_bool_value(kind_of_p);
 }

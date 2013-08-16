@@ -442,6 +442,20 @@ mrb_any_to_s(mrb_state *mrb, mrb_value obj)
   return str;
 }
 
+void
+mrb_obj_is_kind_of_type_check(mrb_state *mrb, enum mrb_vtype tt)
+{
+  switch (tt) {
+    case MRB_TT_MODULE:
+    case MRB_TT_CLASS:
+    case MRB_TT_ICLASS:
+      break;
+
+    default:
+      mrb_raise(mrb, E_TYPE_ERROR, "class or module required");
+  }
+}
+
 /*
  *  call-seq:
  *     obj.is_a?(class)       => true or false
@@ -473,22 +487,22 @@ mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
 {
   struct RClass *cl = mrb_class(mrb, obj);
 
-  switch (c->tt) {
-    case MRB_TT_MODULE:
-    case MRB_TT_CLASS:
-    case MRB_TT_ICLASS:
-      break;
-
-    default:
-      mrb_raise(mrb, E_TYPE_ERROR, "class or module required");
-  }
+  mrb_obj_is_kind_of_type_check(mrb, c->tt);
 
   while (cl) {
     if (cl == c || cl->mt == c->mt)
       return TRUE;
     cl = cl->super;
   }
+
   return FALSE;
+}
+
+mrb_bool
+mrb_obj_is_kind_of_value(mrb_state *mrb, mrb_value obj, mrb_value c)
+{
+  mrb_obj_is_kind_of_type_check(mrb, c.tt);
+  return mrb_obj_is_kind_of(mrb, obj, mrb_class_ptr(c));
 }
 
 static mrb_value
