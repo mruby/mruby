@@ -118,7 +118,6 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
   else {
     t->rootseg = seg;
   }
-  return;
 }
 
 /*
