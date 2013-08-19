@@ -87,6 +87,10 @@ erfc(double x)
   return one_sqrtpi*exp(-x*x)*q2;
 }
 
+#endif
+
+#if (defined _MSC_VER && _MSC_VER < 1800) || defined __ANDROID__
+
 double
 log2(double x)
 {
