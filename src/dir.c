@@ -69,15 +69,16 @@ mrb_dir_init(mrb_state *mrb, mrb_value self)
   mrb_value path;
   char *cpath;
 
-  mdir = (struct mrb_dir *)mrb_get_datatype(mrb, self, &mrb_dir_type);
+  mdir = (struct mrb_dir *)DATA_PTR(self);
   if (mdir) {
     mrb_dir_free(mrb, mdir);
   }
+  DATA_TYPE(self) = &mrb_dir_type;
+  DATA_PTR(self) = NULL;
 
   mdir = (struct mrb_dir *)mrb_malloc(mrb, sizeof(*mdir));
   mdir->dir = NULL;
   DATA_PTR(self) = mdir;
-  DATA_TYPE(self) = &mrb_dir_type;
 
   mrb_get_args(mrb, "S", &path);
   cpath = mrb_str_to_cstr(mrb, path);
