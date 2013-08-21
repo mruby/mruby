@@ -705,63 +705,63 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
 
   ai = mrb_define_class(mrb, "Addrinfo", mrb->object_class);
   mrb_mod_cv_set(mrb, ai, mrb_intern_cstr(mrb, "_lastai"), mrb_nil_value());
-  mrb_define_class_method(mrb, ai, "getaddrinfo", mrb_addrinfo_getaddrinfo, ARGS_REQ(2)|ARGS_OPT(4));
-  mrb_define_method(mrb, ai, "getnameinfo", mrb_addrinfo_getnameinfo, ARGS_OPT(1));
-  mrb_define_method(mrb, ai, "unix_path", mrb_addrinfo_unix_path, ARGS_NONE());
+  mrb_define_class_method(mrb, ai, "getaddrinfo", mrb_addrinfo_getaddrinfo, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(4));
+  mrb_define_method(mrb, ai, "getnameinfo", mrb_addrinfo_getnameinfo, MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, ai, "unix_path", mrb_addrinfo_unix_path, MRB_ARGS_NONE());
 
   io = mrb_class_get(mrb, "IO");
 
   bsock = mrb_define_class(mrb, "BasicSocket", io);
-  mrb_define_method(mrb, bsock, "_recvfrom", mrb_basicsocket_recvfrom, ARGS_REQ(1)|ARGS_OPT(1));
-  mrb_define_method(mrb, bsock, "_setnonblock", mrb_basicsocket_setnonblock, ARGS_REQ(1));
-  mrb_define_method(mrb, bsock, "getpeereid", mrb_basicsocket_getpeereid, ARGS_NONE());
-  mrb_define_method(mrb, bsock, "getpeername", mrb_basicsocket_getpeername, ARGS_NONE());
-  mrb_define_method(mrb, bsock, "getsockname", mrb_basicsocket_getsockname, ARGS_NONE());
-  mrb_define_method(mrb, bsock, "getsockopt", mrb_basicsocket_getsockopt, ARGS_REQ(2));
-  mrb_define_method(mrb, bsock, "recv", mrb_basicsocket_recv, ARGS_REQ(1)|ARGS_OPT(1));
+  mrb_define_method(mrb, bsock, "_recvfrom", mrb_basicsocket_recvfrom, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, bsock, "_setnonblock", mrb_basicsocket_setnonblock, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, bsock, "getpeereid", mrb_basicsocket_getpeereid, MRB_ARGS_NONE());
+  mrb_define_method(mrb, bsock, "getpeername", mrb_basicsocket_getpeername, MRB_ARGS_NONE());
+  mrb_define_method(mrb, bsock, "getsockname", mrb_basicsocket_getsockname, MRB_ARGS_NONE());
+  mrb_define_method(mrb, bsock, "getsockopt", mrb_basicsocket_getsockopt, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, bsock, "recv", mrb_basicsocket_recv, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   // #recvmsg(maxlen, flags=0)
-  mrb_define_method(mrb, bsock, "send", mrb_basicsocket_send, ARGS_REQ(2)|ARGS_OPT(1));
+  mrb_define_method(mrb, bsock, "send", mrb_basicsocket_send, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(1));
   // #sendmsg
   // #sendmsg_nonblock
-  mrb_define_method(mrb, bsock, "setsockopt", mrb_basicsocket_setsockopt, ARGS_REQ(1)|ARGS_OPT(2));
-  mrb_define_method(mrb, bsock, "shutdown", mrb_basicsocket_shutdown, ARGS_OPT(1));
+  mrb_define_method(mrb, bsock, "setsockopt", mrb_basicsocket_setsockopt, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2));
+  mrb_define_method(mrb, bsock, "shutdown", mrb_basicsocket_shutdown, MRB_ARGS_OPT(1));
 
   ipsock = mrb_define_class(mrb, "IPSocket", bsock);
-  mrb_define_class_method(mrb, ipsock, "ntop", mrb_ipsocket_ntop, ARGS_REQ(1));
-  mrb_define_class_method(mrb, ipsock, "pton", mrb_ipsocket_pton, ARGS_REQ(2));
-  mrb_define_method(mrb, ipsock, "recvfrom", mrb_ipsocket_recvfrom, ARGS_REQ(1)|ARGS_OPT(1));
+  mrb_define_class_method(mrb, ipsock, "ntop", mrb_ipsocket_ntop, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, ipsock, "pton", mrb_ipsocket_pton, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, ipsock, "recvfrom", mrb_ipsocket_recvfrom, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 
   tcpsock = mrb_define_class(mrb, "TCPSocket", ipsock);
-  //mrb_define_class_method(mrb, tcpsock, "open", mrb_tcpsocket_open, ARGS_REQ(2)|ARGS_OPT(2));
-  //mrb_define_class_method(mrb, tcpsock, "new", mrb_tcpsocket_open, ARGS_REQ(2)|ARGS_OPT(2));
+  //mrb_define_class_method(mrb, tcpsock, "open", mrb_tcpsocket_open, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(2));
+  //mrb_define_class_method(mrb, tcpsock, "new", mrb_tcpsocket_open, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(2));
   mrb_define_class(mrb, "TCPServer", tcpsock);
 
   udpsock = mrb_define_class(mrb, "UDPSocket", ipsock);
   //#recvfrom_nonblock
 
   sock = mrb_define_class(mrb, "Socket", bsock);
-  mrb_define_class_method(mrb, sock, "_accept", mrb_socket_accept, ARGS_REQ(1));
-  mrb_define_class_method(mrb, sock, "_bind", mrb_socket_bind, ARGS_REQ(3));
-  mrb_define_class_method(mrb, sock, "_connect", mrb_socket_connect, ARGS_REQ(3));
-  mrb_define_class_method(mrb, sock, "_listen", mrb_socket_listen, ARGS_REQ(2));
-  mrb_define_class_method(mrb, sock, "_sockaddr_family", mrb_socket_sockaddr_family, ARGS_REQ(1));
-  mrb_define_class_method(mrb, sock, "_socket", mrb_socket_socket, ARGS_REQ(3));
-  //mrb_define_class_method(mrb, sock, "gethostbyaddr", mrb_socket_gethostbyaddr, ARGS_REQ(1)|ARGS_OPT(1));
-  //mrb_define_class_method(mrb, sock, "gethostbyname", mrb_socket_gethostbyname, ARGS_REQ(1)|ARGS_OPT(1));
-  mrb_define_class_method(mrb, sock, "gethostname", mrb_socket_gethostname, ARGS_NONE());
-  //mrb_define_class_method(mrb, sock, "getservbyname", mrb_socket_getservbyname, ARGS_REQ(1)|ARGS_OPT(1));
-  //mrb_define_class_method(mrb, sock, "getservbyport", mrb_socket_getservbyport, ARGS_REQ(1)|ARGS_OPT(1));
-  mrb_define_class_method(mrb, sock, "sockaddr_un", mrb_socket_sockaddr_un, ARGS_REQ(1));
-  mrb_define_class_method(mrb, sock, "socketpair", mrb_socket_socketpair, ARGS_REQ(3));
-  //mrb_define_method(mrb, sock, "sysaccept", mrb_socket_accept, ARGS_NONE());
+  mrb_define_class_method(mrb, sock, "_accept", mrb_socket_accept, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, sock, "_bind", mrb_socket_bind, MRB_ARGS_REQ(3));
+  mrb_define_class_method(mrb, sock, "_connect", mrb_socket_connect, MRB_ARGS_REQ(3));
+  mrb_define_class_method(mrb, sock, "_listen", mrb_socket_listen, MRB_ARGS_REQ(2));
+  mrb_define_class_method(mrb, sock, "_sockaddr_family", mrb_socket_sockaddr_family, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, sock, "_socket", mrb_socket_socket, MRB_ARGS_REQ(3));
+  //mrb_define_class_method(mrb, sock, "gethostbyaddr", mrb_socket_gethostbyaddr, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  //mrb_define_class_method(mrb, sock, "gethostbyname", mrb_socket_gethostbyname, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_class_method(mrb, sock, "gethostname", mrb_socket_gethostname, MRB_ARGS_NONE());
+  //mrb_define_class_method(mrb, sock, "getservbyname", mrb_socket_getservbyname, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  //mrb_define_class_method(mrb, sock, "getservbyport", mrb_socket_getservbyport, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_class_method(mrb, sock, "sockaddr_un", mrb_socket_sockaddr_un, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, sock, "socketpair", mrb_socket_socketpair, MRB_ARGS_REQ(3));
+  //mrb_define_method(mrb, sock, "sysaccept", mrb_socket_accept, MRB_ARGS_NONE());
 
   usock = mrb_define_class(mrb, "UNIXSocket", io);
-  //mrb_define_class_method(mrb, usock, "pair", mrb_unixsocket_open, ARGS_OPT(2));
-  //mrb_define_class_method(mrb, usock, "socketpair", mrb_unixsocket_open, ARGS_OPT(2));
+  //mrb_define_class_method(mrb, usock, "pair", mrb_unixsocket_open, MRB_ARGS_OPT(2));
+  //mrb_define_class_method(mrb, usock, "socketpair", mrb_unixsocket_open, MRB_ARGS_OPT(2));
 
-  //mrb_define_method(mrb, usock, "recv_io", mrb_unixsocket_peeraddr, ARGS_NONE());
-  //mrb_define_method(mrb, usock, "recvfrom", mrb_unixsocket_peeraddr, ARGS_NONE());
-  //mrb_define_method(mrb, usock, "send_io", mrb_unixsocket_peeraddr, ARGS_NONE());
+  //mrb_define_method(mrb, usock, "recv_io", mrb_unixsocket_peeraddr, MRB_ARGS_NONE());
+  //mrb_define_method(mrb, usock, "recvfrom", mrb_unixsocket_peeraddr, MRB_ARGS_NONE());
+  //mrb_define_method(mrb, usock, "send_io", mrb_unixsocket_peeraddr, MRB_ARGS_NONE());
 
   constants = mrb_define_module_under(mrb, sock, "Constants");
 
