@@ -107,6 +107,7 @@ mrb_str_concat2(mrb_state *mrb, mrb_value self)
  *    # returns true if one of the prefixes matches.
  *    "hello".start_with?("heaven", "hell")     #=> true
  *    "hello".start_with?("heaven", "paradise") #=> false
+ *    "h".start_with?("heaven", "hell")         #=> false
  */
 static mrb_value
 mrb_str_start_with(mrb_state *mrb, mrb_value self)
@@ -119,10 +120,12 @@ mrb_str_start_with(mrb_state *mrb, mrb_value self)
     size_t len_l, len_r, len_cmp;
     len_l = RSTRING_LEN(self);
     len_r = RSTRING_LEN(argv[i]);
-    len_cmp = (len_l > len_r) ? len_r : len_l;
-    if (memcmp(RSTRING_PTR(self), RSTRING_PTR(argv[i]), len_cmp) == 0) {
-      return mrb_true_value();
-    }  
+    if (len_l >= len_r) {
+      len_cmp = (len_l > len_r) ? len_r : len_l;
+      if (memcmp(RSTRING_PTR(self), RSTRING_PTR(argv[i]), len_cmp) == 0) {
+        return mrb_true_value();
+      }
+    }
   }
   return mrb_false_value();
 }
