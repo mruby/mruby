@@ -109,4 +109,5 @@ end
 assert('String#end_with?') do
   assert_true "string".end_with?("ing", "mng")
   assert_true !"string".end_with?("str", "tri")
+  assert_true !"ng".end_with?("ing", "mng")
 end
