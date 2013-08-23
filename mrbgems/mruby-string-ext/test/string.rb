@@ -104,9 +104,11 @@ end
 assert('String#start_with?') do
   assert_true "hello".start_with?("heaven", "hell")
   assert_true !"hello".start_with?("heaven", "paradise")
+  assert_raise TypeError do "hello".start_with?(true) end
 end
 
 assert('String#end_with?') do
   assert_true "string".end_with?("ing", "mng")
   assert_true !"string".end_with?("str", "tri")
+  assert_raise TypeError do "hello".end_with?(true) end
 end
