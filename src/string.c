@@ -1524,6 +1524,12 @@ mrb_ptr_to_str(mrb_state *mrb, void *p)
 }
 
 mrb_value
+mrb_string_type(mrb_state *mrb, mrb_value str)
+{
+  return mrb_convert_type(mrb, str, MRB_TT_STRING, "String", "to_str");
+}
+
+mrb_value
 mrb_check_string_type(mrb_state *mrb, mrb_value str)
 {
   return mrb_check_convert_type(mrb, str, MRB_TT_STRING, "String", "to_str");
