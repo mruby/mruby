@@ -232,6 +232,10 @@ assert('IO#fileno') do
   io.closed?
 end
 
+assert('`cmd`') do
+  assert_equal `echo foo`, "foo\n"
+end
+
 assert('IO TEST CLEANUP') do
   assert_nil MRubyIOTestUtil.io_test_cleanup
 end

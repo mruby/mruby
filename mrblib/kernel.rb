@@ -1,4 +1,8 @@
 module Kernel
+  def self.`(cmd)
+    IO.popen(cmd) { |io| io.read }
+  end
+
   def open(file, *rest, &block)
     raise ArgumentError unless file.is_a?(String)
 
