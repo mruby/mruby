@@ -7,18 +7,70 @@
 #include "mruby.h"
 #include "mruby/variable.h"
 #include "mruby/proc.h"
+#include "mruby/array.h"
+#include "mruby/string.h"
+#include <stdarg.h>
 
-void
-mrb_print_backtrace(mrb_state *mrb)
+typedef void (*output_stream_func)(mrb_state*, void*, int, const char*, ...);
+
+static void
+print_backtrace_i(mrb_state *mrb, void *stream, int level, const char *format, ...)
 {
-#ifdef ENABLE_STDIO
+  va_list ap;
+
+  va_start(ap, format);
+  vfprintf((FILE*)stream, format, ap);
+  va_end(ap);
+}
+
+#define MIN_BUFSIZE 127
+
+static void
+get_backtrace_i(mrb_state *mrb, void *stream, int level, const char *format, ...)
+{
+  va_list ap;
+  mrb_value ary;
+  int len, ai;
+
+  if (level > 0) {
+    return;
+  }
+
+  ai = mrb_gc_arena_save(mrb);
+  ary = mrb_obj_value((struct RArray*)stream);
+  va_start(ap, format);
+  len = vsnprintf(NULL, 0, format, ap);
+  va_end(ap);
+
+  if (len < MIN_BUFSIZE) {
+    char buf[MIN_BUFSIZE + 1];
+
+    va_start(ap, format);
+    vsnprintf(buf, MIN_BUFSIZE, format, ap);
+    va_end(ap);
+    mrb_ary_push(mrb, ary, mrb_str_new(mrb, buf, len));
+  }
+  else {
+    char *buf = (char*)mrb_alloca(mrb, len + 1);
+
+    va_start(ap, format);
+    vsnprintf(buf, len, format, ap);
+    va_end(ap);
+    mrb_ary_push(mrb, ary, mrb_str_new(mrb, buf, len));
+  }
+  mrb_gc_arena_restore(mrb, ai);
+}
+
+static void
+mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func func, void *stream)
+{
   mrb_callinfo *ci;
   mrb_int ciidx;
   const char *filename, *method, *sep;
   int i, line;
 
-  fputs("trace:\n", stderr);
-  ciidx = mrb_fixnum(mrb_obj_iv_get(mrb, mrb->exc, mrb_intern2(mrb, "ciidx", 5)));
+  func(mrb, stream, 1, "trace:\n");
+  ciidx = mrb_fixnum(mrb_obj_iv_get(mrb, exc, mrb_intern2(mrb, "ciidx", 5)));
   if (ciidx >= mrb->c->ciend - mrb->c->cibase)
     ciidx = 10; /* ciidx is broken... */
 
@@ -41,7 +93,7 @@ mrb_print_backtrace(mrb_state *mrb)
           pc = mrb->c->cibase[i+1].pc;
         }
         else {
-          pc = (mrb_code*)mrb_voidp(mrb_obj_iv_get(mrb, mrb->exc, mrb_intern2(mrb, "lastpc", 6)));
+          pc = (mrb_code*)mrb_voidp(mrb_obj_iv_get(mrb, exc, mrb_intern2(mrb, "lastpc", 6)));
         }
         if (irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
           line = irep->lines[pc - irep->iseq - 1];
@@ -59,15 +111,39 @@ mrb_print_backtrace(mrb_state *mrb)
       const char *cn = mrb_class_name(mrb, ci->proc->target_class);
 
       if (cn) {
-        fprintf(stderr, "\t[%d] %s:%d:in %s%s%s\n", i, filename, line, cn, sep, method);
+        func(mrb, stream, 1, "\t[%d] ", i);
+        func(mrb, stream, 0, "%s:%d:in %s%s%s", filename, line, cn, sep, method);
+        func(mrb, stream, 1, "\n");
       }
       else {
-        fprintf(stderr, "\t[%d] %s:%d:in %s\n", i, filename, line, method);
+        func(mrb, stream, 1, "\t[%d] ", i);
+        func(mrb, stream, 0, "%s:%d:in %s", filename, line, method);
+        func(mrb, stream, 1, "\n");
       }
     }
     else {
-      fprintf(stderr, "\t[%d] %s:%d\n", i, filename, line);
+        func(mrb, stream, 1, "\t[%d] ", i);
+        func(mrb, stream, 0, "%s:%d", filename, line);
+        func(mrb, stream, 1, "\n");
     }
   }
+}
+
+void
+mrb_print_backtrace(mrb_state *mrb)
+{
+#ifdef ENABLE_STDIO
+  mrb_output_backtrace(mrb, mrb->exc, print_backtrace_i, stderr);
 #endif
+}
+
+mrb_value
+mrb_get_backtrace(mrb_state *mrb, mrb_value self)
+{
+  mrb_value ary;
+
+  ary = mrb_ary_new(mrb);
+  mrb_output_backtrace(mrb, mrb_obj_ptr(self), get_backtrace_i, mrb_ary_ptr(ary));
+
+  return ary;
 }
