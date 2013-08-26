@@ -13,6 +13,7 @@
 
 typedef void (*output_stream_func)(mrb_state*, void*, int, const char*, ...);
 
+#ifdef ENABLE_STDIO
 static void
 print_backtrace_i(mrb_state *mrb, void *stream, int level, const char *format, ...)
 {
@@ -22,6 +23,7 @@ print_backtrace_i(mrb_state *mrb, void *stream, int level, const char *format, .
   vfprintf((FILE*)stream, format, ap);
   va_end(ap);
 }
+#endif
 
 #define MIN_BUFSIZE 127
 
