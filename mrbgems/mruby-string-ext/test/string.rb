@@ -104,6 +104,7 @@ end
 assert('String#start_with?') do
   assert_true "hello".start_with?("heaven", "hell")
   assert_true !"hello".start_with?("heaven", "paradise")
+  assert_true !"h".start_with?("heaven", "hell")
 end
 
 assert('String#end_with?') do
