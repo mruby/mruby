@@ -31,7 +31,7 @@ static void
 get_backtrace_i(mrb_state *mrb, void *stream, int level, const char *format, ...)
 {
   va_list ap;
-  mrb_value ary;
+  mrb_value ary, str;
   int len, ai;
 
   if (level > 0) {
@@ -42,24 +42,10 @@ get_backtrace_i(mrb_state *mrb, void *stream, int level, const char *format, ...
   ary = mrb_obj_value((struct RArray*)stream);
   va_start(ap, format);
   len = vsnprintf(NULL, 0, format, ap);
+  str = mrb_str_new(mrb, 0, len);
+  vsnprintf(RSTRING_PTR(str), len, format, ap);
+  mrb_ary_push(mrb, ary, str);
   va_end(ap);
-
-  if (len < MIN_BUFSIZE) {
-    char buf[MIN_BUFSIZE + 1];
-
-    va_start(ap, format);
-    vsnprintf(buf, MIN_BUFSIZE, format, ap);
-    va_end(ap);
-    mrb_ary_push(mrb, ary, mrb_str_new(mrb, buf, len));
-  }
-  else {
-    char *buf = (char*)mrb_alloca(mrb, len + 1);
-
-    va_start(ap, format);
-    vsnprintf(buf, len, format, ap);
-    va_end(ap);
-    mrb_ary_push(mrb, ary, mrb_str_new(mrb, buf, len));
-  }
   mrb_gc_arena_restore(mrb, ai);
 }
 
