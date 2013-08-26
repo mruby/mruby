@@ -143,15 +143,16 @@ mrb_str_end_with(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "*", &argv, &argc);
 
   for (i = 0; i < argc; i++) {
-    size_t len_l, len_r, len_cmp;
+    size_t len_l, len_r;
     len_l = RSTRING_LEN(self);
     len_r = RSTRING_LEN(argv[i]);
-    len_cmp = (len_l > len_r) ? len_r : len_l;
-    if (memcmp(RSTRING_PTR(self) + (len_l - len_cmp),
-               RSTRING_PTR(argv[i]) + (len_r - len_cmp),
-               len_cmp) == 0) {
-      return mrb_true_value();
-    }  
+    if (len_l >= len_r) {
+      if (memcmp(RSTRING_PTR(self) + (len_l - len_r),
+                 RSTRING_PTR(argv[i]),
+                 len_r) == 0) {
+        return mrb_true_value();
+      }  
+    }
   }
   return mrb_false_value();
 }
