@@ -135,7 +135,7 @@ void
 mrb_print_backtrace(mrb_state *mrb)
 {
 #ifdef ENABLE_STDIO
-  mrb_output_backtrace(mrb, mrb->exc, print_backtrace_i, stderr);
+  mrb_output_backtrace(mrb, mrb->exc, print_backtrace_i, (void*)stderr);
 #endif
 }
 
@@ -145,7 +145,7 @@ mrb_get_backtrace(mrb_state *mrb, mrb_value self)
   mrb_value ary;
 
   ary = mrb_ary_new(mrb);
-  mrb_output_backtrace(mrb, mrb_obj_ptr(self), get_backtrace_i, mrb_ary_ptr(ary));
+  mrb_output_backtrace(mrb, mrb_obj_ptr(self), get_backtrace_i, (void*)mrb_ary_ptr(ary));
 
   return ary;
 }
