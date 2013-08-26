@@ -489,13 +489,18 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value ss;
         struct RString *s;
         char **ps;
+        mrb_int len;
 
         ps = va_arg(ap, char**);
         if (i < argc) {
           ss = to_str(mrb, *sp++);
           s = mrb_str_ptr(ss);
-          if ((mrb_int)strlen(s->ptr) < s->len) {
+          len = (mrb_int)strlen(s->ptr);
+          if (len < s->len) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "String contains NUL");
+          }
+          else if (len > s->len) {
+            mrb_str_modify(mrb, s);
           }
           *ps = s->ptr;
           i++;
