@@ -62,6 +62,7 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
     if (shared->refcnt == 1 && s->ptr == shared->ptr) {
       s->ptr = shared->ptr;
       s->aux.capa = shared->len;
+      s->ptr[s->len] = '\0';
       mrb_free(mrb, shared);
     }
     else {
