@@ -9,6 +9,7 @@
 #include "mruby/proc.h"
 #include "mruby/array.h"
 #include "mruby/string.h"
+#include "mruby/class.h"
 #include <stdarg.h>
 
 typedef void (*output_stream_func)(mrb_state*, void*, int, const char*, ...);
@@ -104,7 +105,16 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
       method = mrb_sym2name(mrb, ci->proc->env->mid);
     }
     if (method) {
-      const char *cn = mrb_class_name(mrb, ci->proc->target_class);
+      const char *cn = NULL;
+      if(verbose && ci->proc->target_class->tt == MRB_TT_SCLASS) {
+        cn = RSTRING_PTR(mrb_str_cat_cstr(
+            mrb, mrb_str_new_cstr(mrb, "(singleton class of)"),
+            mrb_class_name(mrb, mrb_class_ptr(mrb_mod_cv_get(
+                mrb, ci->proc->target_class, mrb_intern_cstr(mrb, "__attached__"))))));
+      }
+      else {
+        cn = mrb_class_name(mrb, ci->proc->target_class);
+      }
 
       if (cn) {
         func(mrb, stream, 1, "\t[%d] ", i);
