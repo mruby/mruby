@@ -282,7 +282,7 @@ end
 
 STDIN  = IO.open(0, "r")
 STDOUT = IO.open(1, "w")
-STDERR = IO.open(1, "w")
+STDERR = IO.open(2, "w")
 
 $stdin  = STDIN
 $stdout = STDOUT
