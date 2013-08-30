@@ -302,7 +302,6 @@ mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 #ifndef ISPRINT
 //#define ISASCII(c) isascii((int)(unsigned char)(c))
 #define ISASCII(c) 1
-#undef ISPRINT
 #define ISPRINT(c) (ISASCII(c) && isprint((int)(unsigned char)(c)))
 #define ISSPACE(c) (ISASCII(c) && isspace((int)(unsigned char)(c)))
 #define ISUPPER(c) (ISASCII(c) && isupper((int)(unsigned char)(c)))
