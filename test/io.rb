@@ -1,6 +1,10 @@
 ##
 # IO Test
 
+assert('IO TEST SETUP') do
+  MRubyIOTestUtil.io_test_setup
+end
+
 assert('IO', '15.2.20') do
   assert_equal(Class, IO.class)
 end
@@ -13,16 +17,28 @@ assert('IO', '15.2.20.3') do
   assert_include(IO.included_modules, Enumerable)
 end
 
+assert('IO.open', '15.2.20.4.1') do
+  fd = IO.sysopen $mrbtest_io_rfname
+  assert_equal Fixnum, fd.class
+  io = IO.open fd
+  assert_equal IO, io.class
+  assert_equal $mrbtest_io_msg+"\n", io.read
+  io.close
+
+  fd = IO.sysopen $mrbtest_io_rfname
+  IO.open(fd) do |io|
+    assert_equal $mrbtest_io_msg+"\n", io.read
+  end
+
+  true
+end
+
 assert('IO.new') do
   IO.new(0)
 end
 
 assert('IO gc check') do
   100.times { IO.new(0) }
-end
-
-assert('IO TEST SETUP') do
-  MRubyIOTestUtil.io_test_setup
 end
 
 assert('IO.sysopen, IO#close, IO#closed?') do

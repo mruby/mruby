@@ -11,10 +11,10 @@ class IO
 
   BUF_SIZE = 4096
 
-  def self.open(fd, mode = "r", opt = {}, &block)
-    io = self.new(fd, mode, opt)
+  def self.open(*args, &block)
+    io = self.new(*args)
 
-    return io  unless block
+    return io unless block
 
     begin
       yield io
