@@ -224,23 +224,12 @@ print_hint(void)
   printf("Thanks :)\n\n");
 }
 
-/* Print the command line prompt of the REPL */
-void
-print_cmdline(int code_block_open)
-{
-  if (code_block_open) {
-    printf("* ");
-  }
-  else {
-    printf("> ");
-  }
-}
-
 int
 main(int argc, char **argv)
 {
   char ruby_code[1024] = { 0 };
   char last_code_line[1024] = { 0 };
+  char prompt[128] = { 0 };
 #ifndef ENABLE_READLINE
   int last_char;
   int char_index;
@@ -298,8 +287,13 @@ main(int argc, char **argv)
 
 
   while (TRUE) {
+    if (code_block_open) {
+      sprintf(prompt, ":%03d * ", cxt->lineno);
+    } else {
+      sprintf(prompt, ":%03d > ", cxt->lineno);
+    }
 #ifndef ENABLE_READLINE
-    print_cmdline(code_block_open);
+    printf(prompt);
 
     char_index = 0;
     while ((last_char = getchar()) != '\n') {
@@ -313,7 +307,7 @@ main(int argc, char **argv)
 
     last_code_line[char_index] = '\0';
 #else
-    char* line = readline(code_block_open ? "* " : "> ");
+    char* line = readline(prompt);
     if (line == NULL) {
       printf("\n");
       break;
