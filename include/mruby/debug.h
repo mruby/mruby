@@ -1,6 +1,10 @@
 #ifndef MRUBY_DEBUG_H
 #define MRUBY_DEBUG_H
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include "mruby/value.h"
 
@@ -53,5 +57,9 @@ mrb_irep_debug_info_file* mrb_debug_info_append_file(
     uint32_t start_pos, uint32_t end_pos);
 mrb_irep_debug_info* mrb_debug_info_alloc(struct mrb_state* mrb, struct mrb_irep* irep);
 void mrb_debug_info_free(struct mrb_state* mrb, mrb_irep_debug_info* d);
+
+#if defined(__cplusplus)
+}  /* extern "C" { */
+#endif
 
 #endif /* MRUBY_DEBUG_H */
