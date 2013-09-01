@@ -12,6 +12,7 @@
 #include "mruby/irep.h"
 #include "mruby/numeric.h"
 #include "mruby/string.h"
+#include "mruby/debug.h"
 #include "node.h"
 #include "opcode.h"
 #include "re.h"
@@ -51,7 +52,7 @@ typedef struct scope {
 
   struct loopinfo *loop;
   int ensure_level;
-  char *filename;
+  char const *filename;
   short lineno;
 
   mrb_code *iseq;
@@ -67,6 +68,8 @@ typedef struct scope {
   int ai;
 
   int idx;
+
+  int debug_start_pos;
 } codegen_scope;
 
 static codegen_scope* scope_new(mrb_state *mrb, codegen_scope *prev, node *lv);
@@ -142,6 +145,7 @@ genop(codegen_scope *s, mrb_code i)
     s->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->icapa);
     if (s->lines) {
       s->lines = (short*)codegen_realloc(s, s->lines, sizeof(short)*s->icapa);
+      s->irep->lines = s->lines;
     }
   }
   s->iseq[s->pc] = i;
@@ -1107,6 +1111,17 @@ codegen(codegen_scope *s, node *tree, int val)
   int nt;
 
   if (!tree) return;
+
+  if (s->irep) {
+    if (s->pc > 0 && strcmp(s->filename, tree->filename) != 0) {
+      mrb_debug_info_append_file(s->mrb, s->irep, s->debug_start_pos, s->pc);
+      s->debug_start_pos = s->pc;
+      // fprintf(stderr, "%s\n", s->filename);
+    }
+    s->irep->filename = tree->filename;
+    s->filename = tree->filename;
+  }
+
   nt = (intptr_t)tree->car;
   s->lineno = tree->lineno;
   tree = tree->cdr;
@@ -2395,6 +2410,18 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
     p->lines = (short*)mrb_malloc(mrb, sizeof(short)*p->icapa);
   }
   p->lineno = prev->lineno;
+
+  // debug setting
+  p->debug_start_pos = 0;
+  if(p->filename) {
+    mrb_debug_info_alloc(mrb, p->irep);
+    p->irep->filename = p->filename;
+    p->irep->lines = p->lines;
+  }
+  else {
+    p->irep->debug_info = NULL;
+  }
+
   return p;
 }
 
@@ -2420,6 +2447,8 @@ scope_finish(codegen_scope *s)
   irep->pool = (mrb_value *)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
   irep->syms = (mrb_sym *)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
   if (s->filename) {
+    mrb_debug_info_append_file(mrb, s->irep, s->debug_start_pos, s->pc);
+
     fname_len = strlen(s->filename);
     fname = codegen_malloc(s, fname_len + 1);
     memcpy(fname, s->filename, fname_len);
@@ -2831,7 +2860,6 @@ codedump_all(mrb_state *mrb, int start)
     codedump(mrb, i);
   }
 }
-
 static int
 codegen_start(mrb_state *mrb, parser_state *p)
 {
@@ -2841,9 +2869,7 @@ codegen_start(mrb_state *mrb, parser_state *p)
     return -1;
   }
   scope->mrb = mrb;
-  if (p->filename) {
-    scope->filename = p->filename;
-  }
+  scope->filename = p->filename;
   if (setjmp(scope->jmp) == 0) {
     // prepare irep
     codegen(scope, p->tree, NOVAL);

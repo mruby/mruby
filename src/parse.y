@@ -120,6 +120,7 @@ cons_gen(parser_state *p, node *car, node *cdr)
   c->car = car;
   c->cdr = cdr;
   c->lineno = p->lineno;
+  c->filename = p->filename;
   return c;
 }
 #define cons(a,b) cons_gen(p,(a),(b))
@@ -5177,6 +5178,13 @@ mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*func)(struct mrb_parser
 {
   c->partial_hook = func;
   c->partial_data = data;
+}
+
+void
+mrb_parser_set_filename(struct mrb_parser_state* p, char const* f)
+{
+  p->filename = mrbc_filename(p->mrb, p->cxt, f);
+  p->lineno = 1;
 }
 
 #ifdef ENABLE_STDIO

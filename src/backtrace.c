@@ -10,6 +10,7 @@
 #include "mruby/array.h"
 #include "mruby/string.h"
 #include "mruby/class.h"
+#include "mruby/debug.h"
 #include <stdarg.h>
 
 typedef void (*output_stream_func)(mrb_state*, void*, int, const char*, ...);
@@ -70,7 +71,7 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
 
   for (i = ciidx; i >= 0; i--) {
     ci = &mrb->c->cibase[i];
-    filename = "(unknown)";
+    filename = NULL;
     line = -1;
 
     if (!verbose && MRB_PROC_CFUNC_P(ci->proc)) {
@@ -78,27 +79,26 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
     }
     if(!MRB_PROC_CFUNC_P(ci->proc)) {
       mrb_irep *irep = ci->proc->body.irep;
-      if (irep->filename != NULL)
-        filename = irep->filename;
-      if (irep->lines != NULL) {
-        mrb_code *pc;
+      mrb_code *pc;
 
-        if (i+1 <= ciidx) {
-          pc = mrb->c->cibase[i+1].pc;
-        }
-        else {
-          pc = (mrb_code*)mrb_voidp(mrb_obj_iv_get(mrb, exc, mrb_intern2(mrb, "lastpc", 6)));
-        }
-        if (irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
-          line = irep->lines[pc - irep->iseq - 1];
-        }
+      if (i+1 <= ciidx) {
+        pc = mrb->c->cibase[i+1].pc;
       }
+      else {
+        pc = (mrb_code*)mrb_voidp(mrb_obj_iv_get(mrb, exc, mrb_intern2(mrb, "lastpc", 6)));
+      }
+      filename = mrb_get_filename(irep, pc - irep->iseq - 1);
+      line = mrb_get_line(irep, pc - irep->iseq - 1);
     }
     if (!verbose && line == -1) continue;
     if (ci->target_class == ci->proc->target_class)
       sep = ".";
     else
       sep = "#";
+
+    if (!filename) {
+      filename = "(unknown)";
+    }
 
     method = mrb_sym2name(mrb, ci->mid);
     if (verbose && !method && ci->proc->env) {
