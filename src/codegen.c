@@ -53,10 +53,10 @@ typedef struct scope {
   struct loopinfo *loop;
   int ensure_level;
   char const *filename;
-  short lineno;
+  uint16_t lineno;
 
   mrb_code *iseq;
-  short *lines;
+  uint16_t *lines;
   int icapa;
 
   mrb_irep *irep;
@@ -144,7 +144,7 @@ genop(codegen_scope *s, mrb_code i)
     s->icapa *= 2;
     s->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->icapa);
     if (s->lines) {
-      s->lines = (short*)codegen_realloc(s, s->lines, sizeof(short)*s->icapa);
+      s->lines = (uint16_t*)codegen_realloc(s, s->lines, sizeof(short)*s->icapa);
       s->irep->lines = s->lines;
     }
   }
@@ -2407,7 +2407,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
 
   p->filename = prev->filename;
   if (p->filename) {
-    p->lines = (short*)mrb_malloc(mrb, sizeof(short)*p->icapa);
+    p->lines = (uint16_t*)mrb_malloc(mrb, sizeof(short)*p->icapa);
   }
   p->lineno = prev->lineno;
 
