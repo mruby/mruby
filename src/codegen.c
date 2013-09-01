@@ -70,6 +70,8 @@ typedef struct scope {
   int idx;
 
   int debug_start_pos;
+  uint16_t filename_index;
+  parser_state* parser;
 } codegen_scope;
 
 static codegen_scope* scope_new(mrb_state *mrb, codegen_scope *prev, node *lv);
@@ -1112,14 +1114,12 @@ codegen(codegen_scope *s, node *tree, int val)
 
   if (!tree) return;
 
-  if (s->irep) {
-    if (s->pc > 0 && strcmp(s->filename, tree->filename) != 0) {
-      mrb_debug_info_append_file(s->mrb, s->irep, s->debug_start_pos, s->pc);
-      s->debug_start_pos = s->pc;
-      // fprintf(stderr, "%s\n", s->filename);
-    }
-    s->irep->filename = tree->filename;
-    s->filename = tree->filename;
+  if (s->irep && s->pc > 0 && s->filename_index != tree->filename) {
+    s->irep->filename = s->filename = mrb_parser_get_filename(s->parser, s->filename_index);
+    mrb_debug_info_append_file(s->mrb, s->irep, s->debug_start_pos, s->pc);
+    s->debug_start_pos = s->pc;
+    s->filename_index = tree->filename;
+    s->filename = mrb_parser_get_filename(s->parser, tree->filename);
   }
 
   nt = (intptr_t)tree->car;
@@ -2421,6 +2421,8 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   else {
     p->irep->debug_info = NULL;
   }
+  p->parser = prev->parser;
+  p->filename_index = prev->filename_index;
 
   return p;
 }
@@ -2869,7 +2871,9 @@ codegen_start(mrb_state *mrb, parser_state *p)
     return -1;
   }
   scope->mrb = mrb;
+  scope->parser = p;
   scope->filename = p->filename;
+  scope->filename_index = p->current_filename_index;
   if (setjmp(scope->jmp) == 0) {
     // prepare irep
     codegen(scope, p->tree, NOVAL);
