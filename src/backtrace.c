@@ -87,8 +87,8 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
       else {
         pc = (mrb_code*)mrb_voidp(mrb_obj_iv_get(mrb, exc, mrb_intern2(mrb, "lastpc", 6)));
       }
-      filename = mrb_get_filename(irep, pc - irep->iseq - 1);
-      line = mrb_get_line(irep, pc - irep->iseq - 1);
+      filename = mrb_debug_get_filename(irep, pc - irep->iseq - 1);
+      line = mrb_debug_get_line(irep, pc - irep->iseq - 1);
     }
     if (!verbose && line == -1) continue;
     if (ci->target_class == ci->proc->target_class)

@@ -40,7 +40,7 @@ select_line_type(uint32_t pc_count, uint16_t line_count)
 }
 
 char const*
-mrb_get_filename(mrb_irep* irep, uint32_t pc)
+mrb_debug_get_filename(mrb_irep* irep, uint32_t pc)
 {
   mrb_irep_debug_info_file* f = NULL;
   if (irep) {
@@ -53,7 +53,7 @@ mrb_get_filename(mrb_irep* irep, uint32_t pc)
 }
 
 int32_t
-mrb_get_line(mrb_irep* irep, uint32_t const pc)
+mrb_debug_get_line(mrb_irep* irep, uint32_t const pc)
 {
   mrb_irep_debug_info_file* f = NULL;
   if (irep) {

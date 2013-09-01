@@ -199,8 +199,8 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
     if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
       mrb_irep *irep = ci->proc->body.irep;
 
-      int32_t const line = mrb_get_line(irep, pc - irep->iseq - 1);
-      char const* file = mrb_get_filename(irep, pc - irep->iseq - 1);
+      int32_t const line = mrb_debug_get_line(irep, pc - irep->iseq - 1);
+      char const* file = mrb_debug_get_filename(irep, pc - irep->iseq - 1);
       if(line != -1 && file) {
         mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "file", 4), mrb_str_new_cstr(mrb, file));
         mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "line", 4), mrb_fixnum_value(line));

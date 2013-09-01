@@ -40,13 +40,13 @@ struct mrb_state;
  * get line from irep's debug info and program counter
  * @return returns NULL if not found
  */
-char const* mrb_get_filename(struct mrb_irep* irep, uint32_t pc);
+char const* mrb_debug_get_filename(struct mrb_irep* irep, uint32_t pc);
 
 /*
  * get line from irep's debug info and program counter
  * @return returns -1 if not found
  */
-int32_t mrb_get_line(struct mrb_irep* irep, uint32_t pc);
+int32_t mrb_debug_get_line(struct mrb_irep* irep, uint32_t pc);
 
 mrb_irep_debug_info_file* mrb_debug_info_append_file(
     struct mrb_state* mrb, struct mrb_irep* irep,
