@@ -33,9 +33,16 @@ get_file(mrb_irep_debug_info* info, uint32_t const pc)
 }
 
 static mrb_debug_line_type
-select_line_type(uint32_t pc_count, uint16_t line_count)
+select_line_type(uint16_t const* lines, size_t lines_len)
 {
-  return (sizeof(uint16_t) * pc_count) < (sizeof(mrb_irep_debug_info_line) * line_count)
+  size_t line_count = 0;
+  int prev_line = -1;
+  for (size_t i = 0; i < lines_len; ++i) {
+    if (lines[i] != prev_line) {
+      ++line_count;
+    }
+  }
+  return (sizeof(uint16_t) * lines_len) <= (sizeof(mrb_irep_debug_info_line) * line_count)
       ? mrb_debug_line_ary : mrb_debug_line_flat_map;
 }
 
@@ -139,8 +146,7 @@ mrb_debug_info_append_file(mrb_state* mrb, mrb_irep* irep,
   size_t len = 0;
   ret->filename = mrb_sym2name_len(mrb, ret->filename_sym, &len);
 
-  ret->line_type = select_line_type(
-      file_pc_count, irep->lines[end_pos - 1] - irep->lines[0] + 1);
+  ret->line_type = select_line_type(irep->lines + start_pos, end_pos - start_pos);
   ret->line_ptr = NULL;
 
   switch(ret->line_type) {
