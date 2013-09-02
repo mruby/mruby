@@ -37,7 +37,8 @@ select_line_type(uint16_t const* lines, size_t lines_len)
 {
   size_t line_count = 0;
   int prev_line = -1;
-  for (size_t i = 0; i < lines_len; ++i) {
+  size_t i;
+  for (i = 0; i < lines_len; ++i) {
     if (lines[i] != prev_line) {
       ++line_count;
     }
@@ -153,7 +154,8 @@ mrb_debug_info_append_file(mrb_state* mrb, mrb_irep* irep,
     case mrb_debug_line_ary:
       ret->line_entry_count = file_pc_count;
       ret->line_ary = mrb_malloc(mrb, sizeof(uint16_t) * file_pc_count);
-      for(uint32_t i = 0; i < file_pc_count; ++i) {
+      uint32_t i;
+      for(i = 0; i < file_pc_count; ++i) {
         ret->line_ary[i] = irep->lines[start_pos + i];
       }
       break;
@@ -162,7 +164,8 @@ mrb_debug_info_append_file(mrb_state* mrb, mrb_irep* irep,
       ret->line_flat_map = mrb_malloc(mrb, sizeof(mrb_irep_debug_info_line) * 1);
       ret->line_entry_count = 0;
       uint16_t prev_line = 0;
-      for(uint32_t i = 0; i < file_pc_count; ++i) {
+      uint32_t i;
+      for(i = 0; i < file_pc_count; ++i) {
         if(irep->lines[start_pos + i] == prev_line) { continue; }
 
         ret->line_flat_map = mrb_realloc(
@@ -188,7 +191,8 @@ mrb_debug_info_free(mrb_state* mrb, mrb_irep_debug_info* d)
 {
   if(!d) { return; }
 
-  for(uint32_t i = 0; i < d->flen; ++i) {
+  uint32_t i;
+  for(i = 0; i < d->flen; ++i) {
     mrb_assert(d->files[i]);
     mrb_free(mrb, d->files[i]->line_ptr);
     mrb_free(mrb, d->files[i]);

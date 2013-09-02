@@ -5188,7 +5188,8 @@ mrb_parser_set_filename(struct mrb_parser_state* p, char const* f)
   p->filename = mrb_sym2name_len(p->mrb, sym, &len);
   p->lineno = 1;
 
-  for(size_t i = 0; i < p->filename_table_length; ++i) {
+  size_t i;
+  for(i = 0; i < p->filename_table_length; ++i) {
     if(p->filename_table[i] == sym) {
       p->current_filename_index = i;
       return;

@@ -398,7 +398,8 @@ get_debug_record_size(mrb_state* mrb, mrb_irep *irep) {
   ret += sizeof(uint32_t); // record size
   ret += sizeof(uint16_t); // file count
 
-  for(uint32_t f_idx = 0; f_idx < irep->debug_info->flen; ++f_idx) {
+  uint32_t f_idx;
+  for(f_idx = 0; f_idx < irep->debug_info->flen; ++f_idx) {
     mrb_irep_debug_info_file const* file = irep->debug_info->files[f_idx];
 
     ret += sizeof(uint32_t); // position
@@ -425,7 +426,8 @@ get_debug_record_size(mrb_state* mrb, mrb_irep *irep) {
 
 static int
 find_filename_index(mrb_value const ary, mrb_sym s) {
-  for(mrb_int i = 0; i < RARRAY_LEN(ary); ++i) {
+  mrb_int i;
+  for(i = 0; i < RARRAY_LEN(ary); ++i) {
     mrb_assert(mrb_symbol_p(RARRAY_PTR(ary)[i]));
     if(mrb_symbol(RARRAY_PTR(ary)[i]) == s) { return i; }
   }
@@ -438,7 +440,8 @@ write_debug_record(mrb_state* mrb, mrb_irep *irep, uint8_t * const bin, mrb_valu
   uint8_t *cur = bin + sizeof(uint32_t); // skip record size
 
   cur += uint16_to_bin(irep->debug_info->flen, cur); // file count
-  for(uint32_t f_idx = 0; f_idx < irep->debug_info->flen; ++f_idx) {
+  uint32_t f_idx;
+  for(f_idx = 0; f_idx < irep->debug_info->flen; ++f_idx) {
     mrb_irep_debug_info_file const* file = irep->debug_info->files[f_idx];
 
     // position
@@ -454,17 +457,19 @@ write_debug_record(mrb_state* mrb, mrb_irep *irep, uint8_t * const bin, mrb_valu
     cur += uint8_to_bin(file->line_type, cur);
     switch(file->line_type) {
       case mrb_debug_line_ary: {
-        for(size_t l = 0; l < file->line_entry_count; ++l) {
+        size_t l;
+        for(l = 0; l < file->line_entry_count; ++l) {
           cur += uint16_to_bin(file->line_ary[l], cur);
         }
       } break;
 
-      case mrb_debug_line_flat_map:
-        for(uint32_t line = 0; line < file->line_entry_count; ++line) {
+      case mrb_debug_line_flat_map: {
+        uint32_t line;
+        for(line = 0; line < file->line_entry_count; ++line) {
           cur += uint32_to_bin(file->line_flat_map[line].start_pos, cur);
           cur += uint16_to_bin(file->line_flat_map[line].line, cur);
         }
-        break;
+      } break;
 
       default: mrb_assert(0); break;
     }
@@ -497,10 +502,12 @@ mrb_write_section_debug(mrb_state* mrb, size_t start_index, uint8_t *cur)
   uint8_t* const filenames_len = cur;
   cur += sizeof(uint16_t);
   section_size += sizeof(uint16_t);
-  for (size_t irep_i = start_index; irep_i < mrb->irep_len; ++irep_i) {
+  size_t irep_i;
+  for (irep_i = start_index; irep_i < mrb->irep_len; ++irep_i) {
     mrb_irep_debug_info const* debug_info = mrb->irep[irep_i]->debug_info;
 
-    for(size_t file_i = 0; file_i < debug_info->flen; ++file_i) {
+    size_t file_i;
+    for(file_i = 0; file_i < debug_info->flen; ++file_i) {
       mrb_irep_debug_info_file const* file = debug_info->files[file_i];
       if(find_filename_index(filenames, file->filename_sym) != -1) continue;
 
@@ -519,7 +526,8 @@ mrb_write_section_debug(mrb_state* mrb, size_t start_index, uint8_t *cur)
   uint16_to_bin(RARRAY_LEN(filenames), filenames_len);
 
   // records
-  for (size_t i = start_index; i < mrb->irep_len; ++i) {
+  size_t i;
+  for (i = start_index; i < mrb->irep_len; ++i) {
     uint32_t rlen = write_debug_record(mrb, mrb->irep[i], cur, filenames);
     cur += rlen;
     section_size += rlen;
@@ -554,7 +562,8 @@ write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t* bin)
 }
 
 mrb_bool is_debug_info_defined(mrb_state* mrb, size_t const start_index) {
-  for (size_t i = start_index; i < mrb->irep_len; ++i) {
+  size_t i;
+  for (i = start_index; i < mrb->irep_len; ++i) {
     if (!mrb->irep[i]->debug_info) { return 0; }
   }
   return 1;
@@ -592,10 +601,12 @@ mrb_dump_irep(mrb_state *mrb, size_t start_index, int debug_info, uint8_t **bin,
       mrb_value const filenames = mrb_ary_new(mrb);
       // filename table size
       section_lineno_size += sizeof(uint16_t);
-      for (size_t irep_i = start_index; irep_i < mrb->irep_len; ++irep_i) {
+      size_t irep_i;
+      for (irep_i = start_index; irep_i < mrb->irep_len; ++irep_i) {
         mrb_irep_debug_info const* di = mrb->irep[irep_i]->debug_info;
 
-        for(size_t file_i = 0; file_i < di->flen; ++file_i) {
+        size_t file_i;
+        for(file_i = 0; file_i < di->flen; ++file_i) {
           mrb_irep_debug_info_file const* file = di->files[file_i];
           if(find_filename_index(filenames, file->filename_sym) != -1) continue;
 
