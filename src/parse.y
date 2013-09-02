@@ -5037,7 +5037,7 @@ parser_init_cxt(parser_state *p, mrbc_context *cxt)
 {
   if (!cxt) return;
   if (cxt->lineno) p->lineno = cxt->lineno;
-  if (cxt->filename) p->filename = cxt->filename;
+  if (cxt->filename) mrb_parser_set_filename(p, cxt->filename);
   if (cxt->syms) {
     int i;
 
@@ -5136,6 +5136,10 @@ mrb_parser_new(mrb_state *mrb)
   p->lex_strterm = NULL;
   p->heredocs = p->parsing_heredoc = NULL;
 
+  p->current_filename_index = -1;
+  p->filename_table = NULL;
+  p->filename_table_length = 0;
+
   return p;
 }
 
@@ -5186,7 +5190,7 @@ mrb_parser_set_filename(struct mrb_parser_state* p, char const* f)
   mrb_sym const sym = mrb_intern(p->mrb, f);
   size_t len;
   p->filename = mrb_sym2name_len(p->mrb, sym, &len);
-  p->lineno = 1;
+  p->lineno = (p->filename_table_length > 0)? 0 : 1;
 
   size_t i;
   for(i = 0; i < p->filename_table_length; ++i) {
