@@ -423,3 +423,15 @@ assert('Kernel#respond_to_missing?') do
   assert_true Test4RespondToMissing.new.respond_to?(:a_method)
   assert_false Test4RespondToMissing.new.respond_to?(:no_method)
 end
+
+assert("Regression test for #1152") do
+  module Kernel
+    def issue_1152
+      loop do
+        Object
+        break true
+      end
+    end
+  end
+  issue_1152
+end
