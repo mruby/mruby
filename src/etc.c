@@ -9,6 +9,7 @@
 #include "error.h"
 #include "mruby/numeric.h"
 #include "mruby/data.h"
+#include "mruby/class.h"
 
 struct RData*
 mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb_data_type *type)
@@ -35,18 +36,17 @@ mrb_data_check_type(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
       mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %S (expected %S)",
                  mrb_str_new_cstr(mrb, t2->struct_name), mrb_str_new_cstr(mrb, type->struct_name));
     }
+    else {
+      struct RClass *c = mrb_class(mrb, obj);
+
+      mrb_raisef(mrb, E_TYPE_ERROR, "uninitialized %S (expected %S)",
+                 mrb_obj_value(c), mrb_str_new_cstr(mrb, type->struct_name));
+    }
   }
 }
 
 void *
-mrb_data_check_and_get(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
-{
-  mrb_data_check_type(mrb, obj, type);
-  return DATA_PTR(obj);
-}
-
-void *
-mrb_data_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
+mrb_data_check_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 {
   if (mrb_special_const_p(obj) || (mrb_type(obj) != MRB_TT_DATA)) {
     return NULL;
@@ -54,6 +54,13 @@ mrb_data_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
   if (DATA_TYPE(obj) != type) {
     return NULL;
   }
+  return DATA_PTR(obj);
+}
+
+void *
+mrb_data_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
+{
+  mrb_data_check_type(mrb, obj, type);
   return DATA_PTR(obj);
 }
 
@@ -176,7 +183,7 @@ mrb_obj_id(mrb_value obj)
   case  MRB_TT_FILE:
   case  MRB_TT_DATA:
   default:
-    return MakeID(obj.value.p);
+    return MakeID(mrb_ptr(obj));
   }
 }
 

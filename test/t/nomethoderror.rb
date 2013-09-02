@@ -9,5 +9,5 @@ assert('NoMethodError', '15.2.32') do
 end
 
 assert('NoMethodError superclass', '15.2.32.2') do
-  assert_equal NoMethodError.superclass, NameError
+  assert_equal NameError, NoMethodError.superclass
 end

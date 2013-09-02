@@ -51,15 +51,19 @@ usage(const char *name)
 static char *
 get_outfilename(mrb_state *mrb, char *infile, char *ext)
 {
+  size_t infilelen;
+  size_t extlen;
   char *outfile;
   char *p;
 
-  outfile = (char*)mrb_malloc(mrb, strlen(infile) + strlen(ext) + 1);
-  strcpy(outfile, infile);
+  infilelen = strlen(infile);
+  extlen = strlen(ext);
+  outfile = (char*)mrb_malloc(mrb, infilelen + extlen + 1);
+  memcpy(outfile, infile, infilelen + 1);
   if (*ext) {
     if ((p = strrchr(outfile, '.')) == NULL)
-      p = &outfile[strlen(outfile)];
-    strcpy(p, ext);
+      p = outfile + infilelen;
+    memcpy(p, ext, extlen + 1);
   }
 
   return outfile;
@@ -117,6 +121,8 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
       case 'g':
         args->debug_info = 1;
         break;
+      case 'h':
+        return -1;
       case '-':
         if (argv[i][1] == '\n') {
           return i;

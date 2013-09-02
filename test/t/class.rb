@@ -2,11 +2,11 @@
 # Class ISO Test
 
 assert('Class', '15.2.3') do
-  assert_equal(Class.class, Class)
+  assert_equal(Class, Class.class)
 end
 
 assert('Class superclass', '15.2.3.2') do
-  assert_equal(Class.superclass, Module)
+  assert_equal(Module, Class.superclass)
 end
 
 # Class#initialize '15.2.3.3.1' is tested in Class#new
@@ -52,48 +52,48 @@ assert('Class#new', '15.2.3.3.3') do
     def result; @result; end
   end
 
-  assert_equal(TestClass.new(:arg).result, :only_args)
+  assert_equal(:only_args, TestClass.new(:arg).result)
   # with block doesn't work yet
 end
 
 assert('Class#superclass', '15.2.3.3.4') do
   class SubClass < String; end
-  assert_equal(SubClass.superclass, String)
+  assert_equal(String, SubClass.superclass)
 end
 
 # Not ISO specified
 
 assert('Class 1') do
   class C1; end
-  assert_equal(C1.class, Class)
+  assert_equal(Class, C1.class)
 end
 
 assert('Class 2') do
   class C2; end
-  assert_equal(C2.new.class, C2)
+  assert_equal(C2, C2.new.class)
 end
 
 assert('Class 3') do
   class C3; end
-  assert_equal(C3.new.class.class, Class)
+  assert_equal(Class, C3.new.class.class)
 end
 
 assert('Class 4') do
   class C4_A; end
   class C4 < C4_A; end
-  assert_equal(C4.class, Class)
+  assert_equal(Class, C4.class)
 end
 
 assert('Class 5') do
   class C5_A; end
   class C5 < C5_A; end
-  assert_equal(C5.new.class, C5)
+  assert_equal(C5, C5.new.class)
 end
 
 assert('Class 6') do
   class C6_A; end
   class C6 < C6_A; end
-  assert_equal(C6.new.class.class, Class)
+  assert_equal(Class, C6.new.class.class)
 end
 
 assert('Class 7') do
@@ -129,13 +129,13 @@ end
 
 assert('Class Module 1') do
   module M; end
-  assert_equal(M.class, Module)
+  assert_equal(Module, M.class)
 end
 
 assert('Class Module 2') do
   module M; end
   class C; include M; end
-  assert_equal(C.new.class, C)
+  assert_equal(C, C.new.class)
 end
 
 # nested class
@@ -148,13 +148,13 @@ end
 assert('Class Nested 2') do
   class A; end
   class A::B; end
-  assert_equal(A::B.new.class, A::B)
+  assert_equal(A::B, A::B.new.class)
 end
 
 assert('Class Nested 3') do
   class A; end
   class A::B; end
-  assert_equal(A::B.new.class.class, Class)
+  assert_equal(Class, A::B.new.class.class)
 end
 
 assert('Class Nested 4') do
@@ -168,14 +168,14 @@ assert('Class Nested 5') do
   class A; end
   class A::B; end
   class A::B::C; end
-  assert_equal(A::B::C.class, Class)
+  assert_equal(Class, A::B::C.class)
 end
 
 assert('Class Nested 6') do
   class A; end
   class A::B; end
   class A::B::C; end
-  assert_equal(A::B::C.new.class, A::B::C)
+  assert_equal(A::B::C, A::B::C.new.class)
 end
 
 assert('Class Nested 7') do
@@ -189,13 +189,13 @@ assert('Class Nested 8') do
   class A; end
   class A::B; end
   class A::B2 < A::B; end
-  assert_equal(A::B2.class, Class)
+  assert_equal(Class, A::B2.class)
 end
 
 assert('Class Colon 1') do
   class A; end
   A::C = 1
-  assert_equal(A::C, 1)
+  assert_equal(1, A::C)
 end
 
 assert('Class Colon 2') do
@@ -205,15 +205,43 @@ end
 
 assert('Class Colon 3') do
   class A; class ::C; end end
-  assert_equal(C.class, Class)
+  assert_equal(Class, C.class)
 end
 
 assert('Class Dup 1') do
   class C; end
-  assert_equal(C.dup.class, Class)
+  assert_equal(Class, C.dup.class)
 end
 
 assert('Class Dup 2') do
   module M; end
-  assert_equal(M.dup.class, Module)
+  assert_equal(Module, M.dup.class)
+end
+
+assert('Class new') do
+  assert_equal(Class, Class.new.class)
+end
+
+assert('Class#inherited') do
+  class Foo
+    @@subclass_name = nil
+    def self.inherited(subclass)
+      @@subclass_name = subclass
+    end
+    def self.subclass_name
+      @@subclass_name
+    end
+  end
+
+  assert_equal(nil, Foo.subclass_name)
+
+  class Bar < Foo
+  end
+
+  assert_equal(Bar, Foo.subclass_name)
+
+  class Baz < Bar
+  end
+
+  assert_equal(Baz, Foo.subclass_name)
 end

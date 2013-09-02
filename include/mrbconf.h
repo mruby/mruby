@@ -41,6 +41,9 @@
 /* initial size for IREP array */
 //#define MRB_IREP_ARRAY_INIT_SIZE (256u)
 
+/* turn off generational GC by default */
+//#define MRB_GC_TURN_OFF_GENERATIONAL
+
 /* default size of khash table bucket */
 //#define KHASH_DEFAULT_SIZE 32
 

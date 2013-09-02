@@ -275,6 +275,8 @@ main(int argc, char **argv)
 
   cxt = mrbc_context_new(mrb);
   cxt->capture_errors = 1;
+  cxt->lineno = 1;
+  mrbc_filename(mrb, cxt, "(mirb)");
   if (args.verbose) cxt->dump_result = 1;
 
   ai = mrb_gc_arena_save(mrb);
@@ -345,7 +347,7 @@ main(int argc, char **argv)
     parser = mrb_parser_new(mrb);
     parser->s = ruby_code;
     parser->send = ruby_code + strlen(ruby_code);
-    parser->lineno = 1;
+    parser->lineno = cxt->lineno;
     mrb_parser_parse(parser, cxt);
     code_block_open = is_code_block_open(parser);
 
@@ -384,6 +386,7 @@ main(int argc, char **argv)
       mrb_gc_arena_restore(mrb, ai);
     }
     mrb_parser_free(parser);
+    cxt->lineno++;
   }
   mrbc_context_free(mrb, cxt);
   mrb_close(mrb);

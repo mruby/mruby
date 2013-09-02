@@ -2,11 +2,11 @@
 # FalseClass ISO Test
 
 assert('FalseClass', '15.2.6') do
-  assert_equal FalseClass.class, Class
+  assert_equal Class, FalseClass.class
 end
 
 assert('FalseClass superclass', '15.2.6.2') do
-  assert_equal FalseClass.superclass, Object
+  assert_equal Object, FalseClass.superclass
 end
 
 assert('FalseClass false', '15.2.6.1') do
@@ -24,7 +24,7 @@ assert('FalseClass#^', '15.2.6.3.2') do
 end
 
 assert('FalseClass#to_s', '15.2.6.3.3') do
-  assert_equal false.to_s, 'false'
+  assert_equal 'false', false.to_s
 end
 
 assert('FalseClass#|', '15.2.6.3.4') do

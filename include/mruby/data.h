@@ -34,16 +34,21 @@ struct RData *mrb_data_object_alloc(mrb_state *mrb, struct RClass* klass, void *
   data = Data_Wrap_Struct(mrb,klass,type,sval);\
 } while (0)
 
-#define RDATA(obj)         ((struct RData *)((obj).value.p))
+#define RDATA(obj)         ((struct RData *)(mrb_ptr(obj)))
 #define DATA_PTR(d)        (RDATA(d)->data)
 #define DATA_TYPE(d)       (RDATA(d)->type)
 void mrb_data_check_type(mrb_state *mrb, mrb_value, const mrb_data_type*);
 void *mrb_data_get_ptr(mrb_state *mrb, mrb_value, const mrb_data_type*);
-void *mrb_data_check_and_get(mrb_state *mrb, mrb_value, const mrb_data_type*);
+#define DATA_GET_PTR(mrb,obj,dtype,type) (type*)mrb_data_get_ptr(mrb,obj,dtype)
+void *mrb_data_check_get_ptr(mrb_state *mrb, mrb_value, const mrb_data_type*);
+#define DATA_CHECK_GET_PTR(mrb,obj,dtype,type) (type*)mrb_data_check_get_ptr(mrb,obj,dtype)
+
+/* obsolete functions and macros */
+#define mrb_data_check_and_get(mrb,obj,dtype) mrb_data_get_ptr(mrb,obj,dtype)
 #define mrb_get_datatype(mrb,val,type) mrb_data_get_ptr(mrb, val, type)
-#define mrb_check_datatype(mrb,val,type) mrb_data_check_and_get(mrb, val, type)
+#define mrb_check_datatype(mrb,val,type) mrb_data_get_ptr(mrb, val, type)
 #define Data_Get_Struct(mrb,obj,type,sval) do {\
-  *(void**)&sval = mrb_data_check_and_get(mrb, obj, type); \
+  *(void**)&sval = mrb_data_get_ptr(mrb, obj, type); \
 } while (0)
 
 #if defined(__cplusplus)

@@ -18,10 +18,10 @@ struct RClass {
   struct RClass *super;
 };
 
-#define mrb_class_ptr(v)    ((struct RClass*)((v).value.p))
-#define RCLASS_SUPER(v)     (((struct RClass*)((v).value.p))->super)
-#define RCLASS_IV_TBL(v)    (((struct RClass*)((v).value.p))->iv)
-#define RCLASS_M_TBL(v)     (((struct RClass*)((v).value.p))->mt)
+#define mrb_class_ptr(v)    ((struct RClass*)(mrb_ptr(v)))
+#define RCLASS_SUPER(v)     (((struct RClass*)(mrb_ptr(v)))->super)
+#define RCLASS_IV_TBL(v)    (((struct RClass*)(mrb_ptr(v)))->iv)
+#define RCLASS_M_TBL(v)     (((struct RClass*)(mrb_ptr(v)))->mt)
 
 static inline struct RClass*
 mrb_class(mrb_state *mrb, mrb_value v)
@@ -61,8 +61,6 @@ struct RProc *mrb_method_search_vm(mrb_state*, struct RClass**, mrb_sym);
 struct RProc *mrb_method_search(mrb_state*, struct RClass*, mrb_sym);
 
 struct RClass* mrb_class_real(struct RClass* cl);
-
-void mrb_obj_call_init(mrb_state *mrb, mrb_value obj, int argc, mrb_value *argv);
 
 void mrb_gc_mark_mt(mrb_state*, struct RClass*);
 size_t mrb_gc_mark_mt_size(mrb_state*, struct RClass*);

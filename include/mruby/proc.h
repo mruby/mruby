@@ -44,7 +44,7 @@ struct RProc {
 #define MRB_PROC_STRICT 256
 #define MRB_PROC_STRICT_P(p) (((p)->flags & MRB_PROC_STRICT) != 0)
 
-#define mrb_proc_ptr(v)    ((struct RProc*)((v).value.p))
+#define mrb_proc_ptr(v)    ((struct RProc*)(mrb_ptr(v)))
 
 struct RProc *mrb_proc_new(mrb_state*, mrb_irep*);
 struct RProc *mrb_proc_new_cfunc(mrb_state*, mrb_func_t);

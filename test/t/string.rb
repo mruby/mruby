@@ -2,38 +2,38 @@
 # String ISO Test
 
 assert('String', '15.2.10') do
-  assert_equal String.class, Class
+  assert_equal Class, String.class
 end
 
 assert('String superclass', '15.2.10.2') do
-  assert_equal String.superclass, Object
+  assert_equal Object, String.superclass
 end
 
-assert('String#*', '15.2.10.5.1') do
-  assert_equal 'a' * 5, 'aaaaa'
-end
-
-assert('String#+', '15.2.10.5.2') do
-  assert_equal 'a' + 'b', 'ab'
-end
-
-assert('String#<=>', '15.2.10.5.3') do
+assert('String#<=>', '15.2.10.5.1') do
   a = '' <=> ''
   b = '' <=> 'not empty'
   c = 'not empty' <=> ''
   d = 'abc' <=> 'cba'
   e = 'cba' <=> 'abc'
 
-  assert_equal a, 0
-  assert_equal b, -1
-  assert_equal c, 1
-  assert_equal d, -1
-  assert_equal e, 1
+  assert_equal  0, a
+  assert_equal(-1, b)
+  assert_equal  1, c
+  assert_equal(-1, d)
+  assert_equal  1, e
 end
 
-assert('String#==', '15.2.10.5.4') do
+assert('String#==', '15.2.10.5.2') do
   assert_equal 'abc', 'abc'
   assert_not_equal 'abc', 'cba'
+end
+
+assert('String#+', '15.2.10.5.4') do
+  assert_equal 'ab', 'a' + 'b'
+end
+
+assert('String#*', '15.2.10.5.5') do
+  assert_equal 'aaaaa', 'a' * 5
 end
 
 # 'String#=~', '15.2.10.5.5' will be tested in mrbgems.
@@ -59,16 +59,16 @@ assert('String#[]', '15.2.10.5.6') do
   a3 = 'abc'['bc']
   b3 = 'abc'['XX']
 
-  assert_equal a, 'a'
-  assert_equal b, 'c'
+  assert_equal 'a', a
+  assert_equal 'c', b
   assert_nil c
   assert_nil d
   assert_nil a1
   assert_nil b1
   assert_nil c1
-  assert_equal d1, ''
-  assert_equal e1, 'bc'
-  assert_equal a3, 'bc'
+  assert_equal '', d1
+  assert_equal 'bc', e1
+  assert_equal 'bc', a3
   assert_nil b3
 end
 
@@ -92,23 +92,23 @@ assert('String#[] with Range') do
   h2 = 'abc'[3...4]
   i2 = 'abc'[4...5]
 
-  assert_equal a1, ''  
-  assert_equal b1, 'b' 
-  assert_equal c1, 'bc'
-  assert_equal d1, 'bc'
-  assert_equal e1, 'bc'
-  assert_equal f1, 'ab'
-  assert_equal g1, 'bc'
-  assert_equal h1, ''  
+  assert_equal '', a1
+  assert_equal 'b', b1
+  assert_equal 'bc', c1
+  assert_equal 'bc', d1
+  assert_equal 'bc', e1
+  assert_equal 'ab', f1
+  assert_equal 'bc', g1
+  assert_equal '', h1
   assert_nil i2
-  assert_equal a2, ''  
-  assert_equal b2, ''  
-  assert_equal c2, 'b' 
-  assert_equal d2, 'bc'
-  assert_equal e2, 'bc'
-  assert_equal f2, 'a' 
-  assert_equal g2, 'bc'
-  assert_equal h2, ''  
+  assert_equal '', a2
+  assert_equal '', b2
+  assert_equal 'b', c2
+  assert_equal 'bc', d2
+  assert_equal 'bc', e2
+  assert_equal 'a', f2
+  assert_equal 'bc', g2
+  assert_equal '', h2
   assert_nil i2
 end
 
@@ -116,15 +116,15 @@ assert('String#capitalize', '15.2.10.5.7') do
   a = 'abc'
   a.capitalize
 
-  assert_equal a, 'abc'
-  assert_equal 'abc'.capitalize, 'Abc'
+  assert_equal 'abc', a
+  assert_equal 'Abc', 'abc'.capitalize
 end
 
 assert('String#capitalize!', '15.2.10.5.8') do
   a = 'abc'
   a.capitalize!
 
-  assert_equal a, 'Abc'
+  assert_equal 'Abc', a
 end
 
 assert('String#chomp', '15.2.10.5.9') do
@@ -137,12 +137,12 @@ assert('String#chomp', '15.2.10.5.9') do
 
   f.chomp
 
-  assert_equal a, 'abc'
-  assert_equal b, ''
-  assert_equal c, 'abc'
-  assert_equal d, "abc\n"
-  assert_equal e, 'abc'
-  assert_equal f, "abc\n"
+  assert_equal 'abc', a
+  assert_equal '', b
+  assert_equal 'abc', c
+  assert_equal "abc\n", d
+  assert_equal 'abc', e
+  assert_equal "abc\n", f
 end
 
 assert('String#chomp!', '15.2.10.5.10') do
@@ -158,11 +158,11 @@ assert('String#chomp!', '15.2.10.5.10') do
   d.chomp!
   e.chomp!("\t")
 
-  assert_equal a, 'abc'
-  assert_equal b, ''
-  assert_equal c, 'abc'
-  assert_equal d, "abc\n"
-  assert_equal e, 'abc'
+  assert_equal 'abc', a
+  assert_equal '', b
+  assert_equal 'abc', c
+  assert_equal "abc\n", d
+  assert_equal 'abc', e
 end
 
 assert('String#chop', '15.2.10.5.11') do
@@ -172,9 +172,9 @@ assert('String#chop', '15.2.10.5.11') do
 
   c.chop
 
-  assert_equal a, ''
-  assert_equal b, 'ab'
-  assert_equal c, 'abc'
+  assert_equal '', a
+  assert_equal 'ab', b
+  assert_equal 'abc', c
 end
 
 assert('String#chop!', '15.2.10.5.12') do
@@ -194,8 +194,8 @@ assert('String#downcase', '15.2.10.5.13') do
 
   b.downcase
 
-  assert_equal a, 'abc'
-  assert_equal b, 'ABC'
+  assert_equal 'abc', a
+  assert_equal 'ABC', b
 end
 
 assert('String#downcase!', '15.2.10.5.14') do
@@ -203,7 +203,7 @@ assert('String#downcase!', '15.2.10.5.14') do
 
   a.downcase!
 
-  assert_equal a, 'abc'
+  assert_equal 'abc', a
 end
 
 assert('String#each_line', '15.2.10.5.15') do
@@ -249,14 +249,14 @@ assert('String#gsub!', '15.2.10.5.19') do
   b = 'abcabc'
   b.gsub!('b') { |w| w.capitalize }
 
-  assert_equal a, 'aBcaBc'
-  assert_equal b, 'aBcaBc'
+  assert_equal 'aBcaBc', a
+  assert_equal 'aBcaBc', b
 end
 
 assert('String#hash', '15.2.10.5.20') do
   a = 'abc'
 
-  assert_equal a.hash, 'abc'.hash
+  assert_equal 'abc'.hash, a.hash
 end
 
 assert('String#include?', '15.2.10.5.21') do
@@ -267,31 +267,31 @@ assert('String#include?', '15.2.10.5.21') do
 end
 
 assert('String#index', '15.2.10.5.22') do
-  assert_equal 'abc'.index('a'), 0
+  assert_equal 0, 'abc'.index('a')
   assert_nil 'abc'.index('d')
-  assert_equal 'abcabc'.index('a', 1), 3
+  assert_equal 3, 'abcabc'.index('a', 1)
 end
 
 assert('String#initialize', '15.2.10.5.23') do
   a = ''
   a.initialize('abc')
 
-  assert_equal a, 'abc'
+  assert_equal 'abc', a
 end
 
 assert('String#initialize_copy', '15.2.10.5.24') do
   a = ''
   a.initialize_copy('abc')
 
-  assert_equal a, 'abc'
+  assert_equal 'abc', a
 end
 
 assert('String#intern', '15.2.10.5.25') do
-  assert_equal 'abc'.intern, :abc
+  assert_equal :abc, 'abc'.intern
 end
 
 assert('String#length', '15.2.10.5.26') do
-  assert_equal 'abc'.length, 3
+  assert_equal 3, 'abc'.length
 end
 
 # 'String#match', '15.2.10.5.27' will be tested in mrbgems.
@@ -300,36 +300,36 @@ assert('String#replace', '15.2.10.5.28') do
   a = ''
   a.replace('abc')
 
-  assert_equal a, 'abc'
+  assert_equal 'abc', a
 end
 
 assert('String#reverse', '15.2.10.5.29') do
   a = 'abc'
   a.reverse
 
-  assert_equal a, 'abc'
-  assert_equal 'abc'.reverse, 'cba'
+  assert_equal 'abc', a
+  assert_equal 'cba', 'abc'.reverse
 end
 
 assert('String#reverse!', '15.2.10.5.30') do
   a = 'abc'
   a.reverse!
 
-  assert_equal a, 'cba'
-  assert_equal 'abc'.reverse!, 'cba'
+  assert_equal 'cba', a
+  assert_equal 'cba', 'abc'.reverse!
 end
 
 assert('String#rindex', '15.2.10.5.31') do
-  assert_equal 'abc'.rindex('a'), 0
+  assert_equal 0, 'abc'.rindex('a')
   assert_nil 'abc'.rindex('d')
-  assert_equal 'abcabc'.rindex('a', 1), 0
-  assert_equal 'abcabc'.rindex('a', 4), 3
+  assert_equal 0, 'abcabc'.rindex('a', 1)
+  assert_equal 3, 'abcabc'.rindex('a', 4)
 end
 
 # 'String#scan', '15.2.10.5.32' will be tested in mrbgems.
 
 assert('String#size', '15.2.10.5.33') do
-  assert_equal 'abc'.size, 3
+  assert_equal 3, 'abc'.size
 end
 
 assert('String#slice', '15.2.10.5.34') do
@@ -356,33 +356,33 @@ assert('String#slice', '15.2.10.5.34') do
   a3 = 'abc'.slice('bc')
   b3 = 'abc'.slice('XX')
 
-  assert_equal a, 'a'
-  assert_equal b, 'c'
+  assert_equal 'a', a
+  assert_equal 'c', b
   assert_nil c
   assert_nil d
   assert_nil a1
   assert_nil b1
   assert_nil c1
-  assert_equal d1, ''
-  assert_equal e1, 'bc'
-  assert_equal e11, 'b'
-  assert_equal a3, 'bc'
+  assert_equal '', d1
+  assert_equal 'bc', e1
+  assert_equal 'b', e11
+  assert_equal 'bc', a3
   assert_nil b3
 end
 
 # TODO Broken ATM
 assert('String#split', '15.2.10.5.35') do
   # without RegExp behavior is actually unspecified
-  assert_equal 'abc abc abc'.split, ['abc', 'abc', 'abc']
-  assert_equal 'a,b,c,,d'.split(','), ["a", "b", "c", "", "d"]
-  assert_equal 'abc abc abc'.split(nil), ['abc', 'abc', 'abc']
-  assert_equal 'abc'.split(""), ['a', 'b', 'c']
+  assert_equal ['abc', 'abc', 'abc'], 'abc abc abc'.split
+  assert_equal ["a", "b", "c", "", "d"], 'a,b,c,,d'.split(',')
+  assert_equal ['abc', 'abc', 'abc'], 'abc abc abc'.split(nil)
+  assert_equal ['a', 'b', 'c'], 'abc'.split("")
 end
 
 assert('String#sub', '15.2.10.5.36') do
-  assert_equal 'abcabc'.sub('b', 'B'), 'aBcabc'
-  assert_equal 'abcabc'.sub('b') { |w| w.capitalize }, 'aBcabc'
-  assert_equal 'aa#'.sub('#', '$'), 'aa$'
+  assert_equal 'aBcabc', 'abcabc'.sub('b', 'B')
+  assert_equal 'aBcabc', 'abcabc'.sub('b') { |w| w.capitalize }
+  assert_equal 'aa$', 'aa#'.sub('#', '$')
 end
 
 assert('String#sub!', '15.2.10.5.37') do
@@ -392,39 +392,38 @@ assert('String#sub!', '15.2.10.5.37') do
   b = 'abcabc'
   b.sub!('b') { |w| w.capitalize }
 
-  assert_equal a, 'aBcabc'
-  assert_equal b, 'aBcabc'
+  assert_equal 'aBcabc', a
+  assert_equal 'aBcabc', b
 end
 
+assert('String#to_f', '15.2.10.5.38') do
+  a = ''.to_f
+  b = '123456789'.to_f
+  c = '12345.6789'.to_f
 
-assert('String#to_i', '15.2.10.5.38') do
+  assert_float(0.0, a)
+  assert_float(123456789.0, b)
+  assert_float(12345.6789, c)
+end
+
+assert('String#to_i', '15.2.10.5.39') do
   a = ''.to_i
   b = '32143'.to_i
   c = 'a'.to_i(16)
   d = '100'.to_i(2)
 
-  assert_equal a, 0
-  assert_equal b, 32143
-  assert_equal c, 10
-  assert_equal d, 4
-end
-
-assert('String#to_f', '15.2.10.5.39') do
-  a = ''.to_f
-  b = '123456789'.to_f
-  c = '12345.6789'.to_f
-
-  assert_float(a, 0.0)
-  assert_float(b, 123456789.0)
-  assert_float(c, 12345.6789)
+  assert_equal 0, a
+  assert_equal 32143, b
+  assert_equal 10, c
+  assert_equal 4, d
 end
 
 assert('String#to_s', '15.2.10.5.40') do
-  assert_equal 'abc'.to_s, 'abc'
+  assert_equal 'abc', 'abc'.to_s
 end
 
 assert('String#to_sym', '15.2.10.5.41') do
-  assert_equal 'abc'.to_sym, :abc
+  assert_equal :abc, 'abc'.to_sym
 end
 
 assert('String#upcase', '15.2.10.5.42') do
@@ -433,8 +432,8 @@ assert('String#upcase', '15.2.10.5.42') do
 
   b.upcase
 
-  assert_equal a, 'ABC'
-  assert_equal b, 'abc'
+  assert_equal 'ABC', a
+  assert_equal 'abc', b
 end
 
 assert('String#upcase!', '15.2.10.5.43') do
@@ -442,14 +441,14 @@ assert('String#upcase!', '15.2.10.5.43') do
 
   a.upcase!
 
-  assert_equal a, 'ABC'
+  assert_equal 'ABC', a
 end
 
 # Not ISO specified
 
 assert('String interpolation (mrb_str_concat for shared strings)') do
   a = "A" * 32
-  assert_equal "#{a}:", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:"
+  assert_equal "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:", "#{a}:"
 end
 
 assert('Check the usage of a NUL character') do
@@ -463,8 +462,8 @@ assert('String#bytes') do
   str2 = "\xFF"
   bytes2 = [0xFF]
 
-  assert_equal str1.bytes, bytes1
-  assert_equal str2.bytes, bytes2
+  assert_equal bytes1, str1.bytes
+  assert_equal bytes2, str2.bytes
 end
 
 assert('String#each_byte') do
@@ -479,5 +478,5 @@ end
 
 assert('String#inspect') do
   ("\1" * 100).inspect  # should not raise an exception - regress #1210
-  assert_equal "\0".inspect, "\"\\000\""
+  assert_equal "\"\\000\"", "\0".inspect
 end

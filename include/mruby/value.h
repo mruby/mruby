@@ -129,27 +129,45 @@ enum mrb_vtype {
 typedef struct mrb_value {
   union {
     mrb_float f;
-    struct {
-      MRB_ENDIAN_LOHI(
- 	uint32_t ttt;
-        ,union {
-	  void *p;
-	  mrb_int i;
-	  mrb_sym sym;
-	} value;
-       )
-    };
+    union {
+      void *p;
+      struct {
+	MRB_ENDIAN_LOHI(
+ 	  uint32_t ttt;
+          ,union {
+	    mrb_int i;
+	    mrb_sym sym;
+	  };
+        )
+      };
+    } value;
   };
 } mrb_value;
 
-#define mrb_tt(o)     ((o).ttt & 0xff)
-#define mrb_mktt(tt)  (0xfff00000|(tt))
-#define mrb_type(o)   ((uint32_t)0xfff00000 < (o).ttt ? mrb_tt(o) : MRB_TT_FLOAT)
-#define mrb_float(o)  (o).f
+/* value representation by nan-boxing:
+ *   float : FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF
+ *   object: 111111111111TTTT TTPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP
+ *   int   : 1111111111110001 0000000000000000 IIIIIIIIIIIIIIII IIIIIIIIIIIIIIII
+ *   sym   : 1111111111110001 0100000000000000 SSSSSSSSSSSSSSSS SSSSSSSSSSSSSSSS
+ * In order to get enough bit size to save TT, all pointers are shifted 2 bits
+ * in the right direction.
+ */
+#define mrb_tt(o)       (((o).value.ttt & 0xfc000)>>14)
+#define mrb_mktt(tt)    (0xfff00000|((tt)<<14))
+#define mrb_type(o)     ((uint32_t)0xfff00000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
+#define mrb_ptr(o)      ((void*)((((intptr_t)0x3fffffffffff)&((intptr_t)((o).value.p)))<<2))
+#define mrb_float(o)    (o).f
 
 #define MRB_SET_VALUE(o, tt, attr, v) do {\
-  (o).ttt = mrb_mktt(tt);\
-  (o).attr = v;\
+  (o).value.ttt = mrb_mktt(tt);\
+  switch (tt) {\
+  case MRB_TT_FALSE:\
+  case MRB_TT_TRUE:\
+  case MRB_TT_UNDEF:\
+  case MRB_TT_FIXNUM:\
+  case MRB_TT_SYMBOL: (o).attr = (v); break;\
+  default: (o).value.i = 0; (o).value.p = (void*)((intptr_t)(o).value.p | (((intptr_t)(v))>>2)); break;\
+  }\
 } while (0)
 
 static inline mrb_value
@@ -158,7 +176,7 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
   mrb_value v;
 
   if (f != f) {
-    v.ttt = 0x7ff80000;
+    v.value.ttt = 0x7ff80000;
     v.value.i = 0;
   } else {
     v.f = f;
@@ -216,11 +234,11 @@ typedef union mrb_value {
     void *p;
     struct {
       unsigned int i_flag : MRB_FIXNUM_SHIFT;
-      mrb_int i : (sizeof(mrb_int) * 8 - MRB_FIXNUM_SHIFT);
+      mrb_int i : (sizeof(mrb_int) * CHAR_BIT - MRB_FIXNUM_SHIFT);
     };
     struct {
       unsigned int sym_flag : MRB_SPECIAL_SHIFT;
-      int sym : (sizeof(mrb_sym) * 8);
+      int sym : (sizeof(mrb_sym) * CHAR_BIT);
     };
     struct RBasic *bp;
     struct RFloat *fp;
@@ -229,7 +247,8 @@ typedef union mrb_value {
   unsigned long w;
 } mrb_value;
 
-#define mrb_float(o)  (o).value.fp->f
+#define mrb_ptr(o)      (o).value.p
+#define mrb_float(o)    (o).value.fp->f
 
 #define MRB_SET_VALUE(o, ttt, attr, v) do {\
   (o).w = 0;\
@@ -261,8 +280,9 @@ typedef struct mrb_value {
   enum mrb_vtype tt;
 } mrb_value;
 
-#define mrb_type(o)   (o).tt
-#define mrb_float(o)  (o).value.f
+#define mrb_type(o)     (o).tt
+#define mrb_ptr(o)      (o).value.p
+#define mrb_float(o)    (o).value.f
 
 #define MRB_SET_VALUE(o, ttt, attr, v) do {\
   (o).tt = ttt;\
@@ -273,6 +293,7 @@ static inline mrb_value
 mrb_float_value(struct mrb_state *mrb, mrb_float f)
 {
   mrb_value v;
+  (void) mrb;
 
   MRB_SET_VALUE(v, MRB_TT_FLOAT, value.f, f);
   return v;
@@ -291,8 +312,7 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
 #define mrb_bool(o)   ((o).w != MRB_Qnil && (o).w != MRB_Qfalse)
 
 #else
-
-#define mrb_voidp(o) (o).value.p
+#define mrb_voidp(o) mrb_ptr(o)
 #define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_FIXNUM)
 #define mrb_undef_p(o) (mrb_type(o) == MRB_TT_UNDEF)
 #define mrb_nil_p(o)  (mrb_type(o) == MRB_TT_FALSE && !(o).value.i)
@@ -339,8 +359,7 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
 struct RBasic {
   MRB_OBJECT_HEADER;
 };
-
-#define mrb_basic_ptr(v) ((struct RBasic*)((v).value.p))
+#define mrb_basic_ptr(v) ((struct RBasic*)(mrb_ptr(v)))
 /* obsolete macro mrb_basic; will be removed soon */
 #define mrb_basic(v)     mrb_basic_ptr(v)
 
@@ -348,8 +367,7 @@ struct RObject {
   MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
 };
-
-#define mrb_obj_ptr(v)   ((struct RObject*)((v).value.p))
+#define mrb_obj_ptr(v)   ((struct RObject*)(mrb_ptr(v)))
 /* obsolete macro mrb_object; will be removed soon */
 #define mrb_object(o) mrb_obj_ptr(o)
 #define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_VOIDP)
@@ -429,6 +447,7 @@ static inline mrb_value
 mrb_voidp_value(struct mrb_state *mrb, void *p)
 {
   mrb_value v;
+  (void) mrb;
 
   MRB_SET_VALUE(v, MRB_TT_VOIDP, value.p, p);
   return v;

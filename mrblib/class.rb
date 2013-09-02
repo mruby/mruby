@@ -4,7 +4,7 @@ class Module
     names.each do |name|
       name = name.to_s
       raise(NameError, "#{name.inspect} is not allowed as an instance variable name") if name.include?('@') || name.include?('?')  || name.include?('$')
-      
+
       attr_name = '@'+name
       define_method(name){self.instance_variable_get(attr_name)}
     end
@@ -14,7 +14,7 @@ class Module
     names.each do |name|
       name = name.to_s
       raise(NameError, "#{name.inspect} is not allowed as an instance variable name") if name.include?('@') || name.include?('?')  || name.include?('$')
-      
+
       attr_name = '@'+name
       name = (name+"=").intern
       define_method(name){|v|self.instance_variable_set(attr_name,v)}

@@ -29,7 +29,7 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
     return (mrb_float(v1) == mrb_float(v2));
 
   default:
-    return (v1.value.p == v2.value.p);
+    return (mrb_ptr(v1) == mrb_ptr(v2));
   }
 }
 

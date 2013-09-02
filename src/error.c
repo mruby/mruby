@@ -307,7 +307,7 @@ mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
   va_end(args);
 
   argv[1] = mrb_symbol_value(id);
-  exc = mrb_class_new_instance(mrb, 2, argv, E_NAME_ERROR);
+  exc = mrb_obj_new(mrb, E_NAME_ERROR, 2, argv);
   mrb_exc_raise(mrb, exc);
 }
 
@@ -435,6 +435,8 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
   }
 }
 
+mrb_value mrb_get_backtrace(mrb_state*, mrb_value);
+
 void
 mrb_init_exception(mrb_state *mrb)
 {
@@ -448,6 +450,7 @@ mrb_init_exception(mrb_state *mrb)
   mrb_define_method(mrb, e, "to_s", exc_to_s, MRB_ARGS_NONE());
   mrb_define_method(mrb, e, "message", exc_message, MRB_ARGS_NONE());
   mrb_define_method(mrb, e, "inspect", exc_inspect, MRB_ARGS_NONE());
+  mrb_define_method(mrb, e, "backtrace", mrb_get_backtrace, MRB_ARGS_NONE());
 
   mrb->eStandardError_class     = mrb_define_class(mrb, "StandardError",       mrb->eException_class); /* 15.2.23 */
   mrb_define_class(mrb, "RuntimeError", mrb->eStandardError_class);                                    /* 15.2.28 */

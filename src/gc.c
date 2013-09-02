@@ -88,6 +88,9 @@
 
     * Major GC - same as a full regular GC cycle.
 
+  the difference between "tranditional" generational GC is that, the major GC
+  in mruby is triggered incrementally in a tri-color manner.
+
 
   For details, see the comments for each function.
 
@@ -144,9 +147,9 @@ gettimeofday_time(void)
   gc_time = gettimeofday_time() - gc_time;\
   gc_total_time += gc_time;\
   fprintf(stderr, "gc_state: %d\n", mrb->gc_state);\
-  fprintf(stderr, "live: %d\n", mrb->live);\
-  fprintf(stderr, "majorgc_old_threshold: %d\n", mrb->majorgc_old_threshold);\
-  fprintf(stderr, "gc_threshold: %d\n", mrb->gc_threshold);\
+  fprintf(stderr, "live: %zu\n", mrb->live);\
+  fprintf(stderr, "majorgc_old_threshold: %zu\n", mrb->majorgc_old_threshold);\
+  fprintf(stderr, "gc_threshold: %zu\n", mrb->gc_threshold);\
   fprintf(stderr, "gc_time: %30.20f\n", gc_time);\
   fprintf(stderr, "gc_total_time: %30.20f\n\n", gc_total_time);\
 } while(0)
@@ -334,8 +337,10 @@ mrb_init_heap(mrb_state *mrb)
   add_heap(mrb);
   mrb->gc_interval_ratio = DEFAULT_GC_INTERVAL_RATIO;
   mrb->gc_step_ratio = DEFAULT_GC_STEP_RATIO;
+#ifndef MRB_GC_TURN_OFF_GENERATIONAL
   mrb->is_generational_gc_mode = TRUE;
   mrb->gc_full = TRUE;
+#endif
 
 #ifdef GC_PROFILE
   program_invoke_time = gettimeofday_time();
@@ -641,7 +646,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_DATA:
     {
       struct RData *d = (struct RData*)obj;
-      if (d->type->dfree) {
+      if (d->type && d->type->dfree) {
         d->type->dfree(mrb, d->data);
       }
       mrb_gc_free_iv(mrb, (struct RObject*)obj);
@@ -677,6 +682,10 @@ root_scan_phase(mrb_state *mrb)
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
 
   mark_context(mrb, mrb->root_c);
+  if (mrb->root_c != mrb->c) {
+    mark_context(mrb, mrb->c);
+  }
+
   /* mark irep pool */
   if (mrb->irep) {
     size_t len = mrb->irep_len;
@@ -938,14 +947,19 @@ clear_all_old(mrb_state *mrb)
 
   mrb_assert(is_generational(mrb));
   if (is_major_gc(mrb)) {
+    /* finish the half baked GC */
     incremental_gc_until(mrb, GC_STATE_NONE);
   }
 
+  /* Sweep the dead objects, then reset all the live objects
+   * (including all the old objects, of course) to white. */
   mrb->is_generational_gc_mode = FALSE;
   prepare_incremental_sweep(mrb);
   incremental_gc_until(mrb, GC_STATE_NONE);
-  mrb->atomic_gray_list = mrb->gray_list = NULL;
   mrb->is_generational_gc_mode = origin_mode;
+
+  /* The gray objects has already been painted as white */
+  mrb->atomic_gray_list = mrb->gray_list = NULL;
 }
 
 void
@@ -993,15 +1007,14 @@ mrb_full_gc(mrb_state *mrb)
   GC_INVOKE_TIME_REPORT("mrb_full_gc()");
   GC_TIME_START;
 
-  if (mrb->gc_state == GC_STATE_SWEEP) {
-    /* finish sweep phase */
-    incremental_gc_until(mrb, GC_STATE_NONE);
-  }
-
-  /* clean all black object as old */
   if (is_generational(mrb)) {
+    /* clear all the old objects back to young */
     clear_all_old(mrb);
     mrb->gc_full = TRUE;
+  }
+  else if (mrb->gc_state != GC_STATE_NONE) {
+    /* finish half baked GC cycle */
+    incremental_gc_until(mrb, GC_STATE_NONE);
   }
 
   incremental_gc_until(mrb, GC_STATE_NONE);

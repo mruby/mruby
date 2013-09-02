@@ -30,9 +30,7 @@ static mt_state *mrb_mt_get_context(mrb_state *mrb,  mrb_value self)
   mrb_value context;
 
   context = mrb_iv_get(mrb, self, mrb_intern2(mrb, MT_STATE_KEY, MT_STATE_KEY_CSTR_LEN));
-  t = (mt_state*)mrb_data_get_ptr(mrb, context, &mt_state_type);
-  if (!t)
-    mrb_raise(mrb, E_RUNTIME_ERROR, "mt_state get from mrb_iv_get failed");
+  t = DATA_GET_PTR(mrb, context, &mt_state_type, mt_state);
 
   return t;
 }
@@ -228,4 +226,3 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
 void mrb_mruby_random_gem_final(mrb_state *mrb)
 {
 }
-

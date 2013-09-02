@@ -101,7 +101,7 @@ end
 
 def assert_equal(arg1, arg2 = nil, arg3 = nil)
   if block_given?
-    exp, act, msg = yield, arg1, arg2
+    exp, act, msg = arg1, yield, arg2
   else
     exp, act, msg = arg1, arg2, arg3
   end
@@ -113,7 +113,7 @@ end
 
 def assert_not_equal(arg1, arg2 = nil, arg3 = nil)
   if block_given?
-    exp, act, msg = yield, arg1, arg2
+    exp, act, msg = arg1, yield, arg2
   else
     exp, act, msg = arg1, arg2, arg3
   end

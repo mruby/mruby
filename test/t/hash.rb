@@ -2,11 +2,11 @@
 # Hash ISO Test
 
 assert('Hash', '15.2.13') do
-  assert_equal Hash.class, Class
+  assert_equal Class, Hash.class
 end
 
 assert('Hash superclass', '15.2.13.2') do
-  assert_equal Hash.superclass, Object
+  assert_equal Object, Hash.superclass
 end
 
 assert('Hash#==', '15.2.13.4.1') do
@@ -17,21 +17,21 @@ end
 assert('Hash#[]', '15.2.13.4.2') do
   a = { 'abc' => 'abc' }
 
-  assert_equal a['abc'], 'abc'
+  assert_equal 'abc', a['abc']
 end
 
 assert('Hash#[]=', '15.2.13.4.3') do
   a = Hash.new
   a['abc'] = 'abc'
 
-  assert_equal a['abc'], 'abc'
+  assert_equal 'abc', a['abc']
 end
 
 assert('Hash#clear', '15.2.13.4.4') do
   a = { 'abc' => 'abc' }
   a.clear
 
-  assert_equal a, { }
+  assert_equal({ }, a)
 end
 
 assert('Hash#default', '15.2.13.4.5') do
@@ -40,17 +40,17 @@ assert('Hash#default', '15.2.13.4.5') do
   c = Hash.new {|s,k| s[k] = k}
 
   assert_nil a.default
-  assert_equal b.default, 'abc'
+  assert_equal 'abc', b.default
   assert_nil c.default
-  assert_equal c.default('abc'), 'abc'
+  assert_equal 'abc', c.default('abc')
 end
 
 assert('Hash#default=', '15.2.13.4.6') do
   a = { 'abc' => 'abc' }
   a.default = 'cba'
 
-  assert_equal a['abc'], 'abc'
-  assert_equal a['notexist'], 'cba'
+  assert_equal 'abc', a['abc']
+  assert_equal 'cba', a['notexist']
 end
 
 assert('Hash#default_proc', '15.2.13.4.7') do
@@ -60,9 +60,9 @@ assert('Hash#default_proc', '15.2.13.4.7') do
   d = b['cat']
 
   assert_nil a.default_proc
-  assert_equal b.default_proc.class, Proc
-  assert_equal c, 4
-  assert_equal d, 'catcat'
+  assert_equal Proc, b.default_proc.class
+  assert_equal 4, c
+  assert_equal 'catcat', d
 end
 
 assert('Hash#delete', '15.2.13.4.8') do
@@ -95,8 +95,8 @@ assert('Hash#each', '15.2.13.4.9') do
     value = v
   end
 
-  assert_equal key, 'abc_key'
-  assert_equal value, 'abc_value'
+  assert_equal 'abc_key', key
+  assert_equal 'abc_value', value
 end
 
 assert('Hash#each_key', '15.2.13.4.10') do
@@ -107,7 +107,7 @@ assert('Hash#each_key', '15.2.13.4.10') do
     key = k
   end
 
-  assert_equal key, 'abc_key'
+  assert_equal 'abc_key', key
 end
 
 assert('Hash#each_value', '15.2.13.4.11') do
@@ -118,7 +118,7 @@ assert('Hash#each_value', '15.2.13.4.11') do
     value = v
   end
 
-  assert_equal value, 'abc_value'
+  assert_equal 'abc_value', value
 end
 
 assert('Hash#empty?', '15.2.13.4.12') do
@@ -159,16 +159,16 @@ assert('Hash#initialize', '15.2.13.4.16') do
   h2 = Hash.new(:not_found)
 
   assert_true h.is_a? Hash
-  assert_equal h, { }
+  assert_equal({ }, h)
   assert_nil h["hello"]
-  assert_equal h2["hello"], :not_found
+  assert_equal :not_found, h2["hello"]
 end
 
 assert('Hash#initialize_copy', '15.2.13.4.17') do
   a = { 'abc_key' => 'abc_value' }
   b = Hash.new.initialize_copy(a)
 
-  assert_equal b, { 'abc_key' => 'abc_value' }
+  assert_equal({ 'abc_key' => 'abc_value' }, b)
 end
 
 assert('Hash#key?', '15.2.13.4.18') do
@@ -182,15 +182,15 @@ end
 assert('Hash#keys', '15.2.13.4.19') do
   a = { 'abc_key' => 'abc_value' }
 
-  assert_equal a.keys, ['abc_key']
+  assert_equal ['abc_key'], a.keys
 end
 
 assert('Hash#length', '15.2.13.4.20') do
   a = { 'abc_key' => 'abc_value' }
   b = Hash.new
 
-  assert_equal a.length, 1
-  assert_equal b.length, 0
+  assert_equal 1, a.length
+  assert_equal 0, b.length
 end
 
 assert('Hash#member?', '15.2.13.4.21') do
@@ -210,40 +210,40 @@ assert('Hash#merge', '15.2.13.4.22') do
     original
   end
 
-  assert_equal result_1, {'abc_key' => 'abc_value', 'cba_key' => 'XXX',
-               'xyz_key' => 'xyz_value' }
-  assert_equal result_2, {'abc_key' => 'abc_value', 'cba_key' => 'cba_value',
-               'xyz_key' => 'xyz_value' }
+  assert_equal({'abc_key' => 'abc_value', 'cba_key' => 'XXX',
+                'xyz_key' => 'xyz_value' }, result_1)
+  assert_equal({'abc_key' => 'abc_value', 'cba_key' => 'cba_value',
+                'xyz_key' => 'xyz_value' }, result_2)
 end
 
 assert('Hash#replace', '15.2.13.4.23') do
   a = { 'abc_key' => 'abc_value' }
   b = Hash.new.replace(a)
 
-  assert_equal b, { 'abc_key' => 'abc_value' }
+  assert_equal({ 'abc_key' => 'abc_value' }, b)
 end
 
 assert('Hash#shift', '15.2.13.4.24') do
   a = { 'abc_key' => 'abc_value', 'cba_key' => 'cba_value' }
   b = a.shift
 
-  assert_equal a, { 'abc_key' => 'abc_value' }
-  assert_equal b, [ 'cba_key', 'cba_value' ]
+  assert_equal({ 'abc_key' => 'abc_value' }, a)
+  assert_equal [ 'cba_key', 'cba_value' ], b
 end
 
 assert('Hash#size', '15.2.13.4.25') do
   a = { 'abc_key' => 'abc_value' }
   b = Hash.new
 
-  assert_equal a.size, 1
-  assert_equal b.size, 0
+  assert_equal 1, a.size
+  assert_equal 0, b.size
 end
 
 assert('Hash#store', '15.2.13.4.26') do
   a = Hash.new
   a.store('abc', 'abc')
 
-  assert_equal a['abc'], 'abc'
+  assert_equal 'abc', a['abc']
 end
 
 assert('Hash#value?', '15.2.13.4.27') do
@@ -257,7 +257,7 @@ end
 assert('Hash#values', '15.2.13.4.28') do
   a = { 'abc_key' => 'abc_value' }
 
-  assert_equal a.values, ['abc_value']
+  assert_equal ['abc_value'], a.values
 end
 
 # Not ISO specified
@@ -267,8 +267,8 @@ assert('Hash#reject') do
   ret = h.reject do |k,v|
     v % 2 == 0
   end
-  assert_equal ret, {:one => 1, :three => 3}
-  assert_equal h, {:one => 1, :two => 2, :three => 3, :four => 4}
+  assert_equal({:one => 1, :three => 3}, ret)
+  assert_equal({:one => 1, :two => 2, :three => 3, :four => 4}, h)
 end
 
 assert('Hash#reject!') do
@@ -276,8 +276,8 @@ assert('Hash#reject!') do
   ret = h.reject! do |k,v|
     v % 2 == 0
   end
-  assert_equal ret, {:one => 1, :three => 3}
-  assert_equal h, {:one => 1, :three => 3}
+  assert_equal({:one => 1, :three => 3}, ret)
+  assert_equal({:one => 1, :three => 3}, h)
 end
 
 assert('Hash#select') do
@@ -285,8 +285,8 @@ assert('Hash#select') do
   ret = h.select do |k,v|
     v % 2 == 0
   end
-  assert_equal ret, {:two => 2, :four => 4}
-  assert_equal h, {:one => 1, :two => 2, :three => 3, :four => 4}
+  assert_equal({:two => 2, :four => 4}, ret)
+  assert_equal({:one => 1, :two => 2, :three => 3, :four => 4}, h)
 end
 
 assert('Hash#select!') do
@@ -294,8 +294,8 @@ assert('Hash#select!') do
   ret = h.select! do |k,v|
     v % 2 == 0
   end
-  assert_equal ret, {:two => 2, :four => 4}
-  assert_equal h, {:two => 2, :four => 4}
+  assert_equal({:two => 2, :four => 4}, ret)
+  assert_equal({:two => 2, :four => 4}, h)
 end
 
 # Not ISO specified

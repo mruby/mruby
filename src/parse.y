@@ -857,6 +857,7 @@ ret_args(parser_state *p, node *n)
 {
   if (n->cdr) {
     yyerror(p, "block argument should not be given");
+    return NULL;
   }
   if (!n->car->cdr) return n->car->car;
   return new_array(p, n->car);
@@ -933,7 +934,7 @@ heredoc_end(parser_state *p)
 
 %}
 
-%pure_parser
+%pure-parser
 %parse-param {parser_state *p}
 %lex-param {parser_state *p}
 
@@ -3701,10 +3702,12 @@ parse_string(parser_state *p)
     int f = 0;
     int c;
     char *s = strndup(tok(p), toklen(p));
-    char flag[4] = { '\0' };
+    char flags[3];
+    char *flag = flags;
+    char *dup;
 
     newtok(p);
-    while (c = nextc(p), ISALPHA(c)) {
+    while (c = nextc(p), c != -1 && ISALPHA(c)) {
       switch (c) {
       case 'i': f |= 1; break;
       case 'x': f |= 2; break;
@@ -3720,10 +3723,16 @@ parse_string(parser_state *p)
 	  toklen(p) > 1 ? "s" : "", tok(p));
       yyerror(p, msg);
     }
-    if (f & 1) strcat(flag, "i");
-    if (f & 2) strcat(flag, "x");
-    if (f & 4) strcat(flag, "m");
-    yylval.nd = new_regx(p, s, strdup(flag));
+    if (f != 0) {
+      if (f & 1) *flag++ = 'i';
+      if (f & 2) *flag++ = 'x';
+      if (f & 4) *flag++ = 'm';
+      dup = strndup(flags, (size_t)(flag - flags));
+    }
+    else {
+      dup = NULL;
+    }
+    yylval.nd = new_regx(p, s, dup);
 
     return tREGEXP;
   }
@@ -5159,7 +5168,6 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 
     memcpy(p, s, len + 1);
     c->filename = p;
-    c->lineno = 1;
   }
   return c->filename;
 }
@@ -5245,10 +5253,15 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   if (c) {
     if (c->dump_result) codedump_all(mrb, n);
     if (c->no_exec) return mrb_fixnum_value(n);
-    if (c->target_class) target = c->target_class;
+    if (c->target_class) {
+      target = c->target_class;
+    }
   }
   proc = mrb_proc_new(mrb, mrb->irep[n]);
   proc->target_class = target;
+  if (mrb->c->ci) {
+    mrb->c->ci->target_class = target;
+  }
   v = mrb_run(mrb, proc, mrb_top_self(mrb));
   if (mrb->exc) return mrb_nil_value();
   return v;

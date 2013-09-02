@@ -2,11 +2,11 @@
 # Module ISO Test
 
 assert('Module', '15.2.2') do
-  assert_equal Module.class, Class
+  assert_equal Class, Module.class
 end
 
 assert('Module superclass', '15.2.2.2') do
-  assert_equal Module.superclass, Object
+  assert_equal Object, Module.superclass
 end
 
 # TODO not implemented ATM assert('Module.constants', '15.2.2.3.1') do
@@ -19,7 +19,7 @@ assert('Module#ancestors', '15.2.2.4.9') do
   sc = Test4ModuleAncestors.singleton_class
   r = String.ancestors
 
-  assert_equal r.class, Array
+  assert_equal Array, r.class
   assert_true r.include?(String)
   assert_true r.include?(Object)
 end
@@ -34,7 +34,7 @@ assert('Module#append_features', '15.2.2.4.10') do
     include Test4AppendFeatures
   end
 
-  assert_equal Test4AppendFeatures2.const_get(:Const4AppendFeatures2), Test4AppendFeatures2
+  assert_equal Test4AppendFeatures2, Test4AppendFeatures2.const_get(:Const4AppendFeatures2)
 end
 
 assert('Module#attr NameError') do
@@ -187,9 +187,9 @@ assert('Module#class_eval', '15.2.2.4.15') do
   end
   r = Test4ClassEval.instance_methods
 
-  assert_equal Test4ClassEval.class_eval{ @a }, 11
-  assert_equal Test4ClassEval.class_eval{ @b }, 12
-  assert_equal r.class, Array
+  assert_equal 11, Test4ClassEval.class_eval{ @a }
+  assert_equal 12, Test4ClassEval.class_eval{ @b }
+  assert_equal Array, r.class
   assert_true r.include?(:method1)
 end
 
@@ -207,7 +207,7 @@ assert('Module#class_variable_get', '15.2.2.4.17') do
     @@cv = 99
   end
 
-  assert_equal Test4ClassVariableGet.class_variable_get(:@@cv), 99
+  assert_equal 99, Test4ClassVariableGet.class_variable_get(:@@cv)
 end
 
 assert('Module#class_variable_set', '15.2.2.4.18') do
@@ -221,8 +221,8 @@ assert('Module#class_variable_set', '15.2.2.4.18') do
   assert_true Test4ClassVariableSet.class_variable_set(:@@cv, 99)
   assert_true Test4ClassVariableSet.class_variable_set(:@@foo, 101)
   assert_true Test4ClassVariableSet.class_variables.include? :@@cv
-  assert_equal Test4ClassVariableSet.class_variable_get(:@@cv), 99
-  assert_equal Test4ClassVariableSet.new.foo, 101
+  assert_equal 99, Test4ClassVariableSet.class_variable_get(:@@cv)
+  assert_equal 101, Test4ClassVariableSet.new.foo
 end
 
 assert('Module#class_variables', '15.2.2.4.19') do
@@ -233,8 +233,8 @@ assert('Module#class_variables', '15.2.2.4.19') do
     @@var2 = 2
   end
 
-  assert_equal Test4ClassVariables1.class_variables, [:@@var1]
-  assert_equal Test4ClassVariables2.class_variables, [:@@var2, :@@var1]
+  assert_equal [:@@var1], Test4ClassVariables1.class_variables
+  assert_equal [:@@var2, :@@var1], Test4ClassVariables2.class_variables
 end
 
 assert('Module#const_defined?', '15.2.2.4.20') do
@@ -251,7 +251,7 @@ assert('Module#const_get', '15.2.2.4.21') do
     Const4Test4ConstGet = 42
   end
 
-  assert_equal Test4ConstGet.const_get(:Const4Test4ConstGet), 42
+  assert_equal 42, Test4ConstGet.const_get(:Const4Test4ConstGet)
 end
 
 assert('Module.const_missing', '15.2.2.4.22') do
@@ -261,7 +261,7 @@ assert('Module.const_missing', '15.2.2.4.22') do
     end
   end
 
-  assert_equal Test4ConstMissing.const_get(:ConstDoesntExist), 42
+  assert_equal 42, Test4ConstMissing.const_get(:ConstDoesntExist)
 end
 
 assert('Module#const_get', '15.2.2.4.23') do
@@ -270,7 +270,7 @@ assert('Module#const_get', '15.2.2.4.23') do
   end
 
   assert_true Test4ConstSet.const_set(:Const4Test4ConstSet, 23)
-  assert_equal Test4ConstSet.const_get(:Const4Test4ConstSet), 23
+  assert_equal 23, Test4ConstSet.const_get(:Const4Test4ConstSet)
 end
 
 assert('Module.constants', '15.2.2.4.24') do
@@ -284,8 +284,8 @@ assert('Module.constants', '15.2.2.4.24') do
     $n = constants.sort
   end
 
-  assert_equal TestA.constants, [ :Const ]
-  assert_equal $n, [ :Const, :Const2 ]
+  assert_equal [ :Const ], TestA.constants
+  assert_equal [ :Const, :Const2 ], $n
 end
 
 assert('Module#include', '15.2.2.4.27') do
@@ -296,7 +296,7 @@ assert('Module#include', '15.2.2.4.27') do
     include Test4Include
   end
 
-  assert_equal Test4Include2.const_get(:Const4Include), 42
+  assert_equal 42, Test4Include2.const_get(:Const4Include)
 end
 
 assert('Module#include?', '15.2.2.4.28') do
@@ -324,8 +324,8 @@ assert('Module#included', '15.2.2.4.29') do
     include Test4Included
   end
 
-  assert_equal Test4Included2.const_get(:Const4Included), 42
-  assert_equal Test4Included2.const_get(:Const4Included2), Test4Included2
+  assert_equal 42, Test4Included2.const_get(:Const4Included)
+  assert_equal Test4Included2, Test4Included2.const_get(:Const4Included2)
 end
 
 assert('Module#included_modules', '15.2.2.4.30') do
@@ -336,7 +336,7 @@ assert('Module#included_modules', '15.2.2.4.30') do
   end
   r = Test4includedModules2.included_modules
 
-  assert_equal r.class, Array
+  assert_equal Array, r.class
   assert_true r.include?(Test4includedModules)
 end
 
@@ -353,10 +353,10 @@ assert('Module#instance_methods', '15.2.2.4.33') do
 
   r = Test4InstanceMethodsC.instance_methods(true)
 
-  assert_equal Test4InstanceMethodsA.instance_methods, [:method1]
-  assert_equal Test4InstanceMethodsB.instance_methods(false), [:method2]
-  assert_equal Test4InstanceMethodsC.instance_methods(false), [:method3]
-  assert_equal r.class, Array
+  assert_equal [:method1], Test4InstanceMethodsA.instance_methods
+  assert_equal [:method2], Test4InstanceMethodsB.instance_methods(false)
+  assert_equal [:method3], Test4InstanceMethodsC.instance_methods(false)
+  assert_equal Array, r.class
   assert_true r.include?(:method3)
   assert_true r.include?(:method2)
 end
@@ -391,8 +391,8 @@ assert('Module#module_eval', '15.2.2.4.35') do
     @b = 12
   end
 
-  assert_equal Test4ModuleEval.module_eval{ @a }, 11
-  assert_equal Test4ModuleEval.module_eval{ @b }, 12
+  assert_equal 11, Test4ModuleEval.module_eval{ @a }
+  assert_equal 12, Test4ModuleEval.module_eval{ @b }
 end
 
 assert('Module#remove_class_variable', '15.2.2.4.39') do
@@ -400,7 +400,7 @@ assert('Module#remove_class_variable', '15.2.2.4.39') do
     @@cv = 99
   end
 
-  assert_equal Test4RemoveClassVariable.remove_class_variable(:@@cv), 99
+  assert_equal 99, Test4RemoveClassVariable.remove_class_variable(:@@cv)
   assert_false Test4RemoveClassVariable.class_variables.include? :@@cv
 end
 
@@ -421,7 +421,7 @@ assert('Module#remove_const', '15.2.2.4.40') do
   # Constant removed from Module
   assert_false Test4RemoveConst.const_defined? :ExistingConst
   # Return value of binding
-  assert_equal result, 23
+  assert_equal 23, result
   # Name Error raised when Constant doesn't exist
   assert_true name_error
 end
@@ -472,12 +472,34 @@ assert('Module#to_s') do
   module Test4to_sModules
   end
 
-  assert_equal Test4to_sModules.to_s, 'Test4to_sModules'
+  assert_equal 'Test4to_sModules', Test4to_sModules.to_s
 end
 
 assert('Module#inspect') do
   module Test4to_sModules
   end
 
-  assert_equal Test4to_sModules.inspect, 'Test4to_sModules'
+  assert_equal 'Test4to_sModules', Test4to_sModules.inspect
+end
+
+assert('Issue 1467') do
+  module M1
+    def initialize()
+      super() 
+    end
+  end
+
+  class C1  
+    include M1 
+     def initialize() 
+       super() 
+     end
+  end
+
+  class C2
+    include M1 
+  end
+
+  C1.new
+  C2.new
 end

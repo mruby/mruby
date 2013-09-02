@@ -14,7 +14,7 @@ assert('BS Block 1') do
 end
 
 assert('BS Block 2') do
-  assert_equal [1,2,3].find{|x| x == 2}, 2
+  assert_equal 2, [1,2,3].find{|x| x == 2}
 end
 
 assert('BS Block 3') do
@@ -24,7 +24,7 @@ assert('BS Block 3') do
       [1, 2, 3].each(&block)
     end
   end
-  assert_equal E.new.find {|x| x == 2 }, 2
+  assert_equal 2, E.new.find {|x| x == 2 }
 end
 
 assert('BS Block 3') do
@@ -32,7 +32,7 @@ assert('BS Block 3') do
   for x in [1, 2, 3]
     sum += x
   end
-  assert_equal sum, 6
+  assert_equal 6, sum
 end
 
 assert('BS Block 4') do
@@ -40,7 +40,7 @@ assert('BS Block 4') do
   for x in (1..5)
     sum += x
   end
-  assert_equal sum, 15
+  assert_equal 15, sum
 end
 
 assert('BS Block 5') do
@@ -48,7 +48,7 @@ assert('BS Block 5') do
   for x in []
     sum += x
   end
-  assert_equal sum, 0
+  assert_equal 0, sum
 end
 
 assert('BS Block 6') do
@@ -76,7 +76,7 @@ assert('BS Block 7') do
 end
 
 assert('BS Block 8') do
-  assert_equal (1..3).to_a, [1, 2, 3]
+  assert_equal [1, 2, 3], (1..3).to_a
 end
 
 assert('BS Block 9') do
@@ -196,7 +196,7 @@ assert('BS Block 16') do
     m{|ib,jb|
       ib*2+jb
     }
-  end 
+  end
 end
 
 assert('BS Block 17') do
@@ -217,7 +217,7 @@ assert('BS Block 18') do
     yield 10
   end
 
-  assert_equal(21) do   
+  assert_equal(21) do
     iter{|a|
       iter{|a|
         a + 1
@@ -404,7 +404,7 @@ end
 
 assert('BS Block 32') do
   r = false; 1.times{|&b| r = b}
-  assert_equal r.class, NilClass
+  assert_equal NilClass, r.class
 end
 
 assert('BS Block [ruby-core:14395]') do
@@ -457,7 +457,7 @@ assert("BS Block 33") do
       :bad
     end
   end
-  assert_equal TestReturnFromNestedBlock.test, :ok
+  assert_equal :ok, TestReturnFromNestedBlock.test
 end
 
 assert("BS Block 34") do
@@ -471,7 +471,7 @@ assert("BS Block 34") do
       :bad
     end
   end
-  assert_equal TestReturnFromNestedBlock_BSBlock34.test, :ok
+  assert_equal :ok, TestReturnFromNestedBlock_BSBlock34.test
 end
 
 assert("BS Block 35") do
@@ -485,5 +485,5 @@ assert("BS Block 35") do
       :bad
     end
   end
-  assert_equal TestReturnFromNestedBlock_BSBlock35.test, :ok
+  assert_equal :ok, TestReturnFromNestedBlock_BSBlock35.test
 end
