@@ -24,10 +24,10 @@ get_file(mrb_irep_debug_info* info, uint32_t const pc)
 
   --ret;
 
-  mrb_assert(ret < (info->files + info->flen));
+  mrb_assert(ret <= info->files && ret < (info->files + info->flen));
   mrb_assert((*ret)->start_pos <= pc &&
-         pc < (((ret + 1 - info->files) < info->flen)
-               ? (*(ret+1))->start_pos : info->pc_count));
+             pc < (((ret + 1 - info->files) < info->flen)
+                   ? (*(ret+1))->start_pos : info->pc_count));
 
   return *ret;
 }
@@ -50,8 +50,8 @@ select_line_type(uint16_t const* lines, size_t lines_len)
 char const*
 mrb_debug_get_filename(mrb_irep* irep, uint32_t pc)
 {
-  mrb_irep_debug_info_file* f = NULL;
-  if (irep) {
+  if (irep && pc < irep->ilen) {
+    mrb_irep_debug_info_file* f = NULL;
     if (!irep->debug_info) { return irep->filename; }
     else if ((f = get_file(irep->debug_info, pc))) {
       return f->filename;
@@ -63,8 +63,8 @@ mrb_debug_get_filename(mrb_irep* irep, uint32_t pc)
 int32_t
 mrb_debug_get_line(mrb_irep* irep, uint32_t const pc)
 {
-  mrb_irep_debug_info_file* f = NULL;
-  if (irep) {
+  if (irep && pc < irep->ilen) {
+    mrb_irep_debug_info_file* f = NULL;
     if (!irep->debug_info) {
       return irep->lines? irep->lines[pc] : -1;
     }
@@ -91,8 +91,8 @@ mrb_debug_get_line(mrb_irep* irep, uint32_t const pc)
 
           mrb_assert((ret - f->line_flat_map) < f->line_entry_count);
           mrb_assert(ret->start_pos <= pc &&
-                 pc < (((ret + 1 - f->line_flat_map) < f->line_entry_count)
-                       ? (ret+1)->start_pos : irep->debug_info->pc_count));
+                     pc < (((ret + 1 - f->line_flat_map) < f->line_entry_count)
+                           ? (ret+1)->start_pos : irep->debug_info->pc_count));
 
           return ret->line;
         }
