@@ -17,7 +17,6 @@
 #include "mruby/proc.h"
 #include "mruby/string.h"
 #include "mruby/debug.h"
-#include "mruby/array.h"
 
 #if !defined(_WIN32) && SIZE_MAX < UINT32_MAX
 # define SIZE_ERROR_MUL(x, y) ((x) > SIZE_MAX / (y))
@@ -301,7 +300,7 @@ error_exit:
   return result;
 }
 
-static int read_rite_debug_record(mrb_state* mrb, uint8_t const *start, size_t irepno, uint32_t *len, mrb_value const filenames) {
+static int read_rite_debug_record(mrb_state* mrb, uint8_t const *start, size_t irepno, uint32_t *len, mrb_sym const* filenames, size_t filenames_len) {
   uint8_t const* bin = start;
 
   mrb_irep* const irep = mrb->irep[irepno];
@@ -325,10 +324,12 @@ static int read_rite_debug_record(mrb_state* mrb, uint8_t const *start, size_t i
     file->start_pos = bin_to_uint32(bin); bin += sizeof(uint32_t);
 
     // filename
-    file->filename_sym = mrb_symbol(RARRAY_PTR(filenames)[bin_to_uint16(bin)]);
+    uint16_t const filename_idx = bin_to_uint16(bin);
+    bin += sizeof(uint16_t);
+    mrb_assert(filename_idx < filenames_len);
+    file->filename_sym = filenames[filename_idx];
     size_t len = 0;
     file->filename = mrb_sym2name_len(mrb, file->filename_sym, &len);
-    bin += sizeof(uint16_t);
 
     file->line_entry_count = bin_to_uint32(bin); bin += sizeof(uint32_t);
     file->line_type = bin_to_uint8(bin); bin += sizeof(uint8_t);
@@ -371,22 +372,24 @@ read_rite_section_debug(mrb_state* mrb, const uint8_t* start, size_t sirep)
   bin += sizeof(struct rite_section_debug_header);
   uint16_t i;
 
+  int result;
+
   uint16_t const nirep = bin_to_uint16(header->nirep);
 
-  uint16_t const filenames_len = bin_to_uint16(bin);
-  mrb_value const filenames = mrb_ary_new_capa(mrb, filenames_len);
+  size_t const filenames_len = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
+  mrb_sym* filenames = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym*) * filenames_len);
   for(i = 0; i < filenames_len; ++i) {
     uint16_t const f_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
-    mrb_ary_push(mrb, filenames, mrb_symbol_value(mrb_intern2(mrb, (char const*)bin, f_len)));
+    filenames[i] = mrb_intern2(mrb, (char const*)bin, f_len);
     bin += f_len;
   }
 
   for(i = sirep; i < (sirep + nirep); ++i) {
     uint32_t len = 0;
-    int result = read_rite_debug_record(mrb, bin, i, &len, filenames);
-    if (result != MRB_DUMP_OK) { return result; }
+    result = read_rite_debug_record(mrb, bin, i, &len, filenames, filenames_len);
+    if (result != MRB_DUMP_OK) { goto debug_exit; }
     bin += len;
   }
 
@@ -394,7 +397,10 @@ read_rite_section_debug(mrb_state* mrb, const uint8_t* start, size_t sirep)
     return MRB_DUMP_GENERAL_FAILURE;
   }
 
-  return sirep + bin_to_uint16(header->sirep);
+  result = sirep + bin_to_uint16(header->sirep);
+debug_exit:
+  mrb_free(mrb, filenames);
+  return result;
 }
 
 static int
