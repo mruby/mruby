@@ -335,3 +335,23 @@ end
 assert('Exception#inspect without message') do
   Exception.new.inspect
 end
+
+assert('Exception#backtrace') do
+  begin
+    raise "get backtrace"
+  rescue => e
+    e.backtrace
+  end
+
+  true
+end
+
+assert('Exception#verbose_backtrace') do
+  begin
+    raise "get backtrace"
+  rescue => e
+    e.verbose_backtrace
+  end
+
+  true
+end

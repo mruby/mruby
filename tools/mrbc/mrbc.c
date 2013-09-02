@@ -145,7 +145,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
       }
     }
     else {
-      break; 
+      break;
     }
   }
   return i;
@@ -177,9 +177,7 @@ partial_hook(struct mrb_parser_state *p)
     fprintf(stderr, "%s: cannot open program file. (%s)\n", args->prog, fn);
     return -1;
   }
-  mrbc_filename(p->mrb, c, fn);
-  p->filename = c->filename;
-  p->lineno = 1;
+  mrb_parser_set_filename(p, fn);
   return 0;
 }
 

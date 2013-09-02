@@ -15,6 +15,7 @@
 #include "mruby/proc.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
+#include "mruby/debug.h"
 #include "error.h"
 
 mrb_value
@@ -198,9 +199,11 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
     if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
       mrb_irep *irep = ci->proc->body.irep;
 
-      if (irep->filename && irep->lines && irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
-        mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "file", 4), mrb_str_new_cstr(mrb, irep->filename));
-        mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "line", 4), mrb_fixnum_value(irep->lines[pc - irep->iseq - 1]));
+      int32_t const line = mrb_debug_get_line(irep, pc - irep->iseq - 1);
+      char const* file = mrb_debug_get_filename(irep, pc - irep->iseq - 1);
+      if(line != -1 && file) {
+        mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "file", 4), mrb_str_new_cstr(mrb, file));
+        mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "line", 4), mrb_fixnum_value(line));
         return;
       }
     }
@@ -436,6 +439,7 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
 }
 
 mrb_value mrb_get_backtrace(mrb_state*, mrb_value);
+mrb_value mrb_get_verbose_backtrace(mrb_state*, mrb_value);
 
 void
 mrb_init_exception(mrb_state *mrb)
@@ -451,6 +455,7 @@ mrb_init_exception(mrb_state *mrb)
   mrb_define_method(mrb, e, "message", exc_message, MRB_ARGS_NONE());
   mrb_define_method(mrb, e, "inspect", exc_inspect, MRB_ARGS_NONE());
   mrb_define_method(mrb, e, "backtrace", mrb_get_backtrace, MRB_ARGS_NONE());
+  mrb_define_method(mrb, e, "verbose_backtrace", mrb_get_verbose_backtrace, MRB_ARGS_NONE());
 
   mrb->eStandardError_class     = mrb_define_class(mrb, "StandardError",       mrb->eException_class); /* 15.2.23 */
   mrb_define_class(mrb, "RuntimeError", mrb->eStandardError_class);                                    /* 15.2.28 */

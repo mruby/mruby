@@ -120,6 +120,7 @@ cons_gen(parser_state *p, node *car, node *cdr)
   c->car = car;
   c->cdr = cdr;
   c->lineno = p->lineno;
+  c->filename = p->current_filename_index;
   return c;
 }
 #define cons(a,b) cons_gen(p,(a),(b))
@@ -5036,7 +5037,7 @@ parser_init_cxt(parser_state *p, mrbc_context *cxt)
 {
   if (!cxt) return;
   if (cxt->lineno) p->lineno = cxt->lineno;
-  if (cxt->filename) p->filename = cxt->filename;
+  if (cxt->filename) mrb_parser_set_filename(p, cxt->filename);
   if (cxt->syms) {
     int i;
 
@@ -5135,6 +5136,10 @@ mrb_parser_new(mrb_state *mrb)
   p->lex_strterm = NULL;
   p->heredocs = p->parsing_heredoc = NULL;
 
+  p->current_filename_index = -1;
+  p->filename_table = NULL;
+  p->filename_table_length = 0;
+
   return p;
 }
 
@@ -5177,6 +5182,40 @@ mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*func)(struct mrb_parser
 {
   c->partial_hook = func;
   c->partial_data = data;
+}
+
+void
+mrb_parser_set_filename(struct mrb_parser_state* p, char const* f)
+{
+  mrb_sym const sym = mrb_intern(p->mrb, f);
+  size_t len;
+  p->filename = mrb_sym2name_len(p->mrb, sym, &len);
+  p->lineno = (p->filename_table_length > 0)? 0 : 1;
+
+  size_t i;
+  for(i = 0; i < p->filename_table_length; ++i) {
+    if(p->filename_table[i] == sym) {
+      p->current_filename_index = i;
+      return;
+    }
+  }
+
+  p->current_filename_index = p->filename_table_length++;
+
+  mrb_sym* const new_table = parser_palloc(p, sizeof(mrb_sym) * p->filename_table_length);
+  if (p->filename_table) {
+    memcpy(new_table, p->filename_table, sizeof(mrb_sym) * p->filename_table_length);
+  }
+  p->filename_table = new_table;
+  p->filename_table[p->filename_table_length - 1] = sym;
+}
+
+char const* mrb_parser_get_filename(struct mrb_parser_state* p, uint16_t idx) {
+  if (idx >= p->filename_table_length) { return NULL; }
+  else {
+    size_t len;
+    return mrb_sym2name_len(p->mrb, p->filename_table[idx], &len);
+  }
 }
 
 #ifdef ENABLE_STDIO

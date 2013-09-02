@@ -55,7 +55,7 @@ mrb_name_class(mrb_state *mrb, struct RClass *c, mrb_sym name)
   mrb_obj_iv_set(mrb, (struct RObject*)c,
                  mrb_intern2(mrb, "__classid__", 11), mrb_symbol_value(name));
 }
-                                
+
 #define make_metaclass(mrb, c) prepare_singleton_class((mrb), (struct RBasic*)(c))
 
 static void
@@ -311,6 +311,7 @@ mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t f
   int ai = mrb_gc_arena_save(mrb);
 
   p = mrb_proc_new_cfunc(mrb, func);
+  p->target_class = c;
   mrb_define_method_raw(mrb, c, mid, p);
   mrb_gc_arena_restore(mrb, ai);
 }
@@ -1065,7 +1066,7 @@ mrb_class_new_class(mrb_state *mrb, mrb_value cv)
 {
   mrb_value super;
   struct RClass *new_class;
- 
+
   if (mrb_get_args(mrb, "|o", &super) == 0) {
     super = mrb_obj_value(mrb->object_class);
   }
