@@ -345,13 +345,3 @@ assert('Exception#backtrace') do
 
   true
 end
-
-assert('Exception#verbose_backtrace') do
-  begin
-    raise "get backtrace"
-  rescue => e
-    e.verbose_backtrace
-  end
-
-  true
-end

@@ -57,7 +57,7 @@ get_backtrace_i(mrb_state *mrb, void *stream, int level, const char *format, ...
 }
 
 static void
-mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func func, void *stream, mrb_bool verbose)
+mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func func, void *stream)
 {
   mrb_callinfo *ci;
   mrb_int ciidx;
@@ -74,7 +74,7 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
     filename = NULL;
     line = -1;
 
-    if (!verbose && MRB_PROC_CFUNC_P(ci->proc)) {
+    if (MRB_PROC_CFUNC_P(ci->proc)) {
       continue;
     }
     if(!MRB_PROC_CFUNC_P(ci->proc)) {
@@ -90,7 +90,7 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
       filename = mrb_debug_get_filename(irep, pc - irep->iseq - 1);
       line = mrb_debug_get_line(irep, pc - irep->iseq - 1);
     }
-    if (!verbose && line == -1) continue;
+    if (line == -1) continue;
     if (ci->target_class == ci->proc->target_class)
       sep = ".";
     else
@@ -101,20 +101,8 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
     }
 
     method = mrb_sym2name(mrb, ci->mid);
-    if (verbose && !method && ci->proc->env) {
-      method = mrb_sym2name(mrb, ci->proc->env->mid);
-    }
     if (method) {
-      const char *cn = NULL;
-      if(verbose && ci->proc->target_class->tt == MRB_TT_SCLASS) {
-        cn = RSTRING_PTR(mrb_str_cat_cstr(
-            mrb, mrb_str_new_cstr(mrb, "(singleton class of)"),
-            mrb_class_name(mrb, mrb_class_ptr(mrb_mod_cv_get(
-                mrb, ci->proc->target_class, mrb_intern_cstr(mrb, "__attached__"))))));
-      }
-      else {
-        cn = mrb_class_name(mrb, ci->proc->target_class);
-      }
+      const char *cn = mrb_class_name(mrb, ci->proc->target_class);
 
       if (cn) {
         func(mrb, stream, 1, "\t[%d] ", i);
@@ -139,15 +127,7 @@ void
 mrb_print_backtrace(mrb_state *mrb)
 {
 #ifdef ENABLE_STDIO
-  mrb_output_backtrace(mrb, mrb->exc, print_backtrace_i, (void*)stderr, 0);
-#endif
-}
-
-void
-mrb_print_verbose_backtrace(mrb_state *mrb)
-{
-#ifdef ENABLE_STDIO
-  mrb_output_backtrace(mrb, mrb->exc, print_backtrace_i, (void*)stderr, 1);
+  mrb_output_backtrace(mrb, mrb->exc, print_backtrace_i, (void*)stderr);
 #endif
 }
 
@@ -157,18 +137,7 @@ mrb_get_backtrace(mrb_state *mrb, mrb_value self)
   mrb_value ary;
 
   ary = mrb_ary_new(mrb);
-  mrb_output_backtrace(mrb, mrb_obj_ptr(self), get_backtrace_i, (void*)mrb_ary_ptr(ary), 0);
-
-  return ary;
-}
-
-mrb_value
-mrb_get_verbose_backtrace(mrb_state *mrb, mrb_value self)
-{
-  mrb_value ary;
-
-  ary = mrb_ary_new(mrb);
-  mrb_output_backtrace(mrb, mrb_obj_ptr(self), get_backtrace_i, (void*)mrb_ary_ptr(ary), 1);
+  mrb_output_backtrace(mrb, mrb_obj_ptr(self), get_backtrace_i, (void*)mrb_ary_ptr(ary));
 
   return ary;
 }
