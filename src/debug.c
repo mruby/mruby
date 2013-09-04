@@ -24,7 +24,9 @@ get_file(mrb_irep_debug_info* info, uint32_t const pc)
 
   --ret;
 
+  // check returning file exists inside debug info
   mrb_assert(info->files <= ret && ret < (info->files + info->flen));
+  // check pc is within the range of returning file
   mrb_assert((*ret)->start_pos <= pc &&
              pc < (((ret + 1 - info->files) < info->flen)
                    ? (*(ret+1))->start_pos : info->pc_count));
@@ -89,7 +91,9 @@ mrb_debug_get_line(mrb_irep* irep, uint32_t const pc)
 
           --ret;
 
+          // check line entry pointer range
           mrb_assert(f->line_flat_map <= ret && ret < (f->line_flat_map + f->line_entry_count));
+          // check pc range
           mrb_assert(ret->start_pos <= pc &&
                      pc < (((ret + 1 - f->line_flat_map) < f->line_entry_count)
                            ? (ret+1)->start_pos : irep->debug_info->pc_count));
