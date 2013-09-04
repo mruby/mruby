@@ -24,7 +24,7 @@ get_file(mrb_irep_debug_info* info, uint32_t const pc)
 
   --ret;
 
-  mrb_assert(ret <= info->files && ret < (info->files + info->flen));
+  mrb_assert(info->files <= ret && ret < (info->files + info->flen));
   mrb_assert((*ret)->start_pos <= pc &&
              pc < (((ret + 1 - info->files) < info->flen)
                    ? (*(ret+1))->start_pos : info->pc_count));
