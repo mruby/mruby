@@ -5185,14 +5185,17 @@ mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*func)(struct mrb_parser
 }
 
 void
-mrb_parser_set_filename(struct mrb_parser_state* p, char const* f)
+mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
 {
-  mrb_sym const sym = mrb_intern(p->mrb, f);
+  mrb_sym sym;
   size_t len;
+  size_t i;
+  mrb_sym* new_table;
+
+  sym = mrb_intern_cstr(p->mrb, f);
   p->filename = mrb_sym2name_len(p->mrb, sym, &len);
   p->lineno = (p->filename_table_length > 0)? 0 : 1;
-
-  size_t i;
+  
   for(i = 0; i < p->filename_table_length; ++i) {
     if(p->filename_table[i] == sym) {
       p->current_filename_index = i;
@@ -5202,7 +5205,7 @@ mrb_parser_set_filename(struct mrb_parser_state* p, char const* f)
 
   p->current_filename_index = p->filename_table_length++;
 
-  mrb_sym* const new_table = parser_palloc(p, sizeof(mrb_sym) * p->filename_table_length);
+  new_table = parser_palloc(p, sizeof(mrb_sym) * p->filename_table_length);
   if (p->filename_table) {
     memcpy(new_table, p->filename_table, sizeof(mrb_sym) * p->filename_table_length);
   }
