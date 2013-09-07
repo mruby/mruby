@@ -1115,7 +1115,7 @@ codegen(codegen_scope *s, node *tree, int val)
   if (!tree) return;
 
   if (s->irep && s->pc > 0 && s->filename_index != tree->filename) {
-    s->irep->filename = s->filename = mrb_parser_get_filename(s->parser, s->filename_index);
+    s->irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
     mrb_debug_info_append_file(s->mrb, s->irep, s->debug_start_pos, s->pc);
     s->debug_start_pos = s->pc;
     s->filename_index = tree->filename;
