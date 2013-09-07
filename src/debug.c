@@ -73,8 +73,8 @@ mrb_debug_get_line(mrb_irep *irep, uint32_t pc)
     else if ((f = get_file(irep->debug_info, pc))) {
       switch(f->line_type) {
         case mrb_debug_line_ary:
-          mrb_assert(pc < (f->start_pos + f->line_entry_count));
-          return f->line_ary[pc];
+          mrb_assert(f->start_pos <= pc && pc < (f->start_pos + f->line_entry_count));
+          return f->line_ary[pc - f->start_pos];
 
         case mrb_debug_line_flat_map: {
           // get upper bound
