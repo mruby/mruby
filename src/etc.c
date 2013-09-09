@@ -46,7 +46,7 @@ mrb_data_check_type(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 }
 
 void *
-mrb_data_check_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
+mrb_data_get_unchecked_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 {
   if (mrb_special_const_p(obj) || (mrb_type(obj) != MRB_TT_DATA)) {
     return NULL;
@@ -58,7 +58,7 @@ mrb_data_check_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 }
 
 void *
-mrb_data_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
+mrb_data_get_checked_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 {
   mrb_data_check_type(mrb, obj, type);
   return DATA_PTR(obj);
