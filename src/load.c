@@ -734,7 +734,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
     else if (memcmp(section_header.section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
       uint8_t* const bin = mrb_malloc(mrb, section_size);
       fseek(fp, fpos, SEEK_SET);
-      if(fread((char*)bin, section_size, 1, fp) != section_size) {
+      if(fread((char*)bin, section_size, 1, fp) != 1) {
         mrb_free(mrb, bin);
         return MRB_DUMP_READ_FAULT;
       }
