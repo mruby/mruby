@@ -54,3 +54,19 @@ assert('Proc#call', '15.2.17.4.3') do
   assert_equal 1, a
   assert_equal 5, a2
 end
+
+assert('Proc#return_does_not_break_self') do
+  class TestClass
+    attr_accessor :block
+    def initialize
+    end
+    def register_block
+      @block = Proc.new { self }
+      return []
+    end
+  end
+
+  c = TestClass.new
+  assert_equal [], c.register_block
+  assert_equal c, c.block.call
+end

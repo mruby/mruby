@@ -286,8 +286,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       case OP_RANGE:
       case OP_AREF:
       case OP_GETUPVAR:
-        s->iseq[s->pc-1] = MKOP_ABC(c0, 0, GETARG_B(i0), GETARG_C(i0));
-        genop(s, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
+        genop(s, MKOP_AB(OP_RETURN, GETARG_A(i0), OP_R_NORMAL));
         return;
       case OP_SETIV:
       case OP_SETCV:
