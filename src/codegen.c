@@ -1076,14 +1076,12 @@ static void
 codegen(codegen_scope *s, node *tree, int val)
 {
   int nt;
-  mrb_irep_debug_info_file const *finished_file;
 
   if (!tree) return;
 
   if (s->irep && s->pc > 0 && s->filename_index != tree->filename_index) {
     s->irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
-    finished_file = mrb_debug_info_append_file(s->mrb, s->irep, s->debug_start_pos, s->pc);
-    mrb_assert(finished_file);
+    mrb_debug_info_append_file(s->mrb, s->irep, s->debug_start_pos, s->pc);
     s->debug_start_pos = s->pc;
     s->filename_index = tree->filename_index;
     s->filename = mrb_parser_get_filename(s->parser, tree->filename_index);
@@ -2401,7 +2399,6 @@ scope_finish(codegen_scope *s)
   mrb_irep *irep = s->irep;
   size_t fname_len;
   char *fname;
-  mrb_irep_debug_info_file const *finished_file;
 
   irep->flags = 0;
   if (s->iseq) {
@@ -2418,8 +2415,7 @@ scope_finish(codegen_scope *s)
   irep->syms = (mrb_sym *)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
   if (s->filename) {
     s->irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
-    finished_file = mrb_debug_info_append_file(mrb, s->irep, s->debug_start_pos, s->pc);
-    mrb_assert(finished_file);
+    mrb_debug_info_append_file(mrb, s->irep, s->debug_start_pos, s->pc);
 
     fname_len = strlen(s->filename);
     fname = codegen_malloc(s, fname_len + 1);
