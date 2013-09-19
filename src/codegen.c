@@ -1080,13 +1080,13 @@ codegen(codegen_scope *s, node *tree, int val)
 
   if (!tree) return;
 
-  if (s->irep && s->pc > 0 && s->filename_index != tree->filename) {
+  if (s->irep && s->pc > 0 && s->filename_index != tree->filename_index) {
     s->irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
     finished_file = mrb_debug_info_append_file(s->mrb, s->irep, s->debug_start_pos, s->pc);
     mrb_assert(finished_file);
     s->debug_start_pos = s->pc;
-    s->filename_index = tree->filename;
-    s->filename = mrb_parser_get_filename(s->parser, tree->filename);
+    s->filename_index = tree->filename_index;
+    s->filename = mrb_parser_get_filename(s->parser, tree->filename_index);
   }
 
   nt = (intptr_t)tree->car;

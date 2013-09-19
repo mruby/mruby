@@ -37,7 +37,7 @@ void mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*partial_hook)(stru
 /* AST node structure */
 typedef struct mrb_ast_node {
   struct mrb_ast_node *car, *cdr;
-  uint16_t lineno, filename;
+  uint16_t lineno, filename_index;
 } mrb_ast_node;
 
 /* lexer states */
