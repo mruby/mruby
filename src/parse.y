@@ -120,7 +120,7 @@ cons_gen(parser_state *p, node *car, node *cdr)
   c->car = car;
   c->cdr = cdr;
   c->lineno = p->lineno;
-  c->filename = p->current_filename_index;
+  c->filename_index = p->current_filename_index;
   return c;
 }
 #define cons(a,b) cons_gen(p,(a),(b))
