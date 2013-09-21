@@ -460,7 +460,7 @@ mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv)
 {
   struct RProc *p = mrb_proc_ptr(b);
 
-  return mrb_yield_internal(mrb, b, argc, argv, mrb->c->stack[0], p->target_class);
+  return mrb_yield_internal(mrb, b, argc, argv, p->env->stack[0], p->target_class);
 }
 
 mrb_value
@@ -468,7 +468,7 @@ mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg)
 {
   struct RProc *p = mrb_proc_ptr(b);
 
-  return mrb_yield_internal(mrb, b, 1, &arg, mrb->c->stack[0], p->target_class);
+  return mrb_yield_internal(mrb, b, 1, &arg, p->env->stack[0], p->target_class);
 }
 
 typedef enum {
