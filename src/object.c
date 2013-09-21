@@ -259,6 +259,14 @@ false_to_s(mrb_state *mrb, mrb_value obj)
   return mrb_str_new(mrb, "false", 5);
 }
 
+static mrb_value
+voidp_to_s(mrb_state *mrb, mrb_value obj)
+{
+  char s[32];
+  snprintf(s, sizeof(s), "#<voidp:%p>", mrb_voidp(obj));
+  return mrb_str_new_cstr(mrb, s);
+}
+
 void
 mrb_init_object(mrb_state *mrb)
 {
@@ -290,6 +298,10 @@ mrb_init_object(mrb_state *mrb)
   mrb_define_method(mrb, f, "to_s", false_to_s,     MRB_ARGS_NONE());  /* 15.2.6.3.3  */
   mrb_define_method(mrb, f, "|",    false_or,       MRB_ARGS_REQ(1));  /* 15.2.6.3.4  */
   mrb_define_method(mrb, f, "inspect", false_to_s,  MRB_ARGS_NONE());
+
+  f = mrb->voidp_class = mrb_define_class(mrb, "VoidpClass", mrb->object_class);
+  mrb_define_method(mrb, f, "to_s", voidp_to_s,     MRB_ARGS_NONE());
+  mrb_define_method(mrb, f, "inspect", voidp_to_s,  MRB_ARGS_NONE());
 }
 
 static mrb_value
