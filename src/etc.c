@@ -199,11 +199,11 @@ mrb_float_value(mrb_state *mrb, mrb_float f)
 }
 
 mrb_value
-mrb_voidp_value(mrb_state *mrb, void *p)
+mrb_cptr_value(mrb_state *mrb, void *p)
 {
   mrb_value v;
 
-  v.value.p = mrb_obj_alloc(mrb, MRB_TT_VOIDP, mrb->object_class);
+  v.value.p = mrb_obj_alloc(mrb, MRB_TT_CPTR, mrb->object_class);
   v.value.vp->p = p;
   return v;
 }

@@ -37,7 +37,7 @@ void mrb_str_modify(mrb_state*, struct RString*);
 mrb_value mrb_str_literal(mrb_state*, mrb_value);
 void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
 mrb_value mrb_str_plus(mrb_state*, mrb_value, mrb_value);
-mrb_value mrb_ptr_to_str(mrb_state *, void *);
+mrb_value mrb_ptr_to_str(mrb_state *, void*);
 mrb_value mrb_obj_as_string(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len);
 mrb_value mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);

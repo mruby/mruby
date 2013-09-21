@@ -1250,7 +1250,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
       L_RAISE:
         ci = mrb->c->ci;
-        mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern2(mrb, "lastpc", 6), mrb_voidp_value(mrb, pc));
+        mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern2(mrb, "lastpc", 6), mrb_cptr_value(mrb, pc));
         mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern2(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
         eidx = ci->eidx;
         if (ci == mrb->c->cibase) {
