@@ -39,6 +39,8 @@ mrb_class(mrb_state *mrb, mrb_value v)
     return mrb->fixnum_class;
   case MRB_TT_FLOAT:
     return mrb->float_class;
+  case MRB_TT_VOIDP:
+    return mrb->object_class;
   default:
     return mrb_obj_ptr(v)->c;
   }
