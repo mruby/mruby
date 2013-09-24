@@ -105,7 +105,7 @@ fiber_init(mrb_state *mrb, mrb_value self)
   c->ci++;                      /* push dummy callinfo */
 
   c->fib = f;
-  c->status = MRB_FIBER_CREATED;
+  c->fib_state = MRB_FIBER_CREATED;
 
   return self;
 }
@@ -154,15 +154,15 @@ fiber_resume(mrb_state *mrb, mrb_value self)
   mrb_value *a;
   int len;
 
-  if (c->status == MRB_FIBER_RESUMED) {
+  if (c->fib_state == MRB_FIBER_RESUMED) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "double resume");
   }
-  if (c->status == MRB_FIBER_TERMINATED) {
+  if (c->fib_state == MRB_FIBER_TERMINATED) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "resuming dead fiber");
   }
   mrb_get_args(mrb, "*", &a, &len);
-  mrb->c->status = MRB_FIBER_RESUMED;
-  if (c->status == MRB_FIBER_CREATED) {
+  mrb->c->fib_state = MRB_FIBER_RESUMED;
+  if (c->fib_state == MRB_FIBER_CREATED) {
     mrb_value *b = c->stack+1;
     mrb_value *e = b + len;
 
@@ -174,7 +174,7 @@ fiber_resume(mrb_state *mrb, mrb_value self)
     if (c->prev->fib) 
       mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
     mrb_write_barrier(mrb, (struct RBasic*)c->fib);
-    c->status = MRB_FIBER_RUNNING;
+    c->fib_state = MRB_FIBER_RUNNING;
     mrb->c = c;
 
     MARK_CONTEXT_MODIFY(c);
@@ -185,7 +185,7 @@ fiber_resume(mrb_state *mrb, mrb_value self)
   if (c->prev->fib) 
     mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
   mrb_write_barrier(mrb, (struct RBasic*)c->fib);
-  c->status = MRB_FIBER_RUNNING;
+  c->fib_state = MRB_FIBER_RUNNING;
   mrb->c = c;
   return fiber_result(mrb, a, len);
 }
@@ -201,7 +201,7 @@ static mrb_value
 fiber_alive_p(mrb_state *mrb, mrb_value self)
 {
   struct mrb_context *c = fiber_check(mrb, self);
-  return mrb_bool_value(c->status != MRB_FIBER_TERMINATED);
+  return mrb_bool_value(c->fib_state != MRB_FIBER_TERMINATED);
 }
 
 /*
@@ -225,7 +225,7 @@ fiber_yield(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "can't yield from root fiber");
   }
   mrb_get_args(mrb, "*", &a, &len);
-  c->prev->status = MRB_FIBER_RUNNING;
+  c->prev->fib_state = MRB_FIBER_RUNNING;
   mrb->c = c->prev;
   c->prev = NULL;
   MARK_CONTEXT_MODIFY(mrb->c);
