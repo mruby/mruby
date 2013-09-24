@@ -49,7 +49,7 @@ mrb_struct_iv_get(mrb_state *mrb, mrb_value c, const char *name)
 mrb_value
 mrb_struct_s_members(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value members = struct_ivar_get(mrb, klass, mrb_intern2(mrb, "__members__", 11));
+  mrb_value members = struct_ivar_get(mrb, klass, mrb_intern(mrb, "__members__", 11));
 
   if (mrb_nil_p(members)) {
     mrb_raise(mrb, E_TYPE_ERROR, "uninitialized struct");
@@ -176,7 +176,7 @@ mrb_id_attrset(mrb_state *mrb, mrb_sym id)
   buf[len] = '=';
   buf[len+1] = '\0';
 
-  mid = mrb_intern2(mrb, buf, len+1);
+  mid = mrb_intern(mrb, buf, len+1);
   mrb_free(mrb, buf);
   return mid;
 }
@@ -191,7 +191,7 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
 
   /* get base id */
   name = mrb_sym2name_len(mrb, mrb->c->ci->mid, &len);
-  mid = mrb_intern2(mrb, name, len-1); /* omit last "=" */
+  mid = mrb_intern(mrb, name, len-1); /* omit last "=" */
 
   members = mrb_struct_members(mrb, obj);
   ptr_members = RARRAY_PTR(members);
@@ -258,7 +258,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   }
   MRB_SET_INSTANCE_TT(c, MRB_TT_ARRAY);
   nstr = mrb_obj_value(c);
-  mrb_iv_set(mrb, nstr, mrb_intern2(mrb, "__members__", 11), members);
+  mrb_iv_set(mrb, nstr, mrb_intern(mrb, "__members__", 11), members);
 
   mrb_define_class_method(mrb, c, "new", mrb_instance_new, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "[]", mrb_instance_new, MRB_ARGS_ANY());
@@ -393,7 +393,7 @@ num_members(mrb_state *mrb, struct RClass *klass)
 {
   mrb_value members;
 
-  members = struct_ivar_get(mrb, mrb_obj_value(klass), mrb_intern2(mrb, "__members__", 11));
+  members = struct_ivar_get(mrb, mrb_obj_value(klass), mrb_intern(mrb, "__members__", 11));
   if (!mrb_array_p(members)) {
     mrb_raise(mrb, E_TYPE_ERROR, "broken members");
   }
