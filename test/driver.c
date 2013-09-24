@@ -35,7 +35,7 @@ check_error(mrb_state *mrb)
   /* Error check */
   /* $ko_test and $kill_test should be 0 */
   mrb_value ko_test = mrb_gv_get(mrb, mrb_intern2(mrb, "$ko_test", 8));
-  mrb_value kill_test = mrb_gv_get(mrb, mrb_intern2(mrb, "$kill_test", 8));
+  mrb_value kill_test = mrb_gv_get(mrb, mrb_intern2(mrb, "$kill_test", 10));
 
   return mrb_fixnum_p(ko_test) && mrb_fixnum(ko_test) == 0 && mrb_fixnum_p(kill_test) && mrb_fixnum(kill_test) == 0;
 }
