@@ -84,7 +84,7 @@ struct mrb_context {
   struct RProc **ensure;                  /* ensure handler stack */
   int esize;
 
-  uint8_t fib_state;
+  enum mrb_fiber_state fib_state;
   struct RFiber *fib;
 };
 
