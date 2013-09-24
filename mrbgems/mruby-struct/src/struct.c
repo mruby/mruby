@@ -294,7 +294,7 @@ mrb_struct_define(mrb_state *mrb, const char *name, ...)
 
   va_start(ar, name);
   while ((mem = va_arg(ar, char*)) != 0) {
-    mrb_sym slot = mrb_intern(mrb, mem);
+    mrb_sym slot = mrb_intern_cstr(mrb, mem);
     mrb_ary_push(mrb, ary, mrb_symbol_value(slot));
   }
   va_end(ar);
