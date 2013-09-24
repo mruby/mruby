@@ -1321,7 +1321,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
               goto L_RAISE;
             }
             /* automatic yield at the end */
-            mrb->c->status = MRB_FIBER_TERMINATED;
+            mrb->c->fib_state = MRB_FIBER_TERMINATED;
             mrb->c = mrb->c->prev;
           }
           ci = mrb->c->ci;
