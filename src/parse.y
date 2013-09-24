@@ -67,7 +67,7 @@ typedef unsigned int stack_type;
 static inline mrb_sym
 intern_gen(parser_state *p, const char *s)
 {
-  return mrb_intern(p->mrb, s);
+  return mrb_intern_cstr(p->mrb, s);
 }
 #define intern(s) intern_gen(p,(s))
 
