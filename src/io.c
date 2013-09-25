@@ -282,8 +282,8 @@ retry:
           fd = pw[1];
         }
 
-        mrb_iv_set(mrb, io, mrb_intern(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
-        mrb_iv_set(mrb, io, mrb_intern(mrb, "@pos"), mrb_fixnum_value(0));
+        mrb_iv_set(mrb, io,  mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
+        mrb_iv_set(mrb, io,  mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
 
         fptr = mrb_io_alloc(mrb);
         fptr->fd   = fd;
@@ -319,8 +319,8 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
     opt = mrb_hash_new(mrb);
   }
 
-  mrb_iv_set(mrb, io, mrb_intern(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
-  mrb_iv_set(mrb, io, mrb_intern(mrb, "@pos"), mrb_fixnum_value(0));
+  mrb_iv_set(mrb, io,  mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
+  mrb_iv_set(mrb, io,  mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
 
   fptr = DATA_PTR(io);
   if (fptr == NULL) {
@@ -554,7 +554,7 @@ time2timeval(mrb_state *mrb, mrb_value time)
 static int
 mrb_io_read_data_pending(mrb_state *mrb, mrb_value io)
 {
-  mrb_value buf = mrb_iv_get(mrb, io, mrb_intern(mrb, "@buf"));
+  mrb_value buf = mrb_iv_get(mrb, io,  mrb_intern_cstr(mrb, "@buf"));
   if (mrb_type(buf) == MRB_TT_STRING && RSTRING_LEN(buf) > 0) {
     return 1;
   }
@@ -758,5 +758,5 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "pid",        mrb_io_pid,         MRB_ARGS_NONE());   /* 15.2.20.5.2 */
   mrb_define_method(mrb, io, "fileno",     mrb_io_fileno,      MRB_ARGS_NONE());
 
-  mrb_gv_set(mrb, mrb_intern(mrb, "$/"), mrb_str_new_cstr(mrb, "\n"));
+  mrb_gv_set(mrb,  mrb_intern_cstr(mrb, "$/"), mrb_str_new_cstr(mrb, "\n"));
 }

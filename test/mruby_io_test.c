@@ -35,11 +35,11 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   }
   umask(mask);
 
-  mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_io_rfname"), mrb_str_new_cstr(mrb, rfname));
-  mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_io_wfname"), mrb_str_new_cstr(mrb, wfname));
-  mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_io_symlinkname"), mrb_str_new_cstr(mrb, symlinkname));
-  mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_io_socketname"), mrb_str_new_cstr(mrb, socketname));
-  mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_io_msg"), mrb_str_new_cstr(mrb, msg));
+  mrb_gv_set(mrb,  mrb_intern_cstr(mrb, "$mrbtest_io_rfname"), mrb_str_new_cstr(mrb, rfname));
+  mrb_gv_set(mrb,  mrb_intern_cstr(mrb, "$mrbtest_io_wfname"), mrb_str_new_cstr(mrb, wfname));
+  mrb_gv_set(mrb,  mrb_intern_cstr(mrb, "$mrbtest_io_symlinkname"), mrb_str_new_cstr(mrb, symlinkname));
+  mrb_gv_set(mrb,  mrb_intern_cstr(mrb, "$mrbtest_io_socketname"), mrb_str_new_cstr(mrb, socketname));
+  mrb_gv_set(mrb,  mrb_intern_cstr(mrb, "$mrbtest_io_msg"), mrb_str_new_cstr(mrb, msg));
 
   fp = fopen(rfname, "w");
   if (fp == NULL) {
@@ -81,10 +81,10 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_io_test_io_cleanup(mrb_state *mrb, mrb_value self)
 {
-  mrb_value rfname = mrb_gv_get(mrb, mrb_intern(mrb, "$mrbtest_io_rfname"));
-  mrb_value wfname = mrb_gv_get(mrb, mrb_intern(mrb, "$mrbtest_io_wfname"));
-  mrb_value symlinkname = mrb_gv_get(mrb, mrb_intern(mrb, "$mrbtest_io_symlinkname"));
-  mrb_value socketname = mrb_gv_get(mrb, mrb_intern(mrb, "$mrbtest_io_socketname"));
+  mrb_value rfname = mrb_gv_get(mrb,  mrb_intern_cstr(mrb, "$mrbtest_io_rfname"));
+  mrb_value wfname = mrb_gv_get(mrb,  mrb_intern_cstr(mrb, "$mrbtest_io_wfname"));
+  mrb_value symlinkname = mrb_gv_get(mrb,  mrb_intern_cstr(mrb, "$mrbtest_io_symlinkname"));
+  mrb_value socketname = mrb_gv_get(mrb,  mrb_intern_cstr(mrb, "$mrbtest_io_socketname"));
 
   if (mrb_type(rfname) == MRB_TT_STRING) {
     remove(RSTRING_PTR(rfname));
@@ -99,11 +99,11 @@ mrb_io_test_io_cleanup(mrb_state *mrb, mrb_value self)
     remove(RSTRING_PTR(socketname));
   }
 
-  mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_io_rfname"), mrb_nil_value());
-  mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_io_wfname"), mrb_nil_value());
-  mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_io_symlinkname"), mrb_nil_value());
-  mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_io_socketname"), mrb_nil_value());
-  mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_io_msg"), mrb_nil_value());
+  mrb_gv_set(mrb,  mrb_intern_cstr(mrb, "$mrbtest_io_rfname"), mrb_nil_value());
+  mrb_gv_set(mrb,  mrb_intern_cstr(mrb, "$mrbtest_io_wfname"), mrb_nil_value());
+  mrb_gv_set(mrb,  mrb_intern_cstr(mrb, "$mrbtest_io_symlinkname"), mrb_nil_value());
+  mrb_gv_set(mrb,  mrb_intern_cstr(mrb, "$mrbtest_io_socketname"), mrb_nil_value());
+  mrb_gv_set(mrb,  mrb_intern_cstr(mrb, "$mrbtest_io_msg"), mrb_nil_value());
 
   return mrb_nil_value();
 }
