@@ -916,6 +916,48 @@ parsing_heredoc_inf(parser_state *p)
 }
 
 static void
+heredoc_treat_nextline(parser_state *p)
+{
+  if (p->heredocs_from_nextline == NULL)
+    return;
+  if (p->parsing_heredoc == NULL) {
+    node *n;
+    p->parsing_heredoc = p->heredocs_from_nextline;
+    p->lex_strterm_before_heredoc = p->lex_strterm;
+    p->lex_strterm = new_strterm(p, parsing_heredoc_inf(p)->type, 0, 0);
+    n = p->all_heredocs;
+    if (n) {
+      while (n->cdr)
+	n = n->cdr;
+      n->cdr = p->parsing_heredoc;
+    } else {
+      p->all_heredocs = p->parsing_heredoc;
+    }
+  } else {
+    node *n, *m;
+    m = p->heredocs_from_nextline;
+    while (m->cdr)
+      m = m->cdr;
+    n = p->all_heredocs;
+    mrb_assert(n != NULL);
+    if (n == p->parsing_heredoc) {
+      m->cdr = n;
+      p->all_heredocs = p->heredocs_from_nextline;
+      p->parsing_heredoc = p->heredocs_from_nextline;
+    } else {
+      while (n->cdr != p->parsing_heredoc) {
+	n = n->cdr;
+	mrb_assert(n != NULL);
+      }
+      m->cdr = n->cdr;
+      n->cdr = p->heredocs_from_nextline;
+      p->parsing_heredoc = p->heredocs_from_nextline;
+    }
+  }
+  p->heredocs_from_nextline = NULL;
+}
+
+static void
 heredoc_end(parser_state *p)
 {
   p->parsing_heredoc = p->parsing_heredoc->cdr;
@@ -923,6 +965,8 @@ heredoc_end(parser_state *p)
     p->lstate = EXPR_BEG;
     p->cmd_start = TRUE;
     end_strterm(p);
+    p->lex_strterm = p->lex_strterm_before_heredoc;
+    p->lex_strterm_before_heredoc = NULL;
     p->heredoc_end_now = TRUE;
   } else {
     /* next heredoc */
@@ -1054,7 +1098,8 @@ heredoc_end(parser_state *p)
 %token tSYMBEG tREGEXP_BEG tWORDS_BEG tSYMBOLS_BEG
 %token tSTRING_BEG tXSTRING_BEG tSTRING_DVAR tLAMBEG
 %token <nd> tHEREDOC_BEG  /* <<, <<- */
-%token tHEREDOC_END tLITERAL_DELIM
+%token tHEREDOC_END tLITERAL_DELIM tHD_LITERAL_DELIM
+%token <nd> tHD_STRING_PART tHD_STRING_MID
 
 /*
  *	precedence table
@@ -1938,6 +1983,14 @@ args		: arg_value
 		    {
 		      $$ = push($1, new_splat(p, $4));
 		    }
+		| args ',' heredoc_bodies arg_value
+		    {
+		      $$ = push($1, $4);
+		    }
+		| args ',' heredoc_bodies tSTAR arg_value
+		    {
+		      $$ = push($1, new_splat(p, $5));
+		    }
 		;
 
 mrhs		: args ',' arg_value
@@ -2604,6 +2657,10 @@ string_interp	: tSTRING_MID
 		    {
 		      $$ = list1(new_literal_delim(p));
 		    }
+		| tHD_LITERAL_DELIM heredoc_bodies
+		    {
+		      $$ = list1(new_literal_delim(p));
+		    }
 		;
 
 xstring		: tXSTRING_BEG tXSTRING
@@ -2629,7 +2686,7 @@ regexp		: tREGEXP_BEG tREGEXP
 heredoc		: tHEREDOC_BEG
 		;
 
-opt_heredoc_bodies : none
+opt_heredoc_bodies : /* none */
 		   | heredoc_bodies
 		   ;
 
@@ -2639,13 +2696,37 @@ heredoc_bodies	: heredoc_body
 
 heredoc_body	: tHEREDOC_END
 		    {
-		      parsing_heredoc_inf(p)->doc = list1(new_str(p, "", 0));
+		      parser_heredoc_info * inf = parsing_heredoc_inf(p);
+		      inf->doc = push(inf->doc, new_str(p, "", 0));
 		      heredoc_end(p);
 		    }
-		| string_rep tHEREDOC_END
+		| heredoc_string_rep tHEREDOC_END
 		    {
-		      parsing_heredoc_inf(p)->doc = $1;
 		      heredoc_end(p);
+		    }
+		;
+
+heredoc_string_rep : heredoc_string_interp
+		   | heredoc_string_rep heredoc_string_interp
+		   ;
+
+heredoc_string_interp : tHD_STRING_MID
+		    {
+		      parser_heredoc_info * inf = parsing_heredoc_inf(p);
+		      inf->doc = push(inf->doc, $1);
+		      heredoc_treat_nextline(p);
+		    }
+		| tHD_STRING_PART
+		    {
+		      $<nd>$ = p->lex_strterm;
+		      p->lex_strterm = NULL;
+		    }
+		  compstmt
+		  '}'
+		    {
+		      parser_heredoc_info * inf = parsing_heredoc_inf(p);
+		      p->lex_strterm = $<nd>2;
+		      inf->doc = push(push(inf->doc, $1), $3);
 		    }
 		;
 
@@ -3477,12 +3558,12 @@ read_escape(parser_state *p)
 
       buf[0] = c;
       for (i=1; i<3; i++) {
-        buf[i] = nextc(p);
-        if (buf[i] == -1) goto eof;
-        if (buf[i] < '0' || '7' < buf[i]) {
-          pushback(p, buf[i]);
-          break;
-        }
+	buf[i] = nextc(p);
+	if (buf[i] == -1) goto eof;
+	if (buf[i] < '0' || '7' < buf[i]) {
+	  pushback(p, buf[i]);
+	  break;
+	}
       }
       c = scan_oct(buf, i, &i);
     }
@@ -3591,12 +3672,12 @@ parse_string(parser_state *p)
       }
       if (c == -1) {
 	char buf[256];
-	snprintf(buf, sizeof(buf), "can't find string \"%s\" anywhere before EOF", hinf->term);
+	snprintf(buf, sizeof(buf), "can't find heredoc delimiter \"%s\" anywhere before EOF", hinf->term);
 	yyerror(p, buf);
 	return 0;
       }
       yylval.nd = new_str(p, tok(p), toklen(p));
-      return tSTRING_MID;
+      return tHD_STRING_MID;
     }
     if (c == -1) {
       yyerror(p, "unterminated string meets end of file");
@@ -3660,8 +3741,10 @@ parse_string(parser_state *p)
 	p->lstate = EXPR_BEG;
 	p->cmd_start = TRUE;
 	yylval.nd = new_str(p, tok(p), toklen(p));
-	if (hinf)
+	if (hinf) {
 	  hinf->line_head = FALSE;
+	  return tHD_STRING_PART;
+	}
 	return tSTRING_PART;
       }
       tokadd(p, '#');
@@ -3674,6 +3757,10 @@ parse_string(parser_state *p)
 	  if (c == '\n') {
 	    p->lineno++;
 	    p->column = 0;
+	    heredoc_treat_nextline(p);
+	    if (p->parsing_heredoc != NULL) {
+	      return tHD_LITERAL_DELIM;
+	    }
 	  }
 	} while (ISSPACE(c = nextc(p)));
 	pushback(p, c);
@@ -3801,14 +3888,7 @@ heredoc_identifier(parser_state *p)
   info->allow_indent = indent;
   info->line_head = TRUE;
   info->doc = NULL;
-  p->heredocs = push(p->heredocs, newnode);
-  if (p->parsing_heredoc == NULL) {
-    node *n = p->heredocs;
-    while (n->cdr)
-      n = n->cdr;
-    p->parsing_heredoc = n;
-  }
-  p->heredoc_starts_nextline = TRUE;
+  p->heredocs_from_nextline = push(p->heredocs_from_nextline, newnode);
   p->lstate = EXPR_END;
 
   yylval.nd = newnode;
@@ -3835,7 +3915,7 @@ parser_yylex(parser_state *p)
 
   if (p->lex_strterm) {
     if (is_strterm_type(p, STR_FUNC_HEREDOC)) {
-      if ((p->parsing_heredoc != NULL) && (! p->heredoc_starts_nextline))
+      if (p->parsing_heredoc != NULL)
 	return parse_string(p);
     }
     else
@@ -3862,11 +3942,7 @@ parser_yylex(parser_state *p)
     skip(p, '\n');
   /* fall through */
   case '\n':
-    p->heredoc_starts_nextline = FALSE;
-    if (p->parsing_heredoc != NULL) {
-      p->lex_strterm = new_strterm(p, parsing_heredoc_inf(p)->type, 0, 0);
-      goto normal_newline;
-    }
+    heredoc_treat_nextline(p);
     switch (p->lstate) {
     case EXPR_BEG:
     case EXPR_FNAME:
@@ -3875,9 +3951,15 @@ parser_yylex(parser_state *p)
     case EXPR_VALUE:
       p->lineno++;
       p->column = 0;
+      if (p->parsing_heredoc != NULL) {
+	return parse_string(p);
+      }
       goto retry;
     default:
       break;
+    }
+    if (p->parsing_heredoc != NULL) {
+      return '\n';
     }
     while ((c = nextc(p))) {
       switch (c) {
@@ -4061,9 +4143,9 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_DOT) {
       if (cmd_state)
-        p->lstate = EXPR_CMDARG;
+	p->lstate = EXPR_CMDARG;
       else
-        p->lstate = EXPR_ARG;
+	p->lstate = EXPR_ARG;
       return '`';
     }
     p->lex_strterm = new_strterm(p, str_xquote, '`', 0);
@@ -4762,9 +4844,9 @@ parser_yylex(parser_state *p)
     case '_':     /* $_: last read line string */
       c = nextc(p);
       if (c != -1 && identchar(c)) { /* if there is more after _ it is a variable */
-        tokadd(p, '$');
-        tokadd(p, c);
-        break;
+	tokadd(p, '$');
+	tokadd(p, c);
+	break;
       }
       pushback(p, c);
       c = '_';
@@ -5134,7 +5216,8 @@ mrb_parser_new(mrb_state *mrb)
 #endif
 
   p->lex_strterm = NULL;
-  p->heredocs = p->parsing_heredoc = NULL;
+  p->all_heredocs = p->parsing_heredoc = NULL;
+  p->lex_strterm_before_heredoc = NULL;
 
   p->current_filename_index = -1;
   p->filename_table = NULL;
