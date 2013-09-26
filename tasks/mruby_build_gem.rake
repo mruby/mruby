@@ -3,7 +3,10 @@ module MRuby
     def gembox(gemboxfile)
       gembox = File.expand_path("#{gemboxfile}.gembox", "#{MRUBY_ROOT}/mrbgems")
       fail "Can't find gembox '#{gembox}'" unless File.exists?(gembox)
+
       GemBox.config = self
+      GemBox.path = gembox
+
       instance_eval File.read(gembox)
     end
 
@@ -37,6 +40,8 @@ module MRuby
 
       if params[:core]
         gemdir = "#{root}/mrbgems/#{params[:core]}"
+      elsif params[:gembox_dir]
+        gemdir = "#{File.dirname(GemBox.path)}/#{params[:gembox_dir]}"
       elsif params[:git]
         url = params[:git]
         gemdir = "#{gem_clone_dir}/#{url.match(/([-\w]+)(\.[-\w]+|)$/).to_a[1]}"
