@@ -3,7 +3,10 @@ module MRuby
     def gembox(gemboxfile)
       gembox = File.expand_path("#{gemboxfile}.gembox", "#{MRUBY_ROOT}/mrbgems")
       fail "Can't find gembox '#{gembox}'" unless File.exists?(gembox)
+
       GemBox.config = self
+      GemBox.path = gembox
+
       instance_eval File.read(gembox)
     end
 
@@ -11,6 +14,8 @@ module MRuby
       caller_dir = File.expand_path(File.dirname(/^(.*?):\d/.match(caller.first).to_a[1]))
       if gemdir.is_a?(Hash)
         gemdir = load_special_path_gem(gemdir)
+      elsif gemdir.is_a?(String)
+        gemdir = "#{File.dirname(GemBox.path)}/#{gemdir}"
       else
         gemdir = File.expand_path(gemdir, caller_dir)
       end
