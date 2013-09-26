@@ -513,7 +513,7 @@ argnum_error(mrb_state *mrb, int num)
 }
 
 #ifdef ENABLE_DEBUG
-#define CODE_FETCH_HOOK(mrb, irep, pc, regs) ((mrb)->code_fetch_hook ? (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs)) : NULL)
+#define CODE_FETCH_HOOK(mrb, irep, pc, regs) if ((mrb)->code_fetch_hook) (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs)); 
 #else
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs)
 #endif
