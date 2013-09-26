@@ -235,41 +235,31 @@ mrb_file_is_absolute_path(const char *path)
 static mrb_value
 mrb_file__gethome(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value username, result;
-  char *cuser, *home;
+  mrb_value username;
   int argc;
-  struct passwd *pwd;
+  char *home;
 
   argc = mrb_get_args(mrb, "|S", &username);
-
   if (argc == 0) {
     home = getenv("HOME");
-  } else {
-    cuser = mrb_str_to_cstr(mrb, username);
-    if ((pwd = getpwnam(cuser)) == NULL) {
+    if (home == NULL) {
       return mrb_nil_value();
-    } else {
-      home = pwd->pw_dir;
     }
-  }
-
-  if (home == NULL) {
-    return mrb_nil_value();
-  }
-
-  if (!mrb_file_is_absolute_path(home)) {
-    if (argc && strlen(cuser) > 0) {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "non-absolute home of ~%s", cuser);
-    } else {
+    if (!mrb_file_is_absolute_path(home)) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "non-absolute home");
     }
+  } else {
+    const char *cuser = mrb_str_to_cstr(mrb, username);
+    struct passwd *pwd = getpwnam(cuser);
+    if (pwd == NULL) {
+      return mrb_nil_value();
+    }
+    home = pwd->pw_dir;
+    if (!mrb_file_is_absolute_path(home)) {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "non-absolute home of ~%S", username);
+    }
   }
-
-  result = mrb_str_buf_new(mrb, MAXPATHLEN);
-  strncpy(RSTRING_PTR(result), home, MAXPATHLEN);
-  mrb_str_resize(mrb, result, strlen(RSTRING_PTR(result)));
-
-  return result;
+  return mrb_str_new_cstr(mrb, home);
 }
 
 void
