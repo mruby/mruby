@@ -195,7 +195,8 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   struct mrb_io *fptr;
   const char *pname;
   int pid, flags, fd, write_fd = -1;
-  int pr[2], pw[2];
+  int pr[2] = { -1, -1 };
+  int pw[2] = { -1, -1 };
   int doexec;
 
   mrb_get_args(mrb, "S|SH", &cmd, &mode, &opt);
@@ -206,10 +207,13 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 
   doexec = (strcmp("-", pname) != 0);
 
-  if (((flags & FMODE_READABLE) && pipe(pr) == -1)
-      || ((flags & FMODE_WRITABLE) && pipe(pw) == -1)) {
-    mrb_sys_fail(mrb, "pipe_open failed.");
-    return mrb_nil_value();
+  if ((flags & FMODE_READABLE) && pipe(pr) == -1) {
+    mrb_sys_fail(mrb, "pipe");
+  }
+  if ((flags & FMODE_WRITABLE) && pipe(pw) == -1) {
+    if (pr[0] != -1) close(pr[0]);
+    if (pr[1] != -1) close(pr[1]);
+    mrb_sys_fail(mrb, "pipe");
   }
 
   if (!doexec) {
