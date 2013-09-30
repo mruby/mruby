@@ -49,6 +49,17 @@ assert('File.extname') do
   assert_equal '', File.extname('.foo')
 end
 
+assert('IO#flock') do
+  f = File.open $mrbtest_io_rfname
+  assert_equal(f.flock(File::LOCK_SH), 0)
+  assert_equal(f.flock(File::LOCK_UN), 0)
+  assert_equal(f.flock(File::LOCK_EX | File::LOCK_UN), 0)
+  assert_equal(f.flock(File::LOCK_UN), 0)
+  f.close
+  true
+end
+
+
 assert('File.size') do
   File.size($mrbtest_io_rfname) == $mrbtest_io_msg.size + 1  and
   File.size($mrbtest_io_wfname) == 0
