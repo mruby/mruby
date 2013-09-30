@@ -162,9 +162,9 @@ mrb_io_alloc(mrb_state *mrb)
   struct mrb_io *fptr;
 
   fptr = (struct mrb_io *)mrb_malloc(mrb, sizeof(struct mrb_io));
-  fptr->fd       = -1;
-  fptr->fd2      = -1;
-  fptr->pid      = 0;
+  fptr->fd  = -1;
+  fptr->fd2 = -1;
+  fptr->pid = 0;
 
   return fptr;
 }
@@ -188,7 +188,7 @@ io_open(mrb_state *mrb, mrb_value path, int flags, int perm)
 mrb_value
 mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value cmd, io;
+  mrb_value cmd, io, result;
   mrb_value mode = mrb_str_new_cstr(mrb, "r");
   mrb_value opt  = mrb_hash_new(mrb);
 
@@ -224,6 +224,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
     fflush(stderr);
   }
 
+  result = mrb_nil_value();
   switch (pid = fork()) {
     case 0: /* child */
       if (flags & FMODE_READABLE) {
@@ -240,7 +241,6 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
           close(pw[0]);
         }
       }
-
       if (doexec) {
         for (fd = 3; fd < NOFILE; fd++) {
           close(fd);
@@ -249,37 +249,36 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
         mrb_raisef(mrb, E_IO_ERROR, "command not found: %s", pname);
         _exit(127);
       }
-      return mrb_nil_value();
+      result = mrb_nil_value();
+      break;
+
     default: /* parent */
-      if (pid < 0) {
-        mrb_sys_fail(mrb, "pipe_open failed.");
-        return mrb_nil_value();
+      if ((flags & FMODE_READABLE) && (flags & FMODE_WRITABLE)) {
+        close(pr[1]);
+        fd = pr[0];
+        close(pw[0]);
+        write_fd = pw[1];
+      } else if (flags & FMODE_READABLE) {
+        close(pr[1]);
+        fd = pr[0];
       } else {
-        if ((flags & FMODE_READABLE) && (flags & FMODE_WRITABLE)) {
-          close(pr[1]);
-          fd = pr[0];
-          close(pw[0]);
-          write_fd = pw[1];
-        } else if (flags & FMODE_READABLE) {
-          close(pr[1]);
-          fd = pr[0];
-        } else {
-          close(pw[0]);
-          fd = pw[1];
-        }
-
-        mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
-        mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
-
-        fptr = mrb_io_alloc(mrb);
-        fptr->fd  = fd;
-        fptr->fd2 = write_fd;
-        fptr->pid = pid;
-
-        DATA_TYPE(io) = &mrb_io_type;
-        DATA_PTR(io)  = fptr;
-        return io;
+        close(pw[0]);
+        fd = pw[1];
       }
+
+      mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
+      mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
+
+      fptr = mrb_io_alloc(mrb);
+      fptr->fd  = fd;
+      fptr->fd2 = write_fd;
+      fptr->pid = pid;
+
+      DATA_TYPE(io) = &mrb_io_type;
+      DATA_PTR(io)  = fptr;
+      result = io;
+      break;
+
     case -1: /* error */
       saved_errno = errno;
       if (flags & FMODE_READABLE) {
@@ -294,8 +293,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
       mrb_sys_fail(mrb, "pipe_open failed.");
       break;
   }
-
-  return mrb_nil_value();
+  return result;
 }
 
 mrb_value
