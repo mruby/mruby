@@ -198,6 +198,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   int pr[2] = { -1, -1 };
   int pw[2] = { -1, -1 };
   int doexec;
+  int saved_errno;
 
   mrb_get_args(mrb, "S|SH", &cmd, &mode, &opt);
   io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
@@ -223,7 +224,6 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
     fflush(stderr);
   }
 
-retry:
   switch (pid = fork()) {
     case 0: /* child */
       if (flags & FMODE_READABLE) {
@@ -250,24 +250,6 @@ retry:
         _exit(127);
       }
       return mrb_nil_value();
-    case -1: /* error */
-      if (errno == EAGAIN) {
-        goto retry;
-      } else {
-        int e = errno;
-        if (flags & FMODE_READABLE) {
-          close(pr[0]);
-          close(pr[1]);
-        }
-        if (flags & FMODE_WRITABLE) {
-          close(pw[0]);
-          close(pw[1]);
-        }
-
-        errno = e;
-        mrb_sys_fail(mrb, "pipe_open failed.");
-      }
-      break;
     default: /* parent */
       if (pid < 0) {
         mrb_sys_fail(mrb, "pipe_open failed.");
@@ -298,6 +280,19 @@ retry:
         DATA_PTR(io)  = fptr;
         return io;
       }
+    case -1: /* error */
+      saved_errno = errno;
+      if (flags & FMODE_READABLE) {
+        close(pr[0]);
+        close(pr[1]);
+      }
+      if (flags & FMODE_WRITABLE) {
+        close(pw[0]);
+        close(pw[1]);
+      }
+      errno = saved_errno;
+      mrb_sys_fail(mrb, "pipe_open failed.");
+      break;
   }
 
   return mrb_nil_value();
