@@ -470,7 +470,7 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
   mrb_value str, buf;
-  int length;
+  int fd, length;
 
   mrb_get_args(mrb, "S", &str);
   if (mrb_type(str) != MRB_TT_STRING) {
@@ -480,7 +480,12 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
   }
 
   fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
-  length = write(fptr->fd, RSTRING_PTR(buf), RSTRING_LEN(buf));
+  if (fptr->fd2 == -1) {
+    fd = fptr->fd;
+  } else {
+    fd = fptr->fd2;
+  }
+  length = write(fd, RSTRING_PTR(buf), RSTRING_LEN(buf));
 
   return mrb_fixnum_value(length);
 }
