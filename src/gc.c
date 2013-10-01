@@ -28,11 +28,11 @@
 
   mruby's GC is Tri-color Incremental GC with Mark & Sweep.
   Algorithm details are omitted.
-  Instead, the part about the implementation described below.
+  Instead, the implementation part is described below.
 
   == Object's Color
 
-  Each object to be painted in three colors.
+  Each object can be painted in three colors:
 
     * White - Unmarked.
     * Gray - Marked, But the child objects are unmarked.
@@ -68,9 +68,9 @@
 
   == Write Barrier
 
-  mruby implementer, C extension library writer must write a write
+  mruby implementer and C extension library writer must write a write
   barrier when writing a pointer to an object on object's field.
-  Two different write barrier:
+  Two different write barrier are available:
 
     * mrb_field_write_barrier
     * mrb_write_barrier
@@ -88,7 +88,7 @@
 
     * Major GC - same as a full regular GC cycle.
 
-  the difference between "tranditional" generational GC is that, the major GC
+  The difference to a "traditional" generational GC is, that the major GC
   in mruby is triggered incrementally in a tri-color manner.
 
 
