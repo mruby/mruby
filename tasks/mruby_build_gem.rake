@@ -14,6 +14,8 @@ module MRuby
       caller_dir = File.expand_path(File.dirname(/^(.*?):\d/.match(caller.first).to_a[1]))
       if gemdir.is_a?(Hash)
         gemdir = load_special_path_gem(gemdir)
+      elsif gemdir.is_a?(String)
+        gemdir = "#{File.dirname(GemBox.path)}/#{gemdir}"
       else
         gemdir = File.expand_path(gemdir, caller_dir)
       end
@@ -40,8 +42,6 @@ module MRuby
 
       if params[:core]
         gemdir = "#{root}/mrbgems/#{params[:core]}"
-      elsif params[:gembox_dir]
-        gemdir = "#{File.dirname(GemBox.path)}/#{params[:gembox_dir]}"
       elsif params[:git]
         url = params[:git]
         gemdir = "#{gem_clone_dir}/#{url.match(/([-\w]+)(\.[-\w]+|)$/).to_a[1]}"
