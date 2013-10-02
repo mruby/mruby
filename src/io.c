@@ -162,9 +162,9 @@ mrb_io_alloc(mrb_state *mrb)
   struct mrb_io *fptr;
 
   fptr = (struct mrb_io *)mrb_malloc(mrb, sizeof(struct mrb_io));
-  fptr->fd       = -1;
-  fptr->fd2      = -1;
-  fptr->pid      = 0;
+  fptr->fd  = -1;
+  fptr->fd2 = -1;
+  fptr->pid = 0;
 
   return fptr;
 }
@@ -188,15 +188,17 @@ io_open(mrb_state *mrb, mrb_value path, int flags, int perm)
 mrb_value
 mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value cmd, io;
+  mrb_value cmd, io, result;
   mrb_value mode = mrb_str_new_cstr(mrb, "r");
   mrb_value opt  = mrb_hash_new(mrb);
 
   struct mrb_io *fptr;
   const char *pname;
   int pid, flags, fd, write_fd = -1;
-  int pr[2], pw[2];
+  int pr[2] = { -1, -1 };
+  int pw[2] = { -1, -1 };
   int doexec;
+  int saved_errno;
 
   mrb_get_args(mrb, "S|SH", &cmd, &mode, &opt);
   io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
@@ -206,10 +208,13 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 
   doexec = (strcmp("-", pname) != 0);
 
-  if (((flags & FMODE_READABLE) && pipe(pr) == -1)
-      || ((flags & FMODE_WRITABLE) && pipe(pw) == -1)) {
-    mrb_sys_fail(mrb, "pipe_open failed.");
-    return mrb_nil_value();
+  if ((flags & FMODE_READABLE) && pipe(pr) == -1) {
+    mrb_sys_fail(mrb, "pipe");
+  }
+  if ((flags & FMODE_WRITABLE) && pipe(pw) == -1) {
+    if (pr[0] != -1) close(pr[0]);
+    if (pr[1] != -1) close(pr[1]);
+    mrb_sys_fail(mrb, "pipe");
   }
 
   if (!doexec) {
@@ -219,7 +224,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
     fflush(stderr);
   }
 
-retry:
+  result = mrb_nil_value();
   switch (pid = fork()) {
     case 0: /* child */
       if (flags & FMODE_READABLE) {
@@ -236,7 +241,6 @@ retry:
           close(pw[0]);
         }
       }
-
       if (doexec) {
         for (fd = 3; fd < NOFILE; fd++) {
           close(fd);
@@ -245,58 +249,51 @@ retry:
         mrb_raisef(mrb, E_IO_ERROR, "command not found: %s", pname);
         _exit(127);
       }
-      return mrb_nil_value();
-    case -1: /* error */
-      if (errno == EAGAIN) {
-        goto retry;
-      } else {
-        int e = errno;
-        if (flags & FMODE_READABLE) {
-          close(pr[0]);
-          close(pr[1]);
-        }
-        if (flags & FMODE_WRITABLE) {
-          close(pw[0]);
-          close(pw[1]);
-        }
-
-        errno = e;
-        mrb_sys_fail(mrb, "pipe_open failed.");
-      }
+      result = mrb_nil_value();
       break;
+
     default: /* parent */
-      if (pid < 0) {
-        mrb_sys_fail(mrb, "pipe_open failed.");
-        return mrb_nil_value();
+      if ((flags & FMODE_READABLE) && (flags & FMODE_WRITABLE)) {
+        close(pr[1]);
+        fd = pr[0];
+        close(pw[0]);
+        write_fd = pw[1];
+      } else if (flags & FMODE_READABLE) {
+        close(pr[1]);
+        fd = pr[0];
       } else {
-        if ((flags & FMODE_READABLE) && (flags & FMODE_WRITABLE)) {
-          close(pr[1]);
-          fd = pr[0];
-          close(pw[0]);
-          write_fd = pw[1];
-        } else if (flags & FMODE_READABLE) {
-          close(pr[1]);
-          fd = pr[0];
-        } else {
-          close(pw[0]);
-          fd = pw[1];
-        }
-
-        mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
-        mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
-
-        fptr = mrb_io_alloc(mrb);
-        fptr->fd  = fd;
-        fptr->fd2 = write_fd;
-        fptr->pid = pid;
-
-        DATA_TYPE(io) = &mrb_io_type;
-        DATA_PTR(io)  = fptr;
-        return io;
+        close(pw[0]);
+        fd = pw[1];
       }
-  }
 
-  return mrb_nil_value();
+      mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
+      mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
+
+      fptr = mrb_io_alloc(mrb);
+      fptr->fd  = fd;
+      fptr->fd2 = write_fd;
+      fptr->pid = pid;
+
+      DATA_TYPE(io) = &mrb_io_type;
+      DATA_PTR(io)  = fptr;
+      result = io;
+      break;
+
+    case -1: /* error */
+      saved_errno = errno;
+      if (flags & FMODE_READABLE) {
+        close(pr[0]);
+        close(pr[1]);
+      }
+      if (flags & FMODE_WRITABLE) {
+        close(pw[0]);
+        close(pw[1]);
+      }
+      errno = saved_errno;
+      mrb_sys_fail(mrb, "pipe_open failed.");
+      break;
+  }
+  return result;
 }
 
 mrb_value
@@ -473,7 +470,7 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
   mrb_value str, buf;
-  int length;
+  int fd, length;
 
   mrb_get_args(mrb, "S", &str);
   if (mrb_type(str) != MRB_TT_STRING) {
@@ -483,7 +480,12 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
   }
 
   fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
-  length = write(fptr->fd, RSTRING_PTR(buf), RSTRING_LEN(buf));
+  if (fptr->fd2 == -1) {
+    fd = fptr->fd;
+  } else {
+    fd = fptr->fd2;
+  }
+  length = write(fd, RSTRING_PTR(buf), RSTRING_LEN(buf));
 
   return mrb_fixnum_value(length);
 }

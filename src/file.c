@@ -36,6 +36,9 @@
 
 #define STAT(p, s)        stat(p, s)
 
+extern mrb_value mrb_io_fileno(mrb_state *mrb, mrb_value io);
+
+
 mrb_value
 mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
 {
@@ -262,6 +265,36 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
   return mrb_str_new_cstr(mrb, home);
 }
 
+mrb_value
+mrb_file_flock(mrb_state *mrb, mrb_value self)
+{
+  mrb_int operation;
+  int fd;
+
+  mrb_get_args(mrb, "i", &operation);
+  fd = mrb_fixnum(mrb_io_fileno(mrb, self));
+
+  while (flock(fd, operation) == -1) {
+    switch (errno) {
+      case EINTR:
+        /* retry */
+        break;
+      case EAGAIN:      /* NetBSD */
+#if defined(EWOULDBLOCK) && EWOULDBLOCK != EAGAIN
+      case EWOULDBLOCK: /* FreeBSD OpenBSD Linux */
+#endif
+        if (operation & LOCK_NB) {
+          return mrb_false_value();
+        }
+        /* FALLTHRU - should not happen */
+      default:
+        mrb_sys_fail(mrb, "flock failed");
+        break;
+    }
+  }
+  return mrb_fixnum_value(0);
+}
+
 void
 mrb_init_file(mrb_state *mrb)
 {
@@ -281,6 +314,8 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "size",      mrb_file_size,       MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, file, "_getwd",    mrb_file__getwd,     MRB_ARGS_NONE());
   mrb_define_class_method(mrb, file, "_gethome",  mrb_file__gethome,   MRB_ARGS_OPT(1));
+
+  mrb_define_method(mrb, file, "flock", mrb_file_flock, MRB_ARGS_REQ(1));
 
   cnst = mrb_define_module_under(mrb, file, "Constants");
   mrb_define_const(mrb, cnst, "LOCK_SH", mrb_fixnum_value(LOCK_SH));

@@ -176,7 +176,7 @@ DEALINGS IN THE SOFTWARE.
 | File#chmod                  |          |      |
 | File#chown                  |          |      |
 | File#ctime                  |          |      |
-| File#flock                  |          |      |
+| File#flock                  |   o      |      |
 | File#lstat                  |          |      |
 | File#mtime                  |          |      |
 | File#path, File#to_path     |   o      |      |
