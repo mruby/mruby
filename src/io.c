@@ -29,7 +29,7 @@ mrb_io_modestr_to_flags(mrb_state *mrb, const char *mode)
       flags |= FMODE_READABLE;
       break;
     case 'w':
-      flags |= FMODE_WRITABLE | FMODE_CREATE;
+      flags |= FMODE_WRITABLE | FMODE_CREATE | FMODE_TRUNC;
       break;
     case 'a':
       flags |= FMODE_WRITABLE | FMODE_APPEND | FMODE_CREATE;
