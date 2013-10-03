@@ -132,35 +132,29 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 {
-  char *cp, *dname;
-  mrb_int n;
-  mrb_value fname;
+  char *dname, *path;
+  mrb_value s;
 
-  mrb_get_args(mrb, "s", &cp, &n);
-  fname = mrb_str_new(mrb, cp, n);
-
-  if ((dname = dirname(RSTRING_PTR(fname))) == NULL) {
-    mrb_sys_fail(mrb, "mrb_file_dirname failed.");
+  mrb_get_args(mrb, "S", &s);
+  path = mrb_str_to_cstr(mrb, s);
+  if ((dname = dirname(path)) == NULL) {
+    mrb_sys_fail(mrb, "dirname");
   }
-
-  return mrb_str_new(mrb, dname, strlen(dname));
+  return mrb_str_new_cstr(mrb, dname);
 }
 
 static mrb_value
 mrb_file_basename(mrb_state *mrb, mrb_value klass)
 {
-  char *cp, *bname;
-  mrb_int n;
-  mrb_value fname;
+  char *bname, *path;
+  mrb_value s;
 
-  mrb_get_args(mrb, "s", &cp, &n);
-  fname = mrb_str_new(mrb, cp, n);
-
-  if ((bname = basename(RSTRING_PTR(fname))) == NULL) {
-    mrb_sys_fail(mrb, "mrb_file_basename failed.");
+  mrb_get_args(mrb, "S", &s);
+  path = mrb_str_to_cstr(mrb, s);
+  if ((bname = basename(path)) == NULL) {
+    mrb_sys_fail(mrb, "basename");
   }
-
-  return mrb_str_new(mrb, bname, strlen(bname));
+  return mrb_str_new_cstr(mrb, bname);
 }
 
 static mrb_value
@@ -190,27 +184,26 @@ mrb_file_size(mrb_state *mrb, mrb_value klass)
 {
   char *cp;
   FILE *fp;
-  mrb_int n;
   mrb_int filesize;
-  mrb_value filename;
+  mrb_value s;
+  int saved_errno;
 
-  mrb_get_args(mrb, "s", &cp, &n);
-  filename = mrb_str_new(mrb, cp, n);
-
-  fp = fopen(RSTRING_PTR(filename), "rb");
+  mrb_get_args(mrb, "S", &s);
+  cp = mrb_str_to_cstr(mrb, s);
+  fp = fopen(cp, "rb");
   if (fp == NULL) {
-    mrb_sys_fail(mrb, "mrb_file_size failed.");
+    mrb_sys_fail(mrb, "fopen");
     return mrb_nil_value();
   }
-
   if (fseek(fp, 0, SEEK_END) != 0) {
-    mrb_sys_fail(mrb, "mrb_file_size failed.");
+    saved_errno = errno;
+    fclose(fp);
+    errno = saved_errno;
+    mrb_sys_fail(mrb, "fseek");
     return mrb_nil_value();
   }
   filesize = (mrb_int) ftell(fp);
-
   fclose(fp);
-
   return mrb_fixnum_value(filesize);
 }
 
@@ -230,9 +223,7 @@ mrb_file__getwd(mrb_state *mrb, mrb_value klass)
 static int
 mrb_file_is_absolute_path(const char *path)
 {
-  if (path[0] == '/')
-    return 1;
-  return 0;
+  return (path[0] == '/');
 }
 
 static mrb_value

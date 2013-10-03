@@ -30,14 +30,19 @@ assert('File#path', '15.2.21.4.2') do
   io.closed?
 end
 
-assert('File.dirname') do
-  path = File.dirname("filename")
-  "." == path
+assert('File.basename') do
+  assert_equal '/', File.basename('//')
+  assert_equal 'a', File.basename('/a/')
+  assert_equal 'b', File.basename('/a/b')
+  assert_equal 'b', File.basename('../a/b')
 end
 
-assert('File.basename') do
-  name = File.basename("../somewhere/filename")
-  name == "filename"
+assert('File.dirname') do
+  assert_equal '.',    File.dirname('')
+  assert_equal '.',    File.dirname('a')
+  assert_equal '/',    File.dirname('/a')
+  assert_equal 'a',    File.dirname('a/b')
+  assert_equal '/a',   File.dirname('/a/b')
 end
 
 assert('File.extname') do
