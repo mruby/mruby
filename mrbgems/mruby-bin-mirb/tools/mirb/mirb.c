@@ -58,6 +58,9 @@ is_code_block_open(struct mrb_parser_state *parser)
     return FALSE;
   }
 
+  /* check for unterminated string */
+  if (parser->lex_strterm) return TRUE;
+
   /* check if parser error are available */
   if (0 < parser->nerr) {
     const char *unexpected_end = "syntax error, unexpected $end";
@@ -79,9 +82,6 @@ is_code_block_open(struct mrb_parser_state *parser)
     }
     return code_block_open;
   }
-
-  /* check for unterminated string */
-  if (parser->lex_strterm) return TRUE;
 
   switch (parser->lstate) {
 
