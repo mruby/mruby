@@ -75,7 +75,12 @@ stack_clear(mrb_value *from, size_t count)
   const mrb_value mrb_value_zero = { { 0 } };
 
   while (count-- > 0) {
+#ifndef MRB_NAN_BOXING
     *from++ = mrb_value_zero;
+#else
+    SET_NIL_VALUE(*from);
+    from++;
+#endif
   }
 }
 
@@ -156,15 +161,7 @@ stack_extend(mrb_state *mrb, int room, int keep)
   }
 
   if (room > keep) {
-#ifndef MRB_NAN_BOXING
     stack_clear(&(mrb->c->stack[keep]), room - keep);
-#else
-    struct mrb_context *c = mrb->c;
-    int i;
-    for (i=keep; i<room; i++) {
-      SET_NIL_VALUE(c->stack[i]);
-    }
-#endif
   }
 }
 
