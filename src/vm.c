@@ -513,7 +513,7 @@ argnum_error(mrb_state *mrb, int num)
 }
 
 #ifdef ENABLE_DEBUG
-#define CODE_FETCH_HOOK(mrb, irep, pc, regs) if ((mrb)->code_fetch_hook) (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs)); 
+#define CODE_FETCH_HOOK(mrb, irep, pc, regs) if ((mrb)->code_fetch_hook) (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs));
 #else
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs)
 #endif
@@ -1029,12 +1029,25 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       mrb_callinfo *ci = mrb->c->ci;
       struct RProc *m;
       struct RClass *c;
+      struct RClass *target_class;
+      struct RProc *method;
       mrb_sym mid = ci->mid;
       int a = GETARG_A(i);
       int n = GETARG_C(i);
 
       recv = regs[0];
       c = mrb->c->ci->target_class->super;
+      /* mrb_method_search_vm func changes a given class. */
+      target_class = mrb->c->ci->target_class;
+      method = mrb_method_search_vm(mrb, &target_class, mid);
+      if (MRB_PROC_ALIAS_METHOD_P(method)) {
+        /* Change an original method name from an aliased method name */
+        mrb_value alias = mrb_obj_iv_get(mrb, (struct RObject*)mrb->c->ci->target_class, mrb_intern2(mrb, "alias", 5));
+        mrb_value org_mid = mrb_hash_get(mrb, alias, mrb_symbol_value(mid));
+        if (!mrb_nil_p(org_mid)) {
+          mid = mrb_obj_to_sym(mrb, org_mid);
+        }
+      }
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
         mid = mrb_intern2(mrb, "method_missing", 14);

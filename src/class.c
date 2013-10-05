@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include "mruby/array.h"
 #include "mruby/class.h"
+#include "mruby/hash.h"
 #include "mruby/numeric.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
@@ -1323,11 +1324,18 @@ mrb_obj_class(mrb_state *mrb, mrb_value obj)
 }
 
 void
-mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
+mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym new, mrb_sym org)
 {
-  struct RProc *m = mrb_method_search(mrb, c, b);
+  struct RProc *m = mrb_method_search(mrb, c, org);
+  mrb_value alias = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern2(mrb, "alias", 5));
 
-  mrb_define_method_vm(mrb, c, a, mrb_obj_value(m));
+  m->flags |= MRB_PROC_ALIAS_METHOD;
+  if (mrb_nil_p(alias)) {
+    alias = mrb_hash_new(mrb);
+  }
+  mrb_hash_set(mrb, alias, mrb_symbol_value(new), mrb_symbol_value(org));
+  mrb_obj_iv_set(mrb, (struct RObject*)c, mrb_intern2(mrb, "alias", 5), alias);
+  mrb_define_method_vm(mrb, c, new, mrb_obj_value(m));
 }
 
 /*!
