@@ -58,7 +58,7 @@ assert('IO#flock') do
   f = File.open $mrbtest_io_rfname
   assert_equal(f.flock(File::LOCK_SH), 0)
   assert_equal(f.flock(File::LOCK_UN), 0)
-  assert_equal(f.flock(File::LOCK_EX | File::LOCK_UN), 0)
+  assert_equal(f.flock(File::LOCK_EX | File::LOCK_NB), 0)
   assert_equal(f.flock(File::LOCK_UN), 0)
   f.close
   true
