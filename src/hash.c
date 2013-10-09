@@ -266,7 +266,7 @@ mrb_hash_init_core(mrb_state *mrb, mrb_value hash)
     RHASH(hash)->flags |= MRB_HASH_PROC_DEFAULT;
     ifnone = block;
   }
-  mrb_iv_set(mrb, hash, mrb_intern2(mrb, "ifnone", 6), ifnone);
+  mrb_iv_set(mrb, hash, mrb_intern(mrb, "ifnone", 6), ifnone);
   return hash;
 }
 
@@ -425,7 +425,7 @@ mrb_hash_set_default(mrb_state *mrb, mrb_value hash)
 
   mrb_get_args(mrb, "o", &ifnone);
   mrb_hash_modify(mrb, hash);
-  mrb_iv_set(mrb, hash, mrb_intern2(mrb, "ifnone", 6), ifnone);
+  mrb_iv_set(mrb, hash, mrb_intern(mrb, "ifnone", 6), ifnone);
   RHASH(hash)->flags &= ~(MRB_HASH_PROC_DEFAULT);
 
   return ifnone;
@@ -476,7 +476,7 @@ mrb_hash_set_default_proc(mrb_state *mrb, mrb_value hash)
 
   mrb_get_args(mrb, "o", &ifnone);
   mrb_hash_modify(mrb, hash);
-  mrb_iv_set(mrb, hash, mrb_intern2(mrb, "ifnone", 6), ifnone);
+  mrb_iv_set(mrb, hash, mrb_intern(mrb, "ifnone", 6), ifnone);
   RHASH(hash)->flags |= MRB_HASH_PROC_DEFAULT;
 
   return ifnone;
@@ -734,7 +734,7 @@ mrb_hash_replace(mrb_state *mrb, mrb_value hash)
   else {
     ifnone = RHASH_IFNONE(hash2);
   }
-  mrb_iv_set(mrb, hash, mrb_intern2(mrb, "ifnone", 6), ifnone);
+  mrb_iv_set(mrb, hash, mrb_intern(mrb, "ifnone", 6), ifnone);
 
   return hash;
 }
@@ -1004,7 +1004,7 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
 
   if (mrb_obj_equal(mrb, hash1, hash2)) return mrb_true_value();
   if (!mrb_hash_p(hash2)) {
-      if (!mrb_respond_to(mrb, hash2, mrb_intern2(mrb, "to_hash", 7))) {
+      if (!mrb_respond_to(mrb, hash2, mrb_intern(mrb, "to_hash", 7))) {
           return mrb_false_value();
       }
       if (eql)

@@ -574,10 +574,10 @@ mrb_str_cmp_m(mrb_state *mrb, mrb_value str1)
 
   mrb_get_args(mrb, "o", &str2);
   if (!mrb_string_p(str2)) {
-    if (!mrb_respond_to(mrb, str2, mrb_intern2(mrb, "to_s", 4))) {
+    if (!mrb_respond_to(mrb, str2, mrb_intern(mrb, "to_s", 4))) {
       return mrb_nil_value();
     }
-    else if (!mrb_respond_to(mrb, str2, mrb_intern2(mrb, "<=>", 3))) {
+    else if (!mrb_respond_to(mrb, str2, mrb_intern(mrb, "<=>", 3))) {
       return mrb_nil_value();
     }
     else {
@@ -613,7 +613,7 @@ mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2)
   if (mrb_obj_equal(mrb, str1, str2)) return TRUE;
   if (!mrb_string_p(str2)) {
     if (mrb_nil_p(str2)) return FALSE;
-    if (!mrb_respond_to(mrb, str2, mrb_intern2(mrb, "to_str", 6))) {
+    if (!mrb_respond_to(mrb, str2, mrb_intern(mrb, "to_str", 6))) {
       return FALSE;
     }
     str2 = mrb_funcall(mrb, str2, "to_str", 0);

@@ -74,14 +74,14 @@ intern_gen(parser_state *p, const char *s)
 static inline mrb_sym
 intern_gen2(parser_state *p, const char *s, size_t len)
 {
-  return mrb_intern2(p->mrb, s, len);
+  return mrb_intern(p->mrb, s, len);
 }
 #define intern2(s,len) intern_gen2(p,(s),(len))
 
 static inline mrb_sym
 intern_gen_c(parser_state *p, const char c)
 {
-  return mrb_intern2(p->mrb, &c, 1);
+  return mrb_intern(p->mrb, &c, 1);
 }
 #define intern_c(c) intern_gen_c(p,(c))
 
@@ -537,7 +537,7 @@ new_strsym(parser_state *p, node* str)
   const char *s = (const char*)str->cdr->car;
   size_t len = (size_t)str->cdr->cdr;
 
-  return mrb_intern2(p->mrb, s, len);
+  return mrb_intern(p->mrb, s, len);
 }
 
 // (:lvar . a)

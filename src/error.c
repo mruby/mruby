@@ -45,7 +45,7 @@ exc_initialize(mrb_state *mrb, mrb_value exc)
   mrb_value mesg;
 
   if (mrb_get_args(mrb, "|o", &mesg) == 1) {
-    mrb_iv_set(mrb, exc, mrb_intern2(mrb, "mesg", 4), mesg);
+    mrb_iv_set(mrb, exc, mrb_intern(mrb, "mesg", 4), mesg);
   }
   return exc;
 }
@@ -74,7 +74,7 @@ exc_exception(mrb_state *mrb, mrb_value self)
   if (argc == 0) return self;
   if (mrb_obj_equal(mrb, self, a)) return self;
   exc = mrb_obj_clone(mrb, self);
-  mrb_iv_set(mrb, exc, mrb_intern2(mrb, "mesg", 4), a);
+  mrb_iv_set(mrb, exc, mrb_intern(mrb, "mesg", 4), a);
 
   return exc;
 }
@@ -90,7 +90,7 @@ exc_exception(mrb_state *mrb, mrb_value self)
 static mrb_value
 exc_to_s(mrb_state *mrb, mrb_value exc)
 {
-  mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern2(mrb, "mesg", 4));
+  mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern(mrb, "mesg", 4));
 
   if (mrb_nil_p(mesg)) return mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, exc));
   return mesg;
@@ -124,9 +124,9 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
 {
   mrb_value str, mesg, file, line;
 
-  mesg = mrb_attr_get(mrb, exc, mrb_intern2(mrb, "mesg", 4));
-  file = mrb_attr_get(mrb, exc, mrb_intern2(mrb, "file", 4));
-  line = mrb_attr_get(mrb, exc, mrb_intern2(mrb, "line", 4));
+  mesg = mrb_attr_get(mrb, exc, mrb_intern(mrb, "mesg", 4));
+  file = mrb_attr_get(mrb, exc, mrb_intern(mrb, "file", 4));
+  line = mrb_attr_get(mrb, exc, mrb_intern(mrb, "line", 4));
 
   if (!mrb_nil_p(file) && !mrb_nil_p(line)) {
     str = file;
@@ -163,7 +163,7 @@ exc_equal(mrb_state *mrb, mrb_value exc)
   mrb_value obj;
   mrb_value mesg;
   mrb_bool equal_p;
-  mrb_sym id_mesg = mrb_intern2(mrb, "mesg", 4);
+  mrb_sym id_mesg = mrb_intern(mrb, "mesg", 4);
 
   mrb_get_args(mrb, "o", &obj);
   if (mrb_obj_equal(mrb, exc, obj)) {
@@ -171,7 +171,7 @@ exc_equal(mrb_state *mrb, mrb_value exc)
   }
   else {
     if (mrb_obj_class(mrb, exc) != mrb_obj_class(mrb, obj)) {
-      if (mrb_respond_to(mrb, obj, mrb_intern2(mrb, "message", 7))) {
+      if (mrb_respond_to(mrb, obj, mrb_intern(mrb, "message", 7))) {
         mesg = mrb_funcall(mrb, obj, "message", 0);
       }
       else
@@ -193,7 +193,7 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
   mrb_callinfo *ci = mrb->c->ci;
   mrb_code *pc = ci->pc;
 
-  mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
+  mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
   ci--;
   while (ci >= mrb->c->cibase) {
     if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
@@ -202,8 +202,8 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
       int32_t const line = mrb_debug_get_line(irep, pc - irep->iseq - 1);
       char const* file = mrb_debug_get_filename(irep, pc - irep->iseq - 1);
       if(line != -1 && file) {
-        mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "file", 4), mrb_str_new_cstr(mrb, file));
-        mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "line", 4), mrb_fixnum_value(line));
+        mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "file", 4), mrb_str_new_cstr(mrb, file));
+        mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "line", 4), mrb_fixnum_value(line));
         return;
       }
     }
@@ -348,7 +348,7 @@ mrb_bug(mrb_state *mrb, const char *fmt, ...)
 int
 sysexit_status(mrb_state *mrb, mrb_value err)
 {
-  mrb_value st = mrb_iv_get(mrb, err, mrb_intern2(mrb, "status", 6));
+  mrb_value st = mrb_iv_get(mrb, err, mrb_intern(mrb, "status", 6));
   return mrb_fixnum(st);
 }
 
@@ -386,7 +386,7 @@ make_exception(mrb_state *mrb, int argc, mrb_value *argv, int isstr)
       n = 1;
 exception_call:
       {
-        mrb_sym exc = mrb_intern2(mrb, "exception", 9);
+        mrb_sym exc = mrb_intern(mrb, "exception", 9);
         if (mrb_respond_to(mrb, argv[0], exc)) {
           mesg = mrb_funcall_argv(mrb, argv[0], exc, n, argv+1);
         }

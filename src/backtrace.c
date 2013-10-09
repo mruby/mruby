@@ -65,7 +65,7 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
   int i, line;
 
   func(mrb, stream, 1, "trace:\n");
-  ciidx = mrb_fixnum(mrb_obj_iv_get(mrb, exc, mrb_intern2(mrb, "ciidx", 5)));
+  ciidx = mrb_fixnum(mrb_obj_iv_get(mrb, exc, mrb_intern(mrb, "ciidx", 5)));
   if (ciidx >= mrb->c->ciend - mrb->c->cibase)
     ciidx = 10; /* ciidx is broken... */
 
@@ -85,7 +85,7 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
         pc = mrb->c->cibase[i+1].pc;
       }
       else {
-        pc = (mrb_code*)mrb_cptr(mrb_obj_iv_get(mrb, exc, mrb_intern2(mrb, "lastpc", 6)));
+        pc = (mrb_code*)mrb_cptr(mrb_obj_iv_get(mrb, exc, mrb_intern(mrb, "lastpc", 6)));
       }
       filename = mrb_debug_get_filename(irep, pc - irep->iseq - 1);
       line = mrb_debug_get_line(irep, pc - irep->iseq - 1);

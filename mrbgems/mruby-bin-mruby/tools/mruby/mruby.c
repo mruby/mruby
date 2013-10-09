@@ -213,7 +213,7 @@ main(int argc, char **argv)
   }
   else {
     mrbc_context *c = mrbc_context_new(mrb);
-    mrb_sym zero_sym = mrb_intern2(mrb, "$0", 2);
+    mrb_sym zero_sym = mrb_intern(mrb, "$0", 2);
     mrb_value v;
 
     if (args.verbose)

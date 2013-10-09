@@ -29,7 +29,7 @@ typedef enum {
 mrb_bool
 mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
-    struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mrb_intern2(mrb, "to_s", 4));
+    struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mrb_intern(mrb, "to_s", 4));
     if (me && MRB_PROC_CFUNC_P(me) && (me->body.func == mrb_any_to_s))
       return TRUE;
     return FALSE;
@@ -280,7 +280,7 @@ mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
     clone->super = klass->super;
     if (klass->iv) {
       mrb_iv_copy(mrb, mrb_obj_value(clone), mrb_obj_value(klass));
-      mrb_obj_iv_set(mrb, (struct RObject*)clone, mrb_intern2(mrb, "__attached__", 12), obj);
+      mrb_obj_iv_set(mrb, (struct RObject*)clone, mrb_intern(mrb, "__attached__", 12), obj);
     }
     if (klass->mt) {
       clone->mt = kh_copy(mt, mrb, klass->mt);
@@ -922,7 +922,7 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
     /* fall through */
   default:
     exc = mrb_make_exception(mrb, argc, a);
-    mrb_obj_iv_set(mrb, mrb_obj_ptr(exc), mrb_intern2(mrb, "lastpc", 6), mrb_cptr_value(mrb, mrb->c->ci->pc));
+    mrb_obj_iv_set(mrb, mrb_obj_ptr(exc), mrb_intern(mrb, "lastpc", 6), mrb_cptr_value(mrb, mrb->c->ci->pc));
     mrb_exc_raise(mrb, exc);
     break;
   }
@@ -1027,7 +1027,7 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   }
 
   if (!respond_to_p) {
-    rtm_id = mrb_intern2(mrb, "respond_to_missing?", 19);
+    rtm_id = mrb_intern(mrb, "respond_to_missing?", 19);
     if (basic_obj_respond_to(mrb, self, rtm_id, !mrb_test(priv))) {
       return mrb_funcall_argv(mrb, self, rtm_id, argc, argv);
     }
@@ -1129,5 +1129,5 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "to_s",                       mrb_any_to_s,                    MRB_ARGS_NONE());    /* 15.3.1.3.46 */
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
-  mrb_alias_method(mrb, mrb->module_class, mrb_intern2(mrb, "dup", 3), mrb_intern2(mrb, "clone", 5));
+  mrb_alias_method(mrb, mrb->module_class, mrb_intern(mrb, "dup", 3), mrb_intern(mrb, "clone", 5));
 }
