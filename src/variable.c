@@ -1034,8 +1034,6 @@ mrb_gv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 void
 mrb_gv_remove(mrb_state *mrb, mrb_sym sym)
 {
-  iv_tbl *t;
-
   if (!mrb->globals) {
     return;
   }
