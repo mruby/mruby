@@ -1031,6 +1031,17 @@ mrb_gv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
   iv_put(mrb, t, sym, v);
 }
 
+void
+mrb_gv_remove(mrb_state *mrb, mrb_sym sym)
+{
+  iv_tbl *t;
+
+  if (!mrb->globals) {
+    return;
+  }
+  iv_del(mrb, mrb->globals, sym, NULL);
+}
+
 static int
 gv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
