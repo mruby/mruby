@@ -175,8 +175,23 @@
 #ifdef IP_XFRM_POLICY
   define_const(IP_XFRM_POLICY);
 #endif
+#ifdef IPPROTO_AH
+  define_const(IPPROTO_AH);
+#endif
+#ifdef IPPROTO_DSTOPTS
+  define_const(IPPROTO_DSTOPTS);
+#endif
+#ifdef IPPROTO_ESP
+  define_const(IPPROTO_ESP);
+#endif
+#ifdef IPPROTO_FRAGMENT
+  define_const(IPPROTO_FRAGMENT);
+#endif
 #ifdef IPPROTO_ICMP
   define_const(IPPROTO_ICMP);
+#endif
+#ifdef IPPROTO_ICMPV6
+  define_const(IPPROTO_ICMPV6);
 #endif
 #ifdef IPPROTO_IP
   define_const(IPPROTO_IP);
@@ -184,8 +199,14 @@
 #ifdef IPPROTO_IPV6
   define_const(IPPROTO_IPV6);
 #endif
+#ifdef IPPROTO_NONE
+  define_const(IPPROTO_NONE);
+#endif
 #ifdef IPPROTO_RAW
   define_const(IPPROTO_RAW);
+#endif
+#ifdef IPPROTO_ROUTING
+  define_const(IPPROTO_ROUTING);
 #endif
 #ifdef IPPROTO_TCP
   define_const(IPPROTO_TCP);
