@@ -1,3 +1,10 @@
+mruby (0.0.0~20131011+git480e3297-1) unstable; urgency=low
+
+  * Snapshot, taken from the master (20131011).
+  * Upload to unstable.
+
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Fri, 11 Oct 2013 13:34:59 +0900
+
 mruby (0.0.0~20130903+gitad5c408c-1) experimental; urgency=low
 
   * New upstream release.
