@@ -138,6 +138,46 @@ FFF
 123
 KKK
 
+  m = [<<MM1, <<MM2]
+x#{m2 = {x:<<MM3}}y
+mm3
+MM3
+mm1
+MM1
+mm2
+MM2
+
+  n = [1, "#{<<NN1}", 3,
+nn1
+NN1
+  4]
+
+  qqq = Proc.new {|*x| x.join(' $ ')}
+  q1 = qqq.call("a", <<QQ1, "c",
+q
+QQ1
+      "d")
+  q2 = qqq.call("l", "m#{<<QQ2}n",
+qq
+QQ2
+      "o")
+
+  w = %W( 1 #{<<WWW} 3
+www
+WWW
+      4 5 )
+
+  x = [1, <<XXX1,
+foo #{<<XXX2} bar
+222 #{<<XXX3} 444
+333
+XXX3
+5
+XXX2
+6
+XXX1
+    9]
+
   z = <<'ZZZ'
 ZZZ
 
@@ -152,8 +192,17 @@ ZZZ
   assert_equal "  iii\n", i
   assert_equal ["  j1j\n", "  j2j\n", "  j\#{3}j\n"], j
   assert_equal 123, k
+  assert_equal ["x{:x=>\"mm3\\n\"}y\nmm1\n", "mm2\n"], m
+  assert_equal ({:x=>"mm3\n"}), m2
+  assert_equal [1, "nn1\n", 3, 4], n
+  assert_equal "a $ q\n $ c $ d", q1
+  assert_equal "l $ mqq\nn $ o", q2
+  assert_equal ["1", "www\n", "3", "4", "5"], w
+  assert_equal [1, "foo 222 333\n 444\n5\n bar\n6\n", 9], x
   assert_equal "", z
+
 end
+
 
 assert('Literals Array', '8.7.6.4') do
   a = %W{abc#{1+2}def \}g}
@@ -208,6 +257,7 @@ d
   assert_equal ['ab', '#{-1}1', '2#{2}'], g
   assert_equal ["a\\nb", "test abc", "c\nd", "x\\y", "x\\y", "x\\\\y"], h
 end
+
 
 assert('Literals Array of symbols') do
   a = %I{abc#{1+2}def \}g}

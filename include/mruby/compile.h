@@ -37,7 +37,7 @@ void mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*partial_hook)(stru
 /* AST node structure */
 typedef struct mrb_ast_node {
   struct mrb_ast_node *car, *cdr;
-  short lineno;
+  uint16_t lineno, filename_index;
 } mrb_ast_node;
 
 /* lexer states */
@@ -110,7 +110,7 @@ struct mrb_parser_state {
   FILE *f;
 #endif
   mrbc_context *cxt;
-  char *filename;
+  char const *filename;
   int lineno;
   int column;
 
@@ -128,9 +128,10 @@ struct mrb_parser_state {
   char buf[MRB_PARSER_BUF_SIZE];
   int bidx;
 
-  mrb_ast_node *heredocs;	/* list of mrb_parser_heredoc_info* */
+  mrb_ast_node *all_heredocs;	/* list of mrb_parser_heredoc_info* */
+  mrb_ast_node *heredocs_from_nextline;
   mrb_ast_node *parsing_heredoc;
-  mrb_bool heredoc_starts_nextline:1;
+  mrb_ast_node *lex_strterm_before_heredoc;
   mrb_bool heredoc_end_now:1; /* for mirb */
 
   void *ylval;
@@ -143,12 +144,19 @@ struct mrb_parser_state {
   struct mrb_parser_message error_buffer[10];
   struct mrb_parser_message warn_buffer[10];
 
+  mrb_sym* filename_table;
+  size_t filename_table_length;
+  int current_filename_index;
+
   jmp_buf jmp;
 };
 
 struct mrb_parser_state* mrb_parser_new(mrb_state*);
 void mrb_parser_free(struct mrb_parser_state*);
 void mrb_parser_parse(struct mrb_parser_state*,mrbc_context*);
+
+void mrb_parser_set_filename(struct mrb_parser_state*, char const*);
+char const* mrb_parser_get_filename(struct mrb_parser_state*, uint16_t idx);
 
 /* utility functions */
 #ifdef ENABLE_STDIO

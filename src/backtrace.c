@@ -9,6 +9,8 @@
 #include "mruby/proc.h"
 #include "mruby/array.h"
 #include "mruby/string.h"
+#include "mruby/class.h"
+#include "mruby/debug.h"
 #include <stdarg.h>
 
 typedef void (*output_stream_func)(mrb_state*, void*, int, const char*, ...);
@@ -32,7 +34,7 @@ get_backtrace_i(mrb_state *mrb, void *stream, int level, const char *format, ...
 {
   va_list ap;
   mrb_value ary, str;
-  int len, ai;
+  int ai;
 
   if (level > 0) {
     return;
@@ -40,12 +42,17 @@ get_backtrace_i(mrb_state *mrb, void *stream, int level, const char *format, ...
 
   ai = mrb_gc_arena_save(mrb);
   ary = mrb_obj_value((struct RArray*)stream);
+
   va_start(ap, format);
-  len = vsnprintf(NULL, 0, format, ap);
-  str = mrb_str_new(mrb, 0, len);
-  vsnprintf(RSTRING_PTR(str), len, format, ap);
-  mrb_ary_push(mrb, ary, str);
+  str = mrb_str_new(mrb, 0, vsnprintf(NULL, 0, format, ap) + 1);
   va_end(ap);
+
+  va_start(ap, format);
+  vsnprintf(RSTRING_PTR(str), RSTRING_LEN(str), format, ap);
+  va_end(ap);
+
+  mrb_str_resize(mrb, str, RSTRING_LEN(str) - 1);
+  mrb_ary_push(mrb, ary, str);
   mrb_gc_arena_restore(mrb, ai);
 }
 
@@ -64,35 +71,34 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
 
   for (i = ciidx; i >= 0; i--) {
     ci = &mrb->c->cibase[i];
-    filename = "(unknown)";
+    filename = NULL;
     line = -1;
 
     if (MRB_PROC_CFUNC_P(ci->proc)) {
       continue;
     }
-    else {
+    if(!MRB_PROC_CFUNC_P(ci->proc)) {
       mrb_irep *irep = ci->proc->body.irep;
-      if (irep->filename != NULL)
-        filename = irep->filename;
-      if (irep->lines != NULL) {
-        mrb_code *pc;
+      mrb_code *pc;
 
-        if (i+1 <= ciidx) {
-          pc = mrb->c->cibase[i+1].pc;
-        }
-        else {
-          pc = (mrb_code*)mrb_voidp(mrb_obj_iv_get(mrb, exc, mrb_intern2(mrb, "lastpc", 6)));
-        }
-        if (irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
-          line = irep->lines[pc - irep->iseq - 1];
-        }
+      if (i+1 <= ciidx) {
+        pc = mrb->c->cibase[i+1].pc;
       }
+      else {
+        pc = (mrb_code*)mrb_cptr(mrb_obj_iv_get(mrb, exc, mrb_intern2(mrb, "lastpc", 6)));
+      }
+      filename = mrb_debug_get_filename(irep, pc - irep->iseq - 1);
+      line = mrb_debug_get_line(irep, pc - irep->iseq - 1);
     }
     if (line == -1) continue;
     if (ci->target_class == ci->proc->target_class)
       sep = ".";
     else
       sep = "#";
+
+    if (!filename) {
+      filename = "(unknown)";
+    }
 
     method = mrb_sym2name(mrb, ci->mid);
     if (method) {

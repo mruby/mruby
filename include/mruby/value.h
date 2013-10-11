@@ -99,7 +99,7 @@ enum mrb_vtype {
   MRB_TT_SYMBOL,      /*   5 */
   MRB_TT_UNDEF,       /*   6 */
   MRB_TT_FLOAT,       /*   7 */
-  MRB_TT_VOIDP,       /*   8 */
+  MRB_TT_CPTR,       /*   8 */
   MRB_TT_OBJECT,      /*   9 */
   MRB_TT_CLASS,       /*  10 */
   MRB_TT_MODULE,      /*  11 */
@@ -194,7 +194,7 @@ enum mrb_vtype {
   MRB_TT_SYMBOL,      /*   4 */
   MRB_TT_UNDEF,       /*   5 */
   MRB_TT_FLOAT,       /*   6 */
-  MRB_TT_VOIDP,       /*   7 */
+  MRB_TT_CPTR,       /*   7 */
   MRB_TT_OBJECT,      /*   8 */
   MRB_TT_CLASS,       /*   9 */
   MRB_TT_MODULE,      /*  10 */
@@ -242,7 +242,7 @@ typedef union mrb_value {
     };
     struct RBasic *bp;
     struct RFloat *fp;
-    struct RVoidp *vp;
+    struct RCptr *vp;
   } value;
   unsigned long w;
 } mrb_value;
@@ -305,14 +305,14 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
 
 #ifdef MRB_WORD_BOXING
 
-#define mrb_voidp(o) (o).value.vp->p
+#define mrb_cptr(o) (o).value.vp->p
 #define mrb_fixnum_p(o) ((o).value.i_flag == MRB_FIXNUM_FLAG)
 #define mrb_undef_p(o) ((o).w == MRB_Qundef)
 #define mrb_nil_p(o)  ((o).w == MRB_Qnil)
 #define mrb_bool(o)   ((o).w != MRB_Qnil && (o).w != MRB_Qfalse)
 
 #else
-#define mrb_voidp(o) mrb_ptr(o)
+#define mrb_cptr(o) mrb_ptr(o)
 #define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_FIXNUM)
 #define mrb_undef_p(o) (mrb_type(o) == MRB_TT_UNDEF)
 #define mrb_nil_p(o)  (mrb_type(o) == MRB_TT_FALSE && !(o).value.i)
@@ -327,7 +327,7 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
 #define mrb_array_p(o) (mrb_type(o) == MRB_TT_ARRAY)
 #define mrb_string_p(o) (mrb_type(o) == MRB_TT_STRING)
 #define mrb_hash_p(o) (mrb_type(o) == MRB_TT_HASH)
-#define mrb_voidp_p(o) (mrb_type(o) == MRB_TT_VOIDP)
+#define mrb_cptr_p(o) (mrb_type(o) == MRB_TT_CPTR)
 #define mrb_test(o)   mrb_bool(o)
 
 #define MRB_OBJECT_HEADER \
@@ -370,7 +370,7 @@ struct RObject {
 #define mrb_obj_ptr(v)   ((struct RObject*)(mrb_ptr(v)))
 /* obsolete macro mrb_object; will be removed soon */
 #define mrb_object(o) mrb_obj_ptr(o)
-#define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_VOIDP)
+#define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_CPTR)
 #define mrb_special_const_p(x) mrb_immediate_p(x)
 
 struct RFiber {
@@ -384,7 +384,7 @@ struct RFloat {
   mrb_float f;
 };
 
-struct RVoidp {
+struct RCptr {
   MRB_OBJECT_HEADER;
   void *p;
 };
@@ -441,18 +441,23 @@ mrb_obj_value(void *p)
 
 #ifdef MRB_WORD_BOXING
 mrb_value
-mrb_voidp_value(struct mrb_state *mrb, void *p);
+mrb_cptr_value(struct mrb_state *mrb, void *p);
 #else
 static inline mrb_value
-mrb_voidp_value(struct mrb_state *mrb, void *p)
+mrb_cptr_value(struct mrb_state *mrb, void *p)
 {
   mrb_value v;
   (void) mrb;
 
-  MRB_SET_VALUE(v, MRB_TT_VOIDP, value.p, p);
+  MRB_SET_VALUE(v, MRB_TT_CPTR, value.p, p);
   return v;
 }
 #endif
+/* obsolete macros; will be removed */
+#define MRB_TT_VOIDP MRB_TT_CPTR
+#define mrb_voidp_value(m,p) mrb_cptr_value((m),(p))
+#define mrb_voidp(o) mrb_cptr(o)
+#define mrb_voidp_p(o) mrb_cptr_p(o)
 
 static inline mrb_value
 mrb_false_value(void)

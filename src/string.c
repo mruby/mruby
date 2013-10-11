@@ -1500,7 +1500,7 @@ mrb_ptr_to_str(mrb_state *mrb, void *p)
   struct RString *p_str;
   char *p1;
   char *p2;
-  intptr_t n = (intptr_t)p;
+  uintptr_t n = (uintptr_t)p;
 
   p_str = str_new(mrb, NULL, 2 + sizeof(uintptr_t) * CHAR_BIT / 4);
   p1 = p_str->ptr;

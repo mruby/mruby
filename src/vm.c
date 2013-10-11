@@ -75,7 +75,12 @@ stack_clear(mrb_value *from, size_t count)
   const mrb_value mrb_value_zero = { { 0 } };
 
   while (count-- > 0) {
+#ifndef MRB_NAN_BOXING
     *from++ = mrb_value_zero;
+#else
+    SET_NIL_VALUE(*from);
+    from++;
+#endif
   }
 }
 
@@ -156,15 +161,7 @@ stack_extend(mrb_state *mrb, int room, int keep)
   }
 
   if (room > keep) {
-#ifndef MRB_NAN_BOXING
     stack_clear(&(mrb->c->stack[keep]), room - keep);
-#else
-    struct mrb_context *c = mrb->c;
-    int i;
-    for (i=keep; i<room; i++) {
-      SET_NIL_VALUE(c->stack[i]);
-    }
-#endif
   }
 }
 
@@ -460,7 +457,7 @@ mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv)
 {
   struct RProc *p = mrb_proc_ptr(b);
 
-  return mrb_yield_internal(mrb, b, argc, argv, mrb->c->stack[0], p->target_class);
+  return mrb_yield_internal(mrb, b, argc, argv, p->env->stack[0], p->target_class);
 }
 
 mrb_value
@@ -468,7 +465,7 @@ mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg)
 {
   struct RProc *p = mrb_proc_ptr(b);
 
-  return mrb_yield_internal(mrb, b, 1, &arg, mrb->c->stack[0], p->target_class);
+  return mrb_yield_internal(mrb, b, 1, &arg, p->env->stack[0], p->target_class);
 }
 
 typedef enum {
@@ -513,7 +510,7 @@ argnum_error(mrb_state *mrb, int num)
 }
 
 #ifdef ENABLE_DEBUG
-#define CODE_FETCH_HOOK(mrb, irep, pc, regs) ((mrb)->code_fetch_hook ? (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs)) : NULL)
+#define CODE_FETCH_HOOK(mrb, irep, pc, regs) if ((mrb)->code_fetch_hook) (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs)); 
 #else
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs)
 #endif
@@ -1250,7 +1247,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
       L_RAISE:
         ci = mrb->c->ci;
-        mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern2(mrb, "lastpc", 6), mrb_voidp_value(mrb, pc));
+        mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern2(mrb, "lastpc", 6), mrb_cptr_value(mrb, pc));
         mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern2(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
         eidx = ci->eidx;
         if (ci == mrb->c->cibase) {

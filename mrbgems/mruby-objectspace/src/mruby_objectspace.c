@@ -80,7 +80,7 @@ os_count_objects(mrb_state *mrb, mrb_value self)
       COUNT_TYPE(MRB_TT_SYMBOL);
       COUNT_TYPE(MRB_TT_UNDEF);
       COUNT_TYPE(MRB_TT_FLOAT);
-      COUNT_TYPE(MRB_TT_VOIDP);
+      COUNT_TYPE(MRB_TT_CPTR);
       COUNT_TYPE(MRB_TT_OBJECT);
       COUNT_TYPE(MRB_TT_CLASS);
       COUNT_TYPE(MRB_TT_MODULE);
