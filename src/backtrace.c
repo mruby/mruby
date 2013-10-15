@@ -77,18 +77,21 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
     if (MRB_PROC_CFUNC_P(ci->proc)) {
       continue;
     }
-    if(!MRB_PROC_CFUNC_P(ci->proc)) {
+    else {
       mrb_irep *irep = ci->proc->body.irep;
       mrb_code *pc;
 
-      if (i+1 <= ciidx) {
-        pc = mrb->c->cibase[i+1].pc;
+      if (mrb->c->cibase[i].err) {
+        pc = mrb->c->cibase[i].err;
+      }
+      else if (i+1 <= ciidx) {
+        pc = mrb->c->cibase[i+1].pc - 1;
       }
       else {
         pc = (mrb_code*)mrb_cptr(mrb_obj_iv_get(mrb, exc, mrb_intern2(mrb, "lastpc", 6)));
       }
-      filename = mrb_debug_get_filename(irep, pc - irep->iseq - 1);
-      line = mrb_debug_get_line(irep, pc - irep->iseq - 1);
+      filename = mrb_debug_get_filename(irep, pc - irep->iseq);
+      line = mrb_debug_get_line(irep, pc - irep->iseq);
     }
     if (line == -1) continue;
     if (ci->target_class == ci->proc->target_class)

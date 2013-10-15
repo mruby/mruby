@@ -55,7 +55,8 @@ typedef struct {
   int stackidx;
   int nregs;
   int argc;
-  mrb_code *pc;
+  mrb_code *pc;                 /* return address */
+  mrb_code *err;                /* error position */
   int acc;
   struct RClass *target_class;
   int ridx;

@@ -194,14 +194,16 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
   mrb_code *pc = ci->pc;
 
   mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
-  ci--;
   while (ci >= mrb->c->cibase) {
-    if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
+    mrb_code *err = ci->err;
+
+    if (!err && pc) err = pc - 1;
+    if (err && ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
       mrb_irep *irep = ci->proc->body.irep;
 
-      int32_t const line = mrb_debug_get_line(irep, pc - irep->iseq - 1);
-      char const* file = mrb_debug_get_filename(irep, pc - irep->iseq - 1);
-      if(line != -1 && file) {
+      int32_t const line = mrb_debug_get_line(irep, err - irep->iseq);
+      char const* file = mrb_debug_get_filename(irep, err - irep->iseq);
+      if (line != -1 && file) {
         mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "file", 4), mrb_str_new_cstr(mrb, file));
         mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "line", 4), mrb_fixnum_value(line));
         return;
