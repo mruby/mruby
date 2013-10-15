@@ -309,7 +309,6 @@ mrb_basicsocket_send(mrb_state *mrb, mrb_value self)
   if (mrb_nil_p(dest)) {
     n = send(socket_fd(mrb, self), RSTRING_PTR(mesg), RSTRING_LEN(mesg), flags);
   } else {
-    // XXX: length check
     n = sendto(socket_fd(mrb, self), RSTRING_PTR(mesg), RSTRING_LEN(mesg), flags, (const void *)RSTRING_PTR(dest), RSTRING_LEN(dest));
   }
   if (n == -1)
@@ -458,102 +457,6 @@ mrb_ipsocket_recvfrom(mrb_state *mrb, mrb_value self)
   mrb_ary_push(mrb, pair, buf);
   mrb_ary_push(mrb, pair, a);
   return pair;
-}
-
-static mrb_value
-mrb_udpsocket_bind(mrb_state *mrb, mrb_value self)
-{ 
-  struct addrinfo hints, *res;
-  mrb_int n, port;
-  int error, s;
-  char *host, hostbuf[256], portbuf[6];
-
-  s = socket_fd(mrb, self);
-  mrb_get_args(mrb, "si", &host, &n, &port);
-  if (n > sizeof(hostbuf) - 1) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "host is too long");
-  }
-  memcpy(hostbuf, host, n);
-  hostbuf[n] = '\0';
-
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_socktype = SOCK_DGRAM;
-  hints.ai_flags = AI_NUMERICSERV|AI_PASSIVE;
-  snprintf(portbuf, sizeof(portbuf), "%d", port);
-  error = getaddrinfo(hostbuf, portbuf, &hints, &res);
-  if (error != 0)
-    mrb_raise(mrb, E_RUNTIME_ERROR, "getaddrinfo(2) failed");
-  if (bind(s, res->ai_addr, res->ai_addrlen) == -1) {
-    freeaddrinfo(res);
-    mrb_raise(mrb, E_RUNTIME_ERROR, "bind(2) failed");
-  }
-  freeaddrinfo(res);
-  return mrb_fixnum_value(0);
-}
-
-static mrb_value
-mrb_udpsocket_connect(mrb_state *mrb, mrb_value self)
-{ 
-  struct addrinfo hints, *res;
-  mrb_int n, port;
-  int error, s;
-  char *host, hostbuf[256], portbuf[6];
-
-  mrb_get_args(mrb, "si", &host, &n, &port);
-  s = socket_fd(mrb, self);
-
-  if (n > sizeof(hostbuf) - 1) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "host is too long");
-  }
-  memcpy(hostbuf, host, n);
-  hostbuf[n] = '\0';
-
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_socktype = SOCK_DGRAM;
-  hints.ai_flags = AI_NUMERICSERV;
-  snprintf(portbuf, sizeof(portbuf), "%d", port);
-  error = getaddrinfo(hostbuf, portbuf, &hints, &res);
-  if (error != 0)
-    mrb_raise(mrb, E_RUNTIME_ERROR, "getaddrinfo(2) failed");
-  if (connect(s, res->ai_addr, res->ai_addrlen) == -1) {
-    freeaddrinfo(res);
-    mrb_raise(mrb, E_RUNTIME_ERROR, "connect(2) failed");
-  }
-  freeaddrinfo(res);
-  return mrb_fixnum_value(0);
-}
-
-static mrb_value
-mrb_udpsocket_send(mrb_state *mrb, mrb_value self)
-{ 
-  struct addrinfo hints, *res;
-  mrb_int n, flags;
-  mrb_value host, port;
-  int argc, hlen, s;
-  char hostbuf[256], *msg, portbuf[6];
-
-  argc = mrb_get_args(mrb, "si|oo", &msg, &hlen, &flags, &host, &port);
-  s = socket_fd(mrb, self);
-  n = -1;
-  if (argc == 2) {
-    n = send(s, msg, hlen, flags);
-  } else if (argc == 4) {
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_protocol = IPPROTO_UDP;
-    hints.ai_flags = AI_NUMERICHOST|AI_NUMERICSERV;
-    memcpy(hostbuf, RSTRING_PTR(host), RSTRING_LEN(host));
-    hostbuf[RSTRING_LEN(host)] = '\0';
-    snprintf(portbuf, sizeof(portbuf), "%u", mrb_fixnum(port));
-    if (getaddrinfo(hostbuf, portbuf, &hints, &res) != 0)
-      mrb_sys_fail(mrb, "getaddrinfo");
-    // XXX: try all addresses?
-    n = sendto(s, msg, hlen, flags, res->ai_addr, res->ai_addrlen);
-    freeaddrinfo(res);
-  }
-  if (n == -1)
-    mrb_sys_fail(mrb, "send");
-  return mrb_fixnum_value(n);
 }
 
 static mrb_value
