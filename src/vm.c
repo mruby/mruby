@@ -701,8 +701,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_GETCONST) {
       /* A B    R(A) := constget(Sym(B)) */
+      mrb_value val;
+
       ERR_PC_HOOK(mrb, pc);
-      mrb_value val = mrb_vm_const_get(mrb, syms[GETARG_Bx(i)]);
+      val = mrb_vm_const_get(mrb, syms[GETARG_Bx(i)]);
       regs = mrb->c->stack;
       regs[GETARG_A(i)] = val;
       NEXT;
@@ -716,10 +718,11 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_GETMCNST) {
       /* A B C  R(A) := R(C)::Sym(B) */
+      mrb_value val;
       int a = GETARG_A(i);
 
       ERR_PC_HOOK(mrb, pc);
-      mrb_value val = mrb_const_get(mrb, regs[a], syms[GETARG_Bx(i)]);
+      val = mrb_const_get(mrb, regs[a], syms[GETARG_Bx(i)]);
       regs = mrb->c->stack;
       regs[a] = val;
       NEXT;
