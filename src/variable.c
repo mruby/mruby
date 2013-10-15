@@ -867,7 +867,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
   mrb_value v;
   iv_tbl *t;
   mrb_bool retry = 0;
-  mrb_sym cm;
+  mrb_value name;
 
 L_RETRY:
   while (c) {
@@ -883,19 +883,8 @@ L_RETRY:
     retry = 1;
     goto L_RETRY;
   }
-  c = base;
-  cm = mrb_intern2(mrb, "const_missing", 13);
-  while (c) {
-    if (mrb_respond_to(mrb, mrb_obj_value(c), cm)) {
-      mrb_value name = mrb_symbol_value(sym);
-      return mrb_funcall_argv(mrb, mrb_obj_value(c), cm, 1, &name);
-    }
-    c = c->super;
-  }
-  mrb_name_error(mrb, sym, "uninitialized constant %S",
-             mrb_sym2str(mrb, sym));
-  /* not reached */
-  return mrb_nil_value();
+  name = mrb_symbol_value(sym);
+  return mrb_funcall_argv(mrb, mrb_obj_value(base), mrb_intern2(mrb, "const_missing", 13), 1, &name);
 }
 
 mrb_value
