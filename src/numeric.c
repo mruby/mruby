@@ -710,7 +710,11 @@ int_to_i(mrb_state *mrb, mrb_value num)
 static mrb_value
 fix_succ(mrb_state *mrb, mrb_value num)
 {
-  return mrb_fixnum_value(mrb_fixnum(num)+1);
+  mrb_int x = mrb_fixnum(num);
+
+  if (x == MRB_INT_MAX)         /* fixnum overflow */
+    return mrb_float_value(mrb, (double)x + 1.0);
+  return mrb_fixnum_value(x+1);
 }
 
 /* 15.2.8.3.19 */
