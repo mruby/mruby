@@ -35,6 +35,16 @@ class Integer
   end
 
   ##
+  # Returns self + 1
+  #
+  # ISO 15.2.8.3.19
+  def next
+    self + 1
+  end
+  # ISO 15.2.8.3.21
+  alias succ next
+
+  ##
   # Calls the given block +self+ times.
   #
   # ISO 15.2.8.3.22

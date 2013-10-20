@@ -695,46 +695,6 @@ int_to_i(mrb_state *mrb, mrb_value num)
   return num;
 }
 
-/* 15.2.8.3.21 */
-/*
- *  call-seq:
- *     fixnum.next  ->  integer
- *     fixnum.succ  ->  integer
- *
- *  Returns the <code>Integer</code> equal to <i>int</i> + 1.
- *
- *     1.next      #=> 2
- *     (-1).next   #=> 0
- */
-
-static mrb_value
-fix_succ(mrb_state *mrb, mrb_value num)
-{
-  mrb_int x = mrb_fixnum(num);
-
-  if (x == MRB_INT_MAX)         /* fixnum overflow */
-    return mrb_float_value(mrb, (double)x + 1.0);
-  return mrb_fixnum_value(x+1);
-}
-
-/* 15.2.8.3.19 */
-/*
- *  call-seq:
- *     int.next  ->  integer
- *     int.succ  ->  integer
- *
- *  Returns the <code>Integer</code> equal to <i>int</i> + 1.
- *
- *     1.next      #=> 2
- *     (-1).next   #=> 0
- */
-static mrb_value
-int_succ(mrb_state *mrb, mrb_value num)
-{
-  if (mrb_fixnum_p(num)) return fix_succ(mrb, num);
-  return mrb_funcall(mrb, num, "+", 1, mrb_fixnum_value(1));
-}
-
 #define SQRT_INT_MAX ((mrb_int)1<<((sizeof(mrb_int)*CHAR_BIT-1)/2))
 /*tests if N*N would overflow*/
 #define FIT_SQRT_INT(n) (((n)<SQRT_INT_MAX)&&((n)>=-SQRT_INT_MAX))
@@ -1394,8 +1354,6 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fixnum,  ">>",       fix_rshift,        MRB_ARGS_REQ(1)); /* 15.2.8.3.13 */
   mrb_define_method(mrb, fixnum,  "eql?",     num_eql,           MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
   mrb_define_method(mrb, fixnum,  "hash",     flo_hash,          MRB_ARGS_NONE()); /* 15.2.8.3.18 */
-  mrb_define_method(mrb, fixnum,  "next",     int_succ,          MRB_ARGS_NONE()); /* 15.2.8.3.19 */
-  mrb_define_method(mrb, fixnum,  "succ",     fix_succ,          MRB_ARGS_NONE()); /* 15.2.8.3.21 */
   mrb_define_method(mrb, fixnum,  "to_f",     fix_to_f,          MRB_ARGS_NONE()); /* 15.2.8.3.23 */
   mrb_define_method(mrb, fixnum,  "to_s",     fix_to_s,          MRB_ARGS_NONE()); /* 15.2.8.3.25 */
   mrb_define_method(mrb, fixnum,  "inspect",  fix_to_s,          MRB_ARGS_NONE());
