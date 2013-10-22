@@ -3,6 +3,7 @@
 #
 # ISO 15.2.7
 class Numeric
+  include Comparable
   ##
   # Returns the receiver simply.
   #
@@ -33,19 +34,11 @@ class Numeric
 end
 
 ##
-# Integer
+# Integral
 #
-# ISO 15.2.8
-class Integer
-
-  ##
-  # Returns the receiver simply.
-  #
-  # ISO 15.2.8.3.14
-  def ceil
-    self
-  end
-
+# mruby special - module to share methods between Floats and Integers
+#                 to make them compatible
+module Integral
   ##
   # Calls the given block once for each Integer
   # from +self+ downto +num+.
@@ -57,14 +50,6 @@ class Integer
       block.call(i)
       i -= 1
     end
-    self
-  end
-
-  ##
-  # Returns the receiver simply.
-  #
-  # ISO 15.2.8.3.17
-  def floor
     self
   end
 
@@ -88,22 +73,6 @@ class Integer
       block.call(i)
       i += 1
     end
-    self
-  end
-
-  ##
-  # Returns the receiver simply.
-  #
-  # ISO 15.2.8.3.24
-  def round
-    self
-  end
-
-  ##
-  # Returns the receiver simply.
-  #
-  # ISO 15.2.8.3.26
-  def truncate
     self
   end
 
@@ -136,10 +105,63 @@ class Integer
 end
 
 ##
-# Numeric is comparable
+# Integer
 #
-# ISO 15.2.7.3
-module Comparable; end
-class Numeric
-  include Comparable
+# ISO 15.2.8
+class Integer
+  include Integral
+  ##
+  # Returns the receiver simply.
+  #
+  # ISO 15.2.8.3.14
+  def ceil
+    self
+  end
+
+  ##
+  # Returns the receiver simply.
+  #
+  # ISO 15.2.8.3.17
+  def floor
+    self
+  end
+
+  ##
+  # Returns the receiver simply.
+  #
+  # ISO 15.2.8.3.24
+  alias round floor
+
+  ##
+  # Returns the receiver simply.
+  #
+  # ISO 15.2.8.3.26
+  alias truncate floor
+end
+
+##
+# Float
+#
+# ISO 15.2.9
+class Float
+  include Integral
+  # mruby special - since mruby integers may be upgraded to floats,
+  # floats should be compatible to integers.
+  def >> other
+    n = self.to_i
+    other.to_i.times {
+      n /= 2
+    }
+    n
+  end
+  def << other
+    n = self.to_i
+    other.to_i.times {
+      n *= 2
+    }
+    n.to_i
+  end
+
+  def divmod(other)
+  end
 end

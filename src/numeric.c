@@ -784,6 +784,21 @@ fix_divmod(mrb_state *mrb, mrb_value x)
   }
 }
 
+static mrb_value
+flo_divmod(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y;
+  mrb_float div, mod;
+  mrb_value a, b;
+
+  mrb_get_args(mrb, "o", &y);
+
+  flodivmod(mrb, mrb_float(x), mrb_to_flo(mrb, y), &div, &mod);
+  a = mrb_float_value(mrb, (mrb_int)div);
+  b = mrb_float_value(mrb, mod);
+  return mrb_assoc_new(mrb, a, b);
+}
+
 /* 15.2.8.3.7  */
 /*
  * call-seq:
@@ -1270,7 +1285,6 @@ mrb_init_numeric(mrb_state *mrb)
 
   /* Numeric Class */
   numeric = mrb_define_class(mrb, "Numeric",  mrb->object_class);
-  mrb_include_module(mrb, numeric, mrb_class_get(mrb, "Comparable"));
 
   mrb_define_method(mrb, numeric, "**",       num_pow,        MRB_ARGS_REQ(1));
   mrb_define_method(mrb, numeric, "/",        num_div,        MRB_ARGS_REQ(1));  /* 15.2.8.3.4  */
@@ -1319,6 +1333,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "to_i",      flo_truncate,     MRB_ARGS_NONE()); /* 15.2.9.3.14 */
   mrb_define_method(mrb, fl,      "to_int",    flo_truncate,     MRB_ARGS_NONE());
   mrb_define_method(mrb, fl,      "truncate",  flo_truncate,     MRB_ARGS_NONE()); /* 15.2.9.3.15 */
+  mrb_define_method(mrb, fixnum,  "divmod",    flo_divmod,       MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, fl,      "to_s",      flo_to_s,         MRB_ARGS_NONE()); /* 15.2.9.3.16(x) */
   mrb_define_method(mrb, fl,      "inspect",   flo_to_s,         MRB_ARGS_NONE());
