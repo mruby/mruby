@@ -1,4 +1,38 @@
 ##
+# Numeric
+#
+# ISO 15.2.7
+class Numeric
+  ##
+  # Returns the receiver simply.
+  #
+  # ISO 15.2.7.4.1
+  def +@
+    self
+  end
+
+  ##
+  # Returns the receiver's value, negated.
+  #
+  # ISO 15.2.7.4.2
+  def -@
+    0 - self
+  end
+
+  ##
+  # Returns the absolute value of the receiver.
+  #
+  # ISO 15.2.7.4.3
+  def abs
+    if self < 0
+      -self
+    else
+      self
+    end
+  end
+end
+
+##
 # Integer
 #
 # ISO 15.2.8
