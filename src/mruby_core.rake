@@ -3,7 +3,7 @@ MRuby.each_target do
   relative_from_root = File.dirname(__FILE__).relative_path_from(MRUBY_ROOT)
   current_build_dir = "#{build_dir}/#{relative_from_root}"
   
-  lex_def = "#{current_dir}/lex.def"
+  lex_def = "#{current_build_dir}/lex.def"
   objs = Dir.glob("#{current_dir}/*.c").map { |f| objfile(f.pathmap("#{current_build_dir}/%n")) }
   objs += [objfile("#{current_build_dir}/y.tab")]
   self.libmruby << objs
