@@ -13,7 +13,7 @@
 #include "mruby/numeric.h"
 #include "mruby/string.h"
 #include "mruby/debug.h"
-#include "node.h"
+#include "node_type.h"
 #include "opcode.h"
 #include "re.h"
 

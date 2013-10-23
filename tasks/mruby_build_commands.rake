@@ -192,7 +192,7 @@ module MRuby
     def initialize(build)
       super
       @command = 'bison'
-      @compile_options = '-o %{outfile} %{infile}'
+      @compile_options = '-d -o %{outfile} %{infile}'
     end
 
     def run(outfile, infile)
