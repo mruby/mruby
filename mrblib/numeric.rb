@@ -45,7 +45,7 @@ module Integral
   #
   # ISO 15.2.8.3.15
   def downto(num, &block)
-    i = self
+    i = self.to_i
     while(i >= num)
       block.call(i)
       i -= 1
@@ -82,7 +82,7 @@ module Integral
   #
   # ISO 15.2.8.3.27
   def upto(num, &block)
-    i = self
+    i = self.to_i
     while(i <= num)
       block.call(i)
       i += 1
