@@ -646,7 +646,9 @@ scope_body(codegen_scope *s, node *tree)
       genop(scope, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
     }
     else {
-      genop_peep(scope, MKOP_AB(OP_RETURN, scope->sp, OP_R_NORMAL), NOVAL);
+      pop();
+      genop_peep(scope, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
+      push();
     }
   }
   scope_finish(scope);
