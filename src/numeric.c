@@ -1333,7 +1333,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "to_i",      flo_truncate,     MRB_ARGS_NONE()); /* 15.2.9.3.14 */
   mrb_define_method(mrb, fl,      "to_int",    flo_truncate,     MRB_ARGS_NONE());
   mrb_define_method(mrb, fl,      "truncate",  flo_truncate,     MRB_ARGS_NONE()); /* 15.2.9.3.15 */
-  mrb_define_method(mrb, fixnum,  "divmod",    flo_divmod,       MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, fl,      "divmod",    flo_divmod,       MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, fl,      "to_s",      flo_to_s,         MRB_ARGS_NONE()); /* 15.2.9.3.16(x) */
   mrb_define_method(mrb, fl,      "inspect",   flo_to_s,         MRB_ARGS_NONE());
