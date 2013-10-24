@@ -222,6 +222,11 @@ assert('Class new') do
   assert_equal(Class, Class.new.class)
 end
 
+assert('Class do not leak method') do
+  m = class C; def m; end; end
+  assert_equal(m, :m)
+end
+
 assert('Class#inherited') do
   class Foo
     @@subclass_name = nil
