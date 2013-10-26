@@ -721,8 +721,11 @@ mrb_obj_is_kind_of_m(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(kind_of_p);
 }
 
+KHASH_DECLARE(st, mrb_sym, char, 0)
+KHASH_DEFINE(st, mrb_sym, char, 0, kh_int_hash_func, kh_int_hash_equal)
+
 static void
-method_entry_loop(mrb_state *mrb, struct RClass* klass, mrb_value ary)
+method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
 {
   khint_t i;
 
@@ -730,7 +733,7 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, mrb_value ary)
   if (!h) return;
   for (i=0;i<kh_end(h);i++) {
     if (kh_exist(h, i)) {
-      mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(h,i)));
+      kh_put(st, set, kh_key(h,i));
     }
   }
 }
@@ -738,13 +741,14 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, mrb_value ary)
 mrb_value
 class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass, int obj)
 {
+  khint_t i;
   mrb_value ary;
   struct RClass* oldklass;
+  khash_t(st)* set = kh_init(st, mrb);
 
-  ary = mrb_ary_new(mrb);
   oldklass = 0;
   while (klass && (klass != oldklass)) {
-    method_entry_loop(mrb, klass, ary);
+    method_entry_loop(mrb, klass, set);
     if ((klass->tt == MRB_TT_ICLASS) ||
         (klass->tt == MRB_TT_SCLASS)) {
     }
@@ -755,27 +759,45 @@ class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass,
     klass = klass->super;
   }
 
+  ary = mrb_ary_new(mrb);
+  for (i=0;i<kh_end(set);i++) {
+    if (kh_exist(set, i)) {
+      mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(set,i)));
+    }
+  }
+  kh_destroy(st, set);
+
   return ary;
 }
 
 mrb_value
 mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
 {
+  khint_t i;
   mrb_value ary;
   struct RClass* klass;
+  khash_t(st)* set = kh_init(st, mrb);
 
   klass = mrb_class(mrb, obj);
-  ary = mrb_ary_new(mrb);
+
   if (klass && (klass->tt == MRB_TT_SCLASS)) {
-      method_entry_loop(mrb, klass, ary);
+      method_entry_loop(mrb, klass, set);
       klass = klass->super;
   }
   if (recur) {
       while (klass && ((klass->tt == MRB_TT_SCLASS) || (klass->tt == MRB_TT_ICLASS))) {
-        method_entry_loop(mrb, klass, ary);
+        method_entry_loop(mrb, klass, set);
         klass = klass->super;
       }
   }
+
+  ary = mrb_ary_new(mrb);
+  for (i=0;i<kh_end(set);i++) {
+    if (kh_exist(set, i)) {
+      mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(set,i)));
+    }
+  }
+  kh_destroy(st, set);
 
   return ary;
 }
