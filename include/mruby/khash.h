@@ -50,7 +50,7 @@ static const uint8_t __m_either[8] = {0x03, 0x0c, 0x30, 0xc0};
    name: hash name
    khkey_t: key data type
    khval_t: value data type
-   kh_is_map: (not implemented / not used in RiteVM)
+   kh_is_map: (0: hash set / 1: hash map)
 */
 #define KHASH_DECLARE(name, khkey_t, khval_t, kh_is_map)                \
   typedef struct kh_##name {                                            \
@@ -89,7 +89,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
    name: hash name
    khkey_t: key data type
    khval_t: value data type
-   kh_is_map: (not implemented / not used in RiteVM)
+   kh_is_map: (0: hash set / 1: hash map)
    __hash_func: hash function
    __hash_equal: hash comparation function
 */
@@ -97,12 +97,13 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
   void kh_alloc_##name(kh_##name##_t *h)                                \
   {                                                                     \
     khint_t sz = h->n_buckets;                                          \
-    uint8_t *p = mrb_malloc(h->mrb, sizeof(uint8_t)*sz/4+(sizeof(khkey_t)+sizeof(khval_t))*sz); \
+    int len = sizeof(khkey_t) + (kh_is_map ? sizeof(khval_t) : 0);      \
+    uint8_t *p = mrb_malloc(h->mrb, sizeof(uint8_t)*sz/4+len*sz);       \
     h->size = h->n_occupied = 0;                                        \
     h->upper_bound = UPPER_BOUND(sz);                                   \
     h->keys = (khkey_t *)p;                                             \
-    h->vals = (khval_t *)(p+sizeof(khkey_t)*sz);                        \
-    h->ed_flags = (p+sizeof(khkey_t)*sz+sizeof(khval_t)*sz);            \
+    h->vals = kh_is_map ? (khval_t *)(p+sizeof(khkey_t)*sz) : NULL;     \
+    h->ed_flags = p+len*sz;                                             \
     kh_fill_flags(h->ed_flags, 0xaa, sz/4);                             \
     h->mask = sz-1;                                                     \
     h->inc = sz/2-1;                                                    \
@@ -162,7 +163,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
       for (i=0 ; i<old_n_buckets ; i++) {                               \
         if (!__ac_iseither(old_ed_flags, i)) {                          \
           khint_t k = kh_put_##name(h, old_keys[i]);                    \
-          kh_value(h,k) = old_vals[i];                                  \
+          if (kh_is_map) kh_value(h,k) = old_vals[i];			\
         }                                                               \
       }                                                                 \
       mrb_free(h->mrb, old_keys);                                       \
@@ -207,7 +208,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
     for (k = kh_begin(h); k != kh_end(h); k++) {                        \
       if (kh_exist(h, k)) {                                             \
         k2 = kh_put_##name(h2, kh_key(h, k));                           \
-        kh_value(h2, k2) = kh_value(h, k);                              \
+        if(kh_is_map) kh_value(h2, k2) = kh_value(h, k);                \
       }                                                                 \
     }                                                                   \
     return h2;                                                          \
