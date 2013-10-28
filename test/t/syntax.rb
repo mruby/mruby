@@ -77,7 +77,7 @@ end
 
 # regression test for #1459
 assert('implicit return and multiple value assignment') do
-  def test
+  def test_issue_1459
     x = [ 1, 2 ]
     if true
       a, b = [ 1, 2 ]
@@ -88,5 +88,5 @@ assert('implicit return and multiple value assignment') do
     end
   end
 
-  assert_equal 1, test, 'mruby/mruby#1459'
+  assert_equal 1, test_issue_1459, 'mruby/mruby#1459'
 end
