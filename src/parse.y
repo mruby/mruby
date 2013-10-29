@@ -37,6 +37,7 @@ static void yyerror(parser_state *p, const char *s);
 static void yywarn(parser_state *p, const char *s);
 static void yywarning(parser_state *p, const char *s);
 static void backref_error(parser_state *p, node *n);
+static void tokadd(parser_state *p, int c);
 
 #ifndef isascii
 #define isascii(c) (((c) & ~0x7f) == 0)
@@ -3338,6 +3339,7 @@ nextc(parser_state *p)
 
     if (cxt->partial_hook(p) < 0) return -1;
     p->cxt = NULL;
+    tokadd(p, '\n');
     c = nextc(p);
     p->cxt = cxt;
     return c;
