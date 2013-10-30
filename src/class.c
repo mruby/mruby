@@ -1056,15 +1056,18 @@ mrb_obj_new(mrb_state *mrb, struct RClass *c, int argc, mrb_value *argv)
 static mrb_value
 mrb_class_new_class(mrb_state *mrb, mrb_value cv)
 {
-  mrb_value super;
-  struct RClass *new_class;
+  mrb_value super, blk;
+  mrb_value new_class;
 
-  if (mrb_get_args(mrb, "|o", &super) == 0) {
+  if (mrb_get_args(mrb, "|o&", &super, &blk) == 0) {
     super = mrb_obj_value(mrb->object_class);
   }
-  new_class = mrb_class_new(mrb, mrb_class_ptr(super));
-  mrb_funcall(mrb, super, "inherited", 1, mrb_obj_value(new_class));
-  return mrb_obj_value(new_class);
+  new_class = mrb_obj_value(mrb_class_new(mrb, mrb_class_ptr(super)));
+  if (!mrb_nil_p(blk)) {
+    mrb_funcall_with_block(mrb, new_class, mrb_intern_cstr(mrb, "class_eval"), 0, NULL, blk);
+  }
+  mrb_funcall(mrb, super, "inherited", 1, new_class);
+  return new_class;
 }
 
 mrb_value
