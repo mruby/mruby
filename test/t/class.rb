@@ -9,7 +9,15 @@ assert('Class superclass', '15.2.3.2') do
   assert_equal(Module, Class.superclass)
 end
 
-# Class#initialize '15.2.3.3.1' is tested in Class#new
+assert('Class#initialize', '15.2.3.3.1') do
+  c = Class.new do
+    def test
+      :test
+    end
+  end.new
+
+  assert_equal(c.test, :test)
+end
 
 assert('Class#initialize_copy', '15.2.3.3.2') do
   class TestClass
