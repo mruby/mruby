@@ -16,6 +16,12 @@ MRuby.each_target do
   file "#{current_build_dir}/y.tab.c" => ["#{current_dir}/parse.y"] do |t|
     yacc.run t.name, t.prerequisites.first
   end
+  file "#{current_build_dir}/y.tab.h" => ["#{current_build_dir}/y.tab.c"]
+
+  # Lex requires parser definition.
+  file "#{current_build_dir}/lex.o" => ["#{current_dir}/lex.c", "#{current_build_dir}/y.tab.h"] do |t|
+    cc.run t.name, t.prerequisites.first, [], [current_dir, current_build_dir]
+  end
 
   file objfile("#{current_build_dir}/y.tab") => ["#{current_build_dir}/y.tab.c", lex_def] do |t|
     cc.run t.name, t.prerequisites.first, [], [current_dir]
