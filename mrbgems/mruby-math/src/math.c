@@ -89,7 +89,7 @@ erfc(double x)
 
 #endif
 
-#if (defined _MSC_VER && _MSC_VER < 1800) || defined __ANDROID__
+#if (defined _MSC_VER && _MSC_VER < 1800) || defined __ANDROID__ || (defined __FreeBSD__  &&  __FreeBSD_version < 803000)
 
 double
 log2(double x)
