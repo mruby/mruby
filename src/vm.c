@@ -595,7 +595,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   if (!mrb->c->stack) {
     stack_init(mrb);
   }
-  stack_extend(mrb, irep->nregs, irep->nregs);
+  stack_extend(mrb, irep->nregs, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
   mrb->c->ci->err = pc;
   mrb->c->ci->proc = proc;
   mrb->c->ci->nregs = irep->nregs + 1;
