@@ -3338,9 +3338,8 @@ nextc(parser_state *p)
     mrbc_context *cxt = p->cxt;
 
     if (cxt->partial_hook(p) < 0) return -1;
-    p->cxt = NULL;
-    tokadd(p, '\n');
-    c = nextc(p);
+    c = '\n';
+    p->lineno = 1;
     p->cxt = cxt;
     return c;
   }
