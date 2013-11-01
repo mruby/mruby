@@ -107,3 +107,17 @@ assert("Array#compact!") do
   a.compact!
   a == [1, "2", :t, false]
 end
+
+assert("Array#shuffle") do 
+  ary = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  shuffled = ary.shuffle
+  
+  ary == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] and shuffled != ary and 10.times { |x| ary.include? x }
+end
+
+assert('Array#shuffle!') do
+  ary = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  ary.shuffle!
+  
+  ary != [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] and 10.times { |x| ary.include? x }
+end

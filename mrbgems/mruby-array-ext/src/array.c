@@ -2,6 +2,9 @@
 #include "mruby/value.h"
 #include "mruby/array.h"
 
+#include <stdlib.h>
+#include <sys/time.h>
+
 /*
  *  call-seq:
  *     Array.try_convert(obj) -> array or nil
@@ -122,16 +125,63 @@ mrb_ary_at(mrb_state *mrb, mrb_value ary)
   return mrb_ary_entry(ary, pos);
 }
 
+/*
+ *  call-seq:
+ *     ary.shuffle!   ->   ary
+ *
+ *  Shuffles elements in self in place.
+ */
+
+static mrb_value
+mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
+{
+  if (RARRAY_LEN(ary) > 1) {
+    mrb_ary_modify(mrb, mrb_ary_ptr(ary));
+    for (mrb_int i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
+      mrb_int j = (mrb_int)(((double)rand()/RAND_MAX)*(i+1));
+      mrb_value t = RARRAY_PTR(ary)[i];
+      RARRAY_PTR(ary)[i] = RARRAY_PTR(ary)[j];
+      RARRAY_PTR(ary)[j] = t;
+    }    
+  }
+  
+  return ary;
+}
+
+/*
+ *  call-seq:
+ *     ary.shuffle   ->   new_ary
+ *
+ *  Returns a new array with elements of self shuffled.
+ */
+
+static mrb_value
+mrb_ary_shuffle(mrb_state *mrb, mrb_value ary)
+{
+  mrb_value new_ary = mrb_ary_new_from_values(mrb, RARRAY_LEN(ary), RARRAY_PTR(ary));
+  mrb_ary_shuffle_bang(mrb, new_ary);
+  
+  return new_ary;
+}
+
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
+  /* initialize a random seed for the shuffle */
+  struct timeval time; 
+  gettimeofday(&time, NULL);
+  srand((time.tv_sec * 1000) + (time.tv_usec / 1000));
+    
   struct RClass * a = mrb->array_class;
 
   mrb_define_class_method(mrb, a, "try_convert", mrb_ary_s_try_convert, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, a, "assoc",  mrb_ary_assoc,  MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, a, "at",     mrb_ary_at,     MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, a, "rassoc", mrb_ary_rassoc, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, a, "assoc",    mrb_ary_assoc,        MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, a, "at",       mrb_ary_at,           MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, a, "rassoc",   mrb_ary_rassoc,       MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, a, "shuffle",  mrb_ary_shuffle,      MRB_ARGS_NONE());
+  mrb_define_method(mrb, a, "shuffle!", mrb_ary_shuffle_bang, MRB_ARGS_NONE());
 }
 
 void
