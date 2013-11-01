@@ -7,6 +7,7 @@
 #include "mruby.h"
 #include "mruby/variable.h"
 #include "mruby/data.h"
+#include "mruby/array.h"
 #include "mt19937ar.h"
 
 #include <time.h>
@@ -207,9 +208,57 @@ static mrb_value mrb_random_srand(mrb_state *mrb, mrb_value self)
   return old_seed;
 }
 
+/*
+ *  call-seq:
+ *     ary.shuffle!   ->   ary
+ *
+ *  Shuffles elements in self in place.
+ */
+
+static mrb_value
+mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
+{
+  mrb_int i;
+  mrb_value seed;
+
+  seed = mrb_gv_get(mrb, mrb_intern2(mrb, GLOBAL_RAND_SEED_KEY, GLOBAL_RAND_SEED_KEY_CSTR_LEN));
+  if (mrb_nil_p(seed)) {
+    mrb_random_mt_g_srand(mrb, mrb_nil_value());
+  }
+  
+  if (RARRAY_LEN(ary) > 1) {
+    mrb_ary_modify(mrb, mrb_ary_ptr(ary));
+    for (i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
+      mrb_int j = mrb_fixnum(mrb_random_mt_g_rand(mrb, mrb_fixnum_value(RARRAY_LEN(ary))));
+      mrb_value t = RARRAY_PTR(ary)[i];
+      RARRAY_PTR(ary)[i] = RARRAY_PTR(ary)[j];
+      RARRAY_PTR(ary)[j] = t;
+    }    
+  }
+  
+  return ary;
+}
+
+/*
+ *  call-seq:
+ *     ary.shuffle   ->   new_ary
+ *
+ *  Returns a new array with elements of self shuffled.
+ */
+
+static mrb_value
+mrb_ary_shuffle(mrb_state *mrb, mrb_value ary)
+{
+  mrb_value new_ary = mrb_ary_new_from_values(mrb, RARRAY_LEN(ary), RARRAY_PTR(ary));
+  mrb_ary_shuffle_bang(mrb, new_ary);
+  
+  return new_ary;
+}
+
 void mrb_mruby_random_gem_init(mrb_state *mrb)
 {
   struct RClass *random;
+  struct RClass *array = mrb->array_class;
 
   mrb_define_method(mrb, mrb->kernel_module, "rand", mrb_random_g_rand, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, mrb->kernel_module, "srand", mrb_random_g_srand, MRB_ARGS_OPT(1));
@@ -221,6 +270,9 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, random, "initialize", mrb_random_init, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, random, "rand", mrb_random_rand, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, random, "srand", mrb_random_srand, MRB_ARGS_OPT(1));
+  
+  mrb_define_method(mrb, array, "shuffle", mrb_ary_shuffle, MRB_ARGS_NONE());
+  mrb_define_method(mrb, array, "shuffle!", mrb_ary_shuffle_bang, MRB_ARGS_NONE());
 }
 
 void mrb_mruby_random_gem_final(mrb_state *mrb)
