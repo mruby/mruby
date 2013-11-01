@@ -139,11 +139,8 @@ ary_modify(mrb_state *mrb, struct RArray *a)
 }
 
 void
-mrb_ary_modify(mrb_state *mrb, mrb_value ary)
+mrb_ary_modify(mrb_state *mrb, struct RArray* a)
 {
-  struct RArray *a;
-
-  a = mrb_ary_ptr(ary);
   mrb_write_barrier(mrb, (struct RBasic*)a);
   ary_modify(mrb, a);
 }
