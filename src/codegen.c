@@ -9,7 +9,7 @@
 #include <string.h>
 #include "mruby.h"
 #include "mruby/compile.h"
-#include "mruby/irep.h"
+#include "mruby/proc.h"
 #include "mruby/numeric.h"
 #include "mruby/string.h"
 #include "mruby/debug.h"
@@ -2829,14 +2829,16 @@ codedump(mrb_state *mrb, int n)
 }
 
 void
-codedump_all(mrb_state *mrb, int start)
+codedump_all(mrb_state *mrb, struct RProc *proc)
 {
   size_t i;
+  mrb_irep *irep = proc->body.irep;
 
-  for (i=start; i<mrb->irep_len; i++) {
+  for (i=irep->idx; i<mrb->irep_len; i++) {
     codedump(mrb, i);
   }
 }
+
 static int
 codegen_start(mrb_state *mrb, parser_state *p)
 {
@@ -2860,14 +2862,13 @@ codegen_start(mrb_state *mrb, parser_state *p)
   }
 }
 
-int
+struct RProc*
 mrb_generate_code(mrb_state *mrb, parser_state *p)
 {
   int start = mrb->irep_len;
   int n;
 
   n = codegen_start(mrb, p);
-  if (n < 0) return n;
-
-  return start;
+  if (n < 0) return NULL;
+  return mrb_proc_new(mrb, mrb->irep[start]);
 }

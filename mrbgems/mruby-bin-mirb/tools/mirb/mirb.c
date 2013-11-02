@@ -361,13 +361,12 @@ main(int argc, char **argv)
       }
       else {
         /* generate bytecode */
-        n = mrb_generate_code(mrb, parser);
+        struct RProc *proc = mrb_generate_code(mrb, parser);
 
         /* evaluate the bytecode */
         result = mrb_run(mrb,
             /* pass a proc for evaulation */
-            mrb_proc_new(mrb, mrb->irep[n]),
-            mrb_top_self(mrb));
+            proc, mrb_top_self(mrb));
         /* did an exception occur? */
         if (mrb->exc) {
           p(mrb, mrb_obj_value(mrb->exc), 0);
