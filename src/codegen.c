@@ -67,8 +67,6 @@ typedef struct scope {
   int nregs;
   int ai;
 
-  int idx;
-
   int debug_start_pos;
   uint16_t filename_index;
   parser_state* parser;
@@ -500,7 +498,7 @@ static void
 for_body(codegen_scope *s, node *tree)
 {
   codegen_scope *prev = s;
-  int idx, base = s->idx;
+  int idx, base = s->irep->idx;
   struct loopinfo *lp;
   node *n2;
   mrb_code c;
@@ -509,7 +507,7 @@ for_body(codegen_scope *s, node *tree)
   codegen(s, tree->cdr->car, VAL);
   // generate loop-block
   s = scope_new(s->mrb, s, tree->car);
-  idx = s->idx;
+  idx = s->irep->idx;
 
   lp = loop_push(s, LOOP_FOR);
   lp->pc1 = new_label(s);
@@ -543,11 +541,11 @@ for_body(codegen_scope *s, node *tree)
 static int
 lambda_body(codegen_scope *s, node *tree, int blk)
 {
-  int idx, base = s->idx;
+  int idx, base = s->irep->idx;
   mrb_code c;
 
   s = scope_new(s->mrb, s, tree->car);
-  idx = s->idx;
+  idx = s->irep->idx;
   s->mscope = !blk;
 
   if (blk) {
@@ -634,7 +632,7 @@ static int
 scope_body(codegen_scope *s, node *tree)
 {
   codegen_scope *scope = scope_new(s->mrb, s, tree->car);
-  int idx = scope->idx;
+  int idx = scope->irep->idx;
 
   codegen(scope, tree->cdr, VAL);
   if (!s->iseq) {
@@ -652,8 +650,9 @@ scope_body(codegen_scope *s, node *tree)
     }
   }
   scope_finish(scope);
-
-  return idx - s->idx;
+  if (s->irep)
+    return idx - s->irep->idx;
+  return 0;
 }
 
 static mrb_bool
@@ -2361,7 +2360,6 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->mscope = 0;
 
   p->irep = mrb_add_irep(mrb);
-  p->idx = p->irep->idx;
 
   p->icapa = 1024;
   p->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*p->icapa);
