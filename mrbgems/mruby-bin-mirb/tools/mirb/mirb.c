@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include <mruby.h>
-#include "mruby/array.h"
+#include <mruby/array.h>
 #include <mruby/proc.h>
 #include <mruby/data.h>
 #include <mruby/compile.h>
