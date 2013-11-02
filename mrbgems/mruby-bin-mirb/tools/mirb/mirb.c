@@ -27,6 +27,7 @@ static const char *history_file_name = ".mirb_history";
 char history_path[PATH_MAX];
 #endif
 
+void codedump_all(mrb_state*, int);
 
 static void
 p(mrb_state *mrb, mrb_value obj, int prompt)
@@ -362,6 +363,9 @@ main(int argc, char **argv)
       else {
         /* generate bytecode */
         n = mrb_generate_code(mrb, parser);
+        if (args.verbose) {
+            codedump_all(mrb, n);
+        }
 
         /* evaluate the bytecode */
         result = mrb_run(mrb,
