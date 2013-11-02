@@ -62,7 +62,8 @@ mrb_random_mt_g_rand(mrb_state *mrb, mrb_value max)
 
   if (mrb_fixnum(max) == 0) {
     value = mrb_float_value(mrb, mt_g_rand_real());
-  } else {
+  }
+  else {
     value = mrb_fixnum_value(mt_g_rand() % mrb_fixnum(max));
   }
 
@@ -109,7 +110,8 @@ mrb_random_mt_rand(mrb_state *mrb, mt_state *t, mrb_value max)
 
   if (mrb_fixnum(max) == 0) {
     value = mrb_float_value(mrb, mt_rand_real(t));
-  } else {
+  }
+  else {
     value = mrb_fixnum_value(mt_rand(t) % mrb_fixnum(max));
   }
 
@@ -251,9 +253,10 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
   if (RARRAY_LEN(ary) > 1) {
     mrb_get_args(mrb, "|o", &random);
 
-    if( mrb_nil_p(random) ) {
+    if (mrb_nil_p(random)) {
       mrb_random_g_rand_seed(mrb);
-    } else {
+    }
+    else {
       mrb_data_check_type(mrb, random, &mt_state_type);
       mrb_random_rand_seed(mrb, random);
     }
@@ -263,9 +266,10 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
     for (i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
       mrb_int j;
       
-      if( mrb_nil_p(random) ) {
+      if (mrb_nil_p(random)) {
         j = mrb_fixnum(mrb_random_mt_g_rand(mrb, mrb_fixnum_value(RARRAY_LEN(ary))));
-      } else {
+      }
+      else {
         j = mrb_fixnum(mrb_random_mt_rand(mrb, DATA_PTR(random), mrb_fixnum_value(RARRAY_LEN(ary))));
       }
       
