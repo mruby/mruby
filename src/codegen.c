@@ -2509,16 +2509,15 @@ loop_pop(codegen_scope *s, int val)
 }
 
 static void
-codedump(mrb_state *mrb, int n)
+codedump(mrb_state *mrb, mrb_irep *irep)
 {
 #ifdef ENABLE_STDIO
-  mrb_irep *irep = mrb->irep[n];
   uint32_t i;
   int ai;
   mrb_code c;
 
   if (!irep) return;
-  printf("irep %d nregs=%d nlocals=%d pools=%d syms=%d\n", n,
+  printf("irep %d nregs=%d nlocals=%d pools=%d syms=%d\n", irep->idx,
          irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen);
   for (i=0; i<irep->ilen; i++) {
     ai = mrb_gc_arena_save(mrb);
@@ -2787,7 +2786,7 @@ codedump(mrb_state *mrb, int n)
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]));
       break;
     case OP_EXEC:
-      printf("OP_EXEC\tR%d\tI(%d)\n", GETARG_A(c), n+GETARG_Bx(c));
+      printf("OP_EXEC\tR%d\tI(%d)\n", GETARG_A(c), irep->idx+GETARG_Bx(c));
       break;
     case OP_SCLASS:
       printf("OP_SCLASS\tR%d\tR%d\n", GETARG_A(c), GETARG_B(c));
@@ -2799,7 +2798,7 @@ codedump(mrb_state *mrb, int n)
       printf("OP_ERR\tL(%d)\n", GETARG_Bx(c));
       break;
     case OP_EPUSH:
-      printf("OP_EPUSH\t:I(%d)\n", n+GETARG_Bx(c));
+      printf("OP_EPUSH\t:I(%d)\n", irep->idx+GETARG_Bx(c));
       break;
     case OP_ONERR:
       printf("OP_ONERR\t%03d\n", i+GETARG_sBx(c));
@@ -2835,7 +2834,7 @@ codedump_all(mrb_state *mrb, struct RProc *proc)
   mrb_irep *irep = proc->body.irep;
 
   for (i=irep->idx; i<mrb->irep_len; i++) {
-    codedump(mrb, i);
+    codedump(mrb, mrb->irep[i]);
   }
 }
 
