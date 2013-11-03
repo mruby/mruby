@@ -546,8 +546,8 @@ void mrb_gv_val_set(mrb_state *mrb, mrb_sym sym, mrb_value val);
 
 #define CALL_MAXARGS 127
 
-static mrb_value
-run_proc(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
+mrb_value
+mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {
   /* mrb_assert(mrb_proc_cfunc_p(proc)) */
   mrb_irep *irep = proc->body.irep;
@@ -2148,13 +2148,7 @@ run_proc(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_
 mrb_value
 mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 {
-    return run_proc(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
-}
-
-mrb_value
-mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
-{
-    return run_proc(mrb, proc, self, proc->body.irep->nregs);
+    return mrb_context_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
 }
 
 void

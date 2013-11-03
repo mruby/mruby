@@ -367,7 +367,7 @@ main(int argc, char **argv)
         result = mrb_context_run(mrb,
             /* pass a proc for evaulation */
             mrb_proc_new(mrb, mrb->irep[n]),
-            mrb_top_self(mrb));
+            mrb_top_self(mrb), 0);
         /* did an exception occur? */
         if (mrb->exc) {
           p(mrb, mrb_obj_value(mrb->exc), 0);

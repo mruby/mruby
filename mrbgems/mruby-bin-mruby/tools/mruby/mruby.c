@@ -203,7 +203,7 @@ main(int argc, char **argv)
       fprintf(stderr, "failed to load mrb file: %s\n", args.cmdline);
     }
     else if (!args.check_syntax) {
-      mrb_context_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
+      mrb_context_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb), 0);
       n = 0;
       if (mrb->exc) {
         mrb_print_error(mrb);

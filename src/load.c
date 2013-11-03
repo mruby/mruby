@@ -510,7 +510,7 @@ mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
     irep_error(mrb, n);
     return mrb_nil_value();
   }
-  return mrb_context_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
+  return mrb_context_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb), 0);
 }
 
 #ifdef ENABLE_STDIO
@@ -760,6 +760,6 @@ mrb_load_irep_file(mrb_state *mrb, FILE* fp)
     irep_error(mrb, n);
     return mrb_nil_value();
   }
-  return mrb_context_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
+  return mrb_context_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb), 0);
 }
 #endif /* ENABLE_STDIO */
