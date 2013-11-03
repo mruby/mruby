@@ -274,7 +274,7 @@ main(int argc, char **argv)
     return EXIT_FAILURE;
   }
   if (args.check_syntax) {
-    printf("%s:%s:Syntax OK", args.prog, argv[n]);
+    printf("%s:%s:Syntax OK\n", args.prog, argv[n]);
   }
 
   if (args.check_syntax) {
