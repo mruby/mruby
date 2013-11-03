@@ -364,7 +364,7 @@ main(int argc, char **argv)
         n = mrb_generate_code(mrb, parser);
 
         /* evaluate the bytecode */
-        result = mrb_run(mrb,
+        result = mrb_context_run(mrb,
             /* pass a proc for evaulation */
             mrb_proc_new(mrb, mrb->irep[n]),
             mrb_top_self(mrb));
