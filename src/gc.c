@@ -619,7 +619,8 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     {
       struct mrb_context *c = ((struct RFiber*)obj)->cxt;
 
-      mrb_free_context(mrb, c);
+      if (c != mrb->root_c)
+        mrb_free_context(mrb, c);
     }
     break;
 
