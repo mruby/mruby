@@ -2891,6 +2891,7 @@ struct RProc*
 mrb_generate_code(mrb_state *mrb, parser_state *p)
 {
   codegen_scope *scope = scope_new(mrb, 0, 0);
+  struct RProc *proc;
 
   if (!scope) {
     return NULL;
@@ -2902,8 +2903,9 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
   if (setjmp(scope->jmp) == 0) {
     // prepare irep
     codegen(scope, p->tree, NOVAL);
+    proc = mrb_proc_new(mrb, scope->irep);
     mrb_pool_close(scope->mpool);
-    return mrb_proc_new(mrb, scope->irep);
+    return proc;
   }
   else {
     return NULL;
