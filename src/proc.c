@@ -184,7 +184,7 @@ mrb_init_proc(mrb_state *mrb)
   mrb_irep *call_irep = (mrb_irep *)mrb_alloca(mrb, sizeof(mrb_irep));
   static const mrb_irep mrb_irep_zero = { 0 };
 
-  if ( call_iseq == NULL || call_irep == NULL )
+  if (call_irep == NULL)
     return;
 
   *call_irep = mrb_irep_zero;
