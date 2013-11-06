@@ -193,9 +193,9 @@ pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned i
 {
   int i;
   double d;
+  uint8_t *buffer = (uint8_t *)&d;
   str = str_len_ensure(mrb, str, sidx + 8);
   d = mrb_float(o);
-  uint8_t *buffer = (uint8_t *)&d;
 
 #ifdef MRB_ENDIAN_BIG
   #error unsupported
