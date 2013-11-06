@@ -18,7 +18,17 @@ typedef struct mrb_irep {
   uint8_t flags;
 
   mrb_code *iseq;
-  mrb_value *pool;
+  struct irep_pool {
+    union {
+      mrb_float f;
+      struct irep_pool_string {
+        mrb_int len;
+        char buf[1];
+      } *s;
+      mrb_int i;
+    } value;
+    enum mrb_vtype type;
+  } *pool;
   mrb_sym *syms;
   struct mrb_irep **reps;
 

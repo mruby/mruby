@@ -332,34 +332,6 @@ str_make_shared(mrb_state *mrb, struct RString *s)
 }
 
 /*
- *  call-seq: (Caution! string literal)
- *     String.new(str="")   => new_str
- *
- *  Returns a new string object containing a copy of <i>str</i>.
- */
-
-mrb_value
-mrb_str_literal(mrb_state *mrb, mrb_value str)
-{
-  struct RString *s, *orig;
-  mrb_shared_string *shared;
-
-  s = mrb_obj_alloc_string(mrb);
-  orig = mrb_str_ptr(str);
-  if (!(orig->flags & MRB_STR_SHARED)) {
-    str_make_shared(mrb, orig);
-  }
-  shared = orig->aux.shared;
-  shared->refcnt++;
-  s->ptr = shared->ptr;
-  s->len = shared->len;
-  s->aux.shared = shared;
-  s->flags |= MRB_STR_SHARED;
-
-  return mrb_obj_value(s);
-}
-
-/*
  *  call-seq:
  *     char* str = String("abcd"), len=strlen("abcd")
  *

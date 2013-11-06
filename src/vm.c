@@ -552,7 +552,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   /* mrb_assert(mrb_proc_cfunc_p(proc)) */
   mrb_irep *irep = proc->body.irep;
   mrb_code *pc = irep->iseq;
-  mrb_value *pool = irep->pool;
+  struct irep_pool *pool = irep->pool;
   mrb_sym *syms = irep->syms;
   mrb_value *regs = NULL;
   mrb_code i;
@@ -616,7 +616,10 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
     CASE(OP_LOADL) {
       /* A Bx   R(A) := Pool(Bx) */
-      regs[GETARG_A(i)] = pool[GETARG_Bx(i)];
+      if (pool[GETARG_Bx(i)].type == MRB_TT_FLOAT)
+        SET_FLT_VALUE(mrb, regs[GETARG_A(i)], pool[GETARG_Bx(i)].value.f);
+      else
+        SET_INT_VALUE(regs[GETARG_A(i)], pool[GETARG_Bx(i)].value.i);
       NEXT;
     }
 
@@ -1934,7 +1937,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
     CASE(OP_STRING) {
       /* A Bx           R(A) := str_new(Lit(Bx)) */
-      regs[GETARG_A(i)] = mrb_str_literal(mrb, pool[GETARG_Bx(i)]);
+      regs[GETARG_A(i)] = mrb_str_new(mrb, pool[GETARG_Bx(i)].value.s->buf, pool[GETARG_Bx(i)].value.s->len);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
@@ -2129,7 +2132,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
     CASE(OP_ERR) {
       /* Bx     raise RuntimeError with message Lit(Bx) */
-      mrb_value msg = pool[GETARG_Bx(i)];
+      mrb_value msg = mrb_str_new(mrb, pool[GETARG_Bx(i)].value.s->buf, pool[GETARG_Bx(i)].value.s->len);
       mrb_value exc;
 
       if (GETARG_A(i) == 0) {

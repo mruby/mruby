@@ -316,8 +316,8 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       if (c0 == OP_STRING) {
         int i = GETARG_Bx(i0);
 
-        if (mrb_type(s->irep->pool[i]) == MRB_TT_STRING &&
-            RSTRING_LEN(s->irep->pool[i]) == 0) {
+        if (s->irep->pool[i].type == MRB_TT_STRING &&
+            s->irep->pool[i].value.s->len == 0) {
           s->pc--;
           return;
         }
@@ -397,34 +397,62 @@ static inline int
 new_lit(codegen_scope *s, mrb_value val)
 {
   size_t i;
+  struct irep_pool *pv;
 
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
     for (i=0; i<s->irep->plen; i++) {
-      mrb_value pv = s->irep->pool[i];
+      pv = &s->irep->pool[i];
       mrb_int len;
 
-      if (mrb_type(pv) != MRB_TT_STRING) continue;
-      if ((len = RSTRING_LEN(pv)) != RSTRING_LEN(val)) continue;
-      if (memcmp(RSTRING_PTR(pv), RSTRING_PTR(val), len) == 0)
+      if (pv->type != MRB_TT_STRING) continue;
+      if ((len = pv->value.s->len) != RSTRING_LEN(val)) continue;
+      if (memcmp(pv->value.s->buf, RSTRING_PTR(val), len) == 0)
         return i;
     }
     break;
   case MRB_TT_FLOAT:
-  default:
     for (i=0; i<s->irep->plen; i++) {
-      if (mrb_obj_equal(s->mrb, s->irep->pool[i], val)) return i;
+      pv = &s->irep->pool[i];
+      if (pv->value.f == mrb_float(val)) return i;
     }
     break;
+  case MRB_TT_FIXNUM:
+    for (i=0; i<s->irep->plen; i++) {
+      pv = &s->irep->pool[i];
+      if (pv->value.i == mrb_fixnum(val)) return i;
+    }
+    break;
+  default:
+    /* should not happen */
+    return 0;
   }
 
   if (s->irep->plen == s->pcapa) {
     s->pcapa *= 2;
-    s->irep->pool = (mrb_value *)codegen_realloc(s, s->irep->pool, sizeof(mrb_value)*s->pcapa);
+    s->irep->pool = (struct irep_pool*)codegen_realloc(s, s->irep->pool, sizeof(struct irep_pool)*s->pcapa);
   }
-  s->irep->pool[s->irep->plen] = val;
-  i = s->irep->plen++;
 
+  pv = &s->irep->pool[s->irep->plen];
+  i = s->irep->plen++;
+  pv->type = mrb_type(val);
+
+  switch (pv->type) {
+  case MRB_TT_STRING:
+    pv->value.s = (struct irep_pool_string*)codegen_malloc(s, sizeof(struct irep_pool_string) + RSTRING_LEN(val));
+    pv->value.s->len = RSTRING_LEN(val);
+    memcpy(pv->value.s->buf, RSTRING_PTR(val), RSTRING_LEN(val));
+    break;
+  case MRB_TT_FLOAT:
+    pv->value.f = mrb_float(val);
+    break;
+  case MRB_TT_FIXNUM:
+    pv->value.i = mrb_fixnum(val);
+    break;
+  default:
+    /* should not happen */
+    break;
+  }
   return i;
 }
 
@@ -2382,7 +2410,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*p->icapa);
 
   p->pcapa = 32;
-  p->irep->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value)*p->pcapa);
+  p->irep->pool = (struct irep_pool*)mrb_malloc(mrb, sizeof(struct irep_pool)*p->pcapa);
   p->irep->plen = 0;
 
   p->scapa = 256;
@@ -2435,9 +2463,9 @@ scope_finish(codegen_scope *s)
       irep->lines = 0;
     }
   }
-  irep->pool = (mrb_value *)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
-  irep->syms = (mrb_sym *)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
-  irep->reps = (mrb_irep **)codegen_realloc(s, irep->reps, sizeof(mrb_irep*)*irep->rlen);
+  irep->pool = (struct irep_pool*)codegen_realloc(s, irep->pool, sizeof(struct irep_pool)*irep->plen);
+  irep->syms = (mrb_sym*)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
+  irep->reps = (mrb_irep**)codegen_realloc(s, irep->reps, sizeof(mrb_irep*)*irep->rlen);
   if (s->filename) {
     s->irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
     mrb_debug_info_append_file(mrb, s->irep, s->debug_start_pos, s->pc);
@@ -2777,9 +2805,8 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       break;
     case OP_STRING:
       {
-        mrb_value s = irep->pool[GETARG_Bx(c)];
-
-        s = mrb_str_dump(mrb, s);
+        struct irep_pool *pv = &irep->pool[GETARG_Bx(c)];
+        mrb_value s = mrb_str_dump(mrb, mrb_str_new(mrb, pv->value.s->buf, pv->value.s->len));
         printf("OP_STRING\tR%d\t%s\n", GETARG_A(c), RSTRING_PTR(s));
       }
       break;

@@ -109,8 +109,14 @@ void mrb_free_heap(mrb_state *mrb);
 void
 mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
 {
+  size_t i;
+
   if (!(irep->flags & MRB_ISEQ_NO_FREE))
     mrb_free(mrb, irep->iseq);
+  for (i=0; i<irep->plen; i++) {
+    if (irep->pool[i].type == MRB_TT_STRING)
+      mrb_free(mrb, irep->pool[i].value.s);
+  }
   mrb_free(mrb, irep->pool);
   mrb_free(mrb, irep->syms);
   mrb_free(mrb, (void *)irep->filename);
