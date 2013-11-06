@@ -12,7 +12,6 @@
 void mrb_show_version(mrb_state *);
 void mrb_show_copyright(mrb_state *);
 void parser_dump(mrb_state*, struct mrb_ast_node*, int);
-void codedump_all(mrb_state*, int);
 
 struct mrbc_args {
   int argc;
@@ -181,7 +180,7 @@ partial_hook(struct mrb_parser_state *p)
   return 0;
 }
 
-static int
+static mrb_value
 load_file(mrb_state *mrb, struct mrbc_args *args)
 {
   mrbc_context *c;
@@ -198,7 +197,7 @@ load_file(mrb_state *mrb, struct mrbc_args *args)
   }
   else if ((infile = fopen(input, "r")) == NULL) {
     fprintf(stderr, "%s: cannot open program file. (%s)\n", args->prog, input);
-    return EXIT_FAILURE;
+    return mrb_nil_value();
   }
   mrbc_filename(mrb, c, input);
   args->idx++;
@@ -209,25 +208,26 @@ load_file(mrb_state *mrb, struct mrbc_args *args)
   result = mrb_load_file_cxt(mrb, infile, c);
   if (mrb_undef_p(result) || mrb_fixnum(result) < 0) {
     mrbc_context_free(mrb, c);
-    return EXIT_FAILURE;
+    return mrb_nil_value();
   }
   mrbc_context_free(mrb, c);
-  return EXIT_SUCCESS;
+  return result;
 }
 
 static int
-dump_file(mrb_state *mrb, FILE *wfp, const char *outfile, struct mrbc_args *args)
+dump_file(mrb_state *mrb, FILE *wfp, const char *outfile, struct RProc *proc, struct mrbc_args *args)
 {
   int n = MRB_DUMP_OK;
+  mrb_irep *irep = proc->body.irep;
 
   if (args->initname) {
-    n = mrb_dump_irep_cfunc(mrb, 0, args->debug_info, wfp, args->initname);
+    n = mrb_dump_irep_cfunc(mrb, irep, args->debug_info, wfp, args->initname);
     if (n == MRB_DUMP_INVALID_ARGUMENT) {
       fprintf(stderr, "%s: invalid C language symbol name\n", args->initname);
     }
   }
   else {
-    n = mrb_dump_irep_binary(mrb, 0, args->debug_info, wfp);
+    n = mrb_dump_irep_binary(mrb, irep, args->debug_info, wfp);
   }
   if (n != MRB_DUMP_OK) {
     fprintf(stderr, "%s: error in mrb dump (%s) %d\n", args->prog, outfile, n);
@@ -242,6 +242,7 @@ main(int argc, char **argv)
   int n, result;
   struct mrbc_args args;
   FILE *wfp;
+  mrb_value load;
 
   if (mrb == NULL) {
     fputs("Invalid mrb_state, exiting mrbc\n", stderr);
@@ -269,7 +270,8 @@ main(int argc, char **argv)
   }
 
   args.idx = n;
-  if (load_file(mrb, &args) == EXIT_FAILURE) {
+  load = load_file(mrb, &args);
+  if (mrb_nil_p(load)) {
     cleanup(mrb, &args);
     return EXIT_FAILURE;
   }
@@ -295,7 +297,7 @@ main(int argc, char **argv)
     fprintf(stderr, "Output file is required\n");
     return EXIT_FAILURE;
   }
-  result = dump_file(mrb, wfp, args.outfile, &args);
+  result = dump_file(mrb, wfp, args.outfile, mrb_proc_ptr(load), &args);
   fclose(wfp);
   cleanup(mrb, &args);
   if (result != MRB_DUMP_OK) {

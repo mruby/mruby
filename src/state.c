@@ -107,7 +107,7 @@ void mrb_free_symtbl(mrb_state *mrb);
 void mrb_free_heap(mrb_state *mrb);
 
 void
-mrb_irep_free(mrb_state *mrb, struct mrb_irep *irep)
+mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
 {
   if (!(irep->flags & MRB_ISEQ_NO_FREE))
     mrb_free(mrb, irep->iseq);
@@ -180,8 +180,7 @@ mrb_add_irep(mrb_state *mrb)
   }
   irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
   *irep = mrb_irep_zero;
-  mrb->irep[mrb->irep_len] = irep;
-  irep->idx = mrb->irep_len++;
+  mrb->irep[mrb->irep_len++] = irep;
 
   return irep;
 }

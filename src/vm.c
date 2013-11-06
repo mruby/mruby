@@ -830,7 +830,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       /* Bx     ensure_push(SEQ[Bx]) */
       struct RProc *p;
 
-      p = mrb_closure_new(mrb, mrb->irep[irep->idx+GETARG_Bx(i)]);
+      p = mrb_closure_new(mrb, irep->reps[GETARG_Bx(i)]);
       /* push ensure_stack */
       if (mrb->c->esize <= mrb->c->ci->eidx) {
         if (mrb->c->esize == 0) mrb->c->esize = 16;
@@ -1967,10 +1967,10 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       int c = GETARG_c(i);
 
       if (c & OP_L_CAPTURE) {
-        p = mrb_closure_new(mrb, mrb->irep[irep->idx+GETARG_b(i)]);
+        p = mrb_closure_new(mrb, irep->reps[GETARG_b(i)]);
       }
       else {
-        p = mrb_proc_new(mrb, mrb->irep[irep->idx+GETARG_b(i)]);
+        p = mrb_proc_new(mrb, irep->reps[GETARG_b(i)]);
       }
       if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
       regs[GETARG_A(i)] = mrb_obj_value(p);
@@ -2038,7 +2038,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       /* prepare stack */
       mrb->c->stack += a;
 
-      p = mrb_proc_new(mrb, mrb->irep[irep->idx+GETARG_Bx(i)]);
+      p = mrb_proc_new(mrb, irep->reps[GETARG_Bx(i)]);
       p->target_class = ci->target_class;
       ci->proc = p;
 

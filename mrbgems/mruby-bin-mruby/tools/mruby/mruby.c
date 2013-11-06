@@ -198,12 +198,12 @@ main(int argc, char **argv)
   mrb_define_global_const(mrb, "ARGV", ARGV);
 
   if (args.mrbfile) {
-    n = mrb_read_irep_file(mrb, args.rfp);
-    if (n < 0) {
+    mrb_irep *irep = mrb_read_irep_file(mrb, args.rfp);
+    if (!irep) {
       fprintf(stderr, "failed to load mrb file: %s\n", args.cmdline);
     }
     else if (!args.check_syntax) {
-      mrb_context_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb), 0);
+      mrb_context_run(mrb, mrb_proc_new(mrb, irep), mrb_top_self(mrb), 0);
       n = 0;
       if (mrb->exc) {
         mrb_print_error(mrb);

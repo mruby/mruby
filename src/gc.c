@@ -470,6 +470,31 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
   }
 }
 
+static size_t
+mark_irep_pool_size(mrb_state *mrb, mrb_irep *irep)
+{
+  size_t size = irep->plen;
+  size_t i;
+
+  for (i=0; i<irep->rlen; i++) {
+    size += mark_irep_pool_size(mrb, irep->reps[i]);
+  }
+  return size;
+}
+
+static void
+mark_irep_pool(mrb_state *mrb, mrb_irep *irep)
+{
+  size_t i;
+
+  for (i=0; i<irep->plen; i++) {
+    mrb_gc_mark_value(mrb, irep->pool[i]);
+  }
+  for (i=0; i<irep->rlen; i++) {
+    mark_irep_pool(mrb, irep->reps[i]);
+  }
+}
+
 static void
 gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 {
@@ -504,6 +529,9 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 
       mrb_gc_mark(mrb, (struct RBasic*)p->env);
       mrb_gc_mark(mrb, (struct RBasic*)p->target_class);
+      if (!MRB_PROC_CFUNC_P(p)) {
+        mark_irep_pool(mrb, p->body.irep);
+      }
     }
     break;
 
@@ -771,6 +799,10 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_PROC:
+    if (!MRB_PROC_CFUNC_P((struct RProc*)obj)) {
+      children += mark_irep_pool_size(mrb, ((struct RProc*)obj)->body.irep);
+    }
+    /* fall through */
   case MRB_TT_RANGE:
     children+=2;
     break;
