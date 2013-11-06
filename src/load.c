@@ -234,9 +234,9 @@ read_lineno_record_1(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, uint32_
 }
 
 static int
-read_lineno_record(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, uint32_t *len)
+read_lineno_record(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, uint32_t *lenp)
 {
-  int result = read_lineno_record_1(mrb, bin, irep, len);
+  int result = read_lineno_record_1(mrb, bin, irep, lenp);
   size_t i;
 
   if (result != MRB_DUMP_OK) return result;
@@ -246,7 +246,9 @@ read_lineno_record(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, uint32_t 
     result = read_lineno_record(mrb, bin, irep->reps[i], &len);
     if (result != MRB_DUMP_OK) break;
     bin += len;
+    *lenp += len;
   }
+  return result;
 }
 
 static int

@@ -140,16 +140,10 @@ mrb_free_context(mrb_state *mrb, struct mrb_context *c)
 void
 mrb_close(mrb_state *mrb)
 {
-  size_t i;
-
   mrb_final_core(mrb);
 
   /* free */
   mrb_gc_free_gv(mrb);
-  for (i=0; i<mrb->irep_len; i++) {
-    mrb_irep_free(mrb, mrb->irep[i]);
-  }
-  mrb_free(mrb, mrb->irep);
   mrb_free_context(mrb, mrb->root_c);
   mrb_free_symtbl(mrb);
   mrb_free_heap(mrb);
@@ -167,27 +161,8 @@ mrb_add_irep(mrb_state *mrb)
   static const mrb_irep mrb_irep_zero = { 0 };
   mrb_irep *irep;
 
-  if (!mrb->irep) {
-    size_t max = MRB_IREP_ARRAY_INIT_SIZE;
-
-    if (mrb->irep_len > max) max = mrb->irep_len+1;
-    mrb->irep = (mrb_irep **)mrb_calloc(mrb, max, sizeof(mrb_irep*));
-    mrb->irep_capa = max;
-  }
-  else if (mrb->irep_capa <= mrb->irep_len) {
-    size_t i;
-    size_t old_capa = mrb->irep_capa;
-    while (mrb->irep_capa <= mrb->irep_len) {
-      mrb->irep_capa *= 2;
-    }
-    mrb->irep = (mrb_irep **)mrb_realloc(mrb, mrb->irep, sizeof(mrb_irep*)*mrb->irep_capa);
-    for (i = old_capa; i < mrb->irep_capa; i++) {
-      mrb->irep[i] = NULL;
-    }
-  }
   irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
   *irep = mrb_irep_zero;
-  mrb->irep[mrb->irep_len++] = irep;
 
   return irep;
 }
