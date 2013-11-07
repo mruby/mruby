@@ -35,6 +35,7 @@ struct RArray {
 #define RARRAY_PTR(a) (RARRAY(a)->ptr)
 #define MRB_ARY_SHARED      256
 
+void mrb_ary_modify(mrb_state*, struct RArray*);
 void mrb_ary_decref(mrb_state*, mrb_shared_array*);
 mrb_value mrb_ary_new_capa(mrb_state*, mrb_int);
 mrb_value mrb_ary_new(mrb_state *mrb);

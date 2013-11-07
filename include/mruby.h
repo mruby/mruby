@@ -55,7 +55,8 @@ typedef struct {
   int stackidx;
   int nregs;
   int argc;
-  mrb_code *pc;
+  mrb_code *pc;                 /* return address */
+  mrb_code *err;                /* error position */
   int acc;
   struct RClass *target_class;
   int ridx;
@@ -260,6 +261,7 @@ void mrb_close(mrb_state*);
 
 mrb_value mrb_top_self(mrb_state *);
 mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
+mrb_value mrb_context_run(mrb_state*, struct RProc*, mrb_value, unsigned int);
 
 void mrb_p(mrb_state*, mrb_value);
 mrb_int mrb_obj_id(mrb_value obj);

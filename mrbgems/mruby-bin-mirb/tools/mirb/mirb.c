@@ -255,6 +255,8 @@ main(int argc, char **argv)
   int n;
   int code_block_open = FALSE;
   int ai;
+  int first_command = 1;
+  unsigned int nregs;
 
   /* new interpreter instance */
   mrb = mrb_open();
@@ -361,13 +363,15 @@ main(int argc, char **argv)
       }
       else {
         /* generate bytecode */
-        n = mrb_generate_code(mrb, parser);
+        struct RProc *proc = mrb_generate_code(mrb, parser);
 
+        /* pass a proc for evaulation */
+        nregs = first_command ? 0: proc->body.irep->nregs;
         /* evaluate the bytecode */
-        result = mrb_run(mrb,
-            /* pass a proc for evaulation */
-            mrb_proc_new(mrb, mrb->irep[n]),
-            mrb_top_self(mrb));
+        result = mrb_context_run(mrb,
+            proc,
+            mrb_top_self(mrb),
+            nregs);
         /* did an exception occur? */
         if (mrb->exc) {
           p(mrb, mrb_obj_value(mrb->exc), 0);
@@ -387,6 +391,7 @@ main(int argc, char **argv)
     }
     mrb_parser_free(parser);
     cxt->lineno++;
+    first_command = 0;
   }
   mrbc_context_free(mrb, cxt);
   mrb_close(mrb);

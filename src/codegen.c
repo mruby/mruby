@@ -9,7 +9,7 @@
 #include <string.h>
 #include "mruby.h"
 #include "mruby/compile.h"
-#include "mruby/irep.h"
+#include "mruby/proc.h"
 #include "mruby/numeric.h"
 #include "mruby/string.h"
 #include "mruby/debug.h"
@@ -66,8 +66,6 @@ typedef struct scope {
   int nlocals;
   int nregs;
   int ai;
-
-  int idx;
 
   int debug_start_pos;
   uint16_t filename_index;
@@ -500,7 +498,7 @@ static void
 for_body(codegen_scope *s, node *tree)
 {
   codegen_scope *prev = s;
-  int idx, base = s->idx;
+  int idx, base = s->irep->idx;
   struct loopinfo *lp;
   node *n2;
   mrb_code c;
@@ -509,7 +507,7 @@ for_body(codegen_scope *s, node *tree)
   codegen(s, tree->cdr->car, VAL);
   // generate loop-block
   s = scope_new(s->mrb, s, tree->car);
-  idx = s->idx;
+  idx = s->irep->idx;
 
   lp = loop_push(s, LOOP_FOR);
   lp->pc1 = new_label(s);
@@ -543,11 +541,11 @@ for_body(codegen_scope *s, node *tree)
 static int
 lambda_body(codegen_scope *s, node *tree, int blk)
 {
-  int idx, base = s->idx;
+  int idx, base = s->irep->idx;
   mrb_code c;
 
   s = scope_new(s->mrb, s, tree->car);
-  idx = s->idx;
+  idx = s->irep->idx;
   s->mscope = !blk;
 
   if (blk) {
@@ -634,7 +632,7 @@ static int
 scope_body(codegen_scope *s, node *tree)
 {
   codegen_scope *scope = scope_new(s->mrb, s, tree->car);
-  int idx = scope->idx;
+  int idx = scope->irep->idx;
 
   codegen(scope, tree->cdr, VAL);
   if (!s->iseq) {
@@ -646,12 +644,15 @@ scope_body(codegen_scope *s, node *tree)
       genop(scope, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
     }
     else {
-      genop_peep(scope, MKOP_AB(OP_RETURN, scope->sp, OP_R_NORMAL), NOVAL);
+      pop();
+      genop_peep(scope, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
+      push();
     }
   }
   scope_finish(scope);
-
-  return idx - s->idx;
+  if (s->irep)
+    return idx - s->irep->idx;
+  return 0;
 }
 
 static mrb_bool
@@ -2359,7 +2360,6 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->mscope = 0;
 
   p->irep = mrb_add_irep(mrb);
-  p->idx = p->irep->idx;
 
   p->icapa = 1024;
   p->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*p->icapa);
@@ -2507,16 +2507,15 @@ loop_pop(codegen_scope *s, int val)
 }
 
 static void
-codedump(mrb_state *mrb, int n)
+codedump(mrb_state *mrb, mrb_irep *irep)
 {
 #ifdef ENABLE_STDIO
-  mrb_irep *irep = mrb->irep[n];
   uint32_t i;
   int ai;
   mrb_code c;
 
   if (!irep) return;
-  printf("irep %d nregs=%d nlocals=%d pools=%d syms=%d\n", n,
+  printf("irep %d nregs=%d nlocals=%d pools=%d syms=%d\n", irep->idx,
          irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen);
   for (i=0; i<irep->ilen; i++) {
     ai = mrb_gc_arena_save(mrb);
@@ -2785,7 +2784,7 @@ codedump(mrb_state *mrb, int n)
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]));
       break;
     case OP_EXEC:
-      printf("OP_EXEC\tR%d\tI(%d)\n", GETARG_A(c), n+GETARG_Bx(c));
+      printf("OP_EXEC\tR%d\tI(%d)\n", GETARG_A(c), irep->idx+GETARG_Bx(c));
       break;
     case OP_SCLASS:
       printf("OP_SCLASS\tR%d\tR%d\n", GETARG_A(c), GETARG_B(c));
@@ -2797,7 +2796,7 @@ codedump(mrb_state *mrb, int n)
       printf("OP_ERR\tL(%d)\n", GETARG_Bx(c));
       break;
     case OP_EPUSH:
-      printf("OP_EPUSH\t:I(%d)\n", n+GETARG_Bx(c));
+      printf("OP_EPUSH\t:I(%d)\n", irep->idx+GETARG_Bx(c));
       break;
     case OP_ONERR:
       printf("OP_ONERR\t%03d\n", i+GETARG_sBx(c));
@@ -2827,14 +2826,16 @@ codedump(mrb_state *mrb, int n)
 }
 
 void
-codedump_all(mrb_state *mrb, int start)
+codedump_all(mrb_state *mrb, struct RProc *proc)
 {
   size_t i;
+  mrb_irep *irep = proc->body.irep;
 
-  for (i=start; i<mrb->irep_len; i++) {
-    codedump(mrb, i);
+  for (i=irep->idx; i<mrb->irep_len; i++) {
+    codedump(mrb, mrb->irep[i]);
   }
 }
+
 static int
 codegen_start(mrb_state *mrb, parser_state *p)
 {
@@ -2858,14 +2859,13 @@ codegen_start(mrb_state *mrb, parser_state *p)
   }
 }
 
-int
+struct RProc*
 mrb_generate_code(mrb_state *mrb, parser_state *p)
 {
   int start = mrb->irep_len;
   int n;
 
   n = codegen_start(mrb, p);
-  if (n < 0) return n;
-
-  return start;
+  if (n < 0) return NULL;
+  return mrb_proc_new(mrb, mrb->irep[start]);
 }

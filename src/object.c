@@ -532,16 +532,14 @@ mrb_convert_to_integer(mrb_state *mrb, mrb_value val, int base)
       if (base != 0) goto arg_error;
       return val;
 
-    case MRB_TT_STRING:
-string_conv:
-      return mrb_str_to_inum(mrb, val, base, TRUE);
-
     default:
       break;
   }
   if (base != 0) {
     tmp = mrb_check_string_type(mrb, val);
-    if (!mrb_nil_p(tmp)) goto string_conv;
+    if (!mrb_nil_p(tmp)) {
+      return mrb_str_to_inum(mrb, val, base, TRUE);
+    }
 arg_error:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "base specified for non string value");
   }

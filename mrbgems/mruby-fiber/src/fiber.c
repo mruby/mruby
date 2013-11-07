@@ -232,6 +232,26 @@ fiber_yield(mrb_state *mrb, mrb_value self)
   return fiber_result(mrb, a, len);
 }
 
+/*
+ *  call-seq:
+ *     Fiber.current() -> fiber
+ *
+ *  Returns the current fiber. You need to <code>require 'fiber'</code>
+ *  before using this method. If you are not running in the context of
+ *  a fiber this method will return the root fiber.
+ */
+static mrb_value
+fiber_current(mrb_state *mrb, mrb_value self)
+{
+  if (!mrb->c->fib) {
+    struct RFiber *f = (struct RFiber*)mrb_obj_alloc(mrb, MRB_TT_FIBER, mrb_class_ptr(self));
+
+    f->cxt = mrb->c;
+    mrb->c->fib = f;
+  }
+  return mrb_obj_value(mrb->c->fib);
+}
+  
 void
 mrb_mruby_fiber_gem_init(mrb_state* mrb)
 {
@@ -245,6 +265,7 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, c, "alive?",     fiber_alive_p, MRB_ARGS_NONE());
 
   mrb_define_class_method(mrb, c, "yield", fiber_yield, MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, c, "current", fiber_current, MRB_ARGS_NONE());
 }
 
 void

@@ -37,6 +37,7 @@ static void yyerror(parser_state *p, const char *s);
 static void yywarn(parser_state *p, const char *s);
 static void yywarning(parser_state *p, const char *s);
 static void backref_error(parser_state *p, node *n);
+static void tokadd(parser_state *p, int c);
 
 #ifndef isascii
 #define isascii(c) (((c) & ~0x7f) == 0)
@@ -3337,8 +3338,8 @@ nextc(parser_state *p)
     mrbc_context *cxt = p->cxt;
 
     if (cxt->partial_hook(p) < 0) return -1;
-    p->cxt = NULL;
-    c = nextc(p);
+    c = '\n';
+    p->lineno = 1;
     p->cxt = cxt;
     return c;
   }
@@ -5154,7 +5155,7 @@ parser_update_cxt(parser_state *p, mrbc_context *cxt)
   }
 }
 
-void codedump_all(mrb_state*, int);
+void codedump_all(mrb_state*, struct RProc*);
 void parser_dump(mrb_state *mrb, node *tree, int offset);
 
 void
@@ -5345,7 +5346,6 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
 {
   struct RClass *target = mrb->object_class;
   struct RProc *proc;
-  int n;
   mrb_value v;
 
   if (!p) {
@@ -5354,6 +5354,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   if (!p->tree || p->nerr) {
     if (p->capture_errors) {
       char buf[256];
+      int n;
 
       n = snprintf(buf, sizeof(buf), "line %d: %s\n",
       p->error_buffer[0].lineno, p->error_buffer[0].message);
@@ -5368,26 +5369,25 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
       return mrb_undef_value();
     }
   }
-  n = mrb_generate_code(mrb, p);
+  proc = mrb_generate_code(mrb, p);
   mrb_parser_free(p);
-  if (n < 0) {
+  if (proc == NULL) {
     static const char msg[] = "codegen error";
     mrb->exc = mrb_obj_ptr(mrb_exc_new(mrb, E_SCRIPT_ERROR, msg, sizeof(msg) - 1));
     return mrb_nil_value();
   }
   if (c) {
-    if (c->dump_result) codedump_all(mrb, n);
-    if (c->no_exec) return mrb_fixnum_value(n);
+    if (c->dump_result) codedump_all(mrb, proc);
+    if (c->no_exec) return mrb_fixnum_value(0);
     if (c->target_class) {
       target = c->target_class;
     }
   }
-  proc = mrb_proc_new(mrb, mrb->irep[n]);
   proc->target_class = target;
   if (mrb->c->ci) {
     mrb->c->ci->target_class = target;
   }
-  v = mrb_run(mrb, proc, mrb_top_self(mrb));
+  v = mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
   if (mrb->exc) return mrb_nil_value();
   return v;
 }

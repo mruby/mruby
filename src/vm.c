@@ -226,6 +226,8 @@ cipush(mrb_state *mrb)
   ci->eidx = eidx;
   ci->ridx = ridx;
   ci->env = 0;
+  ci->pc = 0;
+
   return ci;
 }
 
@@ -509,8 +511,9 @@ argnum_error(mrb_state *mrb, int num)
   mrb->exc = mrb_obj_ptr(exc);
 }
 
+#define ERR_PC_HOOK(mrb, pc) mrb->c->ci->err = pc;
 #ifdef ENABLE_DEBUG
-#define CODE_FETCH_HOOK(mrb, irep, pc, regs) if ((mrb)->code_fetch_hook) (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs)); 
+#define CODE_FETCH_HOOK(mrb, irep, pc, regs) if ((mrb)->code_fetch_hook) (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs));
 #else
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs)
 #endif
@@ -544,7 +547,7 @@ void mrb_gv_val_set(mrb_state *mrb, mrb_sym sym, mrb_value val);
 #define CALL_MAXARGS 127
 
 mrb_value
-mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
+mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {
   /* mrb_assert(mrb_proc_cfunc_p(proc)) */
   mrb_irep *irep = proc->body.irep;
@@ -592,7 +595,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   if (!mrb->c->stack) {
     stack_init(mrb);
   }
-  stack_extend(mrb, irep->nregs, irep->nregs);
+  stack_extend(mrb, irep->nregs, stack_keep);
+  mrb->c->ci->err = pc;
   mrb->c->ci->proc = proc;
   mrb->c->ci->nregs = irep->nregs + 1;
   regs = mrb->c->stack;
@@ -684,6 +688,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_GETCV) {
       /* A B    R(A) := ivget(Sym(B)) */
+      ERR_PC_HOOK(mrb, pc);
       regs[GETARG_A(i)] = mrb_vm_cv_get(mrb, syms[GETARG_Bx(i)]);
       NEXT;
     }
@@ -696,7 +701,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_GETCONST) {
       /* A B    R(A) := constget(Sym(B)) */
-      regs[GETARG_A(i)] = mrb_vm_const_get(mrb, syms[GETARG_Bx(i)]);
+      mrb_value val;
+
+      ERR_PC_HOOK(mrb, pc);
+      val = mrb_vm_const_get(mrb, syms[GETARG_Bx(i)]);
+      regs = mrb->c->stack;
+      regs[GETARG_A(i)] = val;
       NEXT;
     }
 
@@ -708,9 +718,13 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
     CASE(OP_GETMCNST) {
       /* A B C  R(A) := R(C)::Sym(B) */
+      mrb_value val;
       int a = GETARG_A(i);
 
-      regs[a] = mrb_const_get(mrb, regs[a], syms[GETARG_Bx(i)]);
+      ERR_PC_HOOK(mrb, pc);
+      val = mrb_const_get(mrb, regs[a], syms[GETARG_Bx(i)]);
+      regs = mrb->c->stack;
+      regs[a] = val;
       NEXT;
     }
 
@@ -1320,6 +1334,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
             /* automatic yield at the end */
             mrb->c->status = MRB_FIBER_TERMINATED;
             mrb->c = mrb->c->prev;
+            mrb->c->status = MRB_FIBER_RUNNING;
           }
           ci = mrb->c->ci;
           break;
@@ -2128,6 +2143,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     }
   }
   END_DISPATCH;
+}
+
+mrb_value
+mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
+{
+    return mrb_context_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
 }
 
 void

@@ -20,7 +20,7 @@ assert('NameError#name', '15.2.31.2.1') do
     $test_dummy_result = e.name
   end
 
-  assert_equal $test_dummy_result, :bar
+  assert_equal :bar, $test_dummy_result
 end
 
 assert('NameError#initialize', '15.2.31.2.2') do
