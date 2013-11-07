@@ -414,12 +414,14 @@ new_lit(codegen_scope *s, mrb_value val)
   case MRB_TT_FLOAT:
     for (i=0; i<s->irep->plen; i++) {
       pv = &s->irep->pool[i];
+      if (pv->type != MRB_TT_FLOAT) continue;
       if (pv->value.f == mrb_float(val)) return i;
     }
     break;
   case MRB_TT_FIXNUM:
     for (i=0; i<s->irep->plen; i++) {
       pv = &s->irep->pool[i];
+      if (pv->type != MRB_TT_FIXNUM) continue;
       if (pv->value.i == mrb_fixnum(val)) return i;
     }
     break;
