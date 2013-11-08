@@ -462,12 +462,15 @@ mrb_value
 mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 {
   mrb_irep *irep = mrb_read_irep(mrb, bin);
+  mrb_value val;
 
   if (!irep) {
     irep_error(mrb);
     return mrb_nil_value();
   }
-  return mrb_context_run(mrb, mrb_proc_new(mrb, irep), mrb_top_self(mrb), 0);
+  val = mrb_context_run(mrb, mrb_proc_new(mrb, irep), mrb_top_self(mrb), 0);
+  mrb_irep_decref(mrb, irep);
+  return val;
 }
 
 #ifdef ENABLE_STDIO
@@ -694,11 +697,14 @@ mrb_value
 mrb_load_irep_file(mrb_state *mrb, FILE* fp)
 {
   mrb_irep *irep = mrb_read_irep_file(mrb, fp);
+  mrb_value val;
 
   if (!irep) {
     irep_error(mrb);
     return mrb_nil_value();
   }
-  return mrb_context_run(mrb, mrb_proc_new(mrb, irep), mrb_top_self(mrb), 0);
+  val = mrb_context_run(mrb, mrb_proc_new(mrb, irep), mrb_top_self(mrb), 0);
+  mrb_irep_decref(mrb, irep);
+  return val;
 }
 #endif /* ENABLE_STDIO */
