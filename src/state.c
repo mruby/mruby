@@ -107,6 +107,21 @@ void mrb_free_symtbl(mrb_state *mrb);
 void mrb_free_heap(mrb_state *mrb);
 
 void
+mrb_irep_incref(mrb_state *mrb, mrb_irep *irep)
+{
+  irep->refcnt++;
+}
+
+void
+mrb_irep_decref(mrb_state *mrb, mrb_irep *irep)
+{
+  irep->refcnt--;
+  if (irep->refcnt == 0) {
+    mrb_irep_free(mrb, irep);
+  }
+}
+
+void
 mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
 {
   size_t i;
@@ -119,6 +134,9 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   }
   mrb_free(mrb, irep->pool);
   mrb_free(mrb, irep->syms);
+  for (i=0; i<irep->rlen; i++) {
+    mrb_irep_decref(mrb, irep->reps[i]);
+  }
   mrb_free(mrb, irep->reps);
   mrb_free(mrb, (void *)irep->filename);
   mrb_free(mrb, irep->lines);
@@ -163,6 +181,7 @@ mrb_add_irep(mrb_state *mrb)
 
   irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
   *irep = mrb_irep_zero;
+  irep->refcnt = 1;
 
   return irep;
 }

@@ -37,7 +37,7 @@ typedef struct mrb_irep {
   uint16_t *lines;
   struct mrb_irep_debug_info* debug_info;
 
-  size_t ilen, plen, slen, rlen;
+  size_t ilen, plen, slen, rlen, refcnt;
 } mrb_irep;
 
 #define MRB_ISEQ_NO_FREE 1
@@ -45,6 +45,8 @@ typedef struct mrb_irep {
 mrb_irep *mrb_add_irep(mrb_state *mrb);
 mrb_value mrb_load_irep(mrb_state*, const uint8_t*);
 void mrb_irep_free(mrb_state*, struct mrb_irep*);
+void mrb_irep_incref(mrb_state*, struct mrb_irep*);
+void mrb_irep_decref(mrb_state*, struct mrb_irep*);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */

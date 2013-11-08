@@ -640,6 +640,16 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     mrb_gc_free_str(mrb, (struct RString*)obj);
     break;
 
+  case MRB_TT_PROC:
+    {
+      struct RProc *p = (struct RProc*)obj;
+
+      if (!MRB_PROC_CFUNC_P(p) && p->body.irep) {
+        mrb_irep_decref(mrb, p->body.irep);
+      }
+    }
+    break;
+
   case MRB_TT_RANGE:
     mrb_free(mrb, ((struct RRange*)obj)->edges);
     break;

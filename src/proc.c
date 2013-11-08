@@ -22,6 +22,7 @@ mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
   p->target_class = (mrb->c->ci) ? mrb->c->ci->target_class : 0;
   p->body.irep = irep;
   p->env = 0;
+  mrb_irep_incref(mrb, irep);
 
   return p;
 }
@@ -80,6 +81,9 @@ mrb_proc_copy(struct RProc *a, struct RProc *b)
 {
   a->flags = b->flags;
   a->body = b->body;
+  if (!MRB_PROC_CFUNC_P(a)) {
+    a->body.irep->refcnt++;
+  };
   a->target_class = b->target_class;
   a->env = b->env;
 }
@@ -181,7 +185,7 @@ void
 mrb_init_proc(mrb_state *mrb)
 {
   struct RProc *m;
-  mrb_irep *call_irep = (mrb_irep *)mrb_alloca(mrb, sizeof(mrb_irep));
+  mrb_irep *call_irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
   static const mrb_irep mrb_irep_zero = { 0 };
 
   if (call_irep == NULL)
