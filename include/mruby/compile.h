@@ -113,6 +113,7 @@ struct mrb_parser_state {
   char const *filename;
   int lineno;
   int column;
+  int eof;
 
   enum mrb_lex_state_enum lstate;
   mrb_ast_node *lex_strterm; /* (type nest_level beg . end) */
