@@ -406,7 +406,7 @@ mrb_irep*
 mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
 {
   int result;
-  mrb_irep *irep;
+  mrb_irep *irep = NULL;
   const struct rite_section_header *section_header;
   uint16_t crc;
   size_t bin_size = 0;
@@ -434,12 +434,14 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
       if (!irep) return NULL;
     }
     else if (memcmp(section_header->section_identify, RITE_SECTION_LINENO_IDENTIFIER, sizeof(section_header->section_identify)) == 0) {
+      if (!irep) return NULL;   /* corrupted data */
       result = read_section_lineno(mrb, bin, irep);
       if (result < MRB_DUMP_OK) {
         return NULL;
       }
     }
     else if (memcmp(section_header->section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(section_header->section_identify)) == 0) {
+      if (!irep) return NULL;   /* corrupted data */
       result = read_section_debug(mrb, bin, irep);
       if (result < MRB_DUMP_OK) {
         return NULL;
@@ -602,7 +604,7 @@ read_section_irep_file(mrb_state *mrb, FILE *fp)
 mrb_irep*
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
-  mrb_irep *irep;
+  mrb_irep *irep = NULL;
   int result;
   uint8_t *buf;
   uint16_t crc, crcwk = 0;
@@ -671,19 +673,24 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
       if (!irep) return NULL;
     }
     else if (memcmp(section_header.section_identify, RITE_SECTION_LINENO_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
+      if (!irep) return NULL;   /* corrupted data */
       fseek(fp, fpos, SEEK_SET);
       result = read_section_lineno_file(mrb, fp, irep);
       if (result < MRB_DUMP_OK) return NULL;
     }
     else if (memcmp(section_header.section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
-      uint8_t* const bin = mrb_malloc(mrb, section_size);
-      fseek(fp, fpos, SEEK_SET);
-      if(fread((char*)bin, section_size, 1, fp) != 1) {
+      if (!irep) return NULL;   /* corrupted data */
+      else {
+        uint8_t* const bin = mrb_malloc(mrb, section_size);
+
+        fseek(fp, fpos, SEEK_SET);
+        if(fread((char*)bin, section_size, 1, fp) != 1) {
+          mrb_free(mrb, bin);
+          return NULL;
+        }
+        result = read_section_debug(mrb, bin, irep);
         mrb_free(mrb, bin);
-        return NULL;
       }
-      result = read_section_debug(mrb, bin, irep);
-      mrb_free(mrb, bin);
       if (result < MRB_DUMP_OK) return NULL;
     }
 
