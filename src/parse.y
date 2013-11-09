@@ -3333,19 +3333,13 @@ nextc(parser_state *p)
   return c;
 
  eof:
-  if (!p->eof) {
-    p->eof = TRUE;
-    return '\n';
-  }
-
   if (!p->cxt) return -1;
   else {
     mrbc_context *cxt = p->cxt;
 
     if (cxt->partial_hook(p) < 0) return -1;
-    p->eof = FALSE;
-    p->cxt = NULL;
-    c = nextc(p);
+    c = '\n';
+    p->lineno = 1;
     p->cxt = cxt;
     return c;
   }
@@ -3873,6 +3867,9 @@ heredoc_identifier(parser_state *p)
       return 0;
     }
   } else {
+    if (c == -1) {
+      return 0;                 /* missing here document identifier */
+    }
     if (! identchar(c)) {
       pushback(p, c);
       if (indent) pushback(p, '-');
@@ -3936,7 +3933,10 @@ parser_yylex(parser_state *p)
   case '\0':    /* NUL */
   case '\004':  /* ^D */
   case '\032':  /* ^Z */
+    return 0;
   case -1:      /* end of script. */
+    if (p->heredocs_from_nextline)
+      goto maybe_heredoc;
     return 0;
 
   /* white spaces */
@@ -3949,6 +3949,7 @@ parser_yylex(parser_state *p)
     skip(p, '\n');
   /* fall through */
   case '\n':
+  maybe_heredoc:
     heredoc_treat_nextline(p);
     switch (p->lstate) {
     case EXPR_BEG:
