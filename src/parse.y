@@ -3316,14 +3316,14 @@ nextc(parser_state *p)
   else {
 #ifdef ENABLE_STDIO
     if (p->f) {
-      if (feof(p->f)) goto eof;
+      if (feof(p->f)) goto end_retry;
       c = fgetc(p->f);
-      if (c == EOF) goto eof;
+      if (c == EOF) goto end_retry;
     }
     else
 #endif
     if (!p->s || p->s >= p->send) {
-       goto eof;
+       goto end_retry;
     }
     else {
       c = (unsigned char)*p->s++;
@@ -3332,20 +3332,15 @@ nextc(parser_state *p)
   p->column++;
   return c;
 
- eof:
-  if (!p->eof) {
-    p->eof = TRUE;
-    return '\n';
-  }
+ end_retry:
 
   if (!p->cxt) return -1;
   else {
     mrbc_context *cxt = p->cxt;
 
     if (cxt->partial_hook(p) < 0) return -1;
-    p->eof = FALSE;
-    p->cxt = NULL;
-    c = nextc(p);
+    c = '\n';
+    p->lineno = 1;
     p->cxt = cxt;
     return c;
   }
