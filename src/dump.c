@@ -97,7 +97,6 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
     default:
       break;
     }
-
     mrb_gc_arena_restore(mrb, ai);
   }
 
@@ -590,7 +589,7 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur)
   const uint8_t *bin = cur;
   struct rite_section_debug_header *header;
   mrb_sym *filenames;
-  size_t filenames_len, i;
+  size_t filenames_len = 0, i;
   uint8_t *filenames_len_out;
   uint32_t dlen;
 

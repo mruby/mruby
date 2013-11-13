@@ -496,7 +496,8 @@ read_lineno_record_file(mrb_state *mrb, FILE *fp, mrb_irep *irep, uint8_t *buf)
 {
   const size_t record_header_size = 4;
   int result;
-  size_t i, len, buf_size;
+  size_t i, buf_size;
+  uint32_t len;
   void *ptr;
 
   if (fread(buf, record_header_size, 1, fp) == 0) {
@@ -561,7 +562,8 @@ static mrb_irep*
 read_irep_record_file(mrb_state *mrb, FILE *fp, uint8_t *buf)
 {
   const size_t record_header_size = 1 + 4;
-  size_t buf_size, len, i;
+  size_t buf_size, i;
+  uint32_t len;
   mrb_irep *irep = NULL;
   void *ptr;
 
