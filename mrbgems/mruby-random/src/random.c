@@ -265,6 +265,7 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
     
     for (i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
       mrb_int j;
+      mrb_value tmp;
       
       if (mrb_nil_p(random)) {
         j = mrb_fixnum(mrb_random_mt_g_rand(mrb, mrb_fixnum_value(RARRAY_LEN(ary))));
@@ -273,9 +274,9 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
         j = mrb_fixnum(mrb_random_mt_rand(mrb, DATA_PTR(random), mrb_fixnum_value(RARRAY_LEN(ary))));
       }
       
-      mrb_value t = RARRAY_PTR(ary)[i];
+      tmp = RARRAY_PTR(ary)[i];
       RARRAY_PTR(ary)[i] = RARRAY_PTR(ary)[j];
-      RARRAY_PTR(ary)[j] = t;
+      RARRAY_PTR(ary)[j] = tmp;
     }    
   }
   
