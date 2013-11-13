@@ -102,7 +102,21 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
       irep->pool[i].type = tt;
       switch (tt) { //pool data
       case MRB_TT_FIXNUM:
-        irep->pool[i].value.i = mrb_fixnum(mrb_str_to_inum(mrb, s, 10, FALSE));
+        {
+          mrb_value v = mrb_str_to_inum(mrb, s, 10, FALSE);
+
+          switch (mrb_type(v)) {
+          case MRB_TT_FIXNUM:
+            irep->pool[i].value.i = mrb_fixnum(v);
+            break;
+          case MRB_TT_FLOAT:
+            irep->pool[i].type = MRB_TT_FLOAT;
+            irep->pool[i].value.f = mrb_float(v);
+          default:
+             /* broken data; should not happen */
+            irep->pool[i].value.i = 0;
+          }
+        }
         break;
 
       case MRB_TT_FLOAT:
