@@ -212,11 +212,10 @@ load_file(mrb_state *mrb, struct mrbc_args *args)
 
   result = mrb_load_file_cxt(mrb, infile, c);
   if (need_close) fclose(infile);
-  if (mrb_undef_p(result) || mrb_fixnum(result) < 0) {
-    mrbc_context_free(mrb, c);
+  mrbc_context_free(mrb, c);
+  if (mrb_undef_p(result)) {
     return mrb_nil_value();
   }
-  mrbc_context_free(mrb, c);
   return result;
 }
 

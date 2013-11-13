@@ -5381,7 +5381,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   if (proc == NULL) {
     static const char msg[] = "codegen error";
     mrb->exc = mrb_obj_ptr(mrb_exc_new(mrb, E_SCRIPT_ERROR, msg, sizeof(msg) - 1));
-    return mrb_nil_value();
+    return mrb_undef_value();
   }
   if (c) {
     if (c->dump_result) codedump_all(mrb, proc);
