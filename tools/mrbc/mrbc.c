@@ -187,6 +187,7 @@ load_file(mrb_state *mrb, struct mrbc_args *args)
   mrb_value result;
   char *input = args->argv[args->idx];
   FILE *infile;
+  int need_close = FALSE;
 
   c = mrbc_context_new(mrb);
   if (args->verbose)
@@ -195,17 +196,22 @@ load_file(mrb_state *mrb, struct mrbc_args *args)
   if (input[0] == '-' && input[1] == '\0') {
     infile = stdin;
   }
-  else if ((infile = fopen(input, "r")) == NULL) {
-    fprintf(stderr, "%s: cannot open program file. (%s)\n", args->prog, input);
-    return mrb_nil_value();
+  else {
+    need_close = TRUE;
+    if ((infile = fopen(input, "r")) == NULL) {
+      fprintf(stderr, "%s: cannot open program file. (%s)\n", args->prog, input);
+      return mrb_nil_value();
+    }
   }
   mrbc_filename(mrb, c, input);
   args->idx++;
   if (args->idx < args->argc) {
+    need_close = FALSE;
     mrbc_partial_hook(mrb, c, partial_hook, (void*)args);
   }
 
   result = mrb_load_file_cxt(mrb, infile, c);
+  if (need_close) fclose(infile);
   if (mrb_undef_p(result) || mrb_fixnum(result) < 0) {
     mrbc_context_free(mrb, c);
     return mrb_nil_value();
