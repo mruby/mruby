@@ -548,8 +548,6 @@ read_section_lineno_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
 
   //Read Binary Data Section
   result = read_lineno_record_file(mrb, fp, irep, buf);
-  if (result != MRB_DUMP_OK)
-    goto error_exit;
 
 error_exit:
   if (buf) {
