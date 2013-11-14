@@ -498,15 +498,15 @@ mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 static int
 read_lineno_record_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
 {
-  const size_t record_header_size = 4;
-  uint8_t header[record_header_size];
+  #define RECORD_HEADER_SIZE 4
+  uint8_t header[RECORD_HEADER_SIZE];
   int result;
   size_t i, buf_size;
   uint32_t len;
   void *ptr;
   uint8_t *buf;
 
-  if (fread(header, record_header_size, 1, fp) == 0) {
+  if (fread(header, RECORD_HEADER_SIZE, 1, fp) == 0) {
     return MRB_DUMP_READ_FAULT;
   }
   buf_size = bin_to_uint32(&header[0]);
@@ -519,7 +519,7 @@ read_lineno_record_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
   }
   buf = (uint8_t *)ptr;
 
-  if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) == 0) {
+  if (fread(&buf[RECORD_HEADER_SIZE], buf_size - RECORD_HEADER_SIZE, 1, fp) == 0) {
     return MRB_DUMP_READ_FAULT;
   }
   result = read_lineno_record_1(mrb, buf, irep, &len);
@@ -530,6 +530,7 @@ read_lineno_record_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
     if (result != MRB_DUMP_OK) break;
   }
   return result;
+  #undef RECORD_HEADER_SIZE
 }
 
 static int32_t
@@ -548,15 +549,15 @@ read_section_lineno_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
 static mrb_irep*
 read_irep_record_file(mrb_state *mrb, FILE *fp)
 {
-  const size_t record_header_size = 1 + 4;
-  uint8_t header[record_header_size];
+  #define RECORD_HEADER_SIZE 1 + 4
+  uint8_t header[RECORD_HEADER_SIZE];
   size_t buf_size, i;
   uint32_t len;
   mrb_irep *irep = NULL;
   void *ptr;
   uint8_t *buf;
 
-  if (fread(header, record_header_size, 1, fp) == 0) {
+  if (fread(header, RECORD_HEADER_SIZE, 1, fp) == 0) {
     return NULL;
   }
   buf_size = bin_to_uint32(&header[0]);
@@ -566,8 +567,8 @@ read_irep_record_file(mrb_state *mrb, FILE *fp)
   ptr = mrb_malloc(mrb, buf_size);
   if (!ptr) return NULL;
   buf = (uint8_t *)ptr;
-  memcpy(buf, header, record_header_size);
-  if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) == 0) {
+  memcpy(buf, header, RECORD_HEADER_SIZE);
+  if (fread(&buf[RECORD_HEADER_SIZE], buf_size - RECORD_HEADER_SIZE, 1, fp) == 0) {
     return NULL;
   }
   irep = read_irep_record_1(mrb, buf, &len);
@@ -578,6 +579,7 @@ read_irep_record_file(mrb_state *mrb, FILE *fp)
     if (!irep->reps[i]) return NULL;
   }
   return irep;
+  #undef RECORD_HEADER_SIZE
 }
 
 static mrb_irep*
