@@ -386,6 +386,7 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep)
   result = read_debug_record(mrb, bin, irep, &len, filenames, filenames_len);
   if (result != MRB_DUMP_OK) goto debug_exit;
 
+  bin += len;
   if ((bin - start) != bin_to_uint32(header->section_size)) {
     result = MRB_DUMP_GENERAL_FAILURE;
   }
