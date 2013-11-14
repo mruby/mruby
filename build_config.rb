@@ -1,5 +1,12 @@
 MRuby::Build.new do |conf|
   # load specific toolchain settings
+  #
+  # Available options (see tasks/toolchains):
+  # * androideabi
+  # * clang
+  # * gcc
+  # * vs2010
+  # * vs2012
   toolchain :gcc
 
   # Use mrbgems
