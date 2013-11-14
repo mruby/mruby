@@ -6,7 +6,7 @@ MRuby::Build.new do |conf|
   # * clang
   # * gcc
   # * vs2010
-  # * vs2012
+  # * vs2013
   toolchain :gcc
 
   # Use mrbgems
