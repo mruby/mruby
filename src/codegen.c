@@ -402,8 +402,8 @@ new_lit(codegen_scope *s, mrb_value val)
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
     for (i=0; i<s->irep->plen; i++) {
-      pv = &s->irep->pool[i];
       mrb_int len;
+      pv = &s->irep->pool[i];
 
       if (pv->type != MRB_TT_STRING) continue;
       if ((len = pv->value.s->len) != RSTRING_LEN(val)) continue;
