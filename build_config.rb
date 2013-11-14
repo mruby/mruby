@@ -1,11 +1,11 @@
 MRuby::Build.new do |conf|
-  # load specific toolchain settings
+  # Load specific toolchain settings. Available options are (as listed in tasks/toolchains):
   #
-  # Available options (see tasks/toolchains):
   # * androideabi
   # * clang
   # * gcc
   # * vs2010
+  # * vs2012
   # * vs2013
   toolchain :gcc
 
