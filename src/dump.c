@@ -80,17 +80,17 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
     int ai = mrb_gc_arena_save(mrb);
 
     switch (irep->pool[pool_no].type) {
-    case MRB_TT_FIXNUM:
+    case IREP_TT_FIXNUM:
       str = mrb_fixnum_to_str(mrb, mrb_fixnum_value(irep->pool[pool_no].value.i), 10);
       size += RSTRING_LEN(str);
       break;
 
-    case MRB_TT_FLOAT:
+    case IREP_TT_FLOAT:
       len = mrb_float_to_str(buf, irep->pool[pool_no].value.f);
       size += len;
       break;
 
-    case MRB_TT_STRING:
+    case IREP_TT_STRING:
       size += irep->pool[pool_no].value.s->len;
       break;
 
@@ -121,18 +121,18 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
     cur += uint8_to_bin(irep->pool[pool_no].type, cur); /* data type */
 
     switch (irep->pool[pool_no].type) {
-    case MRB_TT_FIXNUM:
+    case IREP_TT_FIXNUM:
       str = mrb_fixnum_to_str(mrb, mrb_fixnum_value(irep->pool[pool_no].value.i), 10);
       char_ptr = RSTRING_PTR(str);
       len = RSTRING_LEN(str);
       break;
 
-    case MRB_TT_FLOAT:
+    case IREP_TT_FLOAT:
       len = mrb_float_to_str(char_buf, irep->pool[pool_no].value.f);
       char_ptr = &char_buf[0];
       break;
 
-    case MRB_TT_STRING:
+    case IREP_TT_STRING:
       char_ptr = irep->pool[pool_no].value.s->buf;
       len = irep->pool[pool_no].value.s->len;
       break;

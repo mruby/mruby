@@ -618,7 +618,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
     CASE(OP_LOADL) {
       /* A Bx   R(A) := Pool(Bx) */
-      if (pool[GETARG_Bx(i)].type == MRB_TT_FLOAT)
+      if (pool[GETARG_Bx(i)].type == IREP_TT_FLOAT)
         SET_FLT_VALUE(mrb, regs[GETARG_A(i)], pool[GETARG_Bx(i)].value.f);
       else
         SET_INT_VALUE(regs[GETARG_A(i)], pool[GETARG_Bx(i)].value.i);

@@ -316,7 +316,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       if (c0 == OP_STRING) {
         int i = GETARG_Bx(i0);
 
-        if (s->irep->pool[i].type == MRB_TT_STRING &&
+        if (s->irep->pool[i].type == IREP_TT_STRING &&
             s->irep->pool[i].value.s->len == 0) {
           s->pc--;
           return;
@@ -405,7 +405,7 @@ new_lit(codegen_scope *s, mrb_value val)
       mrb_int len;
       pv = &s->irep->pool[i];
 
-      if (pv->type != MRB_TT_STRING) continue;
+      if (pv->type != IREP_TT_STRING) continue;
       if ((len = pv->value.s->len) != RSTRING_LEN(val)) continue;
       if (memcmp(pv->value.s->buf, RSTRING_PTR(val), len) == 0)
         return i;
@@ -414,14 +414,14 @@ new_lit(codegen_scope *s, mrb_value val)
   case MRB_TT_FLOAT:
     for (i=0; i<s->irep->plen; i++) {
       pv = &s->irep->pool[i];
-      if (pv->type != MRB_TT_FLOAT) continue;
+      if (pv->type != IREP_TT_FLOAT) continue;
       if (pv->value.f == mrb_float(val)) return i;
     }
     break;
   case MRB_TT_FIXNUM:
     for (i=0; i<s->irep->plen; i++) {
       pv = &s->irep->pool[i];
-      if (pv->type != MRB_TT_FIXNUM) continue;
+      if (pv->type != IREP_TT_FIXNUM) continue;
       if (pv->value.i == mrb_fixnum(val)) return i;
     }
     break;
@@ -437,18 +437,20 @@ new_lit(codegen_scope *s, mrb_value val)
 
   pv = &s->irep->pool[s->irep->plen];
   i = s->irep->plen++;
-  pv->type = mrb_type(val);
 
-  switch (pv->type) {
+  switch (mrb_type(val)) {
   case MRB_TT_STRING:
+    pv->type = IREP_TT_STRING;
     pv->value.s = (struct irep_pool_string*)codegen_malloc(s, sizeof(struct irep_pool_string) + RSTRING_LEN(val));
     pv->value.s->len = RSTRING_LEN(val);
     memcpy(pv->value.s->buf, RSTRING_PTR(val), RSTRING_LEN(val));
     break;
   case MRB_TT_FLOAT:
+    pv->type = IREP_TT_FLOAT;
     pv->value.f = mrb_float(val);
     break;
   case MRB_TT_FIXNUM:
+    pv->type = IREP_TT_FIXNUM;
     pv->value.i = mrb_fixnum(val);
     break;
   default:

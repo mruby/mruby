@@ -11,6 +11,12 @@
 extern "C" {
 #endif
 
+enum irep_pool_type {
+  IREP_TT_STRING,
+  IREP_TT_FIXNUM,
+  IREP_TT_FLOAT,
+};
+
 /* Program data array struct */
 typedef struct mrb_irep {
   uint16_t nlocals;        /* Number of local variables */
@@ -27,7 +33,7 @@ typedef struct mrb_irep {
       } *s;
       mrb_int i;
     } value;
-    enum mrb_vtype type;
+    enum irep_pool_type type;
   } *pool;
   mrb_sym *syms;
   struct mrb_irep **reps;

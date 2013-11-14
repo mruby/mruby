@@ -94,6 +94,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
 
     for (i = 0; i < plen; i++) {
       mrb_value s;
+
       tt = *src++; //pool TT
       pool_data_len = bin_to_uint16(src); //pool data length
       src += sizeof(uint16_t);
@@ -101,7 +102,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
       src += pool_data_len;
       irep->pool[i].type = tt;
       switch (tt) { //pool data
-      case MRB_TT_FIXNUM:
+      case IREP_TT_FIXNUM:
         {
           mrb_value v = mrb_str_to_inum(mrb, s, 10, FALSE);
 
@@ -119,11 +120,11 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
         }
         break;
 
-      case MRB_TT_FLOAT:
+      case IREP_TT_FLOAT:
         irep->pool[i].value.f = mrb_str_to_dbl(mrb, s, FALSE);
         break;
 
-      case MRB_TT_STRING:
+      case IREP_TT_STRING:
         irep->pool[i].value.s = (struct irep_pool_string*)mrb_malloc(mrb, sizeof(struct irep_pool_string) + pool_data_len);
         irep->pool[i].value.s->len = pool_data_len;
         memcpy(irep->pool[i].value.s->buf, src-pool_data_len, pool_data_len);
