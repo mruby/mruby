@@ -549,7 +549,7 @@ read_section_lineno_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
 static mrb_irep*
 read_irep_record_file(mrb_state *mrb, FILE *fp)
 {
-  #define RECORD_HEADER_SIZE 1 + 4
+  #define RECORD_HEADER_SIZE (1 + 4)
   uint8_t header[RECORD_HEADER_SIZE];
   size_t buf_size, i;
   uint32_t len;
