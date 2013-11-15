@@ -483,7 +483,7 @@ get_filename_table_size(mrb_state *mrb, mrb_irep *irep, mrb_sym **fp, size_t *lp
     if (find_filename_index(filenames, *lp, file->filename_sym) == -1) {
       // register filename
       *lp += 1;
-      *fp = filenames = (mrb_sym *)mrb_realloc(mrb, filenames, sizeof(mrb_sym*) * (*lp));
+      *fp = filenames = (mrb_sym *)mrb_realloc(mrb, filenames, sizeof(mrb_sym) * (*lp));
       filenames[*lp - 1] = file->filename_sym;
 
       // filename
@@ -602,7 +602,7 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur)
   section_size += sizeof(struct rite_section_debug_header);
 
   // filename table
-  filenames = (mrb_sym *)mrb_malloc(mrb, sizeof(mrb_sym *) * 1);
+  filenames = (mrb_sym *)mrb_malloc(mrb, sizeof(mrb_sym) * 1);
   filenames_len_out = cur;
   cur += sizeof(uint16_t);
   section_size += sizeof(uint16_t);
@@ -686,7 +686,7 @@ dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, size_t 
 
       section_lineno_size += sizeof(struct rite_section_debug_header);
       // filename table
-      filenames = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym *) + 1);
+      filenames = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) + 1);
 
       // filename table size
       section_lineno_size += sizeof(uint16_t);
