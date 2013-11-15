@@ -204,6 +204,7 @@ main(int argc, char **argv)
     }
     else if (!args.check_syntax) {
       mrb_context_run(mrb, mrb_proc_new(mrb, irep), mrb_top_self(mrb), 0);
+      mrb_irep_decref(mrb, irep);
       n = 0;
       if (mrb->exc) {
         mrb_print_error(mrb);
