@@ -14,20 +14,7 @@ class File < IO
       super(fd_or_path, mode)
     else
       @path = fd_or_path
-
-      perm = 0666  unless perm.is_a? Fixnum
       fd = IO.sysopen(@path, mode, perm)
-      if fd < 0 && Object.const_defined?(:Errno)
-        begin
-          Errno.handle @path
-        rescue Errno::EMFILE
-          GC.run(true)
-          fd = IO.sysopen(@path, mode, perm)
-          Errno.handle if fd < 0
-        end
-      elsif fd < 0
-        raise NoFileError.new "no such file or directory"
-      end
       super(fd, mode)
     end
   end

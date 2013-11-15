@@ -396,6 +396,8 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
 
   flags = mrb_io_modestr_to_flags(mrb, mrb_string_value_cstr(mrb, &mode));
   fd = io_open(mrb, path, flags, perm);
+  if (fd == -1)
+    mrb_sys_fail(mrb, mrb_str_to_cstr(mrb, path));
 
   return mrb_fixnum_value(fd);
 }
