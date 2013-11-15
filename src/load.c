@@ -477,7 +477,7 @@ irep_error(mrb_state *mrb)
 }
 
 mrb_value
-mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
+mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrbc_context *c)
 {
   mrb_irep *irep = mrb_read_irep(mrb, bin);
   mrb_value val;
@@ -488,9 +488,16 @@ mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
     return mrb_nil_value();
   }
   proc = mrb_proc_new(mrb, irep);
-  val = mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
   mrb_irep_decref(mrb, irep);
+  if (c && c->no_exec) return mrb_obj_value(proc);
+  val = mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
   return val;
+}
+
+mrb_value
+mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
+{
+  return mrb_load_irep_cxt(mrb, bin, NULL);
 }
 
 #ifdef ENABLE_STDIO
@@ -691,7 +698,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 }
 
 mrb_value
-mrb_load_irep_file(mrb_state *mrb, FILE* fp)
+mrb_load_irep_file_cxt(mrb_state *mrb, FILE* fp, mrbc_context *c)
 {
   mrb_irep *irep = mrb_read_irep_file(mrb, fp);
   mrb_value val;
@@ -702,8 +709,15 @@ mrb_load_irep_file(mrb_state *mrb, FILE* fp)
     return mrb_nil_value();
   }
   proc = mrb_proc_new(mrb, irep);
-  val = mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
   mrb_irep_decref(mrb, irep);
+  if (c && c->no_exec) return mrb_obj_value(proc);
+  val = mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
   return val;
+}
+
+mrb_value
+mrb_load_irep_file(mrb_state *mrb, FILE* fp)
+{
+  return mrb_load_irep_file_cxt(mrb, fp, NULL);
 }
 #endif /* ENABLE_STDIO */
