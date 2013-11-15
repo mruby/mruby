@@ -30,6 +30,8 @@
 # error This code assumes CHAR_BIT == 8
 #endif
 
+#define RECORD_HEADER_SIZE sizeof(header)
+
 static size_t
 offset_crc_body(void)
 {
@@ -498,8 +500,7 @@ mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 static int
 read_lineno_record_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
 {
-  #define RECORD_HEADER_SIZE 4
-  uint8_t header[RECORD_HEADER_SIZE];
+  uint8_t header[4];
   int result;
   size_t i, buf_size;
   uint32_t len;
@@ -530,7 +531,6 @@ read_lineno_record_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
     if (result != MRB_DUMP_OK) break;
   }
   return result;
-  #undef RECORD_HEADER_SIZE
 }
 
 static int32_t
@@ -549,8 +549,7 @@ read_section_lineno_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
 static mrb_irep*
 read_irep_record_file(mrb_state *mrb, FILE *fp)
 {
-  #define RECORD_HEADER_SIZE (1 + 4)
-  uint8_t header[RECORD_HEADER_SIZE];
+  uint8_t header[1 + 4];
   size_t buf_size, i;
   uint32_t len;
   mrb_irep *irep = NULL;
@@ -579,7 +578,6 @@ read_irep_record_file(mrb_state *mrb, FILE *fp)
     if (!irep->reps[i]) return NULL;
   }
   return irep;
-  #undef RECORD_HEADER_SIZE
 }
 
 static mrb_irep*
