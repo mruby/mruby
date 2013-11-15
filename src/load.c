@@ -376,7 +376,7 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep)
 
   filenames_len = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
-  filenames = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym*) * filenames_len);
+  filenames = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * filenames_len);
   for(i = 0; i < filenames_len; ++i) {
     uint16_t f_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);

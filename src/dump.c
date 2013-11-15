@@ -567,7 +567,7 @@ write_filename_table(mrb_state *mrb, mrb_irep *irep, uint8_t **cp, mrb_sym **fp,
 
     // register filename
     *lp += 1;
-    *fp = filenames = (mrb_sym*)mrb_realloc(mrb, filenames, sizeof(mrb_sym*) * (*lp));
+    *fp = filenames = (mrb_sym*)mrb_realloc(mrb, filenames, sizeof(mrb_sym) * (*lp));
     filenames[*lp - 1] = file->filename_sym;
 
     // filename
