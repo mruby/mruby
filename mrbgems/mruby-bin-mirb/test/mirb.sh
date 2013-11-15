@@ -9,7 +9,3 @@ it_should_pass_1563() {
     echo $o | grep '=> 3'
     echo $o | grep '=> 2'
 }
-
-it_should_fail() {
-    test '1' = '2'
-}
