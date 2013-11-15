@@ -616,6 +616,11 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur)
   dlen = write_debug_record(mrb, irep, cur, filenames, filenames_len);
   cur += dlen;
   section_size += dlen;
+  for (i=0; i<irep->rlen; i++) {
+    dlen = write_debug_record(mrb, irep->reps[i], cur, filenames, filenames_len);
+    cur += dlen;
+    section_size += dlen;
+  }
 
   memcpy(header->section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(header->section_identify));
   uint32_to_bin(section_size, header->section_size);
