@@ -176,9 +176,8 @@ module MRuby
 
     def run_bintest
       roundup = "#{root}/test/roundup.sh"
-      Dir['mrbgems/**/test/*.sh'].each do |path|
-        sh "#{roundup} #{path}"
-      end
+      paths = Dir['mrbgems/**/test/*.sh']
+      sh "#{roundup} #{paths * ' '}"
     end
 
     def print_build_summary
