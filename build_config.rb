@@ -7,7 +7,7 @@ MRuby::Build.new do |conf|
   # * vs2010
   # * vs2012
   # * vs2013
-  toolchain :gcc
+  toolchain (ENV['toolchain'] || 'gcc').to_sym
 
   # Use mrbgems
   # conf.gem 'examples/mrbgems/ruby_extension_example'
