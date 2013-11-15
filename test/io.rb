@@ -51,6 +51,18 @@ assert('IO.sysopen, IO#close, IO#closed?') do
   assert_equal true,  io.closed?, "IO#closed? should return true"
 end
 
+assert('IO.sysopen("/nonexistent")') do
+  if Object.const_defined? :Errno
+    eclass = Errno::ENOENT
+  else
+    eclass = RuntimeError
+  end
+  assert_raise eclass do
+    fd = IO.sysopen "/nonexistent"
+    IO.close fd
+  end
+end
+
 assert('IO.sysopen, IO#sysread') do
   fd = IO.sysopen $mrbtest_io_rfname
   io = IO.new fd
