@@ -610,7 +610,6 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur)
   for (i=0; i<irep->rlen; i++) {
     section_size += write_filename_table(mrb, irep->reps[i], &cur, &filenames, &filenames_len);
   }
-  mrb_free(mrb, filenames);
   uint16_to_bin(filenames_len, filenames_len_out);
 
   // debug records
@@ -620,6 +619,8 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur)
 
   memcpy(header->section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(header->section_identify));
   uint32_to_bin(section_size, header->section_size);
+
+  mrb_free(mrb, filenames);
 
   return MRB_DUMP_OK;
 }
