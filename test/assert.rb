@@ -9,10 +9,11 @@ def t_print(*args)
   i = 0
   len = args.size
   while i < len
+    str = args[i].to_s
     begin
-      __printstr__ args[i].to_s
+      __printstr__ str
     rescue NoMethodError
-      __t_printstr__ args[i].to_s
+      __t_printstr__ str rescue print str
     end
     i += 1
   end
