@@ -46,7 +46,7 @@ class Dir
       wd = self.getwd
       begin
         self._chdir(path)
-        block.call
+        block.call(path)
       ensure
         my._chdir(wd)
       end
