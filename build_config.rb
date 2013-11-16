@@ -1,13 +1,20 @@
 MRuby::Build.new do |conf|
-  # Load specific toolchain settings. Available options are (as listed in tasks/toolchains):
+  # Load specific toolchain settings. Available options are listed in tasks/toolchains.
   #
-  # * androideabi
-  # * clang
-  # * gcc
-  # * vs2010
-  # * vs2012
-  # * vs2013
-  toolchain (ENV['toolchain'] || 'gcc').to_sym
+  # Let's first try to perform auto-detection if possible. This environment variable gets set when the user runs a 'Visual Studio
+  # 20xx Command Prompt', in which case he arguably has already chosen which compiler to use => no need to support toolchain
+  # overrides in this case.
+  case ENV['VisualStudioVersion']
+  when '10.0'
+    toolchain :vs2010
+  when '11.0'
+    toolchain :vs2012
+  when '12.0'
+    toolchain :vs2013
+  else
+    # User-provided toolchain takes precedence.
+    toolchain (ENV['toolchain'] || 'gcc').to_sym
+  end
 
   # Use mrbgems
   # conf.gem 'examples/mrbgems/ruby_extension_example'
