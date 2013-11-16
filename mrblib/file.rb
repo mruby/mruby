@@ -14,7 +14,12 @@ class File < IO
       super(fd_or_path, mode)
     else
       @path = fd_or_path
-      fd = IO.sysopen(@path, mode, perm)
+      begin
+        fd = IO.sysopen(@path, mode, perm)
+      rescue Errno::EMFILE
+        GC.start
+        fd = IO.sysopen(@path, mode, perm)
+      end
       super(fd, mode)
     end
   end
