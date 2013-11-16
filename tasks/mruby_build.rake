@@ -43,7 +43,7 @@ module MRuby
     end
     include Rake::DSL
     include LoadGems
-    attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir
+    attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :enable_bintest
     attr_reader :libmruby, :gems
 
     COMPILERS = %w(cc cxx objc asm)
@@ -170,7 +170,12 @@ module MRuby
       puts ">>> Test #{name} <<<"
       mrbtest = exefile("#{build_dir}/test/mrbtest")
       sh "#{filename mrbtest.relative_path}#{$verbose ? ' -v' : ''}"
-      puts 
+      puts
+      run_bintest if @enable_bintest
+    end
+
+    def run_bintest
+      sh "ruby test/bintest.rb"
     end
 
     def print_build_summary
