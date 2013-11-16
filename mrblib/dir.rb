@@ -40,6 +40,21 @@ class Dir
     end
   end
 
+  def self.chdir(path, &block)
+    my = self # workaround for https://github.com/mruby/mruby/issues/1579
+    if block
+      wd = self.getwd
+      begin
+        self._chdir(path)
+        block.call
+      ensure
+        my._chdir(wd)
+      end
+    else
+      self._chdir(path)
+    end
+  end
+
   class << self
     alias exists? exist?
     alias pwd getwd

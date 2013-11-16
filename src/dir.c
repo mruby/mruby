@@ -237,7 +237,7 @@ mrb_mruby_dir_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, d, "exist?", mrb_dir_existp, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, d, "getwd",  mrb_dir_getwd,  MRB_ARGS_NONE());
   mrb_define_class_method(mrb, d, "mkdir",  mrb_dir_mkdir,  MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_class_method(mrb, d, "chdir",  mrb_dir_chdir,  MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, d, "_chdir", mrb_dir_chdir,  MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, d, "close",      mrb_dir_close,  MRB_ARGS_NONE());
   mrb_define_method(mrb, d, "initialize", mrb_dir_init,   MRB_ARGS_REQ(1));
