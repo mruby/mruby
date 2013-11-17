@@ -384,7 +384,7 @@ write_lineno_record(mrb_state *mrb, mrb_irep *irep, uint8_t* bin)
   bin += rlen;
   size += rlen;
   for (i=0; i<irep->rlen; i++) {
-    rlen = write_lineno_record_1(mrb, irep, bin);
+    rlen = write_lineno_record(mrb, irep, bin);
     bin += rlen;
     size += rlen;
   }
@@ -405,7 +405,6 @@ write_section_lineno(mrb_state *mrb, mrb_irep *irep, uint8_t *bin)
   section_size += sizeof(struct rite_section_lineno_header);
 
   rlen = write_lineno_record(mrb, irep, cur);
-  cur += rlen;
   section_size += rlen;
 
   write_section_lineno_header(mrb, section_size, bin);
@@ -498,7 +497,7 @@ get_filename_table_size(mrb_state *mrb, mrb_irep *irep, mrb_sym **fp, size_t *lp
 }
 
 static int
-write_debug_record(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const* filenames, size_t filenames_len)
+write_debug_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const* filenames, size_t filenames_len)
 {
   uint8_t *cur;
   uint32_t f_idx;
@@ -549,6 +548,22 @@ write_debug_record(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const* 
   mrb_assert((cur - bin) == (int)get_debug_record_size(mrb, irep));
 
   return ret;
+}
+
+static int
+write_debug_record(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const* filenames, size_t filenames_len)
+{
+  uint32_t size, len;
+  size_t irep_no;
+  
+  size = len = write_debug_record_1(mrb, irep, bin, filenames, filenames_len);
+  bin += len;
+  for (irep_no = 0; irep_no < irep->rlen; irep_no++) {
+    len = write_debug_record(mrb, irep->reps[irep_no], bin, filenames, filenames_len);
+    bin += len;
+    size += len;
+  }
+  return size;
 }
 
 static int
@@ -614,13 +629,7 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur)
 
   // debug records
   dlen = write_debug_record(mrb, irep, cur, filenames, filenames_len);
-  cur += dlen;
   section_size += dlen;
-  for (i=0; i<irep->rlen; i++) {
-    dlen = write_debug_record(mrb, irep->reps[i], cur, filenames, filenames_len);
-    cur += dlen;
-    section_size += dlen;
-  }
 
   memcpy(header->section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(header->section_identify));
   uint32_to_bin(section_size, header->section_size);
