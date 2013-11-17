@@ -111,7 +111,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
             irep->pool[i].value.i = mrb_fixnum(v);
             break;
           case MRB_TT_FLOAT:
-            irep->pool[i].type = MRB_TT_FLOAT;
+            irep->pool[i].type = IREP_TT_FLOAT;
             irep->pool[i].value.f = mrb_float(v);
           default:
              /* broken data; should not happen */
