@@ -1284,7 +1284,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
             mrb->jmp = prev_jmp;
             mrb_longjmp(mrb);
           }
-          while (eidx > ci->eidx) {
+          while (eidx > ci[-1].eidx) {
             ecall(mrb, --eidx);
           }
           if (ci == mrb->c->cibase) {
