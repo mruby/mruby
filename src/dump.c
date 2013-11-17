@@ -79,19 +79,19 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
   for (pool_no = 0; pool_no < irep->plen; pool_no++) {
     int ai = mrb_gc_arena_save(mrb);
 
-    switch (irep->pool[pool_no].type) {
-    case IREP_TT_FIXNUM:
-      str = mrb_fixnum_to_str(mrb, mrb_fixnum_value(irep->pool[pool_no].value.i), 10);
+    switch (mrb_type(irep->pool[pool_no])) {
+    case MRB_TT_FIXNUM:
+      str = mrb_fixnum_to_str(mrb, irep->pool[pool_no], 10);
       size += RSTRING_LEN(str);
       break;
 
-    case IREP_TT_FLOAT:
-      len = mrb_float_to_str(buf, irep->pool[pool_no].value.f);
+    case MRB_TT_FLOAT:
+      len = mrb_float_to_str(buf, mrb_float(irep->pool[pool_no]));
       size += len;
       break;
 
-    case IREP_TT_STRING:
-      size += irep->pool[pool_no].value.s->len;
+    case MRB_TT_STRING:
+      size += RSTRING_LEN(irep->pool[pool_no]);
       break;
 
     default:
@@ -118,23 +118,23 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
   for (pool_no = 0; pool_no < irep->plen; pool_no++) {
     int ai = mrb_gc_arena_save(mrb);
 
-    cur += uint8_to_bin(irep->pool[pool_no].type, cur); /* data type */
+    cur += uint8_to_bin(mrb_type(irep->pool[pool_no]), cur); /* data type */
 
-    switch (irep->pool[pool_no].type) {
-    case IREP_TT_FIXNUM:
-      str = mrb_fixnum_to_str(mrb, mrb_fixnum_value(irep->pool[pool_no].value.i), 10);
+    switch (mrb_type(irep->pool[pool_no])) {
+    case MRB_TT_FIXNUM:
+      str = mrb_fixnum_to_str(mrb, irep->pool[pool_no], 10);
       char_ptr = RSTRING_PTR(str);
       len = RSTRING_LEN(str);
       break;
 
-    case IREP_TT_FLOAT:
-      len = mrb_float_to_str(char_buf, irep->pool[pool_no].value.f);
+    case MRB_TT_FLOAT:
+      len = mrb_float_to_str(char_buf, mrb_float(irep->pool[pool_no]));
       char_ptr = &char_buf[0];
       break;
 
-    case IREP_TT_STRING:
-      char_ptr = irep->pool[pool_no].value.s->buf;
-      len = irep->pool[pool_no].value.s->len;
+    case MRB_TT_STRING:
+      char_ptr = RSTRING_PTR(irep->pool[pool_no]);
+      len = RSTRING_LEN(irep->pool[pool_no]);
       break;
 
     default:
