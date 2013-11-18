@@ -113,19 +113,19 @@ codegen_palloc(codegen_scope *s, size_t len)
   return p;
 }
 
-void*
+static void*
 codegen_malloc(codegen_scope *s, size_t len)
 {
-  void *p = mrb_malloc(s->mrb, len);
+  void *p = mrb_malloc_simple(s->mrb, len);
 
   if (!p) codegen_error(s, "mrb_malloc");
   return p;
 }
 
-void*
+static void*
 codegen_realloc(codegen_scope *s, void *p, size_t len)
 {
-  p = mrb_realloc(s->mrb, p, len);
+  p = mrb_realloc_simple(s->mrb, p, len);
 
   if (!p && len > 0) codegen_error(s, "mrb_realloc");
   return p;
