@@ -118,21 +118,22 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
   for (pool_no = 0; pool_no < irep->plen; pool_no++) {
     int ai = mrb_gc_arena_save(mrb);
 
-    cur += uint8_to_bin(mrb_type(irep->pool[pool_no]), cur); /* data type */
-
     switch (mrb_type(irep->pool[pool_no])) {
     case MRB_TT_FIXNUM:
+      cur += uint8_to_bin(IREP_TT_FIXNUM, cur); /* data type */
       str = mrb_fixnum_to_str(mrb, irep->pool[pool_no], 10);
       char_ptr = RSTRING_PTR(str);
       len = RSTRING_LEN(str);
       break;
 
     case MRB_TT_FLOAT:
+      cur += uint8_to_bin(IREP_TT_FLOAT, cur); /* data type */
       len = mrb_float_to_str(char_buf, mrb_float(irep->pool[pool_no]));
       char_ptr = &char_buf[0];
       break;
 
     case MRB_TT_STRING:
+      cur += uint8_to_bin(IREP_TT_STRING, cur); /* data type */
       char_ptr = RSTRING_PTR(irep->pool[pool_no]);
       len = RSTRING_LEN(irep->pool[pool_no]);
       break;

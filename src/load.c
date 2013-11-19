@@ -101,15 +101,15 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
       s = mrb_str_new(mrb, (char *)src, pool_data_len);
       src += pool_data_len;
       switch (tt) { //pool data
-      case MRB_TT_FIXNUM:
+      case IREP_TT_FIXNUM:
         irep->pool[i] = mrb_str_to_inum(mrb, s, 10, FALSE);
         break;
 
-      case MRB_TT_FLOAT:
+      case IREP_TT_FLOAT:
         irep->pool[i] = mrb_float_value(mrb, mrb_str_to_dbl(mrb, s, FALSE));
         break;
 
-      case MRB_TT_STRING:
+      case IREP_TT_STRING:
         irep->pool[i] = mrb_str_dup_static(mrb, s);
         break;
 
