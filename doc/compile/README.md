@@ -71,6 +71,12 @@ Toolchain configuration for Visual Studio 2012 on Windows.
 
 	toolchain :vs2012
 
+#### Visual Studio 2013
+
+Toolchain configuration for Visual Studio 2013 on Windows.
+
+	toolchain :vs2013
+
 #### Android
 
 Toolchain configuration for Android.
