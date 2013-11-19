@@ -110,7 +110,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
         break;
 
       case IREP_TT_STRING:
-        irep->pool[i] = mrb_str_dup_static(mrb, s);
+        irep->pool[i] = mrb_str_pool(mrb, s);
         break;
 
       default:
