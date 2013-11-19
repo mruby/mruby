@@ -505,8 +505,8 @@ mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 static int
 read_lineno_record_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
 {
-  const size_t record_header_size = 4;
-  uint8_t header[record_header_size];
+  uint8_t header[4];
+  const size_t record_header_size = sizeof(header);
   int result;
   size_t i, buf_size;
   uint32_t len;
@@ -555,8 +555,8 @@ read_section_lineno_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
 static mrb_irep*
 read_irep_record_file(mrb_state *mrb, FILE *fp)
 {
-  const size_t record_header_size = 1 + 4;
-  uint8_t header[record_header_size];
+  uint8_t header[1 + 4];
+  const size_t record_header_size = sizeof(header);
   size_t buf_size, i;
   uint32_t len;
   mrb_irep *irep = NULL;
