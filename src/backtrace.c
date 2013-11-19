@@ -81,7 +81,7 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
       mrb_irep *irep = ci->proc->body.irep;
       mrb_code *pc;
 
-      if (mrb->c->cibase[i].err && irep && mrb->c->cibase[i].err - irep->iseq < irep->ilen) {
+      if (mrb->c->cibase[i].err) {
         pc = mrb->c->cibase[i].err;
       }
       else if (i+1 <= ciidx) {

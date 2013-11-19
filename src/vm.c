@@ -513,7 +513,8 @@ argnum_error(mrb_state *mrb, int num)
   mrb->exc = mrb_obj_ptr(exc);
 }
 
-#define ERR_PC_HOOK(mrb, pc) mrb->c->ci->err = pc;
+#define ERR_PC_SET(mrb, pc) mrb->c->ci->err = pc;
+#define ERR_PC_CLR(mrb)     mrb->c->ci->err = 0;
 #ifdef ENABLE_DEBUG
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs) if ((mrb)->code_fetch_hook) (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs));
 #else
@@ -693,8 +694,9 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
     CASE(OP_GETCV) {
       /* A B    R(A) := ivget(Sym(B)) */
-      ERR_PC_HOOK(mrb, pc);
+      ERR_PC_SET(mrb, pc);
       regs[GETARG_A(i)] = mrb_vm_cv_get(mrb, syms[GETARG_Bx(i)]);
+      ERR_PC_CLR(mrb);
       NEXT;
     }
 
@@ -708,8 +710,9 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       /* A B    R(A) := constget(Sym(B)) */
       mrb_value val;
 
-      ERR_PC_HOOK(mrb, pc);
+      ERR_PC_SET(mrb, pc);
       val = mrb_vm_const_get(mrb, syms[GETARG_Bx(i)]);
+      ERR_PC_CLR(mrb);
       regs = mrb->c->stack;
       regs[GETARG_A(i)] = val;
       NEXT;
@@ -726,8 +729,9 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       mrb_value val;
       int a = GETARG_A(i);
 
-      ERR_PC_HOOK(mrb, pc);
+      ERR_PC_SET(mrb, pc);
       val = mrb_const_get(mrb, regs[a], syms[GETARG_Bx(i)]);
+      ERR_PC_CLR(mrb);
       regs = mrb->c->stack;
       regs[a] = val;
       NEXT;
@@ -2125,6 +2129,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
           ecall(mrb, n);
         }
       }
+      mrb->c->ci->err = 0;
       mrb->jmp = prev_jmp;
       if (mrb->exc) {
         return mrb_obj_value(mrb->exc);
