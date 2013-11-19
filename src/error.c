@@ -25,7 +25,7 @@ mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
 }
 
 mrb_value
-mrb_exc_new3(mrb_state *mrb, struct RClass* c, mrb_value str)
+mrb_exc_new_str(mrb_state *mrb, struct RClass* c, mrb_value str)
 {
   str = mrb_str_to_str(mrb, str);
   return mrb_funcall(mrb, mrb_obj_value(c), "new", 1, str);
@@ -231,7 +231,7 @@ mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg)
 {
   mrb_value mesg;
   mesg = mrb_str_new_cstr(mrb, msg);
-  mrb_exc_raise(mrb, mrb_exc_new3(mrb, c, mesg));
+  mrb_exc_raise(mrb, mrb_exc_new_str(mrb, c, mesg));
 }
 
 mrb_value
@@ -297,7 +297,7 @@ mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
   va_start(args, fmt);
   mesg = mrb_vformat(mrb, fmt, args);
   va_end(args);
-  mrb_exc_raise(mrb, mrb_exc_new3(mrb, c, mesg));
+  mrb_exc_raise(mrb, mrb_exc_new_str(mrb, c, mesg));
 }
 
 void
@@ -376,7 +376,7 @@ make_exception(mrb_state *mrb, int argc, mrb_value *argv, int isstr)
       if (isstr) {
         mesg = mrb_check_string_type(mrb, argv[0]);
         if (!mrb_nil_p(mesg)) {
-          mesg = mrb_exc_new3(mrb, E_RUNTIME_ERROR, mesg);
+          mesg = mrb_exc_new_str(mrb, E_RUNTIME_ERROR, mesg);
           break;
         }
       }

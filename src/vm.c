@@ -490,7 +490,7 @@ localjump_error(mrb_state *mrb, localjump_error_kind kind)
   msg = mrb_str_buf_new(mrb, sizeof(lead) + 7);
   mrb_str_buf_cat(mrb, msg, lead, sizeof(lead) - 1);
   mrb_str_buf_cat(mrb, msg, kind_str[kind], kind_str_len[kind]);
-  exc = mrb_exc_new3(mrb, E_LOCALJUMP_ERROR, msg);
+  exc = mrb_exc_new_str(mrb, E_LOCALJUMP_ERROR, msg);
   mrb->exc = mrb_obj_ptr(exc);
 }
 
@@ -509,7 +509,7 @@ argnum_error(mrb_state *mrb, int num)
     str = mrb_format(mrb, "wrong number of arguments (%S for %S)",
                   mrb_fixnum_value(mrb->c->ci->argc), mrb_fixnum_value(num));
   }
-  exc = mrb_exc_new3(mrb, E_ARGUMENT_ERROR, str);
+  exc = mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str);
   mrb->exc = mrb_obj_ptr(exc);
 }
 
@@ -1336,7 +1336,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
               goto L_RAISE;
             }
             if (mrb->c->prev->ci == mrb->c->prev->cibase) {
-              mrb_value exc = mrb_exc_new3(mrb, E_RUNTIME_ERROR, mrb_str_new(mrb, "double resume", 13));
+              mrb_value exc = mrb_exc_new_str(mrb, E_RUNTIME_ERROR, mrb_str_new(mrb, "double resume", 13));
               mrb->exc = mrb_obj_ptr(exc);
               goto L_RAISE;
             }
@@ -2143,10 +2143,10 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       mrb_value exc;
 
       if (GETARG_A(i) == 0) {
-        exc = mrb_exc_new3(mrb, E_RUNTIME_ERROR, msg);
+        exc = mrb_exc_new_str(mrb, E_RUNTIME_ERROR, msg);
       }
       else {
-        exc = mrb_exc_new3(mrb, E_LOCALJUMP_ERROR, msg);
+        exc = mrb_exc_new_str(mrb, E_LOCALJUMP_ERROR, msg);
       }
       mrb->exc = mrb_obj_ptr(exc);
       goto L_RAISE;
