@@ -734,6 +734,28 @@ mrb_str_dup(mrb_state *mrb, mrb_value str)
   return mrb_str_new(mrb, s->ptr, s->len);
 }
 
+mrb_value
+mrb_str_dup_static(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  struct RString *ns;
+  mrb_int len;
+
+  ns = (struct RString *)mrb_malloc(mrb, sizeof(struct RString));
+  ns->tt = MRB_TT_STRING;
+  ns->c = mrb->string_class;
+
+  len = s->len;
+  ns->len = len;
+  ns->ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
+  if (s->ptr) {
+    memcpy(ns->ptr, s->ptr, len);
+  }
+  ns->ptr[len] = '\0';
+
+  return mrb_obj_value(ns);
+}
+
 static mrb_value
 mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
 {

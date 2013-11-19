@@ -87,7 +87,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
     if (SIZE_ERROR_MUL(sizeof(mrb_value), plen)) {
       return NULL;
     }
-    irep->pool = (struct irep_pool*)mrb_malloc(mrb, sizeof(struct irep_pool) * plen);
+    irep->pool = (struct mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * plen);
     if (irep->pool == NULL) {
       return NULL;
     }
@@ -100,38 +100,22 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
       src += sizeof(uint16_t);
       s = mrb_str_new(mrb, (char *)src, pool_data_len);
       src += pool_data_len;
-      irep->pool[i].type = tt;
       switch (tt) { //pool data
-      case IREP_TT_FIXNUM:
-        {
-          mrb_value v = mrb_str_to_inum(mrb, s, 10, FALSE);
-
-          switch (mrb_type(v)) {
-          case MRB_TT_FIXNUM:
-            irep->pool[i].value.i = mrb_fixnum(v);
-            break;
-          case MRB_TT_FLOAT:
-            irep->pool[i].type = IREP_TT_FLOAT;
-            irep->pool[i].value.f = mrb_float(v);
-          default:
-             /* broken data; should not happen */
-            irep->pool[i].value.i = 0;
-          }
-        }
+      case MRB_TT_FIXNUM:
+        irep->pool[i] = mrb_str_to_inum(mrb, s, 10, FALSE);
         break;
 
-      case IREP_TT_FLOAT:
-        irep->pool[i].value.f = mrb_str_to_dbl(mrb, s, FALSE);
+      case MRB_TT_FLOAT:
+        irep->pool[i] = mrb_float_value(mrb, mrb_str_to_dbl(mrb, s, FALSE));
         break;
 
-      case IREP_TT_STRING:
-        irep->pool[i].value.s = (struct irep_pool_string*)mrb_malloc(mrb, sizeof(struct irep_pool_string) + pool_data_len);
-        irep->pool[i].value.s->len = pool_data_len;
-        memcpy(irep->pool[i].value.s->buf, src-pool_data_len, pool_data_len);
+      case MRB_TT_STRING:
+        irep->pool[i] = mrb_str_dup_static(mrb, s);
         break;
 
       default:
         /* should not happen */
+        irep->pool[i] = mrb_nil_value();
         break;
       }
       irep->plen++;
