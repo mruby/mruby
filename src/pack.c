@@ -649,6 +649,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, 
     break;
   default:
     dir = PACK_DIR_INVALID;
+    type = PACK_TYPE_NONE;
     break;
   }
 
