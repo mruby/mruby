@@ -45,16 +45,16 @@ enum {
   PACK_TYPE_NONE
 };
 
-#define PACK_FLAG_s		0x00000001	/* native size ("_" "!") */
-#define PACK_FLAG_a		0x00000002	/* null padding ("a") */
-#define PACK_FLAG_Z		0x00000004	/* append nul char ("z") */
-#define PACK_FLAG_SIGNED	0x00000008	/* native size ("_" "!") */
-#define PACK_FLAG_GT		0x00000010	/* big endian (">") */
-#define PACK_FLAG_LT		0x00000020	/* little endian ("<") */
-#define PACK_FLAG_WIDTH		0x00000040	/* */
-#define PACK_FLAG_LSB		0x00000080	/* LSB / low nibble first */
-#define PACK_FLAG_COUNT2	0x00000100	/* "count" is special... */
-#define PACK_FLAG_LITTLEENDIAN	0x00000200	/* little endian actually */
+#define PACK_FLAG_s             0x00000001	/* native size ("_" "!") */
+#define PACK_FLAG_a             0x00000002	/* null padding ("a") */
+#define PACK_FLAG_Z             0x00000004	/* append nul char ("z") */
+#define PACK_FLAG_SIGNED        0x00000008	/* native size ("_" "!") */
+#define PACK_FLAG_GT            0x00000010	/* big endian (">") */
+#define PACK_FLAG_LT            0x00000020	/* little endian ("<") */
+#define PACK_FLAG_WIDTH         0x00000040	/* */
+#define PACK_FLAG_LSB           0x00000080	/* LSB / low nibble first */
+#define PACK_FLAG_COUNT2        0x00000100	/* "count" is special... */
+#define PACK_FLAG_LITTLEENDIAN  0x00000200	/* little endian actually */
 
 #define PACK_BASE64_IGNORE	0xff
 #define PACK_BASE64_PADDING	0xfe
@@ -189,26 +189,6 @@ pack_l(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
 }
 
 static int
-pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
-{
-  int i;
-  double d;
-  uint8_t *buffer = (uint8_t *)&d;
-  str = str_len_ensure(mrb, str, sidx + 8);
-  d = mrb_float(o);
-
-#ifdef MRB_ENDIAN_BIG
-  #error unsupported
-#else
-  for(i = 0; i< 8; i++){
-    RSTRING_PTR(str)[sidx+i] = buffer[i];
-  }
-#endif
-  
-  return 8;
-}
-
-static int
 unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
   unsigned long n;
@@ -227,6 +207,26 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   }
   mrb_ary_push(mrb, ary, mrb_fixnum_value(n));
   return 4;
+}
+
+static int
+pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
+{
+  int i;
+  double d;
+  uint8_t *buffer = (uint8_t *)&d;
+  str = str_len_ensure(mrb, str, sidx + 8);
+  d = mrb_float(o);
+
+#ifdef MRB_ENDIAN_BIG
+  #error unsupported
+#else
+  for(i = 0; i < 8; i++){
+    RSTRING_PTR(str)[sidx+i] = buffer[i];
+  }
+#endif
+  
+  return 8;
 }
 
 static int
@@ -759,12 +759,12 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
   struct tmpl tmpl;
   long count;
   unsigned int flags;
-  int dir, sidx, size, srclen, type;
+  int dir, size, srcidx, srclen, type;
   const char *sptr;
 
   prepare_tmpl(mrb, &tmpl);
 
-  sidx = 0;
+  srcidx = 0;
   srclen = RSTRING_LEN(str);
 
   result = mrb_ary_new(mrb);
@@ -775,39 +775,39 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
       continue;
 
     if (flags & PACK_FLAG_COUNT2) {
-      sptr = RSTRING_PTR(str) + sidx;
+      sptr = RSTRING_PTR(str) + srcidx;
       switch (dir) {
       case PACK_DIR_HEX:
-        sidx += unpack_h(mrb, sptr, srclen - sidx, result, count, flags);
+        srcidx += unpack_h(mrb, sptr, srclen - srcidx, result, count, flags);
         break;
       case PACK_DIR_STR:
-        sidx += unpack_a(mrb, sptr, srclen - sidx, result, count, flags);
+        srcidx += unpack_a(mrb, sptr, srclen - srcidx, result, count, flags);
         break;
       }
       continue;
     }
 
     while (count != 0) {
-      if (srclen - sidx < size) {
+      if (srclen - srcidx < size) {
         while (count-- > 0) {
           mrb_ary_push(mrb, result, mrb_nil_value());
-	}
+        }
         break;
       }
 
-      sptr = RSTRING_PTR(str) + sidx;
+      sptr = RSTRING_PTR(str) + srcidx;
       switch (dir) {
       case PACK_DIR_CHAR:
-        sidx += unpack_c(mrb, sptr, srclen - sidx, result, flags);
+        srcidx += unpack_c(mrb, sptr, srclen - srcidx, result, flags);
         break;
       case PACK_DIR_SHORT:
-        sidx += unpack_s(mrb, sptr, srclen - sidx, result, flags);
+        srcidx += unpack_s(mrb, sptr, srclen - srcidx, result, flags);
         break;
       case PACK_DIR_LONG:
-        sidx += unpack_l(mrb, sptr, srclen - sidx, result, flags);
+        srcidx += unpack_l(mrb, sptr, srclen - srcidx, result, flags);
         break;
       case PACK_DIR_BASE64:
-        sidx += unpack_m(mrb, sptr, srclen - sidx, result, flags);
+        srcidx += unpack_m(mrb, sptr, srclen - srcidx, result, flags);
         break;
       }
       if (count > 0) {
@@ -822,16 +822,11 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
 void
 mrb_mruby_pack_gem_init(mrb_state *mrb)
 {
-  struct RClass *cArray, *cString;
-
   littleendian = check_little_endian();
   make_base64_dec_tab();
 
-  cArray = mrb->array_class;
-  cString = mrb->string_class;
-
-  mrb_define_method(mrb, cArray,  "pack",   mrb_pack_pack,   MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, cString, "unpack", mrb_pack_unpack, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrb->array_class, "pack", mrb_pack_pack, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrb->string_class, "unpack", mrb_pack_unpack, MRB_ARGS_REQ(1));
 }
 
 void
