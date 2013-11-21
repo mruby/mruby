@@ -41,6 +41,7 @@ extern "C" {
 typedef uint32_t mrb_code;
 typedef uint32_t mrb_aspec;
 
+struct mrb_irep;
 struct mrb_state;
 
 typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
