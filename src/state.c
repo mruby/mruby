@@ -42,6 +42,11 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   mrb->allocf = f;
   mrb->current_white_part = MRB_GC_WHITE_A;
 
+#ifndef MRB_GC_FIXED_ARENA
+  mrb->arena = (struct RBasic**)mrb_malloc(mrb, sizeof(struct RBasic*)*MRB_GC_ARENA_SIZE);
+  mrb->arena_capa = MRB_GC_ARENA_SIZE;
+#endif
+
   mrb_init_heap(mrb);
   mrb->c = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
   *mrb->c = mrb_context_zero;
@@ -191,6 +196,9 @@ mrb_close(mrb_state *mrb)
   mrb_free_symtbl(mrb);
   mrb_free_heap(mrb);
   mrb_alloca_free(mrb);
+#ifndef MRB_GC_FIXED_ARENA
+  mrb_free(mrb, mrb->arena);
+#endif
   mrb_free(mrb, mrb);
 }
 

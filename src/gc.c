@@ -370,10 +370,16 @@ mrb_free_heap(mrb_state *mrb)
 static void
 gc_protect(mrb_state *mrb, struct RBasic *p)
 {
-  if (mrb->arena_idx >= MRB_ARENA_SIZE) {
+  if (mrb->arena_idx >= MRB_GC_ARENA_SIZE) {
+#ifdef MRB_GC_FIXED_ARENA
     /* arena overflow error */
-    mrb->arena_idx = MRB_ARENA_SIZE - 4; /* force room in arena */
+    mrb->arena_idx = MRB_GC_ARENA_SIZE - 4; /* force room in arena */
     mrb_raise(mrb, E_RUNTIME_ERROR, "arena overflow error");
+#else
+    /* extend arena */
+    mrb->arena_capa *= 1.5;
+    mrb->arena = (struct RBasic**)mrb_realloc(mrb, mrb->arena, sizeof(struct RBasic*)*mrb->arena_capa);
+#endif
   }
   mrb->arena[mrb->arena_idx++] = p;
 }
@@ -1041,6 +1047,20 @@ mrb_gc_arena_save(mrb_state *mrb)
 void
 mrb_gc_arena_restore(mrb_state *mrb, int idx)
 {
+#ifndef MRB_GC_FIXED_ARENA
+  int capa = mrb->arena_capa;
+
+  if (idx < capa / 2) {
+    capa *= 0.66;
+    if (capa < MRB_GC_ARENA_SIZE) {
+      capa = MRB_GC_ARENA_SIZE;
+    }
+    if (capa != mrb->arena_capa) {
+      mrb->arena = (struct RBasic**)mrb_realloc(mrb, mrb->arena, sizeof(struct RBasic*)*capa);
+      mrb->arena_capa = capa;
+    }
+  }
+#endif
   mrb->arena_idx = idx;
 }
 

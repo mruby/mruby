@@ -46,8 +46,8 @@ struct mrb_state;
 
 typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 
-#ifndef MRB_ARENA_SIZE
-#define MRB_ARENA_SIZE 100
+#ifndef MRB_GC_ARENA_SIZE
+#define MRB_GC_ARENA_SIZE 100
 #endif
 
 typedef struct {
@@ -128,7 +128,12 @@ typedef struct mrb_state {
   struct heap_page *sweeps;
   struct heap_page *free_heaps;
   size_t live; /* count of live objects */
-  struct RBasic *arena[MRB_ARENA_SIZE];   /* GC protection array */
+#ifdef MRB_GC_FIXED_ARENA
+  struct RBasic *arena[MRB_GC_ARENA_SIZE]; /* GC protection array */
+#else
+  struct RBasic **arena;                   /* GC protection array */
+  int arena_capa;
+#endif
   int arena_idx;
 
   enum gc_state gc_state; /* state of gc */

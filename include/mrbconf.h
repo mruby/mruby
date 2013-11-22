@@ -59,6 +59,12 @@
 /* array size for parser buffer */
 //#define MRB_PARSER_BUF_SIZE 1024
 
+/* arena size */
+//#define MRB_GC_ARENA_SIZE 100
+
+/* fixed size GC arena */
+//#define MRB_GC_FIXED_ARENA
+
 /* -DDISABLE_XXXX to drop following features */
 //#define DISABLE_STDIO		/* use of stdio */
 
