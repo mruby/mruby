@@ -70,6 +70,9 @@ MRuby::Build.new do |conf|
 
   # file separetor
   # conf.file_separator = '/'
+
+  # bin test
+  # conf.enable_bintest = true
 end
 
 # Define cross build settings
