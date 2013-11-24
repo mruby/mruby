@@ -87,6 +87,11 @@ module MRuby
       MRuby.targets[@name].instance_eval(&block)
     end
 
+    def enable_debug
+      compilers.each { |c| c.defines += %w(MRB_DEBUG) }
+      @mrbc.compile_options += ' -g'
+    end
+
     def toolchain(name)
       tc = Toolchain.toolchains[name.to_s]
       fail "Unknown #{name} toolchain" unless tc
