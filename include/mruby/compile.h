@@ -96,9 +96,7 @@ struct mrb_parser_heredoc_info {
   mrb_ast_node *doc;
 };
 
-#ifndef MRB_PARSER_BUF_SIZE
-# define MRB_PARSER_BUF_SIZE 1024
-#endif
+#define MRB_PARSER_BUF_SIZE 1024
 
 /* parser structure */
 struct mrb_parser_state {

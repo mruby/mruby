@@ -56,9 +56,6 @@
 /* initial minimum size for string buffer */
 //#define MRB_STR_BUF_MIN_SIZE 128
 
-/* array size for parser buffer */
-//#define MRB_PARSER_BUF_SIZE 1024
-
 /* arena size */
 //#define MRB_GC_ARENA_SIZE 100
 
