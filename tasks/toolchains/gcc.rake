@@ -11,7 +11,7 @@ MRuby::Toolchain.new(:gcc) do |conf|
 
   [conf.cxx].each do |cxx|
     cxx.command = ENV['CXX'] || 'g++'
-    cxx.flags = [ENV['CXXFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration)]
+    cxx.flags = [ENV['CXXFLAGS'] || ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration)]
     cxx.include_paths = ["#{MRUBY_ROOT}/include"]
     cxx.defines = %w(DISABLE_GEMS)
     cxx.option_include_path = '-I%s'
