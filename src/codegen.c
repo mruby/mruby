@@ -2409,7 +2409,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*p->icapa);
 
   p->pcapa = 32;
-  p->irep->pool = (struct mrb_value*)mrb_malloc(mrb, sizeof(struct mrb_value)*p->pcapa);
+  p->irep->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value)*p->pcapa);
   p->irep->plen = 0;
 
   p->scapa = 256;
