@@ -4,7 +4,7 @@ MRuby::Build.new('debug') do |conf|
 
   # include all core GEMs
   conf.gembox 'full-core'
-  conf.cc.defines = %w(MRB_GC_FIXED_ARENA)
+  conf.cc.defines += %w(MRB_GC_FIXED_ARENA)
 end
 
 MRuby::Build.new do |conf|
@@ -12,5 +12,5 @@ MRuby::Build.new do |conf|
 
   # include all core GEMs
   conf.gembox 'full-core'
-  conf.cc.defines = %w(MRB_GC_FIXED_ARENA)
+  conf.cc.defines += %w(MRB_GC_FIXED_ARENA)
 end
