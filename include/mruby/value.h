@@ -215,6 +215,7 @@ enum mrb_vtype {
 
 #if defined(MRB_WORD_BOXING)
 
+#include <limits.h>
 #define MRB_TT_HAS_BASIC  MRB_TT_FLOAT
 
 enum mrb_special_consts {

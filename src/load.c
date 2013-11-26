@@ -87,7 +87,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
     if (SIZE_ERROR_MUL(sizeof(mrb_value), plen)) {
       return NULL;
     }
-    irep->pool = (struct mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * plen);
+    irep->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * plen);
     if (irep->pool == NULL) {
       return NULL;
     }
