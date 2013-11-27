@@ -444,6 +444,10 @@ new_lit(codegen_scope *s, mrb_value val)
     break;
 
   case MRB_TT_FLOAT:
+#ifdef MRB_WORD_BOXING
+    *pv = mrb_float_pool(s->mrb, mrb_float(val));
+    break;
+#endif
   case MRB_TT_FIXNUM:
     *pv = val;
     break;

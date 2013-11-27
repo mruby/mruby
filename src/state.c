@@ -139,6 +139,11 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
       mrb_free(mrb, mrb_str_ptr(irep->pool[i])->ptr);
       mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
     }
+#ifdef MRB_WORD_BOXING
+    else if (mrb_type(irep->pool[i]) == MRB_TT_FLOAT) {
+      mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
+    }
+#endif
   }
   mrb_free(mrb, irep->pool);
   mrb_free(mrb, irep->syms);

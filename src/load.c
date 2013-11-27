@@ -106,7 +106,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
         break;
 
       case IREP_TT_FLOAT:
-        irep->pool[i] = mrb_float_value(mrb, mrb_str_to_dbl(mrb, s, FALSE));
+        irep->pool[i] = mrb_float_pool(mrb, mrb_str_to_dbl(mrb, s, FALSE));
         break;
 
       case IREP_TT_STRING:

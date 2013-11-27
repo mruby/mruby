@@ -183,6 +183,7 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
   }
   return v;
 }
+#define mrb_float_pool(mrb,f) mrb_float_value(mrb,f)
 
 #else
 
@@ -264,8 +265,8 @@ typedef union mrb_value {
   }\
 } while (0)
 
-extern mrb_value
-mrb_float_value(struct mrb_state *mrb, mrb_float f);
+mrb_value mrb_float_value(struct mrb_state *mrb, mrb_float f);
+mrb_value mrb_float_pool(struct mrb_state *mrb, mrb_float f);
 
 #else /* No MRB_xxx_BOXING */
 
@@ -299,6 +300,7 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
   MRB_SET_VALUE(v, MRB_TT_FLOAT, value.f, f);
   return v;
 }
+#define mrb_float_pool(mrb,f) mrb_float_value(mrb,f)
 
 #endif  /* no boxing */
 
