@@ -204,8 +204,8 @@ mrb_init_proc(mrb_state *mrb)
   mrb_define_method(mrb, mrb->proc_class, "arity", mrb_proc_arity, MRB_ARGS_NONE());
 
   m = mrb_proc_new(mrb, call_irep);
-  mrb_define_method_raw(mrb, mrb->proc_class, mrb_intern2(mrb, "call", 4), m);
-  mrb_define_method_raw(mrb, mrb->proc_class, mrb_intern2(mrb, "[]", 2), m);
+  mrb_define_method_raw(mrb, mrb->proc_class, mrb_intern(mrb, "call", 4), m);
+  mrb_define_method_raw(mrb, mrb->proc_class, mrb_intern(mrb, "[]", 2), m);
 
   mrb_define_class_method(mrb, mrb->kernel_module, "lambda", proc_lambda, MRB_ARGS_NONE()); /* 15.3.1.2.6  */
   mrb_define_method(mrb, mrb->kernel_module,       "lambda", proc_lambda, MRB_ARGS_NONE()); /* 15.3.1.3.27 */

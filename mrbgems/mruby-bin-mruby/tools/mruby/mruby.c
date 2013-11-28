@@ -208,7 +208,7 @@ main(int argc, char **argv)
     v = mrb_load_irep_file_cxt(mrb, args.rfp, c);
   }
   else {
-    mrb_sym zero_sym = mrb_intern2(mrb, "$0", 2);
+    mrb_sym zero_sym = mrb_intern(mrb, "$0", 2);
 
     if (args.rfp) {
       char *cmdline;

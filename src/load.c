@@ -144,7 +144,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
         continue;
       }
 
-      irep->syms[i] = mrb_intern2(mrb, (char *)src, snl);
+      irep->syms[i] = mrb_intern(mrb, (char *)src, snl);
       src += snl + 1;
 
       mrb_gc_arena_restore(mrb, ai);
@@ -364,7 +364,7 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep)
   for(i = 0; i < filenames_len; ++i) {
     uint16_t f_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
-    filenames[i] = mrb_intern2(mrb, (const char *)bin, f_len);
+    filenames[i] = mrb_intern(mrb, (const char *)bin, f_len);
     bin += f_len;
   }
 

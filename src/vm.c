@@ -357,7 +357,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
     p = mrb_method_search_vm(mrb, &c, mid);
     if (!p) {
       undef = mid;
-      mid = mrb_intern2(mrb, "method_missing", 14);
+      mid = mrb_intern(mrb, "method_missing", 14);
       p = mrb_method_search_vm(mrb, &c, mid);
       n++; argc++;
     }
@@ -897,7 +897,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       if (!m) {
         mrb_value sym = mrb_symbol_value(mid);
 
-        mid = mrb_intern2(mrb, "method_missing", 14);
+        mid = mrb_intern(mrb, "method_missing", 14);
         m = mrb_method_search_vm(mrb, &c, mid);
         if (n == CALL_MAXARGS) {
           mrb_ary_unshift(mrb, regs[a+1], sym);
@@ -1054,7 +1054,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       c = mrb->c->ci->target_class->super;
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
-        mid = mrb_intern2(mrb, "method_missing", 14);
+        mid = mrb_intern(mrb, "method_missing", 14);
         m = mrb_method_search_vm(mrb, &c, mid);
         if (n == CALL_MAXARGS) {
           mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(ci->mid));
@@ -1267,8 +1267,8 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
       L_RAISE:
         ci = mrb->c->ci;
-        mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern2(mrb, "lastpc", 6), mrb_cptr_value(mrb, pc));
-        mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern2(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
+        mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "lastpc", 6), mrb_cptr_value(mrb, pc));
+        mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
         eidx = ci->eidx;
         if (ci == mrb->c->cibase) {
           if (ci->ridx == 0) goto L_STOP;
@@ -1393,7 +1393,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       if (!m) {
         mrb_value sym = mrb_symbol_value(mid);
 
-        mid = mrb_intern2(mrb, "method_missing", 14);
+        mid = mrb_intern(mrb, "method_missing", 14);
         m = mrb_method_search_vm(mrb, &c, mid);
         if (n == CALL_MAXARGS) {
           mrb_ary_unshift(mrb, regs[a+1], sym);
