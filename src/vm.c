@@ -69,6 +69,8 @@ The value below allows about 60000 recursive calls in the simplest case. */
 #define TO_STR(x) TO_STR_(x)
 #define TO_STR_(x) #x
 
+#define ARENA_RESTORE(mrb,ai) (mrb)->arena_idx = (ai)
+
 static inline void
 stack_clear(mrb_value *from, size_t count)
 {
@@ -130,38 +132,40 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
 /** def rec ; $deep =+ 1 ; if $deep > 1000 ; return 0 ; end ; rec ; end  */
 
 static void
+stack_extend_alloc(mrb_state *mrb, int room, int keep)
+{
+  mrb_value *oldbase = mrb->c->stbase;
+  int size = mrb->c->stend - mrb->c->stbase;
+  int off = mrb->c->stack - mrb->c->stbase;
+
+  /* do not leave uninitialized malloc region */
+  if (keep > size) keep = size;
+
+  /* Use linear stack growth.
+     It is slightly slower than doubling thestack space,
+     but it saves memory on small devices. */
+  if (room <= size)
+    size += MRB_STACK_GROWTH;
+  else
+    size += room;
+
+  mrb->c->stbase = (mrb_value *)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
+  mrb->c->stack = mrb->c->stbase + off;
+  mrb->c->stend = mrb->c->stbase + size;
+  envadjust(mrb, oldbase, mrb->c->stbase);
+  /* Raise an exception if the new stack size will be too large,
+     to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raise has stack space to work with. */
+  if (size > MRB_STACK_MAX) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "stack level too deep. (limit=" TO_STR(MRB_STACK_MAX) ")");
+  }
+}
+
+static inline void
 stack_extend(mrb_state *mrb, int room, int keep)
 {
   if (mrb->c->stack + room >= mrb->c->stend) {
-    int size, off;
-
-    mrb_value *oldbase = mrb->c->stbase;
-
-    size = mrb->c->stend - mrb->c->stbase;
-    off = mrb->c->stack - mrb->c->stbase;
-
-    /* do not leave uninitialized malloc region */
-    if (keep > size) keep = size;
-
-    /* Use linear stack growth.
-       It is slightly slower than doubling thestack space,
-       but it saves memory on small devices. */
-    if (room <= size)
-      size += MRB_STACK_GROWTH;
-    else
-      size += room;
-
-    mrb->c->stbase = (mrb_value *)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
-    mrb->c->stack = mrb->c->stbase + off;
-    mrb->c->stend = mrb->c->stbase + size;
-    envadjust(mrb, oldbase, mrb->c->stbase);
-    /* Raise an exception if the new stack size will be too large,
-    to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raise has stack space to work with. */
-    if (size > MRB_STACK_MAX) {
-      mrb_raise(mrb, E_RUNTIME_ERROR, "stack level too deep. (limit=" TO_STR(MRB_STACK_MAX) ")");
-    }
+    stack_extend_alloc(mrb, room, keep);
   }
-
   if (room > keep) {
     stack_clear(&(mrb->c->stack[keep]), room - keep);
   }
@@ -844,7 +848,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
         mrb->c->ensure = (struct RProc **)mrb_realloc(mrb, mrb->c->ensure, sizeof(struct RProc*) * mrb->c->esize);
       }
       mrb->c->ensure[mrb->c->ci->eidx++] = p;
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
@@ -856,7 +860,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       for (n=0; n<a; n++) {
         ecall(mrb, --mrb->c->ci->eidx);
       }
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
@@ -1162,7 +1166,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
         rest->len = m1+len+m2;
       }
       regs[a+1] = stack[m1+r+m2];
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
@@ -1537,7 +1541,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       default:
         goto L_SEND;
       }
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
@@ -1854,7 +1858,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     CASE(OP_ARRAY) {
       /* A B C          R(A) := ary_new(R(B),R(B+1)..R(B+C)) */
       regs[GETARG_A(i)] = mrb_ary_new_from_values(mrb, GETARG_C(i), &regs[GETARG_B(i)]);
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
@@ -1862,7 +1866,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       /* A B            mrb_ary_concat(R(A),R(B)) */
       mrb_ary_concat(mrb, regs[GETARG_A(i)],
                      mrb_ary_splat(mrb, regs[GETARG_B(i)]));
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
@@ -1934,14 +1938,14 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
           }
         }
       }
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
     CASE(OP_STRING) {
       /* A Bx           R(A) := str_new(Lit(Bx)) */
       regs[GETARG_A(i)] = mrb_str_dup(mrb, pool[GETARG_Bx(i)]);
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
@@ -1963,7 +1967,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
         b+=2;
       }
       regs[GETARG_A(i)] = hash;
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
@@ -1980,7 +1984,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       }
       if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
       regs[GETARG_A(i)] = mrb_obj_value(p);
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
@@ -2004,7 +2008,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       }
       c = mrb_vm_define_class(mrb, base, super, id);
       regs[a] = mrb_obj_value(c);
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
@@ -2021,7 +2025,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       }
       c = mrb_vm_define_module(mrb, base, id);
       regs[a] = mrb_obj_value(c);
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
@@ -2075,14 +2079,14 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       struct RClass *c = mrb_class_ptr(regs[a]);
 
       mrb_define_method_vm(mrb, c, syms[GETARG_B(i)], regs[a+1]);
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
     CASE(OP_SCLASS) {
       /* A B    R(A) := R(B).singleton_class */
       regs[GETARG_A(i)] = mrb_singleton_class(mrb, regs[GETARG_B(i)]);
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
@@ -2102,7 +2106,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       /* A B C  R(A) := range_new(R(B),R(B+1),C) */
       int b = GETARG_B(i);
       regs[GETARG_A(i)] = mrb_range_new(mrb, regs[b], regs[b+1], GETARG_C(i));
-      mrb_gc_arena_restore(mrb, ai);
+      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
