@@ -239,6 +239,8 @@ const char *mrb_sym2name_len(mrb_state*,mrb_sym,size_t*);
 mrb_value mrb_sym2str(mrb_state*,mrb_sym);
 mrb_value mrb_str_format(mrb_state *, int, const mrb_value *, mrb_value);
 
+#define mrb_intern_lit(mrb, lit) mrb_intern(mrb, (lit), sizeof(lit) - 1)
+
 void *mrb_malloc(mrb_state*, size_t);         /* raise RuntimeError if no mem */
 void *mrb_calloc(mrb_state*, size_t, size_t); /* ditto */
 void *mrb_realloc(mrb_state*, void*, size_t); /* ditto */
