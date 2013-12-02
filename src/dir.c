@@ -142,7 +142,11 @@ mrb_dir_mkdir(mrb_state *mrb, mrb_value klass)
   mode = 0777;
   mrb_get_args(mrb, "S|i", &spath, &mode);
   path = mrb_str_to_cstr(mrb, spath);
+#ifndef _WIN32
   if (mkdir(path, mode) == -1) {
+#else
+  if (mkdir(path) == -1) {
+#endif
     mrb_sys_fail(mrb, path);
   }
   return mrb_fixnum_value(0);
