@@ -87,8 +87,6 @@ static void codegen(codegen_scope *s, node *tree, int val);
 static void
 codegen_error(codegen_scope *s, const char *message)
 {
-  jmp_buf jmp;
-
   if (!s) return;
   while (s->prev) {
     codegen_scope *tmp = s->prev;
@@ -103,9 +101,7 @@ codegen_error(codegen_scope *s, const char *message)
     fprintf(stderr, "codegen error: %s\n", message);
   }
 #endif
-  memcpy(&jmp, &s->jmp, sizeof(jmp_buf));
-  mrb_pool_close(s->mpool);
-  longjmp(jmp, 1);
+  longjmp(s->jmp, 1);
 }
 
 static void*
@@ -2415,6 +2411,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
 
   p->icapa = 1024;
   p->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*p->icapa);
+  p->irep->iseq = p->iseq;
 
   p->pcapa = 32;
   p->irep->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value)*p->pcapa);
@@ -2916,6 +2913,11 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
     return proc;
   }
   else {
+    if (scope->filename == scope->irep->filename) {
+      scope->irep->filename = NULL;
+    }
+    mrb_irep_decref(mrb, scope->irep);
+    mrb_pool_close(scope->mpool);
     return NULL;
   }
 }
