@@ -884,7 +884,7 @@ L_RETRY:
     goto L_RETRY;
   }
   name = mrb_symbol_value(sym);
-  return mrb_funcall_argv(mrb, mrb_obj_value(base), mrb_intern(mrb, "const_missing", 13), 1, &name);
+  return mrb_funcall_argv(mrb, mrb_obj_value(base), mrb_intern_lit(mrb, "const_missing"), 1, &name);
 }
 
 mrb_value
@@ -1064,7 +1064,7 @@ mrb_f_global_variables(mrb_state *mrb, mrb_value self)
   buf[2] = 0;
   for (i = 1; i <= 9; ++i) {
     buf[1] = (char)(i + '0');
-    mrb_ary_push(mrb, ary, mrb_symbol_value(mrb_intern(mrb, buf, 2)));
+    mrb_ary_push(mrb, ary, mrb_symbol_value(mrb_intern_lit(mrb, buf)));
   }
   return ary;
 }
@@ -1127,7 +1127,7 @@ mrb_class_sym(mrb_state *mrb, struct RClass *c, struct RClass *outer)
 {
   mrb_value name;
 
-  name = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern(mrb, "__classid__", 11));
+  name = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__classid__"));
   if (mrb_nil_p(name)) {
 
     if (!outer) return 0;
