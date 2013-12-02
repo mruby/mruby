@@ -16,7 +16,11 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
+#if !defined(_WIN32) || !defined(__MINGW32__)
+  #include <sys/wait.h>
+#else
+  #include <winsock.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>

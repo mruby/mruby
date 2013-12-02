@@ -17,7 +17,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
+#ifndef _WIN32
 #include <pwd.h>
+#endif
 
 #define FILE_SEPARATOR "/"
 
@@ -229,6 +231,7 @@ mrb_file_is_absolute_path(const char *path)
 static mrb_value
 mrb_file__gethome(mrb_state *mrb, mrb_value klass)
 {
+#ifndef _WIN32
   mrb_value username;
   int argc;
   char *home;
@@ -254,8 +257,13 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
     }
   }
   return mrb_str_new_cstr(mrb, home);
+#else
+  
+  return mrb_nil_value();
+#endif
 }
 
+#ifndef _WIN32
 mrb_value
 mrb_file_flock(mrb_state *mrb, mrb_value self)
 {
@@ -285,6 +293,7 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
   }
   return mrb_fixnum_value(0);
 }
+#endif
 
 void
 mrb_init_file(mrb_state *mrb)
@@ -306,8 +315,10 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "_getwd",    mrb_file__getwd,     MRB_ARGS_NONE());
   mrb_define_class_method(mrb, file, "_gethome",  mrb_file__gethome,   MRB_ARGS_OPT(1));
 
+  #ifndef _WIN32
   mrb_define_method(mrb, file, "flock", mrb_file_flock, MRB_ARGS_REQ(1));
-
+  #endif
+  
   cnst = mrb_define_module_under(mrb, file, "Constants");
   mrb_define_const(mrb, cnst, "LOCK_SH", mrb_fixnum_value(LOCK_SH));
   mrb_define_const(mrb, cnst, "LOCK_EX", mrb_fixnum_value(LOCK_EX));

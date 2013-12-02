@@ -16,7 +16,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
+#ifndef _WIN32
 #include <pwd.h>
+#endif
 
 extern struct mrb_data_type mrb_io_type;
 

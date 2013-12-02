@@ -119,13 +119,14 @@ mrb_io_flags_to_modenum(mrb_state *mrb, int flags)
   }
 #ifdef O_BINARY
   if (flags & FMODE_BINMODE) {
-    modenum |= O_BINARY
+    modenum |= O_BINARY;
   }
 #endif
 
   return modenum;
 }
 
+#ifndef _WIN32
 static int
 mrb_proc_exec(const char *pname)
 {
@@ -143,6 +144,7 @@ mrb_proc_exec(const char *pname)
   execl("/bin/sh", "sh", "-c", pname, (char *)NULL);
   return -1;
 }
+#endif
 
 static void
 mrb_io_free(mrb_state *mrb, void *ptr)
@@ -185,6 +187,7 @@ io_open(mrb_state *mrb, mrb_value path, int flags, int perm)
 #define NOFILE 64
 #endif
 
+#ifndef _WIN32
 mrb_value
 mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
@@ -295,6 +298,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   }
   return result;
 }
+#endif
 
 mrb_value
 mrb_io_initialize(mrb_state *mrb, mrb_value io)
@@ -746,8 +750,9 @@ mrb_init_io(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(io, MRB_TT_DATA);
 
   mrb_include_module(mrb, io, mrb_class_get(mrb, "Enumerable")); /* 15.2.20.3 */
-
+#ifndef _WIN32
   mrb_define_class_method(mrb, io, "_popen",  mrb_io_s_popen,   MRB_ARGS_ANY());
+#endif
   mrb_define_class_method(mrb, io, "for_fd",  mrb_io_s_for_fd,  MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2));
   mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "select",  mrb_io_s_select,  MRB_ARGS_ANY());
