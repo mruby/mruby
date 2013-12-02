@@ -87,12 +87,14 @@ static void codegen(codegen_scope *s, node *tree, int val);
 static void
 codegen_error(codegen_scope *s, const char *message)
 {
+  jmp_buf jmp;
+
   if (!s) return;
   while (s->prev) {
+    codegen_scope *tmp = s->prev;
     mrb_pool_close(s->mpool);
-    s = s->prev;
+    s = tmp;
   }
-  mrb_pool_close(s->mpool);
 #ifdef ENABLE_STDIO
   if (s->filename && s->lineno) {
     fprintf(stderr, "codegen error:%s:%d: %s\n", s->filename, s->lineno, message);
@@ -101,7 +103,9 @@ codegen_error(codegen_scope *s, const char *message)
     fprintf(stderr, "codegen error: %s\n", message);
   }
 #endif
-  longjmp(s->jmp, 1);
+  memcpy(&jmp, &s->jmp, sizeof(jmp_buf));
+  mrb_pool_close(s->mpool);
+  longjmp(jmp, 1);
 }
 
 static void*
