@@ -61,8 +61,8 @@ typedef struct scope {
 
   mrb_irep *irep;
   size_t pcapa;
-  int scapa;
-  int rcapa;
+  size_t scapa;
+  size_t rcapa;
 
   int nlocals;
   int nregs;
@@ -2417,7 +2417,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->irep->plen = 0;
 
   p->scapa = 256;
-  p->irep->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*256);
+  p->irep->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*p->scapa);
   p->irep->slen = 0;
 
   p->lv = lv;
