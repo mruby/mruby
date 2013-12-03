@@ -27,13 +27,13 @@ mrb_sce_init(mrb_state *mrb, mrb_value self)
     }
   }
   if (!no_errno) {
-    e2c = mrb_const_get(mrb, mrb_obj_value(mrb_class_get(mrb, "Errno")), mrb_intern(mrb, "Errno2class"));
+    e2c = mrb_const_get(mrb, mrb_obj_value(mrb_class_get(mrb, "Errno")), mrb_intern_lit(mrb, "Errno2class"));
     c = mrb_hash_fetch(mrb, e2c, mrb_fixnum_value(n), mrb_nil_value());
     if (!mrb_nil_p(c)) {
       mrb_basic(self)->c = mrb_class_ptr(c);
       str = mrb_str_new_cstr(mrb, strerror(n));
     } else {
-      mrb_iv_set(mrb, self, mrb_intern(mrb, "errno"), mrb_fixnum_value(n));
+      mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "errno"), mrb_fixnum_value(n));
       str = mrb_str_new_cstr(mrb, "Unknown error: ");
       snprintf(buf, sizeof(buf), "%d", n);
       mrb_str_cat2(mrb, str, buf);
@@ -45,7 +45,7 @@ mrb_sce_init(mrb_state *mrb, mrb_value self)
     mrb_str_cat2(mrb, str, " - ");
     mrb_str_append(mrb, str, m);
   }
-  mrb_iv_set(mrb, self, mrb_intern(mrb, "mesg"), str);
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "mesg"), str);
   return self;
 }
 
@@ -56,11 +56,11 @@ mrb_sce_errno(mrb_state *mrb, mrb_value self)
   mrb_value klass;
 
   klass = mrb_obj_value(mrb_class(mrb, self));
-  sym = mrb_intern(mrb, "Errno");
+  sym = mrb_intern_lit(mrb, "Errno");
   if (mrb_const_defined(mrb, klass, sym))
     return mrb_const_get(mrb, klass, sym);
   else {
-    sym = mrb_intern(mrb, "errno");
+    sym = mrb_intern_lit(mrb, "errno");
     return mrb_attr_get(mrb, self, sym);
   }
 }
@@ -68,7 +68,7 @@ mrb_sce_errno(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_sce_to_s(mrb_state *mrb, mrb_value self)
 {
-  return mrb_attr_get(mrb, self, mrb_intern(mrb, "mesg"));
+  return mrb_attr_get(mrb, self, mrb_intern_lit(mrb, "mesg"));
 }
 
 static mrb_value
@@ -102,7 +102,7 @@ mrb_exxx_init(mrb_state *mrb, mrb_value self)
 {
   mrb_value m, no, str;
 
-  no = mrb_const_get(mrb, mrb_obj_value(mrb_class(mrb, self)), mrb_intern(mrb, "Errno"));
+  no = mrb_const_get(mrb, mrb_obj_value(mrb_class(mrb, self)), mrb_intern_lit(mrb, "Errno"));
   str = mrb_str_new_cstr(mrb, strerror(mrb_fixnum(no)));
 
   m = mrb_nil_value();
@@ -111,7 +111,7 @@ mrb_exxx_init(mrb_state *mrb, mrb_value self)
     mrb_str_cat2(mrb, str, " - ");
     mrb_str_append(mrb, str, m);
   }
-  mrb_iv_set(mrb, self, mrb_intern(mrb, "mesg"), str);
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "mesg"), str);
   return self;
 }
 
