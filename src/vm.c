@@ -139,7 +139,7 @@ stack_extend_alloc(mrb_state *mrb, int room, int keep)
   int off = mrb->c->stack - mrb->c->stbase;
 
   /* do not leave uninitialized malloc region */
-  if (keep > size) keep = size;
+  if (keep > size) size = keep;
 
   /* Use linear stack growth.
      It is slightly slower than doubling thestack space,
