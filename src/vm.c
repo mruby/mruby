@@ -132,17 +132,14 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
 /** def rec ; $deep =+ 1 ; if $deep > 1000 ; return 0 ; end ; rec ; end  */
 
 static void
-stack_extend_alloc(mrb_state *mrb, int room, int keep)
+stack_extend_alloc(mrb_state *mrb, int room)
 {
   mrb_value *oldbase = mrb->c->stbase;
   int size = mrb->c->stend - mrb->c->stbase;
   int off = mrb->c->stack - mrb->c->stbase;
 
-  /* do not leave uninitialized malloc region */
-  if (keep > size) keep = size;
-
   /* Use linear stack growth.
-     It is slightly slower than doubling thestack space,
+     It is slightly slower than doubling the stack space,
      but it saves memory on small devices. */
   if (room <= size)
     size += MRB_STACK_GROWTH;
@@ -164,9 +161,10 @@ static inline void
 stack_extend(mrb_state *mrb, int room, int keep)
 {
   if (mrb->c->stack + room >= mrb->c->stend) {
-    stack_extend_alloc(mrb, room, keep);
+    stack_extend_alloc(mrb, room);
   }
   if (room > keep) {
+    /* do not leave uninitialized malloc region */
     stack_clear(&(mrb->c->stack[keep]), room - keep);
   }
 }
