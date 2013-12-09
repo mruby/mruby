@@ -276,16 +276,16 @@ end
 assert('Module.constants', '15.2.2.4.24') do
   $n = []
   module TestA
-    Const = 1
+    C = 1
   end
   class TestB
     include TestA
-    Const2 = 1
+    C2 = 1
     $n = constants.sort
   end
 
-  assert_equal [ :Const ], TestA.constants
-  assert_equal [ :Const, :Const2 ], $n
+  assert_equal [ :C ], TestA.constants
+  assert_equal [ :C, :C2 ], $n
 end
 
 assert('Module#include', '15.2.2.4.27') do
