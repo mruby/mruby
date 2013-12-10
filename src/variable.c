@@ -563,6 +563,7 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   mrb_value str = *(mrb_value*)p;
   const char *s;
   size_t len;
+  mrb_value ins;
 
   /* need not to show internal data */
   if (RSTRING_PTR(str)[0] == '-') { /* first element */
@@ -575,7 +576,13 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   s = mrb_sym2name_len(mrb, sym, &len);
   mrb_str_cat(mrb, str, s, len);
   mrb_str_cat(mrb, str, "=", 1);
-  mrb_str_append(mrb, str, mrb_inspect(mrb, v));
+  if (mrb_type(v) == MRB_TT_OBJECT) {
+    ins = mrb_any_to_s(mrb, v);
+  }
+  else {
+    ins = mrb_inspect(mrb, v);
+  }
+  mrb_str_append(mrb, str, ins);
   return 0;
 }
 
