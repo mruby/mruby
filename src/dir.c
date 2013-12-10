@@ -10,14 +10,26 @@
 #include "mruby/string.h"
 #include "error.h"
 #include <sys/types.h>
-#include <sys/param.h>
+#if defined(_WIN32) || defined(_WIN64)
+  #define MAXPATHLEN 1024
+  #define PATH_MAX MAX_PATH
+  #define S_ISDIR(B) ((B)&_S_IFDIR)
+  #include "Win/dirent.h"
+  #include <direct.h>
+  #define rmdir _rmdir
+  #define getcwd _getcwd
+  #define mkdir _mkdir
+  #define chdir _chdir
+#else
+  #include <sys/param.h>
+  #include <dirent.h>
+  #include <unistd.h>
+#endif
 #include <sys/stat.h>
-#include <dirent.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <unistd.h>
 #include <string.h>
 
 /* with/without IO module */
@@ -202,6 +214,10 @@ mrb_dir_rewind(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_dir_seek(mrb_state *mrb, mrb_value self)
 {
+  #if defined(_WIN32) || (_WIN64)
+  mrb_raise(mrb, E_RUNTIME_ERROR, "dirseek() unreliable on Win platforms");
+  return self;
+  #else
   struct mrb_dir *mdir;
   mrb_int pos;
 
@@ -213,11 +229,16 @@ mrb_dir_seek(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "i", &pos);
   seekdir(mdir->dir, (long)pos);
   return self;
+  #endif
 }
 
 mrb_value
 mrb_dir_tell(mrb_state *mrb, mrb_value self)
 {
+  #if defined(_WIN32) || (_WIN64)
+  mrb_raise(mrb, E_RUNTIME_ERROR, "dirtell() unreliable on Win platforms");
+  return mrb_fixnum_value(0);
+  #else
   struct mrb_dir *mdir;
   mrb_int pos;
 
@@ -228,6 +249,7 @@ mrb_dir_tell(mrb_state *mrb, mrb_value self)
   }
   pos = (mrb_int)telldir(mdir->dir);
   return mrb_fixnum_value(pos);
+  #endif
 }
 
 void
