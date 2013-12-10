@@ -10,15 +10,18 @@
 #include "mruby/string.h"
 #include "error.h"
 
-#include <sys/file.h>
-#include <libgen.h>
+#if defined(_WIN32) || defined(_WIN64)
+  #define LSTAT stat
+#else
+  #define LSTAT lstat
+  #include <sys/file.h>
+  #include <libgen.h>
+  #include <pwd.h>
+  #include <sys/param.h>
+#endif
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/param.h>
-#ifndef _WIN32
-#include <pwd.h>
-#endif
 
 extern struct mrb_data_type mrb_io_type;
 
@@ -47,7 +50,7 @@ mrb_stat0(mrb_state *mrb, mrb_value obj, struct stat *st, int do_lstat)
   tmp = mrb_funcall(mrb, obj, "is_a?", 1, str_klass);
   if (mrb_test(tmp)) {
     if (do_lstat) {
-      return lstat(mrb_str_to_cstr(mrb, obj), st);
+      return LSTAT(mrb_str_to_cstr(mrb, obj), st);
     } else {
       return stat(mrb_str_to_cstr(mrb, obj), st);
     }

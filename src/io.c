@@ -14,6 +14,16 @@
 #include "mruby/ext/io.h"
 #include "error.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+  #include <io.h>
+  #define open  _open
+  #define close _close
+  #define read  _read
+  #define write _write
+  #define lseek _lseek
+#else
+#endif
+
 static int mrb_io_modestr_to_flags(mrb_state *mrb, const char *modestr);
 static int mrb_io_modenum_to_flags(mrb_state *mrb, int modenum);
 static int mrb_io_flags_to_modenum(mrb_state *mrb, int flags);
