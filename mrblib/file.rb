@@ -16,7 +16,7 @@ class File < IO
       @path = fd_or_path
       begin
         fd = IO.sysopen(@path, mode, perm)
-      rescue Errno::EMFILE
+      rescue Errno::EMFILE, Errno::ENFILE
         GC.start
         fd = IO.sysopen(@path, mode, perm)
       end
