@@ -1,3 +1,9 @@
+mruby (0.0.0~20131214+git882afdea-1) unstable; urgency=medium
+
+  * Snapshot, taken from the master (20131214).
+
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Sat, 14 Dec 2013 10:56:42 +0900
+
 mruby (0.0.0~20131107+gitf80401de-1) unstable; urgency=low
 
   * Snapshot, taken from the master (20131107).
