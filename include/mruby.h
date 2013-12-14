@@ -41,12 +41,13 @@ extern "C" {
 typedef uint32_t mrb_code;
 typedef uint32_t mrb_aspec;
 
+struct mrb_irep;
 struct mrb_state;
 
 typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 
-#ifndef MRB_ARENA_SIZE
-#define MRB_ARENA_SIZE 100
+#ifndef MRB_GC_ARENA_SIZE
+#define MRB_GC_ARENA_SIZE 100
 #endif
 
 typedef struct {
@@ -105,8 +106,6 @@ typedef struct mrb_state {
 
   struct RObject *exc;                    /* exception */
   struct iv_tbl *globals;                 /* global variable table */
-  struct mrb_irep **irep;                 /* program data array */
-  size_t irep_len, irep_capa;
 
   struct RObject *top_self;
   struct RClass *object_class;            /* Object class */
@@ -129,7 +128,12 @@ typedef struct mrb_state {
   struct heap_page *sweeps;
   struct heap_page *free_heaps;
   size_t live; /* count of live objects */
-  struct RBasic *arena[MRB_ARENA_SIZE];   /* GC protection array */
+#ifdef MRB_GC_FIXED_ARENA
+  struct RBasic *arena[MRB_GC_ARENA_SIZE]; /* GC protection array */
+#else
+  struct RBasic **arena;                   /* GC protection array */
+  int arena_capa;
+#endif
   int arena_idx;
 
   enum gc_state gc_state; /* state of gc */
@@ -225,7 +229,7 @@ mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, int,...);
 mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, int, mrb_value*);
 mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, int, mrb_value*, mrb_value);
 mrb_sym mrb_intern_cstr(mrb_state*,const char*);
-mrb_sym mrb_intern2(mrb_state*,const char*,size_t);
+mrb_sym mrb_intern(mrb_state*,const char*,size_t);
 mrb_sym mrb_intern_str(mrb_state*,mrb_value);
 mrb_value mrb_check_intern_cstr(mrb_state*,const char*);
 mrb_value mrb_check_intern(mrb_state*,const char*,size_t);
@@ -235,12 +239,7 @@ const char *mrb_sym2name_len(mrb_state*,mrb_sym,size_t*);
 mrb_value mrb_sym2str(mrb_state*,mrb_sym);
 mrb_value mrb_str_format(mrb_state *, int, const mrb_value *, mrb_value);
 
-/* For backward compatibility. */
-static inline
-mrb_sym mrb_intern(mrb_state *mrb,const char *cstr)
-{
-  return mrb_intern_cstr(mrb, cstr);
-}
+#define mrb_intern_lit(mrb, lit) mrb_intern(mrb, (lit), sizeof(lit) - 1)
 
 void *mrb_malloc(mrb_state*, size_t);         /* raise RuntimeError if no mem */
 void *mrb_calloc(mrb_state*, size_t, size_t); /* ditto */
@@ -256,7 +255,6 @@ mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
 
 mrb_state* mrb_open(void);
 mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
-void mrb_irep_free(mrb_state*, struct mrb_irep*);
 void mrb_close(mrb_state*);
 
 mrb_value mrb_top_self(mrb_state *);

@@ -563,6 +563,7 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   mrb_value str = *(mrb_value*)p;
   const char *s;
   size_t len;
+  mrb_value ins;
 
   /* need not to show internal data */
   if (RSTRING_PTR(str)[0] == '-') { /* first element */
@@ -575,7 +576,13 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   s = mrb_sym2name_len(mrb, sym, &len);
   mrb_str_cat(mrb, str, s, len);
   mrb_str_cat(mrb, str, "=", 1);
-  mrb_str_append(mrb, str, mrb_inspect(mrb, v));
+  if (mrb_type(v) == MRB_TT_OBJECT) {
+    ins = mrb_any_to_s(mrb, v);
+  }
+  else {
+    ins = mrb_inspect(mrb, v);
+  }
+  mrb_str_append(mrb, str, ins);
   return 0;
 }
 
@@ -884,7 +891,7 @@ L_RETRY:
     goto L_RETRY;
   }
   name = mrb_symbol_value(sym);
-  return mrb_funcall_argv(mrb, mrb_obj_value(base), mrb_intern2(mrb, "const_missing", 13), 1, &name);
+  return mrb_funcall_argv(mrb, mrb_obj_value(base), mrb_intern_lit(mrb, "const_missing"), 1, &name);
 }
 
 mrb_value
@@ -963,7 +970,7 @@ const_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 
   ary = *(mrb_value*)p;
   s = mrb_sym2name_len(mrb, sym, &len);
-  if (len > 1 && ISUPPER(s[0])) {
+  if (len >= 1 && ISUPPER(s[0])) {
     mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   }
   return 0;
@@ -1064,7 +1071,7 @@ mrb_f_global_variables(mrb_state *mrb, mrb_value self)
   buf[2] = 0;
   for (i = 1; i <= 9; ++i) {
     buf[1] = (char)(i + '0');
-    mrb_ary_push(mrb, ary, mrb_symbol_value(mrb_intern2(mrb, buf, 2)));
+    mrb_ary_push(mrb, ary, mrb_symbol_value(mrb_intern_lit(mrb, buf)));
   }
   return ary;
 }
@@ -1127,7 +1134,7 @@ mrb_class_sym(mrb_state *mrb, struct RClass *c, struct RClass *outer)
 {
   mrb_value name;
 
-  name = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern2(mrb, "__classid__", 11));
+  name = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__classid__"));
   if (mrb_nil_p(name)) {
 
     if (!outer) return 0;

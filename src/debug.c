@@ -154,7 +154,7 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep *irep,
   info->pc_count = end_pos;
 
   fn_len = strlen(irep->filename);
-  ret->filename_sym = mrb_intern2(mrb, irep->filename, fn_len);
+  ret->filename_sym = mrb_intern(mrb, irep->filename, fn_len);
   len = 0;
   ret->filename = mrb_sym2name_len(mrb, ret->filename_sym, &len);
 

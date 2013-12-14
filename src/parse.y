@@ -66,23 +66,23 @@ typedef unsigned int stack_type;
 #define nsym(x) ((node*)(intptr_t)(x))
 
 static inline mrb_sym
-intern_gen(parser_state *p, const char *s)
+intern_cstr_gen(parser_state *p, const char *s)
 {
   return mrb_intern_cstr(p->mrb, s);
 }
-#define intern(s) intern_gen(p,(s))
+#define intern_cstr(s) intern_cstr_gen(p,(s))
 
 static inline mrb_sym
-intern_gen2(parser_state *p, const char *s, size_t len)
+intern_gen(parser_state *p, const char *s, size_t len)
 {
-  return mrb_intern2(p->mrb, s, len);
+  return mrb_intern(p->mrb, s, len);
 }
-#define intern2(s,len) intern_gen2(p,(s),(len))
+#define intern(s,len) intern_gen(p,(s),(len))
 
 static inline mrb_sym
 intern_gen_c(parser_state *p, const char c)
 {
-  return mrb_intern2(p->mrb, &c, 1);
+  return mrb_intern(p->mrb, &c, 1);
 }
 #define intern_c(c) intern_gen_c(p,(c))
 
@@ -538,7 +538,7 @@ new_strsym(parser_state *p, node* str)
   const char *s = (const char*)str->cdr->car;
   size_t len = (size_t)str->cdr->cdr;
 
-  return mrb_intern2(p->mrb, s, len);
+  return mrb_intern(p->mrb, s, len);
 }
 
 // (:lvar . a)
@@ -800,14 +800,14 @@ new_symbols(parser_state *p, node *a)
 static node*
 call_uni_op(parser_state *p, node *recv, char *m)
 {
-  return new_call(p, recv, intern(m), 0);
+  return new_call(p, recv, intern_cstr(m), 0);
 }
 
 // (:call a op b)
 static node*
 call_bin_op(parser_state *p, node *recv, char *m, node *arg1)
 {
-  return new_call(p, recv, intern(m), list1(list1(arg1)));
+  return new_call(p, recv, intern_cstr(m), list1(list1(arg1)));
 }
 
 static void
@@ -1284,7 +1284,7 @@ stmt		: keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
 		    }
 		| primary_value '[' opt_call_args rbracket tOP_ASGN command_call
 		    {
-		      $$ = new_op_asgn(p, new_call(p, $1, intern2("[]",2), $3), $5, $6);
+		      $$ = new_op_asgn(p, new_call(p, $1, intern("[]",2), $3), $5, $6);
 		    }
 		| primary_value '.' tIDENTIFIER tOP_ASGN command_call
 		    {
@@ -1523,7 +1523,7 @@ mlhs_node	: variable
 		    }
 		| primary_value '[' opt_call_args rbracket
 		    {
-		      $$ = new_call(p, $1, intern2("[]",2), $3);
+		      $$ = new_call(p, $1, intern("[]",2), $3);
 		    }
 		| primary_value '.' tIDENTIFIER
 		    {
@@ -1562,7 +1562,7 @@ lhs		: variable
 		    }
 		| primary_value '[' opt_call_args rbracket
 		    {
-		      $$ = new_call(p, $1, intern2("[]",2), $3);
+		      $$ = new_call(p, $1, intern("[]",2), $3);
 		    }
 		| primary_value '.' tIDENTIFIER
 		    {
@@ -1648,31 +1648,31 @@ undef_list	: fsym
 op		: '|'		{ $$ = intern_c('|'); }
 		| '^'		{ $$ = intern_c('^'); }
 		| '&'		{ $$ = intern_c('&'); }
-		| tCMP		{ $$ = intern2("<=>",3); }
-		| tEQ		{ $$ = intern2("==",2); }
-		| tEQQ		{ $$ = intern2("===",3); }
-		| tMATCH	{ $$ = intern2("=~",2); }
-		| tNMATCH	{ $$ = intern2("!~",2); }
+		| tCMP		{ $$ = intern("<=>",3); }
+		| tEQ		{ $$ = intern("==",2); }
+		| tEQQ		{ $$ = intern("===",3); }
+		| tMATCH	{ $$ = intern("=~",2); }
+		| tNMATCH	{ $$ = intern("!~",2); }
 		| '>'		{ $$ = intern_c('>'); }
-		| tGEQ		{ $$ = intern2(">=",2); }
+		| tGEQ		{ $$ = intern(">=",2); }
 		| '<'		{ $$ = intern_c('<'); }
-		| tLEQ		{ $$ = intern2("<=",2); }
-		| tNEQ		{ $$ = intern2("!=",2); }
-		| tLSHFT	{ $$ = intern2("<<",2); }
-		| tRSHFT	{ $$ = intern2(">>",2); }
+		| tLEQ		{ $$ = intern("<=",2); }
+		| tNEQ		{ $$ = intern("!=",2); }
+		| tLSHFT	{ $$ = intern("<<",2); }
+		| tRSHFT	{ $$ = intern(">>",2); }
 		| '+'		{ $$ = intern_c('+'); }
 		| '-'		{ $$ = intern_c('-'); }
 		| '*'		{ $$ = intern_c('*'); }
 		| tSTAR		{ $$ = intern_c('*'); }
 		| '/'		{ $$ = intern_c('/'); }
 		| '%'		{ $$ = intern_c('%'); }
-		| tPOW		{ $$ = intern2("**",2); }
+		| tPOW		{ $$ = intern("**",2); }
 		| '!'		{ $$ = intern_c('!'); }
 		| '~'		{ $$ = intern_c('~'); }
-		| tUPLUS	{ $$ = intern2("+@",2); }
-		| tUMINUS	{ $$ = intern2("-@",2); }
-		| tAREF		{ $$ = intern2("[]",2); }
-		| tASET		{ $$ = intern2("[]=",3); }
+		| tUPLUS	{ $$ = intern("+@",2); }
+		| tUMINUS	{ $$ = intern("-@",2); }
+		| tAREF		{ $$ = intern("[]",2); }
+		| tASET		{ $$ = intern("[]=",3); }
 		| '`'		{ $$ = intern_c('`'); }
 		;
 
@@ -1708,7 +1708,7 @@ arg		: lhs '=' arg
 		    }
 		| primary_value '[' opt_call_args rbracket tOP_ASGN arg
 		    {
-		      $$ = new_op_asgn(p, new_call(p, $1, intern2("[]",2), $3), $5, $6);
+		      $$ = new_op_asgn(p, new_call(p, $1, intern("[]",2), $3), $5, $6);
 		    }
 		| primary_value '.' tIDENTIFIER tOP_ASGN arg
 		    {
@@ -2520,11 +2520,11 @@ method_call	: operation paren_args
 		    }
 		| primary_value '.' paren_args
 		    {
-		      $$ = new_call(p, $1, intern2("call",4), $3);
+		      $$ = new_call(p, $1, intern("call",4), $3);
 		    }
 		| primary_value tCOLON2 paren_args
 		    {
-		      $$ = new_call(p, $1, intern2("call",4), $3);
+		      $$ = new_call(p, $1, intern("call",4), $3);
 		    }
 		| keyword_super paren_args
 		    {
@@ -2536,7 +2536,7 @@ method_call	: operation paren_args
 		    }
 		| primary_value '[' opt_call_args rbracket
 		    {
-		      $$ = new_call(p, $1, intern2("[]",2), $3);
+		      $$ = new_call(p, $1, intern("[]",2), $3);
 		    }
 		;
 
@@ -3316,14 +3316,14 @@ nextc(parser_state *p)
   else {
 #ifdef ENABLE_STDIO
     if (p->f) {
-      if (feof(p->f)) goto end_retry;
+      if (feof(p->f)) goto eof;
       c = fgetc(p->f);
-      if (c == EOF) goto end_retry;
+      if (c == EOF) goto eof;
     }
     else
 #endif
     if (!p->s || p->s >= p->send) {
-       goto end_retry;
+       goto eof;
     }
     else {
       c = (unsigned char)*p->s++;
@@ -3332,7 +3332,7 @@ nextc(parser_state *p)
   p->column++;
   return c;
 
- end_retry:
+ eof:
   if (!p->cxt) return -1;
   else {
     mrbc_context *cxt = p->cxt;
@@ -3867,6 +3867,9 @@ heredoc_identifier(parser_state *p)
       return 0;
     }
   } else {
+    if (c == -1) {
+      return 0;                 /* missing here document identifier */
+    }
     if (! identchar(c)) {
       pushback(p, c);
       if (indent) pushback(p, '-');
@@ -3930,7 +3933,10 @@ parser_yylex(parser_state *p)
   case '\0':    /* NUL */
   case '\004':  /* ^D */
   case '\032':  /* ^Z */
+    return 0;
   case -1:      /* end of script. */
+    if (p->heredocs_from_nextline)
+      goto maybe_heredoc;
     return 0;
 
   /* white spaces */
@@ -3943,6 +3949,7 @@ parser_yylex(parser_state *p)
     skip(p, '\n');
   /* fall through */
   case '\n':
+  maybe_heredoc:
     heredoc_treat_nextline(p);
     switch (p->lstate) {
     case EXPR_BEG:
@@ -3989,7 +3996,7 @@ parser_yylex(parser_state *p)
   case '*':
     if ((c = nextc(p)) == '*') {
       if ((c = nextc(p)) == '=') {
-	yylval.id = intern2("**",2);
+	yylval.id = intern("**",2);
 	p->lstate = EXPR_BEG;
 	return tOP_ASGN;
       }
@@ -4098,7 +4105,7 @@ parser_yylex(parser_state *p)
     }
     if (c == '<') {
       if ((c = nextc(p)) == '=') {
-	yylval.id = intern2("<<",2);
+	yylval.id = intern("<<",2);
 	p->lstate = EXPR_BEG;
 	return tOP_ASGN;
       }
@@ -4119,7 +4126,7 @@ parser_yylex(parser_state *p)
     }
     if (c == '>') {
       if ((c = nextc(p)) == '=') {
-	yylval.id = intern2(">>",2);
+	yylval.id = intern(">>",2);
 	p->lstate = EXPR_BEG;
 	return tOP_ASGN;
       }
@@ -4233,7 +4240,7 @@ parser_yylex(parser_state *p)
     if ((c = nextc(p)) == '&') {
       p->lstate = EXPR_BEG;
       if ((c = nextc(p)) == '=') {
-	yylval.id = intern2("&&",2);
+	yylval.id = intern("&&",2);
 	p->lstate = EXPR_BEG;
 	return tOP_ASGN;
       }
@@ -4267,7 +4274,7 @@ parser_yylex(parser_state *p)
     if ((c = nextc(p)) == '|') {
       p->lstate = EXPR_BEG;
       if ((c = nextc(p)) == '=') {
-	yylval.id = intern2("||",2);
+	yylval.id = intern("||",2);
 	p->lstate = EXPR_BEG;
 	return tOP_ASGN;
       }
@@ -4871,7 +4878,7 @@ parser_yylex(parser_state *p)
       tokadd(p, '$');
       tokadd(p, c);
       tokfix(p);
-      yylval.id = intern(tok(p));
+      yylval.id = intern_cstr(tok(p));
       return tGVAR;
 
     case '-':
@@ -4881,7 +4888,7 @@ parser_yylex(parser_state *p)
       pushback(p, c);
     gvar:
       tokfix(p);
-      yylval.id = intern(tok(p));
+      yylval.id = intern_cstr(tok(p));
       return tGVAR;
 
     case '&':     /* $&: last match */
@@ -5033,7 +5040,7 @@ parser_yylex(parser_state *p)
 	  p->lstate = EXPR_BEG;
 	  nextc(p);
 	  tokfix(p);
-	  yylval.id = intern(tok(p));
+	  yylval.id = intern_cstr(tok(p));
 	  return tLABEL;
 	}
       }
@@ -5046,7 +5053,7 @@ parser_yylex(parser_state *p)
 	  enum mrb_lex_state_enum state = p->lstate;
 	  p->lstate = kw->state;
 	  if (state == EXPR_FNAME) {
-	    yylval.id = intern(kw->name);
+	    yylval.id = intern_cstr(kw->name);
 	    return kw->id[0];
 	  }
 	  if (p->lstate == EXPR_BEG) {
@@ -5091,7 +5098,7 @@ parser_yylex(parser_state *p)
       }
     }
     {
-      mrb_sym ident = intern(tok(p));
+      mrb_sym ident = intern_cstr(tok(p));
 
       yylval.id = ident;
 #if 0
@@ -5374,11 +5381,11 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   if (proc == NULL) {
     static const char msg[] = "codegen error";
     mrb->exc = mrb_obj_ptr(mrb_exc_new(mrb, E_SCRIPT_ERROR, msg, sizeof(msg) - 1));
-    return mrb_nil_value();
+    return mrb_undef_value();
   }
   if (c) {
     if (c->dump_result) codedump_all(mrb, proc);
-    if (c->no_exec) return mrb_fixnum_value(0);
+    if (c->no_exec) return mrb_obj_value(proc);
     if (c->target_class) {
       target = c->target_class;
     }

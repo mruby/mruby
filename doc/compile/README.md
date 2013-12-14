@@ -59,17 +59,13 @@ GCC toolchain.
 
 	toolchain :clang
 
-#### Visual Studio 2010
+#### Visual Studio 2010, 2012 and 2013
 
-Toolchain configuration for Visual Studio 2010 on Windows.
+Toolchain configuration for Visual Studio on Windows. If you use the
+[Visual Studio Command Prompt](http://msdn.microsoft.com/en-us/library/ms229859\(v=vs.110\).aspx),
+you normally do not have to specify this manually, since it gets automatically detected by our build process.
 
-	toolchain :vs2010
-
-#### Visual Studio 2012
-
-Toolchain configuration for Visual Studio 2012 on Windows.
-
-	toolchain :vs2012
+	toolchain :visualcpp
 
 #### Android
 

@@ -11,6 +11,7 @@
 #include "mruby/irep.h"
 #include "mruby/variable.h"
 #include "mruby/debug.h"
+#include "mruby/string.h"
 
 void mrb_init_heap(mrb_state*);
 void mrb_init_core(mrb_state*);
@@ -40,6 +41,11 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   mrb->ud = ud;
   mrb->allocf = f;
   mrb->current_white_part = MRB_GC_WHITE_A;
+
+#ifndef MRB_GC_FIXED_ARENA
+  mrb->arena = (struct RBasic**)mrb_malloc(mrb, sizeof(struct RBasic*)*MRB_GC_ARENA_SIZE);
+  mrb->arena_capa = MRB_GC_ARENA_SIZE;
+#endif
 
   mrb_init_heap(mrb);
   mrb->c = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
@@ -107,16 +113,70 @@ void mrb_free_symtbl(mrb_state *mrb);
 void mrb_free_heap(mrb_state *mrb);
 
 void
-mrb_irep_free(mrb_state *mrb, struct mrb_irep *irep)
+mrb_irep_incref(mrb_state *mrb, mrb_irep *irep)
 {
+  irep->refcnt++;
+}
+
+void
+mrb_irep_decref(mrb_state *mrb, mrb_irep *irep)
+{
+  irep->refcnt--;
+  if (irep->refcnt == 0) {
+    mrb_irep_free(mrb, irep);
+  }
+}
+
+void
+mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
+{
+  size_t i;
+
   if (!(irep->flags & MRB_ISEQ_NO_FREE))
     mrb_free(mrb, irep->iseq);
+  for (i=0; i<irep->plen; i++) {
+    if (mrb_type(irep->pool[i]) == MRB_TT_STRING) {
+      mrb_free(mrb, mrb_str_ptr(irep->pool[i])->ptr);
+      mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
+    }
+#ifdef MRB_WORD_BOXING
+    else if (mrb_type(irep->pool[i]) == MRB_TT_FLOAT) {
+      mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
+    }
+#endif
+  }
   mrb_free(mrb, irep->pool);
   mrb_free(mrb, irep->syms);
+  for (i=0; i<irep->rlen; i++) {
+    mrb_irep_decref(mrb, irep->reps[i]);
+  }
+  mrb_free(mrb, irep->reps);
   mrb_free(mrb, (void *)irep->filename);
   mrb_free(mrb, irep->lines);
   mrb_debug_info_free(mrb, irep->debug_info);
   mrb_free(mrb, irep);
+}
+
+mrb_value
+mrb_str_pool(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  struct RString *ns;
+  mrb_int len;
+
+  ns = (struct RString *)mrb_malloc(mrb, sizeof(struct RString));
+  ns->tt = MRB_TT_STRING;
+  ns->c = mrb->string_class;
+
+  len = s->len;
+  ns->len = len;
+  ns->ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
+  if (s->ptr) {
+    memcpy(ns->ptr, s->ptr, len);
+  }
+  ns->ptr[len] = '\0';
+
+  return mrb_obj_value(ns);
 }
 
 void
@@ -133,20 +193,17 @@ mrb_free_context(mrb_state *mrb, struct mrb_context *c)
 void
 mrb_close(mrb_state *mrb)
 {
-  size_t i;
-
   mrb_final_core(mrb);
 
   /* free */
   mrb_gc_free_gv(mrb);
-  for (i=0; i<mrb->irep_len; i++) {
-    mrb_irep_free(mrb, mrb->irep[i]);
-  }
-  mrb_free(mrb, mrb->irep);
   mrb_free_context(mrb, mrb->root_c);
   mrb_free_symtbl(mrb);
   mrb_free_heap(mrb);
   mrb_alloca_free(mrb);
+#ifndef MRB_GC_FIXED_ARENA
+  mrb_free(mrb, mrb->arena);
+#endif
   mrb_free(mrb, mrb);
 }
 
@@ -160,28 +217,9 @@ mrb_add_irep(mrb_state *mrb)
   static const mrb_irep mrb_irep_zero = { 0 };
   mrb_irep *irep;
 
-  if (!mrb->irep) {
-    size_t max = MRB_IREP_ARRAY_INIT_SIZE;
-
-    if (mrb->irep_len > max) max = mrb->irep_len+1;
-    mrb->irep = (mrb_irep **)mrb_calloc(mrb, max, sizeof(mrb_irep*));
-    mrb->irep_capa = max;
-  }
-  else if (mrb->irep_capa <= mrb->irep_len) {
-    size_t i;
-    size_t old_capa = mrb->irep_capa;
-    while (mrb->irep_capa <= mrb->irep_len) {
-      mrb->irep_capa *= 2;
-    }
-    mrb->irep = (mrb_irep **)mrb_realloc(mrb, mrb->irep, sizeof(mrb_irep*)*mrb->irep_capa);
-    for (i = old_capa; i < mrb->irep_capa; i++) {
-      mrb->irep[i] = NULL;
-    }
-  }
   irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
   *irep = mrb_irep_zero;
-  mrb->irep[mrb->irep_len] = irep;
-  irep->idx = mrb->irep_len++;
+  irep->refcnt = 1;
 
   return irep;
 }

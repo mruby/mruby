@@ -199,6 +199,16 @@ mrb_float_value(mrb_state *mrb, mrb_float f)
 }
 
 mrb_value
+mrb_float_pool(mrb_state *mrb, mrb_float f)
+{
+  struct RFloat *nf = (struct RFloat *)mrb_malloc(mrb, sizeof(struct RFloat));
+  nf->tt = MRB_TT_FLOAT;
+  nf->c = mrb->float_class;
+  nf->f = f;
+  return mrb_obj_value(nf);
+}
+
+mrb_value
 mrb_cptr_value(mrb_state *mrb, void *p)
 {
   mrb_value v;

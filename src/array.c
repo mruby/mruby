@@ -309,7 +309,7 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
   a1 = RARRAY(ary1); a2 = RARRAY(ary2);
   if (a1->len == a2->len && a1->ptr == a2->ptr) return mrb_fixnum_value(0);
   else {
-    mrb_sym cmp = mrb_intern2(mrb, "<=>", 3);
+    mrb_sym cmp = mrb_intern_lit(mrb, "<=>");
 
     len = RARRAY_LEN(ary1);
     if (len > RARRAY_LEN(ary2)) {
@@ -1070,7 +1070,7 @@ mrb_ary_equal(mrb_state *mrb, mrb_value ary1)
   if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_true_value();
   if (mrb_special_const_p(ary2)) return mrb_false_value();
   if (!mrb_array_p(ary2)) {
-    if (!mrb_respond_to(mrb, ary2, mrb_intern2(mrb, "to_ary", 6))) {
+    if (!mrb_respond_to(mrb, ary2, mrb_intern_lit(mrb, "to_ary"))) {
       return mrb_false_value();
     }
     else {
@@ -1124,8 +1124,8 @@ mrb_init_array(mrb_state *mrb)
 
   mrb_define_class_method(mrb, a, "[]",        mrb_ary_s_create,     MRB_ARGS_ANY());  /* 15.2.12.4.1 */
 
-  mrb_define_method(mrb, a, "*",               mrb_ary_times,        MRB_ARGS_REQ(1)); /* 15.2.12.5.1  */
-  mrb_define_method(mrb, a, "+",               mrb_ary_plus,         MRB_ARGS_REQ(1)); /* 15.2.12.5.2  */
+  mrb_define_method(mrb, a, "+",               mrb_ary_plus,         MRB_ARGS_REQ(1)); /* 15.2.12.5.1  */
+  mrb_define_method(mrb, a, "*",               mrb_ary_times,        MRB_ARGS_REQ(1)); /* 15.2.12.5.2  */
   mrb_define_method(mrb, a, "<<",              mrb_ary_push_m,       MRB_ARGS_REQ(1)); /* 15.2.12.5.3  */
   mrb_define_method(mrb, a, "[]",              mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.4  */
   mrb_define_method(mrb, a, "[]=",             mrb_ary_aset,         MRB_ARGS_ANY());  /* 15.2.12.5.5  */

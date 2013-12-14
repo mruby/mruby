@@ -236,6 +236,8 @@ print_cmdline(int code_block_open)
   }
 }
 
+void codedump_all(mrb_state*, struct RProc*);
+
 int
 main(int argc, char **argv)
 {
@@ -365,6 +367,9 @@ main(int argc, char **argv)
         /* generate bytecode */
         struct RProc *proc = mrb_generate_code(mrb, parser);
 
+        if (args.verbose) {
+          codedump_all(mrb, proc);
+        }
         /* pass a proc for evaulation */
         nregs = first_command ? 0: proc->body.irep->nregs;
         /* evaluate the bytecode */
@@ -379,7 +384,7 @@ main(int argc, char **argv)
         }
         else {
           /* no */
-          if (!mrb_respond_to(mrb, result, mrb_intern2(mrb, "inspect", 7))){
+          if (!mrb_respond_to(mrb, result, mrb_intern_lit(mrb, "inspect"))){
             result = mrb_any_to_s(mrb,result);
           }
           p(mrb, result, 1);

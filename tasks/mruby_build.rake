@@ -87,6 +87,11 @@ module MRuby
       MRuby.targets[@name].instance_eval(&block)
     end
 
+    def enable_debug
+      compilers.each { |c| c.defines += %w(MRB_DEBUG) }
+      @mrbc.compile_options += ' -g'
+    end
+
     def toolchain(name)
       tc = Toolchain.toolchains[name.to_s]
       fail "Unknown #{name} toolchain" unless tc
@@ -98,7 +103,7 @@ module MRuby
     end
 
     def mrbcfile
-      MRuby.targets['host'].exefile("#{MRuby.targets['host'].build_dir}/bin/mrbc")
+      MRuby.targets[@name].exefile("#{MRuby.targets[@name].build_dir}/bin/mrbc")
     end
 
     def compilers
@@ -197,6 +202,10 @@ module MRuby
     def initialize(name, &block)
   @test_runner = Command::CrossTestRunner.new(self)
   super
+    end
+
+    def mrbcfile
+      MRuby.targets['host'].exefile("#{MRuby.targets['host'].build_dir}/bin/mrbc")
     end
 
     def run_test

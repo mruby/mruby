@@ -65,6 +65,7 @@ mrb_value mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2);
 
 int mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2);
 char *mrb_str_to_cstr(mrb_state *mrb, mrb_value str);
+mrb_value mrb_str_pool(mrb_state *mrb, mrb_value str);
 
 /* For backward compatibility */
 static inline mrb_value
