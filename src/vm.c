@@ -1287,10 +1287,12 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
             mrb->jmp = prev_jmp;
             mrb_longjmp(mrb);
           }
-          while (eidx > ci[-1].eidx) {
-            ecall(mrb, --eidx);
+          if (ci > mrb->c->cibase) {
+            while (eidx > ci[-1].eidx) {
+              ecall(mrb, --eidx);
+            }
           }
-          if (ci == mrb->c->cibase) {
+          else if (ci == mrb->c->cibase) {
             if (ci->ridx == 0) {
               regs = mrb->c->stack = mrb->c->stbase;
               goto L_STOP;
