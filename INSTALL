@@ -7,14 +7,19 @@
 
   1. Run make in the top directory.
 
-     This command will create the following directories and
-     store libraries and binaries files into them.
+     This command will create a build directory with a directory for the host environment
+     and one for each crossbuild environment based on the settings in the build_config.rb 
+     file.
 
-       * bin
-       * lib
-       * include
+     Assuming a default build, each of the environment directories will have the following 
+     important directories:
 
-      You can directory invoke 'minirake' as the following.
+       * bin - The binary executables for this environment
+       * lib - The libraries for this environment
+
+     You can find the header files in the include directory at the root of the project.
+
+     You can directory invoke 'minirake' as the following.
 
         $ ruby ./minirake
 
