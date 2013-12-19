@@ -193,7 +193,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
       }
 
       if (exp >= 100) {
-        mrb_raise(mrb, E_RANGE_ERROR, "Too large expornent.");
+        mrb_raise(mrb, E_RANGE_ERROR, "Too large exponent.");
       }
 
       *(c++) = '0' + exp / 10;
