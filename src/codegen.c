@@ -1409,10 +1409,13 @@ codegen(codegen_scope *s, node *tree, int val)
         tree = tree->cdr;
       }
       if (val) {
+        int pos = cursp();
         genop(s, MKOP_A(OP_LOADNIL, cursp()));
+        if (pos3) dispatch_linked(s, pos3);
+        pop();
+        genop(s, MKOP_AB(OP_MOVE, cursp(), pos));
         push();
       }
-      if (pos3) dispatch_linked(s, pos3);
     }
     break;
 
