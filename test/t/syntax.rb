@@ -74,3 +74,31 @@ assert('Splat and mass assignment') do
   assert_equal 7, b
   assert_equal [8,9], c
 end
+
+assert('Return values of case statements') do
+  a = [] << case 1
+  when 3 then 2
+  when 2 then 2
+  when 1 then 2
+  end
+
+  b = [] << case 1
+  when 2 then 2
+  else
+  end
+
+  def fb
+    n = 0
+    Proc.new do
+      n += 1
+      case
+      when n % 15 == 0
+      else n
+      end
+    end
+  end
+
+  assert_equal [2], a
+  assert_equal [nil], b
+  assert_equal 1, fb.call
+end
