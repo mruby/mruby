@@ -137,6 +137,9 @@ class String
   ##
   # ISO 15.2.10.5.5
   def =~(re)
+    if re.is_a? String
+      raise TypeError, "type mismatch: String given"
+    end
     re =~ self
   end
 
