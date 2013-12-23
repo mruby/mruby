@@ -207,10 +207,6 @@ mrb_close(mrb_state *mrb)
   mrb_free(mrb, mrb);
 }
 
-#ifndef MRB_IREP_ARRAY_INIT_SIZE
-# define MRB_IREP_ARRAY_INIT_SIZE (256u)
-#endif
-
 mrb_irep*
 mrb_add_irep(mrb_state *mrb)
 {
