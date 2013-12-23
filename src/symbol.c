@@ -381,14 +381,9 @@ mrb_sym2str(mrb_state *mrb, mrb_sym sym)
 {
   size_t len;
   const char *name = mrb_sym2name_len(mrb, sym, &len);
-  mrb_value str;
 
   if (!name) return mrb_undef_value(); /* can't happen */
-  str = mrb_str_new_static(mrb, name, len);
-  if (symname_p(name) && strlen(name) == len) {
-    return str;
-  }
-  return mrb_str_dump(mrb, str);
+  return mrb_str_new_static(mrb, name, len);
 }
 
 const char*
