@@ -311,7 +311,7 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
   khash_t(iv) *h = &t->h;
   khiter_t k;
 
-  k = kh_put(iv, h, sym);
+  k = kh_put(iv, mrb, h, sym);
   kh_value(h, k) = val;
 }
 
@@ -321,7 +321,7 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   khash_t(iv) *h = &t->h;
   khiter_t k;
 
-  k = kh_get(iv, h, sym);
+  k = kh_get(iv, mrb, h, sym);
   if (k != kh_end(h)) {
     if (vp) *vp = kh_value(h, k);
     return TRUE;
@@ -336,10 +336,10 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   khiter_t k;
 
   if (h) {
-    k = kh_get(iv, h, sym);
+    k = kh_get(iv, mrb, h, sym);
     if (k != kh_end(h)) {
       mrb_value val = kh_value(h, k);
-      kh_del(iv, h, k);
+      kh_del(iv, mrb, h, k);
       if (vp) *vp = val;
       return TRUE;
     }
@@ -360,7 +360,7 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
         n = (*func)(mrb, kh_key(h, k), kh_value(h, k), p);
         if (n > 0) return FALSE;
         if (n < 0) {
-          kh_del(iv, h, k);
+          kh_del(iv, mrb, h, k);
         }
       }
     }
@@ -386,7 +386,7 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
 static void
 iv_free(mrb_state *mrb, iv_tbl *t)
 {
-  kh_destroy(iv, &t->h);
+  kh_destroy(iv, mrb, &t->h);
 }
 
 #endif
