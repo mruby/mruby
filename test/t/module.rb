@@ -83,7 +83,7 @@ assert('Module#attr', '15.2.2.4.11') do
   assert_true AttrTest.respond_to?(:cattr)
   assert_true test.respond_to?(:iattr)
 
-  assert_false AttrTest.respond_to?(:vattr=)
+  assert_false AttrTest.respond_to?(:cattr=)
   assert_false test.respond_to?(:iattr=)
 
   test.iattr_val = 'test'
