@@ -77,7 +77,7 @@ mrb_intern(mrb_state *mrb, const char *name, size_t len)
 }
 
 mrb_sym
-mrb_intern_literal(mrb_state *mrb, const char *name, size_t len)
+mrb_intern_static(mrb_state *mrb, const char *name, size_t len)
 {
   return sym_intern(mrb, name, len, 1);
 }

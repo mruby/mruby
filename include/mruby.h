@@ -230,8 +230,8 @@ mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, int, mrb_value*);
 mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, int, mrb_value*, mrb_value);
 mrb_sym mrb_intern_cstr(mrb_state*,const char*);
 mrb_sym mrb_intern(mrb_state*,const char*,size_t);
-mrb_sym mrb_intern_literal(mrb_state*,const char*,size_t);
-#define mrb_intern_lit(mrb, lit) mrb_intern_literal(mrb, (lit), sizeof(lit) - 1)
+mrb_sym mrb_intern_static(mrb_state*,const char*,size_t);
+#define mrb_intern_lit(mrb, lit) mrb_intern_static(mrb, (lit), sizeof(lit) - 1)
 mrb_sym mrb_intern_str(mrb_state*,mrb_value);
 mrb_value mrb_check_intern_cstr(mrb_state*,const char*);
 mrb_value mrb_check_intern(mrb_state*,const char*,size_t);
