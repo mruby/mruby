@@ -354,7 +354,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, uint32_t
 }
 
 static int
-read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep)
+read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, mrb_bool alloc)
 {
   const uint8_t *bin;
   struct rite_section_debug_header *header;
@@ -374,7 +374,12 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep)
   for(i = 0; i < filenames_len; ++i) {
     uint16_t f_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
-    filenames[i] = mrb_intern(mrb, (const char *)bin, f_len);
+    if (alloc) {
+      filenames[i] = mrb_intern(mrb, (const char *)bin, f_len);
+    }
+    else {
+      filenames[i] = mrb_intern_static(mrb, (const char *)bin, f_len);
+    }
     bin += f_len;
   }
 
@@ -452,7 +457,7 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
     }
     else if (memcmp(section_header->section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(section_header->section_identify)) == 0) {
       if (!irep) return NULL;   /* corrupted data */
-      result = read_section_debug(mrb, bin, irep);
+      result = read_section_debug(mrb, bin, irep, FALSE);
       if (result < MRB_DUMP_OK) {
         return NULL;
       }
@@ -679,7 +684,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
           mrb_free(mrb, bin);
           return NULL;
         }
-        result = read_section_debug(mrb, bin, irep);
+        result = read_section_debug(mrb, bin, irep, TRUE);
         mrb_free(mrb, bin);
       }
       if (result < MRB_DUMP_OK) return NULL;
