@@ -136,7 +136,7 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
     mrb_free(mrb, irep->iseq);
   for (i=0; i<irep->plen; i++) {
     if (mrb_type(irep->pool[i]) == MRB_TT_STRING) {
-      if (mrb_str_ptr(irep->pool[i])->flags & MRB_STR_NOFREE == 0) {
+      if ((mrb_str_ptr(irep->pool[i])->flags & MRB_STR_NOFREE) == 0) {
         mrb_free(mrb, mrb_str_ptr(irep->pool[i])->ptr);
       }
       mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
