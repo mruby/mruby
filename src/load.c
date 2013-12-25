@@ -98,7 +98,12 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len, mrb_bool a
       tt = *src++; //pool TT
       pool_data_len = bin_to_uint16(src); //pool data length
       src += sizeof(uint16_t);
-      s = mrb_str_new(mrb, (char *)src, pool_data_len);
+      if (alloc) {
+        s = mrb_str_new(mrb, (char *)src, pool_data_len);
+      }
+      else {
+        s = mrb_str_new_static(mrb, (char *)src, pool_data_len);
+      }
       src += pool_data_len;
       switch (tt) { //pool data
       case IREP_TT_FIXNUM:
