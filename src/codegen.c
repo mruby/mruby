@@ -1419,6 +1419,9 @@ codegen(codegen_scope *s, node *tree, int val)
         genop(s, MKOP_AB(OP_MOVE, cursp(), pos));
         push();
       }
+      else if (pos3) {
+        dispatch_linked(s, pos3);
+      }
     }
     break;
 
