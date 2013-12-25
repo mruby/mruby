@@ -92,6 +92,7 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
     }
     s->ptr[s->len] = '\0';
     s->aux.capa = s->len;
+    s->flags &= ~MRB_STR_NOFREE;
     return;
   }
 }
