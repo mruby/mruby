@@ -136,7 +136,9 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
     mrb_free(mrb, irep->iseq);
   for (i=0; i<irep->plen; i++) {
     if (mrb_type(irep->pool[i]) == MRB_TT_STRING) {
-      mrb_free(mrb, mrb_str_ptr(irep->pool[i])->ptr);
+      if (mrb_str_ptr(irep->pool[i])->flags & MRB_STR_NOFREE == 0) {
+        mrb_free(mrb, mrb_str_ptr(irep->pool[i])->ptr);
+      }
       mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
     }
 #ifdef MRB_WORD_BOXING
@@ -170,12 +172,17 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
 
   len = s->len;
   ns->len = len;
-  ns->ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
-  if (s->ptr) {
-    memcpy(ns->ptr, s->ptr, len);
+  if (s->flags & MRB_STR_NOFREE) {
+    ns->ptr = s->ptr;
+    ns->flags = MRB_STR_NOFREE;
   }
-  ns->ptr[len] = '\0';
-
+  else {
+    ns->ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
+    if (s->ptr) {
+      memcpy(ns->ptr, s->ptr, len);
+    }
+    ns->ptr[len] = '\0';
+  }
   return mrb_obj_value(ns);
 }
 

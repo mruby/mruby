@@ -30,9 +30,6 @@ typedef struct mrb_shared_string {
   mrb_int len;
 } mrb_shared_string;
 
-#define MRB_STR_SHARED    1
-#define MRB_STR_NOFREE    2
-
 static mrb_value str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2);
 static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
 
