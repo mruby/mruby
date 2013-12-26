@@ -258,3 +258,37 @@ assert('Class#inherited') do
 
   assert_equal(Baz, Foo.subclass_name)
 end
+
+assert('singleton tests') do
+  bar = String.new
+
+  baz = class << bar
+    def self.run_baz
+      200
+    end
+  end
+
+  assert_false baz.singleton_methods.include? :run_baz
+
+  assert_raise(NoMethodError, 'should raise NoMethodError') do
+    baz.run_baz
+  end
+
+  assert_raise(NoMethodError, 'should raise NoMethodError') do
+    bar.run_baz
+  end
+
+  baz = class << bar
+    def self.run_baz
+      300
+    end
+    self
+  end
+
+  assert_true baz.singleton_methods.include? :run_baz
+  assert_equal 300, baz.run_baz
+
+  assert_raise(NoMethodError, 'should raise NoMethodError') do
+    bar.run_baz
+  end
+end
