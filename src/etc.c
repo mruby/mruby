@@ -10,6 +10,36 @@
 #include "mruby/numeric.h"
 #include "mruby/data.h"
 #include "mruby/class.h"
+#include "mruby/variable.h"
+
+void
+mrb_data_set_gc_marker(mrb_state* mrb, struct RClass* klass, mrb_data_gc_maker marker)
+{
+  mrb_sym const sym = mrb_intern_lit(mrb, "__GC_MARKER");
+  if(mrb_mod_cv_defined(mrb, klass, sym)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "GC marker of class %S is already defined", mrb_class_path(mrb, klass));
+  }
+  if(MRB_INSTANCE_TT(klass) != MRB_TT_DATA) {
+    mrb_raise(mrb, E_TYPE_ERROR, "MRB_INSTANCE_TT of class with GC marker must be MRB_TT_DATA");
+  }
+  mrb_mod_cv_set(mrb, klass, sym, mrb_voidp_value(mrb, (void*)marker));
+}
+
+mrb_data_gc_maker
+mrb_data_get_gc_marker(mrb_state* mrb, struct RClass* klass)
+{
+  if(MRB_INSTANCE_TT(klass) != MRB_TT_DATA) {
+    return NULL;
+  }
+
+  mrb_sym const sym = mrb_intern_lit(mrb, "__GC_MARKER");
+  if(mrb_mod_cv_defined(mrb, klass, sym)) {
+    mrb_value const ret = mrb_mod_cv_get(mrb, klass, sym);
+    mrb_assert(mrb_voidp_p(ret));
+    return (mrb_data_gc_maker)mrb_voidp(ret);
+  }
+  return NULL;
+}
 
 struct RData*
 mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb_data_type *type)

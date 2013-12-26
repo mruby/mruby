@@ -374,6 +374,7 @@ gc_protect(mrb_state *mrb, struct RBasic *p)
 #ifdef MRB_GC_FIXED_ARENA
     /* arena overflow error */
     mrb->arena_idx = MRB_GC_ARENA_SIZE - 4; /* force room in arena */
+    abort();
     mrb_raise(mrb, E_RUNTIME_ERROR, "arena overflow error");
 #else
     /* extend arena */
@@ -500,8 +501,17 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     /* fall through */
 
   case MRB_TT_OBJECT:
+    mrb_gc_mark_iv(mrb, (struct RObject*)obj);
+    break;
+
   case MRB_TT_DATA:
     mrb_gc_mark_iv(mrb, (struct RObject*)obj);
+    {
+      mrb_data_gc_maker marker;
+      if((marker = mrb_data_get_gc_marker(mrb, obj->c))) {
+        marker(mrb, mrb_obj_value(obj));
+      }
+    }
     break;
 
   case MRB_TT_PROC:
