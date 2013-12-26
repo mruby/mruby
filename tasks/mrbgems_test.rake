@@ -3,7 +3,7 @@ MRuby.each_target do
     test_rbobj = g.test_rbireps.ext(exts.object)
 
     file test_rbobj => g.test_rbireps
-    file g.test_rbireps => [g.test_rbfiles].flatten + [g.build.mrbcfile, libfile("#{build_dir}/lib/libmruby")] do |t|
+    file g.test_rbireps => [g.test_rbfiles].flatten + [g.build.mrbcfile] do |t|
       open(t.name, 'w') do |f|
         g.print_gem_init_header(f)
         test_preload = [g.dir, MRUBY_ROOT].map {|dir|
