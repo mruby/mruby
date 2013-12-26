@@ -674,9 +674,7 @@ scope_body(codegen_scope *s, node *tree, int val)
       genop(scope, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
     }
     else {
-      pop();
-      genop_peep(scope, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
-      push();
+      genop_peep(scope, MKOP_AB(OP_RETURN, scope->sp-1, OP_R_NORMAL), NOVAL);
     }
   }
   scope_finish(scope);
