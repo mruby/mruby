@@ -2331,7 +2331,6 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_ABx(OP_EXEC, cursp(), idx));
       if (val) {
         push();
-        push();
       }
     }
     break;
