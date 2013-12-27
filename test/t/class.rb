@@ -235,6 +235,23 @@ assert('class to return the last value') do
   assert_equal(m, :m)
 end
 
+assert('raise when superclass is not a class') do
+  module FirstModule; end
+  assert_raise(TypeError, 'should raise TypeError') do
+    class FirstClass < FirstModule; end
+  end
+
+  class SecondClass; end
+  assert_raise(TypeError, 'should raise TypeError') do
+    class SecondClass < false; end
+  end
+
+  class ThirdClass; end
+  assert_raise(TypeError, 'should raise TypeError') do
+    class ThirdClass < ThirdClass; end
+  end
+end
+
 assert('Class#inherited') do
   class Foo
     @@subclass_name = nil
