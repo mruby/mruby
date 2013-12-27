@@ -374,7 +374,6 @@ gc_protect(mrb_state *mrb, struct RBasic *p)
 #ifdef MRB_GC_FIXED_ARENA
     /* arena overflow error */
     mrb->arena_idx = MRB_GC_ARENA_SIZE - 4; /* force room in arena */
-    abort();
     mrb_raise(mrb, E_RUNTIME_ERROR, "arena overflow error");
 #else
     /* extend arena */
