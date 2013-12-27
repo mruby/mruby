@@ -661,7 +661,7 @@ scope_body(codegen_scope *s, node *tree, int val)
 {
   codegen_scope *scope = scope_new(s->mrb, s, tree->car);
 
-  codegen(scope, tree->cdr, val);
+  codegen(scope, tree->cdr, VAL);
   if (!s->iseq) {
     genop(scope, MKOP_A(OP_STOP, 0));
   }
