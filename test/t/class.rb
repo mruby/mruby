@@ -260,25 +260,40 @@ assert('Class#inherited') do
 end
 
 assert('singleton tests') do
+  module FooMod
+    def run_foo_mod
+      100
+    end
+  end
+
   bar = String.new
 
   baz = class << bar
+    extend FooMod
     def self.run_baz
       200
     end
   end
 
+  assert_false baz.singleton_methods.include? :run_foo_mod
   assert_false baz.singleton_methods.include? :run_baz
 
+  assert_raise(NoMethodError, 'should raise NoMethodError') do
+    baz.run_foo_mod
+  end
   assert_raise(NoMethodError, 'should raise NoMethodError') do
     baz.run_baz
   end
 
   assert_raise(NoMethodError, 'should raise NoMethodError') do
+    bar.run_foo_mod
+  end
+  assert_raise(NoMethodError, 'should raise NoMethodError') do
     bar.run_baz
   end
 
   baz = class << bar
+    extend FooMod
     def self.run_baz
       300
     end
@@ -286,9 +301,44 @@ assert('singleton tests') do
   end
 
   assert_true baz.singleton_methods.include? :run_baz
+  assert_true baz.singleton_methods.include? :run_foo_mod
+  assert_equal 100, baz.run_foo_mod
   assert_equal 300, baz.run_baz
 
   assert_raise(NoMethodError, 'should raise NoMethodError') do
+    bar.run_foo_mod
+  end
+  assert_raise(NoMethodError, 'should raise NoMethodError') do
     bar.run_baz
+  end
+
+  fv = false
+  class << fv
+    def self.run_false
+      5
+    end
+  end
+
+  nv = nil
+  class << nv
+    def self.run_nil
+      6
+    end
+  end
+
+  tv = true
+  class << tv
+    def self.run_nil
+      7
+    end
+  end
+
+  assert_raise(TypeError, 'should raise TypeError') do
+    num = 1.0
+    class << num
+      def self.run_nil
+        7
+      end
+    end
   end
 end
