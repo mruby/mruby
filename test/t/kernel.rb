@@ -334,7 +334,18 @@ assert('Kernel#nil?', '15.3.1.3.32') do
 end
 
 assert('Kernel#object_id', '15.3.1.3.33') do
-  assert_equal Fixnum, object_id.class
+  a = ""
+  b = ""
+  assert_not_equal a.object_id, b.object_id
+
+  assert_kind_of Fixnum, object_id
+  assert_kind_of Fixnum, "".object_id
+  assert_kind_of Fixnum, true.object_id
+  assert_kind_of Fixnum, false.object_id
+  assert_kind_of Fixnum, nil.object_id
+  assert_kind_of Fixnum, :no.object_id
+  assert_kind_of Fixnum, 1.object_id
+  assert_kind_of Fixnum, 1.0.object_id
 end
 
 # Kernel#p is defined in mruby-print mrbgem. '15.3.1.3.34'
