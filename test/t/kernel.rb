@@ -325,6 +325,57 @@ assert('Kernel#loop', '15.3.1.3.29') do
   assert_equal i, 100
 end
 
+assert('Kernel#method_missing', '15.3.1.3.30') do
+  class MMTestClass
+    def method_missing(sym)
+      "A call to #{sym}"
+    end
+  end
+  mm_test = MMTestClass.new
+  assert_equal 'A call to no_method_named_this', mm_test.no_method_named_this
+
+  a = String.new
+  begin
+    a.no_method_named_this
+  rescue NoMethodError => e
+    assert_equal "undefined method 'no_method_named_this' for \"\"", e.message
+  end
+
+  class ShortInspectClass
+    def inspect
+      'An inspect string'
+    end
+  end
+  b = ShortInspectClass.new
+  begin
+    b.no_method_named_this
+  rescue NoMethodError => e
+    assert_equal "undefined method 'no_method_named_this' for An inspect string", e.message
+  end
+
+  class LongInspectClass
+    def inspect
+      "A" * 70
+    end
+  end
+  c = LongInspectClass.new
+  begin
+    c.no_method_named_this
+  rescue NoMethodError => e
+    assert_equal "undefined method 'no_method_named_this' for #{c.to_s}", e.message
+  end
+
+  class NoInspectClass
+    undef inspect
+  end
+  d = NoInspectClass.new
+  begin
+    d.no_method_named_this
+  rescue NoMethodError => e
+    assert_equal "undefined method 'no_method_named_this' for #{d.to_s}", e.message
+  end
+end
+
 assert('Kernel#methods', '15.3.1.3.31') do
   assert_equal Array, methods.class
 end
