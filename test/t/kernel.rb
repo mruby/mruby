@@ -438,3 +438,15 @@ assert('Kernel#respond_to_missing?') do
   assert_true Test4RespondToMissing.new.respond_to?(:a_method)
   assert_false Test4RespondToMissing.new.respond_to?(:no_method)
 end
+
+assert('stack extend') do
+  def recurse(count, stop)
+    return count if count > stop
+    recurse(count+1, stop)
+  end
+
+  assert_equal 61, recurse(0, 60)
+  assert_raise RuntimeError do
+    recurse(0, 100000)
+  end
+end
