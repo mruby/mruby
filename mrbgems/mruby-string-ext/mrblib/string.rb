@@ -49,4 +49,26 @@ class String
   def casecmp(str)
     self.downcase <=> str.downcase
   end
+
+  def partition(sep)
+    raise TypeError, "type mismatch: #{sep.class} given" unless sep.is_a? String
+    n = index(sep)
+    unless n.nil?
+      m = n + sep.size
+      [ slice(0, n), sep, slice(m, size - m) ]
+    else
+      [ self, "", "" ]
+    end
+  end
+
+  def rpartition(sep)
+    raise TypeError, "type mismatch: #{sep.class} given" unless sep.is_a? String
+    n = rindex(sep)
+    unless n.nil?
+      m = n + sep.size
+      [ slice(0, n), sep, slice(m, size - m) ]
+    else
+      [ "", "", self ]
+    end
+  end
 end

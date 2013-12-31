@@ -114,3 +114,23 @@ assert('String#end_with?') do
   assert_true !"ng".end_with?("ing", "mng")
   assert_raise TypeError do "hello".end_with?(true) end
 end
+
+assert('String#partition') do
+  assert_equal ["a", "x", "axa"], "axaxa".partition("x")
+  assert_equal ["aaaaa", "", ""], "aaaaa".partition("x")
+  assert_equal ["", "", "aaaaa"], "aaaaa".partition("") 
+  assert_equal ["", "a", "aaaa"], "aaaaa".partition("a")
+  assert_equal ["aaaa", "b", ""], "aaaab".partition("b")
+  assert_equal ["", "b", "aaaa"], "baaaa".partition("b")
+  assert_equal ["", "", ""],      "".partition("a")
+end
+
+assert('String#rpartition') do
+  assert_equal ["axa", "x", "a"], "axaxa".rpartition("x")
+  assert_equal ["", "", "aaaaa"], "aaaaa".rpartition("x")
+  assert_equal ["aaaaa", "", ""], "aaaaa".rpartition("") 
+  assert_equal ["aaaa", "a", ""], "aaaaa".rpartition("a")
+  assert_equal ["aaaa", "b", ""], "aaaab".rpartition("b")
+  assert_equal ["", "b", "aaaa"], "baaaa".rpartition("b")
+  assert_equal ["", "", ""],      "".rpartition("a")
+end
