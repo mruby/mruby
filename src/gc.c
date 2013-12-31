@@ -500,8 +500,17 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     /* fall through */
 
   case MRB_TT_OBJECT:
+    mrb_gc_mark_iv(mrb, (struct RObject*)obj);
+    break;
+
   case MRB_TT_DATA:
     mrb_gc_mark_iv(mrb, (struct RObject*)obj);
+    {
+      mrb_data_gc_maker marker;
+      if((marker = mrb_data_get_gc_marker(mrb, obj->c))) {
+        marker(mrb, mrb_obj_value(obj));
+      }
+    }
     break;
 
   case MRB_TT_PROC:

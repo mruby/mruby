@@ -25,6 +25,10 @@ struct RData {
 
 struct RData *mrb_data_object_alloc(mrb_state *mrb, struct RClass* klass, void *datap, const mrb_data_type *type);
 
+typedef void(*mrb_data_gc_maker)(mrb_state* mrb, mrb_value self);
+void mrb_data_set_gc_marker(mrb_state* mrb, struct RClass* klass, mrb_data_gc_maker m);
+mrb_data_gc_maker mrb_data_get_gc_marker(mrb_state* mrb, struct RClass* klass);
+
 #define Data_Wrap_Struct(mrb,klass,type,ptr)\
   mrb_data_object_alloc(mrb,klass,ptr,type)
 
