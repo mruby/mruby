@@ -496,7 +496,7 @@ assert('stack extend') do
     recurse(count+1, stop)
   end
 
-  assert_equal 61, recurse(0, 60)
+  assert_equal 6, recurse(0, 5)
   assert_raise RuntimeError do
     recurse(0, 100000)
   end
