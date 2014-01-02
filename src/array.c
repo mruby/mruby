@@ -318,7 +318,7 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
     for (i=0; i<len; i++) {
       mrb_value v = ary_elt(ary2, i);
       r = mrb_funcall_argv(mrb, ary_elt(ary1, i), cmp, 1, &v);
-      if (mrb_type(r) != MRB_TT_FIXNUM || mrb_fixnum(r) != 0) return r;
+      if (!mrb_fixnum_p(r) || mrb_fixnum(r) != 0) return r;
     }
   }
   len = a1->len - a2->len;
@@ -697,7 +697,7 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
     return mrb_ary_ref(mrb, self, index);
 
   case 1:
-    if (mrb_type(argv[0]) != MRB_TT_FIXNUM) {
+    if (!mrb_fixnum_p(argv[0])) {
       mrb_raise(mrb, E_TYPE_ERROR, "expected Fixnum");
     }
     if (index < 0) index += a->len;

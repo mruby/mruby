@@ -315,6 +315,7 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
 #define mrb_bool(o)   ((o).w != MRB_Qnil && (o).w != MRB_Qfalse)
 
 #else
+
 #define mrb_cptr(o) mrb_ptr(o)
 #define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_FIXNUM)
 #define mrb_undef_p(o) (mrb_type(o) == MRB_TT_UNDEF)
