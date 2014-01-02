@@ -370,17 +370,19 @@ mrb_free_heap(mrb_state *mrb)
 static void
 gc_protect(mrb_state *mrb, struct RBasic *p)
 {
-  if (mrb->arena_idx >= MRB_GC_ARENA_SIZE) {
 #ifdef MRB_GC_FIXED_ARENA
+  if (mrb->arena_idx >= MRB_GC_ARENA_SIZE) {
     /* arena overflow error */
     mrb->arena_idx = MRB_GC_ARENA_SIZE - 4; /* force room in arena */
     mrb_raise(mrb, E_RUNTIME_ERROR, "arena overflow error");
+  }
 #else
+  if (mrb->arena_idx >= mrb->arena_capa) {
     /* extend arena */
     mrb->arena_capa *= 1.5;
     mrb->arena = (struct RBasic**)mrb_realloc(mrb, mrb->arena, sizeof(struct RBasic*)*mrb->arena_capa);
-#endif
   }
+#endif
   mrb->arena[mrb->arena_idx++] = p;
 }
 
