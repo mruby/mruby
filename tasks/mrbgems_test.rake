@@ -8,7 +8,7 @@ MRuby.each_target do
         g.print_gem_init_header(f)
         test_preload = [g.dir, MRUBY_ROOT].map {|dir|
           File.expand_path(g.test_preload, dir)
-        }.find {|file| File.exists?(file) }
+        }.find {|file| File.exist?(file) }
 
         g.build.mrbc.run f, test_preload, "gem_test_irep_#{g.funcname}_preload"
         g.test_rbfiles.flatten.each_with_index do |rbfile, i|

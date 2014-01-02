@@ -106,7 +106,7 @@ module MRuby
     private
     def get_dependencies(file)
       file = file.ext('d') unless File.extname(file) == '.d'
-      if File.exists?(file)
+      if File.exist?(file)
         File.read(file).gsub("\\\n ", "").scan(/^\S+:\s+(.+)$/).flatten.map {|s| s.split(' ') }.flatten
       else
         []
@@ -265,7 +265,7 @@ module MRuby
       # if mrbc execution fail, drop the file
       unless $?.exitstatus
         File.delete(out.path)
-        exit -1
+        exit(-1)
       end
     end
   end
