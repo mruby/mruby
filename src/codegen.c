@@ -421,7 +421,7 @@ new_lit(codegen_scope *s, mrb_value val)
   case MRB_TT_FIXNUM:
     for (i=0; i<s->irep->plen; i++) {
       pv = &s->irep->pool[i];
-      if (mrb_type(*pv) != MRB_TT_FIXNUM) continue;
+      if (!mrb_fixnum_p(*pv)) continue;
       if (mrb_fixnum(*pv) == mrb_fixnum(val)) return i;
     }
     break;

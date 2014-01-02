@@ -326,9 +326,9 @@ mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method)
 {
   mrb_value v;
 
-  if (mrb_type(val) == MRB_TT_FIXNUM) return val;
+  if (mrb_fixnum_p(val)) return val;
   v = convert_type(mrb, val, "Integer", method, FALSE);
-  if (mrb_nil_p(v) || mrb_type(v) != MRB_TT_FIXNUM) {
+  if (mrb_nil_p(v) || !mrb_fixnum_p(v)) {
     return mrb_nil_value();
   }
   return v;
@@ -404,7 +404,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
         if (mrb_nil_p(x)) {
           etype = "nil";
         }
-        else if (mrb_type(x) == MRB_TT_FIXNUM) {
+        else if (mrb_fixnum_p(x)) {
           etype = "Fixnum";
         }
         else if (mrb_type(x) == MRB_TT_SYMBOL) {
