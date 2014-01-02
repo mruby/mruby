@@ -5,12 +5,6 @@
 */
 
 #include <float.h>
-#if defined(__FreeBSD__) && __FreeBSD__ < 4
-# include <floatingpoint.h>
-#endif
-#ifdef HAVE_IEEEFP_H
-# include <ieeefp.h>
-#endif
 #include <limits.h>
 #include <math.h>
 #include <stdlib.h>
