@@ -4,12 +4,7 @@
 ** See Copyright Notice in mruby.h
 */
 
-#ifndef SIZE_MAX
- /* Some versions of VC++
-  * has SIZE_MAX in stdint.h
-  */
-# include <limits.h>
-#endif
+#include <limits.h>
 #include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
