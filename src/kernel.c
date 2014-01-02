@@ -733,7 +733,7 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
   if (!h) return;
   for (i=0;i<kh_end(h);i++) {
     if (kh_exist(h, i)) {
-      kh_put(st, set, kh_key(h,i));
+      kh_put(st, mrb, set, kh_key(h,i));
     }
   }
 }
@@ -765,7 +765,7 @@ class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass,
       mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(set,i)));
     }
   }
-  kh_destroy(st, set);
+  kh_destroy(st, mrb, set);
 
   return ary;
 }
@@ -797,7 +797,7 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
       mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(set,i)));
     }
   }
-  kh_destroy(st, set);
+  kh_destroy(st, mrb, set);
 
   return ary;
 }

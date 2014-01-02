@@ -73,7 +73,7 @@ mrb_gc_mark_hash_size(mrb_state *mrb, struct RHash *hash)
 void
 mrb_gc_free_hash(mrb_state *mrb, struct RHash *hash)
 {
-  if (hash->ht) kh_destroy(ht, hash->ht);
+  if (hash->ht) kh_destroy(ht, mrb, hash->ht);
 }
 
 
@@ -85,7 +85,7 @@ mrb_hash_new_capa(mrb_state *mrb, int capa)
   h = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
   h->ht = kh_init(ht, mrb);
   if (capa > 0) {
-    kh_resize(ht, h->ht, capa);
+    kh_resize(ht, mrb, h->ht, capa);
   }
   h->iv = 0;
   return mrb_obj_value(h);
@@ -104,7 +104,7 @@ mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
   khiter_t k;
 
   if (h) {
-    k = kh_get(ht, h, key);
+    k = kh_get(ht, mrb, h, key);
     if (k != kh_end(h))
       return kh_value(h, k);
   }
@@ -123,7 +123,7 @@ mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value def)
   khiter_t k;
 
   if (h) {
-    k = kh_get(ht, h, key);
+    k = kh_get(ht, mrb, h, key);
     if (k != kh_end(h))
       return kh_value(h, k);
   }
@@ -142,11 +142,11 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val) /* mr
   h = RHASH_TBL(hash);
 
   if (!h) h = RHASH_TBL(hash) = kh_init(ht, mrb);
-  k = kh_get(ht, h, key);
+  k = kh_get(ht, mrb, h, key);
   if (k == kh_end(h)) {
     /* expand */
     int ai = mrb_gc_arena_save(mrb);
-    k = kh_put(ht, h, KEY(key));
+    k = kh_put(ht, mrb, h, KEY(key));
     mrb_gc_arena_restore(mrb, ai);
   }
 
@@ -172,7 +172,7 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
     for (k = kh_begin(h); k != kh_end(h); k++) {
       if (kh_exist(h,k)) {
         int ai = mrb_gc_arena_save(mrb);
-        ret_k = kh_put(ht, ret_h, KEY(kh_key(h,k)));
+        ret_k = kh_put(ht, mrb, ret_h, KEY(kh_key(h,k)));
         mrb_gc_arena_restore(mrb, ai);
         kh_val(ret_h, ret_k) = kh_val(h,k);
       }
@@ -490,10 +490,10 @@ mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key)
   mrb_value delVal;
 
   if (h) {
-    k = kh_get(ht, h, key);
+    k = kh_get(ht, mrb, h, key);
     if (k != kh_end(h)) {
       delVal = kh_value(h, k);
-      kh_del(ht, h, k);
+      kh_del(ht, mrb, h, k);
       return delVal;
     }
   }
@@ -660,7 +660,7 @@ mrb_hash_clear(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
 
-  if (h) kh_clear(ht, h);
+  if (h) kh_clear(ht, mrb, h);
   return hash;
 }
 
@@ -920,7 +920,7 @@ mrb_hash_has_keyWithKey(mrb_state *mrb, mrb_value hash, mrb_value key)
   khiter_t k;
 
   if (h) {
-    k = kh_get(ht, h, key);
+    k = kh_get(ht, mrb, h, key);
     return mrb_bool_value(k != kh_end(h));
   }
   return mrb_false_value();
@@ -1026,7 +1026,7 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
     for (k1 = kh_begin(h1); k1 != kh_end(h1); k1++) {
       if (!kh_exist(h1, k1)) continue;
       key = kh_key(h1,k1);
-      k2 = kh_get(ht, h2, key);
+      k2 = kh_get(ht, mrb, h2, key);
       if (k2 != kh_end(h2)) {
         if (mrb_equal(mrb, kh_value(h1,k1), kh_value(h2,k2))) {
           continue; /* next key */

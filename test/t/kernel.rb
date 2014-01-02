@@ -325,6 +325,57 @@ assert('Kernel#loop', '15.3.1.3.29') do
   assert_equal i, 100
 end
 
+assert('Kernel#method_missing', '15.3.1.3.30') do
+  class MMTestClass
+    def method_missing(sym)
+      "A call to #{sym}"
+    end
+  end
+  mm_test = MMTestClass.new
+  assert_equal 'A call to no_method_named_this', mm_test.no_method_named_this
+
+  a = String.new
+  begin
+    a.no_method_named_this
+  rescue NoMethodError => e
+    assert_equal "undefined method 'no_method_named_this' for \"\"", e.message
+  end
+
+  class ShortInspectClass
+    def inspect
+      'An inspect string'
+    end
+  end
+  b = ShortInspectClass.new
+  begin
+    b.no_method_named_this
+  rescue NoMethodError => e
+    assert_equal "undefined method 'no_method_named_this' for An inspect string", e.message
+  end
+
+  class LongInspectClass
+    def inspect
+      "A" * 70
+    end
+  end
+  c = LongInspectClass.new
+  begin
+    c.no_method_named_this
+  rescue NoMethodError => e
+    assert_equal "undefined method 'no_method_named_this' for #{c.to_s}", e.message
+  end
+
+  class NoInspectClass
+    undef inspect
+  end
+  d = NoInspectClass.new
+  begin
+    d.no_method_named_this
+  rescue NoMethodError => e
+    assert_equal "undefined method 'no_method_named_this' for #{d.to_s}", e.message
+  end
+end
+
 assert('Kernel#methods', '15.3.1.3.31') do
   assert_equal Array, methods.class
 end
@@ -334,7 +385,10 @@ assert('Kernel#nil?', '15.3.1.3.32') do
 end
 
 assert('Kernel#object_id', '15.3.1.3.33') do
-  assert_equal Fixnum, object_id.class
+  a = ""
+  b = ""
+  assert_not_equal a.object_id, b.object_id
+  assert_not_equal 1.object_id, 1.2.object_id
 end
 
 # Kernel#p is defined in mruby-print mrbgem. '15.3.1.3.34'
@@ -426,4 +480,16 @@ assert('Kernel#respond_to_missing?') do
 
   assert_true Test4RespondToMissing.new.respond_to?(:a_method)
   assert_false Test4RespondToMissing.new.respond_to?(:no_method)
+end
+
+assert('stack extend') do
+  def recurse(count, stop)
+    return count if count > stop
+    recurse(count+1, stop)
+  end
+
+  assert_equal 6, recurse(0, 5)
+  assert_raise RuntimeError do
+    recurse(0, 100000)
+  end
 end

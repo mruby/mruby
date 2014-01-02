@@ -46,6 +46,9 @@ assert('Array#[]', '15.2.12.5.4') do
   end
 
   assert_equal(2, [1,2,3].[](1))
+  assert_equal(nil, [1,2,3].[](4))
+  assert_equal(3, [1,2,3].[](-1))
+  assert_equal(nil, [1,2,3].[](-4))
 end
 
 assert('Array#[]=', '15.2.12.5.5') do
@@ -81,8 +84,14 @@ end
 
 assert('Array#delete_at', '15.2.12.5.9') do
   a = [1,2,3]
-  a.delete_at(1)
+  assert_equal(2, a.delete_at(1))
   assert_equal([1,3], a)
+  assert_equal(nil, a.delete_at(3))
+  assert_equal([1,3], a)
+  assert_equal(nil, a.delete_at(-3))
+  assert_equal([1,3], a)
+  assert_equal(3, a.delete_at(-1))
+  assert_equal([1], a)
 end
 
 assert('Array#each', '15.2.12.5.10') do
@@ -129,6 +138,7 @@ assert('Array#index', '15.2.12.5.14') do
   a = [1,2,3]
 
   assert_equal(1, a.index(2))
+  assert_equal(nil, a.index(0))
 end
 
 assert('Array#initialize', '15.2.12.5.15') do
@@ -225,6 +235,7 @@ assert('Array#rindex', '15.2.12.5.26') do
   a = [1,2,3]
 
   assert_equal(1, a.rindex(2))
+  assert_equal(nil, a.rindex(0))
 end
 
 assert('Array#shift', '15.2.12.5.27') do
