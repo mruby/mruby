@@ -2,7 +2,7 @@ module MRuby
   module LoadGems
     def gembox(gemboxfile)
       gembox = File.expand_path("#{gemboxfile}.gembox", "#{MRUBY_ROOT}/mrbgems")
-      fail "Can't find gembox '#{gembox}'" unless File.exists?(gembox)
+      fail "Can't find gembox '#{gembox}'" unless File.exist?(gembox)
 
       GemBox.config = self
       GemBox.path = gembox
@@ -25,7 +25,7 @@ module MRuby
 
       gemrake = File.join(gemdir, "mrbgem.rake")
 
-      fail "Can't find #{gemrake}" unless File.exists?(gemrake)
+      fail "Can't find #{gemrake}" unless File.exist?(gemrake)
       Gem.current = nil
       load gemrake
       return nil unless Gem.current
@@ -50,7 +50,7 @@ module MRuby
         url = params[:git]
         gemdir = "#{gem_clone_dir}/#{url.match(/([-\w]+)(\.[-\w]+|)$/).to_a[1]}"
 
-        if File.exists?(gemdir)
+        if File.exist?(gemdir)
           if $pull_gems
             git.run_pull gemdir, url
           else
