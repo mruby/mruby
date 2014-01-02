@@ -522,7 +522,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           s = mrb_str_ptr(ss);
           len = (mrb_int)strlen(s->ptr);
           if (len < s->len) {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "String contains NUL");
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
           }
           else if (len > s->len) {
             mrb_str_modify(mrb, s);
