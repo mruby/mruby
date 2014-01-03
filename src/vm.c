@@ -601,7 +601,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     stack_init(mrb);
   }
   stack_extend(mrb, irep->nregs, stack_keep);
-  mrb->c->ci->err = pc;
+  ERR_PC_SET(mrb, pc);
   mrb->c->ci->proc = proc;
   mrb->c->ci->nregs = irep->nregs + 1;
   regs = mrb->c->stack;
@@ -2130,7 +2130,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
           ecall(mrb, n);
         }
       }
-      mrb->c->ci->err = 0;
+      ERR_PC_CLR(mrb);
       mrb->jmp = prev_jmp;
       if (mrb->exc) {
         return mrb_obj_value(mrb->exc);
