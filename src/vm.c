@@ -264,6 +264,8 @@ ecall(mrb_state *mrb, int i)
 
   p = mrb->c->ensure[i];
   if (!p) return;
+  if (mrb->c->ci->eidx < i)
+    mrb->c->ci->eidx = i;
   ci = cipush(mrb);
   ci->stackidx = mrb->c->stack - mrb->c->stbase;
   ci->mid = ci[-1].mid;
