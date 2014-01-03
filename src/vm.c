@@ -231,6 +231,7 @@ cipush(mrb_state *mrb)
   ci->ridx = ridx;
   ci->env = 0;
   ci->pc = 0;
+  ci->err = 0;
 
   return ci;
 }
