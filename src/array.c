@@ -849,6 +849,9 @@ mrb_ary_splat(mrb_state *mrb, mrb_value v)
   if (mrb_array_p(v)) {
     return v;
   }
+  if (mrb_respond_to(mrb, v, mrb_intern_lit(mrb, "to_a"))) {
+    return mrb_funcall(mrb, v, "to_a", 0);
+  }
   else {
     return mrb_ary_new_from_values(mrb, 1, &v);
   }
