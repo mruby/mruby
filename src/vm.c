@@ -857,8 +857,8 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
       for (n=0; n<a; n++) {
         ecall(mrb, --mrb->c->ci->eidx);
+        ARENA_RESTORE(mrb, ai);
       }
-      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
