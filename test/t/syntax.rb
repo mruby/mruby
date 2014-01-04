@@ -102,3 +102,26 @@ assert('Return values of case statements') do
   assert_equal [nil], b
   assert_equal 1, fb.call
 end
+
+assert('splat in case statement') do
+  values = [3,5,1,7,8]
+  testa = [1,2,7]
+  testb = [5,6]
+  resulta = []
+  resultb = []
+  resultc = []
+  values.each do |value|
+    case value
+    when *testa
+      resulta << value
+    when *testb
+      resultb << value
+    else
+      resultc << value
+    end
+  end
+
+  assert_equal [1,7], resulta
+  assert_equal [5], resultb
+  assert_equal [3,8], resultc
+end
