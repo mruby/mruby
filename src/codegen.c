@@ -1386,7 +1386,12 @@ codegen(codegen_scope *s, node *tree, int val)
           if (head) {
             genop(s, MKOP_AB(OP_MOVE, cursp(), head));
             pop();
-            genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "===")), 1));
+            if ((intptr_t)n->car->car == NODE_SPLAT) {
+              genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "__case_eqq")), 1));
+            }
+            else {
+              genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "===")), 1));
+            }
           }
           else {
             pop();
@@ -1510,7 +1515,14 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_SPLAT:
-    codegen(s, tree, VAL);
+    {
+      int idx = new_msym(s, mrb_intern_lit(s->mrb, "to_a"));
+
+      codegen(s, tree, VAL);
+      pop();
+      genop(s, MKOP_ABC(OP_SEND, cursp(), idx, 0));
+      push();
+    }
     break;
 
   case NODE_ASGN:
