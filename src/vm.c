@@ -604,7 +604,6 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     stack_init(mrb);
   }
   stack_extend(mrb, irep->nregs, stack_keep);
-  ERR_PC_SET(mrb, pc);
   mrb->c->ci->proc = proc;
   mrb->c->ci->nregs = irep->nregs + 1;
   regs = mrb->c->stack;
