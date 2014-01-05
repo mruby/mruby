@@ -855,12 +855,12 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
     CASE(OP_EPOP) {
       /* A      A.times{ensure_pop().call} */
-      int n;
       int a = GETARG_A(i);
       mrb_callinfo *ci = mrb->c->ci;
+      int n, eidx = ci->eidx;
 
-      for (n=0; n<a && ci->eidx > ci[-1].eidx; n++) {
-        ecall(mrb, --ci->eidx);
+      for (n=0; n<a && eidx > ci[-1].eidx; n++) {
+        ecall(mrb, --eidx);
         ARENA_RESTORE(mrb, ai);
       }
       NEXT;
