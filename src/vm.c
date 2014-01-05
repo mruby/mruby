@@ -264,7 +264,7 @@ ecall(mrb_state *mrb, int i)
 
   p = mrb->c->ensure[i];
   if (!p) return;
-  if (mrb->c->ci->eidx < i)
+  if (mrb->c->ci->eidx > i)
     mrb->c->ci->eidx = i;
   ci = cipush(mrb);
   ci->stackidx = mrb->c->stack - mrb->c->stbase;
@@ -857,9 +857,10 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       /* A      A.times{ensure_pop().call} */
       int n;
       int a = GETARG_A(i);
+      mrb_callinfo *ci = mrb->c->ci;
 
-      for (n=0; n<a; n++) {
-        ecall(mrb, --mrb->c->ci->eidx);
+      for (n=0; n<a && ci->eidx > ci[-1].eidx; n++) {
+        ecall(mrb, --ci->eidx);
         ARENA_RESTORE(mrb, ai);
       }
       NEXT;
