@@ -345,3 +345,15 @@ assert('Exception#backtrace') do
 
   true
 end
+
+assert('Raise in ensure') do
+
+  assert_raise(RuntimeError) do
+    begin
+      raise ""
+    ensure
+      raise ""
+    end
+  end
+
+end
