@@ -17,9 +17,16 @@ struct RProc *
 mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
 {
   struct RProc *p;
+  mrb_callinfo *ci = mrb->c->ci;
 
   p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
-  p->target_class = (mrb->c->ci) ? mrb->c->ci->target_class : 0;
+  p->target_class = 0;
+  if (ci) {
+    if (ci->proc)
+      p->target_class = ci->proc->target_class;
+    if (!p->target_class)
+      p->target_class = ci->target_class;
+  }
   p->body.irep = irep;
   p->env = 0;
   mrb_irep_incref(mrb, irep);
