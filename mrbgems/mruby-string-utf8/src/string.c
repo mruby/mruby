@@ -26,7 +26,7 @@ utf8len(unsigned char* p)
   int    i;
 
   if (*p == 0)
-    return 0;
+    return 1;
   len = utf8len_tab[*p];
   for (i = 1; i < len; ++i)
     if ((p[i] & 0xc0) != 0x80)
@@ -39,7 +39,8 @@ mrb_utf8_strlen(mrb_value str)
 {
   size_t total = 0;
   unsigned char* p = (unsigned char*) RSTRING_PTR(str);
-  while (*p) {
+  unsigned char* e = p + RSTRING_LEN(str);
+  while (p<e) {
     p += utf8len(p);
     total++;
   }
@@ -94,7 +95,7 @@ mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
   else if (m < 1) {
     return 0;
   }
- else if (m == 1) {
+  else if (m == 1) {
     const unsigned char *ys = y, *ye = ys + n;
     for (; y < ye; ++y) {
       if (*x == *y)
@@ -109,12 +110,15 @@ static mrb_value
 str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
   int i;
-  unsigned char  *p = (unsigned char*) RSTRING_PTR(str), *t;
-  for (i = 0; i < beg && *p; i++) {
+  unsigned char *p = (unsigned char*) RSTRING_PTR(str), *t;
+  unsigned char *e = p + RSTRING_LEN(str);
+  
+
+  for (i = 0; i < beg && p<e; i++) {
     p += utf8len(p);
   }
   t = p;
-  for (i = 0; i < len && *p; i++) {
+  for (i = 0; i < len && t<e; i++) {
     t += utf8len(t);
   }
   return mrb_str_new(mrb, (const char*)p, (int)(t - p));
@@ -129,7 +133,8 @@ str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   if (len < 0) return mrb_nil_value();
   if (len8 == 0) {
     len = 0;
-  } else if (beg < 0) {
+  }
+  else if (beg < 0) {
     beg = len8 + beg;
   }
   if (beg > len8) return mrb_nil_value();
