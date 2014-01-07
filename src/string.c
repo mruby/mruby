@@ -107,16 +107,6 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
   return str;
 }
 
-static inline void
-str_mod_check(mrb_state *mrb, mrb_value str, char *p, mrb_int len)
-{
-  struct RString *s = mrb_str_ptr(str);
-
-  if (s->ptr != p || s->len != len) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
-  }
-}
-
 #define mrb_obj_alloc_string(mrb) ((struct RString*)mrb_obj_alloc((mrb), MRB_TT_STRING, (mrb)->string_class))
 
 /* char offset to byte offset */
