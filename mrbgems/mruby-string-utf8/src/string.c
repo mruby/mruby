@@ -47,6 +47,14 @@ mrb_utf8_strlen(mrb_value str)
   return total;
 }
 
+static mrb_value
+mrb_str_size(mrb_state *mrb, mrb_value str)
+{
+  size_t size = mrb_utf8_strlen(str);
+
+  return mrb_fixnum_value(size);
+}
+
 #define RSTRING_LEN_UTF8(s) mrb_utf8_strlen(s)
 
 static mrb_value
@@ -244,6 +252,7 @@ mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
 {
   struct RClass * s = mrb->string_class;
 
+  mrb_define_method(mrb, s, "size", mrb_str_size, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "[]", mrb_str_aref_m, MRB_ARGS_ANY());
   mrb_define_method(mrb, s, "slice", mrb_str_aref_m, MRB_ARGS_ANY());
 }
