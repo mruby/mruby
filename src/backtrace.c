@@ -62,9 +62,8 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
   mrb_callinfo *ci;
   mrb_int ciidx;
   const char *filename, *method, *sep;
-  int i, lineno;
+  int i, lineno, tracehead = 1;
 
-  func(mrb, stream, 1, "trace:\n");
   ciidx = mrb_fixnum(mrb_obj_iv_get(mrb, exc, mrb_intern_lit(mrb, "ciidx")));
   if (ciidx >= mrb->c->ciend - mrb->c->cibase)
     ciidx = 10; /* ciidx is broken... */
@@ -103,6 +102,10 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
       filename = "(unknown)";
     }
 
+    if (tracehead) {
+      func(mrb, stream, 1, "trace:\n");
+      tracehead = 0;
+    }
     method = mrb_sym2name(mrb, ci->mid);
     if (method) {
       const char *cn = mrb_class_name(mrb, ci->proc->target_class);
