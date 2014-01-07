@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <string.h>
 #include <setjmp.h>
 #include <stddef.h>
 #include <stdarg.h>
@@ -13,7 +12,6 @@
 #include "mruby/class.h"
 #include "mruby/hash.h"
 #include "mruby/irep.h"
-#include "mruby/numeric.h"
 #include "mruby/proc.h"
 #include "mruby/range.h"
 #include "mruby/string.h"

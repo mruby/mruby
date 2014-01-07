@@ -10,7 +10,6 @@
 #include "mruby/array.h"
 #include "mruby/string.h"
 #include "mruby/class.h"
-#include "mruby/data.h"
 #include "mruby/variable.h"
 
 #define RSTRUCT_ARY(st) mrb_ary_ptr(st)

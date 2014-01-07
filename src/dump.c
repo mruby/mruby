@@ -4,10 +4,9 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <ctype.h>
 #include <string.h>
 #include "mruby/dump.h"
-#include <ctype.h>
-
 #include "mruby/string.h"
 #include "mruby/irep.h"
 #include "mruby/numeric.h"
