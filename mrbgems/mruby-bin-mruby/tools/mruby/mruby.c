@@ -1,13 +1,11 @@
-#include "mruby.h"
-#include "mruby/proc.h"
-#include "mruby/array.h"
-#include "mruby/string.h"
-#include "mruby/compile.h"
-#include "mruby/dump.h"
-#include "mruby/variable.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "mruby.h"
+#include "mruby/array.h"
+#include "mruby/compile.h"
+#include "mruby/dump.h"
+#include "mruby/variable.h"
 
 #ifndef ENABLE_STDIO
 static void

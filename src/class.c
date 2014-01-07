@@ -4,9 +4,9 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include <stdarg.h>
 #include <ctype.h>
+#include <stdarg.h>
+#include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/numeric.h"
