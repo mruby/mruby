@@ -3335,13 +3335,9 @@ nextc(parser_state *p)
  eof:
   if (!p->cxt) return -1;
   else {
-    mrbc_context *cxt = p->cxt;
-
-    if (cxt->partial_hook(p) < 0) return -1;
-    c = '\n';
-    p->lineno = 1;
-    p->cxt = cxt;
-    return c;
+    if (p->cxt->partial_hook(p) < 0)
+      return -1;
+    return -2;
   }
 }
 
@@ -3560,7 +3556,7 @@ read_escape(parser_state *p)
       buf[0] = c;
       for (i=1; i<3; i++) {
 	buf[i] = nextc(p);
-	if (buf[i] == -1) goto eof;
+	if (buf[i] < 0) goto eof;
 	if (buf[i] < '0' || '7' < buf[i]) {
 	  pushback(p, buf[i]);
 	  break;
@@ -3577,7 +3573,7 @@ read_escape(parser_state *p)
 
       for (i=0; i<2; i++) {
 	buf[i] = nextc(p);
-	if (buf[i] == -1) goto eof;
+	if (buf[i] < 0) goto eof;
 	if (!ISXDIGIT(buf[i])) {
 	  pushback(p, buf[i]);
 	  break;
@@ -3606,7 +3602,7 @@ read_escape(parser_state *p)
     if ((c = nextc(p)) == '\\') {
       return read_escape(p) | 0x80;
     }
-    else if (c == -1) goto eof;
+    else if (c < 0) goto eof;
     else {
       return ((c & 0xff) | 0x80);
     }
@@ -3623,11 +3619,12 @@ read_escape(parser_state *p)
     }
     else if (c == '?')
       return 0177;
-    else if (c == -1) goto eof;
+    else if (c < 0) goto eof;
     return c & 0x9f;
 
   eof:
   case -1:
+  case -2:
     yyerror(p, "Invalid escape character syntax");
     return '\0';
 
@@ -3649,7 +3646,7 @@ parse_string(parser_state *p)
 
   newtok(p);
   while ((c = nextc(p)) != end || nest_level != 0) {
-    if (hinf && (c == '\n' || c == -1)) {
+    if (hinf && (c == '\n' || c < 0)) {
       int line_head;
       tokadd(p, '\n');
       tokfix(p);
@@ -3671,7 +3668,7 @@ parse_string(parser_state *p)
 	  return tHEREDOC_END;
 	}
       }
-      if (c == -1) {
+      if (c < 0) {
 	char buf[256];
 	snprintf(buf, sizeof(buf), "can't find heredoc delimiter \"%s\" anywhere before EOF", hinf->term);
 	yyerror(p, buf);
@@ -3680,7 +3677,7 @@ parse_string(parser_state *p)
       yylval.nd = new_str(p, tok(p), toklen(p));
       return tHD_STRING_MID;
     }
-    if (c == -1) {
+    if (c < 0) {
       yyerror(p, "unterminated string meets end of file");
       return 0;
     }
@@ -3706,7 +3703,7 @@ parse_string(parser_state *p)
 	else {
 	  if (type & STR_FUNC_REGEXP) {
 	    tokadd(p, '\\');
-	    if (c != -1)
+	    if (c >= 0)
 	      tokadd(p, c);
 	  } else {
 	    pushback(p, c);
@@ -3796,7 +3793,7 @@ parse_string(parser_state *p)
     char *dup;
 
     newtok(p);
-    while (c = nextc(p), c != -1 && ISALPHA(c)) {
+    while (c = nextc(p), c >= 0 && ISALPHA(c)) {
       switch (c) {
       case 'i': f |= 1; break;
       case 'x': f |= 2; break;
@@ -3855,19 +3852,19 @@ heredoc_identifier(parser_state *p)
     if (c == '\'')
       quote = TRUE;
     newtok(p);
-    while ((c = nextc(p)) != -1 && c != term) {
+    while ((c = nextc(p)) >= 0 && c != term) {
       if (c == '\n') {
 	c = -1;
 	break;
       }
       tokadd(p, c);
     }
-    if (c == -1) {
+    if (c < 0) {
       yyerror(p, "unterminated here document identifier");
       return 0;
     }
   } else {
-    if (c == -1) {
+    if (c < 0) {
       return 0;                 /* missing here document identifier */
     }
     if (! identchar(c)) {
@@ -3878,7 +3875,7 @@ heredoc_identifier(parser_state *p)
     newtok(p);
     do {
       tokadd(p, c);
-    } while ((c = nextc(p)) != -1 && identchar(c));
+    } while ((c = nextc(p)) >= 0 && identchar(c));
     pushback(p, c);
   }
   tokfix(p);
@@ -3948,6 +3945,7 @@ parser_yylex(parser_state *p)
   case '#':     /* it's a comment */
     skip(p, '\n');
   /* fall through */
+  case -2:      /* end of partial script. */
   case '\n':
   maybe_heredoc:
     heredoc_treat_nextline(p);
@@ -3982,6 +3980,7 @@ parser_yylex(parser_state *p)
 	  goto retry;
 	}
       case -1:			/* EOF */
+      case -2:			/* end of partial script */
 	goto normal_newline;
       default:
 	pushback(p, c);
@@ -4165,7 +4164,7 @@ parser_yylex(parser_state *p)
       return '?';
     }
     c = nextc(p);
-    if (c == -1) {
+    if (c < 0) {
       yyerror(p, "incomplete character syntax");
       return 0;
     }
@@ -4313,7 +4312,7 @@ parser_yylex(parser_state *p)
     if (IS_BEG() || (IS_SPCARG(c) && arg_ambiguous(p))) {
       p->lstate = EXPR_BEG;
       pushback(p, c);
-      if (c != -1 && ISDIGIT(c)) {
+      if (c >= 0 && ISDIGIT(c)) {
 	c = '+';
 	goto start_num;
       }
@@ -4345,7 +4344,7 @@ parser_yylex(parser_state *p)
     if (IS_BEG() || (IS_SPCARG(c) && arg_ambiguous(p))) {
       p->lstate = EXPR_BEG;
       pushback(p, c);
-      if (c != -1 && ISDIGIT(c)) {
+      if (c >= 0 && ISDIGIT(c)) {
 	return tUMINUS_NUM;
       }
       return tUMINUS;
@@ -4364,7 +4363,7 @@ parser_yylex(parser_state *p)
       return tDOT2;
     }
     pushback(p, c);
-    if (c != -1 && ISDIGIT(c)) {
+    if (c >= 0 && ISDIGIT(c)) {
       yyerror(p, "no .<digit> floating literal anymore; put 0 before dot");
     }
     p->lstate = EXPR_DOT;
@@ -4390,7 +4389,7 @@ parser_yylex(parser_state *p)
 	if (c == 'x' || c == 'X') {
 	  /* hexadecimal */
 	  c = nextc(p);
-	  if (c != -1 && ISXDIGIT(c)) {
+	  if (c >= 0 && ISXDIGIT(c)) {
 	    do {
 	      if (c == '_') {
 		if (nondigit) break;
@@ -4400,7 +4399,7 @@ parser_yylex(parser_state *p)
 	      if (!ISXDIGIT(c)) break;
 	      nondigit = 0;
 	      tokadd(p, tolower(c));
-	    } while ((c = nextc(p)) != -1);
+	    } while ((c = nextc(p)) >= 0);
 	  }
 	  pushback(p, c);
 	  tokfix(p);
@@ -4424,7 +4423,7 @@ parser_yylex(parser_state *p)
 	      if (c != '0' && c != '1') break;
 	      nondigit = 0;
 	      tokadd(p, c);
-	    } while ((c = nextc(p)) != -1);
+	    } while ((c = nextc(p)) >= 0);
 	  }
 	  pushback(p, c);
 	  tokfix(p);
@@ -4438,7 +4437,7 @@ parser_yylex(parser_state *p)
 	if (c == 'd' || c == 'D') {
 	  /* decimal */
 	  c = nextc(p);
-	  if (c != -1 && ISDIGIT(c)) {
+	  if (c >= 0 && ISDIGIT(c)) {
 	    do {
 	      if (c == '_') {
 		if (nondigit) break;
@@ -4448,7 +4447,7 @@ parser_yylex(parser_state *p)
 	      if (!ISDIGIT(c)) break;
 	      nondigit = 0;
 	      tokadd(p, c);
-	    } while ((c = nextc(p)) != -1);
+	    } while ((c = nextc(p)) >= 0);
 	  }
 	  pushback(p, c);
 	  tokfix(p);
@@ -4466,7 +4465,7 @@ parser_yylex(parser_state *p)
 	if (c == 'o' || c == 'O') {
 	  /* prefixed octal */
 	  c = nextc(p);
-	  if (c == -1 || c == '_' || !ISDIGIT(c)) {
+	  if (c < 0 || c == '_' || !ISDIGIT(c)) {
 	    no_digits();
 	  }
 	}
@@ -4483,7 +4482,7 @@ parser_yylex(parser_state *p)
 	    if (c > '7') goto invalid_octal;
 	    nondigit = 0;
 	    tokadd(p, c);
-	  } while ((c = nextc(p)) != -1);
+	  } while ((c = nextc(p)) >= 0);
 
 	  if (toklen(p) > start) {
 	    pushback(p, c);
@@ -4526,7 +4525,7 @@ parser_yylex(parser_state *p)
 	  }
 	  else {
 	    int c0 = nextc(p);
-	    if (c0 == -1 || !ISDIGIT(c0)) {
+	    if (c0 < 0 || !ISDIGIT(c0)) {
 	      pushback(p, c0);
 	      goto decode_num;
 	    }
@@ -4760,7 +4759,7 @@ parser_yylex(parser_state *p)
 
       c = nextc(p);
     quotation:
-      if (c == -1 || !ISALNUM(c)) {
+      if (c < 0 || !ISALNUM(c)) {
 	term = c;
 	c = 'Q';
       }
@@ -4771,7 +4770,7 @@ parser_yylex(parser_state *p)
 	  return 0;
 	}
       }
-      if (c == -1 || term == -1) {
+      if (c < 0 || term < 0) {
 	yyerror(p, "unterminated quoted string meets end of file");
 	return 0;
       }
@@ -4844,14 +4843,14 @@ parser_yylex(parser_state *p)
     p->lstate = EXPR_END;
     token_column = newtok(p);
     c = nextc(p);
-    if (c == -1) {
+    if (c < 0) {
       yyerror(p, "incomplete global variable syntax");
       return 0;
     }
     switch (c) {
     case '_':     /* $_: last read line string */
       c = nextc(p);
-      if (c != -1 && identchar(c)) { /* if there is more after _ it is a variable */
+      if (c >= 0 && identchar(c)) { /* if there is more after _ it is a variable */
 	tokadd(p, '$');
 	tokadd(p, c);
 	break;
@@ -4909,7 +4908,7 @@ parser_yylex(parser_state *p)
       do {
 	tokadd(p, c);
 	c = nextc(p);
-      } while (c != -1 && isdigit(c));
+      } while (c >= 0 && isdigit(c));
       pushback(p, c);
       if (last_state == EXPR_FNAME) goto gvar;
       tokfix(p);
@@ -4934,7 +4933,7 @@ parser_yylex(parser_state *p)
       tokadd(p, '@');
       c = nextc(p);
     }
-    if (c == -1) {
+    if (c < 0) {
       if (p->bidx == 1) {
 	yyerror(p, "incomplete instance variable syntax");
       }
