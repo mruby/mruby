@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "mruby.h"
-#include "mruby/class.h"
 #include "mruby/irep.h"
 #include "mruby/variable.h"
 #include "mruby/debug.h"

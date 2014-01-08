@@ -5,11 +5,9 @@
 */
 
 #include "mruby.h"
-#include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/numeric.h"
 #include "mruby/string.h"
-#include "error.h"
 
 mrb_bool
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)

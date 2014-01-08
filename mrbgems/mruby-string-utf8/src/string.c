@@ -247,6 +247,38 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
   return mrb_str_aref(mrb, str, a1);
 }
 
+static mrb_value
+mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
+{
+  int utf8_len = mrb_utf8_strlen(str);
+  if (utf8_len > 1) {
+    int len = RSTRING_LEN(str);
+    char *buf = (char *)mrb_malloc(mrb, len);
+    unsigned char* p = (unsigned char*)buf;
+    unsigned char* e = (unsigned char*)buf + len;
+    unsigned char* r = (unsigned char*)RSTRING_END(str);
+    
+    memcpy(buf, RSTRING_PTR(str), len);
+    mrb_str_modify(mrb, mrb_str_ptr(str));
+    
+    while (p<e) {
+      int clen = utf8len(p);
+      r -= clen;
+      memcpy(r, p, clen);
+      p += clen;
+    }
+    mrb_free(mrb, buf);
+  }
+  
+  return str;
+}
+
+static mrb_value
+mrb_str_reverse(mrb_state *mrb, mrb_value str)
+{
+  return mrb_str_reverse_bang(mrb, mrb_str_dup(mrb, str));
+}
+
 void
 mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
 {
@@ -255,6 +287,8 @@ mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "size", mrb_str_size, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "[]", mrb_str_aref_m, MRB_ARGS_ANY());
   mrb_define_method(mrb, s, "slice", mrb_str_aref_m, MRB_ARGS_ANY());
+  mrb_define_method(mrb, s, "reverse",  mrb_str_reverse,      MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "reverse!", mrb_str_reverse_bang, MRB_ARGS_NONE());
 }
 
 void

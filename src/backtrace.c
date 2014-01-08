@@ -4,6 +4,7 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <stdarg.h>
 #include "mruby.h"
 #include "mruby/variable.h"
 #include "mruby/proc.h"
@@ -11,7 +12,6 @@
 #include "mruby/string.h"
 #include "mruby/class.h"
 #include "mruby/debug.h"
-#include <stdarg.h>
 
 typedef void (*output_stream_func)(mrb_state*, void*, int, const char*, ...);
 
