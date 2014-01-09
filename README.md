@@ -73,7 +73,7 @@ documentation with examples under *examples/mrbgems*.
 
 ## License
 
-Copyright (c) 2013 mruby developers
+Copyright (c) 2014 mruby developers
 
 Permission is hereby granted, free of charge, to any person obtaining a 
 copy of this software and associated documentation files (the "Software"), 
