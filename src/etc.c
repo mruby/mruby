@@ -16,7 +16,7 @@ mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb
 
   data = (struct RData*)mrb_obj_alloc(mrb, MRB_TT_DATA, klass);
   data->data = ptr;
-  data->type = (mrb_data_type*) type;
+  data->type = type;
 
   return data;
 }
@@ -62,34 +62,6 @@ mrb_data_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
   return DATA_PTR(obj);
 }
 
-mrb_value
-mrb_lastline_get(mrb_state *mrb)
-{
-  mrb_value *argv;
-  int argc;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  if (argc < 1) {
-    return mrb_nil_value();
-  }
-  else
-  {
-    return argv[0];
-  }
-}
-
-/* ------------------------------------------------ */
-/*
- * Calls func(obj, arg, recursive), where recursive is non-zero if the
- * current method is called recursively on obj
- */
-
-mrb_value
-mrb_exec_recursive(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mrb_value, int), mrb_value obj, void *arg)
-{
-  return func(mrb, obj, *(mrb_value*)arg, 0);
-}
-
 mrb_sym
 mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
 {
@@ -109,22 +81,9 @@ mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
       name = mrb_str_intern(mrb, name);
       /* fall through */
     case MRB_TT_SYMBOL:
-      return mrb_symbol(name);
+      id = mrb_symbol(name);
   }
   return id;
-}
-
-/*
- * call-seq:
- *   proc   { |...| block }  -> a_proc
- *
- * Equivalent to <code>Proc.new</code>.
- */
-
-mrb_value
-mrb_block_proc(void)
-{
-  return mrb_nil_value();
 }
 
 static mrb_int

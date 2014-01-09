@@ -366,7 +366,6 @@ void mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, c
 const char *mrb_class_name(mrb_state *mrb, struct RClass* klass);
 void mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val);
 
-mrb_value mrb_block_proc(void);
 mrb_value mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id);
 
 mrb_bool mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
