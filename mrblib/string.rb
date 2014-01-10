@@ -135,7 +135,7 @@ class String
   end
 
   ##
-  # ISO 15.2.10.5.5
+  # ISO 15.2.10.5.3
   def =~(re)
     if re.respond_to? :to_str
       raise TypeError, "type mismatch: String given"
