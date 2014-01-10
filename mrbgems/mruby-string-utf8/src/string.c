@@ -285,6 +285,7 @@ mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
   struct RClass * s = mrb->string_class;
 
   mrb_define_method(mrb, s, "size", mrb_str_size, MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "length", mrb_str_size, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "[]", mrb_str_aref_m, MRB_ARGS_ANY());
   mrb_define_method(mrb, s, "slice", mrb_str_aref_m, MRB_ARGS_ANY());
   mrb_define_method(mrb, s, "reverse",  mrb_str_reverse,      MRB_ARGS_NONE());
