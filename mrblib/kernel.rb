@@ -43,4 +43,9 @@ module Kernel
       yield
     end
   end
+
+  # 11.4.4 Step c)
+  def !~(y)
+    !(self =~ y)
+  end
 end
