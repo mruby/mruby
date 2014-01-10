@@ -479,6 +479,27 @@ assert('Kernel#!=') do
   assert_false (str2 != str1)
 end
 
+# operator "!~" is defined in ISO Ruby 11.4.4. 
+assert('Kernel#!~') do
+  x = "x"
+  def x.=~(other)
+    other == "x"
+  end
+  assert_false x !~ "x"
+  assert_true  x !~ "z"
+
+  y = "y"
+  def y.=~(other)
+    other == "y"
+  end
+  def y.!~(other)
+    other == "not y"
+  end
+  assert_false y !~ "y"
+  assert_false y !~ "z"
+  assert_true  y !~ "not y"
+end
+
 assert('Kernel#respond_to_missing?') do
   class Test4RespondToMissing
     def respond_to_missing?(method_name, include_private = false)
