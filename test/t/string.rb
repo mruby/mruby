@@ -28,6 +28,8 @@ assert('String#==', '15.2.10.5.2') do
   assert_not_equal 'abc', 'cba'
 end
 
+# 'String#=~', '15.2.10.5.3' will be tested in mrbgems.
+
 assert('String#+', '15.2.10.5.4') do
   assert_equal 'ab', 'a' + 'b'
 end
@@ -35,8 +37,6 @@ end
 assert('String#*', '15.2.10.5.5') do
   assert_equal 'aaaaa', 'a' * 5
 end
-
-# 'String#=~', '15.2.10.5.5' will be tested in mrbgems.
 
 assert('String#[]', '15.2.10.5.6') do
   # length of args is 1
