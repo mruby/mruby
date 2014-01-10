@@ -5,5 +5,5 @@ MRuby::Gem::Specification.new('mruby-socket') do |spec|
   spec.cc.include_paths << "#{build.root}/src"
 
   spec.add_dependency('mruby-io')
-  spec.add_dependency('mruby-mtest')
+  # spec.add_dependency('mruby-mtest')
 end
