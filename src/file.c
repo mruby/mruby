@@ -154,12 +154,15 @@ static mrb_value
 mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 {
   #if defined(_WIN32) || defined(_WIN64)
-  char dname[_MAX_DIR];
+  char dname[_MAX_DIR], vname[_MAX_DRIVE];
+  char buffer[_MAX_DRIVE + _MAX_DIR];
   char *path;
   mrb_value s;
   mrb_get_args(mrb, "S", &s);
   path = mrb_str_to_cstr(mrb, s);
-  _splitpath((const char*)path, NULL, dname, NULL, NULL);
+  _splitpath((const char*)path, vname, dname, NULL, NULL);
+  sprintf_s(buffer, _MAX_DRIVE + _MAX_DIR, "%s%s", vname, dname);
+  return mrb_str_new_cstr(mrb, buffer);
   #else
   char *dname, *path;
   mrb_value s;
