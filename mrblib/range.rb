@@ -28,6 +28,15 @@ class Range
     end
     self
   end
+
+  # redefine #hash 15.3.1.3.15
+  def hash
+    h = first.hash ^ last.hash
+    if self.exclude_end?
+      h += 1
+    end
+    h
+  end
 end
 
 ##
