@@ -395,4 +395,13 @@ module Enumerable
   #
   # ISO 15.3.2.2.20
   alias to_a entries
+
+  # redefine #hash 15.3.1.3.15
+  def hash
+    h = 12347
+    self.each do |e|
+      h ^= e.hash
+    end
+    h
+  end
 end
