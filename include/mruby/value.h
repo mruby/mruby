@@ -81,6 +81,27 @@ typedef short mrb_sym;
 typedef uint8_t mrb_bool;
 struct mrb_state;
 
+#ifdef MRB_PRIMITIVE_BOXING
+
+#if !(defined(MRB_NAN_BOXING) || defined(MRB_WORD_BOXING))
+# error "Primitive boxing mode must be used together with MRB_NAN_BOXING or MRB_WORD_BOXING"
+#endif
+#else
+
+#define mrb_fixnum(o) (o).value.i
+#define mrb_symbol(o) (o).value.sym
+
+#define mrb_set_attr_i(o, v) (o).value.i = (v)
+#define mrb_set_attr_p(o, v) (o).value.p = (v)
+#define mrb_set_attr_sym(o, v) (o).value.sym = (v)
+
+#ifndef MRB_WORD_BOXING
+/* Word boxing has no mrb_set_attr_f macro, since float is managed by GC */
+#define mrb_set_attr_f(o, v) mrb_float(o) = (v)
+#endif
+
+#endif
+
 #if defined(MRB_NAN_BOXING)
 
 #ifdef MRB_USE_FLOAT
@@ -120,6 +141,72 @@ enum mrb_vtype {
 
 #define MRB_TT_HAS_BASIC  MRB_TT_OBJECT
 
+/* value representation by nan-boxing:
+ *   float : FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF
+ *   object: 111111111111TTTT TTPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP
+ *   int   : 1111111111110001 0000000000000000 IIIIIIIIIIIIIIII IIIIIIIIIIIIIIII
+ *   sym   : 1111111111110001 0100000000000000 SSSSSSSSSSSSSSSS SSSSSSSSSSSSSSSS
+ * In order to get enough bit size to save TT, all pointers are shifted 2 bits
+ * in the right direction.
+ */
+
+#if defined(MRB_PRIMITIVE_BOXING)
+
+typedef uint64_t mrb_value;
+
+#include <string.h>
+static inline mrb_float
+mrb_to_float(mrb_value v)
+{
+  mrb_float f;
+
+  memcpy(&f, &v, sizeof(uint64_t));
+  return f;
+}
+static inline mrb_value
+mrb_from_float(mrb_float f)
+{
+  mrb_value v;
+
+  if (f != f) {
+    v = (mrb_value) 0x7ff8000000000000;
+  } else {
+    memcpy(&v, &f, sizeof(uint64_t));
+  }
+  return v;
+}
+
+#define mrb_tt(o)       (((o) >> 46) & 0x3f)
+#define mrb_mktt(tt)    (0xfff00000|((tt)<<14))
+#define mrb_ttt(o)      ((o) >> 32)
+#define mrb_type(o)     ((uint32_t) 0xfff00000 < mrb_ttt(o) ? mrb_tt(o) : MRB_TT_FLOAT)
+
+#define mrb_fixnum(o) ((mrb_int) (o))
+#define mrb_symbol(o) ((mrb_sym) (o))
+#define mrb_ptr(o)      ((void*)((((uintptr_t) 0x3fffffffffff) & ((uintptr_t)(o))) << 2))
+#define mrb_float(o)    (mrb_to_float(o))
+
+#define MRB_SET_VALUE(o, tt, attr, v) do {\
+  (o) = (((mrb_value) mrb_mktt(tt)) << 32);\
+  mrb_set_attr_##attr(o, v);\
+} while (0)
+
+static inline mrb_value
+mrb_float_value(struct mrb_state *mrb, mrb_float f)
+{
+  (void) mrb;
+
+  return mrb_from_float(f);
+}
+#define mrb_float_pool(mrb,f) mrb_float_value(mrb,f)
+
+#define mrb_set_attr_i(o, v) (o) = ((o) & 0xffffffff00000000) | ((v) & 0xffffffff)
+#define mrb_set_attr_p(o, v) (o) = ((o) & 0xffffc00000000000) | (((uintptr_t)(v)) >> 2)
+#define mrb_set_attr_sym(o, v) (o) = ((o) & 0xffffffff00000000) | (((uint32_t)(v)) & 0xffffffff)
+#define mrb_set_attr_f(o, v) (o) = mrb_from_float(v)
+
+#else  /* NO MRB_PRIMITIVE_BOXING */
+
 #ifdef MRB_ENDIAN_BIG
 #define MRB_ENDIAN_LOHI(a,b) a b
 #else
@@ -144,14 +231,6 @@ typedef struct mrb_value {
   };
 } mrb_value;
 
-/* value representation by nan-boxing:
- *   float : FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF
- *   object: 111111111111TTTT TTPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP
- *   int   : 1111111111110001 0000000000000000 IIIIIIIIIIIIIIII IIIIIIIIIIIIIIII
- *   sym   : 1111111111110001 0100000000000000 SSSSSSSSSSSSSSSS SSSSSSSSSSSSSSSS
- * In order to get enough bit size to save TT, all pointers are shifted 2 bits
- * in the right direction.
- */
 #define mrb_tt(o)       (((o).value.ttt & 0xfc000)>>14)
 #define mrb_mktt(tt)    (0xfff00000|((tt)<<14))
 #define mrb_type(o)     ((uint32_t)0xfff00000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
@@ -165,7 +244,7 @@ typedef struct mrb_value {
   case MRB_TT_TRUE:\
   case MRB_TT_UNDEF:\
   case MRB_TT_FIXNUM:\
-  case MRB_TT_SYMBOL: (o).attr = (v); break;\
+  case MRB_TT_SYMBOL: mrb_set_attr_##attr(o, v); break;\
   default: (o).value.i = 0; (o).value.p = (void*)((uintptr_t)(o).value.p | (((uintptr_t)(v))>>2)); break;\
   }\
 } while (0)
@@ -184,6 +263,8 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
   return v;
 }
 #define mrb_float_pool(mrb,f) mrb_float_value(mrb,f)
+
+#endif  /* NO MRB_PRIMITIVE_BOXING */
 
 #else
 
@@ -231,6 +312,45 @@ enum mrb_special_consts {
 #define MRB_SYMBOL_FLAG   0x0e
 #define MRB_SPECIAL_SHIFT 8
 
+#if defined(MRB_PRIMITIVE_BOXING)
+
+typedef uintptr_t mrb_value;
+
+#define mrb_fixnum(o) ((mrb_int) (((intptr_t) o) >> MRB_FIXNUM_SHIFT))
+#define mrb_symbol(o) ((mrb_sym) (((intptr_t) o) >> MRB_SPECIAL_SHIFT))
+#define mrb_ptr(o)      ((void *) (o))
+#define mrb_float(o)    ((struct RFloat *) (o))->f
+
+#define mrb_get_word_w(o) (o)
+#define mrb_get_word_iflag(o) (((o) & MRB_FIXNUM_FLAG) == MRB_FIXNUM_FLAG)
+#define mrb_get_word_symflag(o) (((o) & MRB_SYMBOL_FLAG) == MRB_SYMBOL_FLAG)
+#define mrb_get_word_bp_struct(o) ((struct RBasic *) (o))
+#define mrb_get_word_vp_struct(o) ((struct RCptr *) (o))
+#define mrb_get_word_fp_struct(o) ((struct RFloat *) (o))
+
+#define mrb_set_word_ptr(o, v) (o) = (uintptr_t) (v);
+#define mrb_set_word_float(o, v) ((struct RFloat *) (o))->f = (v)
+#define mrb_set_word_cptr(o, v) ((struct RCptr *) (o))->p = (v)
+
+#define MRB_SET_VALUE(o, ttt, attr, v) do {\
+  (o) = 0;\
+  mrb_set_attr_##attr(o, v);\
+  switch (ttt) {\
+  case MRB_TT_FALSE:  (o) = (v) ? MRB_Qfalse : MRB_Qnil; break;\
+  case MRB_TT_TRUE:   (o) = MRB_Qtrue; break;\
+  case MRB_TT_UNDEF:  (o) = MRB_Qundef; break;\
+  case MRB_TT_FIXNUM: (o) |= MRB_FIXNUM_FLAG; break;\
+  case MRB_TT_SYMBOL: (o) |= MRB_SYMBOL_FLAG; break;\
+  default:            if ((o)) ((struct RBasic *) (o))->tt = ttt; break; \
+  }\
+} while (0)
+
+#define mrb_set_attr_i(o, v) (o) = ((o) & MRB_FIXNUM_FLAG) | (((uintptr_t) (v)) << MRB_FIXNUM_SHIFT)
+#define mrb_set_attr_p(o, v) (o) = ((uintptr_t) (v))
+#define mrb_set_attr_sym(o, v) (o) = ((o) & MRB_SYMBOL_FLAG) | (((uintptr_t) (v)) << MRB_SPECIAL_SHIFT)
+
+#else  /* No MRB_PRIMITIVE_BOXING */
+
 typedef union mrb_value {
   union {
     void *p;
@@ -252,9 +372,20 @@ typedef union mrb_value {
 #define mrb_ptr(o)      (o).value.p
 #define mrb_float(o)    (o).value.fp->f
 
+#define mrb_get_word_w(o) (o).w
+#define mrb_get_word_iflag(o) ((o).value.i_flag == MRB_FIXNUM_FLAG)
+#define mrb_get_word_symflag(o) ((o).value.sym_flag == MRB_SYMBOL_FLAG)
+#define mrb_get_word_bp_struct(o) (o).value.bp
+#define mrb_get_word_vp_struct(o) (o).value.vp
+#define mrb_get_word_fp_struct(o) (o).value.fp
+
+#define mrb_set_word_ptr(o, v) (o).value.p = (v);
+#define mrb_set_word_float(o, v) (o).value.fp->f = (v)
+#define mrb_set_word_cptr(o, v) (o).value.vp->p = (v)
+
 #define MRB_SET_VALUE(o, ttt, attr, v) do {\
   (o).w = 0;\
-  (o).attr = (v);\
+  mrb_set_attr_##attr(o, v);\
   switch (ttt) {\
   case MRB_TT_FALSE:  (o).w = (v) ? MRB_Qfalse : MRB_Qnil; break;\
   case MRB_TT_TRUE:   (o).w = MRB_Qtrue; break;\
@@ -264,6 +395,8 @@ typedef union mrb_value {
   default:            if ((o).value.bp) (o).value.bp->tt = ttt; break;\
   }\
 } while (0)
+
+#endif  /* No MRB_PRIMITIVE_BOXING */
 
 mrb_value mrb_float_value(struct mrb_state *mrb, mrb_float f);
 mrb_value mrb_float_pool(struct mrb_state *mrb, mrb_float f);
@@ -288,7 +421,7 @@ typedef struct mrb_value {
 
 #define MRB_SET_VALUE(o, ttt, attr, v) do {\
   (o).tt = ttt;\
-  (o).attr = v;\
+  mrb_set_attr_##attr(o, v);\
 } while (0)
 
 static inline mrb_value
@@ -297,7 +430,7 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
   mrb_value v;
   (void) mrb;
 
-  MRB_SET_VALUE(v, MRB_TT_FLOAT, value.f, f);
+  MRB_SET_VALUE(v, MRB_TT_FLOAT, f, f);
   return v;
 }
 #define mrb_float_pool(mrb,f) mrb_float_value(mrb,f)
@@ -308,24 +441,22 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
 
 #ifdef MRB_WORD_BOXING
 
-#define mrb_cptr(o) (o).value.vp->p
-#define mrb_fixnum_p(o) ((o).value.i_flag == MRB_FIXNUM_FLAG)
-#define mrb_undef_p(o) ((o).w == MRB_Qundef)
-#define mrb_nil_p(o)  ((o).w == MRB_Qnil)
-#define mrb_bool(o)   ((o).w != MRB_Qnil && (o).w != MRB_Qfalse)
+#define mrb_cptr(o) mrb_get_word_vp_struct(o)->p
+#define mrb_fixnum_p(o) mrb_get_word_iflag(o)
+#define mrb_undef_p(o) (mrb_get_word_w(o) == MRB_Qundef)
+#define mrb_nil_p(o)  (mrb_get_word_w(o) == MRB_Qnil)
+#define mrb_bool(o)   (mrb_get_word_w(o) != MRB_Qnil && mrb_get_word_w(o) != MRB_Qfalse)
 
 #else
 
 #define mrb_cptr(o) mrb_ptr(o)
 #define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_FIXNUM)
 #define mrb_undef_p(o) (mrb_type(o) == MRB_TT_UNDEF)
-#define mrb_nil_p(o)  (mrb_type(o) == MRB_TT_FALSE && !(o).value.i)
+#define mrb_nil_p(o)  (mrb_type(o) == MRB_TT_FALSE && !mrb_get_attr_i(o))
 #define mrb_bool(o)   (mrb_type(o) != MRB_TT_FALSE)
 
 #endif  /* no boxing */
 
-#define mrb_fixnum(o) (o).value.i
-#define mrb_symbol(o) (o).value.sym
 #define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
 #define mrb_symbol_p(o) (mrb_type(o) == MRB_TT_SYMBOL)
 #define mrb_array_p(o) (mrb_type(o) == MRB_TT_ARRAY)
@@ -333,6 +464,11 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
 #define mrb_hash_p(o) (mrb_type(o) == MRB_TT_HASH)
 #define mrb_cptr_p(o) (mrb_type(o) == MRB_TT_CPTR)
 #define mrb_test(o)   mrb_bool(o)
+
+#define mrb_get_attr_i(o) mrb_fixnum(o)
+#define mrb_get_attr_p(o) mrb_ptr(o)
+#define mrb_get_attr_sym(o) mrb_symbol(o)
+#define mrb_get_attr_f(o) mrb_float(o)
 
 #define MRB_OBJECT_HEADER \
   enum mrb_vtype tt:8;\
@@ -396,7 +532,7 @@ struct RCptr {
 static inline enum mrb_vtype
 mrb_type(mrb_value o)
 {
-  switch (o.w) {
+  switch (mrb_get_word_w(o)) {
   case MRB_Qfalse:
   case MRB_Qnil:
     return MRB_TT_FALSE;
@@ -405,13 +541,13 @@ mrb_type(mrb_value o)
   case MRB_Qundef:
     return MRB_TT_UNDEF;
   }
-  if (o.value.i_flag == MRB_FIXNUM_FLAG) {
+  if (mrb_get_word_iflag(o)) {
     return MRB_TT_FIXNUM;
   }
-  if (o.value.sym_flag == MRB_SYMBOL_FLAG) {
+  if (mrb_get_word_symflag(o)) {
     return MRB_TT_SYMBOL;
   }
-  return o.value.bp->tt;
+  return mrb_get_word_bp_struct(o)->tt;
 }
 #endif  /* MRB_WORD_BOXING */
 
@@ -420,7 +556,7 @@ mrb_fixnum_value(mrb_int i)
 {
   mrb_value v;
 
-  MRB_SET_VALUE(v, MRB_TT_FIXNUM, value.i, i);
+  MRB_SET_VALUE(v, MRB_TT_FIXNUM, i, i);
   return v;
 }
 
@@ -429,7 +565,7 @@ mrb_symbol_value(mrb_sym i)
 {
   mrb_value v;
 
-  MRB_SET_VALUE(v, MRB_TT_SYMBOL, value.sym, i);
+  MRB_SET_VALUE(v, MRB_TT_SYMBOL, sym, i);
   return v;
 }
 
@@ -439,7 +575,7 @@ mrb_obj_value(void *p)
   mrb_value v;
   struct RBasic *b = (struct RBasic*)p;
 
-  MRB_SET_VALUE(v, b->tt, value.p, p);
+  MRB_SET_VALUE(v, b->tt, p, p);
   return v;
 }
 
@@ -453,7 +589,7 @@ mrb_cptr_value(struct mrb_state *mrb, void *p)
   mrb_value v;
   (void) mrb;
 
-  MRB_SET_VALUE(v, MRB_TT_CPTR, value.p, p);
+  MRB_SET_VALUE(v, MRB_TT_CPTR, p, p);
   return v;
 }
 #endif
@@ -468,7 +604,7 @@ mrb_false_value(void)
 {
   mrb_value v;
 
-  MRB_SET_VALUE(v, MRB_TT_FALSE, value.i, 1);
+  MRB_SET_VALUE(v, MRB_TT_FALSE, i, 1);
   return v;
 }
 
@@ -477,7 +613,7 @@ mrb_nil_value(void)
 {
   mrb_value v;
 
-  MRB_SET_VALUE(v, MRB_TT_FALSE, value.i, 0);
+  MRB_SET_VALUE(v, MRB_TT_FALSE, i, 0);
   return v;
 }
 
@@ -486,7 +622,7 @@ mrb_true_value(void)
 {
   mrb_value v;
 
-  MRB_SET_VALUE(v, MRB_TT_TRUE, value.i, 1);
+  MRB_SET_VALUE(v, MRB_TT_TRUE, i, 1);
   return v;
 }
 
@@ -495,7 +631,7 @@ mrb_undef_value(void)
 {
   mrb_value v;
 
-  MRB_SET_VALUE(v, MRB_TT_UNDEF, value.i, 0);
+  MRB_SET_VALUE(v, MRB_TT_UNDEF, i, 0);
   return v;
 }
 
@@ -504,7 +640,7 @@ mrb_bool_value(mrb_bool boolean)
 {
   mrb_value v;
 
-  MRB_SET_VALUE(v, boolean ? MRB_TT_TRUE : MRB_TT_FALSE, value.i, 1);
+  MRB_SET_VALUE(v, boolean ? MRB_TT_TRUE : MRB_TT_FALSE, i, 1);
   return v;
 }
 
