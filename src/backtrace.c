@@ -129,6 +129,13 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
   }
 }
 
+/* mrb_print_backtrace/mrb_get_backtrace:
+
+   function to retrieve backtrace information from the exception.
+   note that if you call method after the exception, call stack will be
+   overwritten.  So invoke these functions just after detecting exceptions.
+*/   
+
 void
 mrb_print_backtrace(mrb_state *mrb)
 {
