@@ -2412,7 +2412,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
 
     p = RSTRING_PTR(str); pend = RSTRING_END(str);
     for (;p < pend; p++) {
-      unsigned int c, cc;
+      unsigned char c, cc;
 
       c = *p;
       if (c == '"'|| c == '\\' || (c == '#' && IS_EVSTR(p, pend))) {
