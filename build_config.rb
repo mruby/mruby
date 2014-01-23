@@ -8,6 +8,8 @@ MRuby::Build.new do |conf|
     toolchain :gcc
   end
 
+  enable_debug
+
   # Use mrbgems
   # conf.gem 'examples/mrbgems/ruby_extension_example'
   # conf.gem 'examples/mrbgems/c_extension_example' do |g|
