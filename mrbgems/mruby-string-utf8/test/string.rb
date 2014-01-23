@@ -25,3 +25,8 @@ assert('String#reverse!', '15.2.10.5.30') do
   assert_equal '!界世わちにんこ', a
   assert_equal '!界世わちにんこ', 'こんにちわ世界!'.reverse!
 end
+
+assert('Invalid sequence') do
+  assert_equal 5, "\xF8\x88\x80\x80\x80".size
+  assert_equal 6, "\xFC\x84\x80\x80\x80\x80".size
+end
