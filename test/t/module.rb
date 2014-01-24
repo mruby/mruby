@@ -503,3 +503,17 @@ assert('Issue 1467') do
   C1.new
   C2.new
 end
+
+assert('clone Module') do
+  module M1
+    def foo
+      true
+    end
+  end
+
+  class B
+    include M1.clone
+  end
+
+  B.new.foo
+end
