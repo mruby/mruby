@@ -294,12 +294,22 @@ mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
 }
 
 static void
+copy_class(mrb_state *mrb, mrb_value dst, mrb_value src)
+{
+  struct RClass *dc = mrb_class_ptr(dst);
+  struct RClass *sc = mrb_class_ptr(src);
+  dc->mt = kh_copy(mt, mrb, sc->mt);
+  dc->super = sc->super;
+}
+
+static void
 init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
 {
-    switch (mrb_type(obj)) {
-      case MRB_TT_OBJECT:
+  switch (mrb_type(obj)) {
       case MRB_TT_CLASS:
       case MRB_TT_MODULE:
+        copy_class(mrb, dest, obj);
+      case MRB_TT_OBJECT:
       case MRB_TT_SCLASS:
       case MRB_TT_HASH:
       case MRB_TT_DATA:

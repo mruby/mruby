@@ -359,3 +359,13 @@ assert('singleton tests') do
     end
   end
 end
+
+assert('clone Class') do
+  class Foo
+    def func
+      true
+    end
+  end
+
+  Foo.clone.new.func
+end
