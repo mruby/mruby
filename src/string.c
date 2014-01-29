@@ -741,12 +741,10 @@ num_index:
       /* check if indx is Range */
       {
         mrb_int beg, len;
-        mrb_value tmp;
 
         len = RSTRING_LEN(str);
         if (mrb_range_beg_len(mrb, indx, &beg, &len, len)) {
-          tmp = mrb_str_subseq(mrb, str, beg, len);
-          return tmp;
+          return mrb_str_subseq(mrb, str, beg, len);
         }
         else {
           return mrb_nil_value();

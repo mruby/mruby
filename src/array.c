@@ -8,6 +8,7 @@
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/string.h"
+#include "mruby/range.h"
 #include "value_array.h"
 
 #define ARY_DEFAULT_LEN   4
@@ -677,37 +678,79 @@ ary_subseq(mrb_state *mrb, struct RArray *a, mrb_int beg, mrb_int len)
   return mrb_obj_value(b);
 }
 
+static mrb_int
+aget_index(mrb_state *mrb, mrb_value index)
+{
+  if (mrb_fixnum_p(index)) {
+    return mrb_fixnum(index);
+  }
+  else {
+    mrb_int i;
+
+    mrb_get_args(mrb, "i", &i);
+    return i;
+  }
+}
+
+/*
+ *  call-seq:
+ *     ary[index]                -> obj     or nil
+ *     ary[start, length]        -> new_ary or nil
+ *     ary[range]                -> new_ary or nil
+ *     ary.slice(index)          -> obj     or nil
+ *     ary.slice(start, length)  -> new_ary or nil
+ *     ary.slice(range)          -> new_ary or nil
+ *
+ *  Element Reference --- Returns the element at +index+, or returns a
+ *  subarray starting at the +start+ index and continuing for +length+
+ *  elements, or returns a subarray specified by +range+ of indices.
+ *
+ *  Negative indices count backward from the end of the array (-1 is the last
+ *  element).  For +start+ and +range+ cases the starting index is just before
+ *  an element.  Additionally, an empty array is returned when the starting
+ *  index for an element range is at the end of the array.
+ *
+ *  Returns +nil+ if the index (or starting index) are out of range.
+ *
+ *  a = [ "a", "b", "c", "d", "e" ]
+ *  a[1]     => "b"
+ *  a[1,2]   => ["b", "c"]
+ *  a[1..-2] => ["b", "c", "d"]
+ *
+ */
+
 mrb_value
 mrb_ary_aget(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  mrb_int index, len;
-  mrb_value *argv;
-  int size;
+  mrb_int i, len;
+  mrb_value index;
 
-  mrb_get_args(mrb, "i*", &index, &argv, &size);
-  switch(size) {
-  case 0:
-    return mrb_ary_ref(mrb, self, index);
-
-  case 1:
-    if (!mrb_fixnum_p(argv[0])) {
-      mrb_raise(mrb, E_TYPE_ERROR, "expected Fixnum");
+  if (mrb_get_args(mrb, "o|i", &index, &len) == 1) {
+    switch (mrb_type(index)) {
+    case MRB_TT_RANGE:
+      len = a->len;
+      if (mrb_range_beg_len(mrb, index, &i, &len, len)) {
+        return ary_subseq(mrb, a, i, len);
+      }
+      else {
+        return mrb_nil_value();
+      }
+    case MRB_TT_FIXNUM:
+      return mrb_ary_ref(mrb, self, mrb_fixnum(index));
+    default:
+      return mrb_ary_ref(mrb, self, aget_index(mrb, index));
     }
-    if (index < 0) index += a->len;
-    if (index < 0 || a->len < (int)index) return mrb_nil_value();
-    len = mrb_fixnum(argv[0]);
-    if (len < 0) return mrb_nil_value();
-    if (a->len == (int)index) return mrb_ary_new(mrb);
-    if (len > a->len - index) len = a->len - index;
-    return ary_subseq(mrb, a, index, len);
-
-  default:
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
-    break;
   }
 
-  return mrb_nil_value(); /* dummy to avoid warning : not reach here */
+  i = aget_index(mrb, index);
+  if (i < 0) i += a->len;
+  if (i < 0 || a->len < (int)i) return mrb_nil_value();
+  if (len < 0) return mrb_nil_value();
+  if (a->len == (int)i) return mrb_ary_new(mrb);
+  if (len > a->len - i) len = a->len - i;
+
+  return ary_subseq(mrb, a, i, len);
 }
 
 mrb_value
