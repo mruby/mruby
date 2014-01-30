@@ -62,8 +62,7 @@ typedef unsigned int stack_type;
 #define CMDARG_LEXPOP() BITSTACK_LEXPOP(p->cmdarg_stack)
 #define CMDARG_P()      BITSTACK_SET_P(p->cmdarg_stack)
 
-#define SET_BEG_LINENO(n)  (p->beg_lineno = n)
-#define CLEAR_BEG_LINENO() (p->beg_lineno = 0)
+#define SET_LINENO(c,n) ((c)->lineno = (n))
 
 #define sym(x) ((mrb_sym)(intptr_t)(x))
 #define nsym(x) ((node*)(intptr_t)(x))
@@ -123,7 +122,7 @@ cons_gen(parser_state *p, node *car, node *cdr)
 
   c->car = car;
   c->cdr = cdr;
-  c->lineno = p->beg_lineno ? p->beg_lineno : p->lineno;
+  c->lineno = p->lineno;
   c->filename_index = p->current_filename_index;
   return c;
 }
@@ -2166,9 +2165,8 @@ primary		: literal
 		  bodystmt
 		  keyword_end
 		    {
-		      SET_BEG_LINENO($<num>2);
 		      $$ = new_class(p, $3, $4, $6);
-		      CLEAR_BEG_LINENO();
+		      SET_LINENO($$, $<num>2);
 		      local_resume(p, $<nd>5);
 		    }
 		| keyword_class
@@ -2188,9 +2186,8 @@ primary		: literal
 		  bodystmt
 		  keyword_end
 		    {
-		      SET_BEG_LINENO($<num>2);
 		      $$ = new_sclass(p, $4, $8);
-		      CLEAR_BEG_LINENO();
+		      SET_LINENO($$, $<num>2);
 		      local_resume(p, $<nd>7->car);
 		      p->in_def = $<num>5;
 		      p->in_single = (int)(intptr_t)$<nd>7->cdr;
@@ -2208,9 +2205,8 @@ primary		: literal
 		  bodystmt
 		  keyword_end
 		    {
-		      SET_BEG_LINENO($<num>2);
 		      $$ = new_module(p, $3, $5);
-		      CLEAR_BEG_LINENO();
+		      SET_LINENO($$, $<num>2);
 		      local_resume(p, $<nd>4);
 		    }
 		| keyword_def fname
@@ -2569,9 +2565,8 @@ brace_block	: '{'
 		  opt_block_param
 		  compstmt '}'
 		    {
-		      SET_BEG_LINENO($<num>2);
 		      $$ = new_block(p,$3,$4);
-		      CLEAR_BEG_LINENO();
+		      SET_LINENO($$, $<num>2);
 		      local_unnest(p);
 		    }
 		| keyword_do
@@ -2582,9 +2577,8 @@ brace_block	: '{'
 		  opt_block_param
 		  compstmt keyword_end
 		    {
-		      SET_BEG_LINENO($<num>2);
 		      $$ = new_block(p,$3,$4);
-		      CLEAR_BEG_LINENO();
+		      SET_LINENO($$, $<num>2);
 		      local_unnest(p);
 		    }
 		;
@@ -5244,7 +5238,6 @@ mrb_parser_new(mrb_state *mrb)
 
   p->capture_errors = 0;
   p->lineno = 1;
-  p->beg_lineno = 0;
   p->column = 0;
 #if defined(PARSER_TEST) || defined(PARSER_DEBUG)
   yydebug = 1;

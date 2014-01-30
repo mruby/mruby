@@ -109,7 +109,7 @@ struct mrb_parser_state {
 #endif
   mrbc_context *cxt;
   char const *filename;
-  int lineno, beg_lineno;
+  int lineno;
   int column;
 
   enum mrb_lex_state_enum lstate;
