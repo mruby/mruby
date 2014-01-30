@@ -62,6 +62,9 @@ typedef unsigned int stack_type;
 #define CMDARG_LEXPOP() BITSTACK_LEXPOP(p->cmdarg_stack)
 #define CMDARG_P()      BITSTACK_SET_P(p->cmdarg_stack)
 
+#define SET_BEG_LINENO(n)  (p->beg_lineno = n)
+#define CLEAR_BEG_LINENO() (p->beg_lineno = 0)
+
 #define sym(x) ((mrb_sym)(intptr_t)(x))
 #define nsym(x) ((node*)(intptr_t)(x))
 
@@ -120,7 +123,7 @@ cons_gen(parser_state *p, node *car, node *cdr)
 
   c->car = car;
   c->cdr = cdr;
-  c->lineno = p->lineno;
+  c->lineno = p->beg_lineno ? p->beg_lineno : p->lineno;
   c->filename_index = p->current_filename_index;
   return c;
 }
@@ -2150,7 +2153,11 @@ primary		: literal
 		    {
 		      $$ = new_for(p, $2, $5, $8);
 		    }
-		| keyword_class cpath superclass
+		| keyword_class
+		    {
+		      $<num>$ = p->lineno
+		    }
+		  cpath superclass
 		    {
 		      if (p->in_def || p->in_single)
 			yyerror(p, "class definition in method body");
@@ -2159,10 +2166,16 @@ primary		: literal
 		  bodystmt
 		  keyword_end
 		    {
-		      $$ = new_class(p, $2, $3, $5);
-		      local_resume(p, $<nd>4);
+		      SET_BEG_LINENO($<num>2);
+		      $$ = new_class(p, $3, $4, $6);
+		      CLEAR_BEG_LINENO();
+		      local_resume(p, $<nd>5);
 		    }
-		| keyword_class tLSHFT expr
+		| keyword_class
+		    {
+		      $<num>$ = p->lineno
+		    }
+		  tLSHFT expr
 		    {
 		      $<num>$ = p->in_def;
 		      p->in_def = 0;
@@ -2175,12 +2188,18 @@ primary		: literal
 		  bodystmt
 		  keyword_end
 		    {
-		      $$ = new_sclass(p, $3, $7);
-		      local_resume(p, $<nd>6->car);
-		      p->in_def = $<num>4;
-		      p->in_single = (int)(intptr_t)$<nd>6->cdr;
+		      SET_BEG_LINENO($<num>2);
+		      $$ = new_sclass(p, $4, $8);
+		      CLEAR_BEG_LINENO();
+		      local_resume(p, $<nd>7->car);
+		      p->in_def = $<num>5;
+		      p->in_single = (int)(intptr_t)$<nd>7->cdr;
 		    }
-		| keyword_module cpath
+		| keyword_module
+		    {
+		      $<num>$ = p->lineno
+		    }
+		  cpath
 		    {
 		      if (p->in_def || p->in_single)
 			yyerror(p, "module definition in method body");
@@ -2189,8 +2208,10 @@ primary		: literal
 		  bodystmt
 		  keyword_end
 		    {
-		      $$ = new_module(p, $2, $4);
-		      local_resume(p, $<nd>3);
+		      SET_BEG_LINENO($<num>2);
+		      $$ = new_module(p, $3, $5);
+		      CLEAR_BEG_LINENO();
+		      local_resume(p, $<nd>4);
 		    }
 		| keyword_def fname
 		    {
@@ -2543,21 +2564,27 @@ method_call	: operation paren_args
 brace_block	: '{'
 		    {
 		      local_nest(p);
+		      $<num>$ = p->lineno;
 		    }
 		  opt_block_param
 		  compstmt '}'
 		    {
+		      SET_BEG_LINENO($<num>2);
 		      $$ = new_block(p,$3,$4);
+		      CLEAR_BEG_LINENO();
 		      local_unnest(p);
 		    }
 		| keyword_do
 		    {
 		      local_nest(p);
+		      $<num>$ = p->lineno;
 		    }
 		  opt_block_param
 		  compstmt keyword_end
 		    {
+		      SET_BEG_LINENO($<num>2);
 		      $$ = new_block(p,$3,$4);
+		      CLEAR_BEG_LINENO();
 		      local_unnest(p);
 		    }
 		;
@@ -5217,6 +5244,7 @@ mrb_parser_new(mrb_state *mrb)
 
   p->capture_errors = 0;
   p->lineno = 1;
+  p->beg_lineno = 0;
   p->column = 0;
 #if defined(PARSER_TEST) || defined(PARSER_DEBUG)
   yydebug = 1;
