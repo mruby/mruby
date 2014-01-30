@@ -2155,7 +2155,7 @@ primary		: literal
 		    }
 		| keyword_class
 		    {
-		      $<num>$ = p->lineno
+		      $<num>$ = p->lineno;
 		    }
 		  cpath superclass
 		    {
@@ -2173,7 +2173,7 @@ primary		: literal
 		    }
 		| keyword_class
 		    {
-		      $<num>$ = p->lineno
+		      $<num>$ = p->lineno;
 		    }
 		  tLSHFT expr
 		    {
@@ -2197,7 +2197,7 @@ primary		: literal
 		    }
 		| keyword_module
 		    {
-		      $<num>$ = p->lineno
+		      $<num>$ = p->lineno;
 		    }
 		  cpath
 		    {
