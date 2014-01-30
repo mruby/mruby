@@ -49,6 +49,11 @@ assert('Array#[]', '15.2.12.5.4') do
   assert_equal(nil, [1,2,3].[](4))
   assert_equal(3, [1,2,3].[](-1))
   assert_equal(nil, [1,2,3].[](-4))
+
+  a = [ "a", "b", "c", "d", "e" ]
+  a[1.1]   == "b" and
+  a[1,2]   == ["b", "c"] and
+  a[1..-2] == ["b", "c", "d"]
 end
 
 assert('Array#[]=', '15.2.12.5.5') do

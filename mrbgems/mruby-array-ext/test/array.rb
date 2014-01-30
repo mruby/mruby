@@ -107,10 +107,3 @@ assert("Array#compact!") do
   a.compact!
   a == [1, "2", :t, false]
 end
-
-assert("Array#[]") do
-  a = [ "a", "b", "c", "d", "e" ]
-  a[1.1]   == "b" and
-  a[1,2]   == ["b", "c"] and
-  a[1..-2] == ["b", "c", "d"]
-end
