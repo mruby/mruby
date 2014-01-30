@@ -69,6 +69,18 @@ assert('Array#[]=', '15.2.12.5.5') do
 
   assert_equal(4, [1,2,3].[]=(1,4))
   assert_equal(3, [1,2,3].[]=(1,2,3))
+
+  a = [1,2,3,4,5]
+  a[3..-1] = 6
+  assert_equal([1,2,3,6], a)
+
+  a = [1,2,3,4,5]
+  a[3..-1] = []
+  assert_equal([1,2,3], a)
+
+  a = [1,2,3,4,5]
+  a[2...4] = 6
+  assert_equal([1,2,6,5], a)
 end
 
 assert('Array#clear', '15.2.12.5.6') do

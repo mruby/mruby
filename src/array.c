@@ -728,9 +728,9 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
 
   if (mrb_get_args(mrb, "o|i", &index, &len) == 1) {
     switch (mrb_type(index)) {
+      /* a[n..m] */
     case MRB_TT_RANGE:
-      len = a->len;
-      if (mrb_range_beg_len(mrb, index, &i, &len, len)) {
+      if (mrb_range_beg_len(mrb, index, &i, &len, a->len)) {
         return ary_subseq(mrb, a, i, len);
       }
       else {
@@ -753,30 +753,69 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
   return ary_subseq(mrb, a, i, len);
 }
 
+/*
+ *  call-seq:
+ *     ary[index]         = obj                      ->  obj
+ *     ary[start, length] = obj or other_ary or nil  ->  obj or other_ary or nil
+ *     ary[range]         = obj or other_ary or nil  ->  obj or other_ary or nil
+ *
+ *  Element Assignment --- Sets the element at +index+, or replaces a subarray
+ *  from the +start+ index for +length+ elements, or replaces a subarray
+ *  specified by the +range+ of indices.
+ *
+ *  If indices are greater than the current capacity of the array, the array
+ *  grows automatically.  Elements are inserted into the array at +start+ if
+ *  +length+ is zero.
+ *
+ *  Negative indices will count backward from the end of the array.  For
+ *  +start+ and +range+ cases the starting index is just before an element.
+ *
+ *  An IndexError is raised if a negative index points past the beginning of
+ *  the array.
+ *
+ *  See also Array#push, and Array#unshift.
+ *
+ *     a = Array.new
+ *     a[4] = "4";                 #=> [nil, nil, nil, nil, "4"]
+ *     a[0, 3] = [ 'a', 'b', 'c' ] #=> ["a", "b", "c", nil, "4"]
+ *     a[1..2] = [ 1, 2 ]          #=> ["a", 1, 2, nil, "4"]
+ *     a[0, 2] = "?"               #=> ["?", 2, nil, "4"]
+ *     a[0..2] = "A"               #=> ["A", "4"]
+ *     a[-1]   = "Z"               #=> ["A", "Z"]
+ *     a[1..-1] = nil              #=> ["A", nil]
+ *     a[1..-1] = []               #=> ["A"]
+ *     a[0, 0] = [ 1, 2 ]          #=> [1, 2, "A"]
+ *     a[3, 0] = "B"               #=> [1, 2, "A", "B"]
+ */
+
 mrb_value
 mrb_ary_aset(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
-  int argc;
+  mrb_value v1, v2, v3;
+  mrb_int i, len;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
-  switch(argc) {
-  case 2:
-    if (!mrb_fixnum_p(argv[0])) {
-      /* Should we support Range object for 1st arg ? */
-      mrb_raise(mrb, E_TYPE_ERROR, "expected Fixnum for 1st argument");
+  if (mrb_get_args(mrb, "oo|o", &v1, &v2, &v3) == 2) {
+    switch (mrb_type(v1)) {
+    /* a[n..m] = v */
+    case MRB_TT_RANGE:
+      if (mrb_range_beg_len(mrb, v1, &i, &len, RARRAY_LEN(self))) {
+        mrb_ary_splice(mrb, self, i, len, v2);
+      }
+      break;
+    /* a[n] = v */
+    case MRB_TT_FIXNUM:
+      mrb_ary_set(mrb, self, mrb_fixnum(v1), v2);
+      break;
+    default:
+      mrb_ary_set(mrb, self, aget_index(mrb, v1), v2);
+      break;
     }
-    mrb_ary_set(mrb, self, mrb_fixnum(argv[0]), argv[1]);
-    return argv[1];
-
-  case 3:
-    mrb_ary_splice(mrb, self, mrb_fixnum(argv[0]), mrb_fixnum(argv[1]), argv[2]);
-    return argv[2];
-
-  default:
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
-    return mrb_nil_value();
+    return v2;
   }
+
+  /* a[n,m] = v */
+  mrb_ary_splice(mrb, self, aget_index(mrb, v1), aget_index(mrb, v2), v3);
+  return v3;
 }
 
 mrb_value
