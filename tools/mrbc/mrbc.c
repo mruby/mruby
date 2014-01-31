@@ -110,14 +110,14 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
         }
         break;
       case 'c':
-        args->check_syntax = 1;
+        args->check_syntax = TRUE;
         break;
       case 'v':
         if (!args->verbose) mrb_show_version(mrb);
-        args->verbose = 1;
+        args->verbose = TRUE;
         break;
       case 'g':
-        args->debug_info = 1;
+        args->debug_info = TRUE;
         break;
       case 'h':
         return -1;
@@ -130,7 +130,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
           exit(EXIT_SUCCESS);
         }
         else if (strcmp(argv[i] + 2, "verbose") == 0) {
-          args->verbose = 1;
+          args->verbose = TRUE;
           break;
         }
         else if (strcmp(argv[i] + 2, "copyright") == 0) {
@@ -186,12 +186,12 @@ load_file(mrb_state *mrb, struct mrbc_args *args)
   mrb_value result;
   char *input = args->argv[args->idx];
   FILE *infile;
-  int need_close = FALSE;
+  mrb_bool need_close = FALSE;
 
   c = mrbc_context_new(mrb);
   if (args->verbose)
-    c->dump_result = 1;
-  c->no_exec = 1;
+    c->dump_result = TRUE;
+  c->no_exec = TRUE;
   if (input[0] == '-' && input[1] == '\0') {
     infile = stdin;
   }

@@ -2005,7 +2005,7 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 }
 
 mrb_value
-mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, int badcheck)
+mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, mrb_bool badcheck)
 {
   char *s;
   int len;
@@ -2068,7 +2068,7 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
 }
 
 double
-mrb_cstr_to_dbl(mrb_state *mrb, const char * p, int badcheck)
+mrb_cstr_to_dbl(mrb_state *mrb, const char * p, mrb_bool badcheck)
 {
   char *end;
   double d;
@@ -2137,7 +2137,7 @@ bad:
 }
 
 double
-mrb_str_to_dbl(mrb_state *mrb, mrb_value str, int badcheck)
+mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck)
 {
   char *s;
   int len;

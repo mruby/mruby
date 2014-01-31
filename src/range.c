@@ -257,7 +257,7 @@ mrb_range_each(mrb_state *mrb, mrb_value range)
     return range;
 }
 
-mrb_int
+mrb_bool
 mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len)
 {
   mrb_int beg, end, b, e;

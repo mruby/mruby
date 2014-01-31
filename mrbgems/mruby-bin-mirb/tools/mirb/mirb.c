@@ -45,7 +45,7 @@ p(mrb_state *mrb, mrb_value obj, int prompt)
 static mrb_bool
 is_code_block_open(struct mrb_parser_state *parser)
 {
-  int code_block_open = FALSE;
+  mrb_bool code_block_open = FALSE;
 
   /* check for heredoc */
   if (parser->parsing_heredoc != NULL) return TRUE;
@@ -251,9 +251,9 @@ main(int argc, char **argv)
   mrb_value result;
   struct _args args;
   int n;
-  int code_block_open = FALSE;
+  mrb_bool code_block_open = FALSE;
   int ai;
-  int first_command = 1;
+  mrb_bool first_command = TRUE;
   unsigned int nregs;
 
   /* new interpreter instance */
@@ -392,7 +392,7 @@ main(int argc, char **argv)
     }
     mrb_parser_free(parser);
     cxt->lineno++;
-    first_command = 0;
+    first_command = FALSE;
   }
   mrbc_context_free(mrb, cxt);
   mrb_close(mrb);
