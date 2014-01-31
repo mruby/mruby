@@ -19,6 +19,7 @@
 #define BITSPERDIG (sizeof(mrb_int)*CHAR_BIT)
 #define EXTENDSIGN(n, l) (((~0 << (n)) >> (((n)*(l)) % BITSPERDIG)) & ~(~0 << (n)))
 
+mrb_value mrb_str_format(mrb_state *, int, const mrb_value *, mrb_value);
 static void fmt_setup(char*,size_t,int,int,mrb_int,mrb_int);
 
 static char*
