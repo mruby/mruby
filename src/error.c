@@ -345,20 +345,13 @@ mrb_bug(mrb_state *mrb, const char *fmt, ...)
   exit(EXIT_FAILURE);
 }
 
-int
-sysexit_status(mrb_state *mrb, mrb_value err)
-{
-  mrb_value st = mrb_iv_get(mrb, err, mrb_intern_lit(mrb, "status"));
-  return mrb_fixnum(st);
-}
-
 static void
 set_backtrace(mrb_state *mrb, mrb_value info, mrb_value bt)
 {
   mrb_funcall(mrb, info, "set_backtrace", 1, bt);
 }
 
-mrb_value
+static mrb_value
 make_exception(mrb_state *mrb, int argc, mrb_value *argv, int isstr)
 {
   mrb_value mesg;

@@ -42,7 +42,7 @@ p(mrb_state *mrb, mrb_value obj, int prompt)
 
 /* Guess if the user might want to enter more
  * or if he wants an evaluation of his code now */
-mrb_bool
+static mrb_bool
 is_code_block_open(struct mrb_parser_state *parser)
 {
   int code_block_open = FALSE;
@@ -221,7 +221,7 @@ print_hint(void)
 }
 
 /* Print the command line prompt of the REPL */
-void
+static void
 print_cmdline(int code_block_open)
 {
   if (code_block_open) {
@@ -232,7 +232,7 @@ print_cmdline(int code_block_open)
   }
 }
 
-void codedump_all(mrb_state*, struct RProc*);
+void mrb_codedump_all(mrb_state*, struct RProc*);
 
 int
 main(int argc, char **argv)
@@ -364,7 +364,7 @@ main(int argc, char **argv)
         struct RProc *proc = mrb_generate_code(mrb, parser);
 
         if (args.verbose) {
-          codedump_all(mrb, proc);
+          mrb_codedump_all(mrb, proc);
         }
         /* pass a proc for evaulation */
         nregs = first_command ? 0: proc->body.irep->nregs;

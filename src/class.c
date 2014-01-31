@@ -866,7 +866,7 @@ mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
   return result;
 }
 
-mrb_value class_instance_method_list(mrb_state*, mrb_bool, struct RClass*, int);
+mrb_value mrb_class_instance_method_list(mrb_state*, mrb_bool, struct RClass*, int);
 
 /* 15.2.2.4.33 */
 /*
@@ -902,7 +902,7 @@ mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
   struct RClass *c = mrb_class_ptr(mod);
   mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
-  return class_instance_method_list(mrb, recur, c, 0);
+  return mrb_class_instance_method_list(mrb, recur, c, 0);
 }
 
 mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
