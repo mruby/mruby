@@ -749,7 +749,7 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
 }
 
 mrb_value
-class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass, int obj)
+mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass, int obj)
 {
   khint_t i;
   mrb_value ary;
@@ -816,7 +816,7 @@ mrb_value
 mrb_obj_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj, mrb_method_flag_t flag)
 {
   if (recur)
-      return class_instance_method_list(mrb, recur, mrb_class(mrb, obj), 0);
+      return mrb_class_instance_method_list(mrb, recur, mrb_class(mrb, obj), 0);
   else
       return mrb_obj_singleton_methods(mrb, recur, obj);
 }
@@ -1019,7 +1019,7 @@ basic_obj_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym id, int pub)
  *  If the method is not defined, <code>respond_to_missing?</code>
  *  method is called and the result is returned.
  */
-mrb_value
+static mrb_value
 obj_respond_to(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;

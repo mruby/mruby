@@ -26,7 +26,7 @@ enum looptype {
   LOOP_FOR,
   LOOP_BEGIN,
   LOOP_RESCUE,
-} type;
+};
 
 struct loopinfo {
   enum looptype type;
@@ -2905,7 +2905,7 @@ codedump_recur(mrb_state *mrb, mrb_irep *irep)
 }
 
 void
-codedump_all(mrb_state *mrb, struct RProc *proc)
+mrb_codedump_all(mrb_state *mrb, struct RProc *proc)
 {
   codedump_recur(mrb, proc->body.irep);
 }

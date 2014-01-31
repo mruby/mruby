@@ -376,7 +376,7 @@ range_eql(mrb_state *mrb, mrb_value range)
 }
 
 /* 15.2.14.4.15(x) */
-mrb_value
+static mrb_value
 range_initialize_copy(mrb_state *mrb, mrb_value copy)
 {
   mrb_value src;
