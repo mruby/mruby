@@ -1281,21 +1281,21 @@ gc_generational_mode_set(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_objspace_each_objects(mrb_state *mrb, each_object_callback* callback, void *data)
+mrb_objspace_each_objects(mrb_state *mrb, mrb_each_object_callback *callback, void *data)
 {
-    struct heap_page* page = mrb->heaps;
+  struct heap_page* page = mrb->heaps;
 
-    while (page != NULL) {
-        RVALUE *p, *pend;
+  while (page != NULL) {
+    RVALUE *p, *pend;
 
-        p = page->objects;
-        pend = p + MRB_HEAP_PAGE_SIZE;
-        for (;p < pend; p++) {
-           (*callback)(mrb, &p->as.basic, data);
-        }
-
-        page = page->next;
+    p = page->objects;
+    pend = p + MRB_HEAP_PAGE_SIZE;
+    for (;p < pend; p++) {
+      (*callback)(mrb, &p->as.basic, data);
     }
+
+    page = page->next;
+  }
 }
 
 #ifdef GC_TEST
