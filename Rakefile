@@ -24,6 +24,7 @@ end
 # load custom rules
 load "#{MRUBY_ROOT}/src/mruby_core.rake"
 load "#{MRUBY_ROOT}/mrblib/mrblib.rake"
+load "#{MRUBY_ROOT}/tools/script_only/script_only.rake"
 
 load "#{MRUBY_ROOT}/tasks/mrbgems.rake"
 load "#{MRUBY_ROOT}/tasks/libmruby.rake"
@@ -64,6 +65,28 @@ MRuby.each_target do |target|
     gem.bins.each do |bin|
       exec = exefile("#{build_dir}/bin/#{bin}")
       objs = Dir.glob("#{current_dir}/tools/#{bin}/*.{c,cpp,cxx,cc}").map { |f| objfile(f.pathmap("#{current_build_dir}/tools/#{bin}/%n")) }
+
+      rbfiles = Dir.glob("#{current_dir}/tools/#{bin}/*.rb").sort
+      unless rbfiles.empty?
+        main_script = "#{current_dir}/tools/#{bin}/main.rb"
+        has_main_script = rbfiles.find { |v| v == main_script }
+        rbfiles.reject { |v| v == main_script }
+        rbfiles << main_script if has_main_script
+
+        irep_file = "#{current_build_dir}/tools/#{bin}/tool__#{bin}__init.c"
+        file exec => libfile("#{build_dir}/lib/libmruby_script_main") if objs.empty?
+        objs << objfile(irep_file.pathmap("#{current_build_dir}/tools/#{bin}/%n"))
+        file objs.last => irep_file
+        file irep_file => rbfiles do |t|
+          FileUtils.mkdir_p File.dirname irep_file
+          open(irep_file, 'w') do |f|
+            sym_name = 'mrb_main_irep'
+            mrbc.run f, t.prerequisites, sym_name
+            f.puts %Q[]
+            f.puts %Q[extern const uint8_t #{sym_name}[];]
+          end
+        end
+      end
 
       file exec => objs + [libfile("#{build_dir}/lib/libmruby")] do |t|
         gem_flags = gems.map { |g| g.linker.flags }
