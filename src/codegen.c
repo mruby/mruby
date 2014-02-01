@@ -1515,14 +1515,7 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_SPLAT:
-    {
-      int idx = new_msym(s, mrb_intern_lit(s->mrb, "to_a"));
-
-      codegen(s, tree, VAL);
-      pop();
-      genop(s, MKOP_ABC(OP_SEND, cursp(), idx, 0));
-      push();
-    }
+    codegen(s, tree, VAL);
     break;
 
   case NODE_ASGN:

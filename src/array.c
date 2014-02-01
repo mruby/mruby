@@ -1192,22 +1192,6 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
   return mrb_true_value();
 }
 
-static mrb_value
-mrb_ary_ceqq(mrb_state *mrb, mrb_value ary)
-{
-  mrb_value v;
-  mrb_int i, len;
-  mrb_sym eqq = mrb_intern_lit(mrb, "===");
-
-  mrb_get_args(mrb, "o", &v);
-  len = RARRAY_LEN(ary);
-  for (i=0; i<len; i++) {
-    mrb_value c = mrb_funcall_argv(mrb, ary_elt(ary, i), eqq, 1, &v);
-    if (mrb_test(c)) return mrb_true_value();
-  }
-  return mrb_false_value();
-}
-
 void
 mrb_init_array(mrb_state *mrb)
 {
@@ -1250,5 +1234,4 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "==",              mrb_ary_equal,        MRB_ARGS_REQ(1)); /* 15.2.12.5.33 (x) */
   mrb_define_method(mrb, a, "eql?",            mrb_ary_eql,          MRB_ARGS_REQ(1)); /* 15.2.12.5.34 (x) */
   mrb_define_method(mrb, a, "<=>",             mrb_ary_cmp,          MRB_ARGS_REQ(1)); /* 15.2.12.5.36 (x) */
-  mrb_define_method(mrb, a, "__case_eqq",      mrb_ary_ceqq,         MRB_ARGS_REQ(1)); /* internal */
 }
