@@ -1108,6 +1108,23 @@ mrb_obj_singleton_methods_m(mrb_state *mrb, mrb_value self)
   return mrb_obj_singleton_methods(mrb, recur, self);
 }
 
+static mrb_value
+mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
+{
+  mrb_value v;
+  mrb_int i, len;
+  mrb_sym eqq = mrb_intern_lit(mrb, "===");
+  mrb_value ary = mrb_ary_splat(mrb, self);
+
+  mrb_get_args(mrb, "o", &v);
+  len = RARRAY_LEN(ary);
+  for (i=0; i<len; i++) {
+    mrb_value c = mrb_funcall_argv(mrb, mrb_ary_entry(ary, i), eqq, 1, &v);
+    if (mrb_test(c)) return mrb_true_value();
+  }
+  return mrb_false_value();
+}
+
 void
 mrb_init_kernel(mrb_state *mrb)
 {
@@ -1159,6 +1176,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "send",                       mrb_f_send,                      MRB_ARGS_ANY());     /* 15.3.1.3.44 */
   mrb_define_method(mrb, krn, "singleton_methods",          mrb_obj_singleton_methods_m,     MRB_ARGS_OPT(1));    /* 15.3.1.3.45 */
   mrb_define_method(mrb, krn, "to_s",                       mrb_any_to_s,                    MRB_ARGS_NONE());    /* 15.3.1.3.46 */
+  mrb_define_method(mrb, krn, "__case_eqq",                 mrb_obj_ceqq,                    MRB_ARGS_REQ(1));    /* internal */
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
   mrb_alias_method(mrb, mrb->module_class, mrb_intern_lit(mrb, "dup"), mrb_intern_lit(mrb, "clone"));
