@@ -612,6 +612,12 @@ flo_truncate(mrb_state *mrb, mrb_value num)
   return mrb_fixnum_value((mrb_int)f);
 }
 
+static mrb_value
+flo_nan_p(mrb_state *mrb, mrb_value num)
+{
+  return mrb_bool_value(isnan(mrb_float(num)));
+}
+
 /*
  * Document-class: Integer
  *
@@ -1331,4 +1337,5 @@ mrb_init_numeric(mrb_state *mrb)
 
   mrb_define_method(mrb, fl,      "to_s",      flo_to_s,         MRB_ARGS_NONE()); /* 15.2.9.3.16(x) */
   mrb_define_method(mrb, fl,      "inspect",   flo_to_s,         MRB_ARGS_NONE());
+  mrb_define_method(mrb, fl,      "nan?",      flo_nan_p,        MRB_ARGS_NONE());
 }

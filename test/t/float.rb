@@ -143,3 +143,10 @@ assert('Float#truncate', '15.2.9.3.15') do
   assert_equal( 3,  3.123456789.truncate)
   assert_equal(-3, -3.1.truncate)
 end
+
+assert('Float#nan?') do
+  assert_true (0.0/0.0).nan?
+  assert_false 0.0.nan?
+  assert_false (1.0/0.0).nan?
+  assert_false (-1.0/0.0).nan?
+end
