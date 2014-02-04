@@ -220,7 +220,7 @@ fiber_yield(mrb_state *mrb, mrb_value self)
   struct mrb_context *c = mrb->c;
   mrb_callinfo *ci;
   mrb_value *a;
-  int i, len;
+  int len;
 
   for (ci = c->ci; ci >= c->cibase; ci--) {
     if (ci->acc < 0) {
