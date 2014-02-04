@@ -218,9 +218,15 @@ static mrb_value
 fiber_yield(mrb_state *mrb, mrb_value self)
 {
   struct mrb_context *c = mrb->c;
+  mrb_callinfo *ci;
   mrb_value *a;
-  int len;
+  int i, len;
 
+  for (ci = c->ci; ci >= c->cibase; ci--) {
+    if (ci->acc < 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "can't cross C function boundary");
+    }
+  }
   if (!c->prev) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "can't yield from root fiber");
   }
