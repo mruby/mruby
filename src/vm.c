@@ -1350,7 +1350,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
           ci = mrb->c->ci;
           break;
         case OP_R_BREAK:
-          if (proc->env->cioff < 0) {
+          if (!proc->env || proc->env->cioff < 0) {
             localjump_error(mrb, LOCALJUMP_ERROR_BREAK);
             goto L_RAISE;
           }
