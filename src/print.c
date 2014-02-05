@@ -6,6 +6,7 @@
 
 #include "mruby.h"
 #include "mruby/string.h"
+#include "mruby/variable.h"
 
 static void
 printstr(mrb_state *mrb, mrb_value obj)
@@ -56,7 +57,12 @@ mrb_show_version(mrb_state *mrb)
   static const char version_msg[] = "mruby - Embeddable Ruby  Copyright (c) 2010-2014 mruby developers\n";
   mrb_value msg;
 
-  msg = mrb_str_new(mrb, version_msg, sizeof(version_msg) - 1);
+  if (mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_VERSION"))) {
+    msg = mrb_funcall(mrb, mrb_obj_value(mrb->kernel_module), "show_version", 0);
+  }
+  else {
+    msg = mrb_str_new(mrb, version_msg, sizeof(version_msg) - 1);
+  }
   printstr(mrb, msg);
 }
 
