@@ -62,7 +62,7 @@ mrb_show_version(mrb_state *mrb)
     msg = mrb_funcall(mrb, msg, "+", 1, mrb_str_new_lit(mrb, "\n"));
   }
   else {
-    msg = mrb_str_new(mrb, version_msg, sizeof(version_msg) - 1);
+    msg = mrb_str_new_lit(mrb, version_msg);
   }
   printstr(mrb, msg);
 }
@@ -78,7 +78,7 @@ mrb_show_copyright(mrb_state *mrb)
     msg = mrb_funcall(mrb, msg, "+", 1, mrb_str_new_lit(mrb, "\n"));
   }
   else {
-    msg = mrb_str_new(mrb, copyright_msg, sizeof(copyright_msg) - 1);
+    msg = mrb_str_new_lit(mrb, copyright_msg);
   }
   printstr(mrb, msg);
 }

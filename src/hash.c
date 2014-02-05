@@ -788,9 +788,9 @@ inspect_hash(mrb_state *mrb, mrb_value hash, int recur)
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
 
-  if (recur) return mrb_str_new(mrb, "{...}", 5);
+  if (recur) return mrb_str_new_lit(mrb, "{...}");
 
-  str = mrb_str_new(mrb, "{", 1);
+  str = mrb_str_new_lit(mrb, "{");
   if (h && kh_size(h) > 0) {
     for (k = kh_begin(h); k != kh_end(h); k++) {
       int ai;
@@ -833,7 +833,7 @@ mrb_hash_inspect(mrb_state *mrb, mrb_value hash)
   khash_t(ht) *h = RHASH_TBL(hash);
 
   if (!h || kh_size(h) == 0)
-    return mrb_str_new(mrb, "{}", 2);
+    return mrb_str_new_lit(mrb, "{}");
   return inspect_hash(mrb, hash, 0);
 }
 

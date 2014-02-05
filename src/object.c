@@ -86,7 +86,7 @@ nil_to_s(mrb_state *mrb, mrb_value obj)
 static mrb_value
 nil_inspect(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new(mrb, "nil", 3);
+  return mrb_str_new_lit(mrb, "nil");
 }
 
 /***********************************************************************
@@ -147,7 +147,7 @@ true_xor(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_to_s(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new(mrb, "true", 4);
+  return mrb_str_new_lit(mrb, "true");
 }
 
 /* 15.2.5.3.4  */
@@ -254,7 +254,7 @@ false_or(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_to_s(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new(mrb, "false", 5);
+  return mrb_str_new_lit(mrb, "false");
 }
 
 void

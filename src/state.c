@@ -19,7 +19,7 @@ void mrb_final_core(mrb_state*);
 static mrb_value
 inspect_main(mrb_state *mrb, mrb_value mod)
 {
-  return mrb_str_new(mrb, "main", 4);
+  return mrb_str_new_lit(mrb, "main");
 }
 
 mrb_state*

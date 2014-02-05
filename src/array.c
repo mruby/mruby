@@ -995,7 +995,7 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
   /* check recursive */
   for(i=0; i<RARRAY_LEN(list); i++) {
     if (mrb_obj_equal(mrb, ary, RARRAY_PTR(list)[i])) {
-      return mrb_str_new(mrb, "[...]", 5);
+      return mrb_str_new_lit(mrb, "[...]");
     }
   }
 
@@ -1038,7 +1038,7 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
 static mrb_value
 mrb_ary_inspect(mrb_state *mrb, mrb_value ary)
 {
-  if (RARRAY_LEN(ary) == 0) return mrb_str_new(mrb, "[]", 2);
+  if (RARRAY_LEN(ary) == 0) return mrb_str_new_lit(mrb, "[]");
     return inspect_ary(mrb, ary, mrb_ary_new(mrb));
 }
 

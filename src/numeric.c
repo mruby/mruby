@@ -118,14 +118,14 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
   n = mrb_float(flo);
 
   if (isnan(n)) {
-    result = mrb_str_new(mrb, "NaN", 3);
+    result = mrb_str_new_lit(mrb, "NaN");
   }
   else if (isinf(n)) {
     if (n < 0) {
-      result = mrb_str_new(mrb, "-inf", 4);
+      result = mrb_str_new_lit(mrb, "-inf");
     }
     else {
-      result = mrb_str_new(mrb, "inf", 3);
+      result = mrb_str_new_lit(mrb, "inf");
     }
   }
   else {

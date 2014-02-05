@@ -1226,7 +1226,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
     }
     else if (outer && outer != mrb->object_class) {
       mrb_value base = mrb_class_path(mrb, outer);
-      path = mrb_str_plus(mrb, base, mrb_str_new(mrb, "::", 2));
+      path = mrb_str_plus(mrb, base, mrb_str_new_lit(mrb, "::"));
       name = mrb_sym2name_len(mrb, sym, &len);
       mrb_str_concat(mrb, path, mrb_str_new(mrb, name, len));
     }
@@ -1253,7 +1253,7 @@ mrb_class_name(mrb_state *mrb, struct RClass* c)
 {
   mrb_value path = mrb_class_path(mrb, c);
   if (mrb_nil_p(path)) {
-    path = mrb_str_new(mrb, "#<Class:", 8);
+    path = mrb_str_new_lit(mrb, "#<Class:");
     mrb_str_concat(mrb, path, mrb_ptr_to_str(mrb, c));
     mrb_str_cat(mrb, path, ">", 1);
   }
@@ -1378,7 +1378,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
   if (mrb_type(klass) == MRB_TT_SCLASS) {
     mrb_value v = mrb_iv_get(mrb, klass, mrb_intern_lit(mrb, "__attached__"));
 
-    str = mrb_str_new(mrb, "#<Class:", 8);
+    str = mrb_str_new_lit(mrb, "#<Class:");
 
     switch (mrb_type(v)) {
       case MRB_TT_CLASS:
