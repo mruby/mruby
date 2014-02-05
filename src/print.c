@@ -59,7 +59,7 @@ mrb_show_version(mrb_state *mrb)
 
   if (mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_DESCRIPTION"))) {
     msg = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_DESCRIPTION"));
-    msg = mrb_funcall(mrb, msg, "+", 1, mrb_str_new_cstr(mrb, "\n"));
+    msg = mrb_funcall(mrb, msg, "+", 1, mrb_str_new_lit(mrb, "\n"));
   }
   else {
     msg = mrb_str_new(mrb, version_msg, sizeof(version_msg) - 1);
@@ -75,7 +75,7 @@ mrb_show_copyright(mrb_state *mrb)
 
   if (mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_COPYRIGHT"))) {
     msg = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_COPYRIGHT"));
-    msg = mrb_funcall(mrb, msg, "+", 1, mrb_str_new_cstr(mrb, "\n"));
+    msg = mrb_funcall(mrb, msg, "+", 1, mrb_str_new_lit(mrb, "\n"));
   }
   else {
     msg = mrb_str_new(mrb, copyright_msg, sizeof(copyright_msg) - 1);

@@ -1338,7 +1338,7 @@ test_mrb_field_write_barrier(void)
   puts("test_mrb_field_write_barrier");
   mrb->is_generational_gc_mode = FALSE;
   obj = mrb_basic_ptr(mrb_ary_new(mrb));
-  value = mrb_basic_ptr(mrb_str_new_cstr(mrb, "value"));
+  value = mrb_basic_ptr(mrb_str_new_lit(mrb, "value"));
   paint_black(obj);
   paint_partial_white(mrb,value);
 
@@ -1380,7 +1380,7 @@ test_mrb_field_write_barrier(void)
   {
     puts("test_mrb_field_write_barrier_value");
     obj = mrb_basic_ptr(mrb_ary_new(mrb));
-    mrb_value value = mrb_str_new_cstr(mrb, "value");
+    mrb_value value = mrb_str_new_lit(mrb, "value");
     paint_black(obj);
     paint_partial_white(mrb, mrb_basic_ptr(value));
 
@@ -1429,12 +1429,12 @@ test_add_gray_list(void)
   puts("test_add_gray_list");
   change_gen_gc_mode(mrb, FALSE);
   mrb_assert(mrb->gray_list == NULL);
-  obj1 = mrb_basic_ptr(mrb_str_new_cstr(mrb, "test"));
+  obj1 = mrb_basic_ptr(mrb_str_new_lit(mrb, "test"));
   add_gray_list(mrb, obj1);
   mrb_assert(mrb->gray_list == obj1);
   mrb_assert(is_gray(obj1));
 
-  obj2 = mrb_basic_ptr(mrb_str_new_cstr(mrb, "test"));
+  obj2 = mrb_basic_ptr(mrb_str_new_lit(mrb, "test"));
   add_gray_list(mrb, obj2);
   mrb_assert(mrb->gray_list == obj2);
   mrb_assert(mrb->gray_list->gcnext == obj1);
@@ -1462,7 +1462,7 @@ test_gc_gray_mark(void)
 
   puts("  in MRB_TT_ARRAY");
   obj_v = mrb_ary_new(mrb);
-  value_v = mrb_str_new_cstr(mrb, "test");
+  value_v = mrb_str_new_lit(mrb, "test");
   paint_gray(mrb_basic_ptr(obj_v));
   paint_partial_white(mrb, mrb_basic_ptr(value_v));
   mrb_ary_push(mrb, obj_v, value_v);

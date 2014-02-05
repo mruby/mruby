@@ -34,7 +34,7 @@ static mrb_value
 mrb_proc_inspect(mrb_state *mrb, mrb_value self)
 {
   struct RProc *p = mrb_proc_ptr(self);
-  mrb_value str = mrb_str_new_cstr(mrb, "#<Proc:");
+  mrb_value str = mrb_str_new_lit(mrb, "#<Proc:");
   mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, mrb_cptr(self)));
 
   if (!MRB_PROC_CFUNC_P(p)) {
