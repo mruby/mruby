@@ -7,7 +7,7 @@
 #define MRUBY_RELEASE_MONTH 1
 #define MRUBY_RELEASE_DAY 10
 
-#define MRUBY_BIRTH_YEAR 2011
+#define MRUBY_BIRTH_YEAR 2010
 
 #define MRUBY_AUTHOR "mruby developers"
 
