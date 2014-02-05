@@ -782,18 +782,27 @@ mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-inspect_hash(mrb_state *mrb, mrb_value hash, int recur)
+inspect_hash(mrb_state *mrb, mrb_value hash, mrb_value list)
 {
+  int i;
   mrb_value str, str2;
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
 
-  if (recur) return mrb_str_new(mrb, "{...}", 5);
+  /* check recursive */
+  for(i=0; i<RARRAY_LEN(list); i++) {
+    if (mrb_obj_equal(mrb, hash, RARRAY_PTR(list)[i])) {
+      return mrb_str_new(mrb, "{...}", 5);
+    }
+  }
+
+  mrb_ary_push(mrb, list, hash);
 
   str = mrb_str_new(mrb, "{", 1);
   if (h && kh_size(h) > 0) {
     for (k = kh_begin(h); k != kh_end(h); k++) {
       int ai;
+      mrb_value key, value;
 
       if (!kh_exist(h,k)) continue;
 
@@ -801,10 +810,22 @@ inspect_hash(mrb_state *mrb, mrb_value hash, int recur)
 
       if (RSTRING_LEN(str) > 1) mrb_str_cat(mrb, str, ", ", 2);
 
-      str2 = mrb_inspect(mrb, kh_key(h,k));
+      key = kh_key(h,k);
+      if (mrb_hash_p(key)) {
+        str2 = inspect_hash(mrb, key, list);
+      } else {
+        str2 = mrb_inspect(mrb, key);
+      }
+
       mrb_str_append(mrb, str, str2);
       mrb_str_buf_cat(mrb, str, "=>", 2);
-      str2 = mrb_inspect(mrb, kh_value(h,k));
+
+      value = kh_value(h,k);
+      if (mrb_hash_p(value)) {
+        str2 = inspect_hash(mrb, value, list);
+      } else {
+        str2 = mrb_inspect(mrb, value);
+      }
       mrb_str_append(mrb, str, str2);
 
       mrb_gc_arena_restore(mrb, ai);
@@ -834,7 +855,7 @@ mrb_hash_inspect(mrb_state *mrb, mrb_value hash)
 
   if (!h || kh_size(h) == 0)
     return mrb_str_new(mrb, "{}", 2);
-  return inspect_hash(mrb, hash, 0);
+  return inspect_hash(mrb, hash, mrb_ary_new(mrb));
 }
 
 /* 15.2.13.4.29 (x)*/
