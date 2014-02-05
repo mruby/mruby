@@ -49,3 +49,5 @@ module Kernel
     !(self =~ y)
   end
 end
+
+RUBY_VERSION = "1.9"
