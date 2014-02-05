@@ -7,3 +7,6 @@
 #define MRUBY_RELEASE_MONTH 1
 #define MRUBY_RELEASE_DAY 10
 
+#define MRUBY_DESCRIPTION       \
+    "mruby "MRUBY_VERSION       \
+    " ("MRUBY_RELEASE_DATE") " 

@@ -57,8 +57,9 @@ mrb_show_version(mrb_state *mrb)
   static const char version_msg[] = "mruby - Embeddable Ruby  Copyright (c) 2010-2014 mruby developers\n";
   mrb_value msg;
 
-  if (mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_VERSION"))) {
-    msg = mrb_funcall(mrb, mrb_obj_value(mrb->kernel_module), "show_version", 0);
+  if (mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_DESCRIPTION"))) {
+    msg = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_DESCRIPTION"));
+    msg = mrb_funcall(mrb, msg, "+", 1, mrb_str_new_cstr(mrb, "\n"));
   }
   else {
     msg = mrb_str_new(mrb, version_msg, sizeof(version_msg) - 1);
