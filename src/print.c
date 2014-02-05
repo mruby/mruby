@@ -6,6 +6,7 @@
 
 #include "mruby.h"
 #include "mruby/string.h"
+#include "mruby/variable.h"
 
 static void
 printstr(mrb_state *mrb, mrb_value obj)
@@ -56,7 +57,13 @@ mrb_show_version(mrb_state *mrb)
   static const char version_msg[] = "mruby - Embeddable Ruby  Copyright (c) 2010-2014 mruby developers\n";
   mrb_value msg;
 
-  msg = mrb_str_new(mrb, version_msg, sizeof(version_msg) - 1);
+  if (mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_DESCRIPTION"))) {
+    msg = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_DESCRIPTION"));
+    msg = mrb_funcall(mrb, msg, "+", 1, mrb_str_new_cstr(mrb, "\n"));
+  }
+  else {
+    msg = mrb_str_new(mrb, version_msg, sizeof(version_msg) - 1);
+  }
   printstr(mrb, msg);
 }
 
@@ -66,6 +73,12 @@ mrb_show_copyright(mrb_state *mrb)
   static const char copyright_msg[] = "mruby - Copyright (c) 2010-2014 mruby developers\n";
   mrb_value msg;
 
-  msg = mrb_str_new(mrb, copyright_msg, sizeof(copyright_msg) - 1);
+  if (mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_COPYRIGHT"))) {
+    msg = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_COPYRIGHT"));
+    msg = mrb_funcall(mrb, msg, "+", 1, mrb_str_new_cstr(mrb, "\n"));
+  }
+  else {
+    msg = mrb_str_new(mrb, copyright_msg, sizeof(copyright_msg) - 1);
+  }
   printstr(mrb, msg);
 }
