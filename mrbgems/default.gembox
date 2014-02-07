@@ -58,7 +58,4 @@ MRuby::GemBox.new do |conf|
 
   # Generate mruby command
   conf.gem :core => "mruby-bin-mruby"
-
-  # Use mruby verison 
-  conf.gem :core => "mruby-version"
 end
