@@ -215,9 +215,7 @@ cleanup(mrb_state *mrb, struct _args *args)
 static void
 print_hint(void)
 {
-  printf("mirb - Embeddable Interactive Ruby Shell\n");
-  printf("\nThis is a very early version, please test and report errors.\n");
-  printf("Thanks :)\n\n");
+  printf("mirb - Embeddable Interactive Ruby Shell\n\n");
 }
 
 /* Print the command line prompt of the REPL */
