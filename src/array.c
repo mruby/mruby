@@ -1199,7 +1199,6 @@ mrb_init_array(mrb_state *mrb)
 
   a = mrb->array_class = mrb_define_class(mrb, "Array", mrb->object_class);
   MRB_SET_INSTANCE_TT(a, MRB_TT_ARRAY);
-  mrb_include_module(mrb, a, mrb_class_get(mrb, "Enumerable"));
 
   mrb_define_class_method(mrb, a, "[]",        mrb_ary_s_create,     MRB_ARGS_ANY());  /* 15.2.12.4.1 */
 

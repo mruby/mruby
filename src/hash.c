@@ -1227,7 +1227,6 @@ mrb_init_hash(mrb_state *mrb)
   h = mrb->hash_class = mrb_define_class(mrb, "Hash", mrb->object_class);
   MRB_SET_INSTANCE_TT(h, MRB_TT_HASH);
 
-  mrb_include_module(mrb, h, mrb_class_get(mrb, "Enumerable"));
   mrb_define_method(mrb, h, "==",              mrb_hash_equal,       MRB_ARGS_REQ(1)); /* 15.2.13.4.1  */
   mrb_define_method(mrb, h, "[]",              mrb_hash_aget,        MRB_ARGS_REQ(1)); /* 15.2.13.4.2  */
   mrb_define_method(mrb, h, "[]=",             mrb_hash_aset,        MRB_ARGS_REQ(2)); /* 15.2.13.4.3  */

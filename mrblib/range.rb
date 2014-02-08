@@ -43,7 +43,6 @@ end
 # Range is enumerable
 #
 # ISO 15.2.14.3
-module Enumerable; end
 class Range
   include Enumerable
 end

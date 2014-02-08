@@ -187,7 +187,6 @@ end
 # Hash is enumerable
 #
 # ISO 15.2.13.3
-module Enumerable; end
 class Hash
   include Enumerable
 end

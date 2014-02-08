@@ -3,7 +3,7 @@
 #
 # ISO 15.2.10
 class String
-
+  include Comparable
   ##
   # Calls the given block for each line
   # and pass the respective line.

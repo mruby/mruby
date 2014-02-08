@@ -95,8 +95,6 @@ end
 
 ##
 # Array is enumerable and comparable
-module Enumerable; end
-module Comparable; end
 class Array
   # ISO 15.2.12.3
   include Enumerable

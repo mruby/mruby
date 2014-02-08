@@ -403,8 +403,6 @@ mrb_init_range(mrb_state *mrb)
   r = mrb_define_class(mrb, "Range", mrb->object_class);
   MRB_SET_INSTANCE_TT(r, MRB_TT_RANGE);
 
-  mrb_include_module(mrb, r, mrb_class_get(mrb, "Enumerable"));
-
   mrb_define_method(mrb, r, "begin",           mrb_range_beg,         MRB_ARGS_NONE()); /* 15.2.14.4.3  */
   mrb_define_method(mrb, r, "end",             mrb_range_end,         MRB_ARGS_NONE()); /* 15.2.14.4.5  */
   mrb_define_method(mrb, r, "==",              mrb_range_eq,          MRB_ARGS_REQ(1)); /* 15.2.14.4.1  */
