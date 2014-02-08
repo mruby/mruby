@@ -49,8 +49,8 @@ mrb_gc_free_mt(mrb_state *mrb, struct RClass *c)
   kh_destroy(mt, mrb, c->mt);
 }
 
-void
-mrb_name_class(mrb_state *mrb, struct RClass *c, mrb_sym name)
+static void
+name_class(mrb_state *mrb, struct RClass *c, mrb_sym name)
 {
   mrb_obj_iv_set(mrb, (struct RObject*)c,
                  mrb_intern_lit(mrb, "__classid__"), mrb_symbol_value(name));
@@ -99,7 +99,7 @@ mrb_define_module_id(mrb_state *mrb, mrb_sym name)
 
   mrb_obj_iv_set(mrb, (struct RObject*)mrb->object_class,
              name, mrb_obj_value(m));
-  mrb_name_class(mrb, m, name);
+  name_class(mrb, m, name);
 
   return m;
 }
@@ -113,7 +113,7 @@ mrb_define_module(mrb_state *mrb, const char *name)
 static void
 setup_class(mrb_state *mrb, mrb_value outer, struct RClass *c, mrb_sym id)
 {
-  mrb_name_class(mrb, c, id);
+  name_class(mrb, c, id);
   mrb_const_set(mrb, outer, id, mrb_obj_value(c));
   mrb_obj_iv_set(mrb, (struct RObject*)c,
                  mrb_intern_lit(mrb, "__outer__"), outer);
@@ -153,7 +153,7 @@ mrb_define_class_id(mrb_state *mrb, mrb_sym name, struct RClass *super)
 
   mrb_obj_iv_set(mrb, (struct RObject*)mrb->object_class,
                  name, mrb_obj_value(c));
-  mrb_name_class(mrb, c, name);
+  name_class(mrb, c, name);
 
   return c;
 }
@@ -1912,10 +1912,10 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_const(mrb, obj, "Class",       mrb_obj_value(cls));
 
   /* name each classes */
-  mrb_name_class(mrb, bob, mrb_intern_lit(mrb, "BasicObject"));
-  mrb_name_class(mrb, obj, mrb_intern_lit(mrb, "Object"));
-  mrb_name_class(mrb, mod, mrb_intern_lit(mrb, "Module"));
-  mrb_name_class(mrb, cls, mrb_intern_lit(mrb, "Class"));
+  name_class(mrb, bob, mrb_intern_lit(mrb, "BasicObject"));
+  name_class(mrb, obj, mrb_intern_lit(mrb, "Object"));
+  name_class(mrb, mod, mrb_intern_lit(mrb, "Module"));
+  name_class(mrb, cls, mrb_intern_lit(mrb, "Class"));
 
   MRB_SET_INSTANCE_TT(cls, MRB_TT_CLASS);
   mrb_define_method(mrb, bob, "initialize",              mrb_bob_init,             MRB_ARGS_NONE());
