@@ -119,7 +119,8 @@ struct mrb_parser_state {
   unsigned int cmdarg_stack;
   int paren_nest;
   int lpar_beg;
-  int in_def, in_single, cmd_start;
+  int in_def, in_single;
+  mrb_bool cmd_start:1;
   mrb_ast_node *locals;
 
   mrb_ast_node *pb;
@@ -138,7 +139,7 @@ struct mrb_parser_state {
   size_t nwarn;
   mrb_ast_node *tree;
 
-  int capture_errors;
+  mrb_bool capture_errors:1;
   struct mrb_parser_message error_buffer[10];
   struct mrb_parser_message warn_buffer[10];
 

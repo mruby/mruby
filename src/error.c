@@ -352,7 +352,7 @@ set_backtrace(mrb_state *mrb, mrb_value info, mrb_value bt)
 }
 
 static mrb_value
-make_exception(mrb_state *mrb, int argc, mrb_value *argv, int isstr)
+make_exception(mrb_state *mrb, int argc, mrb_value *argv, mrb_bool isstr)
 {
   mrb_value mesg;
   int n;

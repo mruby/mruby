@@ -998,7 +998,7 @@ mrb_hash_has_value(mrb_state *mrb, mrb_value hash)
 }
 
 static mrb_value
-hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
+hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, mrb_bool eql)
 {
   khash_t(ht) *h1, *h2;
 

@@ -308,7 +308,7 @@ static mrb_bool
 symname_p(const char *name)
 {
   const char *m = name;
-  int localid = FALSE;
+  mrb_bool localid = FALSE;
 
   if (!m) return FALSE;
   switch (*m) {

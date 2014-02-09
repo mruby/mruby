@@ -302,7 +302,7 @@ inspect_type(mrb_state *mrb, mrb_value val)
 }
 
 static mrb_value
-convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *method, int raise)
+convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *method, mrb_bool raise)
 {
   mrb_sym m = 0;
 

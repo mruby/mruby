@@ -3319,8 +3319,8 @@ backref_error(parser_state *p, node *n)
   }
 }
 
-static int peeks(parser_state *p, const char *s);
-static int skips(parser_state *p, const char *s);
+static mrb_bool peeks(parser_state *p, const char *s);
+static mrb_bool skips(parser_state *p, const char *s);
 
 static inline int
 nextc(parser_state *p)
@@ -3383,7 +3383,7 @@ skip(parser_state *p, char term)
   }
 }
 
-static int
+static mrb_bool
 peek_n(parser_state *p, int c, int n)
 {
   node *list = 0;
@@ -3405,7 +3405,7 @@ peek_n(parser_state *p, int c, int n)
 }
 #define peek(p,c) peek_n((p), (c), 0)
 
-static int
+static mrb_bool
 peeks(parser_state *p, const char *s)
 {
   int len = strlen(s);
@@ -3426,7 +3426,7 @@ peeks(parser_state *p, const char *s)
   return FALSE;
 }
 
-static int
+static mrb_bool
 skips(parser_state *p, const char *s)
 {
   int c;
@@ -3855,8 +3855,8 @@ heredoc_identifier(parser_state *p)
 {
   int c;
   int type = str_heredoc;
-  int indent = FALSE;
-  int quote = FALSE;
+  mrb_bool indent = FALSE;
+  mrb_bool quote = FALSE;
   node *newnode;
   parser_heredoc_info *info;
 
@@ -5197,7 +5197,7 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
   }
 
   p->cmd_start = TRUE;
-  p->in_def = p->in_single = FALSE;
+  p->in_def = p->in_single = 0;
   p->nerr = p->nwarn = 0;
   p->lex_strterm = NULL;
 
@@ -5227,7 +5227,6 @@ mrb_parser_new(mrb_state *mrb)
   *p = parser_state_zero;
   p->mrb = mrb;
   p->pool = pool;
-  p->in_def = p->in_single = 0;
 
   p->s = p->send = NULL;
 #ifdef ENABLE_STDIO
@@ -5235,9 +5234,9 @@ mrb_parser_new(mrb_state *mrb)
 #endif
 
   p->cmd_start = TRUE;
-  p->in_def = p->in_single = FALSE;
+  p->in_def = p->in_single = 0;
 
-  p->capture_errors = 0;
+  p->capture_errors = FALSE;
   p->lineno = 1;
   p->column = 0;
 #if defined(PARSER_TEST) || defined(PARSER_DEBUG)

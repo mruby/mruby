@@ -48,7 +48,7 @@ static mrb_value
 num_pow(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  int both_int = FALSE;
+  mrb_bool both_int = FALSE;
   mrb_float d;
 
   mrb_get_args(mrb, "o", &y);
