@@ -123,6 +123,7 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
 
       e->stack = newbase + off;
     }
+    ci->stackent = newbase + (ci->stackent - oldbase);
     ci++;
   }
 }
@@ -265,7 +266,7 @@ ecall(mrb_state *mrb, int i)
   if (mrb->c->ci->eidx > i)
     mrb->c->ci->eidx = i;
   ci = cipush(mrb);
-  ci->stackidx = mrb->c->stack - mrb->c->stbase;
+  ci->stackent = mrb->c->stack;
   ci->mid = ci[-1].mid;
   ci->acc = CI_ACC_SKIP;
   ci->argc = 0;
@@ -329,7 +330,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
 
     if (setjmp(c_jmp) != 0) { /* error */
       while (old_ci != mrb->c->ci) {
-        mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
+        mrb->c->stack = mrb->c->ci->stackent;
         cipop(mrb);
       }
       mrb->jmp = 0;
@@ -367,7 +368,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
     ci = cipush(mrb);
     ci->mid = mid;
     ci->proc = p;
-    ci->stackidx = mrb->c->stack - mrb->c->stbase;
+    ci->stackent = mrb->c->stack;
     ci->argc = argc;
     ci->target_class = c;
     if (MRB_PROC_CFUNC_P(p)) {
@@ -394,7 +395,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
 
       ci->acc = CI_ACC_DIRECT;
       val = p->body.func(mrb, self);
-      mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
+      mrb->c->stack = mrb->c->ci->stackent;
       cipop(mrb);
       mrb_gc_arena_restore(mrb, ai);
     }
@@ -429,7 +430,7 @@ mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_v
   ci = cipush(mrb);
   ci->mid = mid;
   ci->proc = p;
-  ci->stackidx = mrb->c->stack - mrb->c->stbase;
+  ci->stackent = mrb->c->stack;
   ci->argc = argc;
   ci->target_class = c;
   if (MRB_PROC_CFUNC_P(p)) {
@@ -450,7 +451,7 @@ mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_v
 
   if (MRB_PROC_CFUNC_P(p)) {
     val = p->body.func(mrb, self);
-    mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
+    mrb->c->stack = mrb->c->ci->stackent;
     cipop(mrb);
   }
   else {
@@ -915,7 +916,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       ci = cipush(mrb);
       ci->mid = mid;
       ci->proc = m;
-      ci->stackidx = mrb->c->stack - mrb->c->stbase;
+      ci->stackent = mrb->c->stack;
       if (n == CALL_MAXARGS) {
         ci->argc = -1;
       }
@@ -955,7 +956,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
             syms = irep->syms;
           }
         }
-        regs = mrb->c->stack = mrb->c->stbase + ci->stackidx;
+        regs = mrb->c->stack = ci->stackent;
         pc = ci->pc;
         cipop(mrb);
         JUMP;
@@ -1010,7 +1011,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
         ci = mrb->c->ci;
-        regs = mrb->c->stack = mrb->c->stbase + ci->stackidx;
+        regs = mrb->c->stack = ci->stackent;
         regs[ci->acc] = recv;
         pc = ci->pc;
         cipop(mrb);
@@ -1072,7 +1073,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       ci = cipush(mrb);
       ci->mid = mid;
       ci->proc = m;
-      ci->stackidx = mrb->c->stack - mrb->c->stbase;
+      ci->stackent = mrb->c->stack;
       if (n == CALL_MAXARGS) {
         ci->argc = -1;
       }
@@ -1091,7 +1092,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
         mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
-        regs = mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
+        regs = mrb->c->stack = mrb->c->ci->stackent;
         cipop(mrb);
         NEXT;
       }
@@ -1283,7 +1284,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           ci = mrb->c->ci;
-          mrb->c->stack = mrb->c->stbase + ci[1].stackidx;
+          mrb->c->stack = ci[1].stackent;
           if (ci[1].acc == CI_ACC_SKIP && prev_jmp) {
             mrb->jmp = prev_jmp;
             mrb_longjmp(mrb);
@@ -1305,7 +1306,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
         irep = ci->proc->body.irep;
         pool = irep->pool;
         syms = irep->syms;
-        regs = mrb->c->stack = mrb->c->stbase + ci[1].stackidx;
+        regs = mrb->c->stack = ci[1].stackent;
         pc = mrb->c->rescue[--ci->ridx];
       }
       else {
@@ -1366,7 +1367,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
         cipop(mrb);
         acc = ci->acc;
         pc = ci->pc;
-        regs = mrb->c->stack = mrb->c->stbase + ci->stackidx;
+        regs = mrb->c->stack = ci->stackent;
         if (acc == CI_ACC_SKIP) {
           mrb->jmp = prev_jmp;
           return v;
@@ -2042,7 +2043,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       ci->pc = pc + 1;
       ci->acc = a;
       ci->mid = 0;
-      ci->stackidx = mrb->c->stack - mrb->c->stbase;
+      ci->stackent = mrb->c->stack;
       ci->argc = 0;
       ci->target_class = mrb_class_ptr(recv);
 
@@ -2058,7 +2059,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
         mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
-        regs = mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
+        regs = mrb->c->stack = mrb->c->ci->stackent;
         cipop(mrb);
         NEXT;
       }

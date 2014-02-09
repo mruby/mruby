@@ -218,7 +218,7 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
   mrb_value *bp;
   mrb_bool given_p;
 
-  bp = mrb->c->stbase + ci->stackidx + 1;
+  bp = ci->stackent + 1;
   ci--;
   if (ci <= mrb->c->cibase) {
     given_p = 0;
