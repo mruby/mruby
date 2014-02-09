@@ -109,6 +109,7 @@ stack_init(mrb_state *mrb)
   c->ciend = c->cibase + CALLINFO_INIT_SIZE;
   c->ci = c->cibase;
   c->ci->target_class = mrb->object_class;
+  c->ci->stackent = c->stack;
 }
 
 static inline void
@@ -116,6 +117,7 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
 {
   mrb_callinfo *ci = mrb->c->cibase;
 
+  if (newbase == oldbase) return;
   while (ci <= mrb->c->ci) {
     struct REnv *e = ci->env;
     if (e && e->cioff >= 0) {

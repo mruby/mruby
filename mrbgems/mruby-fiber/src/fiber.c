@@ -94,6 +94,7 @@ fiber_init(mrb_state *mrb, mrb_value self)
   c->cibase = (mrb_callinfo *)mrb_calloc(mrb, FIBER_CI_INIT_SIZE, sizeof(mrb_callinfo));
   c->ciend = c->cibase + FIBER_CI_INIT_SIZE;
   c->ci = c->cibase;
+  c->ci->stackent = c->stack;
 
   /* adjust return callinfo */
   ci = c->ci;
