@@ -53,7 +53,7 @@ typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 typedef struct {
   mrb_sym mid;
   struct RProc *proc;
-  int stackidx;
+  mrb_value *stackent;
   int nregs;
   int argc;
   mrb_code *pc;                 /* return address */
