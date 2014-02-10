@@ -223,7 +223,6 @@ end
 
 class TCPSocket
   def initialize(host, service, local_host=nil, local_service=nil)
-    self._bless
     if self.is_a? TCPServer
       super(host, service)
     else
@@ -248,7 +247,6 @@ end
 
 class TCPServer
   def initialize(host=nil, service)
-    self._bless
     ai = Addrinfo.getaddrinfo(host, service, nil, nil, nil, Socket::AI_PASSIVE)[0]
     super(Socket._socket(ai.afamily, Socket::SOCK_STREAM, 0), "r+")
     Socket._bind(self.fileno, ai.to_sockaddr)
@@ -281,7 +279,6 @@ end
 
 class UDPSocket
   def initialize(af=Socket::AF_INET)
-    self._bless
     super(Socket._socket(af, Socket::SOCK_DGRAM, 0), "r+")
     @af = af
     self
@@ -326,7 +323,6 @@ end
 
 class Socket
   def initialize(domain, type, protocol=0)
-    self._bless
     super(Socket._socket(domain, type, protocol), "r+")
   end
 
@@ -436,7 +432,6 @@ end
 
 class UNIXSocket
   def initialize(path, &block)
-    self._bless
     super(Socket._socket(AF_UNIX, SOCK_STREAM, 0), "r+")
     Socket._connect(self.fileno, Socket.sockaddr_un(path))
     if block
@@ -479,7 +474,6 @@ end
 
 class UNIXServer
   def initialize(path, &block)
-    self._bless
     super(Socket._socket(Socket::AF_UNIX, Socket::SOCK_STREAM, 0), "r")
     Socket._bind(self.fileno, Socket.pack_sockaddr_un(path))
     listen(5)
