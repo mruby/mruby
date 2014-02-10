@@ -1052,7 +1052,7 @@ mrb_f_global_variables(mrb_state *mrb, mrb_value self)
   buf[2] = 0;
   for (i = 1; i <= 9; ++i) {
     buf[1] = (char)(i + '0');
-    mrb_ary_push(mrb, ary, mrb_symbol_value(mrb_intern_lit(mrb, buf)));
+    mrb_ary_push(mrb, ary, mrb_symbol_value(mrb_intern(mrb, buf, 2)));
   }
   return ary;
 }
