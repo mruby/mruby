@@ -357,21 +357,6 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise)
 }
 
 mrb_value
-mrb_io_bless(mrb_state *mrb, mrb_value io)
-{
-  if (mrb_type(io) != MRB_TT_DATA) {
-    mrb_raise(mrb, E_TYPE_ERROR, "expected IO object");
-    return mrb_nil_value();
-  }
-
-  DATA_TYPE(io) = &mrb_io_type;
-  DATA_PTR(io)  = NULL;
-  DATA_PTR(io)  = mrb_io_alloc(mrb);
-
-  return io;
-}
-
-mrb_value
 mrb_io_s_for_fd(mrb_state *mrb, mrb_value klass)
 {
   mrb_value io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
@@ -752,7 +737,6 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "select",  mrb_io_s_select,  MRB_ARGS_ANY());
 
-  mrb_define_method(mrb, io, "_bless",     mrb_io_bless,      MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "initialize", mrb_io_initialize, MRB_ARGS_ANY());    /* 15.2.20.5.21 (x)*/
   mrb_define_method(mrb, io, "sysread",    mrb_io_sysread,    MRB_ARGS_ANY());
   mrb_define_method(mrb, io, "sysseek",    mrb_io_sysseek,    MRB_ARGS_REQ(1));

@@ -9,7 +9,6 @@ class File < IO
   attr_accessor :path
 
   def initialize(fd_or_path, mode = "r", perm = 0666)
-    self._bless
     if fd_or_path.kind_of? Fixnum
       super(fd_or_path, mode)
     else
