@@ -759,7 +759,7 @@ mrb_init_io(mrb_state *mrb)
   io      = mrb_define_class(mrb, "IO", mrb->object_class);
   MRB_SET_INSTANCE_TT(io, MRB_TT_DATA);
 
-  mrb_include_module(mrb, io, mrb_class_get(mrb, "Enumerable")); /* 15.2.20.3 */
+  mrb_include_module(mrb, io, mrb_module_get(mrb, "Enumerable")); /* 15.2.20.3 */
 #ifndef _WIN32
   mrb_define_class_method(mrb, io, "_popen",  mrb_io_s_popen,   MRB_ARGS_ANY());
 #endif
