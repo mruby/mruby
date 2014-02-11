@@ -359,14 +359,6 @@ math_atanh(mrb_state *mrb, mrb_value obj)
 /*
   EXPONENTIALS AND LOGARITHMS
 */
-#if defined __CYGWIN__
-# include <cygwin/version.h>
-# if CYGWIN_VERSION_DLL_MAJOR < 1005
-#  define nan(x) nan()
-# endif
-# define log(x) ((x) < 0.0 ? nan("") : log(x))
-# define log10(x) ((x) < 0.0 ? nan("") : log10(x))
-#endif
 
 /*
  *  call-seq:
