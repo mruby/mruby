@@ -527,7 +527,7 @@ argnum_error(mrb_state *mrb, int num)
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs)
 #endif
 
-#ifdef __GNUC__
+#if defined __GNUC__ || defined __clang__ || defined __INTEL_COMPILER
 #define DIRECT_THREADED
 #endif
 
