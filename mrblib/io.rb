@@ -41,6 +41,11 @@ class IO
     end
   end
 
+  def flush
+    # mruby-io always writes immediately (no output buffer).
+    self
+  end
+
   def write(string)
     str = string.is_a?(String) ? string : string.to_s
     return str.size unless str.size > 0
