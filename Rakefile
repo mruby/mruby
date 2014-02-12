@@ -33,8 +33,11 @@ load "#{MRUBY_ROOT}/test/mrbtest.rake"
 # generic build targets, rules
 task :default => :all
 
+bin_path = "#{MRUBY_ROOT}/bin"
+FileUtils.mkdir_p bin_path, { :verbose => $verbose }
+
 depfiles = MRuby.targets['host'].bins.map do |bin|
-  install_path = MRuby.targets['host'].exefile("#{MRUBY_ROOT}/bin/#{bin}")
+  install_path = MRuby.targets['host'].exefile("#{bin_path}/#{bin}")
   source_path = MRuby.targets['host'].exefile("#{MRuby.targets['host'].build_dir}/bin/#{bin}")
 
   file install_path => source_path do |t|
