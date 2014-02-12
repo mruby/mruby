@@ -1,3 +1,6 @@
+#ifndef MRUBY_VERSION_H
+#define MRUBY_VERSION_H
+
 #define MRUBY_RUBY_VERSION "1.9"
 #define MRUBY_RUBY_ENGINE  "mruby"
 
@@ -26,3 +29,5 @@
     STRINGIZE(MRUBY_BIRTH_YEAR)"-"    \
     STRINGIZE(MRUBY_RELEASE_YEAR)" "  \
     MRUBY_AUTHOR
+
+#endif  /* MRUBY_VERSION_H */

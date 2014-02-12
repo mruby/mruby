@@ -37,6 +37,7 @@ extern "C" {
 
 #include "mrbconf.h"
 #include "mruby/value.h"
+#include "mruby/version.h"
 
 typedef uint32_t mrb_code;
 typedef uint32_t mrb_aspec;
