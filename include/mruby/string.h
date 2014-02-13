@@ -37,7 +37,6 @@ struct RString {
 
 void mrb_gc_free_str(mrb_state*, struct RString*);
 void mrb_str_modify(mrb_state*, struct RString*);
-mrb_value mrb_str_literal(mrb_state*, mrb_value);
 void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
 mrb_value mrb_str_plus(mrb_state*, mrb_value, mrb_value);
 mrb_value mrb_ptr_to_str(mrb_state *, void*);
