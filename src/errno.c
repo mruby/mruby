@@ -9,6 +9,14 @@
 #include <stdio.h>
 #include <string.h>
 
+#if MRUBY_RELEASE_NO < 10000
+static struct RClass *
+mrb_module_get(mrb_state *mrb, const char *name)
+{
+  return mrb_class_get(mrb, name);
+}
+#endif
+
 static mrb_value
 mrb_sce_init(mrb_state *mrb, mrb_value self)
 {
@@ -27,7 +35,7 @@ mrb_sce_init(mrb_state *mrb, mrb_value self)
     }
   }
   if (!no_errno) {
-    e2c = mrb_const_get(mrb, mrb_obj_value(mrb_class_get(mrb, "Errno")), mrb_intern_lit(mrb, "Errno2class"));
+    e2c = mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Errno")), mrb_intern_lit(mrb, "Errno2class"));
     c = mrb_hash_fetch(mrb, e2c, mrb_fixnum_value(n), mrb_nil_value());
     if (!mrb_nil_p(c)) {
       mrb_basic(self)->c = mrb_class_ptr(c);
@@ -89,7 +97,7 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
   }
   if (mrb_obj_class(mrb, e) == sce) {
     snprintf(name, sizeof(name), "E%03ld", (long)no);
-    cl = mrb_define_class_under(mrb, mrb_class_get(mrb, "Errno"), name, sce);
+    cl = mrb_define_class_under(mrb, mrb_module_get(mrb, "Errno"), name, sce);
     mrb_define_const(mrb, cl, "Errno", mrb_fixnum_value(no));
     mrb_basic(e)->c = cl;
   }
