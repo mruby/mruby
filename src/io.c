@@ -18,6 +18,14 @@ static int mrb_io_modestr_to_flags(mrb_state *mrb, const char *modestr);
 static int mrb_io_modenum_to_flags(mrb_state *mrb, int modenum);
 static int mrb_io_flags_to_modenum(mrb_state *mrb, int flags);
 
+#if MRUBY_RELEASE_NO < 10000
+static struct RClass *
+mrb_module_get(mrb_state *mrb, const char *name)
+{
+  return mrb_class_get(mrb, name);
+}
+#endif
+
 static int
 mrb_io_modestr_to_flags(mrb_state *mrb, const char *mode)
 {
