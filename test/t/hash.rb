@@ -34,6 +34,13 @@ assert('Hash#clear', '15.2.13.4.4') do
   assert_equal({ }, a)
 end
 
+assert('Hash#dup') do
+  a = { 'a' => 1 }
+  b = a.dup
+  a['a'] = 2
+  assert_equal(b, {'a' => 1})
+end
+
 assert('Hash#default', '15.2.13.4.5') do
   a = Hash.new
   b = Hash.new('abc')
