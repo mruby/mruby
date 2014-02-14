@@ -30,12 +30,12 @@ static void mt_g_srand(unsigned long seed)
   init_genrand(seed);
 }
 
-static unsigned long mt_g_rand()
+static unsigned long mt_g_rand(void)
 {
   return genrand_int32();
 }
 
-static double mt_g_rand_real()
+static double mt_g_rand_real(void)
 {
   return genrand_real1();
 }
