@@ -7,6 +7,7 @@
 #include <setjmp.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <math.h>
 #include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
@@ -1712,6 +1713,11 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       default:
         goto L_SEND;
       }
+#ifdef MRB_NAN_BOXING
+      if (isnan(regs[a].attr_f)) {
+        regs[a] = mrb_float_value(mrb, regs[a].attr_f);
+      }
+#endif
       NEXT;
     }
 
