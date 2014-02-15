@@ -22,6 +22,15 @@ inspect_main(mrb_state *mrb, mrb_value mod)
   return mrb_str_new_lit(mrb, "main");
 }
 
+static void
+fatalf(mrb_state *mrb, const char *msg)
+{
+  if (msg) {
+    fputs(msg, stderr);
+    putc('\n', stderr);
+  }
+}
+
 mrb_state*
 mrb_open_allocf(mrb_allocf f, void *ud)
 {
@@ -39,6 +48,9 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   *mrb = mrb_state_zero;
   mrb->ud = ud;
   mrb->allocf = f;
+#ifdef ENABLE_STDIO
+  mrb->fatalf = fatalf;
+#endif
   mrb->current_white_part = MRB_GC_WHITE_A;
 
 #ifndef MRB_GC_FIXED_ARENA
@@ -235,4 +247,14 @@ mrb_top_self(mrb_state *mrb)
     mrb_define_singleton_method(mrb, mrb->top_self, "to_s", inspect_main, MRB_ARGS_NONE());
   }
   return mrb_obj_value(mrb->top_self);
+}
+
+void
+mrb_fatal(mrb_state *mrb, const char *msg)
+{
+  mrb_fatalf f = mrb->fatalf;
+  if (f) {
+    f(mrb, msg);
+  }
+  abort();
 }

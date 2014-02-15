@@ -219,7 +219,7 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
   exc_debug_info(mrb, mrb->exc);
   if (!mrb->jmp) {
     mrb_p(mrb, exc);
-    abort();
+    mrb_fatal(mrb, NULL);
   }
   mrb_longjmp(mrb);
 }

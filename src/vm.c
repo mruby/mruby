@@ -21,16 +21,6 @@
 #include "opcode.h"
 #include "value_array.h"
 
-#ifndef ENABLE_STDIO
-#if defined(__cplusplus)
-extern "C" {
-#endif
-void abort(void);
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
-#endif
-
 #define SET_TRUE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
 #define SET_FALSE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
 #define SET_NIL_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
@@ -2128,7 +2118,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 #ifdef ENABLE_STDIO
       printf("OP_DEBUG %d %d %d\n", GETARG_A(i), GETARG_B(i), GETARG_C(i));
 #else
-      abort();
+      mrb_fatal(mrb, NULL);
 #endif
 #endif
       NEXT;

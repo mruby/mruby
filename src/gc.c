@@ -5,7 +5,6 @@
 */
 
 #include <string.h>
-#include <stdlib.h>
 #include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
@@ -185,11 +184,11 @@ mrb_realloc(mrb_state *mrb, void *p, size_t len)
   p2 = mrb_realloc_simple(mrb, p, len);
   if (!p2 && len) {
     if (mrb->out_of_memory) {
-      /* mrb_panic(mrb); */
+      mrb_fatal(mrb, "out of memory");
     }
     else {
       mrb->out_of_memory = TRUE;
-      mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+      mrb_raise(mrb, E_RUNTIME_ERROR, "out of memory");
     }
   }
   else {
@@ -422,9 +421,7 @@ static inline void
 add_gray_list(mrb_state *mrb, struct RBasic *obj)
 {
 #ifdef MRB_GC_STRESS
-  if (obj->tt > MRB_TT_MAXDEFINE) {
-    abort();
-  }
+  mrb_assert(obj->tt < MRB_TT_MAXDEFINE);
 #endif
   paint_gray(obj);
   obj->gcnext = mrb->gray_list;

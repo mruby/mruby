@@ -46,6 +46,7 @@ struct mrb_irep;
 struct mrb_state;
 
 typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
+typedef void (*mrb_fatalf)(struct mrb_state *, const char *);
 
 #ifndef MRB_GC_ARENA_SIZE
 #define MRB_GC_ARENA_SIZE 100
@@ -101,6 +102,7 @@ typedef struct mrb_state {
   void *jmp;
 
   mrb_allocf allocf;                      /* memory allocation function */
+  mrb_fatalf fatalf;
 
   struct mrb_context *c;
   struct mrb_context *root_c;
@@ -317,6 +319,8 @@ mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 #define TOUPPER(c) (ISASCII(c) ? toupper((int)(unsigned char)(c)) : (c))
 #define TOLOWER(c) (ISASCII(c) ? tolower((int)(unsigned char)(c)) : (c))
 #endif
+
+void mrb_fatal(mrb_state *, const char *);
 
 mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len);
 void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
