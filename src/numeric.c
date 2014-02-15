@@ -106,7 +106,6 @@ num_div(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
 {
-  mrb_value result;
   mrb_float n;
 
   if (max_digit > 40) {
@@ -119,14 +118,14 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
   n = mrb_float(flo);
 
   if (isnan(n)) {
-    result = mrb_str_new_lit(mrb, "NaN");
+    return mrb_str_new_lit(mrb, "NaN");
   }
   else if (isinf(n)) {
     if (n < 0) {
-      result = mrb_str_new_lit(mrb, "-inf");
+      return mrb_str_new_lit(mrb, "-inf");
     }
     else {
-      result = mrb_str_new_lit(mrb, "inf");
+      return mrb_str_new_lit(mrb, "inf");
     }
   }
   else {
@@ -202,10 +201,8 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
 
     *c = '\0';
 
-    result = mrb_str_new(mrb, &s[0], c - &s[0]);
+    return mrb_str_new(mrb, &s[0], c - &s[0]);
   }
-
-  return result;
 }
 
 /* 15.2.9.3.16(x) */
