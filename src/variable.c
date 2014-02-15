@@ -369,10 +369,12 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 static size_t
 iv_size(mrb_state *mrb, iv_tbl *t)
 {
-  khash_t(iv) *h = &t->h;
+  khash_t(iv) *h;
 
-  if (!h) return 0;
-  return kh_size(h);
+  if (t && (h = &t->h)) {
+    return kh_size(h);
+  }
+  return 0;
 }
 
 static iv_tbl*
