@@ -20,6 +20,9 @@
 #define floor(f) floorf(f)
 #define fmod(x,y) fmodf(x,y)
 #define pow(x,y) powf(x,y)
+#define FLO_MAX_DIGITS 7
+#else
+#define FLO_MAX_DIGITS 14
 #endif
 
 static mrb_float
@@ -104,14 +107,12 @@ num_div(mrb_state *mrb, mrb_value x)
  */
 
 mrb_value
-mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
+mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
 {
   mrb_float n;
+  int max_digits = FLO_MAX_DIGITS;
 
-  if (max_digit > 40) {
-    mrb_raise(mrb, E_RANGE_ERROR, "Too large max_digit.");
-  }
-  else if (!mrb_float_p(flo)) {
+  if (!mrb_float_p(flo)) {
     mrb_raise(mrb, E_TYPE_ERROR, "non float value");
   }
 
@@ -143,7 +144,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
 
     exp = (n > 1) ? floor(log10(n)) : -ceil(-log10(n));
 
-    if ((exp < 0 ? -exp : exp) >= max_digit) {
+    if ((exp < 0 ? -exp : exp) >= FLO_MAX_DIGITS) {
       /* exponent representation */
       e = TRUE;
       n = n / pow(10.0, exp);
@@ -156,7 +157,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
     }
 
     /* puts digits */
-    while (max_digit >= 0) {
+    while (max_digits >= 0) {
       mrb_float weight = pow(10.0, m);
       mrb_float fdigit = n / weight;
       
@@ -174,7 +175,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
       }
       *(c++) = '0' + digit;
       n -= (digit * weight);
-      max_digit--;
+      max_digits--;
       if (m-- == 0) {
         *(c++) = '.';
       }
@@ -219,11 +220,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
 static mrb_value
 flo_to_s(mrb_state *mrb, mrb_value flt)
 {
-#ifdef MRB_USE_FLOAT
-  return mrb_flo_to_str(mrb, flt, 7);
-#else
-  return mrb_flo_to_str(mrb, flt, 14);
-#endif
+  return mrb_flo_to_str(mrb, flt);
 }
 
 /* 15.2.9.3.2  */
