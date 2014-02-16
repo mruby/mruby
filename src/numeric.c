@@ -17,12 +17,13 @@
 #ifdef MRB_USE_FLOAT
 #define floor(f) floorf(f)
 #define ceil(f) ceilf(f)
-#define floor(f) floorf(f)
 #define fmod(x,y) fmodf(x,y)
 #define pow(x,y) powf(x,y)
 #define FLO_MAX_DIGITS 7
+#define FLO_EPSILON FLT_EPSILON
 #else
 #define FLO_MAX_DIGITS 14
+#define FLO_EPSILON DBL_EPSILON
 #endif
 
 static mrb_float
@@ -162,12 +163,12 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
       mrb_float fdigit = n / weight;
       
       if (fdigit < 0) fdigit = n = 0;
-      if (m < -1 && fdigit < FLT_EPSILON) {
+      if (m < -1 && fdigit < FLO_EPSILON) {
         if (e || exp > 0 || m <= -abs(exp)) {
           break;
         }
       }
-      digit = (int)floor(fdigit + FLT_EPSILON);
+      digit = (int)floor(fdigit + FLO_EPSILON);
       if (m == 0 && digit > 9) {
         n /= 10.0;
         exp++;
