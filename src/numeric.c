@@ -130,9 +130,9 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
   }
   else {
     int digit;
-    int m;
+    int m = 0;
     int exp;
-    int e = 0;
+    mrb_bool e = FALSE;
     char s[48];
     char *c = &s[0];
 
@@ -141,38 +141,40 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
       *(c++) = '-';
     }
 
-    exp = (int)log10(n);
+    exp = (n > 1) ? floor(log10(n)) : -ceil(-log10(n));
 
-    if ((exp < 0 ? -exp : exp) > max_digit) {
+    if ((exp < 0 ? -exp : exp) >= max_digit) {
       /* exponent representation */
-      e = 1;
-      m = exp;
-      if (m < 0) {
-        m -= 1;
-      }
-      n = n / pow(10.0, m);
-      m = 0;
+      e = TRUE;
+      n = n / pow(10.0, exp);
     }
     else {
       /* un-exponent (normal) representation */
-      m = exp;
-      if (m < 0) {
-        m = 0;
+      if (exp > 0) {
+        m = exp;
       }
     }
 
     /* puts digits */
     while (max_digit >= 0) {
       mrb_float weight = pow(10.0, m);
-      digit = (int)floor(n / weight + FLT_EPSILON);
+      mrb_float fdigit = n / weight;
+      if (m < -1 && fdigit < FLT_EPSILON) {
+        if (e || exp > 0 || m <= -abs(exp)) {
+          break;
+        }
+      }
+      digit = (int)floor(fdigit + FLT_EPSILON);
+      if (m == 0 && digit > 9) {
+        n /= 10.0;
+        exp++;
+        continue;
+      }
       *(c++) = '0' + digit;
       n -= (digit * weight);
       max_digit--;
       if (m-- == 0) {
         *(c++) = '.';
-      }
-      else if (m < -1 && n < FLT_EPSILON) {
-        break;
       }
     }
 
