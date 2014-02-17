@@ -22,8 +22,8 @@
 #define STRINGIZE(expr) STRINGIZE0(expr)
 
 #define MRUBY_DESCRIPTION             \
-    "mruby "MRUBY_VERSION             \
-    " ("MRUBY_RELEASE_DATE") " 
+    "mruby " MRUBY_VERSION             \
+    " (" MRUBY_RELEASE_DATE ") " 
 #define MRUBY_COPYRIGHT               \
     "mruby - Copyright (c) "          \
     STRINGIZE(MRUBY_BIRTH_YEAR)"-"    \
