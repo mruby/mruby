@@ -181,6 +181,12 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
         *(c++) = '.';
       }
     }
+    if (c[-1] == '0') {
+      while (&s[0] < c && c[-1] == '0') {
+        c--;
+      }
+      c++;
+    }
 
     if (e) {
       *(c++) = 'e';
