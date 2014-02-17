@@ -18,7 +18,6 @@
 #define floor(f) floorf(f)
 #define ceil(f) ceilf(f)
 #define fmod(x,y) fmodf(x,y)
-#define pow(x,y) powf(x,y)
 #define FLO_MAX_DIGITS 7
 #define FLO_EPSILON FLT_EPSILON
 #else
@@ -110,14 +109,14 @@ num_div(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
 {
-  mrb_float n;
+  double n;
   int max_digits = FLO_MAX_DIGITS;
 
   if (!mrb_float_p(flo)) {
     mrb_raise(mrb, E_TYPE_ERROR, "non float value");
   }
 
-  n = mrb_float(flo);
+  n = (double)mrb_float(flo);
 
   if (isnan(n)) {
     return mrb_str_new_lit(mrb, "NaN");
@@ -159,8 +158,8 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
 
     /* puts digits */
     while (max_digits >= 0) {
-      mrb_float weight = pow(10.0, m);
-      mrb_float fdigit = n / weight;
+      double weight = pow(10.0, m);
+      double fdigit = n / weight;
       
       if (fdigit < 0) fdigit = n = 0;
       if (m < -1 && fdigit < FLO_EPSILON) {
