@@ -19,6 +19,7 @@
 #define ceil(f) ceilf(f)
 #define floor(f) floorf(f)
 #define fmod(x,y) fmodf(x,y)
+#define pow(x,y) powf(x,y)
 #endif
 
 static mrb_float
