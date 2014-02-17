@@ -159,6 +159,8 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
     while (max_digit >= 0) {
       mrb_float weight = pow(10.0, m);
       mrb_float fdigit = n / weight;
+      
+      if (fdigit < 0) fdigit = n = 0;
       if (m < -1 && fdigit < FLT_EPSILON) {
         if (e || exp > 0 || m <= -abs(exp)) {
           break;
