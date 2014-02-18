@@ -106,7 +106,7 @@ num_div(mrb_state *mrb, mrb_value x)
  *  representation.
  */
 
-mrb_value
+static mrb_value
 mrb_flo_to_str(mrb_state *mrb, mrb_float flo)
 {
   double n = (double)flo;
