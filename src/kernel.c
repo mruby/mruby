@@ -10,7 +10,7 @@
 #include "mruby/proc.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
-#include "error.h"
+#include "mruby/error.h"
 
 typedef enum {
     NOEX_PUBLIC    = 0x00,

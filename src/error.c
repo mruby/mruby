@@ -14,7 +14,7 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/debug.h"
-#include "error.h"
+#include "mruby/error.h"
 
 mrb_value
 mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
