@@ -118,7 +118,6 @@ assert('String#capitalize', '15.2.10.5.7') do
 
   assert_equal 'abc', a
   assert_equal 'Abc', 'abc'.capitalize
-  assert_equal nil, 'Abc'.capitalize!
 end
 
 assert('String#capitalize!', '15.2.10.5.8') do
@@ -126,6 +125,7 @@ assert('String#capitalize!', '15.2.10.5.8') do
   a.capitalize!
 
   assert_equal 'Abc', a
+  assert_equal nil, 'Abc'.capitalize!
 end
 
 assert('String#chomp', '15.2.10.5.9') do
@@ -197,7 +197,6 @@ assert('String#downcase', '15.2.10.5.13') do
 
   assert_equal 'abc', a
   assert_equal 'ABC', b
-  assert_equal nil, 'abc'.downcase!
 end
 
 assert('String#downcase!', '15.2.10.5.14') do
@@ -206,6 +205,7 @@ assert('String#downcase!', '15.2.10.5.14') do
   a.downcase!
 
   assert_equal 'abc', a
+  assert_equal nil, 'abc'.downcase!
 end
 
 assert('String#each_line', '15.2.10.5.15') do
@@ -444,6 +444,7 @@ assert('String#upcase!', '15.2.10.5.43') do
   a.upcase!
 
   assert_equal 'ABC', a
+  assert_equal nil, 'ABC'.upcase!
 end
 
 # Not ISO specified
