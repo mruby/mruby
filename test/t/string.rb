@@ -118,6 +118,7 @@ assert('String#capitalize', '15.2.10.5.7') do
 
   assert_equal 'abc', a
   assert_equal 'Abc', 'abc'.capitalize
+  assert_equal nil, 'Abc'.capitalize!
 end
 
 assert('String#capitalize!', '15.2.10.5.8') do
@@ -196,6 +197,7 @@ assert('String#downcase', '15.2.10.5.13') do
 
   assert_equal 'abc', a
   assert_equal 'ABC', b
+  assert_equal nil, 'abc'.downcase!
 end
 
 assert('String#downcase!', '15.2.10.5.14') do
