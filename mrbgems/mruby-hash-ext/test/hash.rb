@@ -21,4 +21,9 @@ end
 assert('Hash#values_at') do
   h = { "cat" => "feline", "dog" => "canine", "cow" => "bovine" }
   assert_equal ["bovine", "feline"], h.values_at("cow", "cat")
+
+  keys = []
+  (0...1000).each { |v| keys.push "#{v}" }
+  h = Hash.new { |hash,k| hash[k] = k }
+  assert_equal keys, h.values_at(*keys)
 end
