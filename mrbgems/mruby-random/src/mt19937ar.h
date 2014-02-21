@@ -13,6 +13,9 @@ typedef struct {
     unsigned long gen_int;
     double gen_dbl;
   };
+
+  mrb_int seed;
+  mrb_bool has_seed;
 } mt_state;
 
 void mrb_random_init_genrand(mt_state *, unsigned long);
