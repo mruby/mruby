@@ -14,6 +14,7 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/error.h"
+#include "mruby/data.h"
 
 KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal)
 
@@ -406,6 +407,7 @@ to_hash(mrb_state *mrb, mrb_value val)
     i:      Integer        [mrb_int]
     b:      Boolean        [mrb_bool]
     n:      Symbol         [mrb_sym]
+    d:      Data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified
     &:      Block          [mrb_value]
     *:      rest argument  [mrb_value*,int]       Receive the rest of the arguments as an array.
     |:      optional                              Next argument of '|' and later are optional.
@@ -655,6 +657,19 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
             mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol", obj);
           }
           i++;
+        }
+      }
+      break;
+    case 'd':
+      {
+        void** datap;
+        struct mrb_data_type const* type;
+
+        datap = va_arg(ap, void**);
+        type = va_arg(ap, struct mrb_data_type const*);
+        if (i < argc) {
+          *datap = mrb_data_get_ptr(mrb, *sp++, type);
+          ++i;
         }
       }
       break;
