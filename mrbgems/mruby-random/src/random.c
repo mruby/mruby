@@ -13,13 +13,9 @@
 
 #include <time.h>
 
-#define GLOBAL_RAND_SEED_KEY          "$mrb_g_rand_seed"
-#define GLOBAL_RAND_SEED_KEY_CSTR_LEN 16
-
-#define INSTANCE_RAND_SEED_KEY          "$mrb_i_rand_seed"
-#define INSTANCE_RAND_SEED_KEY_CSTR_LEN 16
-
-#define MT_STATE_KEY          "$mrb_i_mt_state"
+static char const GLOBAL_RAND_SEED_KEY[] = "$mrb_g_rand_seed";
+static char const INSTANCE_RAND_SEED_KEY[] = "$mrb_i_rand_seed";
+static char const MT_STATE_KEY[] = "$mrb_i_mt_state";
 
 static const struct mrb_data_type mt_state_type = {
   MT_STATE_KEY, mrb_free,
@@ -143,7 +139,7 @@ mrb_random_g_rand_seed(mrb_state *mrb)
 {
   mrb_value seed;
   
-  seed = mrb_gv_get(mrb, mrb_intern(mrb, GLOBAL_RAND_SEED_KEY, GLOBAL_RAND_SEED_KEY_CSTR_LEN));
+  seed = mrb_gv_get(mrb, mrb_intern_lit(mrb, GLOBAL_RAND_SEED_KEY));
   if (mrb_nil_p(seed)) {
     mrb_random_mt_g_srand(mrb, mrb_nil_value());
   }
@@ -167,8 +163,8 @@ mrb_random_g_srand(mrb_state *mrb, mrb_value self)
 
   seed = get_opt(mrb);
   seed = mrb_random_mt_g_srand(mrb, seed);
-  old_seed = mrb_gv_get(mrb, mrb_intern(mrb, GLOBAL_RAND_SEED_KEY, GLOBAL_RAND_SEED_KEY_CSTR_LEN));
-  mrb_gv_set(mrb, mrb_intern(mrb, GLOBAL_RAND_SEED_KEY, GLOBAL_RAND_SEED_KEY_CSTR_LEN), seed);
+  old_seed = mrb_gv_get(mrb, mrb_intern_lit(mrb, GLOBAL_RAND_SEED_KEY));
+  mrb_gv_set(mrb, mrb_intern_lit(mrb, GLOBAL_RAND_SEED_KEY), seed);
   return old_seed;
 }
 
@@ -192,7 +188,7 @@ mrb_random_init(mrb_state *mrb, mrb_value self)
 
   seed = get_opt(mrb);
   seed = mrb_random_mt_srand(mrb, t, seed);
-  mrb_iv_set(mrb, self, mrb_intern(mrb, INSTANCE_RAND_SEED_KEY, INSTANCE_RAND_SEED_KEY_CSTR_LEN), seed);
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, INSTANCE_RAND_SEED_KEY), seed);
   
   DATA_PTR(self) = t;
   
@@ -205,7 +201,7 @@ mrb_random_rand_seed(mrb_state *mrb, mrb_value self)
   mrb_value seed;
   mt_state *t = DATA_PTR(self);
   
-  seed = mrb_iv_get(mrb, self, mrb_intern(mrb, INSTANCE_RAND_SEED_KEY, INSTANCE_RAND_SEED_KEY_CSTR_LEN));
+  seed = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, INSTANCE_RAND_SEED_KEY));
   if (mrb_nil_p(seed)) {
     mrb_random_mt_srand(mrb, t, mrb_nil_value());
   }
@@ -231,8 +227,8 @@ mrb_random_srand(mrb_state *mrb, mrb_value self)
 
   seed = get_opt(mrb);
   seed = mrb_random_mt_srand(mrb, t, seed);
-  old_seed = mrb_iv_get(mrb, self, mrb_intern(mrb, INSTANCE_RAND_SEED_KEY, INSTANCE_RAND_SEED_KEY_CSTR_LEN));
-  mrb_iv_set(mrb, self, mrb_intern(mrb, INSTANCE_RAND_SEED_KEY, INSTANCE_RAND_SEED_KEY_CSTR_LEN), seed);
+  old_seed = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, INSTANCE_RAND_SEED_KEY));
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, INSTANCE_RAND_SEED_KEY), seed);
 
   return old_seed;
 }
