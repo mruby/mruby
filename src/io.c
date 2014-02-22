@@ -12,7 +12,12 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/ext/io.h"
+
+#if MRUBY_RELEASE_NO < 10000
 #include "error.h"
+#else
+#include "mruby/error.h"
+#endif
 
 static int mrb_io_modestr_to_flags(mrb_state *mrb, const char *modestr);
 static int mrb_io_modenum_to_flags(mrb_state *mrb, int modenum);
