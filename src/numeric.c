@@ -148,6 +148,14 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
       /* exponent representation */
       e = TRUE;
       n = n / pow(10.0, exp);
+      if (isinf(n)) {
+        if (s[0] == '-') {
+          return mrb_str_new_lit(mrb, "-0.0");
+        }
+        else {
+          return mrb_str_new_lit(mrb, "0.0");
+        }
+      }
     }
     else {
       /* un-exponent (normal) representation */
