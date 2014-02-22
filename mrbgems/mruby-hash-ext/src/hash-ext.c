@@ -23,12 +23,14 @@ static mrb_value
 hash_values_at(mrb_state *mrb, mrb_value hash)
 {
   mrb_value *argv, result;
-  int argc, i;
+  int argc, i, ai;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   result = mrb_ary_new_capa(mrb, argc);
+  ai = mrb_gc_arena_save(mrb);
   for (i = 0; i < argc; i++) {
     mrb_ary_push(mrb, result, mrb_hash_get(mrb, hash, argv[i]));
+    mrb_gc_arena_restore(mrb, ai);
   }
   return result;
 }
