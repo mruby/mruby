@@ -52,7 +52,7 @@ module MRuby
 
     Exts = Struct.new(:object, :executable, :library)
 
-    def initialize(name='host', &block)
+    def initialize(name='host', build_dir=nil, &block)
       @name = name.to_s
 
       unless MRuby.targets[@name]
@@ -62,9 +62,11 @@ module MRuby
           @exts = Exts.new('.o', '', '.a')
         end
 
+        build_dir = build_dir || ENV['MRUBY_BUILD_DIR'] || "#{MRUBY_ROOT}/build"
+
         @file_separator = '/'
-        @build_dir = "#{MRUBY_ROOT}/build/#{@name}"
-        @gem_clone_dir = "#{MRUBY_ROOT}/build/mrbgems"
+        @build_dir = "#{build_dir}/#{@name}"
+        @gem_clone_dir = "#{build_dir}/mrbgems"
         @cc = Command::Compiler.new(self, %w(.c))
         @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp))
         @objc = Command::Compiler.new(self, %w(.m))
