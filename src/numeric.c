@@ -19,9 +19,11 @@
 #define ceil(f) ceilf(f)
 #define fmod(x,y) fmodf(x,y)
 #define FLO_MAX_DIGITS 7
+#define FLO_MAX_SIGN_LENGTH 3
 #define FLO_EPSILON FLT_EPSILON
 #else
 #define FLO_MAX_DIGITS 14
+#define FLO_MAX_SIGN_LENGTH 10
 #define FLO_EPSILON DBL_EPSILON
 #endif
 
@@ -159,6 +161,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
         }
       }
       if (beg >= 0) length = end - beg;
+      if (length > FLO_MAX_SIGN_LENGTH) length = FLO_MAX_SIGN_LENGTH;
     }
 
     if (abs(exp) + length >= FLO_MAX_DIGITS) {
