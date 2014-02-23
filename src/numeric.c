@@ -136,6 +136,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
     mrb_bool e = FALSE;
     char s[48];
     char *c = &s[0];
+    int length = 0;
 
     if (n < 0) {
       n = -n;
@@ -145,7 +146,6 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
     exp = (n > 1) ? floor(log10(n)) : -ceil(-log10(n));
     
     /* preserve significands */
-    int length = 0;
     if (exp < 0) {
       int i, beg = -1, end = 0;
       double f = n;
