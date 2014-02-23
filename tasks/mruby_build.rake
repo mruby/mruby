@@ -206,7 +206,7 @@ module MRuby
   class CrossBuild < Build
     attr_block %w(test_runner)
 
-    def initialize(name, &block)
+    def initialize(name, build_dir=nil, &block)
   @test_runner = Command::CrossTestRunner.new(self)
   super
     end
