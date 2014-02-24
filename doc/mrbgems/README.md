@@ -203,6 +203,7 @@ mruby can be extended with pure Ruby. It is possible to override existing
 classes or add new ones in this way. Put all Ruby files into the *mrblib*
 folder.
 
+
 ### Pre-Conditions
 
 none
@@ -228,6 +229,10 @@ none
 mruby can be extended with C and Ruby at the same time. It is possible to
 override existing classes or add new ones in this way. Put all Ruby files
 into the *mrblib* folder and all C files into the *src* folder.
+
+mruby codes under *mrblib* directory would be executed after gem init C
+function is called. Make sure *mruby script* depends on *C code* and
+*C code* doesn't depend on *mruby script*.
 
 ### Pre-Conditions
 
