@@ -1,7 +1,7 @@
 MRuby::Toolchain.new(:gcc) do |conf|
   [conf.cc, conf.objc, conf.asm].each do |cc|
     cc.command = ENV['CC'] || 'gcc'
-    cc.flags = [ENV['CFLAGS'] || %w(-g -std=gnu99 -O3 -Wall -Werror-implicit-function-declaration -Wdeclaration-after-statement -Werror=declaration-after-statement)]
+    cc.flags = [ENV['CFLAGS'] || %w(-g -std=gnu99 -O3 -Wall -Werror-implicit-function-declaration -Wdeclaration-after-statement)]
     cc.include_paths = ["#{MRUBY_ROOT}/include"]
     cc.defines = %w(DISABLE_GEMS)
     cc.option_include_path = '-I%s'
