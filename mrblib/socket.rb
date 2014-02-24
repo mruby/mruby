@@ -139,6 +139,21 @@ class Addrinfo
   attr_reader :protocol
   attr_reader :socktype
 
+  def _to_array
+    case @family
+    when Socket::AF_INET
+      s = "AF_INET"
+    when Socket::AF_INET6
+      s = "AF_INET6"
+    when Socket::AF_UNIX
+      s = "AF_UNIX"
+    else
+      s = "(unknown AF)"
+    end
+    addr, port = self.getnameinfo(Socket::NI_NUMERICHOST|Socket::NI_NUMERICSERV)
+    [ s, port.to_i, addr, addr ]
+  end
+
   def to_sockaddr 
     @sockaddr
   end
@@ -189,35 +204,21 @@ class BasicSocket
 end
 
 class IPSocket
-  def self.getddress(host)
+  def self.getaddress(host)
     Addrinfo.ip(host).ip_address
   end
 
-  def _ai_to_array(ai)
-    case ai.afamily
-    when Socket::AF_INET
-      s = "AF_INET"
-    when Socket::AF_INET6
-      s = "AF_INET6"
-    when Socket::AF_UNIX
-      s = "AF_UNIX"
-    else
-      s = "(unknown AF)"
-    end
-    [ s, ai.ip_port, ai.ip_address, ai.ip_address ]
-  end
-
   def addr
-    _ai_to_array(Addrinfo.new(self.getsockname))
+    Addrinfo.new(self.getsockname)._to_array
   end
 
   def peeraddr
-    _ai_to_array(Addrinfo.new(self.getpeername))
+    Addrinfo.new(self.getpeername)._to_array
   end
 
   def recvfrom(maxlen, flags=0)
     msg, sa = _recvfrom(maxlen, flags)
-    [ msg, _ai_to_array(Addrinfo.new(sa)) ]
+    [ msg, Addrinfo.new(sa)._to_array ]
   end
 end
 
@@ -328,9 +329,16 @@ class Socket
 
   #def self.accept_loop
 
-  # def self.getaddrinfo
-    # by Addrinfo.getaddrinfo
-  #end
+  def self.getaddrinfo(nodename, servname, family=nil, socktype=nil, protocol=nil, flags=0)
+    Addrinfo.getaddrinfo(nodename, servname, family, socktype, protocol, flags).map { |ai|
+      ary = ai._to_array
+      ary[2] = nodename
+      ary[4] = ai.afamily
+      ary[5] = ai.socktype
+      ary[6] = ai.protocol
+      ary
+    }
+  end
 
   #def self.getnameinfo
   #def self.ip_address_list
