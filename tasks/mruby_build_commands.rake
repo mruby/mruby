@@ -110,7 +110,7 @@ module MRuby
         File.read(file).gsub("\\\n ", "").scan(/^\S+:\s+(.+)$/).flatten.map {|s| s.split(' ') }.flatten
       else
         []
-      end
+      end + [ MRUBY_CONFIG ]
     end
   end
 
