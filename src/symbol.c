@@ -97,7 +97,7 @@ mrb_value
 mrb_check_intern(mrb_state *mrb, const char *name, size_t len)
 {
   khash_t(n2s) *h = mrb->name2sym;
-  symbol_name sname;
+  symbol_name sname = { 0 };
   khiter_t k;
 
   if (len > UINT16_MAX) {
