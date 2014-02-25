@@ -2406,7 +2406,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
 {
     const char *p, *pend;
     char buf[CHAR_ESC_LEN + 1];
-    mrb_value result = mrb_str_new(mrb, "\"", 1);
+    mrb_value result = mrb_str_new_lit(mrb, "\"");
 
     p = RSTRING_PTR(str); pend = RSTRING_END(str);
     for (;p < pend; p++) {

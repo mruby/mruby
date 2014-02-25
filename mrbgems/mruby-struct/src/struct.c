@@ -442,7 +442,7 @@ static mrb_value
 inspect_struct(mrb_state *mrb, mrb_value s, int recur)
 {
   const char *cn = mrb_class_name(mrb, mrb_obj_class(mrb, s));
-  mrb_value members, str = mrb_str_new(mrb, "#<struct ", 9);
+  mrb_value members, str = mrb_str_new_lit(mrb, "#<struct ");
   mrb_value *ptr, *ptr_members;
   mrb_int i, len;
 
