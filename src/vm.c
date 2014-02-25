@@ -1342,7 +1342,8 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
               goto L_RAISE;
             }
             if (mrb->c->prev->ci == mrb->c->prev->cibase) {
-              mrb_value exc = mrb_exc_new_str(mrb, E_RUNTIME_ERROR, mrb_str_new(mrb, "double resume", 13));
+              static const char m[] = "double resume";
+              mrb_value exc = mrb_exc_new(mrb, E_RUNTIME_ERROR, m, sizeof(m) - 1);
               mrb->exc = mrb_obj_ptr(exc);
               goto L_RAISE;
             }
