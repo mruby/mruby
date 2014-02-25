@@ -47,7 +47,7 @@ usage(const char *name)
 }
 
 static char *
-get_outfilename(mrb_state *mrb, char *infile, char *ext)
+get_outfilename(mrb_state *mrb, char *infile, const char *ext)
 {
   size_t infilelen;
   size_t extlen;

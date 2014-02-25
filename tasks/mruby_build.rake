@@ -81,6 +81,7 @@ module MRuby
         @bins = %w(mrbc)
         @gems, @libmruby = MRuby::Gem::List.new, []
         @build_mrbtest_lib_only = false
+        @cxx_abi_enabled = false
 
         MRuby.targets[@name] = self
       end
@@ -92,6 +93,16 @@ module MRuby
     def enable_debug
       compilers.each { |c| c.defines += %w(MRB_DEBUG) }
       @mrbc.compile_options += ' -g'
+    end
+
+    def cxx_abi_enabled?
+      @cxx_abi_enabled
+    end
+
+    def enable_cxx_abi
+      return if @cxx_abi_enabled
+      compilers.each { |c| c.defines += %w(MRB_ENABLE_CXX_EXCEPTION) }
+      @cxx_abi_enabled = true
     end
 
     def toolchain(name)

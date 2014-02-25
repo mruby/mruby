@@ -16,6 +16,7 @@
 #include "node.h"
 #include "opcode.h"
 #include "re.h"
+#include "mrb_throw.h"
 
 typedef mrb_ast_node node;
 typedef struct mrb_parser_state parser_state;
@@ -38,7 +39,7 @@ struct loopinfo {
 typedef struct scope {
   mrb_state *mrb;
   mrb_pool *mpool;
-  jmp_buf jmp;
+  struct mrb_jmpbuf jmp;
 
   struct scope *prev;
 
@@ -101,7 +102,7 @@ codegen_error(codegen_scope *s, const char *message)
     fprintf(stderr, "codegen error: %s\n", message);
   }
 #endif
-  longjmp(s->jmp, 1);
+  MRB_THROW(&s->jmp);
 }
 
 static void*
@@ -2487,7 +2488,7 @@ scope_finish(codegen_scope *s)
     mrb_debug_info_append_file(mrb, s->irep, s->debug_start_pos, s->pc);
 
     fname_len = strlen(s->filename);
-    fname = codegen_malloc(s, fname_len + 1);
+    fname = (char*)codegen_malloc(s, fname_len + 1);
     memcpy(fname, s->filename, fname_len);
     fname[fname_len] = '\0';
     irep->filename = fname;
@@ -2920,7 +2921,8 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
   scope->parser = p;
   scope->filename = p->filename;
   scope->filename_index = p->current_filename_index;
-  if (setjmp(scope->jmp) == 0) {
+
+  MRB_TRY(&scope->jmp) {
     /* prepare irep */
     codegen(scope, p->tree, NOVAL);
     proc = mrb_proc_new(mrb, scope->irep);
@@ -2928,7 +2930,7 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
     mrb_pool_close(scope->mpool);
     return proc;
   }
-  else {
+  MRB_CATCH(&scope->jmp) {
     if (scope->filename == scope->irep->filename) {
       scope->irep->filename = NULL;
     }
@@ -2936,4 +2938,5 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
     mrb_pool_close(scope->mpool);
     return NULL;
   }
+  MRB_END_EXC(&scope->jmp);
 }

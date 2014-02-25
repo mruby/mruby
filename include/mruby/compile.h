@@ -12,7 +12,8 @@ extern "C" {
 #endif
 
 #include "mruby.h"
-#include <setjmp.h>
+
+struct mrb_jmpbuf;
 
 struct mrb_parser_state;
 /* load context */
@@ -147,7 +148,7 @@ struct mrb_parser_state {
   size_t filename_table_length;
   int current_filename_index;
 
-  jmp_buf jmp;
+  struct mrb_jmpbuf* jmp;
 };
 
 struct mrb_parser_state* mrb_parser_new(mrb_state*);

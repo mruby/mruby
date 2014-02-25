@@ -25,6 +25,7 @@
 #include "mruby/compile.h"
 #include "mruby/proc.h"
 #include "node.h"
+#include "mrb_throw.h"
 
 #define YYLEX_PARAM p
 
@@ -103,7 +104,7 @@ parser_palloc(parser_state *p, size_t size)
   void *m = mrb_pool_alloc(p->pool, size);
 
   if (!m) {
-    longjmp(p->jmp, 1);
+    MRB_THROW(p->jmp);
   }
   return m;
 }
@@ -5189,12 +5190,10 @@ void mrb_parser_dump(mrb_state *mrb, node *tree, int offset);
 void
 mrb_parser_parse(parser_state *p, mrbc_context *c)
 {
-  if (setjmp(p->jmp) != 0) {
-    yyerror(p, "memory allocation error");
-    p->nerr++;
-    p->tree = 0;
-    return;
-  }
+  struct mrb_jmpbuf buf;
+  p->jmp = &buf;
+
+  MRB_TRY(p->jmp) {
 
   p->cmd_start = TRUE;
   p->in_def = p->in_single = 0;
@@ -5210,6 +5209,15 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
   if (c && c->dump_result) {
     mrb_parser_dump(p->mrb, p->tree, 0);
   }
+
+  }
+  MRB_CATCH(p->jmp) {
+    yyerror(p, "memory allocation error");
+    p->nerr++;
+    p->tree = 0;
+    return;
+  }
+  MRB_END_EXC(p->jmp);
 }
 
 parser_state*
@@ -5316,7 +5324,7 @@ mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
 
   p->current_filename_index = p->filename_table_length++;
 
-  new_table = parser_palloc(p, sizeof(mrb_sym) * p->filename_table_length);
+  new_table = (mrb_sym*)parser_palloc(p, sizeof(mrb_sym) * p->filename_table_length);
   if (p->filename_table) {
     memcpy(new_table, p->filename_table, sizeof(mrb_sym) * p->filename_table_length);
   }

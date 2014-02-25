@@ -143,9 +143,10 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep *irep,
 
   ret = (mrb_irep_debug_info_file *)mrb_malloc(mrb, sizeof(*ret));
   info->files =
-      (mrb_irep_debug_info_file*)info->files
-      ? mrb_realloc(mrb, info->files, sizeof(mrb_irep_debug_info_file*) * (info->flen + 1))
-      : mrb_malloc(mrb, sizeof(mrb_irep_debug_info_file*));
+      (mrb_irep_debug_info_file**)(
+          info->files
+          ? mrb_realloc(mrb, info->files, sizeof(mrb_irep_debug_info_file*) * (info->flen + 1))
+          : mrb_malloc(mrb, sizeof(mrb_irep_debug_info_file*)));
   info->files[info->flen++] = ret;
 
   file_pc_count = end_pos - start_pos;
@@ -164,7 +165,7 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep *irep,
   switch(ret->line_type) {
     case mrb_debug_line_ary:
       ret->line_entry_count = file_pc_count;
-      ret->line_ary = mrb_malloc(mrb, sizeof(uint16_t) * file_pc_count);
+      ret->line_ary = (uint16_t*)mrb_malloc(mrb, sizeof(uint16_t) * file_pc_count);
       for(i = 0; i < file_pc_count; ++i) {
         ret->line_ary[i] = irep->lines[start_pos + i];
       }
@@ -173,12 +174,12 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep *irep,
     case mrb_debug_line_flat_map: {
       uint16_t prev_line = 0;
       mrb_irep_debug_info_line m;
-      ret->line_flat_map = mrb_malloc(mrb, sizeof(mrb_irep_debug_info_line) * 1);
+      ret->line_flat_map = (mrb_irep_debug_info_line*)mrb_malloc(mrb, sizeof(mrb_irep_debug_info_line) * 1);
       ret->line_entry_count = 0;
       for(i = 0; i < file_pc_count; ++i) {
         if(irep->lines[start_pos + i] == prev_line) { continue; }
 
-        ret->line_flat_map = mrb_realloc(
+        ret->line_flat_map = (mrb_irep_debug_info_line*)mrb_realloc(
             mrb, ret->line_flat_map,
             sizeof(mrb_irep_debug_info_line) * (ret->line_entry_count + 1));
         m.start_pos = start_pos + i;

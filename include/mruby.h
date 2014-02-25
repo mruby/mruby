@@ -97,8 +97,10 @@ enum gc_state {
   GC_STATE_SWEEP
 };
 
+struct mrb_jmpbuf;
+
 typedef struct mrb_state {
-  void *jmp;
+  struct mrb_jmpbuf *jmp;
 
   mrb_allocf allocf;                      /* memory allocation function */
 

@@ -15,6 +15,7 @@
 #include "mruby/variable.h"
 #include "mruby/debug.h"
 #include "mruby/error.h"
+#include "mrb_throw.h"
 
 mrb_value
 mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
@@ -221,7 +222,7 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
     mrb_p(mrb, exc);
     abort();
   }
-  mrb_longjmp(mrb);
+  MRB_THROW(mrb->jmp);
 }
 
 void
@@ -430,6 +431,10 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
     mrb_raise(mrb, E_RUNTIME_ERROR, mesg);
   }
 }
+
+#ifdef MRB_ENABLE_CXX_EXCEPTION
+mrb_int mrb_jmpbuf::jmpbuf_id = 0;
+#endif
 
 void
 mrb_init_exception(mrb_state *mrb)
