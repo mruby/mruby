@@ -57,11 +57,42 @@ typedef short mrb_sym;
 # define snprintf _snprintf
 # if _MSC_VER < 1800
 #  include <float.h>
-#  define isnan _isnan
-#  define isinf(n) (!_finite(n) && !_isnan(n))
-#  define signbit(n) (_copysign(1.0, (n)) < 0.0)
-#  define strtoll _strtoi64
-#  define strtof (float)strtod
+#  define FP_INFINITE    1
+#  define FP_NAN         2
+#  define FP_NORMAL    (-1)
+#  define FP_SUBNORMAL (-2)
+#  define FP_ZERO        0
+static inline int
+mrb_msvc_fpclassify(double x)
+{
+  switch (_fpclass(x)) {
+    case _FPCLASS_NINF:
+    case _FPCLASS_PINF:
+      return FP_INFINITE;
+    case _FPCLASS_SNAN:
+    case _FPCLASS_QNAN:
+      return FP_NAN;
+    case _FPCLASS_NN:
+    case _FPCLASS_PN:
+      return FP_NORMAL;
+    case _FPCLASS_ND:
+    case _FPCLASS_PD:
+      return FP_SUBNORMAL;
+    case _FPCLASS_NZ:
+    case _FPCLASS_PZ:
+      return FP_ZERO;
+    default:
+      /* unreachable */
+      mrb_assert(0);
+      return FP_NAN;
+  }
+}
+#  define fpclassify(x) mrb_msvc_fpclassify(x)
+#  define isnan(x) _isnan(x)
+#  define isinf(x) (!_finite(x) && !_isnan(x))
+#  define signbit(x) (_copysign(1.0, (x)) < 0.0)
+#  define strtoll(nptr, endptr, base) _strtoi64(nptr, endptr, base)
+#  define strtof(nptr, endptr) ((float)strtod(nptr, endptr))
 #  define PRId32 "I32d"
 #  define PRIi32 "I32i"
 #  define PRIo32 "I32o"
@@ -133,12 +164,12 @@ typedef struct mrb_value {
     union {
       void *p;
       struct {
-	MRB_ENDIAN_LOHI(
- 	  uint32_t ttt;
+        MRB_ENDIAN_LOHI(
+          uint32_t ttt;
           ,union {
-	    mrb_int i;
-	    mrb_sym sym;
-	  };
+            mrb_int i;
+            mrb_sym sym;
+          };
         )
       };
     } value;
