@@ -130,7 +130,7 @@ assert('IO#read') do
   io = IO.new fd
   assert_equal 'mruby', io.read(5)
   assert_equal $mrbtest_io_msg[5,100] + "\n", io.read
-  assert_equal nil,  io.read
+  assert_equal "", io.read
   io.close
   io.closed?
 end
@@ -249,6 +249,29 @@ assert('IO.popen') do
   assert_include ls, 'mrblib'
   io.close
   io.closed?
+end
+
+assert('IO.read') do
+  # empty file
+  fd = IO.sysopen $mrbtest_io_wfname, "w"
+  io = IO.new fd, "w"
+  io.close
+  assert_equal "",  IO.read($mrbtest_io_wfname)
+  assert_equal nil, IO.read($mrbtest_io_wfname, 1)
+
+  # one byte file
+  fd = IO.sysopen $mrbtest_io_wfname, "w"
+  io = IO.new fd, "w"
+  io.write "123"
+  io.close
+  assert_equal "123", IO.read($mrbtest_io_wfname)
+  assert_equal "",    IO.read($mrbtest_io_wfname, 0)
+  assert_equal "1",   IO.read($mrbtest_io_wfname, 1)
+  assert_equal "",    IO.read($mrbtest_io_wfname, 0, 10)
+  assert_equal "23",  IO.read($mrbtest_io_wfname, 2, 1)
+  assert_equal "23",  IO.read($mrbtest_io_wfname, 10, 1)
+  assert_equal "",    IO.read($mrbtest_io_wfname, nil, 10)
+  assert_equal nil,   IO.read($mrbtest_io_wfname, 1, 10)
 end
 
 assert('IO#fileno') do

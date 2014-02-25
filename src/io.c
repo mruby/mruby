@@ -3,7 +3,6 @@
 */
 
 #include "mruby.h"
-
 #include "mruby/hash.h"
 #include "mruby/data.h"
 #include "mruby/khash.h"
@@ -370,6 +369,17 @@ mrb_io_s_for_fd(mrb_state *mrb, mrb_value klass)
   mrb_value io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
 
   return mrb_io_initialize(mrb, io);
+}
+
+mrb_value
+mrb_io_s_sysclose(mrb_state *mrb, mrb_value klass)
+{
+  mrb_int fd;
+  mrb_get_args(mrb, "i", &fd);
+  if (close(fd) == -1) {
+    mrb_sys_fail(mrb, "close");
+  }
+  return mrb_fixnum_value(0);
 }
 
 mrb_value
@@ -741,9 +751,10 @@ mrb_init_io(mrb_state *mrb)
   mrb_include_module(mrb, io, mrb_module_get(mrb, "Enumerable")); /* 15.2.20.3 */
 
   mrb_define_class_method(mrb, io, "_popen",  mrb_io_s_popen,   MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, io, "_sysclose",  mrb_io_s_sysclose, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io, "for_fd",  mrb_io_s_for_fd,  MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2));
-  mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "select",  mrb_io_s_select,  MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, MRB_ARGS_ANY());
 
   mrb_define_method(mrb, io, "initialize", mrb_io_initialize, MRB_ARGS_ANY());    /* 15.2.20.5.21 (x)*/
   mrb_define_method(mrb, io, "sysread",    mrb_io_sysread,    MRB_ARGS_ANY());

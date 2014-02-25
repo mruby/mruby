@@ -41,6 +41,54 @@ class IO
     end
   end
 
+
+  def self.read(path, length=nil, offset=nil, opt=nil)
+    if not opt.nil?        # 4 arguments
+      offset ||= 0
+    elsif not offset.nil?  # 3 arguments
+      if offset.is_a? Hash
+        opt = offset
+        offset = 0
+      else
+        opt = {}
+      end
+    elsif not length.nil?  # 2 arguments
+      if length.is_a? Hash
+        opt = length
+        offset = 0
+        length = nil
+      else
+        offset = 0
+        opt = {}
+      end
+    else                   # only 1 argument
+      opt = {}
+      offset = 0
+      length = nil
+    end
+
+    str = ""
+    fd = -1
+    io = nil
+    begin
+      if path[0] == "|"
+        io = IO.popen(path[1..-1], (opt[:mode] || "r"))
+      else
+        fd = IO.sysopen(path)
+        io = IO.open(fd, opt[:mode] || "r")
+      end
+      io.seek(offset) if offset > 0
+      str = io.read(length)
+    ensure
+      if io
+        io.close
+      elsif fd != -1
+        IO._sysclose(fd)
+      end
+    end
+    str
+  end
+
   def flush
     # mruby-io always writes immediately (no output buffer).
     self
@@ -130,7 +178,7 @@ class IO
       begin
         _read_buf
       rescue EOFError => e
-        str = nil  if str.empty?
+        str = nil if str.empty? and (not length.nil?) and length != 0
         break
       end
 

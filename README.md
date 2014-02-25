@@ -18,7 +18,7 @@ IO, File module for mruby
 | IO.foreach                 |          |      |
 | IO.pipe                    |          |      |
 | IO.popen                   |    o     |      |
-| IO.read                    |          |      |
+| IO.read                    |    o     |      |
 | IO.readlines               |          |      |
 | IO.select                  |          |      |
 | IO.sysopen                 |    o     |      |
