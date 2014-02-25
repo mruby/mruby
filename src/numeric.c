@@ -108,17 +108,11 @@ num_div(mrb_state *mrb, mrb_value x)
  *  representation.
  */
 
-mrb_value
-mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
+static mrb_value
+mrb_flo_to_str(mrb_state *mrb, mrb_float flo)
 {
-  double n;
+  double n = (double)flo;
   int max_digits = FLO_MAX_DIGITS;
-
-  if (!mrb_float_p(flo)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "non float value");
-  }
-
-  n = (double)mrb_float(flo);
 
   if (isnan(n)) {
     return mrb_str_new_lit(mrb, "NaN");
@@ -140,12 +134,22 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
     char *c = &s[0];
     int length = 0;
 
-    if (n < 0) {
+    if (signbit(n)) {
       n = -n;
       *(c++) = '-';
     }
 
-    exp = (n > 1) ? floor(log10(n)) : -ceil(-log10(n));
+    if (n != 0.0) {
+      if (n > 1.0) {
+        exp = (int)floor(log10(n));
+      }
+      else {
+        exp = (int)-ceil(-log10(n));
+      }
+    }
+    else {
+      exp = 0;
+    }
     
     /* preserve significands */
     if (exp < 0) {
@@ -188,7 +192,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
     while (max_digits >= 0) {
       double weight = pow(10.0, m);
       double fdigit = n / weight;
-      
+
       if (fdigit < 0) fdigit = n = 0;
       if (m < -1 && fdigit < FLO_EPSILON) {
         if (e || exp > 0 || m <= -abs(exp)) {
@@ -254,7 +258,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
 static mrb_value
 flo_to_s(mrb_state *mrb, mrb_value flt)
 {
-  return mrb_flo_to_str(mrb, flt);
+  return mrb_flo_to_str(mrb, mrb_float(flt));
 }
 
 /* 15.2.9.3.2  */
