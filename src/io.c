@@ -4,10 +4,9 @@
 
 #include "mruby.h"
 #include "mruby/hash.h"
-#include "mruby/data.h"
-#include "mruby/khash.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
+#include "mruby/data.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/ext/io.h"
@@ -19,7 +18,6 @@
 #endif
 
 static int mrb_io_modestr_to_flags(mrb_state *mrb, const char *modestr);
-static int mrb_io_modenum_to_flags(mrb_state *mrb, int modenum);
 static int mrb_io_flags_to_modenum(mrb_state *mrb, int flags);
 
 #if MRUBY_RELEASE_NO < 10000
@@ -64,41 +62,6 @@ mrb_io_modestr_to_flags(mrb_state *mrb, const char *mode)
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
     }
   }
-
-  return flags;
-}
-
-static int
-mrb_io_modenum_to_flags(mrb_state *mrb, int modenum)
-{
-  int flags = 0;
-
-  switch (modenum & (O_RDONLY|O_WRONLY|O_RDWR)) {
-    case O_RDONLY:
-      flags = FMODE_READABLE;
-      break;
-    case O_WRONLY:
-      flags = FMODE_WRITABLE;
-      break;
-    case O_RDWR:
-      flags = FMODE_READWRITE;
-      break;
-  }
-
-  if (modenum & O_APPEND) {
-    flags |= FMODE_APPEND;
-  }
-  if (modenum & O_TRUNC) {
-    flags |= FMODE_TRUNC;
-  }
-  if (modenum & O_CREAT) {
-    flags |= FMODE_CREATE;
-  }
-#ifdef O_BINARY
-  if (modenum & O_BINARY) {
-    flags |= FMODE_BINMODE;
-  }
-#endif
 
   return flags;
 }
