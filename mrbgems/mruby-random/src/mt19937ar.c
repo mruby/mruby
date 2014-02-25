@@ -14,8 +14,10 @@
 #define UPPER_MASK 0x80000000UL /* most significant w-r bits */
 #define LOWER_MASK 0x7fffffffUL /* least significant r bits */
 
+#if 0 /* dead_code */
 static unsigned long mt[N]; /* the array for the state vector  */
 static int mti=N+1; /* mti==N+1 means mt[N] is not initialized */
+#endif /* dead_code */
 
 void mrb_random_init_genrand(mt_state *t, unsigned long s)
 {
@@ -74,6 +76,7 @@ double mrb_random_genrand_real1(mt_state *t)
     /* divided by 2^32-1 */ 
 }
 
+#if 0 /* dead_code */
 /* initializes mt[N] with a seed */
 void init_genrand(unsigned long s)
 {
@@ -191,3 +194,4 @@ double genrand_res53(void)
     return(a*67108864.0+b)*(1.0/9007199254740992.0); 
 } 
 /* These real versions are due to Isaku Wada, 2002/01/09 added */
+#endif /* dead_code */

@@ -93,11 +93,16 @@ enum mrb_timezone {
   MRB_TIMEZONE_LAST   = 3
 };
 
-static const char *timezone_names[] = {
-  "none",
-  "UTC",
-  "LOCAL",
-   NULL
+typedef struct mrb_timezone_name {
+  const char *name;
+  size_t len;
+} mrb_timezone_name;
+
+static mrb_timezone_name timezone_names[] = {
+  { "none", sizeof("none") - 1 },
+  { "UTC",  sizeof("UTC") - 1 },
+  { "LOCAL", sizeof("LOCAL") - 1 },
+  { NULL, 0 }
 };
 
 static const char *mon_names[] = {
@@ -401,7 +406,9 @@ mrb_time_zone(mrb_state *mrb, mrb_value self)
   tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   if (tm->timezone <= MRB_TIMEZONE_NONE) return mrb_nil_value();
   if (tm->timezone >= MRB_TIMEZONE_LAST) return mrb_nil_value();
-  return mrb_str_new_cstr(mrb, timezone_names[tm->timezone]);
+  return mrb_str_new_static(mrb, 
+                            timezone_names[tm->timezone].name,
+                            timezone_names[tm->timezone].len);
 }
 
 /* 15.2.19.7.4 */
