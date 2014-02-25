@@ -39,29 +39,29 @@ mrb_proc_inspect(mrb_state *mrb, mrb_value self)
 
   if (!MRB_PROC_CFUNC_P(p)) {
     mrb_irep *irep = p->body.irep;
-    mrb_str_cat_cstr(mrb, str, "@");   
+    mrb_str_cat_lit(mrb, str, "@");
 
     if (irep->filename) {
       mrb_str_cat_cstr(mrb, str, irep->filename);
     }
     else {
-      mrb_str_cat_cstr(mrb, str, "-");
+      mrb_str_cat_lit(mrb, str, "-");
     }
-    mrb_str_cat_cstr(mrb, str, ":");
+    mrb_str_cat_lit(mrb, str, ":");
 
     if (irep->lines) {
       mrb_str_append(mrb, str, mrb_fixnum_value(*irep->lines));
     }
     else {
-      mrb_str_cat_cstr(mrb, str, "-");      
+      mrb_str_cat_lit(mrb, str, "-");
     }
   }
 
   if (MRB_PROC_STRICT_P(p)) {
-    mrb_str_cat_cstr(mrb, str, " (lambda)");
+    mrb_str_cat_lit(mrb, str, " (lambda)");
   }
 
-  mrb_str_cat_cstr(mrb, str, ">");
+  mrb_str_cat_lit(mrb, str, ">");
   return str;
 }
 
