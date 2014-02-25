@@ -506,7 +506,7 @@ mrb_io_pid(mrb_state *mrb, mrb_value io)
 static struct timeval
 time2timeval(mrb_state *mrb, mrb_value time)
 {
-  struct timeval t;
+  struct timeval t = { 0, 0 };
 
   switch (mrb_type(time)) {
     case MRB_TT_FIXNUM:
