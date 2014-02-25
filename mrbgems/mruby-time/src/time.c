@@ -406,9 +406,9 @@ mrb_time_zone(mrb_state *mrb, mrb_value self)
   tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   if (tm->timezone <= MRB_TIMEZONE_NONE) return mrb_nil_value();
   if (tm->timezone >= MRB_TIMEZONE_LAST) return mrb_nil_value();
-  return mrb_str_new(mrb, 
-                     timezone_names[tm->timezone].name,
-                     timezone_names[tm->timezone].len);
+  return mrb_str_new_static(mrb, 
+                            timezone_names[tm->timezone].name,
+                            timezone_names[tm->timezone].len);
 }
 
 /* 15.2.19.7.4 */
