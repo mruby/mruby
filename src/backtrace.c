@@ -57,14 +57,12 @@ get_backtrace_i(mrb_state *mrb, void *stream, int level, const char *format, ...
 }
 
 static void
-mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func func, void *stream)
+output_backtrace(mrb_state *mrb, mrb_int ciidx, mrb_code *pc0, output_stream_func func, void *stream)
 {
   mrb_callinfo *ci;
-  mrb_int ciidx;
   const char *filename, *method, *sep;
   int i, lineno, tracehead = 1;
 
-  ciidx = mrb_fixnum(mrb_obj_iv_get(mrb, exc, mrb_intern_lit(mrb, "ciidx")));
   if (ciidx >= mrb->c->ciend - mrb->c->cibase)
     ciidx = 10; /* ciidx is broken... */
 
@@ -87,7 +85,7 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
         pc = mrb->c->cibase[i+1].pc - 1;
       }
       else {
-        pc = (mrb_code*)mrb_cptr(mrb_obj_iv_get(mrb, exc, mrb_intern_lit(mrb, "lastpc")));
+        pc = pc0;
       }
       filename = mrb_debug_get_filename(irep, pc - irep->iseq);
       lineno = mrb_debug_get_line(irep, pc - irep->iseq);
@@ -129,6 +127,14 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
   }
 }
 
+static void
+exc_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func func, void *stream)
+{
+  output_backtrace(mrb, mrb_fixnum(mrb_obj_iv_get(mrb, exc, mrb_intern_lit(mrb, "ciidx"))),
+                   (mrb_code*)mrb_cptr(mrb_obj_iv_get(mrb, exc, mrb_intern_lit(mrb, "lastpc"))),
+                   func, stream);
+}
+
 /* mrb_print_backtrace/mrb_get_backtrace:
 
    function to retrieve backtrace information from the exception.
@@ -140,7 +146,7 @@ void
 mrb_print_backtrace(mrb_state *mrb)
 {
 #ifdef ENABLE_STDIO
-  mrb_output_backtrace(mrb, mrb->exc, print_backtrace_i, (void*)stderr);
+  exc_output_backtrace(mrb, mrb->exc, print_backtrace_i, (void*)stderr);
 #endif
 }
 
@@ -150,7 +156,19 @@ mrb_get_backtrace(mrb_state *mrb, mrb_value self)
   mrb_value ary;
 
   ary = mrb_ary_new(mrb);
-  mrb_output_backtrace(mrb, mrb_obj_ptr(self), get_backtrace_i, (void*)mrb_ary_ptr(ary));
+  exc_output_backtrace(mrb, mrb_obj_ptr(self), get_backtrace_i, (void*)mrb_ary_ptr(ary));
+
+  return ary;
+}
+
+mrb_value
+mrb_get_backtrace_at(mrb_state *mrb, mrb_callinfo *ci, mrb_code *pc)
+{
+  mrb_value ary;
+  mrb_int ciidx = ci - mrb->c->cibase;
+
+  ary = mrb_ary_new(mrb);
+  output_backtrace(mrb, ciidx, pc, get_backtrace_i, (void*)mrb_ary_ptr(ary));
 
   return ary;
 }
