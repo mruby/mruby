@@ -53,7 +53,6 @@ char *mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr);
 int mrb_str_offset(mrb_state *mrb, mrb_value str, int pos);
 mrb_value mrb_str_dup(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_intern(mrb_state *mrb, mrb_value self);
-mrb_value mrb_str_cat_cstr(mrb_state *, mrb_value, const char *);
 mrb_value mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, mrb_bool badcheck);
 double mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck);
 mrb_value mrb_str_to_str(mrb_state *mrb, mrb_value str);
@@ -63,6 +62,8 @@ mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
 mrb_bool mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2);
 mrb_value mrb_str_dump(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len);
+mrb_value mrb_str_cat_cstr(mrb_state *mrb, mrb_value str, const char *ptr);
+#define mrb_str_cat_lit(mrb, str, lit) mrb_str_cat(mrb, str, (lit), sizeof(lit) - 1)
 mrb_value mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2);
 
 int mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2);
