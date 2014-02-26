@@ -1,10 +1,3 @@
-# !!Notice!!
-    This is a preliminary release for internal team review.
-    The URLs and addresses described below are not available yet.
-    The official release will be announced later.
-    Any suggestions for modification are welcome.
-    Delays in replies are to be expected. Sorry in advance.
-
 [![Build Status](https://travis-ci.org/mruby/mruby.png?branch=master)](https://travis-ci.org/mruby/mruby)
 
 ## What's mruby
