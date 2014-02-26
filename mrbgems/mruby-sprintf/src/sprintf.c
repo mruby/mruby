@@ -654,6 +654,7 @@ retry:
       case '\n':
       case '\0':
         p--;
+        break;
 
       case '%':
         if (flags != FNONE) {
