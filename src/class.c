@@ -1189,22 +1189,28 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
   mrb_sym name;
   mrb_value *a;
   int alen;
-  mrb_value inspect;
+  mrb_sym inspect;
+  mrb_value repr;
 
   mrb_get_args(mrb, "n*", &name, &a, &alen);
 
-  if (mrb_respond_to(mrb,mod,mrb_intern_lit(mrb, "inspect"))){
-    inspect = mrb_funcall(mrb, mod, "inspect", 0);
-    if (RSTRING_LEN(inspect) > 64) {
-      inspect = mrb_any_to_s(mrb, mod);
+  inspect = mrb_intern_lit(mrb, "inspect");
+  if (mrb->c->ci > mrb->c->cibase && mrb->c->ci[-1].mid == inspect) {
+    /* method missing in inspect; avoid recursion */
+    repr = mrb_any_to_s(mrb, mod);
+  }
+  else if (mrb_respond_to(mrb, mod, inspect)) {
+    repr = mrb_funcall_argv(mrb, mod, inspect, 0, 0);
+    if (RSTRING_LEN(repr) > 64) {
+      repr = mrb_any_to_s(mrb, mod);
     }
   }
   else {
-    inspect = mrb_any_to_s(mrb, mod);
+    repr = mrb_any_to_s(mrb, mod);
   }
 
   mrb_raisef(mrb, E_NOMETHOD_ERROR, "undefined method '%S' for %S",
-             mrb_sym2str(mrb, name), inspect);
+             mrb_sym2str(mrb, name), repr);
   /* not reached */
   return mrb_nil_value();
 }
