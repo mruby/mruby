@@ -2173,7 +2173,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 mrb_value
 mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 {
-    return mrb_context_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
+  return mrb_context_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
 }
 
 void
