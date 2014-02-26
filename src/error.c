@@ -431,8 +431,6 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
   }
 }
 
-mrb_value mrb_get_backtrace(mrb_state*, mrb_value);
-
 void
 mrb_init_exception(mrb_state *mrb)
 {
@@ -446,7 +444,7 @@ mrb_init_exception(mrb_state *mrb)
   mrb_define_method(mrb, e, "to_s", exc_to_s, MRB_ARGS_NONE());
   mrb_define_method(mrb, e, "message", exc_message, MRB_ARGS_NONE());
   mrb_define_method(mrb, e, "inspect", exc_inspect, MRB_ARGS_NONE());
-  mrb_define_method(mrb, e, "backtrace", mrb_get_backtrace, MRB_ARGS_NONE());
+  mrb_define_method(mrb, e, "backtrace", mrb_exc_backtrace, MRB_ARGS_NONE());
 
   mrb->eStandardError_class     = mrb_define_class(mrb, "StandardError",       mrb->eException_class); /* 15.2.23 */
   mrb_define_class(mrb, "RuntimeError", mrb->eStandardError_class);                                    /* 15.2.28 */

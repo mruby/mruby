@@ -12,6 +12,7 @@
 #include "mruby/string.h"
 #include "mruby/class.h"
 #include "mruby/debug.h"
+#include "mruby/error.h"
 
 typedef void (*output_stream_func)(mrb_state*, void*, int, const char*, ...);
 
@@ -151,7 +152,7 @@ mrb_print_backtrace(mrb_state *mrb)
 }
 
 mrb_value
-mrb_get_backtrace(mrb_state *mrb, mrb_value self)
+mrb_exc_backtrace(mrb_state *mrb, mrb_value self)
 {
   mrb_value ary;
 
@@ -162,11 +163,14 @@ mrb_get_backtrace(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
-mrb_get_backtrace_at(mrb_state *mrb, mrb_callinfo *ci, mrb_code *pc)
+mrb_get_backtrace(mrb_state *mrb)
 {
   mrb_value ary;
-  mrb_int ciidx = ci - mrb->c->cibase;
+  mrb_callinfo *ci = mrb->c->ci;
+  mrb_code *pc = ci->pc;
+  mrb_int ciidx = ci - mrb->c->cibase - 1;
 
+  if (ciidx < 0) ciidx = 0;
   ary = mrb_ary_new(mrb);
   output_backtrace(mrb, ciidx, pc, get_backtrace_i, (void*)mrb_ary_ptr(ary));
 

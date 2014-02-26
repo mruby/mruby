@@ -14,7 +14,7 @@ mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
 void mrb_exc_print(mrb_state *mrb, struct RObject *exc);
 void mrb_longjmp(mrb_state *mrb);
 void mrb_print_backtrace(mrb_state *mrb);
-mrb_value mrb_get_backtrace(mrb_state *mrb, mrb_value exc);
-void mrb_get_backtrace_at(mrb_state *mrb, mrb_callinfo *ci, mrb_code *pc0);
+mrb_value mrb_exc_backtrace(mrb_state *mrb, mrb_value exc);
+mrb_value mrb_get_backtrace(mrb_state *mrb);
 
 #endif  /* MRUBY_ERROR_H */
