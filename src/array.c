@@ -17,6 +17,7 @@
 #define ARY_MAX_SIZE ((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? (mrb_int)ARY_C_MAX_SIZE : MRB_INT_MAX-1)
 #define ARY_SHARED_P(a) ((a)->flags & MRB_ARY_SHARED)
 #define ARY_SET_SHARED(a) ((a)->flags |= MRB_ARY_SHARED)
+#define ARY_UNSET_SHARED(a) ((a)->flags &= ~MRB_ARY_SHARED)
 
 static inline mrb_value
 ary_elt(mrb_value ary, mrb_int offset)
@@ -148,7 +149,7 @@ ary_modify(mrb_state *mrb, struct RArray *a)
       a->aux.capa = a->len;
       mrb_ary_decref(mrb, shared);
     }
-    a->flags &= ~MRB_ARY_SHARED;
+    ARY_UNSET_SHARED(a);
   }
 }
 
