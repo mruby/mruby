@@ -6,11 +6,15 @@ MRuby.each_target do
     file g.test_rbireps => [g.test_rbfiles].flatten + [g.build.mrbcfile] do |t|
       open(t.name, 'w') do |f|
         g.print_gem_test_header(f)
-        test_preload = [g.dir, MRUBY_ROOT].map {|dir|
+        test_preload = g.test_preload and [g.dir, MRUBY_ROOT].map {|dir|
           File.expand_path(g.test_preload, dir)
         }.find {|file| File.exist?(file) }
 
-        g.build.mrbc.run f, test_preload, "gem_test_irep_#{g.funcname}_preload"
+        if test_preload.nil?
+          f.puts %Q[extern const uint8_t mrbtest_assert_irep[];]
+        else
+          g.build.mrbc.run f, test_preload, "gem_test_irep_#{g.funcname}_preload"
+        end
         g.test_rbfiles.flatten.each_with_index do |rbfile, i|
           g.build.mrbc.run f, rbfile, "gem_test_irep_#{g.funcname}_#{i}"
         end
@@ -31,7 +35,11 @@ MRuby.each_target do
             f.puts %Q[  if (mrb_test(val3)) {]
             f.puts %Q[    mrb_gv_set(mrb2, mrb_intern_cstr(mrb2, "$mrbtest_verbose"), val3);]
             f.puts %Q[  }]
-            f.puts %Q[  mrb_load_irep(mrb2, gem_test_irep_#{g.funcname}_preload);]
+            if test_preload.nil?
+              f.puts %Q[  mrb_load_irep(mrb2, mrbtest_assert_irep);]
+            else
+              f.puts %Q[  mrb_load_irep(mrb2, gem_test_irep_#{g.funcname}_preload);]
+            end
             f.puts %Q[  if (mrb2->exc) {]
             f.puts %Q[    mrb_p(mrb2, mrb_obj_value(mrb2->exc));]
             f.puts %Q[    exit(EXIT_FAILURE);]
