@@ -268,10 +268,10 @@ assert('Kernel#instance_variable_defined?', '15.3.1.3.20') do
   o = Object.new
   o.instance_variable_set(:@a, 1)
 
-  assert_equal o.instance_variable_defined?("@a"), true
-  assert_equal o.instance_variable_defined?("@b"), false
-  assert_equal o.instance_variable_defined?("@a"[0,2]), true
-  assert_equal o.instance_variable_defined?("@abc"[0,2]), true
+  assert_true o.instance_variable_defined?("@a")
+  assert_false o.instance_variable_defined?("@b")
+  assert_true o.instance_variable_defined?("@a"[0,2])
+  assert_true o.instance_variable_defined?("@abc"[0,2])
 end
 
 assert('Kernel#instance_variables', '15.3.1.3.23') do
