@@ -128,26 +128,26 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
 
   if (!mrb_nil_p(file) && !mrb_nil_p(line)) {
     str = file;
-    mrb_str_cat(mrb, str, ":", 1);
+    mrb_str_cat_lit(mrb, str, ":");
     mrb_str_append(mrb, str, line);
-    mrb_str_cat(mrb, str, ": ", 2);
+    mrb_str_cat_lit(mrb, str, ": ");
     if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
       mrb_str_append(mrb, str, mesg);
-      mrb_str_cat(mrb, str, " (", 2);
+      mrb_str_cat_lit(mrb, str, " (");
     }
     mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, exc));
     if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
-      mrb_str_cat(mrb, str, ")", 1);
+      mrb_str_cat_lit(mrb, str, ")");
     }
   }
   else {
     str = mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, exc));
     if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
-      mrb_str_cat(mrb, str, ": ", 2);
+      mrb_str_cat_lit(mrb, str, ": ");
       mrb_str_append(mrb, str, mesg);
     }
     else {
-      mrb_str_cat(mrb, str, ": ", 2);
+      mrb_str_cat_lit(mrb, str, ": ");
       mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, exc));
     }
   }
