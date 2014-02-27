@@ -460,13 +460,15 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
   for (i=0; i<e; i++) {
     mrb_gc_mark(mrb, (struct RBasic*)c->ensure[i]);
   }
-  /* mark closure */
-  for (ci = c->cibase; ci <= c->ci; ci++) {
-    if (!ci) break;
-    mrb_gc_mark(mrb, (struct RBasic*)ci->env);
-    mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
-    mrb_gc_mark(mrb, (struct RBasic*)ci->target_class);
+  /* mark VM stack */
+  if (c->cibase) {
+    for (ci = c->cibase; ci <= c->ci; ci++) {
+      mrb_gc_mark(mrb, (struct RBasic*)ci->env);
+      mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
+      mrb_gc_mark(mrb, (struct RBasic*)ci->target_class);
+    }
   }
+  /* mark fibers */
   if (c->prev && c->prev->fib) {
     mrb_gc_mark(mrb, (struct RBasic*)c->prev->fib);
   }
