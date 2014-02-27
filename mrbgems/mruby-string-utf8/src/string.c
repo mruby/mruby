@@ -279,6 +279,41 @@ mrb_str_reverse(mrb_state *mrb, mrb_value str)
   return mrb_str_reverse_bang(mrb, mrb_str_dup(mrb, str));
 }
 
+static mrb_value
+mrb_fixnum_chr(mrb_state *mrb, mrb_value num)
+{
+  mrb_int cp = mrb_fixnum(num);
+  char utf8[4];
+  int len;
+
+  if (cp < 0 || 0x10FFFF < cp) {
+    mrb_raisef(mrb, E_RANGE_ERROR, "%S out of char range", num);
+  }
+  if (cp < 0x80) {
+    utf8[0] = (char)cp;
+    len = 1;
+  }
+  else if (cp < 0x800) {
+    utf8[0] = (char)(0xC0 | (cp >> 6));
+    utf8[1] = (char)(0x80 | (cp & 0x3F));
+    len = 2;
+  }
+  else if (cp < 0x10000) {
+    utf8[0] = (char)(0xE0 |  (cp >> 12));
+    utf8[1] = (char)(0x80 | ((cp >>  6) & 0x3F));
+    utf8[2] = (char)(0x80 | ( cp        & 0x3F));
+    len = 3;
+  }
+  else {
+    utf8[0] = (char)(0xF0 |  (cp >> 18));
+    utf8[1] = (char)(0x80 | ((cp >> 12) & 0x3F));
+    utf8[2] = (char)(0x80 | ((cp >>  6) & 0x3F));
+    utf8[3] = (char)(0x80 | ( cp        & 0x3F));
+    len = 4;
+  }
+  return mrb_str_new(mrb, utf8, len);
+}
+
 void
 mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
 {
@@ -290,6 +325,8 @@ mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "slice", mrb_str_aref_m, MRB_ARGS_ANY());
   mrb_define_method(mrb, s, "reverse",  mrb_str_reverse,      MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "reverse!", mrb_str_reverse_bang, MRB_ARGS_NONE());
+
+  mrb_define_method(mrb, mrb->fixnum_class, "chr", mrb_fixnum_chr, MRB_ARGS_NONE());
 }
 
 void
