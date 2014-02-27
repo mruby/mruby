@@ -2361,7 +2361,7 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
         }
     }
   }
-  *q++ = '"';
+  *q = '"';
   return mrb_obj_value(result);
 }
 
