@@ -568,14 +568,14 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   /* need not to show internal data */
   if (RSTRING_PTR(str)[0] == '-') { /* first element */
     RSTRING_PTR(str)[0] = '#';
-    mrb_str_cat(mrb, str, " ", 1);
+    mrb_str_cat_lit(mrb, str, " ");
   }
   else {
-    mrb_str_cat(mrb, str, ", ", 2);
+    mrb_str_cat_lit(mrb, str, ", ");
   }
   s = mrb_sym2name_len(mrb, sym, &len);
   mrb_str_cat(mrb, str, s, len);
-  mrb_str_cat(mrb, str, "=", 1);
+  mrb_str_cat_lit(mrb, str, "=");
   if (mrb_type(v) == MRB_TT_OBJECT) {
     ins = mrb_any_to_s(mrb, v);
   }
@@ -598,11 +598,11 @@ mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
 
     mrb_str_buf_cat(mrb, str, "-<", 2);
     mrb_str_cat_cstr(mrb, str, cn);
-    mrb_str_cat(mrb, str, ":", 1);
+    mrb_str_cat_lit(mrb, str, ":");
     mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, obj));
 
     iv_foreach(mrb, t, inspect_i, &str);
-    mrb_str_cat(mrb, str, ">", 1);
+    mrb_str_cat_lit(mrb, str, ">");
     return str;
   }
   return mrb_any_to_s(mrb, mrb_obj_value(obj));
