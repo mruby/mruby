@@ -462,7 +462,7 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
   }
   /* mark closure */
   for (ci = c->cibase; ci <= c->ci; ci++) {
-    if (!ci) continue;
+    if (!ci) break;
     mrb_gc_mark(mrb, (struct RBasic*)ci->env);
     mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
     mrb_gc_mark(mrb, (struct RBasic*)ci->target_class);
