@@ -13,6 +13,9 @@ load "#{MRUBY_ROOT}/tasks/mrbgem_spec.rake"
 MRUBY_CONFIG = (ENV['MRUBY_CONFIG'] && ENV['MRUBY_CONFIG'] != '') ? ENV['MRUBY_CONFIG'] : "#{MRUBY_ROOT}/build_config.rb"
 load MRUBY_CONFIG
 
+# generate build specific mrbconf.h (build_mrbconf.h)
+load "#{MRUBY_ROOT}/tasks/build_mrbconf.rake"
+
 # load basic rules
 MRuby.each_target do |build|
   build.define_rules
@@ -28,9 +31,6 @@ load "#{MRUBY_ROOT}/tasks/libmruby.rake"
 
 load "#{MRUBY_ROOT}/tasks/mrbgems_test.rake"
 load "#{MRUBY_ROOT}/test/mrbtest.rake"
-
-# generate build specific mrbconf.h (build_mrbconf.h)
-load "#{MRUBY_ROOT}/tasks/build_mrbconf.rake"
 
 ##############################
 # generic build targets, rules
