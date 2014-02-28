@@ -15,6 +15,9 @@
 #define ARY_SHRINK_RATIO  5 /* must be larger than 2 */
 #define ARY_C_MAX_SIZE (SIZE_MAX / sizeof(mrb_value))
 #define ARY_MAX_SIZE ((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? (mrb_int)ARY_C_MAX_SIZE : MRB_INT_MAX-1)
+#define ARY_SHARED_P(a) ((a)->flags & MRB_ARY_SHARED)
+#define ARY_SET_SHARED(a) ((a)->flags |= MRB_ARY_SHARED)
+#define ARY_UNSET_SHARED(a) ((a)->flags &= ~MRB_ARY_SHARED)
 
 static inline mrb_value
 ary_elt(mrb_value ary, mrb_int offset)
@@ -124,7 +127,7 @@ ary_fill_with_nil(mrb_value *ptr, mrb_int size)
 static void
 ary_modify(mrb_state *mrb, struct RArray *a)
 {
-  if (a->flags & MRB_ARY_SHARED) {
+  if (ARY_SHARED_P(a)) {
     mrb_shared_array *shared = a->aux.shared;
 
     if (shared->refcnt == 1 && a->ptr == shared->ptr) {
@@ -146,7 +149,7 @@ ary_modify(mrb_state *mrb, struct RArray *a)
       a->aux.capa = a->len;
       mrb_ary_decref(mrb, shared);
     }
-    a->flags &= ~MRB_ARY_SHARED;
+    ARY_UNSET_SHARED(a);
   }
 }
 
@@ -160,7 +163,7 @@ mrb_ary_modify(mrb_state *mrb, struct RArray* a)
 static void
 ary_make_shared(mrb_state *mrb, struct RArray *a)
 {
-  if (!(a->flags & MRB_ARY_SHARED)) {
+  if (!ARY_SHARED_P(a)) {
     mrb_shared_array *shared = (mrb_shared_array *)mrb_malloc(mrb, sizeof(mrb_shared_array));
 
     shared->refcnt = 1;
@@ -172,7 +175,7 @@ ary_make_shared(mrb_state *mrb, struct RArray *a)
     }
     shared->len = a->len;
     a->aux.shared = shared;
-    a->flags |= MRB_ARY_SHARED;
+    ARY_SET_SHARED(a);
   }
 }
 
@@ -479,7 +482,7 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
   mrb_value val;
 
   if (a->len == 0) return mrb_nil_value();
-  if (a->flags & MRB_ARY_SHARED) {
+  if (ARY_SHARED_P(a)) {
   L_SHIFT:
     val = a->ptr[0];
     a->ptr++;
@@ -513,7 +516,7 @@ mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item)
 {
   struct RArray *a = mrb_ary_ptr(self);
 
-  if ((a->flags & MRB_ARY_SHARED)
+  if (ARY_SHARED_P(a)
       && a->aux.shared->refcnt == 1 /* shared only referenced from this array */
       && a->ptr - a->aux.shared->ptr >= 1) /* there's room for unshifted item */ {
     a->ptr--;
@@ -540,7 +543,7 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   int len;
 
   mrb_get_args(mrb, "*", &vals, &len);
-  if ((a->flags & MRB_ARY_SHARED)
+  if (ARY_SHARED_P(a)
       && a->aux.shared->refcnt == 1 /* shared only referenced from this array */
       && a->ptr - a->aux.shared->ptr >= len) /* there's room for unshifted item */ {
     a->ptr -= len;
@@ -668,7 +671,7 @@ ary_subseq(mrb_state *mrb, struct RArray *a, mrb_int beg, mrb_int len)
   b->len = len;
   b->aux.shared = a->aux.shared;
   b->aux.shared->refcnt++;
-  b->flags |= MRB_ARY_SHARED;
+  ARY_SET_SHARED(b);
 
   return mrb_obj_value(b);
 }
@@ -856,7 +859,7 @@ mrb_ary_first(mrb_state *mrb, mrb_value self)
   }
 
   if (size > a->len) size = a->len;
-  if (a->flags & MRB_ARY_SHARED) {
+  if (ARY_SHARED_P(a)) {
     return ary_subseq(mrb, a, 0, size);
   }
   return mrb_ary_new_from_values(mrb, size, a->ptr);
@@ -883,7 +886,7 @@ mrb_ary_last(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative array size");
   }
   if (size > a->len) size = a->len;
-  if ((a->flags & MRB_ARY_SHARED) || size > ARY_DEFAULT_LEN) {
+  if (ARY_SHARED_P(a) || size > ARY_DEFAULT_LEN) {
     return ary_subseq(mrb, a, a->len - size, size);
   }
   return mrb_ary_new_from_values(mrb, size, a->ptr + a->len - size);
