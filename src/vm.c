@@ -954,7 +954,8 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
         ci = mrb->c->ci;
         if (!ci->target_class) { /* return from context modifying method (resume/yield) */
           if (!MRB_PROC_CFUNC_P(ci[-1].proc)) {
-            irep = ci[-1].proc->body.irep;
+            proc = ci[-1].proc;
+            irep = proc->body.irep;
             pool = irep->pool;
             syms = irep->syms;
           }
@@ -1357,6 +1358,13 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
           if (!proc->env || proc->env->cioff < 0) {
             localjump_error(mrb, LOCALJUMP_ERROR_BREAK);
             goto L_RAISE;
+          }
+          /* break from fiber block */
+          if (mrb->c->ci == mrb->c->cibase && mrb->c->ci->pc) {
+            struct mrb_context *c = mrb->c;
+
+            mrb->c = c->prev;
+            c->prev = NULL;
           }
           ci = mrb->c->ci = mrb->c->cibase + proc->env->cioff + 1;
           break;
