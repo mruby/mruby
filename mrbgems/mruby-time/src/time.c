@@ -137,7 +137,7 @@ mrb_time_update_datetime(struct mrb_time *self)
   }
   if (!aid) return NULL;
 #ifdef NO_GMTIME_R
-  self->datetime = *aid; // copy data
+  self->datetime = *aid; /* copy data */
 #endif
 
   return self;

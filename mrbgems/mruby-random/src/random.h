@@ -1,7 +1,7 @@
 /*
-// random.h - Random module
-//
-// See Copyright Notice in mruby.h
+** random.h - Random module
+**
+** See Copyright Notice in mruby.h
 */
 
 #ifndef RANDOM_H

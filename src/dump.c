@@ -317,7 +317,7 @@ write_section_lineno_header(mrb_state *mrb, uint32_t section_size, uint8_t *bin)
 {
   struct rite_section_lineno_header *header = (struct rite_section_lineno_header*)bin;
 
-  // TODO
+  /* TODO */
   memcpy(header->section_identify, RITE_SECTION_LINENO_IDENTIFIER, sizeof(header->section_identify));
   uint32_to_bin(section_size, header->section_size);
 
@@ -329,14 +329,14 @@ get_lineno_record_size(mrb_state *mrb, mrb_irep *irep)
 {
   size_t size = 0;
 
-  size += sizeof(uint32_t); // record size
-  size += sizeof(uint16_t); // filename size
+  size += sizeof(uint32_t); /* record size */
+  size += sizeof(uint16_t); /* filename size */
   if (irep->filename) {
-    size += strlen(irep->filename); // filename
+    size += strlen(irep->filename); /* filename */
   }
-  size += sizeof(uint32_t); // niseq
+  size += sizeof(uint32_t); /* niseq */
   if (irep->lines) {
-    size += sizeof(uint16_t) * irep->ilen; // lineno
+    size += sizeof(uint16_t) * irep->ilen; /* lineno */
   }
   return size;
 }
@@ -419,18 +419,18 @@ get_debug_record_size(mrb_state *mrb, mrb_irep *irep)
   uint32_t f_idx;
   size_t i;
 
-  ret += sizeof(uint32_t); // record size
-  ret += sizeof(uint16_t); // file count
+  ret += sizeof(uint32_t); /* record size */
+  ret += sizeof(uint16_t); /* file count */
 
   for (f_idx = 0; f_idx < irep->debug_info->flen; ++f_idx) {
     mrb_irep_debug_info_file const* file = irep->debug_info->files[f_idx];
 
-    ret += sizeof(uint32_t); // position
-    ret += sizeof(uint16_t); // filename index
+    ret += sizeof(uint32_t); /* position */
+    ret += sizeof(uint16_t); /* filename index */
 
-    // lines
-    ret += sizeof(uint32_t); // entry count
-    ret += sizeof(uint8_t); // line type
+    /* lines */
+    ret += sizeof(uint32_t); /* entry count */
+    ret += sizeof(uint8_t); /* line type */
     switch(file->line_type) {
       case mrb_debug_line_ary:
         ret += sizeof(uint16_t) * file->line_entry_count;
@@ -480,12 +480,12 @@ get_filename_table_size(mrb_state *mrb, mrb_irep *irep, mrb_sym **fp, size_t *lp
 
     file = di->files[file_i];
     if (find_filename_index(filenames, *lp, file->filename_sym) == -1) {
-      // register filename
+      /* register filename */
       *lp += 1;
       *fp = filenames = (mrb_sym *)mrb_realloc(mrb, filenames, sizeof(mrb_sym) * (*lp));
       filenames[*lp - 1] = file->filename_sym;
 
-      // filename
+      /* filename */
       mrb_sym2name_len(mrb, file->filename_sym, &filename_len);
       size += sizeof(uint16_t) + filename_len;
     }
@@ -504,23 +504,23 @@ write_debug_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const
   uint32_t f_idx;
   size_t ret;
 
-  cur = bin + sizeof(uint32_t); // skip record size
-  cur += uint16_to_bin(irep->debug_info->flen, cur); // file count
+  cur = bin + sizeof(uint32_t); /* skip record size */
+  cur += uint16_to_bin(irep->debug_info->flen, cur); /* file count */
 
   for (f_idx = 0; f_idx < irep->debug_info->flen; ++f_idx) {
     int filename_idx;
     const mrb_irep_debug_info_file *file = irep->debug_info->files[f_idx];
 
-    // position
+    /* position */
     cur += uint32_to_bin(file->start_pos, cur);
 
-    // filename index
+    /* filename index */
     filename_idx = find_filename_index(filenames, filenames_len,
                                                   file->filename_sym);
     mrb_assert(filename_idx != -1);
     cur += uint16_to_bin(filename_idx, cur);
 
-    // lines
+    /* lines */
     cur += uint32_to_bin(file->line_entry_count, cur);
     cur += uint8_to_bin(file->line_type, cur);
     switch(file->line_type) {
@@ -581,12 +581,12 @@ write_filename_table(mrb_state *mrb, mrb_irep *irep, uint8_t **cp, mrb_sym **fp,
     mrb_irep_debug_info_file *file = debug_info->files[file_i];
     if (find_filename_index(filenames, *lp, file->filename_sym) != -1) continue;
 
-    // register filename
+    /* register filename */
     *lp += 1;
     *fp = filenames = (mrb_sym*)mrb_realloc(mrb, filenames, sizeof(mrb_sym) * (*lp));
     filenames[*lp - 1] = file->filename_sym;
 
-    // filename
+    /* filename */
     fn_len = (uint16_t)strlen(file->filename);
     cur += uint16_to_bin(fn_len, cur);
     memcpy(cur, file->filename, fn_len);
@@ -620,7 +620,7 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur)
   cur += sizeof(struct rite_section_debug_header);
   section_size += sizeof(struct rite_section_debug_header);
 
-  // filename table
+  /* filename table */
   filenames = (mrb_sym *)mrb_malloc(mrb, sizeof(mrb_sym) * 1);
   filenames_len_out = cur;
   cur += sizeof(uint16_t);
@@ -628,7 +628,7 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur)
   section_size += write_filename_table(mrb, irep, &cur, &filenames, &filenames_len);
   uint16_to_bin(filenames_len, filenames_len_out);
 
-  // debug records
+  /* debug records */
   dlen = write_debug_record(mrb, irep, cur, filenames, filenames_len);
   section_size += dlen;
 
@@ -695,10 +695,10 @@ dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, size_t 
       mrb_sym *filenames;
 
       section_lineno_size += sizeof(struct rite_section_debug_header);
-      // filename table
+      /* filename table */
       filenames = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) + 1);
 
-      // filename table size
+      /* filename table size */
       section_lineno_size += sizeof(uint16_t);
       section_lineno_size += get_filename_table_size(mrb, irep, &filenames, NULL);
       mrb_free(mrb, filenames);
@@ -803,7 +803,7 @@ mrb_dump_irep_cfunc(mrb_state *mrb, mrb_irep *irep, int debug_info, FILE *fp, co
 
   result = dump_irep(mrb, irep, debug_info, &bin, &bin_size);
   if (result == MRB_DUMP_OK) {
-    fprintf(fp, "#include <stdint.h>\n"); // for uint8_t under at least Darwin
+    fprintf(fp, "#include <stdint.h>\n"); /* for uint8_t under at least Darwin */
     fprintf(fp, "const uint8_t %s[] = {", initname);
     while (bin_idx < bin_size) {
       if (bin_idx % 16 == 0) fputs("\n", fp);

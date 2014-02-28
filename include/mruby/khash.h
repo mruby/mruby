@@ -24,7 +24,7 @@ typedef khint_t khiter_t;
 
 #define UPPER_BOUND(x) ((x)>>2|(x)>>1)
 
-//extern uint8_t __m[];
+/* extern uint8_t __m[]; */
 
 /* mask for flags */
 static const uint8_t __m_empty[8]  = {0x02, 0x08, 0x20, 0x80};
