@@ -1,4 +1,6 @@
 MRuby.each_target do |target|
+  next if mrbconf.empty?
+
   mrbconf_h = "#{build_dir}/include/build_mrbconf.h"
 
   source = <<EOS
