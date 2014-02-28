@@ -1,5 +1,8 @@
 LIBRARY mruby.dll
 EXPORTS
+	mrb_Float
+	mrb_Integer
+	mrb_add_irep
 	mrb_alias_method
 	mrb_alloca
 	mrb_any_to_s
@@ -23,6 +26,7 @@ EXPORTS
 	mrb_assoc_new
 	mrb_attr_get
 	mrb_bug
+	mrb_calloc
 	mrb_check_array_type
 	mrb_check_convert_type
 	mrb_check_hash_type
@@ -35,11 +39,15 @@ EXPORTS
 	mrb_class_defined
 	mrb_class_get
 	mrb_class_get_under
+	mrb_class_name
 	mrb_class_new
+	mrb_class_outer_module
 	mrb_class_path
 	mrb_class_real
 	mrb_class_sym
 	mrb_close
+	mrb_closure_new
+	mrb_closure_new_cfunc
 	mrb_const_defined
 	mrb_const_defined_at
 	mrb_const_get
@@ -50,10 +58,17 @@ EXPORTS
 	mrb_cv_defined
 	mrb_cv_get
 	mrb_cv_set
+	mrb_data_check_get_ptr
 	mrb_data_check_type
+	mrb_data_get_ptr
+	mrb_data_object_alloc
+	mrb_debug_get_filename
 	mrb_debug_get_line
+	mrb_debug_info_alloc
+	mrb_debug_info_append_file
 	mrb_debug_info_free
 	mrb_define_alias
+	mrb_define_class
 	mrb_define_class_id
 	mrb_define_class_method
 	mrb_define_class_under
@@ -63,6 +78,7 @@ EXPORTS
 	mrb_define_method_id
 	mrb_define_method_raw
 	mrb_define_method_vm
+	mrb_define_module
 	mrb_define_module_function
 	mrb_define_module_id
 	mrb_define_module_under
@@ -74,6 +90,7 @@ EXPORTS
 	mrb_exc_backtrace
 	mrb_exc_new
 	mrb_exc_new_str
+	mrb_exc_print
 	mrb_exc_raise
 	mrb_f_global_variables
 	mrb_field_write_barrier
@@ -82,7 +99,6 @@ EXPORTS
 	mrb_fixnum_plus
 	mrb_fixnum_to_str
 	mrb_flo_to_fixnum
-	mrb_Float
 	mrb_format
 	mrb_free
 	mrb_free_context
@@ -127,7 +143,6 @@ EXPORTS
 	mrb_incremental_gc
 	mrb_inspect
 	mrb_instance_new
-	mrb_Integer
 	mrb_intern
 	mrb_intern_cstr
 	mrb_intern_static
@@ -152,6 +167,10 @@ EXPORTS
 	mrb_load_string_cxt
 	mrb_longjmp
 	mrb_make_exception
+	mrb_malloc
+	mrb_malloc_simple
+	mrb_method_search
+	mrb_method_search_vm
 	mrb_mod_class_variables
 	mrb_mod_constants
 	mrb_mod_cv_defined
@@ -162,6 +181,7 @@ EXPORTS
 	mrb_module_new
 	mrb_name_error
 	mrb_num_div
+	mrb_obj_alloc
 	mrb_obj_as_string
 	mrb_obj_class
 	mrb_obj_classname
@@ -186,27 +206,34 @@ EXPORTS
 	mrb_open
 	mrb_open_allocf
 	mrb_p
-	mrb_parser_free
-	mrb_parser_get_filename
-	mrb_parser_parse
-	mrb_parser_set_filename
 	mrb_parse_file
 	mrb_parse_nstring
 	mrb_parse_string
+	mrb_parser_free
+	mrb_parser_get_filename
 	mrb_parser_new
-	mrb_pool_open
+	mrb_parser_parse
+	mrb_parser_set_filename
 	mrb_pool_alloc
 	mrb_pool_can_realloc
 	mrb_pool_close
+	mrb_pool_open
 	mrb_pool_realloc
+	mrb_print_backtrace
 	mrb_print_backtrace
 	mrb_print_error
 	mrb_proc_copy
+	mrb_proc_new
+	mrb_proc_new_cfunc
 	mrb_ptr_to_str
 	mrb_raise
 	mrb_raisef
 	mrb_range_beg_len
 	mrb_range_new
+	mrb_read_irep
+	mrb_read_irep_file
+	mrb_realloc
+	mrb_realloc_simple
 	mrb_respond_to
 	mrb_run
 	mrb_singleton_class
@@ -233,10 +260,15 @@ EXPORTS
 	mrb_str_pool
 	mrb_str_resize
 	mrb_str_substr
+	mrb_str_to_cstr
 	mrb_str_to_dbl
 	mrb_str_to_inum
 	mrb_str_to_str
 	mrb_string_type
+	mrb_string_value_cstr
+	mrb_string_value_ptr
+	mrb_sym2name
+	mrb_sym2name_len
 	mrb_sym2str
 	mrb_sys_fail
 	mrb_to_int
@@ -247,6 +279,8 @@ EXPORTS
 	mrb_vm_const_set
 	mrb_vm_cv_get
 	mrb_vm_cv_set
+	mrb_vm_define_class
+	mrb_vm_define_module
 	mrb_vm_iv_get
 	mrb_vm_iv_set
 	mrb_vm_special_get
