@@ -256,6 +256,9 @@ mrb_value
 mrb_str_new_static(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s;
+  if ((mrb_int)len < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
+  }
 
   s = mrb_obj_alloc_string(mrb);
   s->len = len;
