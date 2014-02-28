@@ -29,6 +29,9 @@ load "#{MRUBY_ROOT}/tasks/libmruby.rake"
 load "#{MRUBY_ROOT}/tasks/mrbgems_test.rake"
 load "#{MRUBY_ROOT}/test/mrbtest.rake"
 
+# generate build specific mrbconf.h (build_mrbconf.h)
+load "#{MRUBY_ROOT}/tasks/build_mrbconf.rake"
+
 ##############################
 # generic build targets, rules
 task :default => :all
