@@ -29,7 +29,7 @@ MRuby.each_target do
 
     gem_flags = gems.map { |g| g.linker.flags }
     gem_flags << (is_vc ? '/DLL' : '-shared')
-    gem_flags << (is_vc ? "/DEF:#{deffile}" : mruby_sharedlib_ext == 'dylib'? '-Wl,-force_load' : is_mingw ? deffile : "-Wl,--whole-archive")
+    gem_flags << (is_vc ? "/DEF:#{deffile}" : mruby_sharedlib_ext == 'dylib'? '-Wl,-force_load' : is_mingw ? deffile : ["-Wl,--whole-archive", "-fPIC"])
     gem_flags += t.prerequisites
     gem_libraries = gems.map { |g| g.linker.libraries }
     gem_library_paths = gems.map { |g| g.linker.library_paths }
