@@ -2,6 +2,7 @@
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/proc.h"
+#include "mruby/fiber.h"
 
 #define FIBER_STACK_INIT_SIZE 64
 #define FIBER_CI_INIT_SIZE 8
