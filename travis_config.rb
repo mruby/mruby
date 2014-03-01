@@ -18,7 +18,7 @@ MRuby::Build.new do |conf|
   conf.enable_bintest = true
 end
 
-MRuby::Build.new do |conf|
+MRuby::Build.new('cxx_abi') do |conf|
   toolchain :gcc
 
   conf.gembox 'full-core'
