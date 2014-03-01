@@ -16,8 +16,8 @@
 #define ARY_C_MAX_SIZE (SIZE_MAX / sizeof(mrb_value))
 #define ARY_MAX_SIZE ((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? (mrb_int)ARY_C_MAX_SIZE : MRB_INT_MAX-1)
 #define ARY_SHARED_P(a) ((a)->flags & MRB_ARY_SHARED)
-#define ARY_SET_SHARED(a) ((a)->flags |= MRB_ARY_SHARED)
-#define ARY_UNSET_SHARED(a) ((a)->flags &= ~MRB_ARY_SHARED)
+#define ARY_SET_SHARED_FLAG(a) ((a)->flags |= MRB_ARY_SHARED)
+#define ARY_UNSET_SHARED_FLAG(a) ((a)->flags &= ~MRB_ARY_SHARED)
 
 static inline mrb_value
 ary_elt(mrb_value ary, mrb_int offset)
@@ -149,7 +149,7 @@ ary_modify(mrb_state *mrb, struct RArray *a)
       a->aux.capa = a->len;
       mrb_ary_decref(mrb, shared);
     }
-    ARY_UNSET_SHARED(a);
+    ARY_UNSET_SHARED_FLAG(a);
   }
 }
 
@@ -175,7 +175,7 @@ ary_make_shared(mrb_state *mrb, struct RArray *a)
     }
     shared->len = a->len;
     a->aux.shared = shared;
-    ARY_SET_SHARED(a);
+    ARY_SET_SHARED_FLAG(a);
   }
 }
 
@@ -671,7 +671,7 @@ ary_subseq(mrb_state *mrb, struct RArray *a, mrb_int beg, mrb_int len)
   b->len = len;
   b->aux.shared = a->aux.shared;
   b->aux.shared->refcnt++;
-  ARY_SET_SHARED(b);
+  ARY_SET_SHARED_FLAG(b);
 
   return mrb_obj_value(b);
 }
