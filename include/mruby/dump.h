@@ -55,17 +55,17 @@ mrb_irep *mrb_read_irep(mrb_state*, const uint8_t*);
 
 #define MRB_DUMP_DEFAULT_STR_LEN      128
 
-// binary header
+/* binary header */
 struct rite_binary_header {
-  uint8_t binary_identify[4]; // Binary Identifier
-  uint8_t binary_version[4];  // Binary Format Version
-  uint8_t binary_crc[2];      // Binary CRC
-  uint8_t binary_size[4];     // Binary Size
-  uint8_t compiler_name[4];   // Compiler name
+  uint8_t binary_identify[4]; /* Binary Identifier */
+  uint8_t binary_version[4];  /* Binary Format Version */
+  uint8_t binary_crc[2];      /* Binary CRC */
+  uint8_t binary_size[4];     /* Binary Size */
+  uint8_t compiler_name[4];   /* Compiler name */
   uint8_t compiler_version[4];
 };
 
-// section header
+/* section header */
 #define RITE_SECTION_HEADER \
   uint8_t section_identify[4]; \
   uint8_t section_size[4]
@@ -77,7 +77,7 @@ struct rite_section_header {
 struct rite_section_irep_header {
   RITE_SECTION_HEADER;
 
-  uint8_t rite_version[4];    // Rite Instruction Specification Version
+  uint8_t rite_version[4];    /* Rite Instruction Specification Version */
 };
 
 struct rite_section_lineno_header {

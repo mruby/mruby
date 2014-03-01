@@ -361,7 +361,7 @@ static const struct types {
   unsigned char type;
   const char *name;
 } builtin_types[] = {
-//    {MRB_TT_NIL,  "nil"},
+/*    {MRB_TT_NIL,  "nil"}, */
   {MRB_TT_FALSE,  "false"},
   {MRB_TT_TRUE,   "true"},
   {MRB_TT_FIXNUM, "Fixnum"},
@@ -377,12 +377,12 @@ static const struct types {
   {MRB_TT_HASH,   "Hash"},
   {MRB_TT_STRING, "String"},
   {MRB_TT_RANGE,  "Range"},
-//    {MRB_TT_BIGNUM,  "Bignum"},
+/*    {MRB_TT_BIGNUM,  "Bignum"}, */
   {MRB_TT_FILE,   "File"},
   {MRB_TT_DATA,   "Data"},  /* internal use: wrapped C pointers */
-//    {MRB_TT_VARMAP,  "Varmap"},  /* internal use: dynamic variables */
-//    {MRB_TT_NODE,  "Node"},  /* internal use: syntax tree node */
-//    {MRB_TT_UNDEF,  "undef"},  /* internal use: #undef; should not happen */
+/*    {MRB_TT_VARMAP,  "Varmap"}, */ /* internal use: dynamic variables */
+/*    {MRB_TT_NODE,  "Node"}, */ /* internal use: syntax tree node */
+/*    {MRB_TT_UNDEF,  "undef"}, */ /* internal use: #undef; should not happen */
     {-1,  0}
 };
 

@@ -16,5 +16,5 @@ mrb_c_and_ruby_extension_example_gem_init(mrb_state* mrb) {
 
 void
 mrb_c_and_ruby_extension_example_gem_final(mrb_state* mrb) {
-  // finalizer
+  /* finalizer */
 }
