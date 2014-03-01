@@ -52,6 +52,9 @@ struct RProc *mrb_closure_new(mrb_state*, mrb_irep*);
 struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals);
 void mrb_proc_copy(struct RProc *a, struct RProc *b);
 
+/* implementation of #send method */
+mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
+
 #include "mruby/khash.h"
 KHASH_DECLARE(mt, mrb_sym, struct RProc*, 1)
 

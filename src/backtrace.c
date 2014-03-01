@@ -72,6 +72,7 @@ output_backtrace(mrb_state *mrb, mrb_int ciidx, mrb_code *pc0, output_stream_fun
     filename = NULL;
     lineno = -1;
 
+    if (!ci->proc) continue;
     if (MRB_PROC_CFUNC_P(ci->proc)) {
       continue;
     }

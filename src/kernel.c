@@ -157,36 +157,6 @@ mrb_obj_id_m(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(mrb_obj_id(self));
 }
 
-/* 15.3.1.3.4  */
-/* 15.3.1.3.44 */
-/*
- *  call-seq:
- *     obj.send(symbol [, args...])        -> obj
- *     obj.__send__(symbol [, args...])      -> obj
- *
- *  Invokes the method identified by _symbol_, passing it any
- *  arguments specified. You can use <code>__send__</code> if the name
- *  +send+ clashes with an existing method in _obj_.
- *
- *     class Klass
- *       def hello(*args)
- *         "Hello " + args.join(' ')
- *       end
- *     end
- *     k = Klass.new
- *     k.send :hello, "gentle", "readers"   #=> "Hello gentle readers"
- */
-static mrb_value
-mrb_f_send(mrb_state *mrb, mrb_value self)
-{
-  mrb_sym name;
-  mrb_value block, *argv;
-  int argc;
-
-  mrb_get_args(mrb, "n*&", &name, &argv, &argc, &block);
-  return mrb_funcall_with_block(mrb,self, name, argc, argv, block);
-}
-
 /* 15.3.1.2.2  */
 /* 15.3.1.2.5  */
 /* 15.3.1.3.6  */

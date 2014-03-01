@@ -417,6 +417,68 @@ mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mrb_valu
   return mrb_funcall_with_block(mrb, self, mid, argc, argv, mrb_nil_value());
 }
 
+/* 15.3.1.3.4  */
+/* 15.3.1.3.44 */
+/*
+ *  call-seq:
+ *     obj.send(symbol [, args...])        -> obj
+ *     obj.__send__(symbol [, args...])      -> obj
+ *
+ *  Invokes the method identified by _symbol_, passing it any
+ *  arguments specified. You can use <code>__send__</code> if the name
+ *  +send+ clashes with an existing method in _obj_.
+ *
+ *     class Klass
+ *       def hello(*args)
+ *         "Hello " + args.join(' ')
+ *       end
+ *     end
+ *     k = Klass.new
+ *     k.send :hello, "gentle", "readers"   #=> "Hello gentle readers"
+ */
+mrb_value
+mrb_f_send(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym name;
+  mrb_value block, *argv, *regs;
+  int argc, i, len;
+  struct RProc *p;
+  struct RClass *c;
+  mrb_callinfo *ci;
+
+  mrb_get_args(mrb, "n*&", &name, &argv, &argc, &block);
+
+  c = mrb_class(mrb, self);
+  p = mrb_method_search_vm(mrb, &c, name);
+  if (!p || MRB_PROC_CFUNC_P(p)) {
+    return mrb_funcall_with_block(mrb, self, name, argc, argv, block);
+  }
+
+  ci = mrb->c->ci;
+  ci->mid = name;
+  ci->target_class = c;
+  ci->proc = p;
+  regs = mrb->c->stack+1;
+  /* remove first symbol from arguments */
+  if (ci->argc >= 0) {
+    for (i=0,len=ci->argc; i<len; i++) {
+      regs[i] = regs[i+1];
+    }
+    ci->argc--;
+  }
+  else {                     /* variable length arguments */
+    mrb_ary_shift(mrb, regs[0]);
+  }
+  cipush(mrb);
+  ci = mrb->c->ci;
+  ci->target_class = 0;
+  ci->pc = p->body.irep->iseq;
+  ci->stackent = mrb->c->stack;
+  ci->acc = 0;
+
+  return self;
+}
+
 mrb_value
 mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c)
 {
