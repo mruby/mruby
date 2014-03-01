@@ -16,6 +16,9 @@ MRuby.each_target do
       file src => "#{current_dir}/#{v}.c" do |t|
         File.open(t.name, 'w') do |f|
           f.write <<EOS
+#define __STDC_CONSTANT_MACROS
+#define __STDC_LIMIT_MACROS
+
 extern "C" {
 #include "#{MRUBY_ROOT}/#{t.prerequisites.first}"
 }

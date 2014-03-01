@@ -4,11 +4,14 @@ MRuby::Build.new do |conf|
   # Gets set by the VS command prompts.
   if ENV['VisualStudioVersion']
     toolchain :visualcpp
+  #elsif `uname` =~ /Darwin/
+    #toolchain :clang
   else
     toolchain :gcc
   end
 
   enable_debug
+  enable_cxx_abi
 
   # Use mrbgems
   # conf.gem 'examples/mrbgems/ruby_extension_example'
@@ -21,6 +24,24 @@ MRuby::Build.new do |conf|
 
   # include the default GEMs
   conf.gembox 'default'
+
+  conf.enable_bintest = true
+
+  conf.cc.flags = ['gcc'] + conf.cc.flags # [conf.cc.command] + conf.cc.flags
+  conf.cc.command = 'ccache'
+  conf.cc.flags += %w[-O0 -Wall -Wextra -Wno-parentheses-equality -Wdeclaration-after-statement -Werror=declaration-after-statement]
+
+  conf.cxx.flags = [conf.cxx.command] + conf.cxx.flags
+  conf.cxx.command = 'ccache'
+  conf.cxx.flags += %w[-O0 -Wall -Wextra -Wno-parentheses-equality -Werror-declaration-after-statement]
+
+  conf.linker.command = 'clang++'
+
+  conf.cc.defines << 'MRB_GC_FIXED_ARENA' # conf.enable_mrbconf :gc_fixed_arena
+  # conf.gem "#{MRUBY_ROOT}/mruby-uv"
+  conf.gem "#{MRUBY_ROOT}/mruby-sharedlib"
+  # conf.gem "#{MRUBY_ROOT}/mruby-onig-regexp"
+  conf.gem :core => 'mruby-bin-strip'
 
   # C compiler settings
   # conf.cc do |cc|
