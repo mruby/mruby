@@ -40,6 +40,9 @@ EOS
     file "#{current_build_dir}/y.tab.cxx" => "#{current_build_dir}/y.tab.c" do |t|
       File.open(t.name, 'w') do |f|
         f.write <<EOS
+#define __STDC_CONSTANT_MACROS
+#define __STDC_LIMIT_MACROS
+
 extern "C" {
 #include "#{t.prerequisites.first}"
 }
