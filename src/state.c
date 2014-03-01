@@ -176,6 +176,7 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
     ns->flags = MRB_STR_NOFREE;
   }
   else {
+    ns->flags = 0;
     ns->ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
     if (s->ptr) {
       memcpy(ns->ptr, s->ptr, len);
