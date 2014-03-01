@@ -32,6 +32,5 @@ MRuby::Build.new('cxx_abi') do |conf|
   end
   conf.enable_bintest = true
 
-  conf.linker.command = 'g++'
   enable_cxx_abi
 end
