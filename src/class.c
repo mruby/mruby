@@ -1931,7 +1931,6 @@ mrb_init_class(mrb_state *mrb)
   struct RClass *obj;           /* Object */
   struct RClass *mod;           /* Module */
   struct RClass *cls;           /* Class */
-  //struct RClass *krn;    /* Kernel */
 
   /* boot class hierarchy */
   bob = boot_defclass(mrb, 0);

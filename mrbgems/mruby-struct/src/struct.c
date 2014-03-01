@@ -216,15 +216,15 @@ mrb_struct_set_m(mrb_state *mrb, mrb_value obj)
   return mrb_struct_set(mrb, obj, val);
 }
 
-#define is_notop_id(id) (id)//((id)>tLAST_TOKEN)
-#define is_local_id(id) (is_notop_id(id))//&&((id)&ID_SCOPE_MASK)==ID_LOCAL)
+#define is_notop_id(id) (id) /* ((id)>tLAST_TOKEN) */
+#define is_local_id(id) (is_notop_id(id)) /* &&((id)&ID_SCOPE_MASK)==ID_LOCAL) */
 int
 mrb_is_local_id(mrb_sym id)
 {
   return is_local_id(id);
 }
 
-#define is_const_id(id) (is_notop_id(id))//&&((id)&ID_SCOPE_MASK)==ID_CONST)
+#define is_const_id(id) (is_notop_id(id)) /* &&((id)&ID_SCOPE_MASK)==ID_CONST) */
 int
 mrb_is_const_id(mrb_sym id)
 {
@@ -251,7 +251,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     }
     if (mrb_const_defined_at(mrb, klass, id)) {
       mrb_warn(mrb, "redefining constant Struct::%S", name);
-      //?rb_mod_remove_const(klass, mrb_sym2name(mrb, id));
+      /* ?rb_mod_remove_const(klass, mrb_sym2name(mrb, id)); */
     }
     c = mrb_define_class_under(mrb, klass, RSTRING_PTR(name), klass);
   }
@@ -262,7 +262,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   mrb_define_class_method(mrb, c, "new", mrb_instance_new, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "[]", mrb_instance_new, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "members", mrb_struct_s_members_m, MRB_ARGS_NONE());
-  //RSTRUCT(nstr)->basic.c->super = c->c;
+  /* RSTRUCT(nstr)->basic.c->super = c->c; */
   ptr_members = RARRAY_PTR(members);
   len = RARRAY_LEN(members);
   for (i=0; i< len; i++) {

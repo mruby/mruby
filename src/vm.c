@@ -1320,7 +1320,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
         switch (GETARG_B(i)) {
         case OP_R_RETURN:
-          // Fall through to OP_R_NORMAL otherwise
+          /* Fall through to OP_R_NORMAL otherwise */
           if (proc->env && !MRB_PROC_STRICT_P(proc)) {
             struct REnv *e = top_env(mrb, proc);
 
