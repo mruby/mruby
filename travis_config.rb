@@ -17,3 +17,14 @@ MRuby::Build.new do |conf|
   conf.cc.defines = %w(MRB_DEBUG MRB_GC_FIXED_ARENA)
   conf.enable_bintest = true
 end
+
+MRuby::Build.new do |conf|
+  toolchain :gcc
+
+  conf.gembox 'full-core'
+  conf.cc.flags += %w(-Werror=declaration-after-statement)
+  conf.cc.defines = %w(MRB_DEBUG MRB_GC_FIXED_ARENA)
+  conf.enable_bintest = true
+
+  enable_cxx_abi
+end
