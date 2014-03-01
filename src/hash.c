@@ -19,7 +19,7 @@ mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
   mrb_value h2;
 
   h2 = mrb_funcall(mrb, key, "hash", 0, 0);
-  h ^= h2.value.i;
+  h ^= mrb_get_attr_i(h2);
   return h;
 }
 

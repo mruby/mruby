@@ -31,18 +31,22 @@ void abort(void);
 #endif
 #endif
 
-#define SET_TRUE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
-#define SET_FALSE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
-#define SET_NIL_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
-#define SET_INT_VALUE(r,n) MRB_SET_VALUE(r, MRB_TT_FIXNUM, value.i, (n))
-#define SET_SYM_VALUE(r,v) MRB_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
-#define SET_OBJ_VALUE(r,v) MRB_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
+#define SET_TRUE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_TRUE, i, 1)
+#define SET_FALSE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, i, 1)
+#define SET_NIL_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, i, 0)
+#define SET_INT_VALUE(r,n) MRB_SET_VALUE(r, MRB_TT_FIXNUM, i, (n))
+#define SET_SYM_VALUE(r,v) MRB_SET_VALUE(r, MRB_TT_SYMBOL, sym, (v))
+#define SET_OBJ_VALUE(r,v) MRB_SET_VALUE(r, (((struct RObject*)(v))->tt), p, (v))
 #ifdef MRB_NAN_BOXING
+# ifdef MRB_PRIMITIVE_BOXING
+#define SET_FLT_VALUE(mrb,r,v) r = mrb_float_value(mrb, (v))
+# else
 #define SET_FLT_VALUE(mrb,r,v) r.f = (v)
+# endif
 #elif defined(MRB_WORD_BOXING)
 #define SET_FLT_VALUE(mrb,r,v) r = mrb_float_value(mrb, (v))
 #else
-#define SET_FLT_VALUE(mrb,r,v) MRB_SET_VALUE(r, MRB_TT_FLOAT, value.f, (v))
+#define SET_FLT_VALUE(mrb,r,v) MRB_SET_VALUE(r, MRB_TT_FLOAT, f, (v))
 #endif
 
 #define STACK_INIT_SIZE 128
@@ -74,7 +78,11 @@ static inline void
 stack_clear(mrb_value *from, size_t count)
 {
 #ifndef MRB_NAN_BOXING
+#ifndef MRB_PRIMITIVE_BOXING
   const mrb_value mrb_value_zero = { { 0 } };
+#else
+  const mrb_value mrb_value_zero = 0;
+#endif
 
   while (count-- > 0) {
     *from++ = mrb_value_zero;
@@ -1489,18 +1497,9 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       NEXT;
     }
 
-#define attr_i value.i
-#ifdef MRB_NAN_BOXING
-#define attr_f f
-#elif defined(MRB_WORD_BOXING)
-#define attr_f value.fp->f
-#else
-#define attr_f value.f
-#endif
-
 #define TYPES2(a,b) ((((uint16_t)(a))<<8)|(((uint16_t)(b))&0xff))
 #define OP_MATH_BODY(op,v1,v2) do {\
-  regs[a].v1 = regs[a].v1 op regs[a+1].v2;\
+  mrb_set_##v1(regs[a], mrb_get_##v1(regs[a]) op mrb_get_##v2(regs[a+1])); \
 } while(0)
 
     CASE(OP_ADD) {
@@ -1746,7 +1745,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       switch (mrb_type(regs[a])) {
       case MRB_TT_FIXNUM:
         {
-          mrb_int x = regs[a].attr_i;
+          mrb_int x = mrb_get_attr_i(regs[a]);
           mrb_int y = GETARG_C(i);
           mrb_int z = x + y;
 
@@ -1755,7 +1754,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
             SET_FLT_VALUE(mrb, regs[a], (mrb_float)x + (mrb_float)y);
             break;
           }
-          regs[a].attr_i = z;
+          mrb_set_attr_i(regs[a], z);
         }
         break;
       case MRB_TT_FLOAT:
@@ -1765,7 +1764,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
           SET_FLT_VALUE(mrb, regs[a], x + GETARG_C(i));
         }
 #else
-        regs[a].attr_f += GETARG_C(i);
+        mrb_set_attr_f(regs[a], mrb_get_attr_f(regs[a]) + GETARG_C(i));
 #endif
         break;
       default:
@@ -1785,7 +1784,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       switch (mrb_type(regs_a[0])) {
       case MRB_TT_FIXNUM:
         {
-          mrb_int x = regs_a[0].attr_i;
+          mrb_int x = mrb_get_attr_i(regs_a[0]);
           mrb_int y = GETARG_C(i);
           mrb_int z = x - y;
 
@@ -1794,7 +1793,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
             SET_FLT_VALUE(mrb, regs_a[0], (mrb_float)x - (mrb_float)y);
           }
           else {
-            regs_a[0].attr_i = z;
+            mrb_set_attr_i(regs_a[0], z);
           }
         }
         break;
@@ -1805,7 +1804,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
           SET_FLT_VALUE(mrb, regs[a], x - GETARG_C(i));
         }
 #else
-        regs_a[0].attr_f -= GETARG_C(i);
+        mrb_set_attr_f(regs_a[0], mrb_get_attr_f(regs_a[0]) - GETARG_C(i));
 #endif
         break;
       default:
@@ -1817,7 +1816,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     }
 
 #define OP_CMP_BODY(op,v1,v2) do {\
-  if (regs[a].v1 op regs[a+1].v2) {\
+  if (mrb_get_##v1(regs[a]) op mrb_get_##v2(regs[a+1])) {\
     SET_TRUE_VALUE(regs[a]);\
   }\
   else {\
