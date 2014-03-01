@@ -233,7 +233,7 @@ module MRuby
     def initialize(build)
       super
       @command = 'git'
-      @flags = []
+      @flags = %w[--depth 1]
       @clone_options = "clone %{flags} %{url} %{dir}"
       @pull_options = "pull"
     end
