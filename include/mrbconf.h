@@ -7,6 +7,10 @@
 #ifndef MRUBYCONF_H
 #define MRUBYCONF_H
 
+#ifdef MRB_HAVE_BUILD_MRBCONF_H
+#include "build_mrbconf.h"
+#endif
+
 /* configuration options: */
 /* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
 //#define MRB_USE_FLOAT

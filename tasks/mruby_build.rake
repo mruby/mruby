@@ -44,7 +44,7 @@ module MRuby
     include Rake::DSL
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :enable_bintest
-    attr_reader :libmruby, :gems
+    attr_reader :libmruby, :gems, :mrbconf
 
     COMPILERS = %w(cc cxx objc asm)
     COMMANDS = COMPILERS + %w(linker archiver yacc gperf git exts mrbc)
@@ -77,6 +77,7 @@ module MRuby
         @gperf = Command::Gperf.new(self)
         @git = Command::Git.new(self)
         @mrbc = Command::Mrbc.new(self)
+        @mrbconf = []
 
         @bins = %w(mrbc)
         @gems, @libmruby = MRuby::Gem::List.new, []
@@ -90,8 +91,13 @@ module MRuby
     end
 
     def enable_debug
-      compilers.each { |c| c.defines += %w(MRB_DEBUG) }
       @mrbc.compile_options += ' -g'
+      enable_mrbconf :debug
+    end
+
+    def enable_mrbconf(*args)
+      @mrbconf += args
+      @mrbconf.uniq
     end
 
     def toolchain(name)
