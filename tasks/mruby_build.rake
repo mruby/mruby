@@ -102,6 +102,7 @@ module MRuby
     def enable_cxx_abi
       return if @cxx_abi_enabled
       compilers.each { |c| c.defines += %w(MRB_ENABLE_CXX_EXCEPTION) }
+      linker.command = cxx.command
       @cxx_abi_enabled = true
     end
 
