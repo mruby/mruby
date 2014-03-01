@@ -9,9 +9,9 @@
 
 #ifdef MRB_ENABLE_CXX_EXCEPTION
 
-#define MRB_TRY(buf) try {
+#define MRB_TRY(buf) do { try {
 #define MRB_CATCH(buf) } catch(mrb_jmpbuf_impl e) { if (e != (buf)->impl) { throw e; }
-#define MRB_END_EXC(buf) }
+#define MRB_END_EXC(buf)  } } while(0)
 
 #define MRB_THROW(buf) throw((buf)->impl)
 typedef mrb_int mrb_jmpbuf_impl;
