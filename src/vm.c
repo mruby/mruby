@@ -1300,8 +1300,17 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
           }
           else if (ci == mrb->c->cibase) {
             if (ci->ridx == 0) {
-              regs = mrb->c->stack = mrb->c->stbase;
-              goto L_STOP;
+              if (mrb->c == mrb->root_c) {
+                regs = mrb->c->stack = mrb->c->stbase;
+                goto L_STOP;
+              }
+              else {
+                struct mrb_context *c = mrb->c;
+
+                mrb->c = c->prev;
+                c->prev = NULL;
+                goto L_RAISE;
+              }
             }
             break;
           }
