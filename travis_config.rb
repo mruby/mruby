@@ -26,5 +26,6 @@ MRuby::Build.new('cxx_abi') do |conf|
   conf.cc.defines = %w(MRB_DEBUG MRB_GC_FIXED_ARENA)
   conf.enable_bintest = true
 
+  conf.linker.command = 'g++'
   enable_cxx_abi
 end
