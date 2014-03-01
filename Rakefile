@@ -101,7 +101,7 @@ task :all => depfiles do
 end
 
 desc "run all mruby tests"
-task :test => MRuby.targets.values.map { |t| t.build_mrbtest_lib_only? ? t.libfile("#{t.build_dir}/test/mrbtest") : t.exefile("#{t.build_dir}/test/mrbtest") } do
+task :test => ["all"] + MRuby.targets.values.map { |t| t.build_mrbtest_lib_only? ? t.libfile("#{t.build_dir}/test/mrbtest") : t.exefile("#{t.build_dir}/test/mrbtest") } do
   MRuby.each_target do
     run_test unless build_mrbtest_lib_only?
   end
