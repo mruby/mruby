@@ -432,10 +432,6 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
   }
 }
 
-#ifdef MRB_ENABLE_CXX_EXCEPTION
-mrb_int mrb_jmpbuf::jmpbuf_id = 0;
-#endif
-
 void
 mrb_init_exception(mrb_state *mrb)
 {

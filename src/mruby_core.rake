@@ -22,6 +22,9 @@ MRuby.each_target do
 extern "C" {
 #include "#{MRUBY_ROOT}/#{t.prerequisites.first}"
 }
+
+
+#{v == 'error'? 'mrb_int mrb_jmpbuf::jmpbuf_id = 0;' : ''}
 EOS
         end
       end
