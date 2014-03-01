@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <setjmp.h>
 #include <stddef.h>
 #include <stdarg.h>
 #include <math.h>
@@ -20,6 +19,7 @@
 #include "mruby/error.h"
 #include "opcode.h"
 #include "value_array.h"
+#include "mrb_throw.h"
 
 #ifndef ENABLE_STDIO
 #if defined(__cplusplus)
@@ -328,10 +328,16 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
   mrb_value val;
 
   if (!mrb->jmp) {
-    jmp_buf c_jmp;
+    struct mrb_jmpbuf c_jmp;
     mrb_callinfo *old_ci = mrb->c->ci;
 
-    if (setjmp(c_jmp) != 0) { /* error */
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      /* recursive call */
+      val = mrb_funcall_with_block(mrb, self, mid, argc, argv, blk);
+      mrb->jmp = 0;
+    }
+    MRB_CATCH(&c_jmp) { /* error */
       while (old_ci != mrb->c->ci) {
         mrb->c->stack = mrb->c->ci->stackent;
         cipop(mrb);
@@ -339,12 +345,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
       mrb->jmp = 0;
       val = mrb_obj_value(mrb->exc);
     }
-    else {
-      mrb->jmp = &c_jmp;
-      /* recursive call */
-      val = mrb_funcall_with_block(mrb, self, mid, argc, argv, blk);
-      mrb->jmp = 0;
-    }
+    MRB_END_EXC(&c_jmp);
   }
   else {
     struct RProc *p;
@@ -629,8 +630,8 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   mrb_value *regs = NULL;
   mrb_code i;
   int ai = mrb_gc_arena_save(mrb);
-  jmp_buf *prev_jmp = (jmp_buf *)mrb->jmp;
-  jmp_buf c_jmp;
+  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+  struct mrb_jmpbuf c_jmp;
 
 #ifdef DIRECT_THREADED
   static void *optable[] = {
@@ -657,13 +658,16 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   };
 #endif
 
+  mrb_bool exc_catched = FALSE;
+RETRY_TRY_BLOCK:
 
-  if (setjmp(c_jmp) == 0) {
-    mrb->jmp = &c_jmp;
-  }
-  else {
+  MRB_TRY(&c_jmp) {
+
+  if (exc_catched) {
+    exc_catched = FALSE;
     goto L_RAISE;
   }
+  mrb->jmp = &c_jmp;
   if (!mrb->c->stack) {
     stack_init(mrb);
   }
@@ -1353,7 +1357,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
           mrb->c->stack = ci[1].stackent;
           if (ci[1].acc == CI_ACC_SKIP && prev_jmp) {
             mrb->jmp = prev_jmp;
-            mrb_longjmp(mrb);
+            MRB_THROW(prev_jmp);
           }
           if (ci > mrb->c->cibase) {
             while (eidx > ci[-1].eidx) {
@@ -2247,16 +2251,17 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     }
   }
   END_DISPATCH;
+
+  }
+  MRB_CATCH(&c_jmp) {
+    exc_catched = TRUE;
+    goto RETRY_TRY_BLOCK;
+  }
+  MRB_END_EXC(&c_jmp);
 }
 
 mrb_value
 mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 {
   return mrb_context_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
-}
-
-void
-mrb_longjmp(mrb_state *mrb)
-{
-  longjmp(*(jmp_buf*)mrb->jmp, 1);
 }

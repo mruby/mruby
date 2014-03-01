@@ -305,7 +305,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, uint32_t
     file->filename = mrb_sym2name_len(mrb, file->filename_sym, &len);
 
     file->line_entry_count = bin_to_uint32(bin); bin += sizeof(uint32_t);
-    file->line_type = bin_to_uint8(bin); bin += sizeof(uint8_t);
+    file->line_type = (mrb_debug_line_type)bin_to_uint8(bin); bin += sizeof(uint8_t);
     switch(file->line_type) {
       case mrb_debug_line_ary: {
         size_t l;
@@ -319,7 +319,8 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, uint32_t
       case mrb_debug_line_flat_map: {
         size_t l;
 
-        file->line_flat_map = mrb_malloc(mrb, sizeof(mrb_irep_debug_info_line) * file->line_entry_count);
+        file->line_flat_map = (mrb_irep_debug_info_line*)mrb_malloc(
+            mrb, sizeof(mrb_irep_debug_info_line) * file->line_entry_count);
         for(l = 0; l < file->line_entry_count; ++l) {
           file->line_flat_map[l].start_pos = bin_to_uint32(bin); bin += sizeof(uint32_t);
           file->line_flat_map[l].line = bin_to_uint16(bin); bin += sizeof(uint16_t);
@@ -613,7 +614,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   }
 
   /* You don't need use SIZE_ERROR as buf_size is enough small. */
-  buf = mrb_malloc(mrb, buf_size);
+  buf = (uint8_t*)mrb_malloc(mrb, buf_size);
   if (!buf) {
     return NULL;
   }
@@ -631,7 +632,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   fpos = ftell(fp);
   /* You don't need use SIZE_ERROR as block_size is enough small. */
   for (i = 0; i < block_fallback_count; i++,block_size >>= 1){
-    buf = mrb_malloc_simple(mrb, block_size);
+    buf = (uint8_t*)mrb_malloc_simple(mrb, block_size);
     if (buf) break;
   }
   if (!buf) {
@@ -672,7 +673,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
     else if (memcmp(section_header.section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
       if (!irep) return NULL;   /* corrupted data */
       else {
-        uint8_t* const bin = mrb_malloc(mrb, section_size);
+        uint8_t* const bin = (uint8_t*)mrb_malloc(mrb, section_size);
 
         fseek(fp, fpos, SEEK_SET);
         if(fread((char*)bin, section_size, 1, fp) != 1) {

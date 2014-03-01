@@ -39,7 +39,12 @@ module MRuby
         @name = name
         @initializer = block
         @version = "0.0.0"
+        @cxx_abi_enabled = false
         MRuby::Gem.current = self
+      end
+
+      def cxx_abi_enabled?
+        @cxx_abi_enabled
       end
 
       def setup
@@ -54,12 +59,14 @@ module MRuby
 
         @rbfiles = Dir.glob("#{dir}/mrblib/*.rb").sort
         @objs = Dir.glob("#{dir}/src/*.{c,cpp,cxx,m,asm,S}").map do |f|
+          @cxx_abi_enabled = true if f =~ /(cxx|cpp)$/
           objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
         end
         @objs << objfile("#{build_dir}/gem_init")
 
         @test_rbfiles = Dir.glob("#{dir}/test/*.rb")
         @test_objs = Dir.glob("#{dir}/test/*.{c,cpp,cxx,m,asm,S}").map do |f|
+          @cxx_abi_enabled = true if f =~ /(cxx|cpp)$/
           objfile(f.relative_path_from(dir).to_s.pathmap("#{build_dir}/%X"))
         end
         @test_preload = nil # 'test/assert.rb'
