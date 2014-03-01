@@ -802,14 +802,14 @@ new_symbols(parser_state *p, node *a)
 
 /* (:call a op) */
 static node*
-call_uni_op(parser_state *p, node *recv, char *m)
+call_uni_op(parser_state *p, node *recv, const char *m)
 {
   return new_call(p, recv, intern_cstr(m), 0);
 }
 
 /* (:call a op b) */
 static node*
-call_bin_op(parser_state *p, node *recv, char *m, node *arg1)
+call_bin_op(parser_state *p, node *recv, const char *m, node *arg1)
 {
   return new_call(p, recv, intern_cstr(m), list1(list1(arg1)));
 }
