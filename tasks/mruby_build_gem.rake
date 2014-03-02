@@ -43,7 +43,11 @@ module MRuby
       if params[:github]
         params[:git] = "https://github.com/#{params[:github]}.git"
       elsif params[:bitbucket]
-        params[:git] = "https://bitbucket.org/#{params[:bitbucket]}.git"
+        if params[:method] == "ssh"
+          params[:git] = "git@bitbucket.org:#{params[:bitbucket]}.git"
+        else
+          params[:git] = "https://bitbucket.org/#{params[:bitbucket]}.git"
+        end
       end
 
       if params[:core]
