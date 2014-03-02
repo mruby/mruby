@@ -115,15 +115,15 @@ mrb_random_init(mrb_state *mrb, mrb_value self)
   mrb_value seed;
   mt_state *t;
   
-  DATA_TYPE(self) = &mt_state_type;
-  DATA_PTR(self) = NULL;
-  
   /* avoid memory leaks */
   t = (mt_state*)DATA_PTR(self);
   if (t) {
     mrb_free(mrb, t);
   }  
 
+  DATA_TYPE(self) = &mt_state_type;
+  DATA_PTR(self) = NULL;
+  
   t = (mt_state *)mrb_malloc(mrb, sizeof(mt_state));
   t->mti = N + 1;
 
