@@ -410,7 +410,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
         }
         else if (mrb_special_const_p(x)) {
           s = mrb_str_ptr(mrb_obj_as_string(mrb, x));
-          etype = s->ptr;
+          etype = s->as.heap.ptr;
         }
         else {
           etype = mrb_obj_classname(mrb, x);

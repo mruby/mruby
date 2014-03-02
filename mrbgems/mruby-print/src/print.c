@@ -11,8 +11,8 @@ printstr(mrb_state *mrb, mrb_value obj)
 
   if (mrb_string_p(obj)) {
     str = mrb_str_ptr(obj);
-    s = str->ptr;
-    len = str->len;
+    s = str->as.heap.ptr;
+    len = str->as.heap.len;
     fwrite(s, len, 1, stdout);
   }
 }

@@ -520,8 +520,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         if (i < argc) {
           ss = to_str(mrb, *sp++);
           s = mrb_str_ptr(ss);
-          *ps = s->ptr;
-          *pl = s->len;
+          *ps = s->as.heap.ptr;
+          *pl = s->as.heap.len;
           i++;
         }
       }
@@ -537,14 +537,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         if (i < argc) {
           ss = to_str(mrb, *sp++);
           s = mrb_str_ptr(ss);
-          len = (mrb_int)strlen(s->ptr);
-          if (len < s->len) {
+          len = (mrb_int)strlen(s->as.heap.ptr);
+          if (len < s->as.heap.len) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
           }
-          else if (len > s->len) {
+          else if (len > s->as.heap.len) {
             mrb_str_modify(mrb, s);
           }
-          *ps = s->ptr;
+          *ps = s->as.heap.ptr;
           i++;
         }
       }
@@ -1298,7 +1298,7 @@ mrb_class_name(mrb_state *mrb, struct RClass* c)
     mrb_str_concat(mrb, path, mrb_ptr_to_str(mrb, c));
     mrb_str_cat_lit(mrb, path, ">");
   }
-  return mrb_str_ptr(path)->ptr;
+  return mrb_str_ptr(path)->as.heap.ptr;
 }
 
 const char*

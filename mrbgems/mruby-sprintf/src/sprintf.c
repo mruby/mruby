@@ -712,7 +712,7 @@ retry:
         if (*p == 'p') arg = mrb_inspect(mrb, arg);
         str = mrb_obj_as_string(mrb, arg);
         len = RSTRING_LEN(str);
-        RSTRING_LEN(result) = blen;
+        RSTRING(result)->as.heap.len = blen;
         if (flags&(FPREC|FWIDTH)) {
           slen = RSTRING_LEN(str);
           if (slen < 0) {

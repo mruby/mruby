@@ -18,8 +18,8 @@ printstr(mrb_state *mrb, mrb_value obj)
 
   if (mrb_string_p(obj)) {
     str = mrb_str_ptr(obj);
-    s = str->ptr;
-    len = str->len;
+    s = str->as.heap.ptr;
+    len = str->as.heap.len;
     fwrite(s, len, 1, stdout);
   }
 #endif
@@ -45,7 +45,7 @@ mrb_print_error(mrb_state *mrb)
   s = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
   if (mrb_string_p(s)) {
     struct RString *str = mrb_str_ptr(s);
-    fwrite(str->ptr, str->len, 1, stderr);
+    fwrite(str->as.heap.ptr, str->as.heap.len, 1, stderr);
     putc('\n', stderr);
   }
 #endif

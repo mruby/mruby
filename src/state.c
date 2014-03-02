@@ -136,7 +136,7 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   for (i=0; i<irep->plen; i++) {
     if (mrb_type(irep->pool[i]) == MRB_TT_STRING) {
       if ((mrb_str_ptr(irep->pool[i])->flags & MRB_STR_NOFREE) == 0) {
-        mrb_free(mrb, mrb_str_ptr(irep->pool[i])->ptr);
+        mrb_free(mrb, mrb_str_ptr(irep->pool[i])->as.heap.ptr);
       }
       mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
     }
@@ -169,19 +169,19 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
   ns->tt = MRB_TT_STRING;
   ns->c = mrb->string_class;
 
-  len = s->len;
-  ns->len = len;
+  len = s->as.heap.len;
+  ns->as.heap.len = len;
   if (s->flags & MRB_STR_NOFREE) {
-    ns->ptr = s->ptr;
+    ns->as.heap.ptr = s->as.heap.ptr;
     ns->flags = MRB_STR_NOFREE;
   }
   else {
     ns->flags = 0;
-    ns->ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
-    if (s->ptr) {
-      memcpy(ns->ptr, s->ptr, len);
+    ns->as.heap.ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
+    if (s->as.heap.ptr) {
+      memcpy(ns->as.heap.ptr, s->as.heap.ptr, len);
     }
-    ns->ptr[len] = '\0';
+    ns->as.heap.ptr[len] = '\0';
   }
   return mrb_obj_value(ns);
 }
