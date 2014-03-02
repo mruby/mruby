@@ -36,6 +36,10 @@ end
 
 assert('String#*', '15.2.10.5.5') do
   assert_equal 'aaaaa', 'a' * 5
+  assert_equal '', 'a' * 0
+  assert_raise(ArgumentError) do
+    'a' * -1
+  end
 end
 
 assert('String#[]', '15.2.10.5.6') do
