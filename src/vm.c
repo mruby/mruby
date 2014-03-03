@@ -551,8 +551,8 @@ mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg)
 mrb_value
 mrb_call_super(mrb_state *mrb, int argc, mrb_value *argv)
 {
-  RClass* sup = mrb->c->ci->target_class->super;
-  RProc* p = mrb_method_search_vm(mrb, &sup, mrb->c->ci->mid);
+  struct RClass* sup = mrb->c->ci->target_class->super;
+  struct RProc* p = mrb_method_search_vm(mrb, &sup, mrb->c->ci->mid);
 
   if(!p) {
     mrb_value* tmp; int i;
