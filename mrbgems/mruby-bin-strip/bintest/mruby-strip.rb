@@ -32,6 +32,7 @@ assert('success') do
   o = `bin/mruby-strip #{compiled1.path}`
   assert_equal 0, $?.exitstatus
   assert_equal "", o
+  assert_equal `bin/mruby #{script_file.path}`, `bin/mruby -b #{compiled1.path}`
 
   o = `bin/mruby-strip #{compiled1.path} #{compiled2.path}`
   assert_equal 0, $?.exitstatus

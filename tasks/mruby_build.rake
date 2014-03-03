@@ -194,7 +194,8 @@ module MRuby
     end
 
     def run_bintest
-      sh "ruby test/bintest.rb"
+      targets = @gems.select { |v| Dir.exists? "#{v.dir}/bintest" }.map { |v| filename v.dir }
+      sh "ruby test/bintest.rb #{targets.join ' '}"
     end
 
     def print_build_summary
