@@ -548,6 +548,19 @@ mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg)
   return mrb_yield_internal(mrb, b, 1, &arg, p->env->stack[0], p->target_class);
 }
 
+mrb_value
+mrb_call_super(mrb_state *mrb, int argc, mrb_value *argv)
+{
+  RClass* sup = mrb->c->ci->target_class->super;
+  RProc* p = mrb_method_search_vm(mrb, &sup, mrb->c->ci->mid);
+
+  if(!p) {
+    p = mrb_method_search_vm(mrb, &sup, mrb_intern_lit(mrb, "method_missing"));
+  }
+
+  return mrb_yield_internal(mrb, mrb_obj_value(p), argc, argv, mrb->c->stack[0], sup);
+}
+
 typedef enum {
   LOCALJUMP_ERROR_RETURN = 0,
   LOCALJUMP_ERROR_BREAK = 1,
