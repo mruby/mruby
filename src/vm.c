@@ -451,7 +451,8 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
 
   c = mrb_class(mrb, self);
   p = mrb_method_search_vm(mrb, &c, name);
-  if (!p || MRB_PROC_CFUNC_P(p)) {
+
+  if (!p) {                     /* call method_mising */
     return mrb_funcall_with_block(mrb, self, name, argc, argv, block);
   }
 
@@ -470,6 +471,11 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   else {                     /* variable length arguments */
     mrb_ary_shift(mrb, regs[0]);
   }
+
+  if (MRB_PROC_CFUNC_P(p)) {
+    return p->body.func(mrb, self);
+  }
+
   cipush(mrb);
   ci = mrb->c->ci;
   ci->target_class = 0;
