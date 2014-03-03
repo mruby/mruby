@@ -12,6 +12,7 @@
 #include "mruby/proc.h"
 #include "mruby/string.h"
 #include "mruby/debug.h"
+#include "mruby/error.h"
 
 #if !defined(_WIN32) && SIZE_MAX < UINT32_MAX
 # define SIZE_ERROR_MUL(x, y) ((x) > SIZE_MAX / (y))
@@ -467,8 +468,7 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
 static void
 irep_error(mrb_state *mrb)
 {
-  static const char msg[] = "irep load error";
-  mrb->exc = mrb_obj_ptr(mrb_exc_new(mrb, E_SCRIPT_ERROR, msg, sizeof(msg) - 1));
+  mrb->exc = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, E_SCRIPT_ERROR, "irep load error"));
 }
 
 mrb_value
