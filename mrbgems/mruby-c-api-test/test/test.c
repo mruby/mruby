@@ -24,4 +24,5 @@ mrb_mruby_c_api_test_gem_test(mrb_state *mrb)
   derived = mrb_define_class(mrb, "CallSuperDerived", base);
   mrb_define_method(mrb, derived, "func", &func, MRB_ARGS_NONE());
   mrb_define_method(mrb, derived, "args", &args, MRB_ARGS_NONE());
+  mrb_define_method(mrb, derived, "test", &args, MRB_ARGS_NONE());
 }
