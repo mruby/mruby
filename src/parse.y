@@ -24,6 +24,7 @@
 #include "mruby.h"
 #include "mruby/compile.h"
 #include "mruby/proc.h"
+#include "mruby/error.h"
 #include "node.h"
 #include "mrb_throw.h"
 
@@ -5398,8 +5399,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
       return mrb_undef_value();
     }
     else {
-      static const char msg[] = "syntax error";
-      mrb->exc = mrb_obj_ptr(mrb_exc_new(mrb, E_SYNTAX_ERROR, msg, sizeof(msg) - 1));
+      mrb->exc = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, E_SYNTAX_ERROR, "syntax error"));
       mrb_parser_free(p);
       return mrb_undef_value();
     }
@@ -5407,8 +5407,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   proc = mrb_generate_code(mrb, p);
   mrb_parser_free(p);
   if (proc == NULL) {
-    static const char msg[] = "codegen error";
-    mrb->exc = mrb_obj_ptr(mrb_exc_new(mrb, E_SCRIPT_ERROR, msg, sizeof(msg) - 1));
+    mrb->exc = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, E_SCRIPT_ERROR, "codegen error"));
     return mrb_undef_value();
   }
   if (c) {

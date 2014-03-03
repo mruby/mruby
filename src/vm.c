@@ -1209,8 +1209,7 @@ RETRY_TRY_BLOCK:
         struct REnv *e = uvenv(mrb, lv-1);
         if (!e) {
           mrb_value exc;
-          static const char m[] = "super called outside of method";
-          exc = mrb_exc_new(mrb, E_NOMETHOD_ERROR, m, sizeof(m) - 1);
+          exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
           mrb->exc = mrb_obj_ptr(exc);
           goto L_RAISE;
         }
@@ -1424,7 +1423,7 @@ RETRY_TRY_BLOCK:
               goto L_RAISE;
             }
             if (mrb->c->prev->ci == mrb->c->prev->cibase) {
-              mrb_value exc = mrb_exc_new_str(mrb, E_RUNTIME_ERROR, mrb_str_new_lit(mrb, "double resume"));
+              mrb_value exc = mrb_exc_new_str_lit(mrb, E_RUNTIME_ERROR, "double resume");
               mrb->exc = mrb_obj_ptr(exc);
               goto L_RAISE;
             }
@@ -2192,8 +2191,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_TCLASS) {
       /* A B    R(A) := target_class */
       if (!mrb->c->ci->target_class) {
-        static const char msg[] = "no target class or module";
-        mrb_value exc = mrb_exc_new(mrb, E_TYPE_ERROR, msg, sizeof(msg) - 1);
+        mrb_value exc = mrb_exc_new_str_lit(mrb, E_TYPE_ERROR, "no target class or module");
         mrb->exc = mrb_obj_ptr(exc);
         goto L_RAISE;
       }
