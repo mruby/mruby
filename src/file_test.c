@@ -8,7 +8,12 @@
 #include "mruby/class.h"
 #include "mruby/data.h"
 #include "mruby/string.h"
+
+#if MRUBY_RELEASE_NO < 10000
 #include "error.h"
+#else
+#include "mruby/error.h"
+#endif
 
 #if defined(_WIN32) || defined(_WIN64)
   #define LSTAT stat
