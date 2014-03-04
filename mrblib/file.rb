@@ -12,9 +12,17 @@ class File < IO
     if fd_or_path.kind_of? Fixnum
       super(fd_or_path, mode)
     else
+      if Object.const_defined? :Errno
+        eclass = [Errno::ENOENT, Errno::ENFILE]
+      else
+        eclass = FileError
+      end
+      
       @path = fd_or_path
       begin
         fd = IO.sysopen(@path, mode, perm)
+      rescue RuntimeError => e
+        raise FileError, "Could not open file (#{e})"
       rescue Errno::EMFILE, Errno::ENFILE
         GC.start
         fd = IO.sysopen(@path, mode, perm)
@@ -116,6 +124,16 @@ class File < IO
 
       expand_path = expand_path_array.join("/")
       expand_path.empty? ? '/' : expand_path
+    end
+  end
+
+  def self.foreach(file)
+    if block_given?
+      self.open(file) do |f|
+        f.each {|l| yield l}
+      end
+    else
+      return self.new(file)
     end
   end
 
