@@ -509,4 +509,4 @@ mrb_bool_value(mrb_bool boolean)
   return v;
 }
 
-#endif  /* MRUBY_OBJECT_H */
+#endif  /* MRUBY_VALUE_H */
