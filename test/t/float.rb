@@ -144,6 +144,23 @@ assert('Float#truncate', '15.2.9.3.15') do
   assert_equal(-3, -3.1.truncate)
 end
 
+assert('Float#divmod') do
+  def check_floats exp, act
+    assert_float exp[0], act[0]
+    assert_float exp[1], act[1]
+  end
+
+  # Note: quotients are Float because mruby does not have Bignum.
+  check_floats [ 0,  0.0],   0.0.divmod(1)
+  check_floats [ 0,  1.1],   1.1.divmod(3)
+  check_floats [ 3,  0.2],   3.2.divmod(1)
+  check_floats [ 2,  6.3],  20.3.divmod(7)
+  check_floats [-1,  1.6],  -3.4.divmod(5)
+  check_floats [-2, -0.5],  25.5.divmod(-13)
+  check_floats [ 1, -6.6], -13.6.divmod(-7)
+  check_floats [ 3,  0.2],   9.8.divmod(3.2)
+end
+
 assert('Float#nan?') do
   assert_true (0.0/0.0).nan?
   assert_false 0.0.nan?
