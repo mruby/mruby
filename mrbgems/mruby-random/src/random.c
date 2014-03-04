@@ -76,7 +76,7 @@ get_opt(mrb_state* mrb)
 {
   mrb_value arg;
 
-  arg = mrb_fixnum_value(0);
+  arg = mrb_nil_value();
   mrb_get_args(mrb, "|o", &arg);
 
   if (!mrb_nil_p(arg)) {
