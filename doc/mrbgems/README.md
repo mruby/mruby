@@ -150,6 +150,7 @@ the following options additionally inside of your GEM specification:
 * `spec.test_rbfiles` (Ruby test files for integration into mrbtest)
 * `spec.test_objs` (Object test files for integration into mrbtest)
 * `spec.test_preload` (Initialization files for mrbtest)
+* `spec.activation_policy` (Modify initialization timing)
 
 ## C Extension
 
@@ -169,6 +170,16 @@ initialisation method could look like this:
 	  mrb_define_class_method(mrb, class_cextension, "c_method", mrb_c_method, MRB_ARGS_NONE());
 	}
 
+#### Lazy initialize
+
+By default, all gems are initialized on calling `mrb_open()` and you can't specify the initialize order of gems.
+But in some cases, you may want to call the initialize routine for specified gem after the another gem.
+And in the another cases, you may want to enable a gem after application started.
+You can stop startup time initialization by adding `spec.activation_policy = "lazy"` in `mrbgem.rake`.
+'Lazy' gems are initialized implicitly by calling `mrb_require_prelinked()` C API.
+
+You can call `mrb_require_prelinked()` with no limitation (unlike finalize).
+
 ### Finalize
 
 mrbgems expects that you have implemented a C method called
@@ -180,6 +191,20 @@ finalizer method could look like this:
 	mrb_c_extension_example_gem_final(mrb_state* mrb) {
 	  free(someone);
 	}
+
+#### Explicit finalize
+
+By default, all gems are finalized implicitly on calling `mrb_close()`.
+But in some cases, you may want to call the finalize another gems before finalizing the specified gem.
+
+You can control finalization order implicitly by calling ```mrb_finalize_prelinked()``` C API.
+This function is enabled only gems set ```spec.activation_policy = "lazy"``` in ```mrbgem.rake```.
+If there are some gems that didn't be finalized explicitly, they are finalized automatically similar to
+the default behavior.
+
+`mrb_finalize_prelinked()` should be called in `mrb_*_gem_final()` functions or their subroutines only.
+`mrb_finalize_prelinked()` will return -1 if you call it on unsuitable places.
+
 
 ### Example
 
