@@ -34,7 +34,7 @@
 #endif
 
 /* timegm(3) */
-/* mktime() creates tm structure for localtime; timegm() is for UTF time */
+/* mktime() creates tm structure for localtime; timegm() is for UTC time */
 /* define following macro to use probably faster timegm() on the platform */
 /* #define USE_SYSTEM_TIMEGM */
 
@@ -80,7 +80,7 @@ timegm(struct tm *tm)
 }
 #endif
 
-/* Since we are limited to using ISO C89, this implementation is based
+/* Since we are limited to using ISO C99, this implementation is based
 * on time_t. That means the resolution of time is only precise to the
 * second level. Also, there are only 2 timezones, namely UTC and LOCAL.
 */
