@@ -93,15 +93,14 @@ enum mrb_timezone {
 };
 
 typedef struct mrb_timezone_name {
-  const char *name;
+  const char name[8];
   size_t len;
 } mrb_timezone_name;
 
 static const mrb_timezone_name timezone_names[] = {
   { "none", sizeof("none") - 1 },
-  { "UTC",  sizeof("UTC") - 1 },
+  { "UTC", sizeof("UTC") - 1 },
   { "LOCAL", sizeof("LOCAL") - 1 },
-  { NULL, 0 }
 };
 
 static const char mon_names[12][4] = {
