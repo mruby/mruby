@@ -97,7 +97,7 @@ typedef struct mrb_timezone_name {
   size_t len;
 } mrb_timezone_name;
 
-static mrb_timezone_name timezone_names[] = {
+static const mrb_timezone_name timezone_names[] = {
   { "none", sizeof("none") - 1 },
   { "UTC",  sizeof("UTC") - 1 },
   { "LOCAL", sizeof("LOCAL") - 1 },
