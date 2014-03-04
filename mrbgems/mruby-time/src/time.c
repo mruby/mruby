@@ -42,7 +42,37 @@
 /** end of Time class configuration */
 
 #ifndef NO_GETTIMEOFDAY
-#include <sys/time.h>
+# ifdef _WIN32
+#  define WIN32_LEAN_AND_MEAN  /* don't include winsock.h */
+#  include <windows.h>
+#  define gettimeofday my_gettimeofday
+typedef long suseconds_t;
+struct timeval {
+  time_t tv_sec;
+  suseconds_t tv_usec;
+};
+static int
+gettimeofday(struct timeval *tv, void *tz)
+{
+  if (tz) {
+    mrb_assert(0);  /* timezone is not supported */
+  }
+  if (tv) {
+    union {
+      FILETIME ft;
+      unsigned __int64 u64;
+    } t;
+    GetSystemTimeAsFileTime(&t.ft);   /* 100 ns intervals since Windows epoch */
+    t.u64 -= 116444736000000000ui64;  /* Unix epoch bias */
+    t.u64 /= 10;                      /* to microseconds */
+    tv->tv_sec = (time_t)(t.u64 / 1000 * 1000);
+    tv->tv_usec = t.u64 % 1000 * 1000;
+  }
+  return 0;
+}
+# else
+#  include <sys/time.h>
+# endif
 #endif
 #ifdef NO_GMTIME_R
 #define gmtime_r(t,r) gmtime(t)
