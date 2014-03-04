@@ -330,6 +330,9 @@ assert('String#rindex', '15.2.10.5.31') do
   assert_nil 'abc'.rindex('d')
   assert_equal 0, 'abcabc'.rindex('a', 1)
   assert_equal 3, 'abcabc'.rindex('a', 4)
+
+  assert_equal 3,   'abcabc'.rindex(97)
+  assert_equal nil, 'abcabc'.rindex(0)
 end
 
 # 'String#scan', '15.2.10.5.32' will be tested in mrbgems.
