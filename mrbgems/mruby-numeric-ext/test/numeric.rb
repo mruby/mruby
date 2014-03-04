@@ -13,3 +13,11 @@ assert('Integer#chr') do
       assert_raise(RangeError) { 256.chr }
   end
 end
+
+assert('Integer#div') do
+  assert_equal 52, 365.div(7)
+end
+
+assert('Float#div') do
+  assert_float 52, 365.2425.div(7)
+end
