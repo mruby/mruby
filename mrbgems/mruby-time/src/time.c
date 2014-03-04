@@ -104,11 +104,11 @@ static mrb_timezone_name timezone_names[] = {
   { NULL, 0 }
 };
 
-static const char *mon_names[] = {
+static const char mon_names[12][4] = {
   "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 };
 
-static const char *wday_names[] = {
+static const char wday_names[7][4] = {
   "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat",
 };
 
