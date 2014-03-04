@@ -119,7 +119,7 @@ struct mrb_time {
   struct tm           datetime;
 };
 
-static struct mrb_data_type mrb_time_type = { "Time", mrb_free };
+static const struct mrb_data_type mrb_time_type = { "Time", mrb_free };
 
 /** Updates the datetime of a mrb_time based on it's timezone and
 seconds setting. Returns self on success, NULL of failure. */
