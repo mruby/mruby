@@ -207,6 +207,16 @@ end
 
 # Not ISO specified
 
+assert('Integer#divmod') do
+  assert_equal [ 0,  0],   0.divmod(1)
+  assert_equal [ 0,  1],   1.divmod(3)
+  assert_equal [ 3,  0],   3.divmod(1)
+  assert_equal [ 2,  6],  20.divmod(7)
+  assert_equal [-1,  2],  -3.divmod(5)
+  assert_equal [-2, -1],  25.divmod(-13)
+  assert_equal [ 1, -6], -13.divmod(-7)
+end
+
 assert('Integer#step') do
   a = []
   b = []
