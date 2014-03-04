@@ -1660,7 +1660,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
       mrb_int len = RSTRING_LEN(str);
       unsigned char *p = (unsigned char*)RSTRING_PTR(str);
 
-      for (pos=len;pos>=0;pos--) {
+      for (pos=len-1;pos>=0;pos--) {
         if (p[pos] == c) return mrb_fixnum_value(pos);
       }
       return mrb_nil_value();
