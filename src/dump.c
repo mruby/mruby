@@ -563,7 +563,7 @@ write_debug_record(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const* 
     size += len;
   }
 
-  mrb_assert(size == (int)get_debug_record_size(mrb, irep));
+  mrb_assert(size == (uint32_t)get_debug_record_size(mrb, irep));
   return size;
 }
 
