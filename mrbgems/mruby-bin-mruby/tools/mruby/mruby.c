@@ -142,7 +142,7 @@ append_cmdline:
       args->rfp = fopen(argv[0], args->mrbfile ? "rb" : "r");
       if (args->rfp == NULL) {
         printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
-        return 0;
+        return EXIT_FAILURE;
       }
       args->fname = TRUE;
       args->cmdline = argv[0];
