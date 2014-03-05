@@ -13,7 +13,6 @@
 
 #include <time.h>
 
-static char const GLOBAL_RAND_SEED_KEY[] = "$mrb_g_rand_seed";
 static char const MT_STATE_KEY[] = "$mrb_i_mt_state";
 
 static const struct mrb_data_type mt_state_type = {
