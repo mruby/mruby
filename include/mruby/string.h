@@ -15,7 +15,15 @@ extern "C" {
 
 extern const char mrb_digitmap[];
 
-#define RSTRING_EMBED_LEN_MAX ((mrb_int)((sizeof(mrb_int)*2+sizeof(char*))/sizeof(char)-1))
+/* (sizeof(mrb_int)*2+sizeof(char*))/sizeof(char)-1 */
+#if defined(MRB_INT16)
+# define RSTRING_EMBED_LEN_MAX 9
+#elif defined(MRB_INT64)
+# define RSTRING_EMBED_LEN_MAX 15
+#else
+# define RSTRING_EMBED_LEN_MAX 11
+#endif
+
 struct RString {
   MRB_OBJECT_HEADER;
   union {
@@ -33,10 +41,19 @@ struct RString {
 
 #define mrb_str_ptr(s)    ((struct RString*)(mrb_ptr(s)))
 #define RSTRING(s)        ((struct RString*)(mrb_ptr(s)))
-#define RSTRING_PTR(s)    (RSTRING(s)->as.heap.ptr)
-#define RSTRING_LEN(s)    (RSTRING(s)->as.heap.len)
-#define RSTRING_CAPA(s)   (RSTRING(s)->as.heap.aux.capa)
-#define RSTRING_END(s)    (RSTRING(s)->as.heap.ptr + RSTRING(s)->as.heap.len)
+#define RSTRING_PTR(s)\
+  ((RSTRING(s)->flags & MRB_STR_EMBED) ?\
+   RSTRING(s)->as.ary :\
+   RSTRING(s)->as.heap.ptr)
+#define RSTRING_LEN(s)\
+  ((RSTRING(s)->flags & MRB_STR_EMBED) ?\
+  (mrb_int)((RSTRING(s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT) :\
+   RSTRING(s)->as.heap.len)
+#define RSTRING_CAPA(s)\
+  ((RSTRING(s)->flags & MRB_STR_EMBED) ?\
+   RSTRING_EMBED_LEN_MAX :\
+   RSTRING(s)->as.heap.aux.capa)
+#define RSTRING_END(s)    (RSTRING_PTR(s) + RSTRING_LEN(s))
 
 #define MRB_STR_SHARED    1
 #define MRB_STR_NOFREE    2

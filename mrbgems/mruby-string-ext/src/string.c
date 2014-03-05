@@ -33,8 +33,8 @@ mrb_str_swapcase_bang(mrb_state *mrb, mrb_value str)
   struct RString *s = mrb_str_ptr(str);
 
   mrb_str_modify(mrb, s);
-  p = s->as.heap.ptr;
-  pend = s->as.heap.ptr + s->as.heap.len;
+  p = RSTRING_PTR(str);
+  pend = RSTRING_PTR(str) + RSTRING_LEN(str);
   while (p < pend) {
     if (ISUPPER(*p)) {
       *p = TOLOWER(*p);
