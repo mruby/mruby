@@ -41,6 +41,15 @@ MRuby.each_target do
     _pp "GEN", "*.rb", "#{clib.relative_path}"
     FileUtils.mkdir_p File.dirname(clib)
     open(clib, 'w') do |f|
+      f.puts %Q[/*]
+      f.puts %Q[ * This file contains a list of all]
+      f.puts %Q[ * test functions.]
+      f.puts %Q[ *]
+      f.puts %Q[ * IMPORTANT:]
+      f.puts %Q[ *   This file was generated!]
+      f.puts %Q[ *   All manual changes will get lost.]
+      f.puts %Q[ */]
+      f.puts %Q[]
       f.puts IO.read(init)
       mrbc.run f, mrbs, 'mrbtest_irep'
       gems.each do |g|
