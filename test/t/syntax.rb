@@ -1,9 +1,10 @@
 assert('__FILE__') do
-  assert_equal 'test/t/syntax.rb', __FILE__
+  file = __FILE__
+  assert_true 'test/t/syntax.rb' == file || 'test\t\syntax.rb' == file
 end
 
 assert('__LINE__') do
-  assert_equal 6, __LINE__
+  assert_equal 7, __LINE__
 end
 
 assert('super', '11.3.4') do
