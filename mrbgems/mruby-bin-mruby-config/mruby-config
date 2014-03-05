@@ -1,0 +1,10 @@
+#!/bin/sh
+
+while [ $# -gt 0 ]; do
+  case $1 in
+    --cflags) echo MRUBY_CFLAGS;;
+    --ldflags) echo MRUBY_LDFLAGS;;
+    --libs) echo MRUBY_LIBS;;
+  esac
+  shift
+done
