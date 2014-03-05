@@ -2,6 +2,7 @@
 #include "mruby/proc.h"
 #include "mruby/array.h"
 #include "mruby/string.h"
+#include "mruby/debug.h"
 
 static mrb_value
 mrb_proc_lambda(mrb_state *mrb, mrb_value self)
@@ -20,13 +21,14 @@ mrb_proc_source_location(mrb_state *mrb, mrb_value self)
   }
   else {
     mrb_irep *irep = p->body.irep;
-    mrb_value filename = mrb_nil_value();
-    mrb_value lines = mrb_nil_value();
+    uint32_t line;
+    const char *filename;
 
-    if (irep->filename) filename = mrb_str_new_cstr(mrb, irep->filename);
-    if (irep->lines)    lines = mrb_fixnum_value(*irep->lines);
+    filename = mrb_debug_get_filename(irep, 0);
+    line = mrb_debug_get_line(irep, 0);
 
-    return mrb_assoc_new(mrb, filename, lines);
+    return (!filename && line == -1)? mrb_nil_value()
+        : mrb_assoc_new(mrb, mrb_str_new_cstr(mrb, filename), mrb_fixnum_value(line));
   }
 }
 

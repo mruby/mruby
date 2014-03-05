@@ -1,6 +1,13 @@
 ##
 # Proc(Ext) Test
 
+assert('Proc#source_location') do
+  loc = Proc.new {}.source_location
+  next true if loc.nil?
+  assert_equal loc[0][-7, 7], 'proc.rb'
+  assert_equal loc[1], 5
+end
+
 assert('Proc#lambda?') do
   assert_true lambda{}.lambda?
   assert_true !Proc.new{}.lambda?
