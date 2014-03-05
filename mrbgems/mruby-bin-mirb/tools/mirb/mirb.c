@@ -322,24 +322,15 @@ main(int argc, char **argv)
     free(line);
 #endif
 
-    if ((strcmp(last_code_line, "quit") == 0) || (strcmp(last_code_line, "exit") == 0)) {
-      if (!code_block_open) {
-        break;
-      }
-      else{
-        /* count the quit/exit commands as strings if in a quote block */
+    if (code_block_open) {
         strcat(ruby_code, "\n");
         strcat(ruby_code, last_code_line);
-      }
     }
     else {
-      if (code_block_open) {
-        strcat(ruby_code, "\n");
-        strcat(ruby_code, last_code_line);
+      if ((strcmp(last_code_line, "quit") == 0) || (strcmp(last_code_line, "exit") == 0)) {
+        break;
       }
-      else {
-        strcpy(ruby_code, last_code_line);
-      }
+      strcpy(ruby_code, last_code_line);
     }
 
     /* parse code */
