@@ -15,7 +15,7 @@ f_exit(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_exit_gem_init(mrb_state* mrb)
 {
-  mrb_define_method(mrb, mrb->kernel_module, "exit", f_exit, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrb->kernel_module, "exit", f_exit, MRB_ARGS_OPT(1));
 }
 
 void
