@@ -136,7 +136,7 @@ static mrb_value
 str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
   mrb_value str2;
-  int len8 = RSTRING_LEN_UTF8(str);
+  size_t len8 = RSTRING_LEN_UTF8(str);
 
   if (len < 0) return mrb_nil_value();
   if (len8 == 0) {
@@ -155,7 +155,7 @@ str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   if (len <= 0) {
     len = 0;
   }
-  str2 = str_subseq(mrb, str, beg, len);
+  str2 = str_subseq(mrb, str, beg, (mrb_int)len);
 
   return str2;
 }
@@ -250,10 +250,10 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
 {
-  int utf8_len = mrb_utf8_strlen(str);
+  size_t utf8_len = mrb_utf8_strlen(str);
   if (utf8_len > 1) {
-    int len = RSTRING_LEN(str);
-    char *buf = (char *)mrb_malloc(mrb, len);
+    mrb_int len = RSTRING_LEN(str);
+    char *buf = (char *)mrb_malloc(mrb, (size_t)len);
     unsigned char* p = (unsigned char*)buf;
     unsigned char* e = (unsigned char*)buf + len;
     unsigned char* r = (unsigned char*)RSTRING_END(str);
@@ -262,7 +262,7 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
     mrb_str_modify(mrb, mrb_str_ptr(str));
     
     while (p<e) {
-      int clen = utf8len(p);
+      size_t clen = utf8len(p);
       r -= clen;
       memcpy(r, p, clen);
       p += clen;
@@ -284,7 +284,7 @@ mrb_fixnum_chr(mrb_state *mrb, mrb_value num)
 {
   mrb_int cp = mrb_fixnum(num);
   char utf8[4];
-  int len;
+  size_t len;
 
   if (cp < 0 || 0x10FFFF < cp) {
     mrb_raisef(mrb, E_RANGE_ERROR, "%S out of char range", num);
