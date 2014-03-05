@@ -220,8 +220,8 @@ module MRuby
     attr_block %w(test_runner)
 
     def initialize(name, build_dir=nil, &block)
-  @test_runner = Command::CrossTestRunner.new(self)
-  super
+      @test_runner = Command::CrossTestRunner.new(self)
+      super
     end
 
     def mrbcfile
