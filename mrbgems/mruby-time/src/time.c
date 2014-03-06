@@ -45,6 +45,13 @@
 #  define WIN32_LEAN_AND_MEAN  /* don't include winsock.h */
 #  include <windows.h>
 #  define gettimeofday my_gettimeofday
+
+#  ifdef _MSC_VER
+#    define UI64(x) x##ui64
+#  else
+#    define UI64(x) x##ull
+#  endif
+
 typedef long suseconds_t;
 struct timeval {
   time_t tv_sec;
@@ -62,7 +69,7 @@ gettimeofday(struct timeval *tv, void *tz)
       unsigned __int64 u64;
     } t;
     GetSystemTimeAsFileTime(&t.ft);   /* 100 ns intervals since Windows epoch */
-    t.u64 -= 116444736000000000ui64;  /* Unix epoch bias */
+    t.u64 -= UI64(116444736000000000);  /* Unix epoch bias */
     t.u64 /= 10;                      /* to microseconds */
     tv->tv_sec = (time_t)(t.u64 / (1000 * 1000));
     tv->tv_usec = t.u64 % 1000 * 1000;
