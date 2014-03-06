@@ -166,6 +166,9 @@ struct mrb_parser_state* mrb_parse_string(mrb_state*,const char*,mrbc_context*);
 struct mrb_parser_state* mrb_parse_nstring(mrb_state*,const char*,int,mrbc_context*);
 struct RProc* mrb_generate_code(mrb_state*, struct mrb_parser_state*);
 
+void mrb_codedump_all(mrb_state*, struct RProc*);
+void mrb_parser_dump(mrb_state*, mrb_ast_node*, int);
+
 /* program load functions */
 #ifdef ENABLE_STDIO
 mrb_value mrb_load_file(mrb_state*,FILE*);
