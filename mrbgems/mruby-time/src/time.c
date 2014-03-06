@@ -64,7 +64,7 @@ gettimeofday(struct timeval *tv, void *tz)
     GetSystemTimeAsFileTime(&t.ft);   /* 100 ns intervals since Windows epoch */
     t.u64 -= 116444736000000000ui64;  /* Unix epoch bias */
     t.u64 /= 10;                      /* to microseconds */
-    tv->tv_sec = (time_t)(t.u64 / 1000 * 1000);
+    tv->tv_sec = (time_t)(t.u64 / (1000 * 1000));
     tv->tv_usec = t.u64 % 1000 * 1000;
   }
   return 0;
