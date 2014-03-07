@@ -390,7 +390,6 @@ void
 mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
 {
   const struct types *type = builtin_types;
-  struct RString *s;
   enum mrb_vtype xt;
 
   xt = mrb_type(x);
@@ -409,8 +408,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
           etype = "Symbol";
         }
         else if (mrb_special_const_p(x)) {
-          s = mrb_str_ptr(mrb_obj_as_string(mrb, x));
-          etype = s->ptr;
+          etype = RSTRING_PTR(mrb_obj_as_string(mrb, x));
         }
         else {
           etype = mrb_obj_classname(mrb, x);

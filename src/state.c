@@ -135,8 +135,8 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
     mrb_free(mrb, irep->iseq);
   for (i=0; i<irep->plen; i++) {
     if (mrb_type(irep->pool[i]) == MRB_TT_STRING) {
-      if ((mrb_str_ptr(irep->pool[i])->flags & MRB_STR_NOFREE) == 0) {
-        mrb_free(mrb, mrb_str_ptr(irep->pool[i])->ptr);
+      if ((mrb_str_ptr(irep->pool[i])->flags & (MRB_STR_NOFREE|MRB_STR_EMBED)) == 0) {
+        mrb_free(mrb, RSTRING_PTR(irep->pool[i]));
       }
       mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
     }
@@ -163,25 +163,30 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
   struct RString *ns;
+  char *ptr;
   mrb_int len;
 
   ns = (struct RString *)mrb_malloc(mrb, sizeof(struct RString));
   ns->tt = MRB_TT_STRING;
   ns->c = mrb->string_class;
 
-  len = s->len;
-  ns->len = len;
+  if (s->flags & MRB_STR_EMBED)
+    len = (mrb_int)((s->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT);
+  else
+    len = s->as.heap.len;
+  ns->as.heap.len = len;
   if (s->flags & MRB_STR_NOFREE) {
-    ns->ptr = s->ptr;
+    ns->as.heap.ptr = s->as.heap.ptr;
     ns->flags = MRB_STR_NOFREE;
   }
   else {
     ns->flags = 0;
-    ns->ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
-    if (s->ptr) {
-      memcpy(ns->ptr, s->ptr, len);
+    ns->as.heap.ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
+    ptr = (s->flags & MRB_STR_EMBED) ? s->as.ary : s->as.heap.ptr;
+    if (ptr) {
+      memcpy(ns->as.heap.ptr, ptr, len);
     }
-    ns->ptr[len] = '\0';
+    ns->as.heap.ptr[len] = '\0';
   }
   return mrb_obj_value(ns);
 }

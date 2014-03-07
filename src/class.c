@@ -511,7 +511,6 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     case 's':
       {
         mrb_value ss;
-        struct RString *s;
         char **ps = 0;
         int *pl = 0;
 
@@ -519,9 +518,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         pl = va_arg(ap, int*);
         if (i < argc) {
           ss = to_str(mrb, *sp++);
-          s = mrb_str_ptr(ss);
-          *ps = s->ptr;
-          *pl = s->len;
+          *ps = RSTRING_PTR(ss);
+          *pl = RSTRING_LEN(ss);
           i++;
         }
       }
@@ -537,14 +535,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         if (i < argc) {
           ss = to_str(mrb, *sp++);
           s = mrb_str_ptr(ss);
-          len = (mrb_int)strlen(s->ptr);
-          if (len < s->len) {
+          len = (mrb_int)strlen(RSTRING_PTR(ss));
+          if (len < RSTRING_LEN(ss)) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
           }
-          else if (len > s->len) {
+          else if (len > RSTRING_LEN(ss)) {
             mrb_str_modify(mrb, s);
           }
-          *ps = s->ptr;
+          *ps = RSTRING_PTR(ss);
           i++;
         }
       }
@@ -1298,7 +1296,7 @@ mrb_class_name(mrb_state *mrb, struct RClass* c)
     mrb_str_concat(mrb, path, mrb_ptr_to_str(mrb, c));
     mrb_str_cat_lit(mrb, path, ">");
   }
-  return mrb_str_ptr(path)->ptr;
+  return RSTRING_PTR(path);
 }
 
 const char*

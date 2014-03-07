@@ -397,11 +397,11 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
 
   name = mrb_sym2name_len(mrb, id, &len);
   str = mrb_str_new(mrb, 0, len+1);
-  RSTRING(str)->ptr[0] = ':';
-  memcpy(RSTRING(str)->ptr+1, name, len);
+  RSTRING_PTR(str)[0] = ':';
+  memcpy(RSTRING_PTR(str)+1, name, len);
   if (!symname_p(name) || strlen(name) != len) {
     str = mrb_str_dump(mrb, str);
-    memcpy(RSTRING(str)->ptr, ":\"", 2);
+    memcpy(RSTRING_PTR(str), ":\"", 2);
   }
   return str;
 }
@@ -428,7 +428,7 @@ mrb_sym2name(mrb_state *mrb, mrb_sym sym)
   }
   else {
     mrb_value str = mrb_str_dump(mrb, mrb_str_new_static(mrb, name, len));
-    return RSTRING(str)->ptr;
+    return RSTRING_PTR(str);
   }
 }
 

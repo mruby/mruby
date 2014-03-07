@@ -86,6 +86,7 @@ assert('String#[] with Range') do
   g1 = 'abc'[-2..3]
   h1 = 'abc'[3..4]
   i1 = 'abc'[4..5]
+  j1 = 'abcdefghijklmnopqrstuvwxyz'[1..3]
   a2 = 'abc'[1...0]
   b2 = 'abc'[1...1]
   c2 = 'abc'[1...2]
@@ -95,6 +96,7 @@ assert('String#[] with Range') do
   g2 = 'abc'[-2...3]
   h2 = 'abc'[3...4]
   i2 = 'abc'[4...5]
+  j2 = 'abcdefghijklmnopqrstuvwxyz'[1...3]
 
   assert_equal '', a1
   assert_equal 'b', b1
@@ -105,6 +107,7 @@ assert('String#[] with Range') do
   assert_equal 'bc', g1
   assert_equal '', h1
   assert_nil i2
+  assert_equal 'bcd', j1
   assert_equal '', a2
   assert_equal '', b2
   assert_equal 'b', c2
@@ -114,6 +117,7 @@ assert('String#[] with Range') do
   assert_equal 'bc', g2
   assert_equal '', h2
   assert_nil i2
+  assert_equal 'bc', j2
 end
 
 assert('String#capitalize', '15.2.10.5.7') do
@@ -281,8 +285,10 @@ end
 assert('String#initialize', '15.2.10.5.23') do
   a = ''
   a.initialize('abc')
-
   assert_equal 'abc', a
+
+  a.initialize('abcdefghijklmnopqrstuvwxyz')
+  assert_equal 'abcdefghijklmnopqrstuvwxyz', a
 end
 
 assert('String#initialize_copy', '15.2.10.5.24') do
@@ -307,6 +313,13 @@ assert('String#replace', '15.2.10.5.28') do
   a.replace('abc')
 
   assert_equal 'abc', a
+  assert_equal 'abc', 'cba'.replace(a)
+
+  b = 'abc' * 10
+  c = ('cba' * 10).dup
+  b.replace(c);
+  c.replace(b);
+  assert_equal c, b
 end
 
 assert('String#reverse', '15.2.10.5.29') do
@@ -452,6 +465,12 @@ assert('String#upcase!', '15.2.10.5.43') do
 
   assert_equal 'ABC', a
   assert_equal nil, 'ABC'.upcase!
+
+  a = 'abcdefghijklmnopqrstuvwxyz'
+  b = a.dup
+  a.upcase!
+  b.upcase!
+  assert_equal 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', b
 end
 
 # Not ISO specified
