@@ -157,7 +157,7 @@ get_syms_block_size(mrb_state *mrb, mrb_irep *irep)
 {
   uint32_t size = 0;
   uint32_t sym_no;
-  uint32_t len;
+  size_t len;
 
   size += sizeof(uint32_t); /* slen */
   for (sym_no = 0; sym_no < irep->slen; sym_no++) {
@@ -182,7 +182,7 @@ write_syms_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
 
   for (sym_no = 0; sym_no < irep->slen; sym_no++) {
     if (irep->syms[sym_no] != 0) {
-      uint32_t len;
+      size_t len;
 
       name = mrb_sym2name_len(mrb, irep->syms[sym_no], &len);
       if (len > UINT16_MAX) {
@@ -474,7 +474,7 @@ get_filename_table_size(mrb_state *mrb, mrb_irep *irep, mrb_sym **fp, uint32_t *
   }
   for (file_i = 0; file_i < di->flen; ++file_i) {
     mrb_irep_debug_info_file *file;
-    uint32_t filename_len;
+    size_t filename_len;
     uint32_t i;
 
     file = di->files[file_i];
