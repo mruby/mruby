@@ -4,15 +4,14 @@
 
 RAKE = ruby ./minirake
 
-.PHONY : all
 all :
 	$(RAKE)
+.PHONY : all
 
-.PHONY : test
 test : all
 	$(RAKE) test
+.PHONY : test
 
-.PHONY : clean
 clean :
 	$(RAKE) clean
-
+.PHONY : clean
