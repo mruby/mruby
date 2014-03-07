@@ -5,6 +5,7 @@
 */
 
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 #include "mruby.h"
 
@@ -41,7 +42,7 @@ struct mrb_pool {
 #endif
 
 #ifdef POOL_ALIGNMENT
-#  define ALIGN_PADDING(x) ((-x) & (POOL_ALIGNMENT - 1))
+#  define ALIGN_PADDING(x) ((SIZE_MAX - (x) + 1) & (POOL_ALIGNMENT - 1))
 #else
 #  define ALIGN_PADDING(x) (0)
 #endif
