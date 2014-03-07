@@ -64,7 +64,7 @@ class File < IO
 
   def self.expand_path(path, default_dir = '.')
     def concat_path(path, base_path)
-      if path[0] == "/"
+      if path[0] == "/" || path[1] == ':' # Windows root!
         expanded_path = path
       elsif path[0] == "~"
         if (path[1] == "/" || path[1] == nil)
