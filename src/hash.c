@@ -901,7 +901,7 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, mrb_bool eql)
       key = kh_key(h1,k1);
       k2 = kh_get(ht, mrb, h2, key);
       if (k2 != kh_end(h2)) {
-        if (mrb_equal(mrb, kh_value(h1,k1), kh_value(h2,k2))) {
+        if (mrb_eql(mrb, kh_value(h1,k1), kh_value(h2,k2))) {
           continue; /* next key */
         }
       }

@@ -269,6 +269,14 @@ end
 
 # Not ISO specified
 
+assert('Hash#eql?') do
+  a = { 'a' => 1, 'b' => 2, 'c' => 3 }
+  b = { 'a' => 1, 'b' => 2, 'c' => 3 }
+  c = { 'a' => 1.0, 'b' => 2, 'c' => 3 }
+  assert_true(a.eql?(b))
+  assert_false(a.eql?(c))
+end
+
 assert('Hash#reject') do
   h = {:one => 1, :two => 2, :three => 3, :four => 4}
   ret = h.reject do |k,v|
