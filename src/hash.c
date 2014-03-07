@@ -880,10 +880,17 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, mrb_bool eql)
       if (!mrb_respond_to(mrb, hash2, mrb_intern_lit(mrb, "to_hash"))) {
           return mrb_false_value();
       }
-      if (eql)
-          return mrb_fixnum_value(mrb_eql(mrb, hash2, hash1));
-      else
-          return mrb_fixnum_value(mrb_equal(mrb, hash2, hash1));
+      else {
+        mrb_bool eq;
+
+        if (eql) {
+          eq = mrb_eql(mrb, hash2, hash1);
+        }
+        else {
+          eq = mrb_equal(mrb, hash2, hash1);
+        }
+        return mrb_bool_value(eq);
+      }
   }
   h1 = RHASH_TBL(hash1);
   h2 = RHASH_TBL(hash2);
