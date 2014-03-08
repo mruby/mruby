@@ -2522,7 +2522,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
         continue;
       }
     }
-    mrb_str_buf_cat(mrb, result, "\"", 1);
+    mrb_str_cat_lit(mrb, result, "\"");
 
     return result;
 }

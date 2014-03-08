@@ -676,14 +676,14 @@ inspect_hash(mrb_state *mrb, mrb_value hash, int recur)
 
       str2 = mrb_inspect(mrb, kh_key(h,k));
       mrb_str_append(mrb, str, str2);
-      mrb_str_buf_cat(mrb, str, "=>", 2);
+      mrb_str_cat_lit(mrb, str, "=>");
       str2 = mrb_inspect(mrb, kh_value(h,k));
       mrb_str_append(mrb, str, str2);
 
       mrb_gc_arena_restore(mrb, ai);
     }
   }
-  mrb_str_buf_cat(mrb, str, "}", 1);
+  mrb_str_cat_lit(mrb, str, "}");
 
   return str;
 }
