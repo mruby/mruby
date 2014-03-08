@@ -5,6 +5,7 @@
 */
 
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 #include "mruby.h"
 
@@ -36,12 +37,12 @@ struct mrb_pool {
 #undef TEST_POOL
 #ifdef TEST_POOL
 
-#define mrb_malloc(m,s) malloc(s)
+#define mrb_malloc_simple(m,s) malloc(s)
 #define mrb_free(m,p) free(p)
 #endif
 
 #ifdef POOL_ALIGNMENT
-#  define ALIGN_PADDING(x) ((-x) & (POOL_ALIGNMENT - 1))
+#  define ALIGN_PADDING(x) ((SIZE_MAX - (x) + 1) & (POOL_ALIGNMENT - 1))
 #else
 #  define ALIGN_PADDING(x) (0)
 #endif
@@ -49,7 +50,7 @@ struct mrb_pool {
 mrb_pool*
 mrb_pool_open(mrb_state *mrb)
 {
-  mrb_pool *pool = (mrb_pool *)mrb_malloc(mrb, sizeof(mrb_pool));
+  mrb_pool *pool = (mrb_pool *)mrb_malloc_simple(mrb, sizeof(mrb_pool));
 
   if (pool) {
     pool->mrb = mrb;
@@ -81,7 +82,7 @@ page_alloc(mrb_pool *pool, size_t len)
 
   if (len < POOL_PAGE_SIZE)
     len = POOL_PAGE_SIZE;
-  page = (struct mrb_pool_page *)mrb_malloc(pool->mrb, sizeof(struct mrb_pool_page)+len);
+  page = (struct mrb_pool_page *)mrb_malloc_simple(pool->mrb, sizeof(struct mrb_pool_page)+len);
   if (page) {
     page->offset = 0;
     page->len = len;
