@@ -773,7 +773,7 @@ gen_values(codegen_scope *s, node *t, int val)
 #define CALL_MAXARGS 127
 
 static void
-gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, node_type nt)
+gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, enum node_type nt)
 {
   mrb_sym sym = name ? name : sym(tree->cdr->car);
   int idx;
@@ -1445,7 +1445,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_FCALL:
   case NODE_CALL:
-    gen_call(s, tree, 0, 0, val, (node_type)nt);
+    gen_call(s, tree, 0, 0, val, (enum node_type)nt);
     break;
 
   case NODE_DOT2:
