@@ -661,6 +661,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     &&L_OP_CLASS, &&L_OP_MODULE, &&L_OP_EXEC,
     &&L_OP_METHOD, &&L_OP_SCLASS, &&L_OP_TCLASS,
     &&L_OP_DEBUG, &&L_OP_STOP, &&L_OP_ERR,
+    NULL, NULL, NULL, NULL, NULL, &&L_OP_FSENDB,
   };
 #endif
 
@@ -963,7 +964,7 @@ RETRY_TRY_BLOCK:
       mrb_sym mid = syms[GETARG_B(i)];
 
       recv = regs[a];
-      if (GET_OPCODE(i) != OP_SENDB) {
+      if (GET_OPCODE(i) != OP_SENDB && GET_OPCODE(i) != OP_FSENDB) {
         if (n == CALL_MAXARGS) {
           SET_NIL_VALUE(regs[a+2]);
         }
@@ -985,6 +986,24 @@ RETRY_TRY_BLOCK:
           value_move(regs+a+2, regs+a+1, ++n);
           regs[a+1] = sym;
         }
+      }
+
+      switch (MRB_CALL_TYPE(m)) {
+        case MRB_CALL_PRIVATE:
+          if (GET_OPCODE(i) != OP_FSEND && GET_OPCODE(i) != OP_FSENDB) {
+            static char const MSG[] = "cannot call private method with non-function style call";
+            mrb->exc = mrb_obj_ptr(mrb_exc_new(mrb, E_NOMETHOD_ERROR, MSG, sizeof(MSG) - 1));
+            goto L_RAISE;
+          }
+          break;
+
+        case MRB_CALL_PROTECTED:
+          if (!mrb_obj_eq(mrb, recv, regs[0])) {
+            static char const MSG[] = "cannot call protected method with non-self receiver";
+            mrb->exc = mrb_obj_ptr(mrb_exc_new(mrb, E_NOMETHOD_ERROR, MSG, sizeof(MSG) - 1));
+            goto L_RAISE;
+          }
+          break;
       }
 
       /* push callinfo */
@@ -1056,9 +1075,12 @@ RETRY_TRY_BLOCK:
       }
     }
 
+    CASE(OP_FSENDB) {
+      goto L_SEND;
+    }
     CASE(OP_FSEND) {
       /* A B C  R(A) := fcall(R(A),Sym(B),R(A+1),... ,R(A+C)) */
-      NEXT;
+      goto L_SEND; // NEXT;
     }
 
     CASE(OP_CALL) {

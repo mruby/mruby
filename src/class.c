@@ -234,6 +234,7 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
     break;
   }
   c = define_class(mrb, id, s, mrb_class_ptr(outer));
+  MRB_SET_CALL_TYPE(c, MRB_CALL_PUBLIC);
   mrb_funcall(mrb, mrb_obj_value(mrb_class_real(c->super)), "inherited", 1, mrb_obj_value(c));
 
   return c;
@@ -350,6 +351,7 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
   p = mrb_proc_ptr(body);
   kh_value(h, k) = p;
   if (p) {
+    MRB_SET_CALL_TYPE(p, MRB_CALL_TYPE(c));
     mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
   }
 }
@@ -969,9 +971,50 @@ mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
   return mrb_yield_internal(mrb, b, 0, 0, mod, c);
 }
 
-mrb_value
-mrb_mod_dummy_visibility(mrb_state *mrb, mrb_value mod)
+static void
+mrb_mod_set_call_type(mrb_state *mrb, mrb_value mod, mrb_call_type t)
 {
+  mrb_value *argv;
+  int argc, i;
+  struct RClass *cls = mrb_class_ptr(mod);
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if(argc == 0) {
+    MRB_SET_CALL_TYPE(cls, t);
+  } else {
+    struct RProc *p;
+    khiter_t k;
+    khash_t(mt) *h = cls->mt;
+    for (i = 0; i < argc; ++i) {
+      mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
+      k = kh_get(mt, mrb, h, mrb_symbol(argv[i]));
+      if (k == kh_end(h)) {
+        mrb_raisef(mrb, E_NOMETHOD_ERROR, "method \"%s\" not defined", mrb_symbol(argv[i]));
+      }
+      p = kh_value(h, k);
+      MRB_SET_CALL_TYPE(p, t);
+      mrb_assert(MRB_CALL_TYPE(p) == t);
+    }
+  }
+}
+
+mrb_value
+mrb_mod_private(mrb_state *mrb, mrb_value mod)
+{
+  mrb_mod_set_call_type(mrb, mod, MRB_CALL_PRIVATE);
+  return mod;
+}
+
+mrb_value
+mrb_mod_protected(mrb_state *mrb, mrb_value mod)
+{
+  mrb_mod_set_call_type(mrb, mod, MRB_CALL_PROTECTED);
+  return mod;
+}
+
+mrb_value
+mrb_mod_public(mrb_state *mrb, mrb_value mod)
+{
+  mrb_mod_set_call_type(mrb, mod, MRB_CALL_PUBLIC);
   return mod;
 }
 
@@ -1985,9 +2028,9 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "instance_methods",        mrb_mod_instance_methods, MRB_ARGS_ANY());  /* 15.2.2.4.33 */
   mrb_define_method(mrb, mod, "method_defined?",         mrb_mod_method_defined,   MRB_ARGS_REQ(1)); /* 15.2.2.4.34 */
   mrb_define_method(mrb, mod, "module_eval",             mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.35 */
-  mrb_define_method(mrb, mod, "private",                 mrb_mod_dummy_visibility, MRB_ARGS_ANY());  /* 15.2.2.4.36 */
-  mrb_define_method(mrb, mod, "protected",               mrb_mod_dummy_visibility, MRB_ARGS_ANY());  /* 15.2.2.4.37 */
-  mrb_define_method(mrb, mod, "public",                  mrb_mod_dummy_visibility, MRB_ARGS_ANY());  /* 15.2.2.4.38 */
+  mrb_define_method(mrb, mod, "private",                 mrb_mod_private,          MRB_ARGS_ANY());  /* 15.2.2.4.36 */
+  mrb_define_method(mrb, mod, "protected",               mrb_mod_protected,        MRB_ARGS_ANY());  /* 15.2.2.4.37 */
+  mrb_define_method(mrb, mod, "public",                  mrb_mod_public,           MRB_ARGS_ANY());  /* 15.2.2.4.38 */
   mrb_define_method(mrb, mod, "remove_class_variable",   mrb_mod_remove_cvar,      MRB_ARGS_REQ(1)); /* 15.2.2.4.39 */
   mrb_define_method(mrb, mod, "remove_method",           mrb_mod_remove_method,    MRB_ARGS_ANY());  /* 15.2.2.4.41 */
   mrb_define_method(mrb, mod, "to_s",                    mrb_mod_to_s,             MRB_ARGS_NONE());

@@ -360,12 +360,12 @@ void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
 
-typedef enum call_type {
-    CALL_PUBLIC,
-    CALL_FCALL,
-    CALL_VCALL,
-    CALL_TYPE_MAX
-} call_type;
+typedef enum mrb_call_type {
+    MRB_CALL_PUBLIC,
+    MRB_CALL_PRIVATE, MRB_CALL_FCALL = MRB_CALL_PRIVATE,
+    MRB_CALL_PROTECTED, MRB_CALL_VCALL = MRB_CALL_PROTECTED,
+    MRB_CALL_TYPE_MAX
+} mrb_call_type;
 
 void mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const char *name2);
 const char *mrb_class_name(mrb_state *mrb, struct RClass* klass);

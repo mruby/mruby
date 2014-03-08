@@ -145,6 +145,8 @@ enum {
   OP_RSVD3,/*             reserved instruction #3                         */
   OP_RSVD4,/*             reserved instruction #4                         */
   OP_RSVD5,/*             reserved instruction #5                         */
+
+  OP_FSENDB,/*     A B C   R(A) := fcall(R(A),mSym(B),R(A+1),...,R(A+C),&R(A+C+1))*/
 };
 
 #define OP_L_STRICT  1

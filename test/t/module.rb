@@ -517,3 +517,45 @@ assert('clone Module') do
 
   B.new.foo
 end
+
+assert('method call type') do
+  class CallTypeTest
+    def test_private(&block)
+      func(&block)
+    end
+    def test_protected(&block)
+      self.func(&block)
+    end
+    private
+    def func
+      yield
+    end
+  end
+
+  v = CallTypeTest.new
+
+  assert_raise(NoMethodError) { v.func { :test } }
+  assert_raise(NoMethodError) { v.test_protected { :test } }
+  assert_equal :test, v.test_private { :test }
+
+  class CallTypeTest
+    protected :func
+  end
+
+  assert_raise(NoMethodError) { v.func { :test } }
+  assert_equal :test, v.test_protected { :test }
+  assert_equal :test, v.test_private { :test }
+
+  class CallTypeTest
+    def public_func
+      :test
+    end
+
+    public :func
+  end
+
+  assert_equal :test, v.public_func
+  assert_equal :test, v.func { :test }
+  assert_equal :test, v.test_protected { :test }
+  assert_equal :test, v.test_private { :test }
+end
