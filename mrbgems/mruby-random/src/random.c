@@ -101,7 +101,7 @@ static mt_state *
 get_random_state(mrb_state *mrb)
 {
   mrb_value random_val = get_random(mrb);
-  return (mt_state*)DATA_PTR(random_val);
+  return DATA_GET_PTR(mrb, random_val, &mt_state_type, mt_state);
 }
 
 static mrb_value 
@@ -164,7 +164,7 @@ static mrb_value
 mrb_random_rand(mrb_state *mrb, mrb_value self)
 {
   mrb_value max;
-  mt_state *t = DATA_PTR(self);
+  mt_state *t = DATA_GET_PTR(mrb, self, &mt_state_type, mt_state);
 
   max = get_opt(mrb);
   mrb_random_rand_seed(mrb, t);
@@ -176,7 +176,7 @@ mrb_random_srand(mrb_state *mrb, mrb_value self)
 {
   mrb_value seed;
   mrb_value old_seed;
-  mt_state *t = DATA_PTR(self);
+  mt_state *t = DATA_GET_PTR(mrb, self, &mt_state_type, mt_state);
 
   seed = get_opt(mrb);
   seed = mrb_random_mt_srand(mrb, t, seed);
