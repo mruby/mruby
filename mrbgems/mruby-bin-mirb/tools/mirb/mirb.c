@@ -15,14 +15,28 @@
 #include "mruby/string.h"
 
 #ifdef ENABLE_READLINE
-#include <limits.h>
 #include <readline/readline.h>
 #include <readline/history.h>
-
+#define MIRB_ADD_HISTORY(line) add_history(line)
+#define MIRB_READLINE(ch) readline(ch)
+#define MIRB_WRITE_HISTORY(path) write_history(path)
+#define MIRB_READ_HISTORY(path) read_history(path)
+#define MIRB_USING_HISTORY() using_history()
+#elif ENABLE_LINENOISE
+#define ENABLE_READLINE
+#include <linenoise.h>
+#define MIRB_ADD_HISTORY(line) linenoiseHistoryAdd(line)
+#define MIRB_READLINE(ch) linenoise(ch)
+#define MIRB_WRITE_HISTORY(path) linenoiseHistorySave(path)
+#define MIRB_READ_HISTORY(path) linenoiseHistoryLoad(history_path)
+#define MIRB_USING_HISTORY()
+#endif
+  
+#ifdef ENABLE_READLINE
+#include <limits.h>
 static const char *history_file_name = ".mirb_history";
 char history_path[PATH_MAX];
 #endif
-
 
 static void
 p(mrb_state *mrb, mrb_value obj, int prompt)
@@ -281,7 +295,7 @@ main(int argc, char **argv)
   ai = mrb_gc_arena_save(mrb);
 
 #ifdef ENABLE_READLINE
-  using_history();
+  MIRB_USING_HISTORY();
   home = getenv("HOME");
 #ifdef _WIN32
   if (!home)
@@ -291,7 +305,7 @@ main(int argc, char **argv)
     strcpy(history_path, home);
     strcat(history_path, "/");
     strcat(history_path, history_file_name);
-    read_history(history_path);
+    MIRB_READ_HISTORY(history_path);
   }
 #endif
 
@@ -312,13 +326,13 @@ main(int argc, char **argv)
 
     last_code_line[char_index] = '\0';
 #else
-    char* line = readline(code_block_open ? "* " : "> ");
+    char* line = MIRB_READLINE(code_block_open ? "* " : "> ");
     if (line == NULL) {
       printf("\n");
       break;
     }
     strncpy(last_code_line, line, sizeof(last_code_line)-1);
-    add_history(line);
+    MIRB_ADD_HISTORY(line);
     free(line);
 #endif
 
@@ -387,7 +401,7 @@ main(int argc, char **argv)
   mrb_close(mrb);
 
 #ifdef ENABLE_READLINE
-  write_history(history_path);
+  MIRB_WRITE_HISTORY(history_path);
 #endif
 
   return 0;
