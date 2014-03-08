@@ -240,6 +240,80 @@ mrb_ary_shuffle(mrb_state *mrb, mrb_value ary)
   return new_ary;
 }
 
+/*
+ *  call-seq:
+ *     ary.sample      ->   obj
+ *     ary.sample(n)   ->   new_ary
+ *
+ *  Choose a random element or +n+ random elements from the array.
+ *
+ *  The elements are chosen by using random and unique indices into the array
+ *  in order to ensure that an element doesn't repeat itself unless the array
+ *  already contained duplicate elements.
+ *
+ *  If the array is empty the first form returns +nil+ and the second form
+ *  returns an empty array.
+ */
+
+static mrb_value
+mrb_ary_sample(mrb_state *mrb, mrb_value ary)
+{
+  mrb_int n = 0;
+  mrb_bool given;
+  mt_state *random = NULL;
+  mrb_int len = RARRAY_LEN(ary);
+
+  mrb_get_args(mrb, "|i?d", &n, &given, &random, &mt_state_type);
+  if (random == NULL) {
+    mrb_value random_val = mrb_const_get(mrb,
+            mrb_obj_value(mrb_class_get(mrb, "Random")),
+            mrb_intern_lit(mrb, "DEFAULT"));
+    random = (mt_state *)DATA_PTR(random_val);
+  }
+  mrb_random_rand_seed(mrb, random);
+  mt_rand(random);
+  if (!given) {                 /* pick one element */
+    switch (len) {
+    case 0:
+      return mrb_nil_value();
+    case 1:
+      return RARRAY_PTR(ary)[0];
+    default:
+      return RARRAY_PTR(ary)[mt_rand(random) % len];
+    }
+  }
+  else {
+    mrb_value result;
+    mrb_int i, j;
+
+    if (n < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "negative sample number");
+    if (n > len) n = len;
+    result = mrb_ary_new_capa(mrb, n);
+    for (i=0; i<n; i++) {
+      mrb_int r;
+
+      for (;;) {
+      retry:
+        r = mt_rand(random) % len;
+
+        for (j=0; j<i; j++) {
+          if (mrb_fixnum(RARRAY_PTR(result)[j]) == r) {
+            goto retry;         /* retry if duplicate */
+          }
+        }
+        break;
+      }
+      RARRAY_PTR(result)[i] = mrb_fixnum_value(r);
+      RARRAY_LEN(result)++;
+    }
+    for (i=0; i<n; i++) {
+      RARRAY_PTR(result)[i] = RARRAY_PTR(ary)[mrb_fixnum(RARRAY_PTR(result)[i])];
+    }
+    return result;
+  }
+}
+
+
 void mrb_mruby_random_gem_init(mrb_state *mrb)
 {
   struct RClass *random;
@@ -259,6 +333,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   
   mrb_define_method(mrb, array, "shuffle", mrb_ary_shuffle, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, array, "shuffle!", mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, array, "sample", mrb_ary_sample, MRB_ARGS_OPT(2));
 
   mrb_const_set(mrb, mrb_obj_value(random), mrb_intern_lit(mrb, "DEFAULT"),
           mrb_obj_new(mrb, random, 0, NULL));
