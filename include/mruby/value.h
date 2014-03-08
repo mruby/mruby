@@ -72,6 +72,8 @@ typedef short mrb_sym;
 #  define PRIo64 "I64o"
 #  define PRIx64 "I64x"
 #  define PRIX64 "I64X"
+#  define INFINITY ((float)(DBL_MAX * DBL_MAX))
+#  define NAN ((float)(INFINITY - INFINITY))
 # else
 #  include <inttypes.h>
 # endif
