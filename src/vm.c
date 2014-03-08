@@ -1004,6 +1004,9 @@ RETRY_TRY_BLOCK:
             goto L_RAISE;
           }
           break;
+
+        default:
+          break;
       }
 
       /* push callinfo */
