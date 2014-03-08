@@ -47,6 +47,7 @@ struct RString {
    RSTRING_EMBED_LEN_MAX :\
    RSTRING(s)->as.heap.aux.capa)
 #define RSTRING_END(s)    (RSTRING_PTR(s) + RSTRING_LEN(s))
+mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 
 #define MRB_STR_SHARED    1
 #define MRB_STR_NOFREE    2

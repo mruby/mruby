@@ -534,25 +534,12 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     case 'z':
       {
         mrb_value ss;
-        struct RString *s;
         char **ps;
-        mrb_int len;
 
         ps = va_arg(ap, char**);
         if (i < argc) {
-          size_t size_t_len;
           ss = to_str(mrb, *sp++);
-          s = mrb_str_ptr(ss);
-          size_t_len = strlen(RSTRING_PTR(ss));
-          mrb_assert(size_t_len <= MRB_INT_MAX);
-          len = (mrb_int)size_t_len;
-          if (len < RSTRING_LEN(ss)) {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
-          }
-          else if (len > RSTRING_LEN(ss)) {
-            mrb_str_modify(mrb, s);
-          }
-          *ps = RSTRING_PTR(ss);
+          *ps = mrb_string_value_cstr(mrb, &ss);
           i++;
         }
       }

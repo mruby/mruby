@@ -54,6 +54,21 @@ typedef struct mrb_shared_string {
 static mrb_value str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2);
 static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
 
+mrb_int
+mrb_str_strlen(mrb_state *mrb, struct RString *s)
+{
+  mrb_int i, max = STR_LEN(s);
+  char *p = STR_PTR(s);
+
+  if (!p) return 0;
+  for (i=0; i<max; i++) {
+    if (p[i] == '\0') {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
+    }
+  }
+  return max;
+}
+
 #define RESIZE_CAPA(s,capacity) do {\
   if (STR_EMBED_P(s)) {\
     if (RSTRING_EMBED_LEN_MAX < (capacity)) {\
@@ -2066,16 +2081,14 @@ char *
 mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 {
   struct RString *ps = mrb_str_ptr(*ptr);
-  char *s = STR_PTR(ps);
-  mrb_int len;
+  mrb_int len = mrb_str_strlen(mrb, ps);
+  char *p = STR_PTR(ps);
 
-  len = STR_LEN(ps);
-  mrb_assert(len >= 0);
-  mrb_assert((size_t)len <= SIZE_MAX);
-  if (!s || (size_t)len != strlen(s)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
+  if (!p || p[len] != '\0') {
+    mrb_str_modify(mrb, ps);
+    return STR_PTR(ps);
   }
-  return s;
+  return p;
 }
 
 mrb_value
