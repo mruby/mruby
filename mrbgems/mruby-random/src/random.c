@@ -90,21 +90,31 @@ get_opt(mrb_state* mrb)
   return arg;
 }
 
+static mrb_value
+get_random(mrb_state *mrb) {
+  return mrb_const_get(mrb,
+             mrb_obj_value(mrb_class_get(mrb, "Random")),
+             mrb_intern_lit(mrb, "DEFAULT"));
+}
+
+static mt_state *
+get_random_state(mrb_state *mrb)
+{
+  mrb_value random_val = get_random(mrb);
+  return (mt_state*)DATA_PTR(random_val);
+}
+
 static mrb_value 
 mrb_random_g_rand(mrb_state *mrb, mrb_value self)
 {
-  mrb_value random = mrb_const_get(mrb,
-          mrb_obj_value(mrb_class_get(mrb, "Random")),
-          mrb_intern_lit(mrb, "DEFAULT"));
+  mrb_value random = get_random(mrb);
   return mrb_random_rand(mrb, random);
 }
 
 static mrb_value 
 mrb_random_g_srand(mrb_state *mrb, mrb_value self)
 {
-  mrb_value random = mrb_const_get(mrb,
-          mrb_obj_value(mrb_class_get(mrb, "Random")),
-          mrb_intern_lit(mrb, "DEFAULT"));
+  mrb_value random = get_random(mrb);
   return mrb_random_srand(mrb, random);
 }
 
@@ -200,10 +210,7 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
     mrb_get_args(mrb, "|d", &random, &mt_state_type);
 
     if (random == NULL) {
-      mrb_value random_val = mrb_const_get(mrb,
-              mrb_obj_value(mrb_class_get(mrb, "Random")),
-              mrb_intern_lit(mrb, "DEFAULT"));
-      random = (mt_state *)DATA_PTR(random_val);
+      random = get_random_state(mrb);
     }
     mrb_random_rand_seed(mrb, random);
   
@@ -265,10 +272,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
 
   mrb_get_args(mrb, "|i?d", &n, &given, &random, &mt_state_type);
   if (random == NULL) {
-    mrb_value random_val = mrb_const_get(mrb,
-            mrb_obj_value(mrb_class_get(mrb, "Random")),
-            mrb_intern_lit(mrb, "DEFAULT"));
-    random = (mt_state *)DATA_PTR(random_val);
+    random = get_random_state(mrb); 
   }
   mrb_random_rand_seed(mrb, random);
   mt_rand(random);
