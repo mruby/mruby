@@ -540,9 +540,12 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         ps = va_arg(ap, char**);
         if (i < argc) {
+          size_t size_t_len;
           ss = to_str(mrb, *sp++);
           s = mrb_str_ptr(ss);
-          len = (mrb_int)strlen(RSTRING_PTR(ss));
+          size_t_len = strlen(RSTRING_PTR(ss));
+          mrb_assert(size_t_len <= MRB_INT_MAX);
+          len = (mrb_int)size_t_len;
           if (len < RSTRING_LEN(ss)) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
           }

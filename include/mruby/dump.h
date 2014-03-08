@@ -92,14 +92,14 @@ struct rite_binary_footer {
   RITE_SECTION_HEADER;
 };
 
-static inline int
+static inline size_t
 uint8_to_bin(uint8_t s, uint8_t *bin)
 {
   *bin = s;
   return sizeof(uint8_t);
 }
 
-static inline int
+static inline size_t
 uint16_to_bin(uint16_t s, uint8_t *bin)
 {
   *bin++ = (s >> 8) & 0xff;
@@ -107,7 +107,7 @@ uint16_to_bin(uint16_t s, uint8_t *bin)
   return sizeof(uint16_t);
 }
 
-static inline int
+static inline size_t
 uint32_to_bin(uint32_t l, uint8_t *bin)
 {
   *bin++ = (l >> 24) & 0xff;
