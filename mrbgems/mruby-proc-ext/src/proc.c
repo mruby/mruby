@@ -21,7 +21,7 @@ mrb_proc_source_location(mrb_state *mrb, mrb_value self)
   }
   else {
     mrb_irep *irep = p->body.irep;
-    uint32_t line;
+    int32_t line;
     const char *filename;
 
     filename = mrb_debug_get_filename(irep, 0);
