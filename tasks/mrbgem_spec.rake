@@ -43,6 +43,10 @@ module MRuby
         MRuby::Gem.current = self
       end
 
+      def run_test_in_other_mrb_state?
+        not test_preload.nil? or not test_objs.empty?
+      end
+
       def cxx_abi_enabled?
         @cxx_abi_enabled
       end
