@@ -10,6 +10,13 @@ MRuby.each_target do
           File.expand_path(g.test_preload, dir)
         }.find {|file| File.exist?(file) }
 
+        f.puts %Q[/*]
+        f.puts %Q[ * This file contains a test code for #{g.name} gem.]
+        f.puts %Q[ *]
+        f.puts %Q[ * IMPORTANT:]
+        f.puts %Q[ *   This file was generated!]
+        f.puts %Q[ *   All manual changes will get lost.]
+        f.puts %Q[ */]
         if test_preload.nil?
           f.puts %Q[extern const uint8_t mrbtest_assert_irep[];]
         else
