@@ -193,7 +193,7 @@ main(int argc, char **argv)
 
   ARGV = mrb_ary_new_capa(mrb, args.argc);
   for (i = 0; i < args.argc; i++) {
-    mrb_ary_push(mrb, ARGV, mrb_str_new(mrb, args.argv[i], strlen(args.argv[i])));
+    mrb_ary_push(mrb, ARGV, mrb_str_new_cstr(mrb, args.argv[i]));
   }
   mrb_define_global_const(mrb, "ARGV", ARGV);
 

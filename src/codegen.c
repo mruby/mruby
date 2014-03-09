@@ -2107,7 +2107,7 @@ codegen(codegen_scope *s, node *tree, int val)
       char *p2 = (char*)tree->cdr;
       int ai = mrb_gc_arena_save(s->mrb);
       int sym = new_sym(s, mrb_intern_lit(s->mrb, REGEXP_CLASS));
-      int off = new_lit(s, mrb_str_new(s->mrb, p1, strlen(p1)));
+      int off = new_lit(s, mrb_str_new_cstr(s->mrb, p1));
       int argc = 1;
 
       genop(s, MKOP_A(OP_OCLASS, cursp()));
@@ -2116,7 +2116,7 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_ABx(OP_STRING, cursp(), off));
       if (p2) {
         push();
-        off = new_lit(s, mrb_str_new(s->mrb, p2, strlen(p2)));
+        off = new_lit(s, mrb_str_new_cstr(s->mrb, p2));
         genop(s, MKOP_ABx(OP_STRING, cursp(), off));
         argc++;
         pop();
@@ -2153,7 +2153,7 @@ codegen(codegen_scope *s, node *tree, int val)
       n = tree->cdr->cdr;
       if (n->car) {
         p = (char*)n->car;
-        off = new_lit(s, mrb_str_new(s->mrb, p, strlen(p)));
+        off = new_lit(s, mrb_str_new_cstr(s->mrb, p));
         codegen(s, tree->car, VAL);
         genop(s, MKOP_ABx(OP_STRING, cursp(), off));
         pop();
@@ -2164,7 +2164,7 @@ codegen(codegen_scope *s, node *tree, int val)
         int off;
 
         push();
-        off = new_lit(s, mrb_str_new(s->mrb, p2, strlen(p2)));
+        off = new_lit(s, mrb_str_new_cstr(s->mrb, p2));
         genop(s, MKOP_ABx(OP_STRING, cursp(), off));
         argc++;
         pop();
