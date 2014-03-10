@@ -72,13 +72,13 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, int lit)
 mrb_sym
 mrb_intern(mrb_state *mrb, const char *name, size_t len)
 {
-  return sym_intern(mrb, name, len, 0);
+  return sym_intern(mrb, name, len, FALSE);
 }
 
 mrb_sym
 mrb_intern_static(mrb_state *mrb, const char *name, size_t len)
 {
-  return sym_intern(mrb, name, len, 1);
+  return sym_intern(mrb, name, len, TRUE);
 }
 
 mrb_sym
