@@ -38,4 +38,4 @@ struct mrb_jmpbuf {
 #endif
 };
 
-#endif
+#endif  /* MRB_THROW_H */
