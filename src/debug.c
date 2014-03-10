@@ -74,11 +74,11 @@ mrb_debug_get_line(mrb_irep *irep, uint32_t pc)
       switch(f->line_type) {
         case mrb_debug_line_ary:
           mrb_assert(f->start_pos <= pc && pc < (f->start_pos + f->line_entry_count));
-          return f->line_ary[pc - f->start_pos];
+          return f->lines.ary[pc - f->start_pos];
 
         case mrb_debug_line_flat_map: {
           /* get upper bound */
-          mrb_irep_debug_info_line *ret = f->line_flat_map;
+          mrb_irep_debug_info_line *ret = f->lines.flat_map;
           uint32_t count = f->line_entry_count;
           while (count > 0) {
             int32_t step = count / 2;
@@ -92,10 +92,10 @@ mrb_debug_get_line(mrb_irep *irep, uint32_t pc)
           --ret;
 
           /* check line entry pointer range */
-          mrb_assert(f->line_flat_map <= ret && ret < (f->line_flat_map + f->line_entry_count));
+          mrb_assert(f->lines.flat_map <= ret && ret < (f->lines.flat_map + f->line_entry_count));
           /* check pc range */
           mrb_assert(ret->start_pos <= pc &&
-                     pc < (((ret + 1 - f->line_flat_map) < f->line_entry_count)
+                     pc < (((ret + 1 - f->lines.flat_map) < f->line_entry_count)
                            ? (ret+1)->start_pos : irep->debug_info->pc_count));
 
           return ret->line;
@@ -160,31 +160,31 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep *irep,
   ret->filename = mrb_sym2name_len(mrb, ret->filename_sym, &len);
 
   ret->line_type = select_line_type(irep->lines + start_pos, end_pos - start_pos);
-  ret->line_ptr = NULL;
+  ret->lines.ptr = NULL;
 
   switch(ret->line_type) {
     case mrb_debug_line_ary:
       ret->line_entry_count = file_pc_count;
-      ret->line_ary = (uint16_t*)mrb_malloc(mrb, sizeof(uint16_t) * file_pc_count);
+      ret->lines.ary = (uint16_t*)mrb_malloc(mrb, sizeof(uint16_t) * file_pc_count);
       for(i = 0; i < file_pc_count; ++i) {
-        ret->line_ary[i] = irep->lines[start_pos + i];
+        ret->lines.ary[i] = irep->lines[start_pos + i];
       }
       break;
 
     case mrb_debug_line_flat_map: {
       uint16_t prev_line = 0;
       mrb_irep_debug_info_line m;
-      ret->line_flat_map = (mrb_irep_debug_info_line*)mrb_malloc(mrb, sizeof(mrb_irep_debug_info_line) * 1);
+      ret->lines.flat_map = (mrb_irep_debug_info_line*)mrb_malloc(mrb, sizeof(mrb_irep_debug_info_line) * 1);
       ret->line_entry_count = 0;
       for(i = 0; i < file_pc_count; ++i) {
         if(irep->lines[start_pos + i] == prev_line) { continue; }
 
-        ret->line_flat_map = (mrb_irep_debug_info_line*)mrb_realloc(
-            mrb, ret->line_flat_map,
+        ret->lines.flat_map = (mrb_irep_debug_info_line*)mrb_realloc(
+            mrb, ret->lines.flat_map,
             sizeof(mrb_irep_debug_info_line) * (ret->line_entry_count + 1));
         m.start_pos = start_pos + i;
         m.line = irep->lines[start_pos + i];
-        ret->line_flat_map[ret->line_entry_count] = m;
+        ret->lines.flat_map[ret->line_entry_count] = m;
 
         /* update */
         ++ret->line_entry_count;
@@ -207,7 +207,7 @@ mrb_debug_info_free(mrb_state *mrb, mrb_irep_debug_info *d)
 
   for(i = 0; i < d->flen; ++i) {
     mrb_assert(d->files[i]);
-    mrb_free(mrb, d->files[i]->line_ptr);
+    mrb_free(mrb, d->files[i]->lines.ptr);
     mrb_free(mrb, d->files[i]);
   }
   mrb_free(mrb, d->files);

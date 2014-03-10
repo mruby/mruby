@@ -324,9 +324,9 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
       case mrb_debug_line_ary: {
         uint32_t l;
 
-        file->line_ary = (uint16_t *)mrb_malloc(mrb, sizeof(uint16_t) * (size_t)(file->line_entry_count));
+        file->lines.ary = (uint16_t *)mrb_malloc(mrb, sizeof(uint16_t) * (size_t)(file->line_entry_count));
         for(l = 0; l < file->line_entry_count; ++l) {
-          file->line_ary[l] = bin_to_uint16(bin);
+          file->lines.ary[l] = bin_to_uint16(bin);
           bin += sizeof(uint16_t);
         }
       } break;
@@ -334,12 +334,12 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
       case mrb_debug_line_flat_map: {
         uint32_t l;
 
-        file->line_flat_map = (mrb_irep_debug_info_line*)mrb_malloc(
+        file->lines.flat_map = (mrb_irep_debug_info_line*)mrb_malloc(
             mrb, sizeof(mrb_irep_debug_info_line) * (size_t)(file->line_entry_count));
         for(l = 0; l < file->line_entry_count; ++l) {
-          file->line_flat_map[l].start_pos = bin_to_uint32(bin);
+          file->lines.flat_map[l].start_pos = bin_to_uint32(bin);
           bin += sizeof(uint32_t);
-          file->line_flat_map[l].line = bin_to_uint16(bin);
+          file->lines.flat_map[l].line = bin_to_uint16(bin);
           bin += sizeof(uint16_t);
         }
       } break;

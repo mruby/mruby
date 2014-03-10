@@ -578,15 +578,15 @@ write_debug_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const
       case mrb_debug_line_ary: {
         uint32_t l;
         for (l = 0; l < file->line_entry_count; ++l) {
-          cur += uint16_to_bin(file->line_ary[l], cur);
+          cur += uint16_to_bin(file->lines.ary[l], cur);
         }
       } break;
 
       case mrb_debug_line_flat_map: {
         uint32_t line;
         for (line = 0; line < file->line_entry_count; ++line) {
-          cur += uint32_to_bin(file->line_flat_map[line].start_pos, cur);
-          cur += uint16_to_bin(file->line_flat_map[line].line, cur);
+          cur += uint32_to_bin(file->lines.flat_map[line].start_pos, cur);
+          cur += uint16_to_bin(file->lines.flat_map[line].line, cur);
         }
       } break;
 

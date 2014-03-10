@@ -63,7 +63,7 @@ unsigned long mrb_random_genrand_int32(mt_state *t)
     y ^= (y << 15) & 0xefc60000UL;
     y ^= (y >> 18);
     
-    t->gen_int = y;
+    t->gen.int_ = y;
 
     return y;
 }
@@ -71,8 +71,8 @@ unsigned long mrb_random_genrand_int32(mt_state *t)
 double mrb_random_genrand_real1(mt_state *t)
 {
     mrb_random_genrand_int32(t);
-    t->gen_dbl =  t->gen_int*(1.0/4294967295.0); 
-    return t->gen_dbl;
+    t->gen.double_ =  t->gen.int_*(1.0/4294967295.0); 
+    return t->gen.double_;
     /* divided by 2^32-1 */ 
 }
 
