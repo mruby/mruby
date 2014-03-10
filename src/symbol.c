@@ -12,7 +12,7 @@
 
 /* ------------------------------------------------------ */
 typedef struct symbol_name {
-  mrb_bool lit;
+  mrb_bool lit : 1;
   uint16_t len;
   const char *name;
 } symbol_name;

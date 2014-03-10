@@ -41,7 +41,7 @@
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 typedef struct mrb_shared_string {
-  mrb_bool nofree;
+  mrb_bool nofree : 1;
   int refcnt;
   char *ptr;
   mrb_int len;
