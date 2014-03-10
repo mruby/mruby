@@ -1,5 +1,12 @@
 MRuby.each_target do
+  no_mrb_open_test_gem = []
+
   gems.each do |g|
+    unless g.run_test_in_other_mrb_state?
+      no_mrb_open_test_gem << g
+      next
+    end
+
     test_rbobj = g.test_rbireps.ext(exts.object)
 
     file test_rbobj => g.test_rbireps
@@ -99,5 +106,38 @@ MRuby.each_target do
       end
     end
 
+  end
+
+  no_mrb_open_test = "#{build_dir}/test/no_mrb_open_test"
+  no_mrb_open_test_rbfiles = no_mrb_open_test_gem.reduce([]) { |res, v|
+    res += v.test_rbfiles
+  }
+  file "#{no_mrb_open_test}.o" => "#{no_mrb_open_test}.c"
+  file "#{no_mrb_open_test}.c" => no_mrb_open_test_rbfiles do |t|
+    open(t.name, 'w') do |f|
+      f.puts %Q[/*]
+      f.puts %Q[ * This file contains a test code for following gems:]
+      no_mrb_open_test_gem.each { |g| f.puts %Q[ *   #{g.name}] }
+      f.puts %Q[ *]
+      f.puts %Q[ * IMPORTANT:]
+      f.puts %Q[ *   This file was generated!]
+      f.puts %Q[ *   All manual changes will get lost.]
+      f.puts %Q[ */]
+
+      f.puts %Q[]
+
+      f.puts %Q[\#include "mruby.h"]
+      f.puts %Q[\#include "mruby/irep.h"]
+
+      f.puts %Q[]
+
+      mrbc.run f, no_mrb_open_test_rbfiles, "no_mrb_open_gem_test_irep"
+
+      f.puts %Q[]
+
+      f.puts %Q[void no_mrb_open_mrbgem_test(mrb_state *mrb) {]
+      f.puts %Q[  mrb_load_irep(mrb, no_mrb_open_gem_test_irep);]
+      f.puts %Q[}]
+    end
   end
 end
