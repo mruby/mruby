@@ -174,6 +174,24 @@ def assert_raise(*exp)
   ret
 end
 
+def assert_nothing_raised(*exp)
+  ret = true
+  if $mrbtest_assert
+    $mrbtest_assert_idx += 1
+    msg = exp.last.class == String ? exp.pop : ""
+    begin
+      yield
+    rescue Exception => e
+      msg = "#{msg} exception raised."
+      diff = "      Class: <#{e.class}>\n" +
+             "    Message: #{e.message}"
+      $mrbtest_assert.push([$mrbtest_assert_idx, msg, diff])
+      ret = false
+    end
+  end
+  ret
+end
+
 ##
 # Fails unless +obj+ is a kind of +cls+.
 def assert_kind_of(cls, obj, msg = nil)
