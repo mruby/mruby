@@ -9,4 +9,4 @@
 
 #define REGEXP_CLASS          "Regexp"
 
-#endif
+#endif  /* RE_H */

@@ -1589,5 +1589,5 @@ gc_test(mrb_state *mrb, mrb_value self)
   test_incremental_sweep_phase();
   return mrb_nil_value();
 }
-#endif
-#endif
+#endif  /* GC_DEBUG */
+#endif  /* GC_TEST */
