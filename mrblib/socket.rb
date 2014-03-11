@@ -399,7 +399,7 @@ class Socket
 
   def connect(sockaddr)
     sockaddr = sockaddr.to_sockaddr if sockaddr.is_a? Addrinfo
-    Socket._bind(self.fileno, sockaddr)
+    Socket._connect(self.fileno, sockaddr)
     0
   end
 
