@@ -6,6 +6,7 @@
 
 #include <ctype.h>
 #include <string.h>
+#include <limits.h>
 #include "mruby/dump.h"
 #include "mruby/string.h"
 #include "mruby/irep.h"

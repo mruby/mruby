@@ -34,6 +34,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stddef.h>
+#include <limits.h>
 
 #include "mrbconf.h"
 #include "mruby/value.h"
