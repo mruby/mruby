@@ -35,7 +35,7 @@ KHASH_DECLARE(n2s, symbol_name, mrb_sym, 1)
 KHASH_DEFINE (n2s, symbol_name, mrb_sym, 1, sym_hash_func, sym_hash_equal)
 /* ------------------------------------------------------ */
 static mrb_sym
-sym_intern(mrb_state *mrb, const char *name, size_t len, int lit)
+sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
 {
   khash_t(n2s) *h = mrb->name2sym;
   symbol_name sname;
