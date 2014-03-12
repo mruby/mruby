@@ -13,7 +13,7 @@ extern "C" {
 
 void mrb_sys_fail(mrb_state *mrb, const char *mesg);
 mrb_value mrb_exc_new_str(mrb_state *mrb, struct RClass* c, mrb_value str);
-#define mrb_exc_new_str_lit(mrb, c, lit) mrb_exc_new_str(mrb, c, mrb_str_new_lit(mrb, (lit)))
+#define mrb_exc_new_str_lit(mrb, c, lit) mrb_exc_new_str(mrb, c, mrb_str_new_lit(mrb, lit))
 mrb_value mrb_make_exception(mrb_state *mrb, int argc, mrb_value *argv);
 mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
 void mrb_exc_print(mrb_state *mrb, struct RObject *exc);
