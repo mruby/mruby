@@ -18,7 +18,7 @@ mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
   khint_t h = (khint_t)mrb_type(key) << 24;
   mrb_value h2;
 
-  h2 = mrb_funcall(mrb, key, "hash", 0, 0);
+  h2 = mrb_funcall(mrb, key, "hash", 0);
   h ^= h2.value.i;
   return h;
 }
