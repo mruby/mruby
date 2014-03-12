@@ -231,13 +231,21 @@ struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, co
 
 int mrb_get_args(mrb_state *mrb, const char *format, ...);
 
+/* `strlen` for character string literals (use with caution or `strlen` instead)
+    Adjacent string literals are concatenated in C/C++ in translation phase 6.
+    If `lit` is not one, the compiler will report a syntax error:
+     MSVC: "error C2143: syntax error : missing ')' before 'string'"
+     GCC:  "error: expected ')' before string constant"
+*/
+#define mrb_strlen_lit(lit) (sizeof(lit "") - 1)
+
 mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, int,...);
 mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, int, mrb_value*);
 mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, int, mrb_value*, mrb_value);
 mrb_sym mrb_intern_cstr(mrb_state*,const char*);
 mrb_sym mrb_intern(mrb_state*,const char*,size_t);
 mrb_sym mrb_intern_static(mrb_state*,const char*,size_t);
-#define mrb_intern_lit(mrb, lit) mrb_intern_static(mrb, (lit), sizeof(lit) - 1)
+#define mrb_intern_lit(mrb, lit) mrb_intern_static(mrb, lit, mrb_strlen_lit(lit))
 mrb_sym mrb_intern_str(mrb_state*,mrb_value);
 mrb_value mrb_check_intern_cstr(mrb_state*,const char*);
 mrb_value mrb_check_intern(mrb_state*,const char*,size_t);
@@ -257,7 +265,7 @@ void mrb_free(mrb_state*, void*);
 mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
 mrb_value mrb_str_new_cstr(mrb_state*, const char*);
 mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
-#define mrb_str_new_lit(mrb, lit) mrb_str_new_static(mrb, (lit), sizeof(lit) - 1)
+#define mrb_str_new_lit(mrb, lit) mrb_str_new_static(mrb, (lit), mrb_strlen_lit(lit))
 
 mrb_state* mrb_open(void);
 mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
