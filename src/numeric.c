@@ -680,7 +680,7 @@ int_to_i(mrb_state *mrb, mrb_value num)
   return num;
 }
 
-#define SQRT_INT_MAX ((mrb_int)1<<((sizeof(mrb_int)*CHAR_BIT-1)/2))
+#define SQRT_INT_MAX ((mrb_int)1<<((MRB_INT_BIT-1)/2))
 /*tests if N*N would overflow*/
 #define FIT_SQRT_INT(n) (((n)<SQRT_INT_MAX)&&((n)>=-SQRT_INT_MAX))
 
@@ -959,13 +959,13 @@ fix_xor(mrb_state *mrb, mrb_value x)
   return mrb_fixnum_value(val);
 }
 
-#define NUMERIC_SHIFT_WIDTH_MAX (sizeof(mrb_int)*CHAR_BIT-1)
+#define NUMERIC_SHIFT_WIDTH_MAX (MRB_INT_BIT-1)
 
 static mrb_value
 lshift(mrb_state *mrb, mrb_int val, size_t width)
 {
   if (width > NUMERIC_SHIFT_WIDTH_MAX) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "width(%S) > (%S:sizeof(mrb_int)*CHAR_BIT-1)",
+    mrb_raisef(mrb, E_RANGE_ERROR, "width(%S) > (%S:MRB_INT_BIT-1)",
                mrb_fixnum_value(width),
                mrb_fixnum_value(NUMERIC_SHIFT_WIDTH_MAX));
   }
@@ -1207,7 +1207,7 @@ fix_minus(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, int base)
 {
-  char buf[sizeof(mrb_int)*CHAR_BIT+1];
+  char buf[MRB_INT_BIT+1];
   char *b = buf + sizeof buf;
   mrb_int val = mrb_fixnum(x);
 

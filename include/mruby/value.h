@@ -26,6 +26,7 @@
 #  error Cannot use NaN boxing when mrb_int is 64bit
 # else
    typedef int64_t mrb_int;
+#  define MRB_INT_BIT 64
 #  define MRB_INT_MIN INT64_MIN
 #  define MRB_INT_MAX INT64_MAX
 #  define PRIdMRB_INT PRId64
@@ -36,10 +37,12 @@
 # endif
 #elif defined(MRB_INT16)
   typedef int16_t mrb_int;
+# define MRB_INT_BIT 16
 # define MRB_INT_MIN INT16_MIN
 # define MRB_INT_MAX INT16_MAX
 #else
   typedef int32_t mrb_int;
+# define MRB_INT_BIT 32
 # define MRB_INT_MIN INT32_MIN
 # define MRB_INT_MAX INT32_MAX
 # define PRIdMRB_INT PRId32
@@ -239,7 +242,7 @@ typedef union mrb_value {
     void *p;
     struct {
       unsigned int i_flag : MRB_FIXNUM_SHIFT;
-      mrb_int i : (sizeof(mrb_int) * CHAR_BIT - MRB_FIXNUM_SHIFT);
+      mrb_int i : (MRB_INT_BIT - MRB_FIXNUM_SHIFT);
     };
     struct {
       unsigned int sym_flag : MRB_SPECIAL_SHIFT;
