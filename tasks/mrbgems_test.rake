@@ -32,8 +32,9 @@ MRuby.each_target do
         g.test_rbfiles.flatten.each_with_index do |rbfile, i|
           g.build.mrbc.run f, rbfile, "gem_test_irep_#{g.funcname}_#{i}"
         end
-        f.puts %Q[void mrb_#{g.funcname}_gem_test(mrb_state *mrb);] unless g.test_objs.empty?
-        f.puts %Q[void GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb_state *mrb) {]
+        f.puts %Q[extern int mrb_gem_require_prelinked(mrb_state *, const char *name);] if g.activation_policy == 'lazy'
+        f.puts %Q[extern void mrb_#{g.funcname}_gem_test(mrb_state *mrb);] unless g.test_objs.empty?
+        f.puts %Q[extern void GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb_state *mrb) {]
         unless g.test_rbfiles.empty?
           f.puts %Q[  mrb_state *mrb2;]
           if g.test_args.empty?
@@ -45,6 +46,7 @@ MRuby.each_target do
           g.test_rbfiles.count.times do |i|
             f.puts %Q[  ai = mrb_gc_arena_save(mrb);]
             f.puts %Q[  mrb2 = mrb_open();]
+            f.puts %Q[  (void) mrb_gem_require_prelinked(mrb2, "#{g.name}");] if g.activation_policy == 'lazy'
             f.puts %Q[  val3 = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"));]
             f.puts %Q[  if (mrb_test(val3)) {]
             f.puts %Q[    mrb_gv_set(mrb2, mrb_intern_lit(mrb2, "$mrbtest_verbose"), val3);]

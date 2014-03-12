@@ -33,6 +33,8 @@ module MRuby
       attr_accessor :requirements
       attr_reader :dependencies
 
+      attr_accessor :activation_policy
+
       attr_block MRuby::Build::COMMANDS
 
       def initialize(name, &block)
@@ -44,7 +46,7 @@ module MRuby
       end
 
       def run_test_in_other_mrb_state?
-        not test_preload.nil? or not test_objs.empty?
+        not test_preload.nil? or not test_objs.empty? or activation_policy == 'lazy'
       end
 
       def cxx_abi_enabled?

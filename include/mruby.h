@@ -158,6 +158,11 @@ typedef struct mrb_state {
   mrb_sym symidx;
   struct kh_n2s *name2sym;      /* symbol table */
 
+#ifndef DISABLE_GEMS
+  struct kh_lazy_gems *uninit_gems; /* uninitialized (lazy) gems table */
+  struct kh_lazy_gems *unfini_gems; /* unfinalized gems table. It should be NULL until system finalize phase. */
+#endif
+
 #ifdef ENABLE_DEBUG
   void (*code_fetch_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
   void (*debug_op_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
@@ -396,6 +401,11 @@ void* mrb_pool_alloc(struct mrb_pool*, size_t);
 void* mrb_pool_realloc(struct mrb_pool*, void*, size_t oldlen, size_t newlen);
 mrb_bool mrb_pool_can_realloc(struct mrb_pool*, void*, size_t);
 void* mrb_alloca(mrb_state *mrb, size_t);
+
+#ifndef DISABLE_GEMS
+extern int mrb_gem_require_prelinked(mrb_state *, const char *name);
+extern int mrb_gem_finalize_prelinked(mrb_state *, const char *name);
+#endif
 
 #ifdef MRB_DEBUG
 #include <assert.h>
