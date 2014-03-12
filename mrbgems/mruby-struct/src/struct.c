@@ -381,7 +381,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   }
   st = make_struct(mrb, name, rest, struct_class(mrb));
   if (!mrb_nil_p(b)) {
-    mrb_funcall(mrb, b, "call", 1, &st);
+    mrb_funcall(mrb, b, "call", 1, st);
   }
 
   return st;

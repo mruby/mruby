@@ -588,7 +588,7 @@ mrb_Float(mrb_state *mrb, mrb_value val)
 mrb_value
 mrb_inspect(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_obj_as_string(mrb, mrb_funcall(mrb, obj, "inspect", 0, 0));
+  return mrb_obj_as_string(mrb, mrb_funcall(mrb, obj, "inspect", 0));
 }
 
 mrb_bool
