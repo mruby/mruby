@@ -64,8 +64,8 @@ mrb_open_common(mrb_allocf f, void *ud, mrb_bool with_gems)
   return mrb;
 }
 
-static void*
-allocf(mrb_state *mrb, void *p, size_t size, void *ud)
+void*
+mrb_default_allocf(mrb_state *mrb, void *p, size_t size, void *ud)
 {
   if (size == 0) {
     free(p);
@@ -111,7 +111,7 @@ mrb_alloca_free(mrb_state *mrb)
 mrb_state*
 mrb_open(void)
 {
-  mrb_state *mrb = mrb_open_allocf(allocf, NULL);
+  mrb_state *mrb = mrb_open_allocf(mrb_default_allocf, NULL);
 
   return mrb;
 }
