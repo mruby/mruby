@@ -10,9 +10,9 @@ typedef struct {
   unsigned long mt[N];
   int mti;
   union {
-    unsigned long gen_int;
-    double gen_dbl;
-  };
+    unsigned long int_;
+    double double_;
+  } gen;
 
   mrb_int seed;
   mrb_bool has_seed : 1;
