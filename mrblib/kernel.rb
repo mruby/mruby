@@ -18,11 +18,12 @@ module Kernel
   # Calls the given block repetitively.
   #
   # ISO 15.3.1.2.8
-  def self.loop #(&block)
-    while(true)
-      yield
-    end
-  end
+  # provided by Kernel#loop
+  # def self.loop #(&block)
+  #   while(true)
+  #     yield
+  #   end
+  # end
 
   # 15.3.1.2.3
   def self.eval(s)
@@ -38,14 +39,22 @@ module Kernel
   # Alias for +Kernel.loop+.
   #
   # ISO 15.3.1.3.29
-  def loop #(&block)
+  def loop
+    return to_enum :loop unless block_given?
+
     while(true)
       yield
     end
+  rescue => StopIteration
+    nil
   end
 
   # 11.4.4 Step c)
   def !~(y)
     !(self =~ y)
+  end
+
+  def to_enum(*a)
+    raise NotImplementedError.new("fiber required for enumerator")
   end
 end

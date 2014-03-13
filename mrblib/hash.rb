@@ -43,7 +43,9 @@ class Hash
   #
   # ISO 15.2.13.4.9
   def each(&block)
-    self.keys.each{|k| block.call([k, self[k]])}
+    return to_enum :each unless block_given?
+
+    self.keys.each { |k| block.call [k, self[k]] }
     self
   end
 

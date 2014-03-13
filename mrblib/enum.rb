@@ -78,6 +78,8 @@ module Enumerable
   #
   # ISO 15.3.2.2.3
   def collect(&block)
+    return to_enum :collect unless block_given?
+
     ary = []
     self.each{|val|
       ary.push(block.call(val))

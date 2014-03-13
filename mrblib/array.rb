@@ -10,6 +10,8 @@ class Array
   #
   # ISO 15.2.12.5.10
   def each(&block)
+    return to_enum :each unless block_given?
+
     idx, length = -1, self.length-1
     while idx < length and length <= self.length and length = self.length-1
       elm = self[idx += 1]
