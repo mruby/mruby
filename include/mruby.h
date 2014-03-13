@@ -365,6 +365,8 @@ void mrb_print_error(mrb_state *mrb);
 mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
 mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv);
 
+mrb_value mrb_call_super(mrb_state *mrb, int argc, mrb_value *argv);
+
 void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
