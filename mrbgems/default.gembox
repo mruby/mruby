@@ -50,6 +50,9 @@ MRuby::GemBox.new do |conf|
   # Use Fiber class
   conf.gem :core => "mruby-fiber"
 
+  # Use Enumerator class (require mruby-fiber)
+  conf.gem :core => "mruby-enumerator"
+
   # Use extended toplevel object (main) methods
   conf.gem :core => "mruby-toplevel-ext"
 
