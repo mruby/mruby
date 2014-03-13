@@ -53,6 +53,9 @@ MRuby::GemBox.new do |conf|
   # Use extended toplevel object (main) methods
   conf.gem :core => "mruby-toplevel-ext"
 
+  # Implementation of mrb_codedump and mrb_parser_dump
+  conf.gem :core => "mruby-debug-ext"
+
   # Generate mirb command
   conf.gem :core => "mruby-bin-mirb"
 

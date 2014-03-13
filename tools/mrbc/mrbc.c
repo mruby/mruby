@@ -333,3 +333,15 @@ mrb_final_mrbgems(mrb_state *mrb)
 {
 }
 #endif
+
+#ifdef MRB_DEBUG_DUMP_FUNCTIONS
+void
+mrb_codedump_all(mrb_state* mrb, struct RProc* p)
+{
+}
+
+void
+mrb_parser_dump(mrb_state* mrb, mrb_ast_node* n, int st)
+{
+}
+#endif

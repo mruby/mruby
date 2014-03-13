@@ -1,3 +1,9 @@
+DebugExt.disable_output
+
+assert('DebugExt.output_to_file') do
+  assert_raise(RuntimeError) { DebugExt.output_to_file '.' }
+end
+
 assert('Proc#codedump') do
   assert_raise(TypeError) { CFuncProc.codedump }
 
