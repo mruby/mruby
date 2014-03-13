@@ -49,6 +49,9 @@ mrb_class(mrb_state *mrb, mrb_value v)
 #define MRB_SET_INSTANCE_TT(c, tt) c->flags = ((c->flags & ~0xff) | (char)tt)
 #define MRB_INSTANCE_TT(c) (enum mrb_vtype)(c->flags & 0xff)
 
+#define MRB_SET_CALL_TYPE(c, t) c->flags = ((c->flags & ~0x600) | ((t & 0x3) << 9))
+#define MRB_CALL_TYPE(c) ((enum mrb_call_type)((c->flags >> 9) & 0x3))
+
 struct RClass* mrb_define_class_id(mrb_state*, mrb_sym, struct RClass*);
 struct RClass* mrb_define_module_id(mrb_state*, mrb_sym);
 struct RClass *mrb_vm_define_class(mrb_state*, mrb_value, mrb_value, mrb_sym);
