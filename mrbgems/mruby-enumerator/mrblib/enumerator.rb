@@ -346,8 +346,6 @@ class Enumerator
     end
     raise @stop_exc if @stop_exc
 
-    raise NotImplementedError, "Enumerator require Fiber" unless Object.const_defined?(:Fiber)
-
     curr = Fiber.current
 
     if !@fib || !@fib.alive?
