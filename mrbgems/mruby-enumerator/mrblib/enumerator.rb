@@ -112,7 +112,7 @@ class Enumerator
   #
   def initialize obj=nil, meth=:each, *args, &block
     if block_given?
-      obj = Generator.new &block
+      obj = Generator.new(&block)
     else
       raise ArgumentError unless obj
     end
@@ -532,7 +532,7 @@ class Enumerator
 
     def each *args, &block
       args.unshift Yielder.new(&block)
-      @proc.call *args
+      @proc.call(*args)
     end
   end
 
@@ -545,11 +545,11 @@ class Enumerator
     end
 
     def yield *args
-      @proc.call *args
+      @proc.call(*args)
     end
 
     def << *args
-      self.yield *args
+      self.yield(*args)
       self
     end
   end
