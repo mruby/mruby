@@ -255,6 +255,7 @@ class Enumerator
   #   enum.each(:y, :z) { |elm| elm } #=> :method_returned
   #
   def each *argv, &block
+    obj = self
     if 0 < argv.length
       obj = self.dup
       args = obj.args
@@ -264,9 +265,9 @@ class Enumerator
       else
         args = argv.dup
       end
-      @args = args
+      obj.args = args
     end
-    return self unless block_given?
+    return obj unless block_given?
     enumerator_block_call(&block)
   end
 

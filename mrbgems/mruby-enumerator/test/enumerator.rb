@@ -89,6 +89,27 @@ assert 'Enumerator#each' do
   assert_equal([1], ary)
 end
 
+assert 'Enumerator#each arguments' do
+  obj = Object.new
+
+  def obj.each_arg(a, b=:b, *rest)
+    yield a
+    yield b
+    yield rest
+    :method_returned
+  end
+
+  enum = obj.to_enum :each_arg, :a, :x
+
+  assert_equal [:a, :x, []], enum.each.to_a
+  assert_true enum.each.equal?(enum)
+  assert_equal :method_returned, enum.each { |elm| elm }
+
+  assert_equal [:a, :x, [:y, :z]], enum.each(:y, :z).to_a
+  assert_false enum.each(:y, :z).equal?(enum)
+  assert_equal :method_returned, enum.each(:y, :z) { |elm| elm }
+end
+
 assert 'Enumerator#next' do
   e = 3.times
   3.times { |i|
