@@ -262,6 +262,14 @@ fiber_yield(mrb_state *mrb, mrb_value self)
   return mrb_fiber_yield(mrb, len, a);
 }
 
+static mrb_value
+fiber_root(mrb_state *mrb, mrb_value self)
+{
+  struct RFiber *f = (struct RFiber*)mrb_obj_alloc(mrb, MRB_TT_FIBER, mrb_class_ptr(self));
+  f->cxt = mrb->root_c;
+  return mrb_obj_value(f);
+}
+
 /*
  *  call-seq:
  *     Fiber.current() -> fiber
@@ -273,13 +281,7 @@ fiber_yield(mrb_state *mrb, mrb_value self)
 static mrb_value
 fiber_current(mrb_state *mrb, mrb_value self)
 {
-  if (!mrb->c->fib) {
-    struct RFiber *f = (struct RFiber*)mrb_obj_alloc(mrb, MRB_TT_FIBER, mrb_class_ptr(self));
-
-    f->cxt = mrb->c;
-    mrb->c->fib = f;
-  }
-  return mrb_obj_value(mrb->c->fib);
+  return mrb->c->fib? mrb_obj_value(mrb->c->fib) : fiber_root(mrb, self);
 }
   
 void
@@ -297,6 +299,7 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
 
   mrb_define_class_method(mrb, c, "yield", fiber_yield, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "current", fiber_current, MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, c, "root", fiber_root, MRB_ARGS_NONE());
 }
 
 void

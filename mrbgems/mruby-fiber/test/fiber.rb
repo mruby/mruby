@@ -20,8 +20,10 @@ end
 assert('Fiber#suspended?') do
   f = Fiber.new {
     assert_false f.suspended?
+    assert_true Fiber.root.suspended?
     Fiber.yield 0
   }
+  assert_false Fiber.root.suspended?
   assert_true f.suspended? # created state fiber must be suspended
   assert_equal 0, f.resume
   assert_true f.suspended?
