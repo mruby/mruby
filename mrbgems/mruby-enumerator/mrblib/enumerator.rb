@@ -208,7 +208,7 @@ class Enumerator
   def with_object object
     return to_enum :with_object, object unless block_given?
 
-    each do |i|
+    enumerator_block_call do |i|
       yield [i,object]
     end
     object
