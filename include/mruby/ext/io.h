@@ -11,20 +11,24 @@ extern "C" {
 
 #include <errno.h>
 
-#include <unistd.h>
 #include <fcntl.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
+#if defined(_WIN32) || defined(_WIN64)
+  #include <winsock.h>
+#else
+  #include <unistd.h>
+  #include <sys/wait.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
 
 struct mrb_io {
-  int fd;                                 /* file descriptor          */
-  int fd2;                                /* file descriptor          */
-  int pid;                                /* child's pid (for pipes)  */
+  int fd;   /* file descriptor          */
+  int fd2;  /* file descriptor          */
+  int pid;  /* child's pid (for pipes)  */
 };
 
 struct mrb_io_type {

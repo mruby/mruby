@@ -15,14 +15,27 @@
 #include "mruby/error.h"
 #endif
 
-#include <sys/file.h>
 #include <fcntl.h>
-#include <libgen.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/param.h>
-#include <pwd.h>
+#if defined(_WIN32) || defined(_WIN64)
+  #define UNLINK _unlink
+  #define GETCWD _getcwd
+  #define CHMOD(a, b) 0
+  #define MAXPATHLEN 1024
+  #define PATH_MAX MAX_PATH
+  #define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
+  #include <direct.h>
+#else
+  #define UNLINK unlink
+  #define GETCWD getcwd
+  #define CHMOD(a, b) chmod(a,b)
+  #include <sys/file.h>
+  #include <libgen.h>
+  #include <sys/param.h>
+  #include <pwd.h>
+#endif
 
 #define FILE_SEPARATOR "/"
 
@@ -47,16 +60,21 @@ extern mrb_value mrb_io_fileno(mrb_state *mrb, mrb_value io);
 mrb_value
 mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
 {
+  int omask = 0;
+  #if defined(_WIN32) || defined(_WIN64)
+  /* nothing to do on windows */
+  #else
   mrb_value *argv;
   int argc;
+  mrb_value mask;
+
   mrb_get_args(mrb, "*", &argv, &argc);
 
-  int omask = 0;
   if (argc == 0) {
     omask = umask(0);
     umask(omask);
   } else if (argc == 1) {
-    mrb_value mask = argv[0];
+    mask = argv[0];
     if (!mrb_nil_p(mask) && !mrb_fixnum_p(mask)) {
       mask = mrb_check_convert_type(mrb, mask, MRB_TT_FIXNUM, "Fixnum", "to_int");
     }
@@ -67,6 +85,7 @@ mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
   } else {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 0..1)", argc);
   }
+  #endif
   return mrb_fixnum_value(omask);
 }
 
@@ -75,15 +94,17 @@ mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
 {
   mrb_value *argv;
   int n, i, argc;
+  const char *path;
+  mrb_value pathv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   for (i = 0, n = 0; i < argc; i++) {
-    mrb_value pathv = argv[i];
+    pathv = argv[i];
     if (mrb_type(pathv) != MRB_TT_STRING) {
       mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, pathv));
     }
-    const char *path = mrb_string_value_cstr(mrb, &pathv);;
-    if (unlink(path) < 0) {
+    path = mrb_string_value_cstr(mrb, &pathv);;
+    if (UNLINK(path) < 0) {
       mrb_sys_fail(mrb, path);
     } else {
       n++;
@@ -100,8 +121,8 @@ mrb_file_rename_internal(mrb_state *mrb, mrb_value from, mrb_value to)
   dst = mrb_string_value_cstr(mrb, &to);
 
   if (rename(src, dst) < 0) {
-    if (chmod(dst, 0666) == 0 &&
-        unlink(dst) == 0 &&
+    if (CHMOD(dst, 0666) == 0 &&
+        UNLINK(dst) == 0 &&
         rename(src, dst) == 0)
       return mrb_fixnum_value(0);
     mrb_sys_fail(mrb, "mrb_file_rename_internal failed.");
@@ -137,29 +158,53 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 {
-  char *dname, *path;
+  #if defined(_WIN32) || defined(_WIN64)
+  char dname[_MAX_DIR], vname[_MAX_DRIVE];
+  char buffer[_MAX_DRIVE + _MAX_DIR];
+  char *path;
   mrb_value s;
-
   mrb_get_args(mrb, "S", &s);
   path = mrb_str_to_cstr(mrb, s);
+  _splitpath((const char*)path, vname, dname, NULL, NULL);
+  sprintf_s(buffer, _MAX_DRIVE + _MAX_DIR, "%s%s", vname, dname);
+  return mrb_str_new_cstr(mrb, buffer);
+  #else
+  char *dname, *path;
+  mrb_value s;
+  mrb_get_args(mrb, "S", &s);
+  path = mrb_str_to_cstr(mrb, s);
+
   if ((dname = dirname(path)) == NULL) {
     mrb_sys_fail(mrb, "dirname");
   }
+  #endif
   return mrb_str_new_cstr(mrb, dname);
 }
 
 static mrb_value
 mrb_file_basename(mrb_state *mrb, mrb_value klass)
 {
+  #if defined(_WIN32) || defined(_WIN64)
+  char bname[_MAX_DIR];
+  char extname[_MAX_EXT];
+  char *path;
+  char buffer[_MAX_DIR + _MAX_EXT];
+  mrb_value s;
+  mrb_get_args(mrb, "S", &s);
+  path = mrb_str_to_cstr(mrb, s);
+  _splitpath((const char*)path, NULL, NULL, bname, extname);
+  sprintf_s(buffer, _MAX_DIR + _MAX_EXT, "%s%s", bname, extname);
+  return mrb_str_new_cstr(mrb, buffer);
+  #else
   char *bname, *path;
   mrb_value s;
-
   mrb_get_args(mrb, "S", &s);
   path = mrb_str_to_cstr(mrb, s);
   if ((bname = basename(path)) == NULL) {
     mrb_sys_fail(mrb, "basename");
   }
   return mrb_str_new_cstr(mrb, bname);
+  #endif
 }
 
 static mrb_value
@@ -218,7 +263,7 @@ mrb_file__getwd(mrb_state *mrb, mrb_value klass)
   mrb_value path;
 
   path = mrb_str_buf_new(mrb, MAXPATHLEN);
-  if (getcwd(RSTRING_PTR(path), MAXPATHLEN) == NULL) {
+  if (GETCWD(RSTRING_PTR(path), MAXPATHLEN) == NULL) {
     mrb_sys_fail(mrb, "getcwd(2)");
   }
   mrb_str_resize(mrb, path, strlen(RSTRING_PTR(path)));
@@ -234,6 +279,7 @@ mrb_file_is_absolute_path(const char *path)
 static mrb_value
 mrb_file__gethome(mrb_state *mrb, mrb_value klass)
 {
+#ifndef _WIN32
   mrb_value username;
   int argc;
   char *home;
@@ -259,8 +305,13 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
     }
   }
   return mrb_str_new_cstr(mrb, home);
+#else
+  
+  return mrb_nil_value();
+#endif
 }
 
+#ifndef _WIN32
 mrb_value
 mrb_file_flock(mrb_state *mrb, mrb_value self)
 {
@@ -290,6 +341,7 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
   }
   return mrb_fixnum_value(0);
 }
+#endif
 
 void
 mrb_init_file(mrb_state *mrb)
@@ -311,8 +363,10 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "_getwd",    mrb_file__getwd,     MRB_ARGS_NONE());
   mrb_define_class_method(mrb, file, "_gethome",  mrb_file__gethome,   MRB_ARGS_OPT(1));
 
+  #ifndef _WIN32
   mrb_define_method(mrb, file, "flock", mrb_file_flock, MRB_ARGS_REQ(1));
-
+  #endif
+  
   cnst = mrb_define_module_under(mrb, file, "Constants");
   mrb_define_const(mrb, cnst, "LOCK_SH", mrb_fixnum_value(LOCK_SH));
   mrb_define_const(mrb, cnst, "LOCK_EX", mrb_fixnum_value(LOCK_EX));

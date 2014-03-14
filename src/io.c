@@ -17,6 +17,16 @@
 #include "mruby/error.h"
 #endif
 
+#if defined(_WIN32) || defined(_WIN64)
+  #include <io.h>
+  #define open  _open
+  #define close _close
+  #define read  _read
+  #define write _write
+  #define lseek _lseek
+#else
+#endif
+
 static int mrb_io_modestr_to_flags(mrb_state *mrb, const char *modestr);
 static int mrb_io_flags_to_modenum(mrb_state *mrb, int flags);
 
@@ -67,6 +77,41 @@ mrb_io_modestr_to_flags(mrb_state *mrb, const char *mode)
 }
 
 static int
+mrb_io_modenum_to_flags(mrb_state *mrb, int modenum)
+{
+  int flags = 0;
+
+  switch (modenum & (O_RDONLY|O_WRONLY|O_RDWR)) {
+    case O_RDONLY:
+      flags = FMODE_READABLE;
+      break;
+    case O_WRONLY:
+      flags = FMODE_WRITABLE;
+      break;
+    case O_RDWR:
+      flags = FMODE_READWRITE;
+      break;
+  }
+
+  if (modenum & O_APPEND) {
+    flags |= FMODE_APPEND;
+  }
+  if (modenum & O_TRUNC) {
+    flags |= FMODE_TRUNC;
+  }
+  if (modenum & O_CREAT) {
+    flags |= FMODE_CREATE;
+  }
+#ifdef O_BINARY
+  if (modenum & O_BINARY) {
+    flags |= FMODE_BINMODE;
+  }
+#endif
+
+  return flags;
+}
+
+static int
 mrb_io_flags_to_modenum(mrb_state *mrb, int flags)
 {
   int modenum = 0;
@@ -94,13 +139,14 @@ mrb_io_flags_to_modenum(mrb_state *mrb, int flags)
   }
 #ifdef O_BINARY
   if (flags & FMODE_BINMODE) {
-    modenum |= O_BINARY
+    modenum |= O_BINARY;
   }
 #endif
 
   return modenum;
 }
 
+#ifndef _WIN32
 static int
 mrb_proc_exec(const char *pname)
 {
@@ -118,6 +164,7 @@ mrb_proc_exec(const char *pname)
   execl("/bin/sh", "sh", "-c", pname, (char *)NULL);
   return -1;
 }
+#endif
 
 static void
 mrb_io_free(mrb_state *mrb, void *ptr)
@@ -160,6 +207,7 @@ io_open(mrb_state *mrb, mrb_value path, int flags, int perm)
 #define NOFILE 64
 #endif
 
+#ifndef _WIN32
 mrb_value
 mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
@@ -270,6 +318,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   }
   return result;
 }
+#endif
 
 mrb_value
 mrb_io_initialize(mrb_state *mrb, mrb_value io)
@@ -717,9 +766,10 @@ mrb_init_io(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(io, MRB_TT_DATA);
 
   mrb_include_module(mrb, io, mrb_module_get(mrb, "Enumerable")); /* 15.2.20.3 */
-
+#ifndef _WIN32
   mrb_define_class_method(mrb, io, "_popen",  mrb_io_s_popen,   MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "_sysclose",  mrb_io_s_sysclose, MRB_ARGS_REQ(1));
+#endif
   mrb_define_class_method(mrb, io, "for_fd",  mrb_io_s_for_fd,  MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2));
   mrb_define_class_method(mrb, io, "select",  mrb_io_s_select,  MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, MRB_ARGS_ANY());
