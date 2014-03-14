@@ -267,8 +267,13 @@ class Enumerator
       @args = args
     end
     return self unless block_given?
+    enumerator_block_call(&block)
+  end
+
+  def enumerator_block_call(&block)
     @obj.__send__ @meth, *@args, &block
   end
+  private :enumerator_block_call
 
   ##
   # call-seq:
