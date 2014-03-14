@@ -77,41 +77,6 @@ mrb_io_modestr_to_flags(mrb_state *mrb, const char *mode)
 }
 
 static int
-mrb_io_modenum_to_flags(mrb_state *mrb, int modenum)
-{
-  int flags = 0;
-
-  switch (modenum & (O_RDONLY|O_WRONLY|O_RDWR)) {
-    case O_RDONLY:
-      flags = FMODE_READABLE;
-      break;
-    case O_WRONLY:
-      flags = FMODE_WRITABLE;
-      break;
-    case O_RDWR:
-      flags = FMODE_READWRITE;
-      break;
-  }
-
-  if (modenum & O_APPEND) {
-    flags |= FMODE_APPEND;
-  }
-  if (modenum & O_TRUNC) {
-    flags |= FMODE_TRUNC;
-  }
-  if (modenum & O_CREAT) {
-    flags |= FMODE_CREATE;
-  }
-#ifdef O_BINARY
-  if (modenum & O_BINARY) {
-    flags |= FMODE_BINMODE;
-  }
-#endif
-
-  return flags;
-}
-
-static int
 mrb_io_flags_to_modenum(mrb_state *mrb, int flags)
 {
   int modenum = 0;

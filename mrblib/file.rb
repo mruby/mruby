@@ -12,12 +12,6 @@ class File < IO
     if fd_or_path.kind_of? Fixnum
       super(fd_or_path, mode)
     else
-      if Object.const_defined? :Errno
-        eclass = [Errno::ENOENT, Errno::ENFILE]
-      else
-        eclass = FileError
-      end
-      
       @path = fd_or_path
       begin
         fd = IO.sysopen(@path, mode, perm)
