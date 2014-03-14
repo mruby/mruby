@@ -180,6 +180,7 @@ fiber_resume(mrb_state *mrb, mrb_value self)
     if (c->prev->fib) 
       mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
     mrb_write_barrier(mrb, (struct RBasic*)c->fib);
+    mrb->c->status = MRB_FIBER_SUSPENDED;
     c->status = MRB_FIBER_RUNNING;
     mrb->c = c;
 
@@ -191,6 +192,7 @@ fiber_resume(mrb_state *mrb, mrb_value self)
   if (c->prev->fib) 
     mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
   mrb_write_barrier(mrb, (struct RBasic*)c->fib);
+  mrb->c->status = MRB_FIBER_SUSPENDED;
   c->status = MRB_FIBER_RUNNING;
   mrb->c = c;
   return fiber_result(mrb, a, len);
@@ -210,6 +212,13 @@ fiber_alive_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(c->status != MRB_FIBER_TERMINATED);
 }
 
+static mrb_value
+fiber_suspended_p(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_context *c = fiber_check(mrb, self);
+  return mrb_bool_value(c->status == MRB_FIBER_SUSPENDED || c->status == MRB_FIBER_CREATED);
+}
+
 mrb_value
 mrb_fiber_yield(mrb_state *mrb, int len, mrb_value *a)
 {
@@ -225,7 +234,8 @@ mrb_fiber_yield(mrb_state *mrb, int len, mrb_value *a)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "can't yield from root fiber");
   }
 
-  c->prev->status = MRB_FIBER_SUSPENDED;
+  c->prev->status = MRB_FIBER_RUNNING;
+  c->status = MRB_FIBER_SUSPENDED;
   mrb->c = c->prev;
   c->prev = NULL;
   MARK_CONTEXT_MODIFY(mrb->c);
@@ -283,6 +293,7 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, c, "initialize", fiber_init,    MRB_ARGS_NONE());
   mrb_define_method(mrb, c, "resume",     fiber_resume,  MRB_ARGS_ANY());
   mrb_define_method(mrb, c, "alive?",     fiber_alive_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, c, "suspended?", fiber_suspended_p, MRB_ARGS_NONE());
 
   mrb_define_class_method(mrb, c, "yield", fiber_yield, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "current", fiber_current, MRB_ARGS_NONE());

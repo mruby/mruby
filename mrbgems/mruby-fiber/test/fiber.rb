@@ -17,6 +17,19 @@ assert('Fiber#alive?') do
   assert_false f.alive?
 end
 
+assert('Fiber#suspended?') do
+  f = Fiber.new {
+    assert_false f.suspended?
+    Fiber.yield 0
+  }
+  assert_true f.suspended? # created state fiber must be suspended
+  assert_equal 0, f.resume
+  assert_true f.suspended?
+  f.resume
+  assert_false f.alive?
+  assert_false f.suspended? # dead fiber must not be suspended
+end
+
 assert('Fiber.yield') do
   f = Fiber.new{|x| Fiber.yield(x) }
   assert_equal 3, f.resume(3)
