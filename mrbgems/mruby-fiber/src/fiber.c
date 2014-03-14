@@ -161,14 +161,13 @@ fiber_resume(mrb_state *mrb, mrb_value self)
       mrb_raise(mrb, E_ARGUMENT_ERROR, "can't cross C function boundary");
     }
   }
-  if (c->status == MRB_FIBER_RESUMED) {
+  if (mrb->c->prev && c->status == MRB_FIBER_RUNNING) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "double resume");
   }
   if (c->status == MRB_FIBER_TERMINATED) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "resuming dead fiber");
   }
   mrb_get_args(mrb, "*", &a, &len);
-  mrb->c->status = MRB_FIBER_RESUMED;
   if (c->status == MRB_FIBER_CREATED) {
     mrb_value *b = c->stack+1;
     mrb_value *e = b + len;
@@ -226,7 +225,7 @@ mrb_fiber_yield(mrb_state *mrb, int len, mrb_value *a)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "can't yield from root fiber");
   }
 
-  c->prev->status = MRB_FIBER_RUNNING;
+  c->prev->status = MRB_FIBER_SUSPENDED;
   mrb->c = c->prev;
   c->prev = NULL;
   MARK_CONTEXT_MODIFY(mrb->c);

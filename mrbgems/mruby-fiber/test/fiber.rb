@@ -50,6 +50,16 @@ assert('Fiber raises on resume when dead') do
   end
 end
 
+assert('Double resume of Fiber') do
+  f = Fiber.new {
+    assert_raise(RuntimeError) { f.resume }
+    Fiber.yield 0
+    }
+  assert_equal 0, f.resume
+  f.resume
+  assert_false f.alive?
+end
+
 assert('Yield raises when called on root fiber') do
   assert_raise(ArgumentError) { Fiber.yield }
 end
