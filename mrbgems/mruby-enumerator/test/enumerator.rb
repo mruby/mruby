@@ -72,6 +72,21 @@ assert 'Enumerator#with_object' do
   assert_equal([55, 3628800], ret)
 end
 
+assert 'Enumerator#with_object arguments' do
+  to_three = Enumerator.new do |y|
+    3.times do |x|
+      y << x
+    end
+  end
+  
+  a = []
+  to_three_with_string = to_three.with_object("foo")
+  to_three_with_string.each do |x,string|
+    a << "#{string}:#{x}"
+  end
+  assert_equal ["foo:0","foo:1","foo:2"], a
+end
+
 assert 'Enumerator#inspect' do
   e = (0..10).each
   assert_equal("#<Enumerator: 0..10:each>", e.inspect)

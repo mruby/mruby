@@ -206,7 +206,7 @@ class Enumerator
   #   # => foo:2
   #
   def with_object object
-    return to_enum :with_object, offset unless block_given?
+    return to_enum :with_object, object unless block_given?
 
     each do |i|
       yield [i,object]
