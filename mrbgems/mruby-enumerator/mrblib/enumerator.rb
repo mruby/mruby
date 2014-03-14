@@ -156,10 +156,10 @@ class Enumerator
     return to_enum :with_index, offset unless block_given?
     raise TypeError, "no implicit conversion of #{offset.class} into Integer" unless offset.respond_to?(:to_int)
 
-    n = offset.to_int
-    each do |i|
-      yield [i,n]
+    n = offset.to_int - 1
+    enumerator_block_call do |i|
       n += 1
+      yield [i,n]
     end
   end
 

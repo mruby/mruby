@@ -396,3 +396,12 @@ assert 'modifying existing methods' do
   assert_equal Enumerator, {a:1}.each.class
   assert_equal Enumerator, (1..5).each.class
 end
+
+assert 'Array#map!' do
+  a = [1,2,3]
+  b = a.map!
+  b.with_index do |i, index|
+    [i*i, index*index]
+  end
+  assert_equal [[1,0],[4,1],[9,4]], a
+end
