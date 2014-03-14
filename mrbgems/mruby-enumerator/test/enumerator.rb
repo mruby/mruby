@@ -400,8 +400,8 @@ assert 'Kernel#to_enum' do
   assert_raise(ArgumentError){ nil.to_enum }
 end
 
-
 assert 'modifying existing methods' do
+  assert_equal Enumerator, loop.class
   e = 3.times
   i = 0
   loop_ret = loop {
@@ -409,13 +409,28 @@ assert 'modifying existing methods' do
     i += 1
   }
   assert_nil loop_ret
+end
 
-  assert_equal Enumerator, loop.class
-  assert_equal Enumerator, 3.times.class
-  assert_equal Enumerator, [].each.class
-  assert_equal Enumerator, [].map.class
-  assert_equal Enumerator, {a:1}.each.class
-  assert_equal Enumerator, (1..5).each.class
+assert 'Integral#times' do
+  a = 3
+  b = a.times
+  c = []
+  b.with_object(c) do |i, obj|
+    obj << i
+  end
+  assert_equal 3, a
+  assert_equal Enumerator, b.class
+  assert_equal [0,1,2], c
+end
+
+assert 'Enumerable#map' do
+  a = [1,2,3]
+  b = a.map
+  c = b.with_index do |i, index|
+    [i*i, index*index]
+  end
+  assert_equal [1,2,3], a
+  assert_equal [[1,0],[4,1],[9,4]], c
 end
 
 assert 'Array#map!' do
@@ -425,4 +440,24 @@ assert 'Array#map!' do
     [i*i, index*index]
   end
   assert_equal [[1,0],[4,1],[9,4]], a
+end
+
+assert 'Hash#each' do
+  a = {a:1,b:2}
+  b = a.each
+  c = []
+  b.each do |k,v|
+    c << [k,v]
+  end
+  assert_equal [[:a,1], [:b,2]], c.sort
+end
+
+assert 'Range#each' do
+  a = (1..5)
+  b = a.each
+  c = []
+  b.each do |i|
+    c << i
+  end
+  assert_equal [1,2,3,4,5], c
 end
