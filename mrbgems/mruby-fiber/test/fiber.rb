@@ -1,6 +1,7 @@
 assert('Fiber.new') do
   f = Fiber.new{}
   assert_equal Fiber, f.class
+  assert_raise(ArgumentError) { Fiber.new }
 end
 
 assert('Fiber#resume') do
