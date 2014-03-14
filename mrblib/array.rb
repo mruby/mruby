@@ -31,6 +31,8 @@ class Array
   #
   # ISO 15.2.12.5.11
   def each_index(&block)
+    return to_enum :each_index unless block_given?
+
     idx = 0
     while(idx < length)
       block.call(idx)
@@ -46,6 +48,8 @@ class Array
   #
   # ISO 15.2.12.5.7
   def collect!(&block)
+    return to_enum :collect! unless block_given?
+
     self.each_index{|idx|
       self[idx] = block.call(self[idx])
     }
