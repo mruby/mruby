@@ -164,7 +164,7 @@ fiber_resume(mrb_state *mrb, mrb_value self)
   if (c == mrb->root_c) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't resume root fiber");
   }
-  if (mrb->c->prev && c->status == MRB_FIBER_RUNNING) {
+  if (c->status == MRB_FIBER_RUNNING) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "double resume");
   }
   if (c->status == MRB_FIBER_TERMINATED) {
