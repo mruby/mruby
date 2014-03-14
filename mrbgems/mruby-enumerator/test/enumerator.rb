@@ -448,6 +448,17 @@ assert 'Enumerable#map' do
   assert_equal [[1,0],[4,1],[9,4]], c
 end
 
+assert 'Array#each_index' do
+  a = [1,2,3]
+  b = a.each_index
+  c = []
+  b.with_index do |index1,index2|
+    c << [index1+2,index2+5]
+  end
+  assert_equal [1,2,3], a
+  assert_equal [[2,5],[3,6],[4,7]], c
+end
+
 assert 'Array#map!' do
   a = [1,2,3]
   b = a.map!
