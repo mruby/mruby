@@ -53,10 +53,14 @@
 #  endif
 
 typedef long suseconds_t;
+
+# ifndef __MINGW64__
 struct timeval {
   time_t tv_sec;
   suseconds_t tv_usec;
 };
+# endif
+
 static int
 gettimeofday(struct timeval *tv, void *tz)
 {
