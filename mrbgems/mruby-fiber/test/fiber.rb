@@ -44,6 +44,25 @@ assert('Fiber.yield') do
   assert_equal 3, f.resume(3)
 end
 
+assert('Fiber.current') do
+  f = Fiber.new {
+    assert_true Fiber.current != Fiber.root
+  }
+  f.resume
+  assert_false f.alive?
+  assert_equal Fiber.root, Fiber.current
+end
+
+assert('Fiber.root') do
+  f = Fiber.new {
+    assert_raise(RuntimeError) { Fiber.root.resume }
+  }
+  f.resume
+  assert_false f.alive?
+  assert_raise(RuntimeError) { Fiber.root.resume }
+  assert_equal Fiber.current, Fiber.root
+end
+
 assert('Fiber iteration') do
   f1 = Fiber.new{
     [1,2,3].each{|x| Fiber.yield(x)}
