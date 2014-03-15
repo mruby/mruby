@@ -5308,12 +5308,11 @@ void
 mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
 {
   mrb_sym sym;
-  size_t len;
   size_t i;
   mrb_sym* new_table;
 
   sym = mrb_intern_cstr(p->mrb, f);
-  p->filename = mrb_sym2name_len(p->mrb, sym, &len);
+  p->filename = mrb_sym2name_len(p->mrb, sym, NULL);
   p->lineno = (p->filename_table_length > 0)? 0 : 1;
 
   for(i = 0; i < p->filename_table_length; ++i) {
@@ -5336,8 +5335,7 @@ mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
 char const* mrb_parser_get_filename(struct mrb_parser_state* p, uint16_t idx) {
   if (idx >= p->filename_table_length) { return NULL; }
   else {
-    size_t len;
-    return mrb_sym2name_len(p->mrb, p->filename_table[idx], &len);
+    return mrb_sym2name_len(p->mrb, p->filename_table[idx], NULL);
   }
 }
 

@@ -530,7 +530,7 @@ obj_is_instance_of(mrb_state *mrb, mrb_value self)
 }
 
 static void
-valid_iv_name(mrb_state *mrb, mrb_sym iv_name_id, const char* s, size_t len)
+valid_iv_name(mrb_state *mrb, mrb_sym iv_name_id, const char* s, mrb_int len)
 {
   if (len < 2 || !(s[0] == '@' && s[1] != '@')) {
     mrb_name_error(mrb, iv_name_id, "`%S' is not allowed as an instance variable name", mrb_sym2str(mrb, iv_name_id));
@@ -541,7 +541,7 @@ static void
 check_iv_name(mrb_state *mrb, mrb_sym iv_name_id)
 {
   const char *s;
-  size_t len;
+  mrb_int len;
 
   s = mrb_sym2name_len(mrb, iv_name_id, &len);
   valid_iv_name(mrb, iv_name_id, s, len);

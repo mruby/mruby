@@ -127,7 +127,7 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep *irep,
   mrb_irep_debug_info_file *ret;
   uint32_t file_pc_count;
   size_t fn_len;
-  size_t len;
+  mrb_int len;
   uint32_t i;
 
   if (!irep->debug_info) { return NULL; }

@@ -166,12 +166,12 @@ mrb_id_attrset(mrb_state *mrb, mrb_sym id)
 {
   const char *name;
   char *buf;
-  size_t len;
+  mrb_int len;
   mrb_sym mid;
 
   name = mrb_sym2name_len(mrb, id, &len);
-  buf = (char *)mrb_malloc(mrb, len+2);
-  memcpy(buf, name, len);
+  buf = (char *)mrb_malloc(mrb, (size_t)len+2);
+  memcpy(buf, name, (size_t)len);
   buf[len] = '=';
   buf[len+1] = '\0';
 
@@ -185,12 +185,13 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
 {
   const char *name;
   size_t i, len;
+  mrb_int slen;
   mrb_sym mid;
   mrb_value members, slot, *ptr, *ptr_members;
 
   /* get base id */
-  name = mrb_sym2name_len(mrb, mrb->c->ci->mid, &len);
-  mid = mrb_intern(mrb, name, len-1); /* omit last "=" */
+  name = mrb_sym2name_len(mrb, mrb->c->ci->mid, &slen);
+  mid = mrb_intern(mrb, name, slen-1); /* omit last "=" */
 
   members = mrb_struct_members(mrb, obj);
   ptr_members = RARRAY_PTR(members);
@@ -471,7 +472,7 @@ inspect_struct(mrb_state *mrb, mrb_value s, int recur)
     id = mrb_symbol(slot);
     if (mrb_is_local_id(id) || mrb_is_const_id(id)) {
       const char *name;
-      size_t len;
+      mrb_int len;
 
       name = mrb_sym2name_len(mrb, id, &len);
       mrb_str_append(mrb, str, mrb_str_new(mrb, name, len));

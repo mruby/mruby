@@ -300,7 +300,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
   for (f_idx = 0; f_idx < irep->debug_info->flen; ++f_idx) {
     mrb_irep_debug_info_file *file;
     uint16_t filename_idx;
-    size_t len;
+    mrb_int len;
 
     file = (mrb_irep_debug_info_file *)mrb_malloc(mrb, sizeof(*file));
     irep->debug_info->files[f_idx] = file;

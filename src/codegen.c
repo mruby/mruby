@@ -707,16 +707,16 @@ static mrb_sym
 attrsym(codegen_scope *s, mrb_sym a)
 {
   const char *name;
-  size_t len;
+  mrb_int len;
   char *name2;
 
   name = mrb_sym2name_len(s->mrb, a, &len);
   name2 = (char *)codegen_palloc(s,
-                                 len
+                                 (size_t)len
                                  + 1 /* '=' */
                                  + 1 /* '\0' */
                                  );
-  memcpy(name2, name, len);
+  memcpy(name2, name, (size_t)len);
   name2[len] = '=';
   name2[len+1] = '\0';
 
@@ -817,7 +817,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
   }
   pop_n(n+1);
   {
-    size_t len;
+    mrb_int len;
     const char *name = mrb_sym2name_len(s->mrb, sym, &len);
 
     if (!noop && len == 1 && name[0] == '+')  {
@@ -1592,7 +1592,7 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_OP_ASGN:
     {
       mrb_sym sym = sym(tree->cdr->car);
-      size_t len;
+      mrb_int len;
       const char *name = mrb_sym2name_len(s->mrb, sym, &len);
       int idx;
 
