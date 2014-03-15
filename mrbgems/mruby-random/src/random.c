@@ -82,7 +82,7 @@ get_opt(mrb_state* mrb)
     if (!mrb_fixnum_p(arg)) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument type");
     }
-    arg = mrb_check_convert_type(mrb, arg, MRB_TT_FIXNUM, "Fixnum", "to_int");
+    arg = mrb_check_convert_type_static(mrb, arg, MRB_TT_FIXNUM, "to_int", sizeof("to_int") - 1);
     if (mrb_fixnum(arg) < 0) {
       arg = mrb_fixnum_value(0 - mrb_fixnum(arg));
     }

@@ -691,7 +691,7 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
   mrb_value s;
 
   if (!mrb_string_p(str)) {
-    s = mrb_check_convert_type(mrb, str, MRB_TT_STRING, "String", "to_str");
+    s = mrb_check_convert_type_static(mrb, str, MRB_TT_STRING, "to_str", sizeof("to_str") - 1);
     if (mrb_nil_p(s)) {
       s = mrb_convert_type(mrb, str, MRB_TT_STRING, "String", "to_s");
     }
@@ -1573,7 +1573,7 @@ mrb_string_type(mrb_state *mrb, mrb_value str)
 mrb_value
 mrb_check_string_type(mrb_state *mrb, mrb_value str)
 {
-  return mrb_check_convert_type(mrb, str, MRB_TT_STRING, "String", "to_str");
+  return mrb_check_convert_type_static(mrb, str, MRB_TT_STRING, "to_str", sizeof("to_str") - 1);
 }
 
 /* ---------------------------------- */

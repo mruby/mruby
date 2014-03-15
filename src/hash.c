@@ -214,7 +214,7 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
 mrb_value
 mrb_check_hash_type(mrb_state *mrb, mrb_value hash)
 {
-  return mrb_check_convert_type(mrb, hash, MRB_TT_HASH, "Hash", "to_hash");
+  return mrb_check_convert_type_static(mrb, hash, MRB_TT_HASH, "to_hash", sizeof("to_hash") - 1);
 }
 
 khash_t(ht) *

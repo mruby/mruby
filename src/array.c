@@ -969,7 +969,7 @@ mrb_ary_empty_p(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_check_array_type(mrb_state *mrb, mrb_value ary)
 {
-  return mrb_check_convert_type(mrb, ary, MRB_TT_ARRAY, "Array", "to_ary");
+  return mrb_check_convert_type_static(mrb, ary, MRB_TT_ARRAY, "to_ary", sizeof("to_ary") - 1);
 }
 
 mrb_value
@@ -1080,7 +1080,7 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
         val = tmp;
         goto str_join;
       }
-      tmp = mrb_check_convert_type(mrb, val, MRB_TT_ARRAY, "Array", "to_ary");
+      tmp = mrb_check_convert_type_static(mrb, val, MRB_TT_ARRAY, "to_ary", sizeof("to_ary") - 1);
       if (!mrb_nil_p(tmp)) {
         val = tmp;
         goto ary_join;
