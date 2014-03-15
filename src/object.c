@@ -357,6 +357,28 @@ mrb_check_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const
   return v;
 }
 
+mrb_value
+mrb_check_convert_type_static(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *method, size_t mlen)
+{
+    mrb_value v;
+    mrb_sym m;
+
+    if (mrb_type(val) == type && type != MRB_TT_DATA) return val;
+
+    m = mrb_intern_static(mrb, method, mlen);
+
+    if (mrb_respond_to(mrb, val, m)) {
+      v = mrb_funcall_argv(mrb, val, m, 0, 0);
+    }
+    else {
+      v = mrb_nil_value();
+    }
+
+    if (mrb_nil_p(v) || mrb_type(v) != type) return mrb_nil_value();
+
+    return v;
+}
+
 static const struct types {
   unsigned char type;
   const char *name;

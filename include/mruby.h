@@ -304,6 +304,7 @@ void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
 void mrb_write_barrier(mrb_state *, struct RBasic*);
 
 mrb_value mrb_check_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method);
+mrb_value mrb_check_convert_type_static(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *method, size_t mlen);
 mrb_value mrb_any_to_s(mrb_state *mrb, mrb_value obj);
 const char * mrb_obj_classname(mrb_state *mrb, mrb_value obj);
 struct RClass* mrb_obj_class(mrb_state *mrb, mrb_value obj);

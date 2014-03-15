@@ -18,6 +18,9 @@
 
 KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal)
 
+#define check_type_lit(mrb, val, t, clit, mlit) \
+    check_type(mrb, val, t, clit, mrb_strlen_lit(clit), mlit, mrb_strlen_lit(mlit))
+
 void
 mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
 {
@@ -355,13 +358,13 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
 }
 
 static mrb_value
-check_type(mrb_state *mrb, mrb_value val, enum mrb_vtype t, const char *c, const char *m)
+check_type(mrb_state *mrb, mrb_value val, enum mrb_vtype t, const char *c, size_t clen, const char *m, size_t mlen)
 {
   mrb_value tmp;
 
-  tmp = mrb_check_convert_type(mrb, val, t, c, m);
+  tmp = mrb_check_convert_type_static(mrb, val, t, m, mlen);
   if (mrb_nil_p(tmp)) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "expected %S", mrb_str_new_cstr(mrb, c));
+    mrb_raisef(mrb, E_TYPE_ERROR, "expected %S", mrb_str_new_static(mrb, c, clen));
   }
   return tmp;
 }
@@ -369,19 +372,19 @@ check_type(mrb_state *mrb, mrb_value val, enum mrb_vtype t, const char *c, const
 static mrb_value
 to_str(mrb_state *mrb, mrb_value val)
 {
-  return check_type(mrb, val, MRB_TT_STRING, "String", "to_str");
+  return check_type_lit(mrb, val, MRB_TT_STRING, "String", "to_str");
 }
 
 static mrb_value
 to_ary(mrb_state *mrb, mrb_value val)
 {
-  return check_type(mrb, val, MRB_TT_ARRAY, "Array", "to_ary");
+  return check_type_lit(mrb, val, MRB_TT_ARRAY, "Array", "to_ary");
 }
 
 static mrb_value
 to_hash(mrb_state *mrb, mrb_value val)
 {
-  return check_type(mrb, val, MRB_TT_HASH, "Hash", "to_hash");
+  return check_type_lit(mrb, val, MRB_TT_HASH, "Hash", "to_hash");
 }
 
 /*
