@@ -115,6 +115,7 @@ static struct mrb_context*
 fiber_check(mrb_state *mrb, mrb_value fib)
 {
   struct RFiber *f = (struct RFiber*)mrb_ptr(fib);
+  mrb_assert(f->tt == MRB_TT_FIBER);
 
   if (!f->cxt) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Fiber");
@@ -266,13 +267,15 @@ fiber_yield(mrb_state *mrb, mrb_value self)
 static mrb_value
 fiber_current(mrb_state *mrb, mrb_value self)
 {
-  if (!mrb->c->fib) {
+  if (mrb->c == mrb->root_c) {
     struct RFiber *f = (struct RFiber*)mrb_obj_alloc(mrb, MRB_TT_FIBER, mrb_class_ptr(self));
-
-    f->cxt = mrb->c;
-    mrb->c->fib = f;
+    mrb_assert(!mrb->root_c->fib);
+    f->cxt = mrb->root_c;
+    return mrb_obj_value(f);
+  } else {
+    mrb_assert(mrb->c->fib);
+    return mrb_obj_value(mrb->c->fib);
   }
-  return mrb_obj_value(mrb->c->fib);
 }
   
 void

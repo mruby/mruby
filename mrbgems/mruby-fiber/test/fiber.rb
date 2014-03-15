@@ -22,6 +22,19 @@ assert('Fiber.yield') {
   f.resume(3)
 }
 
+assert('Fiber.current') do
+  root = Fiber.current
+  root = nil
+  GC.start
+  root = Fiber.current
+  assert_true root.alive?
+  f = Fiber.new {
+    assert_true root != Fiber.current
+  }
+  f.resume
+  assert_true f != root
+end
+
 assert('Fiber iteration') {
   f1 = Fiber.new{
     [1,2,3].each{|x| Fiber.yield(x)}
