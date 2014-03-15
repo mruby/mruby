@@ -213,6 +213,19 @@ fiber_alive_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(c->status != MRB_FIBER_TERMINATED);
 }
 
+static mrb_value
+fiber_eq(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other;
+  mrb_get_args(mrb, "o", &other);
+
+  if(mrb_type(other) != MRB_TT_FIBER) {
+    return mrb_false_value();
+  }
+
+  return mrb_bool_value(fiber_check(mrb, self) == fiber_check(mrb, other));
+}
+
 mrb_value
 mrb_fiber_yield(mrb_state *mrb, int len, mrb_value *a)
 {
@@ -289,6 +302,7 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, c, "initialize", fiber_init,    MRB_ARGS_NONE());
   mrb_define_method(mrb, c, "resume",     fiber_resume,  MRB_ARGS_ANY());
   mrb_define_method(mrb, c, "alive?",     fiber_alive_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, c, "==",         fiber_eq,      MRB_ARGS_REQ(1));
 
   mrb_define_class_method(mrb, c, "yield", fiber_yield, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "current", fiber_current, MRB_ARGS_NONE());
