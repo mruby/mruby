@@ -70,7 +70,7 @@ typedef struct {
 enum mrb_fiber_state {
   MRB_FIBER_CREATED = 0,
   MRB_FIBER_RUNNING,
-  MRB_FIBER_RESUMED,
+  MRB_FIBER_SUSPENDED,
   MRB_FIBER_TERMINATED,
 };
 
