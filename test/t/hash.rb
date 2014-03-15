@@ -235,8 +235,15 @@ assert('Hash#shift', '15.2.13.4.24') do
   a = { 'abc_key' => 'abc_value', 'cba_key' => 'cba_value' }
   b = a.shift
 
-  assert_equal({ 'abc_key' => 'abc_value' }, a)
-  assert_equal [ 'cba_key', 'cba_value' ], b
+  assert_equal Array, b.class
+  assert_equal 2, b.size
+  assert_equal 1, a.size
+
+  b = a.shift
+
+  assert_equal Array, b.class
+  assert_equal 2, b.size
+  assert_equal 0, a.size
 end
 
 assert('Hash#size', '15.2.13.4.25') do
