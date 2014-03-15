@@ -370,10 +370,10 @@ mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
 
 typedef enum call_type {
-    CALL_PUBLIC,
-    CALL_FCALL,
-    CALL_VCALL,
-    CALL_TYPE_MAX
+  CALL_PUBLIC,
+  CALL_FCALL,
+  CALL_VCALL,
+  CALL_TYPE_MAX
 } call_type;
 
 void mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const char *name2);
