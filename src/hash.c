@@ -12,14 +12,43 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 
+/* a function to get hash value of a float number */
+mrb_int mrb_float_id(mrb_float f);
+
 static inline khint_t
 mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
 {
-  khint_t h = (khint_t)mrb_type(key) << 24;
-  mrb_value h2;
+  enum mrb_vtype t = mrb_type(key);
+  mrb_value hv;
+  const char *p;
+  mrb_int i, len;
+  khint_t h;
 
-  h2 = mrb_funcall(mrb, key, "hash", 0);
-  h ^= h2.value.i;
+  switch (t) {
+  case MRB_TT_STRING:
+    p = RSTRING_PTR(key);
+    len = RSTRING_LEN(key);
+    break;
+
+  case MRB_TT_SYMBOL:
+    p = mrb_sym2name_len(mrb, mrb_symbol(key), &len);
+    break;
+
+  case MRB_TT_FIXNUM:
+    return (khint_t)mrb_float_id((mrb_float)mrb_fixnum(key));
+
+  case MRB_TT_FLOAT:
+    return (khint_t)mrb_float_id(mrb_float(key));
+
+  default:
+    hv = mrb_funcall(mrb, key, "hash", 0);
+    return (khint_t)t ^ mrb_fixnum(hv);
+  }
+
+  h = 0;
+  for (i=0; i<len; i++) {
+    h = (h << 5) - h + *p++;
+  }
   return h;
 }
 

@@ -86,8 +86,8 @@ mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
   return id;
 }
 
-static mrb_int
-float_id(mrb_float f)
+mrb_int
+mrb_float_id(mrb_float f)
 {
   const char *p = (const char*)&f;
   int len = sizeof(f);
@@ -123,9 +123,9 @@ mrb_obj_id(mrb_value obj)
   case  MRB_TT_SYMBOL:
     return MakeID(mrb_symbol(obj));
   case  MRB_TT_FIXNUM:
-    return MakeID2(float_id((mrb_float)mrb_fixnum(obj)), MRB_TT_FLOAT);
+    return MakeID2(mrb_float_id((mrb_float)mrb_fixnum(obj)), MRB_TT_FLOAT);
   case  MRB_TT_FLOAT:
-    return MakeID(float_id(mrb_float(obj)));
+    return MakeID(mrb_float_id(mrb_float(obj)));
   case  MRB_TT_STRING:
   case  MRB_TT_OBJECT:
   case  MRB_TT_CLASS:
