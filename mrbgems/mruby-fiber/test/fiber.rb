@@ -62,3 +62,16 @@ assert('Yield raises when called on root fiber') {
     true
   end
 }
+
+assert('Double resume of Fiber') do
+  f1 = Fiber.new {}
+  f2 = Fiber.new {
+    f1.resume
+    assert_raise(RuntimeError) { f2.resume }
+    Fiber.yield 0
+  }
+  assert_equal 0, f2.resume
+  f2.resume
+  assert_false f1.alive?
+  assert_false f2.alive?
+end
