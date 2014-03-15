@@ -72,6 +72,21 @@ assert 'Enumerator#with_object' do
   assert_equal([55, 3628800], ret)
 end
 
+assert 'Enumerator#with_object arguments' do
+  to_three = Enumerator.new do |y|
+    3.times do |x|
+      y << x
+    end
+  end
+  
+  a = []
+  to_three_with_string = to_three.with_object("foo")
+  to_three_with_string.each do |x,string|
+    a << "#{string}:#{x}"
+  end
+  assert_equal ["foo:0","foo:1","foo:2"], a
+end
+
 assert 'Enumerator#inspect' do
   e = (0..10).each
   assert_equal("#<Enumerator: 0..10:each>", e.inspect)
@@ -87,6 +102,27 @@ assert 'Enumerator#each' do
   e = o.to_enum.each(ary)
   e.next
   assert_equal([1], ary)
+end
+
+assert 'Enumerator#each arguments' do
+  obj = Object.new
+
+  def obj.each_arg(a, b=:b, *rest)
+    yield a
+    yield b
+    yield rest
+    :method_returned
+  end
+
+  enum = obj.to_enum :each_arg, :a, :x
+
+  assert_equal [:a, :x, []], enum.each.to_a
+  assert_true enum.each.equal?(enum)
+  assert_equal :method_returned, enum.each { |elm| elm }
+
+  assert_equal [:a, :x, [:y, :z]], enum.each(:y, :z).to_a
+  assert_false enum.each(:y, :z).equal?(enum)
+  assert_equal :method_returned, enum.each(:y, :z) { |elm| elm }
 end
 
 assert 'Enumerator#next' do
@@ -379,8 +415,8 @@ assert 'Kernel#to_enum' do
   assert_raise(ArgumentError){ nil.to_enum }
 end
 
-
 assert 'modifying existing methods' do
+  assert_equal Enumerator, loop.class
   e = 3.times
   i = 0
   loop_ret = loop {
@@ -388,11 +424,66 @@ assert 'modifying existing methods' do
     i += 1
   }
   assert_nil loop_ret
+end
 
-  assert_equal Enumerator, loop.class
-  assert_equal Enumerator, 3.times.class
-  assert_equal Enumerator, [].each.class
-  assert_equal Enumerator, [].map.class
-  assert_equal Enumerator, {a:1}.each.class
-  assert_equal Enumerator, (1..5).each.class
+assert 'Integral#times' do
+  a = 3
+  b = a.times
+  c = []
+  b.with_object(c) do |i, obj|
+    obj << i
+  end
+  assert_equal 3, a
+  assert_equal Enumerator, b.class
+  assert_equal [0,1,2], c
+end
+
+assert 'Enumerable#map' do
+  a = [1,2,3]
+  b = a.map
+  c = b.with_index do |i, index|
+    [i*i, index*index]
+  end
+  assert_equal [1,2,3], a
+  assert_equal [[1,0],[4,1],[9,4]], c
+end
+
+assert 'Array#each_index' do
+  a = [1,2,3]
+  b = a.each_index
+  c = []
+  b.with_index do |index1,index2|
+    c << [index1+2,index2+5]
+  end
+  assert_equal [1,2,3], a
+  assert_equal [[2,5],[3,6],[4,7]], c
+end
+
+assert 'Array#map!' do
+  a = [1,2,3]
+  b = a.map!
+  b.with_index do |i, index|
+    [i*i, index*index]
+  end
+  assert_equal [[1,0],[4,1],[9,4]], a
+end
+
+assert 'Hash#each' do
+  a = {a:1,b:2}
+  b = a.each
+  c = []
+  b.each do |k,v|
+    c << [k,v]
+  end
+  assert_equal [[:a,1], [:b,2]], c.sort
+end
+
+assert 'Range#each' do
+  a = (1..5)
+  b = a.each
+  c = []
+  b.each do |i|
+    c << i
+  end
+  assert_equal [1,2,3,4,5], c
 end

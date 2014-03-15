@@ -156,10 +156,10 @@ class Enumerator
     return to_enum :with_index, offset unless block_given?
     raise TypeError, "no implicit conversion of #{offset.class} into Integer" unless offset.respond_to?(:to_int)
 
-    n = offset.to_int
-    each do |i|
-      yield [i,n]
+    n = offset.to_int - 1
+    enumerator_block_call do |i|
       n += 1
+      yield [i,n]
     end
   end
 
@@ -206,9 +206,9 @@ class Enumerator
   #   # => foo:2
   #
   def with_object object
-    return to_enum :with_object, offset unless block_given?
+    return to_enum :with_object, object unless block_given?
 
-    each do |i|
+    enumerator_block_call do |i|
       yield [i,object]
     end
     object
@@ -255,6 +255,7 @@ class Enumerator
   #   enum.each(:y, :z) { |elm| elm } #=> :method_returned
   #
   def each *argv, &block
+    obj = self
     if 0 < argv.length
       obj = self.dup
       args = obj.args
@@ -264,11 +265,16 @@ class Enumerator
       else
         args = argv.dup
       end
-      @args = args
+      obj.args = args
     end
-    return self unless block_given?
+    return obj unless block_given?
+    enumerator_block_call(&block)
+  end
+
+  def enumerator_block_call(&block)
     @obj.__send__ @meth, *@args, &block
   end
+  private :enumerator_block_call
 
   ##
   # call-seq:
