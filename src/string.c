@@ -231,7 +231,7 @@ mrb_str_buf_new(mrb_state *mrb, mrb_int capa)
 }
 
 static void
-str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
+str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, mrb_int len)
 {
   mrb_int capa;
   mrb_int total;
@@ -271,7 +271,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
 }
 
 mrb_value
-mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
+mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, mrb_int len)
 {
   if (len == 0) return str;
   str_buf_cat(mrb, mrb_str_ptr(str), ptr, len);
@@ -279,10 +279,10 @@ mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 }
 
 mrb_value
-mrb_str_new(mrb_state *mrb, const char *p, size_t len)
+mrb_str_new(mrb_state *mrb, const char *p, mrb_int len)
 {
   struct RString *s;
-  if ((mrb_int)len < 0) {
+  if (len < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
   }
 
@@ -313,16 +313,17 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
     len = 0;
   }
 
-  s = str_new(mrb, p, len);
+  s = str_new(mrb, p, (mrb_int)len);
 
   return mrb_obj_value(s);
 }
 
 mrb_value
-mrb_str_new_static(mrb_state *mrb, const char *p, size_t len)
+mrb_str_new_static(mrb_state *mrb, const char *p, mrb_int len)
 {
   struct RString *s;
-  if ((mrb_int)len < 0) {
+
+  if (len < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
   }
 
@@ -2452,7 +2453,7 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
 }
 
 mrb_value
-mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
+mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, mrb_int len)
 {
   if ((mrb_int)len < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
