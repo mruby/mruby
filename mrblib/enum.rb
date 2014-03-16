@@ -390,7 +390,7 @@ module Enumerable
   def sort(&block)
     ary = []
     self.each{|*val| ary.push(val.__svalue)}
-    unless ary.empty?
+    if ary.size > 1
       __sort_sub__(ary, ::Array.new(ary.size), 0, 0, ary.size - 1, &block)
     end
     ary
