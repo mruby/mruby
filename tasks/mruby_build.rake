@@ -206,8 +206,9 @@ module MRuby
       unless @gems.empty?
         puts "    Included Gems:"
         @gems.map do |gem|
-          gem_version = "- #{gem.version}" if gem.version
-          puts "             #{gem.name} #{gem_version}"
+          gem_version = " - #{gem.version}" if gem.version != '0.0.0'
+          gem_summary = " - #{gem.summary}" if gem.summary
+          puts "             #{gem.name}#{gem_version}#{gem_summary}"
           puts "               - Binaries: #{gem.bins.join(', ')}" unless gem.bins.empty?
         end
       end
