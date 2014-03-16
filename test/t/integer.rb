@@ -31,6 +31,9 @@ assert('Integer#*', '15.2.8.3.3') do
 
   assert_equal 1, a
   assert_equal 1.0, b
+
+  assert_raise(TypeError){ 0*nil }
+  assert_raise(TypeError){ 1*nil }
 end
 
 assert('Integer#/', '15.2.8.3.4') do
