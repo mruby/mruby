@@ -1306,15 +1306,14 @@ num_cmp(mrb_state *mrb, mrb_value self)
  * and <code>other</code>.
  */
 static mrb_value
-flo_plus(mrb_state *mrb, mrb_value self)
+flo_plus(mrb_state *mrb, mrb_value x)
 {
-  mrb_float x,  y;
+  mrb_value y;
 
-  x = mrb_float(self);
-  mrb_get_args(mrb, "f", &y);
-
-  return mrb_float_value(mrb, x + y);
+  mrb_get_args(mrb, "o", &y);
+  return mrb_float_value(mrb, mrb_float(x) + mrb_to_flo(mrb, y));
 }
+
 /* ------------------------------------------------------------------------*/
 void
 mrb_init_numeric(mrb_state *mrb)
