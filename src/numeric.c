@@ -690,10 +690,10 @@ mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   mrb_int a;
 
   a = mrb_fixnum(x);
-  if (a == 0) return x;
   if (mrb_fixnum_p(y)) {
     mrb_int b, c;
 
+    if (a == 0) return x;
     b = mrb_fixnum(y);
     if (FIT_SQRT_INT(a) && FIT_SQRT_INT(b))
       return mrb_fixnum_value(a*b);
