@@ -13,26 +13,26 @@
 #include "mruby/error.h"
 
 typedef enum {
-    NOEX_PUBLIC    = 0x00,
-    NOEX_NOSUPER   = 0x01,
-    NOEX_PRIVATE   = 0x02,
-    NOEX_PROTECTED = 0x04,
-    NOEX_MASK      = 0x06,
-    NOEX_BASIC     = 0x08,
-    NOEX_UNDEF     = NOEX_NOSUPER,
-    NOEX_MODFUNC   = 0x12,
-    NOEX_SUPER     = 0x20,
-    NOEX_VCALL     = 0x40,
-    NOEX_RESPONDS  = 0x80
+  NOEX_PUBLIC    = 0x00,
+  NOEX_NOSUPER   = 0x01,
+  NOEX_PRIVATE   = 0x02,
+  NOEX_PROTECTED = 0x04,
+  NOEX_MASK      = 0x06,
+  NOEX_BASIC     = 0x08,
+  NOEX_UNDEF     = NOEX_NOSUPER,
+  NOEX_MODFUNC   = 0x12,
+  NOEX_SUPER     = 0x20,
+  NOEX_VCALL     = 0x40,
+  NOEX_RESPONDS  = 0x80
 } mrb_method_flag_t;
 
 mrb_bool
 mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
-    struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mrb_intern_lit(mrb, "to_s"));
-    if (me && MRB_PROC_CFUNC_P(me) && (me->body.func == mrb_any_to_s))
-      return TRUE;
-    return FALSE;
+  struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mrb_intern_lit(mrb, "to_s"));
+  if (me && MRB_PROC_CFUNC_P(me) && (me->body.func == mrb_any_to_s))
+    return TRUE;
+  return FALSE;
 }
 
 /* 15.3.1.3.17 */
