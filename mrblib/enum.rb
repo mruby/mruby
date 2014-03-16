@@ -23,23 +23,20 @@ module Enumerable
   #
   # ISO 15.3.2.2.1
   def all?(&block)
-    st = true
     if block
       self.each{|val|
         unless block.call(val)
-          st = false
-          break
+          return false
         end
       }
     else
       self.each{|val|
         unless val
-          st = false
-          break
+          return false
         end
       }
     end
-    st
+    true
   end
 
   ##
