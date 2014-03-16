@@ -11,17 +11,13 @@ assert('Enumerable#all?', '15.3.2.2.1') do
 
   a = [2,4,6]
   all = a.all? do |e|
-    if e % 2 == 0
-      true
-    end
+    e % 2 == 0
   end
   assert_true(all)
 
   a = [2,4,7]
   all = a.all? do |e|
-    if e % 2 == 0
-      true
-    end
+    e % 2 == 0
   end
   assert_false(all)
 end
@@ -32,17 +28,13 @@ assert('Enumerable#any?', '15.3.2.2.2') do
 
   a = [1,3,6]
   any = a.any? do |e|
-    if e % 2 == 0
-      true
-    end
+    e % 2 == 0
   end
   assert_true(any)
 
   a = [1,3,5]
   any = a.any? do |e|
-    if e % 2 == 0
-      true
-    end
+    e % 2 == 0
   end
   assert_false(any)
 end
