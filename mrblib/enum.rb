@@ -176,14 +176,12 @@ module Enumerable
   #
   # ISO 15.3.2.2.10
   def include?(obj)
-    st = false
     self.each{|val|
       if val == obj
-        st = true
-        break
+        return true
       end
     }
-    st
+    false
   end
 
   ##
