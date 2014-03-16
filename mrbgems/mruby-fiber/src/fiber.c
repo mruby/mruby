@@ -115,6 +115,7 @@ static struct mrb_context*
 fiber_check(mrb_state *mrb, mrb_value fib)
 {
   struct RFiber *f = (struct RFiber*)mrb_ptr(fib);
+  mrb_assert(f->tt == MRB_TT_FIBER);
 
   if (!f->cxt) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Fiber");
@@ -212,6 +213,19 @@ fiber_alive_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(c->status != MRB_FIBER_TERMINATED);
 }
 
+static mrb_value
+fiber_eq(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other;
+  mrb_get_args(mrb, "o", &other);
+
+  if(mrb_type(other) != MRB_TT_FIBER) {
+    return mrb_false_value();
+  }
+
+  return mrb_bool_value(fiber_check(mrb, self) == fiber_check(mrb, other));
+}
+
 mrb_value
 mrb_fiber_yield(mrb_state *mrb, int len, mrb_value *a)
 {
@@ -266,13 +280,15 @@ fiber_yield(mrb_state *mrb, mrb_value self)
 static mrb_value
 fiber_current(mrb_state *mrb, mrb_value self)
 {
-  if (!mrb->c->fib) {
+  if (mrb->c == mrb->root_c) {
     struct RFiber *f = (struct RFiber*)mrb_obj_alloc(mrb, MRB_TT_FIBER, mrb_class_ptr(self));
-
-    f->cxt = mrb->c;
-    mrb->c->fib = f;
+    mrb_assert(!mrb->root_c->fib);
+    f->cxt = mrb->root_c;
+    return mrb_obj_value(f);
+  } else {
+    mrb_assert(mrb->c->fib);
+    return mrb_obj_value(mrb->c->fib);
   }
-  return mrb_obj_value(mrb->c->fib);
 }
   
 void
@@ -286,6 +302,7 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, c, "initialize", fiber_init,    MRB_ARGS_NONE());
   mrb_define_method(mrb, c, "resume",     fiber_resume,  MRB_ARGS_ANY());
   mrb_define_method(mrb, c, "alive?",     fiber_alive_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, c, "==",         fiber_eq,      MRB_ARGS_REQ(1));
 
   mrb_define_class_method(mrb, c, "yield", fiber_yield, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "current", fiber_current, MRB_ARGS_NONE());
