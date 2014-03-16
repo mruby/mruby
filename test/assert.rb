@@ -78,7 +78,7 @@ end
 def assert_true(ret, msg = nil, diff = nil)
   if $mrbtest_assert
     $mrbtest_assert_idx += 1
-    if !ret
+    unless ret
       msg = "Expected #{ret.inspect} to be true" unless msg
       diff = assertion_diff(true, ret)  unless diff
       $mrbtest_assert.push([$mrbtest_assert_idx, msg, diff])
