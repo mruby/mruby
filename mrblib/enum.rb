@@ -129,8 +129,9 @@ module Enumerable
   # ISO 15.3.2.2.6
   def entries
     ary = []
-    self.each{|val|
-      ary.push val
+    self.each{|*val|
+      # __to_svalue is an internal method
+      ary.push val.__to_svalue
     }
     ary
   end
