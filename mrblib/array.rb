@@ -99,7 +99,7 @@ class Array
   end
 
   # internal method to convert multi-value to single value
-  def __to_svalue
+  def __svalue
     case self.size
     when 0
       return nil

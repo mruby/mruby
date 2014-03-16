@@ -81,8 +81,8 @@ module Enumerable
     return to_enum :collect unless block_given?
 
     ary = []
-    self.each{|val|
-      ary.push(block.call(val))
+    self.each{|*val|
+      ary.push(block.call(*val))
     }
     ary
   end
@@ -97,9 +97,9 @@ module Enumerable
   # ISO 15.3.2.2.4
   def detect(ifnone=nil, &block)
     ret = ifnone
-    self.each{|val|
-      if block.call(val)
-        ret = val
+    self.each{|*val|
+      if block.call(*val)
+        ret = val.__svalue
         break
       end
     }
@@ -115,8 +115,8 @@ module Enumerable
   # ISO 15.3.2.2.5
   def each_with_index(&block)
     i = 0
-    self.each{|val|
-      block.call(val, i)
+    self.each{|*val|
+      block.call(val.__svalue, i)
       i += 1
     }
     self
@@ -130,8 +130,8 @@ module Enumerable
   def entries
     ary = []
     self.each{|*val|
-      # __to_svalue is an internal method
-      ary.push val.__to_svalue
+      # __svalue is an internal method
+      ary.push val.__svalue
     }
     ary
   end
@@ -151,8 +151,8 @@ module Enumerable
   # ISO 15.3.2.2.8
   def find_all(&block)
     ary = []
-    self.each{|val|
-      ary.push(val) if block.call(val)
+    self.each{|*val|
+      ary.push(val.__svalue) if block.call(*val)
     }
     ary
   end
@@ -215,7 +215,8 @@ module Enumerable
       flag = false
       result = args[0]
     end
-    self.each{|val|
+    self.each{|*val|
+      val = val.__svalue
       if flag
         # push first element as initial
         flag = false
@@ -244,7 +245,8 @@ module Enumerable
   def max(&block)
     flag = true  # 1st element?
     result = nil
-    self.each{|val|
+    self.each{|*val|
+      val = val.__svalue
       if flag
         # 1st element
         result = val
@@ -270,7 +272,8 @@ module Enumerable
   def min(&block)
     flag = true  # 1st element?
     result = nil
-    self.each{|val|
+    self.each{|*val|
+      val = val.__svalue
       if flag
         # 1st element
         result = val
@@ -305,11 +308,11 @@ module Enumerable
   def partition(&block)
     ary_T = []
     ary_F = []
-    self.each{|val|
-      if block.call(val)
-        ary_T.push(val)
+    self.each{|*val|
+      if block.call(*val)
+        ary_T.push(val.__svalue)
       else
-        ary_F.push(val)
+        ary_F.push(val.__svalue)
       end
     }
     [ary_T, ary_F]
@@ -324,8 +327,8 @@ module Enumerable
   # ISO 15.3.2.2.17
   def reject(&block)
     ary = []
-    self.each{|val|
-      ary.push(val) unless block.call(val)
+    self.each{|*val|
+      ary.push(val.__svalue) unless block.call(*val)
     }
     ary
   end
@@ -386,7 +389,7 @@ module Enumerable
   # ISO 15.3.2.2.19
   def sort(&block)
     ary = []
-    self.each{|val| ary.push(val)}
+    self.each{|*val| ary.push(val.__svalue)}
     unless ary.empty?
       __sort_sub__(ary, ::Array.new(ary.size), 0, 0, ary.size - 1, &block)
     end
