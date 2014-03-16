@@ -129,8 +129,15 @@ module Enumerable
   # ISO 15.3.2.2.6
   def entries
     ary = []
-    self.each{|val|
-      ary.push val
+    self.each{|*args|
+      ary.push case args.length
+               when 0
+                 nil
+               when 1
+                 args[0]
+               else
+                 args
+               end
     }
     ary
   end

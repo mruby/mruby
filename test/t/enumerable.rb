@@ -105,4 +105,15 @@ end
 
 assert('Enumerable#to_a', '15.3.2.2.20') do
   assert_equal [1], [1].to_a
+
+  obj = Object.new
+  class << obj
+    include Enumerable
+    def each
+      yield
+      yield 1
+      yield 1,2,3
+    end
+  end
+  assert_equal [nil,1,[1,2,3]], obj.to_a
 end
