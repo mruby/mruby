@@ -48,23 +48,20 @@ module Enumerable
   #
   # ISO 15.3.2.2.2
   def any?(&block)
-    st = false
     if block
       self.each{|val|
         if block.call(val)
-          st = true
-          break
+          return true
         end
       }
     else
       self.each{|val|
         if val
-          st = true
-          break
+          return true
         end
       }
     end
-    st
+    false
   end
 
   ##
