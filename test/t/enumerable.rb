@@ -29,6 +29,22 @@ end
 assert('Enumerable#any?', '15.3.2.2.2') do
   assert_true([false,true,false].any?)
   assert_false([false,false,false].any?)
+
+  a = [1,3,6]
+  any = a.any? do |e|
+    if e % 2 == 0
+      true
+    end
+  end
+  assert_true(any)
+
+  a = [1,3,5]
+  any = a.any? do |e|
+    if e % 2 == 0
+      true
+    end
+  end
+  assert_false(any)
 end
 
 assert('Enumerable#collect', '15.3.2.2.3') do
