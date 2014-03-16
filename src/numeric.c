@@ -690,10 +690,10 @@ mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   mrb_int a;
 
   a = mrb_fixnum(x);
-  if (a == 0) return x;
   if (mrb_fixnum_p(y)) {
     mrb_int b, c;
 
+    if (a == 0) return x;
     b = mrb_fixnum(y);
     if (FIT_SQRT_INT(a) && FIT_SQRT_INT(b))
       return mrb_fixnum_value(a*b);
@@ -1131,10 +1131,10 @@ mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y)
   mrb_int a;
 
   a = mrb_fixnum(x);
-  if (a == 0) return y;
   if (mrb_fixnum_p(y)) {
     mrb_int b, c;
 
+    if (a == 0) return y;
     b = mrb_fixnum(y);
     c = a + b;
     if (((a < 0) ^ (b < 0)) == 0 && (a < 0) != (c < 0)) {
@@ -1306,15 +1306,14 @@ num_cmp(mrb_state *mrb, mrb_value self)
  * and <code>other</code>.
  */
 static mrb_value
-flo_plus(mrb_state *mrb, mrb_value self)
+flo_plus(mrb_state *mrb, mrb_value x)
 {
-  mrb_float x,  y;
+  mrb_value y;
 
-  x = mrb_float(self);
-  mrb_get_args(mrb, "f", &y);
-
-  return mrb_float_value(mrb, x + y);
+  mrb_get_args(mrb, "o", &y);
+  return mrb_float_value(mrb, mrb_float(x) + mrb_to_flo(mrb, y));
 }
+
 /* ------------------------------------------------------------------------*/
 void
 mrb_init_numeric(mrb_state *mrb)
