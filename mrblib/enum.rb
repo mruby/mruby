@@ -23,23 +23,20 @@ module Enumerable
   #
   # ISO 15.3.2.2.1
   def all?(&block)
-    st = true
     if block
       self.each{|val|
         unless block.call(val)
-          st = false
-          break
+          return false
         end
       }
     else
       self.each{|val|
         unless val
-          st = false
-          break
+          return false
         end
       }
     end
-    st
+    true
   end
 
   ##
@@ -51,23 +48,20 @@ module Enumerable
   #
   # ISO 15.3.2.2.2
   def any?(&block)
-    st = false
     if block
       self.each{|val|
         if block.call(val)
-          st = true
-          break
+          return true
         end
       }
     else
       self.each{|val|
         if val
-          st = true
-          break
+          return true
         end
       }
     end
-    st
+    false
   end
 
   ##
@@ -182,14 +176,12 @@ module Enumerable
   #
   # ISO 15.3.2.2.10
   def include?(obj)
-    st = false
     self.each{|val|
       if val == obj
-        st = true
-        break
+        return true
       end
     }
-    st
+    false
   end
 
   ##
