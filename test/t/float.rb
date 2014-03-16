@@ -15,6 +15,9 @@ assert('Float#+', '15.2.9.3.1') do
 
   assert_float(3.123456789, a)
   assert_float(4.123456789, b)
+
+  assert_raise(TypeError){ 0.0+nil }
+  assert_raise(TypeError){ 1.0+nil }
 end
 
 assert('Float#-', '15.2.9.3.2') do
