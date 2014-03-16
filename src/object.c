@@ -338,7 +338,7 @@ mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char 
   mrb_value v;
 
   if (mrb_type(val) == type) return val;
-  v = convert_type(mrb, val, tname, method, 1/*Qtrue*/);
+  v = convert_type(mrb, val, tname, method, TRUE);
   if (mrb_type(v) != type) {
     mrb_raisef(mrb, E_TYPE_ERROR, "%S cannot be converted to %S by #%S", val,
                mrb_str_new_cstr(mrb, tname), mrb_str_new_cstr(mrb, method));
@@ -352,7 +352,7 @@ mrb_check_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const
   mrb_value v;
 
   if (mrb_type(val) == type && type != MRB_TT_DATA) return val;
-  v = convert_type(mrb, val, tname, method, 0/*Qfalse*/);
+  v = convert_type(mrb, val, tname, method, FALSE);
   if (mrb_nil_p(v) || mrb_type(v) != type) return mrb_nil_value();
   return v;
 }
