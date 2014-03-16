@@ -1131,10 +1131,10 @@ mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y)
   mrb_int a;
 
   a = mrb_fixnum(x);
-  if (a == 0) return y;
   if (mrb_fixnum_p(y)) {
     mrb_int b, c;
 
+    if (a == 0) return y;
     b = mrb_fixnum(y);
     c = a + b;
     if (((a < 0) ^ (b < 0)) == 0 && (a < 0) != (c < 0)) {
