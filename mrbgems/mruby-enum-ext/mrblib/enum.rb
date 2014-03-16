@@ -161,4 +161,30 @@ module Enumerable
     h
   end
 
+  NONE = Object.new
+  ##
+  # call-seq:
+  #    enum.first       ->  obj or nil
+  #    enum.first(n)    ->  an_array
+  #
+  # Returns the first element, or the first +n+ elements, of the enumerable.
+  # If the enumerable is empty, the first form returns <code>nil</code>, and the
+  # second form returns an empty array.
+  def first(n=NONE)
+    if n == NONE
+      self.each do |e|
+        return e
+      end
+      return nil
+    else
+      a = []
+      i = 0
+      self.each do |e|
+        break if n<=i
+        a.push e
+        i += 1
+      end
+      a
+    end
+  end
 end
