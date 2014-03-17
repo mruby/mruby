@@ -697,6 +697,9 @@ root_scan_phase(mrb_state *mrb)
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
 
   mark_context(mrb, mrb->root_c);
+  if (mrb->root_c->fib) {
+    mrb_gc_mark(mrb, (struct RBasic*)mrb->root_c->fib);
+  }
   if (mrb->root_c != mrb->c) {
     mark_context(mrb, mrb->c);
   }
