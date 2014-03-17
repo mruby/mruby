@@ -75,3 +75,12 @@ assert('Double resume of Fiber') do
   assert_false f1.alive?
   assert_false f2.alive?
 end
+
+assert('unexpected root fiber free') do
+  r = Fiber.current
+  r = nil
+  GC.start
+  r = Fiber.current
+  assert_true r.alive?
+  assert_equal Fiber.current, r
+end

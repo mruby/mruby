@@ -116,6 +116,10 @@ fiber_check(mrb_state *mrb, mrb_value fib)
 {
   struct RFiber *f = (struct RFiber*)mrb_ptr(fib);
 
+  if (f->tt != MRB_TT_FIBER) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "unexpected type tag: %S", mrb_fixnum_value(f->tt));
+  }
+
   if (!f->cxt) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Fiber");
   }
