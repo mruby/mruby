@@ -144,6 +144,8 @@ module Enumerable
   #
   # ISO 15.3.2.2.8
   def find_all(&block)
+    return to_enum :find_all unless block_given?
+
     ary = []
     self.each{|*val|
       ary.push(val.__svalue) if block.call(*val)
