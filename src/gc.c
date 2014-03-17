@@ -530,7 +530,9 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     {
       struct mrb_context *c = ((struct RFiber*)obj)->cxt;
 
-      mark_context(mrb, c);
+      if (c != mrb->root_c) {
+        mark_context(mrb, c);
+      }
     }
     break;
 
