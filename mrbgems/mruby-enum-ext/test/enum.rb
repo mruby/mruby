@@ -45,3 +45,11 @@ end
 assert("Enumerable#sort_by") do
   assert_equal ["car", "train", "bicycle"], %w{car bicycle train}.sort_by {|e| e.length}
 end
+
+assert("Enumerable#first") do
+  a = [1, 2, 3]
+  assert_equal 1, a.first
+  assert_equal [1, 2], a.first(2)
+  assert_equal [1, 2, 3], a.first(10)
+  assert_nil [].first
+end
