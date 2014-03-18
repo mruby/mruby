@@ -96,8 +96,12 @@ assert('Recursive resume of Fiber') do
     f1.resume
     Fiber.yield 0
   }
-  assert_equal 0, f2.resume
+  f3 = Fiber.new {
+    f2.resume
+  }
+  assert_equal 0, f3.resume
   f2.resume
   assert_false f1.alive?
   assert_false f2.alive?
+  assert_false f3.alive?
 end
