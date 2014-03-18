@@ -154,7 +154,7 @@ fiber_result(mrb_state *mrb, mrb_value *a, int len)
 static mrb_value
 fiber_resume(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_context *c = fiber_check(mrb, self);
+  struct mrb_context *c = fiber_check(mrb, self), *recur;
   mrb_value *a;
   int len;
   mrb_callinfo *ci;
@@ -169,6 +169,11 @@ fiber_resume(mrb_state *mrb, mrb_value self)
   }
   if (c->status == MRB_FIBER_TERMINATED) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "resuming dead fiber");
+  }
+  for (recur = mrb->c; recur != mrb->root_c; recur = recur->prev) {
+    if(recur == c) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "recursive resume");
+    }
   }
   mrb_get_args(mrb, "*", &a, &len);
   if (c->status == MRB_FIBER_CREATED) {
