@@ -244,12 +244,12 @@ mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, int,...);
 mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, int, mrb_value*);
 mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, int, mrb_value*, mrb_value);
 mrb_sym mrb_intern_cstr(mrb_state*,const char*);
-mrb_sym mrb_intern(mrb_state*,const char*,mrb_int);
-mrb_sym mrb_intern_static(mrb_state*,const char*,mrb_int);
-#define mrb_intern_lit(mrb, lit) mrb_intern_static(mrb, lit, (mrb_int)mrb_strlen_lit(lit))
+mrb_sym mrb_intern(mrb_state*,const char*,size_t);
+mrb_sym mrb_intern_static(mrb_state*,const char*,size_t);
+#define mrb_intern_lit(mrb, lit) mrb_intern_static(mrb, lit, mrb_strlen_lit(lit))
 mrb_sym mrb_intern_str(mrb_state*,mrb_value);
 mrb_value mrb_check_intern_cstr(mrb_state*,const char*);
-mrb_value mrb_check_intern(mrb_state*,const char*,mrb_int);
+mrb_value mrb_check_intern(mrb_state*,const char*,size_t);
 mrb_value mrb_check_intern_str(mrb_state*,mrb_value);
 const char *mrb_sym2name(mrb_state*,mrb_sym);
 const char *mrb_sym2name_len(mrb_state*,mrb_sym,mrb_int*);
