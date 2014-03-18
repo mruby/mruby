@@ -53,3 +53,10 @@ assert("Enumerable#first") do
   assert_equal [1, 2, 3], a.first(10)
   assert_nil [].first
 end
+
+assert("Enumerable#count") do
+  a = [1, 2, 4, 2]
+  assert_equal 4, a.count
+  assert_equal 2, a.count(2)
+  assert_equal 3, a.count{|x| x % 2 == 0}
+end
