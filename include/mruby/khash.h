@@ -209,7 +209,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
     for (k = kh_begin(h); k != kh_end(h); k++) {                        \
       if (kh_exist(h, k)) {                                             \
         k2 = kh_put_##name(mrb, h2, kh_key(h, k));                      \
-        if(kh_is_map) kh_value(h2, k2) = kh_value(h, k);                \
+        if (kh_is_map) kh_value(h2, k2) = kh_value(h, k);               \
       }                                                                 \
     }                                                                   \
     return h2;                                                          \

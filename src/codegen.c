@@ -2447,7 +2447,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
 
   /* debug setting */
   p->debug_start_pos = 0;
-  if(p->filename) {
+  if (p->filename) {
     mrb_debug_info_alloc(mrb, p->irep);
     p->irep->filename = p->filename;
     p->irep->lines = p->lines;

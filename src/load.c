@@ -285,7 +285,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
   size_t record_size, i;
   uint16_t f_idx;
 
-  if(irep->debug_info) { return MRB_DUMP_INVALID_IREP; }
+  if (irep->debug_info) { return MRB_DUMP_INVALID_IREP; }
 
   irep->debug_info = (mrb_irep_debug_info*)mrb_malloc(mrb, sizeof(mrb_irep_debug_info));
   irep->debug_info->pc_count = irep->ilen;
@@ -320,12 +320,12 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
     bin += sizeof(uint32_t);
     file->line_type = (mrb_debug_line_type)bin_to_uint8(bin);
     bin += sizeof(uint8_t);
-    switch(file->line_type) {
+    switch (file->line_type) {
       case mrb_debug_line_ary: {
         uint32_t l;
 
         file->lines.ary = (uint16_t *)mrb_malloc(mrb, sizeof(uint16_t) * (size_t)(file->line_entry_count));
-        for(l = 0; l < file->line_entry_count; ++l) {
+        for (l = 0; l < file->line_entry_count; ++l) {
           file->lines.ary[l] = bin_to_uint16(bin);
           bin += sizeof(uint16_t);
         }
@@ -336,7 +336,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
 
         file->lines.flat_map = (mrb_irep_debug_info_line*)mrb_malloc(
             mrb, sizeof(mrb_irep_debug_info_line) * (size_t)(file->line_entry_count));
-        for(l = 0; l < file->line_entry_count; ++l) {
+        for (l = 0; l < file->line_entry_count; ++l) {
           file->lines.flat_map[l].start_pos = bin_to_uint32(bin);
           bin += sizeof(uint32_t);
           file->lines.flat_map[l].line = bin_to_uint16(bin);
@@ -352,7 +352,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
   mrb_assert(diff >= 0);
   mrb_assert((size_t)diff <= SIZE_MAX);
 
-  if(record_size != (size_t)diff) {
+  if (record_size != (size_t)diff) {
     return MRB_DUMP_GENERAL_FAILURE;
   }
 
@@ -392,7 +392,7 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, mrb_boo
   filenames_len = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
   filenames = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * (size_t)filenames_len);
-  for(i = 0; i < filenames_len; ++i) {
+  for (i = 0; i < filenames_len; ++i) {
     uint16_t f_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
     if (alloc) {
@@ -703,7 +703,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
         uint8_t* const bin = (uint8_t*)mrb_malloc(mrb, section_size);
 
         fseek(fp, fpos, SEEK_SET);
-        if(fread((char*)bin, section_size, 1, fp) != 1) {
+        if (fread((char*)bin, section_size, 1, fp) != 1) {
           mrb_free(mrb, bin);
           return NULL;
         }

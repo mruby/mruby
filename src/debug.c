@@ -9,7 +9,7 @@ get_file(mrb_irep_debug_info *info, uint32_t pc)
   mrb_irep_debug_info_file **ret;
   int32_t count;
 
-  if(pc >= info->pc_count) { return NULL; }
+  if (pc >= info->pc_count) { return NULL; }
   /* get upper bound */
   ret = info->files;
   count =  info->flen;
@@ -71,7 +71,7 @@ mrb_debug_get_line(mrb_irep *irep, uint32_t pc)
       return irep->lines? irep->lines[pc] : -1;
     }
     else if ((f = get_file(irep->debug_info, pc))) {
-      switch(f->line_type) {
+      switch (f->line_type) {
         case mrb_debug_line_ary:
           mrb_assert(f->start_pos <= pc && pc < (f->start_pos + f->line_entry_count));
           return f->lines.ary[pc - f->start_pos];
@@ -162,11 +162,11 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep *irep,
   ret->line_type = select_line_type(irep->lines + start_pos, end_pos - start_pos);
   ret->lines.ptr = NULL;
 
-  switch(ret->line_type) {
+  switch (ret->line_type) {
     case mrb_debug_line_ary:
       ret->line_entry_count = file_pc_count;
       ret->lines.ary = (uint16_t*)mrb_malloc(mrb, sizeof(uint16_t) * file_pc_count);
-      for(i = 0; i < file_pc_count; ++i) {
+      for (i = 0; i < file_pc_count; ++i) {
         ret->lines.ary[i] = irep->lines[start_pos + i];
       }
       break;
@@ -176,8 +176,8 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep *irep,
       mrb_irep_debug_info_line m;
       ret->lines.flat_map = (mrb_irep_debug_info_line*)mrb_malloc(mrb, sizeof(mrb_irep_debug_info_line) * 1);
       ret->line_entry_count = 0;
-      for(i = 0; i < file_pc_count; ++i) {
-        if(irep->lines[start_pos + i] == prev_line) { continue; }
+      for (i = 0; i < file_pc_count; ++i) {
+        if (irep->lines[start_pos + i] == prev_line) { continue; }
 
         ret->lines.flat_map = (mrb_irep_debug_info_line*)mrb_realloc(
             mrb, ret->lines.flat_map,
@@ -203,9 +203,9 @@ mrb_debug_info_free(mrb_state *mrb, mrb_irep_debug_info *d)
 {
   uint32_t i;
 
-  if(!d) { return; }
+  if (!d) { return; }
 
-  for(i = 0; i < d->flen; ++i) {
+  for (i = 0; i < d->flen; ++i) {
     mrb_assert(d->files[i]);
     mrb_free(mrb, d->files[i]->lines.ptr);
     mrb_free(mrb, d->files[i]);

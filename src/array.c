@@ -643,7 +643,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     value_move(a->ptr + head + argc, a->ptr + tail, a->len - tail);
   }
 
-  for(i = 0; i < argc; i++) {
+  for (i = 0; i < argc; i++) {
     *(a->ptr + head + i) = *(argv + i);
   }
 
@@ -993,7 +993,7 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
   char tail[] = { ']' };
 
   /* check recursive */
-  for(i=0; i<RARRAY_LEN(list); i++) {
+  for (i=0; i<RARRAY_LEN(list); i++) {
     if (mrb_obj_equal(mrb, ary, RARRAY_PTR(list)[i])) {
       return mrb_str_new_lit(mrb, "[...]");
     }
@@ -1004,7 +1004,7 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
   arystr = mrb_str_buf_new(mrb, 64);
   mrb_str_buf_cat(mrb, arystr, head, sizeof(head));
 
-  for(i=0; i<RARRAY_LEN(ary); i++) {
+  for (i=0; i<RARRAY_LEN(ary); i++) {
     int ai = mrb_gc_arena_save(mrb);
 
     if (i > 0) {
@@ -1049,7 +1049,7 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
   mrb_value result, val, tmp;
 
   /* check recursive */
-  for(i=0; i<RARRAY_LEN(list); i++) {
+  for (i=0; i<RARRAY_LEN(list); i++) {
     if (mrb_obj_equal(mrb, ary, RARRAY_PTR(list)[i])) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "recursive array join");
     }
@@ -1059,13 +1059,13 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
 
   result = mrb_str_buf_new(mrb, 64);
 
-  for(i=0; i<RARRAY_LEN(ary); i++) {
+  for (i=0; i<RARRAY_LEN(ary); i++) {
     if (i > 0 && !mrb_nil_p(sep)) {
       mrb_str_buf_cat(mrb, result, RSTRING_PTR(sep), RSTRING_LEN(sep));
     }
 
     val = RARRAY_PTR(ary)[i];
-    switch(mrb_type(val)) {
+    switch (mrb_type(val)) {
     case MRB_TT_ARRAY:
     ary_join:
       val = join_ary(mrb, val, sep, list);

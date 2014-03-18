@@ -482,7 +482,7 @@ get_debug_record_size(mrb_state *mrb, mrb_irep *irep)
     /* lines */
     ret += sizeof(uint32_t); /* entry count */
     ret += sizeof(uint8_t); /* line type */
-    switch(file->line_type) {
+    switch (file->line_type) {
       case mrb_debug_line_ary:
         ret += sizeof(uint16_t) * (size_t)(file->line_entry_count);
         break;
@@ -575,7 +575,7 @@ write_debug_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const
     /* lines */
     cur += uint32_to_bin(file->line_entry_count, cur);
     cur += uint8_to_bin(file->line_type, cur);
-    switch(file->line_type) {
+    switch (file->line_type) {
       case mrb_debug_line_ary: {
         uint32_t l;
         for (l = 0; l < file->line_entry_count; ++l) {
