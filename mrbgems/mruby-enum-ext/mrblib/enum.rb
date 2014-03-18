@@ -209,14 +209,14 @@ module Enumerable
     end
   end
 
-  def count(v=nil, &block)
+  def count(v=NONE, &block)
     count = 0
     if block
       self.each do |e|
         count += 1 if block.call(e)
       end
     else
-      if v == nil
+      if v == NONE
         self.each { count += 1 }
       else
         self.each do |e|
