@@ -455,8 +455,6 @@ mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
-
 /* 15.3.1.3.18 */
 /*
  *  call-seq:
