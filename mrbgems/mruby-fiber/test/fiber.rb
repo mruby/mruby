@@ -17,6 +17,19 @@ assert('Fiber#alive?') {
   r1 == true and r2 == false
 }
 
+assert('Fiber#==') do
+  root = Fiber.current
+  assert_equal root, root
+  assert_equal root, Fiber.current
+  assert_false root != Fiber.current
+  f = Fiber.new {
+    assert_false root == Fiber.current
+  }
+  f.resume
+  assert_false f == root
+  assert_true f != root
+end
+
 assert('Fiber.yield') {
   f = Fiber.new{|x| Fiber.yield(x == 3)}
   f.resume(3)
