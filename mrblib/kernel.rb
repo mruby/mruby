@@ -45,7 +45,7 @@ module Kernel
     while(true)
       yield
     end
-  rescue => StopIteration
+  rescue StopIteration
     nil
   end
 
