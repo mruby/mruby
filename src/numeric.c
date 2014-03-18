@@ -962,8 +962,9 @@ fix_xor(mrb_state *mrb, mrb_value x)
 #define NUMERIC_SHIFT_WIDTH_MAX (MRB_INT_BIT-1)
 
 static mrb_value
-lshift(mrb_state *mrb, mrb_int val, size_t width)
+lshift(mrb_state *mrb, mrb_int val, mrb_int width)
 {
+  mrb_assert(width >= 0);
   if (width > NUMERIC_SHIFT_WIDTH_MAX) {
     mrb_raisef(mrb, E_RANGE_ERROR, "width(%S) > (%S:MRB_INT_BIT-1)",
                mrb_fixnum_value(width),
@@ -974,8 +975,9 @@ lshift(mrb_state *mrb, mrb_int val, size_t width)
 }
 
 static mrb_value
-rshift(mrb_int val, size_t width)
+rshift(mrb_int val, mrb_int width)
 {
+  mrb_assert(width >= 0);
   if (width >= NUMERIC_SHIFT_WIDTH_MAX) {
     if (val < 0) {
       val = -1;
