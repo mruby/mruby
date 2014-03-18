@@ -964,7 +964,7 @@ mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
     mrb_raise(mrb, E_NOTIMP_ERROR, "module_eval/class_eval with string not implemented");
   }
   c = mrb_class_ptr(mod);
-  return mrb_yield_internal(mrb, b, 0, 0, mod, c);
+  return mrb_yield_with_class(mrb, b, 0, 0, mod, c);
 }
 
 mrb_value

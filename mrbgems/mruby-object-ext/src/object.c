@@ -84,7 +84,7 @@ mrb_obj_instance_exec(mrb_state *mrb, mrb_value self)
     break;
   }
 
-  return mrb_yield_internal(mrb, blk, argc, argv, self, c);
+  return mrb_yield_with_class(mrb, blk, argc, argv, self, c);
 }
 
 void

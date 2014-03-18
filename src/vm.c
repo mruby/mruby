@@ -487,7 +487,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
-mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c)
+mrb_yield_with_class(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c)
 {
   struct RProc *p;
   mrb_sym mid = mrb->c->ci->mid;
@@ -537,7 +537,7 @@ mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv)
 {
   struct RProc *p = mrb_proc_ptr(b);
 
-  return mrb_yield_internal(mrb, b, argc, argv, p->env->stack[0], p->target_class);
+  return mrb_yield_with_class(mrb, b, argc, argv, p->env->stack[0], p->target_class);
 }
 
 mrb_value
@@ -545,7 +545,7 @@ mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg)
 {
   struct RProc *p = mrb_proc_ptr(b);
 
-  return mrb_yield_internal(mrb, b, 1, &arg, p->env->stack[0], p->target_class);
+  return mrb_yield_with_class(mrb, b, 1, &arg, p->env->stack[0], p->target_class);
 }
 
 typedef enum {

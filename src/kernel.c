@@ -497,7 +497,7 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
     c = mrb_class_ptr(cv);
     break;
   }
-  return mrb_yield_internal(mrb, b, 0, 0, self, c);
+  return mrb_yield_with_class(mrb, b, 0, 0, self, c);
 }
 
 mrb_bool
