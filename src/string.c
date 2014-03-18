@@ -20,7 +20,7 @@
 #define STR_SET_EMBED_FLAG(s) ((s)->flags |= MRB_STR_EMBED)
 #define STR_UNSET_EMBED_FLAG(s) ((s)->flags &= ~(MRB_STR_EMBED|MRB_STR_EMBED_LEN_MASK))
 #define STR_SET_EMBED_LEN(s, n) do {\
-  mrb_int tmp_n = (n);\
+  size_t tmp_n = (n);\
   s->flags &= ~MRB_STR_EMBED_LEN_MASK;\
   s->flags |= (tmp_n) << MRB_STR_EMBED_LEN_SHIFT;\
 } while (0)
@@ -28,15 +28,16 @@
   if (STR_EMBED_P(s)) {\
     STR_SET_EMBED_LEN((s),(n));\
   } else {\
-    s->as.heap.len = (n);\
+    mrb_assert((n) <= MRB_INT_MAX);\
+    s->as.heap.len = (mrb_int)(n);\
   }\
 } while (0)
 #define RSTRING_EMBED_LEN(s) \
-  (mrb_int)((RSTRING(s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
+  (size_t)((RSTRING(s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
 #define STR_EMBED_LEN(s)\
-  (mrb_int)(((s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
+  (size_t)(((s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
 #define STR_PTR(s) ((STR_EMBED_P(s)) ? (s)->as.ary : (s)->as.heap.ptr)
-#define STR_LEN(s) ((STR_EMBED_P(s)) ? STR_EMBED_LEN(s) : (s)->as.heap.len)
+#define STR_LEN(s) ((STR_EMBED_P(s)) ? STR_EMBED_LEN(s) : (size_t)(s)->as.heap.len)
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -170,7 +171,7 @@ mrb_str_offset(mrb_state *mrb, mrb_value str, int pos)
 }
 
 static struct RString*
-str_new(mrb_state *mrb, const char *p, mrb_int len)
+str_new(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s;
 
@@ -182,9 +183,12 @@ str_new(mrb_state *mrb, const char *p, mrb_int len)
       memcpy(s->as.ary, p, len);
     }
   } else {
+    if (len >= MRB_INT_MAX) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
+    }
     s->as.heap.len = len;
     s->as.heap.aux.capa = len;
-    s->as.heap.ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
+    s->as.heap.ptr = (char *)mrb_malloc(mrb, len+1);
     if (p) {
       memcpy(s->as.heap.ptr, p, len);
     }
@@ -213,12 +217,15 @@ mrb_str_new_empty(mrb_state *mrb, mrb_value str)
 #endif
 
 mrb_value
-mrb_str_buf_new(mrb_state *mrb, mrb_int capa)
+mrb_str_buf_new(mrb_state *mrb, size_t capa)
 {
   struct RString *s;
 
   s = mrb_obj_alloc_string(mrb);
 
+  if (capa >= MRB_INT_MAX) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "string capacity size too big");
+  }
   if (capa < MRB_STR_BUF_MIN_SIZE) {
     capa = MRB_STR_BUF_MIN_SIZE;
   }
@@ -231,17 +238,17 @@ mrb_str_buf_new(mrb_state *mrb, mrb_int capa)
 }
 
 static void
-str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, mrb_int len)
+str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
 {
-  mrb_int capa;
-  mrb_int total;
+  size_t capa;
+  size_t total;
   ptrdiff_t off = -1;
 
+  if (len == 0) return;
   mrb_str_modify(mrb, s);
-  if (ptr >= STR_PTR(s) && ptr <= STR_PTR(s) + STR_LEN(s)) {
+  if (ptr >= STR_PTR(s) && ptr <= STR_PTR(s) + (size_t)STR_LEN(s)) {
       off = ptr - STR_PTR(s);
   }
-  if (len == 0) return;
 
   if (STR_EMBED_P(s))
     capa = RSTRING_EMBED_LEN_MAX;
@@ -249,7 +256,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, mrb_int len)
     capa = s->as.heap.aux.capa;
 
   if (STR_LEN(s) >= MRB_INT_MAX - (mrb_int)len) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "string sizes too big");
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   total = STR_LEN(s)+len;
   if (capa <= total) {
@@ -271,7 +278,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, mrb_int len)
 }
 
 mrb_value
-mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, mrb_int len)
+mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 {
   if (len == 0) return str;
   str_buf_cat(mrb, mrb_str_ptr(str), ptr, len);
@@ -279,12 +286,9 @@ mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, mrb_int len)
 }
 
 mrb_value
-mrb_str_new(mrb_state *mrb, const char *p, mrb_int len)
+mrb_str_new(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s;
-  if (len < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
-  }
 
   s = str_new(mrb, p, len);
   return mrb_obj_value(s);
@@ -305,28 +309,24 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
 
   if (p) {
     len = strlen(p);
-    if ((mrb_int)len < 0) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "argument too big");
-    }
   }
   else {
     len = 0;
   }
 
-  s = str_new(mrb, p, (mrb_int)len);
+  s = str_new(mrb, p, len);
 
   return mrb_obj_value(s);
 }
 
 mrb_value
-mrb_str_new_static(mrb_state *mrb, const char *p, mrb_int len)
+mrb_str_new_static(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s;
 
-  if (len < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
+  if (len >= MRB_INT_MAX) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
-
   s = mrb_obj_alloc_string(mrb);
   s->as.heap.len = len;
   s->as.heap.aux.capa = 0;             /* nofree */
@@ -2453,11 +2453,8 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
 }
 
 mrb_value
-mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, mrb_int len)
+mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 {
-  if ((mrb_int)len < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
-  }
   str_buf_cat(mrb, mrb_str_ptr(str), ptr, len);
   return str;
 }
