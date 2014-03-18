@@ -88,3 +88,16 @@ assert('Double resume of Fiber') do
   assert_false f1.alive?
   assert_false f2.alive?
 end
+
+assert('Recursive resume of Fiber') do
+  f1, f2 = nil, nil
+  f1 = Fiber.new { assert_raise(RuntimeError) { f2.resume } }
+  f2 = Fiber.new {
+    f1.resume
+    Fiber.yield 0
+  }
+  assert_equal 0, f2.resume
+  f2.resume
+  assert_false f1.alive?
+  assert_false f2.alive?
+end

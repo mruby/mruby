@@ -164,7 +164,7 @@ fiber_resume(mrb_state *mrb, mrb_value self)
       mrb_raise(mrb, E_ARGUMENT_ERROR, "can't cross C function boundary");
     }
   }
-  if (c->status == MRB_FIBER_RUNNING) {
+  if (c->status == MRB_FIBER_RUNNING || (mrb->c->prev && mrb->c->prev != mrb->root_c)) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "double resume");
   }
   if (c->status == MRB_FIBER_TERMINATED) {
