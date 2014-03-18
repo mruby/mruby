@@ -79,9 +79,9 @@ mrb_ary_new(mrb_state *mrb)
  *
  */
 static inline void
-array_copy(mrb_value *dst, const mrb_value *src, size_t size)
+array_copy(mrb_value *dst, const mrb_value *src, mrb_int size)
 {
-  size_t i;
+  mrb_int i;
 
   for (i = 0; i < size; i++) {
     dst[i] = src[i];
@@ -238,7 +238,9 @@ mrb_ary_s_create(mrb_state *mrb, mrb_value self)
   int len;
 
   mrb_get_args(mrb, "*", &vals, &len);
-  return mrb_ary_new_from_values(mrb, len, vals);
+  mrb_assert(len <= MRB_INT_MAX); /* A rare case. So choosed assert() not raise(). */
+
+  return mrb_ary_new_from_values(mrb, (mrb_int)len, vals);
 }
 
 static void
