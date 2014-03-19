@@ -17,7 +17,7 @@ module Enumerable
     raise ArgumentError, "attempt to drop negative size" if n < 0
 
     ary = []
-    self.each {|e| n == 0 ? ary << e : n -= 1 }
+    self.each {|*val| n == 0 ? ary << val.__svalue : n -= 1 }
     ary
   end
 
@@ -34,9 +34,9 @@ module Enumerable
 
   def drop_while(&block)
     ary, state = [], false
-    self.each do |e|
-      state = true if !state and !block.call(e)
-      ary << e if state
+    self.each do |*val|
+      state = true if !state and !block.call(*val)
+      ary << val.__svalue if state
     end
     ary
   end
@@ -55,9 +55,9 @@ module Enumerable
     raise ArgumentError, "attempt to take negative size" if n < 0
 
     ary = []
-    self.each do |e|
+    self.each do |*val|
       break if ary.size >= n
-      ary << e
+      ary << val.__svalue
     end
     ary
   end
@@ -75,9 +75,9 @@ module Enumerable
 
   def take_while(&block)
     ary = []
-    self.each do |e|
-      return ary unless block.call(e)
-      ary << e
+    self.each do |*val|
+      return ary unless block.call(*val)
+      ary << val.__svalue
     end
     ary
   end
@@ -106,9 +106,9 @@ module Enumerable
     raise ArgumentError, "invalid size" if n <= 0
 
     ary = []
-    self.each do |e|
+    self.each do |*val|
       ary.shift if ary.size == n
-      ary << e
+      ary << val.__svalue
       block.call(ary.dup) if ary.size == n
     end
   end
@@ -132,8 +132,8 @@ module Enumerable
     raise ArgumentError, "invalid slice size" if n <= 0
 
     ary = []
-    self.each do |e|
-      ary << e
+    self.each do |*val|
+      ary << val.__svalue
       if ary.size == n
         block.call(ary)
         ary = []
@@ -154,9 +154,10 @@ module Enumerable
 
   def group_by(&block)
     h = {}
-    self.each do |e|
-      key = block.call(e)
-      h.key?(key) ? (h[key] << e) : (h[key] = [e])
+    self.each do |*val|
+      key = block.call(*val)
+      sv = val.__svalue
+      h.key?(key) ? (h[key] << sv) : (h[key] = [sv])
     end
     h
   end
@@ -193,16 +194,16 @@ module Enumerable
   # second form returns an empty array.
   def first(n=NONE)
     if n == NONE
-      self.each do |e|
-        return e
+      self.each do |*val|
+        return val.__svalue
       end
       return nil
     else
       a = []
       i = 0
-      self.each do |e|
+      self.each do |*val|
         break if n<=i
-        a.push e
+        a.push val.__svalue
         i += 1
       end
       a
@@ -212,15 +213,15 @@ module Enumerable
   def count(v=NONE, &block)
     count = 0
     if block
-      self.each do |e|
-        count += 1 if block.call(e)
+      self.each do |*val|
+        count += 1 if block.call(*val)
       end
     else
       if v == NONE
         self.each { count += 1 }
       else
-        self.each do |e|
-          count += 1 if e == v 
+        self.each do |*val|
+          count += 1 if val.__svalue == v 
         end
       end
     end

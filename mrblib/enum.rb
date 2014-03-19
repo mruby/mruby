@@ -24,14 +24,14 @@ module Enumerable
   # ISO 15.3.2.2.1
   def all?(&block)
     if block
-      self.each{|val|
-        unless block.call(val)
+      self.each{|*val|
+        unless block.call(*val)
           return false
         end
       }
     else
-      self.each{|val|
-        unless val
+      self.each{|*val|
+        unless val.__svalue
           return false
         end
       }
@@ -49,14 +49,14 @@ module Enumerable
   # ISO 15.3.2.2.2
   def any?(&block)
     if block
-      self.each{|val|
-        if block.call(val)
+      self.each{|*val|
+        if block.call(*val)
           return true
         end
       }
     else
-      self.each{|val|
-        if val
+      self.each{|*val|
+        if val.__svalue
           return true
         end
       }
@@ -165,9 +165,10 @@ module Enumerable
   # ISO 15.3.2.2.9
   def grep(pattern, &block)
     ary = []
-    self.each{|val|
-      if pattern === val
-        ary.push((block)? block.call(val): val)
+    self.each{|*val|
+      sv = val.__svalue
+      if pattern === sv
+        ary.push((block)? block.call(*val): sv)
       end
     }
     ary
@@ -181,8 +182,8 @@ module Enumerable
   #
   # ISO 15.3.2.2.10
   def include?(obj)
-    self.each{|val|
-      if val == obj
+    self.each{|*val|
+      if val.__svalue == obj
         return true
       end
     }
