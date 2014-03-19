@@ -36,7 +36,7 @@
  *
  *    1
  *    2
- *    resuming dead fiber (RuntimeError)
+ *    resuming dead fiber (FiberError)
  *
  *  The <code>Fiber#resume</code> method accepts an arbitrary number of
  *  parameters, if it is the first call to <code>resume</code> then they
@@ -57,7 +57,7 @@
  *
  *    12
  *    14
- *    resuming dead fiber (RuntimeError)
+ *    resuming dead fiber (FiberError)
  *
  */
 static mrb_value
@@ -77,7 +77,7 @@ fiber_init(mrb_state *mrb, mrb_value self)
   }
   p = mrb_proc_ptr(blk);
   if (MRB_PROC_CFUNC_P(p)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Fiber from C defined method");
+    mrb_raise(mrb, E_FIBER_ERROR, "tried to create Fiber from C defined method");
   }
 
   f->cxt = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
@@ -120,7 +120,7 @@ fiber_check(mrb_state *mrb, mrb_value fib)
 
   mrb_assert(f->tt == MRB_TT_FIBER);
   if (!f->cxt) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Fiber");
+    mrb_raise(mrb, E_FIBER_ERROR, "uninitialized Fiber");
   }
   return f->cxt;
 }
@@ -161,14 +161,14 @@ fiber_resume(mrb_state *mrb, mrb_value self)
 
   for (ci = c->ci; ci >= c->cibase; ci--) {
     if (ci->acc < 0) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "can't cross C function boundary");
+      mrb_raise(mrb, E_FIBER_ERROR, "can't cross C function boundary");
     }
   }
   if (c->status == MRB_FIBER_RUNNING || c->status == MRB_FIBER_RESUMING) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "double resume");
+    mrb_raise(mrb, E_FIBER_ERROR, "double resume");
   }
   if (c->status == MRB_FIBER_TERMINATED) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "resuming dead fiber");
+    mrb_raise(mrb, E_FIBER_ERROR, "resuming dead fiber");
   }
   mrb_get_args(mrb, "*", &a, &len);
   mrb->c->status = MRB_FIBER_RESUMING;
@@ -235,11 +235,11 @@ mrb_fiber_yield(mrb_state *mrb, int len, mrb_value *a)
 
   for (ci = c->ci; ci >= c->cibase; ci--) {
     if (ci->acc < 0) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "can't cross C function boundary");
+      mrb_raise(mrb, E_FIBER_ERROR, "can't cross C function boundary");
     }
   }
   if (!c->prev) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "can't yield from root fiber");
+    mrb_raise(mrb, E_FIBER_ERROR, "can't yield from root fiber");
   }
 
   c->prev->status = MRB_FIBER_RUNNING;
@@ -305,6 +305,8 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
 
   mrb_define_class_method(mrb, c, "yield", fiber_yield, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "current", fiber_current, MRB_ARGS_NONE());
+
+  mrb_define_class(mrb, "FiberError", mrb->eStandardError_class);
 }
 
 void
