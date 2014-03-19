@@ -452,6 +452,10 @@ assert 'Enumerable#map' do
   assert_equal [[1,0],[4,1],[9,4]], c
 end
 
+assert 'Enumerable#find_all' do
+  assert_equal [[3,4]], [[1,2],[3,4],[5,6]].find_all.each{ |i| i[1] == 4 }
+end
+
 assert 'Array#each_index' do
   a = [1,2,3]
   b = a.each_index
