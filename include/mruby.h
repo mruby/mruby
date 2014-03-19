@@ -389,6 +389,7 @@ mrb_bool mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c)
 
 /* fiber functions (you need to link mruby-fiber mrbgem to use) */
 mrb_value mrb_fiber_yield(mrb_state *mrb, int argc, mrb_value *argv);
+#define E_FIBER_ERROR (mrb_class_get(mrb, "FiberError"))
 
 /* memory pool implementation */
 typedef struct mrb_pool mrb_pool;

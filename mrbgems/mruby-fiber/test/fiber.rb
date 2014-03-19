@@ -35,6 +35,10 @@ assert('Fiber.yield') {
   f.resume(3)
 }
 
+assert('FiberError') do
+  assert_equal StandardError, FiberError.superclass
+end
+
 assert('Fiber iteration') {
   f1 = Fiber.new{
     [1,2,3].each{|x| Fiber.yield(x)}
@@ -80,7 +84,7 @@ assert('Double resume of Fiber') do
   f1 = Fiber.new {}
   f2 = Fiber.new {
     f1.resume
-    assert_raise(RuntimeError) { f2.resume }
+    assert_raise(FiberError) { f2.resume }
     Fiber.yield 0
   }
   assert_equal 0, f2.resume
@@ -91,7 +95,7 @@ end
 
 assert('Recursive resume of Fiber') do
   f1, f2 = nil, nil
-  f1 = Fiber.new { assert_raise(RuntimeError) { f2.resume } }
+  f1 = Fiber.new { assert_raise(FiberError) { f2.resume } }
   f2 = Fiber.new {
     f1.resume
     Fiber.yield 0
@@ -108,9 +112,9 @@ end
 
 assert('Root fiber resume') do
   root = Fiber.current
-  assert_raise(RuntimeError) { root.resume }
+  assert_raise(FiberError) { root.resume }
   f = Fiber.new {
-    assert_raise(RuntimeError) { root.resume }
+    assert_raise(FiberError) { root.resume }
   }
   f.resume
   assert_false f.alive?
