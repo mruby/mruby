@@ -110,3 +110,7 @@ assert('Root fiber resume') do
   f.resume
   assert_false f.alive?
 end
+
+assert('Fiber without block') do
+  assert_raise(ArgumentError) { Fiber.new }
+end
