@@ -8,6 +8,25 @@ assert('Fiber#resume') {
   f.resume(2)
 }
 
+assert('Fiber#transfer') do
+  f1 = Fiber.new do |v|
+    assert_raise(FiberError) { Fiber.current.transfer }
+    Fiber.yield v
+  end
+  f2 = Fiber.new do
+    f1.transfer(1)
+    Fiber.yield 2
+  end
+  assert_equal 1, f2.resume
+  assert_equal 2, f2.resume
+  f1.resume
+  f2.resume
+  assert_false f1.alive?
+  assert_false f2.alive?
+
+  assert_raise(FiberError) { Fiber.current.transfer }
+end
+
 assert('Fiber#alive?') {
   f = Fiber.new{ Fiber.yield }
   f.resume

@@ -226,6 +226,18 @@ fiber_eq(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(fiber_ptr(self) == fiber_ptr(other));
 }
 
+static mrb_value
+fiber_transfer(mrb_state *mrb, mrb_value self)
+{
+  mrb_value result = fiber_resume(mrb, self);
+
+  mrb_assert(mrb->c->prev);
+  mrb_assert(mrb->c->prev->prev);
+  mrb->c->prev->status = MRB_FIBER_SUSPENDED;
+  mrb->c->prev = mrb->c->prev->prev;
+
+  return result;
+}
 
 mrb_value
 mrb_fiber_yield(mrb_state *mrb, int len, mrb_value *a)
@@ -300,6 +312,7 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
 
   mrb_define_method(mrb, c, "initialize", fiber_init,    MRB_ARGS_NONE());
   mrb_define_method(mrb, c, "resume",     fiber_resume,  MRB_ARGS_ANY());
+  mrb_define_method(mrb, c, "transfer",   fiber_transfer, MRB_ARGS_ANY());
   mrb_define_method(mrb, c, "alive?",     fiber_alive_p, MRB_ARGS_NONE());
   mrb_define_method(mrb, c, "==",         fiber_eq,      MRB_ARGS_REQ(1));
 
