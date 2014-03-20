@@ -5,12 +5,14 @@ assert('TrueClass', '15.2.5') do
   assert_equal Class, TrueClass.class
 end
 
-assert('TrueClass superclass', '15.2.5.2') do
-  assert_equal Object, TrueClass.superclass
-end
-
 assert('TrueClass true', '15.2.5.1') do
   assert_true true
+  assert_equal TrueClass, true.class
+  assert_false TrueClass.method_defined? :new
+end
+
+assert('TrueClass superclass', '15.2.5.2') do
+  assert_equal Object, TrueClass.superclass
 end
 
 assert('TrueClass#&', '15.2.5.3.1') do
