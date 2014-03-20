@@ -1387,7 +1387,8 @@ RETRY_TRY_BLOCK:
           }
         }
       L_RESCUE:
-        irep = ci->proc->body.irep;
+        proc = ci->proc;
+        irep = proc->body.irep;
         pool = irep->pool;
         syms = irep->syms;
         regs = mrb->c->stack = ci[1].stackent;
