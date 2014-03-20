@@ -14,8 +14,8 @@ To compile mruby out of the source code you need the following tools:
 
 Optional:
 * GIT (to update mruby source and integrate mrbgems easier)
-* C++ compiler (to use GEMs which include *.cpp)
-* Assembler (to use GEMs which include *.asm)
+* C++ compiler (to use GEMs which include \*.cpp)
+* Assembler (to use GEMs which include \*.asm)
 
 ## Usage
 
@@ -175,6 +175,7 @@ Integrate GEMs in the build process.
 
 
 See doc/mrbgems/README.md for more option about mrbgems.
+
 ### Mrbtest
 
 Configuration Mrbtest build process.
@@ -186,7 +187,7 @@ If you want mrbtest.a only, You should set ```conf.build_mrbtest_lib_only```
 ### Bintest
 
 Tests for mrbgem tools using CRuby.
-To have bintests place *.rb scripts to ```bintest/``` directory of mrbgems.
+To have bintests place \*.rb scripts to ```bintest/``` directory of mrbgems.
 See ```mruby-bin-*/bintest/*.rb``` if you need examples.
 If you want a temporary files use `tempfile` module of CRuby instead of ```/tmp/```.
 
@@ -285,7 +286,7 @@ result will be stored in *build/host/src/y.tab.c*)
 * create *build/host/lib/libmruby_core.a* out of all object files (C only)
 * create ```build/host/bin/mrbc``` by compiling *tools/mrbc/mrbc.c* and
 linking with *build/host/lib/libmruby_core.a* 
-* create *build/host/mrblib/mrblib.c* by compiling all *.rb files
+* create *build/host/mrblib/mrblib.c* by compiling all \*.rb files
 under *mrblib* with ```build/host/bin/mrbc```
 * compile *build/host/mrblib/mrblib.c* to *build/host/mrblib/mrblib.o* 
 * create *build/host/lib/libmruby.a* out of all object files (C and Ruby)
@@ -359,7 +360,7 @@ in *build/i386/src*)
 * generate parser grammar out of *src/parse.y* (generated
 result will be stored in *build/i386/src/y.tab.c*)
 * cross-compile *build/i386/src/y.tab.c* to *build/i386/src/y.tab.o*
-* create *build/i386/mrblib/mrblib.c* by compiling all *.rb files
+* create *build/i386/mrblib/mrblib.c* by compiling all \*.rb files
 under *mrblib* with the native ```build/host/bin/mrbc```
 * cross-compile *build/host/mrblib/mrblib.c* to *build/host/mrblib/mrblib.o*
 * create *build/i386/lib/libmruby.a* out of all object files (C and Ruby)
