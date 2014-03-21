@@ -1,6 +1,6 @@
-mruby (1.0.0-1) unstable; urgency=medium
+mruby (1.0.0-1) unstable; urgency=low
 
-  * Update to 1.0.0.
+  * New upstream release(1.0.0).
   * Update Standards-Version to 3.9.5.
 
  -- Akira Mitsui <murase.syuka@gmail.com>  Thu, 2 Jan 2014 14:24:54 +0900
