@@ -4,7 +4,7 @@ Priority: extra
 Maintainer: Nobuhiro Iwamatsu <iwamatsu@debian.org>
 Uploaders: Akira Mitsui <murase.syuka@gmail.com>
 Build-Depends: debhelper (>= 9), dpkg-dev (>= 1.16.1~), ruby, bison
-Standards-Version: 3.9.4
+Standards-Version: 3.9.5
 Vcs-Git: git://github.com/mruby-debian/mruby.git
 Vcs-Browser: https://github.com/mruby-debian/mruby
 
