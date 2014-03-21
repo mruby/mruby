@@ -9,22 +9,24 @@ assert('Fiber#resume') {
 }
 
 assert('Fiber#transfer') do
+  f2 = nil
   f1 = Fiber.new do |v|
-    assert_raise(FiberError) { Fiber.current.transfer }
     Fiber.yield v
+    f2.transfer
   end
   f2 = Fiber.new do
+    f1.transfer(1)
     f1.transfer(1)
     Fiber.yield 2
   end
   assert_equal 1, f2.resume
-  assert_equal 2, f2.resume
-  f1.resume
+  assert_raise(FiberError) { f2.resume }
+  assert_equal 2, f2.transfer
+  assert_raise(FiberError) { f1.resume }
+  f1.transfer
   f2.resume
   assert_false f1.alive?
   assert_false f2.alive?
-
-  assert_raise(FiberError) { Fiber.current.transfer }
 end
 
 assert('Fiber#alive?') {
@@ -132,4 +134,75 @@ end
 
 assert('Fiber without block') do
   assert_raise(ArgumentError) { Fiber.new }
+end
+
+
+assert('Transfer to self.') do
+  result = []
+  f = Fiber.new { result << :start; f.transfer; result << :end  }
+  f.transfer
+  assert_equal [:start, :end], result
+
+  result = []
+  f = Fiber.new { result << :start; f.transfer; result << :end  }
+  f.resume
+  assert_equal [:start, :end], result
+end
+
+assert('Resume transferred fiber') do
+  f = Fiber.new {
+    assert_raise(FiberError) { f.resume }
+  }
+  f.transfer
+end
+
+assert('Root fiber transfer.') do
+  result = nil
+  root = Fiber.current
+  f = Fiber.new {
+    result = :ok
+    root.transfer
+  }
+  f.resume
+  assert_true f.alive?
+  assert_equal :ok, result
+end
+
+assert('Break nested fiber with root fiber transfer') do
+  root = Fiber.current
+
+  result = nil
+  f2 = nil
+  f1 = Fiber.new {
+    Fiber.yield f2.resume
+    result = :f1
+  }
+  f2 = Fiber.new {
+    result = :to_root
+    root.transfer :from_f2
+    result = :f2
+  }
+  assert_equal :from_f2, f1.resume
+  assert_equal :to_root, result
+  assert_equal :f2, f2.transfer
+  assert_equal :f2, result
+  assert_false f2.alive?
+  assert_equal :f1, f1.resume
+  assert_equal :f1, result
+  assert_false f1.alive?
+end
+
+assert('CRuby Fiber#transfer test.') do
+  ary = []
+  f2 = nil
+  f1 = Fiber.new{
+    ary << f2.transfer(:foo)
+    :ok
+  }
+  f2 = Fiber.new{
+    ary << f1.transfer(:baz)
+    :ng
+  }
+  assert_equal :ok, f1.transfer
+  assert_equal [:baz], ary
 end

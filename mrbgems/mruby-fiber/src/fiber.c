@@ -136,6 +136,55 @@ fiber_result(mrb_state *mrb, mrb_value *a, int len)
 /* mark return from context modifying method */
 #define MARK_CONTEXT_MODIFY(c) (c)->ci->target_class = NULL
 
+static mrb_value
+fiber_switch(mrb_state *mrb, mrb_value self, int len, const mrb_value *a, mrb_bool resume)
+{
+  struct mrb_context *c = fiber_check(mrb, self);
+  mrb_callinfo *ci;
+
+  for (ci = c->ci; ci >= c->cibase; ci--) {
+    if (ci->acc < 0) {
+      mrb_raise(mrb, E_FIBER_ERROR, "can't cross C function boundary");
+    }
+  }
+  if (resume && c->status == MRB_FIBER_TRANSFERRED) {
+    mrb_raise(mrb, E_FIBER_ERROR, "resuming transfered fiber");
+  }
+  if (c->status == MRB_FIBER_RUNNING || c->status == MRB_FIBER_RESUMING) {
+    mrb_raise(mrb, E_FIBER_ERROR, "double resume");
+  }
+  if (c->status == MRB_FIBER_TERMINATED) {
+    mrb_raise(mrb, E_FIBER_ERROR, "resuming dead fiber");
+  }
+  mrb_get_args(mrb, "*", &a, &len);
+  mrb->c->status = resume ? MRB_FIBER_RESUMING : MRB_FIBER_TRANSFERRED;
+  c->prev = resume ? mrb->c : (c->prev ? c->prev : mrb->root_c);
+  if (c->status == MRB_FIBER_CREATED) {
+    mrb_value *b = c->stack+1;
+    mrb_value *e = b + len;
+
+    while (b<e) {
+      *b++ = *a++;
+    }
+    c->cibase->argc = len;
+    if (c->prev->fib) 
+      mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
+    mrb_write_barrier(mrb, (struct RBasic*)c->fib);
+    c->status = MRB_FIBER_RUNNING;
+    mrb->c = c;
+
+    MARK_CONTEXT_MODIFY(c);
+    return c->ci->proc->env->stack[0];
+  }
+  MARK_CONTEXT_MODIFY(c);
+  if (c->prev->fib) 
+    mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
+  mrb_write_barrier(mrb, (struct RBasic*)c->fib);
+  c->status = MRB_FIBER_RUNNING;
+  mrb->c = c;
+  return fiber_result(mrb, a, len);
+}
+
 /*
  *  call-seq:
  *     fiber.resume(args, ...) -> obj
@@ -154,50 +203,10 @@ fiber_result(mrb_state *mrb, mrb_value *a, int len)
 static mrb_value
 fiber_resume(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_context *c = fiber_check(mrb, self);
   mrb_value *a;
   int len;
-  mrb_callinfo *ci;
-
-  for (ci = c->ci; ci >= c->cibase; ci--) {
-    if (ci->acc < 0) {
-      mrb_raise(mrb, E_FIBER_ERROR, "can't cross C function boundary");
-    }
-  }
-  if (c->status == MRB_FIBER_RUNNING || c->status == MRB_FIBER_RESUMING) {
-    mrb_raise(mrb, E_FIBER_ERROR, "double resume");
-  }
-  if (c->status == MRB_FIBER_TERMINATED) {
-    mrb_raise(mrb, E_FIBER_ERROR, "resuming dead fiber");
-  }
   mrb_get_args(mrb, "*", &a, &len);
-  mrb->c->status = MRB_FIBER_RESUMING;
-  if (c->status == MRB_FIBER_CREATED) {
-    mrb_value *b = c->stack+1;
-    mrb_value *e = b + len;
-
-    while (b<e) {
-      *b++ = *a++;
-    }
-    c->cibase->argc = len;
-    c->prev = mrb->c;
-    if (c->prev->fib) 
-      mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
-    mrb_write_barrier(mrb, (struct RBasic*)c->fib);
-    c->status = MRB_FIBER_RUNNING;
-    mrb->c = c;
-
-    MARK_CONTEXT_MODIFY(c);
-    return c->ci->proc->env->stack[0];
-  }
-  MARK_CONTEXT_MODIFY(c);
-  c->prev = mrb->c;
-  if (c->prev->fib) 
-    mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
-  mrb_write_barrier(mrb, (struct RBasic*)c->fib);
-  c->status = MRB_FIBER_RUNNING;
-  mrb->c = c;
-  return fiber_result(mrb, a, len);
+  return fiber_switch(mrb, self, len, a, TRUE);
 }
 
 /*
@@ -229,14 +238,25 @@ fiber_eq(mrb_state *mrb, mrb_value self)
 static mrb_value
 fiber_transfer(mrb_state *mrb, mrb_value self)
 {
-  mrb_value result = fiber_resume(mrb, self);
+  struct mrb_context *c = fiber_check(mrb, self);
+  mrb_value* a;
+  int len;
 
-  mrb_assert(mrb->c->prev);
-  mrb_assert(mrb->c->prev->prev);
-  mrb->c->prev->status = MRB_FIBER_SUSPENDED;
-  mrb->c->prev = mrb->c->prev->prev;
+  mrb_get_args(mrb, "*", &a, &len);
 
-  return result;
+  if (c == mrb->root_c) {
+    mrb->c->status = MRB_FIBER_TRANSFERRED;
+    mrb->c = c;
+    c->status = MRB_FIBER_RUNNING;
+    MARK_CONTEXT_MODIFY(c);
+    return fiber_result(mrb, a, len);
+  }
+
+  if (c == mrb->c) {
+    return fiber_result(mrb, a, len);
+  }
+
+  return fiber_switch(mrb, self, len, a, FALSE);
 }
 
 mrb_value
