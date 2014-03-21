@@ -123,7 +123,7 @@ mrb_open_allocf(mrb_allocf f, void *ud)
 }
 
 mrb_state*
-mrb_open_without_mrbgems(mrb_allocf f, void *ud)
+mrb_open_core(mrb_allocf f, void *ud)
 {
   return mrb_open_common(f, ud, FALSE);
 }
