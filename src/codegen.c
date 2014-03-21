@@ -1513,7 +1513,7 @@ codegen(codegen_scope *s, node *tree, int val)
           genop(s, MKOP_ABC(OP_HASH, cursp(), cursp(), len));
           if (update) {
             pop();
-            genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "merge")), 1));
+            genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "__update")), 1));
           }
           push();
           update = TRUE;
@@ -1525,7 +1525,7 @@ codegen(codegen_scope *s, node *tree, int val)
         genop(s, MKOP_ABC(OP_HASH, cursp(), cursp(), len));
         if (update) {
           pop();
-          genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "merge")), 1));
+          genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "__update")), 1));
         }
         push();
       }

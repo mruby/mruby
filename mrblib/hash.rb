@@ -183,6 +183,11 @@ class Hash
     }
     h
   end
+
+  def __update(h)
+    h.each{|k,v| self[k] = v}
+    self
+  end
 end
 
 ##
