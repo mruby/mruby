@@ -4,12 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#ifndef SIZE_MAX
- /* Some versions of VC++
-  * has SIZE_MAX in stdint.h
-  */
-# include <limits.h>
-#endif
 #include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
@@ -318,7 +312,7 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
     for (i=0; i<len; i++) {
       mrb_value v = ary_elt(ary2, i);
       r = mrb_funcall_argv(mrb, ary_elt(ary1, i), cmp, 1, &v);
-      if (mrb_type(r) != MRB_TT_FIXNUM || mrb_fixnum(r) != 0) return r;
+      if (!mrb_fixnum_p(r) || mrb_fixnum(r) != 0) return r;
     }
   }
   len = a1->len - a2->len;
@@ -697,7 +691,7 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
     return mrb_ary_ref(mrb, self, index);
 
   case 1:
-    if (mrb_type(argv[0]) != MRB_TT_FIXNUM) {
+    if (!mrb_fixnum_p(argv[0])) {
       mrb_raise(mrb, E_TYPE_ERROR, "expected Fixnum");
     }
     if (index < 0) index += a->len;
@@ -853,6 +847,9 @@ mrb_ary_splat(mrb_state *mrb, mrb_value v)
 {
   if (mrb_array_p(v)) {
     return v;
+  }
+  if (mrb_respond_to(mrb, v, mrb_intern_lit(mrb, "to_a"))) {
+    return mrb_funcall(mrb, v, "to_a", 0);
   }
   else {
     return mrb_ary_new_from_values(mrb, 1, &v);
@@ -1113,6 +1110,22 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
   return mrb_true_value();
 }
 
+static mrb_value
+mrb_ary_ceqq(mrb_state *mrb, mrb_value ary)
+{
+  mrb_value v;
+  mrb_int i, len;
+  mrb_sym eqq = mrb_intern_lit(mrb, "===");
+
+  mrb_get_args(mrb, "o", &v);
+  len = RARRAY_LEN(ary);
+  for (i=0; i<len; i++) {
+    mrb_value c = mrb_funcall_argv(mrb, ary_elt(ary, i), eqq, 1, &v);
+    if (mrb_test(c)) return mrb_true_value();
+  }
+  return mrb_false_value();
+}
+
 void
 mrb_init_array(mrb_state *mrb)
 {
@@ -1155,4 +1168,5 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "==",              mrb_ary_equal,        MRB_ARGS_REQ(1)); /* 15.2.12.5.33 (x) */
   mrb_define_method(mrb, a, "eql?",            mrb_ary_eql,          MRB_ARGS_REQ(1)); /* 15.2.12.5.34 (x) */
   mrb_define_method(mrb, a, "<=>",             mrb_ary_cmp,          MRB_ARGS_REQ(1)); /* 15.2.12.5.36 (x) */
+  mrb_define_method(mrb, a, "__case_eqq",      mrb_ary_ceqq,         MRB_ARGS_REQ(1)); /* internal */
 }

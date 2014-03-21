@@ -4,14 +4,12 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <ctype.h>
 #include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
-#include "mruby/variable.h"
-#include "error.h"
-#include <ctype.h>
 
 typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 
@@ -756,7 +754,7 @@ mrb_cv_get(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 }
 
 void
-mrb_mod_cv_set(mrb_state *mrb, struct RClass * c, mrb_sym sym, mrb_value v)
+mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
 {
   struct RClass * cls = c;
 
@@ -823,24 +821,7 @@ mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
   struct RClass *c = mrb->c->ci->proc->target_class;
 
   if (!c) c = mrb->c->ci->target_class;
-  while (c) {
-    if (c->iv) {
-      iv_tbl *t = c->iv;
-
-      if (iv_get(mrb, t, sym, NULL)) {
-        mrb_write_barrier(mrb, (struct RBasic*)c);
-        iv_put(mrb, t, sym, v);
-        return;
-      }
-    }
-    c = c->super;
-  }
-  c = mrb->c->ci->target_class;
-  if (!c->iv) {
-    c->iv = iv_new(mrb);
-  }
-  mrb_write_barrier(mrb, (struct RBasic*)c);
-  iv_put(mrb, c->iv, sym, v);
+  mrb_mod_cv_set(mrb, c, sym, v);
 }
 
 mrb_bool

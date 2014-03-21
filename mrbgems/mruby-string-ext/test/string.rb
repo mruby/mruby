@@ -20,8 +20,7 @@ assert('String#dump') do
 end
 
 assert('String#strip') do
-  s = "  abc  " 
-  s.strip
+  s = "  abc  "
   "".strip == "" and " \t\r\n\f\v".strip == "" and
   "\0a\0".strip == "\0a" and
   "abc".strip     == "abc" and

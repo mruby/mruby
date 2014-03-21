@@ -7,10 +7,8 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <string.h>
 #include "mruby.h"
 #include "mruby/array.h"
-#include "mruby/class.h"
 #include "mruby/irep.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"

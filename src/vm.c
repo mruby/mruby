@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <string.h>
 #include <setjmp.h>
 #include <stddef.h>
 #include <stdarg.h>
@@ -13,7 +12,6 @@
 #include "mruby/class.h"
 #include "mruby/hash.h"
 #include "mruby/irep.h"
-#include "mruby/numeric.h"
 #include "mruby/proc.h"
 #include "mruby/range.h"
 #include "mruby/string.h"
@@ -231,6 +229,7 @@ cipush(mrb_state *mrb)
   ci->ridx = ridx;
   ci->env = 0;
   ci->pc = 0;
+  ci->err = 0;
 
   return ci;
 }
@@ -263,6 +262,8 @@ ecall(mrb_state *mrb, int i)
 
   p = mrb->c->ensure[i];
   if (!p) return;
+  if (mrb->c->ci->eidx > i)
+    mrb->c->ci->eidx = i;
   ci = cipush(mrb);
   ci->stackidx = mrb->c->stack - mrb->c->stbase;
   ci->mid = ci[-1].mid;
@@ -601,7 +602,6 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     stack_init(mrb);
   }
   stack_extend(mrb, irep->nregs, stack_keep);
-  mrb->c->ci->err = pc;
   mrb->c->ci->proc = proc;
   mrb->c->ci->nregs = irep->nregs + 1;
   regs = mrb->c->stack;
@@ -852,13 +852,14 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
     CASE(OP_EPOP) {
       /* A      A.times{ensure_pop().call} */
-      int n;
       int a = GETARG_A(i);
+      mrb_callinfo *ci = mrb->c->ci;
+      int n, eidx = ci->eidx;
 
-      for (n=0; n<a; n++) {
-        ecall(mrb, --mrb->c->ci->eidx);
+      for (n=0; n<a && eidx > ci[-1].eidx; n++) {
+        ecall(mrb, --eidx);
+        ARENA_RESTORE(mrb, ai);
       }
-      ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
@@ -2130,7 +2131,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
           ecall(mrb, n);
         }
       }
-      mrb->c->ci->err = 0;
+      ERR_PC_CLR(mrb);
       mrb->jmp = prev_jmp;
       if (mrb->exc) {
         return mrb_obj_value(mrb->exc);

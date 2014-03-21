@@ -4,6 +4,7 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <stdarg.h>
 #include "mruby.h"
 #include "mruby/variable.h"
 #include "mruby/proc.h"
@@ -11,7 +12,6 @@
 #include "mruby/string.h"
 #include "mruby/class.h"
 #include "mruby/debug.h"
-#include <stdarg.h>
 
 typedef void (*output_stream_func)(mrb_state*, void*, int, const char*, ...);
 
@@ -62,9 +62,8 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
   mrb_callinfo *ci;
   mrb_int ciidx;
   const char *filename, *method, *sep;
-  int i, line;
+  int i, lineno, tracehead = 1;
 
-  func(mrb, stream, 1, "trace:\n");
   ciidx = mrb_fixnum(mrb_obj_iv_get(mrb, exc, mrb_intern_lit(mrb, "ciidx")));
   if (ciidx >= mrb->c->ciend - mrb->c->cibase)
     ciidx = 10; /* ciidx is broken... */
@@ -72,7 +71,7 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
   for (i = ciidx; i >= 0; i--) {
     ci = &mrb->c->cibase[i];
     filename = NULL;
-    line = -1;
+    lineno = -1;
 
     if (MRB_PROC_CFUNC_P(ci->proc)) {
       continue;
@@ -91,9 +90,9 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
         pc = (mrb_code*)mrb_cptr(mrb_obj_iv_get(mrb, exc, mrb_intern_lit(mrb, "lastpc")));
       }
       filename = mrb_debug_get_filename(irep, pc - irep->iseq);
-      line = mrb_debug_get_line(irep, pc - irep->iseq);
+      lineno = mrb_debug_get_line(irep, pc - irep->iseq);
     }
-    if (line == -1) continue;
+    if (lineno == -1) continue;
     if (ci->target_class == ci->proc->target_class)
       sep = ".";
     else
@@ -103,24 +102,28 @@ mrb_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
       filename = "(unknown)";
     }
 
+    if (tracehead) {
+      func(mrb, stream, 1, "trace:\n");
+      tracehead = 0;
+    }
     method = mrb_sym2name(mrb, ci->mid);
     if (method) {
       const char *cn = mrb_class_name(mrb, ci->proc->target_class);
 
       if (cn) {
         func(mrb, stream, 1, "\t[%d] ", i);
-        func(mrb, stream, 0, "%s:%d:in %s%s%s", filename, line, cn, sep, method);
+        func(mrb, stream, 0, "%s:%d:in %s%s%s", filename, lineno, cn, sep, method);
         func(mrb, stream, 1, "\n");
       }
       else {
         func(mrb, stream, 1, "\t[%d] ", i);
-        func(mrb, stream, 0, "%s:%d:in %s", filename, line, method);
+        func(mrb, stream, 0, "%s:%d:in %s", filename, lineno, method);
         func(mrb, stream, 1, "\n");
       }
     }
     else {
         func(mrb, stream, 1, "\t[%d] ", i);
-        func(mrb, stream, 0, "%s:%d", filename, line);
+        func(mrb, stream, 0, "%s:%d", filename, lineno);
         func(mrb, stream, 1, "\n");
     }
   }

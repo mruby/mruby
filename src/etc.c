@@ -6,8 +6,6 @@
 
 #include "mruby.h"
 #include "mruby/string.h"
-#include "error.h"
-#include "mruby/numeric.h"
 #include "mruby/data.h"
 #include "mruby/class.h"
 

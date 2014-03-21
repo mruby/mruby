@@ -4,10 +4,9 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <ctype.h>
 #include <string.h>
 #include "mruby/dump.h"
-#include <ctype.h>
-
 #include "mruby/string.h"
 #include "mruby/irep.h"
 #include "mruby/numeric.h"
@@ -595,6 +594,9 @@ write_filename_table(mrb_state *mrb, mrb_irep *irep, uint8_t **cp, mrb_sym **fp,
 
     size += sizeof(uint16_t) + fn_len;
   }
+  for (file_i=0; file_i<irep->rlen; file_i++) {
+    size += write_filename_table(mrb, irep->reps[file_i], &cur, fp, lp);
+  }
   *cp = cur;
   return size;
 }
@@ -606,7 +608,7 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur)
   const uint8_t *bin = cur;
   struct rite_section_debug_header *header;
   mrb_sym *filenames;
-  size_t filenames_len = 0, i;
+  size_t filenames_len = 0;
   uint8_t *filenames_len_out;
   uint32_t dlen;
 
@@ -624,9 +626,6 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur)
   cur += sizeof(uint16_t);
   section_size += sizeof(uint16_t);
   section_size += write_filename_table(mrb, irep, &cur, &filenames, &filenames_len);
-  for (i=0; i<irep->rlen; i++) {
-    section_size += write_filename_table(mrb, irep->reps[i], &cur, &filenames, &filenames_len);
-  }
   uint16_to_bin(filenames_len, filenames_len_out);
 
   // debug records

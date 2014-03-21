@@ -1,7 +1,7 @@
-#include "mruby.h"
-#include "mruby/string.h"
 #include <ctype.h>
 #include <string.h>
+#include "mruby.h"
+#include "mruby/string.h"
 
 static mrb_value
 mrb_str_getbyte(mrb_state *mrb, mrb_value str)

@@ -388,7 +388,15 @@ assert('Kernel#object_id', '15.3.1.3.33') do
   a = ""
   b = ""
   assert_not_equal a.object_id, b.object_id
-  assert_not_equal 1.object_id, 1.2.object_id
+
+  assert_kind_of Numeric, object_id
+  assert_kind_of Numeric, "".object_id
+  assert_kind_of Numeric, true.object_id
+  assert_kind_of Numeric, false.object_id
+  assert_kind_of Numeric, nil.object_id
+  assert_kind_of Numeric, :no.object_id
+  assert_kind_of Numeric, 1.object_id
+  assert_kind_of Numeric, 1.0.object_id
 end
 
 # Kernel#p is defined in mruby-print mrbgem. '15.3.1.3.34'
@@ -469,6 +477,27 @@ assert('Kernel#!=') do
   assert_false (str1[1] != 'e')
   assert_true (str1 != str3)
   assert_false (str2 != str1)
+end
+
+# operator "!~" is defined in ISO Ruby 11.4.4. 
+assert('Kernel#!~') do
+  x = "x"
+  def x.=~(other)
+    other == "x"
+  end
+  assert_false x !~ "x"
+  assert_true  x !~ "z"
+
+  y = "y"
+  def y.=~(other)
+    other == "y"
+  end
+  def y.!~(other)
+    other == "not y"
+  end
+  assert_false y !~ "y"
+  assert_false y !~ "z"
+  assert_true  y !~ "not y"
 end
 
 assert('Kernel#respond_to_missing?') do
