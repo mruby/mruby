@@ -126,7 +126,7 @@ fiber_check(mrb_state *mrb, mrb_value fib)
 }
 
 static mrb_value
-fiber_result(mrb_state *mrb, mrb_value *a, int len)
+fiber_result(mrb_state *mrb, const mrb_value *a, int len)
 {
   if (len == 0) return mrb_nil_value();
   if (len == 1) return a[0];
