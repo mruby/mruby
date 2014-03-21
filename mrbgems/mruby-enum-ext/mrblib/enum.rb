@@ -256,10 +256,10 @@ module Enumerable
     return to_enum :flat_map unless block_given?
 
     ary = []
-    self.each do |e|
-      e2 = block.call(e)
+    self.each do |*e|
+      e2 = block.call(*e)
       if e2.respond_to? :each
-        e2.each { |e3| ary.push(e3) }
+        e2.each {|e3| ary.push(e3) }
       else
         ary.push(e2)
       end
