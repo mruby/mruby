@@ -1,6 +1,6 @@
-mruby (0.0.0~20140102+gite8dd8180-1) unstable; urgency=medium
+mruby (1.0.0-1) unstable; urgency=medium
 
-  * Snapshot, taken from the master (20140102).
+  * Update to 1.0.0.
 
  -- Akira Mitsui <murase.syuka@gmail.com>  Thu, 2 Jan 2014 14:24:54 +0900
 
