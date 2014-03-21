@@ -237,4 +237,34 @@ module Enumerable
     end
     count
   end
+
+  ##
+  # call-seq:
+  #    enum.flat_map       { |obj| block } -> array
+  #    enum.collect_concat { |obj| block } -> array
+  #    enum.flat_map                       -> an_enumerator
+  #    enum.collect_concat                 -> an_enumerator
+  #
+  # Returns a new array with the concatenated results of running
+  # <em>block</em> once for every element in <i>enum</i>.
+  #
+  # If no block is given, an enumerator is returned instead.
+  #
+  #    [1, 2, 3, 4].flat_map { |e| [e, -e] } #=> [1, -1, 2, -2, 3, -3, 4, -4]
+  #    [[1, 2], [3, 4]].flat_map { |e| e + [100] } #=> [1, 2, 100, 3, 4, 100]
+  def flat_map(&block)
+    return to_enum :flat_map unless block_given?
+
+    ary = []
+    self.each do |e|
+      e2 = block.call(e)
+      if e2.respond_to? :each
+        e2.each { |e3| ary.push(e3) }
+      else
+        ary.push(e2)
+      end
+    end
+    ary
+  end
+  alias collect_concat flat_map
 end
