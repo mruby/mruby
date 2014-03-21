@@ -594,6 +594,16 @@ flo_round(mrb_state *mrb, mrb_value num)
 
   mrb_get_args(mrb, "|i", &ndigits);
   number = mrb_float(num);
+
+  if (isinf(number)) {
+    if (0 < ndigits) return num;
+    else mrb_raise(mrb, E_FLOATDOMAIN_ERROR, number < 0 ? "-Infinity" : "Infinity");
+  }
+  if (isnan(number)) {
+    if (0 < ndigits) return num;
+    else mrb_raise(mrb, E_FLOATDOMAIN_ERROR, "NaN");
+  }
+
   f = 1.0;
   i = abs(ndigits);
   while  (--i >= 0)
@@ -621,7 +631,11 @@ flo_round(mrb_state *mrb, mrb_value num)
     if (ndigits < 0) number *= f;
     else number /= f;
   }
-  if (ndigits > 0) return mrb_float_value(mrb, number);
+
+  if (ndigits > 0) {
+    if (isinf(number) || isnan(number)) return num;
+    return mrb_float_value(mrb, number);
+  }
   return mrb_fixnum_value((mrb_int)number);
 }
 
