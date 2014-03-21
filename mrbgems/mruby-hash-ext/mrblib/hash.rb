@@ -10,4 +10,6 @@ class Hash
     end
     self
   end
+
+  alias each_pair each
 end
