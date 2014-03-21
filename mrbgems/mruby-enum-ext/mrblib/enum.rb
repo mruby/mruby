@@ -210,6 +210,16 @@ module Enumerable
     end
   end
 
+  ##
+  # call-seq:
+  #    enum.count                 -> int
+  #    enum.count(item)           -> int
+  #    enum.count { |obj| block } -> int
+  #
+  # Returns the number of items in +enum+ through enumeration.
+  # If an argument is given, the number of items in +enum+ that
+  # are equal to +item+ are counted.  If a block is given, it
+  # counts the number of elements yielding a true value.
   def count(v=NONE, &block)
     count = 0
     if block
