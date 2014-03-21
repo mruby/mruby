@@ -13,7 +13,7 @@ module Comparable
   def < other
     cmp = self <=> other
     if cmp.nil?
-      false
+      raise ArgumentError, "comparison of #{self.class} with #{other.class} failed"
     elsif cmp < 0
       true
     else
@@ -30,7 +30,7 @@ module Comparable
   def <= other
     cmp = self <=> other
     if cmp.nil?
-      false
+      raise ArgumentError, "comparison of #{self.class} with #{other.class} failed"
     elsif cmp <= 0
       true
     else
@@ -62,7 +62,7 @@ module Comparable
   def > other
     cmp = self <=> other
     if cmp.nil?
-      false
+      raise ArgumentError, "comparison of #{self.class} with #{other.class} failed"
     elsif cmp > 0
       true
     else
@@ -79,7 +79,7 @@ module Comparable
   def >= other
     cmp = self <=> other
     if cmp.nil?
-      false
+      raise ArgumentError, "comparison of #{self.class} with #{other.class} failed"
     elsif cmp >= 0
       true
     else
