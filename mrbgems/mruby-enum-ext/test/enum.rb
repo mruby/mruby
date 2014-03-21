@@ -47,11 +47,21 @@ assert("Enumerable#sort_by") do
 end
 
 assert("Enumerable#first") do
-  a = [1, 2, 3]
+  a = Object.new
+  a.extend Enumerable
+  def a.each
+    yield 1
+    yield 2
+    yield 3
+  end
   assert_equal 1, a.first
   assert_equal [1, 2], a.first(2)
   assert_equal [1, 2, 3], a.first(10)
-  assert_nil [].first
+  a = Object.new
+  a.extend Enumerable
+  def a.each
+  end
+  assert_nil a.first
 end
 
 assert("Enumerable#count") do
