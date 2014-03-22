@@ -69,6 +69,8 @@ class Hash
   #
   # ISO 15.2.13.4.10
   def each_key(&block)
+    return to_enum :each_key unless block_given?
+
     self.keys.each{|k| block.call(k)}
     self
   end
@@ -93,6 +95,8 @@ class Hash
   #
   # ISO 15.2.13.4.11
   def each_value(&block)
+    return to_enum :each_value unless block_given?
+
     self.keys.each{|k| block.call(self[k])}
     self
   end
