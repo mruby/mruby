@@ -293,7 +293,7 @@ module Enumerable
         max_cmp = block.call(*val)
         first = false
       else
-        if cmp = block.call(*val) > max_cmp
+        if (cmp = block.call(*val)) > max_cmp
           max = val.__svalue
           max_cmp = cmp
         end
