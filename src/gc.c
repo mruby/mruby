@@ -1314,7 +1314,7 @@ mrb_init_gc(mrb_state *mrb)
 {
   struct RClass *gc;
 
-  gc = mrb_define_module(mrb, "GC");
+  gc = mrb_define_module_lit(mrb, "GC");
 
   mrb_define_class_method(mrb, gc, "start", gc_start, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, gc, "enable", gc_enable, MRB_ARGS_NONE());

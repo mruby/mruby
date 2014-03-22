@@ -159,6 +159,12 @@ mrb_define_module(mrb_state *mrb, const char *name)
 }
 
 struct RClass*
+mrb_define_module_static(mrb_state *mrb, const char *name, size_t len)
+{
+  return define_module(mrb, mrb_intern_static(mrb, name, len), mrb->object_class);
+}
+
+struct RClass*
 mrb_vm_define_module(mrb_state *mrb, mrb_value outer, mrb_sym id)
 {
   return define_module(mrb, id, mrb_class_ptr(outer));

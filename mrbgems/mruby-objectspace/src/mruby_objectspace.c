@@ -103,7 +103,7 @@ os_count_objects(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_objectspace_gem_init(mrb_state *mrb)
 {
-  struct RClass *os = mrb_define_module(mrb, "ObjectSpace");
+  struct RClass *os = mrb_define_module_lit(mrb, "ObjectSpace");
   mrb_define_class_method(mrb, os, "count_objects", os_count_objects, MRB_ARGS_OPT(1));
 }
 

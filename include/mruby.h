@@ -174,6 +174,8 @@ typedef struct mrb_state {
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
 struct RClass *mrb_define_class(mrb_state *, const char*, struct RClass*);
 struct RClass *mrb_define_module(mrb_state *, const char*);
+struct RClass *mrb_define_module_static(mrb_state *mrb, const char *name, size_t len);
+#define mrb_define_module_lit(mrb, lit) mrb_define_module_static(mrb, lit, mrb_strlen_lit(lit))
 mrb_value mrb_singleton_class(mrb_state*, mrb_value);
 void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
 

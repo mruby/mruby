@@ -9,6 +9,6 @@
 void
 mrb_init_enumerable(mrb_state *mrb)
 {
-  mrb_define_module(mrb, "Enumerable");
+  mrb_define_module_lit(mrb, "Enumerable");
 }
 
