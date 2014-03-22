@@ -355,16 +355,18 @@ module Enumerable
     min = nil
     first = true
 
-    self.each do |val|
+    self.each do |*val|
       if first
+        val = val.__svalue
         max = val
         min = val
         first = false
       else
         if block
-          max = val if block.call(val, max) > 0
-          min = val if block.call(val, min) < 0
+          max = val.__svalue if block.call(*val, max) > 0
+          min = val.__svalue if block.call(*val, min) < 0
         else
+          val = val.__svalue
           max = val if (val <=> max) > 0
           min = val if (val <=> min) < 0
         end
