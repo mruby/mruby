@@ -178,6 +178,9 @@ mrb_value mrb_singleton_class(mrb_state*, mrb_value);
 void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
 
 void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
+void mrb_define_method_static(mrb_state *mrb, struct RClass *c, const char *name, size_t len, mrb_func_t func, mrb_aspec aspec);
+#define mrb_define_method_lit(mrb, c, lit, func, aspec) \
+    mrb_define_method_static(mrb, c, lit, mrb_strlen_lit(lit), func, aspec)
 void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
 void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
 void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);

@@ -471,10 +471,10 @@ mrb_init_symbol(mrb_state *mrb)
 
   sym = mrb->symbol_class = mrb_define_class(mrb, "Symbol", mrb->object_class);
 
-  mrb_define_method(mrb, sym, "===",             sym_equal,      MRB_ARGS_REQ(1));              /* 15.2.11.3.1  */
-  mrb_define_method(mrb, sym, "id2name",         mrb_sym_to_s,   MRB_ARGS_NONE());              /* 15.2.11.3.2  */
-  mrb_define_method(mrb, sym, "to_s",            mrb_sym_to_s,   MRB_ARGS_NONE());              /* 15.2.11.3.3  */
-  mrb_define_method(mrb, sym, "to_sym",          sym_to_sym,     MRB_ARGS_NONE());              /* 15.2.11.3.4  */
-  mrb_define_method(mrb, sym, "inspect",         sym_inspect,    MRB_ARGS_NONE());              /* 15.2.11.3.5(x)  */
-  mrb_define_method(mrb, sym, "<=>",             sym_cmp,        MRB_ARGS_REQ(1));
+  mrb_define_method_lit(mrb, sym, "===",             sym_equal,      MRB_ARGS_REQ(1));              /* 15.2.11.3.1  */
+  mrb_define_method_lit(mrb, sym, "id2name",         mrb_sym_to_s,   MRB_ARGS_NONE());              /* 15.2.11.3.2  */
+  mrb_define_method_lit(mrb, sym, "to_s",            mrb_sym_to_s,   MRB_ARGS_NONE());              /* 15.2.11.3.3  */
+  mrb_define_method_lit(mrb, sym, "to_sym",          sym_to_sym,     MRB_ARGS_NONE());              /* 15.2.11.3.4  */
+  mrb_define_method_lit(mrb, sym, "inspect",         sym_inspect,    MRB_ARGS_NONE());              /* 15.2.11.3.5(x)  */
+  mrb_define_method_lit(mrb, sym, "<=>",             sym_cmp,        MRB_ARGS_REQ(1));
 }

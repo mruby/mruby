@@ -323,21 +323,21 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   struct RClass *random;
   struct RClass *array = mrb->array_class;
 
-  mrb_define_method(mrb, mrb->kernel_module, "rand", mrb_random_g_rand, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, mrb->kernel_module, "srand", mrb_random_g_srand, MRB_ARGS_OPT(1));
+  mrb_define_method_lit(mrb, mrb->kernel_module, "rand", mrb_random_g_rand, MRB_ARGS_OPT(1));
+  mrb_define_method_lit(mrb, mrb->kernel_module, "srand", mrb_random_g_srand, MRB_ARGS_OPT(1));
 
   random = mrb_define_class(mrb, "Random", mrb->object_class);
   MRB_SET_INSTANCE_TT(random, MRB_TT_DATA);
   mrb_define_class_method(mrb, random, "rand", mrb_random_g_rand, MRB_ARGS_OPT(1));
   mrb_define_class_method(mrb, random, "srand", mrb_random_g_srand, MRB_ARGS_OPT(1));
 
-  mrb_define_method(mrb, random, "initialize", mrb_random_init, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, random, "rand", mrb_random_rand, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, random, "srand", mrb_random_srand, MRB_ARGS_OPT(1));
+  mrb_define_method_lit(mrb, random, "initialize", mrb_random_init, MRB_ARGS_OPT(1));
+  mrb_define_method_lit(mrb, random, "rand", mrb_random_rand, MRB_ARGS_OPT(1));
+  mrb_define_method_lit(mrb, random, "srand", mrb_random_srand, MRB_ARGS_OPT(1));
   
-  mrb_define_method(mrb, array, "shuffle", mrb_ary_shuffle, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, array, "shuffle!", mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, array, "sample", mrb_ary_sample, MRB_ARGS_OPT(2));
+  mrb_define_method_lit(mrb, array, "shuffle", mrb_ary_shuffle, MRB_ARGS_OPT(1));
+  mrb_define_method_lit(mrb, array, "shuffle!", mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));
+  mrb_define_method_lit(mrb, array, "sample", mrb_ary_sample, MRB_ARGS_OPT(2));
 
   mrb_const_set(mrb, mrb_obj_value(random), mrb_intern_lit(mrb, "DEFAULT"),
           mrb_obj_new(mrb, random, 0, NULL));

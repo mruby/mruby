@@ -41,7 +41,7 @@ mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
   struct RClass *h;
 
   h = mrb->hash_class;
-  mrb_define_method(mrb, h, "values_at", hash_values_at, MRB_ARGS_ANY());
+  mrb_define_method_lit(mrb, h, "values_at", hash_values_at, MRB_ARGS_ANY());
 }
 
 void
