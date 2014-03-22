@@ -335,4 +335,41 @@ module Enumerable
     end
     min
   end
+
+  ##
+  #  call-seq:
+  #     enum.minmax                  -> [min, max]
+  #     enum.minmax { |a, b| block } -> [min, max]
+  #
+  #  Returns two elements array which contains the minimum and the
+  #  maximum value in the enumerable.  The first form assumes all
+  #  objects implement <code>Comparable</code>; the second uses the
+  #  block to return <em>a <=> b</em>.
+  #
+  #     a = %w(albatross dog horse)
+  #     a.minmax                                  #=> ["albatross", "horse"]
+  #     a.minmax { |a, b| a.length <=> b.length } #=> ["dog", "albatross"]
+
+  def minmax(&block)
+    max = nil
+    min = nil
+    first = true
+
+    self.each do |val|
+      if first
+        max = val
+        min = val
+        first = false
+      else
+        if block
+          max = val if block.call(val, max) > 0
+          min = val if block.call(val, min) < 0
+        else
+          max = val if (val <=> max) > 0
+          min = val if (val <=> min) < 0
+        end
+      end
+    end
+    [min, max]
+  end
 end
