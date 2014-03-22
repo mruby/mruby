@@ -104,7 +104,7 @@ main(int argc, char **argv)
   }
 
   krn = mrb->kernel_module;
-  mrb_define_method(mrb, krn, "__t_printstr__", mrb_t_printstr, MRB_ARGS_REQ(1));
+  mrb_define_method_lit(mrb, krn, "__t_printstr__", mrb_t_printstr, MRB_ARGS_REQ(1));
 
   mrb_init_mrbtest(mrb);
   ret = eval_test(mrb);
