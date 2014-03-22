@@ -80,3 +80,7 @@ end
 assert("Enumerable#max_by") do
   assert_equal "albatross", %w[albatross dog horse].max_by { |x| x.length }
 end
+
+assert("Enumerable#min_by") do
+  assert_equal "dog", %w[albatross dog horse].min_by { |x| x.length }
+end

@@ -301,4 +301,38 @@ module Enumerable
     end
     max
   end
+
+  ##
+  # call-seq:
+  #    enum.min_by {|obj| block }      -> obj
+  #    enum.min_by                     -> an_enumerator
+  #
+  # Returns the object in <i>enum</i> that gives the minimum
+  # value from the given block.
+  #
+  # If no block is given, an enumerator is returned instead.
+  #
+  #    %w[albatross dog horse].min_by {|x| x.length }   #=> "dog"
+
+  def min_by(&block)
+    return to_enum :min_by unless block_given?
+
+    first = true
+    min = nil
+    min_cmp = nil
+
+    self.each do |*val|
+      if first
+        min = val.__svalue
+        min_cmp = block.call(*val)
+        first = false
+      else
+        if (cmp = block.call(*val)) < min_cmp
+          min = val.__svalue
+          min_cmp = cmp
+        end
+      end
+    end
+    min
+  end
 end
