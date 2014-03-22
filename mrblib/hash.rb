@@ -162,6 +162,8 @@ class Hash
 
   # 1.9 Hash#select! returns Hash; ISO says nothing.
   def select!(&b)
+    return to_enum :select! unless block_given?
+
     keys = []
     self.each_key{|k|
       v = self[k]
@@ -178,6 +180,8 @@ class Hash
 
   # 1.9 Hash#select returns Hash; ISO says nothing.
   def select(&b)
+    return to_enum :select unless block_given?
+
     h = {}
     self.each_key{|k|
       v = self[k]
