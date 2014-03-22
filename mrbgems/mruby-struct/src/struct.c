@@ -124,7 +124,7 @@ mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
       return ptr[i];
     }
   }
-  mrb_raisef(mrb, E_INDEX_ERROR, "%S is not struct member", mrb_sym2str(mrb, id));
+  mrb_raisef(mrb, E_INDEX_ERROR, "`%S' is not a struct member", mrb_sym2str(mrb, id));
   return mrb_nil_value();       /* not reached */
 }
 
@@ -203,9 +203,8 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
       return ptr[i] = val;
     }
   }
-  mrb_raisef(mrb, E_INDEX_ERROR, "`%S' is not a struct member",
-             mrb_sym2str(mrb, mid));
-  return mrb_nil_value();            /* not reached */
+  mrb_raisef(mrb, E_INDEX_ERROR, "`%S' is not a struct member", mrb_sym2str(mrb, mid));
+  return mrb_nil_value();       /* not reached */
 }
 
 static mrb_value
