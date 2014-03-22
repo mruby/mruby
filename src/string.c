@@ -28,7 +28,6 @@
   if (STR_EMBED_P(s)) {\
     STR_SET_EMBED_LEN((s),(n));\
   } else {\
-    mrb_assert((n) <= MRB_INT_MAX);\
     s->as.heap.len = (mrb_int)(n);\
   }\
 } while (0)
@@ -273,6 +272,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
       ptr = STR_PTR(s) + off;
   }
   memcpy(STR_PTR(s) + STR_LEN(s), ptr, len);
+  mrb_assert(total <= MRB_INT_MAX);
   STR_SET_LEN(s, total);
   STR_PTR(s)[total] = '\0';   /* sentinel */
 }
