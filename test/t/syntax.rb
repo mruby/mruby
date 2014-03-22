@@ -233,7 +233,7 @@ assert('Not implemented backquote') do
 end
 
 assert('External command execution.') do
-  module Kernel
+  class << Kernel
     sym = '`'.to_sym
     alias_method :old_cmd, sym
 
@@ -256,6 +256,8 @@ assert('External command execution.') do
     assert_equal ['test', 'test dynamic `', 'test', 'test dynamic `'], results
 
     alias_method sym, :old_cmd
+
+    assert_raise(NotImplementedError) { `test` }
   end
   assert_raise(NotImplementedError) { `test` }
 end
