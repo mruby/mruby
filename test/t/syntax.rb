@@ -226,3 +226,36 @@ assert('splat in case statement') do
   assert_equal [5], resultb
   assert_equal [3,8], resultc
 end
+
+# this must be removed when Kernel.` is implemented
+assert('Not implemented backquote') do
+  assert_raise(NotImplementedError) { `test` }
+end
+
+assert('External command execution.') do
+  module Kernel
+    sym = '`'.to_sym
+    alias_method :old_cmd, sym
+
+    results = []
+    define_method(sym) do |str|
+      results.push str
+      str
+    end
+
+    `test`
+    `test dynamic #{sym}`
+    assert_equal ['test', 'test dynamic `'], results
+
+    t = `test`
+    assert_equal 'test', t
+    assert_equal ['test', 'test dynamic `', 'test'], results
+
+    t = `test dynamic #{sym}`
+    assert_equal 'test dynamic `', t
+    assert_equal ['test', 'test dynamic `', 'test', 'test dynamic `'], results
+
+    alias_method sym, :old_cmd
+  end
+  assert_raise(NotImplementedError) { `test` }
+end

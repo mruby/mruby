@@ -4,14 +4,16 @@
 # ISO 15.3.1
 module Kernel
 
+=begin
   # 15.3.1.2.1
   def self.`(s)
     raise NotImplementedError.new("` not implemented")
   end
+=end
 
   # 15.3.1.3.5
   def `(s)
-    Kernel.`(s)
+    raise NotImplementedError.new('` not implemented')
   end
 
   ##
