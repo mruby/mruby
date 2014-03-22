@@ -267,4 +267,39 @@ module Enumerable
     ary
   end
   alias collect_concat flat_map
+
+  ##
+  # call-seq:
+  #    enum.max_by {|obj| block }      -> obj
+  #    enum.max_by                     -> an_enumerator
+  #
+  # Returns the object in <i>enum</i> that gives the maximum
+  # value from the given block.
+  #
+  # If no block is given, an enumerator is returned instead.
+  #
+  #    %w[albatross dog horse].max_by { |x| x.length }   #=> "albatross"
+
+  def max_by(&block)
+    return to_enum :max_by unless block_given?
+
+    first = true
+    max = nil
+    max_cmp = nil
+
+    self.each do |*val|
+      if first
+        max = val.__svalue
+        max_cmp = block.call(val.__svalue)
+        first = false
+      else
+        if cmp = block.call(val.__svalue) > max_cmp
+          max = val.__svalue
+          max_cmp = cmp
+        end
+      end
+    end
+
+    max
+  end
 end

@@ -76,3 +76,7 @@ assert("Enumerable#flat_map") do
   assert_equal [1, -1, 2, -2, 3, -3, 4, -4], [1, 2, 3, 4].flat_map { |e| [e, -e] }
   assert_equal [1, 2, 100, 3, 4, 100], [[1, 2], [3, 4]].flat_map { |e| e + [100] }
 end
+
+assert("Enumerable#max_by") do
+  assert_equal "albatross", %w[albatross dog horse].max_by { |x| x.length }
+end
