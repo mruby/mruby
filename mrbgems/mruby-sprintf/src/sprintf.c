@@ -843,7 +843,7 @@ retry:
           else {
             val = mrb_fixnum_to_str(mrb, mrb_fixnum_value(v), base);
           }
-          v = mrb_fixnum(mrb_str_to_inum(mrb, val, 10, 0/*Qfalse*/));
+          v = mrb_fixnum(mrb_str_to_inum(mrb, val, 10, FALSE));
         }
         if (sign) {
           char c = *p;
