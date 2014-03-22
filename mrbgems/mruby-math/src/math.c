@@ -622,7 +622,7 @@ void
 mrb_mruby_math_gem_init(mrb_state* mrb)
 {
   struct RClass *mrb_math;
-  mrb_math = mrb_define_module(mrb, "Math");
+  mrb_math = mrb_define_module_lit(mrb, "Math");
 
 #ifdef M_PI
   mrb_define_const(mrb, mrb_math, "PI", mrb_float_value(mrb, M_PI));

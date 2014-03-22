@@ -14,7 +14,7 @@ mrb_mruby_sprintf_gem_init(mrb_state* mrb)
   struct RClass *krn;
 
   if (mrb->kernel_module == NULL) {
-    mrb->kernel_module = mrb_define_module(mrb, "Kernel"); /* Might be PARANOID. */
+    mrb->kernel_module = mrb_define_module_lit(mrb, "Kernel"); /* Might be PARANOID. */
   }
   krn = mrb->kernel_module;
 
