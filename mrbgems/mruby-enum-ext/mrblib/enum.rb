@@ -287,14 +287,14 @@ module Enumerable
     max = nil
     max_cmp = nil
 
-    self.each do |val|
+    self.each do |*val|
       if first
-        max = val
-        max_cmp = block.call(val)
+        max = val.__svalue
+        max_cmp = block.call(val.__svalue)
         first = false
       else
-        if cmp = block.call(val) > max_cmp
-          max = val
+        if cmp = block.call(val.__svalue) > max_cmp
+          max = val.__svalue
           max_cmp = cmp
         end
       end
