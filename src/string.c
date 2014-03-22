@@ -2152,7 +2152,7 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
   if (base < 0) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %S", mrb_fixnum_value(base));
   }
-  return mrb_str_to_inum(mrb, self, base, 0/*Qfalse*/);
+  return mrb_str_to_inum(mrb, self, base, FALSE);
 }
 
 double
@@ -2262,7 +2262,7 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck)
 static mrb_value
 mrb_str_to_f(mrb_state *mrb, mrb_value self)
 {
-  return mrb_float_value(mrb, mrb_str_to_dbl(mrb, self, 0/*Qfalse*/));
+  return mrb_float_value(mrb, mrb_str_to_dbl(mrb, self, FALSE));
 }
 
 /* 15.2.10.5.40 */
