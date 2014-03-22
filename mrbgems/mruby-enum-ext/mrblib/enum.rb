@@ -278,7 +278,7 @@ module Enumerable
   #
   # If no block is given, an enumerator is returned instead.
   #
-  #    %w[albatross dog horse].max_by { |x| x.length }   #=> "albatross"
+  #    %w[albatross dog horse].max_by {|x| x.length }   #=> "albatross"
 
   def max_by(&block)
     return to_enum :max_by unless block_given?
@@ -290,16 +290,15 @@ module Enumerable
     self.each do |*val|
       if first
         max = val.__svalue
-        max_cmp = block.call(val.__svalue)
+        max_cmp = block.call(*val)
         first = false
       else
-        if cmp = block.call(val.__svalue) > max_cmp
+        if cmp = block.call(*val) > max_cmp
           max = val.__svalue
           max_cmp = cmp
         end
       end
     end
-
     max
   end
 end
