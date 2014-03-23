@@ -94,3 +94,11 @@ end
 assert("Enumerable#minmax_by") do
   assert_equal ["dog", "albatross"], %w(albatross dog horse).minmax_by { |x| x.length }
 end
+
+assert("Enumerable#none?") do
+  assert_true %w(ant bear cat).none? { |word| word.length == 5 }
+  assert_false %w(ant bear cat).none? { |word| word.length >= 4 }
+  assert_true [].none?
+  assert_true [nil, false].none?
+  assert_false [nil, true].none?
+end

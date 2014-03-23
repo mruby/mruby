@@ -413,4 +413,27 @@ module Enumerable
     end
     [min, max]
   end
+
+  ##
+  #  call-seq:
+  #     enum.none? [{ |obj| block }]   -> true or false
+  #
+  #  Passes each element of the collection to the given block. The method
+  #  returns <code>true</code> if the block never returns <code>true</code>
+  #  for all elements. If the block is not given, <code>none?</code> will return
+  #  <code>true</code> only if none of the collection members is true.
+  #
+  #     %w(ant bear cat).none? { |word| word.length == 5 } #=> true
+  #     %w(ant bear cat).none? { |word| word.length >= 4 } #=> false
+  #     [].none?                                           #=> true
+  #     [nil, false].none?                                 #=> true
+  #     [nil, true].none?                                  #=> false
+
+  def none?(&block)
+    self.each do |val|
+      val = block.call(val) if block
+      return false if val
+    end
+    true
+  end
 end
