@@ -139,7 +139,7 @@ class Hash
     keys = []
     self.each_key{|k|
       v = self[k]
-      if b.call(k, v)
+      if b.call([k, v])
         keys.push(k)
       end
     }
@@ -157,7 +157,7 @@ class Hash
     h = {}
     self.each_key{|k|
       v = self[k]
-      unless b.call(k, v)
+      unless b.call([k, v])
         h[k] = v
       end
     }
