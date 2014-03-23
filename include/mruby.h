@@ -218,7 +218,7 @@ struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, co
 #define MRB_ARGS_BLOCK()    ((mrb_aspec)1)
 
 /* accept any number of arguments */
-#define MRB_ARGS_ANY()      ARGS_REST()
+#define MRB_ARGS_ANY()      MRB_ARGS_REST()
 /* accept no arguments */
 #define MRB_ARGS_NONE()     ((mrb_aspec)0)
 
