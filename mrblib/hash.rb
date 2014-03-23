@@ -134,10 +134,12 @@ class Hash
 
   # 1.8/1.9 Hash#reject! returns Hash; ISO says nothing.
   def reject!(&b)
+    return to_enum :reject! unless block_given?
+
     keys = []
     self.each_key{|k|
       v = self[k]
-      if b.call(k, v)
+      if b.call([k, v])
         keys.push(k)
       end
     }
@@ -150,10 +152,12 @@ class Hash
 
   # 1.8/1.9 Hash#reject returns Hash; ISO says nothing.
   def reject(&b)
+    return to_enum :reject unless block_given?
+
     h = {}
     self.each_key{|k|
       v = self[k]
-      unless b.call(k, v)
+      unless b.call([k, v])
         h[k] = v
       end
     }
