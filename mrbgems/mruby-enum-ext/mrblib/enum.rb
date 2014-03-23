@@ -465,6 +465,7 @@ module Enumerable
       else
         count += 1 if val.__svalue
       end
+      return false if count > 1
     end
     count == 1 ? true : false
   end
