@@ -2087,14 +2087,48 @@ codegen(codegen_scope *s, node *tree, int val)
     gen_literal_array(s, tree, TRUE, val);
     break;
 
+  case NODE_DXSTR:
+    {
+      node *n;
+      int ai = mrb_gc_arena_save(s->mrb);
+      int sym = new_sym(s, mrb_intern_lit(s->mrb, "Kernel"));
+
+      if (val == NOVAL) { push(); }
+      genop(s, MKOP_A(OP_OCLASS, cursp()));
+      genop(s, MKOP_ABx(OP_GETMCNST, cursp(), sym));
+      push();
+      codegen(s, tree->car, VAL);
+      n = tree->cdr;
+      while (n) {
+        if ((intptr_t)n->car->car == NODE_XSTR) {
+          n->car->car = (struct mrb_ast_node*)(intptr_t)NODE_STR;
+          mrb_assert(!n->cdr); /* must be the end */
+        }
+        codegen(s, n->car, VAL);
+        pop(); pop();
+        genop_peep(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1), VAL);
+        push();
+        n = n->cdr;
+      }
+      pop();
+      pop();
+      sym = new_sym(s, mrb_intern_lit(s->mrb, "`"));
+      genop(s, MKOP_ABC(OP_SEND, cursp(), sym, 1));
+      if (val == NOVAL) { pop(); }
+      else { push(); }
+      mrb_gc_arena_restore(s->mrb, ai);
+    }
+    break;
+
   case NODE_XSTR:
-    if (val) {
+    {
       char *p = (char*)tree->car;
       size_t len = (intptr_t)tree->cdr;
       int ai = mrb_gc_arena_save(s->mrb);
       int sym = new_sym(s, mrb_intern_lit(s->mrb, "Kernel"));
       int off = new_lit(s, mrb_str_new(s->mrb, p, len));
 
+      if (val == NOVAL) { push(); }
       genop(s, MKOP_A(OP_OCLASS, cursp()));
       genop(s, MKOP_ABx(OP_GETMCNST, cursp(), sym));
       push();
@@ -2102,8 +2136,9 @@ codegen(codegen_scope *s, node *tree, int val)
       pop();
       sym = new_sym(s, mrb_intern_lit(s->mrb, "`"));
       genop(s, MKOP_ABC(OP_SEND, cursp(), sym, 1));
+      if (val == NOVAL) { pop(); }
+      else { push(); }
       mrb_gc_arena_restore(s->mrb, ai);
-      push();
     }
     break;
 

@@ -9,10 +9,12 @@ module Kernel
     raise NotImplementedError.new("` not implemented")
   end
 
+=begin
   # 15.3.1.3.5
   def `(s)
     Kernel.`(s)
   end
+=end
 
   ##
   # Calls the given block repetitively.
