@@ -102,3 +102,12 @@ assert("Enumerable#none?") do
   assert_true [nil, false].none?
   assert_false [nil, true].none?
 end
+
+assert("Enumerable#one?") do
+  assert_true %w(ant bear cat).one? { |word| word.length == 4 }
+  assert_false %w(ant bear cat).one? { |word| word.length > 4 }
+  assert_false %w(ant bear cat).one? { |word| word.length < 4 }
+  assert_false [nil, true, 99].one?
+  assert_true [nil, true, false].one? 
+end
+

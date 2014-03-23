@@ -439,4 +439,33 @@ module Enumerable
     end
     true
   end
+
+  ##
+  #  call-seq:
+  #    enum.one? [{ |obj| block }]   -> true or false
+  #
+  # Passes each element of the collection to the given block. The method
+  # returns <code>true</code> if the block returns <code>true</code>
+  # exactly once. If the block is not given, <code>one?</code> will return
+  # <code>true</code> only if exactly one of the collection members is
+  # true.
+  #
+  #    %w(ant bear cat).one? { |word| word.length == 4 }  #=> true
+  #    %w(ant bear cat).one? { |word| word.length > 4 }   #=> false
+  #    %w(ant bear cat).one? { |word| word.length < 4 }   #=> false
+  #    [nil, true, 99].one?                               #=> false
+  #    [nil, true, false].one?                            #=> true
+  #
+
+  def one?(&block)
+    count = 0
+    self.each do |*val|
+      if block
+        count += 1 if block.call(*val)
+      else
+        count += 1 if val.__svalue
+      end
+    end
+    count == 1 ? true : false
+  end
 end
