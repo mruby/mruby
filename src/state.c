@@ -170,23 +170,40 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
   ns->tt = MRB_TT_STRING;
   ns->c = mrb->string_class;
 
-  if (s->flags & MRB_STR_EMBED)
-    len = (mrb_int)((s->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT);
-  else
-    len = s->as.heap.len;
-  ns->as.heap.len = len;
   if (s->flags & MRB_STR_NOFREE) {
-    ns->as.heap.ptr = s->as.heap.ptr;
     ns->flags = MRB_STR_NOFREE;
+    ns->as.heap.ptr = s->as.heap.ptr;
+    ns->as.heap.len = s->as.heap.len;
+    ns->as.heap.aux.capa = 0;
   }
   else {
-    ns->flags = 0;
-    ns->as.heap.ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
-    ptr = (s->flags & MRB_STR_EMBED) ? s->as.ary : s->as.heap.ptr;
-    if (ptr) {
-      memcpy(ns->as.heap.ptr, ptr, len);
+    if (s->flags & MRB_STR_EMBED) {
+      ptr = s->as.ary;
+      len = (mrb_int)((s->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT);
     }
-    ns->as.heap.ptr[len] = '\0';
+    else {
+      ptr = s->as.heap.ptr;
+      len = s->as.heap.len;
+    }
+
+    if (len < RSTRING_EMBED_LEN_MAX) {
+      ns->flags |= MRB_STR_EMBED;
+      ns->flags &= ~MRB_STR_EMBED_LEN_MASK;
+      ns->flags |= (size_t)len << MRB_STR_EMBED_LEN_SHIFT;
+      if (ptr) {
+        memcpy(ns->as.ary, ptr, len);
+      }
+      ns->as.ary[len] = '\0';
+    }
+    else {
+      ns->flags = 0;
+      ns->as.heap.ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
+      ns->as.heap.len = len;
+      if (ptr) {
+        memcpy(ns->as.heap.ptr, ptr, len);
+      }
+      ns->as.heap.ptr[len] = '\0';
+    }
   }
   return mrb_obj_value(ns);
 }
