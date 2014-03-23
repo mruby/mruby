@@ -90,3 +90,7 @@ assert("Enumerable#minmax") do
   assert_equal ["albatross", "horse"], a.minmax
   assert_equal ["dog", "albatross"], a.minmax { |a, b| a.length <=> b.length }
 end
+
+assert("Enumerable#minmax_by") do
+  assert_equal ["dog", "albatross"], %w(albatross dog horse).minmax_by { |x| x.length }
+end

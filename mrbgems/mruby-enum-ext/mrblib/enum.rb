@@ -374,4 +374,43 @@ module Enumerable
     end
     [min, max]
   end
+
+  ##
+  #  call-seq:
+  #     enum.minmax_by { |obj| block } -> [min, max]
+  #     enum.minmax_by                 -> an_enumerator
+  #
+  #  Returns a two element array containing the objects in
+  #  <i>enum</i> that correspond to the minimum and maximum values respectively
+  #  from the given block.
+  #
+  #  If no block is given, an enumerator is returned instead.
+  #
+  #     %w(albatross dog horse).minmax_by { |x| x.length }   #=> ["dog", "albatross"]
+
+  def minmax_by(&block)
+    max = nil
+    max_cmp = nil
+    min = nil
+    min_cmp = nil
+    first = true
+
+    self.each do |*val|
+      if first
+        max = min = val.__svalue
+        max_cmp = min_cmp = block.call(*val)
+        first = false
+     else
+        if (cmp = block.call(*val)) > max_cmp
+          max = val.__svalue
+          max_cmp = cmp
+        end
+        if (cmp = block.call(*val)) < min_cmp
+          min = val.__svalue
+          min_cmp = cmp
+        end
+      end
+    end
+    [min, max]
+  end
 end
