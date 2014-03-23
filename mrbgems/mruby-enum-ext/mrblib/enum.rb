@@ -430,10 +430,12 @@ module Enumerable
   #     [nil, true].none?                                  #=> false
 
   def none?(&block)
-    self.each do |*val|
-      if block
+    if block
+      self.each do |*val|
         return false if block.call(*val)
-      else
+      end
+    else
+      self.each do |*val|
         return false if val.__svalue
       end
     end
@@ -459,14 +461,18 @@ module Enumerable
 
   def one?(&block)
     count = 0
-    self.each do |*val|
-      if block
+    if block
+      self.each do |*val|
         count += 1 if block.call(*val)
-      else
-        count += 1 if val.__svalue
+        return false if count > 1
       end
-      return false if count > 1
+    else
+      self.each do |*val|
+        count += 1 if val.__svalue
+        return false if count > 1
+      end
     end
+
     count == 1 ? true : false
   end
 end
