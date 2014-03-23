@@ -430,9 +430,12 @@ module Enumerable
   #     [nil, true].none?                                  #=> false
 
   def none?(&block)
-    self.each do |val|
-      val = block.call(val) if block
-      return false if val
+    self.each do |*val|
+      if block
+        return false if block.call(*val)
+      else
+        return false if val.__svalue
+      end
     end
     true
   end
