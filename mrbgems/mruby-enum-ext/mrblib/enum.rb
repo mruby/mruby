@@ -395,18 +395,18 @@ module Enumerable
     min_cmp = nil
     first = true
 
-    self.each do |val|
+    self.each do |*val|
       if first
-        max = min = val
-        max_cmp = min_cmp = block.call(val)
+        max = min = val.__svalue
+        max_cmp = min_cmp = block.call(*val)
         first = false
      else
-        if (cmp = block.call(val)) > max_cmp
-          max = val
+        if (cmp = block.call(*val)) > max_cmp
+          max = val.__svalue
           max_cmp = cmp
         end
-        if (cmp = block.call(val)) < min_cmp
-          min = val
+        if (cmp = block.call(*val)) < min_cmp
+          min = val.__svalue
           min_cmp = cmp
         end
       end
