@@ -111,3 +111,7 @@ assert("Enumerable#one?") do
   assert_true [nil, true, false].one? 
 end
 
+assert("Enumerable#each_with_object") do
+  assert_true [2, 4, 6, 8, 10, 12, 14, 16, 18, 20], (1..10).each_with_object([]) { |i, a| a << i*2 }
+  assert_raise(ArgumentError) { (1..10).each_with_object() { |i, a| a << i*2 } }
+end
