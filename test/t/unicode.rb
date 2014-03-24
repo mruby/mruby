@@ -42,7 +42,7 @@ rescue NameError
   have_regexp = false
 end
 if have_regexp then
-  assert('Testing in regular expressions') do
+  assert('Testing \u in regular expressions') do
     # The regular expression uses the unbraced notation where the string uses
     # the braced notation, and vice versa, so these tests will fail if the \u
     # modification is not applied
