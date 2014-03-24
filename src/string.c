@@ -72,12 +72,12 @@ mrb_str_strlen(mrb_state *mrb, struct RString *s)
 #define RESIZE_CAPA(s,capacity) do {\
   if (STR_EMBED_P(s)) {\
     if (RSTRING_EMBED_LEN_MAX < (capacity)) {\
-      char *const tmp = (char *)mrb_malloc(mrb, (capacity)+1);\
-      const mrb_int len = STR_EMBED_LEN(s);\
-      memcpy(tmp, s->as.ary, len);\
+      char *const __tmp__ = (char *)mrb_malloc(mrb, (capacity)+1);\
+      const mrb_int __len__ = STR_EMBED_LEN(s);\
+      memcpy(__tmp__, s->as.ary, __len__);\
       STR_UNSET_EMBED_FLAG(s);\
-      s->as.heap.ptr = tmp;\
-      s->as.heap.len = len;\
+      s->as.heap.ptr = __tmp__;\
+      s->as.heap.len = __len__;\
       s->as.heap.aux.capa = (capacity);\
     }\
   } else {\
