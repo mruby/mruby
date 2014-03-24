@@ -197,7 +197,7 @@ class Hash
   end
 
   def __update(h)
-    h.each_key{|k| self[k] = h[v]}
+    h.each_key{|k| self[k] = h[k]}
     self
   end
 end
