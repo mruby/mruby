@@ -35,3 +35,18 @@ assert('ObjectSpace.count_objects') do
   assert_equal(h[:MRB_TT_HASH], h_before[:MRB_TT_HASH] + 1000)
   assert_equal(h_after[:MRB_TT_HASH], h_before[:MRB_TT_HASH])
 end
+
+assert('ObjectSpace.each_object') do
+  objs = []
+  objs_count = ObjectSpace.each_object { |obj|
+    objs << obj
+  }
+  assert_equal objs.length, objs_count
+
+  arys = []
+  arys_count = ObjectSpace.each_object(Array) { |obj|
+    arys << obj
+  }
+  assert_equal arys.length, arys_count
+  assert_true arys.length < objs.length
+end
