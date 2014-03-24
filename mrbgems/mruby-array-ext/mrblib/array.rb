@@ -201,4 +201,14 @@ class Array
       self.replace(result)
     end
   end
+
+  # for efficiency
+  def reverse_each(&block)
+    i = self.size - 1
+    while i>=0
+      block.call(self[i])
+      i -= 1
+    end
+    self
+  end
 end

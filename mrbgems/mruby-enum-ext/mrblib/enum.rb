@@ -519,8 +519,8 @@ module Enumerable
 
   def reverse_each(&block)
     ary = []
-    self.each {|*val| ary.unshift(*val) }
-    ary.each {|*val| block.call(*val) }
+    self.each {|*val| ary.push(val.__svalue) }
+    ary.reverse_each(&block)
     self
   end
 end
