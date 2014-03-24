@@ -495,7 +495,7 @@ module Enumerable
 
     return to_enum :each_with_object unless block_given?
 
-    self.each {|*val| block.call(*val, obj) }
+    self.each {|*val| block.call(val.__svalue, obj) }
     obj
   end
 end
