@@ -122,3 +122,10 @@ assert("Enumerable#reverse_each") do
   assert_equal (1..3), r.reverse_each { |v| a << v }
   assert_equal [3, 2, 1], a
 end
+
+assert("Enumerable#cycle") do
+  a = []
+  ["a", "b", "c"].cycle(2) { |v| a << v }
+  assert_equal ["a", "b", "c", "a", "b", "c"], a
+  assert_raise(TypeError) { ["a", "b", "c"].cycle("a") { |v| a << v } }
+end
