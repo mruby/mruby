@@ -498,4 +498,29 @@ module Enumerable
     self.each {|*val| block.call(val.__svalue, obj) }
     obj
   end
+
+  ##
+  #  call-seq:
+  #     enum.reverse_each { |item| block } ->  enum
+  #     enum.reverse_each                  ->  an_enumerator
+  #
+  #  Builds a temporary array and traverses that array in reverse order.
+  #
+  #  If no block is given, an enumerator is returned instead.
+  #
+  #      (1..3).reverse_each { |v| p v }
+  #
+  #    produces:
+  #
+  #      3
+  #      2
+  #      1
+  #
+
+  def reverse_each(&block)
+    ary = []
+    self.each {|*val| ary.unshift(*val) }
+    ary.each {|*val| block.call(*val) }
+    self
+  end
 end
