@@ -523,4 +523,38 @@ module Enumerable
     ary.reverse_each(&block)
     self
   end
+
+  ##
+  #  call-seq:
+  #     enum.cycle(n=nil) { |obj| block }  ->  nil
+  #     enum.cycle(n=nil)                  ->  an_enumerator
+  #
+  #  Calls <i>block</i> for each element of <i>enum</i> repeatedly _n_
+  #  times or forever if none or +nil+ is given.  If a non-positive
+  #  number is given or the collection is empty, does nothing.  Returns
+  #  +nil+ if the loop has finished without getting interrupted.
+  #
+  #  Enumerable#cycle saves elements in an internal array so changes
+  #  to <i>enum</i> after the first pass have no effect.
+  #
+  #  If no block is given, an enumerator is returned instead.
+  #
+  #     a = ["a", "b", "c"]
+  #     a.cycle { |x| puts x }  # print, a, b, c, a, b, c,.. forever.
+  #     a.cycle(2) { |x| puts x }  # print, a, b, c, a, b, c.
+  #
+
+  def cycle(n=nil, &block)
+    if n == nil
+      loop {self.each {|val| block.call(val) } }
+    else
+      raise TypeError, "expected Integer for 1st argument" unless n.kind_of? Integer
+
+      count = 0
+      while count < n
+        self.each {|val| block.call(val) }
+        count += 1
+      end
+    end
+  end
 end
