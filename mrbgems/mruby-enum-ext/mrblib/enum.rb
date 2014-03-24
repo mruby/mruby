@@ -475,4 +475,27 @@ module Enumerable
 
     count == 1 ? true : false
   end
+
+  ##
+  #  call-seq:
+  #    enum.each_with_object(obj) { |(*args), memo_obj| ... }  ->  obj
+  #    enum.each_with_object(obj)                              ->  an_enumerator
+  #
+  #  Iterates the given block for each element with an arbitrary
+  #  object given, and returns the initially given object.
+  #
+  #  If no block is given, returns an enumerator.
+  #
+  #     (1..10).each_with_object([]) { |i, a| a << i*2 }
+  #     #=> [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+  #
+
+  def each_with_object(obj=nil, &block)
+    raise ArgumentError, "wrong number of arguments (0 for 1)" if obj == nil
+
+    return to_enum :each_with_object unless block_given?
+
+    self.each {|*val| block.call(*val, obj) }
+    obj
+  end
 end
