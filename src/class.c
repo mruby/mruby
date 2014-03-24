@@ -612,6 +612,9 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
                 *p = (mrb_int)f;
               }
               break;
+            case MRB_TT_STRING:
+              mrb_raise(mrb, E_TYPE_ERROR, "String can't be coerced into int");
+              break;
             default:
               *p = mrb_fixnum(mrb_Integer(mrb, *sp));
               break;

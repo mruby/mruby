@@ -47,11 +47,21 @@ assert("Enumerable#sort_by") do
 end
 
 assert("Enumerable#first") do
-  a = [1, 2, 3]
+  a = Object.new
+  a.extend Enumerable
+  def a.each
+    yield 1
+    yield 2
+    yield 3
+  end
   assert_equal 1, a.first
   assert_equal [1, 2], a.first(2)
   assert_equal [1, 2, 3], a.first(10)
-  assert_nil [].first
+  a = Object.new
+  a.extend Enumerable
+  def a.each
+  end
+  assert_nil a.first
 end
 
 assert("Enumerable#count") do
@@ -59,4 +69,49 @@ assert("Enumerable#count") do
   assert_equal 4, a.count
   assert_equal 2, a.count(2)
   assert_equal 3, a.count{|x| x % 2 == 0}
+end
+
+assert("Enumerable#flat_map") do
+  assert_equal [1, 2, 3, 4], [1, 2, 3, 4].flat_map { |e| e }
+  assert_equal [1, -1, 2, -2, 3, -3, 4, -4], [1, 2, 3, 4].flat_map { |e| [e, -e] }
+  assert_equal [1, 2, 100, 3, 4, 100], [[1, 2], [3, 4]].flat_map { |e| e + [100] }
+end
+
+assert("Enumerable#max_by") do
+  assert_equal "albatross", %w[albatross dog horse].max_by { |x| x.length }
+end
+
+assert("Enumerable#min_by") do
+  assert_equal "dog", %w[albatross dog horse].min_by { |x| x.length }
+end
+
+assert("Enumerable#minmax") do
+  a = %w(albatross dog horse)
+  assert_equal ["albatross", "horse"], a.minmax
+  assert_equal ["dog", "albatross"], a.minmax { |a, b| a.length <=> b.length }
+end
+
+assert("Enumerable#minmax_by") do
+  assert_equal ["dog", "albatross"], %w(albatross dog horse).minmax_by { |x| x.length }
+end
+
+assert("Enumerable#none?") do
+  assert_true %w(ant bear cat).none? { |word| word.length == 5 }
+  assert_false %w(ant bear cat).none? { |word| word.length >= 4 }
+  assert_true [].none?
+  assert_true [nil, false].none?
+  assert_false [nil, true].none?
+end
+
+assert("Enumerable#one?") do
+  assert_true %w(ant bear cat).one? { |word| word.length == 4 }
+  assert_false %w(ant bear cat).one? { |word| word.length > 4 }
+  assert_false %w(ant bear cat).one? { |word| word.length < 4 }
+  assert_false [nil, true, 99].one?
+  assert_true [nil, true, false].one? 
+end
+
+assert("Enumerable#each_with_object") do
+  assert_true [2, 4, 6, 8, 10, 12, 14, 16, 18, 20], (1..10).each_with_object([]) { |i, a| a << i*2 }
+  assert_raise(ArgumentError) { (1..10).each_with_object() { |i, a| a << i*2 } }
 end

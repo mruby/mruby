@@ -28,7 +28,6 @@
   if (STR_EMBED_P(s)) {\
     STR_SET_EMBED_LEN((s),(n));\
   } else {\
-    mrb_assert((n) <= MRB_INT_MAX);\
     s->as.heap.len = (mrb_int)(n);\
   }\
 } while (0)
@@ -273,6 +272,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
       ptr = STR_PTR(s) + off;
   }
   memcpy(STR_PTR(s) + STR_LEN(s), ptr, len);
+  mrb_assert(total <= MRB_INT_MAX);
   STR_SET_LEN(s, total);
   STR_PTR(s)[total] = '\0';   /* sentinel */
 }
@@ -2152,7 +2152,7 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
   if (base < 0) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %S", mrb_fixnum_value(base));
   }
-  return mrb_str_to_inum(mrb, self, base, 0/*Qfalse*/);
+  return mrb_str_to_inum(mrb, self, base, FALSE);
 }
 
 double
@@ -2262,7 +2262,7 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck)
 static mrb_value
 mrb_str_to_f(mrb_state *mrb, mrb_value self)
 {
-  return mrb_float_value(mrb, mrb_str_to_dbl(mrb, self, 0/*Qfalse*/));
+  return mrb_float_value(mrb, mrb_str_to_dbl(mrb, self, FALSE));
 }
 
 /* 15.2.10.5.40 */

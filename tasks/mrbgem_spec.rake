@@ -55,7 +55,7 @@ module MRuby
         MRuby::Gem.current = self
         @build.compilers.each do |compiler|
           compiler.include_paths << "#{dir}/include"
-        end if Dir.exist? "#{dir}/include"
+        end if File.directory? "#{dir}/include"
         MRuby::Build::COMMANDS.each do |command|
           instance_variable_set("@#{command}", @build.send(command).clone)
         end

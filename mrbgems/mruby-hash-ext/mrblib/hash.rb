@@ -10,4 +10,7 @@ class Hash
     end
     self
   end
+
+  alias each_pair each
+  alias update merge!
 end

@@ -1424,7 +1424,7 @@ RETRY_TRY_BLOCK:
               goto L_RAISE;
             }
             if (mrb->c->prev->ci == mrb->c->prev->cibase) {
-              mrb_value exc = mrb_exc_new_str_lit(mrb, E_RUNTIME_ERROR, "double resume");
+              mrb_value exc = mrb_exc_new_str_lit(mrb, E_FIBER_ERROR, "double resume");
               mrb->exc = mrb_obj_ptr(exc);
               goto L_RAISE;
             }

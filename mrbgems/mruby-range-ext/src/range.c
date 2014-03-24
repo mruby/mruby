@@ -78,16 +78,16 @@ mrb_range_cover(mrb_state *mrb, mrb_value range)
 static mrb_value
 mrb_range_first(mrb_state *mrb, mrb_value range)
 {
-  mrb_value num;
+  mrb_int num;
   mrb_value array;
   struct RRange *r = mrb_range_ptr(range);
 
-  if (mrb_get_args(mrb, "|o", &num) == 0) {
+  if (mrb_get_args(mrb, "|i", &num) == 0) {
     return r->edges->beg;
   }
 
   array = mrb_funcall(mrb, range, "to_a", 0);
-  return mrb_funcall(mrb, array, "first", 1, mrb_to_int(mrb, num));
+  return mrb_funcall(mrb, array, "first", 1, mrb_fixnum_value(num));
 }
 
 /*

@@ -130,6 +130,18 @@ assert('Float#round', '15.2.9.3.12') do
   assert_equal(    3, g)
   assert_float(  3.4, h)
   assert_float(3.423, i)
+
+  assert_equal(42.0, 42.0.round(307))
+  assert_equal(1.0e307, 1.0e307.round(2))
+
+  inf = 1.0/0.0
+  assert_raise(FloatDomainError){ inf.round }
+  assert_raise(FloatDomainError){ inf.round(-1) }
+  assert_equal(inf, inf.round(1))
+  nan = 0.0/0.0
+  assert_raise(FloatDomainError){ nan.round }
+  assert_raise(FloatDomainError){ nan.round(-1) }
+  assert_true(nan.round(1).nan?)
 end
 
 assert('Float#to_f', '15.2.9.3.13') do

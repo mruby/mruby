@@ -1501,16 +1501,32 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_HASH:
     {
       int len = 0;
+      mrb_bool update = FALSE;
 
       while (tree) {
         codegen(s, tree->car->car, val);
         codegen(s, tree->car->cdr, val);
         len++;
         tree = tree->cdr;
+        if (val && len == 126) {
+          pop_n(len*2);
+          genop(s, MKOP_ABC(OP_HASH, cursp(), cursp(), len));
+          if (update) {
+            pop();
+            genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "__update")), 1));
+          }
+          push();
+          update = TRUE;
+          len = 0;
+        }
       }
       if (val) {
         pop_n(len*2);
         genop(s, MKOP_ABC(OP_HASH, cursp(), cursp(), len));
+        if (update) {
+          pop();
+          genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "__update")), 1));
+        }
         push();
       }
     }

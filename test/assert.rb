@@ -218,7 +218,7 @@ def report()
     puts msg
   end
 
-  $total_test = $ok_test.+($ko_test)
+  $total_test = $ok_test+$ko_test+$kill_test
   t_print("Total: #{$total_test}\n")
 
   t_print("   OK: #{$ok_test}\n")

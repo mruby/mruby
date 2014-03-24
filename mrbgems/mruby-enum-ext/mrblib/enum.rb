@@ -210,6 +210,16 @@ module Enumerable
     end
   end
 
+  ##
+  # call-seq:
+  #    enum.count                 -> int
+  #    enum.count(item)           -> int
+  #    enum.count { |obj| block } -> int
+  #
+  # Returns the number of items in +enum+ through enumeration.
+  # If an argument is given, the number of items in +enum+ that
+  # are equal to +item+ are counted.  If a block is given, it
+  # counts the number of elements yielding a true value.
   def count(v=NONE, &block)
     count = 0
     if block
@@ -226,5 +236,266 @@ module Enumerable
       end
     end
     count
+  end
+
+  ##
+  # call-seq:
+  #    enum.flat_map       { |obj| block } -> array
+  #    enum.collect_concat { |obj| block } -> array
+  #    enum.flat_map                       -> an_enumerator
+  #    enum.collect_concat                 -> an_enumerator
+  #
+  # Returns a new array with the concatenated results of running
+  # <em>block</em> once for every element in <i>enum</i>.
+  #
+  # If no block is given, an enumerator is returned instead.
+  #
+  #    [1, 2, 3, 4].flat_map { |e| [e, -e] } #=> [1, -1, 2, -2, 3, -3, 4, -4]
+  #    [[1, 2], [3, 4]].flat_map { |e| e + [100] } #=> [1, 2, 100, 3, 4, 100]
+  def flat_map(&block)
+    return to_enum :flat_map unless block_given?
+
+    ary = []
+    self.each do |*e|
+      e2 = block.call(*e)
+      if e2.respond_to? :each
+        e2.each {|e3| ary.push(e3) }
+      else
+        ary.push(e2)
+      end
+    end
+    ary
+  end
+  alias collect_concat flat_map
+
+  ##
+  # call-seq:
+  #    enum.max_by {|obj| block }      -> obj
+  #    enum.max_by                     -> an_enumerator
+  #
+  # Returns the object in <i>enum</i> that gives the maximum
+  # value from the given block.
+  #
+  # If no block is given, an enumerator is returned instead.
+  #
+  #    %w[albatross dog horse].max_by {|x| x.length }   #=> "albatross"
+
+  def max_by(&block)
+    return to_enum :max_by unless block_given?
+
+    first = true
+    max = nil
+    max_cmp = nil
+
+    self.each do |*val|
+      if first
+        max = val.__svalue
+        max_cmp = block.call(*val)
+        first = false
+      else
+        if (cmp = block.call(*val)) > max_cmp
+          max = val.__svalue
+          max_cmp = cmp
+        end
+      end
+    end
+    max
+  end
+
+  ##
+  # call-seq:
+  #    enum.min_by {|obj| block }      -> obj
+  #    enum.min_by                     -> an_enumerator
+  #
+  # Returns the object in <i>enum</i> that gives the minimum
+  # value from the given block.
+  #
+  # If no block is given, an enumerator is returned instead.
+  #
+  #    %w[albatross dog horse].min_by {|x| x.length }   #=> "dog"
+
+  def min_by(&block)
+    return to_enum :min_by unless block_given?
+
+    first = true
+    min = nil
+    min_cmp = nil
+
+    self.each do |*val|
+      if first
+        min = val.__svalue
+        min_cmp = block.call(*val)
+        first = false
+      else
+        if (cmp = block.call(*val)) < min_cmp
+          min = val.__svalue
+          min_cmp = cmp
+        end
+      end
+    end
+    min
+  end
+
+  ##
+  #  call-seq:
+  #     enum.minmax                  -> [min, max]
+  #     enum.minmax { |a, b| block } -> [min, max]
+  #
+  #  Returns two elements array which contains the minimum and the
+  #  maximum value in the enumerable.  The first form assumes all
+  #  objects implement <code>Comparable</code>; the second uses the
+  #  block to return <em>a <=> b</em>.
+  #
+  #     a = %w(albatross dog horse)
+  #     a.minmax                                  #=> ["albatross", "horse"]
+  #     a.minmax { |a, b| a.length <=> b.length } #=> ["dog", "albatross"]
+
+  def minmax(&block)
+    max = nil
+    min = nil
+    first = true
+
+    self.each do |*val|
+      if first
+        val = val.__svalue
+        max = val
+        min = val
+        first = false
+      else
+        if block
+          max = val.__svalue if block.call(*val, max) > 0
+          min = val.__svalue if block.call(*val, min) < 0
+        else
+          val = val.__svalue
+          max = val if (val <=> max) > 0
+          min = val if (val <=> min) < 0
+        end
+      end
+    end
+    [min, max]
+  end
+
+  ##
+  #  call-seq:
+  #     enum.minmax_by { |obj| block } -> [min, max]
+  #     enum.minmax_by                 -> an_enumerator
+  #
+  #  Returns a two element array containing the objects in
+  #  <i>enum</i> that correspond to the minimum and maximum values respectively
+  #  from the given block.
+  #
+  #  If no block is given, an enumerator is returned instead.
+  #
+  #     %w(albatross dog horse).minmax_by { |x| x.length }   #=> ["dog", "albatross"]
+
+  def minmax_by(&block)
+    max = nil
+    max_cmp = nil
+    min = nil
+    min_cmp = nil
+    first = true
+
+    self.each do |*val|
+      if first
+        max = min = val.__svalue
+        max_cmp = min_cmp = block.call(*val)
+        first = false
+     else
+        if (cmp = block.call(*val)) > max_cmp
+          max = val.__svalue
+          max_cmp = cmp
+        end
+        if (cmp = block.call(*val)) < min_cmp
+          min = val.__svalue
+          min_cmp = cmp
+        end
+      end
+    end
+    [min, max]
+  end
+
+  ##
+  #  call-seq:
+  #     enum.none? [{ |obj| block }]   -> true or false
+  #
+  #  Passes each element of the collection to the given block. The method
+  #  returns <code>true</code> if the block never returns <code>true</code>
+  #  for all elements. If the block is not given, <code>none?</code> will return
+  #  <code>true</code> only if none of the collection members is true.
+  #
+  #     %w(ant bear cat).none? { |word| word.length == 5 } #=> true
+  #     %w(ant bear cat).none? { |word| word.length >= 4 } #=> false
+  #     [].none?                                           #=> true
+  #     [nil, false].none?                                 #=> true
+  #     [nil, true].none?                                  #=> false
+
+  def none?(&block)
+    if block
+      self.each do |*val|
+        return false if block.call(*val)
+      end
+    else
+      self.each do |*val|
+        return false if val.__svalue
+      end
+    end
+    true
+  end
+
+  ##
+  #  call-seq:
+  #    enum.one? [{ |obj| block }]   -> true or false
+  #
+  # Passes each element of the collection to the given block. The method
+  # returns <code>true</code> if the block returns <code>true</code>
+  # exactly once. If the block is not given, <code>one?</code> will return
+  # <code>true</code> only if exactly one of the collection members is
+  # true.
+  #
+  #    %w(ant bear cat).one? { |word| word.length == 4 }  #=> true
+  #    %w(ant bear cat).one? { |word| word.length > 4 }   #=> false
+  #    %w(ant bear cat).one? { |word| word.length < 4 }   #=> false
+  #    [nil, true, 99].one?                               #=> false
+  #    [nil, true, false].one?                            #=> true
+  #
+
+  def one?(&block)
+    count = 0
+    if block
+      self.each do |*val|
+        count += 1 if block.call(*val)
+        return false if count > 1
+      end
+    else
+      self.each do |*val|
+        count += 1 if val.__svalue
+        return false if count > 1
+      end
+    end
+
+    count == 1 ? true : false
+  end
+
+  ##
+  #  call-seq:
+  #    enum.each_with_object(obj) { |(*args), memo_obj| ... }  ->  obj
+  #    enum.each_with_object(obj)                              ->  an_enumerator
+  #
+  #  Iterates the given block for each element with an arbitrary
+  #  object given, and returns the initially given object.
+  #
+  #  If no block is given, returns an enumerator.
+  #
+  #     (1..10).each_with_object([]) { |i, a| a << i*2 }
+  #     #=> [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+  #
+
+  def each_with_object(obj=nil, &block)
+    raise ArgumentError, "wrong number of arguments (0 for 1)" if obj == nil
+
+    return to_enum :each_with_object unless block_given?
+
+    self.each {|*val| block.call(val.__svalue, obj) }
+    obj
   end
 end
