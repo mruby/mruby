@@ -548,14 +548,30 @@ module Enumerable
   #
 
   def cycle(n=nil, &block)
+    ary = []
     if n == nil
-      loop {self.each {|val| block.call(val) } }
+      self.each do|*val|
+        ary.push val
+        block.call(*val)
+      end
+      loop do
+        ary.each do|e|
+          block.call(*e)
+        end
+      end
     else
-      raise TypeError, "expected Integer for 1st argument" unless n.kind_of? Integer
+      unless n.kind_of? Integer
+        raise TypeError, "expected Integer for 1st argument"
+      end
 
+      self.each do|*val|
+        ary.push val
+      end
       count = 0
       while count < n
-        self.each {|val| block.call(val) }
+        ary.each do|e|
+          block.call(*e)
+        end
         count += 1
       end
     end
