@@ -40,7 +40,7 @@ static void yyerror(parser_state *p, const char *s);
 static void yywarn(parser_state *p, const char *s);
 static void yywarning(parser_state *p, const char *s);
 static void backref_error(parser_state *p, node *n);
-static void tokadd(parser_state *p, int c);
+static void tokadd(parser_state *p, int32_t c);
 
 #ifndef isascii
 #define isascii(c) (((c) & ~0x7f) == 0)
@@ -3465,10 +3465,44 @@ newtok(parser_state *p)
 }
 
 static void
-tokadd(parser_state *p, int c)
+tokadd(parser_state *p, int32_t c)
 {
-  if (p->bidx < MRB_PARSER_BUF_SIZE) {
-    p->buf[p->bidx++] = c;
+  char utf8[4];
+  unsigned len;
+
+  /* mrb_assert(-0x10FFFF <= c && c <= 0xFF); */
+  if (c >= 0) {
+    /* Single byte from source or non-Unicode escape */
+    utf8[0] = (char)c;
+    len = 1;
+  } else {
+    /* Unicode character */
+    c = -c;
+    if (c < 0x80) {
+      utf8[0] = (char)c;
+      len = 1;
+    } else if (c < 0x800) {
+      utf8[0] = (char)(0xC0 | (c >> 6));
+      utf8[1] = (char)(0x80 | (c & 0x3F));
+      len = 2;
+    } else if (c < 0x10000) {
+      utf8[0] = (char)(0xE0 |  (c >> 12)        );
+      utf8[1] = (char)(0x80 | ((c >>  6) & 0x3F));
+      utf8[2] = (char)(0x80 | ( c        & 0x3F));
+      len = 3;
+    } else {
+      utf8[0] = (char)(0xF0 |  (c >> 18)        );
+      utf8[1] = (char)(0x80 | ((c >> 12) & 0x3F));
+      utf8[2] = (char)(0x80 | ((c >>  6) & 0x3F));
+      utf8[3] = (char)(0x80 | ( c        & 0x3F));
+      len = 4;
+    }
+  }
+  if (p->bidx+len <= MRB_PARSER_BUF_SIZE) {
+    unsigned i;
+    for (i = 0; i < len; i++) {
+      p->buf[p->bidx++] = utf8[i];
+    }
   }
 }
 
@@ -3522,15 +3556,15 @@ scan_oct(const int *start, int len, int *retlen)
   return retval;
 }
 
-static int
+static int32_t
 scan_hex(const int *start, int len, int *retlen)
 {
   static const char hexdigit[] = "0123456789abcdef0123456789ABCDEF";
   const int *s = start;
-  int retval = 0;
+  int32_t retval = 0;
   char *tmp;
 
-  /* mrb_assert(len <= 2) */
+  /* mrb_assert(len <= 8) */
   while (len-- && *s && (tmp = (char*)strchr(hexdigit, *s))) {
     retval <<= 4;
     retval |= (tmp - hexdigit) & 15;
@@ -3541,10 +3575,11 @@ scan_hex(const int *start, int len, int *retlen)
   return retval;
 }
 
-static int
+/* Return negative to indicate Unicode code point */
+static int32_t
 read_escape(parser_state *p)
 {
-  int c;
+  int32_t c;
 
   switch (c = nextc(p)) {
   case '\\':/* Backslash */
@@ -3610,6 +3645,53 @@ read_escape(parser_state *p)
     }
   }
   return c;
+
+  case 'u':     /* Unicode */
+  {
+    int buf[9];
+    int i;
+
+    /* Look for opening brace */
+    i = 0;
+    buf[0] = nextc(p);
+    if (buf[0] < 0) goto eof;
+    if (buf[0] == '{') {
+      /* \u{xxxxxxxx} form */
+      for (i=0; i<9; i++) {
+        buf[i] = nextc(p);
+        if (buf[i] < 0) goto eof;
+        if (buf[i] == '}') {
+          break;
+        } else if (!ISXDIGIT(buf[i])) {
+          yyerror(p, "Invalid escape character syntax");
+          pushback(p, buf[i]);
+          return 0;
+        }
+      }
+    } else if (ISXDIGIT(buf[0])) {
+      /* \uxxxx form */
+      for (i=1; i<4; i++) {
+        buf[i] = nextc(p);
+        if (buf[i] < 0) goto eof;
+        if (!ISXDIGIT(buf[i])) {
+          pushback(p, buf[i]);
+          break;
+        }
+      }
+    } else {
+      pushback(p, buf[0]);
+    }
+    c = scan_hex(buf, i, &i);
+    if (i == 0) {
+      yyerror(p, "Invalid escape character syntax");
+      return 0;
+    }
+    if (c < 0 || c > 0x10FFFF || (c & 0xFFFFF800) == 0xD800) {
+      yyerror(p, "Invalid Unicode code point");
+      return 0;
+    }
+  }
+  return -c;
 
   case 'b':/* backspace */
     return '\010';
@@ -3726,9 +3808,14 @@ parse_string(parser_state *p)
         }
         else {
           if (type & STR_FUNC_REGEXP) {
+            if (c == 'u') {
+              pushback(p, c);
+              tokadd(p, read_escape(p));
+            } else {
             tokadd(p, '\\');
             if (c >= 0)
               tokadd(p, c);
+            }
           } else {
             pushback(p, c);
             tokadd(p, read_escape(p));
@@ -3932,7 +4019,7 @@ arg_ambiguous(parser_state *p)
 static int
 parser_yylex(parser_state *p)
 {
-  int c;
+  int32_t c;
   int space_seen = 0;
   int cmd_state;
   enum mrb_lex_state_enum last_state;
