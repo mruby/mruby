@@ -506,7 +506,7 @@ mrb_value
 mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
 {
   mrb_value s;
-  int i, len;
+  mrb_int i, len;
 
   mrb_get_args(mrb, "o", &s);
 
