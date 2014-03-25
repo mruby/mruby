@@ -104,7 +104,7 @@ os_count_objects(mrb_state *mrb, mrb_value self)
 struct os_each_object_data {
   mrb_value block;
   struct RClass *target_module;
-  int count;
+  mrb_int count;
 };
 
 static void
