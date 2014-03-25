@@ -603,13 +603,13 @@ module Enumerable
 
     idx = 0
     if block
-      self.each do |e|
-        return idx if block.call(e)
+      self.each do |*e|
+        return idx if block.call(*e)
         idx += 1
       end
     else
-      self.each do |e|
-        return idx if e == val
+      self.each do |*e|
+        return idx if e.__svalue == val
         idx += 1
       end
     end
