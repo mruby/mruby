@@ -129,7 +129,7 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
     return;
   }
   if (s->flags & MRB_STR_NOFREE) {
-    char *p = STR_PTR(s);
+    char *p = s->as.heap.ptr;
 
     s->as.heap.ptr = (char *)mrb_malloc(mrb, (size_t)s->as.heap.len+1);
     if (p) {
@@ -382,16 +382,16 @@ str_make_shared(mrb_state *mrb, struct RString *s)
     }
     else if (s->flags & MRB_STR_NOFREE) {
       shared->nofree = TRUE;
-      shared->ptr = STR_PTR(s);
+      shared->ptr = s->as.heap.ptr;
       s->flags &= ~MRB_STR_NOFREE;
     }
     else {
       shared->nofree = FALSE;
       if (s->as.heap.aux.capa > s->as.heap.len) {
-        s->as.heap.ptr = shared->ptr = (char *)mrb_realloc(mrb, STR_PTR(s), s->as.heap.len+1);
+        s->as.heap.ptr = shared->ptr = (char *)mrb_realloc(mrb, s->as.heap.ptr, s->as.heap.len+1);
       }
       else {
-        shared->ptr = STR_PTR(s);
+        shared->ptr = s->as.heap.ptr;
       }
     }
     shared->len = s->as.heap.len;
@@ -1441,7 +1441,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   else {
     if (len <= RSTRING_EMBED_LEN_MAX) {
       STR_SET_EMBED_FLAG(s1);
-      memcpy(STR_PTR(s1), STR_PTR(s2), len);
+      memcpy(s1->as.ary, STR_PTR(s2), len);
       STR_SET_EMBED_LEN(s1, len);
     }
     else {
