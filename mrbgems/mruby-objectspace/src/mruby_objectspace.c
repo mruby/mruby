@@ -1,6 +1,7 @@
 #include <mruby.h>
 #include <mruby/gc.h>
 #include <mruby/hash.h>
+#include <mruby/class.h>
 
 struct os_count_struct {
   mrb_int total;
@@ -100,11 +101,54 @@ os_count_objects(mrb_state *mrb, mrb_value self)
   return hash;
 }
 
+struct os_each_object_data {
+  mrb_value block;
+  struct RClass *target_module;
+  mrb_int count;
+};
+
+static void
+os_each_object_cb(mrb_state *mrb, struct RBasic *obj, void *ud)
+{
+  struct os_each_object_data *d = (struct os_each_object_data*)ud;
+
+  /* filter dead objects */
+  if (is_dead(mrb, obj)) {
+    return;
+  }
+
+  /* filter class kind if target module defined */
+  if (d->target_module && !mrb_obj_is_kind_of(mrb, mrb_obj_value(obj), d->target_module)) {
+    return;
+  }
+
+  mrb_yield(mrb, d->block, mrb_obj_value(obj));
+  ++d->count;
+}
+
+static mrb_value
+os_each_object(mrb_state *mrb, mrb_value self)
+{
+  mrb_value cls = mrb_nil_value();
+  struct os_each_object_data d;
+  mrb_get_args(mrb, "&|C", &d.block, &cls);
+
+  if (mrb_nil_p(d.block)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "Expected block in ObjectSpace.each_object.");
+  }
+
+  d.target_module = mrb_nil_p(cls) ? NULL : mrb_class_ptr(cls);
+  d.count = 0;
+  mrb_objspace_each_objects(mrb, os_each_object_cb, &d);
+  return mrb_fixnum_value(d.count);
+}
+
 void
 mrb_mruby_objectspace_gem_init(mrb_state *mrb)
 {
   struct RClass *os = mrb_define_module(mrb, "ObjectSpace");
   mrb_define_class_method(mrb, os, "count_objects", os_count_objects, MRB_ARGS_OPT(1));
+  mrb_define_class_method(mrb, os, "each_object", os_each_object, MRB_ARGS_OPT(1));
 }
 
 void
