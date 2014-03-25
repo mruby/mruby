@@ -13,9 +13,10 @@ module Enumerable
   #    a.drop(3)             #=> [4, 5, 0]
 
   def drop(n)
-    raise TypeError, "expected Integer for 1st argument" unless n.kind_of? Integer
+    raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
     raise ArgumentError, "attempt to drop negative size" if n < 0
 
+    n = n.to_int
     ary = []
     self.each {|*val| n == 0 ? ary << val.__svalue : n -= 1 }
     ary
@@ -51,9 +52,10 @@ module Enumerable
   #    a.take(3)             #=> [1, 2, 3]
 
   def take(n)
-    raise TypeError, "expected Integer for 1st argument" unless n.kind_of? Integer
+    raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
     raise ArgumentError, "attempt to take negative size" if n < 0
 
+    n = n.to_int
     ary = []
     self.each do |*val|
       break if ary.size >= n
@@ -102,10 +104,11 @@ module Enumerable
   #     [8, 9, 10]
 
   def each_cons(n, &block)
-    raise TypeError, "expected Integer for 1st argument" unless n.kind_of? Integer
+    raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
     raise ArgumentError, "invalid size" if n <= 0
 
     ary = []
+    n = n.to_int
     self.each do |*val|
       ary.shift if ary.size == n
       ary << val.__svalue
@@ -128,10 +131,11 @@ module Enumerable
   #     [10]
 
   def each_slice(n, &block)
-    raise TypeError, "expected Integer for 1st argument" unless n.kind_of? Integer
+    raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
     raise ArgumentError, "invalid slice size" if n <= 0
 
     ary = []
+    n = n.to_int
     self.each do |*val|
       ary << val.__svalue
       if ary.size == n
@@ -560,10 +564,9 @@ module Enumerable
         end
       end
     else
-      unless n.kind_of? Integer
-        raise TypeError, "expected Integer for 1st argument"
-      end
+      raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
 
+      n = n.to_int
       self.each do|*val|
         ary.push val
       end
