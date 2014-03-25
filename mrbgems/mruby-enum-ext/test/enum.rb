@@ -129,3 +129,9 @@ assert("Enumerable#cycle") do
   assert_equal ["a", "b", "c", "a", "b", "c"], a
   assert_raise(TypeError) { ["a", "b", "c"].cycle("a") { |v| a << v } }
 end
+
+assert("Enumerable#find_index") do
+  assert_nil (1..10).find_index { |i| i % 5 == 0 and i % 7 == 0 }
+  assert_equal 34, (1..100).find_index { |i| i % 5 == 0 and i % 7 == 0 }
+  assert_equal 49 ,(1..100).find_index(50)
+end

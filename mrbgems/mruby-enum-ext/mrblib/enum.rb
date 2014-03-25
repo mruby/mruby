@@ -579,4 +579,40 @@ module Enumerable
       end
     end
   end
+
+  ##
+  #  call-seq:
+  #     enum.find_index(value)          -> int or nil
+  #     enum.find_index { |obj| block } -> int or nil
+  #     enum.find_index                 -> an_enumerator
+  #
+  #  Compares each entry in <i>enum</i> with <em>value</em> or passes
+  #  to <em>block</em>.  Returns the index for the first for which the
+  #  evaluated value is non-false.  If no object matches, returns
+  #  <code>nil</code>
+  #
+  #  If neither block nor argument is given, an enumerator is returned instead.
+  #
+  #     (1..10).find_index  { |i| i % 5 == 0 and i % 7 == 0 }  #=> nil
+  #     (1..100).find_index { |i| i % 5 == 0 and i % 7 == 0 }  #=> 34
+  #     (1..100).find_index(50)                                #=> 49
+  #
+
+  def find_index(val=NONE, &block)
+    return to_enum :find_index if !block_given? && val == NONE
+
+    idx = 0
+    if block
+      self.each do |e|
+        return idx if block.call(e)
+        idx += 1
+      end
+    else
+      self.each do |e|
+        return idx if e == val
+        idx += 1
+      end
+    end
+    nil
+  end
 end
