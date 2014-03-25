@@ -5506,7 +5506,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   if (mrb->c->ci) {
     mrb->c->ci->target_class = target;
   }
-  v = mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
+  v = mrb_toplevel_run(mrb, proc);
   if (mrb->exc) return mrb_nil_value();
   return v;
 }

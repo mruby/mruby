@@ -2270,3 +2270,20 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 {
   return mrb_context_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
 }
+
+mrb_value
+mrb_toplevel_run(mrb_state *mrb, struct RProc *proc)
+{
+  mrb_callinfo *ci;
+  mrb_value v;
+
+  if (!mrb->c->cibase || mrb->c->ci == mrb->c->cibase) {
+    return mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
+  }
+  ci = cipush(mrb);
+  ci->acc = CI_ACC_SKIP;
+  v = mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
+  cipop(mrb);
+
+  return v;
+}
