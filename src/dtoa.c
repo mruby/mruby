@@ -186,6 +186,17 @@
  *	used for input more than STRTOD_DIGLIM digits long (default 40).
  */
 
+/* mruby settings begin */
+#include "mruby.h"
+#ifdef MRB_ENDIAN_BIG
+# define IEEE_MC68k
+#else
+# define IEEE_8087
+#endif
+#define Long int32_t
+#define ULong uint32_t
+/* mruby settings end */
+
 #ifndef Long
 #define Long long
 #endif
