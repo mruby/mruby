@@ -145,7 +145,7 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
 mrb_value
 mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
 {
-  int slen;
+  mrb_int slen;
   struct RString *s = mrb_str_ptr(str);
 
   mrb_str_modify(mrb, s);
@@ -1085,7 +1085,7 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
 
   mrb_str_modify(mrb, s);
   if (STR_LEN(s) > 0) {
-    int len;
+    mrb_int len;
     len = STR_LEN(s) - 1;
     if (STR_PTR(s)[len] == '\n') {
       if (len > 0 &&
@@ -1705,7 +1705,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
   int argc;
   mrb_value sub;
   mrb_value vpos;
-  int pos, len = RSTRING_LEN(str);
+  mrb_int pos, len = RSTRING_LEN(str);
 
   mrb_get_args(mrb, "*", &argv, &argc);
   if (argc == 2) {
@@ -2096,7 +2096,7 @@ mrb_value
 mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, mrb_bool badcheck)
 {
   char *s;
-  int len;
+  mrb_int len;
 
   str = mrb_str_to_str(mrb, str);
   if (badcheck) {
@@ -2228,7 +2228,7 @@ double
 mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck)
 {
   char *s;
-  int len;
+  mrb_int len;
 
   str = mrb_str_to_str(mrb, str);
   s = RSTRING_PTR(str);
