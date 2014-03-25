@@ -23,7 +23,7 @@ static mrb_int
 utf8len(unsigned char* p)
 {
   mrb_int len;
-  int     i;
+  mrb_int i;
 
   if (*p == 0)
     return 1;
@@ -117,7 +117,7 @@ mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
 static mrb_value
 str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
-  int i;
+  mrb_int i;
   unsigned char *p = (unsigned char*) RSTRING_PTR(str), *t;
   unsigned char *e = p + RSTRING_LEN(str);
   
