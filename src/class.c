@@ -576,7 +576,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
               *p = (mrb_float)mrb_fixnum(*sp);
               break;
             case MRB_TT_STRING:
-              mrb_raise(mrb, E_TYPE_ERROR, "String can't be coerced into Float");
+              mrb_raise(mrb, E_TYPE_ERROR, "no implicit conversion of String into Float");
               break;
             default:
               {
@@ -613,7 +613,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
               }
               break;
             case MRB_TT_STRING:
-              mrb_raise(mrb, E_TYPE_ERROR, "String can't be coerced into int");
+              mrb_raise(mrb, E_TYPE_ERROR, "no implicit conversion of String into Integer");
               break;
             default:
               *p = mrb_fixnum(mrb_Integer(mrb, *sp));
