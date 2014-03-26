@@ -6,4 +6,6 @@ MRuby::Gem::Specification.new('mruby-bin-mirb') do |spec|
   spec.linker.libraries << 'readline' if spec.cc.defines.include? "ENABLE_READLINE"
 
   spec.bins = %w(mirb)
+
+  spec.add_dependency 'mruby-debug-ext'
 end
