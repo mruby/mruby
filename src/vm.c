@@ -2282,6 +2282,8 @@ mrb_toplevel_run(mrb_state *mrb, struct RProc *proc)
   }
   ci = cipush(mrb);
   ci->acc = CI_ACC_SKIP;
+  ci->eidx = 0;
+  ci->ridx = 0;
   v = mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
   cipop(mrb);
 
