@@ -15,9 +15,9 @@ assert('ObjectSpace.count_objects') do
 
   assert_raise(TypeError) { ObjectSpace.count_objects(1) }
 
-  h0 = {:MRB_TT_FOO=>1000}
+  h0 = {:T_FOO=>1000}
   h = ObjectSpace.count_objects(h0)
-  assert_false(h0.has_key?(:MRB_TT_FOO))
+  assert_false(h0.has_key?(:T_FOO))
 
   GC.start
   h_after = {}
@@ -32,8 +32,8 @@ assert('ObjectSpace.count_objects') do
   GC.start
   ObjectSpace.count_objects(h_after)
 
-  assert_equal(h[:MRB_TT_HASH], h_before[:MRB_TT_HASH] + 1000)
-  assert_equal(h_after[:MRB_TT_HASH], h_before[:MRB_TT_HASH])
+  assert_equal(h[:T_HASH], h_before[:T_HASH] + 1000)
+  assert_equal(h_after[:T_HASH], h_before[:T_HASH])
 end
 
 assert('ObjectSpace.each_object') do
