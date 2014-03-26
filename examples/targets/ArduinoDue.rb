@@ -19,7 +19,8 @@ MRuby::CrossBuild.new("Arduino Due") do |conf|
                         "#{SAM_PATH}/system/CMSIS/Device/ATMEL/",
                         "#{SAM_PATH}/cores/arduino", "#{SAM_PATH}/libraries","#{TARGET_PATH}"]
     cc.flags = %w(-g -Os -w -ffunction-sections -fdata-sections -nostdlib --param max-inline-insns-single=500 
-                -Dprintf=iprintf -mcpu=cortex-m3 -DF_CPU=84000000L -DARDUINO=152 -D__SAM3X8E__ -mthumb -DUSB_PID=0x003e -DUSB_VID=0x2341 -DUSBCON)
+                -Dprintf=iprintf -mcpu=cortex-m3 -DF_CPU=84000000L -DARDUINO=156 -DARDUINO_SAM_DUE -DARDUINO_ARCH_SAM 
+                -D__SAM3X8E__ -mthumb -DUSB_PID=0x003e -DUSB_VID=0x2341 -DUSBCON -DUSB_MANUFACTURER="Unknown" -DUSB_PRODUCT="Arduino Due")
     cc.compile_options = "%{flags} -o %{outfile} -c %{infile}"
 
     #configuration for low memory environment
@@ -36,6 +37,7 @@ MRuby::CrossBuild.new("Arduino Due") do |conf|
     cxx.command = conf.cc.command.dup
     cxx.include_paths = conf.cc.include_paths.dup
     cxx.flags = conf.cc.flags.dup
+    cxx.flags << %w(-fno-rtti -fno-exceptions)
     cxx.defines = conf.cc.defines.dup
     cxx.compile_options = conf.cc.compile_options.dup
   end
