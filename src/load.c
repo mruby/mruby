@@ -72,9 +72,6 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool all
       return NULL;
     }
     irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);
-    if (irep->iseq == NULL) {
-      return NULL;
-    }
     for (i = 0; i < irep->ilen; i++) {
       irep->iseq[i] = (size_t)bin_to_uint32(src);     /* iseq */
       src += sizeof(uint32_t);
@@ -89,9 +86,6 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool all
       return NULL;
     }
     irep->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * plen);
-    if (irep->pool == NULL) {
-      return NULL;
-    }
 
     for (i = 0; i < plen; i++) {
       mrb_value s;
@@ -137,9 +131,6 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool all
       return NULL;
     }
     irep->syms = (mrb_sym *)mrb_malloc(mrb, sizeof(mrb_sym) * irep->slen);
-    if (irep->syms == NULL) {
-      return NULL;
-    }
 
     for (i = 0; i < irep->slen; i++) {
       snl = bin_to_uint16(src);               /* symbol name length */
@@ -217,9 +208,6 @@ read_lineno_record_1(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, size_t 
     return MRB_DUMP_GENERAL_FAILURE;
   }
   fname = (char *)mrb_malloc(mrb, fname_len + 1);
-  if (fname == NULL) {
-    return MRB_DUMP_GENERAL_FAILURE;
-  }
   memcpy(fname, bin, fname_len);
   fname[fname_len] = '\0';
   bin += fname_len;
@@ -233,9 +221,6 @@ read_lineno_record_1(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, size_t 
     return MRB_DUMP_GENERAL_FAILURE;
   }
   lines = (uint16_t *)mrb_malloc(mrb, niseq * sizeof(uint16_t));
-  if (lines == NULL) {
-    return MRB_DUMP_GENERAL_FAILURE;
-  }
   for (i = 0; i < niseq; i++) {
     lines[i] = bin_to_uint16(bin);
     bin += sizeof(uint16_t); /* niseq */
@@ -543,9 +528,6 @@ read_lineno_record_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
     return MRB_DUMP_GENERAL_FAILURE;
   }
   ptr = mrb_malloc(mrb, buf_size);
-  if (!ptr) {
-    return MRB_DUMP_GENERAL_FAILURE;
-  }
   buf = (uint8_t *)ptr;
 
   if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) == 0) {
@@ -593,7 +575,6 @@ read_irep_record_file(mrb_state *mrb, FILE *fp)
     return NULL;
   }
   ptr = mrb_malloc(mrb, buf_size);
-  if (!ptr) return NULL;
   buf = (uint8_t *)ptr;
   memcpy(buf, header, record_header_size);
   if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) == 0) {
@@ -642,9 +623,6 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 
   /* You don't need use SIZE_ERROR as buf_size is enough small. */
   buf = (uint8_t*)mrb_malloc(mrb, buf_size);
-  if (!buf) {
-    return NULL;
-  }
   if (fread(buf, buf_size, 1, fp) == 0) {
     mrb_free(mrb, buf);
     return NULL;
