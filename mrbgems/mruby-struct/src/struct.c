@@ -145,7 +145,7 @@ static mrb_value mrb_struct_ref7(mrb_state* mrb, mrb_value obj) {return RSTRUCT_
 static mrb_value mrb_struct_ref8(mrb_state* mrb, mrb_value obj) {return RSTRUCT_PTR(obj)[8];}
 static mrb_value mrb_struct_ref9(mrb_state* mrb, mrb_value obj) {return RSTRUCT_PTR(obj)[9];}
 
-#define numberof(array) (int)(sizeof(array) / sizeof((array)[0]))
+#define numberof(array) (mrb_int)(sizeof(array) / sizeof((array)[0]))
 #define N_REF_FUNC numberof(ref_func)
 
 static mrb_value (*const ref_func[])(mrb_state*, mrb_value) = {
