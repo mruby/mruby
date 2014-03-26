@@ -51,14 +51,14 @@ assert('IO.sysopen, IO#close, IO#closed?') do
   assert_equal true,  io.closed?, "IO#closed? should return true"
 end
 
-assert('IO.sysopen("/nonexistent")') do
+assert('IO.sysopen("./nonexistent")') do
   if Object.const_defined? :Errno
     eclass = Errno::ENOENT
   else
     eclass = RuntimeError
   end
   assert_raise eclass do
-    fd = IO.sysopen "/nonexistent"
+    fd = IO.sysopen "./nonexistent"
     IO._sysclose fd
   end
 end
