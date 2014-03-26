@@ -67,29 +67,29 @@ os_count_objects(mrb_state *mrb, mrb_value self)
   for (i = MRB_TT_FALSE; i < MRB_TT_MAXDEFINE; i++) {
     mrb_value type;
     switch (i) {
-#define COUNT_TYPE(t) case (t): type = mrb_symbol_value(mrb_intern_lit(mrb, #t)); break;
-      COUNT_TYPE(MRB_TT_FALSE);
-      COUNT_TYPE(MRB_TT_FREE);
-      COUNT_TYPE(MRB_TT_TRUE);
-      COUNT_TYPE(MRB_TT_FIXNUM);
-      COUNT_TYPE(MRB_TT_SYMBOL);
-      COUNT_TYPE(MRB_TT_UNDEF);
-      COUNT_TYPE(MRB_TT_FLOAT);
-      COUNT_TYPE(MRB_TT_CPTR);
-      COUNT_TYPE(MRB_TT_OBJECT);
-      COUNT_TYPE(MRB_TT_CLASS);
-      COUNT_TYPE(MRB_TT_MODULE);
-      COUNT_TYPE(MRB_TT_ICLASS);
-      COUNT_TYPE(MRB_TT_SCLASS);
-      COUNT_TYPE(MRB_TT_PROC);
-      COUNT_TYPE(MRB_TT_ARRAY);
-      COUNT_TYPE(MRB_TT_HASH);
-      COUNT_TYPE(MRB_TT_STRING);
-      COUNT_TYPE(MRB_TT_RANGE);
-      COUNT_TYPE(MRB_TT_EXCEPTION);
-      COUNT_TYPE(MRB_TT_FILE);
-      COUNT_TYPE(MRB_TT_ENV);
-      COUNT_TYPE(MRB_TT_DATA);
+#define COUNT_TYPE(t) case (MRB_T ## t): type = mrb_symbol_value(mrb_intern_lit(mrb, #t)); break;
+      COUNT_TYPE(T_FALSE);
+      COUNT_TYPE(T_FREE);
+      COUNT_TYPE(T_TRUE);
+      COUNT_TYPE(T_FIXNUM);
+      COUNT_TYPE(T_SYMBOL);
+      COUNT_TYPE(T_UNDEF);
+      COUNT_TYPE(T_FLOAT);
+      COUNT_TYPE(T_CPTR);
+      COUNT_TYPE(T_OBJECT);
+      COUNT_TYPE(T_CLASS);
+      COUNT_TYPE(T_MODULE);
+      COUNT_TYPE(T_ICLASS);
+      COUNT_TYPE(T_SCLASS);
+      COUNT_TYPE(T_PROC);
+      COUNT_TYPE(T_ARRAY);
+      COUNT_TYPE(T_HASH);
+      COUNT_TYPE(T_STRING);
+      COUNT_TYPE(T_RANGE);
+      COUNT_TYPE(T_EXCEPTION);
+      COUNT_TYPE(T_FILE);
+      COUNT_TYPE(T_ENV);
+      COUNT_TYPE(T_DATA);
 #undef COUNT_TYPE
     default:
       type = mrb_fixnum_value(i); break;
