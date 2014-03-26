@@ -59,7 +59,7 @@ assert('IO.sysopen("/nonexistent")') do
   end
   assert_raise eclass do
     fd = IO.sysopen "/nonexistent"
-    IO.close fd
+    IO._sysclose fd
   end
 end
 
