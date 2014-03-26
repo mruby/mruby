@@ -46,11 +46,10 @@ iv_new(mrb_state *mrb)
   iv_tbl *t;
 
   t = mrb_malloc(mrb, sizeof(iv_tbl));
-  if (t) {
-    t->size = 0;
-    t->rootseg =  NULL;
-    t->last_len = 0;
-  }
+  t->size = 0;
+  t->rootseg =  NULL;
+  t->last_len = 0;
+
   return t;
 }
 
