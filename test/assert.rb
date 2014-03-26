@@ -63,9 +63,10 @@ def assert(str = 'Assertion failed', iso = '')
       $asserts.push(assertion_string('Error: ', str, iso, e))
       $kill_test += 1
       t_print('X')
-    end
   end
-  $mrbtest_assert = nil
+  ensure
+    $mrbtest_assert = nil
+  end
   t_print("\n") if $mrbtest_verbose
 end
 
