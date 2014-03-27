@@ -631,9 +631,9 @@ module Enumerable
   def zip(*arg)
     ary = []
     i = 0
-    self.each do |val|
+    self.each do |*val|
       a = []
-      a.push(val)
+      a.push(val.__svalue)
       idx = 0
       while idx < arg.size
         a2 = arg[idx].to_a
