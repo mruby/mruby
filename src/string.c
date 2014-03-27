@@ -1954,7 +1954,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
 {
   const char *p;
   char sign = 1;
-  int c, us;
+  int c, uscore;
   unsigned long n = 0;
   mrb_int val;
 
@@ -2042,14 +2042,14 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
       break;
   } /* end of switch (base) { */
   if (*str == '0') {    /* squeeze preceeding 0s */
-    us = 0;
+    uscore = 0;
     while ((c = *++str) == '0' || c == '_') {
       if (c == '_') {
-        if (++us >= 2)
+        if (++uscore >= 2)
           break;
       }
       else
-        us = 0;
+        uscore = 0;
     }
     if (!(c = *str) || ISSPACE(c)) --str;
   }
@@ -2060,16 +2060,17 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     return mrb_fixnum_value(0);
   }
 
-  us = 0;
+  uscore = 0;
   for (p=str;*p;p++) {
     if (*p == '_') {
-      if (us == 0) {
-        us++;
+      if (uscore == 0) {
+        uscore++;
         continue;
       }
       if (badcheck) goto bad;
       break;
     }
+    uscore = 0;
     c = conv_digit(*p);
     if (c < 0 || c >= base) {
       if (badcheck) goto bad;
