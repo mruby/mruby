@@ -552,6 +552,8 @@ module Enumerable
   #
 
   def cycle(n=nil, &block)
+    return to_enum :cycle if !block_given? && n == nil
+
     ary = []
     if n == nil
       self.each do|*val|
