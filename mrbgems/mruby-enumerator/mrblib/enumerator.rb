@@ -297,7 +297,7 @@ class Enumerator
   # side-effect
   #
   def next
-    ary2sv next_values, false
+    next_values.__svalue
   end
 
   ##
@@ -405,7 +405,7 @@ class Enumerator
   #   p e.next   #raises StopIteration
   #
   def peek
-    ary2sv peek_values, true
+    peek_values.__svalue
   end
 
   ##
@@ -509,22 +509,6 @@ class Enumerator
     @feedvalue = value
     nil
   end
-
-  # just for internal
-  def ary2sv args, dup
-    return args unless args.kind_of? Array
-
-    case args.length
-    when 0
-      nil
-    when 1
-      args[0]
-    else
-      return args.dup if dup
-      args
-    end
-  end
-  private :ary2sv
 
   # just for internal
   class Generator
