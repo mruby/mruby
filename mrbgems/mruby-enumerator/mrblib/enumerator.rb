@@ -607,3 +607,28 @@ module Kernel
   end
   alias :enum_for :to_enum
 end
+
+module Enumerable
+  # use Enumerator to use inifite sequence
+  def zip(*arg)
+    ary = []
+    arg = arg.map{|a|a.each}
+    i = 0
+    self.each do |*val|
+      a = []
+      a.push(val.__svalue)
+      idx = 0
+      while idx < arg.size
+        begin
+          a.push(arg[idx].next)
+        rescue StopIteration
+          a.push(nil)
+        end
+        idx += 1
+      end
+      ary.push(a)
+      i += 1
+    end
+    ary
+  end
+end
