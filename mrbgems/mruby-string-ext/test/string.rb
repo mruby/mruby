@@ -143,3 +143,14 @@ assert('String#hex') do
   assert_equal 16, "10z".hex
   assert_equal 0, "".hex
 end
+
+assert('String#oct') do
+  assert_equal 8, "10".oct
+  assert_equal 7, "7".oct
+  assert_equal 0, "8".oct
+  assert_equal 0, "9".oct
+  assert_equal 0, "xyz".oct
+  assert_equal 8, "10z".oct
+  assert_equal 8, "010".oct
+  assert_equal (-8), "-10".oct
+end
