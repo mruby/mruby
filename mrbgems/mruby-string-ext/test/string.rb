@@ -133,3 +133,13 @@ assert('String#rpartition') do
   assert_equal ["", "b", "aaaa"], "baaaa".rpartition("b")
   assert_equal ["", "", ""],      "".rpartition("a")
 end
+
+assert('String#hex') do
+  assert_equal 16, "10".hex
+  assert_equal 255, "ff".hex
+  assert_equal 16, "0x10".hex
+  assert_equal (-16), "-0x10".hex
+  assert_equal 0, "xyz".hex
+  assert_equal 16, "10z".hex
+  assert_equal 0, "".hex
+end
