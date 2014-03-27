@@ -96,7 +96,7 @@ num_div(mrb_state *mrb, mrb_value x)
   mrb_value y;
 
   mrb_get_args(mrb, "o", &y);
-  return mrb_float_value(mrb, mrb_to_flo(mrb, x) / mrb_to_flo(mrb, y));
+  return mrb_num_div(mrb, x, y);
 }
 
 /********************************************************************
