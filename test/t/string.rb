@@ -433,11 +433,13 @@ assert('String#to_i', '15.2.10.5.39') do
   b = '32143'.to_i
   c = 'a'.to_i(16)
   d = '100'.to_i(2)
+  e = '1_000'.to_i
 
   assert_equal 0, a
   assert_equal 32143, b
   assert_equal 10, c
   assert_equal 4, d
+  assert_equal 1_000, e
 end
 
 assert('String#to_s', '15.2.10.5.40') do
