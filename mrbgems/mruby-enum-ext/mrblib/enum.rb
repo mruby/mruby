@@ -615,4 +615,34 @@ module Enumerable
     end
     nil
   end
+
+  ##
+  #  call-seq:
+  #     enum.zip(arg, ...)                  -> an_array_of_array
+  #
+  #  Takes one element from <i>enum</i> and merges corresponding
+  #  elements from each <i>args</i>.  This generates a sequence of
+  #  <em>n</em>-element arrays, where <em>n</em> is one more than the
+  #  count of arguments.  The length of the resulting sequence will be
+  #  <code>enum#size</code>.  If the size of any argument is less than
+  #  <code>enum#size</code>, <code>nil</code> values are supplied.
+  #
+
+  def zip(*arg)
+    ary = []
+    i = 0
+    self.each do |val|
+      a = []
+      a.push(val)
+      idx = 0
+      while idx < arg.size
+        a2 = arg[idx].to_a
+        a.push(a2[i])
+        idx += 1
+      end
+      ary.push(a)
+      i += 1
+    end
+    ary
+  end
 end
