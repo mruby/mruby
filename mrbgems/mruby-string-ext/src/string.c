@@ -169,6 +169,12 @@ mrb_str_hex(mrb_state *mrb, mrb_value self)
   return mrb_str_to_inum(mrb, self, 16, FALSE);
 }
 
+static mrb_value
+mrb_str_oct(mrb_state *mrb, mrb_value self)
+{
+  return mrb_str_to_inum(mrb, self, 8, FALSE);
+}
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -183,6 +189,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "start_with?",     mrb_str_start_with,      MRB_ARGS_REST());
   mrb_define_method(mrb, s, "end_with?",       mrb_str_end_with,        MRB_ARGS_REST());
   mrb_define_method(mrb, s, "hex",             mrb_str_hex,             MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "oct",             mrb_str_oct,             MRB_ARGS_NONE());
 }
 
 void
