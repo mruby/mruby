@@ -129,7 +129,7 @@ str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   for (i = 0; i < len && t<e; i++) {
     t += utf8len(t);
   }
-  return mrb_str_new(mrb, (const char*)p, (int)(t - p));
+  return mrb_str_new(mrb, (const char*)p, (size_t)(t - p));
 }
 
 static mrb_value
