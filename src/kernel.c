@@ -1098,6 +1098,24 @@ mrb_obj_singleton_methods_m(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mod_define_singleton_method(mrb_state *mrb, mrb_value self)
+{
+  struct RProc *p;
+  mrb_sym mid;
+  mrb_value blk = mrb_nil_value();
+
+  mrb_get_args(mrb, "n&", &mid, &blk);
+  if (mrb_nil_p(blk)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
+  }
+  p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
+  mrb_proc_copy(p, mrb_proc_ptr(blk));
+  p->flags |= MRB_PROC_STRICT;
+  mrb_define_method_raw(mrb, mrb_class_ptr(mrb_singleton_class(mrb, self)), mid, p);
+  return mrb_symbol_value(mid);
+}
+
+static mrb_value
 mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
 {
   mrb_value v;
@@ -1165,6 +1183,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "respond_to?",                obj_respond_to,                  MRB_ARGS_ANY());     /* 15.3.1.3.43 */
   mrb_define_method(mrb, krn, "send",                       mrb_f_send,                      MRB_ARGS_ANY());     /* 15.3.1.3.44 */
   mrb_define_method(mrb, krn, "singleton_methods",          mrb_obj_singleton_methods_m,     MRB_ARGS_OPT(1));    /* 15.3.1.3.45 */
+  mrb_define_method(mrb, krn, "define_singleton_method",    mod_define_singleton_method,     MRB_ARGS_ANY());
   mrb_define_method(mrb, krn, "to_s",                       mrb_any_to_s,                    MRB_ARGS_NONE());    /* 15.3.1.3.46 */
   mrb_define_method(mrb, krn, "__case_eqq",                 mrb_obj_ceqq,                    MRB_ARGS_REQ(1));    /* internal */
 
