@@ -204,6 +204,8 @@ class Array
 
   # for efficiency
   def reverse_each(&block)
+    return to_enum :sort_by unless block_given?
+
     i = self.size - 1
     while i>=0
       block.call(self[i])
