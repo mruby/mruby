@@ -213,4 +213,45 @@ class Array
     end
     self
   end
+
+  NONE=Object.new
+  ##
+  #  call-seq:
+  #     ary.fetch(index)                    -> obj
+  #     ary.fetch(index, default)           -> obj
+  #     ary.fetch(index) { |index| block }  -> obj
+  #
+  #  Tries to return the element at position +index+, but throws an IndexError
+  #  exception if the referenced +index+ lies outside of the array bounds.  This
+  #  error can be prevented by supplying a second argument, which will act as a
+  #  +default+ value.
+  #
+  #  Alternatively, if a block is given it will only be executed when an
+  #  invalid +index+ is referenced.  Negative values of +index+ count from the
+  #  end of the array.
+  #
+  #     a = [ 11, 22, 33, 44 ]
+  #     a.fetch(1)               #=> 22
+  #     a.fetch(-1)              #=> 44
+  #     a.fetch(4, 'cat')        #=> "cat"
+  #     a.fetch(100) { |i| puts "#{i} is out of bounds" }
+  #                              #=> "100 is out of bounds"
+  #
+
+  def fetch(n=nil, ifnone=NONE, &block)
+    warn "block supersedes default value argument" if n != nil && ifnone != NONE && block
+
+    idx = n
+    if idx < 0
+      idx += size
+    end
+    if idx < 0 || size <= idx
+      return block.call(n) if block
+      if ifnone == NONE
+        raise IndexError, "index #{n} outside of array bounds: #{-size}...#{size}"
+      end
+      return ifnone
+    end
+    self[idx]
+  end
 end
