@@ -107,3 +107,14 @@ assert("Array#compact!") do
   a.compact!
   a == [1, "2", :t, false]
 end
+
+assert("Array#fetch") do
+  a = [ 11, 22, 33, 44 ]
+  assert_equal 22, a.fetch(1)
+  assert_equal 44, a.fetch(-1)
+  assert_equal 'cat', a.fetch(4, 'cat')
+  ret = 0
+  a.fetch(100) { |i| ret = i }
+  assert_equal 100, ret
+  assert_raise(IndexError) { a.fetch(100) }
+end
