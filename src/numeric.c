@@ -27,7 +27,7 @@
 #define FLO_EPSILON DBL_EPSILON
 #endif
 
-static mrb_float
+mrb_float
 mrb_to_flo(mrb_state *mrb, mrb_value val)
 {
   switch (mrb_type(val)) {

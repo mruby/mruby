@@ -23,6 +23,7 @@ mrb_value mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_float mrb_to_flo(mrb_state *mrb, mrb_value x);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */

@@ -568,25 +568,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_float*);
         if (i < argc) {
-          switch (mrb_type(*sp)) {
-            case MRB_TT_FLOAT:
-              *p = mrb_float(*sp);
-              break;
-            case MRB_TT_FIXNUM:
-              *p = (mrb_float)mrb_fixnum(*sp);
-              break;
-            case MRB_TT_STRING:
-              mrb_raise(mrb, E_TYPE_ERROR, "no implicit conversion of String into Float");
-              break;
-            default:
-              {
-                mrb_value tmp;
-
-                tmp = mrb_convert_type(mrb, *sp, MRB_TT_FLOAT, "Float", "to_f");
-                *p = mrb_float(tmp);
-              }
-              break;
-          }
+          *p = mrb_to_flo(mrb, *sp);
           sp++;
           i++;
         }
