@@ -542,6 +542,15 @@ assert('Kernel#__method__') do
   assert_equal(:m2, c.new.m2)
 end
 
+assert('Kernel#define_singleton_method') do
+  o = Object.new
+  ret = o.define_singleton_method(:test_method) do
+    :singleton_method_ok
+  end
+  assert_equal :test_method, ret
+  assert_equal :singleton_method_ok, o.test_method
+end
+
 assert('stack extend') do
   def recurse(count, stop)
     return count if count > stop
