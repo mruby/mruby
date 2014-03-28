@@ -609,7 +609,7 @@ module Kernel
 end
 
 module Enumerable
-  # use Enumerator to use inifite sequence
+  # use Enumerator to use infinite sequence
   def zip(*arg)
     ary = []
     arg = arg.map{|a|a.each}
