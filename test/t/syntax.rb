@@ -226,3 +226,31 @@ assert('splat in case statement') do
   assert_equal [5], resultb
   assert_equal [3,8], resultc
 end
+
+assert('External command execution.') do
+  class << Kernel
+    sym = '`'.to_sym
+    alias_method :old_cmd, sym
+
+    results = []
+    define_method(sym) do |str|
+      results.push str
+      str
+    end
+
+    `test` # NOVAL NODE_XSTR
+    `test dynamic #{sym}` # NOVAL NODE_DXSTR
+    assert_equal ['test', 'test dynamic `'], results
+
+    t = `test` # VAL NODE_XSTR
+    assert_equal 'test', t
+    assert_equal ['test', 'test dynamic `', 'test'], results
+
+    t = `test dynamic #{sym}` # VAL NODE_DXSTR
+    assert_equal 'test dynamic `', t
+    assert_equal ['test', 'test dynamic `', 'test', 'test dynamic `'], results
+
+    alias_method sym, :old_cmd
+  end
+  true
+end
