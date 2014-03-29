@@ -373,6 +373,12 @@ to_str(mrb_state *mrb, mrb_value val)
 }
 
 static mrb_value
+to_sym(mrb_state *mrb, mrb_value val)
+{
+  return check_type(mrb, val, MRB_TT_SYMBOL, "Symbol", "to_sym");
+}
+
+static mrb_value
 to_ary(mrb_state *mrb, mrb_value val)
 {
   return check_type(mrb, val, MRB_TT_ARRAY, "Array", "to_ary");
@@ -630,7 +636,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
             *symp = mrb_symbol(ss);
           }
           else if (mrb_string_p(ss)) {
-            *symp = mrb_intern_str(mrb, to_str(mrb, ss));
+            *symp = mrb_symbol(to_sym(mrb, ss));
           }
           else {
             mrb_value obj = mrb_funcall(mrb, ss, "inspect", 0);
