@@ -118,7 +118,7 @@ class Enumerator
     end
 
     @obj = obj
-    @meth = meth.to_sym
+    @meth = meth
     @args = args.dup
     @fib = nil
     @dst = nil
