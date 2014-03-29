@@ -1804,7 +1804,7 @@ mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   while (argc--) {
-    remove_method(mrb, mod, mrb_symbol(*argv));
+    remove_method(mrb, mod, mrb_to_sym(mrb, *argv));
     argv++;
   }
   return mod;
