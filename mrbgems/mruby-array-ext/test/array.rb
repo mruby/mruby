@@ -118,3 +118,16 @@ assert("Array#fetch") do
   assert_equal 100, ret
   assert_raise(IndexError) { a.fetch(100) }
 end
+
+assert("Array#fill") do
+  a = [ "a", "b", "c", "d" ]
+  assert_equal ["x", "x", "x", "x"], a.fill("x")
+  assert_equal ["x", "x", "x", "w"], a.fill("w", -1) 
+  assert_equal ["x", "x", "z", "z"], a.fill("z", 2, 2)
+  assert_equal ["y", "y", "z", "z"], a.fill("y", 0..1)
+  assert_equal [0, 1, 4, 9], a.fill { |i| i*i } 
+  assert_equal [0, 1, 8, 27], a.fill(-2) { |i| i*i*i }
+  assert_equal [0, 2, 3, 27], a.fill(1, 2) { |i| i+1 }
+  assert_equal [1, 2, 3, 27], a.fill(0..1) { |i| i+1 }
+  assert_raise(ArgumentError) { a.fill }
+end
