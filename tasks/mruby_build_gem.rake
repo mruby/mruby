@@ -56,6 +56,11 @@ module MRuby
         url = params[:git]
         gemdir = "#{gem_clone_dir}/#{url.match(/([-\w]+)(\.[-\w]+|)$/).to_a[1]}"
 
+        if File.exists?(gemdir)
+          old_url = %x[GIT_DIR=#{gemdir}/.git git ls-remote --get-url origin].strip
+          FileUtils.rm_r gemdir unless old_url == url
+        end
+
         if File.exist?(gemdir)
           if $pull_gems
             git.run_pull gemdir, url
