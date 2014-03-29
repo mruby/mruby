@@ -32,8 +32,8 @@ check_error(mrb_state *mrb)
 {
   /* Error check */
   /* $ko_test and $kill_test should be 0 */
-  mrb_value ko_test = mrb_gv_get(mrb, mrb_intern(mrb, "$ko_test", 8));
-  mrb_value kill_test = mrb_gv_get(mrb, mrb_intern(mrb, "$kill_test", 10));
+  mrb_value ko_test = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$ko_test"));
+  mrb_value kill_test = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$kill_test"));
 
   return mrb_fixnum_p(ko_test) && mrb_fixnum(ko_test) == 0 && mrb_fixnum_p(kill_test) && mrb_fixnum(kill_test) == 0;
 }
@@ -100,7 +100,7 @@ main(int argc, char **argv)
 
   if (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'v') {
     printf("verbose mode: enable\n\n");
-    mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_verbose", 16), mrb_true_value());
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"), mrb_true_value());
   }
 
   krn = mrb->kernel_module;
