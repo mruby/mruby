@@ -373,6 +373,12 @@ to_str(mrb_state *mrb, mrb_value val)
 }
 
 static mrb_value
+to_sym(mrb_state *mrb, mrb_value val)
+{
+  return check_type(mrb, val, MRB_TT_SYMBOL, "Symbol", "to_sym");
+}
+
+static mrb_value
 to_ary(mrb_state *mrb, mrb_value val)
 {
   return check_type(mrb, val, MRB_TT_ARRAY, "Array", "to_ary");
@@ -382,6 +388,22 @@ static mrb_value
 to_hash(mrb_state *mrb, mrb_value val)
 {
   return check_type(mrb, val, MRB_TT_HASH, "Hash", "to_hash");
+}
+
+static mrb_sym
+mrb_to_sym(mrb_state *mrb, mrb_value val)
+{
+  if (mrb_type(val) == MRB_TT_SYMBOL) {
+    return mrb_symbol(val);
+  }
+  else if (mrb_string_p(val)) {
+    return mrb_symbol(to_sym(mrb, val));
+  }
+  else {
+    mrb_value obj = mrb_funcall(mrb, val, "inspect", 0);
+    mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol", obj);
+    return 0;
+  }
 }
 
 /*
@@ -626,16 +648,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           mrb_value ss;
 
           ss = *sp++;
-          if (mrb_type(ss) == MRB_TT_SYMBOL) {
-            *symp = mrb_symbol(ss);
-          }
-          else if (mrb_string_p(ss)) {
-            *symp = mrb_intern_str(mrb, to_str(mrb, ss));
-          }
-          else {
-            mrb_value obj = mrb_funcall(mrb, ss, "inspect", 0);
-            mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol", obj);
-          }
+          *symp = mrb_to_sym(mrb, ss);
           i++;
         }
       }
@@ -1791,7 +1804,7 @@ mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   while (argc--) {
-    remove_method(mrb, mod, mrb_symbol(*argv));
+    remove_method(mrb, mod, mrb_to_sym(mrb, *argv));
     argv++;
   }
   return mod;
