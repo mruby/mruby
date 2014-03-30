@@ -131,3 +131,13 @@ assert("Array#fill") do
   assert_equal [1, 2, 3, 27], a.fill(0..1) { |i| i+1 }
   assert_raise(ArgumentError) { a.fill }
 end
+
+assert("Array#reverse_each") do
+  a = [ "a", "b", "c", "d" ]
+  b = []
+  a.reverse_each do |i|
+    b << i
+  end
+  assert_equal [ "d", "c", "b", "a" ], b
+  assert_equal [ "d", "c", "b", "a" ], a.reverse_each.to_a
+end
