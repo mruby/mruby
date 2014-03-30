@@ -112,11 +112,10 @@ class Array
 end
 
 ##
-# Array is enumerable and comparable
+# Array is enumerable
 class Array
   # ISO 15.2.12.3
   include Enumerable
-  include Comparable
 
   ##
   # Sort all elements and replace +self+ with these
