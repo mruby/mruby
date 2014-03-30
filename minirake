@@ -325,6 +325,8 @@ class RakeApp
       "Display usage."],
     ['--verbose',  '-v', GetoptLong::NO_ARGUMENT,
       "Log message to standard output (default)."],
+    ['--directory', '-C', GetoptLong::REQUIRED_ARGUMENT,
+      "Change executing directory of rakefiles."]
   ]
 
   # Create a RakeApp object.
@@ -415,6 +417,8 @@ class RakeApp
     when '--version'
       puts "rake, version #{RAKEVERSION}"
       exit
+    when '--directory'
+      Dir.chdir value
     else
       fail "Unknown option: #{opt}"
     end
