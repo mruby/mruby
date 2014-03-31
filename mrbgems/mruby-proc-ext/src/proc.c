@@ -17,7 +17,7 @@ mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t f, mrb_int argc, const mr
   p->env = e;
   mrb_gc_arena_restore(mrb, ai);
 
-  e->cioff = -1;
+  MRB_ENV_UNSHARE_STACK(e);
   MRB_ENV_STACK_LEN(e) = argc;
   e->stack = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * argc);
   for (i = 0; i < argc; ++i) {
