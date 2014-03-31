@@ -518,7 +518,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
       if (e->cioff < 0) {
         int i, len;
 
-        len = (int)e->flags;
+        len = (int)MRB_ENV_STACK_LEN(e);
         for (i=0; i<len; i++) {
           mrb_gc_mark_value(mrb, e->stack[i]);
         }

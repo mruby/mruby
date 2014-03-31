@@ -20,6 +20,8 @@ struct REnv {
   int cioff;
 };
 
+#define MRB_ENV_STACK_LEN(e) ((e)->flags)
+
 struct RProc {
   MRB_OBJECT_HEADER;
   union {
