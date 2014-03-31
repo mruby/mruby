@@ -60,7 +60,7 @@ def assert(str = 'Assertion failed', iso = '')
       $asserts.push "Skip: #{str} #{iso} #{e.cause}"
       t_print('?')
     else
-      $asserts.push(assertion_string('Error: ', str, iso, e))
+      $asserts.push(assertion_string("#{e.class}: ", str, iso, e))
       $kill_test += 1
       t_print('X')
   end
