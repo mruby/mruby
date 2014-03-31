@@ -46,3 +46,26 @@ end
 assert('Kernel#proc') do
   assert_true !proc{|a|}.lambda?
 end
+
+assert('mrb_proc_new_cfunc_with_env') do
+  ProcExtTest.mrb_proc_new_cfunc_with_env(:test)
+  ProcExtTest.mrb_proc_new_cfunc_with_env(:mruby)
+
+  t = ProcExtTest.new
+
+  assert_equal :test, t.test
+  assert_equal :mruby, t.mruby
+end
+
+assert('mrb_cfunc_env_get') do
+  ProcExtTest.mrb_cfunc_env_get :get_int, [0, 1, 2]
+
+  t = ProcExtTest.new
+
+  assert_raise(TypeError) { t.cfunc_without_env }
+
+  assert_raise(IndexError) { t.get_int(-1) }
+  assert_raise(IndexError) { t.get_int(3) }
+
+  assert_equal 1, t.get_int(1)
+end
