@@ -22,6 +22,7 @@ struct REnv {
 
 #define MRB_ENV_STACK_LEN(e) ((e)->flags)
 #define MRB_ENV_UNSHARE_STACK(e) ((e)->cioff = -1)
+#define MRB_ENV_STACK_SHARED_P(e) ((e)->cioff >= 0)
 
 struct RProc {
   MRB_OBJECT_HEADER;
