@@ -55,7 +55,39 @@ mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
 static inline khint_t
 mrb_hash_ht_hash_equal(mrb_state *mrb, mrb_value a, mrb_value b)
 {
-  return mrb_eql(mrb, a, b);
+  enum mrb_vtype t = mrb_type(a);
+
+  switch (t) {
+  case MRB_TT_STRING:
+    return mrb_str_equal(mrb, a, b);
+
+  case MRB_TT_SYMBOL:
+    if (mrb_type(b) != MRB_TT_SYMBOL) return FALSE;
+    return mrb_symbol(a) == mrb_symbol(b);
+
+  case MRB_TT_FIXNUM:
+    switch (mrb_type(b)) {
+    case MRB_TT_FIXNUM:
+      return mrb_fixnum(a) == mrb_fixnum(b);
+    case MRB_TT_FLOAT:
+      return (mrb_float)mrb_fixnum(a) == mrb_float(b);
+    default:
+      return FALSE;
+    }
+
+  case MRB_TT_FLOAT:
+    switch (mrb_type(b)) {
+    case MRB_TT_FIXNUM:
+      return mrb_float(a) == (mrb_float)mrb_fixnum(b);
+    case MRB_TT_FLOAT:
+      return mrb_float(a) == mrb_float(b);
+    default:
+      return FALSE;
+    }
+
+  default:
+    return mrb_eql(mrb, a, b);
+  }
 }
 
 KHASH_DECLARE(ht, mrb_value, mrb_value, 1)
