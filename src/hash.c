@@ -497,12 +497,18 @@ mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key)
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
   mrb_value delVal;
+  mrb_int n;
 
   if (h) {
     k = kh_get(ht, mrb, h, key);
     if (k != kh_end(h)) {
       delVal = kh_value(h, k).v;
+      n = kh_value(h, k).n;
       kh_del(ht, mrb, h, k);
+      for (k = kh_begin(h); k != kh_end(h); k++) {
+        if (!kh_exist(h, k)) continue;
+        if (kh_value(h, k).n > n) kh_value(h, k).n--;
+      }
       return delVal;
     }
   }
