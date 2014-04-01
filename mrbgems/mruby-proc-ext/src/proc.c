@@ -17,8 +17,8 @@ mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t f, mrb_int argc, const mr
   p->env = e;
   mrb_gc_arena_restore(mrb, ai);
 
-  e->cioff = -1;
-  e->flags = argc;
+  MRB_ENV_UNSHARE_STACK(e);
+  MRB_ENV_STACK_LEN(e) = argc;
   e->stack = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * argc);
   for (i = 0; i < argc; ++i) {
     e->stack[i] = argv[i];
@@ -39,9 +39,9 @@ mrb_cfunc_env_get(mrb_state *mrb, mrb_int idx)
   if (!e) {
     mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from cfunc Proc without REnv.");
   }
-  if (idx < 0 || e->flags <= idx) {
+  if (idx < 0 || MRB_ENV_STACK_LEN(e) <= idx) {
     mrb_raisef(mrb, E_INDEX_ERROR, "Env index out of range: %S (expected: 0 <= index < %S)",
-               mrb_fixnum_value(idx), mrb_fixnum_value(e->flags));
+               mrb_fixnum_value(idx), mrb_fixnum_value(MRB_ENV_STACK_LEN(e)));
   }
 
   return e->stack[idx];

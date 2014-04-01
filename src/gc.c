@@ -515,10 +515,10 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     {
       struct REnv *e = (struct REnv*)obj;
 
-      if (e->cioff < 0) {
+      if (!MRB_ENV_STACK_SHARED_P(e)) {
         int i, len;
 
-        len = (int)e->flags;
+        len = (int)MRB_ENV_STACK_LEN(e);
         for (i=0; i<len; i++) {
           mrb_gc_mark_value(mrb, e->stack[i]);
         }
@@ -612,7 +612,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     {
       struct REnv *e = (struct REnv*)obj;
 
-      if (e->cioff < 0) {
+      if (!MRB_ENV_STACK_SHARED_P(e)) {
         mrb_free(mrb, e->stack);
         e->stack = NULL;
       }

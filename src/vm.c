@@ -121,7 +121,7 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
   if (newbase == oldbase) return;
   while (ci <= mrb->c->ci) {
     struct REnv *e = ci->env;
-    if (e && e->cioff >= 0) {
+    if (e && MRB_ENV_STACK_SHARED_P(e)) {
       ptrdiff_t off = e->stack - oldbase;
 
       e->stack = newbase + off;
@@ -188,7 +188,7 @@ is_strict(mrb_state *mrb, struct REnv *e)
 {
   int cioff = e->cioff;
 
-  if (cioff >= 0 && mrb->c->cibase[cioff].proc &&
+  if (MRB_ENV_STACK_SHARED_P(e) && mrb->c->cibase[cioff].proc &&
       MRB_PROC_STRICT_P(mrb->c->cibase[cioff].proc)) {
     return TRUE;
   }
@@ -245,10 +245,10 @@ cipop(mrb_state *mrb)
 
   if (c->ci->env) {
     struct REnv *e = c->ci->env;
-    size_t len = (size_t)e->flags;
+    size_t len = (size_t)MRB_ENV_STACK_LEN(e);
     mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
 
-    e->cioff = -1;
+    MRB_ENV_UNSHARE_STACK(e);
     stack_copy(p, e->stack, len);
     e->stack = p;
   }
@@ -1406,7 +1406,7 @@ RETRY_TRY_BLOCK:
           if (proc->env && !MRB_PROC_STRICT_P(proc)) {
             struct REnv *e = top_env(mrb, proc);
 
-            if (e->cioff < 0) {
+            if (!MRB_ENV_STACK_SHARED_P(e)) {
               localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
               goto L_RAISE;
             }
@@ -1437,7 +1437,7 @@ RETRY_TRY_BLOCK:
           ci = mrb->c->ci;
           break;
         case OP_R_BREAK:
-          if (!proc->env || proc->env->cioff < 0) {
+          if (!proc->env || !MRB_ENV_STACK_SHARED_P(proc->env)) {
             localjump_error(mrb, LOCALJUMP_ERROR_BREAK);
             goto L_RAISE;
           }

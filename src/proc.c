@@ -41,7 +41,7 @@ closure_setup(mrb_state *mrb, struct RProc *p, int nlocals)
 
   if (!mrb->c->ci->env) {
     e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)mrb->c->ci->proc->env);
-    e->flags= (unsigned int)nlocals;
+    MRB_ENV_STACK_LEN(e)= (unsigned int)nlocals;
     e->mid = mrb->c->ci->mid;
     e->cioff = mrb->c->ci - mrb->c->cibase;
     e->stack = mrb->c->stack;
