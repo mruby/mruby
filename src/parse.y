@@ -3327,6 +3327,7 @@ backref_error(parser_state *p, node *n)
   }
 }
 
+static void pushback(parser_state *p, int c);
 static mrb_bool peeks(parser_state *p, const char *s);
 static mrb_bool skips(parser_state *p, const char *s);
 
@@ -3360,6 +3361,14 @@ nextc(parser_state *p)
       }
   }
   p->column++;
+  if (c == '\r') {
+    c = nextc(p);
+    if (c != '\n') {
+      pushback(p, c);
+      return '\r';
+    }
+    return c;
+  }
   return c;
 
   eof:
@@ -3814,45 +3823,28 @@ parse_string(parser_state *p)
         if (c == end || c == beg) {
           tokadd(p, c);
         }
-        else if ((c == '\n') && (type & STR_FUNC_ARRAY)) {
+        else if (c == '\n') {
           p->lineno++;
           p->column = 0;
-          tokadd(p, '\n');
+          if (type & STR_FUNC_ARRAY) {
+            tokadd(p, '\n');
+          }
         }
         else {
-          if (type & STR_FUNC_REGEXP) {
-            if (c == 'u') {
-              pushback(p, c);
-              tokadd(p, read_escape(p));
-            }
-            else {
-              tokadd(p, '\\');
-              if (c >= 0)
-                tokadd(p, c);
-            }
-          }
-          else {
-            pushback(p, c);
-            tokadd(p, read_escape(p));
-          }
+          pushback(p, c);
+          tokadd(p, read_escape(p));
           if (hinf)
             hinf->line_head = FALSE;
         }
       }
       else {
         if (c != beg && c != end) {
-          switch (c) {
-          case '\n':
+          if (c == '\n') {
             p->lineno++;
             p->column = 0;
-            break;
-
-          case '\\':
-            break;
-
-          default:
-            if (! ISSPACE(c))
-              tokadd(p, '\\');
+          }
+          if (!(c == '\\' || ((type & STR_FUNC_ARRAY) && ISSPACE(c)))) {
+            tokadd(p, '\\');
           }
         }
         tokadd(p, c);
