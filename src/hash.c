@@ -759,16 +759,18 @@ mrb_hash_keys(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
-  mrb_value ary;
+  mrb_value ary, *p;
 
-  if (!h) return mrb_ary_new(mrb);
+  if (!h || kh_size(h) == 0) return mrb_ary_new(mrb);
   ary = mrb_ary_new_capa(mrb, kh_size(h));
+  mrb_ary_set(mrb, ary, kh_size(h)-1, mrb_nil_value());
+  p = RARRAY_PTR(ary);
   for (k = kh_begin(h); k != kh_end(h); k++) {
     if (kh_exist(h, k)) {
       mrb_value kv = kh_key(h,k);
       mrb_hash_value hv = kh_value(h,k);
 
-      mrb_ary_set(mrb, ary, hv.n, kv);
+      p[hv.n] = kv;
     }
   }
   return ary;
