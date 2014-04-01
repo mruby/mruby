@@ -984,65 +984,6 @@ mrb_ary_entry(mrb_value ary, mrb_int offset)
 }
 
 static mrb_value
-inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
-{
-  mrb_int i;
-  mrb_value s, arystr;
-  char head[] = { '[' };
-  char sep[] = { ',', ' ' };
-  char tail[] = { ']' };
-
-  /* check recursive */
-  for (i=0; i<RARRAY_LEN(list); i++) {
-    if (mrb_obj_equal(mrb, ary, RARRAY_PTR(list)[i])) {
-      return mrb_str_new_lit(mrb, "[...]");
-    }
-  }
-
-  mrb_ary_push(mrb, list, ary);
-
-  arystr = mrb_str_buf_new(mrb, 64);
-  mrb_str_buf_cat(mrb, arystr, head, sizeof(head));
-
-  for (i=0; i<RARRAY_LEN(ary); i++) {
-    int ai = mrb_gc_arena_save(mrb);
-
-    if (i > 0) {
-      mrb_str_buf_cat(mrb, arystr, sep, sizeof(sep));
-    }
-    if (mrb_array_p(RARRAY_PTR(ary)[i])) {
-      s = inspect_ary(mrb, RARRAY_PTR(ary)[i], list);
-    }
-    else {
-      s = mrb_inspect(mrb, RARRAY_PTR(ary)[i]);
-    }
-    mrb_str_buf_cat(mrb, arystr, RSTRING_PTR(s), RSTRING_LEN(s));
-    mrb_gc_arena_restore(mrb, ai);
-  }
-
-  mrb_str_buf_cat(mrb, arystr, tail, sizeof(tail));
-  mrb_ary_pop(mrb, list);
-
-  return arystr;
-}
-
-/* 15.2.12.5.31 (x) */
-/*
- *  call-seq:
- *     ary.to_s -> string
- *     ary.inspect  -> string
- *
- *  Creates a string representation of +self+.
- */
-
-static mrb_value
-mrb_ary_inspect(mrb_state *mrb, mrb_value ary)
-{
-  if (RARRAY_LEN(ary) == 0) return mrb_str_new_lit(mrb, "[]");
-    return inspect_ary(mrb, ary, mrb_ary_new(mrb));
-}
-
-static mrb_value
 join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
 {
   mrb_int i;
@@ -1228,8 +1169,6 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "slice",           mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.29 */
   mrb_define_method(mrb, a, "unshift",         mrb_ary_unshift_m,    MRB_ARGS_ANY());  /* 15.2.12.5.30 */
 
-  mrb_define_method(mrb, a, "inspect",         mrb_ary_inspect,      MRB_ARGS_NONE()); /* 15.2.12.5.31 (x) */
-  mrb_define_alias(mrb,  a, "to_s", "inspect");                                        /* 15.2.12.5.32 (x) */
   mrb_define_method(mrb, a, "==",              mrb_ary_equal,        MRB_ARGS_REQ(1)); /* 15.2.12.5.33 (x) */
   mrb_define_method(mrb, a, "eql?",            mrb_ary_eql,          MRB_ARGS_REQ(1)); /* 15.2.12.5.34 (x) */
   mrb_define_method(mrb, a, "<=>",             mrb_ary_cmp,          MRB_ARGS_REQ(1)); /* 15.2.12.5.36 (x) */

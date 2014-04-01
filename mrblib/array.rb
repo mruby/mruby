@@ -85,6 +85,17 @@ class Array
   end
 
   ##
+  # Private method for Array creation.
+  #
+  # ISO 15.2.12.5.31 (x)
+  def inspect
+    return "[]" if self.size == 0
+    "["+self.map{|x|x.inspect}.join(", ")+"]"
+  end
+  # ISO 15.2.12.5.32 (x)
+  alias to_s inspect
+
+  ##
   # Delete element with index +key+
   def delete(key, &block)
     while i = self.index(key)

@@ -142,6 +142,7 @@ class Hash
       k.inspect + "=>" + v.inspect
     }.join(", ")+"}"
   end
+  # ISO 15.2.13.4.31 (x)
   alias to_s inspect
 
   # 1.8/1.9 Hash#reject! returns Hash; ISO says nothing.
