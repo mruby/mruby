@@ -800,19 +800,6 @@ mrb_hash_values(mrb_state *mrb, mrb_value hash)
   return ary;
 }
 
-static mrb_value
-mrb_hash_has_keyWithKey(mrb_state *mrb, mrb_value hash, mrb_value key)
-{
-  khash_t(ht) *h = RHASH_TBL(hash);
-  khiter_t k;
-
-  if (h) {
-    k = kh_get(ht, mrb, h, key);
-    return mrb_bool_value(k != kh_end(h));
-  }
-  return mrb_false_value();
-}
-
 /* 15.2.13.4.13 */
 /* 15.2.13.4.15 */
 /* 15.2.13.4.18 */
@@ -836,27 +823,16 @@ static mrb_value
 mrb_hash_has_key(mrb_state *mrb, mrb_value hash)
 {
   mrb_value key;
-
-  mrb_get_args(mrb, "o", &key);
-  return mrb_hash_has_keyWithKey(mrb, hash, key);
-}
-
-static mrb_value
-mrb_hash_has_valueWithvalue(mrb_state *mrb, mrb_value hash, mrb_value value)
-{
-  khash_t(ht) *h = RHASH_TBL(hash);
+  khash_t(ht) *h;
   khiter_t k;
 
+  mrb_get_args(mrb, "o", &key);
+
+  h = RHASH_TBL(hash);
   if (h) {
-    for (k = kh_begin(h); k != kh_end(h); k++) {
-      if (!kh_exist(h, k)) continue;
-
-      if (mrb_equal(mrb, kh_value(h,k).v, value)) {
-        return mrb_true_value();
-      }
-    }
+    k = kh_get(ht, mrb, h, key);
+    return mrb_bool_value(k != kh_end(h));
   }
-
   return mrb_false_value();
 }
 
@@ -879,9 +855,22 @@ static mrb_value
 mrb_hash_has_value(mrb_state *mrb, mrb_value hash)
 {
   mrb_value val;
+  khash_t(ht) *h;
+  khiter_t k;
 
   mrb_get_args(mrb, "o", &val);
-  return mrb_hash_has_valueWithvalue(mrb, hash, val);
+  h = RHASH_TBL(hash);
+
+  if (h) {
+    for (k = kh_begin(h); k != kh_end(h); k++) {
+      if (!kh_exist(h, k)) continue;
+
+      if (mrb_equal(mrb, kh_value(h,k).v, val)) {
+        return mrb_true_value();
+      }
+    }
+  }
+  return mrb_false_value();
 }
 
 static mrb_value
