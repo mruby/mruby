@@ -132,6 +132,18 @@ class Hash
     h
   end
 
+  ##
+  # Return the contents of this hash as a string.
+  #
+  # ISO 15.2.13.4.30 (x)
+  def inspect
+    return "{}" if self.size == 0
+    "{"+self.map {|k,v|
+      k.inspect + "=>" + v.inspect
+    }.join(", ")+"}"
+  end
+  alias to_s inspect
+
   # 1.8/1.9 Hash#reject! returns Hash; ISO says nothing.
   def reject!(&b)
     return to_enum :reject! unless block_given?

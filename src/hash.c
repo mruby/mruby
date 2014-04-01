@@ -721,62 +721,6 @@ mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
   return mrb_true_value();
 }
 
-static mrb_value
-inspect_hash(mrb_state *mrb, mrb_value hash, int recur)
-{
-  mrb_value str, str2;
-  khash_t(ht) *h = RHASH_TBL(hash);
-  khiter_t k;
-
-  if (recur) return mrb_str_new_lit(mrb, "{...}");
-
-  str = mrb_str_new_lit(mrb, "{");
-  if (h && kh_size(h) > 0) {
-    for (k = kh_begin(h); k != kh_end(h); k++) {
-      int ai;
-
-      if (!kh_exist(h,k)) continue;
-
-      ai = mrb_gc_arena_save(mrb);
-
-      if (RSTRING_LEN(str) > 1) mrb_str_cat_lit(mrb, str, ", ");
-
-      str2 = mrb_inspect(mrb, kh_key(h,k));
-      mrb_str_append(mrb, str, str2);
-      mrb_str_cat_lit(mrb, str, "=>");
-      str2 = mrb_inspect(mrb, kh_value(h,k).v);
-      mrb_str_append(mrb, str, str2);
-
-      mrb_gc_arena_restore(mrb, ai);
-    }
-  }
-  mrb_str_cat_lit(mrb, str, "}");
-
-  return str;
-}
-
-/* 15.2.13.4.30 (x)*/
-/*
- * call-seq:
- *   hsh.to_s     -> string
- *   hsh.inspect  -> string
- *
- * Return the contents of this hash as a string.
- *
- *     h = { "c" => 300, "a" => 100, "d" => 400, "c" => 300  }
- *     h.to_s   #=> "{\"c\"=>300, \"a\"=>100, \"d\"=>400}"
- */
-
-static mrb_value
-mrb_hash_inspect(mrb_state *mrb, mrb_value hash)
-{
-  khash_t(ht) *h = RHASH_TBL(hash);
-
-  if (!h || kh_size(h) == 0)
-    return mrb_str_new_lit(mrb, "{}");
-  return inspect_hash(mrb, hash, 0);
-}
-
 /* 15.2.13.4.29 (x)*/
 /*
  * call-seq:
@@ -1074,7 +1018,5 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method(mrb, h, "values",          mrb_hash_values,      MRB_ARGS_NONE()); /* 15.2.13.4.28 */
 
   mrb_define_method(mrb, h, "to_hash",         mrb_hash_to_hash,     MRB_ARGS_NONE()); /* 15.2.13.4.29 (x)*/
-  mrb_define_method(mrb, h, "inspect",         mrb_hash_inspect,     MRB_ARGS_NONE()); /* 15.2.13.4.30 (x)*/
-  mrb_define_alias(mrb,  h, "to_s",            "inspect");                             /* 15.2.13.4.31 (x)*/
   mrb_define_method(mrb, h, "eql?",            mrb_hash_eql,         MRB_ARGS_REQ(1)); /* 15.2.13.4.32 (x)*/
 }
