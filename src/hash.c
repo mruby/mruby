@@ -873,104 +873,6 @@ mrb_hash_has_value(mrb_state *mrb, mrb_value hash)
   return mrb_false_value();
 }
 
-static mrb_value
-hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, mrb_bool eql)
-{
-  khash_t(ht) *h1, *h2;
-  mrb_bool eq;
-
-  if (mrb_obj_equal(mrb, hash1, hash2)) return mrb_true_value();
-  if (!mrb_hash_p(hash2)) {
-      if (!mrb_respond_to(mrb, hash2, mrb_intern_lit(mrb, "to_hash"))) {
-          return mrb_false_value();
-      }
-      else {
-        if (eql) {
-          eq = mrb_eql(mrb, hash2, hash1);
-        }
-        else {
-          eq = mrb_equal(mrb, hash2, hash1);
-        }
-        return mrb_bool_value(eq);
-      }
-  }
-  h1 = RHASH_TBL(hash1);
-  h2 = RHASH_TBL(hash2);
-  if (!h1) {
-    return mrb_bool_value(!h2);
-  }
-  if (!h2) return mrb_false_value();
-  if (kh_size(h1) != kh_size(h2)) return mrb_false_value();
-  else {
-    khiter_t k1, k2;
-    mrb_value key;
-
-    for (k1 = kh_begin(h1); k1 != kh_end(h1); k1++) {
-      if (!kh_exist(h1, k1)) continue;
-      key = kh_key(h1,k1);
-      k2 = kh_get(ht, mrb, h2, key);
-      if (k2 != kh_end(h2)) {
-        if (eql)
-          eq = mrb_eql(mrb, kh_value(h1,k1).v, kh_value(h2,k2).v);
-        else
-          eq = mrb_equal(mrb, kh_value(h1,k1).v, kh_value(h2,k2).v);
-        if (eq) {
-          continue; /* next key */
-        }
-      }
-      return mrb_false_value();
-    }
-  }
-  return mrb_true_value();
-}
-
-/* 15.2.13.4.1  */
-/*
- *  call-seq:
- *     hsh == other_hash    -> true or false
- *
- *  Equality---Two hashes are equal if they each contain the same number
- *  of keys and if each key-value pair is equal to (according to
- *  <code>Object#==</code>) the corresponding elements in the other
- *  hash.
- *
- *     h1 = { "a" => 1, "c" => 2 }
- *     h2 = { 7 => 35, "c" => 2, "a" => 1 }
- *     h3 = { "a" => 1, "c" => 2, 7 => 35 }
- *     h4 = { "a" => 1, "d" => 2, "f" => 35 }
- *     h1 == h2   #=> false
- *     h2 == h3   #=> true
- *     h3 == h4   #=> false
- *
- */
-
-static mrb_value
-mrb_hash_equal(mrb_state *mrb, mrb_value hash1)
-{
-  mrb_value hash2;
-
-  mrb_get_args(mrb, "o", &hash2);
-  return hash_equal(mrb, hash1, hash2, FALSE);
-}
-
-/* 15.2.13.4.32 (x)*/
-/*
- *  call-seq:
- *     hash.eql?(other)  -> true or false
- *
- *  Returns <code>true</code> if <i>hash</i> and <i>other</i> are
- *  both hashes with the same content.
- */
-
-static mrb_value
-mrb_hash_eql(mrb_state *mrb, mrb_value hash1)
-{
-  mrb_value hash2;
-
-  mrb_get_args(mrb, "o", &hash2);
-  return hash_equal(mrb, hash1, hash2, TRUE);
-}
-
 void
 mrb_init_hash(mrb_state *mrb)
 {
@@ -979,7 +881,6 @@ mrb_init_hash(mrb_state *mrb)
   h = mrb->hash_class = mrb_define_class(mrb, "Hash", mrb->object_class);
   MRB_SET_INSTANCE_TT(h, MRB_TT_HASH);
 
-  mrb_define_method(mrb, h, "==",              mrb_hash_equal,       MRB_ARGS_REQ(1)); /* 15.2.13.4.1  */
   mrb_define_method(mrb, h, "[]",              mrb_hash_aget,        MRB_ARGS_REQ(1)); /* 15.2.13.4.2  */
   mrb_define_method(mrb, h, "[]=",             mrb_hash_aset,        MRB_ARGS_REQ(2)); /* 15.2.13.4.3  */
   mrb_define_method(mrb, h, "clear",           mrb_hash_clear,       MRB_ARGS_NONE()); /* 15.2.13.4.4  */
@@ -1007,5 +908,4 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method(mrb, h, "values",          mrb_hash_values,      MRB_ARGS_NONE()); /* 15.2.13.4.28 */
 
   mrb_define_method(mrb, h, "to_hash",         mrb_hash_to_hash,     MRB_ARGS_NONE()); /* 15.2.13.4.29 (x)*/
-  mrb_define_method(mrb, h, "eql?",            mrb_hash_eql,         MRB_ARGS_REQ(1)); /* 15.2.13.4.32 (x)*/
 }

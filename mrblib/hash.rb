@@ -3,6 +3,39 @@
 #
 # ISO 15.2.13
 class Hash
+  ##
+  #  Equality---Two hashes are equal if they each contain the same number
+  #  of keys and if each key-value pair is equal to (according to
+  #  <code>Object#==</code>) the corresponding elements in the other
+  #  hash.
+  #
+  # ISO 15.2.13.4.1
+  def == (hash)
+    return true if self.equal?(hash)
+    hash = hash.to_hash
+    return false if self.size != hash.size
+    self.each do |k,v|
+      return false unless hash.key?(k)
+      return false unless self[k] == hash[k]
+    end
+    return true
+  end
+
+  ##
+  # Returns <code>true</code> if <i>hash</i> and <i>other</i> are
+  # both hashes with the same content compared by eql?.
+  #
+  # ISO 15.2.13.4.32 (x)
+  def eql?(hash)
+    return true if self.equal?(hash)
+    hash = hash.to_hash
+    return false if self.size != hash.size
+    self.each do |k,v|
+      return false unless hash.key?(k)
+      return false unless self[k].eql?(hash[k])
+    end
+    return true
+  end
 
   ##
   # Delete the element with the key +key+.
