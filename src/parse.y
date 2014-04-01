@@ -936,10 +936,12 @@ heredoc_treat_nextline(parser_state *p)
       while (n->cdr)
         n = n->cdr;
       n->cdr = p->parsing_heredoc;
-    } else {
+    }
+    else {
       p->all_heredocs = p->parsing_heredoc;
     }
-  } else {
+  }
+  else {
     node *n, *m;
     m = p->heredocs_from_nextline;
     while (m->cdr)
@@ -950,7 +952,8 @@ heredoc_treat_nextline(parser_state *p)
       m->cdr = n;
       p->all_heredocs = p->heredocs_from_nextline;
       p->parsing_heredoc = p->heredocs_from_nextline;
-    } else {
+    }
+    else {
       while (n->cdr != p->parsing_heredoc) {
         n = n->cdr;
         mrb_assert(n != NULL);
@@ -974,7 +977,8 @@ heredoc_end(parser_state *p)
     p->lex_strterm = p->lex_strterm_before_heredoc;
     p->lex_strterm_before_heredoc = NULL;
     p->heredoc_end_now = TRUE;
-  } else {
+  }
+  else {
     /* next heredoc */
     p->lex_strterm->car = (node*)(intptr_t)parsing_heredoc_inf(p)->type;
   }
@@ -3314,9 +3318,11 @@ backref_error(parser_state *p, node *n)
 
   if (c == NODE_NTH_REF) {
     yyerror_i(p, "can't set variable $%d", (int)(intptr_t)n->cdr);
-  } else if (c == NODE_BACK_REF) {
+  }
+  else if (c == NODE_BACK_REF) {
     yyerror_i(p, "can't set variable $%c", (int)(intptr_t)n->cdr);
-  } else {
+  }
+  else {
     mrb_bug(p->mrb, "Internal error in backref_error() : n=>car == %d", c);
   }
 }
@@ -3475,22 +3481,26 @@ tokadd(parser_state *p, int32_t c)
     /* Single byte from source or non-Unicode escape */
     utf8[0] = (char)c;
     len = 1;
-  } else {
+  }
+  else {
     /* Unicode character */
     c = -c;
     if (c < 0x80) {
       utf8[0] = (char)c;
       len = 1;
-    } else if (c < 0x800) {
+    }
+    else if (c < 0x800) {
       utf8[0] = (char)(0xC0 | (c >> 6));
       utf8[1] = (char)(0x80 | (c & 0x3F));
       len = 2;
-    } else if (c < 0x10000) {
+    }
+    else if (c < 0x10000) {
       utf8[0] = (char)(0xE0 |  (c >> 12)        );
       utf8[1] = (char)(0x80 | ((c >>  6) & 0x3F));
       utf8[2] = (char)(0x80 | ( c        & 0x3F));
       len = 3;
-    } else {
+    }
+    else {
       utf8[0] = (char)(0xF0 |  (c >> 18)        );
       utf8[1] = (char)(0x80 | ((c >> 12) & 0x3F));
       utf8[2] = (char)(0x80 | ((c >>  6) & 0x3F));
@@ -3662,13 +3672,15 @@ read_escape(parser_state *p)
         if (buf[i] < 0) goto eof;
         if (buf[i] == '}') {
           break;
-        } else if (!ISXDIGIT(buf[i])) {
+        }
+        else if (!ISXDIGIT(buf[i])) {
           yyerror(p, "Invalid escape character syntax");
           pushback(p, buf[i]);
           return 0;
         }
       }
-    } else if (ISXDIGIT(buf[0])) {
+    }
+    else if (ISXDIGIT(buf[0])) {
       /* \uxxxx form */
       for (i=1; i<4; i++) {
         buf[i] = nextc(p);
@@ -3678,7 +3690,8 @@ read_escape(parser_state *p)
           break;
         }
       }
-    } else {
+    }
+    else {
       pushback(p, buf[0]);
     }
     c = scan_hex(buf, i, &i);
@@ -3811,19 +3824,22 @@ parse_string(parser_state *p)
             if (c == 'u') {
               pushback(p, c);
               tokadd(p, read_escape(p));
-            } else {
-            tokadd(p, '\\');
-            if (c >= 0)
-              tokadd(p, c);
             }
-          } else {
+            else {
+              tokadd(p, '\\');
+              if (c >= 0)
+                tokadd(p, c);
+            }
+          }
+          else {
             pushback(p, c);
             tokadd(p, read_escape(p));
           }
           if (hinf)
             hinf->line_head = FALSE;
         }
-      } else {
+      }
+      else {
         if (c != beg && c != end) {
           switch (c) {
           case '\n':
@@ -3874,7 +3890,8 @@ parse_string(parser_state *p)
         } while (ISSPACE(c = nextc(p)));
         pushback(p, c);
         return tLITERAL_DELIM;
-      } else {
+      }
+      else {
         pushback(p, c);
         tokfix(p);
         yylval.nd = new_str(p, tok(p), toklen(p));
@@ -3974,7 +3991,8 @@ heredoc_identifier(parser_state *p)
       yyerror(p, "unterminated here document identifier");
       return 0;
     }
-  } else {
+  }
+  else {
     if (c < 0) {
       return 0;                 /* missing here document identifier */
     }
@@ -4133,7 +4151,8 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
     }
     return c;
@@ -4167,7 +4186,8 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
     }
     if ((c = nextc(p)) == '=') {
@@ -4200,7 +4220,8 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
       if (p->lstate == EXPR_CLASS) {
         p->cmd_start = TRUE;
@@ -4228,7 +4249,8 @@ parser_yylex(parser_state *p)
   case '>':
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
     }
     if ((c = nextc(p)) == '=') {
@@ -4375,7 +4397,8 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
     }
     return c;
@@ -4755,7 +4778,8 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
     }
     return '/';
@@ -4768,7 +4792,8 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
     }
     pushback(p, c);
@@ -4944,7 +4969,8 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
     }
     pushback(p, c);
