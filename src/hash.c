@@ -90,8 +90,13 @@ mrb_hash_ht_hash_equal(mrb_state *mrb, mrb_value a, mrb_value b)
   }
 }
 
-KHASH_DECLARE(ht, mrb_value, mrb_value, 1)
-KHASH_DEFINE (ht, mrb_value, mrb_value, 1, mrb_hash_ht_hash_func, mrb_hash_ht_hash_equal)
+typedef struct {
+  mrb_value v;
+  mrb_int n;
+} mrb_hash_value;
+
+KHASH_DECLARE(ht, mrb_value, mrb_hash_value, 1)
+KHASH_DEFINE (ht, mrb_value, mrb_hash_value, 1, mrb_hash_ht_hash_func, mrb_hash_ht_hash_equal)
 
 static void mrb_hash_modify(mrb_state *mrb, mrb_value hash);
 
@@ -116,7 +121,7 @@ mrb_gc_mark_hash(mrb_state *mrb, struct RHash *hash)
   for (k = kh_begin(h); k != kh_end(h); k++) {
     if (kh_exist(h, k)) {
       mrb_value key = kh_key(h, k);
-      mrb_value val = kh_value(h, k);
+      mrb_value val = kh_value(h, k).v;
 
       mrb_gc_mark_value(mrb, key);
       mrb_gc_mark_value(mrb, val);
@@ -167,7 +172,7 @@ mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
   if (h) {
     k = kh_get(ht, mrb, h, key);
     if (k != kh_end(h))
-      return kh_value(h, k);
+      return kh_value(h, k).v;
   }
 
   /* not found */
@@ -186,7 +191,7 @@ mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value def)
   if (h) {
     k = kh_get(ht, mrb, h, key);
     if (k != kh_end(h))
-      return kh_value(h, k);
+      return kh_value(h, k).v;
   }
 
   /* not found */
@@ -209,9 +214,10 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
     int ai = mrb_gc_arena_save(mrb);
     k = kh_put(ht, mrb, h, KEY(key));
     mrb_gc_arena_restore(mrb, ai);
+    kh_value(h, k).n = kh_size(h)-1;
   }
 
-  kh_value(h, k) = val;
+  kh_value(h, k).v = val;
   mrb_write_barrier(mrb, (struct RBasic*)RHASH(hash));
   return;
 }
@@ -495,7 +501,7 @@ mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key)
   if (h) {
     k = kh_get(ht, mrb, h, key);
     if (k != kh_end(h)) {
-      delVal = kh_value(h, k);
+      delVal = kh_value(h, k).v;
       kh_del(ht, mrb, h, k);
       return delVal;
     }
@@ -657,7 +663,7 @@ mrb_hash_replace(mrb_state *mrb, mrb_value hash)
   if (h2) {
     for (k = kh_begin(h2); k != kh_end(h2); k++) {
       if (kh_exist(h2, k))
-        mrb_hash_set(mrb, hash, kh_key(h2, k), kh_value(h2, k));
+        mrb_hash_set(mrb, hash, kh_key(h2, k), kh_value(h2, k).v);
     }
   }
 
@@ -738,7 +744,7 @@ inspect_hash(mrb_state *mrb, mrb_value hash, int recur)
       str2 = mrb_inspect(mrb, kh_key(h,k));
       mrb_str_append(mrb, str, str2);
       mrb_str_cat_lit(mrb, str, "=>");
-      str2 = mrb_inspect(mrb, kh_value(h,k));
+      str2 = mrb_inspect(mrb, kh_value(h,k).v);
       mrb_str_append(mrb, str, str2);
 
       mrb_gc_arena_restore(mrb, ai);
@@ -809,8 +815,10 @@ mrb_hash_keys(mrb_state *mrb, mrb_value hash)
   ary = mrb_ary_new_capa(mrb, kh_size(h));
   for (k = kh_begin(h); k != kh_end(h); k++) {
     if (kh_exist(h, k)) {
-      mrb_value v = kh_key(h,k);
-      mrb_ary_push(mrb, ary, v);
+      mrb_value kv = kh_key(h,k);
+      mrb_hash_value hv = kh_value(h,k);
+
+      mrb_ary_set(mrb, ary, hv.n, kv);
     }
   }
   return ary;
@@ -840,8 +848,9 @@ mrb_hash_values(mrb_state *mrb, mrb_value hash)
   ary = mrb_ary_new_capa(mrb, kh_size(h));
   for (k = kh_begin(h); k != kh_end(h); k++) {
     if (kh_exist(h, k)){
-      mrb_value v = kh_value(h,k);
-      mrb_ary_push(mrb, ary, v);
+      mrb_hash_value hv = kh_value(h,k);
+
+      mrb_ary_set(mrb, ary, hv.n, hv.v);
     }
   }
   return ary;
@@ -898,7 +907,7 @@ mrb_hash_has_valueWithvalue(mrb_state *mrb, mrb_value hash, mrb_value value)
     for (k = kh_begin(h); k != kh_end(h); k++) {
       if (!kh_exist(h, k)) continue;
 
-      if (mrb_equal(mrb, kh_value(h,k), value)) {
+      if (mrb_equal(mrb, kh_value(h,k).v, value)) {
         return mrb_true_value();
       }
     }
@@ -969,9 +978,9 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, mrb_bool eql)
       k2 = kh_get(ht, mrb, h2, key);
       if (k2 != kh_end(h2)) {
         if (eql)
-          eq = mrb_eql(mrb, kh_value(h1,k1), kh_value(h2,k2));
+          eq = mrb_eql(mrb, kh_value(h1,k1).v, kh_value(h2,k2).v);
         else
-          eq = mrb_equal(mrb, kh_value(h1,k1), kh_value(h2,k2));
+          eq = mrb_equal(mrb, kh_value(h1,k1).v, kh_value(h2,k2).v);
         if (eq) {
           continue; /* next key */
         }
