@@ -4348,17 +4348,8 @@ parser_yylex(parser_state *p)
       }
     }
     if (c == '\\') {
-      c = nextc(p);
-      if (c == 'u') {
-#if 0
-        tokadd_utf8(p);
-#endif
-      }
-      else {
-        pushback(p, c);
-        c = read_escape(p);
-        tokadd(p, c);
-      }
+      c = read_escape(p);
+      tokadd(p, c);
     }
     else {
       tokadd(p, c);
