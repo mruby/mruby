@@ -96,7 +96,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
   void kh_alloc_##name(mrb_state *mrb, kh_##name##_t *h)                \
   {                                                                     \
     khint_t sz = h->n_buckets;                                          \
-    int len = sizeof(khkey_t) + (kh_is_map ? sizeof(khval_t) : 0);      \
+    size_t len = sizeof(khkey_t) + (kh_is_map ? sizeof(khval_t) : 0);      \
     uint8_t *p = (uint8_t*)mrb_malloc(mrb, sizeof(uint8_t)*sz/4+len*sz); \
     h->size = h->n_occupied = 0;                                        \
     h->upper_bound = UPPER_BOUND(sz);                                   \
