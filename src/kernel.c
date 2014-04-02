@@ -720,8 +720,8 @@ mrb_obj_is_kind_of_m(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(kind_of_p);
 }
 
-KHASH_DECLARE(st, mrb_sym, char, 0)
-KHASH_DEFINE(st, mrb_sym, char, 0, kh_int_hash_func, kh_int_hash_equal)
+KHASH_DECLARE(st, mrb_sym, char, FALSE)
+KHASH_DEFINE(st, mrb_sym, char, FALSE, kh_int_hash_func, kh_int_hash_equal)
 
 static void
 method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
