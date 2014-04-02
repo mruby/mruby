@@ -3761,7 +3761,6 @@ read_escape(parser_state *p)
   }
 }
 
-
 static int
 parse_string(parser_state *p)
 {
@@ -3890,9 +3889,7 @@ parse_string(parser_state *p)
         return tSTRING_MID;
       }
     }
-
     tokadd(p, c);
-
   }
 
   tokfix(p);
