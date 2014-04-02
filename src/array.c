@@ -311,7 +311,7 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
  *     [ 1, 2, 3, 4, 5, 6 ] <=> [ 1, 2 ]            #=> +1
  *
  */
-static mrb_value
+mrb_value
 mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
 {
   mrb_value ary2;
@@ -1065,72 +1065,20 @@ mrb_ary_join_m(mrb_state *mrb, mrb_value ary)
   return mrb_ary_join(mrb, ary, sep);
 }
 
-/* 15.2.12.5.33 (x) */
-/*
- *  call-seq:
- *     ary == other_ary   ->   bool
- *
- *  Equality---Two arrays are equal if they contain the same number
- *  of elements and if each element is equal to (according to
- *  Object.==) the corresponding element in the other array.
- *
- *     [ "a", "c" ]    == [ "a", "c", 7 ]     #=> false
- *     [ "a", "c", 7 ] == [ "a", "c", 7 ]     #=> true
- *     [ "a", "c", 7 ] == [ "a", "d", "f" ]   #=> false
- *
- */
-
 static mrb_value
-mrb_ary_equal(mrb_state *mrb, mrb_value ary1)
+mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
 {
   mrb_value ary2;
-  mrb_int i;
 
   mrb_get_args(mrb, "o", &ary2);
   if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_true_value();
   if (mrb_special_const_p(ary2)) return mrb_false_value();
   if (!mrb_array_p(ary2)) {
-    if (!mrb_respond_to(mrb, ary2, mrb_intern_lit(mrb, "to_ary"))) {
-      return mrb_false_value();
-    }
-    else {
-      return mrb_bool_value(mrb_equal(mrb, ary2, ary1));
-    }
+    return mrb_false_value();
   }
   if (RARRAY_LEN(ary1) != RARRAY_LEN(ary2)) return mrb_false_value();
-  for (i=0; i<RARRAY_LEN(ary1); i++) {
-    if (!mrb_equal(mrb, ary_elt(ary1, i), ary_elt(ary2, i))) {
-      return mrb_false_value();
-    }
-  }
-  return mrb_true_value();
-}
 
-/* 15.2.12.5.34 (x) */
-/*
- *  call-seq:
- *     ary.eql?(other)  -> true or false
- *
- *  Returns <code>true</code> if +self+ and _other_ are the same object,
- *  or are both arrays with the same content.
- */
-
-static mrb_value
-mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
-{
-  mrb_value ary2;
-  mrb_int i;
-
-  mrb_get_args(mrb, "o", &ary2);
-  if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_true_value();
-  if (!mrb_array_p(ary2)) return mrb_false_value();
-  if (RARRAY_LEN(ary1) != RARRAY_LEN(ary2)) return mrb_false_value();
-  for (i=0; i<RARRAY_LEN(ary1); i++) {
-    if (!mrb_eql(mrb, ary_elt(ary1, i), ary_elt(ary2, i))) {
-      return mrb_false_value();
-    }
-  }
-  return mrb_true_value();
+  return ary2;
 }
 
 void
@@ -1169,7 +1117,5 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "slice",           mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.29 */
   mrb_define_method(mrb, a, "unshift",         mrb_ary_unshift_m,    MRB_ARGS_ANY());  /* 15.2.12.5.30 */
 
-  mrb_define_method(mrb, a, "==",              mrb_ary_equal,        MRB_ARGS_REQ(1)); /* 15.2.12.5.33 (x) */
-  mrb_define_method(mrb, a, "eql?",            mrb_ary_eql,          MRB_ARGS_REQ(1)); /* 15.2.12.5.34 (x) */
-  mrb_define_method(mrb, a, "<=>",             mrb_ary_cmp,          MRB_ARGS_REQ(1)); /* 15.2.12.5.36 (x) */
+  mrb_define_method(mrb, a, "__ary_eq",        mrb_ary_eq,           MRB_ARGS_REQ(1));
 }

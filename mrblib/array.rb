@@ -96,6 +96,82 @@ class Array
   alias to_s inspect
 
   ##
+  #  Equality---Two arrays are equal if they contain the same number
+  #  of elements and if each element is equal to (according to
+  #  Object.==) the corresponding element in the other array.
+  #
+  # ISO 15.2.12.5.33 (x)
+  def ==(other)
+    other = self.__ary_eq(other)
+    return false if other == false
+    return true  if other == true
+    len = self.size
+    i = 0
+    while i < len
+      return false if self[i] != other[i]
+      i += 1
+    end
+    return true
+  end
+
+  ##
+  #  Returns <code>true</code> if +self+ and _other_ are the same object,
+  #  or are both arrays with the same content.
+  #
+  # ISO 15.2.12.5.34 (x)
+  def eql?(other)
+    other = self.__ary_eq(other)
+    return false if other == false
+    return true  if other == true
+    len = self.size
+    i = 0
+    while i < len
+      return false unless self[i].eql?(other[i])
+      i += 1
+    end
+    return true
+  end
+
+  ##
+  #  Comparison---Returns an integer (-1, 0, or +1)
+  #  if this array is less than, equal to, or greater than <i>other_ary</i>.
+  #  Each object in each array is compared (using <=>). If any value isn't
+  #  equal, then that inequality is the return value. If all the
+  #  values found are equal, then the return is based on a
+  #  comparison of the array lengths.  Thus, two arrays are
+  #  ``equal'' according to <code>Array#<=></code> if and only if they have
+  #  the same length and the value of each element is equal to the
+  #  value of the corresponding element in the other array.
+  #
+  # ISO 15.2.12.5.36 (x)
+  def <=>(other)
+    len = self.size
+    begin
+      n = other.size
+    rescue NoMethodError
+      return nil
+    end
+    if len > n
+      len = n
+    end
+    i = 0
+    while i < len
+      n = (self[i] <=> other[i])
+      return n if n == nil
+      return n if n != 0
+      i += 1
+    end
+    len = self.size - other.size
+    if len == 0
+      0
+    elsif len > 0
+      1
+    else
+      -1
+    end
+  end
+
+  ##
   # Delete element with index +key+
   def delete(key, &block)
     while i = self.index(key)
