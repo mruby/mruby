@@ -289,6 +289,9 @@ module MRuby
 
       def check
         each do |g|
+          unless g.build.mrbgem_license_checker.nil?
+            fail "License checking failed: #{g.licenses}" unless g.build.mrbgem_license_checker.call g.licenses
+          end
           g.dependencies.each do |dep|
             name = dep[:gem]
             req_versions = dep[:requirements]
