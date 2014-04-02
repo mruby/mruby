@@ -27,9 +27,9 @@ typedef khint_t khiter_t;
 /* extern uint8_t __m[]; */
 
 /* mask for flags */
-static const uint8_t __m_empty[8]  = {0x02, 0x08, 0x20, 0x80};
-static const uint8_t __m_del[8]    = {0x01, 0x04, 0x10, 0x40};
-static const uint8_t __m_either[8] = {0x03, 0x0c, 0x30, 0xc0};
+static const uint8_t __m_empty[]  = {0x02, 0x08, 0x20, 0x80};
+static const uint8_t __m_del[]    = {0x01, 0x04, 0x10, 0x40};
+static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
 
 
 #define __ac_isempty(ed_flag, i) (ed_flag[(i)/4]&__m_empty[(i)%4])
