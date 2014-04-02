@@ -293,53 +293,6 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
-/*
- *  call-seq:
- *     ary <=> other_ary   ->  -1, 0, +1 or nil
- *
- *  Comparison---Returns an integer (-1, 0, or +1)
- *  if this array is less than, equal to, or greater than <i>other_ary</i>.
- *  Each object in each array is compared (using <=>). If any value isn't
- *  equal, then that inequality is the return value. If all the
- *  values found are equal, then the return is based on a
- *  comparison of the array lengths.  Thus, two arrays are
- *  ``equal'' according to <code>Array#<=></code> if and only if they have
- *  the same length and the value of each element is equal to the
- *  value of the corresponding element in the other array.
- *
- *     [ "a", "a", "c" ]    <=> [ "a", "b", "c" ]   #=> -1
- *     [ 1, 2, 3, 4, 5, 6 ] <=> [ 1, 2 ]            #=> +1
- *
- */
-mrb_value
-mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
-{
-  mrb_value ary2;
-  struct RArray *a1, *a2;
-  mrb_value r;
-  mrb_int i, len;
-
-  mrb_get_args(mrb, "o", &ary2);
-  if (!mrb_array_p(ary2)) return mrb_nil_value();
-  a1 = RARRAY(ary1); a2 = RARRAY(ary2);
-  if (a1->len == a2->len && a1->ptr == a2->ptr) return mrb_fixnum_value(0);
-  else {
-    mrb_sym cmp = mrb_intern_lit(mrb, "<=>");
-
-    len = RARRAY_LEN(ary1);
-    if (len > RARRAY_LEN(ary2)) {
-      len = RARRAY_LEN(ary2);
-    }
-    for (i=0; i<len; i++) {
-      mrb_value v = ary_elt(ary2, i);
-      r = mrb_funcall_argv(mrb, ary_elt(ary1, i), cmp, 1, &v);
-      if (!mrb_fixnum_p(r) || mrb_fixnum(r) != 0) return r;
-    }
-  }
-  len = a1->len - a2->len;
-  return mrb_fixnum_value((len == 0)? 0: (len > 0)? 1: -1);
-}
-
 static void
 ary_replace(mrb_state *mrb, struct RArray *a, mrb_value *argv, mrb_int len)
 {
@@ -1081,6 +1034,21 @@ mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
   return ary2;
 }
 
+static mrb_value
+mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
+{
+  mrb_value ary2;
+
+  mrb_get_args(mrb, "o", &ary2);
+  if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_fixnum_value(0);
+  if (mrb_special_const_p(ary2)) return mrb_nil_value();
+  if (!mrb_array_p(ary2)) {
+    return mrb_nil_value();
+  }
+
+  return ary2;
+}
+
 void
 mrb_init_array(mrb_state *mrb)
 {
@@ -1118,4 +1086,5 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "unshift",         mrb_ary_unshift_m,    MRB_ARGS_ANY());  /* 15.2.12.5.30 */
 
   mrb_define_method(mrb, a, "__ary_eq",        mrb_ary_eq,           MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, a, "__ary_cmp",       mrb_ary_cmp,           MRB_ARGS_REQ(1));
 }

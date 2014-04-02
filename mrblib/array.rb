@@ -145,12 +145,12 @@ class Array
   #
   # ISO 15.2.12.5.36 (x)
   def <=>(other)
+    other = self.__ary_cmp(other)
+    return 0 if 0 == other
+    return nil if nil == other
+
     len = self.size
-    begin
-      n = other.size
-    rescue NoMethodError
-      return nil
-    end
+    n = other.size
     if len > n
       len = n
     end
