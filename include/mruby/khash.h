@@ -46,6 +46,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
 } while (0)
 #define khash_mask(h) ((h)->n_buckets-1)
 #define khash_inc(h) ((h)->n_buckets/2-1)
+#define khash_upper_bound(h) (UPPER_BOUND((h)->n_buckets))
 
 /* declare struct kh_xxx and kh_xxx_funcs
 
@@ -59,7 +60,6 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     khint_t n_buckets;                                                  \
     khint_t size;                                                       \
     khint_t n_occupied;                                                 \
-    khint_t upper_bound;                                                \
     uint8_t *ed_flags;                                                  \
     khkey_t *keys;                                                      \
     khval_t *vals;                                                      \
@@ -99,7 +99,6 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
     size_t len = sizeof(khkey_t) + (kh_is_map ? sizeof(khval_t) : 0);      \
     uint8_t *p = (uint8_t*)mrb_malloc(mrb, sizeof(uint8_t)*sz/4+len*sz); \
     h->size = h->n_occupied = 0;                                        \
-    h->upper_bound = UPPER_BOUND(sz);                                   \
     h->keys = (khkey_t *)p;                                             \
     h->vals = kh_is_map ? (khval_t *)(p+sizeof(khkey_t)*sz) : NULL;     \
     h->ed_flags = p+len*sz;                                             \
@@ -170,7 +169,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
   khint_t kh_put_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key)  \
   {                                                                     \
     khint_t k;                                                          \
-    if (h->n_occupied >= h->upper_bound) {                              \
+    if (h->n_occupied >= khash_upper_bound(h)) {                              \
       kh_resize_##name(mrb, h, h->n_buckets*2);                         \
     }                                                                   \
     k = __hash_func(mrb,key) & khash_mask(h);                           \
