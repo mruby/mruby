@@ -1,5 +1,6 @@
 assert('ObjectSpace.count_objects') do
   h = {}
+  f = Fiber.new {} if Object.const_defined? :Fiber
   ObjectSpace.count_objects(h)
   assert_kind_of(Hash, h)
   assert_true(h.keys.all? {|x| x.is_a?(Symbol) || x.is_a?(Integer) })
@@ -7,6 +8,7 @@ assert('ObjectSpace.count_objects') do
 
   assert_true(h.has_key?(:TOTAL))
   assert_true(h.has_key?(:FREE))
+  assert_true(h.has_key?(:T_FIBER)) if Object.const_defined? :Fiber
 
   h = ObjectSpace.count_objects
   assert_kind_of(Hash, h)
