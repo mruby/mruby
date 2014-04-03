@@ -754,7 +754,7 @@ mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
   else if (m < 1) {
     return 0;
   }
- else if (m == 1) {
+  else if (m == 1) {
     const unsigned char *ys = y, *ye = ys + n;
     for (; y < ye; ++y) {
       if (*x == *y)

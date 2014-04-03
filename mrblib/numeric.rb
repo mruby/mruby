@@ -45,6 +45,8 @@ module Integral
   #
   # ISO 15.2.8.3.15
   def downto(num, &block)
+    return to_enum(:downto, num) unless block_given?
+
     i = self.to_i
     while(i >= num)
       block.call(i)
@@ -84,6 +86,8 @@ module Integral
   #
   # ISO 15.2.8.3.27
   def upto(num, &block)
+    return to_enum(:upto, num) unless block_given?
+
     i = self.to_i
     while(i <= num)
       block.call(i)
@@ -97,6 +101,8 @@ module Integral
   # incremented by +step+ (default 1).
   #
   def step(num, step=1, &block)
+    return to_enum(:step, num, step) unless block_given?
+
     i = if num.kind_of? Float then self.to_f else self end
     while(i <= num)
       block.call(i)
