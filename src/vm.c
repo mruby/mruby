@@ -460,7 +460,13 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   ci->mid = name;
   ci->target_class = c;
   ci->proc = p;
-  ci->nregs = p->body.irep->nregs;
+  if (MRB_PROC_CFUNC_P(p)) {
+    ci->nregs = argc + 2;
+  }
+  else{
+    ci->nregs = p->body.irep->nregs;
+  }
+
   regs = mrb->c->stack+1;
   /* remove first symbol from arguments */
   if (ci->argc >= 0) {
