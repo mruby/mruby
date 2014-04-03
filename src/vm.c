@@ -460,7 +460,6 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   ci->mid = name;
   ci->target_class = c;
   ci->proc = p;
-  ci->nregs = p->body.irep->nregs;
   regs = mrb->c->stack+1;
   /* remove first symbol from arguments */
   if (ci->argc >= 0) {
@@ -477,8 +476,8 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
     return p->body.func(mrb, self);
   }
 
-  cipush(mrb);
-  ci = mrb->c->ci;
+  ci->nregs = p->body.irep->nregs;
+  ci = cipush(mrb);
   ci->target_class = 0;
   ci->pc = p->body.irep->iseq;
   ci->stackent = mrb->c->stack;
