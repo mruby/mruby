@@ -650,7 +650,7 @@ str_eql(mrb_state *mrb, const mrb_value str1, const mrb_value str2)
 mrb_bool
 mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
-  if (mrb_obj_equal(mrb, str1, str2)) return TRUE;
+  if (mrb_immediate_p(str2)) return FALSE;
   if (!mrb_string_p(str2)) {
     if (mrb_nil_p(str2)) return FALSE;
     if (!mrb_respond_to(mrb, str2, mrb_intern_lit(mrb, "to_str"))) {
