@@ -376,14 +376,12 @@ mrb_hash_aget(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_hash_default(mrb_state *mrb, mrb_value hash)
 {
-  mrb_value *argv;
-  int argc;
   mrb_value key;
+  mrb_bool given;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
+  mrb_get_args(mrb, "|o?", &key, &given);
   if (MRB_RHASH_PROCDEFAULT_P(hash)) {
-    if (argc == 0) return mrb_nil_value();
-    key = argv[0];
+    if (!given) return mrb_nil_value();
     return mrb_funcall(mrb, RHASH_PROCDEFAULT(hash), "call", 2, hash, key);
   }
   else {

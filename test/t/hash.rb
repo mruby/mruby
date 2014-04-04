@@ -230,6 +230,15 @@ assert('Hash#replace', '15.2.13.4.23') do
   b = Hash.new.replace(a)
 
   assert_equal({ 'abc_key' => 'abc_value' }, b)
+
+  a = Hash.new(42)
+  b = {}
+  b.replace(a)
+  assert_equal(42, b[1])
+  
+  a = Hash.new{|h,x| x}
+  b.replace(a)
+  assert_equal(127, b[127])
 end
 
 assert('Hash#shift', '15.2.13.4.24') do

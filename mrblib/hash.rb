@@ -152,6 +152,11 @@ class Hash
     hash.each_key{|k|
       self[k] = hash[k]
     }
+    if hash.default_proc
+      self.default_proc = hash.default_proc
+    elsif hash.default
+      self.default = hash.default
+    end
     self
   end
   # ISO 15.2.13.4.17
