@@ -156,6 +156,7 @@ class Hash
   # ISO 15.2.13.4.23
   def replace(hash)
     self.clear
+    hash = hash.to_hash
     hash.each_key{|k|
       self[k] = hash[k]
     }
