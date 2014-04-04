@@ -143,14 +143,6 @@ class Hash
   end
 
   ##
-  # Create a direct instance of the class Hash.
-  #
-  # ISO 15.2.13.4.16
-  def initialize(*args, &block)
-    self.__init_core(block, *args)
-  end
-
-  ##
   # Replaces the contents of <i>hsh</i> with the contents of other hash
   #
   # ISO 15.2.13.4.23

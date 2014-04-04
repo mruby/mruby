@@ -309,25 +309,16 @@ mrb_hash_modify(mrb_state *mrb, mrb_value hash)
  */
 
 static mrb_value
-mrb_hash_init_core(mrb_state *mrb, mrb_value hash)
+mrb_hash_init(mrb_state *mrb, mrb_value hash)
 {
   mrb_value block, ifnone;
-  mrb_value *argv;
-  int argc;
+  mrb_bool ifnone_p;
 
-  mrb_get_args(mrb, "o*", &block, &argv, &argc);
+  ifnone = mrb_nil_value();
+  mrb_get_args(mrb, "&|o?", &block, &ifnone, &ifnone_p);
   mrb_hash_modify(mrb, hash);
-  if (mrb_nil_p(block)) {
-    if (argc > 0) {
-      if (argc != 1) mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
-      ifnone = argv[0];
-    }
-    else {
-      ifnone = mrb_nil_value();
-    }
-  }
-  else {
-    if (argc > 0) {
+  if (!mrb_nil_p(block)) {
+    if (ifnone_p) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
     }
     RHASH(hash)->flags |= MRB_HASH_PROC_DEFAULT;
@@ -849,7 +840,7 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method(mrb, h, "has_key?",        mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.13 */
   mrb_define_method(mrb, h, "has_value?",      mrb_hash_has_value,   MRB_ARGS_REQ(1)); /* 15.2.13.4.14 */
   mrb_define_method(mrb, h, "include?",        mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.15 */
-  mrb_define_method(mrb, h, "__init_core",     mrb_hash_init_core,   MRB_ARGS_ANY());  /* core of 15.2.13.4.16 */
+  mrb_define_method(mrb, h, "initialize",      mrb_hash_init,        MRB_ARGS_OPT(1)); /* 15.2.13.4.16 */
   mrb_define_method(mrb, h, "key?",            mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.18 */
   mrb_define_method(mrb, h, "keys",            mrb_hash_keys,        MRB_ARGS_NONE()); /* 15.2.13.4.19 */
   mrb_define_method(mrb, h, "length",          mrb_hash_size_m,      MRB_ARGS_NONE()); /* 15.2.13.4.20 */
