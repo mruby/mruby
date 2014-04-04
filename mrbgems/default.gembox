@@ -53,6 +53,9 @@ MRuby::GemBox.new do |conf|
   # Use Enumerator class (require mruby-fiber)
   conf.gem :core => "mruby-enumerator"
 
+  # Use Enumerable::Lazy class (require mruby-enumerator)
+  conf.gem :core => "mruby-enum-lazy"
+
   # Use extended toplevel object (main) methods
   conf.gem :core => "mruby-toplevel-ext"
 
