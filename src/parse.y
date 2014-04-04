@@ -3829,6 +3829,10 @@ parse_string(parser_state *p)
             tokadd(p, '\n');
           }
         }
+        else if (type & STR_FUNC_REGEXP) {
+          tokadd(p, '\\');
+          tokadd(p, c);
+        }
         else {
           pushback(p, c);
           tokadd(p, read_escape(p));
