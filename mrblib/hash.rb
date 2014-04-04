@@ -12,6 +12,7 @@ class Hash
   # ISO 15.2.13.4.1
   def == (hash)
     return true if self.equal?(hash)
+    return false unless hash.respond_to?(:to_hash)
     hash = hash.to_hash
     return false if self.size != hash.size
     self.each do |k,v|
@@ -28,6 +29,7 @@ class Hash
   # ISO 15.2.13.4.32 (x)
   def eql?(hash)
     return true if self.equal?(hash)
+    return false unless hash.respond_to?(:to_hash)
     hash = hash.to_hash
     return false if self.size != hash.size
     self.each do |k,v|
