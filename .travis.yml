@@ -1,2 +1,2 @@
 script:
-  - "ruby run_test.rb"
+  - "ruby run_test.rb all test"
