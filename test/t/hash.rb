@@ -13,6 +13,7 @@ assert('Hash#==', '15.2.13.4.1') do
   assert_true({ 'abc' => 'abc' } == { 'abc' => 'abc' })
   assert_false({ 'abc' => 'abc' } ==  { 'cba' => 'cba' })
   assert_true({ :equal => 1 } == { :equal => 1.0 })
+  assert_false({ :a => 1 } == true)
 end
 
 assert('Hash#[]', '15.2.13.4.2') do
@@ -283,6 +284,7 @@ assert('Hash#eql?') do
   c = { 'a' => 1.0, 'b' => 2, 'c' => 3 }
   assert_true(a.eql?(b))
   assert_false(a.eql?(c))
+  assert_false(a.eql?(true))
 end
 
 assert('Hash#reject') do
