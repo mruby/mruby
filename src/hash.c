@@ -337,12 +337,6 @@ mrb_hash_init_core(mrb_state *mrb, mrb_value hash)
   return hash;
 }
 
-static mrb_value
-to_hash(mrb_state *mrb, mrb_value hash)
-{
-  return mrb_convert_type(mrb, hash, MRB_TT_HASH, "Hash", "to_hash");
-}
-
 /* 15.2.13.4.2  */
 /*
  *  call-seq:
@@ -639,52 +633,6 @@ mrb_hash_aset(mrb_state *mrb, mrb_value self)
   return val;
 }
 
-/* 15.2.13.4.17 */
-/* 15.2.13.4.23 */
-/*
- *  call-seq:
- *     hsh.replace(other_hash) -> hsh
- *
- *  Replaces the contents of <i>hsh</i> with the contents of
- *  <i>other_hash</i>.
- *
- *     h = { "a" => 100, "b" => 200 }
- *     h.replace({ "c" => 300, "d" => 400 })   #=> {"c"=>300, "d"=>400}
- *
- */
-
-static mrb_value
-mrb_hash_replace(mrb_state *mrb, mrb_value hash)
-{
-  mrb_value hash2, ifnone;
-  khash_t(ht) *h2;
-  khiter_t k;
-
-  mrb_get_args(mrb, "o", &hash2);
-  hash2 = to_hash(mrb, hash2);
-  if (mrb_obj_equal(mrb, hash, hash2)) return hash;
-  mrb_hash_clear(mrb, hash);
-
-  h2 = RHASH_TBL(hash2);
-  if (h2) {
-    for (k = kh_begin(h2); k != kh_end(h2); k++) {
-      if (kh_exist(h2, k))
-        mrb_hash_set(mrb, hash, kh_key(h2, k), kh_value(h2, k).v);
-    }
-  }
-
-  if (MRB_RHASH_PROCDEFAULT_P(hash2)) {
-    RHASH(hash)->flags |= MRB_HASH_PROC_DEFAULT;
-    ifnone = RHASH_PROCDEFAULT(hash2);
-  }
-  else {
-    ifnone = RHASH_IFNONE(hash2);
-  }
-  mrb_iv_set(mrb, hash, mrb_intern_lit(mrb, "ifnone"), ifnone);
-
-  return hash;
-}
-
 /* 15.2.13.4.20 */
 /* 15.2.13.4.25 */
 /*
@@ -902,12 +850,10 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method(mrb, h, "has_value?",      mrb_hash_has_value,   MRB_ARGS_REQ(1)); /* 15.2.13.4.14 */
   mrb_define_method(mrb, h, "include?",        mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.15 */
   mrb_define_method(mrb, h, "__init_core",     mrb_hash_init_core,   MRB_ARGS_ANY());  /* core of 15.2.13.4.16 */
-  mrb_define_method(mrb, h, "initialize_copy", mrb_hash_replace,     MRB_ARGS_REQ(1)); /* 15.2.13.4.17 */
   mrb_define_method(mrb, h, "key?",            mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.18 */
   mrb_define_method(mrb, h, "keys",            mrb_hash_keys,        MRB_ARGS_NONE()); /* 15.2.13.4.19 */
   mrb_define_method(mrb, h, "length",          mrb_hash_size_m,      MRB_ARGS_NONE()); /* 15.2.13.4.20 */
   mrb_define_method(mrb, h, "member?",         mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.21 */
-  mrb_define_method(mrb, h, "replace",         mrb_hash_replace,     MRB_ARGS_REQ(1)); /* 15.2.13.4.23 */
   mrb_define_method(mrb, h, "shift",           mrb_hash_shift,       MRB_ARGS_NONE()); /* 15.2.13.4.24 */
   mrb_define_method(mrb, h, "dup",             mrb_hash_dup,         MRB_ARGS_NONE());
   mrb_define_method(mrb, h, "size",            mrb_hash_size_m,      MRB_ARGS_NONE()); /* 15.2.13.4.25 */

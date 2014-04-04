@@ -143,6 +143,20 @@ class Hash
   end
 
   ##
+  # Replaces the contents of <i>hsh</i> with the contents of other hash
+  #
+  # ISO 15.2.13.4.23
+  def replace(hash)
+    self.clear
+    hash.each_key{|k|
+      self[k] = hash[k]
+    }
+    self
+  end
+  # ISO 15.2.13.4.17
+  alias initialize_copy replace
+
+  ##
   # Return a hash which contains the content of
   # +self+ and +other+. If a block is given
   # it will be called for each element with
