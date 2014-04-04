@@ -1,5 +1,6 @@
 require 'pathname'
 require 'forwardable'
+require 'tsort'
 
 module MRuby
   module Gem
@@ -288,27 +289,38 @@ module MRuby
       end
 
       def check
+        gem_table = @ary.reduce({}) { |res,v| res[v.name] = v; res }
+
         each do |g|
           g.dependencies.each do |dep|
             name = dep[:gem]
             req_versions = dep[:requirements]
+            dep_g = gem_table[name]
 
             # check each GEM dependency against all available GEMs
-            found_dep_gem = false
-            each do |dep_g|
-              if name == dep_g.name
-                unless dep_g.version_ok?(req_versions)
-                  fail "#{name} version should be #{req_versions.join(' and ')} but was '#{dep_g.version}'"
-                end
-
-                found_dep_gem = true
-                break
-              end
+            if dep_g.nil?
+              fail "The GEM '#{g.name}' depends on the GEM '#{name}' but it could not be found"
             end
-
-            fail "The GEM '#{g.name}' depends on the GEM '#{name}' but it could not be found" unless found_dep_gem
-
+            unless dep_g.version_ok? req_versions
+              fail "#{name} version should be #{req_versions.join(' and ')} but was '#{dep_g.version}'"
+            end
           end
+        end
+
+        class << gem_table
+          include TSort
+          alias tsort_each_node each_key
+          def tsort_each_child(n, &b)
+            fetch(n).dependencies.each do |v|
+              b.call v[:gem]
+            end
+          end
+        end
+
+        begin
+          @ary = gem_table.tsort.map { |v| gem_table[v] }
+        rescue TSort::Cyclic => e
+          fail "Circular mrbgem dependency found: #{e.message}"
         end
       end
     end # List
