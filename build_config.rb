@@ -2,7 +2,7 @@ MRuby::Build.new do |conf|
   # load specific toolchain settings
 
   # Gets set by the VS command prompts.
-  if ENV['VisualStudioVersion']
+  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
     toolchain :visualcpp
   else
     toolchain :gcc
