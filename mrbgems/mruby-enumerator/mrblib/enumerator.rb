@@ -216,7 +216,15 @@ class Enumerator
 
   def inspect
     return "#<#{self.class}: uninitialized>" unless @obj
-    "#<#{self.class}: #{@obj}:#{@meth}>"
+
+    args = ""
+    if @args && @args.size > 0
+      args = "("
+      @args.each {|arg| args << "#{arg}, " }
+      args = args[0, args.size-2]
+      args << ")"
+    end
+    "#<#{self.class}: #{@obj}:#{@meth}#{args}>"
   end
 
   ##
