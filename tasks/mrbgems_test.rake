@@ -115,7 +115,8 @@ MRuby.each_target do
     no_mrb_open_test_rbfiles << "#{MRUBY_ROOT}/test/no_mrb_open_test_dummy.rb"
   end
   
-  file "#{no_mrb_open_test}.o" => "#{no_mrb_open_test}.c"
+  no_mrb_open_test_lib = no_mrb_open_test.ext(exts.object)
+  file no_mrb_open_test_lib => "#{no_mrb_open_test}.c"
   file "#{no_mrb_open_test}.c" => no_mrb_open_test_rbfiles do |t|
     open(t.name, 'w') do |f|
       f.puts %Q[/*]
