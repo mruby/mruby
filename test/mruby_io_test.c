@@ -112,7 +112,9 @@ static mrb_value
 mrb_io_test_file_setup(mrb_state *mrb, mrb_value self)
 {
   mrb_value ary = mrb_io_test_io_setup(mrb, self);
-  symlink("/usr/bin", "test-bin");
+  if (symlink("/usr/bin", "test-bin") == -1) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "can't make a symbolic link");
+  }
 
   return ary;
 }
