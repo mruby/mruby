@@ -16,7 +16,7 @@ MRuby.each_target do
   file mrbtest_lib => [mlib, ass_lib, gems.map(&:test_objs), gem_test_files].flatten do |t|
     archiver.run t.name, t.prerequisites
   end
-  file mrbtest_lib => "#{build_dir}/test/no_mrb_open_test.o"
+  file mrbtest_lib => "#{build_dir}/test/no_mrb_open_test.c".ext(exts.object)
 
   unless build_mrbtest_lib_only?
     driver_obj = objfile("#{current_build_dir}/driver")
