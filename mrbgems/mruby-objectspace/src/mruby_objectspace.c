@@ -34,8 +34,8 @@ os_count_object_type(mrb_state *mrb, struct RBasic *obj, void *data)
  *  {
  *    :TOTAL=>10000,
  *    :FREE=>3011,
- *    :MRB_TT_OBJECT=>6,
- *    :MRB_TT_CLASS=>404,
+ *    :T_OBJECT=>6,
+ *    :T_CLASS=>404,
  *    # ...
  *  }
  *
