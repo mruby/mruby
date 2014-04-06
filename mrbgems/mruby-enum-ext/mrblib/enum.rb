@@ -517,7 +517,7 @@ module Enumerable
   def each_with_object(obj=nil, &block)
     raise ArgumentError, "wrong number of arguments (0 for 1)" if obj == nil
 
-    return to_enum :each_with_object unless block_given?
+    return to_enum(:each_with_object, obj) unless block_given?
 
     self.each {|*val| block.call(val.__svalue, obj) }
     obj
@@ -574,7 +574,7 @@ module Enumerable
   #
 
   def cycle(n=nil, &block)
-    return to_enum :cycle if !block_given? && n == nil
+    return to_enum(:cycle, n) if !block_given? && n == nil
 
     ary = []
     if n == nil
@@ -623,7 +623,7 @@ module Enumerable
   #
 
   def find_index(val=NONE, &block)
-    return to_enum :find_index if !block_given? && val == NONE
+    return to_enum(:find_index, val) if !block_given? && val == NONE
 
     idx = 0
     if block
