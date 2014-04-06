@@ -110,7 +110,7 @@ class Enumerator
   #
   #   p fib.take(10) # => [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
   #
-  def initialize obj=nil, meth=:each, *args, &block
+  def initialize(obj=nil, meth=:each, *args, &block)
     if block_given?
       obj = Generator.new(&block)
     else
@@ -129,7 +129,7 @@ class Enumerator
   attr_accessor :obj, :meth, :args, :fib
   private :obj, :meth, :args, :fib
 
-  def initialize_copy obj
+  def initialize_copy(obj)
     raise TypeError, "can't copy type #{obj.class}" unless obj.kind_of? Enumerator
     raise TypeError, "can't copy execution context" if obj.fib
     @obj = obj.obj
@@ -152,7 +152,7 @@ class Enumerator
   #
   # +offset+:: the starting index to use
   #
-  def with_index offset=0
+  def with_index(offset=0)
     return to_enum :with_index, offset unless block_given?
     raise TypeError, "no implicit conversion of #{offset.class} into Integer" unless offset.respond_to?(:to_int)
 
@@ -205,8 +205,8 @@ class Enumerator
   #   # => foo:1
   #   # => foo:2
   #
-  def with_object object
-    return to_enum :with_object, object unless block_given?
+  def with_object(object)
+    return to_enum(:with_object, object) unless block_given?
 
     enumerator_block_call do |i|
       yield [i,object]
@@ -262,7 +262,7 @@ class Enumerator
   #   enum.each(:y, :z).equal?(enum)  #=> false
   #   enum.each(:y, :z) { |elm| elm } #=> :method_returned
   #
-  def each *argv, &block
+  def each(*argv, &block)
     obj = self
     if 0 < argv.length
       obj = self.dup
@@ -512,7 +512,7 @@ class Enumerator
   #   e.next              # (7)
   #                       # (10)
   #
-  def feed value
+  def feed(value)
     raise TypeError, "feed value already set" if @feedvalue
     @feedvalue = value
     nil
@@ -520,13 +520,13 @@ class Enumerator
 
   # just for internal
   class Generator
-    def initialize &block
+    def initialize(&block)
       raise TypeError, "wrong argument type #{self.class} (expected Proc)" unless block.kind_of? Proc
 
       @proc = block
     end
 
-    def each *args, &block
+    def each(*args, &block)
       args.unshift Yielder.new(&block)
       @proc.call(*args)
     end
@@ -534,13 +534,13 @@ class Enumerator
 
   # just for internal
   class Yielder
-    def initialize &block
+    def initialize(&block)
       raise LocalJumpError, "no block given" unless block_given?
 
       @proc = block
     end
 
-    def yield *args
+    def yield(*args)
       @proc.call(*args)
     end
 
@@ -610,7 +610,7 @@ module Kernel
   #     # => returns an Enumerator when called without a block
   #   enum.first(4) # => [1, 1, 1, 2]
   #
-  def to_enum meth=:each, *args
+  def to_enum(meth=:each, *args)
     Enumerator.new self, meth, *args
   end
   alias :enum_for :to_enum
