@@ -154,7 +154,7 @@ class Hash
     }
     if hash.default_proc
       self.default_proc = hash.default_proc
-    elsif hash.default
+    else 
       self.default = hash.default
     end
     self
