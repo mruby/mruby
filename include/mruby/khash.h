@@ -141,7 +141,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
       }                                                                 \
       k = (k+khash_inc(h)) & khash_mask(h);                             \
     }                                                                   \
-    return h->n_buckets;                                                \
+    return kh_end(h);                                                   \
   }                                                                     \
   void kh_resize_##name(mrb_state *mrb, kh_##name##_t *h, khint_t new_n_buckets) \
   {                                                                     \
