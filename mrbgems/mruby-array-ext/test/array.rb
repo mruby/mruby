@@ -146,3 +146,8 @@ assert("Array#reverse_each") do
     true
   end
 end
+
+assert("Array#drop_while") do
+  a = [1, 2, 3, 4, 5, 0]
+  assert_equal [3, 4, 5, 0], a.drop_while {|i| i < 3 }
+end

@@ -351,4 +351,31 @@ class Array
     end
     self
   end
+
+  ##
+  # call-seq:
+  #    ary.drop_while {|arr| block }   -> array
+  #    ary.drop_while                  -> an_enumerator
+  #
+  # Drops elements up to, but not including, the first element for
+  # which the block returns +nil+ or +false+ and returns an array
+  # containing the remaining elements.
+  #
+  # If no block is given, an enumerator is returned instead.
+  #
+  # See also Array#take_while
+  #
+  #    a = [1, 2, 3, 4, 5, 0]
+  #    a.drop_while {|i| i < 3 }   #=> [3, 4, 5, 0]
+
+  def drop_while(&block)
+    return to_enum :drop_while unless block_given?
+
+    ary, state = [], false
+    self.each do |*val|
+      state = true if !state and !block.call(*val)
+      ary << val.__svalue if state
+    end
+    ary
+  end
 end
