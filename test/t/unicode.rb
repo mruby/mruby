@@ -33,28 +33,3 @@ assert('braced \u notation test') do
   assert_equal("\u{10000}",  "\xF0\x90\x80\x80")
   assert_equal("\u{10FFFF}", "\xF4\x8F\xBF\xBF")
 end
-
-# Test regular expressions only if implemented
-begin
-  Regexp
-  have_regexp = true
-rescue NameError
-  have_regexp = false
-end
-if have_regexp then
-  assert('Testing \u in regular expressions') do
-    # The regular expression uses the unbraced notation where the string uses
-    # the braced notation, and vice versa, so these tests will fail if the \u
-    # modification is not applied
-
-    # Test of unbraced \u notation in a regular expression
-    assert_false(/\u0300/ =~ "\u{02FF}")
-    assert_true( /\u0300/ =~ "\u{0300}")
-    assert_false(/\u0300/ =~ "\u{0301}")
-
-    # Test of braced \u notation in a regular expression
-    assert_false(/\u{0300}/ =~ "\u02FF")
-    assert_true( /\u{0300}/ =~ "\u0300")
-    assert_false(/\u{0300}/ =~ "\u0301")
-  end
-end
