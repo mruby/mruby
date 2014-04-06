@@ -44,7 +44,6 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   v |= v >> 16;\
   v++;\
 } while (0)
-#define khash_mask(h) ((h)->n_buckets-1)
 #define khash_inc(h) ((h)->n_buckets/2-1)
 #define khash_upper_bound(h) (UPPER_BOUND((h)->n_buckets))
 
@@ -133,15 +132,15 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
   }                                                                     \
   khint_t kh_get_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key)  \
   {                                                                     \
-    khint_t k = __hash_func(mrb,key) & khash_mask(h);                   \
+    khint_t k = __hash_func(mrb,key) % h->n_buckets;                    \
     (void)mrb;                                                          \
     while (!__ac_isempty(h->ed_flags, k)) {                             \
       if (!__ac_isdel(h->ed_flags, k)) {                                \
         if (__hash_equal(mrb,h->keys[k], key)) return k;                \
       }                                                                 \
-      k = (k+khash_inc(h)) & khash_mask(h);                             \
+      k = (k+khash_inc(h)) % h->n_buckets;                              \
     }                                                                   \
-    return h->n_buckets;                                                \
+    return kh_end(h);                                                   \
   }                                                                     \
   void kh_resize_##name(mrb_state *mrb, kh_##name##_t *h, khint_t new_n_buckets) \
   {                                                                     \
@@ -172,10 +171,10 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
     if (h->n_occupied >= khash_upper_bound(h)) {                        \
       kh_resize_##name(mrb, h, h->n_buckets*2);                         \
     }                                                                   \
-    k = __hash_func(mrb,key) & khash_mask(h);                           \
+    k = __hash_func(mrb,key) % h->n_buckets;                            \
     while (!__ac_iseither(h->ed_flags, k)) {                            \
       if (__hash_equal(mrb,h->keys[k], key)) break;                     \
-      k = (k+khash_inc(h)) & khash_mask(h);                             \
+      k = (k+khash_inc(h)) % h->n_buckets;                              \
     }                                                                   \
     if (__ac_isempty(h->ed_flags, k)) {                                 \
       /* put at empty */                                                \
