@@ -90,6 +90,10 @@ end
 assert 'Enumerator#inspect' do
   e = (0..10).each
   assert_equal("#<Enumerator: 0..10:each>", e.inspect)
+  e = Enumerator.new("FooObject", :foo, 1)
+  assert_equal("#<Enumerator: FooObject:foo(1)>", e.inspect)
+  e = Enumerator.new("FooObject", :foo, 1, 2, 3)
+  assert_equal("#<Enumerator: FooObject:foo(1, 2, 3)>", e.inspect)
 end
 
 assert 'Enumerator#each' do
