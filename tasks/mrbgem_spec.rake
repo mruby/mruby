@@ -94,6 +94,7 @@ module MRuby
 
         compilers.each do |compiler|
           compiler.define_rules build_dir, "#{dir}"
+          compiler.defines << %Q[MRBGEM_#{funcname.upcase}_VERSION=#{version}]
         end
 
         define_gem_init_builder
