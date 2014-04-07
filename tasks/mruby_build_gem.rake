@@ -30,12 +30,15 @@ module MRuby
       load gemrake
       return nil unless Gem.current
 
-      enable_cxx_abi if Gem.current.cxx_abi_enabled?
-
       Gem.current.dir = gemdir
       Gem.current.build = MRuby::Build.current
       Gem.current.build_config_initializer = block
       gems << Gem.current
+
+      cxx_srcs = Dir.glob("#{Gem.current.dir}/src/*.{cpp,cxx}")
+      cxx_srcs += Dir.glob("#{Gem.current.dir}/test/*.{cpp,cxx}")
+      enable_cxx_abi unless cxx_srcs.empty?
+
       Gem.current
     end
 
