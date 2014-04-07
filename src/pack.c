@@ -286,7 +286,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
 {
   mrb_value dst;
   const char *sptr;
-  char *dptr, *dptr0;
+  char *dptr;
 
   sptr = src;
 
@@ -294,7 +294,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
     count = slen;
 
   dst = mrb_str_new(mrb, NULL, count);
-  dptr0 = dptr = RSTRING_PTR(dst);
+  dptr = RSTRING_PTR(dst);
 
   memcpy(dptr, sptr, count);
   if (flags & PACK_FLAG_Z) {
@@ -359,7 +359,7 @@ static int
 unpack_h(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
 {
   mrb_value dst;
-  int a, ashift, b, bshift, padding;
+  int a, ashift, b, bshift;
   const char *sptr, *sptr0;
   char *dptr, *dptr0;
   const char hexadecimal[] = "0123456789abcdef";
@@ -382,7 +382,6 @@ unpack_h(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, un
 
   sptr0 = sptr;
   dptr0 = dptr;
-  padding = 0;
   while (slen > 0 && count > 0) {
     a = (*sptr >> ashift) & 0x0f;
     b = (*sptr >> bshift) & 0x0f;
@@ -777,7 +776,7 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
   long count;
   unsigned int flags;
   int dir, size, srcidx, srclen, type;
-  const char *sptr;
+  const unsigned char *sptr;
 
   prepare_tmpl(mrb, &tmpl);
 
