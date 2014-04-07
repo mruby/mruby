@@ -9,7 +9,16 @@ assert("Enumerable#drop") do
 end
 
 assert("Enumerable#drop_while") do
-  a = [1, 2, 3, 4, 5, 0]
+  a = Object.new
+  a.extend Enumerable
+  def a.each
+    yield 1
+    yield 2
+    yield 3
+    yield 4
+    yield 5
+    yield 0
+  end
   assert_equal [3, 4, 5, 0], a.drop_while {|i| i < 3 }
 end
 
