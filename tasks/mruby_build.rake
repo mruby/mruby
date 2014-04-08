@@ -82,6 +82,7 @@ module MRuby
         @gems, @libmruby = MRuby::Gem::List.new, []
         @build_mrbtest_lib_only = false
         @cxx_abi_enabled = false
+        @cxx_exception_disabled = false
 
         MRuby.targets[@name] = self
       end
@@ -95,12 +96,16 @@ module MRuby
       @mrbc.compile_options += ' -g'
     end
 
+    def disable_cxx_exception
+      @cxx_exception_disabled = true
+    end
+
     def cxx_abi_enabled?
       @cxx_abi_enabled
     end
 
     def enable_cxx_abi
-      return if @cxx_abi_enabled
+      return if @cxx_exception_disabled or @cxx_abi_enabled
       compilers.each { |c| c.defines += %w(MRB_ENABLE_CXX_EXCEPTION) }
       linker.command = cxx.command
       @cxx_abi_enabled = true
