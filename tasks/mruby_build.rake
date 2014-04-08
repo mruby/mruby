@@ -44,7 +44,7 @@ module MRuby
     include Rake::DSL
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :enable_bintest
-    attr_reader :libmruby, :gems
+    attr_reader :libmruby, :gems, :mrbgem_license_checker
 
     COMPILERS = %w(cc cxx objc asm)
     COMMANDS = COMPILERS + %w(linker archiver yacc gperf git exts mrbc)
@@ -88,6 +88,10 @@ module MRuby
 
       MRuby::Build.current = MRuby.targets[@name]
       MRuby.targets[@name].instance_eval(&block)
+    end
+
+    def set_mrbgem_license_checker(&b)
+      @mrbgem_license_checker = b
     end
 
     def enable_debug

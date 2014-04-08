@@ -2,6 +2,8 @@ MRuby::Build.new('debug') do |conf|
   toolchain :gcc
   enable_debug
 
+  set_mrbgem_license_checker { |l| l == 'MIT' }
+
   # include all core GEMs
   conf.gembox 'full-core'
   conf.cc.flags += %w(-Werror=declaration-after-statement)
