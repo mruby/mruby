@@ -53,6 +53,9 @@ MRuby::CrossBuild.new("Arduino Due") do |conf|
   #do not build executable test
   conf.build_mrbtest_lib_only
 
+  #disable C++ exception
+  conf.disable_cxx_exception
+
   #gems from core
   conf.gem :core => "mruby-print" 
   conf.gem :core => "mruby-math"
