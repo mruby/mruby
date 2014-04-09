@@ -28,28 +28,29 @@ mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
   case MRB_TT_STRING:
     p = RSTRING_PTR(key);
     len = RSTRING_LEN(key);
-    break;
+    h = 0;
+    for (i=0; i<len; i++) {
+      h = (h << 5) - h + *p++;
+    }
+    return h;
 
   case MRB_TT_SYMBOL:
-    p = mrb_sym2name_len(mrb, mrb_symbol(key), &len);
-    break;
+    h = (khint_t)mrb_symbol(key);
+    return kh_int_hash_func(mrb,h);
 
   case MRB_TT_FIXNUM:
-    return (khint_t)mrb_float_id((mrb_float)mrb_fixnum(key));
+    h = (khint_t)mrb_float_id((mrb_float)mrb_fixnum(key));
+    return kh_int_hash_func(mrb,h);
 
   case MRB_TT_FLOAT:
-    return (khint_t)mrb_float_id(mrb_float(key));
+    h = (khint_t)mrb_float_id(mrb_float(key));
+    return kh_int_hash_func(mrb,h);
 
   default:
     hv = mrb_funcall(mrb, key, "hash", 0);
-    return (khint_t)t ^ mrb_fixnum(hv);
+    h = (khint_t)t ^ mrb_fixnum(hv);
+    return kh_int_hash_func(mrb,h);
   }
-
-  h = 0;
-  for (i=0; i<len; i++) {
-    h = (h << 5) - h + *p++;
-  }
-  return h;
 }
 
 static inline khint_t
