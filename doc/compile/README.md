@@ -193,7 +193,7 @@ If you want a temporary files use `tempfile` module of CRuby instead of ```/tmp/
 
 You can enable it with following:
 
-	conf.enable_bintest = true
+	conf.enable_bintest
 
 ### C++ ABI
 
