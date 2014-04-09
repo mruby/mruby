@@ -194,6 +194,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
   void kh_del_##name(mrb_state *mrb, kh_##name##_t *h, khint_t x)       \
   {                                                                     \
     (void)mrb;                                                          \
+    mrb_assert(x != h->n_buckets && !__ac_iseither(h->ed_flags, x));    \
     h->ed_flags[x/4] |= __m_del[x%4];                                   \
     h->size--;                                                          \
   }                                                                     \
