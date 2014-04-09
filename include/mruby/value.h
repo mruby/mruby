@@ -469,6 +469,8 @@ mrb_cptr_value(struct mrb_state *mrb, void *p)
 #define mrb_voidp(o) mrb_cptr(o)
 #define mrb_voidp_p(o) mrb_cptr_p(o)
 
+#define MRB_TT_HAS_BASIC_P(tt) ((tt) >= MRB_TT_HAS_BASIC)
+
 static inline mrb_value
 mrb_false_value(void)
 {
