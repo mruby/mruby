@@ -313,10 +313,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
   khiter_t k;
 
   if (!h) h = c->mt = kh_init(mt, mrb);
-  k = kh_get(mt, mrb, h, mid);
-  if (k == kh_end(h)) {
-    k = kh_put(mt, mrb, h, mid);
-  }
+  k = kh_put(mt, mrb, h, mid);
   kh_value(h, k) = p;
   if (p) {
     mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
@@ -349,10 +346,7 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
   struct RProc *p;
 
   if (!h) h = c->mt = kh_init(mt, mrb);
-  k = kh_get(mt, mrb, h, name);
-  if (k == kh_end(h)) {
-    k = kh_put(mt, mrb, h, name);
-  }
+  k = kh_put(mt, mrb, h, name);
   p = mrb_proc_ptr(body);
   kh_value(h, k) = p;
   if (p) {
