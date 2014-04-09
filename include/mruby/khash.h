@@ -168,26 +168,39 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
   }                                                                     \
   khint_t kh_put_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key)  \
   {                                                                     \
-    khint_t k;                                                          \
+    khint_t kk, k, seen_del = 0;                                        \
     if (h->n_occupied >= khash_upper_bound(h)) {                        \
       kh_resize_##name(mrb, h, h->n_buckets*2);                         \
     }                                                                   \
-    k = __hash_func(mrb,key) & khash_mask(h);                           \
-    while (!__ac_iseither(h->ed_flags, k)) {                            \
-      if (__hash_equal(mrb,h->keys[k], key)) break;                     \
-      k = (k+khash_inc(h)) & khash_mask(h);                             \
+    kk = k = __hash_func(mrb,key) & khash_mask(h);                      \
+    while (!__ac_isempty(h->ed_flags, k)) {                             \
+      if (!__ac_isdel(h->ed_flags, k)) {                                \
+        if (__hash_equal(mrb,h->keys[k], key)) {                        \
+          seen_del = 0;                                                 \
+          break;                                                        \
+        }                                                               \
+      }                                                                 \
+      else {                                                            \
+        seen_del = 1;                                                   \
+      }                                                                 \
+      k = (k+khash_inc(h)) & khash_mask(h);                      	 \
     }                                                                   \
-    if (__ac_isempty(h->ed_flags, k)) {                                 \
+    if (seen_del) {                                                     \
+      k = kk;                                                           \
+      while (!__ac_isdel(h->ed_flags, k)) {                             \
+        k = (k+khash_inc(h)) % h->n_buckets;                            \
+      }                                                                 \
+      /* put at del */                                                  \
+      h->keys[k] = key;                                                 \
+      h->ed_flags[k/4] &= ~__m_del[k%4];                                \
+      h->size++;                                                        \
+    }                                                                   \
+    else if (__ac_isempty(h->ed_flags, k)) {                            \
       /* put at empty */                                                \
       h->keys[k] = key;                                                 \
       h->ed_flags[k/4] &= ~__m_empty[k%4];                              \
       h->size++;                                                        \
       h->n_occupied++;                                                  \
-    } else if (__ac_isdel(h->ed_flags, k)) {                            \
-      /* put at del */                                                  \
-      h->keys[k] = key;                                                 \
-      h->ed_flags[k/4] &= ~__m_del[k%4];                                \
-      h->size++;                                                        \
     }                                                                   \
     return k;                                                           \
   }                                                                     \
