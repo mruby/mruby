@@ -31,8 +31,7 @@ mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
     break;
 
   case MRB_TT_SYMBOL:
-    p = mrb_sym2name_len(mrb, mrb_symbol(key), &len);
-    break;
+    return mrb_obj_id(key);
 
   case MRB_TT_FIXNUM:
     return (khint_t)mrb_float_id((mrb_float)mrb_fixnum(key));
