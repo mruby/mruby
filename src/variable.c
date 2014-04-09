@@ -308,9 +308,9 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
   khash_t(iv) *h = &t->h;
   khiter_t k;
 
-  k = kh_get(mt, mrb, h, sym);
+  k = kh_get(iv, mrb, h, sym);
   if (k == kh_end(h)) {
-    k = kh_put(mt, mrb, h, sym);
+    k = kh_put(iv, mrb, h, sym);
   }
   kh_value(h, k) = val;
 }
