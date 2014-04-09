@@ -73,8 +73,8 @@ enum {
   OP_SETCV,/*     A Bx    cvset(Sym(Bx),R(A))                             */
   OP_GETCONST,/*  A Bx    R(A) := constget(Sym(Bx))                       */
   OP_SETCONST,/*  A Bx    constset(Sym(Bx),R(A))                          */
-  OP_GETMCNST,/*  A Bx    R(A) := R(A)::Sym(B)                            */
-  OP_SETMCNST,/*  A Bx    R(A+1)::Sym(B) := R(A)                          */
+  OP_GETMCNST,/*  A Bx    R(A) := R(A)::Sym(Bx)                           */
+  OP_SETMCNST,/*  A Bx    R(A+1)::Sym(Bx) := R(A)                         */
   OP_GETUPVAR,/*  A B C   R(A) := uvget(B,C)                              */
   OP_SETUPVAR,/*  A B C   uvset(B,C,R(A))                                 */
 
@@ -125,7 +125,7 @@ enum {
   OP_STRCAT,/*    A B     str_cat(R(A),R(B))                              */
 
   OP_HASH,/*      A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C))           */
-  OP_LAMBDA,/*    A Bz Cz R(A) := lambda(SEQ[Bz],Cm)                      */
+  OP_LAMBDA,/*    A Bz Cz R(A) := lambda(SEQ[Bz],Cz)                      */
   OP_RANGE,/*     A B C   R(A) := range_new(R(B),R(B+1),C)                */
 
   OP_OCLASS,/*    A       R(A) := ::Object                                */
