@@ -4,6 +4,7 @@
 
 mruby is the lightweight implementation of the Ruby language complying to (part of)
 the [ISO standard](http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579).
+In addition to implementing a subset of Ruby 1.8.7, mruby is also Ruby 1.9 compatible.
 mruby can be linked and embedded within your application.  We provide the interpreter program "mruby" and
 the interactive mruby shell "mirb" as examples.  You can also compile Ruby programs into compiled byte code
 using the mruby compiler "mrbc".  All those tools reside in the "bin" directory.  "mrbc" is also able to
