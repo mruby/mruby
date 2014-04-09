@@ -42,6 +42,9 @@ The URL of the mruby home-page is:
 
 To subscribe to the mruby mailing list....[T.B.D.]
 
+## IRC
+
+[irc.freenode.net #mruby](irc://irc.freenode.net/mruby)
 
 ## How to compile and install (mruby and gems)
 
