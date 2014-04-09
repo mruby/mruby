@@ -43,8 +43,9 @@ module MRuby
     end
     include Rake::DSL
     include LoadGems
-    attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :enable_bintest
+    attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir
     attr_reader :libmruby, :gems
+    attr_writer :enable_bintest
 
     COMPILERS = %w(cc cxx objc asm)
     COMMANDS = COMPILERS + %w(linker archiver yacc gperf git exts mrbc)
@@ -109,6 +110,14 @@ module MRuby
       compilers.each { |c| c.defines += %w(MRB_ENABLE_CXX_EXCEPTION) }
       linker.command = cxx.command
       @cxx_abi_enabled = true
+    end
+
+    def enable_bintest
+      @enable_bintest = true
+    end
+
+    def bintest_enabled?
+      @enable_bintest
     end
 
     def toolchain(name)
