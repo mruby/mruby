@@ -315,6 +315,7 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
 mrb_value
 mrb_file_flock(mrb_state *mrb, mrb_value self)
 {
+#if !defined(sun)
   mrb_int operation;
   int fd;
 
@@ -339,6 +340,7 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
         break;
     }
   }
+#endif
   return mrb_fixnum_value(0);
 }
 #endif
