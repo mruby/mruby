@@ -1016,6 +1016,14 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
   struct RProc *m;
   struct RClass *c = *cp;
 
+#ifdef MRB_METHOD_CACHE
+  struct mrb_cache_entry* ce;
+  ce = mrb->cache + MRB_CACHE(c, mid);
+  if (ce->c == c && ce->mid == mid) {
+    return ce->p;
+  }
+#endif
+
   while (c) {
     khash_t(mt) *h = c->mt;
 
@@ -1024,6 +1032,11 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
       if (k != kh_end(h)) {
         m = kh_value(h, k);
         if (!m) break;
+#ifdef MRB_METHOD_CACHE
+        ce->mid = mid;
+        ce->c = *cp;
+        ce->p = m;
+#endif
         *cp = c;
         return m;
       }

@@ -59,6 +59,9 @@
 /* fixed size GC arena */
 //#define MRB_GC_FIXED_ARENA
 
+/* method cache */
+//#define MRB_METHOD_CACHE
+
 /* -DDISABLE_XXXX to drop following features */
 //#define DISABLE_STDIO		/* use of stdio */
 

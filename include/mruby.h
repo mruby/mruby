@@ -102,6 +102,19 @@ enum gc_state {
 
 struct mrb_jmpbuf;
 
+#ifdef MRB_METHOD_CACHE
+#define MRB_CACHE_SIZE 0x800
+#define MRB_CACHE_MASK 0x7ff
+#define MRB_CACHE(c,m) ((((((unsigned long)(void*)c))>>3)^(m))&MRB_CACHE_MASK)
+
+/* method hash table. */
+struct mrb_cache_entry {
+  mrb_sym mid;
+  struct RClass *c;
+  struct RProc* p;
+};
+#endif
+
 typedef struct mrb_state {
   struct mrb_jmpbuf *jmp;
 
@@ -169,6 +182,10 @@ typedef struct mrb_state {
   struct RClass *eStandardError_class;
 
   void *ud; /* auxiliary data */
+
+#ifdef MRB_METHOD_CACHE
+  struct mrb_cache_entry cache[MRB_CACHE_SIZE];
+#endif
 } mrb_state;
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
