@@ -369,3 +369,42 @@ assert('clone Class') do
 
   Foo.clone.new.func
 end
+
+assert('overwrite method') do
+  class Foo
+    def to_s
+      "to_s"
+    end
+    def const_missing
+      "const_missing"
+    end
+  end
+
+  t = Foo.new
+  assert_equal "to_s", t.to_s
+  assert_equal "const_missing", t.const_missing
+
+  class Foo
+    def to_s
+      "to_s2"
+    end
+  end
+  assert_equal "to_s2", t.to_s
+
+  class Foo
+    remove_method(:to_s)
+  end
+  assert_not_equal "to_s", t.to_s
+
+  class Foo
+    def const_missing
+      "const_missing2"
+    end
+  end
+  assert_equal "const_missing2", t.const_missing
+
+  class Foo
+    remove_method(:const_missing)
+  end
+  assert_false t.respond_to? :const_missing
+end
