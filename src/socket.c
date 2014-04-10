@@ -31,7 +31,7 @@ static mrb_value
 mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
 {
   struct addrinfo hints, *res0, *res;
-  struct sockaddr_un sun;
+  struct sockaddr_un sock_un;
   mrb_value ai, ary, family, lastai, nodename, protocol, s, sa, service, socktype;
   mrb_int flags;
   int arena_idx, error;
@@ -40,7 +40,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   ary = mrb_ary_new(mrb);
   arena_idx = mrb_gc_arena_save(mrb);  /* ary must be on arena! */
 
-  s = mrb_str_new(mrb, (void *)&sun, sizeof(sun));
+  s = mrb_str_new(mrb, (void *)&sock_un, sizeof(sock_un));
 
   family = socktype = protocol = mrb_nil_value();
   flags = 0;
