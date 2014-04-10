@@ -366,8 +366,8 @@ void mrb_print_error(mrb_state *mrb);
 #define E_KEY_ERROR                 (mrb_class_get(mrb, "KeyError"))
 
 mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
-mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv);
-mrb_value mrb_yield_with_class(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
+mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, const mrb_value *argv);
+mrb_value mrb_yield_with_class(mrb_state *mrb, mrb_value b, int argc, const mrb_value *argv, mrb_value self, struct RClass *c);
 
 void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);

@@ -487,7 +487,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
-mrb_yield_with_class(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c)
+mrb_yield_with_class(mrb_state *mrb, mrb_value b, int argc, const mrb_value *argv, mrb_value self, struct RClass *c)
 {
   struct RProc *p;
   mrb_sym mid = mrb->c->ci->mid;
@@ -533,7 +533,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb
 }
 
 mrb_value
-mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv)
+mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, const mrb_value *argv)
 {
   struct RProc *p = mrb_proc_ptr(b);
 
