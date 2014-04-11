@@ -146,3 +146,13 @@ assert("Array#reverse_each") do
     true
   end
 end
+
+assert("Array#rotate") do
+  a = ["a", "b", "c", "d"]
+  assert_equal ["b", "c", "d", "a"], a.rotate
+  assert_equal ["a", "b", "c", "d"], a
+  assert_equal ["c", "d", "a", "b"], a.rotate(2)
+  assert_equal ["b", "c", "d", "a"], a.rotate(-3)
+  assert_equal ["c", "d", "a", "b"], a.rotate(10)
+  assert_equal [], [].rotate
+end
