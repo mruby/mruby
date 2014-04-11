@@ -259,7 +259,7 @@ fiber_transfer(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
-mrb_fiber_yield(mrb_state *mrb, int len, mrb_value *a)
+mrb_fiber_yield(mrb_state *mrb, int len, const mrb_value *a)
 {
   struct mrb_context *c = mrb->c;
   mrb_callinfo *ci;
