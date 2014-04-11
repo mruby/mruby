@@ -382,4 +382,24 @@ class Array
     end
     ary
   end
+
+  ##
+  #  call-seq:
+  #     ary.rotate!(count=1)   -> ary
+  #
+  #  Rotates +self+ in place so that the element at +count+ comes first, and
+  #  returns +self+.
+  #
+  #  If +count+ is negative then it rotates in the opposite direction, starting
+  #  from the end of the array where +-1+ is the last element.
+  #
+  #     a = [ "a", "b", "c", "d" ]
+  #     a.rotate!        #=> ["b", "c", "d", "a"]
+  #     a                #=> ["b", "c", "d", "a"]
+  #     a.rotate!(2)     #=> ["d", "a", "b", "c"]
+  #     a.rotate!(-3)    #=> ["a", "b", "c", "d"]
+
+  def rotate!(count=1)
+    self.replace(self.rotate(count))
+  end
 end
