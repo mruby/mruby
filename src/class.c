@@ -312,6 +312,11 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
   khash_t(mt) *h = c->mt;
   khiter_t k;
 
+#ifdef MRB_METHOD_CACHE
+  struct mrb_cache_entry* ce = mrb->cache + MRB_CACHE(c, mid);
+  if (ce->c == c && ce->mid == mid) ce->mid = 0;
+#endif
+
   if (!h) h = c->mt = kh_init(mt, mrb);
   k = kh_put(mt, mrb, h, mid);
   kh_value(h, k) = p;
@@ -345,7 +350,14 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
   khiter_t k;
   struct RProc *p;
 
-  if (!h) h = c->mt = kh_init(mt, mrb);
+  if (!h)
+    h = c->mt = kh_init(mt, mrb);
+#ifdef MRB_METHOD_CACHE
+  else {
+    struct mrb_cache_entry* ce = mrb->cache + MRB_CACHE(c, name);
+    if (ce->c == c && ce->mid == name) ce->mid = 0;
+  }
+#endif
   k = kh_put(mt, mrb, h, name);
   p = mrb_proc_ptr(body);
   kh_value(h, k) = p;
@@ -1017,11 +1029,8 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
   struct RClass *c = *cp;
 
 #ifdef MRB_METHOD_CACHE
-  struct mrb_cache_entry* ce;
-  ce = mrb->cache + MRB_CACHE(c, mid);
-  if (ce->c == c && ce->mid == mid) {
-    return ce->p;
-  }
+  struct mrb_cache_entry* ce = mrb->cache + MRB_CACHE(c, mid);
+  if (ce->c == c && ce->mid == mid) return ce->p;
 #endif
 
   while (c) {
@@ -1780,6 +1789,11 @@ remove_method(mrb_state *mrb, mrb_value mod, mrb_sym mid)
   khiter_t k;
 
   if (h) {
+#ifdef MRB_METHOD_CACHE
+    struct mrb_cache_entry* ce = mrb->cache + MRB_CACHE(c, mid);
+    if (ce->c == c && ce->mid == mid) ce->mid = 0;
+#endif
+
     k = kh_get(mt, mrb, h, mid);
     if (k != kh_end(h)) {
       kh_del(mt, mrb, h, k);
