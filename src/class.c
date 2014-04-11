@@ -1092,7 +1092,7 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
 }
 
 mrb_value
-mrb_obj_new(mrb_state *mrb, struct RClass *c, int argc, mrb_value *argv)
+mrb_obj_new(mrb_state *mrb, struct RClass *c, int argc, const mrb_value *argv)
 {
   mrb_value obj;
 
