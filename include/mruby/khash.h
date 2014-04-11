@@ -188,8 +188,9 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
     if (del_k != kh_end(h)) {                                           \
       /* put at del */                                                  \
       h->keys[del_k] = key;                                             \
-      h->ed_flags[k/4] &= ~__m_del[k%4];                                \
+      h->ed_flags[del_k/4] &= ~__m_del[del_k%4];                        \
       h->size++;                                                        \
+      return del_k;                                                           \
     }                                                                   \
     else {                                                              \
       /* put at empty */                                                \
@@ -197,8 +198,8 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
       h->ed_flags[k/4] &= ~__m_empty[k%4];                              \
       h->size++;                                                        \
       h->n_occupied++;                                                  \
+      return k;                                                           \
     }                                                                   \
-    return k;                                                           \
   }                                                                     \
   void kh_del_##name(mrb_state *mrb, kh_##name##_t *h, khint_t x)       \
   {                                                                     \
