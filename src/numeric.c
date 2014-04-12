@@ -1091,11 +1091,7 @@ fix_rshift(mrb_state *mrb, mrb_value x)
 static mrb_value
 fix_to_f(mrb_state *mrb, mrb_value num)
 {
-    mrb_float val;
-
-    val = (mrb_float)mrb_fixnum(num);
-
-    return mrb_float_value(mrb, val);
+  return mrb_float_value(mrb, (mrb_float)mrb_fixnum(num));
 }
 
 /*
