@@ -1009,8 +1009,7 @@ fix_shift_get_width(mrb_state *mrb, mrb_int *width)
   mrb_value y;
 
   mrb_get_args(mrb, "o", &y);
-  y = bit_coerce(mrb, y);
-  *width = mrb_fixnum(y);
+  *width = mrb_fixnum(bit_coerce(mrb, y));
 }
 
 /* 15.2.8.3.12 */
