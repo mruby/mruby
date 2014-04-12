@@ -980,8 +980,7 @@ lshift(mrb_state *mrb, mrb_int val, mrb_int width)
                mrb_fixnum_value(width),
                mrb_fixnum_value(NUMERIC_SHIFT_WIDTH_MAX));
   }
-  val = val << width;
-  return mrb_fixnum_value(val);
+  return mrb_fixnum_value(val << width);
 }
 
 static mrb_value
