@@ -889,10 +889,9 @@ fix_equal(mrb_state *mrb, mrb_value x)
 static mrb_value
 fix_rev(mrb_state *mrb, mrb_value num)
 {
-    mrb_int val = mrb_fixnum(num);
+  mrb_int val = mrb_fixnum(num);
 
-    val = ~val;
-    return mrb_fixnum_value(val);
+  return mrb_fixnum_value(~val);
 }
 
 static mrb_value
