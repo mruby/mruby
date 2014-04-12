@@ -238,6 +238,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   mrb_sym id;
   mrb_int i, len;
   struct RClass *c;
+  int ai;
 
   if (mrb_nil_p(name)) {
     c = mrb_class_new(mrb, klass);
@@ -265,6 +266,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   /* RSTRUCT(nstr)->basic.c->super = c->c; */
   ptr_members = RARRAY_PTR(members);
   len = RARRAY_LEN(members);
+  ai = mrb_gc_arena_save(mrb);
   for (i=0; i< len; i++) {
     mrb_sym id = mrb_symbol(ptr_members[i]);
     if (mrb_is_local_id(id) || mrb_is_const_id(id)) {
@@ -275,6 +277,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
         mrb_define_method_id(mrb, c, id, mrb_struct_ref, MRB_ARGS_NONE());
       }
       mrb_define_method_id(mrb, c, mrb_id_attrset(mrb, id), mrb_struct_set_m, MRB_ARGS_REQ(1));
+      mrb_gc_arena_restore(mrb, ai);
     }
   }
   return nstr;
