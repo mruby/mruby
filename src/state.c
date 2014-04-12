@@ -134,9 +134,7 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
     mrb_free(mrb, irep->iseq);
   for (i=0; i<irep->plen; i++) {
     if (mrb_type(irep->pool[i]) == MRB_TT_STRING) {
-      if ((mrb_str_ptr(irep->pool[i])->flags & (MRB_STR_NOFREE|MRB_STR_EMBED)) == 0) {
-        mrb_free(mrb, RSTRING_PTR(irep->pool[i]));
-      }
+      mrb_gc_free_str(mrb, RSTRING(irep->pool[i]));
       mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
     }
 #ifdef MRB_WORD_BOXING
