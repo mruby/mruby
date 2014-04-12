@@ -377,13 +377,6 @@ num_eql(mrb_state *mrb, mrb_value x)
   return mrb_bool_value(eql_p);
 }
 
-static mrb_value
-num_equal(mrb_state *mrb, mrb_value x, mrb_value y)
-{
-  if (mrb_obj_equal(mrb, x, y)) return mrb_true_value();
-  return mrb_funcall(mrb, y, "==", 1, x);
-}
-
 /* 15.2.9.3.7  */
 /*
  *  call-seq:
@@ -413,7 +406,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
     b = mrb_float(y);
     break;
   default:
-    return num_equal(mrb, x, y);
+    return mrb_false_value();
   }
   a = mrb_float(x);
   return mrb_bool_value(a == b);
