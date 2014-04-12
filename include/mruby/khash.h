@@ -180,7 +180,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
           return k;                                                     \
         }                                                               \
       }                                                                 \
-      else {                                                            \
+      else if (del_k != kh_end(h)) {                                    \
         del_k = k;                                                      \
       }                                                                 \
       k = (k+khash_inc(h)) & khash_mask(h);                             \
@@ -190,7 +190,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
       h->keys[del_k] = key;                                             \
       h->ed_flags[del_k/4] &= ~__m_del[del_k%4];                        \
       h->size++;                                                        \
-      return del_k;                                                           \
+      return del_k;                                                     \
     }                                                                   \
     else {                                                              \
       /* put at empty */                                                \
@@ -198,7 +198,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
       h->ed_flags[k/4] &= ~__m_empty[k%4];                              \
       h->size++;                                                        \
       h->n_occupied++;                                                  \
-      return k;                                                           \
+      return k;                                                         \
     }                                                                   \
   }                                                                     \
   void kh_del_##name(mrb_state *mrb, kh_##name##_t *h, khint_t x)       \
