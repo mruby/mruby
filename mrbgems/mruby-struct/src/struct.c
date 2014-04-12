@@ -11,6 +11,7 @@
 #include "mruby/string.h"
 #include "mruby/class.h"
 #include "mruby/variable.h"
+#include "mruby/proc.h"
 
 #define RSTRUCT_ARY(st) mrb_ary_ptr(st)
 #define RSTRUCT_LEN(st) RSTRUCT_ARY(st)->len
@@ -108,30 +109,14 @@ mrb_struct_members_m(mrb_state *mrb, mrb_value obj)
   return mrb_struct_s_members_m(mrb, mrb_obj_value(mrb_obj_class(mrb, obj)));
 }
 
-mrb_value
-mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
-{
-  mrb_value members, slot, *ptr, *ptr_members;
-  mrb_int i, len;
-
-  ptr = RSTRUCT_PTR(obj);
-  members = mrb_struct_members(mrb, obj);
-  ptr_members = RARRAY_PTR(members);
-  slot = mrb_symbol_value(id);
-  len = RARRAY_LEN(members);
-  for (i=0; i<len; i++) {
-    if (mrb_obj_equal(mrb, ptr_members[i], slot)) {
-      return ptr[i];
-    }
-  }
-  mrb_raisef(mrb, E_INDEX_ERROR, "`%S' is not a struct member", mrb_sym2str(mrb, id));
-  return mrb_nil_value();       /* not reached */
-}
-
 static mrb_value
 mrb_struct_ref(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_struct_getmember(mrb, obj, mrb->c->ci->mid);
+  mrb_value idx;
+
+  idx = mrb_cfunc_env_get(mrb, 0);
+  mrb_check_type(mrb, idx, MRB_TT_FIXNUM);
+  return mrb_ary_ref(mrb, obj, mrb_fixnum(idx));
 }
 
 static mrb_value mrb_struct_ref0(mrb_state* mrb, mrb_value obj) {return RSTRUCT_PTR(obj)[0];}
@@ -181,39 +166,16 @@ mrb_id_attrset(mrb_state *mrb, mrb_sym id)
 }
 
 static mrb_value
-mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
-{
-  const char *name;
-  size_t i, len;
-  mrb_int slen;
-  mrb_sym mid;
-  mrb_value members, slot, *ptr, *ptr_members;
-
-  /* get base id */
-  name = mrb_sym2name_len(mrb, mrb->c->ci->mid, &slen);
-  mid = mrb_intern(mrb, name, slen-1); /* omit last "=" */
-
-  members = mrb_struct_members(mrb, obj);
-  ptr_members = RARRAY_PTR(members);
-  len = RARRAY_LEN(members);
-  ptr = RSTRUCT_PTR(obj);
-  for (i=0; i<len; i++) {
-    slot = ptr_members[i];
-    if (mrb_symbol(slot) == mid) {
-      return ptr[i] = val;
-    }
-  }
-  mrb_raisef(mrb, E_INDEX_ERROR, "`%S' is not a struct member", mrb_sym2str(mrb, mid));
-  return mrb_nil_value();       /* not reached */
-}
-
-static mrb_value
 mrb_struct_set_m(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value val;
+  mrb_value val, idx;
 
   mrb_get_args(mrb, "o", &val);
-  return mrb_struct_set(mrb, obj, val);
+  idx = mrb_cfunc_env_get(mrb, 0);
+  mrb_check_type(mrb, idx, MRB_TT_FIXNUM);
+
+  mrb_ary_set(mrb, obj, mrb_fixnum(idx), val);
+  return val;
 }
 
 #define is_notop_id(id) (id) /* ((id)>tLAST_TOKEN) */
@@ -238,6 +200,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   mrb_sym id;
   mrb_int i, len;
   struct RClass *c;
+  int ai;
 
   if (mrb_nil_p(name)) {
     c = mrb_class_new(mrb, klass);
@@ -265,16 +228,19 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   /* RSTRUCT(nstr)->basic.c->super = c->c; */
   ptr_members = RARRAY_PTR(members);
   len = RARRAY_LEN(members);
+  ai = mrb_gc_arena_save(mrb);
   for (i=0; i< len; i++) {
     mrb_sym id = mrb_symbol(ptr_members[i]);
     if (mrb_is_local_id(id) || mrb_is_const_id(id)) {
+      mrb_value const idx = mrb_fixnum_value(i);
       if (i < N_REF_FUNC) {
         mrb_define_method_id(mrb, c, id, ref_func[i], MRB_ARGS_NONE());
       }
       else {
-        mrb_define_method_id(mrb, c, id, mrb_struct_ref, MRB_ARGS_NONE());
+        mrb_define_method_raw(mrb, c, id, mrb_proc_new_cfunc_with_env(mrb, mrb_struct_ref, 1, &idx));
       }
-      mrb_define_method_id(mrb, c, mrb_id_attrset(mrb, id), mrb_struct_set_m, MRB_ARGS_REQ(1));
+      mrb_define_method_raw(mrb, c, mrb_id_attrset(mrb, id), mrb_proc_new_cfunc_with_env(mrb, mrb_struct_set_m, 1, &idx));
+      mrb_gc_arena_restore(mrb, ai);
     }
   }
   return nstr;
