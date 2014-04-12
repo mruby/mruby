@@ -33,6 +33,9 @@ assert("Array#uniq!") do
   a = [1, 2, 3, 1]
   a.uniq!
   assert_equal [1, 2, 3], a
+
+  b = [ "a", "b", "c" ]
+  assert_nil b.uniq!
 end
 
 assert("Array#uniq") do
