@@ -1049,27 +1049,18 @@ fix_lshift(mrb_state *mrb, mrb_value x)
 static mrb_value
 fix_rshift(mrb_state *mrb, mrb_value x)
 {
-  mrb_int width;
-  mrb_value result;
+  mrb_int width, val;
 
   fix_shift_get_width(mrb, &width);
 
   if (width == 0) {
-    result = x;
+    return(x);
   }
-  else {
-    mrb_int val;
-
-    val = mrb_fixnum(x);
-    if (width < 0) {
-      result = lshift(mrb, val, -width);
-    }
-    else {
-      result = rshift(val, width);
-    }
+  val = mrb_fixnum(x);
+  if (width < 0) {
+    return(lshift(mrb, val, -width));
   }
-
-  return result;
+  return(rshift(val, width));
 }
 
 /* 15.2.8.3.23 */
