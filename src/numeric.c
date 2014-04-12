@@ -897,13 +897,13 @@ fix_rev(mrb_state *mrb, mrb_value num)
 static mrb_value
 bit_coerce(mrb_state *mrb, mrb_value x)
 {
-    while (!mrb_fixnum_p(x)) {
-        if (mrb_float_p(x)) {
-            mrb_raise(mrb, E_TYPE_ERROR, "can't convert Float into Integer");
-        }
-        x = mrb_to_int(mrb, x);
+  while (!mrb_fixnum_p(x)) {
+    if (mrb_float_p(x)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "can't convert Float into Integer");
     }
-    return x;
+    x = mrb_to_int(mrb, x);
+  }
+  return x;
 }
 
 /* 15.2.8.3.9  */
