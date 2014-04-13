@@ -30,7 +30,7 @@ MRuby::Build.new('cxx_abi') do |conf|
   conf.compilers.each do |c|
     c.defines += %w(MRB_DEBUG MRB_GC_FIXED_ARENA)
   end
-  conf.enable_bintest
+  # conf.enable_bintest
 
   enable_cxx_abi
 end
