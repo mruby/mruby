@@ -1029,13 +1029,13 @@ fix_lshift(mrb_state *mrb, mrb_value x)
   fix_shift_get_width(mrb, &width);
 
   if (width == 0) {
-    return(x);
+    return x;
   }
   val = mrb_fixnum(x);
   if (width < 0) {
-    return(rshift(val, -width));
+    return rshift(val, -width);
   }
-  return(lshift(mrb, val, width));
+  return lshift(mrb, val, width);
 }
 
 /* 15.2.8.3.13 */
@@ -1054,13 +1054,13 @@ fix_rshift(mrb_state *mrb, mrb_value x)
   fix_shift_get_width(mrb, &width);
 
   if (width == 0) {
-    return(x);
+    return x;
   }
   val = mrb_fixnum(x);
   if (width < 0) {
-    return(lshift(mrb, val, -width));
+    return lshift(mrb, val, -width);
   }
-  return(rshift(val, width));
+  return rshift(val, width);
 }
 
 /* 15.2.8.3.23 */
