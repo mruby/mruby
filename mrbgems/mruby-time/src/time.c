@@ -293,7 +293,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
   else {
     nowsecs = mktime(&nowtime);
   }
-  if (nowsecs < 0) {
+  if (nowsecs == (time_t)-1) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time.");
   }
 
