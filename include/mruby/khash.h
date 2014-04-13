@@ -45,7 +45,6 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   v++;\
 } while (0)
 #define khash_mask(h) ((h)->n_buckets-1)
-#define khash_inc(h) ((h)->n_buckets/2-1)
 #define khash_upper_bound(h) (UPPER_BOUND((h)->n_buckets))
 
 /* declare struct kh_xxx and kh_xxx_funcs
@@ -133,13 +132,13 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
   }                                                                     \
   khint_t kh_get_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key)  \
   {                                                                     \
-    khint_t k = __hash_func(mrb,key) & khash_mask(h);                   \
+    khint_t k = __hash_func(mrb,key) & khash_mask(h), step = 0;         \
     (void)mrb;                                                          \
     while (!__ac_isempty(h->ed_flags, k)) {                             \
       if (!__ac_isdel(h->ed_flags, k)) {                                \
         if (__hash_equal(mrb,h->keys[k], key)) return k;                \
       }                                                                 \
-      k = (k+khash_inc(h)) & khash_mask(h);                             \
+      k = (k+(++step)) & khash_mask(h);                                 \
     }                                                                   \
     return kh_end(h);                                                   \
   }                                                                     \
@@ -168,7 +167,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
   }                                                                     \
   khint_t kh_put_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key, int *ret) \
   {                                                                     \
-    khint_t k, del_k;                                                   \
+    khint_t k, del_k, step = 0;                                         \
     if (h->n_occupied >= khash_upper_bound(h)) {                        \
       kh_resize_##name(mrb, h, h->n_buckets*2);                         \
     }                                                                   \
@@ -184,7 +183,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
       else if (del_k != kh_end(h)) {                                    \
         del_k = k;                                                      \
       }                                                                 \
-      k = (k+khash_inc(h)) & khash_mask(h);                             \
+      k = (k+(++step)) & khash_mask(h);                                 \
     }                                                                   \
     if (del_k != kh_end(h)) {                                           \
       /* put at del */                                                  \
