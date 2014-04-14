@@ -84,18 +84,17 @@ mrb_proc_inspect(mrb_state *mrb, mrb_value self)
 
   if (!MRB_PROC_CFUNC_P(p)) {
     mrb_irep *irep = p->body.irep;
+    const char *filename;
+    int32_t line;
     mrb_str_cat_lit(mrb, str, "@");
 
-    if (irep->filename) {
-      mrb_str_cat_cstr(mrb, str, irep->filename);
-    }
-    else {
-      mrb_str_cat_lit(mrb, str, "-");
-    }
+    filename = mrb_debug_get_filename(irep, 0);
+    mrb_str_cat_cstr(mrb, str, filename ? filename : "-");
     mrb_str_cat_lit(mrb, str, ":");
 
-    if (irep->lines) {
-      mrb_str_append(mrb, str, mrb_fixnum_value(*irep->lines));
+    line = mrb_debug_get_line(irep, 0);
+    if (line != -1) {
+      mrb_str_append(mrb, str, mrb_fixnum_value(line));
     }
     else {
       mrb_str_cat_lit(mrb, str, "-");
