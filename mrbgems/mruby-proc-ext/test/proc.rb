@@ -8,6 +8,12 @@ assert('Proc#source_location') do
   assert_equal loc[1], 5
 end
 
+assert('Proc#inspect') do
+  ins = Proc.new{}.inspect
+  assert_equal 'proc.rb:12', ins[-11, 10] if ins[-4, 3] != '-:-'
+  assert_true ins.kind_of? String
+end
+
 assert('Proc#lambda?') do
   assert_true lambda{}.lambda?
   assert_true !Proc.new{}.lambda?
