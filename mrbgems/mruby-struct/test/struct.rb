@@ -88,6 +88,11 @@ if Object.const_defined?(:Struct)
     assert_equal 9, cc.m9
     assert_equal 10, cc.m10
     assert_equal 13, cc.m13
+
+    cc.m13 = 'test'
+    assert_equal 'test', cc.m13
+
+    assert_raise(NoMethodError) { cc.m14 }
   end
 
   assert('wrong struct arg count') do

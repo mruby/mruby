@@ -351,4 +351,55 @@ class Array
     end
     self
   end
+
+  ##
+  #  call-seq:
+  #     ary.rotate(count=1)    -> new_ary
+  #
+  #  Returns a new array by rotating +self+ so that the element at +count+ is
+  #  the first element of the new array.
+  #
+  #  If +count+ is negative then it rotates in the opposite direction, starting
+  #  from the end of +self+ where +-1+ is the last element.
+  #
+  #     a = [ "a", "b", "c", "d" ]
+  #     a.rotate         #=> ["b", "c", "d", "a"]
+  #     a                #=> ["a", "b", "c", "d"]
+  #     a.rotate(2)      #=> ["c", "d", "a", "b"]
+  #     a.rotate(-3)     #=> ["b", "c", "d", "a"]
+
+  def rotate(count=1)
+    ary = []
+    len = self.length
+
+    if len > 0
+      idx = (count < 0) ? (len - (~count % len) - 1) : (count % len) # rotate count
+      len.times do
+        ary << self[idx]
+        idx += 1
+        idx = 0 if idx > len-1
+      end
+    end
+    ary
+  end
+
+  ##
+  #  call-seq:
+  #     ary.rotate!(count=1)   -> ary
+  #
+  #  Rotates +self+ in place so that the element at +count+ comes first, and
+  #  returns +self+.
+  #
+  #  If +count+ is negative then it rotates in the opposite direction, starting
+  #  from the end of the array where +-1+ is the last element.
+  #
+  #     a = [ "a", "b", "c", "d" ]
+  #     a.rotate!        #=> ["b", "c", "d", "a"]
+  #     a                #=> ["b", "c", "d", "a"]
+  #     a.rotate!(2)     #=> ["d", "a", "b", "c"]
+  #     a.rotate!(-3)    #=> ["a", "b", "c", "d"]
+
+  def rotate!(count=1)
+    self.replace(self.rotate(count))
+  end
 end

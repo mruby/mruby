@@ -401,7 +401,8 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   memcpy(RSTRING_PTR(str)+1, name, len);
   if (!symname_p(name) || strlen(name) != len) {
     str = mrb_str_dump(mrb, str);
-    memcpy(RSTRING_PTR(str), ":\"", 2);
+    RSTRING_PTR(str)[0] = ':';
+    RSTRING_PTR(str)[1] = '"';
   }
   return str;
 }

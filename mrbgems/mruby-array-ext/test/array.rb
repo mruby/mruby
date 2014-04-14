@@ -2,8 +2,8 @@
 # Array(Ext) Test
 
 assert("Array::try_convert") do
-  Array.try_convert([1]) == [1] and
-  Array.try_convert("1").nil?
+  assert_equal [1], Array.try_convert([1])
+  assert_nil Array.try_convert("1")
 end
 
 assert("Array#assoc") do
@@ -12,100 +12,94 @@ assert("Array#assoc") do
   s3 = "foo"
   a  = [ s1, s2, s3 ]
 
-  a.assoc("letters") == [ "letters", "a", "b", "c" ] and
-  a.assoc("foo").nil?
+  assert_equal [ "letters", "a", "b", "c" ], a.assoc("letters")
+  assert_nil a.assoc("foo")
 end
 
 assert("Array#at") do
   a = [ "a", "b", "c", "d", "e" ]
-  a.at(0)  == "a" and a.at(-1) == "e"
+  assert_equal "a", a.at(0)
+  assert_equal "e", a.at(-1) 
 end
 
 assert("Array#rassoc") do
   a = [ [ 1, "one"], [2, "two"], [3, "three"], ["ii", "two"] ]
 
-  a.rassoc("two") == [2, "two"] and
-  a.rassoc("four").nil?
+  assert_equal [2, "two"], a.rassoc("two")
+  assert_nil a.rassoc("four")
 end
 
 assert("Array#uniq!") do
   a = [1, 2, 3, 1]
   a.uniq!
-  a == [1, 2, 3]
+  assert_equal [1, 2, 3], a
+
+  b = [ "a", "b", "c" ]
+  assert_nil b.uniq!
 end
 
 assert("Array#uniq") do
   a = [1, 2, 3, 1]
-  a.uniq == [1, 2, 3] && a == [1, 2, 3, 1]
+  assert_equal [1, 2, 3], a.uniq
+  assert_equal [1, 2, 3, 1], a
 end
 
 assert("Array#-") do
   a = [1, 2, 3, 1]
   b = [1]
   c = 1
-  e1 = nil
 
-  begin
-    a - c
-  rescue => e1
-  end
-
-  (a - b) == [2, 3] and e1.class == TypeError and a == [1, 2, 3, 1]
+  assert_raise(TypeError) { a - c }
+  assert_equal [2, 3], (a - b)
+  assert_equal [1, 2, 3, 1], a 
 end
 
 assert("Array#|") do
   a = [1, 2, 3, 1]
   b = [1, 4]
   c = 1
-  e1 = nil
 
-  begin
-    a | c
-  rescue => e1
-  end
-
-  (a | b) == [1, 2, 3, 4] and e1.class == TypeError and a == [1, 2, 3, 1]
+  assert_raise(TypeError) { a | c }
+  assert_equal [1, 2, 3, 4], (a | b)
+  assert_equal [1, 2, 3, 1], a 
 end
 
 assert("Array#&") do
   a = [1, 2, 3, 1]
   b = [1, 4]
   c = 1
-  e1 = nil
 
-  begin
-    a & c
-  rescue => e1
-  end
-
-  (a & b) == [1] and e1.class == TypeError and a == [1, 2, 3, 1]
+  assert_raise(TypeError) { a & c }
+  assert_equal [1], (a & b) 
+  assert_equal [1, 2, 3, 1], a 
 end
 
 assert("Array#flatten") do
-  [1, 2, "3", {4=>5}, :'6'] == [1, 2, "3", {4=>5}, :'6'].flatten and
-  [1, 2, 3, 4, 5, 6] == [1, 2, [3, 4, 5], 6].flatten and
-  [1, 2, 3, 4, 5, 6] == [1, 2, [3, [4, 5], 6]].flatten and
-  [1, [2, [3, [4, [5, [6]]]]]] == [1, [2, [3, [4, [5, [6]]]]]].flatten(0) and
-  [1, 2, [3, [4, [5, [6]]]]] == [1, [2, [3, [4, [5, [6]]]]]].flatten(1) and
-  [1, 2, 3, [4, [5, [6]]]] == [1, [2, [3, [4, [5, [6]]]]]].flatten(2) and
-  [1, 2, 3, 4, [5, [6]]] == [1, [2, [3, [4, [5, [6]]]]]].flatten(3) and
-  [1, 2, 3, 4, 5, [6]] == [1, [2, [3, [4, [5, [6]]]]]].flatten(4) and
-  [1, 2, 3, 4, 5, 6] == [1, [2, [3, [4, [5, [6]]]]]].flatten(5)
+  assert_equal [1, 2, "3", {4=>5}, :'6'],    [1, 2, "3", {4=>5}, :'6'].flatten
+  assert_equal [1, 2, 3, 4, 5, 6], [1, 2,    [3, 4, 5], 6].flatten
+  assert_equal [1, 2, 3, 4, 5, 6], [1, 2,    [3, [4, 5], 6]].flatten
+  assert_equal [1, [2, [3, [4, [5, [6]]]]]], [1, [2, [3, [4, [5, [6]]]]]].flatten(0)
+  assert_equal [1, 2, [3, [4, [5, [6]]]]],   [1, [2, [3, [4, [5, [6]]]]]].flatten(1)
+  assert_equal [1, 2, 3, [4, [5, [6]]]],     [1, [2, [3, [4, [5, [6]]]]]].flatten(2)
+  assert_equal [1, 2, 3, 4, [5, [6]]],       [1, [2, [3, [4, [5, [6]]]]]].flatten(3)
+  assert_equal [1, 2, 3, 4, 5, [6]],         [1, [2, [3, [4, [5, [6]]]]]].flatten(4)
+  assert_equal [1, 2, 3, 4, 5, 6],           [1, [2, [3, [4, [5, [6]]]]]].flatten(5)
 end
 
 assert("Array#flatten!") do
-  [1, 2, 3, 4, 5, 6] == [1, 2, [3, [4, 5], 6]].flatten!
+  assert_equal [1, 2, 3, 4, 5, 6], [1, 2, [3, [4, 5], 6]].flatten!
 end
 
 assert("Array#compact") do
   a = [1, nil, "2", nil, :t, false, nil]
-  a.compact == [1, "2", :t, false] && a == [1, nil, "2", nil, :t, false, nil]
+  assert_equal [1, "2", :t, false], a.compact
+  assert_equal [1, nil, "2", nil, :t, false, nil], a
 end
 
 assert("Array#compact!") do
   a = [1, nil, "2", nil, :t, false, nil]
   a.compact!
-  a == [1, "2", :t, false]
+  assert_equal [1, "2", :t, false], a
 end
 
 assert("Array#fetch") do
@@ -145,4 +139,24 @@ assert("Array#reverse_each") do
   else
     true
   end
+end
+
+assert("Array#rotate") do
+  a = ["a", "b", "c", "d"]
+  assert_equal ["b", "c", "d", "a"], a.rotate
+  assert_equal ["a", "b", "c", "d"], a
+  assert_equal ["c", "d", "a", "b"], a.rotate(2)
+  assert_equal ["b", "c", "d", "a"], a.rotate(-3)
+  assert_equal ["c", "d", "a", "b"], a.rotate(10)
+  assert_equal [], [].rotate
+end
+
+assert("Array#rotate!") do
+  a = ["a", "b", "c", "d"]
+  assert_equal ["b", "c", "d", "a"], a.rotate!
+  assert_equal ["b", "c", "d", "a"], a
+  assert_equal ["d", "a", "b", "c"], a.rotate!(2)
+  assert_equal ["a", "b", "c", "d"], a.rotate!(-3)
+  assert_equal ["c", "d", "a", "b"], a.rotate(10)
+  assert_equal [], [].rotate!
 end

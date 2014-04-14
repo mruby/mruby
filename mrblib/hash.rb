@@ -86,7 +86,14 @@ class Hash
   def each(&block)
     return to_enum :each unless block_given?
 
-    self.keys.each { |k| block.call [k, self[k]] }
+    keys = self.keys
+    vals = self.values
+    len = self.size
+    i = 0
+    while i < len
+      block.call [keys[i], vals[i]]
+      i += 1
+    end
     self
   end
 
@@ -203,8 +210,7 @@ class Hash
     return to_enum :reject! unless block_given?
 
     keys = []
-    self.each_key{|k|
-      v = self[k]
+    self.each{|k,v|
       if b.call([k, v])
         keys.push(k)
       end
@@ -221,8 +227,7 @@ class Hash
     return to_enum :reject unless block_given?
 
     h = {}
-    self.each_key{|k|
-      v = self[k]
+    self.each{|k,v|
       unless b.call([k, v])
         h[k] = v
       end
@@ -235,8 +240,7 @@ class Hash
     return to_enum :select! unless block_given?
 
     keys = []
-    self.each_key{|k|
-      v = self[k]
+    self.each{|k,v|
       unless b.call([k, v])
         keys.push(k)
       end
@@ -253,8 +257,7 @@ class Hash
     return to_enum :select unless block_given?
 
     h = {}
-    self.each_key{|k|
-      v = self[k]
+    self.each{|k,v|
       if b.call([k, v])
         h[k] = v
       end

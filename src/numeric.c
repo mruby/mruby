@@ -361,27 +361,23 @@ flo_mod(mrb_state *mrb, mrb_value x)
  *     (1.0).eql?(1.0)   #=> true
  */
 static mrb_value
-num_eql(mrb_state *mrb, mrb_value x)
+fix_eql(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  mrb_bool eql_p;
 
   mrb_get_args(mrb, "o", &y);
-  if (mrb_type(x) != mrb_type(y)) {
-    eql_p = 0;
-  }
-  else {
-    eql_p = mrb_equal(mrb, x, y);
-  }
-
-  return mrb_bool_value(eql_p);
+  if (!mrb_fixnum_p(y)) return mrb_false_value();
+  return mrb_bool_value(mrb_fixnum(x) == mrb_fixnum(y));
 }
 
 static mrb_value
-num_equal(mrb_state *mrb, mrb_value x, mrb_value y)
+flo_eql(mrb_state *mrb, mrb_value x)
 {
-  if (mrb_obj_equal(mrb, x, y)) return mrb_true_value();
-  return mrb_funcall(mrb, y, "==", 1, x);
+  mrb_value y;
+
+  mrb_get_args(mrb, "o", &y);
+  if (!mrb_float_p(y)) return mrb_false_value();
+  return mrb_bool_value(mrb_float(x) == (mrb_float)mrb_fixnum(y));
 }
 
 /* 15.2.9.3.7  */
@@ -413,7 +409,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
     b = mrb_float(y);
     break;
   default:
-    return num_equal(mrb, x, y);
+    return mrb_false_value();
   }
   a = mrb_float(x);
   return mrb_bool_value(a == b);
@@ -867,15 +863,16 @@ static mrb_value
 fix_equal(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  mrb_bool equal_p;
 
   mrb_get_args(mrb, "o", &y);
-
-  equal_p = mrb_obj_equal(mrb, x, y) ||
-      (mrb_type(y) == MRB_TT_FLOAT &&
-       (mrb_float)mrb_fixnum(x) == mrb_float(y));
-
-  return mrb_bool_value(equal_p);
+  switch (mrb_type(y)) {
+  case MRB_TT_FIXNUM:
+    return mrb_bool_value(mrb_fixnum(x) == mrb_fixnum(y));
+  case MRB_TT_FLOAT:
+    return mrb_bool_value((mrb_float)mrb_fixnum(x) == mrb_float(y));
+  default:
+    return mrb_false_value();
+  }
 }
 
 /* 15.2.8.3.8  */
@@ -892,22 +889,21 @@ fix_equal(mrb_state *mrb, mrb_value x)
 static mrb_value
 fix_rev(mrb_state *mrb, mrb_value num)
 {
-    mrb_int val = mrb_fixnum(num);
+  mrb_int val = mrb_fixnum(num);
 
-    val = ~val;
-    return mrb_fixnum_value(val);
+  return mrb_fixnum_value(~val);
 }
 
 static mrb_value
 bit_coerce(mrb_state *mrb, mrb_value x)
 {
-    while (!mrb_fixnum_p(x)) {
-        if (mrb_float_p(x)) {
-            mrb_raise(mrb, E_TYPE_ERROR, "can't convert Float into Integer");
-        }
-        x = mrb_to_int(mrb, x);
+  while (!mrb_fixnum_p(x)) {
+    if (mrb_float_p(x)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "can't convert Float into Integer");
     }
-    return x;
+    x = mrb_to_int(mrb, x);
+  }
+  return x;
 }
 
 /* 15.2.8.3.9  */
@@ -1028,27 +1024,18 @@ fix_shift_get_width(mrb_state *mrb, mrb_int *width)
 static mrb_value
 fix_lshift(mrb_state *mrb, mrb_value x)
 {
-  mrb_int width;
-  mrb_value result;
+  mrb_int width, val;
 
   fix_shift_get_width(mrb, &width);
 
   if (width == 0) {
-    result = x;
+    return x;
   }
-  else {
-    mrb_int val;
-
-    val = mrb_fixnum(x);
-    if (width < 0) {
-      result = rshift(val, -width);
-    }
-    else {
-      result = lshift(mrb, val, width);
-    }
+  val = mrb_fixnum(x);
+  if (width < 0) {
+    return rshift(val, -width);
   }
-
-  return result;
+  return lshift(mrb, val, width);
 }
 
 /* 15.2.8.3.13 */
@@ -1062,27 +1049,18 @@ fix_lshift(mrb_state *mrb, mrb_value x)
 static mrb_value
 fix_rshift(mrb_state *mrb, mrb_value x)
 {
-  mrb_int width;
-  mrb_value result;
+  mrb_int width, val;
 
   fix_shift_get_width(mrb, &width);
 
   if (width == 0) {
-    result = x;
+    return x;
   }
-  else {
-    mrb_int val;
-
-    val = mrb_fixnum(x);
-    if (width < 0) {
-      result = lshift(mrb, val, -width);
-    }
-    else {
-      result = rshift(val, width);
-    }
+  val = mrb_fixnum(x);
+  if (width < 0) {
+    return lshift(mrb, val, -width);
   }
-
-  return result;
+  return rshift(val, width);
 }
 
 /* 15.2.8.3.23 */
@@ -1362,7 +1340,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fixnum,  "^",        fix_xor,           MRB_ARGS_REQ(1)); /* 15.2.8.3.11 */
   mrb_define_method(mrb, fixnum,  "<<",       fix_lshift,        MRB_ARGS_REQ(1)); /* 15.2.8.3.12 */
   mrb_define_method(mrb, fixnum,  ">>",       fix_rshift,        MRB_ARGS_REQ(1)); /* 15.2.8.3.13 */
-  mrb_define_method(mrb, fixnum,  "eql?",     num_eql,           MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
+  mrb_define_method(mrb, fixnum,  "eql?",     fix_eql,           MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
   mrb_define_method(mrb, fixnum,  "hash",     flo_hash,          MRB_ARGS_NONE()); /* 15.2.8.3.18 */
   mrb_define_method(mrb, fixnum,  "to_f",     fix_to_f,          MRB_ARGS_NONE()); /* 15.2.8.3.23 */
   mrb_define_method(mrb, fixnum,  "to_s",     fix_to_s,          MRB_ARGS_NONE()); /* 15.2.8.3.25 */
@@ -1381,12 +1359,13 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "finite?",   flo_finite_p,     MRB_ARGS_NONE()); /* 15.2.9.3.9  */
   mrb_define_method(mrb, fl,      "floor",     flo_floor,        MRB_ARGS_NONE()); /* 15.2.9.3.10 */
   mrb_define_method(mrb, fl,      "infinite?", flo_infinite_p,   MRB_ARGS_NONE()); /* 15.2.9.3.11 */
-  mrb_define_method(mrb, fl,      "round",     flo_round,        MRB_ARGS_NONE()); /* 15.2.9.3.12 */
+  mrb_define_method(mrb, fl,      "round",     flo_round,        MRB_ARGS_OPT(1)); /* 15.2.9.3.12 */
   mrb_define_method(mrb, fl,      "to_f",      flo_to_f,         MRB_ARGS_NONE()); /* 15.2.9.3.13 */
   mrb_define_method(mrb, fl,      "to_i",      flo_truncate,     MRB_ARGS_NONE()); /* 15.2.9.3.14 */
   mrb_define_method(mrb, fl,      "to_int",    flo_truncate,     MRB_ARGS_NONE());
   mrb_define_method(mrb, fl,      "truncate",  flo_truncate,     MRB_ARGS_NONE()); /* 15.2.9.3.15 */
   mrb_define_method(mrb, fl,      "divmod",    flo_divmod,       MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, fl,      "eql?",      flo_eql,          MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
 
   mrb_define_method(mrb, fl,      "to_s",      flo_to_s,         MRB_ARGS_NONE()); /* 15.2.9.3.16(x) */
   mrb_define_method(mrb, fl,      "inspect",   flo_to_s,         MRB_ARGS_NONE());

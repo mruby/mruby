@@ -796,10 +796,11 @@ mrb_str_index(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int offset)
 mrb_value
 mrb_str_dup(mrb_state *mrb, mrb_value str)
 {
-  /* should return shared string */
   struct RString *s = mrb_str_ptr(str);
+  struct RString *dup = str_new(mrb, 0, 0);
 
-  return mrb_str_new(mrb, STR_PTR(s), STR_LEN(s));
+  str_with_class(mrb, dup, str);
+  return str_replace(mrb, dup, s);
 }
 
 static mrb_value
