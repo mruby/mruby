@@ -34,7 +34,7 @@ mrb_str_swapcase_bang(mrb_state *mrb, mrb_value str)
 
   mrb_str_modify(mrb, s);
   p = RSTRING_PTR(str);
-  pend = RSTRING_PTR(str) + RSTRING_LEN(str);
+  pend = p + RSTRING_LEN(str);
   while (p < pend) {
     if (ISUPPER(*p)) {
       *p = TOLOWER(*p);
@@ -157,7 +157,7 @@ mrb_str_end_with(mrb_state *mrb, mrb_value self)
                  RSTRING_PTR(sub),
                  len_r) == 0) {
         return mrb_true_value();
-      }  
+      }
     }
   }
   return mrb_false_value();

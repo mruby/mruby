@@ -563,10 +563,11 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   const char *s;
   mrb_int len;
   mrb_value ins;
+  char *sp = RSTRING_PTR(str);
 
   /* need not to show internal data */
-  if (RSTRING_PTR(str)[0] == '-') { /* first element */
-    RSTRING_PTR(str)[0] = '#';
+  if (sp[0] == '-') { /* first element */
+    sp[0] = '#';
     mrb_str_cat_lit(mrb, str, " ");
   }
   else {
