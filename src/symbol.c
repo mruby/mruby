@@ -399,10 +399,11 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   name = mrb_sym2name_len(mrb, id, &len);
   str = mrb_str_new(mrb, 0, len+1);
   sp = RSTRING_PTR(str);
-  sp[0] = ':';
+  RSTRING_PTR(str)[0] = ':';
   memcpy(sp+1, name, len);
   if (!symname_p(name) || strlen(name) != len) {
     str = mrb_str_dump(mrb, str);
+    sp = RSTRING_PTR(str);
     sp[0] = ':';
     sp[1] = '"';
   }
