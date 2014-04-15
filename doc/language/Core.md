@@ -10,173 +10,173 @@ ISO Code | Mixins | Source File
 
 #### []
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.4.1 | src/array.c | mrb_ary_s_create | 235
+15.2.12.4.1 | src/array.c | mrb_ary_s_create 
 
 ### Methods
 
 #### *
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.2 | src/array.c | mrb_ary_times | 327
+15.2.12.5.2 | src/array.c | mrb_ary_times 
 
 #### +
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.1 | src/array.c | mrb_ary_plus | 278
+15.2.12.5.1 | src/array.c | mrb_ary_plus 
 
 #### <<
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.3 | src/array.c | mrb_ary_push_m | 409
+15.2.12.5.3 | src/array.c | mrb_ary_push_m 
 
 #### []
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.4 | src/array.c | mrb_ary_aget | 676
+15.2.12.5.4 | src/array.c | mrb_ary_aget 
 
 #### []=
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.5 | src/array.c | mrb_ary_aset | 745
+15.2.12.5.5 | src/array.c | mrb_ary_aset 
 
 #### __ary_cmp
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/array.c | mrb_ary_cmp | 1038
+n/a | src/array.c | mrb_ary_cmp 
 
 #### __ary_eq
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/array.c | mrb_ary_eq | 1022
+n/a | src/array.c | mrb_ary_eq 
 
 #### clear
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.6 | src/array.c | mrb_ary_clear | 903
+15.2.12.5.6 | src/array.c | mrb_ary_clear 
 
 #### concat
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.8 | src/array.c | mrb_ary_concat_m | 267
+15.2.12.5.8 | src/array.c | mrb_ary_concat_m 
 
 #### delete_at
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.9 | src/array.c | mrb_ary_delete_at | 775
+15.2.12.5.9 | src/array.c | mrb_ary_delete_at 
 
 #### empty?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.12 | src/array.c | mrb_ary_empty_p | 917
+15.2.12.5.12 | src/array.c | mrb_ary_empty_p 
 
 #### first
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.13 | src/array.c | mrb_ary_first | 804
+15.2.12.5.13 | src/array.c | mrb_ary_first 
 
 #### index
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.14 | src/array.c | mrb_ary_index_m | 851
+15.2.12.5.14 | src/array.c | mrb_ary_index_m 
 
 #### initialize_copy
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.16 | src/array.c | mrb_ary_replace_m | 316
+15.2.12.5.16 | src/array.c | mrb_ary_replace_m 
 
 #### join
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.17 | src/array.c | mrb_ary_join_m | 1013
+15.2.12.5.17 | src/array.c | mrb_ary_join_m 
 
 #### last
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.18 | src/array.c | mrb_ary_last | 824
+15.2.12.5.18 | src/array.c | mrb_ary_last 
 
 #### length
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.19 | src/array.c | mrb_ary_size | 895
+15.2.12.5.19 | src/array.c | mrb_ary_size 
 
 #### pop
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.21 | src/array.c | mrb_ary_pop | 423
+15.2.12.5.21 | src/array.c | mrb_ary_pop 
 
 #### push
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.22 | src/array.c | mrb_ary_push_m | 409
+15.2.12.5.22 | src/array.c | mrb_ary_push_m 
 
 #### replace
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.23 | src/array.c | mrb_ary_replace_m | 316
+15.2.12.5.23 | src/array.c | mrb_ary_replace_m 
 
 #### reverse
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.24 | src/array.c | mrb_ary_reverse | 375
+15.2.12.5.24 | src/array.c | mrb_ary_reverse 
 
 #### reverse!
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.25 | src/array.c | mrb_ary_reverse_bang | 354
+15.2.12.5.25 | src/array.c | mrb_ary_reverse_bang 
 
 #### rindex
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.26 | src/array.c | mrb_ary_rindex_m | 866
+15.2.12.5.26 | src/array.c | mrb_ary_rindex_m 
 
 #### shift
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.27 | src/array.c | mrb_ary_shift | 434
+15.2.12.5.27 | src/array.c | mrb_ary_shift 
 
 #### size
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.28 | src/array.c | mrb_ary_size | 895
+15.2.12.5.28 | src/array.c | mrb_ary_size 
 
 #### slice
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.29 | src/array.c | mrb_ary_aget | 676
+15.2.12.5.29 | src/array.c | mrb_ary_aget 
 
 #### unshift
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.12.5.30 | src/array.c | mrb_ary_unshift_m | 494
+15.2.12.5.30 | src/array.c | mrb_ary_unshift_m 
 
 ## Exception
 
@@ -188,53 +188,53 @@ ISO Code | Mixins | Source File
 
 #### exception
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/class.c | mrb_instance_new | 1081
+n/a | src/class.c | mrb_instance_new 
 
 ### Methods
 
 #### ==
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/error.c | exc_equal | 162
+n/a | src/error.c | exc_equal 
 
 #### backtrace
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/backtrace.c | mrb_exc_backtrace | 156
+n/a | src/backtrace.c | mrb_exc_backtrace 
 
 #### exception
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/error.c | exc_exception | 66
+n/a | src/error.c | exc_exception 
 
 #### initialize
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/error.c | exc_initialize | 42
+n/a | src/error.c | exc_initialize 
 
 #### inspect
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/error.c | exc_inspect | 122
+n/a | src/error.c | exc_inspect 
 
 #### message
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/error.c | exc_message | 109
+n/a | src/error.c | exc_message 
 
 #### to_s
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/error.c | exc_to_s | 90
+n/a | src/error.c | exc_to_s 
 
 ## FalseClass
 
@@ -246,33 +246,33 @@ n/a |  n/a | src/object.c
 
 #### &
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.6.3.1 | src/object.c | false_and | 199
+15.2.6.3.1 | src/object.c | false_and 
 
 #### ^
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.6.3.2 | src/object.c | false_xor | 218
+15.2.6.3.2 | src/object.c | false_xor 
 
 #### inspect
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/object.c | false_to_s | 255
+n/a | src/object.c | false_to_s 
 
 #### to_s
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.6.3.3 | src/object.c | false_to_s | 255
+15.2.6.3.3 | src/object.c | false_to_s 
 
 #### |
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.6.3.4 | src/object.c | false_or | 238
+15.2.6.3.4 | src/object.c | false_or 
 
 ## Fixnum
 
@@ -284,105 +284,105 @@ n/a |  n/a | src/numeric.c
 
 #### %
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.5 | src/numeric.c | fix_mod | 777
+15.2.8.3.5 | src/numeric.c | fix_mod 
 
 #### &
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.9 | src/numeric.c | fix_and | 918
+15.2.8.3.9 | src/numeric.c | fix_and 
 
 #### *
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.3 | src/numeric.c | fix_mul | 730
+15.2.8.3.3 | src/numeric.c | fix_mul 
 
 #### +
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.1 | src/numeric.c | fix_plus | 1153
+15.2.8.3.1 | src/numeric.c | fix_plus 
 
 #### -
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.2 | src/numeric.c | fix_minus | 1192
+15.2.8.3.2 | src/numeric.c | fix_minus 
 
 #### <<
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.12 | src/numeric.c | fix_lshift | 1025
+15.2.8.3.12 | src/numeric.c | fix_lshift 
 
 #### ==
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.7 | src/numeric.c | fix_equal | 863
+15.2.8.3.7 | src/numeric.c | fix_equal 
 
 #### >>
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.13 | src/numeric.c | fix_rshift | 1050
+15.2.8.3.13 | src/numeric.c | fix_rshift 
 
 #### ^
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.11 | src/numeric.c | fix_xor | 960
+15.2.8.3.11 | src/numeric.c | fix_xor 
 
 #### divmod
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.30 | src/numeric.c | fix_divmod | 808
+15.2.8.3.30 | src/numeric.c | fix_divmod 
 
 #### eql?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.16 | src/numeric.c | fix_eql | 364
+15.2.8.3.16 | src/numeric.c | fix_eql 
 
 #### hash
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.18 | src/numeric.c | flo_hash | 426
+15.2.8.3.18 | src/numeric.c | flo_hash 
 
 #### inspect
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/numeric.c | fix_to_s | 1247
+n/a | src/numeric.c | fix_to_s 
 
 #### to_f
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.23 | src/numeric.c | fix_to_f | 1076
+15.2.8.3.23 | src/numeric.c | fix_to_f 
 
 #### to_s
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.25 | src/numeric.c | fix_to_s | 1247
+15.2.8.3.25 | src/numeric.c | fix_to_s 
 
 #### |
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.10 | src/numeric.c | fix_or | 939
+15.2.8.3.10 | src/numeric.c | fix_or 
 
 #### ~
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.8 | src/numeric.c | fix_rev | 890
+15.2.8.3.8 | src/numeric.c | fix_rev 
 
 ## Float
 
@@ -394,117 +394,117 @@ ISO Code | Mixins | Source File
 
 #### %
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.5 | src/numeric.c | flo_mod | 339
+15.2.9.3.5 | src/numeric.c | flo_mod 
 
 #### *
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.3 | src/numeric.c | flo_mul | 292
+15.2.9.3.3 | src/numeric.c | flo_mul 
 
 #### +
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.1 | src/numeric.c | flo_plus | 1303
+15.2.9.3.1 | src/numeric.c | flo_plus 
 
 #### -
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.2 | src/numeric.c | flo_minus | 274
+15.2.9.3.2 | src/numeric.c | flo_minus 
 
 #### ==
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.7 | src/numeric.c | flo_eq | 397
+15.2.9.3.7 | src/numeric.c | flo_eq 
 
 #### ceil
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.8 | src/numeric.c | flo_ceil | 543
+15.2.9.3.8 | src/numeric.c | flo_ceil 
 
 #### divmod
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/numeric.c | flo_divmod | 836
+n/a | src/numeric.c | flo_divmod 
 
 #### eql?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.16 | src/numeric.c | flo_eql | 374
+15.2.8.3.16 | src/numeric.c | flo_eql 
 
 #### finite?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.9 | src/numeric.c | flo_finite_p | 494
+15.2.9.3.9 | src/numeric.c | flo_finite_p 
 
 #### floor
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.10 | src/numeric.c | flo_floor | 518
+15.2.9.3.10 | src/numeric.c | flo_floor 
 
 #### infinite?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.11 | src/numeric.c | flo_infinite_p | 472
+15.2.9.3.11 | src/numeric.c | flo_infinite_p 
 
 #### inspect
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/numeric.c | flo_to_s | 259
+n/a | src/numeric.c | flo_to_s 
 
 #### nan?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/numeric.c | flo_nan_p | 664
+n/a | src/numeric.c | flo_nan_p 
 
 #### round
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.12 | src/numeric.c | flo_round | 585
+15.2.9.3.12 | src/numeric.c | flo_round 
 
 #### to_f
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.13 | src/numeric.c | flo_to_f | 453
+15.2.9.3.13 | src/numeric.c | flo_to_f 
 
 #### to_i
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.14 | src/numeric.c | flo_truncate | 650
+15.2.9.3.14 | src/numeric.c | flo_truncate 
 
 #### to_int
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/numeric.c | flo_truncate | 650
+n/a | src/numeric.c | flo_truncate 
 
 #### to_s
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.16 | src/numeric.c | flo_to_s | 259
+15.2.9.3.16 | src/numeric.c | flo_to_s 
 
 #### truncate
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.15 | src/numeric.c | flo_truncate | 650
+15.2.9.3.15 | src/numeric.c | flo_truncate 
 
 ## Hash
 
@@ -516,147 +516,147 @@ ISO Code | Mixins | Source File
 
 #### []
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.2 | src/hash.c | mrb_hash_aget | 349
+15.2.13.4.2 | src/hash.c | mrb_hash_aget 
 
 #### []=
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.3 | src/hash.c | mrb_hash_aset | 619
+15.2.13.4.3 | src/hash.c | mrb_hash_aset 
 
 #### __delete
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.8 | src/hash.c | mrb_hash_delete | 525
+15.2.13.4.8 | src/hash.c | mrb_hash_delete 
 
 #### clear
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.4 | src/hash.c | mrb_hash_clear | 591
+15.2.13.4.4 | src/hash.c | mrb_hash_clear 
 
 #### default
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.5 | src/hash.c | mrb_hash_default | 380
+15.2.13.4.5 | src/hash.c | mrb_hash_default 
 
 #### default=
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.6 | src/hash.c | mrb_hash_set_default | 417
+15.2.13.4.6 | src/hash.c | mrb_hash_set_default 
 
 #### default_proc
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.7 | src/hash.c | mrb_hash_default_proc | 446
+15.2.13.4.7 | src/hash.c | mrb_hash_default_proc 
 
 #### default_proc=
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.7 | src/hash.c | mrb_hash_set_default_proc | 468
+15.2.13.4.7 | src/hash.c | mrb_hash_set_default_proc 
 
 #### dup
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/hash.c | mrb_hash_dup | 229
+n/a | src/hash.c | mrb_hash_dup 
 
 #### empty?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.12 | src/hash.c | mrb_hash_empty_p | 662
+15.2.13.4.12 | src/hash.c | mrb_hash_empty_p 
 
 #### has_key?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.13 | src/hash.c | mrb_hash_has_key | 771
+15.2.13.4.13 | src/hash.c | mrb_hash_has_key 
 
 #### has_value?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.14 | src/hash.c | mrb_hash_has_value | 803
+15.2.13.4.14 | src/hash.c | mrb_hash_has_value 
 
 #### include?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.15 | src/hash.c | mrb_hash_has_key | 771
+15.2.13.4.15 | src/hash.c | mrb_hash_has_key 
 
 #### initialize
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.16 | src/hash.c | mrb_hash_init | 315
+15.2.13.4.16 | src/hash.c | mrb_hash_init 
 
 #### key?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.18 | src/hash.c | mrb_hash_has_key | 771
+15.2.13.4.18 | src/hash.c | mrb_hash_has_key 
 
 #### keys
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.19 | src/hash.c | mrb_hash_keys | 698
+15.2.13.4.19 | src/hash.c | mrb_hash_keys 
 
 #### length
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.20 | src/hash.c | mrb_hash_size_m | 643
+15.2.13.4.20 | src/hash.c | mrb_hash_size_m 
 
 #### member?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.21 | src/hash.c | mrb_hash_has_key | 771
+15.2.13.4.21 | src/hash.c | mrb_hash_has_key 
 
 #### shift
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.24 | src/hash.c | mrb_hash_shift | 548
+15.2.13.4.24 | src/hash.c | mrb_hash_shift 
 
 #### size
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.25 | src/hash.c | mrb_hash_size_m | 643
+15.2.13.4.25 | src/hash.c | mrb_hash_size_m 
 
 #### store
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.26 | src/hash.c | mrb_hash_aset | 619
+15.2.13.4.26 | src/hash.c | mrb_hash_aset 
 
 #### to_hash
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.29 | src/hash.c | mrb_hash_to_hash | 679
+15.2.13.4.29 | src/hash.c | mrb_hash_to_hash 
 
 #### value?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.27 | src/hash.c | mrb_hash_has_value | 803
+15.2.13.4.27 | src/hash.c | mrb_hash_has_value 
 
 #### values
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.13.4.28 | src/hash.c | mrb_hash_values | 733
+15.2.13.4.28 | src/hash.c | mrb_hash_values 
 
 ## Integer
 
@@ -668,15 +668,15 @@ ISO Code | Mixins | Source File
 
 #### to_i
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.24 | src/numeric.c | int_to_i | 688
+15.2.8.3.24 | src/numeric.c | int_to_i 
 
 #### to_int
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/numeric.c | int_to_i | 688
+n/a | src/numeric.c | int_to_i 
 
 ## NilClass
 
@@ -688,39 +688,39 @@ n/a |  n/a | src/object.c
 
 #### &
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.4.3.1 | src/object.c | false_and | 199
+15.2.4.3.1 | src/object.c | false_and 
 
 #### ^
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.4.3.2 | src/object.c | false_xor | 218
+15.2.4.3.2 | src/object.c | false_xor 
 
 #### inspect
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/object.c | nil_inspect | 87
+n/a | src/object.c | nil_inspect 
 
 #### nil?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.4.3.4 | src/object.c | mrb_true | 67
+15.2.4.3.4 | src/object.c | mrb_true 
 
 #### to_s
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.4.3.5 | src/object.c | nil_to_s | 81
+15.2.4.3.5 | src/object.c | nil_to_s 
 
 #### |
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.4.3.3 | src/object.c | false_or | 238
+15.2.4.3.3 | src/object.c | false_or 
 
 ## Numeric
 
@@ -732,27 +732,27 @@ ISO Code | Mixins | Source File
 
 #### **
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/numeric.c | num_pow | 54
+n/a | src/numeric.c | num_pow 
 
 #### /
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.8.3.4 | src/numeric.c | num_div | 94
+15.2.8.3.4 | src/numeric.c | num_div 
 
 #### <=>
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.9.3.6 | src/numeric.c | num_cmp | 1267
+15.2.9.3.6 | src/numeric.c | num_cmp 
 
 #### quo
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.7.4.5 | src/numeric.c | num_div | 94
+15.2.7.4.5 | src/numeric.c | num_div 
 
 ## Proc
 
@@ -764,21 +764,21 @@ ISO Code | Mixins | Source File
 
 #### arity
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/proc.c | mrb_proc_arity | 148
+n/a | src/proc.c | mrb_proc_arity 
 
 #### initialize
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/proc.c | mrb_proc_initialize | 100
+n/a | src/proc.c | mrb_proc_initialize 
 
 #### initialize_copy
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/proc.c | mrb_proc_init_copy | 116
+n/a | src/proc.c | mrb_proc_init_copy 
 
 ## Range
 
@@ -790,93 +790,93 @@ ISO Code | Mixins | Source File
 
 #### ==
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.1 | src/range.c | mrb_range_eq | 150
+15.2.14.4.1 | src/range.c | mrb_range_eq 
 
 #### ===
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.2 | src/range.c | mrb_range_include | 218
+15.2.14.4.2 | src/range.c | mrb_range_include 
 
 #### begin
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.3 | src/range.c | mrb_range_beg | 57
+15.2.14.4.3 | src/range.c | mrb_range_beg 
 
 #### each
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.4 | src/range.c | mrb_range_each | 255
+15.2.14.4.4 | src/range.c | mrb_range_each 
 
 #### end
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.5 | src/range.c | mrb_range_end | 76
+15.2.14.4.5 | src/range.c | mrb_range_end 
 
 #### eql?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.14 | src/range.c | range_eql | 355
+15.2.14.4.14 | src/range.c | range_eql 
 
 #### exclude_end?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.6 | src/range.c | mrb_range_excl | 90
+15.2.14.4.6 | src/range.c | mrb_range_excl 
 
 #### first
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.7 | src/range.c | mrb_range_beg | 57
+15.2.14.4.7 | src/range.c | mrb_range_beg 
 
 #### include?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.8 | src/range.c | mrb_range_include | 218
+15.2.14.4.8 | src/range.c | mrb_range_include 
 
 #### initialize
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.9 | src/range.c | mrb_range_initialize | 120
+15.2.14.4.9 | src/range.c | mrb_range_initialize 
 
 #### initialize_copy
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.15 | src/range.c | range_initialize_copy | 380
+15.2.14.4.15 | src/range.c | range_initialize_copy 
 
 #### inspect
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.13 | src/range.c | range_inspect | 325
+15.2.14.4.13 | src/range.c | range_inspect 
 
 #### last
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.10 | src/range.c | mrb_range_end | 76
+15.2.14.4.10 | src/range.c | mrb_range_end 
 
 #### member?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.11 | src/range.c | mrb_range_include | 218
+15.2.14.4.11 | src/range.c | mrb_range_include 
 
 #### to_s
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.14.4.12 | src/range.c | range_to_s | 300
+15.2.14.4.12 | src/range.c | range_to_s 
 
 ## RuntimeError
 
@@ -906,237 +906,237 @@ ISO Code | Mixins | Source File
 
 #### *
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.5 | src/string.c | mrb_str_times | 521
+15.2.10.5.5 | src/string.c | mrb_str_times 
 
 #### +
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.4 | src/string.c | mrb_str_plus_m | 474
+15.2.10.5.4 | src/string.c | mrb_str_plus_m 
 
 #### <=>
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.1 | src/string.c | mrb_str_cmp_m | 610
+15.2.10.5.1 | src/string.c | mrb_str_cmp_m 
 
 #### ==
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.2 | src/string.c | mrb_str_equal_m | 677
+15.2.10.5.2 | src/string.c | mrb_str_equal_m 
 
 #### []
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.6 | src/string.c | mrb_str_aref_m | 895
+15.2.10.5.6 | src/string.c | mrb_str_aref_m 
 
 #### bytes
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/string.c | mrb_str_bytes | 2570
+n/a | src/string.c | mrb_str_bytes 
 
 #### bytesize
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/string.c | mrb_str_bytesize | 489
+n/a | src/string.c | mrb_str_bytesize 
 
 #### capitalize
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.7 | src/string.c | mrb_str_capitalize | 961
+15.2.10.5.7 | src/string.c | mrb_str_capitalize 
 
 #### capitalize!
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.8 | src/string.c | mrb_str_capitalize_bang | 925
+15.2.10.5.8 | src/string.c | mrb_str_capitalize_bang 
 
 #### chomp
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.9 | src/string.c | mrb_str_chomp | 1064
+15.2.10.5.9 | src/string.c | mrb_str_chomp 
 
 #### chomp!
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.10 | src/string.c | mrb_str_chomp_bang | 979
+15.2.10.5.10 | src/string.c | mrb_str_chomp_bang 
 
 #### chop
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.11 | src/string.c | mrb_str_chop | 1122
+15.2.10.5.11 | src/string.c | mrb_str_chop 
 
 #### chop!
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.12 | src/string.c | mrb_str_chop_bang | 1083
+15.2.10.5.12 | src/string.c | mrb_str_chop_bang 
 
 #### downcase
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.13 | src/string.c | mrb_str_downcase | 1172
+15.2.10.5.13 | src/string.c | mrb_str_downcase 
 
 #### downcase!
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.14 | src/string.c | mrb_str_downcase_bang | 1139
+15.2.10.5.14 | src/string.c | mrb_str_downcase_bang 
 
 #### empty?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.16 | src/string.c | mrb_str_empty_p | 1192
+15.2.10.5.16 | src/string.c | mrb_str_empty_p 
 
 #### eql?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.17 | src/string.c | mrb_str_eql | 1207
+15.2.10.5.17 | src/string.c | mrb_str_eql 
 
 #### hash
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.20 | src/string.c | mrb_str_hash_m | 1297
+15.2.10.5.20 | src/string.c | mrb_str_hash_m 
 
 #### include?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.21 | src/string.c | mrb_str_include | 1317
+15.2.10.5.21 | src/string.c | mrb_str_include 
 
 #### index
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.22 | src/string.c | mrb_str_index_m | 1359
+15.2.10.5.22 | src/string.c | mrb_str_index_m 
 
 #### initialize
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.23 | src/string.c | mrb_str_init | 1483
+15.2.10.5.23 | src/string.c | mrb_str_init 
 
 #### initialize_copy
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.24 | src/string.c | mrb_str_replace | 1467
+15.2.10.5.24 | src/string.c | mrb_str_replace 
 
 #### inspect
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.46 | src/string.c | mrb_str_inspect | 2508
+15.2.10.5.46 | src/string.c | mrb_str_inspect 
 
 #### intern
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.25 | src/string.c | mrb_str_intern | 1515
+15.2.10.5.25 | src/string.c | mrb_str_intern 
 
 #### length
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.26 | src/string.c | mrb_str_size | 504
+15.2.10.5.26 | src/string.c | mrb_str_size 
 
 #### replace
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.28 | src/string.c | mrb_str_replace | 1467
+15.2.10.5.28 | src/string.c | mrb_str_replace 
 
 #### reverse
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.29 | src/string.c | mrb_str_reverse | 1591
+15.2.10.5.29 | src/string.c | mrb_str_reverse 
 
 #### reverse!
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.30 | src/string.c | mrb_str_reverse_bang | 1617
+15.2.10.5.30 | src/string.c | mrb_str_reverse_bang 
 
 #### rindex
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.31 | src/string.c | mrb_str_rindex_m | 1703
+15.2.10.5.31 | src/string.c | mrb_str_rindex_m 
 
 #### size
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.33 | src/string.c | mrb_str_size | 504
+15.2.10.5.33 | src/string.c | mrb_str_size 
 
 #### slice
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.34 | src/string.c | mrb_str_aref_m | 895
+15.2.10.5.34 | src/string.c | mrb_str_aref_m 
 
 #### split
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.35 | src/string.c | mrb_str_split_m | 1830
+15.2.10.5.35 | src/string.c | mrb_str_split_m 
 
 #### to_f
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.38 | src/string.c | mrb_str_to_f | 2282
+15.2.10.5.38 | src/string.c | mrb_str_to_f 
 
 #### to_i
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.39 | src/string.c | mrb_str_to_i | 2159
+15.2.10.5.39 | src/string.c | mrb_str_to_i 
 
 #### to_s
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.40 | src/string.c | mrb_str_to_s | 2296
+15.2.10.5.40 | src/string.c | mrb_str_to_s 
 
 #### to_str
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/string.c | mrb_str_to_s | 2296
+n/a | src/string.c | mrb_str_to_s 
 
 #### to_sym
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.41 | src/string.c | mrb_str_intern | 1515
+15.2.10.5.41 | src/string.c | mrb_str_intern 
 
 #### upcase
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.42 | src/string.c | mrb_str_upcase | 2346
+15.2.10.5.42 | src/string.c | mrb_str_upcase 
 
 #### upcase!
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.10.5.43 | src/string.c | mrb_str_upcase_bang | 2313
+15.2.10.5.43 | src/string.c | mrb_str_upcase_bang 
 
 ## Symbol
 
@@ -1148,39 +1148,39 @@ ISO Code | Mixins | Source File
 
 #### <=>
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/symbol.c | sym_cmp | 442
+n/a | src/symbol.c | sym_cmp 
 
 #### ===
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.11.3.1 | src/symbol.c | sym_equal | 216
+15.2.11.3.1 | src/symbol.c | sym_equal 
 
 #### id2name
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.11.3.2 | src/symbol.c | mrb_sym_to_s | 239
+15.2.11.3.2 | src/symbol.c | mrb_sym_to_s 
 
 #### inspect
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.11.3.5 | src/symbol.c | sym_inspect | 391
+15.2.11.3.5 | src/symbol.c | sym_inspect 
 
 #### to_s
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.11.3.3 | src/symbol.c | mrb_sym_to_s | 239
+15.2.11.3.3 | src/symbol.c | mrb_sym_to_s 
 
 #### to_sym
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.11.3.4 | src/symbol.c | sym_to_sym | 261
+15.2.11.3.4 | src/symbol.c | sym_to_sym 
 
 ## SyntaxError
 
@@ -1198,33 +1198,33 @@ n/a |  n/a | src/object.c
 
 #### &
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.5.3.1 | src/object.c | true_and | 111
+15.2.5.3.1 | src/object.c | true_and 
 
 #### ^
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.5.3.2 | src/object.c | true_xor | 131
+15.2.5.3.2 | src/object.c | true_xor 
 
 #### inspect
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/object.c | true_to_s | 148
+n/a | src/object.c | true_to_s 
 
 #### to_s
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.5.3.3 | src/object.c | true_to_s | 148
+15.2.5.3.3 | src/object.c | true_to_s 
 
 #### |
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.2.5.3.4 | src/object.c | true_or | 171
+15.2.5.3.4 | src/object.c | true_or 
 
 # Core Modules
 
@@ -1250,63 +1250,63 @@ n/a | src/gc.c
 
 #### disable
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/gc.c | gc_disable | 1163
+n/a | src/gc.c | gc_disable 
 
 #### enable
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/gc.c | gc_enable | 1141
+n/a | src/gc.c | gc_enable 
 
 #### generational_mode
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/gc.c | gc_generational_mode_get | 1263
+n/a | src/gc.c | gc_generational_mode_get 
 
 #### generational_mode=
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/gc.c | gc_generational_mode_set | 1277
+n/a | src/gc.c | gc_generational_mode_set 
 
 #### interval_ratio
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/gc.c | gc_interval_ratio_get | 1181
+n/a | src/gc.c | gc_interval_ratio_get 
 
 #### interval_ratio=
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/gc.c | gc_interval_ratio_set | 1196
+n/a | src/gc.c | gc_interval_ratio_set 
 
 #### start
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/gc.c | gc_start | 1121
+n/a | src/gc.c | gc_start 
 
 #### step_ratio
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/gc.c | gc_step_ratio_get | 1214
+n/a | src/gc.c | gc_step_ratio_get 
 
 #### step_ratio=
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/gc.c | gc_step_ratio_set | 1229
+n/a | src/gc.c | gc_step_ratio_set 
 
 #### test
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/gc.c | gc_test | 1585
+n/a | src/gc.c | gc_test 
 
 ## Kernel
 
@@ -1318,273 +1318,273 @@ ISO Code | Source File
 
 #### block_given?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.2.2 | src/kernel.c | mrb_f_block_given_p_m | 185
+15.3.1.2.2 | src/kernel.c | mrb_f_block_given_p_m 
 
 #### global_variables
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.2.4 | src/kernel.c | mrb_f_global_variables | 1043
+15.3.1.2.4 | src/kernel.c | mrb_f_global_variables 
 
 #### iterator?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.2.5 | src/kernel.c | mrb_f_block_given_p_m | 185
+15.3.1.2.5 | src/kernel.c | mrb_f_block_given_p_m 
 
 #### raise
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.2.12 | src/kernel.c | mrb_f_raise | 928
+15.3.1.2.12 | src/kernel.c | mrb_f_raise 
 
 ### Methods
 
 #### !=
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/kernel.c | mrb_obj_not_equal_m | 105
+n/a | src/kernel.c | mrb_obj_not_equal_m 
 
 #### ==
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.1 | src/kernel.c | mrb_obj_equal_m | 93
+15.3.1.3.1 | src/kernel.c | mrb_obj_equal_m 
 
 #### ===
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.2 | src/kernel.c | mrb_equal_m | 126
+15.3.1.3.2 | src/kernel.c | mrb_equal_m 
 
 #### __case_eqq
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/kernel.c | mrb_obj_ceqq | 1121
+n/a | src/kernel.c | mrb_obj_ceqq 
 
 #### __id__
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.3 | src/kernel.c | mrb_obj_id_m | 155
+15.3.1.3.3 | src/kernel.c | mrb_obj_id_m 
 
 #### __method__
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/kernel.c | mrb_f_method | 223
+n/a | src/kernel.c | mrb_f_method 
 
 #### __send__
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.4 | src/kernel.c | mrb_f_send | 441
+15.3.1.3.4 | src/kernel.c | mrb_f_send 
 
 #### block_given?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.6 | src/kernel.c | mrb_f_block_given_p_m | 185
+15.3.1.3.6 | src/kernel.c | mrb_f_block_given_p_m 
 
 #### class
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.7 | src/kernel.c | mrb_obj_class_m | 246
+15.3.1.3.7 | src/kernel.c | mrb_obj_class_m 
 
 #### clone
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.8 | src/kernel.c | mrb_obj_clone | 343
+15.3.1.3.8 | src/kernel.c | mrb_obj_clone 
 
 #### define_singleton_method
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/kernel.c | mod_define_singleton_method | 1103
+n/a | src/kernel.c | mod_define_singleton_method 
 
 #### dup
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.9 | src/kernel.c | mrb_obj_dup | 379
+15.3.1.3.9 | src/kernel.c | mrb_obj_dup 
 
 #### eql?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.10 | src/kernel.c | mrb_obj_equal_m | 93
+15.3.1.3.10 | src/kernel.c | mrb_obj_equal_m 
 
 #### equal?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.11 | src/kernel.c | mrb_obj_equal_m | 93
+15.3.1.3.11 | src/kernel.c | mrb_obj_equal_m 
 
 #### extend
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.13 | src/kernel.c | mrb_obj_extend_m | 438
+15.3.1.3.13 | src/kernel.c | mrb_obj_extend_m 
 
 #### global_variables
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.14 | src/kernel.c | mrb_f_global_variables | 1043
+15.3.1.3.14 | src/kernel.c | mrb_f_global_variables 
 
 #### hash
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.15 | src/kernel.c | mrb_obj_hash | 459
+15.3.1.3.15 | src/kernel.c | mrb_obj_hash 
 
 #### initialize_copy
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.16 | src/kernel.c | mrb_obj_init_copy | 466
+15.3.1.3.16 | src/kernel.c | mrb_obj_init_copy 
 
 #### inspect
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.17 | src/kernel.c | mrb_obj_inspect | 53
+15.3.1.3.17 | src/kernel.c | mrb_obj_inspect 
 
 #### instance_eval
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.18 | src/kernel.c | mrb_obj_instance_eval | 500
+15.3.1.3.18 | src/kernel.c | mrb_obj_instance_eval 
 
 #### instance_of?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.19 | src/kernel.c | obj_is_instance_of | 539
+15.3.1.3.19 | src/kernel.c | obj_is_instance_of 
 
 #### instance_variable_defined?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.20 | src/kernel.c | mrb_obj_ivar_defined | 608
+15.3.1.3.20 | src/kernel.c | mrb_obj_ivar_defined 
 
 #### instance_variable_get
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.21 | src/kernel.c | mrb_obj_ivar_get | 642
+15.3.1.3.21 | src/kernel.c | mrb_obj_ivar_get 
 
 #### instance_variable_set
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.22 | src/kernel.c | mrb_obj_ivar_set | 674
+15.3.1.3.22 | src/kernel.c | mrb_obj_ivar_set 
 
 #### instance_variables
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.23 | src/kernel.c | mrb_obj_instance_variables | 672
+15.3.1.3.23 | src/kernel.c | mrb_obj_instance_variables 
 
 #### is_a?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.24 | src/kernel.c | mrb_obj_is_kind_of_m | 714
+15.3.1.3.24 | src/kernel.c | mrb_obj_is_kind_of_m 
 
 #### iterator?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.25 | src/kernel.c | mrb_f_block_given_p_m | 185
+15.3.1.3.25 | src/kernel.c | mrb_f_block_given_p_m 
 
 #### kind_of?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.26 | src/kernel.c | mrb_obj_is_kind_of_m | 714
+15.3.1.3.26 | src/kernel.c | mrb_obj_is_kind_of_m 
 
 #### methods
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.31 | src/kernel.c | mrb_obj_methods_m | 834
+15.3.1.3.31 | src/kernel.c | mrb_obj_methods_m 
 
 #### nil?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.32 | src/kernel.c | mrb_false | 850
+15.3.1.3.32 | src/kernel.c | mrb_false 
 
 #### object_id
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.33 | src/kernel.c | mrb_obj_id_m | 155
+15.3.1.3.33 | src/kernel.c | mrb_obj_id_m 
 
 #### private_methods
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.36 | src/kernel.c | mrb_obj_private_methods | 865
+15.3.1.3.36 | src/kernel.c | mrb_obj_private_methods 
 
 #### protected_methods
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.37 | src/kernel.c | mrb_obj_protected_methods | 882
+15.3.1.3.37 | src/kernel.c | mrb_obj_protected_methods 
 
 #### public_methods
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.38 | src/kernel.c | mrb_obj_public_methods | 899
+15.3.1.3.38 | src/kernel.c | mrb_obj_public_methods 
 
 #### raise
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.40 | src/kernel.c | mrb_f_raise | 928
+15.3.1.3.40 | src/kernel.c | mrb_f_raise 
 
 #### remove_instance_variable
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.41 | src/kernel.c | mrb_obj_remove_instance_variable | 978
+15.3.1.3.41 | src/kernel.c | mrb_obj_remove_instance_variable 
 
 #### respond_to?
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.43 | src/kernel.c | obj_respond_to | 1014
+15.3.1.3.43 | src/kernel.c | obj_respond_to 
 
 #### send
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.44 | src/kernel.c | mrb_f_send | 441
+15.3.1.3.44 | src/kernel.c | mrb_f_send 
 
 #### singleton_class
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-n/a | src/kernel.c | mrb_singleton_class | 962
+n/a | src/kernel.c | mrb_singleton_class 
 
 #### singleton_methods
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.45 | src/kernel.c | mrb_obj_singleton_methods_m | 1095
+15.3.1.3.45 | src/kernel.c | mrb_obj_singleton_methods_m 
 
 #### to_s
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function 
 --- | --- | ---
-15.3.1.3.46 | src/kernel.c | mrb_any_to_s | 438
+15.3.1.3.46 | src/kernel.c | mrb_any_to_s 
 
