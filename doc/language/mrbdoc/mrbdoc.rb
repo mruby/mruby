@@ -8,6 +8,7 @@ require 'mrbdoc_docu'
 MRUBY_ROOT = ARGV[0]
 DOC_ROOT = ARGV[1]
 _WRITE_LINE_NO = ARGV[2]
+STDOUT.sync = true
 
 raise ArgumentError.new 'mruby root missing!' if MRUBY_ROOT.nil?
 raise ArgumentError.new 'doc root missing!' if DOC_ROOT.nil?

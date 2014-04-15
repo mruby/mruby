@@ -10,7 +10,7 @@ class MRBDoc
   private
 
   def write dir, cfg
-    File.open(File.expand_path('Core.md', dir), 'w+') do |io|
+    File.open(File.expand_path('Core.md', dir), 'wb+') do |io|
       print_core_classes(io, cfg)
       print_core_modules(io, cfg)
     end
