@@ -1,18 +1,18 @@
 class MRBDoc
-  def write_documentation dir, &block
+  def write_documentation dir, cfg, &block
     block.call "MRBDOC\twrite to #{File.expand_path(dir)}"
 
-    write(dir) do |progress|
+    write(dir, cfg) do |progress|
       block.call progress
     end
   end
 
   private
 
-  def write dir
+  def write dir, cfg
     File.open(File.expand_path('Core.md', dir), 'w+') do |io|
-      print_core_classes(io)
-      print_core_modules(io)
+      print_core_classes(io, cfg)
+      print_core_modules(io, cfg)
     end
   end
 
@@ -32,7 +32,7 @@ class MRBDoc
     core_list
   end
 
-  def print_core_classes(io)
+  def print_core_classes(io, cfg)
     core_list = get_core_list :each_class
     io.puts "# Core Classes\n\n"
     core_list.sort.each do |name, hsh|
@@ -51,12 +51,12 @@ ISO Code | Mixins | Source File
 #{iso} |  #{mixins} | #{file}
 
 CLASS
-      print_class_methods(io, hsh)
-      print_methods(io, hsh)
+      print_class_methods(io, hsh, cfg)
+      print_methods(io, hsh, cfg)
     end
   end
 
-  def print_core_modules(io)
+  def print_core_modules(io, cfg)
     core_list = get_core_list :each_module
     io.puts "# Core Modules\n\n"
     core_list.sort.each do |name, hsh|
@@ -73,29 +73,34 @@ ISO Code | Source File
 #{iso} | #{file}
 
 CLASS
-      print_class_methods(io, hsh)
-      print_methods(io, hsh)
+      print_class_methods(io, hsh, cfg)
+      print_methods(io, hsh, cfg)
     end
   end
 
-  def print_methods(io, hsh)
+  def print_methods(io, hsh, cfg)
     return unless hsh[:methods].size > 0
     io.puts "### Methods\n\n"
     hsh[:methods].sort.each do |met_name, met_hsh|
-      print_method(io, met_name, met_hsh)
+      print_method(io, met_name, met_hsh, cfg)
     end
   end
 
-  def print_class_methods(io, hsh)
+  def print_class_methods(io, hsh, cfg)
     return unless hsh[:class_methods].size > 0
     io.puts "### Class Methods\n\n"
     hsh[:class_methods].sort.each do |met_name, met_hsh|
-      print_method(io, met_name, met_hsh)
+      print_method(io, met_name, met_hsh, cfg)
     end
   end
 
-  def print_method(io, met_name, met_hsh)
-    line_no = find_c_func(met_hsh[:c_func])[:line_no]
+  def print_method(io, met_name, met_hsh, cfg)
+    if cfg[:print_line_no]
+      line_no_head = '| Line'
+      line_no = "| #{find_c_func(met_hsh[:c_func])[:line_no]}"
+    else
+      line_no, line_no_head = '', ''
+    end
     file = find_c_file(met_hsh[:rb_class], met_hsh[:c_func])
     file = file.split("#{@dir}/")[1]
     iso = met_hsh[:iso]
@@ -104,9 +109,9 @@ CLASS
     io.puts <<METHOD
 #### #{met_name}
 
-ISO Code | Source File | C Function | Line
+ISO Code | Source File | C Function #{line_no_head}
 --- | --- | ---
-#{iso} | #{file} | #{met_hsh[:c_func]} | #{line_no}
+#{iso} | #{file} | #{met_hsh[:c_func]} #{line_no}
 
 METHOD
   end
