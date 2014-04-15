@@ -94,7 +94,7 @@ enum {
   OP_CALL,/*      A B C   R(A) := self.call(R(A),.., R(A+C))              */
   OP_SUPER,/*     A B C   R(A) := super(R(A+1),... ,R(A+C-1))             */
   OP_ARGARY,/*    A Bx    R(A) := argument array (16=6:1:5:4)             */
-  OP_ENTER,/*     Ax      arg setup according to flags (24=5:5:1:5:5:1:1) */
+  OP_ENTER,/*     Ax      arg setup according to flags (23=5:5:1:5:5:1:1) */
   OP_KARG,/*      A B C   R(A) := kdict[mSym(B)]; if C kdict.rm(mSym(B))  */
   OP_KDICT,/*     A C     R(A) := kdict                                   */
 
