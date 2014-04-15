@@ -182,3 +182,14 @@ assert('Float#nan?') do
   assert_false (1.0/0.0).nan?
   assert_false (-1.0/0.0).nan?
 end
+
+assert('Float#to_s') do
+  assert_equal "NaN", (0.0/0.0).to_s
+  assert_equal "0",  0.0.to_s
+  assert_equal "inf", (1.0/0.0).to_s
+  assert_equal "-inf", (-1.0/0.0).to_s
+  assert_equal "0.25", 0.25.to_s
+  assert_equal "0.125", 0.125.to_s
+  assert_equal "0.0625", 0.0625.to_s
+  assert_equal "23.4", 23.4.to_s
+end
