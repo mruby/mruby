@@ -30,3 +30,10 @@ assert('Invalid sequence') do
   assert_equal 5, "\xF8\x88\x80\x80\x80".size
   assert_equal 6, "\xFC\x84\x80\x80\x80\x80".size
 end
+
+assert('String#size') do
+  str = 'こんにちわ世界!'
+  assert_equal 8, str.size
+  assert_not_equal str.bytesize, str.size
+  assert_equal 2, str[1, 2].size
+end
