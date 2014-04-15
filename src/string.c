@@ -2586,7 +2586,7 @@ mrb_init_string(mrb_state *mrb)
 {
   struct RClass *s;
 
-  s = mrb->string_class = mrb_define_class(mrb, "String", mrb->object_class);
+  s = mrb->string_class = mrb_define_class(mrb, "String", mrb->object_class);             /* 15.2.10 */
   MRB_SET_INSTANCE_TT(s, MRB_TT_STRING);
 
   mrb_define_method(mrb, s, "bytesize",        mrb_str_bytesize,        MRB_ARGS_NONE());

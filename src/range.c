@@ -400,7 +400,7 @@ mrb_init_range(mrb_state *mrb)
 {
   struct RClass *r;
 
-  r = mrb_define_class(mrb, "Range", mrb->object_class);
+  r = mrb_define_class(mrb, "Range", mrb->object_class);                                /* 15.2.14 */
   MRB_SET_INSTANCE_TT(r, MRB_TT_RANGE);
 
   mrb_define_method(mrb, r, "begin",           mrb_range_beg,         MRB_ARGS_NONE()); /* 15.2.14.4.3  */
