@@ -1888,33 +1888,32 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-#define OP_CMP_BODY(op,v1,v2) do {\
-  if (regs[a].v1 op regs[a+1].v2) {\
+#define OP_CMP_BODY(op,v1,v2) (regs[a].v1 op regs[a+1].v2)
+
+#define OP_CMP(op) do {\
+  int result;\
+  /* need to check if - is overridden */\
+  switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
+  case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):\
+    result = OP_CMP_BODY(op,attr_i,attr_i);\
+    break;\
+  case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):\
+    result = OP_CMP_BODY(op,attr_i,attr_f);\
+    break;\
+  case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):\
+    result = OP_CMP_BODY(op,attr_f,attr_i);\
+    break;\
+  case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):\
+    result = OP_CMP_BODY(op,attr_f,attr_f);\
+    break;\
+  default:\
+    goto L_SEND;\
+  }\
+  if (result) {\
     SET_TRUE_VALUE(regs[a]);\
   }\
   else {\
     SET_FALSE_VALUE(regs[a]);\
-  }\
-} while(0)
-
-#define OP_CMP(op) do {\
-  int a = GETARG_A(i);\
-  /* need to check if - is overridden */\
-  switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
-  case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):\
-    OP_CMP_BODY(op,attr_i,attr_i);\
-    break;\
-  case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):\
-    OP_CMP_BODY(op,attr_i,attr_f);\
-    break;\
-  case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):\
-    OP_CMP_BODY(op,attr_f,attr_i);\
-    break;\
-  case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):\
-    OP_CMP_BODY(op,attr_f,attr_f);\
-    break;\
-  default:\
-    goto L_SEND;\
   }\
 } while(0)
 
@@ -1932,24 +1931,28 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_LT) {
       /* A B C  R(A) := R(A)<R(A+1) (Syms[B]=:<,C=1)*/
+      int a = GETARG_A(i);
       OP_CMP(<);
       NEXT;
     }
 
     CASE(OP_LE) {
       /* A B C  R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)*/
+      int a = GETARG_A(i);
       OP_CMP(<=);
       NEXT;
     }
 
     CASE(OP_GT) {
       /* A B C  R(A) := R(A)<R(A+1) (Syms[B]=:<,C=1)*/
+      int a = GETARG_A(i);
       OP_CMP(>);
       NEXT;
     }
 
     CASE(OP_GE) {
       /* A B C  R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)*/
+      int a = GETARG_A(i);
       OP_CMP(>=);
       NEXT;
     }
