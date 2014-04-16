@@ -939,7 +939,7 @@ mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
  *  the result of evaluating its argument.
  */
 
-mrb_value
+static mrb_value
 mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
 {
   mrb_value a, b;
@@ -952,7 +952,7 @@ mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
   return mrb_yield_with_class(mrb, b, 0, 0, mod, c);
 }
 
-mrb_value
+static mrb_value
 mrb_mod_dummy_visibility(mrb_state *mrb, mrb_value mod)
 {
   return mod;
@@ -1119,7 +1119,7 @@ mrb_class_new_class(mrb_state *mrb, mrb_value cv)
   return new_class;
 }
 
-mrb_value
+static mrb_value
 mrb_class_superclass(mrb_state *mrb, mrb_value klass)
 {
   struct RClass *c;
@@ -1303,7 +1303,7 @@ mrb_obj_classname(mrb_state *mrb, mrb_value obj)
  * \param super a reference to an object.
  * \exception TypeError if \a super is not a Class or \a super is a singleton class.
  */
-void
+static void
 mrb_check_inheritable(mrb_state *mrb, struct RClass *super)
 {
   if (super->tt != MRB_TT_CLASS) {
@@ -1457,7 +1457,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
   return str;
 }
 
-mrb_value
+static mrb_value
 mrb_mod_alias(mrb_state *mrb, mrb_value mod)
 {
   struct RClass *c = mrb_class_ptr(mod);
@@ -1494,7 +1494,7 @@ mrb_undef_class_method(mrb_state *mrb, struct RClass *c, const char *name)
   mrb_undef_method(mrb,  mrb_class_ptr(mrb_singleton_class(mrb, mrb_obj_value(c))), name);
 }
 
-mrb_value
+static mrb_value
 mrb_mod_undef(mrb_state *mrb, mrb_value mod)
 {
   struct RClass *c = mrb_class_ptr(mod);
@@ -1686,7 +1686,7 @@ mrb_mod_cvar_set(mrb_state *mrb, mrb_value mod)
  *     []
  */
 
-mrb_value
+static mrb_value
 mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
 {
   mrb_value val;
@@ -1787,7 +1787,7 @@ remove_method(mrb_state *mrb, mrb_value mod, mrb_sym mid)
  *  class. For an example, see <code>Module.undef_method</code>.
  */
 
-mrb_value
+static mrb_value
 mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
 {
   int argc;
@@ -1821,7 +1821,7 @@ check_const_name_str(mrb_state *mrb, mrb_value str)
   }
 }
 
-mrb_value
+static mrb_value
 mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_value id;
@@ -1847,7 +1847,7 @@ mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
   return mrb_bool_value(const_defined_p);
 }
 
-mrb_value
+static mrb_value
 mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
 {
   mrb_sym id;
@@ -1857,7 +1857,7 @@ mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
   return mrb_const_get(mrb, mod, id);
 }
 
-mrb_value
+static mrb_value
 mrb_mod_const_set(mrb_state *mrb, mrb_value mod)
 {
   mrb_sym id;
@@ -1869,7 +1869,7 @@ mrb_mod_const_set(mrb_state *mrb, mrb_value mod)
   return value;
 }
 
-mrb_value
+static mrb_value
 mrb_mod_remove_const(mrb_state *mrb, mrb_value mod)
 {
   mrb_sym id;
@@ -1884,7 +1884,7 @@ mrb_mod_remove_const(mrb_state *mrb, mrb_value mod)
   return val;
 }
 
-mrb_value
+static mrb_value
 mrb_mod_const_missing(mrb_state *mrb, mrb_value mod)
 {
   mrb_sym sym;
