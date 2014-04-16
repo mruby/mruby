@@ -1,7 +1,9 @@
 class Symbol
 
   def to_proc
-    Proc.new do |obj, *args|
+    Proc.new do |*args|
+      raise ArgumentError, "no receiver given" if args.length == 0
+      obj = args.shift
       obj.send(self, *args)
     end
   end

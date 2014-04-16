@@ -3,6 +3,8 @@
 
 assert('Symbol#to_proc') do
   assert_equal 5, :abs.to_proc[-5]
+
+  assert_raise(ArgumentError) { :object_id.to_proc.call }
 end
 
 assert('Symbol.all_symbols') do
