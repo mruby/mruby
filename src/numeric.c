@@ -980,8 +980,7 @@ lshift(mrb_state *mrb, mrb_int val, mrb_int width)
                mrb_fixnum_value(width),
                mrb_fixnum_value(NUMERIC_SHIFT_WIDTH_MAX));
   }
-  val = val << width;
-  return mrb_fixnum_value(val);
+  return mrb_fixnum_value(val << width);
 }
 
 static mrb_value
@@ -1009,8 +1008,7 @@ fix_shift_get_width(mrb_state *mrb, mrb_int *width)
   mrb_value y;
 
   mrb_get_args(mrb, "o", &y);
-  y = bit_coerce(mrb, y);
-  *width = mrb_fixnum(y);
+  *width = mrb_fixnum(bit_coerce(mrb, y));
 }
 
 /* 15.2.8.3.12 */
@@ -1075,11 +1073,7 @@ fix_rshift(mrb_state *mrb, mrb_value x)
 static mrb_value
 fix_to_f(mrb_state *mrb, mrb_value num)
 {
-    mrb_float val;
-
-    val = (mrb_float)mrb_fixnum(num);
-
-    return mrb_float_value(mrb, val);
+  return mrb_float_value(mrb, (mrb_float)mrb_fixnum(num));
 }
 
 /*
