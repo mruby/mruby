@@ -16,7 +16,7 @@
 #include "mruby/debug.h"
 #include "node.h"
 #include "opcode.h"
-#include "re.h"
+#include "mruby/re.h"
 #include "mrb_throw.h"
 
 typedef mrb_ast_node node;

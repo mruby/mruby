@@ -14,7 +14,7 @@
 #include "mruby/class.h"
 #include "mruby/range.h"
 #include "mruby/string.h"
-#include "re.h"
+#include "mruby/re.h"
 
 #define STR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
 #define STR_SET_EMBED_FLAG(s) ((s)->flags |= MRB_STR_EMBED)
