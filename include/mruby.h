@@ -171,6 +171,16 @@ typedef struct mrb_state {
   void *ud; /* auxiliary data */
 } mrb_state;
 
+#if __STDC_VERSION__ >= 201112L
+# define mrb_noreturn _Noreturn
+#elif defined __GNUC__ && !defined __STRICT_ANSI__
+# define mrb_noreturn __attribute__((noreturn))
+#elif defined _MSC_VER
+# define mrb_noreturn __declspec(noreturn)
+#else
+# define mrb_noreturn
+#endif
+
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
 struct RClass *mrb_define_class(mrb_state *, const char*, struct RClass*);
 struct RClass *mrb_define_module(mrb_state *, const char*);
@@ -333,13 +343,13 @@ mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 #endif
 
 mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len);
-void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
+mrb_noreturn void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
 
-void mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg);
-void mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
-void mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...);
+mrb_noreturn void mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg);
+mrb_noreturn void mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
+mrb_noreturn void mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...);
 void mrb_warn(mrb_state *mrb, const char *fmt, ...);
-void mrb_bug(mrb_state *mrb, const char *fmt, ...);
+mrb_noreturn void mrb_bug(mrb_state *mrb, const char *fmt, ...);
 void mrb_print_backtrace(mrb_state *mrb);
 void mrb_print_error(mrb_state *mrb);
 
