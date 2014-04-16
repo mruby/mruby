@@ -127,7 +127,12 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
   mesg = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "mesg"));
   file = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "file"));
   line = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "line"));
-  append_mesg = !mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0;
+
+  append_mesg = !mrb_nil_p(mesg);
+  if (append_mesg) {
+    mesg = mrb_obj_as_string(mrb, mesg);
+    append_mesg = RSTRING_LEN(mesg) > 0;
+  }
 
   if (!mrb_nil_p(file) && !mrb_nil_p(line)) {
     str = mrb_str_dup(mrb, file);
