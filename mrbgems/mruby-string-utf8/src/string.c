@@ -1,11 +1,9 @@
 #include "mruby.h"
 #include "mruby/string.h"
 #include "mruby/range.h"
+#include "mruby/re.h"
 #include <ctype.h>
 #include <string.h>
-
-/* TODO: duplicate definition in src/re.h */
-#define REGEXP_CLASS "Regexp"
 
 static const char utf8len_codepage[256] =
 {
