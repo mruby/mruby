@@ -349,7 +349,7 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
 
     memcpy(buf, RSTRING_PTR(str), len);
     mrb_str_modify(mrb, mrb_str_ptr(str));
-	r = (unsigned char*)RSTRING_PTR(str) + len;
+    r = (unsigned char*)RSTRING_PTR(str) + len;
 
     while (p<e) {
       mrb_int clen = utf8len(p);
