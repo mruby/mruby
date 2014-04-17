@@ -1,4 +1,5 @@
 class Symbol
+  include Comparable
 
   def to_proc
     ->(obj,*args,&block) do
