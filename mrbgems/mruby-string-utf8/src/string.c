@@ -33,11 +33,12 @@ utf8len(unsigned char* p)
 }
 
 static mrb_int
-mrb_utf8_strlen(mrb_value str)
+mrb_utf8_strlen(mrb_value str, mrb_int len)
 {
   mrb_int total = 0;
   unsigned char* p = (unsigned char*) RSTRING_PTR(str);
-  unsigned char* e = p + RSTRING_LEN(str);
+  unsigned char* e = p;
+  e += len < 0 ? RSTRING_LEN(str) : len;
   while (p<e) {
     p += utf8len(p);
     total++;
@@ -48,12 +49,12 @@ mrb_utf8_strlen(mrb_value str)
 static mrb_value
 mrb_str_size(mrb_state *mrb, mrb_value str)
 {
-  mrb_int size = mrb_utf8_strlen(str);
+  mrb_int size = mrb_utf8_strlen(str, -1);
 
   return mrb_fixnum_value(size);
 }
 
-#define RSTRING_LEN_UTF8(s) mrb_utf8_strlen(s)
+#define RSTRING_LEN_UTF8(s) mrb_utf8_strlen(s, -1)
 
 static mrb_value
 noregexp(mrb_state *mrb, mrb_value self)
@@ -246,9 +247,23 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 }
 
 static mrb_value
+mrb_str_index(mrb_state *mrb, mrb_value str)
+{
+  mrb_value a1, a2;
+  mrb_int idx;
+
+  if (mrb_get_args(mrb, "o|o", &a1, &a2) == 1)
+    a2 = mrb_fixnum_value(0);
+  idx = str_index(mrb, str, a1, mrb_fixnum(a2));
+  if (idx != -1)
+    return mrb_fixnum_value(mrb_utf8_strlen(str, idx));
+  return mrb_nil_value();
+}
+
+static mrb_value
 mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
 {
-  mrb_int utf8_len = mrb_utf8_strlen(str);
+  mrb_int utf8_len = mrb_utf8_strlen(str, -1);
   if (utf8_len > 1) {
     mrb_int len = RSTRING_LEN(str);
     char *buf = (char *)mrb_malloc(mrb, (size_t)len);
@@ -319,6 +334,7 @@ mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
 
   mrb_define_method(mrb, s, "size", mrb_str_size, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "length", mrb_str_size, MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "index", mrb_str_index, MRB_ARGS_ANY());
   mrb_define_method(mrb, s, "[]", mrb_str_aref_m, MRB_ARGS_ANY());
   mrb_define_method(mrb, s, "slice", mrb_str_aref_m, MRB_ARGS_ANY());
   mrb_define_method(mrb, s, "reverse",  mrb_str_reverse,      MRB_ARGS_NONE());

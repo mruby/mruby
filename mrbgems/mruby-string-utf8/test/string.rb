@@ -37,3 +37,11 @@ assert('String#size') do
   assert_not_equal str.bytesize, str.size
   assert_equal 2, str[1, 2].size
 end
+
+assert('String#index') do
+  str = "こんにちわ世界!\nこんにちわ世界!"
+  assert_nil str.index('さ')
+  assert_equal 3, str.index('ち')
+  assert_equal 12, str.index('ち', 10)
+  assert_equal nil, str.index("さ")
+end
