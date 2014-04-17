@@ -341,14 +341,17 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
 {
   mrb_int utf8_len = mrb_utf8_strlen(str, -1);
   if (utf8_len > 1) {
-    mrb_int len = RSTRING_LEN(str);
-    char *buf = (char *)mrb_malloc(mrb, (size_t)len);
-    unsigned char* p = (unsigned char*)buf;
-    unsigned char* e = (unsigned char*)buf + len;
-    unsigned char* r;
+    mrb_int len;
+    char *buf;
+    unsigned char *p, *e, *r;
+
+    mrb_str_modify(mrb, mrb_str_ptr(str));
+    len = RSTRING_LEN(str);
+    buf = (char *)mrb_malloc(mrb, (size_t)len);
+    p = (unsigned char*)buf;
+    e = (unsigned char*)buf + len;
 
     memcpy(buf, RSTRING_PTR(str), len);
-    mrb_str_modify(mrb, mrb_str_ptr(str));
     r = (unsigned char*)RSTRING_PTR(str) + len;
 
     while (p<e) {
