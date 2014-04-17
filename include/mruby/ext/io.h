@@ -31,11 +31,6 @@ struct mrb_io {
   int pid;  /* child's pid (for pipes)  */
 };
 
-struct mrb_io_type {
-  const char *struct_name;
-  void (*dfree)(mrb_state *mrb, void *);
-};
-
 #define FMODE_READABLE             0x00000001
 #define FMODE_WRITABLE             0x00000002
 #define FMODE_READWRITE            (FMODE_READABLE|FMODE_WRITABLE)
