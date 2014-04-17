@@ -4,7 +4,6 @@
 
 #include "mruby.h"
 
-#include "mruby/ext/io.h"
 #include "mruby/class.h"
 #include "mruby/data.h"
 #include "mruby/string.h"
@@ -15,8 +14,14 @@
 #include "mruby/error.h"
 #endif
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include <fcntl.h>
 #include <limits.h>
+#include <unistd.h>
+
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #if defined(_WIN32) || defined(_WIN64)
