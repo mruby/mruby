@@ -3,6 +3,13 @@
 
 assert('Symbol#to_proc') do
   assert_equal 5, :abs.to_proc[-5]
+
+  o = Object.new
+  def o.m_block_given?
+    block_given?
+  end
+  assert_true :m_block_given?.to_proc.call(o){}
+  assert_false :m_block_given?.to_proc.call(o)
 end
 
 assert('Symbol.all_symbols') do
