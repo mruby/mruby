@@ -1,8 +1,8 @@
 class Symbol
 
   def to_proc
-    ->(obj,*args) do
-      obj.send(self, *args)
+    ->(obj,*args,&block) do
+      obj.send(self, *args, &block)
     end
   end
 
