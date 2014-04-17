@@ -36,15 +36,9 @@ struct mrb_io {
 #define FMODE_READWRITE            (FMODE_READABLE|FMODE_WRITABLE)
 #define FMODE_BINMODE              0x00000004
 #define FMODE_SYNC                 0x00000008
-#define FMODE_TTY                  0x00000010
-#define FMODE_DUPLEX               0x00000020
 #define FMODE_APPEND               0x00000040
 #define FMODE_CREATE               0x00000080
-#define FMODE_WSPLIT               0x00000200
-#define FMODE_WSPLIT_INITIALIZED   0x00000400
 #define FMODE_TRUNC                0x00000800
-#define FMODE_TEXTMODE             0x00001000
-#define FMODE_SETENC_BY_BOM        0x00100000
 
 #define E_IO_ERROR                 (mrb_class_get(mrb, "IOError"))
 #define E_EOF_ERROR                (mrb_class_get(mrb, "EOFError"))
