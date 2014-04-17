@@ -8,6 +8,7 @@
 #include "mruby/string.h"
 #include "mruby/data.h"
 #include "mruby/class.h"
+#include "mruby/re.h"
 
 struct RData*
 mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb_data_type *type)
@@ -176,3 +177,8 @@ mrb_cptr_value(mrb_state *mrb, void *p)
 }
 #endif  /* MRB_WORD_BOXING */
 
+mrb_bool
+mrb_regexp_p(mrb_state *mrb, mrb_value v)
+{
+  return mrb_class_defined(mrb, REGEXP_CLASS) && mrb_obj_is_kind_of(mrb, v, mrb_class_get(mrb, REGEXP_CLASS));
+}
