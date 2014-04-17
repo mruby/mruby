@@ -33,6 +33,13 @@ assert('IO.open', '15.2.20.4.1') do
   true
 end
 
+assert('IO#write', '15.2.20.5.20') do
+  io = IO.open(IO.sysopen($mrbtest_io_wfname))
+  assert_equal 0, io.write("")
+  io.close
+  true
+end
+
 assert('IO.new') do
   IO.new(0)
 end
