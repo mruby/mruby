@@ -5,6 +5,12 @@
 #include <ctype.h>
 #include <string.h>
 
+#define STR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
+#define STR_EMBED_LEN(s)\
+  (size_t)(((s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
+#define STR_PTR(s) ((STR_EMBED_P(s)) ? (s)->as.ary : (s)->as.heap.ptr)
+#define STR_LEN(s) ((STR_EMBED_P(s)) ? STR_EMBED_LEN(s) : (size_t)(s)->as.heap.len)
+
 static const char utf8len_codepage[256] =
 {
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -16,6 +22,8 @@ static const char utf8len_codepage[256] =
   2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
   3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,
 };
+
+static mrb_value mrb_fixnum_chr(mrb_state*, mrb_value);
 
 static mrb_int
 utf8len(unsigned char* p)
@@ -119,7 +127,6 @@ str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   mrb_int i;
   unsigned char *p = (unsigned char*) RSTRING_PTR(str), *t;
   unsigned char *e = p + RSTRING_LEN(str);
-  
 
   for (i = 0; i < beg && p<e; i++) {
     p += utf8len(p);
@@ -187,6 +194,35 @@ str_index(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int offset)
   return pos + offset;
 }
 
+static mrb_int
+str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
+{
+  char *s, *sbeg, *t;
+  struct RString *ps = mrb_str_ptr(str);
+  mrb_int len = RSTRING_LEN(sub);
+
+  /* substring longer than string */
+  if (STR_LEN(ps) < len) return -1;
+  if (STR_LEN(ps) - pos < len) {
+    pos = STR_LEN(ps) - len;
+  }
+  sbeg = STR_PTR(ps);
+  s = STR_PTR(ps) + pos;
+  t = RSTRING_PTR(sub);
+  if (len) {
+    while (sbeg <= s) {
+      if (memcmp(s, t, len) == 0) {
+        return s - STR_PTR(ps);
+      }
+      s--;
+    }
+    return -1;
+  }
+  else {
+    return pos;
+  }
+}
+
 static mrb_value
 mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
 {
@@ -247,17 +283,57 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 }
 
 static mrb_value
-mrb_str_index(mrb_state *mrb, mrb_value str)
+mrb_str_index_m(mrb_state *mrb, mrb_value str)
 {
-  mrb_value a1, a2;
-  mrb_int idx;
+  mrb_value *argv;
+  int argc;
 
-  if (mrb_get_args(mrb, "o|o", &a1, &a2) == 1)
-    a2 = mrb_fixnum_value(0);
-  idx = str_index(mrb, str, a1, mrb_fixnum(a2));
-  if (idx != -1)
-    return mrb_fixnum_value(mrb_utf8_strlen(str, idx));
-  return mrb_nil_value();
+  mrb_value sub;
+  mrb_int pos;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 2) {
+    pos = mrb_fixnum(argv[1]);
+    sub = argv[0];
+  }
+  else {
+    pos = 0;
+    if (argc > 0)
+      sub = argv[0];
+    else
+      sub = mrb_nil_value();
+
+  }
+  regexp_check(mrb, sub);
+  if (pos < 0) {
+    pos += RSTRING_LEN(str);
+    if (pos < 0) {
+      return mrb_nil_value();
+    }
+  }
+
+  if (mrb_type(sub) == MRB_TT_FIXNUM) {
+    sub = mrb_fixnum_chr(mrb, sub);
+  }
+
+  switch (mrb_type(sub)) {
+    default: {
+      mrb_value tmp;
+
+      tmp = mrb_check_string_type(mrb, sub);
+      if (mrb_nil_p(tmp)) {
+        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %S given", sub);
+      }
+      sub = tmp;
+    }
+    /* fall through */
+    case MRB_TT_STRING:
+      pos = str_index(mrb, str, sub, pos);
+      break;
+  }
+
+  if (pos == -1) return mrb_nil_value();
+  return mrb_fixnum_value(mrb_utf8_strlen(str, pos));
 }
 
 static mrb_value
@@ -269,11 +345,12 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
     char *buf = (char *)mrb_malloc(mrb, (size_t)len);
     unsigned char* p = (unsigned char*)buf;
     unsigned char* e = (unsigned char*)buf + len;
-    unsigned char* r = (unsigned char*)RSTRING_END(str);
-    
+    unsigned char* r;
+
     memcpy(buf, RSTRING_PTR(str), len);
     mrb_str_modify(mrb, mrb_str_ptr(str));
-    
+	r = (unsigned char*)RSTRING_PTR(str) + len;
+
     while (p<e) {
       mrb_int clen = utf8len(p);
       r -= clen;
@@ -282,8 +359,64 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
     }
     mrb_free(mrb, buf);
   }
-  
+
   return str;
+}
+
+static mrb_value
+mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
+{
+  mrb_value *argv;
+  int argc;
+  mrb_value sub;
+  mrb_value vpos;
+  mrb_int pos, len = RSTRING_LEN(str);
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 2) {
+    sub = argv[0];
+    vpos = argv[1];
+    pos = mrb_fixnum(vpos);
+    if (pos < 0) {
+      pos += len;
+      if (pos < 0) {
+        regexp_check(mrb, sub);
+        return mrb_nil_value();
+      }
+    }
+    if (pos > len) pos = len;
+  }
+  else {
+    pos = len;
+    if (argc > 0)
+      sub = argv[0];
+    else
+      sub = mrb_nil_value();
+  }
+  regexp_check(mrb, sub);
+
+  if (mrb_type(sub) == MRB_TT_FIXNUM) {
+    sub = mrb_fixnum_chr(mrb, sub);
+  }
+
+  switch (mrb_type(sub)) {
+    default: {
+      mrb_value tmp;
+
+      tmp = mrb_check_string_type(mrb, sub);
+      if (mrb_nil_p(tmp)) {
+        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %S given", sub);
+      }
+      sub = tmp;
+    }
+     /* fall through */
+    case MRB_TT_STRING:
+      pos = str_rindex(mrb, str, sub, pos);
+      break;
+  }
+
+  if (pos == -1) return mrb_nil_value();
+  return mrb_fixnum_value(mrb_utf8_strlen(str, pos));
 }
 
 static mrb_value
@@ -334,11 +467,12 @@ mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
 
   mrb_define_method(mrb, s, "size", mrb_str_size, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "length", mrb_str_size, MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "index", mrb_str_index, MRB_ARGS_ANY());
+  mrb_define_method(mrb, s, "index", mrb_str_index_m, MRB_ARGS_ANY());
   mrb_define_method(mrb, s, "[]", mrb_str_aref_m, MRB_ARGS_ANY());
   mrb_define_method(mrb, s, "slice", mrb_str_aref_m, MRB_ARGS_ANY());
-  mrb_define_method(mrb, s, "reverse",  mrb_str_reverse,      MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "reverse",  mrb_str_reverse, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "reverse!", mrb_str_reverse_bang, MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "rindex", mrb_str_rindex_m, MRB_ARGS_ANY());
 
   mrb_define_method(mrb, mrb->fixnum_class, "chr", mrb_fixnum_chr, MRB_ARGS_NONE());
 }
