@@ -59,8 +59,6 @@
 
 #define STAT(p, s)        stat(p, s)
 
-extern mrb_value mrb_io_fileno(mrb_state *mrb, mrb_value io);
-
 
 mrb_value
 mrb_file_s_umask(mrb_state *mrb, mrb_value klass)

@@ -46,6 +46,7 @@ struct mrb_io {
 mrb_value mrb_open_file(mrb_state *mrb, int argc, mrb_value *argv, mrb_value io);
 void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise);
 mrb_value mrb_file_exist(mrb_state *mrb, mrb_value fname);
+mrb_value mrb_io_fileno(mrb_state *mrb, mrb_value io);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
