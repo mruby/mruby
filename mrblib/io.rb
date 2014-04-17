@@ -99,7 +99,7 @@ class IO
     return str.size unless str.size > 0
 
     len = syswrite(str)
-    if str.size == len
+    if len != -1
       @pos += len
       return len
     end
