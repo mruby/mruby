@@ -3,10 +3,10 @@
 */
 
 #include "mruby.h"
-#include "mruby/hash.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/data.h"
+#include "mruby/hash.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/ext/io.h"
@@ -17,7 +17,11 @@
 #include "mruby/error.h"
 #endif
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #if defined(_WIN32) || defined(_WIN64)
+  #include <winsock.h>
   #include <io.h>
   #define open  _open
   #define close _close
@@ -25,10 +29,20 @@
   #define write _write
   #define lseek _lseek
 #else
+  #include <sys/wait.h>
+  #include <unistd.h>
 #endif
+
+#include <fcntl.h>
+
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+
 
 static int mrb_io_modestr_to_flags(mrb_state *mrb, const char *modestr);
 static int mrb_io_flags_to_modenum(mrb_state *mrb, int flags);
+static void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise);
 
 #if MRUBY_RELEASE_NO < 10000
 static struct RClass *
@@ -318,7 +332,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
   return io;
 }
 
-void
+static void
 fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise)
 {
   int n = 0;

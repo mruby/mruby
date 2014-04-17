@@ -3,11 +3,10 @@
 */
 
 #include "mruby.h"
-
-#include "mruby/ext/io.h"
 #include "mruby/class.h"
 #include "mruby/data.h"
 #include "mruby/string.h"
+#include "mruby/ext/io.h"
 
 #if MRUBY_RELEASE_NO < 10000
 #include "error.h"
@@ -15,16 +14,26 @@
 #include "mruby/error.h"
 #endif
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #if defined(_WIN32) || defined(_WIN64)
   #define LSTAT stat
+  #include <winsock.h>
 #else
   #define LSTAT lstat
   #include <sys/file.h>
+  #include <sys/param.h>
+  #include <sys/wait.h>
   #include <libgen.h>
   #include <pwd.h>
-  #include <sys/param.h>
+  #include <unistd.h>
 #endif
-#include <limits.h>
+
+#include <fcntl.h>
+
+#include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 

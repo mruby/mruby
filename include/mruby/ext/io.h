@@ -9,22 +9,6 @@
 extern "C" {
 #endif
 
-#include <errno.h>
-
-#include <fcntl.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#if defined(_WIN32) || defined(_WIN64)
-  #include <winsock.h>
-#else
-  #include <unistd.h>
-  #include <sys/wait.h>
-#endif
-#include <stdio.h>
-#include <string.h>
-#include <limits.h>
-
 struct mrb_io {
   int fd;   /* file descriptor          */
   int fd2;  /* file descriptor          */
@@ -43,9 +27,6 @@ struct mrb_io {
 #define E_IO_ERROR                 (mrb_class_get(mrb, "IOError"))
 #define E_EOF_ERROR                (mrb_class_get(mrb, "EOFError"))
 
-mrb_value mrb_open_file(mrb_state *mrb, int argc, mrb_value *argv, mrb_value io);
-void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise);
-mrb_value mrb_file_exist(mrb_state *mrb, mrb_value fname);
 mrb_value mrb_io_fileno(mrb_state *mrb, mrb_value io);
 
 #if defined(__cplusplus)
