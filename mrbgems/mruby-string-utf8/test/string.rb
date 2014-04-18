@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 ##
 # String(utf8) Test
 
@@ -53,8 +54,8 @@ assert('String#ord') do
 end
 
 assert('String#split') do
-  got = "こんにちわ世界!".split('').map {|x| x.ord}
+  got = "こんにちわ世界!".split('')
   assert_equal ['こ', 'ん', 'に', 'ち', 'わ', '世', '界', '!'], got
-  got = "こんにちわ世界!".split('に').map {|x| x.ord}
+  got = "こんにちわ世界!".split('に')
   assert_equal ['こん', 'ちわ世界!'], got
 end
