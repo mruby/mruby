@@ -10,9 +10,10 @@ extern "C" {
 #endif
 
 struct mrb_io {
-  int fd;   /* file descriptor          */
-  int fd2;  /* file descriptor          */
+  int fd;   /* file descriptor, or -1 */
+  int fd2;  /* file descriptor to write if it's different from fd, or -1 */
   int pid;  /* child's pid (for pipes)  */
+  unsigned int writable:1;
 };
 
 #define FMODE_READABLE             0x00000001

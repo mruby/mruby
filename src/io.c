@@ -157,16 +157,16 @@ mrb_io_free(mrb_state *mrb, void *ptr)
 
 struct mrb_data_type mrb_io_type = { "IO", mrb_io_free };
 
-static struct mrb_io*
+static struct mrb_io *
 mrb_io_alloc(mrb_state *mrb)
 {
   struct mrb_io *fptr;
 
   fptr = (struct mrb_io *)mrb_malloc(mrb, sizeof(struct mrb_io));
-  fptr->fd  = -1;
+  fptr->fd = -1;
   fptr->fd2 = -1;
   fptr->pid = 0;
-
+  fptr->writable = 0;
   return fptr;
 }
 
@@ -272,9 +272,10 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
       mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
 
       fptr = mrb_io_alloc(mrb);
-      fptr->fd  = fd;
+      fptr->fd = fd;
       fptr->fd2 = write_fd;
       fptr->pid = pid;
+      fptr->writable = ((flags & FMODE_WRITABLE) != 0);
 
       DATA_TYPE(io) = &mrb_io_type;
       DATA_PTR(io)  = fptr;
@@ -305,9 +306,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
   struct mrb_io *fptr;
   mrb_int fd;
   mrb_value mode, opt;
-
-  DATA_TYPE(io) = &mrb_io_type;
-  DATA_PTR(io)  = NULL;
+  int flags;
 
   mode = opt = mrb_nil_value();
 
@@ -319,16 +318,23 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
     opt = mrb_hash_new(mrb);
   }
 
+  flags = mrb_io_modestr_to_flags(mrb, mrb_string_value_cstr(mrb, &mode));
+
   mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
   mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
 
   fptr = DATA_PTR(io);
-  if (fptr == NULL) {
-    fptr = mrb_io_alloc(mrb);
+  if (fptr != NULL) {
+    fptr_finalize(mrb, fptr, 0);
+    mrb_free(mrb, fptr);
   }
-  fptr->fd     = fd;
+  fptr = mrb_io_alloc(mrb);
+
+  DATA_TYPE(io) = &mrb_io_type;
   DATA_PTR(io) = fptr;
 
+  fptr->fd = fd;
+  fptr->writable = ((flags & FMODE_WRITABLE) != 0);
   return io;
 }
 
@@ -473,6 +479,11 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
   mrb_value str, buf;
   int fd, length;
 
+  fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
+  if (! fptr->writable) {
+    mrb_raise(mrb, E_IO_ERROR, "not opened for writing");
+  }
+
   mrb_get_args(mrb, "S", &str);
   if (mrb_type(str) != MRB_TT_STRING) {
     buf = mrb_funcall(mrb, str, "to_s", 0);
@@ -480,7 +491,6 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
     buf = str;
   }
 
-  fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
   if (fptr->fd2 == -1) {
     fd = fptr->fd;
   } else {

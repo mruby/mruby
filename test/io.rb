@@ -92,7 +92,12 @@ assert('IO.sysopen, IO#syswrite') do
   len = io.syswrite(str)
   assert_equal str.size, len
   io.close
-  io.closed?
+
+  io = IO.new(IO.sysopen($mrbtest_io_rfname), "r")
+  assert_raise(IOError) { io.syswrite("a") }
+  io.close
+
+  true
 end
 
 assert('IO#_read_buf') do
