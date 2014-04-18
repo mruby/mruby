@@ -1,4 +1,5 @@
 #include "mruby.h"
+#include "mruby/array.h"
 #include "mruby/string.h"
 #include "mruby/range.h"
 #include "mruby/re.h"
@@ -22,6 +23,75 @@ static const char utf8len_codepage[256] =
   2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
   3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,
 };
+
+static char utf8len_codepage_zero[256] =
+{
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+  3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,
+};
+
+static const char isspacetable[256] = {
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+#define ascii_isspace(c) isspacetable[(unsigned char)(c)]
+
+static mrb_int
+utf8code(unsigned char* p)
+{
+  mrb_int len;
+
+  if (p[0] < 0x80)
+    return p[0];
+
+  len = utf8len_codepage_zero[p[0]];
+  if (len > 1 && (p[1] & 0xc0) == 0x80) {
+    if (len == 2)
+      return ((p[0] & 0x1f) << 6) + (p[1] & 0x3f);
+    if ((p[2] & 0xc0) == 0x80) {
+      if (len == 3)
+        return ((p[0] & 0x0f) << 12) + ((p[1] & 0x3f) << 6)
+          + (p[2] & 0x3f);
+      if ((p[3] & 0xc0) == 0x80) {
+        if (len == 4)
+          return ((p[0] & 0x07) << 18) + ((p[1] & 0x3f) << 12)
+            + ((p[2] & 0x3f) << 6) + (p[3] & 0x3f);
+        if ((p[4] & 0xc0) == 0x80) {
+          if (len == 5)
+            return ((p[0] & 0x03) << 24) + ((p[1] & 0x3f) << 18)
+              + ((p[2] & 0x3f) << 12) + ((p[3] & 0x3f) << 6)
+              + (p[4] & 0x3f);
+          if ((p[5] & 0xc0) == 0x80 && len == 6)
+            return ((p[0] & 0x01) << 30) + ((p[1] & 0x3f) << 24)
+              + ((p[2] & 0x3f) << 18) + ((p[3] & 0x3f) << 12)
+              + ((p[4] & 0x3f) << 6) + (p[5] & 0x3f);
+        }
+      }
+    }
+  }
+  return p[0];
+}
 
 static mrb_value mrb_fixnum_chr(mrb_state*, mrb_value);
 
@@ -463,6 +533,139 @@ mrb_fixnum_chr(mrb_state *mrb, mrb_value num)
   return mrb_str_new(mrb, utf8, len);
 }
 
+static mrb_value
+mrb_str_ord(mrb_state* mrb, mrb_value str)
+{
+  mrb_int len = RSTRING_LEN(str);
+
+  if (len == 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "empty string");
+  return mrb_fixnum_value(utf8code((unsigned char*) RSTRING_PTR(str)));
+}
+
+static mrb_value
+mrb_str_split_m(mrb_state *mrb, mrb_value str)
+{
+  int argc;
+  mrb_value spat = mrb_nil_value();
+  enum {awk, string, regexp} split_type = string;
+  long i = 0, lim_p;
+  mrb_int beg;
+  mrb_int end;
+  mrb_int lim = 0;
+  mrb_value result, tmp;
+
+  argc = mrb_get_args(mrb, "|oi", &spat, &lim);
+  lim_p = (lim > 0 && argc == 2);
+  if (argc == 2) {
+    if (lim == 1) {
+      if (RSTRING_LEN(str) == 0)
+        return mrb_ary_new_capa(mrb, 0);
+      return mrb_ary_new_from_values(mrb, 1, &str);
+    }
+    i = 1;
+  }
+
+  if (argc == 0 || mrb_nil_p(spat)) {
+    split_type = awk;
+  }
+  else {
+    if (mrb_string_p(spat)) {
+      split_type = string;
+      if (RSTRING_LEN(spat) == 1 && RSTRING_PTR(spat)[0] == ' '){
+          split_type = awk;
+      }
+    }
+    else {
+      noregexp(mrb, str);
+    }
+  }
+
+  result = mrb_ary_new(mrb);
+  beg = 0;
+  if (split_type == awk) {
+    char *ptr = RSTRING_PTR(str);
+    char *eptr = RSTRING_END(str);
+    char *bptr = ptr;
+    int skip = 1;
+    unsigned int c;
+
+    end = beg;
+    while (ptr < eptr) {
+      int ai = mrb_gc_arena_save(mrb);
+      c = (unsigned char)*ptr++;
+      if (skip) {
+        if (ascii_isspace(c)) {
+          beg = ptr - bptr;
+        }
+        else {
+          end = ptr - bptr;
+          skip = 0;
+          if (lim_p && lim <= i) break;
+        }
+      }
+      else if (ascii_isspace(c)) {
+        mrb_ary_push(mrb, result, str_subseq(mrb, str, beg, end-beg));
+        mrb_gc_arena_restore(mrb, ai);
+        skip = 1;
+        beg = ptr - bptr;
+        if (lim_p) ++i;
+      }
+      else {
+        end = ptr - bptr;
+      }
+    }
+  }
+  else if (split_type == string) {
+    char *ptr = RSTRING_PTR(str); // s->as.ary
+    char *temp = ptr;
+    char *eptr = RSTRING_END(str);
+    mrb_int slen = RSTRING_LEN(spat);
+
+    if (slen == 0) {
+      int ai = mrb_gc_arena_save(mrb);
+      while (ptr < eptr) {
+        mrb_ary_push(mrb, result, str_subseq(mrb, str, ptr-temp, 1));
+        mrb_gc_arena_restore(mrb, ai);
+        ptr++;
+        if (lim_p && lim <= ++i) break;
+      }
+    }
+    else {
+      char *sptr = RSTRING_PTR(spat);
+      int ai = mrb_gc_arena_save(mrb);
+
+      while (ptr < eptr &&
+        (end = mrb_memsearch(sptr, slen, ptr, eptr - ptr)) >= 0) {
+        mrb_ary_push(mrb, result, str_subseq(mrb, str, ptr - temp, end));
+        mrb_gc_arena_restore(mrb, ai);
+        ptr += end + slen;
+        if (lim_p && lim <= ++i) break;
+      }
+    }
+    beg = ptr - temp;
+  }
+  else {
+    noregexp(mrb, str);
+  }
+  if (RSTRING_LEN(str) > 0 && (lim_p || RSTRING_LEN(str) > beg || lim < 0)) {
+    if (RSTRING_LEN(str) == beg) {
+      tmp = mrb_str_new_lit(mrb, "");
+    }
+    else {
+      tmp = str_subseq(mrb, str, beg, RSTRING_LEN(str)-beg);
+    }
+    mrb_ary_push(mrb, result, tmp);
+  }
+  if (!lim_p && lim == 0) {
+    mrb_int len;
+    while ((len = RARRAY_LEN(result)) > 0 &&
+           (tmp = RARRAY_PTR(result)[len-1], RSTRING_LEN(tmp) == 0))
+      mrb_ary_pop(mrb, result);
+  }
+
+  return result;
+}
+
 void
 mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
 {
@@ -472,7 +675,9 @@ mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "length", mrb_str_size, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "index", mrb_str_index_m, MRB_ARGS_ANY());
   mrb_define_method(mrb, s, "[]", mrb_str_aref_m, MRB_ARGS_ANY());
+  mrb_define_method(mrb, s, "ord", mrb_str_ord, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "slice", mrb_str_aref_m, MRB_ARGS_ANY());
+  mrb_define_method(mrb, s, "split", mrb_str_split_m, MRB_ARGS_ANY());
   mrb_define_method(mrb, s, "reverse",  mrb_str_reverse, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "reverse!", mrb_str_reverse_bang, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "rindex", mrb_str_rindex_m, MRB_ARGS_ANY());
