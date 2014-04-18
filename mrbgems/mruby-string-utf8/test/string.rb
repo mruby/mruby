@@ -45,3 +45,9 @@ assert('String#index') do
   assert_equal 12, str.index('ち', 10)
   assert_equal nil, str.index("さ")
 end
+
+assert('String#ord') do
+  got = "こんにちわ世界!".split('').map {|x| x.ord}
+  expect = [0x3053,0x3093,0x306b,0x3061,0x308f,0x4e16,0x754c,0x21]
+  assert_equal expect, got
+end
