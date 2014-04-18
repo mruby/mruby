@@ -59,3 +59,10 @@ assert('String#split') do
   got = "こんにちわ世界!".split('に')
   assert_equal ['こん', 'ちわ世界!'], got
 end
+
+assert('String#rindex') do
+  str = "こんにちわ世界!\nこんにちわ世界!"
+  assert_nil str.index('さ')
+  assert_equal 12, str.rindex('ち')
+  assert_equal 3, str.rindex('ち', 10)
+end
