@@ -36,6 +36,12 @@ assert("Array#uniq!") do
 
   b = [ "a", "b", "c" ]
   assert_nil b.uniq!
+
+  c = [["student","sam"], ["student","george"], ["teacher","matz"]]
+  assert_equal [["student", "sam"], ["teacher", "matz"]], c.uniq! { |s| s.first }
+
+  d = [["student","sam"], ["teacher","matz"]]
+  assert_nil d.uniq! { |s| s.first }
 end
 
 assert("Array#uniq") do

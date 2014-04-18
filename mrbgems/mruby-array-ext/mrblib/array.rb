@@ -1,7 +1,8 @@
 class Array
   ##
   # call-seq:
-  #    ary.uniq! -> ary or nil
+  #    ary.uniq!                -> ary or nil
+  #    ary.uniq! { |item| ... } -> ary or nil
   #
   # Removes duplicate elements from +self+.
   # Returns <code>nil</code> if no changes are made (that is, no
@@ -11,13 +12,27 @@ class Array
   #    a.uniq!   #=> ["a", "b", "c"]
   #    b = [ "a", "b", "c" ]
   #    b.uniq!   #=> nil
+  #    c = [["student","sam"], ["student","george"], ["teacher","matz"]]
+  #    c.uniq! { |s| s.first } # => [["student", "sam"], ["teacher", "matz"]]
   #
-  def uniq!
+  def uniq!(&block)
     ary = self.dup
     result = []
-    while ary.size > 0
-      result << ary.shift
-      ary.delete(result.last)
+    if block
+      hash = {}
+      while ary.size > 0
+        val = ary.shift
+        key = block.call(val)
+        hash[key] = val unless hash.has_key?(key)
+      end
+      hash.each_value do |value|
+        result << value
+      end
+    else
+      while ary.size > 0
+        result << ary.shift
+        ary.delete(result.last)
+      end
     end
     if result.size == self.size
       nil
