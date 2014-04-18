@@ -36,12 +36,21 @@ assert("Array#uniq!") do
 
   b = [ "a", "b", "c" ]
   assert_nil b.uniq!
+
+  c = [["student","sam"], ["student","george"], ["teacher","matz"]]
+  assert_equal [["student", "sam"], ["teacher", "matz"]], c.uniq! { |s| s.first }
+
+  d = [["student","sam"], ["teacher","matz"]]
+  assert_nil d.uniq! { |s| s.first }
 end
 
 assert("Array#uniq") do
   a = [1, 2, 3, 1]
   assert_equal [1, 2, 3], a.uniq
   assert_equal [1, 2, 3, 1], a
+
+  b = [["student","sam"], ["student","george"], ["teacher","matz"]]
+  assert_equal [["student", "sam"], ["teacher", "matz"]], b.uniq { |s| s.first } 
 end
 
 assert("Array#-") do
