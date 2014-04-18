@@ -51,3 +51,10 @@ assert('String#ord') do
   expect = [0x3053,0x3093,0x306b,0x3061,0x308f,0x4e16,0x754c,0x21]
   assert_equal expect, got
 end
+
+assert('String#split') do
+  got = "こんにちわ世界!".split('').map {|x| x.ord}
+  assert_equal ['こ', 'ん', 'に', 'ち', 'わ', '世', '界', '!'], got
+  got = "こんにちわ世界!".split('に').map {|x| x.ord}
+  assert_equal ['こん', 'ちわ世界!'], got
+end
