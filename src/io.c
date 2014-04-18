@@ -170,18 +170,6 @@ mrb_io_alloc(mrb_state *mrb)
   return fptr;
 }
 
-static int
-io_open(mrb_state *mrb, mrb_value path, int flags, int perm)
-{
-  const char *pat;
-  int modenum;
-
-  pat = mrb_string_value_cstr(mrb, &path);
-  modenum = mrb_io_flags_to_modenum(mrb, flags);
-
-  return open(pat, modenum, perm);
-}
-
 #ifndef NOFILE
 #define NOFILE 64
 #endif
@@ -390,6 +378,8 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
   mrb_value path = mrb_nil_value();
   mrb_value mode = mrb_nil_value();
   mrb_int fd, flags, perm = -1;
+  const char *pat;
+  int modenum;
 
   mrb_get_args(mrb, "S|Si", &path, &mode, &perm);
   if (mrb_nil_p(mode)) {
@@ -399,10 +389,14 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
     perm = 0666;
   }
 
+  pat = mrb_string_value_cstr(mrb, &path);
   flags = mrb_io_modestr_to_flags(mrb, mrb_string_value_cstr(mrb, &mode));
-  fd = io_open(mrb, path, flags, perm);
-  if (fd == -1)
-    mrb_sys_fail(mrb, mrb_str_to_cstr(mrb, path));
+  modenum = mrb_io_flags_to_modenum(mrb, flags);
+
+  fd = open(pat, modenum, perm);
+  if (fd == -1) {
+    mrb_sys_fail(mrb, pat);
+  }
 
   return mrb_fixnum_value(fd);
 }
