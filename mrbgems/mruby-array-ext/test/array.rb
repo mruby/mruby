@@ -48,6 +48,9 @@ assert("Array#uniq") do
   a = [1, 2, 3, 1]
   assert_equal [1, 2, 3], a.uniq
   assert_equal [1, 2, 3, 1], a
+
+  b = [["student","sam"], ["student","george"], ["teacher","matz"]]
+  assert_equal [["student", "sam"], ["teacher", "matz"]], b.uniq { |s| s.first } 
 end
 
 assert("Array#-") do

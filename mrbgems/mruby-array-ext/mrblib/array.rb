@@ -43,16 +43,24 @@ class Array
 
   ##
   # call-seq:
-  #    ary.uniq   -> new_ary
+  #    ary.uniq                -> new_ary
+  #    ary.uniq { |item| ... } -> new_ary
   #
   # Returns a new array by removing duplicate values in +self+.
   #
   #    a = [ "a", "a", "b", "b", "c" ]
   #    a.uniq   #=> ["a", "b", "c"]
   #
-  def uniq
+  #    b = [["student","sam"], ["student","george"], ["teacher","matz"]]
+  #    b.uniq { |s| s.first } # => [["student", "sam"], ["teacher", "matz"]]
+  #
+  def uniq(&block)
     ary = self.dup
-    ary.uniq!
+    if block
+      ary.uniq!(&block)
+    else 
+      ary.uniq!
+    end
     ary
   end
 
