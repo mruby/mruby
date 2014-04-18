@@ -636,7 +636,8 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
 
       while (ptr < eptr &&
         (end = mrb_memsearch(sptr, slen, ptr, eptr - ptr)) >= 0) {
-        mrb_ary_push(mrb, result, str_subseq(mrb, str, ptr - temp, end));
+        //        mrb_ary_push(mrb, result, str_subseq(mrb, str, ptr - temp, end));
+        mrb_ary_push(mrb, result, mrb_str_new(mrb, ptr, end));
         mrb_gc_arena_restore(mrb, ai);
         ptr += end + slen;
         if (lim_p && lim <= ++i) break;
@@ -652,7 +653,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       tmp = mrb_str_new_lit(mrb, "");
     }
     else {
-      tmp = str_subseq(mrb, str, beg, RSTRING_LEN(str)-beg);
+      tmp = mrb_str_new(mrb, RSTRING_PTR(str)+beg, RSTRING_LEN(str)-beg);
     }
     mrb_ary_push(mrb, result, tmp);
   }
