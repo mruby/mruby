@@ -722,11 +722,11 @@ is_debug_info_defined(mrb_irep *irep)
 {
   size_t i;
 
-  if (!irep->debug_info) return 0;
+  if (!irep->debug_info) return FALSE;
   for (i=0; i<irep->rlen; i++) {
-    if (!is_debug_info_defined(irep->reps[i])) return 0;
+    if (!is_debug_info_defined(irep->reps[i])) return FALSE;
   }
-  return 1;
+  return TRUE;
 }
 
 static int
