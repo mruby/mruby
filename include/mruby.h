@@ -57,14 +57,14 @@ typedef struct {
   struct RProc *proc;
   mrb_value *stackent;
   int nregs;
-  int argc;
-  mrb_code *pc;                 /* return address */
-  mrb_code *err;                /* error position */
-  int acc;
-  struct RClass *target_class;
   int ridx;
   int eidx;
   struct REnv *env;
+  mrb_code *pc;                 /* return address */
+  mrb_code *err;                /* error position */
+  int argc;
+  int acc;
+  struct RClass *target_class;
 } mrb_callinfo;
 
 enum mrb_fiber_state {
