@@ -2039,9 +2039,15 @@ primary         : literal
                       p->cmdarg_stack = $<stack>1;
                       $$ = $3;
                     }
-                | tLPAREN_ARG expr {p->lstate = EXPR_ENDARG;} rparen
+                | tLPAREN_ARG
                     {
-                      $$ = $2;
+                      $<stack>1 = p->cmdarg_stack;
+                      p->cmdarg_stack = 0;
+                    }
+                  expr {p->lstate = EXPR_ENDARG;} rparen
+                    {
+                      p->cmdarg_stack = $<stack>1;
+                      $$ = $3;
                     }
                 | tLPAREN_ARG {p->lstate = EXPR_ENDARG;} rparen
                     {
