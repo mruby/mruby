@@ -12,9 +12,8 @@
 #include "mruby/class.h"
 #include "mruby/variable.h"
 
-#define RSTRUCT_ARY(st) mrb_ary_ptr(st)
-#define RSTRUCT_LEN(st) RSTRUCT_ARY(st)->len
-#define RSTRUCT_PTR(st) RSTRUCT_ARY(st)->ptr
+#define RSTRUCT_LEN(st) RARRAY_LEN(st)
+#define RSTRUCT_PTR(st) RARRAY_PTR(st)
 
 static struct RClass *
 struct_class(mrb_state *mrb)
