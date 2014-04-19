@@ -254,3 +254,14 @@ assert('External command execution.') do
   end
   true
 end
+
+assert('parenthesed do-block in cmdarg') do
+  class ParenDoBlockCmdArg
+    def test(block)
+      block.call
+    end
+  end
+  x = ParenDoBlockCmdArg.new
+  result = x.test (proc do :ok; end)
+  assert_equal :ok, result
+end
