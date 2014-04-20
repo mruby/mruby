@@ -997,7 +997,7 @@ heredoc_end(parser_state *p)
     node *nd;
     mrb_sym id;
     int num;
-    unsigned int stack;
+    stack_type stack;
     const struct vtable *vars;
 }
 
