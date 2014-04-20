@@ -831,20 +831,20 @@ mrb_dump_irep_binary(mrb_state *mrb, mrb_irep *irep, int debug_info, FILE* fp)
   return result;
 }
 
-static int
+static mrb_bool
 is_valid_c_symbol_name(const char *name)
 {
    const char *c = NULL;
 
-   if (name == NULL || name[0] == '\0') return 0;
-   if (!ISALPHA(name[0]) && name[0] != '_') return 0;
+   if (name == NULL || name[0] == '\0') return FALSE;
+   if (!ISALPHA(name[0]) && name[0] != '_') return FALSE;
 
    c = &name[1];
    for (; *c != '\0'; ++c) {
-     if (!ISALNUM(*c) && *c != '_') return 0;
+     if (!ISALNUM(*c) && *c != '_') return FALSE;
    }
 
-   return 1;
+   return TRUE;
 }
 
 int
