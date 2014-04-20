@@ -47,7 +47,9 @@ class String
 #    "abcdef".casecmp("ABCDEF")    #=> 0
 #
   def casecmp(str)
-    self.downcase <=> str.downcase
+    self.downcase <=> str.to_str.downcase
+  rescue NoMethodError
+    raise TypeError, "no implicit conversion of #{str.class} into String"
   end
 
   def partition(sep)
