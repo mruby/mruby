@@ -2226,6 +2226,8 @@ primary         : literal
                     {
                       p->in_def++;
                       $<nd>$ = local_switch(p);
+                      $<stack>1 = p->cmdarg_stack;
+                      p->cmdarg_stack = 0;
                     }
                   f_arglist
                   bodystmt
@@ -2234,12 +2236,15 @@ primary         : literal
                       $$ = new_def(p, $2, $4, $5);
                       local_resume(p, $<nd>3);
                       p->in_def--;
+                      p->cmdarg_stack = $<stack>1;
                     }
                 | keyword_def singleton dot_or_colon {p->lstate = EXPR_FNAME;} fname
                     {
                       p->in_single++;
                       p->lstate = EXPR_ENDFN; /* force for args */
                       $<nd>$ = local_switch(p);
+                      $<stack>1 = p->cmdarg_stack;
+                      p->cmdarg_stack = 0;
                     }
                   f_arglist
                   bodystmt
@@ -2248,6 +2253,7 @@ primary         : literal
                       $$ = new_sdef(p, $2, $5, $7, $8);
                       local_resume(p, $<nd>6);
                       p->in_single--;
+                      p->cmdarg_stack = $<stack>1;
                     }
                 | keyword_break
                     {

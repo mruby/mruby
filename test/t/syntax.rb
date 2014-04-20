@@ -265,3 +265,10 @@ assert('parenthesed do-block in cmdarg') do
   result = x.test (proc do :ok; end)
   assert_equal :ok, result
 end
+
+assert('method definition in cmdarg') do
+  if false
+    bar def foo; self.each do end end
+  end
+  true
+end
