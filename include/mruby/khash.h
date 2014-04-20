@@ -180,7 +180,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
           return k;                                                     \
         }                                                               \
       }                                                                 \
-      else if (del_k != kh_end(h)) {                                    \
+      else if (del_k == kh_end(h)) {                                    \
         del_k = k;                                                      \
       }                                                                 \
       k = (k+(++step)) & khash_mask(h);                                 \
