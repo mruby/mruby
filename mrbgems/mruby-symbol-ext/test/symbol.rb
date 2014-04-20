@@ -32,7 +32,7 @@ end
 assert("Symbol#casecmp") do
   assert_equal 0, :HELLO.casecmp(:hEllO)
   assert_equal 1, :HELLO.casecmp(:hEllN)
-  assert_equal -1, :HELLO.casecmp(:hEllP)
+  assert_equal(-1, :HELLO.casecmp(:hEllP))
   assert_nil :HELLO.casecmp("hEllO")
 end
 
