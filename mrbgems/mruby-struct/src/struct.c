@@ -780,6 +780,19 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
 }
 
 /*
+ * call-seq:
+ *    struct.length   -> Fixnum
+ *    struct.size     -> Fixnum
+ *
+ * Returns number of struct members.
+ */
+static mrb_value
+mrb_struct_len(mrb_state *mrb, mrb_value self)
+{
+  return mrb_fixnum_value(RSTRUCT_LEN(self));
+}
+
+/*
  *  A <code>Struct</code> is a convenient way to bundle a number of
  *  attributes together, using accessor methods, without having to write
  *  an explicit class.
@@ -811,6 +824,9 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, st,       "inspect",         mrb_struct_inspect,     MRB_ARGS_NONE()); /* 15.2.18.4.10(x)  */
   mrb_define_alias(mrb, st,        "to_s", "inspect");                                      /* 15.2.18.4.11(x)  */
   mrb_define_method(mrb, st,       "eql?",            mrb_struct_eql,         MRB_ARGS_REQ(1)); /* 15.2.18.4.12(x)  */
+
+  mrb_define_method(mrb, st,        "size",           mrb_struct_len,         MRB_ARGS_NONE());
+  mrb_define_method(mrb, st,        "length",         mrb_struct_len,         MRB_ARGS_NONE());
 }
 
 void
