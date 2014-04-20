@@ -98,6 +98,11 @@ assert('String#casecmp') do
   assert_equal 0, "aBcDeF".casecmp("abcdef")
   assert_equal(-1, "abcdef".casecmp("abcdefg"))
   assert_equal 0, "abcdef".casecmp("ABCDEF")
+  o = Object.new
+  def o.to_str
+    "ABCDEF"
+  end
+  assert_equal 0, "abcdef".casecmp(o)
 end
 
 assert('String#start_with?') do
