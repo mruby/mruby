@@ -113,5 +113,13 @@ task :clean do
     FileUtils.rm_rf t.build_dir, { :verbose => $verbose }
   end
   FileUtils.rm_f depfiles, { :verbose => $verbose }
-  puts "Cleaned up build folder"
+  puts "Cleaned up target build folder"
+end
+
+desc "clean everything!"
+task :deep_clean => ["clean"] do
+  MRuby.each_target do |t|
+    FileUtils.rm_rf t.gem_clone_dir, { :verbose => $verbose }
+  end
+  puts "Cleaned up mrbgems build folder"
 end
