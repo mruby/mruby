@@ -1254,13 +1254,6 @@ mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   return str2;
 }
 
-mrb_value
-mrb_str_buf_append(mrb_state *mrb, mrb_value str, mrb_value str2)
-{
-  mrb_str_cat(mrb, str, RSTRING_PTR(str2), RSTRING_LEN(str2));
-  return str;
-}
-
 mrb_int
 mrb_str_hash(mrb_state *mrb, mrb_value str)
 {
@@ -2469,10 +2462,16 @@ mrb_str_cat_cstr(mrb_state *mrb, mrb_value str, const char *ptr)
 }
 
 mrb_value
+mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2)
+{
+  return mrb_str_cat(mrb, str, RSTRING_PTR(str2), RSTRING_LEN(str2));
+}
+
+mrb_value
 mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2)
 {
   str2 = mrb_str_to_str(mrb, str2);
-  return mrb_str_buf_append(mrb, str, str2);
+  return mrb_str_cat_str(mrb, str, str2);
 }
 
 #define CHAR_ESC_LEN 13 /* sizeof(\x{ hex of 32bit unsigned int } \0) */

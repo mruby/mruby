@@ -946,7 +946,7 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
 
   for (i=0; i<RARRAY_LEN(ary); i++) {
     if (i > 0 && !mrb_nil_p(sep)) {
-      mrb_str_buf_append(mrb, result, sep);
+      mrb_str_cat_str(mrb, result, sep);
     }
 
     val = RARRAY_PTR(ary)[i];
@@ -958,7 +958,7 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
 
     case MRB_TT_STRING:
     str_join:
-      mrb_str_buf_append(mrb, result, val);
+      mrb_str_cat_str(mrb, result, val);
       break;
 
     default:
