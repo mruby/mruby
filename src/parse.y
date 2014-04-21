@@ -1075,7 +1075,7 @@ heredoc_end(parser_state *p)
 %type <nd> brace_block cmd_brace_block do_block lhs none f_bad_arg
 %type <nd> mlhs mlhs_list mlhs_post mlhs_basic mlhs_item mlhs_node mlhs_inner
 %type <id> fsym sym basic_symbol operation operation2 operation3
-%type <id> cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg
+%type <id> cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg f_opt_asgn
 %type <nd> heredoc words symbols
 
 %token tUPLUS             /* unary+ */
@@ -3052,10 +3052,16 @@ f_arg           : f_arg_item
                     }
                 ;
 
-f_opt           : tIDENTIFIER '=' arg_value
+f_opt_asgn      : tIDENTIFIER '='
                     {
                       local_add_f(p, $1);
-                      $$ = cons(nsym($1), $3);
+                      $$ = $1;
+                    }
+                ;
+
+f_opt           : f_opt_asgn arg_value
+                    {
+			$$ = cons(nsym($1), $2);
                     }
                 ;
 
