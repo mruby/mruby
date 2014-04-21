@@ -129,8 +129,18 @@ assert('IO#write', '15.2.20.5.20') do
   true
 end
 
+assert('IO.for_fd') do
+  fd = IO.sysopen($mrbtest_io_rfname)
+  io = IO.for_fd(fd)
+    assert_equal $mrbtest_io_msg, io.read
+  io.close
+  true
+end
+
 assert('IO.new') do
-  IO.new(0)
+  io = IO.new(0)
+  io.close
+  true
 end
 
 assert('IO gc check') do

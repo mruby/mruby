@@ -11,6 +11,10 @@ class IO
 
   BUF_SIZE = 4096
 
+  def self.for_fd *args
+    self.new(*args)
+  end
+
   def self.open(*args, &block)
     io = self.new(*args)
 
