@@ -456,4 +456,38 @@ class Array
     end
     self
   end
+
+  ##
+  #  call-seq:
+  #     ary.reject! { |item| block }  -> ary or nil
+  #     ary.reject!                   -> Enumerator
+  #
+  #  Equivalent to Array#delete_if, deleting elements from +self+ for which the
+  #  block evaluates to +true+, but returns +nil+ if no changes were made.
+  #
+  #  The array is changed instantly every time the block is called, not after
+  #  the iteration is over.
+  #
+  #  See also Enumerable#reject and Array#delete_if.
+  #
+  #  If no block is given, an Enumerator is returned instead.
+
+  def reject!(&block)
+    return to_enum :reject! unless block_given?
+
+    len = self.size
+    idx = 0
+    while idx < self.size do
+      if block.call(self[idx])
+        self.delete_at(idx)
+      else
+        idx += 1
+      end
+    end
+    if self.size == len
+      nil
+    else
+      self
+    end
+  end
 end
