@@ -22,16 +22,105 @@ assert('IO.open', '15.2.20.4.1') do
   assert_equal Fixnum, fd.class
   io = IO.open fd
   assert_equal IO, io.class
-  assert_equal $mrbtest_io_msg+"\n", io.read
+  assert_equal $mrbtest_io_msg, io.read
   io.close
 
   fd = IO.sysopen $mrbtest_io_rfname
   IO.open(fd) do |io|
-    assert_equal $mrbtest_io_msg+"\n", io.read
+    assert_equal $mrbtest_io_msg, io.read
   end
 
   true
 end
+
+assert('IO#close', '15.2.20.5.1') do
+  io = IO.new(IO.sysopen($mrbtest_io_rfname))
+  assert_nil io.close
+end
+
+assert('IO#closed?', '15.2.20.5.2') do
+  io = IO.new(IO.sysopen($mrbtest_io_rfname))
+  assert_false io.closed?
+  io.close
+  assert_true io.closed?
+end
+
+#assert('IO#each', '15.2.20.5.3') do
+#assert('IO#each_byte', '15.2.20.5.4') do
+#assert('IO#each_line', '15.2.20.5.5') do
+
+assert('IO#eof?', '15.2.20.5.6') do
+  io = IO.new(IO.sysopen($mrbtest_io_rfname))
+  $mrbtest_io_msg.each_char { |ch|
+    # XXX
+    #assert_false io.eof?
+    io.getc
+  }
+  assert_true io.eof?
+  io.close
+  true
+end
+
+assert('IO#flush', '15.2.20.5.7') do
+  # Note: mruby-io does not have any buffer to be flushed now.
+  io = IO.new(IO.sysopen($mrbtest_io_wfname))
+  assert_equal io, io.flush
+  io.close
+  assert_raise(IOError) do
+    io.flush
+  end
+end
+
+assert('IO#getc', '15.2.20.5.8') do
+  io = IO.new(IO.sysopen($mrbtest_io_rfname))
+  $mrbtest_io_msg.each_char { |ch|
+    assert_equal ch, io.getc
+  }
+  assert_equal nil, io.getc
+  io.close
+  true
+end
+
+#assert('IO#gets', '15.2.20.5.9') do
+#assert('IO#initialize_copy', '15.2.20.5.10') do
+#assert('IO#print', '15.2.20.5.11') do
+#assert('IO#putc', '15.2.20.5.12') do
+#assert('IO#puts', '15.2.20.5.13') do
+
+assert('IO#read', '15.2.20.5.14') do
+  IO.open(IO.sysopen($mrbtest_io_rfname)) do |io|
+    assert_raise(ArgumentError) { io.read(-5) }
+    assert_raise(TypeError) { io.read("str") }
+
+    len = $mrbtest_io_msg.length
+    assert_equal 'mruby', io.read(5)
+    assert_equal $mrbtest_io_msg[5,len], io.read(len)
+
+    assert_equal "", io.read
+    assert_nil io.read(1)
+  end
+
+  IO.open(IO.sysopen($mrbtest_io_rfname)) do |io|
+    assert_equal $mrbtest_io_msg, io.read
+  end
+end
+
+assert('IO#readchar', '15.2.20.5.15') do
+  # almost same as IO#getc
+  IO.open(IO.sysopen($mrbtest_io_rfname)) do |io|
+    $mrbtest_io_msg.each_char { |ch|
+      assert_equal ch, io.readchar
+    }
+    assert_raise(EOFError) do
+      io.readchar
+    end
+  end
+end
+
+#assert('IO#readline', '15.2.20.5.16') do
+#assert('IO#readlines', '15.2.20.5.17') do
+#assert('IO#sync', '15.2.20.5.18') do
+#assert('IO#sync=', '15.2.20.5.19') do
 
 assert('IO#write', '15.2.20.5.20') do
   io = IO.open(IO.sysopen($mrbtest_io_wfname))
@@ -46,16 +135,6 @@ end
 
 assert('IO gc check') do
   100.times { IO.new(0) }
-end
-
-assert('IO.sysopen, IO#close, IO#closed?') do
-  fd = IO.sysopen $mrbtest_io_rfname
-  assert_equal Fixnum, fd.class
-  io = IO.new fd
-  assert_equal IO, io.class
-  assert_equal false, io.closed?, "IO not closed"
-  assert_equal nil,   io.close,   "IO#close should return nil"
-  assert_equal true,  io.closed?, "IO#closed? should return true"
 end
 
 assert('IO.sysopen("./nonexistent")') do
@@ -106,62 +185,20 @@ assert('IO#_read_buf') do
   def io._buf
     @buf
   end
-  msg_len = $mrbtest_io_msg.size + 1
+  msg_len = $mrbtest_io_msg.size
   assert_equal '', io._buf
-  assert_equal $mrbtest_io_msg + "\n", io._read_buf
-  assert_equal $mrbtest_io_msg + "\n", io._buf
+  assert_equal $mrbtest_io_msg, io._read_buf
+  assert_equal $mrbtest_io_msg, io._buf
   assert_equal 'mruby', io.read(5)
   assert_equal 5, io.pos
   assert_equal msg_len - 5, io._buf.size
-  assert_equal $mrbtest_io_msg[5,100] + "\n", io.read
+  assert_equal $mrbtest_io_msg[5,100], io.read
   assert_equal 0, io._buf.size
   assert_raise EOFError do
     io._read_buf
   end
   assert_equal true, io.eof
   assert_equal true, io.eof?
-  io.close
-  io.closed?
-end
-
-assert('IO#read argument check') do
-  fd = IO.sysopen $mrbtest_io_rfname
-  io = IO.new fd
-  assert_raise TypeError do
-    io.read("str")
-  end
-  assert_raise ArgumentError do
-    io.read(-5)
-  end
-  io.close
-  io.closed?
-end
-
-assert('IO#read') do
-  fd = IO.sysopen $mrbtest_io_rfname
-  io = IO.new fd
-  assert_equal 'mruby', io.read(5)
-  assert_equal $mrbtest_io_msg[5,100] + "\n", io.read
-  assert_equal "", io.read
-  io.close
-  io.closed?
-end
-
-assert('IO#readchar, IO#getc') do
-  fd = IO.sysopen $mrbtest_io_rfname
-  io = IO.new fd
-  def io._buf
-    @buf
-  end
-  assert_equal 'm', io.readchar
-  assert_equal 1, io.pos
-  assert_equal 'r', io.getc
-  assert_equal 2, io.pos
-  io.gets
-  assert_raise EOFError do
-    io.readchar
-  end
-  assert_equal nil, io.getc
   io.close
   io.closed?
 end
@@ -180,13 +217,12 @@ assert('IO#pos=, IO#seek') do
   io.closed?
 end
 
-
 assert('IO#gets') do
   fd = IO.sysopen $mrbtest_io_rfname
   io = IO.new fd
 
   # gets without arguments
-  assert_equal $mrbtest_io_msg + "\n", io.gets, "gets without arguments"
+  assert_equal $mrbtest_io_msg, io.gets, "gets without arguments"
   assert_equal nil, io.gets, "gets returns nil, when EOF"
 
   # gets with limit

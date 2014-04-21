@@ -34,13 +34,13 @@ assert("FileTest.pipe?") do
 end
 
 assert("FileTest.size?") do
-  assert_equal $mrbtest_io_msg.size+1, FileTest.size?($mrbtest_io_rfname)
+  assert_equal $mrbtest_io_msg.size, FileTest.size?($mrbtest_io_rfname)
   assert_equal nil, FileTest.size?($mrbtest_io_wfname)
   assert_equal nil, FileTest.size?("not-exist-test-target-file")
 
   fp1 = File.open($mrbtest_io_rfname)
   fp2 = File.open($mrbtest_io_wfname)
-  assert_equal $mrbtest_io_msg.size+1,  FileTest.size?(fp1)
+  assert_equal $mrbtest_io_msg.size,  FileTest.size?(fp1)
   assert_equal nil, FileTest.size?(fp2)
   fp1.close
   fp2.close

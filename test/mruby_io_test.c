@@ -18,7 +18,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   char wfname[]      = "tmp.mruby-io-test.XXXXXXXX";
   char symlinkname[] = "tmp.mruby-io-test.XXXXXXXX";
   char socketname[]  = "tmp.mruby-io-test.XXXXXXXX";
-  char msg[] = "mruby io test";
+  char msg[] = "mruby io test\n";
   mode_t mask;
   int fd0, fd1, fd2, fd3;
   FILE *fp;
@@ -46,7 +46,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't open temporary file");
     return mrb_nil_value();
   }
-  fprintf(fp, "%s\n", msg);
+  fputs(msg, fp);
   fclose(fp);
 
   fp = fopen(wfname, "w");

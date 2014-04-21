@@ -23,7 +23,7 @@ end
 
 assert('File#path', '15.2.21.4.2') do
   io = File.open($mrbtest_io_rfname, "r")
-  assert_equal $mrbtest_io_msg + "\n", io.read
+  assert_equal $mrbtest_io_msg, io.read
   assert_equal $mrbtest_io_rfname, io.path
   io.close
   assert_equal $mrbtest_io_rfname, io.path
@@ -66,7 +66,7 @@ end
 
 
 assert('File.size') do
-  File.size($mrbtest_io_rfname) == $mrbtest_io_msg.size + 1  and
+  File.size($mrbtest_io_rfname) == $mrbtest_io_msg.size and
   File.size($mrbtest_io_wfname) == 0
 end
 
