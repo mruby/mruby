@@ -317,8 +317,7 @@ fiber_yield(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     Fiber.current() -> fiber
  *
- *  Returns the current fiber. You need to <code>require 'fiber'</code>
- *  before using this method. If you are not running in the context of
+ *  Returns the current fiber. If you are not running in the context of
  *  a fiber this method will return the root fiber.
  */
 static mrb_value
