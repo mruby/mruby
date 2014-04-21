@@ -289,3 +289,7 @@ assert('optional argument in the rhs default expressions') do
   assert_nil(o.t)
   assert_equal("method called", o.t2)
 end
+
+assert('optional block argument in the rhs default expressions') do
+  assert_nil(proc {|foo = foo| foo}.call)
+end

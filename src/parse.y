@@ -3061,14 +3061,13 @@ f_opt_asgn      : tIDENTIFIER '='
 
 f_opt           : f_opt_asgn arg_value
                     {
-			$$ = cons(nsym($1), $2);
+                      $$ = cons(nsym($1), $2);
                     }
                 ;
 
-f_block_opt     : tIDENTIFIER '=' primary_value
+f_block_opt     : f_opt_asgn primary_value
                     {
-                      local_add_f(p, $1);
-                      $$ = cons(nsym($1), $3);
+                      $$ = cons(nsym($1), $2);
                     }
                 ;
 
