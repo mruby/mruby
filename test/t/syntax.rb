@@ -272,3 +272,20 @@ assert('method definition in cmdarg') do
   end
   true
 end
+
+assert('optional argument in the rhs default expressions') do
+  class OptArgInRHS
+    def foo
+      "method called"
+    end
+    def t(foo = foo)
+      foo
+    end
+    def t2(foo = foo())
+      foo
+    end
+  end
+  o = OptArgInRHS.new
+  assert_nil(o.t)
+  assert_equal("method called", o.t2)
+end
