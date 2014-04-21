@@ -262,7 +262,7 @@ assert('parenthesed do-block in cmdarg') do
     end
   end
   x = ParenDoBlockCmdArg.new
-  result = x.test (proc do :ok; end)
+  result = x.test (Proc.new do :ok; end)
   assert_equal :ok, result
 end
 
@@ -291,5 +291,5 @@ assert('optional argument in the rhs default expressions') do
 end
 
 assert('optional block argument in the rhs default expressions') do
-  assert_nil(proc {|foo = foo| foo}.call)
+  assert_nil(Proc.new {|foo = foo| foo}.call)
 end
