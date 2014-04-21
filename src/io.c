@@ -69,7 +69,7 @@ mrb_io_modestr_to_flags(mrb_state *mrb, const char *mode)
       flags |= FMODE_WRITABLE | FMODE_APPEND | FMODE_CREATE;
       break;
     default:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %S", mrb_str_new_cstr(mrb, mode));
   }
 
   while (*m) {
@@ -83,7 +83,7 @@ mrb_io_modestr_to_flags(mrb_state *mrb, const char *mode)
       case ':':
         /* XXX: PASSTHROUGH*/
       default:
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %S", mrb_str_new_cstr(mrb, mode));
     }
   }
 
@@ -236,7 +236,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
           close(fd);
         }
         mrb_proc_exec(pname);
-        mrb_raisef(mrb, E_IO_ERROR, "command not found: %s", pname);
+        mrb_raisef(mrb, E_IO_ERROR, "command not found: %S", cmd);
         _exit(127);
       }
       result = mrb_nil_value();
@@ -573,8 +573,7 @@ mrb_io_s_select(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "*", &argv, &argc);
 
   if (argc < 1 || argc > 4) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR,
-        "wrong number of arguments (%d for 1..4)", argc);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for 1..4)", mrb_fixnum_value(argc));
   }
 
   timeout = mrb_nil_value();

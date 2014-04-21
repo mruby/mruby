@@ -3,11 +3,10 @@
 */
 
 #include "mruby.h"
-
-#include "mruby/ext/io.h"
 #include "mruby/class.h"
 #include "mruby/data.h"
 #include "mruby/string.h"
+#include "mruby/ext/io.h"
 
 #if MRUBY_RELEASE_NO < 10000
 #include "error.h"
@@ -64,100 +63,58 @@
 mrb_value
 mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
 {
-  int omask = 0;
-  #if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32) || defined(_WIN64)
   /* nothing to do on windows */
-  #else
-  mrb_value *argv;
-  int argc;
-  mrb_value mask;
+  return mrb_fixnum_value(0);
 
-  mrb_get_args(mrb, "*", &argv, &argc);
-
-  if (argc == 0) {
+#else
+  mrb_int mask, omask;
+  if (mrb_get_args(mrb, "|i", &mask) == 0) {
     omask = umask(0);
     umask(omask);
-  } else if (argc == 1) {
-    mask = argv[0];
-    if (!mrb_nil_p(mask) && !mrb_fixnum_p(mask)) {
-      mask = mrb_check_convert_type(mrb, mask, MRB_TT_FIXNUM, "Fixnum", "to_int");
-    }
-    if (!mrb_fixnum_p(mask)) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument type");
-    }
-    omask = umask(mrb_fixnum(mask));
   } else {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 0..1)", argc);
+    omask = umask(mask);
   }
-  #endif
   return mrb_fixnum_value(omask);
+#endif
 }
 
 static mrb_value
 mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
 {
   mrb_value *argv;
-  int n, i, argc;
-  const char *path;
   mrb_value pathv;
+  int argc, i;
+  const char *path;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  for (i = 0, n = 0; i < argc; i++) {
-    pathv = argv[i];
-    if (mrb_type(pathv) != MRB_TT_STRING) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, pathv));
-    }
+  for (i = 0; i < argc; i++) {
+    pathv = mrb_convert_type(mrb, argv[i], MRB_TT_STRING, "String", "to_str");
     path = mrb_string_value_cstr(mrb, &pathv);;
     if (UNLINK(path) < 0) {
       mrb_sys_fail(mrb, path);
-    } else {
-      n++;
     }
   }
-  return mrb_fixnum_value(n);
-}
-
-static mrb_value
-mrb_file_rename_internal(mrb_state *mrb, mrb_value from, mrb_value to)
-{
-  const char *src, *dst;
-  src = mrb_string_value_cstr(mrb, &from);
-  dst = mrb_string_value_cstr(mrb, &to);
-
-  if (rename(src, dst) < 0) {
-    if (CHMOD(dst, 0666) == 0 &&
-        UNLINK(dst) == 0 &&
-        rename(src, dst) == 0)
-      return mrb_fixnum_value(0);
-    mrb_sys_fail(mrb, "mrb_file_rename_internal failed.");
-  }
-
-  return mrb_fixnum_value(0);
+  return mrb_fixnum_value(argc);
 }
 
 static mrb_value
 mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value *argv;
-  int argc;
+  mrb_value from, to;
+  const char *src, *dst;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
-  if (argc != 2) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 2)", argc);
-    return mrb_nil_value();
+  mrb_get_args(mrb, "SS", &from, &to);
+  src = mrb_string_value_cstr(mrb, &from);
+  dst = mrb_string_value_cstr(mrb, &to);
+  if (rename(src, dst) < 0) {
+    if (CHMOD(dst, 0666) == 0 && UNLINK(dst) == 0 && rename(src, dst) == 0) {
+      return mrb_fixnum_value(0);
+    }
+    mrb_sys_fail(mrb, mrb_str_to_cstr(mrb, mrb_format(mrb, "(%S, %S)", from, to)));
   }
-  if (mrb_type(argv[0]) != MRB_TT_STRING) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, argv[0]));
-    return mrb_nil_value();
-  }
-  if (mrb_type(argv[1]) != MRB_TT_STRING) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, argv[1]));
-    return mrb_nil_value();
-  }
-
-  return mrb_file_rename_internal(mrb, argv[0], argv[1]);
+  return mrb_fixnum_value(0);
 }
-
 
 static mrb_value
 mrb_file_dirname(mrb_state *mrb, mrb_value klass)
@@ -358,8 +315,8 @@ mrb_init_file(mrb_state *mrb)
   file = mrb_define_class(mrb, "File", io);
   MRB_SET_INSTANCE_TT(file, MRB_TT_DATA);
   mrb_define_class_method(mrb, file, "umask",  mrb_file_s_umask, MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, file, "unlink", mrb_file_s_unlink, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, file, "delete", mrb_file_s_unlink, MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, file, "unlink", mrb_file_s_unlink, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, file, "rename", mrb_file_s_rename, MRB_ARGS_REQ(2));
 
   mrb_define_class_method(mrb, file, "dirname",   mrb_file_dirname,    MRB_ARGS_REQ(1));
