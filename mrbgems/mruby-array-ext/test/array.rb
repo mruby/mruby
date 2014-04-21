@@ -183,3 +183,17 @@ assert("Array#delete_if") do
   assert_equal [1, 2, 3], a.delete_if { |i| i > 3 }
   assert_equal [1, 2, 3], a
 end
+
+assert("Array#reject!") do
+  a = [1, 2, 3, 4, 5]
+  assert_nil a.reject! { false }
+  assert_equal [1, 2, 3, 4, 5], a
+
+  a = [1, 2, 3, 4, 5]
+  assert_equal [], a.reject! { true }
+  assert_equal [], a
+
+  a = [1, 2, 3, 4, 5]
+  assert_equal [1, 2, 3], a.reject! { |val| val > 3 }
+  assert_equal [1, 2, 3], a
+end
