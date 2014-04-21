@@ -234,6 +234,18 @@ fiber_eq(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(fiber_ptr(self) == fiber_ptr(other));
 }
 
+/*
+ *  call-seq:
+ *     fiber.transfer(args, ...) -> obj
+ *
+ *  Transfers control to reciever fiber of the method call.
+ *  Unlike <code>resume</code> the reciever wouldn't be pushed to call
+ * stack of fibers. Instead it will switch to the call stack of
+ * transferring fiber.
+ *  When resuming a fiber that was transferred to another fiber it would
+ * cause double resume error. Though when the fiber is re-transferred
+ * and <code>Fiber.yield</code> is called, the fiber would be resumable.
+ */
 static mrb_value
 fiber_transfer(mrb_state *mrb, mrb_value self)
 {
@@ -305,8 +317,7 @@ fiber_yield(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     Fiber.current() -> fiber
  *
- *  Returns the current fiber. You need to <code>require 'fiber'</code>
- *  before using this method. If you are not running in the context of
+ *  Returns the current fiber. If you are not running in the context of
  *  a fiber this method will return the root fiber.
  */
 static mrb_value
