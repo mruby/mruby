@@ -162,13 +162,6 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
 
 #define mrb_obj_alloc_string(mrb) ((struct RString*)mrb_obj_alloc((mrb), MRB_TT_STRING, (mrb)->string_class))
 
-/* char offset to byte offset */
-int
-mrb_str_offset(mrb_state *mrb, mrb_value str, int pos)
-{
-  return pos;
-}
-
 static struct RString*
 str_new(mrb_state *mrb, const char *p, size_t len)
 {
