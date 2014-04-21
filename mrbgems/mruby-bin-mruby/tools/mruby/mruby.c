@@ -178,6 +178,7 @@ main(int argc, char **argv)
   mrb_value ARGV;
   mrbc_context *c;
   mrb_value v;
+  mrb_sym zero_sym;
 
   if (mrb == NULL) {
     fputs("Invalid mrb_state, exiting mruby\n", stderr);
@@ -202,25 +203,31 @@ main(int argc, char **argv)
     c->dump_result = TRUE;
   if (args.check_syntax)
     c->no_exec = TRUE;
+
+  /* Set $0 */
+  zero_sym = mrb_intern_lit(mrb, "$0");
+  if (args.rfp) {
+    char *cmdline;
+    cmdline = args.cmdline ? args.cmdline : "-";
+    mrbc_filename(mrb, c, cmdline);
+    mrb_gv_set(mrb, zero_sym, mrb_str_new_cstr(mrb, cmdline));
+  } 
+  else {
+    mrbc_filename(mrb, c, "-e");
+    mrb_gv_set(mrb, zero_sym, mrb_str_new_lit(mrb, "-e"));
+  }
+
+  /* Load program */
   if (args.mrbfile) {
     v = mrb_load_irep_file_cxt(mrb, args.rfp, c);
   }
-  else {
-    mrb_sym zero_sym = mrb_intern_lit(mrb, "$0");
-
-    if (args.rfp) {
-      char *cmdline;
-      cmdline = args.cmdline ? args.cmdline : "-";
-      mrbc_filename(mrb, c, cmdline);
-      mrb_gv_set(mrb, zero_sym, mrb_str_new_cstr(mrb, cmdline));
-      v = mrb_load_file_cxt(mrb, args.rfp, c);
-    }
-    else {
-      mrbc_filename(mrb, c, "-e");
-      mrb_gv_set(mrb, zero_sym, mrb_str_new_lit(mrb, "-e"));
-      v = mrb_load_string_cxt(mrb, args.cmdline, c);
-    }
+  else if (args.rfp) {
+    v = mrb_load_file_cxt(mrb, args.rfp, c);
   }
+  else {
+    v = mrb_load_string_cxt(mrb, args.cmdline, c);
+  }
+
   mrbc_context_free(mrb, c);
   if (mrb->exc) {
     if (!mrb_undef_p(v)) {
