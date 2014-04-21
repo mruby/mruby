@@ -428,12 +428,10 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
         buf = mrb_str_new_cstr(mrb, "");
       } else {
         mrb_raise(mrb, E_EOF_ERROR, "sysread failed: End of File");
-        return mrb_nil_value();
       }
       break;
     case -1: /* Error */
       mrb_raise(mrb, E_IO_ERROR, "sysread failed");
-      return mrb_nil_value();
       break;
     default:
       if (RSTRING_LEN(buf) != ret) {
@@ -460,7 +458,6 @@ mrb_io_sysseek(mrb_state *mrb, mrb_value io)
   pos = lseek(fptr->fd, offset, whence);
   if (pos < 0) {
     mrb_raise(mrb, E_IO_ERROR, "sysseek faield");
-    return mrb_nil_value();
   }
 
   return mrb_fixnum_value(pos);
@@ -502,9 +499,7 @@ mrb_io_close(mrb_state *mrb, mrb_value io)
   fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
   if (fptr && fptr->fd < 0) {
     mrb_raise(mrb, E_IO_ERROR, "closed stream.");
-    return mrb_nil_value();
   }
-
   fptr_finalize(mrb, fptr, FALSE);
   return mrb_nil_value();
 }
@@ -514,7 +509,6 @@ mrb_io_closed(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
   fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
-
   if (fptr->fd >= 0) {
     return mrb_false_value();
   }
@@ -589,7 +583,6 @@ mrb_io_s_select(mrb_state *mrb, mrb_value klass)
   if (argc < 1 || argc > 4) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR,
         "wrong number of arguments (%d for 1..4)", argc);
-    return mrb_nil_value();
   }
 
   timeout = mrb_nil_value();
