@@ -91,6 +91,7 @@ class IO
 
   def flush
     # mruby-io always writes immediately (no output buffer).
+    raise IOError, "closed stream" if self.closed?
     self
   end
 
