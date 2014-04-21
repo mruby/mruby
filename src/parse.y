@@ -3061,7 +3061,7 @@ f_opt_asgn      : tIDENTIFIER '='
 
 f_opt           : f_opt_asgn arg_value
                     {
-			$$ = cons(nsym($1), $2);
+                      $$ = cons(nsym($1), $2);
                     }
                 ;
 
