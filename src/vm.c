@@ -992,12 +992,6 @@ RETRY_TRY_BLOCK:
       ci->mid = mid;
       ci->proc = m;
       ci->stackent = mrb->c->stack;
-      if (n == CALL_MAXARGS) {
-        ci->argc = -1;
-      }
-      else {
-        ci->argc = n;
-      }
       if (c->tt == MRB_TT_ICLASS) {
         ci->target_class = c->c;
       }
@@ -1013,9 +1007,11 @@ RETRY_TRY_BLOCK:
 
       if (MRB_PROC_CFUNC_P(m)) {
         if (n == CALL_MAXARGS) {
+          ci->argc = -1;
           ci->nregs = 3;
         }
         else {
+          ci->argc = n;
           ci->nregs = n + 2;
         }
         result = m->body.func(mrb, recv);
@@ -1044,11 +1040,13 @@ RETRY_TRY_BLOCK:
         pool = irep->pool;
         syms = irep->syms;
         ci->nregs = irep->nregs;
-        if (ci->argc < 0) {
+        if (n == CALL_MAXARGS) {
+          ci->argc = -1;
           stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs, 3);
         }
         else {
-          stack_extend(mrb, irep->nregs,  ci->argc+2);
+          ci->argc = n;
+          stack_extend(mrb, irep->nregs,  n+2);
         }
         regs = mrb->c->stack;
         pc = irep->iseq;
