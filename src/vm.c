@@ -165,9 +165,9 @@ stack_extend(mrb_state *mrb, int room, int init, int keep)
   if (mrb->c->stack + room >= mrb->c->stend) {
     stack_extend_alloc(mrb, room);
   }
-  if (room > keep) {
+  if (init > keep) {
     /* do not leave uninitialized malloc region */
-    stack_clear(&(mrb->c->stack[keep]), init);
+    stack_clear(&(mrb->c->stack[keep]), init - keep);
   }
 }
 
@@ -509,7 +509,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, int argc, const mrb_value *arg
   mrb->c->stack = mrb->c->stack + n;
   if (MRB_PROC_CFUNC_P(p)) {
     ci->nregs = argc + 2;
-    stack_extend(mrb, ci->nregs, ci->nregs, 0);
+    stack_extend(mrb, ci->nregs, 0, 0);
   }
   else {
     ci->nregs = p->body.irep->nregs + 1;
@@ -1043,7 +1043,7 @@ RETRY_TRY_BLOCK:
         ci->nregs = irep->nregs;
         if (n == CALL_MAXARGS) {
           ci->argc = -1;
-          stack_extend(mrb, irep->nregs, irep->nlocals, 3);
+          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs, irep->nlocals, 3);
         }
         else {
           ci->argc = n;
@@ -1107,7 +1107,7 @@ RETRY_TRY_BLOCK:
         syms = irep->syms;
         ci->nregs = irep->nregs;
         if (ci->argc < 0) {
-          stack_extend(mrb, irep->nregs, irep->nlocals, 3);
+          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs, irep->nlocals, 3);
         }
         else {
           stack_extend(mrb, irep->nregs, irep->nlocals, ci->argc+2);
@@ -1182,7 +1182,7 @@ RETRY_TRY_BLOCK:
         syms = irep->syms;
         ci->nregs = irep->nregs;
         if (n == CALL_MAXARGS) {
-          stack_extend(mrb, irep->nregs, irep->nlocals, 3);
+          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs, irep->nlocals, 3);
         }
         else {
           stack_extend(mrb, irep->nregs, irep->nlocals, ci->argc+2);
@@ -1526,7 +1526,7 @@ RETRY_TRY_BLOCK:
         pool = irep->pool;
         syms = irep->syms;
         if (ci->argc < 0) {
-          stack_extend(mrb, irep->nregs, irep->nlocals, 3);
+          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs, irep->nlocals, 3);
         }
         else {
           stack_extend(mrb, irep->nregs, irep->nlocals, ci->argc+2);
