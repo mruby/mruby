@@ -14,3 +14,19 @@ assert('regression for #1572') do
   o = `bin/mruby -b #{bin.path}`.strip
   assert_equal o, '"ok"'
 end
+
+assert '$0 value' do
+  script, bin = Tempfile.new('test.rb'), Tempfile.new('test.mrb')
+
+  # .rb script
+  script.write "p $0\n"
+  script.flush
+  assert_equal "\"#{script.path}\"", `./bin/mruby "#{script.path}"`.chomp
+
+  # .mrb file
+  `./bin/mrbc -o "#{bin.path}" "#{script.path}"`
+  assert_equal "\"#{bin.path}\"", `./bin/mruby -b "#{bin.path}"`.chomp
+
+  # one liner
+  assert_equal '"-e"', `./bin/mruby -e 'p $0'`.chomp
+end
