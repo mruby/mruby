@@ -18,7 +18,7 @@ module Enumerable
 
     n = n.to_int
     ary = []
-    self.each {|*val| n == 0 ? ary << val.__svalue : n -= 1 }
+    self.each {|*val| n == 0 ? ary << (val.size < 2 ? val.first : val) : n -= 1 }
     ary
   end
 
@@ -42,7 +42,7 @@ module Enumerable
     ary, state = [], false
     self.each do |*val|
       state = true if !state and !block.call(*val)
-      ary << val.__svalue if state
+      ary << (val.size < 2 ? val.first : val) if state
     end
     ary
   end
@@ -64,7 +64,7 @@ module Enumerable
     ary = []
     self.each do |*val|
       break if ary.size >= n
-      ary << val.__svalue
+      ary << (val.size < 2 ? val.first : val)
     end
     ary
   end
@@ -88,7 +88,7 @@ module Enumerable
     ary = []
     self.each do |*val|
       return ary unless block.call(*val)
-      ary << val.__svalue
+      ary << (val.size < 2 ? val.first : val)
     end
     ary
   end
@@ -120,7 +120,7 @@ module Enumerable
     n = n.to_int
     self.each do |*val|
       ary.shift if ary.size == n
-      ary << val.__svalue
+      ary << (val.size < 2 ? val.first : val)
       block.call(ary.dup) if ary.size == n
     end
   end
@@ -146,7 +146,7 @@ module Enumerable
     ary = []
     n = n.to_int
     self.each do |*val|
-      ary << val.__svalue
+      ary << (val.size < 2 ? val.first : val)
       if ary.size == n
         block.call(ary)
         ary = []
@@ -172,7 +172,7 @@ module Enumerable
     h = {}
     self.each do |*val|
       key = block.call(*val)
-      sv = val.__svalue
+      sv = val.size < 2 ? val.first : val
       h.key?(key) ? (h[key] << sv) : (h[key] = [sv])
     end
     h
@@ -217,7 +217,7 @@ module Enumerable
   def first(n=NONE)
     if n == NONE
       self.each do |*val|
-        return val.__svalue
+        return val.size < 2 ? val.first : val
       end
       return nil
     else
@@ -225,7 +225,7 @@ module Enumerable
       i = 0
       self.each do |*val|
         break if n<=i
-        a.push val.__svalue
+        a.push(val.size < 2 ? val.first : val)
         i += 1
       end
       a
@@ -253,7 +253,7 @@ module Enumerable
         self.each { count += 1 }
       else
         self.each do |*val|
-          count += 1 if val.__svalue == v 
+          count += 1 if (val.size < 2 ? val.first : val) == v 
         end
       end
     end
@@ -311,12 +311,12 @@ module Enumerable
 
     self.each do |*val|
       if first
-        max = val.__svalue
+        max = val.size < 2 ? val.first : val
         max_cmp = block.call(*val)
         first = false
       else
         if (cmp = block.call(*val)) > max_cmp
-          max = val.__svalue
+          max = val.size < 2 ? val.first : val
           max_cmp = cmp
         end
       end
@@ -345,12 +345,12 @@ module Enumerable
 
     self.each do |*val|
       if first
-        min = val.__svalue
+        min = val.size < 2 ? val.first : val
         min_cmp = block.call(*val)
         first = false
       else
         if (cmp = block.call(*val)) < min_cmp
-          min = val.__svalue
+          min = val.size < 2 ? val.first : val
           min_cmp = cmp
         end
       end
@@ -379,16 +379,16 @@ module Enumerable
 
     self.each do |*val|
       if first
-        val = val.__svalue
+        val = val.size < 2 ? val.first : val
         max = val
         min = val
         first = false
       else
         if block
-          max = val.__svalue if block.call(*val, max) > 0
-          min = val.__svalue if block.call(*val, min) < 0
+          max = (val.size < 2 ? val.first : val) if block.call(*val, max) > 0
+          min = (val.size < 2 ? val.first : val) if block.call(*val, min) < 0
         else
-          val = val.__svalue
+          val = val.size < 2 ? val.first : val
           max = val if (val <=> max) > 0
           min = val if (val <=> min) < 0
         end
@@ -421,16 +421,16 @@ module Enumerable
 
     self.each do |*val|
       if first
-        max = min = val.__svalue
+        max = min = val.size < 2 ? val.first : val
         max_cmp = min_cmp = block.call(*val)
         first = false
      else
         if (cmp = block.call(*val)) > max_cmp
-          max = val.__svalue
+          max = val.size < 2 ? val.first : val
           max_cmp = cmp
         end
         if (cmp = block.call(*val)) < min_cmp
-          min = val.__svalue
+          min = val.size < 2 ? val.first : val
           min_cmp = cmp
         end
       end
@@ -460,7 +460,7 @@ module Enumerable
       end
     else
       self.each do |*val|
-        return false if val.__svalue
+        return false if val.size < 2 ? val.first : val
       end
     end
     true
@@ -492,7 +492,7 @@ module Enumerable
       end
     else
       self.each do |*val|
-        count += 1 if val.__svalue
+        count += 1 if val.size < 2 ? val.first : val
         return false if count > 1
       end
     end
@@ -519,7 +519,7 @@ module Enumerable
 
     return to_enum(:each_with_object, obj) unless block_given?
 
-    self.each {|*val| block.call(val.__svalue, obj) }
+    self.each {|*val| block.call(val.size < 2 ? val.first : val, obj) }
     obj
   end
 
@@ -633,7 +633,7 @@ module Enumerable
       end
     else
       self.each do |*e|
-        return idx if e.__svalue == val
+        return idx if (e.size < 2 ? e.first : e) == val
         idx += 1
       end
     end
@@ -658,7 +658,7 @@ module Enumerable
     i = 0
     self.each do |*val|
       a = []
-      a.push(val.__svalue)
+      a.push(val.size < 2 ? val.first : val)
       idx = 0
       while idx < arg.size
         a.push(arg[idx][i])

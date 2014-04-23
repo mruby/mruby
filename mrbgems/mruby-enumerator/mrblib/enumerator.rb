@@ -305,7 +305,8 @@ class Enumerator
   # side-effect
   #
   def next
-    next_values.__svalue
+    temp = next_values
+    temp.size < 2 ? temp.first : temp
   end
 
   ##
@@ -413,7 +414,8 @@ class Enumerator
   #   p e.next   #raises StopIteration
   #
   def peek
-    peek_values.__svalue
+    temp = peek_values
+    temp.size < 2 ? temp.first : temp
   end
 
   ##
@@ -624,7 +626,7 @@ module Enumerable
     i = 0
     self.each do |*val|
       a = []
-      a.push(val.__svalue)
+      a.push(val.size < 2 ? val.first : val)
       idx = 0
       while idx < arg.size
         begin

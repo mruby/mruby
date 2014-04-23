@@ -31,7 +31,7 @@ module Enumerable
       }
     else
       self.each{|*val|
-        unless val.__svalue
+        unless (val.size < 2 ? val.first : val)
           return false
         end
       }
@@ -56,7 +56,7 @@ module Enumerable
       }
     else
       self.each{|*val|
-        if val.__svalue
+        if (val.size < 2 ? val.first : val)
           return true
         end
       }
@@ -93,7 +93,7 @@ module Enumerable
     ret = ifnone
     self.each{|*val|
       if block.call(*val)
-        ret = val.__svalue
+        ret = (val.size < 2 ? val.first : val)
         break
       end
     }
@@ -112,7 +112,7 @@ module Enumerable
 
     i = 0
     self.each{|*val|
-      block.call(val.__svalue, i)
+      block.call(val.size < 2 ? val.first : val, i)
       i += 1
     }
     self
@@ -126,8 +126,7 @@ module Enumerable
   def entries
     ary = []
     self.each{|*val|
-      # __svalue is an internal method
-      ary.push val.__svalue
+      ary.push (val.size < 2 ? val.first : val)
     }
     ary
   end
@@ -150,7 +149,7 @@ module Enumerable
 
     ary = []
     self.each{|*val|
-      ary.push(val.__svalue) if block.call(*val)
+      ary.push(val.size < 2 ? val.first : val) if block.call(*val)
     }
     ary
   end
@@ -166,7 +165,7 @@ module Enumerable
   def grep(pattern, &block)
     ary = []
     self.each{|*val|
-      sv = val.__svalue
+      sv = val.size < 2 ? val.first : val
       if pattern === sv
         ary.push((block)? block.call(*val): sv)
       end
@@ -183,7 +182,7 @@ module Enumerable
   # ISO 15.3.2.2.10
   def include?(obj)
     self.each{|*val|
-      if val.__svalue == obj
+      if (val.size < 2 ? val.first : val) == obj
         return true
       end
     }
@@ -213,7 +212,7 @@ module Enumerable
       result = args[0]
     end
     self.each{|*val|
-      val = val.__svalue
+      val = val.size < 2 ? val.first : val
       if flag
         # push first element as initial
         flag = false
@@ -243,7 +242,7 @@ module Enumerable
     flag = true  # 1st element?
     result = nil
     self.each{|*val|
-      val = val.__svalue
+      val = val.size < 2 ? val.first : val
       if flag
         # 1st element
         result = val
@@ -270,7 +269,7 @@ module Enumerable
     flag = true  # 1st element?
     result = nil
     self.each{|*val|
-      val = val.__svalue
+      val = val.size < 2 ? val.first : val
       if flag
         # 1st element
         result = val
@@ -307,9 +306,9 @@ module Enumerable
     ary_F = []
     self.each{|*val|
       if block.call(*val)
-        ary_T.push(val.__svalue)
+        ary_T.push(val.size < 2 ? val.first : val)
       else
-        ary_F.push(val.__svalue)
+        ary_F.push(val.size < 2 ? val.first : val)
       end
     }
     [ary_T, ary_F]
@@ -325,7 +324,7 @@ module Enumerable
   def reject(&block)
     ary = []
     self.each{|*val|
-      ary.push(val.__svalue) unless block.call(*val)
+      ary.push(val.size < 2 ? val.first : val) unless block.call(*val)
     }
     ary
   end
@@ -386,7 +385,7 @@ module Enumerable
   # ISO 15.3.2.2.19
   def sort(&block)
     ary = []
-    self.each{|*val| ary.push(val.__svalue)}
+    self.each{|*val| ary.push(val.size < 2 ? val.first : val)}
     if ary.size > 1
       __sort_sub__(ary, ::Array.new(ary.size), 0, 0, ary.size - 1, &block)
     end
