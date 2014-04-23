@@ -184,18 +184,6 @@ class Array
       ret
     end
   end
-
-  # internal method to convert multi-value to single value
-  def __svalue
-    case self.size
-    when 0
-      return nil
-    when 1
-      self[0]
-    else
-      self
-    end
-  end
 end
 
 ##
