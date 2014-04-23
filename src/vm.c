@@ -382,7 +382,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, co
     }
     else {
       ci->nregs = p->body.irep->nregs + n;
-      stack_extend(mrb, ci->nregs, p->body.irep->nlocals, 0);
+      stack_extend(mrb, ci->nregs, p->body.irep->nlocals, argc+2);
     }
     mrb->c->stack[0] = self;
     if (undef) {
@@ -513,7 +513,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, int argc, const mrb_value *arg
   }
   else {
     ci->nregs = p->body.irep->nregs + 1;
-    stack_extend(mrb, ci->nregs, p->body.irep->nlocals, 0);
+    stack_extend(mrb, ci->nregs, p->body.irep->nlocals, argc+2);
   }
 
   mrb->c->stack[0] = self;
