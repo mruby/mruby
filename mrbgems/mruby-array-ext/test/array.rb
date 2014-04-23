@@ -197,3 +197,12 @@ assert("Array#reject!") do
   assert_equal [1, 2, 3], a.reject! { |val| val > 3 }
   assert_equal [1, 2, 3], a
 end
+
+assert("Array#insert") do
+  a = ["a", "b", "c", "d"]
+  assert_equal ["a", "b", 99, "c", "d"], a.insert(2, 99)
+  assert_equal ["a", "b", 99, "c", 1, 2, 3, "d"], a.insert(-2, 1, 2, 3)
+
+  b = ["a", "b", "c", "d"]
+  assert_equal ["a", "b", "c", "d", nil, nil, 99], b.insert(6, 99)
+end

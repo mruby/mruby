@@ -490,4 +490,23 @@ class Array
       self
     end
   end
+
+  ##
+  #  call-seq:
+  #     ary.insert(index, obj...)  -> ary
+  #
+  #  Inserts the given values before the element with the given +index+.
+  #
+  #  Negative indices count backwards from the end of the array, where +-1+ is
+  #  the last element.
+  #
+  #     a = %w{ a b c d }
+  #     a.insert(2, 99)         #=> ["a", "b", 99, "c", "d"]
+  #     a.insert(-2, 1, 2, 3)   #=> ["a", "b", 99, "c", 1, 2, 3, "d"]
+
+  def insert(idx, *args)
+    idx += self.size + 1 if idx < 0
+    self[idx, 0] = args
+    self
+  end
 end
