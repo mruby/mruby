@@ -94,9 +94,10 @@ module MRuby
       end
 
       def add_dependency(name, *requirements)
+        default_gem = requirements.last.kind_of?(Hash) ? requirements.pop : nil
         requirements = ['>= 0.0.0'] if requirements.empty?
         requirements.flatten!
-        @dependencies << {:gem => name, :requirements => requirements}
+        @dependencies << {:gem => name, :requirements => requirements, :default => default_gem}
       end
 
       def self.bin=(bin)
@@ -282,8 +283,28 @@ module MRuby
         @ary.empty?
       end
 
-      def check
+      def check(build)
         gem_table = @ary.reduce({}) { |res,v| res[v.name] = v; res }
+
+        default_gems = []
+        each do |g|
+          g.dependencies.each do |dep|
+            default_gems << dep if dep[:default] and not gem_table.key? dep[:gem]
+          end
+        end
+
+        until default_gems.empty?
+          def_gem = default_gems.pop
+
+          spec = build.gem def_gem[:default]
+          fail "Invalid gem name: #{spec.name} (Expected: #{def_gem[:gem]})" if spec.name != def_gem[:gem]
+          spec.setup
+
+          spec.dependencies.each do |dep|
+            default_gems << dep if dep[:default] and not gem_table.key? dep[:gem]
+          end
+          gem_table[spec.name] = spec
+        end
 
         each do |g|
           g.dependencies.each do |dep|
