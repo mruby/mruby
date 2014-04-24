@@ -223,3 +223,19 @@ assert("Array#insert") do
   b = ["a", "b", "c", "d"]
   assert_equal ["a", "b", "c", "d", nil, nil, 99], b.insert(6, 99)
 end
+
+assert("Array#bsearch") do
+  # Find minimum mode
+  a = [0, 4, 7, 10, 12]
+  assert_include [4, 7], a.bsearch {|x| x >= 4 }
+  assert_equal 7, a.bsearch {|x| x >= 6 }
+  assert_equal 0, a.bsearch {|x| x >= -1 }
+  assert_nil a.bsearch {|x| x >= 100 }
+
+  # Find any mode
+  a = [0, 4, 7, 10, 12]
+  assert_include [4, 7], a.bsearch {|x| 1 - (x / 4).truncate }
+  assert_nil a.bsearch {|x| 4 - (x / 2).truncate }
+  assert_equal(nil, a.bsearch {|x| 1 })
+  assert_equal(nil, a.bsearch {|x| -1 })
+end
