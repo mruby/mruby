@@ -400,7 +400,7 @@ to_hash(mrb_state *mrb, mrb_value val)
     S:      String         [mrb_value]
     A:      Array          [mrb_value]
     H:      Hash           [mrb_value]
-    s:      String         [char*,int]            Receive two arguments.
+    s:      String         [char*,mrb_int]        Receive two arguments.
     z:      String         [char*]                NUL terminated string.
     a:      Array          [mrb_value*,mrb_int]   Receive two arguments.
     f:      Float          [mrb_float]
@@ -409,11 +409,11 @@ to_hash(mrb_state *mrb, mrb_value val)
     n:      Symbol         [mrb_sym]
     d:      Data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified
     &:      Block          [mrb_value]
-    *:      rest argument  [mrb_value*,int]       Receive the rest of the arguments as an array.
+    *:      rest argument  [mrb_value*,mrb_int]   Receive the rest of the arguments as an array.
     |:      optional                              Next argument of '|' and later are optional.
     ?:      optional given [mrb_bool]             true if preceding argument (optional) is given.
  */
-int
+mrb_int
 mrb_get_args(mrb_state *mrb, const char *format, ...)
 {
   char c;
@@ -519,10 +519,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       {
         mrb_value ss;
         char **ps = 0;
-        int *pl = 0;
+        mrb_int *pl = 0;
 
         ps = va_arg(ap, char**);
-        pl = va_arg(ap, int*);
+        pl = va_arg(ap, mrb_int*);
         if (i < argc) {
           ss = to_str(mrb, *sp++);
           *ps = RSTRING_PTR(ss);
@@ -683,10 +683,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     case '*':
       {
         mrb_value **var;
-        int *pl;
+        mrb_int *pl;
 
         var = va_arg(ap, mrb_value**);
-        pl = va_arg(ap, int*);
+        pl = va_arg(ap, mrb_int*);
         if (argc > i) {
           *pl = argc-i;
           if (*pl > 0) {
@@ -788,7 +788,7 @@ static mrb_value
 mrb_mod_include(mrb_state *mrb, mrb_value klass)
 {
   mrb_value *argv;
-  int argc, i;
+  mrb_int argc, i;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   for (i=0; i<argc; i++) {
@@ -1082,7 +1082,7 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
 {
   mrb_value obj, blk;
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
 
   obj = mrb_instance_alloc(mrb, cv);
   mrb_get_args(mrb, "*&", &argv, &argc, &blk);
@@ -1092,7 +1092,7 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
 }
 
 mrb_value
-mrb_obj_new(mrb_state *mrb, struct RClass *c, int argc, const mrb_value *argv)
+mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv)
 {
   mrb_value obj;
 
@@ -1183,7 +1183,7 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
 {
   mrb_sym name;
   mrb_value *a;
-  int alen;
+  mrb_int alen;
   mrb_sym inspect;
   mrb_value repr;
 
@@ -1498,7 +1498,7 @@ static mrb_value
 mrb_mod_undef(mrb_state *mrb, mrb_value mod)
 {
   struct RClass *c = mrb_class_ptr(mod);
-  int argc;
+  mrb_int argc;
   mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
@@ -1790,7 +1790,7 @@ remove_method(mrb_state *mrb, mrb_value mod, mrb_sym mid)
 static mrb_value
 mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
 {
-  int argc;
+  mrb_int argc;
   mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);

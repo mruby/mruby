@@ -126,7 +126,7 @@ fiber_check(mrb_state *mrb, mrb_value fib)
 }
 
 static mrb_value
-fiber_result(mrb_state *mrb, const mrb_value *a, int len)
+fiber_result(mrb_state *mrb, const mrb_value *a, mrb_int len)
 {
   if (len == 0) return mrb_nil_value();
   if (len == 1) return a[0];
@@ -137,7 +137,7 @@ fiber_result(mrb_state *mrb, const mrb_value *a, int len)
 #define MARK_CONTEXT_MODIFY(c) (c)->ci->target_class = NULL
 
 static mrb_value
-fiber_switch(mrb_state *mrb, mrb_value self, int len, const mrb_value *a, mrb_bool resume)
+fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mrb_bool resume)
 {
   struct mrb_context *c = fiber_check(mrb, self);
   mrb_callinfo *ci;
@@ -203,7 +203,8 @@ static mrb_value
 fiber_resume(mrb_state *mrb, mrb_value self)
 {
   mrb_value *a;
-  int len;
+  mrb_int len;
+
   mrb_get_args(mrb, "*", &a, &len);
   return fiber_switch(mrb, self, len, a, TRUE);
 }
@@ -251,7 +252,7 @@ fiber_transfer(mrb_state *mrb, mrb_value self)
 {
   struct mrb_context *c = fiber_check(mrb, self);
   mrb_value* a;
-  int len;
+  mrb_int len;
 
   mrb_get_args(mrb, "*", &a, &len);
 
@@ -271,7 +272,7 @@ fiber_transfer(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
-mrb_fiber_yield(mrb_state *mrb, int len, const mrb_value *a)
+mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
 {
   struct mrb_context *c = mrb->c;
   mrb_callinfo *ci;
@@ -307,7 +308,7 @@ static mrb_value
 fiber_yield(mrb_state *mrb, mrb_value self)
 {
   mrb_value *a;
-  int len;
+  mrb_int len;
 
   mrb_get_args(mrb, "*", &a, &len);
   return mrb_fiber_yield(mrb, len, a);

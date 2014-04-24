@@ -288,7 +288,7 @@ ecall(mrb_state *mrb, int i)
 #endif
 
 mrb_value
-mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
+mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, mrb_int argc, ...)
 {
   mrb_sym mid = mrb_intern_cstr(mrb, name);
 
@@ -307,7 +307,7 @@ mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
   else {
     mrb_value argv[MRB_FUNCALL_ARGC_MAX];
     va_list ap;
-    int i;
+    mrb_int i;
 
     if (argc > MRB_FUNCALL_ARGC_MAX) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=" TO_STR(MRB_FUNCALL_ARGC_MAX) ")");
@@ -323,7 +323,7 @@ mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
 }
 
 mrb_value
-mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, const mrb_value *argv, mrb_value blk)
+mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, const mrb_value *argv, mrb_value blk)
 {
   mrb_value val;
 
@@ -413,7 +413,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, co
 }
 
 mrb_value
-mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, const mrb_value *argv)
+mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, const mrb_value *argv)
 {
   return mrb_funcall_with_block(mrb, self, mid, argc, argv, mrb_nil_value());
 }
@@ -442,7 +442,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
 {
   mrb_sym name;
   mrb_value block, *argv, *regs;
-  int argc, i, len;
+  mrb_int argc, i, len;
   struct RProc *p;
   struct RClass *c;
   mrb_callinfo *ci;
@@ -487,7 +487,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
-mrb_yield_with_class(mrb_state *mrb, mrb_value b, int argc, const mrb_value *argv, mrb_value self, struct RClass *c)
+mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c)
 {
   struct RProc *p;
   mrb_sym mid = mrb->c->ci->mid;
@@ -534,7 +534,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, int argc, const mrb_value *arg
 }
 
 mrb_value
-mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, const mrb_value *argv)
+mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv)
 {
   struct RProc *p = mrb_proc_ptr(b);
 
@@ -572,7 +572,7 @@ localjump_error(mrb_state *mrb, localjump_error_kind kind)
 }
 
 static void
-argnum_error(mrb_state *mrb, int num)
+argnum_error(mrb_state *mrb, mrb_int num)
 {
   mrb_value exc;
   mrb_value str;

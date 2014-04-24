@@ -392,9 +392,9 @@ mrb_obj_dup(mrb_state *mrb, mrb_value obj)
 }
 
 static mrb_value
-mrb_obj_extend(mrb_state *mrb, int argc, mrb_value *argv, mrb_value obj)
+mrb_obj_extend(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb_value obj)
 {
-  int i;
+  mrb_int i;
 
   if (argc == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (at least 1)");
@@ -438,7 +438,7 @@ static mrb_value
 mrb_obj_extend_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   return mrb_obj_extend(mrb, argc, argv, self);
@@ -1014,7 +1014,7 @@ static mrb_value
 obj_respond_to(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
   mrb_value mid, priv;
   mrb_sym id, rtm_id;
   mrb_bool respond_to_p = TRUE;

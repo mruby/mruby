@@ -2627,7 +2627,7 @@ static void
 codedump(mrb_state *mrb, mrb_irep *irep)
 {
 #ifdef ENABLE_STDIO
-  int i;
+  size_t i;
   int ai;
   mrb_code c;
 
@@ -2635,8 +2635,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
   printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", irep,
          irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen, (int)irep->rlen);
 
-  mrb_assert(irep->ilen <= INT_MAX);
-  for (i = 0; i < (int)(irep->ilen); i++) {
+  for (i = 0; i < irep->ilen; i++) {
     ai = mrb_gc_arena_save(mrb);
     printf("%03d ", i);
     c = irep->iseq[i];

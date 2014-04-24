@@ -194,7 +194,7 @@ void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_fun
 void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
-mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, int argc, const mrb_value *argv);
+mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv);
 #define mrb_class_new_instance(mrb,argc,argv,c) mrb_obj_new(mrb,c,argc,argv)
 mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
@@ -242,7 +242,7 @@ struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, co
 #define ARGS_ANY()          MRB_ARGS_ANY()
 #define ARGS_NONE()         MRB_ARGS_NONE()
 
-int mrb_get_args(mrb_state *mrb, const char *format, ...);
+mrb_int mrb_get_args(mrb_state *mrb, const char *format, ...);
 
 /* `strlen` for character string literals (use with caution or `strlen` instead)
     Adjacent string literals are concatenated in C/C++ in translation phase 6.
@@ -252,9 +252,9 @@ int mrb_get_args(mrb_state *mrb, const char *format, ...);
 */
 #define mrb_strlen_lit(lit) (sizeof(lit "") - 1)
 
-mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, int,...);
-mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, int, const mrb_value*);
-mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, int, const mrb_value*, mrb_value);
+mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, mrb_int,...);
+mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, mrb_int, const mrb_value*);
+mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, mrb_int, const mrb_value*, mrb_value);
 mrb_sym mrb_intern_cstr(mrb_state*,const char*);
 mrb_sym mrb_intern(mrb_state*,const char*,size_t);
 mrb_sym mrb_intern_static(mrb_state*,const char*,size_t);
@@ -376,8 +376,8 @@ void mrb_print_error(mrb_state *mrb);
 #define E_KEY_ERROR                 (mrb_class_get(mrb, "KeyError"))
 
 mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
-mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, const mrb_value *argv);
-mrb_value mrb_yield_with_class(mrb_state *mrb, mrb_value b, int argc, const mrb_value *argv, mrb_value self, struct RClass *c);
+mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv);
+mrb_value mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c);
 
 void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
@@ -400,7 +400,7 @@ mrb_bool mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
 mrb_bool mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
 
 /* fiber functions (you need to link mruby-fiber mrbgem to use) */
-mrb_value mrb_fiber_yield(mrb_state *mrb, int argc, const mrb_value *argv);
+mrb_value mrb_fiber_yield(mrb_state *mrb, mrb_int argc, const mrb_value *argv);
 #define E_FIBER_ERROR (mrb_class_get(mrb, "FiberError"))
 
 /* memory pool implementation */

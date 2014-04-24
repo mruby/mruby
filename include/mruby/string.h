@@ -72,7 +72,7 @@ char *mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr);
 int mrb_str_offset(mrb_state *mrb, mrb_value str, int pos);
 mrb_value mrb_str_dup(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_intern(mrb_state *mrb, mrb_value self);
-mrb_value mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, mrb_bool badcheck);
+mrb_value mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck);
 double mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck);
 mrb_value mrb_str_to_str(mrb_state *mrb, mrb_value str);
 mrb_int mrb_str_hash(mrb_state *mrb, mrb_value str);

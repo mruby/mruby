@@ -235,12 +235,11 @@ static mrb_value
 mrb_ary_s_create(mrb_state *mrb, mrb_value self)
 {
   mrb_value *vals;
-  int len;
+  mrb_int len;
 
   mrb_get_args(mrb, "*", &vals, &len);
-  mrb_assert(len <= MRB_INT_MAX); /* A rare case. So choosed assert() not raise(). */
 
-  return mrb_ary_new_from_values(mrb, (mrb_int)len, vals);
+  return mrb_ary_new_from_values(mrb, len, vals);
 }
 
 static void
@@ -409,7 +408,7 @@ static mrb_value
 mrb_ary_push_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  int len;
+  mrb_int len;
 
   mrb_get_args(mrb, "*", &argv, &len);
   while (len--) {
@@ -495,7 +494,7 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
   mrb_value *vals;
-  int len;
+  mrb_int len;
 
   mrb_get_args(mrb, "*", &vals, &len);
   if (ARY_SHARED_P(a)
@@ -825,18 +824,10 @@ mrb_ary_last(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
   mrb_int size;
-  mrb_value *vals;
-  int len;
 
-  mrb_get_args(mrb, "*", &vals, &len);
-  if (len > 1) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
-  }
+  if (mrb_get_args(mrb, "|i", &size) == 0)
+    return (a->len > 0)? a->ptr[a->len - 1]: mrb_nil_value();
 
-  if (len == 0) return (a->len > 0)? a->ptr[a->len - 1]: mrb_nil_value();
-
-  /* len == 1 */
-  size = mrb_fixnum(*vals);
   if (size < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative array size");
   }
