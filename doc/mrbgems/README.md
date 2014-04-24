@@ -159,10 +159,6 @@ Its format is same as argument of method `MRuby::Build#gem`, expect that it can'
 When a special version of depedency is required,
 use `MRuby::Build#gem` in *build_config.rb* to override default gem.
 
-__ATTENTION:__
-The dependency system is currently (May 2013) under development and doesn't check
-or resolve dependencies!
-
 In case your GEM has more complex build requirements you can use
 the following options additionally inside of your GEM specification:
 
