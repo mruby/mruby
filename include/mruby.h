@@ -415,8 +415,10 @@ void* mrb_alloca(mrb_state *mrb, size_t);
 #ifdef MRB_DEBUG
 #include <assert.h>
 #define mrb_assert(p) assert(p)
+#define mrb_assert_int_fit(t1,n,t2,max) assert((n)>=0 && ((sizeof(n)<=sizeof(t2))||(n<=(t1)(max))))
 #else
 #define mrb_assert(p) ((void)0)
+#define mrb_assert_int_fit(t1,n,t2,max) ((void)0)
 #endif
 
 #if defined(__cplusplus)

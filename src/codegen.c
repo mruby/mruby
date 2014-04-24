@@ -719,7 +719,7 @@ attrsym(codegen_scope *s, mrb_sym a)
                                  + 1 /* '=' */
                                  + 1 /* '\0' */
                                  );
-  mrb_assert(len > 0);
+  mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
   memcpy(name2, name, (size_t)len);
   name2[len] = '=';
   name2[len+1] = '\0';
