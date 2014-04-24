@@ -95,7 +95,7 @@ mrb_debug_get_line(mrb_irep *irep, uint32_t pc)
           mrb_assert(f->lines.flat_map <= ret && ret < (f->lines.flat_map + f->line_entry_count));
           /* check pc range */
           mrb_assert(ret->start_pos <= pc &&
-                     pc < (((ret + 1 - f->lines.flat_map) < f->line_entry_count)
+                     pc < (((uint32_t)(ret + 1 - f->lines.flat_map) < f->line_entry_count)
                            ? (ret+1)->start_pos : irep->debug_info->pc_count));
 
           return ret->line;

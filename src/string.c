@@ -32,11 +32,11 @@
   }\
 } while (0)
 #define RSTRING_EMBED_LEN(s) \
-  (size_t)((RSTRING(s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
+  (mrb_int)((RSTRING(s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
 #define STR_EMBED_LEN(s)\
-  (size_t)(((s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
+  (mrb_int)(((s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
 #define STR_PTR(s) ((STR_EMBED_P(s)) ? (s)->as.ary : (s)->as.heap.ptr)
-#define STR_LEN(s) ((STR_EMBED_P(s)) ? STR_EMBED_LEN(s) : (size_t)(s)->as.heap.len)
+#define STR_LEN(s) ((STR_EMBED_P(s)) ? STR_EMBED_LEN(s) : (s)->as.heap.len)
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 

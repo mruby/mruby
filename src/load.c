@@ -156,8 +156,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool all
   irep->reps = (mrb_irep**)mrb_malloc(mrb, sizeof(mrb_irep*)*irep->rlen);
 
   diff = src - bin;
-  mrb_assert(diff >= 0);
-  mrb_assert(diff <= SIZE_MAX);
+  mrb_assert(diff >= 0 && (size_t)diff <= SIZE_MAX);
   *len = (size_t)diff;
 
   return irep;
@@ -334,8 +333,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
   }
 
   diff = bin - start;
-  mrb_assert(diff >= 0);
-  mrb_assert(diff <= SIZE_MAX);
+  mrb_assert(diff >= 0 && (size_t)diff <= SIZE_MAX);
 
   if (record_size != (size_t)diff) {
     return MRB_DUMP_GENERAL_FAILURE;
@@ -351,8 +349,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
   }
 
   diff = bin - start;
-  mrb_assert(diff >= 0);
-  mrb_assert(diff <= SIZE_MAX);
+  mrb_assert(diff >=0 && (size_t)diff <= SIZE_MAX);
   *record_len = (size_t)diff;
 
   return MRB_DUMP_OK;
@@ -394,8 +391,7 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, mrb_boo
 
   bin += len;
   diff = bin - start;
-  mrb_assert(diff >= 0);
-  mrb_assert(diff <= UINT32_MAX);
+  mrb_assert(diff >= 0 && (size_t)diff <= UINT32_MAX);
   if ((uint32_t)diff != bin_to_uint32(header->section_size)) {
     result = MRB_DUMP_GENERAL_FAILURE;
   }

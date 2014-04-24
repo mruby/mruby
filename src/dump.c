@@ -89,8 +89,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
       str = mrb_fixnum_to_str(mrb, irep->pool[pool_no], 10);
       {
         mrb_int len = RSTRING_LEN(str);
-        mrb_assert(len >= 0);
-        mrb_assert(len <= SIZE_MAX);
+        mrb_assert(len >= 0 && (size_t)len <= SIZE_MAX);
         size += (size_t)len;
       }
       break;
@@ -99,8 +98,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
       {
         int len;
         len = mrb_float_to_str(buf, mrb_float(irep->pool[pool_no]));
-        mrb_assert(len >= 0);
-        mrb_assert(len <= SIZE_MAX);
+        mrb_assert(len >= 0 && (size_t)len <= SIZE_MAX);
         size += (size_t)len;
       }
       break;
@@ -108,8 +106,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
     case MRB_TT_STRING:
       {
         mrb_int len = RSTRING_LEN(irep->pool[pool_no]);
-        mrb_assert(len >= 0);
-        mrb_assert(len <= SIZE_MAX);
+        mrb_assert(len >= 0 && (size_t)len <= SIZE_MAX);
         size += (size_t)len;
       }
       break;
@@ -416,11 +413,11 @@ write_lineno_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t* bin)
 
   diff = cur - bin;
   mrb_assert(diff >= 0);
-  mrb_assert(diff <= UINT32_MAX);
+  mrb_assert((uint32_t)diff <= UINT32_MAX);
 
   uint32_to_bin((uint32_t)diff, bin); /* record size */
 
-  mrb_assert(diff <= SIZE_MAX);
+  mrb_assert((size_t)diff <= SIZE_MAX);
   return (size_t)diff;
 }
 
@@ -596,11 +593,10 @@ write_debug_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const
   }
 
   ret = cur - bin;
-  mrb_assert(ret >= 0);
-  mrb_assert(ret <= UINT32_MAX);
+  mrb_assert(ret >= 0 && (uint32_t)ret <= UINT32_MAX);
   uint32_to_bin(ret, bin);
 
-  mrb_assert(ret <= SIZE_MAX);
+  mrb_assert(ret >= 0 && (size_t)ret <= SIZE_MAX);
   return (size_t)ret;
 }
 
