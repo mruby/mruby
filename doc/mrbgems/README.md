@@ -120,18 +120,44 @@ information purpose:
 The license and author properties are required in every GEM!
 
 In case your GEM is depending on other GEMs please use
-`spec.add_dependency(gem, *requirements)` like:
+`spec.add_dependency(gem, *requirements[, default_get_info])` like:
 
 	MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
 	  spec.license = 'MIT'
 	  spec.author  = 'mruby developers'
 
-	  # add GEM dependency mruby-parser.
-	  # Version has to be between 1.0.0 and 1.5.2
-	  spec.add_dependency('mruby-parser', '> 1.0.0', '< 1.5.2')
+	  # Add GEM dependency mruby-parser.
+	  # The version must be between 1.0.0 and 1.5.2 .
+	  spec.add_dependency('mruby-parser', '>= 1.0.0', '<= 1.5.2')
+
+	  # Use any version of mruby-uv from github.
+	  spec.add_dependency('mruby-uv', '>= 0.0.0', :github => 'mattn/mruby-uv')
+
+	  # Use latest mruby-onig-regexp from github. (version requirements can be ignored)
+	  spec.add_dependency('mruby-onig-regexp', :github => 'mattn/mruby-onig-regexp')
 	end
 
-The usage of versions is optional.
+The version requirements and default gem information are optional.
+
+Version requirement supports following operators:
+* '=': is equal
+* '!=': is not equal
+* '>': is greater
+* '<': is lesser
+* '>=': is equal or greater
+* '<=': is equal or lesser
+* '~>': is equal or greater and is lesser than the next major version
+    * example 1: '~> 2.2.2' means '>= 2.2.2' and '< 2.3.0'
+    * example 2: '~> 2.2'   means '>= 2.2.0' and '< 3.0.0'
+
+When more than one version requirements is passed, the dependency must satisfy all of it.
+
+You can have default gem to use as depedency when it's not defined in *build_config.rb*.
+When the last argument of `add_dependency` call is `Hash`, it will be treated as default gem information.
+Its format is same as argument of method `MRuby::Build#gem`, expect that it can't be treated as path gem location.
+
+When a special version of depedency is required,
+use `MRuby::Build#gem` in *build_config.rb* to override default gem.
 
 __ATTENTION:__
 The dependency system is currently (May 2013) under development and doesn't check
