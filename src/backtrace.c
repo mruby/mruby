@@ -89,8 +89,8 @@ output_backtrace(mrb_state *mrb, mrb_int ciidx, mrb_code *pc0, output_stream_fun
       else {
         pc = pc0;
       }
-      filename = mrb_debug_get_filename(irep, pc - irep->iseq);
-      lineno = mrb_debug_get_line(irep, pc - irep->iseq);
+      filename = mrb_debug_get_filename(irep, (uint32_t)(pc - irep->iseq));
+      lineno = mrb_debug_get_line(irep, (uint32_t)(pc - irep->iseq));
     }
     if (lineno == -1) continue;
     if (ci->target_class == ci->proc->target_class)
@@ -169,7 +169,7 @@ mrb_get_backtrace(mrb_state *mrb)
   mrb_value ary;
   mrb_callinfo *ci = mrb->c->ci;
   mrb_code *pc = ci->pc;
-  mrb_int ciidx = ci - mrb->c->cibase - 1;
+  mrb_int ciidx = (mrb_int)(ci - mrb->c->cibase - 1);
 
   if (ciidx < 0) ciidx = 0;
   ary = mrb_ary_new(mrb);
