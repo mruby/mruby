@@ -323,7 +323,7 @@ class Array
         # ary.fill { |index| block }                    -> ary
         beg = 0
         len = self.size
-      elsif arg0 != nil && arg0.respond_to?(:begin) && arg0.respond_to?(:end)
+      elsif arg0 != nil && arg0.kind_of?(Range)
         # ary.fill(range) { |index| block }             -> ary
         beg = arg0.begin
         beg += self.size if beg < 0
@@ -345,7 +345,7 @@ class Array
         # ary.fill(obj)                                 -> ary
         beg = 0
         len = self.size
-      elsif arg0 != nil && arg1 != nil && arg1.respond_to?(:begin) && arg1.respond_to?(:end)
+      elsif arg0 != nil && arg1 != nil && arg1.kind_of?(Range)
         # ary.fill(obj, range )                         -> ary
         beg = arg1.begin
         beg += self.size if beg < 0
