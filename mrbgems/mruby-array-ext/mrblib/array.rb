@@ -313,7 +313,7 @@ class Array
 
   def fill(arg0=nil, arg1=nil, arg2=nil, &block)
     if arg0 == nil && arg1 == nil && arg2 == nil && !block
-      raise ArgumentError, "wrong number of arguments (0 for 1..3)" 
+      raise ArgumentError, "wrong number of arguments (0 for 1..3)"
     end
 
     beg = len = 0
@@ -323,11 +323,13 @@ class Array
         # ary.fill { |index| block }                    -> ary
         beg = 0
         len = self.size
-      elsif arg0 != nil && arg0.respond_to?(:begin) && arg0.respond_to?(:end)
+      elsif arg0 != nil && arg0.kind_of?(Range)
         # ary.fill(range) { |index| block }             -> ary
         beg = arg0.begin
         beg += self.size if beg < 0
-        len = arg0.end - beg + 1
+        len = arg0.end
+        len += self.size if len < 0
+        len += 1 unless arg0.exclude_end?
       elsif arg0 != nil
         # ary.fill(start [, length] ) { |index| block } -> ary
         beg = arg0
@@ -342,20 +344,22 @@ class Array
       if arg0 != nil && arg1 == nil && arg2 == nil
         # ary.fill(obj)                                 -> ary
         beg = 0
-        len = self.size      
-      elsif arg0 != nil && arg1 != nil && arg1.respond_to?(:begin) && arg1.respond_to?(:end)
-        # ary.fill(obj, range )                         -> ary
         len = self.size
+      elsif arg0 != nil && arg1 != nil && arg1.kind_of?(Range)
+        # ary.fill(obj, range )                         -> ary
         beg = arg1.begin
-        len = arg1.end - beg + 1
+        beg += self.size if beg < 0
+        len = arg1.end
+        len += self.size if len < 0
+        len += 1 unless arg1.exclude_end?
       elsif arg0 != nil && arg1 != nil
         # ary.fill(obj, start [, length])               -> ary
         beg = arg1
         beg += self.size if beg < 0
-       if arg2 == nil
+        if arg2 == nil
           len = self.size
         else
-          len = arg1 + arg2
+          len = beg + arg2
         end
       end
     end
