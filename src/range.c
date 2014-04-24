@@ -33,7 +33,7 @@ range_check(mrb_state *mrb, mrb_value a, mrb_value b)
 }
 
 mrb_value
-mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, int excl)
+mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, mrb_bool excl)
 {
   struct RRange *r;
 
