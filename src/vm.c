@@ -1114,7 +1114,7 @@ RETRY_TRY_BLOCK:
         }
         regs = mrb->c->stack;
         regs[0] = m->env->stack[0];
-        pc = m->body.irep->iseq;
+        pc = irep->iseq;
         JUMP;
       }
     }
