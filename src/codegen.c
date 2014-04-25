@@ -2637,7 +2637,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
 
   for (i = 0; i < irep->ilen; i++) {
     ai = mrb_gc_arena_save(mrb);
-    printf("%03d ", i);
+    printf("%03lu ", i);
     c = irep->iseq[i];
     switch (GET_OPCODE(c)) {
     case OP_NOP:
@@ -2722,13 +2722,13 @@ codedump(mrb_state *mrb, mrb_irep *irep)
              GETARG_A(c));
       break;
     case OP_JMP:
-      printf("OP_JMP\t\t%03d\n", i+GETARG_sBx(c));
+      printf("OP_JMP\t\t%03lu\n", i+GETARG_sBx(c));
       break;
     case OP_JMPIF:
-      printf("OP_JMPIF\tR%d\t%03d\n", GETARG_A(c), i+GETARG_sBx(c));
+      printf("OP_JMPIF\tR%d\t%03lu\n", GETARG_A(c), i+GETARG_sBx(c));
       break;
     case OP_JMPNOT:
-      printf("OP_JMPNOT\tR%d\t%03d\n", GETARG_A(c), i+GETARG_sBx(c));
+      printf("OP_JMPNOT\tR%d\t%03lu\n", GETARG_A(c), i+GETARG_sBx(c));
       break;
     case OP_SEND:
       printf("OP_SEND\tR%d\t:%s\t%d\n", GETARG_A(c),
@@ -2920,7 +2920,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_EPUSH\t:I(%+d)\n", GETARG_Bx(c)+1);
       break;
     case OP_ONERR:
-      printf("OP_ONERR\t%03d\n", i+GETARG_sBx(c));
+      printf("OP_ONERR\t%03lu\n", i+GETARG_sBx(c));
       break;
     case OP_RESCUE:
       printf("OP_RESCUE\tR%d\n", GETARG_A(c));
