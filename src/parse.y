@@ -5263,8 +5263,8 @@ static void
 parser_init_cxt(parser_state *p, mrbc_context *cxt)
 {
   if (!cxt) return;
-  if (cxt->lineno) p->lineno = cxt->lineno;
   if (cxt->filename) mrb_parser_set_filename(p, cxt->filename);
+  if (cxt->lineno) p->lineno = cxt->lineno;
   if (cxt->syms) {
     int i;
 
