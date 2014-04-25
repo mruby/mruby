@@ -347,7 +347,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   mrb_value b, st;
   mrb_sym id;
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
 
   name = mrb_nil_value();
   rest = mrb_nil_value();
@@ -428,7 +428,7 @@ static mrb_value
 mrb_struct_initialize_m(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value self)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   return mrb_struct_initialize_withArg(mrb, argc, argv, self);

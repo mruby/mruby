@@ -113,7 +113,7 @@ static mrb_value
 mrb_str_start_with(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv, sub;
-  int argc, i;
+  mrb_int argc, i;
   mrb_get_args(mrb, "*", &argv, &argc);
 
   for (i = 0; i < argc; i++) {
@@ -142,7 +142,7 @@ static mrb_value
 mrb_str_end_with(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv, sub;
-  int argc, i;
+  mrb_int argc, i;
   mrb_get_args(mrb, "*", &argv, &argc);
 
   for (i = 0; i < argc; i++) {
