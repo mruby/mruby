@@ -627,4 +627,34 @@ class Array
     end
     self
   end
+
+  ##
+  #  call-seq:
+  #     ary.keep_if { |item| block } -> ary
+  #     ary.keep_if                  -> Enumerator
+  #
+  #  Deletes every element of +self+ for which the given block evaluates to
+  #  +false+.
+  #
+  #  See also Array#select!
+  #
+  #  If no block is given, an Enumerator is returned instead.
+  #
+  #     a = [1, 2, 3, 4, 5]
+  #     a.keep_if { |val| val > 3 } #=> [4, 5]
+
+  def keep_if(&block)
+    return to_enum :keep_if unless block_given?
+
+    idx = 0
+    len = self.size
+    while idx < self.size do
+      if block.call(self[idx])
+        idx += 1
+      else
+        self.delete_at(idx)
+      end
+    end
+    self
+  end
 end
