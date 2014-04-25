@@ -63,7 +63,7 @@ static mrb_value
 mrb_obj_instance_exec(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
   mrb_value blk;
   struct RClass *c;
 

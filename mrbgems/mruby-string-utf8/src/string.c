@@ -356,7 +356,7 @@ static mrb_value
 mrb_str_index_m(mrb_state *mrb, mrb_value str)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
 
   mrb_value sub;
   mrb_int pos;
@@ -440,7 +440,7 @@ static mrb_value
 mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
   mrb_value sub;
   mrb_value vpos;
   mrb_int pos, len = RSTRING_LEN(str);
