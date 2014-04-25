@@ -187,11 +187,8 @@ class Array
 
   # internal method to convert multi-value to single value
   def __svalue
-    case self.size
-    when 0
-      return nil
-    when 1
-      self[0]
+    if self.size < 2
+      self.first
     else
       self
     end
