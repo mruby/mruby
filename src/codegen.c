@@ -1448,7 +1448,7 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen(s, tree->cdr, val);
     if (val) {
       pop(); pop();
-      genop(s, MKOP_ABC(OP_RANGE, cursp(), cursp(), 0));
+      genop(s, MKOP_ABC(OP_RANGE, cursp(), cursp(), FALSE));
       push();
     }
     break;
@@ -1458,7 +1458,7 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen(s, tree->cdr, val);
     if (val) {
       pop(); pop();
-      genop(s, MKOP_ABC(OP_RANGE, cursp(), cursp(), 1));
+      genop(s, MKOP_ABC(OP_RANGE, cursp(), cursp(), TRUE));
       push();
     }
     break;
