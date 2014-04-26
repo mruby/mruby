@@ -970,13 +970,16 @@ mrb_value
 mrb_mod_constants(mrb_state *mrb, mrb_value mod)
 {
   mrb_value ary;
+  mrb_bool inherit = TRUE;
   struct RClass *c = mrb_class_ptr(mod);
 
+  mrb_get_args(mrb, "|b", &inherit);
   ary = mrb_ary_new(mrb);
   while (c) {
     if (c->iv) {
       iv_foreach(mrb, c->iv, const_i, &ary);
     }
+    if (!inherit) break;
     c = c->super;
     if (c == mrb->object_class) break;
   }
