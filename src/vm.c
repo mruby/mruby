@@ -249,7 +249,9 @@ cipop(mrb_state *mrb)
     mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
 
     MRB_ENV_UNSHARE_STACK(e);
-    stack_copy(p, e->stack, len);
+    if (len > 0) {
+      stack_copy(p, e->stack, len);
+    }
     e->stack = p;
   }
 
@@ -387,7 +389,9 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     mrb->c->stack[0] = self;
     if (undef) {
       mrb->c->stack[1] = mrb_symbol_value(undef);
-      stack_copy(mrb->c->stack+2, argv, argc-1);
+      if (argc > 1) {
+        stack_copy(mrb->c->stack+2, argv, argc-1);
+      }
     }
     else if (argc > 0) {
       stack_copy(mrb->c->stack+1, argv, argc);
@@ -1230,7 +1234,9 @@ RETRY_TRY_BLOCK:
         }
         regs[a] = mrb_ary_new_capa(mrb, m1+len+m2);
         rest = mrb_ary_ptr(regs[a]);
-        stack_copy(rest->ptr, stack, m1);
+        if (m1 > 0) {
+          stack_copy(rest->ptr, stack, m1);
+        }
         if (len > 0) {
           stack_copy(rest->ptr+m1, pp, len);
         }
