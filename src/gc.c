@@ -458,7 +458,6 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
   if (c->cibase) {
     for (ci = c->cibase; ci <= c->ci; ci++) {
       if (ci->eidx > e) {
-        abort();
         e = ci->eidx;
       }
       mrb_gc_mark(mrb, (struct RBasic*)ci->env);
