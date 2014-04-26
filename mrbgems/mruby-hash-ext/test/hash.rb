@@ -27,3 +27,15 @@ assert('Hash#values_at') do
   h = Hash.new { |hash,k| hash[k] = k }
   assert_equal keys, h.values_at(*keys)
 end
+
+assert('Hash#fetch') do
+  h = { "cat" => "feline", "dog" => "canine", "cow" => "bovine" }
+  assert_equal "feline", h.fetch("cat")
+  assert_equal "mickey", h.fetch("mouse", "mickey")
+  assert_equal "minny", h.fetch("mouse"){"minny"}
+  begin
+    h.fetch("gnu")
+  rescue => e
+    assert_kind_of(StandardError, e);
+  end
+end

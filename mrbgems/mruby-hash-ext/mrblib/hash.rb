@@ -13,4 +13,18 @@ class Hash
 
   alias each_pair each
   alias update merge!
+
+  def fetch(key, none=NONE, &block)
+    unless self.key?(key)
+      if block
+        block.call
+      elsif none != NONE
+        none
+      else
+        raise RuntimeError, "Key not found: #{key}"
+      end
+    else
+      self[key]
+    end
+  end
 end
