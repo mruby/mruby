@@ -953,13 +953,11 @@ static mrb_value
 fix_xor(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  mrb_int val;
 
   mrb_get_args(mrb, "o", &y);
 
   y = bit_coerce(mrb, y);
-  val = mrb_fixnum(x) ^ mrb_fixnum(y);
-  return mrb_fixnum_value(val);
+  return mrb_fixnum_value(mrb_fixnum(x) ^ mrb_fixnum(y));
 }
 
 #define NUMERIC_SHIFT_WIDTH_MAX (MRB_INT_BIT-1)
