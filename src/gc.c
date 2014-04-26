@@ -448,25 +448,27 @@ mark_context_stack(mrb_state *mrb, struct mrb_context *c)
 static void
 mark_context(mrb_state *mrb, struct mrb_context *c)
 {
-  size_t i;
-  size_t e;
+  int i, e = 0;
   mrb_callinfo *ci;
 
   /* mark stack */
   mark_context_stack(mrb, c);
 
-  /* mark ensure stack */
-  e = (c->ci) ? c->ci->eidx : 0;
-  for (i=0; i<e; i++) {
-    mrb_gc_mark(mrb, (struct RBasic*)c->ensure[i]);
-  }
   /* mark VM stack */
   if (c->cibase) {
     for (ci = c->cibase; ci <= c->ci; ci++) {
+      if (ci->eidx > e) {
+        abort();
+        e = ci->eidx;
+      }
       mrb_gc_mark(mrb, (struct RBasic*)ci->env);
       mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
       mrb_gc_mark(mrb, (struct RBasic*)ci->target_class);
     }
+  }
+  /* mark ensure stack */
+  for (i=0; i<e; i++) {
+    mrb_gc_mark(mrb, (struct RBasic*)c->ensure[i]);
   }
   /* mark fibers */
   if (c->prev && c->prev->fib) {
