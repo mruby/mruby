@@ -69,7 +69,7 @@ f_eval(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_eval_gem_init(mrb_state* mrb)
 {
-  mrb_define_class_method(mrb, mrb->kernel_module, "eval", f_eval, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(3));
+  mrb_define_module_function(mrb, mrb->kernel_module, "eval", f_eval, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(3));
 }
 
 void
