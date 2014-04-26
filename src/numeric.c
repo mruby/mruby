@@ -494,11 +494,8 @@ static mrb_value
 flo_finite_p(mrb_state *mrb, mrb_value num)
 {
   mrb_float value = mrb_float(num);
-  mrb_bool finite_p;
 
-  finite_p = !(isinf(value) || isnan(value));
-
-  return mrb_bool_value(finite_p);
+  return mrb_bool_value(!(isinf(value) || isnan(value)));
 }
 
 /* 15.2.9.3.10 */
@@ -918,13 +915,11 @@ static mrb_value
 fix_and(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  mrb_int val;
 
   mrb_get_args(mrb, "o", &y);
 
   y = bit_coerce(mrb, y);
-  val = mrb_fixnum(x) & mrb_fixnum(y);
-  return mrb_fixnum_value(val);
+  return mrb_fixnum_value(mrb_fixnum(x) & mrb_fixnum(y));
 }
 
 /* 15.2.8.3.10 */
@@ -939,13 +934,11 @@ static mrb_value
 fix_or(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  mrb_int val;
 
   mrb_get_args(mrb, "o", &y);
 
   y = bit_coerce(mrb, y);
-  val = mrb_fixnum(x) | mrb_fixnum(y);
-  return mrb_fixnum_value(val);
+  return mrb_fixnum_value(mrb_fixnum(x) | mrb_fixnum(y));
 }
 
 /* 15.2.8.3.11 */
@@ -960,13 +953,11 @@ static mrb_value
 fix_xor(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  mrb_int val;
 
   mrb_get_args(mrb, "o", &y);
 
   y = bit_coerce(mrb, y);
-  val = mrb_fixnum(x) ^ mrb_fixnum(y);
-  return mrb_fixnum_value(val);
+  return mrb_fixnum_value(mrb_fixnum(x) ^ mrb_fixnum(y));
 }
 
 #define NUMERIC_SHIFT_WIDTH_MAX (MRB_INT_BIT-1)
