@@ -143,7 +143,7 @@ stack_extend_alloc(mrb_state *mrb, int room)
   /* Use linear stack growth.
      It is slightly slower than doubling the stack space,
      but it saves memory on small devices. */
-  if (room <= size)
+  if (room <= MRB_STACK_GROWTH)
     size += MRB_STACK_GROWTH;
   else
     size += room;
