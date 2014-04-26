@@ -494,11 +494,8 @@ static mrb_value
 flo_finite_p(mrb_state *mrb, mrb_value num)
 {
   mrb_float value = mrb_float(num);
-  mrb_bool finite_p;
 
-  finite_p = !(isinf(value) || isnan(value));
-
-  return mrb_bool_value(finite_p);
+  return mrb_bool_value(!(isinf(value) || isnan(value)));
 }
 
 /* 15.2.9.3.10 */
