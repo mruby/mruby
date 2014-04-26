@@ -8,9 +8,9 @@
 
 #define STR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
 #define STR_EMBED_LEN(s)\
-  (size_t)(((s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
+  (mrb_int)(((s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
 #define STR_PTR(s) ((STR_EMBED_P(s)) ? (s)->as.ary : (s)->as.heap.ptr)
-#define STR_LEN(s) ((STR_EMBED_P(s)) ? STR_EMBED_LEN(s) : (size_t)(s)->as.heap.len)
+#define STR_LEN(s) ((STR_EMBED_P(s)) ? STR_EMBED_LEN(s) : (mrb_int)(s)->as.heap.len)
 
 static const char utf8len_codepage[256] =
 {
