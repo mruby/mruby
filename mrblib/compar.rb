@@ -14,8 +14,11 @@ module Comparable
     cmp = self <=> other
     if cmp.nil?
       raise ArgumentError, "comparison of #{self.class} with #{other.class} failed"
+    elsif cmp < 0
+      true
+    else
+      false
     end
-    cmp < 0
   end
 
   ##
@@ -28,8 +31,11 @@ module Comparable
     cmp = self <=> other
     if cmp.nil?
       raise ArgumentError, "comparison of #{self.class} with #{other.class} failed"
+    elsif cmp <= 0
+      true
+    else
+      false
     end
-    cmp <= 0
   end
 
   ##
@@ -40,7 +46,11 @@ module Comparable
   # ISO 15.3.3.2.3
   def == other
     cmp = self <=> other
-    cmp == 0
+    if cmp == 0
+      true
+    else
+      false
+    end
   end
 
   ##
@@ -53,8 +63,11 @@ module Comparable
     cmp = self <=> other
     if cmp.nil?
       raise ArgumentError, "comparison of #{self.class} with #{other.class} failed"
+    elsif cmp > 0
+      true
+    else
+      false
     end
-    cmp > 0
   end
 
   ##
@@ -67,8 +80,11 @@ module Comparable
     cmp = self <=> other
     if cmp.nil?
       raise ArgumentError, "comparison of #{self.class} with #{other.class} failed"
+    elsif cmp >= 0
+      true
+    else
+      false
     end
-    cmp >= 0
   end
 
   ##
@@ -79,6 +95,10 @@ module Comparable
   #
   # ISO 15.3.3.2.6
   def between?(min, max)
-    self >= min and self <= max
+    if self < min or self > max
+      false
+    else
+      true
+    end
   end
 end
