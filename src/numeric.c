@@ -915,13 +915,11 @@ static mrb_value
 fix_and(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  mrb_int val;
 
   mrb_get_args(mrb, "o", &y);
 
   y = bit_coerce(mrb, y);
-  val = mrb_fixnum(x) & mrb_fixnum(y);
-  return mrb_fixnum_value(val);
+  return mrb_fixnum_value(mrb_fixnum(x) & mrb_fixnum(y));
 }
 
 /* 15.2.8.3.10 */
