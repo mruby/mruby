@@ -1844,7 +1844,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int idx = lv_idx(s, sym(tree));
 
       if (idx > 0) {
-        genop(s, MKOP_AB(OP_MOVE, cursp(), idx));
+        genop_peep(s, MKOP_AB(OP_MOVE, cursp(), idx), NOVAL);
       }
       else {
         int lv = 0;
