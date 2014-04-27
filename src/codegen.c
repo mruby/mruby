@@ -1688,6 +1688,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       else {
         genop(s, MKOP_A(OP_LOADNIL, cursp()));
+        push(); pop();
       }
       pop_n(n+1);
       if (sendv) n = CALL_MAXARGS;
@@ -1709,12 +1710,12 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       if (s2) ainfo = s2->ainfo;
       genop(s, MKOP_ABx(OP_ARGARY, cursp(), (ainfo<<4)|(lv & 0xf)));
+      push(); push(); pop();    /* ARGARY pushes two values */
       if (tree && tree->cdr) {
-        push();
         codegen(s, tree->cdr, VAL);
-        pop_n(2);
+        pop();
       }
-      pop();
+      pop(); pop();
       genop(s, MKOP_ABC(OP_SUPER, cursp(), 0, CALL_MAXARGS));
       if (val) push();
     }
