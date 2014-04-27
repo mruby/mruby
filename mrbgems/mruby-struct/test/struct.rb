@@ -112,3 +112,9 @@ assert('Struct#length, Struct#size') do
   assert_equal 2, s.size
   assert_equal 2, s.length
 end
+
+assert('Struct#to_a, Struct#values') do
+  s = Struct.new(:mem1, :mem2).new('a', 'b')
+  assert_equal ['a', 'b'], s.to_a
+  assert_equal ['a', 'b'], s.values
+end

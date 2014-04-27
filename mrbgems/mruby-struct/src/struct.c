@@ -793,6 +793,19 @@ mrb_struct_len(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ * call-seq:
+ *    struct.to_a    -> array
+ *    struct.values  -> array
+ *
+ * Create an array from struct values.
+ */
+static mrb_value
+mrb_struct_to_a(mrb_state *mrb, mrb_value self)
+{
+  return mrb_ary_new_from_values(mrb, RSTRUCT_LEN(self), RSTRUCT_PTR(self));
+}
+
+/*
  *  A <code>Struct</code> is a convenient way to bundle a number of
  *  attributes together, using accessor methods, without having to write
  *  an explicit class.
@@ -827,6 +840,8 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
 
   mrb_define_method(mrb, st,        "size",           mrb_struct_len,         MRB_ARGS_NONE());
   mrb_define_method(mrb, st,        "length",         mrb_struct_len,         MRB_ARGS_NONE());
+  mrb_define_method(mrb, st,        "to_a",           mrb_struct_to_a,        MRB_ARGS_NONE());
+  mrb_define_method(mrb, st,        "values",         mrb_struct_to_a,        MRB_ARGS_NONE());
 }
 
 void
