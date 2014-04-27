@@ -75,7 +75,8 @@ typedef short mrb_sym;
 #  define PRIo64 "I64o"
 #  define PRIx64 "I64x"
 #  define PRIX64 "I64X"
-#  define INFINITY ((float)(DBL_MAX * DBL_MAX))
+static unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
+#  define INFINITY (*(float *)&IEEE754_INFINITY_BITS_SINGLE)
 #  define NAN ((float)(INFINITY - INFINITY))
 # else
 #  include <inttypes.h>
