@@ -1632,7 +1632,7 @@ codegen(codegen_scope *s, node *tree, int val)
         break;
       }
       codegen(s, tree->cdr->cdr->car, VAL);
-      push();pop();
+      push(); pop();
       pop(); pop();
 
       idx = new_msym(s, sym);
@@ -2404,6 +2404,7 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_A(OP_TCLASS, cursp()));
       push();
       genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, OP_L_METHOD));
+      push(); pop();
       pop();
       genop(s, MKOP_AB(OP_METHOD, cursp(), sym));
       if (val) {
