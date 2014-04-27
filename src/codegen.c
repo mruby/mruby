@@ -2664,7 +2664,9 @@ print_lv(mrb_state *mrb, mrb_irep *irep, mrb_code c, int r)
 {
   int pre = 0;
 
-  if (!irep->lv) {
+  if (!irep->lv
+      || ((!(r & RA) || GETARG_A(c) >= irep->nlocals)
+       && (!(r & RB) || GETARG_B(c) >= irep->nlocals))) {
     printf("\n");
     return;
   }
@@ -2703,7 +2705,11 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       print_lv(mrb, irep, c, RAB);
       break;
     case OP_LOADL:
-      printf("OP_LOADL\tR%d\tL(%d)", GETARG_A(c), GETARG_Bx(c));
+      {
+        mrb_value v = irep->pool[GETARG_Bx(c)];
+        mrb_value s = mrb_inspect(mrb, v);
+        printf("OP_LOADL\tR%d\tL(%d)\t; %s", GETARG_A(c), GETARG_Bx(c), RSTRING_PTR(s));
+      }
       print_lv(mrb, irep, c, RA);
       break;
     case OP_LOADI:
@@ -2964,8 +2970,9 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       {
         mrb_value v = irep->pool[GETARG_Bx(c)];
         mrb_value s = mrb_str_dump(mrb, mrb_str_new(mrb, RSTRING_PTR(v), RSTRING_LEN(v)));
-        printf("OP_STRING\tR%d\t%s\n", GETARG_A(c), RSTRING_PTR(s));
+        printf("OP_STRING\tR%d\tL(%d)\t; %s", GETARG_A(c), GETARG_B(c), RSTRING_PTR(s));
       }
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_STRCAT:
       printf("OP_STRCAT\tR%d\tR%d", GETARG_A(c), GETARG_B(c));
