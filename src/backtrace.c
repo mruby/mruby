@@ -14,9 +14,10 @@
 #include "mruby/debug.h"
 #include "mruby/error.h"
 
+#ifdef ENABLE_STDIO
+
 typedef void (*output_stream_func)(mrb_state*, void*, int, const char*, ...);
 
-#ifdef ENABLE_STDIO
 static void
 print_backtrace_i(mrb_state *mrb, void *stream, int level, const char *format, ...)
 {
@@ -26,7 +27,7 @@ print_backtrace_i(mrb_state *mrb, void *stream, int level, const char *format, .
   vfprintf((FILE*)stream, format, ap);
   va_end(ap);
 }
-#endif
+
 
 #define MIN_BUFSIZE 127
 
@@ -142,14 +143,12 @@ exc_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
    function to retrieve backtrace information from the exception.
    note that if you call method after the exception, call stack will be
    overwritten.  So invoke these functions just after detecting exceptions.
-*/   
+*/
 
 void
 mrb_print_backtrace(mrb_state *mrb)
 {
-#ifdef ENABLE_STDIO
   exc_output_backtrace(mrb, mrb->exc, print_backtrace_i, (void*)stderr);
-#endif
 }
 
 mrb_value
@@ -177,3 +176,24 @@ mrb_get_backtrace(mrb_state *mrb)
 
   return ary;
 }
+
+#else
+
+void
+mrb_print_backtrace(mrb_state *mrb)
+{
+}
+
+mrb_value
+mrb_exc_backtrace(mrb_state *mrb, mrb_value self)
+{
+  return mrb_ary_new(mrb);
+}
+
+mrb_value
+mrb_get_backtrace(mrb_state *mrb)
+{
+  return mrb_ary_new(mrb);
+}
+
+#endif
