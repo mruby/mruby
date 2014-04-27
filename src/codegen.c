@@ -2648,7 +2648,7 @@ print_r(mrb_state *mrb, mrb_irep *irep, size_t n, int pre)
     if (irep->lv[i].r == n) {
       mrb_sym sym = irep->lv[i].name;
       if (pre) printf(" ");
-      printf("R%d:%s", n, mrb_sym2name(mrb, sym));
+      printf("R%d:%s", (int)n, mrb_sym2name(mrb, sym));
       return 1;
     }
   }
