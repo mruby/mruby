@@ -266,3 +266,17 @@ assert("Array#keep_if") do
   assert_equal [4, 5], a.keep_if { |val| val > 3 }
   assert_equal [4, 5], a
 end
+
+assert("Array#select!") do
+  a = [1, 2, 3, 4, 5]
+  assert_nil a.select! { true }
+  assert_equal [1, 2, 3, 4, 5], a
+
+  a = [1, 2, 3, 4, 5]
+  assert_equal [], a.select! { false }
+  assert_equal [], a
+
+  a = [1, 2, 3, 4, 5]
+  assert_equal [4, 5], a.select! { |val| val > 3 }
+  assert_equal [4, 5], a
+end
