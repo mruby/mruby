@@ -76,12 +76,12 @@ mrb_value mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool 
 double mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck);
 mrb_value mrb_str_to_str(mrb_state *mrb, mrb_value str);
 mrb_int mrb_str_hash(mrb_state *mrb, mrb_value str);
-mrb_value mrb_str_buf_append(mrb_state *mrb, mrb_value str, mrb_value str2);
 mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
 mrb_bool mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2);
 mrb_value mrb_str_dump(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len);
 mrb_value mrb_str_cat_cstr(mrb_state *mrb, mrb_value str, const char *ptr);
+mrb_value mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2);
 #define mrb_str_cat_lit(mrb, str, lit) mrb_str_cat(mrb, str, lit, mrb_strlen_lit(lit))
 mrb_value mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2);
 
@@ -99,6 +99,12 @@ static inline mrb_value
 mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 {
   return mrb_str_cat(mrb, str, ptr, len);
+}
+
+static inline mrb_value
+mrb_str_buf_append(mrb_state *mrb, mrb_value str, mrb_value str2)
+{
+  return mrb_str_cat_str(mrb, str, str2);
 }
 
 #if defined(__cplusplus)
