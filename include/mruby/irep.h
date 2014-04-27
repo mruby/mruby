@@ -19,6 +19,11 @@ enum irep_pool_type {
   IREP_TT_FLOAT,
 };
 
+struct mrb_locals {
+  mrb_sym name;
+  size_t r;
+};
+
 /* Program data array struct */
 typedef struct mrb_irep {
   uint16_t nlocals;        /* Number of local variables */
@@ -30,6 +35,7 @@ typedef struct mrb_irep {
   mrb_sym *syms;
   struct mrb_irep **reps;
 
+  struct mrb_locals *lv;
   /* debug info */
   const char *filename;
   uint16_t *lines;
