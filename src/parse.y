@@ -4189,8 +4189,13 @@ parser_yylex(parser_state *p)
 
   case '=':
     if (p->column == 1) {
-      if (peeks(p, "begin\n")) {
-        skips(p, "\n=end\n");
+      if (peeks(p, "begin ") || peeks(p, "begin\n")) {
+        if (skips(p, "\n=end ")) {
+          goto retry;
+        }
+        if (skips(p, "\n=end\n")) {
+          goto retry;
+        }
         goto retry;
       }
     }
