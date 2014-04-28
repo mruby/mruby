@@ -276,7 +276,9 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
 mrb_value
 mrb_file_flock(mrb_state *mrb, mrb_value self)
 {
-#if !defined(sun)
+#if defined(sun)
+  mrb_raise(mrb, E_RUNTIME_ERROR, "flock is not supported on Illumos/Solaris");
+#else
   mrb_int operation;
   int fd;
 
