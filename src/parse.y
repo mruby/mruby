@@ -3429,7 +3429,7 @@ peek_n(parser_state *p, int c, int n)
     list = push(list, (node*)(intptr_t)c0);
   } while(n--);
   if (p->pb) {
-    p->pb = append(p->pb, (node*)list);
+    p->pb = append((node*)list, p->pb);
   }
   else {
     p->pb = list;
