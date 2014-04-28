@@ -2688,7 +2688,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
   int ai;
   mrb_code c;
   const char *file = NULL, *next_file;
-  int line;
+  int32_t line;
 
   if (!irep) return;
   printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", irep,
