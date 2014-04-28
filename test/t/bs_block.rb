@@ -512,3 +512,15 @@ assert('BS Block 37') do
   end
 end
 
+assert('BS Block 38') do
+  def iter
+    yield 1
+  end
+
+  assert_equal([1, 2, nil]) do
+    iter{|a, b=2, c|
+      [a, b, c]
+    }
+  end
+end
+
