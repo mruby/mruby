@@ -2864,7 +2864,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       print_lv(mrb, irep, c, RA);
       break;
     case OP_BLKPUSH:
-      printf("OP_BLKPUSH\tR%d\t%d:%d:%d:%d\n", GETARG_A(c),
+      printf("OP_BLKPUSH\tR%d\t%d:%d:%d:%d", GETARG_A(c),
              (GETARG_Bx(c)>>10)&0x3f,
              (GETARG_Bx(c)>>9)&0x1,
              (GETARG_Bx(c)>>4)&0x1f,
