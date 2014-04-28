@@ -1303,7 +1303,7 @@ RETRY_TRY_BLOCK:
         if (r) {
           regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
         }
-        if (o == 0) pc++;
+        if (o == 0 || argc < m1+m2) pc++;
         else
           pc += argc - m1 - m2 + 1;
       }
