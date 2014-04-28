@@ -978,19 +978,13 @@ static mrb_value
 rshift(mrb_int val, mrb_int width)
 {
   mrb_assert(width >= 0);
-  if (width >= NUMERIC_SHIFT_WIDTH_MAX) {
-    if (val < 0) {
-      val = -1;
-    }
-    else {
-      val = 0;
-    }
+  if (width < NUMERIC_SHIFT_WIDTH_MAX) {
+    return mrb_fixnum_value(val >> width);
   }
-  else {
-    val = val >> width;
+  if (val < 0) {
+    return mrb_fixnum_value(-1);
   }
-
-  return mrb_fixnum_value(val);
+  return mrb_fixnum_value(0);
 }
 
 static inline void
