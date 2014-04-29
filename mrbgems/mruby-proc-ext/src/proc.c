@@ -137,8 +137,8 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
   }
 
   irep = proc->body.irep;
-  ret = mrb_ary_new_capa(mrb, irep->lv_len);
-  for (i = 0; i < irep->lv_len; ++i) {
+  ret = mrb_ary_new_capa(mrb, irep->nlocals - 1);
+  for (i = 0; i < (irep->nlocals - 1); ++i) {
     mrb_ary_push(mrb, ret, mrb_symbol_value(irep->lv[i].name));
   }
 
