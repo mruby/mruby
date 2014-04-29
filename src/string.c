@@ -5,6 +5,7 @@
 */
 
 #include <ctype.h>
+#include <float.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdlib.h>
