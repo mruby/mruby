@@ -108,7 +108,7 @@ mrb_obj_id(mrb_value obj)
 {
   mrb_int tt = mrb_type(obj);
 
-#define MakeID2(p,t) (((intptr_t)(p))^(t))
+#define MakeID2(p,t) (mrb_int)(((intptr_t)(p))^(t))
 #define MakeID(p)    MakeID2(p,tt)
 
   switch (tt) {
