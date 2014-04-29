@@ -531,7 +531,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     {
       struct mrb_context *c = ((struct RFiber*)obj)->cxt;
 
-      mark_context(mrb, c);
+      if (c) mark_context(mrb, c);
     }
     break;
 
@@ -745,6 +745,7 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
       size_t i;
       mrb_callinfo *ci;
 
+      if (!c) break;
       /* mark stack */
       i = c->stack - c->stbase;
       if (c->ci) i += c->ci->nregs;
