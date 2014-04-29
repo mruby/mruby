@@ -675,16 +675,11 @@ class Array
   def select!(&block)
     return to_enum :select! unless block_given?
 
-    idx = 0
-    len = self.size
-    while idx < self.size do
-      if block.call(self[idx])
-        idx += 1
-      else
-        self.delete_at(idx)
-      end
+    result = []
+    self.each do |x|
+      result << x if block.call(x)
     end
-    return nil if self.size == len
-    self
+    return nil if self.size == result.size
+    self.replace(result)
   end
 end
