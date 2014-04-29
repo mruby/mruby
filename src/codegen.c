@@ -2687,13 +2687,27 @@ codedump(mrb_state *mrb, mrb_irep *irep)
   int i;
   int ai;
   mrb_code c;
+  const char *file = NULL, *next_file;
+  int32_t line;
 
   if (!irep) return;
   printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", irep,
          irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen, (int)irep->rlen);
 
+
   for (i = 0; i < (int)irep->ilen; i++) {
     ai = mrb_gc_arena_save(mrb);
+
+    next_file = mrb_debug_get_filename(irep, i);
+    if (next_file && file != next_file) {
+      printf("file: %s\n", next_file);
+      file = next_file;
+    }
+    line = mrb_debug_get_line(irep, i);
+    if (line != -1) {
+      printf("%5d ", line);
+    }
+
     printf("%03d ", i);
     c = irep->iseq[i];
     switch (GET_OPCODE(c)) {
