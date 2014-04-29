@@ -140,6 +140,12 @@ stack_extend_alloc(mrb_state *mrb, int room)
   int size = mrb->c->stend - mrb->c->stbase;
   int off = mrb->c->stack - mrb->c->stbase;
 
+#ifdef MRB_STACK_EXTEND_DOUBLING
+  if (room <= size)
+    size *= 2;
+  else
+    size += room;
+#else
   /* Use linear stack growth.
      It is slightly slower than doubling the stack space,
      but it saves memory on small devices. */
@@ -147,6 +153,7 @@ stack_extend_alloc(mrb_state *mrb, int room)
     size += MRB_STACK_GROWTH;
   else
     size += room;
+#endif
 
   mrb->c->stbase = (mrb_value *)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
   mrb->c->stack = mrb->c->stbase + off;

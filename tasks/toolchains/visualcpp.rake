@@ -3,7 +3,7 @@ MRuby::Toolchain.new(:visualcpp) do |conf|
     cc.command = ENV['CC'] || 'cl.exe'
     cc.flags = [ENV['CFLAGS'] || %w(/c /nologo /W3 /Zi /MD /O2 /D_CRT_SECURE_NO_WARNINGS)]
     cc.include_paths = ["#{MRUBY_ROOT}/include"]
-    cc.defines = %w(DISABLE_GEMS)
+    cc.defines = %w(DISABLE_GEMS MRB_STACK_EXTEND_DOUBLING)
     cc.option_include_path = '/I%s'
     cc.option_define = '/D%s'
     cc.compile_options = "%{flags} /Fo%{outfile} %{infile}"
@@ -13,7 +13,7 @@ MRuby::Toolchain.new(:visualcpp) do |conf|
     cxx.command = ENV['CXX'] || 'cl.exe'
     cxx.flags = [ENV['CXXFLAGS'] || ENV['CFLAGS'] || %w(/c /nologo /W3 /Zi /MD /O2 /EHsc /D_CRT_SECURE_NO_WARNINGS)]
     cxx.include_paths = ["#{MRUBY_ROOT}/include"]
-    cxx.defines = %w(DISABLE_GEMS)
+    cxx.defines = %w(DISABLE_GEMS MRB_STACK_EXTEND_DOUBLING)
     cxx.option_include_path = '/I%s'
     cxx.option_define = '/D%s'
     cxx.compile_options = "%{flags} /Fo%{outfile} %{infile}"
