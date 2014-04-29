@@ -234,6 +234,7 @@ cipush(mrb_state *mrb)
   ci->env = 0;
   ci->pc = 0;
   ci->err = 0;
+  ci->proc = 0;
 
   return ci;
 }
