@@ -6,7 +6,7 @@ MRuby::Build.new('debug') do |conf|
   conf.gembox 'full-core'
   conf.cc.flags += %w(-Werror=declaration-after-statement)
   conf.compilers.each do |c|
-    c.defines += %w(MRB_GC_FIXED_ARENA)
+    c.defines += %w(MRB_GC_STRESS MRB_GC_FIXED_ARENA)
   end
 end
 
@@ -17,7 +17,7 @@ MRuby::Build.new do |conf|
   conf.gembox 'full-core'
   conf.cc.flags += %w(-Werror=declaration-after-statement)
   conf.compilers.each do |c|
-    c.defines += %w(MRB_DEBUG MRB_GC_FIXED_ARENA)
+    c.defines += %w(MRB_GC_FIXED_ARENA)
   end
   conf.enable_bintest
 end
@@ -28,7 +28,7 @@ MRuby::Build.new('cxx_abi') do |conf|
   conf.gembox 'full-core'
   conf.cc.flags += %w(-Werror=declaration-after-statement)
   conf.compilers.each do |c|
-    c.defines += %w(MRB_DEBUG MRB_GC_FIXED_ARENA)
+    c.defines += %w(MRB_GC_FIXED_ARENA)
   end
   conf.enable_bintest
 
