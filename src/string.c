@@ -70,22 +70,25 @@ mrb_str_strlen(mrb_state *mrb, struct RString *s)
   return max;
 }
 
-#define RESIZE_CAPA(s,capacity) do {\
-  if (STR_EMBED_P(s)) {\
-    if (RSTRING_EMBED_LEN_MAX < (capacity)) {\
-      char *const __tmp__ = (char *)mrb_malloc(mrb, (capacity)+1);\
-      const mrb_int __len__ = STR_EMBED_LEN(s);\
-      memcpy(__tmp__, s->as.ary, __len__);\
-      STR_UNSET_EMBED_FLAG(s);\
-      s->as.heap.ptr = __tmp__;\
-      s->as.heap.len = __len__;\
-      s->as.heap.aux.capa = (capacity);\
-    }\
-  } else {\
-    s->as.heap.ptr = (char *)mrb_realloc(mrb, STR_PTR(s), (capacity)+1);\
-    s->as.heap.aux.capa = capacity;\
-  }\
-} while(0)
+static inline void
+resize_capa(mrb_state *mrb, struct RString *s, mrb_int capacity)
+{
+  if (STR_EMBED_P(s)) {
+    if (RSTRING_EMBED_LEN_MAX < capacity) {
+      char *const tmp = (char *)mrb_malloc(mrb, capacity+1);
+      const mrb_int len = STR_EMBED_LEN(s);
+      memcpy(tmp, s->as.ary, len);
+      STR_UNSET_EMBED_FLAG(s);
+      s->as.heap.ptr = tmp;
+      s->as.heap.len = len;
+      s->as.heap.aux.capa = capacity;
+    }
+  }
+  else {
+    s->as.heap.ptr = (char *)mrb_realloc(mrb, STR_PTR(s), capacity+1);
+    s->as.heap.aux.capa = capacity;
+  }
+}
 
 static void
 str_decref(mrb_state *mrb, mrb_shared_string *shared)
@@ -153,7 +156,7 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
   slen = STR_LEN(s);
   if (len != slen) {
     if (slen < len || slen - len > 256) {
-      RESIZE_CAPA(s, len);
+      resize_capa(mrb, s, len);
     }
     STR_SET_LEN(s, len);
     STR_PTR(s)[len] = '\0';   /* sentinel */
@@ -260,7 +263,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
         }
         capa = (capa + 1) * 2;
     }
-    RESIZE_CAPA(s, capa);
+    resize_capa(mrb, s, capa);
   }
   if (off != -1) {
       ptr = STR_PTR(s) + off;
@@ -421,7 +424,7 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
   len = STR_LEN(s1) + STR_LEN(s2);
 
   if (RSTRING_CAPA(self) < len) {
-    RESIZE_CAPA(s1, len);
+    resize_capa(mrb, s1, len);
   }
   memcpy(STR_PTR(s1)+STR_LEN(s1), STR_PTR(s2), STR_LEN(s2));
   STR_SET_LEN(s1, len);
