@@ -5,6 +5,7 @@
 */
 
 #include <ctype.h>
+#include <float.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -2156,9 +2157,6 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, mrb_bool badcheck)
 {
   char *end;
   double d;
-#if !defined(DBL_DIG)
-# define DBL_DIG 16
-#endif
 
   enum {max_width = 20};
 #define OutOfRange() (((w = end - p) > max_width) ? \
