@@ -2694,7 +2694,6 @@ codedump(mrb_state *mrb, mrb_irep *irep)
   printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", irep,
          irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen, (int)irep->rlen);
 
-
   for (i = 0; i < (int)irep->ilen; i++) {
     ai = mrb_gc_arena_save(mrb);
 
@@ -2704,7 +2703,10 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       file = next_file;
     }
     line = mrb_debug_get_line(irep, i);
-    if (line != -1) {
+    if (line < 0) {
+      printf("      ");
+    }
+    else {
       printf("%5d ", line);
     }
 
