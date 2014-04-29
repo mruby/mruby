@@ -17,7 +17,7 @@ struct REnv {
   MRB_OBJECT_HEADER;
   mrb_value *stack;
   mrb_sym mid;
-  int cioff;
+  ptrdiff_t cioff;
 };
 
 #define MRB_ENV_STACK_LEN(e) ((e)->flags)
