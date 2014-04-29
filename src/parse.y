@@ -3429,7 +3429,7 @@ peek_n(parser_state *p, int c, int n)
     list = push(list, (node*)(intptr_t)c0);
   } while(n--);
   if (p->pb) {
-    p->pb = append(p->pb, (node*)list);
+    p->pb = append((node*)list, p->pb);
   }
   else {
     p->pb = list;
@@ -4189,8 +4189,13 @@ parser_yylex(parser_state *p)
 
   case '=':
     if (p->column == 1) {
-      if (peeks(p, "begin\n")) {
-        skips(p, "\n=end\n");
+      if (peeks(p, "begin ") || peeks(p, "begin\n")) {
+        if (skips(p, "\n=end ")) {
+          goto retry;
+        }
+        if (skips(p, "\n=end\n")) {
+          goto retry;
+        }
         goto retry;
       }
     }
