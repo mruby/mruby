@@ -2496,11 +2496,16 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->lv = lv;
   p->sp += node_len(lv)+1;        /* add self */
   p->nlocals = p->sp;
+  p->irep->lv_len = 0;
   if (lv) {
     node *n = lv;
     size_t i = 0;
 
-    p->irep->lv = (struct mrb_locals*)mrb_malloc(mrb, sizeof(struct mrb_locals)*p->nlocals);
+    for (n=lv; n; n=n->cdr) {
+      p->irep->lv_len++;
+    }
+
+    p->irep->lv = (struct mrb_locals*)mrb_malloc(mrb, sizeof(struct mrb_locals)*p->irep->lv_len);
     for (i=0, n=lv; n; i++,n=n->cdr) {
       p->irep->lv[i].name = lv_name(n);
       p->irep->lv[i].r = lv_idx(p, lv_name(n));

@@ -52,6 +52,7 @@ mrb_irep *mrb_read_irep(mrb_state*, const uint8_t*);
 #define RITE_SECTION_IREP_IDENTIFIER   "IREP"
 #define RITE_SECTION_LINENO_IDENTIFIER "LINE"
 #define RITE_SECTION_DEBUG_IDENTIFIER  "DBG\0"
+#define RITE_SECTION_LV_IDENTIFIER     "LOCV"
 
 #define MRB_DUMP_DEFAULT_STR_LEN      128
 
@@ -85,6 +86,10 @@ struct rite_section_lineno_header {
 };
 
 struct rite_section_debug_header {
+  RITE_SECTION_HEADER;
+};
+
+struct rite_section_lv_header {
   RITE_SECTION_HEADER;
 };
 
