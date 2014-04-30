@@ -69,7 +69,7 @@ CLASS
 ## #{name}
 
 ISO Code | Source File
---- | --- 
+--- | ---
 #{iso} | #{file}
 
 CLASS

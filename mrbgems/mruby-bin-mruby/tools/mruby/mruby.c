@@ -211,7 +211,7 @@ main(int argc, char **argv)
     cmdline = args.cmdline ? args.cmdline : "-";
     mrbc_filename(mrb, c, cmdline);
     mrb_gv_set(mrb, zero_sym, mrb_str_new_cstr(mrb, cmdline));
-  } 
+  }
   else {
     mrbc_filename(mrb, c, "-e");
     mrb_gv_set(mrb, zero_sym, mrb_str_new_lit(mrb, "-e"));

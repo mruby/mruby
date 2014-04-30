@@ -25,19 +25,19 @@ A remote GIT repository location for a GEM is also supported:
 
 	conf.gem :bitbucket => 'mruby/mrbgems-example', :branch => 'master'
 
-To pull all gems from remote GIT repository on build, call ```./minirake -p```, 
+To pull all gems from remote GIT repository on build, call ```./minirake -p```,
 or ```./minirake --pull-gems```.
 
 NOTE: `:bitbucket` option supports only git. Hg is unsupported in this version.
 
 ## GemBox
 
-There are instances when you wish to add a collection of mrbgems into mruby at 
+There are instances when you wish to add a collection of mrbgems into mruby at
 once, or be able to substitute mrbgems based on configuration, without having to
-add each gem to the *build_config.rb* file.  A packaged collection of mrbgems 
-is called a GemBox.  A GemBox is a file that contains a list of mrbgems to load 
+add each gem to the *build_config.rb* file.  A packaged collection of mrbgems
+is called a GemBox.  A GemBox is a file that contains a list of mrbgems to load
 into mruby, in the same format as if you were adding them to *build_config.rb*
-via `config.gem`, but wrapped in an `MRuby::GemBox` object.  GemBoxes are 
+via `config.gem`, but wrapped in an `MRuby::GemBox` object.  GemBoxes are
 loaded into mruby via `config.gembox 'boxname'`.
 
 Below we have created a GemBox containing *mruby-time* and *mrbgems-example*:
@@ -51,8 +51,8 @@ As mentioned, the GemBox uses the same conventions as `MRuby::Build`.  The GemBo
 must be saved with a *.gembox* extension inside the *mrbgems* directory to to be
 picked up by mruby.
 
-To use this example GemBox, we save it as `custom.gembox` inside the *mrbgems* 
-directory in mruby, and add the following to our *build_config.rb* file inside 
+To use this example GemBox, we save it as `custom.gembox` inside the *mrbgems*
+directory in mruby, and add the following to our *build_config.rb* file inside
 the build block:
 
     conf.gembox 'custom'
@@ -60,7 +60,7 @@ the build block:
 This will cause the *custom* GemBox to be read in during the build process,
 adding *mruby-time* and *mrbgems-example* to the build.
 
-If you want, you can put GemBox outside of mruby directory. In that case you must 
+If you want, you can put GemBox outside of mruby directory. In that case you must
 specify absolute path like below.
 
 	conf.gembox "#{ENV["HOME"]}/mygemboxes/custom"

@@ -19,7 +19,7 @@ end
 assert("Array#at") do
   a = [ "a", "b", "c", "d", "e" ]
   assert_equal "a", a.at(0)
-  assert_equal "e", a.at(-1) 
+  assert_equal "e", a.at(-1)
 end
 
 assert("Array#rassoc") do
@@ -50,7 +50,7 @@ assert("Array#uniq") do
   assert_equal [1, 2, 3, 1], a
 
   b = [["student","sam"], ["student","george"], ["teacher","matz"]]
-  assert_equal [["student", "sam"], ["teacher", "matz"]], b.uniq { |s| s.first } 
+  assert_equal [["student", "sam"], ["teacher", "matz"]], b.uniq { |s| s.first }
 end
 
 assert("Array#-") do
@@ -60,7 +60,7 @@ assert("Array#-") do
 
   assert_raise(TypeError) { a - c }
   assert_equal [2, 3], (a - b)
-  assert_equal [1, 2, 3, 1], a 
+  assert_equal [1, 2, 3, 1], a
 end
 
 assert("Array#|") do
@@ -70,7 +70,7 @@ assert("Array#|") do
 
   assert_raise(TypeError) { a | c }
   assert_equal [1, 2, 3, 4], (a | b)
-  assert_equal [1, 2, 3, 1], a 
+  assert_equal [1, 2, 3, 1], a
 end
 
 assert("Array#&") do
@@ -79,8 +79,8 @@ assert("Array#&") do
   c = 1
 
   assert_raise(TypeError) { a & c }
-  assert_equal [1], (a & b) 
-  assert_equal [1, 2, 3, 1], a 
+  assert_equal [1], (a & b)
+  assert_equal [1, 2, 3, 1], a
 end
 
 assert("Array#flatten") do

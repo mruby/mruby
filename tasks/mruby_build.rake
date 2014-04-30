@@ -143,9 +143,9 @@ module MRuby
     def define_rules
       compilers.each do |compiler|
         if respond_to?(:enable_gems?) && enable_gems?
-          compiler.defines -= %w(DISABLE_GEMS) 
+          compiler.defines -= %w(DISABLE_GEMS)
         else
-          compiler.defines += %w(DISABLE_GEMS) 
+          compiler.defines += %w(DISABLE_GEMS)
         end
         compiler.define_rules build_dir, File.expand_path(File.join(File.dirname(__FILE__), '..'))
       end

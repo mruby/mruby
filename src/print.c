@@ -38,7 +38,7 @@ mrb_print_error(mrb_state *mrb)
 {
 #ifdef ENABLE_STDIO
   mrb_value s;
-  
+
   mrb_print_backtrace(mrb);
   s = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
   if (mrb_string_p(s)) {

@@ -31,7 +31,7 @@
 #define MIRB_READ_HISTORY(path) linenoiseHistoryLoad(history_path)
 #define MIRB_USING_HISTORY()
 #endif
-  
+
 #ifdef ENABLE_READLINE
 #include <limits.h>
 static const char *history_file_name = ".mirb_history";
@@ -244,7 +244,7 @@ print_cmdline(int code_block_open)
     printf("> ");
   }
 }
-#endif 
+#endif
 
 void mrb_codedump_all(mrb_state*, struct RProc*);
 

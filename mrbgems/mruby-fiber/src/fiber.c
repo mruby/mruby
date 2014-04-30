@@ -13,7 +13,7 @@
  *     Fiber.new{...} -> obj
  *
  *  Creates a fiber, whose execution is suspend until it is explicitly
- *  resumed using <code>Fiber#resume</code> method.  
+ *  resumed using <code>Fiber#resume</code> method.
  *  The code running inside the fiber can give up control by calling
  *  <code>Fiber.yield</code> in which case it yields control back to caller
  *  (the caller of the <code>Fiber#resume</code>).
@@ -71,7 +71,7 @@ fiber_init(mrb_state *mrb, mrb_value self)
   mrb_value blk;
 
   mrb_get_args(mrb, "&", &blk);
-  
+
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Fiber object without a block");
   }
@@ -166,7 +166,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
       *b++ = *a++;
     }
     c->cibase->argc = len;
-    if (c->prev->fib) 
+    if (c->prev->fib)
       mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
     mrb_write_barrier(mrb, (struct RBasic*)c->fib);
     c->status = MRB_FIBER_RUNNING;
@@ -176,7 +176,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
     return c->ci->proc->env->stack[0];
   }
   MARK_CONTEXT_MODIFY(c);
-  if (c->prev->fib) 
+  if (c->prev->fib)
     mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
   mrb_write_barrier(mrb, (struct RBasic*)c->fib);
   c->status = MRB_FIBER_RUNNING;
@@ -332,7 +332,7 @@ fiber_current(mrb_state *mrb, mrb_value self)
   }
   return mrb_obj_value(mrb->c->fib);
 }
-  
+
 void
 mrb_mruby_fiber_gem_init(mrb_state* mrb)
 {
