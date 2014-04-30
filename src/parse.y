@@ -3454,7 +3454,7 @@ peeks(parser_state *p, const char *s)
   }
   else
 #endif
-    if (p->s && p->s + len >= p->send) {
+    if (p->s && p->s + len <= p->send) {
       if (memcmp(p->s, s, len) == 0) return TRUE;
     }
   return FALSE;
