@@ -11,6 +11,7 @@
 #include "mruby/string.h"
 #include "mruby/class.h"
 #include "mruby/variable.h"
+#include "mruby/hash.h"
 
 #define RSTRUCT_LEN(st) RARRAY_LEN(st)
 #define RSTRUCT_PTR(st) RARRAY_PTR(st)
@@ -806,6 +807,28 @@ mrb_struct_to_a(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ * call-seq:
+ *    struct.to_h -> hash
+ *
+ * Create a hash from member names and struct values.
+ */
+static mrb_value
+mrb_struct_to_h(mrb_state *mrb, mrb_value self)
+{
+  mrb_value members, ret;
+  mrb_int i;
+
+  members = mrb_struct_s_members(mrb, mrb_obj_value(mrb_class(mrb, self)));
+  ret = mrb_hash_new_capa(mrb, RARRAY_LEN(members));
+
+  for (i = 0; i < RARRAY_LEN(members); ++i) {
+    mrb_hash_set(mrb, ret, RARRAY_PTR(members)[i], RSTRUCT_PTR(self)[i]);
+  }
+
+  return ret;
+}
+
+/*
  *  A <code>Struct</code> is a convenient way to bundle a number of
  *  attributes together, using accessor methods, without having to write
  *  an explicit class.
@@ -842,6 +865,7 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, st,        "length",         mrb_struct_len,         MRB_ARGS_NONE());
   mrb_define_method(mrb, st,        "to_a",           mrb_struct_to_a,        MRB_ARGS_NONE());
   mrb_define_method(mrb, st,        "values",         mrb_struct_to_a,        MRB_ARGS_NONE());
+  mrb_define_method(mrb, st,        "to_h",           mrb_struct_to_h,        MRB_ARGS_NONE());
 }
 
 void
