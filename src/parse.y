@@ -4206,6 +4206,9 @@ parser_yylex(parser_state *p)
             }
             c = nextc(p);
           } while (!(c < 0 || isspace(c)));
+          if (c != '\n') skip(p, '\n');
+          p->lineno++;
+          p->column = 0;
           goto retry;
         }
       }

@@ -309,6 +309,6 @@ this is a comment that has extra after =begin and =end with spaces after it
 =end  
 =begin	this is a comment
 this is a comment that has extra after =begin and =end with tabs after it
-=end
+=end	xxxxxxxxxxxxxxxxxxxxxxxxxx
   true
 end
