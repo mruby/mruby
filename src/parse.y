@@ -4204,7 +4204,7 @@ parser_yylex(parser_state *p)
               yyerror(p, "embedded document meets end of file");
               return 0;
             }
-            c = nextc_n(p, sizeof(end)-1);
+            c = nextc(p);
           } while (!(c < 0 || isspace(c)));
           goto retry;
         }
