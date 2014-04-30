@@ -150,7 +150,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_float flo)
     else {
       exp = 0;
     }
-    
+
     /* preserve significands */
     if (exp < 0) {
       int i, beg = -1, end = 0;

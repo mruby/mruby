@@ -1,7 +1,7 @@
 MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
   spec.license = 'MIT'
   spec.author  = 'mruby developers'
- 
+
   # Add compile flags
   # spec.cc.flags << ''
 

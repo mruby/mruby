@@ -7,8 +7,8 @@
 #include "mruby.h"
 #include "mt19937ar.h"
 
-/* Period parameters */  
-/* #define N 624 */  
+/* Period parameters */
+/* #define N 624 */
 #define M 397
 #define MATRIX_A 0x9908b0dfUL   /* constant vector a */
 #define UPPER_MASK 0x80000000UL /* most significant w-r bits */
@@ -23,8 +23,8 @@ void mrb_random_init_genrand(mt_state *t, unsigned long s)
 {
     t->mt[0]= s & 0xffffffffUL;
     for (t->mti=1; t->mti<N; t->mti++) {
-        t->mt[t->mti] = 
-	    (1812433253UL * (t->mt[t->mti-1] ^ (t->mt[t->mti-1] >> 30)) + t->mti); 
+        t->mt[t->mti] =
+	    (1812433253UL * (t->mt[t->mti-1] ^ (t->mt[t->mti-1] >> 30)) + t->mti);
         t->mt[t->mti] &= 0xffffffffUL;
     }
 }
@@ -54,7 +54,7 @@ unsigned long mrb_random_genrand_int32(mt_state *t)
 
         t->mti = 0;
     }
-  
+
     y = t->mt[t->mti++];
 
     /* Tempering */
@@ -62,7 +62,7 @@ unsigned long mrb_random_genrand_int32(mt_state *t)
     y ^= (y << 7) & 0x9d2c5680UL;
     y ^= (y << 15) & 0xefc60000UL;
     y ^= (y >> 18);
-    
+
     t->gen.int_ = y;
 
     return y;
@@ -71,9 +71,9 @@ unsigned long mrb_random_genrand_int32(mt_state *t)
 double mrb_random_genrand_real1(mt_state *t)
 {
     mrb_random_genrand_int32(t);
-    t->gen.double_ =  t->gen.int_*(1.0/4294967295.0); 
+    t->gen.double_ =  t->gen.int_*(1.0/4294967295.0);
     return t->gen.double_;
-    /* divided by 2^32-1 */ 
+    /* divided by 2^32-1 */
 }
 
 #if 0 /* dead_code */
@@ -82,8 +82,8 @@ void init_genrand(unsigned long s)
 {
     mt[0]= s & 0xffffffffUL;
     for (mti=1; mti<N; mti++) {
-        mt[mti] = 
-	    (1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti); 
+        mt[mti] =
+	    (1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti);
         /* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
         /* In the previous versions, MSBs of the seed affect   */
         /* only MSBs of the array mt[].                        */
@@ -119,7 +119,7 @@ void init_by_array(unsigned long init_key[], int key_length)
         if (i>=N) { mt[0] = mt[N-1]; i=1; }
     }
 
-    mt[0] = 0x80000000UL; /* MSB is 1; assuring non-zero initial array */ 
+    mt[0] = 0x80000000UL; /* MSB is 1; assuring non-zero initial array */
 }
 
 /* generates a random number on [0,0xffffffff]-interval */
@@ -148,7 +148,7 @@ unsigned long genrand_int32(void)
 
         mti = 0;
     }
-  
+
     y = mt[mti++];
 
     /* Tempering */
@@ -169,29 +169,29 @@ long genrand_int31(void)
 /* generates a random number on [0,1]-real-interval */
 double genrand_real1(void)
 {
-    return genrand_int32()*(1.0/4294967295.0); 
-    /* divided by 2^32-1 */ 
+    return genrand_int32()*(1.0/4294967295.0);
+    /* divided by 2^32-1 */
 }
 
 /* generates a random number on [0,1)-real-interval */
 double genrand_real2(void)
 {
-    return genrand_int32()*(1.0/4294967296.0); 
+    return genrand_int32()*(1.0/4294967296.0);
     /* divided by 2^32 */
 }
 
 /* generates a random number on (0,1)-real-interval */
 double genrand_real3(void)
 {
-    return (((double)genrand_int32()) + 0.5)*(1.0/4294967296.0); 
+    return (((double)genrand_int32()) + 0.5)*(1.0/4294967296.0);
     /* divided by 2^32 */
 }
 
 /* generates a random number on [0,1) with 53-bit resolution*/
-double genrand_res53(void) 
-{ 
-    unsigned long a=genrand_int32()>>5, b=genrand_int32()>>6; 
-    return(a*67108864.0+b)*(1.0/9007199254740992.0); 
-} 
+double genrand_res53(void)
+{
+    unsigned long a=genrand_int32()>>5, b=genrand_int32()>>6;
+    return(a*67108864.0+b)*(1.0/9007199254740992.0);
+}
 /* These real versions are due to Isaku Wada, 2002/01/09 added */
 #endif /* dead_code */

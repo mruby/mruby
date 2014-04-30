@@ -65,7 +65,7 @@ assert('The undef statement', '13.3.7 a) 4)') do
   assert_true(existing_method_e, 'Method should be defined')
   assert_true(existing_method_f, 'Method should be defined')
 
-  # undefine in all possible ways and check that method 
+  # undefine in all possible ways and check that method
   # is undefined
 
   undef existing_method_a

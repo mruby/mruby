@@ -106,7 +106,7 @@ def assert_equal(arg1, arg2 = nil, arg3 = nil)
   else
     exp, act, msg = arg1, arg2, arg3
   end
-  
+
   msg = "Expected to be equal" unless msg
   diff = assertion_diff(exp, act)
   assert_true(exp == act, msg, diff)

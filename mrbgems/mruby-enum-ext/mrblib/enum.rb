@@ -92,7 +92,7 @@ module Enumerable
     end
     ary
   end
-  
+
   ##
   # call-seq:
   #   enum.each_cons(n) {...}   ->  nil
@@ -192,7 +192,7 @@ module Enumerable
     return to_enum :sort_by unless block_given?
 
     ary = []
-    orig = [] 
+    orig = []
     self.each_with_index{|e, i|
       orig.push(e)
       ary.push([block.call(e), i])
@@ -253,7 +253,7 @@ module Enumerable
         self.each { count += 1 }
       else
         self.each do |*val|
-          count += 1 if val.__svalue == v 
+          count += 1 if val.__svalue == v
         end
       end
     end

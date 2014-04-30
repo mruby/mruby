@@ -108,7 +108,7 @@ assert("Enumerable#one?") do
   assert_false %w(ant bear cat).one? { |word| word.length > 4 }
   assert_false %w(ant bear cat).one? { |word| word.length < 4 }
   assert_false [nil, true, 99].one?
-  assert_true [nil, true, false].one? 
+  assert_true [nil, true, false].one?
 end
 
 assert("Enumerable#each_with_object") do

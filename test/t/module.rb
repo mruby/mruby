@@ -485,19 +485,19 @@ end
 assert('Issue 1467') do
   module M1
     def initialize()
-      super() 
+      super()
     end
   end
 
-  class C1  
-    include M1 
-     def initialize() 
-       super() 
+  class C1
+    include M1
+     def initialize()
+       super()
      end
   end
 
   class C2
-    include M1 
+    include M1
   end
 
   C1.new

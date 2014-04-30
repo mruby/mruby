@@ -6,7 +6,7 @@ assert('Hash#merge!') do
   b = { 'cba_key' => 'XXX',  'xyz_key' => 'xyz_value' }
 
   result_1 = a.merge! b
-  
+
   a = { 'abc_key' => 'abc_value', 'cba_key' => 'cba_value' }
   result_2 = a.merge!(b) do |key, original, new|
     original

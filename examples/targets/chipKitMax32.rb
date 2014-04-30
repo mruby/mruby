@@ -13,15 +13,15 @@ MRuby::CrossBuild.new("chipKitMax32") do |conf|
   # GNU Linux
   MPIDE_PATH = '/opt/mpide-0023-linux-20120903'
 
-  PIC32_PATH = "#{MPIDE_PATH}/hardware/pic32"  
+  PIC32_PATH = "#{MPIDE_PATH}/hardware/pic32"
 
   conf.cc do |cc|
     cc.command = "#{PIC32_PATH}/compiler/pic32-tools/bin/pic32-gcc"
     cc.include_paths << ["#{PIC32_PATH}/cores/pic32",
                         "#{PIC32_PATH}/variants/Max32",
                         "#{PIC32_PATH}/libraries"]
-    cc.flags = %w(-O2 -mno-smart-io -w -ffunction-sections -fdata-sections -g -mdebugger -Wcast-align 
-                -fno-short-double -mprocessor=32MX795F512L -DF_CPU=80000000L -DARDUINO=23 -D_BOARD_MEGA_ 
+    cc.flags = %w(-O2 -mno-smart-io -w -ffunction-sections -fdata-sections -g -mdebugger -Wcast-align
+                -fno-short-double -mprocessor=32MX795F512L -DF_CPU=80000000L -DARDUINO=23 -D_BOARD_MEGA_
                 -DMPIDEVER=0x01000202 -DMPIDE=23)
     cc.compile_options = "%{flags} -o %{outfile} -c %{infile}"
 
@@ -51,16 +51,16 @@ MRuby::CrossBuild.new("chipKitMax32") do |conf|
   #no executables
   conf.bins = []
 
-  #do not build test executable 
+  #do not build test executable
   conf.build_mrbtest_lib_only
 
   #gems from core
-  conf.gem :core => "mruby-print" 
+  conf.gem :core => "mruby-print"
   conf.gem :core => "mruby-math"
   conf.gem :core => "mruby-enum-ext"
 
   #light-weight regular expression
-  conf.gem :github => "masamitsu-murase/mruby-hs-regexp", :branch => "master" 
+  conf.gem :github => "masamitsu-murase/mruby-hs-regexp", :branch => "master"
 
   #Arduino API
   #conf.gem :github =>"kyab/mruby-arduino", :branch => "master"

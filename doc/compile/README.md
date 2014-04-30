@@ -33,7 +33,7 @@ customized path using the *$MRUBY_CONFIG* environment variable.
 
 To compile just call ```./minirake``` inside of the mruby source root. To
 generate and execute the test tools call ```./minirake test```. To clean
-all build files call ```./minirake clean```. To see full command line on 
+all build files call ```./minirake clean```. To see full command line on
 build, call ```./minirake -v```.
 
 ## Build Configuration
@@ -284,21 +284,21 @@ root directory. The structure of this directory will look like this:
 	          +- mirb
 	          |
 	          +- mrbc
-	          | 
+	          |
 	          +- mruby
 
 The compilation workflow will look like this:
-* compile all files under *src* (object files will be stored 
+* compile all files under *src* (object files will be stored
 in *build/host/src*)
 * generate parser grammar out of *src/parse.y* (generated
 result will be stored in *build/host/src/y.tab.c*)
 * compile  *build/host/src/y.tab.c* to  *build/host/src/y.tab.o*
 * create *build/host/lib/libmruby_core.a* out of all object files (C only)
 * create ```build/host/bin/mrbc``` by compiling *tools/mrbc/mrbc.c* and
-linking with *build/host/lib/libmruby_core.a* 
+linking with *build/host/lib/libmruby_core.a*
 * create *build/host/mrblib/mrblib.c* by compiling all \*.rb files
 under *mrblib* with ```build/host/bin/mrbc```
-* compile *build/host/mrblib/mrblib.c* to *build/host/mrblib/mrblib.o* 
+* compile *build/host/mrblib/mrblib.c* to *build/host/mrblib/mrblib.o*
 * create *build/host/lib/libmruby.a* out of all object files (C and Ruby)
 * create ```build/host/bin/mruby``` by compiling *mrbgems/mruby-bin-mruby/tools/mruby/mruby.c* and
 linking with *build/host/lib/libmruby.a*
@@ -336,8 +336,8 @@ like this:
 	   |      +- mirb
 	   |      |
 	   |      +- mrbc
-	   |      | 
-	   |      +- mruby 
+	   |      |
+	   |      +- mruby
 	   +- i386
 	      |
 	      +- bin            <- Cross-compiled Binaries
@@ -355,7 +355,7 @@ like this:
 	         +- mirb
 	         |
 	         +- mrbc
-	         | 
+	         |
 	         +- mruby
 
 An extra directory is created for the target platform. In case you
@@ -365,7 +365,7 @@ build direcotry.
 The cross compilation workflow starts in the same way as the normal
 compilation by compiling all *native* libraries and binaries.
 Afterwards the cross compilation process proceeds like this:
-* cross-compile all files under *src* (object files will be stored 
+* cross-compile all files under *src* (object files will be stored
 in *build/i386/src*)
 * generate parser grammar out of *src/parse.y* (generated
 result will be stored in *build/i386/src/y.tab.c*)
@@ -380,7 +380,7 @@ linking with *build/i386/lib/libmruby.a*
 linking with *build/i386/lib/libmruby.a*
 * create *build/i386/lib/libmruby_core.a* out of all object files (C only)
 * create ```build/i386/bin/mrbc``` by cross-compiling *tools/mrbc/mrbc.c* and
-linking with *build/i386/lib/libmruby_core.a* 
+linking with *build/i386/lib/libmruby_core.a*
 
 ```
  _______________________________________________________________
@@ -406,15 +406,15 @@ linking with *build/i386/lib/libmruby_core.a*
 
 ### Minimal Library
 
-To build a minimal mruby library you need to use the Cross Compiling 
-feature due to the reason that there are functions (i.e. stdio) which 
+To build a minimal mruby library you need to use the Cross Compiling
+feature due to the reason that there are functions (i.e. stdio) which
 can't be disabled for the main build.
 
 	MRuby::CrossBuild.new('Minimal') do |conf|
 	  toolchain :gcc
 
 	  conf.cc.defines = %w(DISABLE_STDIO)
-	  conf.bins = []  
+	  conf.bins = []
 	end
 
 This configuration defines a cross compile build called 'Minimal' which
@@ -426,5 +426,5 @@ all usages of stdio and doesn't compile any binaries (i.e. mrbc).
 mruby's build process includes a test environment. In case you start the testing
 of mruby, a native binary called ```mrbtest``` will be generated and executed.
 This binary contains all test cases which are defined under *test/t*. In case
-of a cross-compilation an additional cross-compiled *mrbtest* binary is 
+of a cross-compilation an additional cross-compiled *mrbtest* binary is
 generated. You can copy this binary and run on your target system.

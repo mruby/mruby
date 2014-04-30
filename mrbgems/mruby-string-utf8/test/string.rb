@@ -14,7 +14,7 @@ end
 assert('String#reverse', '15.2.10.5.29') do
   a = 'こんにちは世界!'
   a.reverse
-    
+
   assert_equal 'こんにちは世界!', a
   assert_equal '!界世はちにんこ', 'こんにちは世界!'.reverse
 end
@@ -22,7 +22,7 @@ end
 assert('String#reverse!', '15.2.10.5.30') do
   a = 'こんにちは世界!'
   a.reverse!
-    
+
   assert_equal '!界世はちにんこ', a
   assert_equal '!界世はちにんこ', 'こんにちは世界!'.reverse!
 end
