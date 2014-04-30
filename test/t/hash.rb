@@ -342,3 +342,13 @@ assert('Hash#inspect') do
   assert_include ret, '"a"=>100'
   assert_include ret, '"d"=>400'
 end
+
+assert('khash put after delete') do
+  h = {}
+  h['key'] = 'value'
+  assert_equal 'value', h['key']
+  h.delete 'key'
+  assert_nil h['key']
+  h['key'] = 'next value'
+  assert_equal 'next value', h['key']
+end
