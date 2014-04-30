@@ -118,3 +118,8 @@ assert('Struct#to_a, Struct#values') do
   assert_equal ['a', 'b'], s.to_a
   assert_equal ['a', 'b'], s.values
 end
+
+assert('Struct#to_h') do
+  s = Struct.new(:white, :red, :green).new('ruuko', 'yuzuki', 'hitoe')
+  assert_equal(:white => 'ruuko', :red => 'yuzuki', :green => 'hitoe') { s.to_h }
+end
