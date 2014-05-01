@@ -28,4 +28,28 @@ MRuby::Toolchain.new(:gcc) do |conf|
     linker.option_library_path = '-L%s'
     linker.link_options = '%{flags} -o %{outfile} %{objs} %{flags_before_libraries} %{libs} %{flags_after_libraries}'
   end
+
+  [[conf.cc, 'c'], [conf.cxx, 'c++']].each do |cc, lang|
+    cc.define_singleton_method(:header_search_paths) do
+      if @header_search_command != command
+        result = `echo | #{build.filename command} -x#{lang} -Wp,-v - -fsyntax-only 2>&1`
+        result = `echo | #{command} -x#{lang} -Wp,-v - -fsyntax-only 2>&1` if $?.exitstatus != 0
+        return include_paths if  $?.exitstatus != 0
+
+        @frameworks = []
+        @header_search_paths = result.lines.map { |v|
+          framework = v.match(/^ (.*)(?: \(framework directory\))$/)
+          if framework
+            @frameworks << framework[1]
+            next nil
+          end
+
+          v.match(/^ (.*)$/)
+        }.compact.map { |v| v[1] }.select { |v| File.directory? v }
+        @header_search_paths += include_paths
+        @header_search_command = command
+      end
+      @header_search_paths
+    end
+  end
 end
