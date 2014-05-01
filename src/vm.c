@@ -131,10 +131,19 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
   }
 }
 
+static inline void
+init_new_stack_space(mrb_state *mrb, int room, int keep)
+{
+  if (room > keep) {
+    /* do not leave uninitialized malloc region */
+    stack_clear(&(mrb->c->stack[keep]), room - keep);
+  }
+}
+
 /** def rec ; $deep =+ 1 ; if $deep > 1000 ; return 0 ; end ; rec ; end  */
 
 static void
-stack_extend_alloc(mrb_state *mrb, int room)
+stack_extend_alloc(mrb_state *mrb, int room, int keep)
 {
   mrb_value *oldbase = mrb->c->stbase;
   int size = mrb->c->stend - mrb->c->stbase;
@@ -159,9 +168,11 @@ stack_extend_alloc(mrb_state *mrb, int room)
   mrb->c->stack = mrb->c->stbase + off;
   mrb->c->stend = mrb->c->stbase + size;
   envadjust(mrb, oldbase, mrb->c->stbase);
+
   /* Raise an exception if the new stack size will be too large,
      to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raise has stack space to work with. */
   if (size > MRB_STACK_MAX) {
+    init_new_stack_space(mrb, room, keep);
     mrb_raise(mrb, E_RUNTIME_ERROR, "stack level too deep. (limit=" TO_STR(MRB_STACK_MAX) ")");
   }
 }
@@ -170,12 +181,9 @@ static inline void
 stack_extend(mrb_state *mrb, int room, int keep)
 {
   if (mrb->c->stack + room >= mrb->c->stend) {
-    stack_extend_alloc(mrb, room);
+    stack_extend_alloc(mrb, room, keep);
   }
-  if (room > keep) {
-    /* do not leave uninitialized malloc region */
-    stack_clear(&(mrb->c->stack[keep]), room - keep);
-  }
+  init_new_stack_space(mrb, room, keep);
 }
 
 static inline struct REnv*
