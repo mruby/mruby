@@ -54,6 +54,18 @@ module MRuby
       @compile_options = '%{flags} -o %{outfile} -c %{infile}'
     end
 
+    alias header_search_paths include_paths
+    def search_header_path(name)
+      header_search_paths.find do |v|
+        File.exist? build.filename("#{v}/#{name}").sub(/^"(.*)"$/, '\1')
+      end
+    end
+
+    def search_header(name)
+      path = search_header_path name
+      path && build.filename("#{path}/#{name}").sub(/^"(.*)"$/, '\1')
+    end
+
     def all_flags(_defineds=[], _include_paths=[], _flags=[])
       define_flags = [defines, _defineds].flatten.map{ |d| option_define % d }
       include_path_flags = [include_paths, _include_paths].flatten.map do |f|
