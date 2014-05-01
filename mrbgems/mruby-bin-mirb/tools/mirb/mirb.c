@@ -22,7 +22,7 @@
 #define MIRB_WRITE_HISTORY(path) write_history(path)
 #define MIRB_READ_HISTORY(path) read_history(path)
 #define MIRB_USING_HISTORY() using_history()
-#elif ENABLE_LINENOISE
+#elif defined(ENABLE_LINENOISE)
 #define ENABLE_READLINE
 #include <linenoise.h>
 #define MIRB_ADD_HISTORY(line) linenoiseHistoryAdd(line)
