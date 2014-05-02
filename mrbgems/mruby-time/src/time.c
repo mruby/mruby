@@ -54,7 +54,7 @@
 
 typedef long suseconds_t;
 
-# ifndef __MINGW64__
+# if (!defined __MINGW64__) && (!defined __MINGW32__)
 struct timeval {
   time_t tv_sec;
   suseconds_t tv_usec;
