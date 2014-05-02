@@ -980,17 +980,11 @@ rshift(mrb_int val, mrb_int width)
   mrb_assert(width >= 0);
   if (width >= NUMERIC_SHIFT_WIDTH_MAX) {
     if (val < 0) {
-      val = -1;
+      return mrb_fixnum_value(-1);
     }
-    else {
-      val = 0;
-    }
+    return mrb_fixnum_value(0);
   }
-  else {
-    val = val >> width;
-  }
-
-  return mrb_fixnum_value(val);
+  return mrb_fixnum_value(val >> width);
 }
 
 static inline void
