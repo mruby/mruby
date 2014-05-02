@@ -12,6 +12,7 @@
 #include "mruby/class.h"
 #include "mruby/variable.h"
 #include "mruby/hash.h"
+#include "mruby/range.h"
 
 #define RSTRUCT_LEN(st) RARRAY_LEN(st)
 #define RSTRUCT_PTR(st) RARRAY_PTR(st)
@@ -828,6 +829,23 @@ mrb_struct_to_h(mrb_state *mrb, mrb_value self)
   return ret;
 }
 
+static mrb_value
+struct_values_at_getter(mrb_state *mrb, mrb_value self, mrb_int idx)
+{
+  return mrb_struct_aref_n(mrb, self, mrb_fixnum_value(idx));
+}
+
+static mrb_value
+mrb_struct_values_at(mrb_state *mrb, mrb_value self)
+{
+  mrb_int argc;
+  mrb_value *argv;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  return mrb_get_values_at(mrb, self, MRB_INT_MAX, argc, argv, struct_values_at_getter);
+}
+
 /*
  *  A <code>Struct</code> is a convenient way to bundle a number of
  *  attributes together, using accessor methods, without having to write
@@ -866,6 +884,7 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, st,        "to_a",           mrb_struct_to_a,        MRB_ARGS_NONE());
   mrb_define_method(mrb, st,        "values",         mrb_struct_to_a,        MRB_ARGS_NONE());
   mrb_define_method(mrb, st,        "to_h",           mrb_struct_to_h,        MRB_ARGS_NONE());
+  mrb_define_method(mrb, st,        "values_at",      mrb_struct_values_at,   MRB_ARGS_NONE());
 }
 
 void

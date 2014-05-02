@@ -8,6 +8,7 @@
 #include "mruby/class.h"
 #include "mruby/range.h"
 #include "mruby/string.h"
+#include "mruby/array.h"
 
 #define RANGE_CLASS (mrb_class_get(mrb, "Range"))
 
@@ -393,6 +394,33 @@ range_initialize_copy(mrb_state *mrb, mrb_value copy)
   range_init(mrb, copy, r->edges->beg, r->edges->end, r->excl);
 
   return copy;
+}
+
+mrb_value
+mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, const mrb_value *argv, mrb_value (*func)(mrb_state*, mrb_value, mrb_int))
+{
+  mrb_int i, j, beg, len;
+  mrb_value result;
+  result = mrb_ary_new(mrb);
+
+  for (i = 0; i < argc; ++i) {
+    if (mrb_fixnum_p(argv[i])) {
+      mrb_ary_push(mrb, result, func(mrb, obj, mrb_fixnum(argv[i])));
+    } else if (mrb_range_beg_len(mrb, argv[i], &beg, &len, olen)) {
+      mrb_int const end = RARRAY_LEN(obj) < beg + len ? RARRAY_LEN(obj) : beg + len;
+      for (j = beg; j < end; ++j) {
+        mrb_ary_push(mrb, result, func(mrb, obj, j));
+      }
+
+      for (; j < beg + len; ++j) {
+        mrb_ary_push(mrb, result, mrb_nil_value());
+      }
+    } else {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid values selector: %S", argv[i]);
+    }
+  }
+
+  return result;
 }
 
 void
