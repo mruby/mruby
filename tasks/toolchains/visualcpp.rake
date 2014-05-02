@@ -1,7 +1,8 @@
 MRuby::Toolchain.new(:visualcpp) do |conf|
   [conf.cc].each do |cc|
     cc.command = ENV['CC'] || 'cl.exe'
-    cc.flags = [ENV['CFLAGS'] || %w(/c /nologo /W3 /Zi /MD /O2 /D_CRT_SECURE_NO_WARNINGS)]
+    # C4013: implicit function declaration
+    cc.flags = [ENV['CFLAGS'] || %w(/c /nologo /W3 /we4013 /Zi /MD /O2 /D_CRT_SECURE_NO_WARNINGS)]
     cc.include_paths = ["#{MRUBY_ROOT}/include"]
     cc.defines = %w(DISABLE_GEMS MRB_STACK_EXTEND_DOUBLING)
     cc.option_include_path = '/I%s'
