@@ -532,7 +532,7 @@ mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
 }
 
 static mrb_value
-mrb_struct_aref_id(mrb_state *mrb, mrb_value s, mrb_sym id)
+struct_aref_sym(mrb_state *mrb, mrb_value s, mrb_sym id)
 {
   mrb_value *ptr, members, *ptr_members;
   mrb_int i, len;
@@ -548,6 +548,21 @@ mrb_struct_aref_id(mrb_state *mrb, mrb_value s, mrb_sym id)
   }
   mrb_raisef(mrb, E_INDEX_ERROR, "no member '%S' in struct", mrb_sym2str(mrb, id));
   return mrb_nil_value();       /* not reached */
+}
+
+static mrb_value
+struct_aref_int(mrb_state *mrb, mrb_value s, mrb_int i)
+{
+  if (i < 0) i = RSTRUCT_LEN(s) + i;
+  if (i < 0)
+      mrb_raisef(mrb, E_INDEX_ERROR,
+                 "offset %S too small for struct(size:%S)",
+                 mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
+  if (RSTRUCT_LEN(s) <= i)
+    mrb_raisef(mrb, E_INDEX_ERROR,
+               "offset %S too large for struct(size:%S)",
+               mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
+  return RSTRUCT_PTR(s)[i];
 }
 
 /* 15.2.18.4.2  */
@@ -570,10 +585,11 @@ mrb_struct_aref_id(mrb_state *mrb, mrb_value s, mrb_sym id)
  *     joe[0]        #=> "Joe Smith"
  */
 mrb_value
-mrb_struct_aref_n(mrb_state *mrb, mrb_value s, mrb_value idx)
+mrb_struct_aref(mrb_state *mrb, mrb_value s)
 {
-  mrb_int i;
+  mrb_value idx;
 
+  mrb_get_args(mrb, "o", &idx);
   if (mrb_string_p(idx)) {
     mrb_value sym = mrb_check_intern_str(mrb, idx);
 
@@ -583,33 +599,13 @@ mrb_struct_aref_n(mrb_state *mrb, mrb_value s, mrb_value idx)
     idx = sym;
   }
   if (mrb_symbol_p(idx)) {
-    return mrb_struct_aref_id(mrb, s, mrb_symbol(idx));
+    return struct_aref_sym(mrb, s, mrb_symbol(idx));
   }
-
-  i = mrb_fixnum(idx);
-  if (i < 0) i = RSTRUCT_LEN(s) + i;
-  if (i < 0)
-      mrb_raisef(mrb, E_INDEX_ERROR,
-                 "offset %S too small for struct(size:%S)",
-                 mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
-  if (RSTRUCT_LEN(s) <= i)
-    mrb_raisef(mrb, E_INDEX_ERROR,
-               "offset %S too large for struct(size:%S)",
-               mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
-  return RSTRUCT_PTR(s)[i];
-}
-
-mrb_value
-mrb_struct_aref(mrb_state *mrb, mrb_value s)
-{
-  mrb_value idx;
-
-  mrb_get_args(mrb, "o", &idx);
-  return mrb_struct_aref_n(mrb, s, idx);
+  return struct_aref_int(mrb, s, mrb_int(mrb, idx));
 }
 
 static mrb_value
-mrb_struct_aset_id(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
+mrb_struct_aset_sym(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
 {
   mrb_value members, *ptr, *ptr_members;
   mrb_int i, len;
@@ -664,8 +660,8 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
 
   mrb_get_args(mrb, "oo", &idx, &val);
 
-  if (mrb_string_p(idx) || mrb_symbol_p(idx)) {
-    return mrb_struct_aset_id(mrb, s, mrb_obj_to_sym(mrb, idx), val);
+  if (mrb_symbol_p(idx)) {
+    return mrb_struct_aset_sym(mrb, s, mrb_symbol(idx), val);
   }
 
   i = mrb_fixnum(idx);
@@ -830,12 +826,6 @@ mrb_struct_to_h(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-struct_values_at_getter(mrb_state *mrb, mrb_value self, mrb_int idx)
-{
-  return mrb_struct_aref_n(mrb, self, mrb_fixnum_value(idx));
-}
-
-static mrb_value
 mrb_struct_values_at(mrb_state *mrb, mrb_value self)
 {
   mrb_int argc;
@@ -843,7 +833,7 @@ mrb_struct_values_at(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
-  return mrb_get_values_at(mrb, self, RSTRUCT_LEN(self), argc, argv, struct_values_at_getter);
+  return mrb_get_values_at(mrb, self, RSTRUCT_LEN(self), argc, argv, struct_aref_int);
 }
 
 /*
