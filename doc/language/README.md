@@ -6,4 +6,4 @@ which are provided together with mruby.
 
 ## Built-In Class and Modules
 
-see *doc/lang/Core.md*
+see *doc/language/Core.md*
