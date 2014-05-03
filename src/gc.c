@@ -121,9 +121,9 @@ static double gc_total_time = 0;
 static double
 gettimeofday_time(void)
 {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return tv.tv_sec + tv.tv_usec * 1e-6;
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return tv.tv_sec + tv.tv_usec * 1e-6;
 }
 
 #define GC_INVOKE_TIME_REPORT(with) do {\
