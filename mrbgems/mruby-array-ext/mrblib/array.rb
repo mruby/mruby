@@ -617,7 +617,6 @@ class Array
     return to_enum :delete_if unless block_given?
 
     idx = 0
-    len = self.size
     while idx < self.size do
       if block.call(self[idx])
         self.delete_at(idx)
