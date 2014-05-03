@@ -8,11 +8,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "mruby.h"
-#include "mruby/array.h"
-#include "mruby/proc.h"
-#include "mruby/compile.h"
-#include "mruby/string.h"
+#include <stdio.h>
 
 #ifdef ENABLE_READLINE
 #include <readline/readline.h>
@@ -37,6 +33,12 @@
 static const char *history_file_name = ".mirb_history";
 char history_path[PATH_MAX];
 #endif
+
+#include "mruby.h"
+#include "mruby/array.h"
+#include "mruby/proc.h"
+#include "mruby/compile.h"
+#include "mruby/string.h"
 
 static void
 p(mrb_state *mrb, mrb_value obj, int prompt)
