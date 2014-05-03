@@ -240,9 +240,7 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
   mrb_int beg, end, b, e;
   struct RRange *r = mrb_range_ptr(range);
 
-  if (mrb_type(range) != MRB_TT_RANGE) {
-    mrb_raise(mrb, E_TYPE_ERROR, "expected Range.");
-  }
+  if (mrb_type(range) != MRB_TT_RANGE) return FALSE;
 
   beg = b = mrb_fixnum(r->edges->beg);
   end = e = mrb_fixnum(r->edges->end);
