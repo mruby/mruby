@@ -380,7 +380,8 @@ mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, con
   for (i = 0; i < argc; ++i) {
     if (mrb_fixnum_p(argv[i])) {
       mrb_ary_push(mrb, result, func(mrb, obj, mrb_fixnum(argv[i])));
-    } else if (mrb_range_beg_len(mrb, argv[i], &beg, &len, olen)) {
+    }
+    else if (mrb_range_beg_len(mrb, argv[i], &beg, &len, olen)) {
       mrb_int const end = RARRAY_LEN(obj) < beg + len ? RARRAY_LEN(obj) : beg + len;
       for (j = beg; j < end; ++j) {
         mrb_ary_push(mrb, result, func(mrb, obj, j));
@@ -389,7 +390,8 @@ mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, con
       for (; j < beg + len; ++j) {
         mrb_ary_push(mrb, result, mrb_nil_value());
       }
-    } else {
+    }
+    else {
       mrb_raisef(mrb, E_TYPE_ERROR, "invalid values selector: %S", argv[i]);
     }
   }
