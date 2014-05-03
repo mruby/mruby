@@ -242,8 +242,8 @@ range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb
 
   if (mrb_type(range) != MRB_TT_RANGE) return FALSE;
 
-  beg = b = mrb_fixnum(mrb_to_int(mrb, r->edges->beg));
-  end = e = mrb_fixnum(mrb_to_int(mrb, r->edges->end));
+  beg = b = mrb_int(mrb, r->edges->beg);
+  end = e = mrb_int(mrb, r->edges->end);
 
   if (beg < 0) {
     beg += len;

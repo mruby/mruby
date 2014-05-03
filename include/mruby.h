@@ -381,6 +381,7 @@ mrb_value mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const 
 
 void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
+#define mrb_int(mrb, val) mrb_fixnum(mrb_to_int(mrb, val))
 void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
 
 typedef enum call_type {
