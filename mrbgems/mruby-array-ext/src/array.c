@@ -131,7 +131,7 @@ mrb_ary_values_at(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
-  return mrb_get_values_at(mrb, self, MRB_INT_MAX, argc, argv, mrb_ary_ref);
+  return mrb_get_values_at(mrb, self, RARRAY_LEN(self), argc, argv, mrb_ary_ref);
 }
 
 void

@@ -235,7 +235,7 @@ mrb_range_include(mrb_state *mrb, mrb_value range)
 }
 
 mrb_bool
-mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len)
+range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len, mrb_bool trunc)
 {
   mrb_int beg, end, b, e;
   struct RRange *r = mrb_range_ptr(range);
@@ -250,17 +250,26 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
     if (beg < 0) return FALSE;
   }
 
-  if (beg > len) return FALSE;
-  if (end > len) end = len;
+  if (trunc) {
+    if (beg > len) return FALSE;
+    if (end > len) end = len;
+  }
 
   if (end < 0) end += len;
-  if (!r->excl && end < len) end++;  /* include end point */
+  if (!r->excl && (!trunc || end < len))
+    end++;                      /* include end point */
   len = end - beg;
   if (len < 0) len = 0;
 
   *begp = beg;
   *lenp = len;
   return TRUE;
+}
+
+mrb_bool
+mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len)
+{
+  return range_beg_len(mrb, range, begp, lenp, len, TRUE);
 }
 
 /* 15.2.14.4.12(x) */
@@ -381,8 +390,8 @@ mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, con
     if (mrb_fixnum_p(argv[i])) {
       mrb_ary_push(mrb, result, func(mrb, obj, mrb_fixnum(argv[i])));
     }
-    else if (mrb_range_beg_len(mrb, argv[i], &beg, &len, olen)) {
-      mrb_int const end = RARRAY_LEN(obj) < beg + len ? RARRAY_LEN(obj) : beg + len;
+    else if (range_beg_len(mrb, argv[i], &beg, &len, olen, FALSE)) {
+      mrb_int const end = olen < beg + len ? olen : beg + len;
       for (j = beg; j < end; ++j) {
         mrb_ary_push(mrb, result, func(mrb, obj, j));
       }

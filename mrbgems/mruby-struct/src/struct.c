@@ -843,7 +843,7 @@ mrb_struct_values_at(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
-  return mrb_get_values_at(mrb, self, MRB_INT_MAX, argc, argv, struct_values_at_getter);
+  return mrb_get_values_at(mrb, self, RSTRUCT_LEN(self), argc, argv, struct_values_at_getter);
 }
 
 /*
