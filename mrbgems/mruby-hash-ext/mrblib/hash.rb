@@ -27,4 +27,27 @@ class Hash
       self[key]
     end
   end
+
+  ##
+  #  call-seq:
+  #     hsh.delete_if {| key, value | block }  -> hsh
+  #     hsh.delete_if                          -> an_enumerator
+  #
+  #  Deletes every key-value pair from <i>hsh</i> for which <i>block</i>
+  #  evaluates to <code>true</code>.
+  #
+  #  If no block is given, an enumerator is returned instead.
+  #
+  #     h = { "a" => 100, "b" => 200, "c" => 300 }
+  #     h.delete_if {|key, value| key >= "b" }   #=> {"a"=>100}
+  #
+
+  def delete_if(&block)
+    return to_enum :delete_if unless block_given?
+
+    self.each do |k, v|
+      self.delete(k) if block.call(k, v)
+    end 
+    self
+  end
 end
