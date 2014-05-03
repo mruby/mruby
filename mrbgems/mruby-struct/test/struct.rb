@@ -123,3 +123,10 @@ assert('Struct#to_h') do
   s = Struct.new(:white, :red, :green).new('ruuko', 'yuzuki', 'hitoe')
   assert_equal(:white => 'ruuko', :red => 'yuzuki', :green => 'hitoe') { s.to_h }
 end
+
+assert('Struct#values_at') do
+  a = Struct.new(:blue, :purple).new('aki', 'io')
+  assert_equal ['aki'], a.values_at(0)
+  assert_equal ['io', 'aki'], a.values_at(1, 0)
+  assert_raise(IndexError) { a.values_at 2 }
+end

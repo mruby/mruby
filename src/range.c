@@ -8,6 +8,7 @@
 #include "mruby/class.h"
 #include "mruby/range.h"
 #include "mruby/string.h"
+#include "mruby/array.h"
 
 #define RANGE_CLASS (mrb_class_get(mrb, "Range"))
 
@@ -234,34 +235,41 @@ mrb_range_include(mrb_state *mrb, mrb_value range)
 }
 
 mrb_bool
-mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len)
+range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len, mrb_bool trunc)
 {
   mrb_int beg, end, b, e;
   struct RRange *r = mrb_range_ptr(range);
 
-  if (mrb_type(range) != MRB_TT_RANGE) {
-    mrb_raise(mrb, E_TYPE_ERROR, "expected Range.");
-  }
+  if (mrb_type(range) != MRB_TT_RANGE) return FALSE;
 
-  beg = b = mrb_fixnum(r->edges->beg);
-  end = e = mrb_fixnum(r->edges->end);
+  beg = b = mrb_int(mrb, r->edges->beg);
+  end = e = mrb_int(mrb, r->edges->end);
 
   if (beg < 0) {
     beg += len;
     if (beg < 0) return FALSE;
   }
 
-  if (beg > len) return FALSE;
-  if (end > len) end = len;
+  if (trunc) {
+    if (beg > len) return FALSE;
+    if (end > len) end = len;
+  }
 
   if (end < 0) end += len;
-  if (!r->excl && end < len) end++;  /* include end point */
+  if (!r->excl && (!trunc || end < len))
+    end++;                      /* include end point */
   len = end - beg;
   if (len < 0) len = 0;
 
   *begp = beg;
   *lenp = len;
   return TRUE;
+}
+
+mrb_bool
+mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len)
+{
+  return range_beg_len(mrb, range, begp, lenp, len, TRUE);
 }
 
 /* 15.2.14.4.12(x) */
@@ -369,6 +377,35 @@ range_initialize_copy(mrb_state *mrb, mrb_value copy)
   range_init(mrb, copy, r->edges->beg, r->edges->end, r->excl);
 
   return copy;
+}
+
+mrb_value
+mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, const mrb_value *argv, mrb_value (*func)(mrb_state*, mrb_value, mrb_int))
+{
+  mrb_int i, j, beg, len;
+  mrb_value result;
+  result = mrb_ary_new(mrb);
+
+  for (i = 0; i < argc; ++i) {
+    if (mrb_fixnum_p(argv[i])) {
+      mrb_ary_push(mrb, result, func(mrb, obj, mrb_fixnum(argv[i])));
+    }
+    else if (range_beg_len(mrb, argv[i], &beg, &len, olen, FALSE)) {
+      mrb_int const end = olen < beg + len ? olen : beg + len;
+      for (j = beg; j < end; ++j) {
+        mrb_ary_push(mrb, result, func(mrb, obj, j));
+      }
+
+      for (; j < beg + len; ++j) {
+        mrb_ary_push(mrb, result, mrb_nil_value());
+      }
+    }
+    else {
+      mrb_raisef(mrb, E_TYPE_ERROR, "invalid values selector: %S", argv[i]);
+    }
+  }
+
+  return result;
 }
 
 void

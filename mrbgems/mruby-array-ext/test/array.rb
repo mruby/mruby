@@ -280,3 +280,13 @@ assert("Array#select!") do
   assert_equal [4, 5], a.select! { |val| val > 3 }
   assert_equal [4, 5], a
 end
+
+assert('Array#values_at') do
+  a = %w{red green purple white none}
+
+  assert_equal %w{red purple none}, a.values_at(0, 2, 4)
+  assert_equal ['green', 'white', nil, nil], a.values_at(1, 3, 5, 7)
+  assert_equal ['none', 'white', 'white', nil], a.values_at(-1, -2, -2, -7)
+  assert_equal ['none', nil, nil, 'red', 'green', 'purple'], a.values_at(4..6, 0...3)
+  assert_raise(TypeError) { a.values_at 'tt' }
+end
