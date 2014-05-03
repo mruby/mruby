@@ -726,7 +726,7 @@ is_debug_info_defined(mrb_irep *irep)
 }
 
 int
-dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, size_t *bin_size)
+mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, size_t *bin_size)
 {
   int result = MRB_DUMP_GENERAL_FAILURE;
   size_t section_irep_size;
@@ -815,7 +815,7 @@ mrb_dump_irep_binary(mrb_state *mrb, mrb_irep *irep, int debug_info, FILE* fp)
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
-  result = dump_irep(mrb, irep, debug_info, &bin, &bin_size);
+  result = mrb_dump_irep(mrb, irep, debug_info, &bin, &bin_size);
   if (result == MRB_DUMP_OK) {
     fwrite(bin, bin_size, 1, fp);
   }
@@ -851,7 +851,7 @@ mrb_dump_irep_cfunc(mrb_state *mrb, mrb_irep *irep, int debug_info, FILE *fp, co
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
-  result = dump_irep(mrb, irep, debug_info, &bin, &bin_size);
+  result = mrb_dump_irep(mrb, irep, debug_info, &bin, &bin_size);
   if (result == MRB_DUMP_OK) {
     fprintf(fp, "#include <stdint.h>\n"); /* for uint8_t under at least Darwin */
     fprintf(fp, "const uint8_t %s[] = {", initname);
