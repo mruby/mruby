@@ -118,7 +118,7 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 }
 
 /*
- * Get a value for a symbol from the instance the variable table.
+ * Get a value for a symbol from the instance variable table.
  *
  * Parameters
  *   mrb
