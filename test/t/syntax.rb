@@ -307,5 +307,9 @@ this is a comment that has =end with spaces after it
 =begin this is a comment
 this is a comment that has extra after =begin and =end with spaces after it
 =end  
-  true
+  line = __LINE__
+=begin	this is a comment
+this is a comment that has extra after =begin and =end with tabs after it
+=end	xxxxxxxxxxxxxxxxxxxxxxxxxx
+  assert_equal(line + 4, __LINE__)
 end

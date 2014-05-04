@@ -3417,15 +3417,15 @@ skip(parser_state *p, char term)
   }
 }
 
-static mrb_bool
-peek_n(parser_state *p, int c, int n)
+static int
+peekc_n(parser_state *p, int n)
 {
   node *list = 0;
   int c0;
 
   do {
     c0 = nextc(p);
-    if (c0 < 0) return FALSE;
+    if (c0 < 0) return c0;
     list = push(list, (node*)(intptr_t)c0);
   } while(n--);
   if (p->pb) {
@@ -3434,8 +3434,13 @@ peek_n(parser_state *p, int c, int n)
   else {
     p->pb = list;
   }
-  if (c0 == c) return TRUE;
-  return FALSE;
+  return c0;
+}
+
+static mrb_bool
+peek_n(parser_state *p, int c, int n)
+{
+  return peekc_n(p, n) == c && c >= 0;
 }
 #define peek(p,c) peek_n((p), (c), 0)
 
@@ -3454,7 +3459,7 @@ peeks(parser_state *p, const char *s)
   }
   else
 #endif
-    if (p->s && p->s + len >= p->send) {
+    if (p->s && p->s + len <= p->send) {
       if (memcmp(p->s, s, len) == 0) return TRUE;
     }
   return FALSE;
@@ -3470,6 +3475,10 @@ skips(parser_state *p, const char *s)
     for (;;) {
       c = nextc(p);
       if (c < 0) return c;
+      if (c == '\n') {
+        p->lineno++;
+        p->column = 0;
+      }
       if (c == *s) break;
     }
     s++;
@@ -3477,7 +3486,10 @@ skips(parser_state *p, const char *s)
       int len = strlen(s);
 
       while (len--) {
-        nextc(p);
+        if (nextc(p) == '\n') {
+          p->lineno++;
+          p->column = 0;
+        }
       }
       return TRUE;
     }
@@ -4189,14 +4201,23 @@ parser_yylex(parser_state *p)
 
   case '=':
     if (p->column == 1) {
-      if (peeks(p, "begin ") || peeks(p, "begin\n")) {
-        if (skips(p, "\n=end ")) {
+      static const char begin[] = "begin";
+      static const char end[] = "\n=end";
+      if (peeks(p, begin)) {
+        c = peekc_n(p, sizeof(begin)-1);
+        if (c < 0 || isspace(c)) {
+          do {
+            if (!skips(p, end)) {
+              yyerror(p, "embedded document meets end of file");
+              return 0;
+            }
+            c = nextc(p);
+          } while (!(c < 0 || isspace(c)));
+          if (c != '\n') skip(p, '\n');
+          p->lineno++;
+          p->column = 0;
           goto retry;
         }
-        if (skips(p, "\n=end\n")) {
-          goto retry;
-        }
-        goto retry;
       }
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
