@@ -110,6 +110,34 @@ Configuration of the C compiler binary, flags and include paths.
 	  cc.compile_options = ...
 	end
 
+C Compiler has header searcher to detect installed library.
+
+If you need a include path of header file use ```search_header_path```:
+
+	# Searches ```iconv.h```.
+	# If found it will return include path of the header file.
+	# Otherwise it will return nil .
+	fail 'iconv.h not found' unless conf.cc.search_header_path 'iconv.h'
+
+If you need a full file name of header file use ```search_header```:
+
+	# Searches ```iconv.h```.
+	# If found it will return full path of the header file.
+	# Otherwise it will return nil .
+	iconv_h = conf.cc.search_header 'iconv.h'
+	print "iconv.h found: #{iconv_h}\n"
+
+Header searcher uses compiler's ```include_paths``` by default.
+When you are using GCC toolchain (including clang toolchain since its base is gcc toolchain)
+it will use compiler specific include paths too. (For example ```/usr/local/include```, ```/usr/include```)
+
+If you need a special header search paths define a singleton method ```header_search_paths``` to C compiler:
+
+	def conf.cc.header_search_paths
+		['/opt/local/include'] + include_paths
+	end
+
+
 ### Linker
 
 Configuration of the Linker binary, flags and library paths.
