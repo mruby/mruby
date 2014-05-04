@@ -73,3 +73,12 @@ assert("Hash#delete_if") do
   }
   assert_equal(base.size, n)
 end
+
+assert("Hash#flatten") do
+  a =  {1=> "one", 2 => [2,"two"], 3 => [3, ["three"]]}
+  assert_equal [1, "one", 2, [2, "two"], 3, [3, ["three"]]], a.flatten
+  assert_equal [[1, "one"], [2, [2, "two"]], [3, [3, ["three"]]]], a.flatten(0)
+  assert_equal [1, "one", 2, [2, "two"], 3, [3, ["three"]]], a.flatten(1)
+  assert_equal [1, "one", 2, 2, "two", 3, 3, ["three"]], a.flatten(2)
+  assert_equal [1, "one", 2, 2, "two", 3, 3, "three"], a.flatten(3)
+end

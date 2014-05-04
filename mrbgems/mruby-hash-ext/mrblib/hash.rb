@@ -100,4 +100,24 @@ class Hash
     end 
     self
   end
+
+  ##
+  #  call-seq:
+  #     hash.flatten -> an_array
+  #     hash.flatten(level) -> an_array
+  #
+  #  Returns a new array that is a one-dimensional flattening of this
+  #  hash. That is, for every key or value that is an array, extract
+  #  its elements into the new array.  Unlike Array#flatten, this
+  #  method does not flatten recursively by default.  The optional
+  #  <i>level</i> argument determines the level of recursion to flatten.
+  #
+  #     a =  {1=> "one", 2 => [2,"two"], 3 => "three"}
+  #     a.flatten    # => [1, "one", 2, [2, "two"], 3, "three"]
+  #     a.flatten(2) # => [1, "one", 2, 2, "two", 3, "three"]
+  #
+
+  def flatten(level=1)
+    self.to_a.flatten(level)
+  end
 end
