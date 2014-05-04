@@ -1,4 +1,26 @@
 class Hash
+
+  ##
+  # call-seq:
+  #     hsh.merge!(other_hash)                                 -> hsh
+  #     hsh.merge!(other_hash){|key, oldval, newval| block}    -> hsh
+  #
+  #  Adds the contents of _other_hash_ to _hsh_.  If no block is specified,
+  #  entries with duplicate keys are overwritten with the values from
+  #  _other_hash_, otherwise the value of each duplicate key is determined by
+  #  calling the block with the key, its value in _hsh_ and its value in
+  #  _other_hash_.
+  #
+  #     h1 = { "a" => 100, "b" => 200 }
+  #     h2 = { "b" => 254, "c" => 300 }
+  #     h1.merge!(h2)   #=> {"a"=>100, "b"=>254, "c"=>300}
+  #
+  #     h1 = { "a" => 100, "b" => 200 }
+  #     h2 = { "b" => 254, "c" => 300 }
+  #     h1.merge!(h2) { |key, v1, v2| v1 }
+  #                     #=> {"a"=>100, "b"=>200, "c"=>300}
+  #
+
   def merge!(other, &block)
     raise "can't convert argument into Hash" unless other.respond_to?(:to_hash)
     if block
@@ -13,6 +35,34 @@ class Hash
 
   alias each_pair each
   alias update merge!
+
+  ##
+  #  call-seq:
+  #     hsh.fetch(key [, default] )       -> obj
+  #     hsh.fetch(key) {| key | block }   -> obj
+  #
+  #  Returns a value from the hash for the given key. If the key can't be
+  #  found, there are several options: With no other arguments, it will
+  #  raise an <code>KeyError</code> exception; if <i>default</i> is
+  #  given, then that will be returned; if the optional code block is
+  #  specified, then that will be run and its result returned.
+  #
+  #     h = { "a" => 100, "b" => 200 }
+  #     h.fetch("a")                            #=> 100
+  #     h.fetch("z", "go fish")                 #=> "go fish"
+  #     h.fetch("z") { |el| "go fish, #{el}"}   #=> "go fish, z"
+  #
+  #  The following example shows that an exception is raised if the key
+  #  is not found and a default value is not supplied.
+  #
+  #     h = { "a" => 100, "b" => 200 }
+  #     h.fetch("z")
+  #
+  #  <em>produces:</em>
+  #
+  #     prog.rb:2:in `fetch': key not found (KeyError)
+  #      from prog.rb:2
+  #
 
   def fetch(key, none=NONE, &block)
     unless self.key?(key)
