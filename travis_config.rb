@@ -1,5 +1,19 @@
+class MRuby::Build
+  def travis_toolchain_selection
+    if ENV['CC'] == 'clang'
+      toolchain :clang
+      sanitizers = %w(-fsanitize=address,undefined -fno-sanitize=alignment,float-divide-by-zero)
+      cc.flags += sanitizers
+      linker.flags += sanitizers
+    else
+      toolchain :gcc
+    end
+  end
+end
+
 MRuby::Build.new('debug') do |conf|
-  toolchain :gcc
+  travis_toolchain_selection
+
   enable_debug
 
   # include all core GEMs
@@ -11,7 +25,7 @@ MRuby::Build.new('debug') do |conf|
 end
 
 MRuby::Build.new do |conf|
-  toolchain :gcc
+  travis_toolchain_selection
 
   # include all core GEMs
   conf.gembox 'full-core'
@@ -23,7 +37,7 @@ MRuby::Build.new do |conf|
 end
 
 MRuby::Build.new('cxx_abi') do |conf|
-  toolchain :gcc
+  travis_toolchain_selection
 
   conf.gembox 'full-core'
   conf.cc.flags += %w(-Werror=declaration-after-statement)
