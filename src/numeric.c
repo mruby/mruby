@@ -309,7 +309,7 @@ flodivmod(mrb_state *mrb, mrb_float x, mrb_float y, mrb_float *divp, mrb_float *
   }
   else {
     mod = fmod(x, y);
-    if (isinf(x) && !isinf(y) && !isnan(y))
+    if (isinf(x) && isfinite(y))
       div = x;
     else
       div = (x - mod) / y;
@@ -495,7 +495,7 @@ flo_finite_p(mrb_state *mrb, mrb_value num)
 {
   mrb_float value = mrb_float(num);
 
-  return mrb_bool_value(!(isinf(value) || isnan(value)));
+  return mrb_bool_value(isfinite(value));
 }
 
 /* 15.2.9.3.10 */
@@ -626,7 +626,7 @@ flo_round(mrb_state *mrb, mrb_value num)
   }
 
   if (ndigits > 0) {
-    if (isinf(number) || isnan(number)) return num;
+    if (!isfinite(number)) return num;
     return mrb_float_value(mrb, number);
   }
   return mrb_fixnum_value((mrb_int)number);

@@ -60,6 +60,7 @@ typedef short mrb_sym;
 # define snprintf _snprintf
 # if _MSC_VER < 1800
 #  include <float.h>
+#  define isfinite(n) _finite(n)
 #  define isnan _isnan
 #  define isinf(n) (!_finite(n) && !_isnan(n))
 #  define signbit(n) (_copysign(1.0, (n)) < 0.0)
