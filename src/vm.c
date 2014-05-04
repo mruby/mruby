@@ -2251,10 +2251,10 @@ RETRY_TRY_BLOCK:
       /*        stop VM */
     L_STOP:
       {
-        int n = mrb->c->ci->eidx;
-
-        while (n--) {
-          ecall(mrb, n);
+        int eidx_stop = mrb->c->ci == mrb->c->cibase ? 0 : mrb->c->ci[-1].eidx;
+        int eidx = mrb->c->ci->eidx;
+        while (eidx > eidx_stop) {
+          ecall(mrb, --eidx);
         }
       }
       ERR_PC_CLR(mrb);
@@ -2307,8 +2307,6 @@ mrb_toplevel_run(mrb_state *mrb, struct RProc *proc)
   }
   ci = cipush(mrb);
   ci->acc = CI_ACC_SKIP;
-  ci->eidx = 0;
-  ci->ridx = 0;
   ci->target_class = mrb->object_class;
   v = mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
   cipop(mrb);
