@@ -1851,7 +1851,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     char *ptr = RSTRING_PTR(str);
     char *eptr = RSTRING_END(str);
     char *bptr = ptr;
-    int skip = 1;
+    mrb_bool skip = TRUE;
     unsigned int c;
 
     end = beg;
@@ -1864,14 +1864,14 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
         }
         else {
           end = ptr - bptr;
-          skip = 0;
+          skip = FALSE;
           if (lim_p && lim <= i) break;
         }
       }
       else if (ascii_isspace(c)) {
         mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
         mrb_gc_arena_restore(mrb, ai);
-        skip = 1;
+        skip = TRUE;
         beg = ptr - bptr;
         if (lim_p) ++i;
       }
