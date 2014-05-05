@@ -197,5 +197,16 @@ if Object.const_defined?(:Time)
   assert('Time#inspect') do
     Time.at(1300000000.0).utc.inspect == "Sun Mar 13 07:06:40 UTC 2011"
   end
+
+  assert('day of week methods') do
+    t = Time.gm(2012, 12, 24)
+    assert_false t.sunday?
+    assert_true t.monday?
+    assert_false t.tuesday?
+    assert_false t.wednesday?
+    assert_false t.thursday?
+    assert_false t.friday?
+    assert_false t.saturday?
+  end
 end
 
