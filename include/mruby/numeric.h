@@ -25,6 +25,21 @@ mrb_value mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_float mrb_to_flo(mrb_state *mrb, mrb_value x);
 
+#define MRB_UINT_MAKE2(n) uint ## n ## _t
+#define MRB_UINT_MAKE(n) MRB_UINT_MAKE2(n)
+#define mrb_uint MRB_UINT_MAKE(MRB_INT_BIT)
+
+#ifdef MRB_WORD_BOXING
+# define MRB_INT_OVERFLOW_MASK ((mrb_uint)1 << (MRB_INT_BIT - 1 - MRB_FIXNUM_SHIFT))
+#else
+# define MRB_INT_OVERFLOW_MASK ((mrb_uint)1 << (MRB_INT_BIT - 1))
+#endif
+
+#undef MRB_INT_OVERFLOW_MASK
+#undef mrb_uint
+#undef MRB_UINT_MAKE
+#undef MRB_UINT_MAKE2
+
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif
