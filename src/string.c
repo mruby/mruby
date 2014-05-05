@@ -2285,7 +2285,7 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
   char *p, *pend;
-  int modify = 0;
+  mrb_bool modify = FALSE;
 
   mrb_str_modify(mrb, s);
   p = RSTRING_PTR(str);
@@ -2293,7 +2293,7 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
   while (p < pend) {
     if (ISLOWER(*p)) {
       *p = TOUPPER(*p);
-      modify = 1;
+      modify = TRUE;
     }
     p++;
   }
