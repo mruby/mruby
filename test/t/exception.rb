@@ -57,15 +57,16 @@ end
 # Not ISO specified
 
 assert('Exception 1') do
-  begin
+r=begin
     1+1
   ensure
     2+2
-  end == 2
+  end
+  assert_equal 2, r
 end
 
 assert('Exception 2') do
-  begin
+r=begin
     1+1
     begin
       2+2
@@ -74,11 +75,12 @@ assert('Exception 2') do
     end
   ensure
     4+4
-  end == 4
+  end
+  assert_equal 4, r
 end
 
 assert('Exception 3') do
-  begin
+r=begin
     1+1
     begin
       2+2
@@ -92,7 +94,8 @@ assert('Exception 3') do
     ensure
       6+6
     end
-  end == 4
+  end
+  assert_equal 4, r
 end
 
 assert('Exception 4') do
@@ -171,17 +174,18 @@ assert('Exception 7') do
 end
 
 assert('Exception 8') do
-  begin
+r=begin
     1
   rescue
     2
   else
     3
-  end == 3
+  end
+  assert_equal 3, r
 end
 
 assert('Exception 9') do
-  begin
+r=begin
     1+1
   rescue
     2+2
@@ -189,11 +193,12 @@ assert('Exception 9') do
     3+3
   ensure
     4+4
-  end == 6
+  end
+  assert_equal 6, r
 end
 
 assert('Exception 10') do
-  begin
+r=begin
     1+1
     begin
       2+2
@@ -208,7 +213,8 @@ assert('Exception 10') do
     6+6
   ensure
     7+7
-  end == 12
+  end
+  assert_equal 12, r
 end
 
 assert('Exception 11') do
@@ -273,12 +279,12 @@ assert('Exception 16') do
     raise "foo"
     false
   rescue => e
-    e.message == "foo"
+    assert_equal "foo", e.message
   end
 end
 
 assert('Exception 17') do
-  begin
+r=begin
     raise "a"  # StandardError
   rescue ArgumentError
     1
@@ -288,11 +294,12 @@ assert('Exception 17') do
     3
   ensure
     4
-  end == 2
+  end
+  assert_equal 2, r
 end
 
 assert('Exception 18') do
-  begin
+r=begin
     0
   rescue ArgumentError
     1
@@ -302,7 +309,8 @@ assert('Exception 18') do
     3
   ensure
     4
-  end == 3
+  end
+  assert_equal 3, r
 end
 
 assert('Exception 19') do
