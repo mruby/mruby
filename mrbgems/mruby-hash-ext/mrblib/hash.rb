@@ -137,4 +137,27 @@ class Hash
     self.each {|k, v| h[v] = k }
     h
   end
+
+  ##
+  #  call-seq:
+  #     hsh.keep_if {| key, value | block }  -> hsh
+  #     hsh.keep_if                          -> an_enumerator
+  #
+  #  Deletes every key-value pair from <i>hsh</i> for which <i>block</i>
+  #  evaluates to false.
+  #
+  #  If no block is given, an enumerator is returned instead.
+  #
+
+  def keep_if(&block)
+    return to_enum :keep_if unless block_given?
+
+    keys = []
+    self.each do |k, v|
+      unless block.call([k, v])
+        self.delete(k)
+      end
+    end
+    self
+  end
 end
