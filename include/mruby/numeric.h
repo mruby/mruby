@@ -45,6 +45,16 @@ mrb_int_add_overflow(mrb_int augend, mrb_int addend, mrb_int *sum)
   return !!(((x ^ z) & (y ^ z)) & MRB_INT_OVERFLOW_MASK);
 }
 
+static inline mrb_bool
+mrb_int_sub_overflow(mrb_int minuend, mrb_int subtrahend, mrb_int *difference)
+{
+  mrb_uint x = (mrb_uint)minuend;
+  mrb_uint y = (mrb_uint)subtrahend;
+  mrb_uint z = (mrb_uint)(x - y);
+  *difference = (mrb_int)z;
+  return !!(((x ^ z) & (~y ^ z)) & MRB_INT_OVERFLOW_MASK);
+}
+
 #undef MRB_INT_OVERFLOW_MASK
 #undef mrb_uint
 #undef MRB_UINT_MAKE
