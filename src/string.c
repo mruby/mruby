@@ -1230,8 +1230,6 @@ mrb_str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 mrb_value
 mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
-  mrb_value str2;
-
   if (len < 0) return mrb_nil_value();
   if (!RSTRING_LEN(str)) {
     len = 0;
@@ -1246,9 +1244,7 @@ mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   if (len <= 0) {
     len = 0;
   }
-  str2 = mrb_str_subseq(mrb, str, beg, len);
-
-  return str2;
+  return mrb_str_subseq(mrb, str, beg, len);
 }
 
 mrb_int
