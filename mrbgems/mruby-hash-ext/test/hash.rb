@@ -82,3 +82,16 @@ assert("Hash#flatten") do
   assert_equal [1, "one", 2, 2, "two", 3, 3, ["three"]], a.flatten(2)
   assert_equal [1, "one", 2, 2, "two", 3, 3, "three"], a.flatten(3)
 end
+
+assert("Hash#invert") do
+  h = { 1 => 'one', 2 => 'two', 3 => 'three',
+        true => 'true', nil => 'nil' }.invert
+  assert_equal 1, h['one']
+  assert_equal true, h['true']
+  assert_equal nil, h['nil']
+
+  h = { 'a' => 1, 'b' => 2, 'c' => 1 }.invert
+  assert_equal(2, h.length)
+  assert_include(%w[a c], h[1])
+  assert_equal('b', h[2])
+end
