@@ -2484,54 +2484,54 @@ mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2)
 mrb_value
 mrb_str_inspect(mrb_state *mrb, mrb_value str)
 {
-    const char *p, *pend;
-    char buf[CHAR_ESC_LEN + 1];
-    mrb_value result = mrb_str_new_lit(mrb, "\"");
+  const char *p, *pend;
+  char buf[CHAR_ESC_LEN + 1];
+  mrb_value result = mrb_str_new_lit(mrb, "\"");
 
-    p = RSTRING_PTR(str); pend = RSTRING_END(str);
-    for (;p < pend; p++) {
-      unsigned char c, cc;
+  p = RSTRING_PTR(str); pend = RSTRING_END(str);
+  for (;p < pend; p++) {
+    unsigned char c, cc;
 
-      c = *p;
-      if (c == '"'|| c == '\\' || (c == '#' && IS_EVSTR(p, pend))) {
-          buf[0] = '\\'; buf[1] = c;
-          mrb_str_cat(mrb, result, buf, 2);
-          continue;
-      }
-      if (ISPRINT(c)) {
-          buf[0] = c;
-          mrb_str_cat(mrb, result, buf, 1);
-          continue;
-      }
-      switch (c) {
-        case '\n': cc = 'n'; break;
-        case '\r': cc = 'r'; break;
-        case '\t': cc = 't'; break;
-        case '\f': cc = 'f'; break;
-        case '\013': cc = 'v'; break;
-        case '\010': cc = 'b'; break;
-        case '\007': cc = 'a'; break;
-        case 033: cc = 'e'; break;
-        default: cc = 0; break;
-      }
-      if (cc) {
-          buf[0] = '\\';
-          buf[1] = (char)cc;
-          mrb_str_cat(mrb, result, buf, 2);
-          continue;
-      }
-      else {
-        buf[0] = '\\';
-        buf[3] = '0' + c % 8; c /= 8;
-        buf[2] = '0' + c % 8; c /= 8;
-        buf[1] = '0' + c % 8;
-        mrb_str_cat(mrb, result, buf, 4);
-        continue;
-      }
+    c = *p;
+    if (c == '"'|| c == '\\' || (c == '#' && IS_EVSTR(p, pend))) {
+      buf[0] = '\\'; buf[1] = c;
+      mrb_str_cat(mrb, result, buf, 2);
+      continue;
     }
-    mrb_str_cat_lit(mrb, result, "\"");
+    if (ISPRINT(c)) {
+      buf[0] = c;
+      mrb_str_cat(mrb, result, buf, 1);
+      continue;
+    }
+    switch (c) {
+      case '\n': cc = 'n'; break;
+      case '\r': cc = 'r'; break;
+      case '\t': cc = 't'; break;
+      case '\f': cc = 'f'; break;
+      case '\013': cc = 'v'; break;
+      case '\010': cc = 'b'; break;
+      case '\007': cc = 'a'; break;
+      case 033: cc = 'e'; break;
+      default: cc = 0; break;
+    }
+    if (cc) {
+      buf[0] = '\\';
+      buf[1] = (char)cc;
+      mrb_str_cat(mrb, result, buf, 2);
+      continue;
+    }
+    else {
+      buf[0] = '\\';
+      buf[3] = '0' + c % 8; c /= 8;
+      buf[2] = '0' + c % 8; c /= 8;
+      buf[1] = '0' + c % 8;
+      mrb_str_cat(mrb, result, buf, 4);
+      continue;
+    }
+  }
+  mrb_str_cat_lit(mrb, result, "\"");
 
-    return result;
+  return result;
 }
 
 /*
