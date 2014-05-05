@@ -191,12 +191,10 @@ read_section_irep(mrb_state *mrb, const uint8_t *bin, mrb_bool alloc)
 static int
 read_lineno_record_1(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, size_t *len)
 {
-  int ret;
   size_t i, fname_len, niseq;
   char *fname;
   uint16_t *lines;
 
-  ret = MRB_DUMP_OK;
   *len = 0;
   bin += sizeof(uint32_t); /* record size */
   *len += sizeof(uint32_t);
@@ -228,7 +226,7 @@ read_lineno_record_1(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, size_t 
 
   irep->filename = fname;
   irep->lines = lines;
-  return ret;
+  return MRB_DUMP_OK;
 }
 
 static int
