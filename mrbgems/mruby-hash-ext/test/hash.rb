@@ -95,3 +95,10 @@ assert("Hash#invert") do
   assert_include(%w[a c], h[1])
   assert_equal('b', h[2])
 end
+
+assert("Hash#keep_if") do
+  h = { 1 => 2, 3 => 4, 5 => 6 }
+  assert_equal({3=>4,5=>6}, h.keep_if {|k, v| k + v >= 7 })
+  h = { 1 => 2, 3 => 4, 5 => 6 }
+  assert_equal({ 1 => 2, 3=> 4, 5 =>6} , h.keep_if { true })
+end
