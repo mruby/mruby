@@ -1260,8 +1260,7 @@ mrb_str_hash(mrb_state *mrb, mrb_value str)
     key = key*65599 + *p;
     p++;
   }
-  key = key + (key>>5);
-  return key;
+  return key + (key>>5);
 }
 
 /* 15.2.10.5.20 */
