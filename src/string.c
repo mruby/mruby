@@ -914,7 +914,7 @@ static mrb_value
 mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
 {
   char *p, *pend;
-  int modify = 0;
+  mrb_bool modify = FALSE;
   struct RString *s = mrb_str_ptr(str);
 
   mrb_str_modify(mrb, s);
@@ -922,12 +922,12 @@ mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
   p = STR_PTR(s); pend = STR_PTR(s) + STR_LEN(s);
   if (ISLOWER(*p)) {
     *p = TOUPPER(*p);
-    modify = 1;
+    modify = TRUE;
   }
   while (++p < pend) {
     if (ISUPPER(*p)) {
       *p = TOLOWER(*p);
-      modify = 1;
+      modify = TRUE;
     }
   }
   if (modify) return str;
@@ -1128,7 +1128,7 @@ static mrb_value
 mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
 {
   char *p, *pend;
-  int modify = 0;
+  mrb_bool modify = FALSE;
   struct RString *s = mrb_str_ptr(str);
 
   mrb_str_modify(mrb, s);
@@ -1137,7 +1137,7 @@ mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
   while (p < pend) {
     if (ISUPPER(*p)) {
       *p = TOLOWER(*p);
-      modify = 1;
+      modify = TRUE;
     }
     p++;
   }
@@ -1851,7 +1851,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     char *ptr = RSTRING_PTR(str);
     char *eptr = RSTRING_END(str);
     char *bptr = ptr;
-    int skip = 1;
+    mrb_bool skip = TRUE;
     unsigned int c;
 
     end = beg;
@@ -1864,14 +1864,14 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
         }
         else {
           end = ptr - bptr;
-          skip = 0;
+          skip = FALSE;
           if (lim_p && lim <= i) break;
         }
       }
       else if (ascii_isspace(c)) {
         mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
         mrb_gc_arena_restore(mrb, ai);
-        skip = 1;
+        skip = TRUE;
         beg = ptr - bptr;
         if (lim_p) ++i;
       }
@@ -2285,7 +2285,7 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
   char *p, *pend;
-  int modify = 0;
+  mrb_bool modify = FALSE;
 
   mrb_str_modify(mrb, s);
   p = RSTRING_PTR(str);
@@ -2293,7 +2293,7 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
   while (p < pend) {
     if (ISLOWER(*p)) {
       *p = TOUPPER(*p);
-      modify = 1;
+      modify = TRUE;
     }
     p++;
   }
