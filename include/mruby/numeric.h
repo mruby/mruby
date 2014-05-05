@@ -35,6 +35,16 @@ mrb_float mrb_to_flo(mrb_state *mrb, mrb_value x);
 # define MRB_INT_OVERFLOW_MASK ((mrb_uint)1 << (MRB_INT_BIT - 1))
 #endif
 
+static inline mrb_bool
+mrb_int_add_overflow(mrb_int augend, mrb_int addend, mrb_int *sum)
+{
+  mrb_uint x = (mrb_uint)augend;
+  mrb_uint y = (mrb_uint)addend;
+  mrb_uint z = (mrb_uint)(x + y);
+  *sum = (mrb_int)z;
+  return !!(((x ^ z) & (y ^ z)) & MRB_INT_OVERFLOW_MASK);
+}
+
 #undef MRB_INT_OVERFLOW_MASK
 #undef mrb_uint
 #undef MRB_UINT_MAKE
