@@ -914,7 +914,7 @@ static mrb_value
 mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
 {
   char *p, *pend;
-  int modify = 0;
+  mrb_bool modify = FALSE;
   struct RString *s = mrb_str_ptr(str);
 
   mrb_str_modify(mrb, s);
@@ -922,12 +922,12 @@ mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
   p = STR_PTR(s); pend = STR_PTR(s) + STR_LEN(s);
   if (ISLOWER(*p)) {
     *p = TOUPPER(*p);
-    modify = 1;
+    modify = TRUE;
   }
   while (++p < pend) {
     if (ISUPPER(*p)) {
       *p = TOLOWER(*p);
-      modify = 1;
+      modify = TRUE;
     }
   }
   if (modify) return str;
