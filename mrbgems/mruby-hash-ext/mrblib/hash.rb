@@ -120,4 +120,21 @@ class Hash
   def flatten(level=1)
     self.to_a.flatten(level)
   end
+
+  ##
+  #  call-seq:
+  #     hsh.invert -> new_hash
+  #
+  #  Returns a new hash created by using <i>hsh</i>'s values as keys, and
+  #  the keys as values.
+  #
+  #     h = { "n" => 100, "m" => 100, "y" => 300, "d" => 200, "a" => 0 }
+  #     h.invert   #=> {0=>"a", 100=>"m", 200=>"d", 300=>"y"}
+  #
+
+  def invert
+    h = Hash.new
+    self.each {|k, v| h[v] = k }
+    h
+  end
 end
