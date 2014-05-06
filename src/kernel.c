@@ -924,7 +924,7 @@ mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
  *     raise "Failed to create socket"
  *     raise ArgumentError, "No parameters", caller
  */
-static mrb_value
+mrb_value
 mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
   mrb_value a[2], exc;
