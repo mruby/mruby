@@ -64,4 +64,7 @@ MRuby::GemBox.new do |conf|
 
   # Generate mruby command
   conf.gem :core => "mruby-bin-mruby"
+
+  # Use extensional Kernel module
+  conf.gem :core => "mruby-kernel-ext"
 end
