@@ -128,6 +128,20 @@ os_each_object_cb(mrb_state *mrb, struct RBasic *obj, void *ud)
   ++d->count;
 }
 
+/*
+ *  call-seq:
+ *     ObjectSpace.each_object([module]) {|obj| ... } -> fixnum
+ *
+ *  Calls the block once for each object in this Ruby process.
+ *  Returns the number of objects found.
+ *  If the optional argument +module+ is given,
+ *  calls the block for only those classes or modules
+ *  that match (or are a subclass of) +module+.
+ *
+ *  If no block is given, ArgumentError is raised.
+ *
+ */
+
 static mrb_value
 os_each_object(mrb_state *mrb, mrb_value self)
 {
