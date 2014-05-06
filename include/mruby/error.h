@@ -21,6 +21,9 @@ void mrb_print_backtrace(mrb_state *mrb);
 mrb_value mrb_exc_backtrace(mrb_state *mrb, mrb_value exc);
 mrb_value mrb_get_backtrace(mrb_state *mrb);
 
+/* declaration for fail method */
+mrb_value mrb_f_raise(mrb_state*, mrb_value);
+
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif

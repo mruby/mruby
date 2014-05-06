@@ -924,7 +924,7 @@ mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
  *     raise "Failed to create socket"
  *     raise ArgumentError, "No parameters", caller
  */
-static mrb_value
+mrb_value
 mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
   mrb_value a[2], exc;
@@ -1188,8 +1188,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "define_singleton_method",    mod_define_singleton_method,     MRB_ARGS_ANY());
   mrb_define_method(mrb, krn, "to_s",                       mrb_any_to_s,                    MRB_ARGS_NONE());    /* 15.3.1.3.46 */
   mrb_define_method(mrb, krn, "__case_eqq",                 mrb_obj_ceqq,                    MRB_ARGS_REQ(1));    /* internal */
-
-  mrb_define_module_function(mrb, krn, "fail", mrb_f_raise, MRB_ARGS_NONE());
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
   mrb_alias_method(mrb, mrb->module_class, mrb_intern_lit(mrb, "dup"), mrb_intern_lit(mrb, "clone"));
