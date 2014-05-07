@@ -10,6 +10,10 @@
 #include "mruby/class.h"
 #include "mruby/data.h"
 
+#if defined(__MINGW64__) || defined(__MINGW32__)
+# include <sys/time.h>
+#endif
+
 /** Time class configuration */
 
 /* gettimeofday(2) */
