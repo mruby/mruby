@@ -29,7 +29,9 @@
   #define GETCWD _getcwd
   #define CHMOD(a, b) 0
   #define MAXPATHLEN 1024
+ #if !defined(PATH_MAX)
   #define PATH_MAX MAX_PATH
+ #endif
   #define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
   #include <direct.h>
 #else
@@ -127,7 +129,7 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "S", &s);
   path = mrb_str_to_cstr(mrb, s);
   _splitpath((const char*)path, vname, dname, NULL, NULL);
-  sprintf_s(buffer, _MAX_DRIVE + _MAX_DIR, "%s%s", vname, dname);
+  snprintf(buffer, _MAX_DRIVE + _MAX_DIR, "%s%s", vname, dname);
   return mrb_str_new_cstr(mrb, buffer);
   #else
   char *dname, *path;
@@ -154,7 +156,7 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "S", &s);
   path = mrb_str_to_cstr(mrb, s);
   _splitpath((const char*)path, NULL, NULL, bname, extname);
-  sprintf_s(buffer, _MAX_DIR + _MAX_EXT, "%s%s", bname, extname);
+  snprintf(buffer, _MAX_DIR + _MAX_EXT, "%s%s", bname, extname);
   return mrb_str_new_cstr(mrb, buffer);
   #else
   char *bname, *path;
