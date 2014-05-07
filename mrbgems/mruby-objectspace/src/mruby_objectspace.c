@@ -1,7 +1,7 @@
-#include <mruby.h>
-#include <mruby/gc.h>
-#include <mruby/hash.h>
-#include <mruby/class.h>
+#include "mruby.h"
+#include "mruby/gc.h"
+#include "mruby/hash.h"
+#include "mruby/class.h"
 
 struct os_count_struct {
   mrb_int total;

@@ -1,5 +1,5 @@
-#include <mruby.h>
-#include <mruby/error.h>
+#include "mruby.h"
+#include "mruby/error.h"
 
 void
 mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
