@@ -66,6 +66,11 @@ assert('Array#[]=', '15.2.12.5.5') do
     # this will cause an exception due to the wrong arguments
     a.[]=(1,2,3,4)
   end
+  assert_raise(IndexError) do
+    # this will cause an exception due to the wrong arguments
+    a = [1,2,3,4,5]
+    a[1, -1] = 10
+  end
 
   assert_equal(4, [1,2,3].[]=(1,4))
   assert_equal(3, [1,2,3].[]=(1,2,3))
