@@ -55,6 +55,23 @@ assert('Proc#call', '15.2.17.4.3') do
   assert_equal 5, a2
 end
 
+assert('Proc#call proc args pos block') do
+  pr = proc {|a,b,&c|
+    [a, b, c.class, c&&c.call(:x)]
+  }
+  assert_equal [nil, nil, Proc, :proc], (pr.call(){ :proc })
+  assert_equal [1, nil, Proc, :proc], (pr.call(1){ :proc })
+  assert_equal [1, 2, Proc, :proc], (pr.call(1, 2){ :proc })
+  assert_equal [1, 2, Proc, :proc], (pr.call(1, 2, 3){ :proc })
+  assert_equal [1, 2, Proc, :proc], (pr.call(1, 2, 3, 4){ :proc })
+
+  assert_equal [nil, nil, Proc, :x], (pr.call(){|x| x})
+  assert_equal [1, nil, Proc, :x], (pr.call(1){|x| x})
+  assert_equal [1, 2, Proc, :x], (pr.call(1, 2){|x| x})
+  assert_equal [1, 2, Proc, :x], (pr.call(1, 2, 3){|x| x})
+  assert_equal [1, 2, Proc, :x], (pr.call(1, 2, 3, 4){|x| x})
+end
+
 assert('Proc#return_does_not_break_self') do
   class TestClass
     attr_accessor :block
