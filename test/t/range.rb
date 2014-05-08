@@ -46,7 +46,7 @@ assert('Range#first', '15.2.14.4.7') do
   assert_equal 1, (1..10).first
 end
 
-assert('Range#include', '15.2.14.4.8') do
+assert('Range#include?', '15.2.14.4.8') do
   a = (1..10)
 
   assert_true a.include?(5)
