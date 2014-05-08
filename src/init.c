@@ -54,11 +54,3 @@ mrb_init_core(mrb_state *mrb)
   mrb_init_mrbgems(mrb); DONE;
 #endif
 }
-
-void
-mrb_final_core(mrb_state *mrb)
-{
-#ifndef DISABLE_GEMS
-  mrb_final_mrbgems(mrb); DONE;
-#endif
-}
