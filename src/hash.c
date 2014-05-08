@@ -221,7 +221,7 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
     kh_value(h, k).n = kh_size(h)-1;
   }
 
-  mrb_write_barrier(mrb, (struct RBasic*)RHASH(hash));
+  mrb_field_write_barrier_value(mrb, (struct RBasic*)RHASH(hash), val);
   return;
 }
 
