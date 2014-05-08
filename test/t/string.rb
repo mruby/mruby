@@ -475,6 +475,11 @@ assert('String#upcase!', '15.2.10.5.43') do
   assert_equal 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', b
 end
 
+assert('String#inspect', '15.2.10.5.46') do
+  ("\1" * 100).inspect  # should not raise an exception - regress #1210
+  assert_equal "\"\\000\"", "\0".inspect
+end
+
 # Not ISO specified
 
 assert('String interpolation (mrb_str_concat for shared strings)') do
@@ -505,9 +510,4 @@ assert('String#each_byte') do
   str1.each_byte {|b| bytes2 << b }
 
   assert_equal bytes1, bytes2
-end
-
-assert('String#inspect') do
-  ("\1" * 100).inspect  # should not raise an exception - regress #1210
-  assert_equal "\"\\000\"", "\0".inspect
 end
