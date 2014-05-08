@@ -12,7 +12,9 @@
 #include <sys/types.h>
 #if defined(_WIN32) || defined(_WIN64)
   #define MAXPATHLEN 1024
+ #if !defined(PATH_MAX)
   #define PATH_MAX MAX_PATH
+ #endif
   #define S_ISDIR(B) ((B)&_S_IFDIR)
   #include "Win/dirent.h"
   #include <direct.h>
