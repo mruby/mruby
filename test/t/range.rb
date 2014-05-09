@@ -74,6 +74,20 @@ assert('Range#member?', '15.2.14.4.11') do
   assert_false a.member?(20)
 end
 
+assert('Range#to_s', '15.2.14.4.12') do
+  assert_equal "0..1", (0..1).to_s
+  assert_equal "0...1", (0...1).to_s
+  assert_equal "a..b", ("a".."b").to_s
+  assert_equal "a...b", ("a"..."b").to_s
+end
+
+assert('Range#inspect', '15.2.14.4.13') do
+  assert_equal "0..1", (0..1).inspect
+  assert_equal "0...1", (0...1).inspect
+  assert_equal "\"a\"..\"b\"", ("a".."b").inspect
+  assert_equal "\"a\"...\"b\"", ("a"..."b").inspect
+end
+
 assert('Range#eql?', '15.2.14.4.14') do
   assert_true (1..10).eql? (1..10)
   assert_false (1..10).eql? (1..100)
