@@ -53,6 +53,71 @@ assert('Proc#call', '15.2.17.4.3') do
 
   assert_equal 1, a
   assert_equal 5, a2
+
+  pr = Proc.new{|a,b,c|
+    [a,b,c]
+  }
+  assert_equal [nil, nil, nil], pr.call()
+  assert_equal [1, nil, nil],   pr.call(1)
+  assert_equal [1, 2, nil],     pr.call(1,2)
+  assert_equal [1, 2, 3],       pr.call(1,2,3)
+  assert_equal [1, 2, 3],       pr.call(1,2,3,4)
+  assert_equal [nil, nil, nil], pr.call([])
+  assert_equal [1, nil, nil],   pr.call([1])
+  assert_equal [1, 2, nil],     pr.call([1,2])
+  assert_equal [1, 2, 3],       pr.call([1,2,3])
+  assert_equal [1, 2, 3],       pr.call([1,2,3,4])
+
+  pr = Proc.new{|a,b,*c|
+    [a,b,c]
+  }
+  assert_equal [nil, nil, []], pr.call()
+  assert_equal [1, nil, []],   pr.call(1)
+  assert_equal [1, 2, []],     pr.call(1,2)
+  assert_equal [1, 2, [3]],    pr.call(1,2,3)
+  assert_equal [1, 2, [3, 4]], pr.call(1,2,3,4)
+  assert_equal [nil, nil, []], pr.call()
+  assert_equal [1, nil, []],   pr.call([1])
+  assert_equal [1, 2, []],     pr.call([1,2])
+  assert_equal [1, 2, [3]],    pr.call([1,2,3])
+  assert_equal [1, 2, [3, 4]], pr.call([1,2,3,4])
+
+  pr = Proc.new{|a,*b,c|
+    [a,b,c]
+  }
+  assert_equal [nil, [], nil], pr.call()
+  assert_equal [1, [], nil],   pr.call(1)
+  assert_equal [1, [], 2],     pr.call(1,2)
+  assert_equal [1, [2], 3],    pr.call(1,2,3)
+  assert_equal [1, [2, 3], 4], pr.call(1,2,3,4)
+  assert_equal [nil, [], nil], pr.call([])
+  assert_equal [1, [], nil],   pr.call([1])
+  assert_equal [1, [], 2],     pr.call([1,2])
+  assert_equal [1, [2], 3],    pr.call([1,2,3])
+  assert_equal [1, [2, 3], 4], pr.call([1,2,3,4])
+
+  pr = Proc.new{|*a,b,c|
+    [a,b,c]
+  }
+  assert_equal [[], nil, nil], pr.call()
+  assert_equal [[], 1, nil],   pr.call(1)
+  assert_equal [[], 1, 2],     pr.call(1,2)
+  assert_equal [[1], 2, 3],    pr.call(1,2,3)
+  assert_equal [[1, 2], 3, 4], pr.call(1,2,3,4)
+  assert_equal [[], nil, nil], pr.call()
+  assert_equal [[], 1, nil],   pr.call([1])
+  assert_equal [[], 1, 2],     pr.call([1,2])
+  assert_equal [[1], 2, 3],    pr.call([1,2,3])
+  assert_equal [[1, 2], 3, 4], pr.call([1,2,3,4])
+
+  r = Proc.new{|a| a}.call([1,2,3])
+  assert_equal [1,2,3], r
+
+  r = Proc.new{|a,| a}.call([1,2,3])
+  assert_equal 1, r
+
+  r = Proc.new{|a,| a}.call([])
+  assert_equal nil, r
 end
 
 assert('Proc#call proc args pos block') do

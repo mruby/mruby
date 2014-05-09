@@ -1309,14 +1309,21 @@ RETRY_TRY_BLOCK:
         regs[len+1] = *blk; /* move block */
         SET_NIL_VALUE(regs[argc+1]);
         if (argv0 != argv) {
-          value_move(&regs[1], argv, argc-m2); /* m1 + o */
+          if (argc) {
+            value_move(&regs[1], argv, argc); /* m1 + o */
+          }
+          else {
+            SET_NIL_VALUE(regs[1]);
+          }
         }
         if (m2) {
           int mlen = m2;
           if (argc-m2 <= m1) {
             mlen = argc - m1;
           }
-          value_move(&regs[len-m2+1], &argv[argc-mlen], mlen);
+          if (0 < mlen) {
+            value_move(&regs[len-m2+1], &argv[argc-mlen], mlen);
+          }
         }
         if (r) {
           regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
