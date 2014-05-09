@@ -1307,6 +1307,7 @@ RETRY_TRY_BLOCK:
       mrb->c->ci->argc = len;
       if (argc < len) {
         regs[len+1] = *blk; /* move block */
+        SET_NIL_VALUE(regs[argc+1]);
         if (argv0 != argv) {
           value_move(&regs[1], argv, argc-m2); /* m1 + o */
         }
