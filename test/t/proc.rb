@@ -56,7 +56,7 @@ assert('Proc#call', '15.2.17.4.3') do
 end
 
 assert('Proc#call proc args pos block') do
-  pr = proc {|a,b,&c|
+  pr = Proc.new {|a,b,&c|
     [a, b, c.class, c&&c.call(:x)]
   }
   assert_equal [nil, nil, Proc, :proc], (pr.call(){ :proc })
