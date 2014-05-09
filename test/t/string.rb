@@ -476,7 +476,11 @@ assert('String#upcase!', '15.2.10.5.43') do
 end
 
 assert('String#inspect', '15.2.10.5.46') do
-  ("\1" * 100).inspect  # should not raise an exception - regress #1210
+  # should not raise an exception - regress #1210
+  assert_nothing_raised do
+  ("\1" * 100).inspect
+  end
+
   assert_equal "\"\\000\"", "\0".inspect
 end
 

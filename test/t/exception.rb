@@ -345,13 +345,13 @@ assert('Exception#inspect without message') do
 end
 
 assert('Exception#backtrace') do
-  begin
-    raise "get backtrace"
-  rescue => e
-    e.backtrace
+  assert_nothing_raised do
+    begin
+      raise "get backtrace"
+    rescue => e
+      e.backtrace
+    end
   end
-
-  true
 end
 
 assert('Raise in ensure') do
