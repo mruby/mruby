@@ -72,6 +72,29 @@ assert('Proc#call proc args pos block') do
   assert_equal [1, 2, Proc, :x], (pr.call(1, 2, 3, 4){|x| x})
 end
 
+assert('Proc#call proc args pos rest post') do
+  pr = Proc.new {|a,b,*c,d,e|
+    [a,b,c,d,e]
+  }
+  assert_equal [nil, nil, [], nil, nil], pr.call()
+  assert_equal [1, nil, [], nil, nil], pr.call(1)
+  assert_equal [1, 2, [], nil, nil], pr.call(1,2)
+  assert_equal [1, 2, [], 3, nil], pr.call(1,2,3)
+  assert_equal [1, 2, [], 3, 4], pr.call(1,2,3,4)
+  assert_equal [1, 2, [3], 4, 5], pr.call(1,2,3,4,5)
+  assert_equal [1, 2, [3, 4], 5, 6], pr.call(1,2,3,4,5,6)
+  assert_equal [1, 2, [3, 4, 5], 6,7], pr.call(1,2,3,4,5,6,7)
+
+  assert_equal [nil, nil, [], nil, nil], pr.call([])
+  assert_equal [1, nil, [], nil, nil], pr.call([1])
+  assert_equal [1, 2, [], nil, nil], pr.call([1,2])
+  assert_equal [1, 2, [], 3, nil], pr.call([1,2,3])
+  assert_equal [1, 2, [], 3, 4], pr.call([1,2,3,4])
+  assert_equal [1, 2, [3], 4, 5], pr.call([1,2,3,4,5])
+  assert_equal [1, 2, [3, 4], 5, 6], pr.call([1,2,3,4,5,6])
+  assert_equal [1, 2, [3, 4, 5], 6,7], pr.call([1,2,3,4,5,6,7])
+end
+
 assert('Proc#return_does_not_break_self') do
   class TestClass
     attr_accessor :block
