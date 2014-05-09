@@ -201,14 +201,14 @@ time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
 
   tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(struct mrb_time));
   tm->sec  = (time_t)sec;
-  tm->usec = (sec - tm->sec) * 1.0e6 + usec;
+  tm->usec = (time_t)((sec - tm->sec) * 1.0e6 + usec);
   while (tm->usec < 0) {
     tm->sec--;
-    tm->usec += 1.0e6;
+    tm->usec += 1000000;
   }
-  while (tm->usec > 1.0e6) {
+  while (tm->usec > 1000000) {
     tm->sec++;
-    tm->usec -= 1.0e6;
+    tm->usec -= 1000000;
   }
   tm->timezone = timezone;
   mrb_time_update_datetime(tm);
@@ -301,7 +301,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time.");
   }
 
-  return time_alloc(mrb, nowsecs, ausec, timezone);
+  return time_alloc(mrb, (double)nowsecs, ausec, timezone);
 }
 
 /* 15.2.19.6.2 */
@@ -381,7 +381,7 @@ mrb_time_plus(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "f", &f);
   tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
-  return mrb_time_make(mrb, mrb_obj_class(mrb, self), (double)tm->sec+f, tm->usec, tm->timezone);
+  return mrb_time_make(mrb, mrb_obj_class(mrb, self), (double)tm->sec+f, (double)tm->usec, tm->timezone);
 }
 
 static mrb_value
@@ -402,7 +402,7 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
   }
   else {
     mrb_get_args(mrb, "f", &f);
-    return mrb_time_make(mrb, mrb_obj_class(mrb, self), (double)tm->sec-f, tm->usec, tm->timezone);
+    return mrb_time_make(mrb, mrb_obj_class(mrb, self), (double)tm->sec-f, (double)tm->usec, tm->timezone);
   }
 }
 
@@ -666,7 +666,7 @@ mrb_time_to_i(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm;
 
   tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
-  return mrb_fixnum_value(tm->sec);
+  return mrb_fixnum_value((mrb_int)tm->sec);
 }
 
 /* 15.2.19.7.26 */
@@ -677,7 +677,7 @@ mrb_time_usec(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm;
 
   tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
-  return mrb_fixnum_value(tm->usec);
+  return mrb_fixnum_value((mrb_int)tm->usec);
 }
 
 /* 15.2.19.7.27 */
