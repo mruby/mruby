@@ -102,3 +102,12 @@ assert("Hash#keep_if") do
   h = { 1 => 2, 3 => 4, 5 => 6 }
   assert_equal({ 1 => 2, 3=> 4, 5 =>6} , h.keep_if { true })
 end
+
+assert("Hash#key") do
+  h = { "a" => 100, "b" => 200, "c" => 300, "d" => 300, nil => 'nil', 'nil' => nil }
+  assert_equal "b", h.key(200)
+  assert_equal "c", h.key(300)
+  assert_nil h.key(999)
+  assert_nil h.key('nil')
+  assert_equal 'nil', h.key(nil)
+end

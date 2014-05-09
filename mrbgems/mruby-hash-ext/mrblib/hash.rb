@@ -160,4 +160,24 @@ class Hash
     end
     self
   end
+
+  ##
+  #  call-seq:
+  #     hsh.key(value)    -> key
+  #
+  #  Returns the key of an occurrence of a given value. If the value is
+  #  not found, returns <code>nil</code>.
+  #
+  #     h = { "a" => 100, "b" => 200, "c" => 300, "d" => 300 }
+  #     h.key(200)   #=> "b"
+  #     h.key(300)   #=> "c"
+  #     h.key(999)   #=> nil
+  #
+
+  def key(val)
+    self.each do |k, v|
+      return k if v == val
+    end
+    nil
+  end
 end
