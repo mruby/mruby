@@ -1306,16 +1306,19 @@ RETRY_TRY_BLOCK:
       }
       mrb->c->ci->argc = len;
       if (argc < len) {
+        int mlen = m2;
+        if (argc < m1+m2) {
+          if (m1 < argc)
+            mlen = argc - m1;
+          else
+            mlen = 0;
+        }
         regs[len+1] = *blk; /* move block */
         SET_NIL_VALUE(regs[argc+1]);
         if (argv0 != argv) {
-          value_move(&regs[1], argv, argc-m2); /* m1 + o */
+          value_move(&regs[1], argv, argc-mlen); /* m1 + o */
         }
-        if (m2) {
-          int mlen = m2;
-          if (argc-m2 <= m1) {
-            mlen = argc - m1;
-          }
+        if (mlen) {
           value_move(&regs[len-m2+1], &argv[argc-mlen], mlen);
         }
         if (r) {
