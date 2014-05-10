@@ -806,12 +806,6 @@ ISO Code | Source File | C Function
 --- | --- | ---
 15.2.14.4.3 | src/range.c | mrb_range_beg
 
-#### each
-
-ISO Code | Source File | C Function
---- | --- | ---
-15.2.14.4.4 | src/range.c | mrb_range_each
-
 #### end
 
 ISO Code | Source File | C Function
@@ -1371,12 +1365,6 @@ n/a | src/kernel.c | mrb_obj_ceqq
 ISO Code | Source File | C Function
 --- | --- | ---
 15.3.1.3.3 | src/kernel.c | mrb_obj_id_m
-
-#### __method__
-
-ISO Code | Source File | C Function
---- | --- | ---
-n/a | src/kernel.c | mrb_f_method
 
 #### __send__
 
