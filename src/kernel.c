@@ -120,12 +120,9 @@ static mrb_value
 mrb_equal_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg;
-  mrb_bool equal_p;
 
   mrb_get_args(mrb, "o", &arg);
-  equal_p = mrb_equal(mrb, self, arg);
-
-  return mrb_bool_value(equal_p);
+  return mrb_bool_value(mrb_equal(mrb, self, arg));
 }
 
 /* 15.3.1.3.3  */
