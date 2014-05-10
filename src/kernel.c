@@ -276,21 +276,21 @@ static void
 init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
 {
   switch (mrb_type(obj)) {
-      case MRB_TT_CLASS:
-      case MRB_TT_MODULE:
-        copy_class(mrb, dest, obj);
-        /* fall through */
-      case MRB_TT_OBJECT:
-      case MRB_TT_SCLASS:
-      case MRB_TT_HASH:
-      case MRB_TT_DATA:
-        mrb_iv_copy(mrb, dest, obj);
-        break;
+    case MRB_TT_CLASS:
+    case MRB_TT_MODULE:
+      copy_class(mrb, dest, obj);
+      /* fall through */
+    case MRB_TT_OBJECT:
+    case MRB_TT_SCLASS:
+    case MRB_TT_HASH:
+    case MRB_TT_DATA:
+      mrb_iv_copy(mrb, dest, obj);
+      break;
 
-      default:
-        break;
-    }
-    mrb_funcall(mrb, dest, "initialize_copy", 1, obj);
+    default:
+      break;
+  }
+  mrb_funcall(mrb, dest, "initialize_copy", 1, obj);
 }
 
 /* 15.3.1.3.8  */
@@ -326,7 +326,7 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
   mrb_value clone;
 
   if (mrb_special_const_p(self)) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "can't clone %S", self);
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't clone %S", self);
   }
   p = (struct RObject*)mrb_obj_alloc(mrb, mrb_type(self), mrb_obj_class(mrb, self));
   p->c = mrb_singleton_class_clone(mrb, self);
@@ -358,17 +358,17 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_dup(mrb_state *mrb, mrb_value obj)
 {
-    struct RBasic *p;
-    mrb_value dup;
+  struct RBasic *p;
+  mrb_value dup;
 
-    if (mrb_special_const_p(obj)) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "can't dup %S", obj);
-    }
-    p = mrb_obj_alloc(mrb, mrb_type(obj), mrb_obj_class(mrb, obj));
-    dup = mrb_obj_value(p);
-    init_copy(mrb, dup, obj);
+  if (mrb_special_const_p(obj)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't dup %S", obj);
+  }
+  p = mrb_obj_alloc(mrb, mrb_type(obj), mrb_obj_class(mrb, obj));
+  dup = mrb_obj_value(p);
+  init_copy(mrb, dup, obj);
 
-    return dup;
+  return dup;
 }
 
 static mrb_value
