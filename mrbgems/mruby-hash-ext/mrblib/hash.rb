@@ -1,5 +1,8 @@
 class Hash
 
+  #  ISO does not define Hash#each_pair, so each_pair is defined in gem.
+  alias each_pair each
+
   ##
   # call-seq:
   #     hsh.merge!(other_hash)                                 -> hsh
@@ -33,7 +36,6 @@ class Hash
     self
   end
 
-  alias each_pair each
   alias update merge!
 
   ##
