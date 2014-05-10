@@ -33,7 +33,6 @@ class Hash
     self
   end
 
-  alias each_pair each
   alias update merge!
 
   ##
