@@ -16,6 +16,10 @@ assert('Hash#merge!') do
                'xyz_key' => 'xyz_value' }, result_1)
   assert_equal({'abc_key' => 'abc_value', 'cba_key' => 'cba_value',
                'xyz_key' => 'xyz_value' }, result_2)
+
+  assert_raise(TypeError) do
+    { 'abc_key' => 'abc_value' }.merge! "a"
+  end
 end
 
 assert('Hash#values_at') do

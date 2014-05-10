@@ -179,7 +179,7 @@ class Hash
   # ISO 15.2.13.4.22
   def merge(other, &block)
     h = {}
-    raise "can't convert argument into Hash" unless other.respond_to?(:to_hash)
+    raise TypeError, "can't convert argument into Hash" unless other.respond_to?(:to_hash)
     other = other.to_hash
     self.each_key{|k| h[k] = self[k]}
     if block
