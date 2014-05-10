@@ -1,8 +1,24 @@
+MRuby::Build.new do |conf|
+
+  # Gets set by the VS command prompts.
+  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+    toolchain :visualcpp
+  else
+    toolchain :gcc
+  end
+
+  enable_debug
+
+  # include the default GEMs
+  conf.gembox 'default'
+
+end
+
+
 # Cross Compiling configuration for Intel Galileo on Arduino environment
 # http://arduino.cc/en/ArduinoCertified/IntelGalileo
 #
 # Requires Arduino IDE for Intel Galileo
-
 MRuby::CrossBuild.new("Galileo") do |conf|
   toolchain :gcc
 

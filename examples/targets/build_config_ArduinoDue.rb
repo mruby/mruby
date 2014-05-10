@@ -1,8 +1,24 @@
+MRuby::Build.new do |conf|
+
+  # Gets set by the VS command prompts.
+  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+    toolchain :visualcpp
+  else
+    toolchain :gcc
+  end
+
+  enable_debug
+
+  # include the default GEMs
+  conf.gembox 'default'
+
+end
+
 # Cross Compiling configuration for Arduino Due
 # http://arduino.cc/en/Main/ArduinoBoardDue
 #
 # Requires Arduino IDE >= 1.5
-MRuby::CrossBuild.new("Arduino Due") do |conf|
+MRuby::CrossBuild.new("ArduinoDue") do |conf|
   toolchain :gcc
 
   # Mac OS X
