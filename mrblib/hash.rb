@@ -205,7 +205,16 @@ class Hash
   # ISO 15.2.13.4.31 (x)
   alias to_s inspect
 
-  # 1.8/1.9 Hash#reject! returns Hash; ISO says nothing.
+  ##
+  #  call-seq:
+  #     hsh.reject! {| key, value | block }  -> hsh or nil
+  #     hsh.reject!                          -> an_enumerator
+  #
+  #  Equivalent to <code>Hash#delete_if</code>, but returns
+  #  <code>nil</code> if no changes were made.
+  #
+  #  1.8/1.9 Hash#reject! returns Hash; ISO says nothing.
+  #
   def reject!(&b)
     return to_enum :reject! unless block_given?
 
@@ -222,7 +231,21 @@ class Hash
     self
   end
 
-  # 1.8/1.9 Hash#reject returns Hash; ISO says nothing.
+  ##
+  #  call-seq:
+  #     hsh.reject {|key, value| block}   -> a_hash
+  #     hsh.reject                        -> an_enumerator
+  #
+  #  Returns a new hash consisting of entries for which the block returns false.
+  #
+  #  If no block is given, an enumerator is returned instead.
+  #
+  #     h = { "a" => 100, "b" => 200, "c" => 300 }
+  #     h.reject {|k,v| k < "b"}  #=> {"b" => 200, "c" => 300}
+  #     h.reject {|k,v| v > 100}  #=> {"a" => 100}
+  #
+  #  1.8/1.9 Hash#reject returns Hash; ISO says nothing.
+  #
   def reject(&b)
     return to_enum :reject unless block_given?
 
@@ -235,7 +258,16 @@ class Hash
     h
   end
 
-  # 1.9 Hash#select! returns Hash; ISO says nothing.
+  ##
+  #  call-seq:
+  #     hsh.select! {| key, value | block }  -> hsh or nil
+  #     hsh.select!                          -> an_enumerator
+  #
+  #  Equivalent to <code>Hash#keep_if</code>, but returns
+  #  <code>nil</code> if no changes were made.
+  #
+  #  1.9 Hash#select! returns Hash; ISO says nothing.
+  #
   def select!(&b)
     return to_enum :select! unless block_given?
 
@@ -252,7 +284,21 @@ class Hash
     self
   end
 
-  # 1.9 Hash#select returns Hash; ISO says nothing.
+  ##
+  #  call-seq:
+  #     hsh.select {|key, value| block}   -> a_hash
+  #     hsh.select                        -> an_enumerator
+  #
+  #  Returns a new hash consisting of entries for which the block returns true.
+  #
+  #  If no block is given, an enumerator is returned instead.
+  #
+  #     h = { "a" => 100, "b" => 200, "c" => 300 }
+  #     h.select {|k,v| k > "a"}  #=> {"b" => 200, "c" => 300}
+  #     h.select {|k,v| v < 200}  #=> {"a" => 100}
+  #
+  #  1.9 Hash#select returns Hash; ISO says nothing
+  #
   def select(&b)
     return to_enum :select unless block_given?
 
