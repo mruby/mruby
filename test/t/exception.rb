@@ -42,6 +42,16 @@ assert('Exception.exception', '15.2.22.4.1') do
   assert_equal 'a', e.message
 end
 
+assert('NameError', '15.2.31') do
+  assert_raise(NameError) do
+    raise NameError.new
+  end
+
+  e = NameError.new "msg", "name"
+  assert_equal "msg", e.message
+  assert_equal "name", e.name
+end
+
 assert('ScriptError', '15.2.37') do
   assert_raise(ScriptError) do
     raise ScriptError.new
