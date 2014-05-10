@@ -96,8 +96,8 @@ CLASS
 
   def print_method(io, met_name, met_hsh, cfg)
     if cfg[:print_line_no]
-      line_no_head = '| Line'
-      line_no = "| #{find_c_func(met_hsh[:c_func])[:line_no]}"
+      line_no_head = ' | Line'
+      line_no = " | #{find_c_func(met_hsh[:c_func])[:line_no]}"
     else
       line_no, line_no_head = '', ''
     end
@@ -109,9 +109,9 @@ CLASS
     io.puts <<METHOD
 #### #{met_name}
 
-ISO Code | Source File | C Function #{line_no_head}
+ISO Code | Source File | C Function#{line_no_head}
 --- | --- | ---
-#{iso} | #{file} | #{met_hsh[:c_func]} #{line_no}
+#{iso} | #{file} | #{met_hsh[:c_func]}#{line_no}
 
 METHOD
   end
