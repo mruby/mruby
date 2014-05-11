@@ -445,7 +445,7 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
 void
 mrb_init_exception(mrb_state *mrb)
 {
-  struct RClass *e;
+  struct RClass *e, *scr_e;
 
   mrb->eException_class = e = mrb_define_class(mrb, "Exception", mrb->object_class);                   /* 15.2.22 */
   mrb_define_class_method(mrb, e, "exception", mrb_instance_new,  MRB_ARGS_ANY());
@@ -459,6 +459,6 @@ mrb_init_exception(mrb_state *mrb)
 
   mrb->eStandardError_class = mrb_define_class(mrb, "StandardError", mrb->eException_class);           /* 15.2.23 */
   mrb_define_class(mrb, "RuntimeError", mrb->eStandardError_class);                                    /* 15.2.28 */
-  e = mrb_define_class(mrb, "ScriptError", mrb->eException_class);                                     /* 15.2.37 */
-  mrb_define_class(mrb, "SyntaxError", e);                                                             /* 15.2.38 */
+  scr_e = mrb_define_class(mrb, "ScriptError", mrb->eException_class);                                     /* 15.2.37 */
+  mrb_define_class(mrb, "SyntaxError", scr_e);                                                             /* 15.2.38 */
 }
