@@ -1,3 +1,19 @@
+MRuby::Build.new do |conf|
+
+  # Gets set by the VS command prompts.
+  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+    toolchain :visualcpp
+  else
+    toolchain :gcc
+  end
+
+  enable_debug
+
+  # include the default GEMs
+  conf.gembox 'default'
+
+end
+
 # Cross Compiling configuration for Digilent chipKIT Max32
 # http://www.digilentinc.com/Products/Detail.cfm?Prod=CHIPKIT-MAX32
 #
@@ -5,7 +21,7 @@
 #
 # This configuration is based on @kyab's version
 # http://d.hatena.ne.jp/kyab/20130201
-MRuby::CrossBuild.new("chipKitMax32") do |conf|
+MRuby::CrossBuild.new("chipKITMax32") do |conf|
   toolchain :gcc
 
   # Mac OS X
