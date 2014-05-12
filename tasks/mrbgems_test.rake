@@ -117,7 +117,7 @@ MRuby.each_target do
 
   no_mrb_open_test_lib = no_mrb_open_test.ext(exts.object)
   file no_mrb_open_test_lib => "#{no_mrb_open_test}.c"
-  file "#{no_mrb_open_test}.c" => no_mrb_open_test_rbfiles do |t|
+  file "#{no_mrb_open_test}.c" => no_mrb_open_test_rbfiles + [MRUBY_CONFIG] do |t|
     open(t.name, 'w') do |f|
       f.puts %Q[/*]
       f.puts %Q[ * This file contains a test code for following gems:]
