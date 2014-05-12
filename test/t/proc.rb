@@ -131,3 +131,20 @@ assert('Proc#return_does_not_break_self') do
   assert_equal nil, c.return_nil
   assert_equal c, c.block.call
 end
+
+assert('&obj call to_proc if defined') do
+  pr = Proc.new{}
+  def mock(&b)
+    b
+  end
+  assert_equal pr.object_id, mock(&pr).object_id
+  assert_equal pr, mock(&pr)
+
+  obj = Object.new
+  def obj.to_proc
+    Proc.new{ :from_to_proc }
+  end
+  assert_equal :from_to_proc, mock(&obj).call
+
+  assert_raise(TypeError){ mock(&(Object.new)) }
+end

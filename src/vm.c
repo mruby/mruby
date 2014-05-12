@@ -674,7 +674,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     &&L_OP_ONERR, &&L_OP_RESCUE, &&L_OP_POPERR, &&L_OP_RAISE, &&L_OP_EPUSH, &&L_OP_EPOP,
     &&L_OP_SEND, &&L_OP_SENDB, &&L_OP_FSEND,
     &&L_OP_CALL, &&L_OP_SUPER, &&L_OP_ARGARY, &&L_OP_ENTER,
-    &&L_OP_KARG, &&L_OP_KDICT, &&L_OP_RETURN, &&L_OP_TAILCALL, &&L_OP_BLKPUSH,
+    &&L_OP_KARG, &&L_OP_KDICT, &&L_OP_RETURN, &&L_OP_TAILCALL, &&L_OP_BLKPUSH, &&L_OP_BLOCK_PASS,
     &&L_OP_ADD, &&L_OP_ADDI, &&L_OP_SUB, &&L_OP_SUBI, &&L_OP_MUL, &&L_OP_DIV,
     &&L_OP_EQ, &&L_OP_LT, &&L_OP_LE, &&L_OP_GT, &&L_OP_GE,
     &&L_OP_ARRAY, &&L_OP_ARYCAT, &&L_OP_ARYPUSH, &&L_OP_AREF, &&L_OP_ASET, &&L_OP_APOST,
@@ -1587,6 +1587,19 @@ RETRY_TRY_BLOCK:
         stack = e->stack + 1;
       }
       regs[a] = stack[m1+r+m2];
+      NEXT;
+    }
+
+    CASE(OP_BLOCK_PASS) {
+      /* A    R(A) := &R(A) */
+      int a = GETARG_A(i);
+      if (!mrb_nil_p(regs[a])) {
+        mrb_value converted = mrb_check_convert_type(mrb, regs[a], MRB_TT_PROC, "Proc", "to_proc");
+        if (mrb_nil_p(converted)) {
+          mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %S (expected Proc)", mrb_obj_class(mrb, regs[a]));
+        }
+        regs[a] = converted;
+      }
       NEXT;
     }
 

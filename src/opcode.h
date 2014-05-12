@@ -101,6 +101,7 @@ enum {
   OP_RETURN,/*    A B     return R(A) (B=normal,in-block return/break)    */
   OP_TAILCALL,/*  A B C   return call(R(A),mSym(B),*R(C))                 */
   OP_BLKPUSH,/*   A Bx    R(A) := block (16=6:1:5:4)                      */
+  OP_BLOCK_PASS,/*A       R(A) := &R(A)                                   */
 
   OP_ADD,/*       A B C   R(A) := R(A)+R(A+1) (mSyms[B]=:+,C=1)           */
   OP_ADDI,/*      A B C   R(A) := R(A)+C (mSyms[B]=:+)                    */
