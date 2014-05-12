@@ -445,20 +445,20 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
 void
 mrb_init_exception(mrb_state *mrb)
 {
-  struct RClass *e;
+  struct RClass *exception, *script_error;
 
-  mrb->eException_class = e = mrb_define_class(mrb, "Exception", mrb->object_class);                   /* 15.2.22 */
-  mrb_define_class_method(mrb, e, "exception", mrb_instance_new,  MRB_ARGS_ANY());
-  mrb_define_method(mrb, e, "exception",       exc_exception,     MRB_ARGS_ANY());
-  mrb_define_method(mrb, e, "initialize",      exc_initialize,    MRB_ARGS_ANY());
-  mrb_define_method(mrb, e, "==",              exc_equal,         MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, e, "to_s",            exc_to_s,          MRB_ARGS_NONE());
-  mrb_define_method(mrb, e, "message",         exc_message,       MRB_ARGS_NONE());
-  mrb_define_method(mrb, e, "inspect",         exc_inspect,       MRB_ARGS_NONE());
-  mrb_define_method(mrb, e, "backtrace",       mrb_exc_backtrace, MRB_ARGS_NONE());
+  mrb->eException_class = exception = mrb_define_class(mrb, "Exception", mrb->object_class);                   /* 15.2.22 */
+  mrb_define_class_method(mrb, exception, "exception", mrb_instance_new,  MRB_ARGS_ANY());
+  mrb_define_method(mrb, exception, "exception",       exc_exception,     MRB_ARGS_ANY());
+  mrb_define_method(mrb, exception, "initialize",      exc_initialize,    MRB_ARGS_ANY());
+  mrb_define_method(mrb, exception, "==",              exc_equal,         MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, exception, "to_s",            exc_to_s,          MRB_ARGS_NONE());
+  mrb_define_method(mrb, exception, "message",         exc_message,       MRB_ARGS_NONE());
+  mrb_define_method(mrb, exception, "inspect",         exc_inspect,       MRB_ARGS_NONE());
+  mrb_define_method(mrb, exception, "backtrace",       mrb_exc_backtrace, MRB_ARGS_NONE());
 
   mrb->eStandardError_class = mrb_define_class(mrb, "StandardError", mrb->eException_class);           /* 15.2.23 */
   mrb_define_class(mrb, "RuntimeError", mrb->eStandardError_class);                                    /* 15.2.28 */
-  e = mrb_define_class(mrb, "ScriptError", mrb->eException_class);                                     /* 15.2.37 */
-  mrb_define_class(mrb, "SyntaxError", e);                                                             /* 15.2.38 */
+  script_error = mrb_define_class(mrb, "ScriptError", mrb->eException_class);                                     /* 15.2.37 */
+  mrb_define_class(mrb, "SyntaxError", script_error);                                                             /* 15.2.38 */
 }
