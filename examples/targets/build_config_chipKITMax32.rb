@@ -70,6 +70,9 @@ MRuby::CrossBuild.new("chipKITMax32") do |conf|
   #do not build test executable
   conf.build_mrbtest_lib_only
 
+  #disable C++ exception
+  conf.disable_cxx_exception
+
   #gems from core
   conf.gem :core => "mruby-print"
   conf.gem :core => "mruby-math"
