@@ -27,8 +27,13 @@
 # else
    typedef int64_t mrb_int;
 #  define MRB_INT_BIT 64
-#  define MRB_INT_MIN INT64_MIN
-#  define MRB_INT_MAX INT64_MAX
+#  ifdef MRB_WORD_BOXING
+#   define MRB_INT_MIN (INT64_MIN>>MRB_FIXNUM_SHIFT)
+#   define MRB_INT_MAX (INT64_MAX>>MRB_FIXNUM_SHIFT)
+#  else
+#   define MRB_INT_MIN INT64_MIN
+#   define MRB_INT_MAX INT64_MAX
+#  endif
 #  define PRIdMRB_INT PRId64
 #  define PRIiMRB_INT PRIi64
 #  define PRIoMRB_INT PRIo64
@@ -36,6 +41,9 @@
 #  define PRIXMRB_INT PRIX64
 # endif
 #elif defined(MRB_INT16)
+# ifdef MRB_WORD_BOXING
+# error "MRB_INT16 is too small for MRB_WORD_BOXING."
+# endif
   typedef int16_t mrb_int;
 # define MRB_INT_BIT 16
 # define MRB_INT_MIN INT16_MIN
@@ -43,8 +51,13 @@
 #else
   typedef int32_t mrb_int;
 # define MRB_INT_BIT 32
-# define MRB_INT_MIN INT32_MIN
-# define MRB_INT_MAX INT32_MAX
+# ifdef MRB_WORD_BOXING
+#  define MRB_INT_MIN (INT32_MIN>>MRB_FIXNUM_SHIFT)
+#  define MRB_INT_MAX (INT32_MAX>>MRB_FIXNUM_SHIFT)
+# else
+#  define MRB_INT_MIN INT32_MIN
+#  define MRB_INT_MAX INT32_MAX
+# endif
 # define PRIdMRB_INT PRId32
 # define PRIiMRB_INT PRIi32
 # define PRIoMRB_INT PRIo32

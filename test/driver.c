@@ -109,15 +109,9 @@ main(int argc, char **argv)
 
   mrbtest = mrb_define_module(mrb, "Mrbtest");
 
-#ifdef MRB_WORD_BOXING
-  mrb_define_const(mrb, mrbtest, "FIXNUM_MAX", mrb_fixnum_value(MRB_INT_MAX >> MRB_FIXNUM_SHIFT));
-  mrb_define_const(mrb, mrbtest, "FIXNUM_MIN", mrb_fixnum_value(MRB_INT_MIN >> MRB_FIXNUM_SHIFT));
-  mrb_define_const(mrb, mrbtest, "FIXNUM_BIT", mrb_fixnum_value(MRB_INT_BIT >> MRB_FIXNUM_SHIFT));
-#else
   mrb_define_const(mrb, mrbtest, "FIXNUM_MAX", mrb_fixnum_value(MRB_INT_MAX));
   mrb_define_const(mrb, mrbtest, "FIXNUM_MIN", mrb_fixnum_value(MRB_INT_MIN));
   mrb_define_const(mrb, mrbtest, "FIXNUM_BIT", mrb_fixnum_value(MRB_INT_BIT));
-#endif
 
   mrb_init_mrbtest(mrb);
   ret = eval_test(mrb);

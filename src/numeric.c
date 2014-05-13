@@ -687,7 +687,11 @@ int_to_i(mrb_state *mrb, mrb_value num)
   return num;
 }
 
+#ifdef MRB_FIXNUM_SHIFT
+#define SQRT_INT_MAX ((mrb_int)1<<((MRB_INT_BIT-1-MRB_FIXNUM_SHIFT)/2))
+#else
 #define SQRT_INT_MAX ((mrb_int)1<<((MRB_INT_BIT-1)/2))
+#endif
 /*tests if N*N would overflow*/
 #define FIT_SQRT_INT(n) (((n)<SQRT_INT_MAX)&&((n)>=-SQRT_INT_MAX))
 
@@ -705,7 +709,7 @@ mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
     if (FIT_SQRT_INT(a) && FIT_SQRT_INT(b))
       return mrb_fixnum_value(a*b);
     c = a * b;
-    if (a != 0 && c/a != b) {
+    if ((a != 0 && c/a != b) || !FIXABLE(c)) {
       return mrb_float_value(mrb, (mrb_float)a*(mrb_float)b);
     }
     return mrb_fixnum_value(c);
