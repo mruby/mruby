@@ -102,7 +102,7 @@ is_code_block_open(struct mrb_parser_state *parser)
   case EXPR_BEG:
     /* beginning of a statement, */
     /* that means previous line ended */
-    ;;code_block_open = FALSE;
+    code_block_open = FALSE;
     break;
   case EXPR_DOT:
     /* a message dot was the last token, */
