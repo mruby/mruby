@@ -16,3 +16,7 @@ assert('Kernel#__method__') do
   assert_equal(:m1, c.new.m1)
   assert_equal(:m2, c.new.m2)
 end
+
+assert('$"') do
+  assert_true $".find { |v| v == 'mruby-kernel-ext' }
+end

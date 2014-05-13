@@ -549,3 +549,6 @@ assert('stack extend') do
   end
 end
 
+assert('$"') do
+  assert_kind_of Array, $"
+end

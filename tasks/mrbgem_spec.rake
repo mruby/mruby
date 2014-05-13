@@ -147,6 +147,7 @@ module MRuby
             f.puts %Q[    exit(EXIT_FAILURE);]
             f.puts %Q[  }]
           end
+          f.puts %Q[  mrb_ary_push(mrb, mrb_gv_get(mrb, mrb_intern_lit(mrb, "$\\"")), mrb_str_new(mrb, "#{name}", #{name.length}));]
           f.puts %Q[  mrb_gc_arena_restore(mrb, ai);]
           f.puts %Q[}]
           f.puts %Q[]
@@ -171,6 +172,8 @@ module MRuby
         print_gem_comment(f)
         f.puts %Q[#include <stdlib.h>] unless rbfiles.empty?
         f.puts %Q[#include "mruby.h"]
+        f.puts %Q[#include "mruby/array.h"]
+        f.puts %Q[#include "mruby/variable.h"]
         f.puts %Q[#include "mruby/irep.h"] unless rbfiles.empty?
       end
 
