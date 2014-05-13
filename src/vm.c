@@ -1304,6 +1304,7 @@ RETRY_TRY_BLOCK:
         }
       }
       else if (len > 1 && argc == 1 && mrb_array_p(argv[0])) {
+        mrb_gc_protect(mrb, argv[0]);
         argc = mrb_ary_ptr(argv[0])->len;
         argv = mrb_ary_ptr(argv[0])->ptr;
       }
