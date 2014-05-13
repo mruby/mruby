@@ -235,9 +235,7 @@ assert('Integer#upto', '15.2.8.3.27') do
   assert_equal 6, a
 end
 
-# Not ISO specified
-
-assert('Integer#divmod') do
+assert('Integer#divmod', '15.2.8.3.30') do
   assert_equal [ 0,  0],   0.divmod(1)
   assert_equal [ 0,  1],   1.divmod(3)
   assert_equal [ 3,  0],   3.divmod(1)
@@ -246,6 +244,8 @@ assert('Integer#divmod') do
   assert_equal [-2, -1],  25.divmod(-13)
   assert_equal [ 1, -6], -13.divmod(-7)
 end
+
+# Not ISO specified
 
 assert('Integer#step') do
   a = []
