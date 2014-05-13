@@ -2754,7 +2754,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       print_lv(mrb, irep, c, RA);
       break;
     case OP_GETGLOBAL:
-      printf("OP_GETGLOBAL\tR%d\t:%s\n", GETARG_A(c),
+      printf("OP_GETGLOBAL\tR%d\t:%s", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       print_lv(mrb, irep, c, RA);
       break;
