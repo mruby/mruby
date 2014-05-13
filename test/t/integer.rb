@@ -57,7 +57,7 @@ assert('Integer#%', '15.2.8.3.5') do
   assert_equal 2, c
 end
 
-assert('Integer#<=>', '15.2.8.3.6') do
+assert('Integer#<=>', '15.2.9.3.6') do
   a = 1<=>0
   b = 1<=>1
   c = 1<=>2
