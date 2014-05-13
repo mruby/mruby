@@ -10,12 +10,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <mruby.h>
-#include <mruby/proc.h>
-#include <mruby/data.h>
-#include <mruby/compile.h>
-#include <mruby/string.h>
-#include <mruby/variable.h>
+#include "mruby.h"
+#include "mruby/proc.h"
+#include "mruby/data.h"
+#include "mruby/compile.h"
+#include "mruby/string.h"
+#include "mruby/variable.h"
 
 void
 mrb_init_mrbtest(mrb_state *);
