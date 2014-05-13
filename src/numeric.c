@@ -702,7 +702,8 @@ mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 
   a = mrb_fixnum(x);
   if (mrb_fixnum_p(y)) {
-    mrb_int b, c;
+    mrb_float c;
+    mrb_int b;
 
     if (a == 0) return x;
     b = mrb_fixnum(y);

@@ -1729,19 +1729,24 @@ RETRY_TRY_BLOCK:
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
         {
-          mrb_int x, y, z;
+          mrb_value z;
 
-          x = mrb_fixnum(regs[a]);
-          y = mrb_fixnum(regs[a+1]);
-          z = x * y;
-#ifdef MRB_WORD_BOXING
-          z = (z << MRB_FIXNUM_SHIFT) / (1 << MRB_FIXNUM_SHIFT);
-#endif
-          if (x != 0 && z/x != y) {
-            SET_FLT_VALUE(mrb, regs[a], (mrb_float)x * (mrb_float)y);
-          }
-          else {
-            SET_INT_VALUE(regs[a], z);
+          z = mrb_fixnum_mul(mrb, regs[a], regs[a+1]);
+
+          switch (mrb_type(z)) {
+          case MRB_TT_FIXNUM:
+            {
+              SET_INT_VALUE(regs[a], mrb_fixnum(z));
+            }
+            break;
+          case MRB_TT_FLOAT:
+            {
+              SET_FLT_VALUE(mrb, regs[a], mrb_float(z));
+            }
+            break;
+          default:
+            /* cannot happen */
+            break;
           }
         }
         break;
