@@ -1286,6 +1286,9 @@ RETRY_TRY_BLOCK:
       int len = m1 + o + r + m2;
       mrb_value *blk = &argv[argc < 0 ? 1 : argc];
 
+      if (!mrb_nil_p(*blk) && mrb_type(*blk) != MRB_TT_PROC) {
+        *blk = mrb_convert_type(mrb, *blk, MRB_TT_PROC, "Proc", "to_proc");
+      }
       if (argc < 0) {
         struct RArray *ary = mrb_ary_ptr(regs[1]);
         argv = ary->ptr;
