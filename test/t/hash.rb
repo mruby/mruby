@@ -40,7 +40,7 @@ assert('Hash#dup') do
   a = { 'a' => 1 }
   b = a.dup
   a['a'] = 2
-  assert_equal(b, {'a' => 1})
+  assert_equal({'a' => 1}, b)
 end
 
 assert('Hash#default', '15.2.13.4.5') do
