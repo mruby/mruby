@@ -5,6 +5,8 @@
 */
 
 #include "mruby.h"
+#include "mruby/array.h"
+#include "mruby/variable.h"
 
 void mrb_init_symtbl(mrb_state*);
 void mrb_init_class(mrb_state*);
@@ -50,6 +52,9 @@ mrb_init_core(mrb_state *mrb)
   mrb_init_gc(mrb); DONE;
   mrb_init_version(mrb); DONE;
   mrb_init_mrblib(mrb); DONE;
+
+  mrb_gv_set(mrb, mrb_intern_lit(mrb, "$\""), mrb_ary_new(mrb));
+
 #ifndef DISABLE_GEMS
   mrb_init_mrbgems(mrb); DONE;
 #endif
