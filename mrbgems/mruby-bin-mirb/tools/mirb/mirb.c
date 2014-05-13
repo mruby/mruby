@@ -100,9 +100,9 @@ is_code_block_open(struct mrb_parser_state *parser)
   /* all states which need more code */
 
   case EXPR_BEG:
-    /* an expression was just started, */
-    /* we can't end it like this */
-    code_block_open = TRUE;
+    /* beginning of a statement, */
+    /* that means previous line ended */
+    ;;code_block_open = FALSE;
     break;
   case EXPR_DOT:
     /* a message dot was the last token, */
@@ -319,6 +319,10 @@ main(int argc, char **argv)
     char_index = 0;
     while ((last_char = getchar()) != '\n') {
       if (last_char == EOF) break;
+      if (char_index > sizeof(last_code_line)-2) {
+        fputs("input string too long\n", stderr);
+        continue;
+      }
       last_code_line[char_index++] = last_char;
     }
     if (last_char == EOF) {
@@ -326,6 +330,7 @@ main(int argc, char **argv)
       break;
     }
 
+    last_code_line[char_index++] = '\n';
     last_code_line[char_index] = '\0';
 #else
     char* line = MIRB_READLINE(code_block_open ? "* " : "> ");
@@ -333,14 +338,22 @@ main(int argc, char **argv)
       printf("\n");
       break;
     }
-    strncpy(last_code_line, line, sizeof(last_code_line)-1);
+    if (strlen(line) > sizeof(last_code_line)-2) {
+      fputs("input string too long\n", stderr);
+      continue;
+    }
+    strcpy(last_code_line, line);
+    strcat(last_code_line, "\n");
     MIRB_ADD_HISTORY(line);
     free(line);
 #endif
 
     if (code_block_open) {
-        strcat(ruby_code, "\n");
-        strcat(ruby_code, last_code_line);
+      if (strlen(ruby_code)+strlen(last_code_line) > sizeof(ruby_code)-1) {
+        fputs("concatenated input string too long\n", stderr);
+        continue;
+      }
+      strcat(ruby_code, last_code_line);
     }
     else {
       if ((strcmp(last_code_line, "quit") == 0) || (strcmp(last_code_line, "exit") == 0)) {
