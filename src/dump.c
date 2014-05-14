@@ -500,7 +500,7 @@ get_debug_record_size(mrb_state *mrb, mrb_irep *irep)
 }
 
 static int
-find_filename_index(const mrb_sym *ary, uint16_t ary_len, mrb_sym s)
+find_filename_index(const mrb_sym *ary, int ary_len, mrb_sym s)
 {
   int i;
 
@@ -692,6 +692,141 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur)
   return MRB_DUMP_OK;
 }
 
+static void
+create_lv_sym_table(mrb_state *mrb, const mrb_irep *irep, mrb_sym **syms, uint32_t *syms_len)
+{
+  size_t i;
+
+  if (*syms == NULL) {
+    *syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * 1);
+  }
+
+  for (i = 0; i + 1 < irep->nlocals; ++i) {
+    mrb_sym const name = irep->lv[i].name;
+    if (find_filename_index(*syms, *syms_len, name) != -1) continue;
+
+    ++(*syms_len);
+    *syms = (mrb_sym*)mrb_realloc(mrb, *syms, sizeof(mrb_sym) * (*syms_len));
+    (*syms)[*syms_len - 1] = name;
+  }
+
+  for (i = 0; i < irep->rlen; ++i) {
+    create_lv_sym_table(mrb, irep->reps[i], syms, syms_len);
+  }
+}
+
+static int
+write_lv_sym_table(mrb_state *mrb, uint8_t **start, mrb_sym const *syms, uint32_t syms_len)
+{
+  uint8_t *cur = *start;
+  uint32_t i;
+  const char *str;
+  mrb_int str_len;
+
+  cur += uint32_to_bin(syms_len, cur);
+
+  for (i = 0; i < syms_len; ++i) {
+    str = mrb_sym2name_len(mrb, syms[i], &str_len);
+    cur += uint16_to_bin(str_len, cur);
+    memcpy(cur, str, str_len);
+    cur += str_len;
+  }
+
+  *start = cur;
+
+  return MRB_DUMP_OK;
+}
+
+static int
+write_lv_record(mrb_state *mrb, const mrb_irep *irep, uint8_t **start, mrb_sym const *syms, uint32_t syms_len)
+{
+  uint8_t *cur = *start;
+  size_t i;
+
+  for (i = 0; i + 1 < irep->nlocals; ++i) {
+    int const sym_idx = find_filename_index(syms, syms_len, irep->lv[i].name);
+    mrb_assert(sym_idx != -1); /* local variable name must be in syms */
+
+    cur += uint16_to_bin(sym_idx, cur);
+    cur += uint16_to_bin(irep->lv[i].r, cur);
+  }
+
+  for (i = 0; i < irep->rlen; ++i) {
+    write_lv_record(mrb, irep->reps[i], &cur, syms, syms_len);
+  }
+
+  *start = cur;
+
+  return MRB_DUMP_OK;
+}
+
+static size_t
+get_lv_record_size(mrb_state *mrb, mrb_irep *irep)
+{
+  size_t ret = 0, i;
+
+  ret += (sizeof(uint16_t) + sizeof(uint16_t)) * (irep->nlocals - 1);
+
+  for (i = 0; i < irep->rlen; ++i) {
+    ret += get_lv_record_size(mrb, irep->reps[i]);
+  }
+
+  return ret;
+}
+
+static size_t
+get_lv_section_size(mrb_state *mrb, mrb_irep *irep, mrb_sym const *syms, uint32_t syms_len)
+{
+  size_t ret = 0, i;
+
+  ret += sizeof(uint32_t); /* syms_len */
+  ret += sizeof(uint16_t) * syms_len; /* symbol name lengths */
+  for (i = 0; i < syms_len; ++i) {
+    mrb_int str_len;
+    mrb_sym2name_len(mrb, syms[i], &str_len);
+    ret += str_len;
+  }
+
+  ret += get_lv_record_size(mrb, irep);
+
+  return ret;
+}
+
+static int
+write_section_lv(mrb_state *mrb, mrb_irep *irep, uint8_t *start, mrb_sym const *syms, uint32_t const syms_len)
+{
+  uint8_t *cur = start;
+  struct rite_section_lv_header *header;
+  ptrdiff_t diff;
+  int result = MRB_DUMP_OK;
+
+  if (mrb == NULL || cur == NULL) {
+    return MRB_DUMP_INVALID_ARGUMENT;
+  }
+
+  header = (struct rite_section_lv_header*)cur;
+  cur += sizeof(struct rite_section_lv_header);
+
+  result = write_lv_sym_table(mrb, &cur, syms, syms_len);
+  if (result != MRB_DUMP_OK) {
+    goto lv_section_exit;
+  }
+
+  result = write_lv_record(mrb, irep, &cur, syms, syms_len);
+  if (result != MRB_DUMP_OK) {
+    goto lv_section_exit;
+  }
+
+  memcpy(header->section_identify, RITE_SECTION_LV_IDENTIFIER, sizeof(header->section_identify));
+
+  diff = cur - start;
+  mrb_assert_int_fit(ptrdiff_t, diff, size_t, SIZE_MAX);
+  uint32_to_bin(diff, header->section_size);
+
+lv_section_exit:
+  return result;
+}
+
 static int
 write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t *bin)
 {
@@ -730,9 +865,10 @@ mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, siz
 {
   int result = MRB_DUMP_GENERAL_FAILURE;
   size_t section_irep_size;
-  size_t section_lineno_size = 0;
+  size_t section_lineno_size = 0, section_lv_size = 0;
   uint8_t *cur = NULL;
   mrb_bool const debug_info_defined = is_debug_info_defined(irep);
+  mrb_sym *lv_syms = NULL; uint32_t lv_syms_len = 0;
 
   if (mrb == NULL) {
     *bin = NULL;
@@ -764,8 +900,12 @@ mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, siz
     }
   }
 
+  section_lv_size += sizeof(struct rite_section_lv_header);
+  create_lv_sym_table(mrb, irep, &lv_syms, &lv_syms_len);
+  section_lv_size += get_lv_section_size(mrb, irep, lv_syms, lv_syms_len);
+
   *bin_size = sizeof(struct rite_binary_header) +
-              section_irep_size + section_lineno_size +
+              section_irep_size + section_lineno_size + section_lv_size +
               sizeof(struct rite_binary_footer);
   cur = *bin = (uint8_t*)mrb_malloc(mrb, *bin_size);
   if (cur == NULL) {
@@ -793,6 +933,12 @@ mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, siz
     cur += section_lineno_size;
   }
 
+  result = write_section_lv(mrb, irep, cur, lv_syms, lv_syms_len);
+  if (result != MRB_DUMP_OK) {
+    goto error_exit;
+  }
+  cur += section_lv_size;
+
   write_footer(mrb, cur);
   write_rite_binary_header(mrb, *bin_size, *bin);
 
@@ -800,6 +946,9 @@ error_exit:
   if (result != MRB_DUMP_OK) {
     mrb_free(mrb, *bin);
     *bin = NULL;
+  }
+  if (lv_syms) {
+    mrb_free(mrb, lv_syms);
   }
   return result;
 }
