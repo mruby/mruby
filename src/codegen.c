@@ -66,8 +66,8 @@ typedef struct scope {
   size_t scapa;
   size_t rcapa;
 
-  int nlocals;
-  int nregs;
+  uint16_t nlocals;
+  uint16_t nregs;
   int ai;
 
   int debug_start_pos;
@@ -2505,7 +2505,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
       p->irep->lv[i].name = lv_name(n);
       p->irep->lv[i].r = lv_idx(p, lv_name(n));
     }
-    mrb_assert(i == (p->nlocals - 1));
+    mrb_assert(i + 1 == p->nlocals);
   }
   p->ai = mrb_gc_arena_save(mrb);
 

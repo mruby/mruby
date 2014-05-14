@@ -701,7 +701,7 @@ create_lv_sym_table(mrb_state *mrb, const mrb_irep *irep, mrb_sym **syms, uint32
     *syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * 1);
   }
 
-  for (i = 0; i < (irep->nlocals - 1); ++i) {
+  for (i = 0; i + 1 < irep->nlocals; ++i) {
     mrb_sym const name = irep->lv[i].name;
     if (find_filename_index(*syms, *syms_len, name) != -1) continue;
 
@@ -743,12 +743,12 @@ write_lv_record(mrb_state *mrb, const mrb_irep *irep, uint8_t **start, mrb_sym c
   uint8_t *cur = *start;
   size_t i;
 
-  for (i = 0; i < (irep->nlocals - 1); ++i) {
+  for (i = 0; i + 1 < irep->nlocals; ++i) {
     int const sym_idx = find_filename_index(syms, syms_len, irep->lv[i].name);
     mrb_assert(sym_idx != -1); /* local variable name must be in syms */
 
     cur += uint16_to_bin(sym_idx, cur);
-    cur += uint32_to_bin(irep->lv[i].r, cur);
+    cur += uint16_to_bin(irep->lv[i].r, cur);
   }
 
   for (i = 0; i < irep->rlen; ++i) {
@@ -765,7 +765,7 @@ get_lv_record_size(mrb_state *mrb, mrb_irep *irep)
 {
   size_t ret = 0, i;
 
-  ret += (sizeof(uint16_t) + sizeof(uint32_t)) * (irep->nlocals - 1);
+  ret += (sizeof(uint16_t) + sizeof(uint16_t)) * (irep->nlocals - 1);
 
   for (i = 0; i < irep->rlen; ++i) {
     ret += get_lv_record_size(mrb, irep->reps[i]);

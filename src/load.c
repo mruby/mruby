@@ -408,7 +408,7 @@ read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *rec
 
   irep->lv = (struct mrb_locals*)mrb_malloc(mrb, sizeof(struct mrb_locals) * (irep->nlocals - 1));
 
-  for (i = 0; i < (irep->nlocals - 1); ++i) {
+  for (i = 0; i + 1< irep->nlocals; ++i) {
     uint16_t const sym_idx = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
     if (sym_idx >= syms_len) {
@@ -416,8 +416,8 @@ read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *rec
     }
     irep->lv[i].name = syms[sym_idx];
 
-    irep->lv[i].r = bin_to_uint32(bin);
-    bin += sizeof(uint32_t);
+    irep->lv[i].r = bin_to_uint16(bin);
+    bin += sizeof(uint16_t);
   }
 
   for (i = 0; i < irep->rlen; ++i) {

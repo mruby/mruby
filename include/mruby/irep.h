@@ -21,7 +21,7 @@ enum irep_pool_type {
 
 struct mrb_locals {
   mrb_sym name;
-  size_t r;
+  uint16_t r;
 };
 
 /* Program data array struct */
