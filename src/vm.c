@@ -18,7 +18,7 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/error.h"
-#include "opcode.h"
+#include "mruby/opcode.h"
 #include "value_array.h"
 #include "mrb_throw.h"
 

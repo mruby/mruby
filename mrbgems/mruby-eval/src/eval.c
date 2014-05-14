@@ -2,7 +2,7 @@
 #include "mruby/compile.h"
 #include "mruby/irep.h"
 #include "mruby/proc.h"
-#include "opcode.h"
+#include "mruby/opcode.h"
 
 static struct mrb_irep *
 get_closure_irep(mrb_state *mrb, int level)

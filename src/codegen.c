@@ -15,7 +15,7 @@
 #include "mruby/string.h"
 #include "mruby/debug.h"
 #include "node.h"
-#include "opcode.h"
+#include "mruby/opcode.h"
 #include "mruby/re.h"
 #include "mrb_throw.h"
 
