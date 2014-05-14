@@ -81,4 +81,10 @@ assert('Kernel.local_variables') do
 
   vars = Kernel.local_variables.sort
   assert_equal [:a, :b, :vars], vars
+
+  proc {
+    c = 2
+    vars = Kernel.local_variables.sort
+    assert_equal [:a, :b, :c, :vars], vars
+  }.call
 end
