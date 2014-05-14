@@ -179,7 +179,7 @@ str_new(mrb_state *mrb, const char *p, size_t len)
       memcpy(s->as.ary, p, len);
     }
   } else {
-    if (len >= MRB_INT_MAX) {
+    if (len >= RSTRING_LEN_MAX) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
     }
     s->as.heap.len = len;
@@ -219,7 +219,7 @@ mrb_str_buf_new(mrb_state *mrb, size_t capa)
 
   s = mrb_obj_alloc_string(mrb);
 
-  if (capa >= MRB_INT_MAX) {
+  if (capa >= RSTRING_LEN_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string capacity size too big");
   }
   if (capa < MRB_STR_BUF_MIN_SIZE) {
@@ -251,13 +251,13 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
   else
     capa = s->as.heap.aux.capa;
 
-  if (STR_LEN(s) >= MRB_INT_MAX - (mrb_int)len) {
+  if (STR_LEN(s) >= RSTRING_LEN_MAX - (mrb_int)len) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   total = STR_LEN(s)+len;
   if (capa <= total) {
     while (total > capa) {
-        if (capa + 1 >= MRB_INT_MAX / 2) {
+        if (capa + 1 >= RSTRING_LEN_MAX / 2) {
           capa = (total + 4095) / 4096;
           break;
         }
@@ -269,7 +269,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
       ptr = STR_PTR(s) + off;
   }
   memcpy(STR_PTR(s) + STR_LEN(s), ptr, len);
-  mrb_assert_int_fit(size_t, total, mrb_int, MRB_INT_MAX);
+  mrb_assert_int_fit(size_t, total, mrb_int, RSTRING_LEN_MAX);
   STR_SET_LEN(s, total);
   STR_PTR(s)[total] = '\0';   /* sentinel */
 }
@@ -313,7 +313,7 @@ mrb_str_new_static(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s;
 
-  if (len >= MRB_INT_MAX) {
+  if (len >= RSTRING_LEN_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   s = mrb_obj_alloc_string(mrb);
@@ -517,7 +517,7 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
   if (times < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argument");
   }
-  if (times && MRB_INT_MAX / times < RSTRING_LEN(self)) {
+  if (times && RSTRING_LEN_MAX / times < RSTRING_LEN(self)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "argument too big");
   }
 
@@ -2056,7 +2056,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     n *= base;
     n += c;
   }
-  if (n > MRB_INT_MAX) {
+  if (n > RSTRING_LEN_MAX) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "string (%S) too big for integer", mrb_str_new_cstr(mrb, str));
   }
   val = n;
