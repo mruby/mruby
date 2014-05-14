@@ -50,7 +50,7 @@ search_variable(mrb_state *mrb, mrb_sym vsym)
 static void
 patch_irep(mrb_state *mrb, mrb_irep *irep)
 {
-  int i;
+  size_t i;
   mrb_code c;
 
   for (i = 0; i < irep->ilen; i++) {
