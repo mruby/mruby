@@ -2500,11 +2500,12 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
     node *n = lv;
     size_t i = 0;
 
-    p->irep->lv = (struct mrb_locals*)mrb_malloc(mrb, sizeof(struct mrb_locals)*p->nlocals);
+    p->irep->lv = (struct mrb_locals*)mrb_malloc(mrb, sizeof(struct mrb_locals) * (p->nlocals - 1));
     for (i=0, n=lv; n; i++,n=n->cdr) {
       p->irep->lv[i].name = lv_name(n);
       p->irep->lv[i].r = lv_idx(p, lv_name(n));
     }
+    mrb_assert(i == (p->nlocals - 1));
   }
   p->ai = mrb_gc_arena_save(mrb);
 

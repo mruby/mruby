@@ -74,3 +74,11 @@ assert('mrb_cfunc_env_get') do
 
   assert_equal 1, t.get_int(1)
 end
+
+assert('Kernel.local_variables') do
+  a, b = 0, 1
+  a += b
+
+  vars = Kernel.local_variables.sort
+  assert_equal [:a, :b, :vars], vars
+end
