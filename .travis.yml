@@ -1,4 +1,9 @@
 # no installation...
+language: c
+
+compiler:
+  - gcc
+  - clang
 
 install:
  - sudo apt-get -q install gperf
