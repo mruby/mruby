@@ -356,7 +356,7 @@ main(int argc, char **argv)
       strcat(ruby_code, last_code_line);
     }
     else {
-      if ((strcmp(last_code_line, "quit") == 0) || (strcmp(last_code_line, "exit") == 0)) {
+      if ((strcmp(last_code_line, "quit\n") == 0) || (strcmp(last_code_line, "exit\n") == 0)) {
         break;
       }
       strcpy(ruby_code, last_code_line);
