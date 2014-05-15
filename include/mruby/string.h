@@ -17,6 +17,10 @@ extern const char mrb_digitmap[];
 
 #define RSTRING_EMBED_LEN_MAX ((mrb_int)(sizeof(void*) * 3 - 1))
 
+#ifndef RSTRING_LEN_MAX
+#define RSTRING_LEN_MAX MRB_INT_MAX
+#endif
+
 struct RString {
   MRB_OBJECT_HEADER;
   union {
