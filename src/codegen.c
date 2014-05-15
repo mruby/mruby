@@ -2638,6 +2638,7 @@ loop_pop(codegen_scope *s, int val)
   if (val) push();
 }
 
+#ifdef ENABLE_STDIO
 static int
 print_r(mrb_state *mrb, mrb_irep *irep, size_t n, int pre)
 {
@@ -2680,6 +2681,7 @@ print_lv(mrb_state *mrb, mrb_irep *irep, mrb_code c, int r)
   }
   printf("\n");
 }
+#endif
 
 static void
 codedump(mrb_state *mrb, mrb_irep *irep)
