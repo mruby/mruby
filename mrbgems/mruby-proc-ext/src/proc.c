@@ -142,7 +142,9 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
   }
   ret = mrb_ary_new_capa(mrb, irep->nlocals - 1);
   for (i = 0; i + 1 < irep->nlocals; ++i) {
-    mrb_ary_push(mrb, ret, mrb_symbol_value(irep->lv[i].name));
+    if (irep->lv[i].name) {
+      mrb_ary_push(mrb, ret, mrb_symbol_value(irep->lv[i].name));
+    }
   }
   if (proc->env) {
     struct REnv *e = proc->env;
@@ -152,7 +154,9 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
         irep = mrb->c->cibase[e->cioff].proc->body.irep;
         if (irep->lv) {
           for (i = 0; i + 1 < irep->nlocals; ++i) {
-            mrb_ary_push(mrb, ret, mrb_symbol_value(irep->lv[i].name));
+            if (irep->lv[i].name) {
+              mrb_ary_push(mrb, ret, mrb_symbol_value(irep->lv[i].name));
+            }
           }
         }
       }
