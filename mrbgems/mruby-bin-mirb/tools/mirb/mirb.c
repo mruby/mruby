@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #ifdef ENABLE_READLINE
 #include <readline/readline.h>
@@ -250,6 +251,29 @@ print_cmdline(int code_block_open)
 
 void mrb_codedump_all(mrb_state*, struct RProc*);
 
+static int
+check_keyword(const char *buf, const char *word)
+{
+  const char *p = buf;
+  size_t len = strlen(word);
+
+  /* skip preceding spaces */
+  while (*p && isspace(*p)) {
+    p++;
+  }
+  /* check keyword */
+  if (strncmp(p, word, len) != 0) {
+    return 0;
+  }
+  p += len;
+  /* skip trailing spaces */
+  while (*p) {
+    if (!isspace(*p)) return 0;
+    p++;
+  }
+  return 1;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -356,7 +380,7 @@ main(int argc, char **argv)
       strcat(ruby_code, last_code_line);
     }
     else {
-      if ((strcmp(last_code_line, "quit") == 0) || (strcmp(last_code_line, "exit") == 0)) {
+      if (check_keyword(last_code_line, "quit") || check_keyword(last_code_line, "exit")) {
         break;
       }
       strcpy(ruby_code, last_code_line);
