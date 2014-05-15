@@ -183,18 +183,3 @@ mrb_regexp_p(mrb_state *mrb, mrb_value v)
 {
   return mrb_class_defined(mrb, REGEXP_CLASS) && mrb_obj_is_kind_of(mrb, v, mrb_class_get(mrb, REGEXP_CLASS));
 }
-
-void
-mrb_irep_remove_lv(mrb_state *mrb, mrb_irep *irep)
-{
-  size_t i;
-
-  if (irep->lv) {
-    mrb_free(mrb, irep->lv);
-    irep->lv = NULL;
-  }
-
-  for (i = 0; i < irep->rlen; ++i) {
-    mrb_irep_remove_lv(mrb, irep->reps[i]);
-  }
-}
