@@ -26,7 +26,7 @@ get_closure_irep(mrb_state *mrb, int level)
 }
 
 static inline mrb_code
-search_variable(mrb_state *mrb, mrb_sym vsym)
+search_variable(mrb_state *mrb, mrb_sym vsym, int bnest)
 {
   mrb_irep *virep;
   int level;
@@ -38,7 +38,7 @@ search_variable(mrb_state *mrb, mrb_sym vsym)
     }
     for (pos = 0; pos < virep->nlocals - 1; pos++) {
       if (vsym == virep->lv[pos].name) {
-	return (MKARG_B(pos + 1) | MKARG_C(level));
+	return (MKARG_B(pos + 1) | MKARG_C(level + bnest));
       }
     }
   }
@@ -48,10 +48,14 @@ search_variable(mrb_state *mrb, mrb_sym vsym)
 
 
 static void
-patch_irep(mrb_state *mrb, mrb_irep *irep)
+patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest)
 {
   size_t i;
   mrb_code c;
+
+  for (i = 0; i < irep->rlen; i++) {
+    patch_irep(mrb, irep->reps[i], bnest + 1);
+  }
 
   for (i = 0; i < irep->ilen; i++) {
     c = irep->iseq[i];
@@ -61,7 +65,7 @@ patch_irep(mrb_state *mrb, mrb_irep *irep)
 	break;
       }
       {
-	mrb_code arg = search_variable(mrb, irep->syms[GETARG_B(c)]);
+	mrb_code arg = search_variable(mrb, irep->syms[GETARG_B(c)], bnest);
 	if (arg != 0) {
 	  /* must replace */
 	  irep->iseq[i] = MKOPCODE(OP_GETUPVAR) | MKARG_A(GETARG_A(c)) | arg;
@@ -72,7 +76,7 @@ patch_irep(mrb_state *mrb, mrb_irep *irep)
     case OP_MOVE:
       /* src part */
       if (GETARG_B(c) < irep->nlocals) {
-	mrb_code arg = search_variable(mrb, irep->lv[GETARG_B(c) - 1].name);
+	mrb_code arg = search_variable(mrb, irep->lv[GETARG_B(c) - 1].name, bnest);
 	if (arg != 0) {
 	  /* must replace */
 	  irep->iseq[i] = MKOPCODE(OP_GETUPVAR) | MKARG_A(GETARG_A(c)) | arg;
@@ -80,7 +84,7 @@ patch_irep(mrb_state *mrb, mrb_irep *irep)
       }
       /* dst part */
       if (GETARG_A(c) < irep->nlocals) {
-	mrb_code arg = search_variable(mrb, irep->lv[GETARG_A(c) - 1].name);
+	mrb_code arg = search_variable(mrb, irep->lv[GETARG_A(c) - 1].name, bnest);
 	if (arg != 0) {
 	  /* must replace */
 	  irep->iseq[i] = MKOPCODE(OP_SETUPVAR) | MKARG_A(GETARG_B(c)) | arg;
@@ -131,7 +135,7 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, cha
   e->stack = mrb->c->ci->stackent;
   mrb->c->ci->env = e;
   proc->env = e;
-  patch_irep(mrb, proc->body.irep);
+  patch_irep(mrb, proc->body.irep, 0);
 
   mrb_parser_free(p);
   mrbc_context_free(mrb, cxt);
