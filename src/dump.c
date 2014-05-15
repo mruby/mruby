@@ -860,6 +860,20 @@ is_debug_info_defined(mrb_irep *irep)
   return TRUE;
 }
 
+static mrb_bool
+is_lv_defined(mrb_irep *irep)
+{
+  size_t i;
+
+  if (irep->lv) { return TRUE; }
+
+  for (i = 0; i < irep->rlen; ++i) {
+    if (is_lv_defined(irep->reps[i])) { return TRUE; }
+  }
+
+  return FALSE;
+}
+
 int
 mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, size_t *bin_size)
 {
@@ -867,7 +881,7 @@ mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, siz
   size_t section_irep_size;
   size_t section_lineno_size = 0, section_lv_size = 0;
   uint8_t *cur = NULL;
-  mrb_bool const debug_info_defined = is_debug_info_defined(irep);
+  mrb_bool const debug_info_defined = is_debug_info_defined(irep), lv_defined = is_lv_defined(irep);
   mrb_sym *lv_syms = NULL; uint32_t lv_syms_len = 0;
 
   if (mrb == NULL) {
@@ -900,9 +914,11 @@ mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, siz
     }
   }
 
-  section_lv_size += sizeof(struct rite_section_lv_header);
-  create_lv_sym_table(mrb, irep, &lv_syms, &lv_syms_len);
-  section_lv_size += get_lv_section_size(mrb, irep, lv_syms, lv_syms_len);
+  if (lv_defined) {
+    section_lv_size += sizeof(struct rite_section_lv_header);
+    create_lv_sym_table(mrb, irep, &lv_syms, &lv_syms_len);
+    section_lv_size += get_lv_section_size(mrb, irep, lv_syms, lv_syms_len);
+  }
 
   *bin_size = sizeof(struct rite_binary_header) +
               section_irep_size + section_lineno_size + section_lv_size +
@@ -933,11 +949,13 @@ mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, siz
     cur += section_lineno_size;
   }
 
-  result = write_section_lv(mrb, irep, cur, lv_syms, lv_syms_len);
-  if (result != MRB_DUMP_OK) {
-    goto error_exit;
+  if (lv_defined) {
+    result = write_section_lv(mrb, irep, cur, lv_syms, lv_syms_len);
+    if (result != MRB_DUMP_OK) {
+      goto error_exit;
+    }
+    cur += section_lv_size;
   }
-  cur += section_lv_size;
 
   write_footer(mrb, cur);
   write_rite_binary_header(mrb, *bin_size, *bin);

@@ -3,7 +3,7 @@ require 'tempfile'
 assert('no files') do
   o = `bin/mruby-strip 2>&1`
   assert_equal 1, $?.exitstatus
-  assert_equal "no files to strip\n", o
+  assert_equal "no files to strip", o.split("\n")[0]
 end
 
 assert('file not found') do
@@ -51,4 +51,23 @@ assert('check debug section') do
 
   `bin/mruby-strip #{with_debug.path}`
   assert_equal without_debug.size, with_debug.size
+end
+
+assert('check lv section') do
+  script_file, with_lv, without_lv =
+    Tempfile.new('script.rb'), Tempfile.new('c1.mrb'), Tempfile.new('c2.mrb')
+  script_file.write <<EOS
+a, b = 0, 1
+a += b
+p Kernel.local_variables
+EOS
+  script_file.flush
+  `bin/mrbc -o #{with_lv.path} #{script_file.path}`
+  `bin/mrbc -o #{without_lv.path} #{script_file.path}`
+
+  `bin/mruby-strip -l #{without_lv.path}`
+  assert_true without_lv.size < with_lv.size
+
+  assert_equal '[:a, :b]', `bin/mruby -b #{with_lv.path}`.chomp
+  assert_equal '[]', `bin/mruby -b #{without_lv.path}`.chomp
 end
