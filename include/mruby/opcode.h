@@ -55,26 +55,26 @@ enum {
   ------------------------------------------------------------------------*/
   OP_NOP=0,/*                                                             */
   OP_MOVE,/*      A B     R(A) := R(B)                                    */
-  OP_LOADL,/*     A Bx    R(A) := Lit(Bx)                                 */
+  OP_LOADL,/*     A Bx    R(A) := Pool(Bx)                                */
   OP_LOADI,/*     A sBx   R(A) := sBx                                     */
-  OP_LOADSYM,/*   A Bx    R(A) := Sym(Bx)                                 */
+  OP_LOADSYM,/*   A Bx    R(A) := Syms(Bx)                                */
   OP_LOADNIL,/*   A       R(A) := nil                                     */
   OP_LOADSELF,/*  A       R(A) := self                                    */
   OP_LOADT,/*     A       R(A) := true                                    */
   OP_LOADF,/*     A       R(A) := false                                   */
 
-  OP_GETGLOBAL,/* A Bx    R(A) := getglobal(Sym(Bx))                      */
-  OP_SETGLOBAL,/* A Bx    setglobal(Sym(Bx), R(A))                        */
+  OP_GETGLOBAL,/* A Bx    R(A) := getglobal(Syms(Bx))                     */
+  OP_SETGLOBAL,/* A Bx    setglobal(Syms(Bx), R(A))                       */
   OP_GETSPECIAL,/*A Bx    R(A) := Special[Bx]                             */
   OP_SETSPECIAL,/*A Bx    Special[Bx] := R(A)                             */
-  OP_GETIV,/*     A Bx    R(A) := ivget(Sym(Bx))                          */
-  OP_SETIV,/*     A Bx    ivset(Sym(Bx),R(A))                             */
-  OP_GETCV,/*     A Bx    R(A) := cvget(Sym(Bx))                          */
-  OP_SETCV,/*     A Bx    cvset(Sym(Bx),R(A))                             */
-  OP_GETCONST,/*  A Bx    R(A) := constget(Sym(Bx))                       */
-  OP_SETCONST,/*  A Bx    constset(Sym(Bx),R(A))                          */
-  OP_GETMCNST,/*  A Bx    R(A) := R(A)::Sym(Bx)                           */
-  OP_SETMCNST,/*  A Bx    R(A+1)::Sym(Bx) := R(A)                         */
+  OP_GETIV,/*     A Bx    R(A) := ivget(Syms(Bx))                         */
+  OP_SETIV,/*     A Bx    ivset(Syms(Bx),R(A))                            */
+  OP_GETCV,/*     A Bx    R(A) := cvget(Syms(Bx))                         */
+  OP_SETCV,/*     A Bx    cvset(Syms(Bx),R(A))                            */
+  OP_GETCONST,/*  A Bx    R(A) := constget(Syms(Bx))                      */
+  OP_SETCONST,/*  A Bx    constset(Syms(Bx),R(A))                         */
+  OP_GETMCNST,/*  A Bx    R(A) := R(A)::Syms(Bx)                          */
+  OP_SETMCNST,/*  A Bx    R(A+1)::Syms(Bx) := R(A)                        */
   OP_GETUPVAR,/*  A B C   R(A) := uvget(B,C)                              */
   OP_SETUPVAR,/*  A B C   uvset(B,C,R(A))                                 */
 
@@ -88,31 +88,31 @@ enum {
   OP_EPUSH,/*     Bx      ensure_push(SEQ[Bx])                            */
   OP_EPOP,/*      A       A.times{ensure_pop().call}                      */
 
-  OP_SEND,/*      A B C   R(A) := call(R(A),mSym(B),R(A+1),...,R(A+C))    */
-  OP_SENDB,/*     A B C   R(A) := call(R(A),mSym(B),R(A+1),...,R(A+C),&R(A+C+1))*/
-  OP_FSEND,/*     A B C   R(A) := fcall(R(A),mSym(B),R(A+1),...,R(A+C-1)) */
-  OP_CALL,/*      A B C   R(A) := self.call(R(A),.., R(A+C))              */
-  OP_SUPER,/*     A B C   R(A) := super(R(A+1),... ,R(A+C-1))             */
+  OP_SEND,/*      A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C))    */
+  OP_SENDB,/*     A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
+  OP_FSEND,/*     A B C   R(A) := fcall(R(A),Syms(B),R(A+1),...,R(A+C-1)) */
+  OP_CALL,/*      A       R(A) := self.call(frame.argc, frame.argv)       */
+  OP_SUPER,/*     A C     R(A) := super(R(A+1),... ,R(A+C+1))             */
   OP_ARGARY,/*    A Bx    R(A) := argument array (16=6:1:5:4)             */
   OP_ENTER,/*     Ax      arg setup according to flags (23=5:5:1:5:5:1:1) */
-  OP_KARG,/*      A B C   R(A) := kdict[mSym(B)]; if C kdict.rm(mSym(B))  */
+  OP_KARG,/*      A B C   R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B))  */
   OP_KDICT,/*     A C     R(A) := kdict                                   */
 
   OP_RETURN,/*    A B     return R(A) (B=normal,in-block return/break)    */
-  OP_TAILCALL,/*  A B C   return call(R(A),mSym(B),*R(C))                 */
+  OP_TAILCALL,/*  A B C   return call(R(A),Syms(B),*R(C))                 */
   OP_BLKPUSH,/*   A Bx    R(A) := block (16=6:1:5:4)                      */
 
-  OP_ADD,/*       A B C   R(A) := R(A)+R(A+1) (mSyms[B]=:+,C=1)           */
-  OP_ADDI,/*      A B C   R(A) := R(A)+C (mSyms[B]=:+)                    */
-  OP_SUB,/*       A B C   R(A) := R(A)-R(A+1) (mSyms[B]=:-,C=1)           */
-  OP_SUBI,/*      A B C   R(A) := R(A)-C (mSyms[B]=:-)                    */
-  OP_MUL,/*       A B C   R(A) := R(A)*R(A+1) (mSyms[B]=:*,C=1)           */
-  OP_DIV,/*       A B C   R(A) := R(A)/R(A+1) (mSyms[B]=:/,C=1)           */
-  OP_EQ,/*        A B C   R(A) := R(A)==R(A+1) (mSyms[B]=:==,C=1)         */
-  OP_LT,/*        A B C   R(A) := R(A)<R(A+1)  (mSyms[B]=:<,C=1)          */
-  OP_LE,/*        A B C   R(A) := R(A)<=R(A+1) (mSyms[B]=:<=,C=1)         */
-  OP_GT,/*        A B C   R(A) := R(A)>R(A+1)  (mSyms[B]=:>,C=1)          */
-  OP_GE,/*        A B C   R(A) := R(A)>=R(A+1) (mSyms[B]=:>=,C=1)         */
+  OP_ADD,/*       A B C   R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)            */
+  OP_ADDI,/*      A B C   R(A) := R(A)+C (Syms[B]=:+)                     */
+  OP_SUB,/*       A B C   R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)            */
+  OP_SUBI,/*      A B C   R(A) := R(A)-C (Syms[B]=:-)                     */
+  OP_MUL,/*       A B C   R(A) := R(A)*R(A+1) (Syms[B]=:*,C=1)            */
+  OP_DIV,/*       A B C   R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)            */
+  OP_EQ,/*        A B C   R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)          */
+  OP_LT,/*        A B C   R(A) := R(A)<R(A+1)  (Syms[B]=:<,C=1)           */
+  OP_LE,/*        A B C   R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)          */
+  OP_GT,/*        A B C   R(A) := R(A)>R(A+1)  (Syms[B]=:>,C=1)           */
+  OP_GE,/*        A B C   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)          */
 
   OP_ARRAY,/*     A B C   R(A) := ary_new(R(B),R(B+1)..R(B+C))            */
   OP_ARYCAT,/*    A B     ary_cat(R(A),R(B))                              */
@@ -129,14 +129,14 @@ enum {
   OP_RANGE,/*     A B C   R(A) := range_new(R(B),R(B+1),C)                */
 
   OP_OCLASS,/*    A       R(A) := ::Object                                */
-  OP_CLASS,/*     A B     R(A) := newclass(R(A),mSym(B),R(A+1))           */
-  OP_MODULE,/*    A B     R(A) := newmodule(R(A),mSym(B))                 */
+  OP_CLASS,/*     A B     R(A) := newclass(R(A),Syms(B),R(A+1))           */
+  OP_MODULE,/*    A B     R(A) := newmodule(R(A),Syms(B))                 */
   OP_EXEC,/*      A Bx    R(A) := blockexec(R(A),SEQ[Bx])                 */
-  OP_METHOD,/*    A B     R(A).newmethod(mSym(B),R(A+1))                  */
+  OP_METHOD,/*    A B     R(A).newmethod(Syms(B),R(A+1))                  */
   OP_SCLASS,/*    A B     R(A) := R(B).singleton_class                    */
   OP_TCLASS,/*    A       R(A) := target_class                            */
 
-  OP_DEBUG,/*     A       print R(A)                                      */
+  OP_DEBUG,/*     A B C   print R(A),R(B),R(C)                            */
   OP_STOP,/*              stop VM                                         */
   OP_ERR,/*       Bx      raise RuntimeError with message Lit(Bx)         */
 
