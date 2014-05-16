@@ -685,8 +685,7 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
 char *
 mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
 {
-  mrb_value str = mrb_str_to_str(mrb, ptr);
-  return RSTRING_PTR(str);
+  return RSTRING_PTR(mrb_str_to_str(mrb, ptr));
 }
 
 static mrb_value
