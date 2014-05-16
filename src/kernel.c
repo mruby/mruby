@@ -984,16 +984,11 @@ basic_obj_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym id, int pub)
 static mrb_value
 obj_respond_to(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
-  mrb_int argc;
-  mrb_value mid, priv;
+  mrb_value mid;
   mrb_sym id, rtm_id;
-  mrb_bool respond_to_p = TRUE;
+  mrb_bool priv = FALSE, respond_to_p = TRUE;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
-  mid = argv[0];
-  if (argc > 1) priv = argv[1];
-  else priv = mrb_nil_value();
+  mrb_get_args(mrb, "o|b", &mid, &priv);
 
   if (mrb_symbol_p(mid)) {
     id = mrb_symbol(mid);
@@ -1017,13 +1012,14 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   }
 
   if (respond_to_p) {
-    respond_to_p = basic_obj_respond_to(mrb, self, id, !mrb_test(priv));
+    respond_to_p = basic_obj_respond_to(mrb, self, id, !priv);
   }
 
   if (!respond_to_p) {
     rtm_id = mrb_intern_lit(mrb, "respond_to_missing?");
-    if (basic_obj_respond_to(mrb, self, rtm_id, !mrb_test(priv))) {
-      return mrb_funcall_argv(mrb, self, rtm_id, argc, argv);
+    if (basic_obj_respond_to(mrb, self, rtm_id, !priv)) {
+      mrb_value args[] = { mid, mrb_bool_value(priv) };
+      return mrb_funcall_argv(mrb, self, rtm_id, 2, args);
     }
   }
   return mrb_bool_value(respond_to_p);

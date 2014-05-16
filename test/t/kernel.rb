@@ -451,6 +451,14 @@ assert('Kernel#respond_to?', '15.3.1.3.43') do
     Test4RespondTo.new.respond_to?(1)
   end
 
+  assert_raise ArgumentError do
+    Test4RespondTo.new.respond_to?
+  end
+
+  assert_raise ArgumentError do
+    Test4RespondTo.new.respond_to? :a, true, :aa
+  end
+
   assert_true respond_to?(:nil?)
   assert_true Test4RespondTo.new.respond_to?(:valid_method)
   assert_true Test4RespondTo.new.respond_to?('valid_method')
