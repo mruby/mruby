@@ -38,7 +38,7 @@ search_variable(mrb_state *mrb, mrb_sym vsym, int bnest)
     }
     for (pos = 0; pos < virep->nlocals - 1; pos++) {
       if (vsym == virep->lv[pos].name) {
-	return (MKARG_B(pos + 1) | MKARG_C(level + bnest));
+        return (MKARG_B(pos + 1) | MKARG_C(level + bnest));
       }
     }
   }
@@ -62,33 +62,33 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest)
     switch(GET_OPCODE(c)){
     case OP_SEND:
       if (GETARG_C(c) != 0) {
-	break;
+        break;
       }
       {
-	mrb_code arg = search_variable(mrb, irep->syms[GETARG_B(c)], bnest);
-	if (arg != 0) {
-	  /* must replace */
-	  irep->iseq[i] = MKOPCODE(OP_GETUPVAR) | MKARG_A(GETARG_A(c)) | arg;
-	}
+        mrb_code arg = search_variable(mrb, irep->syms[GETARG_B(c)], bnest);
+        if (arg != 0) {
+          /* must replace */
+          irep->iseq[i] = MKOPCODE(OP_GETUPVAR) | MKARG_A(GETARG_A(c)) | arg;
+        }
       }
       break;
 
     case OP_MOVE:
       /* src part */
       if (GETARG_B(c) < irep->nlocals) {
-	mrb_code arg = search_variable(mrb, irep->lv[GETARG_B(c) - 1].name, bnest);
-	if (arg != 0) {
-	  /* must replace */
-	  irep->iseq[i] = MKOPCODE(OP_GETUPVAR) | MKARG_A(GETARG_A(c)) | arg;
-	}
+        mrb_code arg = search_variable(mrb, irep->lv[GETARG_B(c) - 1].name, bnest);
+        if (arg != 0) {
+          /* must replace */
+          irep->iseq[i] = MKOPCODE(OP_GETUPVAR) | MKARG_A(GETARG_A(c)) | arg;
+        }
       }
       /* dst part */
       if (GETARG_A(c) < irep->nlocals) {
-	mrb_code arg = search_variable(mrb, irep->lv[GETARG_A(c) - 1].name, bnest);
-	if (arg != 0) {
-	  /* must replace */
-	  irep->iseq[i] = MKOPCODE(OP_SETUPVAR) | MKARG_A(GETARG_B(c)) | arg;
-	}
+        mrb_code arg = search_variable(mrb, irep->lv[GETARG_A(c) - 1].name, bnest);
+        if (arg != 0) {
+          /* must replace */
+          irep->iseq[i] = MKOPCODE(OP_SETUPVAR) | MKARG_A(GETARG_B(c)) | arg;
+        }
       }
       break;
     }
@@ -180,4 +180,3 @@ void
 mrb_mruby_eval_gem_final(mrb_state* mrb)
 {
 }
-
