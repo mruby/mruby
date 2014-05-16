@@ -488,8 +488,7 @@ mrb_str_bytesize(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_str_size(mrb_state *mrb, mrb_value self)
 {
-  struct RString *s = mrb_str_ptr(self);
-  return mrb_fixnum_value(STR_LEN(s));
+  return mrb_fixnum_value(STR_LEN(mrb_str_ptr(self)));
 }
 
 /* 15.2.10.5.1  */
