@@ -421,8 +421,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   mrb_value *sp = mrb->c->stack + 1;
   va_list ap;
   int argc = mrb->c->ci->argc;
-  mrb_bool opt = 0;
-  mrb_bool given = 1;
+  mrb_bool opt = FALSE;
+  mrb_bool given = TRUE;
 
   va_start(ap, format);
   if (argc < 0) {
@@ -438,7 +438,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     default:
       if (argc <= i) {
         if (opt) {
-          given = 0;
+          given = FALSE;
         }
         else {
           mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
@@ -669,7 +669,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       }
       break;
     case '|':
-      opt = 1;
+      opt = TRUE;
       break;
     case '?':
       {
