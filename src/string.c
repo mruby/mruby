@@ -1481,11 +1481,7 @@ mrb_str_init(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_str_intern(mrb_state *mrb, mrb_value self)
 {
-  mrb_sym id;
-
-  id = mrb_intern_str(mrb, self);
-  return mrb_symbol_value(id);
-
+  return mrb_symbol_value(mrb_intern_str(mrb, self));
 }
 /* ---------------------------------- */
 mrb_value
