@@ -991,6 +991,9 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   mrb_bool respond_to_p = TRUE;
 
   mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+  }
   mid = argv[0];
   if (argc > 1) priv = argv[1];
   else priv = mrb_nil_value();
