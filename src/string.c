@@ -257,11 +257,11 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
   total = STR_LEN(s)+len;
   if (capa <= total) {
     while (total > capa) {
-        if (capa + 1 >= MRB_INT_MAX / 2) {
-          capa = (total + 4095) / 4096;
-          break;
-        }
-        capa = (capa + 1) * 2;
+      if (capa + 1 >= MRB_INT_MAX / 2) {
+        capa = (total + 4095) / 4096;
+        break;
+      }
+      capa = (capa + 1) * 2;
     }
     resize_capa(mrb, s, capa);
   }
@@ -341,7 +341,7 @@ mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
   struct RString *s;
 
   if (!mrb_string_p(str0)) {
-      mrb_raise(mrb, E_TYPE_ERROR, "expected String");
+    mrb_raise(mrb, E_TYPE_ERROR, "expected String");
   }
 
   s = str_new(mrb, RSTRING_PTR(str0), RSTRING_LEN(str0));
@@ -692,8 +692,8 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
 char *
 mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
 {
-    mrb_value str = mrb_str_to_str(mrb, ptr);
-    return RSTRING_PTR(str);
+  mrb_value str = mrb_str_to_str(mrb, ptr);
+  return RSTRING_PTR(str);
 }
 
 static mrb_value
@@ -723,7 +723,7 @@ mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mr
     qstable[i] = m + 1;
   for (; x < xe; ++x)
     qstable[*x] = xe - x;
- /* Searching */
+  /* Searching */
   for (; y + m <= ys + n; y += *(qstable + y[m])) {
     if (*xs == *y && memcmp(xs, y, m) == 0)
         return y - ys;
@@ -828,8 +828,8 @@ num_index:
     default:
       idx = mrb_fixnum(indx);
       goto num_index;
-    }
-    return mrb_nil_value();    /* not reached */
+  }
+  return mrb_nil_value();    /* not reached */
 }
 
 /* 15.2.10.5.6  */
@@ -1351,7 +1351,6 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
       sub = argv[0];
     else
       sub = mrb_nil_value();
-
   }
   regexp_check(mrb, sub);
   if (pos < 0) {
