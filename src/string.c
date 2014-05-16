@@ -277,10 +277,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
 mrb_value
 mrb_str_new(mrb_state *mrb, const char *p, size_t len)
 {
-  struct RString *s;
-
-  s = str_new(mrb, p, len);
-  return mrb_obj_value(s);
+  return mrb_obj_value(str_new(mrb, p, len));
 }
 
 /*
