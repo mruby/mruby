@@ -663,12 +663,10 @@ static mrb_value
 mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
 {
   mrb_value str2;
-  mrb_bool equal_p;
 
   mrb_get_args(mrb, "o", &str2);
-  equal_p = mrb_str_equal(mrb, str1, str2);
 
-  return mrb_bool_value(equal_p);
+  return mrb_bool_value(mrb_str_equal(mrb, str1, str2));
 }
 /* ---------------------------------- */
 mrb_value
