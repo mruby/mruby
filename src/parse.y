@@ -5472,7 +5472,8 @@ mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
   p->filename_table[p->filename_table_length - 1] = sym;
 }
 
-char const* mrb_parser_get_filename(struct mrb_parser_state* p, uint16_t idx) {
+char const*
+mrb_parser_get_filename(struct mrb_parser_state* p, uint16_t idx) {
   if (idx >= p->filename_table_length) { return NULL; }
   else {
     return mrb_sym2name_len(p->mrb, p->filename_table[idx], NULL);
