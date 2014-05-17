@@ -91,7 +91,7 @@ mrb_proc_copy(struct RProc *a, struct RProc *b)
   a->body = b->body;
   if (!MRB_PROC_CFUNC_P(a)) {
     a->body.irep->refcnt++;
-  };
+  }
   a->target_class = b->target_class;
   a->env = b->env;
 }
