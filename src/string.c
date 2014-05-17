@@ -277,10 +277,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
 mrb_value
 mrb_str_new(mrb_state *mrb, const char *p, size_t len)
 {
-  struct RString *s;
-
-  s = str_new(mrb, p, len);
-  return mrb_obj_value(s);
+  return mrb_obj_value(str_new(mrb, p, len));
 }
 
 /*
@@ -477,8 +474,7 @@ mrb_str_plus_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_bytesize(mrb_state *mrb, mrb_value self)
 {
-  struct RString *s = mrb_str_ptr(self);
-  return mrb_fixnum_value(STR_LEN(s));
+  return mrb_fixnum_value(STR_LEN(mrb_str_ptr(self)));
 }
 
 /* 15.2.10.5.26 */
@@ -492,8 +488,7 @@ mrb_str_bytesize(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_str_size(mrb_state *mrb, mrb_value self)
 {
-  struct RString *s = mrb_str_ptr(self);
-  return mrb_fixnum_value(STR_LEN(s));
+  return mrb_fixnum_value(STR_LEN(mrb_str_ptr(self)));
 }
 
 /* 15.2.10.5.1  */
@@ -666,12 +661,10 @@ static mrb_value
 mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
 {
   mrb_value str2;
-  mrb_bool equal_p;
 
   mrb_get_args(mrb, "o", &str2);
-  equal_p = mrb_str_equal(mrb, str1, str2);
 
-  return mrb_bool_value(equal_p);
+  return mrb_bool_value(mrb_str_equal(mrb, str1, str2));
 }
 /* ---------------------------------- */
 mrb_value
@@ -692,8 +685,7 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
 char *
 mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
 {
-  mrb_value str = mrb_str_to_str(mrb, ptr);
-  return RSTRING_PTR(str);
+  return RSTRING_PTR(mrb_str_to_str(mrb, ptr));
 }
 
 static mrb_value
@@ -1489,11 +1481,7 @@ mrb_str_init(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_str_intern(mrb_state *mrb, mrb_value self)
 {
-  mrb_sym id;
-
-  id = mrb_intern_str(mrb, self);
-  return mrb_symbol_value(id);
-
+  return mrb_symbol_value(mrb_intern_str(mrb, self));
 }
 /* ---------------------------------- */
 mrb_value
