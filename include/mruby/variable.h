@@ -50,6 +50,7 @@ mrb_value mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym);
 void mrb_iv_copy(mrb_state *mrb, mrb_value dst, mrb_value src);
 int mrb_const_defined_at(mrb_state *mrb, struct RClass *klass, mrb_sym id);
 mrb_value mrb_mod_constants(mrb_state *mrb, mrb_value mod);
+mrb_value mrb_mod_s_constants(mrb_state *mrb, mrb_value mod);
 mrb_value mrb_f_global_variables(mrb_state *mrb, mrb_value self);
 mrb_value mrb_gv_get(mrb_state *mrb, mrb_sym sym);
 void mrb_gv_set(mrb_state *mrb, mrb_sym sym, mrb_value val);

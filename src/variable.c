@@ -987,6 +987,42 @@ mrb_mod_constants(mrb_state *mrb, mrb_value mod)
 }
 
 mrb_value
+mrb_mod_s_constants(mrb_state *mrb, mrb_value mod)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+  struct RClass *c;
+  struct RClass *c2;
+  mrb_value ary;
+  mrb_value argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  if (0 < argc || mrb_class_ptr(mod) != mrb->module_class) {
+    return mrb_mod_constants(mrb, mod);
+  }
+
+  ary = mrb_ary_new(mrb);
+  ci--;
+  c = ci->target_class;
+  while (c) {
+    if (c->iv) {
+      iv_foreach(mrb, c->iv, const_i, &ary);
+    }
+    c2 = c;
+    for (;;) {
+      c2 = mrb_class_outer_module(mrb, c2);
+      if (!c2) break;
+      if (c2->iv) {
+        iv_foreach(mrb, c2->iv, const_i, &ary);
+      }
+    }
+    c = c->super;
+  }
+  return ary;
+}
+
+mrb_value
 mrb_gv_get(mrb_state *mrb, mrb_sym sym)
 {
   mrb_value v;
