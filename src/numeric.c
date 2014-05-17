@@ -1308,6 +1308,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, integer, "to_i", int_to_i, MRB_ARGS_NONE());            /* 15.2.8.3.24 */
   mrb_define_method(mrb, integer, "to_int", int_to_i, MRB_ARGS_NONE());
 
+  /* Fixnum Class */
   fixnum = mrb->fixnum_class = mrb_define_class(mrb, "Fixnum", integer);
   mrb_define_method(mrb, fixnum,  "+",        fix_plus,          MRB_ARGS_REQ(1)); /* 15.2.8.3.1  */
   mrb_define_method(mrb, fixnum,  "-",        fix_minus,         MRB_ARGS_REQ(1)); /* 15.2.8.3.2  */
