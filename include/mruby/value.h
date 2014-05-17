@@ -153,12 +153,12 @@ typedef struct mrb_value {
     union {
       void *p;
       struct {
-	MRB_ENDIAN_LOHI(
- 	  uint32_t ttt;
+        MRB_ENDIAN_LOHI(
+          uint32_t ttt;
           ,union {
-	    mrb_int i;
-	    mrb_sym sym;
-	  };
+            mrb_int i;
+            mrb_sym sym;
+          };
         )
       };
     } value;
