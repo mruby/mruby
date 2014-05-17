@@ -79,6 +79,8 @@ assert('Kernel.local_variables') do
   a, b = 0, 1
   a += b
 
+  skip if Kernel.local_variables.empty? # skip if lvar is not defined
+
   vars = Kernel.local_variables.sort
   assert_equal [:a, :b, :vars], vars
 
