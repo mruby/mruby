@@ -9,7 +9,40 @@ assert('Module superclass', '15.2.2.2') do
   assert_equal Object, Module.superclass
 end
 
-# TODO not implemented ATM assert('Module.constants', '15.2.2.3.1') do
+assert('Module.constants', '15.2.2.3.1') do
+  c1 = Module.constants
+  [
+    :ArgumentError, :Array, :BasicObject, :BasicObject, :Class, :Comparable, :Enumerable, :Enumerator, :Exception, :FalseClass, :Fixnum, :Float, :Hash, :IndexError, :Integer, :Integral, :Kernel, :LocalJumpError, :Module, :NameError, :NilClass, :NoMethodError, :Numeric, :Object, :Proc, :Range, :RangeError, :RegexpError, :RuntimeError, :ScriptError, :StandardError, :String, :Struct, :Symbol, :SyntaxError, :Time, :TrueClass, :TypeError
+  ].each do |iso|
+    c1.include?(iso)
+  end
+  assert_false c1.include?(:ModuleConstantsTestSuperClass)
+  assert_false c1.include?(:ModuleConstantsTestOuterClass)
+
+  class ModuleConstantsTestSuperClass
+    CONST_OF_SUPER = 1
+  end
+  class ModuleConstantsTestOuterClass
+    CONST_OF_OUTER = 1
+    class ModuleConstantsTestCurrentClass < ModuleConstantsTestSuperClass
+      CONST_OF_CURRENT = 1
+    end
+  end
+
+  c2 = Module.constants
+  assert_true c2.include?(:ModuleConstantsTestSuperClass)
+  assert_true c2.include?(:ModuleConstantsTestOuterClass)
+
+  c3 = ModuleConstantsTestOuterClass::ModuleConstantsTestCurrentClass.class_eval do
+    Module.constants
+  end
+  assert_true c3.include?(:ModuleConstantsTestSuperClass)
+  assert_true c3.include?(:ModuleConstantsTestOuterClass)
+  assert_true c3.include?(:ModuleConstantsTestCurrentClass)
+  assert_true c3.include?(:CONST_OF_SUPER)
+  assert_true c3.include?(:CONST_OF_OUTER)
+  assert_true c3.include?(:CONST_OF_CURRENT)
+end
 
 # TODO not implemented ATM assert('Module.nesting', '15.2.2.3.2') do
 
