@@ -126,7 +126,7 @@ mrb_range_initialize(mrb_state *mrb, mrb_value range)
 
   n = mrb_get_args(mrb, "oo|b", &beg, &end, &exclusive);
   if (n != 3) {
-    exclusive = 0;
+    exclusive = FALSE;
   }
   /* Ranges are immutable, so that they should be initialized only once. */
   range_init(mrb, range, beg, end, exclusive);
