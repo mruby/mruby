@@ -25,10 +25,10 @@ mrb_int_chr(mrb_state *mrb, mrb_value x)
 static mrb_value
 mrb_fix_odd_p(mrb_state *mrb, mrb_value x)
 {
-  if (mrb_fixnum(x) & 1) {
-    return mrb_true_value();
+  if ((mrb_fixnum(x) & 1) == 0) {
+    return mrb_false_value();
   }
-  return mrb_false_value();
+  return mrb_true_value();
 }
 
 /*
@@ -40,10 +40,10 @@ mrb_fix_odd_p(mrb_state *mrb, mrb_value x)
 static mrb_value
 mrb_fix_even_p(mrb_state *mrb, mrb_value x)
 {
-  if (mrb_fixnum(x) & 1) {
-    return mrb_false_value();
+  if ((mrb_fixnum(x) & 1) == 0) {
+    return mrb_true_value();
   }
-  return mrb_true_value();
+  return mrb_false_value();
 }
 
 void
