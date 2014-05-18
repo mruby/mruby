@@ -75,7 +75,7 @@ assert('mrb_cfunc_env_get') do
   assert_equal 1, t.get_int(1)
 end
 
-assert('Kernel.local_variables') do
+assert('Kernel.local_variables', '15.3.1.2.7') do
   a, b = 0, 1
   a += b
 
