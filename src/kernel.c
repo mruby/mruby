@@ -182,7 +182,7 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
   bp = ci->stackent + 1;
   ci--;
   if (ci <= mrb->c->cibase) {
-    given_p = 0;
+    given_p = FALSE;
   }
   else {
     /* block_given? called within block; check upper scope */
