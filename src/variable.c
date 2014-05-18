@@ -353,7 +353,7 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 
   if (h) {
     for (k = kh_begin(h); k != kh_end(h); k++) {
-      if (kh_exist(h, k)){
+      if (kh_exist(h, k)) {
         n = (*func)(mrb, kh_key(h, k), kh_value(h, k), p);
         if (n > 0) return FALSE;
         if (n < 0) {

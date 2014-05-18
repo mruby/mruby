@@ -26,7 +26,7 @@ mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
 
   if (!h) return;
   for (k = kh_begin(h); k != kh_end(h); k++) {
-    if (kh_exist(h, k)){
+    if (kh_exist(h, k)) {
       struct RProc *m = kh_value(h, k);
       if (m) {
         mrb_gc_mark(mrb, (struct RBasic*)m);
@@ -747,7 +747,7 @@ mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
       if (c != p && p->tt == MRB_TT_CLASS) {
         superclass_seen = 1;
       }
-      else if (p->mt == m->mt){
+      else if (p->mt == m->mt) {
         if (p->tt == MRB_TT_ICLASS && !superclass_seen) {
           ins_pos = p;
         }
@@ -1332,7 +1332,7 @@ mrb_class_new(mrb_state *mrb, struct RClass *super)
     mrb_check_inheritable(mrb, super);
   }
   c = boot_defclass(mrb, super);
-  if (super){
+  if (super) {
     MRB_SET_INSTANCE_TT(c, MRB_INSTANCE_TT(super));
   }
   make_metaclass(mrb, c);
@@ -1698,7 +1698,7 @@ mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
   val = mrb_iv_remove(mrb, mod, id);
   if (!mrb_undef_p(val)) return val;
 
-  if (mrb_cv_defined(mrb, mod, id)){
+  if (mrb_cv_defined(mrb, mod, id)) {
     mrb_name_error(mrb, id, "cannot remove %S for %S",
                    mrb_sym2str(mrb, id), mod);
   }

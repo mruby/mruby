@@ -717,7 +717,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   /* verify CRC */
   fpos = ftell(fp);
   /* You don't need use SIZE_ERROR as block_size is enough small. */
-  for (i = 0; i < block_fallback_count; i++,block_size >>= 1){
+  for (i = 0; i < block_fallback_count; i++,block_size >>= 1) {
     buf = (uint8_t*)mrb_malloc_simple(mrb, block_size);
     if (buf) break;
   }
