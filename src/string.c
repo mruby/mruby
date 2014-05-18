@@ -1821,7 +1821,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   else {
     if (mrb_string_p(spat)) {
       split_type = string;
-      if (RSTRING_LEN(spat) == 1 && RSTRING_PTR(spat)[0] == ' '){
+      if (RSTRING_LEN(spat) == 1 && RSTRING_PTR(spat)[0] == ' ') {
           split_type = awk;
       }
     }

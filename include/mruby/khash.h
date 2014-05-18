@@ -112,7 +112,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
     kh_alloc_##name(mrb, h);                                            \
     return h;                                                           \
   }                                                                     \
-  kh_##name##_t *kh_init_##name(mrb_state *mrb){                        \
+  kh_##name##_t *kh_init_##name(mrb_state *mrb) {                       \
     return kh_init_##name##_size(mrb, KHASH_DEFAULT_SIZE);              \
   }                                                                     \
   void kh_destroy_##name(mrb_state *mrb, kh_##name##_t *h)              \
