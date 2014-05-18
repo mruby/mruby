@@ -437,6 +437,26 @@ assert('Kernel#raise', '15.3.1.3.40') do
   end
 end
 
+assert('Kernel#remove_instance_variable', '15.3.1.3.41') do
+  class Test4RemoveInstanceVar
+    attr_reader :var
+    def initialize
+      @var = 99
+    end
+    def remove
+      remove_instance_variable(:@var)
+    end
+  end
+
+  tri = Test4RemoveInstanceVar.new
+  assert_equal 99, tri.var
+  tri.remove
+  assert_equal nil, tri.var
+  assert_raise NameError do
+    tri.remove
+  end
+end
+
 # Kernel#require is defined in mruby-require. '15.3.1.3.42'
 
 assert('Kernel#respond_to?', '15.3.1.3.43') do
