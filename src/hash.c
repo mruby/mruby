@@ -678,7 +678,7 @@ mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_hash_to_hash(mrb_state *mrb, mrb_value hash)
 {
-    return hash;
+  return hash;
 }
 
 /* 15.2.13.4.19 */
