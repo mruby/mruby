@@ -176,7 +176,7 @@ exc_equal(mrb_state *mrb, mrb_value exc)
 
   mrb_get_args(mrb, "o", &obj);
   if (mrb_obj_equal(mrb, exc, obj)) {
-    equal_p = 1;
+    equal_p = TRUE;
   }
   else {
     if (mrb_obj_class(mrb, exc) != mrb_obj_class(mrb, obj)) {
