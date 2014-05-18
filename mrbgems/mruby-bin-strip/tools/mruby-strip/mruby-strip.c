@@ -11,21 +11,6 @@ struct strip_args {
 
 
 static void
-irep_remove_lv(mrb_state *mrb, mrb_irep *irep)
-{
-  size_t i;
-
-  if (irep->lv) {
-    mrb_free(mrb, irep->lv);
-    irep->lv = NULL;
-  }
-
-  for (i = 0; i < irep->rlen; ++i) {
-    irep_remove_lv(mrb, irep->reps[i]);
-  }
-}
-
-static void
 print_usage(const char *f)
 {
   printf("Usage: %s [options] irepfiles\n", f);
@@ -115,7 +100,7 @@ main(int argc, char **argv)
   for (i = args_result; i < argc; ++i) {
     /* clear lv if --lvar is enabled */
     if (args.lvar) {
-      irep_remove_lv(mrb, ireps[i]);
+      mrb_irep_remove_lv(mrb, ireps[i]);
     }
 
     /* debug flag must be alway false */

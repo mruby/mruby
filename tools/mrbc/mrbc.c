@@ -29,6 +29,7 @@ struct mrbc_args {
   mrb_bool check_syntax : 1;
   mrb_bool verbose      : 1;
   mrb_bool debug_info   : 1;
+  mrb_bool lvar         : 1;
 };
 
 static void
@@ -40,6 +41,7 @@ usage(const char *name)
   "-o<outfile>  place the output into <outfile>",
   "-v           print version number, then turn on verbose mode",
   "-g           produce debugging information",
+  "-l           don't produce local variable informations",
   "-B<symbol>   binary <symbol> output in C language format",
   "--verbose    run at verbose mode",
   "--version    print the version",
@@ -125,6 +127,9 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
         break;
       case 'g':
         args->debug_info = TRUE;
+        break;
+      case 'l':
+        args->lvar = TRUE;
         break;
       case 'h':
         return -1;
@@ -230,6 +235,10 @@ dump_file(mrb_state *mrb, FILE *wfp, const char *outfile, struct RProc *proc, st
 {
   int n = MRB_DUMP_OK;
   mrb_irep *irep = proc->body.irep;
+
+  if (args->lvar) {
+    mrb_irep_remove_lv(mrb, irep);
+  }
 
   if (args->initname) {
     n = mrb_dump_irep_cfunc(mrb, irep, args->debug_info, wfp, args->initname);

@@ -1,8 +1,12 @@
 assert('Kernel.eval') do
   assert_equal(10) { Kernel.eval '1 * 10' }
   assert_equal('aaa') { Kernel.eval "'a' * 3" }
+end
+
+assert('Kernel.eval using local variables') do
   assert_equal(10) {
     a = 10
+    skip if Kernel.local_variables.empty? # skip if lvar is not defined
     Kernel.eval "a"
   }
   assert_equal(20) {
