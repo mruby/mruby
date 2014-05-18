@@ -254,7 +254,7 @@ assert('Module#const_get', '15.2.2.4.21') do
   assert_equal 42, Test4ConstGet.const_get(:Const4Test4ConstGet)
 end
 
-assert('Module.const_missing', '15.2.2.4.22') do
+assert('Module#const_missing', '15.2.2.4.22') do
   module Test4ConstMissing
     def self.const_missing(sym)
       42 # the answer to everything
@@ -273,7 +273,7 @@ assert('Module#const_get', '15.2.2.4.23') do
   assert_equal 23, Test4ConstSet.const_get(:Const4Test4ConstSet)
 end
 
-assert('Module.constants', '15.2.2.4.24') do
+assert('Module#constants', '15.2.2.4.24') do
   $n = []
   module TestA
     C = 1
@@ -444,7 +444,7 @@ assert('Module#remove_method', '15.2.2.4.41') do
   assert_false Test4RemoveMethod::Child.instance_methods(false).include? :hello
 end
 
-assert('Module.undef_method', '15.2.2.4.42') do
+assert('Module#undef_method', '15.2.2.4.42') do
   module Test4UndefMethod
     class Parent
       def hello
