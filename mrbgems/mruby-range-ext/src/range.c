@@ -1,5 +1,6 @@
 #include "mruby.h"
 #include "mruby/range.h"
+#include <math.h>
 
 static mrb_bool
 r_le(mrb_state *mrb, mrb_value a, mrb_value b)
@@ -136,26 +137,39 @@ static mrb_value
 mrb_range_size(mrb_state *mrb, mrb_value range)
 {
   struct RRange *r = mrb_range_ptr(range);
-  mrb_value beg, end, end_f;
-  mrb_bool dec = TRUE;
+  mrb_value beg, end;
+  double beg_f, end_f;
+  mrb_bool num_p = TRUE;
 
   beg = r->edges->beg;
   end = r->edges->end;
-  if (mrb_obj_is_kind_of(mrb, beg, mrb->float_class)) {
-    beg = mrb_funcall(mrb, beg, "to_i", 0);
+  if (mrb_fixnum_p(beg)) {
+    beg_f = (double)mrb_fixnum(beg);
   }
-  if (mrb_obj_is_kind_of(mrb, end, mrb->float_class)) {
-    end_f = end;
-    end = mrb_funcall(mrb, end, "to_i", 0);
-    if (r->excl && mrb_obj_eq(mrb, mrb_funcall(mrb, end_f, "==", 1, end), mrb_false_value())) {
-      dec = FALSE;
+  else if (mrb_float_p(beg)) {
+    beg_f = mrb_float(beg);
+  }
+  else {
+    num_p = FALSE;
+  }
+  if (mrb_fixnum_p(end)) {
+    end_f = (double)mrb_fixnum(end);
+  }
+  else if (mrb_float_p(end)) {
+    end_f = mrb_float(end);
+  }
+  else {
+    num_p = FALSE;
+  }
+  if (num_p) {
+    double f;
+
+    if (beg_f > end_f) return mrb_fixnum_value(0);
+    f = end_f - beg_f;
+    if (!r->excl) {
+      return mrb_fixnum_value((mrb_int)ceil(f + 1));
     }
-  }
-  if (mrb_obj_is_kind_of(mrb, beg, mrb->fixnum_class) &&
-      mrb_obj_is_kind_of(mrb, end, mrb->fixnum_class)) {
-    mrb_int end_i = mrb_fixnum(end);
-    if (r->excl && dec) end_i--;
-    return mrb_fixnum_value(end_i - mrb_fixnum(beg) + 1);
+    return mrb_fixnum_value((mrb_int)ceil(f));
   }
   return mrb_nil_value();
 }
