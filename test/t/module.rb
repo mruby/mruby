@@ -340,6 +340,12 @@ assert('Module#included_modules', '15.2.2.4.30') do
   assert_true r.include?(Test4includedModules)
 end
 
+assert('Module#initialize', '15.2.2.4.31') do
+  assert_kind_of Module, Module.new
+  mod = Module.new { def hello; "hello"; end }
+  assert_equal [:hello], mod.instance_methods
+end
+
 assert('Module#instance_methods', '15.2.2.4.33') do
   module Test4InstanceMethodsA
     def method1()  end
