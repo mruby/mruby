@@ -43,7 +43,7 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   mrb_sym sym;
   char *p;
 
-  if (len > UINT16_MAX) {
+  if (len > (UINT16_MAX-1)) {   /* UINT16_MAX is reverved */
     mrb_raise(mrb, E_ARGUMENT_ERROR, "symbol length too long");
   }
   sname.lit = lit;
