@@ -121,6 +121,45 @@ mrb_range_last(mrb_state *mrb, mrb_value range)
   return mrb_funcall(mrb, array, "last", 1, mrb_to_int(mrb, num));
 }
 
+/*
+ *  call-seq:
+ *     rng.size                   -> num
+ *
+ *  Returns the number of elements in the range. Both the begin and the end of
+ *  the Range must be Numeric, otherwise nil is returned.
+ *
+ *    (10..20).size    #=> 11
+ *    ('a'..'z').size  #=> nil
+ */
+
+static mrb_value
+mrb_range_size(mrb_state *mrb, mrb_value range)
+{
+  struct RRange *r = mrb_range_ptr(range);
+  mrb_value beg, end, end_f;
+  mrb_bool dec = TRUE;
+
+  beg = r->edges->beg;
+  end = r->edges->end;
+  if (mrb_obj_is_kind_of(mrb, beg, mrb->float_class)) {
+    beg = mrb_funcall(mrb, beg, "to_i", 0);
+  }
+  if (mrb_obj_is_kind_of(mrb, end, mrb->float_class)) {
+    end_f = end;
+    end = mrb_funcall(mrb, end, "to_i", 0);
+    if (r->excl && mrb_obj_eq(mrb, mrb_funcall(mrb, end_f, "==", 1, end), mrb_false_value())) {
+      dec = FALSE;
+    }
+  }
+  if (mrb_obj_is_kind_of(mrb, beg, mrb->fixnum_class) &&
+      mrb_obj_is_kind_of(mrb, end, mrb->fixnum_class)) {
+    mrb_int end_i = mrb_fixnum(end);
+    if (r->excl && dec) end_i--;
+    return mrb_fixnum_value(end_i - mrb_fixnum(beg) + 1);
+  }
+  return mrb_nil_value();
+}
+
 void
 mrb_mruby_range_ext_gem_init(mrb_state* mrb)
 {
@@ -129,6 +168,7 @@ mrb_mruby_range_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "cover?", mrb_range_cover, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "first",  mrb_range_first, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, s, "last",   mrb_range_last,  MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, s, "size",   mrb_range_size,  MRB_ARGS_NONE());
 }
 
 void
