@@ -94,6 +94,8 @@ struct rite_section_lv_header {
   RITE_SECTION_HEADER;
 };
 
+#define RITE_LV_NULL_MARK              UINT16_MAX
+
 struct rite_binary_footer {
   RITE_SECTION_HEADER;
 };

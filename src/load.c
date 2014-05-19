@@ -411,12 +411,18 @@ read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *rec
   for (i = 0; i + 1< irep->nlocals; ++i) {
     uint16_t const sym_idx = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
-    if (sym_idx >= syms_len) {
-      return MRB_DUMP_GENERAL_FAILURE;
+    if (sym_idx == RITE_LV_NULL_MARK) {
+      irep->lv[i].name = 0;
+      irep->lv[i].r = 0;
     }
-    irep->lv[i].name = syms[sym_idx];
+    else {
+      if (sym_idx >= syms_len) {
+        return MRB_DUMP_GENERAL_FAILURE;
+      }
+      irep->lv[i].name = syms[sym_idx];
 
-    irep->lv[i].r = bin_to_uint16(bin);
+      irep->lv[i].r = bin_to_uint16(bin);
+    }
     bin += sizeof(uint16_t);
   }
 
