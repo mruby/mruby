@@ -1101,6 +1101,51 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
+static mrb_value
+mrb_local_variables(mrb_state *mrb, mrb_value self)
+{
+  mrb_value ret;
+  struct RProc *proc;
+  struct mrb_irep *irep;
+  size_t i;
+
+  proc = mrb->c->ci[-1].proc;
+
+  if (MRB_PROC_CFUNC_P(proc)) {
+    return mrb_ary_new(mrb);
+  }
+
+  irep = proc->body.irep;
+  if (!irep->lv) {
+    return mrb_ary_new(mrb);
+  }
+  ret = mrb_ary_new_capa(mrb, irep->nlocals - 1);
+  for (i = 0; i + 1 < irep->nlocals; ++i) {
+    if (irep->lv[i].name) {
+      mrb_ary_push(mrb, ret, mrb_symbol_value(irep->lv[i].name));
+    }
+  }
+  if (proc->env) {
+    struct REnv *e = proc->env;
+
+    while (e) {
+      if (!MRB_PROC_CFUNC_P(mrb->c->cibase[e->cioff].proc)) {
+        irep = mrb->c->cibase[e->cioff].proc->body.irep;
+        if (irep->lv) {
+          for (i = 0; i + 1 < irep->nlocals; ++i) {
+            if (irep->lv[i].name) {
+              mrb_ary_push(mrb, ret, mrb_symbol_value(irep->lv[i].name));
+            }
+          }
+        }
+      }
+      e = (struct REnv*)e->c;
+    }
+  }
+
+  return ret;
+}
+
 void
 mrb_init_kernel(mrb_state *mrb)
 {
@@ -1110,6 +1155,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_class_method(mrb, krn, "block_given?",         mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.2  */
   mrb_define_class_method(mrb, krn, "global_variables",     mrb_f_global_variables,          MRB_ARGS_NONE());    /* 15.3.1.2.4  */
   mrb_define_class_method(mrb, krn, "iterator?",            mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.5  */
+  mrb_define_class_method(mrb, krn, "local_variables",      mrb_local_variables,             MRB_ARGS_NONE());    /* 15.3.1.2.7  */
 ;     /* 15.3.1.2.11 */
   mrb_define_class_method(mrb, krn, "raise",                mrb_f_raise,                     MRB_ARGS_ANY());     /* 15.3.1.2.12 */
 
@@ -1140,6 +1186,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "is_a?",                      mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.24 */
   mrb_define_method(mrb, krn, "iterator?",                  mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.25 */
   mrb_define_method(mrb, krn, "kind_of?",                   mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.26 */
+  mrb_define_method(mrb, krn, "local_variables",            mrb_local_variables,             MRB_ARGS_NONE());    /* 15.3.1.3.28 */
   mrb_define_method(mrb, krn, "methods",                    mrb_obj_methods_m,               MRB_ARGS_OPT(1));    /* 15.3.1.3.31 */
   mrb_define_method(mrb, krn, "nil?",                       mrb_false,                       MRB_ARGS_NONE());    /* 15.3.1.3.32 */
   mrb_define_method(mrb, krn, "object_id",                  mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.33 */
