@@ -1,4 +1,4 @@
-assert('Kernel.eval') do
+assert('Kernel.eval', '15.3.1.2.3') do
   assert_equal(10) { Kernel.eval '1 * 10' }
   assert_equal('aaa') { Kernel.eval "'a' * 3" }
   assert_equal(10) {
@@ -34,7 +34,7 @@ assert('Kernel.eval') do
   }
 end
 
-assert('eval') do
+assert('Kernel#eval', '15.3.1.3.12') do
   assert_equal(10) { eval '1 * 10' }
 end
 
