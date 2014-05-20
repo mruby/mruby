@@ -35,8 +35,8 @@ module MRuby
       Gem.current.build_config_initializer = block
       gems << Gem.current
 
-      cxx_srcs = Dir.glob("#{Gem.current.dir}/src/*.{cpp,cxx}")
-      cxx_srcs += Dir.glob("#{Gem.current.dir}/test/*.{cpp,cxx}")
+      cxx_srcs = Dir.glob("#{Gem.current.dir}/src/*.{cpp,cxx,cc}")
+      cxx_srcs += Dir.glob("#{Gem.current.dir}/test/*.{cpp,cxx,cc}")
       enable_cxx_abi unless cxx_srcs.empty?
 
       Gem.current
