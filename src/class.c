@@ -741,7 +741,7 @@ mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
     struct RClass *p = c, *ic;
     int superclass_seen = 0;
 
-    if (c->mt == m->mt) {
+    if (c->mt && c->mt == m->mt) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic include detected");
     }
     while (p) {
@@ -888,6 +888,18 @@ mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
   }
 
   return result;
+}
+
+static mrb_value
+mrb_mod_initialize(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value b;
+
+  mrb_get_args(mrb, "&", &b);
+  if (!mrb_nil_p(b)) {
+    mrb_yield_with_class(mrb, b, 0, 0, mod, mrb_class_ptr(mod));
+  }
+  return mod;
 }
 
 mrb_value mrb_class_instance_method_list(mrb_state*, mrb_bool, struct RClass*, int);
@@ -1989,6 +2001,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "class_eval",              mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.15 */
   mrb_define_method(mrb, mod, "included",                mrb_bob_init,             MRB_ARGS_REQ(1)); /* 15.2.2.4.29 */
   mrb_define_method(mrb, mod, "included_modules",        mrb_mod_included_modules, MRB_ARGS_NONE()); /* 15.2.2.4.30 */
+  mrb_define_method(mrb, mod, "initialize",              mrb_mod_initialize,       MRB_ARGS_NONE()); /* 15.2.2.4.31 */
   mrb_define_method(mrb, mod, "instance_methods",        mrb_mod_instance_methods, MRB_ARGS_ANY());  /* 15.2.2.4.33 */
   mrb_define_method(mrb, mod, "method_defined?",         mrb_mod_method_defined,   MRB_ARGS_REQ(1)); /* 15.2.2.4.34 */
   mrb_define_method(mrb, mod, "module_eval",             mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.35 */
