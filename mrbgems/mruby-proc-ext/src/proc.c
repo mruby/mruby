@@ -122,51 +122,6 @@ mrb_kernel_proc(mrb_state *mrb, mrb_value self)
   return blk;
 }
 
-static mrb_value
-mrb_local_variables(mrb_state *mrb, mrb_value self)
-{
-  mrb_value ret;
-  struct RProc *proc;
-  struct mrb_irep *irep;
-  size_t i;
-
-  proc = mrb->c->ci[-1].proc;
-
-  if (MRB_PROC_CFUNC_P(proc)) {
-    return mrb_ary_new(mrb);
-  }
-
-  irep = proc->body.irep;
-  if (!irep->lv) {
-    return mrb_ary_new(mrb);
-  }
-  ret = mrb_ary_new_capa(mrb, irep->nlocals - 1);
-  for (i = 0; i + 1 < irep->nlocals; ++i) {
-    if (irep->lv[i].name) {
-      mrb_ary_push(mrb, ret, mrb_symbol_value(irep->lv[i].name));
-    }
-  }
-  if (proc->env) {
-    struct REnv *e = proc->env;
-
-    while (e) {
-      if (!MRB_PROC_CFUNC_P(mrb->c->cibase[e->cioff].proc)) {
-        irep = mrb->c->cibase[e->cioff].proc->body.irep;
-        if (irep->lv) {
-          for (i = 0; i + 1 < irep->nlocals; ++i) {
-            if (irep->lv[i].name) {
-              mrb_ary_push(mrb, ret, mrb_symbol_value(irep->lv[i].name));
-            }
-          }
-        }
-      }
-      e = (struct REnv*)e->c;
-    }
-  }
-
-  return ret;
-}
-
 void
 mrb_mruby_proc_ext_gem_init(mrb_state* mrb)
 {
@@ -178,7 +133,6 @@ mrb_mruby_proc_ext_gem_init(mrb_state* mrb)
 
   mrb_define_class_method(mrb, mrb->kernel_module, "proc", mrb_kernel_proc, MRB_ARGS_NONE());
   mrb_define_method(mrb, mrb->kernel_module,       "proc", mrb_kernel_proc, MRB_ARGS_NONE());
-  mrb_define_module_function(mrb, mrb->kernel_module, "local_variables", mrb_local_variables, MRB_ARGS_NONE());
 }
 
 void
