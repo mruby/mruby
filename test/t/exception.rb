@@ -375,3 +375,13 @@ assert('Raise in ensure') do
   end
 
 end
+
+assert('Raise in rescue') do
+  assert_raise(ArgumentError) do
+    begin
+      raise "" # StandardError
+    rescue
+      raise ArgumentError
+    end
+  end
+end
