@@ -365,15 +365,13 @@ assert('Exception#backtrace') do
 end
 
 assert('Raise in ensure') do
-
-  assert_raise(RuntimeError) do
+  assert_raise(ArgumentError) do
     begin
-      raise ""
+      raise "" # RuntimeError
     ensure
-      raise ""
+      raise ArgumentError
     end
   end
-
 end
 
 assert('Raise in rescue') do
