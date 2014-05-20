@@ -507,6 +507,20 @@ assert('Kernel#to_s', '15.3.1.3.46') do
   assert_equal to_s.class, String
 end
 
+assert('Kernel.local_variables', '15.3.1.2.7') do
+  a, b = 0, 1
+  a += b
+
+  vars = Kernel.local_variables.sort
+  assert_equal [:a, :b, :vars], vars
+
+  Proc.new {
+    c = 2
+    vars = Kernel.local_variables.sort
+    assert_equal [:a, :b, :c, :vars], vars
+  }.call
+end
+
 assert('Kernel#!=') do
   str1 = "hello"
   str2 = str1
