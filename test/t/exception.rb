@@ -379,7 +379,7 @@ end
 assert('Raise in rescue') do
   assert_raise(ArgumentError) do
     begin
-      raise "" # StandardError
+      raise "" # RuntimeError
     rescue
       raise ArgumentError
     end
