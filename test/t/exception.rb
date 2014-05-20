@@ -295,7 +295,7 @@ end
 
 assert('Exception 17') do
 r=begin
-    raise "a"  # StandardError
+    raise "a"  # RuntimeError
   rescue ArgumentError
     1
   rescue StandardError
