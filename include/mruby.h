@@ -422,6 +422,8 @@ void* mrb_alloca(mrb_state *mrb, size_t);
 #define mrb_assert_int_fit(t1,n,t2,max) ((void)0)
 #endif
 
+mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
+
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif
