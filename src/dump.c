@@ -514,17 +514,15 @@ static size_t
 get_filename_table_size(mrb_state *mrb, mrb_irep *irep, mrb_sym **fp, uint16_t *lp)
 {
   mrb_sym *filenames = *fp;
-  uint32_t file_i;
-  size_t size = 0;
+  size_t i, size = 0;
   mrb_irep_debug_info *di = irep->debug_info;
 
   mrb_assert(lp);
-  for (file_i = 0; file_i < di->flen; ++file_i) {
+  for (i = 0; i < di->flen; ++i) {
     mrb_irep_debug_info_file *file;
     mrb_int filename_len;
-    size_t i;
 
-    file = di->files[file_i];
+    file = di->files[i];
     if (find_filename_index(filenames, *lp, file->filename_sym) == -1) {
       /* register filename */
       *lp += 1;
@@ -535,10 +533,10 @@ get_filename_table_size(mrb_state *mrb, mrb_irep *irep, mrb_sym **fp, uint16_t *
       mrb_sym2name_len(mrb, file->filename_sym, &filename_len);
       size += sizeof(uint16_t) + (size_t)filename_len;
     }
-    for (i=0; i<irep->rlen; i++) {
-      size += get_filename_table_size(mrb, irep->reps[i], fp, lp);
-      filenames = *fp;
-    }
+  }
+  for (i=0; i<irep->rlen; i++) {
+    size += get_filename_table_size(mrb, irep->reps[i], fp, lp);
+    filenames = *fp;
   }
   return size;
 }
