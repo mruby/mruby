@@ -344,6 +344,9 @@ assert('Module#initialize', '15.2.2.4.31') do
   assert_kind_of Module, Module.new
   mod = Module.new { def hello; "hello"; end }
   assert_equal [:hello], mod.instance_methods
+  a = nil
+  mod = Module.new { |m| a = m }
+  assert_equal mod, a
 end
 
 assert('Module#instance_methods', '15.2.2.4.33') do

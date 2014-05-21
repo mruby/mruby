@@ -897,7 +897,7 @@ mrb_mod_initialize(mrb_state *mrb, mrb_value mod)
 
   mrb_get_args(mrb, "&", &b);
   if (!mrb_nil_p(b)) {
-    mrb_yield_with_class(mrb, b, 0, 0, mod, mrb_class_ptr(mod));
+    mrb_yield_with_class(mrb, b, 1, &mod, mod, mrb_class_ptr(mod));
   }
   return mod;
 }
