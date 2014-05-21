@@ -226,8 +226,13 @@ assert('Class Dup 2') do
   assert_equal(Module, M.dup.class)
 end
 
-assert('Class new') do
+assert('Class.new') do
   assert_equal(Class, Class.new.class)
+  a = []
+  klass = Class.new do |c|
+    a << c
+  end
+  assert_equal([klass], a)
 end
 
 assert('class to return the last value') do
