@@ -1481,7 +1481,15 @@ RETRY_TRY_BLOCK:
             mrb->c = c->prev;
             c->prev = NULL;
           }
-          ci = mrb->c->ci = mrb->c->cibase + proc->env->cioff + 1;
+          ci = mrb->c->ci;
+          mrb->c->ci = mrb->c->cibase + proc->env->cioff + 1;
+          while (ci > mrb->c->ci) {
+            if (ci[-1].acc == CI_ACC_SKIP) {
+              mrb->c->ci = ci;
+              break;
+            }
+            ci--;
+          }
           break;
         default:
           /* cannot happen */
