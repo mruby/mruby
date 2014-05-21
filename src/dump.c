@@ -536,7 +536,6 @@ get_filename_table_size(mrb_state *mrb, mrb_irep *irep, mrb_sym **fp, uint16_t *
   }
   for (i=0; i<irep->rlen; i++) {
     size += get_filename_table_size(mrb, irep->reps[i], fp, lp);
-    filenames = *fp;
   }
   return size;
 }
