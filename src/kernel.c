@@ -446,50 +446,9 @@ mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-/* 15.3.1.3.18 */
-/*
- *  call-seq:
- *     obj.instance_eval {| | block }                       -> obj
- *
- *  Evaluates the given block,within  the context of the receiver (_obj_).
- *  In order to set the context, the variable +self+ is set to _obj_ while
- *  the code is executing, giving the code access to _obj_'s
- *  instance variables. In the version of <code>instance_eval</code>
- *  that takes a +String+, the optional second and third
- *  parameters supply a filename and starting line number that are used
- *  when reporting compilation errors.
- *
- *     class KlassWithSecret
- *       def initialize
- *         @secret = 99
- *       end
- *     end
- *     k = KlassWithSecret.new
- *     k.instance_eval { @secret }   #=> 99
- */
-static mrb_value
-mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
-{
-  mrb_value a, b;
-  mrb_value cv;
-  struct RClass *c;
 
-  if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
-    mrb_raise(mrb, E_NOTIMP_ERROR, "instance_eval with string not implemented");
-  }
-  switch (mrb_type(self)) {
-  case MRB_TT_SYMBOL:
-  case MRB_TT_FIXNUM:
-  case MRB_TT_FLOAT:
-    c = 0;
-    break;
-  default:
-    cv = mrb_singleton_class(mrb, self);
-    c = mrb_class_ptr(cv);
-    break;
-  }
-  return mrb_yield_with_class(mrb, b, 0, 0, self, c);
-}
+/* implementation of instance_eval */
+mrb_value mrb_obj_instance_eval(mrb_state*, mrb_value);
 
 mrb_bool
 mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c)

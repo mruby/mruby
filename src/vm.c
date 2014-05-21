@@ -507,6 +507,32 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+static mrb_value
+eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
+{
+  struct RProc *p;
+  mrb_callinfo *ci;
+
+  ci = mrb->c->ci;
+  if (ci->acc == CI_ACC_DIRECT) {
+    return mrb_yield_with_class(mrb, blk, 0, 0, self, c);
+  }
+  ci->target_class = c;
+  p = mrb_proc_ptr(blk);
+  ci->proc = p;
+  if (MRB_PROC_CFUNC_P(p)) {
+    return p->body.func(mrb, self);
+  }
+  ci->nregs = p->body.irep->nregs;
+  ci = cipush(mrb);
+  ci->target_class = 0;
+  ci->pc = p->body.irep->iseq;
+  ci->stackent = mrb->c->stack;
+  ci->acc = 0;
+
+  return self;
+}
+
 /* 15.2.2.4.35 */
 /*
  *  call-seq:
@@ -521,32 +547,56 @@ mrb_value
 mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
 {
   mrb_value a, b;
-  struct RClass *c;
-  struct RProc *p;
-  mrb_callinfo *ci;
 
   if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "module_eval/class_eval with string not implemented");
   }
-  c = mrb_class_ptr(mod);
-  ci = mrb->c->ci;
-  if (ci->acc == CI_ACC_DIRECT) {
-    return mrb_yield_with_class(mrb, b, 0, 0, mod, c);
-  }
-  ci->target_class = c;
-  p = mrb_proc_ptr(b);
-  ci->proc = p;
-  if (MRB_PROC_CFUNC_P(p)) {
-    return p->body.func(mrb, mod);
-  }
-  ci->nregs = p->body.irep->nregs;
-  ci = cipush(mrb);
-  ci->target_class = 0;
-  ci->pc = p->body.irep->iseq;
-  ci->stackent = mrb->c->stack;
-  ci->acc = 0;
+  return eval_under(mrb, mod, b, mrb_class_ptr(mod));
+}
 
-  return mod;
+/* 15.3.1.3.18 */
+/*
+ *  call-seq:
+ *     obj.instance_eval {| | block }                       -> obj
+ *
+ *  Evaluates the given block,within  the context of the receiver (_obj_).
+ *  In order to set the context, the variable +self+ is set to _obj_ while
+ *  the code is executing, giving the code access to _obj_'s
+ *  instance variables. In the version of <code>instance_eval</code>
+ *  that takes a +String+, the optional second and third
+ *  parameters supply a filename and starting line number that are used
+ *  when reporting compilation errors.
+ *
+ *     class KlassWithSecret
+ *       def initialize
+ *         @secret = 99
+ *       end
+ *     end
+ *     k = KlassWithSecret.new
+ *     k.instance_eval { @secret }   #=> 99
+ */
+mrb_value
+mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
+{
+  mrb_value a, b;
+  mrb_value cv;
+  struct RClass *c;
+
+  if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
+    mrb_raise(mrb, E_NOTIMP_ERROR, "instance_eval with string not implemented");
+  }
+  switch (mrb_type(self)) {
+  case MRB_TT_SYMBOL:
+  case MRB_TT_FIXNUM:
+  case MRB_TT_FLOAT:
+    c = 0;
+    break;
+  default:
+    cv = mrb_singleton_class(mrb, self);
+    c = mrb_class_ptr(cv);
+    break;
+  }
+  return eval_under(mrb, self, b, c);
 }
 
 mrb_value
