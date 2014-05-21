@@ -814,7 +814,7 @@ mrb_load_irep_file_cxt(mrb_state *mrb, FILE* fp, mrbc_context *c)
   }
   proc = mrb_proc_new(mrb, irep);
   mrb_irep_decref(mrb, irep);
-  if (c->dump_result) mrb_codedump_all(mrb, proc);
+  if (c && c->dump_result) mrb_codedump_all(mrb, proc);
   if (c && c->no_exec) return mrb_obj_value(proc);
   val = mrb_toplevel_run(mrb, proc);
   return val;
