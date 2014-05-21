@@ -941,29 +941,8 @@ mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
   return mrb_class_instance_method_list(mrb, recur, c, 0);
 }
 
-/* 15.2.2.4.35 */
-/*
- *  call-seq:
- *     mod.class_eval {| | block }  -> obj
- *     mod.module_eval {| | block } -> obj
- *
- *  Evaluates block in the context of _mod_. This can
- *  be used to add methods to a class. <code>module_eval</code> returns
- *  the result of evaluating its argument.
- */
-
-static mrb_value
-mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
-{
-  mrb_value a, b;
-  struct RClass *c;
-
-  if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
-    mrb_raise(mrb, E_NOTIMP_ERROR, "module_eval/class_eval with string not implemented");
-  }
-  c = mrb_class_ptr(mod);
-  return mrb_yield_with_class(mrb, b, 0, 0, mod, c);
-}
+/* implementation of module_eval/class_eval */
+mrb_value mrb_mod_module_eval(mrb_state*, mrb_value);
 
 static mrb_value
 mrb_mod_dummy_visibility(mrb_state *mrb, mrb_value mod)

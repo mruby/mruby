@@ -507,6 +507,48 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/* 15.2.2.4.35 */
+/*
+ *  call-seq:
+ *     mod.class_eval {| | block }  -> obj
+ *     mod.module_eval {| | block } -> obj
+ *
+ *  Evaluates block in the context of _mod_. This can
+ *  be used to add methods to a class. <code>module_eval</code> returns
+ *  the result of evaluating its argument.
+ */
+mrb_value
+mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value a, b;
+  struct RClass *c;
+  struct RProc *p;
+  mrb_callinfo *ci;
+
+  if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
+    mrb_raise(mrb, E_NOTIMP_ERROR, "module_eval/class_eval with string not implemented");
+  }
+  c = mrb_class_ptr(mod);
+  ci = mrb->c->ci;
+  if (ci->acc == CI_ACC_DIRECT) {
+    return mrb_yield_with_class(mrb, b, 0, 0, mod, c);
+  }
+  ci->target_class = c;
+  p = mrb_proc_ptr(b);
+  ci->proc = p;
+  if (MRB_PROC_CFUNC_P(p)) {
+    return p->body.func(mrb, mod);
+  }
+  ci->nregs = p->body.irep->nregs;
+  ci = cipush(mrb);
+  ci->target_class = 0;
+  ci->pc = p->body.irep->iseq;
+  ci->stackent = mrb->c->stack;
+  ci->acc = 0;
+
+  return mod;
+}
+
 mrb_value
 mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c)
 {
