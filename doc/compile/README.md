@@ -14,7 +14,7 @@ To compile mruby out of the source code you need the following tools:
 
 Optional:
 * GIT (to update mruby source and integrate mrbgems easier)
-* C++ compiler (to use GEMs which include \*.cpp)
+* C++ compiler (to use GEMs which include \*.cpp, \*.cxx, \*.cc)
 * Assembler (to use GEMs which include \*.asm)
 
 ## Usage
