@@ -1105,7 +1105,7 @@ mrb_class_new_class(mrb_state *mrb, mrb_value cv)
   }
   new_class = mrb_obj_value(mrb_class_new(mrb, mrb_class_ptr(super)));
   if (!mrb_nil_p(blk)) {
-    mrb_funcall_with_block(mrb, new_class, mrb_intern_lit(mrb, "class_eval"), 0, NULL, blk);
+    mrb_yield_with_class(mrb, blk, 1, &new_class, new_class, mrb_class_ptr(new_class));
   }
   mrb_funcall(mrb, super, "inherited", 1, new_class);
   return new_class;
