@@ -1094,33 +1094,32 @@ mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *arg
   return obj;
 }
 
-static mrb_value
-mrb_class_initialize(mrb_state *mrb, mrb_value c)
-{
-  mrb_value a, b;
+static void mrb_check_inheritable(mrb_state *mrb, struct RClass *super);
 
-  mrb_get_args(mrb, "|C&", &a, &b);
+static mrb_value
+mrb_class_initialize(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value super, b;
+  struct RClass *c, *sc;
+
+  c = mrb_class_ptr(klass);
+  if (c->super != 0) {
+    mrb_raise(mrb, E_TYPE_ERROR, "already initialized class");
+  }
+  if (mrb_get_args(mrb, "|C&", &super, &b) == 0) {
+    sc = mrb->object_class;
+  }
+  else {
+    sc = mrb_class_ptr(super);
+    mrb_check_inheritable(mrb, sc);
+  }
+  c->super = sc;
+  make_metaclass(mrb, c);
+  mrb_funcall(mrb, mrb_obj_value(mrb_class_real(c->super)), "inherited", 1, klass);
   if (!mrb_nil_p(b)) {
-    mrb_yield_with_class(mrb, b, 1, &c, c, mrb_class_ptr(c));
+    mrb_yield_with_class(mrb, b, 1, &klass, klass, c);
   }
-  return c;
-}
-
-static mrb_value
-mrb_class_new_class(mrb_state *mrb, mrb_value cv)
-{
-  mrb_int n;
-  mrb_value super, blk;
-  mrb_value new_class;
-
-  n = mrb_get_args(mrb, "|C&", &super, &blk);
-  if (n == 0) {
-    super = mrb_obj_value(mrb->object_class);
-  }
-  new_class = mrb_obj_value(mrb_class_new(mrb, mrb_class_ptr(super)));
-  mrb_funcall_with_block(mrb, new_class, mrb_intern_lit(mrb, "initialize"), n, &super, blk);
-  mrb_funcall(mrb, super, "inherited", 1, new_class);
-  return new_class;
+  return klass;
 }
 
 static mrb_value
@@ -1975,7 +1974,6 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, bob, "!",                       mrb_bob_not,              MRB_ARGS_NONE());
   mrb_define_method(mrb, bob, "method_missing",          mrb_bob_missing,          MRB_ARGS_ANY());  /* 15.3.1.3.30 */
 
-  mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      MRB_ARGS_OPT(1));
   mrb_define_method(mrb, cls, "superclass",              mrb_class_superclass,     MRB_ARGS_NONE()); /* 15.2.3.3.4 */
   mrb_define_method(mrb, cls, "new",                     mrb_instance_new,         MRB_ARGS_ANY());  /* 15.2.3.3.3 */
   mrb_define_method(mrb, cls, "initialize",              mrb_class_initialize,     MRB_ARGS_OPT(1)); /* 15.2.3.3.1 */
