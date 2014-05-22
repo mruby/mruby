@@ -1076,8 +1076,8 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
   mrb_value *argv;
   mrb_int argc;
 
-  obj = mrb_instance_alloc(mrb, cv);
   mrb_get_args(mrb, "*&", &argv, &argc, &blk);
+  obj = mrb_instance_alloc(mrb, cv);
   mrb_funcall_with_block(mrb, obj, mrb_intern_lit(mrb, "initialize"), argc, argv, blk);
 
   return obj;
