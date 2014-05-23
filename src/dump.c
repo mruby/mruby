@@ -350,117 +350,6 @@ write_section_irep(mrb_state *mrb, mrb_irep *irep, uint8_t *bin)
   return MRB_DUMP_OK;
 }
 
-static int
-write_section_lineno_header(mrb_state *mrb, size_t section_size, uint8_t *bin)
-{
-  struct rite_section_lineno_header *header = (struct rite_section_lineno_header*)bin;
-
-  memcpy(header->section_identify, RITE_SECTION_LINENO_IDENTIFIER, sizeof(header->section_identify));
-  uint32_to_bin((uint32_t)section_size, header->section_size);
-
-  return MRB_DUMP_OK;
-}
-
-static size_t
-get_lineno_record_size(mrb_state *mrb, mrb_irep *irep)
-{
-  size_t size = 0;
-
-  size += sizeof(uint32_t); /* record size */
-  size += sizeof(uint16_t); /* filename size */
-  if (irep->filename) {
-    size += strlen(irep->filename); /* filename */
-  }
-  size += sizeof(uint32_t); /* niseq */
-  if (irep->lines) {
-    size += sizeof(uint16_t) * irep->ilen; /* lineno */
-  }
-
-  return size;
-}
-
-static size_t
-write_lineno_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t* bin)
-{
-  uint8_t *cur = bin;
-  size_t iseq_no;
-  size_t filename_len;
-  ptrdiff_t diff;
-
-  cur += sizeof(uint32_t); /* record size */
-
-  if (irep->filename) {
-    filename_len = strlen(irep->filename);
-  } else {
-    filename_len = 0;
-  }
-  mrb_assert_int_fit(size_t, filename_len, uint16_t, UINT16_MAX);
-  cur += uint16_to_bin((uint16_t)filename_len, cur); /* filename size */
-
-  if (filename_len) {
-    memcpy(cur, irep->filename, filename_len);
-    cur += filename_len; /* filename */
-  }
-
-  if (irep->lines) {
-    mrb_assert_int_fit(size_t, irep->ilen, uint32_t, UINT32_MAX);
-    cur += uint32_to_bin((uint32_t)(irep->ilen), cur); /* niseq */
-    for (iseq_no = 0; iseq_no < irep->ilen; iseq_no++) {
-      cur += uint16_to_bin(irep->lines[iseq_no], cur); /* opcode */
-    }
-  }
-  else {
-    cur += uint32_to_bin(0, cur); /* niseq */
-  }
-
-  diff = cur - bin;
-  mrb_assert_int_fit(ptrdiff_t, diff, uint32_t, UINT32_MAX);
-
-  uint32_to_bin((uint32_t)diff, bin); /* record size */
-
-  mrb_assert_int_fit(ptrdiff_t, diff, size_t, SIZE_MAX);
-  return (size_t)diff;
-}
-
-static size_t
-write_lineno_record(mrb_state *mrb, mrb_irep *irep, uint8_t* bin)
-{
-  size_t i;
-  size_t rlen, size = 0;
-
-  rlen = write_lineno_record_1(mrb, irep, bin);
-  bin += rlen;
-  size += rlen;
-  for (i=0; i<irep->rlen; i++) {
-    rlen = write_lineno_record(mrb, irep, bin);
-    bin += rlen;
-    size += rlen;
-  }
-  return size;
-}
-
-static int
-write_section_lineno(mrb_state *mrb, mrb_irep *irep, uint8_t *bin)
-{
-  size_t section_size = 0;
-  size_t rlen = 0; /* size of irep record */
-  uint8_t *cur = bin;
-
-  if (mrb == NULL || bin == NULL) {
-    return MRB_DUMP_INVALID_ARGUMENT;
-  }
-
-  cur += sizeof(struct rite_section_lineno_header);
-  section_size += sizeof(struct rite_section_lineno_header);
-
-  rlen = write_lineno_record(mrb, irep, cur);
-  section_size += rlen;
-
-  write_section_lineno_header(mrb, section_size, bin);
-
-  return MRB_DUMP_OK;
-}
-
 static size_t
 get_debug_record_size(mrb_state *mrb, mrb_irep *irep)
 {
@@ -847,7 +736,7 @@ mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, siz
 {
   int result = MRB_DUMP_GENERAL_FAILURE;
   size_t section_irep_size;
-  size_t section_lineno_size = 0, section_lv_size = 0;
+  size_t section_debug_size = 0, section_lv_size = 0;
   uint8_t *cur = NULL;
   mrb_bool const debug_info_defined = is_debug_info_defined(irep), lv_defined = is_lv_defined(irep);
   mrb_sym *lv_syms = NULL; uint32_t lv_syms_len = 0;
@@ -862,22 +751,16 @@ mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, siz
   section_irep_size += get_irep_record_size(mrb, irep);
 
   /* DEBUG section size */
-  if (debug_info) {
-    if (debug_info_defined) {
-      section_lineno_size += sizeof(struct rite_section_debug_header);
-      /* filename table */
-      filenames = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) + 1);
+  if (debug_info && debug_info_defined) {
+    section_debug_size += sizeof(struct rite_section_debug_header);
+    /* filename table */
+    filenames = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) + 1);
 
-      /* filename table size */
-      section_lineno_size += sizeof(uint16_t);
-      section_lineno_size += get_filename_table_size(mrb, irep, &filenames, &filenames_len);
+    /* filename table size */
+    section_debug_size += sizeof(uint16_t);
+    section_debug_size += get_filename_table_size(mrb, irep, &filenames, &filenames_len);
 
-      section_lineno_size += get_debug_record_size(mrb, irep);
-    }
-    else {
-      section_lineno_size += sizeof(struct rite_section_lineno_header);
-      section_lineno_size += get_lineno_record_size(mrb, irep);
-    }
+    section_debug_size += get_debug_record_size(mrb, irep);
   }
 
   if (lv_defined) {
@@ -887,7 +770,7 @@ mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, siz
   }
 
   *bin_size = sizeof(struct rite_binary_header) +
-              section_irep_size + section_lineno_size + section_lv_size +
+              section_irep_size + section_debug_size + section_lv_size +
               sizeof(struct rite_binary_footer);
   cur = *bin = (uint8_t*)mrb_malloc(mrb, *bin_size);
   if (cur == NULL) {
@@ -902,17 +785,12 @@ mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, siz
   cur += section_irep_size;
 
   /* write DEBUG section */
-  if (debug_info) {
-    if (debug_info_defined) {
-      result = write_section_debug(mrb, irep, cur, filenames, filenames_len);
-    }
-    else {
-      result = write_section_lineno(mrb, irep, cur);
-    }
+  if (debug_info && debug_info_defined) {
+    result = write_section_debug(mrb, irep, cur, filenames, filenames_len);
     if (result != MRB_DUMP_OK) {
       goto error_exit;
     }
-    cur += section_lineno_size;
+    cur += section_debug_size;
   }
 
   if (lv_defined) {

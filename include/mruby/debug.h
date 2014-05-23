@@ -54,6 +54,7 @@ int32_t mrb_debug_get_line(mrb_irep *irep, uint32_t pc);
 
 mrb_irep_debug_info_file *mrb_debug_info_append_file(
     mrb_state *mrb, mrb_irep *irep,
+    const char *filename, const uint16_t *lines,
     uint32_t start_pos, uint32_t end_pos);
 mrb_irep_debug_info *mrb_debug_info_alloc(mrb_state *mrb, mrb_irep *irep);
 void mrb_debug_info_free(mrb_state *mrb, mrb_irep_debug_info *d);

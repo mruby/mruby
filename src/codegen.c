@@ -148,7 +148,6 @@ genop(codegen_scope *s, mrb_code i)
     s->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->icapa);
     if (s->lines) {
       s->lines = (uint16_t*)codegen_realloc(s, s->lines, sizeof(short)*s->icapa);
-      s->irep->lines = s->lines;
     }
   }
   s->iseq[s->pc] = i;
@@ -1135,8 +1134,9 @@ codegen(codegen_scope *s, node *tree, int val)
   if (!tree) return;
 
   if (s->irep && s->pc > 0 && s->filename_index != tree->filename_index) {
-    s->irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
-    mrb_debug_info_append_file(s->mrb, s->irep, s->debug_start_pos, s->pc);
+    mrb_debug_info_append_file(
+        s->mrb, s->irep, mrb_parser_get_filename(s->parser, s->filename_index),
+        s->lines, s->debug_start_pos, s->pc);
     s->debug_start_pos = s->pc;
     s->filename_index = tree->filename_index;
     s->filename = mrb_parser_get_filename(s->parser, tree->filename_index);
@@ -2524,8 +2524,6 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->debug_start_pos = 0;
   if (p->filename) {
     mrb_debug_info_alloc(mrb, p->irep);
-    p->irep->filename = p->filename;
-    p->irep->lines = p->lines;
   }
   else {
     p->irep->debug_info = NULL;
@@ -2548,30 +2546,25 @@ scope_finish(codegen_scope *s)
   if (s->iseq) {
     irep->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc);
     irep->ilen = s->pc;
-    if (s->lines) {
-      irep->lines = (uint16_t *)codegen_realloc(s, s->lines, sizeof(uint16_t)*s->pc);
-    }
-    else {
-      irep->lines = 0;
-    }
   }
   irep->pool = (mrb_value*)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
   irep->syms = (mrb_sym*)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
   irep->reps = (mrb_irep**)codegen_realloc(s, irep->reps, sizeof(mrb_irep*)*irep->rlen);
   if (s->filename) {
-    s->irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
-    mrb_debug_info_append_file(mrb, s->irep, s->debug_start_pos, s->pc);
+    mrb_debug_info_append_file(
+        mrb, s->irep, mrb_parser_get_filename(s->parser, s->filename_index),
+        s->lines, s->debug_start_pos, s->pc);
 
     fname_len = strlen(s->filename);
     fname = (char*)codegen_malloc(s, fname_len + 1);
     memcpy(fname, s->filename, fname_len);
     fname[fname_len] = '\0';
-    irep->filename = fname;
   }
 
   irep->nlocals = s->nlocals;
   irep->nregs = s->nregs;
 
+  mrb_free(mrb, s->lines);
   mrb_gc_arena_restore(mrb, s->ai);
   mrb_pool_close(s->mpool);
 }
@@ -3113,9 +3106,6 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
     return proc;
   }
   MRB_CATCH(&scope->jmp) {
-    if (scope->filename == scope->irep->filename) {
-      scope->irep->filename = NULL;
-    }
     mrb_irep_decref(mrb, scope->irep);
     mrb_pool_close(scope->mpool);
     return NULL;

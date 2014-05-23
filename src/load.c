@@ -189,77 +189,6 @@ read_section_irep(mrb_state *mrb, const uint8_t *bin, mrb_bool alloc)
 }
 
 static int
-read_lineno_record_1(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, size_t *len)
-{
-  size_t i, fname_len, niseq;
-  char *fname;
-  uint16_t *lines;
-
-  *len = 0;
-  bin += sizeof(uint32_t); /* record size */
-  *len += sizeof(uint32_t);
-  fname_len = bin_to_uint16(bin);
-  bin += sizeof(uint16_t);
-  *len += sizeof(uint16_t);
-  if (SIZE_ERROR(fname_len + 1)) {
-    return MRB_DUMP_GENERAL_FAILURE;
-  }
-  fname = (char *)mrb_malloc(mrb, fname_len + 1);
-  memcpy(fname, bin, fname_len);
-  fname[fname_len] = '\0';
-  bin += fname_len;
-  *len += fname_len;
-
-  niseq = (size_t)bin_to_uint32(bin);
-  bin += sizeof(uint32_t); /* niseq */
-  *len += sizeof(uint32_t);
-
-  if (SIZE_ERROR_MUL(niseq, sizeof(uint16_t))) {
-    return MRB_DUMP_GENERAL_FAILURE;
-  }
-  lines = (uint16_t *)mrb_malloc(mrb, niseq * sizeof(uint16_t));
-  for (i = 0; i < niseq; i++) {
-    lines[i] = bin_to_uint16(bin);
-    bin += sizeof(uint16_t); /* niseq */
-    *len += sizeof(uint16_t);
-  }
-
-  irep->filename = fname;
-  irep->lines = lines;
-  return MRB_DUMP_OK;
-}
-
-static int
-read_lineno_record(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, size_t *lenp)
-{
-  int result = read_lineno_record_1(mrb, bin, irep, lenp);
-  size_t i;
-
-  if (result != MRB_DUMP_OK) return result;
-  for (i = 0; i < irep->rlen; i++) {
-    size_t len;
-
-    result = read_lineno_record(mrb, bin, irep->reps[i], &len);
-    if (result != MRB_DUMP_OK) break;
-    bin += len;
-    *lenp += len;
-  }
-  return result;
-}
-
-static int
-read_section_lineno(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep)
-{
-  size_t len;
-
-  len = 0;
-  bin += sizeof(struct rite_section_lineno_header);
-
-  /* Read Binary Data Section */
-  return read_lineno_record(mrb, bin, irep, &len);
-}
-
-static int
 read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *record_len, const mrb_sym *filenames, size_t filenames_len)
 {
   const uint8_t *bin = start;
@@ -537,13 +466,6 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
       irep = read_section_irep(mrb, bin, FALSE);
       if (!irep) return NULL;
     }
-    else if (memcmp(section_header->section_identify, RITE_SECTION_LINENO_IDENTIFIER, sizeof(section_header->section_identify)) == 0) {
-      if (!irep) return NULL;   /* corrupted data */
-      result = read_section_lineno(mrb, bin, irep);
-      if (result < MRB_DUMP_OK) {
-        return NULL;
-      }
-    }
     else if (memcmp(section_header->section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(section_header->section_identify)) == 0) {
       if (!irep) return NULL;   /* corrupted data */
       result = read_section_debug(mrb, bin, irep, FALSE);
@@ -595,53 +517,6 @@ mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 }
 
 #ifdef ENABLE_STDIO
-
-static int
-read_lineno_record_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
-{
-  uint8_t header[4];
-  const size_t record_header_size = sizeof(header);
-  int result;
-  size_t i, buf_size;
-  size_t len;
-  void *ptr;
-  uint8_t *buf;
-
-  if (fread(header, record_header_size, 1, fp) == 0) {
-    return MRB_DUMP_READ_FAULT;
-  }
-  buf_size = (size_t)bin_to_uint32(&header[0]);
-  if (SIZE_ERROR(buf_size)) {
-    return MRB_DUMP_GENERAL_FAILURE;
-  }
-  ptr = mrb_malloc(mrb, buf_size);
-  buf = (uint8_t *)ptr;
-
-  if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) == 0) {
-    return MRB_DUMP_READ_FAULT;
-  }
-  result = read_lineno_record_1(mrb, buf, irep, &len);
-  mrb_free(mrb, ptr);
-  if (result != MRB_DUMP_OK) return result;
-  for (i = 0; i < irep->rlen; i++) {
-    result = read_lineno_record_file(mrb, fp, irep->reps[i]);
-    if (result != MRB_DUMP_OK) break;
-  }
-  return result;
-}
-
-static int32_t
-read_section_lineno_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
-{
-  struct rite_section_lineno_header header;
-
-  if (fread(&header, sizeof(struct rite_section_lineno_header), 1, fp) == 0) {
-    return MRB_DUMP_READ_FAULT;
-  }
-
-  /* Read Binary Data Section */
-  return read_lineno_record_file(mrb, fp, irep);
-}
 
 static mrb_irep*
 read_irep_record_file(mrb_state *mrb, FILE *fp)
@@ -755,12 +630,6 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
       fseek(fp, fpos, SEEK_SET);
       irep = read_section_irep_file(mrb, fp);
       if (!irep) return NULL;
-    }
-    else if (memcmp(section_header.section_identify, RITE_SECTION_LINENO_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
-      if (!irep) return NULL;   /* corrupted data */
-      fseek(fp, fpos, SEEK_SET);
-      result = read_section_lineno_file(mrb, fp, irep);
-      if (result < MRB_DUMP_OK) return NULL;
     }
     else if (memcmp(section_header.section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
       if (!irep) return NULL;   /* corrupted data */

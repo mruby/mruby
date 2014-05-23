@@ -36,9 +36,6 @@ typedef struct mrb_irep {
   struct mrb_irep **reps;
 
   struct mrb_locals *lv;
-  /* debug info */
-  const char *filename;
-  uint16_t *lines;
   struct mrb_irep_debug_info* debug_info;
 
   size_t ilen, plen, slen, rlen, refcnt;

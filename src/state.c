@@ -150,8 +150,6 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   }
   mrb_free(mrb, irep->reps);
   mrb_free(mrb, irep->lv);
-  mrb_free(mrb, (void *)irep->filename);
-  mrb_free(mrb, irep->lines);
   mrb_debug_info_free(mrb, irep->debug_info);
   mrb_free(mrb, irep);
 }
