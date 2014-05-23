@@ -210,6 +210,14 @@ mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
   return mrb_define_class_id(mrb, mrb_intern_cstr(mrb, name), super);
 }
 
+static void
+mrb_class_inherited(mrb_state *mrb, struct RClass *super, struct RClass *klass)
+{
+  if (!super)
+    super = mrb->object_class;
+  mrb_funcall(mrb, mrb_obj_value(super), "inherited", 1, mrb_obj_value(klass));
+}
+
 struct RClass*
 mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id)
 {
@@ -235,7 +243,7 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
     break;
   }
   c = define_class(mrb, id, s, mrb_class_ptr(outer));
-  mrb_funcall(mrb, mrb_obj_value(mrb_class_real(c->super)), "inherited", 1, mrb_obj_value(c));
+  mrb_class_inherited(mrb, mrb_class_real(c->super), c);
 
   return c;
 }
@@ -1119,7 +1127,7 @@ mrb_class_new_class(mrb_state *mrb, mrb_value cv)
   }
   new_class = mrb_obj_value(mrb_class_new(mrb, mrb_class_ptr(super)));
   mrb_funcall_with_block(mrb, new_class, mrb_intern_lit(mrb, "initialize"), n, &super, blk);
-  mrb_funcall(mrb, super, "inherited", 1, new_class);
+  mrb_class_inherited(mrb, mrb_class_ptr(super), mrb_class_ptr(new_class));
   return new_class;
 }
 
@@ -1287,6 +1295,8 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
 struct RClass *
 mrb_class_real(struct RClass* cl)
 {
+  if (cl == 0)
+    return 0;
   while ((cl->tt == MRB_TT_SCLASS) || (cl->tt == MRB_TT_ICLASS)) {
     cl = cl->super;
   }
