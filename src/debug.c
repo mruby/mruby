@@ -9,6 +9,8 @@ get_file(mrb_irep_debug_info *info, uint32_t pc)
   mrb_irep_debug_info_file **ret;
   int32_t count;
 
+  if (!info) { return NULL; }
+
   if (pc >= info->pc_count) { return NULL; }
   /* get upper bound */
   ret = info->files;
