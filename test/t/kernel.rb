@@ -52,11 +52,6 @@ assert('Kernel.lambda', '15.3.1.2.6') do
   assert_equal Proc, m.class
 end
 
-# Not implemented at the moment
-#assert('Kernel.local_variables', '15.3.1.2.7') do
-#  Kernel.local_variables.class == Array
-#end
-
 assert('Kernel.loop', '15.3.1.2.8') do
   i = 0
 
@@ -319,10 +314,16 @@ assert('Kernel#lambda', '15.3.1.3.27') do
   assert_equal Proc, m.class
 end
 
-# Not implemented yet
-#assert('Kernel#local_variables', '15.3.1.3.28') do
-#  local_variables.class == Array
-#end
+assert('Kernel#local_variables', '15.3.1.3.28') do
+  assert_equal Array, local_variables.class
+
+  def local_var_list
+    a = "hello"
+    local_variables
+  end
+
+  assert_equal [:a], local_var_list
+end
 
 assert('Kernel#loop', '15.3.1.3.29') do
   i = 0
@@ -508,6 +509,8 @@ assert('Kernel#to_s', '15.3.1.3.46') do
 end
 
 assert('Kernel.local_variables', '15.3.1.2.7') do
+  assert_equal Array, Kernel.local_variables.class
+
   a, b = 0, 1
   a += b
 
