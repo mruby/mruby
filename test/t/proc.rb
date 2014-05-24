@@ -26,8 +26,8 @@ assert('Proc#[]', '15.2.17.4.1') do
   b2 = Proc.new { |i| a2 += i }
   b2.[](5)
 
-  assert_equal a, 1
-  assert_equal a2, 5
+  assert_equal 1, a
+  assert_equal 5, a2
 end
 
 assert('Proc#arity', '15.2.17.4.2') do
