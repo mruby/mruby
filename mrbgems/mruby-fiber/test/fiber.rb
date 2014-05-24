@@ -1,12 +1,12 @@
-assert('Fiber.new') {
+assert('Fiber.new') do
   f = Fiber.new{}
-  f.class == Fiber
-}
+  assert_kind_of Fiber, f
+end
 
-assert('Fiber#resume') {
-  f = Fiber.new{|x| x == 2}
-  f.resume(2)
-}
+assert('Fiber#resume') do
+  f = Fiber.new{|x| x }
+  assert_equal 2, f.resume(2)
+end
 
 assert('Fiber#transfer') do
   f2 = nil
@@ -29,14 +29,13 @@ assert('Fiber#transfer') do
   assert_false f2.alive?
 end
 
-assert('Fiber#alive?') {
+assert('Fiber#alive?') do
   f = Fiber.new{ Fiber.yield }
   f.resume
-  r1 = f.alive?
+  assert_true f.alive?
   f.resume
-  r2 = f.alive?
-  r1 == true and r2 == false
-}
+  assert_false f.alive?
+end
 
 assert('Fiber#==') do
   root = Fiber.current
@@ -51,16 +50,17 @@ assert('Fiber#==') do
   assert_true f != root
 end
 
-assert('Fiber.yield') {
-  f = Fiber.new{|x| Fiber.yield(x == 3)}
-  f.resume(3)
-}
+assert('Fiber.yield') do
+  f = Fiber.new{|x| Fiber.yield x }
+  assert_equal 3, f.resume(3)
+  assert_true f.alive?
+end
 
 assert('FiberError') do
   assert_equal StandardError, FiberError.superclass
 end
 
-assert('Fiber iteration') {
+assert('Fiber iteration') do
   f1 = Fiber.new{
     [1,2,3].each{|x| Fiber.yield(x)}
   }
@@ -72,8 +72,8 @@ assert('Fiber iteration') {
     a << f1.resume
     a << f2.resume
   }
-  a == [1,9,2,8,3,7]
-}
+  assert_equal [1,9,2,8,3,7], a
+end
 
 assert('Fiber with splat in the block argument list') {
   Fiber.new{|*x|x}.resume(1) == [1]
