@@ -374,3 +374,17 @@ assert('clone Class') do
 
   Foo.clone.new.func
 end
+
+assert('support class define in singleton class') do
+  class AClassS
+    class << self
+      class BClass
+      end
+
+      def iclass
+        BClass
+      end
+    end
+  end
+  assert_equal(Class, AClassS.iclass.class)
+end
