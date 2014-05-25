@@ -44,6 +44,7 @@ end
 #       assertion
 def assert(str = 'Assertion failed', iso = '')
   t_print(str, (iso != '' ? " [#{iso}]" : ''), ' : ') if $mrbtest_verbose
+  mark_iso_done iso if $iso_stats
   begin
     $mrbtest_assert = []
     $mrbtest_assert_idx = 0
@@ -228,6 +229,8 @@ def report()
   if Object.const_defined?(:Time)
     t_print(" Time: #{Time.now - $test_start} seconds\n")
   end
+
+  report_iso if $iso_stats
 end
 
 ##
