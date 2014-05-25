@@ -16,11 +16,14 @@ assert('Exception.exception', '15.2.22.4.1') do
 end
 
 assert('Exception#exception', '15.2.22.5.1') do
-  e1 = Exception.exception()
-  e2 = Exception.exception('b')
-
-  assert_equal Exception, e1.class
-  assert_equal Exception, e2.class
+  e = Exception.new
+  re = RuntimeError.new
+  assert_equal e, e.exception
+  assert_equal e, e.exception(e)
+  assert_equal re, re.exception(re)
+  changed_re = re.exception('message has changed')
+  assert_not_equal re, changed_re
+  assert_equal 'message has changed', changed_re.message
 end
 
 assert('Exception#message', '15.2.22.5.2') do

@@ -10,7 +10,7 @@ end
 
 assert('Proc#inspect') do
   ins = Proc.new{}.inspect
-  assert_true ins.kind_of? String
+  assert_kind_of String, ins
 end
 
 assert('Proc#lambda?') do

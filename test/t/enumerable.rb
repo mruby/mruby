@@ -44,7 +44,7 @@ assert('Enumerable#collect', '15.3.2.2.3') do
 end
 
 assert('Enumerable#detect', '15.3.2.2.4') do
-  assert_true [1,2,3].detect() { true }
+  assert_equal 1, [1,2,3].detect() { true }
   assert_equal 'a', [1,2,3].detect("a") { false }
 end
 
@@ -63,7 +63,7 @@ assert('Enumerable#entries', '15.3.2.2.6') do
 end
 
 assert('Enumerable#find', '15.3.2.2.7') do
-  assert_true [1,2,3].find() { true }
+  assert_equal 1, [1,2,3].find() { true }
   assert_equal 'a', [1,2,3].find("a") { false }
 end
 
@@ -106,7 +106,7 @@ assert('Enumerable#member?', '15.3.2.2.15') do
   assert_false [1,2,3,4,5,6,7,8,9].member?(0)
 end
 
-assert('Enumerable#partion', '15.3.2.2.16') do
+assert('Enumerable#partition', '15.3.2.2.16') do
   [0,1,2,3,4,5,6,7,8,9].partition do |i|
     i % 2 == 0
   end == [[0,2,4,6,8], [1,3,5,7,9]]
