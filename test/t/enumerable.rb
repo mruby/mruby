@@ -44,7 +44,7 @@ assert('Enumerable#collect', '15.3.2.2.3') do
 end
 
 assert('Enumerable#detect', '15.3.2.2.4') do
-  assert_true [1,2,3].detect() { true }
+  assert_equal 1, [1,2,3].detect() { true }
   assert_equal 'a', [1,2,3].detect("a") { false }
 end
 
@@ -63,7 +63,7 @@ assert('Enumerable#entries', '15.3.2.2.6') do
 end
 
 assert('Enumerable#find', '15.3.2.2.7') do
-  assert_true [1,2,3].find() { true }
+  assert_equal 1, [1,2,3].find() { true }
   assert_equal 'a', [1,2,3].find("a") { false }
 end
 
