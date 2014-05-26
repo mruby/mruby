@@ -66,3 +66,10 @@ assert('String#rindex') do
   assert_equal 12, str.rindex('ち')
   assert_equal 3, str.rindex('ち', 10)
 end
+
+assert('Integer#chr') do
+  assert_equal("A", 65.chr)
+  assert_equal("B", 0x42.chr)
+  assert_equal("あ", 0x3042.chr)
+  assert_raise(RangeError) { 0x110000.chr }
+end
