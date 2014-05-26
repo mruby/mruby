@@ -5336,20 +5336,20 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
 
   MRB_TRY(p->jmp) {
 
-  p->cmd_start = TRUE;
-  p->in_def = p->in_single = 0;
-  p->nerr = p->nwarn = 0;
-  p->lex_strterm = NULL;
+    p->cmd_start = TRUE;
+    p->in_def = p->in_single = 0;
+    p->nerr = p->nwarn = 0;
+    p->lex_strterm = NULL;
 
-  parser_init_cxt(p, c);
-  yyparse(p);
-  if (!p->tree) {
-    p->tree = new_nil(p);
-  }
-  parser_update_cxt(p, c);
-  if (c && c->dump_result) {
-    mrb_parser_dump(p->mrb, p->tree, 0);
-  }
+    parser_init_cxt(p, c);
+    yyparse(p);
+    if (!p->tree) {
+      p->tree = new_nil(p);
+    }
+    parser_update_cxt(p, c);
+    if (c && c->dump_result) {
+      mrb_parser_dump(p->mrb, p->tree, 0);
+    }
 
   }
   MRB_CATCH(p->jmp) {
