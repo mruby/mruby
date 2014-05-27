@@ -53,7 +53,7 @@ module MRuby
 
     Exts = Struct.new(:object, :executable, :library)
 
-    def initialize(name='host', build_dir=nil, &block)
+    def initialize(name=RUBY_PLATFORM, build_dir=nil, &block)
       @name = name.to_s
 
       unless MRuby.targets[@name]

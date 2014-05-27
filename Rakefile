@@ -36,9 +36,9 @@ task :default => :all
 bin_path = "#{MRUBY_ROOT}/bin"
 FileUtils.mkdir_p bin_path, { :verbose => $verbose }
 
-depfiles = MRuby.targets['host'].bins.map do |bin|
-  install_path = MRuby.targets['host'].exefile("#{bin_path}/#{bin}")
-  source_path = MRuby.targets['host'].exefile("#{MRuby.targets['host'].build_dir}/bin/#{bin}")
+depfiles = MRuby.targets[RUBY_PLATFORM].bins.map do |bin|
+  install_path = MRuby.targets[RUBY_PLATFORM].exefile("#{bin_path}/#{bin}")
+  source_path = MRuby.targets[RUBY_PLATFORM].exefile("#{MRuby.targets[RUBY_PLATFORM].build_dir}/bin/#{bin}")
 
   file install_path => source_path do |t|
     FileUtils.rm_f t.name, { :verbose => $verbose }
@@ -67,8 +67,8 @@ MRuby.each_target do |target|
         linker.run t.name, t.prerequisites, gem_libraries, gem_library_paths, gem_flags, gem_flags_before_libraries, gem_flags_after_libraries
       end
 
-      if target == MRuby.targets['host']
-        install_path = MRuby.targets['host'].exefile("#{MRUBY_ROOT}/bin/#{bin}")
+      if target == MRuby.targets[RUBY_PLATFORM]
+        install_path = MRuby.targets[RUBY_PLATFORM].exefile("#{MRUBY_ROOT}/bin/#{bin}")
 
         file install_path => exec do |t|
           FileUtils.rm_f t.name, { :verbose => $verbose }
@@ -86,7 +86,7 @@ depfiles += MRuby.targets.map { |n, t|
   [t.libfile("#{t.build_dir}/lib/libmruby")]
 }.flatten
 
-depfiles += MRuby.targets.reject { |n, t| n == 'host' }.map { |n, t|
+depfiles += MRuby.targets.reject { |n, t| n == RUBY_PLATFORM }.map { |n, t|
   t.bins.map { |bin| t.exefile("#{t.build_dir}/bin/#{bin}") }
 }.flatten
 
