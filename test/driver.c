@@ -16,6 +16,7 @@
 #include "mruby/compile.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
+#include "mruby/array.h"
 
 void
 mrb_init_mrbtest(mrb_state *);
@@ -80,6 +81,38 @@ mrb_t_printstr(mrb_state *mrb, mrb_value self)
   t_printstr(mrb, argv);
 
   return argv;
+}
+
+void
+mrb_t_pass_result(mrb_state *mrb_dst, mrb_state *mrb_src)
+{
+  mrb_value res_src;
+
+#define TEST_COUNT_PASS(name)                                           \
+  do {                                                                  \
+    res_src = mrb_gv_get(mrb_src, mrb_intern_lit(mrb_src, "$" #name));  \
+    if (mrb_fixnum_p(res_src)) {                                        \
+      mrb_value res_dst = mrb_gv_get(mrb_dst, mrb_intern_lit(mrb_dst, "$" #name)); \
+      mrb_gv_set(mrb_dst, mrb_intern_lit(mrb_dst, "$" #name), mrb_fixnum_value(mrb_fixnum(res_dst) + mrb_fixnum(res_src))); \
+    }                                                                   \
+  } while (FALSE)                                                       \
+
+  TEST_COUNT_PASS(ok_test);
+  TEST_COUNT_PASS(ko_test);
+  TEST_COUNT_PASS(kill_test);
+
+#undef TEST_COUNT_PASS
+
+  res_src = mrb_gv_get(mrb_src, mrb_intern_lit(mrb_src, "$asserts"));
+
+  if (mrb_array_p(res_src)) {
+    mrb_int i;
+    mrb_value res_dst = mrb_gv_get(mrb_dst, mrb_intern_lit(mrb_dst, "$asserts"));
+    for (i = 0; i < RARRAY_LEN(res_src); ++i) {
+      mrb_value val_src = RARRAY_PTR(res_src)[i];
+      mrb_ary_push(mrb_dst, res_dst, mrb_str_new(mrb_dst, RSTRING_PTR(val_src), RSTRING_LEN(val_src)));
+    }
+  }
 }
 
 int
