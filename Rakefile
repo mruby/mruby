@@ -79,14 +79,14 @@ MRuby.each_target do |target|
         depfiles += [ exec ]
       end
     end
-  end
+  end if target.build_lib_only? == false
 end
 
 depfiles += MRuby.targets.map { |n, t|
   [t.libfile("#{t.build_dir}/lib/libmruby")]
 }.flatten
 
-depfiles += MRuby.targets.reject { |n, t| n == 'host' }.map { |n, t|
+depfiles += MRuby.targets.reject { |n, t| n == 'host' or t.build_lib_only? }.map { |n, t|
   t.bins.map { |bin| t.exefile("#{t.build_dir}/bin/#{bin}") }
 }.flatten
 

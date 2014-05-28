@@ -81,6 +81,7 @@ module MRuby
 
         @bins = %w(mrbc)
         @gems, @libmruby = MRuby::Gem::List.new, []
+        @build_lib_only = false
         @build_mrbtest_lib_only = false
         @cxx_abi_enabled = false
         @cxx_exception_disabled = false
@@ -191,6 +192,14 @@ module MRuby
       end
     end
 
+    def build_lib_only
+      @build_lib_only = true
+    end
+
+    def build_lib_only?
+      @build_lib_only
+    end
+
     def build_mrbtest_lib_only
       @build_mrbtest_lib_only = true
     end
@@ -216,14 +225,18 @@ module MRuby
       puts "================================================"
       puts "      Config Name: #{@name}"
       puts " Output Directory: #{self.build_dir.relative_path}"
-      puts "         Binaries: #{@bins.join(', ')}" unless @bins.empty?
+      if @build_lib_only
+        puts "         Binaries are not generated as build_lib_only was set."
+      else
+        puts "         Binaries: #{@bins.join(', ')}" unless @bins.empty?
+      end
       unless @gems.empty?
         puts "    Included Gems:"
         @gems.map do |gem|
           gem_version = " - #{gem.version}" if gem.version != '0.0.0'
           gem_summary = " - #{gem.summary}" if gem.summary
           puts "             #{gem.name}#{gem_version}#{gem_summary}"
-          puts "               - Binaries: #{gem.bins.join(', ')}" unless gem.bins.empty?
+          puts "               - Binaries: #{gem.bins.join(', ')}" unless (gem.bins.empty? or @build_lib_only)
         end
       end
       puts "================================================"
