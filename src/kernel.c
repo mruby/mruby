@@ -977,7 +977,9 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   if (!respond_to_p) {
     rtm_id = mrb_intern_lit(mrb, "respond_to_missing?");
     if (basic_obj_respond_to(mrb, self, rtm_id, !priv)) {
-      mrb_value args[] = { mid, mrb_bool_value(priv) };
+      mrb_value args[2];
+      args[0] = mid;
+      args[1] = mrb_bool_value(priv);
       return mrb_funcall_argv(mrb, self, rtm_id, 2, args);
     }
   }
