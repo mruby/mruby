@@ -672,7 +672,7 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
     return mrb_struct_aset_sym(mrb, s, mrb_symbol(idx), val);
   }
 
-  i = mrb_fixnum(idx);
+  i = mrb_int(mrb, idx);
   if (i < 0) i = RSTRUCT_LEN(s) + i;
   if (i < 0) {
     mrb_raisef(mrb, E_INDEX_ERROR,
