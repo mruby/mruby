@@ -30,6 +30,10 @@ assert('Struct#[]', '15.2.18.4.2') do
   cc = c.new(1,2)
   assert_equal 1, cc[:m1]
   assert_equal 2, cc["m2"]
+  assert_equal 1, cc[0]
+  assert_equal 2, cc[-1]
+  assert_raise(TypeError) { cc[[]] }
+  assert_raise(IndexError) { cc[2] }
 end
 
 assert('Struct#[]=', '15.2.18.4.3') do
@@ -39,7 +43,12 @@ assert('Struct#[]=', '15.2.18.4.3') do
   assert_equal 3, cc[:m1]
   cc["m2"] = 3
   assert_equal 3, cc["m2"]
+  cc[0] = 4
+  assert_equal 4, cc[0]
+  cc[-1] = 5
+  assert_equal 5, cc[-1]
   assert_raise(TypeError) { cc[[]] = 3 }
+  assert_raise(IndexError) { cc[2] = 7 }
 end
 
 assert('Struct#each', '15.2.18.4.4') do
