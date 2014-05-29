@@ -39,6 +39,9 @@ assert('Struct#[]=', '15.2.18.4.3') do
   cc = c.new(1,2)
   cc[:m1] = 3
   cc[:m1] == 3
+  cc["m2"] = 3
+  assert_equal 3, cc["m2"]
+  assert_raise(TypeError) { cc[[]] = 3 }
 end
 
 assert('Struct#each', '15.2.18.4.4') do
