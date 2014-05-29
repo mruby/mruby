@@ -34,6 +34,7 @@ assert('Struct#[]', '15.2.18.4.2') do
   assert_equal 2, cc[-1]
   assert_raise(TypeError) { cc[[]] }
   assert_raise(IndexError) { cc[2] }
+  assert_raise(NameError) { cc['tama'] }
 end
 
 assert('Struct#[]=', '15.2.18.4.3') do
@@ -49,6 +50,7 @@ assert('Struct#[]=', '15.2.18.4.3') do
   assert_equal 5, cc[-1]
   assert_raise(TypeError) { cc[[]] = 3 }
   assert_raise(IndexError) { cc[2] = 7 }
+  assert_raise(NameError) { cc['pochi'] = 8 }
 end
 
 assert('Struct#each', '15.2.18.4.4') do
