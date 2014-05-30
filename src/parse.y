@@ -5522,6 +5522,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   struct RClass *target = mrb->object_class;
   struct RProc *proc;
   mrb_value v;
+  unsigned int keep = 0;
 
   if (!p) {
     return mrb_undef_value();
@@ -5555,12 +5556,13 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
     if (c->target_class) {
       target = c->target_class;
     }
+    keep = c->slen + 1;
   }
   proc->target_class = target;
   if (mrb->c->ci) {
     mrb->c->ci->target_class = target;
   }
-  v = mrb_toplevel_run(mrb, proc);
+  v = mrb_toplevel_run_keep(mrb, proc, keep);
   if (mrb->exc) return mrb_nil_value();
   return v;
 }

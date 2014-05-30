@@ -2402,19 +2402,25 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 }
 
 mrb_value
-mrb_toplevel_run(mrb_state *mrb, struct RProc *proc)
+mrb_toplevel_run_keep(mrb_state *mrb, struct RProc *proc, unsigned int stack_keep)
 {
   mrb_callinfo *ci;
   mrb_value v;
 
   if (!mrb->c->cibase || mrb->c->ci == mrb->c->cibase) {
-    return mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
+    return mrb_context_run(mrb, proc, mrb_top_self(mrb), stack_keep);
   }
   ci = cipush(mrb);
   ci->acc = CI_ACC_SKIP;
   ci->target_class = mrb->object_class;
-  v = mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
+  v = mrb_context_run(mrb, proc, mrb_top_self(mrb), stack_keep);
   cipop(mrb);
 
   return v;
+}
+
+mrb_value
+mrb_toplevel_run(mrb_state *mrb, struct RProc *proc)
+{
+  return mrb_toplevel_run_keep(mrb, proc, 0);
 }
