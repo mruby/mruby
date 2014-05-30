@@ -256,6 +256,19 @@ When debugging mode is enabled
 	* Because ```-g``` flag would be added to ```mrbc``` runner.
     * You can have better backtrace of mruby scripts with this.
 
+### Library only build
+
+To suppress executable binary builds add the following:
+
+	conf.build_lib_only
+
+When library only build mode is enabled, building binaries
+specified by {conf,gem}.bins are cancelled.
+Note that binaries in targets['host'].bins are always built even if
+build_lib_only is set. At least mrbc is required to build libmruby.a.
+This will be useful if you want to link libmruby.a into another
+applications.
+
 ## Cross-Compilation
 
 mruby can also be cross-compiled from one platform to another. To
