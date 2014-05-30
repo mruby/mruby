@@ -321,14 +321,12 @@ def report_iso
 
   t_print "ISO methods that isn't tested:\n" if $mrbtest_verbose
 
-  $iso_methods.each_index do |sect_idx|
-    sect = $iso_methods[sect_idx]
+  $iso_methods.each_with_index do |sect, sect_idx|
     next unless sect
-    sect.each_index do |mod_idx|
-      mod = sect[mod_idx]
-      mod[1].each_index do |meths_idx|
-        meths = mod[1][meths_idx]
-        meth_sep = meths_idx == mod[1].length - 1 ? '#' : '.'
+    sect.each_with_index do |mod, mod_idx|
+      cls, mod = mod[0], mod[1]
+      mod.each_with_index do |meths, meths_idx|
+        meth_sep = meths_idx == mod.length - 1 ? '#' : '.'
         meths.each_index do |meth_idx|
           iso_count += 1
           begin
@@ -339,8 +337,7 @@ def report_iso
           rescue NoMethodError
           end
 
-          meth = "#{mod[0]}#{meth_sep}#{meths[meth_idx]}"
-
+          meth = "#{cls}#{meth_sep}#{meths[meth_idx]}"
           t_print "  #{meth} (15.#{sect_idx + 1}.#{mod_idx + 1}.#{meths_idx + 1}.#{meth_idx + 1})\n" if $mrbtest_verbose
         end
       end
