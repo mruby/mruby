@@ -5856,7 +5856,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     {
       node *n2 = tree->car;
 
-      if (n2  && (n2->car || n2->cdr)) {
+      if (n2 && (n2->car || n2->cdr)) {
         dump_prefix(offset+1);
         printf("local variables:\n");
         dump_prefix(offset+2);
