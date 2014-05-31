@@ -31,7 +31,7 @@ MRuby.each_target do
   end
 
   file ass_lib => ass_c
-  file ass_c => "#{current_dir}/assert.rb" do |t|
+  file ass_c => ["#{current_dir}/iso.rb", "#{current_dir}/assert.rb"] do |t|
     FileUtils.mkdir_p File.dirname t.name
     open(t.name, 'w') do |f|
       mrbc.run f, [t.prerequisites], 'mrbtest_assert_irep'
