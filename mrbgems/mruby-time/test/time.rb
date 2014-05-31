@@ -111,6 +111,7 @@ end
 assert('Time#initialize', '15.2.19.7.16') do
   t = Time.new
   assert_equal Time, t.class
+  assert_false t.utc?
 end
 
 assert('Time#initialize_copy', '15.2.19.7.17') do
