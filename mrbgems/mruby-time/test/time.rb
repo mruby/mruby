@@ -1,10 +1,6 @@
 ##
 # Time ISO Test
 
-assert('Time.new', '15.2.3.3.3') do
-  Time.new.class == Time
-end
-
 assert('Time', '15.2.19') do
   Time.class == Class
 end
@@ -112,8 +108,10 @@ assert('Time#hour', '15.2.19.7.15') do
   Time.gm(2012, 12, 23, 7, 6).hour == 7
 end
 
-# ATM doesn't really work
-# assert('Time#initialize', '15.2.19.7.16') do
+assert('Time#initialize', '15.2.19.7.16') do
+  t = Time.new
+  assert_equal Time, t.class
+end
 
 assert('Time#initialize_copy', '15.2.19.7.17') do
   time_tmp_2 = Time.at(7.0e6)
