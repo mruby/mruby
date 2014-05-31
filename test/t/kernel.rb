@@ -586,8 +586,5 @@ assert('stack extend') do
   end
 
   assert_equal 6, recurse(0, 5)
-  assert_raise RuntimeError do
-    recurse(0, 100000)
-  end
 end
 
