@@ -811,7 +811,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_LOADL) {
       /* A Bx   R(A) := Pool(Bx) */
-      regs[GETARG_A(i)] =  pool[GETARG_Bx(i)];
+      regs[GETARG_A(i)] = pool[GETARG_Bx(i)];
       NEXT;
     }
 
