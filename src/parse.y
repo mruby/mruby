@@ -2875,15 +2875,15 @@ var_ref         : variable
                 | keyword_self
                     {
                       $$ = new_self(p);
-                       }
+                    }
                 | keyword_true
                     {
                       $$ = new_true(p);
-                       }
+                    }
                 | keyword_false
                     {
                       $$ = new_false(p);
-                       }
+                    }
                 | keyword__FILE__
                     {
                       if (!p->filename) {
