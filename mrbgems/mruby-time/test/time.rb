@@ -207,3 +207,15 @@ assert('day of week methods') do
   assert_false t.friday?
   assert_false t.saturday?
 end
+
+assert('non ISO specified Time#initialize usage') do
+  assert_raise(ArgumentError) { Time.new 2011, 11, 11, 11, 11, 11, 11, :zone }
+  t = Time.new 2011, 11, 11, 11, 11, 11, 11
+  assert_false t.utc?
+  assert_equal 2011, t.year
+  assert_equal 11, t.month
+  assert_equal 11, t.day
+  assert_equal 11, t.hour
+  assert_equal 11, t.min
+  assert_equal 11, t.usec
+end
