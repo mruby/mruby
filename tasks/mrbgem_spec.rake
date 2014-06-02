@@ -44,7 +44,7 @@ module MRuby
       end
 
       def run_test_in_other_mrb_state?
-        not test_preload.nil? or not test_objs.empty?
+        not test_preload.nil? or not test_objs.empty? or not test_args.empty?
       end
 
       def setup
@@ -182,6 +182,7 @@ module MRuby
         f.puts %Q[#include "mruby/irep.h"]
         f.puts %Q[#include "mruby/string.h"]
         f.puts %Q[#include "mruby/variable.h"]
+        f.puts %Q[#include "mruby/hash.h"] unless test_args.empty?
       end
 
       def version_ok?(req_versions)
