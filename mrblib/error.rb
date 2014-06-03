@@ -48,6 +48,12 @@ end
 
 # ISO 15.2.32
 class NoMethodError < NameError
+  attr_reader :args
+
+  def initialize(message=nil, name=nil, args=nil)
+    @args = args
+    super message, name
+  end
 end
 
 # ISO 15.2.33

@@ -1216,8 +1216,7 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
     repr = mrb_any_to_s(mrb, mod);
   }
 
-  mrb_raisef(mrb, E_NOMETHOD_ERROR, "undefined method '%S' for %S",
-             mrb_sym2str(mrb, name), repr);
+  mrb_no_method_error(mrb, name, alen, a, "undefined method '%S' for %S", mrb_sym2str(mrb, name), repr);
   /* not reached */
   return mrb_nil_value();
 }
