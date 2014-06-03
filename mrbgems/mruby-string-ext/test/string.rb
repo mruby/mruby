@@ -161,3 +161,7 @@ assert('String#oct') do
   assert_equal 8, "010".oct
   assert_equal (-8), "-10".oct
 end
+
+assert('String#chr') do
+  assert_equal "a", "abcde".chr
+end
