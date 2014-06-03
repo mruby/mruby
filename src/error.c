@@ -442,6 +442,20 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
   }
 }
 
+mrb_noreturn void
+mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_int argc, const mrb_value *argv, char const* fmt, ...)
+{
+  mrb_value exc;
+  va_list ap;
+
+  va_start(ap, fmt);
+  exc = mrb_funcall(mrb, mrb_obj_value(E_NOMETHOD_ERROR), "new", 3,
+                    mrb_vformat(mrb, fmt, ap), mrb_symbol_value(id),
+                    mrb_ary_new_from_values(mrb, argc, argv));
+  va_end(ap);
+  mrb_exc_raise(mrb, exc);
+}
+
 void
 mrb_init_exception(mrb_state *mrb)
 {
