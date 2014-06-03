@@ -35,6 +35,16 @@ module Kernel
     Kernel.eval(s)
   end
 
+  # 15.3.1.2.13
+  def self.require(str)
+    raise NotImplementedError.new("require not implemented")
+  end
+
+  # 15.3.1.3.42
+  def require(str)
+    Kernel.require str
+  end
+
   ##
   # Alias for +Kernel.loop+.
   #
