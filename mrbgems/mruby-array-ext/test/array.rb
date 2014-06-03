@@ -285,3 +285,11 @@ assert('Array#values_at') do
   assert_equal ['none', nil, nil, 'red', 'green', 'purple'], a.values_at(4..6, 0...3)
   assert_raise(TypeError) { a.values_at 'tt' }
 end
+
+assert('Array#to_h') do
+  assert_equal({}, [].to_h)
+  assert_equal({a: 1, b:2}, [[:a, 1], [:b, 2]].to_h)
+
+  assert_raise(TypeError)     { [1].to_h }
+  assert_raise(ArgumentError) { [[1]].to_h }
+end
