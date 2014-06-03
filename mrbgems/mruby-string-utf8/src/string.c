@@ -127,9 +127,7 @@ mrb_utf8_strlen(mrb_value str, mrb_int len)
 static mrb_value
 mrb_str_size(mrb_state *mrb, mrb_value str)
 {
-  mrb_int size = mrb_utf8_strlen(str, -1);
-
-  return mrb_fixnum_value(size);
+  return mrb_fixnum_value(mrb_utf8_strlen(str, -1));
 }
 
 #define RSTRING_LEN_UTF8(s) mrb_utf8_strlen(s, -1)
