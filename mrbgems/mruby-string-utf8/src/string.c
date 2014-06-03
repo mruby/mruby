@@ -667,6 +667,12 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   return result;
 }
 
+static mrb_value
+mrb_str_chr(mrb_state *mrb, mrb_value self)
+{
+  return str_substr(mrb, self, 0, 1);
+}
+
 void
 mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
 {
@@ -682,6 +688,7 @@ mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "reverse",  mrb_str_reverse, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "reverse!", mrb_str_reverse_bang, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "rindex", mrb_str_rindex_m, MRB_ARGS_ANY());
+  mrb_define_method(mrb, s, "chr", mrb_str_chr, MRB_ARGS_NONE());
 
   mrb_define_method(mrb, mrb->fixnum_class, "chr", mrb_fixnum_chr, MRB_ARGS_NONE());
 }
