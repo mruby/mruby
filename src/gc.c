@@ -189,7 +189,7 @@ mrb_realloc(mrb_state *mrb, void *p, size_t len)
     }
     else {
       mrb->out_of_memory = TRUE;
-      mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+      mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
     }
   }
   else {
