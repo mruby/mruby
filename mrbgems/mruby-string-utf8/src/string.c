@@ -695,8 +695,10 @@ mrb_str_chars(mrb_state *mrb, mrb_value self)
     return self;
   }
   while (p < e) {
+    int ai = mrb_gc_arena_save(mrb);
     mrb_int len = utf8len((unsigned char*) p);
     mrb_ary_push(mrb, result, mrb_str_new(mrb, p, len));
+    mrb_gc_arena_restore(mrb, ai);
     p += len;
   }
   return result;
@@ -725,8 +727,10 @@ mrb_str_codepoints(mrb_state *mrb, mrb_value self)
     return self;
   }
   while (p < e) {
+    int ai = mrb_gc_arena_save(mrb);
     mrb_int len = utf8len((unsigned char*) p);
     mrb_ary_push(mrb, result, mrb_fixnum_value(utf8code((unsigned char*) p)));
+    mrb_gc_arena_restore(mrb, ai);
     p += len;
   }
   return result;
