@@ -705,6 +705,8 @@ root_scan_phase(mrb_state *mrb)
   mrb_gc_mark(mrb, (struct RBasic*)mrb->top_self);
   /* mark exception */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
+  /* mark pre-allocated exception */
+  mrb_gc_mark(mrb, (struct RBasic*)mrb->nomem_err);
 
   mark_context(mrb, mrb->root_c);
   if (mrb->root_c->fib) {
