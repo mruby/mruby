@@ -70,7 +70,9 @@ typedef short mrb_sym;
 # ifndef __cplusplus
 #  define inline __inline
 # endif
-# define snprintf _snprintf
+# if _MSC_VER < 1900
+#  define snprintf _snprintf
+# endif
 # if _MSC_VER < 1800
 #  include <float.h>
 #  define isfinite(n) _finite(n)
