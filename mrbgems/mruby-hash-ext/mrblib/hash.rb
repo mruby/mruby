@@ -182,4 +182,15 @@ class Hash
     end
     nil
   end
+
+  ##
+  #  call-seq:
+  #     hsh.to_h     -> hsh or new_hash
+  #
+  #  Returns +self+. If called on a subclass of Hash, converts
+  #  the receiver to a Hash object.
+  #
+  def to_h
+    self
+  end
 end

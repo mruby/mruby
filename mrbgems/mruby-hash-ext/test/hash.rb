@@ -115,3 +115,9 @@ assert("Hash#key") do
   assert_nil h.key('nil')
   assert_equal 'nil', h.key(nil)
 end
+
+assert("Hash#to_h") do
+  h = { "a" => 100, "b" => 200 }
+  assert_equal Hash, h.to_h.class
+  assert_equal h, h.to_h
+end
