@@ -149,7 +149,7 @@ static mrb_value mrb_struct_ref9(mrb_state* mrb, mrb_value obj) {return RSTRUCT_
 #define numberof(array) (int)(sizeof(array) / sizeof((array)[0]))
 #define N_REF_FUNC numberof(ref_func)
 
-static mrb_value (*const ref_func[])(mrb_state*, mrb_value) = {
+static const mrb_func_t ref_func[] = {
   mrb_struct_ref0,
   mrb_struct_ref1,
   mrb_struct_ref2,
@@ -185,8 +185,7 @@ static mrb_value
 mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
 {
   const char *name;
-  size_t i, len;
-  mrb_int slen;
+  mrb_int i, len, slen;
   mrb_sym mid;
   mrb_value members, slot, *ptr, *ptr_members;
 
@@ -219,17 +218,17 @@ mrb_struct_set_m(mrb_state *mrb, mrb_value obj)
 
 #define is_notop_id(id) (id) /* ((id)>tLAST_TOKEN) */
 #define is_local_id(id) (is_notop_id(id)) /* &&((id)&ID_SCOPE_MASK)==ID_LOCAL) */
-static int
+static mrb_bool
 mrb_is_local_id(mrb_sym id)
 {
-  return is_local_id(id);
+  return !!is_local_id(id);
 }
 
 #define is_const_id(id) (is_notop_id(id)) /* &&((id)&ID_SCOPE_MASK)==ID_CONST) */
-static int
+static mrb_bool
 mrb_is_const_id(mrb_sym id)
 {
-  return is_const_id(id);
+  return !!is_const_id(id);
 }
 
 static mrb_value
@@ -344,7 +343,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
 {
   mrb_value name, rest;
   mrb_value *pargv;
-  int argcnt;
+  mrb_int argcnt;
   mrb_int i;
   mrb_value b, st;
   mrb_sym id;
@@ -391,7 +390,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   return st;
 }
 
-static int
+static mrb_int
 num_members(mrb_state *mrb, struct RClass *klass)
 {
   mrb_value members;
@@ -407,10 +406,10 @@ num_members(mrb_state *mrb, struct RClass *klass)
 /*
  */
 static mrb_value
-mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_value self)
+mrb_struct_initialize_withArg(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb_value self)
 {
   struct RClass *klass = mrb_obj_class(mrb, self);
-  int i, n;
+  mrb_int i, n;
 
   n = num_members(mrb, klass);
   if (n < argc) {
@@ -443,7 +442,7 @@ mrb_struct_initialize(mrb_state *mrb, mrb_value self, mrb_value values)
 }
 
 static mrb_value
-inspect_struct(mrb_state *mrb, mrb_value s, int recur)
+inspect_struct(mrb_state *mrb, mrb_value s, mrb_bool recur)
 {
   const char *cn = mrb_class_name(mrb, mrb_obj_class(mrb, s));
   mrb_value members, str = mrb_str_new_lit(mrb, "#<struct ");
@@ -501,7 +500,7 @@ inspect_struct(mrb_state *mrb, mrb_value s, int recur)
 static mrb_value
 mrb_struct_inspect(mrb_state *mrb, mrb_value s)
 {
-  return inspect_struct(mrb, s, 0);
+  return inspect_struct(mrb, s, FALSE);
 }
 
 /* 15.2.18.4.9  */
