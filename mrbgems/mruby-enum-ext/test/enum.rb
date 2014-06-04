@@ -144,3 +144,17 @@ assert("Enumerable#zip") do
   assert_equal [[1, 4, 7], [2, 5, 8]], [1, 2].zip(a, b)
   assert_equal [[4, 1, 8], [5, 2, nil], [6, nil, nil]], a.zip([1, 2], [8])
 end
+
+assert("Enumerable#to_h") do
+  c = Class.new {
+    include Enumerable
+    def each
+      yield [1,2]
+      yield [3,4]
+    end
+  }
+  h0 = {1=>2, 3=>4}
+  h = c.new.to_h
+  assert_equal Hash, h.class
+  assert_equal h0, h
+end

@@ -669,4 +669,26 @@ module Enumerable
     end
     ary
   end
+
+  ##
+  #  call-seq:
+  #     enum.to_h  -> hash
+  #
+  #  Returns the result of interpreting <i>enum</i> as a list of
+  #  <tt>[key, value]</tt> pairs.
+  #
+  #     %i[hello world].each_with_index.to_h
+  #       # => {:hello => 0, :world => 1}
+  #
+
+  def to_h
+    h = {}
+    self.each do |*v|
+      v = v.__svalue
+      raise TypeError, "wrong element type #{v.class} (expected Array)" unless v.is_a? Array
+      raise ArgumentError, "element has wrong array length (expected 2, was #{v.size})" if v.size != 2
+      h[v[0]] = v[1]
+    end
+    h
+  end
 end
