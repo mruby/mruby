@@ -199,7 +199,7 @@ mrb_str_chr(mrb_state *mrb, mrb_value self)
  *  Returns strings per line;
  *
  *     a = "abc\ndef"
- *     a.lines    #=> ["abc", "def"]
+ *     a.lines    #=> ["abc\n", "def"]
  */
 static mrb_value
 mrb_str_lines(mrb_state *mrb, mrb_value self)
