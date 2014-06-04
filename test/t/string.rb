@@ -515,3 +515,24 @@ assert('String#each_byte') do
 
   assert_equal bytes1, bytes2
 end
+
+assert('String#clear') do
+  # embed string
+  s = "foo"
+  assert_equal("", s.clear)
+  assert_equal("", s)
+
+  # not embed string and not shared string
+  s = "foo" * 100
+  a = s
+  assert_equal("", s.clear)
+  assert_equal("", s)
+  assert_equal("", a)
+
+  # shared string
+  s = "foo" * 100
+  a = s[10, 90]                # create shared string
+  assert_equal("", s.clear)    # clear
+  assert_equal("", s)          # s is cleared
+  assert_not_equal("", a)      # a should not be affected
+end
