@@ -5,7 +5,6 @@
 */
 
 #include <string.h>
-#include <stdarg.h>
 #include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/string.h"
@@ -38,12 +37,6 @@ struct_ivar_get(mrb_state *mrb, mrb_value c, mrb_sym id)
       return mrb_nil_value();
     c = mrb_obj_value(kclass);
   }
-}
-
-static mrb_value
-mrb_struct_iv_get(mrb_state *mrb, mrb_value c, const char *name)
-{
-  return struct_ivar_get(mrb, c, mrb_intern_cstr(mrb, name));
 }
 
 static mrb_value
@@ -283,27 +276,6 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   return nstr;
 }
 
-static mrb_value
-mrb_struct_define(mrb_state *mrb, const char *name, ...)
-{
-  va_list ar;
-  mrb_value nm, ary;
-  char *mem;
-
-  if (!name) nm = mrb_nil_value();
-  else nm = mrb_str_new_cstr(mrb, name);
-  ary = mrb_ary_new(mrb);
-
-  va_start(ar, name);
-  while ((mem = va_arg(ar, char*)) != 0) {
-    mrb_sym slot = mrb_intern_cstr(mrb, mem);
-    mrb_ary_push(mrb, ary, mrb_symbol_value(slot));
-  }
-  va_end(ar);
-
-  return make_struct(mrb, nm, ary, struct_class(mrb));
-}
-
 /* 15.2.18.3.1  */
 /*
  *  call-seq:
@@ -433,12 +405,6 @@ mrb_struct_initialize_m(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value
 
   mrb_get_args(mrb, "*", &argv, &argc);
   return mrb_struct_initialize_withArg(mrb, argc, argv, self);
-}
-
-static mrb_value
-mrb_struct_initialize(mrb_state *mrb, mrb_value self, mrb_value values)
-{
-  return mrb_struct_initialize_withArg(mrb, RARRAY_LEN(values), RARRAY_PTR(values), self);
 }
 
 static mrb_value
