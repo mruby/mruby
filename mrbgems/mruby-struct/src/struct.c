@@ -40,13 +40,13 @@ struct_ivar_get(mrb_state *mrb, mrb_value c, mrb_sym id)
   }
 }
 
-mrb_value
+static mrb_value
 mrb_struct_iv_get(mrb_state *mrb, mrb_value c, const char *name)
 {
   return struct_ivar_get(mrb, c, mrb_intern_cstr(mrb, name));
 }
 
-mrb_value
+static mrb_value
 mrb_struct_s_members(mrb_state *mrb, mrb_value klass)
 {
   mrb_value members = struct_ivar_get(mrb, klass, mrb_intern_lit(mrb, "__members__"));
@@ -60,7 +60,7 @@ mrb_struct_s_members(mrb_state *mrb, mrb_value klass)
   return members;
 }
 
-mrb_value
+static mrb_value
 mrb_struct_members(mrb_state *mrb, mrb_value s)
 {
   mrb_value members = mrb_struct_s_members(mrb, mrb_obj_value(mrb_obj_class(mrb, s)));
@@ -109,7 +109,7 @@ mrb_struct_members_m(mrb_state *mrb, mrb_value obj)
   return mrb_struct_s_members_m(mrb, mrb_obj_value(mrb_obj_class(mrb, obj)));
 }
 
-mrb_value
+static mrb_value
 mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
 {
   mrb_value members, slot, *ptr, *ptr_members;
@@ -162,7 +162,7 @@ static mrb_value (*const ref_func[])(mrb_state*, mrb_value) = {
   mrb_struct_ref9,
 };
 
-mrb_sym
+static mrb_sym
 mrb_id_attrset(mrb_state *mrb, mrb_sym id)
 {
   const char *name;
@@ -219,14 +219,14 @@ mrb_struct_set_m(mrb_state *mrb, mrb_value obj)
 
 #define is_notop_id(id) (id) /* ((id)>tLAST_TOKEN) */
 #define is_local_id(id) (is_notop_id(id)) /* &&((id)&ID_SCOPE_MASK)==ID_LOCAL) */
-int
+static int
 mrb_is_local_id(mrb_sym id)
 {
   return is_local_id(id);
 }
 
 #define is_const_id(id) (is_notop_id(id)) /* &&((id)&ID_SCOPE_MASK)==ID_CONST) */
-int
+static int
 mrb_is_const_id(mrb_sym id)
 {
   return is_const_id(id);
@@ -284,7 +284,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   return nstr;
 }
 
-mrb_value
+static mrb_value
 mrb_struct_define(mrb_state *mrb, const char *name, ...)
 {
   va_list ar;
@@ -436,7 +436,7 @@ mrb_struct_initialize_m(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value
   return mrb_struct_initialize_withArg(mrb, argc, argv, self);
 }
 
-mrb_value
+static mrb_value
 mrb_struct_initialize(mrb_state *mrb, mrb_value self, mrb_value values)
 {
   return mrb_struct_initialize_withArg(mrb, RARRAY_LEN(values), RARRAY_PTR(values), self);
@@ -506,7 +506,7 @@ mrb_struct_inspect(mrb_state *mrb, mrb_value s)
 
 /* 15.2.18.4.9  */
 /* :nodoc: */
-mrb_value
+static mrb_value
 mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
 {
   mrb_value s;
@@ -584,7 +584,7 @@ struct_aref_int(mrb_state *mrb, mrb_value s, mrb_int i)
  *     joe[:name]    #=> "Joe Smith"
  *     joe[0]        #=> "Joe Smith"
  */
-mrb_value
+static mrb_value
 mrb_struct_aref(mrb_state *mrb, mrb_value s)
 {
   mrb_value idx;
@@ -651,7 +651,7 @@ mrb_struct_aset_sym(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
  *     joe.zip    #=> "90210"
  */
 
-mrb_value
+static mrb_value
 mrb_struct_aset(mrb_state *mrb, mrb_value s)
 {
   mrb_int i;
