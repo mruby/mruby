@@ -159,10 +159,10 @@ mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mr
     qstable[i] = m + 1;
   for (; x < xe; ++x)
     qstable[*x] = xe - x;
- /* Searching */
+  /* Searching */
   for (; y + m <= ys + n; y += *(qstable + y[m])) {
     if (*xs == *y && memcmp(xs, y, m) == 0)
-        return y - ys;
+      return y - ys;
   }
   return -1;
 }
@@ -570,7 +570,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     if (mrb_string_p(spat)) {
       split_type = string;
       if (RSTRING_LEN(spat) == 1 && RSTRING_PTR(spat)[0] == ' '){
-          split_type = awk;
+        split_type = awk;
       }
     }
     else {
