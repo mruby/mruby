@@ -1,5 +1,6 @@
 #include "mruby.h"
 #include "mruby/array.h"
+#include "mruby/class.h"
 #include "mruby/string.h"
 #include "mruby/range.h"
 #include "mruby/re.h"
@@ -671,6 +672,74 @@ mrb_str_chr(mrb_state *mrb, mrb_value self)
   return str_substr(mrb, self, 0, 1);
 }
 
+static mrb_value
+mrb_str_chars(mrb_state *mrb, mrb_value self)
+{
+  mrb_value result;
+  mrb_value blk;
+  int ai;
+  mrb_int len;
+  mrb_value arg;
+  char *p = RSTRING_PTR(self);
+  char *e = p + RSTRING_LEN(self);
+
+  mrb_get_args(mrb, "&", &blk);
+
+  result = mrb_ary_new(mrb);
+
+  if (!mrb_nil_p(blk)) {
+    while (p < e) {
+      len = utf8len((unsigned char*) p);
+      arg = mrb_str_new(mrb, p, len);
+      mrb_yield_argv(mrb, blk, 1, &arg);
+      p += len;
+    }
+    return self;
+  }
+  while (p < e) {
+    ai = mrb_gc_arena_save(mrb);
+    len = utf8len((unsigned char*) p);
+    mrb_ary_push(mrb, result, mrb_str_new(mrb, p, len));
+    mrb_gc_arena_restore(mrb, ai);
+    p += len;
+  }
+  return result;
+}
+
+static mrb_value
+mrb_str_codepoints(mrb_state *mrb, mrb_value self)
+{
+  mrb_value result;
+  mrb_value blk;
+  int ai;
+  mrb_int len;
+  mrb_value arg;
+  char *p = RSTRING_PTR(self);
+  char *e = p + RSTRING_LEN(self);
+
+  mrb_get_args(mrb, "&", &blk);
+
+  result = mrb_ary_new(mrb);
+
+  if (!mrb_nil_p(blk)) {
+    while (p < e) {
+      len = utf8len((unsigned char*) p);
+      arg = mrb_fixnum_value(utf8code((unsigned char*) p));
+      mrb_yield_argv(mrb, blk, 1, &arg);
+      p += len;
+    }
+    return self;
+  }
+  while (p < e) {
+    ai = mrb_gc_arena_save(mrb);
+    len = utf8len((unsigned char*) p);
+    mrb_ary_push(mrb, result, mrb_fixnum_value(utf8code((unsigned char*) p)));
+    mrb_gc_arena_restore(mrb, ai);
+    p += len;
+  }
+  return result;
+}
+
 void
 mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
 {
@@ -687,6 +756,10 @@ mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "reverse!", mrb_str_reverse_bang, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "rindex", mrb_str_rindex_m, MRB_ARGS_ANY());
   mrb_define_method(mrb, s, "chr", mrb_str_chr, MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "chars", mrb_str_chars, MRB_ARGS_NONE());
+  mrb_alias_method(mrb, s, mrb_intern_lit(mrb, "each_char"), mrb_intern_lit(mrb, "chars"));
+  mrb_define_method(mrb, s, "codepoints", mrb_str_codepoints, MRB_ARGS_NONE());
+  mrb_alias_method(mrb, s, mrb_intern_lit(mrb, "each_codepoint"), mrb_intern_lit(mrb, "codepoints"));
 
   mrb_define_method(mrb, mrb->fixnum_class, "chr", mrb_fixnum_chr, MRB_ARGS_NONE());
 }

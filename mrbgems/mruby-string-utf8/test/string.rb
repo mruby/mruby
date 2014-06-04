@@ -70,3 +70,40 @@ end
 assert('String#chr(utf-8)') do
   assert_equal "こ", "こんにちは世界!".chr
 end
+
+assert('String#chars') do
+  expect = ['こ', 'ん', 'に', 'ち', 'は', '世', '界', '!']
+  assert_equal expect, "こんにちは世界!".chars
+  s = ""
+  "こんにちは世界!".chars do |x|
+    s += x
+  end
+  assert_equal "こんにちは世界!", s
+end
+
+assert('String#each_char') do
+  expect = ['こ', 'ん', 'に', 'ち', 'は', '世', '界', '!']
+  s = ""
+  "こんにちは世界!".each_char do |x|
+    s += x
+  end
+  assert_equal "こんにちは世界!", s
+end
+assert('String#codepoints') do
+  expect = [12371, 12435, 12395, 12385, 12399, 19990, 30028, 33]
+  assert_equal expect, "こんにちは世界!".codepoints
+  cp = []
+  "こんにちは世界!".codepoints do |x|
+    cp << x
+  end
+  assert_equal expect, cp
+end
+
+assert('String#each_codepoint') do
+  expect = [12371, 12435, 12395, 12385, 12399, 19990, 30028, 33]
+  cp = []
+  "こんにちは世界!".each_codepoint do |x|
+    cp << x
+  end
+  assert_equal expect, cp
+end
