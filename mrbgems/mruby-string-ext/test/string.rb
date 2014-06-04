@@ -165,3 +165,10 @@ end
 assert('String#chr') do
   assert_equal "a", "abcde".chr
 end
+
+assert('String#lines') do
+  assert_equal ["こん\n", "にちは\n", "世界!"], "こん\nにちは\n世界!".lines
+  assert_equal ["こん\n", "にちは\n", "世界!\n"], "こん\nにちは\n世界!\n".lines
+  assert_equal ["\n", "\n", "\n"], "\n\n\n".lines
+  assert_equal [], "".lines
+end
