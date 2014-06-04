@@ -677,6 +677,9 @@ mrb_str_chars(mrb_state *mrb, mrb_value self)
 {
   mrb_value result;
   mrb_value blk;
+  int ai;
+  mrb_int len;
+  mrb_value arg;
   char *p = RSTRING_PTR(self);
   char *e = p + RSTRING_LEN(self);
 
@@ -685,9 +688,8 @@ mrb_str_chars(mrb_state *mrb, mrb_value self)
   result = mrb_ary_new(mrb);
 
   if (!mrb_nil_p(blk)) {
-    mrb_value arg;
     while (p < e) {
-      mrb_int len = utf8len((unsigned char*) p);
+      len = utf8len((unsigned char*) p);
       arg = mrb_str_new(mrb, p, len);
       mrb_yield_argv(mrb, blk, 1, &arg);
       p += len;
@@ -695,8 +697,8 @@ mrb_str_chars(mrb_state *mrb, mrb_value self)
     return self;
   }
   while (p < e) {
-    int ai = mrb_gc_arena_save(mrb);
-    mrb_int len = utf8len((unsigned char*) p);
+    ai = mrb_gc_arena_save(mrb);
+    len = utf8len((unsigned char*) p);
     mrb_ary_push(mrb, result, mrb_str_new(mrb, p, len));
     mrb_gc_arena_restore(mrb, ai);
     p += len;
@@ -709,6 +711,9 @@ mrb_str_codepoints(mrb_state *mrb, mrb_value self)
 {
   mrb_value result;
   mrb_value blk;
+  int ai;
+  mrb_int len;
+  mrb_value arg;
   char *p = RSTRING_PTR(self);
   char *e = p + RSTRING_LEN(self);
 
@@ -717,9 +722,8 @@ mrb_str_codepoints(mrb_state *mrb, mrb_value self)
   result = mrb_ary_new(mrb);
 
   if (!mrb_nil_p(blk)) {
-    mrb_value arg;
     while (p < e) {
-      mrb_int len = utf8len((unsigned char*) p);
+      len = utf8len((unsigned char*) p);
       arg = mrb_fixnum_value(utf8code((unsigned char*) p));
       mrb_yield_argv(mrb, blk, 1, &arg);
       p += len;
@@ -727,8 +731,8 @@ mrb_str_codepoints(mrb_state *mrb, mrb_value self)
     return self;
   }
   while (p < e) {
-    int ai = mrb_gc_arena_save(mrb);
-    mrb_int len = utf8len((unsigned char*) p);
+    ai = mrb_gc_arena_save(mrb);
+    len = utf8len((unsigned char*) p);
     mrb_ary_push(mrb, result, mrb_fixnum_value(utf8code((unsigned char*) p)));
     mrb_gc_arena_restore(mrb, ai);
     p += len;
