@@ -6,8 +6,8 @@ MRuby.each_target do
   self.libmruby << objfile("#{current_build_dir}/mrblib")
 
   file objfile("#{current_build_dir}/mrblib") => "#{current_build_dir}/mrblib.c"
-  file "#{current_build_dir}/mrblib.c" => [mrbcfile] + Dir.glob("#{current_dir}/*.rb").sort do |t|
-    mrbc_, *rbfiles = t.prerequisites
+  file "#{current_build_dir}/mrblib.c" => [mrbcfile, __FILE__] + Dir.glob("#{current_dir}/*.rb").sort do |t|
+    _, _, *rbfiles = t.prerequisites
     FileUtils.mkdir_p File.dirname(t.name)
     open(t.name, 'w') do |f|
       _pp "GEN", "*.rb", "#{t.name.relative_path}"

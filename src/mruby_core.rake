@@ -13,7 +13,7 @@ MRuby.each_target do
     cxx_abi_dependency = %w(codegen error vm)
     cxx_abi_objs = cxx_abi_dependency.map { |v|
       src = "#{current_build_dir}/#{v}.cxx"
-      file src => "#{current_dir}/#{v}.c" do |t|
+      file src => ["#{current_dir}/#{v}.c", __FILE__] do |t|
         File.open(t.name, 'w') do |f|
           f.write <<EOS
 #define __STDC_CONSTANT_MACROS
@@ -37,7 +37,7 @@ EOS
     }
     cxx_abi_objs << objfile("#{current_build_dir}/y.tab")
 
-    file "#{current_build_dir}/y.tab.cxx" => "#{current_build_dir}/y.tab.c" do |t|
+    file "#{current_build_dir}/y.tab.cxx" => ["#{current_build_dir}/y.tab.c", __FILE__] do |t|
       File.open(t.name, 'w') do |f|
         f.write <<EOS
 #define __STDC_CONSTANT_MACROS
