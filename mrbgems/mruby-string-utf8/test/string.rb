@@ -67,6 +67,6 @@ assert('String#rindex') do
   assert_equal 3, str.rindex('ち', 10)
 end
 
-assert('String#chr') do
+assert('String#chr(utf-8)') do
   assert_equal "こ", "こんにちは世界!".chr
 end
