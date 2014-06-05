@@ -224,7 +224,16 @@ mrb_close(mrb_state *mrb)
   mrb_int i;
 
   for (i = mrb->atexit_stack_len; i > 0; --i) {
-    mrb->atexit_stack[i - 1](mrb);
+    mrb_value p = mrb->atexit_stack[i - 1];
+    switch(mrb_type(mrb->atexit_stack[i - 1])) {
+    case MRB_TT_CPTR:
+      ((mrb_atexit_func)mrb_cptr(p))(mrb);
+      break;
+    case MRB_TT_PROC:
+      mrb_yield_argv(mrb, p, 0, NULL);
+      break;
+    default: mrb_assert(FALSE); /* should not reach */
+    }
   }
 
   /* free */
@@ -263,17 +272,30 @@ mrb_top_self(mrb_state *mrb)
   return mrb_obj_value(mrb->top_self);
 }
 
-void
-mrb_atexit(mrb_state *mrb, mrb_atexit_func f)
+static void
+push_to_atexit_stack(mrb_state *mrb, mrb_value v)
 {
   size_t stack_size;
 
-  stack_size = sizeof(mrb_atexit_func) * (mrb->atexit_stack_len + 1);
+  stack_size = sizeof(mrb_value) * (mrb->atexit_stack_len + 1);
   if (mrb->atexit_stack_len == 0) {
-    mrb->atexit_stack = (mrb_atexit_func*)mrb_malloc(mrb, stack_size);
+    mrb->atexit_stack = (mrb_value*)mrb_malloc(mrb, stack_size);
   } else {
-    mrb->atexit_stack = (mrb_atexit_func*)mrb_realloc(mrb, mrb->atexit_stack, stack_size);
+    mrb->atexit_stack = (mrb_value*)mrb_realloc(mrb, mrb->atexit_stack, stack_size);
   }
 
-  mrb->atexit_stack[mrb->atexit_stack_len++] = f;
+  mrb->atexit_stack[mrb->atexit_stack_len++] = v;
+}
+
+void
+mrb_atexit(mrb_state *mrb, mrb_atexit_func f)
+{
+  push_to_atexit_stack(mrb, mrb_cptr_value(mrb, (void*)f));
+}
+
+void
+mrb_atexit_proc(mrb_state *mrb, mrb_value proc)
+{
+  mrb_check_type(mrb, proc, MRB_TT_PROC);
+  push_to_atexit_stack(mrb, proc);
 }

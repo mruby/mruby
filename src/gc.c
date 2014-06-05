@@ -715,6 +715,10 @@ root_scan_phase(mrb_state *mrb)
   if (mrb->root_c != mrb->c) {
     mark_context(mrb, mrb->c);
   }
+
+  for (i = 0, e = mrb->atexit_stack_len; i < e; ++i) {
+    mrb_gc_mark_value(mrb, mrb->atexit_stack[i]);
+  }
 }
 
 static size_t

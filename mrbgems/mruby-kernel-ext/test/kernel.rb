@@ -16,3 +16,10 @@ assert('Kernel#__method__') do
   assert_equal(:m1, c.new.m1)
   assert_equal(:m2, c.new.m2)
 end
+
+assert('Kernel#at_exit, Kernel.at_exit') do
+  assert_raise(ArgumentError) { at_exit(0) }
+  assert_raise(ArgumentError) { Kernel.at_exit(0) }
+  at_exit {}
+  Kernel.at_exit {}
+end
