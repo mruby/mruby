@@ -3911,7 +3911,8 @@ parse_string(parser_state *p)
               return tHD_LITERAL_DELIM;
             }
           }
-        } while (ISSPACE(c = nextc(p)));
+          c = nextc(p);
+        } while (ISSPACE(c));
         pushback(p, c);
         return tLITERAL_DELIM;
       }
