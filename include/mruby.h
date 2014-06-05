@@ -102,6 +102,8 @@ enum gc_state {
 
 struct mrb_jmpbuf;
 
+typedef void (*mrb_atexit_func)(struct mrb_state*);
+
 typedef struct mrb_state {
   struct mrb_jmpbuf *jmp;
 
@@ -170,6 +172,9 @@ typedef struct mrb_state {
   struct RObject *nomem_err;              /* pre-allocated NoMemoryError */
 
   void *ud; /* auxiliary data */
+
+  mrb_atexit_func *atexit_stack;
+  mrb_int atexit_stack_len;
 } mrb_state;
 
 #if __STDC_VERSION__ >= 201112L
@@ -413,6 +418,8 @@ void* mrb_pool_alloc(struct mrb_pool*, size_t);
 void* mrb_pool_realloc(struct mrb_pool*, void*, size_t oldlen, size_t newlen);
 mrb_bool mrb_pool_can_realloc(struct mrb_pool*, void*, size_t);
 void* mrb_alloca(mrb_state *mrb, size_t);
+
+void mrb_atexit(mrb_state *mrb, mrb_atexit_func func);
 
 #ifdef MRB_DEBUG
 #include <assert.h>

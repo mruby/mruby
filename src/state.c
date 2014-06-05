@@ -14,7 +14,6 @@
 
 void mrb_init_heap(mrb_state*);
 void mrb_init_core(mrb_state*);
-void mrb_final_core(mrb_state*);
 
 static mrb_value
 inspect_main(mrb_state *mrb, mrb_value mod)
@@ -40,6 +39,7 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   mrb->ud = ud;
   mrb->allocf = f;
   mrb->current_white_part = MRB_GC_WHITE_A;
+  mrb->atexit_stack_len = 0;
 
 #ifndef MRB_GC_FIXED_ARENA
   mrb->arena = (struct RBasic**)mrb_malloc(mrb, sizeof(struct RBasic*)*MRB_GC_ARENA_SIZE);
@@ -221,7 +221,11 @@ mrb_free_context(mrb_state *mrb, struct mrb_context *c)
 void
 mrb_close(mrb_state *mrb)
 {
-  mrb_final_core(mrb);
+  mrb_int i;
+
+  for (i = mrb->atexit_stack_len; i > 0; --i) {
+    mrb->atexit_stack[i - 1](mrb);
+  }
 
   /* free */
   mrb_gc_free_gv(mrb);
@@ -257,4 +261,19 @@ mrb_top_self(mrb_state *mrb)
     mrb_define_singleton_method(mrb, mrb->top_self, "to_s", inspect_main, MRB_ARGS_NONE());
   }
   return mrb_obj_value(mrb->top_self);
+}
+
+void
+mrb_atexit(mrb_state *mrb, mrb_atexit_func f)
+{
+  size_t stack_size;
+
+  stack_size = sizeof(mrb_atexit_func) * (mrb->atexit_stack_len + 1);
+  if (mrb->atexit_stack_len == 0) {
+    mrb->atexit_stack = (mrb_atexit_func*)mrb_malloc(mrb, stack_size);
+  } else {
+    mrb->atexit_stack = (mrb_atexit_func*)mrb_realloc(mrb, mrb->atexit_stack, stack_size);
+  }
+
+  mrb->atexit_stack[mrb->atexit_stack_len++] = f;
 }
