@@ -221,10 +221,12 @@ mrb_free_context(mrb_state *mrb, struct mrb_context *c)
 void
 mrb_close(mrb_state *mrb)
 {
-  mrb_int i;
-
-  for (i = mrb->atexit_stack_len; i > 0; --i) {
-    mrb->atexit_stack[i - 1](mrb);
+  if (mrb->atexit_stack_len > 0) {
+    mrb_int i;
+    for (i = mrb->atexit_stack_len; i > 0; --i) {
+      mrb->atexit_stack[i - 1](mrb);
+    }
+    mrb_free(mrb, mrb->atexit_stack);
   }
 
   /* free */
