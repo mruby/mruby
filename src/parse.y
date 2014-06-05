@@ -42,7 +42,7 @@ static void yywarning(parser_state *p, const char *s);
 static void backref_error(parser_state *p, node *n);
 static void tokadd(parser_state *p, int32_t c);
 
-#define identchar(c) (isalnum(c) || (c) == '_' || !ISASCII(c))
+#define identchar(c) (ISALNUM(c) || (c) == '_' || !ISASCII(c))
 
 typedef unsigned int stack_type;
 
@@ -4202,14 +4202,14 @@ parser_yylex(parser_state *p)
       static const char end[] = "\n=end";
       if (peeks(p, begin)) {
         c = peekc_n(p, sizeof(begin)-1);
-        if (c < 0 || isspace(c)) {
+        if (c < 0 || ISSPACE(c)) {
           do {
             if (!skips(p, end)) {
               yyerror(p, "embedded document meets end of file");
               return 0;
             }
             c = nextc(p);
-          } while (!(c < 0 || isspace(c)));
+          } while (!(c < 0 || ISSPACE(c)));
           if (c != '\n') skip(p, '\n');
           p->lineno++;
           p->column = 0;
@@ -4334,7 +4334,7 @@ parser_yylex(parser_state *p)
       yyerror(p, "incomplete character syntax");
       return 0;
     }
-    if (isspace(c)) {
+    if (ISSPACE(c)) {
       if (!IS_ARG()) {
         int c2;
         switch (c) {
@@ -5187,7 +5187,7 @@ parser_yylex(parser_state *p)
             pushback(p, c);
           }
         }
-        if (result == 0 && isupper((int)(unsigned char)tok(p)[0])) {
+        if (result == 0 && ISUPPER(tok(p)[0])) {
           result = tCONSTANT;
         }
         else {
