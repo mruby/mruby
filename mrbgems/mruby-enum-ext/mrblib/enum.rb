@@ -691,4 +691,8 @@ module Enumerable
     end
     h
   end
+
+  def nil.to_h
+    {}
+  end
 end

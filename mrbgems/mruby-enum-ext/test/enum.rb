@@ -157,4 +157,6 @@ assert("Enumerable#to_h") do
   h = c.new.to_h
   assert_equal Hash, h.class
   assert_equal h0, h
+  # mruby-enum-ext also provides nil.to_h
+  assert_equal Hash.new, nil.to_h
 end
