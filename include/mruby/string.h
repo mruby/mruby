@@ -11,8 +11,6 @@
 extern "C" {
 #endif
 
-#define IS_EVSTR(p,e) ((p) < (e) && (*(p) == '$' || *(p) == '@' || *(p) == '{'))
-
 extern const char mrb_digitmap[];
 
 #define RSTRING_EMBED_LEN_MAX ((mrb_int)(sizeof(void*) * 3 - 1))
