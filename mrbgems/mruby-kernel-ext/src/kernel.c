@@ -26,7 +26,7 @@ mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
 {
   struct RClass *krn = mrb->kernel_module;
 
-  mrb_define_module_function(mrb, krn, "fail", mrb_f_raise, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, krn, "fail", mrb_f_raise, MRB_ARGS_OPT(2));
   mrb_define_method(mrb, krn, "__method__", mrb_f_method, MRB_ARGS_NONE());
 }
 

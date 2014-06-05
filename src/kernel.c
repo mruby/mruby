@@ -1118,7 +1118,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_class_method(mrb, krn, "iterator?",            mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.5  */
   mrb_define_class_method(mrb, krn, "local_variables",      mrb_local_variables,             MRB_ARGS_NONE());    /* 15.3.1.2.7  */
 ;     /* 15.3.1.2.11 */
-  mrb_define_class_method(mrb, krn, "raise",                mrb_f_raise,                     MRB_ARGS_ANY());     /* 15.3.1.2.12 */
+  mrb_define_class_method(mrb, krn, "raise",                mrb_f_raise,                     MRB_ARGS_OPT(2));    /* 15.3.1.2.12 */
 
   mrb_define_method(mrb, krn, "singleton_class",            mrb_singleton_class,             MRB_ARGS_NONE());
 
