@@ -173,7 +173,7 @@ typedef struct mrb_state {
 
   void *ud; /* auxiliary data */
 
-  mrb_atexit_func *atexit_stack;
+  mrb_value *atexit_stack;
   mrb_int atexit_stack_len;
 } mrb_state;
 
@@ -420,6 +420,7 @@ mrb_bool mrb_pool_can_realloc(struct mrb_pool*, void*, size_t);
 void* mrb_alloca(mrb_state *mrb, size_t);
 
 void mrb_atexit(mrb_state *mrb, mrb_atexit_func func);
+void mrb_atexit_proc(mrb_state *mrb, mrb_value proc);
 
 #ifdef MRB_DEBUG
 #include <assert.h>
