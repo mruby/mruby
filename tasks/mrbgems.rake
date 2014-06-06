@@ -7,7 +7,7 @@ MRuby.each_target do
     # loader all gems
     self.libmruby << objfile("#{build_dir}/mrbgems/gem_init")
     file objfile("#{build_dir}/mrbgems/gem_init") => ["#{build_dir}/mrbgems/gem_init.c", "#{build_dir}/LEGAL"]
-    file "#{build_dir}/mrbgems/gem_init.c" => [MRUBY_CONFIG] do |t|
+    file "#{build_dir}/mrbgems/gem_init.c" => [MRUBY_CONFIG, __FILE__] do |t|
       FileUtils.mkdir_p "#{build_dir}/mrbgems"
       open(t.name, 'w') do |f|
         f.puts %Q[/*]
@@ -41,7 +41,7 @@ MRuby.each_target do
   end
 
   # legal documents
-  file "#{build_dir}/LEGAL" => [MRUBY_CONFIG] do |t|
+  file "#{build_dir}/LEGAL" => [MRUBY_CONFIG, __FILE__] do |t|
     open(t.name, 'w+') do |f|
      f.puts <<LEGAL
 Copyright (c) #{Time.now.year} mruby developers

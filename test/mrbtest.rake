@@ -31,15 +31,15 @@ MRuby.each_target do
   end
 
   file ass_lib => ass_c
-  file ass_c => "#{current_dir}/assert.rb" do |t|
+  file ass_c => ["#{current_dir}/assert.rb", __FILE__] do |t|
     FileUtils.mkdir_p File.dirname t.name
     open(t.name, 'w') do |f|
-      mrbc.run f, [t.prerequisites], 'mrbtest_assert_irep'
+      mrbc.run f, [t.prerequisites.first], 'mrbtest_assert_irep'
     end
   end
 
   file mlib => clib
-  file clib => [mrbcfile, init] + mrbs do |t|
+  file clib => [mrbcfile, init, __FILE__] + mrbs do |t|
     _pp "GEN", "*.rb", "#{clib.relative_path}"
     FileUtils.mkdir_p File.dirname(clib)
     open(clib, 'w') do |f|

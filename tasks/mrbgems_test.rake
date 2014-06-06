@@ -10,7 +10,7 @@ MRuby.each_target do
     test_rbobj = g.test_rbireps.ext(exts.object)
 
     file test_rbobj => g.test_rbireps
-    file g.test_rbireps => [g.test_rbfiles].flatten + [g.build.mrbcfile] do |t|
+    file g.test_rbireps => [g.test_rbfiles].flatten + [g.build.mrbcfile, __FILE__] do |t|
       open(t.name, 'w') do |f|
         g.print_gem_test_header(f)
         test_preload = g.test_preload and [g.dir, MRUBY_ROOT].map {|dir|
@@ -117,7 +117,7 @@ MRuby.each_target do
 
   no_mrb_open_test_lib = no_mrb_open_test.ext(exts.object)
   file no_mrb_open_test_lib => "#{no_mrb_open_test}.c"
-  file "#{no_mrb_open_test}.c" => no_mrb_open_test_rbfiles + [MRUBY_CONFIG] do |t|
+  file "#{no_mrb_open_test}.c" => no_mrb_open_test_rbfiles + [MRUBY_CONFIG, __FILE__] do |t|
     open(t.name, 'w') do |f|
       f.puts %Q[/*]
       f.puts %Q[ * This file contains a test code for following gems:]
