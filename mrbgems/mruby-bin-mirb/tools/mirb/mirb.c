@@ -258,7 +258,7 @@ check_keyword(const char *buf, const char *word)
   size_t len = strlen(word);
 
   /* skip preceding spaces */
-  while (*p && isspace(*p)) {
+  while (*p && isspace((unsigned char)*p)) {
     p++;
   }
   /* check keyword */
@@ -268,7 +268,7 @@ check_keyword(const char *buf, const char *word)
   p += len;
   /* skip trailing spaces */
   while (*p) {
-    if (!isspace(*p)) return 0;
+    if (!isspace((unsigned char)*p)) return 0;
     p++;
   }
   return 1;
