@@ -211,16 +211,16 @@ mrb_struct_set_m(mrb_state *mrb, mrb_value obj)
 }
 
 static mrb_bool
-mrb_is_local_id(mrb_state *mrb, mrb_sym id)
+is_local_id(mrb_state *mrb, const char *name)
 {
-  const char *name = mrb_sym2name_len(mrb, id, NULL);
+  if (!name) return FALSE;
   return !ISUPPER(name[0]);
 }
 
 static mrb_bool
-mrb_is_const_id(mrb_state *mrb, mrb_sym id)
+is_const_id(mrb_state *mrb, const char *name)
 {
-  const char *name = mrb_sym2name_len(mrb, id, NULL);
+  if (!name) return FALSE;
   return ISUPPER(name[0]);
 }
 
@@ -240,7 +240,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     /* old style: should we warn? */
     name = mrb_str_to_str(mrb, name);
     id = mrb_obj_to_sym(mrb, name);
-    if (!mrb_is_const_id(mrb, id)) {
+    if (!is_const_id(mrb, mrb_sym2name_len(mrb, id, NULL))) {
       mrb_name_error(mrb, id, "identifier %S needs to be constant", name);
     }
     if (mrb_const_defined_at(mrb, klass, id)) {
@@ -262,7 +262,9 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   ai = mrb_gc_arena_save(mrb);
   for (i=0; i< len; i++) {
     mrb_sym id = mrb_symbol(ptr_members[i]);
-    if (mrb_is_local_id(mrb, id) || mrb_is_const_id(mrb, id)) {
+    const char *name = mrb_sym2name_len(mrb, id, NULL);
+
+    if (is_local_id(mrb, name) || is_const_id(mrb, name)) {
       if (i < N_REF_FUNC) {
         mrb_define_method_id(mrb, c, id, ref_func[i], MRB_ARGS_NONE());
       }
@@ -429,6 +431,8 @@ inspect_struct(mrb_state *mrb, mrb_value s, mrb_bool recur)
   for (i=0; i<len; i++) {
     mrb_value slot;
     mrb_sym id;
+    const char *name;
+    mrb_int len;
 
     if (i > 0) {
       mrb_str_cat_lit(mrb, str, ", ");
@@ -438,11 +442,8 @@ inspect_struct(mrb_state *mrb, mrb_value s, mrb_bool recur)
     }
     slot = ptr_members[i];
     id = mrb_symbol(slot);
-    if (mrb_is_local_id(mrb, id) || mrb_is_const_id(mrb, id)) {
-      const char *name;
-      mrb_int len;
-
-      name = mrb_sym2name_len(mrb, id, &len);
+    name = mrb_sym2name_len(mrb, id, &len);
+    if (is_local_id(mrb, name) || is_const_id(mrb, name)) {
       mrb_str_append(mrb, str, mrb_str_new(mrb, name, len));
     }
     else {
