@@ -209,6 +209,7 @@ module MRuby
 
     def run_bintest
       targets = @gems.select { |v| File.directory? "#{v.dir}/bintest" }.map { |v| filename v.dir }
+      targets << filename(".") if File.directory? "./bintest"
       sh "ruby test/bintest.rb #{targets.join ' '}"
     end
 
