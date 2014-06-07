@@ -30,21 +30,38 @@ struct RString {
   } as;
 };
 
-#define mrb_str_ptr(s)    ((struct RString*)(mrb_ptr(s)))
-#define RSTRING(s)        ((struct RString*)(mrb_ptr(s)))
-#define RSTRING_PTR(s)\
-  ((RSTRING(s)->flags & MRB_STR_EMBED) ?\
-   RSTRING(s)->as.ary :\
-   RSTRING(s)->as.heap.ptr)
-#define RSTRING_LEN(s)\
-  ((RSTRING(s)->flags & MRB_STR_EMBED) ?\
-  (mrb_int)((RSTRING(s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT) :\
-   RSTRING(s)->as.heap.len)
-#define RSTRING_CAPA(s)\
-  ((RSTRING(s)->flags & MRB_STR_EMBED) ?\
-   RSTRING_EMBED_LEN_MAX :\
-   RSTRING(s)->as.heap.aux.capa)
-#define RSTRING_END(s)    (RSTRING_PTR(s) + RSTRING_LEN(s))
+#define RSTR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
+#define RSTR_SET_EMBED_FLAG(s) ((s)->flags |= MRB_STR_EMBED)
+#define RSTR_UNSET_EMBED_FLAG(s) ((s)->flags &= ~(MRB_STR_EMBED|MRB_STR_EMBED_LEN_MASK))
+#define RSTR_SET_EMBED_LEN(s, n) do {\
+  size_t tmp_n = (n);\
+  s->flags &= ~MRB_STR_EMBED_LEN_MASK;\
+  s->flags |= (tmp_n) << MRB_STR_EMBED_LEN_SHIFT;\
+} while (0)
+#define RSTR_SET_LEN(s, n) do {\
+  if (RSTR_EMBED_P(s)) {\
+    RSTR_SET_EMBED_LEN((s),(n));\
+  } else {\
+    s->as.heap.len = (mrb_int)(n);\
+  }\
+} while (0)
+#define RSTR_EMBED_LEN(s)\
+  (mrb_int)(((s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
+#define RSTR_PTR(s) ((RSTR_EMBED_P(s)) ? (s)->as.ary : (s)->as.heap.ptr)
+#define RSTR_LEN(s) ((RSTR_EMBED_P(s)) ? RSTR_EMBED_LEN(s) : (s)->as.heap.len)
+#define RSTR_CAPA(s) (RSTR_EMBED_P(s) ? RSTRING_EMBED_LEN_MAX : (s)->as.heap.aux.capa)
+
+#define RSTR_SHARED_P(s) ((s)->flags & MRB_STR_SHARED)
+#define RSTR_SET_SHARED_FLAG(s) ((s)->flags |= MRB_STR_SHARED)
+#define RSTR_UNSET_SHARED_FLAG(s) ((s)->flags &= ~MRB_STR_SHARED)
+
+#define mrb_str_ptr(s)       ((struct RString*)(mrb_ptr(s)))
+#define RSTRING(s)           mrb_str_ptr(s)
+#define RSTRING_PTR(s)       RSTR_PTR(RSTRING(s))
+#define RSTRING_EMBED_LEN(s) RSTR_ENBED_LEN(RSTRING(s))
+#define RSTRING_LEN(s)       RSTR_LEN(RSTRING(s))  
+#define RSTRING_CAPA(s)      RSTR_CAPA(RSTRING(s))
+#define RSTRING_END(s)       (RSTRING_PTR(s) + RSTRING_LEN(s))
 mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 
 #define MRB_STR_SHARED    1

@@ -7,12 +7,6 @@
 #include <ctype.h>
 #include <string.h>
 
-#define STR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
-#define STR_EMBED_LEN(s)\
-  (mrb_int)(((s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
-#define STR_PTR(s) ((STR_EMBED_P(s)) ? (s)->as.ary : (s)->as.heap.ptr)
-#define STR_LEN(s) ((STR_EMBED_P(s)) ? STR_EMBED_LEN(s) : (mrb_int)(s)->as.heap.len)
-
 static const char utf8len_codepage[256] =
 {
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -250,17 +244,17 @@ str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
   mrb_int len = RSTRING_LEN(sub);
 
   /* substring longer than string */
-  if (STR_LEN(ps) < len) return -1;
-  if (STR_LEN(ps) - pos < len) {
-    pos = STR_LEN(ps) - len;
+  if (RSTR_LEN(ps) < len) return -1;
+  if (RSTR_LEN(ps) - pos < len) {
+    pos = RSTR_LEN(ps) - len;
   }
-  sbeg = STR_PTR(ps);
-  s = STR_PTR(ps) + pos;
+  sbeg = RSTR_PTR(ps);
+  s = RSTR_PTR(ps) + pos;
   t = RSTRING_PTR(sub);
   if (len) {
     while (sbeg <= s) {
       if (memcmp(s, t, len) == 0) {
-        return s - STR_PTR(ps);
+        return s - RSTR_PTR(ps);
       }
       s--;
     }
