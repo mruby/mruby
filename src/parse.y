@@ -3388,8 +3388,8 @@ nextc(parser_state *p)
   if (!p->cxt) return -1;
   else {
     if (p->cxt->partial_hook(p) < 0)
-      return -1;
-    return '\n';
+      return -1;                /* end of program(s) */
+    return -2;                  /* end of a file in the program files */
   }
 }
 
@@ -3777,6 +3777,7 @@ read_escape(parser_state *p)
 
     eof:
   case -1:
+  case -2:                      /* end of a file */
     yyerror(p, "Invalid escape character syntax");
     return '\0';
 
@@ -4092,6 +4093,7 @@ parser_yylex(parser_state *p)
   case '#':     /* it's a comment */
     skip(p, '\n');
     /* fall through */
+  case -2:      /* end of a file */
   case '\n':
     maybe_heredoc:
     heredoc_treat_nextline(p);
@@ -4126,6 +4128,7 @@ parser_yylex(parser_state *p)
         goto retry;
       }
     case -1:                  /* EOF */
+    case -2:                  /* end of a file */
       goto normal_newline;
     default:
       pushback(p, c);
@@ -5447,7 +5450,7 @@ mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
 
   sym = mrb_intern_cstr(p->mrb, f);
   p->filename = mrb_sym2name_len(p->mrb, sym, NULL);
-  p->lineno = (p->filename_table_length > 0)? -1 : 1;
+  p->lineno = (p->filename_table_length > 0)? 0 : 1;
 
   for (i = 0; i < p->filename_table_length; ++i) {
     if (p->filename_table[i] == sym) {
