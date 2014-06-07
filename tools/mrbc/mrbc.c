@@ -270,7 +270,7 @@ main(int argc, char **argv)
     fprintf(stderr, "%s: no program file given\n", args.prog);
     return EXIT_FAILURE;
   }
-  if (args.outfile == NULL) {
+  if (args.outfile == NULL && !args.check_syntax) {
     if (n + 1 == argc) {
       args.outfile = get_outfilename(mrb, argv[n], args.initname ? C_EXT : RITEBIN_EXT);
     }
