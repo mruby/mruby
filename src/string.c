@@ -2523,17 +2523,6 @@ mrb_str_bytes(mrb_state *mrb, mrb_value str)
   return a;
 }
 
-static inline void
-str_discard(mrb_state *mrb, mrb_value str) {
-  struct RString *s = mrb_str_ptr(str);
-
-  if (!STR_SHARED_P(s) && !STR_EMBED_P(s) && ((s->flags & MRB_STR_NOFREE) == 0)) {
-    mrb_free(mrb, s->as.heap.ptr);
-    RSTRING(str)->as.heap.ptr = 0;
-    RSTRING(str)->as.heap.len = 0;
-  }
-}
-
 /*
  *  call-seq:
  *     string.clear    ->  string
@@ -2548,7 +2537,11 @@ mrb_str_clear(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
 
-  str_discard(mrb, str);
+  if (!STR_SHARED_P(s) && !STR_EMBED_P(s) && ((s->flags & MRB_STR_NOFREE) == 0)) {
+    mrb_free(mrb, s->as.heap.ptr);
+    RSTRING(str)->as.heap.ptr = 0;
+    RSTRING(str)->as.heap.len = 0;
+  }
   STR_SET_EMBED_FLAG(s);
   STR_SET_EMBED_LEN(s, 0);
   RSTRING_PTR(str)[0] = '\0';
