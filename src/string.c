@@ -2497,37 +2497,6 @@ mrb_str_bytes(mrb_state *mrb, mrb_value str)
   return a;
 }
 
-/*
- *  call-seq:
- *     string.clear    ->  string
- *
- *  Makes string empty.
- *
- *     a = "abcde"
- *     a.clear    #=> ""
- */
-static mrb_value
-mrb_str_clear(mrb_state *mrb, mrb_value str)
-{
-  struct RString *s = mrb_str_ptr(str);
-
-  if (!RSTR_SHARED_P(s) && !RSTR_EMBED_P(s)) {
-    if (s->flags & MRB_STR_NOFREE) {
-      s->flags &= ~MRB_STR_NOFREE;
-    }
-    else {
-      mrb_free(mrb, s->as.heap.ptr);
-    }
-    s->as.heap.ptr = 0;
-    s->as.heap.len = 0;
-  }
-  RSTR_UNSET_SHARED_FLAG(s);
-  RSTR_SET_EMBED_FLAG(s);
-  RSTR_SET_EMBED_LEN(s, 0);
-  RSTRING_PTR(str)[0] = '\0';
-  return str;
-}
-
 /* ---------------------------*/
 void
 mrb_init_string(mrb_state *mrb)
@@ -2579,5 +2548,4 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "upcase!",         mrb_str_upcase_bang,     MRB_ARGS_REQ(1)); /* 15.2.10.5.43 */
   mrb_define_method(mrb, s, "inspect",         mrb_str_inspect,         MRB_ARGS_NONE()); /* 15.2.10.5.46(x) */
   mrb_define_method(mrb, s, "bytes",           mrb_str_bytes,           MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "clear",           mrb_str_clear,           MRB_ARGS_NONE());
 }
