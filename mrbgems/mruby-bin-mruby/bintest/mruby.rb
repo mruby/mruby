@@ -30,3 +30,17 @@ assert '$0 value' do
   # one liner
   assert_equal '"-e"', `./bin/mruby -e 'p $0'`.chomp
 end
+
+assert '__END__', '8.6' do
+  script = Tempfile.new('test.rb')
+
+  script.write <<EOS
+p 'test'
+  __END__ = 'fin'
+p __END__
+__END__
+p 'legend'
+EOS
+  script.flush
+  assert_equal "\"test\"\n\"fin\"\n", `./bin/mruby #{script.path}`
+end
