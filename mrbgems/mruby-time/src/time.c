@@ -713,7 +713,7 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   tc = mrb_define_class(mrb, "Time", mrb->object_class);
   MRB_SET_INSTANCE_TT(tc, MRB_TT_DATA);
   mrb_include_module(mrb, tc, mrb_module_get(mrb, "Comparable"));
-  mrb_define_class_method(mrb, tc, "at", mrb_time_at, MRB_ARGS_ANY());          /* 15.2.19.6.1 */
+  mrb_define_class_method(mrb, tc, "at", mrb_time_at, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1)); /* 15.2.19.6.1 */
   mrb_define_class_method(mrb, tc, "gm", mrb_time_gm, MRB_ARGS_ARG(1,6));       /* 15.2.19.6.2 */
   mrb_define_class_method(mrb, tc, "local", mrb_time_local, MRB_ARGS_ARG(1,6)); /* 15.2.19.6.3 */
   mrb_define_class_method(mrb, tc, "mktime", mrb_time_local, MRB_ARGS_ARG(1,6));/* 15.2.19.6.4 */
