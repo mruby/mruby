@@ -2994,7 +2994,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       {
         mrb_value v = irep->pool[GETARG_Bx(c)];
         mrb_value s = mrb_str_dump(mrb, mrb_str_new(mrb, RSTRING_PTR(v), RSTRING_LEN(v)));
-        printf("OP_STRING\tR%d\tL(%d)\t; %s", GETARG_A(c), GETARG_B(c), RSTRING_PTR(s));
+        printf("OP_STRING\tR%d\tL(%d)\t; %s", GETARG_A(c), GETARG_Bx(c), RSTRING_PTR(s));
       }
       print_lv(mrb, irep, c, RA);
       break;
