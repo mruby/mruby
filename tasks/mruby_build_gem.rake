@@ -35,8 +35,9 @@ module MRuby
       Gem.current.build_config_initializer = block
       gems << Gem.current
 
-      cxx_srcs = Dir.glob("#{Gem.current.dir}/src/*.{cpp,cxx,cc}")
-      cxx_srcs += Dir.glob("#{Gem.current.dir}/test/*.{cpp,cxx,cc}")
+      cxx_srcs = ['src', 'test', 'tools'].map do |subdir|
+        Dir.glob("#{Gem.current.dir}/#{subdir}/*.{cpp,cxx,cc}")
+      end.flatten
       enable_cxx_abi unless cxx_srcs.empty?
 
       Gem.current
