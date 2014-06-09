@@ -429,6 +429,12 @@ void mrb_atexit(mrb_state *mrb, mrb_atexit_func func);
 #define mrb_assert_int_fit(t1,n,t2,max) ((void)0)
 #endif
 
+#if __STDC_VERSION__ >= 201112L
+#define mrb_static_assert(exp, str) _Static_assert(exp, str)
+#else
+#define mrb_static_assert(exp, str) mrb_assert(exp)
+#endif
+
 mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
 
 #if defined(__cplusplus)
