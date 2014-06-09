@@ -28,6 +28,7 @@ module MRuby
       attr_accessor :rbfiles, :objs
       attr_accessor :test_objs, :test_rbfiles, :test_args
       attr_accessor :test_preload
+      attr_reader :bin_objs
 
       attr_accessor :bins
 
@@ -90,6 +91,14 @@ module MRuby
           compiler.define_rules build_dir, "#{dir}"
           compiler.defines << %Q[MRBGEM_#{funcname.upcase}_VERSION=#{version}]
           compiler.include_paths << "#{dir}/include" if File.directory? "#{dir}/include"
+        end
+
+	# This need to be evaluted after initializers.
+	@bin_objs = {}
+        @bins.each do |bin|
+          @bin_objs[bin] = Dir.glob("#{dir}/tools/#{bin}/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
+            objfile(f.relative_path_from(dir).to_s.pathmap("#{build_dir}/%X"))
+          end
         end
 
         define_gem_init_builder
