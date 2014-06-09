@@ -625,7 +625,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
     stack_extend(mrb, ci->nregs, 0);
   }
   else {
-    ci->nregs = p->body.irep->nregs + 1;
+    ci->nregs = p->body.irep->nregs;
     stack_extend(mrb, ci->nregs, argc+2);
   }
 
@@ -793,7 +793,7 @@ RETRY_TRY_BLOCK:
   }
   stack_extend(mrb, irep->nregs, stack_keep);
   mrb->c->ci->proc = proc;
-  mrb->c->ci->nregs = irep->nregs + 1;
+  mrb->c->ci->nregs = irep->nregs;
   regs = mrb->c->stack;
   regs[0] = self;
 
