@@ -549,7 +549,7 @@ for_body(codegen_scope *s, node *tree)
   /* generate receiver */
   codegen(s, tree->cdr->car, VAL);
   /* generate loop-block */
-  s = scope_new(s->mrb, s, tree->car);
+  s = scope_new(s->mrb, s, NULL);
 
   lp = loop_push(s, LOOP_FOR);
   lp->pc1 = new_label(s);
@@ -2651,7 +2651,7 @@ print_r(mrb_state *mrb, mrb_irep *irep, size_t n, int pre)
 
   if (n == 0) return 0;
 
-  for (i=0; i<irep->nlocals; i++) {
+  for (i=0; i+1<irep->nlocals; i++) {
     if (irep->lv[i].r == n) {
       mrb_sym sym = irep->lv[i].name;
       if (pre) printf(" ");
