@@ -193,3 +193,61 @@ assert('String#clear') do
   assert_equal("", s)          # s is cleared
   assert_not_equal("", a)      # a should not be affected
 end
+
+assert('String#slice!') do
+  a = "AooBar"
+  b = a.dup
+  assert_equal "A", a.slice!(0)
+  assert_equal "AooBar", b
+
+  a = "FooBar"
+  assert_equal "r", a.slice!(-1)
+  assert_equal "FooBa", a
+
+  a = "FooBar"
+  assert_nil a.slice!(6)
+  assert_nil a.slice!(-7)
+  assert_equal "FooBar", a
+
+  a = "FooBar"
+  assert_equal "Foo", a.slice!(0, 3)
+  assert_equal "Bar", a
+
+  a = "FooBar"
+  assert_equal "Bar", a.slice!(-3, 3)
+  assert_equal "Foo", a
+
+  a = "FooBar"
+  assert_nil a.slice!(6, 2)
+  assert_equal "FooBar", a
+
+  a = "FooBar"
+  assert_nil a.slice!(-7,10)
+  assert_equal "FooBar", a
+
+  a = "FooBar"
+  assert_equal "Foo", a.slice!(0..2)
+  assert_equal "Bar", a
+
+  a = "FooBar"
+  assert_equal "Bar", a.slice!(-3..-1)
+  assert_equal "Foo", a
+
+  a = "FooBar"
+  assert_equal "", a.slice!(6..2)
+  assert_equal "FooBar", a
+
+  a = "FooBar"
+  assert_nil a.slice!(-10..-7)
+  assert_equal "FooBar", a
+
+  a = "FooBar"
+  assert_equal "Foo", a.slice!("Foo")
+  assert_equal "Bar", a
+
+  a = "FooBar"
+  assert_nil a.slice!("xyzzy")
+  assert_equal "FooBar", a
+
+  assert_raise(ArgumentError) { "foo".slice! }
+end
