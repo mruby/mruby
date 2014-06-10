@@ -76,6 +76,8 @@ The maximal GEM structure looks like this:
 
 	+- GEM_NAME         <- Name of GEM
 	   |
+	   +- include/      <- Header for Ruby extension (will exported)
+	   |
 	   +- mrblib/       <- Source for Ruby extension
 	   |
 	   +- src/          <- Source for C extension
@@ -87,10 +89,10 @@ The maximal GEM structure looks like this:
 	   +- README.md     <- Readme for GEM
 
 The folder *mrblib* contains pure Ruby files to extend mruby. The folder *src*
-contains C files to extend mruby. The folder *test* contains C and pure Ruby files
-for testing purposes which will be used by `mrbtest`. *mrbgem.rake* contains
-the specification to compile C and Ruby files. *README.md* is a short description
-of your GEM.
+contains C/C++ files to extend mruby. The folder *include* contains C/C++ header
+files. The folder *test* contains C/C++ and pure Ruby files for testing purposes
+which will be used by `mrbtest`. *mrbgem.rake* contains the specification
+to compile C and Ruby files. *README.md* is a short description of your GEM.
 
 ## Build process
 
@@ -172,6 +174,19 @@ the following options additionally inside of your GEM specification:
 * `spec.test_rbfiles` (Ruby test files for integration into mrbtest)
 * `spec.test_objs` (Object test files for integration into mrbtest)
 * `spec.test_preload` (Initialization files for mrbtest)
+
+### include_paths and depencency
+
+Your GEM can export include paths to another GEMs that depends on your GEM.
+By default, `/...absolute path.../{GEM_NAME}/include` will be exported.
+So it is recommended not to put GEM's local header files on include/.
+
+These exports are retroactive.
+For example: when B depends to C and A depends to B, A will get include paths exported by C.
+
+Exported include_paths are automatically appended to GEM local include_paths by Minirake.
+You can use `spec.export_include_paths` accessor if you want more complex build.
+
 
 ## C Extension
 
