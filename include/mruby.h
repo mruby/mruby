@@ -418,7 +418,7 @@ void* mrb_pool_realloc(struct mrb_pool*, void*, size_t oldlen, size_t newlen);
 mrb_bool mrb_pool_can_realloc(struct mrb_pool*, void*, size_t);
 void* mrb_alloca(mrb_state *mrb, size_t);
 
-void mrb_atexit(mrb_state *mrb, mrb_atexit_func func);
+void mrb_state_atexit(mrb_state *mrb, mrb_atexit_func func);
 
 #ifdef MRB_DEBUG
 #include <assert.h>

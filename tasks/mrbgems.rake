@@ -34,7 +34,7 @@ MRuby.each_target do
         f.puts %Q[void]
         f.puts %Q[mrb_init_mrbgems(mrb_state *mrb) {]
         f.puts %Q[#{gems.map{|g| "GENERATED_TMP_mrb_%s_gem_init(mrb);" % g.funcname}.join("\n")}]
-        f.puts %Q[mrb_atexit(mrb, mrb_final_mrbgems);]
+        f.puts %Q[mrb_state_atexit(mrb, mrb_final_mrbgems);]
         f.puts %Q[}]
       end
     end

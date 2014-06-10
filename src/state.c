@@ -266,7 +266,7 @@ mrb_top_self(mrb_state *mrb)
 }
 
 void
-mrb_atexit(mrb_state *mrb, mrb_atexit_func f)
+mrb_state_atexit(mrb_state *mrb, mrb_atexit_func f)
 {
   size_t stack_size;
 
