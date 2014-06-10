@@ -101,7 +101,30 @@ static unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
 # include <inttypes.h>
 #endif
 
+#if defined(__cplusplus) || __bool_true_false_are_defined
+typedef bool mrb_bool;
+
+# ifndef FALSE
+#  define FALSE false
+# endif
+# ifndef TRUE
+#  define TRUE true
+# endif
+#else
+# if __STDC_VERSION__ >= 199901L
+typedef _Bool mrb_bool;
+# else
 typedef uint8_t mrb_bool;
+# endif
+
+# ifndef FALSE
+#  define FALSE 0
+# endif
+# ifndef TRUE
+#  define TRUE 1
+# endif
+#endif
+
 struct mrb_state;
 
 #if defined(MRB_NAN_BOXING)
