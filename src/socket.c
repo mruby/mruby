@@ -21,7 +21,6 @@
 #include "mruby/data.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
-#include "mruby/ext/io.h"
 #include "error.h"
 
 #define E_SOCKET_ERROR             (mrb_class_get(mrb, "SocketError"))
