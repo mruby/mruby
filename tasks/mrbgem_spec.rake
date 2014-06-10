@@ -34,6 +34,8 @@ module MRuby
       attr_accessor :requirements
       attr_reader :dependencies
 
+      attr_accessor :export_include_paths
+
       attr_block MRuby::Build::COMMANDS
 
       def initialize(name, &block)
@@ -71,6 +73,8 @@ module MRuby
 
         @requirements = []
         @dependencies = []
+        @export_include_paths = []
+        @export_include_paths << "#{dir}/include" if File.directory? "#{dir}/include"
 
         instance_eval(&@initializer)
 
@@ -335,6 +339,25 @@ module MRuby
           @ary = gem_table.tsort.map { |v| gem_table[v] }
         rescue TSort::Cyclic => e
           fail "Circular mrbgem dependency found: #{e.message}"
+        end
+
+        each do |g|
+          import_include_paths(g)
+        end
+      end
+
+      def import_include_paths(g)
+        gem_table = @ary.reduce({}) { |res,v| res[v.name] = v; res }
+        g.dependencies.each do |dep|
+          dep_g = gem_table[dep[:gem]]
+          # We can do recursive call safely
+          # as circular dependency has already detected in the caller.
+          import_include_paths(dep_g)
+
+          g.compilers.each do |compiler|
+            compiler.include_paths += dep_g.export_include_paths
+            g.export_include_paths += dep_g.export_include_paths
+          end
         end
       end
     end # List
