@@ -550,6 +550,7 @@ for_body(codegen_scope *s, node *tree)
   codegen(s, tree->cdr->car, VAL);
   /* generate loop-block */
   s = scope_new(s->mrb, s, NULL);
+  push();                       /* push for a block parameter */
 
   lp = loop_push(s, LOOP_FOR);
   lp->pc1 = new_label(s);
