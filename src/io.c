@@ -646,7 +646,7 @@ mrb_io_s_select(mrb_state *mrb, mrb_value klass)
       FD_SET(fptr->fd, ep);
       if (max < fptr->fd)
         max = fptr->fd;
-      if (fptr->fd2) {
+      if (fptr->fd2 >= 0) {
         FD_SET(fptr->fd2, ep);
         if (max < fptr->fd2)
           max = fptr->fd2;
@@ -694,7 +694,7 @@ retry:
         fptr = (struct mrb_io *)mrb_get_datatype(mrb, RARRAY_PTR(write)[i], &mrb_io_type);
         if (FD_ISSET(fptr->fd, wp)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(write)[i]);
-        } else if (fptr->fd2 && FD_ISSET(fptr->fd2, wp)) {
+        } else if (fptr->fd2 >= 0 && FD_ISSET(fptr->fd2, wp)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(write)[i]);
         }
       }
@@ -706,7 +706,7 @@ retry:
         fptr = (struct mrb_io *)mrb_get_datatype(mrb, RARRAY_PTR(except)[i], &mrb_io_type);
         if (FD_ISSET(fptr->fd, ep)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(except)[i]);
-        } else if (fptr->fd2 && FD_ISSET(fptr->fd2, wp)) {
+        } else if (fptr->fd2 >= 0 && FD_ISSET(fptr->fd2, wp)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(except)[i]);
         }
       }
