@@ -320,6 +320,13 @@ assert('String#replace', '15.2.10.5.28') do
   b.replace(c);
   c.replace(b);
   assert_equal c, b
+
+  # shared string
+  s = "foo" * 100
+  a = s[10, 90]                # create shared string
+  assert_equal("", s.replace(""))    # clear
+  assert_equal("", s)          # s is cleared
+  assert_not_equal("", a)      # a should not be affected
 end
 
 assert('String#reverse', '15.2.10.5.29') do
