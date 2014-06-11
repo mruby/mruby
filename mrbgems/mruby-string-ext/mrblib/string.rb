@@ -1,4 +1,18 @@
 class String
+
+  ##
+  # call-seq:
+  #    string.clear    ->  string
+  #
+  # Makes string empty.
+  #
+  #    a = "abcde"
+  #    a.clear    #=> ""
+  #
+  def clear
+    self.replace("")
+  end
+
   ##
   # call-seq:
   #    str.lstrip   -> new_str
