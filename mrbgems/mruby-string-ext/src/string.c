@@ -254,8 +254,8 @@ mrb_str_clear(mrb_state *mrb, mrb_value str)
   struct RString *s = mrb_str_ptr(str);
 
   if (!RSTR_SHARED_P(s) && !RSTR_EMBED_P(s)) {
-    if (s->flags & MRB_STR_NOFREE) {
-      s->flags &= ~MRB_STR_NOFREE;
+    if (RSTR_NOFREE_P(s)) {
+      RSTR_UNSET_NOFREE_FLAG(s);
     }
     else {
       mrb_free(mrb, s->as.heap.ptr);
