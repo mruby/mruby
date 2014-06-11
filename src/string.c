@@ -1368,14 +1368,17 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   long len;
 
   len = RSTR_LEN(s2);
+  if (RSTR_SHARED_P(s1)) {
+    str_decref(mrb, s1->as.heap.aux.shared);
+  }
+  else if (!RSTR_EMBED_P(s1) && !RSTR_NOFREE_P(s1)) {
+    mrb_free(mrb, s1->as.heap.ptr);
+  }
+
+  RSTR_UNSET_NOFREE_FLAG(s1);
+
   if (RSTR_SHARED_P(s2)) {
-  L_SHARE:
-    if (RSTR_SHARED_P(s1)) {
-      str_decref(mrb, s1->as.heap.aux.shared);
-    }
-    else if (!RSTR_EMBED_P(s1) && !RSTR_NOFREE_P(s1)) {
-      mrb_free(mrb, s1->as.heap.ptr);
-    }
+L_SHARE:
     RSTR_UNSET_EMBED_FLAG(s1);
     s1->as.heap.ptr = s2->as.heap.ptr;
     s1->as.heap.len = len;
@@ -1385,6 +1388,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   }
   else {
     if (len <= RSTRING_EMBED_LEN_MAX) {
+      RSTR_UNSET_SHARED_FLAG(s1);
       RSTR_SET_EMBED_FLAG(s1);
       memcpy(s1->as.ary, RSTR_PTR(s2), len);
       RSTR_SET_EMBED_LEN(s1, len);

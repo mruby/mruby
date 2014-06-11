@@ -239,37 +239,6 @@ mrb_str_lines(mrb_state *mrb, mrb_value self)
   return result;
 }
 
-/*
- *  call-seq:
- *     string.clear    ->  string
- *
- *  Makes string empty.
- *
- *     a = "abcde"
- *     a.clear    #=> ""
- */
-static mrb_value
-mrb_str_clear(mrb_state *mrb, mrb_value str)
-{
-  struct RString *s = mrb_str_ptr(str);
-
-  if (!RSTR_SHARED_P(s) && !RSTR_EMBED_P(s)) {
-    if (RSTR_NOFREE_P(s)) {
-      RSTR_UNSET_NOFREE_FLAG(s);
-    }
-    else {
-      mrb_free(mrb, s->as.heap.ptr);
-    }
-    s->as.heap.ptr = 0;
-    s->as.heap.len = 0;
-  }
-  RSTR_UNSET_SHARED_FLAG(s);
-  RSTR_SET_EMBED_FLAG(s);
-  RSTR_SET_EMBED_LEN(s, 0);
-  RSTRING_PTR(str)[0] = '\0';
-  return str;
-}
-
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -287,7 +256,6 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "oct",             mrb_str_oct,             MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "chr",             mrb_str_chr,             MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "lines",           mrb_str_lines,           MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "clear",           mrb_str_clear,           MRB_ARGS_NONE());
 }
 
 void
