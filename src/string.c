@@ -302,7 +302,7 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
     /* no code */;
   else if (RSTR_SHARED_P(str))
     str_decref(mrb, str->as.heap.aux.shared);
-  else if (RSTR_NOFREE_P(str) == 0)
+  else if (!RSTR_NOFREE_P(str))
     mrb_free(mrb, str->as.heap.ptr);
 }
 
