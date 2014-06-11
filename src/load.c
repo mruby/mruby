@@ -82,6 +82,8 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool all
   plen = (size_t)bin_to_uint32(src); /* number of pool */
   src += sizeof(uint32_t);
   if (plen > 0) {
+    mrb_value (*str_func)(mrb_state*, const char*, size_t) = alloc? mrb_str_new : mrb_str_new_static;
+
     if (SIZE_ERROR_MUL(sizeof(mrb_value), plen)) {
       return NULL;
     }
@@ -93,12 +95,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool all
       tt = *src++; /* pool TT */
       pool_data_len = bin_to_uint16(src); /* pool data length */
       src += sizeof(uint16_t);
-      if (alloc) {
-        s = mrb_str_new(mrb, (char *)src, pool_data_len);
-      }
-      else {
-        s = mrb_str_new_static(mrb, (char *)src, pool_data_len);
-      }
+      s = str_func(mrb, (char *)src, pool_data_len);
       src += pool_data_len;
       switch (tt) { /* pool data */
       case IREP_TT_FIXNUM:
@@ -127,6 +124,8 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool all
   irep->slen = (size_t)bin_to_uint32(src);  /* syms length */
   src += sizeof(uint32_t);
   if (irep->slen > 0) {
+    mrb_sym (*intern_func)(mrb_state*, const char*, size_t) = alloc? mrb_intern : mrb_intern_static;
+
     if (SIZE_ERROR_MUL(sizeof(mrb_sym), irep->slen)) {
       return NULL;
     }
@@ -141,12 +140,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool all
         continue;
       }
 
-      if (alloc) {
-        irep->syms[i] = mrb_intern(mrb, (char *)src, snl);
-      }
-      else {
-        irep->syms[i] = mrb_intern_static(mrb, (char *)src, snl);
-      }
+      irep->syms[i] = intern_func(mrb, (char *)src, snl);
       src += snl + 1;
 
       mrb_gc_arena_restore(mrb, ai);
@@ -364,6 +358,7 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, mrb_boo
   int result;
   uint16_t filenames_len;
   mrb_sym *filenames;
+  mrb_sym (*intern_func)(mrb_state*, const char*, size_t) = alloc? mrb_intern : mrb_intern_static;
 
   bin = start;
   header = (struct rite_section_debug_header *)bin;
@@ -375,12 +370,7 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, mrb_boo
   for (i = 0; i < filenames_len; ++i) {
     uint16_t f_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
-    if (alloc) {
-      filenames[i] = mrb_intern(mrb, (const char *)bin, (size_t)f_len);
-    }
-    else {
-      filenames[i] = mrb_intern_static(mrb, (const char *)bin, (size_t)f_len);
-    }
+    filenames[i] = intern_func(mrb, (const char *)bin, (size_t)f_len);
     bin += f_len;
   }
 
