@@ -216,11 +216,12 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
   if (r != 0) {
     /* expand */
     int ai = mrb_gc_arena_save(mrb);
-    kh_key(h, k) = KEY(key);
+    key = kh_key(h, k) = KEY(key);
     mrb_gc_arena_restore(mrb, ai);
     kh_value(h, k).n = kh_size(h)-1;
   }
 
+  mrb_field_write_barrier_value(mrb, (struct RBasic*)RHASH(hash), key);
   mrb_field_write_barrier_value(mrb, (struct RBasic*)RHASH(hash), val);
   return;
 }
