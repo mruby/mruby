@@ -32,7 +32,7 @@ module MRuby
       attr_accessor :bins
 
       attr_accessor :requirements
-      attr_reader :dependencies
+      attr_reader :dependencies, :conflicts
 
       attr_accessor :export_include_paths
 
@@ -72,7 +72,7 @@ module MRuby
         @bins = []
 
         @requirements = []
-        @dependencies = []
+        @dependencies, @conflicts = [], []
         @export_include_paths = []
         @export_include_paths << "#{dir}/include" if File.directory? "#{dir}/include"
 
@@ -100,6 +100,10 @@ module MRuby
         requirements = ['>= 0.0.0'] if requirements.empty?
         requirements.flatten!
         @dependencies << {:gem => name, :requirements => requirements, :default => default_gem}
+      end
+
+      def add_conflicts(*names)
+        @conflicts += names
       end
 
       def self.bin=(bin)
@@ -323,6 +327,9 @@ module MRuby
               fail "#{name} version should be #{req_versions.join(' and ')} but was '#{dep_g.version}'"
             end
           end
+
+          cfls = g.conflicts.select { |c| gem_table.key? c }
+          fail "Conflicts of gem `#{g.name}` found: #{cfls.join ', '}" unless cfls.empty?
         end
 
         class << gem_table
