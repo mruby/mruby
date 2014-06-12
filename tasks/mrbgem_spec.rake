@@ -103,7 +103,11 @@ module MRuby
       end
 
       def add_conflicts(*names)
-        @conflicts += names
+        @conflicts += names.map { |n| {:gem => n} }
+      end
+
+      def add_conflict(name, *req)
+        @conflicts << {:gem => name, :requirements => req.empty? ? nil : req}
       end
 
       def self.bin=(bin)
@@ -328,7 +332,10 @@ module MRuby
             end
           end
 
-          cfls = g.conflicts.select { |c| gem_table.key? c }
+          cfls = g.conflicts.select { |c|
+            cfl_g = gem_table[c[:gem]]
+            cfl_g and cfl_g.version_ok?(c[:requirements] || ['>= 0.0.0'])
+          }.map { |c| "#{c[:gem]}(#{gem_table[c[:gem]].version})" }
           fail "Conflicts of gem `#{g.name}` found: #{cfls.join ', '}" unless cfls.empty?
         end
 
