@@ -106,7 +106,7 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
     RSTR_UNSET_SHARED_FLAG(s);
     return;
   }
-  if (s->flags & MRB_STR_NOFREE) {
+  if (RSTR_NOFREE_P(s)) {
     char *p = s->as.heap.ptr;
 
     s->as.heap.ptr = (char *)mrb_malloc(mrb, (size_t)s->as.heap.len+1);
@@ -115,7 +115,7 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
     }
     RSTR_PTR(s)[s->as.heap.len] = '\0';
     s->as.heap.aux.capa = s->as.heap.len;
-    s->flags &= ~MRB_STR_NOFREE;
+    RSTR_UNSET_NOFREE_FLAG(s);
     return;
   }
 }
@@ -302,7 +302,7 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
     /* no code */;
   else if (RSTR_SHARED_P(str))
     str_decref(mrb, str->as.heap.aux.shared);
-  else if ((str->flags & MRB_STR_NOFREE) == 0)
+  else if (!RSTR_NOFREE_P(str))
     mrb_free(mrb, str->as.heap.ptr);
 }
 
@@ -340,10 +340,10 @@ str_make_shared(mrb_state *mrb, struct RString *s)
       shared->nofree = FALSE;
       shared->ptr = s->as.heap.ptr;
     }
-    else if (s->flags & MRB_STR_NOFREE) {
+    else if (RSTR_NOFREE_P(s)) {
       shared->nofree = TRUE;
       shared->ptr = s->as.heap.ptr;
-      s->flags &= ~MRB_STR_NOFREE;
+      RSTR_UNSET_NOFREE_FLAG(s);
     }
     else {
       shared->nofree = FALSE;
@@ -1368,14 +1368,17 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   long len;
 
   len = RSTR_LEN(s2);
+  if (RSTR_SHARED_P(s1)) {
+    str_decref(mrb, s1->as.heap.aux.shared);
+  }
+  else if (!RSTR_EMBED_P(s1) && !RSTR_NOFREE_P(s1)) {
+    mrb_free(mrb, s1->as.heap.ptr);
+  }
+
+  RSTR_UNSET_NOFREE_FLAG(s1);
+
   if (RSTR_SHARED_P(s2)) {
-  L_SHARE:
-    if (RSTR_SHARED_P(s1)) {
-      str_decref(mrb, s1->as.heap.aux.shared);
-    }
-    else if (!RSTR_EMBED_P(s1) && !(s1->flags & MRB_STR_NOFREE)) {
-      mrb_free(mrb, s1->as.heap.ptr);
-    }
+L_SHARE:
     RSTR_UNSET_EMBED_FLAG(s1);
     s1->as.heap.ptr = s2->as.heap.ptr;
     s1->as.heap.len = len;
@@ -1385,6 +1388,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   }
   else {
     if (len <= RSTRING_EMBED_LEN_MAX) {
+      RSTR_UNSET_SHARED_FLAG(s1);
       RSTR_SET_EMBED_FLAG(s1);
       memcpy(s1->as.ary, RSTR_PTR(s2), len);
       RSTR_SET_EMBED_LEN(s1, len);

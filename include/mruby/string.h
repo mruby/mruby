@@ -55,6 +55,10 @@ struct RString {
 #define RSTR_SET_SHARED_FLAG(s) ((s)->flags |= MRB_STR_SHARED)
 #define RSTR_UNSET_SHARED_FLAG(s) ((s)->flags &= ~MRB_STR_SHARED)
 
+#define RSTR_NOFREE_P(s) ((s)->flags & MRB_STR_NOFREE)
+#define RSTR_SET_NOFREE_FLAG(s) ((s)->flags |= MRB_STR_NOFREE)
+#define RSTR_UNSET_NOFREE_FLAG(s) ((s)->flags &= ~MRB_STR_NOFREE)
+
 #define mrb_str_ptr(s)       ((struct RString*)(mrb_ptr(s)))
 #define RSTRING(s)           mrb_str_ptr(s)
 #define RSTRING_PTR(s)       RSTR_PTR(RSTRING(s))
