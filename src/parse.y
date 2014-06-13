@@ -4243,7 +4243,6 @@ parser_yylex(parser_state *p)
     return '=';
 
   case '<':
-    last_state = p->lstate;
     c = nextc(p);
     if (c == '<' &&
         p->lstate != EXPR_DOT &&
