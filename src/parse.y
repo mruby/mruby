@@ -4373,7 +4373,7 @@ parser_yylex(parser_state *p)
       p->lstate = EXPR_VALUE;
       return '?';
     }
-    token_column = newtok(p);
+    newtok(p);
     /* need support UTF-8 if configured */
     if ((isalnum(c) || c == '_')) {
       int c2 = nextc(p);
