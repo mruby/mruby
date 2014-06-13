@@ -123,3 +123,8 @@ task :deep_clean => ["clean"] do
   end
   puts "Cleaned up mrbgems build folder"
 end
+
+desc 'generate document'
+task :doc do
+  load "#{MRUBY_ROOT}/doc/language/generator.rb"
+end
