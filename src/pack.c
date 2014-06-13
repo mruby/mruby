@@ -665,7 +665,8 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, 
       count = -1;
     } else if (ch == '_' || ch == '!' || ch == '<' || ch == '>') {
       if (strchr("sSiIlL", t) == NULL) {
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%c' allowed only after types sSiIlL", ch);
+        char ch_str = ch;
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%S' allowed only after types sSiIlL", mrb_str_new(mrb, &ch_str, 1));
       }
       if (ch == '_' || ch == '!') {
         flags |= PACK_FLAG_s;
@@ -721,7 +722,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
         if (mrb_float_p(o)) {
           o = mrb_funcall(mrb, o, "to_i", 0);
 	} else if (!mrb_fixnum_p(o)) {
-	  mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into Integer", mrb_obj_classname(mrb, o));
+	  mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into Integer", mrb_class_path(mrb, mrb_obj_class(mrb, o)));
 	}
       } else if (type == PACK_TYPE_FLOAT) {
         if (!mrb_float_p(o)) {
@@ -729,7 +730,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
         }
       } else if (type == PACK_TYPE_STRING) {
         if (!mrb_string_p(o)) {
-	  mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %s into String", mrb_obj_classname(mrb, o));
+	  mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into String", mrb_class_path(mrb, mrb_obj_class(mrb, o)));
 	}
       }
 
