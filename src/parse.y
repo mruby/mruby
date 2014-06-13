@@ -5159,7 +5159,6 @@ parser_yylex(parser_state *p)
   {
     int result = 0;
 
-    last_state = p->lstate;
     switch (tok(p)[0]) {
     case '$':
       p->lstate = EXPR_END;
