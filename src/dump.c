@@ -343,7 +343,6 @@ write_section_irep(mrb_state *mrb, mrb_irep *irep, uint8_t *bin)
   if (result != MRB_DUMP_OK) {
     return result;
   }
-  cur += rsize;
   section_size += rsize;
   write_section_irep_header(mrb, section_size, bin);
 
