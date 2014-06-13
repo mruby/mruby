@@ -234,24 +234,22 @@ pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned i
   str = str_len_ensure(mrb, str, sidx + 8);
   d = mrb_float(o);
 
-  if (flags & PACK_FLAG_LT) {
+  if (flags & PACK_FLAG_LITTLEENDIAN) {
 #ifdef MRB_ENDIAN_BIG
     for (i = 0; i < 8; ++i) {
       RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
     }
 #else
     memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
-#endif
-  } else if (flags & PACK_FLAG_GT) {
-#ifdef MRB_ENDIAN_BIG
-    memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
-#else
-    for (i = 0; i < 8; ++i) {
-      RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
-    }
 #endif
   } else {
+#ifdef MRB_ENDIAN_BIG
     memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
+#else
+    for (i = 0; i < 8; ++i) {
+      RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
+    }
+#endif
   }
 
   return 8;
@@ -266,24 +264,22 @@ pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
   str = str_len_ensure(mrb, str, sidx + 4);
   f = mrb_float(o);
 
-  if (flags & PACK_FLAG_LT) {
+  if (flags & PACK_FLAG_LITTLEENDIAN) {
 #ifdef MRB_ENDIAN_BIG
     for (i = 0; i < 4; ++i) {
       RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
     }
 #else
     memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
-#endif
-  } else if (flags & PACK_FLAG_GT) {
-#ifdef MRB_ENDIAN_BIG
-    memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
-#else
-    for (i = 0; i < 4; ++i) {
-      RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
-    }
 #endif
   } else {
+#ifdef MRB_ENDIAN_BIG
     memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
+#else
+    for (i = 0; i < 4; ++i) {
+      RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
+    }
+#endif
   }
 
   return 4;
