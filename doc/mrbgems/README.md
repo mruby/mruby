@@ -161,7 +161,7 @@ Its format is same as argument of method `MRuby::Build#gem`, expect that it can'
 When a special version of depedency is required,
 use `MRuby::Build#gem` in *build_config.rb* to override default gem.
 
-If you have conflicting GEMs use either or both of the following methods
+If you have conflicting GEMs use the following method:
 * `spec.add_conflict(gem, *requirements)`
     * The `requirements` argument is same as in `add_dependency` method.
 
