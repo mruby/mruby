@@ -164,7 +164,6 @@ use `MRuby::Build#gem` in *build_config.rb* to override default gem.
 If you have conflicting GEMs use either or both of the following methods
 * `spec.add_conflict(gem, *requirements)`
     * The `requirements` argument is same as in `add_dependency` method.
-* `spec.add_conflicts(*conflicting_gems)`
 
 like following code:
 
@@ -173,7 +172,9 @@ like following code:
 	  spec.author = 'John Doe'
 
 	  spec.add_conflict 'mruby-onig-regexp', '> 0.0.0'
-	  spec.add_conflicts 'mruby-hs-regexp', 'mruby-pcre-regexp', 'mruby-regexp-pcre'
+	  spec.add_conflict 'mruby-hs-regexp'
+	  spec.add_conflict 'mruby-pcre-regexp'
+	  spec.add_conflict 'mruby-regexp-pcre'
 	end
 
 In case your GEM has more complex build requirements you can use
