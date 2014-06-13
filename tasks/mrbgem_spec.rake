@@ -102,10 +102,6 @@ module MRuby
         @dependencies << {:gem => name, :requirements => requirements, :default => default_gem}
       end
 
-      def add_conflicts(*names)
-        @conflicts += names.map { |n| {:gem => n} }
-      end
-
       def add_conflict(name, *req)
         @conflicts << {:gem => name, :requirements => req.empty? ? nil : req}
       end
