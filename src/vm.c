@@ -784,7 +784,6 @@ RETRY_TRY_BLOCK:
   MRB_TRY(&c_jmp) {
 
   if (exc_catched) {
-    exc_catched = FALSE;
     goto L_RAISE;
   }
   mrb->jmp = &c_jmp;
