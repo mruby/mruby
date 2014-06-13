@@ -91,4 +91,22 @@ end
 
 assert 'pack float' do
   assert_equal "\x00\x00@@", [3.0].pack('e')
+  assert_equal "@@\x00\x00", [3.0].pack('g')
+
+  native = [3.0].pack 'f'
+  assert_true native == "\x00\x00@@" or native == "@@\x00\x00"
+
+  native = [3.0].pack 'F'
+  assert_true native == "\x00\x00@@" or native == "@@\x00\x00"
+end
+
+assert 'pack double' do
+  assert_equal "\x00\x00\x00\x00\x00\x00\b@", [3.0].pack('E')
+  assert_equal "@\b\x00\x00\x00\x00\x00\x00", [3.0].pack('G')
+
+  native = [3.0].pack 'd'
+  assert_true native == "\x00\x00\x00\x00\x00\x00\b@" or native == "@\b\x00\x00\x00\x00\x00\x00"
+
+  native = [3.0].pack 'D'
+  assert_true native == "\x00\x00\x00\x00\x00\x00\b@" or native == "@\b\x00\x00\x00\x00\x00\x00"
 end

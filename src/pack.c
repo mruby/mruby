@@ -234,14 +234,26 @@ pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned i
   str = str_len_ensure(mrb, str, sidx + 8);
   d = mrb_float(o);
 
+  if (flags & PACK_FLAG_LT) {
 #ifdef MRB_ENDIAN_BIG
-  #error unsupported
+    for (i = 0; i < 8; ++i) {
+      RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
+    }
 #else
-  for(i = 0; i < 8; i++){
-    RSTRING_PTR(str)[sidx+i] = buffer[i];
-  }
+    memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
 #endif
-  
+  } else if (flags & PACK_FLAG_GT) {
+#ifdef MRB_ENDIAN_BIG
+    memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
+#else
+    for (i = 0; i < 8; ++i) {
+      RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
+    }
+#endif
+  } else {
+    memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
+  }
+
   return 8;
 }
 
@@ -254,14 +266,26 @@ pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
   str = str_len_ensure(mrb, str, sidx + 4);
   f = mrb_float(o);
 
+  if (flags & PACK_FLAG_LT) {
 #ifdef MRB_ENDIAN_BIG
-  #error unsupported
+    for (i = 0; i < 4; ++i) {
+      RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
+    }
 #else
-  for(i = 0; i < 4; i++){
-    RSTRING_PTR(str)[sidx+i] = buffer[i];
-  }
+    memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
 #endif
-  
+  } else if (flags & PACK_FLAG_GT) {
+#ifdef MRB_ENDIAN_BIG
+    memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
+#else
+    for (i = 0; i < 4; ++i) {
+      RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
+    }
+#endif
+  } else {
+    memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
+  }
+
   return 4;
 }
 
@@ -594,17 +618,41 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, 
     size = 1;
     flags |= PACK_FLAG_SIGNED;
     break;
-  case 'E':
+  case 'D': case 'd':
     dir = PACK_DIR_DOUBLE;
     type = PACK_TYPE_FLOAT;
     size = 8;
     flags |= PACK_FLAG_SIGNED;
     break;
+  case 'F': case 'f':
+    dir = PACK_DIR_FLOAT;
+    type = PACK_TYPE_FLOAT;
+    size = 8;
+    flags |= PACK_FLAG_SIGNED;
+    break;
+  case 'E':
+    dir = PACK_DIR_DOUBLE;
+    type = PACK_TYPE_FLOAT;
+    size = 8;
+    flags |= PACK_FLAG_SIGNED | PACK_FLAG_LT;
+    break;
   case 'e':
     dir = PACK_DIR_FLOAT;
     type = PACK_TYPE_FLOAT;
     size = 4;
-    flags |= PACK_FLAG_SIGNED;
+    flags |= PACK_FLAG_SIGNED | PACK_FLAG_LT;
+    break;
+  case 'G':
+    dir = PACK_DIR_DOUBLE;
+    type = PACK_TYPE_FLOAT;
+    size = 8;
+    flags |= PACK_FLAG_SIGNED | PACK_FLAG_GT;
+    break;
+  case 'g':
+    dir = PACK_DIR_FLOAT;
+    type = PACK_TYPE_FLOAT;
+    size = 4;
+    flags |= PACK_FLAG_SIGNED | PACK_FLAG_GT;
     break;
   case 'H':
     dir = PACK_DIR_HEX;
