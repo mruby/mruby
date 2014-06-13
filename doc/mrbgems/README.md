@@ -161,6 +161,22 @@ Its format is same as argument of method `MRuby::Build#gem`, expect that it can'
 When a special version of depedency is required,
 use `MRuby::Build#gem` in *build_config.rb* to override default gem.
 
+If you have conflicting GEMs use either or both of the following methods
+* `spec.add_conflict(gem, *requirements)`
+    * The `requirements` argument is same as in `add_dependency` method.
+
+like following code:
+
+	MRuby::Gem::Specification.new 'some-regexp-binding' do |spec|
+	  spec.license = 'BSD'
+	  spec.author = 'John Doe'
+
+	  spec.add_conflict 'mruby-onig-regexp', '> 0.0.0'
+	  spec.add_conflict 'mruby-hs-regexp'
+	  spec.add_conflict 'mruby-pcre-regexp'
+	  spec.add_conflict 'mruby-regexp-pcre'
+	end
+
 In case your GEM has more complex build requirements you can use
 the following options additionally inside of your GEM specification:
 
