@@ -475,9 +475,9 @@ new_msym(codegen_scope *s, mrb_sym sym)
 {
   size_t i, len;
 
-  if (s->irep == NULL) return 0;
-  len = s->irep->slen;
+  mrb_assert(s->irep);
 
+  len = s->irep->slen;
   if (len > 256) len = 256;
   for (i=0; i<len; i++) {
     if (s->irep->syms[i] == sym) return i;
