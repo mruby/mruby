@@ -31,7 +31,7 @@ enum {
   //PACK_DIR_UTF8,	/* U */
   //PACK_DIR_BER,
   PACK_DIR_DOUBLE,	/* E */
-  //PACK_DIR_FLOAT,	/* f */
+  PACK_DIR_FLOAT,	/* f */
   PACK_DIR_STR,		/* A */
   PACK_DIR_HEX,		/* h */
   PACK_DIR_BASE64,	/* m */
@@ -243,6 +243,26 @@ pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned i
 #endif
   
   return 8;
+}
+
+static int
+pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
+{
+  int i;
+  float f;
+  uint8_t *buffer = (uint8_t *)&f;
+  str = str_len_ensure(mrb, str, sidx + 4);
+  f = mrb_float(o);
+
+#ifdef MRB_ENDIAN_BIG
+  #error unsupported
+#else
+  for(i = 0; i < 4; i++){
+    RSTRING_PTR(str)[sidx+i] = buffer[i];
+  }
+#endif
+  
+  return 4;
 }
 
 static int
@@ -580,6 +600,12 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, 
     size = 8;
     flags |= PACK_FLAG_SIGNED;
     break;
+  case 'e':
+    dir = PACK_DIR_FLOAT;
+    type = PACK_TYPE_FLOAT;
+    size = 4;
+    flags |= PACK_FLAG_SIGNED;
+    break;
   case 'H':
     dir = PACK_DIR_HEX;
     type = PACK_TYPE_STRING;
@@ -755,6 +781,9 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
         break;
       case PACK_DIR_DOUBLE:
         ridx += pack_double(mrb, o, result, ridx, flags);
+        break;
+      case PACK_DIR_FLOAT:
+        ridx += pack_float(mrb, o, result, ridx, flags);
         break;
       default:
         break;

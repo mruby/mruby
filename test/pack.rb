@@ -88,3 +88,7 @@ end
 assert('issue #1') do
   [1, 2].pack("nn") == "\000\001\000\002"
 end
+
+assert 'pack float' do
+  assert_equal "\x00\x00@@", [3.0].pack('e')
+end
