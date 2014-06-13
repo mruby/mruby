@@ -1106,21 +1106,23 @@ readint_mrb_int(codegen_scope *s, const char *p, int base, mrb_bool neg, mrb_boo
       codegen_error(s, "malformed readint input");
     }
 
-    if (neg) {
-      if ((MRB_INT_MIN + n)/base > result) {
-        *overflow = TRUE;
-        return 0;
+    if(base > 0) {
+      if (neg) {
+        if ((MRB_INT_MIN + n)/base > result) {
+          *overflow = TRUE;
+          return 0;
+        }
+        result *= base;
+        result -= n;
       }
-      result *= base;
-      result -= n;
-    }
-    else {
-      if ((MRB_INT_MAX - n)/base < result) {
-        *overflow = TRUE;
-        return 0;
+      else {
+        if ((MRB_INT_MAX - n)/base < result) {
+          *overflow = TRUE;
+          return 0;
+        }
+        result *= base;
+        result += n;
       }
-      result *= base;
-      result += n;
     }
     p++;
   }
