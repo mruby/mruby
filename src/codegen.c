@@ -446,10 +446,8 @@ new_lit(codegen_scope *s, mrb_value val)
     s->irep->pool = (mrb_value *)codegen_realloc(s, s->irep->pool, sizeof(mrb_value)*s->pcapa);
   }
 
-  if (&s->irep->pool[s->irep->plen] != NULL) {
-    pv = &s->irep->pool[s->irep->plen];
-    i = s->irep->plen++;
-  }
+  pv = &s->irep->pool[s->irep->plen];
+  i = s->irep->plen++;
 
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
