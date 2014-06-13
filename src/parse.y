@@ -4537,7 +4537,7 @@ parser_yylex(parser_state *p)
 
     is_float = seen_point = seen_e = nondigit = 0;
     p->lstate = EXPR_END;
-    token_column = newtok(p);
+    newtok(p);
     if (c == '-' || c == '+') {
       tokadd(p, c);
       c = nextc(p);
