@@ -89,24 +89,35 @@ assert('issue #1') do
   [1, 2].pack("nn") == "\000\001\000\002"
 end
 
+def assert_pack tmpl, packed, unpacked
+  assert_equal packed, unpacked.pack(tmpl)
+  assert_equal unpacked, packed.unpack(tmpl)
+end
+
+PACK_IS_LITTLE_ENDIAN = "\x01\00".unpack('S')[0] == 0x01
+
 assert 'pack float' do
-  assert_equal "\x00\x00@@", [3.0].pack('e')
-  assert_equal "@@\x00\x00", [3.0].pack('g')
+  assert_pack 'e', "\x00\x00@@", [3.0]
+  assert_pack 'g', "@@\x00\x00", [3.0]
 
-  native = [3.0].pack 'f'
-  assert_true native == "\x00\x00@@" or native == "@@\x00\x00"
-
-  native = [3.0].pack 'F'
-  assert_true native == "\x00\x00@@" or native == "@@\x00\x00"
+  if PACK_IS_LITTLE_ENDIAN
+    assert_pack 'f', "\x00\x00@@", [3.0]
+    assert_pack 'F', "\x00\x00@@", [3.0]
+  else
+    assert_pack 'f', "@@\x00\x00", [3.0]
+    assert_pack 'F', "@@\x00\x00", [3.0]
+  end
 end
 
 assert 'pack double' do
-  assert_equal "\x00\x00\x00\x00\x00\x00\b@", [3.0].pack('E')
-  assert_equal "@\b\x00\x00\x00\x00\x00\x00", [3.0].pack('G')
+  assert_pack 'E', "\x00\x00\x00\x00\x00\x00\b@", [3.0]
+  assert_pack 'G', "@\b\x00\x00\x00\x00\x00\x00", [3.0]
 
-  native = [3.0].pack 'd'
-  assert_true native == "\x00\x00\x00\x00\x00\x00\b@" or native == "@\b\x00\x00\x00\x00\x00\x00"
-
-  native = [3.0].pack 'D'
-  assert_true native == "\x00\x00\x00\x00\x00\x00\b@" or native == "@\b\x00\x00\x00\x00\x00\x00"
+  if PACK_IS_LITTLE_ENDIAN
+    assert_pack 'd', "\x00\x00\x00\x00\x00\x00\b@", [3.0]
+    assert_pack 'D', "\x00\x00\x00\x00\x00\x00\b@", [3.0]
+  else
+    assert_pack 'd', "@\b\x00\x00\x00\x00\x00\x00", [3.0]
+    assert_pack 'D', "@\b\x00\x00\x00\x00\x00\x00", [3.0]
+  end
 end

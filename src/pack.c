@@ -256,6 +256,35 @@ pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned i
 }
 
 static int
+unpack_double(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary, unsigned int flags)
+{
+  int i;
+  double d;
+  uint8_t *buffer = (uint8_t *)&d;
+
+  if (flags & PACK_FLAG_LITTLEENDIAN) {
+#ifdef MRB_ENDIAN_BIG
+    for (i = 0; i < 8; ++i) {
+      buffer[8 - i - 1] = src[i];
+    }
+#else
+    memcpy(buffer, src, 8);
+#endif
+  } else {
+#ifdef MRB_ENDIAN_BIG
+    memcpy(buffer, src, 8);
+#else
+    for (i = 0; i < 8; ++i) {
+      buffer[8 - i - 1] = src[i];
+    }
+#endif
+  }
+  mrb_ary_push(mrb, ary, mrb_float_value(mrb, d));
+
+  return 8;
+}
+
+static int
 pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   int i;
@@ -281,6 +310,35 @@ pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
     }
 #endif
   }
+
+  return 4;
+}
+
+static int
+unpack_float(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary, unsigned int flags)
+{
+  int i;
+  float f;
+  uint8_t *buffer = (uint8_t *)&f;
+
+  if (flags & PACK_FLAG_LITTLEENDIAN) {
+#ifdef MRB_ENDIAN_BIG
+    for (i = 0; i < 4; ++i) {
+      buffer[4 - i - 1] = src[i];
+    }
+#else
+    memcpy(buffer, src, 4);
+#endif
+  } else {
+#ifdef MRB_ENDIAN_BIG
+    memcpy(buffer, src, 4);
+#else
+    for (i = 0; i < 4; ++i) {
+      buffer[4 - i - 1] = src[i];
+    }
+#endif
+  }
+  mrb_ary_push(mrb, ary, mrb_float_value(mrb, f));
 
   return 4;
 }
@@ -623,7 +681,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, 
   case 'F': case 'f':
     dir = PACK_DIR_FLOAT;
     type = PACK_TYPE_FLOAT;
-    size = 8;
+    size = 4;
     flags |= PACK_FLAG_SIGNED;
     break;
   case 'E':
@@ -898,6 +956,12 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
         break;
       case PACK_DIR_BASE64:
         srcidx += unpack_m(mrb, sptr, srclen - srcidx, result, flags);
+        break;
+      case PACK_DIR_FLOAT:
+        srcidx += unpack_float(mrb, sptr, srclen - srcidx, result, flags);
+        break;
+      case PACK_DIR_DOUBLE:
+        srcidx += unpack_double(mrb, sptr, srclen - srcidx, result, flags);
         break;
       }
       if (count > 0) {
