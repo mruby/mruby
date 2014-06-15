@@ -149,9 +149,14 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
 {
   struct RProc *p = mrb_proc_ptr(self);
   mrb_code *iseq = mrb_proc_iseq(mrb, p);
-  mrb_aspec aspec = GETARG_Ax(*iseq);
+  mrb_aspec aspec;
   int ma, ra, pa, arity;
 
+  if (MRB_PROC_CFUNC_P(p)) {
+    // TODO cfunc aspec not implemented yet
+    return mrb_fixnum_value(-1);
+  }
+  aspec = GETARG_Ax(*iseq);
   ma = MRB_ASPEC_REQ(aspec);
   ra = MRB_ASPEC_REST(aspec);
   pa = MRB_ASPEC_POST(aspec);
