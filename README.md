@@ -14,7 +14,12 @@ rake ENABLE_GEMS="true"
 ## support template string
  - C : 8-bit unsigned (unsigned char)
  - c : 8-bit signed (signed char)
- - E : 64-bit double, little endian
+ - D, d: 64-bit float, native format
+ - F, f: 32-bit float, native format
+ - E : 64-bit float, little endian byte order
+ - e : 32-bit float, little endian byte order
+ - G : 64-bit float, network (big-endian) byte order
+ - g : 32-bit float, network (big-endian) byte order
  - S : 16-bit unsigned, native endian (uint16_t)
  - s : 16-bit signed, native endian (int16_t)
  - L : 32-bit unsigned, native endian (uint32_t)
