@@ -14,8 +14,3 @@ assert('ArgumentError', '15.2.24') do
   assert_equal(Class, ArgumentError.class)
   assert_equal(ArgumentError, e2.class)
 end
-
-assert('ArgumentError superclass', '15.2.24.2') do
-  assert_equal(StandardError, ArgumentError.superclass)
-end
-

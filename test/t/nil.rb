@@ -10,10 +10,6 @@ assert('NilClass', '15.2.4.1') do
   assert_false NilClass.method_defined? :new
 end
 
-assert('NilClass superclass', '15.2.4.2') do
-  assert_equal Object, NilClass.superclass
-end
-
 assert('NilClass#&', '15.2.4.3.1') do
   assert_false nil.&(true)
   assert_false nil.&(nil)

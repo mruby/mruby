@@ -5,10 +5,6 @@ assert('Hash', '15.2.13') do
   assert_equal Class, Hash.class
 end
 
-assert('Hash superclass', '15.2.13.2') do
-  assert_equal Object, Hash.superclass
-end
-
 assert('Hash#==', '15.2.13.4.1') do
   assert_true({ 'abc' => 'abc' } == { 'abc' => 'abc' })
   assert_false({ 'abc' => 'abc' } ==  { 'cba' => 'cba' })

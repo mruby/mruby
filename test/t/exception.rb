@@ -5,10 +5,6 @@ assert('Exception', '15.2.22') do
   assert_equal Class, Exception.class
 end
 
-assert('Exception superclass', '15.2.22.2') do
-  assert_equal Object, Exception.superclass
-end
-
 assert('Exception.exception', '15.2.22.4.1') do
   e = Exception.exception('a')
 

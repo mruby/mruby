@@ -5,10 +5,6 @@ assert('Range', '15.2.14') do
   assert_equal Class, Range.class
 end
 
-assert('Range superclass', '15.2.14.2') do
-  assert_equal Object, Range.superclass
-end
-
 assert('Range#==', '15.2.14.4.1') do
   assert_true (1..10) == (1..10)
   assert_false (1..10) == (1..100)

@@ -5,10 +5,6 @@ assert('Proc', '15.2.17') do
   assert_equal Class, Proc.class
 end
 
-assert('Proc superclass', '15.2.17.2') do
-  assert_equal Object, Proc.superclass
-end
-
 assert('Proc.new', '15.2.17.3.1') do
   assert_raise ArgumentError do
     Proc.new
