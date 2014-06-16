@@ -146,4 +146,74 @@ class String
       [ "", "", self ]
     end
   end
+
+  ##
+  # call-seq:
+  #    str.slice!(fixnum)           -> new_str or nil
+  #    str.slice!(fixnum, fixnum)   -> new_str or nil
+  #    str.slice!(range)            -> new_str or nil
+  #    str.slice!(other_str)        -> new_str or nil
+  #
+  # Deletes the specified portion from <i>str</i>, and returns the portion
+  # deleted.
+  #
+  #    string = "this is a string"
+  #    string.slice!(2)        #=> "i"
+  #    string.slice!(3..6)     #=> " is "
+  #    string.slice!("r")      #=> "r"
+  #    string                  #=> "thsa sting"
+  #
+  def slice!(arg1, arg2=nil)
+    raise "wrong number of arguments (for 1..2)" if arg1 == nil && arg2 == nil
+
+    if arg1 != nil && arg2 != nil
+      idx = arg1
+      idx += self.size if arg1 < 0
+      if idx >= 0 && idx < self.size && arg2 > 0
+        str = self[idx, arg2]
+      else
+        return nil
+      end
+    else
+      validated = false
+      if arg1.kind_of?(Range)
+        beg = arg1.begin
+        ed = arg1.end
+        beg += self.size if beg < 0
+        ed += self.size if ed < 0
+        validated = true
+      elsif arg1.kind_of?(String)
+        validated = true
+      else
+        idx = arg1
+        idx += self.size if arg1 < 0
+        validated = true if idx >=0 && arg1 < self.size   
+      end
+      if validated
+        str = self[arg1]
+      else
+        return nil
+      end
+    end
+    unless str == nil || str == ""
+      if arg1 != nil && arg2 !=nil
+        idx = arg1 >= 0 ? arg1 : self.size+arg1
+        str2 = self[0...idx] + self[idx+arg2..-1]
+      else
+        if arg1.kind_of?(Range)
+          idx = beg >= 0 ? beg : self.size+beg
+          idx2 = ed>= 0 ? ed : self.size+ed
+          str2 = self[0...idx] + self[idx2+1..-1]
+        elsif arg1.kind_of?(String)
+          idx = self.index(arg1)
+          str2 = self[0...idx] + self[idx+arg1.size..-1] unless idx == nil
+        else
+          idx = arg1 >= 0 ? arg1 : self.size+arg1
+          str2 = self[0...idx] + self[idx+1..-1]
+        end
+      end
+      self.replace(str2) unless str2 == nil
+    end
+    str
+  end
 end
