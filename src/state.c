@@ -14,6 +14,7 @@
 
 void mrb_init_heap(mrb_state*);
 void mrb_init_core(mrb_state*);
+void mrb_init_mrbgems(mrb_state*);
 
 static mrb_value
 inspect_main(mrb_state *mrb, mrb_value mod)
@@ -21,8 +22,8 @@ inspect_main(mrb_state *mrb, mrb_value mod)
   return mrb_str_new_lit(mrb, "main");
 }
 
-mrb_state*
-mrb_open_allocf(mrb_allocf f, void *ud)
+static mrb_state*
+mrb_open_common(mrb_allocf f, void *ud, mrb_bool with_gems)
 {
   static const mrb_state mrb_state_zero = { 0 };
   static const struct mrb_context mrb_context_zero = { 0 };
@@ -50,7 +51,15 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   mrb->c = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
   *mrb->c = mrb_context_zero;
   mrb->root_c = mrb->c;
+
   mrb_init_core(mrb);
+
+#ifndef DISABLE_GEMS
+  if (with_gems) {
+    mrb_init_mrbgems(mrb);
+    mrb_gc_arena_restore(mrb, 0);
+  }
+#endif
 
   return mrb;
 }
@@ -105,6 +114,18 @@ mrb_open(void)
   mrb_state *mrb = mrb_open_allocf(allocf, NULL);
 
   return mrb;
+}
+
+mrb_state*
+mrb_open_allocf(mrb_allocf f, void *ud)
+{
+  return mrb_open_common(f, ud, TRUE);
+}
+
+mrb_state*
+mrb_open_without_mrbgems(mrb_allocf f, void *ud)
+{
+  return mrb_open_common(f, ud, FALSE);
 }
 
 void mrb_free_symtbl(mrb_state *mrb);
