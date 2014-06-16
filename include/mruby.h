@@ -288,6 +288,7 @@ mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
 
 mrb_state* mrb_open(void);
 mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
+mrb_state* mrb_open_without_mrbgems(mrb_allocf, void *ud);
 void mrb_close(mrb_state*);
 
 mrb_value mrb_top_self(mrb_state *);
