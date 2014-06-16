@@ -226,7 +226,9 @@ mrb_close(mrb_state *mrb)
     for (i = mrb->atexit_stack_len; i > 0; --i) {
       mrb->atexit_stack[i - 1](mrb);
     }
+#ifndef MRB_FIXED_STATE_ATEXIT_STACK
     mrb_free(mrb, mrb->atexit_stack);
+#endif
   }
 
   /* free */
@@ -268,6 +270,11 @@ mrb_top_self(mrb_state *mrb)
 void
 mrb_state_atexit(mrb_state *mrb, mrb_atexit_func f)
 {
+#ifdef MRB_FIXED_STATE_ATEXIT_STACK
+  if (mrb->atexit_stack_len + 1 > MRB_FIXED_STATE_ATEXIT_STACK_SIZE) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "exceeded fixed state atexit stack limit");
+  }
+#else
   size_t stack_size;
 
   stack_size = sizeof(mrb_atexit_func) * (mrb->atexit_stack_len + 1);
@@ -276,6 +283,7 @@ mrb_state_atexit(mrb_state *mrb, mrb_atexit_func f)
   } else {
     mrb->atexit_stack = (mrb_atexit_func*)mrb_realloc(mrb, mrb->atexit_stack, stack_size);
   }
+#endif
 
   mrb->atexit_stack[mrb->atexit_stack_len++] = f;
 }

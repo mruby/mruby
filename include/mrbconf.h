@@ -59,6 +59,12 @@
 /* fixed size GC arena */
 //#define MRB_GC_FIXED_ARENA
 
+/* state atexit stack size */
+//#define MRB_FIXED_STATE_ATEXIT_STACK_SIZE 5
+
+/* fixed size state atexit stack */
+//#define MRB_FIXED_STATE_ATEXIT_STACK
+
 /* -DDISABLE_XXXX to drop following features */
 //#define DISABLE_STDIO		/* use of stdio */
 
