@@ -28,7 +28,7 @@ mrb_dirtest_setup(mrb_state *mrb, mrb_value klass)
   mrb_cv_set(mrb, klass, mrb_intern_cstr(mrb, "pwd"), mrb_str_new_cstr(mrb, buf));
 
   /* create sandbox */
-  snprintf(buf, sizeof(buf), "%smruby-dir-test.XXXXXX", P_tmpdir);
+  snprintf(buf, sizeof(buf), "%s/mruby-dir-test.XXXXXX", P_tmpdir);
   if (mkdtemp(buf) == NULL) {
     mrb_raisef(mrb, E_RUNTIME_ERROR, "mkdtemp(%S) failed", mrb_str_new_cstr(mrb, buf));
   }
