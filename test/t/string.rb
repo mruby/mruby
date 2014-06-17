@@ -5,10 +5,6 @@ assert('String', '15.2.10') do
   assert_equal Class, String.class
 end
 
-assert('String superclass', '15.2.10.2') do
-  assert_equal Object, String.superclass
-end
-
 assert('String#<=>', '15.2.10.5.1') do
   a = '' <=> ''
   b = '' <=> 'not empty'

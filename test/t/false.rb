@@ -11,10 +11,6 @@ assert('FalseClass false', '15.2.6.1') do
   assert_false FalseClass.method_defined? :new
 end
 
-assert('FalseClass superclass', '15.2.6.2') do
-  assert_equal Object, FalseClass.superclass
-end
-
 assert('FalseClass#&', '15.2.6.3.1') do
   assert_false false.&(true)
   assert_false false.&(false)

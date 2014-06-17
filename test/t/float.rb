@@ -5,10 +5,6 @@ assert('Float', '15.2.9') do
   assert_equal Class, Float.class
 end
 
-assert('Float superclass', '15.2.9.2') do
-  assert_equal Numeric, Float.superclass
-end
-
 assert('Float#+', '15.2.9.3.1') do
   a = 3.123456788 + 0.000000001
   b = 3.123456789 + 1

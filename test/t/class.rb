@@ -5,10 +5,6 @@ assert('Class', '15.2.3') do
   assert_equal(Class, Class.class)
 end
 
-assert('Class superclass', '15.2.3.2') do
-  assert_equal(Module, Class.superclass)
-end
-
 assert('Class#initialize', '15.2.3.3.1') do
   c = Class.new do
     def test

@@ -5,10 +5,6 @@ assert('Array', '15.2.12') do
   assert_equal(Class, Array.class)
 end
 
-assert('Array superclass', '15.2.12.2') do
-  assert_equal(Object, Array.superclass)
-end
-
 assert('Array inclueded modules', '15.2.12.3') do
   assert_true(Array.include?(Enumerable))
 end

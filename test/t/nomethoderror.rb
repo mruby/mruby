@@ -8,10 +8,6 @@ assert('NoMethodError', '15.2.32') do
   end
 end
 
-assert('NoMethodError superclass', '15.2.32.2') do
-  assert_equal NameError, NoMethodError.superclass
-end
-
 assert('NoMethodError#args', '15.2.32.2.1') do
   a = NoMethodError.new 'test', :test, [1, 2]
   assert_equal [1, 2], a.args

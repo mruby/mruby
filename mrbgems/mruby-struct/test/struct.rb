@@ -5,10 +5,6 @@ assert('Struct', '15.2.18') do
   Struct.class == Class
 end
 
-assert('Struct superclass', '15.2.18.2') do
-  Struct.superclass == Object
-end
-
 assert('Struct.new', '15.2.18.3.1') do
   c = Struct.new(:m1, :m2)
   c.superclass == Struct and
