@@ -1,6 +1,24 @@
 mruby-dir
 =========
 
+Dir class for mruby.  Supported methods are:
+
+`.chdir`
+`.delete`
+`.entries`
+`.exist?`
+`.foreach`
+`.getwd`
+`.mkdir`
+`.open`
+`#close`
+`#each`
+`#read`
+`#rewind`
+`#seek`
+`#tell`
+
+
 ## License
 
 Copyright (c) 2012 Internet Initiative Japan Inc.
