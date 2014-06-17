@@ -52,6 +52,10 @@ typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 #define MRB_GC_ARENA_SIZE 100
 #endif
 
+#ifndef MRB_FIXED_STATE_ATEXIT_STACK_SIZE
+#define MRB_FIXED_STATE_ATEXIT_STACK_SIZE 5
+#endif
+
 typedef struct {
   mrb_sym mid;
   struct RProc *proc;
@@ -173,7 +177,11 @@ typedef struct mrb_state {
 
   void *ud; /* auxiliary data */
 
+#ifdef MRB_FIXED_STATE_ATEXIT_STACK
+  mrb_atexit_func atexit_stack[MRB_FIXED_STATE_ATEXIT_STACK_SIZE];
+#else
   mrb_atexit_func *atexit_stack;
+#endif
   mrb_int atexit_stack_len;
 } mrb_state;
 
