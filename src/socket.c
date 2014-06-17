@@ -599,6 +599,17 @@ mrb_socket_socket(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(s);
 }
 
+static mrb_value
+mrb_tcpsocket_allocate(mrb_state *mrb, mrb_value klass)
+{
+  struct RClass *c = mrb_class_ptr(klass);
+  enum mrb_vtype ttype = MRB_INSTANCE_TT(c);
+
+  /* copied from mrb_instance_alloc() */
+  if (ttype == 0) ttype = MRB_TT_OBJECT;
+  return mrb_obj_value((struct RObject*)mrb_obj_alloc(mrb, ttype, c));
+}
+
 void
 mrb_mruby_socket_gem_init(mrb_state* mrb)
 {
@@ -634,8 +645,7 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, ipsock, "recvfrom", mrb_ipsocket_recvfrom, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 
   tcpsock = mrb_define_class(mrb, "TCPSocket", ipsock);
-  //mrb_define_class_method(mrb, tcpsock, "open", mrb_tcpsocket_open, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(2));
-  //mrb_define_class_method(mrb, tcpsock, "new", mrb_tcpsocket_open, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(2));
+  mrb_define_class_method(mrb, tcpsock, "_allocate", mrb_tcpsocket_allocate, MRB_ARGS_NONE());
   mrb_define_class(mrb, "TCPServer", tcpsock);
 
   udpsock = mrb_define_class(mrb, "UDPSocket", ipsock);

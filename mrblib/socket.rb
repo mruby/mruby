@@ -224,7 +224,7 @@ end
 
 class TCPSocket
   def initialize(host, service, local_host=nil, local_service=nil)
-    if self.is_a? TCPServer
+    if @init_with_fd
       super(host, service)
     else
       s = nil
@@ -243,12 +243,20 @@ class TCPSocket
     end
   end
 
+  def self.new_with_prelude pre, *args
+    o = self._allocate
+    o.instance_eval(&pre)
+    o.initialize(*args)
+    o
+  end
+
   #def self.gethostbyname(host)
 end
 
 class TCPServer
   def initialize(host=nil, service)
     ai = Addrinfo.getaddrinfo(host, service, nil, nil, nil, Socket::AI_PASSIVE)[0]
+    @init_with_fd = true
     super(Socket._socket(ai.afamily, Socket::SOCK_STREAM, 0), "r+")
     Socket._bind(self.fileno, ai.to_sockaddr)
     listen(5)
@@ -256,7 +264,13 @@ class TCPServer
   end
 
   def accept
-    TCPSocket.for_fd(self.sysaccept)
+    fd = self.sysaccept
+    begin
+      TCPSocket.new_with_prelude(proc { @init_with_fd = true }, fd, "r+")
+    rescue
+      IO._sysclose(fd) rescue nil
+      raise
+    end
   end
 
   def accept_nonblock
