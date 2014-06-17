@@ -1,7 +1,7 @@
 # Note: testing telldir(3) and seekdir(3) in portable manner is very hard.
 
 assert('Dir') do
-  assert_equal(Class, Addrinfo.class)
+  assert_equal(Class, Dir.class)
 end
 
 assert('DirTest.setup') do
