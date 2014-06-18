@@ -813,6 +813,7 @@ num_index:
  *     str[other_str]              => new_str or nil
  *     str.slice(fixnum)           => fixnum or nil
  *     str.slice(fixnum, fixnum)   => new_str or nil
+ *     str.slice(range)            => new_str or nil
  *     str.slice(other_str)        => new_str or nil
  *
  *  Element Reference---If passed a single <code>Fixnum</code>, returns the code
