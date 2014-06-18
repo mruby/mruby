@@ -814,8 +814,6 @@ num_index:
  *     str.slice(fixnum)           => fixnum or nil
  *     str.slice(fixnum, fixnum)   => new_str or nil
  *     str.slice(range)            => new_str or nil
- *     str.slice(regexp)           => new_str or nil
- *     str.slice(regexp, fixnum)   => new_str or nil
  *     str.slice(other_str)        => new_str or nil
  *
  *  Element Reference---If passed a single <code>Fixnum</code>, returns the code
@@ -827,10 +825,7 @@ num_index:
  *  <code>nil</code> if the initial offset falls outside the string, the length
  *  is negative, or the beginning of the range is greater than the end.
  *
- *  If a <code>Regexp</code> is supplied, the matching portion of <i>str</i> is
- *  returned. If a numeric parameter follows the regular expression, that
- *  component of the <code>MatchData</code> is returned instead. If a
- *  <code>String</code> is given, that string is returned if it occurs in
+ *  If a <code>String</code> is given, that string is returned if it occurs in
  *  <i>str</i>. In both cases, <code>nil</code> is returned if there is no
  *  match.
  *
@@ -842,10 +837,6 @@ num_index:
  *     a[-4..-2]              #=> "her"
  *     a[12..-1]              #=> nil
  *     a[-2..-4]              #=> ""
- *     a[/[aeiou](.)\1/]      #=> "ell"
- *     a[/[aeiou](.)\1/, 0]   #=> "ell"
- *     a[/[aeiou](.)\1/, 1]   #=> "l"
- *     a[/[aeiou](.)\1/, 2]   #=> nil
  *     a["lo"]                #=> "lo"
  *     a["bye"]               #=> nil
  */
