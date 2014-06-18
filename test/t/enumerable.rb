@@ -107,7 +107,7 @@ assert('Enumerable#member?', '15.3.2.2.15') do
 end
 
 assert('Enumerable#partition', '15.3.2.2.16') do
-  [0,1,2,3,4,5,6,7,8,9].partition do |i|
+  partition = [0,1,2,3,4,5,6,7,8,9].partition do |i|
     i % 2 == 0
   end
   assert_equal [[0,2,4,6,8], [1,3,5,7,9]], partition
