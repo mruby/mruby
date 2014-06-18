@@ -1,6 +1,7 @@
 $ok_test = 0
 $ko_test = 0
 $kill_test = 0
+$skip_test = 0
 $asserts  = []
 $test_start = Time.now if Object.const_defined?(:Time)
 
@@ -56,16 +57,15 @@ def assert(str = 'Assertion failed', iso = '')
       $ok_test += 1
       t_print('.')
     end
+  rescue MRubyTestSkip => e
+    $asserts.push "Skip: #{str} #{iso} #{e.cause}"
+    $skip_test += 1
+    t_print('?')
   rescue Exception => e
     bt = e.backtrace if $mrbtest_verbose
-    if e.class.to_s == 'MRubyTestSkip'
-      $asserts.push "Skip: #{str} #{iso} #{e.cause}"
-      t_print('?')
-    else
-      $asserts.push(assertion_string("#{e.class}: ", str, iso, e, bt))
-      $kill_test += 1
-      t_print('X')
-  end
+    $asserts.push(assertion_string("#{e.class}: ", str, iso, e, bt))
+    $kill_test += 1
+    t_print('X')
   ensure
     $mrbtest_assert = nil
   end
@@ -220,12 +220,13 @@ def report()
     puts msg
   end
 
-  $total_test = $ok_test+$ko_test+$kill_test
+  $total_test = $ok_test+$ko_test+$kill_test+$skip_test
   t_print("Total: #{$total_test}\n")
 
   t_print("   OK: #{$ok_test}\n")
   t_print("   KO: #{$ko_test}\n")
   t_print("Crash: #{$kill_test}\n")
+  t_print(" Skip: #{$skip_test}\n")
 
   if Object.const_defined?(:Time)
     t_print(" Time: #{Time.now - $test_start} seconds\n")
