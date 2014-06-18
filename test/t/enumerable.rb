@@ -109,13 +109,15 @@ end
 assert('Enumerable#partition', '15.3.2.2.16') do
   [0,1,2,3,4,5,6,7,8,9].partition do |i|
     i % 2 == 0
-  end == [[0,2,4,6,8], [1,3,5,7,9]]
+  end
+  assert_equal [[0,2,4,6,8], [1,3,5,7,9]], partition
 end
 
 assert('Enumerable#reject', '15.3.2.2.17') do
-  [0,1,2,3,4,5,6,7,8,9].reject do |i|
+  reject = [0,1,2,3,4,5,6,7,8,9].reject do |i|
     i % 2 == 0
-  end == [1,3,5,7,9]
+  end
+  assert_equal [1,3,5,7,9], reject
 end
 
 assert('Enumerable#select', '15.3.2.2.18') do
