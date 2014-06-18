@@ -22,8 +22,8 @@ inspect_main(mrb_state *mrb, mrb_value mod)
   return mrb_str_new_lit(mrb, "main");
 }
 
-static mrb_state*
-mrb_open_common(mrb_allocf f, void *ud, mrb_bool with_gems)
+mrb_state*
+mrb_open_core(mrb_allocf f, void *ud)
 {
   static const mrb_state mrb_state_zero = { 0 };
   static const struct mrb_context mrb_context_zero = { 0 };
@@ -53,13 +53,6 @@ mrb_open_common(mrb_allocf f, void *ud, mrb_bool with_gems)
   mrb->root_c = mrb->c;
 
   mrb_init_core(mrb);
-
-#ifndef DISABLE_GEMS
-  if (with_gems) {
-    mrb_init_mrbgems(mrb);
-    mrb_gc_arena_restore(mrb, 0);
-  }
-#endif
 
   return mrb;
 }
@@ -119,13 +112,13 @@ mrb_open(void)
 mrb_state*
 mrb_open_allocf(mrb_allocf f, void *ud)
 {
-  return mrb_open_common(f, ud, TRUE);
-}
+  mrb_state *mrb = mrb_open_core(f, ud);
 
-mrb_state*
-mrb_open_core(mrb_allocf f, void *ud)
-{
-  return mrb_open_common(f, ud, FALSE);
+#ifndef DISABLE_GEMS
+  mrb_init_mrbgems(mrb);
+  mrb_gc_arena_restore(mrb, 0);
+#endif
+  return mrb;
 }
 
 void mrb_free_symtbl(mrb_state *mrb);
