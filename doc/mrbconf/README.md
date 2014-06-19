@@ -46,3 +46,19 @@ You can use mrbconfs with following ways:
 `MRB_STACK_MAX`
 * Default value is `0x40000 - MRB_STACK_GROWTH`.
 * Raises `RuntimeError` when stack size exceeds this value.
+
+## Primitive type configuration.
+
+`MRB_USE_FLOAT`
+* When defined single precision floating point type(C type `float`) is used as `mrb_float`.
+* Else double precision floating point type(C type `double`) is used as `mrb_float`.
+
+`MRB_INT16`
+* When defined `int16_t` will be defined as `mrb_int`.
+* Conflicts with `MRB_INT64`.
+
+`MRB_INT64`
+* When defined `int64_t` will be defined as `mrb_int`.
+* Conflicts with `MRB_INT16`.
+* When `MRB_INT16` or `MRB_INT64` isn't defined `int`(most of the times 32-bit integer)
+will be defined as `mrb_int`.
