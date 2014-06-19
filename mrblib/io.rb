@@ -171,11 +171,16 @@ class IO
   end
 
   def read(length = nil)
-    unless length.nil? or length.class == Fixnum
-      raise TypeError.new "can't convert #{length.class} into Integer"
-    end
-    if length && length < 0
-      raise ArgumentError.new "negative length: #{length} given"
+    unless length.nil?
+      unless length.is_a? Fixnum
+        raise TypeError.new "can't convert #{length.class} into Integer"
+      end
+      if length < 0
+        raise ArgumentError.new "negative length: #{length} given"
+      end
+      if length == 0
+        return ""   # easy case
+      end
     end
 
     str = ''

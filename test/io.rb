@@ -93,6 +93,7 @@ assert('IO#read', '15.2.20.5.14') do
     assert_raise(TypeError) { io.read("str") }
 
     len = $mrbtest_io_msg.length
+    assert_equal '', io.read(0)
     assert_equal 'mruby', io.read(5)
     assert_equal $mrbtest_io_msg[5,len], io.read(len)
 
