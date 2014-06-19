@@ -1,5 +1,15 @@
 # mruby configuration macros.
 
+## How to use these macros.
+You can use mrbconfs with following ways:
+* Write them in `mrbconf.h`.
+ * Using compiler flags is prefered  when building a cross binaries or multiple mruby binaries
+ since it's easier to use different mrbconf per each `MRuby::Build`.
+ * Most flags can be enabled by just commenting in.
+* Pass them as compiler flags.
+ * Make sure you pass the same flags to all compilers since some mrbconf(e.g., `MRB_GC_FIXED_ARENA`)
+ changes `struct` layout and cause memory access error when C and other language(e.g., C++) is mixed.
+
 ## stdio setting.
 `ENABLE_STDIO`
 * Will be defined automatically if `DISABLE_STDIO` isn't defined.
