@@ -218,7 +218,7 @@ assert('String#slice!') do
   assert_equal "Foo", a
 
   a = "FooBar"
-  assert_nil a.slice!(6, 2)
+  assert_equal "", a.slice!(6, 2)
   assert_equal "FooBar", a
 
   a = "FooBar"
