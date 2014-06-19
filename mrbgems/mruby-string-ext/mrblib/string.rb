@@ -169,7 +169,7 @@ class String
     if arg1 != nil && arg2 != nil
       idx = arg1
       idx += self.size if arg1 < 0
-      if idx >= 0 && idx < self.size && arg2 > 0
+      if idx >= 0 && idx <= self.size && arg2 > 0
         str = self[idx, arg2]
       else
         return nil
