@@ -62,3 +62,22 @@ You can use mrbconfs with following ways:
 * Conflicts with `MRB_INT16`.
 * When `MRB_INT16` or `MRB_INT64` isn't defined `int`(most of the times 32-bit integer)
 will be defined as `mrb_int`.
+
+## Garbage collector configuration.
+
+`MRB_GC_STRESS`
+* When defined full GC is emitted per each `RBasic` allocation.
+* Mainly used in memory manager debugging.
+
+`MRB_GC_TURN_OFF_GENERATIONAL`
+* When defined turns generational GC by default.
+
+`MRB_GC_FIXED_ARENA`
+* When defined used fixed size GC arena.
+* Raises `RuntimeError` when this is defined and GC arena size exceeds `MRB_GC_ARENA_SIZE`.
+* Useful tracking unnecessary mruby object allocation.
+
+`MRB_GC_ARENA_SIZE`
+* Default value 100.
+* Ignored when `MRB_GC_FIXED_ARENA` isn't defined.
+* Defines fixed GC arena size.
