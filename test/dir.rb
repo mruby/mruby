@@ -1,5 +1,3 @@
-# Note: testing telldir(3) and seekdir(3) in portable manner is very hard.
-
 assert('Dir') do
   assert_equal(Class, Dir.class)
 end
@@ -103,6 +101,26 @@ assert('Dir#rewind') do
   d.close
   assert_true a.include? "a"
   assert_true a.include? "b"
+end
+
+# Note: behaviors of seekdir(3) and telldir(3) are so platform-dependent
+# that we cannot write portable tests here.
+
+assert('Dir#tell') do
+  n = nil
+  Dir.open(DirTest.sandbox) { |d|
+    n = d.tell
+  }
+  assert_true n.is_a? Integer
+end
+
+assert('Dir#seek') do
+  d1 = Dir.open(DirTest.sandbox)
+  d1.read
+  n = d1.tell
+  d1.read
+  d2 = d1.seek(n)
+  assert_equal d1, d2
 end
 
 assert('DirTest.teardown') do
