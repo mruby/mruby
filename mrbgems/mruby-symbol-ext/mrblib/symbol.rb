@@ -25,7 +25,7 @@ class Symbol
   # Same as <code>sym.to_s.capitalize.intern</code>.
 
   def capitalize
-    self.to_s.capitalize.intern
+    (self.to_s.capitalize! || self).to_sym
   end
 
   ##
@@ -35,7 +35,7 @@ class Symbol
   # Same as <code>sym.to_s.downcase.intern</code>.
 
   def downcase
-    self.to_s.downcase.intern
+    (self.to_s.downcase! || self).to_sym
   end
 
   ##
@@ -45,7 +45,7 @@ class Symbol
   # Same as <code>sym.to_s.upcase.intern</code>.
 
   def upcase
-    self.to_s.upcase.intern
+    (self.to_s.upcase! || self).to_sym
   end
 
   ##
