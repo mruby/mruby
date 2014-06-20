@@ -45,7 +45,9 @@ class Symbol
 
   def casecmp(other)
     return nil unless other.kind_of?(Symbol)
-    self.to_s.upcase <=> other.to_s.upcase
+    lhs =  self.to_s; lhs.upcase!
+    rhs = other.to_s; rhs.upcase!
+    lhs <=> rhs
   end
 
   #
