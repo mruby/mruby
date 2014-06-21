@@ -5558,7 +5558,12 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
     if (c->target_class) {
       target = c->target_class;
     }
-    keep = c->slen + 1;
+    if (c->keep_lv) {
+      keep = c->slen + 1;
+    }
+    else {
+      c->keep_lv = TRUE;
+    }
   }
   proc->target_class = target;
   if (mrb->c->ci) {

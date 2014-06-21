@@ -28,6 +28,7 @@ typedef struct mrbc_context {
   mrb_bool capture_errors:1;
   mrb_bool dump_result:1;
   mrb_bool no_exec:1;
+  mrb_bool keep_lv:1;
 } mrbc_context;
 
 mrbc_context* mrbc_context_new(mrb_state *mrb);
