@@ -22,10 +22,11 @@ Optional:
 Inside of the root directory of the mruby source a file exists
 called *build_config.rb*. This file contains the build configuration
 of mruby and looks like this for example:
-
-	MRuby::Build.new do |conf|
-	  toolchain :gcc
-	end
+```ruby
+MRuby::Build.new do |conf|
+  toolchain :gcc
+end
+```
 
 All tools necessary to compile mruby can be set or modified here. In case
 you want to maintain an additional *build_config.rb* you can define a
@@ -49,29 +50,33 @@ configure the build environment for specific compiler infrastructures.
 #### GCC
 
 Toolchain configuration for the GNU C Compiler.
-
-	toolchain :gcc
+```ruby
+toolchain :gcc
+```
 
 #### clang
 
 Toolchain configuration for the LLVM C Compiler clang. Mainly equal to the
 GCC toolchain.
-
-	toolchain :clang
+```ruby
+toolchain :clang
+```
 
 #### Visual Studio 2010, 2012 and 2013
 
 Toolchain configuration for Visual Studio on Windows. If you use the
 [Visual Studio Command Prompt](http://msdn.microsoft.com/en-us/library/ms229859\(v=vs.110\).aspx),
 you normally do not have to specify this manually, since it gets automatically detected by our build process.
-
-	toolchain :visualcpp
+```
+toolchain :visualcpp
+```
 
 #### Android
 
 Toolchain configuration for Android.
-
-	toolchain :androideabi
+```ruby
+toolchain :androideabi
+```
 
 Requires the custom standalone Android NDK and the toolchain path
 in ```ANDROID_STANDALONE_TOOLCHAIN```.
@@ -84,123 +89,132 @@ process. The following tools can be selected:
 * mirb (mruby interactive shell)
 
 To select them declare conf.gem as follows:
-
-	conf.gem "#{root}/mrbgems/mruby-bin-mruby"
-
-	conf.gem "#{root}/mrbgems/mruby-bin-mirb"
+```ruby
+conf.gem "#{root}/mrbgems/mruby-bin-mruby"
+conf.gem "#{root}/mrbgems/mruby-bin-mirb"
+```
 
 ### File Separator
 
 Some environments require a different file separator character. It is possible to
 set the character via ```conf.file_separator```.
-
-	conf.file_separator = '/'
+```ruby
+conf.file_separator = '/'
+```
 
 ### C Compiler
 
 Configuration of the C compiler binary, flags and include paths.
-
-	conf.cc do |cc|
-	  cc.command = ...
-	  cc.flags = ...
-	  cc.include_paths = ...
-	  cc.defines = ...
-	  cc.option_include_path = ...
-	  cc.option_define = ...
-	  cc.compile_options = ...
-	end
+```ruby
+conf.cc do |cc|
+  cc.command = ...
+  cc.flags = ...
+  cc.include_paths = ...
+  cc.defines = ...
+  cc.option_include_path = ...
+  cc.option_define = ...
+  cc.compile_options = ...
+end
+```
 
 C Compiler has header searcher to detect installed library.
 
 If you need a include path of header file use ```search_header_path```:
-
-	# Searches ```iconv.h```.
-	# If found it will return include path of the header file.
-	# Otherwise it will return nil .
-	fail 'iconv.h not found' unless conf.cc.search_header_path 'iconv.h'
+```ruby
+# Searches ```iconv.h```.
+# If found it will return include path of the header file.
+# Otherwise it will return nil .
+fail 'iconv.h not found' unless conf.cc.search_header_path 'iconv.h'
+```
 
 If you need a full file name of header file use ```search_header```:
-
-	# Searches ```iconv.h```.
-	# If found it will return full path of the header file.
-	# Otherwise it will return nil .
-	iconv_h = conf.cc.search_header 'iconv.h'
-	print "iconv.h found: #{iconv_h}\n"
+```ruby
+# Searches ```iconv.h```.
+# If found it will return full path of the header file.
+# Otherwise it will return nil .
+iconv_h = conf.cc.search_header 'iconv.h'
+print "iconv.h found: #{iconv_h}\n"
+```
 
 Header searcher uses compiler's ```include_paths``` by default.
 When you are using GCC toolchain (including clang toolchain since its base is gcc toolchain)
 it will use compiler specific include paths too. (For example ```/usr/local/include```, ```/usr/include```)
 
 If you need a special header search paths define a singleton method ```header_search_paths``` to C compiler:
-
-	def conf.cc.header_search_paths
-		['/opt/local/include'] + include_paths
-	end
-
+```ruby
+def conf.cc.header_search_paths
+  ['/opt/local/include'] + include_paths
+end
+```
 
 ### Linker
 
 Configuration of the Linker binary, flags and library paths.
-
-	conf.linker do |linker|
-	  linker.command = ...
-	  linker.flags = ...
-	  linker.flags_before_libraries = ...
-	  linker.libraries = ...
-	  linker.flags_after_libraries = ...
-	  linker.library_paths = ....
-	  linker.option_library = ...
-	  linker.option_library_path = ...
-	  linker.link_options = ...
-	end
+```ruby
+conf.linker do |linker|
+  linker.command = ...
+  linker.flags = ...
+  linker.flags_before_libraries = ...
+  linker.libraries = ...
+  linker.flags_after_libraries = ...
+  linker.library_paths = ....
+  linker.option_library = ...
+  linker.option_library_path = ...
+  linker.link_options = ...
+end
+```
 
 ### Archiver
 
 Configuration of the Archiver binary and flags.
-
-	conf.archiver do |archiver|
-	  archiver.command = ...
-	  archiver.archive_options = ...
-	end
+```ruby
+conf.archiver do |archiver|
+  archiver.command = ...
+  archiver.archive_options = ...
+end
+```
 
 ### Parser Generator
 
 Configuration of the Parser Generator binary and flags.
-
-	conf.yacc do |yacc|
-	  yacc.command = ...
-	  yacc.compile_options = ...
-	end
+```ruby
+conf.yacc do |yacc|
+  yacc.command = ...
+  yacc.compile_options = ...
+end
+```
 
 ### GPerf
 
 Configuration of the GPerf binary and flags.
-
-	conf.gperf do |gperf|
-	  gperf.command = ...
-	  gperf.compile_options = ...
-	end
+```ruby
+conf.gperf do |gperf|
+  gperf.command = ...
+  gperf.compile_options = ...
+end
+```
 
 ### File Extensions
-
-	conf.exts do |exts|
-	  exts.object = ...
-	  exts.executable = ...
-	  exts.library = ...
-	end
+```ruby
+conf.exts do |exts|
+  exts.object = ...
+  exts.executable = ...
+  exts.library = ...
+end
+```
 
 ### Mrbgems
 
 Integrate GEMs in the build process.
+```ruby
+# Integrate GEM with additional configuration
+conf.gem 'path/to/gem' do |g|
+  g.cc.flags << ...
+end
 
-	# Integrate GEM with additional configuration
-	conf.gem 'path/to/gem' do |g|
-	  g.cc.flags << ...
-	end
-
-	# Integrate GEM without additional configuration
-	conf.gem 'path/to/another/gem'
-
+# Integrate GEM without additional configuration
+conf.gem 'path/to/another/gem'
+```
 
 See doc/mrbgems/README.md for more option about mrbgems.
 
@@ -209,8 +223,9 @@ See doc/mrbgems/README.md for more option about mrbgems.
 Configuration Mrbtest build process.
 
 If you want mrbtest.a only, You should set ```conf.build_mrbtest_lib_only```
-
-	conf.build_mrbtest_lib_only
+```ruby
+conf.build_mrbtest_lib_only
+```
 
 ### Bintest
 
@@ -220,8 +235,9 @@ See ```mruby-bin-*/bintest/*.rb``` if you need examples.
 If you want a temporary files use `tempfile` module of CRuby instead of ```/tmp/```.
 
 You can enable it with following:
-
-	conf.enable_bintest
+```ruby
+conf.enable_bintest
+```
 
 ### C++ ABI
 
@@ -230,24 +246,27 @@ It is called C++ ABI mode.
 By using C++ exception it can release C++ stack object correctly.
 Whenever you mix C++ code C++ ABI mode would be enabled automatically.
 If you need to enable C++ ABI mode explicity add the following:
-
-	conf.enable_cxx_abi
+```ruby
+conf.enable_cxx_abi
+```
 
 #### C++ exception disabling.
 
 If you need to force C++ exception disable
 (For example using a compiler option to disable C++ exception)
 add following:
-
-	conf.disable_cxx_exception
+```ruby
+conf.disable_cxx_exception
+```
 
 Note that it must be called before ```enable_cxx_abi``` or ```gem``` method.
 
 ### Debugging mode
 
 To enable debugging mode add the following:
-
-	conf.enable_debug
+```ruby
+conf.enable_debug
+```
 
 When debugging mode is enabled
 * Macro ```MRB_DEBUG``` would be defined.
@@ -263,13 +282,14 @@ achieve this the *build_config.rb* needs to contain an instance of
 ```MRuby::CrossBuild```. This instance defines the compilation
 tools and flags for the target platform. An example could look
 like this:
+```ruby
+MRuby::CrossBuild.new('32bit') do |conf|
+  toolchain :gcc
 
-	MRuby::CrossBuild.new('32bit') do |conf|
-	  toolchain :gcc
-
-	  conf.cc.flags << "-m32"
-	  conf.linker.flags << "-m32"
-	end
+  conf.cc.flags << "-m32"
+  conf.linker.flags << "-m32"
+end
+```
 
 All configuration options of ```MRuby::Build``` can also be used
 in ```MRuby::CrossBuild```.
@@ -278,15 +298,16 @@ in ```MRuby::CrossBuild```.
 
 In cross compilation, you can run ```mrbtest``` on emulator if
 you have it by changing configuration of test runner.
+```ruby
+conf.test_runner do |t|
+  t.command = ... # set emulator. this value must be non nil or false
+  t.flags = ... # set flags of emulator
 
-	conf.test_runner do |t|
-      t.command = ... # set emulator. this value must be non nil or false
-      t.flags = ... # set flags of emulator
-
-	  def t.run(bin) # override `run` if you need to change the behavior of it
-	    ... # `bin` is the full path of mrbtest
-	  end
-	end
+  def t.run(bin) # override `run` if you need to change the behavior of it
+    ... # `bin` is the full path of mrbtest
+  end
+end
+```
 
 ## Build process
 
@@ -438,12 +459,14 @@ To build a minimal mruby library you need to use the Cross Compiling
 feature due to the reason that there are functions (i.e. stdio) which
 can't be disabled for the main build.
 
-	MRuby::CrossBuild.new('Minimal') do |conf|
-	  toolchain :gcc
+```ruby
+MRuby::CrossBuild.new('Minimal') do |conf|
+  toolchain :gcc
 
-	  conf.cc.defines = %w(DISABLE_STDIO)
-	  conf.bins = []
-	end
+  conf.cc.defines = %w(DISABLE_STDIO)
+  conf.bins = []
+end
+```
 
 This configuration defines a cross compile build called 'Minimal' which
 is using the GCC and compiles for the host machine. It also disables
