@@ -10,20 +10,21 @@ build configuration (i.e. *build_config.rb*), mrbgems will be activated and the
 extension integrated.
 
 To add a GEM into the *build_config.rb* add the following line for example:
-
-	conf.gem '/path/to/your/gem/dir'
+```ruby
+conf.gem '/path/to/your/gem/dir'
+```
 
 You can also use a relative path which would be relative from the mruby root:
-
-	conf.gem 'examples/mrbgems/ruby_extension_example'
+```ruby
+conf.gem 'examples/mrbgems/ruby_extension_example'
+```
 
 A remote GIT repository location for a GEM is also supported:
-
-	conf.gem :git => 'https://github.com/masuidrive/mrbgems-example.git', :branch => 'master'
-
-	conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
-
-	conf.gem :bitbucket => 'mruby/mrbgems-example', :branch => 'master'
+```ruby
+conf.gem :git => 'https://github.com/masuidrive/mrbgems-example.git', :branch => 'master'
+conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
+conf.gem :bitbucket => 'mruby/mrbgems-example', :branch => 'master'
+```
 
 To pull all gems from remote GIT repository on build, call ```./minirake -p```,
 or ```./minirake --pull-gems```.
@@ -41,11 +42,12 @@ via `config.gem`, but wrapped in an `MRuby::GemBox` object.  GemBoxes are
 loaded into mruby via `config.gembox 'boxname'`.
 
 Below we have created a GemBox containing *mruby-time* and *mrbgems-example*:
-
-    MRuby::GemBox.new do |conf|
-      conf.gem "#{root}/mrbgems/mruby-time"
-      conf.gem :github => 'masuidrive/mrbgems-example'
-    end
+```ruby
+MRuby::GemBox.new do |conf|
+  conf.gem "#{root}/mrbgems/mruby-time"
+  conf.gem :github => 'masuidrive/mrbgems-example'
+end
+```
 
 As mentioned, the GemBox uses the same conventions as `MRuby::Build`.  The GemBox
 must be saved with a *.gembox* extension inside the *mrbgems* directory to to be
@@ -54,16 +56,17 @@ picked up by mruby.
 To use this example GemBox, we save it as `custom.gembox` inside the *mrbgems*
 directory in mruby, and add the following to our *build_config.rb* file inside
 the build block:
-
-    conf.gembox 'custom'
-
+```ruby
+conf.gembox 'custom'
+```
 This will cause the *custom* GemBox to be read in during the build process,
 adding *mruby-time* and *mrbgems-example* to the build.
 
 If you want, you can put GemBox outside of mruby directory. In that case you must
 specify absolute path like below.
-
-	conf.gembox "#{ENV["HOME"]}/mygemboxes/custom"
+```ruby
+conf.gembox "#{ENV["HOME"]}/mygemboxes/custom"
+```
 
 There are two GemBoxes that ship with mruby: [default](../../mrbgems/default.gembox)
 and [full-core](../../mrbgems/full-core.gembox). The [default](../../mrbgems/default.gembox) GemBox
@@ -98,11 +101,12 @@ to compile C and Ruby files. *README.md* is a short description of your GEM.
 
 mrbgems expects a specification file called *mrbgem.rake* inside of your
 GEM directory. A typical GEM specification could look like this for example:
-
-	MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
-	  spec.license = 'MIT'
-	  spec.author  = 'mruby developers'
-	end
+```ruby
+MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
+  spec.license = 'MIT'
+  spec.author  = 'mruby developers'
+end
+```
 
 The mrbgems build process will use this specification to compile Object and Ruby
 files. The compilation results will be added to *lib/libmruby.a*. This file exposes
@@ -123,21 +127,22 @@ The license and author properties are required in every GEM!
 
 In case your GEM is depending on other GEMs please use
 `spec.add_dependency(gem, *requirements[, default_get_info])` like:
+```ruby
+MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
+  spec.license = 'MIT'
+  spec.author  = 'mruby developers'
 
-	MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
-	  spec.license = 'MIT'
-	  spec.author  = 'mruby developers'
+  # Add GEM dependency mruby-parser.
+  # The version must be between 1.0.0 and 1.5.2 .
+  spec.add_dependency('mruby-parser', '>= 1.0.0', '<= 1.5.2')
 
-	  # Add GEM dependency mruby-parser.
-	  # The version must be between 1.0.0 and 1.5.2 .
-	  spec.add_dependency('mruby-parser', '>= 1.0.0', '<= 1.5.2')
+  # Use any version of mruby-uv from github.
+  spec.add_dependency('mruby-uv', '>= 0.0.0', :github => 'mattn/mruby-uv')
 
-	  # Use any version of mruby-uv from github.
-	  spec.add_dependency('mruby-uv', '>= 0.0.0', :github => 'mattn/mruby-uv')
-
-	  # Use latest mruby-onig-regexp from github. (version requirements can be ignored)
-	  spec.add_dependency('mruby-onig-regexp', :github => 'mattn/mruby-onig-regexp')
-	end
+  # Use latest mruby-onig-regexp from github. (version requirements can be ignored)
+  spec.add_dependency('mruby-onig-regexp', :github => 'mattn/mruby-onig-regexp')
+end
+```
 
 The version requirements and default gem information are optional.
 
@@ -166,16 +171,17 @@ If you have conflicting GEMs use the following method:
     * The `requirements` argument is same as in `add_dependency` method.
 
 like following code:
+```ruby
+MRuby::Gem::Specification.new 'some-regexp-binding' do |spec|
+  spec.license = 'BSD'
+  spec.author = 'John Doe'
 
-	MRuby::Gem::Specification.new 'some-regexp-binding' do |spec|
-	  spec.license = 'BSD'
-	  spec.author = 'John Doe'
-
-	  spec.add_conflict 'mruby-onig-regexp', '> 0.0.0'
-	  spec.add_conflict 'mruby-hs-regexp'
-	  spec.add_conflict 'mruby-pcre-regexp'
-	  spec.add_conflict 'mruby-regexp-pcre'
-	end
+  spec.add_conflict 'mruby-onig-regexp', '> 0.0.0'
+  spec.add_conflict 'mruby-hs-regexp'
+  spec.add_conflict 'mruby-pcre-regexp'
+  spec.add_conflict 'mruby-regexp-pcre'
+end
+```
 
 In case your GEM has more complex build requirements you can use
 the following options additionally inside of your GEM specification:
@@ -215,12 +221,13 @@ mrbgems expects that you have implemented a C method called
 `mrb_YOURGEMNAME_gem_init(mrb_state)`. `YOURGEMNAME` will be replaced
 by the name of your GEM. If you call your GEM *c_extension_example*, your
 initialisation method could look like this:
-
-	void
-	mrb_c_extension_example_gem_init(mrb_state* mrb) {
-	  struct RClass *class_cextension = mrb_define_module(mrb, "CExtension");
-	  mrb_define_class_method(mrb, class_cextension, "c_method", mrb_c_method, MRB_ARGS_NONE());
-	}
+```C
+void
+mrb_c_extension_example_gem_init(mrb_state* mrb) {
+  struct RClass *class_cextension = mrb_define_module(mrb, "CExtension");
+  mrb_define_class_method(mrb, class_cextension, "c_method", mrb_c_method, MRB_ARGS_NONE());
+}
+```
 
 ### Finalize
 
@@ -229,10 +236,12 @@ mrbgems expects that you have implemented a C method called
 by the name of your GEM. If you call your GEM *c_extension_example*, your
 finalizer method could look like this:
 
-	void
-	mrb_c_extension_example_gem_final(mrb_state* mrb) {
-	  free(someone);
-	}
+```C
+void
+mrb_c_extension_example_gem_final(mrb_state* mrb) {
+  free(someone);
+}
+```
 
 ### Example
 
