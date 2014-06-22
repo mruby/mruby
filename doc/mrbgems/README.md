@@ -105,6 +105,7 @@ GEM directory. A typical GEM specification could look like this for example:
 MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
   spec.license = 'MIT'
   spec.author  = 'mruby developers'
+  spec.summary = 'Example mrbgem using C and ruby'
 end
 ```
 
@@ -119,11 +120,13 @@ information purpose:
 * `spec.author` or `spec.authors` (Developer name or a list of them)
 * `spec.version` (Current version)
 * `spec.description` (Detailed description)
-* `spec.summary` (Short summary)
+* `spec.summary`
+  * One line short description of mrbgem.
+  * Printed in build summary of rake when set.
 * `spec.homepage` (Homepage)
 * `spec.requirements` (External requirements as information for user)
 
-The license and author properties are required in every GEM!
+The `license` and `author` properties are required in every GEM!
 
 In case your GEM is depending on other GEMs please use
 `spec.add_dependency(gem, *requirements[, default_get_info])` like:
