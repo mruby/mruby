@@ -1,6 +1,6 @@
 # Compile
 
-mruby is using Rake to compile and cross-compile all libraries and
+mruby uses Rake to compile and cross-compile all libraries and
 binaries.
 
 ## Prerequisites
