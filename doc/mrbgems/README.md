@@ -126,7 +126,7 @@ information purpose:
 * `spec.homepage` (Homepage)
 * `spec.requirements` (External requirements as information for user)
 
-The license and author properties are required in every GEM!
+The `license` and `author` properties are required in every GEM!
 
 In case your GEM is depending on other GEMs please use
 `spec.add_dependency(gem, *requirements[, default_get_info])` like:
