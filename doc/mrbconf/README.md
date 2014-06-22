@@ -78,6 +78,6 @@ will be defined as `mrb_int`.
 * Useful tracking unnecessary mruby object allocation.
 
 `MRB_GC_ARENA_SIZE`
-* Default value 100.
+* Default value is 100.
 * Ignored when `MRB_GC_FIXED_ARENA` isn't defined.
 * Defines fixed GC arena size.
