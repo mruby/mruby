@@ -149,9 +149,14 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
 {
   struct RProc *p = mrb_proc_ptr(self);
   mrb_code *iseq = mrb_proc_iseq(mrb, p);
-  mrb_aspec aspec = GETARG_Ax(*iseq);
+  mrb_aspec aspec;
   int ma, ra, pa, arity;
 
+  if (MRB_PROC_CFUNC_P(p)) {
+    // TODO cfunc aspec not implemented yet
+    return mrb_fixnum_value(-1);
+  }
+  aspec = GETARG_Ax(*iseq);
   ma = MRB_ASPEC_REQ(aspec);
   ra = MRB_ASPEC_REST(aspec);
   pa = MRB_ASPEC_POST(aspec);
@@ -200,9 +205,6 @@ mrb_init_proc(mrb_state *mrb)
   call_irep->flags = MRB_ISEQ_NO_FREE;
   call_irep->iseq = call_iseq;
   call_irep->ilen = 1;
-
-  mrb->proc_class = mrb_define_class(mrb, "Proc", mrb->object_class);                       /* 15.2.17 */
-  MRB_SET_INSTANCE_TT(mrb->proc_class, MRB_TT_PROC);
 
   mrb_define_method(mrb, mrb->proc_class, "initialize", mrb_proc_initialize, MRB_ARGS_NONE());
   mrb_define_method(mrb, mrb->proc_class, "initialize_copy", mrb_proc_init_copy, MRB_ARGS_REQ(1));
