@@ -296,7 +296,10 @@ mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
 
 mrb_state* mrb_open(void);
 mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
+mrb_state* mrb_open_core(mrb_allocf, void *ud);
 void mrb_close(mrb_state*);
+
+void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
 
 mrb_value mrb_top_self(mrb_state *);
 mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
