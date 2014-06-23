@@ -81,3 +81,15 @@ will be defined as `mrb_int`.
 * Default value is 100.
 * Ignored when `MRB_GC_FIXED_ARENA` isn't defined.
 * Defines fixed GC arena size.
+
+## Memory pool configuration.
+
+`POOL_ALIGNMENT`
+* Default value is `4`.
+* If you're allocating data types that requires alignment more than default value define the
+largest value of required alignment.
+
+`POOL_PAGE_SIZE`
+* Default value is `16000`.
+* Specifies page size of pool page.
+* Smaller the value is increases memory overhead.
