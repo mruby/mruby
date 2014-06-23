@@ -31,7 +31,7 @@ assert('String#strip') do
 end
 
 assert('String#lstrip') do
-  s = "  abc  " 
+  s = "  abc  "
   s.lstrip
   "".lstrip == "" and " \t\r\n\f\v".lstrip == "" and
   "\0a\0".lstrip == "\0a\0" and
@@ -43,7 +43,7 @@ assert('String#lstrip') do
 end
 
 assert('String#rstrip') do
-  s = "  abc  " 
+  s = "  abc  "
   s.rstrip
   "".rstrip == "" and " \t\r\n\f\v".rstrip == "" and
   "\0a\0".rstrip == "\0a" and
@@ -98,6 +98,11 @@ assert('String#casecmp') do
   assert_equal 0, "aBcDeF".casecmp("abcdef")
   assert_equal(-1, "abcdef".casecmp("abcdefg"))
   assert_equal 0, "abcdef".casecmp("ABCDEF")
+  o = Object.new
+  def o.to_str
+    "ABCDEF"
+  end
+  assert_equal 0, "abcdef".casecmp(o)
 end
 
 assert('String#start_with?') do
@@ -117,7 +122,7 @@ end
 assert('String#partition') do
   assert_equal ["a", "x", "axa"], "axaxa".partition("x")
   assert_equal ["aaaaa", "", ""], "aaaaa".partition("x")
-  assert_equal ["", "", "aaaaa"], "aaaaa".partition("") 
+  assert_equal ["", "", "aaaaa"], "aaaaa".partition("")
   assert_equal ["", "a", "aaaa"], "aaaaa".partition("a")
   assert_equal ["aaaa", "b", ""], "aaaab".partition("b")
   assert_equal ["", "b", "aaaa"], "baaaa".partition("b")
@@ -127,9 +132,122 @@ end
 assert('String#rpartition') do
   assert_equal ["axa", "x", "a"], "axaxa".rpartition("x")
   assert_equal ["", "", "aaaaa"], "aaaaa".rpartition("x")
-  assert_equal ["aaaaa", "", ""], "aaaaa".rpartition("") 
+  assert_equal ["aaaaa", "", ""], "aaaaa".rpartition("")
   assert_equal ["aaaa", "a", ""], "aaaaa".rpartition("a")
   assert_equal ["aaaa", "b", ""], "aaaab".rpartition("b")
   assert_equal ["", "b", "aaaa"], "baaaa".rpartition("b")
   assert_equal ["", "", ""],      "".rpartition("a")
+end
+
+assert('String#hex') do
+  assert_equal 16, "10".hex
+  assert_equal 255, "ff".hex
+  assert_equal 16, "0x10".hex
+  assert_equal (-16), "-0x10".hex
+  assert_equal 0, "xyz".hex
+  assert_equal 16, "10z".hex
+  assert_equal 16, "1_0".hex
+  assert_equal 0, "".hex
+end
+
+assert('String#oct') do
+  assert_equal 8, "10".oct
+  assert_equal 7, "7".oct
+  assert_equal 0, "8".oct
+  assert_equal 0, "9".oct
+  assert_equal 0, "xyz".oct
+  assert_equal 8, "10z".oct
+  assert_equal 8, "1_0".oct
+  assert_equal 8, "010".oct
+  assert_equal (-8), "-10".oct
+end
+
+assert('String#chr') do
+  assert_equal "a", "abcde".chr
+end
+
+assert('String#lines') do
+  assert_equal ["Hel\n", "lo\n", "World!"], "Hel\nlo\nWorld!".lines
+  assert_equal ["Hel\n", "lo\n", "World!\n"], "Hel\nlo\nWorld!\n".lines
+  assert_equal ["\n", "\n", "\n"], "\n\n\n".lines
+  assert_equal [], "".lines
+end
+
+assert('String#clear') do
+  # embed string
+  s = "foo"
+  assert_equal("", s.clear)
+  assert_equal("", s)
+
+  # not embed string and not shared string
+  s = "foo" * 100
+  a = s
+  assert_equal("", s.clear)
+  assert_equal("", s)
+  assert_equal("", a)
+
+  # shared string
+  s = "foo" * 100
+  a = s[10, 90]                # create shared string
+  assert_equal("", s.clear)    # clear
+  assert_equal("", s)          # s is cleared
+  assert_not_equal("", a)      # a should not be affected
+end
+
+assert('String#slice!') do
+  a = "AooBar"
+  b = a.dup
+  assert_equal "A", a.slice!(0)
+  assert_equal "AooBar", b
+
+  a = "FooBar"
+  assert_equal "r", a.slice!(-1)
+  assert_equal "FooBa", a
+
+  a = "FooBar"
+  assert_nil a.slice!(6)
+  assert_nil a.slice!(-7)
+  assert_equal "FooBar", a
+
+  a = "FooBar"
+  assert_equal "Foo", a.slice!(0, 3)
+  assert_equal "Bar", a
+
+  a = "FooBar"
+  assert_equal "Bar", a.slice!(-3, 3)
+  assert_equal "Foo", a
+
+  a = "FooBar"
+  assert_equal "", a.slice!(6, 2)
+  assert_equal "FooBar", a
+
+  a = "FooBar"
+  assert_nil a.slice!(-7,10)
+  assert_equal "FooBar", a
+
+  a = "FooBar"
+  assert_equal "Foo", a.slice!(0..2)
+  assert_equal "Bar", a
+
+  a = "FooBar"
+  assert_equal "Bar", a.slice!(-3..-1)
+  assert_equal "Foo", a
+
+  a = "FooBar"
+  assert_equal "", a.slice!(6..2)
+  assert_equal "FooBar", a
+
+  a = "FooBar"
+  assert_nil a.slice!(-10..-7)
+  assert_equal "FooBar", a
+
+  a = "FooBar"
+  assert_equal "Foo", a.slice!("Foo")
+  assert_equal "Bar", a
+
+  a = "FooBar"
+  assert_nil a.slice!("xyzzy")
+  assert_equal "FooBar", a
+
+  assert_raise(ArgumentError) { "foo".slice! }
 end

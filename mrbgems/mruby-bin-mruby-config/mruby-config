@@ -1,0 +1,16 @@
+#!/bin/sh
+
+while [ $# -gt 0 ]; do
+  case $1 in
+    --cflags) echo MRUBY_CFLAGS;;
+    --ldflags) echo MRUBY_LDFLAGS;;
+    --libs) echo MRUBY_LIBS;;
+    --help) echo "Usage: mruby-config [switches]"
+            echo "  switches:"
+            echo "  --cflags    print flags passed to compiler"
+            echo "  --ldflags   print flags passed to linker"
+            echo "  --libs      print linked libraries"
+            exit 0;;
+  esac
+  shift
+done

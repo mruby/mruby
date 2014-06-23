@@ -8,12 +8,13 @@
 #include <stdint.h>
 #include <stddef.h>
 
-// Calculate CRC (CRC-16-CCITT)
-//
-//  0000_0000_0000_0000_0000_0000_0000_0000
-//          ^|------- CRC -------|- work --|
-//        carry
-#define  CRC_16_CCITT       0x11021ul        //x^16+x^12+x^5+1
+/* Calculate CRC (CRC-16-CCITT)
+**
+**  0000_0000_0000_0000_0000_0000_0000_0000
+**          ^|------- CRC -------|- work --|
+**        carry
+*/
+#define  CRC_16_CCITT       0x11021ul        /* x^16+x^12+x^5+1 */
 #define  CRC_XOR_PATTERN    (CRC_16_CCITT << 8)
 #define  CRC_CARRY_BIT      (0x01000000)
 

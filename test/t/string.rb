@@ -5,10 +5,6 @@ assert('String', '15.2.10') do
   assert_equal Class, String.class
 end
 
-assert('String superclass', '15.2.10.2') do
-  assert_equal Object, String.superclass
-end
-
 assert('String#<=>', '15.2.10.5.1') do
   a = '' <=> ''
   b = '' <=> 'not empty'
@@ -36,6 +32,10 @@ end
 
 assert('String#*', '15.2.10.5.5') do
   assert_equal 'aaaaa', 'a' * 5
+  assert_equal '', 'a' * 0
+  assert_raise(ArgumentError) do
+    'a' * -1
+  end
 end
 
 assert('String#[]', '15.2.10.5.6') do
@@ -82,6 +82,7 @@ assert('String#[] with Range') do
   g1 = 'abc'[-2..3]
   h1 = 'abc'[3..4]
   i1 = 'abc'[4..5]
+  j1 = 'abcdefghijklmnopqrstuvwxyz'[1..3]
   a2 = 'abc'[1...0]
   b2 = 'abc'[1...1]
   c2 = 'abc'[1...2]
@@ -91,6 +92,7 @@ assert('String#[] with Range') do
   g2 = 'abc'[-2...3]
   h2 = 'abc'[3...4]
   i2 = 'abc'[4...5]
+  j2 = 'abcdefghijklmnopqrstuvwxyz'[1...3]
 
   assert_equal '', a1
   assert_equal 'b', b1
@@ -101,6 +103,7 @@ assert('String#[] with Range') do
   assert_equal 'bc', g1
   assert_equal '', h1
   assert_nil i2
+  assert_equal 'bcd', j1
   assert_equal '', a2
   assert_equal '', b2
   assert_equal 'b', c2
@@ -110,6 +113,7 @@ assert('String#[] with Range') do
   assert_equal 'bc', g2
   assert_equal '', h2
   assert_nil i2
+  assert_equal 'bc', j2
 end
 
 assert('String#capitalize', '15.2.10.5.7') do
@@ -125,6 +129,7 @@ assert('String#capitalize!', '15.2.10.5.8') do
   a.capitalize!
 
   assert_equal 'Abc', a
+  assert_equal nil, 'Abc'.capitalize!
 end
 
 assert('String#chomp', '15.2.10.5.9') do
@@ -204,6 +209,7 @@ assert('String#downcase!', '15.2.10.5.14') do
   a.downcase!
 
   assert_equal 'abc', a
+  assert_equal nil, 'abc'.downcase!
 end
 
 assert('String#each_line', '15.2.10.5.15') do
@@ -275,8 +281,10 @@ end
 assert('String#initialize', '15.2.10.5.23') do
   a = ''
   a.initialize('abc')
-
   assert_equal 'abc', a
+
+  a.initialize('abcdefghijklmnopqrstuvwxyz')
+  assert_equal 'abcdefghijklmnopqrstuvwxyz', a
 end
 
 assert('String#initialize_copy', '15.2.10.5.24') do
@@ -301,6 +309,20 @@ assert('String#replace', '15.2.10.5.28') do
   a.replace('abc')
 
   assert_equal 'abc', a
+  assert_equal 'abc', 'cba'.replace(a)
+
+  b = 'abc' * 10
+  c = ('cba' * 10).dup
+  b.replace(c);
+  c.replace(b);
+  assert_equal c, b
+
+  # shared string
+  s = "foo" * 100
+  a = s[10, 90]                # create shared string
+  assert_equal("", s.replace(""))    # clear
+  assert_equal("", s)          # s is cleared
+  assert_not_equal("", a)      # a should not be affected
 end
 
 assert('String#reverse', '15.2.10.5.29') do
@@ -324,6 +346,9 @@ assert('String#rindex', '15.2.10.5.31') do
   assert_nil 'abc'.rindex('d')
   assert_equal 0, 'abcabc'.rindex('a', 1)
   assert_equal 3, 'abcabc'.rindex('a', 4)
+
+  assert_equal 3,   'abcabc'.rindex(97)
+  assert_equal nil, 'abcabc'.rindex(0)
 end
 
 # 'String#scan', '15.2.10.5.32' will be tested in mrbgems.
@@ -411,11 +436,13 @@ assert('String#to_i', '15.2.10.5.39') do
   b = '32143'.to_i
   c = 'a'.to_i(16)
   d = '100'.to_i(2)
+  e = '1_000'.to_i
 
   assert_equal 0, a
   assert_equal 32143, b
   assert_equal 10, c
   assert_equal 4, d
+  assert_equal 1_000, e
 end
 
 assert('String#to_s', '15.2.10.5.40') do
@@ -442,6 +469,22 @@ assert('String#upcase!', '15.2.10.5.43') do
   a.upcase!
 
   assert_equal 'ABC', a
+  assert_equal nil, 'ABC'.upcase!
+
+  a = 'abcdefghijklmnopqrstuvwxyz'
+  b = a.dup
+  a.upcase!
+  b.upcase!
+  assert_equal 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', b
+end
+
+assert('String#inspect', '15.2.10.5.46') do
+  # should not raise an exception - regress #1210
+  assert_nothing_raised do
+  ("\1" * 100).inspect
+  end
+
+  assert_equal "\"\\000\"", "\0".inspect
 end
 
 # Not ISO specified
@@ -474,9 +517,4 @@ assert('String#each_byte') do
   str1.each_byte {|b| bytes2 << b }
 
   assert_equal bytes1, bytes2
-end
-
-assert('String#inspect') do
-  ("\1" * 100).inspect  # should not raise an exception - regress #1210
-  assert_equal "\"\\000\"", "\0".inspect
 end

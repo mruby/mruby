@@ -1,3 +1,12 @@
+assert('__FILE__') do
+  file = __FILE__
+  assert_true 'test/t/syntax.rb' == file || 'test\t\syntax.rb' == file
+end
+
+assert('__LINE__') do
+  assert_equal 7, __LINE__
+end
+
 assert('super', '11.3.4') do
   assert_raise NoMethodError do
     super
@@ -216,4 +225,91 @@ assert('splat in case statement') do
   assert_equal [1,7], resulta
   assert_equal [5], resultb
   assert_equal [3,8], resultc
+end
+
+assert('External command execution.') do
+  class << Kernel
+    sym = '`'.to_sym
+    alias_method :old_cmd, sym
+
+    results = []
+    define_method(sym) do |str|
+      results.push str
+      str
+    end
+
+    `test` # NOVAL NODE_XSTR
+    `test dynamic #{sym}` # NOVAL NODE_DXSTR
+    assert_equal ['test', 'test dynamic `'], results
+
+    t = `test` # VAL NODE_XSTR
+    assert_equal 'test', t
+    assert_equal ['test', 'test dynamic `', 'test'], results
+
+    t = `test dynamic #{sym}` # VAL NODE_DXSTR
+    assert_equal 'test dynamic `', t
+    assert_equal ['test', 'test dynamic `', 'test', 'test dynamic `'], results
+
+    alias_method sym, :old_cmd
+  end
+  true
+end
+
+assert('parenthesed do-block in cmdarg') do
+  class ParenDoBlockCmdArg
+    def test(block)
+      block.call
+    end
+  end
+  x = ParenDoBlockCmdArg.new
+  result = x.test (Proc.new do :ok; end)
+  assert_equal :ok, result
+end
+
+assert('method definition in cmdarg') do
+  if false
+    bar def foo; self.each do end end
+  end
+  true
+end
+
+assert('optional argument in the rhs default expressions') do
+  class OptArgInRHS
+    def foo
+      "method called"
+    end
+    def t(foo = foo)
+      foo
+    end
+    def t2(foo = foo())
+      foo
+    end
+  end
+  o = OptArgInRHS.new
+  assert_nil(o.t)
+  assert_equal("method called", o.t2)
+end
+
+assert('optional block argument in the rhs default expressions') do
+  assert_nil(Proc.new {|foo = foo| foo}.call)
+end
+
+assert('multiline comments work correctly') do
+=begin
+this is a comment with nothing after begin and end
+=end
+=begin  this is a comment 
+this is a comment with extra after =begin
+=end
+=begin
+this is a comment that has =end with spaces after it
+=end  
+=begin this is a comment
+this is a comment that has extra after =begin and =end with spaces after it
+=end  
+  line = __LINE__
+=begin	this is a comment
+this is a comment that has extra after =begin and =end with tabs after it
+=end	xxxxxxxxxxxxxxxxxxxxxxxxxx
+  assert_equal(line + 4, __LINE__)
 end

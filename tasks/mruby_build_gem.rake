@@ -34,6 +34,12 @@ module MRuby
       Gem.current.build = MRuby::Build.current
       Gem.current.build_config_initializer = block
       gems << Gem.current
+
+      cxx_srcs = ['src', 'test', 'tools'].map do |subdir|
+        Dir.glob("#{Gem.current.dir}/#{subdir}/*.{cpp,cxx,cc}")
+      end.flatten
+      enable_cxx_abi unless cxx_srcs.empty?
+
       Gem.current
     end
 
@@ -41,7 +47,11 @@ module MRuby
       if params[:github]
         params[:git] = "https://github.com/#{params[:github]}.git"
       elsif params[:bitbucket]
-        params[:git] = "https://bitbucket.org/#{params[:bitbucket]}.git"
+        if params[:method] == "ssh"
+          params[:git] = "git@bitbucket.org:#{params[:bitbucket]}.git"
+        else
+          params[:git] = "https://bitbucket.org/#{params[:bitbucket]}.git"
+        end
       end
 
       if params[:core]
@@ -49,6 +59,9 @@ module MRuby
       elsif params[:git]
         url = params[:git]
         gemdir = "#{gem_clone_dir}/#{url.match(/([-\w]+)(\.[-\w]+|)$/).to_a[1]}"
+
+        # by default the 'master' branch is used
+        branch = params[:branch] ? params[:branch] : 'master'
 
         if File.exist?(gemdir)
           if $pull_gems
@@ -58,9 +71,18 @@ module MRuby
           end
         else
           options = [params[:options]] || []
-          options << "--branch \"#{params[:branch]}\"" if params[:branch]
+          options << "--branch \"#{branch}\""
+          options << "--depth 1" unless params[:checksum_hash]
           FileUtils.mkdir_p "#{gem_clone_dir}"
           git.run_clone gemdir, url, options
+        end
+
+        if params[:checksum_hash]
+          # Jump to the specified commit
+          git.run_checkout gemdir, params[:checksum_hash]
+        else
+          # Jump to the top of the branch
+          git.run_checkout gemdir, branch
         end
       else
         fail "unknown gem option #{params}"

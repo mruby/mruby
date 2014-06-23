@@ -41,6 +41,8 @@ mrb_class(mrb_state *mrb, mrb_value v)
     return mrb->float_class;
   case MRB_TT_CPTR:
     return mrb->object_class;
+  case MRB_TT_ENV:
+    return NULL;
   default:
     return mrb_obj_ptr(v)->c;
   }

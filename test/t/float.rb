@@ -5,16 +5,15 @@ assert('Float', '15.2.9') do
   assert_equal Class, Float.class
 end
 
-assert('Float superclass', '15.2.9.2') do
-  assert_equal Numeric, Float.superclass
-end
-
 assert('Float#+', '15.2.9.3.1') do
   a = 3.123456788 + 0.000000001
   b = 3.123456789 + 1
 
   assert_float(3.123456789, a)
   assert_float(4.123456789, b)
+
+  assert_raise(TypeError){ 0.0+nil }
+  assert_raise(TypeError){ 1.0+nil }
 end
 
 assert('Float#-', '15.2.9.3.2') do
@@ -127,6 +126,18 @@ assert('Float#round', '15.2.9.3.12') do
   assert_equal(    3, g)
   assert_float(  3.4, h)
   assert_float(3.423, i)
+
+  assert_equal(42.0, 42.0.round(307))
+  assert_equal(1.0e307, 1.0e307.round(2))
+
+  inf = 1.0/0.0
+  assert_raise(FloatDomainError){ inf.round }
+  assert_raise(FloatDomainError){ inf.round(-1) }
+  assert_equal(inf, inf.round(1))
+  nan = 0.0/0.0
+  assert_raise(FloatDomainError){ nan.round }
+  assert_raise(FloatDomainError){ nan.round(-1) }
+  assert_true(nan.round(1).nan?)
 end
 
 assert('Float#to_f', '15.2.9.3.13') do
@@ -142,4 +153,28 @@ end
 assert('Float#truncate', '15.2.9.3.15') do
   assert_equal( 3,  3.123456789.truncate)
   assert_equal(-3, -3.1.truncate)
+end
+
+assert('Float#divmod') do
+  def check_floats exp, act
+    assert_float exp[0], act[0]
+    assert_float exp[1], act[1]
+  end
+
+  # Note: quotients are Float because mruby does not have Bignum.
+  check_floats [ 0,  0.0],   0.0.divmod(1)
+  check_floats [ 0,  1.1],   1.1.divmod(3)
+  check_floats [ 3,  0.2],   3.2.divmod(1)
+  check_floats [ 2,  6.3],  20.3.divmod(7)
+  check_floats [-1,  1.6],  -3.4.divmod(5)
+  check_floats [-2, -0.5],  25.5.divmod(-13)
+  check_floats [ 1, -6.6], -13.6.divmod(-7)
+  check_floats [ 3,  0.2],   9.8.divmod(3.2)
+end
+
+assert('Float#nan?') do
+  assert_true (0.0/0.0).nan?
+  assert_false 0.0.nan?
+  assert_false (1.0/0.0).nan?
+  assert_false (-1.0/0.0).nan?
 end

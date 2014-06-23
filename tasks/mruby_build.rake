@@ -45,6 +45,7 @@ module MRuby
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir
     attr_reader :libmruby, :gems
+    attr_writer :enable_bintest
 
     COMPILERS = %w(cc cxx objc asm)
     COMMANDS = COMPILERS + %w(linker archiver yacc gperf git exts mrbc)
@@ -52,7 +53,7 @@ module MRuby
 
     Exts = Struct.new(:object, :executable, :library)
 
-    def initialize(name='host', &block)
+    def initialize(name='host', build_dir=nil, &block)
       @name = name.to_s
 
       unless MRuby.targets[@name]
@@ -62,9 +63,11 @@ module MRuby
           @exts = Exts.new('.o', '', '.a')
         end
 
+        build_dir = build_dir || ENV['MRUBY_BUILD_DIR'] || "#{MRUBY_ROOT}/build"
+
         @file_separator = '/'
-        @build_dir = "#{MRUBY_ROOT}/build/#{@name}"
-        @gem_clone_dir = "#{MRUBY_ROOT}/build/mrbgems"
+        @build_dir = "#{build_dir}/#{@name}"
+        @gem_clone_dir = "#{build_dir}/mrbgems"
         @cc = Command::Compiler.new(self, %w(.c))
         @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp))
         @objc = Command::Compiler.new(self, %w(.m))
@@ -79,6 +82,8 @@ module MRuby
         @bins = %w(mrbc)
         @gems, @libmruby = MRuby::Gem::List.new, []
         @build_mrbtest_lib_only = false
+        @cxx_abi_enabled = false
+        @cxx_exception_disabled = false
 
         MRuby.targets[@name] = self
       end
@@ -90,6 +95,29 @@ module MRuby
     def enable_debug
       compilers.each { |c| c.defines += %w(MRB_DEBUG) }
       @mrbc.compile_options += ' -g'
+    end
+
+    def disable_cxx_exception
+      @cxx_exception_disabled = true
+    end
+
+    def cxx_abi_enabled?
+      @cxx_abi_enabled
+    end
+
+    def enable_cxx_abi
+      return if @cxx_exception_disabled or @cxx_abi_enabled
+      compilers.each { |c| c.defines += %w(MRB_ENABLE_CXX_EXCEPTION) }
+      linker.command = cxx.command
+      @cxx_abi_enabled = true
+    end
+
+    def enable_bintest
+      @enable_bintest = true
+    end
+
+    def bintest_enabled?
+      @enable_bintest
     end
 
     def toolchain(name)
@@ -115,9 +143,9 @@ module MRuby
     def define_rules
       compilers.each do |compiler|
         if respond_to?(:enable_gems?) && enable_gems?
-          compiler.defines -= %w(DISABLE_GEMS) 
+          compiler.defines -= %w(DISABLE_GEMS)
         else
-          compiler.defines += %w(DISABLE_GEMS) 
+          compiler.defines += %w(DISABLE_GEMS)
         end
         compiler.define_rules build_dir, File.expand_path(File.join(File.dirname(__FILE__), '..'))
       end
@@ -175,7 +203,14 @@ module MRuby
       puts ">>> Test #{name} <<<"
       mrbtest = exefile("#{build_dir}/test/mrbtest")
       sh "#{filename mrbtest.relative_path}#{$verbose ? ' -v' : ''}"
-      puts 
+      puts
+      run_bintest if @enable_bintest
+    end
+
+    def run_bintest
+      targets = @gems.select { |v| File.directory? "#{v.dir}/bintest" }.map { |v| filename v.dir }
+      targets << filename(".") if File.directory? "./bintest"
+      sh "ruby test/bintest.rb #{targets.join ' '}"
     end
 
     def print_build_summary
@@ -186,8 +221,9 @@ module MRuby
       unless @gems.empty?
         puts "    Included Gems:"
         @gems.map do |gem|
-          gem_version = "- #{gem.version}" if gem.version
-          puts "             #{gem.name} #{gem_version}"
+          gem_version = " - #{gem.version}" if gem.version != '0.0.0'
+          gem_summary = " - #{gem.summary}" if gem.summary
+          puts "             #{gem.name}#{gem_version}#{gem_summary}"
           puts "               - Binaries: #{gem.bins.join(', ')}" unless gem.bins.empty?
         end
       end
@@ -199,9 +235,9 @@ module MRuby
   class CrossBuild < Build
     attr_block %w(test_runner)
 
-    def initialize(name, &block)
-  @test_runner = Command::CrossTestRunner.new(self)
-  super
+    def initialize(name, build_dir=nil, &block)
+      @test_runner = Command::CrossTestRunner.new(self)
+      super
     end
 
     def mrbcfile

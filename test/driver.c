@@ -10,12 +10,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <mruby.h>
-#include <mruby/proc.h>
-#include <mruby/data.h>
-#include <mruby/compile.h>
-#include <mruby/string.h>
-#include <mruby/variable.h>
+#include "mruby.h"
+#include "mruby/proc.h"
+#include "mruby/data.h"
+#include "mruby/compile.h"
+#include "mruby/string.h"
+#include "mruby/variable.h"
 
 void
 mrb_init_mrbtest(mrb_state *);
@@ -24,9 +24,7 @@ mrb_init_mrbtest(mrb_state *);
 static void
 print_hint(void)
 {
-  printf("mrbtest - Embeddable Ruby Test\n");
-  printf("\nThis is a very early version, please test and report errors.\n");
-  printf("Thanks :)\n\n");
+  printf("mrbtest - Embeddable Ruby Test\n\n");
 }
 
 static int
@@ -34,8 +32,8 @@ check_error(mrb_state *mrb)
 {
   /* Error check */
   /* $ko_test and $kill_test should be 0 */
-  mrb_value ko_test = mrb_gv_get(mrb, mrb_intern(mrb, "$ko_test", 8));
-  mrb_value kill_test = mrb_gv_get(mrb, mrb_intern(mrb, "$kill_test", 10));
+  mrb_value ko_test = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$ko_test"));
+  mrb_value kill_test = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$kill_test"));
 
   return mrb_fixnum_p(ko_test) && mrb_fixnum(ko_test) == 0 && mrb_fixnum_p(kill_test) && mrb_fixnum(kill_test) == 0;
 }
@@ -63,14 +61,12 @@ eval_test(mrb_state *mrb)
 static void
 t_printstr(mrb_state *mrb, mrb_value obj)
 {
-  struct RString *str;
   char *s;
   int len;
-   
+
   if (mrb_string_p(obj)) {
-    str = mrb_str_ptr(obj);
-    s = str->ptr;
-    len = str->len;
+    s = RSTRING_PTR(obj);
+    len = RSTRING_LEN(obj);
     fwrite(s, len, 1, stdout);
   }
 }
@@ -91,6 +87,7 @@ main(int argc, char **argv)
 {
   mrb_state *mrb;
   struct RClass *krn;
+  struct RClass *mrbtest;
   int ret;
 
   print_hint();
@@ -104,11 +101,17 @@ main(int argc, char **argv)
 
   if (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'v') {
     printf("verbose mode: enable\n\n");
-    mrb_gv_set(mrb, mrb_intern(mrb, "$mrbtest_verbose", 16), mrb_true_value());
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"), mrb_true_value());
   }
 
   krn = mrb->kernel_module;
   mrb_define_method(mrb, krn, "__t_printstr__", mrb_t_printstr, MRB_ARGS_REQ(1));
+
+  mrbtest = mrb_define_module(mrb, "Mrbtest");
+
+  mrb_define_const(mrb, mrbtest, "FIXNUM_MAX", mrb_fixnum_value(MRB_INT_MAX));
+  mrb_define_const(mrb, mrbtest, "FIXNUM_MIN", mrb_fixnum_value(MRB_INT_MIN));
+  mrb_define_const(mrb, mrbtest, "FIXNUM_BIT", mrb_fixnum_value(MRB_INT_BIT));
 
   mrb_init_mrbtest(mrb);
   ret = eval_test(mrb);

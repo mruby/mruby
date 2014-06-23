@@ -8,6 +8,8 @@
 #include "mruby/string.h"
 #include "mruby/data.h"
 #include "mruby/class.h"
+#include "mruby/re.h"
+#include "mruby/irep.h"
 
 struct RData*
 mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb_data_type *type)
@@ -16,7 +18,7 @@ mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb
 
   data = (struct RData*)mrb_obj_alloc(mrb, MRB_TT_DATA, klass);
   data->data = ptr;
-  data->type = (mrb_data_type*) type;
+  data->type = type;
 
   return data;
 }
@@ -62,34 +64,6 @@ mrb_data_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
   return DATA_PTR(obj);
 }
 
-mrb_value
-mrb_lastline_get(mrb_state *mrb)
-{
-  mrb_value *argv;
-  int argc;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  if (argc < 1) {
-    return mrb_nil_value();
-  }
-  else
-  {
-    return argv[0];
-  }
-}
-
-/* ------------------------------------------------ */
-/*
- * Calls func(obj, arg, recursive), where recursive is non-zero if the
- * current method is called recursively on obj
- */
-
-mrb_value
-mrb_exec_recursive(mrb_state *mrb, mrb_value (*func) (mrb_state *, mrb_value, mrb_value, int), mrb_value obj, void *arg)
-{
-  return func(mrb, obj, *(mrb_value*)arg, 0);
-}
-
 mrb_sym
 mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
 {
@@ -109,26 +83,13 @@ mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
       name = mrb_str_intern(mrb, name);
       /* fall through */
     case MRB_TT_SYMBOL:
-      return mrb_symbol(name);
+      id = mrb_symbol(name);
   }
   return id;
 }
 
-/*
- * call-seq:
- *   proc   { |...| block }  -> a_proc
- *
- * Equivalent to <code>Proc.new</code>.
- */
-
-mrb_value
-mrb_block_proc(void)
-{
-  return mrb_nil_value();
-}
-
-static mrb_int
-float_id(mrb_float f)
+mrb_int
+mrb_float_id(mrb_float f)
 {
   const char *p = (const char*)&f;
   int len = sizeof(f);
@@ -148,7 +109,7 @@ mrb_obj_id(mrb_value obj)
 {
   mrb_int tt = mrb_type(obj);
 
-#define MakeID2(p,t) (((intptr_t)(p))^(t))
+#define MakeID2(p,t) (mrb_int)(((intptr_t)(p))^(t))
 #define MakeID(p)    MakeID2(p,tt)
 
   switch (tt) {
@@ -164,9 +125,9 @@ mrb_obj_id(mrb_value obj)
   case  MRB_TT_SYMBOL:
     return MakeID(mrb_symbol(obj));
   case  MRB_TT_FIXNUM:
-    return MakeID2(float_id((mrb_float)mrb_fixnum(obj)), MRB_TT_FLOAT);
+    return MakeID2(mrb_float_id((mrb_float)mrb_fixnum(obj)), MRB_TT_FLOAT);
   case  MRB_TT_FLOAT:
-    return MakeID(float_id(mrb_float(obj)));
+    return MakeID(mrb_float_id(mrb_float(obj)));
   case  MRB_TT_STRING:
   case  MRB_TT_OBJECT:
   case  MRB_TT_CLASS:
@@ -217,3 +178,8 @@ mrb_cptr_value(mrb_state *mrb, void *p)
 }
 #endif  /* MRB_WORD_BOXING */
 
+mrb_bool
+mrb_regexp_p(mrb_state *mrb, mrb_value v)
+{
+  return mrb_class_defined(mrb, REGEXP_CLASS) && mrb_obj_is_kind_of(mrb, v, mrb_class_get(mrb, REGEXP_CLASS));
+}

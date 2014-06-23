@@ -7,7 +7,7 @@
 #include "mruby.h"
 #include "mruby/class.h"
 #include "mruby/proc.h"
-#include "opcode.h"
+#include "mruby/opcode.h"
 
 static mrb_code call_iseq[] = {
   MKOP_A(OP_CALL, 0),
@@ -41,7 +41,7 @@ closure_setup(mrb_state *mrb, struct RProc *p, int nlocals)
 
   if (!mrb->c->ci->env) {
     e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)mrb->c->ci->proc->env);
-    e->flags= (unsigned int)nlocals;
+    MRB_ENV_STACK_LEN(e)= (unsigned int)nlocals;
     e->mid = mrb->c->ci->mid;
     e->cioff = mrb->c->ci - mrb->c->cibase;
     e->stack = mrb->c->stack;
@@ -70,6 +70,7 @@ mrb_proc_new_cfunc(mrb_state *mrb, mrb_func_t func)
   p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
   p->body.func = func;
   p->flags |= MRB_PROC_CFUNC;
+  p->env = 0;
 
   return p;
 }
@@ -90,7 +91,7 @@ mrb_proc_copy(struct RProc *a, struct RProc *b)
   a->body = b->body;
   if (!MRB_PROC_CFUNC_P(a)) {
     a->body.irep->refcnt++;
-  };
+  }
   a->target_class = b->target_class;
   a->env = b->env;
 }
@@ -148,9 +149,14 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
 {
   struct RProc *p = mrb_proc_ptr(self);
   mrb_code *iseq = mrb_proc_iseq(mrb, p);
-  mrb_aspec aspec = GETARG_Ax(*iseq);
+  mrb_aspec aspec;
   int ma, ra, pa, arity;
 
+  if (MRB_PROC_CFUNC_P(p)) {
+    // TODO cfunc aspec not implemented yet
+    return mrb_fixnum_value(-1);
+  }
+  aspec = GETARG_Ax(*iseq);
   ma = MRB_ASPEC_REQ(aspec);
   ra = MRB_ASPEC_REST(aspec);
   pa = MRB_ASPEC_POST(aspec);
@@ -195,16 +201,10 @@ mrb_init_proc(mrb_state *mrb)
   mrb_irep *call_irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
   static const mrb_irep mrb_irep_zero = { 0 };
 
-  if (call_irep == NULL)
-    return;
-
   *call_irep = mrb_irep_zero;
   call_irep->flags = MRB_ISEQ_NO_FREE;
   call_irep->iseq = call_iseq;
   call_irep->ilen = 1;
-
-  mrb->proc_class = mrb_define_class(mrb, "Proc", mrb->object_class);
-  MRB_SET_INSTANCE_TT(mrb->proc_class, MRB_TT_PROC);
 
   mrb_define_method(mrb, mrb->proc_class, "initialize", mrb_proc_initialize, MRB_ARGS_NONE());
   mrb_define_method(mrb, mrb->proc_class, "initialize_copy", mrb_proc_init_copy, MRB_ARGS_REQ(1));

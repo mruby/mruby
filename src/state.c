@@ -14,12 +14,11 @@
 
 void mrb_init_heap(mrb_state*);
 void mrb_init_core(mrb_state*);
-void mrb_final_core(mrb_state*);
 
 static mrb_value
 inspect_main(mrb_state *mrb, mrb_value mod)
 {
-  return mrb_str_new(mrb, "main", 4);
+  return mrb_str_new_lit(mrb, "main");
 }
 
 mrb_state*
@@ -30,7 +29,7 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   mrb_state *mrb;
 
 #ifdef MRB_NAN_BOXING
-  mrb_assert(sizeof(void*) == 4);
+  mrb_static_assert(sizeof(void*) == 4, "when using NaN boxing sizeof pointer must be 4 byte");
 #endif
 
   mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
@@ -40,6 +39,7 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   mrb->ud = ud;
   mrb->allocf = f;
   mrb->current_white_part = MRB_GC_WHITE_A;
+  mrb->atexit_stack_len = 0;
 
 #ifndef MRB_GC_FIXED_ARENA
   mrb->arena = (struct RBasic**)mrb_malloc(mrb, sizeof(struct RBasic*)*MRB_GC_ARENA_SIZE);
@@ -78,7 +78,6 @@ mrb_alloca(mrb_state *mrb, size_t size)
   struct alloca_header *p;
 
   p = (struct alloca_header*) mrb_malloc(mrb, sizeof(struct alloca_header)+size);
-  if (p == NULL) return NULL;
   p->next = mrb->mems;
   mrb->mems = p;
   return (void*)p->buf;
@@ -135,9 +134,7 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
     mrb_free(mrb, irep->iseq);
   for (i=0; i<irep->plen; i++) {
     if (mrb_type(irep->pool[i]) == MRB_TT_STRING) {
-      if ((mrb_str_ptr(irep->pool[i])->flags & MRB_STR_NOFREE) == 0) {
-        mrb_free(mrb, mrb_str_ptr(irep->pool[i])->ptr);
-      }
+      mrb_gc_free_str(mrb, RSTRING(irep->pool[i]));
       mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
     }
 #ifdef MRB_WORD_BOXING
@@ -152,6 +149,7 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
     mrb_irep_decref(mrb, irep->reps[i]);
   }
   mrb_free(mrb, irep->reps);
+  mrb_free(mrb, irep->lv);
   mrb_free(mrb, (void *)irep->filename);
   mrb_free(mrb, irep->lines);
   mrb_debug_info_free(mrb, irep->debug_info);
@@ -163,24 +161,48 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
   struct RString *ns;
+  char *ptr;
   mrb_int len;
 
   ns = (struct RString *)mrb_malloc(mrb, sizeof(struct RString));
   ns->tt = MRB_TT_STRING;
   ns->c = mrb->string_class;
 
-  len = s->len;
-  ns->len = len;
   if (s->flags & MRB_STR_NOFREE) {
-    ns->ptr = s->ptr;
     ns->flags = MRB_STR_NOFREE;
+    ns->as.heap.ptr = s->as.heap.ptr;
+    ns->as.heap.len = s->as.heap.len;
+    ns->as.heap.aux.capa = 0;
   }
   else {
-    ns->ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
-    if (s->ptr) {
-      memcpy(ns->ptr, s->ptr, len);
+    ns->flags = 0;
+    if (s->flags & MRB_STR_EMBED) {
+      ptr = s->as.ary;
+      len = (mrb_int)((s->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT);
     }
-    ns->ptr[len] = '\0';
+    else {
+      ptr = s->as.heap.ptr;
+      len = s->as.heap.len;
+    }
+
+    if (len < RSTRING_EMBED_LEN_MAX) {
+      ns->flags |= MRB_STR_EMBED;
+      ns->flags &= ~MRB_STR_EMBED_LEN_MASK;
+      ns->flags |= (size_t)len << MRB_STR_EMBED_LEN_SHIFT;
+      if (ptr) {
+        memcpy(ns->as.ary, ptr, len);
+      }
+      ns->as.ary[len] = '\0';
+    }
+    else {
+      ns->as.heap.ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
+      ns->as.heap.len = len;
+      ns->as.heap.aux.capa = len;
+      if (ptr) {
+        memcpy(ns->as.heap.ptr, ptr, len);
+      }
+      ns->as.heap.ptr[len] = '\0';
+    }
   }
   return mrb_obj_value(ns);
 }
@@ -199,7 +221,15 @@ mrb_free_context(mrb_state *mrb, struct mrb_context *c)
 void
 mrb_close(mrb_state *mrb)
 {
-  mrb_final_core(mrb);
+  if (mrb->atexit_stack_len > 0) {
+    mrb_int i;
+    for (i = mrb->atexit_stack_len; i > 0; --i) {
+      mrb->atexit_stack[i - 1](mrb);
+    }
+#ifndef MRB_FIXED_STATE_ATEXIT_STACK
+    mrb_free(mrb, mrb->atexit_stack);
+#endif
+  }
 
   /* free */
   mrb_gc_free_gv(mrb);
@@ -235,4 +265,25 @@ mrb_top_self(mrb_state *mrb)
     mrb_define_singleton_method(mrb, mrb->top_self, "to_s", inspect_main, MRB_ARGS_NONE());
   }
   return mrb_obj_value(mrb->top_self);
+}
+
+void
+mrb_state_atexit(mrb_state *mrb, mrb_atexit_func f)
+{
+#ifdef MRB_FIXED_STATE_ATEXIT_STACK
+  if (mrb->atexit_stack_len + 1 > MRB_FIXED_STATE_ATEXIT_STACK_SIZE) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "exceeded fixed state atexit stack limit");
+  }
+#else
+  size_t stack_size;
+
+  stack_size = sizeof(mrb_atexit_func) * (mrb->atexit_stack_len + 1);
+  if (mrb->atexit_stack_len == 0) {
+    mrb->atexit_stack = (mrb_atexit_func*)mrb_malloc(mrb, stack_size);
+  } else {
+    mrb->atexit_stack = (mrb_atexit_func*)mrb_realloc(mrb, mrb->atexit_stack, stack_size);
+  }
+#endif
+
+  mrb->atexit_stack[mrb->atexit_stack_len++] = f;
 }

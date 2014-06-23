@@ -2,12 +2,12 @@ MRuby.each_target do
   if enable_gems?
     # set up all gems
     gems.each(&:setup)
-    gems.check
+    gems.check self
 
     # loader all gems
     self.libmruby << objfile("#{build_dir}/mrbgems/gem_init")
     file objfile("#{build_dir}/mrbgems/gem_init") => ["#{build_dir}/mrbgems/gem_init.c", "#{build_dir}/LEGAL"]
-    file "#{build_dir}/mrbgems/gem_init.c" => [MRUBY_CONFIG] do |t|
+    file "#{build_dir}/mrbgems/gem_init.c" => [MRUBY_CONFIG, __FILE__] do |t|
       FileUtils.mkdir_p "#{build_dir}/mrbgems"
       open(t.name, 'w') do |f|
         f.puts %Q[/*]
@@ -26,21 +26,22 @@ MRuby.each_target do
         f.puts %Q[]
         f.puts %Q[#{gems.map{|g| "void GENERATED_TMP_mrb_%s_gem_final(mrb_state* mrb);" % g.funcname}.join("\n")}]
         f.puts %Q[]
-        f.puts %Q[void]
-        f.puts %Q[mrb_init_mrbgems(mrb_state *mrb) {]
-        f.puts %Q[#{gems.map{|g| "GENERATED_TMP_mrb_%s_gem_init(mrb);" % g.funcname}.join("\n")}]
+        f.puts %Q[static void]
+        f.puts %Q[mrb_final_mrbgems(mrb_state *mrb) {]
+        f.puts %Q[#{gems.map{|g| "GENERATED_TMP_mrb_%s_gem_final(mrb);" % g.funcname}.join("\n")}]
         f.puts %Q[}]
         f.puts %Q[]
         f.puts %Q[void]
-        f.puts %Q[mrb_final_mrbgems(mrb_state *mrb) {]
-        f.puts %Q[#{gems.map{|g| "GENERATED_TMP_mrb_%s_gem_final(mrb);" % g.funcname}.join("\n")}]
+        f.puts %Q[mrb_init_mrbgems(mrb_state *mrb) {]
+        f.puts %Q[#{gems.map{|g| "GENERATED_TMP_mrb_%s_gem_init(mrb);" % g.funcname}.join("\n")}]
+        f.puts %Q[mrb_state_atexit(mrb, mrb_final_mrbgems);]
         f.puts %Q[}]
       end
     end
   end
 
   # legal documents
-  file "#{build_dir}/LEGAL" => [MRUBY_CONFIG] do |t|
+  file "#{build_dir}/LEGAL" => [MRUBY_CONFIG, __FILE__] do |t|
     open(t.name, 'w+') do |f|
      f.puts <<LEGAL
 Copyright (c) #{Time.now.year} mruby developers

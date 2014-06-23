@@ -46,11 +46,10 @@ iv_new(mrb_state *mrb)
   iv_tbl *t;
 
   t = mrb_malloc(mrb, sizeof(iv_tbl));
-  if (t) {
-    t->size = 0;
-    t->rootseg =  NULL;
-    t->last_len = 0;
-  }
+  t->size = 0;
+  t->rootseg =  NULL;
+  t->last_len = 0;
+
   return t;
 }
 
@@ -119,16 +118,16 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 }
 
 /*
- * Get a value for a symbol from the instance the variable table.
+ * Get a value for a symbol from the instance variable table.
  *
  * Parameters
  *   mrb
  *   t     the variable table to be searched.
  *   sym   the symbol to be used as the key.
- *   vp    the value pointer. Recieves the value if the specified symbol contains
- *         in the instance variable table.
+ *   vp    the value pointer. Receives the value if the specified symbol is
+ *         contained in the instance variable table.
  * Returns
- *   true if the specfiyed symbol contains in the instance variable table.
+ *   true if the specified symbol is contained in the instance variable table.
  */
 static mrb_bool
 iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
@@ -160,10 +159,10 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
  * Parameters
  *   t    the variable table to be searched.
  *   sym  the symbol to be used as the key.
- *   vp   the value pointer. Recieve the deleted value if the symbol contans
- *        in the instance varible table.
+ *   vp   the value pointer. Receive the deleted value if the symbol is
+ *        contained in the instance variable table.
  * Returns
- *   true if the specfied symbol contains in the instance variable table.
+ *   true if the specified symbol is contained in the instance variable table.
  */
 static mrb_bool
 iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
@@ -290,8 +289,8 @@ iv_free(mrb_state *mrb, iv_tbl *t)
 #define MRB_IVHASH_INIT_SIZE 8
 #endif
 
-KHASH_DECLARE(iv, mrb_sym, mrb_value, 1)
-KHASH_DEFINE(iv, mrb_sym, mrb_value, 1, kh_int_hash_func, kh_int_hash_equal)
+KHASH_DECLARE(iv, mrb_sym, mrb_value, TRUE)
+KHASH_DEFINE(iv, mrb_sym, mrb_value, TRUE, kh_int_hash_func, kh_int_hash_equal)
 
 typedef struct iv_tbl {
   khash_t(iv) h;
@@ -354,7 +353,7 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 
   if (h) {
     for (k = kh_begin(h); k != kh_end(h); k++) {
-      if (kh_exist(h, k)){
+      if (kh_exist(h, k)) {
         n = (*func)(mrb, kh_key(h, k), kh_value(h, k), p);
         if (n > 0) return FALSE;
         if (n < 0) {
@@ -369,10 +368,12 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 static size_t
 iv_size(mrb_state *mrb, iv_tbl *t)
 {
-  khash_t(iv) *h = &t->h;
+  khash_t(iv) *h;
 
-  if (!h) return 0;
-  return kh_size(h);
+  if (t && (h = &t->h)) {
+    return kh_size(h);
+  }
+  return 0;
 }
 
 static iv_tbl*
@@ -560,20 +561,21 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   mrb_value str = *(mrb_value*)p;
   const char *s;
-  size_t len;
+  mrb_int len;
   mrb_value ins;
+  char *sp = RSTRING_PTR(str);
 
   /* need not to show internal data */
-  if (RSTRING_PTR(str)[0] == '-') { /* first element */
-    RSTRING_PTR(str)[0] = '#';
-    mrb_str_cat(mrb, str, " ", 1);
+  if (sp[0] == '-') { /* first element */
+    sp[0] = '#';
+    mrb_str_cat_lit(mrb, str, " ");
   }
   else {
-    mrb_str_cat(mrb, str, ", ", 2);
+    mrb_str_cat_lit(mrb, str, ", ");
   }
   s = mrb_sym2name_len(mrb, sym, &len);
   mrb_str_cat(mrb, str, s, len);
-  mrb_str_cat(mrb, str, "=", 1);
+  mrb_str_cat_lit(mrb, str, "=");
   if (mrb_type(v) == MRB_TT_OBJECT) {
     ins = mrb_any_to_s(mrb, v);
   }
@@ -594,13 +596,13 @@ mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
     const char *cn = mrb_obj_classname(mrb, mrb_obj_value(obj));
     mrb_value str = mrb_str_buf_new(mrb, 30);
 
-    mrb_str_buf_cat(mrb, str, "-<", 2);
-    mrb_str_cat2(mrb, str, cn);
-    mrb_str_cat(mrb, str, ":", 1);
+    mrb_str_cat_lit(mrb, str, "-<");
+    mrb_str_cat_cstr(mrb, str, cn);
+    mrb_str_cat_lit(mrb, str, ":");
     mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, obj));
 
     iv_foreach(mrb, t, inspect_i, &str);
-    mrb_str_cat(mrb, str, ">", 1);
+    mrb_str_cat_lit(mrb, str, ">");
     return str;
   }
   return mrb_any_to_s(mrb, mrb_obj_value(obj));
@@ -639,7 +641,7 @@ iv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   mrb_value ary;
   const char* s;
-  size_t len;
+  mrb_int len;
 
   ary = *(mrb_value*)p;
   s = mrb_sym2name_len(mrb, sym, &len);
@@ -683,7 +685,7 @@ cv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   mrb_value ary;
   const char* s;
-  size_t len;
+  mrb_int len;
 
   ary = *(mrb_value*)p;
   s = mrb_sym2name_len(mrb, sym, &len);
@@ -947,7 +949,7 @@ const_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   mrb_value ary;
   const char* s;
-  size_t len;
+  mrb_int len;
 
   ary = *(mrb_value*)p;
   s = mrb_sym2name_len(mrb, sym, &len);
@@ -968,13 +970,16 @@ mrb_value
 mrb_mod_constants(mrb_state *mrb, mrb_value mod)
 {
   mrb_value ary;
+  mrb_bool inherit = TRUE;
   struct RClass *c = mrb_class_ptr(mod);
 
+  mrb_get_args(mrb, "|b", &inherit);
   ary = mrb_ary_new(mrb);
   while (c) {
     if (c->iv) {
       iv_foreach(mrb, c->iv, const_i, &ary);
     }
+    if (!inherit) break;
     c = c->super;
     if (c == mrb->object_class) break;
   }
@@ -1052,7 +1057,7 @@ mrb_f_global_variables(mrb_state *mrb, mrb_value self)
   buf[2] = 0;
   for (i = 1; i <= 9; ++i) {
     buf[1] = (char)(i + '0');
-    mrb_ary_push(mrb, ary, mrb_symbol_value(mrb_intern_lit(mrb, buf)));
+    mrb_ary_push(mrb, ary, mrb_symbol_value(mrb_intern(mrb, buf, 2)));
   }
   return ary;
 }

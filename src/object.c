@@ -86,7 +86,7 @@ nil_to_s(mrb_state *mrb, mrb_value obj)
 static mrb_value
 nil_inspect(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new(mrb, "nil", 3);
+  return mrb_str_new_lit(mrb, "nil");
 }
 
 /***********************************************************************
@@ -147,7 +147,7 @@ true_xor(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_to_s(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new(mrb, "true", 4);
+  return mrb_str_new_lit(mrb, "true");
 }
 
 /* 15.2.5.3.4  */
@@ -254,7 +254,7 @@ false_or(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_to_s(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new(mrb, "false", 5);
+  return mrb_str_new_lit(mrb, "false");
 }
 
 void
@@ -302,7 +302,7 @@ inspect_type(mrb_state *mrb, mrb_value val)
 }
 
 static mrb_value
-convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *method, int raise)
+convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *method, mrb_bool raise)
 {
   mrb_sym m = 0;
 
@@ -338,7 +338,7 @@ mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char 
   mrb_value v;
 
   if (mrb_type(val) == type) return val;
-  v = convert_type(mrb, val, tname, method, 1/*Qtrue*/);
+  v = convert_type(mrb, val, tname, method, TRUE);
   if (mrb_type(v) != type) {
     mrb_raisef(mrb, E_TYPE_ERROR, "%S cannot be converted to %S by #%S", val,
                mrb_str_new_cstr(mrb, tname), mrb_str_new_cstr(mrb, method));
@@ -352,7 +352,7 @@ mrb_check_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const
   mrb_value v;
 
   if (mrb_type(val) == type && type != MRB_TT_DATA) return val;
-  v = convert_type(mrb, val, tname, method, 0/*Qfalse*/);
+  v = convert_type(mrb, val, tname, method, FALSE);
   if (mrb_nil_p(v) || mrb_type(v) != type) return mrb_nil_value();
   return v;
 }
@@ -361,7 +361,7 @@ static const struct types {
   unsigned char type;
   const char *name;
 } builtin_types[] = {
-//    {MRB_TT_NIL,  "nil"},
+/*    {MRB_TT_NIL,  "nil"}, */
   {MRB_TT_FALSE,  "false"},
   {MRB_TT_TRUE,   "true"},
   {MRB_TT_FIXNUM, "Fixnum"},
@@ -377,12 +377,12 @@ static const struct types {
   {MRB_TT_HASH,   "Hash"},
   {MRB_TT_STRING, "String"},
   {MRB_TT_RANGE,  "Range"},
-//    {MRB_TT_BIGNUM,  "Bignum"},
+/*    {MRB_TT_BIGNUM,  "Bignum"}, */
   {MRB_TT_FILE,   "File"},
   {MRB_TT_DATA,   "Data"},  /* internal use: wrapped C pointers */
-//    {MRB_TT_VARMAP,  "Varmap"},  /* internal use: dynamic variables */
-//    {MRB_TT_NODE,  "Node"},  /* internal use: syntax tree node */
-//    {MRB_TT_UNDEF,  "undef"},  /* internal use: #undef; should not happen */
+/*    {MRB_TT_VARMAP,  "Varmap"}, */ /* internal use: dynamic variables */
+/*    {MRB_TT_NODE,  "Node"}, */ /* internal use: syntax tree node */
+/*    {MRB_TT_UNDEF,  "undef"}, */ /* internal use: #undef; should not happen */
     {-1,  0}
 };
 
@@ -390,7 +390,6 @@ void
 mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
 {
   const struct types *type = builtin_types;
-  struct RString *s;
   enum mrb_vtype xt;
 
   xt = mrb_type(x);
@@ -409,8 +408,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
           etype = "Symbol";
         }
         else if (mrb_special_const_p(x)) {
-          s = mrb_str_ptr(mrb_obj_as_string(mrb, x));
-          etype = s->ptr;
+          etype = RSTRING_PTR(mrb_obj_as_string(mrb, x));
         }
         else {
           etype = mrb_obj_classname(mrb, x);
@@ -442,11 +440,11 @@ mrb_any_to_s(mrb_state *mrb, mrb_value obj)
   mrb_value str = mrb_str_buf_new(mrb, 20);
   const char *cname = mrb_obj_classname(mrb, obj);
 
-  mrb_str_buf_cat(mrb, str, "#<", 2);
-  mrb_str_cat2(mrb, str, cname);
-  mrb_str_cat(mrb, str, ":", 1);
+  mrb_str_cat_lit(mrb, str, "#<");
+  mrb_str_cat_cstr(mrb, str, cname);
+  mrb_str_cat_lit(mrb, str, ":");
   mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, mrb_cptr(obj)));
-  mrb_str_buf_cat(mrb, str, ">", 1);
+  mrb_str_cat_lit(mrb, str, ">");
 
   return str;
 }
@@ -590,7 +588,7 @@ mrb_Float(mrb_state *mrb, mrb_value val)
 mrb_value
 mrb_inspect(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_obj_as_string(mrb, mrb_funcall(mrb, obj, "inspect", 0, 0));
+  return mrb_obj_as_string(mrb, mrb_funcall(mrb, obj, "inspect", 0));
 }
 
 mrb_bool

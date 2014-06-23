@@ -2,6 +2,50 @@
 #include "mruby/proc.h"
 #include "mruby/array.h"
 #include "mruby/string.h"
+#include "mruby/debug.h"
+
+struct RProc *
+mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t f, mrb_int argc, const mrb_value *argv)
+{
+  struct RProc *p;
+  struct REnv *e;
+  int ai, i;
+
+  p = mrb_proc_new_cfunc(mrb, f);
+  ai = mrb_gc_arena_save(mrb);
+  e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, NULL);
+  p->env = e;
+  mrb_gc_arena_restore(mrb, ai);
+
+  MRB_ENV_UNSHARE_STACK(e);
+  MRB_ENV_STACK_LEN(e) = argc;
+  e->stack = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * argc);
+  for (i = 0; i < argc; ++i) {
+    e->stack[i] = argv[i];
+  }
+
+  return p;
+}
+
+mrb_value
+mrb_cfunc_env_get(mrb_state *mrb, mrb_int idx)
+{
+  struct RProc *p = mrb->c->ci->proc;
+  struct REnv *e = p->env;
+
+  if (!MRB_PROC_CFUNC_P(p)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from non-cfunc proc.");
+  }
+  if (!e) {
+    mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from cfunc Proc without REnv.");
+  }
+  if (idx < 0 || MRB_ENV_STACK_LEN(e) <= idx) {
+    mrb_raisef(mrb, E_INDEX_ERROR, "Env index out of range: %S (expected: 0 <= index < %S)",
+               mrb_fixnum_value(idx), mrb_fixnum_value(MRB_ENV_STACK_LEN(e)));
+  }
+
+  return e->stack[idx];
+}
 
 static mrb_value
 mrb_proc_lambda(mrb_state *mrb, mrb_value self)
@@ -20,13 +64,14 @@ mrb_proc_source_location(mrb_state *mrb, mrb_value self)
   }
   else {
     mrb_irep *irep = p->body.irep;
-    mrb_value filename = mrb_nil_value();
-    mrb_value lines = mrb_nil_value();
+    int32_t line;
+    const char *filename;
 
-    if (irep->filename) filename = mrb_str_new_cstr(mrb, irep->filename);
-    if (irep->lines)    lines = mrb_fixnum_value(*irep->lines);
+    filename = mrb_debug_get_filename(irep, 0);
+    line = mrb_debug_get_line(irep, 0);
 
-    return mrb_assoc_new(mrb, filename, lines);
+    return (!filename && line == -1)? mrb_nil_value()
+        : mrb_assoc_new(mrb, mrb_str_new_cstr(mrb, filename), mrb_fixnum_value(line));
   }
 }
 
@@ -34,34 +79,33 @@ static mrb_value
 mrb_proc_inspect(mrb_state *mrb, mrb_value self)
 {
   struct RProc *p = mrb_proc_ptr(self);
-  mrb_value str = mrb_str_new_cstr(mrb, "#<Proc:");
+  mrb_value str = mrb_str_new_lit(mrb, "#<Proc:");
   mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, mrb_cptr(self)));
 
   if (!MRB_PROC_CFUNC_P(p)) {
     mrb_irep *irep = p->body.irep;
-    mrb_str_cat_cstr(mrb, str, "@");   
+    const char *filename;
+    int32_t line;
+    mrb_str_cat_lit(mrb, str, "@");
 
-    if (irep->filename) {
-      mrb_str_cat_cstr(mrb, str, irep->filename);
+    filename = mrb_debug_get_filename(irep, 0);
+    mrb_str_cat_cstr(mrb, str, filename ? filename : "-");
+    mrb_str_cat_lit(mrb, str, ":");
+
+    line = mrb_debug_get_line(irep, 0);
+    if (line != -1) {
+      mrb_str_append(mrb, str, mrb_fixnum_value(line));
     }
     else {
-      mrb_str_cat_cstr(mrb, str, "-");
-    }
-    mrb_str_cat_cstr(mrb, str, ":");
-
-    if (irep->lines) {
-      mrb_str_append(mrb, str, mrb_fixnum_value(*irep->lines));
-    }
-    else {
-      mrb_str_cat_cstr(mrb, str, "-");      
+      mrb_str_cat_lit(mrb, str, "-");
     }
   }
 
   if (MRB_PROC_STRICT_P(p)) {
-    mrb_str_cat_cstr(mrb, str, " (lambda)");
+    mrb_str_cat_lit(mrb, str, " (lambda)");
   }
 
-  mrb_str_cat_cstr(mrb, str, ">");
+  mrb_str_cat_lit(mrb, str, ">");
   return str;
 }
 

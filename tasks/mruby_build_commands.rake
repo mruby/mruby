@@ -24,9 +24,17 @@ module MRuby
       target
     end
 
+    NotFoundCommands = {}
+
     private
     def _run(options, params={})
-      sh build.filename(command) + ' ' + ( options % params )
+      return sh command + ' ' + ( options % params ) if NotFoundCommands.key? @command
+      begin
+        sh build.filename(command) + ' ' + ( options % params )
+      rescue RuntimeError
+        NotFoundCommands[@command] = true
+        _run options, params
+      end
     end
   end
 
@@ -44,6 +52,18 @@ module MRuby
       @option_include_path = '-I%s'
       @option_define = '-D%s'
       @compile_options = '%{flags} -o %{outfile} -c %{infile}'
+    end
+
+    alias header_search_paths include_paths
+    def search_header_path(name)
+      header_search_paths.find do |v|
+        File.exist? build.filename("#{v}/#{name}").sub(/^"(.*)"$/, '\1')
+      end
+    end
+
+    def search_header(name)
+      path = search_header_path name
+      path && build.filename("#{path}/#{name}").sub(/^"(.*)"$/, '\1')
     end
 
     def all_flags(_defineds=[], _include_paths=[], _flags=[])
@@ -110,7 +130,7 @@ module MRuby
         File.read(file).gsub("\\\n ", "").scan(/^\S+:\s+(.+)$/).flatten.map {|s| s.split(' ') }.flatten
       else
         []
-      end
+      end + [ MRUBY_CONFIG ]
     end
   end
 
@@ -220,14 +240,15 @@ module MRuby
 
   class Command::Git < Command
     attr_accessor :flags
-    attr_accessor :clone_options, :pull_options
+    attr_accessor :clone_options, :pull_options, :checkout_options
 
     def initialize(build)
       super
       @command = 'git'
-      @flags = []
+      @flags = %w[]
       @clone_options = "clone %{flags} %{url} %{dir}"
       @pull_options = "pull"
+      @checkout_options = "checkout %{checksum_hash}"
     end
 
     def run_clone(dir, url, _flags = [])
@@ -240,6 +261,14 @@ module MRuby
       Dir.chdir dir
       _pp "GIT PULL", url, dir.relative_path
       _run pull_options
+      Dir.chdir root
+    end
+
+    def run_checkout(dir, checksum_hash)
+      root = Dir.pwd
+      Dir.chdir dir
+      _pp "GIT CHECKOUT", checksum_hash
+      _run checkout_options, { :checksum_hash => checksum_hash }
       Dir.chdir root
     end
   end
@@ -263,7 +292,7 @@ module MRuby
         out.puts io.read
       end
       # if mrbc execution fail, drop the file
-      unless $?.exitstatus
+      if $?.exitstatus != 0
         File.delete(out.path)
         exit(-1)
       end

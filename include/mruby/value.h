@@ -26,8 +26,14 @@
 #  error Cannot use NaN boxing when mrb_int is 64bit
 # else
    typedef int64_t mrb_int;
-#  define MRB_INT_MIN INT64_MIN
-#  define MRB_INT_MAX INT64_MAX
+#  define MRB_INT_BIT 64
+#  ifdef MRB_WORD_BOXING
+#   define MRB_INT_MIN (INT64_MIN>>MRB_FIXNUM_SHIFT)
+#   define MRB_INT_MAX (INT64_MAX>>MRB_FIXNUM_SHIFT)
+#  else
+#   define MRB_INT_MIN INT64_MIN
+#   define MRB_INT_MAX INT64_MAX
+#  endif
 #  define PRIdMRB_INT PRId64
 #  define PRIiMRB_INT PRIi64
 #  define PRIoMRB_INT PRIo64
@@ -35,13 +41,23 @@
 #  define PRIXMRB_INT PRIX64
 # endif
 #elif defined(MRB_INT16)
+# ifdef MRB_WORD_BOXING
+# error "MRB_INT16 is too small for MRB_WORD_BOXING."
+# endif
   typedef int16_t mrb_int;
+# define MRB_INT_BIT 16
 # define MRB_INT_MIN INT16_MIN
 # define MRB_INT_MAX INT16_MAX
 #else
   typedef int32_t mrb_int;
-# define MRB_INT_MIN INT32_MIN
-# define MRB_INT_MAX INT32_MAX
+# define MRB_INT_BIT 32
+# ifdef MRB_WORD_BOXING
+#  define MRB_INT_MIN (INT32_MIN>>MRB_FIXNUM_SHIFT)
+#  define MRB_INT_MAX (INT32_MAX>>MRB_FIXNUM_SHIFT)
+# else
+#  define MRB_INT_MIN INT32_MIN
+#  define MRB_INT_MAX INT32_MAX
+# endif
 # define PRIdMRB_INT PRId32
 # define PRIiMRB_INT PRIi32
 # define PRIoMRB_INT PRIo32
@@ -54,11 +70,15 @@ typedef short mrb_sym;
 # ifndef __cplusplus
 #  define inline __inline
 # endif
-# define snprintf _snprintf
+# if _MSC_VER < 1900
+#  define snprintf _snprintf
+# endif
 # if _MSC_VER < 1800
 #  include <float.h>
+#  define isfinite(n) _finite(n)
 #  define isnan _isnan
 #  define isinf(n) (!_finite(n) && !_isnan(n))
+#  define signbit(n) (_copysign(1.0, (n)) < 0.0)
 #  define strtoll _strtoi64
 #  define strtof (float)strtod
 #  define PRId32 "I32d"
@@ -71,6 +91,9 @@ typedef short mrb_sym;
 #  define PRIo64 "I64o"
 #  define PRIx64 "I64x"
 #  define PRIX64 "I64X"
+static unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
+#  define INFINITY (*(float *)&IEEE754_INFINITY_BITS_SINGLE)
+#  define NAN ((float)(INFINITY - INFINITY))
 # else
 #  include <inttypes.h>
 # endif
@@ -99,7 +122,7 @@ enum mrb_vtype {
   MRB_TT_SYMBOL,      /*   5 */
   MRB_TT_UNDEF,       /*   6 */
   MRB_TT_FLOAT,       /*   7 */
-  MRB_TT_CPTR,       /*   8 */
+  MRB_TT_CPTR,        /*   8 */
   MRB_TT_OBJECT,      /*   9 */
   MRB_TT_CLASS,       /*  10 */
   MRB_TT_MODULE,      /*  11 */
@@ -132,12 +155,12 @@ typedef struct mrb_value {
     union {
       void *p;
       struct {
-	MRB_ENDIAN_LOHI(
- 	  uint32_t ttt;
+        MRB_ENDIAN_LOHI(
+          uint32_t ttt;
           ,union {
-	    mrb_int i;
-	    mrb_sym sym;
-	  };
+            mrb_int i;
+            mrb_sym sym;
+          };
         )
       };
     } value;
@@ -152,7 +175,7 @@ typedef struct mrb_value {
  * In order to get enough bit size to save TT, all pointers are shifted 2 bits
  * in the right direction.
  */
-#define mrb_tt(o)       (((o).value.ttt & 0xfc000)>>14)
+#define mrb_tt(o)       ((enum mrb_vtype)(((o).value.ttt & 0xfc000)>>14))
 #define mrb_mktt(tt)    (0xfff00000|((tt)<<14))
 #define mrb_type(o)     ((uint32_t)0xfff00000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
 #define mrb_ptr(o)      ((void*)((((uintptr_t)0x3fffffffffff)&((uintptr_t)((o).value.p)))<<2))
@@ -195,7 +218,7 @@ enum mrb_vtype {
   MRB_TT_SYMBOL,      /*   4 */
   MRB_TT_UNDEF,       /*   5 */
   MRB_TT_FLOAT,       /*   6 */
-  MRB_TT_CPTR,       /*   7 */
+  MRB_TT_CPTR,        /*   7 */
   MRB_TT_OBJECT,      /*   8 */
   MRB_TT_CLASS,       /*   9 */
   MRB_TT_MODULE,      /*  10 */
@@ -236,7 +259,7 @@ typedef union mrb_value {
     void *p;
     struct {
       unsigned int i_flag : MRB_FIXNUM_SHIFT;
-      mrb_int i : (sizeof(mrb_int) * CHAR_BIT - MRB_FIXNUM_SHIFT);
+      mrb_int i : (MRB_INT_BIT - MRB_FIXNUM_SHIFT);
     };
     struct {
       unsigned int sym_flag : MRB_SPECIAL_SHIFT;
@@ -333,6 +356,7 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
 #define mrb_hash_p(o) (mrb_type(o) == MRB_TT_HASH)
 #define mrb_cptr_p(o) (mrb_type(o) == MRB_TT_CPTR)
 #define mrb_test(o)   mrb_bool(o)
+mrb_bool mrb_regexp_p(struct mrb_state*, mrb_value);
 
 #define MRB_OBJECT_HEADER \
   enum mrb_vtype tt:8;\
@@ -463,6 +487,8 @@ mrb_cptr_value(struct mrb_state *mrb, void *p)
 #define mrb_voidp(o) mrb_cptr(o)
 #define mrb_voidp_p(o) mrb_cptr_p(o)
 
+#define MRB_TT_HAS_BASIC_P(tt) ((tt) >= MRB_TT_HAS_BASIC)
+
 static inline mrb_value
 mrb_false_value(void)
 {
@@ -508,4 +534,4 @@ mrb_bool_value(mrb_bool boolean)
   return v;
 }
 
-#endif  /* MRUBY_OBJECT_H */
+#endif  /* MRUBY_VALUE_H */

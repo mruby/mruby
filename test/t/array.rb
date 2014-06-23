@@ -5,10 +5,6 @@ assert('Array', '15.2.12') do
   assert_equal(Class, Array.class)
 end
 
-assert('Array superclass', '15.2.12.2') do
-  assert_equal(Object, Array.superclass)
-end
-
 assert('Array inclueded modules', '15.2.12.3') do
   assert_true(Array.include?(Enumerable))
 end
@@ -49,6 +45,11 @@ assert('Array#[]', '15.2.12.5.4') do
   assert_equal(nil, [1,2,3].[](4))
   assert_equal(3, [1,2,3].[](-1))
   assert_equal(nil, [1,2,3].[](-4))
+
+  a = [ "a", "b", "c", "d", "e" ]
+  assert_equal("b", a[1.1])
+  assert_equal(["b", "c"], a[1,2])
+  assert_equal(["b", "c", "d"], a[1..-2])
 end
 
 assert('Array#[]=', '15.2.12.5.5') do
@@ -61,9 +62,26 @@ assert('Array#[]=', '15.2.12.5.5') do
     # this will cause an exception due to the wrong arguments
     a.[]=(1,2,3,4)
   end
+  assert_raise(IndexError) do
+    # this will cause an exception due to the wrong arguments
+    a = [1,2,3,4,5]
+    a[1, -1] = 10
+  end
 
   assert_equal(4, [1,2,3].[]=(1,4))
   assert_equal(3, [1,2,3].[]=(1,2,3))
+
+  a = [1,2,3,4,5]
+  a[3..-1] = 6
+  assert_equal([1,2,3,6], a)
+
+  a = [1,2,3,4,5]
+  a[3..-1] = []
+  assert_equal([1,2,3], a)
+
+  a = [1,2,3,4,5]
+  a[2...4] = 6
+  assert_equal([1,2,6,5], a)
 end
 
 assert('Array#clear', '15.2.12.5.6') do
@@ -301,6 +319,7 @@ assert('Array#hash', '15.2.12.5.35') do
   a = [ 1, 2, 3 ]
 
   assert_true(a.hash.is_a? Integer)
+  assert_equal([1,2].hash, [1,2].hash)
 end
 
 assert('Array#<=>', '15.2.12.5.36') do
@@ -328,6 +347,3 @@ assert("Array (Longish inline array)") do
   ary.each {|p| h[p.class] += 1}
   assert_equal({Array=>200}, h)
 end
-
-
-

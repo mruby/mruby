@@ -5,10 +5,6 @@ assert('Range', '15.2.14') do
   assert_equal Class, Range.class
 end
 
-assert('Range superclass', '15.2.14.2') do
-  assert_equal Object, Range.superclass
-end
-
 assert('Range#==', '15.2.14.4.1') do
   assert_true (1..10) == (1..10)
   assert_false (1..10) == (1..100)
@@ -46,7 +42,7 @@ assert('Range#first', '15.2.14.4.7') do
   assert_equal 1, (1..10).first
 end
 
-assert('Range#include', '15.2.14.4.8') do
+assert('Range#include?', '15.2.14.4.8') do
   a = (1..10)
 
   assert_true a.include?(5)
@@ -72,6 +68,20 @@ assert('Range#member?', '15.2.14.4.11') do
 
   assert_true a.member?(5)
   assert_false a.member?(20)
+end
+
+assert('Range#to_s', '15.2.14.4.12') do
+  assert_equal "0..1", (0..1).to_s
+  assert_equal "0...1", (0...1).to_s
+  assert_equal "a..b", ("a".."b").to_s
+  assert_equal "a...b", ("a"..."b").to_s
+end
+
+assert('Range#inspect', '15.2.14.4.13') do
+  assert_equal "0..1", (0..1).inspect
+  assert_equal "0...1", (0...1).inspect
+  assert_equal "\"a\"..\"b\"", ("a".."b").inspect
+  assert_equal "\"a\"...\"b\"", ("a"..."b").inspect
 end
 
 assert('Range#eql?', '15.2.14.4.14') do

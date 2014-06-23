@@ -5,7 +5,7 @@
 */
 
 #ifndef MRUBY_DATA_H
-#define MRUBY_DATA_H 1
+#define MRUBY_DATA_H
 
 #if defined(__cplusplus)
 extern "C" {

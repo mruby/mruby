@@ -7,7 +7,7 @@ typedef struct symbol_name {
   const char *name;
 } symbol_name;
 
-KHASH_DECLARE(n2s, symbol_name, mrb_sym, 1)
+KHASH_DECLARE(n2s, symbol_name, mrb_sym, TRUE)
 
 /*
  *  call-seq:

@@ -1,8 +1,9 @@
 class Symbol
+  include Comparable
 
   def to_proc
-    Proc.new do |obj, *args|
-      obj.send(self, *args)
+    ->(obj,*args,&block) do
+      obj.__send__(self, *args, &block)
     end
   end
 
@@ -45,6 +46,17 @@ class Symbol
 
   def upcase
     self.to_s.upcase.intern
+  end
+
+  ##
+  # call-seq:
+  #   sym.casecmp(other)  -> -1, 0, +1 or nil
+  #
+  # Case-insensitive version of <code>Symbol#<=></code>.
+
+  def casecmp(other)
+    return nil unless other.kind_of?(Symbol)
+    self.to_s.upcase <=> other.to_s.upcase
   end
 
   #

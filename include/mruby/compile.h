@@ -5,14 +5,15 @@
 */
 
 #ifndef MRUBY_COMPILE_H
-#define MRUBY_COMPILE_H 1
+#define MRUBY_COMPILE_H
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
 #include "mruby.h"
-#include <setjmp.h>
+
+struct mrb_jmpbuf;
 
 struct mrb_parser_state;
 /* load context */
@@ -27,12 +28,15 @@ typedef struct mrbc_context {
   mrb_bool capture_errors:1;
   mrb_bool dump_result:1;
   mrb_bool no_exec:1;
+  mrb_bool keep_lv:1;
 } mrbc_context;
 
 mrbc_context* mrbc_context_new(mrb_state *mrb);
 void mrbc_context_free(mrb_state *mrb, mrbc_context *cxt);
 const char *mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s);
 void mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*partial_hook)(struct mrb_parser_state*), void*data);
+
+mrb_value mrb_toplevel_run_keep(mrb_state*, struct RProc*, unsigned int);
 
 /* AST node structure */
 typedef struct mrb_ast_node {
@@ -42,18 +46,18 @@ typedef struct mrb_ast_node {
 
 /* lexer states */
 enum mrb_lex_state_enum {
-    EXPR_BEG,                   /* ignore newline, +/- is a sign. */
-    EXPR_END,                   /* newline significant, +/- is an operator. */
-    EXPR_ENDARG,                /* ditto, and unbound braces. */
-    EXPR_ENDFN,                 /* ditto, and unbound braces. */
-    EXPR_ARG,                   /* newline significant, +/- is an operator. */
-    EXPR_CMDARG,                /* newline significant, +/- is an operator. */
-    EXPR_MID,                   /* newline significant, +/- is an operator. */
-    EXPR_FNAME,                 /* ignore newline, no reserved words. */
-    EXPR_DOT,                   /* right after `.' or `::', no reserved words. */
-    EXPR_CLASS,                 /* immediate after `class', no here document. */
-    EXPR_VALUE,                 /* alike EXPR_BEG but label is disallowed. */
-    EXPR_MAX_STATE
+  EXPR_BEG,                   /* ignore newline, +/- is a sign. */
+  EXPR_END,                   /* newline significant, +/- is an operator. */
+  EXPR_ENDARG,                /* ditto, and unbound braces. */
+  EXPR_ENDFN,                 /* ditto, and unbound braces. */
+  EXPR_ARG,                   /* newline significant, +/- is an operator. */
+  EXPR_CMDARG,                /* newline significant, +/- is an operator. */
+  EXPR_MID,                   /* newline significant, +/- is an operator. */
+  EXPR_FNAME,                 /* ignore newline, no reserved words. */
+  EXPR_DOT,                   /* right after `.' or `::', no reserved words. */
+  EXPR_CLASS,                 /* immediate after `class', no here document. */
+  EXPR_VALUE,                 /* alike EXPR_BEG but label is disallowed. */
+  EXPR_MAX_STATE
 };
 
 /* saved error message */
@@ -119,7 +123,8 @@ struct mrb_parser_state {
   unsigned int cmdarg_stack;
   int paren_nest;
   int lpar_beg;
-  int in_def, in_single, cmd_start;
+  int in_def, in_single;
+  mrb_bool cmd_start:1;
   mrb_ast_node *locals;
 
   mrb_ast_node *pb;
@@ -138,7 +143,7 @@ struct mrb_parser_state {
   size_t nwarn;
   mrb_ast_node *tree;
 
-  int capture_errors;
+  mrb_bool capture_errors:1;
   struct mrb_parser_message error_buffer[10];
   struct mrb_parser_message warn_buffer[10];
 
@@ -146,7 +151,7 @@ struct mrb_parser_state {
   size_t filename_table_length;
   int current_filename_index;
 
-  jmp_buf jmp;
+  struct mrb_jmpbuf* jmp;
 };
 
 struct mrb_parser_state* mrb_parser_new(mrb_state*);

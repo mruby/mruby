@@ -1,18 +1,17 @@
 # mruby is using Rake (http://rake.rubyforge.org) as a build tool.
-# We provide a minimalistic version called minirake inside of our 
+# We provide a minimalistic version called minirake inside of our
 # codebase.
 
 RAKE = ruby ./minirake --verbose
 
-.PHONY : all
 all :
 	$(RAKE)
+.PHONY : all
 
-.PHONY : test
 test : all
 	$(RAKE) test
+.PHONY : test
 
-.PHONY : clean
 clean :
 	$(RAKE) clean
-
+.PHONY : clean

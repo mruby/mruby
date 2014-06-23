@@ -5,13 +5,11 @@ assert('Hash', '15.2.13') do
   assert_equal Class, Hash.class
 end
 
-assert('Hash superclass', '15.2.13.2') do
-  assert_equal Object, Hash.superclass
-end
-
 assert('Hash#==', '15.2.13.4.1') do
   assert_true({ 'abc' => 'abc' } == { 'abc' => 'abc' })
   assert_false({ 'abc' => 'abc' } ==  { 'cba' => 'cba' })
+  assert_true({ :equal => 1 } == { :equal => 1.0 })
+  assert_false({ :a => 1 } == true)
 end
 
 assert('Hash#[]', '15.2.13.4.2') do
@@ -32,6 +30,13 @@ assert('Hash#clear', '15.2.13.4.4') do
   a.clear
 
   assert_equal({ }, a)
+end
+
+assert('Hash#dup') do
+  a = { 'a' => 1 }
+  b = a.dup
+  a['a'] = 2
+  assert_equal({'a' => 1}, b)
 end
 
 assert('Hash#default', '15.2.13.4.5') do
@@ -214,6 +219,10 @@ assert('Hash#merge', '15.2.13.4.22') do
                 'xyz_key' => 'xyz_value' }, result_1)
   assert_equal({'abc_key' => 'abc_value', 'cba_key' => 'cba_value',
                 'xyz_key' => 'xyz_value' }, result_2)
+
+  assert_raise(TypeError) do
+    { 'abc_key' => 'abc_value' }.merge "a"
+  end
 end
 
 assert('Hash#replace', '15.2.13.4.23') do
@@ -221,14 +230,30 @@ assert('Hash#replace', '15.2.13.4.23') do
   b = Hash.new.replace(a)
 
   assert_equal({ 'abc_key' => 'abc_value' }, b)
+
+  a = Hash.new(42)
+  b = {}
+  b.replace(a)
+  assert_equal(42, b[1])
+
+  a = Hash.new{|h,x| x}
+  b.replace(a)
+  assert_equal(127, b[127])
 end
 
 assert('Hash#shift', '15.2.13.4.24') do
   a = { 'abc_key' => 'abc_value', 'cba_key' => 'cba_value' }
   b = a.shift
 
-  assert_equal({ 'abc_key' => 'abc_value' }, a)
-  assert_equal [ 'cba_key', 'cba_value' ], b
+  assert_equal Array, b.class
+  assert_equal 2, b.size
+  assert_equal 1, a.size
+
+  b = a.shift
+
+  assert_equal Array, b.class
+  assert_equal 2, b.size
+  assert_equal 0, a.size
 end
 
 assert('Hash#size', '15.2.13.4.25') do
@@ -261,6 +286,15 @@ assert('Hash#values', '15.2.13.4.28') do
 end
 
 # Not ISO specified
+
+assert('Hash#eql?') do
+  a = { 'a' => 1, 'b' => 2, 'c' => 3 }
+  b = { 'a' => 1, 'b' => 2, 'c' => 3 }
+  c = { 'a' => 1.0, 'b' => 2, 'c' => 3 }
+  assert_true(a.eql?(b))
+  assert_false(a.eql?(c))
+  assert_false(a.eql?(true))
+end
 
 assert('Hash#reject') do
   h = {:one => 1, :two => 2, :three => 3, :four => 4}

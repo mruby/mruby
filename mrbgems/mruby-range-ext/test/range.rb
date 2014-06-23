@@ -18,3 +18,12 @@ assert('Range#last') do
   assert_equal [18, 19, 20], (10..20).last(3)
   assert_equal [17, 18, 19], (10...20).last(3)
 end
+
+assert('Range#size') do
+  assert_equal 42, (1..42).size
+  assert_equal 41, (1...42).size
+  assert_equal 6, (1...6.3).size
+  assert_equal 5, (1...6.0).size
+  assert_equal 5, (1.1...6).size
+  assert_nil ('a'..'z').size
+end

@@ -15,7 +15,7 @@ assert('Toplevel#include') do
   end
 
   self.include ToplevelTestModule2, ToplevelTestModule1
-  
+
   assert_true self.class.included_modules.include?( ToplevelTestModule1 )
   assert_true self.class.included_modules.include?( ToplevelTestModule2 )
   assert_equal :foo, method_foo

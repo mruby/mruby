@@ -16,7 +16,7 @@ class String
   def relative_path
     relative_path_from(Dir.pwd)
   end
-  
+
   # Compatible with 1.9 on 1.8
   def %(params)
     if params.is_a?(Hash)

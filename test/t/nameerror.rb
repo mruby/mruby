@@ -5,10 +5,6 @@ assert('NameError', '15.2.31') do
   assert_equal Class, NameError.class
 end
 
-assert('NameError superclass', '15.2.31.2') do
-  assert_equal StandardError, NameError.superclass
-end
-
 assert('NameError#name', '15.2.31.2.1') do
 
   # This check is not duplicate with 15.2.31.2.2 check.
