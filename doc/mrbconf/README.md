@@ -81,3 +81,26 @@ will be defined as `mrb_int`.
 * Default value is 100.
 * Ignored when `MRB_GC_FIXED_ARENA` isn't defined.
 * Defines fixed GC arena size.
+
+## Memory pool configuration.
+
+`POOL_ALIGNMENT`
+* Default value is `4`.
+* If you're allocating data types that requires alignment more than default value define the
+largest value of required alignment.
+
+`POOL_PAGE_SIZE`
+* Default value is `16000`.
+* Specifies page size of pool page.
+* Smaller the value is increases memory overhead.
+
+## State atexit configuration.
+
+`MRB_FIXED_STATE_ATEXIT_STACK`
+* If defined enables fixed size `mrb_state` atexit stack.
+* Raises `RuntimeError` when `mrb_state_atexit` call count to same `mrb_state` exceeds
+`MRB_FIXED_STATE_ATEXIT_STACK_SIZE`'s value.
+
+`MRB_FIXED_STATE_ATEXIT_STACK_SIZE`
+* Default value is `5`.
+* If `MRB_FIXED_STATE_ATEXIT_STACK` isn't defined this macro is ignored.
