@@ -153,8 +153,7 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
   int ma, ra, pa, arity;
 
   if (MRB_PROC_CFUNC_P(p)) {
-    // TODO cfunc aspec not implemented yet
-    return mrb_fixnum_value(-1);
+    mrb_raise(mrb, E_NOTIMP_ERROR, "cfunc arity not implemented yet");
   }
   aspec = GETARG_Ax(*iseq);
   ma = MRB_ASPEC_REQ(aspec);
