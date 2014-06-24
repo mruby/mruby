@@ -2,7 +2,7 @@
 # We provide a minimalistic version called minirake inside of our
 # codebase.
 
-RAKE = ruby ./minirake --verbose
+RAKE = ruby ./minirake
 
 all :
 	$(RAKE)
