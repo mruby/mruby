@@ -2438,12 +2438,10 @@ opt_block_param : none
 
 block_param_def : '|' opt_bv_decl '|'
                     {
-                      local_add_f(p, 0);
                       $$ = 0;
                     }
                 | tOROP
                     {
-                      local_add_f(p, 0);
                       $$ = 0;
                     }
                 | '|' block_param opt_bv_decl '|'
