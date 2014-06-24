@@ -4,15 +4,15 @@ Author: Nobuhiro Iwamatsu <iwamatsu@debian.org>
 Last-Update: 2013-04-20
 
 diff --git a/Makefile b/Makefile
-index d9a3437..02a27a8 100644
+index 4912f17..6990928 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -2,7 +2,7 @@
- # We provide a minimalistic version called minirake inside of our 
+ # We provide a minimalistic version called minirake inside of our
  # codebase.
  
 -RAKE = ruby ./minirake
 +RAKE = ruby ./minirake --verbose
  
- .PHONY : all
  all :
+ 	$(RAKE)
