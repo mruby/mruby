@@ -42,3 +42,7 @@ end
 assert("Symbol#empty?") do
   assert_true :''.empty?
 end
+
+assert('Symbol#intern') do
+  assert_equal :test, :test.intern
+end
