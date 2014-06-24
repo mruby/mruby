@@ -5862,6 +5862,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     printf("NODE_SCOPE:\n");
     {
       node *n2 = tree->car;
+      mrb_bool first_lval = TRUE;
 
       if (n2 && (n2->car || n2->cdr)) {
         dump_prefix(offset+1);
@@ -5869,8 +5870,9 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
         dump_prefix(offset+2);
         while (n2) {
           if (n2->car) {
-            if (n2 != tree->car) printf(", ");
+            if (!first_lval) printf(", ");
             printf("%s", mrb_sym2name(mrb, sym(n2->car)));
+            first_lval = FALSE;
           }
           n2 = n2->cdr;
         }
@@ -6247,6 +6249,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     tree = tree->cdr;
     {
       node *n2 = tree->car;
+      mrb_bool first_lval = TRUE;
 
       if (n2 && (n2->car || n2->cdr)) {
         dump_prefix(offset+1);
@@ -6254,8 +6257,9 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
         dump_prefix(offset+2);
         while (n2) {
           if (n2->car) {
-            if (n2 != tree->car) printf(", ");
+            if (!first_lval) printf(", ");
             printf("%s", mrb_sym2name(mrb, sym(n2->car)));
+            first_lval = FALSE;
           }
           n2 = n2->cdr;
         }
