@@ -253,11 +253,7 @@ local_var_p(parser_state *p, mrb_sym sym)
 static void
 local_add_f(parser_state *p, mrb_sym sym)
 {
-  if (p->locals->car && !p->locals->car->car) {
-    p->locals->car->car = nsym(sym);
-  } else {
-    p->locals->car = push(p->locals->car, nsym(sym));
-  }
+  p->locals->car = push(p->locals->car, nsym(sym)); 
 }
 
 static void
