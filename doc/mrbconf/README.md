@@ -17,6 +17,10 @@ You can use mrbconfs with following ways:
 
 `DISABLE_STDIO`
 * When defined `<stdio.h>` functions won't be used.
+* Some features will be disabled when this is enabled:
+  * `mrb_irep` load/dump from/to file.
+  * Compiling mruby script from file.
+  * Printing features in **src/print.c**.
 
 ## Debug macros.
 `ENABLE_DEBUG`
@@ -104,3 +108,18 @@ largest value of required alignment.
 `MRB_FIXED_STATE_ATEXIT_STACK_SIZE`
 * Default value is `5`.
 * If `MRB_FIXED_STATE_ATEXIT_STACK` isn't defined this macro is ignored.
+
+## `mrb_value` configuration.
+
+`MRB_ENDIAN_BIG`
+* If defined compiles mruby for big endian machines.
+* Used in `MRB_NAN_BOXING`.
+* Some mrbgem use this mrbconf.
+
+`MRB_NAN_BOXING`
+* If defined represent `mrb_value` in boxed `double`.
+* Conflicts with `MRB_USE_FLOAT`.
+
+`MRB_WORD_BOXING`
+* If defined represent `mrb_value` as a word.
+* If defined `Float` will be a mruby object with `RBasic`.
