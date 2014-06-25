@@ -17,6 +17,10 @@ You can use mrbconfs with following ways:
 
 `DISABLE_STDIO`
 * When defined `<stdio.h>` functions won't be used.
+* Some features will be disabled when this is enabled:
+  * `mrb_irep` load/dump from/to file.
+  * Compiling mruby script from file.
+  * Printing features in **src/print.c**.
 
 ## Debug macros.
 `ENABLE_DEBUG`
