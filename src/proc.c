@@ -156,6 +156,12 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
     // TODO cfunc aspec not implemented yet
     return mrb_fixnum_value(-1);
   }
+
+  // arity is depend on OP_ENTER
+  if (GET_OPCODE(*iseq) != OP_ENTER) {
+    return mrb_fixnum_value(0);
+  }
+
   aspec = GETARG_Ax(*iseq);
   ma = MRB_ASPEC_REQ(aspec);
   ra = MRB_ASPEC_REST(aspec);
