@@ -37,7 +37,7 @@ struct RProc {
 /* aspec access */
 #define MRB_ASPEC_REQ(a)          (((a) >> 18) & 0x1f)
 #define MRB_ASPEC_OPT(a)          (((a) >> 13) & 0x1f)
-#define MRB_ASPEC_REST(a)         ((a) & (1<<12))
+#define MRB_ASPEC_REST(a)         (((a) >> 12) & 0x1)
 #define MRB_ASPEC_POST(a)         (((a) >> 7) & 0x1f)
 #define MRB_ASPEC_KEY(a)          (((a) >> 2) & 0x1f)
 #define MRB_ASPEC_KDICT(a)        ((a) & (1<<1))
