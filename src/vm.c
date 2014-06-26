@@ -309,36 +309,21 @@ ecall(mrb_state *mrb, int i)
 mrb_value
 mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, mrb_int argc, ...)
 {
+  mrb_value argv[MRB_FUNCALL_ARGC_MAX];
+  va_list ap;
+  mrb_int i;
   mrb_sym mid = mrb_intern_cstr(mrb, name);
 
-  if (argc == 0) {
-    return mrb_funcall_argv(mrb, self, mid, 0, 0);
+  if (argc > MRB_FUNCALL_ARGC_MAX) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=" TO_STR(MRB_FUNCALL_ARGC_MAX) ")");
   }
-  else if (argc == 1) {
-    mrb_value v;
-    va_list ap;
 
-    va_start(ap, argc);
-    v = va_arg(ap, mrb_value);
-    va_end(ap);
-    return mrb_funcall_argv(mrb, self, mid, 1, &v);
+  va_start(ap, argc);
+  for (i = 0; i < argc; i++) {
+    argv[i] = va_arg(ap, mrb_value);
   }
-  else {
-    mrb_value argv[MRB_FUNCALL_ARGC_MAX];
-    va_list ap;
-    mrb_int i;
-
-    if (argc > MRB_FUNCALL_ARGC_MAX) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=" TO_STR(MRB_FUNCALL_ARGC_MAX) ")");
-    }
-
-    va_start(ap, argc);
-    for (i = 0; i < argc; i++) {
-      argv[i] = va_arg(ap, mrb_value);
-    }
-    va_end(ap);
-    return mrb_funcall_argv(mrb, self, mid, argc, argv);
-  }
+  va_end(ap);
+  return mrb_funcall_argv(mrb, self, mid, argc, argv);
 }
 
 mrb_value
