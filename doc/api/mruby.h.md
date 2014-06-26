@@ -66,4 +66,4 @@ char|mruby type|retrieve types|note
 <code>&#124;</code>|optional||After this spec following specs would be optional.
 `?`|optional given|`mrb_bool`|True if preceding argument is given. Used to check optional argument is given.
 
-The passing variadic arguments must be a pointer of retreiving type.
+The passing variadic arguments must be a pointer of retrieving type.
