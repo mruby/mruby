@@ -91,9 +91,14 @@ static mrb_value
 exc_to_s(mrb_state *mrb, mrb_value exc)
 {
   mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "mesg"));
+  struct RObject *p;
 
   if (!mrb_string_p(mesg)) {
     return mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, exc));
+  }
+  p = mrb_obj_ptr(mesg);
+  if (!p->c) {
+    p->c = mrb->string_class;
   }
   return mesg;
 }
@@ -435,9 +440,6 @@ void
 mrb_init_exception(mrb_state *mrb)
 {
   struct RClass *exception, *runtime_error, *script_error;
-
-  /* initialize mrb->string_class before creating RString object for nomem_err */
-  mrb->string_class = mrb_define_class(mrb, "String", mrb->object_class);
 
   mrb->eException_class = exception = mrb_define_class(mrb, "Exception", mrb->object_class); /* 15.2.22 */
   mrb_define_class_method(mrb, exception, "exception", mrb_instance_new,  MRB_ARGS_ANY());
