@@ -126,6 +126,9 @@ os_each_object_cb(mrb_state *mrb, struct RBasic *obj, void *ud)
     return;
   }
 
+  /* filter half baked (or internal) objects */
+  if (!obj->c) return;
+
   /* filter class kind if target module defined */
   if (d->target_module && !mrb_obj_is_kind_of(mrb, mrb_obj_value(obj), d->target_module)) {
     return;
