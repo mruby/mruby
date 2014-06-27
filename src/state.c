@@ -28,6 +28,7 @@ mrb_open_core(mrb_allocf f, void *ud)
   static const mrb_state mrb_state_zero = { 0 };
   static const struct mrb_context mrb_context_zero = { 0 };
   mrb_state *mrb;
+  mrb_value mem_out_mesg;
 
 #ifdef MRB_NAN_BOXING
   mrb_static_assert(sizeof(void*) == 4, "when using NaN boxing sizeof pointer must be 4 byte");
@@ -53,6 +54,12 @@ mrb_open_core(mrb_allocf f, void *ud)
   mrb->root_c = mrb->c;
 
   mrb_init_core(mrb);
+
+  mem_out_mesg = mrb_obj_iv_get(mrb, mrb->nomem_err, mrb_intern_lit(mrb, "mesg"));
+  if (mrb_string_p(mem_out_mesg)) {
+    struct RString *mesg = RSTRING(mem_out_mesg);
+    mesg->c = mrb->string_class;
+  }
 
   return mrb;
 }
