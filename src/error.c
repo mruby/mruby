@@ -20,14 +20,15 @@
 mrb_value
 mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
 {
-  return mrb_funcall(mrb, mrb_obj_value(c), "new", 1, mrb_str_new(mrb, ptr, len));
+  mrb_value arg = mrb_str_new(mrb, ptr, len);
+  return mrb_obj_new(mrb, c, 1, &arg);
 }
 
 mrb_value
 mrb_exc_new_str(mrb_state *mrb, struct RClass* c, mrb_value str)
 {
   str = mrb_str_to_str(mrb, str);
-  return mrb_funcall(mrb, mrb_obj_value(c), "new", 1, str);
+  return mrb_obj_new(mrb, c, 1, &str);
 }
 
 /*
