@@ -54,3 +54,7 @@ assert('ObjectSpace.each_object') do
   assert_equal arys.length, arys_count
   assert_true arys.length < objs.length
 end
+
+assert 'Check class pointer of ObjectSpace.each_object.' do
+  ObjectSpace.each_object { |obj| !obj }
+end
