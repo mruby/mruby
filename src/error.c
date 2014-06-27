@@ -91,8 +91,15 @@ static mrb_value
 exc_to_s(mrb_state *mrb, mrb_value exc)
 {
   mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "mesg"));
+  struct RObject *p;
 
-  if (mrb_nil_p(mesg)) return mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, exc));
+  if (!mrb_string_p(mesg)) {
+    return mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, exc));
+  }
+  p = mrb_obj_ptr(mesg);
+  if (!p->c) {
+    p->c = mrb->string_class;
+  }
   return mesg;
 }
 
@@ -166,36 +173,6 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
   return str;
 }
 
-
-static mrb_value
-exc_equal(mrb_state *mrb, mrb_value exc)
-{
-  mrb_value obj;
-  mrb_value mesg;
-  mrb_bool equal_p;
-  mrb_sym id_mesg = mrb_intern_lit(mrb, "mesg");
-
-  mrb_get_args(mrb, "o", &obj);
-  if (mrb_obj_equal(mrb, exc, obj)) {
-    equal_p = TRUE;
-  }
-  else {
-    if (mrb_obj_class(mrb, exc) != mrb_obj_class(mrb, obj)) {
-      if (mrb_respond_to(mrb, obj, mrb_intern_lit(mrb, "message"))) {
-        mesg = mrb_funcall(mrb, obj, "message", 0);
-      }
-      else
-        return mrb_false_value();
-    }
-    else {
-      mesg = mrb_attr_get(mrb, obj, id_mesg);
-    }
-
-    equal_p = mrb_equal(mrb, mrb_attr_get(mrb, exc, id_mesg), mesg);
-  }
-
-  return mrb_bool_value(equal_p);
-}
 
 static void
 exc_debug_info(mrb_state *mrb, struct RObject *exc)
@@ -468,7 +445,6 @@ mrb_init_exception(mrb_state *mrb)
   mrb_define_class_method(mrb, exception, "exception", mrb_instance_new,  MRB_ARGS_ANY());
   mrb_define_method(mrb, exception, "exception",       exc_exception,     MRB_ARGS_ANY());
   mrb_define_method(mrb, exception, "initialize",      exc_initialize,    MRB_ARGS_ANY());
-  mrb_define_method(mrb, exception, "==",              exc_equal,         MRB_ARGS_REQ(1));
   mrb_define_method(mrb, exception, "to_s",            exc_to_s,          MRB_ARGS_NONE());
   mrb_define_method(mrb, exception, "message",         exc_message,       MRB_ARGS_NONE());
   mrb_define_method(mrb, exception, "inspect",         exc_inspect,       MRB_ARGS_NONE());
