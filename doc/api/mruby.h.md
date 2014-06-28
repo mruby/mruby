@@ -43,6 +43,25 @@ mrb_state* mrb_open_core(mrb_allocf, void *ud);
 Creates new `mrb_state` without mrbgems.
 Useful when creating lighter `mrb_state`.
 
+## Class / Module
+
+### Defining class.
+```C
+struct RClass *mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super);
+struct RClass *mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
+```
+Defines class with class name of `name` and super class of `super`.
+If it needs to be defined under a class or module `outer` use `mrb_define_class_under`.
+It'll raise `TypeError` when it's already defined and super class doesn't match.
+
+### Defining module.
+```C
+struct RClass *mrb_define_module(mrb_state *, const char*);
+struct RClass *mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
+```
+Defines module with module name of `name`.
+If it needs to be defined under a class or module `outer` use `mrb_define_module_under`.
+
 ## Method
 
 ### mrb_get_args
@@ -84,51 +103,51 @@ struct mrb_irep;
 struct mrb_state;
 
 typedef struct {
-  mrb_sym mid;
-  struct RProc *proc;
-  mrb_value *stackent;
-  int nregs;
-  int ridx;
-  int eidx;
-  struct REnv *env;
-  mrb_code *pc;                 /* return address */
-  mrb_code *err;                /* error position */
-  int argc;
-  int acc;
-  struct RClass *target_class;
+mrb_sym mid;
+struct RProc *proc;
+mrb_value *stackent;
+int nregs;
+int ridx;
+int eidx;
+struct REnv *env;
+mrb_code *pc;                 /* return address */
+mrb_code *err;                /* error position */
+int argc;
+int acc;
+struct RClass *target_class;
 } mrb_callinfo;
 
 enum mrb_fiber_state {
-  MRB_FIBER_CREATED = 0,
-  MRB_FIBER_RUNNING,
-  MRB_FIBER_RESUMING,
-  MRB_FIBER_SUSPENDED,
-  MRB_FIBER_TRANSFERRED,
-  MRB_FIBER_TERMINATED,
+MRB_FIBER_CREATED = 0,
+MRB_FIBER_RUNNING,
+MRB_FIBER_RESUMING,
+MRB_FIBER_SUSPENDED,
+MRB_FIBER_TRANSFERRED,
+MRB_FIBER_TERMINATED,
 };
 
 struct mrb_context {
-  struct mrb_context *prev;
+struct mrb_context *prev;
 
-  mrb_value *stack;                       /* stack of virtual machine */
-  mrb_value *stbase, *stend;
+mrb_value *stack;                       /* stack of virtual machine */
+mrb_value *stbase, *stend;
 
-  mrb_callinfo *ci;
-  mrb_callinfo *cibase, *ciend;
+mrb_callinfo *ci;
+mrb_callinfo *cibase, *ciend;
 
-  mrb_code **rescue;                      /* exception handler stack */
-  int rsize;
-  struct RProc **ensure;                  /* ensure handler stack */
-  int esize;
+mrb_code **rescue;                      /* exception handler stack */
+int rsize;
+struct RProc **ensure;                  /* ensure handler stack */
+int esize;
 
-  enum mrb_fiber_state status;
-  struct RFiber *fib;
+enum mrb_fiber_state status;
+struct RFiber *fib;
 };
 
 enum gc_state {
-  GC_STATE_NONE = 0,
-  GC_STATE_MARK,
-  GC_STATE_SWEEP
+GC_STATE_NONE = 0,
+GC_STATE_MARK,
+GC_STATE_SWEEP
 };
 
 struct mrb_jmpbuf;
@@ -136,80 +155,80 @@ struct mrb_jmpbuf;
 typedef void (*mrb_atexit_func)(struct mrb_state*);
 
 typedef struct mrb_state {
-  struct mrb_jmpbuf *jmp;
+struct mrb_jmpbuf *jmp;
 
-  mrb_allocf allocf;                      /* memory allocation function */
+mrb_allocf allocf;                      /* memory allocation function */
 
-  struct mrb_context *c;
-  struct mrb_context *root_c;
+struct mrb_context *c;
+struct mrb_context *root_c;
 
-  struct RObject *exc;                    /* exception */
-  struct iv_tbl *globals;                 /* global variable table */
+struct RObject *exc;                    /* exception */
+struct iv_tbl *globals;                 /* global variable table */
 
-  struct RObject *top_self;
-  struct RClass *object_class;            /* Object class */
-  struct RClass *class_class;
-  struct RClass *module_class;
-  struct RClass *proc_class;
-  struct RClass *string_class;
-  struct RClass *array_class;
-  struct RClass *hash_class;
+struct RObject *top_self;
+struct RClass *object_class;            /* Object class */
+struct RClass *class_class;
+struct RClass *module_class;
+struct RClass *proc_class;
+struct RClass *string_class;
+struct RClass *array_class;
+struct RClass *hash_class;
 
-  struct RClass *float_class;
-  struct RClass *fixnum_class;
-  struct RClass *true_class;
-  struct RClass *false_class;
-  struct RClass *nil_class;
-  struct RClass *symbol_class;
-  struct RClass *kernel_module;
+struct RClass *float_class;
+struct RClass *fixnum_class;
+struct RClass *true_class;
+struct RClass *false_class;
+struct RClass *nil_class;
+struct RClass *symbol_class;
+struct RClass *kernel_module;
 
-  struct heap_page *heaps;                /* heaps for GC */
-  struct heap_page *sweeps;
-  struct heap_page *free_heaps;
-  size_t live; /* count of live objects */
+struct heap_page *heaps;                /* heaps for GC */
+struct heap_page *sweeps;
+struct heap_page *free_heaps;
+size_t live; /* count of live objects */
 #ifdef MRB_GC_FIXED_ARENA
-  struct RBasic *arena[MRB_GC_ARENA_SIZE]; /* GC protection array */
+struct RBasic *arena[MRB_GC_ARENA_SIZE]; /* GC protection array */
 #else
-  struct RBasic **arena;                   /* GC protection array */
-  int arena_capa;
+struct RBasic **arena;                   /* GC protection array */
+int arena_capa;
 #endif
-  int arena_idx;
+int arena_idx;
 
-  enum gc_state gc_state; /* state of gc */
-  int current_white_part; /* make white object by white_part */
-  struct RBasic *gray_list; /* list of gray objects to be traversed incrementally */
-  struct RBasic *atomic_gray_list; /* list of objects to be traversed atomically */
-  size_t gc_live_after_mark;
-  size_t gc_threshold;
-  int gc_interval_ratio;
-  int gc_step_ratio;
-  mrb_bool gc_disabled:1;
-  mrb_bool gc_full:1;
-  mrb_bool is_generational_gc_mode:1;
-  mrb_bool out_of_memory:1;
-  size_t majorgc_old_threshold;
-  struct alloca_header *mems;
+enum gc_state gc_state; /* state of gc */
+int current_white_part; /* make white object by white_part */
+struct RBasic *gray_list; /* list of gray objects to be traversed incrementally */
+struct RBasic *atomic_gray_list; /* list of objects to be traversed atomically */
+size_t gc_live_after_mark;
+size_t gc_threshold;
+int gc_interval_ratio;
+int gc_step_ratio;
+mrb_bool gc_disabled:1;
+mrb_bool gc_full:1;
+mrb_bool is_generational_gc_mode:1;
+mrb_bool out_of_memory:1;
+size_t majorgc_old_threshold;
+struct alloca_header *mems;
 
-  mrb_sym symidx;
-  struct kh_n2s *name2sym;      /* symbol table */
+mrb_sym symidx;
+struct kh_n2s *name2sym;      /* symbol table */
 
 #ifdef ENABLE_DEBUG
-  void (*code_fetch_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
-  void (*debug_op_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
+void (*code_fetch_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
+void (*debug_op_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
 #endif
 
-  struct RClass *eException_class;
-  struct RClass *eStandardError_class;
-  struct RObject *nomem_err;              /* pre-allocated NoMemoryError */
+struct RClass *eException_class;
+struct RClass *eStandardError_class;
+struct RObject *nomem_err;              /* pre-allocated NoMemoryError */
 
-  void *ud; /* auxiliary data */
+void *ud; /* auxiliary data */
 
 #ifdef MRB_FIXED_STATE_ATEXIT_STACK
-  mrb_atexit_func atexit_stack[MRB_FIXED_STATE_ATEXIT_STACK_SIZE];
+mrb_atexit_func atexit_stack[MRB_FIXED_STATE_ATEXIT_STACK_SIZE];
 #else
-  mrb_atexit_func *atexit_stack;
+mrb_atexit_func *atexit_stack;
 #endif
-  mrb_int atexit_stack_len;
+mrb_int atexit_stack_len;
 } mrb_state;
 
 #if __STDC_VERSION__ >= 201112L
@@ -223,7 +242,6 @@ typedef struct mrb_state {
 #endif
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
-struct RClass *mrb_define_class(mrb_state *, const char*, struct RClass*);
 struct RClass *mrb_define_module(mrb_state *, const char*);
 mrb_value mrb_singleton_class(mrb_state*, mrb_value);
 void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
@@ -249,8 +267,6 @@ struct RClass * mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const
 mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
 mrb_bool mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid);
-struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
-struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
 /* required arguments */
 #define MRB_ARGS_REQ(n)     ((mrb_aspec)((n)&0x1f) << 18)
