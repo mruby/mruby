@@ -194,6 +194,29 @@ mrb_value mrb_fiber_yield(mrb_state *mrb, mrb_int argc, const mrb_value *argv);
 Yields current running fiber with arguments.
 After calling this function it must return to mruby VM as soon as possible.
 
+## Memory allocator.
+```C
+void *mrb_malloc(mrb_state* mrb, size_t s);
+void *mrb_calloc(mrb_state* mrb, size_t s, size_t s);
+void *mrb_realloc(mrb_state* mrb, void* ptr, size_t s);
+```
+The usage is same as std C function except it takes `mrb` argument and
+raises `RuntimeError` when memory ran out.
+
+### Simple version.
+```C
+void *mrb_realloc_simple(mrb_state* mrb, void* ptr, size_t s);
+void *mrb_malloc_simple(mrb_state* mrb, size_t s);
+```
+Returns `NULL` if it failed to allocate memory.
+Perform full GC in first allocation failure.
+
+### mrb_free
+```C
+void mrb_free(mrb_state* mrb, void* ptr);
+```
+Frees `ptr`.
+
 ## Undocumented
 ```C
 typedef uint32_t mrb_code;
@@ -361,13 +384,7 @@ const char *mrb_sym2name(mrb_state*,mrb_sym);
 const char *mrb_sym2name_len(mrb_state*,mrb_sym,mrb_int*);
 mrb_value mrb_sym2str(mrb_state*,mrb_sym);
 
-void *mrb_malloc(mrb_state*, size_t);         /* raise RuntimeError if no mem */
-void *mrb_calloc(mrb_state*, size_t, size_t); /* ditto */
-void *mrb_realloc(mrb_state*, void*, size_t); /* ditto */
-void *mrb_realloc_simple(mrb_state*, void*, size_t); /* return NULL if no memory available */
-void *mrb_malloc_simple(mrb_state*, size_t);  /* return NULL if no memory available */
 struct RBasic *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*);
-void mrb_free(mrb_state*, void*);
 
 mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
 mrb_value mrb_str_new_cstr(mrb_state*, const char*);
