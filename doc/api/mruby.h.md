@@ -94,6 +94,36 @@ char|mruby type|retrieve types|note
 
 The passing variadic arguments must be a pointer of retrieving type.
 
+## Fiber
+
+### mrb_fiber_state
+```C
+enum mrb_fiber_state {
+MRB_FIBER_CREATED = 0,
+MRB_FIBER_RUNNING,
+MRB_FIBER_RESUMING,
+MRB_FIBER_SUSPENDED,
+MRB_FIBER_TRANSFERRED,
+MRB_FIBER_TERMINATED,
+};
+```
+Represents fiber states.
+Used in `mrb_context` which is the internal object of `Fiber`.
+
+### E_FIBER_ERROR
+```C
+#define E_FIBER_ERROR (mrb_class_get(mrb, "FiberError"))
+```
+Returns `FiberError` class object.
+Variable `mrb` of type `mrb_state*` must be defined in the context.
+
+### mrb_fiber_yield
+```C
+mrb_value mrb_fiber_yield(mrb_state *mrb, mrb_int argc, const mrb_value *argv);
+```
+Yields current running fiber with arguments.
+After calling this function it must return to mruby VM as soon as possible.
+
 ## Undocumented
 ```C
 typedef uint32_t mrb_code;
@@ -116,15 +146,6 @@ int argc;
 int acc;
 struct RClass *target_class;
 } mrb_callinfo;
-
-enum mrb_fiber_state {
-MRB_FIBER_CREATED = 0,
-MRB_FIBER_RUNNING,
-MRB_FIBER_RESUMING,
-MRB_FIBER_SUSPENDED,
-MRB_FIBER_TRANSFERRED,
-MRB_FIBER_TERMINATED,
-};
 
 struct mrb_context {
 struct mrb_context *prev;
@@ -438,10 +459,6 @@ mrb_value mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id);
 
 mrb_bool mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
 mrb_bool mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
-
-/* fiber functions (you need to link mruby-fiber mrbgem to use) */
-mrb_value mrb_fiber_yield(mrb_state *mrb, mrb_int argc, const mrb_value *argv);
-#define E_FIBER_ERROR (mrb_class_get(mrb, "FiberError"))
 
 /* memory pool implementation */
 typedef struct mrb_pool mrb_pool;
