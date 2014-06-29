@@ -43,26 +43,48 @@ mrb_state* mrb_open_core(mrb_allocf, void *ud);
 Creates new `mrb_state` without mrbgems.
 Useful when creating lighter `mrb_state`.
 
-## Class / Module
-
-### Defining class.
+## mrb_noreturn
 ```C
-struct RClass *mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super);
-struct RClass *mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
+#define mrb_noreturn /* platform specific value */
 ```
-Defines class with class name of `name` and super class of `super`.
-If it needs to be defined under a class or module `outer` use `mrb_define_class_under`.
-It'll raise `TypeError` when it's already defined and super class doesn't match.
+Macro of noreturn attribute.
+When function is declared with this attribute it won't return.
+Used in function that only raises exceptions.
 
-### Defining module.
+## Argument specifier
+
+### mrb_aspec
 ```C
-struct RClass *mrb_define_module(mrb_state *, const char*);
-struct RClass *mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
+typedef uint32_t mrb_aspec;
 ```
-Defines module with module name of `name`.
-If it needs to be defined under a class or module `outer` use `mrb_define_module_under`.
+Type of argument specifier value.
+Combine arugments specifiers with `|` operator.
 
-## Method
+### Macros.
+
+macro | description
+`MRB_ARGS_BLOCK()`| Accept block argument.
+`MRB_ARGS_ANY()`| Accept any number of arguments.
+`MRB_ARGS_REST()`| Same as `MRB_ARGS_ANY`.
+`MRB_ARGS_NONE()`| Accept no arguments.
+`MRB_ARGS_REQ(n)`| Specifies required arguments number `n`.
+`MRB_ARGS_OPT(n)`| Specifies optional arguments number `n`.
+`MRB_ARGS_ARG(req, opt)`| Specifies required arguments number `req` and optinal arguments number `opt`.
+`MRB_ARGS_POST(n)`| Specifies required arguments number `n` after rest.
+`MRB_ARGS_KEY(n1, n2)`| Keyword arguments(n of keys, kdict).
+
+### Compatibility macros.
+In **mruby.h** it defines argument specifier macro without `MRB_` prefix for compatibility.
+
+## C interface.
+
+### mrb_func_t
+```C
+typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
+```
+C interface function pointer type.
+Unlike CRuby arguments aren't passed.
+Use `mrb_get_args` to get arguments.
 
 ### mrb_get_args
 ```C
@@ -94,17 +116,65 @@ char|mruby type|retrieve types|note
 
 The passing variadic arguments must be a pointer of retrieving type.
 
+## Class / Module
+
+### Defining class.
+```C
+struct RClass *mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super);
+struct RClass *mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
+```
+Defines class with class name of `name` and super class of `super`.
+If it needs to be defined under a class or module `outer` use `mrb_define_class_under`.
+It'll raise `TypeError` when it's already defined and super class doesn't match.
+
+### Defining module.
+```C
+struct RClass *mrb_define_module(mrb_state *mrb, const char *name);
+struct RClass *mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
+```
+Defines module with module name of `name`.
+If it needs to be defined under a class or module `outer` use `mrb_define_module_under`.
+
+### Defining method.
+```C
+void mrb_define_method(mrb_state *mrb, struct RClass *cls, const char *name, mrb_func_t func, mrb_aspec args);
+void mrb_define_class_method(mrb_state *mrb, struct RClass *cls, const char *name, mrb_func_t func, mrb_aspec args);
+void mrb_define_module_function(mrb_state *mrb, struct RClass *cls, const char* name, mrb_func_t func, mrb_aspec args);
+```
+Defines method with `name` under `cls`.
+`func` is the C interface and `args` argument is the argument spec.
+
+`mrb_define_method` defines instance method.
+`mrb_define_class_method` defines class method.
+`mrb_define_module_function` defines private instance method and class method.
+(Currently visibility isn't implemented so some checks won't work like CRuby.)
+
+## Singleton object.
+
+### mrb_define_singleton_method
+```C
+void mrb_define_singleton_method(mrb_state *mrb, struct RObject *obj, const char *name, mrb_func_t func, mrb_aspec args);
+```
+Defines singleton method of `name` to mruby object `obj`.
+
+### mrb_singleton_class
+```C
+mrb_value mrb_singleton_class(mrb_state* mrb, mrb_value obj);
+```
+Returns singleton class of `obj`.
+If its singleton class isn't defined it will be created.
+
 ## Fiber
 
 ### mrb_fiber_state
 ```C
 enum mrb_fiber_state {
-MRB_FIBER_CREATED = 0,
-MRB_FIBER_RUNNING,
-MRB_FIBER_RESUMING,
-MRB_FIBER_SUSPENDED,
-MRB_FIBER_TRANSFERRED,
-MRB_FIBER_TERMINATED,
+  MRB_FIBER_CREATED = 0,
+  MRB_FIBER_RUNNING,
+  MRB_FIBER_RESUMING,
+  MRB_FIBER_SUSPENDED,
+  MRB_FIBER_TRANSFERRED,
+  MRB_FIBER_TERMINATED,
 };
 ```
 Represents fiber states.
@@ -127,10 +197,6 @@ After calling this function it must return to mruby VM as soon as possible.
 ## Undocumented
 ```C
 typedef uint32_t mrb_code;
-typedef uint32_t mrb_aspec;
-
-struct mrb_irep;
-struct mrb_state;
 
 typedef struct {
 mrb_sym mid;
@@ -252,25 +318,8 @@ mrb_atexit_func *atexit_stack;
 mrb_int atexit_stack_len;
 } mrb_state;
 
-#if __STDC_VERSION__ >= 201112L
-# define mrb_noreturn _Noreturn
-#elif defined __GNUC__ && !defined __STRICT_ANSI__
-# define mrb_noreturn __attribute__((noreturn))
-#elif defined _MSC_VER
-# define mrb_noreturn __declspec(noreturn)
-#else
-# define mrb_noreturn
-#endif
-
-typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
-struct RClass *mrb_define_module(mrb_state *, const char*);
-mrb_value mrb_singleton_class(mrb_state*, mrb_value);
 void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
 
-void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
-void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
-void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
-void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
 void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
@@ -288,37 +337,6 @@ struct RClass * mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const
 mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
 mrb_bool mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid);
-
-/* required arguments */
-#define MRB_ARGS_REQ(n)     ((mrb_aspec)((n)&0x1f) << 18)
-/* optional arguments */
-#define MRB_ARGS_OPT(n)     ((mrb_aspec)((n)&0x1f) << 13)
-/* mandatory and optinal arguments */
-#define MRB_ARGS_ARG(n1,n2)   (MRB_ARGS_REQ(n1)|MRB_ARGS_OPT(n2))
-
-/* rest argument */
-#define MRB_ARGS_REST()     ((mrb_aspec)(1 << 12))
-/* required arguments after rest */
-#define MRB_ARGS_POST(n)    ((mrb_aspec)((n)&0x1f) << 7)
-/* keyword arguments (n of keys, kdict) */
-#define MRB_ARGS_KEY(n1,n2) ((mrb_aspec)((((n1)&0x1f) << 2) | ((n2)?(1<<1):0)))
-/* block argument */
-#define MRB_ARGS_BLOCK()    ((mrb_aspec)1)
-
-/* accept any number of arguments */
-#define MRB_ARGS_ANY()      MRB_ARGS_REST()
-/* accept no arguments */
-#define MRB_ARGS_NONE()     ((mrb_aspec)0)
-
-/* compatibility macros; will be removed */
-#define ARGS_REQ(n)         MRB_ARGS_REQ(n)
-#define ARGS_OPT(n)         MRB_ARGS_OPT(n)
-#define ARGS_REST()         MRB_ARGS_REST()
-#define ARGS_POST(n)        MRB_ARGS_POST()
-#define ARGS_KEY(n1,n2)     MRB_ARGS_KEY(n1,n2)
-#define ARGS_BLOCK()        MRB_ARGS_BLOCK()
-#define ARGS_ANY()          MRB_ARGS_ANY()
-#define ARGS_NONE()         MRB_ARGS_NONE()
 
 /* `strlen` for character string literals (use with caution or `strlen` instead)
     Adjacent string literals are concatenated in C/C++ in translation phase 6.
