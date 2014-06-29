@@ -124,6 +124,8 @@ os_each_object_cb(mrb_state *mrb, struct RBasic *obj, void *ud)
   case MRB_TT_ENV:
   case MRB_TT_ICLASS:
     return;
+  default:
+    break;
   }
 
   /* filter half baked (or internal) objects */
