@@ -21,6 +21,13 @@ The function pointing it must behave similarly as `realloc` except:
 * If `ptr` is `NULL` it must allocate new space.
 * If `s` is `NULL`, `ptr` must be freed.
 
+### mrb_default_allocf
+```C
+void* mrb_default_allocf(mrb_state *mrb, void *ptr, size_t size, void* ud);
+```
+Default `allocf` implemented with standard C functions that will be used in `mrb_open`.
+It doesn't require `ud` so if you're creating `mrb_state*` with this, pass `NULL` as `ud`.
+
 ### mrb_open_allocf
 ```C
 mrb_state* mrb_open_allocf(mrb_allocf f, void *ud);
@@ -200,7 +207,7 @@ void *mrb_malloc(mrb_state* mrb, size_t s);
 void *mrb_calloc(mrb_state* mrb, size_t s, size_t s);
 void *mrb_realloc(mrb_state* mrb, void* ptr, size_t s);
 ```
-The usage is same as std C function except it takes `mrb` argument and
+The usage is same as standard C function excepts it takes `mrb` argument and
 raises `RuntimeError` when memory ran out.
 
 ### Simple version.
@@ -390,10 +397,6 @@ mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
 mrb_value mrb_str_new_cstr(mrb_state*, const char*);
 mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
 #define mrb_str_new_lit(mrb, lit) mrb_str_new_static(mrb, (lit), mrb_strlen_lit(lit))
-
-mrb_state* mrb_open_core(mrb_allocf, void *ud);
-
-void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
 
 mrb_value mrb_top_self(mrb_state *);
 mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
