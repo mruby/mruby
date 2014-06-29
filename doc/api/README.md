@@ -3,6 +3,9 @@
 This is a C API Reference.
 The structure of this document will follow the directory structure of `include/` directory.
 
+If there isn't specific description of the first `mrb_state* mrb` argument
+it's the current mruby state.
+
 ## Headers list
 Header name|Features
 -----------|--------
