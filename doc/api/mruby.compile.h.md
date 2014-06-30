@@ -1,31 +1,69 @@
 # mruby/compile.h
 
+## mrbc_context
+mruby compiler context.
+
+### Fields of mrbc_context.
+Only documenting fields that user can use.
+* `short lineno = 0;`
+  * Current line number of compiler context.
+  * If this is set before parsing starts it would be the initial line number.
+* `void *partial_data = NULL;`
+  * User data of partial hook.
+  * Will be set with partial hook in `mrbc_partial_hook`.
+* `struct RClass *target_class = NULL;`
+  * Target class when loading compiled script.
+  * Used in `mrb_load_*` functions.
+* `mrb_bool capture_errors = FALSE;`
+  * Flag to print verbose diagnostics.
+  * If true prints parser diagnostics to `stderr` and
+  raises syntax error with diagnostic in `mrb_load_*` functions..
+* `mrb_bool dump_result = FALSE;`
+  * Flag to print verbose compile result.
+  * If true prints AST in `mrb_parser_parse` and prints generated code in `mrb_load_*` functions.
+* `mrb_bool no_exec = FALSE;`
+  * Flag to print compile only.
+  * If true won't execute compiled script.
+  * `mrb_load_*_cxt` functions will Return compiled `Proc` object instead of execution result.
+
+### mrbc_context_new
+```C
+mrbc_context* mrbc_context_new(mrb_state *mrb);
+```
+Creates new `mrbc_context`.
+
+### mrbc_context_free
+```C
+void mrbc_context_free(mrb_state *mrb, mrbc_context *cxt);
+```
+Release context `cxt`.
+
+### mrbc_partial_hook
+```C
+void mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*partial_hook)(struct mrb_parser_state*), void*data);
+```
+Sets partial hook of context `c`.
+Partial hook is a hook called when lexer reaches end of current source.
+
+`data` argument is a user data that will be set to `partial_data` field of `c`.
+Partial hook must return `0` to tell reading can continue or `-1` to tell the reading ended.
+
+### mrbc_filename
+```C
+const char *mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s);
+```
+If `s` is `NULL` returns current file name of context `c`.
+Otherwise sets current file name of the context `c` to `s` and
+returns the copied string.
+
+Mainly used to set initial file name in parser.
+If you need to change file name in partial hook use `mrb_parser_set_filename` instead.
+
+## mrb_parser_state
+
 ## Undocumented
 
 ```C
-struct mrb_jmpbuf;
-
-struct mrb_parser_state;
-/* load context */
-typedef struct mrbc_context {
-  mrb_sym *syms;
-  int slen;
-  char *filename;
-  short lineno;
-  int (*partial_hook)(struct mrb_parser_state*);
-  void *partial_data;
-  struct RClass *target_class;
-  mrb_bool capture_errors:1;
-  mrb_bool dump_result:1;
-  mrb_bool no_exec:1;
-  mrb_bool keep_lv:1;
-} mrbc_context;
-
-mrbc_context* mrbc_context_new(mrb_state *mrb);
-void mrbc_context_free(mrb_state *mrb, mrbc_context *cxt);
-const char *mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s);
-void mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*partial_hook)(struct mrb_parser_state*), void*data);
-
 mrb_value mrb_toplevel_run_keep(mrb_state*, struct RProc*, unsigned int);
 
 /* AST node structure */
