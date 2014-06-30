@@ -2,6 +2,7 @@
 
 ## mrbc_context
 mruby compiler context.
+Local variables and line number are inherited in same context.
 
 ### Fields of mrbc_context.
 Only documenting fields that user can use.
