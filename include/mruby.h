@@ -343,6 +343,50 @@ mrb_bool mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c);
 mrb_value mrb_obj_inspect(mrb_state *mrb, mrb_value self);
 mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 
+extern const uint8_t mrb_ctype_table[256];
+
+#define MRB_CTYPE_PRINT  0x01
+#define MRB_CTYPE_SPACE  0x02
+#define MRB_CTYPE_UPPER  0x04
+#define MRB_CTYPE_LOWER  0x08
+#define MRB_CTYPE_DIGIT  0x10
+#define MRB_CTYPE_XDIGIT 0x20
+#define MRB_CTYPE_ALPHA  (MRB_CTYPE_UPPER | MRB_CTYPE_LOWER)
+#define MRB_CTYPE_ALNUM  (MRB_CTYPE_ALPHA | MRB_CTYPE_DIGIT)
+
+static inline uint8_t
+mrb_ctype(char c)
+{
+  return mrb_ctype_table[(unsigned char)c];
+}
+
+#define mrb_isprint(c)  (!!(mrb_ctype(c) & MRB_CTYPE_PRINT))
+#define mrb_isspace(c)  (!!(mrb_ctype(c) & MRB_CTYPE_SPACE))
+#define mrb_isupper(c)  (!!(mrb_ctype(c) & MRB_CTYPE_UPPER))
+#define mrb_islower(c)  (!!(mrb_ctype(c) & MRB_CTYPE_LOWER))
+#define mrb_isdigit(c)  (!!(mrb_ctype(c) & MRB_CTYPE_DIGIT))
+#define mrb_isxdigit(c) (!!(mrb_ctype(c) & MRB_CTYPE_XDIGIT))
+#define mrb_isalpha(c)  (!!(mrb_ctype(c) & MRB_CTYPE_ALPHA))
+#define mrb_isalnum(c)  (!!(mrb_ctype(c) & MRB_CTYPE_ALNUM))
+
+static inline mrb_bool
+mrb_isascii(char c)
+{
+  return (unsigned)c < 0x80;
+}
+
+static inline char
+mrb_toupper(char c)
+{
+  return mrb_islower(c) ? (char)((unsigned)c & 0x5F) : c;
+}
+
+static inline char
+mrb_tolower(char c)
+{
+  return mrb_isupper(c) ? (char)((unsigned)c | 0x20) : c;
+}
+
 /* need to include <ctype.h> to use these macros */
 #ifndef ISPRINT
 #define ISASCII(c) (!(((int)(unsigned char)(c)) & ~0x7f))
