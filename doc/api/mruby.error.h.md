@@ -25,11 +25,11 @@ Creates and returns exception from class `c` of message created from string lite
 mrb_value mrb_make_exception(mrb_state *mrb, int argc, const mrb_value *argv);
 ```
 Creates and returns exception with arguments.
-If `argc` is `0` returns `nil` object.
-If `argc` is `1` and `argv[0]` is string, returns `RuntimeError` with message `argv[0]`.
-If `argc` is greater than `0` and `argv[0]` is subclass of `Exception`,
+* If `argc` is `0` returns `nil` object.
+* If `argc` is `1` and `argv[0]` is string, returns `RuntimeError` with message `argv[0]`.
+* If `argc` is greater than `0` and `argv[0]` is subclass of `Exception`,
 returns exception of `argv[0]` that is created from `new` method with the rest of `argv`.
-Otherwise raises `TypeError` or `ArgumentError`.
+* Otherwise raises `TypeError` or `ArgumentError`.
 
 ## mrb_print_backtrace
 ```C
