@@ -376,3 +376,45 @@
 #ifdef SOL_SOCKET
   define_const(SOL_SOCKET);
 #endif
+#ifdef TCP_NODELAY
+  define_const(TCP_NODELAY);
+#endif
+#ifdef TCP_MAXSEG
+  define_const(TCP_MAXSEG);
+#endif
+#ifdef TCP_CORK
+  define_const(TCP_CORK);
+#endif
+#ifdef TCP_KEEPIDLE
+  define_const(TCP_KEEPIDLE);
+#endif
+#ifdef TCP_KEEPINTVL
+  define_const(TCP_KEEPINTVL);
+#endif
+#ifdef TCP_KEEPCNT
+  define_const(TCP_KEEPCNT);
+#endif
+#ifdef TCP_SYNCNT
+  define_const(TCP_SYNCNT);
+#endif
+#ifdef TCP_LINGER2
+  define_const(TCP_LINGER2);
+#endif
+#ifdef TCP_DEFER_ACCEPT
+  define_const(TCP_DEFER_ACCEPT);
+#endif
+#ifdef TCP_WINDOW_CLAMP
+  define_const(TCP_WINDOW_CLAMP);
+#endif
+#ifdef TCP_INFO
+  define_const(TCP_INFO);
+#endif
+#ifdef TCP_QUICKACK
+  define_const(TCP_QUICKACK);
+#endif
+#ifdef TCP_CONGESTION
+  define_const(TCP_CONGESTION);
+#endif
+#ifdef TCP_MD5SIG
+  define_const(TCP_MD5SIG);
+#endif
