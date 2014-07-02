@@ -110,6 +110,9 @@ typedef struct {
 #ifdef MRB_WORD_BOXING
 		struct RFloat floatv;
     struct RCptr cptr;
+#ifdef MRB_COMPLEX
+		struct RComplex complex;
+#endif
 #endif
   } as;
 } RVALUE;
