@@ -108,10 +108,10 @@ typedef struct {
     struct RData data;
     struct RProc proc;
 #ifdef MRB_WORD_BOXING
-		struct RFloat floatv;
+    struct RFloat floatv;
     struct RCptr cptr;
 #ifdef MRB_COMPLEX
-		struct RComplex complex;
+    struct RComplex complex;
 #endif
 #endif
   } as;

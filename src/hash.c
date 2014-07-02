@@ -95,7 +95,7 @@ mrb_hash_ht_hash_equal(mrb_state *mrb, mrb_value a, mrb_value b)
 
 #ifdef MRB_COMPLEX
   case MRB_TT_COMPLEX:
-  	if (mrb_type(b) != MRB_TT_COMPLEX) return FALSE;
+    if (mrb_type(b) != MRB_TT_COMPLEX) return FALSE;
     return mrb_float(a) == mrb_real(b) && mrb_imag(a) == mrb_imag(b);
 #endif
 

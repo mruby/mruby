@@ -151,9 +151,9 @@ enum mrb_vtype {
 #define mrb_float(o)    (o).f.real
 
 #define MRB_SET_VALUE(o, ttt, attr, v) do {\
-	(o).value.tt_nan = 0xffff;\
+  (o).value.tt_nan = 0xffff;\
   (o).value.tt = ttt;\
-	(o).attr = v;\
+  (o).attr = v;\
 } while (0)
 
  /* type and value representation by nan-boxing:
@@ -162,23 +162,26 @@ enum mrb_vtype {
   */
 
 #ifdef MRB_COMPLEX
-
+  
 typedef struct mrb_value {
   union {
-		struct {
-	    mrb_float real;
-			mrb_float imag;
-		} f;
     struct {
-			union {
-				void *p;
-		    mrb_int i;
-		    mrb_sym sym;
-				uint64_t ensure_alignment; /* padding, not used */
-			};
+      mrb_float real;
+      mrb_float imag;
+    } f;
+    struct {
+      union {
+        void *p;
+        mrb_int i;
+        mrb_sym sym;
+        uint64_t ensure_alignment1; /* padding, not used */
+      };
       MRB_ENDIAN_LOHI(
-        uint16_t tt_nan;,
-        uint16_t tt;
+        MRB_ENDIAN_LOHI(
+          uint16_t tt_nan;,
+          uint16_t tt;
+          ),
+        uint32_t ensure_alignment2; /* padding, not used */
       )
     } value;
   };
@@ -222,20 +225,20 @@ mrb_complex_value(struct mrb_state *mrb, mrb_float real, mrb_float imag)
 
 typedef struct mrb_value {
   union {
-		struct {
-	    mrb_float real;
-		} f;
+    struct {
+      mrb_float real;
+    } f;
     union {
       struct {
         MRB_ENDIAN_LOHI(
-	        MRB_ENDIAN_LOHI(
-		        uint16_t tt_nan;,
-		        uint16_t tt;
-					)
+          MRB_ENDIAN_LOHI(
+            uint16_t tt_nan;,
+            uint16_t tt;
+          )
           ,union {
-						void *p;
-				    mrb_int i;
-				    mrb_sym sym;
+            void *p;
+            mrb_int i;
+            mrb_sym sym;
           };
         )
       };
@@ -327,12 +330,12 @@ mrb_value mrb_complex_value(struct mrb_state *mrb, mrb_float real, mrb_float ima
 
 typedef struct mrb_value {
   union {
-		struct {
-	    mrb_float real;
+    struct {
+      mrb_float real;
 #ifdef MRB_COMPLEX
-			mrb_float imag;
+      mrb_float imag;
 #endif
-		} f;
+    } f;
     void *p;
     mrb_int i;
     mrb_sym sym;
