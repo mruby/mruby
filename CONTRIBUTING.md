@@ -14,6 +14,7 @@ things in mind before submitting your pull request:
 * Don't mix several features or bug-fixes in one pull request
 * Create a meaningful commit message
 * Explain your change (i.e. with a link to the issue you are fixing)
+* Implement classes, modules and methods which don't belong to ISO to mrbgem unless you have a special reason that they are implemented to mruby core
 
 ## Coding conventions
 
