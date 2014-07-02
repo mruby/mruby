@@ -29,8 +29,8 @@ mrb_open_core(mrb_allocf f, void *ud)
   static const struct mrb_context mrb_context_zero = { 0 };
   mrb_state *mrb;
 
-#ifdef MRB_NAN_BOXING
-  mrb_static_assert(sizeof(void*) == 4, "when using NaN boxing sizeof pointer must be 4 byte");
+#if defined(MRB_NAN_BOXING) && !defined(MRB_COMPLEX)
+  mrb_static_assert(sizeof(void*) == 4, "when using NaN boxing without complex type sizeof pointer must be 4 bytes");
 #endif
 
   mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
@@ -152,7 +152,7 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
       mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
     }
 #ifdef MRB_WORD_BOXING
-    else if (mrb_type(irep->pool[i]) == MRB_TT_FLOAT) {
+    else if (mrb_type(irep->pool[i]) == MRB_TT_FLOAT || mrb_type(irep->pool[i]) == MRB_TT_COMPLEX) {
       mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
     }
 #endif

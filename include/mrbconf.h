@@ -17,6 +17,9 @@
 /* add -DMRB_INT64 to use 64bit integer for mrb_int; conflict with MRB_INT16 */
 //#define MRB_INT64
 
+ // include mrb_value support for Complex number type
+//#define MRB_COMPLEX
+
 /* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT */
 //#define MRB_NAN_BOXING
 

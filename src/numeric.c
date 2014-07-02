@@ -1295,7 +1295,7 @@ mrb_init_numeric(mrb_state *mrb)
   struct RClass *numeric, *integer, *fixnum, *fl;
 
   /* Numeric Class */
-  numeric = mrb_define_class(mrb, "Numeric",  mrb->object_class);                /* 15.2.7 */
+  numeric = mrb->numeric_class = mrb_define_class(mrb, "Numeric",  mrb->object_class);                /* 15.2.7 */
 
   mrb_define_method(mrb, numeric, "**",       num_pow,        MRB_ARGS_REQ(1));
   mrb_define_method(mrb, numeric, "/",        num_div,        MRB_ARGS_REQ(1));  /* 15.2.8.3.4  */

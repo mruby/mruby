@@ -26,6 +26,11 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
   case MRB_TT_FLOAT:
     return (mrb_float(v1) == mrb_float(v2));
 
+#ifdef MRB_COMPLEX
+  case MRB_TT_COMPLEX:
+    return (mrb_real(v1) == mrb_real(v2) && mrb_imag(v1) == mrb_imag(v2));
+#endif
+
   default:
     return (mrb_ptr(v1) == mrb_ptr(v2));
   }
@@ -362,24 +367,25 @@ static const struct types {
   const char *name;
 } builtin_types[] = {
 /*    {MRB_TT_NIL,  "nil"}, */
-  {MRB_TT_FALSE,  "false"},
-  {MRB_TT_TRUE,   "true"},
-  {MRB_TT_FIXNUM, "Fixnum"},
-  {MRB_TT_SYMBOL, "Symbol"},  /* :symbol */
-  {MRB_TT_MODULE, "Module"},
-  {MRB_TT_OBJECT, "Object"},
-  {MRB_TT_CLASS,  "Class"},
-  {MRB_TT_ICLASS, "iClass"},  /* internal use: mixed-in module holder */
-  {MRB_TT_SCLASS, "SClass"},
-  {MRB_TT_PROC,   "Proc"},
-  {MRB_TT_FLOAT,  "Float"},
-  {MRB_TT_ARRAY,  "Array"},
-  {MRB_TT_HASH,   "Hash"},
-  {MRB_TT_STRING, "String"},
-  {MRB_TT_RANGE,  "Range"},
+  {MRB_TT_FALSE,   "false"},
+  {MRB_TT_TRUE,    "true"},
+  {MRB_TT_FIXNUM,  "Fixnum"},
+  {MRB_TT_SYMBOL,  "Symbol"},  /* :symbol */
+  {MRB_TT_MODULE,  "Module"},
+  {MRB_TT_OBJECT,  "Object"},
+  {MRB_TT_CLASS,   "Class"},
+  {MRB_TT_ICLASS,  "iClass"},  /* internal use: mixed-in module holder */
+  {MRB_TT_SCLASS,  "SClass"},
+  {MRB_TT_PROC,    "Proc"},
+  {MRB_TT_FLOAT,   "Float"},
+  {MRB_TT_COMPLEX, "Complex"},
+  {MRB_TT_ARRAY,   "Array"},
+  {MRB_TT_HASH,    "Hash"},
+  {MRB_TT_STRING,  "String"},
+  {MRB_TT_RANGE,   "Range"},
 /*    {MRB_TT_BIGNUM,  "Bignum"}, */
-  {MRB_TT_FILE,   "File"},
-  {MRB_TT_DATA,   "Data"},  /* internal use: wrapped C pointers */
+  {MRB_TT_FILE,    "File"},
+  {MRB_TT_DATA,    "Data"},  /* internal use: wrapped C pointers */
 /*    {MRB_TT_VARMAP,  "Varmap"}, */ /* internal use: dynamic variables */
 /*    {MRB_TT_NODE,  "Node"}, */ /* internal use: syntax tree node */
 /*    {MRB_TT_UNDEF,  "undef"}, */ /* internal use: #undef; should not happen */

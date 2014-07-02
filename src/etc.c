@@ -128,6 +128,10 @@ mrb_obj_id(mrb_value obj)
     return MakeID2(mrb_float_id((mrb_float)mrb_fixnum(obj)), MRB_TT_FLOAT);
   case  MRB_TT_FLOAT:
     return MakeID(mrb_float_id(mrb_float(obj)));
+#ifdef MRB_COMPLEX
+  case  MRB_TT_COMPLEX:
+    return MakeID(mrb_float_id(mrb_real(obj))) ^ MakeID(mrb_float_id(mrb_imag(obj)));
+#endif
   case  MRB_TT_STRING:
   case  MRB_TT_OBJECT:
   case  MRB_TT_CLASS:
@@ -165,6 +169,17 @@ mrb_float_pool(mrb_state *mrb, mrb_float f)
   nf->c = mrb->float_class;
   nf->f = f;
   return mrb_obj_value(nf);
+}
+
+mrb_value
+mrb_complex_value(mrb_state *mrb, mrb_float real, mrb_float imag)
+{
+  mrb_value v;
+
+  v.value.p = mrb_obj_alloc(mrb, MRB_TT_COMPLEX, mrb->complex_class);
+  v.value.cp->real = real;
+  v.value.cp->real = imag;
+  return v;
 }
 
 mrb_value

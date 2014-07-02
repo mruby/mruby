@@ -22,8 +22,8 @@
 #endif
 
 #if defined(MRB_INT64)
-# ifdef MRB_NAN_BOXING
-#  error Cannot use NaN boxing when mrb_int is 64bit
+# if defined(MRB_NAN_BOXING) and !defined(MRB_COMPLEX)
+#  error Cannot use NaN boxing without complex type when mrb_int is 64bit
 # else
    typedef int64_t mrb_int;
 #  define MRB_INT_BIT 64
@@ -104,24 +104,15 @@ static const unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
 typedef uint8_t mrb_bool;
 struct mrb_state;
 
-#if defined(MRB_NAN_BOXING)
-
-#ifdef MRB_USE_FLOAT
-# error ---->> MRB_NAN_BOXING and MRB_USE_FLOAT conflict <<----
-#endif
-
-#ifdef MRB_INT64
-# error ---->> MRB_NAN_BOXING and MRB_INT64 conflict <<----
-#endif
-
 enum mrb_vtype {
-  MRB_TT_FALSE = 1,   /*   1 */
-  MRB_TT_FREE,        /*   2 */
-  MRB_TT_TRUE,        /*   3 */
-  MRB_TT_FIXNUM,      /*   4 */
-  MRB_TT_SYMBOL,      /*   5 */
-  MRB_TT_UNDEF,       /*   6 */
-  MRB_TT_FLOAT,       /*   7 */
+  MRB_TT_FALSE = 0,   /*   0 */
+  MRB_TT_FREE,        /*   1 */
+  MRB_TT_TRUE,        /*   2 */
+  MRB_TT_FIXNUM,      /*   3 */
+  MRB_TT_SYMBOL,      /*   4 */
+  MRB_TT_UNDEF,       /*   5 */
+  MRB_TT_FLOAT,       /*   6 */
+  MRB_TT_COMPLEX,     /*   7 */
   MRB_TT_CPTR,        /*   8 */
   MRB_TT_OBJECT,      /*   9 */
   MRB_TT_CLASS,       /*  10 */
@@ -136,10 +127,16 @@ enum mrb_vtype {
   MRB_TT_EXCEPTION,   /*  19 */
   MRB_TT_FILE,        /*  20 */
   MRB_TT_ENV,         /*  21 */
-  MRB_TT_DATA,        /*  22 */
-  MRB_TT_FIBER,       /*  23 */
-  MRB_TT_MAXDEFINE    /*  24 */
+  MRB_TT_DATA,        /*  21 */
+  MRB_TT_FIBER,       /*  22 */
+  MRB_TT_MAXDEFINE    /*  23 */
 };
+
+#ifdef MRB_NAN_BOXING
+
+#ifdef MRB_USE_FLOAT
+# error ---->> MRB_NAN_BOXING and MRB_USE_FLOAT conflict <<----
+#endif
 
 #define MRB_TT_HAS_BASIC  MRB_TT_OBJECT
 
@@ -149,17 +146,96 @@ enum mrb_vtype {
 #define MRB_ENDIAN_LOHI(a,b) b a
 #endif
 
+#define mrb_tt(o)       (enum mrb_vtype)(o).value.tt
+#define mrb_ptr(o)      ((o).value.p)
+#define mrb_float(o)    (o).f.real
+
+#define MRB_SET_VALUE(o, ttt, attr, v) do {\
+	(o).value.tt_nan = 0xffff;\
+  (o).value.tt = ttt;\
+	(o).attr = v;\
+} while (0)
+
+ /* type and value representation by nan-boxing:
+  *   float : FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF
+  *   other : 1111111111111111 TTTTTTTTTTTTTTTT VVVVVVVVVVVVVVVV VVVVVVVVVVVVVVVV
+  */
+
+#ifdef MRB_COMPLEX
+
 typedef struct mrb_value {
   union {
-    mrb_float f;
+		struct {
+	    mrb_float real;
+			mrb_float imag;
+		} f;
+    struct {
+			union {
+				void *p;
+		    mrb_int i;
+		    mrb_sym sym;
+				uint64_t ensure_alignment; /* padding, not used */
+			};
+      MRB_ENDIAN_LOHI(
+        uint16_t tt_nan;,
+        uint16_t tt;
+      )
+    } value;
+  };
+} mrb_value;
+
+#define mrb_real(o)     (o).f.real
+#define mrb_imag(o)     (o).f.imag
+#define mrb_type(o)     ((uint32_t)0xffff == (o).value.tt_nan ? mrb_tt(o) : MRB_TT_COMPLEX)
+
+static inline mrb_value
+mrb_float_value(struct mrb_state *mrb, mrb_float f)
+{
+  mrb_value v;
+  (void) mrb;
+
+  MRB_SET_VALUE(v, MRB_TT_FLOAT, f.real, f);
+  return v;
+}
+#define mrb_float_pool(mrb,f) mrb_float_value(mrb,f)
+
+static inline mrb_value
+mrb_complex_value(struct mrb_state *mrb, mrb_float real, mrb_float imag)
+{
+  mrb_value v;
+  (void) mrb;
+
+  v.f.real = real;
+  if (imag != imag) {
+    v.value.tt_nan = 0x7ff8;
+    v.value.tt = 0;
+    v.value.i = 0;
+  } else {
+    v.f.imag = imag;
+  }
+  return v;
+}
+
+#else /* not MRB_COMPLEX */
+
+#define mrb_type(o)     ((uint32_t)0xffff == (o).value.tt_nan ? mrb_tt(o) : MRB_TT_FLOAT)
+
+typedef struct mrb_value {
+  union {
+		struct {
+	    mrb_float real;
+		} f;
     union {
-      void *p;
       struct {
         MRB_ENDIAN_LOHI(
-          uint32_t ttt;
+	        MRB_ENDIAN_LOHI(
+		        uint16_t tt_nan;,
+		        uint16_t tt;
+					)
           ,union {
-            mrb_int i;
-            mrb_sym sym;
+						void *p;
+				    mrb_int i;
+				    mrb_sym sym;
           };
         )
       };
@@ -167,77 +243,27 @@ typedef struct mrb_value {
   };
 } mrb_value;
 
-/* value representation by nan-boxing:
- *   float : FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF
- *   object: 111111111111TTTT TTPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP
- *   int   : 1111111111110001 0000000000000000 IIIIIIIIIIIIIIII IIIIIIIIIIIIIIII
- *   sym   : 1111111111110001 0100000000000000 SSSSSSSSSSSSSSSS SSSSSSSSSSSSSSSS
- * In order to get enough bit size to save TT, all pointers are shifted 2 bits
- * in the right direction.
- */
-#define mrb_tt(o)       ((enum mrb_vtype)(((o).value.ttt & 0xfc000)>>14))
-#define mrb_mktt(tt)    (0xfff00000|((tt)<<14))
-#define mrb_type(o)     ((uint32_t)0xfff00000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
-#define mrb_ptr(o)      ((void*)((((uintptr_t)0x3fffffffffff)&((uintptr_t)((o).value.p)))<<2))
-#define mrb_float(o)    (o).f
-
-#define MRB_SET_VALUE(o, tt, attr, v) do {\
-  (o).value.ttt = mrb_mktt(tt);\
-  switch (tt) {\
-  case MRB_TT_FALSE:\
-  case MRB_TT_TRUE:\
-  case MRB_TT_UNDEF:\
-  case MRB_TT_FIXNUM:\
-  case MRB_TT_SYMBOL: (o).attr = (v); break;\
-  default: (o).value.i = 0; (o).value.p = (void*)((uintptr_t)(o).value.p | (((uintptr_t)(v))>>2)); break;\
-  }\
-} while (0)
-
 static inline mrb_value
 mrb_float_value(struct mrb_state *mrb, mrb_float f)
 {
   mrb_value v;
 
   if (f != f) {
-    v.value.ttt = 0x7ff80000;
+    v.value.tt_nan = 0x7ff8;
+    v.value.tt = 0;
     v.value.i = 0;
   } else {
-    v.f = f;
+    v.f.real = f;
   }
   return v;
 }
 #define mrb_float_pool(mrb,f) mrb_float_value(mrb,f)
 
-#else
+#endif /* not MRB_COMPLEX */
 
-enum mrb_vtype {
-  MRB_TT_FALSE = 0,   /*   0 */
-  MRB_TT_FREE,        /*   1 */
-  MRB_TT_TRUE,        /*   2 */
-  MRB_TT_FIXNUM,      /*   3 */
-  MRB_TT_SYMBOL,      /*   4 */
-  MRB_TT_UNDEF,       /*   5 */
-  MRB_TT_FLOAT,       /*   6 */
-  MRB_TT_CPTR,        /*   7 */
-  MRB_TT_OBJECT,      /*   8 */
-  MRB_TT_CLASS,       /*   9 */
-  MRB_TT_MODULE,      /*  10 */
-  MRB_TT_ICLASS,      /*  11 */
-  MRB_TT_SCLASS,      /*  12 */
-  MRB_TT_PROC,        /*  13 */
-  MRB_TT_ARRAY,       /*  14 */
-  MRB_TT_HASH,        /*  15 */
-  MRB_TT_STRING,      /*  16 */
-  MRB_TT_RANGE,       /*  17 */
-  MRB_TT_EXCEPTION,   /*  18 */
-  MRB_TT_FILE,        /*  19 */
-  MRB_TT_ENV,         /*  20 */
-  MRB_TT_DATA,        /*  21 */
-  MRB_TT_FIBER,       /*  22 */
-  MRB_TT_MAXDEFINE    /*  23 */
-};
+#else /* not MRB_NAN_BOXING */
 
-#if defined(MRB_WORD_BOXING)
+#ifdef MRB_WORD_BOXING
 
 #include <limits.h>
 #define MRB_TT_HAS_BASIC  MRB_TT_FLOAT
@@ -267,13 +293,16 @@ typedef union mrb_value {
     };
     struct RBasic *bp;
     struct RFloat *fp;
+    struct RComplex *cp;
     struct RCptr *vp;
   } value;
   unsigned long w;
 } mrb_value;
 
-#define mrb_ptr(o)      (o).value.p
-#define mrb_float(o)    (o).value.fp->f
+#define mrb_ptr(o)    (o).value.p
+#define mrb_float(o)  (o).value.fp->f
+#define mrb_real(o)   (o).value.cp->real
+#define mrb_imag(o)   (o).value.cp->imag
 
 #define MRB_SET_VALUE(o, ttt, attr, v) do {\
   (o).w = 0;\
@@ -290,6 +319,7 @@ typedef union mrb_value {
 
 mrb_value mrb_float_value(struct mrb_state *mrb, mrb_float f);
 mrb_value mrb_float_pool(struct mrb_state *mrb, mrb_float f);
+mrb_value mrb_complex_value(struct mrb_state *mrb, mrb_float real, mrb_float imag);
 
 #else /* No MRB_xxx_BOXING */
 
@@ -297,7 +327,12 @@ mrb_value mrb_float_pool(struct mrb_state *mrb, mrb_float f);
 
 typedef struct mrb_value {
   union {
-    mrb_float f;
+		struct {
+	    mrb_float real;
+#ifdef MRB_COMPLEX
+			mrb_float imag;
+#endif
+		} f;
     void *p;
     mrb_int i;
     mrb_sym sym;
@@ -307,7 +342,7 @@ typedef struct mrb_value {
 
 #define mrb_type(o)     (o).tt
 #define mrb_ptr(o)      (o).value.p
-#define mrb_float(o)    (o).value.f
+#define mrb_float(o)    (o).value.f.real
 
 #define MRB_SET_VALUE(o, ttt, attr, v) do {\
   (o).tt = ttt;\
@@ -320,14 +355,30 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
   mrb_value v;
   (void) mrb;
 
-  MRB_SET_VALUE(v, MRB_TT_FLOAT, value.f, f);
+  MRB_SET_VALUE(v, MRB_TT_FLOAT, value.f.real, f);
   return v;
 }
 #define mrb_float_pool(mrb,f) mrb_float_value(mrb,f)
 
+#ifdef MRB_COMPLEX
+#define mrb_real(o)     (o).value.f.real
+#define mrb_imag(o)     (o).value.f.imag
+static inline mrb_value
+mrb_complex_value(struct mrb_state *mrb, mrb_float real, mrb_float imag)
+{
+  mrb_value v;
+  (void) mrb;
+
+  v.tt = MRB_TT_COMPLEX;
+  v.value.f.real = real;
+  v.value.f.imag = imag;
+  return v;
+}
+#endif
+
 #endif  /* no boxing */
 
-#endif
+#endif /* not MRB_NAN_BOXING */
 
 #ifdef MRB_WORD_BOXING
 
@@ -345,7 +396,7 @@ mrb_float_value(struct mrb_state *mrb, mrb_float f)
 #define mrb_nil_p(o)  (mrb_type(o) == MRB_TT_FALSE && !(o).value.i)
 #define mrb_bool(o)   (mrb_type(o) != MRB_TT_FALSE)
 
-#endif  /* no boxing */
+#endif
 
 #define mrb_fixnum(o) (o).value.i
 #define mrb_symbol(o) (o).value.sym
@@ -398,7 +449,7 @@ struct RObject {
 #define mrb_obj_ptr(v)   ((struct RObject*)(mrb_ptr(v)))
 /* obsolete macro mrb_object; will be removed soon */
 #define mrb_object(o) mrb_obj_ptr(o)
-#define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_CPTR)
+#define mrb_immediate_p(x) (mrb_type(x) < MRB_TT_HAS_BASIC)
 #define mrb_special_const_p(x) mrb_immediate_p(x)
 
 struct RFiber {
@@ -410,6 +461,12 @@ struct RFiber {
 struct RFloat {
   MRB_OBJECT_HEADER;
   mrb_float f;
+};
+
+struct RComplex {
+  MRB_OBJECT_HEADER;
+  mrb_float real;
+  mrb_float imag;
 };
 
 struct RCptr {

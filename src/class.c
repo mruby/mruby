@@ -975,6 +975,7 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
   case MRB_TT_SYMBOL:
   case MRB_TT_FIXNUM:
   case MRB_TT_FLOAT:
+  case MRB_TT_COMPLEX:
     mrb_raise(mrb, E_TYPE_ERROR, "can't define singleton");
     return mrb_nil_value();    /* not reached */
   default:
