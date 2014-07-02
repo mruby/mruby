@@ -137,7 +137,8 @@ Type tag of `a` and `b` must be `MRB_TT_ARRAY`.
 ```C
 mrb_value mrb_check_array_type(mrb_state *mrb, mrb_value ary);
 ```
-Checks whether `ary` is an Array or convertable to Array.
+Converts `ary` to `Array` object.
+Returns `nil` if it isn't convertable.
 
 ## mrb_ary_unshift
 ```C
