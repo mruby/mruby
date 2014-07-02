@@ -14,6 +14,7 @@ things in mind before submitting your pull request:
 * Don't mix several features or bug-fixes in one pull request
 * Create a meaningful commit message
 * Explain your change (i.e. with a link to the issue you are fixing)
+* Use mrbgem to provide non ISO features (classes, modules and methods) unless you have a special reason to implement them in the core
 
 ## Coding conventions
 
