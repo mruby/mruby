@@ -107,6 +107,13 @@ typedef struct {
     struct RRange range;
     struct RData data;
     struct RProc proc;
+#ifdef MRB_WORD_BOXING
+    struct RFloat floatv;
+    struct RCptr cptr;
+#ifdef MRB_COMPLEX
+    struct RComplex complex;
+#endif
+#endif
   } as;
 } RVALUE;
 
@@ -601,6 +608,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     return;
 
   case MRB_TT_FLOAT:
+  case MRB_TT_COMPLEX:
 #ifdef MRB_WORD_BOXING
     break;
 #else

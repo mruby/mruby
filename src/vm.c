@@ -38,12 +38,16 @@ void abort(void);
 #define SET_INT_VALUE(r,n) MRB_SET_VALUE(r, MRB_TT_FIXNUM, value.i, (n))
 #define SET_SYM_VALUE(r,v) MRB_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
 #define SET_OBJ_VALUE(r,v) MRB_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
-#ifdef MRB_NAN_BOXING
-#define SET_FLT_VALUE(mrb,r,v) r.f = (v)
+#if defined(MRB_NAN_BOXING)
+#if defined(MRB_COMPLEX)
+#define SET_FLT_VALUE(mrb,r,v) MRB_SET_VALUE(r, MRB_TT_FLOAT, f.real, (v))
+#else
+#define SET_FLT_VALUE(mrb,r,v) r.f.real = (v)
+#endif
 #elif defined(MRB_WORD_BOXING)
 #define SET_FLT_VALUE(mrb,r,v) r = mrb_float_value(mrb, (v))
 #else
-#define SET_FLT_VALUE(mrb,r,v) MRB_SET_VALUE(r, MRB_TT_FLOAT, value.f, (v))
+#define SET_FLT_VALUE(mrb,r,v) MRB_SET_VALUE(r, MRB_TT_FLOAT, value.f.real, (v))
 #endif
 
 #define STACK_INIT_SIZE 128
@@ -75,7 +79,11 @@ static inline void
 stack_clear(mrb_value *from, size_t count)
 {
 #ifndef MRB_NAN_BOXING
-  const mrb_value mrb_value_zero = { { 0 } };
+#ifdef MRB_WORD_BOXING
+  const mrb_value mrb_value_zero = { {0} };
+#else
+  const mrb_value mrb_value_zero = { { {0} } };
+#endif
 
   while (count-- > 0) {
     *from++ = mrb_value_zero;
@@ -1682,11 +1690,11 @@ RETRY_TRY_BLOCK:
 
 #define attr_i value.i
 #ifdef MRB_NAN_BOXING
-#define attr_f f
+#define attr_f f.real
 #elif defined(MRB_WORD_BOXING)
 #define attr_f value.fp->f
 #else
-#define attr_f value.f
+#define attr_f value.f.real
 #endif
 
 #define TYPES2(a,b) ((((uint16_t)(a))<<8)|(((uint16_t)(b))&0xff))
@@ -1916,7 +1924,7 @@ RETRY_TRY_BLOCK:
       default:
         goto L_SEND;
       }
-#ifdef MRB_NAN_BOXING
+#if defined(MRB_NAN_BOXING) && !defined(MRB_COMPLEX)
       if (isnan(regs[a].attr_f)) {
         regs[a] = mrb_float_value(mrb, regs[a].attr_f);
       }

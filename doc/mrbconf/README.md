@@ -115,6 +115,11 @@ largest value of required alignment.
 
 ## `mrb_value` configuration.
 
+`MRB_COMPLEX`
+* If defined `mrb_value` can be a complex number of floating points.
+* Complex class is not included in mruby core without this.
+* Use a boxing option to avoid performance penalty.
+
 `MRB_ENDIAN_BIG`
 * If defined compiles mruby for big endian machines.
 * Used in `MRB_NAN_BOXING`.
@@ -122,11 +127,12 @@ largest value of required alignment.
 
 `MRB_NAN_BOXING`
 * If defined represent `mrb_value` in boxed `double`.
+* With `MRB_COMPLEX` the `mrb_value` is two boxed `double`.
 * Conflicts with `MRB_USE_FLOAT`.
 
 `MRB_WORD_BOXING`
 * If defined represent `mrb_value` as a word.
-* If defined `Float` will be a mruby object with `RBasic`.
+* If defined `Float` and `Complex` will be a mruby object with `RBasic`.
 
 ## Instance variable configuration.
 `MRB_USE_IV_SEGLIST`

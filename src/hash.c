@@ -46,6 +46,13 @@ mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
     h = (khint_t)mrb_float_id(mrb_float(key));
     return kh_int_hash_func(mrb,h);
 
+#ifdef MRB_COMPLEX
+  case MRB_TT_COMPLEX:
+    h = (khint_t)mrb_float_id(mrb_real(key));
+    h ^= (khint_t)mrb_float_id(mrb_imag(key));
+    return kh_int_hash_func(mrb,h);
+#endif
+
   default:
     hv = mrb_funcall(mrb, key, "hash", 0);
     h = (khint_t)t ^ mrb_fixnum(hv);
@@ -85,6 +92,12 @@ mrb_hash_ht_hash_equal(mrb_state *mrb, mrb_value a, mrb_value b)
     default:
       return FALSE;
     }
+
+#ifdef MRB_COMPLEX
+  case MRB_TT_COMPLEX:
+    if (mrb_type(b) != MRB_TT_COMPLEX) return FALSE;
+    return mrb_float(a) == mrb_real(b) && mrb_imag(a) == mrb_imag(b);
+#endif
 
   default:
     return mrb_eql(mrb, a, b);

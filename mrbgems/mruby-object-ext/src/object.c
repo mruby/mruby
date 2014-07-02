@@ -77,6 +77,7 @@ mrb_obj_instance_exec(mrb_state *mrb, mrb_value self)
   case MRB_TT_SYMBOL:
   case MRB_TT_FIXNUM:
   case MRB_TT_FLOAT:
+  case MRB_TT_COMPLEX:
     c = NULL;
     break;
   default:
