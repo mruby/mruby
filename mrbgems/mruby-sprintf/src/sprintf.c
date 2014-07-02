@@ -166,7 +166,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
   (posarg = -2, mrb_hash_fetch(mrb, get_hash(mrb, &hash, argc, argv), id, mrb_undef_value())))
 
 #define GETNUM(n, val) \
-  for (; p < end && ISDIGIT(*p); p++) {\
+  for (; p < end && mrb_isdigit(*p); p++) {\
     int next_n = 10 * n + (*p - '0'); \
     if (next_n / 10 != n) {\
       mrb_raise(mrb, E_ARGUMENT_ERROR, #val " too big"); \

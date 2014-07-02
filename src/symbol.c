@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <ctype.h>
 #include <string.h>
 #include "mruby.h"
 #include "mruby/khash.h"
@@ -279,7 +278,7 @@ sym_to_sym(mrb_state *mrb, mrb_value sym)
 /* As in Harbison and Steele.  */
 # define SIGN_EXTEND_CHAR(c) ((((unsigned char)(c)) ^ 128) - 128)
 #endif
-#define is_identchar(c) (SIGN_EXTEND_CHAR(c)!=-1&&(ISALNUM(c) || (c) == '_'))
+#define is_identchar(c) (SIGN_EXTEND_CHAR(c)!=-1&&(mrb_isalnum(c) || (c) == '_'))
 
 static mrb_bool
 is_special_global_name(const char* m)
@@ -297,8 +296,8 @@ is_special_global_name(const char* m)
       if (is_identchar(*m)) m += 1;
       break;
     default:
-      if (!ISDIGIT(*m)) return FALSE;
-      do ++m; while (ISDIGIT(*m));
+      if (!mrb_isdigit(*m)) return FALSE;
+      do ++m; while (mrb_isdigit(*m));
       break;
   }
   return !*m;
@@ -372,9 +371,9 @@ symname_p(const char *name)
       break;
 
     default:
-      localid = !ISUPPER(*m);
+      localid = !mrb_isupper(*m);
 id:
-      if (*m != '_' && !ISALPHA(*m)) return FALSE;
+      if (*m != '_' && !mrb_isalpha(*m)) return FALSE;
       while (is_identchar(*m)) m += 1;
       if (localid) {
         switch (*m) {

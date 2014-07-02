@@ -28,6 +28,14 @@
 #include "node.h"
 #include "mrb_throw.h"
 
+#define ISASCII(c)  mrb_isascii(c)
+#define ISSPACE(c)  mrb_isspace(c)
+#define ISUPPER(c)  mrb_isupper(c)
+#define ISALNUM(c)  mrb_isalnum(c)
+#define ISALPHA(c)  mrb_isalpha(c)
+#define ISDIGIT(c)  mrb_isdigit(c)
+#define ISXDIGIT(c) mrb_isxdigit(c)
+
 #define YYLEX_PARAM p
 
 typedef mrb_ast_node node;

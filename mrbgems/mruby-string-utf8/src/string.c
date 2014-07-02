@@ -4,7 +4,6 @@
 #include "mruby/string.h"
 #include "mruby/range.h"
 #include "mruby/re.h"
-#include <ctype.h>
 #include <string.h>
 
 static const char utf8len_codepage[256] =
@@ -566,7 +565,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       int ai = mrb_gc_arena_save(mrb);
       c = (unsigned char)*ptr++;
       if (skip) {
-        if (ISSPACE(c)) {
+        if (mrb_isspace(c)) {
           beg = ptr - bptr;
         }
         else {
@@ -575,7 +574,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
           if (lim_p && lim <= i) break;
         }
       }
-      else if (ISSPACE(c)) {
+      else if (mrb_isspace(c)) {
         mrb_ary_push(mrb, result, str_subseq(mrb, str, beg, end-beg));
         mrb_gc_arena_restore(mrb, ai);
         skip = 1;

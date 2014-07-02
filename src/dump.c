@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <ctype.h>
 #include <string.h>
 #include <limits.h>
 #include "mruby/dump.h"
@@ -965,11 +964,11 @@ is_valid_c_symbol_name(const char *name)
    const char *c = NULL;
 
    if (name == NULL || name[0] == '\0') return FALSE;
-   if (!ISALPHA(name[0]) && name[0] != '_') return FALSE;
+   if (!mrb_isalpha(name[0]) && name[0] != '_') return FALSE;
 
    c = &name[1];
    for (; *c != '\0'; ++c) {
-     if (!ISALNUM(*c) && *c != '_') return FALSE;
+     if (!mrb_isalnum(*c) && *c != '_') return FALSE;
    }
 
    return TRUE;

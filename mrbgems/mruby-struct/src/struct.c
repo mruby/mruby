@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <ctype.h>
 #include <string.h>
 #include "mruby.h"
 #include "mruby/array.h"
@@ -214,14 +213,14 @@ static mrb_bool
 is_local_id(mrb_state *mrb, const char *name)
 {
   if (!name) return FALSE;
-  return !ISUPPER(name[0]);
+  return !mrb_isupper(name[0]);
 }
 
 static mrb_bool
 is_const_id(mrb_state *mrb, const char *name)
 {
   if (!name) return FALSE;
-  return ISUPPER(name[0]);
+  return mrb_isupper(name[0]);
 }
 
 static mrb_value

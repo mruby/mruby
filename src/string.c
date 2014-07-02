@@ -1020,13 +1020,13 @@ mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
   mrb_str_modify(mrb, s);
   if (RSTR_LEN(s) == 0 || !RSTR_PTR(s)) return mrb_nil_value();
   p = RSTR_PTR(s); pend = RSTR_PTR(s) + RSTR_LEN(s);
-  if (ISLOWER(*p)) {
-    *p = TOUPPER(*p);
+  if (mrb_islower(*p)) {
+    *p = mrb_toupper(*p);
     modify = TRUE;
   }
   while (++p < pend) {
-    if (ISUPPER(*p)) {
-      *p = TOLOWER(*p);
+    if (mrb_isupper(*p)) {
+      *p = mrb_tolower(*p);
       modify = TRUE;
     }
   }
@@ -1235,8 +1235,8 @@ mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
   p = RSTR_PTR(s);
   pend = RSTR_PTR(s) + RSTR_LEN(s);
   while (p < pend) {
-    if (ISUPPER(*p)) {
-      *p = TOLOWER(*p);
+    if (mrb_isupper(*p)) {
+      *p = mrb_tolower(*p);
       modify = TRUE;
     }
     p++;
@@ -1932,7 +1932,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       int ai = mrb_gc_arena_save(mrb);
       c = (unsigned char)*ptr++;
       if (skip) {
-        if (ISSPACE(c)) {
+        if (mrb_isspace(c)) {
           beg = ptr - bptr;
         }
         else {
@@ -1941,7 +1941,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
           if (lim_p && lim <= i) break;
         }
       }
-      else if (ISSPACE(c)) {
+      else if (mrb_isspace(c)) {
         mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
         mrb_gc_arena_restore(mrb, ai);
         skip = TRUE;
@@ -2016,7 +2016,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
 #undef ISDIGIT
 #define ISDIGIT(c) ('0' <= (c) && (c) <= '9')
 #define conv_digit(c) \
-    (!ISASCII(c) ? -1 : \
+    (!mrb_isascii(c) ? -1 : \
      isdigit(c) ? ((c) - '0') : \
      islower(c) ? ((c) - 'a' + 10) : \
      isupper(c) ? ((c) - 'A' + 10) : \
@@ -2026,7 +2026,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     if (badcheck) goto bad;
     return mrb_fixnum_value(0);
   }
-  while (ISSPACE(*str)) str++;
+  while (mrb_isspace(*str)) str++;
 
   if (str[0] == '+') {
     str++;
@@ -2106,7 +2106,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
       else
         uscore = 0;
     }
-    if (!(c = *str) || ISSPACE(c)) --str;
+    if (!(c = *str) || mrb_isspace(c)) --str;
   }
   c = *str;
   c = conv_digit(c);
@@ -2140,7 +2140,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
   val = n;
   if (badcheck) {
     if (p == str) goto bad; /* no number */
-    while (*p && ISSPACE(*p)) p++;
+    while (*p && mrb_isspace(*p)) p++;
     if (*p) goto bad;           /* trailing garbage */
   }
 
@@ -2233,7 +2233,7 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, mrb_bool badcheck)
       (w = (int)(end - p), ellipsis = ""))
 
   if (!p) return 0.0;
-  while (ISSPACE(*p)) p++;
+  while (mrb_isspace(*p)) p++;
 
   if (!badcheck && p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
     return 0.0;
@@ -2258,9 +2258,9 @@ bad:
       if (*p == '_') {
         /* remove underscores between digits */
         if (badcheck) {
-          if (n == buf || !ISDIGIT(prev)) goto bad;
+          if (n == buf || !mrb_isdigit(prev)) goto bad;
           ++p;
-          if (!ISDIGIT(*p)) goto bad;
+          if (!mrb_isdigit(*p)) goto bad;
         }
         else {
           while (*++p == '_');
@@ -2280,7 +2280,7 @@ bad:
     d = strtod(p, &end);
     if (badcheck) {
       if (!end || p == end) goto bad;
-      while (*end && ISSPACE(*end)) end++;
+      while (*end && mrb_isspace(*end)) end++;
       if (*end) goto bad;
     }
   }
@@ -2364,8 +2364,8 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
   p = RSTRING_PTR(str);
   pend = RSTRING_END(str);
   while (p < pend) {
-    if (ISLOWER(*p)) {
-      *p = TOUPPER(*p);
+    if (mrb_islower(*p)) {
+      *p = mrb_toupper(*p);
       modify = TRUE;
     }
     p++;
@@ -2430,7 +2430,7 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
         break;
 
       default:
-        if (ISPRINT(c)) {
+        if (mrb_isprint(c)) {
           len++;
         }
         else {
@@ -2501,7 +2501,7 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
         break;
 
       default:
-        if (ISPRINT(c)) {
+        if (mrb_isprint(c)) {
           *q++ = c;
         }
         else {
@@ -2573,7 +2573,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
       mrb_str_cat(mrb, result, buf, 2);
       continue;
     }
-    if (ISPRINT(c)) {
+    if (mrb_isprint(c)) {
       buf[0] = c;
       mrb_str_cat(mrb, result, buf, 1);
       continue;

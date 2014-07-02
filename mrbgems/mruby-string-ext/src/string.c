@@ -1,4 +1,3 @@
-#include <ctype.h>
 #include <string.h>
 #include "mruby.h"
 #include "mruby/array.h"
@@ -38,12 +37,12 @@ mrb_str_swapcase_bang(mrb_state *mrb, mrb_value str)
   p = RSTRING_PTR(str);
   pend = p + RSTRING_LEN(str);
   while (p < pend) {
-    if (ISUPPER(*p)) {
-      *p = TOLOWER(*p);
+    if (mrb_isupper(*p)) {
+      *p = mrb_tolower(*p);
       modify = 1;
     }
-    else if (ISLOWER(*p)) {
-      *p = TOUPPER(*p);
+    else if (mrb_islower(*p)) {
+      *p = mrb_toupper(*p);
       modify = 1;
     }
     p++;

@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <ctype.h>
 #include <stdarg.h>
 #include "mruby.h"
 #include "mruby/array.h"
@@ -1831,7 +1830,7 @@ check_const_name_sym(mrb_state *mrb, mrb_sym id)
   mrb_int len;
 
   s = mrb_sym2name_len(mrb, id, &len);
-  if (len < 1 || !ISUPPER(*s)) {
+  if (len < 1 || !mrb_isupper(*s)) {
     mrb_name_error(mrb, id, "wrong constant name %S", mrb_sym2str(mrb, id));
   }
 }
@@ -1839,7 +1838,7 @@ check_const_name_sym(mrb_state *mrb, mrb_sym id)
 static void
 check_const_name_str(mrb_state *mrb, mrb_value str)
 {
-  if (RSTRING_LEN(str) < 1 || !ISUPPER(*RSTRING_PTR(str))) {
+  if (RSTRING_LEN(str) < 1 || !mrb_isupper(*RSTRING_PTR(str))) {
     mrb_name_error(mrb, mrb_intern_str(mrb, str), "wrong constant name %S", str);
   }
 }

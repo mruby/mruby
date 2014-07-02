@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <ctype.h>
 #include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
@@ -953,7 +952,7 @@ const_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 
   ary = *(mrb_value*)p;
   s = mrb_sym2name_len(mrb, sym, &len);
-  if (len >= 1 && ISUPPER(s[0])) {
+  if (len >= 1 && mrb_isupper(s[0])) {
     mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   }
   return 0;

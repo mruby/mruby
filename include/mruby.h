@@ -387,21 +387,6 @@ mrb_tolower(char c)
   return mrb_isupper(c) ? (char)((unsigned)c | 0x20) : c;
 }
 
-/* need to include <ctype.h> to use these macros */
-#ifndef ISPRINT
-#define ISASCII(c) (!(((int)(unsigned char)(c)) & ~0x7f))
-#define ISPRINT(c) (ISASCII(c) && isprint((int)(unsigned char)(c)))
-#define ISSPACE(c) (ISASCII(c) && isspace((int)(unsigned char)(c)))
-#define ISUPPER(c) (ISASCII(c) && isupper((int)(unsigned char)(c)))
-#define ISLOWER(c) (ISASCII(c) && islower((int)(unsigned char)(c)))
-#define ISALNUM(c) (ISASCII(c) && isalnum((int)(unsigned char)(c)))
-#define ISALPHA(c) (ISASCII(c) && isalpha((int)(unsigned char)(c)))
-#define ISDIGIT(c) (ISASCII(c) && isdigit((int)(unsigned char)(c)))
-#define ISXDIGIT(c) (ISASCII(c) && isxdigit((int)(unsigned char)(c)))
-#define TOUPPER(c) (ISASCII(c) ? toupper((int)(unsigned char)(c)) : (c))
-#define TOLOWER(c) (ISASCII(c) ? tolower((int)(unsigned char)(c)) : (c))
-#endif
-
 mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len);
 mrb_noreturn void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
 
