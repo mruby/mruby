@@ -8,6 +8,8 @@
 #define FIBER_STACK_INIT_SIZE 64
 #define FIBER_CI_INIT_SIZE 8
 
+#define SET_NIL_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
+
 /*
  *  call-seq:
  *     Fiber.new{...} -> obj
@@ -85,9 +87,23 @@ fiber_init(mrb_state *mrb, mrb_value self)
   c = f->cxt;
 
   /* initialize VM stack */
-  c->stbase = (mrb_value *)mrb_calloc(mrb, FIBER_STACK_INIT_SIZE, sizeof(mrb_value));
+  c->stbase = (mrb_value *)mrb_malloc(mrb, FIBER_STACK_INIT_SIZE*sizeof(mrb_value));
   c->stend = c->stbase + FIBER_STACK_INIT_SIZE;
   c->stack = c->stbase;
+
+#ifdef MRB_NAN_BOXING
+  {
+    mrb_value *p = c->stbase;
+    mrb_value *pend = p + FIBER_STACK_INIT_SIZE;
+
+    while (p < pend) {
+      SET_NIL_VALUE(*p);
+      p++;
+    }
+  }
+#else
+  memset(c->stbase, 0, FIBER_STACK_INIT_SIZE * sizeof(mrb_value));
+#endif
 
   /* copy receiver from a block */
   c->stack[0] = mrb->c->stack[0];
