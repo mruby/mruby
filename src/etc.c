@@ -178,7 +178,7 @@ mrb_complex_value(mrb_state *mrb, mrb_float real, mrb_float imag)
 
   v.value.p = mrb_obj_alloc(mrb, MRB_TT_COMPLEX, mrb->complex_class);
   v.value.cp->real = real;
-  v.value.cp->real = imag;
+  v.value.cp->imag = imag;
   return v;
 }
 
