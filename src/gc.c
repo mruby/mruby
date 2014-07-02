@@ -107,6 +107,10 @@ typedef struct {
     struct RRange range;
     struct RData data;
     struct RProc proc;
+#ifdef MRB_WORD_BOXING
+    struct RFloat floatv;
+    struct RCptr cptr;
+#endif
   } as;
 } RVALUE;
 
