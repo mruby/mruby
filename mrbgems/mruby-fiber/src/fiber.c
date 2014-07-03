@@ -8,8 +8,6 @@
 #define FIBER_STACK_INIT_SIZE 64
 #define FIBER_CI_INIT_SIZE 8
 
-#define SET_NIL_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
-
 /*
  *  call-seq:
  *     Fiber.new{...} -> obj
