@@ -190,9 +190,9 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
   }
   else {
     ns->flags = 0;
-    if (s->flags & MRB_STR_EMBED) {
+    if (RSTR_EMBED_P(s)) {
       ptr = s->as.ary;
-      len = (mrb_int)((s->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT);
+      len = RSTR_EMBED_LEN(s);
     }
     else {
       ptr = s->as.heap.ptr;
@@ -200,9 +200,8 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
     }
 
     if (len < RSTRING_EMBED_LEN_MAX) {
-      ns->flags |= MRB_STR_EMBED;
-      ns->flags &= ~MRB_STR_EMBED_LEN_MASK;
-      ns->flags |= (size_t)len << MRB_STR_EMBED_LEN_SHIFT;
+      RSTR_SET_EMBED_FLAG(ns);
+      RSTR_SET_EMBED_LEN(ns, len);
       if (ptr) {
         memcpy(ns->as.ary, ptr, len);
       }
