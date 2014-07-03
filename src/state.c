@@ -182,7 +182,7 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
   ns->tt = MRB_TT_STRING;
   ns->c = mrb->string_class;
 
-  if (s->flags & MRB_STR_NOFREE) {
+  if (RSTR_NOFREE_P(s)) {
     ns->flags = MRB_STR_NOFREE;
     ns->as.heap.ptr = s->as.heap.ptr;
     ns->as.heap.len = s->as.heap.len;
