@@ -80,9 +80,9 @@ Creates a new Array object of length `2` with value `[car, cdr]`.
 
 ## mrb_ary_concat
 ```C
-void mrb_ary_concat(mrb_state *mrb, mrb_value rhs, mrb_value lhs);
+void mrb_ary_concat(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 ```
-Concatenates `lhs` to `rhs`.
+Concatenates `rhs` to `lhs`.
 Type tag of `lhs` and `rhs` must be `MRB_TT_ARRAY`.
 
 ## mrb_ary_splat
