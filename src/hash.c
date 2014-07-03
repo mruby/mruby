@@ -265,7 +265,7 @@ mrb_hash_tbl(mrb_state *mrb, mrb_value hash)
   khash_t(ht) *h = RHASH_TBL(hash);
 
   if (!h) {
-    RHASH_TBL(hash) = kh_init(ht, mrb);
+    return RHASH_TBL(hash) = kh_init(ht, mrb);
   }
   return h;
 }
