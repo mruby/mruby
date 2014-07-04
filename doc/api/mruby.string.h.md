@@ -235,7 +235,7 @@ Raises `TypeError` when conversion failed.
 mrb_value mrb_check_string_type(mrb_state *mrb, mrb_value str);
 ```
 Converts `str` to string object using `to_str` method.
-Returns `nil` when conversion faild.
+Returns `nil` when conversion failed.
 
 ## mrb_str_buf_new
 ```C
