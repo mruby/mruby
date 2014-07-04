@@ -1085,7 +1085,7 @@ mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
 {
   mrb_int z;
 
-  if (mrb_float_p(x)) {
+  if (!mrb_float_p(x)) {
      mrb_raise(mrb, E_TYPE_ERROR, "non float value");
      z = 0; /* not reached. just suppress warnings. */
   }
