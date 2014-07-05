@@ -1,532 +1,297 @@
 # mruby/value.h
 
-## Undocumented
+## Types
 
+### mrb_float
 ```C
-#ifdef MRB_USE_FLOAT
-  typedef float mrb_float;
-# define mrb_float_to_str(buf, i) sprintf(buf, "%.7e", i)
-# define str_to_mrb_float(buf) strtof(buf, NULL)
-#else
-  typedef double mrb_float;
-# define mrb_float_to_str(buf, i) sprintf(buf, "%.16e", i)
-# define str_to_mrb_float(buf) strtod(buf, NULL)
-#endif
-
-#if defined(MRB_INT16) && defined(MRB_INT64)
-# error "You can't define MRB_INT16 and MRB_INT64 at the same time."
-#endif
-
-#if defined(MRB_INT64)
-# ifdef MRB_NAN_BOXING
-#  error Cannot use NaN boxing when mrb_int is 64bit
-# else
-   typedef int64_t mrb_int;
-#  define MRB_INT_BIT 64
-#  ifdef MRB_WORD_BOXING
-#   define MRB_INT_MIN (INT64_MIN>>MRB_FIXNUM_SHIFT)
-#   define MRB_INT_MAX (INT64_MAX>>MRB_FIXNUM_SHIFT)
-#  else
-#   define MRB_INT_MIN INT64_MIN
-#   define MRB_INT_MAX INT64_MAX
-#  endif
-#  define PRIdMRB_INT PRId64
-#  define PRIiMRB_INT PRIi64
-#  define PRIoMRB_INT PRIo64
-#  define PRIxMRB_INT PRIx64
-#  define PRIXMRB_INT PRIX64
-# endif
-#elif defined(MRB_INT16)
-# ifdef MRB_WORD_BOXING
-# error "MRB_INT16 is too small for MRB_WORD_BOXING."
-# endif
-  typedef int16_t mrb_int;
-# define MRB_INT_BIT 16
-# define MRB_INT_MIN INT16_MIN
-# define MRB_INT_MAX INT16_MAX
-#else
-  typedef int32_t mrb_int;
-# define MRB_INT_BIT 32
-# ifdef MRB_WORD_BOXING
-#  define MRB_INT_MIN (INT32_MIN>>MRB_FIXNUM_SHIFT)
-#  define MRB_INT_MAX (INT32_MAX>>MRB_FIXNUM_SHIFT)
-# else
-#  define MRB_INT_MIN INT32_MIN
-#  define MRB_INT_MAX INT32_MAX
-# endif
-# define PRIdMRB_INT PRId32
-# define PRIiMRB_INT PRIi32
-# define PRIoMRB_INT PRIo32
-# define PRIxMRB_INT PRIx32
-# define PRIXMRB_INT PRIX32
-#endif
-typedef short mrb_sym;
-
-#ifdef _MSC_VER
-# ifndef __cplusplus
-#  define inline __inline
-# endif
-# if _MSC_VER < 1900
-#  define snprintf _snprintf
-# endif
-# if _MSC_VER < 1800
-#  include <float.h>
-#  define isfinite(n) _finite(n)
-#  define isnan _isnan
-#  define isinf(n) (!_finite(n) && !_isnan(n))
-#  define signbit(n) (_copysign(1.0, (n)) < 0.0)
-#  define strtoll _strtoi64
-#  define strtof (float)strtod
-#  define PRId32 "I32d"
-#  define PRIi32 "I32i"
-#  define PRIo32 "I32o"
-#  define PRIx32 "I32x"
-#  define PRIX32 "I32X"
-#  define PRId64 "I64d"
-#  define PRIi64 "I64i"
-#  define PRIo64 "I64o"
-#  define PRIx64 "I64x"
-#  define PRIX64 "I64X"
-static const unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
-#  define INFINITY (*(float *)&IEEE754_INFINITY_BITS_SINGLE)
-#  define NAN ((float)(INFINITY - INFINITY))
-# else
-#  include <inttypes.h>
-# endif
-#else
-# include <inttypes.h>
-#endif
-
-typedef uint8_t mrb_bool;
-struct mrb_state;
-
-#if defined(MRB_NAN_BOXING)
-
-#ifdef MRB_USE_FLOAT
-# error ---->> MRB_NAN_BOXING and MRB_USE_FLOAT conflict <<----
-#endif
-
-#ifdef MRB_INT64
-# error ---->> MRB_NAN_BOXING and MRB_INT64 conflict <<----
-#endif
-
-enum mrb_vtype {
-  MRB_TT_FALSE = 1,   /*   1 */
-  MRB_TT_FREE,        /*   2 */
-  MRB_TT_TRUE,        /*   3 */
-  MRB_TT_FIXNUM,      /*   4 */
-  MRB_TT_SYMBOL,      /*   5 */
-  MRB_TT_UNDEF,       /*   6 */
-  MRB_TT_FLOAT,       /*   7 */
-  MRB_TT_CPTR,        /*   8 */
-  MRB_TT_OBJECT,      /*   9 */
-  MRB_TT_CLASS,       /*  10 */
-  MRB_TT_MODULE,      /*  11 */
-  MRB_TT_ICLASS,      /*  12 */
-  MRB_TT_SCLASS,      /*  13 */
-  MRB_TT_PROC,        /*  14 */
-  MRB_TT_ARRAY,       /*  15 */
-  MRB_TT_HASH,        /*  16 */
-  MRB_TT_STRING,      /*  17 */
-  MRB_TT_RANGE,       /*  18 */
-  MRB_TT_EXCEPTION,   /*  19 */
-  MRB_TT_FILE,        /*  20 */
-  MRB_TT_ENV,         /*  21 */
-  MRB_TT_DATA,        /*  22 */
-  MRB_TT_FIBER,       /*  23 */
-  MRB_TT_MAXDEFINE    /*  24 */
-};
-
-#define MRB_TT_HAS_BASIC  MRB_TT_OBJECT
-
-#ifdef MRB_ENDIAN_BIG
-#define MRB_ENDIAN_LOHI(a,b) a b
-#else
-#define MRB_ENDIAN_LOHI(a,b) b a
-#endif
-
-typedef struct mrb_value {
-  union {
-    mrb_float f;
-    union {
-      void *p;
-      struct {
-        MRB_ENDIAN_LOHI(
-          uint32_t ttt;
-          ,union {
-            mrb_int i;
-            mrb_sym sym;
-          };
-        )
-      };
-    } value;
-  };
-} mrb_value;
-
-/* value representation by nan-boxing:
- *   float : FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF
- *   object: 111111111111TTTT TTPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP
- *   int   : 1111111111110001 0000000000000000 IIIIIIIIIIIIIIII IIIIIIIIIIIIIIII
- *   sym   : 1111111111110001 0100000000000000 SSSSSSSSSSSSSSSS SSSSSSSSSSSSSSSS
- * In order to get enough bit size to save TT, all pointers are shifted 2 bits
- * in the right direction.
- */
-#define mrb_tt(o)       ((enum mrb_vtype)(((o).value.ttt & 0xfc000)>>14))
-#define mrb_mktt(tt)    (0xfff00000|((tt)<<14))
-#define mrb_type(o)     ((uint32_t)0xfff00000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
-#define mrb_ptr(o)      ((void*)((((uintptr_t)0x3fffffffffff)&((uintptr_t)((o).value.p)))<<2))
-#define mrb_float(o)    (o).f
-
-#define MRB_SET_VALUE(o, tt, attr, v) do {\
-  (o).value.ttt = mrb_mktt(tt);\
-  switch (tt) {\
-  case MRB_TT_FALSE:\
-  case MRB_TT_TRUE:\
-  case MRB_TT_UNDEF:\
-  case MRB_TT_FIXNUM:\
-  case MRB_TT_SYMBOL: (o).attr = (v); break;\
-  default: (o).value.i = 0; (o).value.p = (void*)((uintptr_t)(o).value.p | (((uintptr_t)(v))>>2)); break;\
-  }\
-} while (0)
-
-static inline mrb_value
-mrb_float_value(struct mrb_state *mrb, mrb_float f)
-{
-  mrb_value v;
-
-  if (f != f) {
-    v.value.ttt = 0x7ff80000;
-    v.value.i = 0;
-  } else {
-    v.f = f;
-  }
-  return v;
-}
-#define mrb_float_pool(mrb,f) mrb_float_value(mrb,f)
-
-#else
-
-enum mrb_vtype {
-  MRB_TT_FALSE = 0,   /*   0 */
-  MRB_TT_FREE,        /*   1 */
-  MRB_TT_TRUE,        /*   2 */
-  MRB_TT_FIXNUM,      /*   3 */
-  MRB_TT_SYMBOL,      /*   4 */
-  MRB_TT_UNDEF,       /*   5 */
-  MRB_TT_FLOAT,       /*   6 */
-  MRB_TT_CPTR,        /*   7 */
-  MRB_TT_OBJECT,      /*   8 */
-  MRB_TT_CLASS,       /*   9 */
-  MRB_TT_MODULE,      /*  10 */
-  MRB_TT_ICLASS,      /*  11 */
-  MRB_TT_SCLASS,      /*  12 */
-  MRB_TT_PROC,        /*  13 */
-  MRB_TT_ARRAY,       /*  14 */
-  MRB_TT_HASH,        /*  15 */
-  MRB_TT_STRING,      /*  16 */
-  MRB_TT_RANGE,       /*  17 */
-  MRB_TT_EXCEPTION,   /*  18 */
-  MRB_TT_FILE,        /*  19 */
-  MRB_TT_ENV,         /*  20 */
-  MRB_TT_DATA,        /*  21 */
-  MRB_TT_FIBER,       /*  22 */
-  MRB_TT_MAXDEFINE    /*  23 */
-};
-
-#if defined(MRB_WORD_BOXING)
-
-#include <limits.h>
-#define MRB_TT_HAS_BASIC  MRB_TT_FLOAT
-
-enum mrb_special_consts {
-  MRB_Qnil    = 0,
-  MRB_Qfalse  = 2,
-  MRB_Qtrue   = 4,
-  MRB_Qundef  = 6,
-};
-
-#define MRB_FIXNUM_FLAG   0x01
-#define MRB_FIXNUM_SHIFT  1
-#define MRB_SYMBOL_FLAG   0x0e
-#define MRB_SPECIAL_SHIFT 8
-
-typedef union mrb_value {
-  union {
-    void *p;
-    struct {
-      unsigned int i_flag : MRB_FIXNUM_SHIFT;
-      mrb_int i : (MRB_INT_BIT - MRB_FIXNUM_SHIFT);
-    };
-    struct {
-      unsigned int sym_flag : MRB_SPECIAL_SHIFT;
-      int sym : (sizeof(mrb_sym) * CHAR_BIT);
-    };
-    struct RBasic *bp;
-    struct RFloat *fp;
-    struct RCptr *vp;
-  } value;
-  unsigned long w;
-} mrb_value;
-
-#define mrb_ptr(o)      (o).value.p
-#define mrb_float(o)    (o).value.fp->f
-
-#define MRB_SET_VALUE(o, ttt, attr, v) do {\
-  (o).w = 0;\
-  (o).attr = (v);\
-  switch (ttt) {\
-  case MRB_TT_FALSE:  (o).w = (v) ? MRB_Qfalse : MRB_Qnil; break;\
-  case MRB_TT_TRUE:   (o).w = MRB_Qtrue; break;\
-  case MRB_TT_UNDEF:  (o).w = MRB_Qundef; break;\
-  case MRB_TT_FIXNUM: (o).value.i_flag = MRB_FIXNUM_FLAG; break;\
-  case MRB_TT_SYMBOL: (o).value.sym_flag = MRB_SYMBOL_FLAG; break;\
-  default:            if ((o).value.bp) (o).value.bp->tt = ttt; break;\
-  }\
-} while (0)
-
-mrb_value mrb_float_value(struct mrb_state *mrb, mrb_float f);
-mrb_value mrb_float_pool(struct mrb_state *mrb, mrb_float f);
-
-#else /* No MRB_xxx_BOXING */
-
-#define MRB_TT_HAS_BASIC  MRB_TT_OBJECT
-
-typedef struct mrb_value {
-  union {
-    mrb_float f;
-    void *p;
-    mrb_int i;
-    mrb_sym sym;
-  } value;
-  enum mrb_vtype tt;
-} mrb_value;
-
-#define mrb_type(o)     (o).tt
-#define mrb_ptr(o)      (o).value.p
-#define mrb_float(o)    (o).value.f
-
-#define MRB_SET_VALUE(o, ttt, attr, v) do {\
-  (o).tt = ttt;\
-  (o).attr = v;\
-} while (0)
-
-static inline mrb_value
-mrb_float_value(struct mrb_state *mrb, mrb_float f)
-{
-  mrb_value v;
-  (void) mrb;
-
-  MRB_SET_VALUE(v, MRB_TT_FLOAT, value.f, f);
-  return v;
-}
-#define mrb_float_pool(mrb,f) mrb_float_value(mrb,f)
-
-#endif  /* no boxing */
-
-#endif
-
-#ifdef MRB_WORD_BOXING
-
-#define mrb_cptr(o) (o).value.vp->p
-#define mrb_fixnum_p(o) ((o).value.i_flag == MRB_FIXNUM_FLAG)
-#define mrb_undef_p(o) ((o).w == MRB_Qundef)
-#define mrb_nil_p(o)  ((o).w == MRB_Qnil)
-#define mrb_bool(o)   ((o).w != MRB_Qnil && (o).w != MRB_Qfalse)
-
-#else
-
-#define mrb_cptr(o) mrb_ptr(o)
-#define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_FIXNUM)
-#define mrb_undef_p(o) (mrb_type(o) == MRB_TT_UNDEF)
-#define mrb_nil_p(o)  (mrb_type(o) == MRB_TT_FALSE && !(o).value.i)
-#define mrb_bool(o)   (mrb_type(o) != MRB_TT_FALSE)
-
-#endif  /* no boxing */
-
-#define mrb_fixnum(o) (o).value.i
-#define mrb_symbol(o) (o).value.sym
-#define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
-#define mrb_symbol_p(o) (mrb_type(o) == MRB_TT_SYMBOL)
-#define mrb_array_p(o) (mrb_type(o) == MRB_TT_ARRAY)
-#define mrb_string_p(o) (mrb_type(o) == MRB_TT_STRING)
-#define mrb_hash_p(o) (mrb_type(o) == MRB_TT_HASH)
-#define mrb_cptr_p(o) (mrb_type(o) == MRB_TT_CPTR)
-#define mrb_test(o)   mrb_bool(o)
-mrb_bool mrb_regexp_p(struct mrb_state*, mrb_value);
-
-#define MRB_OBJECT_HEADER \
-  enum mrb_vtype tt:8;\
-  uint32_t color:3;\
-  uint32_t flags:21;\
-  struct RClass *c;\
-  struct RBasic *gcnext
-
-/* white: 011, black: 100, gray: 000 */
-#define MRB_GC_GRAY 0
-#define MRB_GC_WHITE_A 1
-#define MRB_GC_WHITE_B (1 << 1)
-#define MRB_GC_BLACK (1 << 2)
-#define MRB_GC_WHITES (MRB_GC_WHITE_A | MRB_GC_WHITE_B)
-#define MRB_GC_COLOR_MASK 7
-
-#define paint_gray(o) ((o)->color = MRB_GC_GRAY)
-#define paint_black(o) ((o)->color = MRB_GC_BLACK)
-#define paint_white(o) ((o)->color = MRB_GC_WHITES)
-#define paint_partial_white(s, o) ((o)->color = (s)->current_white_part)
-#define is_gray(o) ((o)->color == MRB_GC_GRAY)
-#define is_white(o) ((o)->color & MRB_GC_WHITES)
-#define is_black(o) ((o)->color & MRB_GC_BLACK)
-#define is_dead(s, o) (((o)->color & other_white_part(s) & MRB_GC_WHITES) || (o)->tt == MRB_TT_FREE)
-#define flip_white_part(s) ((s)->current_white_part = other_white_part(s))
-#define other_white_part(s) ((s)->current_white_part ^ MRB_GC_WHITES)
-
-struct RBasic {
-  MRB_OBJECT_HEADER;
-};
-#define mrb_basic_ptr(v) ((struct RBasic*)(mrb_ptr(v)))
-/* obsolete macro mrb_basic; will be removed soon */
-#define mrb_basic(v)     mrb_basic_ptr(v)
-
-struct RObject {
-  MRB_OBJECT_HEADER;
-  struct iv_tbl *iv;
-};
-#define mrb_obj_ptr(v)   ((struct RObject*)(mrb_ptr(v)))
-/* obsolete macro mrb_object; will be removed soon */
-#define mrb_object(o) mrb_obj_ptr(o)
-#define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_CPTR)
-#define mrb_special_const_p(x) mrb_immediate_p(x)
-
-struct RFiber {
-  MRB_OBJECT_HEADER;
-  struct mrb_context *cxt;
-};
-
-#ifdef MRB_WORD_BOXING
-struct RFloat {
-  MRB_OBJECT_HEADER;
-  mrb_float f;
-};
-
-struct RCptr {
-  MRB_OBJECT_HEADER;
-  void *p;
-};
-
-static inline enum mrb_vtype
-mrb_type(mrb_value o)
-{
-  switch (o.w) {
-  case MRB_Qfalse:
-  case MRB_Qnil:
-    return MRB_TT_FALSE;
-  case MRB_Qtrue:
-    return MRB_TT_TRUE;
-  case MRB_Qundef:
-    return MRB_TT_UNDEF;
-  }
-  if (o.value.i_flag == MRB_FIXNUM_FLAG) {
-    return MRB_TT_FIXNUM;
-  }
-  if (o.value.sym_flag == MRB_SYMBOL_FLAG) {
-    return MRB_TT_SYMBOL;
-  }
-  return o.value.bp->tt;
-}
-#endif  /* MRB_WORD_BOXING */
-
-static inline mrb_value
-mrb_fixnum_value(mrb_int i)
-{
-  mrb_value v;
-
-  MRB_SET_VALUE(v, MRB_TT_FIXNUM, value.i, i);
-  return v;
-}
-
-static inline mrb_value
-mrb_symbol_value(mrb_sym i)
-{
-  mrb_value v;
-
-  MRB_SET_VALUE(v, MRB_TT_SYMBOL, value.sym, i);
-  return v;
-}
-
-static inline mrb_value
-mrb_obj_value(void *p)
-{
-  mrb_value v;
-  struct RBasic *b = (struct RBasic*)p;
-
-  MRB_SET_VALUE(v, b->tt, value.p, p);
-  return v;
-}
-
-#ifdef MRB_WORD_BOXING
-mrb_value
-mrb_cptr_value(struct mrb_state *mrb, void *p);
-#else
-static inline mrb_value
-mrb_cptr_value(struct mrb_state *mrb, void *p)
-{
-  mrb_value v;
-  (void) mrb;
-
-  MRB_SET_VALUE(v, MRB_TT_CPTR, value.p, p);
-  return v;
-}
-#endif
-/* obsolete macros; will be removed */
-#define MRB_TT_VOIDP MRB_TT_CPTR
-#define mrb_voidp_value(m,p) mrb_cptr_value((m),(p))
-#define mrb_voidp(o) mrb_cptr(o)
-#define mrb_voidp_p(o) mrb_cptr_p(o)
-
-#define MRB_TT_HAS_BASIC_P(tt) ((tt) >= MRB_TT_HAS_BASIC)
-
-static inline mrb_value
-mrb_false_value(void)
-{
-  mrb_value v;
-
-  MRB_SET_VALUE(v, MRB_TT_FALSE, value.i, 1);
-  return v;
-}
-
-static inline mrb_value
-mrb_nil_value(void)
-{
-  mrb_value v;
-
-  MRB_SET_VALUE(v, MRB_TT_FALSE, value.i, 0);
-  return v;
-}
-
-static inline mrb_value
-mrb_true_value(void)
-{
-  mrb_value v;
-
-  MRB_SET_VALUE(v, MRB_TT_TRUE, value.i, 1);
-  return v;
-}
-
-static inline mrb_value
-mrb_undef_value(void)
-{
-  mrb_value v;
-
-  MRB_SET_VALUE(v, MRB_TT_UNDEF, value.i, 0);
-  return v;
-}
-
-static inline mrb_value
-mrb_bool_value(mrb_bool boolean)
-{
-  mrb_value v;
-
-  MRB_SET_VALUE(v, boolean ? MRB_TT_TRUE : MRB_TT_FALSE, value.i, 1);
-  return v;
-}
+typedef /* float or double */ mrb_float;
 ```
+Defines type of floating point used in mruby.
+
+### mrb_int
+```C
+typedef /* int16_t, int32_t or int64_t */ mrb_int;
+```
+Defines type of integer used in mruby.
+
+### mrb_sym
+```C
+typedef short mrb_sym;
+```
+Defines type of symbol identifier.
+
+### mrb_bool
+```C
+typedef /* platform dependent bool type */ mrb_bool;
+```
+Defines boolean type used in mruby.
+
+### struct RBasic
+Most basic GC managed object.
+Any GC managed object could be cast to this type.
+
+### struct RObject
+GC managed object that represents instance created from class without specific type tag.
+Only instance table is defined.
+
+## Macros.
+
+### mrb_float_to_str
+```C
+int mrb_float_to_str(char *buf, mrb_float f);
+```
+Format float value `f` to buffer `buf`.
+Returns size of buffer used.
+Used to format float value in float dumping.
+
+### str_to_mrb_float
+```C
+mrb_float str_to_mrb_float(const char *buf);
+```
+Converts formatted float string `buf` to `mrb_float`.
+
+### MRB_INT_BIT
+Macro to define size of `mrb_int` in bits.
+
+### MRB_INT_MIN
+Macro to define minimum value that could be stored to `mrb_int`.
+
+### MRB_INT_MAX
+Macro to define maximum value that could be stored to `mrb_int`.
+
+### MRB_TT_HAS_BASIC_P
+```C
+mrb_bool MRB_TT_HAS_BASIC_P(enum mrb_vtype v);
+```
+Checks whether type of `v` has `struct RBasic*`.
+
+### mrb_ptr
+```C
+void *mrb_ptr(mrb_value v);
+```
+Takes pointer data from `mrb_value`.
+
+### mrb_type
+```C
+enum mrb_value mrb_type(mrb_value v);
+```
+Takes type tag of `mrb_value`.
+
+### mrb_float
+```C
+mrb_float mrb_float(mrb_value v);
+```
+Takes `mrb_float` from `mrb_value`.
+Type tag of `v` must be `MRB_TT_FLOAT`.
+
+### mrb_cptr
+```C
+void *mrb_cptr(mrb_value v);
+void *mrb_voidp(mrb_value v);
+```
+Takes c pointer from cptr object `v`.
+Type tag of `v` must be `MRB_TT_CPTR`.
+
+### mrb_fixnum_p
+```C
+mrb_bool mrb_fixnum_p(mrb_value v);
+```
+Checks whether type tag of `v` is `MRB_TT_FIXNUM`.
+
+### mrb_undef_p
+```C
+mrb_bool mrb_undef_p(mrb_value v);
+```
+Checks whether type tag of `v` is `MRB_TT_UNDEF`.
+
+### mrb_nil_p
+```C
+mrb_bool mrb_nil_p(mrb_value v);
+```
+Checks whether `v` is `nil` object.
+
+### Conversion to boolean.
+```C
+mrb_bool mrb_bool(mrb_value v);
+mrb_bool mrb_test(mrb_value v);
+```
+Returns conversion to boolean from `mrb_value`.
+
+### mrb_fixnum
+```C
+mrb_int mrb_fixnum(mrb_value v);
+```
+Takes fixnum value from `mrb_value`.
+Type tag of `v` must be `MRB_TT_FIXNUM`.
+
+### mrb_symbol
+```C
+mrb_sym mrb_symbol(mrb_value v);
+```
+Takes symbol from `mrb_value`.
+Type tag of `v` must be `MRB_TT_SYMBOL`.
+
+### mrb_float_p
+```C
+mrb_bool mrb_float_p(mrb_value v);
+```
+Checks whether type tag of `v` is `MRB_TT_FLOAT`.
+
+### mrb_symbol_p
+```C
+mrb_bool mrb_symbol_p(mrb_value v);
+```
+Checks whether type tag of `v` is `MRB_TT_SYMBOL`.
+
+### mrb_array_p
+```C
+mrb_bool mrb_array_p(mrb_value v);
+```
+Checks whether type tag of `v` is `MRB_TT_ARRAY`.
+
+### mrb_string_p
+```C
+mrb_bool mrb_string_p(mrb_value v);
+```
+Checks whether type tag of `v` is `MRB_TT_STRING`.
+
+### mrb_hash_p
+```C
+mrb_bool mrb_hash_p(mrb_value v);
+```
+Checks whether type tag of `v` is `MRB_TT_HASH`.
+
+### mrb_cptr_p
+```C
+mrb_bool mrb_cptr_p(mrb_value v);
+mrb_bool mrb_voidp_p(mrb_value v);
+```
+Checks whether type tag of `v` is `MRB_TT_CPTR`.
+
+### Taking `struct RBasic*`
+```C
+struct RBasic *mrb_basic_ptr(mrb_value v);
+struct RBasic *mrb_basic(mrb_value v);
+```
+Takes `struct RBasic*` from `mrb_value`.
+`MRB_TT_HAS_BASIC_P(v)` must be `TRUE`.
+
+### Taking `struct RObject*`
+```C
+struct RObject *mrb_object_ptr(mrb_value v);
+struct RObject *mrb_object(mrb_value v);
+```
+Takes `struct RObject*` from `mrb_value`.
+Type of `v` must be a type compatible with `struct RObject`.
+
+### Checks immediate type.
+```C
+mrb_bool mrb_immediate_p(mrb_value v);
+mrb_bool mrb_special_const_p(mrb_value v);
+```
+Checks whether `v` is a immediate type.
+
+### mrb_special_const_p
+
+## enum mrb_vtype
+Type tags used in `mrb_value` and `struct RBasic`.
+
+Name | Corresponding type
+=====|===================
+`MRB_TT_FALSE` | `FalseClass`
+`MRB_TT_FREE` | For object that isn't used.
+`MRB_TT_TRUE` | `TrueClass`
+`MRB_TT_FIXNUM` | `Fixnum`
+`MRB_TT_SYMBOL` | `Symbol`
+`MRB_TT_UNDEF` | For undefined value.
+`MRB_TT_FLOAT` | `Float`
+`MRB_TT_CPTR` | For object to store raw C pointer. `MRB_TT_VOIDP` is a compatibility macro.
+`MRB_TT_OBJECT` | `Object`
+`MRB_TT_CLASS` | `Class`
+`MRB_TT_MODULE` | `Module`
+`MRB_TT_ICLASS` | Used in internal object for module including.
+`MRB_TT_SCLASS` | Represents singleton class.
+`MRB_TT_PROC` | `Proc`
+`MRB_TT_ARRAY` | `Array` or `Struct`
+`MRB_TT_HASH` | `Hash`
+`MRB_TT_STRING` | `String`
+`MRB_TT_RANGE` | `Range`
+`MRB_TT_EXCEPTION` | Not used.
+`MRB_TT_FILE` | Not used.
+`MRB_TT_ENV` | For closure environment.
+`MRB_TT_DATA` | For user defined native handle.
+`MRB_TT_FIBER` | `Fiber`
+`MRB_TT_MAXDEFINE` | Count of type tag kinds.
+
+## mrb_float_value
+```C
+mrb_value mrb_float_value(mrb_state *mrb, mrb_float f);
+```
+Creates float object from `f`.
+
+## mrb_float_pool
+```C
+mrb_value mrb_float_pool(mrb_state *mrb, mrb_float f);
+```
+
+## mrb_regexp_p
+```C
+mrb_bool mrb_regexp_p(struct mrb_state *mrb, mrb_value v);
+```
+Checks whether `v` is a instance of `Regexp` class.
+
+## mrb_fixnum_value
+```C
+mrb_value mrb_fixnum_value(mrb_int i);
+```
+Creates `mrb_value` from fixnum value `i`.
+
+## mrb_symbol_value
+```C
+mrb_value mrb_symbol_value(mrb_sym s);
+```
+Creates `mrb_value` from symbol `s`.
+
+## mrb_obj_value
+```C
+mrb_value mrb_obj_value(void *p);
+```
+Creates `mrb_value` from `p`.
+Object pointed by `p` must be compatible with `struct RBasic`.
+
+## mrb_cptr_value
+```C
+mrb_value mrb_cptr_value(struct mrb_state *mrb, void *p);
+mrb_value mrb_voidp_value(struct mrb_state *mrb, void *p);
+```
+Creates `mrb_value` from raw C pointer `p`.
+
+## mrb_false_value
+```C
+mrb_value mrb_false_value();
+```
+Creates `false` object.
+
+## mrb_nil_value
+```C
+mrb_value mrb_nil_value();
+```
+Creates `nil` object.
+
+## mrb_true_value
+```C
+mrb_value mrb_true_value();
+```
+Creates `true` object
+
+## mrb_undef_value
+```C
+mrb_value mrb_undef_value();
+```
+Creates undefined object.
+
+## mrb_bool_value
+```C
+mrb_value mrb_bool_value(mrb_bool b);
+```
+Creates boolean object from `b`.
