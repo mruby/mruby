@@ -325,11 +325,11 @@ int mrb_gc_arena_save(mrb_state*);
 void mrb_gc_arena_restore(mrb_state*,int);
 void mrb_gc_mark(mrb_state*,struct RBasic*);
 #define mrb_gc_mark_value(mrb,val) do {\
-  if (MRB_TT_HAS_BASIC_P(mrb_type(val))) mrb_gc_mark((mrb), mrb_basic_ptr(val)); \
+  if (!mrb_immediate_p(val)) mrb_gc_mark((mrb), mrb_basic_ptr(val)); \
 } while (0)
 void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
 #define mrb_field_write_barrier_value(mrb, obj, val) do{\
-  if (MRB_TT_HAS_BASIC_P(mrb_type(val))) mrb_field_write_barrier((mrb), (obj), mrb_basic_ptr(val)); \
+  if (!mrb_immediate_p(val)) mrb_field_write_barrier((mrb), (obj), mrb_basic_ptr(val)); \
 } while (0)
 void mrb_write_barrier(mrb_state *, struct RBasic*);
 

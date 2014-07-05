@@ -1500,7 +1500,7 @@ undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
     mrb_name_error(mrb, a, "undefined method '%S' for class '%S'", mrb_sym2str(mrb, a), mrb_obj_value(c));
   }
   else {
-    MRB_SET_VALUE(m, MRB_TT_PROC, value.p, 0);
+    SET_PROC_VALUE(m, 0);
     mrb_define_method_vm(mrb, c, a, m);
   }
 }
