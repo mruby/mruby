@@ -902,10 +902,14 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
 
-  ary_modify(mrb, a);
+  if (ARY_SHARED_P(a)) {
+    mrb_ary_decref(mrb, a->aux.shared);
+    ARY_UNSET_SHARED_FLAG(a);
+  } else {
+    mrb_free(mrb, a->ptr);
+  }
   a->len = 0;
   a->aux.capa = 0;
-  mrb_free(mrb, a->ptr);
   a->ptr = 0;
 
   return self;
