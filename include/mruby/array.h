@@ -54,6 +54,7 @@ mrb_value mrb_ary_entry(mrb_value ary, mrb_int offset);
 mrb_value mrb_ary_shift(mrb_state *mrb, mrb_value self);
 mrb_value mrb_ary_clear(mrb_state *mrb, mrb_value self);
 mrb_value mrb_ary_join(mrb_state *mrb, mrb_value ary, mrb_value sep);
+mrb_value mrb_ary_resize(mrb_state *mrb, mrb_value ary, mrb_int len);
 
 static inline mrb_int
 mrb_ary_len(mrb_state *mrb, mrb_value ary)
