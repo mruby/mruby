@@ -905,7 +905,8 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
   if (ARY_SHARED_P(a)) {
     mrb_ary_decref(mrb, a->aux.shared);
     ARY_UNSET_SHARED_FLAG(a);
-  } else {
+  }
+  else {
     mrb_free(mrb, a->ptr);
   }
   a->len = 0;
