@@ -86,8 +86,8 @@ Macro | Description
 * `R(idx)` references register of `idx`.
 * `Syms[idx]` gets symbol of `idx` in IREP symbol table.
 
-Name | Format | Psuedo code
------|--------|------------
+Name | Parameters | Psuedo code
+-----|------------|------------
 `OP_NOP` | | Do nothing.
 `OP_MOVE` | `A B` | R(A) := R(B)
 `OP_LOADL` | `A Bx` | R(A) := Pool(Bx)
