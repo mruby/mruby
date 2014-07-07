@@ -16,9 +16,7 @@ Only documenting fields that user can use.
   * Target class when loading compiled script.
   * Used in `mrb_load_*` functions.
 * `mrb_bool capture_errors = FALSE;`
-  * Flag to print verbose diagnostics.
-  * If true prints parser diagnostics to `stderr` and
-  raises syntax error with diagnostic in `mrb_load_*` functions..
+  * Flag to capture error instead of printing it.
 * `mrb_bool dump_result = FALSE;`
   * Flag to print verbose compile result.
   * If true prints AST in `mrb_parser_parse` and prints generated code in `mrb_load_*` functions.
@@ -256,10 +254,13 @@ String script length would be calculated with `strlen` function if there is no `
 Returns compiled script if there is `cxt` argument and `cxt->no_exec` flag is `TRUE`.
 Otherwise returns loaded result.
 
-If the script compilation failed it will return `mrb_undef_value()` instead.
+When the script compilation failed it will return `mrb_undef_value()` instead.
 `SyntaxError` is set to `mrb->exc` when script parsing failed,
-First parsing error is set to exception message of `SyntaxError` if `cxt->capture_errors` is `TRUE`.
 `ScriptError` is set to `mrb->exc` when script code generating failed.
+
+If `cxt->capture_errors` is `TRUE`:
+* First parsing error is set to exception message of `SyntaxError`.
+* Printing to `stderr` is disabled.
 
 When a exception is raised in script execution,
 sets `mrb->exc` to non-`NULL` value and returns `nil` instead.
