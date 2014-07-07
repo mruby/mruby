@@ -1,10 +1,10 @@
 # mruby/compile.h
 
-## mrbc_context
+## struct mrbc_context
 mruby compiler context.
 Local variables and line number are inherited in same context.
 
-### Fields of mrbc_context.
+### Fields of struct mrbc_context.
 Only documenting fields that user can use.
 * `short lineno = 0;`
   * Current line number of compiler context.
@@ -60,153 +60,210 @@ returns the copied string.
 Mainly used to set initial file name in parser.
 If you need to change file name in partial hook use `mrb_parser_set_filename` instead.
 
-## mrb_parser_state
+## enum mrb_lexer_state_enum
+Represents current lexer state in parser state.
 
-## Undocumented
+Name | Description
+`EXPR_BEG` | Beginning of a statement.
+`EXPR_END` | An end of expression.
+`EXPR_ENDARG` | Closing parenthese.
+`EXPR_ENDFN` | End of definition.
+`EXPR_ARG` | The last token was an argument.
+`EXPR_CMDARG` |
+`EXPR_MID` | Keyword `break`, `rescue`, `return`, `next`
+`EXPR_FNAME` | Requiring method name for next token.
+`EXPR_DOT` | Dot was the last token.
+`EXPR_CLASS` | `class` keyword was the last token
+`EXPR_VALUE` | Last token was keyword that requires following expression.
+`EXPR_MAX_STATE` | Number of lexer states.
 
+## struct mrb_parser_state
+States of parser.
+
+### Fields.
+All the fields are read only from users.
+
+* `mrb_state *mrb;`
+  * `mrb_state` of parser state.
+* `struct mrb_pool *pool;`
+  * Memory pool for parser.
+  * `mrb_parser_state` itself is allocated from this pool.
+* `const char *s, *send;`
+  * Parsing string of parser.
+  * If `f` is non^`NULL` these would be ignored.
+  * `send` is the end position of parsing string.
+* `FILE *f;`
+  * mruby script source of parser.
+  * Only available when `ENABLE_STDIO` is defined.
+* `mrbc_context *cxt;`
+  * mruby compiler context of this parser.
+* `char const *filename;`
+  * Current lexing file name.
+  * Would be set via `mrb_parser_set_filename`.
+* `int lineno;`
+  * Current lexing line number.
+* `int column;`
+  * Current lexing column number.
+* `enum mrb_lex_state_enum lstate;`
+  * Current lexer state.
+  * Used in mirb to check a code block is opened.
+* `mrb_ast_node *lex_strterm;`
+  * List of `(type nest_level beg . end)`
+* `mrb_ast_node *all_heredocs;`
+  * List of `mrb_parser_heredoc_info`.
+* `mrb_ast_node *heredocs_from_nextline;`
+* `mrb_ast_node *parsing_heredoc;`
+  * Current parsing heredoc.
+  * Would be a non-`NULL` value if it's currently parsing heredoc.
+* `mrb_ast_node *lex_strterm_before_heredoc;`
+* `mrb_bool heredoc_end_now;`
+  * Flag for mirb to check heredoc is continueing.
+  * `TRUE` when a end of heredoc was parsed.
+* `size_t nerr, nwarn;`
+  * Count of error and warning.
+* `struct mrb_parser_message error_buffer[10], warn_buffer[10];`
+  * Buffer of errors and warning.
+* `mrb_ast_node *tree;`
+  * Parsed AST.
+
+### mrb_parser_new
 ```C
-mrb_value mrb_toplevel_run_keep(mrb_state*, struct RProc*, unsigned int);
+struct mrb_parser_state* mrb_parser_new(mrb_state* mrb);
+```
+Creates parser state.
+All object created from a `mrb_parser_state` is created from a single memory pool.
+(Even `mrb_parser_state` itself.)
 
-/* AST node structure */
-typedef struct mrb_ast_node {
-  struct mrb_ast_node *car, *cdr;
-  uint16_t lineno, filename_index;
-} mrb_ast_node;
+### mrb_parser_free
+```C
+void mrb_parser_free(struct mrb_parser_state *p);
+```
+Frees parser state `p`.
 
-/* lexer states */
-enum mrb_lex_state_enum {
-  EXPR_BEG,                   /* ignore newline, +/- is a sign. */
-  EXPR_END,                   /* newline significant, +/- is an operator. */
-  EXPR_ENDARG,                /* ditto, and unbound braces. */
-  EXPR_ENDFN,                 /* ditto, and unbound braces. */
-  EXPR_ARG,                   /* newline significant, +/- is an operator. */
-  EXPR_CMDARG,                /* newline significant, +/- is an operator. */
-  EXPR_MID,                   /* newline significant, +/- is an operator. */
-  EXPR_FNAME,                 /* ignore newline, no reserved words. */
-  EXPR_DOT,                   /* right after `.' or `::', no reserved words. */
-  EXPR_CLASS,                 /* immediate after `class', no here document. */
-  EXPR_VALUE,                 /* alike EXPR_BEG but label is disallowed. */
-  EXPR_MAX_STATE
-};
+### mrb_parser_parse
+```C
+void mrb_parser_parse(struct mrb_parser_state *p, mrbc_context *cxt);
+```
+Parses mruby script using data in context `cxt` with parse state `p`.
+Pass `NULL` to `cxt`if there is no context.
 
-/* saved error message */
-struct mrb_parser_message {
-  int lineno;
-  int column;
-  char* message;
-};
+### mrb_parser_set_filename
+```C
+void mrb_parser_set_filename(struct mrb_parser_state *p, char const *f);
+```
+Sets current file name of parser state `p` to `f`.
+Use this function in partial hook or parser state initialization.
 
-#define STR_FUNC_PARSING 0x01
-#define STR_FUNC_EXPAND  0x02
-#define STR_FUNC_REGEXP  0x04
-#define STR_FUNC_WORD    0x08
-#define STR_FUNC_SYMBOL  0x10
-#define STR_FUNC_ARRAY   0x20
-#define STR_FUNC_HEREDOC 0x40
-#define STR_FUNC_XQUOTE  0x80
+### mrb_parser_get_filename
+```C
+char const* mrb_parser_get_filename(struct mrb_parser_state *p, uint16_t idx);
+```
+Gets file name from file name index `idx` in parser state `p`.
+Returns `NULL` if not found.
 
-enum mrb_string_type {
-  str_not_parsing  = (0),
-  str_squote   = (STR_FUNC_PARSING),
-  str_dquote   = (STR_FUNC_PARSING|STR_FUNC_EXPAND),
-  str_regexp   = (STR_FUNC_PARSING|STR_FUNC_REGEXP|STR_FUNC_EXPAND),
-  str_sword    = (STR_FUNC_PARSING|STR_FUNC_WORD|STR_FUNC_ARRAY),
-  str_dword    = (STR_FUNC_PARSING|STR_FUNC_WORD|STR_FUNC_ARRAY|STR_FUNC_EXPAND),
-  str_ssym     = (STR_FUNC_PARSING|STR_FUNC_SYMBOL),
-  str_ssymbols = (STR_FUNC_PARSING|STR_FUNC_SYMBOL|STR_FUNC_ARRAY),
-  str_dsymbols = (STR_FUNC_PARSING|STR_FUNC_SYMBOL|STR_FUNC_ARRAY|STR_FUNC_EXPAND),
-  str_heredoc  = (STR_FUNC_PARSING|STR_FUNC_HEREDOC),
-  str_xquote   = (STR_FUNC_PARSING|STR_FUNC_XQUOTE|STR_FUNC_EXPAND),
-};
+### mrb_parse_file
+```C
+struct mrb_parser_state* mrb_parse_file(mrb_state *mrb, FILE *f, mrbc_context *cxt);
+```
+Parses mruby script read from file object `f` in context `cxt` and returns parser state as result.
+Pass `NULL` to `cxt`if there is no context.
 
-/* heredoc structure */
-struct mrb_parser_heredoc_info {
-  mrb_bool allow_indent:1;
-  mrb_bool line_head:1;
-  enum mrb_string_type type;
-  const char *term;
-  int term_len;
-  mrb_ast_node *doc;
-};
+### mrb_parse_string
+```C
+struct mrb_parser_state* mrb_parse_string(mrb_state *mrb, const char* str, mrbc_context *cxt);
+```
+Parse mruby script `str` in context `cxt` and returns parser state as result.
+Pass `NULL` to `cxt`if there is no context.
 
-#define MRB_PARSER_BUF_SIZE 1024
+### mrb_parse_nstring
+```C
+struct mrb_parser_state* mrb_parse_nstring(mrb_state *mrb,const char *str, int len, mrbc_context *cxt);
+```
+Parse mruby script `str` of length `len` in context `cxt` and returns parser state as result.
+Pass `NULL` to `cxt`if there is no context.
 
-/* parser structure */
-struct mrb_parser_state {
-  mrb_state *mrb;
-  struct mrb_pool *pool;
-  mrb_ast_node *cells;
-  const char *s, *send;
-#ifdef ENABLE_STDIO
-  FILE *f;
-#endif
-  mrbc_context *cxt;
-  char const *filename;
-  int lineno;
-  int column;
+### mrb_generate_code
+```C
+struct RProc* mrb_generate_code(mrb_state *mrb, struct mrb_parser_state *p);
+```
+Generate IREP wrapped with `struct RProc` from parse result `p`.
+Returns `NULL` if it failed to generate code.
 
-  enum mrb_lex_state_enum lstate;
-  mrb_ast_node *lex_strterm; /* (type nest_level beg . end) */
+## struct mrb_parser_message
+Diagnostics of parse result.
+Stored to `warn_buffer` or `error_buffer` of `mrb_parser_state`.
 
-  unsigned int cond_stack;
-  unsigned int cmdarg_stack;
-  int paren_nest;
-  int lpar_beg;
-  int in_def, in_single;
-  mrb_bool cmd_start:1;
-  mrb_ast_node *locals;
+### Fields
+* `int lineno;`
+  * Line number of diagnostic.
+* `int column;`
+  * Column of diagnostic.
+* `char *message;`
+  * Diagnostic message.
 
-  mrb_ast_node *pb;
-  char buf[MRB_PARSER_BUF_SIZE];
-  int bidx;
+## struct mrb_ast_node
+Represents AST node used in mruby parser.
 
-  mrb_ast_node *all_heredocs;	/* list of mrb_parser_heredoc_info* */
-  mrb_ast_node *heredocs_from_nextline;
-  mrb_ast_node *parsing_heredoc;
-  mrb_ast_node *lex_strterm_before_heredoc;
-  mrb_bool heredoc_end_now:1; /* for mirb */
+### Fields
+* `struct mrb_ast_node *car, *cdr;`
+* `uint16_t lineno;`
+  * Line number of node.
+* `uint16_t filename_index;`
+  * Index of file name table in `mrb_parser_state`.
+  * File name could be retreive with `mrb_parser_get_filename` function.
 
-  void *ylval;
+## struct mrb_parser_heredoc_info
+Heredoc information.
 
-  size_t nerr;
-  size_t nwarn;
-  mrb_ast_node *tree;
+### Fields
+* `mrb_bool allow_indent;`
+  * `TRUE` if heredoc begin with `<<-` syntax.
+* `mrb_bool line_head;`
+  * `TRUE` if lexer's current read point is beginning of line.
+  * Used to check end of heredoc.
+* `const char *term;`
+  * Terminator of heredoc.
+* `int term_len;`
+  * Length of string `term`.
+* `mrb_ast_node *doc;`
+  * Parse result of heredoc.
 
-  mrb_bool capture_errors:1;
-  struct mrb_parser_message error_buffer[10];
-  struct mrb_parser_message warn_buffer[10];
+## mrb_toplevel_run_keep
+```C
+mrb_value mrb_toplevel_run_keep(mrb_state *mrb, struct RProc *proc, unsigned int keep);
+```
+Runs `proc` keeping stack `keep`.
 
-  mrb_sym* filename_table;
-  size_t filename_table_length;
-  int current_filename_index;
+## enum mrb_lex_state_enum
+* Lexer state.
 
-  struct mrb_jmpbuf* jmp;
-};
+## MRB_PARSER_BUF_SIZE
+Length of parser buffer.
+Limit token size.
 
-struct mrb_parser_state* mrb_parser_new(mrb_state*);
-void mrb_parser_free(struct mrb_parser_state*);
-void mrb_parser_parse(struct mrb_parser_state*,mrbc_context*);
-
-void mrb_parser_set_filename(struct mrb_parser_state*, char const*);
-char const* mrb_parser_get_filename(struct mrb_parser_state*, uint16_t idx);
-
-/* utility functions */
-#ifdef ENABLE_STDIO
-struct mrb_parser_state* mrb_parse_file(mrb_state*,FILE*,mrbc_context*);
-#endif
-struct mrb_parser_state* mrb_parse_string(mrb_state*,const char*,mrbc_context*);
-struct mrb_parser_state* mrb_parse_nstring(mrb_state*,const char*,int,mrbc_context*);
-struct RProc* mrb_generate_code(mrb_state*, struct mrb_parser_state*);
-
-/* program load functions */
-#ifdef ENABLE_STDIO
-mrb_value mrb_load_file(mrb_state*,FILE*);
-#endif
+## Loading functions
+```C
+mrb_value mrb_load_file(mrb_state *mrb, FILE *fp);
 mrb_value mrb_load_string(mrb_state *mrb, const char *s);
 mrb_value mrb_load_nstring(mrb_state *mrb, const char *s, int len);
-#ifdef ENABLE_STDIO
-mrb_value mrb_load_file_cxt(mrb_state*,FILE*, mrbc_context *cxt);
-#endif
+mrb_value mrb_load_file_cxt(mrb_state *mrb, FILE *fp, mrbc_context *cxt);
 mrb_value mrb_load_string_cxt(mrb_state *mrb, const char *s, mrbc_context *cxt);
 mrb_value mrb_load_nstring_cxt(mrb_state *mrb, const char *s, int len, mrbc_context *cxt);
 ```
+Load mruby script from file object `fp` or string `s`.
+String script length would be calculated with `strlen` function if there is no `len` argument.
+Returns compiled script if there is `cxt` argument and `cxt->no_exec` flag is `TRUE`.
+Otherwise returns loaded result.
+
+If the script compilation failed it will return `mrb_undef_value()` instead.
+`SyntaxError` is set to `mrb->exc` when script parsing failed,
+First parsing error is set to exception message of `SyntaxError` if `cxt->capture_errors` is `TRUE`.
+`ScriptError` is set to `mrb->exc` when script code generating failed.
+
+When a exception is raised in script execution,
+sets `mrb->exc` to non-`NULL` value and returns `nil` instead.
+
+If `cxt->dump_result` is `TRUE` it will print parsed AST and
+generated mruby codes using `mrb_parser_dump` and `mrb_codedump_all`.
+
+When `cxt->target_class` is non-`NULL`, executes script on class `cxt->target_class`.
