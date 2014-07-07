@@ -197,7 +197,7 @@ Checks whether `v` is a immediate type.
 Type tags used in `mrb_value` and `struct RBasic`.
 
 Name | Corresponding type
-=====|===================
+-----|-------------------
 `MRB_TT_FALSE` | `FalseClass`
 `MRB_TT_FREE` | For object that isn't used.
 `MRB_TT_TRUE` | `TrueClass`

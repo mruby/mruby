@@ -10,7 +10,7 @@ Maximum value of `sBx`(signed `Bx`) parameter.
 2-bit flags used in 3rd parameter of `OP_LAMBDA`.
 
 Name | Value
-=====|======
+-----|------
 `OP_L_STRICT` | 1
 `OP_L_CAPTURE` | 2
 `OP_L_METHOD` | `OP_L_STRICT`
@@ -21,7 +21,7 @@ Name | Value
 Used in 2nd parameter of `OP_RETURN`.
 
 Name | Description
-=====|============
+-----|------------
 `OP_R_NORMAL` | return implicitly
 `OP_R_BREAK` | break loop
 `OP_R_RETURN` | return explicitly
@@ -31,7 +31,7 @@ Every instruction is packed to 32bit integer(`mrb_code`).
 Opcode always take last 7-bit of instruction.
 
 Parameter names | Bits per each parameter
-============:|============:
+------------:|------------:
 `A:B:C:OP`   | `9: 9: 7: 7`
 `A:Bx:OP`    |    `9:16: 7`
 `Ax:OP`      |      `25: 7`
@@ -42,7 +42,7 @@ Macro to get parameter of instruction.
 Usually returns unsigned integer except `GETARG_sBx`.
 
 Macro | Description
-======|============
+------|------------
 `GET_OPCODE(i)` | Gets opcode of instruction.
 `GETARG_A(i)` | Gets `A` parameter.
 `GETARG_B(i)` | Gets `B` parameter.
@@ -58,7 +58,7 @@ Macro to make mask of instruction from specific parameter.
 To make a complete instruction combine all masks withn `|` operator.
 
 Macro | Description
-======|============
+------|------------
 `MKOPCODE(op)` | Make opcode mask.
 `MKARG_A(p)` | Make `A` parameter mask.
 `MKARG_B(p)` | Make `B` parameter mask.
@@ -71,7 +71,7 @@ Macro | Description
 Macro to make instruction from parameters.
 
 Macro | Description
-======|============
+------|------------
 `MKOP_A(op, a)` | Make instruction of `OP`, `A`.
 `MKOP_AB(op, a, b)` | Make instruction of `OP`, `A`, `B`.
 `MKOP_ABC(op, a, b, c)` | Make instruction of `OP`, `A`, `B`, `C`
@@ -87,7 +87,7 @@ Macro | Description
 * `Syms[idx]` gets symbol of `idx` in IREP symbol table.
 
 Name | Format | Psuedo code
-=====|========|============
+-----|--------|------------
 `OP_NOP` | | Do nothing.
 `OP_MOVE` | `A B` | R(A) := R(B)
 `OP_LOADL` | `A Bx` | R(A) := Pool(Bx)

@@ -39,7 +39,7 @@ Macro to get whether `e` is part of current live stack.
 ### Argument specifier accessing macros.
 
 macro | description
-======|============
+------|------------
 `mrb_int MRB_ASPEC_REQ(mrb_aspec a);` | Get required arguments.
 `mrb_int MRB_ASPEC_OPT(mrb_aspec a);` | Get optional arguments.
 `mrb_bool MRB_ASPEC_REST(mrb_aspec a);` | Get whether rest arguments is enabled.

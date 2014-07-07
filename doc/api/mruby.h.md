@@ -736,7 +736,7 @@ Currently in non C11 compiler fallbacks to `mrb_assert` macro instead.
 These macros requires `mrb_state*` variable named `mrb`.
 
 macro name | getting class name
-===========|===================
+-----------|-------------------
 `E_RUNTIME_ERROR` | `RuntimeError`
 `E_TYPE_ERROR` | `TypeError`
 `E_ARGUMENT_ERROR` | `ArgumentError`

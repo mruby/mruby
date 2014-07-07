@@ -64,6 +64,7 @@ If you need to change file name in partial hook use `mrb_parser_set_filename` in
 Represents current lexer state in parser state.
 
 Name | Description
+-----|------------
 `EXPR_BEG` | Beginning of a statement.
 `EXPR_END` | An end of expression.
 `EXPR_ENDARG` | Closing parenthese.

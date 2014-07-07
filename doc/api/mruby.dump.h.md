@@ -4,7 +4,7 @@ Declares IREP dumper and loader.
 ## Dump/load error codes
 
 Macro name | Description
-===========|============
+-----------|------------
 `MRB_DUMP_OK` | Succeeded dumping or loading.
 `MRB_DUMP_GENERAL_FAILURE` | Unspecified error like malloc failure.
 `MRB_DUMP_WRITE_FAULT` | Failed writing to file.
