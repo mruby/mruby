@@ -1,6 +1,8 @@
 ##
 # IO Test
 
+print "test start\n"
+
 assert('IO TEST SETUP') do
   MRubyIOTestUtil.io_test_setup
 end
@@ -340,6 +342,50 @@ assert('IO#fileno') do
   assert_equal io.to_i, fd
   io.close
   io.closed?
+end
+
+assert('IO#close_on_exec') do 
+  fd = IO.sysopen $mrbtest_io_wfname, "w"
+  io = IO.new fd, "w"
+  begin 
+    # IO.sysopen opens a file descripter without O_CLOEXEC flag.
+    assert_equal(false, io.close_on_exec?)
+  rescue ScriptError
+    skip "IO\#close_on_exec is not implemented."
+  end
+
+  io.close_on_exec = true
+  assert_equal(true, io.close_on_exec?)
+  io.close_on_exec = false
+  assert_equal(false, io.close_on_exec?)
+  io.close_on_exec = true
+  assert_equal(true, io.close_on_exec?)
+  
+  io.close
+  io.closed?
+
+  # # Use below when IO.pipe is implemented.
+  # begin 
+  #   r, w = IO.pipe
+  #   assert_equal(false, r.close_on_exec?)
+  #   r.close_on_exec = true
+  #   assert_equal(true, r.close_on_exec?)
+  #   r.close_on_exec = false
+  #   assert_equal(false, r.close_on_exec?)
+  #   r.close_on_exec = true
+  #   assert_equal(true, r.close_on_exec?)
+
+  #   assert_equal(false, w.close_on_exec?)
+  #   w.close_on_exec = true
+  #   assert_equal(true, w.close_on_exec?)
+  #   w.close_on_exec = false
+  #   assert_equal(false, w.close_on_exec?)
+  #   w.close_on_exec = true
+  #   assert_equal(true, w.close_on_exec?)
+  # ensure
+  #   r.close unless r.closed?
+  #   w.close unless w.closed?
+  # end
 end
 
 assert('`cmd`') do
