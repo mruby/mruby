@@ -101,7 +101,7 @@ enum mrb_vtype {
 #elif defined(MRB_WORD_BOXING)
 #include "boxing_word.h"
 #else
-#include "boxing_nix.h"
+#include "boxing_no.h"
 #endif
 
 #ifndef mrb_fixnum_p

@@ -1,11 +1,11 @@
 /*
-** mruby/boxing_nix.h - unboxed mrb_value definition
+** mruby/boxing_no.h - unboxed mrb_value definition
 **
 ** See Copyright Notice in mruby.h
 */
 
-#ifndef MRUBY_BOXING_NIX_H
-#define MRUBY_BOXING_NIX_H
+#ifndef MRUBY_BOXING_NO_H
+#define MRUBY_BOXING_NO_H
 
 #define MRB_FIXNUM_SHIFT 0
 #define MRB_TT_HAS_BASIC MRB_TT_OBJECT
@@ -46,4 +46,4 @@ typedef struct mrb_value {
 #define SET_CPTR_VALUE(mrb,r,v) BOXNIX_SET_VALUE(r, MRB_TT_CPTR, value.p, v)
 #define SET_UNDEF_VALUE(r) BOXNIX_SET_VALUE(r, MRB_TT_UNDEF, value.i, 0)
 
-#endif  /* MRUBY_BOXING_NIX_H */
+#endif  /* MRUBY_BOXING_NO_H */
