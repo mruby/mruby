@@ -1,8 +1,6 @@
 ##
 # IO Test
 
-print "test start\n"
-
 assert('IO TEST SETUP') do
   MRubyIOTestUtil.io_test_setup
 end
