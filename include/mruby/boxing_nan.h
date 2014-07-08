@@ -84,7 +84,7 @@ typedef struct mrb_value {
 #define SET_FALSE_VALUE(r) BOXNAN_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
 #define SET_TRUE_VALUE(r) BOXNAN_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
 #define SET_BOOL_VALUE(r,b) BOXNAN_SET_VALUE(r, b ? MRB_TT_TRUE : MRB_TT_FALSE, value.i, 1)
-#define SET_FIXNUM_VALUE(r,n) BOXNAN_SET_VALUE(r, MRB_TT_FIXNUM, value.i, (n))
+#define SET_INT_VALUE(r,n) BOXNAN_SET_VALUE(r, MRB_TT_FIXNUM, value.i, (n))
 #define SET_SYM_VALUE(r,v) BOXNAN_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
 #define SET_OBJ_VALUE(r,v) BOXNAN_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
 #define SET_PROC_VALUE(r,v) BOXNAN_SET_VALUE(r, MRB_TT_PROC, value.p, v)

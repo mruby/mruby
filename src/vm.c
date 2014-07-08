@@ -788,7 +788,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_LOADI) {
       /* A sBx  R(A) := sBx */
-      SET_FIXNUM_VALUE(regs[GETARG_A(i)], GETARG_sBx(i));
+      SET_INT_VALUE(regs[GETARG_A(i)], GETARG_sBx(i));
       NEXT;
     }
 
@@ -1688,7 +1688,7 @@ RETRY_TRY_BLOCK:
             SET_FLOAT_VALUE(mrb, regs_a[0], (mrb_float)x + (mrb_float)y);
             break;
           }
-          SET_FIXNUM_VALUE(regs[a], z);
+          SET_INT_VALUE(regs[a], z);
         }
         break;
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
@@ -1746,7 +1746,7 @@ RETRY_TRY_BLOCK:
             SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x - (mrb_float)y);
             break;
           }
-          SET_FIXNUM_VALUE(regs[a], z);
+          SET_INT_VALUE(regs[a], z);
         }
         break;
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
@@ -1799,7 +1799,7 @@ RETRY_TRY_BLOCK:
           switch (mrb_type(z)) {
           case MRB_TT_FIXNUM:
             {
-              SET_FIXNUM_VALUE(regs[a], mrb_fixnum(z));
+              SET_INT_VALUE(regs[a], mrb_fixnum(z));
             }
             break;
           case MRB_TT_FLOAT:
@@ -1931,7 +1931,7 @@ RETRY_TRY_BLOCK:
 #endif
         break;
       default:
-        SET_FIXNUM_VALUE(regs[a+1], GETARG_C(i));
+        SET_INT_VALUE(regs[a+1], GETARG_C(i));
         i = MKOP_ABC(OP_SEND, a, GETARG_B(i), 1);
         goto L_SEND;
       }
@@ -1970,7 +1970,7 @@ RETRY_TRY_BLOCK:
 #endif
         break;
       default:
-        SET_FIXNUM_VALUE(regs_a[1], GETARG_C(i));
+        SET_INT_VALUE(regs_a[1], GETARG_C(i));
         i = MKOP_ABC(OP_SEND, a, GETARG_B(i), 1);
         goto L_SEND;
       }

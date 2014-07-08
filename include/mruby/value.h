@@ -145,7 +145,7 @@ static inline mrb_value
 mrb_fixnum_value(mrb_int i)
 {
   mrb_value v;
-  SET_FIXNUM_VALUE(v, i);
+  SET_INT_VALUE(v, i);
   return v;
 }
 
