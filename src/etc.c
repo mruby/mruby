@@ -148,7 +148,7 @@ mrb_obj_id(mrb_value obj)
 
 #ifdef MRB_WORD_BOXING
 mrb_value
-mrb_float_value(mrb_state *mrb, mrb_float f)
+mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
 {
   mrb_value v;
 
@@ -158,7 +158,7 @@ mrb_float_value(mrb_state *mrb, mrb_float f)
 }
 
 mrb_value
-mrb_float_pool(mrb_state *mrb, mrb_float f)
+mrb_word_boxing_float_pool(mrb_state *mrb, mrb_float f)
 {
   struct RFloat *nf = (struct RFloat *)mrb_malloc(mrb, sizeof(struct RFloat));
   nf->tt = MRB_TT_FLOAT;
@@ -168,7 +168,7 @@ mrb_float_pool(mrb_state *mrb, mrb_float f)
 }
 
 mrb_value
-mrb_cptr_value(mrb_state *mrb, void *p)
+mrb_word_boxing_cptr_value(mrb_state *mrb, void *p)
 {
   mrb_value v;
 
