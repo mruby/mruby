@@ -43,11 +43,11 @@ typedef union mrb_value {
   unsigned long w;
 } mrb_value;
 
-mrb_value word_boxing_mrb_cptr_value(struct mrb_state*, void*);
-mrb_value word_boxing_mrb_float_value(struct mrb_state*, mrb_float);
-mrb_value word_boxing_mrb_float_pool(struct mrb_state*, mrb_float);
+mrb_value mrb_word_boxing_cptr_value(struct mrb_state*, void*);
+mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
+mrb_value mrb_word_boxing_float_pool(struct mrb_state*, mrb_float);
 
-#define mrb_float_pool(mrb,f) word_boxing_mrb_float_pool(mrb,f)
+#define mrb_float_pool(mrb,f) mrb_word_boxing_float_pool(mrb,f)
 
 #define mrb_ptr(o)     (o).value.p
 #define mrb_cptr(o)    (o).value.vp->p
@@ -94,8 +94,8 @@ mrb_type(mrb_value o)
   }\
 } while (0)
 
-#define SET_FLOAT_VALUE(mrb,r,v) r = word_boxing_mrb_float_value(mrb, v)
-#define SET_CPTR_VALUE(mrb,r,v) r = word_boxing_mrb_cptr_value(mrb, v)
+#define SET_FLOAT_VALUE(mrb,r,v) r = mrb_word_boxing_float_value(mrb, v)
+#define SET_CPTR_VALUE(mrb,r,v) r = mrb_word_boxing_cptr_value(mrb, v)
 #define SET_NIL_VALUE(r) BOXWORD_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
 #define SET_FALSE_VALUE(r) BOXWORD_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
 #define SET_TRUE_VALUE(r) BOXWORD_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
