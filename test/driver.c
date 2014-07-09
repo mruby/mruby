@@ -41,11 +41,10 @@ check_error(mrb_state *mrb)
 static int
 eval_test(mrb_state *mrb)
 {
-  mrb_value return_value;
   const char *prog = "report()";
 
   /* evaluate the test */
-  return_value = mrb_load_string(mrb, prog);
+  mrb_load_string(mrb, prog);
   /* did an exception occur? */
   if (mrb->exc) {
     mrb_print_error(mrb);
