@@ -45,9 +45,9 @@ parse_args(int argc, char **argv, struct strip_args *args)
   *args = initial_args;
 
   for (i = 1; i < argc; ++i) {
-    size_t const len = strlen(argv[i]);
+    const size_t len = strlen(argv[i]);
     if (len >= 2 && argv[i][0] == '-') {
-      switch(argv[i][1]) {
+      switch (argv[i][1]) {
       case 'l':
         args->lvar = TRUE;
         break;
@@ -59,7 +59,8 @@ parse_args(int argc, char **argv, struct strip_args *args)
       default:
         return -1;
       }
-    } else {
+    }
+    else {
       break;
     }
   }
