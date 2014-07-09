@@ -112,6 +112,7 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, cha
   if (file) {
     mrbc_filename(mrb, cxt, file);
   }
+  cxt->capture_errors = TRUE;
 
   p = mrb_parse_nstring(mrb, s, len, cxt);
 
