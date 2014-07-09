@@ -96,6 +96,10 @@ main(int argc, char **argv)
   }
 
   mrb = mrb_open();
+  if (mrb == NULL) {
+    fputs("Invalid mrb_state, exiting mruby-strip\n", stderr);
+    return EXIT_FAILURE;
+  }
 
   ireps = (mrb_irep**)malloc(sizeof(mrb_irep*) * argc);
   for (i = args_result; i < argc; ++i) {
