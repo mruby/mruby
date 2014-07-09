@@ -724,61 +724,50 @@ mrb_io_fileno(mrb_state *mrb, mrb_value io)
   return mrb_fixnum_value(fptr->fd);
 }
 
-void
-mrb_notimplement(mrb_state *mrb)
-{
-  mrb_raise(mrb, E_SCRIPT_ERROR, "unimplemented on this machine");
-  
-  return;
-}
-
-#if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
 mrb_value
 mrb_io_close_on_exec_p(mrb_state *mrb, mrb_value io)
 {
+#if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
   struct mrb_io *fptr;
   int ret;
   
   fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
-  if(fptr->fd2 >= 0){
-    if ((ret = fcntl(fptr->fd2, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
-    if (!(ret & FD_CLOEXEC)) return mrb_bool_value(0);
-  }
-
-  if(fptr->fd < 0){
+  if (fptr->fd < 0) {
     mrb_raise(mrb, E_IO_ERROR, "closed stream");
-  } else {
-    if ((ret = fcntl(fptr->fd, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
-    if (!(ret & FD_CLOEXEC)) return mrb_bool_value(0);
   }
 
-  return mrb_bool_value(1);
-}
+  if (fptr->fd2 >= 0) {
+    if ((ret = fcntl(fptr->fd2, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
+    if (!(ret & FD_CLOEXEC)) return mrb_false_value();
+  }
+
+  if ((ret = fcntl(fptr->fd, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
+  if (!(ret & FD_CLOEXEC)) return mrb_false_value();
+  return mrb_true_value();
+
 #else
-#define mrb_io_close_on_exec_p mrb_f_notimplement
-mrb_f_notimplement(mrb_state *mrb, mrb_value io)
-{   
-	mrb_notimplement();
-
-  return -1;
-}
+  mrb_raise(mrb, E_NOTIMPL_ERROR, "IO#close_on_exec? is not supported on the platform");
+  return mrb_false_value();
 #endif
+}
 
-#if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
 mrb_value
 mrb_io_set_close_on_exec(mrb_state *mrb, mrb_value io)
 {
-  mrb_bool bool;
-  int flag;
+#if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
   struct mrb_io *fptr;
-  int ret;
-
-  mrb_get_args(mrb, "b", &bool);
-  flag = bool ? FD_CLOEXEC : 0;
+  int flag, ret;
+  mrb_bool b;
 
   fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
+  if (fptr->fd < 0) {
+    mrb_raise(mrb, E_IO_ERROR, "closed stream");
+  }
 
-  if(fptr->fd2 >= 0){
+  mrb_get_args(mrb, "b", &b);
+  flag = b ? FD_CLOEXEC : 0;
+
+  if (fptr->fd2 >= 0) {
     if ((ret = fcntl(fptr->fd2, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
     if ((ret & FD_CLOEXEC) != flag) {
       ret = (ret & ~FD_CLOEXEC) | flag;
@@ -788,29 +777,19 @@ mrb_io_set_close_on_exec(mrb_state *mrb, mrb_value io)
     }
   }
 
-  if(fptr->fd < 0){
-    mrb_raise(mrb, E_IO_ERROR, "closed stream");
-  } else {
-    if ((ret = fcntl(fptr->fd, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
-    if ((ret & FD_CLOEXEC) != flag) {
-      ret = (ret & ~FD_CLOEXEC) | flag;
-      ret = fcntl(fptr->fd, F_SETFD, ret);
-      if (ret == -1) mrb_sys_fail(mrb, "F_SETFD failed");
-    }
+  if ((ret = fcntl(fptr->fd, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
+  if ((ret & FD_CLOEXEC) != flag) {
+    ret = (ret & ~FD_CLOEXEC) | flag;
+    ret = fcntl(fptr->fd, F_SETFD, ret);
+    if (ret == -1) mrb_sys_fail(mrb, "F_SETFD failed");
   }
 
-  return mrb_nil_value();
-}
+  return mrb_bool_value(b);
 #else
-#define mrb_io_close_on_exec mrb_f_notimplement
-mrb_f_notimplement(mrb_state *mrb, mrb_value io)
-{   
-	mrb_notimplement();
-
-  return -1;
-}
+  mrb_raise(mrb, E_NOTIMPL_ERROR, "IO#close_on_exec= is not supported on the platform");
+  return mrb_nil_value();
 #endif
-
+}
 
 void
 mrb_init_io(mrb_state *mrb)
@@ -833,12 +812,12 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "sysseek",    mrb_io_sysseek,    MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "syswrite",   mrb_io_syswrite,   MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "close",      mrb_io_close,      MRB_ARGS_NONE());   /* 15.2.20.5.1 */
+  mrb_define_method(mrb, io, "close_on_exec=", mrb_io_set_close_on_exec, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, io, "close_on_exec?", mrb_io_close_on_exec_p,   MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "closed?",    mrb_io_closed,     MRB_ARGS_NONE());   /* 15.2.20.5.2 */
   mrb_define_method(mrb, io, "pid",        mrb_io_pid,        MRB_ARGS_NONE());   /* 15.2.20.5.2 */
   mrb_define_method(mrb, io, "fileno",     mrb_io_fileno,     MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, io, "close_on_exec?",    mrb_io_close_on_exec_p,      MRB_ARGS_NONE());
-  mrb_define_method(mrb, io, "close_on_exec=",    mrb_io_set_close_on_exec,    MRB_ARGS_REQ(1));
 
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$/"), mrb_str_new_cstr(mrb, "\n"));
 }
