@@ -39,10 +39,12 @@ print_usage(const char *f)
 static int
 parse_args(int argc, char **argv, struct strip_args *args)
 {
-  static const struct strip_args initial_args = {0};
   int i;
 
-  *args = initial_args;
+  args->argc_start = 0;
+  args->argc = argc;
+  args->argv = argv;
+  args->lvar = FALSE;
 
   for (i = 1; i < argc; ++i) {
     const size_t len = strlen(argv[i]);
@@ -65,6 +67,7 @@ parse_args(int argc, char **argv, struct strip_args *args)
     }
   }
 
+  args->argc_start = i;
   return i;
 }
 
@@ -139,11 +142,6 @@ main(int argc, char **argv)
     print_usage(argv[0]);
     return EXIT_FAILURE;
   }
-
-  args.argc_start = args_result;
-  args.argc = argc;
-  args.argv = argv;
-
   mrb = mrb_open();
   if (mrb == NULL) {
     fputs("Invalid mrb_state, exiting mruby-strip\n", stderr);
