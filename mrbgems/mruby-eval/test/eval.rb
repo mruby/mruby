@@ -44,3 +44,9 @@ assert('rest arguments of eval') do
     Kernel.eval('[\'test\', __FILE__, __LINE__]', nil, 'test.rb', 10)
   end
 end
+
+assert 'eval syntax error' do
+  assert_raise(SyntaxError) do
+    eval 'p "test'
+  end
+end
