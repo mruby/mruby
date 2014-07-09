@@ -26,6 +26,11 @@
 
 #define E_SOCKET_ERROR             (mrb_class_get(mrb, "SocketError"))
 
+#if !defined(mrb_cptr)
+#define mrb_cptr_value(m,p) mrb_voidp_value((m),(p))
+#define mrb_cptr(o) mrb_voidp(o)
+#define mrb_cptr_p(o) mrb_voidp_p(o)
+#endif
 
 static mrb_value
 mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
@@ -76,8 +81,8 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   }
 
   lastai = mrb_cv_get(mrb, klass, mrb_intern_lit(mrb, "_lastai"));
-  if (mrb_voidp_p(lastai)) {
-    freeaddrinfo(mrb_voidp(lastai));
+  if (mrb_cptr_p(lastai)) {
+    freeaddrinfo(mrb_cptr(lastai));
     mrb_cv_set(mrb, klass, mrb_intern_lit(mrb, "_lastai"), mrb_nil_value());
   }
 
@@ -85,7 +90,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   if (error) {
     mrb_raisef(mrb, E_SOCKET_ERROR, "getaddrinfo: %S", mrb_str_new_cstr(mrb, gai_strerror(error)));
   }
-  mrb_cv_set(mrb, klass, mrb_intern_lit(mrb, "_lastai"), mrb_voidp_value(mrb, res0));
+  mrb_cv_set(mrb, klass, mrb_intern_lit(mrb, "_lastai"), mrb_cptr_value(mrb, res0));
 
   for (res = res0; res != NULL; res = res->ai_next) {
     sa = mrb_str_new(mrb, (void *)res->ai_addr, res->ai_addrlen);
@@ -691,7 +696,7 @@ mrb_mruby_socket_gem_final(mrb_state* mrb)
 {
   mrb_value ai;
   ai = mrb_mod_cv_get(mrb, mrb_class_get(mrb, "Addrinfo"), mrb_intern_lit(mrb, "_lastai"));
-  if (mrb_voidp_p(ai)) {
-    freeaddrinfo(mrb_voidp(ai));
+  if (mrb_cptr_p(ai)) {
+    freeaddrinfo(mrb_cptr(ai));
   }
 }
