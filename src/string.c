@@ -361,21 +361,6 @@ str_make_shared(mrb_state *mrb, struct RString *s)
 }
 
 /*
- *  call-seq:
- *     char* str = String("abcd"), len=strlen("abcd")
- *
- *  Returns a new string object containing a copy of <i>str</i>.
- */
-const char*
-mrb_str_body(mrb_value str, int *len_p)
-{
-  struct RString *s = mrb_str_ptr(str);
-
-  *len_p = RSTR_LEN(s);
-  return RSTR_PTR(s);
-}
-
-/*
  *  call-seq: (Caution! String("abcd") change)
  *     String("abcdefg") = String("abcd") + String("efg")
  *
