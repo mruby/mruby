@@ -112,11 +112,14 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, cha
   if (file) {
     mrbc_filename(mrb, cxt, file);
   }
+  cxt->capture_errors = TRUE;
 
-  p = mrb_parser_new(mrb);
-  p->s = s;
-  p->send = s + len;
-  mrb_parser_parse(p, cxt);
+  p = mrb_parse_nstring(mrb, s, len, cxt);
+
+  /* only occur when memory ran out */
+  if (!p) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Failed to create parser state.");
+  }
 
   if (0 < p->nerr) {
     /* parse error */
