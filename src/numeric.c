@@ -93,10 +93,27 @@ mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y)
 static mrb_value
 num_div(mrb_state *mrb, mrb_value x)
 {
-  mrb_float y;
+  mrb_value y;
+  mrb_float f;
 
-  mrb_get_args(mrb, "f", &y);
-  return mrb_float_value(mrb, mrb_to_flo(mrb, x) / y);
+  f = mrb_to_flo(mrb, x);
+  mrb_get_args(mrb, "o", &y);
+#ifdef MRB_COMPLEX
+  if (mrb_complex_p(y)) {
+    if (fabs(mrb_real(y)) > fabs(mrb_imag(y))) {
+      mrb_float r, n;
+      r = mrb_imag(y) / mrb_real(y);
+      n = mrb_real(y) * (r*r+1);
+      return mrb_complex_value(mrb, f/n, -f*r/n);
+    } else {
+      mrb_float r, n;
+      r = mrb_real(y) / mrb_imag(y);
+      n = mrb_imag(y) * (r*r+1);
+      return mrb_complex_value(mrb, f*r/n, -f/n);
+    }
+  }
+#endif
+  return mrb_float_value(mrb, f / mrb_to_flo(mrb, y));
 }
 
 /********************************************************************
@@ -276,6 +293,11 @@ flo_minus(mrb_state *mrb, mrb_value x)
   mrb_value y;
 
   mrb_get_args(mrb, "o", &y);
+#ifdef MRB_COMPLEX
+  if (mrb_complex_p(y)) {
+    return mrb_complex_value(mrb,  mrb_float(x) - mrb_real(y), mrb_imag(y));
+  }
+#endif
   return mrb_float_value(mrb, mrb_float(x) - mrb_to_flo(mrb, y));
 }
 
@@ -294,6 +316,14 @@ flo_mul(mrb_state *mrb, mrb_value x)
   mrb_value y;
 
   mrb_get_args(mrb, "o", &y);
+#ifdef MRB_COMPLEX
+  if (mrb_complex_p(y)) {
+    return mrb_complex_value( mrb,
+      mrb_real(y) * mrb_float(x),
+      mrb_imag(y) * mrb_float(x)
+    );
+  }
+#endif
   return mrb_float_value(mrb, mrb_float(x) * mrb_to_flo(mrb, y));
 }
 
@@ -402,6 +432,10 @@ flo_eq(mrb_state *mrb, mrb_value x)
   mrb_get_args(mrb, "o", &y);
 
   switch (mrb_type(y)) {
+#ifdef MRB_COMPLEX
+    case MRB_TT_COMPLEX:
+    return mrb_bool_value(mrb_imag(y) == 0 && mrb_real(y) == mrb_float(x));
+#endif
   case MRB_TT_FIXNUM:
     b = (mrb_float)mrb_fixnum(y);
     break;
@@ -730,6 +764,14 @@ fix_mul(mrb_state *mrb, mrb_value x)
   mrb_value y;
 
   mrb_get_args(mrb, "o", &y);
+#ifdef MRB_COMPLEX
+  if (mrb_complex_p(y)) {
+    return mrb_complex_value( mrb,
+      mrb_real(y) * (mrb_float)mrb_fixnum(x),
+      mrb_imag(y) * (mrb_float)mrb_fixnum(x)
+    );
+  }
+#endif
   return mrb_fixnum_mul(mrb, x, y);
 }
 
@@ -864,6 +906,10 @@ fix_equal(mrb_state *mrb, mrb_value x)
 
   mrb_get_args(mrb, "o", &y);
   switch (mrb_type(y)) {
+#ifdef MRB_COMPLEX
+  case MRB_TT_COMPLEX:
+    return mrb_bool_value(mrb_imag(y) == 0 && mrb_real(y) == (mrb_float)mrb_fixnum(x));
+#endif
   case MRB_TT_FIXNUM:
     return mrb_bool_value(mrb_fixnum(x) == mrb_fixnum(y));
   case MRB_TT_FLOAT:
@@ -1133,6 +1179,11 @@ fix_plus(mrb_state *mrb, mrb_value self)
   mrb_value other;
 
   mrb_get_args(mrb, "o", &other);
+#ifdef MRB_COMPLEX
+  if (mrb_complex_p(other)) {
+    return mrb_complex_value(mrb, mrb_real(other) + (mrb_float)mrb_fixnum(self), mrb_imag(other));
+  }
+#endif
   return mrb_fixnum_plus(mrb, self, other);
 }
 
@@ -1170,6 +1221,11 @@ fix_minus(mrb_state *mrb, mrb_value self)
   mrb_value other;
 
   mrb_get_args(mrb, "o", &other);
+#ifdef MRB_COMPLEX
+  if (mrb_complex_p(other)) {
+    return mrb_complex_value(mrb, (mrb_float)mrb_fixnum(self) - mrb_real(other), mrb_imag(other));
+  }
+#endif
   return mrb_fixnum_minus(mrb, self, other);
 }
 
@@ -1281,6 +1337,11 @@ flo_plus(mrb_state *mrb, mrb_value x)
   mrb_value y;
 
   mrb_get_args(mrb, "o", &y);
+#ifdef MRB_COMPLEX
+  if (mrb_complex_p(y)) {
+    return mrb_complex_value(mrb, mrb_real(y) + mrb_float(x), mrb_imag(y));
+  }
+#endif
   return mrb_float_value(mrb, mrb_float(x) + mrb_to_flo(mrb, y));
 }
 

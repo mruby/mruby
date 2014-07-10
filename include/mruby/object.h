@@ -60,6 +60,12 @@ struct RFloat {
   mrb_float f;
 };
 
+struct RComplex {
+  MRB_OBJECT_HEADER;
+  mrb_float real;
+  mrb_float imag;
+};
+
 struct RCptr {
   MRB_OBJECT_HEADER;
   void *p;

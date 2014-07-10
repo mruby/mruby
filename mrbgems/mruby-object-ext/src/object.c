@@ -74,6 +74,9 @@ mrb_obj_instance_exec(mrb_state *mrb, mrb_value self)
   }
 
   switch (mrb_type(self)) {
+#ifdef MRB_COMPLEX
+    case MRB_TT_COMPLEX:
+#endif
   case MRB_TT_SYMBOL:
   case MRB_TT_FIXNUM:
   case MRB_TT_FLOAT:

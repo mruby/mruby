@@ -60,7 +60,7 @@ The value below allows about 60000 recursive calls in the simplest case. */
 static inline void
 stack_clear(mrb_value *from, size_t count)
 {
-#ifndef MRB_NAN_BOXING
+#ifndef MRB_VALUE_NIL_NONZERO
   const mrb_value mrb_value_zero = { { 0 } };
 
   while (count-- > 0) {

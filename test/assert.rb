@@ -209,6 +209,15 @@ def assert_float(exp, act, msg = nil)
 end
 
 ##
+# Fails unless +exp+ is almost equal to +act+ in terms of a Complex number
+def assert_complex(exp, act, msg = nil)
+  msg = "Complex #{exp} expected to be equal to #{act}" unless msg
+  diff = assertion_diff(exp, act)
+  result = check_float(exp.real, act.real) and check_float(exp.imag, act.imag)
+  assert_true result, msg, diff
+end
+
+##
 # Report the test result and print all assertions
 # which were reported broken.
 def report()

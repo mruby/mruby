@@ -38,12 +38,14 @@ typedef union mrb_value {
     };
     struct RBasic *bp;
     struct RFloat *fp;
+    struct RComplex *cp;
     struct RCptr *vp;
   } value;
   unsigned long w;
 } mrb_value;
 
 mrb_value mrb_word_boxing_cptr_value(struct mrb_state*, void*);
+mrb_value mrb_word_boxing_complex_value(struct mrb_state*, mrb_float, mrb_float);
 mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
 mrb_value mrb_word_boxing_float_pool(struct mrb_state*, mrb_float);
 
@@ -105,5 +107,11 @@ mrb_type(mrb_value o)
 #define SET_OBJ_VALUE(r,v) BOXWORD_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
 #define SET_PROC_VALUE(r,v) BOXWORD_SET_VALUE(r, MRB_TT_PROC, value.p, v)
 #define SET_UNDEF_VALUE(r) BOXWORD_SET_VALUE(r, MRB_TT_UNDEF, value.i, 0)
+
+#ifdef MRB_COMPLEX
+#define mrb_real(o)     (o).value.cp->real
+#define mrb_imag(o)     (o).value.cp->imag
+#define SET_COMPLEX_VALUE(mrb,r,vr,vi) r = mrb_word_boxing_complex_value(mrb, vr, vi)
+#endif
 
 #endif  /* MRUBY_BOXING_WORD_H */

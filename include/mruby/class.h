@@ -39,6 +39,10 @@ mrb_class(mrb_state *mrb, mrb_value v)
     return mrb->fixnum_class;
   case MRB_TT_FLOAT:
     return mrb->float_class;
+#ifdef MRB_COMPLEX
+  case MRB_TT_COMPLEX:
+    return mrb->complex_class;
+#endif
   case MRB_TT_CPTR:
     return mrb->object_class;
   case MRB_TT_ENV:

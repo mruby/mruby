@@ -75,31 +75,40 @@ enum mrb_vtype {
   MRB_TT_SYMBOL,      /*   4 */
   MRB_TT_UNDEF,       /*   5 */
   MRB_TT_FLOAT,       /*   6 */
-  MRB_TT_CPTR,        /*   7 */
-  MRB_TT_OBJECT,      /*   8 */
-  MRB_TT_CLASS,       /*   9 */
-  MRB_TT_MODULE,      /*  10 */
-  MRB_TT_ICLASS,      /*  11 */
-  MRB_TT_SCLASS,      /*  12 */
-  MRB_TT_PROC,        /*  13 */
-  MRB_TT_ARRAY,       /*  14 */
-  MRB_TT_HASH,        /*  15 */
-  MRB_TT_STRING,      /*  16 */
-  MRB_TT_RANGE,       /*  17 */
-  MRB_TT_EXCEPTION,   /*  18 */
-  MRB_TT_FILE,        /*  19 */
-  MRB_TT_ENV,         /*  20 */
-  MRB_TT_DATA,        /*  21 */
-  MRB_TT_FIBER,       /*  22 */
-  MRB_TT_MAXDEFINE    /*  23 */
+  MRB_TT_COMPLEX,     /*   7 */
+  MRB_TT_CPTR,        /*   8 */
+  MRB_TT_OBJECT,      /*   9 */
+  MRB_TT_CLASS,       /*  10 */
+  MRB_TT_MODULE,      /*  11 */
+  MRB_TT_ICLASS,      /*  12 */
+  MRB_TT_SCLASS,      /*  13 */
+  MRB_TT_PROC,        /*  14 */
+  MRB_TT_ARRAY,       /*  15 */
+  MRB_TT_HASH,        /*  16 */
+  MRB_TT_STRING,      /*  17 */
+  MRB_TT_RANGE,       /*  18 */
+  MRB_TT_EXCEPTION,   /*  19 */
+  MRB_TT_FILE,        /*  20 */
+  MRB_TT_ENV,         /*  21 */
+  MRB_TT_DATA,        /*  22 */
+  MRB_TT_FIBER,       /*  23 */
+  MRB_TT_MAXDEFINE    /*  24 */
 };
+
+#ifdef MRB_ENDIAN_BIG
+#define MRB_ENDIAN_LOHI(a,b) a b
+#else
+#define MRB_ENDIAN_LOHI(a,b) b a
+#endif
 
 #include "mruby/object.h"
 
-#if defined(MRB_NAN_BOXING)
-#include "boxing_nan.h"
-#elif defined(MRB_WORD_BOXING)
+#if defined(MRB_WORD_BOXING)
 #include "boxing_word.h"
+#elif defined(MRB_COMPLEX)
+#include "boxing_cpx.h"
+#elif defined(MRB_NAN_BOXING)
+#include "boxing_nan.h"
 #else
 #include "boxing_no.h"
 #endif
@@ -111,19 +120,32 @@ enum mrb_vtype {
 #define mrb_undef_p(o) (mrb_type(o) == MRB_TT_UNDEF)
 #endif
 #ifndef mrb_nil_p
-#define mrb_nil_p(o)  (mrb_type(o) == MRB_TT_FALSE && !mrb_fixnum(o))
+#define mrb_nil_p(o) (mrb_type(o) == MRB_TT_FALSE && !mrb_fixnum(o))
 #endif
 #ifndef mrb_bool
-#define mrb_bool(o)   (mrb_type(o) != MRB_TT_FALSE)
+#define mrb_bool(o) (mrb_type(o) != MRB_TT_FALSE)
 #endif
-#define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
+#ifndef mrb_complex_p
+#define mrb_complex_p(o) (mrb_type(o) == MRB_TT_COMPLEX)
+#endif
+#define mrb_float_p(o)  (mrb_type(o) == MRB_TT_FLOAT)
 #define mrb_symbol_p(o) (mrb_type(o) == MRB_TT_SYMBOL)
-#define mrb_array_p(o) (mrb_type(o) == MRB_TT_ARRAY)
+#define mrb_array_p(o)  (mrb_type(o) == MRB_TT_ARRAY)
 #define mrb_string_p(o) (mrb_type(o) == MRB_TT_STRING)
-#define mrb_hash_p(o) (mrb_type(o) == MRB_TT_HASH)
-#define mrb_cptr_p(o) (mrb_type(o) == MRB_TT_CPTR)
-#define mrb_test(o)   mrb_bool(o)
+#define mrb_hash_p(o)   (mrb_type(o) == MRB_TT_HASH)
+#define mrb_cptr_p(o)   (mrb_type(o) == MRB_TT_CPTR)
+#define mrb_test(o)     mrb_bool(o)
 mrb_bool mrb_regexp_p(struct mrb_state*, mrb_value);
+
+#ifdef MRB_COMPLEX
+static inline mrb_value
+mrb_complex_value(struct mrb_state *mrb, mrb_float real, mrb_float imag)
+{
+  mrb_value v;
+  SET_COMPLEX_VALUE(mrb, v, real, imag);
+  return v;
+}
+#endif
 
 static inline mrb_value
 mrb_float_value(struct mrb_state *mrb, mrb_float f)

@@ -17,10 +17,13 @@
 /* add -DMRB_INT64 to use 64bit integer for mrb_int; conflict with MRB_INT16 */
 //#define MRB_INT64
 
+/* add support for complex numbers */
+//#define MRB_COMPLEX
+
 /* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT */
 //#define MRB_NAN_BOXING
 
-/* define on big endian machines; used by MRB_NAN_BOXING */
+/* define on big endian machines; used by MRB_NAN_BOXING and MRB_COMPLEX */
 //#define MRB_ENDIAN_BIG
 
 /* represent mrb_value as a word (natural unit of data for the processor) */
