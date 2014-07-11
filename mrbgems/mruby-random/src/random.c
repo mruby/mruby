@@ -46,7 +46,7 @@ mrb_random_mt_srand(mrb_state *mrb, mt_state *t, mrb_value seed)
   if (mrb_nil_p(seed)) {
     seed = mrb_fixnum_value((mrb_int)(time(NULL) + mt_rand(t)));
     if (mrb_fixnum(seed) < 0) {
-      seed = mrb_fixnum_value( 0 - mrb_fixnum(seed));
+      seed = mrb_fixnum_value(0 - mrb_fixnum(seed));
     }
   }
 
