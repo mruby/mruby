@@ -836,7 +836,7 @@ retry:
 
         if (base == 2) {
           org_v = v;
-          if ( v < 0 && !sign ) {
+          if (v < 0 && !sign) {
             val = mrb_fix2binstr(mrb, mrb_fixnum_value(v), base);
             dots = 1;
           }

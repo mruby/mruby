@@ -474,7 +474,7 @@ flo_infinite_p(mrb_state *mrb, mrb_value num)
   mrb_float value = mrb_float(num);
 
   if (isinf(value)) {
-    return mrb_fixnum_value( value < 0 ? -1 : 1 );
+    return mrb_fixnum_value(value < 0 ? -1 : 1);
   }
   return mrb_nil_value();
 }
