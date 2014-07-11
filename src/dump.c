@@ -952,7 +952,9 @@ mrb_dump_irep_binary(mrb_state *mrb, mrb_irep *irep, int debug_info, FILE* fp)
 
   result = mrb_dump_irep(mrb, irep, debug_info, &bin, &bin_size);
   if (result == MRB_DUMP_OK) {
-    fwrite(bin, bin_size, 1, fp);
+    if (fwrite(bin, sizeof(bin[0]), bin_size, fp) != bin_size) {
+      result = MRB_DUMP_WRITE_FAULT;
+    }
   }
 
   mrb_free(mrb, bin);
