@@ -184,9 +184,7 @@ module MRuby
         print_gem_comment(f)
         f.puts %Q[#include <stdlib.h>]
         f.puts %Q[#include "mruby.h"]
-        f.puts %Q[#include "mruby/array.h"]
         f.puts %Q[#include "mruby/irep.h"]
-        f.puts %Q[#include "mruby/string.h"]
         f.puts %Q[#include "mruby/variable.h"]
         f.puts %Q[#include "mruby/hash.h"] unless test_args.empty?
       end
