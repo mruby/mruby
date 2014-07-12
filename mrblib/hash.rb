@@ -192,15 +192,23 @@ class Hash
     h
   end
 
-  ##
-  # Return the contents of this hash as a string.
-  #
-  # ISO 15.2.13.4.30 (x)
-  def inspect
+  # internal method for Hash inspection
+  def _inspect
     return "{}" if self.size == 0
     "{"+self.map {|k,v|
-      k.inspect + "=>" + v.inspect
+      k._inspect + "=>" + v._inspect
     }.join(", ")+"}"
+  end
+  ##
+  # Return the contents of this hash as a string. 
+ #
+  # ISO 15.2.13.4.30 (x)
+  def inspect
+    begin
+      self._inspect
+    rescue SystemStackError
+      "{...}"
+    end
   end
   # ISO 15.2.13.4.31 (x)
   alias to_s inspect
