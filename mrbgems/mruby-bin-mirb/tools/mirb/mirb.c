@@ -40,7 +40,7 @@
 static const char history_file_name[] = ".mirb_history";
 
 static char *
-get_history_path(void)
+get_history_path(mrb_state *mrb)
 {
   char *path = NULL;
   const char *home = getenv("HOME");
@@ -55,11 +55,11 @@ get_history_path(void)
     int len = snprintf(NULL, 0, "%s/%s", home, history_file_name);
     if (len >= 0) {
       size_t size = len + 1;
-      path = (char *)malloc(size);
+      path = (char *)mrb_malloc_simple(mrb, size);
       if (path != NULL) {
         int n = snprintf(path, size, "%s/%s", home, history_file_name);
         if (n != len) {
-          free(path);
+          mrb_free(mrb, path);
           path = NULL;
         }
       }
@@ -325,17 +325,6 @@ main(int argc, char **argv)
   int ai;
   unsigned int stack_keep = 0;
 
-#ifdef ENABLE_READLINE
-  history_path = get_history_path();
-  if (history_path == NULL) {
-    fputs("failed to get history path\n", stderr);
-    return EXIT_FAILURE;
-  }
-
-  MIRB_USING_HISTORY();
-  MIRB_READ_HISTORY(history_path);
-#endif
-
   /* new interpreter instance */
   mrb = mrb_open();
   if (mrb == NULL) {
@@ -350,6 +339,18 @@ main(int argc, char **argv)
     usage(argv[0]);
     return n;
   }
+
+#ifdef ENABLE_READLINE
+  history_path = get_history_path(mrb);
+  if (history_path == NULL) {
+    fputs("failed to get history path\n", stderr);
+    mrb_close(mrb);
+    return EXIT_FAILURE;
+  }
+
+  MIRB_USING_HISTORY();
+  MIRB_READ_HISTORY(history_path);
+#endif
 
   print_hint();
 
@@ -461,13 +462,14 @@ main(int argc, char **argv)
     mrb_parser_free(parser);
     cxt->lineno++;
   }
-  mrbc_context_free(mrb, cxt);
-  mrb_close(mrb);
 
 #ifdef ENABLE_READLINE
   MIRB_WRITE_HISTORY(history_path);
-  free(history_path);
+  mrb_free(mrb, history_path);
 #endif
+
+  mrbc_context_free(mrb, cxt);
+  mrb_close(mrb);
 
   return 0;
 }
