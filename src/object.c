@@ -80,7 +80,7 @@ mrb_true(mrb_state *mrb, mrb_value obj)
 static mrb_value
 nil_to_s(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new(mrb, 0, 0);
+  return mrb_str_new(mrb, NULL, 0);
 }
 
 static mrb_value

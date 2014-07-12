@@ -397,7 +397,7 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   char *sp;
 
   name = mrb_sym2name_len(mrb, id, &len);
-  str = mrb_str_new(mrb, 0, len+1);
+  str = mrb_str_new(mrb, NULL, len+1);
   sp = RSTRING_PTR(str);
   RSTRING_PTR(str)[0] = ':';
   memcpy(sp+1, name, len);
