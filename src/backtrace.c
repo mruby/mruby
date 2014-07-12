@@ -147,6 +147,9 @@ exc_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
 void
 mrb_print_backtrace(mrb_state *mrb)
 {
+  if (mrb->exc || mrb_obj_is_kind_of(mrb, mrb_obj_value(mrb->exc), E_SYSSTACK_ERROR)) {
+    return;
+  }
   exc_output_backtrace(mrb, mrb->exc, print_backtrace_i, (void*)stderr);
 }
 
