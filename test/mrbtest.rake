@@ -12,10 +12,11 @@ MRuby.each_target do
   ass_lib = ass_c.ext(exts.object)
 
   mrbtest_lib = libfile("#{current_build_dir}/mrbtest")
-  mrbtest_objs = gems.map do |v|
-    v.test_objs + [v.test_rbireps.ext(exts.object)]
+  mrbtest_objs = [mlib, ass_lib]
+  gems.each do |v|
+    mrbtest_objs.concat v.test_objs
   end
-  file mrbtest_lib => [mlib, ass_lib] + mrbtest_objs do |t|
+  file mrbtest_lib => mrbtest_objs do |t|
     archiver.run t.name, t.prerequisites
   end
 

@@ -3,6 +3,7 @@ MRuby.each_target do
 
   gems.each do |g|
     test_rbobj = g.test_rbireps.ext(exts.object)
+    g.test_objs << test_rbobj
     dep_list = gems.tsort_dependencies g.test_dependencies, gem_table
 
     file test_rbobj => g.test_rbireps
@@ -77,7 +78,7 @@ MRuby.each_target do
               f.puts %Q[  mrb_const_set(mrb2, mrb_obj_value(mrb2->object_class), mrb_intern_lit(mrb2, "TEST_ARGS"), test_args_hash); ]
             end
 
-            f.puts %Q[  mrb_#{g.funcname}_gem_test(mrb2);] unless g.test_objs.empty?
+            f.puts %Q[  mrb_#{g.funcname}_gem_test(mrb2);] if g.custom_test_init?
 
             f.puts %Q[  mrb_load_irep(mrb2, gem_test_irep_#{g.funcname}_#{i});]
             f.puts %Q[  ]
