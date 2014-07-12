@@ -13,6 +13,11 @@ assert('Proc#inspect') do
   assert_kind_of String, ins
 end
 
+assert('Proc#parameters') do
+  parameters = Proc.new{|x,y=42,*other|}.parameters
+  assert_equal [[:opt, :x], [:opt, :y], [:rest, :other]], parameters
+end
+
 assert('Proc#lambda?') do
   assert_true lambda{}.lambda?
   assert_true !Proc.new{}.lambda?
