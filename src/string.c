@@ -1799,7 +1799,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     }
   }
   else if (split_type == string) {
-    char *ptr = RSTRING_PTR(str); // s->as.ary
+    char *ptr = RSTRING_PTR(str); /* s->as.ary */
     char *temp = ptr;
     char *eptr = RSTRING_END(str);
     mrb_int slen = RSTRING_LEN(spat);
