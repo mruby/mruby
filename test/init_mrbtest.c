@@ -1,12 +1,13 @@
 #include <stdlib.h>
 #include "mruby.h"
 #include "mruby/irep.h"
+#include "mruby/variable.h"
 
 extern const uint8_t mrbtest_assert_irep[];
 extern const uint8_t mrbtest_irep[];
 
 void mrbgemtest_init(mrb_state* mrb);
-void mrb_init_test_driver(mrb_state* mrb);
+void mrb_init_test_driver(mrb_state* mrb, mrb_bool verbose);
 void mrb_t_pass_result(mrb_state *mrb_dst, mrb_state *mrb_src);
 
 void
@@ -17,7 +18,7 @@ mrb_init_mrbtest(mrb_state *mrb)
   mrb_load_irep(mrb, mrbtest_assert_irep);
 
   core_test = mrb_open_core(mrb_default_allocf, NULL);
-  mrb_init_test_driver(core_test);
+  mrb_init_test_driver(core_test, mrb_test(mrb_gv_get(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"))));
   mrb_load_irep(core_test, mrbtest_assert_irep);
   mrb_load_irep(core_test, mrbtest_irep);
   mrb_t_pass_result(mrb, core_test);

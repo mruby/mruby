@@ -83,7 +83,7 @@ mrb_t_printstr(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_init_test_driver(mrb_state *mrb)
+mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
 {
   struct RClass *krn, *mrbtest;
 
@@ -95,6 +95,10 @@ mrb_init_test_driver(mrb_state *mrb)
   mrb_define_const(mrb, mrbtest, "FIXNUM_MAX", mrb_fixnum_value(MRB_INT_MAX));
   mrb_define_const(mrb, mrbtest, "FIXNUM_MIN", mrb_fixnum_value(MRB_INT_MIN));
   mrb_define_const(mrb, mrbtest, "FIXNUM_BIT", mrb_fixnum_value(MRB_INT_BIT));
+
+  if (verbose) {
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"), mrb_true_value());
+  }
 }
 
 void
@@ -139,6 +143,7 @@ main(int argc, char **argv)
 {
   mrb_state *mrb;
   int ret;
+  mrb_bool verbose = FALSE;
 
   print_hint();
 
@@ -151,10 +156,10 @@ main(int argc, char **argv)
 
   if (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'v') {
     printf("verbose mode: enable\n\n");
-    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"), mrb_true_value());
+    verbose = TRUE;
   }
 
-  mrb_init_test_driver(mrb);
+  mrb_init_test_driver(mrb, verbose);
   mrb_init_mrbtest(mrb);
   ret = eval_test(mrb);
   mrb_close(mrb);
