@@ -160,7 +160,7 @@ stack_extend_alloc(mrb_state *mrb, int room, int keep)
      to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raise has stack space to work with. */
   if (size > MRB_STACK_MAX) {
     init_new_stack_space(mrb, room, keep);
-    mrb_raise(mrb, E_RUNTIME_ERROR, "stack level too deep. (limit=" TO_STR(MRB_STACK_MAX) ")");
+    mrb_raise(mrb, E_SYSSTACK_ERROR, "stack level too deep. (limit=" TO_STR(MRB_STACK_MAX) ")");
   }
 }
 

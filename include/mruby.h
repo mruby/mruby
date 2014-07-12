@@ -385,6 +385,7 @@ void mrb_print_error(mrb_state *mrb);
 #define E_SYNTAX_ERROR              (mrb_class_get(mrb, "SyntaxError"))
 #define E_LOCALJUMP_ERROR           (mrb_class_get(mrb, "LocalJumpError"))
 #define E_REGEXP_ERROR              (mrb_class_get(mrb, "RegexpError"))
+#define E_SYSSTACK_ERROR            (mrb_class_get(mrb, "SystemStackError"))
 
 #define E_NOTIMP_ERROR              (mrb_class_get(mrb, "NotImplementedError"))
 #define E_FLOATDOMAIN_ERROR         (mrb_class_get(mrb, "FloatDomainError"))
