@@ -34,15 +34,13 @@ MRuby.each_target do
           f.puts %Q[void GENERATED_TMP_mrb_#{d.funcname}_gem_init(mrb_state *mrb);]
           f.puts %Q[void GENERATED_TMP_mrb_#{d.funcname}_gem_final(mrb_state *mrb);]
         end
-        f.puts %Q[void mrb_init_test_driver(mrb_state *mrb);]
+        f.puts %Q[void mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose);]
         f.puts %Q[void mrb_t_pass_result(mrb_state *dst, mrb_state *src);]
         f.puts %Q[void GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb_state *mrb) {]
         unless g.test_rbfiles.empty?
           f.puts %Q[  mrb_state *mrb2;]
-          if g.test_args.empty?
-            f.puts %Q[  mrb_value verbose;]
-          else
-            f.puts %Q[  mrb_value verbose, test_args_hash;]
+          unless g.test_args.empty?
+            f.puts %Q[  mrb_value test_args_hash;]
           end
           f.puts %Q[  int ai;]
           g.test_rbfiles.count.times do |i|
@@ -52,11 +50,7 @@ MRuby.each_target do
               f.puts %Q[  GENERATED_TMP_mrb_#{d.funcname}_gem_init(mrb2);]
               f.puts %Q[  mrb_state_atexit(mrb2, GENERATED_TMP_mrb_#{d.funcname}_gem_final);]
             end
-            f.puts %Q[  mrb_init_test_driver(mrb2);]
-            f.puts %Q[  verbose = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"));]
-            f.puts %Q[  if (mrb_test(verbose)) {]
-            f.puts %Q[    mrb_gv_set(mrb2, mrb_intern_lit(mrb2, "$mrbtest_verbose"), verbose);]
-            f.puts %Q[  }]
+            f.puts %Q[  mrb_init_test_driver(mrb2, mrb_test(mrb_gv_get(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"))));]
             if test_preload.nil?
               f.puts %Q[  mrb_load_irep(mrb2, mrbtest_assert_irep);]
             else
