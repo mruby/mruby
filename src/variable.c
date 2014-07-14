@@ -1085,7 +1085,7 @@ retry:
   return FALSE;
 }
 
-int
+mrb_bool
 mrb_const_defined_at(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
   return mrb_const_defined_0(mrb, klass, id, TRUE, FALSE);
