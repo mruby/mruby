@@ -69,6 +69,7 @@ fiber_init(mrb_state *mrb, mrb_value self)
   struct RProc *p;
   mrb_callinfo *ci;
   mrb_value blk;
+  size_t slen;
 
   mrb_get_args(mrb, "&", &blk);
 
@@ -85,14 +86,18 @@ fiber_init(mrb_state *mrb, mrb_value self)
   c = f->cxt;
 
   /* initialize VM stack */
-  c->stbase = (mrb_value *)mrb_malloc(mrb, FIBER_STACK_INIT_SIZE*sizeof(mrb_value));
-  c->stend = c->stbase + FIBER_STACK_INIT_SIZE;
+  slen = FIBER_STACK_INIT_SIZE;
+  if (p->body.irep->nregs > slen) {
+    slen += p->body.irep->nregs;
+  }
+  c->stbase = (mrb_value *)mrb_malloc(mrb, slen*sizeof(mrb_value));
+  c->stend = c->stbase + slen;
   c->stack = c->stbase;
 
 #ifdef MRB_NAN_BOXING
   {
     mrb_value *p = c->stbase;
-    mrb_value *pend = p + FIBER_STACK_INIT_SIZE;
+    mrb_value *pend = c->stend;
 
     while (p < pend) {
       SET_NIL_VALUE(*p);
@@ -100,7 +105,7 @@ fiber_init(mrb_state *mrb, mrb_value self)
     }
   }
 #else
-  memset(c->stbase, 0, FIBER_STACK_INIT_SIZE * sizeof(mrb_value));
+  memset(c->stbase, 0, slen * sizeof(mrb_value));
 #endif
 
   /* copy receiver from a block */
