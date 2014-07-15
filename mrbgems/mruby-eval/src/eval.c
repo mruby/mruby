@@ -173,10 +173,36 @@ f_eval(mrb_state *mrb, mrb_value self)
   return ret;
 }
 
+mrb_value mrb_obj_instance_eval(mrb_state *mrb, mrb_value self);
+
+static mrb_value
+f_instance_eval(mrb_state *mrb, mrb_value self)
+{
+  mrb_value b;
+  mrb_int argc; mrb_value *argv;
+
+  mrb_get_args(mrb, "*&", &argv, &argc, &b);
+
+  if (mrb_nil_p(b)) {
+    char *s;
+    mrb_int len;
+    char *file = NULL;
+    mrb_int line = 1;
+
+    mrb_get_args(mrb, "s|zi", &s, &len, &file, &line);
+
+    return mrb_run(mrb, create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line), self);
+  } else {
+    mrb_get_args(mrb, "&", &b);
+    return mrb_obj_instance_eval(mrb, self);
+  }
+}
+
 void
 mrb_mruby_eval_gem_init(mrb_state* mrb)
 {
   mrb_define_module_function(mrb, mrb->kernel_module, "eval", f_eval, MRB_ARGS_ARG(1, 3));
+  mrb_define_method(mrb, mrb->kernel_module, "instance_eval", f_instance_eval, MRB_ARGS_ARG(1, 2));
 }
 
 void
