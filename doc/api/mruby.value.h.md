@@ -87,7 +87,6 @@ Type tag of `v` must be `MRB_TT_FLOAT`.
 ### mrb_cptr
 ```C
 void *mrb_cptr(mrb_value v);
-void *mrb_voidp(mrb_value v);
 ```
 Takes c pointer from cptr object `v`.
 Type tag of `v` must be `MRB_TT_CPTR`.
@@ -164,7 +163,6 @@ Checks whether type tag of `v` is `MRB_TT_HASH`.
 ### mrb_cptr_p
 ```C
 mrb_bool mrb_cptr_p(mrb_value v);
-mrb_bool mrb_voidp_p(mrb_value v);
 ```
 Checks whether type tag of `v` is `MRB_TT_CPTR`.
 
@@ -205,7 +203,7 @@ Name | Corresponding type
 `MRB_TT_SYMBOL` | `Symbol`
 `MRB_TT_UNDEF` | For undefined value.
 `MRB_TT_FLOAT` | `Float`
-`MRB_TT_CPTR` | For object to store raw C pointer. `MRB_TT_VOIDP` is a compatibility macro.
+`MRB_TT_CPTR` | For object to store raw C pointer.
 `MRB_TT_OBJECT` | `Object`
 `MRB_TT_CLASS` | `Class`
 `MRB_TT_MODULE` | `Module`
@@ -262,7 +260,6 @@ Object pointed by `p` must be compatible with `struct RBasic`.
 ## mrb_cptr_value
 ```C
 mrb_value mrb_cptr_value(struct mrb_state *mrb, void *p);
-mrb_value mrb_voidp_value(struct mrb_state *mrb, void *p);
 ```
 Creates `mrb_value` from raw C pointer `p`.
 
