@@ -283,12 +283,14 @@ Defines constant `v` of `name` to class or module `c`.
 void mrb_undef_method(mrb_state *mrb, struct RClass *c, const char* name);
 ```
 Undefine method of `name` from `c`.
+Raises `NameError` if `name` isn't defined.
 
 ### mrb_undef_class_method
 ```C
 void mrb_undef_class_method(mrb_state *mrb, struct RClass *c, const char* name);
 ```
 Undefine class method of `name` from `c`.
+Raises `NameError` if `name` isn't defined.
 
 ### Creating a instance from class.
 ```C
