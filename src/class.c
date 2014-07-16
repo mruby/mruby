@@ -1206,7 +1206,7 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
     /* method missing in inspect; avoid recursion */
     repr = mrb_any_to_s(mrb, mod);
   }
-  else if (mrb_respond_to(mrb, mod, inspect)) {
+  else if (mrb_respond_to(mrb, mod, inspect) && mrb->c->ci - mrb->c->cibase < 64) {
     repr = mrb_funcall_argv(mrb, mod, inspect, 0, 0);
     if (RSTRING_LEN(repr) > 64) {
       repr = mrb_any_to_s(mrb, mod);
