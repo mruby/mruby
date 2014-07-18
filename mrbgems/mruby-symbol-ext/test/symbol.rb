@@ -46,3 +46,13 @@ end
 assert('Symbol#intern') do
   assert_equal :test, :test.intern
 end
+
+assert('Symbol#slice') do
+  assert_equal :a, :abc.slice(0)
+  assert_equal :ab, :abc.slice(0, 2)
+end
+
+assert('Symbol#[]') do
+  assert_equal :a, :abc[0]
+  assert_equal :ab, :abc[0, 2]
+end
