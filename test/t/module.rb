@@ -522,3 +522,13 @@ assert('clone Module') do
 
   B.new.foo
 end
+
+assert('Module#module_function') do
+  module M
+    def modfunc; end
+    module_function :modfunc
+  end
+  
+  assert_true M.respond_to?(:modfunc)
+end
+

@@ -1946,6 +1946,43 @@ mrb_mod_eqq(mrb_state *mrb, mrb_value mod)
   return mrb_bool_value(eqq);
 }
 
+mrb_value
+mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value *argv;
+  mrb_int argc, i;
+  mrb_sym mid;
+  struct RProc *method_rproc;
+  struct RClass *rclass;
+  int ai;
+
+  mrb_check_type(mrb, mod, MRB_TT_MODULE);
+  
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if(argc == 0) {
+    /* set MODFUNC SCOPE if implemented */
+    return mod;
+  }
+
+  /* set PRIVATE method visibility if implemented */
+  /* mrb_mod_dummy_visibility(mrb, mod); */
+
+  for (i=0; i<argc; i++) {
+    mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
+
+    mid = mrb_symbol(argv[i]);
+    rclass = mrb_class_ptr(mod);
+    method_rproc = mrb_method_search(mrb, rclass, mid);
+
+    prepare_singleton_class(mrb, (struct RBasic*)rclass);
+    ai = mrb_gc_arena_save(mrb);
+    mrb_define_method_raw(mrb, rclass->c, mid, method_rproc);
+    mrb_gc_arena_restore(mrb, ai);
+  }
+
+  return mod;
+}
+
 void
 mrb_init_class(mrb_state *mrb)
 {
@@ -2009,6 +2046,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "instance_methods",        mrb_mod_instance_methods, MRB_ARGS_ANY());  /* 15.2.2.4.33 */
   mrb_define_method(mrb, mod, "method_defined?",         mrb_mod_method_defined,   MRB_ARGS_REQ(1)); /* 15.2.2.4.34 */
   mrb_define_method(mrb, mod, "module_eval",             mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.35 */
+  mrb_define_method(mrb, mod, "module_function",         mrb_mod_module_function,  MRB_ARGS_ANY());
   mrb_define_method(mrb, mod, "private",                 mrb_mod_dummy_visibility, MRB_ARGS_ANY());  /* 15.2.2.4.36 */
   mrb_define_method(mrb, mod, "protected",               mrb_mod_dummy_visibility, MRB_ARGS_ANY());  /* 15.2.2.4.37 */
   mrb_define_method(mrb, mod, "public",                  mrb_mod_dummy_visibility, MRB_ARGS_ANY());  /* 15.2.2.4.38 */
