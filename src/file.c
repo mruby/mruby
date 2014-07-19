@@ -86,7 +86,7 @@ mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
 {
   mrb_value *argv;
   mrb_value pathv;
-  int argc, i;
+  mrb_int argc, i;
   const char *path;
 
   mrb_get_args(mrb, "*", &argv, &argc);

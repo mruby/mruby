@@ -398,7 +398,8 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
   mrb_value buf = mrb_nil_value();
-  int maxlen, ret;
+  mrb_int maxlen;
+  int ret;
 
   mrb_get_args(mrb, "i|S", &maxlen, &buf);
   if (maxlen < 0) {
@@ -439,7 +440,8 @@ mrb_value
 mrb_io_sysseek(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
-  int pos, offset, whence = -1;
+  int pos;
+  mrb_int offset, whence = -1;
 
   mrb_get_args(mrb, "i|i", &offset, &whence);
   if (whence < 0) {
@@ -558,7 +560,7 @@ static mrb_value
 mrb_io_s_select(mrb_state *mrb, mrb_value klass)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
   mrb_value read, read_io, write, except, timeout, list;
   struct timeval *tp, timerec;
   fd_set pset, rset, wset, eset;
