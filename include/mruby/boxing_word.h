@@ -11,6 +11,16 @@
 # error MRB_INT16 is too small for MRB_WORD_BOXING.
 #endif
 
+struct RFloat {
+  MRB_OBJECT_HEADER;
+  mrb_float f;
+};
+
+struct RCptr {
+  MRB_OBJECT_HEADER;
+  void *p;
+};
+
 #define MRB_FIXNUM_SHIFT 1
 #define MRB_TT_HAS_BASIC MRB_TT_FLOAT
 
