@@ -55,14 +55,4 @@ struct RFiber {
   struct mrb_context *cxt;
 };
 
-struct RFloat {
-  MRB_OBJECT_HEADER;
-  mrb_float f;
-};
-
-struct RCptr {
-  MRB_OBJECT_HEADER;
-  void *p;
-};
-
 #endif  /* MRUBY_OBJECT_H */
