@@ -175,6 +175,8 @@ f_eval(mrb_state *mrb, mrb_value self)
 
 mrb_value mrb_obj_instance_eval(mrb_state *mrb, mrb_value self);
 
+#define CI_ACC_SKIP    -1
+
 static mrb_value
 f_instance_eval(mrb_state *mrb, mrb_value self)
 {
@@ -190,10 +192,10 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     mrb_int line = 1;
 
     mrb_get_args(mrb, "s|zi", &s, &len, &file, &line);
-
+    mrb->c->ci->acc = CI_ACC_SKIP;
     return mrb_run(mrb, create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line), self);
-  } else {
-    mrb_get_args(mrb, "&", &b);
+  }
+  else {
     return mrb_obj_instance_eval(mrb, self);
   }
 }
