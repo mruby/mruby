@@ -29,10 +29,6 @@ mrb_open_core(mrb_allocf f, void *ud)
   static const struct mrb_context mrb_context_zero = { 0 };
   mrb_state *mrb;
 
-#ifdef MRB_NAN_BOXING
-  mrb_static_assert(sizeof(void*) == 4, "when using NaN boxing sizeof pointer must be 4 byte");
-#endif
-
   mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
   if (mrb == NULL) return NULL;
 
