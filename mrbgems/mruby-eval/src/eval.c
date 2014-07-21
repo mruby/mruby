@@ -196,6 +196,7 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     return mrb_run(mrb, create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line), self);
   }
   else {
+    mrb_get_args(mrb, "&", &b);
     return mrb_obj_instance_eval(mrb, self);
   }
 }
