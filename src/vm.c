@@ -484,6 +484,9 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   struct RProc *p;
   mrb_callinfo *ci;
 
+  if (mrb_nil_p(blk)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
+  }
   ci = mrb->c->ci;
   if (ci->acc == CI_ACC_DIRECT) {
     return mrb_yield_with_class(mrb, blk, 0, 0, self, c);
