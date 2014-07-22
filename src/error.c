@@ -18,6 +18,20 @@
 #include "mruby/class.h"
 #include "mrb_throw.h"
 
+static void
+exc_mesg_set(mrb_state *mrb, struct RException *exc, mrb_value mesg)
+{
+  exc->flags |= MRB_EXC_MESG_INIT_FLAG;
+  exc->mesg = mesg;
+  mrb_field_write_barrier_value(mrb, (struct RBasic*)exc, mesg);
+}
+
+static mrb_value
+exc_mesg_get(mrb_state *mrb, struct RException *exc)
+{
+  return (exc->flags & MRB_EXC_MESG_INIT_FLAG) != 0 ? exc->mesg : mrb_nil_value();
+}
+
 mrb_value
 mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
 {
@@ -46,7 +60,7 @@ exc_initialize(mrb_state *mrb, mrb_value exc)
   mrb_value mesg;
 
   if (mrb_get_args(mrb, "|o", &mesg) == 1) {
-    mrb_iv_set(mrb, exc, mrb_intern_lit(mrb, "mesg"), mesg);
+    exc_mesg_set(mrb, mrb_exc_ptr(exc), mesg);
   }
   return exc;
 }
@@ -75,7 +89,7 @@ exc_exception(mrb_state *mrb, mrb_value self)
   if (argc == 0) return self;
   if (mrb_obj_equal(mrb, self, a)) return self;
   exc = mrb_obj_clone(mrb, self);
-  mrb_iv_set(mrb, exc, mrb_intern_lit(mrb, "mesg"), a);
+  exc_mesg_set(mrb, mrb_exc_ptr(exc), a);
 
   return exc;
 }
@@ -91,7 +105,7 @@ exc_exception(mrb_state *mrb, mrb_value self)
 static mrb_value
 exc_to_s(mrb_state *mrb, mrb_value exc)
 {
-  mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "mesg"));
+  mrb_value mesg = exc_mesg_get(mrb, mrb_exc_ptr(exc));
   struct RObject *p;
 
   if (!mrb_string_p(mesg)) {
@@ -136,7 +150,7 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
   mrb_value str, mesg, file, line;
   mrb_bool append_mesg;
 
-  mesg = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "mesg"));
+  mesg = exc_mesg_get(mrb, mrb_exc_ptr(exc));
   file = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "file"));
   line = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "line"));
 
