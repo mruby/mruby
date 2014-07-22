@@ -11,6 +11,13 @@
 extern "C" {
 #endif
 
+struct RException {
+  MRB_OBJECT_HEADER;
+  struct iv_tbl *iv;
+};
+
+#define mrb_exc_ptr(v) ((struct RException*)mrb_ptr(v))
+
 void mrb_sys_fail(mrb_state *mrb, const char *mesg);
 mrb_value mrb_exc_new_str(mrb_state *mrb, struct RClass* c, mrb_value str);
 #define mrb_exc_new_str_lit(mrb, c, lit) mrb_exc_new_str(mrb, c, mrb_str_new_lit(mrb, lit))

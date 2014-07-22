@@ -16,6 +16,7 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/gc.h"
+#include "mruby/error.h"
 
 /*
   = Tri-color Incremental Garbage Collection
@@ -107,6 +108,7 @@ typedef struct {
     struct RRange range;
     struct RData data;
     struct RProc proc;
+    struct RException exc;
 #ifdef MRB_WORD_BOXING
     struct RFloat floatv;
     struct RCptr cptr;
@@ -513,6 +515,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 
   case MRB_TT_OBJECT:
   case MRB_TT_DATA:
+  case MRB_TT_EXCEPTION:
     mrb_gc_mark_iv(mrb, (struct RObject*)obj);
     break;
 
@@ -612,6 +615,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
 #endif
 
   case MRB_TT_OBJECT:
+  case MRB_TT_EXCEPTION:
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
     break;
 
@@ -747,6 +751,7 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
 
   case MRB_TT_OBJECT:
   case MRB_TT_DATA:
+  case MRB_TT_EXCEPTION:
     children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
     break;
 
