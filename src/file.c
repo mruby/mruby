@@ -92,7 +92,7 @@ mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "*", &argv, &argc);
   for (i = 0; i < argc; i++) {
     pathv = mrb_convert_type(mrb, argv[i], MRB_TT_STRING, "String", "to_str");
-    path = mrb_string_value_cstr(mrb, &pathv);;
+    path = mrb_string_value_cstr(mrb, &pathv);
     if (UNLINK(path) < 0) {
       mrb_sys_fail(mrb, path);
     }
