@@ -130,6 +130,7 @@ static inline mrb_value
 mrb_float_value(struct mrb_state *mrb, mrb_float f)
 {
   mrb_value v;
+  (void) mrb;
   SET_FLOAT_VALUE(mrb, v, f);
   return v;
 }
@@ -138,6 +139,7 @@ static inline mrb_value
 mrb_cptr_value(struct mrb_state *mrb, void *p)
 {
   mrb_value v;
+  (void) mrb;
   SET_CPTR_VALUE(mrb,v,p);
   return v;
 }
