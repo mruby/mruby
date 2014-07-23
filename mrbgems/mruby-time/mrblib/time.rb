@@ -6,4 +6,8 @@ class Time
   def thursday?;  wday == 4 end
   def friday?;  wday == 5 end
   def saturday?;  wday == 6 end
+
+  def to_a
+    [sec, min, hour, day, month, year, wday, yday, dst?, zone]
+  end
 end

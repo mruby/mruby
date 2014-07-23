@@ -203,3 +203,9 @@ assert('day of week methods') do
   assert_false t.friday?
   assert_false t.saturday?
 end
+
+assert('Time#to_a') do
+  a = Time.now.to_a
+  assert_kind_of Array, a
+  assert_equal 10, a.length
+end
