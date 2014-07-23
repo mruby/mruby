@@ -32,6 +32,20 @@ set1 ^ set2
 #=> #<Set: {3}>
 ```
 
+## limitation
+
+These methods are not implemented yet.
+
++ freeze
++ taint
++ untaint
++ to_set
++ flatten_merge
++ flatten
++ flatten!
++ classify
++ divide
+
 ## License
 under the MIT License:
 - see LICENSE file
