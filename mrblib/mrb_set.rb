@@ -41,20 +41,20 @@ class Set
   #   @hash = orig.instance_variable_get(:@hash).clone
   # end
 
-  def freeze
-    @hash.freeze
-    super
-  end
+  # def freeze
+  #   @hash.freeze
+  #   super
+  # end
 
-  def taint
-    @hash.taint
-    super
-  end
+  # def taint
+  #   @hash.taint
+  #   super
+  # end
 
-  def untaint
-    @hash.untaint
-    super
-  end
+  # def untaint
+  #   @hash.untaint
+  #   super
+  # end
 
   def size
     @hash.size
