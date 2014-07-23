@@ -263,6 +263,12 @@ class Set
     @hash.eql?(o.instance_variable_get(:@hash))
   end
 
+  # def classify
+  # end
+
+  # def divide
+  # end
+
   def inspect
     sprintf('#<%s: {%s}>', self.class, to_a.inspect[1..-2])
   end
