@@ -33,7 +33,7 @@ mrb_open_core(mrb_allocf f, void *ud)
   if (mrb == NULL) return NULL;
 
   *mrb = mrb_state_zero;
-  mrb->ud = ud;
+  mrb->allocf_ud = ud;
   mrb->allocf = f;
   mrb->current_white_part = MRB_GC_WHITE_A;
   mrb->atexit_stack_len = 0;
