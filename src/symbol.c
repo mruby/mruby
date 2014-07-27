@@ -216,12 +216,10 @@ static mrb_value
 sym_equal(mrb_state *mrb, mrb_value sym1)
 {
   mrb_value sym2;
-  mrb_bool equal_p;
 
   mrb_get_args(mrb, "o", &sym2);
-  equal_p = mrb_obj_equal(mrb, sym1, sym2);
 
-  return mrb_bool_value(equal_p);
+  return mrb_bool_value(mrb_obj_equal(mrb, sym1, sym2));
 }
 
 /* 15.2.11.3.2  */
