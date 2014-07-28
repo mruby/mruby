@@ -63,7 +63,7 @@ class Symbol
   end
 
   def slice *args
-    to_s.slice(*args).to_sym
+    to_s.slice(*args)
   end
 
   alias [] slice
