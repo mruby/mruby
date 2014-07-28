@@ -14,11 +14,11 @@ extern "C" {
 struct RException {
   MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
-  mrb_value mesg;
+  struct RString *mesg;
 };
 
 #define mrb_exc_ptr(v) ((struct RException*)mrb_ptr(v))
-#define MRB_EXC_MESG_INIT_FLAG 0x100
+#define MRB_EXC_MESG_STRING_FLAG 0x100
 
 void mrb_sys_fail(mrb_state *mrb, const char *mesg);
 mrb_value mrb_exc_new_str(mrb_state *mrb, struct RClass* c, mrb_value str);
