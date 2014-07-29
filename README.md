@@ -79,8 +79,8 @@ IO, File module for mruby
 | IO#seek                    |    o     |      |
 | IO#set_encoding            |          |      |
 | IO#stat                    |          |      |
-| IO#sync                    |          |      |
-| IO#sync=                   |          |      |
+| IO#sync                    |    o     |      |
+| IO#sync=                   |    o     |      |
 | IO#sysread                 |    o     |      |
 | IO#sysseek                 |    o     |      |
 | IO#syswrite                |    o     |      |

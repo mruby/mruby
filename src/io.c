@@ -167,6 +167,7 @@ mrb_io_alloc(mrb_state *mrb)
   fptr->fd2 = -1;
   fptr->pid = 0;
   fptr->writable = 0;
+  fptr->sync = 0;
   return fptr;
 }
 
@@ -264,6 +265,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
       fptr->fd2 = write_fd;
       fptr->pid = pid;
       fptr->writable = ((flags & FMODE_WRITABLE) != 0);
+      fptr->sync = 0;
 
       DATA_TYPE(io) = &mrb_io_type;
       DATA_PTR(io)  = fptr;
@@ -323,6 +325,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
 
   fptr->fd = fd;
   fptr->writable = ((flags & FMODE_WRITABLE) != 0);
+  fptr->sync = 0;
   return io;
 }
 
@@ -793,6 +796,34 @@ mrb_io_set_close_on_exec(mrb_state *mrb, mrb_value io)
 #endif
 }
 
+mrb_value
+mrb_io_set_sync(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_io *fptr;
+  mrb_bool b;
+
+  fptr = (struct mrb_io *)mrb_get_datatype(mrb, self, &mrb_io_type);
+  if (fptr->fd < 0) {
+    mrb_raise(mrb, E_IO_ERROR, "closed stream.");
+  }
+
+  mrb_get_args(mrb, "b", &b);
+  fptr->sync = b;
+  return mrb_bool_value(b);
+}
+
+mrb_value
+mrb_io_sync(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_io *fptr;
+
+  fptr = (struct mrb_io *)mrb_get_datatype(mrb, self, &mrb_io_type);
+  if (fptr->fd < 0) {
+    mrb_raise(mrb, E_IO_ERROR, "closed stream.");
+  }
+  return mrb_bool_value(fptr->sync);
+}
+
 void
 mrb_init_io(mrb_state *mrb)
 {
@@ -810,6 +841,8 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, MRB_ARGS_ANY());
 
   mrb_define_method(mrb, io, "initialize", mrb_io_initialize, MRB_ARGS_ANY());    /* 15.2.20.5.21 (x)*/
+  mrb_define_method(mrb, io, "sync",       mrb_io_sync,       MRB_ARGS_NONE());
+  mrb_define_method(mrb, io, "sync=",      mrb_io_set_sync,   MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "sysread",    mrb_io_sysread,    MRB_ARGS_ANY());
   mrb_define_method(mrb, io, "sysseek",    mrb_io_sysseek,    MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "syswrite",   mrb_io_syswrite,   MRB_ARGS_REQ(1));

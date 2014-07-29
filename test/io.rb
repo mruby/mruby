@@ -120,8 +120,28 @@ end
 
 #assert('IO#readline', '15.2.20.5.16') do
 #assert('IO#readlines', '15.2.20.5.17') do
-#assert('IO#sync', '15.2.20.5.18') do
-#assert('IO#sync=', '15.2.20.5.19') do
+
+assert('IO#sync', '15.2.20.5.18') do
+  io = IO.new(IO.sysopen($mrbtest_io_rfname))
+  s = io.sync
+  assert_true(s == true || s == false)
+  io.close
+  assert_raise(IOError) do
+    io.sync
+  end
+end
+
+assert('IO#sync=', '15.2.20.5.19') do
+  io = IO.new(IO.sysopen($mrbtest_io_rfname))
+  io.sync = true
+  assert_true io.sync
+  io.sync = false
+  assert_false io.sync
+  io.close
+  assert_raise(IOError) do
+    io.sync = true
+  end
+end
 
 assert('IO#write', '15.2.20.5.20') do
   io = IO.open(IO.sysopen($mrbtest_io_wfname))
