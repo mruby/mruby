@@ -29,17 +29,47 @@
 #define MIRB_USING_HISTORY()
 #endif
 
-#ifdef ENABLE_READLINE
-#include <limits.h>
-static const char *history_file_name = ".mirb_history";
-char history_path[PATH_MAX];
-#endif
-
 #include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/proc.h"
 #include "mruby/compile.h"
 #include "mruby/string.h"
+
+#ifdef ENABLE_READLINE
+
+static const char history_file_name[] = ".mirb_history";
+
+static char *
+get_history_path(mrb_state *mrb)
+{
+  char *path = NULL;
+  const char *home = getenv("HOME");
+
+#ifdef _WIN32
+  if (home != NULL) {
+    home = getenv("USERPROFILE");
+  }
+#endif
+
+  if (home != NULL) {
+    int len = snprintf(NULL, 0, "%s/%s", home, history_file_name);
+    if (len >= 0) {
+      size_t size = len + 1;
+      path = (char *)mrb_malloc_simple(mrb, size);
+      if (path != NULL) {
+        int n = snprintf(path, size, "%s/%s", home, history_file_name);
+        if (n != len) {
+          mrb_free(mrb, path);
+          path = NULL;
+        }
+      }
+    }
+  }
+
+  return path;
+}
+
+#endif
 
 static void
 p(mrb_state *mrb, mrb_value obj, int prompt)
@@ -283,7 +313,7 @@ main(int argc, char **argv)
   int last_char;
   int char_index;
 #else
-  char *home = NULL;
+  char *history_path;
 #endif
   mrbc_context *cxt;
   struct mrb_parser_state *parser;
@@ -310,6 +340,18 @@ main(int argc, char **argv)
     return n;
   }
 
+#ifdef ENABLE_READLINE
+  history_path = get_history_path(mrb);
+  if (history_path == NULL) {
+    fputs("failed to get history path\n", stderr);
+    mrb_close(mrb);
+    return EXIT_FAILURE;
+  }
+
+  MIRB_USING_HISTORY();
+  MIRB_READ_HISTORY(history_path);
+#endif
+
   print_hint();
 
   cxt = mrbc_context_new(mrb);
@@ -319,22 +361,6 @@ main(int argc, char **argv)
   if (args.verbose) cxt->dump_result = TRUE;
 
   ai = mrb_gc_arena_save(mrb);
-
-#ifdef ENABLE_READLINE
-  MIRB_USING_HISTORY();
-  home = getenv("HOME");
-#ifdef _WIN32
-  if (!home)
-    home = getenv("USERPROFILE");
-#endif
-  if (home) {
-    strcpy(history_path, home);
-    strcat(history_path, "/");
-    strcat(history_path, history_file_name);
-    MIRB_READ_HISTORY(history_path);
-  }
-#endif
-
 
   while (TRUE) {
 #ifndef ENABLE_READLINE
@@ -436,12 +462,14 @@ main(int argc, char **argv)
     mrb_parser_free(parser);
     cxt->lineno++;
   }
-  mrbc_context_free(mrb, cxt);
-  mrb_close(mrb);
 
 #ifdef ENABLE_READLINE
   MIRB_WRITE_HISTORY(history_path);
+  mrb_free(mrb, history_path);
 #endif
+
+  mrbc_context_free(mrb, cxt);
+  mrb_close(mrb);
 
   return 0;
 }
