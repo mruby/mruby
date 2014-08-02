@@ -857,7 +857,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
   struct RClass *c = base;
   mrb_value v;
   iv_tbl *t;
-  mrb_bool retry = 0;
+  mrb_bool retry = FALSE;
   mrb_value name;
 
 L_RETRY:
@@ -871,7 +871,7 @@ L_RETRY:
   }
   if (!retry && base && base->tt == MRB_TT_MODULE) {
     c = mrb->object_class;
-    retry = 1;
+    retry = TRUE;
     goto L_RETRY;
   }
   name = mrb_symbol_value(sym);
