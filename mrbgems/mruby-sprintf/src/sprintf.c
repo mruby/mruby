@@ -19,7 +19,7 @@
 #define BITSPERDIG MRB_INT_BIT
 #define EXTENDSIGN(n, l) (((~0 << (n)) >> (((n)*(l)) % BITSPERDIG)) & ~(~0 << (n)))
 
-mrb_value mrb_str_format(mrb_state *, int, const mrb_value *, mrb_value);
+static mrb_value mrb_str_format(mrb_state *, int, const mrb_value *, mrb_value);
 static void fmt_setup(char*,size_t,int,int,mrb_int,mrb_int);
 
 static char*
@@ -468,7 +468,7 @@ get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
  *      # => "1f"
  */
 
-mrb_value
+static mrb_value
 mrb_f_sprintf(mrb_state *mrb, mrb_value obj)
 {
   mrb_int argc;
@@ -485,7 +485,7 @@ mrb_f_sprintf(mrb_state *mrb, mrb_value obj)
   }
 }
 
-mrb_value
+static mrb_value
 mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
 {
   const char *p, *end;
