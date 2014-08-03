@@ -82,14 +82,35 @@ class Set
 #  def to_set
 #  end
 #
-#  def flatten_merge
-#  end
-#
-#  def flatten
-#  end
-#
-#  def flatten!
-#  end
+  def flatten_merge(set, seen = Set.new)
+    set.each { |e|
+      if e.is_a?(Set)
+        if seen.include?(e_id = e.object_id)
+          raise ArgumentError, "tried to flatten recursive Set"
+        end
+
+        seen.add(e_id)
+        flatten_merge(e, seen)
+        seen.delete(e_id)
+      else
+        add(e)
+      end
+    }
+
+    self
+  end
+
+  def flatten
+    self.class.new.flatten_merge(self)
+  end
+
+  def flatten!
+    if detect { |e| e.is_a?(Set) }
+      replace(flatten())
+    else
+      nil
+    end
+  end
 
   def include?(o)
     @hash.include?(o)

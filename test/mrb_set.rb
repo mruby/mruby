@@ -113,8 +113,102 @@ assert("Set#to_a") do
   assert_equal([1,2,3], ary.sort)
 end
 
-#assert("Set#flatten") do
-#end
+assert("Set#flatten") do
+  # test1
+  set1 = Set[
+    1,
+    Set[
+      5,
+      Set[7,
+        Set[0]
+      ],
+      Set[6,2],
+      1
+    ],
+    3,
+    Set[3,4]
+  ]
+
+  set2 = set1.flatten
+  set3 = Set.new(0..7)
+
+  assert_false set1.equal?(set2) # assert_not_same
+  assert_equal(set3, set2)
+
+
+  # test2; multiple occurrences of a set in an set
+  set1 = Set[1, 2]
+  set2 = Set[set1, Set[set1, 4], 3]
+
+  assert_nothing_raised {
+    set3 = set2.flatten
+  }
+
+  assert_equal(Set.new(1..4), set3)
+
+
+  # test3; recursion
+  set2 = Set[]
+  set1 = Set[1, set2]
+  set2.add(set1)
+
+  assert_raise(ArgumentError) {
+    set1.flatten
+  }
+end
+
+assert("Set#flatten!") do
+  # test1
+  set1 = Set[
+    1,
+    Set[
+      5,
+      Set[7,
+        Set[0]
+      ],
+      Set[6,2],
+      1
+    ],
+    3,
+    Set[3,4]
+  ]
+
+  set3 = Set.new(0..7)
+  orig_set1 = set1
+  set1.flatten!
+
+  assert_true orig_set1.equal?(set1) # assert_same
+  assert_equal(set3, set1)
+
+
+  # test2; multiple occurrences of a set in an set
+  set1 = Set[1, 2]
+  set2 = Set[set1, Set[set1, 4], 3]
+
+  assert_nothing_raised {
+    set2.flatten!
+  }
+
+  assert_equal(Set.new(1..4), set2)
+
+
+  # test3; recursion
+  set2 = Set[]
+  set1 = Set[1, set2]
+  set2.add(set1)
+
+  assert_raise(ArgumentError) {
+    set1.flatten!
+  }
+
+  # test5; miscellaneous
+  assert_nil(Set.new(0..31).flatten!)
+
+  x = Set[Set[],Set[1,2]].flatten!
+  y = Set[1,2]
+
+  assert_equal(x, y)
+end
 
 assert("Set#include?") do
   set = Set[1,2,3]

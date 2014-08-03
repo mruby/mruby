@@ -40,9 +40,6 @@ These methods are not implemented yet.
 + taint
 + untaint
 + to_set
-+ flatten_merge
-+ flatten
-+ flatten!
 + classify
 + divide
 
