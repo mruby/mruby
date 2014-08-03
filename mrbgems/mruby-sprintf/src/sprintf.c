@@ -169,16 +169,8 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
   (posarg = -2, mrb_hash_fetch(mrb, get_hash(mrb, &hash, argc, argv), id, mrb_undef_value())))
 
 #define GETNUM(n, val) \
-  for (; p < end && ISDIGIT(*p); p++) {\
-    int next_n = 10 * n + (*p - '0'); \
-    if (next_n / 10 != n) {\
-      mrb_raise(mrb, E_ARGUMENT_ERROR, #val " too big"); \
-    } \
-    n = next_n; \
-  } \
-  if (p >= end) { \
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed format string - %*[0-9]"); \
-  }
+  (!(p = get_num(mrb, p, end, &(n))) ? \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, #val " too big") : (void)0)
 
 #define GETASTER(num) do { \
   t = p++; \
@@ -193,6 +185,57 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
   } \
   num = mrb_fixnum(tmp); \
 } while (0)
+
+static mrb_bool
+mul_overflow_int_p(int x, int y, int *prod)
+{
+  if (x > 0) {
+    if (y > 0) {
+      if (x > (INT_MAX / y)) {
+        return TRUE;
+      }
+    }
+    else {
+      if (y < (INT_MIN / x)) {
+        return TRUE;
+      }
+    }
+  }
+  else {
+    if (y > 0) {
+      if (x < (INT_MIN / y)) {
+        return TRUE;
+      }
+    }
+    else {
+      if (x != 0 && y < (INT_MAX / x)) {
+        return TRUE;
+      }
+    }
+  }
+  *prod = x * y;
+  return FALSE;
+}
+
+static const char *
+get_num(mrb_state *mrb, const char *p, const char *end, int *valp)
+{
+  int next_n = *valp;
+  for (; p < end && ISDIGIT(*p); p++) {
+    if (mul_overflow_int_p(10, next_n, &next_n)) {
+      return NULL;
+    }
+    if (INT_MAX - (*p - '0') < next_n) {
+      return NULL;
+    }
+    next_n += *p - '0';
+  }
+  if (p >= end) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed format string - %%*[0-9]");
+  }
+  *valp = next_n;
+  return p;
+}
 
 static mrb_value
 get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
