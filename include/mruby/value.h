@@ -124,7 +124,7 @@ enum mrb_vtype {
 #define mrb_cptr_p(o) (mrb_type(o) == MRB_TT_CPTR)
 #define mrb_exception_p(o) (mrb_type(o) == MRB_TT_EXCEPTION)
 #define mrb_test(o)   mrb_bool(o)
-mrb_bool mrb_regexp_p(struct mrb_state*, mrb_value);
+MRB_API mrb_bool mrb_regexp_p(struct mrb_state*, mrb_value);
 
 static inline mrb_value
 mrb_float_value(struct mrb_state *mrb, mrb_float f)

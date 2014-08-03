@@ -5,7 +5,7 @@
 #include "mruby/string.h"
 #include "mruby/debug.h"
 
-struct RProc *
+MRB_API struct RProc *
 mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t f, mrb_int argc, const mrb_value *argv)
 {
   struct RProc *p;
@@ -28,7 +28,7 @@ mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t f, mrb_int argc, const mr
   return p;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_cfunc_env_get(mrb_state *mrb, mrb_int idx)
 {
   struct RProc *p = mrb->c->ci->proc;

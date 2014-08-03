@@ -506,7 +506,7 @@ read_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc)
   return MRB_DUMP_OK;
 }
 
-mrb_irep*
+MRB_API mrb_irep*
 mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
 {
   int result;
@@ -570,7 +570,7 @@ irep_error(mrb_state *mrb)
   mrb->exc = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, E_SCRIPT_ERROR, "irep load error"));
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrbc_context *c)
 {
   mrb_irep *irep = mrb_read_irep(mrb, bin);
@@ -588,7 +588,7 @@ mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrbc_context *c)
   return val;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 {
   return mrb_load_irep_cxt(mrb, bin, NULL);
@@ -688,7 +688,7 @@ read_section_irep_file(mrb_state *mrb, FILE *fp)
   return read_irep_record_file(mrb, fp);
 }
 
-mrb_irep*
+MRB_API mrb_irep*
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
   mrb_irep *irep = NULL;
@@ -801,7 +801,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 
 void mrb_codedump_all(mrb_state*, struct RProc*);
 
-mrb_value
+MRB_API mrb_value
 mrb_load_irep_file_cxt(mrb_state *mrb, FILE* fp, mrbc_context *c)
 {
   mrb_irep *irep = mrb_read_irep_file(mrb, fp);
@@ -820,7 +820,7 @@ mrb_load_irep_file_cxt(mrb_state *mrb, FILE* fp, mrbc_context *c)
   return val;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_load_irep_file(mrb_state *mrb, FILE* fp)
 {
   return mrb_load_irep_file_cxt(mrb, fp, NULL);

@@ -27,7 +27,7 @@
 #define FLO_EPSILON DBL_EPSILON
 #endif
 
-mrb_float
+MRB_API mrb_float
 mrb_to_flo(mrb_state *mrb, mrb_value val)
 {
   switch (mrb_type(val)) {
@@ -76,7 +76,7 @@ num_pow(mrb_state *mrb, mrb_value x)
  * result.
  */
 
-mrb_value
+MRB_API mrb_value
 mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   return mrb_float_value(mrb, mrb_to_flo(mrb, x) / mrb_to_flo(mrb, y));
@@ -1076,7 +1076,7 @@ fix_to_f(mrb_state *mrb, mrb_value num)
  *     FloatDomainError: Infinity
  */
 /* ------------------------------------------------------------------------*/
-mrb_value
+MRB_API mrb_value
 mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
 {
   mrb_int z;
@@ -1174,7 +1174,7 @@ fix_minus(mrb_state *mrb, mrb_value self)
 }
 
 
-mrb_value
+MRB_API mrb_value
 mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, int base)
 {
   char buf[MRB_INT_BIT+1];

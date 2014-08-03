@@ -19,10 +19,10 @@ int mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin,
 int mrb_dump_irep_binary(mrb_state*, mrb_irep*, int, FILE*);
 int mrb_dump_irep_cfunc(mrb_state *mrb, mrb_irep*, int, FILE *f, const char *initname);
 mrb_irep *mrb_read_irep_file(mrb_state*, FILE*);
-mrb_value mrb_load_irep_file(mrb_state*,FILE*);
-mrb_value mrb_load_irep_file_cxt(mrb_state*, FILE*, mrbc_context*);
+MRB_API mrb_value mrb_load_irep_file(mrb_state*,FILE*);
+MRB_API mrb_value mrb_load_irep_file_cxt(mrb_state*, FILE*, mrbc_context*);
 #endif
-mrb_irep *mrb_read_irep(mrb_state*, const uint8_t*);
+MRB_API mrb_irep *mrb_read_irep(mrb_state*, const uint8_t*);
 
 /* dump/load error code
  *

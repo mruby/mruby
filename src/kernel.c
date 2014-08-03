@@ -49,7 +49,7 @@ mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
  *     [ 1, 2, 3..4, 'five' ].inspect   #=> "[1, 2, 3..4, \"five\"]"
  *     Time.new.inspect                 #=> "2008-03-08 19:43:39 +0900"
  */
-mrb_value
+MRB_API mrb_value
 mrb_obj_inspect(mrb_state *mrb, mrb_value obj)
 {
   if ((mrb_type(obj) == MRB_TT_OBJECT) && mrb_obj_basic_to_s_p(mrb, obj)) {
@@ -311,7 +311,7 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
  *
  *  Some Class(True False Nil Symbol Fixnum Float) Object  cannot clone.
  */
-mrb_value
+MRB_API mrb_value
 mrb_obj_clone(mrb_state *mrb, mrb_value self)
 {
   struct RObject *p;
@@ -347,7 +347,7 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
  *  the class.
  */
 
-mrb_value
+MRB_API mrb_value
 mrb_obj_dup(mrb_state *mrb, mrb_value obj)
 {
   struct RBasic *p;
@@ -427,7 +427,7 @@ mrb_obj_extend_m(mrb_state *mrb, mrb_value self)
  *  <code>Hash</code>. Any hash value that exceeds the capacity of a
  *  <code>Fixnum</code> will be truncated before being used.
  */
-mrb_value
+MRB_API mrb_value
 mrb_obj_hash(mrb_state *mrb, mrb_value self)
 {
   return mrb_fixnum_value(mrb_obj_id(self));
@@ -451,7 +451,7 @@ mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
 /* implementation of instance_eval */
 mrb_value mrb_obj_instance_eval(mrb_state*, mrb_value);
 
-mrb_bool
+MRB_API mrb_bool
 mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c)
 {
   if (mrb_obj_class(mrb, obj) == c) return TRUE;
@@ -855,7 +855,7 @@ mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
  *     raise "Failed to create socket"
  *     raise ArgumentError, "No parameters", caller
  */
-mrb_value
+MRB_API mrb_value
 mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
   mrb_value a[2], exc;

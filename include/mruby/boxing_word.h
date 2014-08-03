@@ -53,9 +53,9 @@ typedef union mrb_value {
   unsigned long w;
 } mrb_value;
 
-mrb_value mrb_word_boxing_cptr_value(struct mrb_state*, void*);
-mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
-mrb_value mrb_word_boxing_float_pool(struct mrb_state*, mrb_float);
+MRB_API mrb_value mrb_word_boxing_cptr_value(struct mrb_state*, void*);
+MRB_API mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
+MRB_API mrb_value mrb_word_boxing_float_pool(struct mrb_state*, mrb_float);
 
 #define mrb_float_pool(mrb,f) mrb_word_boxing_float_pool(mrb,f)
 

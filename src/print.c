@@ -23,7 +23,7 @@ printstr(mrb_state *mrb, mrb_value obj)
 #endif
 }
 
-void
+MRB_API void
 mrb_p(mrb_state *mrb, mrb_value obj)
 {
 #ifdef ENABLE_STDIO
@@ -33,7 +33,7 @@ mrb_p(mrb_state *mrb, mrb_value obj)
 #endif
 }
 
-void
+MRB_API void
 mrb_print_error(mrb_state *mrb)
 {
 #ifdef ENABLE_STDIO
@@ -48,7 +48,7 @@ mrb_print_error(mrb_state *mrb)
 #endif
 }
 
-void
+MRB_API void
 mrb_show_version(mrb_state *mrb)
 {
   mrb_value msg;
@@ -58,7 +58,7 @@ mrb_show_version(mrb_state *mrb)
   printstr(mrb, mrb_str_new_lit(mrb, "\n"));
 }
 
-void
+MRB_API void
 mrb_show_copyright(mrb_state *mrb)
 {
   mrb_value msg;

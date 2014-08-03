@@ -74,38 +74,38 @@ mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 #define MRB_STR_EMBED_LEN_MASK 0xf8
 #define MRB_STR_EMBED_LEN_SHIFT 3
 
-void mrb_gc_free_str(mrb_state*, struct RString*);
-void mrb_str_modify(mrb_state*, struct RString*);
-void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
-mrb_value mrb_str_plus(mrb_state*, mrb_value, mrb_value);
-mrb_value mrb_ptr_to_str(mrb_state *, void*);
-mrb_value mrb_obj_as_string(mrb_state *mrb, mrb_value obj);
-mrb_value mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len);
-mrb_value mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
-mrb_value mrb_string_type(mrb_state *mrb, mrb_value str);
-mrb_value mrb_check_string_type(mrb_state *mrb, mrb_value str);
-mrb_value mrb_str_buf_new(mrb_state *mrb, size_t capa);
+MRB_API void mrb_gc_free_str(mrb_state*, struct RString*);
+MRB_API void mrb_str_modify(mrb_state*, struct RString*);
+MRB_API void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
+MRB_API mrb_value mrb_str_plus(mrb_state*, mrb_value, mrb_value);
+MRB_API mrb_value mrb_ptr_to_str(mrb_state *, void*);
+MRB_API mrb_value mrb_obj_as_string(mrb_state *mrb, mrb_value obj);
+MRB_API mrb_value mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len);
+MRB_API mrb_value mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
+MRB_API mrb_value mrb_string_type(mrb_state *mrb, mrb_value str);
+MRB_API mrb_value mrb_check_string_type(mrb_state *mrb, mrb_value str);
+MRB_API mrb_value mrb_str_buf_new(mrb_state *mrb, size_t capa);
 
-char *mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr);
-char *mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr);
-mrb_value mrb_str_dup(mrb_state *mrb, mrb_value str);
-mrb_value mrb_str_intern(mrb_state *mrb, mrb_value self);
-mrb_value mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck);
-double mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck);
-mrb_value mrb_str_to_str(mrb_state *mrb, mrb_value str);
-mrb_int mrb_str_hash(mrb_state *mrb, mrb_value str);
-mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
-mrb_bool mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2);
-mrb_value mrb_str_dump(mrb_state *mrb, mrb_value str);
-mrb_value mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len);
-mrb_value mrb_str_cat_cstr(mrb_state *mrb, mrb_value str, const char *ptr);
-mrb_value mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2);
+MRB_API const char *mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr);
+MRB_API const char *mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr);
+MRB_API mrb_value mrb_str_dup(mrb_state *mrb, mrb_value str);
+MRB_API mrb_value mrb_str_intern(mrb_state *mrb, mrb_value self);
+MRB_API mrb_value mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck);
+MRB_API double mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck);
+MRB_API mrb_value mrb_str_to_str(mrb_state *mrb, mrb_value str);
+MRB_API mrb_bool mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2);
+MRB_API mrb_value mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len);
+MRB_API mrb_value mrb_str_cat_cstr(mrb_state *mrb, mrb_value str, const char *ptr);
+MRB_API mrb_value mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2);
 #define mrb_str_cat_lit(mrb, str, lit) mrb_str_cat(mrb, str, lit, mrb_strlen_lit(lit))
-mrb_value mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2);
+MRB_API mrb_value mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2);
 
-int mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2);
-char *mrb_str_to_cstr(mrb_state *mrb, mrb_value str);
+MRB_API int mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2);
+MRB_API const char *mrb_str_to_cstr(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_pool(mrb_state *mrb, mrb_value str);
+mrb_int mrb_str_hash(mrb_state *mrb, mrb_value str);
+mrb_value mrb_str_dump(mrb_state *mrb, mrb_value str);
+mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
 
 /* For backward compatibility */
 static inline mrb_value

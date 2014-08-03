@@ -144,7 +144,7 @@ mrb_gc_free_hash(mrb_state *mrb, struct RHash *hash)
 }
 
 
-mrb_value
+MRB_API mrb_value
 mrb_hash_new_capa(mrb_state *mrb, int capa)
 {
   struct RHash *h;
@@ -158,13 +158,13 @@ mrb_hash_new_capa(mrb_state *mrb, int capa)
   return mrb_obj_value(h);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_hash_new(mrb_state *mrb)
 {
   return mrb_hash_new_capa(mrb, 0);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
@@ -183,7 +183,7 @@ mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
   return RHASH_IFNONE(hash);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value def)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
@@ -199,7 +199,7 @@ mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value def)
   return def;
 }
 
-void
+MRB_API void
 mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
 {
   khash_t(ht) *h;
@@ -253,13 +253,13 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
   return mrb_obj_value(ret);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_check_hash_type(mrb_state *mrb, mrb_value hash)
 {
   return mrb_check_convert_type(mrb, hash, MRB_TT_HASH, "Hash", "to_hash");
 }
 
-khash_t(ht) *
+MRB_API khash_t(ht)*
 mrb_hash_tbl(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
@@ -478,7 +478,7 @@ mrb_hash_set_default_proc(mrb_state *mrb, mrb_value hash)
   return ifnone;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
@@ -588,7 +588,7 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
  *
  */
 
-mrb_value
+MRB_API mrb_value
 mrb_hash_clear(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
@@ -659,7 +659,7 @@ mrb_hash_size_m(mrb_state *mrb, mrb_value self)
  *     {}.empty?   #=> true
  *
  */
-mrb_value
+MRB_API mrb_value
 mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
 {
   khash_t(ht) *h = RHASH_TBL(self);
@@ -695,7 +695,7 @@ mrb_hash_to_hash(mrb_state *mrb, mrb_value hash)
  *
  */
 
-mrb_value
+MRB_API mrb_value
 mrb_hash_keys(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);

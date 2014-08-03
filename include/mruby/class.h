@@ -51,20 +51,20 @@ mrb_class(mrb_state *mrb, mrb_value v)
 #define MRB_SET_INSTANCE_TT(c, tt) c->flags = ((c->flags & ~0xff) | (char)tt)
 #define MRB_INSTANCE_TT(c) (enum mrb_vtype)(c->flags & 0xff)
 
-struct RClass* mrb_define_class_id(mrb_state*, mrb_sym, struct RClass*);
-struct RClass* mrb_define_module_id(mrb_state*, mrb_sym);
-struct RClass *mrb_vm_define_class(mrb_state*, mrb_value, mrb_value, mrb_sym);
-struct RClass *mrb_vm_define_module(mrb_state*, mrb_value, mrb_sym);
-void mrb_define_method_vm(mrb_state*, struct RClass*, mrb_sym, mrb_value);
-void mrb_define_method_raw(mrb_state*, struct RClass*, mrb_sym, struct RProc *);
-void mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec);
-void mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b);
+MRB_API struct RClass* mrb_define_class_id(mrb_state*, mrb_sym, struct RClass*);
+MRB_API struct RClass* mrb_define_module_id(mrb_state*, mrb_sym);
+MRB_API struct RClass *mrb_vm_define_class(mrb_state*, mrb_value, mrb_value, mrb_sym);
+MRB_API struct RClass *mrb_vm_define_module(mrb_state*, mrb_value, mrb_sym);
+MRB_API void mrb_define_method_vm(mrb_state*, struct RClass*, mrb_sym, mrb_value);
+MRB_API void mrb_define_method_raw(mrb_state*, struct RClass*, mrb_sym, struct RProc *);
+MRB_API void mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec);
+MRB_API void mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b);
 
-struct RClass *mrb_class_outer_module(mrb_state*, struct RClass *);
-struct RProc *mrb_method_search_vm(mrb_state*, struct RClass**, mrb_sym);
-struct RProc *mrb_method_search(mrb_state*, struct RClass*, mrb_sym);
+MRB_API struct RClass *mrb_class_outer_module(mrb_state*, struct RClass *);
+MRB_API struct RProc *mrb_method_search_vm(mrb_state*, struct RClass**, mrb_sym);
+MRB_API struct RProc *mrb_method_search(mrb_state*, struct RClass*, mrb_sym);
 
-struct RClass* mrb_class_real(struct RClass* cl);
+MRB_API struct RClass* mrb_class_real(struct RClass* cl);
 
 void mrb_gc_mark_mt(mrb_state*, struct RClass*);
 size_t mrb_gc_mark_mt_size(mrb_state*, struct RClass*);

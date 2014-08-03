@@ -197,34 +197,34 @@ typedef struct mrb_state {
 #endif
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
-struct RClass *mrb_define_class(mrb_state *, const char*, struct RClass*);
-struct RClass *mrb_define_module(mrb_state *, const char*);
-mrb_value mrb_singleton_class(mrb_state*, mrb_value);
-void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
+MRB_API struct RClass *mrb_define_class(mrb_state *, const char*, struct RClass*);
+MRB_API struct RClass *mrb_define_module(mrb_state *, const char*);
+MRB_API mrb_value mrb_singleton_class(mrb_state*, mrb_value);
+MRB_API void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
 
-void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
-void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
-void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
-void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
-void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
-void mrb_undef_method(mrb_state*, struct RClass*, const char*);
-void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
-mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv);
+MRB_API void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
+MRB_API void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
+MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
+MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
+MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
+MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
+MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
+MRB_API mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv);
 #define mrb_class_new_instance(mrb,argc,argv,c) mrb_obj_new(mrb,c,argc,argv)
-mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
-struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
-struct RClass * mrb_module_new(mrb_state *mrb);
-mrb_bool mrb_class_defined(mrb_state *mrb, const char *name);
-struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
-struct RClass * mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
-struct RClass * mrb_module_get(mrb_state *mrb, const char *name);
-struct RClass * mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
+MRB_API mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
+MRB_API struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
+MRB_API struct RClass * mrb_module_new(mrb_state *mrb);
+MRB_API mrb_bool mrb_class_defined(mrb_state *mrb, const char *name);
+MRB_API struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
+MRB_API struct RClass * mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
+MRB_API struct RClass * mrb_module_get(mrb_state *mrb, const char *name);
+MRB_API struct RClass * mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
-mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
-mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
-mrb_bool mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid);
-struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
-struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
+MRB_API mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
+MRB_API mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
+MRB_API mrb_bool mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid);
+MRB_API struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
+MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
 /* required arguments */
 #define MRB_ARGS_REQ(n)     ((mrb_aspec)((n)&0x1f) << 18)
@@ -257,7 +257,7 @@ struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, co
 #define ARGS_ANY()          MRB_ARGS_ANY()
 #define ARGS_NONE()         MRB_ARGS_NONE()
 
-mrb_int mrb_get_args(mrb_state *mrb, const char *format, ...);
+MRB_API mrb_int mrb_get_args(mrb_state *mrb, const char *format, ...);
 
 /* `strlen` for character string literals (use with caution or `strlen` instead)
     Adjacent string literals are concatenated in C/C++ in translation phase 6.
@@ -267,82 +267,82 @@ mrb_int mrb_get_args(mrb_state *mrb, const char *format, ...);
 */
 #define mrb_strlen_lit(lit) (sizeof(lit "") - 1)
 
-mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, mrb_int,...);
-mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, mrb_int, const mrb_value*);
-mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, mrb_int, const mrb_value*, mrb_value);
-mrb_sym mrb_intern_cstr(mrb_state*,const char*);
-mrb_sym mrb_intern(mrb_state*,const char*,size_t);
-mrb_sym mrb_intern_static(mrb_state*,const char*,size_t);
+MRB_API mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, mrb_int,...);
+MRB_API mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, mrb_int, const mrb_value*);
+MRB_API mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, mrb_int, const mrb_value*, mrb_value);
+MRB_API mrb_sym mrb_intern_cstr(mrb_state*,const char*);
+MRB_API mrb_sym mrb_intern(mrb_state*,const char*,size_t);
+MRB_API mrb_sym mrb_intern_static(mrb_state*,const char*,size_t);
 #define mrb_intern_lit(mrb, lit) mrb_intern_static(mrb, lit, mrb_strlen_lit(lit))
-mrb_sym mrb_intern_str(mrb_state*,mrb_value);
-mrb_value mrb_check_intern_cstr(mrb_state*,const char*);
-mrb_value mrb_check_intern(mrb_state*,const char*,size_t);
-mrb_value mrb_check_intern_str(mrb_state*,mrb_value);
-const char *mrb_sym2name(mrb_state*,mrb_sym);
-const char *mrb_sym2name_len(mrb_state*,mrb_sym,mrb_int*);
-mrb_value mrb_sym2str(mrb_state*,mrb_sym);
+MRB_API mrb_sym mrb_intern_str(mrb_state*,mrb_value);
+MRB_API mrb_value mrb_check_intern_cstr(mrb_state*,const char*);
+MRB_API mrb_value mrb_check_intern(mrb_state*,const char*,size_t);
+MRB_API mrb_value mrb_check_intern_str(mrb_state*,mrb_value);
+MRB_API const char *mrb_sym2name(mrb_state*,mrb_sym);
+MRB_API const char *mrb_sym2name_len(mrb_state*,mrb_sym,mrb_int*);
+MRB_API mrb_value mrb_sym2str(mrb_state*,mrb_sym);
 
-void *mrb_malloc(mrb_state*, size_t);         /* raise RuntimeError if no mem */
-void *mrb_calloc(mrb_state*, size_t, size_t); /* ditto */
-void *mrb_realloc(mrb_state*, void*, size_t); /* ditto */
-void *mrb_realloc_simple(mrb_state*, void*, size_t); /* return NULL if no memory available */
-void *mrb_malloc_simple(mrb_state*, size_t);  /* return NULL if no memory available */
-struct RBasic *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*);
-void mrb_free(mrb_state*, void*);
+MRB_API void *mrb_malloc(mrb_state*, size_t);         /* raise RuntimeError if no mem */
+MRB_API void *mrb_calloc(mrb_state*, size_t, size_t); /* ditto */
+MRB_API void *mrb_realloc(mrb_state*, void*, size_t); /* ditto */
+MRB_API void *mrb_realloc_simple(mrb_state*, void*, size_t); /* return NULL if no memory available */
+MRB_API void *mrb_malloc_simple(mrb_state*, size_t);  /* return NULL if no memory available */
+MRB_API struct RBasic *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*);
+MRB_API void mrb_free(mrb_state*, void*);
 
-mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
-mrb_value mrb_str_new_cstr(mrb_state*, const char*);
-mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
+MRB_API mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
+MRB_API mrb_value mrb_str_new_cstr(mrb_state*, const char*);
+MRB_API mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
 #define mrb_str_new_lit(mrb, lit) mrb_str_new_static(mrb, (lit), mrb_strlen_lit(lit))
 
-mrb_state* mrb_open(void);
-mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
-mrb_state* mrb_open_core(mrb_allocf, void *ud);
-void mrb_close(mrb_state*);
+MRB_API mrb_state* mrb_open(void);
+MRB_API mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
+MRB_API mrb_state* mrb_open_core(mrb_allocf, void *ud);
+MRB_API void mrb_close(mrb_state*);
 
-void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
+MRB_API void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
 
-mrb_value mrb_top_self(mrb_state *);
-mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
-mrb_value mrb_toplevel_run(mrb_state*, struct RProc*);
-mrb_value mrb_context_run(mrb_state*, struct RProc*, mrb_value, unsigned int);
+MRB_API mrb_value mrb_top_self(mrb_state *);
+MRB_API mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
+MRB_API mrb_value mrb_toplevel_run(mrb_state*, struct RProc*);
+MRB_API mrb_value mrb_context_run(mrb_state*, struct RProc*, mrb_value, unsigned int);
 
-void mrb_p(mrb_state*, mrb_value);
-mrb_int mrb_obj_id(mrb_value obj);
-mrb_sym mrb_obj_to_sym(mrb_state *mrb, mrb_value name);
+MRB_API void mrb_p(mrb_state*, mrb_value);
+MRB_API mrb_int mrb_obj_id(mrb_value obj);
+MRB_API mrb_sym mrb_obj_to_sym(mrb_state *mrb, mrb_value name);
 
-mrb_bool mrb_obj_eq(mrb_state*, mrb_value, mrb_value);
-mrb_bool mrb_obj_equal(mrb_state*, mrb_value, mrb_value);
-mrb_bool mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
-mrb_value mrb_Integer(mrb_state *mrb, mrb_value val);
-mrb_value mrb_Float(mrb_state *mrb, mrb_value val);
-mrb_value mrb_inspect(mrb_state *mrb, mrb_value obj);
-mrb_bool mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
+MRB_API mrb_bool mrb_obj_eq(mrb_state*, mrb_value, mrb_value);
+MRB_API mrb_bool mrb_obj_equal(mrb_state*, mrb_value, mrb_value);
+MRB_API mrb_bool mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
+MRB_API mrb_value mrb_Integer(mrb_state *mrb, mrb_value val);
+MRB_API mrb_value mrb_Float(mrb_state *mrb, mrb_value val);
+MRB_API mrb_value mrb_inspect(mrb_state *mrb, mrb_value obj);
+MRB_API mrb_bool mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 
-void mrb_garbage_collect(mrb_state*);
-void mrb_full_gc(mrb_state*);
-void mrb_incremental_gc(mrb_state *);
-int mrb_gc_arena_save(mrb_state*);
-void mrb_gc_arena_restore(mrb_state*,int);
-void mrb_gc_mark(mrb_state*,struct RBasic*);
+MRB_API void mrb_garbage_collect(mrb_state*);
+MRB_API void mrb_full_gc(mrb_state*);
+MRB_API void mrb_incremental_gc(mrb_state *);
+MRB_API int mrb_gc_arena_save(mrb_state*);
+MRB_API void mrb_gc_arena_restore(mrb_state*,int);
+MRB_API void mrb_gc_mark(mrb_state*,struct RBasic*);
 #define mrb_gc_mark_value(mrb,val) do {\
   if (!mrb_immediate_p(val)) mrb_gc_mark((mrb), mrb_basic_ptr(val)); \
 } while (0)
-void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
+MRB_API void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
 #define mrb_field_write_barrier_value(mrb, obj, val) do{\
   if (!mrb_immediate_p(val)) mrb_field_write_barrier((mrb), (obj), mrb_basic_ptr(val)); \
 } while (0)
-void mrb_write_barrier(mrb_state *, struct RBasic*);
+MRB_API void mrb_write_barrier(mrb_state *, struct RBasic*);
 
-mrb_value mrb_check_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method);
-mrb_value mrb_any_to_s(mrb_state *mrb, mrb_value obj);
-const char * mrb_obj_classname(mrb_state *mrb, mrb_value obj);
-struct RClass* mrb_obj_class(mrb_state *mrb, mrb_value obj);
-mrb_value mrb_class_path(mrb_state *mrb, struct RClass *c);
-mrb_value mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method);
-mrb_bool mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c);
-mrb_value mrb_obj_inspect(mrb_state *mrb, mrb_value self);
-mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
+MRB_API mrb_value mrb_check_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method);
+MRB_API mrb_value mrb_any_to_s(mrb_state *mrb, mrb_value obj);
+MRB_API const char * mrb_obj_classname(mrb_state *mrb, mrb_value obj);
+MRB_API struct RClass* mrb_obj_class(mrb_state *mrb, mrb_value obj);
+MRB_API mrb_value mrb_class_path(mrb_state *mrb, struct RClass *c);
+MRB_API mrb_value mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method);
+MRB_API mrb_bool mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c);
+MRB_API mrb_value mrb_obj_inspect(mrb_state *mrb, mrb_value self);
+MRB_API mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 
 /* need to include <ctype.h> to use these macros */
 #ifndef ISPRINT
@@ -359,16 +359,16 @@ mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 #define TOLOWER(c) (ISASCII(c) ? tolower((int)(unsigned char)(c)) : (c))
 #endif
 
-mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len);
-mrb_noreturn void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
+MRB_API mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len);
+MRB_API mrb_noreturn void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
 
-mrb_noreturn void mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg);
-mrb_noreturn void mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
-mrb_noreturn void mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...);
-void mrb_warn(mrb_state *mrb, const char *fmt, ...);
-mrb_noreturn void mrb_bug(mrb_state *mrb, const char *fmt, ...);
-void mrb_print_backtrace(mrb_state *mrb);
-void mrb_print_error(mrb_state *mrb);
+MRB_API mrb_noreturn void mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg);
+MRB_API mrb_noreturn void mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
+MRB_API mrb_noreturn void mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...);
+MRB_API void mrb_warn(mrb_state *mrb, const char *fmt, ...);
+MRB_API mrb_noreturn void mrb_bug(mrb_state *mrb, const char *fmt, ...);
+MRB_API void mrb_print_backtrace(mrb_state *mrb);
+MRB_API void mrb_print_error(mrb_state *mrb);
 
 /* macros to get typical exception objects
    note:
@@ -393,14 +393,14 @@ void mrb_print_error(mrb_state *mrb);
 
 #define E_KEY_ERROR                 (mrb_class_get(mrb, "KeyError"))
 
-mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
-mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv);
-mrb_value mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c);
+MRB_API mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
+MRB_API mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv);
+MRB_API mrb_value mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c);
 
-void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
-mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
+MRB_API void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
+MRB_API mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 #define mrb_int(mrb, val) mrb_fixnum(mrb_to_int(mrb, val))
-void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
+MRB_API void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
 
 typedef enum call_type {
   CALL_PUBLIC,
@@ -409,29 +409,29 @@ typedef enum call_type {
   CALL_TYPE_MAX
 } call_type;
 
-void mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const char *name2);
-const char *mrb_class_name(mrb_state *mrb, struct RClass* klass);
-void mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val);
+MRB_API void mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const char *name2);
+MRB_API const char *mrb_class_name(mrb_state *mrb, struct RClass* klass);
+MRB_API void mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val);
 
-mrb_value mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id);
+MRB_API mrb_value mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id);
 
-mrb_bool mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
-mrb_bool mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
+MRB_API mrb_bool mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
+MRB_API mrb_bool mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
 
 /* fiber functions (you need to link mruby-fiber mrbgem to use) */
-mrb_value mrb_fiber_yield(mrb_state *mrb, mrb_int argc, const mrb_value *argv);
+MRB_API mrb_value mrb_fiber_yield(mrb_state *mrb, mrb_int argc, const mrb_value *argv);
 #define E_FIBER_ERROR (mrb_class_get(mrb, "FiberError"))
 
 /* memory pool implementation */
 typedef struct mrb_pool mrb_pool;
-struct mrb_pool* mrb_pool_open(mrb_state*);
-void mrb_pool_close(struct mrb_pool*);
-void* mrb_pool_alloc(struct mrb_pool*, size_t);
-void* mrb_pool_realloc(struct mrb_pool*, void*, size_t oldlen, size_t newlen);
-mrb_bool mrb_pool_can_realloc(struct mrb_pool*, void*, size_t);
-void* mrb_alloca(mrb_state *mrb, size_t);
+MRB_API struct mrb_pool* mrb_pool_open(mrb_state*);
+MRB_API void mrb_pool_close(struct mrb_pool*);
+MRB_API void* mrb_pool_alloc(struct mrb_pool*, size_t);
+MRB_API void* mrb_pool_realloc(struct mrb_pool*, void*, size_t oldlen, size_t newlen);
+MRB_API mrb_bool mrb_pool_can_realloc(struct mrb_pool*, void*, size_t);
+MRB_API void* mrb_alloca(mrb_state *mrb, size_t);
 
-void mrb_state_atexit(mrb_state *mrb, mrb_atexit_func func);
+MRB_API void mrb_state_atexit(mrb_state *mrb, mrb_atexit_func func);
 
 #ifdef MRB_DEBUG
 #include <assert.h>
@@ -448,7 +448,7 @@ void mrb_state_atexit(mrb_state *mrb, mrb_atexit_func func);
 #define mrb_static_assert(exp, str) mrb_assert(exp)
 #endif
 
-mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
+MRB_API mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */

@@ -69,31 +69,31 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   return sym;
 }
 
-mrb_sym
+MRB_API mrb_sym
 mrb_intern(mrb_state *mrb, const char *name, size_t len)
 {
   return sym_intern(mrb, name, len, FALSE);
 }
 
-mrb_sym
+MRB_API mrb_sym
 mrb_intern_static(mrb_state *mrb, const char *name, size_t len)
 {
   return sym_intern(mrb, name, len, TRUE);
 }
 
-mrb_sym
+MRB_API mrb_sym
 mrb_intern_cstr(mrb_state *mrb, const char *name)
 {
   return mrb_intern(mrb, name, strlen(name));
 }
 
-mrb_sym
+MRB_API mrb_sym
 mrb_intern_str(mrb_state *mrb, mrb_value str)
 {
   return mrb_intern(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_check_intern(mrb_state *mrb, const char *name, size_t len)
 {
   khash_t(n2s) *h = mrb->name2sym;
@@ -113,20 +113,20 @@ mrb_check_intern(mrb_state *mrb, const char *name, size_t len)
   return mrb_nil_value();
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_check_intern_cstr(mrb_state *mrb, const char *name)
 {
   return mrb_check_intern(mrb, name, (mrb_int)strlen(name));
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_check_intern_str(mrb_state *mrb, mrb_value str)
 {
   return mrb_check_intern(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
 }
 
 /* lenp must be a pointer to a size_t variable */
-const char*
+MRB_API const char*
 mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 {
   khash_t(n2s) *h = mrb->name2sym;
@@ -233,7 +233,7 @@ sym_equal(mrb_state *mrb, mrb_value sym1)
  *
  *     :fred.id2name   #=> "fred"
  */
-mrb_value
+static mrb_value
 mrb_sym_to_s(mrb_state *mrb, mrb_value sym)
 {
   mrb_sym id = mrb_symbol(sym);
@@ -409,7 +409,7 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   return str;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_sym2str(mrb_state *mrb, mrb_sym sym)
 {
   mrb_int len;
@@ -419,7 +419,7 @@ mrb_sym2str(mrb_state *mrb, mrb_sym sym)
   return mrb_str_new_static(mrb, name, len);
 }
 
-const char*
+MRB_API const char*
 mrb_sym2name(mrb_state *mrb, mrb_sym sym)
 {
   mrb_int len;

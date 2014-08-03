@@ -11,7 +11,7 @@
 #include "mruby/re.h"
 #include "mruby/irep.h"
 
-struct RData*
+MRB_API struct RData*
 mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb_data_type *type)
 {
   struct RData *data;
@@ -23,7 +23,7 @@ mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb
   return data;
 }
 
-void
+MRB_API void
 mrb_data_check_type(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 {
   if (mrb_special_const_p(obj) || (mrb_type(obj) != MRB_TT_DATA)) {
@@ -45,7 +45,7 @@ mrb_data_check_type(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
   }
 }
 
-void *
+MRB_API void*
 mrb_data_check_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 {
   if (mrb_special_const_p(obj) || (mrb_type(obj) != MRB_TT_DATA)) {
@@ -57,14 +57,14 @@ mrb_data_check_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
   return DATA_PTR(obj);
 }
 
-void *
+MRB_API void*
 mrb_data_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 {
   mrb_data_check_type(mrb, obj, type);
   return DATA_PTR(obj);
 }
 
-mrb_sym
+MRB_API mrb_sym
 mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
 {
   mrb_value tmp;
@@ -88,7 +88,7 @@ mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
   return id;
 }
 
-mrb_int
+MRB_API mrb_int
 mrb_float_id(mrb_float f)
 {
   const char *p = (const char*)&f;
@@ -104,7 +104,7 @@ mrb_float_id(mrb_float f)
   return id;
 }
 
-mrb_int
+MRB_API mrb_int
 mrb_obj_id(mrb_value obj)
 {
   mrb_int tt = mrb_type(obj);
@@ -147,7 +147,7 @@ mrb_obj_id(mrb_value obj)
 }
 
 #ifdef MRB_WORD_BOXING
-mrb_value
+MRB_API mrb_value
 mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
 {
   mrb_value v;
@@ -157,7 +157,7 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
   return v;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_word_boxing_float_pool(mrb_state *mrb, mrb_float f)
 {
   struct RFloat *nf = (struct RFloat *)mrb_malloc(mrb, sizeof(struct RFloat));
@@ -167,7 +167,7 @@ mrb_word_boxing_float_pool(mrb_state *mrb, mrb_float f)
   return mrb_obj_value(nf);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_word_boxing_cptr_value(mrb_state *mrb, void *p)
 {
   mrb_value v;
@@ -178,7 +178,7 @@ mrb_word_boxing_cptr_value(mrb_state *mrb, void *p)
 }
 #endif  /* MRB_WORD_BOXING */
 
-mrb_bool
+MRB_API mrb_bool
 mrb_regexp_p(mrb_state *mrb, mrb_value v)
 {
   return mrb_class_defined(mrb, REGEXP_CLASS) && mrb_obj_is_kind_of(mrb, v, mrb_class_get(mrb, REGEXP_CLASS));

@@ -168,7 +168,7 @@ gettimeofday_time(void)
 #define GC_STEP_SIZE 1024
 
 
-void*
+MRB_API void*
 mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
 {
   void *p2;
@@ -183,7 +183,7 @@ mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
 }
 
 
-void*
+MRB_API void*
 mrb_realloc(mrb_state *mrb, void *p, size_t len)
 {
   void *p2;
@@ -205,19 +205,19 @@ mrb_realloc(mrb_state *mrb, void *p, size_t len)
   return p2;
 }
 
-void*
+MRB_API void*
 mrb_malloc(mrb_state *mrb, size_t len)
 {
   return mrb_realloc(mrb, 0, len);
 }
 
-void*
+MRB_API void*
 mrb_malloc_simple(mrb_state *mrb, size_t len)
 {
   return mrb_realloc_simple(mrb, 0, len);
 }
 
-void*
+MRB_API void*
 mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
 {
   void *p;
@@ -239,7 +239,7 @@ mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
   return p;
 }
 
-void
+MRB_API void
 mrb_free(mrb_state *mrb, void *p)
 {
   (mrb->allocf)(mrb, p, 0, mrb->allocf_ud);
@@ -386,14 +386,14 @@ gc_protect(mrb_state *mrb, struct RBasic *p)
   mrb->arena[mrb->arena_idx++] = p;
 }
 
-void
+MRB_API void
 mrb_gc_protect(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_special_const_p(obj)) return;
   gc_protect(mrb, mrb_basic_ptr(obj));
 }
 
-struct RBasic*
+MRB_API struct RBasic*
 mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
 {
   struct RBasic *p;
@@ -989,7 +989,7 @@ clear_all_old(mrb_state *mrb)
   mrb->atomic_gray_list = mrb->gray_list = NULL;
 }
 
-void
+MRB_API void
 mrb_incremental_gc(mrb_state *mrb)
 {
   if (mrb->gc_disabled) return;
@@ -1027,7 +1027,7 @@ mrb_incremental_gc(mrb_state *mrb)
 }
 
 /* Perform a full gc cycle */
-void
+MRB_API void
 mrb_full_gc(mrb_state *mrb)
 {
   if (mrb->gc_disabled) return;
@@ -1055,19 +1055,19 @@ mrb_full_gc(mrb_state *mrb)
   GC_TIME_STOP_AND_REPORT;
 }
 
-void
+MRB_API void
 mrb_garbage_collect(mrb_state *mrb)
 {
   mrb_full_gc(mrb);
 }
 
-int
+MRB_API int
 mrb_gc_arena_save(mrb_state *mrb)
 {
   return mrb->arena_idx;
 }
 
-void
+MRB_API void
 mrb_gc_arena_restore(mrb_state *mrb, int idx)
 {
 #ifndef MRB_GC_FIXED_ARENA
@@ -1092,7 +1092,7 @@ mrb_gc_arena_restore(mrb_state *mrb, int idx)
  *   Paint obj(Black) -> value(White) to obj(Black) -> value(Gray).
  */
 
-void
+MRB_API void
 mrb_field_write_barrier(mrb_state *mrb, struct RBasic *obj, struct RBasic *value)
 {
   if (!is_black(obj)) return;
@@ -1119,7 +1119,7 @@ mrb_field_write_barrier(mrb_state *mrb, struct RBasic *obj, struct RBasic *value
  *   e.g. Set element on Array.
  */
 
-void
+MRB_API void
 mrb_write_barrier(mrb_state *mrb, struct RBasic *obj)
 {
   if (!is_black(obj)) return;

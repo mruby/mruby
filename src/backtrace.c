@@ -144,7 +144,7 @@ exc_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
    overwritten.  So invoke these functions just after detecting exceptions.
 */
 
-void
+MRB_API void
 mrb_print_backtrace(mrb_state *mrb)
 {
   if (!mrb->exc || mrb_obj_is_kind_of(mrb, mrb_obj_value(mrb->exc), E_SYSSTACK_ERROR)) {
@@ -153,7 +153,7 @@ mrb_print_backtrace(mrb_state *mrb)
   exc_output_backtrace(mrb, mrb->exc, print_backtrace_i, (void*)stderr);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_exc_backtrace(mrb_state *mrb, mrb_value self)
 {
   mrb_value ary;
@@ -164,7 +164,7 @@ mrb_exc_backtrace(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_get_backtrace(mrb_state *mrb)
 {
   mrb_value ary;
@@ -181,18 +181,18 @@ mrb_get_backtrace(mrb_state *mrb)
 
 #else
 
-void
+MRB_API void
 mrb_print_backtrace(mrb_state *mrb)
 {
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_exc_backtrace(mrb_state *mrb, mrb_value self)
 {
   return mrb_ary_new(mrb);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_get_backtrace(mrb_state *mrb)
 {
   return mrb_ary_new(mrb);
