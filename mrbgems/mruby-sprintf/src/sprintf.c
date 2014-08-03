@@ -154,9 +154,9 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 #define GETNTHARG(nth) \
   ((nth >= argc) ? (mrb_raise(mrb, E_ARGUMENT_ERROR, "too few arguments"), mrb_undef_value()) : argv[nth])
 
-#define GETNAMEARG(id, name, len) ( \
+#define CHECKNAMEARG(name, len) ( \
   check_name_arg(mrb, posarg, name, len), \
-  (posarg = -2, mrb_hash_fetch(mrb, get_hash(mrb, &hash, argc, argv), id, mrb_undef_value())))
+  posarg = -2)
 
 #define GETNUM(n, val) \
   (!(p = get_num(mrb, p, end, &(n))) ? \
@@ -604,7 +604,7 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
 
   for (; p < end; p++) {
     const char *t;
-    mrb_sym id = 0;
+    mrb_value id = mrb_nil_value();
 
     for (t = p; t < end && *t != '%'; t++) ;
     PUSH(p, t - p);
@@ -673,17 +673,19 @@ retry:
       case '{': {
         const char *start = p;
         char term = (*p == '<') ? '>' : '}';
-        mrb_value symname;
 
         for (; p < end && *p != term; )
           p++;
-        if (id) {
+        if (!mrb_nil_p(id)) {
           mrb_raisef(mrb, E_ARGUMENT_ERROR, "name%S after <%S>",
-                     mrb_str_new(mrb, start, p - start + 1), mrb_sym2str(mrb, id));
+                     mrb_str_new(mrb, start, p - start + 1), id);
         }
-        symname = mrb_str_new(mrb, start + 1, p - start - 1);
-        id = mrb_intern_str(mrb, symname);
-        nextvalue = GETNAMEARG(mrb_symbol_value(id), start, p - start + 1);
+        CHECKNAMEARG(start, p - start + 1);
+        get_hash(mrb, &hash, argc, argv);
+        id = mrb_check_intern(mrb, start + 1, p - start - 1);
+        if (!mrb_nil_p(id)) {
+          nextvalue = mrb_hash_fetch(mrb, hash, id, mrb_undef_value());
+        }
         if (mrb_undef_p(nextvalue)) {
           mrb_raisef(mrb, E_KEY_ERROR, "key%S not found", mrb_str_new(mrb, start, p - start + 1));
         }
