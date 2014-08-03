@@ -155,10 +155,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
   ((nth >= argc) ? (mrb_raise(mrb, E_ARGUMENT_ERROR, "too few arguments"), mrb_undef_value()) : argv[nth])
 
 #define GETNAMEARG(id, name, len) ( \
-  posarg > 0 ? \
-  (mrb_raisef(mrb, E_ARGUMENT_ERROR, "named%S after unnumbered(%S)", mrb_str_new(mrb, (name), (len)), mrb_fixnum_value(posarg)), mrb_undef_value()) : \
-  posarg == -1 ? \
-  (mrb_raisef(mrb, E_ARGUMENT_ERROR, "named%S after numbered", mrb_str_new(mrb, (name), (len))), mrb_undef_value()) :    \
+  check_name_arg(mrb, posarg, name, len), \
   (posarg = -2, mrb_hash_fetch(mrb, get_hash(mrb, &hash, argc, argv), id, mrb_undef_value())))
 
 #define GETNUM(n, val) \
@@ -252,6 +249,17 @@ check_pos_arg(mrb_state *mrb, int posarg, int n)
   }
   if (n < 1) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid index - %S$", mrb_fixnum_value(n));
+  }
+}
+
+static void
+check_name_arg(mrb_state *mrb, int posarg, const char *name, mrb_int len)
+{
+  if (posarg > 0) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "named%S after unnumbered(%S)", mrb_str_new(mrb, name, len), mrb_fixnum_value(posarg));
+  }
+  if (posarg == -1) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "named%S after numbered", mrb_str_new(mrb, name, len));
   }
 }
 
@@ -675,7 +683,7 @@ retry:
         }
         symname = mrb_str_new(mrb, start + 1, p - start - 1);
         id = mrb_intern_str(mrb, symname);
-        nextvalue = GETNAMEARG(mrb_symbol_value(id), start, (int)(p - start + 1));
+        nextvalue = GETNAMEARG(mrb_symbol_value(id), start, p - start + 1);
         if (mrb_undef_p(nextvalue)) {
           mrb_raisef(mrb, E_KEY_ERROR, "key%S not found", mrb_str_new(mrb, start, p - start + 1));
         }
