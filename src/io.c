@@ -751,7 +751,7 @@ mrb_io_close_on_exec_p(mrb_state *mrb, mrb_value io)
   return mrb_true_value();
 
 #else
-  mrb_raise(mrb, E_NOTIMPL_ERROR, "IO#close_on_exec? is not supported on the platform");
+  mrb_raise(mrb, E_NOTIMP_ERROR, "IO#close_on_exec? is not supported on the platform");
   return mrb_false_value();
 #endif
 }
@@ -791,7 +791,7 @@ mrb_io_set_close_on_exec(mrb_state *mrb, mrb_value io)
 
   return mrb_bool_value(b);
 #else
-  mrb_raise(mrb, E_NOTIMPL_ERROR, "IO#close_on_exec= is not supported on the platform");
+  mrb_raise(mrb, E_NOTIMP_ERROR, "IO#close_on_exec= is not supported on the platform");
   return mrb_nil_value();
 #endif
 }
