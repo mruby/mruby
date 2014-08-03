@@ -108,22 +108,9 @@ mrb_value mrb_str_dump(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
 
 /* For backward compatibility */
-static inline mrb_value
-mrb_str_cat2(mrb_state *mrb, mrb_value str, const char *ptr) {
-  return mrb_str_cat_cstr(mrb, str, ptr);
-}
-
-static inline mrb_value
-mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
-{
-  return mrb_str_cat(mrb, str, ptr, len);
-}
-
-static inline mrb_value
-mrb_str_buf_append(mrb_state *mrb, mrb_value str, mrb_value str2)
-{
-  return mrb_str_cat_str(mrb, str, str2);
-}
+#define mrb_str_cat2(mrb, str, ptr) mrb_str_cat_cstr(mrb, str, ptr)
+#define mrb_str_buf_cat(mrb, str, ptr, len) mrb_str_cat(mrb, str, ptr, len)
+#define mrb_str_buf_append(mrb, str, str2) mrb_str_cat_str(mrb, str, str2)
 
 #if defined(__cplusplus)
 }  /* extern "C" { */
