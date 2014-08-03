@@ -144,10 +144,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
   GETNEXTARG())
 
 #define GETNEXTARG() ( \
-  posarg == -1 ? \
-  (mrb_raisef(mrb, E_ARGUMENT_ERROR, "unnumbered(%S) mixed with numbered", mrb_fixnum_value(nextarg)), mrb_undef_value()) : \
-  posarg == -2 ? \
-  (mrb_raisef(mrb, E_ARGUMENT_ERROR, "unnumbered(%S) mixed with named", mrb_fixnum_value(nextarg)), mrb_undef_value()) : \
+  check_next_arg(mrb, posarg, nextarg), \
   (posarg = nextarg++, GETNTHARG(posarg)))
 
 #define GETPOSARG(n) (posarg > 0 ? \
@@ -235,6 +232,17 @@ get_num(mrb_state *mrb, const char *p, const char *end, int *valp)
   }
   *valp = next_n;
   return p;
+}
+
+static void
+check_next_arg(mrb_state *mrb, int posarg, int nextarg)
+{
+  switch (posarg) {
+  case -1:
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "unnumbered(%S) mixed with numbered", mrb_fixnum_value(nextarg));
+  case -2:
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "unnumbered(%S) mixed with named", mrb_fixnum_value(nextarg));
+  }
 }
 
 static mrb_value
