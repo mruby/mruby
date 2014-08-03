@@ -1102,3 +1102,16 @@ fmt_setup(char *buf, size_t size, int c, int flags, mrb_int width, mrb_int prec)
   *buf++ = c;
   *buf = '\0';
 }
+
+void
+mrb_mruby_sprintf_gem_init(mrb_state *mrb)
+{
+  struct RClass *krn = mrb->kernel_module;
+  mrb_define_method(mrb, krn, "sprintf", mrb_f_sprintf, MRB_ARGS_ANY());
+  mrb_define_method(mrb, krn, "format",  mrb_f_sprintf, MRB_ARGS_ANY());
+}
+
+void
+mrb_mruby_sprintf_gem_final(mrb_state *mrb)
+{
+}
