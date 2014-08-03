@@ -284,8 +284,17 @@ class Set
     @hash.eql?(o.instance_variable_get(:@hash))
   end
 
-  # def classify
-  # end
+  def classify
+    return to_enum :classify unless block_given?
+    h = {}
+
+    each { |i|
+      x = yield(i)
+      (h[x] ||= self.class.new).add(i)
+    }
+
+    h
+  end
 
   # def divide
   # end

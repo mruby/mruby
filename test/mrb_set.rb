@@ -549,9 +549,18 @@ assert("Set#==") do
   assert_equal(set1.clone, set1)
 end
 
-#assert("Set#classify") do
-#end
-#
+assert("Set#classify") do
+  set = Set.new(1..10)
+  ret = set.classify { |i| i % 3 }
+
+  assert_equal(3, ret.size)
+  assert_equal(Hash, ret.class)
+  ret.each_value { |v| assert_equal(Set, v.class) }
+  assert_equal(Set[3,6,9], ret[0])
+  assert_equal(Set[1,4,7,10], ret[1])
+  assert_equal(Set[2,5,8], ret[2])
+end
+
 #assert("Set#divide") do
 #end
 

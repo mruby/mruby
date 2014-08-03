@@ -40,7 +40,6 @@ These methods are not implemented yet.
 + taint
 + untaint
 + to_set
-+ classify
 + divide
 
 ## License
