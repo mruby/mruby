@@ -1046,7 +1046,7 @@ mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
 
   mrb_get_args(mrb, "o", &ary2);
   if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_true_value();
-  if (mrb_special_const_p(ary2)) return mrb_false_value();
+  if (mrb_immediate_p(ary2)) return mrb_false_value();
   if (!mrb_array_p(ary2)) {
     return mrb_false_value();
   }
@@ -1062,7 +1062,7 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
 
   mrb_get_args(mrb, "o", &ary2);
   if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_fixnum_value(0);
-  if (mrb_special_const_p(ary2)) return mrb_nil_value();
+  if (mrb_immediate_p(ary2)) return mrb_nil_value();
   if (!mrb_array_p(ary2)) {
     return mrb_nil_value();
   }

@@ -389,7 +389,7 @@ gc_protect(mrb_state *mrb, struct RBasic *p)
 MRB_API void
 mrb_gc_protect(mrb_state *mrb, mrb_value obj)
 {
-  if (mrb_special_const_p(obj)) return;
+  if (mrb_immediate_p(obj)) return;
   gc_protect(mrb, mrb_basic_ptr(obj));
 }
 
