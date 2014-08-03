@@ -209,7 +209,7 @@ assert("Set#flatten!") do
     set1.flatten!
   }
 
-  # test5; miscellaneous
+  # test4; miscellaneous
   assert_nil(Set.new(0..31).flatten!)
 
   x = Set[Set[],Set[1,2]].flatten!
