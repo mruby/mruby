@@ -155,6 +155,14 @@ assert("Set#flatten") do
   assert_raise(ArgumentError) {
     set1.flatten
   }
+
+  # test4; miscellaneous
+  empty = Set[]
+  set = Set[Set[empty, "a"], Set[empty, "b"]]
+
+  assert_nothing_raised {
+    set.flatten
+  }
 end
 
 assert("Set#flatten!") do
