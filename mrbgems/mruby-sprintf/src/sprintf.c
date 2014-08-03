@@ -141,6 +141,9 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 } while (0)
 
 #define GETARG() (!mrb_undef_p(nextvalue) ? nextvalue : \
+  GETNEXTARG())
+
+#define GETNEXTARG() ( \
   posarg == -1 ? \
   (mrb_raisef(mrb, E_ARGUMENT_ERROR, "unnumbered(%S) mixed with numbered", mrb_fixnum_value(nextarg)), mrb_undef_value()) : \
   posarg == -2 ? \
@@ -185,7 +188,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
     tmp = GETPOSARG(n); \
   } \
   else { \
-    tmp = GETARG(); \
+    tmp = GETNEXTARG(); \
     p = t; \
   } \
   num = mrb_fixnum(tmp); \

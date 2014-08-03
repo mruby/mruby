@@ -1,5 +1,7 @@
-#assert('Kernel.sprintf') do
-#end
+assert('sprintf invalid') do
+  assert_raise(ArgumentError) { sprintf('%1$*d', 3) }
+  assert_raise(ArgumentError) { sprintf('%1$.*d', 3) }
+end
 
 assert('String#%') do
   assert_equal "one=1", "one=%d" % 1
