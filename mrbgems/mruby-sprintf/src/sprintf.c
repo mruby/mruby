@@ -147,13 +147,9 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
   check_next_arg(mrb, posarg, nextarg), \
   (posarg = nextarg++, GETNTHARG(posarg)))
 
-#define GETPOSARG(n) (posarg > 0 ? \
-  (mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%S) after unnumbered(%S)", mrb_fixnum_value(n), mrb_fixnum_value(posarg)), mrb_undef_value()) : \
-  posarg == -2 ? \
-  (mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%S) after named", mrb_fixnum_value(n)), mrb_undef_value()) : \
-  ((n < 1) ? \
-  (mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid index - %S$", mrb_fixnum_value(n)), mrb_undef_value()) : \
-  (posarg = -1, GETNTHARG(n))))
+#define GETPOSARG(n) ( \
+  check_pos_arg(mrb, posarg, (n)), \
+  (posarg = -1, GETNTHARG(n)))
 
 #define GETNTHARG(nth) \
   ((nth >= argc) ? (mrb_raise(mrb, E_ARGUMENT_ERROR, "too few arguments"), mrb_undef_value()) : argv[nth])
@@ -242,6 +238,20 @@ check_next_arg(mrb_state *mrb, int posarg, int nextarg)
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "unnumbered(%S) mixed with numbered", mrb_fixnum_value(nextarg));
   case -2:
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "unnumbered(%S) mixed with named", mrb_fixnum_value(nextarg));
+  }
+}
+
+static void
+check_pos_arg(mrb_state *mrb, int posarg, int n)
+{
+  if (posarg > 0) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%S) after unnumbered(%S)", mrb_fixnum_value(n), mrb_fixnum_value(posarg));
+  }
+  if (posarg == -2) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%S) after named", mrb_fixnum_value(n));
+  }
+  if (n < 1) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid index - %S$", mrb_fixnum_value(n));
   }
 }
 
