@@ -40,7 +40,7 @@ These methods are not implemented yet.
 + taint
 + untaint
 + to_set
-+ divide
++ divide(Set#divide with 2 arity block is not implemented.)
 
 ## License
 under the MIT License:

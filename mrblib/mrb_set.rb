@@ -296,8 +296,15 @@ class Set
     h
   end
 
-  # def divide
-  # end
+  def divide(&func)
+    return to_enum :divide unless block_given?
+
+    if func.arity == 2
+      raise NotImplementedError, "Set#divide with 2 arity block is not implemented."
+    end
+
+    Set.new(classify(&func).values)
+  end
 
   def inspect
     sprintf('#<%s: {%s}>', self.class, to_a.inspect[1..-2])

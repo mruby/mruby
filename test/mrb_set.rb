@@ -561,8 +561,37 @@ assert("Set#classify") do
   assert_equal(Set[2,5,8], ret[2])
 end
 
-#assert("Set#divide") do
-#end
+assert("Set#divide") do
+  # arity is 1
+  set = Set.new(1..10)
+  ret = set.divide { |i| i % 3 }
+
+  assert_equal(3, ret.size)
+  n = 0
+  ret.each { |s| n += s.size }
+  assert_equal(set.size, n)
+  assert_equal(set, ret.flatten)
+
+  assert_equal(Set, ret.class)
+  assert_true(ret.include?(Set[3,6,9]))
+  assert_true(ret.include?(Set[1,4,7,10]))
+  assert_true(ret.include?(Set[2,5,8]))
+
+
+  # arity is 2
+  set = Set[7,10,5,11,1,3,4,9,0]
+  assert_raise(NotImplementedError) {
+    ret = set.divide { |a, b| (a - b).abs == 1 }
+  }
+
+  # assert_equal(4, ret.size)
+  # n = 0
+  # ret.each { |s| n += s.size }
+  # assert_equal(set.size, n)
+  # assert_equal(set, ret.flatten)
+
+  # assert_equal(Set, ret.class)
+end
 
 # taint is not implemented yet
 #assert("taintness") do
