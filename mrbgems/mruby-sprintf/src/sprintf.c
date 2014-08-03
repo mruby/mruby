@@ -499,7 +499,7 @@ get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
  *      # => "1f"
  */
 
-mrb_value
+static mrb_value
 mrb_f_sprintf(mrb_state *mrb, mrb_value obj)
 {
   mrb_int argc;
