@@ -24,7 +24,7 @@ struct mrb_state;
   typedef int16_t mrb_int;
 # define MRB_INT_BIT 16
 # define MRB_INT_MIN (INT16_MIN>>MRB_FIXNUM_SHIFT)
-# define MRB_INT_MAX )INT16_MAX>>MRB_FIXNUM_SHIFT)
+# define MRB_INT_MAX (INT16_MAX>>MRB_FIXNUM_SHIFT)
 #else
   typedef int32_t mrb_int;
 # define MRB_INT_BIT 32
