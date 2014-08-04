@@ -183,3 +183,40 @@ mrb_regexp_p(mrb_state *mrb, mrb_value v)
 {
   return mrb_class_defined(mrb, REGEXP_CLASS) && mrb_obj_is_kind_of(mrb, v, mrb_class_get(mrb, REGEXP_CLASS));
 }
+
+#if defined _MSC_VER && _MSC_VER < 1900
+
+#ifndef va_copy
+static void
+mrb_msvc_va_copy(va_list *dest, va_list src)
+{
+  *dest = src;
+}
+#define va_copy(dest, src) msvc_va_copy(&(dest), src)
+#endif
+
+MRB_API int
+mrb_msvc_vsnprintf(char *s, size_t n, const char *format, va_list arg)
+{
+  int cnt;
+  va_list argcp;
+  va_copy(argcp, arg);
+  if (n == 0 || (cnt = _vsnprintf_s(s, n, _TRUNCATE, format, argcp)) < 0) {
+    cnt = _vscprintf(format, arg);
+  }
+  va_end(argcp);
+  return cnt;
+}
+
+MRB_API int
+mrb_msvc_snprintf(char *s, size_t n, const char *format, ...)
+{
+  va_list arg;
+  int ret;
+  va_start(arg, format);
+  ret = mrb_msvc_vsnprintf(s, n, format, arg);
+  va_end(arg);
+  return ret;
+}
+
+#endif  /* defined _MSC_VER && _MSC_VER < 1900 */

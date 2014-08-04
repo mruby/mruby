@@ -31,7 +31,7 @@ struct mrb_state;
 # define MRB_INT_MIN (INT32_MIN>>MRB_FIXNUM_SHIFT)
 # define MRB_INT_MAX (INT32_MAX>>MRB_FIXNUM_SHIFT)
 #endif
-  
+
 #ifdef MRB_USE_FLOAT
   typedef float mrb_float;
 # define mrb_float_to_str(buf, i) sprintf(buf, "%.7e", i)
@@ -47,7 +47,11 @@ struct mrb_state;
 #  define inline __inline
 # endif
 # if _MSC_VER < 1900
-#  define snprintf _snprintf
+#  include <stdarg.h>
+MRB_API int mrb_msvc_vsnprintf(char *s, size_t n, const char *format, va_list arg);
+MRB_API int mrb_msvc_snprintf(char *s, size_t n, const char *format, ...);
+#  define vsnprintf(s, n, format, arg) mrb_msvc_vsnprintf(s, n, format, arg)
+#  define snprintf(s, n, format, ...) mrb_msvc_snprintf(s, n, format, __VA_ARGS__)
 # endif
 # if _MSC_VER < 1800
 #  include <float.h>
