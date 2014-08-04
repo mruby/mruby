@@ -36,6 +36,8 @@ module MRuby
 
       attr_accessor :export_include_paths
 
+      attr_reader :generate_functions
+
       attr_block MRuby::Build::COMMANDS
 
       def initialize(name, &block)
@@ -56,7 +58,9 @@ module MRuby
         @objs = Dir.glob("#{dir}/src/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
           objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
         end
-        @objs << objfile("#{build_dir}/gem_init")
+
+        @generate_functions = !(@rbfiles.empty? && @objs.empty?)
+        @objs << objfile("#{build_dir}/gem_init") if @generate_functions
 
         @test_rbfiles = Dir.glob("#{dir}/test/*.rb")
         @test_objs = Dir.glob("#{dir}/test/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
@@ -89,7 +93,7 @@ module MRuby
           compiler.include_paths << "#{dir}/include" if File.directory? "#{dir}/include"
         end
 
-        define_gem_init_builder
+        define_gem_init_builder if @generate_functions
       end
 
       def add_dependency(name, *requirements)

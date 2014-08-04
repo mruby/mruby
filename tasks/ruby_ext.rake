@@ -42,6 +42,15 @@ class Symbol
   end
 end
 
+module Enumerable
+  # Compatible with 1.9 on 1.8
+  def each_with_object(memo)
+    return to_enum :each_with_object, memo unless block_given?
+    each { |obj| yield obj, memo }
+    memo
+  end
+end
+
 $pp_show = true
 
 if $verbose.nil?
