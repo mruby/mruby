@@ -445,7 +445,7 @@ mrb_str_bytesize(mrb_state *mrb, mrb_value self)
  *
  *  Returns a new string object containing a copy of <i>str</i>.
  */
-MRB_API mrb_value
+static mrb_value
 mrb_str_size(mrb_state *mrb, mrb_value self)
 {
   struct RString *s = mrb_str_ptr(self);
