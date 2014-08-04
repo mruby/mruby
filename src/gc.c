@@ -949,7 +949,7 @@ static void
 incremental_gc_until(mrb_state *mrb, enum gc_state to_state)
 {
   do {
-    incremental_gc(mrb, ~0);
+    incremental_gc(mrb, SIZE_MAX);
   } while (mrb->gc_state != to_state);
 }
 
@@ -1162,7 +1162,7 @@ gc_start(mrb_state *mrb, mrb_value obj)
 static mrb_value
 gc_enable(mrb_state *mrb, mrb_value obj)
 {
-  int old = mrb->gc_disabled;
+  mrb_bool old = mrb->gc_disabled;
 
   mrb->gc_disabled = FALSE;
 
@@ -1184,7 +1184,7 @@ gc_enable(mrb_state *mrb, mrb_value obj)
 static mrb_value
 gc_disable(mrb_state *mrb, mrb_value obj)
 {
-  int old = mrb->gc_disabled;
+  mrb_bool old = mrb->gc_disabled;
 
   mrb->gc_disabled = TRUE;
 
@@ -1258,7 +1258,7 @@ gc_step_ratio_set(mrb_state *mrb, mrb_value obj)
 }
 
 static void
-change_gen_gc_mode(mrb_state *mrb, mrb_int enable)
+change_gen_gc_mode(mrb_state *mrb, mrb_bool enable)
 {
   if (is_generational(mrb) && !enable) {
     clear_all_old(mrb);
