@@ -22,10 +22,6 @@
 # define SIZE_ERROR(x) (0)
 #endif
 
-#if CHAR_BIT != 8
-# error This code assumes CHAR_BIT == 8
-#endif
-
 #if UINT32_MAX > SIZE_MAX
 # error This code cannot be built on your environment.
 #endif
