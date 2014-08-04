@@ -234,7 +234,7 @@ mrb_range_include(mrb_state *mrb, mrb_value range)
   return mrb_bool_value(include_p);
 }
 
-MRB_API mrb_bool
+static mrb_bool
 range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len, mrb_bool trunc)
 {
   mrb_int beg, end, b, e;
@@ -266,7 +266,7 @@ range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb
   return TRUE;
 }
 
-mrb_bool
+MRB_API mrb_bool
 mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len)
 {
   return range_beg_len(mrb, range, begp, lenp, len, TRUE);
