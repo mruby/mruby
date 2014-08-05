@@ -101,7 +101,7 @@ MRB_API mrb_value mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2)
 MRB_API mrb_value mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2);
 
 MRB_API int mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2);
-MRB_API const char *mrb_str_to_cstr(mrb_state *mrb, mrb_value str);
+MRB_API char *mrb_str_to_cstr(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_pool(mrb_state *mrb, mrb_value str);
 mrb_int mrb_str_hash(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_dump(mrb_state *mrb, mrb_value str);

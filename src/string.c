@@ -306,7 +306,7 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
     mrb_free(mrb, str->as.heap.ptr);
 }
 
-MRB_API const char*
+MRB_API char*
 mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
 {
   struct RString *s;
