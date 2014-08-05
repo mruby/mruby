@@ -63,12 +63,13 @@
 
   == Write Barrier
 
-  mruby implementer and C extension library writer must write a write
-  barrier when writing a pointer to an object on object's field.
-  Two different write barrier are available:
+  mruby implementer and C extension library writer must insert a write
+  barrier when updating a reference from a field of an object.
+  When updating a reference from a field of object A to object B, 
+  two different types of write barrier are available:
 
-    * mrb_field_write_barrier
-    * mrb_write_barrier
+    * mrb_field_write_barrier - target B object for a mark.
+    * mrb_write_barrier       - target A object for a mark.
 
   == Generational Mode
 
