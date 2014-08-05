@@ -648,7 +648,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     break;
 
   case MRB_TT_ARRAY:
-    if (obj->flags & MRB_ARY_SHARED)
+    if (ARY_SHARED_P(obj))
       mrb_ary_decref(mrb, ((struct RArray*)obj)->aux.shared);
     else
       mrb_free(mrb, ((struct RArray*)obj)->ptr);
