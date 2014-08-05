@@ -20,7 +20,7 @@ IO, File module for mruby
 | IO.popen                   |    o     |      |
 | IO.read                    |    o     |      |
 | IO.readlines               |          |      |
-| IO.select                  |          |      |
+| IO.select                  |    o     |      |
 | IO.sysopen                 |    o     |      |
 | IO.try_convert             |          |      |
 | IO.write                   |          |      |
@@ -34,8 +34,8 @@ IO, File module for mruby
 | IO#chars                   |          | obsolete |
 | IO#clone, IO#dup           |          |      |
 | IO#close                   |    o     |      |
-| IO#close_on_exec=          |          |      |
-| IO#close_on_exec?          |          |      |
+| IO#close_on_exec=          |    o     |      |
+| IO#close_on_exec?          |    o     |      |
 | IO#close_read              |          |      |
 | IO#close_write             |          |      |
 | IO#closed?                 |    o     |      |
@@ -48,8 +48,8 @@ IO, File module for mruby
 | IO#external_encoding       |          |      |
 | IO#fcntl                   |          |      |
 | IO#fdatasync               |          |      |
-| IO#fileno, IO#to_i         |          |      |
-| IO#flush                   |          |      |
+| IO#fileno, IO#to_i         |    o     |      |
+| IO#flush                   |    o     |      |
 | IO#fsync                   |          |      |
 | IO#getbyte                 |          |      |
 | IO#getc                    |    o     |      |
@@ -109,7 +109,7 @@ IO, File module for mruby
 | File.executable?            |          | FileTest |
 | File.executable_real?       |          | FileTest |
 | File.exist?, exists?        |   o      | FileTest |
-| File.expand_path            |          |      |
+| File.expand_path            |   o      |      |
 | File.extname                |   o      |      |
 | File.file?                  |   o      | FileTest |
 | File.fnmatch, File.fnmatch? |          |      |
