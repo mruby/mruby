@@ -99,7 +99,7 @@ struct mrb_context {
 };
 
 enum gc_state {
-  GC_STATE_NONE = 0,
+  GC_STATE_ROOT = 0,
   GC_STATE_MARK,
   GC_STATE_SWEEP
 };
