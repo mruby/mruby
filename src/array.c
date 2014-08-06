@@ -15,9 +15,6 @@
 #define ARY_SHRINK_RATIO  5 /* must be larger than 2 */
 #define ARY_C_MAX_SIZE (SIZE_MAX / sizeof(mrb_value))
 #define ARY_MAX_SIZE ((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? (mrb_int)ARY_C_MAX_SIZE : MRB_INT_MAX-1)
-#define ARY_SHARED_P(a) ((a)->flags & MRB_ARY_SHARED)
-#define ARY_SET_SHARED_FLAG(a) ((a)->flags |= MRB_ARY_SHARED)
-#define ARY_UNSET_SHARED_FLAG(a) ((a)->flags &= ~MRB_ARY_SHARED)
 
 static inline mrb_value
 ary_elt(mrb_value ary, mrb_int offset)

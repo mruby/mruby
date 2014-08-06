@@ -34,6 +34,9 @@ struct RArray {
 #define RARRAY_LEN(a) (RARRAY(a)->len)
 #define RARRAY_PTR(a) (RARRAY(a)->ptr)
 #define MRB_ARY_SHARED      256
+#define ARY_SHARED_P(a) ((a)->flags & MRB_ARY_SHARED)
+#define ARY_SET_SHARED_FLAG(a) ((a)->flags |= MRB_ARY_SHARED)
+#define ARY_UNSET_SHARED_FLAG(a) ((a)->flags &= ~MRB_ARY_SHARED)
 
 void mrb_ary_decref(mrb_state*, mrb_shared_array*);
 MRB_API void mrb_ary_modify(mrb_state*, struct RArray*);
