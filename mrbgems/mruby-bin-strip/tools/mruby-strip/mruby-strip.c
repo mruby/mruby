@@ -142,7 +142,7 @@ main(int argc, char **argv)
     print_usage(argv[0]);
     return EXIT_FAILURE;
   }
-  mrb = mrb_open();
+  mrb = mrb_open_core(mrb_default_allocf, NULL);
   if (mrb == NULL) {
     fputs("Invalid mrb_state, exiting mruby-strip\n", stderr);
     return EXIT_FAILURE;
