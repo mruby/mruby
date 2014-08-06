@@ -192,7 +192,7 @@ mrb_msvc_va_copy(va_list *dest, va_list src)
 {
   *dest = src;
 }
-#define va_copy(dest, src) msvc_va_copy(&(dest), src)
+#define va_copy(dest, src) mrb_msvc_va_copy(&(dest), src)
 #endif
 
 MRB_API int
