@@ -863,7 +863,7 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
     RVALUE *e = p + MRB_HEAP_PAGE_SIZE;
     size_t freed = 0;
     mrb_bool dead_slot = TRUE;
-    int full = (page->freelist == NULL);
+    mrb_bool full = (page->freelist == NULL);
 
     if (is_minor_gc(mrb) && page->old) {
       /* skip a slot which doesn't contain any young object */
