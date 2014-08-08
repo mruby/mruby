@@ -549,10 +549,6 @@ class Enumerator
   end
 end
 
-class StopIteration < IndexError
-  attr_accessor :result
-end
-
 module Kernel
   ##
   # call-seq:

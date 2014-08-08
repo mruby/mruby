@@ -66,3 +66,6 @@ end
 class NotImplementedError < ScriptError
 end
 
+class StopIteration < IndexError
+  attr_accessor :result
+end
