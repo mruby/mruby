@@ -239,6 +239,76 @@ mrb_str_lines(mrb_state *mrb, mrb_value self)
   return result;
 }
 
+/*
+ *  call-seq:
+ *     string.succ    ->  string
+ *
+ *  Returns next sequence of the string;
+ *
+ *     a = "abc"
+ *     a.succ    #=> "abd"
+ */
+static mrb_value
+mrb_str_succ_bang(mrb_state *mrb, mrb_value self)
+{
+  mrb_value result;
+  char *p, *e, *b, *t, *prepend;
+  struct RString *s = mrb_str_ptr(self);
+  size_t l;
+
+  if (RSTRING_LEN(self) == 0)
+    return self;
+
+  mrb_str_modify(mrb, s);
+  l = RSTRING_LEN(self);
+  b = p = RSTRING_PTR(self);
+  t = e = p + l;
+  *(e--) = 0;
+
+  while (b < e) {
+    if (ISALNUM(*b))
+      break;
+    b++;
+  }
+  result = mrb_str_new(mrb, p, b - p);
+
+  while (e >= b) {
+    if (!ISALNUM(*e))
+      break;
+    prepend = NULL;
+    if (*e == '9') {
+      if (e == b) prepend = "1";
+      *e = '0';
+    } else if (*e == 'z') {
+      if (e == b) prepend = "a";
+      *e = 'a';
+    } else if (*e == 'Z') {
+      if (e == b) prepend = "A";
+      *e = 'A';
+    } else {
+      (*e)++;
+      break;
+    }
+    if (prepend) mrb_str_cat_cstr(mrb, result, prepend);
+    e--;
+  }
+  result = mrb_str_cat(mrb, result, b, t - b);
+  l = RSTRING_LEN(result);
+  mrb_str_resize(mrb, self, l);
+  memcpy(RSTRING_PTR(self), RSTRING_PTR(result), l);
+  return self;
+}
+
+static mrb_value
+mrb_str_succ(mrb_state *mrb, mrb_value self)
+{
+  mrb_value str;
+
+  str = mrb_str_dup(mrb, self);
+  mrb_str_succ_bang(mrb, str);
+  return str;
+}
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -256,6 +326,10 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "oct",             mrb_str_oct,             MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "chr",             mrb_str_chr,             MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "lines",           mrb_str_lines,           MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "succ",            mrb_str_succ,            MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "succ!",           mrb_str_succ_bang,       MRB_ARGS_NONE());
+  mrb_alias_method(mrb, s, mrb_intern_lit(mrb, "next"), mrb_intern_lit(mrb, "succ"));
+  mrb_alias_method(mrb, s, mrb_intern_lit(mrb, "next!"), mrb_intern_lit(mrb, "succ!"));
 }
 
 void
