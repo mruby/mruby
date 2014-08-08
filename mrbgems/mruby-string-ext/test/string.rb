@@ -284,7 +284,6 @@ assert('String#succ') do
   assert_equal "-", "-".succ
   assert_equal "-b", "-a".succ
   assert_equal "-aa", "-z".succ
-  assert_equal "あ", "あ".succ
   assert_equal "あb", "あa".succ
   assert_equal "あba", "あaz".succ
 
