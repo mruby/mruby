@@ -30,8 +30,6 @@ module Kernel
     while(true)
       yield
     end
-  rescue StopIteration
-    nil
   end
 
   # 11.4.4 Step c)

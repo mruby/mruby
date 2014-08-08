@@ -608,6 +608,16 @@ module Kernel
     Enumerator.new self, meth, *args
   end
   alias :enum_for :to_enum
+
+  def loop
+    return to_enum :loop unless block_given?
+
+    while(true)
+      yield
+    end
+  rescue StopIteration
+    nil
+  end
 end
 
 module Enumerable
