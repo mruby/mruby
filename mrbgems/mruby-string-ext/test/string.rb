@@ -251,3 +251,112 @@ assert('String#slice!') do
 
   assert_raise(ArgumentError) { "foo".slice! }
 end
+
+assert('String#succ') do
+  assert_equal "", "".succ
+  assert_equal "1", "0".succ
+  assert_equal "10", "9".succ
+  assert_equal "01", "00".succ
+  assert_equal "a1", "a0".succ
+  assert_equal "A1", "A0".succ
+  assert_equal "10", "09".succ
+  assert_equal "b0", "a9".succ
+  assert_equal "B0", "A9".succ
+
+  assert_equal "b", "a".succ
+  assert_equal "aa", "z".succ
+  assert_equal "ab", "aa".succ
+  assert_equal "Ab", "Aa".succ
+  assert_equal "0b", "0a".succ
+  assert_equal "ba", "az".succ
+  assert_equal "Ba", "Az".succ
+  assert_equal "1a", "0z".succ
+
+  assert_equal "B", "A".succ
+  assert_equal "AA", "Z".succ
+  assert_equal "AB", "AA".succ
+  assert_equal "aB", "aA".succ
+  assert_equal "0B", "0A".succ
+  assert_equal "BA", "AZ".succ
+  assert_equal "bA", "aZ".succ
+  assert_equal "1A", "0Z".succ
+
+  assert_equal "-", "-".succ
+  assert_equal "-b", "-a".succ
+  assert_equal "-aa", "-z".succ
+  assert_equal "あb", "あa".succ
+  assert_equal "あba", "あaz".succ
+
+  a = ""; a.succ!
+  assert_equal "", a
+  a = "0"; a.succ!
+  assert_equal "1", a
+  a = "9"; a.succ!
+  assert_equal "10", a
+  a = "00"; a.succ!
+  assert_equal "01", a
+  a = "a0"; a.succ!
+  assert_equal "a1", a
+  a = "A0"; a.succ!
+  assert_equal "A1", a
+  a = "09"; a.succ!
+  assert_equal "10", a
+  a = "a9"; a.succ!
+  assert_equal "b0", a
+  a = "A9"; a.succ!
+  assert_equal "B0", a
+
+  a = "a"; a.succ!
+  assert_equal "b", a
+  a = "z"; a.succ!
+  assert_equal "aa", a
+  a = "aa"; a.succ!
+  assert_equal "ab", a
+  a = "Aa"; a.succ!
+  assert_equal "Ab", a
+  a = "0a"; a.succ!
+  assert_equal "0b", a
+  a = "az"; a.succ!
+  assert_equal "ba", a
+  a = "Az"; a.succ!
+  assert_equal "Ba", a
+  a = "0z"; a.succ!
+  assert_equal "1a", a
+
+  a = "A"; a.succ!
+  assert_equal "B", a
+  a = "Z"; a.succ!
+  assert_equal "AA", a
+  a = "AA"; a.succ!
+  assert_equal "AB", a
+  a = "aA"; a.succ!
+  assert_equal "aB", a
+  a = "0A"; a.succ!
+  assert_equal "0B", a
+  a = "AZ"; a.succ!
+  assert_equal "BA", a
+  a = "aZ"; a.succ!
+  assert_equal "bA", a
+  a = "0Z"; a.succ!
+  assert_equal "1A", a
+
+  a = "-"; a.succ!
+  assert_equal "-", a
+  a = "-a"; a.succ!
+  assert_equal "-b", a
+  a = "-z"; a.succ!
+  assert_equal "-aa", a
+  a = "あ"; a.succ!
+  assert_equal "あ", a
+  a = "あa"; a.succ!
+  assert_equal "あb", a
+  a = "あaz"; a.succ!
+  assert_equal "あba", a
+end
+
+assert('String#next') do
+  assert_equal "01", "00".next
+
+  a = "00"; a.next!
+  assert_equal "01", a
+end
