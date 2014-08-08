@@ -132,6 +132,9 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, cha
   }
 
   proc = mrb_generate_code(mrb, p);
+  if (mrb->c->ci[-1].proc->target_class) {
+    proc->target_class = mrb->c->ci[-1].proc->target_class;
+  }
   e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)mrb->c->ci[-1].proc->env);
   e->mid = mrb->c->ci[-1].mid;
   e->cioff = mrb->c->ci - mrb->c->cibase - 1;
