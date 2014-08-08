@@ -986,7 +986,7 @@ clear_all_old(mrb_state *mrb)
   incremental_gc_until(mrb, GC_STATE_ROOT);
   mrb->is_generational_gc_mode = origin_mode;
 
-  /* The gray objects has already been painted as white */
+  /* The gray objects have already been painted as white */
   mrb->atomic_gray_list = mrb->gray_list = NULL;
 }
 
