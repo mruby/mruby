@@ -10,6 +10,17 @@ MRuby.each_target do
     file "#{build_dir}/mrbgems/gem_init.c" => [MRUBY_CONFIG, __FILE__] do |t|
       FileUtils.mkdir_p "#{build_dir}/mrbgems"
       open(t.name, 'w') do |f|
+        gem_func_gems = gems.select { |g| g.generate_functions }
+        gem_func_decls = gem_func_gems.each_with_object('') do |g, s|
+          s << "void GENERATED_TMP_mrb_#{g.funcname}_gem_init(mrb_state*);\n" \
+               "void GENERATED_TMP_mrb_#{g.funcname}_gem_final(mrb_state*);\n"
+        end
+        gem_init_calls = gem_func_gems.each_with_object('') do |g, s|
+          s << "  GENERATED_TMP_mrb_#{g.funcname}_gem_init(mrb);\n"
+        end
+        gem_final_calls = gem_func_gems.each_with_object('') do |g, s|
+          s << "  GENERATED_TMP_mrb_#{g.funcname}_gem_final(mrb);\n"
+        end
         f.puts %Q[/*]
         f.puts %Q[ * This file contains a list of all]
         f.puts %Q[ * initializing methods which are]
@@ -22,19 +33,17 @@ MRuby.each_target do
         f.puts %Q[]
         f.puts %Q[#include "mruby.h"]
         f.puts %Q[]
-        f.puts %Q[#{gems.map{|g| "void GENERATED_TMP_mrb_%s_gem_init(mrb_state* mrb);" % g.funcname}.join("\n")}]
-        f.puts %Q[]
-        f.puts %Q[#{gems.map{|g| "void GENERATED_TMP_mrb_%s_gem_final(mrb_state* mrb);" % g.funcname}.join("\n")}]
+        f.write gem_func_decls
         f.puts %Q[]
         f.puts %Q[static void]
         f.puts %Q[mrb_final_mrbgems(mrb_state *mrb) {]
-        f.puts %Q[#{gems.map{|g| "GENERATED_TMP_mrb_%s_gem_final(mrb);" % g.funcname}.join("\n")}]
+        f.write gem_final_calls
         f.puts %Q[}]
         f.puts %Q[]
         f.puts %Q[void]
         f.puts %Q[mrb_init_mrbgems(mrb_state *mrb) {]
-        f.puts %Q[#{gems.map{|g| "GENERATED_TMP_mrb_%s_gem_init(mrb);" % g.funcname}.join("\n")}]
-        f.puts %Q[mrb_state_atexit(mrb, mrb_final_mrbgems);]
+        f.write gem_init_calls
+        f.puts %Q[  mrb_state_atexit(mrb, mrb_final_mrbgems);] unless gem_final_calls.empty?
         f.puts %Q[}]
       end
     end
