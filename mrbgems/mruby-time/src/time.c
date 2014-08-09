@@ -80,7 +80,7 @@ gettimeofday(struct timeval *tv, void *tz)
     t.u64 -= UI64(116444736000000000);  /* Unix epoch bias */
     t.u64 /= 10;                      /* to microseconds */
     tv->tv_sec = (time_t)(t.u64 / (1000 * 1000));
-    tv->tv_usec = t.u64 % 1000 * 1000;
+    tv->tv_usec = t.u64 % (1000 * 1000);
   }
   return 0;
 }
