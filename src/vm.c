@@ -2175,6 +2175,15 @@ RETRY_TRY_BLOCK:
       }
       else {
         p = mrb_proc_new(mrb, irep->reps[GETARG_b(i)]);
+        if (c & OP_L_METHOD) {
+          if (p->target_class->tt == MRB_TT_SCLASS) {
+            mrb_value klass;
+            klass = mrb_obj_iv_get(mrb,
+                                   (struct RObject *)p->target_class,
+                                   mrb_intern_lit(mrb, "__attached__"));
+            p->target_class = mrb_class_ptr(klass);
+          }
+        }
       }
       if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
       regs[GETARG_A(i)] = mrb_obj_value(p);
