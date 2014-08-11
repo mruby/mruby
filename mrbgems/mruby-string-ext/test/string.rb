@@ -285,6 +285,7 @@ assert('String#succ') do
   assert_equal "\x01\x00", "\xff".succ
   assert_equal "-b", "-a".succ
   assert_equal "-aa", "-z".succ
+  assert_equal "-a-b-", "-a-a-".succ
   assert_equal "-b-", "-a-".succ
   assert_equal "-aa-", "-z-".succ
   assert_equal "あb", "あa".succ
@@ -351,6 +352,8 @@ assert('String#succ') do
   assert_equal "-b", a
   a = "-z"; a.succ!
   assert_equal "-aa", a
+  a = "-a-a-"; a.succ!
+  assert_equal "-a-b-", a
   a = "-a-"; a.succ!
   assert_equal "-b-", a
   a = "-z-"; a.succ!

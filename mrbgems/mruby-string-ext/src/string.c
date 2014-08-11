@@ -266,25 +266,27 @@ mrb_str_succ_bang(mrb_state *mrb, mrb_value self)
   t = e = p + l;
   *(e--) = 0;
 
-  while (b < e) {
-    if (ISALNUM(*b))
-      break;
-    b++;
-  }
-
-  if (b > e) {
-    b = p;
-    result = mrb_str_new_lit(mrb, "");
-  } else
-    result = mrb_str_new(mrb, (char*) p, b - p);
-
+  // find trailing ascii/number
   while (e >= b) {
     if (ISALNUM(*e))
       break;
     e--;
   }
-  if (e < b)
+  if (e < b) {
     e = p + l - 1;
+    result = mrb_str_new_lit(mrb, "");
+  } else {
+    // find leading letter of the ascii/number
+    b = e;
+    while (b > p) {
+      if (!ISALNUM(*b) || (ISALNUM(*b) && *b != '9' && *b != 'z' && *b != 'Z'))
+        break;
+      b--;
+    }
+    if (!ISALNUM(*b))
+      b++;
+    result = mrb_str_new(mrb, (char*) p, b - p);
+  }
 
   while (e >= b) {
     if (!ISALNUM(*e)) {
