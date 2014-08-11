@@ -428,7 +428,7 @@ mrb_str_plus_m(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     len = strlen(String("abcd"))
  *
- *  Returns a new string object containing a copy of <i>str</i>.
+ *  Returns the length of string in bytes.
  */
 static mrb_value
 mrb_str_bytesize(mrb_state *mrb, mrb_value self)
@@ -443,7 +443,7 @@ mrb_str_bytesize(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     len = strlen(String("abcd"))
  *
- *  Returns a new string object containing a copy of <i>str</i>.
+ *  Returns the length of string.
  */
 static mrb_value
 mrb_str_size(mrb_state *mrb, mrb_value self)
