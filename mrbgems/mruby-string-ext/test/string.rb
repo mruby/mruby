@@ -281,9 +281,13 @@ assert('String#succ') do
   assert_equal "bA", "aZ".succ
   assert_equal "1A", "0Z".succ
 
-  assert_equal "-", "-".succ
+  assert_equal ".", "-".succ
+  assert_equal "\x01\x00", "\xff".succ
   assert_equal "-b", "-a".succ
   assert_equal "-aa", "-z".succ
+  assert_equal "-a-b-", "-a-a-".succ
+  assert_equal "-b-", "-a-".succ
+  assert_equal "-aa-", "-z-".succ
   assert_equal "あb", "あa".succ
   assert_equal "あba", "あaz".succ
 
@@ -341,13 +345,19 @@ assert('String#succ') do
   assert_equal "1A", a
 
   a = "-"; a.succ!
-  assert_equal "-", a
+  assert_equal ".", a
+  a = "\xff"; a.succ!
+  assert_equal "\x01\x00", a
   a = "-a"; a.succ!
   assert_equal "-b", a
   a = "-z"; a.succ!
   assert_equal "-aa", a
-  a = "あ"; a.succ!
-  assert_equal "あ", a
+  a = "-a-a-"; a.succ!
+  assert_equal "-a-b-", a
+  a = "-a-"; a.succ!
+  assert_equal "-b-", a
+  a = "-z-"; a.succ!
+  assert_equal "-aa-", a
   a = "あa"; a.succ!
   assert_equal "あb", a
   a = "あaz"; a.succ!
