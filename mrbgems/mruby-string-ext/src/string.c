@@ -271,14 +271,27 @@ mrb_str_succ_bang(mrb_state *mrb, mrb_value self)
       break;
     b++;
   }
-  result = mrb_str_new(mrb, (char*) p, b - p);
+
+  if (b > e) {
+    b = p;
+    result = mrb_str_new_lit(mrb, "");
+  } else
+    result = mrb_str_new(mrb, (char*) p, b - p);
+
+  while (e >= b) {
+    if (ISALNUM(*e))
+      break;
+    e--;
+  }
+  if (e < b)
+    e = p + l - 1;
 
   while (e >= b) {
     if (!ISALNUM(*e)) {
       if (*e == 0xff) {
         mrb_str_cat_cstr(mrb, result, "\x01");
         (*e) = 0;
-	  } else
+      } else
         (*e)++;
       break;
     }
