@@ -252,7 +252,8 @@ static mrb_value
 mrb_str_succ_bang(mrb_state *mrb, mrb_value self)
 {
   mrb_value result;
-  char *p, *e, *b, *t, *prepend;
+  unsigned char *p, *e, *b, *t;
+  char *prepend;
   struct RString *s = mrb_str_ptr(self);
   size_t l;
 
@@ -261,7 +262,7 @@ mrb_str_succ_bang(mrb_state *mrb, mrb_value self)
 
   mrb_str_modify(mrb, s);
   l = RSTRING_LEN(self);
-  b = p = RSTRING_PTR(self);
+  b = p = (unsigned char*) RSTRING_PTR(self);
   t = e = p + l;
   *(e--) = 0;
 
@@ -270,11 +271,17 @@ mrb_str_succ_bang(mrb_state *mrb, mrb_value self)
       break;
     b++;
   }
-  result = mrb_str_new(mrb, p, b - p);
+  result = mrb_str_new(mrb, (char*) p, b - p);
 
   while (e >= b) {
-    if (!ISALNUM(*e))
+    if (!ISALNUM(*e)) {
+      if (*e == 0xff) {
+        mrb_str_cat_cstr(mrb, result, "\x01");
+        (*e) = 0;
+	  } else
+        (*e)++;
       break;
+    }
     prepend = NULL;
     if (*e == '9') {
       if (e == b) prepend = "1";
@@ -292,7 +299,7 @@ mrb_str_succ_bang(mrb_state *mrb, mrb_value self)
     if (prepend) mrb_str_cat_cstr(mrb, result, prepend);
     e--;
   }
-  result = mrb_str_cat(mrb, result, b, t - b);
+  result = mrb_str_cat(mrb, result, (char*) b, t - b);
   l = RSTRING_LEN(result);
   mrb_str_resize(mrb, self, l);
   memcpy(RSTRING_PTR(self), RSTRING_PTR(result), l);
