@@ -424,19 +424,6 @@ mrb_str_plus_m(mrb_state *mrb, mrb_value self)
   return mrb_str_plus(mrb, self, str);
 }
 
-/*
- *  call-seq:
- *     len = strlen(String("abcd"))
- *
- *  Returns the length of string in bytes.
- */
-static mrb_value
-mrb_str_bytesize(mrb_state *mrb, mrb_value self)
-{
-  struct RString *s = mrb_str_ptr(self);
-  return mrb_fixnum_value(RSTR_LEN(s));
-}
-
 /* 15.2.10.5.26 */
 /* 15.2.10.5.33 */
 /*
@@ -2488,7 +2475,7 @@ mrb_init_string(mrb_state *mrb)
   s = mrb->string_class = mrb_define_class(mrb, "String", mrb->object_class);             /* 15.2.10 */
   MRB_SET_INSTANCE_TT(s, MRB_TT_STRING);
 
-  mrb_define_method(mrb, s, "bytesize",        mrb_str_bytesize,        MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "bytesize",        mrb_str_size,            MRB_ARGS_NONE());
 
   mrb_define_method(mrb, s, "<=>",             mrb_str_cmp_m,           MRB_ARGS_REQ(1)); /* 15.2.10.5.1  */
   mrb_define_method(mrb, s, "==",              mrb_str_equal_m,         MRB_ARGS_REQ(1)); /* 15.2.10.5.2  */
