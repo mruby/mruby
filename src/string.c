@@ -2483,7 +2483,7 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "*",               mrb_str_times,           MRB_ARGS_REQ(1)); /* 15.2.10.5.5  */
   mrb_define_method(mrb, s, "[]",              mrb_str_aref_m,          MRB_ARGS_ANY());  /* 15.2.10.5.6  */
   mrb_define_method(mrb, s, "capitalize",      mrb_str_capitalize,      MRB_ARGS_NONE()); /* 15.2.10.5.7  */
-  mrb_define_method(mrb, s, "capitalize!",     mrb_str_capitalize_bang, MRB_ARGS_REQ(1)); /* 15.2.10.5.8  */
+  mrb_define_method(mrb, s, "capitalize!",     mrb_str_capitalize_bang, MRB_ARGS_NONE()); /* 15.2.10.5.8  */
   mrb_define_method(mrb, s, "chomp",           mrb_str_chomp,           MRB_ARGS_ANY());  /* 15.2.10.5.9  */
   mrb_define_method(mrb, s, "chomp!",          mrb_str_chomp_bang,      MRB_ARGS_ANY());  /* 15.2.10.5.10 */
   mrb_define_method(mrb, s, "chop",            mrb_str_chop,            MRB_ARGS_REQ(1)); /* 15.2.10.5.11 */
@@ -2493,7 +2493,7 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "empty?",          mrb_str_empty_p,         MRB_ARGS_NONE()); /* 15.2.10.5.16 */
   mrb_define_method(mrb, s, "eql?",            mrb_str_eql,             MRB_ARGS_REQ(1)); /* 15.2.10.5.17 */
 
-  mrb_define_method(mrb, s, "hash",            mrb_str_hash_m,          MRB_ARGS_REQ(1)); /* 15.2.10.5.20 */
+  mrb_define_method(mrb, s, "hash",            mrb_str_hash_m,          MRB_ARGS_NONE()); /* 15.2.10.5.20 */
   mrb_define_method(mrb, s, "include?",        mrb_str_include,         MRB_ARGS_REQ(1)); /* 15.2.10.5.21 */
   mrb_define_method(mrb, s, "index",           mrb_str_index_m,         MRB_ARGS_ANY());  /* 15.2.10.5.22 */
   mrb_define_method(mrb, s, "initialize",      mrb_str_init,            MRB_ARGS_REQ(1)); /* 15.2.10.5.23 */
@@ -2513,8 +2513,8 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "to_s",            mrb_str_to_s,            MRB_ARGS_NONE()); /* 15.2.10.5.40 */
   mrb_define_method(mrb, s, "to_str",          mrb_str_to_s,            MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "to_sym",          mrb_str_intern,          MRB_ARGS_NONE()); /* 15.2.10.5.41 */
-  mrb_define_method(mrb, s, "upcase",          mrb_str_upcase,          MRB_ARGS_REQ(1)); /* 15.2.10.5.42 */
-  mrb_define_method(mrb, s, "upcase!",         mrb_str_upcase_bang,     MRB_ARGS_REQ(1)); /* 15.2.10.5.43 */
+  mrb_define_method(mrb, s, "upcase",          mrb_str_upcase,          MRB_ARGS_NONE()); /* 15.2.10.5.42 */
+  mrb_define_method(mrb, s, "upcase!",         mrb_str_upcase_bang,     MRB_ARGS_NONE()); /* 15.2.10.5.43 */
   mrb_define_method(mrb, s, "inspect",         mrb_str_inspect,         MRB_ARGS_NONE()); /* 15.2.10.5.46(x) */
   mrb_define_method(mrb, s, "bytes",           mrb_str_bytes,           MRB_ARGS_NONE());
 }
