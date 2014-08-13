@@ -553,18 +553,16 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
   mrb_value delKey, delVal;
 
   mrb_hash_modify(mrb, hash);
-  if (h) {
-    if (kh_size(h) > 0) {
-      for (k = kh_begin(h); k != kh_end(h); k++) {
-        if (!kh_exist(h,k)) continue;
+  if (h && kh_size(h) > 0) {
+    for (k = kh_begin(h); k != kh_end(h); k++) {
+      if (!kh_exist(h,k)) continue;
 
-        delKey = kh_key(h,k);
-        mrb_gc_protect(mrb, delKey);
-        delVal = mrb_hash_delete_key(mrb, hash, delKey);
-        mrb_gc_protect(mrb, delVal);
+      delKey = kh_key(h,k);
+      mrb_gc_protect(mrb, delKey);
+      delVal = mrb_hash_delete_key(mrb, hash, delKey);
+      mrb_gc_protect(mrb, delVal);
 
-        return mrb_assoc_new(mrb, delKey, delVal);
-      }
+      return mrb_assoc_new(mrb, delKey, delVal);
     }
   }
 
