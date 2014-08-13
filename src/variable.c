@@ -553,6 +553,7 @@ mrb_iv_copy(mrb_state *mrb, mrb_value dest, mrb_value src)
     d->iv = 0;
   }
   if (s->iv) {
+    mrb_write_barrier(mrb, (struct RBasic*)d);
     d->iv = iv_copy(mrb, s->iv);
   }
 }
