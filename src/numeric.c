@@ -188,8 +188,8 @@ mrb_flo_to_str(mrb_state *mrb, mrb_float flo)
 
     /* puts digits */
     while (max_digits >= 0) {
-      double weight = pow(10.0, m);
-      double fdigit = n / weight;
+      double weight = (m < 0) ? 0.0 : pow(10.0, m);
+      double fdigit = (m < 0) ? n * 10.0 : n / weight;
 
       if (fdigit < 0) fdigit = n = 0;
       if (m < -1 && fdigit < FLO_EPSILON) {
@@ -204,7 +204,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_float flo)
         continue;
       }
       *(c++) = '0' + digit;
-      n -= (digit * weight);
+      n = (m < 0) ? n * 10.0 - digit : n - (digit * weight);
       max_digits--;
       if (m-- == 0) {
         *(c++) = '.';
