@@ -1619,7 +1619,7 @@ mrb_mod_cvar_defined(mrb_state *mrb, mrb_value mod)
     check_cv_name_str(mrb, id);
     sym = mrb_check_intern_str(mrb, id);
     if (mrb_nil_p(sym)) {
-      return mrb_bool_value(FALSE);
+      return mrb_false_value();
     }
     else {
       return mrb_bool_value(mrb_cv_defined(mrb, mod, mrb_symbol(sym)));
