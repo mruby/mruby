@@ -337,12 +337,11 @@ static mrb_value
 flo_mod(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  mrb_float fy, mod;
+  mrb_float mod;
 
   mrb_get_args(mrb, "o", &y);
 
-  fy = mrb_to_flo(mrb, y);
-  flodivmod(mrb, mrb_float(x), fy, 0, &mod);
+  flodivmod(mrb, mrb_float(x), mrb_to_flo(mrb, y), 0, &mod);
   return mrb_float_value(mrb, mod);
 }
 
