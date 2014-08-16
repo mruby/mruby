@@ -1392,7 +1392,7 @@ mrb_module_new(mrb_state *mrb)
 MRB_API struct RClass*
 mrb_obj_class(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_class_real(mrb_class(mrb, obj));
+  return mrb_class_real(mrb_class(mrb, obj));
 }
 
 MRB_API void
@@ -1444,7 +1444,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
         mrb_str_append(mrb, str, mrb_any_to_s(mrb, v));
         break;
     }
-    mrb_str_cat_lit(mrb, str, ">");
+    return mrb_str_cat_lit(mrb, str, ">");
   }
   else {
     struct RClass *c;
@@ -1470,14 +1470,12 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
           break;
       }
       mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, c));
-      mrb_str_cat_lit(mrb, str, ">");
+      return mrb_str_cat_lit(mrb, str, ">");
     }
     else {
-      str = path;
+      return path;
     }
   }
-
-  return str;
 }
 
 static mrb_value
@@ -1610,25 +1608,23 @@ static mrb_value
 mrb_mod_cvar_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_value id;
-  mrb_bool defined_p;
 
   id = get_sym_or_str_arg(mrb);
   if (mrb_symbol_p(id)) {
     check_cv_name_sym(mrb, mrb_symbol(id));
-    defined_p = mrb_cv_defined(mrb, mod, mrb_symbol(id));
+    return mrb_bool_value(mrb_cv_defined(mrb, mod, mrb_symbol(id)));
   }
   else {
     mrb_value sym;
     check_cv_name_str(mrb, id);
     sym = mrb_check_intern_str(mrb, id);
     if (mrb_nil_p(sym)) {
-      defined_p = FALSE;
+      return mrb_false_value();
     }
     else {
-      defined_p = mrb_cv_defined(mrb, mod, mrb_symbol(sym));
+      return mrb_bool_value(mrb_cv_defined(mrb, mod, mrb_symbol(sym)));
     }
   }
-  return mrb_bool_value(defined_p);
 }
 
 /* 15.2.2.4.17 */
@@ -1764,22 +1760,20 @@ static mrb_value
 mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_value id;
-  mrb_bool method_defined_p;
 
   id = get_sym_or_str_arg(mrb);
   if (mrb_symbol_p(id)) {
-    method_defined_p = mrb_obj_respond_to(mrb, mrb_class_ptr(mod), mrb_symbol(id));
+    return mrb_bool_value(mrb_obj_respond_to(mrb, mrb_class_ptr(mod), mrb_symbol(id)));
   }
   else {
     mrb_value sym = mrb_check_intern_str(mrb, id);
     if (mrb_nil_p(sym)) {
-      method_defined_p = FALSE;
+      return mrb_false_value();
     }
     else {
-      method_defined_p = mrb_obj_respond_to(mrb, mrb_class_ptr(mod), mrb_symbol(sym));
+      return mrb_bool_value(mrb_obj_respond_to(mrb, mrb_class_ptr(mod), mrb_symbol(sym)));
     }
   }
-  return mrb_bool_value(method_defined_p);
 }
 
 static void
@@ -1824,17 +1818,7 @@ mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
   return mod;
 }
 
-static void
-check_const_name_sym(mrb_state *mrb, mrb_sym id)
-{
-  const char *s;
-  mrb_int len;
 
-  s = mrb_sym2name_len(mrb, id, &len);
-  if (len < 1 || !ISUPPER(*s)) {
-    mrb_name_error(mrb, id, "wrong constant name %S", mrb_sym2str(mrb, id));
-  }
-}
 
 static void
 check_const_name_str(mrb_state *mrb, mrb_value str)
@@ -1844,30 +1828,33 @@ check_const_name_str(mrb_state *mrb, mrb_value str)
   }
 }
 
+static void
+check_const_name_sym(mrb_state *mrb, mrb_sym id)
+{
+  check_const_name_str(mrb, mrb_sym2str(mrb, id));
+}
+
 static mrb_value
 mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_value id;
-  mrb_bool const_defined_p;
 
   id = get_sym_or_str_arg(mrb);
   if (mrb_type(id) == MRB_TT_SYMBOL) {
     check_const_name_sym(mrb, mrb_symbol(id));
-    const_defined_p = mrb_const_defined(mrb, mod, mrb_symbol(id));
+    return mrb_bool_value(mrb_const_defined(mrb, mod, mrb_symbol(id)));
   }
   else {
     mrb_value sym;
     check_const_name_str(mrb, id);
     sym = mrb_check_intern_str(mrb, id);
     if (mrb_nil_p(sym)) {
-      const_defined_p = FALSE;
+      return mrb_false_value();
     }
     else {
-      const_defined_p = mrb_const_defined(mrb, mod, mrb_symbol(sym));
+      return mrb_bool_value(mrb_const_defined(mrb, mod, mrb_symbol(sym)));
     }
   }
-
-  return mrb_bool_value(const_defined_p);
 }
 
 static mrb_value
