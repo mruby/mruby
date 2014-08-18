@@ -1104,5 +1104,5 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "unshift",         mrb_ary_unshift_m,    MRB_ARGS_ANY());  /* 15.2.12.5.30 */
 
   mrb_define_method(mrb, a, "__ary_eq",        mrb_ary_eq,           MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, a, "__ary_cmp",       mrb_ary_cmp,           MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, a, "__ary_cmp",       mrb_ary_cmp,          MRB_ARGS_REQ(1));
 }

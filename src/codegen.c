@@ -746,10 +746,10 @@ gen_values(codegen_scope *s, node *t, int val)
         codegen(s, t->car, VAL);
         pop(); pop();
         if (is_splat) {
-            genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
+          genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
         }
         else {
-            genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
+          genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
         }
         t = t->cdr;
         while (t) {

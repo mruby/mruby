@@ -41,11 +41,8 @@ mrb_obj_equal(mrb_state *mrb, mrb_value v1, mrb_value v2)
 MRB_API mrb_bool
 mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
-  mrb_value result;
-
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
-  result = mrb_funcall(mrb, obj1, "==", 1, obj2);
-  if (mrb_test(result)) return TRUE;
+  if (mrb_test(mrb_funcall(mrb, obj1, "==", 1, obj2))) return TRUE;
   return FALSE;
 }
 
@@ -310,11 +307,8 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *metho
   if (!mrb_respond_to(mrb, val, m)) {
     if (raise) {
       mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into %S", inspect_type(mrb, val), mrb_str_new_cstr(mrb, tname));
-      return mrb_nil_value();
     }
-    else {
-      return mrb_nil_value();
-    }
+    return mrb_nil_value();
   }
   return mrb_funcall_argv(mrb, val, m, 0, 0);
 }
