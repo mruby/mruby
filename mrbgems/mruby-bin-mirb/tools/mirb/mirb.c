@@ -414,6 +414,10 @@ main(int argc, char **argv)
 
     /* parse code */
     parser = mrb_parser_new(mrb);
+    if (parser == NULL) {
+      fputs("create parser state error\n", stderr);
+      break;
+    }
     parser->s = ruby_code;
     parser->send = ruby_code + strlen(ruby_code);
     parser->lineno = cxt->lineno;
@@ -431,6 +435,11 @@ main(int argc, char **argv)
       else {
         /* generate bytecode */
         struct RProc *proc = mrb_generate_code(mrb, parser);
+        if (proc == NULL) {
+          fputs("codegen error\n", stderr);
+          mrb_parser_free(parser);
+          break;
+        }
 
         if (args.verbose) {
           mrb_codedump_all(mrb, proc);
