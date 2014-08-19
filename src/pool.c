@@ -166,6 +166,9 @@ mrb_pool_realloc(mrb_pool *pool, void *p, size_t oldlen, size_t newlen)
     page = page->next;
   }
   np = mrb_pool_alloc(pool, newlen);
+  if (np == NULL) {
+      return NULL;
+  }
   memcpy(np, p, oldlen);
   return np;
 }
