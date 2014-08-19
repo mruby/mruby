@@ -60,7 +60,7 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   else {
     p = (char *)mrb_malloc(mrb, len+1);
     memcpy(p, name, len);
-    p[len] = 0;
+    p[len] = '\0';
     sname.name = (const char*)p;
   }
   k = kh_put(n2s, mrb, h, sname);
