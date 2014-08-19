@@ -164,11 +164,18 @@ read_irep_record(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool alloc
   mrb_irep *irep = read_irep_record_1(mrb, bin, len, alloc);
   size_t i;
 
+  if (irep == NULL) {
+    return NULL;
+  }
+
   bin += *len;
   for (i=0; i<irep->rlen; i++) {
     size_t rlen;
 
     irep->reps[i] = read_irep_record(mrb, bin, &rlen, alloc);
+    if (irep->reps[i] == NULL) {
+      return NULL;
+    }
     bin += rlen;
     *len += rlen;
   }
