@@ -310,11 +310,8 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *metho
   if (!mrb_respond_to(mrb, val, m)) {
     if (raise) {
       mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into %S", inspect_type(mrb, val), mrb_str_new_cstr(mrb, tname));
-      return mrb_nil_value();
     }
-    else {
-      return mrb_nil_value();
-    }
+    return mrb_nil_value();
   }
   return mrb_funcall_argv(mrb, val, m, 0, 0);
 }
