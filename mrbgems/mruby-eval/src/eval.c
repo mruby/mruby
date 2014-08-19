@@ -132,6 +132,12 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, cha
   }
 
   proc = mrb_generate_code(mrb, p);
+  if (proc == NULL) {
+    /* codegen error */
+    mrb_parser_free(p);
+    mrbc_context_free(mrb, cxt);
+    mrb_raise(mrb, E_SCRIPT_ERROR, "codegen error");
+  }
   if (mrb->c->ci[-1].proc->target_class) {
     proc->target_class = mrb->c->ci[-1].proc->target_class;
   }
@@ -145,11 +151,6 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, cha
 
   mrb_parser_free(p);
   mrbc_context_free(mrb, cxt);
-
-  if (proc == NULL) {
-    /* codegen error */
-    mrb_raise(mrb, E_SCRIPT_ERROR, "codegen error");
-  }
 
   return proc;
 }
