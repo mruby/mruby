@@ -2470,7 +2470,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   mrb_pool *pool = mrb_pool_open(mrb);
   codegen_scope *p = (codegen_scope *)mrb_pool_alloc(pool, sizeof(codegen_scope));
 
-  if (!p) return 0;
+  if (!p) return NULL;
   *p = codegen_scope_zero;
   p->mrb = mrb;
   p->mpool = pool;

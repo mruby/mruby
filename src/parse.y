@@ -5365,9 +5365,9 @@ mrb_parser_new(mrb_state *mrb)
   static const parser_state parser_state_zero = { 0 };
 
   pool = mrb_pool_open(mrb);
-  if (!pool) return 0;
+  if (!pool) return NULL;
   p = (parser_state *)mrb_pool_alloc(pool, sizeof(parser_state));
-  if (!p) return 0;
+  if (!p) return NULL;
 
   *p = parser_state_zero;
   p->mrb = mrb;
@@ -5483,7 +5483,7 @@ mrb_parse_file(mrb_state *mrb, FILE *f, mrbc_context *c)
   parser_state *p;
 
   p = mrb_parser_new(mrb);
-  if (!p) return 0;
+  if (!p) return NULL;
   p->s = p->send = NULL;
   p->f = f;
 
@@ -5498,7 +5498,7 @@ mrb_parse_nstring(mrb_state *mrb, const char *s, int len, mrbc_context *c)
   parser_state *p;
 
   p = mrb_parser_new(mrb);
-  if (!p) return 0;
+  if (!p) return NULL;
   p->s = s;
   p->send = s + len;
 
