@@ -51,6 +51,14 @@ MRB_API void *mrb_data_check_get_ptr(mrb_state *mrb, mrb_value, const mrb_data_t
   *(void**)&sval = mrb_data_get_ptr(mrb, obj, type); \
 } while (0)
 
+static inline void
+mrb_data_init(mrb_value v, void *ptr, const mrb_data_type *type)
+{
+  mrb_assert(mrb_type(v) == MRB_TT_DATA);
+  DATA_PTR(v) = ptr;
+  DATA_TYPE(v) = type;
+}
+
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif
