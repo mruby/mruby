@@ -13,7 +13,7 @@ get_closure_irep(mrb_state *mrb, int level)
   if (level == 0) {
     return mrb->c->ci[-1].proc->body.irep;
   }
-    
+
   while (--level) {
     e = (struct REnv*)e->c;
     if (!e) return NULL;
