@@ -47,6 +47,10 @@ MRuby.each_target do
           g.test_rbfiles.count.times do |i|
             f.puts %Q[  ai = mrb_gc_arena_save(mrb);]
             f.puts %Q[  mrb2 = mrb_open_core(mrb_default_allocf, NULL);]
+            f.puts %Q[  if (mrb2 == NULL) {]
+            f.puts %Q[    fprintf(stderr, "Invalid mrb_state, exiting \%s", __FUNCTION__);]
+            f.puts %Q[    exit(EXIT_FAILURE);]
+            f.puts %Q[  }]
             dep_list.each do |d|
               f.puts %Q[  GENERATED_TMP_mrb_#{d.funcname}_gem_init(mrb2);]
               f.puts %Q[  mrb_state_atexit(mrb2, GENERATED_TMP_mrb_#{d.funcname}_gem_final);]

@@ -183,6 +183,7 @@ module MRuby
 
       def print_gem_test_header(f)
         print_gem_comment(f)
+        f.puts %Q[#include <stdio.h>]
         f.puts %Q[#include <stdlib.h>]
         f.puts %Q[#include "mruby.h"]
         f.puts %Q[#include "mruby/irep.h"]
