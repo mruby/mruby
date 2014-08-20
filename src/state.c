@@ -110,6 +110,10 @@ mrb_open_allocf(mrb_allocf f, void *ud)
 {
   mrb_state *mrb = mrb_open_core(f, ud);
 
+  if (mrb == NULL) {
+    return NULL;
+  }
+
 #ifndef DISABLE_GEMS
   mrb_init_mrbgems(mrb);
   mrb_gc_arena_restore(mrb, 0);
