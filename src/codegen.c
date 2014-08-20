@@ -554,7 +554,7 @@ for_body(codegen_scope *s, node *tree)
   /* generate loop-block */
   s = scope_new(s->mrb, s, NULL);
   if (s == NULL) {
-    raise_error(s, "unexpected scope");
+    raise_error(prev, "unexpected scope");
   }
 
   push();                       /* push for a block parameter */
@@ -595,7 +595,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   codegen_scope *parent = s;
   s = scope_new(s->mrb, s, tree->car);
   if (s == NULL) {
-    raise_error(s, "unexpected scope");
+    raise_error(parent, "unexpected scope");
   }
 
   s->mscope = !blk;
