@@ -12,7 +12,7 @@
 static mrb_value
 nil_to_a(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_ary_new(mrb);
+  return mrb_ary_new(mrb);
 }
 
 /*
@@ -25,7 +25,7 @@ nil_to_a(mrb_state *mrb, mrb_value obj)
 static mrb_value
 nil_to_f(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_float_value(mrb, 0.0);
+  return mrb_float_value(mrb, 0.0);
 }
 
 /*
@@ -38,7 +38,7 @@ nil_to_f(mrb_state *mrb, mrb_value obj)
 static mrb_value
 nil_to_i(mrb_state *mrb, mrb_value obj)
 {
-    return mrb_fixnum_value(0);
+  return mrb_fixnum_value(0);
 }
 
 /*

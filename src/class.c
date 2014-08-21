@@ -1550,18 +1550,6 @@ mod_define_method(mrb_state *mrb, mrb_value self)
 }
 
 static void
-check_cv_name_sym(mrb_state *mrb, mrb_sym id)
-{
-  const char *s;
-  mrb_int len;
-
-  s = mrb_sym2name_len(mrb, id, &len);
-  if (len < 3 || !(s[0] == '@' && s[1] == '@')) {
-    mrb_name_error(mrb, id, "`%S' is not allowed as a class variable name", mrb_sym2str(mrb, id));
-  }
-}
-
-static void
 check_cv_name_str(mrb_state *mrb, mrb_value str)
 {
   const char *s = RSTRING_PTR(str);
@@ -1570,6 +1558,12 @@ check_cv_name_str(mrb_state *mrb, mrb_value str)
   if (len < 3 || !(s[0] == '@' && s[1] == '@')) {
     mrb_name_error(mrb, mrb_intern_str(mrb, str), "`%S' is not allowed as a class variable name", str);
   }
+}
+
+static void
+check_cv_name_sym(mrb_state *mrb, mrb_sym id)
+{
+  check_cv_name_str(mrb, mrb_sym2str(mrb, id));
 }
 
 static mrb_value
