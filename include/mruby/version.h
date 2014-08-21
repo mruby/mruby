@@ -1,3 +1,9 @@
+/*
+** mruby/version.h - mruby version definition
+**
+** See Copyright Notice in mruby.h
+*/
+
 #ifndef MRUBY_VERSION_H
 #define MRUBY_VERSION_H
 
