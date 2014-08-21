@@ -291,7 +291,7 @@ mrb_str_succ_bang(mrb_state *mrb, mrb_value self)
   while (e >= b) {
     if (!ISALNUM(*e)) {
       if (*e == 0xff) {
-        mrb_str_cat_cstr(mrb, result, "\x01");
+        mrb_str_cat_lit(mrb, result, "\x01");
         (*e) = 0;
       } else
         (*e)++;
