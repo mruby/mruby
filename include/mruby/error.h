@@ -1,5 +1,5 @@
 /*
-** error.h - Exception class
+** mruby/error.h - Exception class
 **
 ** See Copyright Notice in mruby.h
 */

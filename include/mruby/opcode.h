@@ -1,11 +1,11 @@
 /*
-** opcode.h - RiteVM operation codes
+** mruby/opcode.h - RiteVM operation codes
 **
 ** See Copyright Notice in mruby.h
 */
 
-#ifndef OPCODE_H
-#define OPCODE_H
+#ifndef MRUBY_OPCODE_H
+#define MRUBY_OPCODE_H
 
 #define MAXARG_Bx        (0xffff)
 #define MAXARG_sBx       (MAXARG_Bx>>1)         /* `sBx' is signed */
@@ -157,4 +157,4 @@ enum {
 #define OP_R_BREAK  1
 #define OP_R_RETURN 2
 
-#endif  /* OPCODE_H */
+#endif  /* MRUBY_OPCODE_H */
