@@ -30,7 +30,7 @@ static mrb_bool
 mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
   struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mrb_intern_lit(mrb, "to_s"));
-  if (me && MRB_PROC_CFUNC_P(me) && (me->body.func == mrb_any_to_s))
+  if (MRB_PROC_CFUNC_P(me) && (me->body.func == mrb_any_to_s))
     return TRUE;
   return FALSE;
 }
