@@ -9,6 +9,10 @@
 
 #include <math.h>
 
+#if defined _MSC_VER && _MSC_VER < 1800
+#include <float.h>
+#endif
+
 static void
 domain_error(mrb_state *mrb, const char *func)
 {
@@ -39,7 +43,7 @@ asinh(double x)
     ya = log(xa + sqrt(xa*xa + 1.0));
   }
 
-  y = copysign(ya, x);
+  y = _copysign(ya, x);
   return y;
 }
 
@@ -88,7 +92,7 @@ cbrt(double x)
      odd function */
   xa = fabs(x);
   ya = pow(xa, 1.0/3.0);
-  y = copysign(ya, x);
+  y = _copysign(ya, x);
   return y;
 }
 
