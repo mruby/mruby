@@ -1945,11 +1945,10 @@ RETRY_TRY_BLOCK:
       switch (mrb_type(regs[a])) {
       case MRB_TT_FIXNUM:
         if ((mrb->numeric_methods & MRB_METHOD_FIXNUM_PLUS) == 0) {
-          SET_INT_VALUE(regs[a+1], GETARG_C(i));
-          i = MKOP_ABC(OP_SEND, a, GETARG_B(i), 1);
-          goto L_SEND;
+          regs[a] = mrb_funcall(mrb, regs[a], "+", 1,
+                  mrb_fixnum_value(GETARG_C(i)));
         }
-        {
+        else {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_int y = GETARG_C(i);
           mrb_int z;
@@ -1993,11 +1992,10 @@ RETRY_TRY_BLOCK:
       switch (mrb_type(regs_a[0])) {
       case MRB_TT_FIXNUM:
         if ((mrb->numeric_methods & MRB_METHOD_FIXNUM_MINUS) == 0) {
-          SET_INT_VALUE(regs_a[1], GETARG_C(i));
-          i = MKOP_ABC(OP_SEND, a, GETARG_B(i), 1);
-          goto L_SEND;
+          regs_a[0] = mrb_funcall(mrb, regs_a[0], "-", 1,
+                  mrb_fixnum_value(GETARG_C(i)));
         }
-        {
+        else {
           mrb_int x = mrb_fixnum(regs_a[0]);
           mrb_int y = GETARG_C(i);
           mrb_int z;
