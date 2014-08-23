@@ -1934,7 +1934,12 @@ RETRY_TRY_BLOCK:
 #endif
         break;
       default:
-        SET_INT_VALUE(regs[a+1], GETARG_C(i));
+        if (syms[GETARG_B(i)] == mrb_intern_lit(mrb, "-")) {
+          SET_INT_VALUE(regs[a+1], -GETARG_C(i));
+        }
+        else {
+          SET_INT_VALUE(regs[a+1], GETARG_C(i));
+        }
         i = MKOP_ABC(OP_SEND, a, GETARG_B(i), 1);
         goto L_SEND;
       }
@@ -1973,7 +1978,12 @@ RETRY_TRY_BLOCK:
 #endif
         break;
       default:
-        SET_INT_VALUE(regs_a[1], GETARG_C(i));
+        if (syms[GETARG_B(i)] == mrb_intern_lit(mrb, "+")) {
+          SET_INT_VALUE(regs_a[1], -GETARG_C(i));
+        }
+        else {
+          SET_INT_VALUE(regs_a[1], GETARG_C(i));
+        }
         i = MKOP_ABC(OP_SEND, a, GETARG_B(i), 1);
         goto L_SEND;
       }
