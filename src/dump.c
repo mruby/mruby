@@ -889,9 +889,6 @@ mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, siz
               section_irep_size + section_lineno_size + section_lv_size +
               sizeof(struct rite_binary_footer);
   cur = *bin = (uint8_t*)mrb_malloc(mrb, *bin_size);
-  if (cur == NULL) {
-    goto error_exit;
-  }
   cur += sizeof(struct rite_binary_header);
 
   result = write_section_irep(mrb, irep, cur);
