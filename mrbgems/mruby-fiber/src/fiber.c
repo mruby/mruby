@@ -279,8 +279,8 @@ fiber_transfer(mrb_state *mrb, mrb_value self)
     mrb->c->status = MRB_FIBER_TRANSFERRED;
     mrb->c = c;
     c->status = MRB_FIBER_RUNNING;
-    MARK_CONTEXT_MODIFY(c); 
-    mrb_write_barrier(mrb, (struct RBasic*)c->fib); 
+    MARK_CONTEXT_MODIFY(c);
+    mrb_write_barrier(mrb, (struct RBasic*)c->fib);
     return fiber_result(mrb, a, len);
   }
 
@@ -311,7 +311,7 @@ mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
   mrb->c = c->prev;
   c->prev = NULL;
   MARK_CONTEXT_MODIFY(mrb->c);
-  mrb_write_barrier(mrb, (struct RBasic*)c->fib); 
+  mrb_write_barrier(mrb, (struct RBasic*)c->fib);
   return fiber_result(mrb, a, len);
 }
 
