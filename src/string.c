@@ -148,7 +148,7 @@ str_new(mrb_state *mrb, const char *p, size_t len)
   s = mrb_obj_alloc_string(mrb);
   if (len < RSTRING_EMBED_LEN_MAX) {
     RSTR_SET_EMBED_FLAG(s);
-    RSTR_SET_EMBED_LEN(s,len);
+    RSTR_SET_EMBED_LEN(s, len);
     if (p) {
       memcpy(s->as.ary, p, len);
     }
