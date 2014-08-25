@@ -6366,7 +6366,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   default:
-    printf("node type: %d (0x%x)\n", (int)n, (int)n);
+    printf("node type: %d (0x%x)\n", n, (unsigned)n);
     break;
   }
 #endif
