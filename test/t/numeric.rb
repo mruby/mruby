@@ -18,6 +18,14 @@ assert('Numeric#abs', '15.2.7.4.3') do
   assert_equal(1.0, -1.abs)
 end
 
+assert('Numeric#pow') do
+  assert_equal(8, 2 ** 3)
+  assert_equal(-8, -2 ** 3)
+  assert_equal(1, 2 ** 0)
+  assert_equal(1, 2.2 ** 0)
+  assert_equal(0.5, 2 ** -1)
+end
+
 assert('Numeric#/', '15.2.8.3.4') do
   n = Class.new(Numeric){ def /(x); 15.1;end }.new
 
