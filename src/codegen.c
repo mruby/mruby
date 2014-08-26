@@ -2715,7 +2715,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
   int32_t line;
 
   if (!irep) return;
-  printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", irep,
+  printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", (void*)irep,
          irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen, (int)irep->rlen);
 
   for (i = 0; i < (int)irep->ilen; i++) {
