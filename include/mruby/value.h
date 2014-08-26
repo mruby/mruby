@@ -59,7 +59,6 @@ MRB_API int mrb_msvc_snprintf(char *s, size_t n, const char *format, ...);
 #  define isnan _isnan
 #  define isinf(n) (!_finite(n) && !_isnan(n))
 #  define signbit(n) (_copysign(1.0, (n)) < 0.0)
-#  define strtoll _strtoi64
 #  define strtof (float)strtod
 static const unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
 #  define INFINITY (*(float *)&IEEE754_INFINITY_BITS_SINGLE)
