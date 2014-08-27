@@ -261,7 +261,7 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
   else {
     size = p - b;
     mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
-    return mrb_ary_join(mrb, ary, mrb_str_new(mrb,NULL,0));
+    return mrb_ary_join(mrb, ary, mrb_str_new(mrb, NULL, 0));
   }
 }
 

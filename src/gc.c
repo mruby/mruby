@@ -1366,7 +1366,7 @@ test_mrb_field_write_barrier(void)
   obj = mrb_basic_ptr(mrb_ary_new(mrb));
   value = mrb_basic_ptr(mrb_str_new_lit(mrb, "value"));
   paint_black(obj);
-  paint_partial_white(mrb,value);
+  paint_partial_white(mrb, value);
 
 
   puts("  in GC_STATE_MARK");
@@ -1377,7 +1377,7 @@ test_mrb_field_write_barrier(void)
 
 
   puts("  in GC_STATE_SWEEP");
-  paint_partial_white(mrb,value);
+  paint_partial_white(mrb, value);
   mrb->gc_state = GC_STATE_SWEEP;
   mrb_field_write_barrier(mrb, obj, value);
 
@@ -1388,7 +1388,7 @@ test_mrb_field_write_barrier(void)
   puts("  fail with black");
   mrb->gc_state = GC_STATE_MARK;
   paint_white(obj);
-  paint_partial_white(mrb,value);
+  paint_partial_white(mrb, value);
   mrb_field_write_barrier(mrb, obj, value);
 
   mrb_assert(obj->color & mrb->current_white_part);

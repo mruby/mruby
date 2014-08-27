@@ -36,20 +36,20 @@ mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
 
   case MRB_TT_SYMBOL:
     h = (khint_t)mrb_symbol(key);
-    return kh_int_hash_func(mrb,h);
+    return kh_int_hash_func(mrb, h);
 
   case MRB_TT_FIXNUM:
     h = (khint_t)mrb_float_id((mrb_float)mrb_fixnum(key));
-    return kh_int_hash_func(mrb,h);
+    return kh_int_hash_func(mrb, h);
 
   case MRB_TT_FLOAT:
     h = (khint_t)mrb_float_id(mrb_float(key));
-    return kh_int_hash_func(mrb,h);
+    return kh_int_hash_func(mrb, h);
 
   default:
     hv = mrb_funcall(mrb, key, "hash", 0);
     h = (khint_t)t ^ mrb_fixnum(hv);
-    return kh_int_hash_func(mrb,h);
+    return kh_int_hash_func(mrb, h);
   }
 }
 
@@ -241,11 +241,11 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
     ret_h = ret->ht;
 
     for (k = kh_begin(h); k != kh_end(h); k++) {
-      if (kh_exist(h,k)) {
+      if (kh_exist(h, k)) {
         int ai = mrb_gc_arena_save(mrb);
-        ret_k = kh_put(ht, mrb, ret_h, KEY(kh_key(h,k)));
+        ret_k = kh_put(ht, mrb, ret_h, KEY(kh_key(h, k)));
         mrb_gc_arena_restore(mrb, ai);
-        kh_val(ret_h, ret_k) = kh_val(h,k);
+        kh_val(ret_h, ret_k) = kh_val(h, k);
       }
     }
   }
@@ -555,9 +555,9 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
   mrb_hash_modify(mrb, hash);
   if (h && kh_size(h) > 0) {
     for (k = kh_begin(h); k != kh_end(h); k++) {
-      if (!kh_exist(h,k)) continue;
+      if (!kh_exist(h, k)) continue;
 
-      delKey = kh_key(h,k);
+      delKey = kh_key(h, k);
       mrb_gc_protect(mrb, delKey);
       delVal = mrb_hash_delete_key(mrb, hash, delKey);
       mrb_gc_protect(mrb, delVal);
@@ -706,8 +706,8 @@ mrb_hash_keys(mrb_state *mrb, mrb_value hash)
   p = RARRAY_PTR(ary);
   for (k = kh_begin(h); k != kh_end(h); k++) {
     if (kh_exist(h, k)) {
-      mrb_value kv = kh_key(h,k);
-      mrb_hash_value hv = kh_value(h,k);
+      mrb_value kv = kh_key(h, k);
+      mrb_hash_value hv = kh_value(h, k);
 
       p[hv.n] = kv;
     }
@@ -739,7 +739,7 @@ mrb_hash_values(mrb_state *mrb, mrb_value hash)
   ary = mrb_ary_new_capa(mrb, kh_size(h));
   for (k = kh_begin(h); k != kh_end(h); k++) {
     if (kh_exist(h, k)) {
-      mrb_hash_value hv = kh_value(h,k);
+      mrb_hash_value hv = kh_value(h, k);
 
       mrb_ary_set(mrb, ary, hv.n, hv.v);
     }
@@ -812,7 +812,7 @@ mrb_hash_has_value(mrb_state *mrb, mrb_value hash)
     for (k = kh_begin(h); k != kh_end(h); k++) {
       if (!kh_exist(h, k)) continue;
 
-      if (mrb_equal(mrb, kh_value(h,k).v, val)) {
+      if (mrb_equal(mrb, kh_value(h, k).v, val)) {
         return mrb_true_value();
       }
     }
