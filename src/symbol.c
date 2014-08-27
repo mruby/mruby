@@ -5,6 +5,7 @@
 */
 
 #include <ctype.h>
+#include <limits.h>
 #include <string.h>
 #include "mruby.h"
 #include "mruby/khash.h"
@@ -34,6 +35,15 @@ sym_hash_func(mrb_state *mrb, const symbol_name s)
 KHASH_DECLARE(n2s, symbol_name, mrb_sym, TRUE)
 KHASH_DEFINE (n2s, symbol_name, mrb_sym, TRUE, sym_hash_func, sym_hash_equal)
 /* ------------------------------------------------------ */
+
+#define MRB_SYM_MAX SHRT_MAX
+
+static mrb_value
+sym_tbl_overflow_new_str(mrb_state *mrb, const char *name, size_t len)
+{
+  return mrb_str_inspect(mrb, mrb_str_new(mrb, name, len));
+}
+
 static mrb_sym
 sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
 {
@@ -52,6 +62,19 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   k = kh_get(n2s, mrb, h, sname);
   if (k != kh_end(h))
     return kh_value(h, k);
+
+  if (mrb->symbol_table_overflow) {
+    if (mrb->symidx == MRB_SYM_MAX) {
+      mrb_bug(mrb, "symbol table overflow (symbol %S)", sym_tbl_overflow_new_str(mrb, name, len));
+    }
+  }
+  else {
+    if (mrb->symidx >= MRB_SYM_MAX - 8) { /* raising might intern a few new strings */
+      mrb->symbol_table_overflow = TRUE;
+      mrb_raisef(mrb, E_RUNTIME_ERROR, "symbol table overflow (symbol %S)",
+        sym_tbl_overflow_new_str(mrb, name, len));
+    }
+  }
 
   sym = ++mrb->symidx;
   if (lit) {
