@@ -295,7 +295,7 @@ mrb_str_new_static(mrb_state *mrb, const char *p, size_t len)
   return mrb_obj_value(s);
 }
 
-void
+MRB_API void
 mrb_gc_free_str(mrb_state *mrb, struct RString *str)
 {
   if (RSTR_EMBED_P(str))
@@ -393,7 +393,7 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
  *
  *  Returns a new string object containing a copy of <i>str</i>.
  */
-mrb_value
+MRB_API mrb_value
 mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   struct RString *s = mrb_str_ptr(a);
@@ -615,7 +615,7 @@ mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
   return mrb_bool_value(mrb_str_equal(mrb, str1, str2));
 }
 /* ---------------------------------- */
-mrb_value
+MRB_API mrb_value
 mrb_str_to_str(mrb_state *mrb, mrb_value str)
 {
   mrb_value s;
@@ -1159,7 +1159,7 @@ mrb_str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   return mrb_obj_value(s);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
   if (len < 0) return mrb_nil_value();

@@ -21,7 +21,7 @@ struct RHash {
 #define mrb_hash_value(p)  mrb_obj_value((void*)(p))
 
 MRB_API mrb_value mrb_hash_new_capa(mrb_state*, int);
-mrb_value mrb_hash_new(mrb_state *mrb);
+MRB_API mrb_value mrb_hash_new(mrb_state *mrb);
 
 MRB_API void mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val);
 MRB_API mrb_value mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key);

@@ -3106,7 +3106,7 @@ mrb_codedump_all(mrb_state *mrb, struct RProc *proc)
   codedump_recur(mrb, proc->body.irep);
 }
 
-struct RProc*
+MRB_API struct RProc*
 mrb_generate_code(mrb_state *mrb, parser_state *p)
 {
   codegen_scope *scope = scope_new(mrb, 0, 0);

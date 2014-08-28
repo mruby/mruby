@@ -585,7 +585,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
   }
 }
 
-void
+MRB_API void
 mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
 {
   if (obj == 0) return;
