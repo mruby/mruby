@@ -112,7 +112,7 @@ mrb_hash_ht_key(mrb_state *mrb, mrb_value key)
 
 #define KEY(key) mrb_hash_ht_key(mrb, key)
 
-void
+MRB_API void
 mrb_gc_mark_hash(mrb_state *mrb, struct RHash *hash)
 {
   khiter_t k;
@@ -130,14 +130,14 @@ mrb_gc_mark_hash(mrb_state *mrb, struct RHash *hash)
   }
 }
 
-size_t
+MRB_API size_t
 mrb_gc_mark_hash_size(mrb_state *mrb, struct RHash *hash)
 {
   if (!hash->ht) return 0;
   return kh_size(hash->ht)*2;
 }
 
-void
+MRB_API void
 mrb_gc_free_hash(mrb_state *mrb, struct RHash *hash)
 {
   if (hash->ht) kh_destroy(ht, mrb, hash->ht);

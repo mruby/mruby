@@ -124,13 +124,13 @@ mrb_open_allocf(mrb_allocf f, void *ud)
 void mrb_free_symtbl(mrb_state *mrb);
 void mrb_free_heap(mrb_state *mrb);
 
-void
+MRB_API void
 mrb_irep_incref(mrb_state *mrb, mrb_irep *irep)
 {
   irep->refcnt++;
 }
 
-void
+MRB_API void
 mrb_irep_decref(mrb_state *mrb, mrb_irep *irep)
 {
   irep->refcnt--;
@@ -139,7 +139,7 @@ mrb_irep_decref(mrb_state *mrb, mrb_irep *irep)
   }
 }
 
-void
+MRB_API void
 mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
 {
   size_t i;

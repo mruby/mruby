@@ -295,7 +295,7 @@ mrb_str_new_static(mrb_state *mrb, const char *p, size_t len)
   return mrb_obj_value(s);
 }
 
-void
+MRB_API void
 mrb_gc_free_str(mrb_state *mrb, struct RString *str)
 {
   if (RSTR_EMBED_P(str))

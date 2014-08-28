@@ -405,32 +405,32 @@ mark_tbl(mrb_state *mrb, iv_tbl *t)
   }
 }
 
-void
+MRB_API void
 mrb_gc_mark_gv(mrb_state *mrb)
 {
   mark_tbl(mrb, mrb->globals);
 }
 
-void
+MRB_API void
 mrb_gc_free_gv(mrb_state *mrb)
 {
   if (mrb->globals)
     iv_free(mrb, mrb->globals);
 }
 
-void
+MRB_API void
 mrb_gc_mark_iv(mrb_state *mrb, struct RObject *obj)
 {
   mark_tbl(mrb, obj->iv);
 }
 
-size_t
+MRB_API size_t
 mrb_gc_mark_iv_size(mrb_state *mrb, struct RObject *obj)
 {
   return iv_size(mrb, obj->iv);
 }
 
-void
+MRB_API void
 mrb_gc_free_iv(mrb_state *mrb, struct RObject *obj)
 {
   if (obj->iv) {
