@@ -987,13 +987,30 @@ mrb_dump_irep_cfunc(mrb_state *mrb, mrb_irep *irep, int debug_info, FILE *fp, co
 
   result = mrb_dump_irep(mrb, irep, debug_info, &bin, &bin_size);
   if (result == MRB_DUMP_OK) {
-    fprintf(fp, "#include <stdint.h>\n"); /* for uint8_t under at least Darwin */
-    fprintf(fp, "const uint8_t %s[] = {", initname);
-    while (bin_idx < bin_size) {
-      if (bin_idx % 16 == 0) fputs("\n", fp);
-      fprintf(fp, "0x%02x,", bin[bin_idx++]);
+    if (fprintf(fp, "#include <stdint.h>\n") < 0) { /* for uint8_t under at least Darwin */
+      mrb_free(mrb, bin);
+      return MRB_DUMP_WRITE_FAULT;
     }
-    fputs("\n};\n", fp);
+    if (fprintf(fp, "const uint8_t %s[] = {", initname) < 0) {
+      mrb_free(mrb, bin);
+      return MRB_DUMP_WRITE_FAULT;
+    }
+    while (bin_idx < bin_size) {
+      if (bin_idx % 16 == 0) {
+        if (fputs("\n", fp) == EOF) {
+          mrb_free(mrb, bin);
+          return MRB_DUMP_WRITE_FAULT;
+        }
+      }
+      if (fprintf(fp, "0x%02x,", bin[bin_idx++]) < 0) {
+        mrb_free(mrb, bin);
+        return MRB_DUMP_WRITE_FAULT;
+      }
+    }
+    if (fputs("\n};\n", fp) == EOF) {
+      mrb_free(mrb, bin);
+      return MRB_DUMP_WRITE_FAULT;
+    }
   }
 
   mrb_free(mrb, bin);
