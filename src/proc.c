@@ -62,7 +62,7 @@ mrb_closure_new(mrb_state *mrb, mrb_irep *irep)
   return p;
 }
 
-struct RProc *
+MRB_API struct RProc *
 mrb_proc_new_cfunc(mrb_state *mrb, mrb_func_t func)
 {
   struct RProc *p;
@@ -84,7 +84,7 @@ mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals)
   return p;
 }
 
-void
+MRB_API void
 mrb_proc_copy(struct RProc *a, struct RProc *b)
 {
   a->flags = b->flags;
