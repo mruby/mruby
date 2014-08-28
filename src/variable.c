@@ -809,7 +809,7 @@ mrb_cv_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym)
   return mrb_mod_cv_defined(mrb, mrb_class_ptr(mod), sym);
 }
 
-MRB_API mrb_value
+mrb_value
 mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
 {
   struct RClass *c = mrb->c->ci->proc->target_class;
@@ -819,7 +819,7 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
   return mrb_mod_cv_get(mrb, c, sym);
 }
 
-MRB_API void
+void
 mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
   struct RClass *c = mrb->c->ci->proc->target_class;
@@ -1093,7 +1093,7 @@ mrb_const_defined_at(mrb_state *mrb, struct RClass *klass, mrb_sym id)
   return mrb_const_defined_0(mrb, klass, id, TRUE, FALSE);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id)
 {
   return mrb_iv_get(mrb, obj, id);

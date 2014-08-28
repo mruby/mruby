@@ -5358,7 +5358,7 @@ parser_update_cxt(parser_state *p, mrbc_context *cxt)
 void mrb_codedump_all(mrb_state*, struct RProc*);
 void mrb_parser_dump(mrb_state *mrb, node *tree, int offset);
 
-void
+MRB_API void
 mrb_parser_parse(parser_state *p, mrbc_context *c)
 {
   struct mrb_jmpbuf buf;
@@ -5391,7 +5391,7 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
   MRB_END_EXC(p->jmp);
 }
 
-parser_state*
+MRB_API parser_state*
 mrb_parser_new(mrb_state *mrb)
 {
   mrb_pool *pool;
@@ -5433,7 +5433,7 @@ mrb_parser_new(mrb_state *mrb)
   return p;
 }
 
-void
+MRB_API void
 mrb_parser_free(parser_state *p) {
   mrb_pool_close(p->pool);
 }
@@ -5474,7 +5474,7 @@ mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*func)(struct mrb_parser
   c->partial_data = data;
 }
 
-void
+MRB_API void
 mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
 {
   mrb_sym sym;
@@ -5502,7 +5502,7 @@ mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
   p->filename_table[p->filename_table_length - 1] = sym;
 }
 
-char const*
+MRB_API char const*
 mrb_parser_get_filename(struct mrb_parser_state* p, uint16_t idx) {
   if (idx >= p->filename_table_length) { return NULL; }
   else {
@@ -5511,7 +5511,7 @@ mrb_parser_get_filename(struct mrb_parser_state* p, uint16_t idx) {
 }
 
 #ifdef ENABLE_STDIO
-parser_state*
+MRB_API parser_state*
 mrb_parse_file(mrb_state *mrb, FILE *f, mrbc_context *c)
 {
   parser_state *p;
@@ -5526,7 +5526,7 @@ mrb_parse_file(mrb_state *mrb, FILE *f, mrbc_context *c)
 }
 #endif
 
-parser_state*
+MRB_API parser_state*
 mrb_parse_nstring(mrb_state *mrb, const char *s, int len, mrbc_context *c)
 {
   parser_state *p;
@@ -5540,7 +5540,7 @@ mrb_parse_nstring(mrb_state *mrb, const char *s, int len, mrbc_context *c)
   return p;
 }
 
-parser_state*
+MRB_API parser_state*
 mrb_parse_string(mrb_state *mrb, const char *s, mrbc_context *c)
 {
   return mrb_parse_nstring(mrb, s, strlen(s), c);
@@ -5603,38 +5603,38 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
 }
 
 #ifdef ENABLE_STDIO
-mrb_value
+MRB_API mrb_value
 mrb_load_file_cxt(mrb_state *mrb, FILE *f, mrbc_context *c)
 {
   return load_exec(mrb, mrb_parse_file(mrb, f, c), c);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_load_file(mrb_state *mrb, FILE *f)
 {
   return mrb_load_file_cxt(mrb, f, NULL);
 }
 #endif
 
-mrb_value
+MRB_API mrb_value
 mrb_load_nstring_cxt(mrb_state *mrb, const char *s, int len, mrbc_context *c)
 {
   return load_exec(mrb, mrb_parse_nstring(mrb, s, len, c), c);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_load_nstring(mrb_state *mrb, const char *s, int len)
 {
   return mrb_load_nstring_cxt(mrb, s, len, NULL);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_load_string_cxt(mrb_state *mrb, const char *s, mrbc_context *c)
 {
   return mrb_load_nstring_cxt(mrb, s, strlen(s), c);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_load_string(mrb_state *mrb, const char *s)
 {
   return mrb_load_string_cxt(mrb, s, NULL);
