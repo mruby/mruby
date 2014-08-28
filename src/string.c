@@ -637,18 +637,17 @@ mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
   return RSTRING_PTR(str);
 }
 
-static mrb_value
-noregexp(mrb_state *mrb, mrb_value self)
+void
+mrb_noregexp(mrb_state *mrb, mrb_value self)
 {
   mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp class not implemented");
-  return mrb_nil_value();
 }
 
-static void
-regexp_check(mrb_state *mrb, mrb_value obj)
+void
+mrb_regexp_check(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_regexp_p(mrb, obj)) {
-    noregexp(mrb, obj);
+    mrb_noregexp(mrb, obj);
   }
 }
 
@@ -738,7 +737,7 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
 {
   mrb_int idx;
 
-  regexp_check(mrb, indx);
+  mrb_regexp_check(mrb, indx);
   switch (mrb_type(indx)) {
     case MRB_TT_FIXNUM:
       idx = mrb_fixnum(indx);
@@ -820,7 +819,7 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 
   argc = mrb_get_args(mrb, "o|o", &a1, &a2);
   if (argc == 2) {
-    regexp_check(mrb, a1);
+    mrb_regexp_check(mrb, a1);
     return mrb_str_substr(mrb, str, mrb_fixnum(a1), mrb_fixnum(a2));
   }
   if (argc != 1) {
@@ -1284,7 +1283,7 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
     else
       sub = mrb_nil_value();
   }
-  regexp_check(mrb, sub);
+  mrb_regexp_check(mrb, sub);
   if (pos < 0) {
     pos += RSTRING_LEN(str);
     if (pos < 0) {
@@ -1623,7 +1622,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     if (pos < 0) {
       pos += len;
       if (pos < 0) {
-        regexp_check(mrb, sub);
+        mrb_regexp_check(mrb, sub);
         return mrb_nil_value();
       }
     }
@@ -1636,7 +1635,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     else
       sub = mrb_nil_value();
   }
-  regexp_check(mrb, sub);
+  mrb_regexp_check(mrb, sub);
 
   switch (mrb_type(sub)) {
     case MRB_TT_FIXNUM: {
@@ -1746,7 +1745,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       }
     }
     else {
-      noregexp(mrb, str);
+      mrb_noregexp(mrb, str);
     }
   }
 
@@ -1815,7 +1814,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     beg = ptr - temp;
   }
   else {
-    noregexp(mrb, str);
+    mrb_noregexp(mrb, str);
   }
   if (RSTRING_LEN(str) > 0 && (lim_p || RSTRING_LEN(str) > beg || lim < 0)) {
     if (RSTRING_LEN(str) == beg) {
