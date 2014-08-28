@@ -637,14 +637,13 @@ mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
   return RSTRING_PTR(str);
 }
 
-static mrb_value
+void
 noregexp(mrb_state *mrb, mrb_value self)
 {
   mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp class not implemented");
-  return mrb_nil_value();
 }
 
-static void
+void
 regexp_check(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_regexp_p(mrb, obj)) {

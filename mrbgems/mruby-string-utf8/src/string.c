@@ -106,21 +106,6 @@ mrb_str_size(mrb_state *mrb, mrb_value str)
 
 #define RSTRING_LEN_UTF8(s) mrb_utf8_strlen(s, -1)
 
-static mrb_value
-noregexp(mrb_state *mrb, mrb_value self)
-{
-  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp class not implemented");
-  return mrb_nil_value();
-}
-
-static void
-regexp_check(mrb_state *mrb, mrb_value obj)
-{
-  if (mrb_regexp_p(mrb, obj)) {
-    noregexp(mrb, obj);
-  }
-}
-
 static inline mrb_int
 mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mrb_int n)
 {
