@@ -107,8 +107,8 @@ mrb_int mrb_str_hash(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_dump(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
 
-void noregexp(mrb_state *mrb, mrb_value self);
-void regexp_check(mrb_state *mrb, mrb_value obj);
+void mrb_noregexp(mrb_state *mrb, mrb_value self);
+void mrb_regexp_check(mrb_state *mrb, mrb_value obj);
 
 /* For backward compatibility */
 #define mrb_str_cat2(mrb, str, ptr) mrb_str_cat_cstr(mrb, str, ptr)
