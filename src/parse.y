@@ -62,6 +62,7 @@ typedef unsigned int stack_type;
 #define CMDARG_P()      BITSTACK_SET_P(p->cmdarg_stack)
 
 #define SET_LINENO(c,n) ((c)->lineno = (n))
+#define NODE_LINENO(c,n) do {if (n) ((c)->lineno = (n)->lineno);} while (0)
 
 #define sym(x) ((mrb_sym)(intptr_t)(x))
 #define nsym(x) ((node*)(intptr_t)(x))
@@ -275,8 +276,9 @@ new_scope(parser_state *p, node *body)
 static node*
 new_begin(parser_state *p, node *body)
 {
-  if (body)
+  if (body) {
     return list2((node*)NODE_BEGIN, body);
+  }
   return cons((node*)NODE_BEGIN, 0);
 }
 
@@ -391,14 +393,20 @@ new_self(parser_state *p)
 static node*
 new_call(parser_state *p, node *a, mrb_sym b, node *c)
 {
-  return list4((node*)NODE_CALL, a, nsym(b), c);
+  node *n = list4((node*)NODE_CALL, a, nsym(b), c);
+  NODE_LINENO(n, a);
+  return n;
 }
 
 /* (:fcall self mid args) */
 static node*
 new_fcall(parser_state *p, mrb_sym b, node *c)
 {
-  return list4((node*)NODE_FCALL, new_self(p), nsym(b), c);
+  node *n = new_self(p);
+  NODE_LINENO(n, c);
+  n = list4((node*)NODE_FCALL, n, nsym(b), c);
+  NODE_LINENO(n, c);
+  return n;
 }
 
 /* (:super . c) */
@@ -997,25 +1005,27 @@ heredoc_end(parser_state *p)
     const struct vtable *vars;
 }
 
-%token
+%token <num>
         keyword_class
         keyword_module
         keyword_def
-        keyword_undef
         keyword_begin
+        keyword_if
+        keyword_unless
+        keyword_while
+        keyword_until
+        keyword_for
+
+%token
+        keyword_undef
         keyword_rescue
         keyword_ensure
         keyword_end
-        keyword_if
-        keyword_unless
         keyword_then
         keyword_elsif
         keyword_else
         keyword_case
         keyword_when
-        keyword_while
-        keyword_until
-        keyword_for
         keyword_break
         keyword_next
         keyword_redo
@@ -1155,6 +1165,7 @@ program         :   {
                   top_compstmt
                     {
                       p->tree = new_scope(p, $2);
+                      NODE_LINENO(p->tree, $2);
                     }
                 ;
 
@@ -1171,6 +1182,7 @@ top_stmts       : none
                 | top_stmt
                     {
                       $$ = new_begin(p, $1);
+                      NODE_LINENO($$, $1);
                     }
                 | top_stmts terms top_stmt
                     {
@@ -1202,6 +1214,7 @@ bodystmt        : compstmt
                     {
                       if ($2) {
                         $$ = new_rescue(p, $1, $2, $3);
+                        NODE_LINENO($$, $1);
                       }
                       else if ($3) {
                         yywarn(p, "else without rescue is useless");
@@ -1234,10 +1247,11 @@ stmts           : none
                 | stmt
                     {
                       $$ = new_begin(p, $1);
+                      NODE_LINENO($$, $1);
                     }
                 | stmts terms stmt
                     {
-                        $$ = push($1, newline_node($3));
+                      $$ = push($1, newline_node($3));
                     }
                 | error stmt
                     {
@@ -1255,7 +1269,7 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     }
                 | stmt modifier_if expr_value
                     {
-                        $$ = new_if(p, cond($3), $1, 0);
+                      $$ = new_if(p, cond($3), $1, 0);
                     }
                 | stmt modifier_unless expr_value
                     {
@@ -1887,6 +1901,7 @@ aref_args       : none
                 | args trailer
                     {
                       $$ = $1;
+                      NODE_LINENO($$, $1);
                     }
                 | args ',' assocs trailer
                     {
@@ -1895,6 +1910,7 @@ aref_args       : none
                 | assocs trailer
                     {
                       $$ = cons(new_hash(p, $1), 0);
+                      NODE_LINENO($$, $1);
                     }
                 ;
 
@@ -1913,36 +1929,44 @@ opt_call_args   : none
                 | args ','
                     {
                       $$ = cons($1,0);
+                      NODE_LINENO($$, $1);
                     }
                 | args ',' assocs ','
                     {
                       $$ = cons(push($1, new_hash(p, $3)), 0);
+                      NODE_LINENO($$, $1);
                     }
                 | assocs ','
                     {
                       $$ = cons(list1(new_hash(p, $1)), 0);
+                      NODE_LINENO($$, $1);
                     }
                 ;
 
 call_args       : command
                     {
                       $$ = cons(list1($1), 0);
+                      NODE_LINENO($$, $1);
                     }
                 | args opt_block_arg
                     {
                       $$ = cons($1, $2);
+                      NODE_LINENO($$, $1);
                     }
                 | assocs opt_block_arg
                     {
                       $$ = cons(list1(new_hash(p, $1)), $2);
+                      NODE_LINENO($$, $1);
                     }
                 | args ',' assocs opt_block_arg
                     {
                       $$ = cons(push($1, new_hash(p, $3)), $4);
+                      NODE_LINENO($$, $1);
                     }
                 | block_arg
                     {
                       $$ = cons(0, $1);
+                      NODE_LINENO($$, $1);
                     }
                 ;
 
@@ -1976,10 +2000,12 @@ opt_block_arg   : ',' block_arg
 args            : arg_value
                     {
                       $$ = cons($1, 0);
+                      NODE_LINENO($$, $1);
                     }
                 | tSTAR arg_value
                     {
                       $$ = cons(new_splat(p, $2), 0);
+                      NODE_LINENO($$, $2);
                     }
                 | args ',' arg_value
                     {
@@ -2026,23 +2052,23 @@ primary         : literal
                     }
                 | keyword_begin
                     {
-                      $<stack>1 = p->cmdarg_stack;
+                      $<stack>$ = p->cmdarg_stack;
                       p->cmdarg_stack = 0;
                     }
                   bodystmt
                   keyword_end
                     {
-                      p->cmdarg_stack = $<stack>1;
+                      p->cmdarg_stack = $<stack>2;
                       $$ = $3;
                     }
                 | tLPAREN_ARG
                     {
-                      $<stack>1 = p->cmdarg_stack;
+                      $<stack>$ = p->cmdarg_stack;
                       p->cmdarg_stack = 0;
                     }
                   expr {p->lstate = EXPR_ENDARG;} rparen
                     {
-                      p->cmdarg_stack = $<stack>1;
+                      p->cmdarg_stack = $<stack>2;
                       $$ = $3;
                     }
                 | tLPAREN_ARG {p->lstate = EXPR_ENDARG;} rparen
@@ -2064,10 +2090,12 @@ primary         : literal
                 | tLBRACK aref_args ']'
                     {
                       $$ = new_array(p, $2);
+                      NODE_LINENO($$, $2);
                     }
                 | tLBRACE assoc_list '}'
                     {
                       $$ = new_hash(p, $2);
+                      NODE_LINENO($$, $2);
                     }
                 | keyword_return
                     {
@@ -2122,6 +2150,7 @@ primary         : literal
                   keyword_end
                     {
                       $$ = new_if(p, cond($2), $4, $5);
+                      SET_LINENO($$, $1);
                     }
                 | keyword_unless expr_value then
                   compstmt
@@ -2129,18 +2158,21 @@ primary         : literal
                   keyword_end
                     {
                       $$ = new_unless(p, cond($2), $4, $5);
+                      SET_LINENO($$, $1);
                     }
                 | keyword_while {COND_PUSH(1);} expr_value do {COND_POP();}
                   compstmt
                   keyword_end
                     {
                       $$ = new_while(p, cond($3), $6);
+                      SET_LINENO($$, $1);
                     }
                 | keyword_until {COND_PUSH(1);} expr_value do {COND_POP();}
                   compstmt
                   keyword_end
                     {
                       $$ = new_until(p, cond($3), $6);
+                      SET_LINENO($$, $1);
                     }
                 | keyword_case expr_value opt_terms
                   case_body
@@ -2160,11 +2192,9 @@ primary         : literal
                   keyword_end
                     {
                       $$ = new_for(p, $2, $5, $8);
+                      SET_LINENO($$, $1);
                     }
                 | keyword_class
-                    {
-                      $<num>$ = p->lineno;
-                    }
                   cpath superclass
                     {
                       if (p->in_def || p->in_single)
@@ -2174,14 +2204,11 @@ primary         : literal
                   bodystmt
                   keyword_end
                     {
-                      $$ = new_class(p, $3, $4, $6);
-                      SET_LINENO($$, $<num>2);
-                      local_resume(p, $<nd>5);
+                      $$ = new_class(p, $2, $3, $5);
+                      SET_LINENO($$, $1);
+                      local_resume(p, $<nd>4);
                     }
                 | keyword_class
-                    {
-                      $<num>$ = p->lineno;
-                    }
                   tLSHFT expr
                     {
                       $<num>$ = p->in_def;
@@ -2195,16 +2222,13 @@ primary         : literal
                   bodystmt
                   keyword_end
                     {
-                      $$ = new_sclass(p, $4, $8);
-                      SET_LINENO($$, $<num>2);
-                      local_resume(p, $<nd>7->car);
-                      p->in_def = $<num>5;
-                      p->in_single = (int)(intptr_t)$<nd>7->cdr;
+                      $$ = new_sclass(p, $3, $7);
+                      SET_LINENO($$, $1);
+                      local_resume(p, $<nd>6->car);
+                      p->in_def = $<num>4;
+                      p->in_single = (int)(intptr_t)$<nd>6->cdr;
                     }
                 | keyword_module
-                    {
-                      $<num>$ = p->lineno;
-                    }
                   cpath
                     {
                       if (p->in_def || p->in_single)
@@ -2214,42 +2238,50 @@ primary         : literal
                   bodystmt
                   keyword_end
                     {
-                      $$ = new_module(p, $3, $5);
-                      SET_LINENO($$, $<num>2);
-                      local_resume(p, $<nd>4);
+                      $$ = new_module(p, $2, $4);
+                      SET_LINENO($$, $1);
+                      local_resume(p, $<nd>3);
                     }
                 | keyword_def fname
                     {
+                      $<stack>$ = p->cmdarg_stack;
+                      p->cmdarg_stack = 0;
+                    }
+                    {
                       p->in_def++;
                       $<nd>$ = local_switch(p);
-                      $<stack>1 = p->cmdarg_stack;
-                      p->cmdarg_stack = 0;
                     }
                   f_arglist
                   bodystmt
                   keyword_end
                     {
-                      $$ = new_def(p, $2, $4, $5);
-                      local_resume(p, $<nd>3);
+                      $$ = new_def(p, $2, $5, $6);
+                      SET_LINENO($$, $1);
+                      local_resume(p, $<nd>4);
                       p->in_def--;
-                      p->cmdarg_stack = $<stack>1;
+                      p->cmdarg_stack = $<stack>3;
                     }
-                | keyword_def singleton dot_or_colon {p->lstate = EXPR_FNAME;} fname
+                | keyword_def singleton dot_or_colon
+                    {
+                      p->lstate = EXPR_FNAME;
+                      $<stack>$ = p->cmdarg_stack;
+                      p->cmdarg_stack = 0;
+                    }
+                    fname
                     {
                       p->in_single++;
                       p->lstate = EXPR_ENDFN; /* force for args */
                       $<nd>$ = local_switch(p);
-                      $<stack>1 = p->cmdarg_stack;
-                      p->cmdarg_stack = 0;
                     }
                   f_arglist
                   bodystmt
                   keyword_end
                     {
                       $$ = new_sdef(p, $2, $5, $7, $8);
+                      SET_LINENO($$, $1);
                       local_resume(p, $<nd>6);
                       p->in_single--;
-                      p->cmdarg_stack = $<stack>1;
+                      p->cmdarg_stack = $<stack>4;
                     }
                 | keyword_break
                     {
@@ -3163,6 +3195,7 @@ assoc_list      : none
 assocs          : assoc
                     {
                       $$ = list1($1);
+                      NODE_LINENO($$, $1);
                     }
                 | assocs ',' assoc
                     {
@@ -5210,6 +5243,7 @@ parser_yylex(parser_state *p)
         kw = mrb_reserved_word(tok(p), toklen(p));
         if (kw) {
           enum mrb_lex_state_enum state = p->lstate;
+          yylval.num = p->lineno;
           p->lstate = kw->state;
           if (state == EXPR_FNAME) {
             yylval.id = intern_cstr(kw->name);
