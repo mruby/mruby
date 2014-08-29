@@ -162,11 +162,19 @@ genop(codegen_scope *s, mrb_code i)
 #define NOVAL  0
 #define VAL    1
 
+static mrb_bool
+no_optimize(codegen_scope *s)
+{
+  if (s && s->parser && s->parser->no_optimize)
+    return TRUE;
+  return FALSE;
+}
+
 static int
 genop_peep(codegen_scope *s, mrb_code i, int val)
 {
   /* peephole optimization */
-  if (s->lastlabel != s->pc && s->pc > 0) {
+  if (!no_optimize(s) && s->lastlabel != s->pc && s->pc > 0) {
     mrb_code i0 = s->iseq[s->pc-1];
     int c1 = GET_OPCODE(i);
     int c0 = GET_OPCODE(i0);
@@ -180,13 +188,13 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       if (val) break;
       switch (c0) {
       case OP_MOVE:
-        if (GETARG_B(i) == GETARG_A(i0) && GETARG_A(i) == GETARG_B(i0) && GETARG_A(i) >= s->nlocals) {
+        if (GETARG_B(i) == GETARG_A(i0) && GETARG_A(i) == GETARG_B(i0)) {
           /* skip swapping OP_MOVE */
           return 0;
         }
         if (GETARG_B(i) == GETARG_A(i0) && GETARG_A(i0) >= s->nlocals) {
-          s->iseq[s->pc-1] = MKOP_AB(OP_MOVE, GETARG_A(i), GETARG_B(i0));
-          return 0;
+          s->pc--;
+          return genop_peep(s, MKOP_AB(OP_MOVE, GETARG_A(i), GETARG_B(i0)), val);
         }
         break;
       case OP_LOADI:
@@ -2299,7 +2307,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       int a = new_msym(s, sym(tree->car));
       int b = new_msym(s, sym(tree->cdr));
-      int c = new_msym(s, mrb_intern_lit(s->mrb,"alias_method"));
+      int c = new_msym(s, mrb_intern_lit(s->mrb, "alias_method"));
 
       genop(s, MKOP_A(OP_TCLASS, cursp()));
       push();
@@ -2715,7 +2723,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
   int32_t line;
 
   if (!irep) return;
-  printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", irep,
+  printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", (void*)irep,
          irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen, (int)irep->rlen);
 
   for (i = 0; i < (int)irep->ilen; i++) {
@@ -3106,7 +3114,7 @@ mrb_codedump_all(mrb_state *mrb, struct RProc *proc)
   codedump_recur(mrb, proc->body.irep);
 }
 
-struct RProc*
+MRB_API struct RProc*
 mrb_generate_code(mrb_state *mrb, parser_state *p)
 {
   codegen_scope *scope = scope_new(mrb, 0, 0);

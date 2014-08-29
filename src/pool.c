@@ -47,7 +47,7 @@ struct mrb_pool {
 #  define ALIGN_PADDING(x) (0)
 #endif
 
-mrb_pool*
+MRB_API mrb_pool*
 mrb_pool_open(mrb_state *mrb)
 {
   mrb_pool *pool = (mrb_pool *)mrb_malloc_simple(mrb, sizeof(mrb_pool));
@@ -60,7 +60,7 @@ mrb_pool_open(mrb_state *mrb)
   return pool;
 }
 
-void
+MRB_API void
 mrb_pool_close(mrb_pool *pool)
 {
   struct mrb_pool_page *page, *tmp;
@@ -91,7 +91,7 @@ page_alloc(mrb_pool *pool, size_t len)
   return page;
 }
 
-void*
+MRB_API void*
 mrb_pool_alloc(mrb_pool *pool, size_t len)
 {
   struct mrb_pool_page *page;
@@ -119,7 +119,7 @@ mrb_pool_alloc(mrb_pool *pool, size_t len)
   return page->last;
 }
 
-mrb_bool
+MRB_API mrb_bool
 mrb_pool_can_realloc(mrb_pool *pool, void *p, size_t len)
 {
   struct mrb_pool_page *page;
@@ -140,7 +140,7 @@ mrb_pool_can_realloc(mrb_pool *pool, void *p, size_t len)
   return FALSE;
 }
 
-void*
+MRB_API void*
 mrb_pool_realloc(mrb_pool *pool, void *p, size_t oldlen, size_t newlen)
 {
   struct mrb_pool_page *page;

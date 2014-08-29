@@ -958,7 +958,7 @@ mrb_mod_dummy_visibility(mrb_state *mrb, mrb_value mod)
   return mod;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_singleton_class(mrb_state *mrb, mrb_value v)
 {
   struct RBasic *obj;
@@ -1409,7 +1409,7 @@ mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
  * \param name1  a new name for the method
  * \param name2  the original name of the method
  */
-void
+MRB_API void
 mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const char *name2)
 {
   mrb_alias_method(mrb, klass, mrb_intern_cstr(mrb, name1), mrb_intern_cstr(mrb, name2));

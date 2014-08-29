@@ -41,7 +41,7 @@ closure_setup(mrb_state *mrb, struct RProc *p, int nlocals)
 
   if (!mrb->c->ci->env) {
     e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)mrb->c->ci->proc->env);
-    MRB_ENV_STACK_LEN(e) = (unsigned int)nlocals+1; /* add space for receiver */
+    MRB_ENV_STACK_LEN(e) = (unsigned int)nlocals;
     e->mid = mrb->c->ci->mid;
     e->cioff = mrb->c->ci - mrb->c->cibase;
     e->stack = mrb->c->stack;
@@ -62,7 +62,7 @@ mrb_closure_new(mrb_state *mrb, mrb_irep *irep)
   return p;
 }
 
-struct RProc *
+MRB_API struct RProc *
 mrb_proc_new_cfunc(mrb_state *mrb, mrb_func_t func)
 {
   struct RProc *p;
@@ -84,7 +84,7 @@ mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals)
   return p;
 }
 
-void
+MRB_API void
 mrb_proc_copy(struct RProc *a, struct RProc *b)
 {
   a->flags = b->flags;

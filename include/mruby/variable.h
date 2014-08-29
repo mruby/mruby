@@ -66,11 +66,11 @@ mrb_bool mrb_mod_cv_defined(mrb_state *mrb, struct RClass * c, mrb_sym sym);
 mrb_sym mrb_class_sym(mrb_state *mrb, struct RClass *c, struct RClass *outer);
 
 /* GC functions */
-MRB_API void mrb_gc_mark_gv(mrb_state*);
-MRB_API void mrb_gc_free_gv(mrb_state*);
-MRB_API void mrb_gc_mark_iv(mrb_state*, struct RObject*);
-MRB_API size_t mrb_gc_mark_iv_size(mrb_state*, struct RObject*);
-MRB_API void mrb_gc_free_iv(mrb_state*, struct RObject*);
+void mrb_gc_mark_gv(mrb_state*);
+void mrb_gc_free_gv(mrb_state*);
+void mrb_gc_mark_iv(mrb_state*, struct RObject*);
+size_t mrb_gc_mark_iv_size(mrb_state*, struct RObject*);
+void mrb_gc_free_iv(mrb_state*, struct RObject*);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */

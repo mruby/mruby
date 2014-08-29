@@ -148,7 +148,7 @@ str_new(mrb_state *mrb, const char *p, size_t len)
   s = mrb_obj_alloc_string(mrb);
   if (len < RSTRING_EMBED_LEN_MAX) {
     RSTR_SET_EMBED_FLAG(s);
-    RSTR_SET_EMBED_LEN(s,len);
+    RSTR_SET_EMBED_LEN(s, len);
     if (p) {
       memcpy(s->as.ary, p, len);
     }
@@ -393,7 +393,7 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
  *
  *  Returns a new string object containing a copy of <i>str</i>.
  */
-mrb_value
+MRB_API mrb_value
 mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   struct RString *s = mrb_str_ptr(a);
@@ -615,7 +615,7 @@ mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
   return mrb_bool_value(mrb_str_equal(mrb, str1, str2));
 }
 /* ---------------------------------- */
-mrb_value
+MRB_API mrb_value
 mrb_str_to_str(mrb_state *mrb, mrb_value str)
 {
   mrb_value s;
@@ -637,18 +637,17 @@ mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
   return RSTRING_PTR(str);
 }
 
-static mrb_value
-noregexp(mrb_state *mrb, mrb_value self)
+void
+mrb_noregexp(mrb_state *mrb, mrb_value self)
 {
   mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp class not implemented");
-  return mrb_nil_value();
 }
 
-static void
-regexp_check(mrb_state *mrb, mrb_value obj)
+void
+mrb_regexp_check(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_regexp_p(mrb, obj)) {
-    noregexp(mrb, obj);
+    mrb_noregexp(mrb, obj);
   }
 }
 
@@ -738,7 +737,7 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
 {
   mrb_int idx;
 
-  regexp_check(mrb, indx);
+  mrb_regexp_check(mrb, indx);
   switch (mrb_type(indx)) {
     case MRB_TT_FIXNUM:
       idx = mrb_fixnum(indx);
@@ -820,7 +819,7 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 
   argc = mrb_get_args(mrb, "o|o", &a1, &a2);
   if (argc == 2) {
-    regexp_check(mrb, a1);
+    mrb_regexp_check(mrb, a1);
     return mrb_str_substr(mrb, str, mrb_fixnum(a1), mrb_fixnum(a2));
   }
   if (argc != 1) {
@@ -1159,7 +1158,7 @@ mrb_str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   return mrb_obj_value(s);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
   if (len < 0) return mrb_nil_value();
@@ -1284,7 +1283,7 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
     else
       sub = mrb_nil_value();
   }
-  regexp_check(mrb, sub);
+  mrb_regexp_check(mrb, sub);
   if (pos < 0) {
     pos += RSTRING_LEN(str);
     if (pos < 0) {
@@ -1623,7 +1622,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     if (pos < 0) {
       pos += len;
       if (pos < 0) {
-        regexp_check(mrb, sub);
+        mrb_regexp_check(mrb, sub);
         return mrb_nil_value();
       }
     }
@@ -1636,7 +1635,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     else
       sub = mrb_nil_value();
   }
-  regexp_check(mrb, sub);
+  mrb_regexp_check(mrb, sub);
 
   switch (mrb_type(sub)) {
     case MRB_TT_FIXNUM: {
@@ -1746,7 +1745,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       }
     }
     else {
-      noregexp(mrb, str);
+      mrb_noregexp(mrb, str);
     }
   }
 
@@ -1815,7 +1814,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     beg = ptr - temp;
   }
   else {
-    noregexp(mrb, str);
+    mrb_noregexp(mrb, str);
   }
   if (RSTRING_LEN(str) > 0 && (lim_p || RSTRING_LEN(str) > beg || lim < 0)) {
     if (RSTRING_LEN(str) == beg) {
@@ -2060,9 +2059,6 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, mrb_bool badcheck)
   double d;
 
   enum {max_width = 20};
-#define OutOfRange() (((w = end - p) > max_width) ? \
-      (w = max_width, ellipsis = "...") : \
-      (w = (int)(end - p), ellipsis = ""))
 
   if (!p) return 0.0;
   while (ISSPACE(*p)) p++;
