@@ -2059,9 +2059,6 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, mrb_bool badcheck)
   double d;
 
   enum {max_width = 20};
-#define OutOfRange() (((w = end - p) > max_width) ? \
-      (w = max_width, ellipsis = "...") : \
-      (w = (int)(end - p), ellipsis = ""))
 
   if (!p) return 0.0;
   while (ISSPACE(*p)) p++;
