@@ -1869,9 +1869,6 @@ RETRY_TRY_BLOCK:
         {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_float y = mrb_float(regs[a+1]);
-          if (y == 0) {
-            mrb_raise(mrb, E_ZERODIVISION_ERROR, "divided by 0");
-          }
           SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x / y);
         }
         break;
