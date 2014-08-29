@@ -42,7 +42,7 @@ end
 assert('Fundamental trig identities') do
   result = true
   N = 13
-  N.times do |i|
+  (1..12).each do |i|
     a  = Math::PI / N * i
     ca = Math::PI / 2 - a
     s  = Math.sin(a)
