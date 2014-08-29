@@ -162,11 +162,19 @@ genop(codegen_scope *s, mrb_code i)
 #define NOVAL  0
 #define VAL    1
 
+static mrb_bool
+no_optimize(codegen_scope *s)
+{
+  if (s && s->parser && s->parser->no_optimize)
+    return TRUE;
+  return FALSE;
+}
+
 static int
 genop_peep(codegen_scope *s, mrb_code i, int val)
 {
   /* peephole optimization */
-  if (s->lastlabel != s->pc && s->pc > 0) {
+  if (!no_optimize(s) && s->lastlabel != s->pc && s->pc > 0) {
     mrb_code i0 = s->iseq[s->pc-1];
     int c1 = GET_OPCODE(i);
     int c0 = GET_OPCODE(i0);

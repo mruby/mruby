@@ -29,6 +29,7 @@ typedef struct mrbc_context {
   mrb_bool dump_result:1;
   mrb_bool no_exec:1;
   mrb_bool keep_lv:1;
+  mrb_bool no_optimize:1;
 } mrbc_context;
 
 mrbc_context* mrbc_context_new(mrb_state *mrb);
@@ -143,6 +144,7 @@ struct mrb_parser_state {
   size_t nwarn;
   mrb_ast_node *tree;
 
+  mrb_bool no_optimize:1;
   mrb_bool capture_errors:1;
   struct mrb_parser_message error_buffer[10];
   struct mrb_parser_message warn_buffer[10];
