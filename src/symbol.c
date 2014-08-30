@@ -9,6 +9,7 @@
 #include "mruby.h"
 #include "mruby/khash.h"
 #include "mruby/string.h"
+#include "mruby/dump.h"
 
 /* ------------------------------------------------------ */
 typedef struct symbol_name {
@@ -34,6 +35,15 @@ sym_hash_func(mrb_state *mrb, const symbol_name s)
 KHASH_DECLARE(n2s, symbol_name, mrb_sym, TRUE)
 KHASH_DEFINE (n2s, symbol_name, mrb_sym, TRUE, sym_hash_func, sym_hash_equal)
 /* ------------------------------------------------------ */
+
+static void
+sym_validate_len(mrb_state *mrb, size_t len)
+{
+  if (len >= RITE_LV_NULL_MARK) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "symbol length too long");
+  }
+}
+
 static mrb_sym
 sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
 {
@@ -43,9 +53,7 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   mrb_sym sym;
   char *p;
 
-  if (len > (UINT16_MAX-1)) {   /* UINT16_MAX is reverved */
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "symbol length too long");
-  }
+  sym_validate_len(mrb, len);
   sname.lit = lit;
   sname.len = (uint16_t)len;
   sname.name = name;
@@ -100,9 +108,7 @@ mrb_check_intern(mrb_state *mrb, const char *name, size_t len)
   symbol_name sname = { 0 };
   khiter_t k;
 
-  if (len > UINT16_MAX) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "symbol length too long");
-  }
+  sym_validate_len(mrb, len);
   sname.len = (uint16_t)len;
   sname.name = name;
 
