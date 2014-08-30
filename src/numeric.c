@@ -75,7 +75,7 @@ num_pow(mrb_state *mrb, mrb_value x)
  * result.
  */
 
-MRB_API mrb_value
+mrb_value
 mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   return mrb_float_value(mrb, mrb_to_flo(mrb, x) / mrb_to_flo(mrb, y));
