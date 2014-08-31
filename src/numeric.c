@@ -1336,12 +1336,12 @@ mrb_init_numeric(mrb_state *mrb)
 
   /* Use the optimizations until and unless the methods are overridden */
   mrb->numeric_methods |=
-          MRB_METHOD_FIXNUM_PLUS  ||
-          MRB_METHOD_FIXNUM_MINUS ||
-          MRB_METHOD_FIXNUM_TIMES ||
-          MRB_METHOD_FIXNUM_DIV   ||
-          MRB_METHOD_FLOAT_PLUS   ||
-          MRB_METHOD_FLOAT_MINUS  ||
-          MRB_METHOD_FLOAT_TIMES  ||
+          MRB_METHOD_FIXNUM_PLUS  |
+          MRB_METHOD_FIXNUM_MINUS |
+          MRB_METHOD_FIXNUM_TIMES |
+          MRB_METHOD_FIXNUM_DIV   |
+          MRB_METHOD_FLOAT_PLUS   |
+          MRB_METHOD_FLOAT_MINUS  |
+          MRB_METHOD_FLOAT_TIMES  |
           MRB_METHOD_FLOAT_DIV    ;
 }
