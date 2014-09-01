@@ -227,7 +227,6 @@ cipush(mrb_state *mrb)
     c->ciend = c->cibase + size * 2;
   }
   ci = ++c->ci;
-  ci->nregs = 2;   /* protect method_missing arg and block */
   ci->eidx = eidx;
   ci->ridx = ridx;
   ci->env = 0;
@@ -468,6 +467,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
 
   ci->nregs = p->body.irep->nregs;
   ci = cipush(mrb);
+  ci->nregs = 0;
   ci->target_class = 0;
   ci->pc = p->body.irep->iseq;
   ci->stackent = mrb->c->stack;
@@ -497,6 +497,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   }
   ci->nregs = p->body.irep->nregs;
   ci = cipush(mrb);
+  ci->nregs = 0;
   ci->target_class = 0;
   ci->pc = p->body.irep->iseq;
   ci->stackent = mrb->c->stack;
@@ -1249,6 +1250,7 @@ RETRY_TRY_BLOCK:
       mrb->c->stack[0] = recv;
 
       if (MRB_PROC_CFUNC_P(m)) {
+        ci->nregs = 0;
         mrb->c->stack[0] = m->body.func(mrb, recv);
         mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
@@ -2254,6 +2256,7 @@ RETRY_TRY_BLOCK:
       ci->proc = p;
 
       if (MRB_PROC_CFUNC_P(p)) {
+        ci->nregs = 0;
         mrb->c->stack[0] = p->body.func(mrb, recv);
         mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
@@ -2383,6 +2386,7 @@ mrb_toplevel_run_keep(mrb_state *mrb, struct RProc *proc, unsigned int stack_kee
     return mrb_context_run(mrb, proc, mrb_top_self(mrb), stack_keep);
   }
   ci = cipush(mrb);
+  ci->nregs = 1;   /* protect the receiver */
   ci->acc = CI_ACC_SKIP;
   ci->target_class = mrb->object_class;
   v = mrb_context_run(mrb, proc, mrb_top_self(mrb), stack_keep);
