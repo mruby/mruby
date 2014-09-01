@@ -8,6 +8,7 @@ class Module
       attr_name = '@'+name
       define_method(name){self.instance_variable_get(attr_name)}
     end
+    nil
   end
   # 15.2.2.4.14
   def attr_writer(*names)
@@ -19,6 +20,7 @@ class Module
       name = (name+"=").intern
       define_method(name){|v|self.instance_variable_set(attr_name,v)}
     end
+    nil
   end
   # 15.2.2.4.12
   def attr_accessor(*names)
