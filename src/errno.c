@@ -38,7 +38,7 @@ mrb_sce_init(mrb_state *mrb, mrb_value self)
     e2c = mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Errno")), mrb_intern_lit(mrb, "Errno2class"));
     c = mrb_hash_fetch(mrb, e2c, mrb_fixnum_value(n), mrb_nil_value());
     if (!mrb_nil_p(c)) {
-      mrb_basic(self)->c = mrb_class_ptr(c);
+      mrb_basic_ptr(self)->c = mrb_class_ptr(c);
       str = mrb_str_new_cstr(mrb, strerror(n));
     } else {
       mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "errno"), mrb_fixnum_value(n));
@@ -99,7 +99,7 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
     snprintf(name, sizeof(name), "E%03ld", (long)no);
     cl = mrb_define_class_under(mrb, mrb_module_get(mrb, "Errno"), name, sce);
     mrb_define_const(mrb, cl, "Errno", mrb_fixnum_value(no));
-    mrb_basic(e)->c = cl;
+    mrb_basic_ptr(e)->c = cl;
   }
   mrb_exc_raise(mrb, e);
   return mrb_nil_value();  /* NOTREACHED */
