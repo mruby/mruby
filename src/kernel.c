@@ -470,12 +470,10 @@ static mrb_value
 obj_is_instance_of(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg;
-  mrb_bool instance_of_p;
 
   mrb_get_args(mrb, "C", &arg);
-  instance_of_p = mrb_obj_is_instance_of(mrb, self, mrb_class_ptr(arg));
 
-  return mrb_bool_value(instance_of_p);
+  return mrb_bool_value(mrb_obj_is_instance_of(mrb, self, mrb_class_ptr(arg)));
 }
 
 /* 15.3.1.3.20 */
