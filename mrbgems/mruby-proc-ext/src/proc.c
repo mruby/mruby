@@ -5,49 +5,6 @@
 #include "mruby/string.h"
 #include "mruby/debug.h"
 
-MRB_API struct RProc *
-mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t f, mrb_int argc, const mrb_value *argv)
-{
-  struct RProc *p;
-  struct REnv *e;
-  int ai, i;
-
-  p = mrb_proc_new_cfunc(mrb, f);
-  ai = mrb_gc_arena_save(mrb);
-  e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, NULL);
-  p->env = e;
-  mrb_gc_arena_restore(mrb, ai);
-
-  MRB_ENV_UNSHARE_STACK(e);
-  MRB_ENV_STACK_LEN(e) = argc;
-  e->stack = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * argc);
-  for (i = 0; i < argc; ++i) {
-    e->stack[i] = argv[i];
-  }
-
-  return p;
-}
-
-MRB_API mrb_value
-mrb_cfunc_env_get(mrb_state *mrb, mrb_int idx)
-{
-  struct RProc *p = mrb->c->ci->proc;
-  struct REnv *e = p->env;
-
-  if (!MRB_PROC_CFUNC_P(p)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from non-cfunc proc.");
-  }
-  if (!e) {
-    mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from cfunc Proc without REnv.");
-  }
-  if (idx < 0 || MRB_ENV_STACK_LEN(e) <= idx) {
-    mrb_raisef(mrb, E_INDEX_ERROR, "Env index out of range: %S (expected: 0 <= index < %S)",
-               mrb_fixnum_value(idx), mrb_fixnum_value(MRB_ENV_STACK_LEN(e)));
-  }
-
-  return e->stack[idx];
-}
-
 static mrb_value
 mrb_proc_lambda(mrb_state *mrb, mrb_value self)
 {

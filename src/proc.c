@@ -34,17 +34,27 @@ mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
   return p;
 }
 
-static inline void
+static struct REnv*
+env_new(mrb_state *mrb, int nlocals)
+{
+  struct REnv *e;
+
+  e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)mrb->c->ci->proc->env);
+  MRB_ENV_STACK_LEN(e) = (unsigned int)nlocals;
+  e->mid = mrb->c->ci->mid;
+  e->cioff = mrb->c->ci - mrb->c->cibase;
+  e->stack = mrb->c->stack;
+
+  return e;
+}
+
+static void
 closure_setup(mrb_state *mrb, struct RProc *p, int nlocals)
 {
   struct REnv *e;
 
   if (!mrb->c->ci->env) {
-    e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)mrb->c->ci->proc->env);
-    MRB_ENV_STACK_LEN(e) = (unsigned int)nlocals;
-    e->mid = mrb->c->ci->mid;
-    e->cioff = mrb->c->ci - mrb->c->cibase;
-    e->stack = mrb->c->stack;
+    e = env_new(mrb, nlocals);
     mrb->c->ci->env = e;
   }
   else {
@@ -76,12 +86,52 @@ mrb_proc_new_cfunc(mrb_state *mrb, mrb_func_t func)
 }
 
 MRB_API struct RProc *
-mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals)
+mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const mrb_value *argv)
 {
   struct RProc *p = mrb_proc_new_cfunc(mrb, func);
+  struct REnv *e;
+  int i;
 
-  closure_setup(mrb, p, nlocals);
+  p->env = e = env_new(mrb, argc);
+  MRB_ENV_UNSHARE_STACK(e);
+  e->stack = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * argc);
+  if (argv) {
+    for (i = 0; i < argc; ++i) {
+      e->stack[i] = argv[i];
+    }
+  }
+  else {
+    for (i = 0; i < argc; ++i) {
+      SET_NIL_VALUE(e->stack[i]);
+    }
+  }
   return p;
+}
+
+MRB_API struct RProc *
+mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals)
+{
+  return mrb_proc_new_cfunc_with_env(mrb, func, nlocals, NULL);
+}
+
+MRB_API mrb_value
+mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx)
+{
+  struct RProc *p = mrb->c->ci->proc;
+  struct REnv *e = p->env;
+
+  if (!MRB_PROC_CFUNC_P(p)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from non-cfunc proc.");
+  }
+  if (!e) {
+    mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from cfunc Proc without REnv.");
+  }
+  if (idx < 0 || MRB_ENV_STACK_LEN(e) <= idx) {
+    mrb_raisef(mrb, E_INDEX_ERROR, "Env index out of range: %S (expected: 0 <= index < %S)",
+               mrb_fixnum_value(idx), mrb_fixnum_value(MRB_ENV_STACK_LEN(e)));
+  }
+
+  return e->stack[idx];
 }
 
 MRB_API void
