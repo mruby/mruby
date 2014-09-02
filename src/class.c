@@ -393,6 +393,21 @@ to_hash(mrb_state *mrb, mrb_value val)
   return check_type(mrb, val, MRB_TT_HASH, "Hash", "to_hash");
 }
 
+static mrb_sym
+to_sym(mrb_state *mrb, mrb_value ss)
+{
+  if (mrb_type(ss) == MRB_TT_SYMBOL) {
+    return mrb_symbol(ss);
+  }
+  else if (mrb_string_p(ss)) {
+    return mrb_intern_str(mrb, to_str(mrb, ss));
+  }
+  else {
+    mrb_value obj = mrb_funcall(mrb, ss, "inspect", 0);
+    mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol", obj);
+  }
+}
+
 /*
   retrieve arguments from mrb_state.
 
@@ -635,16 +650,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           mrb_value ss;
 
           ss = *sp++;
-          if (mrb_type(ss) == MRB_TT_SYMBOL) {
-            *symp = mrb_symbol(ss);
-          }
-          else if (mrb_string_p(ss)) {
-            *symp = mrb_intern_str(mrb, to_str(mrb, ss));
-          }
-          else {
-            mrb_value obj = mrb_funcall(mrb, ss, "inspect", 0);
-            mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol", obj);
-          }
+          *symp = to_sym(mrb, ss);
           i++;
         }
       }
@@ -1048,6 +1054,85 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
                mrb_sym2str(mrb, mid), inspect);
   }
   return m;
+}
+
+static mrb_value
+attr_reader(mrb_state *mrb, mrb_value obj)
+{
+  mrb_value name = mrb_proc_cfunc_env_get(mrb, 0);
+  return mrb_iv_get(mrb, obj, to_sym(mrb, name));
+}
+
+static mrb_value
+mrb_mod_attr_reader(mrb_state *mrb, mrb_value mod)
+{
+  struct RClass *c = mrb_class_ptr(mod);
+  mrb_value *argv;
+  mrb_int argc, i;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  for (i=0; i<argc; i++) {
+    mrb_value name, str;
+    mrb_sym method, sym;
+
+    method = to_sym(mrb, argv[i]);
+    name = mrb_sym2str(mrb, method);
+    str = mrb_str_buf_new(mrb, RSTRING_LEN(name)+1);
+    mrb_str_cat_cstr(mrb, str, "@");
+    mrb_str_cat_str(mrb, str, name);
+    sym = mrb_intern_str(mrb, str);
+    mrb_iv_check(mrb, sym);
+    name = mrb_symbol_value(sym);
+    mrb_define_method_raw(mrb, c, method,
+                          mrb_proc_new_cfunc_with_env(mrb, attr_reader, 1, &name));
+  }
+  return mrb_nil_value();
+}
+
+static mrb_value
+attr_writer(mrb_state *mrb, mrb_value obj)
+{
+  mrb_value name = mrb_proc_cfunc_env_get(mrb, 0);
+  mrb_value val;
+
+  mrb_get_args(mrb, "o", &val);
+  mrb_iv_set(mrb, obj, to_sym(mrb, name), val);
+  return val;
+}
+
+static mrb_value
+mrb_mod_attr_writer(mrb_state *mrb, mrb_value mod)
+{
+  struct RClass *c = mrb_class_ptr(mod);
+  mrb_value *argv;
+  mrb_int argc, i;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  for (i=0; i<argc; i++) {
+    mrb_value name, str, attr;
+    mrb_sym method, sym;
+
+    method = to_sym(mrb, argv[i]);
+
+    /* prepare iv name (@name) */
+    name = mrb_sym2str(mrb, method);
+    str = mrb_str_buf_new(mrb, RSTRING_LEN(name)+1);
+    mrb_str_cat_cstr(mrb, str, "@");
+    mrb_str_cat_str(mrb, str, name);
+    sym = mrb_intern_str(mrb, str);
+    mrb_iv_check(mrb, sym);
+    attr = mrb_symbol_value(sym);
+
+    /* prepare method name (name=) */
+    str = mrb_str_buf_new(mrb, RSTRING_LEN(str));
+    mrb_str_cat_str(mrb, str, name);
+    mrb_str_cat_cstr(mrb, str, "=");
+    method = mrb_intern_str(mrb, str);
+
+    mrb_define_method_raw(mrb, c, method,
+                          mrb_proc_new_cfunc_with_env(mrb, attr_writer, 1, &attr));
+  }
+  return mrb_nil_value();
 }
 
 static mrb_value
@@ -2033,6 +2118,8 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "public",                  mrb_mod_dummy_visibility, MRB_ARGS_ANY());  /* 15.2.2.4.38 */
   mrb_define_method(mrb, mod, "remove_class_variable",   mrb_mod_remove_cvar,      MRB_ARGS_REQ(1)); /* 15.2.2.4.39 */
   mrb_define_method(mrb, mod, "remove_method",           mrb_mod_remove_method,    MRB_ARGS_ANY());  /* 15.2.2.4.41 */
+  mrb_define_method(mrb, mod, "attr_reader",             mrb_mod_attr_reader,      MRB_ARGS_ANY());  /* 15.2.2.4.13 */
+  mrb_define_method(mrb, mod, "attr_writer",             mrb_mod_attr_writer,      MRB_ARGS_ANY());  /* 15.2.2.4.14 */
   mrb_define_method(mrb, mod, "to_s",                    mrb_mod_to_s,             MRB_ARGS_NONE());
   mrb_define_method(mrb, mod, "inspect",                 mrb_mod_to_s,             MRB_ARGS_NONE());
   mrb_define_method(mrb, mod, "alias_method",            mrb_mod_alias,            MRB_ARGS_ANY());  /* 15.2.2.4.8 */
