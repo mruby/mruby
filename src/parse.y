@@ -3967,22 +3967,22 @@ parse_string(parser_state *p)
 
   if (type & STR_FUNC_REGEXP) {
     int f = 0;
-    int c;
+    int re_opt;
     char *s = strndup(tok(p), toklen(p));
     char flags[3];
     char *flag = flags;
     char *dup;
 
     newtok(p);
-    while (c = nextc(p), c >= 0 && ISALPHA(c)) {
-      switch (c) {
+    while (re_opt = nextc(p), re_opt >= 0 && ISALPHA(re_opt)) {
+      switch (re_opt) {
       case 'i': f |= 1; break;
       case 'x': f |= 2; break;
       case 'm': f |= 4; break;
-      default: tokadd(p, c); break;
+      default: tokadd(p, re_opt); break;
       }
     }
-    pushback(p, c);
+    pushback(p, re_opt);
     if (toklen(p)) {
       char msg[128];
       tokfix(p);
@@ -5668,14 +5668,14 @@ void
 mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 {
 #ifdef ENABLE_STDIO
-  int n;
+  int current_node;
 
   if (!tree) return;
   again:
   dump_prefix(tree, offset);
-  n = (int)(intptr_t)tree->car;
+  current_node = (int)(intptr_t)tree->car;
   tree = tree->cdr;
-  switch (n) {
+  switch (current_node) {
   case NODE_BEGIN:
     printf("NODE_BEGIN:\n");
     dump_recur(mrb, tree, offset+1);
@@ -6402,7 +6402,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   default:
-    printf("node type: %d (0x%x)\n", n, (unsigned)n);
+    printf("node type: %d (0x%x)\n", current_node, (unsigned)current_node);
     break;
   }
 #endif

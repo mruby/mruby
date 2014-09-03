@@ -2113,7 +2113,7 @@ RETRY_TRY_BLOCK:
       else {
         struct RArray *ary = mrb_ary_ptr(v);
         int len = ary->len;
-        int i;
+        int idx;
 
         if (len > pre + post) {
           regs[a++] = mrb_ary_new_from_values(mrb, len - pre - post, ary->ptr+pre);
@@ -2123,11 +2123,11 @@ RETRY_TRY_BLOCK:
         }
         else {
           regs[a++] = mrb_ary_new_capa(mrb, 0);
-          for (i=0; i+pre<len; i++) {
-            regs[a+i] = ary->ptr[pre+i];
+          for (idx=0; idx+pre<len; i++) {
+            regs[a+i] = ary->ptr[pre+idx];
           }
-          while (i < post) {
-            SET_NIL_VALUE(regs[a+i]);
+          while (idx < post) {
+            SET_NIL_VALUE(regs[a+idx]);
             i++;
           }
         }
