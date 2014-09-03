@@ -5668,14 +5668,14 @@ void
 mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 {
 #ifdef ENABLE_STDIO
-  int current_node;
+  int nodetype;
 
   if (!tree) return;
   again:
   dump_prefix(tree, offset);
-  current_node = (int)(intptr_t)tree->car;
+  nodetype = (int)(intptr_t)tree->car;
   tree = tree->cdr;
-  switch (current_node) {
+  switch (nodetype) {
   case NODE_BEGIN:
     printf("NODE_BEGIN:\n");
     dump_recur(mrb, tree, offset+1);
@@ -6402,7 +6402,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   default:
-    printf("node type: %d (0x%x)\n", current_node, (unsigned)current_node);
+    printf("node type: %d (0x%x)\n", nodetype, (unsigned)nodetype);
     break;
   }
 #endif
