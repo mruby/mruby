@@ -14,6 +14,11 @@
 #include "mruby/debug.h"
 #include "mruby/error.h"
 
+#define FLAG_BYTEORDER_NATIVE 2
+#define FLAG_BYTEORDER_NONATIVE 0
+#define FLAG_SRC_MALLOC 1
+#define FLAG_SRC_STATIC 0
+
 #if !defined(_WIN32) && SIZE_MAX < UINT32_MAX
 # define SIZE_ERROR_MUL(x, y) ((x) > SIZE_MAX / (y))
 # define SIZE_ERROR(x) ((x) > SIZE_MAX)
@@ -34,7 +39,7 @@ offset_crc_body(void)
 }
 
 static mrb_irep*
-read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool alloc)
+read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flags)
 {
   size_t i;
   const uint8_t *src = bin;
@@ -67,10 +72,18 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool all
     if (SIZE_ERROR_MUL(sizeof(mrb_code), irep->ilen)) {
       return NULL;
     }
-    irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);
-    for (i = 0; i < irep->ilen; i++) {
-      irep->iseq[i] = (size_t)bin_to_uint32(src);     /* iseq */
-      src += sizeof(uint32_t);
+    if (!(flags & FLAG_SRC_MALLOC) &&
+        (flags & FLAG_BYTEORDER_NATIVE)) {
+      irep->iseq = (mrb_code*)src;
+      src += sizeof(uint32_t) * irep->ilen;
+      irep->flags |= MRB_ISEQ_NO_FREE;
+    }
+    else {
+      irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);
+      for (i = 0; i < irep->ilen; i++) {
+        irep->iseq[i] = (mrb_code)bin_to_uint32(src);     /* iseq */
+        src += sizeof(uint32_t);
+      }
     }
   }
 
@@ -89,7 +102,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool all
       tt = *src++; /* pool TT */
       pool_data_len = bin_to_uint16(src); /* pool data length */
       src += sizeof(uint16_t);
-      if (alloc) {
+      if (flags & FLAG_SRC_MALLOC) {
         s = mrb_str_new(mrb, (char *)src, pool_data_len);
       }
       else {
@@ -137,7 +150,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool all
         continue;
       }
 
-      if (alloc) {
+      if (flags & FLAG_SRC_MALLOC) {
         irep->syms[i] = mrb_intern(mrb, (char *)src, snl);
       }
       else {
@@ -159,9 +172,9 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool all
 }
 
 static mrb_irep*
-read_irep_record(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool alloc)
+read_irep_record(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flags)
 {
-  mrb_irep *irep = read_irep_record_1(mrb, bin, len, alloc);
+  mrb_irep *irep = read_irep_record_1(mrb, bin, len, flags);
   size_t i;
 
   if (irep == NULL) {
@@ -172,7 +185,7 @@ read_irep_record(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool alloc
   for (i=0; i<irep->rlen; i++) {
     size_t rlen;
 
-    irep->reps[i] = read_irep_record(mrb, bin, &rlen, alloc);
+    irep->reps[i] = read_irep_record(mrb, bin, &rlen, flags);
     if (irep->reps[i] == NULL) {
       return NULL;
     }
@@ -183,12 +196,12 @@ read_irep_record(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool alloc
 }
 
 static mrb_irep*
-read_section_irep(mrb_state *mrb, const uint8_t *bin, mrb_bool alloc)
+read_section_irep(mrb_state *mrb, const uint8_t *bin, uint8_t flags)
 {
   size_t len;
 
   bin += sizeof(struct rite_section_irep_header);
-  return read_irep_record(mrb, bin, &len, alloc);
+  return read_irep_record(mrb, bin, &len, flags);
 }
 
 static int
@@ -357,7 +370,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
 }
 
 static int
-read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, mrb_bool alloc)
+read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, uint8_t flags)
 {
   const uint8_t *bin;
   ptrdiff_t diff;
@@ -378,7 +391,7 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, mrb_boo
   for (i = 0; i < filenames_len; ++i) {
     uint16_t f_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
-    if (alloc) {
+    if (flags & FLAG_SRC_MALLOC) {
       filenames[i] = mrb_intern(mrb, (const char *)bin, (size_t)f_len);
     }
     else {
@@ -446,7 +459,7 @@ read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *rec
 }
 
 static int
-read_section_lv(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, mrb_bool alloc)
+read_section_lv(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, uint8_t flags)
 {
   const uint8_t *bin;
   ptrdiff_t diff;
@@ -456,7 +469,8 @@ read_section_lv(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, mrb_bool a
   int result;
   uint32_t syms_len;
   mrb_sym *syms;
-  mrb_sym (*intern_func)(mrb_state*, const char*, size_t) = alloc? mrb_intern : mrb_intern_static;
+  mrb_sym (*intern_func)(mrb_state*, const char*, size_t) =
+    (flags & FLAG_SRC_MALLOC)? mrb_intern : mrb_intern_static;
 
   bin = start;
   header = (struct rite_section_lv_header const*)bin;
@@ -489,12 +503,25 @@ lv_exit:
 }
 
 static int
-read_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc)
+read_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc, mrb_bool *byteorder)
 {
   const struct rite_binary_header *header = (const struct rite_binary_header *)bin;
 
+  *byteorder = FALSE;
   if (memcmp(header->binary_identify, RITE_BINARY_IDENTIFIER, sizeof(header->binary_identify)) != 0) {
-    return MRB_DUMP_INVALID_FILE_HEADER;
+    uint32_t ident = 0;
+    size_t i;
+
+    for(i=0; i<sizeof(ident); i++) {
+      ident<<=8;
+      ident|=RITE_BINARY_IDENTIFIER[i];
+    }
+    if (ident == *(uint32_t*)header->binary_identify) {
+      *byteorder = TRUE;
+    }
+    else {
+      return MRB_DUMP_INVALID_FILE_HEADER;
+    }
   }
 
   if (memcmp(header->binary_version, RITE_BINARY_FORMAT_VER, sizeof(header->binary_version)) != 0) {
@@ -518,14 +545,19 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
   uint16_t crc;
   size_t bin_size = 0;
   size_t n;
+  mrb_bool byteorder;
+  uint8_t flags = FLAG_SRC_STATIC;
 
   if ((mrb == NULL) || (bin == NULL)) {
     return NULL;
   }
 
-  result = read_binary_header(bin, &bin_size, &crc);
+  result = read_binary_header(bin, &bin_size, &crc, &byteorder);
   if (result != MRB_DUMP_OK) {
     return NULL;
+  }
+  if (byteorder) {
+    flags |= FLAG_BYTEORDER_NATIVE;
   }
 
   n = offset_crc_body();
@@ -537,7 +569,7 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
   do {
     section_header = (const struct rite_section_header *)bin;
     if (memcmp(section_header->section_identify, RITE_SECTION_IREP_IDENTIFIER, sizeof(section_header->section_identify)) == 0) {
-      irep = read_section_irep(mrb, bin, FALSE);
+      irep = read_section_irep(mrb, bin, flags);
       if (!irep) return NULL;
     }
     else if (memcmp(section_header->section_identify, RITE_SECTION_LINENO_IDENTIFIER, sizeof(section_header->section_identify)) == 0) {
@@ -549,14 +581,14 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
     }
     else if (memcmp(section_header->section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(section_header->section_identify)) == 0) {
       if (!irep) return NULL;   /* corrupted data */
-      result = read_section_debug(mrb, bin, irep, FALSE);
+      result = read_section_debug(mrb, bin, irep, flags);
       if (result < MRB_DUMP_OK) {
         return NULL;
       }
     }
     else if (memcmp(section_header->section_identify, RITE_SECTION_LV_IDENTIFIER, sizeof(section_header->section_identify)) == 0) {
       if (!irep) return NULL;
-      result = read_section_lv(mrb, bin, irep, FALSE);
+      result = read_section_lv(mrb, bin, irep, flags);
       if (result < MRB_DUMP_OK) {
         return NULL;
       }
@@ -668,7 +700,7 @@ read_irep_record_file(mrb_state *mrb, FILE *fp)
   if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) == 0) {
     return NULL;
   }
-  irep = read_irep_record_1(mrb, buf, &len, TRUE);
+  irep = read_irep_record_1(mrb, buf, &len, FLAG_SRC_MALLOC);
   mrb_free(mrb, ptr);
   if (!irep) return NULL;
   for (i=0; i<irep->rlen; i++) {
@@ -715,7 +747,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
     mrb_free(mrb, buf);
     return NULL;
   }
-  result = read_binary_header(buf, NULL, &crc);
+  result = read_binary_header(buf, NULL, &crc, NULL);
   mrb_free(mrb, buf);
   if (result != MRB_DUMP_OK) {
     return NULL;
@@ -773,7 +805,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
           mrb_free(mrb, bin);
           return NULL;
         }
-        result = read_section_debug(mrb, bin, irep, TRUE);
+        result = read_section_debug(mrb, bin, irep, FLAG_SRC_MALLOC);
         mrb_free(mrb, bin);
       }
       if (result < MRB_DUMP_OK) return NULL;
@@ -788,7 +820,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
           mrb_free(mrb, bin);
           return NULL;
         }
-        result = read_section_lv(mrb, bin, irep, TRUE);
+        result = read_section_lv(mrb, bin, irep, FLAG_SRC_MALLOC);
         mrb_free(mrb, bin);
       }
       if (result < MRB_DUMP_OK) return NULL;
