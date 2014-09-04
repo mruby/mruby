@@ -548,16 +548,17 @@ mrb_iv_p(mrb_state *mrb, mrb_sym iv_name)
   const char *s;
   mrb_int i, len;
   size_t j;
-  const char *invalid = "@$!? ";
 
   s = mrb_sym2name_len(mrb, iv_name, &len);
   if (len < 2) return FALSE;
   if (s[0] != '@') return FALSE;
   if (s[1] == '@') return FALSE;
   for (i=1; i<len; i++) {
-    char c = s[i];
-    for (j=0; j<sizeof(invalid); j++) {
-      if (c == invalid[j]) return FALSE;
+    switch (s[i]) {
+    case '@': case '$': case '!': case '?': case ' ':
+      return FALSE;
+    default:
+      break;
     }
   }
   return TRUE;
