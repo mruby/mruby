@@ -32,12 +32,12 @@ typedef struct mrbc_context {
   mrb_bool no_optimize:1;
 } mrbc_context;
 
-mrbc_context* mrbc_context_new(mrb_state *mrb);
-void mrbc_context_free(mrb_state *mrb, mrbc_context *cxt);
-const char *mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s);
-void mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*partial_hook)(struct mrb_parser_state*), void*data);
+MRB_API mrbc_context* mrbc_context_new(mrb_state *mrb);
+MRB_API void mrbc_context_free(mrb_state *mrb, mrbc_context *cxt);
+MRB_API const char *mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s);
+MRB_API void mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*partial_hook)(struct mrb_parser_state*), void*data);
 
-mrb_value mrb_toplevel_run_keep(mrb_state*, struct RProc*, unsigned int);
+MRB_API mrb_value mrb_toplevel_run_keep(mrb_state*, struct RProc*, unsigned int);
 
 /* AST node structure */
 typedef struct mrb_ast_node {

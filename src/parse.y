@@ -5439,7 +5439,7 @@ mrb_parser_free(parser_state *p) {
   mrb_pool_close(p->pool);
 }
 
-mrbc_context*
+MRB_API mrbc_context*
 mrbc_context_new(mrb_state *mrb)
 {
   mrbc_context *c;
@@ -5448,14 +5448,14 @@ mrbc_context_new(mrb_state *mrb)
   return c;
 }
 
-void
+MRB_API void
 mrbc_context_free(mrb_state *mrb, mrbc_context *cxt)
 {
   mrb_free(mrb, cxt->syms);
   mrb_free(mrb, cxt);
 }
 
-const char*
+MRB_API const char*
 mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 {
   if (s) {
@@ -5468,7 +5468,7 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
   return c->filename;
 }
 
-void
+MRB_API void
 mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*func)(struct mrb_parser_state*), void *data)
 {
   c->partial_hook = func;
