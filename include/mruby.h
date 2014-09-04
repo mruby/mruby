@@ -161,6 +161,7 @@ typedef struct mrb_state {
   mrb_bool gc_full:1;
   mrb_bool is_generational_gc_mode:1;
   mrb_bool out_of_memory:1;
+  mrb_bool symbol_table_overflow:1;
   size_t majorgc_old_threshold;
   struct alloca_header *mems;
 
