@@ -517,7 +517,7 @@ read_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc, mrb_bool
         ident<<=8;
         ident|=RITE_BINARY_IDENTIFIER[i];
       }
-      if (ident == *(uint32_t*)header->binary_identify) {
+      if (memcmp(header->binary_identify, &ident, sizeof(header->binary_identify)) == 0) {
         *byteorder = TRUE;
       }
       else {
