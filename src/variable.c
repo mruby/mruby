@@ -542,23 +542,20 @@ mrb_iv_defined(mrb_state *mrb, mrb_value obj, mrb_sym sym)
   return mrb_obj_iv_defined(mrb, mrb_obj_ptr(obj), sym);
 }
 
+#define identchar(c) (ISALNUM(c) || (c) == '_' || !ISASCII(c))
+
 MRB_API mrb_bool
 mrb_iv_p(mrb_state *mrb, mrb_sym iv_name)
 {
   const char *s;
   mrb_int i, len;
-  size_t j;
-  const char *invalid = "@$!? ";
 
   s = mrb_sym2name_len(mrb, iv_name, &len);
   if (len < 2) return FALSE;
   if (s[0] != '@') return FALSE;
   if (s[1] == '@') return FALSE;
   for (i=1; i<len; i++) {
-    char c = s[i];
-    for (j=0; j<sizeof(invalid); j++) {
-      if (c == invalid[j]) return FALSE;
-    }
+    if (!identchar(s[i])) return FALSE;
   }
   return TRUE;
 }
