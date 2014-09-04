@@ -664,23 +664,23 @@ retry:
 
       case 'c': {
         mrb_value val = GETARG();
-        mrb_value tmp;
+        mrb_value ctmp;
         char *c;
 
-        tmp = mrb_check_string_type(mrb, val);
-        if (!mrb_nil_p(tmp)) {
-          if (mrb_fixnum(mrb_funcall(mrb, tmp, "size", 0)) != 1 ) {
+        ctmp = mrb_check_string_type(mrb, val);
+        if (!mrb_nil_p(ctmp)) {
+          if (mrb_fixnum(mrb_funcall(mrb, ctmp, "size", 0)) != 1 ) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "%c requires a character");
           }
         }
         else if (mrb_fixnum_p(val)) {
-          tmp = mrb_funcall(mrb, val, "chr", 0);
+          ctmp = mrb_funcall(mrb, val, "chr", 0);
         }
         else {
           mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
         }
-        c = RSTRING_PTR(tmp);
-        n = RSTRING_LEN(tmp);
+        c = RSTRING_PTR(ctmp);
+        n = RSTRING_LEN(ctmp);
         if (!(flags & FWIDTH)) {
           CHECK(n);
           memcpy(buf+blen, c, n);
