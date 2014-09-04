@@ -507,20 +507,22 @@ read_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc, mrb_bool
 {
   const struct rite_binary_header *header = (const struct rite_binary_header *)bin;
 
-  *byteorder = FALSE;
+  if (byteorder) *byteorder = FALSE;
   if (memcmp(header->binary_identify, RITE_BINARY_IDENTIFIER, sizeof(header->binary_identify)) != 0) {
-    uint32_t ident = 0;
-    size_t i;
+    if (byteorder) {
+      uint32_t ident = 0;
+      size_t i;
 
-    for(i=0; i<sizeof(ident); i++) {
-      ident<<=8;
-      ident|=RITE_BINARY_IDENTIFIER[i];
-    }
-    if (ident == *(uint32_t*)header->binary_identify) {
-      *byteorder = TRUE;
-    }
-    else {
-      return MRB_DUMP_INVALID_FILE_HEADER;
+      for(i=0; i<sizeof(ident); i++) {
+        ident<<=8;
+        ident|=RITE_BINARY_IDENTIFIER[i];
+      }
+      if (ident == *(uint32_t*)header->binary_identify) {
+        *byteorder = TRUE;
+      }
+      else {
+        return MRB_DUMP_INVALID_FILE_HEADER;
+      }
     }
   }
 
