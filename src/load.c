@@ -72,7 +72,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
     if (SIZE_ERROR_MUL(sizeof(mrb_code), irep->ilen)) {
       return NULL;
     }
-    if (!(flags & FLAG_SRC_MALLOC) &&
+    if ((flags & FLAG_SRC_MALLOC) == 0 &&
         (flags & FLAG_BYTEORDER_NATIVE)) {
       irep->iseq = (mrb_code*)src;
       src += sizeof(uint32_t) * irep->ilen;
