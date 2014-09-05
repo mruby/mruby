@@ -298,7 +298,7 @@ module MRuby
         @ary.empty?
       end
 
-      def generate_gem_table
+      def generate_gem_table build
         gem_table = @ary.reduce({}) { |res,v| res[v.name] = v; res }
 
         default_gems = []
@@ -381,7 +381,7 @@ module MRuby
       end
 
       def check(build)
-        gem_table = generate_gem_table
+        gem_table = generate_gem_table build
 
         @ary = tsort_dependencies gem_table.keys, gem_table, true
 
