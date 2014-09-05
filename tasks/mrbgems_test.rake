@@ -1,5 +1,5 @@
 MRuby.each_target do
-  gem_table = gems.generate_gem_table
+  gem_table = gems.generate_gem_table self
 
   gems.each do |g|
     test_rbobj = g.test_rbireps.ext(exts.object)
