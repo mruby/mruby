@@ -3,6 +3,39 @@ class Hash
   #  ISO does not define Hash#each_pair, so each_pair is defined in gem.
   alias each_pair each
 
+  def self.[](*object)
+    o = object[0]
+    if o.respond_to?(:to_hash)
+      h = Hash.new
+      object[0].to_hash.each { |k, v| h[k] = v }
+      return h
+    elsif o.respond_to?(:to_a)
+      h = Hash.new
+      o.to_a.each do |i|
+        raise ArgumentError, "wrong element type #{i.class} at #{__LINE__} (expected array)" unless i.respond_to?(:to_a)
+        k, v = nil
+        case i.size
+        when 2
+          k = i[0]
+          v = i[1]
+        when 1
+          k = i[0]
+        else
+          raise ArgumentError, "invalid number of elements (#{i.size} for 1..2)"
+        end
+        h[k] = v
+      end
+      return h
+    end
+    raise ArgumentError, 'odd number of arguments for Hash' unless object.length % 2 == 0
+    h = Hash.new
+    t = (0...(object.length >> 1)).map { |i| i * 2 }
+    for i in t do
+      h[object[i]] = object[i + 1]
+    end
+    h
+  end
+
   ##
   # call-seq:
   #     hsh.merge!(other_hash)                                 -> hsh
