@@ -62,7 +62,12 @@ typedef unsigned int stack_type;
 #define CMDARG_P()      BITSTACK_SET_P(p->cmdarg_stack)
 
 #define SET_LINENO(c,n) ((c)->lineno = (n))
-#define NODE_LINENO(c,n) do {if (n) ((c)->lineno = (n)->lineno);} while (0)
+#define NODE_LINENO(c,n) do {\
+  if (n) {\
+     (c)->filename_index = (n)->filename_index;\
+     (c)->lineno = (n)->lineno;\
+  }\
+} while (0)
 
 #define sym(x) ((mrb_sym)(intptr_t)(x))
 #define nsym(x) ((node*)(intptr_t)(x))
