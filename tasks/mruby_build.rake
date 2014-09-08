@@ -109,7 +109,7 @@ module MRuby
     def enable_cxx_abi
       return if @cxx_exception_disabled or @cxx_abi_enabled
       compilers.each { |c| c.defines += %w(MRB_ENABLE_CXX_EXCEPTION) }
-      linker.command = cxx.command
+      linker.command = cxx.command if toolchains.find { |v| v == 'gcc' }
       @cxx_abi_enabled = true
     end
 
