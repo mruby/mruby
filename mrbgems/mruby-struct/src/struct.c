@@ -14,8 +14,8 @@
 #include "mruby/hash.h"
 #include "mruby/range.h"
 
-#define RSTRUCT_LEN(st) RARRAY_LEN(st)
-#define RSTRUCT_PTR(st) RARRAY_PTR(st)
+#define RSTRUCT_LEN(st) mrb_ary_ptr(st)->len
+#define RSTRUCT_PTR(st) mrb_ary_ptr(st)->ptr
 
 static struct RClass *
 struct_class(mrb_state *mrb)
@@ -72,15 +72,10 @@ static mrb_value
 mrb_struct_s_members_m(mrb_state *mrb, mrb_value klass)
 {
   mrb_value members, ary;
-  mrb_value *p, *pend;
 
   members = mrb_struct_s_members(mrb, klass);
   ary = mrb_ary_new_capa(mrb, RARRAY_LEN(members));
-  p = RARRAY_PTR(members); pend = p + RARRAY_LEN(members);
-  while (p < pend) {
-    mrb_ary_push(mrb, ary, *p);
-    p++;
-  }
+  mrb_ary_replace(mrb, ary, members);
   return ary;
 }
 
@@ -106,7 +101,8 @@ mrb_struct_members_m(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
 {
-  mrb_value members, slot, *ptr, *ptr_members;
+  mrb_value members, slot, *ptr;
+  const mrb_value *ptr_members;
   mrb_int i, len;
 
   ptr = RSTRUCT_PTR(obj);
@@ -181,7 +177,8 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
   const char *name;
   mrb_int i, len, slen;
   mrb_sym mid;
-  mrb_value members, slot, *ptr, *ptr_members;
+  mrb_value members, slot, *ptr;
+  const mrb_value *ptr_members;
 
   /* get base id */
   name = mrb_sym2name_len(mrb, mrb->c->ci->mid, &slen);
@@ -227,7 +224,7 @@ is_const_id(mrb_state *mrb, const char *name)
 static void
 make_struct_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c)
 {
-  mrb_value *ptr_members = RARRAY_PTR(members);
+  const mrb_value *ptr_members = RARRAY_PTR(members);
   mrb_int i;
   mrb_int len = RARRAY_LEN(members);
   int ai = mrb_gc_arena_save(mrb);
@@ -359,7 +356,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
     }
     for (i=0; i<RARRAY_LEN(rest); i++) {
       id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
-      RARRAY_PTR(rest)[i] = mrb_symbol_value(id);
+      mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
     }
   }
   st = make_struct(mrb, name, rest, struct_class(mrb));
@@ -420,7 +417,8 @@ inspect_struct(mrb_state *mrb, mrb_value s, mrb_bool recur)
 {
   const char *cn = mrb_class_name(mrb, mrb_obj_class(mrb, s));
   mrb_value members, str = mrb_str_new_lit(mrb, "#<struct ");
-  mrb_value *ptr, *ptr_members;
+  mrb_value *ptr;
+  const mrb_value *ptr_members;
   mrb_int i, len;
 
   if (cn) {
@@ -506,7 +504,8 @@ mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
 static mrb_value
 struct_aref_sym(mrb_state *mrb, mrb_value s, mrb_sym id)
 {
-  mrb_value *ptr, members, *ptr_members;
+  mrb_value *ptr, members;
+  const mrb_value *ptr_members;
   mrb_int i, len;
 
   ptr = RSTRUCT_PTR(s);
@@ -579,7 +578,8 @@ mrb_struct_aref(mrb_state *mrb, mrb_value s)
 static mrb_value
 mrb_struct_aset_sym(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
 {
-  mrb_value members, *ptr, *ptr_members;
+  mrb_value members, *ptr;
+  const mrb_value *ptr_members;
   mrb_int i, len;
 
   members = mrb_struct_members(mrb, s);

@@ -32,7 +32,7 @@ struct RArray {
 #define RARRAY(v)  ((struct RArray*)(mrb_ptr(v)))
 
 #define RARRAY_LEN(a) (RARRAY(a)->len)
-#define RARRAY_PTR(a) (RARRAY(a)->ptr)
+#define RARRAY_PTR(a) ((const mrb_value*)RARRAY(a)->ptr)
 #define MRB_ARY_SHARED      256
 #define ARY_SHARED_P(a) ((a)->flags & MRB_ARY_SHARED)
 #define ARY_SET_SHARED_FLAG(a) ((a)->flags |= MRB_ARY_SHARED)

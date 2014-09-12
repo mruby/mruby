@@ -221,8 +221,8 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
       j = mrb_fixnum(mrb_random_mt_rand(mrb, random, mrb_fixnum_value(RARRAY_LEN(ary))));
 
       tmp = RARRAY_PTR(ary)[i];
-      RARRAY_PTR(ary)[i] = RARRAY_PTR(ary)[j];
-      RARRAY_PTR(ary)[j] = tmp;
+      mrb_ary_ptr(ary)->ptr[i] = RARRAY_PTR(ary)[j];
+      mrb_ary_ptr(ary)->ptr[j] = tmp;
     }
   }
 
@@ -305,11 +305,10 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
         }
         break;
       }
-      RARRAY_PTR(result)[i] = mrb_fixnum_value(r);
-      RARRAY_LEN(result)++;
+      mrb_ary_push(mrb, result, mrb_fixnum_value(r));
     }
     for (i=0; i<n; i++) {
-      RARRAY_PTR(result)[i] = RARRAY_PTR(ary)[mrb_fixnum(RARRAY_PTR(result)[i])];
+      mrb_ary_set(mrb, result, i, RARRAY_PTR(ary)[mrb_fixnum(RARRAY_PTR(result)[i])]);
     }
     return result;
   }

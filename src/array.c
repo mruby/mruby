@@ -574,7 +574,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
 {
   struct RArray *a = mrb_ary_ptr(ary);
   mrb_int tail, size;
-  mrb_value *argv;
+  const mrb_value *argv;
   mrb_int i, argc;
 
   ary_modify(mrb, a);
