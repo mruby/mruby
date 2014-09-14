@@ -7,7 +7,7 @@
 #ifndef MRUBY_VALUE_H
 #define MRUBY_VALUE_H
 
-typedef uint16_t mrb_sym;
+typedef uint32_t mrb_sym;
 typedef uint8_t mrb_bool;
 struct mrb_state;
 

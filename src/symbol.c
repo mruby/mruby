@@ -45,14 +45,6 @@ sym_validate_len(mrb_state *mrb, size_t len)
   }
 }
 
-#define MRB_SYM_MAX UINT16_MAX
-
-static mrb_value
-sym_tbl_overflow_new_str(mrb_state *mrb, const char *name, size_t len)
-{
-  return mrb_str_inspect(mrb, mrb_str_new(mrb, name, len));
-}
-
 static mrb_sym
 sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
 {
@@ -69,19 +61,6 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   k = kh_get(n2s, mrb, h, sname);
   if (k != kh_end(h))
     return kh_value(h, k);
-
-  if (mrb->symbol_table_overflow) {
-    if (mrb->symidx == MRB_SYM_MAX) {
-      mrb_bug(mrb, "symbol table overflow (symbol %S)", sym_tbl_overflow_new_str(mrb, name, len));
-    }
-  }
-  else {
-    if (mrb->symidx >= MRB_SYM_MAX - 8) { /* raising might intern a few new strings */
-      mrb->symbol_table_overflow = TRUE;
-      mrb_raisef(mrb, E_RUNTIME_ERROR, "symbol table overflow (symbol %S)",
-        sym_tbl_overflow_new_str(mrb, name, len));
-    }
-  }
 
   sym = ++mrb->symidx;
   if (lit) {
