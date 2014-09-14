@@ -35,6 +35,9 @@ sym_hash_func(mrb_state *mrb, const symbol_name s)
 
 KHASH_DECLARE(n2s, symbol_name, mrb_sym, TRUE)
 KHASH_DEFINE (n2s, symbol_name, mrb_sym, TRUE, sym_hash_func, sym_hash_equal)
+
+KHASH_DECLARE(s2n, mrb_sym, symbol_name, TRUE)
+KHASH_DEFINE(s2n, mrb_sym, symbol_name, TRUE, kh_int_hash_func, kh_int_hash_equal)
 /* ------------------------------------------------------ */
 
 static void
@@ -57,8 +60,10 @@ static mrb_sym
 sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
 {
   khash_t(n2s) *h = mrb->name2sym;
+  khash_t(s2n) *h_s2n = mrb->sym2name;
   symbol_name sname;
   khiter_t k;
+  khiter_t k_s2n;
   mrb_sym sym;
   char *p;
 
@@ -95,6 +100,8 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   }
   k = kh_put(n2s, mrb, h, sname);
   kh_value(h, k) = sym;
+  k_s2n = kh_put(s2n, mrb, h_s2n, sym);
+  kh_value(h_s2n, k_s2n) = sname;
 
   return sym;
 }
@@ -157,19 +164,17 @@ mrb_check_intern_str(mrb_state *mrb, mrb_value str)
 MRB_API const char*
 mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 {
-  khash_t(n2s) *h = mrb->name2sym;
+  khash_t(s2n) *h = mrb->sym2name;
   khiter_t k;
   symbol_name sname;
-
-  for (k = kh_begin(h); k != kh_end(h); k++) {
-    if (kh_exist(h, k)) {
-      if (kh_value(h, k) == sym) {
-        sname = kh_key(h, k);
-        if (lenp) *lenp = sname.len;
-        return sname.name;
-      }
-    }
+  
+  k = kh_get(s2n, mrb, h, sym);
+  if (k != kh_end(h)) {
+    sname = kh_value(h, k);
+    if (lenp) *lenp = sname.len;
+      return sname.name;
   }
+  
   if (lenp) *lenp = 0;
   return NULL;  /* missing */
 }
@@ -180,6 +185,7 @@ mrb_free_symtbl(mrb_state *mrb)
   khash_t(n2s) *h = mrb->name2sym;
   khiter_t k;
 
+  kh_destroy(s2n, mrb, mrb->sym2name);
   for (k = kh_begin(h); k != kh_end(h); k++)
     if (kh_exist(h, k)) {
       symbol_name s = kh_key(h, k);
@@ -195,6 +201,7 @@ void
 mrb_init_symtbl(mrb_state *mrb)
 {
   mrb->name2sym = kh_init(n2s, mrb);
+  mrb->sym2name = kh_init(s2n, mrb);
 }
 
 /**********************************************************************
