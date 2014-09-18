@@ -29,8 +29,7 @@ class Hash
     end
     raise ArgumentError, 'odd number of arguments for Hash' unless object.length % 2 == 0
     h = Hash.new
-    t = (0...(object.length >> 1)).map { |i| i * 2 }
-    for i in t do
+    0.step(object.length - 2, 2) do |i|
       h[object[i]] = object[i + 1]
     end
     h
