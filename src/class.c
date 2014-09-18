@@ -1657,23 +1657,6 @@ check_cv_name_sym(mrb_state *mrb, mrb_sym id)
   check_cv_name_str(mrb, mrb_sym2str(mrb, id));
 }
 
-static mrb_value
-get_sym_or_str_arg(mrb_state *mrb)
-{
-  mrb_value sym_or_str;
-
-  mrb_get_args(mrb, "o", &sym_or_str);
-
-  if (mrb_symbol_p(sym_or_str) || mrb_string_p(sym_or_str)) {
-    return sym_or_str;
-  }
-  else {
-    mrb_value obj = mrb_funcall(mrb, sym_or_str, "inspect", 0);
-    mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol", obj);
-    return mrb_nil_value();
-  }
-}
-
 /* 15.2.2.4.16 */
 /*
  *  call-seq:
@@ -1694,22 +1677,9 @@ mrb_mod_cvar_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_value id;
 
-  id = get_sym_or_str_arg(mrb);
-  if (mrb_symbol_p(id)) {
-    check_cv_name_sym(mrb, mrb_symbol(id));
-    return mrb_bool_value(mrb_cv_defined(mrb, mod, mrb_symbol(id)));
-  }
-  else {
-    mrb_value sym;
-    check_cv_name_str(mrb, id);
-    sym = mrb_check_intern_str(mrb, id);
-    if (mrb_nil_p(sym)) {
-      return mrb_false_value();
-    }
-    else {
-      return mrb_bool_value(mrb_cv_defined(mrb, mod, mrb_symbol(sym)));
-    }
-  }
+  mrb_get_args(mrb, "n", &id);
+  check_cv_name_sym(mrb, mrb_symbol(id));
+  return mrb_bool_value(mrb_cv_defined(mrb, mod, mrb_symbol(id)));
 }
 
 /* 15.2.2.4.17 */
@@ -1846,19 +1816,8 @@ mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_value id;
 
-  id = get_sym_or_str_arg(mrb);
-  if (mrb_symbol_p(id)) {
-    return mrb_bool_value(mrb_obj_respond_to(mrb, mrb_class_ptr(mod), mrb_symbol(id)));
-  }
-  else {
-    mrb_value sym = mrb_check_intern_str(mrb, id);
-    if (mrb_nil_p(sym)) {
-      return mrb_false_value();
-    }
-    else {
-      return mrb_bool_value(mrb_obj_respond_to(mrb, mrb_class_ptr(mod), mrb_symbol(sym)));
-    }
-  }
+  mrb_get_args(mrb, "n", &id);
+  return mrb_bool_value(mrb_obj_respond_to(mrb, mrb_class_ptr(mod), mrb_symbol(id)));
 }
 
 static void
