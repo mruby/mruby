@@ -1920,26 +1920,23 @@ check_const_name_sym(mrb_state *mrb, mrb_sym id)
 }
 
 static mrb_value
+const_defined(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool inherit)
+{
+  if (inherit) {
+    return mrb_bool_value(mrb_const_defined(mrb, mod, id));
+  }
+  return mrb_bool_value(mrb_const_defined_at(mrb, mod, id));
+}
+
+static mrb_value
 mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_value id;
+  mrb_bool inherit = TRUE;
 
-  id = get_sym_or_str_arg(mrb);
-  if (mrb_type(id) == MRB_TT_SYMBOL) {
-    check_const_name_sym(mrb, mrb_symbol(id));
-    return mrb_bool_value(mrb_const_defined(mrb, mod, mrb_symbol(id)));
-  }
-  else {
-    mrb_value sym;
-    check_const_name_str(mrb, id);
-    sym = mrb_check_intern_str(mrb, id);
-    if (mrb_nil_p(sym)) {
-      return mrb_false_value();
-    }
-    else {
-      return mrb_bool_value(mrb_const_defined(mrb, mod, mrb_symbol(sym)));
-    }
-  }
+  mrb_get_args(mrb, "n|b", &id, &inherit);
+  check_const_name_sym(mrb, mrb_symbol(id));
+  return const_defined(mrb, mod, mrb_symbol(id), inherit);
 }
 
 static mrb_value
@@ -2131,7 +2128,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "alias_method",            mrb_mod_alias,            MRB_ARGS_ANY());  /* 15.2.2.4.8 */
   mrb_define_method(mrb, mod, "ancestors",               mrb_mod_ancestors,        MRB_ARGS_NONE()); /* 15.2.2.4.9 */
   mrb_define_method(mrb, mod, "undef_method",            mrb_mod_undef,            MRB_ARGS_ANY());  /* 15.2.2.4.41 */
-  mrb_define_method(mrb, mod, "const_defined?",          mrb_mod_const_defined,    MRB_ARGS_REQ(1)); /* 15.2.2.4.20 */
+  mrb_define_method(mrb, mod, "const_defined?",          mrb_mod_const_defined,    MRB_ARGS_ARG(1,1)); /* 15.2.2.4.20 */
   mrb_define_method(mrb, mod, "const_get",               mrb_mod_const_get,        MRB_ARGS_REQ(1)); /* 15.2.2.4.21 */
   mrb_define_method(mrb, mod, "const_set",               mrb_mod_const_set,        MRB_ARGS_REQ(2)); /* 15.2.2.4.23 */
   mrb_define_method(mrb, mod, "constants",               mrb_mod_constants,        MRB_ARGS_OPT(1)); /* 15.2.2.4.24 */
