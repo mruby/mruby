@@ -24,32 +24,37 @@ class Hash
   #
 
   def self.[](*object)
-    o = object[0]
-    if o.respond_to?(:to_hash)
-      h = Hash.new
-      object[0].to_hash.each { |k, v| h[k] = v }
-      return h
-    elsif o.respond_to?(:to_a)
-      h = Hash.new
-      o.to_a.each do |i|
-        raise ArgumentError, "wrong element type #{i.class} (expected array)" unless i.respond_to?(:to_a)
-        k, v = nil
-        case i.size
-        when 2
-          k = i[0]
-          v = i[1]
-        when 1
-          k = i[0]
-        else
-          raise ArgumentError, "invalid number of elements (#{i.size} for 1..2)"
+    length = object.length
+    if length == 1
+      o = object[0]
+      if o.respond_to?(:to_hash)
+        h = Hash.new
+        object[0].to_hash.each { |k, v| h[k] = v }
+        return h
+      elsif o.respond_to?(:to_a)
+        h = Hash.new
+        o.to_a.each do |i|
+          raise ArgumentError, "wrong element type #{i.class} (expected array)" unless i.respond_to?(:to_a)
+          k, v = nil
+          case i.size
+          when 2
+            k = i[0]
+            v = i[1]
+          when 1
+            k = i[0]
+          else
+            raise ArgumentError, "invalid number of elements (#{i.size} for 1..2)"
+          end
+          h[k] = v
         end
-        h[k] = v
+        return h
       end
-      return h
     end
-    raise ArgumentError, 'odd number of arguments for Hash' unless object.length % 2 == 0
+    unless length % 2 == 0
+      raise ArgumentError, 'odd number of arguments for Hash'
+    end
     h = Hash.new
-    0.step(object.length - 2, 2) do |i|
+    0.step(length - 2, 2) do |i|
       h[object[i]] = object[i + 1]
     end
     h
