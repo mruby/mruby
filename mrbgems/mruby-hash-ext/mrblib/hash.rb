@@ -12,7 +12,7 @@ class Hash
     elsif o.respond_to?(:to_a)
       h = Hash.new
       o.to_a.each do |i|
-        raise ArgumentError, "wrong element type #{i.class} at #{__LINE__} (expected array)" unless i.respond_to?(:to_a)
+        raise ArgumentError, "wrong element type #{i.class} (expected array)" unless i.respond_to?(:to_a)
         k, v = nil
         case i.size
         when 2
