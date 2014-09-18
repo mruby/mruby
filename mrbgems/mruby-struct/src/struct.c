@@ -263,7 +263,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     if (!is_const_id(mrb, mrb_sym2name_len(mrb, id, NULL))) {
       mrb_name_error(mrb, id, "identifier %S needs to be constant", name);
     }
-    if (mrb_const_defined_at(mrb, klass, id)) {
+    if (mrb_const_defined_at(mrb, mrb_obj_value(klass), id)) {
       mrb_warn(mrb, "redefining constant Struct::%S", name);
       /* ?rb_mod_remove_const(klass, mrb_sym2name(mrb, id)); */
     }

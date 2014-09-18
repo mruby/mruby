@@ -50,7 +50,7 @@ MRB_API void mrb_iv_set(mrb_state *mrb, mrb_value obj, mrb_sym sym, mrb_value v)
 MRB_API mrb_bool mrb_iv_defined(mrb_state*, mrb_value, mrb_sym);
 MRB_API mrb_value mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym);
 MRB_API void mrb_iv_copy(mrb_state *mrb, mrb_value dst, mrb_value src);
-MRB_API mrb_bool mrb_const_defined_at(mrb_state *mrb, struct RClass *klass, mrb_sym id);
+MRB_API mrb_bool mrb_const_defined_at(mrb_state *mrb, mrb_value mod, mrb_sym id);
 MRB_API mrb_value mrb_gv_get(mrb_state *mrb, mrb_sym sym);
 MRB_API void mrb_gv_set(mrb_state *mrb, mrb_sym sym, mrb_value val);
 MRB_API void mrb_gv_remove(mrb_state *mrb, mrb_sym sym);

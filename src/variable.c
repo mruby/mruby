@@ -1081,9 +1081,10 @@ mrb_f_global_variables(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_bool
-mrb_const_defined_0(mrb_state *mrb, struct RClass *klass, mrb_sym id, mrb_bool exclude, mrb_bool recurse)
+mrb_const_defined_0(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool exclude, mrb_bool recurse)
 {
-  struct RClass * tmp;
+  struct RClass *klass = mrb_class_ptr(mod);
+  struct RClass *tmp;
   mrb_bool mod_retry = 0;
 
   tmp = klass;
@@ -1106,13 +1107,13 @@ retry:
 MRB_API mrb_bool
 mrb_const_defined(mrb_state *mrb, mrb_value mod, mrb_sym id)
 {
-  return mrb_const_defined_0(mrb, mrb_class_ptr(mod), id, TRUE, TRUE);
+  return mrb_const_defined_0(mrb, mod, id, TRUE, TRUE);
 }
 
 MRB_API mrb_bool
-mrb_const_defined_at(mrb_state *mrb, struct RClass *klass, mrb_sym id)
+mrb_const_defined_at(mrb_state *mrb, mrb_value mod, mrb_sym id)
 {
-  return mrb_const_defined_0(mrb, klass, id, TRUE, FALSE);
+  return mrb_const_defined_0(mrb, mod, id, TRUE, FALSE);
 }
 
 MRB_API mrb_value

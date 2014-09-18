@@ -137,7 +137,7 @@ define_module(mrb_state *mrb, mrb_sym name, struct RClass *outer)
 {
   struct RClass *m;
 
-  if (mrb_const_defined_at(mrb, outer, name)) {
+  if (mrb_const_defined_at(mrb, mrb_obj_value(outer), name)) {
     return module_from_sym(mrb, outer, name);
   }
   m = mrb_module_new(mrb);
@@ -179,7 +179,7 @@ define_class(mrb_state *mrb, mrb_sym name, struct RClass *super, struct RClass *
 {
   struct RClass * c;
 
-  if (mrb_const_defined_at(mrb, outer, name)) {
+  if (mrb_const_defined_at(mrb, mrb_obj_value(outer), name)) {
     c = class_from_sym(mrb, outer, name);
     if (super && mrb_class_real(c->super) != super) {
       mrb_raisef(mrb, E_TYPE_ERROR, "superclass mismatch for Class %S (%S not %S)",
