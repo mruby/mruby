@@ -854,16 +854,6 @@ mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
   mrb_mod_cv_set(mrb, c, sym, v);
 }
 
-MRB_API mrb_bool
-mrb_const_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym)
-{
-  struct RClass *m = mrb_class_ptr(mod);
-  iv_tbl *t = m->iv;
-
-  if (!t) return FALSE;
-  return iv_get(mrb, t, sym, NULL);
-}
-
 static void
 mod_const_check(mrb_state *mrb, mrb_value mod)
 {
@@ -1111,6 +1101,12 @@ retry:
     goto retry;
   }
   return FALSE;
+}
+
+MRB_API mrb_bool
+mrb_const_defined(mrb_state *mrb, mrb_value mod, mrb_sym id)
+{
+  return mrb_const_defined_0(mrb, mrb_class_ptr(mod), id, TRUE, TRUE);
 }
 
 MRB_API mrb_bool
