@@ -44,19 +44,19 @@ typedef struct mrb_irep_debug_info {
  * get line from irep's debug info and program counter
  * @return returns NULL if not found
  */
-const char *mrb_debug_get_filename(mrb_irep *irep, uint32_t pc);
+MRB_API const char *mrb_debug_get_filename(mrb_irep *irep, uint32_t pc);
 
 /*
  * get line from irep's debug info and program counter
  * @return returns -1 if not found
  */
-int32_t mrb_debug_get_line(mrb_irep *irep, uint32_t pc);
+MRB_API int32_t mrb_debug_get_line(mrb_irep *irep, uint32_t pc);
 
-mrb_irep_debug_info_file *mrb_debug_info_append_file(
+MRB_API mrb_irep_debug_info_file *mrb_debug_info_append_file(
     mrb_state *mrb, mrb_irep *irep,
     uint32_t start_pos, uint32_t end_pos);
-mrb_irep_debug_info *mrb_debug_info_alloc(mrb_state *mrb, mrb_irep *irep);
-void mrb_debug_info_free(mrb_state *mrb, mrb_irep_debug_info *d);
+MRB_API mrb_irep_debug_info *mrb_debug_info_alloc(mrb_state *mrb, mrb_irep *irep);
+MRB_API void mrb_debug_info_free(mrb_state *mrb, mrb_irep_debug_info *d);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */

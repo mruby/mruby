@@ -14,6 +14,7 @@
 
 void mrb_init_heap(mrb_state*);
 void mrb_init_core(mrb_state*);
+void mrb_init_mrbgems(mrb_state*);
 
 static mrb_value
 inspect_main(mrb_state *mrb, mrb_value mod)
@@ -21,22 +22,18 @@ inspect_main(mrb_state *mrb, mrb_value mod)
   return mrb_str_new_lit(mrb, "main");
 }
 
-mrb_state*
-mrb_open_allocf(mrb_allocf f, void *ud)
+MRB_API mrb_state*
+mrb_open_core(mrb_allocf f, void *ud)
 {
   static const mrb_state mrb_state_zero = { 0 };
   static const struct mrb_context mrb_context_zero = { 0 };
   mrb_state *mrb;
 
-#ifdef MRB_NAN_BOXING
-  mrb_static_assert(sizeof(void*) == 4, "when using NaN boxing sizeof pointer must be 4 byte");
-#endif
-
   mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
   if (mrb == NULL) return NULL;
 
   *mrb = mrb_state_zero;
-  mrb->ud = ud;
+  mrb->allocf_ud = ud;
   mrb->allocf = f;
   mrb->current_white_part = MRB_GC_WHITE_A;
   mrb->atexit_stack_len = 0;
@@ -50,13 +47,14 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   mrb->c = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
   *mrb->c = mrb_context_zero;
   mrb->root_c = mrb->c;
+
   mrb_init_core(mrb);
 
   return mrb;
 }
 
-static void*
-allocf(mrb_state *mrb, void *p, size_t size, void *ud)
+void*
+mrb_default_allocf(mrb_state *mrb, void *p, size_t size, void *ud)
 {
   if (size == 0) {
     free(p);
@@ -72,7 +70,7 @@ struct alloca_header {
   char buf[];
 };
 
-void*
+MRB_API void*
 mrb_alloca(mrb_state *mrb, size_t size)
 {
   struct alloca_header *p;
@@ -99,11 +97,27 @@ mrb_alloca_free(mrb_state *mrb)
   }
 }
 
-mrb_state*
+MRB_API mrb_state*
 mrb_open(void)
 {
-  mrb_state *mrb = mrb_open_allocf(allocf, NULL);
+  mrb_state *mrb = mrb_open_allocf(mrb_default_allocf, NULL);
 
+  return mrb;
+}
+
+MRB_API mrb_state*
+mrb_open_allocf(mrb_allocf f, void *ud)
+{
+  mrb_state *mrb = mrb_open_core(f, ud);
+
+  if (mrb == NULL) {
+    return NULL;
+  }
+
+#ifndef DISABLE_GEMS
+  mrb_init_mrbgems(mrb);
+  mrb_gc_arena_restore(mrb, 0);
+#endif
   return mrb;
 }
 
@@ -168,7 +182,7 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
   ns->tt = MRB_TT_STRING;
   ns->c = mrb->string_class;
 
-  if (s->flags & MRB_STR_NOFREE) {
+  if (RSTR_NOFREE_P(s)) {
     ns->flags = MRB_STR_NOFREE;
     ns->as.heap.ptr = s->as.heap.ptr;
     ns->as.heap.len = s->as.heap.len;
@@ -176,9 +190,9 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
   }
   else {
     ns->flags = 0;
-    if (s->flags & MRB_STR_EMBED) {
+    if (RSTR_EMBED_P(s)) {
       ptr = s->as.ary;
-      len = (mrb_int)((s->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT);
+      len = RSTR_EMBED_LEN(s);
     }
     else {
       ptr = s->as.heap.ptr;
@@ -186,9 +200,8 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
     }
 
     if (len < RSTRING_EMBED_LEN_MAX) {
-      ns->flags |= MRB_STR_EMBED;
-      ns->flags &= ~MRB_STR_EMBED_LEN_MASK;
-      ns->flags |= (size_t)len << MRB_STR_EMBED_LEN_SHIFT;
+      RSTR_SET_EMBED_FLAG(ns);
+      RSTR_SET_EMBED_LEN(ns, len);
       if (ptr) {
         memcpy(ns->as.ary, ptr, len);
       }
@@ -207,7 +220,7 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
   return mrb_obj_value(ns);
 }
 
-void
+MRB_API void
 mrb_free_context(mrb_state *mrb, struct mrb_context *c)
 {
   if (!c) return;
@@ -218,7 +231,7 @@ mrb_free_context(mrb_state *mrb, struct mrb_context *c)
   mrb_free(mrb, c);
 }
 
-void
+MRB_API void
 mrb_close(mrb_state *mrb)
 {
   if (mrb->atexit_stack_len > 0) {
@@ -243,7 +256,7 @@ mrb_close(mrb_state *mrb)
   mrb_free(mrb, mrb);
 }
 
-mrb_irep*
+MRB_API mrb_irep*
 mrb_add_irep(mrb_state *mrb)
 {
   static const mrb_irep mrb_irep_zero = { 0 };
@@ -256,7 +269,7 @@ mrb_add_irep(mrb_state *mrb)
   return irep;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_top_self(mrb_state *mrb)
 {
   if (!mrb->top_self) {
@@ -267,7 +280,7 @@ mrb_top_self(mrb_state *mrb)
   return mrb_obj_value(mrb->top_self);
 }
 
-void
+MRB_API void
 mrb_state_atexit(mrb_state *mrb, mrb_atexit_func f)
 {
 #ifdef MRB_FIXED_STATE_ATEXIT_STACK

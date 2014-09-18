@@ -9,7 +9,7 @@ end
 assert('file not found') do
   o = `bin/mruby-strip not_found.mrb 2>&1`
   assert_equal 1, $?.exitstatus
-  assert_equal "can't open file not_found.mrb\n", o
+  assert_equal "can't open file for reading not_found.mrb\n", o
 end
 
 assert('not irep file') do

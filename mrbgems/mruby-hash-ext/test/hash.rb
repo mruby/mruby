@@ -1,6 +1,44 @@
 ##
 # Hash(Ext) Test
 
+assert('Hash.[] Hash') do
+  a = Hash['a_key' => 'a_value']
+
+  assert_equal({'a_key' => 'a_value'}, a)
+end
+
+assert('Hash.[] [ [ ["b_key", "b_value" ] ] ]') do
+  a = Hash[ [ ['b_key', 'b_value'] ] ]
+
+  assert_equal({'b_key' => 'b_value'}, a)
+
+  a = Hash[ [ ] ]
+
+  assert_equal({}, a)
+
+  assert_raise(ArgumentError) do
+    Hash[ [ ['b_key', 'b_value', 'b_over'] ] ]
+  end
+
+  assert_raise(ArgumentError) do
+    Hash[ [ [] ] ]
+  end
+end
+
+assert('Hash.[] "c_key", "c_value"') do
+  a = Hash['c_key', 'c_value', 'd_key', 1]
+
+  assert_equal({'c_key' => 'c_value', 'd_key' => 1}, a)
+
+  a = Hash[]
+
+  assert_equal({}, a)
+
+  assert_raise(ArgumentError) do
+    Hash['d_key']
+  end
+end
+
 assert('Hash#merge!') do
   a = { 'abc_key' => 'abc_value', 'cba_key' => 'cba_value' }
   b = { 'cba_key' => 'XXX',  'xyz_key' => 'xyz_value' }

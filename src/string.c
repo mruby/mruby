@@ -29,7 +29,7 @@ typedef struct mrb_shared_string {
 static mrb_value str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2);
 static mrb_value mrb_str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
 
-mrb_int
+MRB_API mrb_int
 mrb_str_strlen(mrb_state *mrb, struct RString *s)
 {
   mrb_int i, max = RSTR_LEN(s);
@@ -76,7 +76,7 @@ str_decref(mrb_state *mrb, mrb_shared_string *shared)
   }
 }
 
-void
+MRB_API void
 mrb_str_modify(mrb_state *mrb, struct RString *s)
 {
   if (RSTR_SHARED_P(s)) {
@@ -120,7 +120,7 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
   }
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
 {
   mrb_int slen;
@@ -148,7 +148,7 @@ str_new(mrb_state *mrb, const char *p, size_t len)
   s = mrb_obj_alloc_string(mrb);
   if (len < RSTRING_EMBED_LEN_MAX) {
     RSTR_SET_EMBED_FLAG(s);
-    RSTR_SET_EMBED_LEN(s,len);
+    RSTR_SET_EMBED_LEN(s, len);
     if (p) {
       memcpy(s->as.ary, p, len);
     }
@@ -167,7 +167,7 @@ str_new(mrb_state *mrb, const char *p, size_t len)
   return s;
 }
 
-static void
+static inline void
 str_with_class(mrb_state *mrb, struct RString *s, mrb_value obj)
 {
   s->c = mrb_str_ptr(obj)->c;
@@ -186,7 +186,7 @@ mrb_str_new_empty(mrb_state *mrb, mrb_value str)
 # define MRB_STR_BUF_MIN_SIZE 128
 #endif
 
-mrb_value
+MRB_API mrb_value
 mrb_str_buf_new(mrb_state *mrb, size_t capa)
 {
   struct RString *s;
@@ -248,7 +248,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
   RSTR_PTR(s)[total] = '\0';   /* sentinel */
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_str_new(mrb_state *mrb, const char *p, size_t len)
 {
   return mrb_obj_value(str_new(mrb, p, len));
@@ -261,7 +261,7 @@ mrb_str_new(mrb_state *mrb, const char *p, size_t len)
  *  Returns a new string object containing a copy of <i>str</i>.
  */
 
-mrb_value
+MRB_API mrb_value
 mrb_str_new_cstr(mrb_state *mrb, const char *p)
 {
   struct RString *s;
@@ -279,7 +279,7 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
   return mrb_obj_value(s);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_str_new_static(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s;
@@ -306,7 +306,7 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
     mrb_free(mrb, str->as.heap.ptr);
 }
 
-char *
+MRB_API char*
 mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
 {
   struct RString *s;
@@ -361,27 +361,12 @@ str_make_shared(mrb_state *mrb, struct RString *s)
 }
 
 /*
- *  call-seq:
- *     char* str = String("abcd"), len=strlen("abcd")
- *
- *  Returns a new string object containing a copy of <i>str</i>.
- */
-const char*
-mrb_str_body(mrb_value str, int *len_p)
-{
-  struct RString *s = mrb_str_ptr(str);
-
-  *len_p = RSTR_LEN(s);
-  return RSTR_PTR(s);
-}
-
-/*
  *  call-seq: (Caution! String("abcd") change)
  *     String("abcdefg") = String("abcd") + String("efg")
  *
  *  Returns a new string object containing a copy of <i>str</i>.
  */
-void
+MRB_API void
 mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
 {
   struct RString *s1 = mrb_str_ptr(self), *s2;
@@ -408,7 +393,7 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
  *
  *  Returns a new string object containing a copy of <i>str</i>.
  */
-mrb_value
+MRB_API mrb_value
 mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   struct RString *s = mrb_str_ptr(a);
@@ -439,28 +424,15 @@ mrb_str_plus_m(mrb_state *mrb, mrb_value self)
   return mrb_str_plus(mrb, self, str);
 }
 
-/*
- *  call-seq:
- *     len = strlen(String("abcd"))
- *
- *  Returns a new string object containing a copy of <i>str</i>.
- */
-static mrb_value
-mrb_str_bytesize(mrb_state *mrb, mrb_value self)
-{
-  struct RString *s = mrb_str_ptr(self);
-  return mrb_fixnum_value(RSTR_LEN(s));
-}
-
 /* 15.2.10.5.26 */
 /* 15.2.10.5.33 */
 /*
  *  call-seq:
  *     len = strlen(String("abcd"))
  *
- *  Returns a new string object containing a copy of <i>str</i>.
+ *  Returns the length of string.
  */
-mrb_value
+static mrb_value
 mrb_str_size(mrb_state *mrb, mrb_value self)
 {
   struct RString *s = mrb_str_ptr(self);
@@ -521,7 +493,7 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
  *                     =  0
  *                     <  -1
  */
-int
+MRB_API int
 mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
   mrb_int len;
@@ -607,7 +579,7 @@ str_eql(mrb_state *mrb, const mrb_value str1, const mrb_value str2)
   return FALSE;
 }
 
-mrb_bool
+MRB_API mrb_bool
 mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
   if (mrb_immediate_p(str2)) return FALSE;
@@ -643,7 +615,7 @@ mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
   return mrb_bool_value(mrb_str_equal(mrb, str1, str2));
 }
 /* ---------------------------------- */
-mrb_value
+MRB_API mrb_value
 mrb_str_to_str(mrb_state *mrb, mrb_value str)
 {
   mrb_value s;
@@ -658,25 +630,24 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
   return str;
 }
 
-char *
+MRB_API const char*
 mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
 {
   mrb_value str = mrb_str_to_str(mrb, ptr);
   return RSTRING_PTR(str);
 }
 
-static mrb_value
-noregexp(mrb_state *mrb, mrb_value self)
+void
+mrb_noregexp(mrb_state *mrb, mrb_value self)
 {
   mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp class not implemented");
-  return mrb_nil_value();
 }
 
-static void
-regexp_check(mrb_state *mrb, mrb_value obj)
+void
+mrb_regexp_check(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_regexp_p(mrb, obj)) {
-    noregexp(mrb, obj);
+    mrb_noregexp(mrb, obj);
   }
 }
 
@@ -751,7 +722,7 @@ mrb_str_index(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int offset)
   return pos + offset;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_str_dup(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
@@ -766,7 +737,7 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
 {
   mrb_int idx;
 
-  regexp_check(mrb, indx);
+  mrb_regexp_check(mrb, indx);
   switch (mrb_type(indx)) {
     case MRB_TT_FIXNUM:
       idx = mrb_fixnum(indx);
@@ -848,7 +819,7 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 
   argc = mrb_get_args(mrb, "o|o", &a1, &a2);
   if (argc == 2) {
-    regexp_check(mrb, a1);
+    mrb_regexp_check(mrb, a1);
     return mrb_str_substr(mrb, str, mrb_fixnum(a1), mrb_fixnum(a2));
   }
   if (argc != 1) {
@@ -1187,7 +1158,7 @@ mrb_str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   return mrb_obj_value(s);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
   if (len < 0) return mrb_nil_value();
@@ -1312,7 +1283,7 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
     else
       sub = mrb_nil_value();
   }
-  regexp_check(mrb, sub);
+  mrb_regexp_check(mrb, sub);
   if (pos < 0) {
     pos += RSTRING_LEN(str);
     if (pos < 0) {
@@ -1450,13 +1421,13 @@ mrb_str_init(mrb_state *mrb, mrb_value self)
  *
  *     'cat and dog'.to_sym   #=> :"cat and dog"
  */
-mrb_value
+MRB_API mrb_value
 mrb_str_intern(mrb_state *mrb, mrb_value self)
 {
   return mrb_symbol_value(mrb_intern_str(mrb, self));
 }
 /* ---------------------------------- */
-mrb_value
+MRB_API mrb_value
 mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str;
@@ -1470,7 +1441,7 @@ mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
   return str;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_ptr_to_str(mrb_state *mrb, void *p)
 {
   struct RString *p_str;
@@ -1500,13 +1471,13 @@ mrb_ptr_to_str(mrb_state *mrb, void *p)
   return mrb_obj_value(p_str);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_string_type(mrb_state *mrb, mrb_value str)
 {
   return mrb_convert_type(mrb, str, MRB_TT_STRING, "String", "to_str");
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_check_string_type(mrb_state *mrb, mrb_value str)
 {
   return mrb_check_convert_type(mrb, str, MRB_TT_STRING, "String", "to_str");
@@ -1651,7 +1622,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     if (pos < 0) {
       pos += len;
       if (pos < 0) {
-        regexp_check(mrb, sub);
+        mrb_regexp_check(mrb, sub);
         return mrb_nil_value();
       }
     }
@@ -1664,12 +1635,11 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
     else
       sub = mrb_nil_value();
   }
-  regexp_check(mrb, sub);
+  mrb_regexp_check(mrb, sub);
 
   switch (mrb_type(sub)) {
     case MRB_TT_FIXNUM: {
       int c = mrb_fixnum(sub);
-      mrb_int len = RSTRING_LEN(str);
       unsigned char *p = (unsigned char*)RSTRING_PTR(str);
 
       for (pos=len-1;pos>=0;pos--) {
@@ -1774,7 +1744,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       }
     }
     else {
-      noregexp(mrb, str);
+      mrb_noregexp(mrb, str);
     }
   }
 
@@ -1814,7 +1784,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     }
   }
   else if (split_type == string) {
-    char *ptr = RSTRING_PTR(str); // s->as.ary
+    char *ptr = RSTRING_PTR(str); /* s->as.ary */
     char *temp = ptr;
     char *eptr = RSTRING_END(str);
     mrb_int slen = RSTRING_LEN(spat);
@@ -1843,7 +1813,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     beg = ptr - temp;
   }
   else {
-    noregexp(mrb, str);
+    mrb_noregexp(mrb, str);
   }
   if (RSTRING_LEN(str) > 0 && (lim_p || RSTRING_LEN(str) > beg || lim < 0)) {
     if (RSTRING_LEN(str) == beg) {
@@ -1864,7 +1834,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   return result;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
 {
   const char *p;
@@ -2011,7 +1981,7 @@ bad:
   return mrb_fixnum_value(0);
 }
 
-char *
+MRB_API const char*
 mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 {
   struct RString *ps = mrb_str_ptr(*ptr);
@@ -2025,10 +1995,10 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
   return p;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
 {
-  char *s;
+  const char *s;
   mrb_int len;
 
   str = mrb_str_to_str(mrb, str);
@@ -2081,16 +2051,13 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
   return mrb_str_to_inum(mrb, self, base, FALSE);
 }
 
-double
+MRB_API double
 mrb_cstr_to_dbl(mrb_state *mrb, const char * p, mrb_bool badcheck)
 {
   char *end;
   double d;
 
   enum {max_width = 20};
-#define OutOfRange() (((w = end - p) > max_width) ? \
-      (w = max_width, ellipsis = "...") : \
-      (w = (int)(end - p), ellipsis = ""))
 
   if (!p) return 0.0;
   while (ISSPACE(*p)) p++;
@@ -2147,7 +2114,7 @@ bad:
   return d;
 }
 
-double
+MRB_API double
 mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck)
 {
   char *s;
@@ -2377,26 +2344,26 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
   return mrb_obj_value(result);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 {
   str_buf_cat(mrb, mrb_str_ptr(str), ptr, len);
   return str;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_str_cat_cstr(mrb_state *mrb, mrb_value str, const char *ptr)
 {
   return mrb_str_cat(mrb, str, ptr, strlen(ptr));
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2)
 {
   return mrb_str_cat(mrb, str, RSTRING_PTR(str2), RSTRING_LEN(str2));
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2)
 {
   str2 = mrb_str_to_str(mrb, str2);
@@ -2503,7 +2470,7 @@ mrb_init_string(mrb_state *mrb)
   s = mrb->string_class = mrb_define_class(mrb, "String", mrb->object_class);             /* 15.2.10 */
   MRB_SET_INSTANCE_TT(s, MRB_TT_STRING);
 
-  mrb_define_method(mrb, s, "bytesize",        mrb_str_bytesize,        MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "bytesize",        mrb_str_size,            MRB_ARGS_NONE());
 
   mrb_define_method(mrb, s, "<=>",             mrb_str_cmp_m,           MRB_ARGS_REQ(1)); /* 15.2.10.5.1  */
   mrb_define_method(mrb, s, "==",              mrb_str_equal_m,         MRB_ARGS_REQ(1)); /* 15.2.10.5.2  */
@@ -2511,7 +2478,7 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "*",               mrb_str_times,           MRB_ARGS_REQ(1)); /* 15.2.10.5.5  */
   mrb_define_method(mrb, s, "[]",              mrb_str_aref_m,          MRB_ARGS_ANY());  /* 15.2.10.5.6  */
   mrb_define_method(mrb, s, "capitalize",      mrb_str_capitalize,      MRB_ARGS_NONE()); /* 15.2.10.5.7  */
-  mrb_define_method(mrb, s, "capitalize!",     mrb_str_capitalize_bang, MRB_ARGS_REQ(1)); /* 15.2.10.5.8  */
+  mrb_define_method(mrb, s, "capitalize!",     mrb_str_capitalize_bang, MRB_ARGS_NONE()); /* 15.2.10.5.8  */
   mrb_define_method(mrb, s, "chomp",           mrb_str_chomp,           MRB_ARGS_ANY());  /* 15.2.10.5.9  */
   mrb_define_method(mrb, s, "chomp!",          mrb_str_chomp_bang,      MRB_ARGS_ANY());  /* 15.2.10.5.10 */
   mrb_define_method(mrb, s, "chop",            mrb_str_chop,            MRB_ARGS_REQ(1)); /* 15.2.10.5.11 */
@@ -2521,7 +2488,7 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "empty?",          mrb_str_empty_p,         MRB_ARGS_NONE()); /* 15.2.10.5.16 */
   mrb_define_method(mrb, s, "eql?",            mrb_str_eql,             MRB_ARGS_REQ(1)); /* 15.2.10.5.17 */
 
-  mrb_define_method(mrb, s, "hash",            mrb_str_hash_m,          MRB_ARGS_REQ(1)); /* 15.2.10.5.20 */
+  mrb_define_method(mrb, s, "hash",            mrb_str_hash_m,          MRB_ARGS_NONE()); /* 15.2.10.5.20 */
   mrb_define_method(mrb, s, "include?",        mrb_str_include,         MRB_ARGS_REQ(1)); /* 15.2.10.5.21 */
   mrb_define_method(mrb, s, "index",           mrb_str_index_m,         MRB_ARGS_ANY());  /* 15.2.10.5.22 */
   mrb_define_method(mrb, s, "initialize",      mrb_str_init,            MRB_ARGS_REQ(1)); /* 15.2.10.5.23 */
@@ -2541,8 +2508,8 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "to_s",            mrb_str_to_s,            MRB_ARGS_NONE()); /* 15.2.10.5.40 */
   mrb_define_method(mrb, s, "to_str",          mrb_str_to_s,            MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "to_sym",          mrb_str_intern,          MRB_ARGS_NONE()); /* 15.2.10.5.41 */
-  mrb_define_method(mrb, s, "upcase",          mrb_str_upcase,          MRB_ARGS_REQ(1)); /* 15.2.10.5.42 */
-  mrb_define_method(mrb, s, "upcase!",         mrb_str_upcase_bang,     MRB_ARGS_REQ(1)); /* 15.2.10.5.43 */
+  mrb_define_method(mrb, s, "upcase",          mrb_str_upcase,          MRB_ARGS_NONE()); /* 15.2.10.5.42 */
+  mrb_define_method(mrb, s, "upcase!",         mrb_str_upcase_bang,     MRB_ARGS_NONE()); /* 15.2.10.5.43 */
   mrb_define_method(mrb, s, "inspect",         mrb_str_inspect,         MRB_ARGS_NONE()); /* 15.2.10.5.46(x) */
   mrb_define_method(mrb, s, "bytes",           mrb_str_bytes,           MRB_ARGS_NONE());
 }

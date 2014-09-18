@@ -938,7 +938,7 @@ n/a | src/string.c | mrb_str_bytes
 
 ISO Code | Source File | C Function
 --- | --- | ---
-n/a | src/string.c | mrb_str_bytesize
+n/a | src/string.c | mrb_str_size
 
 #### capitalize
 

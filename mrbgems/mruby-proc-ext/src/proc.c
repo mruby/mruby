@@ -1,51 +1,9 @@
 #include "mruby.h"
 #include "mruby/proc.h"
+#include "mruby/opcode.h"
 #include "mruby/array.h"
 #include "mruby/string.h"
 #include "mruby/debug.h"
-
-struct RProc *
-mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t f, mrb_int argc, const mrb_value *argv)
-{
-  struct RProc *p;
-  struct REnv *e;
-  int ai, i;
-
-  p = mrb_proc_new_cfunc(mrb, f);
-  ai = mrb_gc_arena_save(mrb);
-  e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, NULL);
-  p->env = e;
-  mrb_gc_arena_restore(mrb, ai);
-
-  MRB_ENV_UNSHARE_STACK(e);
-  MRB_ENV_STACK_LEN(e) = argc;
-  e->stack = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * argc);
-  for (i = 0; i < argc; ++i) {
-    e->stack[i] = argv[i];
-  }
-
-  return p;
-}
-
-mrb_value
-mrb_cfunc_env_get(mrb_state *mrb, mrb_int idx)
-{
-  struct RProc *p = mrb->c->ci->proc;
-  struct REnv *e = p->env;
-
-  if (!MRB_PROC_CFUNC_P(p)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from non-cfunc proc.");
-  }
-  if (!e) {
-    mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from cfunc Proc without REnv.");
-  }
-  if (idx < 0 || MRB_ENV_STACK_LEN(e) <= idx) {
-    mrb_raisef(mrb, E_INDEX_ERROR, "Env index out of range: %S (expected: 0 <= index < %S)",
-               mrb_fixnum_value(idx), mrb_fixnum_value(MRB_ENV_STACK_LEN(e)));
-  }
-
-  return e->stack[idx];
-}
 
 static mrb_value
 mrb_proc_lambda(mrb_state *mrb, mrb_value self)
@@ -122,6 +80,73 @@ mrb_kernel_proc(mrb_state *mrb, mrb_value self)
   return blk;
 }
 
+/*
+ * call-seq:
+ *    prc.parameters  -> array
+ *
+ * Returns the parameter information of this proc.
+ *
+ *    prc = lambda{|x, y=42, *other|}
+ *    prc.parameters  #=> [[:req, :x], [:opt, :y], [:rest, :other]]
+ */
+
+static mrb_value
+mrb_proc_parameters(mrb_state *mrb, mrb_value self)
+{
+  struct parameters_type {
+    int size;
+    const char *name;
+  } *p, parameters_list [] = {
+    {0, "req"},
+    {0, "opt"},
+    {0, "rest"},
+    {0, "req"},
+    {0, "block"},
+    {0, NULL}
+  };
+  const struct RProc *proc = mrb_proc_ptr(self);
+  const struct mrb_irep *irep = proc->body.irep;
+  mrb_aspec aspec;
+  mrb_value parameters;
+  int i, j;
+
+  if (MRB_PROC_CFUNC_P(proc)) {
+    // TODO cfunc aspec is not implemented yet
+    return mrb_ary_new(mrb);
+  }
+  if (!irep->lv) {
+    return mrb_ary_new(mrb);
+  }
+  if (GET_OPCODE(*irep->iseq) != OP_ENTER) {
+    return mrb_ary_new(mrb);
+  }
+
+  if (!MRB_PROC_STRICT_P(proc)) {
+    parameters_list[0].name = "opt";
+    parameters_list[3].name = "opt";
+  }
+
+  aspec = GETARG_Ax(*irep->iseq);
+  parameters_list[0].size = MRB_ASPEC_REQ(aspec);
+  parameters_list[1].size = MRB_ASPEC_OPT(aspec);
+  parameters_list[2].size = MRB_ASPEC_REST(aspec);
+  parameters_list[3].size = MRB_ASPEC_POST(aspec);
+  parameters_list[4].size = MRB_ASPEC_BLOCK(aspec);
+
+  parameters = mrb_ary_new_capa(mrb, irep->nlocals-1);
+  for (i = 0, p = parameters_list; p->name; p++) {
+    mrb_value sname = mrb_symbol_value(mrb_intern_cstr(mrb, p->name));
+    for (j = 0; j < p->size; i++, j++) {
+      mrb_assert(i < (irep->nlocals-1));
+      mrb_ary_push(mrb, parameters, mrb_assoc_new(mrb,
+        sname,
+        mrb_symbol_value(irep->lv[i].name)
+      ));
+    }
+  }
+  return parameters;
+}
+
 void
 mrb_mruby_proc_ext_gem_init(mrb_state* mrb)
 {
@@ -130,6 +155,7 @@ mrb_mruby_proc_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, p, "source_location", mrb_proc_source_location, MRB_ARGS_NONE());
   mrb_define_method(mrb, p, "to_s",            mrb_proc_inspect,         MRB_ARGS_NONE());
   mrb_define_method(mrb, p, "inspect",         mrb_proc_inspect,         MRB_ARGS_NONE());
+  mrb_define_method(mrb, p, "parameters",      mrb_proc_parameters,      MRB_ARGS_NONE());
 
   mrb_define_class_method(mrb, mrb->kernel_module, "proc", mrb_kernel_proc, MRB_ARGS_NONE());
   mrb_define_method(mrb, mrb->kernel_module,       "proc", mrb_kernel_proc, MRB_ARGS_NONE());

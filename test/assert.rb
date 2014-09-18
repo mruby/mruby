@@ -21,7 +21,7 @@ end
 
 ##
 # Create the assertion in a readable way
-def assertion_string(err, str, iso=nil, e=nil)
+def assertion_string(err, str, iso=nil, e=nil, bt=nil)
   msg = "#{err}#{str}"
   msg += " [#{iso}]" if iso && iso != ''
   msg += " => #{e.message}" if e
@@ -31,6 +31,7 @@ def assertion_string(err, str, iso=nil, e=nil)
       msg += "\n - Assertion[#{idx}] Failed: #{str}\n#{diff}"
     end
   end
+  msg += "\nbacktrace:\n\t#{bt.join("\n\t")}" if bt
   msg
 end
 
@@ -56,11 +57,12 @@ def assert(str = 'Assertion failed', iso = '')
       t_print('.')
     end
   rescue Exception => e
+    bt = e.backtrace if $mrbtest_verbose
     if e.class.to_s == 'MRubyTestSkip'
       $asserts.push "Skip: #{str} #{iso} #{e.cause}"
       t_print('?')
     else
-      $asserts.push(assertion_string("#{e.class}: ", str, iso, e))
+      $asserts.push(assertion_string("#{e.class}: ", str, iso, e, bt))
       $kill_test += 1
       t_print('X')
   end

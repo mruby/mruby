@@ -17,6 +17,10 @@ You can use mrbconfs with following ways:
 
 `DISABLE_STDIO`
 * When defined `<stdio.h>` functions won't be used.
+* Some features will be disabled when this is enabled:
+  * `mrb_irep` load/dump from/to file.
+  * Compiling mruby script from file.
+  * Printing features in **src/print.c**.
 
 ## Debug macros.
 `ENABLE_DEBUG`
@@ -78,6 +82,79 @@ will be defined as `mrb_int`.
 * Useful tracking unnecessary mruby object allocation.
 
 `MRB_GC_ARENA_SIZE`
-* Default value is 100.
+* Default value is `100`.
 * Ignored when `MRB_GC_FIXED_ARENA` isn't defined.
 * Defines fixed GC arena size.
+
+`MRB_HEAP_PAGE_SIZE`
+* Defines value is `1024`.
+* Specifies number of `RBasic` per each heap page.
+
+## Memory pool configuration.
+
+`POOL_ALIGNMENT`
+* Default value is `4`.
+* If you're allocating data types that requires alignment more than default value define the
+largest value of required alignment.
+
+`POOL_PAGE_SIZE`
+* Default value is `16000`.
+* Specifies page size of pool page.
+* Smaller the value is increases memory overhead.
+
+## State atexit configuration.
+
+`MRB_FIXED_STATE_ATEXIT_STACK`
+* If defined enables fixed size `mrb_state` atexit stack.
+* Raises `RuntimeError` when `mrb_state_atexit` call count to same `mrb_state` exceeds
+`MRB_FIXED_STATE_ATEXIT_STACK_SIZE`'s value.
+
+`MRB_FIXED_STATE_ATEXIT_STACK_SIZE`
+* Default value is `5`.
+* If `MRB_FIXED_STATE_ATEXIT_STACK` isn't defined this macro is ignored.
+
+## `mrb_value` configuration.
+
+`MRB_ENDIAN_BIG`
+* If defined compiles mruby for big endian machines.
+* Used in `MRB_NAN_BOXING`.
+* Some mrbgem use this mrbconf.
+
+`MRB_NAN_BOXING`
+* If defined represent `mrb_value` in boxed `double`.
+* Conflicts with `MRB_USE_FLOAT`.
+
+`MRB_WORD_BOXING`
+* If defined represent `mrb_value` as a word.
+* If defined `Float` will be a mruby object with `RBasic`.
+
+## Instance variable configuration.
+`MRB_USE_IV_SEGLIST`
+* If defined enable segmented list in instance variable table instead of khash.
+* Segmented list is a linked list of key and value segments.
+* It will linear search instead of hash search.
+
+`MRB_SEGMENT_SIZE`
+* Default value is `4`.
+* Specifies size of each segment in segment list.
+* Ignored when `MRB_USE_IV_SEGLIST` isn't defined.
+
+`MRB_IVHASH_INIT_SIZE`
+* Default value is `8`.
+* Specifies initial size for instance variable table.
+* Ignored when `MRB_USE_IV_SEGLIST` is defined.
+
+## Other configuration.
+`MRB_FUNCALL_ARGC_MAX`
+* Default value is `16`.
+* Specifies 4th argument(`argc`) max value of `mrb_funcall`.
+* Raises `ArgumentError` when the `argc` argument is bigger then this value `mrb_funcall`.
+
+`KHASH_DEFAULT_SIZE`
+* Default value is `32`.
+* Specifies default size of khash table bucket.
+* Used in `kh_init_ ## name` function.
+
+`MRB_STR_BUF_MIN_SIZE`
+* Default value is `128`.
+* Specifies initial capacity of `RString` created by `mrb_str_buf_new` function..

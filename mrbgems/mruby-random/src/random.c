@@ -46,7 +46,7 @@ mrb_random_mt_srand(mrb_state *mrb, mt_state *t, mrb_value seed)
   if (mrb_nil_p(seed)) {
     seed = mrb_fixnum_value((mrb_int)(time(NULL) + mt_rand(t)));
     if (mrb_fixnum(seed) < 0) {
-      seed = mrb_fixnum_value( 0 - mrb_fixnum(seed));
+      seed = mrb_fixnum_value(0 - mrb_fixnum(seed));
     }
   }
 
@@ -129,9 +129,7 @@ mrb_random_init(mrb_state *mrb, mrb_value self)
   if (t) {
     mrb_free(mrb, t);
   }
-
-  DATA_TYPE(self) = &mt_state_type;
-  DATA_PTR(self) = NULL;
+  mrb_data_init(self, NULL, &mt_state_type);
 
   t = (mt_state *)mrb_malloc(mrb, sizeof(mt_state));
   t->mti = N + 1;
@@ -147,7 +145,7 @@ mrb_random_init(mrb_state *mrb, mrb_value self)
     t->seed = mrb_fixnum(seed);
   }
 
-  DATA_PTR(self) = t;
+  mrb_data_init(self, t, &mt_state_type);
 
   return self;
 }
@@ -223,8 +221,8 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
       j = mrb_fixnum(mrb_random_mt_rand(mrb, random, mrb_fixnum_value(RARRAY_LEN(ary))));
 
       tmp = RARRAY_PTR(ary)[i];
-      RARRAY_PTR(ary)[i] = RARRAY_PTR(ary)[j];
-      RARRAY_PTR(ary)[j] = tmp;
+      mrb_ary_ptr(ary)->ptr[i] = RARRAY_PTR(ary)[j];
+      mrb_ary_ptr(ary)->ptr[j] = tmp;
     }
   }
 
@@ -307,11 +305,10 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
         }
         break;
       }
-      RARRAY_PTR(result)[i] = mrb_fixnum_value(r);
-      RARRAY_LEN(result)++;
+      mrb_ary_push(mrb, result, mrb_fixnum_value(r));
     }
     for (i=0; i<n; i++) {
-      RARRAY_PTR(result)[i] = RARRAY_PTR(ary)[mrb_fixnum(RARRAY_PTR(result)[i])];
+      mrb_ary_set(mrb, result, i, RARRAY_PTR(ary)[mrb_fixnum(RARRAY_PTR(result)[i])]);
     }
     return result;
   }

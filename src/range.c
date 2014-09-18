@@ -33,7 +33,7 @@ range_check(mrb_state *mrb, mrb_value a, mrb_value b)
   }
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, mrb_bool excl)
 {
   struct RRange *r;
@@ -234,16 +234,16 @@ mrb_range_include(mrb_state *mrb, mrb_value range)
   return mrb_bool_value(include_p);
 }
 
-mrb_bool
+static mrb_bool
 range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len, mrb_bool trunc)
 {
-  mrb_int beg, end, b, e;
+  mrb_int beg, end;
   struct RRange *r = mrb_range_ptr(range);
 
   if (mrb_type(range) != MRB_TT_RANGE) return FALSE;
 
-  beg = b = mrb_int(mrb, r->edges->beg);
-  end = e = mrb_int(mrb, r->edges->end);
+  beg = mrb_int(mrb, r->edges->beg);
+  end = mrb_int(mrb, r->edges->end);
 
   if (beg < 0) {
     beg += len;
@@ -266,7 +266,7 @@ range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb
   return TRUE;
 }
 
-mrb_bool
+MRB_API mrb_bool
 mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len)
 {
   return range_beg_len(mrb, range, begp, lenp, len, TRUE);

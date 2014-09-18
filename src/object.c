@@ -9,7 +9,7 @@
 #include "mruby/numeric.h"
 #include "mruby/string.h"
 
-mrb_bool
+MRB_API mrb_bool
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
   if (mrb_type(v1) != mrb_type(v2)) return FALSE;
@@ -19,9 +19,9 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 
   case MRB_TT_FALSE:
   case MRB_TT_FIXNUM:
-    return (v1.value.i == v2.value.i);
+    return (mrb_fixnum(v1) == mrb_fixnum(v2));
   case MRB_TT_SYMBOL:
-    return (v1.value.sym == v2.value.sym);
+    return (mrb_symbol(v1) == mrb_symbol(v2));
 
   case MRB_TT_FLOAT:
     return (mrb_float(v1) == mrb_float(v2));
@@ -31,14 +31,14 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
   }
 }
 
-mrb_bool
+MRB_API mrb_bool
 mrb_obj_equal(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
   /* temporary definition */
   return mrb_obj_eq(mrb, v1, v2);
 }
 
-mrb_bool
+MRB_API mrb_bool
 mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   mrb_value result;
@@ -310,16 +310,13 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *metho
   if (!mrb_respond_to(mrb, val, m)) {
     if (raise) {
       mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into %S", inspect_type(mrb, val), mrb_str_new_cstr(mrb, tname));
-      return mrb_nil_value();
     }
-    else {
-      return mrb_nil_value();
-    }
+    return mrb_nil_value();
   }
   return mrb_funcall_argv(mrb, val, m, 0, 0);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method)
 {
   mrb_value v;
@@ -332,7 +329,7 @@ mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method)
   return v;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method)
 {
   mrb_value v;
@@ -346,7 +343,7 @@ mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char 
   return v;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_check_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method)
 {
   mrb_value v;
@@ -386,7 +383,7 @@ static const struct types {
     {-1,  0}
 };
 
-void
+MRB_API void
 mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
 {
   const struct types *type = builtin_types;
@@ -407,7 +404,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
         else if (mrb_type(x) == MRB_TT_SYMBOL) {
           etype = "Symbol";
         }
-        else if (mrb_special_const_p(x)) {
+        else if (mrb_immediate_p(x)) {
           etype = RSTRING_PTR(mrb_obj_as_string(mrb, x));
         }
         else {
@@ -434,7 +431,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
  *  initial execution context of Ruby programs returns ``main.''
  */
 
-mrb_value
+MRB_API mrb_value
 mrb_any_to_s(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str = mrb_str_buf_new(mrb, 20);
@@ -475,7 +472,7 @@ mrb_any_to_s(mrb_state *mrb, mrb_value obj)
  *     b.kind_of? M       #=> true
  */
 
-mrb_bool
+MRB_API mrb_bool
 mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
 {
   struct RClass *cl = mrb_class(mrb, obj);
@@ -513,7 +510,7 @@ mrb_to_integer(mrb_state *mrb, mrb_value val, const char *method)
   return v;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_to_int(mrb_state *mrb, mrb_value val)
 {
   return mrb_to_integer(mrb, val, "to_int");
@@ -558,13 +555,13 @@ arg_error:
   return tmp;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_Integer(mrb_state *mrb, mrb_value val)
 {
   return mrb_convert_to_integer(mrb, val, 0);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_Float(mrb_state *mrb, mrb_value val)
 {
   if (mrb_nil_p(val)) {
@@ -585,13 +582,13 @@ mrb_Float(mrb_state *mrb, mrb_value val)
   }
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_inspect(mrb_state *mrb, mrb_value obj)
 {
   return mrb_obj_as_string(mrb, mrb_funcall(mrb, obj, "inspect", 0));
 }
 
-mrb_bool
+MRB_API mrb_bool
 mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;

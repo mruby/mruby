@@ -32,7 +32,7 @@ void mrb_random_init_genrand(mt_state *t, unsigned long s)
 unsigned long mrb_random_genrand_int32(mt_state *t)
 {
     unsigned long y;
-    static unsigned long mag01[2]={0x0UL, MATRIX_A};
+    static const unsigned long mag01[2]={0x0UL, MATRIX_A};
     /* mag01[x] = x * MATRIX_A  for x=0,1 */
 
     if (t->mti >= N) { /* generate N words at one time */
@@ -126,7 +126,7 @@ void init_by_array(unsigned long init_key[], int key_length)
 unsigned long genrand_int32(void)
 {
     unsigned long y;
-    static unsigned long mag01[2]={0x0UL, MATRIX_A};
+    static const unsigned long mag01[2]={0x0UL, MATRIX_A};
     /* mag01[x] = x * MATRIX_A  for x=0,1 */
 
     if (mti >= N) { /* generate N words at one time */

@@ -24,8 +24,6 @@ void mrb_init_gc(mrb_state*);
 void mrb_init_math(mrb_state*);
 void mrb_init_version(mrb_state*);
 void mrb_init_mrblib(mrb_state*);
-void mrb_init_mrbgems(mrb_state*);
-void mrb_final_mrbgems(mrb_state*);
 
 #define DONE mrb_gc_arena_restore(mrb, 0);
 void
@@ -50,7 +48,4 @@ mrb_init_core(mrb_state *mrb)
   mrb_init_gc(mrb); DONE;
   mrb_init_version(mrb); DONE;
   mrb_init_mrblib(mrb); DONE;
-#ifndef DISABLE_GEMS
-  mrb_init_mrbgems(mrb); DONE;
-#endif
 }

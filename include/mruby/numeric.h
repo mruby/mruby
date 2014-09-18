@@ -15,15 +15,14 @@ extern "C" {
 #define NEGFIXABLE(f) ((f) >= MRB_INT_MIN)
 #define FIXABLE(f) (POSFIXABLE(f) && NEGFIXABLE(f))
 
-mrb_value mrb_flo_to_fixnum(mrb_state *mrb, mrb_value val);
-
-mrb_value mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, int base);
+MRB_API mrb_value mrb_flo_to_fixnum(mrb_state *mrb, mrb_value val);
+MRB_API mrb_value mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, int base);
+MRB_API mrb_float mrb_to_flo(mrb_state *mrb, mrb_value x);
 
 mrb_value mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y);
-mrb_float mrb_to_flo(mrb_state *mrb, mrb_value x);
 
 #define MRB_UINT_MAKE2(n) uint ## n ## _t
 #define MRB_UINT_MAKE(n) MRB_UINT_MAKE2(n)

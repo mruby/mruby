@@ -27,7 +27,7 @@
 #define FLO_EPSILON DBL_EPSILON
 #endif
 
-mrb_float
+MRB_API mrb_float
 mrb_to_flo(mrb_state *mrb, mrb_value val)
 {
   switch (mrb_type(val)) {
@@ -54,13 +54,12 @@ static mrb_value
 num_pow(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  mrb_bool both_int = FALSE;
-  mrb_float d;
+  mrb_float d, yv;
 
   mrb_get_args(mrb, "o", &y);
-  if (mrb_fixnum_p(x) && mrb_fixnum_p(y)) both_int = TRUE;
-  d = pow(mrb_to_flo(mrb, x), mrb_to_flo(mrb, y));
-  if (both_int && FIXABLE(d))
+  yv = mrb_to_flo(mrb, y);
+  d = pow(mrb_to_flo(mrb, x), yv);
+  if (mrb_fixnum_p(x) && mrb_fixnum_p(y) && FIXABLE(d) && yv > 0)
     return mrb_fixnum_value((mrb_int)d);
   return mrb_float_value(mrb, d);
 }
@@ -190,8 +189,8 @@ mrb_flo_to_str(mrb_state *mrb, mrb_float flo)
 
     /* puts digits */
     while (max_digits >= 0) {
-      double weight = pow(10.0, m);
-      double fdigit = n / weight;
+      double weight = (m < 0) ? 0.0 : pow(10.0, m);
+      double fdigit = (m < 0) ? n * 10.0 : n / weight;
 
       if (fdigit < 0) fdigit = n = 0;
       if (m < -1 && fdigit < FLO_EPSILON) {
@@ -206,7 +205,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_float flo)
         continue;
       }
       *(c++) = '0' + digit;
-      n -= (digit * weight);
+      n = (m < 0) ? n * 10.0 - digit : n - (digit * weight);
       max_digits--;
       if (m-- == 0) {
         *(c++) = '.';
@@ -339,12 +338,11 @@ static mrb_value
 flo_mod(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  mrb_float fy, mod;
+  mrb_float mod;
 
   mrb_get_args(mrb, "o", &y);
 
-  fy = mrb_to_flo(mrb, y);
-  flodivmod(mrb, mrb_float(x), fy, 0, &mod);
+  flodivmod(mrb, mrb_float(x), mrb_to_flo(mrb, y), 0, &mod);
   return mrb_float_value(mrb, mod);
 }
 
@@ -397,22 +395,16 @@ static mrb_value
 flo_eq(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  volatile mrb_float a, b;
-
   mrb_get_args(mrb, "o", &y);
 
   switch (mrb_type(y)) {
   case MRB_TT_FIXNUM:
-    b = (mrb_float)mrb_fixnum(y);
-    break;
+    return mrb_bool_value(mrb_float(x) == (mrb_float)mrb_fixnum(y));
   case MRB_TT_FLOAT:
-    b = mrb_float(y);
-    break;
+    return mrb_bool_value(mrb_float(x) == mrb_float(y));
   default:
     return mrb_false_value();
   }
-  a = mrb_float(x);
-  return mrb_bool_value(a == b);
 }
 
 /* 15.2.8.3.18 */
@@ -474,7 +466,7 @@ flo_infinite_p(mrb_state *mrb, mrb_value num)
   mrb_float value = mrb_float(num);
 
   if (isinf(value)) {
-    return mrb_fixnum_value( value < 0 ? -1 : 1 );
+    return mrb_fixnum_value(value < 0 ? -1 : 1);
   }
   return mrb_nil_value();
 }
@@ -493,9 +485,7 @@ flo_infinite_p(mrb_state *mrb, mrb_value num)
 static mrb_value
 flo_finite_p(mrb_state *mrb, mrb_value num)
 {
-  mrb_float value = mrb_float(num);
-
-  return mrb_bool_value(isfinite(value));
+  return mrb_bool_value(isfinite(mrb_float(num)));
 }
 
 /* 15.2.9.3.10 */
@@ -613,12 +603,12 @@ flo_round(mrb_state *mrb, mrb_value num)
 
     /* home-made inline implementation of round(3) */
     if (number > 0.0) {
-        d = floor(number);
-        number = d + (number - d >= 0.5);
+      d = floor(number);
+      number = d + (number - d >= 0.5);
     }
     else if (number < 0.0) {
-        d = ceil(number);
-        number = d - (d - number >= 0.5);
+      d = ceil(number);
+      number = d - (d - number >= 0.5);
     }
 
     if (ndigits < 0) number *= f;
@@ -687,12 +677,8 @@ int_to_i(mrb_state *mrb, mrb_value num)
   return num;
 }
 
-#ifdef MRB_FIXNUM_SHIFT
-#define SQRT_INT_MAX ((mrb_int)1<<((MRB_INT_BIT-1-MRB_FIXNUM_SHIFT)/2))
-#else
-#define SQRT_INT_MAX ((mrb_int)1<<((MRB_INT_BIT-1)/2))
-#endif
 /*tests if N*N would overflow*/
+#define SQRT_INT_MAX ((mrb_int)1<<((MRB_INT_BIT-1-MRB_FIXNUM_SHIFT)/2))
 #define FIT_SQRT_INT(n) (((n)<SQRT_INT_MAX)&&((n)>=-SQRT_INT_MAX))
 
 mrb_value
@@ -1080,14 +1066,14 @@ fix_to_f(mrb_state *mrb, mrb_value num)
  *     FloatDomainError: Infinity
  */
 /* ------------------------------------------------------------------------*/
-mrb_value
+MRB_API mrb_value
 mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
 {
   mrb_int z;
 
-  if (mrb_float_p(x)) {
-     mrb_raise(mrb, E_TYPE_ERROR, "non float value");
-     z = 0; /* not reached. just suppress warnings. */
+  if (!mrb_float_p(x)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "non float value");
+    z = 0; /* not reached. just suppress warnings. */
   }
   else {
     mrb_float d = mrb_float(x);
@@ -1178,7 +1164,7 @@ fix_minus(mrb_state *mrb, mrb_value self)
 }
 
 
-mrb_value
+MRB_API mrb_value
 mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, int base)
 {
   char buf[MRB_INT_BIT+1];

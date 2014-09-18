@@ -21,12 +21,78 @@ domain_error(mrb_state *mrb, const char *func)
 /* math functions not provided by Microsoft Visual C++ 2012 or older */
 #if defined _MSC_VER && _MSC_VER < 1800
 
+#include <float.h>
+
 #define MATH_TOLERANCE 1E-12
 
-#define asinh(x) log(x + sqrt(pow(x,2.0) + 1))
-#define acosh(x) log(x + sqrt(pow(x,2.0) - 1))
-#define atanh(x) (log(1+x) - log(1-x))/2.0
-#define cbrt(x)  pow(x,1.0/3.0)
+double
+asinh(double x)
+{
+  double xa, ya, y;
+
+  /* Basic formula loses precision for x < 0, but asinh is an odd function */
+  xa = fabs(x);
+  if (xa > 3.16227E+18) {
+    /* Prevent x*x from overflowing; basic formula reduces to log(2*x) */
+    ya = log(xa) + 0.69314718055994530942;
+  }
+  else {
+    /* Basic formula for asinh */
+    ya = log(xa + sqrt(xa*xa + 1.0));
+  }
+
+  y = _copysign(ya, x);
+  return y;
+}
+
+double
+acosh(double x)
+{
+  double y;
+
+  if (x > 3.16227E+18) {
+    /* Prevent x*x from overflowing; basic formula reduces to log(2*x) */
+    y = log(x) + 0.69314718055994530942;
+  }
+  else {
+    /* Basic formula for acosh */
+    y = log(x + sqrt(x*x - 1.0));
+  }
+
+  return y;
+}
+
+double
+atanh(double x)
+{
+  double y;
+
+  if (fabs(x) < 1E-2) {
+    /* The sums 1+x and 1-x lose precision for small x.  Use the polynomial
+       instead. */
+    double x2 = x * x;
+    y = x*(1.0 + x2*(1.0/3.0 + x2*(1.0/5.0 + x2*(1.0/7.0))));
+  }
+  else {
+    /* Basic formula for atanh */
+    y = 0.5 * (log(1.0+x) - log(1.0-x));
+  }
+
+  return y;
+}
+
+double
+cbrt(double x)
+{
+  double xa, ya, y;
+
+  /* pow(x, y) is undefined for x < 0 and y not an integer, but cbrt is an
+     odd function */
+  xa = fabs(x);
+  ya = pow(xa, 1.0/3.0);
+  y = _copysign(ya, x);
+  return y;
+}
 
 /* Declaration of complementary Error function */
 double

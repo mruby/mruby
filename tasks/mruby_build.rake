@@ -44,7 +44,7 @@ module MRuby
     include Rake::DSL
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir
-    attr_reader :libmruby, :gems
+    attr_reader :libmruby, :gems, :toolchains
     attr_writer :enable_bintest
 
     COMPILERS = %w(cc cxx objc asm)
@@ -84,6 +84,7 @@ module MRuby
         @build_mrbtest_lib_only = false
         @cxx_abi_enabled = false
         @cxx_exception_disabled = false
+        @toolchains = []
 
         MRuby.targets[@name] = self
       end
@@ -108,7 +109,7 @@ module MRuby
     def enable_cxx_abi
       return if @cxx_exception_disabled or @cxx_abi_enabled
       compilers.each { |c| c.defines += %w(MRB_ENABLE_CXX_EXCEPTION) }
-      linker.command = cxx.command
+      linker.command = cxx.command if toolchains.find { |v| v == 'gcc' }
       @cxx_abi_enabled = true
     end
 
@@ -124,6 +125,11 @@ module MRuby
       tc = Toolchain.toolchains[name.to_s]
       fail "Unknown #{name} toolchain" unless tc
       tc.setup(self)
+      @toolchains.unshift name.to_s
+    end
+
+    def primary_toolchain
+      @toolchains.first
     end
 
     def root

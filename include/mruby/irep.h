@@ -46,9 +46,9 @@ typedef struct mrb_irep {
 
 #define MRB_ISEQ_NO_FREE 1
 
-mrb_irep *mrb_add_irep(mrb_state *mrb);
-mrb_value mrb_load_irep(mrb_state*, const uint8_t*);
-mrb_value mrb_load_irep_cxt(mrb_state*, const uint8_t*, mrbc_context*);
+MRB_API mrb_irep *mrb_add_irep(mrb_state *mrb);
+MRB_API mrb_value mrb_load_irep(mrb_state*, const uint8_t*);
+MRB_API mrb_value mrb_load_irep_cxt(mrb_state*, const uint8_t*, mrbc_context*);
 void mrb_irep_free(mrb_state*, struct mrb_irep*);
 void mrb_irep_incref(mrb_state*, struct mrb_irep*);
 void mrb_irep_decref(mrb_state*, struct mrb_irep*);
