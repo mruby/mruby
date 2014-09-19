@@ -60,14 +60,14 @@ mrb_sce_init(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_sce_errno(mrb_state *mrb, mrb_value self)
 {
+  struct RClass *c;
   mrb_sym sym;
-  mrb_value klass;
 
-  klass = mrb_obj_value(mrb_class(mrb, self));
+  c = mrb_class(mrb, self);
   sym = mrb_intern_lit(mrb, "Errno");
-  if (mrb_const_defined(mrb, klass, sym))
-    return mrb_const_get(mrb, klass, sym);
-  else {
+  if (mrb_const_defined_at(mrb, c, sym)) {
+    return mrb_const_get(mrb, mrb_obj_value(c), sym);
+  } else {
     sym = mrb_intern_lit(mrb, "errno");
     return mrb_attr_get(mrb, self, sym);
   }

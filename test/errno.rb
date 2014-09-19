@@ -17,10 +17,10 @@ assert('SystemCallError#initialize') do
 end
 
 assert('SystemCallError#errno') do
-  SystemCallError.new("a", 1).errno == 1 and
-  SystemCallError.new(1).errno == 1 and
-  SystemCallError.new("a", 12345).errno == 12345 and
-  SystemCallError.new(23456).errno == 23456
+  assert_equal 1, SystemCallError.new("a", 1).errno
+  assert_equal 1, SystemCallError.new(1).errno
+  assert_equal 12345, SystemCallError.new("a", 12345).errno
+  assert_equal 23456, SystemCallError.new(23456).errno
 end
 
 assert('SystemCallError#inspect') do
