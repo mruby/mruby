@@ -65,7 +65,11 @@ mrb_sce_errno(mrb_state *mrb, mrb_value self)
 
   c = mrb_class(mrb, self);
   sym = mrb_intern_lit(mrb, "Errno");
+#if MRUBY_RELEASE_NO < 10000
   if (mrb_const_defined_at(mrb, c, sym)) {
+#else
+  if (mrb_const_defined_at(mrb, mrb_obj_value(c), sym)) {
+#endif
     return mrb_const_get(mrb, mrb_obj_value(c), sym);
   } else {
     sym = mrb_intern_lit(mrb, "errno");
