@@ -1675,11 +1675,11 @@ check_cv_name_sym(mrb_state *mrb, mrb_sym id)
 static mrb_value
 mrb_mod_cvar_defined(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value id;
+  mrb_sym id;
 
   mrb_get_args(mrb, "n", &id);
-  check_cv_name_sym(mrb, mrb_symbol(id));
-  return mrb_bool_value(mrb_cv_defined(mrb, mod, mrb_symbol(id)));
+  check_cv_name_sym(mrb, id);
+  return mrb_bool_value(mrb_cv_defined(mrb, mod, id));
 }
 
 /* 15.2.2.4.17 */
@@ -1814,10 +1814,10 @@ mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
 static mrb_value
 mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value id;
+  mrb_sym id;
 
   mrb_get_args(mrb, "n", &id);
-  return mrb_bool_value(mrb_obj_respond_to(mrb, mrb_class_ptr(mod), mrb_symbol(id)));
+  return mrb_bool_value(mrb_obj_respond_to(mrb, mrb_class_ptr(mod), id));
 }
 
 static void
@@ -1890,12 +1890,12 @@ const_defined(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool inherit)
 static mrb_value
 mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value id;
+  mrb_sym id;
   mrb_bool inherit = TRUE;
 
   mrb_get_args(mrb, "n|b", &id, &inherit);
-  check_const_name_sym(mrb, mrb_symbol(id));
-  return const_defined(mrb, mod, mrb_symbol(id), inherit);
+  check_const_name_sym(mrb, id);
+  return const_defined(mrb, mod, id, inherit);
 }
 
 static mrb_value
