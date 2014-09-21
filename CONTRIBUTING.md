@@ -14,7 +14,8 @@ things in mind before submitting your pull request:
 * Don't mix several features or bug-fixes in one pull request
 * Create a meaningful commit message
 * Explain your change (i.e. with a link to the issue you are fixing)
-* Use mrbgem to provide non ISO features (classes, modules and methods) unless you have a special reason to implement them in the core
+* Use mrbgem to provide non ISO features (classes, modules and methods) unless
+  you have a special reason to implement them in the core
 
 ## Coding conventions
 
@@ -32,8 +33,9 @@ mruby should be highly portable to other systems and compilers. For this it is
 recommended to keep your code as close as possible to the C99 standard
 (http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf).
 
-Although we target C99, Visual C++ is also an important target for mruby. For this
-reason a declaration of a local variable has to be at the beginning of a scope block.
+Although we target C99, Visual C++ is also an important target for mruby. For
+this reason a declaration of a local variable has to be at the beginning of a
+scope block.
 
 #### Reduce library dependencies to a minimum
 
@@ -57,8 +59,8 @@ Use C++ style comments only for temporary comment e.g. commenting out some code 
 
 ### Ruby code
 
-Parts of the standard library of mruby are written in the Ruby programming language
-itself. Please note the following hints for your Ruby code:
+Parts of the standard library of mruby are written in the Ruby programming
+language itself. Please note the following hints for your Ruby code:
 
 #### Comply with the Ruby standard (ISO/IEC 30170:2012)
 
