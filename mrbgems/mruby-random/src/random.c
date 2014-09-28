@@ -22,31 +22,31 @@ static const struct mrb_data_type mt_state_type = {
 static mrb_value mrb_random_rand(mrb_state *mrb, mrb_value self);
 static mrb_value mrb_random_srand(mrb_state *mrb, mrb_value self);
 
-static void 
+static void
 mt_srand(mt_state *t, unsigned long seed)
 {
   mrb_random_init_genrand(t, seed);
-}  
+}
 
-static unsigned long 
+static unsigned long
 mt_rand(mt_state *t)
 {
   return mrb_random_genrand_int32(t);
-}  
+}
 
-static double 
+static double
 mt_rand_real(mt_state *t)
 {
   return mrb_random_genrand_real1(t);
-}  
+}
 
-static mrb_value 
+static mrb_value
 mrb_random_mt_srand(mrb_state *mrb, mt_state *t, mrb_value seed)
-{ 
+{
   if (mrb_nil_p(seed)) {
-    seed = mrb_fixnum_value(time(NULL) + mt_rand(t));
+    seed = mrb_fixnum_value((mrb_int)(time(NULL) + mt_rand(t)));
     if (mrb_fixnum(seed) < 0) {
-      seed = mrb_fixnum_value( 0 - mrb_fixnum(seed));
+      seed = mrb_fixnum_value(0 - mrb_fixnum(seed));
     }
   }
 
@@ -55,9 +55,9 @@ mrb_random_mt_srand(mrb_state *mrb, mt_state *t, mrb_value seed)
   return seed;
 }
 
-static mrb_value 
+static mrb_value
 mrb_random_mt_rand(mrb_state *mrb, mt_state *t, mrb_value max)
-{ 
+{
   mrb_value value;
 
   if (mrb_fixnum(max) == 0) {
@@ -70,7 +70,7 @@ mrb_random_mt_rand(mrb_state *mrb, mt_state *t, mrb_value max)
   return value;
 }
 
-static mrb_value 
+static mrb_value
 get_opt(mrb_state* mrb)
 {
   mrb_value arg;
@@ -104,35 +104,33 @@ get_random_state(mrb_state *mrb)
   return DATA_GET_PTR(mrb, random_val, &mt_state_type, mt_state);
 }
 
-static mrb_value 
+static mrb_value
 mrb_random_g_rand(mrb_state *mrb, mrb_value self)
 {
   mrb_value random = get_random(mrb);
   return mrb_random_rand(mrb, random);
 }
 
-static mrb_value 
+static mrb_value
 mrb_random_g_srand(mrb_state *mrb, mrb_value self)
 {
   mrb_value random = get_random(mrb);
   return mrb_random_srand(mrb, random);
 }
 
-static mrb_value 
+static mrb_value
 mrb_random_init(mrb_state *mrb, mrb_value self)
 {
   mrb_value seed;
   mt_state *t;
-  
+
   /* avoid memory leaks */
   t = (mt_state*)DATA_PTR(self);
   if (t) {
     mrb_free(mrb, t);
-  }  
+  }
+  mrb_data_init(self, NULL, &mt_state_type);
 
-  DATA_TYPE(self) = &mt_state_type;
-  DATA_PTR(self) = NULL;
-  
   t = (mt_state *)mrb_malloc(mrb, sizeof(mt_state));
   t->mti = N + 1;
 
@@ -146,13 +144,13 @@ mrb_random_init(mrb_state *mrb, mrb_value self)
     t->has_seed = TRUE;
     t->seed = mrb_fixnum(seed);
   }
-  
-  DATA_PTR(self) = t;
-  
+
+  mrb_data_init(self, t, &mt_state_type);
+
   return self;
 }
 
-static void 
+static void
 mrb_random_rand_seed(mrb_state *mrb, mt_state *t)
 {
   if (!t->has_seed) {
@@ -160,7 +158,7 @@ mrb_random_rand_seed(mrb_state *mrb, mt_state *t)
   }
 }
 
-static mrb_value 
+static mrb_value
 mrb_random_rand(mrb_state *mrb, mrb_value self)
 {
   mrb_value max;
@@ -171,7 +169,7 @@ mrb_random_rand(mrb_state *mrb, mrb_value self)
   return mrb_random_mt_rand(mrb, t, max);
 }
 
-static mrb_value 
+static mrb_value
 mrb_random_srand(mrb_state *mrb, mrb_value self)
 {
   mrb_value seed;
@@ -205,7 +203,7 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
 {
   mrb_int i;
   mt_state *random = NULL;
-  
+
   if (RARRAY_LEN(ary) > 1) {
     mrb_get_args(mrb, "|d", &random, &mt_state_type);
 
@@ -213,21 +211,21 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
       random = get_random_state(mrb);
     }
     mrb_random_rand_seed(mrb, random);
-  
+
     mrb_ary_modify(mrb, mrb_ary_ptr(ary));
-    
+
     for (i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
       mrb_int j;
       mrb_value tmp;
-      
+
       j = mrb_fixnum(mrb_random_mt_rand(mrb, random, mrb_fixnum_value(RARRAY_LEN(ary))));
-      
+
       tmp = RARRAY_PTR(ary)[i];
-      RARRAY_PTR(ary)[i] = RARRAY_PTR(ary)[j];
-      RARRAY_PTR(ary)[j] = tmp;
-    }    
+      mrb_ary_ptr(ary)->ptr[i] = RARRAY_PTR(ary)[j];
+      mrb_ary_ptr(ary)->ptr[j] = tmp;
+    }
   }
-  
+
   return ary;
 }
 
@@ -243,7 +241,7 @@ mrb_ary_shuffle(mrb_state *mrb, mrb_value ary)
 {
   mrb_value new_ary = mrb_ary_new_from_values(mrb, RARRAY_LEN(ary), RARRAY_PTR(ary));
   mrb_ary_shuffle_bang(mrb, new_ary);
-  
+
   return new_ary;
 }
 
@@ -272,7 +270,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
 
   mrb_get_args(mrb, "|i?d", &n, &given, &random, &mt_state_type);
   if (random == NULL) {
-    random = get_random_state(mrb); 
+    random = get_random_state(mrb);
   }
   mrb_random_rand_seed(mrb, random);
   mt_rand(random);
@@ -307,11 +305,10 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
         }
         break;
       }
-      RARRAY_PTR(result)[i] = mrb_fixnum_value(r);
-      RARRAY_LEN(result)++;
+      mrb_ary_push(mrb, result, mrb_fixnum_value(r));
     }
     for (i=0; i<n; i++) {
-      RARRAY_PTR(result)[i] = RARRAY_PTR(ary)[mrb_fixnum(RARRAY_PTR(result)[i])];
+      mrb_ary_set(mrb, result, i, RARRAY_PTR(ary)[mrb_fixnum(RARRAY_PTR(result)[i])]);
     }
     return result;
   }
@@ -334,7 +331,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, random, "initialize", mrb_random_init, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, random, "rand", mrb_random_rand, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, random, "srand", mrb_random_srand, MRB_ARGS_OPT(1));
-  
+
   mrb_define_method(mrb, array, "shuffle", mrb_ary_shuffle, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, array, "shuffle!", mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, array, "sample", mrb_ary_sample, MRB_ARGS_OPT(2));

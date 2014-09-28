@@ -178,17 +178,18 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
   }
 
 #define GETASTER(num) do { \
+  mrb_value tmp_v; \
   t = p++; \
   n = 0; \
   GETNUM(n, val); \
   if (*p == '$') { \
-    tmp = GETPOSARG(n); \
+    tmp_v = GETPOSARG(n); \
   } \
   else { \
-    tmp = GETARG(); \
+    tmp_v = GETARG(); \
     p = t; \
   } \
-  num = mrb_fixnum(tmp); \
+  num = mrb_fixnum(tmp_v); \
 } while (0)
 
 static mrb_value
@@ -471,7 +472,7 @@ get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
 mrb_value
 mrb_f_sprintf(mrb_state *mrb, mrb_value obj)
 {
-  int argc;
+  mrb_int argc;
   mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
@@ -500,7 +501,6 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
   int nextarg = 1;
   int posarg = 0;
   mrb_value nextvalue;
-  mrb_value tmp;
   mrb_value str;
   mrb_value hash = mrb_undef_value();
 
@@ -836,7 +836,7 @@ retry:
 
         if (base == 2) {
           org_v = v;
-          if ( v < 0 && !sign ) {
+          if (v < 0 && !sign) {
             val = mrb_fix2binstr(mrb, mrb_fixnum_value(v), base);
             dots = 1;
           }
@@ -999,7 +999,7 @@ retry:
         char fbuf[32];
 
         fval = mrb_float(mrb_Float(mrb, val));
-        if (isnan(fval) || isinf(fval)) {
+        if (!isfinite(fval)) {
           const char *expr;
           const int elen = 3;
 

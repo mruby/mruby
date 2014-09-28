@@ -13,7 +13,7 @@
  *     Fiber.new{...} -> obj
  *
  *  Creates a fiber, whose execution is suspend until it is explicitly
- *  resumed using <code>Fiber#resume</code> method.  
+ *  resumed using <code>Fiber#resume</code> method.
  *  The code running inside the fiber can give up control by calling
  *  <code>Fiber.yield</code> in which case it yields control back to caller
  *  (the caller of the <code>Fiber#resume</code>).
@@ -69,9 +69,10 @@ fiber_init(mrb_state *mrb, mrb_value self)
   struct RProc *p;
   mrb_callinfo *ci;
   mrb_value blk;
+  size_t slen;
 
   mrb_get_args(mrb, "&", &blk);
-  
+
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Fiber object without a block");
   }
@@ -85,9 +86,27 @@ fiber_init(mrb_state *mrb, mrb_value self)
   c = f->cxt;
 
   /* initialize VM stack */
-  c->stbase = (mrb_value *)mrb_calloc(mrb, FIBER_STACK_INIT_SIZE, sizeof(mrb_value));
-  c->stend = c->stbase + FIBER_STACK_INIT_SIZE;
+  slen = FIBER_STACK_INIT_SIZE;
+  if (p->body.irep->nregs > slen) {
+    slen += p->body.irep->nregs;
+  }
+  c->stbase = (mrb_value *)mrb_malloc(mrb, slen*sizeof(mrb_value));
+  c->stend = c->stbase + slen;
   c->stack = c->stbase;
+
+#ifdef MRB_NAN_BOXING
+  {
+    mrb_value *p = c->stbase;
+    mrb_value *pend = c->stend;
+
+    while (p < pend) {
+      SET_NIL_VALUE(*p);
+      p++;
+    }
+  }
+#else
+  memset(c->stbase, 0, slen * sizeof(mrb_value));
+#endif
 
   /* copy receiver from a block */
   c->stack[0] = mrb->c->stack[0];
@@ -126,7 +145,7 @@ fiber_check(mrb_state *mrb, mrb_value fib)
 }
 
 static mrb_value
-fiber_result(mrb_state *mrb, const mrb_value *a, int len)
+fiber_result(mrb_state *mrb, const mrb_value *a, mrb_int len)
 {
   if (len == 0) return mrb_nil_value();
   if (len == 1) return a[0];
@@ -137,7 +156,7 @@ fiber_result(mrb_state *mrb, const mrb_value *a, int len)
 #define MARK_CONTEXT_MODIFY(c) (c)->ci->target_class = NULL
 
 static mrb_value
-fiber_switch(mrb_state *mrb, mrb_value self, int len, const mrb_value *a, mrb_bool resume)
+fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mrb_bool resume)
 {
   struct mrb_context *c = fiber_check(mrb, self);
   mrb_callinfo *ci;
@@ -166,7 +185,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, int len, const mrb_value *a, mrb_bo
       *b++ = *a++;
     }
     c->cibase->argc = len;
-    if (c->prev->fib) 
+    if (c->prev->fib)
       mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
     mrb_write_barrier(mrb, (struct RBasic*)c->fib);
     c->status = MRB_FIBER_RUNNING;
@@ -176,7 +195,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, int len, const mrb_value *a, mrb_bo
     return c->ci->proc->env->stack[0];
   }
   MARK_CONTEXT_MODIFY(c);
-  if (c->prev->fib) 
+  if (c->prev->fib)
     mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
   mrb_write_barrier(mrb, (struct RBasic*)c->fib);
   c->status = MRB_FIBER_RUNNING;
@@ -203,7 +222,8 @@ static mrb_value
 fiber_resume(mrb_state *mrb, mrb_value self)
 {
   mrb_value *a;
-  int len;
+  mrb_int len;
+
   mrb_get_args(mrb, "*", &a, &len);
   return fiber_switch(mrb, self, len, a, TRUE);
 }
@@ -234,12 +254,24 @@ fiber_eq(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(fiber_ptr(self) == fiber_ptr(other));
 }
 
+/*
+ *  call-seq:
+ *     fiber.transfer(args, ...) -> obj
+ *
+ *  Transfers control to reciever fiber of the method call.
+ *  Unlike <code>resume</code> the reciever wouldn't be pushed to call
+ * stack of fibers. Instead it will switch to the call stack of
+ * transferring fiber.
+ *  When resuming a fiber that was transferred to another fiber it would
+ * cause double resume error. Though when the fiber is re-transferred
+ * and <code>Fiber.yield</code> is called, the fiber would be resumable.
+ */
 static mrb_value
 fiber_transfer(mrb_state *mrb, mrb_value self)
 {
   struct mrb_context *c = fiber_check(mrb, self);
   mrb_value* a;
-  int len;
+  mrb_int len;
 
   mrb_get_args(mrb, "*", &a, &len);
 
@@ -248,6 +280,7 @@ fiber_transfer(mrb_state *mrb, mrb_value self)
     mrb->c = c;
     c->status = MRB_FIBER_RUNNING;
     MARK_CONTEXT_MODIFY(c);
+    mrb_write_barrier(mrb, (struct RBasic*)c->fib);
     return fiber_result(mrb, a, len);
   }
 
@@ -258,8 +291,8 @@ fiber_transfer(mrb_state *mrb, mrb_value self)
   return fiber_switch(mrb, self, len, a, FALSE);
 }
 
-mrb_value
-mrb_fiber_yield(mrb_state *mrb, int len, mrb_value *a)
+MRB_API mrb_value
+mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
 {
   struct mrb_context *c = mrb->c;
   mrb_callinfo *ci;
@@ -278,6 +311,7 @@ mrb_fiber_yield(mrb_state *mrb, int len, mrb_value *a)
   mrb->c = c->prev;
   c->prev = NULL;
   MARK_CONTEXT_MODIFY(mrb->c);
+  mrb_write_barrier(mrb, (struct RBasic*)c->fib);
   return fiber_result(mrb, a, len);
 }
 
@@ -295,7 +329,7 @@ static mrb_value
 fiber_yield(mrb_state *mrb, mrb_value self)
 {
   mrb_value *a;
-  int len;
+  mrb_int len;
 
   mrb_get_args(mrb, "*", &a, &len);
   return mrb_fiber_yield(mrb, len, a);
@@ -305,8 +339,7 @@ fiber_yield(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     Fiber.current() -> fiber
  *
- *  Returns the current fiber. You need to <code>require 'fiber'</code>
- *  before using this method. If you are not running in the context of
+ *  Returns the current fiber. If you are not running in the context of
  *  a fiber this method will return the root fiber.
  */
 static mrb_value
@@ -320,7 +353,7 @@ fiber_current(mrb_state *mrb, mrb_value self)
   }
   return mrb_obj_value(mrb->c->fib);
 }
-  
+
 void
 mrb_mruby_fiber_gem_init(mrb_state* mrb)
 {

@@ -54,6 +54,18 @@ module MRuby
       @compile_options = '%{flags} -o %{outfile} -c %{infile}'
     end
 
+    alias header_search_paths include_paths
+    def search_header_path(name)
+      header_search_paths.find do |v|
+        File.exist? build.filename("#{v}/#{name}").sub(/^"(.*)"$/, '\1')
+      end
+    end
+
+    def search_header(name)
+      path = search_header_path name
+      path && build.filename("#{path}/#{name}").sub(/^"(.*)"$/, '\1')
+    end
+
     def all_flags(_defineds=[], _include_paths=[], _flags=[])
       define_flags = [defines, _defineds].flatten.map{ |d| option_define % d }
       include_path_flags = [include_paths, _include_paths].flatten.map do |f|
@@ -228,14 +240,15 @@ module MRuby
 
   class Command::Git < Command
     attr_accessor :flags
-    attr_accessor :clone_options, :pull_options
+    attr_accessor :clone_options, :pull_options, :checkout_options
 
     def initialize(build)
       super
       @command = 'git'
-      @flags = %w[--depth 1]
+      @flags = %w[]
       @clone_options = "clone %{flags} %{url} %{dir}"
       @pull_options = "pull"
+      @checkout_options = "checkout %{checksum_hash}"
     end
 
     def run_clone(dir, url, _flags = [])
@@ -248,6 +261,14 @@ module MRuby
       Dir.chdir dir
       _pp "GIT PULL", url, dir.relative_path
       _run pull_options
+      Dir.chdir root
+    end
+
+    def run_checkout(dir, checksum_hash)
+      root = Dir.pwd
+      Dir.chdir dir
+      _pp "GIT CHECKOUT", checksum_hash
+      _run checkout_options, { :checksum_hash => checksum_hash }
       Dir.chdir root
     end
   end

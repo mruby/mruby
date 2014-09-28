@@ -14,14 +14,15 @@ extern "C" {
 #include "mruby.h"
 #include "mruby/irep.h"
 
+int mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, size_t *bin_size);
 #ifdef ENABLE_STDIO
 int mrb_dump_irep_binary(mrb_state*, mrb_irep*, int, FILE*);
 int mrb_dump_irep_cfunc(mrb_state *mrb, mrb_irep*, int, FILE *f, const char *initname);
 mrb_irep *mrb_read_irep_file(mrb_state*, FILE*);
-mrb_value mrb_load_irep_file(mrb_state*,FILE*);
-mrb_value mrb_load_irep_file_cxt(mrb_state*, FILE*, mrbc_context*);
+MRB_API mrb_value mrb_load_irep_file(mrb_state*,FILE*);
+MRB_API mrb_value mrb_load_irep_file_cxt(mrb_state*, FILE*, mrbc_context*);
 #endif
-mrb_irep *mrb_read_irep(mrb_state*, const uint8_t*);
+MRB_API mrb_irep *mrb_read_irep(mrb_state*, const uint8_t*);
 
 /* dump/load error code
  *
@@ -52,6 +53,7 @@ mrb_irep *mrb_read_irep(mrb_state*, const uint8_t*);
 #define RITE_SECTION_IREP_IDENTIFIER   "IREP"
 #define RITE_SECTION_LINENO_IDENTIFIER "LINE"
 #define RITE_SECTION_DEBUG_IDENTIFIER  "DBG\0"
+#define RITE_SECTION_LV_IDENTIFIER     "LVAR"
 
 #define MRB_DUMP_DEFAULT_STR_LEN      128
 
@@ -87,6 +89,12 @@ struct rite_section_lineno_header {
 struct rite_section_debug_header {
   RITE_SECTION_HEADER;
 };
+
+struct rite_section_lv_header {
+  RITE_SECTION_HEADER;
+};
+
+#define RITE_LV_NULL_MARK              UINT16_MAX
 
 struct rite_binary_footer {
   RITE_SECTION_HEADER;

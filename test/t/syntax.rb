@@ -254,3 +254,62 @@ assert('External command execution.') do
   end
   true
 end
+
+assert('parenthesed do-block in cmdarg') do
+  class ParenDoBlockCmdArg
+    def test(block)
+      block.call
+    end
+  end
+  x = ParenDoBlockCmdArg.new
+  result = x.test (Proc.new do :ok; end)
+  assert_equal :ok, result
+end
+
+assert('method definition in cmdarg') do
+  if false
+    bar def foo; self.each do end end
+  end
+  true
+end
+
+assert('optional argument in the rhs default expressions') do
+  class OptArgInRHS
+    def foo
+      "method called"
+    end
+    def t(foo = foo)
+      foo
+    end
+    def t2(foo = foo())
+      foo
+    end
+  end
+  o = OptArgInRHS.new
+  assert_nil(o.t)
+  assert_equal("method called", o.t2)
+end
+
+assert('optional block argument in the rhs default expressions') do
+  assert_nil(Proc.new {|foo = foo| foo}.call)
+end
+
+assert('multiline comments work correctly') do
+=begin
+this is a comment with nothing after begin and end
+=end
+=begin  this is a comment 
+this is a comment with extra after =begin
+=end
+=begin
+this is a comment that has =end with spaces after it
+=end  
+=begin this is a comment
+this is a comment that has extra after =begin and =end with spaces after it
+=end  
+  line = __LINE__
+=begin	this is a comment
+this is a comment that has extra after =begin and =end with tabs after it
+=end	xxxxxxxxxxxxxxxxxxxxxxxxxx
+  assert_equal(line + 4, __LINE__)
+end

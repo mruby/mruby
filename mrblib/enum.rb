@@ -202,7 +202,7 @@ module Enumerable
     raise ArgumentError, "too many arguments" if args.size > 2
     if Symbol === args[-1]
       sym = args[-1]
-      block = ->(x,y){x.send(sym,y)}
+      block = ->(x,y){x.__send__(sym,y)}
       args.pop
     end
     if args.empty?

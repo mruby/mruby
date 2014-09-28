@@ -97,7 +97,7 @@ module Enumerable
         end
       }
     end
-    
+
     def take(n)
       if n == 0
         return Lazy.new(self){raise StopIteration}

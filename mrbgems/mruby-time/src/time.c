@@ -10,6 +10,10 @@
 #include "mruby/class.h"
 #include "mruby/data.h"
 
+#if defined(__MINGW64__) || defined(__MINGW32__)
+# include <sys/time.h>
+#endif
+
 /** Time class configuration */
 
 /* gettimeofday(2) */
@@ -54,7 +58,7 @@
 
 typedef long suseconds_t;
 
-# ifndef __MINGW64__
+# if (!defined __MINGW64__) && (!defined __MINGW32__)
 struct timeval {
   time_t tv_sec;
   suseconds_t tv_usec;
@@ -76,7 +80,7 @@ gettimeofday(struct timeval *tv, void *tz)
     t.u64 -= UI64(116444736000000000);  /* Unix epoch bias */
     t.u64 /= 10;                      /* to microseconds */
     tv->tv_sec = (time_t)(t.u64 / (1000 * 1000));
-    tv->tv_usec = t.u64 % 1000 * 1000;
+    tv->tv_usec = t.u64 % (1000 * 1000);
   }
   return 0;
 }
@@ -86,7 +90,7 @@ gettimeofday(struct timeval *tv, void *tz)
 #endif
 #ifdef NO_GMTIME_R
 #define gmtime_r(t,r) gmtime(t)
-#define localtime_r(t,r) (tzset(),localtime(t))
+#define localtime_r(t,r) localtime(t)
 #endif
 
 #ifndef USE_SYSTEM_TIMEGM
@@ -197,14 +201,21 @@ time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
 
   tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(struct mrb_time));
   tm->sec  = (time_t)sec;
-  tm->usec = (sec - tm->sec) * 1.0e6 + usec;
+  if (sizeof(time_t) == 4 && (sec > (double)INT32_MAX || (double)INT32_MIN > sec)) {
+    goto out_of_range;
+  }
+  else if ((sec > 0 && tm->sec < 0) || (sec < 0 && (double)tm->sec > sec)) {
+  out_of_range:
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "%S out of Time range", mrb_float_value(mrb, sec));
+  }
+  tm->usec = (time_t)((sec - tm->sec) * 1.0e6 + usec);
   while (tm->usec < 0) {
     tm->sec--;
-    tm->usec += 1.0e6;
+    tm->usec += 1000000;
   }
-  while (tm->usec > 1.0e6) {
+  while (tm->usec > 1000000) {
     tm->sec++;
-    tm->usec -= 1.0e6;
+    tm->usec -= 1000000;
   }
   tm->timezone = timezone;
   mrb_time_update_datetime(tm);
@@ -293,11 +304,11 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
   else {
     nowsecs = mktime(&nowtime);
   }
-  if (nowsecs < 0) {
+  if (nowsecs == (time_t)-1) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time.");
   }
 
-  return time_alloc(mrb, nowsecs, ausec, timezone);
+  return time_alloc(mrb, (double)nowsecs, ausec, timezone);
 }
 
 /* 15.2.19.6.2 */
@@ -377,7 +388,7 @@ mrb_time_plus(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "f", &f);
   tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
-  return mrb_time_make(mrb, mrb_obj_class(mrb, self), (double)tm->sec+f, tm->usec, tm->timezone);
+  return mrb_time_make(mrb, mrb_obj_class(mrb, self), (double)tm->sec+f, (double)tm->usec, tm->timezone);
 }
 
 static mrb_value
@@ -398,7 +409,7 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
   }
   else {
     mrb_get_args(mrb, "f", &f);
-    return mrb_time_make(mrb, mrb_obj_class(mrb, self), (double)tm->sec-f, tm->usec, tm->timezone);
+    return mrb_time_make(mrb, mrb_obj_class(mrb, self), (double)tm->sec-f, (double)tm->usec, tm->timezone);
   }
 }
 
@@ -550,8 +561,7 @@ mrb_time_initialize(mrb_state *mrb, mrb_value self)
   if (tm) {
     mrb_free(mrb, tm);
   }
-  DATA_TYPE(self) = &mrb_time_type;
-  DATA_PTR(self) = NULL;
+  mrb_data_init(self, NULL, &mrb_time_type);
 
   n = mrb_get_args(mrb, "|iiiiiii",
        &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
@@ -561,7 +571,7 @@ mrb_time_initialize(mrb_state *mrb, mrb_value self)
   else {
     tm = time_mktime(mrb, ayear, amonth, aday, ahour, amin, asec, ausec, MRB_TIMEZONE_LOCAL);
   }
-  DATA_PTR(self) = tm;
+  mrb_data_init(self, tm, &mrb_time_type);
   return self;
 }
 
@@ -578,8 +588,7 @@ mrb_time_initialize_copy(mrb_state *mrb, mrb_value copy)
     mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
   }
   if (!DATA_PTR(copy)) {
-    DATA_PTR(copy) = mrb_malloc(mrb, sizeof(struct mrb_time));
-    DATA_TYPE(copy) = &mrb_time_type;
+    mrb_data_init(copy, mrb_malloc(mrb, sizeof(struct mrb_time)), &mrb_time_type);
   }
   *(struct mrb_time *)DATA_PTR(copy) = *(struct mrb_time *)DATA_PTR(src);
   return copy;
@@ -662,7 +671,12 @@ mrb_time_to_i(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm;
 
   tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
-  return mrb_fixnum_value(tm->sec);
+#ifdef MRB_INT16
+  if (tm->sec > MRB_INT_MAX || tm->sec < MRB_INT_MIN) {
+    return mrb_float_value(mrb, (mrb_float)tm->sec);
+  }
+#endif
+  return mrb_fixnum_value((mrb_int)tm->sec);
 }
 
 /* 15.2.19.7.26 */
@@ -673,7 +687,12 @@ mrb_time_usec(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm;
 
   tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
-  return mrb_fixnum_value(tm->usec);
+#ifdef MRB_INT16
+  if (tm->usec > MRB_INT_MAX || tm->usec < MRB_INT_MIN) {
+    return mrb_float_value(mrb, (mrb_float)tm->usec);
+  }
+#endif
+  return mrb_fixnum_value((mrb_int)tm->usec);
 }
 
 /* 15.2.19.7.27 */
@@ -709,7 +728,7 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   tc = mrb_define_class(mrb, "Time", mrb->object_class);
   MRB_SET_INSTANCE_TT(tc, MRB_TT_DATA);
   mrb_include_module(mrb, tc, mrb_module_get(mrb, "Comparable"));
-  mrb_define_class_method(mrb, tc, "at", mrb_time_at, MRB_ARGS_ANY());          /* 15.2.19.6.1 */
+  mrb_define_class_method(mrb, tc, "at", mrb_time_at, MRB_ARGS_ARG(1, 1));      /* 15.2.19.6.1 */
   mrb_define_class_method(mrb, tc, "gm", mrb_time_gm, MRB_ARGS_ARG(1,6));       /* 15.2.19.6.2 */
   mrb_define_class_method(mrb, tc, "local", mrb_time_local, MRB_ARGS_ARG(1,6)); /* 15.2.19.6.3 */
   mrb_define_class_method(mrb, tc, "mktime", mrb_time_local, MRB_ARGS_ARG(1,6));/* 15.2.19.6.4 */

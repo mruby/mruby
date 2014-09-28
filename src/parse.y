@@ -42,11 +42,7 @@ static void yywarning(parser_state *p, const char *s);
 static void backref_error(parser_state *p, node *n);
 static void tokadd(parser_state *p, int32_t c);
 
-#ifndef isascii
-#define isascii(c) (((c) & ~0x7f) == 0)
-#endif
-
-#define identchar(c) (isalnum(c) || (c) == '_' || !isascii(c))
+#define identchar(c) (ISALNUM(c) || (c) == '_' || !ISASCII(c))
 
 typedef unsigned int stack_type;
 
@@ -66,6 +62,12 @@ typedef unsigned int stack_type;
 #define CMDARG_P()      BITSTACK_SET_P(p->cmdarg_stack)
 
 #define SET_LINENO(c,n) ((c)->lineno = (n))
+#define NODE_LINENO(c,n) do {\
+  if (n) {\
+     (c)->filename_index = (n)->filename_index;\
+     (c)->lineno = (n)->lineno;\
+  }\
+} while (0)
 
 #define sym(x) ((mrb_sym)(intptr_t)(x))
 #define nsym(x) ((node*)(intptr_t)(x))
@@ -279,8 +281,9 @@ new_scope(parser_state *p, node *body)
 static node*
 new_begin(parser_state *p, node *body)
 {
-  if (body)
+  if (body) {
     return list2((node*)NODE_BEGIN, body);
+  }
   return cons((node*)NODE_BEGIN, 0);
 }
 
@@ -395,14 +398,20 @@ new_self(parser_state *p)
 static node*
 new_call(parser_state *p, node *a, mrb_sym b, node *c)
 {
-  return list4((node*)NODE_CALL, a, nsym(b), c);
+  node *n = list4((node*)NODE_CALL, a, nsym(b), c);
+  NODE_LINENO(n, a);
+  return n;
 }
 
 /* (:fcall self mid args) */
 static node*
 new_fcall(parser_state *p, mrb_sym b, node *c)
 {
-  return list4((node*)NODE_FCALL, new_self(p), nsym(b), c);
+  node *n = new_self(p);
+  NODE_LINENO(n, c);
+  n = list4((node*)NODE_FCALL, n, nsym(b), c);
+  NODE_LINENO(n, c);
+  return n;
 }
 
 /* (:super . c) */
@@ -997,29 +1006,31 @@ heredoc_end(parser_state *p)
     node *nd;
     mrb_sym id;
     int num;
-    unsigned int stack;
+    stack_type stack;
     const struct vtable *vars;
 }
 
-%token
+%token <num>
         keyword_class
         keyword_module
         keyword_def
-        keyword_undef
         keyword_begin
+        keyword_if
+        keyword_unless
+        keyword_while
+        keyword_until
+        keyword_for
+
+%token
+        keyword_undef
         keyword_rescue
         keyword_ensure
         keyword_end
-        keyword_if
-        keyword_unless
         keyword_then
         keyword_elsif
         keyword_else
         keyword_case
         keyword_when
-        keyword_while
-        keyword_until
-        keyword_for
         keyword_break
         keyword_next
         keyword_redo
@@ -1075,7 +1086,7 @@ heredoc_end(parser_state *p)
 %type <nd> brace_block cmd_brace_block do_block lhs none f_bad_arg
 %type <nd> mlhs mlhs_list mlhs_post mlhs_basic mlhs_item mlhs_node mlhs_inner
 %type <id> fsym sym basic_symbol operation operation2 operation3
-%type <id> cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg
+%type <id> cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg f_opt_asgn
 %type <nd> heredoc words symbols
 
 %token tUPLUS             /* unary+ */
@@ -1159,6 +1170,7 @@ program         :   {
                   top_compstmt
                     {
                       p->tree = new_scope(p, $2);
+                      NODE_LINENO(p->tree, $2);
                     }
                 ;
 
@@ -1175,6 +1187,7 @@ top_stmts       : none
                 | top_stmt
                     {
                       $$ = new_begin(p, $1);
+                      NODE_LINENO($$, $1);
                     }
                 | top_stmts terms top_stmt
                     {
@@ -1206,6 +1219,7 @@ bodystmt        : compstmt
                     {
                       if ($2) {
                         $$ = new_rescue(p, $1, $2, $3);
+                        NODE_LINENO($$, $1);
                       }
                       else if ($3) {
                         yywarn(p, "else without rescue is useless");
@@ -1238,10 +1252,11 @@ stmts           : none
                 | stmt
                     {
                       $$ = new_begin(p, $1);
+                      NODE_LINENO($$, $1);
                     }
                 | stmts terms stmt
                     {
-                        $$ = push($1, newline_node($3));
+                      $$ = push($1, newline_node($3));
                     }
                 | error stmt
                     {
@@ -1259,7 +1274,7 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     }
                 | stmt modifier_if expr_value
                     {
-                        $$ = new_if(p, cond($3), $1, 0);
+                      $$ = new_if(p, cond($3), $1, 0);
                     }
                 | stmt modifier_unless expr_value
                     {
@@ -1891,6 +1906,7 @@ aref_args       : none
                 | args trailer
                     {
                       $$ = $1;
+                      NODE_LINENO($$, $1);
                     }
                 | args ',' assocs trailer
                     {
@@ -1899,6 +1915,7 @@ aref_args       : none
                 | assocs trailer
                     {
                       $$ = cons(new_hash(p, $1), 0);
+                      NODE_LINENO($$, $1);
                     }
                 ;
 
@@ -1917,36 +1934,44 @@ opt_call_args   : none
                 | args ','
                     {
                       $$ = cons($1,0);
+                      NODE_LINENO($$, $1);
                     }
                 | args ',' assocs ','
                     {
                       $$ = cons(push($1, new_hash(p, $3)), 0);
+                      NODE_LINENO($$, $1);
                     }
                 | assocs ','
                     {
                       $$ = cons(list1(new_hash(p, $1)), 0);
+                      NODE_LINENO($$, $1);
                     }
                 ;
 
 call_args       : command
                     {
                       $$ = cons(list1($1), 0);
+                      NODE_LINENO($$, $1);
                     }
                 | args opt_block_arg
                     {
                       $$ = cons($1, $2);
+                      NODE_LINENO($$, $1);
                     }
                 | assocs opt_block_arg
                     {
                       $$ = cons(list1(new_hash(p, $1)), $2);
+                      NODE_LINENO($$, $1);
                     }
                 | args ',' assocs opt_block_arg
                     {
                       $$ = cons(push($1, new_hash(p, $3)), $4);
+                      NODE_LINENO($$, $1);
                     }
                 | block_arg
                     {
                       $$ = cons(0, $1);
+                      NODE_LINENO($$, $1);
                     }
                 ;
 
@@ -1980,10 +2005,12 @@ opt_block_arg   : ',' block_arg
 args            : arg_value
                     {
                       $$ = cons($1, 0);
+                      NODE_LINENO($$, $1);
                     }
                 | tSTAR arg_value
                     {
                       $$ = cons(new_splat(p, $2), 0);
+                      NODE_LINENO($$, $2);
                     }
                 | args ',' arg_value
                     {
@@ -2030,18 +2057,24 @@ primary         : literal
                     }
                 | keyword_begin
                     {
-                      $<stack>1 = p->cmdarg_stack;
+                      $<stack>$ = p->cmdarg_stack;
                       p->cmdarg_stack = 0;
                     }
                   bodystmt
                   keyword_end
                     {
-                      p->cmdarg_stack = $<stack>1;
+                      p->cmdarg_stack = $<stack>2;
                       $$ = $3;
                     }
-                | tLPAREN_ARG expr {p->lstate = EXPR_ENDARG;} rparen
+                | tLPAREN_ARG
                     {
-                      $$ = $2;
+                      $<stack>$ = p->cmdarg_stack;
+                      p->cmdarg_stack = 0;
+                    }
+                  expr {p->lstate = EXPR_ENDARG;} rparen
+                    {
+                      p->cmdarg_stack = $<stack>2;
+                      $$ = $3;
                     }
                 | tLPAREN_ARG {p->lstate = EXPR_ENDARG;} rparen
                     {
@@ -2062,10 +2095,12 @@ primary         : literal
                 | tLBRACK aref_args ']'
                     {
                       $$ = new_array(p, $2);
+                      NODE_LINENO($$, $2);
                     }
                 | tLBRACE assoc_list '}'
                     {
                       $$ = new_hash(p, $2);
+                      NODE_LINENO($$, $2);
                     }
                 | keyword_return
                     {
@@ -2120,6 +2155,7 @@ primary         : literal
                   keyword_end
                     {
                       $$ = new_if(p, cond($2), $4, $5);
+                      SET_LINENO($$, $1);
                     }
                 | keyword_unless expr_value then
                   compstmt
@@ -2127,18 +2163,21 @@ primary         : literal
                   keyword_end
                     {
                       $$ = new_unless(p, cond($2), $4, $5);
+                      SET_LINENO($$, $1);
                     }
                 | keyword_while {COND_PUSH(1);} expr_value do {COND_POP();}
                   compstmt
                   keyword_end
                     {
                       $$ = new_while(p, cond($3), $6);
+                      SET_LINENO($$, $1);
                     }
                 | keyword_until {COND_PUSH(1);} expr_value do {COND_POP();}
                   compstmt
                   keyword_end
                     {
                       $$ = new_until(p, cond($3), $6);
+                      SET_LINENO($$, $1);
                     }
                 | keyword_case expr_value opt_terms
                   case_body
@@ -2158,11 +2197,9 @@ primary         : literal
                   keyword_end
                     {
                       $$ = new_for(p, $2, $5, $8);
+                      SET_LINENO($$, $1);
                     }
                 | keyword_class
-                    {
-                      $<num>$ = p->lineno;
-                    }
                   cpath superclass
                     {
                       if (p->in_def || p->in_single)
@@ -2172,14 +2209,11 @@ primary         : literal
                   bodystmt
                   keyword_end
                     {
-                      $$ = new_class(p, $3, $4, $6);
-                      SET_LINENO($$, $<num>2);
-                      local_resume(p, $<nd>5);
+                      $$ = new_class(p, $2, $3, $5);
+                      SET_LINENO($$, $1);
+                      local_resume(p, $<nd>4);
                     }
                 | keyword_class
-                    {
-                      $<num>$ = p->lineno;
-                    }
                   tLSHFT expr
                     {
                       $<num>$ = p->in_def;
@@ -2193,16 +2227,13 @@ primary         : literal
                   bodystmt
                   keyword_end
                     {
-                      $$ = new_sclass(p, $4, $8);
-                      SET_LINENO($$, $<num>2);
-                      local_resume(p, $<nd>7->car);
-                      p->in_def = $<num>5;
-                      p->in_single = (int)(intptr_t)$<nd>7->cdr;
+                      $$ = new_sclass(p, $3, $7);
+                      SET_LINENO($$, $1);
+                      local_resume(p, $<nd>6->car);
+                      p->in_def = $<num>4;
+                      p->in_single = (int)(intptr_t)$<nd>6->cdr;
                     }
                 | keyword_module
-                    {
-                      $<num>$ = p->lineno;
-                    }
                   cpath
                     {
                       if (p->in_def || p->in_single)
@@ -2212,11 +2243,15 @@ primary         : literal
                   bodystmt
                   keyword_end
                     {
-                      $$ = new_module(p, $3, $5);
-                      SET_LINENO($$, $<num>2);
-                      local_resume(p, $<nd>4);
+                      $$ = new_module(p, $2, $4);
+                      SET_LINENO($$, $1);
+                      local_resume(p, $<nd>3);
                     }
                 | keyword_def fname
+                    {
+                      $<stack>$ = p->cmdarg_stack;
+                      p->cmdarg_stack = 0;
+                    }
                     {
                       p->in_def++;
                       $<nd>$ = local_switch(p);
@@ -2225,11 +2260,19 @@ primary         : literal
                   bodystmt
                   keyword_end
                     {
-                      $$ = new_def(p, $2, $4, $5);
-                      local_resume(p, $<nd>3);
+                      $$ = new_def(p, $2, $5, $6);
+                      SET_LINENO($$, $1);
+                      local_resume(p, $<nd>4);
                       p->in_def--;
+                      p->cmdarg_stack = $<stack>3;
                     }
-                | keyword_def singleton dot_or_colon {p->lstate = EXPR_FNAME;} fname
+                | keyword_def singleton dot_or_colon
+                    {
+                      p->lstate = EXPR_FNAME;
+                      $<stack>$ = p->cmdarg_stack;
+                      p->cmdarg_stack = 0;
+                    }
+                    fname
                     {
                       p->in_single++;
                       p->lstate = EXPR_ENDFN; /* force for args */
@@ -2240,8 +2283,10 @@ primary         : literal
                   keyword_end
                     {
                       $$ = new_sdef(p, $2, $5, $7, $8);
+                      SET_LINENO($$, $1);
                       local_resume(p, $<nd>6);
                       p->in_single--;
+                      p->cmdarg_stack = $<stack>4;
                     }
                 | keyword_break
                     {
@@ -2430,12 +2475,10 @@ opt_block_param : none
 
 block_param_def : '|' opt_bv_decl '|'
                     {
-                      local_add_f(p, 0);
                       $$ = 0;
                     }
                 | tOROP
                     {
-                      local_add_f(p, 0);
                       $$ = 0;
                     }
                 | '|' block_param opt_bv_decl '|'
@@ -2863,15 +2906,15 @@ var_ref         : variable
                 | keyword_self
                     {
                       $$ = new_self(p);
-                       }
+                    }
                 | keyword_true
                     {
                       $$ = new_true(p);
-                       }
+                    }
                 | keyword_false
                     {
                       $$ = new_false(p);
-                       }
+                    }
                 | keyword__FILE__
                     {
                       if (!p->filename) {
@@ -3040,17 +3083,22 @@ f_arg           : f_arg_item
                     }
                 ;
 
-f_opt           : tIDENTIFIER '=' arg_value
+f_opt_asgn      : tIDENTIFIER '='
                     {
                       local_add_f(p, $1);
-                      $$ = cons(nsym($1), $3);
+                      $$ = $1;
                     }
                 ;
 
-f_block_opt     : tIDENTIFIER '=' primary_value
+f_opt           : f_opt_asgn arg_value
                     {
-                      local_add_f(p, $1);
-                      $$ = cons(nsym($1), $3);
+                      $$ = cons(nsym($1), $2);
+                    }
+                ;
+
+f_block_opt     : f_opt_asgn primary_value
+                    {
+                      $$ = cons(nsym($1), $2);
                     }
                 ;
 
@@ -3152,6 +3200,7 @@ assoc_list      : none
 assocs          : assoc
                     {
                       $$ = list1($1);
+                      NODE_LINENO($$, $1);
                     }
                 | assocs ',' assoc
                     {
@@ -3323,7 +3372,7 @@ backref_error(parser_state *p, node *n)
     yyerror_i(p, "can't set variable $%c", (int)(intptr_t)n->cdr);
   }
   else {
-    mrb_bug(p->mrb, "Internal error in backref_error() : n=>car == %d", c);
+    mrb_bug(p->mrb, "Internal error in backref_error() : n=>car == %S", mrb_fixnum_value(c));
   }
 }
 
@@ -3360,7 +3409,9 @@ nextc(parser_state *p)
         c = (unsigned char)*p->s++;
       }
   }
-  p->column++;
+  if (c >= 0) {
+    p->column++;
+  }
   if (c == '\r') {
     c = nextc(p);
     if (c != '\n') {
@@ -3375,16 +3426,17 @@ nextc(parser_state *p)
   if (!p->cxt) return -1;
   else {
     if (p->cxt->partial_hook(p) < 0)
-      return -1;
-    return -2;
+      return -1;                /* end of program(s) */
+    return -2;                  /* end of a file in the program files */
   }
 }
 
 static void
 pushback(parser_state *p, int c)
 {
-  if (c < 0) return;
-  p->column--;
+  if (c >= 0) {
+    p->column--;
+  }
   p->pb = cons((node*)(intptr_t)c, p->pb);
 }
 
@@ -3400,25 +3452,30 @@ skip(parser_state *p, char term)
   }
 }
 
-static mrb_bool
-peek_n(parser_state *p, int c, int n)
+static int
+peekc_n(parser_state *p, int n)
 {
   node *list = 0;
   int c0;
 
   do {
     c0 = nextc(p);
-    if (c0 < 0) return FALSE;
+    if (c0 == -1) return c0;    /* do not skip partial EOF */
     list = push(list, (node*)(intptr_t)c0);
   } while(n--);
   if (p->pb) {
-    p->pb = append(p->pb, (node*)list);
+    p->pb = append((node*)list, p->pb);
   }
   else {
     p->pb = list;
   }
-  if (c0 == c) return TRUE;
-  return FALSE;
+  return c0;
+}
+
+static mrb_bool
+peek_n(parser_state *p, int c, int n)
+{
+  return peekc_n(p, n) == c && c >= 0;
 }
 #define peek(p,c) peek_n((p), (c), 0)
 
@@ -3437,7 +3494,7 @@ peeks(parser_state *p, const char *s)
   }
   else
 #endif
-    if (p->s && p->s + len >= p->send) {
+    if (p->s && p->s + len <= p->send) {
       if (memcmp(p->s, s, len) == 0) return TRUE;
     }
   return FALSE;
@@ -3453,6 +3510,10 @@ skips(parser_state *p, const char *s)
     for (;;) {
       c = nextc(p);
       if (c < 0) return c;
+      if (c == '\n') {
+        p->lineno++;
+        p->column = 0;
+      }
       if (c == *s) break;
     }
     s++;
@@ -3460,7 +3521,10 @@ skips(parser_state *p, const char *s)
       int len = strlen(s);
 
       while (len--) {
-        nextc(p);
+        if (nextc(p) == '\n') {
+          p->lineno++;
+          p->column = 0;
+        }
       }
       return TRUE;
     }
@@ -3752,7 +3816,7 @@ read_escape(parser_state *p)
 
     eof:
   case -1:
-  case -2:
+  case -2:                      /* end of a file */
     yyerror(p, "Invalid escape character syntax");
     return '\0';
 
@@ -3882,7 +3946,8 @@ parse_string(parser_state *p)
               return tHD_LITERAL_DELIM;
             }
           }
-        } while (ISSPACE(c = nextc(p)));
+          c = nextc(p);
+        } while (ISSPACE(c));
         pushback(p, c);
         return tLITERAL_DELIM;
       }
@@ -3907,22 +3972,22 @@ parse_string(parser_state *p)
 
   if (type & STR_FUNC_REGEXP) {
     int f = 0;
-    int c;
+    int re_opt;
     char *s = strndup(tok(p), toklen(p));
     char flags[3];
     char *flag = flags;
     char *dup;
 
     newtok(p);
-    while (c = nextc(p), c >= 0 && ISALPHA(c)) {
-      switch (c) {
+    while (re_opt = nextc(p), re_opt >= 0 && ISALPHA(re_opt)) {
+      switch (re_opt) {
       case 'i': f |= 1; break;
       case 'x': f |= 2; break;
       case 'm': f |= 4; break;
-      default: tokadd(p, c); break;
+      default: tokadd(p, re_opt); break;
       }
     }
-    pushback(p, c);
+    pushback(p, re_opt);
     if (toklen(p)) {
       char msg[128];
       tokfix(p);
@@ -4067,7 +4132,7 @@ parser_yylex(parser_state *p)
   case '#':     /* it's a comment */
     skip(p, '\n');
     /* fall through */
-  case -2:      /* end of partial script. */
+  case -2:      /* end of a file */
   case '\n':
     maybe_heredoc:
     heredoc_treat_nextline(p);
@@ -4102,7 +4167,7 @@ parser_yylex(parser_state *p)
         goto retry;
       }
     case -1:                  /* EOF */
-    case -2:                  /* end of partial script */
+    case -2:                  /* end of a file */
       goto normal_newline;
     default:
       pushback(p, c);
@@ -4172,9 +4237,23 @@ parser_yylex(parser_state *p)
 
   case '=':
     if (p->column == 1) {
-      if (peeks(p, "begin\n")) {
-        skips(p, "\n=end\n");
-        goto retry;
+      static const char begin[] = "begin";
+      static const char end[] = "\n=end";
+      if (peeks(p, begin)) {
+        c = peekc_n(p, sizeof(begin)-1);
+        if (c < 0 || ISSPACE(c)) {
+          do {
+            if (!skips(p, end)) {
+              yyerror(p, "embedded document meets end of file");
+              return 0;
+            }
+            c = nextc(p);
+          } while (!(c < 0 || ISSPACE(c)));
+          if (c != '\n') skip(p, '\n');
+          p->lineno++;
+          p->column = 0;
+          goto retry;
+        }
       }
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
@@ -4200,7 +4279,6 @@ parser_yylex(parser_state *p)
     return '=';
 
   case '<':
-    last_state = p->lstate;
     c = nextc(p);
     if (c == '<' &&
         p->lstate != EXPR_DOT &&
@@ -4294,7 +4372,7 @@ parser_yylex(parser_state *p)
       yyerror(p, "incomplete character syntax");
       return 0;
     }
-    if (isspace(c)) {
+    if (ISSPACE(c)) {
       if (!IS_ARG()) {
         int c2;
         switch (c) {
@@ -4331,7 +4409,7 @@ parser_yylex(parser_state *p)
       p->lstate = EXPR_VALUE;
       return '?';
     }
-    token_column = newtok(p);
+    newtok(p);
     /* need support UTF-8 if configured */
     if ((isalnum(c) || c == '_')) {
       int c2 = nextc(p);
@@ -4495,7 +4573,7 @@ parser_yylex(parser_state *p)
 
     is_float = seen_point = seen_e = nondigit = 0;
     p->lstate = EXPR_END;
-    token_column = newtok(p);
+    newtok(p);
     if (c == '-' || c == '+') {
       tokadd(p, c);
       c = nextc(p);
@@ -5117,7 +5195,6 @@ parser_yylex(parser_state *p)
   {
     int result = 0;
 
-    last_state = p->lstate;
     switch (tok(p)[0]) {
     case '$':
       p->lstate = EXPR_END;
@@ -5147,7 +5224,7 @@ parser_yylex(parser_state *p)
             pushback(p, c);
           }
         }
-        if (result == 0 && isupper((int)(unsigned char)tok(p)[0])) {
+        if (result == 0 && ISUPPER(tok(p)[0])) {
           result = tCONSTANT;
         }
         else {
@@ -5171,6 +5248,7 @@ parser_yylex(parser_state *p)
         kw = mrb_reserved_word(tok(p), toklen(p));
         if (kw) {
           enum mrb_lex_state_enum state = p->lstate;
+          yylval.num = p->lineno;
           p->lstate = kw->state;
           if (state == EXPR_FNAME) {
             yylval.id = intern_cstr(kw->name);
@@ -5246,8 +5324,8 @@ static void
 parser_init_cxt(parser_state *p, mrbc_context *cxt)
 {
   if (!cxt) return;
-  if (cxt->lineno) p->lineno = cxt->lineno;
   if (cxt->filename) mrb_parser_set_filename(p, cxt->filename);
+  if (cxt->lineno) p->lineno = cxt->lineno;
   if (cxt->syms) {
     int i;
 
@@ -5257,6 +5335,7 @@ parser_init_cxt(parser_state *p, mrbc_context *cxt)
     }
   }
   p->capture_errors = cxt->capture_errors;
+  p->no_optimize = cxt->no_optimize;
   if (cxt->partial_hook) {
     p->cxt = cxt;
   }
@@ -5285,7 +5364,7 @@ parser_update_cxt(parser_state *p, mrbc_context *cxt)
 void mrb_codedump_all(mrb_state*, struct RProc*);
 void mrb_parser_dump(mrb_state *mrb, node *tree, int offset);
 
-void
+MRB_API void
 mrb_parser_parse(parser_state *p, mrbc_context *c)
 {
   struct mrb_jmpbuf buf;
@@ -5293,20 +5372,20 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
 
   MRB_TRY(p->jmp) {
 
-  p->cmd_start = TRUE;
-  p->in_def = p->in_single = 0;
-  p->nerr = p->nwarn = 0;
-  p->lex_strterm = NULL;
+    p->cmd_start = TRUE;
+    p->in_def = p->in_single = 0;
+    p->nerr = p->nwarn = 0;
+    p->lex_strterm = NULL;
 
-  parser_init_cxt(p, c);
-  yyparse(p);
-  if (!p->tree) {
-    p->tree = new_nil(p);
-  }
-  parser_update_cxt(p, c);
-  if (c && c->dump_result) {
-    mrb_parser_dump(p->mrb, p->tree, 0);
-  }
+    parser_init_cxt(p, c);
+    yyparse(p);
+    if (!p->tree) {
+      p->tree = new_nil(p);
+    }
+    parser_update_cxt(p, c);
+    if (c && c->dump_result) {
+      mrb_parser_dump(p->mrb, p->tree, 0);
+    }
 
   }
   MRB_CATCH(p->jmp) {
@@ -5318,7 +5397,7 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
   MRB_END_EXC(p->jmp);
 }
 
-parser_state*
+MRB_API parser_state*
 mrb_parser_new(mrb_state *mrb)
 {
   mrb_pool *pool;
@@ -5326,9 +5405,9 @@ mrb_parser_new(mrb_state *mrb)
   static const parser_state parser_state_zero = { 0 };
 
   pool = mrb_pool_open(mrb);
-  if (!pool) return 0;
+  if (!pool) return NULL;
   p = (parser_state *)mrb_pool_alloc(pool, sizeof(parser_state));
-  if (!p) return 0;
+  if (!p) return NULL;
 
   *p = parser_state_zero;
   p->mrb = mrb;
@@ -5360,12 +5439,12 @@ mrb_parser_new(mrb_state *mrb)
   return p;
 }
 
-void
+MRB_API void
 mrb_parser_free(parser_state *p) {
   mrb_pool_close(p->pool);
 }
 
-mrbc_context*
+MRB_API mrbc_context*
 mrbc_context_new(mrb_state *mrb)
 {
   mrbc_context *c;
@@ -5374,14 +5453,14 @@ mrbc_context_new(mrb_state *mrb)
   return c;
 }
 
-void
+MRB_API void
 mrbc_context_free(mrb_state *mrb, mrbc_context *cxt)
 {
   mrb_free(mrb, cxt->syms);
   mrb_free(mrb, cxt);
 }
 
-const char*
+MRB_API const char*
 mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 {
   if (s) {
@@ -5394,14 +5473,14 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
   return c->filename;
 }
 
-void
+MRB_API void
 mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*func)(struct mrb_parser_state*), void *data)
 {
   c->partial_hook = func;
   c->partial_data = data;
 }
 
-void
+MRB_API void
 mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
 {
   mrb_sym sym;
@@ -5423,13 +5502,14 @@ mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
 
   new_table = (mrb_sym*)parser_palloc(p, sizeof(mrb_sym) * p->filename_table_length);
   if (p->filename_table) {
-    memcpy(new_table, p->filename_table, sizeof(mrb_sym) * p->filename_table_length);
+    memmove(new_table, p->filename_table, sizeof(mrb_sym) * p->filename_table_length);
   }
   p->filename_table = new_table;
   p->filename_table[p->filename_table_length - 1] = sym;
 }
 
-char const* mrb_parser_get_filename(struct mrb_parser_state* p, uint16_t idx) {
+MRB_API char const*
+mrb_parser_get_filename(struct mrb_parser_state* p, uint16_t idx) {
   if (idx >= p->filename_table_length) { return NULL; }
   else {
     return mrb_sym2name_len(p->mrb, p->filename_table[idx], NULL);
@@ -5437,13 +5517,13 @@ char const* mrb_parser_get_filename(struct mrb_parser_state* p, uint16_t idx) {
 }
 
 #ifdef ENABLE_STDIO
-parser_state*
+MRB_API parser_state*
 mrb_parse_file(mrb_state *mrb, FILE *f, mrbc_context *c)
 {
   parser_state *p;
 
   p = mrb_parser_new(mrb);
-  if (!p) return 0;
+  if (!p) return NULL;
   p->s = p->send = NULL;
   p->f = f;
 
@@ -5452,13 +5532,13 @@ mrb_parse_file(mrb_state *mrb, FILE *f, mrbc_context *c)
 }
 #endif
 
-parser_state*
+MRB_API parser_state*
 mrb_parse_nstring(mrb_state *mrb, const char *s, int len, mrbc_context *c)
 {
   parser_state *p;
 
   p = mrb_parser_new(mrb);
-  if (!p) return 0;
+  if (!p) return NULL;
   p->s = s;
   p->send = s + len;
 
@@ -5466,7 +5546,7 @@ mrb_parse_nstring(mrb_state *mrb, const char *s, int len, mrbc_context *c)
   return p;
 }
 
-parser_state*
+MRB_API parser_state*
 mrb_parse_string(mrb_state *mrb, const char *s, mrbc_context *c)
 {
   return mrb_parse_nstring(mrb, s, strlen(s), c);
@@ -5478,6 +5558,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   struct RClass *target = mrb->object_class;
   struct RProc *proc;
   mrb_value v;
+  unsigned int keep = 0;
 
   if (!p) {
     return mrb_undef_value();
@@ -5511,49 +5592,55 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
     if (c->target_class) {
       target = c->target_class;
     }
+    if (c->keep_lv) {
+      keep = c->slen + 1;
+    }
+    else {
+      c->keep_lv = TRUE;
+    }
   }
   proc->target_class = target;
   if (mrb->c->ci) {
     mrb->c->ci->target_class = target;
   }
-  v = mrb_toplevel_run(mrb, proc);
+  v = mrb_toplevel_run_keep(mrb, proc, keep);
   if (mrb->exc) return mrb_nil_value();
   return v;
 }
 
 #ifdef ENABLE_STDIO
-mrb_value
+MRB_API mrb_value
 mrb_load_file_cxt(mrb_state *mrb, FILE *f, mrbc_context *c)
 {
   return load_exec(mrb, mrb_parse_file(mrb, f, c), c);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_load_file(mrb_state *mrb, FILE *f)
 {
   return mrb_load_file_cxt(mrb, f, NULL);
 }
 #endif
 
-mrb_value
+MRB_API mrb_value
 mrb_load_nstring_cxt(mrb_state *mrb, const char *s, int len, mrbc_context *c)
 {
   return load_exec(mrb, mrb_parse_nstring(mrb, s, len, c), c);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_load_nstring(mrb_state *mrb, const char *s, int len)
 {
   return mrb_load_nstring_cxt(mrb, s, len, NULL);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_load_string_cxt(mrb_state *mrb, const char *s, mrbc_context *c)
 {
   return mrb_load_nstring_cxt(mrb, s, strlen(s), c);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_load_string(mrb_state *mrb, const char *s)
 {
   return mrb_load_string_cxt(mrb, s, NULL);
@@ -5562,8 +5649,9 @@ mrb_load_string(mrb_state *mrb, const char *s)
 #ifdef ENABLE_STDIO
 
 static void
-dump_prefix(int offset)
+dump_prefix(node *tree, int offset)
 {
+  printf("%05d ", tree->lineno);
   while (offset--) {
     putc(' ', stdout);
     putc(' ', stdout);
@@ -5585,14 +5673,14 @@ void
 mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 {
 #ifdef ENABLE_STDIO
-  int n;
+  int nodetype;
 
   if (!tree) return;
   again:
-  dump_prefix(offset);
-  n = (int)(intptr_t)tree->car;
+  dump_prefix(tree, offset);
+  nodetype = (int)(intptr_t)tree->car;
   tree = tree->cdr;
-  switch (n) {
+  switch (nodetype) {
   case NODE_BEGIN:
     printf("NODE_BEGIN:\n");
     dump_recur(mrb, tree, offset+1);
@@ -5601,7 +5689,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_RESCUE:
     printf("NODE_RESCUE:\n");
     if (tree->car) {
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf("body:\n");
       mrb_parser_dump(mrb, tree->car, offset+2);
     }
@@ -5609,22 +5697,22 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     if (tree->car) {
       node *n2 = tree->car;
 
-      dump_prefix(offset+1);
+      dump_prefix(n2, offset+1);
       printf("rescue:\n");
       while (n2) {
         node *n3 = n2->car;
         if (n3->car) {
-          dump_prefix(offset+2);
+          dump_prefix(n2, offset+2);
           printf("handle classes:\n");
           dump_recur(mrb, n3->car, offset+3);
         }
         if (n3->cdr->car) {
-          dump_prefix(offset+2);
+          dump_prefix(n3, offset+2);
           printf("exc_var:\n");
           mrb_parser_dump(mrb, n3->cdr->car, offset+3);
         }
         if (n3->cdr->cdr->car) {
-          dump_prefix(offset+2);
+          dump_prefix(n3, offset+2);
           printf("rescue body:\n");
           mrb_parser_dump(mrb, n3->cdr->cdr->car, offset+3);
         }
@@ -5633,7 +5721,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     }
     tree = tree->cdr;
     if (tree->car) {
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf("else:\n");
       mrb_parser_dump(mrb, tree->car, offset+2);
     }
@@ -5641,10 +5729,10 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_ENSURE:
     printf("NODE_ENSURE:\n");
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("body:\n");
     mrb_parser_dump(mrb, tree->car, offset+2);
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("ensure:\n");
     mrb_parser_dump(mrb, tree->cdr->cdr, offset+2);
     break;
@@ -5656,62 +5744,62 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_BLOCK:
     block:
     printf("NODE_BLOCK:\n");
-  tree = tree->cdr;
-  if (tree->car) {
-    node *n = tree->car;
+    tree = tree->cdr;
+    if (tree->car) {
+      node *n = tree->car;
 
-    if (n->car) {
-      dump_prefix(offset+1);
-      printf("mandatory args:\n");
-      dump_recur(mrb, n->car, offset+2);
-    }
-    n = n->cdr;
-    if (n->car) {
-      dump_prefix(offset+1);
-      printf("optional args:\n");
-      {
-        node *n2 = n->car;
+      if (n->car) {
+        dump_prefix(n, offset+1);
+        printf("mandatory args:\n");
+        dump_recur(mrb, n->car, offset+2);
+      }
+      n = n->cdr;
+      if (n->car) {
+        dump_prefix(n, offset+1);
+        printf("optional args:\n");
+        {
+          node *n2 = n->car;
 
-        while (n2) {
-          dump_prefix(offset+2);
-          printf("%s=", mrb_sym2name(mrb, sym(n2->car->car)));
-          mrb_parser_dump(mrb, n2->car->cdr, 0);
-          n2 = n2->cdr;
+          while (n2) {
+            dump_prefix(n2, offset+2);
+            printf("%s=", mrb_sym2name(mrb, sym(n2->car->car)));
+            mrb_parser_dump(mrb, n2->car->cdr, 0);
+            n2 = n2->cdr;
+          }
         }
       }
+      n = n->cdr;
+      if (n->car) {
+        dump_prefix(n, offset+1);
+        printf("rest=*%s\n", mrb_sym2name(mrb, sym(n->car)));
+      }
+      n = n->cdr;
+      if (n->car) {
+        dump_prefix(n, offset+1);
+        printf("post mandatory args:\n");
+        dump_recur(mrb, n->car, offset+2);
+      }
+      n = n->cdr;
+      if (n) {
+        dump_prefix(n, offset+1);
+        printf("blk=&%s\n", mrb_sym2name(mrb, sym(n)));
+      }
     }
-    n = n->cdr;
-    if (n->car) {
-      dump_prefix(offset+1);
-      printf("rest=*%s\n", mrb_sym2name(mrb, sym(n->car)));
-    }
-    n = n->cdr;
-    if (n->car) {
-      dump_prefix(offset+1);
-      printf("post mandatory args:\n");
-      dump_recur(mrb, n->car, offset+2);
-    }
-    n = n->cdr;
-    if (n) {
-      dump_prefix(offset+1);
-      printf("blk=&%s\n", mrb_sym2name(mrb, sym(n)));
-    }
-  }
-  dump_prefix(offset+1);
-  printf("body:\n");
-  mrb_parser_dump(mrb, tree->cdr->car, offset+2);
-  break;
+    dump_prefix(tree, offset+1);
+    printf("body:\n");
+    mrb_parser_dump(mrb, tree->cdr->car, offset+2);
+    break;
 
   case NODE_IF:
     printf("NODE_IF:\n");
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("cond:\n");
     mrb_parser_dump(mrb, tree->car, offset+2);
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("then:\n");
     mrb_parser_dump(mrb, tree->cdr->car, offset+2);
     if (tree->cdr->cdr->car) {
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf("else:\n");
       mrb_parser_dump(mrb, tree->cdr->cdr->car, offset+2);
     }
@@ -5736,10 +5824,10 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     }
     tree = tree->cdr;
     while (tree) {
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf("case:\n");
       dump_recur(mrb, tree->car->car, offset+2);
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf("body:\n");
       mrb_parser_dump(mrb, tree->car->cdr, offset+2);
       tree = tree->cdr;
@@ -5748,47 +5836,47 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_WHILE:
     printf("NODE_WHILE:\n");
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("cond:\n");
     mrb_parser_dump(mrb, tree->car, offset+2);
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("body:\n");
     mrb_parser_dump(mrb, tree->cdr, offset+2);
     break;
 
   case NODE_UNTIL:
     printf("NODE_UNTIL:\n");
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("cond:\n");
     mrb_parser_dump(mrb, tree->car, offset+2);
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("body:\n");
     mrb_parser_dump(mrb, tree->cdr, offset+2);
     break;
 
   case NODE_FOR:
     printf("NODE_FOR:\n");
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("var:\n");
     {
       node *n2 = tree->car;
 
       if (n2->car) {
-        dump_prefix(offset+2);
+        dump_prefix(n2, offset+2);
         printf("pre:\n");
         dump_recur(mrb, n2->car, offset+3);
       }
       n2 = n2->cdr;
       if (n2) {
         if (n2->car) {
-          dump_prefix(offset+2);
+          dump_prefix(n2, offset+2);
           printf("rest:\n");
           mrb_parser_dump(mrb, n2->car, offset+3);
         }
         n2 = n2->cdr;
         if (n2) {
           if (n2->car) {
-            dump_prefix(offset+2);
+            dump_prefix(n2, offset+2);
             printf("post:\n");
             dump_recur(mrb, n2->car, offset+3);
           }
@@ -5796,11 +5884,11 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
       }
     }
     tree = tree->cdr;
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("in:\n");
     mrb_parser_dump(mrb, tree->car, offset+2);
     tree = tree->cdr;
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("do:\n");
     mrb_parser_dump(mrb, tree->car, offset+2);
     break;
@@ -5809,15 +5897,17 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     printf("NODE_SCOPE:\n");
     {
       node *n2 = tree->car;
+      mrb_bool first_lval = TRUE;
 
-      if (n2  && (n2->car || n2->cdr)) {
-        dump_prefix(offset+1);
+      if (n2 && (n2->car || n2->cdr)) {
+        dump_prefix(n2, offset+1);
         printf("local variables:\n");
-        dump_prefix(offset+2);
+        dump_prefix(n2, offset+2);
         while (n2) {
           if (n2->car) {
-            if (n2 != tree->car) printf(", ");
+            if (!first_lval) printf(", ");
             printf("%s", mrb_sym2name(mrb, sym(n2->car)));
+            first_lval = FALSE;
           }
           n2 = n2->cdr;
         }
@@ -5832,17 +5922,17 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_CALL:
     printf("NODE_CALL:\n");
     mrb_parser_dump(mrb, tree->car, offset+1);
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("method='%s' (%d)\n",
         mrb_sym2name(mrb, sym(tree->cdr->car)),
         (int)(intptr_t)tree->cdr->car);
     tree = tree->cdr->cdr->car;
     if (tree) {
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf("args:\n");
       dump_recur(mrb, tree->car, offset+2);
       if (tree->cdr) {
-        dump_prefix(offset+1);
+        dump_prefix(tree, offset+1);
         printf("block:\n");
         mrb_parser_dump(mrb, tree->cdr, offset+2);
       }
@@ -5864,13 +5954,13 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_COLON2:
     printf("NODE_COLON2:\n");
     mrb_parser_dump(mrb, tree->car, offset+1);
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("::%s\n", mrb_sym2name(mrb, sym(tree->cdr)));
     break;
 
   case NODE_COLON3:
     printf("NODE_COLON3:\n");
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("::%s\n", mrb_sym2name(mrb, sym(tree)));
     break;
 
@@ -5882,10 +5972,10 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_HASH:
     printf("NODE_HASH:\n");
     while (tree) {
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf("key:\n");
       mrb_parser_dump(mrb, tree->car->car, offset+2);
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf("value:\n");
       mrb_parser_dump(mrb, tree->car->cdr, offset+2);
       tree = tree->cdr;
@@ -5899,33 +5989,33 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_ASGN:
     printf("NODE_ASGN:\n");
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("lhs:\n");
     mrb_parser_dump(mrb, tree->car, offset+2);
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("rhs:\n");
     mrb_parser_dump(mrb, tree->cdr, offset+2);
     break;
 
   case NODE_MASGN:
     printf("NODE_MASGN:\n");
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("mlhs:\n");
     {
       node *n2 = tree->car;
 
       if (n2->car) {
-        dump_prefix(offset+2);
+        dump_prefix(tree, offset+2);
         printf("pre:\n");
         dump_recur(mrb, n2->car, offset+3);
       }
       n2 = n2->cdr;
       if (n2) {
         if (n2->car) {
-          dump_prefix(offset+2);
+          dump_prefix(n2, offset+2);
           printf("rest:\n");
           if (n2->car == (node*)-1) {
-            dump_prefix(offset+2);
+            dump_prefix(n2, offset+2);
             printf("(empty)\n");
           }
           else {
@@ -5935,25 +6025,25 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
         n2 = n2->cdr;
         if (n2) {
           if (n2->car) {
-            dump_prefix(offset+2);
+            dump_prefix(n2, offset+2);
             printf("post:\n");
             dump_recur(mrb, n2->car, offset+3);
           }
         }
       }
     }
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("rhs:\n");
     mrb_parser_dump(mrb, tree->cdr, offset+2);
     break;
 
   case NODE_OP_ASGN:
     printf("NODE_OP_ASGN:\n");
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("lhs:\n");
     mrb_parser_dump(mrb, tree->car, offset+2);
     tree = tree->cdr;
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("op='%s' (%d)\n", mrb_sym2name(mrb, sym(tree->car)), (int)(intptr_t)tree->car);
     tree = tree->cdr;
     mrb_parser_dump(mrb, tree->car, offset+1);
@@ -5962,11 +6052,11 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_SUPER:
     printf("NODE_SUPER:\n");
     if (tree) {
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf("args:\n");
       dump_recur(mrb, tree->car, offset+2);
       if (tree->cdr) {
-        dump_prefix(offset+1);
+        dump_prefix(tree, offset+1);
         printf("block:\n");
         mrb_parser_dump(mrb, tree->cdr, offset+2);
       }
@@ -6027,10 +6117,10 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_MATCH:
     printf("NODE_MATCH:\n");
-    dump_prefix(offset + 1);
+    dump_prefix(tree, offset + 1);
     printf("lhs:\n");
     mrb_parser_dump(mrb, tree->car, offset + 2);
-    dump_prefix(offset + 1);
+    dump_prefix(tree, offset + 1);
     printf("rhs:\n");
     mrb_parser_dump(mrb, tree->cdr, offset + 2);
     break;
@@ -6090,9 +6180,9 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_DREGX:
     printf("NODE_DREGX\n");
     dump_recur(mrb, tree->car, offset+1);
-    dump_prefix(offset);
+    dump_prefix(tree, offset);
     printf("tail: %s\n", (char*)tree->cdr->cdr->car);
-    dump_prefix(offset);
+    dump_prefix(tree, offset);
     printf("opt: %s\n", (char*)tree->cdr->cdr->cdr);
     break;
 
@@ -6137,24 +6227,24 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_CLASS:
     printf("NODE_CLASS:\n");
     if (tree->car->car == (node*)0) {
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf(":%s\n", mrb_sym2name(mrb, sym(tree->car->cdr)));
     }
     else if (tree->car->car == (node*)1) {
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf("::%s\n", mrb_sym2name(mrb, sym(tree->car->cdr)));
     }
     else {
       mrb_parser_dump(mrb, tree->car->car, offset+1);
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf("::%s\n", mrb_sym2name(mrb, sym(tree->car->cdr)));
     }
     if (tree->cdr->car) {
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf("super:\n");
       mrb_parser_dump(mrb, tree->cdr->car, offset+2);
     }
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("body:\n");
     mrb_parser_dump(mrb, tree->cdr->cdr->car->cdr, offset+2);
     break;
@@ -6162,19 +6252,19 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_MODULE:
     printf("NODE_MODULE:\n");
     if (tree->car->car == (node*)0) {
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf(":%s\n", mrb_sym2name(mrb, sym(tree->car->cdr)));
     }
     else if (tree->car->car == (node*)1) {
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf("::%s\n", mrb_sym2name(mrb, sym(tree->car->cdr)));
     }
     else {
       mrb_parser_dump(mrb, tree->car->car, offset+1);
-      dump_prefix(offset+1);
+      dump_prefix(tree, offset+1);
       printf("::%s\n", mrb_sym2name(mrb, sym(tree->car->cdr)));
     }
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("body:\n");
     mrb_parser_dump(mrb, tree->cdr->car->cdr, offset+2);
     break;
@@ -6182,27 +6272,29 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_SCLASS:
     printf("NODE_SCLASS:\n");
     mrb_parser_dump(mrb, tree->car, offset+1);
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("body:\n");
     mrb_parser_dump(mrb, tree->cdr->car->cdr, offset+2);
     break;
 
   case NODE_DEF:
     printf("NODE_DEF:\n");
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf("%s\n", mrb_sym2name(mrb, sym(tree->car)));
     tree = tree->cdr;
     {
       node *n2 = tree->car;
+      mrb_bool first_lval = TRUE;
 
       if (n2 && (n2->car || n2->cdr)) {
-        dump_prefix(offset+1);
+        dump_prefix(n2, offset+1);
         printf("local variables:\n");
-        dump_prefix(offset+2);
+        dump_prefix(n2, offset+2);
         while (n2) {
           if (n2->car) {
-            if (n2 != tree->car) printf(", ");
+            if (!first_lval) printf(", ");
             printf("%s", mrb_sym2name(mrb, sym(n2->car)));
+            first_lval = FALSE;
           }
           n2 = n2->cdr;
         }
@@ -6214,19 +6306,19 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
       node *n = tree->car;
 
       if (n->car) {
-        dump_prefix(offset+1);
+        dump_prefix(n, offset+1);
         printf("mandatory args:\n");
         dump_recur(mrb, n->car, offset+2);
       }
       n = n->cdr;
       if (n->car) {
-        dump_prefix(offset+1);
+        dump_prefix(n, offset+1);
         printf("optional args:\n");
         {
           node *n2 = n->car;
 
           while (n2) {
-            dump_prefix(offset+2);
+            dump_prefix(n2, offset+2);
             printf("%s=", mrb_sym2name(mrb, sym(n2->car->car)));
             mrb_parser_dump(mrb, n2->car->cdr, 0);
             n2 = n2->cdr;
@@ -6235,18 +6327,18 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
       }
       n = n->cdr;
       if (n->car) {
-        dump_prefix(offset+1);
+        dump_prefix(n, offset+1);
         printf("rest=*%s\n", mrb_sym2name(mrb, sym(n->car)));
       }
       n = n->cdr;
       if (n->car) {
-        dump_prefix(offset+1);
+        dump_prefix(n, offset+1);
         printf("post mandatory args:\n");
         dump_recur(mrb, n->car, offset+2);
       }
       n = n->cdr;
       if (n) {
-        dump_prefix(offset+1);
+        dump_prefix(n, offset+1);
         printf("blk=&%s\n", mrb_sym2name(mrb, sym(n)));
       }
     }
@@ -6257,26 +6349,26 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     printf("NODE_SDEF:\n");
     mrb_parser_dump(mrb, tree->car, offset+1);
     tree = tree->cdr;
-    dump_prefix(offset+1);
+    dump_prefix(tree, offset+1);
     printf(":%s\n", mrb_sym2name(mrb, sym(tree->car)));
     tree = tree->cdr->cdr;
     if (tree->car) {
       node *n = tree->car;
 
       if (n->car) {
-        dump_prefix(offset+1);
+        dump_prefix(n, offset+1);
         printf("mandatory args:\n");
         dump_recur(mrb, n->car, offset+2);
       }
       n = n->cdr;
       if (n->car) {
-        dump_prefix(offset+1);
+        dump_prefix(n, offset+1);
         printf("optional args:\n");
         {
           node *n2 = n->car;
 
           while (n2) {
-            dump_prefix(offset+2);
+            dump_prefix(n2, offset+2);
             printf("%s=", mrb_sym2name(mrb, sym(n2->car->car)));
             mrb_parser_dump(mrb, n2->car->cdr, 0);
             n2 = n2->cdr;
@@ -6285,18 +6377,18 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
       }
       n = n->cdr;
       if (n->car) {
-        dump_prefix(offset+1);
+        dump_prefix(n, offset+1);
         printf("rest=*%s\n", mrb_sym2name(mrb, sym(n->car)));
       }
       n = n->cdr;
       if (n->car) {
-        dump_prefix(offset+1);
+        dump_prefix(n, offset+1);
         printf("post mandatory args:\n");
         dump_recur(mrb, n->car, offset+2);
       }
       n = n->cdr;
       if (n) {
-        dump_prefix(offset+1);
+        dump_prefix(n, offset+1);
         printf("blk=&%s\n", mrb_sym2name(mrb, sym(n)));
       }
     }
@@ -6315,7 +6407,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   default:
-    printf("node type: %d (0x%x)\n", (int)n, (int)n);
+    printf("node type: %d (0x%x)\n", nodetype, (unsigned)nodetype);
     break;
   }
 #endif

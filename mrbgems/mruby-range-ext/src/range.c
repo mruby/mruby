@@ -1,5 +1,6 @@
 #include "mruby.h"
 #include "mruby/range.h"
+#include <math.h>
 
 static mrb_bool
 r_le(mrb_state *mrb, mrb_value a, mrb_value b)
@@ -121,6 +122,58 @@ mrb_range_last(mrb_state *mrb, mrb_value range)
   return mrb_funcall(mrb, array, "last", 1, mrb_to_int(mrb, num));
 }
 
+/*
+ *  call-seq:
+ *     rng.size                   -> num
+ *
+ *  Returns the number of elements in the range. Both the begin and the end of
+ *  the Range must be Numeric, otherwise nil is returned.
+ *
+ *    (10..20).size    #=> 11
+ *    ('a'..'z').size  #=> nil
+ */
+
+static mrb_value
+mrb_range_size(mrb_state *mrb, mrb_value range)
+{
+  struct RRange *r = mrb_range_ptr(range);
+  mrb_value beg, end;
+  double beg_f, end_f;
+  mrb_bool num_p = TRUE;
+
+  beg = r->edges->beg;
+  end = r->edges->end;
+  if (mrb_fixnum_p(beg)) {
+    beg_f = (double)mrb_fixnum(beg);
+  }
+  else if (mrb_float_p(beg)) {
+    beg_f = mrb_float(beg);
+  }
+  else {
+    num_p = FALSE;
+  }
+  if (mrb_fixnum_p(end)) {
+    end_f = (double)mrb_fixnum(end);
+  }
+  else if (mrb_float_p(end)) {
+    end_f = mrb_float(end);
+  }
+  else {
+    num_p = FALSE;
+  }
+  if (num_p) {
+    double f;
+
+    if (beg_f > end_f) return mrb_fixnum_value(0);
+    f = end_f - beg_f;
+    if (!r->excl) {
+      return mrb_fixnum_value((mrb_int)ceil(f + 1));
+    }
+    return mrb_fixnum_value((mrb_int)ceil(f));
+  }
+  return mrb_nil_value();
+}
+
 void
 mrb_mruby_range_ext_gem_init(mrb_state* mrb)
 {
@@ -129,6 +182,7 @@ mrb_mruby_range_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "cover?", mrb_range_cover, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "first",  mrb_range_first, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, s, "last",   mrb_range_last,  MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, s, "size",   mrb_range_size,  MRB_ARGS_NONE());
 }
 
 void

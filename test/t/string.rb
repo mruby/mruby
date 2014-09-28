@@ -5,10 +5,6 @@ assert('String', '15.2.10') do
   assert_equal Class, String.class
 end
 
-assert('String superclass', '15.2.10.2') do
-  assert_equal Object, String.superclass
-end
-
 assert('String#<=>', '15.2.10.5.1') do
   a = '' <=> ''
   b = '' <=> 'not empty'
@@ -320,6 +316,13 @@ assert('String#replace', '15.2.10.5.28') do
   b.replace(c);
   c.replace(b);
   assert_equal c, b
+
+  # shared string
+  s = "foo" * 100
+  a = s[10, 90]                # create shared string
+  assert_equal("", s.replace(""))    # clear
+  assert_equal("", s)          # s is cleared
+  assert_not_equal("", a)      # a should not be affected
 end
 
 assert('String#reverse', '15.2.10.5.29') do
@@ -475,6 +478,15 @@ assert('String#upcase!', '15.2.10.5.43') do
   assert_equal 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', b
 end
 
+assert('String#inspect', '15.2.10.5.46') do
+  # should not raise an exception - regress #1210
+  assert_nothing_raised do
+  ("\1" * 100).inspect
+  end
+
+  assert_equal "\"\\000\"", "\0".inspect
+end
+
 # Not ISO specified
 
 assert('String interpolation (mrb_str_concat for shared strings)') do
@@ -505,9 +517,4 @@ assert('String#each_byte') do
   str1.each_byte {|b| bytes2 << b }
 
   assert_equal bytes1, bytes2
-end
-
-assert('String#inspect') do
-  ("\1" * 100).inspect  # should not raise an exception - regress #1210
-  assert_equal "\"\\000\"", "\0".inspect
 end

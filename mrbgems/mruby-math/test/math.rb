@@ -23,6 +23,22 @@ assert('Math.sin PI/2') do
   check_float(Math.sin(Math::PI / 2), 1)
 end
 
+assert('Math.cos 0') do
+  check_float(Math.cos(0), 1)
+end
+
+assert('Math.cos PI/2') do
+  check_float(Math.cos(Math::PI / 2), 0)
+end
+
+assert('Math.tan 0') do
+  check_float(Math.tan(0), 0)
+end
+
+assert('Math.tan PI/4') do
+  check_float(Math.tan(Math::PI / 4), 1)
+end
+
 assert('Fundamental trig identities') do
   result = true
   N = 13

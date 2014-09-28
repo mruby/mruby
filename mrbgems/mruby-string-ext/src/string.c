@@ -1,6 +1,8 @@
 #include <ctype.h>
 #include <string.h>
 #include "mruby.h"
+#include "mruby/array.h"
+#include "mruby/class.h"
 #include "mruby/string.h"
 
 static mrb_value
@@ -34,7 +36,7 @@ mrb_str_swapcase_bang(mrb_state *mrb, mrb_value str)
 
   mrb_str_modify(mrb, s);
   p = RSTRING_PTR(str);
-  pend = RSTRING_PTR(str) + RSTRING_LEN(str);
+  pend = p + RSTRING_LEN(str);
   while (p < pend) {
     if (ISUPPER(*p)) {
       *p = TOLOWER(*p);
@@ -113,7 +115,7 @@ static mrb_value
 mrb_str_start_with(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv, sub;
-  int argc, i;
+  mrb_int argc, i;
   mrb_get_args(mrb, "*", &argv, &argc);
 
   for (i = 0; i < argc; i++) {
@@ -142,7 +144,7 @@ static mrb_value
 mrb_str_end_with(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv, sub;
-  int argc, i;
+  mrb_int argc, i;
   mrb_get_args(mrb, "*", &argv, &argc);
 
   for (i = 0; i < argc; i++) {
@@ -157,7 +159,7 @@ mrb_str_end_with(mrb_state *mrb, mrb_value self)
                  RSTRING_PTR(sub),
                  len_r) == 0) {
         return mrb_true_value();
-      }  
+      }
     }
   }
   return mrb_false_value();
@@ -175,6 +177,160 @@ mrb_str_oct(mrb_state *mrb, mrb_value self)
   return mrb_str_to_inum(mrb, self, 8, FALSE);
 }
 
+/*
+ *  call-seq:
+ *     string.chr    ->  string
+ *
+ *  Returns a one-character string at the beginning of the string.
+ *
+ *     a = "abcde"
+ *     a.chr    #=> "a"
+ */
+static mrb_value
+mrb_str_chr(mrb_state *mrb, mrb_value self)
+{
+  return mrb_str_substr(mrb, self, 0, 1);
+}
+
+/*
+ *  call-seq:
+ *     string.lines    ->  array of string
+ *
+ *  Returns strings per line;
+ *
+ *     a = "abc\ndef"
+ *     a.lines    #=> ["abc\n", "def"]
+ */
+static mrb_value
+mrb_str_lines(mrb_state *mrb, mrb_value self)
+{
+  mrb_value result;
+  mrb_value blk;
+  int ai;
+  mrb_int len;
+  mrb_value arg;
+  char *p = RSTRING_PTR(self), *t;
+  char *e = p + RSTRING_LEN(self);
+
+  mrb_get_args(mrb, "&", &blk);
+
+  result = mrb_ary_new(mrb);
+
+  if (!mrb_nil_p(blk)) {
+    while (p < e) {
+      t = p;
+      while (p < e && *p != '\n') p++;
+      if (*p == '\n') p++;
+      len = (mrb_int) (p - t);
+      arg = mrb_str_new(mrb, t, len);
+      mrb_yield_argv(mrb, blk, 1, &arg);
+    }
+    return self;
+  }
+  while (p < e) {
+    ai = mrb_gc_arena_save(mrb);
+    t = p;
+    while (p < e && *p != '\n') p++;
+    if (*p == '\n') p++;
+    len = (mrb_int) (p - t);
+    mrb_ary_push(mrb, result, mrb_str_new(mrb, t, len));
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  return result;
+}
+
+/*
+ *  call-seq:
+ *     string.succ    ->  string
+ *
+ *  Returns next sequence of the string;
+ *
+ *     a = "abc"
+ *     a.succ    #=> "abd"
+ */
+static mrb_value
+mrb_str_succ_bang(mrb_state *mrb, mrb_value self)
+{
+  mrb_value result;
+  unsigned char *p, *e, *b, *t;
+  char *prepend;
+  struct RString *s = mrb_str_ptr(self);
+  size_t l;
+
+  if (RSTRING_LEN(self) == 0)
+    return self;
+
+  mrb_str_modify(mrb, s);
+  l = RSTRING_LEN(self);
+  b = p = (unsigned char*) RSTRING_PTR(self);
+  t = e = p + l;
+  *(e--) = 0;
+
+  // find trailing ascii/number
+  while (e >= b) {
+    if (ISALNUM(*e))
+      break;
+    e--;
+  }
+  if (e < b) {
+    e = p + l - 1;
+    result = mrb_str_new_lit(mrb, "");
+  } else {
+    // find leading letter of the ascii/number
+    b = e;
+    while (b > p) {
+      if (!ISALNUM(*b) || (ISALNUM(*b) && *b != '9' && *b != 'z' && *b != 'Z'))
+        break;
+      b--;
+    }
+    if (!ISALNUM(*b))
+      b++;
+    result = mrb_str_new(mrb, (char*) p, b - p);
+  }
+
+  while (e >= b) {
+    if (!ISALNUM(*e)) {
+      if (*e == 0xff) {
+        mrb_str_cat_lit(mrb, result, "\x01");
+        (*e) = 0;
+      } else
+        (*e)++;
+      break;
+    }
+    prepend = NULL;
+    if (*e == '9') {
+      if (e == b) prepend = "1";
+      *e = '0';
+    } else if (*e == 'z') {
+      if (e == b) prepend = "a";
+      *e = 'a';
+    } else if (*e == 'Z') {
+      if (e == b) prepend = "A";
+      *e = 'A';
+    } else {
+      (*e)++;
+      break;
+    }
+    if (prepend) mrb_str_cat_cstr(mrb, result, prepend);
+    e--;
+  }
+  result = mrb_str_cat(mrb, result, (char*) b, t - b);
+  l = RSTRING_LEN(result);
+  mrb_str_resize(mrb, self, l);
+  memcpy(RSTRING_PTR(self), RSTRING_PTR(result), l);
+  return self;
+}
+
+static mrb_value
+mrb_str_succ(mrb_state *mrb, mrb_value self)
+{
+  mrb_value str;
+
+  str = mrb_str_dup(mrb, self);
+  mrb_str_succ_bang(mrb, str);
+  return str;
+}
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -190,6 +346,12 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "end_with?",       mrb_str_end_with,        MRB_ARGS_REST());
   mrb_define_method(mrb, s, "hex",             mrb_str_hex,             MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "oct",             mrb_str_oct,             MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "chr",             mrb_str_chr,             MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "lines",           mrb_str_lines,           MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "succ",            mrb_str_succ,            MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "succ!",           mrb_str_succ_bang,       MRB_ARGS_NONE());
+  mrb_alias_method(mrb, s, mrb_intern_lit(mrb, "next"), mrb_intern_lit(mrb, "succ"));
+  mrb_alias_method(mrb, s, mrb_intern_lit(mrb, "next!"), mrb_intern_lit(mrb, "succ!"));
 }
 
 void

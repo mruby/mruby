@@ -8,11 +8,8 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "mruby.h"
-#include "mruby/array.h"
-#include "mruby/proc.h"
-#include "mruby/compile.h"
-#include "mruby/string.h"
+#include <stdio.h>
+#include <ctype.h>
 
 #ifdef ENABLE_READLINE
 #include <readline/readline.h>
@@ -22,7 +19,7 @@
 #define MIRB_WRITE_HISTORY(path) write_history(path)
 #define MIRB_READ_HISTORY(path) read_history(path)
 #define MIRB_USING_HISTORY() using_history()
-#elif ENABLE_LINENOISE
+#elif defined(ENABLE_LINENOISE)
 #define ENABLE_READLINE
 #include <linenoise.h>
 #define MIRB_ADD_HISTORY(line) linenoiseHistoryAdd(line)
@@ -31,11 +28,47 @@
 #define MIRB_READ_HISTORY(path) linenoiseHistoryLoad(history_path)
 #define MIRB_USING_HISTORY()
 #endif
-  
+
+#include "mruby.h"
+#include "mruby/array.h"
+#include "mruby/proc.h"
+#include "mruby/compile.h"
+#include "mruby/string.h"
+
 #ifdef ENABLE_READLINE
-#include <limits.h>
-static const char *history_file_name = ".mirb_history";
-char history_path[PATH_MAX];
+
+static const char history_file_name[] = ".mirb_history";
+
+static char *
+get_history_path(mrb_state *mrb)
+{
+  char *path = NULL;
+  const char *home = getenv("HOME");
+
+#ifdef _WIN32
+  if (home != NULL) {
+    home = getenv("USERPROFILE");
+  }
+#endif
+
+  if (home != NULL) {
+    int len = snprintf(NULL, 0, "%s/%s", home, history_file_name);
+    if (len >= 0) {
+      size_t size = len + 1;
+      path = (char *)mrb_malloc_simple(mrb, size);
+      if (path != NULL) {
+        int n = snprintf(path, size, "%s/%s", home, history_file_name);
+        if (n != len) {
+          mrb_free(mrb, path);
+          path = NULL;
+        }
+      }
+    }
+  }
+
+  return path;
+}
+
 #endif
 
 static void
@@ -73,7 +106,7 @@ is_code_block_open(struct mrb_parser_state *parser)
 
   /* check if parser error are available */
   if (0 < parser->nerr) {
-    const char *unexpected_end = "syntax error, unexpected $end";
+    const char unexpected_end[] = "syntax error, unexpected $end";
     const char *message = parser->error_buffer[0].message;
 
     /* a parser error occur, we have to check if */
@@ -81,7 +114,7 @@ is_code_block_open(struct mrb_parser_state *parser)
     /* a different issue which we have to show to */
     /* the user */
 
-    if (strncmp(message, unexpected_end, strlen(unexpected_end)) == 0) {
+    if (strncmp(message, unexpected_end, sizeof(unexpected_end) - 1) == 0) {
       code_block_open = TRUE;
     }
     else if (strcmp(message, "syntax error, unexpected keyword_end") == 0) {
@@ -98,9 +131,9 @@ is_code_block_open(struct mrb_parser_state *parser)
   /* all states which need more code */
 
   case EXPR_BEG:
-    /* an expression was just started, */
-    /* we can't end it like this */
-    code_block_open = TRUE;
+    /* beginning of a statement, */
+    /* that means previous line ended */
+    code_block_open = FALSE;
     break;
   case EXPR_DOT:
     /* a message dot was the last token, */
@@ -197,7 +230,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
     switch (*item++) {
     case 'v':
       if (!args->verbose) mrb_show_version(mrb);
-      args->verbose = 1;
+      args->verbose = TRUE;
       break;
     case '-':
       if (strcmp((*argv) + 2, "version") == 0) {
@@ -205,7 +238,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         exit(EXIT_SUCCESS);
       }
       else if (strcmp((*argv) + 2, "verbose") == 0) {
-        args->verbose = 1;
+        args->verbose = TRUE;
         break;
       }
       else if (strcmp((*argv) + 2, "copyright") == 0) {
@@ -244,9 +277,32 @@ print_cmdline(int code_block_open)
     printf("> ");
   }
 }
-#endif 
+#endif
 
 void mrb_codedump_all(mrb_state*, struct RProc*);
+
+static int
+check_keyword(const char *buf, const char *word)
+{
+  const char *p = buf;
+  size_t len = strlen(word);
+
+  /* skip preceding spaces */
+  while (*p && isspace((unsigned char)*p)) {
+    p++;
+  }
+  /* check keyword */
+  if (strncmp(p, word, len) != 0) {
+    return 0;
+  }
+  p += len;
+  /* skip trailing spaces */
+  while (*p) {
+    if (!isspace((unsigned char)*p)) return 0;
+    p++;
+  }
+  return 1;
+}
 
 int
 main(int argc, char **argv)
@@ -257,7 +313,7 @@ main(int argc, char **argv)
   int last_char;
   int char_index;
 #else
-  char *home = NULL;
+  char *history_path;
 #endif
   mrbc_context *cxt;
   struct mrb_parser_state *parser;
@@ -284,31 +340,27 @@ main(int argc, char **argv)
     return n;
   }
 
+#ifdef ENABLE_READLINE
+  history_path = get_history_path(mrb);
+  if (history_path == NULL) {
+    fputs("failed to get history path\n", stderr);
+    mrb_close(mrb);
+    return EXIT_FAILURE;
+  }
+
+  MIRB_USING_HISTORY();
+  MIRB_READ_HISTORY(history_path);
+#endif
+
   print_hint();
 
   cxt = mrbc_context_new(mrb);
-  cxt->capture_errors = 1;
+  cxt->capture_errors = TRUE;
   cxt->lineno = 1;
   mrbc_filename(mrb, cxt, "(mirb)");
-  if (args.verbose) cxt->dump_result = 1;
+  if (args.verbose) cxt->dump_result = TRUE;
 
   ai = mrb_gc_arena_save(mrb);
-
-#ifdef ENABLE_READLINE
-  MIRB_USING_HISTORY();
-  home = getenv("HOME");
-#ifdef _WIN32
-  if (!home)
-    home = getenv("USERPROFILE");
-#endif
-  if (home) {
-    strcpy(history_path, home);
-    strcat(history_path, "/");
-    strcat(history_path, history_file_name);
-    MIRB_READ_HISTORY(history_path);
-  }
-#endif
-
 
   while (TRUE) {
 #ifndef ENABLE_READLINE
@@ -317,6 +369,10 @@ main(int argc, char **argv)
     char_index = 0;
     while ((last_char = getchar()) != '\n') {
       if (last_char == EOF) break;
+      if (char_index > sizeof(last_code_line)-2) {
+        fputs("input string too long\n", stderr);
+        continue;
+      }
       last_code_line[char_index++] = last_char;
     }
     if (last_char == EOF) {
@@ -324,6 +380,7 @@ main(int argc, char **argv)
       break;
     }
 
+    last_code_line[char_index++] = '\n';
     last_code_line[char_index] = '\0';
 #else
     char* line = MIRB_READLINE(code_block_open ? "* " : "> ");
@@ -331,17 +388,25 @@ main(int argc, char **argv)
       printf("\n");
       break;
     }
-    strncpy(last_code_line, line, sizeof(last_code_line)-1);
+    if (strlen(line) > sizeof(last_code_line)-2) {
+      fputs("input string too long\n", stderr);
+      continue;
+    }
+    strcpy(last_code_line, line);
+    strcat(last_code_line, "\n");
     MIRB_ADD_HISTORY(line);
     free(line);
 #endif
 
     if (code_block_open) {
-        strcat(ruby_code, "\n");
-        strcat(ruby_code, last_code_line);
+      if (strlen(ruby_code)+strlen(last_code_line) > sizeof(ruby_code)-1) {
+        fputs("concatenated input string too long\n", stderr);
+        continue;
+      }
+      strcat(ruby_code, last_code_line);
     }
     else {
-      if ((strcmp(last_code_line, "quit") == 0) || (strcmp(last_code_line, "exit") == 0)) {
+      if (check_keyword(last_code_line, "quit") || check_keyword(last_code_line, "exit")) {
         break;
       }
       strcpy(ruby_code, last_code_line);
@@ -349,6 +414,10 @@ main(int argc, char **argv)
 
     /* parse code */
     parser = mrb_parser_new(mrb);
+    if (parser == NULL) {
+      fputs("create parser state error\n", stderr);
+      break;
+    }
     parser->s = ruby_code;
     parser->send = ruby_code + strlen(ruby_code);
     parser->lineno = cxt->lineno;
@@ -366,6 +435,11 @@ main(int argc, char **argv)
       else {
         /* generate bytecode */
         struct RProc *proc = mrb_generate_code(mrb, parser);
+        if (proc == NULL) {
+          fputs("codegen error\n", stderr);
+          mrb_parser_free(parser);
+          break;
+        }
 
         if (args.verbose) {
           mrb_codedump_all(mrb, proc);
@@ -385,7 +459,7 @@ main(int argc, char **argv)
         else {
           /* no */
           if (!mrb_respond_to(mrb, result, mrb_intern_lit(mrb, "inspect"))){
-            result = mrb_any_to_s(mrb,result);
+            result = mrb_any_to_s(mrb, result);
           }
           p(mrb, result, 1);
         }
@@ -397,12 +471,14 @@ main(int argc, char **argv)
     mrb_parser_free(parser);
     cxt->lineno++;
   }
-  mrbc_context_free(mrb, cxt);
-  mrb_close(mrb);
 
 #ifdef ENABLE_READLINE
   MIRB_WRITE_HISTORY(history_path);
+  mrb_free(mrb, history_path);
 #endif
+
+  mrbc_context_free(mrb, cxt);
+  mrb_close(mrb);
 
   return 0;
 }

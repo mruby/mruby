@@ -310,7 +310,7 @@ class RakeApp
     ['--nosearch', '-N', GetoptLong::NO_ARGUMENT,
       "Do not search parent directories for the Rakefile."],
     ['--quiet',    '-q', GetoptLong::NO_ARGUMENT,
-      "Do not log messages to standard output."],
+      "Do not log messages to standard output (default)."],
     ['--rakefile', '-f', GetoptLong::REQUIRED_ARGUMENT,
       "Use FILE as the rakefile."],
     ['--require',  '-r', GetoptLong::REQUIRED_ARGUMENT,
@@ -324,7 +324,7 @@ class RakeApp
     ['--usage',    '-h', GetoptLong::NO_ARGUMENT,
       "Display usage."],
     ['--verbose',  '-v', GetoptLong::NO_ARGUMENT,
-      "Log message to standard output (default)."],
+      "Log message to standard output."],
     ['--directory', '-C', GetoptLong::REQUIRED_ARGUMENT,
       "Change executing directory of rakefiles."]
   ]

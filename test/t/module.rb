@@ -5,10 +5,6 @@ assert('Module', '15.2.2') do
   assert_equal Class, Module.class
 end
 
-assert('Module superclass', '15.2.2.2') do
-  assert_equal Object, Module.superclass
-end
-
 # TODO not implemented ATM assert('Module.constants', '15.2.2.3.1') do
 
 # TODO not implemented ATM assert('Module.nesting', '15.2.2.3.2') do
@@ -254,7 +250,7 @@ assert('Module#const_get', '15.2.2.4.21') do
   assert_equal 42, Test4ConstGet.const_get(:Const4Test4ConstGet)
 end
 
-assert('Module.const_missing', '15.2.2.4.22') do
+assert('Module#const_missing', '15.2.2.4.22') do
   module Test4ConstMissing
     def self.const_missing(sym)
       42 # the answer to everything
@@ -273,7 +269,7 @@ assert('Module#const_get', '15.2.2.4.23') do
   assert_equal 23, Test4ConstSet.const_get(:Const4Test4ConstSet)
 end
 
-assert('Module.constants', '15.2.2.4.24') do
+assert('Module#constants', '15.2.2.4.24') do
   $n = []
   module TestA
     C = 1
@@ -338,6 +334,15 @@ assert('Module#included_modules', '15.2.2.4.30') do
 
   assert_equal Array, r.class
   assert_true r.include?(Test4includedModules)
+end
+
+assert('Module#initialize', '15.2.2.4.31') do
+  assert_kind_of Module, Module.new
+  mod = Module.new { def hello; "hello"; end }
+  assert_equal [:hello], mod.instance_methods
+  a = nil
+  mod = Module.new { |m| a = m }
+  assert_equal mod, a
 end
 
 assert('Module#instance_methods', '15.2.2.4.33') do
@@ -444,7 +449,7 @@ assert('Module#remove_method', '15.2.2.4.41') do
   assert_false Test4RemoveMethod::Child.instance_methods(false).include? :hello
 end
 
-assert('Module.undef_method', '15.2.2.4.42') do
+assert('Module#undef_method', '15.2.2.4.42') do
   module Test4UndefMethod
     class Parent
       def hello
@@ -485,19 +490,19 @@ end
 assert('Issue 1467') do
   module M1
     def initialize()
-      super() 
+      super()
     end
   end
 
-  class C1  
-    include M1 
-     def initialize() 
-       super() 
+  class C1
+    include M1
+     def initialize()
+       super()
      end
   end
 
   class C2
-    include M1 
+    include M1
   end
 
   C1.new
@@ -517,3 +522,13 @@ assert('clone Module') do
 
   B.new.foo
 end
+
+assert('Module#module_function') do
+  module M
+    def modfunc; end
+    module_function :modfunc
+  end
+
+  assert_true M.respond_to?(:modfunc)
+end
+

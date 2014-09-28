@@ -4,8 +4,8 @@
 ** See Copyright Notice in mruby.h
 */
 
-#ifndef KHASH_H
-#define KHASH_H
+#ifndef MRUBY_KHASH_H
+#define MRUBY_KHASH_H
 
 #if defined(__cplusplus)
 extern "C" {
@@ -44,7 +44,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   v |= v >> 16;\
   v++;\
 } while (0)
-#define khash_inc(h) ((h)->n_buckets/2-1)
+#define khash_mask(h) ((h)->n_buckets-1)
 #define khash_upper_bound(h) (UPPER_BOUND((h)->n_buckets))
 
 /* declare struct kh_xxx and kh_xxx_funcs
@@ -69,7 +69,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   void kh_destroy_##name(mrb_state *mrb, kh_##name##_t *h);             \
   void kh_clear_##name(mrb_state *mrb, kh_##name##_t *h);               \
   khint_t kh_get_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key);           \
-  khint_t kh_put_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key);           \
+  khint_t kh_put_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key, int *ret); \
   void kh_resize_##name(mrb_state *mrb, kh_##name##_t *h, khint_t new_n_buckets); \
   void kh_del_##name(mrb_state *mrb, kh_##name##_t *h, khint_t x);                \
   kh_##name##_t *kh_copy_##name(mrb_state *mrb, kh_##name##_t *h);
@@ -112,7 +112,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
     kh_alloc_##name(mrb, h);                                            \
     return h;                                                           \
   }                                                                     \
-  kh_##name##_t *kh_init_##name(mrb_state *mrb){                        \
+  kh_##name##_t *kh_init_##name(mrb_state *mrb) {                       \
     return kh_init_##name##_size(mrb, KHASH_DEFAULT_SIZE);              \
   }                                                                     \
   void kh_destroy_##name(mrb_state *mrb, kh_##name##_t *h)              \
@@ -132,13 +132,13 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
   }                                                                     \
   khint_t kh_get_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key)  \
   {                                                                     \
-    khint_t k = __hash_func(mrb,key) % h->n_buckets;                    \
+    khint_t k = __hash_func(mrb,key) & khash_mask(h), step = 0;         \
     (void)mrb;                                                          \
     while (!__ac_isempty(h->ed_flags, k)) {                             \
       if (!__ac_isdel(h->ed_flags, k)) {                                \
         if (__hash_equal(mrb,h->keys[k], key)) return k;                \
       }                                                                 \
-      k = (k+khash_inc(h)) % h->n_buckets;                              \
+      k = (k+(++step)) & khash_mask(h);                                 \
     }                                                                   \
     return kh_end(h);                                                   \
   }                                                                     \
@@ -158,41 +158,55 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
       /* relocate */                                                    \
       for (i=0 ; i<old_n_buckets ; i++) {                               \
         if (!__ac_iseither(old_ed_flags, i)) {                          \
-          khint_t k = kh_put_##name(mrb, h, old_keys[i]);               \
+          khint_t k = kh_put_##name(mrb, h, old_keys[i], NULL);         \
           if (kh_is_map) kh_value(h,k) = old_vals[i];                   \
         }                                                               \
       }                                                                 \
       mrb_free(mrb, old_keys);                                          \
     }                                                                   \
   }                                                                     \
-  khint_t kh_put_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key)  \
+  khint_t kh_put_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key, int *ret) \
   {                                                                     \
-    khint_t k;                                                          \
+    khint_t k, del_k, step = 0;                                         \
     if (h->n_occupied >= khash_upper_bound(h)) {                        \
       kh_resize_##name(mrb, h, h->n_buckets*2);                         \
     }                                                                   \
-    k = __hash_func(mrb,key) % h->n_buckets;                            \
-    while (!__ac_iseither(h->ed_flags, k)) {                            \
-      if (__hash_equal(mrb,h->keys[k], key)) break;                     \
-      k = (k+khash_inc(h)) % h->n_buckets;                              \
+    k = __hash_func(mrb,key) & khash_mask(h);                           \
+    del_k = kh_end(h);                                                  \
+    while (!__ac_isempty(h->ed_flags, k)) {                             \
+      if (!__ac_isdel(h->ed_flags, k)) {                                \
+        if (__hash_equal(mrb,h->keys[k], key)) {                        \
+          if (ret) *ret = 0;                                            \
+          return k;                                                     \
+        }                                                               \
+      }                                                                 \
+      else if (del_k == kh_end(h)) {                                    \
+        del_k = k;                                                      \
+      }                                                                 \
+      k = (k+(++step)) & khash_mask(h);                                 \
     }                                                                   \
-    if (__ac_isempty(h->ed_flags, k)) {                                 \
+    if (del_k != kh_end(h)) {                                           \
+      /* put at del */                                                  \
+      h->keys[del_k] = key;                                             \
+      h->ed_flags[del_k/4] &= ~__m_del[del_k%4];                        \
+      h->size++;                                                        \
+      if (ret) *ret = 2;                                                \
+      return del_k;                                                     \
+    }                                                                   \
+    else {                                                              \
       /* put at empty */                                                \
       h->keys[k] = key;                                                 \
       h->ed_flags[k/4] &= ~__m_empty[k%4];                              \
       h->size++;                                                        \
       h->n_occupied++;                                                  \
-    } else if (__ac_isdel(h->ed_flags, k)) {                            \
-      /* put at del */                                                  \
-      h->keys[k] = key;                                                 \
-      h->ed_flags[k/4] &= ~__m_del[k%4];                                \
-      h->size++;                                                        \
+      if (ret) *ret = 1;                                                \
+      return k;                                                         \
     }                                                                   \
-    return k;                                                           \
   }                                                                     \
   void kh_del_##name(mrb_state *mrb, kh_##name##_t *h, khint_t x)       \
   {                                                                     \
     (void)mrb;                                                          \
+    mrb_assert(x != h->n_buckets && !__ac_iseither(h->ed_flags, x));    \
     h->ed_flags[x/4] |= __m_del[x%4];                                   \
     h->size--;                                                          \
   }                                                                     \
@@ -204,7 +218,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
     h2 = kh_init_##name(mrb);                                           \
     for (k = kh_begin(h); k != kh_end(h); k++) {                        \
       if (kh_exist(h, k)) {                                             \
-        k2 = kh_put_##name(mrb, h2, kh_key(h, k));                      \
+        k2 = kh_put_##name(mrb, h2, kh_key(h, k), NULL);                \
         if (kh_is_map) kh_value(h2, k2) = kh_value(h, k);               \
       }                                                                 \
     }                                                                   \
@@ -219,7 +233,8 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
 #define kh_destroy(name, mrb, h) kh_destroy_##name(mrb, h)
 #define kh_clear(name, mrb, h) kh_clear_##name(mrb, h)
 #define kh_resize(name, mrb, h, s) kh_resize_##name(mrb, h, s)
-#define kh_put(name, mrb, h, k) kh_put_##name(mrb, h, k)
+#define kh_put(name, mrb, h, k) kh_put_##name(mrb, h, k, NULL)
+#define kh_put2(name, mrb, h, k, r) kh_put_##name(mrb, h, k, r)
 #define kh_get(name, mrb, h, k) kh_get_##name(mrb, h, k)
 #define kh_del(name, mrb, h, k) kh_del_##name(mrb, h, k)
 #define kh_copy(name, mrb, h) kh_copy_##name(mrb, h)
@@ -252,4 +267,4 @@ typedef const char *kh_cstr_t;
 }  /* extern "C" { */
 #endif
 
-#endif  /* KHASH_H */
+#endif  /* MRUBY_KHASH_H */

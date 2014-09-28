@@ -9,7 +9,7 @@ while [ $# -gt 0 ]; do
             echo "  switches:"
             echo "  --cflags    print flags passed to compiler"
             echo "  --ldflags   print flags passed to linker"
-            echo "  --libs      print linked libraries" 
+            echo "  --libs      print linked libraries"
             exit 0;;
   esac
   shift

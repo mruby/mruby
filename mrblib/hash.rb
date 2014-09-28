@@ -86,7 +86,14 @@ class Hash
   def each(&block)
     return to_enum :each unless block_given?
 
-    self.keys.each { |k| block.call [k, self[k]] }
+    keys = self.keys
+    vals = self.values
+    len = self.size
+    i = 0
+    while i < len
+      block.call [keys[i], vals[i]]
+      i += 1
+    end
     self
   end
 
@@ -154,7 +161,7 @@ class Hash
     }
     if hash.default_proc
       self.default_proc = hash.default_proc
-    else 
+    else
       self.default = hash.default
     end
     self
@@ -172,7 +179,7 @@ class Hash
   # ISO 15.2.13.4.22
   def merge(other, &block)
     h = {}
-    raise "can't convert argument into Hash" unless other.respond_to?(:to_hash)
+    raise TypeError, "can't convert argument into Hash" unless other.respond_to?(:to_hash)
     other = other.to_hash
     self.each_key{|k| h[k] = self[k]}
     if block
@@ -185,26 +192,42 @@ class Hash
     h
   end
 
-  ##
-  # Return the contents of this hash as a string.
-  #
-  # ISO 15.2.13.4.30 (x)
-  def inspect
+  # internal method for Hash inspection
+  def _inspect
     return "{}" if self.size == 0
     "{"+self.map {|k,v|
-      k.inspect + "=>" + v.inspect
+      k._inspect + "=>" + v._inspect
     }.join(", ")+"}"
+  end
+  ##
+  # Return the contents of this hash as a string. 
+ #
+  # ISO 15.2.13.4.30 (x)
+  def inspect
+    begin
+      self._inspect
+    rescue SystemStackError
+      "{...}"
+    end
   end
   # ISO 15.2.13.4.31 (x)
   alias to_s inspect
 
-  # 1.8/1.9 Hash#reject! returns Hash; ISO says nothing.
+  ##
+  #  call-seq:
+  #     hsh.reject! {| key, value | block }  -> hsh or nil
+  #     hsh.reject!                          -> an_enumerator
+  #
+  #  Equivalent to <code>Hash#delete_if</code>, but returns
+  #  <code>nil</code> if no changes were made.
+  #
+  #  1.8/1.9 Hash#reject! returns Hash; ISO says nothing.
+  #
   def reject!(&b)
     return to_enum :reject! unless block_given?
 
     keys = []
-    self.each_key{|k|
-      v = self[k]
+    self.each{|k,v|
       if b.call([k, v])
         keys.push(k)
       end
@@ -216,13 +239,26 @@ class Hash
     self
   end
 
-  # 1.8/1.9 Hash#reject returns Hash; ISO says nothing.
+  ##
+  #  call-seq:
+  #     hsh.reject {|key, value| block}   -> a_hash
+  #     hsh.reject                        -> an_enumerator
+  #
+  #  Returns a new hash consisting of entries for which the block returns false.
+  #
+  #  If no block is given, an enumerator is returned instead.
+  #
+  #     h = { "a" => 100, "b" => 200, "c" => 300 }
+  #     h.reject {|k,v| k < "b"}  #=> {"b" => 200, "c" => 300}
+  #     h.reject {|k,v| v > 100}  #=> {"a" => 100}
+  #
+  #  1.8/1.9 Hash#reject returns Hash; ISO says nothing.
+  #
   def reject(&b)
     return to_enum :reject unless block_given?
 
     h = {}
-    self.each_key{|k|
-      v = self[k]
+    self.each{|k,v|
       unless b.call([k, v])
         h[k] = v
       end
@@ -230,13 +266,21 @@ class Hash
     h
   end
 
-  # 1.9 Hash#select! returns Hash; ISO says nothing.
+  ##
+  #  call-seq:
+  #     hsh.select! {| key, value | block }  -> hsh or nil
+  #     hsh.select!                          -> an_enumerator
+  #
+  #  Equivalent to <code>Hash#keep_if</code>, but returns
+  #  <code>nil</code> if no changes were made.
+  #
+  #  1.9 Hash#select! returns Hash; ISO says nothing.
+  #
   def select!(&b)
     return to_enum :select! unless block_given?
 
     keys = []
-    self.each_key{|k|
-      v = self[k]
+    self.each{|k,v|
       unless b.call([k, v])
         keys.push(k)
       end
@@ -248,13 +292,26 @@ class Hash
     self
   end
 
-  # 1.9 Hash#select returns Hash; ISO says nothing.
+  ##
+  #  call-seq:
+  #     hsh.select {|key, value| block}   -> a_hash
+  #     hsh.select                        -> an_enumerator
+  #
+  #  Returns a new hash consisting of entries for which the block returns true.
+  #
+  #  If no block is given, an enumerator is returned instead.
+  #
+  #     h = { "a" => 100, "b" => 200, "c" => 300 }
+  #     h.select {|k,v| k > "a"}  #=> {"b" => 200, "c" => 300}
+  #     h.select {|k,v| v < 200}  #=> {"a" => 100}
+  #
+  #  1.9 Hash#select returns Hash; ISO says nothing
+  #
   def select(&b)
     return to_enum :select unless block_given?
 
     h = {}
-    self.each_key{|k|
-      v = self[k]
+    self.each{|k,v|
       if b.call([k, v])
         h[k] = v
       end

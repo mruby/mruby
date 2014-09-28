@@ -1,8 +1,24 @@
+MRuby::Build.new do |conf|
+
+  # Gets set by the VS command prompts.
+  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+    toolchain :visualcpp
+  else
+    toolchain :gcc
+  end
+
+  enable_debug
+
+  # include the default GEMs
+  conf.gembox 'default'
+
+end
+
 # Cross Compiling configuration for Arduino Due
 # http://arduino.cc/en/Main/ArduinoBoardDue
 #
 # Requires Arduino IDE >= 1.5
-MRuby::CrossBuild.new("Arduino Due") do |conf|
+MRuby::CrossBuild.new("ArduinoDue") do |conf|
   toolchain :gcc
 
   # Mac OS X
@@ -18,8 +34,8 @@ MRuby::CrossBuild.new("Arduino Due") do |conf|
     cc.include_paths << ["#{SAM_PATH}/system/libsam", "#{SAM_PATH}/system/CMSIS/CMSIS/Include/",
                         "#{SAM_PATH}/system/CMSIS/Device/ATMEL/",
                         "#{SAM_PATH}/cores/arduino", "#{SAM_PATH}/libraries","#{TARGET_PATH}"]
-    cc.flags = %w(-g -Os -w -ffunction-sections -fdata-sections -nostdlib --param max-inline-insns-single=500 
-                -Dprintf=iprintf -mcpu=cortex-m3 -DF_CPU=84000000L -DARDUINO=156 -DARDUINO_SAM_DUE -DARDUINO_ARCH_SAM 
+    cc.flags = %w(-g -Os -w -ffunction-sections -fdata-sections -nostdlib --param max-inline-insns-single=500
+                -Dprintf=iprintf -mcpu=cortex-m3 -DF_CPU=84000000L -DARDUINO=156 -DARDUINO_SAM_DUE -DARDUINO_ARCH_SAM
                 -D__SAM3X8E__ -mthumb -DUSB_PID=0x003e -DUSB_VID=0x2341 -DUSBCON -DUSB_MANUFACTURER="Unknown" -DUSB_PRODUCT="Arduino Due")
     cc.compile_options = "%{flags} -o %{outfile} -c %{infile}"
 
@@ -53,13 +69,16 @@ MRuby::CrossBuild.new("Arduino Due") do |conf|
   #do not build executable test
   conf.build_mrbtest_lib_only
 
+  #disable C++ exception
+  conf.disable_cxx_exception
+
   #gems from core
-  conf.gem :core => "mruby-print" 
+  conf.gem :core => "mruby-print"
   conf.gem :core => "mruby-math"
   conf.gem :core => "mruby-enum-ext"
 
   #light-weight regular expression
-  conf.gem :github => "masamitsu-murase/mruby-hs-regexp", :branch => "master" 
+  conf.gem :github => "masamitsu-murase/mruby-hs-regexp", :branch => "master"
 
   #Arduino API
   #conf.gem :github =>"kyab/mruby-arduino", :branch => "master"

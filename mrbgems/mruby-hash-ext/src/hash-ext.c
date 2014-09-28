@@ -23,7 +23,8 @@ static mrb_value
 hash_values_at(mrb_state *mrb, mrb_value hash)
 {
   mrb_value *argv, result;
-  int argc, i, ai;
+  mrb_int argc, i;
+  int ai;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   result = mrb_ary_new_capa(mrb, argc);

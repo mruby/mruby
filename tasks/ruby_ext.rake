@@ -16,7 +16,7 @@ class String
   def relative_path
     relative_path_from(Dir.pwd)
   end
-  
+
   # Compatible with 1.9 on 1.8
   def %(params)
     if params.is_a?(Hash)
@@ -39,6 +39,15 @@ class Symbol
   # Compatible with 1.9 on 1.8
   def to_proc
     proc { |obj, *args| obj.send(self, *args) }
+  end
+end
+
+module Enumerable
+  # Compatible with 1.9 on 1.8
+  def each_with_object(memo)
+    return to_enum :each_with_object, memo unless block_given?
+    each { |obj| yield obj, memo }
+    memo
   end
 end
 

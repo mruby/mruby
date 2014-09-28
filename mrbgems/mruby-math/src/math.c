@@ -9,18 +9,90 @@
 
 #include <math.h>
 
-#define domain_error(msg) \
-    mrb_raise(mrb, E_RANGE_ERROR, "Numerical argument is out of domain - " #msg)
+static void
+domain_error(mrb_state *mrb, const char *func)
+{
+  struct RClass *math = mrb_module_get(mrb, "Math");
+  struct RClass *domainerror = mrb_class_get_under(mrb, math, "DomainError");
+  mrb_value str = mrb_str_new_cstr(mrb, func);
+  mrb_raisef(mrb, domainerror, "Numerical argument is out of domain - %S", str);
+}
 
 /* math functions not provided by Microsoft Visual C++ 2012 or older */
 #if defined _MSC_VER && _MSC_VER < 1800
 
+#include <float.h>
+
 #define MATH_TOLERANCE 1E-12
 
-#define asinh(x) log(x + sqrt(pow(x,2.0) + 1))
-#define acosh(x) log(x + sqrt(pow(x,2.0) - 1))
-#define atanh(x) (log(1+x) - log(1-x))/2.0
-#define cbrt(x)  pow(x,1.0/3.0)
+double
+asinh(double x)
+{
+  double xa, ya, y;
+
+  /* Basic formula loses precision for x < 0, but asinh is an odd function */
+  xa = fabs(x);
+  if (xa > 3.16227E+18) {
+    /* Prevent x*x from overflowing; basic formula reduces to log(2*x) */
+    ya = log(xa) + 0.69314718055994530942;
+  }
+  else {
+    /* Basic formula for asinh */
+    ya = log(xa + sqrt(xa*xa + 1.0));
+  }
+
+  y = _copysign(ya, x);
+  return y;
+}
+
+double
+acosh(double x)
+{
+  double y;
+
+  if (x > 3.16227E+18) {
+    /* Prevent x*x from overflowing; basic formula reduces to log(2*x) */
+    y = log(x) + 0.69314718055994530942;
+  }
+  else {
+    /* Basic formula for acosh */
+    y = log(x + sqrt(x*x - 1.0));
+  }
+
+  return y;
+}
+
+double
+atanh(double x)
+{
+  double y;
+
+  if (fabs(x) < 1E-2) {
+    /* The sums 1+x and 1-x lose precision for small x.  Use the polynomial
+       instead. */
+    double x2 = x * x;
+    y = x*(1.0 + x2*(1.0/3.0 + x2*(1.0/5.0 + x2*(1.0/7.0))));
+  }
+  else {
+    /* Basic formula for atanh */
+    y = 0.5 * (log(1.0+x) - log(1.0-x));
+  }
+
+  return y;
+}
+
+double
+cbrt(double x)
+{
+  double xa, ya, y;
+
+  /* pow(x, y) is undefined for x < 0 and y not an integer, but cbrt is an
+     odd function */
+  xa = fabs(x);
+  ya = pow(xa, 1.0/3.0);
+  y = _copysign(ya, x);
+  return y;
+}
 
 /* Declaration of complementary Error function */
 double
@@ -172,6 +244,9 @@ math_asin(mrb_state *mrb, mrb_value obj)
   mrb_float x;
 
   mrb_get_args(mrb, "f", &x);
+  if (x < -1.0 || x > 1.0) {
+    domain_error(mrb, "asin");
+  }
   x = asin(x);
 
   return mrb_float_value(mrb, x);
@@ -189,6 +264,9 @@ math_acos(mrb_state *mrb, mrb_value obj)
   mrb_float x;
 
   mrb_get_args(mrb, "f", &x);
+  if (x < -1.0 || x > 1.0) {
+    domain_error(mrb, "acos");
+  }
   x = acos(x);
 
   return mrb_float_value(mrb, x);
@@ -334,6 +412,9 @@ math_acosh(mrb_state *mrb, mrb_value obj)
   mrb_float x;
 
   mrb_get_args(mrb, "f", &x);
+  if (x < 1.0) {
+    domain_error(mrb, "acosh");
+  }
   x = acosh(x);
 
   return mrb_float_value(mrb, x);
@@ -351,6 +432,9 @@ math_atanh(mrb_state *mrb, mrb_value obj)
   mrb_float x;
 
   mrb_get_args(mrb, "f", &x);
+  if (x < -1.0 || x > 1.0) {
+    domain_error(mrb, "atanh");
+  }
   x = atanh(x);
 
   return mrb_float_value(mrb, x);
@@ -404,8 +488,14 @@ math_log(mrb_state *mrb, mrb_value obj)
   int argc;
 
   argc = mrb_get_args(mrb, "f|f", &x, &base);
+  if (x < 0.0) {
+    domain_error(mrb, "log");
+  }
   x = log(x);
   if (argc == 2) {
+    if (base < 0.0) {
+      domain_error(mrb, "log");
+    }
     x /= log(base);
   }
   return mrb_float_value(mrb, x);
@@ -429,6 +519,9 @@ math_log2(mrb_state *mrb, mrb_value obj)
   mrb_float x;
 
   mrb_get_args(mrb, "f", &x);
+  if (x < 0.0) {
+    domain_error(mrb, "log2");
+  }
   x = log2(x);
 
   return mrb_float_value(mrb, x);
@@ -451,6 +544,9 @@ math_log10(mrb_state *mrb, mrb_value obj)
   mrb_float x;
 
   mrb_get_args(mrb, "f", &x);
+  if (x < 0.0) {
+    domain_error(mrb, "log10");
+  }
   x = log10(x);
 
   return mrb_float_value(mrb, x);
@@ -469,6 +565,9 @@ math_sqrt(mrb_state *mrb, mrb_value obj)
   mrb_float x;
 
   mrb_get_args(mrb, "f", &x);
+  if (x < 0.0) {
+    domain_error(mrb, "sqrt");
+  }
   x = sqrt(x);
 
   return mrb_float_value(mrb, x);
@@ -623,6 +722,8 @@ mrb_mruby_math_gem_init(mrb_state* mrb)
 {
   struct RClass *mrb_math;
   mrb_math = mrb_define_module(mrb, "Math");
+
+  mrb_define_class_under(mrb, mrb_math, "DomainError", mrb->eStandardError_class);
 
 #ifdef M_PI
   mrb_define_const(mrb, mrb_math, "PI", mrb_float_value(mrb, M_PI));

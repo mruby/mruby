@@ -15,8 +15,8 @@
 #include "mruby/string.h"
 #include "mruby/debug.h"
 #include "node.h"
-#include "opcode.h"
-#include "re.h"
+#include "mruby/opcode.h"
+#include "mruby/re.h"
 #include "mrb_throw.h"
 
 typedef mrb_ast_node node;
@@ -66,8 +66,8 @@ typedef struct scope {
   size_t scapa;
   size_t rcapa;
 
-  int nlocals;
-  int nregs;
+  uint16_t nlocals;
+  uint16_t nregs;
   int ai;
 
   int debug_start_pos;
@@ -81,10 +81,11 @@ static struct loopinfo *loop_push(codegen_scope *s, enum looptype t);
 static void loop_break(codegen_scope *s, node *tree);
 static void loop_pop(codegen_scope *s, int val);
 
-static void gen_assignment(codegen_scope *s, node *node, int sp, int val);
+static void gen_assignment(codegen_scope *s, node *tree, int sp, int val);
 static void gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val);
 
 static void codegen(codegen_scope *s, node *tree, int val);
+static void raise_error(codegen_scope *s, const char *msg);
 
 static void
 codegen_error(codegen_scope *s, const char *message)
@@ -161,11 +162,19 @@ genop(codegen_scope *s, mrb_code i)
 #define NOVAL  0
 #define VAL    1
 
+static mrb_bool
+no_optimize(codegen_scope *s)
+{
+  if (s && s->parser && s->parser->no_optimize)
+    return TRUE;
+  return FALSE;
+}
+
 static int
 genop_peep(codegen_scope *s, mrb_code i, int val)
 {
   /* peephole optimization */
-  if (s->lastlabel != s->pc && s->pc > 0) {
+  if (!no_optimize(s) && s->lastlabel != s->pc && s->pc > 0) {
     mrb_code i0 = s->iseq[s->pc-1];
     int c1 = GET_OPCODE(i);
     int c0 = GET_OPCODE(i0);
@@ -179,13 +188,13 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       if (val) break;
       switch (c0) {
       case OP_MOVE:
-        if (GETARG_B(i) == GETARG_A(i0) && GETARG_A(i) == GETARG_B(i0) && GETARG_A(i) >= s->nlocals) {
+        if (GETARG_B(i) == GETARG_A(i0) && GETARG_A(i) == GETARG_B(i0)) {
           /* skip swapping OP_MOVE */
           return 0;
         }
         if (GETARG_B(i) == GETARG_A(i0) && GETARG_A(i0) >= s->nlocals) {
-          s->iseq[s->pc-1] = MKOP_AB(OP_MOVE, GETARG_A(i), GETARG_B(i0));
-          return 0;
+          s->pc--;
+          return genop_peep(s, MKOP_AB(OP_MOVE, GETARG_A(i), GETARG_B(i0)), val);
         }
         break;
       case OP_LOADI:
@@ -318,10 +327,9 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       }
     case OP_STRCAT:
       if (c0 == OP_STRING) {
-        int i = GETARG_Bx(i0);
+        mrb_value v = s->irep->pool[GETARG_Bx(i0)];
 
-        if (mrb_type(s->irep->pool[i]) == MRB_TT_STRING &&
-            RSTRING_LEN(s->irep->pool[i]) == 0) {
+        if (mrb_string_p(v) && RSTRING_LEN(v) == 0) {
           s->pc--;
           return 0;
         }
@@ -475,6 +483,8 @@ new_msym(codegen_scope *s, mrb_sym sym)
 {
   size_t i, len;
 
+  mrb_assert(s->irep);
+
   len = s->irep->slen;
   if (len > 256) len = 256;
   for (i=0; i<len; i++) {
@@ -549,7 +559,12 @@ for_body(codegen_scope *s, node *tree)
   /* generate receiver */
   codegen(s, tree->cdr->car, VAL);
   /* generate loop-block */
-  s = scope_new(s->mrb, s, tree->car);
+  s = scope_new(s->mrb, s, NULL);
+  if (s == NULL) {
+    raise_error(prev, "unexpected scope");
+  }
+
+  push();                       /* push for a block parameter */
 
   lp = loop_push(s, LOOP_FOR);
   lp->pc1 = new_label(s);
@@ -586,6 +601,10 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   mrb_code c;
   codegen_scope *parent = s;
   s = scope_new(s->mrb, s, tree->car);
+  if (s == NULL) {
+    raise_error(parent, "unexpected scope");
+  }
+
   s->mscope = !blk;
 
   if (blk) {
@@ -671,6 +690,9 @@ static int
 scope_body(codegen_scope *s, node *tree, int val)
 {
   codegen_scope *scope = scope_new(s->mrb, s, tree->car);
+  if (scope == NULL) {
+    raise_error(s, "unexpected scope");
+  }
 
   codegen(scope, tree->cdr, VAL);
   if (!s->iseq) {
@@ -719,7 +741,7 @@ attrsym(codegen_scope *s, mrb_sym a)
                                  + 1 /* '=' */
                                  + 1 /* '\0' */
                                  );
-  mrb_assert(len <= SIZE_MAX);
+  mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
   memcpy(name2, name, (size_t)len);
   name2[len] = '=';
   name2[len+1] = '\0';
@@ -743,10 +765,10 @@ gen_values(codegen_scope *s, node *t, int val)
         codegen(s, t->car, VAL);
         pop(); pop();
         if (is_splat) {
-            genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
+          genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
         }
         else {
-            genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
+          genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
         }
         t = t->cdr;
         while (t) {
@@ -819,36 +841,37 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
   else {
     blk = cursp();
   }
+  push();pop();
   pop_n(n+1);
   {
-    mrb_int len;
-    const char *name = mrb_sym2name_len(s->mrb, sym, &len);
+    mrb_int symlen;
+    const char *symname = mrb_sym2name_len(s->mrb, sym, &symlen);
 
-    if (!noop && len == 1 && name[0] == '+')  {
+    if (!noop && symlen == 1 && symname[0] == '+')  {
       genop_peep(s, MKOP_ABC(OP_ADD, cursp(), idx, n), val);
     }
-    else if (!noop && len == 1 && name[0] == '-')  {
+    else if (!noop && symlen == 1 && symname[0] == '-')  {
       genop_peep(s, MKOP_ABC(OP_SUB, cursp(), idx, n), val);
     }
-    else if (!noop && len == 1 && name[0] == '*')  {
+    else if (!noop && symlen == 1 && symname[0] == '*')  {
       genop(s, MKOP_ABC(OP_MUL, cursp(), idx, n));
     }
-    else if (!noop && len == 1 && name[0] == '/')  {
+    else if (!noop && symlen == 1 && symname[0] == '/')  {
       genop(s, MKOP_ABC(OP_DIV, cursp(), idx, n));
     }
-    else if (!noop && len == 1 && name[0] == '<')  {
+    else if (!noop && symlen == 1 && symname[0] == '<')  {
       genop(s, MKOP_ABC(OP_LT, cursp(), idx, n));
     }
-    else if (!noop && len == 2 && name[0] == '<' && name[1] == '=')  {
+    else if (!noop && symlen == 2 && symname[0] == '<' && symname[1] == '=')  {
       genop(s, MKOP_ABC(OP_LE, cursp(), idx, n));
     }
-    else if (!noop && len == 1 && name[0] == '>')  {
+    else if (!noop && symlen == 1 && symname[0] == '>')  {
       genop(s, MKOP_ABC(OP_GT, cursp(), idx, n));
     }
-    else if (!noop && len == 2 && name[0] == '>' && name[1] == '=')  {
+    else if (!noop && symlen == 2 && symname[0] == '>' && symname[1] == '=')  {
       genop(s, MKOP_ABC(OP_GE, cursp(), idx, n));
     }
-    else if (!noop && len == 2 && name[0] == '=' && name[1] == '=')  {
+    else if (!noop && symlen == 2 && symname[0] == '=' && symname[1] == '=')  {
       genop(s, MKOP_ABC(OP_EQ, cursp(), idx, n));
     }
     else {
@@ -867,19 +890,19 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
 }
 
 static void
-gen_assignment(codegen_scope *s, node *node, int sp, int val)
+gen_assignment(codegen_scope *s, node *tree, int sp, int val)
 {
   int idx;
-  int type = (intptr_t)node->car;
+  int type = (intptr_t)tree->car;
 
-  node = node->cdr;
+  tree = tree->cdr;
   switch ((intptr_t)type) {
   case NODE_GVAR:
-    idx = new_sym(s, sym(node));
+    idx = new_sym(s, sym(tree));
     genop_peep(s, MKOP_ABx(OP_SETGLOBAL, sp, idx), val);
     break;
   case NODE_LVAR:
-    idx = lv_idx(s, sym(node));
+    idx = lv_idx(s, sym(tree));
     if (idx > 0) {
       if (idx != sp) {
         genop_peep(s, MKOP_AB(OP_MOVE, idx, sp), val);
@@ -891,7 +914,7 @@ gen_assignment(codegen_scope *s, node *node, int sp, int val)
       codegen_scope *up = s->prev;
 
       while (up) {
-        idx = lv_idx(up, sym(node));
+        idx = lv_idx(up, sym(tree));
         if (idx > 0) {
           genop_peep(s, MKOP_ABC(OP_SETUPVAR, sp, idx, lv), val);
           break;
@@ -902,29 +925,29 @@ gen_assignment(codegen_scope *s, node *node, int sp, int val)
     }
     break;
   case NODE_IVAR:
-    idx = new_sym(s, sym(node));
+    idx = new_sym(s, sym(tree));
     genop_peep(s, MKOP_ABx(OP_SETIV, sp, idx), val);
     break;
   case NODE_CVAR:
-    idx = new_sym(s, sym(node));
+    idx = new_sym(s, sym(tree));
     genop_peep(s, MKOP_ABx(OP_SETCV, sp, idx), val);
     break;
   case NODE_CONST:
-    idx = new_sym(s, sym(node));
+    idx = new_sym(s, sym(tree));
     genop_peep(s, MKOP_ABx(OP_SETCONST, sp, idx), val);
     break;
   case NODE_COLON2:
-    idx = new_sym(s, sym(node->cdr));
+    idx = new_sym(s, sym(tree->cdr));
     genop_peep(s, MKOP_AB(OP_MOVE, cursp(), sp), NOVAL);
     push();
-    codegen(s, node->car, VAL);
+    codegen(s, tree->car, VAL);
     pop_n(2);
     genop_peep(s, MKOP_ABx(OP_SETMCNST, cursp(), idx), val);
     break;
 
   case NODE_CALL:
     push();
-    gen_call(s, node, attrsym(s, sym(node->cdr->car)), sp, NOVAL);
+    gen_call(s, tree, attrsym(s, sym(tree->cdr->car)), sp, NOVAL);
     pop();
     if (val) {
       genop_peep(s, MKOP_AB(OP_MOVE, cursp(), sp), val);
@@ -1091,6 +1114,7 @@ readint_mrb_int(codegen_scope *s, const char *p, int base, mrb_bool neg, mrb_boo
   mrb_int result = 0;
   int n;
 
+  mrb_assert(base >= 2 && base <= 36);
   if (*p == '+') p++;
   while (p < e) {
     char c = *p;
@@ -1133,7 +1157,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
   if (!tree) return;
 
-  if (s->irep && s->pc > 0 && s->filename_index != tree->filename_index) {
+  if (s->irep && s->filename_index != tree->filename_index) {
     s->irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
     mrb_debug_info_append_file(s->mrb, s->irep, s->debug_start_pos, s->pc);
     s->debug_start_pos = s->pc;
@@ -1448,7 +1472,7 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen(s, tree->cdr, val);
     if (val) {
       pop(); pop();
-      genop(s, MKOP_ABC(OP_RANGE, cursp(), cursp(), 0));
+      genop(s, MKOP_ABC(OP_RANGE, cursp(), cursp(), FALSE));
       push();
     }
     break;
@@ -1458,7 +1482,7 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen(s, tree->cdr, val);
     if (val) {
       pop(); pop();
-      genop(s, MKOP_ABC(OP_RANGE, cursp(), cursp(), 1));
+      genop(s, MKOP_ABC(OP_RANGE, cursp(), cursp(), TRUE));
       push();
     }
     break;
@@ -1631,6 +1655,7 @@ codegen(codegen_scope *s, node *tree, int val)
         break;
       }
       codegen(s, tree->cdr->cdr->car, VAL);
+      push(); pop();
       pop(); pop();
 
       idx = new_msym(s, sym);
@@ -1686,6 +1711,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       else {
         genop(s, MKOP_A(OP_LOADNIL, cursp()));
+        push(); pop();
       }
       pop_n(n+1);
       if (sendv) n = CALL_MAXARGS;
@@ -1707,12 +1733,12 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       if (s2) ainfo = s2->ainfo;
       genop(s, MKOP_ABx(OP_ARGARY, cursp(), (ainfo<<4)|(lv & 0xf)));
+      push(); push(); pop();    /* ARGARY pushes two values */
       if (tree && tree->cdr) {
-        push();
         codegen(s, tree->cdr, VAL);
-        pop_n(2);
+        pop();
       }
-      pop();
+      pop(); pop();
       genop(s, MKOP_ABC(OP_SUPER, cursp(), 0, CALL_MAXARGS));
       if (val) push();
     }
@@ -1844,7 +1870,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int idx = lv_idx(s, sym(tree));
 
       if (idx > 0) {
-        genop(s, MKOP_AB(OP_MOVE, cursp(), idx));
+        genop_peep(s, MKOP_AB(OP_MOVE, cursp(), idx), NOVAL);
       }
       else {
         int lv = 0;
@@ -1926,7 +1952,7 @@ codegen(codegen_scope *s, node *tree, int val)
       mrb_value str = mrb_str_buf_new(mrb, 4);
 
       mrb_str_cat_lit(mrb, str, "$");
-      mrb_str_buf_append(mrb, str, mrb_fixnum_to_str(mrb, fix, 10));
+      mrb_str_cat_str(mrb, str, mrb_fixnum_to_str(mrb, fix, 10));
       sym = new_sym(s, mrb_intern_str(mrb, str));
       genop(s, MKOP_ABx(OP_GETGLOBAL, cursp(), sym));
       push();
@@ -2206,7 +2232,6 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       if (n->cdr) {
         char *p2 = (char*)n->cdr;
-        int off;
 
         push();
         off = new_lit(s, mrb_str_new_cstr(s->mrb, p2));
@@ -2280,7 +2305,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       int a = new_msym(s, sym(tree->car));
       int b = new_msym(s, sym(tree->cdr));
-      int c = new_msym(s, mrb_intern_lit(s->mrb,"alias_method"));
+      int c = new_msym(s, mrb_intern_lit(s->mrb, "alias_method"));
 
       genop(s, MKOP_A(OP_TCLASS, cursp()));
       push();
@@ -2402,6 +2427,7 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_A(OP_TCLASS, cursp()));
       push();
       genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, OP_L_METHOD));
+      push(); pop();
       pop();
       genop(s, MKOP_AB(OP_METHOD, cursp(), sym));
       if (val) {
@@ -2462,7 +2488,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   mrb_pool *pool = mrb_pool_open(mrb);
   codegen_scope *p = (codegen_scope *)mrb_pool_alloc(pool, sizeof(codegen_scope));
 
-  if (!p) return 0;
+  if (!p) return NULL;
   *p = codegen_scope_zero;
   p->mrb = mrb;
   p->mpool = pool;
@@ -2492,6 +2518,22 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->lv = lv;
   p->sp += node_len(lv)+1;        /* add self */
   p->nlocals = p->sp;
+  if (lv) {
+    node *n = lv;
+    size_t i = 0;
+
+    p->irep->lv = (struct mrb_locals*)mrb_malloc(mrb, sizeof(struct mrb_locals) * (p->nlocals - 1));
+    for (i=0, n=lv; n; i++,n=n->cdr) {
+      p->irep->lv[i].name = lv_name(n);
+      if (lv_name(n)) {
+        p->irep->lv[i].r = lv_idx(p, lv_name(n));
+      }
+      else {
+        p->irep->lv[i].r = 0;
+      }
+    }
+    mrb_assert(i + 1 == p->nlocals);
+  }
   p->ai = mrb_gc_arena_save(mrb);
 
   p->filename = prev->filename;
@@ -2623,6 +2665,51 @@ loop_pop(codegen_scope *s, int val)
   if (val) push();
 }
 
+#ifdef ENABLE_STDIO
+static int
+print_r(mrb_state *mrb, mrb_irep *irep, size_t n, int pre)
+{
+  size_t i;
+
+  if (n == 0) return 0;
+
+  for (i=0; i+1<irep->nlocals; i++) {
+    if (irep->lv[i].r == n) {
+      mrb_sym sym = irep->lv[i].name;
+      if (pre) printf(" ");
+      printf("R%d:%s", (int)n, mrb_sym2name(mrb, sym));
+      return 1;
+    }
+  }
+  return 0;
+}
+
+#define RA  1
+#define RB  2
+#define RAB 3
+
+static void
+print_lv(mrb_state *mrb, mrb_irep *irep, mrb_code c, int r)
+{
+  int pre = 0;
+
+  if (!irep->lv
+      || ((!(r & RA) || GETARG_A(c) >= irep->nlocals)
+       && (!(r & RB) || GETARG_B(c) >= irep->nlocals))) {
+    printf("\n");
+    return;
+  }
+  printf("\t; ");
+  if (r & RA) {
+    pre = print_r(mrb, irep, GETARG_A(c), 0);
+  }
+  if (r & RB) {
+    print_r(mrb, irep, GETARG_B(c), pre);
+  }
+  printf("\n");
+}
+#endif
+
 static void
 codedump(mrb_state *mrb, mrb_irep *irep)
 {
@@ -2630,14 +2717,29 @@ codedump(mrb_state *mrb, mrb_irep *irep)
   int i;
   int ai;
   mrb_code c;
+  const char *file = NULL, *next_file;
+  int32_t line;
 
   if (!irep) return;
-  printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", irep,
+  printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", (void*)irep,
          irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen, (int)irep->rlen);
 
-  mrb_assert(irep->ilen <= INT_MAX);
-  for (i = 0; i < (int)(irep->ilen); i++) {
+  for (i = 0; i < (int)irep->ilen; i++) {
     ai = mrb_gc_arena_save(mrb);
+
+    next_file = mrb_debug_get_filename(irep, i);
+    if (next_file && file != next_file) {
+      printf("file: %s\n", next_file);
+      file = next_file;
+    }
+    line = mrb_debug_get_line(irep, i);
+    if (line < 0) {
+      printf("      ");
+    }
+    else {
+      printf("%5d ", line);
+    }
+
     printf("%03d ", i);
     c = irep->iseq[i];
     switch (GET_OPCODE(c)) {
@@ -2645,82 +2747,106 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_NOP\n");
       break;
     case OP_MOVE:
-      printf("OP_MOVE\tR%d\tR%d\n", GETARG_A(c), GETARG_B(c));
+      printf("OP_MOVE\tR%d\tR%d", GETARG_A(c), GETARG_B(c));
+      print_lv(mrb, irep, c, RAB);
       break;
     case OP_LOADL:
-      printf("OP_LOADL\tR%d\tL(%d)\n", GETARG_A(c), GETARG_Bx(c));
+      {
+        mrb_value v = irep->pool[GETARG_Bx(c)];
+        mrb_value s = mrb_inspect(mrb, v);
+        printf("OP_LOADL\tR%d\tL(%d)\t; %s", GETARG_A(c), GETARG_Bx(c), RSTRING_PTR(s));
+      }
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_LOADI:
-      printf("OP_LOADI\tR%d\t%d\n", GETARG_A(c), GETARG_sBx(c));
+      printf("OP_LOADI\tR%d\t%d", GETARG_A(c), GETARG_sBx(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_LOADSYM:
-      printf("OP_LOADSYM\tR%d\t:%s\n", GETARG_A(c),
+      printf("OP_LOADSYM\tR%d\t:%s", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_LOADNIL:
-      printf("OP_LOADNIL\tR%d\n", GETARG_A(c));
+      printf("OP_LOADNIL\tR%d\t", GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_LOADSELF:
-      printf("OP_LOADSELF\tR%d\n", GETARG_A(c));
+      printf("OP_LOADSELF\tR%d\t", GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_LOADT:
-      printf("OP_LOADT\tR%d\n", GETARG_A(c));
+      printf("OP_LOADT\tR%d\t", GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_LOADF:
-      printf("OP_LOADF\tR%d\n", GETARG_A(c));
+      printf("OP_LOADF\tR%d\t", GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_GETGLOBAL:
-      printf("OP_GETGLOBAL\tR%d\t:%s\n", GETARG_A(c),
+      printf("OP_GETGLOBAL\tR%d\t:%s", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_SETGLOBAL:
-      printf("OP_SETGLOBAL\t:%s\tR%d\n",
+      printf("OP_SETGLOBAL\t:%s\tR%d",
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_GETCONST:
-      printf("OP_GETCONST\tR%d\t:%s\n", GETARG_A(c),
+      printf("OP_GETCONST\tR%d\t:%s", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_SETCONST:
-      printf("OP_SETCONST\t:%s\tR%d\n",
+      printf("OP_SETCONST\t:%s\tR%d",
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_GETMCNST:
-      printf("OP_GETMCNST\tR%d\tR%d::%s\n", GETARG_A(c), GETARG_A(c),
+      printf("OP_GETMCNST\tR%d\tR%d::%s", GETARG_A(c), GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
+      print_lv(mrb, irep, c, RAB);
       break;
     case OP_SETMCNST:
-      printf("OP_SETMCNST\tR%d::%s\tR%d\n", GETARG_A(c)+1,
+      printf("OP_SETMCNST\tR%d::%s\tR%d", GETARG_A(c)+1,
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_GETIV:
-      printf("OP_GETIV\tR%d\t%s\n", GETARG_A(c),
+      printf("OP_GETIV\tR%d\t%s", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_SETIV:
-      printf("OP_SETIV\t%s\tR%d\n",
+      printf("OP_SETIV\t%s\tR%d",
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_GETUPVAR:
-      printf("OP_GETUPVAR\tR%d\t%d\t%d\n",
+      printf("OP_GETUPVAR\tR%d\t%d\t%d",
              GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_SETUPVAR:
-      printf("OP_SETUPVAR\tR%d\t%d\t%d\n",
+      printf("OP_SETUPVAR\tR%d\t%d\t%d",
              GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_GETCV:
-      printf("OP_GETCV\tR%d\t%s\n", GETARG_A(c),
+      printf("OP_GETCV\tR%d\t%s", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_SETCV:
-      printf("OP_SETCV\t%s\tR%d\n",
+      printf("OP_SETCV\t%s\tR%d",
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
              GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_JMP:
       printf("OP_JMP\t\t%03d\n", i+GETARG_sBx(c));
@@ -2751,11 +2877,12 @@ codedump(mrb_state *mrb, mrb_irep *irep)
              GETARG_C(c));
       break;
     case OP_ARGARY:
-      printf("OP_ARGARY\tR%d\t%d:%d:%d:%d\n", GETARG_A(c),
+      printf("OP_ARGARY\tR%d\t%d:%d:%d:%d", GETARG_A(c),
              (GETARG_Bx(c)>>10)&0x3f,
              (GETARG_Bx(c)>>9)&0x1,
              (GETARG_Bx(c)>>4)&0x1f,
              (GETARG_Bx(c)>>0)&0xf);
+      print_lv(mrb, irep, c, RA);
       break;
 
     case OP_ENTER:
@@ -2772,33 +2899,37 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_RETURN\tR%d", GETARG_A(c));
       switch (GETARG_B(c)) {
       case OP_R_NORMAL:
-        printf("\n"); break;
       case OP_R_RETURN:
-        printf("\treturn\n"); break;
+        printf("\treturn"); break;
       case OP_R_BREAK:
-        printf("\tbreak\n"); break;
+        printf("\tbreak"); break;
       default:
-        printf("\tbroken\n"); break;
+        printf("\tbroken"); break;
         break;
       }
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_BLKPUSH:
-      printf("OP_BLKPUSH\tR%d\t%d:%d:%d:%d\n", GETARG_A(c),
+      printf("OP_BLKPUSH\tR%d\t%d:%d:%d:%d", GETARG_A(c),
              (GETARG_Bx(c)>>10)&0x3f,
              (GETARG_Bx(c)>>9)&0x1,
              (GETARG_Bx(c)>>4)&0x1f,
              (GETARG_Bx(c)>>0)&0xf);
+      print_lv(mrb, irep, c, RA);
       break;
 
     case OP_LAMBDA:
-      printf("OP_LAMBDA\tR%d\tI(%+d)\t%d\n", GETARG_A(c), GETARG_b(c)+1, GETARG_c(c));
+      printf("OP_LAMBDA\tR%d\tI(%+d)\t%d", GETARG_A(c), GETARG_b(c)+1, GETARG_c(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_RANGE:
-      printf("OP_RANGE\tR%d\tR%d\t%d\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      printf("OP_RANGE\tR%d\tR%d\t%d", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      print_lv(mrb, irep, c, RAB);
       break;
     case OP_METHOD:
-      printf("OP_METHOD\tR%d\t:%s\n", GETARG_A(c),
+      printf("OP_METHOD\tR%d\t:%s", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]));
+      print_lv(mrb, irep, c, RA);
       break;
 
     case OP_ADD:
@@ -2862,53 +2993,67 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       break;
 
     case OP_ARRAY:
-      printf("OP_ARRAY\tR%d\tR%d\t%d\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      printf("OP_ARRAY\tR%d\tR%d\t%d", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      print_lv(mrb, irep, c, RAB);
       break;
     case OP_ARYCAT:
-      printf("OP_ARYCAT\tR%d\tR%d\n", GETARG_A(c), GETARG_B(c));
+      printf("OP_ARYCAT\tR%d\tR%d", GETARG_A(c), GETARG_B(c));
+      print_lv(mrb, irep, c, RAB);
       break;
     case OP_ARYPUSH:
-      printf("OP_ARYPUSH\tR%d\tR%d\n", GETARG_A(c), GETARG_B(c));
+      printf("OP_ARYPUSH\tR%d\tR%d", GETARG_A(c), GETARG_B(c));
+      print_lv(mrb, irep, c, RAB);
       break;
     case OP_AREF:
-      printf("OP_AREF\tR%d\tR%d\t%d\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      printf("OP_AREF\tR%d\tR%d\t%d", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      print_lv(mrb, irep, c, RAB);
       break;
     case OP_APOST:
-      printf("OP_APOST\tR%d\t%d\t%d\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      printf("OP_APOST\tR%d\t%d\t%d", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      print_lv(mrb, irep, c, RAB);
       break;
     case OP_STRING:
       {
         mrb_value v = irep->pool[GETARG_Bx(c)];
         mrb_value s = mrb_str_dump(mrb, mrb_str_new(mrb, RSTRING_PTR(v), RSTRING_LEN(v)));
-        printf("OP_STRING\tR%d\t%s\n", GETARG_A(c), RSTRING_PTR(s));
+        printf("OP_STRING\tR%d\tL(%d)\t; %s", GETARG_A(c), GETARG_Bx(c), RSTRING_PTR(s));
       }
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_STRCAT:
-      printf("OP_STRCAT\tR%d\tR%d\n", GETARG_A(c), GETARG_B(c));
+      printf("OP_STRCAT\tR%d\tR%d", GETARG_A(c), GETARG_B(c));
+      print_lv(mrb, irep, c, RAB);
       break;
     case OP_HASH:
-      printf("OP_HASH\tR%d\tR%d\t%d\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      printf("OP_HASH\tR%d\tR%d\t%d", GETARG_A(c), GETARG_B(c), GETARG_C(c));
+      print_lv(mrb, irep, c, RAB);
       break;
 
     case OP_OCLASS:
-      printf("OP_OCLASS\tR%d\n", GETARG_A(c));
+      printf("OP_OCLASS\tR%d", GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_CLASS:
-      printf("OP_CLASS\tR%d\t:%s\n", GETARG_A(c),
+      printf("OP_CLASS\tR%d\t:%s", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_MODULE:
-      printf("OP_MODULE\tR%d\t:%s\n", GETARG_A(c),
+      printf("OP_MODULE\tR%d\t:%s", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_EXEC:
-      printf("OP_EXEC\tR%d\tI(%+d)\n", GETARG_A(c), GETARG_Bx(c)+1);
+      printf("OP_EXEC\tR%d\tI(%+d)", GETARG_A(c), GETARG_Bx(c)+1);
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_SCLASS:
-      printf("OP_SCLASS\tR%d\tR%d\n", GETARG_A(c), GETARG_B(c));
+      printf("OP_SCLASS\tR%d\tR%d", GETARG_A(c), GETARG_B(c));
+      print_lv(mrb, irep, c, RAB);
       break;
     case OP_TCLASS:
-      printf("OP_TCLASS\tR%d\n", GETARG_A(c));
+      printf("OP_TCLASS\tR%d", GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_ERR:
       {
@@ -2924,13 +3069,16 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_ONERR\t%03d\n", i+GETARG_sBx(c));
       break;
     case OP_RESCUE:
-      printf("OP_RESCUE\tR%d\n", GETARG_A(c));
+      printf("OP_RESCUE\tR%d", GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_RAISE:
-      printf("OP_RAISE\tR%d\n", GETARG_A(c));
+      printf("OP_RAISE\tR%d", GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_POPERR:
-      printf("OP_POPERR\t%d\n", GETARG_A(c));
+      printf("OP_POPERR\t%d", GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_EPOP:
       printf("OP_EPOP\t%d\n", GETARG_A(c));
@@ -2964,7 +3112,7 @@ mrb_codedump_all(mrb_state *mrb, struct RProc *proc)
   codedump_recur(mrb, proc->body.irep);
 }
 
-struct RProc*
+MRB_API struct RProc*
 mrb_generate_code(mrb_state *mrb, parser_state *p)
 {
   codegen_scope *scope = scope_new(mrb, 0, 0);

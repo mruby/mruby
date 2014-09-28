@@ -437,6 +437,26 @@ assert('Kernel#raise', '15.3.1.3.40') do
   end
 end
 
+assert('Kernel#remove_instance_variable', '15.3.1.3.41') do
+  class Test4RemoveInstanceVar
+    attr_reader :var
+    def initialize
+      @var = 99
+    end
+    def remove
+      remove_instance_variable(:@var)
+    end
+  end
+
+  tri = Test4RemoveInstanceVar.new
+  assert_equal 99, tri.var
+  tri.remove
+  assert_equal nil, tri.var
+  assert_raise NameError do
+    tri.remove
+  end
+end
+
 # Kernel#require is defined in mruby-require. '15.3.1.3.42'
 
 assert('Kernel#respond_to?', '15.3.1.3.43') do
@@ -449,6 +469,14 @@ assert('Kernel#respond_to?', '15.3.1.3.43') do
 
   assert_raise TypeError do
     Test4RespondTo.new.respond_to?(1)
+  end
+
+  assert_raise ArgumentError do
+    Test4RespondTo.new.respond_to?
+  end
+
+  assert_raise ArgumentError do
+    Test4RespondTo.new.respond_to? :a, true, :aa
   end
 
   assert_true respond_to?(:nil?)
@@ -477,6 +505,20 @@ end
 
 assert('Kernel#to_s', '15.3.1.3.46') do
   assert_equal to_s.class, String
+end
+
+assert('Kernel.local_variables', '15.3.1.2.7') do
+  a, b = 0, 1
+  a += b
+
+  vars = Kernel.local_variables.sort
+  assert_equal [:a, :b, :vars], vars
+
+  Proc.new {
+    c = 2
+    vars = Kernel.local_variables.sort
+    assert_equal [:a, :b, :c, :vars], vars
+  }.call
 end
 
 assert('Kernel#!=') do
@@ -528,20 +570,6 @@ assert('Kernel#global_variables') do
   end
 end
 
-assert('Kernel#__method__') do
-  assert_equal(:m, Class.new {def m; __method__; end}.new.m)
-  assert_equal(:m, Class.new {define_method(:m) {__method__}}.new.m)
-  c = Class.new do
-    [:m1, :m2].each do |m|
-      define_method(m) do
-        __method__
-      end
-    end
-  end
-  assert_equal(:m1, c.new.m1)
-  assert_equal(:m2, c.new.m2)
-end
-
 assert('Kernel#define_singleton_method') do
   o = Object.new
   ret = o.define_singleton_method(:test_method) do
@@ -558,8 +586,5 @@ assert('stack extend') do
   end
 
   assert_equal 6, recurse(0, 5)
-  assert_raise RuntimeError do
-    recurse(0, 100000)
-  end
 end
 

@@ -19,16 +19,30 @@ end
 assert("Symbol#capitalize") do
   assert_equal :Hello, :hello.capitalize
   assert_equal :Hello, :HELLO.capitalize
+  assert_equal :Hello, :Hello.capitalize
 end
 
 assert("Symbol#downcase") do
   assert_equal :hello, :hEllO.downcase
+  assert_equal :hello, :hello.downcase
 end
 
 assert("Symbol#upcase") do
   assert_equal :HELLO, :hEllO.upcase
+  assert_equal :HELLO, :HELLO.upcase
+end
+
+assert("Symbol#casecmp") do
+  assert_equal 0, :HELLO.casecmp(:hEllO)
+  assert_equal 1, :HELLO.casecmp(:hEllN)
+  assert_equal(-1, :HELLO.casecmp(:hEllP))
+  assert_nil :HELLO.casecmp("hEllO")
 end
 
 assert("Symbol#empty?") do
   assert_true :''.empty?
+end
+
+assert('Symbol#intern') do
+  assert_equal :test, :test.intern
 end

@@ -1,21 +1,13 @@
 class Symbol
+  include Comparable
+
+  alias intern to_sym
 
   def to_proc
-    Proc.new do |obj, *args|
-      obj.send(self, *args)
+    ->(obj,*args,&block) do
+      obj.__send__(self, *args, &block)
     end
   end
-
-  ##
-  # call-seq:
-  #   sym.length    -> integer
-  #
-  # Same as <code>sym.to_s.length</code>.
-
-  def length
-    self.to_s.length
-  end
-  alias :size :length
 
   ##
   # call-seq:
@@ -24,7 +16,7 @@ class Symbol
   # Same as <code>sym.to_s.capitalize.intern</code>.
 
   def capitalize
-    self.to_s.capitalize.intern
+    (self.to_s.capitalize! || self).to_sym
   end
 
   ##
@@ -34,7 +26,7 @@ class Symbol
   # Same as <code>sym.to_s.downcase.intern</code>.
 
   def downcase
-    self.to_s.downcase.intern
+    (self.to_s.downcase! || self).to_sym
   end
 
   ##
@@ -44,7 +36,20 @@ class Symbol
   # Same as <code>sym.to_s.upcase.intern</code>.
 
   def upcase
-    self.to_s.upcase.intern
+    (self.to_s.upcase! || self).to_sym
+  end
+
+  ##
+  # call-seq:
+  #   sym.casecmp(other)  -> -1, 0, +1 or nil
+  #
+  # Case-insensitive version of <code>Symbol#<=></code>.
+
+  def casecmp(other)
+    return nil unless other.kind_of?(Symbol)
+    lhs =  self.to_s; lhs.upcase!
+    rhs = other.to_s; rhs.upcase!
+    lhs <=> rhs
   end
 
   #
@@ -54,7 +59,7 @@ class Symbol
   # Returns that _sym_ is :"" or not.
 
   def empty?
-    self.to_s.empty?
+    self.length == 0
   end
 
 end
