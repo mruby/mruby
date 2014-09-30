@@ -165,7 +165,9 @@ typedef struct mrb_state {
   struct alloca_header *mems;
 
   mrb_sym symidx;
-  struct kh_n2s *name2sym;      /* symbol table */
+  struct kh_n2s *name2sym;      /* symbol hash */
+  struct symbol_name *symtbl;   /* symbol table */
+  size_t symcapa;
 
 #ifdef ENABLE_DEBUG
   void (*code_fetch_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
