@@ -23,7 +23,7 @@ static inline khint_t
 sym_hash_func(mrb_state *mrb, mrb_sym s)
 {
   khint_t h = 0;
-  size_t i, len = mrb->symtbl[s].len;;
+  size_t i, len = mrb->symtbl[s].len;
   const char *p = mrb->symtbl[s].name;
 
   for (i=0; i<len; i++) {
