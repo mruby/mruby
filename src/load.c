@@ -548,7 +548,11 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
   uint16_t crc;
   size_t bin_size = 0;
   size_t n;
+#ifdef MRB_USE_ETEXT_EDATA
+  uint8_t flags = mrb_ro_data_p((char*)bin) ? FLAG_SRC_STATIC : FLAG_SRC_MALLOC;
+#else
   uint8_t flags = FLAG_SRC_STATIC;
+#endif
 
   if ((mrb == NULL) || (bin == NULL)) {
     return NULL;
