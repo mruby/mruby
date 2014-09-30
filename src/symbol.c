@@ -73,7 +73,7 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   }
   sname = &mrb->symtbl[sym];
   sname->len = (uint16_t)len;
-  if (lit) {
+  if (lit || mrb_ro_data_p(name)) {
     sname->name = name;
     sname->lit = TRUE;
   }

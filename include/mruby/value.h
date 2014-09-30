@@ -211,4 +211,17 @@ mrb_undef_value(void)
   return v;
 }
 
+#ifdef MRB_USE_ETEXT_EDATA
+extern char _etext[];
+extern char _edata[];
+
+static inline mrb_bool
+mrb_ro_data_p(const char *p)
+{
+  return _etext < p && p < _edata;
+}
+#else
+# define mrb_ro_data_p(p) FALSE
+#endif
+
 #endif  /* MRUBY_VALUE_H */

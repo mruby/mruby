@@ -141,10 +141,30 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
 #define mrb_obj_alloc_string(mrb) ((struct RString*)mrb_obj_alloc((mrb), MRB_TT_STRING, (mrb)->string_class))
 
 static struct RString*
+str_new_static(mrb_state *mrb, const char *p, size_t len)
+{
+  struct RString *s;
+
+  if (len >= MRB_INT_MAX) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
+  }
+  s = mrb_obj_alloc_string(mrb);
+  s->as.heap.len = len;
+  s->as.heap.aux.capa = 0;             /* nofree */
+  s->as.heap.ptr = (char *)p;
+  s->flags = MRB_STR_NOFREE;
+
+  return s;
+}
+
+static struct RString*
 str_new(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s;
 
+  if (mrb_ro_data_p(p)) {
+    return str_new_static(mrb, p, len);
+  }
   s = mrb_obj_alloc_string(mrb);
   if (len < RSTRING_EMBED_LEN_MAX) {
     RSTR_SET_EMBED_FLAG(s);
@@ -282,16 +302,7 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
 MRB_API mrb_value
 mrb_str_new_static(mrb_state *mrb, const char *p, size_t len)
 {
-  struct RString *s;
-
-  if (len >= MRB_INT_MAX) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
-  }
-  s = mrb_obj_alloc_string(mrb);
-  s->as.heap.len = len;
-  s->as.heap.aux.capa = 0;             /* nofree */
-  s->as.heap.ptr = (char *)p;
-  s->flags = MRB_STR_NOFREE;
+  struct RString *s = str_new_static(mrb, p, len);
   return mrb_obj_value(s);
 }
 
