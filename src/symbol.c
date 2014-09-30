@@ -148,6 +148,7 @@ MRB_API const char*
 mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 {
   if (sym == 0 || mrb->symidx < sym) {
+    if (lenp) *lenp = 0;
     return NULL;
   }
 
