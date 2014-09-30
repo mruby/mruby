@@ -1,4 +1,5 @@
 #include "mruby.h"
+#include "mruby/class.h"
 #include "mruby/compile.h"
 #include "mruby/irep.h"
 #include "mruby/proc.h"
@@ -206,6 +207,9 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
 
     mrb_get_args(mrb, "s|zi", &s, &len, &file, &line);
     mrb->c->ci->acc = CI_ACC_SKIP;
+    if (mrb->c->ci->target_class->tt == MRB_TT_ICLASS) {
+      mrb->c->ci->target_class = mrb->c->ci->target_class->c;
+    }
     return mrb_run(mrb, create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line), self);
   }
   else {
