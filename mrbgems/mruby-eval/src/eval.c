@@ -53,13 +53,22 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest)
   size_t i;
   mrb_code c;
 
-  for (i = 0; i < irep->rlen; i++) {
-    patch_irep(mrb, irep->reps[i], bnest + 1);
-  }
-
   for (i = 0; i < irep->ilen; i++) {
     c = irep->iseq[i];
     switch(GET_OPCODE(c)){
+    case OP_EPUSH:
+      patch_irep(mrb, irep->reps[GETARG_Bx(c)], bnest + 1);
+      break;
+
+    case OP_LAMBDA:
+      {
+        int arg_c = GETARG_c(c);
+        if (arg_c & OP_L_CAPTURE) {
+          patch_irep(mrb, irep->reps[GETARG_b(c)], bnest + 1);
+        }
+      }
+      break;
+
     case OP_SEND:
       if (GETARG_C(c) != 0) {
         break;
