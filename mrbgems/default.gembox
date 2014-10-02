@@ -70,4 +70,7 @@ MRuby::GemBox.new do |conf|
 
   # Use extensional Kernel module
   conf.gem :core => "mruby-kernel-ext"
+
+  # Use extensional Kernel module
+  conf.gem :github => "matz/mruby-thread"
 end

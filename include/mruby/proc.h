@@ -20,7 +20,8 @@ struct REnv {
   ptrdiff_t cioff;
 };
 
-#define MRB_ENV_STACK_LEN(e) ((e)->flags)
+#define MRB_SET_ENV_STACK_LEN(e,len) (e)->flags = (unsigned int)(len)
+#define MRB_ENV_STACK_LEN(e) ((mrb_int)(e)->flags)
 #define MRB_ENV_UNSHARE_STACK(e) ((e)->cioff = -1)
 #define MRB_ENV_STACK_SHARED_P(e) ((e)->cioff >= 0)
 
