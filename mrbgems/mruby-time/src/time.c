@@ -671,11 +671,9 @@ mrb_time_to_i(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm;
 
   tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
-#if defined(MRB_INT16) || defined(MRB_WORD_BOXING)
   if (tm->sec > MRB_INT_MAX || tm->sec < MRB_INT_MIN) {
     return mrb_float_value(mrb, (mrb_float)tm->sec);
   }
-#endif
   return mrb_fixnum_value((mrb_int)tm->sec);
 }
 
