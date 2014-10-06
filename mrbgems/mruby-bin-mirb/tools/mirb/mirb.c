@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <ctype.h>
 
+#include <signal.h>
+#include <setjmp.h>
+
 #ifdef ENABLE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -304,6 +307,16 @@ check_keyword(const char *buf, const char *word)
   return 1;
 }
 
+sigjmp_buf ctrl_c_buf;
+
+void 
+signal_handler(int signo)
+{
+  if (signo == SIGINT) {
+    longjmp(ctrl_c_buf, 1);
+  }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -362,7 +375,22 @@ main(int argc, char **argv)
 
   ai = mrb_gc_arena_save(mrb);
 
+  if (signal(SIGINT, signal_handler) == SIG_ERR){
+    printf("failed to set signal handler\n");
+  }
+
   while (TRUE) {
+
+    if (setjmp(ctrl_c_buf) == 0) {
+      ; 
+    }
+    else {
+      ruby_code[0] = '\0';
+      last_code_line[0] = '\0';
+      code_block_open = FALSE;
+      puts("^C");
+    }
+
 #ifndef ENABLE_READLINE
     print_cmdline(code_block_open);
 
