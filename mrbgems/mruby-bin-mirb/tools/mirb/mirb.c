@@ -327,6 +327,7 @@ main(int argc, char **argv)
   int char_index;
 #else
   char *history_path;
+  char* line;
 #endif
   mrbc_context *cxt;
   struct mrb_parser_state *parser;
@@ -411,7 +412,7 @@ main(int argc, char **argv)
     last_code_line[char_index++] = '\n';
     last_code_line[char_index] = '\0';
 #else
-    char* line = MIRB_READLINE(code_block_open ? "* " : "> ");
+    line = MIRB_READLINE(code_block_open ? "* " : "> ");
     if (line == NULL) {
       printf("\n");
       break;
