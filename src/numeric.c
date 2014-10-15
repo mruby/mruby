@@ -699,7 +699,7 @@ mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
     if ((a != 0 && c/a != b) || !FIXABLE(c)) {
       return mrb_float_value(mrb, (mrb_float)a*(mrb_float)b);
     }
-    return mrb_fixnum_value(c);
+    return mrb_fixnum_value((mrb_int)c);
   }
   return mrb_float_value(mrb, (mrb_float)a * mrb_to_flo(mrb, y));
 }
