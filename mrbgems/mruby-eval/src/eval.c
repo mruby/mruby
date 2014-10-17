@@ -5,14 +5,14 @@
 #include "mruby/proc.h"
 #include "mruby/opcode.h"
 
-static struct mrb_irep *
-get_closure_irep(mrb_state *mrb, int level)
+static struct RProc *
+get_closure_proc(mrb_state *mrb, int level)
 {
   struct REnv *e = mrb->c->ci[-1].proc->env;
   struct RProc *proc;
 
   if (level == 0) {
-    return mrb->c->ci[-1].proc->body.irep;
+    return mrb->c->ci[-1].proc;
   }
 
   while (--level) {
@@ -23,22 +23,22 @@ get_closure_irep(mrb_state *mrb, int level)
   if (!e) return NULL;
   proc = mrb->c->cibase[e->cioff].proc;
 
-  return proc->body.irep;
+  return proc;
 }
 
 static inline mrb_code
 search_variable(mrb_state *mrb, mrb_sym vsym, int bnest)
 {
-  mrb_irep *virep;
+  struct RProc *vproc;
   int level;
   int pos;
 
-  for (level = 0; (virep = get_closure_irep(mrb, level)); level++) {
-    if (virep->lv == NULL) {
+  for (level = 0; (vproc = get_closure_proc(mrb, level)); level++) {
+    if (MRB_PROC_CFUNC_P(vproc) || vproc->body.irep->lv == NULL) {
       continue;
     }
-    for (pos = 0; pos < virep->nlocals - 1; pos++) {
-      if (vsym == virep->lv[pos].name) {
+    for (pos = 0; pos < vproc->body.irep->nlocals - 1; pos++) {
+      if (vsym == vproc->body.irep->lv[pos].name) {
         return (MKARG_B(pos + 1) | MKARG_C(level + bnest));
       }
     }
