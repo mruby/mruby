@@ -12,7 +12,11 @@ get_closure_irep(mrb_state *mrb, int level)
   struct RProc *proc;
 
   if (level == 0) {
-    return mrb->c->ci[-1].proc->body.irep;
+    proc = mrb->c->ci[-1].proc;
+    if (MRB_PROC_CFUNC_P(proc)) {
+      return NULL;
+    }
+    return proc->body.irep;
   }
 
   while (--level) {
