@@ -37,21 +37,15 @@ mrb_f_method(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_f_array(mrb_state *mrb, mrb_value self)
 {
-  mrb_value argv, tmp;
+  mrb_value arg, tmp;
 
-  mrb_get_args(mrb, "o", &argv);
-  tmp = mrb_check_array_type(mrb, argv);
-
+  mrb_get_args(mrb, "o", &arg);
+  tmp = mrb_check_convert_type(mrb, arg, MRB_TT_ARRAY, "Array", "to_ary");
   if (mrb_nil_p(tmp)) {
-    tmp = mrb_check_convert_type(mrb, argv, MRB_TT_ARRAY, "Array", "to_a");
+    tmp = mrb_check_convert_type(mrb, arg, MRB_TT_ARRAY, "Array", "to_a");
   }
   if (mrb_nil_p(tmp)) {
-    struct RArray *a;
-
-    tmp = mrb_ary_new_capa(mrb, 1);
-    a = mrb_ary_ptr(tmp);
-    a->ptr[0] = argv;
-    a->len = 1;
+    tmp = mrb_ary_new_from_values(mrb, 1, &arg);
   }
 
   return tmp;
