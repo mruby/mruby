@@ -532,3 +532,12 @@ assert('Module#module_function') do
   assert_true M.respond_to?(:modfunc)
 end
 
+assert('Issue 2613') do
+  module Test4Issue2613
+    def met
+    end
+    undef met
+  end
+
+  assert_false Test4Issue2613.instance_methods.include?(:met)
+end
