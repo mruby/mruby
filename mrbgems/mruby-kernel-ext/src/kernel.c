@@ -1,6 +1,5 @@
 #include "mruby.h"
 #include "mruby/error.h"
-#include "mruby/object.h"
 #include "mruby/array.h"
 
 /*
@@ -45,7 +44,7 @@ mrb_f_array(mrb_state *mrb, mrb_value self)
     tmp = mrb_check_convert_type(mrb, arg, MRB_TT_ARRAY, "Array", "to_a");
   }
   if (mrb_nil_p(tmp)) {
-    tmp = mrb_ary_new_from_values(mrb, 1, &arg);
+    return mrb_ary_new_from_values(mrb, 1, &arg);
   }
 
   return tmp;
