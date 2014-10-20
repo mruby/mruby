@@ -17,6 +17,12 @@ assert('Kernel#__method__') do
   assert_equal(:m2, c.new.m2)
 end
 
+assert('Kernel#String') do
+  assert_equal("main", String(self))
+  assert_equal("Object", String(self.class))
+  assert_equal("123456", String(123456))
+end
+
 assert('Kernel#Array') do
   assert_equal([1], Kernel.Array(1))
   assert_equal([1, 2, 3, 4, 5], Kernel.Array([1, 2, 3, 4, 5]))
