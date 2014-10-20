@@ -614,7 +614,7 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
   khash_t(mt) *h = klass->mt;
   if (!h) return;
   for (i=0;i<kh_end(h);i++) {
-    if (kh_exist(h, i)) {
+    if (kh_exist(h, i) && kh_value(h, i)) {
       kh_put(st, mrb, set, kh_key(h, i));
     }
   }
