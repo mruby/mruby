@@ -376,7 +376,7 @@ assert('Kernel#method_missing', '15.3.1.3.30') do
   end
 
   class NoInspectClass
-    undef inspect
+    undef inspect if instance_methods(true).include?(:inspect)
   end
   d = NoInspectClass.new
   begin
