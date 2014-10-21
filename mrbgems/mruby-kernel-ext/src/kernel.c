@@ -24,6 +24,31 @@ mrb_f_method(mrb_state *mrb, mrb_value self)
 
 /*
  *  call-seq:
+ *     String(arg)   -> string
+ *
+ *  Returns <i>arg</i> as an <code>String</code>.
+ *
+ *  First tries to call its <code>to_str</code> method, then its to_s method.
+ *
+ *     String(self)        #=> "main"
+ *     String(self.class)  #=> "Object"
+ *     String(123456)      #=> "123456"
+ */
+static mrb_value
+mrb_f_string(mrb_state *mrb, mrb_value self)
+{
+  mrb_value arg, tmp;
+
+  mrb_get_args(mrb, "o", &arg);
+  tmp = mrb_check_convert_type(mrb, arg, MRB_TT_STRING, "String", "to_str");
+  if (mrb_nil_p(tmp)) {
+    tmp = mrb_check_convert_type(mrb, arg, MRB_TT_STRING, "String", "to_s");
+  }
+  return tmp;
+}
+
+/*
+ *  call-seq:
  *     Array(arg)    -> array
  *
  *  Returns +arg+ as an Array.
@@ -57,6 +82,7 @@ mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
 
   mrb_define_module_function(mrb, krn, "fail", mrb_f_raise, MRB_ARGS_OPT(2));
   mrb_define_method(mrb, krn, "__method__", mrb_f_method, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, krn, "String", mrb_f_string, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, krn, "Array", mrb_f_array, MRB_ARGS_REQ(1));
 }
 
