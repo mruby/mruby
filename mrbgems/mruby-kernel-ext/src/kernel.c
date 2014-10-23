@@ -25,6 +25,27 @@ mrb_f_method(mrb_state *mrb, mrb_value self)
 
 /*
  *  call-seq:
+ *     Float(arg)    -> float
+ *
+ *  Returns <i>arg</i> converted to a float. Numeric types are converted
+ *  directly, the rest are converted using <i>arg</i>.to_f. 
+ *
+ *     Float(1)           #=> 1.0
+ *     Float(123.456)     #=> 123.456
+ *     Float("123.456")   #=> 123.456
+ *     Float(nil)         #=> TypeError
+ */
+static mrb_value
+mrb_f_float(mrb_state *mrb, mrb_value self)
+{
+  mrb_value arg;
+
+  mrb_get_args(mrb, "o", &arg);
+  return mrb_Float(mrb, arg);
+}
+
+/*
+ *  call-seq:
  *     String(arg)   -> string
  *
  *  Returns <i>arg</i> as an <code>String</code>.
@@ -116,6 +137,7 @@ mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
 
   mrb_define_module_function(mrb, krn, "fail", mrb_f_raise, MRB_ARGS_OPT(2));
   mrb_define_method(mrb, krn, "__method__", mrb_f_method, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, krn, "Float", mrb_f_float, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, krn, "String", mrb_f_string, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, krn, "Array", mrb_f_array, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, krn, "Hash", mrb_f_hash, MRB_ARGS_REQ(1));

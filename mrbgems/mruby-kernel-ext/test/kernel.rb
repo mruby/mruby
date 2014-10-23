@@ -17,6 +17,13 @@ assert('Kernel#__method__') do
   assert_equal(:m2, c.new.m2)
 end
 
+assert('Kernel#Float') do
+  assert_equal(1.0, Float(1))
+  assert_equal(123.456, Float(123.456))
+  assert_equal(123.456, Float("123.456"))
+  assert_raise(TypeError) { Float(nil) }
+end
+
 assert('Kernel#String') do
   assert_equal("main", String(self))
   assert_equal("Object", String(self.class))
