@@ -29,3 +29,10 @@ assert('Kernel#Array') do
   assert_equal([1, 2, 3, 4, 5], Kernel.Array(1..5))
   assert_equal([[:a, 1], [:b, 2], [:c, 3]], Kernel.Array({a:1, b:2, c:3}))
 end
+
+assert('Kernel#Hash') do
+  assert_equal({}, Hash([]))
+  assert_equal({}, Hash(nil))
+  assert_equal({:key => :value}, Hash(key: :value))
+  assert_raise(TypeError) { Hash([1, 2, 3]) }
+end
