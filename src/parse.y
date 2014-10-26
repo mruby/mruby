@@ -5447,10 +5447,7 @@ mrb_parser_free(parser_state *p) {
 MRB_API mrbc_context*
 mrbc_context_new(mrb_state *mrb)
 {
-  mrbc_context *c;
-
-  c = (mrbc_context *)mrb_calloc(mrb, 1, sizeof(mrbc_context));
-  return c;
+  return (mrbc_context *)mrb_calloc(mrb, 1, sizeof(mrbc_context));
 }
 
 MRB_API void
