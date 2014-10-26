@@ -3838,7 +3838,7 @@ parse_string(parser_state *p)
   newtok(p);
   while ((c = nextc(p)) != end || nest_level != 0) {
     if (hinf && (c == '\n' || c < 0)) {
-      int line_head;
+      mrb_bool line_head;
       tokadd(p, '\n');
       tokfix(p);
       p->lineno++;
