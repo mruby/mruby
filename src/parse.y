@@ -5312,12 +5312,8 @@ parser_yylex(parser_state *p)
 static int
 yylex(void *lval, parser_state *p)
 {
-  int t;
-
   p->ylval = lval;
-  t = parser_yylex(p);
-
-  return t;
+  return parser_yylex(p);
 }
 
 static void
