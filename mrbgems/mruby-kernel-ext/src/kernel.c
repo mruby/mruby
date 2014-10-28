@@ -25,6 +25,51 @@ mrb_f_method(mrb_state *mrb, mrb_value self)
 
 /*
  *  call-seq:
+ *     Integer(arg,base=0)    -> integer
+ *
+ *  Converts <i>arg</i> to a <code>Fixnum</code>.
+ *  Numeric types are converted directly (with floating point numbers
+ *  being truncated).    <i>base</i> (0, or between 2 and 36) is a base for
+ *  integer string representation.  If <i>arg</i> is a <code>String</code>,
+ *  when <i>base</i> is omitted or equals to zero, radix indicators
+ *  (<code>0</code>, <code>0b</code>, and <code>0x</code>) are honored.
+ *  In any case, strings should be strictly conformed to numeric
+ *  representation. This behavior is different from that of
+ *  <code>String#to_i</code>.  Non string values will be converted using
+ *  <code>to_int</code>, and <code>to_i</code>. Passing <code>nil</code>
+ *  raises a TypeError.
+ *
+ *     Integer(123.999)    #=> 123
+ *     Integer("0x1a")     #=> 26
+ *     Integer(Time.new)   #=> 1204973019
+ *     Integer("0930", 10) #=> 930
+ *     Integer("111", 2)   #=> 7
+ *     Integer(nil)        #=> TypeError
+ */
+static mrb_value
+mrb_f_integer(mrb_state *mrb, mrb_value self)
+{
+  mrb_value *argv;
+  mrb_value arg;
+  int argc;
+  int base = 0;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  switch (argc) {
+    case 2:
+      base = mrb_fixnum(argv[1]);
+    case 1:
+      arg = argv[0];
+      break;
+    default:
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for 1..2)",
+                 mrb_fixnum_value(argc));
+  }
+  return mrb_convert_to_integer(mrb, arg, base);
+}
+
+/*
+ *  call-seq:
  *     Float(arg)    -> float
  *
  *  Returns <i>arg</i> converted to a float. Numeric types are converted
@@ -137,6 +182,7 @@ mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
 
   mrb_define_module_function(mrb, krn, "fail", mrb_f_raise, MRB_ARGS_OPT(2));
   mrb_define_method(mrb, krn, "__method__", mrb_f_method, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, krn, "Integer", mrb_f_integer, MRB_ARGS_ANY());
   mrb_define_module_function(mrb, krn, "Float", mrb_f_float, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, krn, "String", mrb_f_string, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, krn, "Array", mrb_f_array, MRB_ARGS_REQ(1));
