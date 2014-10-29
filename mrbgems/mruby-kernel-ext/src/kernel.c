@@ -49,22 +49,10 @@ mrb_f_method(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_f_integer(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
   mrb_value arg;
-  int argc;
-  int base = 0;
+  mrb_int base = 0;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
-  switch (argc) {
-    case 2:
-      base = mrb_fixnum(argv[1]);
-    case 1:
-      arg = argv[0];
-      break;
-    default:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for 1..2)",
-                 mrb_fixnum_value(argc));
-  }
+  mrb_get_args(mrb, "o|i", &arg, &base);
   return mrb_convert_to_integer(mrb, arg, base);
 }
 
