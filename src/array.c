@@ -659,7 +659,7 @@ aget_index(mrb_state *mrb, mrb_value index)
     return mrb_fixnum(index);
   }
   else if (mrb_float_p(index)) {
-    return mrb_float(index);
+    return (mrb_int)mrb_float(index);
   }
   else {
     mrb_int i;
