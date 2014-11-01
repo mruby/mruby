@@ -469,6 +469,7 @@ assert('Module#undef_method', '15.2.2.4.42') do
   assert_true Test4UndefMethod::Parent.new.respond_to?(:hello)
   assert_false Test4UndefMethod::Child.new.respond_to?(:hello)
   assert_false Test4UndefMethod::GrandChild.new.respond_to?(:hello)
+  assert_false Test4UndefMethod::Child.instance_methods(false).include? :hello
 end
 
 # Not ISO specified

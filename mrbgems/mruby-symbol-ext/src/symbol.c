@@ -7,8 +7,6 @@ typedef struct symbol_name {
   const char *name;
 } symbol_name;
 
-KHASH_DECLARE(n2s, symbol_name, mrb_sym, TRUE)
-
 /*
  *  call-seq:
  *     Symbol.all_symbols    => array
@@ -27,16 +25,11 @@ KHASH_DECLARE(n2s, symbol_name, mrb_sym, TRUE)
 static mrb_value
 mrb_sym_all_symbols(mrb_state *mrb, mrb_value self)
 {
-  khiter_t k;
-  mrb_sym sym;
-  khash_t(n2s) *h = mrb->name2sym;
-  mrb_value ary = mrb_ary_new_capa(mrb, kh_size(h));
+  mrb_sym i, lim;
+  mrb_value ary = mrb_ary_new_capa(mrb, mrb->symidx);
 
-  for (k = kh_begin(h); k != kh_end(h); k++) {
-    if (kh_exist(h, k)) {
-      sym = kh_value(h, k);
-      mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
-    }
+  for (i=1, lim=mrb->symidx+1; i<lim; i++) {
+    mrb_ary_push(mrb, ary, mrb_symbol_value(i));
   }
 
   return ary;

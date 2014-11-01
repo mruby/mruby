@@ -2123,12 +2123,12 @@ RETRY_TRY_BLOCK:
         }
         else {
           regs[a++] = mrb_ary_new_capa(mrb, 0);
-          for (idx=0; idx+pre<len; i++) {
-            regs[a+i] = ary->ptr[pre+idx];
+          for (idx=0; idx+pre<len; idx++) {
+            regs[a+idx] = ary->ptr[pre+idx];
           }
           while (idx < post) {
             SET_NIL_VALUE(regs[a+idx]);
-            i++;
+            idx++;
           }
         }
       }

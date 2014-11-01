@@ -658,10 +658,14 @@ aget_index(mrb_state *mrb, mrb_value index)
   if (mrb_fixnum_p(index)) {
     return mrb_fixnum(index);
   }
+  else if (mrb_float_p(index)) {
+    return (mrb_int)mrb_float(index);
+  }
   else {
-    mrb_int i;
+    mrb_int i, argc;
+    mrb_value *argv;
 
-    mrb_get_args(mrb, "i", &i);
+    mrb_get_args(mrb, "i*", &i, &argv, &argc);
     return i;
   }
 }

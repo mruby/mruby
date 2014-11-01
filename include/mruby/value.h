@@ -211,4 +211,27 @@ mrb_undef_value(void)
   return v;
 }
 
+#ifdef MRB_USE_ETEXT_EDATA
+extern char _etext[];
+#ifdef MRB_NO_INIT_ARRAY_START
+extern char _edata[];
+
+static inline mrb_bool
+mrb_ro_data_p(const char *p)
+{
+  return _etext < p && p < _edata;
+}
+#else
+extern char __init_array_start[];
+
+static inline mrb_bool
+mrb_ro_data_p(const char *p)
+{
+  return _etext < p && p < (char*)&__init_array_start;
+}
+#endif
+#else
+# define mrb_ro_data_p(p) FALSE
+#endif
+
 #endif  /* MRUBY_VALUE_H */

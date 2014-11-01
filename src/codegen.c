@@ -571,12 +571,11 @@ for_body(codegen_scope *s, node *tree)
 
   /* generate loop variable */
   n2 = tree->car;
+  genop(s, MKOP_Ax(OP_ENTER, 0x40000));
   if (n2->car && !n2->car->cdr && !n2->cdr) {
-    genop(s, MKOP_Ax(OP_ENTER, 0x40000));
     gen_assignment(s, n2->car->car, 1, NOVAL);
   }
   else {
-    genop(s, MKOP_Ax(OP_ENTER, 0x40000));
     gen_vmassignment(s, n2, 1, VAL);
   }
   codegen(s, tree->cdr->cdr->car, VAL);

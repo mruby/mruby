@@ -32,6 +32,11 @@ assert('Kernel.eval', '15.3.1.2.3') do
     }.call
     c
   }
+  assert_equal(2) {
+    a = 10
+    Kernel.eval 'def f(a); b=a.send(:+, 1); end'
+    f(1)
+  }
 end
 
 assert('Kernel#eval', '15.3.1.3.12') do

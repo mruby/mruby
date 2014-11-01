@@ -1,4 +1,5 @@
 #include "mruby.h"
+#include "mruby/class.h"
 #include "mruby/compile.h"
 #include "mruby/irep.h"
 #include "mruby/proc.h"
@@ -11,7 +12,11 @@ get_closure_irep(mrb_state *mrb, int level)
   struct RProc *proc;
 
   if (level == 0) {
-    return mrb->c->ci[-1].proc->body.irep;
+    proc = mrb->c->ci[-1].proc;
+    if (MRB_PROC_CFUNC_P(proc)) {
+      return NULL;
+    }
+    return proc->body.irep;
   }
 
   while (--level) {
@@ -22,6 +27,9 @@ get_closure_irep(mrb_state *mrb, int level)
   if (!e) return NULL;
   proc = mrb->c->cibase[e->cioff].proc;
 
+  if (MRB_PROC_CFUNC_P(proc)) {
+    return NULL;
+  }
   return proc->body.irep;
 }
 
@@ -33,7 +41,7 @@ search_variable(mrb_state *mrb, mrb_sym vsym, int bnest)
   int pos;
 
   for (level = 0; (virep = get_closure_irep(mrb, level)); level++) {
-    if (virep->lv == NULL) {
+    if (!virep || virep->lv == NULL) {
       continue;
     }
     for (pos = 0; pos < virep->nlocals - 1; pos++) {
@@ -53,13 +61,22 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest)
   size_t i;
   mrb_code c;
 
-  for (i = 0; i < irep->rlen; i++) {
-    patch_irep(mrb, irep->reps[i], bnest + 1);
-  }
-
   for (i = 0; i < irep->ilen; i++) {
     c = irep->iseq[i];
     switch(GET_OPCODE(c)){
+    case OP_EPUSH:
+      patch_irep(mrb, irep->reps[GETARG_Bx(c)], bnest + 1);
+      break;
+
+    case OP_LAMBDA:
+      {
+        int arg_c = GETARG_c(c);
+        if (arg_c & OP_L_CAPTURE) {
+          patch_irep(mrb, irep->reps[GETARG_b(c)], bnest + 1);
+        }
+      }
+      break;
+
     case OP_SEND:
       if (GETARG_C(c) != 0) {
         break;
@@ -197,6 +214,9 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
 
     mrb_get_args(mrb, "s|zi", &s, &len, &file, &line);
     mrb->c->ci->acc = CI_ACC_SKIP;
+    if (mrb->c->ci->target_class->tt == MRB_TT_ICLASS) {
+      mrb->c->ci->target_class = mrb->c->ci->target_class->c;
+    }
     return mrb_run(mrb, create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line), self);
   }
   else {
