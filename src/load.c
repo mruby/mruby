@@ -32,6 +32,12 @@
 #endif
 
 static size_t
+skip_padding(ptrdiff_t len, size_t align)
+{
+  return (-len) & (align - 1);
+}
+
+static size_t
 offset_crc_body(void)
 {
   struct rite_binary_header header;
@@ -64,6 +70,9 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   irep->rlen = (size_t)bin_to_uint16(src);
   src += sizeof(uint16_t);
 
+  /* skip padding in irep header */
+  src += skip_padding(src - bin, MRB_DUMP_ALIGNMENT);
+
   /* Binary Data Section */
   /* ISEQ BLOCK */
   irep->ilen = (size_t)bin_to_uint32(src);
@@ -92,6 +101,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
       }
     }
   }
+  src += skip_padding(src - bin, MRB_DUMP_ALIGNMENT);
 
   /* POOL BLOCK */
   plen = (size_t)bin_to_uint32(src); /* number of pool */
@@ -137,6 +147,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
       mrb_gc_arena_restore(mrb, ai);
     }
   }
+  src += skip_padding(src - bin, MRB_DUMP_ALIGNMENT);
 
   /* SYMS BLOCK */
   irep->slen = (size_t)bin_to_uint32(src);  /* syms length */
@@ -167,6 +178,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
       mrb_gc_arena_restore(mrb, ai);
     }
   }
+  src += skip_padding(src - bin, MRB_DUMP_ALIGNMENT);
 
   irep->reps = (mrb_irep**)mrb_malloc(mrb, sizeof(mrb_irep*)*irep->rlen);
 

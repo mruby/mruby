@@ -25,6 +25,22 @@ static size_t get_irep_record_size_1(mrb_state *mrb, mrb_irep *irep);
 #endif
 
 static size_t
+roundup(size_t value, size_t align)
+{
+  return (value + align - 1) & ~(align - 1);
+}
+
+static size_t
+write_padding(uint8_t *buf, ptrdiff_t len, size_t align)
+{
+  size_t pad_len = (-len) & (align - 1);
+  if (pad_len > 0) {
+    memset(buf, 0, pad_len);
+  }
+  return pad_len;
+}
+
+static size_t
 get_irep_header_size(mrb_state *mrb)
 {
   size_t size = 0;
@@ -32,7 +48,7 @@ get_irep_header_size(mrb_state *mrb)
   size += sizeof(uint32_t) * 1;
   size += sizeof(uint16_t) * 3;
 
-  return size;
+  return roundup(size, MRB_DUMP_ALIGNMENT);
 }
 
 static ptrdiff_t
@@ -45,6 +61,7 @@ write_irep_header(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
   cur += uint16_to_bin((uint16_t)irep->nregs, cur);  /* number of register variable */
   cur += uint16_to_bin((uint16_t)irep->rlen, cur);  /* number of child irep */
 
+  cur += write_padding(cur, cur - buf, MRB_DUMP_ALIGNMENT);
   return cur - buf;
 }
 
@@ -57,7 +74,7 @@ get_iseq_block_size(mrb_state *mrb, mrb_irep *irep)
   size += sizeof(uint32_t); /* ilen */
   size += sizeof(uint32_t) * irep->ilen; /* iseq(n) */
 
-  return size;
+  return roundup(size, MRB_DUMP_ALIGNMENT);
 }
 
 static ptrdiff_t
@@ -77,6 +94,7 @@ write_iseq_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf, uint8_t flags)
     }
   }
 
+  cur += write_padding(cur, cur - buf, MRB_DUMP_ALIGNMENT);
   return cur - buf;
 }
 
@@ -128,7 +146,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
     mrb_gc_arena_restore(mrb, ai);
   }
 
-  return size;
+  return roundup(size, MRB_DUMP_ALIGNMENT);
 }
 
 static ptrdiff_t
@@ -194,6 +212,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
     mrb_gc_arena_restore(mrb, ai);
   }
 
+  cur += write_padding(cur, cur - buf, MRB_DUMP_ALIGNMENT);
   return cur - buf;
 }
 
@@ -214,7 +233,7 @@ get_syms_block_size(mrb_state *mrb, mrb_irep *irep)
     }
   }
 
-  return size;
+  return roundup(size, MRB_DUMP_ALIGNMENT);
 }
 
 static ptrdiff_t
@@ -243,6 +262,7 @@ write_syms_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
     }
   }
 
+  cur += write_padding(cur, cur - buf, MRB_DUMP_ALIGNMENT);
   return cur - buf;
 }
 
@@ -826,6 +846,7 @@ write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t *bin, uint8
   memcpy(header->binary_version, RITE_BINARY_FORMAT_VER, sizeof(header->binary_version));
   memcpy(header->compiler_name, RITE_COMPILER_NAME, sizeof(header->compiler_name));
   memcpy(header->compiler_version, RITE_COMPILER_VERSION, sizeof(header->compiler_version));
+  memset(header->padding, 0, sizeof(header->padding));
   mrb_assert(binary_size <= UINT32_MAX);
   uint32_to_bin((uint32_t)binary_size, header->binary_size);
 
@@ -1018,7 +1039,15 @@ mrb_dump_irep_cfunc(mrb_state *mrb, mrb_irep *irep, int debug_info, FILE *fp, co
       mrb_free(mrb, bin);
       return MRB_DUMP_WRITE_FAULT;
     }
-    if (fprintf(fp, "const uint8_t %s[] = {", initname) < 0) {
+    if (fprintf(fp,
+            "const uint8_t\n"
+            "#if defined __GNUC__\n"
+            "__attribute__((aligned(%zu)))\n"
+            "#elif defined _MSC_VER\n"
+            "__declspec(align(%zu))\n"
+            "#endif\n"
+            "%s[] = {",
+            MRB_DUMP_ALIGNMENT, MRB_DUMP_ALIGNMENT, initname) < 0) {
       mrb_free(mrb, bin);
       return MRB_DUMP_WRITE_FAULT;
     }
