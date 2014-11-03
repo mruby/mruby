@@ -43,7 +43,7 @@ MRB_API mrb_irep *mrb_read_irep(mrb_state*, const uint8_t*);
 
 /* Rite Binary File header */
 #define RITE_BINARY_IDENTIFIER         "RITE"
-#define RITE_BINARY_FORMAT_VER         "0002"
+#define RITE_BINARY_FORMAT_VER         "0003"
 #define RITE_COMPILER_NAME             "MATZ"
 #define RITE_COMPILER_VERSION          "0000"
 
@@ -56,6 +56,7 @@ MRB_API mrb_irep *mrb_read_irep(mrb_state*, const uint8_t*);
 #define RITE_SECTION_LV_IDENTIFIER     "LVAR"
 
 #define MRB_DUMP_DEFAULT_STR_LEN      128
+#define MRB_DUMP_ALIGNMENT            sizeof(uint32_t)
 
 /* binary header */
 struct rite_binary_header {

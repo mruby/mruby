@@ -32,6 +32,13 @@
 #endif
 
 static size_t
+skip_padding(const uint8_t *buf)
+{
+  const size_t align = MRB_DUMP_ALIGNMENT;
+  return -(intptr_t)buf & (align-1);
+}
+
+static size_t
 offset_crc_body(void)
 {
   struct rite_binary_header header;
@@ -68,6 +75,8 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   /* ISEQ BLOCK */
   irep->ilen = (size_t)bin_to_uint32(src);
   src += sizeof(uint32_t);
+  src += skip_padding(src);
+
   if (irep->ilen > 0) {
     if (SIZE_ERROR_MUL(sizeof(mrb_code), irep->ilen)) {
       return NULL;
