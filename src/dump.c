@@ -1032,7 +1032,15 @@ mrb_dump_irep_cfunc(mrb_state *mrb, mrb_irep *irep, int debug_info, FILE *fp, co
       mrb_free(mrb, bin);
       return MRB_DUMP_WRITE_FAULT;
     }
-    if (fprintf(fp, "const uint8_t %s[] = {", initname) < 0) {
+    if (fprintf(fp,
+          "const uint8_t\n"
+          "#if defined __GNUC__\n"
+          "__attribute__((aligned(%zu)))\n"
+          "#elif defined _MSC_VER\n"
+          "__declspec(align(%zu))\n"
+          "#endif\n"
+         "%s[] = {",
+          MRB_DUMP_ALIGNMENT, MRB_DUMP_ALIGNMENT, initname) < 0) {
       mrb_free(mrb, bin);
       return MRB_DUMP_WRITE_FAULT;
     }
