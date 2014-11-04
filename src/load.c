@@ -653,7 +653,8 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
   mrb_irep *irep = NULL;
   uint8_t *buf;
-  size_t buf_size = sizeof(struct rite_binary_header);
+  const size_t header_size = sizeof(struct rite_binary_header);
+  size_t buf_size = 0;
   uint8_t flags;
   int result;
 
@@ -662,25 +663,25 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   }
 
   /* You don't need use SIZE_ERROR as buf_size is enough small. */
-  buf = (uint8_t*)mrb_malloc(mrb, buf_size);
-  if (fread(buf, buf_size, 1, fp) == 0) {
+  buf = (uint8_t*)mrb_malloc(mrb, header_size);
+  if (fread(buf, header_size, 1, fp) == 0) {
     mrb_free(mrb, buf);
     return NULL;
   }
   result = read_binary_header(buf, &buf_size, NULL, &flags);
-  mrb_free(mrb, buf);
   if (result != MRB_DUMP_OK) {
+    mrb_free(mrb, buf);
     return NULL;
   }
 
-  buf = (uint8_t*)mrb_malloc(mrb, buf_size);
-  rewind(fp);
-  if (fread(buf, buf_size, 1, fp) == 0) {
+  buf = (uint8_t*)mrb_realloc(mrb, buf, buf_size);
+  if (fread(buf+header_size, buf_size-header_size, 1, fp) == 0) {
     mrb_free(mrb, buf);
     return NULL;
   }
   irep = read_irep(mrb, buf, FLAG_SRC_MALLOC);
   mrb_free(mrb, buf);
+
   return irep;
 }
 
