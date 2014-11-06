@@ -1,9 +1,15 @@
+language: c
+
+compiler:
+  - gcc
+  - clang
+
 # no installation...
 
 install:
  - sudo apt-get -q install gperf
 
-env: MRUBY_CONFIG=travis_config.rb
+env: MRUBY_CONFIG=travis_config.rb ASAN_SYMBOLIZER_PATH=/usr/local/clang-3.4/bin/llvm-symbolizer
 script: "./minirake all test"
 
 notifications:
