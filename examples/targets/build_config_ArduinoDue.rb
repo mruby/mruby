@@ -21,8 +21,10 @@ end
 MRuby::CrossBuild.new("ArduinoDue") do |conf|
   toolchain :gcc
 
-  # Mac OS X
+  # Mac OS X, Arduino IDE <= 1.5.6
   # ARDUINO_PATH = '/Applications/Arduino.app/Contents/Resources/Java'
+  # Mac OS X, Arduino IDE >= 1.5.7
+  # ARDUINO_PATH = '/Applications/Arduino.app/Contents/Java'
   # GNU Linux
   ARDUINO_PATH = '/opt/arduino'
   BIN_PATH = "#{ARDUINO_PATH}/hardware/tools/g++_arm_none_eabi/bin"
