@@ -27,7 +27,10 @@ MRuby::CrossBuild.new("ArduinoDue") do |conf|
   # ARDUINO_PATH = '/Applications/Arduino.app/Contents/Java'
   # GNU Linux
   ARDUINO_PATH = '/opt/arduino'
+   # Arduino IDE <= 1.5.6
   BIN_PATH = "#{ARDUINO_PATH}/hardware/tools/g++_arm_none_eabi/bin"
+  # Arduino IDE >= 1.5.7
+  # BIN_PATH = "#{ARDUINO_PATH}/hardware/tools/gcc-arm-none-eabi-4.8.3-2014q1/bin"
   SAM_PATH = "#{ARDUINO_PATH}/hardware/arduino/sam"
   TARGET_PATH = "#{SAM_PATH}/variants/arduino_due_x"
 
