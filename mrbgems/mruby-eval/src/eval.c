@@ -12,7 +12,11 @@ get_closure_irep(mrb_state *mrb, int level)
   struct RProc *proc;
 
   if (level == 0) {
-    return mrb->c->ci[-1].proc->body.irep;
+    proc = mrb->c->ci[-1].proc;
+    if (MRB_PROC_CFUNC_P(proc)) {
+      return NULL;
+    }
+    return proc->body.irep;
   }
 
   while (--level) {
@@ -23,6 +27,9 @@ get_closure_irep(mrb_state *mrb, int level)
   if (!e) return NULL;
   proc = mrb->c->cibase[e->cioff].proc;
 
+  if (MRB_PROC_CFUNC_P(proc)) {
+    return NULL;
+  }
   return proc->body.irep;
 }
 
@@ -34,7 +41,7 @@ search_variable(mrb_state *mrb, mrb_sym vsym, int bnest)
   int pos;
 
   for (level = 0; (virep = get_closure_irep(mrb, level)); level++) {
-    if (virep->lv == NULL) {
+    if (!virep || virep->lv == NULL) {
       continue;
     }
     for (pos = 0; pos < virep->nlocals - 1; pos++) {

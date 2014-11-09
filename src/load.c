@@ -32,6 +32,13 @@
 #endif
 
 static size_t
+skip_padding(const uint8_t *buf)
+{
+  const size_t align = MRB_DUMP_ALIGNMENT;
+  return -(intptr_t)buf & (align-1);
+}
+
+static size_t
 offset_crc_body(void)
 {
   struct rite_binary_header header;
@@ -68,6 +75,8 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   /* ISEQ BLOCK */
   irep->ilen = (size_t)bin_to_uint32(src);
   src += sizeof(uint32_t);
+  src += skip_padding(src);
+
   if (irep->ilen > 0) {
     if (SIZE_ERROR_MUL(sizeof(mrb_code), irep->ilen)) {
       return NULL;
@@ -531,16 +540,16 @@ read_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc, uint8_t 
     return MRB_DUMP_INVALID_FILE_HEADER;
   }
 
-  *crc = bin_to_uint16(header->binary_crc);
-  if (bin_size) {
-    *bin_size = (size_t)bin_to_uint32(header->binary_size);
+  if (crc) {
+    *crc = bin_to_uint16(header->binary_crc);
   }
+  *bin_size = (size_t)bin_to_uint32(header->binary_size);
 
   return MRB_DUMP_OK;
 }
 
 MRB_API mrb_irep*
-mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
+read_irep(mrb_state *mrb, const uint8_t *bin, uint8_t flags)
 {
   int result;
   mrb_irep *irep = NULL;
@@ -548,11 +557,6 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
   uint16_t crc;
   size_t bin_size = 0;
   size_t n;
-#ifdef MRB_USE_ETEXT_EDATA
-  uint8_t flags = mrb_ro_data_p((char*)bin) ? FLAG_SRC_STATIC : FLAG_SRC_MALLOC;
-#else
-  uint8_t flags = FLAG_SRC_STATIC;
-#endif
 
   if ((mrb == NULL) || (bin == NULL)) {
     return NULL;
@@ -602,6 +606,18 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
   return irep;
 }
 
+MRB_API mrb_irep*
+mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
+{
+#ifdef MRB_USE_ETEXT_EDATA
+  uint8_t flags = mrb_ro_data_p((char*)bin) ? FLAG_SRC_STATIC : FLAG_SRC_MALLOC;
+#else
+  uint8_t flags = FLAG_SRC_STATIC;
+#endif
+
+  return read_irep(mrb, bin, flags);
+}
+
 static void
 irep_error(mrb_state *mrb)
 {
@@ -632,206 +648,39 @@ mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 
 #ifdef ENABLE_STDIO
 
-static int
-read_lineno_record_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
-{
-  uint8_t header[4];
-  const size_t record_header_size = sizeof(header);
-  int result;
-  size_t i, buf_size;
-  size_t len;
-  void *ptr;
-  uint8_t *buf;
-
-  if (fread(header, record_header_size, 1, fp) == 0) {
-    return MRB_DUMP_READ_FAULT;
-  }
-  buf_size = (size_t)bin_to_uint32(&header[0]);
-  if (SIZE_ERROR(buf_size)) {
-    return MRB_DUMP_GENERAL_FAILURE;
-  }
-  ptr = mrb_malloc(mrb, buf_size);
-  buf = (uint8_t *)ptr;
-
-  if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) == 0) {
-    return MRB_DUMP_READ_FAULT;
-  }
-  result = read_lineno_record_1(mrb, buf, irep, &len);
-  mrb_free(mrb, ptr);
-  if (result != MRB_DUMP_OK) return result;
-  for (i = 0; i < irep->rlen; i++) {
-    result = read_lineno_record_file(mrb, fp, irep->reps[i]);
-    if (result != MRB_DUMP_OK) break;
-  }
-  return result;
-}
-
-static int32_t
-read_section_lineno_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
-{
-  struct rite_section_lineno_header header;
-
-  if (fread(&header, sizeof(struct rite_section_lineno_header), 1, fp) == 0) {
-    return MRB_DUMP_READ_FAULT;
-  }
-
-  /* Read Binary Data Section */
-  return read_lineno_record_file(mrb, fp, irep);
-}
-
-static mrb_irep*
-read_irep_record_file(mrb_state *mrb, FILE *fp)
-{
-  uint8_t header[1 + 4];
-  const size_t record_header_size = sizeof(header);
-  size_t buf_size, i;
-  size_t len;
-  mrb_irep *irep = NULL;
-  void *ptr;
-  uint8_t *buf;
-
-  if (fread(header, record_header_size, 1, fp) == 0) {
-    return NULL;
-  }
-  buf_size = (size_t)bin_to_uint32(&header[0]);
-  if (SIZE_ERROR(buf_size)) {
-    return NULL;
-  }
-  ptr = mrb_malloc(mrb, buf_size);
-  buf = (uint8_t *)ptr;
-  memcpy(buf, header, record_header_size);
-  if (fread(&buf[record_header_size], buf_size - record_header_size, 1, fp) == 0) {
-    return NULL;
-  }
-  irep = read_irep_record_1(mrb, buf, &len, FLAG_SRC_MALLOC);
-  mrb_free(mrb, ptr);
-  if (!irep) return NULL;
-  for (i=0; i<irep->rlen; i++) {
-    irep->reps[i] = read_irep_record_file(mrb, fp);
-    if (!irep->reps[i]) return NULL;
-  }
-  return irep;
-}
-
-static mrb_irep*
-read_section_irep_file(mrb_state *mrb, FILE *fp)
-{
-  struct rite_section_irep_header header;
-
-  if (fread(&header, sizeof(struct rite_section_irep_header), 1, fp) == 0) {
-    return NULL;
-  }
-  return read_irep_record_file(mrb, fp);
-}
-
 MRB_API mrb_irep*
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
   mrb_irep *irep = NULL;
-  int result;
   uint8_t *buf;
-  uint16_t crc, crcwk = 0;
-  size_t section_size = 0;
-  size_t nbytes;
-  struct rite_section_header section_header;
-  long fpos;
-  size_t block_size = 1 << 14;
-  const uint8_t block_fallback_count = 4;
-  int i;
-  const size_t buf_size = sizeof(struct rite_binary_header);
-  uint8_t flags = FLAG_SRC_MALLOC;
+  const size_t header_size = sizeof(struct rite_binary_header);
+  size_t buf_size = 0;
+  uint8_t flags;
+  int result;
 
   if ((mrb == NULL) || (fp == NULL)) {
     return NULL;
   }
 
   /* You don't need use SIZE_ERROR as buf_size is enough small. */
-  buf = (uint8_t*)mrb_malloc(mrb, buf_size);
-  if (fread(buf, buf_size, 1, fp) == 0) {
+  buf = (uint8_t*)mrb_malloc(mrb, header_size);
+  if (fread(buf, header_size, 1, fp) == 0) {
     mrb_free(mrb, buf);
     return NULL;
   }
-  result = read_binary_header(buf, NULL, &crc, &flags);
-  mrb_free(mrb, buf);
+  result = read_binary_header(buf, &buf_size, NULL, &flags);
   if (result != MRB_DUMP_OK) {
+    mrb_free(mrb, buf);
     return NULL;
   }
 
-  /* verify CRC */
-  fpos = ftell(fp);
-  /* You don't need use SIZE_ERROR as block_size is enough small. */
-  for (i = 0; i < block_fallback_count; i++,block_size >>= 1) {
-    buf = (uint8_t*)mrb_malloc_simple(mrb, block_size);
-    if (buf) break;
-  }
-  if (!buf) {
+  buf = (uint8_t*)mrb_realloc(mrb, buf, buf_size);
+  if (fread(buf+header_size, buf_size-header_size, 1, fp) == 0) {
+    mrb_free(mrb, buf);
     return NULL;
   }
-  fseek(fp, offset_crc_body(), SEEK_SET);
-  while ((nbytes = fread(buf, 1, block_size, fp)) > 0) {
-    crcwk = calc_crc_16_ccitt(buf, nbytes, crcwk);
-  }
+  irep = read_irep(mrb, buf, FLAG_SRC_MALLOC);
   mrb_free(mrb, buf);
-  if (nbytes == 0 && ferror(fp)) {
-    return NULL;
-  }
-  if (crcwk != crc) {
-    return NULL;
-  }
-  fseek(fp, fpos + section_size, SEEK_SET);
-
-  /* read sections */
-  do {
-    fpos = ftell(fp);
-    if (fread(&section_header, sizeof(struct rite_section_header), 1, fp) == 0) {
-      return NULL;
-    }
-    section_size = (size_t)bin_to_uint32(section_header.section_size);
-
-    if (memcmp(section_header.section_identify, RITE_SECTION_IREP_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
-      fseek(fp, fpos, SEEK_SET);
-      irep = read_section_irep_file(mrb, fp);
-      if (!irep) return NULL;
-    }
-    else if (memcmp(section_header.section_identify, RITE_SECTION_LINENO_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
-      if (!irep) return NULL;   /* corrupted data */
-      fseek(fp, fpos, SEEK_SET);
-      result = read_section_lineno_file(mrb, fp, irep);
-      if (result < MRB_DUMP_OK) return NULL;
-    }
-    else if (memcmp(section_header.section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
-      if (!irep) return NULL;   /* corrupted data */
-      else {
-        uint8_t* const bin = (uint8_t*)mrb_malloc(mrb, section_size);
-
-        fseek(fp, fpos, SEEK_SET);
-        if (fread((char*)bin, section_size, 1, fp) != 1) {
-          mrb_free(mrb, bin);
-          return NULL;
-        }
-        result = read_section_debug(mrb, bin, irep, flags);
-        mrb_free(mrb, bin);
-      }
-      if (result < MRB_DUMP_OK) return NULL;
-    }
-    else if (memcmp(section_header.section_identify, RITE_SECTION_LV_IDENTIFIER, sizeof(section_header.section_identify)) == 0) {
-      if (!irep) return NULL;
-      else {
-        uint8_t* const bin = (uint8_t*)mrb_malloc(mrb, section_size);
-
-        fseek(fp, fpos, SEEK_SET);
-        if (fread((char*)bin, section_size, 1, fp) != 1) {
-          mrb_free(mrb, bin);
-          return NULL;
-        }
-        result = read_section_lv(mrb, bin, irep, flags);
-        mrb_free(mrb, bin);
-      }
-      if (result < MRB_DUMP_OK) return NULL;
-    }
-
-    fseek(fp, fpos + section_size, SEEK_SET);
-  } while (memcmp(section_header.section_identify, RITE_BINARY_EOF, sizeof(section_header.section_identify)) != 0);
 
   return irep;
 }
