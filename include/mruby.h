@@ -186,6 +186,8 @@ typedef struct mrb_state {
   mrb_atexit_func *atexit_stack;
 #endif
   mrb_int atexit_stack_len;
+
+  unsigned numeric_methods;
 } mrb_state;
 
 #if __STDC_VERSION__ >= 201112L
