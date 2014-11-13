@@ -374,7 +374,7 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
   mrb_value mode = mrb_nil_value();
   mrb_int fd, flags, perm = -1;
   const char *pat;
-  int modenum;
+  int modenum, retry = FALSE;
 
   mrb_get_args(mrb, "S|Si", &path, &mode, &perm);
   if (mrb_nil_p(mode)) {
@@ -388,8 +388,18 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
   flags = mrb_io_modestr_to_flags(mrb, mrb_string_value_cstr(mrb, &mode));
   modenum = mrb_io_flags_to_modenum(mrb, flags);
 
+ reopen:
   fd = open(pat, modenum, perm);
   if (fd == -1) {
+    if (!retry) {
+      switch (errno) {
+      case ENFILE:
+      case EMFILE:
+        mrb_garbage_collect(mrb);
+        retry = TRUE;
+        goto reopen;
+      }
+    }
     mrb_sys_fail(mrb, pat);
   }
 
