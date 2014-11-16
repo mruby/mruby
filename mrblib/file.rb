@@ -151,6 +151,10 @@ class File < IO
     FileTest.pipe?(file)
   end
 
+  def self.size(file)
+    FileTest.size(file)
+  end
+
   def self.size?(file)
     FileTest.size?(file)
   end

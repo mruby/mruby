@@ -300,6 +300,29 @@ mrb_filetest_s_zero_p(mrb_state *mrb, mrb_value klass)
 
 /*
  * call-seq:
+ *    File.size(file_name)   -> integer
+ *
+ * Returns the size of <code>file_name</code>.
+ *
+ * _file_name_ can be an IO object.
+ */
+
+mrb_value
+mrb_filetest_s_size(mrb_state *mrb, mrb_value klass)
+{
+  struct stat st;
+  mrb_value obj;
+
+  mrb_get_args(mrb, "o", &obj);
+
+  if (mrb_stat(mrb, obj, &st) < 0)
+    mrb_sys_fail(mrb, "mrb_stat");
+
+  return mrb_fixnum_value(st.st_size);
+}
+
+/*
+ * call-seq:
  *    File.size?(file_name)   -> Integer or nil
  *
  * Returns +nil+ if +file_name+ doesn't exist or has zero size, the size of the
@@ -322,7 +345,6 @@ mrb_filetest_s_size_p(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(st.st_size);
 }
 
-
 void
 mrb_init_file_test(mrb_state *mrb)
 {
@@ -335,6 +357,7 @@ mrb_init_file_test(mrb_state *mrb)
   mrb_define_class_method(mrb, f, "exists?",    mrb_filetest_s_exist_p,     MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, f, "file?",      mrb_filetest_s_file_p,      MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, f, "pipe?",      mrb_filetest_s_pipe_p,      MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, f, "size",       mrb_filetest_s_size,        MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, f, "size?",      mrb_filetest_s_size_p,      MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, f, "socket?",    mrb_filetest_s_socket_p,    MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, f, "symlink?",   mrb_filetest_s_symlink_p,   MRB_ARGS_REQ(1));
