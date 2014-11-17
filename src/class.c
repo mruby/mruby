@@ -363,6 +363,22 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
   }
 }
 
+MRB_API mrb_value
+mrb_notimplement(mrb_state *mrb, mrb_value self)
+{
+  const char *str;
+  mrb_int len;
+  mrb_callinfo *ci = mrb->c->ci;
+
+  if (ci->mid) {
+    str = mrb_sym2name_len(mrb, ci->mid, &len);
+    mrb_raisef(mrb, E_NOTIMP_ERROR,
+      "%S() function is unimplemented on this machine not implemented",
+      mrb_str_new_static(mrb, str, (size_t)len));
+  }
+  return mrb_nil_value();
+}
+
 static mrb_value
 check_type(mrb_state *mrb, mrb_value val, enum mrb_vtype t, const char *c, const char *m)
 {

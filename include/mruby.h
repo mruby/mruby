@@ -221,6 +221,7 @@ MRB_API struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
 MRB_API struct RClass * mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
 MRB_API struct RClass * mrb_module_get(mrb_state *mrb, const char *name);
 MRB_API struct RClass * mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
+MRB_API mrb_value mrb_notimplement(mrb_state*, mrb_value);
 
 MRB_API mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
 MRB_API mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
