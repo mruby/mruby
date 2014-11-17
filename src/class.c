@@ -364,7 +364,7 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
 }
 
 MRB_API mrb_value
-mrb_notimplement(mrb_state *mrb, mrb_value self)
+mrb_f_notimplement(mrb_state *mrb, mrb_value self)
 {
   const char *str;
   mrb_int len;
