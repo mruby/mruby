@@ -373,7 +373,7 @@ mrb_notimplement(mrb_state *mrb, mrb_value self)
   if (ci->mid) {
     str = mrb_sym2name_len(mrb, ci->mid, &len);
     mrb_raisef(mrb, E_NOTIMP_ERROR,
-      "%S() function is unimplemented on this machine not implemented",
+      "%S() function is unimplemented on this machine",
       mrb_str_new_static(mrb, str, (size_t)len));
   }
   return mrb_nil_value();
