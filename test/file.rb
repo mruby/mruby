@@ -64,12 +64,6 @@ assert('IO#flock') do
   true
 end
 
-
-assert('File.size') do
-  File.size($mrbtest_io_rfname) == $mrbtest_io_msg.size and
-  File.size($mrbtest_io_wfname) == 0
-end
-
 assert('File.join') do
   File.join() == "" and
   File.join("a") == "a" and

@@ -192,34 +192,6 @@ mrb_file_realpath(mrb_state *mrb, mrb_value klass)
   return result;
 }
 
-static mrb_value
-mrb_file_size(mrb_state *mrb, mrb_value klass)
-{
-  char *cp;
-  FILE *fp;
-  mrb_int filesize;
-  mrb_value s;
-  int saved_errno;
-
-  mrb_get_args(mrb, "S", &s);
-  cp = mrb_str_to_cstr(mrb, s);
-  fp = fopen(cp, "rb");
-  if (fp == NULL) {
-    mrb_sys_fail(mrb, "fopen");
-    return mrb_nil_value();
-  }
-  if (fseek(fp, 0, SEEK_END) != 0) {
-    saved_errno = errno;
-    fclose(fp);
-    errno = saved_errno;
-    mrb_sys_fail(mrb, "fseek");
-    return mrb_nil_value();
-  }
-  filesize = (mrb_int) ftell(fp);
-  fclose(fp);
-  return mrb_fixnum_value(filesize);
-}
-
 mrb_value
 mrb_file__getwd(mrb_state *mrb, mrb_value klass)
 {
@@ -269,7 +241,7 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
   }
   return mrb_str_new_cstr(mrb, home);
 #else
-  
+
   return mrb_nil_value();
 #endif
 }
@@ -326,14 +298,13 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "dirname",   mrb_file_dirname,    MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, file, "basename",  mrb_file_basename,   MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, file, "realpath",  mrb_file_realpath,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_class_method(mrb, file, "size",      mrb_file_size,       MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, file, "_getwd",    mrb_file__getwd,     MRB_ARGS_NONE());
   mrb_define_class_method(mrb, file, "_gethome",  mrb_file__gethome,   MRB_ARGS_OPT(1));
 
   #ifndef _WIN32
   mrb_define_method(mrb, file, "flock", mrb_file_flock, MRB_ARGS_REQ(1));
   #endif
-  
+
   cnst = mrb_define_module_under(mrb, file, "Constants");
   mrb_define_const(mrb, cnst, "LOCK_SH", mrb_fixnum_value(LOCK_SH));
   mrb_define_const(mrb, cnst, "LOCK_EX", mrb_fixnum_value(LOCK_EX));

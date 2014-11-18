@@ -33,6 +33,11 @@ assert("FileTest.pipe?") do
   assert_equal false, FileTest.pipe?("/tmp")
 end
 
+assert('FileTest.size') do
+  assert_equal FileTest.size($mrbtest_io_rfname), $mrbtest_io_msg.size
+  assert_equal FileTest.size($mrbtest_io_wfname), 0
+end
+
 assert("FileTest.size?") do
   assert_equal $mrbtest_io_msg.size, FileTest.size?($mrbtest_io_rfname)
   assert_equal nil, FileTest.size?($mrbtest_io_wfname)
