@@ -363,8 +363,9 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
   }
 }
 
-MRB_API mrb_value
-mrb_notimplement(mrb_state *mrb, mrb_value self)
+/* a function to raise NotImplementedError with current method name */
+MRB_API void
+mrb_notimplement(mrb_state *mrb)
 {
   const char *str;
   mrb_int len;
@@ -376,6 +377,14 @@ mrb_notimplement(mrb_state *mrb, mrb_value self)
       "%S() function is unimplemented on this machine",
       mrb_str_new_static(mrb, str, (size_t)len));
   }
+}
+
+/* a function to be replacement of unimplemented method */
+MRB_API mrb_value
+mrb_notimplement_m(mrb_state *mrb, mrb_value self)
+{
+  mrb_notimplement(mrb);
+  /* not reached */
   return mrb_nil_value();
 }
 
