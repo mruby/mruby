@@ -41,8 +41,7 @@ The URL of the mruby home-page is:
 
 ## Mailing list
 
-We don't have mailing list just because we experiment with having a community 
-on top of Github.
+We don't have mailing list, use GitHub forum <http://github.com/mruby/mruby>.
 
 
 ## How to compile and install (mruby and gems)
