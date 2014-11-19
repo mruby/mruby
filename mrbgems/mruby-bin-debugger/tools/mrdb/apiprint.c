@@ -33,7 +33,7 @@ mrdb_check_syntax(mrb_state *mrb, mrb_debug_context *dbg, const char *expr, size
 mrb_value
 mrb_debug_eval(mrb_state *mrb, mrb_debug_context *dbg, const char *expr, size_t len, mrb_bool *exc)
 {
-  void *tmp;
+  void (*tmp)(struct mrb_state *, struct mrb_irep *, mrb_code *, mrb_value *);
   mrb_value ruby_code;
   mrb_value s;
   mrb_value v;
