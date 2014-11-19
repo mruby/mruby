@@ -74,7 +74,8 @@ dirname(mrb_state *mrb, const char *path)
   len = p != NULL ? p - path : strlen(path);
 
   if ((dir = mrb_malloc(mrb, len + 1)) != NULL) {
-    strncpy(dir, path, len);
+    memcpy(dir, path, len);
+    dir[len] = '\0';
   }
   return dir;
 }
