@@ -105,7 +105,8 @@ source_file_new(mrb_state *mrb, mrb_debug_context *dbg, char *filename)
 static mrb_bool
 remove_newlines(char *s, FILE *fp)
 {
-  char c, *p;
+  int c;
+  char *p;
   size_t len;
 
   if ((len = strlen(s)) == 0) {
@@ -120,7 +121,7 @@ remove_newlines(char *s, FILE *fp)
 
   if (*p == '\r') {
     /* peek the next character and skip '\n' */
-    if ((unsigned char)(c = fgetc(fp)) != '\n') {
+    if ((c = fgetc(fp)) != '\n') {
       ungetc(c, fp);
     }
   }
