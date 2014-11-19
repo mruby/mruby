@@ -1,6 +1,6 @@
 # How to use mruby debugger mrdb
 
-copyright (c) 2014 Specified Non-Profit Coorporation mruby Forum
+copyright (c) 2014 Specified Non-Profit Corporation mruby Forum
 
 ## 1.Summary
 This file documents the method for using the mruby debugger 'mrdb'
@@ -9,10 +9,10 @@ This file documents the method for using the mruby debugger 'mrdb'
 
 ## 2.1 Building mrdb
 
-The trunk of the mruby source tree can be checked out with following command/
+The trunk of the mruby source tree with most recent mrdb can be checked out with following command.
 
 ```bash
-$ git clone https://github.com/Kumikomi-Ruby/forum-mruby.git mruby
+$ git clone https://github.com/mruby-Forum/mruby.git
 ```
 
 Run make command
@@ -23,29 +23,29 @@ $ make
 
 By default, make command will install debugger files into mruby/bin.
 
-You can add the path for mrdb on your host environment with following command
+You can add the path for mrdb on your host environment with following command.
 
 ```bash
 $ echo "export PATH=\$PATH:MRUBY_ROOT/bin" >> ~/.bashrc
 $ source ~/.bashrc
 ```
 
-*MRUBY_ROOT is the directory in which mruby source cords will be installed.
+*MRUBY_ROOT is the directory in which mruby source code will be installed.
 
-To confirm mrdb was instaleed properly,run mrdb with --version option
+To confirm mrdb was installed properly,run mrdb with --version option
 
 ```bash
 $ mrdb --version
 mruby 1.1.0 (2014-11-19)
 ```
 
-## 2.2 Bassic Operation
+## 2.2 Basic Operation
 
 ### 2.2.1 debugging mruby script file(rb file) with mrdb
 
 To invoke mruby debugger, just type mrdb.
 
-To specify the script file ,
+To specify the script file,
 
 ```bash
 $ mrdb [option] file name
@@ -57,7 +57,7 @@ For example : Debugging sample.rb
 $ mrdb sample.rb
 ```
 
-You can excute shell commands listed below
+You can execute shell commands listed below.
 
 |command|description|
 |:-:|:--|
@@ -69,25 +69,25 @@ You can excute shell commands listed below
 |disable|disabling the breaking points|
 |enable|enabling the breaking points|
 |info breakpoints|showing list of the breaking points|
-|print|eavaluating and printing the values of the mruby expressions in the script|
+|print|evaluating and printing the values of the mruby expressions in the script|
 |list|displaying the source cords|
 |help|showing help|
 |quit|terminating the mruby debugger|
 
 ### 2.2.2 debugging mruby binary file(mrb file) with mrdb
 
-You can debugg the mruby binary files
+You can debug the mruby binary files.
 
-#### 2.2.2.1 debuggg the binary files
+#### 2.2.2.1 debugging the binary files
 
 * notice
-To debugg mruby binary files, you need to compile mruby files with option -g.
+To debug mruby binary files, you need to compile mruby files with option -g.
 
 ```bash
 $ mrbc -g sample.rb
 ```
 
-You can debugg the mruby binary files with following command and the option -b.
+You can debug the mruby binary files with following command and the option -b.
 
 ```bash
 $ mrdb -b sample.mrb
@@ -96,8 +96,8 @@ $ mrdb -b sample.mrb
 Then you can execute all debugger shell commands.
 
 #### break command
- you can give any breakpoint to stop the program by specifiyng the line number and method name.
- And the breakpoint list will be displayed after you finished to set the breakpoint succesfully.
+ you can give any breakpoint to stop the program by specifying the line number and method name.
+ And the breakpoint list will be displayed after you finished to set the breakpoint successfully.
 
 Usage:
 ```
@@ -144,42 +144,42 @@ Deleting specified breakpoint
 
 Usage:
 ```
-delete [breakpointno]
-d [breakpointno]
+delete [breakpoint-no]
+d [breakpoint-no]
 ```
 
-breakpointno: breakpoint number
+breakpoint-no: breakpoint number
 
 Example:
 ```
 (foo.rb:1) delete
 ```
 
-Deleting all brealpoint
+Deleting all breakpoints
 ```
 (foo.rb:1) delete 1 3
 ```
 
 Deleting the breakpoint 1 and 3
 
-#### diable command
+#### disable command
 
 Disabling the specified breakpoint
 
 Usage:
 ```
-disable [breakpointno]
-dis [breakpointno]
+disable [breakpoint-no]
+dis [breakpoint-no]
 ```
 
-brealpointno: breakpoint number
+reappointing: breakpoint number
 
 Example:
 ```
 (foo.rb:1) disable
 ```
 
-Desabling all brealpoint
+Disabling all breakpoints
 ```
 (foo.rb:1) disable 1 3
 ```
@@ -188,22 +188,22 @@ Disabling the breakpoint 1 and 3
 
 #### enable command
 
-Enababling the specified breakpoint
+Enabling the specified breakpoint
 
 Usage:
 ```
-enable [breakpointno]
-e [breakpointno]
+enable [breakpoint-no]
+e [breakpoint-no]
 ```
 
-brealpointno: breakpoint number
+breakpoint-no: breakpoint number
 
 Example:
 ```
 (foo.rb:1) enable
 ```
 
-Enabling all brealpoint
+Enabling all breakpoints
 ```
 (foo.rb:1) enable 1 3
 ```
@@ -222,7 +222,7 @@ Displaying the help message.
 
 Usage:
 ```
-help [comand]
+help [command]
 h [command]
 ```
 Typing help without any option will displays the command list.
@@ -233,11 +233,11 @@ Displaying the specified breakpoint information.
 
 Usage:
 ```
-info breakpoints [breakpointno]
-i b [breakpointno]
+info breakpoints [breakpoint-no]
+i b [breakpoint-no]
 ```
 
-breakpointno: breakpoint number
+breakpoint-no: breakpoint number
 
 Typing "info breakpoints" without ant option will display all breakpoint information.
 Example
@@ -295,7 +295,7 @@ p [expr]
 
 expr: expression
 
-To specify the expression is indispensableness.
+the expression is mandatory.
 The displayed expressions will be numbered in serial order from 1.
 If an exception occurs, the exception information will be displayed and the debugging will be continued.
 
@@ -338,4 +338,4 @@ Running the program step by step.
 When the method and the block will be invoked, the program will be stop at the first row.
 The program which is developed by C language will be ignored.
 
-period
+EOF
