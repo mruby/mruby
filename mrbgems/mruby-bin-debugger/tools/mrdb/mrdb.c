@@ -272,9 +272,12 @@ get_command(mrb_state *mrb, mrdb_state *mrdb)
   }
 
   if (i == 0 && feof(stdin)) {
+    static const char quit[] = "quit";
+    size_t quit_len = strlen(quit);
+
     clearerr(stdin);
-    strcpy(mrdb->command, "quit");
-    i += strlen("quit");
+    memcpy(mrdb->command, quit, quit_len);
+    i += quit_len;
   }
 
   if (i == MAX_COMMAND_LINE) {
