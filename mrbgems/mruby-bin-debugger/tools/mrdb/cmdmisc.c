@@ -411,11 +411,11 @@ dbgcmd_list(mrb_state *mrb, mrdb_state *mrdb)
       filename = st->filename;
     }
     mrb_debug_list(mrb, mrdb->dbg, filename, st->line_min, st->line_max);
-    listcmd_parser_state_free(mrb, st);
 
     if (filename != NULL && filename != st->filename) {
       mrb_free(mrb, filename);
     }
+    listcmd_parser_state_free(mrb, st);
   }
 
   return DBGST_PROMPT;
