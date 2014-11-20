@@ -197,6 +197,9 @@ mrb_debug_get_source(mrb_state *mrb, mrdb_state *mrdb, const char *srcpath, cons
     fclose(fp);
     break;
   }
+
+  mrb_free(mrb, (void *)search_path[1]);
+
   return path;
 }
 
