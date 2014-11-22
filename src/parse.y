@@ -1468,7 +1468,7 @@ mlhs            : mlhs_basic
 mlhs_inner      : mlhs_basic
                 | tLPAREN mlhs_inner rparen
                     {
-                      $$ = list1($2);
+                      $$ = $2;
                     }
                 ;
 
@@ -1517,7 +1517,7 @@ mlhs_basic      : mlhs_list
 mlhs_item       : mlhs_node
                 | tLPAREN mlhs_inner rparen
                     {
-                      $$ = $2;
+                      $$ = new_masgn(p, $2, NULL);
                     }
                 ;
 
