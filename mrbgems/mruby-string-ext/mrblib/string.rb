@@ -181,6 +181,7 @@ class String
         ed = arg1.end
         beg += self.size if beg < 0
         ed += self.size if ed < 0
+        ed -= 1 if arg1.exclude_end?
         validated = true
       elsif arg1.kind_of?(String)
         validated = true
@@ -198,18 +199,18 @@ class String
     unless str == nil || str == ""
       if arg1 != nil && arg2 !=nil
         idx = arg1 >= 0 ? arg1 : self.size+arg1
-        str2 = self[0...idx] + self[idx+arg2..-1]
+        str2 = self[0...idx] + self[idx+arg2..-1].to_s
       else
         if arg1.kind_of?(Range)
           idx = beg >= 0 ? beg : self.size+beg
           idx2 = ed>= 0 ? ed : self.size+ed
-          str2 = self[0...idx] + self[idx2+1..-1]
+          str2 = self[0...idx] + self[idx2+1..-1].to_s
         elsif arg1.kind_of?(String)
           idx = self.index(arg1)
           str2 = self[0...idx] + self[idx+arg1.size..-1] unless idx == nil
         else
           idx = arg1 >= 0 ? arg1 : self.size+arg1
-          str2 = self[0...idx] + self[idx+1..-1]
+          str2 = self[0...idx] + self[idx+1..-1].to_s
         end
       end
       self.replace(str2) unless str2 == nil
