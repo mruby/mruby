@@ -44,6 +44,7 @@ assert('String#[]', '15.2.10.5.6') do
   b = 'abc'[-1]
   c = 'abc'[10]
   d = 'abc'[-10]
+  e = 'abc'[1.1]
 
   # length of args is 2
   a1 = 'abc'[0, -1]
@@ -63,6 +64,7 @@ assert('String#[]', '15.2.10.5.6') do
   assert_equal 'c', b
   assert_nil c
   assert_nil d
+  assert_equal 'b', e
   assert_nil a1
   assert_nil b1
   assert_nil c1
