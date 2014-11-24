@@ -228,7 +228,7 @@ parse_filename(mrb_state *mrb, char **sp, listcmd_parser_state *st)
 
   if (len > 0) {
     st->filename = mrb_malloc(mrb, len + 1);
-    strncpy(st->filename, *sp, len);
+    memcpy(st->filename, *sp, len);
     st->filename[len] = '\0';
     *sp += len;
     return TRUE;
@@ -241,7 +241,7 @@ parse_filename(mrb_state *mrb, char **sp, listcmd_parser_state *st)
 char*
 replace_ext(mrb_state *mrb, const char *filename, const char *ext)
 {
-  size_t len;
+  size_t filename_len, ext_size;
   char *p, *s;
 
   if (filename == NULL) {
@@ -249,16 +249,17 @@ replace_ext(mrb_state *mrb, const char *filename, const char *ext)
   }
 
   if ((p = strrchr(filename, '.')) != NULL && strchr(p, '/') == NULL) {
-    len = p - filename;
+    filename_len = p - filename;
   }
   else {
-    len = strlen(filename);
+    filename_len = strlen(filename);
   }
 
-  if ((s = mrb_malloc(mrb, len + strlen(ext) + 1)) != NULL) {
-    memset(s, '\0', len + strlen(ext) + 1);
-    strncpy(s, filename, len);
-    strcat(s, ext);
+  ext_size = strlen(ext) + 1; /* also consider null character */
+
+  if ((s = mrb_malloc(mrb, filename_len + ext_size)) != NULL) {
+    memcpy(s, filename, filename_len);
+    memcpy(s + filename_len, ext, ext_size);
   }
   return s;
 }

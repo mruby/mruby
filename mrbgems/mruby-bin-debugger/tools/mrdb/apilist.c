@@ -74,7 +74,8 @@ dirname(mrb_state *mrb, const char *path)
   len = p != NULL ? p - path : strlen(path);
 
   if ((dir = mrb_malloc(mrb, len + 1)) != NULL) {
-    strncpy(dir, path, len);
+    memcpy(dir, path, len);
+    dir[len] = '\0';
   }
   return dir;
 }
@@ -83,6 +84,7 @@ static source_file*
 source_file_new(mrb_state *mrb, mrb_debug_context *dbg, char *filename)
 {
   source_file *file = NULL;
+  size_t filename_size;
 
   if ((file = mrb_malloc(mrb, sizeof(source_file))) == NULL) {
     return NULL;
@@ -97,8 +99,9 @@ source_file_new(mrb_state *mrb, mrb_debug_context *dbg, char *filename)
   }
 
   file->lineno = 1;
-  file->path = mrb_malloc(mrb, strlen(filename) + 1);
-  strcpy(file->path, filename);
+  filename_size = strlen(filename) + 1;
+  file->path = mrb_malloc(mrb, filename_size);
+  memcpy(file->path, filename, filename_size);
   return file;
 }
 

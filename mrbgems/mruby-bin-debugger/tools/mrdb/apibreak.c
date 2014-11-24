@@ -181,6 +181,7 @@ mrb_debug_set_break_line( mrb_state *mrb, mrb_debug_context *dbg, const char *fi
   int32_t index;
   char* set_file;
   uint16_t result;
+  size_t set_file_size;
 
   if((mrb == NULL)||(dbg == NULL)||(file == NULL)) {
     return MRB_DEBUG_INVALID_ARGUMENT;
@@ -202,7 +203,8 @@ mrb_debug_set_break_line( mrb_state *mrb, mrb_debug_context *dbg, const char *fi
     return MRB_DEBUG_BREAK_INVALID_LINENO;
   } 
 
-  set_file = mrb_malloc(mrb, strlen(file) + 1);
+  set_file_size = strlen(file) + 1;
+  set_file = mrb_malloc(mrb, set_file_size);
   if(set_file == NULL) {
     return MRB_DEBUG_NOBUF;
   }
@@ -215,7 +217,7 @@ mrb_debug_set_break_line( mrb_state *mrb, mrb_debug_context *dbg, const char *fi
   dbg->bp[index].point.linepoint.lineno = lineno;
   dbg->bpnum++;
 
-  strncpy(set_file, file, strlen(file) + 1);
+  memcpy(set_file, file, set_file_size);
 
   dbg->bp[index].point.linepoint.file = set_file;
 
@@ -228,6 +230,7 @@ mrb_debug_set_break_method( mrb_state *mrb, mrb_debug_context *dbg, const char *
   int32_t index;
   char* set_class;
   char* set_method;
+  size_t set_class_size, set_method_size;
 
   if((mrb == NULL) || (dbg == NULL) || (method_name == NULL)) {
     return MRB_DEBUG_INVALID_ARGUMENT;
@@ -242,18 +245,20 @@ mrb_debug_set_break_method( mrb_state *mrb, mrb_debug_context *dbg, const char *
   }
 
   if(class_name != NULL) {
-    set_class = mrb_malloc(mrb, strlen(class_name) + 1);
+    set_class_size = strlen(class_name) + 1;
+    set_class = mrb_malloc(mrb, set_class_size);
     if(set_class == NULL) {
       return MRB_DEBUG_NOBUF;
     }
-    
-    strncpy(set_class, class_name, strlen(class_name) + 1);
+
+    memcpy(set_class, class_name, set_class_size);
   }
   else {
     set_class = NULL;
   }
 
-  set_method = mrb_malloc(mrb, strlen(method_name) + 1);
+  set_method_size = strlen(method_name) + 1;
+  set_method = mrb_malloc(mrb, set_method_size);
   if(set_method == NULL) {
     if(set_class != NULL) {
       mrb_free(mrb, (void*)set_class);
@@ -261,7 +266,7 @@ mrb_debug_set_break_method( mrb_state *mrb, mrb_debug_context *dbg, const char *
     return MRB_DEBUG_NOBUF;
   }
 
-  strncpy(set_method, method_name, strlen(method_name) + 1);
+  memcpy(set_method, method_name, set_method_size);
 
   index = dbg->bpnum;
   dbg->bp[index].bpno = dbg->next_bpno;
