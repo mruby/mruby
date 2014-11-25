@@ -19,7 +19,6 @@
 
 #include <fcntl.h>
 #include <limits.h>
-#include <unistd.h>
 
 #include <errno.h>
 #include <stdlib.h>
@@ -30,11 +29,12 @@
   #define CHMOD(a, b) 0
   #define MAXPATHLEN 1024
  #if !defined(PATH_MAX)
-  #define PATH_MAX MAX_PATH
+  #define PATH_MAX _MAX_PATH
  #endif
   #define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
   #include <direct.h>
 #else
+  #include <unistd.h>
   #define UNLINK unlink
   #define GETCWD getcwd
   #define CHMOD(a, b) chmod(a,b)
