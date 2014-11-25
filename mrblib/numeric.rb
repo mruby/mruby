@@ -101,12 +101,20 @@ module Integral
   # incremented by +step+ (default 1).
   #
   def step(num, step=1, &block)
+    raise ArgumentError, "step can't be 0" if step == 0
     return to_enum(:step, num, step) unless block_given?
 
     i = if num.kind_of? Float then self.to_f else self end
-    while(i <= num)
-      block.call(i)
-      i += step
+    if step > 0
+      while(i <= num)
+        block.call(i)
+        i += step
+      end
+    else
+      while(i >= num)
+        block.call(i)
+        i += step
+      end
     end
     self
   end
