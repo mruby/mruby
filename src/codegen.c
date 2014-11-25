@@ -3021,7 +3021,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       break;
     case OP_APOST:
       printf("OP_APOST\tR%d\t%d\t%d", GETARG_A(c), GETARG_B(c), GETARG_C(c));
-      print_lv(mrb, irep, c, RAB);
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_STRING:
       {
