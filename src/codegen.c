@@ -1003,7 +1003,6 @@ gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val)
       genop(s, MKOP_AB(OP_MOVE, cursp(), rhs));
       push();
     }
-    pop();
     genop(s, MKOP_ABC(OP_APOST, cursp(), n, post));
     n = 1;
     if (t->car) {               /* rest */
@@ -1018,7 +1017,7 @@ gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val)
       }
     }
   }
-  else if (val) {
+  if (!val) {
     pop();
   }
 }
