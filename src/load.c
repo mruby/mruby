@@ -19,7 +19,7 @@
 #define FLAG_SRC_MALLOC 1
 #define FLAG_SRC_STATIC 0
 
-#if !defined(_WIN32) && SIZE_MAX < UINT32_MAX
+#if SIZE_MAX < UINT32_MAX
 # define SIZE_ERROR_MUL(x, y) ((x) > SIZE_MAX / (y))
 # define SIZE_ERROR(x) ((x) > SIZE_MAX)
 #else
