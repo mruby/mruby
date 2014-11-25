@@ -1337,4 +1337,11 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "to_s",      flo_to_s,         MRB_ARGS_NONE()); /* 15.2.9.3.16(x) */
   mrb_define_method(mrb, fl,      "inspect",   flo_to_s,         MRB_ARGS_NONE());
   mrb_define_method(mrb, fl,      "nan?",      flo_nan_p,        MRB_ARGS_NONE());
+
+#ifdef INFINITY
+  mrb_define_const(mrb, fl, "INFINITY", mrb_float_value(mrb, INFINITY));
+#endif
+#ifdef NAN
+  mrb_define_const(mrb, fl, "NAN", mrb_float_value(mrb, NAN));
+#endif
 }
