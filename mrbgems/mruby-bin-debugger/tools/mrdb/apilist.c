@@ -9,6 +9,7 @@
 #include "mrdb.h"
 #include "mrdberror.h"
 #include "apilist.h"
+#include "apistring.h"
 #include "mruby/compile.h"
 #include "mruby/irep.h"
 #include "mruby/debug.h"
@@ -64,7 +65,7 @@ static char*
 dirname(mrb_state *mrb, const char *path)
 {
   size_t len;
-  char *p, *dir;
+  char *p;
 
   if (path == NULL) {
     return NULL;
@@ -73,11 +74,7 @@ dirname(mrb_state *mrb, const char *path)
   p = strrchr(path, '/');
   len = p != NULL ? p - path : strlen(path);
 
-  if ((dir = mrb_malloc(mrb, len + 1)) != NULL) {
-    strncpy(dir, path, len);
-    dir[len] = '\0';
-  }
-  return dir;
+  return mrb_debug_strndup(mrb, path, len);
 }
 
 static source_file*
@@ -98,8 +95,10 @@ source_file_new(mrb_state *mrb, mrb_debug_context *dbg, char *filename)
   }
 
   file->lineno = 1;
-  file->path = mrb_malloc(mrb, strlen(filename) + 1);
-  strcpy(file->path, filename);
+  if ((file->path = mrb_debug_strdup(mrb, filename)) == NULL) {
+    source_file_free(mrb, file);
+    return NULL;
+  }
   return file;
 }
 

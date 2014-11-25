@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "apilist.h"
+#include "apistring.h"
 #include "mruby/compile.h"
 
 typedef struct help_msg {
@@ -226,10 +227,7 @@ parse_filename(mrb_state *mrb, char **sp, listcmd_parser_state *st)
     len = strlen(*sp);
   }
 
-  if (len > 0) {
-    st->filename = mrb_malloc(mrb, len + 1);
-    strncpy(st->filename, *sp, len);
-    st->filename[len] = '\0';
+  if (len > 0 && (st->filename = mrb_debug_strndup(mrb, *sp, len)) != NULL) {
     *sp += len;
     return TRUE;
   }
