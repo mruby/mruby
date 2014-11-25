@@ -502,7 +502,7 @@ get_and_parse_command(mrb_state *mrb, mrdb_state *mrdb)
   return cmd;
 }
 
-static const int32_t
+static int32_t
 check_method_breakpoint(mrb_state *mrb, mrb_irep *irep, mrb_code *pc, mrb_value *regs)
 {
   struct RClass* c;
