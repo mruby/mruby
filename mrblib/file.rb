@@ -13,14 +13,7 @@ class File < IO
       super(fd_or_path, mode)
     else
       @path = fd_or_path
-      begin
-        fd = IO.sysopen(@path, mode, perm)
-      rescue RuntimeError => e
-        raise FileError, "Could not open file (#{e})"
-      rescue Errno::EMFILE, Errno::ENFILE
-        GC.start
-        fd = IO.sysopen(@path, mode, perm)
-      end
+      fd = IO.sysopen(@path, mode, perm)
       super(fd, mode)
     end
   end
