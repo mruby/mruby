@@ -215,6 +215,7 @@ void
 mrb_debug_context_free(mrb_state *mrb)
 {
   if (_debug_context) {
+    mrb_debug_delete_break_all(mrb, _debug_context);
     mrb_free(mrb, _debug_context);
     _debug_context = NULL;
   }
