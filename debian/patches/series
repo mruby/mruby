@@ -1,1 +1,2 @@
 enable_verbose_build.patch
+adhoc_use_default_cflags.patch
