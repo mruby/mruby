@@ -167,13 +167,18 @@ assert('Abbreviated variable assignment as returns') do
   assert_equal 1, Syntax4AbbrVarAsgnAsReturns::A.new.b
 end
 
-assert('Splat and mass assignment') do
+assert('Splat and multiple assignment') do
   *a = *[1,2,3]
   b, *c = *[7,8,9]
 
   assert_equal [1,2,3], a
   assert_equal 7, b
   assert_equal [8,9], c
+
+  (a, b), c = [1,2],3
+  assert_equal [1,2,3], [a,b,c]
+  (a, b), c = 1,2,3
+  assert_equal [1,nil,2], [a,b,c]
 end
 
 assert('Return values of case statements') do
