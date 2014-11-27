@@ -1017,9 +1017,6 @@ gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val)
       }
     }
   }
-  if (!val) {
-    pop();
-  }
 }
 
 static void
@@ -1639,6 +1636,7 @@ codegen(codegen_scope *s, node *tree, int val)
         /* variable rhs */
         codegen(s, t, VAL);
         gen_vmassignment(s, tree->car, rhs, val);
+        pop();
       }
     }
     break;
