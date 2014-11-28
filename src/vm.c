@@ -1080,12 +1080,7 @@ RETRY_TRY_BLOCK:
       ci->mid = mid;
       ci->proc = m;
       ci->stackent = mrb->c->stack;
-      if (c->tt == MRB_TT_ICLASS) {
-        ci->target_class = c->c;
-      }
-      else {
-        ci->target_class = c;
-      }
+      ci->target_class = c;
 
       ci->pc = pc + 1;
       ci->acc = a;
