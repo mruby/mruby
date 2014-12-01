@@ -359,7 +359,7 @@ MRB_API mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 #define ISALPHA(c) (ISASCII(c) && isalpha((int)(unsigned char)(c)))
 #define ISDIGIT(c) (ISASCII(c) && isdigit((int)(unsigned char)(c)))
 #define ISXDIGIT(c) (ISASCII(c) && isxdigit((int)(unsigned char)(c)))
-#define ISBLANK(c) (ISASCII(c) && isblank((int)(unsigned char)(c)))
+#define ISBLANK(c) (ISASCII(c) && ((c) == ' ' || (c) == '\t'))
 #define ISCNTRL(c) (ISASCII(c) && iscntrl((int)(unsigned char)(c)))
 #define TOUPPER(c) (ISASCII(c) ? toupper((int)(unsigned char)(c)) : (c))
 #define TOLOWER(c) (ISASCII(c) ? tolower((int)(unsigned char)(c)) : (c))
