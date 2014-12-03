@@ -1,6 +1,6 @@
 Description: mruby-bin-debugger Fix compile without C99 or C11
 Forwarded: not need
-Author: Akira Mitsui <murase.syuka@gmail.com>
+Author: Nobuhiro Iwamatsu <iwamatsu@debian.org>
 Last-Update: 2014-12-02
 
 diff --git a/mrbgems/mruby-bin-debugger/tools/mrdb/cmdbreak.c b/mrbgems/mruby-bin-debugger/tools/mrdb/cmdbreak.c
