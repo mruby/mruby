@@ -20,6 +20,8 @@ Description: lightweight implementation of the Ruby language
   * mirb: Embeddable interactive ruby shell
   * mrbc: mruby compiler
   * mruby: mruby interpreter
+  * mrdb: mruby debugger
+  * mruby-strip: mruby strip
 
 Package: libmruby-dev
 Architecture: any
