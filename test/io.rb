@@ -321,6 +321,7 @@ end
 
 assert('IO.popen') do
   io = IO.popen("ls")
+  assert_true io.close_on_exec?
   assert_equal Fixnum, io.pid.class
   ls = io.read
   assert_equal ls.class, String

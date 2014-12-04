@@ -223,13 +223,22 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 
   doexec = (strcmp("-", pname) != 0);
 
-  if ((flags & FMODE_READABLE) && pipe(pr) == -1) {
-    mrb_sys_fail(mrb, "pipe");
+  if (flags & FMODE_READABLE) {
+    if (pipe(pr) == -1) {
+      mrb_sys_fail(mrb, "pipe");
+    }
+    mrb_fd_cloexec(mrb, pr[0]);
+    mrb_fd_cloexec(mrb, pr[1]);
   }
-  if ((flags & FMODE_WRITABLE) && pipe(pw) == -1) {
-    if (pr[0] != -1) close(pr[0]);
-    if (pr[1] != -1) close(pr[1]);
-    mrb_sys_fail(mrb, "pipe");
+
+  if (flags & FMODE_WRITABLE) {
+    if (pipe(pw) == -1) {
+      if (pr[0] != -1) close(pr[0]);
+      if (pr[1] != -1) close(pr[1]);
+      mrb_sys_fail(mrb, "pipe");
+    }
+    mrb_fd_cloexec(mrb, pw[0]);
+    mrb_fd_cloexec(mrb, pw[1]);
   }
 
   if (!doexec) {
