@@ -125,6 +125,30 @@ mrb_io_flags_to_modenum(mrb_state *mrb, int flags)
   return modenum;
 }
 
+void
+mrb_fd_cloexec(mrb_state *mrb, int fd)
+{
+  int flags, flags2;
+
+#if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
+  flags = fcntl(fd, F_GETFD);
+  if (flags == -1) {
+    mrb_sys_fail(mrb, "fcntl");
+  }
+  if (fd <= 2) {
+    flags2 = flags & ~FD_CLOEXEC; /* Clear CLOEXEC for standard file descriptors: 0, 1, 2. */
+  }
+  else {
+    flags2 = flags | FD_CLOEXEC; /* Set CLOEXEC for non-standard file descriptors: 3, 4, 5, ... */
+  }
+  if (flags != flags2) {
+    if (fcntl(fd, F_SETFD, flags2) == -1) {
+      mrb_sys_fail(mrb, "fcntl");
+    }
+  }
+#endif
+}
+
 #ifndef _WIN32
 static int
 mrb_proc_exec(const char *pname)
@@ -367,6 +391,38 @@ mrb_io_s_sysclose(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(0);
 }
 
+int
+mrb_cloexec_open(mrb_state *mrb, const char *pathname, mrb_int flags, mrb_int mode)
+{
+  int fd, retry = FALSE;
+
+#ifdef O_CLOEXEC
+  /* O_CLOEXEC is available since Linux 2.6.23.  Linux 2.6.18 silently ignore it. */
+  flags |= O_CLOEXEC;
+#elif defined O_NOINHERIT
+  flags |= O_NOINHERIT;
+#endif
+reopen:
+  fd = open(pathname, flags, mode);
+  if (fd == -1) {
+    if (!retry) {
+      switch (errno) {
+        case ENFILE:
+        case EMFILE:
+        mrb_garbage_collect(mrb);
+        retry = TRUE;
+        goto reopen;
+      }
+    }
+    mrb_sys_fail(mrb, "open");
+  }
+
+  if (fd <= 2) {
+    mrb_fd_cloexec(mrb, fd);
+  }
+  return fd;
+}
+
 mrb_value
 mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
 {
@@ -374,7 +430,7 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
   mrb_value mode = mrb_nil_value();
   mrb_int fd, flags, perm = -1;
   const char *pat;
-  int modenum, retry = FALSE;
+  int modenum;
 
   mrb_get_args(mrb, "S|Si", &path, &mode, &perm);
   if (mrb_nil_p(mode)) {
@@ -387,22 +443,7 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
   pat = mrb_string_value_cstr(mrb, &path);
   flags = mrb_io_modestr_to_flags(mrb, mrb_string_value_cstr(mrb, &mode));
   modenum = mrb_io_flags_to_modenum(mrb, flags);
-
- reopen:
-  fd = open(pat, modenum, perm);
-  if (fd == -1) {
-    if (!retry) {
-      switch (errno) {
-      case ENFILE:
-      case EMFILE:
-        mrb_garbage_collect(mrb);
-        retry = TRUE;
-        goto reopen;
-      }
-    }
-    mrb_sys_fail(mrb, pat);
-  }
-
+  fd = mrb_cloexec_open(mrb, pat, modenum, perm);
   return mrb_fixnum_value(fd);
 }
 
@@ -745,7 +786,7 @@ mrb_io_close_on_exec_p(mrb_state *mrb, mrb_value io)
 #if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
   struct mrb_io *fptr;
   int ret;
-  
+
   fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
   if (fptr->fd < 0) {
     mrb_raise(mrb, E_IO_ERROR, "closed stream");
@@ -787,7 +828,7 @@ mrb_io_set_close_on_exec(mrb_state *mrb, mrb_value io)
     if ((ret & FD_CLOEXEC) != flag) {
       ret = (ret & ~FD_CLOEXEC) | flag;
       ret = fcntl(fptr->fd2, F_SETFD, ret);
-      
+
       if (ret == -1) mrb_sys_fail(mrb, "F_SETFD failed");
     }
   }
