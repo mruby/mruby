@@ -9,6 +9,7 @@ assert('String#[]') do
   assert_equal "世界", "こんにちは世界"[-2..-1]
   assert_equal "んに", "こんにちは世界"[1,2]
   assert_equal "世", "こんにちは世界"["世"]
+  assert_equal 'b', 'abc'[1.1]
 end
 
 assert('String#reverse', '15.2.10.5.29') do
