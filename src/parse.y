@@ -6329,10 +6329,9 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
         printf("post mandatory args:\n");
         dump_recur(mrb, n->car, offset+2);
       }
-      n = n->cdr;
-      if (n) {
+      if (n->cdr) {
         dump_prefix(n, offset+1);
-        printf("blk=&%s\n", mrb_sym2name(mrb, sym(n)));
+        printf("blk=&%s\n", mrb_sym2name(mrb, sym(n->cdr)));
       }
     }
     mrb_parser_dump(mrb, tree->cdr->car, offset+1);
