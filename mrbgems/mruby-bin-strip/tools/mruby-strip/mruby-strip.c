@@ -31,8 +31,8 @@ irep_remove_lv(mrb_state *mrb, mrb_irep *irep)
 static void
 print_usage(const char *f)
 {
-  printf("Usage: %s [options] irepfiles\n", f);
-  printf("options:\n");
+  printf("Usage: %s [switches] irepfiles\n", f);
+  printf("switches:\n");
   printf("  -l, --lvar   remove LVAR section too.\n");
 }
 
