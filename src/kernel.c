@@ -187,15 +187,19 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
   else {
     /* block_given? called within block; check upper scope */
     if (ci->proc->env && ci->proc->env->stack) {
-      given_p = !(ci->proc->env->stack == mrb->c->stbase ||
-                  mrb_nil_p(ci->proc->env->stack[1]));
-    }
-    else {
-      if (ci->argc > 0) {
-        bp += ci->argc;
+      mrb_value *sp = ci->proc->env->stack;
+
+      while (mrb->c->cibase < ci) {
+        if (ci->stackent == sp) {
+          break;
+        }
+        ci--;
       }
-      given_p = !mrb_nil_p(*bp);
     }
+    if (ci->argc > 0) {
+      bp += ci->argc;
+    }
+    given_p = !mrb_nil_p(*bp);
   }
 
   return mrb_bool_value(given_p);
