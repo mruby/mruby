@@ -74,16 +74,21 @@ get_history_path(mrb_state *mrb)
 static void
 p(mrb_state *mrb, mrb_value obj, int prompt)
 {
-  obj = mrb_funcall(mrb, obj, "inspect", 0);
+  mrb_value val;
+
+  val = mrb_funcall(mrb, obj, "inspect", 0);
   if (prompt) {
     if (!mrb->exc) {
       fputs(" => ", stdout);
     }
     else {
-      obj = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
+      val = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
     }
   }
-  fwrite(RSTRING_PTR(obj), RSTRING_LEN(obj), 1, stdout);
+  if (!mrb_string_p(val)) {
+    val = mrb_obj_as_string(mrb, obj);
+  }
+  fwrite(RSTRING_PTR(val), RSTRING_LEN(val), 1, stdout);
   putc('\n', stdout);
 }
 
