@@ -650,6 +650,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, 
   tlen = RSTRING_LEN(tmpl->str);
 
   t = tptr[tmpl->idx++];
+alias:
   switch (t) {
   case 'A':
     dir = PACK_DIR_STR;
@@ -717,6 +718,24 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, 
     dir = PACK_DIR_HEX;
     type = PACK_TYPE_STRING;
     flags |= PACK_FLAG_COUNT2 | PACK_FLAG_LSB;
+    break;
+  case 'I':
+    switch (sizeof(int)) {
+      case 2: t = 'S'; goto alias;
+      case 4: t = 'L'; goto alias;
+      case 8: t = 'Q'; goto alias;
+      default:
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(int) == %S", mrb_fixnum_value(sizeof(int)));
+    }
+    break;
+  case 'i':
+    switch (sizeof(int)) {
+      case 2: t = 's'; goto alias;
+      case 4: t = 'l'; goto alias;
+      case 8: t = 'q'; goto alias;
+      default:
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(int) == %S", mrb_fixnum_value(sizeof(int)));
+    }
     break;
   case 'L':
     dir = PACK_DIR_LONG;

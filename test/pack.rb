@@ -121,3 +121,27 @@ assert 'pack double' do
     assert_pack 'D', "@\b\x00\x00\x00\x00\x00\x00", [3.0]
   end
 end
+
+assert 'pack/unpack "i"' do
+  int_size = [0].pack('i').size
+  raise "pack('i').size is too small (#{int_size})" if int_size < 2
+
+  if PACK_IS_LITTLE_ENDIAN
+    str = "\xC7\xCF" + "\xFF" * (int_size-2)
+  else
+    str = "\xFF" * (int_size-2) + "\xC7\xCF"
+  end
+  assert_pack 'i', str, [-12345]
+end
+
+assert 'pack/unpack "I"' do
+  uint_size = [0].pack('I').size
+  raise "pack('I').size is too small (#{uint_size})" if uint_size < 2
+
+  if PACK_IS_LITTLE_ENDIAN
+    str = "\x39\x30" + "\0" * (uint_size-2)
+  else
+    str = "\0" * (uint_size-2) + "\x39\x30"
+  end
+  assert_pack 'I', str, [12345]
+end
