@@ -557,7 +557,7 @@ class Socket
     end
 
     def inspect
-      # notyet
+      "#<Socket::Option: family:#{@family} level:#{@level} optname:#{@optname} #{@data.inspect}>"
     end
 
     def int
