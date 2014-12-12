@@ -11,29 +11,29 @@ rake ENABLE_GEMS="true"
 ./bin/mruby ${MRUBY_ROOT}/mrbgems/g/mruby-pack/example/sample.rb
 ```
 
-## support template string
+## supported template string
+ - A : arbitrary binary string (space padded, count is width)
+ - a : arbitrary binary string (null padded, count is width)
  - C : 8-bit unsigned (unsigned char)
  - c : 8-bit signed (signed char)
  - D, d: 64-bit float, native format
- - F, f: 32-bit float, native format
  - E : 64-bit float, little endian byte order
  - e : 32-bit float, little endian byte order
+ - F, f: 32-bit float, native format
  - G : 64-bit float, network (big-endian) byte order
  - g : 32-bit float, network (big-endian) byte order
- - S : 16-bit unsigned, native endian (uint16_t)
- - s : 16-bit signed, native endian (int16_t)
- - L : 32-bit unsigned, native endian (uint32_t)
- - l : 32-bit signed, native endian (int32_t)
- - n : 16-bit unsigned, network (big-endian) byte order
- - N : 32-bit unsigned, network (big-endian) byte order
- - v : 16-bit unsigned, VAX (little-endian) byte order
- - V : 32-bit unsigned, VAX (little-endian) byte order
- - A : arbitrary binary string (space padded, count is width)
- - a : arbitrary binary string (null padded, count is width)
- - Z : same as "a", except that null is added with *
  - H : hex string (high nibble first)
  - h : hex string (low nibble first)
+ - L : 32-bit unsigned, native endian (`uint32_t`)
+ - l : 32-bit signed, native endian (`int32_t`)
  - m : base64 encoded string (see RFC 2045, count is width)
+ - N : 32-bit unsigned, network (big-endian) byte order
+ - n : 16-bit unsigned, network (big-endian) byte order
+ - S : 16-bit unsigned, native endian (`uint16_t`)
+ - s : 16-bit signed, native endian (`int16_t`)
+ - V : 32-bit unsigned, VAX (little-endian) byte order
+ - v : 16-bit unsigned, VAX (little-endian) byte order
+ - Z : same as "a", except that null is added with *
 
 
 ## License
