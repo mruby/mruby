@@ -24,6 +24,8 @@ rake ENABLE_GEMS="true"
  - g : 32-bit float, network (big-endian) byte order
  - H : hex string (high nibble first)
  - h : hex string (low nibble first)
+ - I : unsigned integer, native endian (`unsigned int` in C)
+ - i : signed integer, native endian (`int` in C)
  - L : 32-bit unsigned, native endian (`uint32_t`)
  - l : 32-bit signed, native endian (`int32_t`)
  - m : base64 encoded string (see RFC 2045, count is width)
