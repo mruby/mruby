@@ -217,4 +217,31 @@ class String
     end
     str
   end
+
+  ##
+  #  call-seq:
+  #     str.insert(index, other_str)   -> str
+  #
+  #  Inserts <i>other_str</i> before the character at the given
+  #  <i>index</i>, modifying <i>str</i>. Negative indices count from the
+  #  end of the string, and insert <em>after</em> the given character.
+  #  The intent is insert <i>aString</i> so that it starts at the given
+  #  <i>index</i>.
+  #
+  #     "abcd".insert(0, 'X')    #=> "Xabcd"
+  #     "abcd".insert(3, 'X')    #=> "abcXd"
+  #     "abcd".insert(4, 'X')    #=> "abcdX"
+  #     "abcd".insert(-3, 'X')   #=> "abXcd"
+  #     "abcd".insert(-1, 'X')   #=> "abcdX"
+  #
+  def insert(idx, str)
+    pos = idx.to_i
+    pos += self.size + 1 if pos < 0
+
+    raise IndexError, "index #{idx.to_i} out of string" if pos < 0 || pos > self.size
+
+    return self + str if pos == -1
+    return str + self if pos == 0
+    return self[0..pos - 1] + str + self[pos..-1]
+  end
 end
