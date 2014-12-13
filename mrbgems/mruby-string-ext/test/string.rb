@@ -370,3 +370,13 @@ assert('String#next') do
   a = "00"; a.next!
   assert_equal "01", a
 end
+
+assert('String#insert') do
+  assert_equal "Xabcd", "abcd".insert(0, 'X')
+  assert_equal "abcXd", "abcd".insert(3, 'X')
+  assert_equal "abcdX", "abcd".insert(4, 'X')
+  assert_equal "abXcd", "abcd".insert(-3, 'X')
+  assert_equal "abcdX", "abcd".insert(-1, 'X')
+  assert_raise(IndexError) { "abcd".insert(5, 'X') }
+  assert_raise(IndexError) { "abcd".insert(-6, 'X') }
+end
