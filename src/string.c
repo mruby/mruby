@@ -646,7 +646,10 @@ MRB_API const char*
 mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
 {
   mrb_value str = mrb_str_to_str(mrb, ptr);
-  return RSTRING_PTR(str);
+  const char *p = RSTRING_PTR(str);
+  if (p[RSTRING_LEN(str)] == '\0')
+    return p;
+  return mrb_string_value_cstr(mrb, &str);
 }
 
 void
