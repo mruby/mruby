@@ -194,12 +194,12 @@ class IO
 
       if length && (str.size + @buf.size) >= length
         len = length - str.size
-        str += @buf[0, len]
+        str << @buf[0, len]
         @pos += len
         @buf = @buf[len, @buf.size - len]
         break
       else
-        str += @buf
+        str << @buf
         @pos += @buf.size
         @buf = ''
       end
@@ -238,18 +238,18 @@ class IO
 
       if limit && (str.size + @buf.size) >= limit
         len = limit - str.size
-        str += @buf[0, len]
+        str << @buf[0, len]
         @pos += len
         @buf = @buf[len, @buf.size - len]
         break
       elsif idx = @buf.index(rs)
         len = idx + rs.size
-        str += @buf[0, len]
+        str << @buf[0, len]
         @pos += len
         @buf = @buf[len, @buf.size - len]
         break
       else
-        str += @buf
+        str << @buf
         @pos += @buf.size
         @buf = ''
       end
