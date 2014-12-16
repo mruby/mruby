@@ -380,3 +380,9 @@ assert('String#insert') do
   assert_raise(IndexError) { "abcd".insert(5, 'X') }
   assert_raise(IndexError) { "abcd".insert(-6, 'X') }
 end
+
+assert('String#prepend') do
+  a = "world"
+  assert_equal "hello world", a.prepend("hello ")
+  assert_equal "hello world", a
+end
