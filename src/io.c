@@ -420,7 +420,7 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
   }
 
   if (mrb_nil_p(buf)) {
-    buf = mrb_str_new(mrb, "", maxlen);
+    buf = mrb_str_new(mrb, NULL, maxlen);
   }
   if (RSTRING_LEN(buf) != maxlen) {
     buf = mrb_str_resize(mrb, buf, maxlen);
