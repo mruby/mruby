@@ -356,7 +356,7 @@ mrb_str_prepend(mrb_state *mrb, mrb_value self)
   }
   s2 = mrb_str_ptr(other);
   len = RSTR_LEN(s1) + RSTR_LEN(s2);
-  temp_str = mrb_str_new(mrb, "", RSTR_LEN(s1));
+  temp_str = mrb_str_new(mrb, NULL, RSTR_LEN(s1));
   temp_s = mrb_str_ptr(temp_str);
   memcpy(RSTR_PTR(temp_s), RSTR_PTR(s1), RSTR_LEN(s1));
   if (RSTRING_CAPA(self) < len) {

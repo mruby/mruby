@@ -163,7 +163,7 @@ str_new(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s;
 
-  if (mrb_ro_data_p(p)) {
+  if (p && mrb_ro_data_p(p)) {
     return str_new_static(mrb, p, len);
   }
   s = mrb_obj_alloc_string(mrb);
