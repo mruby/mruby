@@ -781,7 +781,10 @@ num_index:
         }
       }
     default:
-      if (mrb_nil_p(indx)) mrb_raise(mrb, E_TYPE_ERROR, "can't convert nil into Integer");
+      indx = mrb_Integer(mrb, indx);
+      if (mrb_nil_p(indx)) {
+        mrb_raise(mrb, E_TYPE_ERROR, "can't convert to Fixnum");
+      }
       idx = mrb_fixnum(indx);
       goto num_index;
   }
