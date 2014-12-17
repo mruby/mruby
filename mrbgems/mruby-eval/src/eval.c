@@ -55,18 +55,18 @@ search_variable(mrb_state *mrb, mrb_sym vsym, int bnest)
   return 0;
 }
 
-static int
+static mrb_bool
 potential_upvar_p(struct mrb_locals *lv, uint16_t v, uint16_t nlocals)
 {
   int i;
 
+  if (v >= nlocals) return FALSE;
   /* skip arguments  */
-  for (i=0; i<nlocals; i++) {
+  for (i=0; i<nlocals-1; i++) {
     if (lv[i].name == 0)
-      break;
+      return i < v;
   }
-  if (i == nlocals) return v < nlocals;
-  return i < v && v < nlocals;
+  return TRUE;
 }
 
 static void
@@ -125,8 +125,6 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest)
     }
   }
 }
-
-void mrb_codedump_all(mrb_state *mrb, struct RProc *proc);
 
 static struct RProc*
 create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, char *file, mrb_int line)
