@@ -15,7 +15,6 @@
 #include "mruby/class.h"
 #include "mruby/range.h"
 #include "mruby/string.h"
-#include "mruby/numeric.h"
 #include "mruby/re.h"
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -751,9 +750,6 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
 
   mrb_regexp_check(mrb, indx);
   switch (mrb_type(indx)) {
-    case MRB_TT_FLOAT:
-      indx = mrb_flo_to_fixnum(mrb, indx);
-      /* fall through */
     case MRB_TT_FIXNUM:
       idx = mrb_fixnum(indx);
 
@@ -780,6 +776,7 @@ num_index:
           return mrb_nil_value();
         }
       }
+    case MRB_TT_FLOAT:
     default:
       indx = mrb_Integer(mrb, indx);
       if (mrb_nil_p(indx)) {
