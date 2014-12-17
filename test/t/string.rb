@@ -72,6 +72,10 @@ assert('String#[]', '15.2.10.5.6') do
   assert_equal 'bc', e1
   assert_equal 'bc', a3
   assert_nil b3
+
+  assert_raise(TypeError) do
+    a[nil]
+  end
 end
 
 assert('String#[] with Range') do
