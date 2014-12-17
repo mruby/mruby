@@ -28,7 +28,7 @@ get_closure_irep(mrb_state *mrb, int level)
   if (!e) return NULL;
   proc = c->cibase[e->cioff].proc;
 
-  if (MRB_PROC_CFUNC_P(proc)) {
+  if (!proc || MRB_PROC_CFUNC_P(proc)) {
     return NULL;
   }
   return proc->body.irep;
