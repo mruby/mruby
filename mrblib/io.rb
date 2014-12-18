@@ -183,29 +183,30 @@ class IO
       end
     end
 
-    str = ''
+    array = []
+    start_pos = @pos
     while 1
       begin
         _read_buf
       rescue EOFError => e
-        str = nil if str.empty? and (not length.nil?) and length != 0
+        array = nil if array.empty? and (not length.nil?) and length != 0
         break
       end
 
-      if length && (str.size + @buf.size) >= length
-        len = length - str.size
-        str += @buf[0, len]
+      if length && (@pos - start_pos + @buf.size) >= length
+        len = length - (@pos - start_pos)
+        array.push @buf[0, len]
         @pos += len
         @buf = @buf[len, @buf.size - len]
         break
       else
-        str += @buf
+        array.push @buf
         @pos += @buf.size
         @buf = ''
       end
     end
 
-    str
+    array && array.join
   end
 
   def readline(arg = $/, limit = nil)
@@ -227,37 +228,38 @@ class IO
       rs = $/ + $/
     end
 
-    str = ""
+    array = []
+    start_pos = @pos
     while 1
       begin
         _read_buf
       rescue EOFError => e
-        str = nil  if str.empty?
+        array = nil if array.empty?
         break
       end
 
-      if limit && (str.size + @buf.size) >= limit
-        len = limit - str.size
-        str += @buf[0, len]
+      if limit && (@pos - start_pos + @buf.size) >= limit
+        len = limit - (@pos - start_pos)
+        array.push @buf[0, len]
         @pos += len
         @buf = @buf[len, @buf.size - len]
         break
       elsif idx = @buf.index(rs)
         len = idx + rs.size
-        str += @buf[0, len]
+        array.push @buf[0, len]
         @pos += len
         @buf = @buf[len, @buf.size - len]
         break
       else
-        str += @buf
+        array.push @buf
         @pos += @buf.size
         @buf = ''
       end
     end
 
-    raise EOFError.new "end of file reached" if str.nil?
+    raise EOFError.new "end of file reached" if array.nil?
 
-    str
+    array.join
   end
 
   def gets(*args)
