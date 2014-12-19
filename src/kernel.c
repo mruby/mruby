@@ -192,12 +192,8 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
       /* top-level does not have block slot (alway false) */
       if (sp == mrb->c->stbase)
         return mrb_false_value();
-      while (mrb->c->cibase < ci) {
-        if (ci->stackent == sp) {
-          break;
-        }
-        ci--;
-      }
+      ci = mrb->c->cibase + ci->proc->env->cioff;
+      bp = ci[1].stackent + 1;
     }
     if (ci->argc > 0) {
       bp += ci->argc;
