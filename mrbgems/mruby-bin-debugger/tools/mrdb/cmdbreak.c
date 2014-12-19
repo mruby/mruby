@@ -256,7 +256,7 @@ parse_breakcommand(mrdb_state *mrdb, const char **file, uint32_t *line, char **c
   }
 
   args = mrdb->words[1];
-  if((body = strchr(args, ':')) == NULL) {
+  if((body = strrchr(args, ':')) == NULL) {
     body = args;
     type = check_bptype(body);
   } else {
