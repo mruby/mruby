@@ -76,7 +76,7 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest)
     switch(GET_OPCODE(c)){
     case OP_ENTER:
       {
-        mrb_aspec ax = GETARG_Ax(i);
+        mrb_aspec ax = GETARG_Ax(c);
         /* extra 1 means a slot for block */
         argc = MRB_ASPEC_REQ(ax)+MRB_ASPEC_OPT(ax)+MRB_ASPEC_REST(ax)+MRB_ASPEC_POST(ax)+1;
       }
