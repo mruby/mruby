@@ -181,6 +181,38 @@ assert('Splat and multiple assignment') do
   assert_equal [1,nil,2], [a,b,c]
 end
 
+assert('Splat and multiple assignment from variable') do
+  a = [1, 2, 3]
+  b, *c = a
+
+  assert_equal 1, b
+  assert_equal [2, 3], c
+end
+
+assert('Splat and multiple assignment from variables') do
+  a = [1, 2, 3]
+  b = [4, 5, 6, 7]
+  c, d, *e, f, g = *a, *b
+
+  assert_equal 1, c
+  assert_equal 2, d
+  assert_equal [3, 4, 5], e
+  assert_equal 6, f
+  assert_equal 7, g
+end
+
+assert('Splat and multiple assignment in for') do
+  a = [1, 2, 3, 4, 5, 6, 7]
+  for b, c, *d, e, f in [a] do
+  end
+
+  assert_equal 1, b
+  assert_equal 2, c
+  assert_equal [3, 4, 5], d
+  assert_equal 6, e
+  assert_equal 7, f
+end
+
 assert('Return values of case statements') do
   a = [] << case 1
   when 3 then 2
