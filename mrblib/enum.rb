@@ -72,7 +72,7 @@ module Enumerable
   #
   # ISO 15.3.2.2.3
   def collect(&block)
-    return to_enum :collect unless block_given?
+    return to_enum :collect unless block
 
     ary = []
     self.each{|*val|
@@ -108,7 +108,7 @@ module Enumerable
   #
   # ISO 15.3.2.2.5
   def each_with_index(&block)
-    return to_enum :each_with_index unless block_given?
+    return to_enum :each_with_index unless block
 
     i = 0
     self.each{|*val|
@@ -146,7 +146,7 @@ module Enumerable
   #
   # ISO 15.3.2.2.8
   def find_all(&block)
-    return to_enum :find_all unless block_given?
+    return to_enum :find_all unless block
 
     ary = []
     self.each{|*val|
