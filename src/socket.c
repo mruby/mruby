@@ -549,9 +549,15 @@ mrb_socket_sockaddr_family(mrb_state *mrb, mrb_value klass)
   mrb_value sa;
 
   mrb_get_args(mrb, "S", &sa);
+#ifdef __linux__
+  if (RSTRING_LEN(sa) < offsetof(struct sockaddr, sa_family) + sizeof(sa_family_t)) {
+    mrb_raisef(mrb, E_SOCKET_ERROR, "invalid sockaddr (too short)");
+  }
+#else
   if (RSTRING_LEN(sa) < sizeof(struct sockaddr)) {
     mrb_raisef(mrb, E_SOCKET_ERROR, "invalid sockaddr (too short)");
   }
+#endif
   return mrb_fixnum_value(((struct sockaddr *)RSTRING_PTR(sa))->sa_family);
 }
 
