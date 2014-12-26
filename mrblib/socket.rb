@@ -63,9 +63,9 @@ class Addrinfo
 
   def inspect
     if ipv4? or ipv6?
-      if @protocol == Socket::IPPROTO_TCP
+      if @protocol == Socket::IPPROTO_TCP or (@socktype == Socket::SOCK_STREAM and @protocol == 0)
         proto = 'TCP'
-      elsif @protocol == Socket::IPPROTO_UDP
+      elsif @protocol == Socket::IPPROTO_UDP or (@socktype == Socket::SOCK_DGRAM and @protocol == 0)
         proto = 'UDP'
       else
         proto = '???'
@@ -439,7 +439,8 @@ class Socket
 
   def recvfrom(maxlen, flags=0)
     msg, sa = _recvfrom(maxlen, flags)
-    [ msg, _ai_to_array(Addrinfo.new(sa)) ]
+    socktype = self.getsockopt(Socket::SOL_SOCKET, Socket::SO_TYPE).int
+    [ msg, Addrinfo.new(sa, Socket::PF_UNSPEC, socktype) ]
   end
 
   def recvfrom_nonblock(*args)

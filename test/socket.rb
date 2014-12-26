@@ -15,3 +15,20 @@ assert('Socket::getaddrinfo') do
   assert_equal Socket::SOCK_DGRAM,  a[5]
   assert_equal Socket::IPPROTO_UDP, a[6]
 end
+
+assert('Socket#recvfrom') do
+  begin
+    sstr = "abcdefg"
+    s = Socket.new(Socket::AF_INET, Socket::SOCK_DGRAM, 0)
+    c = Socket.new(Socket::AF_INET, Socket::SOCK_DGRAM, 0)
+    s.bind(Socket.sockaddr_in(0, "127.0.0.1"))
+    c.send sstr, 0, s.getsockname
+    rstr, ai = s.recvfrom sstr.size
+
+    assert_equal sstr, rstr
+    assert_true "127.0.0.1", ai.ip_address
+  ensure
+    s.close rescue nil
+    c.close rescue nil
+  end
+end
