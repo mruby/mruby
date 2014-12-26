@@ -357,6 +357,19 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise)
 }
 
 mrb_value
+mrb_io_s_for_fd(mrb_state *mrb, mrb_value klass)
+{
+  struct RClass *c = mrb_class_ptr(klass);
+  enum mrb_vtype ttype = MRB_INSTANCE_TT(c);
+  mrb_value obj;
+
+  /* copied from mrb_instance_alloc() */
+  if (ttype == 0) ttype = MRB_TT_OBJECT;
+  obj = mrb_obj_value((struct RObject*)mrb_obj_alloc(mrb, ttype, c));
+  return mrb_io_initialize(mrb, obj);
+}
+
+mrb_value
 mrb_io_s_sysclose(mrb_state *mrb, mrb_value klass)
 {
   mrb_int fd;
@@ -847,6 +860,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_class_method(mrb, io, "_popen",  mrb_io_s_popen,   MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "_sysclose",  mrb_io_s_sysclose, MRB_ARGS_REQ(1));
 #endif
+  mrb_define_class_method(mrb, io, "for_fd",  mrb_io_s_for_fd,   MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "select",  mrb_io_s_select,  MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, MRB_ARGS_ANY());
 
