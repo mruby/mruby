@@ -437,7 +437,7 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
       }
       break;
     case -1: /* Error */
-      mrb_raise(mrb, E_IO_ERROR, "sysread failed");
+      mrb_sys_fail(mrb, "sysread failed");
       break;
     default:
       if (RSTRING_LEN(buf) != ret) {
