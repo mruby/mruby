@@ -21,6 +21,7 @@ MRuby::Build.new do |conf|
 
   conf.gem :git => 'https://github.com/iij/mruby-mtest.git'
   conf.gem :git => 'https://github.com/iij/mruby-io.git'
+  conf.gem :git => 'https://github.com/iij/mruby-pack.git'
 
   conf.gem File.expand_path(File.dirname(__FILE__))
 end
