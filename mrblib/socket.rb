@@ -181,6 +181,10 @@ class BasicSocket
     @do_not_reverse_lookup = @@do_not_reverse_lookup
   end
 
+  def self.for_fd(fd)
+    super(fd, "r+")
+  end
+
   #def connect_address
 
   def local_address
@@ -452,14 +456,24 @@ class Socket
   end
 end
 
-class UNIXSocket
+class UNIXSocket < BasicSocket
   def initialize(path, &block)
-    super(Socket._socket(AF_UNIX, SOCK_STREAM, 0), "r+")
-    Socket._connect(self.fileno, Socket.sockaddr_un(path))
-    if block
-      block.call(self)
+    if self.is_a? UNIXServer
+      super(path, "r")
     else
-      self
+      super(Socket._socket(Socket::AF_UNIX, Socket::SOCK_STREAM, 0), "r+")
+      Socket._connect(self.fileno, Socket.sockaddr_un(path))
+
+      if block_given?
+        begin
+          yield self
+        ensure
+          begin
+            self.close unless self.closed?
+          rescue StandardError
+          end
+        end
+      end
     end
   end
 
@@ -488,23 +502,42 @@ class UNIXSocket
 
   def recvfrom(maxlen, flags=0)
     msg, sa = _recvfrom(maxlen, flags)
-    [ msg, [ "AF_UNIX", Addrinfo.new(sa).unix_path ] ]
+    path = (sa.size > 0) ? Addrinfo.new(sa).unix_path : ""
+    [ msg, [ "AF_UNIX", path ] ]
   end
 
   #def send_io
 end
 
-class UNIXServer
-  def initialize(path, &block)
-    super(Socket._socket(Socket::AF_UNIX, Socket::SOCK_STREAM, 0), "r")
-    Socket._bind(self.fileno, Socket.pack_sockaddr_un(path))
-    listen(5)
-    self
+class UNIXServer < UNIXSocket
+  def initialize(path)
+    fd = Socket._socket(Socket::AF_UNIX, Socket::SOCK_STREAM, 0)
+    begin
+      super(fd)
+      Socket._bind(fd, Socket.pack_sockaddr_un(path))
+      self.listen(5)
+    rescue => e
+      IO._sysclose(fd) rescue nil
+      raise e
+    end
+
+    if block_given?
+      begin
+        yield self
+      ensure
+        self.close rescue nil unless self.closed?
+      end
+    end
   end
 
   def accept
-    fd, addr = self.sysaccept
-    [ UNIXSocket.for_fd(fd), addr ]
+    fd = self.sysaccept
+    begin
+      sock = UNIXSocket.for_fd(fd)
+    rescue
+      IO._sysclose(fd) rescue nil
+    end
+    sock
   end
 
   def accept_nonblock

@@ -673,7 +673,7 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   mrb_define_class_method(mrb, sock, "socketpair", mrb_socket_socketpair, MRB_ARGS_REQ(3));
   //mrb_define_method(mrb, sock, "sysaccept", mrb_socket_accept, MRB_ARGS_NONE());
 
-  usock = mrb_define_class(mrb, "UNIXSocket", io);
+  usock = mrb_define_class(mrb, "UNIXSocket", bsock);
   //mrb_define_class_method(mrb, usock, "pair", mrb_unixsocket_open, MRB_ARGS_OPT(2));
   //mrb_define_class_method(mrb, usock, "socketpair", mrb_unixsocket_open, MRB_ARGS_OPT(2));
 

@@ -29,6 +29,7 @@ Date: Tue, 21 May 2013 04:31:30 GMT
 - add missing methods
 - write more tests
 - fix possible descriptor leakage (see XXX comments)
+- `UNIXSocket#recv_io` `UNIXSocket#send_io`
 
 
 ## License
