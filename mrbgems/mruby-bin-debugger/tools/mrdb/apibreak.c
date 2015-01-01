@@ -203,9 +203,6 @@ mrb_debug_set_break_line( mrb_state *mrb, mrb_debug_context *dbg, const char *fi
   } 
 
   set_file = mrb_malloc(mrb, strlen(file) + 1);
-  if(set_file == NULL) {
-    return MRB_DEBUG_NOBUF;
-  }
 
   index = dbg->bpnum;
   dbg->bp[index].bpno = dbg->next_bpno;
@@ -243,10 +240,6 @@ mrb_debug_set_break_method( mrb_state *mrb, mrb_debug_context *dbg, const char *
 
   if(class_name != NULL) {
     set_class = mrb_malloc(mrb, strlen(class_name) + 1);
-    if(set_class == NULL) {
-      return MRB_DEBUG_NOBUF;
-    }
-    
     strncpy(set_class, class_name, strlen(class_name) + 1);
   }
   else {
@@ -254,12 +247,6 @@ mrb_debug_set_break_method( mrb_state *mrb, mrb_debug_context *dbg, const char *
   }
 
   set_method = mrb_malloc(mrb, strlen(method_name) + 1);
-  if(set_method == NULL) {
-    if(set_class != NULL) {
-      mrb_free(mrb, (void*)set_class);
-    }
-    return MRB_DEBUG_NOBUF;
-  }
 
   strncpy(set_method, method_name, strlen(method_name) + 1);
 

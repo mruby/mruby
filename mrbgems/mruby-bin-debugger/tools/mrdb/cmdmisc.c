@@ -255,11 +255,11 @@ replace_ext(mrb_state *mrb, const char *filename, const char *ext)
     len = strlen(filename);
   }
 
-  if ((s = mrb_malloc(mrb, len + strlen(ext) + 1)) != NULL) {
-    memset(s, '\0', len + strlen(ext) + 1);
-    strncpy(s, filename, len);
-    strcat(s, ext);
-  }
+  s = mrb_malloc(mrb, len + strlen(ext) + 1);
+  memset(s, '\0', len + strlen(ext) + 1);
+  strncpy(s, filename, len);
+  strcat(s, ext);
+
   return s;
 }
 
