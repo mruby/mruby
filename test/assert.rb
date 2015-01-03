@@ -228,7 +228,8 @@ def report()
   t_print("Crash: #{$kill_test}\n")
 
   if Object.const_defined?(:Time)
-    t_print(" Time: #{Time.now - $test_start} seconds\n")
+    t_time = Time.now - $test_start
+    t_print(" Time: #{t_time.round(2)} seconds\n")
   end
 end
 
