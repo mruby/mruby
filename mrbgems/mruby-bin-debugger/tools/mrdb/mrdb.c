@@ -651,12 +651,12 @@ main(int argc, char **argv)
   mrb_debug_context* dbg_backup;
   debug_command *cmd;
 
+ l_restart:
+
   if (mrb == NULL) {
     fputs("Invalid mrb_state, exiting mruby\n", stderr);
     return EXIT_FAILURE;
   }
-
- l_restart:
 
   /* parse command parameters */
   n = parse_args(mrb, argc, argv, &args);
