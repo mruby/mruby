@@ -52,7 +52,11 @@ MRuby.each_target do |target|
   gems.map do |gem|
     current_dir = gem.dir.relative_path_from(Dir.pwd)
     relative_from_root = gem.dir.relative_path_from(MRUBY_ROOT)
-    current_build_dir = "#{build_dir}/#{relative_from_root}"
+    current_build_dir = File.expand_path "#{build_dir}/#{relative_from_root}"
+
+    if current_build_dir !~ /^#{build_dir}/
+      current_build_dir = "#{build_dir}/mrbgems/#{gem.name}"
+    end
 
     gem.bins.each do |bin|
       exec = exefile("#{build_dir}/bin/#{bin}")
