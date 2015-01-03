@@ -193,9 +193,6 @@ is_code_block_open(struct mrb_parser_state *parser)
   return code_block_open;
 }
 
-void mrb_show_version(mrb_state *);
-void mrb_show_copyright(mrb_state *);
-
 struct _args {
   mrb_bool verbose      : 1;
   int argc;

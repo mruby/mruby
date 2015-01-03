@@ -24,9 +24,6 @@ p(mrb_state *mrb, mrb_value obj)
 #define p(mrb,obj) mrb_p(mrb,obj)
 #endif
 
-void mrb_show_version(mrb_state *);
-void mrb_show_copyright(mrb_state *);
-
 struct _args {
   FILE *rfp;
   char* cmdline;
