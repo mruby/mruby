@@ -9,16 +9,6 @@
 #define RITEBIN_EXT ".mrb"
 #define C_EXT       ".c"
 
-#if defined(__cplusplus)
-extern "C" {
-void mrb_show_version(mrb_state *);
-void mrb_show_copyright(mrb_state *);
-}
-#else
-void mrb_show_version(mrb_state *);
-void mrb_show_copyright(mrb_state *);
-#endif
-
 struct mrbc_args {
   int argc;
   char **argv;

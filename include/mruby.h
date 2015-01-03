@@ -439,6 +439,9 @@ MRB_API void* mrb_alloca(mrb_state *mrb, size_t);
 
 MRB_API void mrb_state_atexit(mrb_state *mrb, mrb_atexit_func func);
 
+MRB_API void mrb_show_version(mrb_state *mrb);
+MRB_API void mrb_show_copyright(mrb_state *mrb);
+
 #ifdef MRB_DEBUG
 #include <assert.h>
 #define mrb_assert(p) assert(p)
