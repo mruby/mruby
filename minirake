@@ -259,10 +259,10 @@ module MiniRake
       MiniRake::FileTask.define_task(args) do |t|
         block.call(t) unless block.nil?
         dir = args.is_a?(Hash) ? args.keys.first : args
-        dir.split(File::SEPARATOR).reject(&:empty?).inject("") do |acc, part|
-          (acc + File::SEPARATOR + part).tap do |d|
+        (dir.split(File::SEPARATOR) + ['']).inject do |acc, part|
+          (acc + File::SEPARATOR).tap do |d|
             Dir.mkdir(d) unless File.exists? d
-          end
+          end + part
         end
       end
     end
