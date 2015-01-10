@@ -45,7 +45,7 @@ build_path(mrb_state *mrb, const char *dir, const char *base)
   len = strlen(base) + 1;
 
   if (strcmp(dir, ".")) {
-    len += strlen(dir) + strlen("/");
+    len += strlen(dir) + sizeof("/") - 1;
   }
 
   path = mrb_malloc(mrb, len);
