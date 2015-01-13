@@ -146,7 +146,16 @@ class String
   ##
   # ISO 15.2.10.5.27
   def match(re, &block)
-    re.match(self, &block)
+    if re.respond_to? :to_str
+      if Object.const_defined?(:Regexp)
+        r = Regexp.new(re)
+        r.match(self, &block)
+      else
+        raise NotImplementedError, "String#match needs Regexp class"
+      end
+    else
+      re.match(self, &block)
+    end
   end
 end
 
