@@ -393,3 +393,65 @@ assert('String#ljust') do
   assert_equal "hello123412341234123", "hello".ljust(20, '1234')
   assert_equal "hello", "hello".ljust(-3)
 end
+
+assert('String#upto') do
+  a     = "aa"
+  start = "aa"
+  count = 0
+  assert_equal("aa", a.upto("zz") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(676, count)
+
+  a     = "a"
+  start = "a"
+  count = 0
+  assert_equal("a", a.upto("a") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(1, count)
+
+  a     = "a"
+  start = "a"
+  count = 0
+  assert_equal("a", a.upto("b", true) {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(1, count)
+
+  a     = "0"
+  start = "0"
+  count = 0
+  assert_equal("0", a.upto("0") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(1, count)
+
+  a     = "0"
+  start = "0"
+  count = 0
+  assert_equal("0", a.upto("-1") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(0, count)
+
+  a     = "-1"
+  start = "-1"
+  count = 0
+  assert_equal("-1", a.upto("-2") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(2, count)
+end
