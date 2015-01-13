@@ -386,3 +386,10 @@ assert('String#prepend') do
   assert_equal "hello world", a.prepend("hello ")
   assert_equal "hello world", a
 end
+
+assert('String#ljust') do
+  assert_equal "hello", "hello".ljust(4)
+  assert_equal "hello               ", "hello".ljust(20)
+  assert_equal "hello123412341234123", "hello".ljust(20, '1234')
+  assert_equal "hello", "hello".ljust(-3)
+end

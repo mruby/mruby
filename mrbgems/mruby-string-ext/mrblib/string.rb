@@ -244,4 +244,27 @@ class String
     return str + self if pos == 0
     return self[0..pos - 1] + str + self[pos..-1]
   end
+
+  ##
+  #  call-seq:
+  #     str.ljust(integer, padstr=' ')   -> new_str
+  #
+  #  If <i>integer</i> is greater than the length of <i>str</i>, returns a new
+  #  <code>String</code> of length <i>integer</i> with <i>str</i> left justified
+  #  and padded with <i>padstr</i>; otherwise, returns <i>str</i>.
+  #
+  #     "hello".ljust(4)            #=> "hello"
+  #     "hello".ljust(20)           #=> "hello               "
+  #     "hello".ljust(20, '1234')   #=> "hello123412341234123"
+  def ljust(idx, padstr = ' ')
+    if idx <= self.size
+      return self
+    end
+    newstr = self.dup
+    newstr << padstr
+    while newstr.size <= idx
+      newstr << padstr
+    end
+    return newstr.slice(0,idx)
+  end
 end
