@@ -185,15 +185,10 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
     given_p = FALSE;
   }
   else {
-    /* block_given? called within block; check upper scope */
-    if (ci->proc->env && ci->proc->env->stack) {
-      mrb_value *sp = ci->proc->env->stack;
 
-      /* top-level does not have block slot (alway false) */
-      if (sp == mrb->c->stbase)
-        return mrb_false_value();
-      ci = mrb->c->cibase + ci->proc->env->cioff;
-      bp = ci[1].stackent + 1;
+    /* If block_given? is called within block, it always returns false. */
+    if (ci->proc->env && ci->proc->env->stack) {
+      return mrb_false_value();
     }
     if (ci->argc > 0) {
       bp += ci->argc;
