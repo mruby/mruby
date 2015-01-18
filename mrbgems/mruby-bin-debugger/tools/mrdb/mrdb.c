@@ -569,7 +569,7 @@ mrb_code_fetch_hook(mrb_state *mrb, mrb_irep *irep, mrb_code *pc, mrb_value *reg
   switch (dbg->xm) {
   case DBG_STEP:
   case DBG_NEXT:  // temporary
-    if (dbg->prvfile == file && dbg->prvline == line) {
+    if (!file || (dbg->prvfile == file && dbg->prvline == line)) {
       return;
     }
     dbg->method_bpno = 0;
