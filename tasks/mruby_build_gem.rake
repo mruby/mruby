@@ -31,7 +31,7 @@ module MRuby
       return nil unless Gem.current
 
       Gem.current.dir = gemdir
-      Gem.current.build = MRuby::Build.current
+      Gem.current.build = self.is_a?(MRuby::Build) ? self : MRuby::Build.current
       Gem.current.build_config_initializer = block
       gems << Gem.current
 
