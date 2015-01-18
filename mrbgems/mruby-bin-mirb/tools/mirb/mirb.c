@@ -278,6 +278,7 @@ print_cmdline(int code_block_open)
   else {
     printf("> ");
   }
+  fflush(stdout);
 }
 #endif
 

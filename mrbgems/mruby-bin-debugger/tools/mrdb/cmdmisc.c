@@ -466,6 +466,7 @@ dbgcmd_quit(mrb_state *mrb, mrdb_state *mrdb)
       int buf;
 
       printf("The program is running.  Exit anyway? (y or n) ");
+      fflush(stdout);
 
       if ((buf = getchar()) == EOF) {
         mrdb->dbg->xm = DBG_QUIT;

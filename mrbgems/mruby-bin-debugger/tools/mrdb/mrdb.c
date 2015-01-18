@@ -478,6 +478,7 @@ get_and_parse_command(mrb_state *mrb, mrdb_state *mrdb)
   while (!cmd) {
     for (p=NULL; !p || *p=='\0'; ) {
       printf("(%s:%d) ", mrdb->dbg->prvfile, mrdb->dbg->prvline);
+      fflush(stdout);
       p = get_command(mrb, mrdb);
     }
 
