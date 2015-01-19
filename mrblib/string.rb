@@ -129,6 +129,9 @@ class String
   # Modify +self+ by replacing the content of +self+
   # at the position +pos+ with +value+.
   def []=(pos, value)
+    if pos < 0
+      pos += self.length
+    end
     b = self[0, pos]
     a = self[pos+1..-1]
     self.replace([b, value, a].join(''))
