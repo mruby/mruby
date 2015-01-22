@@ -22,7 +22,7 @@ class String
     if params.is_a?(Hash)
       str = self.clone
       params.each do |k, v|
-        str.gsub!("%{#{k}}", v)
+        str.gsub!("%{#{k}}") { v }
       end
       str
     else
