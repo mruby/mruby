@@ -177,31 +177,35 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
 {
   mrb_callinfo *ci = mrb->c->ci;
   mrb_value *bp;
-  mrb_bool given_p;
 
   bp = ci->stackent + 1;
   ci--;
   if (ci <= mrb->c->cibase) {
-    given_p = FALSE;
+    return mrb_false_value();
   }
-  else {
-    /* block_given? called within block; check upper scope */
-    if (ci->proc->env && ci->proc->env->stack) {
-      mrb_value *sp = ci->proc->env->stack;
+  /* block_given? called within block; check upper scope */
+  if (ci->proc->env && ci->proc->env->stack) {
+    mrb_value *sp = ci->proc->env->stack;
+    mrb_callinfo *ci2 = ci;
 
-      /* top-level does not have block slot (alway false) */
-      if (sp == mrb->c->stbase)
-        return mrb_false_value();
-      ci = mrb->c->cibase + ci->proc->env->cioff;
-      bp = ci[1].stackent + 1;
+    ci2--;
+
+    /* loop method does not receive block */
+    if (ci2->mid == mrb_intern_cstr(mrb, "loop")) {
+      return mrb_false_value();
     }
-    if (ci->argc > 0) {
-      bp += ci->argc;
-    }
-    given_p = !mrb_nil_p(*bp);
+
+    /* top-level does not have block slot (alway false) */
+    if (sp == mrb->c->stbase)
+      return mrb_false_value();
+    ci = mrb->c->cibase + ci->proc->env->cioff;
+    bp = ci[1].stackent + 1;
+  }
+  if (ci->argc > 0) {
+    bp += ci->argc;
   }
 
-  return mrb_bool_value(given_p);
+  return mrb_bool_value(!mrb_nil_p(*bp));
 }
 
 /* 15.3.1.3.7  */
