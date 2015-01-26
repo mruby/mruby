@@ -1920,7 +1920,7 @@ RETRY_TRY_BLOCK:
             SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x + (mrb_float)y);
             break;
           }
-          mrb_fixnum(regs[a]) = z;
+          SET_INT_VALUE(regs[a], z);
         }
         break;
       case MRB_TT_FLOAT:
@@ -1958,7 +1958,7 @@ RETRY_TRY_BLOCK:
             SET_FLOAT_VALUE(mrb, regs_a[0], (mrb_float)x - (mrb_float)y);
           }
           else {
-            mrb_fixnum(regs_a[0]) = z;
+            SET_INT_VALUE(regs_a[0], z);
           }
         }
         break;
