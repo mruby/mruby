@@ -186,14 +186,21 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
   }
   else {
     /* block_given? called within block; check upper scope */
-    if (ci->proc->env && ci->proc->env->stack) {
-      mrb_value *sp = ci->proc->env->stack;
+    if (ci->proc->env) {
+      struct REnv *e = ci->proc->env;
+      mrb_value *sp;
 
-      /* top-level does not have block slot (alway false) */
-      if (sp == mrb->c->stbase)
-        return mrb_false_value();
-      ci = mrb->c->cibase + ci->proc->env->cioff;
-      bp = ci[1].stackent + 1;
+      while (e->c) {
+        e = (struct REnv*)e->c;
+      }
+      sp = e->stack;
+      if (sp) {
+        /* top-level does not have block slot (alway false) */
+        if (sp == mrb->c->stbase)
+          return mrb_false_value();
+        ci = mrb->c->cibase + e->cioff;
+        bp = ci[1].stackent + 1;
+      }
     }
     if (ci->argc > 0) {
       bp += ci->argc;
