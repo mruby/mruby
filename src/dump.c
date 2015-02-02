@@ -1045,7 +1045,7 @@ is_valid_c_symbol_name(const char *name)
    return TRUE;
 }
 
-static int
+static mrb_bool
 dump_bigendian_p(uint8_t flags)
 {
   switch (flags & DUMP_ENDIAN_NAT) {
