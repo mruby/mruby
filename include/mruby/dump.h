@@ -14,10 +14,16 @@ extern "C" {
 #include "mruby.h"
 #include "mruby/irep.h"
 
-int mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, size_t *bin_size);
+#define DUMP_DEBUG_INFO 1
+#define DUMP_ENDIAN_BIG 2
+#define DUMP_ENDIAN_LIL 4
+#define DUMP_ENDIAN_NAT 6 
+#define DUMP_ENDIAN_MASK 6 
+
+int mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size);
 #ifdef ENABLE_STDIO
-int mrb_dump_irep_binary(mrb_state*, mrb_irep*, int, FILE*);
-int mrb_dump_irep_cfunc(mrb_state *mrb, mrb_irep*, int, FILE *f, const char *initname);
+int mrb_dump_irep_binary(mrb_state*, mrb_irep*, uint8_t, FILE*);
+int mrb_dump_irep_cfunc(mrb_state *mrb, mrb_irep*, uint8_t flags, FILE *f, const char *initname);
 mrb_irep *mrb_read_irep_file(mrb_state*, FILE*);
 MRB_API mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 MRB_API mrb_value mrb_load_irep_file_cxt(mrb_state*, FILE*, mrbc_context*);
@@ -42,7 +48,8 @@ MRB_API mrb_irep *mrb_read_irep(mrb_state*, const uint8_t*);
 #define MRB_DUMP_NULL_SYM_LEN         0xFFFF
 
 /* Rite Binary File header */
-#define RITE_BINARY_IDENTIFIER         "RITE"
+#define RITE_BINARY_IDENT              "RITE"
+#define RITE_BINARY_IDENT_LIL          "ETIR"
 #define RITE_BINARY_FORMAT_VER         "0003"
 #define RITE_COMPILER_NAME             "MATZ"
 #define RITE_COMPILER_VERSION          "0000"
@@ -50,17 +57,17 @@ MRB_API mrb_irep *mrb_read_irep(mrb_state*, const uint8_t*);
 #define RITE_VM_VER                    "0000"
 
 #define RITE_BINARY_EOF                "END\0"
-#define RITE_SECTION_IREP_IDENTIFIER   "IREP"
-#define RITE_SECTION_LINENO_IDENTIFIER "LINE"
-#define RITE_SECTION_DEBUG_IDENTIFIER  "DBG\0"
-#define RITE_SECTION_LV_IDENTIFIER     "LVAR"
+#define RITE_SECTION_IREP_IDENT        "IREP"
+#define RITE_SECTION_LINENO_IDENT      "LINE"
+#define RITE_SECTION_DEBUG_IDENT       "DBG\0"
+#define RITE_SECTION_LV_IDENT          "LVAR"
 
 #define MRB_DUMP_DEFAULT_STR_LEN      128
 #define MRB_DUMP_ALIGNMENT            sizeof(uint32_t)
 
 /* binary header */
 struct rite_binary_header {
-  uint8_t binary_identify[4]; /* Binary Identifier */
+  uint8_t binary_ident[4];    /* Binary Identifier */
   uint8_t binary_version[4];  /* Binary Format Version */
   uint8_t binary_crc[2];      /* Binary CRC */
   uint8_t binary_size[4];     /* Binary Size */
@@ -70,7 +77,7 @@ struct rite_binary_header {
 
 /* section header */
 #define RITE_SECTION_HEADER \
-  uint8_t section_identify[4]; \
+  uint8_t section_ident[4]; \
   uint8_t section_size[4]
 
 struct rite_section_header {
@@ -101,6 +108,17 @@ struct rite_binary_footer {
   RITE_SECTION_HEADER;
 };
 
+static inline int
+bigendian_p()
+{
+  int i;
+  char *p;
+
+  i = 1;
+  p = (char*)&i;
+  return p[0]?0:1;
+}
+
 static inline size_t
 uint8_to_bin(uint8_t s, uint8_t *bin)
 {
@@ -126,6 +144,16 @@ uint32_to_bin(uint32_t l, uint8_t *bin)
   return sizeof(uint32_t);
 }
 
+static inline size_t
+uint32l_to_bin(uint32_t l, uint8_t *bin)
+{
+  bin[3] = (l >> 24) & 0xff;
+  bin[2] = (l >> 16) & 0xff;
+  bin[1] = (l >> 8) & 0xff;
+  bin[0] = l & 0xff;
+  return sizeof(uint32_t);
+}
+
 static inline uint32_t
 bin_to_uint32(const uint8_t *bin)
 {
@@ -133,6 +161,15 @@ bin_to_uint32(const uint8_t *bin)
          (uint32_t)bin[1] << 16 |
          (uint32_t)bin[2] << 8  |
          (uint32_t)bin[3];
+}
+
+static inline uint32_t
+bin_to_uint32l(const uint8_t *bin)
+{
+  return (uint32_t)bin[3] << 24 |
+         (uint32_t)bin[2] << 16 |
+         (uint32_t)bin[1] << 8  |
+         (uint32_t)bin[0];
 }
 
 static inline uint16_t
