@@ -1514,6 +1514,7 @@ RETRY_TRY_BLOCK:
               localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
               goto L_RAISE;
             }
+            mrb->c->stack = mrb->c->ci->stackent;
             mrb->c->ci = ci;
             break;
           }
@@ -1548,6 +1549,7 @@ RETRY_TRY_BLOCK:
             c->prev = NULL;
           }
           ci = mrb->c->ci;
+          mrb->c->stack = ci->stackent;
           mrb->c->ci = mrb->c->cibase + proc->env->cioff + 1;
           while (ci > mrb->c->ci) {
             if (ci[-1].acc == CI_ACC_SKIP) {
