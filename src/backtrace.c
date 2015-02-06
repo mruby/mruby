@@ -132,9 +132,18 @@ output_backtrace(mrb_state *mrb, mrb_int ciidx, mrb_code *pc0, output_stream_fun
 static void
 exc_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func func, void *stream)
 {
+  mrb_value lastpc;
+  mrb_code *code;
+  
+  lastpc = mrb_obj_iv_get(mrb, exc, mrb_intern_lit(mrb, "lastpc"));
+  if (mrb_nil_p(lastpc)) {
+    code = NULL;
+  } else {
+    code = (mrb_code*)mrb_cptr(lastpc);
+  }
+
   output_backtrace(mrb, mrb_fixnum(mrb_obj_iv_get(mrb, exc, mrb_intern_lit(mrb, "ciidx"))),
-                   (mrb_code*)mrb_cptr(mrb_obj_iv_get(mrb, exc, mrb_intern_lit(mrb, "lastpc"))),
-                   func, stream);
+                   code, func, stream);
 }
 
 /* mrb_print_backtrace/mrb_get_backtrace:
