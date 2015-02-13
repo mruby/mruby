@@ -175,6 +175,27 @@
 #ifdef IP_XFRM_POLICY
   define_const(IP_XFRM_POLICY);
 #endif
+#ifdef IPV6_JOIN_GROUP
+  define_const(IPV6_JOIN_GROUP);
+#endif
+#ifdef IPV6_LEAVE_GROUP
+  define_const(IPV6_LEAVE_GROUP);
+#endif
+#ifdef IPV6_MULTICAST_HOPS
+  define_const(IPV6_MULTICAST_HOPS);
+#endif
+#ifdef IPV6_MULTICAST_IF
+  define_const(IPV6_MULTICAST_IF);
+#endif
+#ifdef IPV6_MULTICAST_LOOP
+  define_const(IPV6_MULTICAST_LOOP);
+#endif
+#ifdef IPV6_UNICAST_HOPS
+  define_const(IPV6_UNICAST_HOPS);
+#endif
+#ifdef IPV6_V6ONLY
+  define_const(IPV6_V6ONLY);
+#endif
 #ifdef IPPROTO_AH
   define_const(IPPROTO_AH);
 #endif
