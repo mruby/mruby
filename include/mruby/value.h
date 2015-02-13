@@ -34,11 +34,9 @@ struct mrb_state;
 
 #ifdef MRB_USE_FLOAT
   typedef float mrb_float;
-# define mrb_float_to_str(buf, i) sprintf(buf, "%.7e", i)
 # define str_to_mrb_float(buf) strtof(buf, NULL)
 #else
   typedef double mrb_float;
-# define mrb_float_to_str(buf, i) sprintf(buf, "%.16e", i)
 # define str_to_mrb_float(buf) strtod(buf, NULL)
 #endif
 
