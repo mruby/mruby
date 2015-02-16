@@ -18,6 +18,12 @@
 
 #ifdef ENABLE_STDIO
 
+#ifdef MRB_USE_FLOAT
+#define MRB_FLOAT_FMT "%.9e"
+#else
+#define MRB_FLOAT_FMT "%.16e"
+#endif
+
 static size_t get_irep_record_size_1(mrb_state *mrb, mrb_irep *irep);
 
 #if UINT32_MAX > SIZE_MAX
@@ -111,7 +117,6 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
   size_t size = 0;
   size_t pool_no;
   mrb_value str;
-  char buf[32];
 
   size += sizeof(uint32_t); /* plen */
   size += irep->plen * (sizeof(uint8_t) + sizeof(uint16_t)); /* len(n) */
@@ -130,9 +135,9 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
       break;
 
     case MRB_TT_FLOAT:
+      str = mrb_float_to_str(mrb, irep->pool[pool_no], MRB_FLOAT_FMT);
       {
-        int len;
-        len = mrb_float_to_str(buf, mrb_float(irep->pool[pool_no]));
+        mrb_int len = RSTRING_LEN(str);
         mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
         size += (size_t)len;
       }
@@ -163,7 +168,6 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
   uint16_t len;
   mrb_value str;
   const char *char_ptr;
-  char char_buf[30];
 
   cur += uint32_to_bin(irep->plen, cur); /* number of pool */
 
@@ -186,13 +190,15 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
 
     case MRB_TT_FLOAT:
       cur += uint8_to_bin(IREP_TT_FLOAT, cur); /* data type */
+      str = mrb_float_to_str(mrb, irep->pool[pool_no], MRB_FLOAT_FMT);
+      char_ptr = RSTRING_PTR(str);
       {
-        int tlen;
-        tlen = mrb_float_to_str(char_buf, mrb_float(irep->pool[pool_no]));
-        mrb_assert_int_fit(int, tlen, uint16_t, UINT16_MAX);
+        mrb_int tlen;
+
+        tlen = RSTRING_LEN(str);
+        mrb_assert_int_fit(mrb_int, tlen, uint16_t, UINT16_MAX);
         len = (uint16_t)tlen;
       }
-      char_ptr = &char_buf[0];
       break;
 
     case MRB_TT_STRING:
