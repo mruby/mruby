@@ -3,7 +3,7 @@
 Most code in this file originates from musl (src/stdio/vfprintf.c)
 which, just like mruby itself, is licensed under the MIT license.
 
-Copyright © 2005-2014 Rich Felker, et al.
+Copyright (c) 2005-2014 Rich Felker, et al.
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -59,15 +59,16 @@ out(struct fmt_args *f, const char *s, size_t l)
   mrb_str_cat(f->mrb, f->str, s, l);
 }
 
+#define PAD_SIZE 256
 static void
 pad(struct fmt_args *f, char c, int w, int l, int fl)
 {
-  char pad[256];
+  char pad[PAD_SIZE];
   if (fl & (LEFT_ADJ | ZERO_PAD) || l >= w) return;
   l = w - l;
-  memset(pad, c, l>sizeof pad ? sizeof pad : l);
-  for (; l >= sizeof pad; l -= sizeof pad)
-    out(f, pad, sizeof pad);
+  memset(pad, c, l>PAD_SIZE ? PAD_SIZE : l);
+  for (; l >= PAD_SIZE; l -= PAD_SIZE)
+    out(f, pad, PAD_SIZE);
   out(f, pad, l);
 }
 
@@ -203,7 +204,7 @@ fmt_fp(struct fmt_args *f, long double y, int w, int p, int fl, int t)
     uint32_t carry=0, *b;
     int sh=MIN(9,-e2), need=1+(p+LDBL_MANT_DIG/3+8)/9;
     for (d=a; d<z; d++) {
-      uint32_t rm = *d & (1<<sh)-1;
+      uint32_t rm = *d & ((1<<sh)-1);
       *d = (*d>>sh) + carry;
       carry = (1000000000>>sh) * rm;
     }
