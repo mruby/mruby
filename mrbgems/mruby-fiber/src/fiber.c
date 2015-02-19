@@ -291,6 +291,8 @@ fiber_transfer(mrb_state *mrb, mrb_value self)
   return fiber_switch(mrb, self, len, a, FALSE);
 }
 
+/* yield values to the caller fiber */
+/* mrb_fiber_yield() must be called as `return mrb_fiber_yield(...)` */
 MRB_API mrb_value
 mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
 {
