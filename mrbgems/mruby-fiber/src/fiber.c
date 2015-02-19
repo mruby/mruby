@@ -228,6 +228,13 @@ fiber_resume(mrb_state *mrb, mrb_value self)
   return fiber_switch(mrb, self, len, a, TRUE);
 }
 
+/* resume thread with given arguments */
+MRB_API mrb_value
+mrb_fiber_resume(mrb_state *mrb, mrb_value fib, mrb_int len, const mrb_value *a)
+{
+  return fiber_switch(mrb, fib, len, a, TRUE);
+}
+
 /*
  *  call-seq:
  *     fiber.alive? -> true or false
