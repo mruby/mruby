@@ -241,6 +241,20 @@ assert('Return values of case statements') do
   assert_equal 1, fb.call
 end
 
+assert('Return values of if and case statements') do
+  true_clause_value =
+    if true
+      1
+    else
+      case 2
+      when 3
+      end
+      4
+    end
+
+  assert_equal 1, true_clause_value
+end
+
 assert('splat in case statement') do
   values = [3,5,1,7,8]
   testa = [1,2,7]
