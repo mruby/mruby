@@ -1458,7 +1458,7 @@ codegen(codegen_scope *s, node *tree, int val)
         int pos = cursp();
         genop(s, MKOP_A(OP_LOADNIL, cursp()));
         if (pos3) dispatch_linked(s, pos3);
-        pop();
+        if (head) pop();
         genop(s, MKOP_AB(OP_MOVE, cursp(), pos));
         push();
       }
