@@ -255,6 +255,16 @@ assert('Return values of if and case statements') do
   assert_equal 1, true_clause_value
 end
 
+assert('Return values of no expression case statement') do
+  when_value =
+    case
+    when true
+      1
+    end
+
+  assert_equal 1, when_value
+end
+
 assert('splat in case statement') do
   values = [3,5,1,7,8]
   testa = [1,2,7]
