@@ -316,7 +316,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
 
   if (!mrb->jmp) {
     struct mrb_jmpbuf c_jmp;
-    mrb_callinfo *old_ci = mrb->c->ci;
+    size_t nth_ci = mrb->c->ci - mrb->c->cibase;
 
     MRB_TRY(&c_jmp) {
       mrb->jmp = &c_jmp;
@@ -325,7 +325,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       mrb->jmp = 0;
     }
     MRB_CATCH(&c_jmp) { /* error */
-      while (old_ci != mrb->c->ci) {
+      while (nth_ci < (mrb->c->ci - mrb->c->cibase)) {
         mrb->c->stack = mrb->c->ci->stackent;
         cipop(mrb);
       }
