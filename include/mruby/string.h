@@ -74,7 +74,7 @@ mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 #define MRB_STR_EMBED_LEN_MASK 0xf8
 #define MRB_STR_EMBED_LEN_SHIFT 3
 
-MRB_API void mrb_gc_free_str(mrb_state*, struct RString*);
+void mrb_gc_free_str(mrb_state*, struct RString*);
 MRB_API void mrb_str_modify(mrb_state*, struct RString*);
 MRB_API void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
 MRB_API mrb_value mrb_str_plus(mrb_state*, mrb_value, mrb_value);
@@ -106,6 +106,9 @@ mrb_value mrb_str_pool(mrb_state *mrb, mrb_value str);
 mrb_int mrb_str_hash(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_dump(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
+
+void mrb_noregexp(mrb_state *mrb, mrb_value self);
+void mrb_regexp_check(mrb_state *mrb, mrb_value obj);
 
 /* For backward compatibility */
 #define mrb_str_cat2(mrb, str, ptr) mrb_str_cat_cstr(mrb, str, ptr)

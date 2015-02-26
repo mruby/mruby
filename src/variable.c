@@ -542,6 +542,32 @@ mrb_iv_defined(mrb_state *mrb, mrb_value obj, mrb_sym sym)
   return mrb_obj_iv_defined(mrb, mrb_obj_ptr(obj), sym);
 }
 
+#define identchar(c) (ISALNUM(c) || (c) == '_' || !ISASCII(c))
+
+MRB_API mrb_bool
+mrb_iv_p(mrb_state *mrb, mrb_sym iv_name)
+{
+  const char *s;
+  mrb_int i, len;
+
+  s = mrb_sym2name_len(mrb, iv_name, &len);
+  if (len < 2) return FALSE;
+  if (s[0] != '@') return FALSE;
+  if (s[1] == '@') return FALSE;
+  for (i=1; i<len; i++) {
+    if (!identchar(s[i])) return FALSE;
+  }
+  return TRUE;
+}
+
+MRB_API void
+mrb_iv_check(mrb_state *mrb, mrb_sym iv_name)
+{
+  if (!mrb_iv_p(mrb, iv_name)) {
+    mrb_name_error(mrb, iv_name, "`%S' is not allowed as an instance variable name", mrb_sym2str(mrb, iv_name));
+  }
+}
+
 MRB_API void
 mrb_iv_copy(mrb_state *mrb, mrb_value dest, mrb_value src)
 {
@@ -809,7 +835,7 @@ mrb_cv_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym)
   return mrb_mod_cv_defined(mrb, mrb_class_ptr(mod), sym);
 }
 
-MRB_API mrb_value
+mrb_value
 mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
 {
   struct RClass *c = mrb->c->ci->proc->target_class;
@@ -819,23 +845,13 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
   return mrb_mod_cv_get(mrb, c, sym);
 }
 
-MRB_API void
+void
 mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
   struct RClass *c = mrb->c->ci->proc->target_class;
 
   if (!c) c = mrb->c->ci->target_class;
   mrb_mod_cv_set(mrb, c, sym, v);
-}
-
-MRB_API mrb_bool
-mrb_const_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym)
-{
-  struct RClass *m = mrb_class_ptr(mod);
-  iv_tbl *t = m->iv;
-
-  if (!t) return FALSE;
-  return iv_get(mrb, t, sym, NULL);
 }
 
 static void
@@ -1065,9 +1081,10 @@ mrb_f_global_variables(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_bool
-mrb_const_defined_0(mrb_state *mrb, struct RClass *klass, mrb_sym id, mrb_bool exclude, mrb_bool recurse)
+mrb_const_defined_0(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool exclude, mrb_bool recurse)
 {
-  struct RClass * tmp;
+  struct RClass *klass = mrb_class_ptr(mod);
+  struct RClass *tmp;
   mrb_bool mod_retry = 0;
 
   tmp = klass;
@@ -1088,12 +1105,18 @@ retry:
 }
 
 MRB_API mrb_bool
-mrb_const_defined_at(mrb_state *mrb, struct RClass *klass, mrb_sym id)
+mrb_const_defined(mrb_state *mrb, mrb_value mod, mrb_sym id)
 {
-  return mrb_const_defined_0(mrb, klass, id, TRUE, FALSE);
+  return mrb_const_defined_0(mrb, mod, id, TRUE, TRUE);
 }
 
-mrb_value
+MRB_API mrb_bool
+mrb_const_defined_at(mrb_state *mrb, mrb_value mod, mrb_sym id)
+{
+  return mrb_const_defined_0(mrb, mod, id, TRUE, FALSE);
+}
+
+MRB_API mrb_value
 mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id)
 {
   return mrb_iv_get(mrb, obj, id);

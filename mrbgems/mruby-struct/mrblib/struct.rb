@@ -45,6 +45,37 @@ if Object.const_defined?(:Struct)
       }
       ary
     end
+
+    def _inspect
+      str = "#<struct #{self.class.to_s} "
+      buf = []
+      self.each_pair do |k,v|
+        buf.push [k.to_s + "=" + v._inspect]
+      end
+      str + buf.join(", ") + ">"
+    end
+
+    ##
+    # call-seq:
+    #   struct.to_s      -> string
+    #   struct.inspect   -> string
+    #
+    # Describe the contents of this struct in a string.
+    #
+    # 15.2.18.4.10(x)
+    #
+    def inspect
+      begin
+        self._inspect
+      rescue SystemStackError
+        "#<struct #{self.class.to_s}:...>"
+      end
+    end
+
+    ##
+    # 15.2.18.4.11(x)
+    #
+    alias to_s inspect
   end
 end
 

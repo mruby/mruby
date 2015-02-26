@@ -37,7 +37,7 @@ module Enumerable
   #    a.drop_while {|i| i < 3 }   #=> [3, 4, 5, 0]
 
   def drop_while(&block)
-    return to_enum :drop_while unless block_given?
+    return to_enum :drop_while unless block
 
     ary, state = [], false
     self.each do |*val|
@@ -83,7 +83,7 @@ module Enumerable
   #    a.take_while {|i| i < 3 }   #=> [1, 2]
 
   def take_while(&block)
-    return to_enum :take_while unless block_given?
+    return to_enum :take_while unless block
 
     ary = []
     self.each do |*val|
@@ -167,7 +167,7 @@ module Enumerable
   #    (1..6).group_by {|i| i%3}   #=> {0=>[3, 6], 1=>[1, 4], 2=>[2, 5]}
 
   def group_by(&block)
-    return to_enum :group_by unless block_given?
+    return to_enum :group_by unless block
 
     h = {}
     self.each do |*val|
@@ -189,7 +189,7 @@ module Enumerable
   # If no block is given, an enumerator is returned instead.
 
   def sort_by(&block)
-    return to_enum :sort_by unless block_given?
+    return to_enum :sort_by unless block
 
     ary = []
     orig = []
@@ -275,7 +275,7 @@ module Enumerable
   #    [1, 2, 3, 4].flat_map { |e| [e, -e] } #=> [1, -1, 2, -2, 3, -3, 4, -4]
   #    [[1, 2], [3, 4]].flat_map { |e| e + [100] } #=> [1, 2, 100, 3, 4, 100]
   def flat_map(&block)
-    return to_enum :flat_map unless block_given?
+    return to_enum :flat_map unless block
 
     ary = []
     self.each do |*e|
@@ -303,7 +303,7 @@ module Enumerable
   #    %w[albatross dog horse].max_by {|x| x.length }   #=> "albatross"
 
   def max_by(&block)
-    return to_enum :max_by unless block_given?
+    return to_enum :max_by unless block
 
     first = true
     max = nil
@@ -337,7 +337,7 @@ module Enumerable
   #    %w[albatross dog horse].min_by {|x| x.length }   #=> "dog"
 
   def min_by(&block)
-    return to_enum :min_by unless block_given?
+    return to_enum :min_by unless block
 
     first = true
     min = nil
@@ -411,7 +411,7 @@ module Enumerable
   #     %w(albatross dog horse).minmax_by { |x| x.length }   #=> ["dog", "albatross"]
 
   def minmax_by(&block)
-    return to_enum :minmax_by unless block_given?
+    return to_enum :minmax_by unless block
 
     max = nil
     max_cmp = nil
@@ -517,7 +517,7 @@ module Enumerable
   def each_with_object(obj=nil, &block)
     raise ArgumentError, "wrong number of arguments (0 for 1)" if obj == nil
 
-    return to_enum(:each_with_object, obj) unless block_given?
+    return to_enum(:each_with_object, obj) unless block
 
     self.each {|*val| block.call(val.__svalue, obj) }
     obj
@@ -542,7 +542,7 @@ module Enumerable
   #
 
   def reverse_each(&block)
-    return to_enum :reverse_each unless block_given?
+    return to_enum :reverse_each unless block
 
     ary = self.to_a
     i = ary.size - 1
@@ -574,7 +574,7 @@ module Enumerable
   #
 
   def cycle(n=nil, &block)
-    return to_enum(:cycle, n) if !block_given? && n == nil
+    return to_enum(:cycle, n) if !block && n == nil
 
     ary = []
     if n == nil
@@ -623,7 +623,7 @@ module Enumerable
   #
 
   def find_index(val=NONE, &block)
-    return to_enum(:find_index, val) if !block_given? && val == NONE
+    return to_enum(:find_index, val) if !block && val == NONE
 
     idx = 0
     if block

@@ -261,7 +261,7 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
   else {
     size = p - b;
     mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
-    return mrb_ary_join(mrb, ary, mrb_str_new(mrb,NULL,0));
+    return mrb_ary_join(mrb, ary, mrb_str_new(mrb, NULL, 0));
   }
 }
 
@@ -454,7 +454,7 @@ mrb_init_exception(mrb_state *mrb)
 
   mrb->eStandardError_class = mrb_define_class(mrb, "StandardError", mrb->eException_class); /* 15.2.23 */
   runtime_error = mrb_define_class(mrb, "RuntimeError", mrb->eStandardError_class);          /* 15.2.28 */
-  mrb->nomem_err = mrb_obj_ptr(mrb_exc_new_str(mrb, runtime_error, mrb_str_new_lit(mrb, "Out of memory")));
+  mrb->nomem_err = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, runtime_error, "Out of memory"));
   script_error = mrb_define_class(mrb, "ScriptError", mrb->eException_class);                /* 15.2.37 */
   mrb_define_class(mrb, "SyntaxError", script_error);                                        /* 15.2.38 */
   mrb_define_class(mrb, "SystemStackError", exception);

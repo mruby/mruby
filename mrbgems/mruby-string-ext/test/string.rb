@@ -370,3 +370,88 @@ assert('String#next') do
   a = "00"; a.next!
   assert_equal "01", a
 end
+
+assert('String#insert') do
+  assert_equal "Xabcd", "abcd".insert(0, 'X')
+  assert_equal "abcXd", "abcd".insert(3, 'X')
+  assert_equal "abcdX", "abcd".insert(4, 'X')
+  assert_equal "abXcd", "abcd".insert(-3, 'X')
+  assert_equal "abcdX", "abcd".insert(-1, 'X')
+  assert_raise(IndexError) { "abcd".insert(5, 'X') }
+  assert_raise(IndexError) { "abcd".insert(-6, 'X') }
+end
+
+assert('String#prepend') do
+  a = "world"
+  assert_equal "hello world", a.prepend("hello ")
+  assert_equal "hello world", a
+end
+
+assert('String#ljust') do
+  assert_equal "hello", "hello".ljust(4)
+  assert_equal "hello               ", "hello".ljust(20)
+  assert_equal "hello123412341234123", "hello".ljust(20, '1234')
+  assert_equal "hello", "hello".ljust(-3)
+end
+
+assert('String#upto') do
+  a     = "aa"
+  start = "aa"
+  count = 0
+  assert_equal("aa", a.upto("zz") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(676, count)
+
+  a     = "a"
+  start = "a"
+  count = 0
+  assert_equal("a", a.upto("a") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(1, count)
+
+  a     = "a"
+  start = "a"
+  count = 0
+  assert_equal("a", a.upto("b", true) {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(1, count)
+
+  a     = "0"
+  start = "0"
+  count = 0
+  assert_equal("0", a.upto("0") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(1, count)
+
+  a     = "0"
+  start = "0"
+  count = 0
+  assert_equal("0", a.upto("-1") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(0, count)
+
+  a     = "-1"
+  start = "-1"
+  count = 0
+  assert_equal("-1", a.upto("-2") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(2, count)
+end

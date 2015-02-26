@@ -94,7 +94,12 @@ module MRuby
     end
 
     def enable_debug
-      compilers.each { |c| c.defines += %w(MRB_DEBUG) }
+      compilers.each do |c|
+        c.defines += %w(MRB_DEBUG)
+        if toolchains.any? { |toolchain| toolchain == "gcc" }
+          c.flags += %w(-g3 -O0)
+        end
+      end
       @mrbc.compile_options += ' -g'
     end
 
@@ -109,7 +114,7 @@ module MRuby
     def enable_cxx_abi
       return if @cxx_exception_disabled or @cxx_abi_enabled
       compilers.each { |c| c.defines += %w(MRB_ENABLE_CXX_EXCEPTION) }
-      linker.command = cxx.command
+      linker.command = cxx.command if toolchains.find { |v| v == 'gcc' }
       @cxx_abi_enabled = true
     end
 

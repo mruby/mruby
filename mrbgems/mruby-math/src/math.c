@@ -25,6 +25,8 @@ domain_error(mrb_state *mrb, const char *func)
 /* math functions not provided by Microsoft Visual C++ 2012 or older */
 #if defined _MSC_VER && _MSC_VER < 1800
 
+#include <float.h>
+
 #define MATH_TOLERANCE 1E-12
 
 double

@@ -7,7 +7,7 @@
 #ifndef MRUBY_VALUE_H
 #define MRUBY_VALUE_H
 
-typedef short mrb_sym;
+typedef uint32_t mrb_sym;
 typedef uint8_t mrb_bool;
 struct mrb_state;
 
@@ -34,11 +34,9 @@ struct mrb_state;
 
 #ifdef MRB_USE_FLOAT
   typedef float mrb_float;
-# define mrb_float_to_str(buf, i) sprintf(buf, "%.7e", i)
 # define str_to_mrb_float(buf) strtof(buf, NULL)
 #else
   typedef double mrb_float;
-# define mrb_float_to_str(buf, i) sprintf(buf, "%.16e", i)
 # define str_to_mrb_float(buf) strtod(buf, NULL)
 #endif
 
@@ -59,7 +57,6 @@ MRB_API int mrb_msvc_snprintf(char *s, size_t n, const char *format, ...);
 #  define isnan _isnan
 #  define isinf(n) (!_finite(n) && !_isnan(n))
 #  define signbit(n) (_copysign(1.0, (n)) < 0.0)
-#  define strtoll _strtoi64
 #  define strtof (float)strtod
 static const unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
 #  define INFINITY (*(float *)&IEEE754_INFINITY_BITS_SINGLE)
@@ -211,5 +208,28 @@ mrb_undef_value(void)
   SET_UNDEF_VALUE(v);
   return v;
 }
+
+#ifdef MRB_USE_ETEXT_EDATA
+extern char _etext[];
+#ifdef MRB_NO_INIT_ARRAY_START
+extern char _edata[];
+
+static inline mrb_bool
+mrb_ro_data_p(const char *p)
+{
+  return _etext < p && p < _edata;
+}
+#else
+extern char __init_array_start[];
+
+static inline mrb_bool
+mrb_ro_data_p(const char *p)
+{
+  return _etext < p && p < (char*)&__init_array_start;
+}
+#endif
+#else
+# define mrb_ro_data_p(p) FALSE
+#endif
 
 #endif  /* MRUBY_VALUE_H */

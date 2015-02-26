@@ -52,7 +52,11 @@ MRuby.each_target do |target|
   gems.map do |gem|
     current_dir = gem.dir.relative_path_from(Dir.pwd)
     relative_from_root = gem.dir.relative_path_from(MRUBY_ROOT)
-    current_build_dir = "#{build_dir}/#{relative_from_root}"
+    current_build_dir = File.expand_path "#{build_dir}/#{relative_from_root}"
+
+    if current_build_dir !~ /^#{build_dir}/
+      current_build_dir = "#{build_dir}/mrbgems/#{gem.name}"
+    end
 
     gem.bins.each do |bin|
       exec = exefile("#{build_dir}/bin/#{bin}")
@@ -75,6 +79,16 @@ MRuby.each_target do |target|
           FileUtils.cp t.prerequisites.first, t.name, { :verbose => $verbose }
         end
         depfiles += [ install_path ]
+      elsif target == MRuby.targets['host-debug']
+        unless MRuby.targets['host'].gems.map {|g| g.bins}.include?([bin])
+          install_path = MRuby.targets['host-debug'].exefile("#{MRUBY_ROOT}/bin/#{bin}")
+
+          file install_path => exec do |t|
+            FileUtils.rm_f t.name, { :verbose => $verbose }
+            FileUtils.cp t.prerequisites.first, t.name, { :verbose => $verbose }
+          end
+          depfiles += [ install_path ]
+        end
       else
         depfiles += [ exec ]
       end

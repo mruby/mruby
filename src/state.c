@@ -256,7 +256,7 @@ mrb_close(mrb_state *mrb)
   mrb_free(mrb, mrb);
 }
 
-mrb_irep*
+MRB_API mrb_irep*
 mrb_add_irep(mrb_state *mrb)
 {
   static const mrb_irep mrb_irep_zero = { 0 };

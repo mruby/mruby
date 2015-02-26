@@ -5,6 +5,63 @@ class Hash
 
   ##
   # call-seq:
+  # Hash[ key, value, ... ] -> new_hash
+  # Hash[ [ [key, value], ... ] ] -> new_hash
+  # Hash[ object ] -> new_hash
+  #
+  # Creates a new hash populated with the given objects.
+  #
+  # Similar to the literal <code>{ _key_ => _value_, ... }</code>. In the first
+  # form, keys and values occur in pairs, so there must be an even number of
+  # arguments.
+  #
+  # The second and third form take a single argument which is either an array
+  # of key-value pairs or an object convertible to a hash.
+  #
+  # Hash["a", 100, "b", 200] #=> {"a"=>100, "b"=>200}
+  # Hash[ [ ["a", 100], ["b", 200] ] ] #=> {"a"=>100, "b"=>200}
+  # Hash["a" => 100, "b" => 200] #=> {"a"=>100, "b"=>200}
+  #
+
+  def self.[](*object)
+    length = object.length
+    if length == 1
+      o = object[0]
+      if o.respond_to?(:to_hash)
+        h = Hash.new
+        object[0].to_hash.each { |k, v| h[k] = v }
+        return h
+      elsif o.respond_to?(:to_a)
+        h = Hash.new
+        o.to_a.each do |i|
+          raise ArgumentError, "wrong element type #{i.class} (expected array)" unless i.respond_to?(:to_a)
+          k, v = nil
+          case i.size
+          when 2
+            k = i[0]
+            v = i[1]
+          when 1
+            k = i[0]
+          else
+            raise ArgumentError, "invalid number of elements (#{i.size} for 1..2)"
+          end
+          h[k] = v
+        end
+        return h
+      end
+    end
+    unless length % 2 == 0
+      raise ArgumentError, 'odd number of arguments for Hash'
+    end
+    h = Hash.new
+    0.step(length - 2, 2) do |i|
+      h[object[i]] = object[i + 1]
+    end
+    h
+  end
+
+  ##
+  # call-seq:
   #     hsh.merge!(other_hash)                                 -> hsh
   #     hsh.merge!(other_hash){|key, oldval, newval| block}    -> hsh
   #
