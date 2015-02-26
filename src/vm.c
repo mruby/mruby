@@ -714,9 +714,6 @@ argnum_error(mrb_state *mrb, mrb_int num)
 
 #endif
 
-mrb_value mrb_gv_val_get(mrb_state *mrb, mrb_sym sym);
-void mrb_gv_val_set(mrb_state *mrb, mrb_sym sym, mrb_value val);
-
 #define CALL_MAXARGS 127
 
 MRB_API mrb_value
