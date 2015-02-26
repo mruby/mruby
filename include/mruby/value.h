@@ -95,7 +95,7 @@ enum mrb_vtype {
   MRB_TT_MAXDEFINE    /*  23 */
 };
 
-#include "mruby/object.h"
+#include "object.h"
 
 #if defined(MRB_NAN_BOXING)
 #include "boxing_nan.h"
