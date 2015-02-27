@@ -316,7 +316,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
 
   if (!mrb->jmp) {
     struct mrb_jmpbuf c_jmp;
-    size_t nth_ci = mrb->c->ci - mrb->c->cibase;
+    ptrdiff_t nth_ci = mrb->c->ci - mrb->c->cibase;
 
     MRB_TRY(&c_jmp) {
       mrb->jmp = &c_jmp;
