@@ -220,7 +220,7 @@ cipush(mrb_state *mrb)
   int ridx = ci->ridx;
 
   if (ci + 1 == c->ciend) {
-    size_t size = ci - c->cibase;
+    ptrdiff_t size = ci - c->cibase;
 
     c->cibase = (mrb_callinfo *)mrb_realloc(mrb, c->cibase, sizeof(mrb_callinfo)*size*2);
     c->ci = c->cibase + size;
