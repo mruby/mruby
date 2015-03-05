@@ -472,6 +472,13 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
     return p->body.func(mrb, self);
   }
 
+  if (ci->argc < 0) {
+    stack_extend(mrb, (p->body.irep->nregs < 3) ? 3 : p->body.irep->nregs, 3);
+  }
+  else {
+    stack_extend(mrb, p->body.irep->nregs, ci->argc+2);
+  }
+
   ci->nregs = p->body.irep->nregs;
   ci = cipush(mrb);
   ci->nregs = 0;
