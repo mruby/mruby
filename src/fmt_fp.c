@@ -90,6 +90,14 @@ fmt_u(uint32_t x, char *s)
 typedef char compiler_defines_long_double_incorrectly[9-(int)sizeof(long double)];
 #endif
 
+#ifdef __CYGWIN32__
+static long double
+frexpl (long double x, int *eptr)
+{
+	return frexp(x, eptr);
+}
+#endif
+
 static int
 fmt_fp(struct fmt_args *f, long double y, int w, int p, int fl, int t)
 {
