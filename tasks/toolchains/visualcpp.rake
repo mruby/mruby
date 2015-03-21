@@ -11,7 +11,7 @@ MRuby::Toolchain.new(:visualcpp) do |conf|
 
   [conf.cxx].each do |cxx|
     cxx.command = ENV['CXX'] || 'cl.exe'
-    cxx.flags = [ENV['CXXFLAGS'] || ENV['CFLAGS'] || %w(/c /nologo /W3 /Zi /MD /O2 /EHsc /D_CRT_SECURE_NO_WARNINGS)]
+    cxx.flags = [ENV['CXXFLAGS'] || ENV['CFLAGS'] || %w(/c /nologo /W3 /Zi /MD /O2 /EHs /D_CRT_SECURE_NO_WARNINGS)]
     cxx.defines = %w(DISABLE_GEMS MRB_STACK_EXTEND_DOUBLING)
     cxx.option_include_path = '/I%s'
     cxx.option_define = '/D%s'
