@@ -1474,12 +1474,7 @@ RETRY_TRY_BLOCK:
             mrb->jmp = prev_jmp;
             MRB_THROW(prev_jmp);
           }
-          if (ci > mrb->c->cibase) {
-            while (eidx > ci[-1].eidx) {
-              ecall(mrb, --eidx);
-            }
-          }
-          else if (ci == mrb->c->cibase) {
+          if (ci == mrb->c->cibase) {
             if (ci->ridx == 0) {
               if (mrb->c == mrb->root_c) {
                 regs = mrb->c->stack = mrb->c->stbase;
@@ -1494,6 +1489,12 @@ RETRY_TRY_BLOCK:
               }
             }
             break;
+          }
+          /* call ensure only when we skip this callinfo */
+          if (ci[0].ridx == ci[-1].ridx) {
+            while (eidx > ci[-1].eidx) {
+              ecall(mrb, --eidx);
+            }
           }
         }
       L_RESCUE:
