@@ -235,7 +235,17 @@ current_mrb_time(mrb_state *mrb)
   struct mrb_time *tm;
 
   tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
-#ifdef NO_GETTIMEOFDAY
+#if defined(TIME_UTC)
+  {
+    struct timespec ts;
+    if (timespec_get(&ts, TIME_UTC) == 0) {
+      mrb_free(mrb, tm);
+      mrb_raise(mrb, E_RUNTIME_ERROR, "timespec_get() failed for unknown reasons");
+    }
+    tm->sec = ts.tv_sec;
+    tm->usec = ts.tv_nsec / 1000;
+  }
+#elif defined(NO_GETTIMEOFDAY)
   {
     static time_t last_sec = 0, last_usec = 0;
 
