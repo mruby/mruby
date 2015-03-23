@@ -705,7 +705,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
   mrb->exc = mrb_obj_ptr(exc);
 }
 
-#ifndef MRB_OP_NO_INLINE
+#ifndef MRB_JIT_GEN
 #if defined __GNUC__ || defined __clang__ || defined __INTEL_COMPILER
 #define FORCE_INLINE __attribute__((always_inline))
 #elif defined _MSC_VER
@@ -771,6 +771,17 @@ struct op_ctx {
   mrb_state *mrb;
   mrb_code i;
 };
+
+#ifdef MRB_JIT_GEN
+static void __op_end__(struct op_ctx *ctx) {
+  static volatile struct op_ctx *lctx;
+  lctx = ctx;
+}
+#define OP_END return __op_end__(ctx)
+#else
+#define OP_END
+#endif
+
 
 static FORCE_INLINE void
 op_nop(struct op_ctx *ctx) {
@@ -853,6 +864,7 @@ static FORCE_INLINE void
 op_setiv(struct op_ctx *ctx) {
   /* ivset(Syms(Bx),R(A)) */
   mrb_vm_iv_set(ctx->mrb, ctx->syms[GETARG_Bx(ctx->i)], ctx->regs[GETARG_A(ctx->i)]);
+  OP_END;
 }
 
 static FORCE_INLINE void
@@ -1218,6 +1230,17 @@ op_send(struct op_ctx *ctx) {
 static inline void
 _op_send(struct op_ctx *ctx) {
   return op_send(ctx);
+}
+
+static FORCE_INLINE void
+op_sendb(struct op_ctx *ctx) {
+  /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
+  return op_send(ctx);
+}
+
+static FORCE_INLINE void
+op_fsend(struct op_ctx *ctx) {
+  /* A B C  R(A) := fcall(R(A),Syms(B),R(A+1),... ,R(A+C-1)) */
 }
 
 static FORCE_INLINE void
@@ -1606,6 +1629,17 @@ op_enter(struct op_ctx *ctx) {
   }
 }
 
+static FORCE_INLINE void
+op_karg(struct op_ctx *ctx) {
+  /* A B C          R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B)) */
+  /* if C == 2; raise unless kdict.empty? */
+  /* OP_JMP should follow to skip init code */
+}
+
+static FORCE_INLINE void
+op_kdict(struct op_ctx *ctx) {
+  /* A C            R(A) := kdict */
+}
 
 static FORCE_INLINE void
 op_tailcall(struct op_ctx *ctx) {
@@ -2662,8 +2696,8 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_SENDB) {
-      /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
-      /* fall through */
+      op_sendb(&ctx);
+      JUMP;
     };
 
     CASE(OP_SEND) {
@@ -2672,7 +2706,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_FSEND) {
-      /* A B C  R(A) := fcall(R(A),Syms(B),R(A+1),... ,R(A+C-1)) */
+      op_fsend(&ctx);
       NEXT;
     }
 
@@ -2697,14 +2731,12 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_KARG) {
-      /* A B C          R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B)) */
-      /* if C == 2; raise unless kdict.empty? */
-      /* OP_JMP should follow to skip init code */
+      op_karg(&ctx);
       NEXT;
     }
 
     CASE(OP_KDICT) {
-      /* A C            R(A) := kdict */
+      op_kdict(&ctx);
       NEXT;
     }
 
