@@ -18,6 +18,23 @@
 #include "mruby/class.h"
 #include "mrb_throw.h"
 
+const char *_mrb_str_const_runtime_error = "RuntimeError";
+const char *_mrb_str_const_type_error = "TypeError";
+const char *_mrb_str_const_argument_error = "ArgumentError";
+const char *_mrb_str_const_index_error = "IndexError";
+const char *_mrb_str_const_range_error = "RangeError";
+const char *_mrb_str_const_name_error = "NameError";
+const char *_mrb_str_const_nomethod_error = "NoMethodError";
+const char *_mrb_str_const_script_error = "ScriptError";
+const char *_mrb_str_const_syntax_error = "SyntaxError";
+const char *_mrb_str_const_localjump_error = "LocalJumpError";
+const char *_mrb_str_const_regexp_error = "RegexpError";
+const char *_mrb_str_const_systemstack_error = "SystemStackError";
+const char *_mrb_str_const_notimplemented_error = "NotImplementedError";
+const char *_mrb_str_const_floatdomain_error = "FloatDomainError";
+const char *_mrb_str_const_key_error = "KeyError";
+const char *_mrb_str_const_fiber_error = "FiberError";
+
 MRB_API mrb_value
 mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
 {

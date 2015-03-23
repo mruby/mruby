@@ -54,6 +54,20 @@ The value below allows about 60000 recursive calls in the simplest case. */
 
 #define ARENA_RESTORE(mrb,ai) (mrb)->arena_idx = (ai)
 
+#define strlen_str_const(str_const) (sizeof(str_const) - 1)
+#define intern_str_const(mrb, str_const) (mrb_intern_static(mrb, str_const, strlen_str_const(str_const)))
+#define exc_new_str_const(mrb, err, str_const) (mrb_exc_new_str(mrb, err, mrb_str_new_static(mrb, str_const, strlen_str_const(str_const))))
+
+static const char _str_const_op_debug_format[] = "OP_DEBUG %d %d %d\n";
+static const char _str_const_no_target_class[] = "no target class or module";
+static const char _str_const_method_missing[] = "method_missing";
+static const char _str_const_fiber_error[] = "FiberError";
+static const char _str_const_proc[] = "Proc";
+static const char _str_const_to_proc[] = "to_proc";
+static const char _str_const_double_resume[] = "double resume";
+static const char _str_const_attached[] = "__attached__";
+static const char _str_const_super_outside_method[] = "super called outside of method";
+
 static inline void
 stack_clear(mrb_value *from, size_t count)
 {
@@ -353,7 +367,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     p = mrb_method_search_vm(mrb, &c, mid);
     if (!p) {
       undef = mid;
-      mid = mrb_intern_lit(mrb, "method_missing");
+      mid = intern_str_const(mrb, _str_const_method_missing);
       p = mrb_method_search_vm(mrb, &c, mid);
       n++; argc++;
     }
@@ -530,6 +544,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
  *  be used to add methods to a class. <code>module_eval</code> returns
  *  the result of evaluating its argument.
  */
+
 mrb_value
 mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
 {
@@ -690,12 +705,16 @@ argnum_error(mrb_state *mrb, mrb_int num)
   mrb->exc = mrb_obj_ptr(exc);
 }
 
+#ifndef MRB_OP_NO_INLINE
 #if defined __GNUC__ || defined __clang__ || defined __INTEL_COMPILER
 #define FORCE_INLINE __attribute__((always_inline))
 #elif defined _MSC_VER
 #define FORCE_INLINE __forceinline
 #else
 #define FORCE_INLINE inline
+#endif
+#else
+#define FORCE_INLINE
 #endif
 
 
@@ -738,6 +757,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
 #endif
 
 struct op_ctx {
+  void **sym_tbl;
   struct RProc *proc;
   mrb_irep *irep;
   mrb_code *pc;
@@ -974,7 +994,7 @@ op_poperr(struct op_ctx *ctx) {
   }
 }
 
-static FORCE_INLINE void
+static inline void
 _op_stop(struct op_ctx *ctx) {
   {
     int eidx_stop = ctx->mrb->c->ci == ctx->mrb->c->cibase ? 0 : ctx->mrb->c->ci[-1].eidx;
@@ -994,7 +1014,7 @@ _op_stop(struct op_ctx *ctx) {
   MRB_THROW(ctx->stop_jmp);
 }
 
-static FORCE_INLINE void
+static inline void
 _op_rescue(struct op_ctx *ctx, mrb_callinfo *ci) {
   if (ci->ridx == 0) return _op_stop(ctx);
   ctx->proc = ci->proc;
@@ -1124,7 +1144,7 @@ op_send(struct op_ctx *ctx) {
   if (!m) {
     mrb_value sym = mrb_symbol_value(mid);
 
-    mid = mrb_intern_lit(ctx->mrb, "method_missing");
+    mid = intern_str_const(ctx->mrb, _str_const_method_missing);
     m = mrb_method_search_vm(ctx->mrb, &c, mid);
     if (n == CALL_MAXARGS) {
       mrb_ary_unshift(ctx->mrb, ctx->regs[a+1], sym);
@@ -1195,6 +1215,11 @@ op_send(struct op_ctx *ctx) {
   }
 }
 
+static inline void
+_op_send(struct op_ctx *ctx) {
+  return op_send(ctx);
+}
+
 static FORCE_INLINE void
 op_return(struct op_ctx *ctx) {
   /* A B     return R(A) (B=normal,in-block return/break) */
@@ -1233,7 +1258,7 @@ op_return(struct op_ctx *ctx) {
           return _op_raise(ctx);
         }
         if (mrb->c->prev->ci == mrb->c->prev->cibase) {
-          mrb_value exc = mrb_exc_new_str_lit(mrb, E_FIBER_ERROR, "double resume");
+          mrb_value exc = exc_new_str_const(mrb, E_FIBER_ERROR, _str_const_double_resume);
           mrb->exc = mrb_obj_ptr(exc);
           return _op_raise(ctx);
         }
@@ -1293,7 +1318,7 @@ op_return(struct op_ctx *ctx) {
 }
 
 
-static FORCE_INLINE void
+static inline void
 _op_return(struct op_ctx *ctx) {
   ctx->i = MKOP_AB(OP_RETURN, GETARG_A(ctx->i), OP_R_NORMAL);
   return op_return(ctx);
@@ -1373,7 +1398,7 @@ op_super(struct op_ctx *ctx) {
   c = ctx->mrb->c->ci->target_class->super;
   m = mrb_method_search_vm(ctx->mrb, &c, mid);
   if (!m) {
-    mid = mrb_intern_lit(ctx->mrb, "method_missing");
+    mid = intern_str_const(ctx->mrb, _str_const_method_missing);
     m = mrb_method_search_vm(ctx->mrb, &c, mid);
     if (n == CALL_MAXARGS) {
       mrb_ary_unshift(ctx->mrb, ctx->regs[a+1], mrb_symbol_value(ci->mid));
@@ -1438,7 +1463,6 @@ op_super(struct op_ctx *ctx) {
   }
 }
 
-
 static FORCE_INLINE void
 op_argary(struct op_ctx *ctx) {
   /* A Bx   R(A) := argument array (16=6:1:5:4) */
@@ -1456,7 +1480,7 @@ op_argary(struct op_ctx *ctx) {
     if (!e) {
       mrb_value exc;
       mrb_state *mrb = ctx->mrb;
-      exc = mrb_exc_new_str_lit(ctx->mrb, E_NOMETHOD_ERROR, "super called outside of method");
+      exc = exc_new_str_const(ctx->mrb, E_NOMETHOD_ERROR, _str_const_super_outside_method);
       mrb->exc = mrb_obj_ptr(exc);
       return _op_raise(ctx);
     }
@@ -1515,7 +1539,7 @@ op_enter(struct op_ctx *ctx) {
   mrb_value *blk = &argv[argc < 0 ? 1 : argc];
 
   if (!mrb_nil_p(*blk) && mrb_type(*blk) != MRB_TT_PROC) {
-    *blk = mrb_convert_type(ctx->mrb, *blk, MRB_TT_PROC, "Proc", "to_proc");
+    *blk = mrb_convert_type(ctx->mrb, *blk, MRB_TT_PROC, _str_const_proc, _str_const_to_proc);
   }
   if (argc < 0) {
     struct RArray *ary = mrb_ary_ptr(ctx->regs[1]);
@@ -1603,7 +1627,7 @@ op_tailcall(struct op_ctx *ctx) {
   if (!m) {
     mrb_value sym = mrb_symbol_value(mid);
 
-    mid = mrb_intern_lit(mrb, "method_missing");
+    mid = intern_str_const(mrb, _str_const_method_missing);
     m = mrb_method_search_vm(mrb, &c, mid);
     if (n == CALL_MAXARGS) {
       mrb_ary_unshift(mrb, ctx->regs[a+1], sym);
@@ -1737,7 +1761,7 @@ op_add(struct op_ctx *ctx) {
     regs[a] = mrb_str_plus(mrb, regs[a], regs[a+1]);
     break;
   default:
-    return op_send(ctx);
+    return _op_send(ctx);
   }
   ARENA_RESTORE(mrb, ctx->ai);
   ctx->pc++;
@@ -1796,7 +1820,7 @@ op_sub(struct op_ctx *ctx) {
 #endif
     break;
   default:
-    return op_send(ctx);
+    return _op_send(ctx);
   }
   ctx->pc++;
 }
@@ -1865,7 +1889,7 @@ op_mul(struct op_ctx *ctx) {
 #endif
     break;
   default:
-    return op_send(ctx);
+    return _op_send(ctx);
   }
   ctx->pc++;
 }
@@ -1916,7 +1940,7 @@ op_div(struct op_ctx *ctx) {
 #endif
     break;
   default:
-    return op_send(ctx);
+    return _op_send(ctx);
   }
 #ifdef MRB_NAN_BOXING
   if (isnan(mrb_float(regs[a]))) {
@@ -1960,7 +1984,7 @@ op_addi(struct op_ctx *ctx) {
   default:
     SET_INT_VALUE(regs[a+1], GETARG_C(ctx->i));
     ctx->i = MKOP_ABC(OP_SEND, a, GETARG_B(ctx->i), 1);
-    return op_send(ctx);
+    return _op_send(ctx);
   }
   ctx->pc++;
 }
@@ -2002,7 +2026,7 @@ op_subi(struct op_ctx *ctx) {
   default:
     SET_INT_VALUE(regs_a[1], GETARG_C(ctx->i));
     ctx->i = MKOP_ABC(OP_SEND, a, GETARG_B(ctx->i), 1);
-    return op_send(ctx);
+    return _op_send(ctx);
   }
   ctx->pc++;
 }
@@ -2026,7 +2050,7 @@ op_subi(struct op_ctx *ctx) {
     result = OP_CMP_BODY(op,mrb_float,mrb_float);\
     break;\
   default:\
-    return op_send(ctx);\
+    return _op_send(ctx);\
   }\
   if (result) {\
     SET_TRUE_VALUE(regs[a]);\
@@ -2220,7 +2244,7 @@ op_lambda(struct op_ctx *ctx) {
         mrb_value klass;
         klass = mrb_obj_iv_get(ctx->mrb,
                                 (struct RObject *)p->target_class,
-                                mrb_intern_lit(ctx->mrb, "__attached__"));
+                                intern_str_const(ctx->mrb, _str_const_attached));
         p->target_class = mrb_class_ptr(klass);
       }
     }
@@ -2338,7 +2362,7 @@ op_tclass(struct op_ctx *ctx) {
   /* A      R(A) := target_class */
   mrb_state *mrb = ctx->mrb;
   if (!mrb->c->ci->target_class) {
-    mrb_value exc = mrb_exc_new_str_lit(mrb, E_TYPE_ERROR, "no target class or module");
+    mrb_value exc = exc_new_str_const(mrb, E_TYPE_ERROR, _str_const_no_target_class);
     ctx->mrb->exc = mrb_obj_ptr(exc);
     return _op_raise(ctx);
   }
@@ -2361,7 +2385,7 @@ op_debug(struct op_ctx *ctx) {
   ctx->mrb->debug_op_hook(ctx->mrb, ctx->irep, ctx->pc, ctx->regs);
 #else
 #ifdef ENABLE_STDIO
-  printf("OP_DEBUG %d %d %d\n", GETARG_A(ctx->i), GETARG_B(ctx->i), GETARG_C(ctx->i));
+  printf(_str_const_op_debug_format, GETARG_A(ctx->i), GETARG_B(ctx->i), GETARG_C(ctx->i));
 #else
   abort();
 #endif
@@ -2428,7 +2452,6 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     .stop_jmp = &stop_jmp,
     .mrb = mrb
   };
-
 
 #ifdef DIRECT_THREADED
   static void *optable[] = {

@@ -381,23 +381,45 @@ MRB_API void mrb_print_error(mrb_state *mrb);
    + those E_* macros requires mrb_state* variable named mrb.
    + exception objects obtained from those macros are local to mrb
 */
-#define E_RUNTIME_ERROR             (mrb_class_get(mrb, "RuntimeError"))
-#define E_TYPE_ERROR                (mrb_class_get(mrb, "TypeError"))
-#define E_ARGUMENT_ERROR            (mrb_class_get(mrb, "ArgumentError"))
-#define E_INDEX_ERROR               (mrb_class_get(mrb, "IndexError"))
-#define E_RANGE_ERROR               (mrb_class_get(mrb, "RangeError"))
-#define E_NAME_ERROR                (mrb_class_get(mrb, "NameError"))
-#define E_NOMETHOD_ERROR            (mrb_class_get(mrb, "NoMethodError"))
-#define E_SCRIPT_ERROR              (mrb_class_get(mrb, "ScriptError"))
-#define E_SYNTAX_ERROR              (mrb_class_get(mrb, "SyntaxError"))
-#define E_LOCALJUMP_ERROR           (mrb_class_get(mrb, "LocalJumpError"))
-#define E_REGEXP_ERROR              (mrb_class_get(mrb, "RegexpError"))
-#define E_SYSSTACK_ERROR            (mrb_class_get(mrb, "SystemStackError"))
 
-#define E_NOTIMP_ERROR              (mrb_class_get(mrb, "NotImplementedError"))
-#define E_FLOATDOMAIN_ERROR         (mrb_class_get(mrb, "FloatDomainError"))
+extern const char *_mrb_str_const_runtime_error;
+extern const char *_mrb_str_const_type_error;
+extern const char *_mrb_str_const_argument_error;
+extern const char *_mrb_str_const_index_error;
+extern const char *_mrb_str_const_range_error;
+extern const char *_mrb_str_const_name_error;
+extern const char *_mrb_str_const_nomethod_error;
+extern const char *_mrb_str_const_script_error;
+extern const char *_mrb_str_const_syntax_error;
+extern const char *_mrb_str_const_localjump_error;
+extern const char *_mrb_str_const_regexp_error;
+extern const char *_mrb_str_const_systemstack_error;
+extern const char *_mrb_str_const_notimplemented_error;
+extern const char *_mrb_str_const_floatdomain_error;
+extern const char *_mrb_str_const_key_error;
+extern const char *_mrb_str_const_fiber_error;
 
-#define E_KEY_ERROR                 (mrb_class_get(mrb, "KeyError"))
+
+
+#define E_RUNTIME_ERROR             (mrb_class_get(mrb, _mrb_str_const_runtime_error))
+#define E_TYPE_ERROR                (mrb_class_get(mrb, _mrb_str_const_type_error))
+#define E_ARGUMENT_ERROR            (mrb_class_get(mrb, _mrb_str_const_argument_error))
+#define E_INDEX_ERROR               (mrb_class_get(mrb, _mrb_str_const_index_error))
+#define E_RANGE_ERROR               (mrb_class_get(mrb, _mrb_str_const_range_error))
+#define E_NAME_ERROR                (mrb_class_get(mrb, _mrb_str_const_name_error))
+#define E_NOMETHOD_ERROR            (mrb_class_get(mrb, _mrb_str_const_nomethod_error))
+#define E_SCRIPT_ERROR              (mrb_class_get(mrb, _mrb_str_const_script_error))
+#define E_SYNTAX_ERROR              (mrb_class_get(mrb, _mrb_str_const_syntax_error))
+#define E_LOCALJUMP_ERROR           (mrb_class_get(mrb, _mrb_str_const_localjump_error))
+#define E_REGEXP_ERROR              (mrb_class_get(mrb, _mrb_str_const_regexp_error))
+#define E_SYSSTACK_ERROR            (mrb_class_get(mrb, _mrb_str_const_systemstack_error))
+
+#define E_NOTIMP_ERROR              (mrb_class_get(mrb, _mrb_str_const_notimplemented_error))
+#define E_FLOATDOMAIN_ERROR         (mrb_class_get(mrb, _mrb_str_const_floatdomain_error))
+
+#define E_KEY_ERROR                 (mrb_class_get(mrb, _mrb_str_const_key_error))
+
+#define E_FIBER_ERROR                (mrb_class_get(mrb, _mrb_str_const_fiber_error))
 
 MRB_API mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
 MRB_API mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv);
@@ -427,7 +449,6 @@ MRB_API mrb_bool mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RC
 /* fiber functions (you need to link mruby-fiber mrbgem to use) */
 MRB_API mrb_value mrb_fiber_resume(mrb_state *mrb, mrb_value fib, mrb_int argc, const mrb_value *argv);
 MRB_API mrb_value mrb_fiber_yield(mrb_state *mrb, mrb_int argc, const mrb_value *argv);
-#define E_FIBER_ERROR (mrb_class_get(mrb, "FiberError"))
 
 /* memory pool implementation */
 typedef struct mrb_pool mrb_pool;
