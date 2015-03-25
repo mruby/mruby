@@ -1,0 +1,202 @@
+
+Instruction = Struct.new(:name, :operands, :bytes) do
+  private :bytes
+
+  def to_bytes
+    bytes
+  end
+
+  def return?
+    ['retq'].include? name
+  end
+
+  def bytesize
+    bytes.size
+  end
+
+  def self.jump(arch, *args)
+    case arch
+    when :x86, :x64
+      X86
+    end.const_get(:JumpInstruction).new(*args)
+  end
+end
+
+InstructionSet = Struct.new(:body) do
+  def bytesize
+    body.inject(0) do |acc, i|
+      acc + i.bytesize
+    end
+  end
+end
+
+module X86
+  class JumpInstruction < Instruction
+    def initialize(skip_n)
+      case skip_n
+      when -2**8/2...2**8/2
+        self.bytes = [0xeb] + [skip_n].pack('c').force_encoding('ASCII-8BIT').each_codepoint.to_a
+      when -2**16/2...2**16/2
+        self.bytes = [0xe9] + [skip_n].pack('s<').force_encoding('ASCII-8BIT').each_codepoint.to_a
+      else
+        raise "jump size not supported"
+      end
+      self.name = 'jmp (ret)'
+      self.operands = []
+    end
+  end
+end
+
+Operation = Struct.new(:name, :architecture, :instructions) do
+  ARCH_MAP = {
+    'i386:x86-64' => :x64,
+    nil           => :unknown
+  }
+
+  alias_method :arch, :architecture
+
+  def body
+    instructions.body
+  end
+
+  def self.load(filename)
+    parse `objdump -Sf #{filename}`
+  end
+
+  def self.parse(objdump)
+    body = InstructionSet.new(objdump.each_line.map do |line|
+      if line =~ /:\t((?:[0-9a-f]{2}\s)+)\s+(.*)/
+        bin, asm = $1.strip, $2.strip
+        bin = bin.split(/\s+/).map(&:strip).reject(&:empty?).map do |byte|
+          byte.to_i(16)
+        end
+
+        op, opr = asm.strip.split(/\s+/)
+        inst = Instruction.new op || '', (opr || '').split(',').map(&:strip), bin
+
+        inst
+      else
+        nil
+      end
+    end.compact)
+
+    objdump =~ /^architecture: (.*?),/
+    arch = ARCH_MAP[$1]
+
+    objdump =~ /^\d+ <(.*?)>:/
+    func_name = $1
+
+    new func_name, arch, body
+  end
+
+  def remove_ret_inst!
+    body.each_with_index.reverse_each.inject(0) do |acc, (inst, index)|
+      if inst.return?
+        if acc.zero?
+          body.delete_at index
+          inst = nil
+        else
+          inst = Instruction.jump(arch, acc)
+          body[index] = inst
+        end
+      end
+      acc + (inst ? inst.bytesize : 0)
+    end
+  end
+end
+
+
+$ops = [
+  "op_nop", "op_move",
+  "op_loadl", "op_loadi", "op_loadsym", "op_loadnil",
+  "op_loadself", "op_loadt", "op_loadf",
+  "op_getglobal", "op_setglobal", "op_getspecial", "op_setspecial",
+  "op_getiv", "op_setiv", "op_getcv", "op_setcv",
+  "op_getconst", "op_setconst", "op_getmcnst", "op_setmcnst",
+  "op_getupvar", "op_setupvar",
+  "op_jmp", "op_jmpif", "op_jmpnot",
+  "op_onerr", "op_rescue", "op_poperr", "op_raise", "op_epush", "op_epop",
+  "op_send", "op_sendb", "op_fsend",
+  "op_call", "op_super", "op_argary", "op_enter",
+  "op_karg", "op_kdict", "op_return", "op_tailcall", "op_blkpush",
+  "op_add", "op_addi", "op_sub", "op_subi", "op_mul", "op_div",
+  "op_eq", "op_lt", "op_le", "op_gt", "op_ge",
+  "op_array", "op_arycat", "op_arypush", "op_aref", "op_aset", "op_apost",
+  "op_string", "op_strcat", "op_hash",
+  "op_lambda", "op_range", "op_oclass",
+  "op_class", "op_module", "op_exec",
+  "op_method", "op_sclass", "op_tclass",
+  "op_debug", "op_stop", "op_err",
+]
+
+directory 'obj'
+directory 'll'
+
+obj_files = []
+$ops.each do |op|
+  ll_file = File.join('ll', "#{op}.ll")
+  obj_file = File.join('obj', "#{op}.o")
+
+  file ll_file => ['vm.bc', 'll'] do
+    $sym_tbl = `./gen vm.bc ll`
+  end
+
+  file obj_file => [ll_file, 'obj'] do |t|
+    sh "llc -O3 #{ll_file} -filetype=obj -o #{t.name}"
+  end
+
+  obj_files << obj_file
+
+end
+
+def mruby_root
+  __dir__.split(File::SEPARATOR)
+         .slice_after('mruby').to_a[0]
+         .join(File::SEPARATOR)
+end
+
+def ops_header_path(arch)
+  File.join mruby_root, 'src', "ops_#{arch}.h"
+end
+
+file 'vm.bc' do |t|
+  sh "clang -I#{File.join mruby_root, 'include'} -DMRB_JIT_GEN -emit-llvm -o vm.bc -c #{File.join mruby_root, 'src', 'vm.c'}"
+end
+
+file ops_header_path(:x64) => obj_files do |t|
+  file = File.open t.name, 'w'
+  arch = nil
+  obj_files.map do |obj|
+    operation = Operation.load(obj)
+    arch = operation.arch
+    operation.remove_ret_inst!
+
+    operation
+  end.map do |operation|
+    off = 0
+    lines = operation.body.map do |inst|
+      bin = inst.to_bytes
+      op, opr = inst.name, inst.operands
+
+      bin_str = bin.map{|byte| "0x%02x," % byte}.join(' ').ljust(42, ' ')
+      asm_str = "#{op.ljust(8, ' ')}#{opr.join(", ")}"
+      asm_str = "/*#{'%02x' % off}: #{asm_str.ljust(32, ' ')} */"
+
+      off += inst.bytesize
+      bin_str + asm_str
+    end
+    [operation, lines]
+  end.each do |operation, lines|
+    lines_str = lines.map{|l| "  " + l}.join("\n")
+    file.puts
+    file.puts "static const uint8_t #{operation.name}[] = {\n" + lines_str + "\n};"
+    file.puts
+  end
+
+  op_arys_str = $ops.map{|n| '  ' + n}.join(",\n")
+  file.puts "const uint8_t** ops_jit[] = {\n" + op_arys_str + "\n};"
+
+  file.close
+end
+p ops_header_path(:x64)
+task :default => [ops_header_path(:x64)]
