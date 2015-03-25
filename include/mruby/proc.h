@@ -25,6 +25,12 @@ struct REnv {
 #define MRB_ENV_UNSHARE_STACK(e) ((e)->cioff = -1)
 #define MRB_ENV_STACK_SHARED_P(e) ((e)->cioff >= 0)
 
+struct RJitCtx {
+    size_t size;
+    struct RJitCtx *next;
+    uint8_t data[1];
+};
+
 struct RProc {
   MRB_OBJECT_HEADER;
   union {
@@ -33,6 +39,7 @@ struct RProc {
   } body;
   struct RClass *target_class;
   struct REnv *env;
+  mrb_jit_entry_t jit_entry;
 };
 
 /* aspec access */
@@ -48,6 +55,8 @@ struct RProc {
 #define MRB_PROC_CFUNC_P(p) (((p)->flags & MRB_PROC_CFUNC) != 0)
 #define MRB_PROC_STRICT 256
 #define MRB_PROC_STRICT_P(p) (((p)->flags & MRB_PROC_STRICT) != 0)
+#define MRB_PROC_JIT 512
+#define MRB_PROC_JIT_P(p) (((p)->flags & MRB_PROC_JIT) != 0)
 
 #define mrb_proc_ptr(v)    ((struct RProc*)(mrb_ptr(v)))
 
@@ -56,6 +65,7 @@ struct RProc *mrb_closure_new(mrb_state*, mrb_irep*);
 MRB_API struct RProc *mrb_proc_new_cfunc(mrb_state*, mrb_func_t);
 MRB_API struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals);
 void mrb_proc_copy(struct RProc *a, struct RProc *b);
+mrb_bool mrb_proc_jit(struct RProc *p);
 
 /* implementation of #send method */
 MRB_API mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);

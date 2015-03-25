@@ -4,6 +4,7 @@
 ** See Copyright Notice in mruby.h
 */
 
+#define _DEFAULT_SOURCE
 #include "mruby.h"
 #include "mruby/class.h"
 #include "mruby/proc.h"
@@ -144,6 +145,66 @@ mrb_proc_copy(struct RProc *a, struct RProc *b)
   }
   a->target_class = b->target_class;
   a->env = b->env;
+}
+
+
+#include "ops_x64.h"
+
+
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+#include <sys/mman.h>
+#include <unistd.h>
+
+static size_t
+jit_page_size() {
+  return sysconf(_SC_PAGESIZE);
+}
+
+static struct RJitCtx *
+jit_page_alloc() {
+  size_t size = jit_page_size();
+  struct RJitCtx *page = (struct RJitCtx *) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+  page->size = size;
+
+  return page;
+}
+
+static void
+jit_page_prot_exec(struct RJitCtx *page) {
+  mprotect(page, page->size, PROT_READ | PROT_EXEC);
+}
+#endif
+
+mrb_bool
+mrb_proc_jit(struct RProc *proc)
+{
+  if (MRB_PROC_CFUNC_P(proc)) {
+    return FALSE;
+  } else {
+    size_t size = 0;
+    unsigned i  = 0;
+    mrb_irep *irep = proc->body.irep;
+
+    init_ops();
+
+    for (i = 0; i < irep->ilen; i++) {
+      size += op_sizes[GET_OPCODE(irep->iseq[i])];
+    }
+    if (size > jit_page_size()) {
+      return FALSE;
+    } else {
+      struct RJitCtx *page = jit_page_alloc();
+      size_t off = 0;
+      for (i = 0; i < irep->ilen; i++) {
+        size_t op_size = op_sizes[GET_OPCODE(irep->iseq[i])];
+        memcpy(page->data + off, ops[GET_OPCODE(irep->iseq[i])], op_size);
+        off += op_size;
+      }
+      proc->flags |= MRB_PROC_JIT;
+      proc->jit_entry = page->data;
+      return TRUE;
+    }
+  }
 }
 
 static mrb_value

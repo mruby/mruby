@@ -59,6 +59,10 @@ Operation = Struct.new(:name, :architecture, :instructions) do
     instructions.body
   end
 
+  def bytesize
+    instructions.bytesize
+  end
+
   def self.load(filename)
     parse `objdump -Sf #{filename}`
   end
@@ -159,20 +163,26 @@ def ops_header_path(arch)
   File.join mruby_root, 'src', "ops_#{arch}.h"
 end
 
-file 'vm.bc' do |t|
-  sh "clang -I#{File.join mruby_root, 'include'} -DMRB_JIT_GEN -emit-llvm -o vm.bc -c #{File.join mruby_root, 'src', 'vm.c'}"
+def vm_c_path
+ File.join mruby_root, 'src', 'vm.c'
+end
+
+file 'vm.bc' => [vm_c_path] do |t|
+  sh "clang -I#{File.join mruby_root, 'include'} -DMRB_JIT_GEN -emit-llvm -o vm.bc -c #{vm_c_path}"
 end
 
 file ops_header_path(:x64) => obj_files do |t|
   file = File.open t.name, 'w'
   arch = nil
-  obj_files.map do |obj|
+  operations = obj_files.map do |obj|
     operation = Operation.load(obj)
     arch = operation.arch
     operation.remove_ret_inst!
 
     operation
-  end.map do |operation|
+  end
+
+  operations.map do |operation|
     off = 0
     lines = operation.body.map do |inst|
       bin = inst.to_bytes
@@ -189,12 +199,25 @@ file ops_header_path(:x64) => obj_files do |t|
   end.each do |operation, lines|
     lines_str = lines.map{|l| "  " + l}.join("\n")
     file.puts
-    file.puts "static const uint8_t #{operation.name}[] = {\n" + lines_str + "\n};"
+    file.puts "static size_t #{operation.name}_size = #{operation.bytesize};"
+    file.puts "static uint8_t #{operation.name}[] = {\n" + lines_str + "\n};"
     file.puts
   end
 
-  op_arys_str = $ops.map{|n| '  ' + n}.join(",\n")
-  file.puts "const uint8_t** ops_jit[] = {\n" + op_arys_str + "\n};"
+  file.puts "static uint8_t* ops[#{operations.size}];"
+
+  op_size_str = operations.map{|op| "  #{op.bytesize}"}.join(",\n")
+  file.puts "static size_t op_sizes[] = {\n" + op_size_str + "\n};"
+
+  op_arys_str = operations.map.with_index{|op, index| "    ops[#{index}] = #{op.name};"}.join("\n")
+
+  file.puts "void init_ops() {"
+  file.puts "  static int init = 0;"
+  file.puts "  if(init == 0) {"
+  file.puts "    init = 1;"
+  file.puts op_arys_str;
+  file.puts "  }"
+  file.puts "}"
 
   file.close
 end

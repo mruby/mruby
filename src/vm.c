@@ -2455,9 +2455,10 @@ op_err(struct op_ctx *ctx) {
 
 
 MRB_API mrb_value
-mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
+mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int flags)
 {
-
+  mrb_bool stack_keep = flags & 1;
+  mrb_bool jit        = flags & 2;
 
   /* mrb_assert(mrb_proc_cfunc_p(proc)) */
   /*mrb_irep *irep = proc->body.irep;
@@ -2533,6 +2534,10 @@ RETRY_TRY_BLOCK:
   mrb->c->ci->nregs = ctx.irep->nregs;
   ctx.regs = mrb->c->stack;
   ctx.regs[0] = self;
+
+  if (jit) {
+    goto jit;
+  }
 
   INIT_DISPATCH {
     CASE(OP_NOP) {
@@ -2917,6 +2922,14 @@ RETRY_TRY_BLOCK:
     }
   }
   END_DISPATCH;
+
+jit:
+  if (MRB_PROC_JIT_P(proc)) {
+    (*proc->jit_entry)(&ctx);
+  } else {
+    
+  }
+
 
   }
   MRB_CATCH(&c_jmp) {
