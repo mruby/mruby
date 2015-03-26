@@ -732,7 +732,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
 
 #ifndef DIRECT_THREADED
 
-#define INIT_DISPATCH for (;;) { i = *ctx.pc; CODE_FETCH_HOOK(ctx); switch (GET_OPCODE(i)) {
+#define INIT_DISPATCH for (;;) { ctx.i = *ctx.pc; CODE_FETCH_HOOK(ctx); switch (GET_OPCODE(ctx.i)) {
 #define CASE(op) case op:
 #define NEXT pc++; break
 #define JUMP break
@@ -757,7 +757,6 @@ argnum_error(mrb_state *mrb, mrb_int num)
 #endif
 
 struct op_ctx {
-  void **sym_tbl;
   struct RProc *proc;
   mrb_irep *irep;
   mrb_code *pc;
@@ -770,11 +769,12 @@ struct op_ctx {
   int ai;
   mrb_state *mrb;
   mrb_code i;
+  void *sym_tbl[124];
 };
 
 #ifdef MRB_JIT_GEN
+static volatile struct op_ctx *lctx;
 static void __op_end__(struct op_ctx *ctx) {
-  static volatile struct op_ctx *lctx;
   lctx = ctx;
 }
 #define OP_END return __op_end__(ctx)
@@ -800,8 +800,10 @@ op_loadl(struct op_ctx *ctx) {
   ctx->regs[GETARG_A(ctx->i)] = ctx->pool[GETARG_Bx(ctx->i)];
 }
 
+static char _str_const_loadi[] = "loadi %d\n";
 static FORCE_INLINE void
 op_loadi(struct op_ctx *ctx) {
+  printf(_str_const_loadi, GETARG_sBx(ctx->i));
   /* A sBx  R(A) := sBx */
   SET_INT_VALUE(ctx->regs[GETARG_A(ctx->i)], GETARG_sBx(ctx->i));
 }
@@ -864,7 +866,6 @@ static FORCE_INLINE void
 op_setiv(struct op_ctx *ctx) {
   /* ivset(Syms(Bx),R(A)) */
   mrb_vm_iv_set(ctx->mrb, ctx->syms[GETARG_Bx(ctx->i)], ctx->regs[GETARG_A(ctx->i)]);
-  OP_END;
 }
 
 static FORCE_INLINE void
@@ -1006,8 +1007,9 @@ op_poperr(struct op_ctx *ctx) {
   }
 }
 
-static inline void
+static void
 _op_stop(struct op_ctx *ctx) {
+  printf("op stop\n");
   {
     int eidx_stop = ctx->mrb->c->ci == ctx->mrb->c->cibase ? 0 : ctx->mrb->c->ci[-1].eidx;
     int eidx = ctx->mrb->c->ci->eidx;
@@ -2453,13 +2455,11 @@ op_err(struct op_ctx *ctx) {
 #pragma GCC diagnostic pop
 #endif
 
+#include "jit_symtbl.h"
 
 MRB_API mrb_value
-mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int flags)
+mrb_context_run_full(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep, enum mrb_run_flags flags)
 {
-  mrb_bool stack_keep = flags & 1;
-  mrb_bool jit        = flags & 2;
-
   /* mrb_assert(mrb_proc_cfunc_p(proc)) */
   /*mrb_irep *irep = proc->body.irep;
   mrb_code *pc = irep->iseq;
@@ -2470,6 +2470,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   int ai = mrb_gc_arena_save(mrb);
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;*/
 
+  mrb_bool jit = (flags & MRB_RUN_JIT);
   struct mrb_jmpbuf c_jmp;
   struct mrb_jmpbuf stop_jmp;
 
@@ -2513,6 +2514,10 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   };
 #endif
 
+  fprintf(stderr, "JIT: %d, flags: %d s:%d %d\n", jit, flags, offsetof(struct op_ctx, i), sizeof(symtbl));
+  init_symtbl();
+  memcpy(ctx.sym_tbl, symtbl, sizeof(symtbl));
+
   MRB_TRY(&stop_jmp) {
 
   mrb_bool exc_catched = FALSE;
@@ -2538,6 +2543,8 @@ RETRY_TRY_BLOCK:
   if (jit) {
     goto jit;
   }
+
+dispatch:
 
   INIT_DISPATCH {
     CASE(OP_NOP) {
@@ -2924,12 +2931,19 @@ RETRY_TRY_BLOCK:
   END_DISPATCH;
 
 jit:
+  ctx.i = *ctx.pc;
   if (MRB_PROC_JIT_P(proc)) {
-    (*proc->jit_entry)(&ctx);
+    mrb_proc_call_jit(proc, (void *) &ctx);
   } else {
-    
+    if (mrb_proc_jit(proc)) {
+      fprintf(stderr, "before jit: %d %d\n", GET_OPCODE(ctx.i), GETARG_sBx(ctx.i));
+      
+      mrb_proc_call_jit(proc, (void *) &ctx);
+      fprintf(stderr,"jit returned");
+    } else {
+      goto dispatch;
+    }
   }
-
 
   }
   MRB_CATCH(&c_jmp) {
@@ -2948,28 +2962,40 @@ jit:
 }
 
 MRB_API mrb_value
+mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
+{
+  return mrb_context_run_full(mrb, proc, self, stack_keep, MRB_RUN_NORMAL);
+}
+
+MRB_API mrb_value
 mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 {
   return mrb_context_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
 }
 
 MRB_API mrb_value
-mrb_toplevel_run_keep(mrb_state *mrb, struct RProc *proc, unsigned int stack_keep)
+mrb_toplevel_run_keep_full(mrb_state *mrb, struct RProc *proc, unsigned int stack_keep, enum mrb_run_flags flags)
 {
   mrb_callinfo *ci;
   mrb_value v;
 
   if (!mrb->c->cibase || mrb->c->ci == mrb->c->cibase) {
-    return mrb_context_run(mrb, proc, mrb_top_self(mrb), stack_keep);
+    return mrb_context_run_full(mrb, proc, mrb_top_self(mrb), stack_keep, flags);
   }
   ci = cipush(mrb);
   ci->nregs = 1;   /* protect the receiver */
   ci->acc = CI_ACC_SKIP;
   ci->target_class = mrb->object_class;
-  v = mrb_context_run(mrb, proc, mrb_top_self(mrb), stack_keep);
+  v = mrb_context_run_full(mrb, proc, mrb_top_self(mrb), stack_keep, flags);
   cipop(mrb);
 
   return v;
+}
+
+MRB_API mrb_value
+mrb_toplevel_run_keep(mrb_state *mrb, struct RProc *proc, unsigned int stack_keep)
+{
+  return mrb_toplevel_run_keep_full(mrb, proc, stack_keep, MRB_RUN_NORMAL);
 }
 
 MRB_API mrb_value

@@ -48,14 +48,49 @@ Instruction *getSymTbl(Function *func, LLVMContext& context) {
 }
 
 Instruction *getSymbol(Function *func, Instruction *inst, Type *type, BasicBlock *bb, Module *mod, LLVMContext& context, unsigned index) {
+
+  Value *index0 = ConstantInt::get(Type::getInt32Ty(context), 0, false);
+  Value *index1 = ConstantInt::get(Type::getInt32Ty(context), 1, false);
+  Value *indexVal = ConstantInt::get(Type::getInt32Ty(context), index, false);
+  //Value *indexVal = ConstantInt::get(mod->getDataLayout()->getIntPtrType(context), index, false);
+
+  Value *opCtxArg = &(*func->getArgumentList().begin());
+  int nElems = cast<StructType>(cast<PointerType>(opCtxArg->getType())->getElementType())->getNumElements();
+
+  std::cout << nElems << std::endl;
+
+  Value *nElemsVal = ConstantInt::get(Type::getInt32Ty(context), nElems - 1, false);
+  std::vector<Value *> indices0 {index0, nElemsVal, indexVal};
+  Instruction *gepInst0 = GetElementPtrInst::Create(opCtxArg, indices0);
+
+  //std::vector<Value *> indices {index0, indexVal};
+  //Instruction *gepInst1 = GetElementPtrInst::Create(castInst0, indexVal);
+  //
+  CastInst* castInst1 = new BitCastInst(gepInst0, type->getPointerTo());
+  Instruction *loadInst = new LoadInst(castInst1);
+
+  bb->getInstList().insert(inst, gepInst0);
+  bb->getInstList().insertAfter(gepInst0, castInst1);
+  bb->getInstList().insertAfter(castInst1, loadInst);
+
+ /* bb->getInstList().insertAfter(gepInst0, castInst0);
+  bb->getInstList().insertAfter(castInst0, gepInst1);
+  bb->getInstList().insertAfter(gepInst1, castInst1);
+  bb->getInstList().insertAfter(castInst1, loadInst);*/
+
+
+  return loadInst;
+
+  /*
   Instruction *symTblLoadInst = getSymTbl(func, context);
   Value *indexVal = ConstantInt::get(mod->getDataLayout()->getIntPtrType(context), index, false);
   Instruction *gepInst = GetElementPtrInst::CreateInBounds(symTblLoadInst, indexVal, "");
   CastInst* castInst = new BitCastInst(gepInst, type, "");
   bb->getInstList().insert(inst, castInst);
   bb->getInstList().insert(castInst, gepInst);
-
   return castInst;
+  */
+
 }
 
 bool isOpFunc(const std::string& name) {
@@ -65,6 +100,18 @@ bool isOpFunc(const std::string& name) {
 
 bool isOpFunc(Function *func) {
   return isOpFunc(func->getName().str());
+}
+
+unsigned getSymbolIndex(std::string& name) {
+  auto indexEntry = symbolMap.find(name);
+  int symIndex = -1;
+  if(indexEntry != symbolMap.end()) {
+    symIndex = indexEntry->second;
+  } else {
+    symIndex = symbolIndex++;
+    symbolMap[name] = symIndex;
+  }
+  return symIndex;
 }
 
 
@@ -84,11 +131,11 @@ int main(int argc, const char **argv)
   std::vector<Function *> removeFuncs;
 
   ValueSymbolTable &symTbl = mod->getValueSymbolTable();
-  int symIndex = 0;
 
   for(ValueSymbolTable::iterator symIter = symTbl.begin(); symIter != symTbl.end(); ++symIter) {
     std::string sym = symIter->getKey().str();
     Value *val = symIter->getValue();
+
 
     std::vector<CallInst *> callInsts;
     std::vector<User *> gvUsers;
@@ -116,21 +163,18 @@ int main(int argc, const char **argv)
         std::cerr << funcName << std::endl;
         std::cerr << "=========================" << std::endl;
 
-        std::cerr << symIter->getKey().str() << std::endl;
 
         Value *calledValue = callInst->getCalledValue();
 
         if(isa<MemCpyInst>(callInst)) {
         } else {
+          unsigned symIndex = getSymbolIndex(sym);
+          std::cerr << symIter->getKey().str() << " " << symIndex << std::endl;
+
           Instruction *castInst = getSymbol(func, callInst, calledValue->getType(),
                                             bb, &*mod, context, symIndex);
 
           callInst->setCalledFunction(castInst);
-
-
-          if(symbolMap.find(sym) == symbolMap.end()) {
-            symbolMap[sym] = symIndex++;
-          }
         }
         //val->replaceAllUsesWith(castInst);
         //use->replaceUsesOfWith(replaceInst);
@@ -161,14 +205,9 @@ int main(int argc, const char **argv)
           std::cerr << symIter->getKey().str() << std::endl;
 
           Instruction *castInst = getSymbol(func, inst, val->getType(),
-                                            bb, &*mod, context, symIndex);
+                                            bb, &*mod, context, getSymbolIndex(sym));
 
           user->replaceUsesOfWith(val, castInst);
-
-          if(symbolMap.find(sym) == symbolMap.end()) {
-            symbolMap[sym] = symIndex++;
-          }
-
         }
       } else {
       }
@@ -214,7 +253,7 @@ int main(int argc, const char **argv)
                       if(indexEntry != symbolMap.end()) {
                         index = indexEntry->second;
                       } else {
-                        index = symIndex++;
+                        index = symbolIndex++;
                         symbolMap[name] = index;
                       }
 
@@ -259,12 +298,16 @@ int main(int argc, const char **argv)
     }
   }
 
-  std::cout << "void **jit_sym_tbl = {" << std::endl;
+  std::vector<std::string> syms(symbolMap.size());
   for(auto symIter = symbolMap.begin(); symIter != symbolMap.end(); ++symIter) {
-    std::cout << "  " << symIter->first << "," << std::endl;
+    syms[symIter->second] = symIter->first;
   }
-  std::cout << "};" << std::endl;
 
+  std::cout << "%w{";
+  for(std::string sym: syms) {
+    std::cout << "  " << sym;
+  }
+  std::cout << "}" << std::endl;
 
   return 0;
 }

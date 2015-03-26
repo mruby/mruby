@@ -195,6 +195,7 @@ is_code_block_open(struct mrb_parser_state *parser)
 
 struct _args {
   mrb_bool verbose      : 1;
+  mrb_bool jit          : 1;
   int argc;
   char** argv;
 };
@@ -208,6 +209,7 @@ usage(const char *name)
   "--verbose    run in verbose mode",
   "--version    print the version",
   "--copyright  print the copyright",
+  "--jit        use JIT",
   NULL
   };
   const char *const *p = usage_msg;
@@ -246,6 +248,10 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
       else if (strcmp((*argv) + 2, "copyright") == 0) {
         mrb_show_copyright(mrb);
         exit(EXIT_SUCCESS);
+      }
+      else if (strcmp((*argv) + 2, "jit") == 0) {
+        args->jit = TRUE;
+        break;
       }
     default:
       return EXIT_FAILURE;
@@ -449,10 +455,10 @@ main(int argc, char **argv)
         }
         /* pass a proc for evaulation */
         /* evaluate the bytecode */
-        result = mrb_context_run(mrb,
+        result = mrb_context_run_full(mrb,
             proc,
             mrb_top_self(mrb),
-            stack_keep);
+            stack_keep, args.jit * MRB_RUN_JIT);
         stack_keep = proc->body.irep->nlocals;
         /* did an exception occur? */
         if (mrb->exc) {

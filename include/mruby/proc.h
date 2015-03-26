@@ -25,11 +25,11 @@ struct REnv {
 #define MRB_ENV_UNSHARE_STACK(e) ((e)->cioff = -1)
 #define MRB_ENV_STACK_SHARED_P(e) ((e)->cioff >= 0)
 
-struct RJitCtx {
+typedef struct mrb_jit_page {
     size_t size;
-    struct RJitCtx *next;
+    struct mrb_jit_page *next;
     uint8_t data[1];
-};
+} mrb_jit_page;
 
 struct RProc {
   MRB_OBJECT_HEADER;
@@ -39,7 +39,7 @@ struct RProc {
   } body;
   struct RClass *target_class;
   struct REnv *env;
-  mrb_jit_entry_t jit_entry;
+  mrb_jit_page *jit_page;
 };
 
 /* aspec access */
@@ -66,7 +66,7 @@ MRB_API struct RProc *mrb_proc_new_cfunc(mrb_state*, mrb_func_t);
 MRB_API struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals);
 void mrb_proc_copy(struct RProc *a, struct RProc *b);
 mrb_bool mrb_proc_jit(struct RProc *p);
-
+void mrb_proc_call_jit(struct RProc *proc, void *ctx);
 /* implementation of #send method */
 MRB_API mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
 

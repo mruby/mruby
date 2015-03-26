@@ -30,7 +30,13 @@ typedef struct mrbc_context {
   mrb_bool no_exec:1;
   mrb_bool keep_lv:1;
   mrb_bool no_optimize:1;
+  mrb_bool jit:1;
 } mrbc_context;
+
+enum mrb_run_flags {
+  MRB_RUN_NORMAL = 0,
+  MRB_RUN_JIT    = 1
+} mrb_run_flags;
 
 MRB_API mrbc_context* mrbc_context_new(mrb_state *mrb);
 MRB_API void mrbc_context_free(mrb_state *mrb, mrbc_context *cxt);
@@ -38,6 +44,8 @@ MRB_API const char *mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s
 MRB_API void mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*partial_hook)(struct mrb_parser_state*), void*data);
 
 MRB_API mrb_value mrb_toplevel_run_keep(mrb_state*, struct RProc*, unsigned int);
+MRB_API mrb_value mrb_toplevel_run_keep_full(mrb_state*, struct RProc*, unsigned int, enum mrb_run_flags);
+MRB_API mrb_value mrb_context_run_full(mrb_state*, struct RProc*, mrb_value, unsigned int, enum mrb_run_flags);
 
 /* AST node structure */
 typedef struct mrb_ast_node {

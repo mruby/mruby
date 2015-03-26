@@ -160,20 +160,26 @@ jit_page_size() {
   return sysconf(_SC_PAGESIZE);
 }
 
-static struct RJitCtx *
+static struct mrb_jit_page *
 jit_page_alloc() {
   size_t size = jit_page_size();
-  struct RJitCtx *page = (struct RJitCtx *) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+  struct mrb_jit_page *page = (struct mrb_jit_page *) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
   page->size = size;
 
   return page;
 }
 
 static void
-jit_page_prot_exec(struct RJitCtx *page) {
+jit_page_prot_exec(struct mrb_jit_page *page) {
   mprotect(page, page->size, PROT_READ | PROT_EXEC);
 }
 #endif
+
+void
+mrb_proc_call_jit(struct RProc *proc, void *ctx) {
+  void (*f)(void *) = (void *)proc->jit_page->data;
+  return (*f)(ctx);
+}
 
 mrb_bool
 mrb_proc_jit(struct RProc *proc)
@@ -193,15 +199,27 @@ mrb_proc_jit(struct RProc *proc)
     if (size > jit_page_size()) {
       return FALSE;
     } else {
-      struct RJitCtx *page = jit_page_alloc();
+      struct mrb_jit_page *page = jit_page_alloc();
       size_t off = 0;
       for (i = 0; i < irep->ilen; i++) {
-        size_t op_size = op_sizes[GET_OPCODE(irep->iseq[i])];
-        memcpy(page->data + off, ops[GET_OPCODE(irep->iseq[i])], op_size);
+        int opcode = GET_OPCODE(irep->iseq[i]);
+        size_t op_size = op_sizes[opcode];
+        fprintf(stderr, "copying opcode:%d to offset %d (%d bytes)\n", opcode, off, op_size);
+        memcpy(page->data + off, ops[opcode], op_size);
         off += op_size;
       }
+
+
+for (i = 0; i < off; i++)
+{
+    if (i > 0) printf(":");
+    printf("%02X", page->data[i]);
+}
+printf("\n");
+
       proc->flags |= MRB_PROC_JIT;
-      proc->jit_entry = page->data;
+      proc->jit_page = page;
+      jit_page_prot_exec(page);
       return TRUE;
     }
   }

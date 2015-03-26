@@ -31,6 +31,11 @@ InstructionSet = Struct.new(:body) do
 end
 
 module X86
+
+  #0x48, 0x89, 0x7d, 0xf0,                   /*09: mov     %rdi, -0x10(%rbp)        */
+  #0x48, 0x8b, 0x7d, 0xf0,                   /*42: mov     -0x10(%rbp), %rdi        */
+
+
   class JumpInstruction < Instruction
     def initialize(skip_n)
       case skip_n
@@ -109,6 +114,23 @@ Operation = Struct.new(:name, :architecture, :instructions) do
   end
 end
 
+def mruby_root
+  __dir__.split(File::SEPARATOR)
+         .slice_after('mruby').to_a[0]
+         .join(File::SEPARATOR)
+end
+
+def ops_header_path(arch)
+  File.join mruby_root, 'src', "ops_#{arch}.h"
+end
+
+def symtbl_header_path
+  File.join mruby_root, 'src', "jit_symtbl.h"
+end
+
+def vm_c_path
+ File.join mruby_root, 'src', 'vm.c'
+end
 
 $ops = [
   "op_nop", "op_move",
@@ -137,41 +159,48 @@ directory 'obj'
 directory 'll'
 
 obj_files = []
+
+def gen_file(f)
+  file f => ['vm.bc', 'll', 'gen'] do
+    sym_tbl = eval(`./gen vm.bc ll`)
+
+    File.open symtbl_header_path, 'w' do |f|
+      f.puts "#define SYMTBL_SIZE #{sym_tbl.size}"
+      f.puts "static void* symtbl[SYMTBL_SIZE];"
+      f.puts "void init_symtbl() {"
+      f.puts "  static int init = 0;"
+      f.puts "  if(init == 0) {"
+      f.puts "    init = 1;"
+      sym_tbl.each_with_index do |s, i|
+        f.puts "    symtbl[#{i}] = (void *) #{s};"
+      end
+      f.puts "  }"
+      f.puts "}"
+    end
+  end
+end
+
 $ops.each do |op|
   ll_file = File.join('ll', "#{op}.ll")
   obj_file = File.join('obj', "#{op}.o")
 
-  file ll_file => ['vm.bc', 'll'] do
-    $sym_tbl = `./gen vm.bc ll`
-  end
+  gen_file ll_file
 
   file obj_file => [ll_file, 'obj'] do |t|
     sh "llc -O3 #{ll_file} -filetype=obj -o #{t.name}"
   end
 
   obj_files << obj_file
-
 end
 
-def mruby_root
-  __dir__.split(File::SEPARATOR)
-         .slice_after('mruby').to_a[0]
-         .join(File::SEPARATOR)
-end
+gen_file symtbl_header_path
 
-def ops_header_path(arch)
-  File.join mruby_root, 'src', "ops_#{arch}.h"
-end
-
-def vm_c_path
- File.join mruby_root, 'src', 'vm.c'
-end
 
 file 'vm.bc' => [vm_c_path] do |t|
   sh "clang -I#{File.join mruby_root, 'include'} -DMRB_JIT_GEN -emit-llvm -o vm.bc -c #{vm_c_path}"
 end
 
-file ops_header_path(:x64) => obj_files do |t|
+file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
   file = File.open t.name, 'w'
   arch = nil
   operations = obj_files.map do |obj|
@@ -199,27 +228,33 @@ file ops_header_path(:x64) => obj_files do |t|
   end.each do |operation, lines|
     lines_str = lines.map{|l| "  " + l}.join("\n")
     file.puts
-    file.puts "static size_t #{operation.name}_size = #{operation.bytesize};"
     file.puts "static uint8_t #{operation.name}[] = {\n" + lines_str + "\n};"
     file.puts
   end
 
   file.puts "static uint8_t* ops[#{operations.size}];"
 
-  op_size_str = operations.map{|op| "  #{op.bytesize}"}.join(",\n")
+  op_size_str = operations.map{|op| "  sizeof(#{op.name}), /* #{op.name} */"}.join("\n")
   file.puts "static size_t op_sizes[] = {\n" + op_size_str + "\n};"
 
   op_arys_str = operations.map.with_index{|op, index| "    ops[#{index}] = #{op.name};"}.join("\n")
 
+
+  file.puts
+
+  file.puts "extern void init_symtbl();"
   file.puts "void init_ops() {"
   file.puts "  static int init = 0;"
   file.puts "  if(init == 0) {"
   file.puts "    init = 1;"
+  file.puts "    init_symtbl();"
   file.puts op_arys_str;
   file.puts "  }"
   file.puts "}"
 
+
   file.close
 end
 p ops_header_path(:x64)
-task :default => [ops_header_path(:x64)]
+task :default => [ops_header_path(:x64), symtbl_header_path]
+
