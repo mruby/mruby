@@ -1,17 +1,89 @@
 
+Register = Struct.new(:name) do
+  def inspect
+    "%#{name}"
+  end
+end
+
+Literal = Struct.new(:value) do
+  def inspect
+    "$%#x" % value
+  end
+end
+
 Instruction = Struct.new(:name, :operands, :bytes) do
-  private :bytes
 
   def to_bytes
     bytes
+  end
+
+  def source
+    operands[0]
+  end
+
+  def target
+    operands[1]
   end
 
   def return?
     ['retq'].include? name
   end
 
+  def call?
+    !!(name =~ /call/)
+  end
+
+  def move?
+    !!(name =~ /mov/)
+  end
+
+  def target_register?(reg_name)
+    target.is_a?(Register) && target.name == reg_name
+  end
+
+  def source_register?(reg_name)
+    source.is_a?(Register) && source.name == reg_name
+  end
+
+  def inspect
+    "#{name}"
+  end
+
   def bytesize
     bytes.size
+  end
+
+  def self.parse(str, bytes = [])
+    name, operands_str = str.split(/\s+?/, 2)
+    raise "invalid instruction #{str} (#{bytes})" if name.nil?
+    operands_str ||= ''
+    operands_str.strip!
+
+    operands = []
+    while !operands_str.empty?
+      operands << case operands_str
+      when /^\h+\s<.*?>/
+      when /^\s*,\s*/
+        nil
+      when /^\$0x(\h+)/
+        Literal.new $1.to_i(16)
+      when /^%(\w+)/
+        Register.new $1.to_sym
+      when /^\*?(?<offset>[+-]?0x\h+)?\((?:%(?<base>\w+))?(?:,%(?<index>\w+))?(?:,(?<scale>\d+))?\)/
+        X86::Memory.new $~[:offset] && eval($~[:offset]),
+                        $~[:base]   && Register.new($~[:base].to_sym),
+                        $~[:index]  && Register.new($~[:index].to_sym),
+                        $~[:scale]  && $~[:scale].to_i
+      else
+        operands << operands_str
+        puts "invalid operand `#{operands_str}' (#{str})"
+        break
+      end
+      operands_str = operands_str[$~.end(0)..-1]
+    end
+    operands.compact!
+
+    new name, operands, bytes
   end
 
   def self.jump(arch, *args)
@@ -35,6 +107,16 @@ module X86
   #0x48, 0x89, 0x7d, 0xf0,                   /*09: mov     %rdi, -0x10(%rbp)        */
   #0x48, 0x8b, 0x7d, 0xf0,                   /*42: mov     -0x10(%rbp), %rdi        */
 
+  Memory = Struct.new(:offset, :base, :index, :scale) do
+    def inspect
+      o = offset && "%#+x".%(offset)
+      b = base && base.inspect
+      i = index && ',' + index.inspect
+      s = scale && ',' + scale.to_s
+      "#{o}(#{b}#{i}#{s})"
+    end
+  end
+
 
   class JumpInstruction < Instruction
     def initialize(skip_n)
@@ -46,7 +128,7 @@ module X86
       else
         raise "jump size not supported"
       end
-      self.name = 'jmp (ret)'
+      self.name = 'jmp'
       self.operands = []
     end
   end
@@ -73,21 +155,24 @@ Operation = Struct.new(:name, :architecture, :instructions) do
   end
 
   def self.parse(objdump)
-    body = InstructionSet.new(objdump.each_line.map do |line|
+    body = InstructionSet.new(objdump.each_line.inject([]) do |ary, line|
       if line =~ /:\t((?:[0-9a-f]{2}\s)+)\s+(.*)/
-        bin, asm = $1.strip, $2.strip
-        bin = bin.split(/\s+/).map(&:strip).reject(&:empty?).map do |byte|
+        bytes, asm = $1.strip, $2.strip
+        bytes = bytes.split(/\s+/).map(&:strip).reject(&:empty?).map do |byte|
           byte.to_i(16)
         end
 
-        op, opr = asm.strip.split(/\s+/)
-        inst = Instruction.new op || '', (opr || '').split(',').map(&:strip), bin
+        asm.strip!
 
-        inst
-      else
-        nil
+        if asm.empty?
+          ary.last.bytes.concat bytes
+        else
+          ary << Instruction.parse(asm, bytes)
+        end
       end
-    end.compact)
+
+      ary
+    end)
 
     objdump =~ /^architecture: (.*?),/
     arch = ARCH_MAP[$1]
@@ -98,7 +183,35 @@ Operation = Struct.new(:name, :architecture, :instructions) do
     new func_name, arch, body
   end
 
-  def remove_ret_inst!
+  def correct!
+    remove_return!
+    remove_dummy_call!
+  end
+
+  def remove_dummy_call!
+    idx = body.rindex do |inst|
+      inst.name == 'callq'
+    end
+    if idx
+      body.delete_at idx
+    end
+
+    idx = body.rindex do |inst|
+      inst.name == 'pop' && inst.source_register?(:rax)
+    end
+    if idx
+      body.delete_at idx
+    end
+
+    idx = body.index do |inst|
+      inst.name == 'push' && inst.source_register?(:rax)
+    end
+    if idx
+      body.delete_at idx
+    end
+  end
+
+  def remove_return!
     body.each_with_index.reverse_each.inject(0) do |acc, (inst, index)|
       if inst.return?
         if acc.zero?
@@ -197,7 +310,7 @@ gen_file symtbl_header_path
 
 
 file 'vm.bc' => [vm_c_path] do |t|
-  sh "clang -I#{File.join mruby_root, 'include'} -DMRB_JIT_GEN -emit-llvm -o vm.bc -c #{vm_c_path}"
+  sh "clang -I#{File.join mruby_root, 'include'} -DMRB_JIT_GEN -fomit-frame-pointer -emit-llvm -o vm.bc -c #{vm_c_path}"
 end
 
 file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
@@ -206,7 +319,8 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
   operations = obj_files.map do |obj|
     operation = Operation.load(obj)
     arch = operation.arch
-    operation.remove_ret_inst!
+
+    operation.correct!
 
     operation
   end
@@ -218,7 +332,7 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
       op, opr = inst.name, inst.operands
 
       bin_str = bin.map{|byte| "0x%02x," % byte}.join(' ').ljust(42, ' ')
-      asm_str = "#{op.ljust(8, ' ')}#{opr.join(", ")}"
+      asm_str = "#{op.ljust(8, ' ')}#{opr.map(&:inspect).join(", ")}"
       asm_str = "/*#{'%02x' % off}: #{asm_str.ljust(32, ' ')} */"
 
       off += inst.bytesize

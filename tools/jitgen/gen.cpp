@@ -276,6 +276,9 @@ int main(int argc, const char **argv)
                                             true);
 
 
+      Value *ctxArg = &(*clonedFunc->getArgumentList().begin());
+      CallInst *ci = CallInst::Create(clonedFunc, ctxArg, "", clonedFunc->back().getTerminator());
+
       opMod->getFunctionList().push_back(clonedFunc);
 
       verifyModule(*opMod, &llvm::outs());
