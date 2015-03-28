@@ -1014,7 +1014,6 @@ op_poperr(struct op_ctx *ctx) {
 
 static void
 _op_stop(struct op_ctx *ctx) {
-  printf("op stop\n");
   {
     int eidx_stop = ctx->mrb->c->ci == ctx->mrb->c->cibase ? 0 : ctx->mrb->c->ci[-1].eidx;
     int eidx = ctx->mrb->c->ci->eidx;
@@ -1137,20 +1136,17 @@ op_loadnil(struct op_ctx *ctx) {
   SET_NIL_VALUE(ctx->regs[a]);
 }
 
-static FORCE_INLINE void
-op_send(struct op_ctx *ctx) {
-
+static inline void
+_op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
-  int a = GETARG_A(CTX_I(ctx));
-  int n = GETARG_C(CTX_I(ctx));
   struct RProc *m;
   struct RClass *c;
   mrb_callinfo *ci;
   mrb_value recv, result;
-  mrb_sym mid = ctx->syms[GETARG_B(CTX_I(ctx))];
+  mrb_sym mid = ctx->syms[b];
 
   recv = ctx->regs[a];
-  if (GET_OPCODE(CTX_I(ctx)) != OP_SENDB) {
+  if (opcode != OP_SENDB) {
     if (n == CALL_MAXARGS) {
       SET_NIL_VALUE(ctx->regs[a+2]);
     }
@@ -1234,9 +1230,13 @@ op_send(struct op_ctx *ctx) {
   }
 }
 
-static inline void
-_op_send(struct op_ctx *ctx) {
-  return op_send(ctx);
+static FORCE_INLINE void
+op_send(struct op_ctx *ctx) {
+  int opcode = GET_OPCODE(CTX_I(ctx));
+  int a = GETARG_A(CTX_I(ctx));
+  int b = GETARG_B(CTX_I(ctx));
+  int n = GETARG_C(CTX_I(ctx));
+  return _op_send(ctx, opcode, a, b, n);
 }
 
 static FORCE_INLINE void
@@ -1250,10 +1250,8 @@ op_fsend(struct op_ctx *ctx) {
   /* A B C  R(A) := fcall(R(A),Syms(B),R(A+1),... ,R(A+C-1)) */
 }
 
-static FORCE_INLINE void
-op_return(struct op_ctx *ctx) {
-  /* A B     return R(A) (B=normal,in-block return/break) */
-
+static inline void
+_op_return(struct op_ctx *ctx, int b) {
   mrb_state *mrb = ctx->mrb;
   if (ctx->mrb->exc) {
     return _op_raise(ctx);
@@ -1262,7 +1260,7 @@ op_return(struct op_ctx *ctx) {
     int acc, eidx = ctx->mrb->c->ci->eidx;
     mrb_value v = ctx->regs[GETARG_A(CTX_I(ctx))];
 
-    switch (GETARG_B(CTX_I(ctx))) {
+    switch (b) {
     case OP_R_RETURN:
       /* Fall through to OP_R_NORMAL otherwise */
       if (ctx->proc->env && !MRB_PROC_STRICT_P(ctx->proc)) {
@@ -1347,11 +1345,10 @@ op_return(struct op_ctx *ctx) {
   }
 }
 
-
-static inline void
-_op_return(struct op_ctx *ctx) {
-  CTX_I(ctx) = MKOP_AB(OP_RETURN, GETARG_A(CTX_I(ctx)), OP_R_NORMAL);
-  return op_return(ctx);
+static FORCE_INLINE void
+op_return(struct op_ctx *ctx) {
+  /* A B     return R(A) (B=normal,in-block return/break) */
+  return _op_return(ctx, GETARG_B(CTX_I(ctx)));
 }
 
 static FORCE_INLINE void
@@ -1395,7 +1392,7 @@ op_call(struct op_ctx *ctx) {
     ctx->irep = m->body.irep;
     if (!ctx->irep) {
       ctx->mrb->c->stack[0] = mrb_nil_value();
-      return _op_return(ctx);
+      return _op_return(ctx, OP_R_NORMAL);
     }
     ctx->pool = ctx->irep->pool;
     ctx->syms = ctx->irep->syms;
@@ -1550,6 +1547,8 @@ op_argary(struct op_ctx *ctx) {
 
 static FORCE_INLINE void
 op_enter(struct op_ctx *ctx) {
+  mrb_code *pc = ctx->pc;
+
   /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
   /* number of optional arguments times OP_JMP should follow */
   mrb_aspec ax = GETARG_Ax(CTX_I(ctx));
@@ -1634,6 +1633,8 @@ op_enter(struct op_ctx *ctx) {
     }
     ctx->pc += o + 1;
   }
+
+  fprintf(stderr, "PC INC: %d\n", ctx->pc - pc);
 }
 
 static FORCE_INLINE void
@@ -1696,7 +1697,7 @@ op_tailcall(struct op_ctx *ctx) {
   if (MRB_PROC_CFUNC_P(m)) {
     mrb->c->stack[0] = m->body.func(mrb, recv);
     mrb_gc_arena_restore(mrb, ctx->ai);
-    return _op_return(ctx);
+    return _op_return(ctx, OP_R_NORMAL);
   }
   else {
     /* setup environment for calling method */
@@ -1802,7 +1803,7 @@ op_add(struct op_ctx *ctx) {
     regs[a] = mrb_str_plus(mrb, regs[a], regs[a+1]);
     break;
   default:
-    return _op_send(ctx);
+    return op_send(ctx);
   }
   ARENA_RESTORE(mrb, ctx->ai);
   ctx->pc++;
@@ -1861,7 +1862,7 @@ op_sub(struct op_ctx *ctx) {
 #endif
     break;
   default:
-    return _op_send(ctx);
+    return op_send(ctx);
   }
   ctx->pc++;
 }
@@ -1930,7 +1931,7 @@ op_mul(struct op_ctx *ctx) {
 #endif
     break;
   default:
-    return _op_send(ctx);
+    return op_send(ctx);
   }
   ctx->pc++;
 }
@@ -1981,7 +1982,7 @@ op_div(struct op_ctx *ctx) {
 #endif
     break;
   default:
-    return _op_send(ctx);
+    return op_send(ctx);
   }
 #ifdef MRB_NAN_BOXING
   if (isnan(mrb_float(regs[a]))) {
@@ -2024,8 +2025,7 @@ op_addi(struct op_ctx *ctx) {
     break;
   default:
     SET_INT_VALUE(regs[a+1], GETARG_C(CTX_I(ctx)));
-    CTX_I(ctx) = MKOP_ABC(OP_SEND, a, GETARG_B(CTX_I(ctx)), 1);
-    return _op_send(ctx);
+    return _op_send(ctx, OP_SEND, a, GETARG_B(CTX_I(ctx)), 1);
   }
   ctx->pc++;
 
@@ -2068,8 +2068,7 @@ op_subi(struct op_ctx *ctx) {
     break;
   default:
     SET_INT_VALUE(regs_a[1], GETARG_C(CTX_I(ctx)));
-    CTX_I(ctx) = MKOP_ABC(OP_SEND, a, GETARG_B(CTX_I(ctx)), 1);
-    return _op_send(ctx);
+    return _op_send(ctx, OP_SEND, a, GETARG_B(CTX_I(ctx)), 1);
   }
   ctx->pc++;
 }
@@ -2093,7 +2092,7 @@ op_subi(struct op_ctx *ctx) {
     result = OP_CMP_BODY(op,mrb_float,mrb_float);\
     break;\
   default:\
-    return _op_send(ctx);\
+    return op_send(ctx);\
   }\
   if (result) {\
     SET_TRUE_VALUE(regs[a]);\
@@ -2521,7 +2520,6 @@ mrb_context_run_full(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigne
   };
 #endif
 
-  fprintf(stderr, "JIT: %d, flags: %d s:%d %d\n", jit, flags, offsetof(struct op_ctx, i), sizeof(symtbl));
   init_symtbl();
   memcpy(ctx.sym_tbl, symtbl, sizeof(symtbl));
 
