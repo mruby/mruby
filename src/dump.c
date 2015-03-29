@@ -52,6 +52,12 @@ get_irep_header_size(mrb_state *mrb)
   return size;
 }
 
+static size_t
+get_oa_off_size(mrb_state *mrb, mrb_irep *irep)
+{
+  return sizeof(uint16_t) * (irep->oalen + 1);
+}
+
 static ptrdiff_t
 write_irep_header(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
 {
@@ -65,6 +71,19 @@ write_irep_header(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
   return cur - buf;
 }
 
+static ptrdiff_t
+write_oa_off(mrb_state *mrb, mrb_irep *irep, uint8_t *buf) {
+
+  int i;
+  uint8_t *cur = buf;
+
+  cur += uint16_to_bin(irep->oalen, cur);
+  for (i = 0; i < irep->oalen; i++) {
+    cur += uint16_to_bin(irep->oa_off[i], cur);
+  }
+
+  return cur - buf;
+}
 
 static size_t
 get_iseq_block_size(mrb_state *mrb, mrb_irep *irep)
@@ -282,6 +301,7 @@ get_irep_record_size_1(mrb_state *mrb, mrb_irep *irep)
   size_t size = 0;
 
   size += get_irep_header_size(mrb);
+  size += get_oa_off_size(mrb, irep);
   size += get_iseq_block_size(mrb, irep);
   size += get_pool_block_size(mrb, irep);
   size += get_syms_block_size(mrb, irep);
@@ -317,6 +337,7 @@ write_irep_record(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, size_t *irep_rec
   }
 
   bin += write_irep_header(mrb, irep, bin);
+  bin += write_oa_off(mrb, irep, bin);
   bin += write_iseq_block(mrb, irep, bin, flags);
   bin += write_pool_block(mrb, irep, bin);
   bin += write_syms_block(mrb, irep, bin);

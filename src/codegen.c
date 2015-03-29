@@ -639,30 +639,42 @@ lambda_body(codegen_scope *s, node *tree, int blk)
       | ((ra & 1) << 5)
       | (pa & 0x1f);
     genop(s, MKOP_Ax(OP_ENTER, a));
-    pos = new_label(s);
-    for (i=0; i<oa; i++) {
-      new_label(s);
-      genop(s, MKOP_sBx(OP_JMP, 0));
-    }
-    if (oa > 0) {
-      genop(s, MKOP_sBx(OP_JMP, 0));
-    }
+    pos = s->pc;
+
     opt = tree->car->cdr->car;
     i = 0;
+
+      fprintf(stderr, "PC: %d\n", s->pc);
     while (opt) {
       int idx;
 
-      dispatch(s, pos+i);
+      //dispatch(s, pos+i);
       codegen(s, opt->car->cdr, VAL);
       idx = lv_idx(s, (mrb_sym)(intptr_t)opt->car->car);
       pop();
       genop_peep(s, MKOP_AB(OP_MOVE, idx, cursp()), NOVAL);
+
+      fprintf(stderr, "PC: %d (%d)\n", s->pc, s->pc - pos);
+      s->irep->oa_off[i + 1] = s->pc - pos + 1;
+
       i++;
       opt = opt->cdr;
     }
+
+    s->irep->oalen = oa + 1;
+    s->irep->oa_off[0] = 1;
+
     if (oa > 0) {
-      dispatch(s, pos+i);
+      //dispatch(s, pos+i);
+      fprintf(stderr, "OA %d %p #################\n", oa, s->irep);
+      for (i=0; i<oa + 1; i++) {
+        fprintf(stderr, "off %d:%d\n", i, s->irep->oa_off[i]);
+      }
+
     }
+
+
+
   }
   codegen(s, tree->cdr->car, VAL);
   pop();
@@ -3148,6 +3160,12 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
     /* prepare irep */
     codegen(scope, p->tree, NOVAL);
     proc = mrb_proc_new(mrb, scope->irep);
+
+    int i;
+    fprintf(stderr, "proc:%p\n", proc);
+    for (i=0; i< MRB_OPT_ARGC_MAX; i++) {
+      //fprintf(stderr, "new proc off %d:%d %d\n", i, proc->oa_off[i], scope->codegen_ctx->oa_off[i]);
+    }
     mrb_irep_decref(mrb, scope->irep);
     mrb_pool_close(scope->mpool);
     return proc;

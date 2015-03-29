@@ -72,6 +72,21 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   irep->rlen = (size_t)bin_to_uint16(src);
   src += sizeof(uint16_t);
 
+  /* Optional Variable Offset Table */
+  {
+    int i;
+
+    irep->oalen = bin_to_uint16(src);
+    src += sizeof(uint16_t);
+
+    for (i = 0; i < irep->oalen; i++) {
+      irep->oa_off[i] = bin_to_uint16(src);
+      src += sizeof(uint16_t);
+    }
+
+  }
+
+
   /* Binary Data Section */
   /* ISEQ BLOCK */
   irep->ilen = (size_t)bin_to_uint32(src);

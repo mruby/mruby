@@ -13,6 +13,9 @@ extern "C" {
 
 #include "mruby/compile.h"
 
+#define MRB_OPT_ARGC_MAX 15
+#define MRB_IREP_AOFF_LEN (MRB_OPT_ARGC_MAX + 1)
+
 enum irep_pool_type {
   IREP_TT_STRING,
   IREP_TT_FIXNUM,
@@ -29,6 +32,7 @@ typedef struct mrb_irep {
   uint16_t nlocals;        /* Number of local variables */
   uint16_t nregs;          /* Number of register variables */
   uint8_t flags;
+  uint8_t oalen;
 
   mrb_code *iseq;
   mrb_value *pool;
@@ -42,6 +46,8 @@ typedef struct mrb_irep {
   struct mrb_irep_debug_info* debug_info;
 
   size_t ilen, plen, slen, rlen, refcnt;
+
+  uint16_t oa_off[MRB_IREP_AOFF_LEN];
 } mrb_irep;
 
 #define MRB_ISEQ_NO_FREE 1
