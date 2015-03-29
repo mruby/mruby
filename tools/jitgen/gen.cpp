@@ -94,17 +94,27 @@ Instruction *getSymbol(Function *func, Instruction *inst, Type *type, BasicBlock
 }
 
 bool isOpFunc(const std::string& name) {
-  std::string opPrefix = "op_";
-  return !name.compare(0, opPrefix.size(), opPrefix);
+  std::string prefix = "op_";
+  return !name.compare(0, prefix.size(), prefix);
+}
+
+bool isDummySymbol(const std::string& name) {
+  std::string prefix = "__";
+  return !name.compare(0, prefix.size(), prefix);
 }
 
 bool isOpFunc(Function *func) {
   return isOpFunc(func->getName().str());
 }
 
-unsigned getSymbolIndex(std::string& name) {
+unsigned getSymbolIndex(const std::string& name) {
   auto indexEntry = symbolMap.find(name);
   int symIndex = -1;
+
+  if(isDummySymbol(name)) {
+    assert(0 && "dummy symbol");
+  }
+
   if(indexEntry != symbolMap.end()) {
     symIndex = indexEntry->second;
   } else {
@@ -132,10 +142,11 @@ int main(int argc, const char **argv)
 
   ValueSymbolTable &symTbl = mod->getValueSymbolTable();
 
+  std::vector<Instruction *> removeInsts;
+
   for(ValueSymbolTable::iterator symIter = symTbl.begin(); symIter != symTbl.end(); ++symIter) {
     std::string sym = symIter->getKey().str();
     Value *val = symIter->getValue();
-
 
     std::vector<CallInst *> callInsts;
     std::vector<User *> gvUsers;
@@ -158,7 +169,12 @@ int main(int argc, const char **argv)
 
       std::string funcName = func->getName().str();
 
-      if(isOpFunc(funcName)) {
+      if(isDummySymbol(sym)) {
+        if(sym == "__pc_inc__") {
+        }
+        removeInsts.push_back(callInst);
+
+      } else if(isOpFunc(funcName)) {
         std::cerr << "=========================" << std::endl;
         std::cerr << funcName << std::endl;
         std::cerr << "=========================" << std::endl;
@@ -212,6 +228,10 @@ int main(int argc, const char **argv)
       } else {
       }
     }
+  }
+
+  for(Instruction *inst: removeInsts) {
+    inst->removeFromParent();
   }
 
   for(Module::iterator funcIter = mod->begin(); funcIter != mod->end(); ++funcIter) {

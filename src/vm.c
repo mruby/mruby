@@ -780,10 +780,14 @@ static void __op_end__(struct op_ctx *ctx) {
 
 #ifdef MRB_JIT_GEN
 #define OP_END return __op_end__(ctx)
-#undef GETARG_A(i)
-#define GETARG_A(i) (0xABDEF)
-#undef GETARG_B(i)
-#define GETARG_B(i) (0xBDEFA)
+
+int __getarg_a__(mrb_code c) {
+  return 0xABCDEF;
+}
+
+int __getarg_b__(mrb_code c) {
+  return 0xBCDEFA;
+}
 
 void __pc_add__(mrb_code *pc, int o) {
 }
@@ -791,6 +795,14 @@ void __pc_add__(mrb_code *pc, int o) {
 void __pc_inc__(mrb_code *pc) {
 }
 
+#undef GETARG_A
+#define GETARG_A(i) 0xAAAAA
+#undef GETARG_B
+#define GETARG_B(i) 0xEEEE
+#undef GETARG_sBx
+#undef GETARG_Bx
+#define GETARG_sBx(i) 0xBCDE
+#define GETARG_Bx(i) 0xBCDE
 #define PC_ADD(pc, o) (__pc_add__(pc, o))
 #define PC_INC(pc) (__pc_inc__(pc))
 #else
@@ -2496,7 +2508,12 @@ op_err(struct op_ctx *ctx) {
 #pragma GCC diagnostic pop
 #endif
 
+#ifdef MRB_JIT_GEN
+static void init_symtbl(){};
+static void *symtbl[1];
+#else
 #include "jit_symtbl.h"
+#endif
 
 MRB_API mrb_value
 mrb_context_run_full(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep, enum mrb_run_flags flags)
