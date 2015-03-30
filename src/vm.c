@@ -796,13 +796,13 @@ void __pc_inc__(mrb_code *pc) {
 }
 
 #undef GETARG_A
-#define GETARG_A(i) 0xAAAAA
+#define GETARG_A(i) 0xABCD00
 #undef GETARG_B
-#define GETARG_B(i) 0xEEEE
+#define GETARG_B(i) 0xBCDE00
 #undef GETARG_sBx
 #undef GETARG_Bx
-#define GETARG_sBx(i) 0xBCDE
-#define GETARG_Bx(i) 0xBCDE
+#define GETARG_sBx(i) 0xBCDE00
+#define GETARG_Bx(i) 0xBCDE00
 #define PC_ADD(pc, o) (__pc_add__(pc, o))
 #define PC_INC(pc) (__pc_inc__(pc))
 #else
@@ -995,6 +995,7 @@ static FORCE_INLINE void
 op_jmpif(struct op_ctx *ctx) {
   /* A sBx  if R(A) pc+=sBx */
   if (mrb_test(ctx->regs[GETARG_A(CTX_I(ctx))])) {
+    printf("yes");
     PC_ADD(ctx->pc, GETARG_sBx(CTX_I(ctx)));
   } else {
     PC_INC(ctx->pc);
@@ -1005,6 +1006,7 @@ static FORCE_INLINE void
 op_jmpnot(struct op_ctx *ctx) {
   /* A sBx  if R(A) pc+=sBx */
   if (!mrb_test(ctx->regs[GETARG_A(CTX_I(ctx))])) {
+    printf("yes");
     PC_ADD(ctx->pc, GETARG_sBx(CTX_I(ctx)));
   } else {
     PC_INC(ctx->pc);

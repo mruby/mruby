@@ -1,3 +1,4 @@
+require 'stringio'
 
 Register = Struct.new(:name) do
   def inspect
@@ -12,6 +13,39 @@ Literal = Struct.new(:value) do
 end
 
 Instruction = Struct.new(:name, :operands, :bytes) do
+
+  MAGIC_ARG_CONSTS = {
+    /ABCD/i => 'a',
+    /BCDE/i => 'b',
+  }
+
+  def arguments
+    args = Hash.new{|k, v| k[v] = []}
+    operands.map do |op|
+      MAGIC_ARG_CONSTS.each do |r, a|
+        v = case op
+        when Literal
+          op.value
+        when X86::Memory
+          op.offset
+        else
+          nil
+        end
+
+        if v && v.to_s(16) =~ r
+          arg_bytes = [v].pack('l<').force_encoding('ASCII-8BIT').each_codepoint.to_a
+          (bytes.size).downto(0) do |i|
+            range = (i - arg_bytes.size)...i
+            seq = bytes[range]
+            if seq == arg_bytes
+              args[a] << range
+            end
+          end
+        end
+      end
+    end
+    args
+  end
 
   def to_bytes
     bytes
@@ -117,21 +151,124 @@ module X86
     end
   end
 
-
   class JumpInstruction < Instruction
     def initialize(skip_n)
       case skip_n
-      when -2**8/2...2**8/2
-        self.bytes = [0xeb] + [skip_n].pack('c').force_encoding('ASCII-8BIT').each_codepoint.to_a
-      when -2**16/2...2**16/2
-        self.bytes = [0xe9] + [skip_n].pack('s<').force_encoding('ASCII-8BIT').each_codepoint.to_a
+      when rel8_range
+        self.bytes = [rel8_opcode] + [skip_n].pack('c').force_encoding('ASCII-8BIT').each_codepoint.to_a
+      when rel16_range
+        self.bytes = [rel16_opcode] + [skip_n].pack('s<').force_encoding('ASCII-8BIT').each_codepoint.to_a
       else
         raise "jump size not supported"
       end
       self.name = 'jmp'
       self.operands = []
     end
+
+    module C
+      def to_c(io = StringIO.new)
+        cond = -> (r) {"n >= #{r.min} && n < #{r.max}"}
+
+        io.puts "int #{c_func_name}(uint8_t *b, int32_t n) {"
+        io.puts "  if(#{cond[rel8_range]}) {"
+        rel8_to_c io
+        io.puts "    return 1;";
+        io.puts "  }"
+        io.puts "  if(#{cond[rel16_range]}) {"
+        rel16_to_c io
+        io.puts "    return 1;";
+        io.puts "  }"
+        io.puts "  return 0;"
+        io.puts "}"
+
+        io.string if StringIO === io
+      end
+
+      def c_func_name
+        "jit_jump"
+      end
+
+      def rel8_to_c(io)
+        io.puts "    *b++ = #{rel8_opcode};";
+        io.puts "    *b++ = (int8_t) n;";
+      end
+
+      def rel16_to_c(io)
+        opcode = rel16_opcode
+        if opcode.is_a? Array
+          opcode = opcode.map(&:chr).join.unpack('s<').first
+          io.puts "    *((uint16_t *)(b))++ = (uint16_t) #{opcode};";
+        else
+          io.puts "    *b++ = #{opcode};"
+        end
+        io.puts "    *((int16_t *)(b))++ = (int16_t) n;";
+      end
+
+      def rel8_range
+        (-2**8/2...2**8/2)
+      end
+
+      def rel16_range
+        (-2**16/2...2**16/2)
+      end
+
+      def rel8_opcode
+        0xeb
+      end
+
+      def rel16_opcode
+        0xe9
+      end
+    end
+
+    extend C
+    include C
   end
+
+  class JumpIfInstruction < JumpInstruction
+    module C
+      extend JumpInstruction::C
+
+      def c_func_name
+        "jit_jump_if"
+      end
+
+      def rel8_opcode
+        0x74
+      end
+
+      def rel16_opcode
+        [0x0F,0x84]
+      end
+    end
+
+    include C
+    extend C
+  end
+
+  class JumpNotInstruction < JumpInstruction
+
+    module C
+      extend JumpInstruction::C
+
+      def c_func_name
+        "jit_jump_if"
+      end
+
+      def rel8_opcode
+        0x75
+      end
+
+      def rel16_opcode
+        [0x0F,0x85]
+      end
+    end
+
+    include C
+    extend C
+  end
+
+
 end
 
 Operation = Struct.new(:name, :architecture, :instructions) do
@@ -141,6 +278,20 @@ Operation = Struct.new(:name, :architecture, :instructions) do
   }
 
   alias_method :arch, :architecture
+
+  def arguments
+    body.inject([0, Hash.new{|h, v| h[v] = []}]) do |acc, op|
+      off, hash = acc
+
+      args = op.arguments.map {|k, v| [k, v.map{|r| ((r.min + off)..(r.max + off))}]}.to_h
+      p args
+      new_hash = hash.merge(args) do |key, av, hv|
+        av | hv
+      end
+
+      [off + op.bytesize, new_hash]
+    end
+  end
 
   def body
     instructions.body
@@ -342,6 +493,7 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
   end.each do |operation, lines|
     lines_str = lines.map{|l| "  " + l}.join("\n")
     file.puts
+    file.puts "/* args: #{operation.arguments.inspect} */"
     file.puts "static uint8_t #{operation.name}[] = {\n" + lines_str + "\n};"
     file.puts
   end
@@ -366,6 +518,14 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
   file.puts "  }"
   file.puts "}"
 
+  file.puts "int jit_return(uint8_t *b) {"
+  file.puts "  *b++ = 0xc3;"
+  file.puts "  return 1;"
+  file.puts "}"
+
+  X86::JumpInstruction.to_c file
+  X86::JumpIfInstruction.to_c file
+  X86::JumpNotInstruction.to_c file
 
   file.close
 end

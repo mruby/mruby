@@ -124,6 +124,21 @@ unsigned getSymbolIndex(const std::string& name) {
   return symIndex;
 }
 
+void findGepUsers(User *parentUser, Module *mod, LLVMContext &context, std::vector<User *>& chain) {
+  chain.push_back(parentUser);
+  for(User *user: parentUser->users()) {
+    if(GetElementPtrInst *gepInst = dyn_cast<GetElementPtrInst>(user)) {
+      uint64_t size = mod->getDataLayout()->getTypeAllocSize(cast<PointerType>(gepInst->getType())->getElementType());
+      std::cout << size << std::endl;
+      gepInst->dump();
+      Value *magicConst = ConstantInt::get(context, APInt(32, 0xABCDEF / size, false));
+      gepInst->replaceUsesOfWith(parentUser, magicConst);
+      //assert(0);
+    } else {
+      findGepUsers(user, mod, context, chain);
+    }
+  }
+}
 
 int main(int argc, const char **argv)
 {
@@ -163,6 +178,7 @@ int main(int argc, const char **argv)
       }
     }
 
+          std::vector<User *> chain;
     for(CallInst *callInst: callInsts) {
       BasicBlock *bb = callInst->getParent();
       Function *func = bb->getParent();
@@ -170,10 +186,7 @@ int main(int argc, const char **argv)
       std::string funcName = func->getName().str();
 
       if(isDummySymbol(sym)) {
-        if(sym == "__pc_inc__") {
-        }
         removeInsts.push_back(callInst);
-
       } else if(isOpFunc(funcName)) {
         std::cerr << "=========================" << std::endl;
         std::cerr << funcName << std::endl;
@@ -196,6 +209,13 @@ int main(int argc, const char **argv)
         //use->replaceUsesOfWith(replaceInst);
       }
     }
+
+
+      for(User *user: chain) {
+        if(Instruction *inst = dyn_cast<Instruction>(user)) {
+          inst->removeFromParent();
+        }
+      }
 
 
     for(User *user: gvUsers) {
@@ -257,6 +277,20 @@ int main(int argc, const char **argv)
 
               memCpyInst->setCalledFunction(Intrinsic::getDeclaration(opMod, Intrinsic::memcpy, params));
             }
+
+            if(GetElementPtrInst *gepInst = dyn_cast<GetElementPtrInst>(instIter)) {
+              for(unsigned i = 0; i < gepInst->getNumOperands(); i++) {
+                Value *operand = gepInst->getOperand(i);
+                if(ConstantInt *constInt = dyn_cast<ConstantInt>(operand)) {
+                  uint64_t v = constInt->getZExtValue();
+                  if(v == 0xABCD00 || v == 0xBCDE00) {
+                    uint64_t size = mod->getDataLayout()->getTypeAllocSize(cast<PointerType>(gepInst->getType())->getElementType());
+                    gepInst->setOperand(i, ConstantInt::get(constInt->getType(), v / size));
+                  }
+                }
+              }
+            }
+
 
             if(User *user = dyn_cast<User>(instIter)) {
               for(unsigned i = 0; i < user->getNumOperands(); i++) {

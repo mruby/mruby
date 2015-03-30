@@ -83,6 +83,7 @@ MRuby::Build.new do |conf|
   # conf.enable_bintest
 end
 
+__END__
 MRuby::Build.new('host-debug') do |conf|
   # load specific toolchain settings
 
