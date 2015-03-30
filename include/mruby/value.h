@@ -61,11 +61,7 @@ MRB_API int mrb_msvc_snprintf(char *s, size_t n, const char *format, ...);
 static const unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
 #  define INFINITY (*(float *)&IEEE754_INFINITY_BITS_SINGLE)
 #  define NAN ((float)(INFINITY - INFINITY))
-# else
-#  include <inttypes.h>
 # endif
-#else
-# include <inttypes.h>
 #endif
 
 enum mrb_vtype {
