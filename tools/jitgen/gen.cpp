@@ -283,7 +283,9 @@ int main(int argc, const char **argv)
                 Value *operand = gepInst->getOperand(i);
                 if(ConstantInt *constInt = dyn_cast<ConstantInt>(operand)) {
                   uint64_t v = constInt->getZExtValue();
-                  if(v == 0xABCD00 || v == 0xBCDE00) {
+                  if(v == 0xABCD00 ||
+                     v == 0xBCDE00 ||
+                     v == 0xCDEF00) {
                     uint64_t size = mod->getDataLayout()->getTypeAllocSize(cast<PointerType>(gepInst->getType())->getElementType());
                     gepInst->setOperand(i, ConstantInt::get(constInt->getType(), v / size));
                   }

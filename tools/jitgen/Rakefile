@@ -17,6 +17,7 @@ Instruction = Struct.new(:name, :operands, :bytes) do
   MAGIC_ARG_CONSTS = {
     /ABCD/i => 'a',
     /BCDE/i => 'b',
+    /CDEF/i => 'c',
   }
 
   def arguments
@@ -252,7 +253,7 @@ module X86
       extend JumpInstruction::C
 
       def c_func_name
-        "jit_jump_if"
+        "jit_jump_not"
       end
 
       def rel8_opcode
@@ -284,13 +285,12 @@ Operation = Struct.new(:name, :architecture, :instructions) do
       off, hash = acc
 
       args = op.arguments.map {|k, v| [k, v.map{|r| ((r.min + off)..(r.max + off))}]}.to_h
-      p args
       new_hash = hash.merge(args) do |key, av, hv|
         av | hv
       end
 
       [off + op.bytesize, new_hash]
-    end
+    end[1]
   end
 
   def body
@@ -491,20 +491,35 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
     end
     [operation, lines]
   end.each do |operation, lines|
-    lines_str = lines.map{|l| "  " + l}.join("\n")
     file.puts
     file.puts "/* args: #{operation.arguments.inspect} */"
-    file.puts "static uint8_t #{operation.name}[] = {\n" + lines_str + "\n};"
+    file.puts "static uint8_t #{operation.name}[] = {"
+    lines.each do |l|
+      file.puts "  " + l
+    end
+    file.puts "\n};"
+    file.puts
+    file.puts "static void #{operation.name}_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {"
+    operation.arguments.each do |k, vs|
+      vs.each do |v|
+        file.puts "  *((int32_t *)(op + #{v.begin})) = #{k}"
+      end
+    end
+    file.puts "};"
+
+    file.puts
     file.puts
   end
 
+  file.puts "typedef void (*jit_args_func_t)(uint8_t *op, int32_t a, int32_t b, int32_t c);"
+  file.puts "static jit_args_func_t arg_funcs[#{operations.size}];"
   file.puts "static uint8_t* ops[#{operations.size}];"
 
-  op_size_str = operations.map{|op| "  sizeof(#{op.name}), /* #{op.name} */"}.join("\n")
-  file.puts "static size_t op_sizes[] = {\n" + op_size_str + "\n};"
-
-  op_arys_str = operations.map.with_index{|op, index| "    ops[#{index}] = #{op.name};"}.join("\n")
-
+  file.puts "static size_t op_sizes[] = {\n"
+  operations.each do |op|
+    file.puts "  sizeof(#{op.name}), /* #{op.name} */"
+  end
+  file.puts "\n};"
 
   file.puts
 
@@ -514,7 +529,10 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
   file.puts "  if(init == 0) {"
   file.puts "    init = 1;"
   file.puts "    init_symtbl();"
-  file.puts op_arys_str;
+  operations.each_with_index do |op, index|
+    file.puts "    ops[#{index}] = #{op.name};"
+    file.puts "    arg_funcs[#{index}] = #{op.name}_set_args;"
+  end
   file.puts "  }"
   file.puts "}"
 

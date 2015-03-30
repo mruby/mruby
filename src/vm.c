@@ -769,6 +769,10 @@ struct op_ctx {
   int ai;
   mrb_state *mrb;
   mrb_code i;
+  uint16_t jit_oa_off[MRB_IREP_AOFF_LEN];
+  uint8_t *jit_pc;
+
+  /* needs to be last field */
   void *sym_tbl[124];
 };
 
@@ -797,12 +801,16 @@ void __pc_inc__(mrb_code *pc) {
 
 #undef GETARG_A
 #define GETARG_A(i) 0xABCD00
+#undef GETARG_Ax
+#define GETARG_Ax(i) 0xABCD00
 #undef GETARG_B
 #define GETARG_B(i) 0xBCDE00
 #undef GETARG_sBx
-#undef GETARG_Bx
 #define GETARG_sBx(i) 0xBCDE00
+#undef GETARG_Bx
 #define GETARG_Bx(i) 0xBCDE00
+#undef GETARG_C
+#define GETARG_C(i) 0xCDEF00
 #define PC_ADD(pc, o) (__pc_add__(pc, o))
 #define PC_INC(pc) (__pc_inc__(pc))
 #else
@@ -1596,6 +1604,10 @@ op_enter(struct op_ctx *ctx) {
   int len = m1 + o + r + m2;
   mrb_value *blk = &argv[argc < 0 ? 1 : argc];
 
+#ifdef MRB_JIT_GEN
+  uint8_t *jit_jmp_addr = ctx->jit_pc;
+#endif
+
   if (!mrb_nil_p(*blk) && mrb_type(*blk) != MRB_TT_PROC) {
     *blk = mrb_convert_type(ctx->mrb, *blk, MRB_TT_PROC, _str_const_proc, _str_const_to_proc);
   }
@@ -1645,6 +1657,9 @@ op_enter(struct op_ctx *ctx) {
     else {
       fprintf(stderr, "3 %d\n", argc - m1 - m2);
       PC_ADD(ctx->pc, ctx->irep->oa_off[argc - m1 - m2]);
+#ifdef MRB_JIT_GEN
+      jit_jmp_addr += ctx->jit_oa_off[argc - m1 - m2];
+#endif
     }
   }
   else {
@@ -1669,6 +1684,9 @@ op_enter(struct op_ctx *ctx) {
     if(o > 0) {
       fprintf(stderr, "1\n", ctx->pc - pc, o);
       PC_ADD(ctx->pc, ctx->irep->oa_off[o]);
+#ifdef MRB_JIT_GEN
+      jit_jmp_addr += ctx->jit_oa_off[o];
+#endif
     }
     else {
       fprintf(stderr, "2\n", ctx->pc - pc, o);
@@ -1684,6 +1702,10 @@ op_enter(struct op_ctx *ctx) {
     fprintf(stderr, "off %d:%d\n", i, ctx->irep->oa_off[i]);
   }
 
+#ifdef MRB_JIT_GEN
+  asm volatile ("jmp %A0"
+    : : "r" (jit_jmp_addr) :);
+#endif
 }
 
 static FORCE_INLINE void
@@ -2465,7 +2487,7 @@ static FORCE_INLINE void
 op_range(struct op_ctx *ctx) {
   /* A B C  R(A) := range_new(R(B),R(B+1),C) */
   int b = GETARG_B(CTX_I(ctx));
-  ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_range_new(ctx->mrb, ctx->regs[b], ctx->regs[b+1], GETARG_C(CTX_I(ctx)));
+  ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_range_new(ctx->mrb, ctx->regs[b], ctx->regs[b+1], !!GETARG_C(CTX_I(ctx)));
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
