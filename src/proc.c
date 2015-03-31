@@ -176,7 +176,7 @@ jit_page_prot_exec(struct mrb_jit_page *page) {
 #endif
 
 void
-mrb_proc_call_jit(struct RProc *proc, void *ctx) {
+mrb_proc_jit_call(struct RProc *proc, void *ctx) {
   void (*f)(void *) = (void *)proc->jit_page->data;
   return (*f)(ctx);
 }
@@ -217,11 +217,29 @@ for (i = 0; i < off; i++)
 }
 printf("\n");
 
-      proc->flags |= MRB_PROC_JIT;
+      proc->flags |= MRB_PROC_JITTED;
       proc->jit_page = page;
       jit_page_prot_exec(page);
       return TRUE;
     }
+  }
+}
+
+void
+mrb_proc_jit_prepare(struct RProc *proc) {
+  int i, j;
+  uint16_t off = 0;
+  mrb_irep *irep = proc->body.irep;
+
+  proc->jit_oa_off[0] = 0;
+  for(i = 1; i < irep->oalen; i++) {
+    uint16_t off = 0;
+    int j;
+    for(j = 1; j < irep->oa_off[i]; j++) {
+      mrb_code c = irep->iseq[j];
+      off += op_sizes[GET_OPCODE(c)];
+    }
+    proc->jit_oa_off[0] = off;
   }
 }
 

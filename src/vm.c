@@ -714,7 +714,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
 #define FORCE_INLINE inline
 #endif
 #else
-#define FORCE_INLINE
+#define FORCE_INLINE __attribute__ ((noinline))
 #endif
 
 
@@ -769,9 +769,7 @@ struct op_ctx {
   int ai;
   mrb_state *mrb;
   mrb_code i;
-  uint16_t jit_oa_off[MRB_IREP_AOFF_LEN];
-  uint8_t *jit_pc;
-
+  enum mrb_run_flags run_flags;
   /* needs to be last field */
   void *sym_tbl[124];
 };
@@ -1003,7 +1001,6 @@ static FORCE_INLINE void
 op_jmpif(struct op_ctx *ctx) {
   /* A sBx  if R(A) pc+=sBx */
   if (mrb_test(ctx->regs[GETARG_A(CTX_I(ctx))])) {
-    printf("yes");
     PC_ADD(ctx->pc, GETARG_sBx(CTX_I(ctx)));
   } else {
     PC_INC(ctx->pc);
@@ -1014,7 +1011,6 @@ static FORCE_INLINE void
 op_jmpnot(struct op_ctx *ctx) {
   /* A sBx  if R(A) pc+=sBx */
   if (!mrb_test(ctx->regs[GETARG_A(CTX_I(ctx))])) {
-    printf("yes");
     PC_ADD(ctx->pc, GETARG_sBx(CTX_I(ctx)));
   } else {
     PC_INC(ctx->pc);
@@ -1220,6 +1216,14 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   /* prepare stack */
   ctx->mrb->c->stack += a;
 
+#ifdef MRB_JIT_GEN
+  if (ctx->run_flags & MRB_RUN_JIT && !MRB_PROC_JITTED_P(m)) {
+    mrb_proc_jit_prepare(m);
+    mrb_proc_jit(m);
+  }
+#endif
+
+
   if (MRB_PROC_CFUNC_P(m)) {
     if (n == CALL_MAXARGS) {
       ci->argc = -1;
@@ -1264,6 +1268,12 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     }
     ctx->regs = ctx->mrb->c->stack;
     ctx->pc = ctx->irep->iseq;
+
+#ifdef MRB_JIT_GEN
+    if(MRB_PROC_JITTED_P(m)) {
+      mrb_proc_jit_call(m, ctx);
+    }
+#endif
   }
 }
 
@@ -1605,7 +1615,7 @@ op_enter(struct op_ctx *ctx) {
   mrb_value *blk = &argv[argc < 0 ? 1 : argc];
 
 #ifdef MRB_JIT_GEN
-  uint8_t *jit_jmp_addr = ctx->jit_pc;
+  uint16_t jit_jmp_off = 0;
 #endif
 
   if (!mrb_nil_p(*blk) && mrb_type(*blk) != MRB_TT_PROC) {
@@ -1651,14 +1661,17 @@ op_enter(struct op_ctx *ctx) {
       ctx->regs[m1+o+1] = mrb_ary_new_capa(ctx->mrb, 0);
     }
     if (o == 0 || argc < m1+m2) {
-      fprintf(stderr, "4\n", ctx->pc - pc, o);
+      //fprintf(stderr, "4\n", ctx->pc - pc, o);
       PC_INC(ctx->pc);
+#ifdef MRB_JIT_GEN
+      jit_jmp_off = ctx->proc->jit_oa_off[0];
+#endif
     }
     else {
-      fprintf(stderr, "3 %d\n", argc - m1 - m2);
+      //fprintf(stderr, "3 %d\n", argc - m1 - m2);
       PC_ADD(ctx->pc, ctx->irep->oa_off[argc - m1 - m2]);
 #ifdef MRB_JIT_GEN
-      jit_jmp_addr += ctx->jit_oa_off[argc - m1 - m2];
+      jit_jmp_off = ctx->proc->jit_oa_off[argc - m1 - m2];
 #endif
     }
   }
@@ -1682,29 +1695,35 @@ op_enter(struct op_ctx *ctx) {
     }
 
     if(o > 0) {
-      fprintf(stderr, "1\n", ctx->pc - pc, o);
+      //fprintf(stderr, "1\n", ctx->pc - pc, o);
       PC_ADD(ctx->pc, ctx->irep->oa_off[o]);
 #ifdef MRB_JIT_GEN
-      jit_jmp_addr += ctx->jit_oa_off[o];
+      jit_jmp_off = ctx->proc->jit_oa_off[o];
 #endif
     }
     else {
-      fprintf(stderr, "2\n", ctx->pc - pc, o);
+      //fprintf(stderr, "2\n", ctx->pc - pc, o);
       PC_INC(ctx->pc);
+#ifdef MRB_JIT_GEN
+      jit_jmp_off = ctx->proc->jit_oa_off[0];
+#endif
     }
 
   }
 
-  fprintf(stderr, "PC INC: %d (%d) (%p)\n", ctx->pc - pc, o, ctx->irep);
-  fprintf(stderr, "eproc:%p\n", ctx->irep);
+  //fprintf(stderr, "PC INC: %d (%d) (%p)\n", ctx->pc - pc, o, ctx->irep);
+  //fprintf(stderr, "eproc:%p\n", ctx->irep);
   int i;
   for (i=0; i< MRB_OPT_ARGC_MAX; i++) {
-    fprintf(stderr, "off %d:%d\n", i, ctx->irep->oa_off[i]);
+    //fprintf(stderr, "off %d:%d\n", i, ctx->irep->oa_off[i]);
   }
 
 #ifdef MRB_JIT_GEN
-  asm volatile ("jmp %A0"
-    : : "r" (jit_jmp_addr) :);
+//  asm volatile ("jmp %A0"
+//    : : "r" (jit_jmp_addr) :);
+// __asm__ ("mov %0, %%rdi\n\t" : : "r" (jit_jmp_addr) : "rdi");
+  typedef void (*__op_enter_exit__)(struct op_ctx *, long off);
+  ((__op_enter_exit__)(0xFAB))(ctx, jit_jmp_off);
 #endif
 }
 
@@ -2568,7 +2587,8 @@ mrb_context_run_full(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigne
     .ai = mrb_gc_arena_save(mrb),
     .prev_jmp = mrb->jmp,
     .stop_jmp = &stop_jmp,
-    .mrb = mrb
+    .mrb = mrb,
+    .run_flags = flags
   };
 
 #ifdef DIRECT_THREADED
@@ -3013,15 +3033,16 @@ dispatch:
 
 jit:
   ctx.i = *ctx.pc;
-  if (MRB_PROC_JIT_P(proc)) {
-    mrb_proc_call_jit(proc, (void *) &ctx);
+  if (MRB_PROC_JITTED_P(proc)) {
+    mrb_proc_jit_call(proc, (void *) &ctx);
   } else {
     if (mrb_proc_jit(proc)) {
       fprintf(stderr, "before jit: %d %d\n", GET_OPCODE(ctx.i), GETARG_sBx(ctx.i));
       
-      mrb_proc_call_jit(proc, (void *) &ctx);
+      mrb_proc_jit_call(proc, (void *) &ctx);
       fprintf(stderr,"jit returned");
     } else {
+      ctx.run_flags &= ~MRB_RUN_JIT;
       goto dispatch;
     }
   }

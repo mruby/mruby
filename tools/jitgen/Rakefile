@@ -102,7 +102,7 @@ Instruction = Struct.new(:name, :operands, :bytes) do
         nil
       when /^\$0x(\h+)/
         Literal.new $1.to_i(16)
-      when /^%(\w+)/
+      when /^\*?%(\w+)/
         Register.new $1.to_sym
       when /^\*?(?<offset>[+-]?0x\h+)?\((?:%(?<base>\w+))?(?:,%(?<index>\w+))?(?:,(?<scale>\d+))?\)/
         X86::Memory.new $~[:offset] && eval($~[:offset]),
@@ -121,11 +121,11 @@ Instruction = Struct.new(:name, :operands, :bytes) do
     new name, operands, bytes
   end
 
-  def self.jump(arch, *args)
+  def self.relative_jump(arch, *args)
     case arch
     when :x86, :x64
       X86
-    end.const_get(:JumpInstruction).new(*args)
+    end.const_get(:JumpInstruction).relative *args
   end
 end
 
@@ -138,6 +138,14 @@ InstructionSet = Struct.new(:body) do
 end
 
 module X86
+
+  module CC
+    class SysV
+      def self.argument_registers
+        [:rdi, :rsi, :rdx, :rcx, :r8, :r9, *(0..7).map{|i| :"xmm#{i}"}].map{|n| Register.new n}
+      end
+    end
+  end
 
   #0x48, 0x89, 0x7d, 0xf0,                   /*09: mov     %rdi, -0x10(%rbp)        */
   #0x48, 0x8b, 0x7d, 0xf0,                   /*42: mov     -0x10(%rbp), %rdi        */
@@ -153,21 +161,35 @@ module X86
   end
 
   class JumpInstruction < Instruction
-    def initialize(skip_n)
+    def self.relative(skip_n)
       case skip_n
       when rel8_range
-        self.bytes = [rel8_opcode] + [skip_n].pack('c').force_encoding('ASCII-8BIT').each_codepoint.to_a
+        bytes = [rel8_opcode] + [skip_n].pack('c').force_encoding('ASCII-8BIT').each_codepoint.to_a
       when rel16_range
-        self.bytes = [rel16_opcode] + [skip_n].pack('s<').force_encoding('ASCII-8BIT').each_codepoint.to_a
+        bytes = [rel16_opcode] + [skip_n].pack('s<').force_encoding('ASCII-8BIT').each_codepoint.to_a
       else
         raise "jump size not supported"
       end
-      self.name = 'jmp'
-      self.operands = []
+
+      new 'jmp', [], bytes
+    end
+
+    def self.register(register)
+      bytes = [0xFF]
+      bytes << case register.name
+      when :rsi
+        0xE6
+      else
+        raise "register jump with #{register.name} not supported"
+      end
+
+      new 'jmp', [register], bytes
     end
 
     module C
-      def to_c(io = StringIO.new)
+      def to_c(io = StringIO.new, mode = :relative)
+        raise unless mode == :relative
+
         cond = -> (r) {"n >= #{r.min} && n < #{r.max}"}
 
         io.puts "int #{c_func_name}(uint8_t *b, int32_t n) {"
@@ -198,11 +220,13 @@ module X86
         opcode = rel16_opcode
         if opcode.is_a? Array
           opcode = opcode.map(&:chr).join.unpack('s<').first
-          io.puts "    *((uint16_t *)(b))++ = (uint16_t) #{opcode};";
+          io.puts "    *((uint16_t *)(b)) = (uint16_t) #{opcode};";
+          io.puts "    b += sizeof(uint16_t);";
         else
           io.puts "    *b++ = #{opcode};"
         end
-        io.puts "    *((int16_t *)(b))++ = (int16_t) n;";
+        io.puts "    *((int16_t *)(b)) = (int16_t) n;";
+        io.puts "    b += sizeof(int16_t);";
       end
 
       def rel8_range
@@ -331,7 +355,14 @@ Operation = Struct.new(:name, :architecture, :instructions) do
     objdump =~ /^\d+ <(.*?)>:/
     func_name = $1
 
-    new func_name, arch, body
+    klass = self
+    klass_name = "_#{func_name}".gsub(/_([a-z])/){|m| $1.upcase}
+    begin
+      klass = Kernel::const_get klass_name
+    rescue NameError
+    end
+
+    klass.new func_name, arch, body
   end
 
   def correct!
@@ -369,11 +400,35 @@ Operation = Struct.new(:name, :architecture, :instructions) do
           body.delete_at index
           inst = nil
         else
-          inst = Instruction.jump(arch, acc)
+          inst = Instruction.relative_jump(arch, acc)
           body[index] = inst
         end
       end
       acc + (inst ? inst.bytesize : 0)
+    end
+  end
+end
+
+class OpEnter < Operation
+  def correct!
+    super
+
+    idx = body.rindex do |inst|
+      Literal === inst.operands[0] && inst.operands[0].value == 0xFAB
+    end
+    raise unless idx
+    p idx
+    if idx
+      if body[idx + 1].call?
+        mov, _ = body.slice! idx, 2
+
+        # FIXME: assuming argument register 1 is not clobbered.
+        # Since the dummy call is at the bottom of the function
+        # that should normally not happen, though.
+        body << X86::JumpInstruction.register(X86::CC::SysV.argument_registers[1])
+      else
+        raise
+      end
     end
   end
 end
@@ -395,6 +450,26 @@ end
 def vm_c_path
  File.join mruby_root, 'src', 'vm.c'
 end
+
+def argument_usage
+  data = File.read vm_c_path
+  hash = {}
+  data.scan(/(op_\w+)\s*\(([^\)]*)\)\s*\{([^\}]*)\}/m) do |h|
+    op = $1
+    args = $3.scan(/GETARG_(\w+)\s*\(/).flatten
+    args_hash = {}
+    args.each do |arg|
+      p arg
+      raise unless arg =~ /([ABCcb])/
+      args_hash[$1.downcase.to_sym] = arg
+    end
+    hash[op] = args_hash
+  end
+
+  hash
+end
+
+#p argument_usage
 
 $ops = [
   "op_nop", "op_move",
@@ -499,15 +574,35 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
     end
     file.puts "\n};"
     file.puts
+
+
     file.puts "static void #{operation.name}_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {"
     operation.arguments.each do |k, vs|
       vs.each do |v|
-        file.puts "  *((int32_t *)(op + #{v.begin})) = #{k}"
+        file.puts "  *((int32_t *)(op + #{v.begin})) = #{k};"
       end
     end
-    file.puts "};"
+    file.puts "}"
 
     file.puts
+
+    $argument_usage ||= argument_usage
+    used_arguments = $argument_usage[operation.name]
+
+    file.puts "static void #{operation.name}_set_args_from_code(uint8_t *op, mrb_code c) {"
+    file.write "  #{operation.name}_set_args("
+    [:a, :b, :c].map do |arg|
+      v = used_arguments[arg]
+      if v
+        "GETARG_#{v}(c)"
+      else
+        0
+      end
+    end.join(",").tap do |s|
+      file.puts "#{s});"
+    end
+    file.puts "}"
+
     file.puts
   end
 
@@ -547,6 +642,21 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
 
   file.close
 end
-p ops_header_path(:x64)
+
 task :default => [ops_header_path(:x64), symtbl_header_path]
+
+__END__
+  0x53,                                     /*00: push    %rbx                     */
+  0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
+  0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
+  0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
+  0x48, 0x8b, 0x43, 0x18,                   /*0d: mov     +0x18(%rbx), %rax        */
+  0x83, 0xb8, 0x08, 0xcd, 0xab, 0x00, 0x00, /*11: cmpl    $0, +0xabcd08(%rax)      */
+  0x74, 0x0f,                               /*18: je                               */
+  0x48, 0x8b, 0xbb, 0x90, 0x02, 0x00, 0x00, /*1a: mov     +0x290(%rbx), %rdi       */
+  0x31, 0xc0,                               /*21: xor     %eax, %eax               */
+  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*23: callq   +0x170(%rbx)             */
+  0x48, 0x89, 0xdf,                         /*29: mov     %rbx, %rdi               */
+  0x48, 0x83, 0xc4, 0x10,                   /*2c: add     $0x10, %rsp              */
+  0x5b,                                     /*30: pop     %rbx                     */
 

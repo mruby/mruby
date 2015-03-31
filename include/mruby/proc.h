@@ -39,7 +39,11 @@ struct RProc {
   } body;
   struct RClass *target_class;
   struct REnv *env;
+
+#ifdef MRB_ENABLE_JIT
   mrb_jit_page *jit_page;
+  uint16_t jit_oa_off[MRB_IREP_AOFF_LEN];
+#endif
 };
 
 /* aspec access */
@@ -55,8 +59,8 @@ struct RProc {
 #define MRB_PROC_CFUNC_P(p) (((p)->flags & MRB_PROC_CFUNC) != 0)
 #define MRB_PROC_STRICT 256
 #define MRB_PROC_STRICT_P(p) (((p)->flags & MRB_PROC_STRICT) != 0)
-#define MRB_PROC_JIT 512
-#define MRB_PROC_JIT_P(p) (((p)->flags & MRB_PROC_JIT) != 0)
+#define MRB_PROC_JITTED 512
+#define MRB_PROC_JITTED_P(p) (((p)->flags & MRB_PROC_JITTED) != 0)
 
 #define mrb_proc_ptr(v)    ((struct RProc*)(mrb_ptr(v)))
 
@@ -66,7 +70,8 @@ MRB_API struct RProc *mrb_proc_new_cfunc(mrb_state*, mrb_func_t);
 MRB_API struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals);
 void mrb_proc_copy(struct RProc *a, struct RProc *b);
 mrb_bool mrb_proc_jit(struct RProc *p);
-void mrb_proc_call_jit(struct RProc *proc, void *ctx);
+void mrb_proc_jit_call(struct RProc *proc, void *ctx);
+void mrb_proc_jit_prepare(struct RProc *proc);
 /* implementation of #send method */
 MRB_API mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
 
