@@ -15,9 +15,9 @@ end
 Instruction = Struct.new(:name, :operands, :bytes) do
 
   MAGIC_ARG_CONSTS = {
-    /ABCD/i => 'a',
-    /BCDE/i => 'b',
-    /CDEF/i => 'c',
+    /AB/i => 'a',
+    /BC/i => 'b',
+    /CD/i => 'c',
   }
 
   def arguments
@@ -33,13 +33,15 @@ Instruction = Struct.new(:name, :operands, :bytes) do
           nil
         end
 
-        if v && v.to_s(16) =~ r
+        if v && v.to_s(16) =~ /#{r}(\h\h)(\h\h)/i
           arg_bytes = [v].pack('l<').force_encoding('ASCII-8BIT').each_codepoint.to_a
           (bytes.size).downto(0) do |i|
             range = (i - arg_bytes.size)...i
             seq = bytes[range]
             if seq == arg_bytes
-              args[a] << range
+              mul_off, add_off = $1.to_i(16), $2.to_i(16)
+              mul_off = 1 if mul_off.zero?
+              args[a] << [mul_off, add_off, range]
             end
           end
         end
@@ -308,7 +310,7 @@ Operation = Struct.new(:name, :architecture, :instructions) do
     body.inject([0, Hash.new{|h, v| h[v] = []}]) do |acc, op|
       off, hash = acc
 
-      args = op.arguments.map {|k, v| [k, v.map{|r| ((r.min + off)..(r.max + off))}]}.to_h
+      args = op.arguments.map {|k, v| [k, v.map{|(m, a, r)| [m, a, ((r.min + off)..(r.max + off))]}]}.to_h
       new_hash = hash.merge(args) do |key, av, hv|
         av | hv
       end
@@ -578,8 +580,8 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
 
     file.puts "static void #{operation.name}_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {"
     operation.arguments.each do |k, vs|
-      vs.each do |v|
-        file.puts "  *((int32_t *)(op + #{v.begin})) = #{k};"
+      vs.each do |m, a, v|
+        file.puts "  *((int32_t *)(op + #{v.begin})) = #{k} * #{m} + #{a};"
       end
     end
     file.puts "}"
@@ -590,7 +592,7 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
     used_arguments = $argument_usage[operation.name]
 
     file.puts "static void #{operation.name}_set_args_from_code(uint8_t *op, mrb_code c) {"
-    file.write "  #{operation.name}_set_args("
+    file.write "  #{operation.name}_set_args(op, "
     [:a, :b, :c].map do |arg|
       v = used_arguments[arg]
       if v
@@ -606,7 +608,7 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
     file.puts
   end
 
-  file.puts "typedef void (*jit_args_func_t)(uint8_t *op, int32_t a, int32_t b, int32_t c);"
+  file.puts "typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c);"
   file.puts "static jit_args_func_t arg_funcs[#{operations.size}];"
   file.puts "static uint8_t* ops[#{operations.size}];"
 
@@ -626,7 +628,7 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
   file.puts "    init_symtbl();"
   operations.each_with_index do |op, index|
     file.puts "    ops[#{index}] = #{op.name};"
-    file.puts "    arg_funcs[#{index}] = #{op.name}_set_args;"
+    file.puts "    arg_funcs[#{index}] = #{op.name}_set_args_from_code;"
   end
   file.puts "  }"
   file.puts "}"

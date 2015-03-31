@@ -206,13 +206,14 @@ mrb_proc_jit(struct RProc *proc)
         size_t op_size = op_sizes[opcode];
         fprintf(stderr, "copying opcode:%d to offset %d (%d bytes)\n", opcode, off, op_size);
         memcpy(page->data + off, ops[opcode], op_size);
+        arg_funcs[opcode](page->data + off, irep->iseq[i]);
         off += op_size;
       }
 
 
 for (i = 0; i < off; i++)
 {
-    if (i > 0) printf(":");
+    if (i > 0) printf(" ");
     printf("%02X", page->data[i]);
 }
 printf("\n");

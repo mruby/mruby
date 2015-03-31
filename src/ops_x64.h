@@ -9,108 +9,108 @@ static void op_nop_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
 }
 
 static void op_nop_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_nop_set_args(0,0,0);
+  op_nop_set_args(op, 0,0,0);
 }
 
 
-/* args: {"b"=>[11..14, 18..21], "a"=>[25..28, 32..35]} */
+/* args: {"b"=>[[16, 0, 11..14], [16, 8, 18..21]], "a"=>[[16, 8, 25..28], [16, 0, 32..35]]} */
 static uint8_t op_move[] = {
   0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
   0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
-  0x48, 0x8b, 0x88, 0x00, 0xde, 0xbc, 0x00, /*08: mov     +0xbcde00(%rax), %rcx    */
-  0x48, 0x8b, 0x90, 0x08, 0xde, 0xbc, 0x00, /*0f: mov     +0xbcde08(%rax), %rdx    */
-  0x48, 0x89, 0x90, 0x08, 0xcd, 0xab, 0x00, /*16: mov     %rdx, +0xabcd08(%rax)    */
-  0x48, 0x89, 0x88, 0x00, 0xcd, 0xab, 0x00, /*1d: mov     %rcx, +0xabcd00(%rax)    */
+  0x48, 0x8b, 0x88, 0x00, 0x10, 0xbc, 0x00, /*08: mov     +0xbc1000(%rax), %rcx    */
+  0x48, 0x8b, 0x90, 0x08, 0x10, 0xbc, 0x00, /*0f: mov     +0xbc1008(%rax), %rdx    */
+  0x48, 0x89, 0x90, 0x08, 0x10, 0xab, 0x00, /*16: mov     %rdx, +0xab1008(%rax)    */
+  0x48, 0x89, 0x88, 0x00, 0x10, 0xab, 0x00, /*1d: mov     %rcx, +0xab1000(%rax)    */
 
 };
 
 static void op_move_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 11)) = b;
-  *((int32_t *)(op + 18)) = b;
-  *((int32_t *)(op + 25)) = a;
-  *((int32_t *)(op + 32)) = a;
+  *((int32_t *)(op + 11)) = b * 16 + 0;
+  *((int32_t *)(op + 18)) = b * 16 + 8;
+  *((int32_t *)(op + 25)) = a * 16 + 8;
+  *((int32_t *)(op + 32)) = a * 16 + 0;
 }
 
 static void op_move_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_move_set_args(GETARG_A(c),GETARG_B(c),0);
+  op_move_set_args(op, GETARG_A(c),GETARG_B(c),0);
 }
 
 
-/* args: {"b"=>[15..18, 22..25], "a"=>[29..32, 36..39]} */
+/* args: {"b"=>[[16, 0, 15..18], [16, 8, 22..25]], "a"=>[[16, 8, 29..32], [16, 0, 36..39]]} */
 static uint8_t op_loadl[] = {
   0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
   0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
   0x48, 0x8b, 0x4f, 0x20,                   /*08: mov     +0x20(%rdi), %rcx        */
-  0x48, 0x8b, 0x91, 0x00, 0xde, 0xbc, 0x00, /*0c: mov     +0xbcde00(%rcx), %rdx    */
-  0x48, 0x8b, 0x89, 0x08, 0xde, 0xbc, 0x00, /*13: mov     +0xbcde08(%rcx), %rcx    */
-  0x48, 0x89, 0x88, 0x08, 0xcd, 0xab, 0x00, /*1a: mov     %rcx, +0xabcd08(%rax)    */
-  0x48, 0x89, 0x90, 0x00, 0xcd, 0xab, 0x00, /*21: mov     %rdx, +0xabcd00(%rax)    */
+  0x48, 0x8b, 0x91, 0x00, 0x10, 0xbc, 0x00, /*0c: mov     +0xbc1000(%rcx), %rdx    */
+  0x48, 0x8b, 0x89, 0x08, 0x10, 0xbc, 0x00, /*13: mov     +0xbc1008(%rcx), %rcx    */
+  0x48, 0x89, 0x88, 0x08, 0x10, 0xab, 0x00, /*1a: mov     %rcx, +0xab1008(%rax)    */
+  0x48, 0x89, 0x90, 0x00, 0x10, 0xab, 0x00, /*21: mov     %rdx, +0xab1000(%rax)    */
 
 };
 
 static void op_loadl_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 15)) = b;
-  *((int32_t *)(op + 22)) = b;
-  *((int32_t *)(op + 29)) = a;
-  *((int32_t *)(op + 36)) = a;
+  *((int32_t *)(op + 15)) = b * 16 + 0;
+  *((int32_t *)(op + 22)) = b * 16 + 8;
+  *((int32_t *)(op + 29)) = a * 16 + 8;
+  *((int32_t *)(op + 36)) = a * 16 + 0;
 }
 
 static void op_loadl_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_loadl_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_loadl_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"a"=>[10..13, 28..31], "b"=>[32..35]} */
+/* args: {"a"=>[[16, 8, 10..13], [16, 0, 28..31]], "b"=>[[1, 0, 32..35]]} */
 static uint8_t op_loadi[] = {
   0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
   0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
-  0xc7, 0x80, 0x08, 0xcd, 0xab, 0x00, 0x03, 0x00, 0x00, 0x00,/*08: movl    $0x3, +0xabcd08(%rax)    */
+  0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x03, 0x00, 0x00, 0x00,/*08: movl    $0x3, +0xab1008(%rax)    */
   0x48, 0x8b, 0x04, 0x24,                   /*12: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x40, 0x18,                   /*16: mov     +0x18(%rax), %rax        */
-  0xc7, 0x80, 0x00, 0xcd, 0xab, 0x00, 0x00, 0xde, 0xbc, 0x00,/*1a: movl    $0xbcde00, +0xabcd00(%rax) */
+  0xc7, 0x80, 0x00, 0x10, 0xab, 0x00, 0x00, 0x00, 0xbc, 0x00,/*1a: movl    $0xbc0000, +0xab1000(%rax) */
 
 };
 
 static void op_loadi_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 10)) = a;
-  *((int32_t *)(op + 28)) = a;
-  *((int32_t *)(op + 32)) = b;
+  *((int32_t *)(op + 10)) = a * 16 + 8;
+  *((int32_t *)(op + 28)) = a * 16 + 0;
+  *((int32_t *)(op + 32)) = b * 1 + 0;
 }
 
 static void op_loadi_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_loadi_set_args(GETARG_A(c),GETARG_sBx(c),0);
+  op_loadi_set_args(op, GETARG_A(c),GETARG_sBx(c),0);
 }
 
 
-/* args: {"a"=>[10..13, 38..41], "b"=>[32..35]} */
+/* args: {"a"=>[[16, 8, 10..13], [16, 0, 38..41]], "b"=>[[4, 0, 32..35]]} */
 static uint8_t op_loadsym[] = {
   0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
   0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
-  0xc7, 0x80, 0x08, 0xcd, 0xab, 0x00, 0x04, 0x00, 0x00, 0x00,/*08: movl    $0x4, +0xabcd08(%rax)    */
+  0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x04, 0x00, 0x00, 0x00,/*08: movl    $0x4, +0xab1008(%rax)    */
   0x48, 0x8b, 0x04, 0x24,                   /*12: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x48, 0x18,                   /*16: mov     +0x18(%rax), %rcx        */
   0x48, 0x8b, 0x40, 0x28,                   /*1a: mov     +0x28(%rax), %rax        */
-  0x8b, 0x80, 0x00, 0xde, 0xbc, 0x00,       /*1e: mov     +0xbcde00(%rax), %eax    */
-  0x89, 0x81, 0x00, 0xcd, 0xab, 0x00,       /*24: mov     %eax, +0xabcd00(%rcx)    */
+  0x8b, 0x80, 0x00, 0x04, 0xbc, 0x00,       /*1e: mov     +0xbc0400(%rax), %eax    */
+  0x89, 0x81, 0x00, 0x10, 0xab, 0x00,       /*24: mov     %eax, +0xab1000(%rcx)    */
 
 };
 
 static void op_loadsym_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 10)) = a;
-  *((int32_t *)(op + 38)) = a;
-  *((int32_t *)(op + 32)) = b;
+  *((int32_t *)(op + 10)) = a * 16 + 8;
+  *((int32_t *)(op + 38)) = a * 16 + 0;
+  *((int32_t *)(op + 32)) = b * 4 + 0;
 }
 
 static void op_loadsym_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_loadsym_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_loadsym_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"a"=>[13..16]} */
+/* args: {"a"=>[[1, 0, 13..16]]} */
 static uint8_t op_loadnil[] = {
   0x48, 0x83, 0xec, 0x18,                   /*00: sub     $0x18, %rsp              */
   0x48, 0x89, 0x7c, 0x24, 0x10,             /*04: mov     %rdi, +0x10(%rsp)        */
-  0xc7, 0x44, 0x24, 0x0c, 0x00, 0xcd, 0xab, 0x00,/*09: movl    $0xabcd00, +0xc(%rsp)    */
+  0xc7, 0x44, 0x24, 0x0c, 0x00, 0x00, 0xab, 0x00,/*09: movl    $0xab0000, +0xc(%rsp)    */
   0x48, 0x63, 0x44, 0x24, 0x0c,             /*11: movslq  +0xc(%rsp), %rax         */
   0x48, 0x8b, 0x4c, 0x24, 0x10,             /*16: mov     +0x10(%rsp), %rcx        */
   0x48, 0x8b, 0x49, 0x18,                   /*1b: mov     +0x18(%rcx), %rcx        */
@@ -126,78 +126,78 @@ static uint8_t op_loadnil[] = {
 };
 
 static void op_loadnil_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 13)) = a;
+  *((int32_t *)(op + 13)) = a * 1 + 0;
 }
 
 static void op_loadnil_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_loadnil_set_args(GETARG_A(c),0,0);
+  op_loadnil_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"a"=>[18..21, 25..28]} */
+/* args: {"a"=>[[16, 8, 18..21], [16, 0, 25..28]]} */
 static uint8_t op_loadself[] = {
   0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
   0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
   0x48, 0x8b, 0x08,                         /*08: mov     (%rax), %rcx             */
   0x48, 0x8b, 0x50, 0x08,                   /*0b: mov     +0x8(%rax), %rdx         */
-  0x48, 0x89, 0x90, 0x08, 0xcd, 0xab, 0x00, /*0f: mov     %rdx, +0xabcd08(%rax)    */
-  0x48, 0x89, 0x88, 0x00, 0xcd, 0xab, 0x00, /*16: mov     %rcx, +0xabcd00(%rax)    */
+  0x48, 0x89, 0x90, 0x08, 0x10, 0xab, 0x00, /*0f: mov     %rdx, +0xab1008(%rax)    */
+  0x48, 0x89, 0x88, 0x00, 0x10, 0xab, 0x00, /*16: mov     %rcx, +0xab1000(%rax)    */
 
 };
 
 static void op_loadself_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 18)) = a;
-  *((int32_t *)(op + 25)) = a;
+  *((int32_t *)(op + 18)) = a * 16 + 8;
+  *((int32_t *)(op + 25)) = a * 16 + 0;
 }
 
 static void op_loadself_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_loadself_set_args(GETARG_A(c),0,0);
+  op_loadself_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"a"=>[10..13, 28..31]} */
+/* args: {"a"=>[[16, 8, 10..13], [16, 0, 28..31]]} */
 static uint8_t op_loadt[] = {
   0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
   0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
-  0xc7, 0x80, 0x08, 0xcd, 0xab, 0x00, 0x02, 0x00, 0x00, 0x00,/*08: movl    $0x2, +0xabcd08(%rax)    */
+  0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x02, 0x00, 0x00, 0x00,/*08: movl    $0x2, +0xab1008(%rax)    */
   0x48, 0x8b, 0x04, 0x24,                   /*12: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x40, 0x18,                   /*16: mov     +0x18(%rax), %rax        */
-  0xc7, 0x80, 0x00, 0xcd, 0xab, 0x00, 0x01, 0x00, 0x00, 0x00,/*1a: movl    $0x1, +0xabcd00(%rax)    */
+  0xc7, 0x80, 0x00, 0x10, 0xab, 0x00, 0x01, 0x00, 0x00, 0x00,/*1a: movl    $0x1, +0xab1000(%rax)    */
 
 };
 
 static void op_loadt_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 10)) = a;
-  *((int32_t *)(op + 28)) = a;
+  *((int32_t *)(op + 10)) = a * 16 + 8;
+  *((int32_t *)(op + 28)) = a * 16 + 0;
 }
 
 static void op_loadt_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_loadt_set_args(GETARG_A(c),0,0);
+  op_loadt_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"a"=>[10..13, 28..31]} */
+/* args: {"a"=>[[16, 8, 10..13], [16, 0, 28..31]]} */
 static uint8_t op_loadf[] = {
   0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
   0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
-  0xc7, 0x80, 0x08, 0xcd, 0xab, 0x00, 0x00, 0x00, 0x00, 0x00,/*08: movl    $0, +0xabcd08(%rax)      */
+  0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x00, 0x00, 0x00, 0x00,/*08: movl    $0, +0xab1008(%rax)      */
   0x48, 0x8b, 0x04, 0x24,                   /*12: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x40, 0x18,                   /*16: mov     +0x18(%rax), %rax        */
-  0xc7, 0x80, 0x00, 0xcd, 0xab, 0x00, 0x01, 0x00, 0x00, 0x00,/*1a: movl    $0x1, +0xabcd00(%rax)    */
+  0xc7, 0x80, 0x00, 0x10, 0xab, 0x00, 0x01, 0x00, 0x00, 0x00,/*1a: movl    $0x1, +0xab1000(%rax)    */
 
 };
 
 static void op_loadf_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 10)) = a;
-  *((int32_t *)(op + 28)) = a;
+  *((int32_t *)(op + 10)) = a * 16 + 8;
+  *((int32_t *)(op + 28)) = a * 16 + 0;
 }
 
 static void op_loadf_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_loadf_set_args(GETARG_A(c),0,0);
+  op_loadf_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"b"=>[29..32], "a"=>[59..62, 66..69]} */
+/* args: {"b"=>[[4, 0, 29..32]], "a"=>[[16, 8, 59..62], [16, 0, 66..69]]} */
 static uint8_t op_getglobal[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
@@ -207,14 +207,14 @@ static uint8_t op_getglobal[] = {
   0x48, 0x8b, 0x7b, 0x58,                   /*0f: mov     +0x58(%rbx), %rdi        */
   0x4c, 0x8b, 0x73, 0x18,                   /*13: mov     +0x18(%rbx), %r14        */
   0x48, 0x8b, 0x43, 0x28,                   /*17: mov     +0x28(%rbx), %rax        */
-  0x8b, 0xb0, 0x00, 0xde, 0xbc, 0x00,       /*1b: mov     +0xbcde00(%rax), %esi    */
+  0x8b, 0xb0, 0x00, 0x04, 0xbc, 0x00,       /*1b: mov     +0xbc0400(%rax), %esi    */
   0xff, 0x93, 0x90, 0x01, 0x00, 0x00,       /*21: callq   +0x190(%rbx)             */
   0x48, 0x89, 0x04, 0x24,                   /*27: mov     %rax, (%rsp)             */
   0x89, 0x54, 0x24, 0x08,                   /*2b: mov     %edx, +0x8(%rsp)         */
   0x48, 0x8b, 0x04, 0x24,                   /*2f: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x4c, 0x24, 0x08,             /*33: mov     +0x8(%rsp), %rcx         */
-  0x49, 0x89, 0x8e, 0x08, 0xcd, 0xab, 0x00, /*38: mov     %rcx, +0xabcd08(%r14)    */
-  0x49, 0x89, 0x86, 0x00, 0xcd, 0xab, 0x00, /*3f: mov     %rax, +0xabcd00(%r14)    */
+  0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*38: mov     %rcx, +0xab1008(%r14)    */
+  0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*3f: mov     %rax, +0xab1000(%r14)    */
   0x48, 0x89, 0xdf,                         /*46: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x18,                   /*49: add     $0x18, %rsp              */
   0x5b,                                     /*4d: pop     %rbx                     */
@@ -223,17 +223,17 @@ static uint8_t op_getglobal[] = {
 };
 
 static void op_getglobal_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 29)) = b;
-  *((int32_t *)(op + 59)) = a;
-  *((int32_t *)(op + 66)) = a;
+  *((int32_t *)(op + 29)) = b * 4 + 0;
+  *((int32_t *)(op + 59)) = a * 16 + 8;
+  *((int32_t *)(op + 66)) = a * 16 + 0;
 }
 
 static void op_getglobal_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_getglobal_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_getglobal_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"b"=>[27..30], "a"=>[34..37, 40..43]} */
+/* args: {"b"=>[[4, 0, 27..30]], "a"=>[[16, 0, 34..37], [16, 8, 40..43]]} */
 static uint8_t op_setglobal[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
@@ -242,9 +242,9 @@ static uint8_t op_setglobal[] = {
   0x48, 0x8b, 0x7b, 0x58,                   /*0d: mov     +0x58(%rbx), %rdi        */
   0x48, 0x8b, 0x43, 0x18,                   /*11: mov     +0x18(%rbx), %rax        */
   0x48, 0x8b, 0x4b, 0x28,                   /*15: mov     +0x28(%rbx), %rcx        */
-  0x8b, 0xb1, 0x00, 0xde, 0xbc, 0x00,       /*19: mov     +0xbcde00(%rcx), %esi    */
-  0x48, 0x8b, 0x90, 0x00, 0xcd, 0xab, 0x00, /*1f: mov     +0xabcd00(%rax), %rdx    */
-  0x8b, 0x88, 0x08, 0xcd, 0xab, 0x00,       /*26: mov     +0xabcd08(%rax), %ecx    */
+  0x8b, 0xb1, 0x00, 0x04, 0xbc, 0x00,       /*19: mov     +0xbc0400(%rcx), %esi    */
+  0x48, 0x8b, 0x90, 0x00, 0x10, 0xab, 0x00, /*1f: mov     +0xab1000(%rax), %rdx    */
+  0x8b, 0x88, 0x08, 0x10, 0xab, 0x00,       /*26: mov     +0xab1008(%rax), %ecx    */
   0xff, 0x93, 0x90, 0x00, 0x00, 0x00,       /*2c: callq   +0x90(%rbx)              */
   0x48, 0x89, 0xdf,                         /*32: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x10,                   /*35: add     $0x10, %rsp              */
@@ -253,17 +253,17 @@ static uint8_t op_setglobal[] = {
 };
 
 static void op_setglobal_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 27)) = b;
-  *((int32_t *)(op + 34)) = a;
-  *((int32_t *)(op + 40)) = a;
+  *((int32_t *)(op + 27)) = b * 4 + 0;
+  *((int32_t *)(op + 34)) = a * 16 + 0;
+  *((int32_t *)(op + 40)) = a * 16 + 8;
 }
 
 static void op_setglobal_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_setglobal_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_setglobal_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"b"=>[24..27], "a"=>[54..57, 61..64]} */
+/* args: {"b"=>[[1, 0, 24..27]], "a"=>[[16, 8, 54..57], [16, 0, 61..64]]} */
 static uint8_t op_getspecial[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
@@ -272,14 +272,14 @@ static uint8_t op_getspecial[] = {
   0x48, 0x89, 0x5c, 0x24, 0x10,             /*0a: mov     %rbx, +0x10(%rsp)        */
   0x4c, 0x8b, 0x73, 0x18,                   /*0f: mov     +0x18(%rbx), %r14        */
   0x48, 0x8b, 0x7b, 0x58,                   /*13: mov     +0x58(%rbx), %rdi        */
-  0xbe, 0x00, 0xde, 0xbc, 0x00,             /*17: mov     $0xbcde00, %esi          */
+  0xbe, 0x00, 0x00, 0xbc, 0x00,             /*17: mov     $0xbc0000, %esi          */
   0xff, 0x93, 0x38, 0x02, 0x00, 0x00,       /*1c: callq   +0x238(%rbx)             */
   0x48, 0x89, 0x04, 0x24,                   /*22: mov     %rax, (%rsp)             */
   0x89, 0x54, 0x24, 0x08,                   /*26: mov     %edx, +0x8(%rsp)         */
   0x48, 0x8b, 0x04, 0x24,                   /*2a: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x4c, 0x24, 0x08,             /*2e: mov     +0x8(%rsp), %rcx         */
-  0x49, 0x89, 0x8e, 0x08, 0xcd, 0xab, 0x00, /*33: mov     %rcx, +0xabcd08(%r14)    */
-  0x49, 0x89, 0x86, 0x00, 0xcd, 0xab, 0x00, /*3a: mov     %rax, +0xabcd00(%r14)    */
+  0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*33: mov     %rcx, +0xab1008(%r14)    */
+  0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*3a: mov     %rax, +0xab1000(%r14)    */
   0x48, 0x89, 0xdf,                         /*41: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x18,                   /*44: add     $0x18, %rsp              */
   0x5b,                                     /*48: pop     %rbx                     */
@@ -288,17 +288,17 @@ static uint8_t op_getspecial[] = {
 };
 
 static void op_getspecial_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 24)) = b;
-  *((int32_t *)(op + 54)) = a;
-  *((int32_t *)(op + 61)) = a;
+  *((int32_t *)(op + 24)) = b * 1 + 0;
+  *((int32_t *)(op + 54)) = a * 16 + 8;
+  *((int32_t *)(op + 61)) = a * 16 + 0;
 }
 
 static void op_getspecial_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_getspecial_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_getspecial_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"a"=>[24..27, 30..33], "b"=>[35..38]} */
+/* args: {"a"=>[[16, 0, 24..27], [16, 8, 30..33]], "b"=>[[1, 0, 35..38]]} */
 static uint8_t op_setspecial[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
@@ -306,9 +306,9 @@ static uint8_t op_setspecial[] = {
   0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
   0x48, 0x8b, 0x43, 0x18,                   /*0d: mov     +0x18(%rbx), %rax        */
   0x48, 0x8b, 0x7b, 0x58,                   /*11: mov     +0x58(%rbx), %rdi        */
-  0x48, 0x8b, 0x90, 0x00, 0xcd, 0xab, 0x00, /*15: mov     +0xabcd00(%rax), %rdx    */
-  0x8b, 0x88, 0x08, 0xcd, 0xab, 0x00,       /*1c: mov     +0xabcd08(%rax), %ecx    */
-  0xbe, 0x00, 0xde, 0xbc, 0x00,             /*22: mov     $0xbcde00, %esi          */
+  0x48, 0x8b, 0x90, 0x00, 0x10, 0xab, 0x00, /*15: mov     +0xab1000(%rax), %rdx    */
+  0x8b, 0x88, 0x08, 0x10, 0xab, 0x00,       /*1c: mov     +0xab1008(%rax), %ecx    */
+  0xbe, 0x00, 0x00, 0xbc, 0x00,             /*22: mov     $0xbc0000, %esi          */
   0xff, 0x93, 0x28, 0x01, 0x00, 0x00,       /*27: callq   +0x128(%rbx)             */
   0x48, 0x89, 0xdf,                         /*2d: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x10,                   /*30: add     $0x10, %rsp              */
@@ -317,17 +317,17 @@ static uint8_t op_setspecial[] = {
 };
 
 static void op_setspecial_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 24)) = a;
-  *((int32_t *)(op + 30)) = a;
-  *((int32_t *)(op + 35)) = b;
+  *((int32_t *)(op + 24)) = a * 16 + 0;
+  *((int32_t *)(op + 30)) = a * 16 + 8;
+  *((int32_t *)(op + 35)) = b * 1 + 0;
 }
 
 static void op_setspecial_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_setspecial_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_setspecial_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"b"=>[29..32], "a"=>[59..62, 66..69]} */
+/* args: {"b"=>[[4, 0, 29..32]], "a"=>[[16, 8, 59..62], [16, 0, 66..69]]} */
 static uint8_t op_getiv[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
@@ -337,14 +337,14 @@ static uint8_t op_getiv[] = {
   0x48, 0x8b, 0x7b, 0x58,                   /*0f: mov     +0x58(%rbx), %rdi        */
   0x4c, 0x8b, 0x73, 0x18,                   /*13: mov     +0x18(%rbx), %r14        */
   0x48, 0x8b, 0x43, 0x28,                   /*17: mov     +0x28(%rbx), %rax        */
-  0x8b, 0xb0, 0x00, 0xde, 0xbc, 0x00,       /*1b: mov     +0xbcde00(%rax), %esi    */
+  0x8b, 0xb0, 0x00, 0x04, 0xbc, 0x00,       /*1b: mov     +0xbc0400(%rax), %esi    */
   0xff, 0x93, 0xb0, 0x00, 0x00, 0x00,       /*21: callq   +0xb0(%rbx)              */
   0x48, 0x89, 0x04, 0x24,                   /*27: mov     %rax, (%rsp)             */
   0x89, 0x54, 0x24, 0x08,                   /*2b: mov     %edx, +0x8(%rsp)         */
   0x48, 0x8b, 0x04, 0x24,                   /*2f: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x4c, 0x24, 0x08,             /*33: mov     +0x8(%rsp), %rcx         */
-  0x49, 0x89, 0x8e, 0x08, 0xcd, 0xab, 0x00, /*38: mov     %rcx, +0xabcd08(%r14)    */
-  0x49, 0x89, 0x86, 0x00, 0xcd, 0xab, 0x00, /*3f: mov     %rax, +0xabcd00(%r14)    */
+  0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*38: mov     %rcx, +0xab1008(%r14)    */
+  0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*3f: mov     %rax, +0xab1000(%r14)    */
   0x48, 0x89, 0xdf,                         /*46: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x18,                   /*49: add     $0x18, %rsp              */
   0x5b,                                     /*4d: pop     %rbx                     */
@@ -353,17 +353,17 @@ static uint8_t op_getiv[] = {
 };
 
 static void op_getiv_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 29)) = b;
-  *((int32_t *)(op + 59)) = a;
-  *((int32_t *)(op + 66)) = a;
+  *((int32_t *)(op + 29)) = b * 4 + 0;
+  *((int32_t *)(op + 59)) = a * 16 + 8;
+  *((int32_t *)(op + 66)) = a * 16 + 0;
 }
 
 static void op_getiv_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_getiv_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_getiv_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"b"=>[27..30], "a"=>[34..37, 40..43]} */
+/* args: {"b"=>[[4, 0, 27..30]], "a"=>[[16, 0, 34..37], [16, 8, 40..43]]} */
 static uint8_t op_setiv[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
@@ -372,9 +372,9 @@ static uint8_t op_setiv[] = {
   0x48, 0x8b, 0x7b, 0x58,                   /*0d: mov     +0x58(%rbx), %rdi        */
   0x48, 0x8b, 0x43, 0x18,                   /*11: mov     +0x18(%rbx), %rax        */
   0x48, 0x8b, 0x4b, 0x28,                   /*15: mov     +0x28(%rbx), %rcx        */
-  0x8b, 0xb1, 0x00, 0xde, 0xbc, 0x00,       /*19: mov     +0xbcde00(%rcx), %esi    */
-  0x48, 0x8b, 0x90, 0x00, 0xcd, 0xab, 0x00, /*1f: mov     +0xabcd00(%rax), %rdx    */
-  0x8b, 0x88, 0x08, 0xcd, 0xab, 0x00,       /*26: mov     +0xabcd08(%rax), %ecx    */
+  0x8b, 0xb1, 0x00, 0x04, 0xbc, 0x00,       /*19: mov     +0xbc0400(%rcx), %esi    */
+  0x48, 0x8b, 0x90, 0x00, 0x10, 0xab, 0x00, /*1f: mov     +0xab1000(%rax), %rdx    */
+  0x8b, 0x88, 0x08, 0x10, 0xab, 0x00,       /*26: mov     +0xab1008(%rax), %ecx    */
   0xff, 0x93, 0xf0, 0x01, 0x00, 0x00,       /*2c: callq   +0x1f0(%rbx)             */
   0x48, 0x89, 0xdf,                         /*32: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x10,                   /*35: add     $0x10, %rsp              */
@@ -383,17 +383,17 @@ static uint8_t op_setiv[] = {
 };
 
 static void op_setiv_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 27)) = b;
-  *((int32_t *)(op + 34)) = a;
-  *((int32_t *)(op + 40)) = a;
+  *((int32_t *)(op + 27)) = b * 4 + 0;
+  *((int32_t *)(op + 34)) = a * 16 + 0;
+  *((int32_t *)(op + 40)) = a * 16 + 8;
 }
 
 static void op_setiv_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_setiv_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_setiv_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"b"=>[54..57], "a"=>[84..87, 91..94]} */
+/* args: {"b"=>[[4, 0, 54..57]], "a"=>[[16, 8, 84..87], [16, 0, 91..94]]} */
 static uint8_t op_getcv[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
@@ -409,14 +409,14 @@ static uint8_t op_getcv[] = {
   0x48, 0x8b, 0x78, 0x58,                   /*28: mov     +0x58(%rax), %rdi        */
   0x4c, 0x8b, 0x70, 0x18,                   /*2c: mov     +0x18(%rax), %r14        */
   0x48, 0x8b, 0x40, 0x28,                   /*30: mov     +0x28(%rax), %rax        */
-  0x8b, 0xb0, 0x00, 0xde, 0xbc, 0x00,       /*34: mov     +0xbcde00(%rax), %esi    */
+  0x8b, 0xb0, 0x00, 0x04, 0xbc, 0x00,       /*34: mov     +0xbc0400(%rax), %esi    */
   0xff, 0x93, 0xd8, 0x00, 0x00, 0x00,       /*3a: callq   +0xd8(%rbx)              */
   0x48, 0x89, 0x04, 0x24,                   /*40: mov     %rax, (%rsp)             */
   0x89, 0x54, 0x24, 0x08,                   /*44: mov     %edx, +0x8(%rsp)         */
   0x48, 0x8b, 0x04, 0x24,                   /*48: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x4c, 0x24, 0x08,             /*4c: mov     +0x8(%rsp), %rcx         */
-  0x49, 0x89, 0x8e, 0x08, 0xcd, 0xab, 0x00, /*51: mov     %rcx, +0xabcd08(%r14)    */
-  0x49, 0x89, 0x86, 0x00, 0xcd, 0xab, 0x00, /*58: mov     %rax, +0xabcd00(%r14)    */
+  0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*51: mov     %rcx, +0xab1008(%r14)    */
+  0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*58: mov     %rax, +0xab1000(%r14)    */
   0x48, 0x8b, 0x44, 0x24, 0x10,             /*5f: mov     +0x10(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x58,                   /*64: mov     +0x58(%rax), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*68: mov     +0x18(%rax), %rax        */
@@ -430,17 +430,17 @@ static uint8_t op_getcv[] = {
 };
 
 static void op_getcv_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 54)) = b;
-  *((int32_t *)(op + 84)) = a;
-  *((int32_t *)(op + 91)) = a;
+  *((int32_t *)(op + 54)) = b * 4 + 0;
+  *((int32_t *)(op + 84)) = a * 16 + 8;
+  *((int32_t *)(op + 91)) = a * 16 + 0;
 }
 
 static void op_getcv_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_getcv_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_getcv_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"b"=>[27..30], "a"=>[34..37, 40..43]} */
+/* args: {"b"=>[[4, 0, 27..30]], "a"=>[[16, 0, 34..37], [16, 8, 40..43]]} */
 static uint8_t op_setcv[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
@@ -449,9 +449,9 @@ static uint8_t op_setcv[] = {
   0x48, 0x8b, 0x7b, 0x58,                   /*0d: mov     +0x58(%rbx), %rdi        */
   0x48, 0x8b, 0x43, 0x18,                   /*11: mov     +0x18(%rbx), %rax        */
   0x48, 0x8b, 0x4b, 0x28,                   /*15: mov     +0x28(%rbx), %rcx        */
-  0x8b, 0xb1, 0x00, 0xde, 0xbc, 0x00,       /*19: mov     +0xbcde00(%rcx), %esi    */
-  0x48, 0x8b, 0x90, 0x00, 0xcd, 0xab, 0x00, /*1f: mov     +0xabcd00(%rax), %rdx    */
-  0x8b, 0x88, 0x08, 0xcd, 0xab, 0x00,       /*26: mov     +0xabcd08(%rax), %ecx    */
+  0x8b, 0xb1, 0x00, 0x04, 0xbc, 0x00,       /*19: mov     +0xbc0400(%rcx), %esi    */
+  0x48, 0x8b, 0x90, 0x00, 0x10, 0xab, 0x00, /*1f: mov     +0xab1000(%rax), %rdx    */
+  0x8b, 0x88, 0x08, 0x10, 0xab, 0x00,       /*26: mov     +0xab1008(%rax), %ecx    */
   0xff, 0x93, 0x18, 0x02, 0x00, 0x00,       /*2c: callq   +0x218(%rbx)             */
   0x48, 0x89, 0xdf,                         /*32: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x10,                   /*35: add     $0x10, %rsp              */
@@ -460,17 +460,17 @@ static uint8_t op_setcv[] = {
 };
 
 static void op_setcv_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 27)) = b;
-  *((int32_t *)(op + 34)) = a;
-  *((int32_t *)(op + 40)) = a;
+  *((int32_t *)(op + 27)) = b * 4 + 0;
+  *((int32_t *)(op + 34)) = a * 16 + 0;
+  *((int32_t *)(op + 40)) = a * 16 + 8;
 }
 
 static void op_setcv_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_setcv_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_setcv_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"b"=>[48..51], "a"=>[155..158, 162..165]} */
+/* args: {"b"=>[[4, 0, 48..51]], "a"=>[[16, 8, 155..158], [16, 0, 162..165]]} */
 static uint8_t op_getconst[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x30,                   /*01: sub     $0x30, %rsp              */
@@ -484,7 +484,7 @@ static uint8_t op_getconst[] = {
   0x48, 0x8b, 0x44, 0x24, 0x28,             /*21: mov     +0x28(%rsp), %rax        */
   0x48, 0x8b, 0x48, 0x28,                   /*26: mov     +0x28(%rax), %rcx        */
   0x48, 0x8b, 0x78, 0x58,                   /*2a: mov     +0x58(%rax), %rdi        */
-  0x8b, 0xb1, 0x00, 0xde, 0xbc, 0x00,       /*2e: mov     +0xbcde00(%rcx), %esi    */
+  0x8b, 0xb1, 0x00, 0x04, 0xbc, 0x00,       /*2e: mov     +0xbc0400(%rcx), %esi    */
   0xff, 0x93, 0x88, 0x00, 0x00, 0x00,       /*34: callq   +0x88(%rbx)              */
   0x48, 0x89, 0x44, 0x24, 0x08,             /*3a: mov     %rax, +0x8(%rsp)         */
   0x89, 0x54, 0x24, 0x10,                   /*3f: mov     %edx, +0x10(%rsp)        */
@@ -506,8 +506,8 @@ static uint8_t op_getconst[] = {
   0x48, 0x8b, 0x40, 0x18,                   /*8a: mov     +0x18(%rax), %rax        */
   0x48, 0x8b, 0x4c, 0x24, 0x18,             /*8e: mov     +0x18(%rsp), %rcx        */
   0x48, 0x8b, 0x54, 0x24, 0x20,             /*93: mov     +0x20(%rsp), %rdx        */
-  0x48, 0x89, 0x90, 0x08, 0xcd, 0xab, 0x00, /*98: mov     %rdx, +0xabcd08(%rax)    */
-  0x48, 0x89, 0x88, 0x00, 0xcd, 0xab, 0x00, /*9f: mov     %rcx, +0xabcd00(%rax)    */
+  0x48, 0x89, 0x90, 0x08, 0x10, 0xab, 0x00, /*98: mov     %rdx, +0xab1008(%rax)    */
+  0x48, 0x89, 0x88, 0x00, 0x10, 0xab, 0x00, /*9f: mov     %rcx, +0xab1000(%rax)    */
   0x48, 0x89, 0xdf,                         /*a6: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x30,                   /*a9: add     $0x30, %rsp              */
   0x5b,                                     /*ad: pop     %rbx                     */
@@ -515,17 +515,17 @@ static uint8_t op_getconst[] = {
 };
 
 static void op_getconst_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 48)) = b;
-  *((int32_t *)(op + 155)) = a;
-  *((int32_t *)(op + 162)) = a;
+  *((int32_t *)(op + 48)) = b * 4 + 0;
+  *((int32_t *)(op + 155)) = a * 16 + 8;
+  *((int32_t *)(op + 162)) = a * 16 + 0;
 }
 
 static void op_getconst_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_getconst_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_getconst_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"b"=>[27..30], "a"=>[34..37, 40..43]} */
+/* args: {"b"=>[[4, 0, 27..30]], "a"=>[[16, 0, 34..37], [16, 8, 40..43]]} */
 static uint8_t op_setconst[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
@@ -534,9 +534,9 @@ static uint8_t op_setconst[] = {
   0x48, 0x8b, 0x7b, 0x58,                   /*0d: mov     +0x58(%rbx), %rdi        */
   0x48, 0x8b, 0x43, 0x18,                   /*11: mov     +0x18(%rbx), %rax        */
   0x48, 0x8b, 0x4b, 0x28,                   /*15: mov     +0x28(%rbx), %rcx        */
-  0x8b, 0xb1, 0x00, 0xde, 0xbc, 0x00,       /*19: mov     +0xbcde00(%rcx), %esi    */
-  0x48, 0x8b, 0x90, 0x00, 0xcd, 0xab, 0x00, /*1f: mov     +0xabcd00(%rax), %rdx    */
-  0x8b, 0x88, 0x08, 0xcd, 0xab, 0x00,       /*26: mov     +0xabcd08(%rax), %ecx    */
+  0x8b, 0xb1, 0x00, 0x04, 0xbc, 0x00,       /*19: mov     +0xbc0400(%rcx), %esi    */
+  0x48, 0x8b, 0x90, 0x00, 0x10, 0xab, 0x00, /*1f: mov     +0xab1000(%rax), %rdx    */
+  0x8b, 0x88, 0x08, 0x10, 0xab, 0x00,       /*26: mov     +0xab1008(%rax), %ecx    */
   0xff, 0x93, 0xc0, 0x01, 0x00, 0x00,       /*2c: callq   +0x1c0(%rbx)             */
   0x48, 0x89, 0xdf,                         /*32: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x10,                   /*35: add     $0x10, %rsp              */
@@ -545,24 +545,24 @@ static uint8_t op_setconst[] = {
 };
 
 static void op_setconst_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 27)) = b;
-  *((int32_t *)(op + 34)) = a;
-  *((int32_t *)(op + 40)) = a;
+  *((int32_t *)(op + 27)) = b * 4 + 0;
+  *((int32_t *)(op + 34)) = a * 16 + 0;
+  *((int32_t *)(op + 40)) = a * 16 + 8;
 }
 
 static void op_setconst_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_setconst_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_setconst_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"a"=>[19..22], "b"=>[76..79]} */
+/* args: {"a"=>[[1, 0, 19..22]], "b"=>[[4, 0, 76..79]]} */
 static uint8_t op_getmcnst[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
   0x48, 0x83, 0xec, 0x38,                   /*03: sub     $0x38, %rsp              */
   0x49, 0x89, 0xfe,                         /*07: mov     %rdi, %r14               */
   0x4c, 0x89, 0x74, 0x24, 0x30,             /*0a: mov     %r14, +0x30(%rsp)        */
-  0xc7, 0x44, 0x24, 0x1c, 0x00, 0xcd, 0xab, 0x00,/*0f: movl    $0xabcd00, +0x1c(%rsp)   */
+  0xc7, 0x44, 0x24, 0x1c, 0x00, 0x00, 0xab, 0x00,/*0f: movl    $0xab0000, +0x1c(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x30,             /*17: mov     +0x30(%rsp), %rax        */
   0x48, 0x8b, 0x48, 0x10,                   /*1c: mov     +0x10(%rax), %rcx        */
   0x48, 0x8b, 0x40, 0x58,                   /*20: mov     +0x58(%rax), %rax        */
@@ -575,7 +575,7 @@ static uint8_t op_getmcnst[] = {
   0x48, 0xc1, 0xe2, 0x04,                   /*3e: shl     $0x4, %rdx               */
   0x48, 0x8b, 0x58, 0x18,                   /*42: mov     +0x18(%rax), %rbx        */
   0x48, 0x8b, 0x40, 0x28,                   /*46: mov     +0x28(%rax), %rax        */
-  0x8b, 0x88, 0x00, 0xde, 0xbc, 0x00,       /*4a: mov     +0xbcde00(%rax), %ecx    */
+  0x8b, 0x88, 0x00, 0x04, 0xbc, 0x00,       /*4a: mov     +0xbc0400(%rax), %ecx    */
   0x48, 0x8b, 0x34, 0x13,                   /*50: mov     (%rbx,%rdx,1), %rsi      */
   0x8b, 0x54, 0x13, 0x08,                   /*54: mov     +0x8(%rbx,%rdx,1), %edx  */
   0x41, 0xff, 0x96, 0x10, 0x02, 0x00, 0x00, /*58: callq   +0x210(%r14)             */
@@ -611,29 +611,29 @@ static uint8_t op_getmcnst[] = {
 };
 
 static void op_getmcnst_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 19)) = a;
-  *((int32_t *)(op + 76)) = b;
+  *((int32_t *)(op + 19)) = a * 1 + 0;
+  *((int32_t *)(op + 76)) = b * 4 + 0;
 }
 
 static void op_getmcnst_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_getmcnst_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_getmcnst_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"a"=>[19..22], "b"=>[47..50]} */
+/* args: {"a"=>[[1, 0, 19..22]], "b"=>[[4, 0, 47..50]]} */
 static uint8_t op_setmcnst[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
   0x48, 0x83, 0xec, 0x18,                   /*03: sub     $0x18, %rsp              */
   0x49, 0x89, 0xfe,                         /*07: mov     %rdi, %r14               */
   0x4c, 0x89, 0x74, 0x24, 0x10,             /*0a: mov     %r14, +0x10(%rsp)        */
-  0xc7, 0x44, 0x24, 0x0c, 0x00, 0xcd, 0xab, 0x00,/*0f: movl    $0xabcd00, +0xc(%rsp)    */
+  0xc7, 0x44, 0x24, 0x0c, 0x00, 0x00, 0xab, 0x00,/*0f: movl    $0xab0000, +0xc(%rsp)    */
   0x48, 0x8b, 0x4c, 0x24, 0x10,             /*17: mov     +0x10(%rsp), %rcx        */
   0x48, 0x8b, 0x79, 0x58,                   /*1c: mov     +0x58(%rcx), %rdi        */
   0x48, 0x63, 0x5c, 0x24, 0x0c,             /*20: movslq  +0xc(%rsp), %rbx         */
   0x48, 0x8b, 0x41, 0x18,                   /*25: mov     +0x18(%rcx), %rax        */
   0x48, 0x8b, 0x49, 0x28,                   /*29: mov     +0x28(%rcx), %rcx        */
-  0x8b, 0x89, 0x00, 0xde, 0xbc, 0x00,       /*2d: mov     +0xbcde00(%rcx), %ecx    */
+  0x8b, 0x89, 0x00, 0x04, 0xbc, 0x00,       /*2d: mov     +0xbc0400(%rcx), %ecx    */
   0x48, 0xc1, 0xe3, 0x04,                   /*33: shl     $0x4, %rbx               */
   0x48, 0x8b, 0x74, 0x18, 0x10,             /*37: mov     +0x10(%rax,%rbx,1), %rsi */
   0x8b, 0x54, 0x18, 0x18,                   /*3c: mov     +0x18(%rax,%rbx,1), %edx */
@@ -648,34 +648,34 @@ static uint8_t op_setmcnst[] = {
 };
 
 static void op_setmcnst_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 19)) = a;
-  *((int32_t *)(op + 47)) = b;
+  *((int32_t *)(op + 19)) = a * 1 + 0;
+  *((int32_t *)(op + 47)) = b * 4 + 0;
 }
 
 static void op_setmcnst_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_setmcnst_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_setmcnst_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"a"=>[16..19], "c"=>[33..36, 47..50], "b"=>[71..74]} */
+/* args: {"a"=>[[16, 0, 16..19]], "c"=>[[1, 0, 33..36], [1, 0, 47..50]], "b"=>[[1, 0, 71..74]]} */
 static uint8_t op_getupvar[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
   0x48, 0x83, 0xec, 0x38,                   /*03: sub     $0x38, %rsp              */
   0x48, 0x89, 0xfb,                         /*07: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x30,             /*0a: mov     %rbx, +0x30(%rsp)        */
-  0xb8, 0x00, 0xcd, 0xab, 0x00,             /*0f: mov     $0xabcd00, %eax          */
+  0xb8, 0x00, 0x10, 0xab, 0x00,             /*0f: mov     $0xab1000, %eax          */
   0x48, 0x03, 0x43, 0x18,                   /*14: add     +0x18(%rbx), %rax        */
   0x48, 0x89, 0x44, 0x24, 0x28,             /*18: mov     %rax, +0x28(%rsp)        */
-  0xc7, 0x44, 0x24, 0x24, 0x00, 0xef, 0xcd, 0x00,/*1d: movl    $0xcdef00, +0x24(%rsp)   */
+  0xc7, 0x44, 0x24, 0x24, 0x00, 0x00, 0xcd, 0x00,/*1d: movl    $0xcd0000, +0x24(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x30,             /*25: mov     +0x30(%rsp), %rax        */
   0x48, 0x8b, 0x78, 0x58,                   /*2a: mov     +0x58(%rax), %rdi        */
-  0xbe, 0x00, 0xef, 0xcd, 0x00,             /*2e: mov     $0xcdef00, %esi          */
+  0xbe, 0x00, 0x00, 0xcd, 0x00,             /*2e: mov     $0xcd0000, %esi          */
   0xff, 0x93, 0x70, 0x02, 0x00, 0x00,       /*33: callq   +0x270(%rbx)             */
   0x48, 0x89, 0x44, 0x24, 0x18,             /*39: mov     %rax, +0x18(%rsp)        */
   0x48, 0x85, 0xc0,                         /*3e: test    %rax, %rax               */
   0x74, 0x31,                               /*41: je                               */
-  0xc7, 0x44, 0x24, 0x04, 0x00, 0xde, 0xbc, 0x00,/*43: movl    $0xbcde00, +0x4(%rsp)    */
+  0xc7, 0x44, 0x24, 0x04, 0x00, 0x00, 0xbc, 0x00,/*43: movl    $0xbc0000, +0x4(%rsp)    */
   0x48, 0x8b, 0x44, 0x24, 0x28,             /*4b: mov     +0x28(%rsp), %rax        */
   0x48, 0x63, 0x4c, 0x24, 0x04,             /*50: movslq  +0x4(%rsp), %rcx         */
   0x48, 0x8b, 0x54, 0x24, 0x18,             /*55: mov     +0x18(%rsp), %rdx        */
@@ -702,36 +702,36 @@ static uint8_t op_getupvar[] = {
 };
 
 static void op_getupvar_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 16)) = a;
-  *((int32_t *)(op + 33)) = c;
-  *((int32_t *)(op + 47)) = c;
-  *((int32_t *)(op + 71)) = b;
+  *((int32_t *)(op + 16)) = a * 16 + 0;
+  *((int32_t *)(op + 33)) = c * 1 + 0;
+  *((int32_t *)(op + 47)) = c * 1 + 0;
+  *((int32_t *)(op + 71)) = b * 1 + 0;
 }
 
 static void op_getupvar_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_getupvar_set_args(GETARG_A(c),0,GETARG_C(c));
+  op_getupvar_set_args(op, GETARG_A(c),0,GETARG_C(c));
 }
 
 
-/* args: {"c"=>[17..20, 31..34], "a"=>[57..60], "b"=>[74..77]} */
+/* args: {"c"=>[[1, 0, 17..20], [1, 0, 31..34]], "a"=>[[16, 0, 57..60]], "b"=>[[1, 0, 74..77]]} */
 static uint8_t op_setupvar[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x30,                   /*01: sub     $0x30, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x28,             /*08: mov     %rbx, +0x28(%rsp)        */
-  0xc7, 0x44, 0x24, 0x24, 0x00, 0xef, 0xcd, 0x00,/*0d: movl    $0xcdef00, +0x24(%rsp)   */
+  0xc7, 0x44, 0x24, 0x24, 0x00, 0x00, 0xcd, 0x00,/*0d: movl    $0xcd0000, +0x24(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x28,             /*15: mov     +0x28(%rsp), %rax        */
   0x48, 0x8b, 0x78, 0x58,                   /*1a: mov     +0x58(%rax), %rdi        */
-  0xbe, 0x00, 0xef, 0xcd, 0x00,             /*1e: mov     $0xcdef00, %esi          */
+  0xbe, 0x00, 0x00, 0xcd, 0x00,             /*1e: mov     $0xcd0000, %esi          */
   0xff, 0x93, 0x70, 0x02, 0x00, 0x00,       /*23: callq   +0x270(%rbx)             */
   0x48, 0x89, 0x44, 0x24, 0x18,             /*29: mov     %rax, +0x18(%rsp)        */
   0x48, 0x85, 0xc0,                         /*2e: test    %rax, %rax               */
   0x74, 0x56,                               /*31: je                               */
   0x48, 0x8b, 0x44, 0x24, 0x28,             /*33: mov     +0x28(%rsp), %rax        */
-  0xb9, 0x00, 0xcd, 0xab, 0x00,             /*38: mov     $0xabcd00, %ecx          */
+  0xb9, 0x00, 0x10, 0xab, 0x00,             /*38: mov     $0xab1000, %ecx          */
   0x48, 0x03, 0x48, 0x18,                   /*3d: add     +0x18(%rax), %rcx        */
   0x48, 0x89, 0x4c, 0x24, 0x10,             /*41: mov     %rcx, +0x10(%rsp)        */
-  0xc7, 0x44, 0x24, 0x0c, 0x00, 0xde, 0xbc, 0x00,/*46: movl    $0xbcde00, +0xc(%rsp)    */
+  0xc7, 0x44, 0x24, 0x0c, 0x00, 0x00, 0xbc, 0x00,/*46: movl    $0xbc0000, +0xc(%rsp)    */
   0x48, 0x63, 0x44, 0x24, 0x0c,             /*4e: movslq  +0xc(%rsp), %rax         */
   0x48, 0x8b, 0x4c, 0x24, 0x18,             /*53: mov     +0x18(%rsp), %rcx        */
   0x48, 0x8b, 0x49, 0x18,                   /*58: mov     +0x18(%rcx), %rcx        */
@@ -752,14 +752,14 @@ static uint8_t op_setupvar[] = {
 };
 
 static void op_setupvar_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 17)) = c;
-  *((int32_t *)(op + 31)) = c;
-  *((int32_t *)(op + 57)) = a;
-  *((int32_t *)(op + 74)) = b;
+  *((int32_t *)(op + 17)) = c * 1 + 0;
+  *((int32_t *)(op + 31)) = c * 1 + 0;
+  *((int32_t *)(op + 57)) = a * 16 + 0;
+  *((int32_t *)(op + 74)) = b * 1 + 0;
 }
 
 static void op_setupvar_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_setupvar_set_args(GETARG_A(c),GETARG_B(c),GETARG_C(c));
+  op_setupvar_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c));
 }
 
 
@@ -773,45 +773,45 @@ static void op_jmp_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
 }
 
 static void op_jmp_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_jmp_set_args(0,GETARG_sBx(c),0);
+  op_jmp_set_args(op, 0,GETARG_sBx(c),0);
 }
 
 
-/* args: {"a"=>[10..13]} */
+/* args: {"a"=>[[16, 8, 10..13]]} */
 static uint8_t op_jmpif[] = {
   0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
   0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
-  0x83, 0xb8, 0x08, 0xcd, 0xab, 0x00, 0x00, /*08: cmpl    $0, +0xabcd08(%rax)      */
+  0x83, 0xb8, 0x08, 0x10, 0xab, 0x00, 0x00, /*08: cmpl    $0, +0xab1008(%rax)      */
 
 };
 
 static void op_jmpif_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 10)) = a;
+  *((int32_t *)(op + 10)) = a * 16 + 8;
 }
 
 static void op_jmpif_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_jmpif_set_args(GETARG_A(c),GETARG_sBx(c),0);
+  op_jmpif_set_args(op, GETARG_A(c),GETARG_sBx(c),0);
 }
 
 
-/* args: {"a"=>[10..13]} */
+/* args: {"a"=>[[16, 8, 10..13]]} */
 static uint8_t op_jmpnot[] = {
   0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
   0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
-  0x83, 0xb8, 0x08, 0xcd, 0xab, 0x00, 0x00, /*08: cmpl    $0, +0xabcd08(%rax)      */
+  0x83, 0xb8, 0x08, 0x10, 0xab, 0x00, 0x00, /*08: cmpl    $0, +0xab1008(%rax)      */
 
 };
 
 static void op_jmpnot_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 10)) = a;
+  *((int32_t *)(op + 10)) = a * 16 + 8;
 }
 
 static void op_jmpnot_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_jmpnot_set_args(GETARG_A(c),GETARG_sBx(c),0);
+  op_jmpnot_set_args(op, GETARG_A(c),GETARG_sBx(c),0);
 }
 
 
-/* args: {"b"=>[144..147]} */
+/* args: {"b"=>[[4, 0, 144..147]]} */
 static uint8_t op_onerr[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
@@ -849,7 +849,7 @@ static uint8_t op_onerr[] = {
   0x48, 0x8b, 0x49, 0x18,                   /*82: mov     +0x18(%rcx), %rcx        */
   0x48, 0x89, 0x41, 0x38,                   /*86: mov     %rax, +0x38(%rcx)        */
   0x48, 0x8b, 0x44, 0x24, 0x08,             /*8a: mov     +0x8(%rsp), %rax         */
-  0xb9, 0x00, 0xde, 0xbc, 0x00,             /*8f: mov     $0xbcde00, %ecx          */
+  0xb9, 0x00, 0x04, 0xbc, 0x00,             /*8f: mov     $0xbc0400, %ecx          */
   0x48, 0x03, 0x48, 0x10,                   /*94: add     +0x10(%rax), %rcx        */
   0x48, 0x8b, 0x40, 0x58,                   /*98: mov     +0x58(%rax), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*9c: mov     +0x18(%rax), %rax        */
@@ -869,27 +869,27 @@ static uint8_t op_onerr[] = {
 };
 
 static void op_onerr_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 144)) = b;
+  *((int32_t *)(op + 144)) = b * 4 + 0;
 }
 
 static void op_onerr_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_onerr_set_args(0,0,0);
+  op_onerr_set_args(op, 0,0,0);
 }
 
 
-/* args: {"a"=>[21..24, 44..47]} */
+/* args: {"a"=>[[16, 8, 21..24], [16, 0, 44..47]]} */
 static uint8_t op_rescue[] = {
   0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
   0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
   0x48, 0x8b, 0x4f, 0x58,                   /*08: mov     +0x58(%rdi), %rcx        */
   0x48, 0x8b, 0x49, 0x28,                   /*0c: mov     +0x28(%rcx), %rcx        */
   0x0f, 0xb6, 0x09,                         /*10: movzbl  (%rcx), %ecx             */
-  0x89, 0x88, 0x08, 0xcd, 0xab, 0x00,       /*13: mov     %ecx, +0xabcd08(%rax)    */
+  0x89, 0x88, 0x08, 0x10, 0xab, 0x00,       /*13: mov     %ecx, +0xab1008(%rax)    */
   0x48, 0x8b, 0x04, 0x24,                   /*19: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x48, 0x18,                   /*1d: mov     +0x18(%rax), %rcx        */
   0x48, 0x8b, 0x40, 0x58,                   /*21: mov     +0x58(%rax), %rax        */
   0x48, 0x8b, 0x40, 0x28,                   /*25: mov     +0x28(%rax), %rax        */
-  0x48, 0x89, 0x81, 0x00, 0xcd, 0xab, 0x00, /*29: mov     %rax, +0xabcd00(%rcx)    */
+  0x48, 0x89, 0x81, 0x00, 0x10, 0xab, 0x00, /*29: mov     %rax, +0xab1000(%rcx)    */
   0x48, 0x8b, 0x04, 0x24,                   /*30: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x40, 0x58,                   /*34: mov     +0x58(%rax), %rax        */
   0x48, 0xc7, 0x40, 0x28, 0x00, 0x00, 0x00, 0x00,/*38: movq    $0, +0x28(%rax)          */
@@ -897,20 +897,20 @@ static uint8_t op_rescue[] = {
 };
 
 static void op_rescue_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 21)) = a;
-  *((int32_t *)(op + 44)) = a;
+  *((int32_t *)(op + 21)) = a * 16 + 8;
+  *((int32_t *)(op + 44)) = a * 16 + 0;
 }
 
 static void op_rescue_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_rescue_set_args(0,0,0);
+  op_rescue_set_args(op, 0,0,0);
 }
 
 
-/* args: {"a"=>[13..16]} */
+/* args: {"a"=>[[1, 0, 13..16]]} */
 static uint8_t op_poperr[] = {
   0x48, 0x83, 0xec, 0x18,                   /*00: sub     $0x18, %rsp              */
   0x48, 0x89, 0x7c, 0x24, 0x10,             /*04: mov     %rdi, +0x10(%rsp)        */
-  0xc7, 0x44, 0x24, 0x0c, 0x00, 0xcd, 0xab, 0x00,/*09: movl    $0xabcd00, +0xc(%rsp)    */
+  0xc7, 0x44, 0x24, 0x0c, 0x00, 0x00, 0xab, 0x00,/*09: movl    $0xab0000, +0xc(%rsp)    */
   0xeb, 0x21,                               /*11: jmp                              */
   0x66, 0x66, 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00,/*13: data16  "data16 data16 nopw %cs:0x0(%rax,%rax,1)" */
   0x48, 0x8b, 0x44, 0x24, 0x10,             /*20: mov     +0x10(%rsp), %rax        */
@@ -928,15 +928,15 @@ static uint8_t op_poperr[] = {
 };
 
 static void op_poperr_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 13)) = a;
+  *((int32_t *)(op + 13)) = a * 1 + 0;
 }
 
 static void op_poperr_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_poperr_set_args(0,0,0);
+  op_poperr_set_args(op, 0,0,0);
 }
 
 
-/* args: {"a"=>[24..27]} */
+/* args: {"a"=>[[16, 0, 24..27]]} */
 static uint8_t op_raise[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
@@ -944,7 +944,7 @@ static uint8_t op_raise[] = {
   0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
   0x48, 0x8b, 0x43, 0x18,                   /*0d: mov     +0x18(%rbx), %rax        */
   0x48, 0x8b, 0x4b, 0x58,                   /*11: mov     +0x58(%rbx), %rcx        */
-  0x48, 0x8b, 0x80, 0x00, 0xcd, 0xab, 0x00, /*15: mov     +0xabcd00(%rax), %rax    */
+  0x48, 0x8b, 0x80, 0x00, 0x10, 0xab, 0x00, /*15: mov     +0xab1000(%rax), %rax    */
   0x48, 0x89, 0x41, 0x28,                   /*1c: mov     %rax, +0x28(%rcx)        */
   0x48, 0x8b, 0x7c, 0x24, 0x08,             /*20: mov     +0x8(%rsp), %rdi         */
   0xff, 0x93, 0xb8, 0x01, 0x00, 0x00,       /*25: callq   +0x1b8(%rbx)             */
@@ -955,15 +955,15 @@ static uint8_t op_raise[] = {
 };
 
 static void op_raise_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 24)) = a;
+  *((int32_t *)(op + 24)) = a * 16 + 0;
 }
 
 static void op_raise_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_raise_set_args(GETARG_A(c),0,0);
+  op_raise_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"b"=>[28..31]} */
+/* args: {"b"=>[[8, 0, 28..31]]} */
 static uint8_t op_epush[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
@@ -972,7 +972,7 @@ static uint8_t op_epush[] = {
   0x48, 0x8b, 0x43, 0x08,                   /*0d: mov     +0x8(%rbx), %rax         */
   0x48, 0x8b, 0x7b, 0x58,                   /*11: mov     +0x58(%rbx), %rdi        */
   0x48, 0x8b, 0x40, 0x20,                   /*15: mov     +0x20(%rax), %rax        */
-  0x48, 0x8b, 0xb0, 0x00, 0xde, 0xbc, 0x00, /*19: mov     +0xbcde00(%rax), %rsi    */
+  0x48, 0x8b, 0xb0, 0x00, 0x08, 0xbc, 0x00, /*19: mov     +0xbc0800(%rax), %rsi    */
   0xff, 0x53, 0x78,                         /*20: callq   +0x78(%rbx)              */
   0x48, 0x89, 0x04, 0x24,                   /*23: mov     %rax, (%rsp)             */
   0x48, 0x8b, 0x44, 0x24, 0x08,             /*27: mov     +0x8(%rsp), %rax         */
@@ -1031,21 +1031,21 @@ static uint8_t op_epush[] = {
 };
 
 static void op_epush_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 28)) = b;
+  *((int32_t *)(op + 28)) = b * 8 + 0;
 }
 
 static void op_epush_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_epush_set_args(0,GETARG_Bx(c),0);
+  op_epush_set_args(op, 0,GETARG_Bx(c),0);
 }
 
 
-/* args: {"a"=>[17..20]} */
+/* args: {"a"=>[[1, 0, 17..20]]} */
 static uint8_t op_epop[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x20,                   /*01: sub     $0x20, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x18,             /*08: mov     %rbx, +0x18(%rsp)        */
-  0xc7, 0x44, 0x24, 0x14, 0x00, 0xcd, 0xab, 0x00,/*0d: movl    $0xabcd00, +0x14(%rsp)   */
+  0xc7, 0x44, 0x24, 0x14, 0x00, 0x00, 0xab, 0x00,/*0d: movl    $0xab0000, +0x14(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x18,             /*15: mov     +0x18(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x58,                   /*1a: mov     +0x58(%rax), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*1e: mov     +0x18(%rax), %rax        */
@@ -1086,15 +1086,15 @@ static uint8_t op_epop[] = {
 };
 
 static void op_epop_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 17)) = a;
+  *((int32_t *)(op + 17)) = a * 1 + 0;
 }
 
 static void op_epop_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_epop_set_args(0,0,0);
+  op_epop_set_args(op, 0,0,0);
 }
 
 
-/* args: {"a"=>[30..33], "b"=>[38..41], "c"=>[46..49, 69..72]} */
+/* args: {"a"=>[[1, 0, 30..33]], "b"=>[[1, 0, 38..41]], "c"=>[[1, 0, 46..49], [1, 0, 69..72]]} */
 static uint8_t op_send[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x20,                   /*01: sub     $0x20, %rsp              */
@@ -1104,14 +1104,14 @@ static uint8_t op_send[] = {
   0x8b, 0x00,                               /*11: mov     (%rax), %eax             */
   0x83, 0xe0, 0x7f,                         /*13: and     $0x7f, %eax              */
   0x89, 0x44, 0x24, 0x14,                   /*16: mov     %eax, +0x14(%rsp)        */
-  0xc7, 0x44, 0x24, 0x10, 0x00, 0xcd, 0xab, 0x00,/*1a: movl    $0xabcd00, +0x10(%rsp)   */
-  0xc7, 0x44, 0x24, 0x0c, 0x00, 0xde, 0xbc, 0x00,/*22: movl    $0xbcde00, +0xc(%rsp)    */
-  0xc7, 0x44, 0x24, 0x08, 0x00, 0xef, 0xcd, 0x00,/*2a: movl    $0xcdef00, +0x8(%rsp)    */
+  0xc7, 0x44, 0x24, 0x10, 0x00, 0x00, 0xab, 0x00,/*1a: movl    $0xab0000, +0x10(%rsp)   */
+  0xc7, 0x44, 0x24, 0x0c, 0x00, 0x00, 0xbc, 0x00,/*22: movl    $0xbc0000, +0xc(%rsp)    */
+  0xc7, 0x44, 0x24, 0x08, 0x00, 0x00, 0xcd, 0x00,/*2a: movl    $0xcd0000, +0x8(%rsp)    */
   0x48, 0x8b, 0x7c, 0x24, 0x18,             /*32: mov     +0x18(%rsp), %rdi        */
   0x8b, 0x74, 0x24, 0x14,                   /*37: mov     +0x14(%rsp), %esi        */
   0x8b, 0x54, 0x24, 0x10,                   /*3b: mov     +0x10(%rsp), %edx        */
   0x8b, 0x4c, 0x24, 0x0c,                   /*3f: mov     +0xc(%rsp), %ecx         */
-  0x41, 0xb8, 0x00, 0xef, 0xcd, 0x00,       /*43: mov     $0xcdef00, %r8d          */
+  0x41, 0xb8, 0x00, 0x00, 0xcd, 0x00,       /*43: mov     $0xcd0000, %r8d          */
   0xff, 0x93, 0xe0, 0x01, 0x00, 0x00,       /*49: callq   +0x1e0(%rbx)             */
   0x48, 0x89, 0xdf,                         /*4f: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x20,                   /*52: add     $0x20, %rsp              */
@@ -1120,14 +1120,14 @@ static uint8_t op_send[] = {
 };
 
 static void op_send_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 30)) = a;
-  *((int32_t *)(op + 38)) = b;
-  *((int32_t *)(op + 46)) = c;
-  *((int32_t *)(op + 69)) = c;
+  *((int32_t *)(op + 30)) = a * 1 + 0;
+  *((int32_t *)(op + 38)) = b * 1 + 0;
+  *((int32_t *)(op + 46)) = c * 1 + 0;
+  *((int32_t *)(op + 69)) = c * 1 + 0;
 }
 
 static void op_send_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_send_set_args(GETARG_A(c),GETARG_B(c),GETARG_C(c));
+  op_send_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c));
 }
 
 
@@ -1148,7 +1148,7 @@ static void op_sendb_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
 }
 
 static void op_sendb_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_sendb_set_args(0,0,0);
+  op_sendb_set_args(op, 0,0,0);
 }
 
 
@@ -1162,7 +1162,7 @@ static void op_fsend_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
 }
 
 static void op_fsend_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_fsend_set_args(0,0,0);
+  op_fsend_set_args(op, 0,0,0);
 }
 
 
@@ -1378,11 +1378,11 @@ static void op_call_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
 }
 
 static void op_call_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_call_set_args(0,0,0);
+  op_call_set_args(op, 0,0,0);
 }
 
 
-/* args: {"a"=>[48..51], "c"=>[56..59]} */
+/* args: {"a"=>[[1, 0, 48..51]], "c"=>[[1, 0, 56..59]]} */
 static uint8_t op_super[] = {
   0x41, 0x57,                               /*00: push    %r15                     */
   0x41, 0x56,                               /*02: push    %r14                     */
@@ -1398,8 +1398,8 @@ static uint8_t op_super[] = {
   0x48, 0x89, 0x44, 0x24, 0x50,             /*21: mov     %rax, +0x50(%rsp)        */
   0x8b, 0x00,                               /*26: mov     (%rax), %eax             */
   0x89, 0x44, 0x24, 0x3c,                   /*28: mov     %eax, +0x3c(%rsp)        */
-  0xc7, 0x44, 0x24, 0x38, 0x00, 0xcd, 0xab, 0x00,/*2c: movl    $0xabcd00, +0x38(%rsp)   */
-  0xc7, 0x44, 0x24, 0x34, 0x00, 0xef, 0xcd, 0x00,/*34: movl    $0xcdef00, +0x34(%rsp)   */
+  0xc7, 0x44, 0x24, 0x38, 0x00, 0x00, 0xab, 0x00,/*2c: movl    $0xab0000, +0x38(%rsp)   */
+  0xc7, 0x44, 0x24, 0x34, 0x00, 0x00, 0xcd, 0x00,/*34: movl    $0xcd0000, +0x34(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x68,             /*3c: mov     +0x68(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*41: mov     +0x18(%rax), %rax        */
   0x48, 0x8b, 0x08,                         /*45: mov     (%rax), %rcx             */
@@ -1637,16 +1637,16 @@ static uint8_t op_super[] = {
 };
 
 static void op_super_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 48)) = a;
-  *((int32_t *)(op + 56)) = c;
+  *((int32_t *)(op + 48)) = a * 1 + 0;
+  *((int32_t *)(op + 56)) = c * 1 + 0;
 }
 
 static void op_super_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_super_set_args(GETARG_A(c),0,GETARG_C(c));
+  op_super_set_args(op, GETARG_A(c),0,GETARG_C(c));
 }
 
 
-/* args: {"a"=>[32..35], "b"=>[43..46]} */
+/* args: {"a"=>[[1, 0, 32..35]], "b"=>[[1, 0, 43..46]]} */
 static uint8_t op_argary[] = {
   0x41, 0x57,                               /*00: push    %r15                     */
   0x41, 0x56,                               /*02: push    %r14                     */
@@ -1655,9 +1655,9 @@ static uint8_t op_argary[] = {
   0x48, 0x81, 0xec, 0xa8, 0x00, 0x00, 0x00, /*07: sub     $0xa8, %rsp              */
   0x49, 0x89, 0xfc,                         /*0e: mov     %rdi, %r12               */
   0x4c, 0x89, 0xa4, 0x24, 0xa0, 0x00, 0x00, 0x00,/*11: mov     %r12, +0xa0(%rsp)        */
-  0xc7, 0x84, 0x24, 0x9c, 0x00, 0x00, 0x00, 0x00, 0xcd, 0xab, 0x00,/*19: movl    $0xabcd00, +0x9c(%rsp)   */
-  0xc7, 0x84, 0x24, 0x98, 0x00, 0x00, 0x00, 0x00, 0xde, 0xbc, 0x00,/*24: movl    $0xbcde00, +0x98(%rsp)   */
-  0xc7, 0x84, 0x24, 0x94, 0x00, 0x00, 0x00, 0x37, 0x00, 0x00, 0x00,/*2f: movl    $0x37, +0x94(%rsp)       */
+  0xc7, 0x84, 0x24, 0x9c, 0x00, 0x00, 0x00, 0x00, 0x00, 0xab, 0x00,/*19: movl    $0xab0000, +0x9c(%rsp)   */
+  0xc7, 0x84, 0x24, 0x98, 0x00, 0x00, 0x00, 0x00, 0x00, 0xbc, 0x00,/*24: movl    $0xbc0000, +0x98(%rsp)   */
+  0xc7, 0x84, 0x24, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,/*2f: movl    $0, +0x94(%rsp)          */
   0x8b, 0x84, 0x24, 0x98, 0x00, 0x00, 0x00, /*3a: mov     +0x98(%rsp), %eax        */
   0xc1, 0xe8, 0x09,                         /*41: shr     $0x9, %eax               */
   0x83, 0xe0, 0x01,                         /*44: and     $0x1, %eax               */
@@ -1837,16 +1837,16 @@ static uint8_t op_argary[] = {
 };
 
 static void op_argary_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 32)) = a;
-  *((int32_t *)(op + 43)) = b;
+  *((int32_t *)(op + 32)) = a * 1 + 0;
+  *((int32_t *)(op + 43)) = b * 1 + 0;
 }
 
 static void op_argary_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_argary_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_argary_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"a"=>[42..45]} */
+/* args: {"a"=>[[1, 0, 42..45]]} */
 static uint8_t op_enter[] = {
   0x41, 0x57,                               /*00: push    %r15                     */
   0x41, 0x56,                               /*02: push    %r14                     */
@@ -1856,7 +1856,7 @@ static uint8_t op_enter[] = {
   0x4c, 0x89, 0xb4, 0x24, 0x98, 0x00, 0x00, 0x00,/*0f: mov     %r14, +0x98(%rsp)        */
   0x49, 0x8b, 0x46, 0x10,                   /*17: mov     +0x10(%r14), %rax        */
   0x48, 0x89, 0x84, 0x24, 0x90, 0x00, 0x00, 0x00,/*1b: mov     %rax, +0x90(%rsp)        */
-  0xc7, 0x84, 0x24, 0x8c, 0x00, 0x00, 0x00, 0x00, 0xcd, 0xab, 0x00,/*23: movl    $0xabcd00, +0x8c(%rsp)   */
+  0xc7, 0x84, 0x24, 0x8c, 0x00, 0x00, 0x00, 0x00, 0x00, 0xab, 0x00,/*23: movl    $0xab0000, +0x8c(%rsp)   */
   0xc7, 0x84, 0x24, 0x88, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00,/*2e: movl    $0xa, +0x88(%rsp)        */
   0x8b, 0x84, 0x24, 0x8c, 0x00, 0x00, 0x00, /*39: mov     +0x8c(%rsp), %eax        */
   0xc1, 0xe8, 0x0d,                         /*40: shr     $0xd, %eax               */
@@ -2196,11 +2196,11 @@ static uint8_t op_enter[] = {
 };
 
 static void op_enter_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 42)) = a;
+  *((int32_t *)(op + 42)) = a * 1 + 0;
 }
 
 static void op_enter_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_enter_set_args(GETARG_Ax(c),0,0);
+  op_enter_set_args(op, GETARG_Ax(c),0,0);
 }
 
 
@@ -2214,7 +2214,7 @@ static void op_karg_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
 }
 
 static void op_karg_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_karg_set_args(0,0,0);
+  op_karg_set_args(op, 0,0,0);
 }
 
 
@@ -2228,17 +2228,17 @@ static void op_kdict_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
 }
 
 static void op_kdict_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_kdict_set_args(0,0,0);
+  op_kdict_set_args(op, 0,0,0);
 }
 
 
-/* args: {"b"=>[14..17]} */
+/* args: {"b"=>[[1, 0, 14..17]]} */
 static uint8_t op_return[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
-  0xbe, 0x00, 0xde, 0xbc, 0x00,             /*0d: mov     $0xbcde00, %esi          */
+  0xbe, 0x00, 0x00, 0xbc, 0x00,             /*0d: mov     $0xbc0000, %esi          */
   0xff, 0x93, 0x80, 0x00, 0x00, 0x00,       /*12: callq   +0x80(%rbx)              */
   0x48, 0x89, 0xdf,                         /*18: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x10,                   /*1b: add     $0x10, %rsp              */
@@ -2247,15 +2247,15 @@ static uint8_t op_return[] = {
 };
 
 static void op_return_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 14)) = b;
+  *((int32_t *)(op + 14)) = b * 1 + 0;
 }
 
 static void op_return_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_return_set_args(0,GETARG_B(c),0);
+  op_return_set_args(op, 0,GETARG_B(c),0);
 }
 
 
-/* args: {"a"=>[28..31], "c"=>[36..39], "b"=>[51..54]} */
+/* args: {"a"=>[[1, 0, 28..31]], "c"=>[[1, 0, 36..39]], "b"=>[[4, 0, 51..54]]} */
 static uint8_t op_tailcall[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
@@ -2264,11 +2264,11 @@ static uint8_t op_tailcall[] = {
   0x4c, 0x89, 0x74, 0x24, 0x70,             /*0a: mov     %r14, +0x70(%rsp)        */
   0x49, 0x8b, 0x46, 0x58,                   /*0f: mov     +0x58(%r14), %rax        */
   0x48, 0x89, 0x44, 0x24, 0x68,             /*13: mov     %rax, +0x68(%rsp)        */
-  0xc7, 0x44, 0x24, 0x64, 0x00, 0xcd, 0xab, 0x00,/*18: movl    $0xabcd00, +0x64(%rsp)   */
-  0xc7, 0x44, 0x24, 0x60, 0x00, 0xef, 0xcd, 0x00,/*20: movl    $0xcdef00, +0x60(%rsp)   */
+  0xc7, 0x44, 0x24, 0x64, 0x00, 0x00, 0xab, 0x00,/*18: movl    $0xab0000, +0x64(%rsp)   */
+  0xc7, 0x44, 0x24, 0x60, 0x00, 0x00, 0xcd, 0x00,/*20: movl    $0xcd0000, +0x60(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x70,             /*28: mov     +0x70(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x28,                   /*2d: mov     +0x28(%rax), %rax        */
-  0x8b, 0x80, 0x00, 0xde, 0xbc, 0x00,       /*31: mov     +0xbcde00(%rax), %eax    */
+  0x8b, 0x80, 0x00, 0x04, 0xbc, 0x00,       /*31: mov     +0xbc0400(%rax), %eax    */
   0x89, 0x44, 0x24, 0x34,                   /*37: mov     %eax, +0x34(%rsp)        */
   0x48, 0x63, 0x44, 0x24, 0x64,             /*3b: movslq  +0x64(%rsp), %rax        */
   0x48, 0x8b, 0x4c, 0x24, 0x70,             /*40: mov     +0x70(%rsp), %rcx        */
@@ -2444,17 +2444,17 @@ static uint8_t op_tailcall[] = {
 };
 
 static void op_tailcall_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 28)) = a;
-  *((int32_t *)(op + 36)) = c;
-  *((int32_t *)(op + 51)) = b;
+  *((int32_t *)(op + 28)) = a * 1 + 0;
+  *((int32_t *)(op + 36)) = c * 1 + 0;
+  *((int32_t *)(op + 51)) = b * 4 + 0;
 }
 
 static void op_tailcall_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_tailcall_set_args(GETARG_A(c),GETARG_B(c),GETARG_C(c));
+  op_tailcall_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c));
 }
 
 
-/* args: {"a"=>[26..29], "b"=>[34..37]} */
+/* args: {"a"=>[[1, 0, 26..29]], "b"=>[[1, 0, 34..37]]} */
 static uint8_t op_blkpush[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x40,                   /*01: sub     $0x40, %rsp              */
@@ -2462,9 +2462,9 @@ static uint8_t op_blkpush[] = {
   0x48, 0x89, 0x5c, 0x24, 0x38,             /*08: mov     %rbx, +0x38(%rsp)        */
   0x48, 0x8b, 0x43, 0x58,                   /*0d: mov     +0x58(%rbx), %rax        */
   0x48, 0x89, 0x44, 0x24, 0x30,             /*11: mov     %rax, +0x30(%rsp)        */
-  0xc7, 0x44, 0x24, 0x2c, 0x00, 0xcd, 0xab, 0x00,/*16: movl    $0xabcd00, +0x2c(%rsp)   */
-  0xc7, 0x44, 0x24, 0x28, 0x00, 0xde, 0xbc, 0x00,/*1e: movl    $0xbcde00, +0x28(%rsp)   */
-  0xc7, 0x44, 0x24, 0x24, 0x37, 0x00, 0x00, 0x00,/*26: movl    $0x37, +0x24(%rsp)       */
+  0xc7, 0x44, 0x24, 0x2c, 0x00, 0x00, 0xab, 0x00,/*16: movl    $0xab0000, +0x2c(%rsp)   */
+  0xc7, 0x44, 0x24, 0x28, 0x00, 0x00, 0xbc, 0x00,/*1e: movl    $0xbc0000, +0x28(%rsp)   */
+  0xc7, 0x44, 0x24, 0x24, 0x00, 0x00, 0x00, 0x00,/*26: movl    $0, +0x24(%rsp)          */
   0x8b, 0x44, 0x24, 0x28,                   /*2e: mov     +0x28(%rsp), %eax        */
   0xc1, 0xe8, 0x09,                         /*32: shr     $0x9, %eax               */
   0x83, 0xe0, 0x01,                         /*35: and     $0x1, %eax               */
@@ -2519,16 +2519,16 @@ static uint8_t op_blkpush[] = {
 };
 
 static void op_blkpush_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 26)) = a;
-  *((int32_t *)(op + 34)) = b;
+  *((int32_t *)(op + 26)) = a * 1 + 0;
+  *((int32_t *)(op + 34)) = b * 1 + 0;
 }
 
 static void op_blkpush_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_blkpush_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_blkpush_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"a"=>[21..24]} */
+/* args: {"a"=>[[1, 0, 21..24]]} */
 static uint8_t op_add[] = {
   0x41, 0x57,                               /*00: push    %r15                     */
   0x41, 0x56,                               /*02: push    %r14                     */
@@ -2536,7 +2536,7 @@ static uint8_t op_add[] = {
   0x48, 0x83, 0xec, 0x60,                   /*05: sub     $0x60, %rsp              */
   0x49, 0x89, 0xfe,                         /*09: mov     %rdi, %r14               */
   0x4c, 0x89, 0x74, 0x24, 0x58,             /*0c: mov     %r14, +0x58(%rsp)        */
-  0xc7, 0x44, 0x24, 0x54, 0x00, 0xcd, 0xab, 0x00,/*11: movl    $0xabcd00, +0x54(%rsp)   */
+  0xc7, 0x44, 0x24, 0x54, 0x00, 0x00, 0xab, 0x00,/*11: movl    $0xab0000, +0x54(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x58,             /*19: mov     +0x58(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x58,                   /*1e: mov     +0x58(%rax), %rax        */
   0x48, 0x89, 0x44, 0x24, 0x48,             /*22: mov     %rax, +0x48(%rsp)        */
@@ -2663,21 +2663,21 @@ static uint8_t op_add[] = {
 };
 
 static void op_add_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 21)) = a;
+  *((int32_t *)(op + 21)) = a * 1 + 0;
 }
 
 static void op_add_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_add_set_args(GETARG_A(c),0,0);
+  op_add_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"a"=>[17..20], "c"=>[120..123, 134..137, 251..254], "b"=>[270..273]} */
+/* args: {"a"=>[[1, 0, 17..20]], "c"=>[[1, 0, 120..123], [1, 0, 134..137], [1, 0, 251..254]], "b"=>[[1, 0, 270..273]]} */
 static uint8_t op_addi[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x30,                   /*01: sub     $0x30, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x28,             /*08: mov     %rbx, +0x28(%rsp)        */
-  0xc7, 0x44, 0x24, 0x24, 0x00, 0xcd, 0xab, 0x00,/*0d: movl    $0xabcd00, +0x24(%rsp)   */
+  0xc7, 0x44, 0x24, 0x24, 0x00, 0x00, 0xab, 0x00,/*0d: movl    $0xab0000, +0x24(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x28,             /*15: mov     +0x28(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*1a: mov     +0x18(%rax), %rax        */
   0x48, 0x89, 0x44, 0x24, 0x18,             /*1e: mov     %rax, +0x18(%rsp)        */
@@ -2700,10 +2700,10 @@ static uint8_t op_addi[] = {
   0x48, 0xc1, 0xe0, 0x04,                   /*69: shl     $0x4, %rax               */
   0x8b, 0x04, 0x01,                         /*6d: mov     (%rcx,%rax,1), %eax      */
   0x89, 0x44, 0x24, 0x14,                   /*70: mov     %eax, +0x14(%rsp)        */
-  0xc7, 0x44, 0x24, 0x10, 0x00, 0xef, 0xcd, 0x00,/*74: movl    $0xcdef00, +0x10(%rsp)   */
+  0xc7, 0x44, 0x24, 0x10, 0x00, 0x00, 0xcd, 0x00,/*74: movl    $0xcd0000, +0x10(%rsp)   */
   0x8b, 0x7c, 0x24, 0x14,                   /*7c: mov     +0x14(%rsp), %edi        */
   0x48, 0x8d, 0x54, 0x24, 0x0c,             /*80: lea     +0xc(%rsp), %rdx         */
-  0xbe, 0x00, 0xef, 0xcd, 0x00,             /*85: mov     $0xcdef00, %esi          */
+  0xbe, 0x00, 0x00, 0xcd, 0x00,             /*85: mov     $0xcd0000, %esi          */
   0xff, 0x93, 0x88, 0x01, 0x00, 0x00,       /*8a: callq   +0x188(%rbx)             */
   0x84, 0xc0,                               /*90: test    %al, %al                 */
   0x0f, 0x84, 0x88, 0x00, 0x00, 0x00,       /*92: je                               */
@@ -2726,11 +2726,11 @@ static uint8_t op_addi[] = {
   0x48, 0x63, 0x44, 0x24, 0x24,             /*e9: movslq  +0x24(%rsp), %rax        */
   0x48, 0xc1, 0xe0, 0x04,                   /*ee: shl     $0x4, %rax               */
   0x48, 0x8b, 0x4c, 0x24, 0x18,             /*f2: mov     +0x18(%rsp), %rcx        */
-  0xc7, 0x44, 0x08, 0x10, 0x00, 0xef, 0xcd, 0x00,/*f7: movl    $0xcdef00, +0x10(%rax,%rcx,1) */
+  0xc7, 0x44, 0x08, 0x10, 0x00, 0x00, 0xcd, 0x00,/*f7: movl    $0xcd0000, +0x10(%rax,%rcx,1) */
   0x48, 0x8b, 0x7c, 0x24, 0x28,             /*ff: mov     +0x28(%rsp), %rdi        */
   0x8b, 0x54, 0x24, 0x24,                   /*104: mov     +0x24(%rsp), %edx        */
   0xbe, 0x20, 0x00, 0x00, 0x00,             /*108: mov     $0x20, %esi              */
-  0xb9, 0x00, 0xde, 0xbc, 0x00,             /*10d: mov     $0xbcde00, %ecx          */
+  0xb9, 0x00, 0x00, 0xbc, 0x00,             /*10d: mov     $0xbc0000, %ecx          */
   0x41, 0xb8, 0x01, 0x00, 0x00, 0x00,       /*112: mov     $0x1, %r8d               */
   0xff, 0x93, 0xe0, 0x01, 0x00, 0x00,       /*118: callq   +0x1e0(%rbx)             */
   0xeb, 0x2b,                               /*11e: jmp                              */
@@ -2750,25 +2750,25 @@ static uint8_t op_addi[] = {
 };
 
 static void op_addi_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 17)) = a;
-  *((int32_t *)(op + 120)) = c;
-  *((int32_t *)(op + 134)) = c;
-  *((int32_t *)(op + 251)) = c;
-  *((int32_t *)(op + 270)) = b;
+  *((int32_t *)(op + 17)) = a * 1 + 0;
+  *((int32_t *)(op + 120)) = c * 1 + 0;
+  *((int32_t *)(op + 134)) = c * 1 + 0;
+  *((int32_t *)(op + 251)) = c * 1 + 0;
+  *((int32_t *)(op + 270)) = b * 1 + 0;
 }
 
 static void op_addi_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_addi_set_args(GETARG_A(c),0,GETARG_C(c));
+  op_addi_set_args(op, GETARG_A(c),0,GETARG_C(c));
 }
 
 
-/* args: {"a"=>[17..20]} */
+/* args: {"a"=>[[1, 0, 17..20]]} */
 static uint8_t op_sub[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x30,                   /*01: sub     $0x30, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x28,             /*08: mov     %rbx, +0x28(%rsp)        */
-  0xc7, 0x44, 0x24, 0x24, 0x00, 0xcd, 0xab, 0x00,/*0d: movl    $0xabcd00, +0x24(%rsp)   */
+  0xc7, 0x44, 0x24, 0x24, 0x00, 0x00, 0xab, 0x00,/*0d: movl    $0xab0000, +0x24(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x28,             /*15: mov     +0x28(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*1a: mov     +0x18(%rax), %rax        */
   0x48, 0x89, 0x44, 0x24, 0x18,             /*1e: mov     %rax, +0x18(%rsp)        */
@@ -2867,21 +2867,21 @@ static uint8_t op_sub[] = {
 };
 
 static void op_sub_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 17)) = a;
+  *((int32_t *)(op + 17)) = a * 1 + 0;
 }
 
 static void op_sub_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_sub_set_args(GETARG_A(c),0,0);
+  op_sub_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"a"=>[17..20], "c"=>[108..111, 122..125, 195..198], "b"=>[214..217]} */
+/* args: {"a"=>[[1, 0, 17..20]], "c"=>[[1, 0, 108..111], [1, 0, 122..125], [1, 0, 195..198]], "b"=>[[1, 0, 214..217]]} */
 static uint8_t op_subi[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x30,                   /*01: sub     $0x30, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x28,             /*08: mov     %rbx, +0x28(%rsp)        */
-  0xc7, 0x44, 0x24, 0x24, 0x00, 0xcd, 0xab, 0x00,/*0d: movl    $0xabcd00, +0x24(%rsp)   */
+  0xc7, 0x44, 0x24, 0x24, 0x00, 0x00, 0xab, 0x00,/*0d: movl    $0xab0000, +0x24(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x28,             /*15: mov     +0x28(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*1a: mov     +0x18(%rax), %rax        */
   0x48, 0x89, 0x44, 0x24, 0x18,             /*1e: mov     %rax, +0x18(%rsp)        */
@@ -2902,10 +2902,10 @@ static uint8_t op_subi[] = {
   0x48, 0x8b, 0x44, 0x24, 0x10,             /*5d: mov     +0x10(%rsp), %rax        */
   0x8b, 0x00,                               /*62: mov     (%rax), %eax             */
   0x89, 0x44, 0x24, 0x0c,                   /*64: mov     %eax, +0xc(%rsp)         */
-  0xc7, 0x44, 0x24, 0x08, 0x00, 0xef, 0xcd, 0x00,/*68: movl    $0xcdef00, +0x8(%rsp)    */
+  0xc7, 0x44, 0x24, 0x08, 0x00, 0x00, 0xcd, 0x00,/*68: movl    $0xcd0000, +0x8(%rsp)    */
   0x8b, 0x7c, 0x24, 0x0c,                   /*70: mov     +0xc(%rsp), %edi         */
   0x48, 0x8d, 0x54, 0x24, 0x04,             /*74: lea     +0x4(%rsp), %rdx         */
-  0xbe, 0x00, 0xef, 0xcd, 0x00,             /*79: mov     $0xcdef00, %esi          */
+  0xbe, 0x00, 0x00, 0xcd, 0x00,             /*79: mov     $0xcd0000, %esi          */
   0xff, 0x93, 0x68, 0x01, 0x00, 0x00,       /*7e: callq   +0x168(%rbx)             */
   0x84, 0xc0,                               /*84: test    %al, %al                 */
   0x74, 0x60,                               /*86: je                               */
@@ -2920,11 +2920,11 @@ static uint8_t op_subi[] = {
   0x48, 0x8b, 0x44, 0x24, 0x10,             /*af: mov     +0x10(%rsp), %rax        */
   0xc7, 0x40, 0x18, 0x03, 0x00, 0x00, 0x00, /*b4: movl    $0x3, +0x18(%rax)        */
   0x48, 0x8b, 0x44, 0x24, 0x10,             /*bb: mov     +0x10(%rsp), %rax        */
-  0xc7, 0x40, 0x10, 0x00, 0xef, 0xcd, 0x00, /*c0: movl    $0xcdef00, +0x10(%rax)   */
+  0xc7, 0x40, 0x10, 0x00, 0x00, 0xcd, 0x00, /*c0: movl    $0xcd0000, +0x10(%rax)   */
   0x48, 0x8b, 0x7c, 0x24, 0x28,             /*c7: mov     +0x28(%rsp), %rdi        */
   0x8b, 0x54, 0x24, 0x24,                   /*cc: mov     +0x24(%rsp), %edx        */
   0xbe, 0x20, 0x00, 0x00, 0x00,             /*d0: mov     $0x20, %esi              */
-  0xb9, 0x00, 0xde, 0xbc, 0x00,             /*d5: mov     $0xbcde00, %ecx          */
+  0xb9, 0x00, 0x00, 0xbc, 0x00,             /*d5: mov     $0xbc0000, %ecx          */
   0x41, 0xb8, 0x01, 0x00, 0x00, 0x00,       /*da: mov     $0x1, %r8d               */
   0xff, 0x93, 0xe0, 0x01, 0x00, 0x00,       /*e0: callq   +0x1e0(%rbx)             */
   0xeb, 0x17,                               /*e6: jmp                              */
@@ -2940,26 +2940,26 @@ static uint8_t op_subi[] = {
 };
 
 static void op_subi_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 17)) = a;
-  *((int32_t *)(op + 108)) = c;
-  *((int32_t *)(op + 122)) = c;
-  *((int32_t *)(op + 195)) = c;
-  *((int32_t *)(op + 214)) = b;
+  *((int32_t *)(op + 17)) = a * 1 + 0;
+  *((int32_t *)(op + 108)) = c * 1 + 0;
+  *((int32_t *)(op + 122)) = c * 1 + 0;
+  *((int32_t *)(op + 195)) = c * 1 + 0;
+  *((int32_t *)(op + 214)) = b * 1 + 0;
 }
 
 static void op_subi_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_subi_set_args(GETARG_A(c),0,GETARG_C(c));
+  op_subi_set_args(op, GETARG_A(c),0,GETARG_C(c));
 }
 
 
-/* args: {"a"=>[19..22]} */
+/* args: {"a"=>[[1, 0, 19..22]]} */
 static uint8_t op_mul[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
   0x48, 0x83, 0xec, 0x58,                   /*03: sub     $0x58, %rsp              */
   0x49, 0x89, 0xfe,                         /*07: mov     %rdi, %r14               */
   0x4c, 0x89, 0x74, 0x24, 0x50,             /*0a: mov     %r14, +0x50(%rsp)        */
-  0xc7, 0x44, 0x24, 0x4c, 0x00, 0xcd, 0xab, 0x00,/*0f: movl    $0xabcd00, +0x4c(%rsp)   */
+  0xc7, 0x44, 0x24, 0x4c, 0x00, 0x00, 0xab, 0x00,/*0f: movl    $0xab0000, +0x4c(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x50,             /*17: mov     +0x50(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x58,                   /*1c: mov     +0x58(%rax), %rax        */
   0x48, 0x89, 0x44, 0x24, 0x40,             /*20: mov     %rax, +0x40(%rsp)        */
@@ -3062,21 +3062,21 @@ static uint8_t op_mul[] = {
 };
 
 static void op_mul_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 19)) = a;
+  *((int32_t *)(op + 19)) = a * 1 + 0;
 }
 
 static void op_mul_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_mul_set_args(GETARG_A(c),0,0);
+  op_mul_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"a"=>[17..20]} */
+/* args: {"a"=>[[1, 0, 17..20]]} */
 static uint8_t op_div[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x30,                   /*01: sub     $0x30, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x28,             /*08: mov     %rbx, +0x28(%rsp)        */
-  0xc7, 0x44, 0x24, 0x24, 0x00, 0xcd, 0xab, 0x00,/*0d: movl    $0xabcd00, +0x24(%rsp)   */
+  0xc7, 0x44, 0x24, 0x24, 0x00, 0x00, 0xab, 0x00,/*0d: movl    $0xab0000, +0x24(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x28,             /*15: mov     +0x28(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*1a: mov     +0x18(%rax), %rax        */
   0x48, 0x89, 0x44, 0x24, 0x18,             /*1e: mov     %rax, +0x18(%rsp)        */
@@ -3158,22 +3158,22 @@ static uint8_t op_div[] = {
 };
 
 static void op_div_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 17)) = a;
+  *((int32_t *)(op + 17)) = a * 1 + 0;
 }
 
 static void op_div_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_div_set_args(GETARG_A(c),0,0);
+  op_div_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"a"=>[19..22]} */
+/* args: {"a"=>[[1, 0, 19..22]]} */
 static uint8_t op_eq[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
   0x48, 0x83, 0xec, 0x28,                   /*03: sub     $0x28, %rsp              */
   0x49, 0x89, 0xfe,                         /*07: mov     %rdi, %r14               */
   0x4c, 0x89, 0x74, 0x24, 0x20,             /*0a: mov     %r14, +0x20(%rsp)        */
-  0xc7, 0x44, 0x24, 0x1c, 0x00, 0xcd, 0xab, 0x00,/*0f: movl    $0xabcd00, +0x1c(%rsp)   */
+  0xc7, 0x44, 0x24, 0x1c, 0x00, 0x00, 0xab, 0x00,/*0f: movl    $0xab0000, +0x1c(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x20,             /*17: mov     +0x20(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*1c: mov     +0x18(%rax), %rax        */
   0x48, 0x89, 0x44, 0x24, 0x10,             /*20: mov     %rax, +0x10(%rsp)        */
@@ -3260,21 +3260,21 @@ static uint8_t op_eq[] = {
 };
 
 static void op_eq_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 19)) = a;
+  *((int32_t *)(op + 19)) = a * 1 + 0;
 }
 
 static void op_eq_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_eq_set_args(GETARG_A(c),0,0);
+  op_eq_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"a"=>[17..20]} */
+/* args: {"a"=>[[1, 0, 17..20]]} */
 static uint8_t op_lt[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x20,                   /*01: sub     $0x20, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x18,             /*08: mov     %rbx, +0x18(%rsp)        */
-  0xc7, 0x44, 0x24, 0x14, 0x00, 0xcd, 0xab, 0x00,/*0d: movl    $0xabcd00, +0x14(%rsp)   */
+  0xc7, 0x44, 0x24, 0x14, 0x00, 0x00, 0xab, 0x00,/*0d: movl    $0xab0000, +0x14(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x18,             /*15: mov     +0x18(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*1a: mov     +0x18(%rax), %rax        */
   0x48, 0x89, 0x44, 0x24, 0x08,             /*1e: mov     %rax, +0x8(%rsp)         */
@@ -3346,21 +3346,21 @@ static uint8_t op_lt[] = {
 };
 
 static void op_lt_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 17)) = a;
+  *((int32_t *)(op + 17)) = a * 1 + 0;
 }
 
 static void op_lt_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_lt_set_args(GETARG_A(c),0,0);
+  op_lt_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"a"=>[17..20]} */
+/* args: {"a"=>[[1, 0, 17..20]]} */
 static uint8_t op_le[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x20,                   /*01: sub     $0x20, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x18,             /*08: mov     %rbx, +0x18(%rsp)        */
-  0xc7, 0x44, 0x24, 0x14, 0x00, 0xcd, 0xab, 0x00,/*0d: movl    $0xabcd00, +0x14(%rsp)   */
+  0xc7, 0x44, 0x24, 0x14, 0x00, 0x00, 0xab, 0x00,/*0d: movl    $0xab0000, +0x14(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x18,             /*15: mov     +0x18(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*1a: mov     +0x18(%rax), %rax        */
   0x48, 0x89, 0x44, 0x24, 0x08,             /*1e: mov     %rax, +0x8(%rsp)         */
@@ -3432,21 +3432,21 @@ static uint8_t op_le[] = {
 };
 
 static void op_le_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 17)) = a;
+  *((int32_t *)(op + 17)) = a * 1 + 0;
 }
 
 static void op_le_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_le_set_args(GETARG_A(c),0,0);
+  op_le_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"a"=>[17..20]} */
+/* args: {"a"=>[[1, 0, 17..20]]} */
 static uint8_t op_gt[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x20,                   /*01: sub     $0x20, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x18,             /*08: mov     %rbx, +0x18(%rsp)        */
-  0xc7, 0x44, 0x24, 0x14, 0x00, 0xcd, 0xab, 0x00,/*0d: movl    $0xabcd00, +0x14(%rsp)   */
+  0xc7, 0x44, 0x24, 0x14, 0x00, 0x00, 0xab, 0x00,/*0d: movl    $0xab0000, +0x14(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x18,             /*15: mov     +0x18(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*1a: mov     +0x18(%rax), %rax        */
   0x48, 0x89, 0x44, 0x24, 0x08,             /*1e: mov     %rax, +0x8(%rsp)         */
@@ -3519,21 +3519,21 @@ static uint8_t op_gt[] = {
 };
 
 static void op_gt_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 17)) = a;
+  *((int32_t *)(op + 17)) = a * 1 + 0;
 }
 
 static void op_gt_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_gt_set_args(GETARG_A(c),0,0);
+  op_gt_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"a"=>[17..20]} */
+/* args: {"a"=>[[1, 0, 17..20]]} */
 static uint8_t op_ge[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x20,                   /*01: sub     $0x20, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x18,             /*08: mov     %rbx, +0x18(%rsp)        */
-  0xc7, 0x44, 0x24, 0x14, 0x00, 0xcd, 0xab, 0x00,/*0d: movl    $0xabcd00, +0x14(%rsp)   */
+  0xc7, 0x44, 0x24, 0x14, 0x00, 0x00, 0xab, 0x00,/*0d: movl    $0xab0000, +0x14(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x18,             /*15: mov     +0x18(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*1a: mov     +0x18(%rax), %rax        */
   0x48, 0x89, 0x44, 0x24, 0x08,             /*1e: mov     %rax, +0x8(%rsp)         */
@@ -3606,15 +3606,15 @@ static uint8_t op_ge[] = {
 };
 
 static void op_ge_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 17)) = a;
+  *((int32_t *)(op + 17)) = a * 1 + 0;
 }
 
 static void op_ge_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_ge_set_args(GETARG_A(c),0,0);
+  op_ge_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"b"=>[26..29], "c"=>[31..34], "a"=>[61..64, 68..71]} */
+/* args: {"b"=>[[16, 0, 26..29]], "c"=>[[1, 0, 31..34]], "a"=>[[16, 8, 61..64], [16, 0, 68..71]]} */
 static uint8_t op_array[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
@@ -3623,15 +3623,15 @@ static uint8_t op_array[] = {
   0x48, 0x89, 0x5c, 0x24, 0x10,             /*0a: mov     %rbx, +0x10(%rsp)        */
   0x4c, 0x8b, 0x73, 0x18,                   /*0f: mov     +0x18(%rbx), %r14        */
   0x48, 0x8b, 0x7b, 0x58,                   /*13: mov     +0x58(%rbx), %rdi        */
-  0x49, 0x8d, 0x96, 0x00, 0xde, 0xbc, 0x00, /*17: lea     +0xbcde00(%r14), %rdx    */
-  0xbe, 0x00, 0xef, 0xcd, 0x00,             /*1e: mov     $0xcdef00, %esi          */
+  0x49, 0x8d, 0x96, 0x00, 0x10, 0xbc, 0x00, /*17: lea     +0xbc1000(%r14), %rdx    */
+  0xbe, 0x00, 0x00, 0xcd, 0x00,             /*1e: mov     $0xcd0000, %esi          */
   0xff, 0x93, 0x30, 0x02, 0x00, 0x00,       /*23: callq   +0x230(%rbx)             */
   0x48, 0x89, 0x04, 0x24,                   /*29: mov     %rax, (%rsp)             */
   0x89, 0x54, 0x24, 0x08,                   /*2d: mov     %edx, +0x8(%rsp)         */
   0x48, 0x8b, 0x04, 0x24,                   /*31: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x4c, 0x24, 0x08,             /*35: mov     +0x8(%rsp), %rcx         */
-  0x49, 0x89, 0x8e, 0x08, 0xcd, 0xab, 0x00, /*3a: mov     %rcx, +0xabcd08(%r14)    */
-  0x49, 0x89, 0x86, 0x00, 0xcd, 0xab, 0x00, /*41: mov     %rax, +0xabcd00(%r14)    */
+  0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*3a: mov     %rcx, +0xab1008(%r14)    */
+  0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*41: mov     %rax, +0xab1000(%r14)    */
   0x48, 0x8b, 0x44, 0x24, 0x10,             /*48: mov     +0x10(%rsp), %rax        */
   0x8b, 0x48, 0x50,                         /*4d: mov     +0x50(%rax), %ecx        */
   0x48, 0x8b, 0x40, 0x58,                   /*50: mov     +0x58(%rax), %rax        */
@@ -3644,18 +3644,18 @@ static uint8_t op_array[] = {
 };
 
 static void op_array_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 26)) = b;
-  *((int32_t *)(op + 31)) = c;
-  *((int32_t *)(op + 61)) = a;
-  *((int32_t *)(op + 68)) = a;
+  *((int32_t *)(op + 26)) = b * 16 + 0;
+  *((int32_t *)(op + 31)) = c * 1 + 0;
+  *((int32_t *)(op + 61)) = a * 16 + 8;
+  *((int32_t *)(op + 68)) = a * 16 + 0;
 }
 
 static void op_array_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_array_set_args(GETARG_A(c),GETARG_B(c),GETARG_C(c));
+  op_array_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c));
 }
 
 
-/* args: {"b"=>[28..31, 34..37], "a"=>[64..67, 70..73]} */
+/* args: {"b"=>[[16, 0, 28..31], [16, 8, 34..37]], "a"=>[[16, 0, 64..67], [16, 8, 70..73]]} */
 static uint8_t op_arycat[] = {
   0x41, 0x57,                               /*00: push    %r15                     */
   0x41, 0x56,                               /*02: push    %r14                     */
@@ -3665,15 +3665,15 @@ static uint8_t op_arycat[] = {
   0x4c, 0x89, 0x7c, 0x24, 0x18,             /*0c: mov     %r15, +0x18(%rsp)        */
   0x49, 0x8b, 0x5f, 0x18,                   /*11: mov     +0x18(%r15), %rbx        */
   0x4d, 0x8b, 0x77, 0x58,                   /*15: mov     +0x58(%r15), %r14        */
-  0x48, 0x8b, 0xb3, 0x00, 0xde, 0xbc, 0x00, /*19: mov     +0xbcde00(%rbx), %rsi    */
-  0x8b, 0x93, 0x08, 0xde, 0xbc, 0x00,       /*20: mov     +0xbcde08(%rbx), %edx    */
+  0x48, 0x8b, 0xb3, 0x00, 0x10, 0xbc, 0x00, /*19: mov     +0xbc1000(%rbx), %rsi    */
+  0x8b, 0x93, 0x08, 0x10, 0xbc, 0x00,       /*20: mov     +0xbc1008(%rbx), %edx    */
   0x4c, 0x89, 0xf7,                         /*26: mov     %r14, %rdi               */
   0x41, 0xff, 0x97, 0xf0, 0x00, 0x00, 0x00, /*29: callq   +0xf0(%r15)              */
   0x41, 0x89, 0xd0,                         /*30: mov     %edx, %r8d               */
   0x48, 0x89, 0x44, 0x24, 0x08,             /*33: mov     %rax, +0x8(%rsp)         */
   0x44, 0x89, 0x44, 0x24, 0x10,             /*38: mov     %r8d, +0x10(%rsp)        */
-  0x48, 0x8b, 0xb3, 0x00, 0xcd, 0xab, 0x00, /*3d: mov     +0xabcd00(%rbx), %rsi    */
-  0x8b, 0x93, 0x08, 0xcd, 0xab, 0x00,       /*44: mov     +0xabcd08(%rbx), %edx    */
+  0x48, 0x8b, 0xb3, 0x00, 0x10, 0xab, 0x00, /*3d: mov     +0xab1000(%rbx), %rsi    */
+  0x8b, 0x93, 0x08, 0x10, 0xab, 0x00,       /*44: mov     +0xab1008(%rbx), %edx    */
   0x48, 0x8b, 0x4c, 0x24, 0x08,             /*4a: mov     +0x8(%rsp), %rcx         */
   0x4c, 0x89, 0xf7,                         /*4f: mov     %r14, %rdi               */
   0x41, 0xff, 0x97, 0x98, 0x01, 0x00, 0x00, /*52: callq   +0x198(%r15)             */
@@ -3690,18 +3690,18 @@ static uint8_t op_arycat[] = {
 };
 
 static void op_arycat_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 28)) = b;
-  *((int32_t *)(op + 34)) = b;
-  *((int32_t *)(op + 64)) = a;
-  *((int32_t *)(op + 70)) = a;
+  *((int32_t *)(op + 28)) = b * 16 + 0;
+  *((int32_t *)(op + 34)) = b * 16 + 8;
+  *((int32_t *)(op + 64)) = a * 16 + 0;
+  *((int32_t *)(op + 70)) = a * 16 + 8;
 }
 
 static void op_arycat_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_arycat_set_args(GETARG_A(c),GETARG_B(c),0);
+  op_arycat_set_args(op, GETARG_A(c),GETARG_B(c),0);
 }
 
 
-/* args: {"a"=>[24..27, 30..33], "b"=>[37..40, 44..47]} */
+/* args: {"a"=>[[16, 0, 24..27], [16, 8, 30..33]], "b"=>[[16, 0, 37..40], [16, 8, 44..47]]} */
 static uint8_t op_arypush[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
@@ -3709,10 +3709,10 @@ static uint8_t op_arypush[] = {
   0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
   0x48, 0x8b, 0x43, 0x18,                   /*0d: mov     +0x18(%rbx), %rax        */
   0x48, 0x8b, 0x7b, 0x58,                   /*11: mov     +0x58(%rbx), %rdi        */
-  0x48, 0x8b, 0xb0, 0x00, 0xcd, 0xab, 0x00, /*15: mov     +0xabcd00(%rax), %rsi    */
-  0x8b, 0x90, 0x08, 0xcd, 0xab, 0x00,       /*1c: mov     +0xabcd08(%rax), %edx    */
-  0x48, 0x8b, 0x88, 0x00, 0xde, 0xbc, 0x00, /*22: mov     +0xbcde00(%rax), %rcx    */
-  0x44, 0x8b, 0x80, 0x08, 0xde, 0xbc, 0x00, /*29: mov     +0xbcde08(%rax), %r8d    */
+  0x48, 0x8b, 0xb0, 0x00, 0x10, 0xab, 0x00, /*15: mov     +0xab1000(%rax), %rsi    */
+  0x8b, 0x90, 0x08, 0x10, 0xab, 0x00,       /*1c: mov     +0xab1008(%rax), %edx    */
+  0x48, 0x8b, 0x88, 0x00, 0x10, 0xbc, 0x00, /*22: mov     +0xbc1000(%rax), %rcx    */
+  0x44, 0x8b, 0x80, 0x08, 0x10, 0xbc, 0x00, /*29: mov     +0xbc1008(%rax), %r8d    */
   0xff, 0x93, 0x50, 0x02, 0x00, 0x00,       /*30: callq   +0x250(%rbx)             */
   0x48, 0x89, 0xdf,                         /*36: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x10,                   /*39: add     $0x10, %rsp              */
@@ -3721,30 +3721,30 @@ static uint8_t op_arypush[] = {
 };
 
 static void op_arypush_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 24)) = a;
-  *((int32_t *)(op + 30)) = a;
-  *((int32_t *)(op + 37)) = b;
-  *((int32_t *)(op + 44)) = b;
+  *((int32_t *)(op + 24)) = a * 16 + 0;
+  *((int32_t *)(op + 30)) = a * 16 + 8;
+  *((int32_t *)(op + 37)) = b * 16 + 0;
+  *((int32_t *)(op + 44)) = b * 16 + 8;
 }
 
 static void op_arypush_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_arypush_set_args(GETARG_A(c),GETARG_B(c),0);
+  op_arypush_set_args(op, GETARG_A(c),GETARG_B(c),0);
 }
 
 
-/* args: {"a"=>[19..22, 125..128, 132..135, 220..223, 227..230], "c"=>[27..30], "b"=>[43..46, 50..53]} */
+/* args: {"a"=>[[1, 0, 19..22], [16, 8, 125..128], [16, 0, 132..135], [16, 8, 220..223], [16, 0, 227..230]], "c"=>[[1, 0, 27..30]], "b"=>[[16, 0, 43..46], [16, 8, 50..53]]} */
 static uint8_t op_aref[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
   0x48, 0x83, 0xec, 0x38,                   /*03: sub     $0x38, %rsp              */
   0x48, 0x89, 0xfb,                         /*07: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x30,             /*0a: mov     %rbx, +0x30(%rsp)        */
-  0xc7, 0x44, 0x24, 0x2c, 0x00, 0xcd, 0xab, 0x00,/*0f: movl    $0xabcd00, +0x2c(%rsp)   */
-  0xc7, 0x44, 0x24, 0x28, 0x00, 0xef, 0xcd, 0x00,/*17: movl    $0xcdef00, +0x28(%rsp)   */
+  0xc7, 0x44, 0x24, 0x2c, 0x00, 0x00, 0xab, 0x00,/*0f: movl    $0xab0000, +0x2c(%rsp)   */
+  0xc7, 0x44, 0x24, 0x28, 0x00, 0x00, 0xcd, 0x00,/*17: movl    $0xcd0000, +0x28(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x30,             /*1f: mov     +0x30(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*24: mov     +0x18(%rax), %rax        */
-  0x48, 0x8b, 0x88, 0x00, 0xde, 0xbc, 0x00, /*28: mov     +0xbcde00(%rax), %rcx    */
-  0x48, 0x8b, 0x80, 0x08, 0xde, 0xbc, 0x00, /*2f: mov     +0xbcde08(%rax), %rax    */
+  0x48, 0x8b, 0x88, 0x00, 0x10, 0xbc, 0x00, /*28: mov     +0xbc1000(%rax), %rcx    */
+  0x48, 0x8b, 0x80, 0x08, 0x10, 0xbc, 0x00, /*2f: mov     +0xbc1008(%rax), %rax    */
   0x48, 0x89, 0x44, 0x24, 0x20,             /*36: mov     %rax, +0x20(%rsp)        */
   0x48, 0x89, 0x4c, 0x24, 0x18,             /*3b: mov     %rcx, +0x18(%rsp)        */
   0x83, 0x7c, 0x24, 0x20, 0x0e,             /*40: cmpl    $0xe, +0x20(%rsp)        */
@@ -3760,8 +3760,8 @@ static uint8_t op_aref[] = {
   0x89, 0x54, 0x24, 0x10,                   /*6c: mov     %edx, +0x10(%rsp)        */
   0x48, 0x8b, 0x44, 0x24, 0x08,             /*70: mov     +0x8(%rsp), %rax         */
   0x48, 0x8b, 0x4c, 0x24, 0x10,             /*75: mov     +0x10(%rsp), %rcx        */
-  0x49, 0x89, 0x8e, 0x08, 0xcd, 0xab, 0x00, /*7a: mov     %rcx, +0xabcd08(%r14)    */
-  0x49, 0x89, 0x86, 0x00, 0xcd, 0xab, 0x00, /*81: mov     %rax, +0xabcd00(%r14)    */
+  0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*7a: mov     %rcx, +0xab1008(%r14)    */
+  0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*81: mov     %rax, +0xab1000(%r14)    */
   0xeb, 0x5d,                               /*88: jmp                              */
   0x83, 0x7c, 0x24, 0x28, 0x00,             /*8a: cmpl    $0, +0x28(%rsp)          */
   0x74, 0x35,                               /*8f: je                               */
@@ -3780,8 +3780,8 @@ static uint8_t op_aref[] = {
   0x48, 0x8b, 0x40, 0x18,                   /*cb: mov     +0x18(%rax), %rax        */
   0x48, 0x8b, 0x4c, 0x24, 0x18,             /*cf: mov     +0x18(%rsp), %rcx        */
   0x48, 0x8b, 0x54, 0x24, 0x20,             /*d4: mov     +0x20(%rsp), %rdx        */
-  0x48, 0x89, 0x90, 0x08, 0xcd, 0xab, 0x00, /*d9: mov     %rdx, +0xabcd08(%rax)    */
-  0x48, 0x89, 0x88, 0x00, 0xcd, 0xab, 0x00, /*e0: mov     %rcx, +0xabcd00(%rax)    */
+  0x48, 0x89, 0x90, 0x08, 0x10, 0xab, 0x00, /*d9: mov     %rdx, +0xab1008(%rax)    */
+  0x48, 0x89, 0x88, 0x00, 0x10, 0xab, 0x00, /*e0: mov     %rcx, +0xab1000(%rax)    */
   0x48, 0x89, 0xdf,                         /*e7: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x38,                   /*ea: add     $0x38, %rsp              */
   0x5b,                                     /*ee: pop     %rbx                     */
@@ -3790,22 +3790,22 @@ static uint8_t op_aref[] = {
 };
 
 static void op_aref_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 19)) = a;
-  *((int32_t *)(op + 125)) = a;
-  *((int32_t *)(op + 132)) = a;
-  *((int32_t *)(op + 220)) = a;
-  *((int32_t *)(op + 227)) = a;
-  *((int32_t *)(op + 27)) = c;
-  *((int32_t *)(op + 43)) = b;
-  *((int32_t *)(op + 50)) = b;
+  *((int32_t *)(op + 19)) = a * 1 + 0;
+  *((int32_t *)(op + 125)) = a * 16 + 8;
+  *((int32_t *)(op + 132)) = a * 16 + 0;
+  *((int32_t *)(op + 220)) = a * 16 + 8;
+  *((int32_t *)(op + 227)) = a * 16 + 0;
+  *((int32_t *)(op + 27)) = c * 1 + 0;
+  *((int32_t *)(op + 43)) = b * 16 + 0;
+  *((int32_t *)(op + 50)) = b * 16 + 8;
 }
 
 static void op_aref_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_aref_set_args(GETARG_A(c),GETARG_B(c),GETARG_C(c));
+  op_aref_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c));
 }
 
 
-/* args: {"b"=>[24..27, 30..33], "a"=>[37..40, 44..47], "c"=>[49..52]} */
+/* args: {"b"=>[[16, 0, 24..27], [16, 8, 30..33]], "a"=>[[16, 0, 37..40], [16, 8, 44..47]], "c"=>[[1, 0, 49..52]]} */
 static uint8_t op_aset[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
@@ -3813,11 +3813,11 @@ static uint8_t op_aset[] = {
   0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
   0x48, 0x8b, 0x43, 0x18,                   /*0d: mov     +0x18(%rbx), %rax        */
   0x48, 0x8b, 0x7b, 0x58,                   /*11: mov     +0x58(%rbx), %rdi        */
-  0x48, 0x8b, 0xb0, 0x00, 0xde, 0xbc, 0x00, /*15: mov     +0xbcde00(%rax), %rsi    */
-  0x8b, 0x90, 0x08, 0xde, 0xbc, 0x00,       /*1c: mov     +0xbcde08(%rax), %edx    */
-  0x4c, 0x8b, 0x80, 0x00, 0xcd, 0xab, 0x00, /*22: mov     +0xabcd00(%rax), %r8     */
-  0x44, 0x8b, 0x88, 0x08, 0xcd, 0xab, 0x00, /*29: mov     +0xabcd08(%rax), %r9d    */
-  0xb9, 0x00, 0xef, 0xcd, 0x00,             /*30: mov     $0xcdef00, %ecx          */
+  0x48, 0x8b, 0xb0, 0x00, 0x10, 0xbc, 0x00, /*15: mov     +0xbc1000(%rax), %rsi    */
+  0x8b, 0x90, 0x08, 0x10, 0xbc, 0x00,       /*1c: mov     +0xbc1008(%rax), %edx    */
+  0x4c, 0x8b, 0x80, 0x00, 0x10, 0xab, 0x00, /*22: mov     +0xab1000(%rax), %r8     */
+  0x44, 0x8b, 0x88, 0x08, 0x10, 0xab, 0x00, /*29: mov     +0xab1008(%rax), %r9d    */
+  0xb9, 0x00, 0x00, 0xcd, 0x00,             /*30: mov     $0xcd0000, %ecx          */
   0xff, 0x93, 0x40, 0x02, 0x00, 0x00,       /*35: callq   +0x240(%rbx)             */
   0x48, 0x89, 0xdf,                         /*3b: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x10,                   /*3e: add     $0x10, %rsp              */
@@ -3826,19 +3826,19 @@ static uint8_t op_aset[] = {
 };
 
 static void op_aset_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 24)) = b;
-  *((int32_t *)(op + 30)) = b;
-  *((int32_t *)(op + 37)) = a;
-  *((int32_t *)(op + 44)) = a;
-  *((int32_t *)(op + 49)) = c;
+  *((int32_t *)(op + 24)) = b * 16 + 0;
+  *((int32_t *)(op + 30)) = b * 16 + 8;
+  *((int32_t *)(op + 37)) = a * 16 + 0;
+  *((int32_t *)(op + 44)) = a * 16 + 8;
+  *((int32_t *)(op + 49)) = c * 1 + 0;
 }
 
 static void op_aset_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_aset_set_args(GETARG_A(c),GETARG_B(c),GETARG_C(c));
+  op_aset_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c));
 }
 
 
-/* args: {"a"=>[21..24], "b"=>[66..69], "c"=>[74..77]} */
+/* args: {"a"=>[[1, 0, 21..24]], "b"=>[[1, 0, 66..69]], "c"=>[[1, 0, 74..77]]} */
 static uint8_t op_apost[] = {
   0x41, 0x57,                               /*00: push    %r15                     */
   0x41, 0x56,                               /*02: push    %r14                     */
@@ -3846,7 +3846,7 @@ static uint8_t op_apost[] = {
   0x48, 0x83, 0xec, 0x70,                   /*05: sub     $0x70, %rsp              */
   0x49, 0x89, 0xfe,                         /*09: mov     %rdi, %r14               */
   0x4c, 0x89, 0x74, 0x24, 0x68,             /*0c: mov     %r14, +0x68(%rsp)        */
-  0xc7, 0x44, 0x24, 0x64, 0x00, 0xcd, 0xab, 0x00,/*11: movl    $0xabcd00, +0x64(%rsp)   */
+  0xc7, 0x44, 0x24, 0x64, 0x00, 0x00, 0xab, 0x00,/*11: movl    $0xab0000, +0x64(%rsp)   */
   0x48, 0x63, 0x44, 0x24, 0x64,             /*19: movslq  +0x64(%rsp), %rax        */
   0x48, 0x8b, 0x4c, 0x24, 0x68,             /*1e: mov     +0x68(%rsp), %rcx        */
   0x48, 0x8b, 0x49, 0x18,                   /*23: mov     +0x18(%rcx), %rcx        */
@@ -3855,8 +3855,8 @@ static uint8_t op_apost[] = {
   0x48, 0x8b, 0x44, 0x01, 0x08,             /*2f: mov     +0x8(%rcx,%rax,1), %rax  */
   0x48, 0x89, 0x44, 0x24, 0x58,             /*34: mov     %rax, +0x58(%rsp)        */
   0x48, 0x89, 0x54, 0x24, 0x50,             /*39: mov     %rdx, +0x50(%rsp)        */
-  0xc7, 0x44, 0x24, 0x4c, 0x00, 0xde, 0xbc, 0x00,/*3e: movl    $0xbcde00, +0x4c(%rsp)   */
-  0xc7, 0x44, 0x24, 0x48, 0x00, 0xef, 0xcd, 0x00,/*46: movl    $0xcdef00, +0x48(%rsp)   */
+  0xc7, 0x44, 0x24, 0x4c, 0x00, 0x00, 0xbc, 0x00,/*3e: movl    $0xbc0000, +0x4c(%rsp)   */
+  0xc7, 0x44, 0x24, 0x48, 0x00, 0x00, 0xcd, 0x00,/*46: movl    $0xcd0000, +0x48(%rsp)   */
   0x83, 0x7c, 0x24, 0x58, 0x0e,             /*4e: cmpl    $0xe, +0x58(%rsp)        */
   0x0f, 0x85, 0xe1, 0x00, 0x00, 0x00,       /*53: jne                              */
   0x48, 0x8b, 0x44, 0x24, 0x50,             /*59: mov     +0x50(%rsp), %rax        */
@@ -4017,17 +4017,17 @@ static uint8_t op_apost[] = {
 };
 
 static void op_apost_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 21)) = a;
-  *((int32_t *)(op + 66)) = b;
-  *((int32_t *)(op + 74)) = c;
+  *((int32_t *)(op + 21)) = a * 1 + 0;
+  *((int32_t *)(op + 66)) = b * 1 + 0;
+  *((int32_t *)(op + 74)) = c * 1 + 0;
 }
 
 static void op_apost_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_apost_set_args(GETARG_A(c),GETARG_B(c),GETARG_C(c));
+  op_apost_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c));
 }
 
 
-/* args: {"b"=>[30..33, 36..39], "a"=>[66..69, 73..76]} */
+/* args: {"b"=>[[16, 0, 30..33], [16, 8, 36..39]], "a"=>[[16, 8, 66..69], [16, 0, 73..76]]} */
 static uint8_t op_string[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
@@ -4037,15 +4037,15 @@ static uint8_t op_string[] = {
   0x48, 0x8b, 0x7b, 0x58,                   /*0f: mov     +0x58(%rbx), %rdi        */
   0x4c, 0x8b, 0x73, 0x18,                   /*13: mov     +0x18(%rbx), %r14        */
   0x48, 0x8b, 0x43, 0x20,                   /*17: mov     +0x20(%rbx), %rax        */
-  0x48, 0x8b, 0xb0, 0x00, 0xde, 0xbc, 0x00, /*1b: mov     +0xbcde00(%rax), %rsi    */
-  0x8b, 0x90, 0x08, 0xde, 0xbc, 0x00,       /*22: mov     +0xbcde08(%rax), %edx    */
+  0x48, 0x8b, 0xb0, 0x00, 0x10, 0xbc, 0x00, /*1b: mov     +0xbc1000(%rax), %rsi    */
+  0x8b, 0x90, 0x08, 0x10, 0xbc, 0x00,       /*22: mov     +0xbc1008(%rax), %edx    */
   0xff, 0x93, 0xc8, 0x01, 0x00, 0x00,       /*28: callq   +0x1c8(%rbx)             */
   0x48, 0x89, 0x04, 0x24,                   /*2e: mov     %rax, (%rsp)             */
   0x89, 0x54, 0x24, 0x08,                   /*32: mov     %edx, +0x8(%rsp)         */
   0x48, 0x8b, 0x04, 0x24,                   /*36: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x4c, 0x24, 0x08,             /*3a: mov     +0x8(%rsp), %rcx         */
-  0x49, 0x89, 0x8e, 0x08, 0xcd, 0xab, 0x00, /*3f: mov     %rcx, +0xabcd08(%r14)    */
-  0x49, 0x89, 0x86, 0x00, 0xcd, 0xab, 0x00, /*46: mov     %rax, +0xabcd00(%r14)    */
+  0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*3f: mov     %rcx, +0xab1008(%r14)    */
+  0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*46: mov     %rax, +0xab1000(%r14)    */
   0x48, 0x8b, 0x44, 0x24, 0x10,             /*4d: mov     +0x10(%rsp), %rax        */
   0x8b, 0x48, 0x50,                         /*52: mov     +0x50(%rax), %ecx        */
   0x48, 0x8b, 0x40, 0x58,                   /*55: mov     +0x58(%rax), %rax        */
@@ -4058,18 +4058,18 @@ static uint8_t op_string[] = {
 };
 
 static void op_string_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 30)) = b;
-  *((int32_t *)(op + 36)) = b;
-  *((int32_t *)(op + 66)) = a;
-  *((int32_t *)(op + 73)) = a;
+  *((int32_t *)(op + 30)) = b * 16 + 0;
+  *((int32_t *)(op + 36)) = b * 16 + 8;
+  *((int32_t *)(op + 66)) = a * 16 + 8;
+  *((int32_t *)(op + 73)) = a * 16 + 0;
 }
 
 static void op_string_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_string_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_string_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"a"=>[24..27, 30..33], "b"=>[37..40, 44..47]} */
+/* args: {"a"=>[[16, 0, 24..27], [16, 8, 30..33]], "b"=>[[16, 0, 37..40], [16, 8, 44..47]]} */
 static uint8_t op_strcat[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
@@ -4077,10 +4077,10 @@ static uint8_t op_strcat[] = {
   0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
   0x48, 0x8b, 0x43, 0x18,                   /*0d: mov     +0x18(%rbx), %rax        */
   0x48, 0x8b, 0x7b, 0x58,                   /*11: mov     +0x58(%rbx), %rdi        */
-  0x48, 0x8b, 0xb0, 0x00, 0xcd, 0xab, 0x00, /*15: mov     +0xabcd00(%rax), %rsi    */
-  0x8b, 0x90, 0x08, 0xcd, 0xab, 0x00,       /*1c: mov     +0xabcd08(%rax), %edx    */
-  0x48, 0x8b, 0x88, 0x00, 0xde, 0xbc, 0x00, /*22: mov     +0xbcde00(%rax), %rcx    */
-  0x44, 0x8b, 0x80, 0x08, 0xde, 0xbc, 0x00, /*29: mov     +0xbcde08(%rax), %r8d    */
+  0x48, 0x8b, 0xb0, 0x00, 0x10, 0xab, 0x00, /*15: mov     +0xab1000(%rax), %rsi    */
+  0x8b, 0x90, 0x08, 0x10, 0xab, 0x00,       /*1c: mov     +0xab1008(%rax), %edx    */
+  0x48, 0x8b, 0x88, 0x00, 0x10, 0xbc, 0x00, /*22: mov     +0xbc1000(%rax), %rcx    */
+  0x44, 0x8b, 0x80, 0x08, 0x10, 0xbc, 0x00, /*29: mov     +0xbc1008(%rax), %r8d    */
   0xff, 0x93, 0xf8, 0x01, 0x00, 0x00,       /*30: callq   +0x1f8(%rbx)             */
   0x48, 0x89, 0xdf,                         /*36: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x10,                   /*39: add     $0x10, %rsp              */
@@ -4089,27 +4089,27 @@ static uint8_t op_strcat[] = {
 };
 
 static void op_strcat_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 24)) = a;
-  *((int32_t *)(op + 30)) = a;
-  *((int32_t *)(op + 37)) = b;
-  *((int32_t *)(op + 44)) = b;
+  *((int32_t *)(op + 24)) = a * 16 + 0;
+  *((int32_t *)(op + 30)) = a * 16 + 8;
+  *((int32_t *)(op + 37)) = b * 16 + 0;
+  *((int32_t *)(op + 44)) = b * 16 + 8;
 }
 
 static void op_strcat_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_strcat_set_args(GETARG_A(c),GETARG_B(c),0);
+  op_strcat_set_args(op, GETARG_A(c),GETARG_B(c),0);
 }
 
 
-/* args: {"b"=>[19..22], "c"=>[27..30], "a"=>[183..186, 190..193]} */
+/* args: {"b"=>[[1, 0, 19..22]], "c"=>[[1, 0, 27..30]], "a"=>[[16, 8, 183..186], [16, 0, 190..193]]} */
 static uint8_t op_hash[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
   0x48, 0x83, 0xec, 0x38,                   /*03: sub     $0x38, %rsp              */
   0x49, 0x89, 0xfe,                         /*07: mov     %rdi, %r14               */
   0x4c, 0x89, 0x74, 0x24, 0x30,             /*0a: mov     %r14, +0x30(%rsp)        */
-  0xc7, 0x44, 0x24, 0x2c, 0x00, 0xde, 0xbc, 0x00,/*0f: movl    $0xbcde00, +0x2c(%rsp)   */
-  0xc7, 0x44, 0x24, 0x28, 0x00, 0xef, 0xcd, 0x00,/*17: movl    $0xcdef00, +0x28(%rsp)   */
-  0xb8, 0x00, 0xde, 0x9b, 0x01,             /*1f: mov     $0x19bde00, %eax         */
+  0xc7, 0x44, 0x24, 0x2c, 0x00, 0x00, 0xbc, 0x00,/*0f: movl    $0xbc0000, +0x2c(%rsp)   */
+  0xc7, 0x44, 0x24, 0x28, 0x00, 0x00, 0xcd, 0x00,/*17: movl    $0xcd0000, +0x28(%rsp)   */
+  0xb8, 0x00, 0x00, 0x9a, 0x01,             /*1f: mov     $0x19a0000, %eax         */
   0x03, 0x44, 0x24, 0x2c,                   /*24: add     +0x2c(%rsp), %eax        */
   0x89, 0x44, 0x24, 0x24,                   /*28: mov     %eax, +0x24(%rsp)        */
   0x48, 0x8b, 0x44, 0x24, 0x30,             /*2c: mov     +0x30(%rsp), %rax        */
@@ -4142,8 +4142,8 @@ static uint8_t op_hash[] = {
   0x48, 0x8b, 0x40, 0x18,                   /*a6: mov     +0x18(%rax), %rax        */
   0x48, 0x8b, 0x4c, 0x24, 0x10,             /*aa: mov     +0x10(%rsp), %rcx        */
   0x48, 0x8b, 0x54, 0x24, 0x18,             /*af: mov     +0x18(%rsp), %rdx        */
-  0x48, 0x89, 0x90, 0x08, 0xcd, 0xab, 0x00, /*b4: mov     %rdx, +0xabcd08(%rax)    */
-  0x48, 0x89, 0x88, 0x00, 0xcd, 0xab, 0x00, /*bb: mov     %rcx, +0xabcd00(%rax)    */
+  0x48, 0x89, 0x90, 0x08, 0x10, 0xab, 0x00, /*b4: mov     %rdx, +0xab1008(%rax)    */
+  0x48, 0x89, 0x88, 0x00, 0x10, 0xab, 0x00, /*bb: mov     %rcx, +0xab1000(%rax)    */
   0x48, 0x8b, 0x44, 0x24, 0x30,             /*c2: mov     +0x30(%rsp), %rax        */
   0x8b, 0x48, 0x50,                         /*c7: mov     +0x50(%rax), %ecx        */
   0x48, 0x8b, 0x40, 0x58,                   /*ca: mov     +0x58(%rax), %rax        */
@@ -4156,18 +4156,18 @@ static uint8_t op_hash[] = {
 };
 
 static void op_hash_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 19)) = b;
-  *((int32_t *)(op + 27)) = c;
-  *((int32_t *)(op + 183)) = a;
-  *((int32_t *)(op + 190)) = a;
+  *((int32_t *)(op + 19)) = b * 1 + 0;
+  *((int32_t *)(op + 27)) = c * 1 + 0;
+  *((int32_t *)(op + 183)) = a * 16 + 8;
+  *((int32_t *)(op + 190)) = a * 16 + 0;
 }
 
 static void op_hash_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_hash_set_args(0,GETARG_B(c),GETARG_C(c));
+  op_hash_set_args(op, 0,GETARG_B(c),GETARG_C(c));
 }
 
 
-/* args: {"a"=>[346..349, 353..356]} */
+/* args: {"a"=>[[16, 8, 346..349], [16, 0, 353..356]]} */
 static uint8_t op_lambda[] = {
   0x41, 0x57,                               /*00: push    %r15                     */
   0x41, 0x56,                               /*02: push    %r14                     */
@@ -4252,8 +4252,8 @@ static uint8_t op_lambda[] = {
   0x89, 0x54, 0x24, 0x08,                   /*14a: mov     %edx, +0x8(%rsp)         */
   0x48, 0x8b, 0x04, 0x24,                   /*14e: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x4c, 0x24, 0x08,             /*152: mov     +0x8(%rsp), %rcx         */
-  0x48, 0x89, 0x8b, 0x08, 0xcd, 0xab, 0x00, /*157: mov     %rcx, +0xabcd08(%rbx)    */
-  0x48, 0x89, 0x83, 0x00, 0xcd, 0xab, 0x00, /*15e: mov     %rax, +0xabcd00(%rbx)    */
+  0x48, 0x89, 0x8b, 0x08, 0x10, 0xab, 0x00, /*157: mov     %rcx, +0xab1008(%rbx)    */
+  0x48, 0x89, 0x83, 0x00, 0x10, 0xab, 0x00, /*15e: mov     %rax, +0xab1000(%rbx)    */
   0x48, 0x8b, 0x44, 0x24, 0x40,             /*165: mov     +0x40(%rsp), %rax        */
   0x8b, 0x48, 0x50,                         /*16a: mov     +0x50(%rax), %ecx        */
   0x48, 0x8b, 0x40, 0x58,                   /*16d: mov     +0x58(%rax), %rax        */
@@ -4268,23 +4268,23 @@ static uint8_t op_lambda[] = {
 };
 
 static void op_lambda_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 346)) = a;
-  *((int32_t *)(op + 353)) = a;
+  *((int32_t *)(op + 346)) = a * 16 + 8;
+  *((int32_t *)(op + 353)) = a * 16 + 0;
 }
 
 static void op_lambda_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_lambda_set_args(0,GETARG_b(c),GETARG_c(c));
+  op_lambda_set_args(op, 0,GETARG_b(c),GETARG_c(c));
 }
 
 
-/* args: {"b"=>[19..22], "a"=>[98..101, 105..108]} */
+/* args: {"b"=>[[1, 0, 19..22]], "a"=>[[16, 8, 98..101], [16, 0, 105..108]]} */
 static uint8_t op_range[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
   0x48, 0x83, 0xec, 0x28,                   /*03: sub     $0x28, %rsp              */
   0x49, 0x89, 0xfe,                         /*07: mov     %rdi, %r14               */
   0x4c, 0x89, 0x74, 0x24, 0x20,             /*0a: mov     %r14, +0x20(%rsp)        */
-  0xc7, 0x44, 0x24, 0x1c, 0x00, 0xde, 0xbc, 0x00,/*0f: movl    $0xbcde00, +0x1c(%rsp)   */
+  0xc7, 0x44, 0x24, 0x1c, 0x00, 0x00, 0xbc, 0x00,/*0f: movl    $0xbc0000, +0x1c(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x20,             /*17: mov     +0x20(%rsp), %rax        */
   0x48, 0x8b, 0x58, 0x18,                   /*1c: mov     +0x18(%rax), %rbx        */
   0x48, 0x8b, 0x78, 0x58,                   /*20: mov     +0x58(%rax), %rdi        */
@@ -4300,8 +4300,8 @@ static uint8_t op_range[] = {
   0x89, 0x54, 0x24, 0x10,                   /*51: mov     %edx, +0x10(%rsp)        */
   0x48, 0x8b, 0x44, 0x24, 0x08,             /*55: mov     +0x8(%rsp), %rax         */
   0x48, 0x8b, 0x4c, 0x24, 0x10,             /*5a: mov     +0x10(%rsp), %rcx        */
-  0x48, 0x89, 0x8b, 0x08, 0xcd, 0xab, 0x00, /*5f: mov     %rcx, +0xabcd08(%rbx)    */
-  0x48, 0x89, 0x83, 0x00, 0xcd, 0xab, 0x00, /*66: mov     %rax, +0xabcd00(%rbx)    */
+  0x48, 0x89, 0x8b, 0x08, 0x10, 0xab, 0x00, /*5f: mov     %rcx, +0xab1008(%rbx)    */
+  0x48, 0x89, 0x83, 0x00, 0x10, 0xab, 0x00, /*66: mov     %rax, +0xab1000(%rbx)    */
   0x48, 0x8b, 0x44, 0x24, 0x20,             /*6d: mov     +0x20(%rsp), %rax        */
   0x8b, 0x48, 0x50,                         /*72: mov     +0x50(%rax), %ecx        */
   0x48, 0x8b, 0x40, 0x58,                   /*75: mov     +0x58(%rax), %rax        */
@@ -4314,17 +4314,17 @@ static uint8_t op_range[] = {
 };
 
 static void op_range_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 19)) = b;
-  *((int32_t *)(op + 98)) = a;
-  *((int32_t *)(op + 105)) = a;
+  *((int32_t *)(op + 19)) = b * 1 + 0;
+  *((int32_t *)(op + 98)) = a * 16 + 8;
+  *((int32_t *)(op + 105)) = a * 16 + 0;
 }
 
 static void op_range_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_range_set_args(GETARG_A(c),GETARG_B(c),GETARG_C(c));
+  op_range_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c));
 }
 
 
-/* args: {"a"=>[53..56, 60..63]} */
+/* args: {"a"=>[[16, 8, 53..56], [16, 0, 60..63]]} */
 static uint8_t op_oclass[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
@@ -4339,8 +4339,8 @@ static uint8_t op_oclass[] = {
   0x89, 0x54, 0x24, 0x08,                   /*25: mov     %edx, +0x8(%rsp)         */
   0x48, 0x8b, 0x04, 0x24,                   /*29: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x4c, 0x24, 0x08,             /*2d: mov     +0x8(%rsp), %rcx         */
-  0x49, 0x89, 0x8e, 0x08, 0xcd, 0xab, 0x00, /*32: mov     %rcx, +0xabcd08(%r14)    */
-  0x49, 0x89, 0x86, 0x00, 0xcd, 0xab, 0x00, /*39: mov     %rax, +0xabcd00(%r14)    */
+  0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*32: mov     %rcx, +0xab1008(%r14)    */
+  0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*39: mov     %rax, +0xab1000(%r14)    */
   0x48, 0x89, 0xdf,                         /*40: mov     %rbx, %rdi               */
   0x48, 0x83, 0xc4, 0x18,                   /*43: add     $0x18, %rsp              */
   0x5b,                                     /*47: pop     %rbx                     */
@@ -4349,16 +4349,16 @@ static uint8_t op_oclass[] = {
 };
 
 static void op_oclass_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 53)) = a;
-  *((int32_t *)(op + 60)) = a;
+  *((int32_t *)(op + 53)) = a * 16 + 8;
+  *((int32_t *)(op + 60)) = a * 16 + 0;
 }
 
 static void op_oclass_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_oclass_set_args(GETARG_A(c),0,0);
+  op_oclass_set_args(op, GETARG_A(c),0,0);
 }
 
 
-/* args: {"a"=>[30..33], "b"=>[45..48]} */
+/* args: {"a"=>[[1, 0, 30..33]], "b"=>[[4, 0, 45..48]]} */
 static uint8_t op_class[] = {
   0x41, 0x57,                               /*00: push    %r15                     */
   0x41, 0x56,                               /*02: push    %r14                     */
@@ -4367,10 +4367,10 @@ static uint8_t op_class[] = {
   0x49, 0x89, 0xfe,                         /*09: mov     %rdi, %r14               */
   0x4c, 0x89, 0x74, 0x24, 0x58,             /*0c: mov     %r14, +0x58(%rsp)        */
   0x48, 0xc7, 0x44, 0x24, 0x50, 0x00, 0x00, 0x00, 0x00,/*11: movq    $0, +0x50(%rsp)          */
-  0xc7, 0x44, 0x24, 0x4c, 0x00, 0xcd, 0xab, 0x00,/*1a: movl    $0xabcd00, +0x4c(%rsp)   */
+  0xc7, 0x44, 0x24, 0x4c, 0x00, 0x00, 0xab, 0x00,/*1a: movl    $0xab0000, +0x4c(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x58,             /*22: mov     +0x58(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x28,                   /*27: mov     +0x28(%rax), %rax        */
-  0x8b, 0x80, 0x00, 0xde, 0xbc, 0x00,       /*2b: mov     +0xbcde00(%rax), %eax    */
+  0x8b, 0x80, 0x00, 0x04, 0xbc, 0x00,       /*2b: mov     +0xbc0400(%rax), %eax    */
   0x89, 0x44, 0x24, 0x24,                   /*31: mov     %eax, +0x24(%rsp)        */
   0x48, 0x63, 0x44, 0x24, 0x4c,             /*35: movslq  +0x4c(%rsp), %rax        */
   0x48, 0x8b, 0x4c, 0x24, 0x58,             /*3a: mov     +0x58(%rsp), %rcx        */
@@ -4438,16 +4438,16 @@ static uint8_t op_class[] = {
 };
 
 static void op_class_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 30)) = a;
-  *((int32_t *)(op + 45)) = b;
+  *((int32_t *)(op + 30)) = a * 1 + 0;
+  *((int32_t *)(op + 45)) = b * 4 + 0;
 }
 
 static void op_class_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_class_set_args(GETARG_A(c),GETARG_B(c),0);
+  op_class_set_args(op, GETARG_A(c),GETARG_B(c),0);
 }
 
 
-/* args: {"a"=>[30..33], "b"=>[45..48]} */
+/* args: {"a"=>[[1, 0, 30..33]], "b"=>[[4, 0, 45..48]]} */
 static uint8_t op_module[] = {
   0x41, 0x57,                               /*00: push    %r15                     */
   0x41, 0x56,                               /*02: push    %r14                     */
@@ -4456,10 +4456,10 @@ static uint8_t op_module[] = {
   0x49, 0x89, 0xfe,                         /*09: mov     %rdi, %r14               */
   0x4c, 0x89, 0x74, 0x24, 0x48,             /*0c: mov     %r14, +0x48(%rsp)        */
   0x48, 0xc7, 0x44, 0x24, 0x40, 0x00, 0x00, 0x00, 0x00,/*11: movq    $0, +0x40(%rsp)          */
-  0xc7, 0x44, 0x24, 0x3c, 0x00, 0xcd, 0xab, 0x00,/*1a: movl    $0xabcd00, +0x3c(%rsp)   */
+  0xc7, 0x44, 0x24, 0x3c, 0x00, 0x00, 0xab, 0x00,/*1a: movl    $0xab0000, +0x3c(%rsp)   */
   0x48, 0x8b, 0x44, 0x24, 0x48,             /*22: mov     +0x48(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x28,                   /*27: mov     +0x28(%rax), %rax        */
-  0x8b, 0x80, 0x00, 0xde, 0xbc, 0x00,       /*2b: mov     +0xbcde00(%rax), %eax    */
+  0x8b, 0x80, 0x00, 0x04, 0xbc, 0x00,       /*2b: mov     +0xbc0400(%rax), %eax    */
   0x89, 0x44, 0x24, 0x24,                   /*31: mov     %eax, +0x24(%rsp)        */
   0x48, 0x63, 0x44, 0x24, 0x3c,             /*35: movslq  +0x3c(%rsp), %rax        */
   0x48, 0x8b, 0x4c, 0x24, 0x48,             /*3a: mov     +0x48(%rsp), %rcx        */
@@ -4517,23 +4517,23 @@ static uint8_t op_module[] = {
 };
 
 static void op_module_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 30)) = a;
-  *((int32_t *)(op + 45)) = b;
+  *((int32_t *)(op + 30)) = a * 1 + 0;
+  *((int32_t *)(op + 45)) = b * 4 + 0;
 }
 
 static void op_module_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_module_set_args(GETARG_A(c),GETARG_B(c),0);
+  op_module_set_args(op, GETARG_A(c),GETARG_B(c),0);
 }
 
 
-/* args: {"a"=>[19..22], "b"=>[219..222]} */
+/* args: {"a"=>[[1, 0, 19..22]], "b"=>[[8, 0, 219..222]]} */
 static uint8_t op_exec[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
   0x48, 0x83, 0xec, 0x48,                   /*03: sub     $0x48, %rsp              */
   0x49, 0x89, 0xfe,                         /*07: mov     %rdi, %r14               */
   0x4c, 0x89, 0x74, 0x24, 0x40,             /*0a: mov     %r14, +0x40(%rsp)        */
-  0xc7, 0x44, 0x24, 0x3c, 0x00, 0xcd, 0xab, 0x00,/*0f: movl    $0xabcd00, +0x3c(%rsp)   */
+  0xc7, 0x44, 0x24, 0x3c, 0x00, 0x00, 0xab, 0x00,/*0f: movl    $0xab0000, +0x3c(%rsp)   */
   0x48, 0x63, 0x44, 0x24, 0x3c,             /*17: movslq  +0x3c(%rsp), %rax        */
   0x48, 0x8b, 0x4c, 0x24, 0x40,             /*1c: mov     +0x40(%rsp), %rcx        */
   0x48, 0x8b, 0x49, 0x18,                   /*21: mov     +0x18(%rcx), %rcx        */
@@ -4576,7 +4576,7 @@ static uint8_t op_exec[] = {
   0x48, 0x8b, 0x48, 0x08,                   /*cc: mov     +0x8(%rax), %rcx         */
   0x48, 0x8b, 0x78, 0x58,                   /*d0: mov     +0x58(%rax), %rdi        */
   0x48, 0x8b, 0x41, 0x20,                   /*d4: mov     +0x20(%rcx), %rax        */
-  0x48, 0x8b, 0xb0, 0x00, 0xde, 0xbc, 0x00, /*d8: mov     +0xbcde00(%rax), %rsi    */
+  0x48, 0x8b, 0xb0, 0x00, 0x08, 0xbc, 0x00, /*d8: mov     +0xbc0800(%rax), %rsi    */
   0x41, 0xff, 0x96, 0x38, 0x01, 0x00, 0x00, /*df: callq   +0x138(%r14)             */
   0x48, 0x89, 0x44, 0x24, 0x18,             /*e6: mov     %rax, +0x18(%rsp)        */
   0x48, 0x8b, 0x4c, 0x24, 0x30,             /*eb: mov     +0x30(%rsp), %rcx        */
@@ -4669,23 +4669,23 @@ static uint8_t op_exec[] = {
 };
 
 static void op_exec_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 19)) = a;
-  *((int32_t *)(op + 219)) = b;
+  *((int32_t *)(op + 19)) = a * 1 + 0;
+  *((int32_t *)(op + 219)) = b * 8 + 0;
 }
 
 static void op_exec_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_exec_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_exec_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
 
-/* args: {"a"=>[19..22], "b"=>[68..71]} */
+/* args: {"a"=>[[1, 0, 19..22]], "b"=>[[4, 0, 68..71]]} */
 static uint8_t op_method[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
   0x48, 0x83, 0xec, 0x18,                   /*03: sub     $0x18, %rsp              */
   0x49, 0x89, 0xfe,                         /*07: mov     %rdi, %r14               */
   0x4c, 0x89, 0x74, 0x24, 0x10,             /*0a: mov     %r14, +0x10(%rsp)        */
-  0xc7, 0x44, 0x24, 0x0c, 0x00, 0xcd, 0xab, 0x00,/*0f: movl    $0xabcd00, +0xc(%rsp)    */
+  0xc7, 0x44, 0x24, 0x0c, 0x00, 0x00, 0xab, 0x00,/*0f: movl    $0xab0000, +0xc(%rsp)    */
   0x48, 0x63, 0x44, 0x24, 0x0c,             /*17: movslq  +0xc(%rsp), %rax         */
   0x48, 0x8b, 0x4c, 0x24, 0x10,             /*1c: mov     +0x10(%rsp), %rcx        */
   0x48, 0x8b, 0x49, 0x18,                   /*21: mov     +0x18(%rcx), %rcx        */
@@ -4696,7 +4696,7 @@ static uint8_t op_method[] = {
   0x48, 0x8b, 0x78, 0x58,                   /*36: mov     +0x58(%rax), %rdi        */
   0x48, 0x8b, 0x58, 0x18,                   /*3a: mov     +0x18(%rax), %rbx        */
   0x48, 0x8b, 0x40, 0x28,                   /*3e: mov     +0x28(%rax), %rax        */
-  0x8b, 0x90, 0x00, 0xde, 0xbc, 0x00,       /*42: mov     +0xbcde00(%rax), %edx    */
+  0x8b, 0x90, 0x00, 0x04, 0xbc, 0x00,       /*42: mov     +0xbc0400(%rax), %edx    */
   0x48, 0x63, 0x44, 0x24, 0x0c,             /*48: movslq  +0xc(%rsp), %rax         */
   0x48, 0xc1, 0xe0, 0x04,                   /*4d: shl     $0x4, %rax               */
   0x48, 0x8b, 0x4c, 0x18, 0x10,             /*51: mov     +0x10(%rax,%rbx,1), %rcx */
@@ -4714,16 +4714,16 @@ static uint8_t op_method[] = {
 };
 
 static void op_method_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 19)) = a;
-  *((int32_t *)(op + 68)) = b;
+  *((int32_t *)(op + 19)) = a * 1 + 0;
+  *((int32_t *)(op + 68)) = b * 4 + 0;
 }
 
 static void op_method_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_method_set_args(GETARG_A(c),GETARG_B(c),0);
+  op_method_set_args(op, GETARG_A(c),GETARG_B(c),0);
 }
 
 
-/* args: {"b"=>[26..29, 33..36], "a"=>[63..66, 70..73]} */
+/* args: {"b"=>[[16, 0, 26..29], [16, 8, 33..36]], "a"=>[[16, 8, 63..66], [16, 0, 70..73]]} */
 static uint8_t op_sclass[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
@@ -4732,15 +4732,15 @@ static uint8_t op_sclass[] = {
   0x48, 0x89, 0x5c, 0x24, 0x10,             /*0a: mov     %rbx, +0x10(%rsp)        */
   0x4c, 0x8b, 0x73, 0x18,                   /*0f: mov     +0x18(%rbx), %r14        */
   0x48, 0x8b, 0x7b, 0x58,                   /*13: mov     +0x58(%rbx), %rdi        */
-  0x49, 0x8b, 0xb6, 0x00, 0xde, 0xbc, 0x00, /*17: mov     +0xbcde00(%r14), %rsi    */
-  0x41, 0x8b, 0x96, 0x08, 0xde, 0xbc, 0x00, /*1e: mov     +0xbcde08(%r14), %edx    */
+  0x49, 0x8b, 0xb6, 0x00, 0x10, 0xbc, 0x00, /*17: mov     +0xbc1000(%r14), %rsi    */
+  0x41, 0x8b, 0x96, 0x08, 0x10, 0xbc, 0x00, /*1e: mov     +0xbc1008(%r14), %edx    */
   0xff, 0x93, 0xc0, 0x00, 0x00, 0x00,       /*25: callq   +0xc0(%rbx)              */
   0x48, 0x89, 0x04, 0x24,                   /*2b: mov     %rax, (%rsp)             */
   0x89, 0x54, 0x24, 0x08,                   /*2f: mov     %edx, +0x8(%rsp)         */
   0x48, 0x8b, 0x04, 0x24,                   /*33: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x4c, 0x24, 0x08,             /*37: mov     +0x8(%rsp), %rcx         */
-  0x49, 0x89, 0x8e, 0x08, 0xcd, 0xab, 0x00, /*3c: mov     %rcx, +0xabcd08(%r14)    */
-  0x49, 0x89, 0x86, 0x00, 0xcd, 0xab, 0x00, /*43: mov     %rax, +0xabcd00(%r14)    */
+  0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*3c: mov     %rcx, +0xab1008(%r14)    */
+  0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*43: mov     %rax, +0xab1000(%r14)    */
   0x48, 0x8b, 0x44, 0x24, 0x10,             /*4a: mov     +0x10(%rsp), %rax        */
   0x8b, 0x48, 0x50,                         /*4f: mov     +0x50(%rax), %ecx        */
   0x48, 0x8b, 0x40, 0x58,                   /*52: mov     +0x58(%rax), %rax        */
@@ -4753,18 +4753,18 @@ static uint8_t op_sclass[] = {
 };
 
 static void op_sclass_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 26)) = b;
-  *((int32_t *)(op + 33)) = b;
-  *((int32_t *)(op + 63)) = a;
-  *((int32_t *)(op + 70)) = a;
+  *((int32_t *)(op + 26)) = b * 16 + 0;
+  *((int32_t *)(op + 33)) = b * 16 + 8;
+  *((int32_t *)(op + 63)) = a * 16 + 8;
+  *((int32_t *)(op + 70)) = a * 16 + 0;
 }
 
 static void op_sclass_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_sclass_set_args(GETARG_A(c),GETARG_B(c),0);
+  op_sclass_set_args(op, GETARG_A(c),GETARG_B(c),0);
 }
 
 
-/* args: {"a"=>[92..95, 99..102]} */
+/* args: {"a"=>[[16, 8, 92..95], [16, 0, 99..102]]} */
 static uint8_t op_tclass[] = {
   0x41, 0x57,                               /*00: push    %r15                     */
   0x41, 0x56,                               /*02: push    %r14                     */
@@ -4789,8 +4789,8 @@ static uint8_t op_tclass[] = {
   0x89, 0x54, 0x24, 0x08,                   /*4c: mov     %edx, +0x8(%rsp)         */
   0x48, 0x8b, 0x04, 0x24,                   /*50: mov     (%rsp), %rax             */
   0x48, 0x8b, 0x4c, 0x24, 0x08,             /*54: mov     +0x8(%rsp), %rcx         */
-  0x49, 0x89, 0x8e, 0x08, 0xcd, 0xab, 0x00, /*59: mov     %rcx, +0xabcd08(%r14)    */
-  0x49, 0x89, 0x86, 0x00, 0xcd, 0xab, 0x00, /*60: mov     %rax, +0xabcd00(%r14)    */
+  0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*59: mov     %rcx, +0xab1008(%r14)    */
+  0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*60: mov     %rax, +0xab1000(%r14)    */
   0xeb, 0x71,                               /*67: jmp                              */
   0x4c, 0x8b, 0x74, 0x24, 0x30,             /*69: mov     +0x30(%rsp), %r14        */
   0x48, 0x8b, 0x83, 0xa0, 0x01, 0x00, 0x00, /*6e: mov     +0x1a0(%rbx), %rax       */
@@ -4826,25 +4826,25 @@ static uint8_t op_tclass[] = {
 };
 
 static void op_tclass_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 92)) = a;
-  *((int32_t *)(op + 99)) = a;
+  *((int32_t *)(op + 92)) = a * 16 + 8;
+  *((int32_t *)(op + 99)) = a * 16 + 0;
 }
 
 static void op_tclass_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_tclass_set_args(0,0,0);
+  op_tclass_set_args(op, 0,0,0);
 }
 
 
-/* args: {"a"=>[21..24], "b"=>[26..29], "c"=>[31..34]} */
+/* args: {"a"=>[[1, 0, 21..24]], "b"=>[[1, 0, 26..29]], "c"=>[[1, 0, 31..34]]} */
 static uint8_t op_debug[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
   0x48, 0x8b, 0xbb, 0xc0, 0x02, 0x00, 0x00, /*0d: mov     +0x2c0(%rbx), %rdi       */
-  0xbe, 0x00, 0xcd, 0xab, 0x00,             /*14: mov     $0xabcd00, %esi          */
-  0xba, 0x00, 0xde, 0xbc, 0x00,             /*19: mov     $0xbcde00, %edx          */
-  0xb9, 0x00, 0xef, 0xcd, 0x00,             /*1e: mov     $0xcdef00, %ecx          */
+  0xbe, 0x00, 0x00, 0xab, 0x00,             /*14: mov     $0xab0000, %esi          */
+  0xba, 0x00, 0x00, 0xbc, 0x00,             /*19: mov     $0xbc0000, %edx          */
+  0xb9, 0x00, 0x00, 0xcd, 0x00,             /*1e: mov     $0xcd0000, %ecx          */
   0x31, 0xc0,                               /*23: xor     %eax, %eax               */
   0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*25: callq   +0x170(%rbx)             */
   0x48, 0x89, 0xdf,                         /*2b: mov     %rbx, %rdi               */
@@ -4854,13 +4854,13 @@ static uint8_t op_debug[] = {
 };
 
 static void op_debug_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 21)) = a;
-  *((int32_t *)(op + 26)) = b;
-  *((int32_t *)(op + 31)) = c;
+  *((int32_t *)(op + 21)) = a * 1 + 0;
+  *((int32_t *)(op + 26)) = b * 1 + 0;
+  *((int32_t *)(op + 31)) = c * 1 + 0;
 }
 
 static void op_debug_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_debug_set_args(GETARG_A(c),GETARG_B(c),GETARG_C(c));
+  op_debug_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c));
 }
 
 
@@ -4881,11 +4881,11 @@ static void op_stop_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
 }
 
 static void op_stop_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_stop_set_args(0,0,0);
+  op_stop_set_args(op, 0,0,0);
 }
 
 
-/* args: {"b"=>[36..39, 42..45]} */
+/* args: {"b"=>[[16, 0, 36..39], [16, 8, 42..45]]} */
 static uint8_t op_err[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
@@ -4896,8 +4896,8 @@ static uint8_t op_err[] = {
   0x48, 0x89, 0x7c, 0x24, 0x38,             /*13: mov     %rdi, +0x38(%rsp)        */
   0x48, 0x8b, 0x44, 0x24, 0x40,             /*18: mov     +0x40(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x20,                   /*1d: mov     +0x20(%rax), %rax        */
-  0x48, 0x8b, 0xb0, 0x00, 0xde, 0xbc, 0x00, /*21: mov     +0xbcde00(%rax), %rsi    */
-  0x8b, 0x90, 0x08, 0xde, 0xbc, 0x00,       /*28: mov     +0xbcde08(%rax), %edx    */
+  0x48, 0x8b, 0xb0, 0x00, 0x10, 0xbc, 0x00, /*21: mov     +0xbc1000(%rax), %rsi    */
+  0x8b, 0x90, 0x08, 0x10, 0xbc, 0x00,       /*28: mov     +0xbc1008(%rax), %edx    */
   0xff, 0x93, 0xc8, 0x01, 0x00, 0x00,       /*2e: callq   +0x1c8(%rbx)             */
   0x48, 0x89, 0x44, 0x24, 0x28,             /*34: mov     %rax, +0x28(%rsp)        */
   0x89, 0x54, 0x24, 0x30,                   /*39: mov     %edx, +0x30(%rsp)        */
@@ -4931,15 +4931,15 @@ static uint8_t op_err[] = {
 };
 
 static void op_err_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {
-  *((int32_t *)(op + 36)) = b;
-  *((int32_t *)(op + 42)) = b;
+  *((int32_t *)(op + 36)) = b * 16 + 0;
+  *((int32_t *)(op + 42)) = b * 16 + 8;
 }
 
 static void op_err_set_args_from_code(uint8_t *op, mrb_code c) {
-  op_err_set_args(GETARG_A(c),GETARG_Bx(c),0);
+  op_err_set_args(op, GETARG_A(c),GETARG_Bx(c),0);
 }
 
-typedef void (*jit_args_func_t)(uint8_t *op, int32_t a, int32_t b, int32_t c);
+typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c);
 static jit_args_func_t arg_funcs[76];
 static uint8_t* ops[76];
 static size_t op_sizes[] = {
@@ -5029,157 +5029,157 @@ void init_ops() {
     init = 1;
     init_symtbl();
     ops[0] = op_nop;
-    arg_funcs[0] = op_nop_set_args;
+    arg_funcs[0] = op_nop_set_args_from_code;
     ops[1] = op_move;
-    arg_funcs[1] = op_move_set_args;
+    arg_funcs[1] = op_move_set_args_from_code;
     ops[2] = op_loadl;
-    arg_funcs[2] = op_loadl_set_args;
+    arg_funcs[2] = op_loadl_set_args_from_code;
     ops[3] = op_loadi;
-    arg_funcs[3] = op_loadi_set_args;
+    arg_funcs[3] = op_loadi_set_args_from_code;
     ops[4] = op_loadsym;
-    arg_funcs[4] = op_loadsym_set_args;
+    arg_funcs[4] = op_loadsym_set_args_from_code;
     ops[5] = op_loadnil;
-    arg_funcs[5] = op_loadnil_set_args;
+    arg_funcs[5] = op_loadnil_set_args_from_code;
     ops[6] = op_loadself;
-    arg_funcs[6] = op_loadself_set_args;
+    arg_funcs[6] = op_loadself_set_args_from_code;
     ops[7] = op_loadt;
-    arg_funcs[7] = op_loadt_set_args;
+    arg_funcs[7] = op_loadt_set_args_from_code;
     ops[8] = op_loadf;
-    arg_funcs[8] = op_loadf_set_args;
+    arg_funcs[8] = op_loadf_set_args_from_code;
     ops[9] = op_getglobal;
-    arg_funcs[9] = op_getglobal_set_args;
+    arg_funcs[9] = op_getglobal_set_args_from_code;
     ops[10] = op_setglobal;
-    arg_funcs[10] = op_setglobal_set_args;
+    arg_funcs[10] = op_setglobal_set_args_from_code;
     ops[11] = op_getspecial;
-    arg_funcs[11] = op_getspecial_set_args;
+    arg_funcs[11] = op_getspecial_set_args_from_code;
     ops[12] = op_setspecial;
-    arg_funcs[12] = op_setspecial_set_args;
+    arg_funcs[12] = op_setspecial_set_args_from_code;
     ops[13] = op_getiv;
-    arg_funcs[13] = op_getiv_set_args;
+    arg_funcs[13] = op_getiv_set_args_from_code;
     ops[14] = op_setiv;
-    arg_funcs[14] = op_setiv_set_args;
+    arg_funcs[14] = op_setiv_set_args_from_code;
     ops[15] = op_getcv;
-    arg_funcs[15] = op_getcv_set_args;
+    arg_funcs[15] = op_getcv_set_args_from_code;
     ops[16] = op_setcv;
-    arg_funcs[16] = op_setcv_set_args;
+    arg_funcs[16] = op_setcv_set_args_from_code;
     ops[17] = op_getconst;
-    arg_funcs[17] = op_getconst_set_args;
+    arg_funcs[17] = op_getconst_set_args_from_code;
     ops[18] = op_setconst;
-    arg_funcs[18] = op_setconst_set_args;
+    arg_funcs[18] = op_setconst_set_args_from_code;
     ops[19] = op_getmcnst;
-    arg_funcs[19] = op_getmcnst_set_args;
+    arg_funcs[19] = op_getmcnst_set_args_from_code;
     ops[20] = op_setmcnst;
-    arg_funcs[20] = op_setmcnst_set_args;
+    arg_funcs[20] = op_setmcnst_set_args_from_code;
     ops[21] = op_getupvar;
-    arg_funcs[21] = op_getupvar_set_args;
+    arg_funcs[21] = op_getupvar_set_args_from_code;
     ops[22] = op_setupvar;
-    arg_funcs[22] = op_setupvar_set_args;
+    arg_funcs[22] = op_setupvar_set_args_from_code;
     ops[23] = op_jmp;
-    arg_funcs[23] = op_jmp_set_args;
+    arg_funcs[23] = op_jmp_set_args_from_code;
     ops[24] = op_jmpif;
-    arg_funcs[24] = op_jmpif_set_args;
+    arg_funcs[24] = op_jmpif_set_args_from_code;
     ops[25] = op_jmpnot;
-    arg_funcs[25] = op_jmpnot_set_args;
+    arg_funcs[25] = op_jmpnot_set_args_from_code;
     ops[26] = op_onerr;
-    arg_funcs[26] = op_onerr_set_args;
+    arg_funcs[26] = op_onerr_set_args_from_code;
     ops[27] = op_rescue;
-    arg_funcs[27] = op_rescue_set_args;
+    arg_funcs[27] = op_rescue_set_args_from_code;
     ops[28] = op_poperr;
-    arg_funcs[28] = op_poperr_set_args;
+    arg_funcs[28] = op_poperr_set_args_from_code;
     ops[29] = op_raise;
-    arg_funcs[29] = op_raise_set_args;
+    arg_funcs[29] = op_raise_set_args_from_code;
     ops[30] = op_epush;
-    arg_funcs[30] = op_epush_set_args;
+    arg_funcs[30] = op_epush_set_args_from_code;
     ops[31] = op_epop;
-    arg_funcs[31] = op_epop_set_args;
+    arg_funcs[31] = op_epop_set_args_from_code;
     ops[32] = op_send;
-    arg_funcs[32] = op_send_set_args;
+    arg_funcs[32] = op_send_set_args_from_code;
     ops[33] = op_sendb;
-    arg_funcs[33] = op_sendb_set_args;
+    arg_funcs[33] = op_sendb_set_args_from_code;
     ops[34] = op_fsend;
-    arg_funcs[34] = op_fsend_set_args;
+    arg_funcs[34] = op_fsend_set_args_from_code;
     ops[35] = op_call;
-    arg_funcs[35] = op_call_set_args;
+    arg_funcs[35] = op_call_set_args_from_code;
     ops[36] = op_super;
-    arg_funcs[36] = op_super_set_args;
+    arg_funcs[36] = op_super_set_args_from_code;
     ops[37] = op_argary;
-    arg_funcs[37] = op_argary_set_args;
+    arg_funcs[37] = op_argary_set_args_from_code;
     ops[38] = op_enter;
-    arg_funcs[38] = op_enter_set_args;
+    arg_funcs[38] = op_enter_set_args_from_code;
     ops[39] = op_karg;
-    arg_funcs[39] = op_karg_set_args;
+    arg_funcs[39] = op_karg_set_args_from_code;
     ops[40] = op_kdict;
-    arg_funcs[40] = op_kdict_set_args;
+    arg_funcs[40] = op_kdict_set_args_from_code;
     ops[41] = op_return;
-    arg_funcs[41] = op_return_set_args;
+    arg_funcs[41] = op_return_set_args_from_code;
     ops[42] = op_tailcall;
-    arg_funcs[42] = op_tailcall_set_args;
+    arg_funcs[42] = op_tailcall_set_args_from_code;
     ops[43] = op_blkpush;
-    arg_funcs[43] = op_blkpush_set_args;
+    arg_funcs[43] = op_blkpush_set_args_from_code;
     ops[44] = op_add;
-    arg_funcs[44] = op_add_set_args;
+    arg_funcs[44] = op_add_set_args_from_code;
     ops[45] = op_addi;
-    arg_funcs[45] = op_addi_set_args;
+    arg_funcs[45] = op_addi_set_args_from_code;
     ops[46] = op_sub;
-    arg_funcs[46] = op_sub_set_args;
+    arg_funcs[46] = op_sub_set_args_from_code;
     ops[47] = op_subi;
-    arg_funcs[47] = op_subi_set_args;
+    arg_funcs[47] = op_subi_set_args_from_code;
     ops[48] = op_mul;
-    arg_funcs[48] = op_mul_set_args;
+    arg_funcs[48] = op_mul_set_args_from_code;
     ops[49] = op_div;
-    arg_funcs[49] = op_div_set_args;
+    arg_funcs[49] = op_div_set_args_from_code;
     ops[50] = op_eq;
-    arg_funcs[50] = op_eq_set_args;
+    arg_funcs[50] = op_eq_set_args_from_code;
     ops[51] = op_lt;
-    arg_funcs[51] = op_lt_set_args;
+    arg_funcs[51] = op_lt_set_args_from_code;
     ops[52] = op_le;
-    arg_funcs[52] = op_le_set_args;
+    arg_funcs[52] = op_le_set_args_from_code;
     ops[53] = op_gt;
-    arg_funcs[53] = op_gt_set_args;
+    arg_funcs[53] = op_gt_set_args_from_code;
     ops[54] = op_ge;
-    arg_funcs[54] = op_ge_set_args;
+    arg_funcs[54] = op_ge_set_args_from_code;
     ops[55] = op_array;
-    arg_funcs[55] = op_array_set_args;
+    arg_funcs[55] = op_array_set_args_from_code;
     ops[56] = op_arycat;
-    arg_funcs[56] = op_arycat_set_args;
+    arg_funcs[56] = op_arycat_set_args_from_code;
     ops[57] = op_arypush;
-    arg_funcs[57] = op_arypush_set_args;
+    arg_funcs[57] = op_arypush_set_args_from_code;
     ops[58] = op_aref;
-    arg_funcs[58] = op_aref_set_args;
+    arg_funcs[58] = op_aref_set_args_from_code;
     ops[59] = op_aset;
-    arg_funcs[59] = op_aset_set_args;
+    arg_funcs[59] = op_aset_set_args_from_code;
     ops[60] = op_apost;
-    arg_funcs[60] = op_apost_set_args;
+    arg_funcs[60] = op_apost_set_args_from_code;
     ops[61] = op_string;
-    arg_funcs[61] = op_string_set_args;
+    arg_funcs[61] = op_string_set_args_from_code;
     ops[62] = op_strcat;
-    arg_funcs[62] = op_strcat_set_args;
+    arg_funcs[62] = op_strcat_set_args_from_code;
     ops[63] = op_hash;
-    arg_funcs[63] = op_hash_set_args;
+    arg_funcs[63] = op_hash_set_args_from_code;
     ops[64] = op_lambda;
-    arg_funcs[64] = op_lambda_set_args;
+    arg_funcs[64] = op_lambda_set_args_from_code;
     ops[65] = op_range;
-    arg_funcs[65] = op_range_set_args;
+    arg_funcs[65] = op_range_set_args_from_code;
     ops[66] = op_oclass;
-    arg_funcs[66] = op_oclass_set_args;
+    arg_funcs[66] = op_oclass_set_args_from_code;
     ops[67] = op_class;
-    arg_funcs[67] = op_class_set_args;
+    arg_funcs[67] = op_class_set_args_from_code;
     ops[68] = op_module;
-    arg_funcs[68] = op_module_set_args;
+    arg_funcs[68] = op_module_set_args_from_code;
     ops[69] = op_exec;
-    arg_funcs[69] = op_exec_set_args;
+    arg_funcs[69] = op_exec_set_args_from_code;
     ops[70] = op_method;
-    arg_funcs[70] = op_method_set_args;
+    arg_funcs[70] = op_method_set_args_from_code;
     ops[71] = op_sclass;
-    arg_funcs[71] = op_sclass_set_args;
+    arg_funcs[71] = op_sclass_set_args_from_code;
     ops[72] = op_tclass;
-    arg_funcs[72] = op_tclass_set_args;
+    arg_funcs[72] = op_tclass_set_args_from_code;
     ops[73] = op_debug;
-    arg_funcs[73] = op_debug_set_args;
+    arg_funcs[73] = op_debug_set_args_from_code;
     ops[74] = op_stop;
-    arg_funcs[74] = op_stop_set_args;
+    arg_funcs[74] = op_stop_set_args_from_code;
     ops[75] = op_err;
-    arg_funcs[75] = op_err_set_args;
+    arg_funcs[75] = op_err_set_args_from_code;
   }
 }
 int jit_return(uint8_t *b) {

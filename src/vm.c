@@ -798,17 +798,17 @@ void __pc_inc__(mrb_code *pc) {
 }
 
 #undef GETARG_A
-#define GETARG_A(i) 0xABCD00
+#define GETARG_A(i) 0xAB0000
 #undef GETARG_Ax
-#define GETARG_Ax(i) 0xABCD00
+#define GETARG_Ax(i) 0xAB0000
 #undef GETARG_B
-#define GETARG_B(i) 0xBCDE00
+#define GETARG_B(i) 0xBC0000
 #undef GETARG_sBx
-#define GETARG_sBx(i) 0xBCDE00
+#define GETARG_sBx(i) 0xBC0000
 #undef GETARG_Bx
-#define GETARG_Bx(i) 0xBCDE00
+#define GETARG_Bx(i) 0xBC0000
 #undef GETARG_C
-#define GETARG_C(i) 0xCDEF00
+#define GETARG_C(i) 0xCD0000
 #define PC_ADD(pc, o) (__pc_add__(pc, o))
 #define PC_INC(pc) (__pc_inc__(pc))
 #else

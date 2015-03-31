@@ -283,11 +283,16 @@ int main(int argc, const char **argv)
                 Value *operand = gepInst->getOperand(i);
                 if(ConstantInt *constInt = dyn_cast<ConstantInt>(operand)) {
                   uint64_t v = constInt->getZExtValue();
-                  if(v == 0xABCD00 ||
-                     v == 0xBCDE00 ||
-                     v == 0xCDEF00) {
+                  if(v == 0xAB0000 ||
+                     v == 0xBC0000 ||
+                     v == 0xCD0000) {
                     uint64_t size = mod->getDataLayout()->getTypeAllocSize(cast<PointerType>(gepInst->getType())->getElementType());
-                    gepInst->setOperand(i, ConstantInt::get(constInt->getType(), v / size));
+                    /*std::cout << std::hex << (size) << std::endl;
+                    std::cout << std::hex << (size << 8) << std::endl;
+                    std::cout << std::hex << (v / size) << std::endl;
+                    std::cout << std::hex << (v / size + (size << 8)) << std::endl;*/
+
+                    gepInst->setOperand(i, ConstantInt::get(constInt->getType(), (v + (size << 8)) / size ));
                   }
                 }
               }
