@@ -1,12 +1,12 @@
-#define SYMTBL_SIZE 76
+#define SYMTBL_SIZE 78
 static void* symtbl[SYMTBL_SIZE];
 void init_symtbl() {
   static int init = 0;
   if(init == 0) {
     init = 1;
     symtbl[0] = (void *) _mrb_str_const_nomethod_error;
-    symtbl[1] = (void *) mrb_str_new_static;
-    symtbl[2] = (void *) mrb_closure_new;
+    symtbl[1] = (void *) mrb_closure_new;
+    symtbl[2] = (void *) mrb_str_new_static;
     symtbl[3] = (void *) _op_return;
     symtbl[4] = (void *) mrb_vm_const_get;
     symtbl[5] = (void *) mrb_gv_set;
@@ -78,7 +78,9 @@ void init_symtbl() {
     symtbl[71] = (void *) _str_const_proc;
     symtbl[72] = (void *) _str_const_to_proc;
     symtbl[73] = (void *) _str_const_attached;
-    symtbl[74] = (void *) _str_const_no_target_class;
-    symtbl[75] = (void *) _str_const_op_debug_format;
+    symtbl[74] = (void *) cac;
+    symtbl[75] = (void *) ccc;
+    symtbl[76] = (void *) _str_const_no_target_class;
+    symtbl[77] = (void *) _str_const_op_debug_format;
   }
 }

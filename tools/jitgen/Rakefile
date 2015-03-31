@@ -456,9 +456,13 @@ end
 def argument_usage
   data = File.read vm_c_path
   hash = {}
-  data.scan(/(op_\w+)\s*\(([^\)]*)\)\s*\{([^\}]*)\}/m) do |h|
+  #FIXME: assuming function closing bracket
+  # is right at start of line
+  data.scan(/(op_\w+)\s*\(([^\)]*)\)\s*\{(.*?)^\}/m) do |h|
     op = $1
+    p $3 if op == 'op_tclass'
     args = $3.scan(/GETARG_(\w+)\s*\(/).flatten
+    p args if op == 'op_tclass'
     args_hash = {}
     args.each do |arg|
       p arg
@@ -471,7 +475,7 @@ def argument_usage
   hash
 end
 
-#p argument_usage
+p argument_usage['op_tclass']
 
 $ops = [
   "op_nop", "op_move",

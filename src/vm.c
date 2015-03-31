@@ -2360,6 +2360,9 @@ op_hash(struct op_ctx *ctx) {
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
+static const char cac[] = "op_lambda: %d => %p\n";
+static const char ccc[] = "op_method: %d => %p\n";
+
 static FORCE_INLINE void
 op_lambda(struct op_ctx *ctx) {
   /* A b c  R(A) := lambda(SEQ[b],c) (b:c = 14:2) */
@@ -2383,6 +2386,7 @@ op_lambda(struct op_ctx *ctx) {
   }
   if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
   ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_obj_value(p);
+  printf(cac, GETARG_A(CTX_I(ctx)), ctx->regs[GETARG_A(CTX_I(ctx))]);
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
@@ -2478,6 +2482,7 @@ op_method(struct op_ctx *ctx) {
   int a = GETARG_A(CTX_I(ctx));
   struct RClass *c = mrb_class_ptr(ctx->regs[a]);
 
+  printf(ccc, GETARG_A(CTX_I(ctx)), ctx->regs[GETARG_A(CTX_I(ctx))]);
   mrb_define_method_vm(ctx->mrb, c, ctx->syms[GETARG_B(CTX_I(ctx))], ctx->regs[a+1]);
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
@@ -2499,6 +2504,7 @@ op_tclass(struct op_ctx *ctx) {
     return _op_raise(ctx);
   }
   ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_obj_value(ctx->mrb->c->ci->target_class);
+  printf(ccc, GETARG_A(CTX_I(ctx)), ctx->regs[GETARG_A(CTX_I(ctx))]);
   PC_INC(ctx->pc);
 }
 
