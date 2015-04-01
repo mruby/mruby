@@ -45,6 +45,7 @@ MRB_API void mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*partial_ho
 
 MRB_API mrb_value mrb_toplevel_run_keep(mrb_state*, struct RProc*, unsigned int);
 MRB_API mrb_value mrb_toplevel_run_keep_full(mrb_state*, struct RProc*, unsigned int, enum mrb_run_flags);
+MRB_API mrb_value mrb_toplevel_run_full(mrb_state *mrb, struct RProc *proc, enum mrb_run_flags flags);
 MRB_API mrb_value mrb_context_run_full(mrb_state*, struct RProc*, mrb_value, unsigned int, enum mrb_run_flags);
 
 /* AST node structure */

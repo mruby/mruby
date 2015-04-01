@@ -166,9 +166,9 @@ module X86
     def self.relative(skip_n)
       case skip_n
       when rel8_range
-        bytes = [rel8_opcode] + [skip_n].pack('c').force_encoding('ASCII-8BIT').each_codepoint.to_a
+        bytes = [rel8_opcode] + [rel8_operand(skip_n)].pack('c').force_encoding('ASCII-8BIT').each_codepoint.to_a
       when rel16_range
-        bytes = [rel16_opcode] + [skip_n].pack('s<').force_encoding('ASCII-8BIT').each_codepoint.to_a
+        bytes = [rel16_opcode] + [rel8_operand(skip_n)].pack('l<').force_encoding('ASCII-8BIT').each_codepoint.to_a
       else
         raise "jump size not supported"
       end
@@ -194,16 +194,16 @@ module X86
 
         cond = -> (r) {"n >= #{r.min} && n < #{r.max}"}
 
-        io.puts "int #{c_func_name}(uint8_t *b, int32_t n) {"
+        io.puts "uint8_t *#{c_func_name}(uint8_t *b, int32_t n) {"
         io.puts "  if(#{cond[rel8_range]}) {"
         rel8_to_c io
-        io.puts "    return 1;";
+        io.puts "    return b;";
         io.puts "  }"
         io.puts "  if(#{cond[rel16_range]}) {"
         rel16_to_c io
-        io.puts "    return 1;";
+        io.puts "    return b;";
         io.puts "  }"
-        io.puts "  return 0;"
+        io.puts "  return NULL;"
         io.puts "}"
 
         io.string if StringIO === io
@@ -215,7 +215,7 @@ module X86
 
       def rel8_to_c(io)
         io.puts "    *b++ = #{rel8_opcode};";
-        io.puts "    *b++ = (int8_t) n;";
+        io.puts "    *b++ = (int8_t) #{rel8_operand_to_c 'n'};";
       end
 
       def rel16_to_c(io)
@@ -227,8 +227,8 @@ module X86
         else
           io.puts "    *b++ = #{opcode};"
         end
-        io.puts "    *((int16_t *)(b)) = (int16_t) n;";
-        io.puts "    b += sizeof(int16_t);";
+        io.puts "    *((int32_t *)(b)) = (int32_t) #{rel16_operand_to_c 'n'};";
+        io.puts "    b += sizeof(int32_t);";
       end
 
       def rel8_range
@@ -246,6 +246,23 @@ module X86
       def rel16_opcode
         0xe9
       end
+
+      def rel8_operand(n)
+        n
+      end
+
+      def rel16_operand(n)
+        n
+      end
+
+      def rel8_operand_to_c(n)
+        n
+      end
+
+      def rel16_operand_to_c(n)
+        n
+      end
+
     end
 
     extend C
@@ -254,7 +271,7 @@ module X86
 
   class JumpIfInstruction < JumpInstruction
     module C
-      extend JumpInstruction::C
+      include JumpInstruction::C
 
       def c_func_name
         "jit_jump_if"
@@ -273,10 +290,24 @@ module X86
     extend C
   end
 
+  class ReturnInstruction < Instruction
+    def bytes
+      [0xc3]
+    end
+
+    def operands
+      []
+    end
+
+    def name
+      'ret'
+    end
+  end
+
   class JumpNotInstruction < JumpInstruction
 
     module C
-      extend JumpInstruction::C
+      include JumpIfInstruction::C
 
       def c_func_name
         "jit_jump_not"
@@ -435,6 +466,25 @@ class OpEnter < Operation
   end
 end
 
+class OpJmpnot < Operation
+  def correct!
+    super
+    begin
+      if body.first.target.base.name == :rsp
+        body.delete_at 0
+      end
+    rescue StandardError
+    end
+  end
+end
+
+class OpReturn < Operation
+  def correct!
+    super
+    body << X86::ReturnInstruction.new
+  end
+end
+
 def mruby_root
   __dir__.split(File::SEPARATOR)
          .slice_after('mruby').to_a[0]
@@ -453,7 +503,7 @@ def vm_c_path
  File.join mruby_root, 'src', 'vm.c'
 end
 
-def argument_usage
+def _argument_usage
   data = File.read vm_c_path
   hash = {}
   #FIXME: assuming function closing bracket
@@ -475,7 +525,9 @@ def argument_usage
   hash
 end
 
-p argument_usage['op_tclass']
+def argument_usage
+  $argument_usage ||= _argument_usage
+end
 
 $ops = [
   "op_nop", "op_move",
@@ -582,7 +634,7 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
     file.puts
 
 
-    file.puts "static void #{operation.name}_set_args(uint8_t *op, int32_t a, int32_t b, int32_t c) {"
+    file.puts "static void #{operation.name}_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {"
     operation.arguments.each do |k, vs|
       vs.each do |m, a, v|
         file.puts "  *((int32_t *)(op + #{v.begin})) = #{k} * #{m} + #{a};"
@@ -592,8 +644,7 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
 
     file.puts
 
-    $argument_usage ||= argument_usage
-    used_arguments = $argument_usage[operation.name]
+    used_arguments = argument_usage[operation.name]
 
     file.puts "static void #{operation.name}_set_args_from_code(uint8_t *op, mrb_code c) {"
     file.write "  #{operation.name}_set_args(op, "
@@ -618,7 +669,7 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
 
   file.puts "static size_t op_sizes[] = {\n"
   operations.each do |op|
-    file.puts "  sizeof(#{op.name}), /* #{op.name} */"
+    file.puts "  sizeof(#{op.name}), /* #{op.bytesize} */"
   end
   file.puts "\n};"
 
@@ -637,9 +688,9 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
   file.puts "  }"
   file.puts "}"
 
-  file.puts "int jit_return(uint8_t *b) {"
+  file.puts "uint8_t *jit_return(uint8_t *b) {"
   file.puts "  *b++ = 0xc3;"
-  file.puts "  return 1;"
+  file.puts "  return b;"
   file.puts "}"
 
   X86::JumpInstruction.to_c file

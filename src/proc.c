@@ -161,8 +161,12 @@ jit_page_size() {
 }
 
 static struct mrb_jit_page *
-jit_page_alloc() {
-  size_t size = jit_page_size();
+jit_page_alloc(size_t size) {
+  size_t page_size = jit_page_size();
+  size = (size + page_size - 1) & ~(page_size - 1);
+
+  fprintf(stderr, "allocating page of size %d\n", size);
+
   struct mrb_jit_page *page = (struct mrb_jit_page *) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
   page->size = size;
 
@@ -196,43 +200,84 @@ mrb_proc_jit(struct RProc *proc)
     for (i = 0; i < irep->ilen; i++) {
       size += op_sizes[GET_OPCODE(irep->iseq[i])];
     }
-    if (size > jit_page_size()) {
-      return FALSE;
-    } else {
-      struct mrb_jit_page *page = jit_page_alloc();
-      size_t off = 0;
-      for (i = 0; i < irep->ilen; i++) {
-        int opcode = GET_OPCODE(irep->iseq[i]);
-        size_t op_size = op_sizes[opcode];
-        fprintf(stderr, "copying opcode:%d to offset %d (%d bytes)\n", opcode, off, op_size);
-        memcpy(page->data + off, ops[opcode], op_size);
-        arg_funcs[opcode](page->data + off, irep->iseq[i]);
-        off += op_size;
+    fprintf(stderr, "need %d bytes for jit code\n", size);
+    struct mrb_jit_page *page = jit_page_alloc(size);
+    size_t off = 0;
+    for (i = 0; i < irep->ilen; i++) {
+      mrb_code c = irep->iseq[i];
+      int opcode = GET_OPCODE(c);
+      size_t op_size = op_sizes[opcode];
+      fprintf(stderr, "copying opcode:%d to offset %d (%d bytes) (addr: %p)\n", opcode, off, op_size, page->data + off);
+      memcpy(page->data + off, ops[opcode], op_size);
+
+      arg_funcs[opcode](page->data + off, c);
+
+      off += op_size;
+
+      if (opcode == OP_JMPNOT || opcode == OP_JMPIF) {
+        int op_off = GETARG_sBx(c);
+        uint8_t *jmp_off;
+        int jit_off = 0;
+        int b, e, j, m;
+
+        fprintf(stderr, "jumpnot: %d\n", op_off);
+
+        if (op_off > 0) {
+          m = 1;
+          b = i + 1;
+          e = i + op_off;
+        } else if(op_off < 0) {
+          m = -1;
+          b = i - op_off + 1;
+          e = i;
+        } else {
+        }
+
+        for(j = b; j < e; j++) {
+          jit_off += op_sizes[GET_OPCODE(irep->iseq[j])];
+        }
+
+        jit_off *= m;
+
+        fprintf(stderr, "jumpnot: jit off %d %d\n", jit_off, jit_jump_not(page->data + off, jit_off) - (page->data + off));
+
+        if (opcode == OP_JMPNOT) {
+          jmp_off = jit_jump_if(page->data + off, jit_off);
+        } else {
+          jmp_off = jit_jump_not(page->data + off, jit_off);
+        }
+        off += jmp_off - (page->data + off);
       }
+    }
 
 
 for (i = 0; i < off; i++)
 {
-    if (i > 0) printf(" ");
-    printf("%02X", page->data[i]);
+  if (i > 0) printf(" ");
+  printf("%02X", page->data[i]);
 }
 printf("\n");
 
-      proc->flags |= MRB_PROC_JITTED;
-      proc->jit_page = page;
-      jit_page_prot_exec(page);
-      return TRUE;
-    }
+    proc->flags |= MRB_PROC_JITTED;
+    proc->jit_page = page;
+    jit_page_prot_exec(page);
+    return TRUE;
   }
 }
 
 void
 mrb_proc_jit_prepare(struct RProc *proc) {
+
+  if (MRB_PROC_CFUNC_P(proc)) {
+    return;
+  }
+
   int i, j;
-  uint16_t off = 0;
+  uint16_t base = 0;
+  uint16_t off = base + op_sizes[OP_ENTER];
   mrb_irep *irep = proc->body.irep;
 
-  proc->jit_oa_off[0] = 0;
+  proc->jit_oa_off[0] = off;
   for(i = 1; i < irep->oalen; i++) {
     uint16_t off = 0;
     int j;
@@ -240,7 +285,11 @@ mrb_proc_jit_prepare(struct RProc *proc) {
       mrb_code c = irep->iseq[j];
       off += op_sizes[GET_OPCODE(c)];
     }
-    proc->jit_oa_off[0] = off;
+    proc->jit_oa_off[i] = off;
+  }
+
+  for(i = 0; i < irep->oalen; i++) {
+    fprintf(stderr, "enter off: %d -> %d (%d)\n", i, proc->jit_oa_off[i], proc->jit_oa_off[i] - base);
   }
 }
 

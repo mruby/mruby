@@ -31,6 +31,7 @@ struct _args {
   mrb_bool mrbfile      : 1;
   mrb_bool check_syntax : 1;
   mrb_bool verbose      : 1;
+  mrb_bool jit          : 1;
   int argc;
   char** argv;
 };
@@ -47,6 +48,7 @@ usage(const char *name)
   "--verbose    run in verbose mode",
   "--version    print the version",
   "--copyright  print the copyright",
+  "--jit        use JIT",
   NULL
   };
   const char *const *p = usage_msg;
@@ -133,6 +135,10 @@ append_cmdline:
         mrb_show_copyright(mrb);
         exit(EXIT_SUCCESS);
       }
+      else if (strcmp((*argv) + 2, "jit") == 0) {
+        args->jit = TRUE;
+        break;
+      }
     default:
       return EXIT_FAILURE;
     }
@@ -205,6 +211,8 @@ main(int argc, char **argv)
     c->dump_result = TRUE;
   if (args.check_syntax)
     c->no_exec = TRUE;
+  if (args.jit)
+    c->jit = TRUE;
 
   /* Set $0 */
   zero_sym = mrb_intern_lit(mrb, "$0");
