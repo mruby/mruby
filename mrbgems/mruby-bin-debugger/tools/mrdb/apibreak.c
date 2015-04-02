@@ -333,7 +333,7 @@ mrb_debug_delete_break( mrb_state *mrb, mrb_debug_context *dbg, uint32_t bpno )
   free_breakpoint(mrb, &dbg->bp[index]);
 
   for(i = index ; i < dbg->bpnum; i++) {
-    if(dbg->bp[i + 1].type == MRB_DEBUG_BPTYPE_NONE) {
+    if((i + 1) == dbg->bpnum) {
       memset(&dbg->bp[i], 0, sizeof(mrb_debug_breakpoint));
     }
     else {
@@ -461,7 +461,7 @@ mrb_debug_check_breakpoint_line( mrb_state *mrb, mrb_debug_context *dbg, const c
   }
 
   bp = dbg->bp;
-  for(i=0; i<MAX_BREAKPOINT; i++) {
+  for(i=0; i<dbg->bpnum; i++) {
     switch (bp->type) {
       case MRB_DEBUG_BPTYPE_LINE:
         if(bp->enable == TRUE) {
@@ -495,7 +495,7 @@ mrb_debug_check_breakpoint_method( mrb_state *mrb, mrb_debug_context *dbg, struc
   }
 
   bp = dbg->bp;
-  for(i=0; i<MAX_BREAKPOINT; i++) {
+  for(i=0; i<dbg->bpnum; i++) {
     if(bp->type == MRB_DEBUG_BPTYPE_METHOD) {
       if(bp->enable == TRUE) {
         bpno = compare_break_method(mrb, bp, class_obj, method_sym, isCfunc);
