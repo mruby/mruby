@@ -111,9 +111,9 @@ unsigned getSymbolIndex(const std::string& name) {
   auto indexEntry = symbolMap.find(name);
   int symIndex = -1;
 
-  if(isDummySymbol(name)) {
-    assert(0 && "dummy symbol");
-  }
+  //if(isDummySymbol(name)) {
+  //  assert(0 && "dummy symbol");
+  //}
 
   if(indexEntry != symbolMap.end()) {
     symIndex = indexEntry->second;
@@ -191,7 +191,6 @@ int main(int argc, const char **argv)
         std::cerr << "=========================" << std::endl;
         std::cerr << funcName << std::endl;
         std::cerr << "=========================" << std::endl;
-
 
         Value *calledValue = callInst->getCalledValue();
 
@@ -278,6 +277,34 @@ int main(int argc, const char **argv)
               memCpyInst->setCalledFunction(Intrinsic::getDeclaration(opMod, Intrinsic::memcpy, params));
             }
 
+#if 0
+            if(StoreInst *storeInst = dyn_cast<StoreInst>(instIter)) {
+              Value *operand = storeInst->getOperand(0);
+              if(ConstantInt *constInt = dyn_cast<ConstantInt>(operand)) {
+                  uint64_t v = constInt->getZExtValue();
+
+                  if(v == 0xAB0000 ||
+                     v == 0xBC0000 ||
+                     v == 0xCD0000) {
+                    //storeInst->setVolatile(true);
+                    Value *val = storeInst->getOperand(1);
+                    LoadInst *loadInst = new LoadInst(val);
+                    bbIter->getInstList().insertAfter(storeInst, loadInst);
+                    //val->replaceAllUsesWith(loadInst);
+                    
+                    //uint64_t size = mod->getDataLayout()->getTypeAllocSize(cast<PointerType>(loadInst->getType())->getElementType());
+
+                    //uint64_t size = 16;
+                    //storeInst->setOperand(0, ConstantInt::get(constInt->getType(), (v + (size << 8)) / size ));
+                    for(User *user: val->users()) {
+                      if(LoadInst *loadInst = dyn_cast<LoadInst>(user)) {
+                        //loadInst->setVolatile(true);
+                      }
+                    }
+                  }
+              }
+            }
+
             if(GetElementPtrInst *gepInst = dyn_cast<GetElementPtrInst>(instIter)) {
               for(unsigned i = 0; i < gepInst->getNumOperands(); i++) {
                 Value *operand = gepInst->getOperand(i);
@@ -293,11 +320,13 @@ int main(int argc, const char **argv)
                     std::cout << std::hex << (v / size + (size << 8)) << std::endl;*/
 
                     gepInst->setOperand(i, ConstantInt::get(constInt->getType(), (v + (size << 8)) / size ));
+
+                    //for(User *user: g)
                   }
                 }
               }
             }
-
+#endif
 
             if(User *user = dyn_cast<User>(instIter)) {
               for(unsigned i = 0; i < user->getNumOperands(); i++) {
@@ -339,6 +368,8 @@ int main(int argc, const char **argv)
 
       Value *ctxArg = &(*clonedFunc->getArgumentList().begin());
       CallInst *ci = CallInst::Create(clonedFunc, ctxArg, "", clonedFunc->back().getTerminator());
+
+      clonedFunc->setLinkage(GlobalValue::LinkageTypes::ExternalLinkage);
 
       opMod->getFunctionList().push_back(clonedFunc);
 

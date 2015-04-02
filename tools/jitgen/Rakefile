@@ -105,11 +105,11 @@ Instruction = Struct.new(:name, :operands, :bytes) do
       when /^\$0x(\h+)/
         Literal.new $1.to_i(16)
       when /^\*?%(\w+)/
-        Register.new $1.to_sym
+        X86::Register.new $1.to_sym
       when /^\*?(?<offset>[+-]?0x\h+)?\((?:%(?<base>\w+))?(?:,%(?<index>\w+))?(?:,(?<scale>\d+))?\)/
         X86::Memory.new $~[:offset] && eval($~[:offset]),
-                        $~[:base]   && Register.new($~[:base].to_sym),
-                        $~[:index]  && Register.new($~[:index].to_sym),
+                        $~[:base]   && X86::Register.new($~[:base].to_sym),
+                        $~[:index]  && X86::Register.new($~[:index].to_sym),
                         $~[:scale]  && $~[:scale].to_i
       else
         operands << operands_str
@@ -140,6 +140,41 @@ InstructionSet = Struct.new(:body) do
 end
 
 module X86
+
+  class Register < ::Register
+    def self.register_aliases
+      [
+        %i(rax eax ax al),
+        %i(rcx ecx cx cl),
+        %i(rdx edx dx dl),
+        %i(rbx ebx bx bl),
+        %i(rsi esi si sil),
+        %i(rdi edi di dil),
+        %i(rsp esp sp spl),
+        %i(rbp ebp bp bpl),
+        %i(r8 r8d r8w r8b),
+        %i(r9 r9d r9w r9b),
+        %i(r10 r10d r10w r10b),
+        %i(r11 r11d r11w r11b),
+        %i(r12 r12d r12w r12b),
+        %i(r13 r13d r13w r13b),
+        %i(r14 r14d r14w r14b),
+        %i(r15 r15d r15w r15b),
+      ]
+    end
+
+    def alias?(other)
+      self == other || self.register_alias_id == other.register_alias_id
+    end
+
+    protected
+    def register_alias_id
+      self.class.register_aliases.index do |g|
+        g.include? self.name
+      end
+    end
+  end
+
 
   #0x48, 0x89, 0x7d, 0xf0,                   /*09: mov     %rdi, -0x10(%rbp)        */
   #0x48, 0x8b, 0x7d, 0xf0,                   /*42: mov     -0x10(%rbp), %rdi        */
@@ -323,6 +358,7 @@ end
 
 module X64
   include X86
+  extend X86
 
   module CC
     class SysV
@@ -332,26 +368,6 @@ module X64
     end
   end
 
-  def self.registers
-    [
-      %s(rax eax ax al),
-      %s(rcx ecx cx cl),
-      %s(rdx edx dx dl),
-      %s(rbx ebx bx bl),
-      %s(rsi esi si sil),
-      %s(rdi edi di dil),
-      %s(rsp esp sp spl),
-      %s(rbp ebp bp bpl),
-      %s(r8 r8d r8w r8b),
-      %s(r9 r9d r9w r9b),
-      %s(r10 r10d r10w r10b),
-      %s(r11 r11d r11w r11b),
-      %s(r12 r12d r12w r12b),
-      %s(r13 r13d r13w r13b),
-      %s(r14 r14d r14w r14b),
-      %s(r15 r15d r15w r15b),
-    ]
-  end
 end
 
 Operation = Struct.new(:name, :architecture, :instructions) do
@@ -425,7 +441,7 @@ Operation = Struct.new(:name, :architecture, :instructions) do
 
   def correct!
     remove_return!
-    #remove_dummy_call!
+    remove_dummy_call!
   end
 
   def remove_dummy_call!
@@ -472,13 +488,21 @@ class OpEnter < Operation
     super
 
     idx = body.rindex do |inst|
-      Literal === inst.operands[0] && inst.operands[0].value == 0xFAB
+      Literal === inst.source && inst.source.value == 0xFAB
     end
     raise unless idx
     p idx
     if idx
-      if body[idx + 1].call?
-        mov, _ = body.slice! idx, 2
+      mov = body[idx]
+      target = mov.target
+      call_idx = body[(idx + 1)..-1].index do |inst|
+        p [inst.call?, inst.source, target]
+        inst.call? && inst.source.alias?(target)
+      end
+
+      if idx && call_idx
+        body.delete_at idx
+        body.delete_at idx + call_idx
 
         # FIXME: assuming argument register 1 is not clobbered.
         # Since the dummy call is at the bottom of the function
@@ -529,18 +553,7 @@ end
 
 class OpLoadi < Operation
   def correct!
-    return super
-
-    op = body.first.target
-    if op.respond_to?(:base) && op.base && op.base.name == :rsp
-      body.delete_at 0
-    end
-    idx = body.index do |i|
-      op = i.source
-      op.respond_to?(:base) && op.base.name && op.base.name == :rsp
-    end
-    body.delete_at -2
-    body.delete_at idx if idx
+    super
   end
 end
 
@@ -641,14 +654,29 @@ def gen_file(f)
   end
 end
 
+opt_passes = %w(
+-targetlibinfo -scoped-noalias -assumption-cache-tracker -basicaa -notti -verify -ipsccp -globalopt -deadargelim -domtree -instcombine -simplifycfg -basiccg -prune-eh -inline-cost -inline -functionattrs -argpromotion -sroa -domtree -early-cse -lazy-value-info -jump-threading -correlated-propagation -simplifycfg -domtree -instcombine  -simplifycfg -reassociate -domtree -loops -loop-simplify -lcssa -loop-rotate -licm -loop-unswitch -instcombine -scalar-evolution -loop-simplify -lcssa -indvars -loop-idiom -loop-deletion -function_tti -loop-unroll -memdep -mldst-motion -domtree -memdep -gvn -memdep -memcpyopt -sccp -domtree -instcombine -lazy-value-info -jump-threading -correlated-propagation -domtree -memdep -dse -adce -simplifycfg -domtree -instcombine -barrier -domtree -loops -loop-simplify -lcssa -branch-prob -block-freq -scalar-evolution -loop-vectorize -instcombine -scalar-evolution -slp-vectorizer -simplifycfg -domtree -instcombine -loops -loop-simplify -lcssa -scalar-evolution -function_tti -loop-unroll -alignment-from-assumptions -strip-dead-prototypes -constmerge)
+
+dont_opt = ->(op){ ['op_jmpif', 'op_jmpnot'].include? op}
+
 $ops.each do |op|
   ll_file = File.join('ll', "#{op}.ll")
+  ll_opt_file = File.join('ll', "#{op}_opt.ll")
   obj_file = File.join('obj', "#{op}.o")
 
   gen_file ll_file
 
-  file obj_file => [ll_file, 'obj'] do |t|
-    sh "llc -O3 #{ll_file} -filetype=obj -o #{t.name}"
+  file ll_opt_file => [ll_file] do |t|
+    unless dont_opt[op]
+      sh "opt #{opt_passes.join ' '} #{ll_file} -S -o #{t.name}"
+    else
+      cp ll_file, t.name
+    end
+    sh "./scale_geps #{t.name} #{t.name}"
+  end
+
+  file obj_file => [ll_opt_file, 'obj'] do |t|
+    sh "llc -O3 #{ll_opt_file} -filetype=obj -o #{t.name}"
   end
 
   obj_files << obj_file

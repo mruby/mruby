@@ -787,7 +787,7 @@ int __getarg_a__(mrb_code c) {
   return 0xABCDEF;
 }
 
-int __getarg_b__(mrb_code c) {
+uintptr_t __getarg_b__(mrb_code c) {
   return 0xBCDEFA;
 }
 
@@ -845,7 +845,7 @@ static FORCE_INLINE void
 op_loadi(struct op_ctx *ctx) {
   /* A sBx  R(A) := sBx */
   SET_INT_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))], GETARG_sBx(CTX_I(ctx)));
-  //printf(_str_const_loadi,GETARG_A(CTX_I(ctx)), mrb_type(ctx->regs[GETARG_A(CTX_I(ctx))]));
+  printf(_str_const_loadi,GETARG_A(CTX_I(ctx)), mrb_type(ctx->regs[GETARG_A(CTX_I(ctx))]));
   //return _op_stop(ctx);
 }
 
@@ -1167,12 +1167,12 @@ op_epop(struct op_ctx *ctx) {
   }
 }
 
+static char _str_const_loadnil[] = "loadi: %d <- ty %d\n";
 static FORCE_INLINE void
 op_loadnil(struct op_ctx *ctx) {
   /* A     R(A) := nil */
-  int a = GETARG_A(CTX_I(ctx));
-
-  SET_NIL_VALUE(ctx->regs[a]);
+  //printf(_str_const_loadnil, a, mrb_type(ctx->regs[a]));
+  SET_NIL_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
 static inline void
@@ -1736,7 +1736,7 @@ op_enter(struct op_ctx *ctx) {
 //  asm volatile ("jmp %A0"
 //    : : "r" (jit_jmp_addr) :);
 // __asm__ ("mov %0, %%rdi\n\t" : : "r" (jit_jmp_addr) : "rdi");
-  DEBUG(printf(_str_const_op_enter, ((uintptr_t)ctx->proc->jit_page->data) + jit_jmp_off));
+  printf(_str_const_op_enter, ((uintptr_t)ctx->proc->jit_page->data) + jit_jmp_off);
   typedef void (*__op_enter_exit__)(struct op_ctx *, uintptr_t off);
   ((__op_enter_exit__)(0xFAB))(ctx, ((uintptr_t)ctx->proc->jit_page->data) + jit_jmp_off);
 #endif
@@ -2097,44 +2097,45 @@ op_div(struct op_ctx *ctx) {
   PC_INC(ctx->pc);
 }
 
+static const char _str_const_op_addi[] = "op_addi %d ty %d %d\n";
 static FORCE_INLINE void
 op_addi(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)+C (Syms[B]=:+)*/
   int a = GETARG_A(CTX_I(ctx));
-  mrb_value *regs = ctx->regs;
+  mrb_value *regs_a = ctx->regs + a;
 
+  printf(_str_const_op_addi, regs_a - ctx->regs, mrb_type(regs_a[0]), mrb_fixnum(regs_a[0]));
+  printf(_str_const_op_addi, regs_a - ctx->regs, mrb_type(regs_a[0]), mrb_fixnum(regs_a[0]));
   /* need to check if + is overridden */
-  switch (mrb_type(regs[a])) {
+  switch (mrb_type(regs_a[0])) {
   case MRB_TT_FIXNUM:
     {
-      mrb_int x = mrb_fixnum(regs[a]);
+      mrb_int x = mrb_fixnum(regs_a[0]);
       mrb_int y = GETARG_C(CTX_I(ctx));
       mrb_int z;
 
       if (mrb_int_add_overflow(x, y, &z)) {
-        SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x + (mrb_float)y);
+        SET_FLOAT_VALUE(mrb, regs_a[0], (mrb_float)x + (mrb_float)y);
         break;
       }
-      SET_INT_VALUE(regs[a], z);
+      SET_INT_VALUE(regs_a[0], z);
     }
     break;
   case MRB_TT_FLOAT:
 #ifdef MRB_WORD_BOXING
     {
-      mrb_float x = mrb_float(regs[a]);
-      SET_FLOAT_VALUE(mrb, regs[a], x + GETARG_C(i));
+      mrb_float x = mrb_float(regs_a[0]);
+      SET_FLOAT_VALUE(mrb, regs_a[0], x + GETARG_C(i));
     }
 #else
-    mrb_float(regs[a]) += GETARG_C(CTX_I(ctx));
+    mrb_float(regs_a[0]) += GETARG_C(CTX_I(ctx));
 #endif
     break;
   default:
-    SET_INT_VALUE(regs[a+1], GETARG_C(CTX_I(ctx)));
-    return _op_send(ctx, OP_SEND, a, GETARG_B(CTX_I(ctx)), 1);
+    SET_INT_VALUE(regs_a[1], GETARG_C(CTX_I(ctx)));
+    return _op_send(ctx, OP_SEND, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)), 1);
   }
   PC_INC(ctx->pc);
-
-  OP_END;
 }
 
 char _str_const_op_subi[] = "op_subi %ld\n";
