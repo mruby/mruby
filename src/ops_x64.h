@@ -1,7 +1,10 @@
 
 /* args: {} */
 static uint8_t op_nop[] = {
-  0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0xe8, 0xf6, 0xff, 0xff, 0xff,             /*05: callq                            */
+  0x58,                                     /*0a: pop     %rax                     */
 
 };
 
@@ -13,54 +16,25 @@ static void op_nop_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[1, 0, 21..24], [16, 8, 49..52], [16, 8, 100..103], [16, 0, 107..110], [16, 8, 122..125]], "b"=>[[1, 0, 26..29], [16, 8, 55..58], [16, 0, 86..89], [16, 8, 93..96], [16, 8, 128..131]]} */
+/* args: {"b"=>[[16, 0, 12..15], [16, 8, 19..22]], "a"=>[[16, 8, 26..29], [16, 0, 33..36]]} */
 static uint8_t op_move[] = {
-  0x53,                                     /*00: push    %rbx                     */
-  0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
-  0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
-  0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
-  0x48, 0x8b, 0xbb, 0x90, 0x02, 0x00, 0x00, /*0d: mov     +0x290(%rbx), %rdi       */
-  0xbe, 0x00, 0x00, 0xab, 0x00,             /*14: mov     $0xab0000, %esi          */
-  0xba, 0x00, 0x00, 0xbc, 0x00,             /*19: mov     $0xbc0000, %edx          */
-  0x31, 0xc0,                               /*1e: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*20: callq   +0x170(%rbx)             */
-  0x48, 0x8b, 0x44, 0x24, 0x08,             /*26: mov     +0x8(%rsp), %rax         */
-  0x48, 0x8b, 0x40, 0x18,                   /*2b: mov     +0x18(%rax), %rax        */
-  0x8b, 0xb0, 0x08, 0x10, 0xab, 0x00,       /*2f: mov     +0xab1008(%rax), %esi    */
-  0x8b, 0x90, 0x08, 0x10, 0xbc, 0x00,       /*35: mov     +0xbc1008(%rax), %edx    */
-  0x48, 0x8b, 0xbb, 0x98, 0x02, 0x00, 0x00, /*3b: mov     +0x298(%rbx), %rdi       */
-  0x31, 0xc0,                               /*42: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*44: callq   +0x170(%rbx)             */
-  0x48, 0x8b, 0x44, 0x24, 0x08,             /*4a: mov     +0x8(%rsp), %rax         */
-  0x48, 0x8b, 0x40, 0x18,                   /*4f: mov     +0x18(%rax), %rax        */
-  0x48, 0x8b, 0x88, 0x00, 0x10, 0xbc, 0x00, /*53: mov     +0xbc1000(%rax), %rcx    */
-  0x48, 0x8b, 0x90, 0x08, 0x10, 0xbc, 0x00, /*5a: mov     +0xbc1008(%rax), %rdx    */
-  0x48, 0x89, 0x90, 0x08, 0x10, 0xab, 0x00, /*61: mov     %rdx, +0xab1008(%rax)    */
-  0x48, 0x89, 0x88, 0x00, 0x10, 0xab, 0x00, /*68: mov     %rcx, +0xab1000(%rax)    */
-  0x48, 0x8b, 0x44, 0x24, 0x08,             /*6f: mov     +0x8(%rsp), %rax         */
-  0x48, 0x8b, 0x40, 0x18,                   /*74: mov     +0x18(%rax), %rax        */
-  0x8b, 0xb0, 0x08, 0x10, 0xab, 0x00,       /*78: mov     +0xab1008(%rax), %esi    */
-  0x8b, 0x90, 0x08, 0x10, 0xbc, 0x00,       /*7e: mov     +0xbc1008(%rax), %edx    */
-  0x48, 0x8b, 0xbb, 0x98, 0x02, 0x00, 0x00, /*84: mov     +0x298(%rbx), %rdi       */
-  0x31, 0xc0,                               /*8b: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*8d: callq   +0x170(%rbx)             */
-  0x48, 0x89, 0xdf,                         /*93: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*96: add     $0x10, %rsp              */
-  0x5b,                                     /*9a: pop     %rbx                     */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0x48, 0x8b, 0x47, 0x18,                   /*05: mov     +0x18(%rdi), %rax        */
+  0x48, 0x8b, 0x88, 0x00, 0x10, 0xbc, 0x00, /*09: mov     +0xbc1000(%rax), %rcx    */
+  0x48, 0x8b, 0x90, 0x08, 0x10, 0xbc, 0x00, /*10: mov     +0xbc1008(%rax), %rdx    */
+  0x48, 0x89, 0x90, 0x08, 0x10, 0xab, 0x00, /*17: mov     %rdx, +0xab1008(%rax)    */
+  0x48, 0x89, 0x88, 0x00, 0x10, 0xab, 0x00, /*1e: mov     %rcx, +0xab1000(%rax)    */
+  0xe8, 0xd6, 0xff, 0xff, 0xff,             /*25: callq                            */
+  0x58,                                     /*2a: pop     %rax                     */
 
 };
 
 static void op_move_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
-  *((int32_t *)(op + 21)) = a * 1 + 0;
-  *((int32_t *)(op + 49)) = a * 16 + 8;
-  *((int32_t *)(op + 100)) = a * 16 + 8;
-  *((int32_t *)(op + 107)) = a * 16 + 0;
-  *((int32_t *)(op + 122)) = a * 16 + 8;
-  *((int32_t *)(op + 26)) = b * 1 + 0;
-  *((int32_t *)(op + 55)) = b * 16 + 8;
-  *((int32_t *)(op + 86)) = b * 16 + 0;
-  *((int32_t *)(op + 93)) = b * 16 + 8;
-  *((int32_t *)(op + 128)) = b * 16 + 8;
+  *((int32_t *)(op + 12)) = b * 16 + 0;
+  *((int32_t *)(op + 19)) = b * 16 + 8;
+  *((int32_t *)(op + 26)) = a * 16 + 8;
+  *((int32_t *)(op + 33)) = a * 16 + 0;
 }
 
 static void op_move_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -68,23 +42,26 @@ static void op_move_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"b"=>[[16, 0, 15..18], [16, 8, 22..25]], "a"=>[[16, 8, 29..32], [16, 0, 36..39]]} */
+/* args: {"b"=>[[16, 0, 16..19], [16, 8, 23..26]], "a"=>[[16, 8, 30..33], [16, 0, 37..40]]} */
 static uint8_t op_loadl[] = {
-  0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
-  0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
-  0x48, 0x8b, 0x4f, 0x20,                   /*08: mov     +0x20(%rdi), %rcx        */
-  0x48, 0x8b, 0x91, 0x00, 0x10, 0xbc, 0x00, /*0c: mov     +0xbc1000(%rcx), %rdx    */
-  0x48, 0x8b, 0x89, 0x08, 0x10, 0xbc, 0x00, /*13: mov     +0xbc1008(%rcx), %rcx    */
-  0x48, 0x89, 0x88, 0x08, 0x10, 0xab, 0x00, /*1a: mov     %rcx, +0xab1008(%rax)    */
-  0x48, 0x89, 0x90, 0x00, 0x10, 0xab, 0x00, /*21: mov     %rdx, +0xab1000(%rax)    */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0x48, 0x8b, 0x47, 0x18,                   /*05: mov     +0x18(%rdi), %rax        */
+  0x48, 0x8b, 0x4f, 0x20,                   /*09: mov     +0x20(%rdi), %rcx        */
+  0x48, 0x8b, 0x91, 0x00, 0x10, 0xbc, 0x00, /*0d: mov     +0xbc1000(%rcx), %rdx    */
+  0x48, 0x8b, 0x89, 0x08, 0x10, 0xbc, 0x00, /*14: mov     +0xbc1008(%rcx), %rcx    */
+  0x48, 0x89, 0x88, 0x08, 0x10, 0xab, 0x00, /*1b: mov     %rcx, +0xab1008(%rax)    */
+  0x48, 0x89, 0x90, 0x00, 0x10, 0xab, 0x00, /*22: mov     %rdx, +0xab1000(%rax)    */
+  0xe8, 0xd2, 0xff, 0xff, 0xff,             /*29: callq                            */
+  0x58,                                     /*2e: pop     %rax                     */
 
 };
 
 static void op_loadl_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
-  *((int32_t *)(op + 15)) = b * 16 + 0;
-  *((int32_t *)(op + 22)) = b * 16 + 8;
-  *((int32_t *)(op + 29)) = a * 16 + 8;
-  *((int32_t *)(op + 36)) = a * 16 + 0;
+  *((int32_t *)(op + 16)) = b * 16 + 0;
+  *((int32_t *)(op + 23)) = b * 16 + 8;
+  *((int32_t *)(op + 30)) = a * 16 + 8;
+  *((int32_t *)(op + 37)) = a * 16 + 0;
 }
 
 static void op_loadl_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -92,36 +69,24 @@ static void op_loadl_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[16, 8, 19..22], [16, 0, 38..41], [16, 8, 57..60], [1, 0, 69..72]], "b"=>[[1, 0, 42..45]]} */
+/* args: {"a"=>[[16, 8, 11..14], [16, 0, 29..32]], "b"=>[[1, 0, 33..36]]} */
 static uint8_t op_loadi[] = {
-  0x53,                                     /*00: push    %rbx                     */
-  0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
-  0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
-  0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
-  0x48, 0x8b, 0x43, 0x18,                   /*0d: mov     +0x18(%rbx), %rax        */
-  0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x03, 0x00, 0x00, 0x00,/*11: movl    $0x3, +0xab1008(%rax)    */
-  0x48, 0x8b, 0x44, 0x24, 0x08,             /*1b: mov     +0x8(%rsp), %rax         */
-  0x48, 0x8b, 0x40, 0x18,                   /*20: mov     +0x18(%rax), %rax        */
-  0xc7, 0x80, 0x00, 0x10, 0xab, 0x00, 0x00, 0x00, 0xbc, 0x00,/*24: movl    $0xbc0000, +0xab1000(%rax) */
-  0x48, 0x8b, 0x44, 0x24, 0x08,             /*2e: mov     +0x8(%rsp), %rax         */
-  0x48, 0x8b, 0x40, 0x18,                   /*33: mov     +0x18(%rax), %rax        */
-  0x8b, 0x90, 0x08, 0x10, 0xab, 0x00,       /*37: mov     +0xab1008(%rax), %edx    */
-  0x48, 0x8b, 0xbb, 0xa0, 0x02, 0x00, 0x00, /*3d: mov     +0x2a0(%rbx), %rdi       */
-  0xbe, 0x00, 0x00, 0xab, 0x00,             /*44: mov     $0xab0000, %esi          */
-  0x31, 0xc0,                               /*49: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*4b: callq   +0x170(%rbx)             */
-  0x48, 0x89, 0xdf,                         /*51: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*54: add     $0x10, %rsp              */
-  0x5b,                                     /*58: pop     %rbx                     */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0x48, 0x8b, 0x47, 0x18,                   /*05: mov     +0x18(%rdi), %rax        */
+  0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x03, 0x00, 0x00, 0x00,/*09: movl    $0x3, +0xab1008(%rax)    */
+  0x48, 0x8b, 0x04, 0x24,                   /*13: mov     (%rsp), %rax             */
+  0x48, 0x8b, 0x40, 0x18,                   /*17: mov     +0x18(%rax), %rax        */
+  0xc7, 0x80, 0x00, 0x10, 0xab, 0x00, 0x00, 0x00, 0xbc, 0x00,/*1b: movl    $0xbc0000, +0xab1000(%rax) */
+  0xe8, 0xd6, 0xff, 0xff, 0xff,             /*25: callq                            */
+  0x58,                                     /*2a: pop     %rax                     */
 
 };
 
 static void op_loadi_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
-  *((int32_t *)(op + 19)) = a * 16 + 8;
-  *((int32_t *)(op + 38)) = a * 16 + 0;
-  *((int32_t *)(op + 57)) = a * 16 + 8;
-  *((int32_t *)(op + 69)) = a * 1 + 0;
-  *((int32_t *)(op + 42)) = b * 1 + 0;
+  *((int32_t *)(op + 11)) = a * 16 + 8;
+  *((int32_t *)(op + 29)) = a * 16 + 0;
+  *((int32_t *)(op + 33)) = b * 1 + 0;
 }
 
 static void op_loadi_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -129,23 +94,26 @@ static void op_loadi_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[16, 8, 10..13], [16, 0, 38..41]], "b"=>[[4, 0, 32..35]]} */
+/* args: {"a"=>[[16, 8, 11..14], [16, 0, 39..42]], "b"=>[[4, 0, 33..36]]} */
 static uint8_t op_loadsym[] = {
-  0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
-  0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
-  0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x04, 0x00, 0x00, 0x00,/*08: movl    $0x4, +0xab1008(%rax)    */
-  0x48, 0x8b, 0x04, 0x24,                   /*12: mov     (%rsp), %rax             */
-  0x48, 0x8b, 0x48, 0x18,                   /*16: mov     +0x18(%rax), %rcx        */
-  0x48, 0x8b, 0x40, 0x28,                   /*1a: mov     +0x28(%rax), %rax        */
-  0x8b, 0x80, 0x00, 0x04, 0xbc, 0x00,       /*1e: mov     +0xbc0400(%rax), %eax    */
-  0x89, 0x81, 0x00, 0x10, 0xab, 0x00,       /*24: mov     %eax, +0xab1000(%rcx)    */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0x48, 0x8b, 0x47, 0x18,                   /*05: mov     +0x18(%rdi), %rax        */
+  0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x04, 0x00, 0x00, 0x00,/*09: movl    $0x4, +0xab1008(%rax)    */
+  0x48, 0x8b, 0x04, 0x24,                   /*13: mov     (%rsp), %rax             */
+  0x48, 0x8b, 0x48, 0x18,                   /*17: mov     +0x18(%rax), %rcx        */
+  0x48, 0x8b, 0x40, 0x28,                   /*1b: mov     +0x28(%rax), %rax        */
+  0x8b, 0x80, 0x00, 0x04, 0xbc, 0x00,       /*1f: mov     +0xbc0400(%rax), %eax    */
+  0x89, 0x81, 0x00, 0x10, 0xab, 0x00,       /*25: mov     %eax, +0xab1000(%rcx)    */
+  0xe8, 0xd0, 0xff, 0xff, 0xff,             /*2b: callq                            */
+  0x58,                                     /*30: pop     %rax                     */
 
 };
 
 static void op_loadsym_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
-  *((int32_t *)(op + 10)) = a * 16 + 8;
-  *((int32_t *)(op + 38)) = a * 16 + 0;
-  *((int32_t *)(op + 32)) = b * 4 + 0;
+  *((int32_t *)(op + 11)) = a * 16 + 8;
+  *((int32_t *)(op + 39)) = a * 16 + 0;
+  *((int32_t *)(op + 33)) = b * 4 + 0;
 }
 
 static void op_loadsym_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -168,7 +136,8 @@ static uint8_t op_loadnil[] = {
   0x48, 0x8b, 0x49, 0x18,                   /*35: mov     +0x18(%rcx), %rcx        */
   0x48, 0xc1, 0xe0, 0x04,                   /*39: shl     $0x4, %rax               */
   0xc7, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, /*3d: movl    $0, (%rcx,%rax,1)        */
-  0x48, 0x83, 0xc4, 0x18,                   /*44: add     $0x18, %rsp              */
+  0xe8, 0xb7, 0xff, 0xff, 0xff,             /*44: callq                            */
+  0x48, 0x83, 0xc4, 0x18,                   /*49: add     $0x18, %rsp              */
 
 };
 
@@ -181,33 +150,23 @@ static void op_loadnil_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[16, 8, 56..59], [16, 0, 63..66]]} */
+/* args: {"a"=>[[16, 8, 19..22], [16, 0, 26..29]]} */
 static uint8_t op_loadself[] = {
-  0x53,                                     /*00: push    %rbx                     */
-  0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
-  0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
-  0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
-  0x48, 0x8b, 0x43, 0x18,                   /*0d: mov     +0x18(%rbx), %rax        */
-  0x8b, 0x70, 0x18,                         /*11: mov     +0x18(%rax), %esi        */
-  0x48, 0x8b, 0xbb, 0xa8, 0x02, 0x00, 0x00, /*14: mov     +0x2a8(%rbx), %rdi       */
-  0x31, 0xc0,                               /*1b: xor     %eax, %eax               */
-  0x89, 0xf2,                               /*1d: mov     %esi, %edx               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*1f: callq   +0x170(%rbx)             */
-  0x48, 0x8b, 0x44, 0x24, 0x08,             /*25: mov     +0x8(%rsp), %rax         */
-  0x48, 0x8b, 0x40, 0x18,                   /*2a: mov     +0x18(%rax), %rax        */
-  0x48, 0x8b, 0x08,                         /*2e: mov     (%rax), %rcx             */
-  0x48, 0x8b, 0x50, 0x08,                   /*31: mov     +0x8(%rax), %rdx         */
-  0x48, 0x89, 0x90, 0x08, 0x10, 0xab, 0x00, /*35: mov     %rdx, +0xab1008(%rax)    */
-  0x48, 0x89, 0x88, 0x00, 0x10, 0xab, 0x00, /*3c: mov     %rcx, +0xab1000(%rax)    */
-  0x48, 0x89, 0xdf,                         /*43: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*46: add     $0x10, %rsp              */
-  0x5b,                                     /*4a: pop     %rbx                     */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0x48, 0x8b, 0x47, 0x18,                   /*05: mov     +0x18(%rdi), %rax        */
+  0x48, 0x8b, 0x08,                         /*09: mov     (%rax), %rcx             */
+  0x48, 0x8b, 0x50, 0x08,                   /*0c: mov     +0x8(%rax), %rdx         */
+  0x48, 0x89, 0x90, 0x08, 0x10, 0xab, 0x00, /*10: mov     %rdx, +0xab1008(%rax)    */
+  0x48, 0x89, 0x88, 0x00, 0x10, 0xab, 0x00, /*17: mov     %rcx, +0xab1000(%rax)    */
+  0xe8, 0xdd, 0xff, 0xff, 0xff,             /*1e: callq                            */
+  0x58,                                     /*23: pop     %rax                     */
 
 };
 
 static void op_loadself_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
-  *((int32_t *)(op + 56)) = a * 16 + 8;
-  *((int32_t *)(op + 63)) = a * 16 + 0;
+  *((int32_t *)(op + 19)) = a * 16 + 8;
+  *((int32_t *)(op + 26)) = a * 16 + 0;
 }
 
 static void op_loadself_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -215,20 +174,23 @@ static void op_loadself_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[16, 8, 10..13], [16, 0, 28..31]]} */
+/* args: {"a"=>[[16, 8, 11..14], [16, 0, 29..32]]} */
 static uint8_t op_loadt[] = {
-  0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
-  0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
-  0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x02, 0x00, 0x00, 0x00,/*08: movl    $0x2, +0xab1008(%rax)    */
-  0x48, 0x8b, 0x04, 0x24,                   /*12: mov     (%rsp), %rax             */
-  0x48, 0x8b, 0x40, 0x18,                   /*16: mov     +0x18(%rax), %rax        */
-  0xc7, 0x80, 0x00, 0x10, 0xab, 0x00, 0x01, 0x00, 0x00, 0x00,/*1a: movl    $0x1, +0xab1000(%rax)    */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0x48, 0x8b, 0x47, 0x18,                   /*05: mov     +0x18(%rdi), %rax        */
+  0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x02, 0x00, 0x00, 0x00,/*09: movl    $0x2, +0xab1008(%rax)    */
+  0x48, 0x8b, 0x04, 0x24,                   /*13: mov     (%rsp), %rax             */
+  0x48, 0x8b, 0x40, 0x18,                   /*17: mov     +0x18(%rax), %rax        */
+  0xc7, 0x80, 0x00, 0x10, 0xab, 0x00, 0x01, 0x00, 0x00, 0x00,/*1b: movl    $0x1, +0xab1000(%rax)    */
+  0xe8, 0xd6, 0xff, 0xff, 0xff,             /*25: callq                            */
+  0x58,                                     /*2a: pop     %rax                     */
 
 };
 
 static void op_loadt_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
-  *((int32_t *)(op + 10)) = a * 16 + 8;
-  *((int32_t *)(op + 28)) = a * 16 + 0;
+  *((int32_t *)(op + 11)) = a * 16 + 8;
+  *((int32_t *)(op + 29)) = a * 16 + 0;
 }
 
 static void op_loadt_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -236,20 +198,23 @@ static void op_loadt_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[16, 8, 10..13], [16, 0, 28..31]]} */
+/* args: {"a"=>[[16, 8, 11..14], [16, 0, 29..32]]} */
 static uint8_t op_loadf[] = {
-  0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
-  0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
-  0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x00, 0x00, 0x00, 0x00,/*08: movl    $0, +0xab1008(%rax)      */
-  0x48, 0x8b, 0x04, 0x24,                   /*12: mov     (%rsp), %rax             */
-  0x48, 0x8b, 0x40, 0x18,                   /*16: mov     +0x18(%rax), %rax        */
-  0xc7, 0x80, 0x00, 0x10, 0xab, 0x00, 0x01, 0x00, 0x00, 0x00,/*1a: movl    $0x1, +0xab1000(%rax)    */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0x48, 0x8b, 0x47, 0x18,                   /*05: mov     +0x18(%rdi), %rax        */
+  0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x00, 0x00, 0x00, 0x00,/*09: movl    $0, +0xab1008(%rax)      */
+  0x48, 0x8b, 0x04, 0x24,                   /*13: mov     (%rsp), %rax             */
+  0x48, 0x8b, 0x40, 0x18,                   /*17: mov     +0x18(%rax), %rax        */
+  0xc7, 0x80, 0x00, 0x10, 0xab, 0x00, 0x01, 0x00, 0x00, 0x00,/*1b: movl    $0x1, +0xab1000(%rax)    */
+  0xe8, 0xd6, 0xff, 0xff, 0xff,             /*25: callq                            */
+  0x58,                                     /*2a: pop     %rax                     */
 
 };
 
 static void op_loadf_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
-  *((int32_t *)(op + 10)) = a * 16 + 8;
-  *((int32_t *)(op + 28)) = a * 16 + 0;
+  *((int32_t *)(op + 11)) = a * 16 + 8;
+  *((int32_t *)(op + 29)) = a * 16 + 0;
 }
 
 static void op_loadf_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -268,7 +233,7 @@ static uint8_t op_getglobal[] = {
   0x4c, 0x8b, 0x73, 0x18,                   /*13: mov     +0x18(%rbx), %r14        */
   0x48, 0x8b, 0x43, 0x28,                   /*17: mov     +0x28(%rbx), %rax        */
   0x8b, 0xb0, 0x00, 0x04, 0xbc, 0x00,       /*1b: mov     +0xbc0400(%rax), %esi    */
-  0xff, 0x93, 0x98, 0x01, 0x00, 0x00,       /*21: callq   +0x198(%rbx)             */
+  0xff, 0x93, 0x90, 0x01, 0x00, 0x00,       /*21: callq   +0x190(%rbx)             */
   0x48, 0x89, 0x04, 0x24,                   /*27: mov     %rax, (%rsp)             */
   0x89, 0x54, 0x24, 0x08,                   /*2b: mov     %edx, +0x8(%rsp)         */
   0x48, 0x8b, 0x04, 0x24,                   /*2f: mov     (%rsp), %rax             */
@@ -276,9 +241,10 @@ static uint8_t op_getglobal[] = {
   0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*38: mov     %rcx, +0xab1008(%r14)    */
   0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*3f: mov     %rax, +0xab1000(%r14)    */
   0x48, 0x89, 0xdf,                         /*46: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x18,                   /*49: add     $0x18, %rsp              */
-  0x5b,                                     /*4d: pop     %rbx                     */
-  0x41, 0x5e,                               /*4e: pop     %r14                     */
+  0xe8, 0xb2, 0xff, 0xff, 0xff,             /*49: callq                            */
+  0x48, 0x83, 0xc4, 0x18,                   /*4e: add     $0x18, %rsp              */
+  0x5b,                                     /*52: pop     %rbx                     */
+  0x41, 0x5e,                               /*53: pop     %r14                     */
 
 };
 
@@ -307,8 +273,9 @@ static uint8_t op_setglobal[] = {
   0x8b, 0x88, 0x08, 0x10, 0xab, 0x00,       /*26: mov     +0xab1008(%rax), %ecx    */
   0xff, 0x93, 0x90, 0x00, 0x00, 0x00,       /*2c: callq   +0x90(%rbx)              */
   0x48, 0x89, 0xdf,                         /*32: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*35: add     $0x10, %rsp              */
-  0x5b,                                     /*39: pop     %rbx                     */
+  0xe8, 0xc6, 0xff, 0xff, 0xff,             /*35: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*3a: add     $0x10, %rsp              */
+  0x5b,                                     /*3e: pop     %rbx                     */
 
 };
 
@@ -341,9 +308,10 @@ static uint8_t op_getspecial[] = {
   0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*33: mov     %rcx, +0xab1008(%r14)    */
   0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*3a: mov     %rax, +0xab1000(%r14)    */
   0x48, 0x89, 0xdf,                         /*41: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x18,                   /*44: add     $0x18, %rsp              */
-  0x5b,                                     /*48: pop     %rbx                     */
-  0x41, 0x5e,                               /*49: pop     %r14                     */
+  0xe8, 0xb7, 0xff, 0xff, 0xff,             /*44: callq                            */
+  0x48, 0x83, 0xc4, 0x18,                   /*49: add     $0x18, %rsp              */
+  0x5b,                                     /*4d: pop     %rbx                     */
+  0x41, 0x5e,                               /*4e: pop     %r14                     */
 
 };
 
@@ -371,8 +339,9 @@ static uint8_t op_setspecial[] = {
   0xbe, 0x00, 0x00, 0xbc, 0x00,             /*22: mov     $0xbc0000, %esi          */
   0xff, 0x93, 0x28, 0x01, 0x00, 0x00,       /*27: callq   +0x128(%rbx)             */
   0x48, 0x89, 0xdf,                         /*2d: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*30: add     $0x10, %rsp              */
-  0x5b,                                     /*34: pop     %rbx                     */
+  0xe8, 0xcb, 0xff, 0xff, 0xff,             /*30: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*35: add     $0x10, %rsp              */
+  0x5b,                                     /*39: pop     %rbx                     */
 
 };
 
@@ -398,7 +367,7 @@ static uint8_t op_getiv[] = {
   0x4c, 0x8b, 0x73, 0x18,                   /*13: mov     +0x18(%rbx), %r14        */
   0x48, 0x8b, 0x43, 0x28,                   /*17: mov     +0x28(%rbx), %rax        */
   0x8b, 0xb0, 0x00, 0x04, 0xbc, 0x00,       /*1b: mov     +0xbc0400(%rax), %esi    */
-  0xff, 0x93, 0xb8, 0x00, 0x00, 0x00,       /*21: callq   +0xb8(%rbx)              */
+  0xff, 0x93, 0xb0, 0x00, 0x00, 0x00,       /*21: callq   +0xb0(%rbx)              */
   0x48, 0x89, 0x04, 0x24,                   /*27: mov     %rax, (%rsp)             */
   0x89, 0x54, 0x24, 0x08,                   /*2b: mov     %edx, +0x8(%rsp)         */
   0x48, 0x8b, 0x04, 0x24,                   /*2f: mov     (%rsp), %rax             */
@@ -406,9 +375,10 @@ static uint8_t op_getiv[] = {
   0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*38: mov     %rcx, +0xab1008(%r14)    */
   0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*3f: mov     %rax, +0xab1000(%r14)    */
   0x48, 0x89, 0xdf,                         /*46: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x18,                   /*49: add     $0x18, %rsp              */
-  0x5b,                                     /*4d: pop     %rbx                     */
-  0x41, 0x5e,                               /*4e: pop     %r14                     */
+  0xe8, 0xb2, 0xff, 0xff, 0xff,             /*49: callq                            */
+  0x48, 0x83, 0xc4, 0x18,                   /*4e: add     $0x18, %rsp              */
+  0x5b,                                     /*52: pop     %rbx                     */
+  0x41, 0x5e,                               /*53: pop     %r14                     */
 
 };
 
@@ -435,10 +405,11 @@ static uint8_t op_setiv[] = {
   0x8b, 0xb1, 0x00, 0x04, 0xbc, 0x00,       /*19: mov     +0xbc0400(%rcx), %esi    */
   0x48, 0x8b, 0x90, 0x00, 0x10, 0xab, 0x00, /*1f: mov     +0xab1000(%rax), %rdx    */
   0x8b, 0x88, 0x08, 0x10, 0xab, 0x00,       /*26: mov     +0xab1008(%rax), %ecx    */
-  0xff, 0x93, 0xe8, 0x01, 0x00, 0x00,       /*2c: callq   +0x1e8(%rbx)             */
+  0xff, 0x93, 0xf0, 0x01, 0x00, 0x00,       /*2c: callq   +0x1f0(%rbx)             */
   0x48, 0x89, 0xdf,                         /*32: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*35: add     $0x10, %rsp              */
-  0x5b,                                     /*39: pop     %rbx                     */
+  0xe8, 0xc6, 0xff, 0xff, 0xff,             /*35: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*3a: add     $0x10, %rsp              */
+  0x5b,                                     /*3e: pop     %rbx                     */
 
 };
 
@@ -483,9 +454,10 @@ static uint8_t op_getcv[] = {
   0x48, 0x8b, 0x40, 0x20,                   /*6c: mov     +0x20(%rax), %rax        */
   0x48, 0xc7, 0x40, 0x38, 0x00, 0x00, 0x00, 0x00,/*70: movq    $0, +0x38(%rax)          */
   0x48, 0x89, 0xdf,                         /*78: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x18,                   /*7b: add     $0x18, %rsp              */
-  0x5b,                                     /*7f: pop     %rbx                     */
-  0x41, 0x5e,                               /*80: pop     %r14                     */
+  0xe8, 0x80, 0xff, 0xff, 0xff,             /*7b: callq                            */
+  0x48, 0x83, 0xc4, 0x18,                   /*80: add     $0x18, %rsp              */
+  0x5b,                                     /*84: pop     %rbx                     */
+  0x41, 0x5e,                               /*85: pop     %r14                     */
 
 };
 
@@ -514,8 +486,9 @@ static uint8_t op_setcv[] = {
   0x8b, 0x88, 0x08, 0x10, 0xab, 0x00,       /*26: mov     +0xab1008(%rax), %ecx    */
   0xff, 0x93, 0x18, 0x02, 0x00, 0x00,       /*2c: callq   +0x218(%rbx)             */
   0x48, 0x89, 0xdf,                         /*32: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*35: add     $0x10, %rsp              */
-  0x5b,                                     /*39: pop     %rbx                     */
+  0xe8, 0xc6, 0xff, 0xff, 0xff,             /*35: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*3a: add     $0x10, %rsp              */
+  0x5b,                                     /*3e: pop     %rbx                     */
 
 };
 
@@ -569,8 +542,9 @@ static uint8_t op_getconst[] = {
   0x48, 0x89, 0x90, 0x08, 0x10, 0xab, 0x00, /*98: mov     %rdx, +0xab1008(%rax)    */
   0x48, 0x89, 0x88, 0x00, 0x10, 0xab, 0x00, /*9f: mov     %rcx, +0xab1000(%rax)    */
   0x48, 0x89, 0xdf,                         /*a6: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x30,                   /*a9: add     $0x30, %rsp              */
-  0x5b,                                     /*ad: pop     %rbx                     */
+  0xe8, 0x52, 0xff, 0xff, 0xff,             /*a9: callq                            */
+  0x48, 0x83, 0xc4, 0x30,                   /*ae: add     $0x30, %rsp              */
+  0x5b,                                     /*b2: pop     %rbx                     */
 
 };
 
@@ -599,8 +573,9 @@ static uint8_t op_setconst[] = {
   0x8b, 0x88, 0x08, 0x10, 0xab, 0x00,       /*26: mov     +0xab1008(%rax), %ecx    */
   0xff, 0x93, 0xc0, 0x01, 0x00, 0x00,       /*2c: callq   +0x1c0(%rbx)             */
   0x48, 0x89, 0xdf,                         /*32: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*35: add     $0x10, %rsp              */
-  0x5b,                                     /*39: pop     %rbx                     */
+  0xe8, 0xc6, 0xff, 0xff, 0xff,             /*35: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*3a: add     $0x10, %rsp              */
+  0x5b,                                     /*3e: pop     %rbx                     */
 
 };
 
@@ -664,9 +639,10 @@ static uint8_t op_getmcnst[] = {
   0x48, 0x89, 0x74, 0x01, 0x08,             /*c6: mov     %rsi, +0x8(%rcx,%rax,1)  */
   0x48, 0x89, 0x14, 0x01,                   /*cb: mov     %rdx, (%rcx,%rax,1)      */
   0x4c, 0x89, 0xf7,                         /*cf: mov     %r14, %rdi               */
-  0x48, 0x83, 0xc4, 0x38,                   /*d2: add     $0x38, %rsp              */
-  0x5b,                                     /*d6: pop     %rbx                     */
-  0x41, 0x5e,                               /*d7: pop     %r14                     */
+  0xe8, 0x29, 0xff, 0xff, 0xff,             /*d2: callq                            */
+  0x48, 0x83, 0xc4, 0x38,                   /*d7: add     $0x38, %rsp              */
+  0x5b,                                     /*db: pop     %rbx                     */
+  0x41, 0x5e,                               /*dc: pop     %r14                     */
 
 };
 
@@ -701,9 +677,10 @@ static uint8_t op_setmcnst[] = {
   0x44, 0x8b, 0x4c, 0x18, 0x08,             /*44: mov     +0x8(%rax,%rbx,1), %r9d  */
   0x41, 0xff, 0x96, 0x00, 0x01, 0x00, 0x00, /*49: callq   +0x100(%r14)             */
   0x4c, 0x89, 0xf7,                         /*50: mov     %r14, %rdi               */
-  0x48, 0x83, 0xc4, 0x18,                   /*53: add     $0x18, %rsp              */
-  0x5b,                                     /*57: pop     %rbx                     */
-  0x41, 0x5e,                               /*58: pop     %r14                     */
+  0xe8, 0xa8, 0xff, 0xff, 0xff,             /*53: callq                            */
+  0x48, 0x83, 0xc4, 0x18,                   /*58: add     $0x18, %rsp              */
+  0x5b,                                     /*5c: pop     %rbx                     */
+  0x41, 0x5e,                               /*5d: pop     %r14                     */
 
 };
 
@@ -747,7 +724,7 @@ static uint8_t op_getupvar[] = {
   0x48, 0x89, 0x30,                         /*6f: mov     %rsi, (%rax)             */
   0xeb, 0x25,                               /*72: jmp                              */
   0x4c, 0x8b, 0x74, 0x24, 0x28,             /*74: mov     +0x28(%rsp), %r14        */
-  0xff, 0x93, 0xb0, 0x00, 0x00, 0x00,       /*79: callq   +0xb0(%rbx)              */
+  0xff, 0x93, 0xb8, 0x00, 0x00, 0x00,       /*79: callq   +0xb8(%rbx)              */
   0x48, 0x89, 0x44, 0x24, 0x08,             /*7f: mov     %rax, +0x8(%rsp)         */
   0x89, 0x54, 0x24, 0x10,                   /*84: mov     %edx, +0x10(%rsp)        */
   0x48, 0x8b, 0x44, 0x24, 0x08,             /*88: mov     +0x8(%rsp), %rax         */
@@ -755,9 +732,10 @@ static uint8_t op_getupvar[] = {
   0x49, 0x89, 0x4e, 0x08,                   /*92: mov     %rcx, +0x8(%r14)         */
   0x49, 0x89, 0x06,                         /*96: mov     %rax, (%r14)             */
   0x48, 0x89, 0xdf,                         /*99: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x38,                   /*9c: add     $0x38, %rsp              */
-  0x5b,                                     /*a0: pop     %rbx                     */
-  0x41, 0x5e,                               /*a1: pop     %r14                     */
+  0xe8, 0x5f, 0xff, 0xff, 0xff,             /*9c: callq                            */
+  0x48, 0x83, 0xc4, 0x38,                   /*a1: add     $0x38, %rsp              */
+  0x5b,                                     /*a5: pop     %rbx                     */
+  0x41, 0x5e,                               /*a6: pop     %r14                     */
 
 };
 
@@ -806,8 +784,9 @@ static uint8_t op_setupvar[] = {
   0x48, 0x8b, 0x74, 0x24, 0x18,             /*7e: mov     +0x18(%rsp), %rsi        */
   0xff, 0x93, 0xf8, 0x00, 0x00, 0x00,       /*83: callq   +0xf8(%rbx)              */
   0x48, 0x89, 0xdf,                         /*89: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x30,                   /*8c: add     $0x30, %rsp              */
-  0x5b,                                     /*90: pop     %rbx                     */
+  0xe8, 0x6f, 0xff, 0xff, 0xff,             /*8c: callq                            */
+  0x48, 0x83, 0xc4, 0x30,                   /*91: add     $0x30, %rsp              */
+  0x5b,                                     /*95: pop     %rbx                     */
 
 };
 
@@ -825,7 +804,10 @@ static void op_setupvar_set_args_from_code(uint8_t *op, mrb_code c) {
 
 /* args: {} */
 static uint8_t op_jmp[] = {
-  0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0xe8, 0xf6, 0xff, 0xff, 0xff,             /*05: callq                            */
+  0x58,                                     /*0a: pop     %rax                     */
 
 };
 
@@ -837,16 +819,19 @@ static void op_jmp_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[16, 8, 10..13]]} */
+/* args: {"a"=>[[16, 8, 11..14]]} */
 static uint8_t op_jmpif[] = {
-  0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
-  0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
-  0x83, 0xb8, 0x08, 0x10, 0xab, 0x00, 0x00, /*08: cmpl    $0, +0xab1008(%rax)      */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0x48, 0x8b, 0x47, 0x18,                   /*05: mov     +0x18(%rdi), %rax        */
+  0x83, 0xb8, 0x08, 0x10, 0xab, 0x00, 0x00, /*09: cmpl    $0, +0xab1008(%rax)      */
+  0xe8, 0xeb, 0xff, 0xff, 0xff,             /*10: callq                            */
+  0x58,                                     /*15: pop     %rax                     */
 
 };
 
 static void op_jmpif_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
-  *((int32_t *)(op + 10)) = a * 16 + 8;
+  *((int32_t *)(op + 11)) = a * 16 + 8;
 }
 
 static void op_jmpif_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -854,15 +839,19 @@ static void op_jmpif_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[16, 8, 6..9]]} */
+/* args: {"a"=>[[16, 8, 11..14]]} */
 static uint8_t op_jmpnot[] = {
-  0x48, 0x8b, 0x47, 0x18,                   /*00: mov     +0x18(%rdi), %rax        */
-  0x83, 0xb8, 0x08, 0x10, 0xab, 0x00, 0x00, /*04: cmpl    $0, +0xab1008(%rax)      */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0x48, 0x8b, 0x47, 0x18,                   /*05: mov     +0x18(%rdi), %rax        */
+  0x83, 0xb8, 0x08, 0x10, 0xab, 0x00, 0x00, /*09: cmpl    $0, +0xab1008(%rax)      */
+  0xe8, 0xeb, 0xff, 0xff, 0xff,             /*10: callq                            */
+  0x58,                                     /*15: pop     %rax                     */
 
 };
 
 static void op_jmpnot_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
-  *((int32_t *)(op + 6)) = a * 16 + 8;
+  *((int32_t *)(op + 11)) = a * 16 + 8;
 }
 
 static void op_jmpnot_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -922,8 +911,9 @@ static uint8_t op_onerr[] = {
   0x48, 0x8b, 0x40, 0x38,                   /*bb: mov     +0x38(%rax), %rax        */
   0x48, 0x89, 0x0c, 0xd0,                   /*bf: mov     %rcx, (%rax,%rdx,8)      */
   0x48, 0x89, 0xdf,                         /*c3: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*c6: add     $0x10, %rsp              */
-  0x5b,                                     /*ca: pop     %rbx                     */
+  0xe8, 0x35, 0xff, 0xff, 0xff,             /*c6: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*cb: add     $0x10, %rsp              */
+  0x5b,                                     /*cf: pop     %rbx                     */
 
 };
 
@@ -936,28 +926,31 @@ static void op_onerr_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[16, 8, 21..24], [16, 0, 44..47]]} */
+/* args: {"a"=>[[16, 8, 22..25], [16, 0, 45..48]]} */
 static uint8_t op_rescue[] = {
-  0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
-  0x48, 0x8b, 0x47, 0x18,                   /*04: mov     +0x18(%rdi), %rax        */
-  0x48, 0x8b, 0x4f, 0x58,                   /*08: mov     +0x58(%rdi), %rcx        */
-  0x48, 0x8b, 0x49, 0x28,                   /*0c: mov     +0x28(%rcx), %rcx        */
-  0x0f, 0xb6, 0x09,                         /*10: movzbl  (%rcx), %ecx             */
-  0x89, 0x88, 0x08, 0x10, 0xab, 0x00,       /*13: mov     %ecx, +0xab1008(%rax)    */
-  0x48, 0x8b, 0x04, 0x24,                   /*19: mov     (%rsp), %rax             */
-  0x48, 0x8b, 0x48, 0x18,                   /*1d: mov     +0x18(%rax), %rcx        */
-  0x48, 0x8b, 0x40, 0x58,                   /*21: mov     +0x58(%rax), %rax        */
-  0x48, 0x8b, 0x40, 0x28,                   /*25: mov     +0x28(%rax), %rax        */
-  0x48, 0x89, 0x81, 0x00, 0x10, 0xab, 0x00, /*29: mov     %rax, +0xab1000(%rcx)    */
-  0x48, 0x8b, 0x04, 0x24,                   /*30: mov     (%rsp), %rax             */
-  0x48, 0x8b, 0x40, 0x58,                   /*34: mov     +0x58(%rax), %rax        */
-  0x48, 0xc7, 0x40, 0x28, 0x00, 0x00, 0x00, 0x00,/*38: movq    $0, +0x28(%rax)          */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0x48, 0x8b, 0x47, 0x18,                   /*05: mov     +0x18(%rdi), %rax        */
+  0x48, 0x8b, 0x4f, 0x58,                   /*09: mov     +0x58(%rdi), %rcx        */
+  0x48, 0x8b, 0x49, 0x28,                   /*0d: mov     +0x28(%rcx), %rcx        */
+  0x0f, 0xb6, 0x09,                         /*11: movzbl  (%rcx), %ecx             */
+  0x89, 0x88, 0x08, 0x10, 0xab, 0x00,       /*14: mov     %ecx, +0xab1008(%rax)    */
+  0x48, 0x8b, 0x04, 0x24,                   /*1a: mov     (%rsp), %rax             */
+  0x48, 0x8b, 0x48, 0x18,                   /*1e: mov     +0x18(%rax), %rcx        */
+  0x48, 0x8b, 0x40, 0x58,                   /*22: mov     +0x58(%rax), %rax        */
+  0x48, 0x8b, 0x40, 0x28,                   /*26: mov     +0x28(%rax), %rax        */
+  0x48, 0x89, 0x81, 0x00, 0x10, 0xab, 0x00, /*2a: mov     %rax, +0xab1000(%rcx)    */
+  0x48, 0x8b, 0x04, 0x24,                   /*31: mov     (%rsp), %rax             */
+  0x48, 0x8b, 0x40, 0x58,                   /*35: mov     +0x58(%rax), %rax        */
+  0x48, 0xc7, 0x40, 0x28, 0x00, 0x00, 0x00, 0x00,/*39: movq    $0, +0x28(%rax)          */
+  0xe8, 0xba, 0xff, 0xff, 0xff,             /*41: callq                            */
+  0x58,                                     /*46: pop     %rax                     */
 
 };
 
 static void op_rescue_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
-  *((int32_t *)(op + 21)) = a * 16 + 8;
-  *((int32_t *)(op + 44)) = a * 16 + 0;
+  *((int32_t *)(op + 22)) = a * 16 + 8;
+  *((int32_t *)(op + 45)) = a * 16 + 0;
 }
 
 static void op_rescue_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -982,7 +975,8 @@ static uint8_t op_poperr[] = {
   0x89, 0x4c, 0x24, 0x0c,                   /*3b: mov     %ecx, +0xc(%rsp)         */
   0x85, 0xc0,                               /*3f: test    %eax, %eax               */
   0x75, 0xdd,                               /*41: jne                              */
-  0x48, 0x83, 0xc4, 0x18,                   /*43: add     $0x18, %rsp              */
+  0xe8, 0xb8, 0xff, 0xff, 0xff,             /*43: callq                            */
+  0x48, 0x83, 0xc4, 0x18,                   /*48: add     $0x18, %rsp              */
 
 };
 
@@ -1008,8 +1002,9 @@ static uint8_t op_raise[] = {
   0x48, 0x8b, 0x7c, 0x24, 0x08,             /*20: mov     +0x8(%rsp), %rdi         */
   0xff, 0x93, 0xb8, 0x01, 0x00, 0x00,       /*25: callq   +0x1b8(%rbx)             */
   0x48, 0x89, 0xdf,                         /*2b: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*2e: add     $0x10, %rsp              */
-  0x5b,                                     /*32: pop     %rbx                     */
+  0xe8, 0xcd, 0xff, 0xff, 0xff,             /*2e: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*33: add     $0x10, %rsp              */
+  0x5b,                                     /*37: pop     %rbx                     */
 
 };
 
@@ -1084,8 +1079,9 @@ static uint8_t op_epush[] = {
   0x48, 0x8b, 0x40, 0x58,                   /*e5: mov     +0x58(%rax), %rax        */
   0x89, 0x88, 0xdc, 0x00, 0x00, 0x00,       /*e9: mov     %ecx, +0xdc(%rax)        */
   0x48, 0x89, 0xdf,                         /*ef: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*f2: add     $0x10, %rsp              */
-  0x5b,                                     /*f6: pop     %rbx                     */
+  0xe8, 0x09, 0xff, 0xff, 0xff,             /*f2: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*f7: add     $0x10, %rsp              */
+  0x5b,                                     /*fb: pop     %rbx                     */
 
 };
 
@@ -1139,8 +1135,9 @@ static uint8_t op_epop[] = {
   0x84, 0xc0,                               /*92: test    %al, %al                 */
   0x75, 0xaa,                               /*94: jne                              */
   0x48, 0x89, 0xdf,                         /*96: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x20,                   /*99: add     $0x20, %rsp              */
-  0x5b,                                     /*9d: pop     %rbx                     */
+  0xe8, 0x62, 0xff, 0xff, 0xff,             /*99: callq                            */
+  0x48, 0x83, 0xc4, 0x20,                   /*9e: add     $0x20, %rsp              */
+  0x5b,                                     /*a2: pop     %rbx                     */
 
 };
 
@@ -1153,7 +1150,7 @@ static void op_epop_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[1, 0, 30..33]], "b"=>[[1, 0, 38..41]], "c"=>[[1, 0, 46..49], [1, 0, 66..69]]} */
+/* args: {"a"=>[[1, 0, 30..33]], "b"=>[[1, 0, 38..41]], "c"=>[[1, 0, 46..49], [1, 0, 69..72]]} */
 static uint8_t op_send[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x20,                   /*01: sub     $0x20, %rsp              */
@@ -1166,45 +1163,16 @@ static uint8_t op_send[] = {
   0xc7, 0x44, 0x24, 0x10, 0x00, 0x00, 0xab, 0x00,/*1a: movl    $0xab0000, +0x10(%rsp)   */
   0xc7, 0x44, 0x24, 0x0c, 0x00, 0x00, 0xbc, 0x00,/*22: movl    $0xbc0000, +0xc(%rsp)    */
   0xc7, 0x44, 0x24, 0x08, 0x00, 0x00, 0xcd, 0x00,/*2a: movl    $0xcd0000, +0x8(%rsp)    */
-  0x8b, 0x74, 0x24, 0x10,                   /*32: mov     +0x10(%rsp), %esi        */
-  0x8b, 0x54, 0x24, 0x0c,                   /*36: mov     +0xc(%rsp), %edx         */
-  0x48, 0x8b, 0xbb, 0xb0, 0x02, 0x00, 0x00, /*3a: mov     +0x2b0(%rbx), %rdi       */
-  0xb9, 0x00, 0x00, 0xcd, 0x00,             /*41: mov     $0xcd0000, %ecx          */
-  0x31, 0xc0,                               /*46: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*48: callq   +0x170(%rbx)             */
-  0x8b, 0x74, 0x24, 0x10,                   /*4e: mov     +0x10(%rsp), %esi        */
-  0x8b, 0x54, 0x24, 0x0c,                   /*52: mov     +0xc(%rsp), %edx         */
-  0x8b, 0x4c, 0x24, 0x08,                   /*56: mov     +0x8(%rsp), %ecx         */
-  0x48, 0x8b, 0xbb, 0xb0, 0x02, 0x00, 0x00, /*5a: mov     +0x2b0(%rbx), %rdi       */
-  0x31, 0xc0,                               /*61: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*63: callq   +0x170(%rbx)             */
-  0x8b, 0x74, 0x24, 0x10,                   /*69: mov     +0x10(%rsp), %esi        */
-  0x8b, 0x54, 0x24, 0x0c,                   /*6d: mov     +0xc(%rsp), %edx         */
-  0x8b, 0x4c, 0x24, 0x08,                   /*71: mov     +0x8(%rsp), %ecx         */
-  0x48, 0x8b, 0xbb, 0xb0, 0x02, 0x00, 0x00, /*75: mov     +0x2b0(%rbx), %rdi       */
-  0x31, 0xc0,                               /*7c: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*7e: callq   +0x170(%rbx)             */
-  0x8b, 0x74, 0x24, 0x10,                   /*84: mov     +0x10(%rsp), %esi        */
-  0x8b, 0x54, 0x24, 0x0c,                   /*88: mov     +0xc(%rsp), %edx         */
-  0x8b, 0x4c, 0x24, 0x08,                   /*8c: mov     +0x8(%rsp), %ecx         */
-  0x48, 0x8b, 0xbb, 0xb0, 0x02, 0x00, 0x00, /*90: mov     +0x2b0(%rbx), %rdi       */
-  0x31, 0xc0,                               /*97: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*99: callq   +0x170(%rbx)             */
-  0x8b, 0x74, 0x24, 0x10,                   /*9f: mov     +0x10(%rsp), %esi        */
-  0x8b, 0x54, 0x24, 0x0c,                   /*a3: mov     +0xc(%rsp), %edx         */
-  0x8b, 0x4c, 0x24, 0x08,                   /*a7: mov     +0x8(%rsp), %ecx         */
-  0x48, 0x8b, 0xbb, 0xb0, 0x02, 0x00, 0x00, /*ab: mov     +0x2b0(%rbx), %rdi       */
-  0x31, 0xc0,                               /*b2: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*b4: callq   +0x170(%rbx)             */
-  0x48, 0x8b, 0x7c, 0x24, 0x18,             /*ba: mov     +0x18(%rsp), %rdi        */
-  0x8b, 0x74, 0x24, 0x14,                   /*bf: mov     +0x14(%rsp), %esi        */
-  0x8b, 0x54, 0x24, 0x10,                   /*c3: mov     +0x10(%rsp), %edx        */
-  0x8b, 0x4c, 0x24, 0x0c,                   /*c7: mov     +0xc(%rsp), %ecx         */
-  0x44, 0x8b, 0x44, 0x24, 0x08,             /*cb: mov     +0x8(%rsp), %r8d         */
-  0xff, 0x93, 0xf0, 0x01, 0x00, 0x00,       /*d0: callq   +0x1f0(%rbx)             */
-  0x48, 0x89, 0xdf,                         /*d6: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x20,                   /*d9: add     $0x20, %rsp              */
-  0x5b,                                     /*dd: pop     %rbx                     */
+  0x48, 0x8b, 0x7c, 0x24, 0x18,             /*32: mov     +0x18(%rsp), %rdi        */
+  0x8b, 0x74, 0x24, 0x14,                   /*37: mov     +0x14(%rsp), %esi        */
+  0x8b, 0x54, 0x24, 0x10,                   /*3b: mov     +0x10(%rsp), %edx        */
+  0x8b, 0x4c, 0x24, 0x0c,                   /*3f: mov     +0xc(%rsp), %ecx         */
+  0x41, 0xb8, 0x00, 0x00, 0xcd, 0x00,       /*43: mov     $0xcd0000, %r8d          */
+  0xff, 0x93, 0xe0, 0x01, 0x00, 0x00,       /*49: callq   +0x1e0(%rbx)             */
+  0x48, 0x89, 0xdf,                         /*4f: mov     %rbx, %rdi               */
+  0xe8, 0xa9, 0xff, 0xff, 0xff,             /*52: callq                            */
+  0x48, 0x83, 0xc4, 0x20,                   /*57: add     $0x20, %rsp              */
+  0x5b,                                     /*5b: pop     %rbx                     */
 
 };
 
@@ -1212,7 +1180,7 @@ static void op_send_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
   *((int32_t *)(op + 30)) = a * 1 + 0;
   *((int32_t *)(op + 38)) = b * 1 + 0;
   *((int32_t *)(op + 46)) = c * 1 + 0;
-  *((int32_t *)(op + 66)) = c * 1 + 0;
+  *((int32_t *)(op + 69)) = c * 1 + 0;
 }
 
 static void op_send_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -1228,8 +1196,9 @@ static uint8_t op_sendb[] = {
   0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
   0xff, 0x93, 0x48, 0x02, 0x00, 0x00,       /*0d: callq   +0x248(%rbx)             */
   0x48, 0x89, 0xdf,                         /*13: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*16: add     $0x10, %rsp              */
-  0x5b,                                     /*1a: pop     %rbx                     */
+  0xe8, 0xe5, 0xff, 0xff, 0xff,             /*16: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*1b: add     $0x10, %rsp              */
+  0x5b,                                     /*1f: pop     %rbx                     */
 
 };
 
@@ -1243,7 +1212,10 @@ static void op_sendb_set_args_from_code(uint8_t *op, mrb_code c) {
 
 /* args: {} */
 static uint8_t op_fsend[] = {
-  0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0xe8, 0xf6, 0xff, 0xff, 0xff,             /*05: callq                            */
+  0x58,                                     /*0a: pop     %rax                     */
 
 };
 
@@ -1415,7 +1387,7 @@ static uint8_t op_call[] = {
   0x48, 0x8b, 0x40, 0x58,                   /*29b: mov     +0x58(%rax), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*29f: mov     +0x18(%rax), %rax        */
   0x4c, 0x8b, 0x70, 0x08,                   /*2a3: mov     +0x8(%rax), %r14         */
-  0xff, 0x93, 0xb0, 0x00, 0x00, 0x00,       /*2a7: callq   +0xb0(%rbx)              */
+  0xff, 0x93, 0xb8, 0x00, 0x00, 0x00,       /*2a7: callq   +0xb8(%rbx)              */
   0x48, 0x89, 0x04, 0x24,                   /*2ad: mov     %rax, (%rsp)             */
   0x89, 0x54, 0x24, 0x08,                   /*2b1: mov     %edx, +0x8(%rsp)         */
   0x48, 0x8b, 0x04, 0x24,                   /*2b5: mov     (%rsp), %rax             */
@@ -1438,7 +1410,7 @@ static uint8_t op_call[] = {
   0x48, 0x8b, 0x40, 0x08,                   /*2f9: mov     +0x8(%rax), %rax         */
   0x0f, 0xb7, 0x70, 0x02,                   /*2fd: movzwl  +0x2(%rax), %esi         */
   0xba, 0x03, 0x00, 0x00, 0x00,             /*301: mov     $0x3, %edx               */
-  0xff, 0x93, 0x40, 0x01, 0x00, 0x00,       /*306: callq   +0x140(%rbx)             */
+  0xff, 0x93, 0x30, 0x01, 0x00, 0x00,       /*306: callq   +0x130(%rbx)             */
   0x48, 0x8b, 0x44, 0x24, 0x40,             /*30c: mov     +0x40(%rsp), %rax        */
   0x48, 0x8b, 0x48, 0x58,                   /*311: mov     +0x58(%rax), %rcx        */
   0x48, 0x8b, 0x49, 0x18,                   /*315: mov     +0x18(%rcx), %rcx        */
@@ -1458,9 +1430,10 @@ static uint8_t op_call[] = {
   0x48, 0x8b, 0x49, 0x08,                   /*34e: mov     +0x8(%rcx), %rcx         */
   0x48, 0x89, 0x48, 0x10,                   /*352: mov     %rcx, +0x10(%rax)        */
   0x48, 0x89, 0xdf,                         /*356: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x48,                   /*359: add     $0x48, %rsp              */
-  0x5b,                                     /*35d: pop     %rbx                     */
-  0x41, 0x5e,                               /*35e: pop     %r14                     */
+  0xe8, 0xa2, 0xfc, 0xff, 0xff,             /*359: callq                            */
+  0x48, 0x83, 0xc4, 0x48,                   /*35e: add     $0x48, %rsp              */
+  0x5b,                                     /*362: pop     %rbx                     */
+  0x41, 0x5e,                               /*363: pop     %r14                     */
 
 };
 
@@ -1514,7 +1487,7 @@ static uint8_t op_super[] = {
   0x0f, 0x85, 0xfe, 0x00, 0x00, 0x00,       /*95: jne                              */
   0x48, 0x8b, 0x44, 0x24, 0x68,             /*9b: mov     +0x68(%rsp), %rax        */
   0x48, 0x8b, 0x78, 0x58,                   /*a0: mov     +0x58(%rax), %rdi        */
-  0x49, 0x8b, 0xb5, 0xb8, 0x02, 0x00, 0x00, /*a4: mov     +0x2b8(%r13), %rsi       */
+  0x49, 0x8b, 0xb5, 0x90, 0x02, 0x00, 0x00, /*a4: mov     +0x290(%r13), %rsi       */
   0xba, 0x0e, 0x00, 0x00, 0x00,             /*ab: mov     $0xe, %edx               */
   0x41, 0xff, 0x95, 0x80, 0x02, 0x00, 0x00, /*b0: callq   +0x280(%r13)             */
   0x89, 0x44, 0x24, 0x3c,                   /*b7: mov     %eax, +0x3c(%rsp)        */
@@ -1707,7 +1680,7 @@ static uint8_t op_super[] = {
   0x48, 0x8b, 0x44, 0x24, 0x50,             /*3e6: mov     +0x50(%rsp), %rax        */
   0x8b, 0x50, 0x40,                         /*3eb: mov     +0x40(%rax), %edx        */
   0x83, 0xc2, 0x02,                         /*3ee: add     $0x2, %edx               */
-  0x41, 0xff, 0x95, 0x40, 0x01, 0x00, 0x00, /*3f1: callq   +0x140(%r13)             */
+  0x41, 0xff, 0x95, 0x30, 0x01, 0x00, 0x00, /*3f1: callq   +0x130(%r13)             */
   0x48, 0x8b, 0x44, 0x24, 0x68,             /*3f8: mov     +0x68(%rsp), %rax        */
   0x48, 0x8b, 0x48, 0x58,                   /*3fd: mov     +0x58(%rax), %rcx        */
   0x48, 0x8b, 0x49, 0x18,                   /*401: mov     +0x18(%rcx), %rcx        */
@@ -1718,12 +1691,13 @@ static uint8_t op_super[] = {
   0x48, 0x8b, 0x49, 0x08,                   /*416: mov     +0x8(%rcx), %rcx         */
   0x48, 0x89, 0x48, 0x10,                   /*41a: mov     %rcx, +0x10(%rax)        */
   0x4c, 0x89, 0xef,                         /*41e: mov     %r13, %rdi               */
-  0x48, 0x83, 0xc4, 0x70,                   /*421: add     $0x70, %rsp              */
-  0x5b,                                     /*425: pop     %rbx                     */
-  0x41, 0x5c,                               /*426: pop     %r12                     */
-  0x41, 0x5d,                               /*428: pop     %r13                     */
-  0x41, 0x5e,                               /*42a: pop     %r14                     */
-  0x41, 0x5f,                               /*42c: pop     %r15                     */
+  0xe8, 0xda, 0xfb, 0xff, 0xff,             /*421: callq                            */
+  0x48, 0x83, 0xc4, 0x70,                   /*426: add     $0x70, %rsp              */
+  0x5b,                                     /*42a: pop     %rbx                     */
+  0x41, 0x5c,                               /*42b: pop     %r12                     */
+  0x41, 0x5d,                               /*42d: pop     %r13                     */
+  0x41, 0x5e,                               /*42f: pop     %r14                     */
+  0x41, 0x5f,                               /*431: pop     %r15                     */
 
 };
 
@@ -1897,7 +1871,7 @@ static uint8_t op_argary[] = {
   0x49, 0x89, 0xc7,                         /*34e: mov     %rax, %r15               */
   0x48, 0x8b, 0x84, 0x24, 0xa0, 0x00, 0x00, 0x00,/*351: mov     +0xa0(%rsp), %rax        */
   0x48, 0x8b, 0x78, 0x58,                   /*359: mov     +0x58(%rax), %rdi        */
-  0x49, 0x8b, 0xb4, 0x24, 0xc0, 0x02, 0x00, 0x00,/*35d: mov     +0x2c0(%r12), %rsi       */
+  0x49, 0x8b, 0xb4, 0x24, 0x98, 0x02, 0x00, 0x00,/*35d: mov     +0x298(%r12), %rsi       */
   0xba, 0x1e, 0x00, 0x00, 0x00,             /*365: mov     $0x1e, %edx              */
   0x41, 0xff, 0x54, 0x24, 0x70,             /*36a: callq   +0x70(%r12)              */
   0x89, 0xd1,                               /*36f: mov     %edx, %ecx               */
@@ -1906,7 +1880,7 @@ static uint8_t op_argary[] = {
   0x48, 0x8b, 0x54, 0x24, 0x50,             /*37a: mov     +0x50(%rsp), %rdx        */
   0x4c, 0x89, 0xf7,                         /*37f: mov     %r14, %rdi               */
   0x4c, 0x89, 0xfe,                         /*382: mov     %r15, %rsi               */
-  0x41, 0xff, 0x94, 0x24, 0xd8, 0x01, 0x00, 0x00,/*385: callq   +0x1d8(%r12)             */
+  0x41, 0xff, 0x94, 0x24, 0xd0, 0x01, 0x00, 0x00,/*385: callq   +0x1d0(%r12)             */
   0x48, 0x89, 0x44, 0x24, 0x40,             /*38d: mov     %rax, +0x40(%rsp)        */
   0x89, 0x54, 0x24, 0x48,                   /*392: mov     %edx, +0x48(%rsp)        */
   0x48, 0x8b, 0x44, 0x24, 0x40,             /*396: mov     +0x40(%rsp), %rax        */
@@ -1919,11 +1893,12 @@ static uint8_t op_argary[] = {
   0x48, 0x8b, 0xbc, 0x24, 0xa0, 0x00, 0x00, 0x00,/*3b8: mov     +0xa0(%rsp), %rdi        */
   0x41, 0xff, 0x94, 0x24, 0xb8, 0x01, 0x00, 0x00,/*3c0: callq   +0x1b8(%r12)             */
   0x4c, 0x89, 0xe7,                         /*3c8: mov     %r12, %rdi               */
-  0x48, 0x81, 0xc4, 0xa8, 0x00, 0x00, 0x00, /*3cb: add     $0xa8, %rsp              */
-  0x5b,                                     /*3d2: pop     %rbx                     */
-  0x41, 0x5c,                               /*3d3: pop     %r12                     */
-  0x41, 0x5e,                               /*3d5: pop     %r14                     */
-  0x41, 0x5f,                               /*3d7: pop     %r15                     */
+  0xe8, 0x30, 0xfc, 0xff, 0xff,             /*3cb: callq                            */
+  0x48, 0x81, 0xc4, 0xa8, 0x00, 0x00, 0x00, /*3d0: add     $0xa8, %rsp              */
+  0x5b,                                     /*3d7: pop     %rbx                     */
+  0x41, 0x5c,                               /*3d8: pop     %r12                     */
+  0x41, 0x5e,                               /*3da: pop     %r14                     */
+  0x41, 0x5f,                               /*3dc: pop     %r15                     */
 
 };
 
@@ -2003,8 +1978,8 @@ static uint8_t op_enter[] = {
   0x48, 0x8b, 0x78, 0x58,                   /*121: mov     +0x58(%rax), %rdi        */
   0x48, 0x8b, 0x33,                         /*125: mov     (%rbx), %rsi             */
   0x8b, 0x53, 0x08,                         /*128: mov     +0x8(%rbx), %edx         */
-  0x4d, 0x8b, 0x86, 0xc8, 0x02, 0x00, 0x00, /*12b: mov     +0x2c8(%r14), %r8        */
-  0x4d, 0x8b, 0x8e, 0xd0, 0x02, 0x00, 0x00, /*132: mov     +0x2d0(%r14), %r9        */
+  0x4d, 0x8b, 0x86, 0xa0, 0x02, 0x00, 0x00, /*12b: mov     +0x2a0(%r14), %r8        */
+  0x4d, 0x8b, 0x8e, 0xa8, 0x02, 0x00, 0x00, /*132: mov     +0x2a8(%r14), %r9        */
   0xb9, 0x0d, 0x00, 0x00, 0x00,             /*139: mov     $0xd, %ecx               */
   0x41, 0xff, 0x96, 0x18, 0x01, 0x00, 0x00, /*13e: callq   +0x118(%r14)             */
   0x48, 0x89, 0x44, 0x24, 0x40,             /*145: mov     %rax, +0x40(%rsp)        */
@@ -2029,7 +2004,7 @@ static uint8_t op_enter[] = {
   0x48, 0x8b, 0x78, 0x58,                   /*19c: mov     +0x58(%rax), %rdi        */
   0x48, 0x8b, 0x71, 0x10,                   /*1a0: mov     +0x10(%rcx), %rsi        */
   0x8b, 0x51, 0x18,                         /*1a4: mov     +0x18(%rcx), %edx        */
-  0x41, 0xff, 0x96, 0xe0, 0x01, 0x00, 0x00, /*1a7: callq   +0x1e0(%r14)             */
+  0x41, 0xff, 0x96, 0xe8, 0x01, 0x00, 0x00, /*1a7: callq   +0x1e8(%r14)             */
   0x48, 0x8b, 0x84, 0x24, 0x98, 0x00, 0x00, 0x00,/*1ae: mov     +0x98(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x58,                   /*1b6: mov     +0x58(%rax), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*1ba: mov     +0x18(%rax), %rax        */
@@ -2063,7 +2038,7 @@ static uint8_t op_enter[] = {
   0x41, 0xff, 0x96, 0x88, 0x02, 0x00, 0x00, /*23e: callq   +0x288(%r14)             */
   0x48, 0x8b, 0xbc, 0x24, 0x98, 0x00, 0x00, 0x00,/*245: mov     +0x98(%rsp), %rdi        */
   0x41, 0xff, 0x96, 0xb8, 0x01, 0x00, 0x00, /*24d: callq   +0x1b8(%r14)             */
-  0xe9, 0x6b, 0x04, 0x00, 0x00,             /*254: jmpq                             */
+  0xe9, 0x42, 0x04, 0x00, 0x00,             /*254: jmpq                             */
   0x83, 0x7c, 0x24, 0x64, 0x02,             /*259: cmpl    $0x2, +0x64(%rsp)        */
   0x7c, 0x50,                               /*25e: jl                               */
   0x83, 0x7c, 0x24, 0x78, 0x01,             /*260: cmpl    $0x1, +0x78(%rsp)        */
@@ -2076,7 +2051,7 @@ static uint8_t op_enter[] = {
   0x48, 0x8b, 0x44, 0x24, 0x70,             /*27e: mov     +0x70(%rsp), %rax        */
   0x48, 0x8b, 0x30,                         /*283: mov     (%rax), %rsi             */
   0x8b, 0x50, 0x08,                         /*286: mov     +0x8(%rax), %edx         */
-  0x41, 0xff, 0x96, 0xe0, 0x01, 0x00, 0x00, /*289: callq   +0x1e0(%r14)             */
+  0x41, 0xff, 0x96, 0xe8, 0x01, 0x00, 0x00, /*289: callq   +0x1e8(%r14)             */
   0x48, 0x8b, 0x44, 0x24, 0x70,             /*290: mov     +0x70(%rsp), %rax        */
   0x48, 0x8b, 0x00,                         /*295: mov     (%rax), %rax             */
   0x8b, 0x40, 0x18,                         /*298: mov     +0x18(%rax), %eax        */
@@ -2279,25 +2254,18 @@ static uint8_t op_enter[] = {
   0xff, 0x44, 0x24, 0x04,                   /*670: incl    +0x4(%rsp)               */
   0x83, 0x7c, 0x24, 0x04, 0x0e,             /*674: cmpl    $0xe, +0x4(%rsp)         */
   0x7e, 0xf5,                               /*679: jle                              */
-  0x48, 0x8b, 0x84, 0x24, 0x98, 0x00, 0x00, 0x00,/*67b: mov     +0x98(%rsp), %rax        */
-  0x48, 0x8b, 0x00,                         /*683: mov     (%rax), %rax             */
+  0x48, 0x8b, 0xbc, 0x24, 0x98, 0x00, 0x00, 0x00,/*67b: mov     +0x98(%rsp), %rdi        */
+  0x48, 0x8b, 0x07,                         /*683: mov     (%rdi), %rax             */
   0x48, 0x8b, 0x40, 0x30,                   /*686: mov     +0x30(%rax), %rax        */
   0x0f, 0xb7, 0x4c, 0x24, 0x56,             /*68a: movzwl  +0x56(%rsp), %ecx        */
   0x48, 0x8d, 0x74, 0x08, 0x10,             /*68f: lea     +0x10(%rax,%rcx,1), %rsi */
-  0x49, 0x8b, 0xbe, 0xd8, 0x02, 0x00, 0x00, /*694: mov     +0x2d8(%r14), %rdi       */
-  0x31, 0xc0,                               /*69b: xor     %eax, %eax               */
-  0x41, 0xff, 0x96, 0x70, 0x01, 0x00, 0x00, /*69d: callq   +0x170(%r14)             */
-  0x48, 0x8b, 0xbc, 0x24, 0x98, 0x00, 0x00, 0x00,/*6a4: mov     +0x98(%rsp), %rdi        */
-  0x48, 0x8b, 0x07,                         /*6ac: mov     (%rdi), %rax             */
-  0x48, 0x8b, 0x40, 0x30,                   /*6af: mov     +0x30(%rax), %rax        */
-  0x0f, 0xb7, 0x4c, 0x24, 0x56,             /*6b3: movzwl  +0x56(%rsp), %ecx        */
-  0x48, 0x8d, 0x74, 0x08, 0x10,             /*6b8: lea     +0x10(%rax,%rcx,1), %rsi */
-  0x4c, 0x89, 0xf7,                         /*6bd: mov     %r14, %rdi               */
-  0x48, 0x81, 0xc4, 0xa0, 0x00, 0x00, 0x00, /*6c0: add     $0xa0, %rsp              */
-  0x5b,                                     /*6c7: pop     %rbx                     */
-  0x41, 0x5e,                               /*6c8: pop     %r14                     */
-  0x41, 0x5f,                               /*6ca: pop     %r15                     */
-  0xff, 0xe6,                               /*6cc: jmp     %rsi                     */
+  0x4c, 0x89, 0xf7,                         /*694: mov     %r14, %rdi               */
+  0xe8, 0x5d, 0xf9, 0xff, 0xff,             /*697: callq                            */
+  0x48, 0x81, 0xc4, 0xa0, 0x00, 0x00, 0x00, /*69c: add     $0xa0, %rsp              */
+  0x5b,                                     /*6a3: pop     %rbx                     */
+  0x41, 0x5e,                               /*6a4: pop     %r14                     */
+  0x41, 0x5f,                               /*6a6: pop     %r15                     */
+  0xff, 0xe6,                               /*6a8: jmp     %rsi                     */
 
 };
 
@@ -2312,7 +2280,10 @@ static void op_enter_set_args_from_code(uint8_t *op, mrb_code c) {
 
 /* args: {} */
 static uint8_t op_karg[] = {
-  0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0xe8, 0xf6, 0xff, 0xff, 0xff,             /*05: callq                            */
+  0x58,                                     /*0a: pop     %rax                     */
 
 };
 
@@ -2326,7 +2297,10 @@ static void op_karg_set_args_from_code(uint8_t *op, mrb_code c) {
 
 /* args: {} */
 static uint8_t op_kdict[] = {
-  0x48, 0x89, 0x3c, 0x24,                   /*00: mov     %rdi, (%rsp)             */
+  0x50,                                     /*00: push    %rax                     */
+  0x48, 0x89, 0x3c, 0x24,                   /*01: mov     %rdi, (%rsp)             */
+  0xe8, 0xf6, 0xff, 0xff, 0xff,             /*05: callq                            */
+  0x58,                                     /*0a: pop     %rax                     */
 
 };
 
@@ -2338,33 +2312,26 @@ static void op_kdict_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[1, 0, 21..24], [1, 0, 44..47]], "b"=>[[1, 0, 26..29], [1, 0, 49..52]]} */
+/* args: {"a"=>[[1, 0, 14..17]], "b"=>[[1, 0, 19..22]]} */
 static uint8_t op_return[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
-  0x48, 0x8b, 0xbb, 0xe0, 0x02, 0x00, 0x00, /*0d: mov     +0x2e0(%rbx), %rdi       */
-  0xbe, 0x00, 0x00, 0xab, 0x00,             /*14: mov     $0xab0000, %esi          */
-  0xba, 0x00, 0x00, 0xbc, 0x00,             /*19: mov     $0xbc0000, %edx          */
-  0x31, 0xc0,                               /*1e: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*20: callq   +0x170(%rbx)             */
-  0x48, 0x8b, 0x7c, 0x24, 0x08,             /*26: mov     +0x8(%rsp), %rdi         */
-  0xbe, 0x00, 0x00, 0xab, 0x00,             /*2b: mov     $0xab0000, %esi          */
-  0xba, 0x00, 0x00, 0xbc, 0x00,             /*30: mov     $0xbc0000, %edx          */
-  0xff, 0x93, 0x80, 0x00, 0x00, 0x00,       /*35: callq   +0x80(%rbx)              */
-  0x48, 0x89, 0xdf,                         /*3b: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*3e: add     $0x10, %rsp              */
-  0x5b,                                     /*42: pop     %rbx                     */
-  0xc3,                                     /*43: ret                              */
+  0xbe, 0x00, 0x00, 0xab, 0x00,             /*0d: mov     $0xab0000, %esi          */
+  0xba, 0x00, 0x00, 0xbc, 0x00,             /*12: mov     $0xbc0000, %edx          */
+  0xff, 0x93, 0x80, 0x00, 0x00, 0x00,       /*17: callq   +0x80(%rbx)              */
+  0x48, 0x89, 0xdf,                         /*1d: mov     %rbx, %rdi               */
+  0xe8, 0xdb, 0xff, 0xff, 0xff,             /*20: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*25: add     $0x10, %rsp              */
+  0x5b,                                     /*29: pop     %rbx                     */
+  0xc3,                                     /*2a: ret                              */
 
 };
 
 static void op_return_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
-  *((int32_t *)(op + 21)) = a * 1 + 0;
-  *((int32_t *)(op + 44)) = a * 1 + 0;
-  *((int32_t *)(op + 26)) = b * 1 + 0;
-  *((int32_t *)(op + 49)) = b * 1 + 0;
+  *((int32_t *)(op + 14)) = a * 1 + 0;
+  *((int32_t *)(op + 19)) = b * 1 + 0;
 }
 
 static void op_return_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -2413,7 +2380,7 @@ static uint8_t op_tailcall[] = {
   0x48, 0x89, 0x44, 0x24, 0x20,             /*ac: mov     %rax, +0x20(%rsp)        */
   0x89, 0x54, 0x24, 0x28,                   /*b1: mov     %edx, +0x28(%rsp)        */
   0x48, 0x8b, 0x7c, 0x24, 0x68,             /*b5: mov     +0x68(%rsp), %rdi        */
-  0x49, 0x8b, 0xb6, 0xb8, 0x02, 0x00, 0x00, /*ba: mov     +0x2b8(%r14), %rsi       */
+  0x49, 0x8b, 0xb6, 0x90, 0x02, 0x00, 0x00, /*ba: mov     +0x290(%r14), %rsi       */
   0xba, 0x0e, 0x00, 0x00, 0x00,             /*c1: mov     $0xe, %edx               */
   0x41, 0xff, 0x96, 0x80, 0x02, 0x00, 0x00, /*c6: callq   +0x280(%r14)             */
   0x89, 0x44, 0x24, 0x34,                   /*cd: mov     %eax, +0x34(%rsp)        */
@@ -2544,7 +2511,7 @@ static uint8_t op_tailcall[] = {
   0x48, 0x8b, 0x40, 0x08,                   /*2e8: mov     +0x8(%rax), %rax         */
   0x0f, 0xb7, 0x70, 0x02,                   /*2ec: movzwl  +0x2(%rax), %esi         */
   0xba, 0x03, 0x00, 0x00, 0x00,             /*2f0: mov     $0x3, %edx               */
-  0x41, 0xff, 0x96, 0x40, 0x01, 0x00, 0x00, /*2f5: callq   +0x140(%r14)             */
+  0x41, 0xff, 0x96, 0x30, 0x01, 0x00, 0x00, /*2f5: callq   +0x130(%r14)             */
   0x48, 0x8b, 0x44, 0x24, 0x68,             /*2fc: mov     +0x68(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x18,                   /*301: mov     +0x18(%rax), %rax        */
   0x48, 0x8b, 0x40, 0x08,                   /*305: mov     +0x8(%rax), %rax         */
@@ -2555,9 +2522,10 @@ static uint8_t op_tailcall[] = {
   0x48, 0x8b, 0x49, 0x08,                   /*31b: mov     +0x8(%rcx), %rcx         */
   0x48, 0x89, 0x48, 0x10,                   /*31f: mov     %rcx, +0x10(%rax)        */
   0x4c, 0x89, 0xf7,                         /*323: mov     %r14, %rdi               */
-  0x48, 0x83, 0xc4, 0x78,                   /*326: add     $0x78, %rsp              */
-  0x5b,                                     /*32a: pop     %rbx                     */
-  0x41, 0x5e,                               /*32b: pop     %r14                     */
+  0xe8, 0xd5, 0xfc, 0xff, 0xff,             /*326: callq                            */
+  0x48, 0x83, 0xc4, 0x78,                   /*32b: add     $0x78, %rsp              */
+  0x5b,                                     /*32f: pop     %rbx                     */
+  0x41, 0x5e,                               /*330: pop     %r14                     */
 
 };
 
@@ -2631,8 +2599,9 @@ static uint8_t op_blkpush[] = {
   0x48, 0x8b, 0x7c, 0x24, 0x38,             /*e3: mov     +0x38(%rsp), %rdi        */
   0xff, 0x93, 0xb8, 0x01, 0x00, 0x00,       /*e8: callq   +0x1b8(%rbx)             */
   0x48, 0x89, 0xdf,                         /*ee: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x40,                   /*f1: add     $0x40, %rsp              */
-  0x5b,                                     /*f5: pop     %rbx                     */
+  0xe8, 0x0a, 0xff, 0xff, 0xff,             /*f1: callq                            */
+  0x48, 0x83, 0xc4, 0x40,                   /*f6: add     $0x40, %rsp              */
+  0x5b,                                     /*fa: pop     %rbx                     */
 
 };
 
@@ -2706,7 +2675,7 @@ static uint8_t op_add[] = {
   0x41, 0x8b, 0x54, 0x1f, 0x08,             /*fc: mov     +0x8(%r15,%rbx,1), %edx  */
   0x49, 0x8b, 0x4c, 0x1f, 0x10,             /*101: mov     +0x10(%r15,%rbx,1), %rcx */
   0x45, 0x8b, 0x44, 0x1f, 0x18,             /*106: mov     +0x18(%r15,%rbx,1), %r8d */
-  0x41, 0xff, 0x96, 0x30, 0x01, 0x00, 0x00, /*10b: callq   +0x130(%r14)             */
+  0x41, 0xff, 0x96, 0x40, 0x01, 0x00, 0x00, /*10b: callq   +0x140(%r14)             */
   0x48, 0x89, 0x44, 0x24, 0x08,             /*112: mov     %rax, +0x8(%rsp)         */
   0x89, 0x54, 0x24, 0x10,                   /*117: mov     %edx, +0x10(%rsp)        */
   0x48, 0x8b, 0x44, 0x24, 0x08,             /*11b: mov     +0x8(%rsp), %rax         */
@@ -2773,10 +2742,11 @@ static uint8_t op_add[] = {
   0x48, 0x8b, 0x4c, 0x24, 0x48,             /*23d: mov     +0x48(%rsp), %rcx        */
   0x89, 0x81, 0xdc, 0x00, 0x00, 0x00,       /*242: mov     %eax, +0xdc(%rcx)        */
   0x4c, 0x89, 0xf7,                         /*248: mov     %r14, %rdi               */
-  0x48, 0x83, 0xc4, 0x60,                   /*24b: add     $0x60, %rsp              */
-  0x5b,                                     /*24f: pop     %rbx                     */
-  0x41, 0x5e,                               /*250: pop     %r14                     */
-  0x41, 0x5f,                               /*252: pop     %r15                     */
+  0xe8, 0xb0, 0xfd, 0xff, 0xff,             /*24b: callq                            */
+  0x48, 0x83, 0xc4, 0x60,                   /*250: add     $0x60, %rsp              */
+  0x5b,                                     /*254: pop     %rbx                     */
+  0x41, 0x5e,                               /*255: pop     %r14                     */
+  0x41, 0x5f,                               /*257: pop     %r15                     */
 
 };
 
@@ -2850,7 +2820,7 @@ static uint8_t op_addi[] = {
   0xbe, 0x20, 0x00, 0x00, 0x00,             /*108: mov     $0x20, %esi              */
   0xb9, 0x00, 0x00, 0xbc, 0x00,             /*10d: mov     $0xbc0000, %ecx          */
   0x41, 0xb8, 0x01, 0x00, 0x00, 0x00,       /*112: mov     $0x1, %r8d               */
-  0xff, 0x93, 0xf0, 0x01, 0x00, 0x00,       /*118: callq   +0x1f0(%rbx)             */
+  0xff, 0x93, 0xe0, 0x01, 0x00, 0x00,       /*118: callq   +0x1e0(%rbx)             */
   0xeb, 0x2b,                               /*11e: jmp                              */
   0x48, 0x63, 0x44, 0x24, 0x24,             /*120: movslq  +0x24(%rsp), %rax        */
   0x48, 0x8b, 0x4c, 0x24, 0x18,             /*125: mov     +0x18(%rsp), %rcx        */
@@ -2862,8 +2832,9 @@ static uint8_t op_addi[] = {
   0x48, 0xc1, 0xe1, 0x04,                   /*144: shl     $0x4, %rcx               */
   0x89, 0x04, 0x0a,                         /*148: mov     %eax, (%rdx,%rcx,1)      */
   0x48, 0x89, 0xdf,                         /*14b: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x30,                   /*14e: add     $0x30, %rsp              */
-  0x5b,                                     /*152: pop     %rbx                     */
+  0xe8, 0xad, 0xfe, 0xff, 0xff,             /*14e: callq                            */
+  0x48, 0x83, 0xc4, 0x30,                   /*153: add     $0x30, %rsp              */
+  0x5b,                                     /*157: pop     %rbx                     */
 
 };
 
@@ -2979,8 +2950,9 @@ static uint8_t op_sub[] = {
   0x48, 0xc1, 0xe1, 0x04,                   /*1b6: shl     $0x4, %rcx               */
   0x89, 0x04, 0x0a,                         /*1ba: mov     %eax, (%rdx,%rcx,1)      */
   0x48, 0x89, 0xdf,                         /*1bd: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x30,                   /*1c0: add     $0x30, %rsp              */
-  0x5b,                                     /*1c4: pop     %rbx                     */
+  0xe8, 0x3b, 0xfe, 0xff, 0xff,             /*1c0: callq                            */
+  0x48, 0x83, 0xc4, 0x30,                   /*1c5: add     $0x30, %rsp              */
+  0x5b,                                     /*1c9: pop     %rbx                     */
 
 };
 
@@ -2993,7 +2965,7 @@ static void op_sub_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[1, 0, 17..20]], "c"=>[[1, 0, 153..156], [1, 0, 167..170], [1, 0, 240..243]], "b"=>[[1, 0, 278..281]]} */
+/* args: {"a"=>[[1, 0, 17..20]], "c"=>[[1, 0, 108..111], [1, 0, 122..125], [1, 0, 195..198]], "b"=>[[1, 0, 214..217]]} */
 static uint8_t op_subi[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x30,                   /*01: sub     $0x30, %rsp              */
@@ -3005,78 +2977,65 @@ static uint8_t op_subi[] = {
   0x48, 0x89, 0x44, 0x24, 0x18,             /*1e: mov     %rax, +0x18(%rsp)        */
   0x48, 0x63, 0x4c, 0x24, 0x24,             /*23: movslq  +0x24(%rsp), %rcx        */
   0x48, 0xc1, 0xe1, 0x04,                   /*28: shl     $0x4, %rcx               */
-  0x48, 0x01, 0xc1,                         /*2c: add     %rax, %rcx               */
-  0x48, 0x89, 0x4c, 0x24, 0x10,             /*2f: mov     %rcx, +0x10(%rsp)        */
-  0x8b, 0x74, 0x24, 0x24,                   /*34: mov     +0x24(%rsp), %esi        */
-  0x48, 0x8b, 0xbb, 0xe8, 0x02, 0x00, 0x00, /*38: mov     +0x2e8(%rbx), %rdi       */
-  0x31, 0xc0,                               /*3f: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*41: callq   +0x170(%rbx)             */
-  0x48, 0x8b, 0x44, 0x24, 0x10,             /*47: mov     +0x10(%rsp), %rax        */
-  0x8b, 0x70, 0x08,                         /*4c: mov     +0x8(%rax), %esi         */
-  0x48, 0x8b, 0xbb, 0xf0, 0x02, 0x00, 0x00, /*4f: mov     +0x2f0(%rbx), %rdi       */
-  0x31, 0xc0,                               /*56: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*58: callq   +0x170(%rbx)             */
-  0x48, 0x8b, 0x44, 0x24, 0x10,             /*5e: mov     +0x10(%rsp), %rax        */
-  0x8b, 0x40, 0x08,                         /*63: mov     +0x8(%rax), %eax         */
-  0x83, 0xf8, 0x06,                         /*66: cmp     $0x6, %eax               */
-  0x75, 0x1a,                               /*69: jne                              */
-  0x48, 0x8b, 0x44, 0x24, 0x10,             /*6b: mov     +0x10(%rsp), %rax        */
-  0xf2, 0x0f, 0x10, 0x00,                   /*70: movsd   (%rax), %xmm0            */
-  0xf2, 0x0f, 0x58, 0x05, 0x00, 0x00, 0x00, 0x00,/*74: addsd   +0(%rip), %xmm0, "        # 7c <op_subi+0x7c>" */
-  0xf2, 0x0f, 0x11, 0x00,                   /*7c: movsd   %xmm0, (%rax)            */
-  0xe9, 0xba, 0x00, 0x00, 0x00,             /*80: jmpq                             */
-  0x83, 0xf8, 0x03,                         /*85: cmp     $0x3, %eax               */
-  0x75, 0x52,                               /*88: jne                              */
-  0x48, 0x8b, 0x44, 0x24, 0x10,             /*8a: mov     +0x10(%rsp), %rax        */
-  0x8b, 0x00,                               /*8f: mov     (%rax), %eax             */
-  0x89, 0x44, 0x24, 0x0c,                   /*91: mov     %eax, +0xc(%rsp)         */
-  0xc7, 0x44, 0x24, 0x08, 0x00, 0x00, 0xcd, 0x00,/*95: movl    $0xcd0000, +0x8(%rsp)    */
-  0x8b, 0x7c, 0x24, 0x0c,                   /*9d: mov     +0xc(%rsp), %edi         */
-  0x48, 0x8d, 0x54, 0x24, 0x04,             /*a1: lea     +0x4(%rsp), %rdx         */
-  0xbe, 0x00, 0x00, 0xcd, 0x00,             /*a6: mov     $0xcd0000, %esi          */
-  0xff, 0x93, 0x68, 0x01, 0x00, 0x00,       /*ab: callq   +0x168(%rbx)             */
-  0x84, 0xc0,                               /*b1: test    %al, %al                 */
-  0x74, 0x73,                               /*b3: je                               */
-  0x48, 0x8b, 0x44, 0x24, 0x10,             /*b5: mov     +0x10(%rsp), %rax        */
-  0xc7, 0x40, 0x08, 0x06, 0x00, 0x00, 0x00, /*ba: movl    $0x6, +0x8(%rax)         */
-  0xf2, 0x0f, 0x2a, 0x44, 0x24, 0x0c,       /*c1: cvtsi2sdl+0xc(%rsp), %xmm0       */
-  0xf2, 0x0f, 0x2a, 0x4c, 0x24, 0x08,       /*c7: cvtsi2sdl+0x8(%rsp), %xmm1       */
-  0xf2, 0x0f, 0x5c, 0xc1,                   /*cd: subsd   %xmm1, %xmm0             */
-  0x48, 0x8b, 0x44, 0x24, 0x10,             /*d1: mov     +0x10(%rsp), %rax        */
-  0xf2, 0x0f, 0x11, 0x00,                   /*d6: movsd   %xmm0, (%rax)            */
-  0xeb, 0x63,                               /*da: jmp                              */
-  0x48, 0x8b, 0x44, 0x24, 0x10,             /*dc: mov     +0x10(%rsp), %rax        */
-  0xc7, 0x40, 0x18, 0x03, 0x00, 0x00, 0x00, /*e1: movl    $0x3, +0x18(%rax)        */
+  0x48, 0x8d, 0x14, 0x08,                   /*2c: lea     (%rax,%rcx,1), %rdx      */
+  0x48, 0x89, 0x54, 0x24, 0x10,             /*30: mov     %rdx, +0x10(%rsp)        */
+  0x8b, 0x44, 0x08, 0x08,                   /*35: mov     +0x8(%rax,%rcx,1), %eax  */
+  0x83, 0xf8, 0x06,                         /*39: cmp     $0x6, %eax               */
+  0x75, 0x1a,                               /*3c: jne                              */
+  0x48, 0x8b, 0x44, 0x24, 0x10,             /*3e: mov     +0x10(%rsp), %rax        */
+  0xf2, 0x0f, 0x10, 0x00,                   /*43: movsd   (%rax), %xmm0            */
+  0xf2, 0x0f, 0x58, 0x05, 0x00, 0x00, 0x00, 0x00,/*47: addsd   +0(%rip), %xmm0, "        # 4f <op_subi+0x4f>" */
+  0xf2, 0x0f, 0x11, 0x00,                   /*4f: movsd   %xmm0, (%rax)            */
+  0xe9, 0xa7, 0x00, 0x00, 0x00,             /*53: jmpq                             */
+  0x83, 0xf8, 0x03,                         /*58: cmp     $0x3, %eax               */
+  0x75, 0x52,                               /*5b: jne                              */
+  0x48, 0x8b, 0x44, 0x24, 0x10,             /*5d: mov     +0x10(%rsp), %rax        */
+  0x8b, 0x00,                               /*62: mov     (%rax), %eax             */
+  0x89, 0x44, 0x24, 0x0c,                   /*64: mov     %eax, +0xc(%rsp)         */
+  0xc7, 0x44, 0x24, 0x08, 0x00, 0x00, 0xcd, 0x00,/*68: movl    $0xcd0000, +0x8(%rsp)    */
+  0x8b, 0x7c, 0x24, 0x0c,                   /*70: mov     +0xc(%rsp), %edi         */
+  0x48, 0x8d, 0x54, 0x24, 0x04,             /*74: lea     +0x4(%rsp), %rdx         */
+  0xbe, 0x00, 0x00, 0xcd, 0x00,             /*79: mov     $0xcd0000, %esi          */
+  0xff, 0x93, 0x68, 0x01, 0x00, 0x00,       /*7e: callq   +0x168(%rbx)             */
+  0x84, 0xc0,                               /*84: test    %al, %al                 */
+  0x74, 0x60,                               /*86: je                               */
+  0x48, 0x8b, 0x44, 0x24, 0x10,             /*88: mov     +0x10(%rsp), %rax        */
+  0xc7, 0x40, 0x08, 0x06, 0x00, 0x00, 0x00, /*8d: movl    $0x6, +0x8(%rax)         */
+  0xf2, 0x0f, 0x2a, 0x44, 0x24, 0x0c,       /*94: cvtsi2sdl+0xc(%rsp), %xmm0       */
+  0xf2, 0x0f, 0x2a, 0x4c, 0x24, 0x08,       /*9a: cvtsi2sdl+0x8(%rsp), %xmm1       */
+  0xf2, 0x0f, 0x5c, 0xc1,                   /*a0: subsd   %xmm1, %xmm0             */
+  0x48, 0x8b, 0x44, 0x24, 0x10,             /*a4: mov     +0x10(%rsp), %rax        */
+  0xf2, 0x0f, 0x11, 0x00,                   /*a9: movsd   %xmm0, (%rax)            */
+  0xeb, 0x50,                               /*ad: jmp                              */
+  0x48, 0x8b, 0x44, 0x24, 0x10,             /*af: mov     +0x10(%rsp), %rax        */
+  0xc7, 0x40, 0x18, 0x03, 0x00, 0x00, 0x00, /*b4: movl    $0x3, +0x18(%rax)        */
+  0x48, 0x8b, 0x44, 0x24, 0x10,             /*bb: mov     +0x10(%rsp), %rax        */
+  0xc7, 0x40, 0x10, 0x00, 0x00, 0xcd, 0x00, /*c0: movl    $0xcd0000, +0x10(%rax)   */
+  0x48, 0x8b, 0x7c, 0x24, 0x28,             /*c7: mov     +0x28(%rsp), %rdi        */
+  0x8b, 0x54, 0x24, 0x24,                   /*cc: mov     +0x24(%rsp), %edx        */
+  0xbe, 0x20, 0x00, 0x00, 0x00,             /*d0: mov     $0x20, %esi              */
+  0xb9, 0x00, 0x00, 0xbc, 0x00,             /*d5: mov     $0xbc0000, %ecx          */
+  0x41, 0xb8, 0x01, 0x00, 0x00, 0x00,       /*da: mov     $0x1, %r8d               */
+  0xff, 0x93, 0xe0, 0x01, 0x00, 0x00,       /*e0: callq   +0x1e0(%rbx)             */
+  0xeb, 0x17,                               /*e6: jmp                              */
   0x48, 0x8b, 0x44, 0x24, 0x10,             /*e8: mov     +0x10(%rsp), %rax        */
-  0xc7, 0x40, 0x10, 0x00, 0x00, 0xcd, 0x00, /*ed: movl    $0xcd0000, +0x10(%rax)   */
-  0x8b, 0x74, 0x24, 0x24,                   /*f4: mov     +0x24(%rsp), %esi        */
-  0x48, 0x8b, 0xbb, 0xe8, 0x02, 0x00, 0x00, /*f8: mov     +0x2e8(%rbx), %rdi       */
-  0x31, 0xc0,                               /*ff: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*101: callq   +0x170(%rbx)             */
-  0x48, 0x8b, 0x7c, 0x24, 0x28,             /*107: mov     +0x28(%rsp), %rdi        */
-  0x8b, 0x54, 0x24, 0x24,                   /*10c: mov     +0x24(%rsp), %edx        */
-  0xbe, 0x20, 0x00, 0x00, 0x00,             /*110: mov     $0x20, %esi              */
-  0xb9, 0x00, 0x00, 0xbc, 0x00,             /*115: mov     $0xbc0000, %ecx          */
-  0x41, 0xb8, 0x01, 0x00, 0x00, 0x00,       /*11a: mov     $0x1, %r8d               */
-  0xff, 0x93, 0xf0, 0x01, 0x00, 0x00,       /*120: callq   +0x1f0(%rbx)             */
-  0xeb, 0x17,                               /*126: jmp                              */
-  0x48, 0x8b, 0x44, 0x24, 0x10,             /*128: mov     +0x10(%rsp), %rax        */
-  0xc7, 0x40, 0x08, 0x03, 0x00, 0x00, 0x00, /*12d: movl    $0x3, +0x8(%rax)         */
-  0x8b, 0x44, 0x24, 0x04,                   /*134: mov     +0x4(%rsp), %eax         */
-  0x48, 0x8b, 0x4c, 0x24, 0x10,             /*138: mov     +0x10(%rsp), %rcx        */
-  0x89, 0x01,                               /*13d: mov     %eax, (%rcx)             */
-  0x48, 0x89, 0xdf,                         /*13f: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x30,                   /*142: add     $0x30, %rsp              */
-  0x5b,                                     /*146: pop     %rbx                     */
+  0xc7, 0x40, 0x08, 0x03, 0x00, 0x00, 0x00, /*ed: movl    $0x3, +0x8(%rax)         */
+  0x8b, 0x44, 0x24, 0x04,                   /*f4: mov     +0x4(%rsp), %eax         */
+  0x48, 0x8b, 0x4c, 0x24, 0x10,             /*f8: mov     +0x10(%rsp), %rcx        */
+  0x89, 0x01,                               /*fd: mov     %eax, (%rcx)             */
+  0x48, 0x89, 0xdf,                         /*ff: mov     %rbx, %rdi               */
+  0xe8, 0xf9, 0xfe, 0xff, 0xff,             /*102: callq                            */
+  0x48, 0x83, 0xc4, 0x30,                   /*107: add     $0x30, %rsp              */
+  0x5b,                                     /*10b: pop     %rbx                     */
 
 };
 
 static void op_subi_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
   *((int32_t *)(op + 17)) = a * 1 + 0;
-  *((int32_t *)(op + 153)) = c * 1 + 0;
-  *((int32_t *)(op + 167)) = c * 1 + 0;
-  *((int32_t *)(op + 240)) = c * 1 + 0;
-  *((int32_t *)(op + 278)) = b * 1 + 0;
+  *((int32_t *)(op + 108)) = c * 1 + 0;
+  *((int32_t *)(op + 122)) = c * 1 + 0;
+  *((int32_t *)(op + 195)) = c * 1 + 0;
+  *((int32_t *)(op + 214)) = b * 1 + 0;
 }
 
 static void op_subi_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -3187,9 +3146,10 @@ static uint8_t op_mul[] = {
   0x48, 0xc1, 0xe1, 0x04,                   /*1ce: shl     $0x4, %rcx               */
   0x89, 0x04, 0x0a,                         /*1d2: mov     %eax, (%rdx,%rcx,1)      */
   0x4c, 0x89, 0xf7,                         /*1d5: mov     %r14, %rdi               */
-  0x48, 0x83, 0xc4, 0x58,                   /*1d8: add     $0x58, %rsp              */
-  0x5b,                                     /*1dc: pop     %rbx                     */
-  0x41, 0x5e,                               /*1dd: pop     %r14                     */
+  0xe8, 0x23, 0xfe, 0xff, 0xff,             /*1d8: callq                            */
+  0x48, 0x83, 0xc4, 0x58,                   /*1dd: add     $0x58, %rsp              */
+  0x5b,                                     /*1e1: pop     %rbx                     */
+  0x41, 0x5e,                               /*1e2: pop     %r14                     */
 
 };
 
@@ -3284,8 +3244,9 @@ static uint8_t op_div[] = {
   0x48, 0x8b, 0x7c, 0x24, 0x28,             /*164: mov     +0x28(%rsp), %rdi        */
   0xff, 0x93, 0x48, 0x02, 0x00, 0x00,       /*169: callq   +0x248(%rbx)             */
   0x48, 0x89, 0xdf,                         /*16f: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x30,                   /*172: add     $0x30, %rsp              */
-  0x5b,                                     /*176: pop     %rbx                     */
+  0xe8, 0x89, 0xfe, 0xff, 0xff,             /*172: callq                            */
+  0x48, 0x83, 0xc4, 0x30,                   /*177: add     $0x30, %rsp              */
+  0x5b,                                     /*17b: pop     %rbx                     */
 
 };
 
@@ -3387,7 +3348,8 @@ static uint8_t op_eq[] = {
   0xc7, 0x44, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00,/*169: movl    $0, +0x8(%rcx,%rax,1)    */
   0xeb, 0xc3,                               /*171: jmp                              */
   0x48, 0x8b, 0x7c, 0x24, 0x20,             /*173: mov     +0x20(%rsp), %rdi        */
-  0xeb, 0xca,                               /*178: jmp                              */
+  0x41, 0xff, 0x96, 0x48, 0x02, 0x00, 0x00, /*178: callq   +0x248(%r14)             */
+  0xeb, 0xca,                               /*17f: jmp                              */
 
 };
 
@@ -3400,112 +3362,86 @@ static void op_eq_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[1, 0, 17..20], [1, 0, 29..32]]} */
+/* args: {"a"=>[[1, 0, 17..20]]} */
 static uint8_t op_lt[] = {
   0x53,                                     /*00: push    %rbx                     */
   0x48, 0x83, 0xec, 0x20,                   /*01: sub     $0x20, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x18,             /*08: mov     %rbx, +0x18(%rsp)        */
   0xc7, 0x44, 0x24, 0x14, 0x00, 0x00, 0xab, 0x00,/*0d: movl    $0xab0000, +0x14(%rsp)   */
-  0x48, 0x8b, 0xbb, 0xf8, 0x02, 0x00, 0x00, /*15: mov     +0x2f8(%rbx), %rdi       */
-  0xbe, 0x00, 0x00, 0xab, 0x00,             /*1c: mov     $0xab0000, %esi          */
-  0x31, 0xc0,                               /*21: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*23: callq   +0x170(%rbx)             */
-  0x48, 0x8b, 0x44, 0x24, 0x18,             /*29: mov     +0x18(%rsp), %rax        */
-  0x48, 0x8b, 0x40, 0x18,                   /*2e: mov     +0x18(%rax), %rax        */
-  0x48, 0x89, 0x44, 0x24, 0x08,             /*32: mov     %rax, +0x8(%rsp)         */
-  0x48, 0x63, 0x4c, 0x24, 0x14,             /*37: movslq  +0x14(%rsp), %rcx        */
-  0x48, 0xc1, 0xe1, 0x04,                   /*3c: shl     $0x4, %rcx               */
-  0x8b, 0x74, 0x08, 0x08,                   /*40: mov     +0x8(%rax,%rcx,1), %esi  */
-  0x8b, 0x54, 0x08, 0x18,                   /*44: mov     +0x18(%rax,%rcx,1), %edx */
-  0x48, 0x8b, 0xbb, 0x00, 0x03, 0x00, 0x00, /*48: mov     +0x300(%rbx), %rdi       */
-  0x31, 0xc0,                               /*4f: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*51: callq   +0x170(%rbx)             */
-  0x48, 0x63, 0x44, 0x24, 0x14,             /*57: movslq  +0x14(%rsp), %rax        */
-  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*5c: mov     +0x8(%rsp), %rcx         */
-  0x48, 0xc1, 0xe0, 0x04,                   /*61: shl     $0x4, %rax               */
-  0x0f, 0xb7, 0x54, 0x01, 0x08,             /*65: movzwl  +0x8(%rcx,%rax,1), %edx  */
-  0xc1, 0xe2, 0x08,                         /*6a: shl     $0x8, %edx               */
-  0x0f, 0xb6, 0x44, 0x01, 0x18,             /*6d: movzbl  +0x18(%rcx,%rax,1), %eax */
-  0x09, 0xd0,                               /*72: or      %edx, %eax               */
-  0x3d, 0x02, 0x06, 0x00, 0x00,             /*74: cmp     $0x602, %eax             */
-  0x7f, 0x21,                               /*79: jg                               */
-  0x3d, 0x03, 0x03, 0x00, 0x00,             /*7b: cmp     $0x303, %eax             */
-  0x75, 0x37,                               /*80: jne                              */
-  0x48, 0x63, 0x44, 0x24, 0x14,             /*82: movslq  +0x14(%rsp), %rax        */
-  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*87: mov     +0x8(%rsp), %rcx         */
-  0x48, 0xc1, 0xe0, 0x04,                   /*8c: shl     $0x4, %rax               */
-  0x8b, 0x14, 0x01,                         /*90: mov     (%rcx,%rax,1), %edx      */
-  0x3b, 0x54, 0x01, 0x10,                   /*93: cmp     +0x10(%rcx,%rax,1), %edx */
-  0x0f, 0x9c, 0xc0,                         /*97: setl    %al                      */
-  0xeb, 0x6e,                               /*9a: jmp                              */
-  0x3d, 0x03, 0x06, 0x00, 0x00,             /*9c: cmp     $0x603, %eax             */
-  0x75, 0x40,                               /*a1: jne                              */
-  0x48, 0x63, 0x44, 0x24, 0x14,             /*a3: movslq  +0x14(%rsp), %rax        */
-  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*a8: mov     +0x8(%rsp), %rcx         */
-  0x48, 0xc1, 0xe0, 0x04,                   /*ad: shl     $0x4, %rax               */
-  0xf2, 0x0f, 0x2a, 0x44, 0x01, 0x10,       /*b1: cvtsi2sdl+0x10(%rcx,%rax,1), %xmm0 */
-  0xeb, 0x49,                               /*b7: jmp                              */
-  0x3d, 0x06, 0x03, 0x00, 0x00,             /*b9: cmp     $0x306, %eax             */
-  0x0f, 0x85, 0xd7, 0x00, 0x00, 0x00,       /*be: jne                              */
-  0x48, 0x63, 0x44, 0x24, 0x14,             /*c4: movslq  +0x14(%rsp), %rax        */
-  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*c9: mov     +0x8(%rsp), %rcx         */
-  0x48, 0xc1, 0xe0, 0x04,                   /*ce: shl     $0x4, %rax               */
-  0xf2, 0x0f, 0x2a, 0x04, 0x01,             /*d2: cvtsi2sdl(%rcx,%rax,1), %xmm0    */
-  0xf2, 0x0f, 0x10, 0x4c, 0x01, 0x10,       /*d7: movsd   +0x10(%rcx,%rax,1), %xmm1 */
-  0x66, 0x0f, 0x2e, 0xc8,                   /*dd: ucomisd %xmm0, %xmm1             */
-  0xeb, 0x24,                               /*e1: jmp                              */
-  0x3d, 0x06, 0x06, 0x00, 0x00,             /*e3: cmp     $0x606, %eax             */
-  0x0f, 0x85, 0xad, 0x00, 0x00, 0x00,       /*e8: jne                              */
-  0x48, 0x63, 0x44, 0x24, 0x14,             /*ee: movslq  +0x14(%rsp), %rax        */
-  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*f3: mov     +0x8(%rsp), %rcx         */
-  0x48, 0xc1, 0xe0, 0x04,                   /*f8: shl     $0x4, %rax               */
-  0xf2, 0x0f, 0x10, 0x44, 0x01, 0x10,       /*fc: movsd   +0x10(%rcx,%rax,1), %xmm0 */
-  0x66, 0x0f, 0x2e, 0x04, 0x01,             /*102: ucomisd (%rcx,%rax,1), %xmm0     */
-  0x0f, 0x97, 0xc0,                         /*107: seta    %al                      */
-  0x0f, 0xb6, 0xc0,                         /*10a: movzbl  %al, %eax                */
-  0x89, 0x44, 0x24, 0x04,                   /*10d: mov     %eax, +0x4(%rsp)         */
-  0x83, 0x7c, 0x24, 0x04, 0x00,             /*111: cmpl    $0, +0x4(%rsp)           */
-  0x74, 0x18,                               /*116: je                               */
-  0x48, 0x63, 0x44, 0x24, 0x14,             /*118: movslq  +0x14(%rsp), %rax        */
-  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*11d: mov     +0x8(%rsp), %rcx         */
-  0x48, 0xc1, 0xe0, 0x04,                   /*122: shl     $0x4, %rax               */
-  0xc7, 0x44, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00,/*126: movl    $0x2, +0x8(%rcx,%rax,1)  */
-  0xeb, 0x16,                               /*12e: jmp                              */
-  0x48, 0x63, 0x44, 0x24, 0x14,             /*130: movslq  +0x14(%rsp), %rax        */
-  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*135: mov     +0x8(%rsp), %rcx         */
-  0x48, 0xc1, 0xe0, 0x04,                   /*13a: shl     $0x4, %rax               */
-  0xc7, 0x44, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00,/*13e: movl    $0, +0x8(%rcx,%rax,1)    */
-  0x48, 0x63, 0x44, 0x24, 0x14,             /*146: movslq  +0x14(%rsp), %rax        */
-  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*14b: mov     +0x8(%rsp), %rcx         */
-  0x48, 0xc1, 0xe0, 0x04,                   /*150: shl     $0x4, %rax               */
-  0xc7, 0x04, 0x01, 0x01, 0x00, 0x00, 0x00, /*154: movl    $0x1, (%rcx,%rax,1)      */
-  0x48, 0x63, 0x44, 0x24, 0x14,             /*15b: movslq  +0x14(%rsp), %rax        */
-  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*160: mov     +0x8(%rsp), %rcx         */
-  0x48, 0xc1, 0xe0, 0x04,                   /*165: shl     $0x4, %rax               */
-  0x8b, 0x74, 0x01, 0x08,                   /*169: mov     +0x8(%rcx,%rax,1), %esi  */
-  0x8b, 0x54, 0x01, 0x18,                   /*16d: mov     +0x18(%rcx,%rax,1), %edx */
-  0x48, 0x8b, 0xbb, 0x00, 0x03, 0x00, 0x00, /*171: mov     +0x300(%rbx), %rdi       */
-  0x31, 0xc0,                               /*178: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*17a: callq   +0x170(%rbx)             */
-  0x48, 0x8b, 0x44, 0x24, 0x08,             /*180: mov     +0x8(%rsp), %rax         */
-  0x8b, 0x70, 0x18,                         /*185: mov     +0x18(%rax), %esi        */
-  0x48, 0x8b, 0xbb, 0x00, 0x03, 0x00, 0x00, /*188: mov     +0x300(%rbx), %rdi       */
-  0x31, 0xc0,                               /*18f: xor     %eax, %eax               */
-  0x89, 0xf2,                               /*191: mov     %esi, %edx               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*193: callq   +0x170(%rbx)             */
-  0xeb, 0x0b,                               /*199: jmp                              */
-  0x48, 0x8b, 0x7c, 0x24, 0x18,             /*19b: mov     +0x18(%rsp), %rdi        */
-  0xff, 0x93, 0x48, 0x02, 0x00, 0x00,       /*1a0: callq   +0x248(%rbx)             */
-  0x48, 0x89, 0xdf,                         /*1a6: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x20,                   /*1a9: add     $0x20, %rsp              */
-  0x5b,                                     /*1ad: pop     %rbx                     */
+  0x48, 0x8b, 0x44, 0x24, 0x18,             /*15: mov     +0x18(%rsp), %rax        */
+  0x48, 0x8b, 0x40, 0x18,                   /*1a: mov     +0x18(%rax), %rax        */
+  0x48, 0x89, 0x44, 0x24, 0x08,             /*1e: mov     %rax, +0x8(%rsp)         */
+  0x48, 0x63, 0x4c, 0x24, 0x14,             /*23: movslq  +0x14(%rsp), %rcx        */
+  0x48, 0xc1, 0xe1, 0x04,                   /*28: shl     $0x4, %rcx               */
+  0x0f, 0xb7, 0x54, 0x08, 0x08,             /*2c: movzwl  +0x8(%rax,%rcx,1), %edx  */
+  0xc1, 0xe2, 0x08,                         /*31: shl     $0x8, %edx               */
+  0x0f, 0xb6, 0x44, 0x08, 0x18,             /*34: movzbl  +0x18(%rax,%rcx,1), %eax */
+  0x09, 0xd0,                               /*39: or      %edx, %eax               */
+  0x3d, 0x02, 0x06, 0x00, 0x00,             /*3b: cmp     $0x602, %eax             */
+  0x7f, 0x21,                               /*40: jg                               */
+  0x3d, 0x03, 0x03, 0x00, 0x00,             /*42: cmp     $0x303, %eax             */
+  0x75, 0x37,                               /*47: jne                              */
+  0x48, 0x63, 0x44, 0x24, 0x14,             /*49: movslq  +0x14(%rsp), %rax        */
+  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*4e: mov     +0x8(%rsp), %rcx         */
+  0x48, 0xc1, 0xe0, 0x04,                   /*53: shl     $0x4, %rax               */
+  0x8b, 0x14, 0x01,                         /*57: mov     (%rcx,%rax,1), %edx      */
+  0x3b, 0x54, 0x01, 0x10,                   /*5a: cmp     +0x10(%rcx,%rax,1), %edx */
+  0x0f, 0x9c, 0xc0,                         /*5e: setl    %al                      */
+  0xeb, 0x6a,                               /*61: jmp                              */
+  0x3d, 0x03, 0x06, 0x00, 0x00,             /*63: cmp     $0x603, %eax             */
+  0x75, 0x40,                               /*68: jne                              */
+  0x48, 0x63, 0x44, 0x24, 0x14,             /*6a: movslq  +0x14(%rsp), %rax        */
+  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*6f: mov     +0x8(%rsp), %rcx         */
+  0x48, 0xc1, 0xe0, 0x04,                   /*74: shl     $0x4, %rax               */
+  0xf2, 0x0f, 0x2a, 0x44, 0x01, 0x10,       /*78: cvtsi2sdl+0x10(%rcx,%rax,1), %xmm0 */
+  0xeb, 0x45,                               /*7e: jmp                              */
+  0x3d, 0x06, 0x03, 0x00, 0x00,             /*80: cmp     $0x306, %eax             */
+  0x0f, 0x85, 0x95, 0x00, 0x00, 0x00,       /*85: jne                              */
+  0x48, 0x63, 0x44, 0x24, 0x14,             /*8b: movslq  +0x14(%rsp), %rax        */
+  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*90: mov     +0x8(%rsp), %rcx         */
+  0x48, 0xc1, 0xe0, 0x04,                   /*95: shl     $0x4, %rax               */
+  0xf2, 0x0f, 0x2a, 0x04, 0x01,             /*99: cvtsi2sdl(%rcx,%rax,1), %xmm0    */
+  0xf2, 0x0f, 0x10, 0x4c, 0x01, 0x10,       /*9e: movsd   +0x10(%rcx,%rax,1), %xmm1 */
+  0x66, 0x0f, 0x2e, 0xc8,                   /*a4: ucomisd %xmm0, %xmm1             */
+  0xeb, 0x20,                               /*a8: jmp                              */
+  0x3d, 0x06, 0x06, 0x00, 0x00,             /*aa: cmp     $0x606, %eax             */
+  0x75, 0x6f,                               /*af: jne                              */
+  0x48, 0x63, 0x44, 0x24, 0x14,             /*b1: movslq  +0x14(%rsp), %rax        */
+  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*b6: mov     +0x8(%rsp), %rcx         */
+  0x48, 0xc1, 0xe0, 0x04,                   /*bb: shl     $0x4, %rax               */
+  0xf2, 0x0f, 0x10, 0x44, 0x01, 0x10,       /*bf: movsd   +0x10(%rcx,%rax,1), %xmm0 */
+  0x66, 0x0f, 0x2e, 0x04, 0x01,             /*c5: ucomisd (%rcx,%rax,1), %xmm0     */
+  0x0f, 0x97, 0xc0,                         /*ca: seta    %al                      */
+  0x0f, 0xb6, 0xc0,                         /*cd: movzbl  %al, %eax                */
+  0x89, 0x44, 0x24, 0x04,                   /*d0: mov     %eax, +0x4(%rsp)         */
+  0x83, 0x7c, 0x24, 0x04, 0x00,             /*d4: cmpl    $0, +0x4(%rsp)           */
+  0x74, 0x18,                               /*d9: je                               */
+  0x48, 0x63, 0x44, 0x24, 0x14,             /*db: movslq  +0x14(%rsp), %rax        */
+  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*e0: mov     +0x8(%rsp), %rcx         */
+  0x48, 0xc1, 0xe0, 0x04,                   /*e5: shl     $0x4, %rax               */
+  0xc7, 0x44, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00,/*e9: movl    $0x2, +0x8(%rcx,%rax,1)  */
+  0xeb, 0x16,                               /*f1: jmp                              */
+  0x48, 0x63, 0x44, 0x24, 0x14,             /*f3: movslq  +0x14(%rsp), %rax        */
+  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*f8: mov     +0x8(%rsp), %rcx         */
+  0x48, 0xc1, 0xe0, 0x04,                   /*fd: shl     $0x4, %rax               */
+  0xc7, 0x44, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00,/*101: movl    $0, +0x8(%rcx,%rax,1)    */
+  0x48, 0x63, 0x44, 0x24, 0x14,             /*109: movslq  +0x14(%rsp), %rax        */
+  0x48, 0x8b, 0x4c, 0x24, 0x08,             /*10e: mov     +0x8(%rsp), %rcx         */
+  0x48, 0xc1, 0xe0, 0x04,                   /*113: shl     $0x4, %rax               */
+  0xc7, 0x04, 0x01, 0x01, 0x00, 0x00, 0x00, /*117: movl    $0x1, (%rcx,%rax,1)      */
+  0xeb, 0x0b,                               /*11e: jmp                              */
+  0x48, 0x8b, 0x7c, 0x24, 0x18,             /*120: mov     +0x18(%rsp), %rdi        */
+  0xff, 0x93, 0x48, 0x02, 0x00, 0x00,       /*125: callq   +0x248(%rbx)             */
+  0x48, 0x89, 0xdf,                         /*12b: mov     %rbx, %rdi               */
+  0xe8, 0xcd, 0xfe, 0xff, 0xff,             /*12e: callq                            */
+  0x48, 0x83, 0xc4, 0x20,                   /*133: add     $0x20, %rsp              */
+  0x5b,                                     /*137: pop     %rbx                     */
 
 };
 
 static void op_lt_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
   *((int32_t *)(op + 17)) = a * 1 + 0;
-  *((int32_t *)(op + 29)) = a * 1 + 0;
 }
 
 static void op_lt_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -3585,8 +3521,9 @@ static uint8_t op_le[] = {
   0x48, 0x8b, 0x7c, 0x24, 0x18,             /*120: mov     +0x18(%rsp), %rdi        */
   0xff, 0x93, 0x48, 0x02, 0x00, 0x00,       /*125: callq   +0x248(%rbx)             */
   0x48, 0x89, 0xdf,                         /*12b: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x20,                   /*12e: add     $0x20, %rsp              */
-  0x5b,                                     /*132: pop     %rbx                     */
+  0xe8, 0xcd, 0xfe, 0xff, 0xff,             /*12e: callq                            */
+  0x48, 0x83, 0xc4, 0x20,                   /*133: add     $0x20, %rsp              */
+  0x5b,                                     /*137: pop     %rbx                     */
 
 };
 
@@ -3672,8 +3609,9 @@ static uint8_t op_gt[] = {
   0x48, 0x8b, 0x7c, 0x24, 0x18,             /*122: mov     +0x18(%rsp), %rdi        */
   0xff, 0x93, 0x48, 0x02, 0x00, 0x00,       /*127: callq   +0x248(%rbx)             */
   0x48, 0x89, 0xdf,                         /*12d: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x20,                   /*130: add     $0x20, %rsp              */
-  0x5b,                                     /*134: pop     %rbx                     */
+  0xe8, 0xcb, 0xfe, 0xff, 0xff,             /*130: callq                            */
+  0x48, 0x83, 0xc4, 0x20,                   /*135: add     $0x20, %rsp              */
+  0x5b,                                     /*139: pop     %rbx                     */
 
 };
 
@@ -3759,8 +3697,9 @@ static uint8_t op_ge[] = {
   0x48, 0x8b, 0x7c, 0x24, 0x18,             /*122: mov     +0x18(%rsp), %rdi        */
   0xff, 0x93, 0x48, 0x02, 0x00, 0x00,       /*127: callq   +0x248(%rbx)             */
   0x48, 0x89, 0xdf,                         /*12d: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x20,                   /*130: add     $0x20, %rsp              */
-  0x5b,                                     /*134: pop     %rbx                     */
+  0xe8, 0xcb, 0xfe, 0xff, 0xff,             /*130: callq                            */
+  0x48, 0x83, 0xc4, 0x20,                   /*135: add     $0x20, %rsp              */
+  0x5b,                                     /*139: pop     %rbx                     */
 
 };
 
@@ -3796,9 +3735,10 @@ static uint8_t op_array[] = {
   0x48, 0x8b, 0x40, 0x58,                   /*50: mov     +0x58(%rax), %rax        */
   0x89, 0x88, 0xdc, 0x00, 0x00, 0x00,       /*54: mov     %ecx, +0xdc(%rax)        */
   0x48, 0x89, 0xdf,                         /*5a: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x18,                   /*5d: add     $0x18, %rsp              */
-  0x5b,                                     /*61: pop     %rbx                     */
-  0x41, 0x5e,                               /*62: pop     %r14                     */
+  0xe8, 0x9e, 0xff, 0xff, 0xff,             /*5d: callq                            */
+  0x48, 0x83, 0xc4, 0x18,                   /*62: add     $0x18, %rsp              */
+  0x5b,                                     /*66: pop     %rbx                     */
+  0x41, 0x5e,                               /*67: pop     %r14                     */
 
 };
 
@@ -3835,16 +3775,17 @@ static uint8_t op_arycat[] = {
   0x8b, 0x93, 0x08, 0x10, 0xab, 0x00,       /*44: mov     +0xab1008(%rbx), %edx    */
   0x48, 0x8b, 0x4c, 0x24, 0x08,             /*4a: mov     +0x8(%rsp), %rcx         */
   0x4c, 0x89, 0xf7,                         /*4f: mov     %r14, %rdi               */
-  0x41, 0xff, 0x97, 0x90, 0x01, 0x00, 0x00, /*52: callq   +0x190(%r15)             */
+  0x41, 0xff, 0x97, 0x98, 0x01, 0x00, 0x00, /*52: callq   +0x198(%r15)             */
   0x48, 0x8b, 0x44, 0x24, 0x18,             /*59: mov     +0x18(%rsp), %rax        */
   0x8b, 0x48, 0x50,                         /*5e: mov     +0x50(%rax), %ecx        */
   0x48, 0x8b, 0x40, 0x58,                   /*61: mov     +0x58(%rax), %rax        */
   0x89, 0x88, 0xdc, 0x00, 0x00, 0x00,       /*65: mov     %ecx, +0xdc(%rax)        */
   0x4c, 0x89, 0xff,                         /*6b: mov     %r15, %rdi               */
-  0x48, 0x83, 0xc4, 0x20,                   /*6e: add     $0x20, %rsp              */
-  0x5b,                                     /*72: pop     %rbx                     */
-  0x41, 0x5e,                               /*73: pop     %r14                     */
-  0x41, 0x5f,                               /*75: pop     %r15                     */
+  0xe8, 0x8d, 0xff, 0xff, 0xff,             /*6e: callq                            */
+  0x48, 0x83, 0xc4, 0x20,                   /*73: add     $0x20, %rsp              */
+  0x5b,                                     /*77: pop     %rbx                     */
+  0x41, 0x5e,                               /*78: pop     %r14                     */
+  0x41, 0x5f,                               /*7a: pop     %r15                     */
 
 };
 
@@ -3874,8 +3815,9 @@ static uint8_t op_arypush[] = {
   0x44, 0x8b, 0x80, 0x08, 0x10, 0xbc, 0x00, /*29: mov     +0xbc1008(%rax), %r8d    */
   0xff, 0x93, 0x50, 0x02, 0x00, 0x00,       /*30: callq   +0x250(%rbx)             */
   0x48, 0x89, 0xdf,                         /*36: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*39: add     $0x10, %rsp              */
-  0x5b,                                     /*3d: pop     %rbx                     */
+  0xe8, 0xc2, 0xff, 0xff, 0xff,             /*39: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*3e: add     $0x10, %rsp              */
+  0x5b,                                     /*42: pop     %rbx                     */
 
 };
 
@@ -3942,9 +3884,10 @@ static uint8_t op_aref[] = {
   0x48, 0x89, 0x90, 0x08, 0x10, 0xab, 0x00, /*d9: mov     %rdx, +0xab1008(%rax)    */
   0x48, 0x89, 0x88, 0x00, 0x10, 0xab, 0x00, /*e0: mov     %rcx, +0xab1000(%rax)    */
   0x48, 0x89, 0xdf,                         /*e7: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x38,                   /*ea: add     $0x38, %rsp              */
-  0x5b,                                     /*ee: pop     %rbx                     */
-  0x41, 0x5e,                               /*ef: pop     %r14                     */
+  0xe8, 0x11, 0xff, 0xff, 0xff,             /*ea: callq                            */
+  0x48, 0x83, 0xc4, 0x38,                   /*ef: add     $0x38, %rsp              */
+  0x5b,                                     /*f3: pop     %rbx                     */
+  0x41, 0x5e,                               /*f4: pop     %r14                     */
 
 };
 
@@ -3979,8 +3922,9 @@ static uint8_t op_aset[] = {
   0xb9, 0x00, 0x00, 0xcd, 0x00,             /*30: mov     $0xcd0000, %ecx          */
   0xff, 0x93, 0x40, 0x02, 0x00, 0x00,       /*35: callq   +0x240(%rbx)             */
   0x48, 0x89, 0xdf,                         /*3b: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*3e: add     $0x10, %rsp              */
-  0x5b,                                     /*42: pop     %rbx                     */
+  0xe8, 0xbd, 0xff, 0xff, 0xff,             /*3e: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*43: add     $0x10, %rsp              */
+  0x5b,                                     /*47: pop     %rbx                     */
 
 };
 
@@ -4168,10 +4112,11 @@ static uint8_t op_apost[] = {
   0x48, 0x8b, 0x40, 0x58,                   /*2d9: mov     +0x58(%rax), %rax        */
   0x89, 0x88, 0xdc, 0x00, 0x00, 0x00,       /*2dd: mov     %ecx, +0xdc(%rax)        */
   0x4c, 0x89, 0xf7,                         /*2e3: mov     %r14, %rdi               */
-  0x48, 0x83, 0xc4, 0x70,                   /*2e6: add     $0x70, %rsp              */
-  0x5b,                                     /*2ea: pop     %rbx                     */
-  0x41, 0x5e,                               /*2eb: pop     %r14                     */
-  0x41, 0x5f,                               /*2ed: pop     %r15                     */
+  0xe8, 0x15, 0xfd, 0xff, 0xff,             /*2e6: callq                            */
+  0x48, 0x83, 0xc4, 0x70,                   /*2eb: add     $0x70, %rsp              */
+  0x5b,                                     /*2ef: pop     %rbx                     */
+  0x41, 0x5e,                               /*2f0: pop     %r14                     */
+  0x41, 0x5f,                               /*2f2: pop     %r15                     */
 
 };
 
@@ -4210,9 +4155,10 @@ static uint8_t op_string[] = {
   0x48, 0x8b, 0x40, 0x58,                   /*55: mov     +0x58(%rax), %rax        */
   0x89, 0x88, 0xdc, 0x00, 0x00, 0x00,       /*59: mov     %ecx, +0xdc(%rax)        */
   0x48, 0x89, 0xdf,                         /*5f: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x18,                   /*62: add     $0x18, %rsp              */
-  0x5b,                                     /*66: pop     %rbx                     */
-  0x41, 0x5e,                               /*67: pop     %r14                     */
+  0xe8, 0x99, 0xff, 0xff, 0xff,             /*62: callq                            */
+  0x48, 0x83, 0xc4, 0x18,                   /*67: add     $0x18, %rsp              */
+  0x5b,                                     /*6b: pop     %rbx                     */
+  0x41, 0x5e,                               /*6c: pop     %r14                     */
 
 };
 
@@ -4242,8 +4188,9 @@ static uint8_t op_strcat[] = {
   0x44, 0x8b, 0x80, 0x08, 0x10, 0xbc, 0x00, /*29: mov     +0xbc1008(%rax), %r8d    */
   0xff, 0x93, 0xf8, 0x01, 0x00, 0x00,       /*30: callq   +0x1f8(%rbx)             */
   0x48, 0x89, 0xdf,                         /*36: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*39: add     $0x10, %rsp              */
-  0x5b,                                     /*3d: pop     %rbx                     */
+  0xe8, 0xc2, 0xff, 0xff, 0xff,             /*39: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*3e: add     $0x10, %rsp              */
+  0x5b,                                     /*42: pop     %rbx                     */
 
 };
 
@@ -4308,9 +4255,10 @@ static uint8_t op_hash[] = {
   0x48, 0x8b, 0x40, 0x58,                   /*ca: mov     +0x58(%rax), %rax        */
   0x89, 0x88, 0xdc, 0x00, 0x00, 0x00,       /*ce: mov     %ecx, +0xdc(%rax)        */
   0x4c, 0x89, 0xf7,                         /*d4: mov     %r14, %rdi               */
-  0x48, 0x83, 0xc4, 0x38,                   /*d7: add     $0x38, %rsp              */
-  0x5b,                                     /*db: pop     %rbx                     */
-  0x41, 0x5e,                               /*dc: pop     %r14                     */
+  0xe8, 0x24, 0xff, 0xff, 0xff,             /*d7: callq                            */
+  0x48, 0x83, 0xc4, 0x38,                   /*dc: add     $0x38, %rsp              */
+  0x5b,                                     /*e0: pop     %rbx                     */
+  0x41, 0x5e,                               /*e1: pop     %r14                     */
 
 };
 
@@ -4326,7 +4274,7 @@ static void op_hash_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[16, 8, 346..349], [16, 0, 353..356], [16, 0, 369..372], [16, 8, 375..378], [1, 0, 388..391]]} */
+/* args: {"a"=>[[16, 8, 346..349], [16, 0, 353..356]]} */
 static uint8_t op_lambda[] = {
   0x41, 0x57,                               /*00: push    %r15                     */
   0x41, 0x56,                               /*02: push    %r14                     */
@@ -4376,7 +4324,7 @@ static uint8_t op_lambda[] = {
   0x4c, 0x8b, 0x70, 0x58,                   /*aa: mov     +0x58(%rax), %r14        */
   0x48, 0x8b, 0x44, 0x24, 0x38,             /*ae: mov     +0x38(%rsp), %rax        */
   0x4c, 0x8b, 0x78, 0x20,                   /*b3: mov     +0x20(%rax), %r15        */
-  0x49, 0x8b, 0xb4, 0x24, 0x08, 0x03, 0x00, 0x00,/*b7: mov     +0x308(%r12), %rsi       */
+  0x49, 0x8b, 0xb4, 0x24, 0xb0, 0x02, 0x00, 0x00,/*b7: mov     +0x2b0(%r12), %rsi       */
   0xba, 0x0c, 0x00, 0x00, 0x00,             /*bf: mov     $0xc, %edx               */
   0x4c, 0x89, 0xf7,                         /*c4: mov     %r14, %rdi               */
   0x41, 0xff, 0x94, 0x24, 0x80, 0x02, 0x00, 0x00,/*c7: callq   +0x280(%r12)             */
@@ -4414,32 +4362,22 @@ static uint8_t op_lambda[] = {
   0x48, 0x89, 0x8b, 0x08, 0x10, 0xab, 0x00, /*157: mov     %rcx, +0xab1008(%rbx)    */
   0x48, 0x89, 0x83, 0x00, 0x10, 0xab, 0x00, /*15e: mov     %rax, +0xab1000(%rbx)    */
   0x48, 0x8b, 0x44, 0x24, 0x40,             /*165: mov     +0x40(%rsp), %rax        */
-  0x48, 0x8b, 0x40, 0x18,                   /*16a: mov     +0x18(%rax), %rax        */
-  0x48, 0x8b, 0x90, 0x00, 0x10, 0xab, 0x00, /*16e: mov     +0xab1000(%rax), %rdx    */
-  0x8b, 0x88, 0x08, 0x10, 0xab, 0x00,       /*175: mov     +0xab1008(%rax), %ecx    */
-  0x49, 0x8b, 0xbc, 0x24, 0x10, 0x03, 0x00, 0x00,/*17b: mov     +0x310(%r12), %rdi       */
-  0xbe, 0x00, 0x00, 0xab, 0x00,             /*183: mov     $0xab0000, %esi          */
-  0x31, 0xc0,                               /*188: xor     %eax, %eax               */
-  0x41, 0xff, 0x94, 0x24, 0x70, 0x01, 0x00, 0x00,/*18a: callq   +0x170(%r12)             */
-  0x48, 0x8b, 0x44, 0x24, 0x40,             /*192: mov     +0x40(%rsp), %rax        */
-  0x8b, 0x48, 0x50,                         /*197: mov     +0x50(%rax), %ecx        */
-  0x48, 0x8b, 0x40, 0x58,                   /*19a: mov     +0x58(%rax), %rax        */
-  0x89, 0x88, 0xdc, 0x00, 0x00, 0x00,       /*19e: mov     %ecx, +0xdc(%rax)        */
-  0x4c, 0x89, 0xe7,                         /*1a4: mov     %r12, %rdi               */
-  0x48, 0x83, 0xc4, 0x48,                   /*1a7: add     $0x48, %rsp              */
-  0x5b,                                     /*1ab: pop     %rbx                     */
-  0x41, 0x5c,                               /*1ac: pop     %r12                     */
-  0x41, 0x5e,                               /*1ae: pop     %r14                     */
-  0x41, 0x5f,                               /*1b0: pop     %r15                     */
+  0x8b, 0x48, 0x50,                         /*16a: mov     +0x50(%rax), %ecx        */
+  0x48, 0x8b, 0x40, 0x58,                   /*16d: mov     +0x58(%rax), %rax        */
+  0x89, 0x88, 0xdc, 0x00, 0x00, 0x00,       /*171: mov     %ecx, +0xdc(%rax)        */
+  0x4c, 0x89, 0xe7,                         /*177: mov     %r12, %rdi               */
+  0xe8, 0x81, 0xfe, 0xff, 0xff,             /*17a: callq                            */
+  0x48, 0x83, 0xc4, 0x48,                   /*17f: add     $0x48, %rsp              */
+  0x5b,                                     /*183: pop     %rbx                     */
+  0x41, 0x5c,                               /*184: pop     %r12                     */
+  0x41, 0x5e,                               /*186: pop     %r14                     */
+  0x41, 0x5f,                               /*188: pop     %r15                     */
 
 };
 
 static void op_lambda_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
   *((int32_t *)(op + 346)) = a * 16 + 8;
   *((int32_t *)(op + 353)) = a * 16 + 0;
-  *((int32_t *)(op + 369)) = a * 16 + 0;
-  *((int32_t *)(op + 375)) = a * 16 + 8;
-  *((int32_t *)(op + 388)) = a * 1 + 0;
 }
 
 static void op_lambda_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -4477,9 +4415,10 @@ static uint8_t op_range[] = {
   0x48, 0x8b, 0x40, 0x58,                   /*75: mov     +0x58(%rax), %rax        */
   0x89, 0x88, 0xdc, 0x00, 0x00, 0x00,       /*79: mov     %ecx, +0xdc(%rax)        */
   0x4c, 0x89, 0xf7,                         /*7f: mov     %r14, %rdi               */
-  0x48, 0x83, 0xc4, 0x28,                   /*82: add     $0x28, %rsp              */
-  0x5b,                                     /*86: pop     %rbx                     */
-  0x41, 0x5e,                               /*87: pop     %r14                     */
+  0xe8, 0x79, 0xff, 0xff, 0xff,             /*82: callq                            */
+  0x48, 0x83, 0xc4, 0x28,                   /*87: add     $0x28, %rsp              */
+  0x5b,                                     /*8b: pop     %rbx                     */
+  0x41, 0x5e,                               /*8c: pop     %r14                     */
 
 };
 
@@ -4512,9 +4451,10 @@ static uint8_t op_oclass[] = {
   0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*32: mov     %rcx, +0xab1008(%r14)    */
   0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*39: mov     %rax, +0xab1000(%r14)    */
   0x48, 0x89, 0xdf,                         /*40: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x18,                   /*43: add     $0x18, %rsp              */
-  0x5b,                                     /*47: pop     %rbx                     */
-  0x41, 0x5e,                               /*48: pop     %r14                     */
+  0xe8, 0xb8, 0xff, 0xff, 0xff,             /*43: callq                            */
+  0x48, 0x83, 0xc4, 0x18,                   /*48: add     $0x18, %rsp              */
+  0x5b,                                     /*4c: pop     %rbx                     */
+  0x41, 0x5e,                               /*4d: pop     %r14                     */
 
 };
 
@@ -4600,10 +4540,11 @@ static uint8_t op_class[] = {
   0x48, 0x8b, 0x40, 0x58,                   /*132: mov     +0x58(%rax), %rax        */
   0x89, 0x88, 0xdc, 0x00, 0x00, 0x00,       /*136: mov     %ecx, +0xdc(%rax)        */
   0x4c, 0x89, 0xf7,                         /*13c: mov     %r14, %rdi               */
-  0x48, 0x83, 0xc4, 0x60,                   /*13f: add     $0x60, %rsp              */
-  0x5b,                                     /*143: pop     %rbx                     */
-  0x41, 0x5e,                               /*144: pop     %r14                     */
-  0x41, 0x5f,                               /*146: pop     %r15                     */
+  0xe8, 0xbc, 0xfe, 0xff, 0xff,             /*13f: callq                            */
+  0x48, 0x83, 0xc4, 0x60,                   /*144: add     $0x60, %rsp              */
+  0x5b,                                     /*148: pop     %rbx                     */
+  0x41, 0x5e,                               /*149: pop     %r14                     */
+  0x41, 0x5f,                               /*14b: pop     %r15                     */
 
 };
 
@@ -4679,10 +4620,11 @@ static uint8_t op_module[] = {
   0x48, 0x8b, 0x40, 0x58,                   /*101: mov     +0x58(%rax), %rax        */
   0x89, 0x88, 0xdc, 0x00, 0x00, 0x00,       /*105: mov     %ecx, +0xdc(%rax)        */
   0x4c, 0x89, 0xf7,                         /*10b: mov     %r14, %rdi               */
-  0x48, 0x83, 0xc4, 0x50,                   /*10e: add     $0x50, %rsp              */
-  0x5b,                                     /*112: pop     %rbx                     */
-  0x41, 0x5e,                               /*113: pop     %r14                     */
-  0x41, 0x5f,                               /*115: pop     %r15                     */
+  0xe8, 0xed, 0xfe, 0xff, 0xff,             /*10e: callq                            */
+  0x48, 0x83, 0xc4, 0x50,                   /*113: add     $0x50, %rsp              */
+  0x5b,                                     /*117: pop     %rbx                     */
+  0x41, 0x5e,                               /*118: pop     %r14                     */
+  0x41, 0x5f,                               /*11a: pop     %r15                     */
 
 };
 
@@ -4804,7 +4746,7 @@ static uint8_t op_exec[] = {
   0x48, 0x8b, 0x78, 0x58,                   /*1d5: mov     +0x58(%rax), %rdi        */
   0x0f, 0xb7, 0x71, 0x02,                   /*1d9: movzwl  +0x2(%rcx), %esi         */
   0xba, 0x01, 0x00, 0x00, 0x00,             /*1dd: mov     $0x1, %edx               */
-  0x41, 0xff, 0x96, 0x40, 0x01, 0x00, 0x00, /*1e2: callq   +0x140(%r14)             */
+  0x41, 0xff, 0x96, 0x30, 0x01, 0x00, 0x00, /*1e2: callq   +0x130(%r14)             */
   0x48, 0x8b, 0x44, 0x24, 0x40,             /*1e9: mov     +0x40(%rsp), %rax        */
   0x48, 0x8b, 0x40, 0x08,                   /*1ee: mov     +0x8(%rax), %rax         */
   0x0f, 0xb7, 0x40, 0x02,                   /*1f2: movzwl  +0x2(%rax), %eax         */
@@ -4832,9 +4774,10 @@ static uint8_t op_exec[] = {
   0x48, 0x8b, 0x78, 0x58,                   /*24d: mov     +0x58(%rax), %rdi        */
   0x41, 0xff, 0x96, 0x58, 0x01, 0x00, 0x00, /*251: callq   +0x158(%r14)             */
   0x4c, 0x89, 0xf7,                         /*258: mov     %r14, %rdi               */
-  0x48, 0x83, 0xc4, 0x48,                   /*25b: add     $0x48, %rsp              */
-  0x5b,                                     /*25f: pop     %rbx                     */
-  0x41, 0x5e,                               /*260: pop     %r14                     */
+  0xe8, 0xa0, 0xfd, 0xff, 0xff,             /*25b: callq                            */
+  0x48, 0x83, 0xc4, 0x48,                   /*260: add     $0x48, %rsp              */
+  0x5b,                                     /*264: pop     %rbx                     */
+  0x41, 0x5e,                               /*265: pop     %r14                     */
 
 };
 
@@ -4848,7 +4791,7 @@ static void op_exec_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[1, 0, 19..22], [16, 0, 61..64], [16, 8, 67..70], [1, 0, 79..82]], "b"=>[[4, 0, 115..118]]} */
+/* args: {"a"=>[[1, 0, 19..22]], "b"=>[[4, 0, 68..71]]} */
 static uint8_t op_method[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
@@ -4860,44 +4803,33 @@ static uint8_t op_method[] = {
   0x48, 0x8b, 0x4c, 0x24, 0x10,             /*1c: mov     +0x10(%rsp), %rcx        */
   0x48, 0x8b, 0x49, 0x18,                   /*21: mov     +0x18(%rcx), %rcx        */
   0x48, 0xc1, 0xe0, 0x04,                   /*25: shl     $0x4, %rax               */
-  0x48, 0x8b, 0x04, 0x01,                   /*29: mov     (%rcx,%rax,1), %rax      */
-  0x48, 0x89, 0x04, 0x24,                   /*2d: mov     %rax, (%rsp)             */
+  0x48, 0x8b, 0x34, 0x01,                   /*29: mov     (%rcx,%rax,1), %rsi      */
+  0x48, 0x89, 0x34, 0x24,                   /*2d: mov     %rsi, (%rsp)             */
   0x48, 0x8b, 0x44, 0x24, 0x10,             /*31: mov     +0x10(%rsp), %rax        */
-  0x48, 0x8b, 0x40, 0x18,                   /*36: mov     +0x18(%rax), %rax        */
-  0x48, 0x8b, 0x90, 0x00, 0x10, 0xab, 0x00, /*3a: mov     +0xab1000(%rax), %rdx    */
-  0x8b, 0x88, 0x08, 0x10, 0xab, 0x00,       /*41: mov     +0xab1008(%rax), %ecx    */
-  0x49, 0x8b, 0xbe, 0x18, 0x03, 0x00, 0x00, /*47: mov     +0x318(%r14), %rdi       */
-  0xbe, 0x00, 0x00, 0xab, 0x00,             /*4e: mov     $0xab0000, %esi          */
-  0x31, 0xc0,                               /*53: xor     %eax, %eax               */
-  0x41, 0xff, 0x96, 0x70, 0x01, 0x00, 0x00, /*55: callq   +0x170(%r14)             */
-  0x48, 0x8b, 0x44, 0x24, 0x10,             /*5c: mov     +0x10(%rsp), %rax        */
-  0x48, 0x8b, 0x78, 0x58,                   /*61: mov     +0x58(%rax), %rdi        */
-  0x48, 0x8b, 0x34, 0x24,                   /*65: mov     (%rsp), %rsi             */
-  0x48, 0x8b, 0x58, 0x18,                   /*69: mov     +0x18(%rax), %rbx        */
-  0x48, 0x8b, 0x40, 0x28,                   /*6d: mov     +0x28(%rax), %rax        */
-  0x8b, 0x90, 0x00, 0x04, 0xbc, 0x00,       /*71: mov     +0xbc0400(%rax), %edx    */
-  0x48, 0x63, 0x44, 0x24, 0x0c,             /*77: movslq  +0xc(%rsp), %rax         */
-  0x48, 0xc1, 0xe0, 0x04,                   /*7c: shl     $0x4, %rax               */
-  0x48, 0x8b, 0x4c, 0x18, 0x10,             /*80: mov     +0x10(%rax,%rbx,1), %rcx */
-  0x44, 0x8b, 0x44, 0x18, 0x18,             /*85: mov     +0x18(%rax,%rbx,1), %r8d */
-  0x41, 0xff, 0x96, 0xe8, 0x00, 0x00, 0x00, /*8a: callq   +0xe8(%r14)              */
-  0x48, 0x8b, 0x44, 0x24, 0x10,             /*91: mov     +0x10(%rsp), %rax        */
-  0x8b, 0x48, 0x50,                         /*96: mov     +0x50(%rax), %ecx        */
-  0x48, 0x8b, 0x40, 0x58,                   /*99: mov     +0x58(%rax), %rax        */
-  0x89, 0x88, 0xdc, 0x00, 0x00, 0x00,       /*9d: mov     %ecx, +0xdc(%rax)        */
-  0x4c, 0x89, 0xf7,                         /*a3: mov     %r14, %rdi               */
-  0x48, 0x83, 0xc4, 0x18,                   /*a6: add     $0x18, %rsp              */
-  0x5b,                                     /*aa: pop     %rbx                     */
-  0x41, 0x5e,                               /*ab: pop     %r14                     */
+  0x48, 0x8b, 0x78, 0x58,                   /*36: mov     +0x58(%rax), %rdi        */
+  0x48, 0x8b, 0x58, 0x18,                   /*3a: mov     +0x18(%rax), %rbx        */
+  0x48, 0x8b, 0x40, 0x28,                   /*3e: mov     +0x28(%rax), %rax        */
+  0x8b, 0x90, 0x00, 0x04, 0xbc, 0x00,       /*42: mov     +0xbc0400(%rax), %edx    */
+  0x48, 0x63, 0x44, 0x24, 0x0c,             /*48: movslq  +0xc(%rsp), %rax         */
+  0x48, 0xc1, 0xe0, 0x04,                   /*4d: shl     $0x4, %rax               */
+  0x48, 0x8b, 0x4c, 0x18, 0x10,             /*51: mov     +0x10(%rax,%rbx,1), %rcx */
+  0x44, 0x8b, 0x44, 0x18, 0x18,             /*56: mov     +0x18(%rax,%rbx,1), %r8d */
+  0x41, 0xff, 0x96, 0xe8, 0x00, 0x00, 0x00, /*5b: callq   +0xe8(%r14)              */
+  0x48, 0x8b, 0x44, 0x24, 0x10,             /*62: mov     +0x10(%rsp), %rax        */
+  0x8b, 0x48, 0x50,                         /*67: mov     +0x50(%rax), %ecx        */
+  0x48, 0x8b, 0x40, 0x58,                   /*6a: mov     +0x58(%rax), %rax        */
+  0x89, 0x88, 0xdc, 0x00, 0x00, 0x00,       /*6e: mov     %ecx, +0xdc(%rax)        */
+  0x4c, 0x89, 0xf7,                         /*74: mov     %r14, %rdi               */
+  0xe8, 0x84, 0xff, 0xff, 0xff,             /*77: callq                            */
+  0x48, 0x83, 0xc4, 0x18,                   /*7c: add     $0x18, %rsp              */
+  0x5b,                                     /*80: pop     %rbx                     */
+  0x41, 0x5e,                               /*81: pop     %r14                     */
 
 };
 
 static void op_method_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
   *((int32_t *)(op + 19)) = a * 1 + 0;
-  *((int32_t *)(op + 61)) = a * 16 + 0;
-  *((int32_t *)(op + 67)) = a * 16 + 8;
-  *((int32_t *)(op + 79)) = a * 1 + 0;
-  *((int32_t *)(op + 115)) = b * 4 + 0;
+  *((int32_t *)(op + 68)) = b * 4 + 0;
 }
 
 static void op_method_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -4928,9 +4860,10 @@ static uint8_t op_sclass[] = {
   0x48, 0x8b, 0x40, 0x58,                   /*52: mov     +0x58(%rax), %rax        */
   0x89, 0x88, 0xdc, 0x00, 0x00, 0x00,       /*56: mov     %ecx, +0xdc(%rax)        */
   0x48, 0x89, 0xdf,                         /*5c: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x18,                   /*5f: add     $0x18, %rsp              */
-  0x5b,                                     /*63: pop     %rbx                     */
-  0x41, 0x5e,                               /*64: pop     %r14                     */
+  0xe8, 0x9c, 0xff, 0xff, 0xff,             /*5f: callq                            */
+  0x48, 0x83, 0xc4, 0x18,                   /*64: add     $0x18, %rsp              */
+  0x5b,                                     /*68: pop     %rbx                     */
+  0x41, 0x5e,                               /*69: pop     %r14                     */
 
 };
 
@@ -4946,7 +4879,7 @@ static void op_sclass_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[16, 8, 92..95], [16, 0, 99..102], [16, 0, 115..118], [16, 8, 121..124], [1, 0, 133..136]]} */
+/* args: {"a"=>[[16, 8, 92..95], [16, 0, 99..102]]} */
 static uint8_t op_tclass[] = {
   0x41, 0x57,                               /*00: push    %r15                     */
   0x41, 0x56,                               /*02: push    %r14                     */
@@ -4959,7 +4892,7 @@ static uint8_t op_tclass[] = {
   0x48, 0x8b, 0x40, 0x18,                   /*1a: mov     +0x18(%rax), %rax        */
   0x48, 0x8b, 0x40, 0x20,                   /*1e: mov     +0x20(%rax), %rax        */
   0x48, 0x83, 0x78, 0x48, 0x00,             /*22: cmpq    $0, +0x48(%rax)          */
-  0x74, 0x6a,                               /*27: je                               */
+  0x74, 0x40,                               /*27: je                               */
   0x48, 0x8b, 0x44, 0x24, 0x38,             /*29: mov     +0x38(%rsp), %rax        */
   0x4c, 0x8b, 0x70, 0x18,                   /*2e: mov     +0x18(%rax), %r14        */
   0x48, 0x8b, 0x40, 0x58,                   /*32: mov     +0x58(%rax), %rax        */
@@ -4973,54 +4906,44 @@ static uint8_t op_tclass[] = {
   0x48, 0x8b, 0x4c, 0x24, 0x08,             /*54: mov     +0x8(%rsp), %rcx         */
   0x49, 0x89, 0x8e, 0x08, 0x10, 0xab, 0x00, /*59: mov     %rcx, +0xab1008(%r14)    */
   0x49, 0x89, 0x86, 0x00, 0x10, 0xab, 0x00, /*60: mov     %rax, +0xab1000(%r14)    */
-  0x48, 0x8b, 0x44, 0x24, 0x38,             /*67: mov     +0x38(%rsp), %rax        */
-  0x48, 0x8b, 0x40, 0x18,                   /*6c: mov     +0x18(%rax), %rax        */
-  0x48, 0x8b, 0x90, 0x00, 0x10, 0xab, 0x00, /*70: mov     +0xab1000(%rax), %rdx    */
-  0x8b, 0x88, 0x08, 0x10, 0xab, 0x00,       /*77: mov     +0xab1008(%rax), %ecx    */
-  0x48, 0x8b, 0xbb, 0x18, 0x03, 0x00, 0x00, /*7d: mov     +0x318(%rbx), %rdi       */
-  0xbe, 0x00, 0x00, 0xab, 0x00,             /*84: mov     $0xab0000, %esi          */
-  0x31, 0xc0,                               /*89: xor     %eax, %eax               */
-  0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*8b: callq   +0x170(%rbx)             */
-  0xeb, 0x71,                               /*91: jmp                              */
-  0x4c, 0x8b, 0x74, 0x24, 0x30,             /*93: mov     +0x30(%rsp), %r14        */
-  0x48, 0x8b, 0x83, 0xa0, 0x01, 0x00, 0x00, /*98: mov     +0x1a0(%rbx), %rax       */
-  0x48, 0x8b, 0x30,                         /*9f: mov     (%rax), %rsi             */
-  0x4c, 0x89, 0xf7,                         /*a2: mov     %r14, %rdi               */
-  0xff, 0x93, 0x10, 0x01, 0x00, 0x00,       /*a5: callq   +0x110(%rbx)             */
-  0x49, 0x89, 0xc7,                         /*ab: mov     %rax, %r15               */
-  0x48, 0x8b, 0x7c, 0x24, 0x30,             /*ae: mov     +0x30(%rsp), %rdi        */
-  0x48, 0x8b, 0xb3, 0x20, 0x03, 0x00, 0x00, /*b3: mov     +0x320(%rbx), %rsi       */
-  0xba, 0x19, 0x00, 0x00, 0x00,             /*ba: mov     $0x19, %edx              */
-  0xff, 0x53, 0x70,                         /*bf: callq   +0x70(%rbx)              */
-  0x89, 0xd1,                               /*c2: mov     %edx, %ecx               */
-  0x48, 0x89, 0x44, 0x24, 0x10,             /*c4: mov     %rax, +0x10(%rsp)        */
-  0x89, 0x4c, 0x24, 0x18,                   /*c9: mov     %ecx, +0x18(%rsp)        */
-  0x48, 0x8b, 0x54, 0x24, 0x10,             /*cd: mov     +0x10(%rsp), %rdx        */
-  0x4c, 0x89, 0xf7,                         /*d2: mov     %r14, %rdi               */
-  0x4c, 0x89, 0xfe,                         /*d5: mov     %r15, %rsi               */
-  0xff, 0x93, 0xd8, 0x01, 0x00, 0x00,       /*d8: callq   +0x1d8(%rbx)             */
-  0x48, 0x89, 0x44, 0x24, 0x20,             /*de: mov     %rax, +0x20(%rsp)        */
-  0x89, 0x54, 0x24, 0x28,                   /*e3: mov     %edx, +0x28(%rsp)        */
-  0x48, 0x8b, 0x44, 0x24, 0x20,             /*e7: mov     +0x20(%rsp), %rax        */
-  0x48, 0x8b, 0x4c, 0x24, 0x38,             /*ec: mov     +0x38(%rsp), %rcx        */
-  0x48, 0x8b, 0x49, 0x58,                   /*f1: mov     +0x58(%rcx), %rcx        */
-  0x48, 0x89, 0x41, 0x28,                   /*f5: mov     %rax, +0x28(%rcx)        */
-  0x48, 0x8b, 0x7c, 0x24, 0x38,             /*f9: mov     +0x38(%rsp), %rdi        */
-  0xff, 0x93, 0xb8, 0x01, 0x00, 0x00,       /*fe: callq   +0x1b8(%rbx)             */
-  0x48, 0x89, 0xdf,                         /*104: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x40,                   /*107: add     $0x40, %rsp              */
-  0x5b,                                     /*10b: pop     %rbx                     */
-  0x41, 0x5e,                               /*10c: pop     %r14                     */
-  0x41, 0x5f,                               /*10e: pop     %r15                     */
+  0xeb, 0x71,                               /*67: jmp                              */
+  0x4c, 0x8b, 0x74, 0x24, 0x30,             /*69: mov     +0x30(%rsp), %r14        */
+  0x48, 0x8b, 0x83, 0xa0, 0x01, 0x00, 0x00, /*6e: mov     +0x1a0(%rbx), %rax       */
+  0x48, 0x8b, 0x30,                         /*75: mov     (%rax), %rsi             */
+  0x4c, 0x89, 0xf7,                         /*78: mov     %r14, %rdi               */
+  0xff, 0x93, 0x10, 0x01, 0x00, 0x00,       /*7b: callq   +0x110(%rbx)             */
+  0x49, 0x89, 0xc7,                         /*81: mov     %rax, %r15               */
+  0x48, 0x8b, 0x7c, 0x24, 0x30,             /*84: mov     +0x30(%rsp), %rdi        */
+  0x48, 0x8b, 0xb3, 0xb8, 0x02, 0x00, 0x00, /*89: mov     +0x2b8(%rbx), %rsi       */
+  0xba, 0x19, 0x00, 0x00, 0x00,             /*90: mov     $0x19, %edx              */
+  0xff, 0x53, 0x70,                         /*95: callq   +0x70(%rbx)              */
+  0x89, 0xd1,                               /*98: mov     %edx, %ecx               */
+  0x48, 0x89, 0x44, 0x24, 0x10,             /*9a: mov     %rax, +0x10(%rsp)        */
+  0x89, 0x4c, 0x24, 0x18,                   /*9f: mov     %ecx, +0x18(%rsp)        */
+  0x48, 0x8b, 0x54, 0x24, 0x10,             /*a3: mov     +0x10(%rsp), %rdx        */
+  0x4c, 0x89, 0xf7,                         /*a8: mov     %r14, %rdi               */
+  0x4c, 0x89, 0xfe,                         /*ab: mov     %r15, %rsi               */
+  0xff, 0x93, 0xd0, 0x01, 0x00, 0x00,       /*ae: callq   +0x1d0(%rbx)             */
+  0x48, 0x89, 0x44, 0x24, 0x20,             /*b4: mov     %rax, +0x20(%rsp)        */
+  0x89, 0x54, 0x24, 0x28,                   /*b9: mov     %edx, +0x28(%rsp)        */
+  0x48, 0x8b, 0x44, 0x24, 0x20,             /*bd: mov     +0x20(%rsp), %rax        */
+  0x48, 0x8b, 0x4c, 0x24, 0x38,             /*c2: mov     +0x38(%rsp), %rcx        */
+  0x48, 0x8b, 0x49, 0x58,                   /*c7: mov     +0x58(%rcx), %rcx        */
+  0x48, 0x89, 0x41, 0x28,                   /*cb: mov     %rax, +0x28(%rcx)        */
+  0x48, 0x8b, 0x7c, 0x24, 0x38,             /*cf: mov     +0x38(%rsp), %rdi        */
+  0xff, 0x93, 0xb8, 0x01, 0x00, 0x00,       /*d4: callq   +0x1b8(%rbx)             */
+  0x48, 0x89, 0xdf,                         /*da: mov     %rbx, %rdi               */
+  0xe8, 0x1e, 0xff, 0xff, 0xff,             /*dd: callq                            */
+  0x48, 0x83, 0xc4, 0x40,                   /*e2: add     $0x40, %rsp              */
+  0x5b,                                     /*e6: pop     %rbx                     */
+  0x41, 0x5e,                               /*e7: pop     %r14                     */
+  0x41, 0x5f,                               /*e9: pop     %r15                     */
 
 };
 
 static void op_tclass_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
   *((int32_t *)(op + 92)) = a * 16 + 8;
   *((int32_t *)(op + 99)) = a * 16 + 0;
-  *((int32_t *)(op + 115)) = a * 16 + 0;
-  *((int32_t *)(op + 121)) = a * 16 + 8;
-  *((int32_t *)(op + 133)) = a * 1 + 0;
 }
 
 static void op_tclass_set_args_from_code(uint8_t *op, mrb_code c) {
@@ -5034,15 +4957,16 @@ static uint8_t op_debug[] = {
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
-  0x48, 0x8b, 0xbb, 0x28, 0x03, 0x00, 0x00, /*0d: mov     +0x328(%rbx), %rdi       */
+  0x48, 0x8b, 0xbb, 0xc0, 0x02, 0x00, 0x00, /*0d: mov     +0x2c0(%rbx), %rdi       */
   0xbe, 0x00, 0x00, 0xab, 0x00,             /*14: mov     $0xab0000, %esi          */
   0xba, 0x00, 0x00, 0xbc, 0x00,             /*19: mov     $0xbc0000, %edx          */
   0xb9, 0x00, 0x00, 0xcd, 0x00,             /*1e: mov     $0xcd0000, %ecx          */
   0x31, 0xc0,                               /*23: xor     %eax, %eax               */
   0xff, 0x93, 0x70, 0x01, 0x00, 0x00,       /*25: callq   +0x170(%rbx)             */
   0x48, 0x89, 0xdf,                         /*2b: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*2e: add     $0x10, %rsp              */
-  0x5b,                                     /*32: pop     %rbx                     */
+  0xe8, 0xcd, 0xff, 0xff, 0xff,             /*2e: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*33: add     $0x10, %rsp              */
+  0x5b,                                     /*37: pop     %rbx                     */
 
 };
 
@@ -5063,10 +4987,11 @@ static uint8_t op_stop[] = {
   0x48, 0x83, 0xec, 0x10,                   /*01: sub     $0x10, %rsp              */
   0x48, 0x89, 0xfb,                         /*05: mov     %rdi, %rbx               */
   0x48, 0x89, 0x5c, 0x24, 0x08,             /*08: mov     %rbx, +0x8(%rsp)         */
-  0xff, 0x93, 0xd0, 0x01, 0x00, 0x00,       /*0d: callq   +0x1d0(%rbx)             */
+  0xff, 0x93, 0xd8, 0x01, 0x00, 0x00,       /*0d: callq   +0x1d8(%rbx)             */
   0x48, 0x89, 0xdf,                         /*13: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x10,                   /*16: add     $0x10, %rsp              */
-  0x5b,                                     /*1a: pop     %rbx                     */
+  0xe8, 0xe5, 0xff, 0xff, 0xff,             /*16: callq                            */
+  0x48, 0x83, 0xc4, 0x10,                   /*1b: add     $0x10, %rsp              */
+  0x5b,                                     /*1f: pop     %rbx                     */
 
 };
 
@@ -5103,7 +5028,7 @@ static uint8_t op_err[] = {
   0x8b, 0x4c, 0x24, 0x30,                   /*5a: mov     +0x30(%rsp), %ecx        */
   0x4c, 0x89, 0xf7,                         /*5e: mov     %r14, %rdi               */
   0x48, 0x89, 0xc6,                         /*61: mov     %rax, %rsi               */
-  0xff, 0x93, 0xd8, 0x01, 0x00, 0x00,       /*64: callq   +0x1d8(%rbx)             */
+  0xff, 0x93, 0xd0, 0x01, 0x00, 0x00,       /*64: callq   +0x1d0(%rbx)             */
   0x48, 0x89, 0x44, 0x24, 0x08,             /*6a: mov     %rax, +0x8(%rsp)         */
   0x89, 0x54, 0x24, 0x10,                   /*6f: mov     %edx, +0x10(%rsp)        */
   0x48, 0x8b, 0x44, 0x24, 0x08,             /*73: mov     +0x8(%rsp), %rax         */
@@ -5117,9 +5042,10 @@ static uint8_t op_err[] = {
   0x48, 0x8b, 0x7c, 0x24, 0x40,             /*99: mov     +0x40(%rsp), %rdi        */
   0xff, 0x93, 0xb8, 0x01, 0x00, 0x00,       /*9e: callq   +0x1b8(%rbx)             */
   0x48, 0x89, 0xdf,                         /*a4: mov     %rbx, %rdi               */
-  0x48, 0x83, 0xc4, 0x48,                   /*a7: add     $0x48, %rsp              */
-  0x5b,                                     /*ab: pop     %rbx                     */
-  0x41, 0x5e,                               /*ac: pop     %r14                     */
+  0xe8, 0x54, 0xff, 0xff, 0xff,             /*a7: callq                            */
+  0x48, 0x83, 0xc4, 0x48,                   /*ac: add     $0x48, %rsp              */
+  0x5b,                                     /*b0: pop     %rbx                     */
+  0x41, 0x5e,                               /*b1: pop     %r14                     */
 
 };
 
@@ -5136,82 +5062,82 @@ typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c);
 static jit_args_func_t arg_funcs[76];
 static uint8_t* ops[76];
 static size_t op_sizes[] = {
-  sizeof(op_nop), /* 4 */
-  sizeof(op_move), /* 155 */
-  sizeof(op_loadl), /* 40 */
-  sizeof(op_loadi), /* 89 */
-  sizeof(op_loadsym), /* 42 */
-  sizeof(op_loadnil), /* 72 */
-  sizeof(op_loadself), /* 75 */
-  sizeof(op_loadt), /* 36 */
-  sizeof(op_loadf), /* 36 */
-  sizeof(op_getglobal), /* 80 */
-  sizeof(op_setglobal), /* 58 */
-  sizeof(op_getspecial), /* 75 */
-  sizeof(op_setspecial), /* 53 */
-  sizeof(op_getiv), /* 80 */
-  sizeof(op_setiv), /* 58 */
-  sizeof(op_getcv), /* 130 */
-  sizeof(op_setcv), /* 58 */
-  sizeof(op_getconst), /* 174 */
-  sizeof(op_setconst), /* 58 */
-  sizeof(op_getmcnst), /* 217 */
-  sizeof(op_setmcnst), /* 90 */
-  sizeof(op_getupvar), /* 163 */
-  sizeof(op_setupvar), /* 145 */
-  sizeof(op_jmp), /* 4 */
-  sizeof(op_jmpif), /* 15 */
-  sizeof(op_jmpnot), /* 11 */
-  sizeof(op_onerr), /* 203 */
-  sizeof(op_rescue), /* 64 */
-  sizeof(op_poperr), /* 71 */
-  sizeof(op_raise), /* 51 */
-  sizeof(op_epush), /* 247 */
-  sizeof(op_epop), /* 158 */
-  sizeof(op_send), /* 222 */
-  sizeof(op_sendb), /* 27 */
-  sizeof(op_fsend), /* 4 */
-  sizeof(op_call), /* 864 */
-  sizeof(op_super), /* 1070 */
-  sizeof(op_argary), /* 985 */
-  sizeof(op_enter), /* 1742 */
-  sizeof(op_karg), /* 4 */
-  sizeof(op_kdict), /* 4 */
-  sizeof(op_return), /* 68 */
-  sizeof(op_tailcall), /* 813 */
-  sizeof(op_blkpush), /* 246 */
-  sizeof(op_add), /* 596 */
-  sizeof(op_addi), /* 339 */
-  sizeof(op_sub), /* 453 */
-  sizeof(op_subi), /* 327 */
-  sizeof(op_mul), /* 479 */
-  sizeof(op_div), /* 375 */
-  sizeof(op_eq), /* 378 */
-  sizeof(op_lt), /* 430 */
-  sizeof(op_le), /* 307 */
-  sizeof(op_gt), /* 309 */
-  sizeof(op_ge), /* 309 */
-  sizeof(op_array), /* 100 */
-  sizeof(op_arycat), /* 119 */
-  sizeof(op_arypush), /* 62 */
-  sizeof(op_aref), /* 241 */
-  sizeof(op_aset), /* 67 */
-  sizeof(op_apost), /* 751 */
-  sizeof(op_string), /* 105 */
-  sizeof(op_strcat), /* 62 */
-  sizeof(op_hash), /* 222 */
-  sizeof(op_lambda), /* 434 */
-  sizeof(op_range), /* 137 */
-  sizeof(op_oclass), /* 74 */
-  sizeof(op_class), /* 328 */
-  sizeof(op_module), /* 279 */
-  sizeof(op_exec), /* 610 */
-  sizeof(op_method), /* 173 */
-  sizeof(op_sclass), /* 102 */
-  sizeof(op_tclass), /* 272 */
-  sizeof(op_debug), /* 51 */
-  sizeof(op_stop), /* 27 */
-  sizeof(op_err), /* 174 */
+  sizeof(op_nop), /* 11 */
+  sizeof(op_move), /* 43 */
+  sizeof(op_loadl), /* 47 */
+  sizeof(op_loadi), /* 43 */
+  sizeof(op_loadsym), /* 49 */
+  sizeof(op_loadnil), /* 77 */
+  sizeof(op_loadself), /* 36 */
+  sizeof(op_loadt), /* 43 */
+  sizeof(op_loadf), /* 43 */
+  sizeof(op_getglobal), /* 85 */
+  sizeof(op_setglobal), /* 63 */
+  sizeof(op_getspecial), /* 80 */
+  sizeof(op_setspecial), /* 58 */
+  sizeof(op_getiv), /* 85 */
+  sizeof(op_setiv), /* 63 */
+  sizeof(op_getcv), /* 135 */
+  sizeof(op_setcv), /* 63 */
+  sizeof(op_getconst), /* 179 */
+  sizeof(op_setconst), /* 63 */
+  sizeof(op_getmcnst), /* 222 */
+  sizeof(op_setmcnst), /* 95 */
+  sizeof(op_getupvar), /* 168 */
+  sizeof(op_setupvar), /* 150 */
+  sizeof(op_jmp), /* 11 */
+  sizeof(op_jmpif), /* 22 */
+  sizeof(op_jmpnot), /* 22 */
+  sizeof(op_onerr), /* 208 */
+  sizeof(op_rescue), /* 71 */
+  sizeof(op_poperr), /* 76 */
+  sizeof(op_raise), /* 56 */
+  sizeof(op_epush), /* 252 */
+  sizeof(op_epop), /* 163 */
+  sizeof(op_send), /* 92 */
+  sizeof(op_sendb), /* 32 */
+  sizeof(op_fsend), /* 11 */
+  sizeof(op_call), /* 869 */
+  sizeof(op_super), /* 1075 */
+  sizeof(op_argary), /* 990 */
+  sizeof(op_enter), /* 1706 */
+  sizeof(op_karg), /* 11 */
+  sizeof(op_kdict), /* 11 */
+  sizeof(op_return), /* 43 */
+  sizeof(op_tailcall), /* 818 */
+  sizeof(op_blkpush), /* 251 */
+  sizeof(op_add), /* 601 */
+  sizeof(op_addi), /* 344 */
+  sizeof(op_sub), /* 458 */
+  sizeof(op_subi), /* 268 */
+  sizeof(op_mul), /* 484 */
+  sizeof(op_div), /* 380 */
+  sizeof(op_eq), /* 385 */
+  sizeof(op_lt), /* 312 */
+  sizeof(op_le), /* 312 */
+  sizeof(op_gt), /* 314 */
+  sizeof(op_ge), /* 314 */
+  sizeof(op_array), /* 105 */
+  sizeof(op_arycat), /* 124 */
+  sizeof(op_arypush), /* 67 */
+  sizeof(op_aref), /* 246 */
+  sizeof(op_aset), /* 72 */
+  sizeof(op_apost), /* 756 */
+  sizeof(op_string), /* 110 */
+  sizeof(op_strcat), /* 67 */
+  sizeof(op_hash), /* 227 */
+  sizeof(op_lambda), /* 394 */
+  sizeof(op_range), /* 142 */
+  sizeof(op_oclass), /* 79 */
+  sizeof(op_class), /* 333 */
+  sizeof(op_module), /* 284 */
+  sizeof(op_exec), /* 615 */
+  sizeof(op_method), /* 131 */
+  sizeof(op_sclass), /* 107 */
+  sizeof(op_tclass), /* 235 */
+  sizeof(op_debug), /* 56 */
+  sizeof(op_stop), /* 32 */
+  sizeof(op_err), /* 179 */
 
 };
 

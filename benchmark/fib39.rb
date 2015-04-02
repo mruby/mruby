@@ -5,4 +5,4 @@ def fib n
   fib(n-2) + fib(n-1)
 end
 
-printf fib(10)
+printf fib(39)

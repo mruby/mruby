@@ -141,14 +141,6 @@ end
 
 module X86
 
-  module CC
-    class SysV
-      def self.argument_registers
-        [:rdi, :rsi, :rdx, :rcx, :r8, :r9, *(0..7).map{|i| :"xmm#{i}"}].map{|n| Register.new n}
-      end
-    end
-  end
-
   #0x48, 0x89, 0x7d, 0xf0,                   /*09: mov     %rdi, -0x10(%rbp)        */
   #0x48, 0x8b, 0x7d, 0xf0,                   /*42: mov     -0x10(%rbp), %rdi        */
 
@@ -329,6 +321,39 @@ module X86
 
 end
 
+module X64
+  include X86
+
+  module CC
+    class SysV
+      def self.argument_registers
+        [:rdi, :rsi, :rdx, :rcx, :r8, :r9, *(0..7).map{|i| :"xmm#{i}"}].map{|n| Register.new n}
+      end
+    end
+  end
+
+  def self.registers
+    [
+      %s(rax eax ax al),
+      %s(rcx ecx cx cl),
+      %s(rdx edx dx dl),
+      %s(rbx ebx bx bl),
+      %s(rsi esi si sil),
+      %s(rdi edi di dil),
+      %s(rsp esp sp spl),
+      %s(rbp ebp bp bpl),
+      %s(r8 r8d r8w r8b),
+      %s(r9 r9d r9w r9b),
+      %s(r10 r10d r10w r10b),
+      %s(r11 r11d r11w r11b),
+      %s(r12 r12d r12w r12b),
+      %s(r13 r13d r13w r13b),
+      %s(r14 r14d r14w r14b),
+      %s(r15 r15d r15w r15b),
+    ]
+  end
+end
+
 Operation = Struct.new(:name, :architecture, :instructions) do
   ARCH_MAP = {
     'i386:x86-64' => :x64,
@@ -400,7 +425,7 @@ Operation = Struct.new(:name, :architecture, :instructions) do
 
   def correct!
     remove_return!
-    remove_dummy_call!
+    #remove_dummy_call!
   end
 
   def remove_dummy_call!
@@ -458,7 +483,7 @@ class OpEnter < Operation
         # FIXME: assuming argument register 1 is not clobbered.
         # Since the dummy call is at the bottom of the function
         # that should normally not happen, though.
-        body << X86::JumpInstruction.register(X86::CC::SysV.argument_registers[1])
+        body << X64::JumpInstruction.register(X64::CC::SysV.argument_registers[1])
       else
         raise
       end
@@ -477,6 +502,48 @@ class OpJmpnot < Operation
     end
   end
 end
+
+class OpMove < Operation
+  def correct!
+    super
+    begin
+      if body.first.target.base.name == :rsp
+        body.delete_at 0
+      end
+    rescue StandardError
+    end
+  end
+end
+
+class OpLoadself < Operation
+  def correct!
+    super
+    begin
+      if body.first.target.base.name == :rsp
+        body.delete_at 0
+      end
+    rescue StandardError
+    end
+  end
+end
+
+class OpLoadi < Operation
+  def correct!
+    return super
+
+    op = body.first.target
+    if op.respond_to?(:base) && op.base && op.base.name == :rsp
+      body.delete_at 0
+    end
+    idx = body.index do |i|
+      op = i.source
+      op.respond_to?(:base) && op.base.name && op.base.name == :rsp
+    end
+    body.delete_at -2
+    body.delete_at idx if idx
+  end
+end
+
 
 class OpReturn < Operation
   def correct!
@@ -510,12 +577,9 @@ def _argument_usage
   # is right at start of line
   data.scan(/(op_\w+)\s*\(([^\)]*)\)\s*\{(.*?)^\}/m) do |h|
     op = $1
-    p $3 if op == 'op_tclass'
     args = $3.scan(/GETARG_(\w+)\s*\(/).flatten
-    p args if op == 'op_tclass'
     args_hash = {}
     args.each do |arg|
-      p arg
       raise unless arg =~ /([ABCcb])/
       args_hash[$1.downcase.to_sym] = arg
     end
