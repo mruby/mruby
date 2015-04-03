@@ -1,4 +1,4 @@
-#define SYMTBL_SIZE 79
+#define SYMTBL_SIZE 83
 static void* symtbl[SYMTBL_SIZE];
 void init_symtbl() {
   static int init = 0;
@@ -13,8 +13,8 @@ void init_symtbl() {
     symtbl[6] = (void *) mrb_obj_eq;
     symtbl[7] = (void *) value_move;
     symtbl[8] = (void *) mrb_vm_define_module;
-    symtbl[9] = (void *) mrb_nil_value;
-    symtbl[10] = (void *) mrb_vm_iv_get;
+    symtbl[9] = (void *) mrb_vm_iv_get;
+    symtbl[10] = (void *) mrb_nil_value;
     symtbl[11] = (void *) mrb_singleton_class;
     symtbl[12] = (void *) mrb_method_search_vm;
     symtbl[13] = (void *) mrb_ary_new_capa;
@@ -29,8 +29,8 @@ void init_symtbl() {
     symtbl[22] = (void *) mrb_convert_type;
     symtbl[23] = (void *) mrb_realloc;
     symtbl[24] = (void *) mrb_vm_special_set;
-    symtbl[25] = (void *) mrb_proc_new;
-    symtbl[26] = (void *) stack_extend;
+    symtbl[25] = (void *) stack_extend;
+    symtbl[26] = (void *) mrb_proc_new;
     symtbl[27] = (void *) mrb_str_plus;
     symtbl[28] = (void *) mrb_symbol_value;
     symtbl[29] = (void *) mrb_obj_iv_get;
@@ -41,16 +41,16 @@ void init_symtbl() {
     symtbl[34] = (void *) mrb_range_new;
     symtbl[35] = (void *) mrb_vm_define_class;
     symtbl[36] = (void *) mrb_int_add_overflow;
-    symtbl[37] = (void *) mrb_ary_concat;
-    symtbl[38] = (void *) mrb_gv_get;
+    symtbl[37] = (void *) mrb_gv_get;
+    symtbl[38] = (void *) mrb_ary_concat;
     symtbl[39] = (void *) _mrb_str_const_type_error;
     symtbl[40] = (void *) mrb_hash_set;
     symtbl[41] = (void *) localjump_error;
     symtbl[42] = (void *) _op_raise;
     symtbl[43] = (void *) mrb_vm_const_set;
     symtbl[44] = (void *) mrb_str_dup;
-    symtbl[45] = (void *) mrb_exc_new_str;
-    symtbl[46] = (void *) _op_stop;
+    symtbl[45] = (void *) _op_stop;
+    symtbl[46] = (void *) mrb_exc_new_str;
     symtbl[47] = (void *) _op_send;
     symtbl[48] = (void *) mrb_gc_protect;
     symtbl[49] = (void *) mrb_vm_iv_set;
@@ -74,14 +74,18 @@ void init_symtbl() {
     symtbl[67] = (void *) mrb_intern_static;
     symtbl[68] = (void *) argnum_error;
     symtbl[69] = (void *) _str_const_loadi;
-    symtbl[70] = (void *) _str_const_method_missing;
-    symtbl[71] = (void *) _str_const_super_outside_method;
-    symtbl[72] = (void *) _str_const_proc;
-    symtbl[73] = (void *) _str_const_to_proc;
-    symtbl[74] = (void *) _str_const_op_enter;
-    symtbl[75] = (void *) _str_const_op_addi;
-    symtbl[76] = (void *) _str_const_attached;
-    symtbl[77] = (void *) _str_const_no_target_class;
-    symtbl[78] = (void *) _str_const_op_debug_format;
+    symtbl[70] = (void *) _str_const_loadnil;
+    symtbl[71] = (void *) _str_const_op_send;
+    symtbl[72] = (void *) _str_const_method_missing;
+    symtbl[73] = (void *) _str_const_super_outside_method;
+    symtbl[74] = (void *) _str_const_proc;
+    symtbl[75] = (void *) _str_const_to_proc;
+    symtbl[76] = (void *) _str_const_op_enter;
+    symtbl[77] = (void *) _str_const_op_return;
+    symtbl[78] = (void *) _str_const_op_addi;
+    symtbl[79] = (void *) _str_const_attached;
+    symtbl[80] = (void *) _str_const_no_target_class;
+    symtbl[81] = (void *) _str_const_op_debug_format;
+    symtbl[82] = (void *) _str_const_stop;
   }
 }

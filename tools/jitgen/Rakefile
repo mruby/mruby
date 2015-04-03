@@ -1,6 +1,10 @@
 require 'stringio'
 
 Register = Struct.new(:name) do
+  def self.[](*args)
+    new *args
+  end
+
   def inspect
     "%#{name}"
   end
@@ -439,9 +443,33 @@ Operation = Struct.new(:name, :architecture, :instructions) do
     klass.new func_name, arch, body
   end
 
+  def remove_bogus_stack_adds!
+    add_idx = body.rindex do |inst|
+      inst.name == 'add' && inst.target.alias?(X86::Register[:rsp])
+    end
+
+    if add_idx
+      add = body[add_idx]
+      sub_idx = body.index do |inst|
+        inst.name == 'sub' && inst.target.alias?(X86::Register[:rsp])
+      end
+
+      if sub_idx
+        raise unless body[sub_idx].source == add.source
+      else
+        body.delete_at add_idx
+      end
+    end
+  end
+
+  def correct_stack!
+    remove_bogus_stack_adds!
+  end
+
   def correct!
     remove_return!
     remove_dummy_call!
+    correct_stack!
   end
 
   def remove_dummy_call!
@@ -756,8 +784,10 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
   end
 
   file.puts "typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c);"
+  file.puts "typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c);"
   file.puts "static jit_args_func_t arg_funcs[#{operations.size}];"
   file.puts "static uint8_t* ops[#{operations.size}];"
+  file.puts "static char *op_names[#{operations.size}];"
 
   file.puts "static size_t op_sizes[] = {\n"
   operations.each do |op|
@@ -775,6 +805,7 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
   file.puts "    init_symtbl();"
   operations.each_with_index do |op, index|
     file.puts "    ops[#{index}] = #{op.name};"
+    file.puts "    op_names[#{index}] = \"#{op.name}\";"
     file.puts "    arg_funcs[#{index}] = #{op.name}_set_args_from_code;"
   end
   file.puts "  }"

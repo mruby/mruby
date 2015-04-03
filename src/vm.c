@@ -1053,6 +1053,7 @@ op_poperr(struct op_ctx *ctx) {
 
 static void
 _op_stop(struct op_ctx *ctx) {
+  printf("op stop\n");
   {
     int eidx_stop = ctx->mrb->c->ci == ctx->mrb->c->cibase ? 0 : ctx->mrb->c->ci[-1].eidx;
     int eidx = ctx->mrb->c->ci->eidx;
@@ -1167,22 +1168,26 @@ op_epop(struct op_ctx *ctx) {
   }
 }
 
-static char _str_const_loadnil[] = "loadi: %d <- ty %d\n";
+static char _str_const_loadnil[] = "loadnil: %d <- ty %d\n";
 static FORCE_INLINE void
 op_loadnil(struct op_ctx *ctx) {
   /* A     R(A) := nil */
-  //printf(_str_const_loadnil, a, mrb_type(ctx->regs[a]));
   SET_NIL_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))]);
+  printf(_str_const_loadnil, GETARG_A(CTX_I(ctx)), mrb_type(ctx->regs[GETARG_A(CTX_I(ctx))]));
 }
 
 static inline void
 _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
+
   struct RProc *m;
   struct RClass *c;
   mrb_callinfo *ci;
   mrb_value recv, result;
   mrb_sym mid = ctx->syms[b];
+
+  printf("_op_send %s: %p %d %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, b, n);
+  opcode = 32;
 
   recv = ctx->regs[a];
   if (opcode != OP_SENDB) {
@@ -1194,7 +1199,10 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     }
   }
   c = mrb_class(ctx->mrb, recv);
+
+  printf("op send seach %p\n", c);
   m = mrb_method_search_vm(ctx->mrb, &c, mid);
+  printf("op send seach %p\n", m);
   if (!m) {
     mrb_value sym = mrb_symbol_value(mid);
 
@@ -1222,15 +1230,24 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   /* prepare stack */
   ctx->mrb->c->stack += a;
 
+  printf("op send %d %d %d %d\n", opcode, a, b, n);
+  printf("op send %p\n", m);
+  printf("op send %d\n", (ctx->run_flags & MRB_RUN_JIT));
+  printf("op send %d\n", !MRB_PROC_JITTED_P(m));
 #ifdef MRB_ENABLE_JIT
   if ((ctx->run_flags & MRB_RUN_JIT) && !MRB_PROC_JITTED_P(m)) {
+    printf("op send 00\n");
     mrb_proc_jit_prepare(m);
+    printf("op send 01\n");
     int r = mrb_proc_jit(m);
+    printf("op send 02\n");
   }
 #endif
 
+  printf("op send 1\n");
 
   if (MRB_PROC_CFUNC_P(m)) {
+    printf("c func\n");
     if (n == CALL_MAXARGS) {
       ci->argc = -1;
       ci->nregs = 3;
@@ -1275,12 +1292,16 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     ctx->regs = ctx->mrb->c->stack;
     ctx->pc = ctx->irep->iseq;
 
+  printf("op send 3\n");
 #ifdef MRB_ENABLE_JIT
     if(MRB_PROC_JITTED_P(m)) {
+      printf("op_send calling into jitted code %p\n", ctx);
       mrb_proc_jit_call(m, ctx);
+      printf("/op_send calling into jitted code\n");
     }
 #endif
   }
+  printf("send end\n");
 }
 
 char _str_const_op_send[] = "op_send %d %d %d\n";
@@ -1293,7 +1314,9 @@ op_send(struct op_ctx *ctx) {
   int b = GETARG_B(CTX_I(ctx));
   int n = GETARG_C(CTX_I(ctx));
 
-  return _op_send(ctx, opcode, a, b, n);
+  printf(_str_const_op_send, a, b, n);
+  _op_send(ctx, opcode, a, b, n);
+  printf(_str_const_op_send, a, b, n);
 }
 
 static FORCE_INLINE void
@@ -1400,14 +1423,16 @@ _op_return(struct op_ctx *ctx, int a, int b) {
     ctx->syms = ctx->irep->syms;
     ctx->regs[acc] = v;
   }
+  printf("op_return end %p\n", ctx);
 }
 
 static const char _str_const_op_return[] = "op_return: %d %d\n";
 static FORCE_INLINE void
 op_return(struct op_ctx *ctx) {
   /* A B     return R(A) (B=normal,in-block return/break) */
-  DEBUG(printf(_str_const_op_return, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx))));
-  return _op_return(ctx, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)));
+  printf(_str_const_op_return, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)));
+  _op_return(ctx, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)));
+  printf(_str_const_op_return, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)));
 }
 
 static FORCE_INLINE void
@@ -2234,6 +2259,8 @@ op_lt(struct op_ctx *ctx) {
   int a = GETARG_A(CTX_I(ctx));
   mrb_value *regs = ctx->regs;
   OP_CMP(<);
+  //printf(_str_const_op_lt, a);
+  //printf(_str_const_op_lt, mrb_type(regs[a]),mrb_type(regs[a+1]));
   PC_INC(ctx->pc);
 }
 
@@ -2547,8 +2574,10 @@ op_debug(struct op_ctx *ctx) {
 #endif
 }
 
+static char _str_const_stop[] = "stop\n";
 static FORCE_INLINE void
 op_stop(struct op_ctx *ctx) {
+  printf(_str_const_stop);
   return _op_stop(ctx);
 }
 
