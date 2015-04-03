@@ -186,60 +186,79 @@ mrb_proc_jit_call(struct RProc *proc, void *ctx) {
   return (*f)(ctx);
 }
 
-
-
-static int jmp_offset(mrb_code *iseq, int i);
-static size_t op_size(mrb_code *iseq, int i) {
-  mrb_code c = iseq[i];
-  size_t size = op_sizes[GET_OPCODE(c)];
-  uint8_t buf[16];
-  uint8_t *jmp_off;
-  int opcode = GET_OPCODE(c);
-
-  switch(opcode) {
+static size_t jump_size(mrb_code c, int off) {
+  uint8_t buf[64];
+  switch(GET_OPCODE(c)) {
     case OP_JMPNOT:
-      size += jit_jump_if(buf, jmp_offset(iseq, i)) - buf;
-      break;
+      /* needs je, i.e. jump if equals zero, which means value is false */
+      return jit_jump_if(buf, off) - buf;
     case OP_JMPIF:
-      size += jit_jump_not(buf, jmp_offset(iseq, i)) - buf;
-      break;
+      return jit_jump_not(buf, off) - buf;
     case OP_JMP:
-      size += jit_jump(buf, jmp_offset(iseq, i)) - buf;
-      break;
+      return jit_jump(buf, off) - buf;
+    default:
+      return (size_t) -1;
   }
-
-  return size;
 }
 
-static int jmp_offset(mrb_code *iseq, int i) {
+static int jmp_offset(mrb_code *iseq, int32_t *tbl, int i);
+static int32_t calculate_off_tbl_(mrb_code *iseq, int32_t *tbl, int i, int rel_to) {
+  printf("%d %d\n", i, rel_to);
+  int32_t off = 0;
+
+  if(tbl[i] > 0) {
+    return tbl[i] - calculate_off_tbl_(iseq, tbl, rel_to, 0);
+  }
+  else if(i == rel_to) {
+    tbl[i] = 0;
+  } else {
+    int32_t off = calculate_off_tbl_(iseq, tbl, i - 1, rel_to);
+    mrb_code c = iseq[i - 1];
+    int opcode = GET_OPCODE(c);
+    off += op_sizes[opcode];
+
+    if (opcode == OP_JMPNOT || opcode == OP_JMPIF || opcode == OP_JMP) {
+      off += jump_size(c, jmp_offset(iseq, tbl, i - 1));
+    }
+    tbl[i] = off;
+  }
+
+  return tbl[i];
+}
+
+static int32_t jmp_offset(mrb_code *iseq, int32_t *tbl, int i) {
   mrb_code c = iseq[i];
   int jit_off = 0;
   int b, e, m, j;
-  int op_off = GETARG_sBx(c);
+  int vm_off = GETARG_sBx(c);
 
-  fprintf(stderr, "jumpnot: %d\n", op_off);
+  /* The backward case is tricky, as the offset depends on
+   * the size of the jump instruction, which again depends
+   * on the offset.
+   */
+  if(vm_off < 0) {
+    fprintf(stderr, "############# negative jump: %d\n", vm_off);
+    int off_wo_jmp = calculate_off_tbl_(iseq, tbl, i, 0) - calculate_off_tbl_(iseq, tbl, i + vm_off, 0);
+    int jump_size_wo_jmp = jump_size(iseq[i], off_wo_jmp);
+    int jump_size_w_jmp = jump_size(iseq[i], off_wo_jmp + jump_size_wo_jmp);
 
-  if (op_off > 0) {
-    m = 1;
-    b = i + 1;
-    e = i + op_off;
-  } else if(op_off < 0) {
-    m = -1;
-    b = i - op_off + 1;
-    e = i;
-  } else {
+    if(jump_size_wo_jmp == jump_size_w_jmp) {
+      return off_wo_jmp + jump_size_w_jmp;
+    } else {
+      return off_wo_jmp + jump_size(iseq[i], off_wo_jmp + jump_size_w_jmp);
+    }
   }
 
-  for(j = b; j < e; j++) {
-    jit_off += op_size(iseq, j);
-    fprintf(stderr, "jumpnot: to %s %d -> %p\n", op_names[GET_OPCODE(iseq[j])], jit_off);
-  }
+  return calculate_off_tbl_(iseq, tbl, i + vm_off + 1, i + 1);
+}
 
-  jit_off *= m;
+static int32_t calculate_off_tbl(struct RProc *proc, int32_t *tbl) {
+  memset(tbl, -1, sizeof(int32_t) * (proc->body.irep->ilen + 1));
+  return calculate_off_tbl_(proc->body.irep->iseq, tbl, proc->body.irep->ilen, 0);
 }
 
 mrb_bool
-mrb_proc_jit(struct RProc *proc)
+mrb_proc_jit(mrb_state *mrb, struct RProc *proc)
 {
   if (MRB_PROC_CFUNC_P(proc)) {
     return FALSE;
@@ -247,48 +266,39 @@ mrb_proc_jit(struct RProc *proc)
     size_t size = 0;
     unsigned i  = 0;
     mrb_irep *irep = proc->body.irep;
-
+    int32_t *off_tbl = mrb_alloca(mrb, (irep->ilen + 1) * sizeof(int32_t));
     init_ops();
 
-    for (i = 0; i < irep->ilen; i++) {
-      size += op_size(irep->iseq, i);
-    }
+    size = calculate_off_tbl(proc, off_tbl);
     fprintf(stderr, "need %d bytes for jit code\n", size);
     struct mrb_jit_page *page = jit_page_alloc(size);
-    size_t off = 0;
     for (i = 0; i < irep->ilen; i++) {
       mrb_code c = irep->iseq[i];
       int opcode = GET_OPCODE(c);
-//      if(opcode == OP_ENTER || opcode == OP_LOADNIL) continue;
-//      if(opcode == OP_SEND || GET_OPCODE(irep->iseq[i]) == OP_ENTER) continue;
-      size_t size = op_size(irep->iseq, i);
-      fprintf(stderr, "copying opcode:%s (%d) to offset %d (%d bytes) (addr: %p)\n", op_names[opcode], opcode, off, size, page->data + off);
-      memcpy(page->data + off, ops[opcode], size);
+      size_t off =  off_tbl[i];
+      fprintf(stderr, "copying opcode:%s (%d) to offset %d (%d bytes) (addr: %p)\n", op_names[opcode], opcode, off, op_sizes[opcode], page->data + off);
+      memcpy(page->data + off, ops[opcode], op_sizes[opcode]);
 
       arg_funcs[opcode](page->data + off, c);
-
-      off += size;
 
       if (opcode == OP_JMPNOT || opcode == OP_JMPIF || opcode == OP_JMP) {
         int op_off = GETARG_sBx(c);
         uint8_t *jmp_off;
-        int jit_off = jmp_offset(irep->iseq, i);
+        int jit_off = off_tbl[i + op_off] - off_tbl[i + 1];
 
         if (opcode == OP_JMPNOT) {
-          jmp_off = jit_jump_if(page->data + off, jit_off);
+          jmp_off = jit_jump_if(page->data + off + op_sizes[opcode], jit_off);
         } else if(opcode == OP_JMPIF){
-          jmp_off = jit_jump_not(page->data + off, jit_off);
+          jmp_off = jit_jump_not(page->data + off + op_sizes[opcode], jit_off);
         } else {
-          jmp_off = jit_jump(page->data + off, jit_off);
+          jmp_off = jit_jump(page->data + off + op_sizes[opcode], jit_off);
         }
-        fprintf(stderr, "jumpnot: jit off %d %p\n", jit_off, jmp_off);
-
-        off += jmp_off - (page->data + off);
+        fprintf(stderr, "jump to (%d) %p\n", op_off, jmp_off + jit_off);
       }
     }
 
 
-for (i = 0; i < off; i++)
+for (i = 0; i < size; i++)
 {
   if (i > 0) printf(" ");
   printf("%02X", page->data[i]);
@@ -298,6 +308,7 @@ printf("\n");
     proc->flags |= MRB_PROC_JITTED;
     proc->jit_page = page;
     jit_page_prot_exec(page);
+
     return TRUE;
   }
 }

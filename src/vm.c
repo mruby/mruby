@@ -860,7 +860,7 @@ static FORCE_INLINE void
 op_loadself(struct op_ctx *ctx) {
   /* A      R(A) := self */
 
-  //printf(_str_const_op_loadself, mrb_type(ctx->regs[1]), mrb_type(ctx->regs[1]));
+  printf(_str_const_op_loadself, mrb_type(ctx->regs[1]), mrb_type(ctx->regs[1]));
   ctx->regs[GETARG_A(CTX_I(ctx))] = ctx->regs[0];
 }
 
@@ -1239,7 +1239,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     printf("op send 00\n");
     mrb_proc_jit_prepare(m);
     printf("op send 01\n");
-    int r = mrb_proc_jit(m);
+    int r = mrb_proc_jit(ctx->mrb, m);
     printf("op send 02\n");
   }
 #endif
@@ -2236,18 +2236,25 @@ op_subi(struct op_ctx *ctx) {
 } while(0)
 
 
+char _str_const_op_eq[] = "op_eq %ld\n";
+char _str_const_op_eqt[] = "op_eq ty %d %d\n";
 static FORCE_INLINE void
 op_eq(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)*/
   int a = GETARG_A(CTX_I(ctx));
   mrb_value *regs = ctx->regs;
+  mrb_value *regs_a = regs + a;
 
-  if (mrb_obj_eq(ctx->mrb, regs[a], regs[a+1])) {
-    SET_TRUE_VALUE(regs[a]);
+  //printf(_str_const_op_eq, a);
+
+  if (mrb_obj_eq(ctx->mrb, regs_a[0], regs_a[1])) {
+    SET_TRUE_VALUE(regs_a[0]);
   }
   else {
     OP_CMP(==);
   }
+
+  //printf(_str_const_op_eq, mrb_type(regs[a]),mrb_type(regs[a+1]));
   PC_INC(ctx->pc);
 }
 
@@ -2378,10 +2385,12 @@ op_apost(struct op_ctx *ctx) {
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
+static char _str_const_string[] = "string\n";
 static FORCE_INLINE void
 op_string(struct op_ctx *ctx) {
   /* A Bx           R(A) := str_new(Lit(Bx)) */
   ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_str_dup(ctx->mrb, ctx->pool[GETARG_Bx(CTX_I(ctx))]);
+  printf(_str_const_string);
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
@@ -3088,7 +3097,7 @@ jit:
   if (MRB_PROC_JITTED_P(proc)) {
     mrb_proc_jit_call(proc, (void *) &ctx);
   } else {
-    if (mrb_proc_jit(proc)) {
+    if (mrb_proc_jit(mrb, proc)) {
       fprintf(stderr, "before jit: %d %d\n", GET_OPCODE(ctx.i), GETARG_sBx(ctx.i));
       
       mrb_proc_jit_call(proc, (void *) &ctx);

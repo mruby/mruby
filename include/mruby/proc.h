@@ -69,7 +69,7 @@ struct RProc *mrb_closure_new(mrb_state*, mrb_irep*);
 MRB_API struct RProc *mrb_proc_new_cfunc(mrb_state*, mrb_func_t);
 MRB_API struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals);
 void mrb_proc_copy(struct RProc *a, struct RProc *b);
-mrb_bool mrb_proc_jit(struct RProc *p);
+mrb_bool mrb_proc_jit(mrb_state *mrb, struct RProc *p);
 void mrb_proc_jit_call(struct RProc *proc, void *ctx);
 void mrb_proc_jit_prepare(struct RProc *proc);
 /* implementation of #send method */
