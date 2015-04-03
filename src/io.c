@@ -351,6 +351,13 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise)
     }
   }
 
+  if (fptr->pid != 0) {
+    pid_t pid;
+    do {
+      pid = waitpid(fptr->pid, NULL, 0);
+    } while (pid == -1 && errno == EINTR);
+  }
+
   if (!noraise && n != 0) {
     mrb_sys_fail(mrb, "fptr_finalize failed.");
   }
