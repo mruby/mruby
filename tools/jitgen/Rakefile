@@ -1,597 +1,9 @@
 require 'stringio'
 
-Register = Struct.new(:name) do
-  def self.[](*args)
-    new *args
-  end
-
-  def inspect
-    "%#{name}"
-  end
-end
-
-Literal = Struct.new(:value) do
-  def inspect
-    "$%#x" % value
-  end
-end
-
-Instruction = Struct.new(:name, :operands, :bytes) do
-
-  MAGIC_ARG_CONSTS = {
-    /AB/i => 'a',
-    /BC/i => 'b',
-    /CD/i => 'c',
-  }
-
-  def arguments
-    args = Hash.new{|k, v| k[v] = []}
-    operands.map do |op|
-      MAGIC_ARG_CONSTS.each do |r, a|
-        v = case op
-        when Literal
-          op.value
-        when X86::Memory
-          op.offset
-        else
-          nil
-        end
-
-        if v && v.to_s(16) =~ /#{r}(\h\h)(\h\h)/i
-          arg_bytes = [v].pack('l<').force_encoding('ASCII-8BIT').each_codepoint.to_a
-          (bytes.size).downto(0) do |i|
-            range = (i - arg_bytes.size)...i
-            seq = bytes[range]
-            if seq == arg_bytes
-              mul_off, add_off = $1.to_i(16), $2.to_i(16)
-              mul_off = 1 if mul_off.zero?
-              args[a] << [mul_off, add_off, range]
-            end
-          end
-        end
-      end
-    end
-    args
-  end
-
-  def to_bytes
-    bytes
-  end
-
-  def source
-    operands[0]
-  end
-
-  def target
-    operands[1]
-  end
-
-  def return?
-    ['retq'].include? name
-  end
-
-  def call?
-    !!(name =~ /call/)
-  end
-
-  def move?
-    !!(name =~ /mov/)
-  end
-
-  def target_register?(reg_name)
-    target.is_a?(Register) && target.name == reg_name
-  end
-
-  def source_register?(reg_name)
-    source.is_a?(Register) && source.name == reg_name
-  end
-
-  def inspect
-    "#{name}"
-  end
-
-  def bytesize
-    bytes.size
-  end
-
-  def self.parse(str, bytes = [])
-    name, operands_str = str.split(/\s+?/, 2)
-    raise "invalid instruction #{str} (#{bytes})" if name.nil?
-    operands_str ||= ''
-    operands_str.strip!
-
-    operands = []
-    while !operands_str.empty?
-      operands << case operands_str
-      when /^\h+\s<.*?>/
-      when /^\s*,\s*/
-        nil
-      when /^\$0x(\h+)/
-        Literal.new $1.to_i(16)
-      when /^\*?%(\w+)/
-        X86::Register.new $1.to_sym
-      when /^\*?(?<offset>[+-]?0x\h+)?\((?:%(?<base>\w+))?(?:,%(?<index>\w+))?(?:,(?<scale>\d+))?\)/
-        X86::Memory.new $~[:offset] && eval($~[:offset]),
-                        $~[:base]   && X86::Register.new($~[:base].to_sym),
-                        $~[:index]  && X86::Register.new($~[:index].to_sym),
-                        $~[:scale]  && $~[:scale].to_i
-      else
-        operands << operands_str
-        puts "invalid operand `#{operands_str}' (#{str})"
-        break
-      end
-      operands_str = operands_str[$~.end(0)..-1]
-    end
-    operands.compact!
-
-    new name, operands, bytes
-  end
-
-  def self.relative_jump(arch, *args)
-    case arch
-    when :x86, :x64
-      X86
-    end.const_get(:JumpInstruction).relative *args
-  end
-end
-
-InstructionSet = Struct.new(:body) do
-  def bytesize
-    body.inject(0) do |acc, i|
-      acc + i.bytesize
-    end
-  end
-end
-
-module X86
-
-  class Register < ::Register
-    def self.register_aliases
-      [
-        %i(rax eax ax al),
-        %i(rcx ecx cx cl),
-        %i(rdx edx dx dl),
-        %i(rbx ebx bx bl),
-        %i(rsi esi si sil),
-        %i(rdi edi di dil),
-        %i(rsp esp sp spl),
-        %i(rbp ebp bp bpl),
-        %i(r8 r8d r8w r8b),
-        %i(r9 r9d r9w r9b),
-        %i(r10 r10d r10w r10b),
-        %i(r11 r11d r11w r11b),
-        %i(r12 r12d r12w r12b),
-        %i(r13 r13d r13w r13b),
-        %i(r14 r14d r14w r14b),
-        %i(r15 r15d r15w r15b),
-      ]
-    end
-
-    def alias?(other)
-      self == other || self.register_alias_id == other.register_alias_id
-    end
-
-    protected
-    def register_alias_id
-      self.class.register_aliases.index do |g|
-        g.include? self.name
-      end
-    end
-  end
-
-
-  #0x48, 0x89, 0x7d, 0xf0,                   /*09: mov     %rdi, -0x10(%rbp)        */
-  #0x48, 0x8b, 0x7d, 0xf0,                   /*42: mov     -0x10(%rbp), %rdi        */
-
-  Memory = Struct.new(:offset, :base, :index, :scale) do
-    def inspect
-      o = offset && "%#+x".%(offset)
-      b = base && base.inspect
-      i = index && ',' + index.inspect
-      s = scale && ',' + scale.to_s
-      "#{o}(#{b}#{i}#{s})"
-    end
-  end
-
-  class JumpInstruction < Instruction
-    def self.relative(skip_n)
-      case skip_n
-      when rel8_range
-        bytes = [rel8_opcode] + [rel8_operand(skip_n)].pack('c').force_encoding('ASCII-8BIT').each_codepoint.to_a
-      when rel16_range
-        bytes = [rel16_opcode] + [rel8_operand(skip_n)].pack('l<').force_encoding('ASCII-8BIT').each_codepoint.to_a
-      else
-        raise "jump size not supported"
-      end
-
-      new 'jmp', [], bytes
-    end
-
-    def self.register(register)
-      bytes = [0xFF]
-      bytes << case register.name
-      when :rsi
-        0xE6
-      else
-        raise "register jump with #{register.name} not supported"
-      end
-
-      new 'jmp', [register], bytes
-    end
-
-    module C
-      def to_c(io = StringIO.new, mode = :relative)
-        raise unless mode == :relative
-
-        cond = -> (r) {"n >= #{r.min} && n < #{r.max}"}
-
-        io.puts "uint8_t *#{c_func_name}(uint8_t *b, int32_t n) {"
-        io.puts "  if(#{cond[rel8_range]}) {"
-        rel8_to_c io
-        io.puts "    return b;";
-        io.puts "  }"
-        io.puts "  if(#{cond[rel16_range]}) {"
-        rel16_to_c io
-        io.puts "    return b;";
-        io.puts "  }"
-        io.puts "  return NULL;"
-        io.puts "}"
-
-        io.string if StringIO === io
-      end
-
-      def c_func_name
-        "jit_jump"
-      end
-
-      def rel8_to_c(io)
-        io.puts "    *b++ = #{rel8_opcode};";
-        io.puts "    *b++ = (int8_t) #{rel8_operand_to_c 'n'};";
-      end
-
-      def rel16_to_c(io)
-        opcode = rel16_opcode
-        if opcode.is_a? Array
-          opcode = opcode.map(&:chr).join.unpack('s<').first
-          io.puts "    *((uint16_t *)(b)) = (uint16_t) #{opcode};";
-          io.puts "    b += sizeof(uint16_t);";
-        else
-          io.puts "    *b++ = #{opcode};"
-        end
-        io.puts "    *((int32_t *)(b)) = (int32_t) #{rel16_operand_to_c 'n'};";
-        io.puts "    b += sizeof(int32_t);";
-      end
-
-      def rel8_range
-        (-2**8/2...2**8/2)
-      end
-
-      def rel16_range
-        (-2**16/2...2**16/2)
-      end
-
-      def rel8_opcode
-        0xeb
-      end
-
-      def rel16_opcode
-        0xe9
-      end
-
-      def rel8_operand(n)
-        n
-      end
-
-      def rel16_operand(n)
-        n
-      end
-
-      def rel8_operand_to_c(n)
-        n
-      end
-
-      def rel16_operand_to_c(n)
-        n
-      end
-
-    end
-
-    extend C
-    include C
-  end
-
-  class JumpIfInstruction < JumpInstruction
-    module C
-      include JumpInstruction::C
-
-      def c_func_name
-        "jit_jump_if"
-      end
-
-      def rel8_opcode
-        0x74
-      end
-
-      def rel16_opcode
-        [0x0F,0x84]
-      end
-    end
-
-    include C
-    extend C
-  end
-
-  class ReturnInstruction < Instruction
-    def bytes
-      [0xc3]
-    end
-
-    def operands
-      []
-    end
-
-    def name
-      'ret'
-    end
-  end
-
-  class JumpNotInstruction < JumpInstruction
-
-    module C
-      include JumpIfInstruction::C
-
-      def c_func_name
-        "jit_jump_not"
-      end
-
-      def rel8_opcode
-        0x75
-      end
-
-      def rel16_opcode
-        [0x0F,0x85]
-      end
-    end
-
-    include C
-    extend C
-  end
-
-
-end
-
-module X64
-  include X86
-  extend X86
-
-  module CC
-    class SysV
-      def self.argument_registers
-        [:rdi, :rsi, :rdx, :rcx, :r8, :r9, *(0..7).map{|i| :"xmm#{i}"}].map{|n| Register.new n}
-      end
-    end
-  end
-
-end
-
-Operation = Struct.new(:name, :architecture, :instructions) do
-  ARCH_MAP = {
-    'i386:x86-64' => :x64,
-    nil           => :unknown
-  }
-
-  alias_method :arch, :architecture
-
-  def arguments
-    body.inject([0, Hash.new{|h, v| h[v] = []}]) do |acc, op|
-      off, hash = acc
-
-      args = op.arguments.map {|k, v| [k, v.map{|(m, a, r)| [m, a, ((r.min + off)..(r.max + off))]}]}.to_h
-      new_hash = hash.merge(args) do |key, av, hv|
-        av | hv
-      end
-
-      [off + op.bytesize, new_hash]
-    end[1]
-  end
-
-  def body
-    instructions.body
-  end
-
-  def bytesize
-    instructions.bytesize
-  end
-
-  def self.load(filename)
-    parse `objdump -Sf #{filename}`
-  end
-
-  def self.parse(objdump)
-    body = InstructionSet.new(objdump.each_line.inject([]) do |ary, line|
-      if line =~ /:\t((?:[0-9a-f]{2}\s)+)\s+(.*)/
-        bytes, asm = $1.strip, $2.strip
-        bytes = bytes.split(/\s+/).map(&:strip).reject(&:empty?).map do |byte|
-          byte.to_i(16)
-        end
-
-        asm.strip!
-
-        if asm.empty?
-          ary.last.bytes.concat bytes
-        else
-          ary << Instruction.parse(asm, bytes)
-        end
-      end
-
-      ary
-    end)
-
-    objdump =~ /^architecture: (.*?),/
-    arch = ARCH_MAP[$1]
-
-    objdump =~ /^\d+ <(.*?)>:/
-    func_name = $1
-
-    klass = self
-    klass_name = "_#{func_name}".gsub(/_([a-z])/){|m| $1.upcase}
-    begin
-      klass = Kernel::const_get klass_name
-    rescue NameError
-    end
-
-    klass.new func_name, arch, body
-  end
-
-  def remove_bogus_stack_adds!
-    add_idx = body.rindex do |inst|
-      inst.name == 'add' && inst.target.alias?(X86::Register[:rsp])
-    end
-
-    if add_idx
-      add = body[add_idx]
-      sub_idx = body.index do |inst|
-        inst.name == 'sub' && inst.target.alias?(X86::Register[:rsp])
-      end
-
-      if sub_idx
-        raise unless body[sub_idx].source == add.source
-      else
-        body.delete_at add_idx
-      end
-    end
-  end
-
-  def correct_stack!
-    remove_bogus_stack_adds!
-  end
-
-  def correct!
-    remove_return!
-    remove_dummy_call!
-    correct_stack!
-  end
-
-  def remove_dummy_call!
-    idx = body.rindex do |inst|
-      inst.name == 'callq'
-    end
-    if idx
-      body.delete_at idx
-    end
-
-    idx = body.rindex do |inst|
-      inst.name == 'pop' && inst.source_register?(:rax)
-    end
-    if idx
-      body.delete_at idx
-    end
-
-    idx = body.index do |inst|
-      inst.name == 'push' && inst.source_register?(:rax)
-    end
-    if idx
-      body.delete_at idx
-    end
-  end
-
-  def remove_return!
-    body.each_with_index.reverse_each.inject(0) do |acc, (inst, index)|
-      if inst.return?
-        if acc.zero?
-          body.delete_at index
-          inst = nil
-        else
-          inst = Instruction.relative_jump(arch, acc)
-          body[index] = inst
-        end
-      end
-      acc + (inst ? inst.bytesize : 0)
-    end
-  end
-end
-
-class OpEnter < Operation
-  def correct!
-    super
-
-    idx = body.rindex do |inst|
-      Literal === inst.source && inst.source.value == 0xFAB
-    end
-    raise unless idx
-    p idx
-    if idx
-      mov = body[idx]
-      target = mov.target
-      call_idx = body[(idx + 1)..-1].index do |inst|
-        p [inst.call?, inst.source, target]
-        inst.call? && inst.source.alias?(target)
-      end
-
-      if idx && call_idx
-        body.delete_at idx
-        body.delete_at idx + call_idx
-
-        # FIXME: assuming argument register 1 is not clobbered.
-        # Since the dummy call is at the bottom of the function
-        # that should normally not happen, though.
-        body << X64::JumpInstruction.register(X64::CC::SysV.argument_registers[1])
-      else
-        raise
-      end
-    end
-  end
-end
-
-class OpJmpnot < Operation
-  def correct!
-    super
-    begin
-      if body.first.target.base.name == :rsp
-        body.delete_at 0
-      end
-    rescue StandardError
-    end
-  end
-end
-
-class OpMove < Operation
-  def correct!
-    super
-    begin
-      if body.first.target.base.name == :rsp
-        body.delete_at 0
-      end
-    rescue StandardError
-    end
-  end
-end
-
-class OpLoadself < Operation
-  def correct!
-    super
-    begin
-      if body.first.target.base.name == :rsp
-        body.delete_at 0
-      end
-    rescue StandardError
-    end
-  end
-end
-
-class OpLoadi < Operation
-  def correct!
-    super
-  end
-end
-
-
-class OpReturn < Operation
-  def correct!
-    super
-    body << X86::ReturnInstruction.new
-  end
-end
+require_relative 'assembly'
+require_relative 'objdump'
+require_relative 'x86'
+require_relative 'corrections'
 
 def mruby_root
   __dir__.split(File::SEPARATOR)
@@ -683,6 +95,21 @@ def gen_file(f)
   end
 end
 
+def correct_asm_file(op_name, in_file, out_file)
+  in_asm = Assembly::File.parse File.read(in_file)
+
+  klass = Corrections::Corrector
+
+  begin
+    klass_name = "_#{op_name}".gsub(/_([a-z])/){|m| $1.upcase}
+    klass = Corrections::const_get klass_name
+  rescue NameError
+  end
+
+  klass.new(in_asm).correct!
+  File.write out_file, in_asm.to_asm
+end
+
 opt_passes = %w(
 -targetlibinfo -scoped-noalias -assumption-cache-tracker -basicaa -notti -verify -ipsccp -globalopt -deadargelim -domtree -instcombine -simplifycfg -basiccg -prune-eh -inline-cost -inline -functionattrs -argpromotion -sroa -domtree -early-cse -lazy-value-info -jump-threading -correlated-propagation -simplifycfg -domtree -instcombine  -simplifycfg -reassociate -domtree -loops -loop-simplify -lcssa -loop-rotate -licm -loop-unswitch -instcombine -scalar-evolution -loop-simplify -lcssa -indvars -loop-idiom -loop-deletion -function_tti -loop-unroll -memdep -mldst-motion -domtree -memdep -gvn -memdep -memcpyopt -sccp -domtree -instcombine -lazy-value-info -jump-threading -correlated-propagation -domtree -memdep -dse -adce -simplifycfg -domtree -instcombine -barrier -domtree -loops -loop-simplify -lcssa -branch-prob -block-freq -scalar-evolution -loop-vectorize -instcombine -scalar-evolution -slp-vectorizer -simplifycfg -domtree -instcombine -loops -loop-simplify -lcssa -scalar-evolution -function_tti -loop-unroll -alignment-from-assumptions -strip-dead-prototypes -constmerge)
 
@@ -693,6 +120,7 @@ $ops.each do |op|
   ll_opt_file = File.join('ll', "#{op}_opt.ll")
   obj_file = File.join('obj', "#{op}.o")
   asm_file = File.join('asm', "#{op}.s")
+  corrected_asm_file = File.join('asm', "#{op}_cor.s")
 
   gen_file ll_file
 
@@ -709,7 +137,11 @@ $ops.each do |op|
     sh "llc -O3 #{ll_opt_file} -filetype=asm -o #{t.name}"
   end
 
-  file obj_file => [asm_file, 'obj'] do |t|
+  file corrected_asm_file => asm_file do |t|
+    correct_asm_file op, asm_file, t.name
+  end
+
+  file obj_file => [corrected_asm_file, 'obj'] do |t|
     sh "as #{asm_file} -o #{t.name}"
   end
 
@@ -726,33 +158,23 @@ end
 file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
   file = File.open t.name, 'w'
   arch = nil
-  operations = obj_files.map do |obj|
-    operation = Operation.load(obj)
-    arch = operation.arch
 
-    operation.correct!
+  objs = obj_files.map do |obj_file|
+    obj = ObjectFile.load(obj_file)
+    arch = obj.arch
 
-    operation
-  end
-
-  operations.map do |operation|
     off = 0
-    lines = operation.body.map do |inst|
-      bin = inst.to_bytes
-      op, opr = inst.name, inst.operands
+    lines = obj.body.map do |(bytes, asm)|
+      bytes_str = bytes.map{|byte| "0x%02x," % byte}.join(' ').ljust(42, ' ')
+      asm_str = "/* #{asm} */"
 
-      bin_str = bin.map{|byte| "0x%02x," % byte}.join(' ').ljust(42, ' ')
-      asm_str = "#{op.ljust(8, ' ')}#{opr.map(&:inspect).join(", ")}"
-      asm_str = "/*#{'%02x' % off}: #{asm_str.ljust(32, ' ')} */"
-
-      off += inst.bytesize
-      bin_str + asm_str
+      off += bytes.size
+      bytes_str + asm_str
     end
-    [operation, lines]
-  end.each do |operation, lines|
+
     file.puts
-    file.puts "/* args: #{operation.arguments.inspect} */"
-    file.puts "static uint8_t #{operation.name}[] = {"
+    file.puts "/* args: #{obj.arguments.inspect} */"
+    file.puts "static uint8_t #{obj.name}[] = {"
     lines.each do |l|
       file.puts "  " + l
     end
@@ -760,8 +182,8 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
     file.puts
 
 
-    file.puts "static void #{operation.name}_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {"
-    operation.arguments.each do |k, vs|
+    file.puts "static void #{obj.name}_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {"
+    obj.arguments.each do |k, vs|
       vs.each do |m, a, v|
         file.puts "  *((int32_t *)(op + #{v.begin})) = #{k} * #{m} + #{a};"
       end
@@ -770,10 +192,10 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
 
     file.puts
 
-    used_arguments = argument_usage[operation.name]
+    used_arguments = argument_usage[obj.name]
 
-    file.puts "static void #{operation.name}_set_args_from_code(uint8_t *op, mrb_code c) {"
-    file.write "  #{operation.name}_set_args(op, "
+    file.puts "static void #{obj.name}_set_args_from_code(uint8_t *op, mrb_code c) {"
+    file.write "  #{obj.name}_set_args(op, "
     [:a, :b, :c].map do |arg|
       v = used_arguments[arg]
       if v
@@ -787,16 +209,18 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
     file.puts "}"
 
     file.puts
+
+    obj
   end
 
   file.puts "typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c);"
   file.puts "typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c);"
-  file.puts "static jit_args_func_t arg_funcs[#{operations.size}];"
-  file.puts "static uint8_t* ops[#{operations.size}];"
-  file.puts "static char *op_names[#{operations.size}];"
+  file.puts "static jit_args_func_t arg_funcs[#{objs.size}];"
+  file.puts "static uint8_t* ops[#{objs.size}];"
+  file.puts "static char *op_names[#{objs.size}];"
 
   file.puts "static size_t op_sizes[] = {\n"
-  operations.each do |op|
+  objs.each do |op|
     file.puts "  sizeof(#{op.name}), /* #{op.bytesize} */"
   end
   file.puts "\n};"
@@ -809,7 +233,7 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
   file.puts "  if(init == 0) {"
   file.puts "    init = 1;"
   file.puts "    init_symtbl();"
-  operations.each_with_index do |op, index|
+  objs.each_with_index do |op, index|
     file.puts "    ops[#{index}] = #{op.name};"
     file.puts "    op_names[#{index}] = \"#{op.name}\";"
     file.puts "    arg_funcs[#{index}] = #{op.name}_set_args_from_code;"
