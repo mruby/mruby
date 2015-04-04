@@ -1,3 +1,4 @@
+require 'stringio'
 
 class Scanner
   attr_reader :string, :rest
@@ -37,12 +38,40 @@ class Assembly
   SyntaxError = Class.new StandardError
   Directive = Struct.new :name, :arguments do
     def to_asm
-      ".#{name}"
+      ".#{name} #{arguments.map(&:to_asm).join(', ')}"
     end
   end
-  Literal = Struct.new :value
+  Literal = Struct.new :value do
+    def to_asm
+      case value
+      when Fixnum
+        "$#{value}"
+      else
+        raise
+      end
+    end
+  end
   Instruction = Struct.new(:name, :operands) do
+    def to_asm
+      str = operands.map do |o|
+        case o
+        when Block
+          o.to_asm true
+        else
+          o.to_asm
+        end
+      end.join(', ')
 
+      if name =~ /call/ &&
+         operands.size == 1 &&
+         X86::Register === operands[0]
+        deref = "*"
+      else
+        deref = ""
+      end
+
+      "#{name}\t#{deref}#{str}"
+    end
   end
   Unparsed = Struct.new :data do
     def to_asm
@@ -59,6 +88,30 @@ class Assembly
     def <<(e)
       body << e
     end
+
+    def to_asm(op = false)
+      return name if op
+
+      "#{name}:" + body_to_asm(true)
+    end
+
+    def body_to_asm(nl = false)
+      io = StringIO.new
+
+      body.each do |e|
+        unless Comment === e || !nl
+          io.write "\n"
+        end
+
+        nl = true
+
+        io.write "\t" unless Block === e
+        io.write e.to_asm
+      end
+
+      io.string
+    end
+
   end
 
   Comment = Struct.new(:text) do
@@ -70,9 +123,9 @@ class Assembly
   module X86
     Memory = Struct.new(:offset, :base, :index, :scale) do
       def to_asm
-        o = offset && "%#+x".%(offset)
-        b = base && base.inspect
-        i = index && ',' + index.inspect
+        o = offset && "%d".%(offset)
+        b = base && base.to_asm
+        i = index && ',' + index.to_asm
         s = scale && ',' + scale.to_s
         "#{o}(#{b}#{i}#{s})"
       end
@@ -97,6 +150,10 @@ class Assembly
     @blocks = {}
     @block = new_block '__main__'
     parse data, @block
+  end
+
+  def to_asm
+    @block.body_to_asm
   end
 
   def new_block name
@@ -128,6 +185,8 @@ class Assembly
       scan_instruction(scanner, block)
     end
 
+    scan_whitespace scanner
+
     if m = scanner.scan(/#(.*?)$/)
       block << Comment.new(m[1])
     else
@@ -157,9 +216,11 @@ class Assembly
   end
 
   def scan_instruction(scanner, block)
-    name = scanner.scan(/\w+/).to_s
+    name = scanner.scan(/\w+/)
     #raise SyntaxError.new "invalid instruction #{scanner.rest}" if name.nil?
     return false if name.nil?
+
+    name = name.to_s
 
     inst = Instruction.new(name, [])
     block << inst
@@ -183,8 +244,21 @@ class Assembly
       inst.operands << o
     end
 
+    scanner.scan /\*?(?<offset>[+-]?(?:(0x\h+)|(?:\d+)))?\((?:%(?<base>\w+))?(?:,%(?<index>\w+))?(?:,(?<scale>\d+))?\)/ do |m|
+      p m
+      o =  X86::Memory.new m[:offset] && eval(m[:offset]),
+                           m[:base]   && X86::Register.new(m[:base].to_sym),
+                           m[:index]  && X86::Register.new(m[:index].to_sym),
+                           m[:scale]  && m[:scale].to_i
+      add[o]
+    end
+
     scanner.scan /\$0x(\h+)/ do |m|
       add[Literal.new(m[1].to_i(16))]
+    end
+
+    scanner.scan /\$(\d+)/ do |m|
+      add[Literal.new m[1].to_i(10)]
     end
 
     scanner.scan /(#{SYMBOL_REGEXP})/ do |m|
@@ -193,21 +267,9 @@ class Assembly
       end
     end
 
-    scanner.scan /\$(\d+)/ do |m|
-      add[Literal.new m[1].to_i(10)]
-    end
 
     scanner.scan /\*?%(\w+)/ do |m|
       add[X86::Register.new m[1].to_sym]
-    end
-
-
-    scanner.scan /\*?(?<offset>[+-]?(?:(?:0x\h+)|(?:\d+)))?\((?:%(?<base>\w+))?(?:,%(?<index>\w+))?(?:,(?<scale>\d+))?\)/ do |m|
-      o =  X86::Memory.new m[:offset] && eval(m[:offset]),
-                           m[:base]   && X86::Register.new(m[:base].to_sym),
-                           m[:index]  && X86::Register.new(m[:index].to_sym),
-                           m[:scale]  && m[:scale].to_i
-      add[o]
     end
 
     match
@@ -220,5 +282,7 @@ end
 if __FILE__ == $0
   require 'pp'
 
-  pp Assembly.parse(File.read ARGV[0])
+  ast = Assembly.parse(File.read ARGV[0])
+  pp ast
+  puts ast.to_asm
 end
