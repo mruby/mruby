@@ -1,0 +1,224 @@
+
+class Scanner
+  attr_reader :string, :rest
+
+  def initialize(string)
+    @string = string
+    @rest = string
+  end
+
+  def eos?
+    @rest.empty?
+  end
+
+  def scan(regexp)
+    return nil if eos?
+
+    if rest =~ /^#{regexp}/
+      @rest = @rest[$~.end(0)..-1]
+
+      if block_given?
+        yield $~
+        return self
+      else
+        return $~
+      end
+    else
+      nil
+    end
+  end
+
+  def scan!(regexp)
+    scan(regexp) or raise Assembly::SyntaxError.new("Expected #{regexp}")
+  end
+end
+
+class Assembly
+  SyntaxError = Class.new StandardError
+  Directive = Struct.new :name, :arguments do
+    def to_asm
+      ".#{name}"
+    end
+  end
+  Literal = Struct.new :value
+  Instruction = Struct.new(:name, :operands) do
+
+  end
+  Unparsed = Struct.new :data do
+    def to_asm
+      data
+    end
+  end
+  Block = Struct.new(:name, :body) do
+    include Enumerable
+
+    def each(*args, &blk)
+      body.each(*args, &blk)
+    end
+
+    def <<(e)
+      body << e
+    end
+  end
+
+  Comment = Struct.new(:text) do
+    def to_asm
+      "##{text}"
+    end
+  end
+
+  module X86
+    Memory = Struct.new(:offset, :base, :index, :scale) do
+      def to_asm
+        o = offset && "%#+x".%(offset)
+        b = base && base.inspect
+        i = index && ',' + index.inspect
+        s = scale && ',' + scale.to_s
+        "#{o}(#{b}#{i}#{s})"
+      end
+    end
+
+    Register = Struct.new(:name) do
+      def self.[](*args)
+        new *args
+      end
+
+      def to_asm
+        "%#{name}"
+      end
+    end
+  end
+
+  def self.parse(data)
+    new data
+  end
+
+  def initialize(data)
+    @blocks = {}
+    @block = new_block '__main__'
+    parse data, @block
+  end
+
+  def new_block name
+    Block.new(name, []).tap do |b|
+      @blocks[name] = b
+    end
+  end
+  private :new_block
+
+  def parse(data, block)
+    data.split(/\n|;/).each do |stmnt|
+      block = parse_statement stmnt, block
+    end
+  end
+
+  def parse_statement(stmnt, block)
+    scanner = Scanner.new stmnt
+
+    scan_whitespace scanner
+
+    if m = scanner.scan(/(#{SYMBOL_REGEXP}):/)
+      block = new_block m[1]
+      @block << block
+    end
+
+    scan_whitespace scanner
+
+    unless scan_directive scanner, block
+      scan_instruction(scanner, block)
+    end
+
+    if m = scanner.scan(/#(.*?)$/)
+      block << Comment.new(m[1])
+    else
+      if !scanner.eos?
+        if Instruction === block.body.last
+          block.body.last.operands << Unparsed.new(scanner.rest)
+        end
+      end
+    end
+
+    block
+  end
+
+  def scan_directive(scanner, block)
+    m = scanner.scan(/\.(#{SYMBOL_REGEXP})/)
+    if m
+      arguments = scanner.rest.split(',').map do |s|
+        Unparsed.new s.strip
+      end
+      block << Directive.new(m[1], arguments)
+    end
+    m
+  end
+
+  def scan_whitespace(scanner)
+    scanner.scan WHITESPACE_REGEXP
+  end
+
+  def scan_instruction(scanner, block)
+    name = scanner.scan(/\w+/).to_s
+    #raise SyntaxError.new "invalid instruction #{scanner.rest}" if name.nil?
+    return false if name.nil?
+
+    inst = Instruction.new(name, [])
+    block << inst
+
+    scan_whitespace scanner
+
+    scan_arguments scanner, inst
+  end
+
+  def scan_arguments scanner, inst
+    loop do
+      break unless scan_argument scanner, inst
+      break unless scanner.scan(/\s*,\s*/)
+    end
+  end
+
+  def scan_argument scanner, inst
+    match = false
+    add = ->(o) do
+      match = true
+      inst.operands << o
+    end
+
+    scanner.scan /\$0x(\h+)/ do |m|
+      add[Literal.new(m[1].to_i(16))]
+    end
+
+    scanner.scan /(#{SYMBOL_REGEXP})/ do |m|
+      if @blocks.key? m[1]
+        add[@blocks[m[1]]]
+      end
+    end
+
+    scanner.scan /\$(\d+)/ do |m|
+      add[Literal.new m[1].to_i(10)]
+    end
+
+    scanner.scan /\*?%(\w+)/ do |m|
+      add[X86::Register.new m[1].to_sym]
+    end
+
+
+    scanner.scan /\*?(?<offset>[+-]?(?:(?:0x\h+)|(?:\d+)))?\((?:%(?<base>\w+))?(?:,%(?<index>\w+))?(?:,(?<scale>\d+))?\)/ do |m|
+      o =  X86::Memory.new m[:offset] && eval(m[:offset]),
+                           m[:base]   && X86::Register.new(m[:base].to_sym),
+                           m[:index]  && X86::Register.new(m[:index].to_sym),
+                           m[:scale]  && m[:scale].to_i
+      add[o]
+    end
+
+    match
+  end
+
+  WHITESPACE_REGEXP = /\s+/
+  SYMBOL_REGEXP = /[A-Za-z_\.\$0-9]+/
+end
+
+if __FILE__ == $0
+  require 'pp'
+
+  pp Assembly.parse(File.read ARGV[0])
+end

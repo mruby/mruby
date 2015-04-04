@@ -2376,7 +2376,7 @@ static void op_div_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 
-/* args: {"a"=>[[16, 0, 17..20], [16, 8, 23..26], [16, 16, 30..33], [16, 24, 37..40], [16, 8, 58..61], [16, 24, 74..77], [16, 0, 96..99], [16, 16, 102..105], [16, 16, 125..128], [16, 0, 133..136], [16, 0, 151..154], [16, 0, 168..171], [16, 16, 176..179], [16, 8, 195..198], [16, 8, 207..210], [16, 0, 217..220]]} */
+/* args: {"a"=>[[16, 0, 17..20], [16, 8, 23..26], [16, 16, 30..33], [16, 24, 37..40], [16, 8, 58..61], [16, 24, 74..77], [16, 0, 96..99], [16, 16, 102..105], [16, 16, 125..128], [16, 0, 133..136], [16, 0, 151..154], [16, 0, 168..171], [16, 16, 176..179], [16, 8, 195..198], [16, 0, 205..208], [16, 8, 228..231]]} */
 static uint8_t op_eq[] = {
   0x41, 0x56,                               /*00: push    %r14                     */
   0x53,                                     /*02: push    %rbx                     */
@@ -2389,7 +2389,7 @@ static uint8_t op_eq[] = {
   0x44, 0x8b, 0x83, 0x18, 0x10, 0xab, 0x00, /*22: mov     +0xab1018(%rbx), %r8d    */
   0x41, 0xff, 0x96, 0x98, 0x00, 0x00, 0x00, /*29: callq   +0x98(%r14)              */
   0x84, 0xc0,                               /*30: test    %al, %al                 */
-  0x0f, 0x85, 0xb5, 0x00, 0x00, 0x00,       /*32: jne                              */
+  0x0f, 0x85, 0x89, 0x00, 0x00, 0x00,       /*32: jne                              */
   0x8b, 0x8b, 0x08, 0x10, 0xab, 0x00,       /*38: mov     +0xab1008(%rbx), %ecx    */
   0xc1, 0xe1, 0x08,                         /*3e: shl     $0x8, %ecx               */
   0x81, 0xe1, 0x00, 0xff, 0xff, 0x00,       /*41: and     $0xffff00, %ecx          */
@@ -2410,27 +2410,28 @@ static uint8_t op_eq[] = {
   0xf2, 0x0f, 0xc2, 0x83, 0x00, 0x10, 0xab, 0x00, 0x00,/*81: cmpeqsd +0xab1000(%rbx), %xmm0   */
   0xeb, 0x29,                               /*8a: jmp                              */
   0x3d, 0x06, 0x03, 0x00, 0x00,             /*8c: cmp     $0x306, %eax             */
-  0x75, 0x50,                               /*91: jne                              */
+  0x75, 0x5e,                               /*91: jne                              */
   0xf2, 0x0f, 0x2a, 0x83, 0x00, 0x10, 0xab, 0x00,/*93: cvtsi2sdl+0xab1000(%rbx), %xmm0  */
   0xeb, 0x0f,                               /*9b: jmp                              */
   0x3d, 0x06, 0x06, 0x00, 0x00,             /*9d: cmp     $0x606, %eax             */
-  0x75, 0x3f,                               /*a2: jne                              */
+  0x75, 0x4d,                               /*a2: jne                              */
   0xf2, 0x0f, 0x10, 0x83, 0x00, 0x10, 0xab, 0x00,/*a4: movsd   +0xab1000(%rbx), %xmm0   */
   0xf2, 0x0f, 0xc2, 0x83, 0x10, 0x10, 0xab, 0x00, 0x00,/*ac: cmpeqsd +0xab1010(%rbx), %xmm0   */
   0x66, 0x48, 0x0f, 0x7e, 0xc0,             /*b5: movq    %xmm0, %rax              */
   0x83, 0xe0, 0x01,                         /*ba: and     $0x1, %eax               */
   0x85, 0xc0,                               /*bd: test    %eax, %eax               */
-  0x74, 0x0c,                               /*bf: je                               */
+  0x74, 0x24,                               /*bf: je                               */
   0xc7, 0x83, 0x08, 0x10, 0xab, 0x00, 0x02, 0x00, 0x00, 0x00,/*c1: movl    $0x2, +0xab1008(%rbx)    */
-  0xeb, 0x0a,                               /*cb: jmp                              */
-  0xc7, 0x83, 0x08, 0x10, 0xab, 0x00, 0x00, 0x00, 0x00, 0x00,/*cd: movl    $0, +0xab1008(%rbx)      */
-  0xc7, 0x83, 0x00, 0x10, 0xab, 0x00, 0x01, 0x00, 0x00, 0x00,/*d7: movl    $0x1, +0xab1000(%rbx)    */
-  0xeb, 0x0a,                               /*e1: jmp                              */
-  0x4c, 0x89, 0xf7,                         /*e3: mov     %r14, %rdi               */
-  0x41, 0xff, 0x96, 0x48, 0x02, 0x00, 0x00, /*e6: callq   +0x248(%r14)             */
-  0x4c, 0x89, 0xf7,                         /*ed: mov     %r14, %rdi               */
-  0x5b,                                     /*f0: pop     %rbx                     */
-  0x41, 0x5e,                               /*f1: pop     %r14                     */
+  0xc7, 0x83, 0x00, 0x10, 0xab, 0x00, 0x01, 0x00, 0x00, 0x00,/*cb: movl    $0x1, +0xab1000(%rbx)    */
+  0x4c, 0x89, 0xf7,                         /*d5: mov     %r14, %rdi               */
+  0xe8, 0x00, 0x00, 0x00, 0x00,             /*d8: callq                            */
+  0x5b,                                     /*dd: pop     %rbx                     */
+  0x41, 0x5e,                               /*de: pop     %r14                     */
+  0xeb, 0x18,                               /*e0: jmp                              */
+  0xc7, 0x83, 0x08, 0x10, 0xab, 0x00, 0x00, 0x00, 0x00, 0x00,/*e2: movl    $0, +0xab1008(%rbx)      */
+  0xeb, 0xda,                               /*ec: jmp                              */
+  0x4c, 0x89, 0xf7,                         /*ee: mov     %r14, %rdi               */
+  0xeb, 0xd8,                               /*f1: jmp                              */
 
 };
 
@@ -2449,8 +2450,8 @@ static void op_eq_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {
   *((int32_t *)(op + 168)) = a * 16 + 0;
   *((int32_t *)(op + 176)) = a * 16 + 16;
   *((int32_t *)(op + 195)) = a * 16 + 8;
-  *((int32_t *)(op + 207)) = a * 16 + 8;
-  *((int32_t *)(op + 217)) = a * 16 + 0;
+  *((int32_t *)(op + 205)) = a * 16 + 0;
+  *((int32_t *)(op + 228)) = a * 16 + 8;
 }
 
 static void op_eq_set_args_from_code(uint8_t *op, mrb_code c) {

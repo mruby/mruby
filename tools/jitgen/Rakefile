@@ -658,6 +658,7 @@ $ops = [
 ]
 
 directory 'obj'
+directory 'asm'
 directory 'll'
 
 obj_files = []
@@ -691,6 +692,7 @@ $ops.each do |op|
   ll_file = File.join('ll', "#{op}.ll")
   ll_opt_file = File.join('ll', "#{op}_opt.ll")
   obj_file = File.join('obj', "#{op}.o")
+  asm_file = File.join('asm', "#{op}.s")
 
   gen_file ll_file
 
@@ -703,8 +705,12 @@ $ops.each do |op|
     sh "./scale_geps #{t.name} #{t.name}"
   end
 
-  file obj_file => [ll_opt_file, 'obj'] do |t|
-    sh "llc -O3 #{ll_opt_file} -filetype=obj -o #{t.name}"
+  file asm_file => [ll_opt_file, 'asm'] do |t|
+    sh "llc -O3 #{ll_opt_file} -filetype=asm -o #{t.name}"
+  end
+
+  file obj_file => [asm_file, 'obj'] do |t|
+    sh "as #{asm_file} -o #{t.name}"
   end
 
   obj_files << obj_file
