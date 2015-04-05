@@ -351,12 +351,14 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise)
     }
   }
 
+#if !defined(_WIN32) && !defined(_WIN64)
   if (fptr->pid != 0) {
     pid_t pid;
     do {
       pid = waitpid(fptr->pid, NULL, 0);
     } while (pid == -1 && errno == EINTR);
   }
+#endif
 
   if (!noraise && n != 0) {
     mrb_sys_fail(mrb, "fptr_finalize failed.");
@@ -765,7 +767,7 @@ mrb_io_close_on_exec_p(mrb_state *mrb, mrb_value io)
 #if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
   struct mrb_io *fptr;
   int ret;
-  
+
   fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
   if (fptr->fd < 0) {
     mrb_raise(mrb, E_IO_ERROR, "closed stream");
@@ -807,7 +809,7 @@ mrb_io_set_close_on_exec(mrb_state *mrb, mrb_value io)
     if ((ret & FD_CLOEXEC) != flag) {
       ret = (ret & ~FD_CLOEXEC) | flag;
       ret = fcntl(fptr->fd2, F_SETFD, ret);
-      
+
       if (ret == -1) mrb_sys_fail(mrb, "F_SETFD failed");
     }
   }
