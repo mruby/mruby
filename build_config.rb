@@ -83,7 +83,6 @@ MRuby::Build.new do |conf|
   # conf.enable_bintest
 end
 
-__END__
 MRuby::Build.new('host-debug') do |conf|
   # load specific toolchain settings
 
@@ -108,31 +107,6 @@ MRuby::Build.new('host-debug') do |conf|
   # bintest
   # conf.enable_bintest
 end
-
-MRuby::Build.new('host-profile') do |conf|
-  # load specific toolchain settings
-
-  # Gets set by the VS command prompts.
-  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
-    toolchain :visualcpp
-  else
-    toolchain :gcc
-  end
-
-  compilers.each do |c|
-    c.flags += %w(-g3 -pg)
-    c.defines += %w(MRB_VM_NO_INLINE)
-  end
-
-  linker do |l|
-    l.flags += %w(-pg)
-  end
-
-  # include the default GEMs
-  conf.gembox 'default'
-end
-
-
 
 # Define cross build settings
 # MRuby::CrossBuild.new('32bit') do |conf|
