@@ -1083,12 +1083,7 @@ _op_raise(struct op_ctx *ctx) {
       ctx->mrb->jmp = ctx->prev_jmp;
       MRB_THROW(ctx->prev_jmp);
     }
-    if (ci > ctx->mrb->c->cibase) {
-      while (eidx > ci[-1].eidx) {
-        ecall(ctx->mrb, --eidx);
-      }
-    }
-    else if (ci == ctx->mrb->c->cibase) {
+    if (ci == ctx->mrb->c->cibase) {
       if (ci->ridx == 0) {
         if (ctx->mrb->c == ctx->mrb->root_c) {
           ctx->regs = ctx->mrb->c->stack = ctx->mrb->c->stbase;
@@ -1103,6 +1098,12 @@ _op_raise(struct op_ctx *ctx) {
         }
       }
       break;
+    }
+    /* call ensure only when we skip this callinfo */
+    if (ci[0].ridx == ci[-1].ridx) {
+      while (eidx > ci[-1].eidx) {
+        ecall(ctx->mrb, --eidx);
+      }
     }
   }
   return _op_rescue(ctx, ci);
@@ -1453,7 +1454,6 @@ op_call(struct op_ctx *ctx) {
 
 static FORCE_INLINE void
 op_super(struct op_ctx *ctx) {
-
   /* A C  R(A) := super(R(A+1),... ,R(A+C+1)) */
   mrb_value recv;
   mrb_callinfo *ci = ctx->mrb->c->ci;
