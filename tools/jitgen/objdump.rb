@@ -1,6 +1,9 @@
 require_relative 'assembly'
+require_relative 'x86'
 
 ObjectFile = Struct.new(:name, :architecture, :body) do
+  include Assembly
+
   ARCH_MAP = {
     'i386:x86-64' => :x64,
     nil           => :unknown
@@ -18,7 +21,7 @@ ObjectFile = Struct.new(:name, :architecture, :body) do
         av | hv
       end
 
-      [off + op.bytesize, new_hash]
+      [off + bytes.size, new_hash]
     end[1]
   end
 
@@ -44,7 +47,7 @@ ObjectFile = Struct.new(:name, :architecture, :body) do
         asm.strip!
 
         if asm.empty?
-          ary.last.bytes.concat bytes
+          body.last[0].concat bytes
         else
           body << [bytes, asm]
         end
@@ -70,12 +73,13 @@ ObjectFile = Struct.new(:name, :architecture, :body) do
   def find_arguments(bytes, asm)
     instr = Assembly::Instruction.parse asm
     args = Hash.new{|k, v| k[v] = []}
+    p instr
     instr.operands.map do |op|
       MAGIC_ARG_CONSTS.each do |r, a|
         v = case op
-        when Literal
+        when Assembly::Literal
           op.value
-        when X86::Memory
+        when Assembly::X86::Memory
           op.offset
         else
           nil
