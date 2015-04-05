@@ -2577,19 +2577,7 @@ mrb_context_run_full(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigne
 
   mrb_value retval;
 
-  struct op_ctx ctx = {
-    .proc = proc,
-    .irep = proc->body.irep,
-    .pc   = ctx.irep->iseq,
-    .regs = NULL,
-    .pool = proc->body.irep->pool,
-    .syms = proc->body.irep->syms,
-    .ai = mrb_gc_arena_save(mrb),
-    .prev_jmp = mrb->jmp,
-    .stop_jmp = &stop_jmp,
-    .mrb = mrb,
-    .run_flags = flags
-  };
+  struct op_ctx ctx;
 
 #ifdef DIRECT_THREADED
   static void *optable[] = {
@@ -2616,6 +2604,17 @@ mrb_context_run_full(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigne
   };
 #endif
 
+  ctx.proc = proc;
+  ctx.irep = proc->body.irep;
+  ctx.pc   = ctx.irep->iseq;
+  ctx.regs = NULL;
+  ctx.pool = proc->body.irep->pool;
+  ctx.syms = proc->body.irep->syms;
+  ctx.ai = mrb_gc_arena_save(mrb);
+  ctx.prev_jmp = mrb->jmp;
+  ctx.stop_jmp = &stop_jmp;
+  ctx.mrb = mrb;
+  ctx.run_flags = flags;
   init_symtbl();
   memcpy(ctx.sym_tbl, symtbl, sizeof(symtbl));
 
@@ -3039,7 +3038,7 @@ jit:
     if (mrb_proc_jit(mrb, proc)) {
       mrb_proc_jit_call(proc, (void *) &ctx);
     } else {
-      ctx.run_flags &= ~MRB_RUN_JIT;
+      ctx.run_flags = (enum mrb_run_flags) ctx.run_flags & ~MRB_RUN_JIT;
       goto dispatch;
     }
   }
