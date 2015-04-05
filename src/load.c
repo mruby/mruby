@@ -649,7 +649,7 @@ mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrbc_context *c)
 {
   mrb_irep *irep = mrb_read_irep(mrb, bin);
   struct RProc *proc;
-  enum mrb_run_flags flags = MRB_RUN_NORMAL;
+  mrb_run_flags flags = MRB_RUN_NORMAL;
 
   if (!irep) {
     irep_error(mrb);

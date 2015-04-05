@@ -155,7 +155,7 @@ file 'vm.bc' => [vm_c_path] do |t|
   sh "clang -I#{File.join mruby_root, 'include'} -DMRB_JIT_GEN -fomit-frame-pointer -emit-llvm -o vm.bc -c #{vm_c_path}"
 end
 
-file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
+file ops_header_path(:x64) => [*obj_files, symtbl_header_path] do |t|
   file = File.open t.name, 'w'
   arch = nil
 
@@ -217,7 +217,6 @@ file ops_header_path(:x64) => [*obj_files, 'symtbl.h'] do |t|
     obj
   end
 
-  file.puts "typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c);"
   file.puts "typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c);"
   file.puts "static jit_args_func_t arg_funcs[#{objs.size}];"
   file.puts "static uint8_t* ops[#{objs.size}];"

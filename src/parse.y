@@ -5551,7 +5551,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   struct RClass *target = mrb->object_class;
   struct RProc *proc;
   mrb_value v;
-  enum mrb_run_flags flags = MRB_RUN_NORMAL;
+  mrb_run_flags flags = MRB_RUN_NORMAL;
   unsigned int keep = 0;
 
   if (!p) {
@@ -5593,7 +5593,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
       c->keep_lv = TRUE;
     }
     if(c->jit) {
-      flags |= MRB_RUN_JIT;
+      flags = (mrb_run_flags) (flags | MRB_RUN_JIT);
     }
   }
   proc->target_class = target;

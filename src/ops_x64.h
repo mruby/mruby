@@ -3637,7 +3637,6 @@ static void op_err_set_args_from_code(uint8_t *op, mrb_code c) {
 }
 
 typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c);
-typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c);
 static jit_args_func_t arg_funcs[76];
 static uint8_t* ops[76];
 static char *op_names[76];

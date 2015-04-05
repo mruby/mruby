@@ -707,7 +707,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
 
 #if !defined(MRB_JIT_GEN) && !defined(MRB_VM_NO_INLINE)
 #if defined __GNUC__ || defined __clang__ || defined __INTEL_COMPILER
-#define FORCE_INLINE __attribute__((always_inline))
+#define FORCE_INLINE inline __attribute__((always_inline))
 #elif defined _MSC_VER
 #define FORCE_INLINE __forceinline
 #else
@@ -769,7 +769,7 @@ struct op_ctx {
   int ai;
   mrb_state *mrb;
   mrb_code i;
-  enum mrb_run_flags run_flags;
+  mrb_run_flags run_flags;
   /* needs to be last field */
   void *sym_tbl[124];
 };
@@ -2559,7 +2559,7 @@ static void *symtbl[1];
 #endif
 
 MRB_API mrb_value
-mrb_context_run_full(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep, enum mrb_run_flags flags)
+mrb_context_run_full(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep, mrb_run_flags flags)
 {
   /* mrb_assert(mrb_proc_cfunc_p(proc)) */
   /*mrb_irep *irep = proc->body.irep;
@@ -3038,7 +3038,7 @@ jit:
     if (mrb_proc_jit(mrb, proc)) {
       mrb_proc_jit_call(proc, (void *) &ctx);
     } else {
-      ctx.run_flags = (enum mrb_run_flags) ctx.run_flags & ~MRB_RUN_JIT;
+      ctx.run_flags = (mrb_run_flags) (ctx.run_flags & ~MRB_RUN_JIT);
       goto dispatch;
     }
   }
@@ -3072,7 +3072,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 }
 
 MRB_API mrb_value
-mrb_toplevel_run_keep_full(mrb_state *mrb, struct RProc *proc, unsigned int stack_keep, enum mrb_run_flags flags)
+mrb_toplevel_run_keep_full(mrb_state *mrb, struct RProc *proc, unsigned int stack_keep, mrb_run_flags flags)
 {
   mrb_callinfo *ci;
   mrb_value v;
@@ -3103,7 +3103,7 @@ mrb_toplevel_run(mrb_state *mrb, struct RProc *proc)
 }
 
 MRB_API mrb_value
-mrb_toplevel_run_full(mrb_state *mrb, struct RProc *proc, enum mrb_run_flags flags)
+mrb_toplevel_run_full(mrb_state *mrb, struct RProc *proc, mrb_run_flags flags)
 {
   return mrb_toplevel_run_keep_full(mrb, proc, 0, flags);
 }
