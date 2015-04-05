@@ -22,6 +22,10 @@
 typedef mrb_ast_node node;
 typedef struct mrb_parser_state parser_state;
 
+#ifndef DEBUG
+#define DEBUG(x)
+#endif
+
 enum looptype {
   LOOP_NORMAL,
   LOOP_BLOCK,
@@ -644,17 +648,14 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     opt = tree->car->cdr->car;
     i = 0;
 
-      fprintf(stderr, "PC: %d\n", s->pc);
     while (opt) {
       int idx;
 
-      //dispatch(s, pos+i);
       codegen(s, opt->car->cdr, VAL);
       idx = lv_idx(s, (mrb_sym)(intptr_t)opt->car->car);
       pop();
       genop_peep(s, MKOP_AB(OP_MOVE, idx, cursp()), NOVAL);
 
-      fprintf(stderr, "PC: %d (%d)\n", s->pc, s->pc - pos);
       s->irep->oa_off[i + 1] = s->pc - pos + 1;
 
       i++;
@@ -665,10 +666,9 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     s->irep->oa_off[0] = 1;
 
     if (oa > 0) {
-      //dispatch(s, pos+i);
-      fprintf(stderr, "OA %d %p #################\n", oa, s->irep);
+      DEBUG(fprintf(stderr, "oa_off: %d %p\n", oa, s->irep));
       for (i=0; i<oa + 1; i++) {
-        fprintf(stderr, "off %d:%d\n", i, s->irep->oa_off[i]);
+        DEBUG(fprintf(stderr, "   %d:%d\n", i, s->irep->oa_off[i]));
       }
 
     }
@@ -3157,12 +3157,12 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
   scope->filename_index = p->current_filename_index;
 
   MRB_TRY(&scope->jmp) {
+    int i;
+
     /* prepare irep */
     codegen(scope, p->tree, NOVAL);
     proc = mrb_proc_new(mrb, scope->irep);
 
-    int i;
-    fprintf(stderr, "proc:%p\n", proc);
     for (i=0; i< MRB_OPT_ARGC_MAX; i++) {
       //fprintf(stderr, "new proc off %d:%d %d\n", i, proc->oa_off[i], scope->codegen_ctx->oa_off[i]);
     }

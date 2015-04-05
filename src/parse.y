@@ -5601,7 +5601,6 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
     mrb->c->ci->target_class = target;
   }
 
-  fprintf(stderr, "cJIT: %d\n", !!(flags & MRB_RUN_JIT));
   v = mrb_toplevel_run_keep_full(mrb, proc, keep, flags);
   if (mrb->exc) return mrb_nil_value();
   return v;

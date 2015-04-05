@@ -774,22 +774,8 @@ struct op_ctx {
   void *sym_tbl[124];
 };
 
-static volatile struct op_ctx *lctx;
-static void __op_end__(struct op_ctx *ctx) {
-  lctx = ctx;
-}
-
 
 #ifdef MRB_JIT_GEN
-#define OP_END return __op_end__(ctx)
-
-int __getarg_a__(mrb_code c) {
-  return 0xABCDEF;
-}
-
-uintptr_t __getarg_b__(mrb_code c) {
-  return 0xBCDEFA;
-}
 
 void __pc_add__(mrb_code *pc, int o) {
 }
@@ -824,13 +810,10 @@ op_nop(struct op_ctx *ctx) {
   /* do nothing */
 }
 
-static const char _str_const_op_move[] = "op_move r%d <- r%d\n";
-static const char _str_const_op_movet[] = "op_move ty %d <- ty %d\n";
 static FORCE_INLINE void
 op_move(struct op_ctx *ctx) {
   /* A B    R(A) := R(B) */
   ctx->regs[GETARG_A(CTX_I(ctx))] = ctx->regs[GETARG_B(CTX_I(ctx))];
-  //printf(_str_const_op_movet, mrb_type(ctx->regs[GETARG_A(CTX_I(ctx))]), mrb_type(ctx->regs[GETARG_B(CTX_I(ctx))]));
 }
 
 static FORCE_INLINE void
@@ -839,14 +822,10 @@ op_loadl(struct op_ctx *ctx) {
   ctx->regs[GETARG_A(CTX_I(ctx))] = ctx->pool[GETARG_Bx(CTX_I(ctx))];
 }
 
-static char _str_const_loadi[] = "loadi: %d <- ty %d\n";
-static void _op_stop(struct op_ctx *ctx);
 static FORCE_INLINE void
 op_loadi(struct op_ctx *ctx) {
   /* A sBx  R(A) := sBx */
   SET_INT_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))], GETARG_sBx(CTX_I(ctx)));
-  printf(_str_const_loadi,GETARG_A(CTX_I(ctx)), mrb_type(ctx->regs[GETARG_A(CTX_I(ctx))]));
-  //return _op_stop(ctx);
 }
 
 static FORCE_INLINE void
@@ -855,12 +834,9 @@ op_loadsym(struct op_ctx *ctx) {
   SET_SYM_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))], ctx->syms[GETARG_Bx(CTX_I(ctx))]);
 }
 
-char _str_const_op_loadself[] = "op_loadself ty %d %d\n";
 static FORCE_INLINE void
 op_loadself(struct op_ctx *ctx) {
   /* A      R(A) := self */
-
-  printf(_str_const_op_loadself, mrb_type(ctx->regs[1]), mrb_type(ctx->regs[1]));
   ctx->regs[GETARG_A(CTX_I(ctx))] = ctx->regs[0];
 }
 
@@ -1053,7 +1029,7 @@ op_poperr(struct op_ctx *ctx) {
 
 static void
 _op_stop(struct op_ctx *ctx) {
-  printf("op stop\n");
+  DEBUG(printf("_op_stop\n"));
   {
     int eidx_stop = ctx->mrb->c->ci == ctx->mrb->c->cibase ? 0 : ctx->mrb->c->ci[-1].eidx;
     int eidx = ctx->mrb->c->ci->eidx;
@@ -1168,12 +1144,10 @@ op_epop(struct op_ctx *ctx) {
   }
 }
 
-static char _str_const_loadnil[] = "loadnil: %d <- ty %d\n";
 static FORCE_INLINE void
 op_loadnil(struct op_ctx *ctx) {
   /* A     R(A) := nil */
   SET_NIL_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))]);
-  printf(_str_const_loadnil, GETARG_A(CTX_I(ctx)), mrb_type(ctx->regs[GETARG_A(CTX_I(ctx))]));
 }
 
 static inline void
@@ -1186,8 +1160,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   mrb_value recv, result;
   mrb_sym mid = ctx->syms[b];
 
-  printf("_op_send %s: %p %d %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, b, n);
-  opcode = 32;
+  DEBUG(printf("_op_send %s: %p %d %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, b, n));
 
   recv = ctx->regs[a];
   if (opcode != OP_SENDB) {
@@ -1200,9 +1173,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   }
   c = mrb_class(ctx->mrb, recv);
 
-  printf("op send seach %p\n", c);
   m = mrb_method_search_vm(ctx->mrb, &c, mid);
-  printf("op send seach %p\n", m);
   if (!m) {
     mrb_value sym = mrb_symbol_value(mid);
 
@@ -1230,24 +1201,14 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   /* prepare stack */
   ctx->mrb->c->stack += a;
 
-  printf("op send %d %d %d %d\n", opcode, a, b, n);
-  printf("op send %p\n", m);
-  printf("op send %d\n", (ctx->run_flags & MRB_RUN_JIT));
-  printf("op send %d\n", !MRB_PROC_JITTED_P(m));
 #ifdef MRB_ENABLE_JIT
   if ((ctx->run_flags & MRB_RUN_JIT) && !MRB_PROC_JITTED_P(m)) {
-    printf("op send 00\n");
     mrb_proc_jit_prepare(m);
-    printf("op send 01\n");
-    int r = mrb_proc_jit(ctx->mrb, m);
-    printf("op send 02\n");
+    mrb_proc_jit(ctx->mrb, m);
   }
 #endif
 
-  printf("op send 1\n");
-
   if (MRB_PROC_CFUNC_P(m)) {
-    printf("c func\n");
     if (n == CALL_MAXARGS) {
       ci->argc = -1;
       ci->nregs = 3;
@@ -1292,37 +1253,36 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     ctx->regs = ctx->mrb->c->stack;
     ctx->pc = ctx->irep->iseq;
 
-  printf("op send 3\n");
 #ifdef MRB_ENABLE_JIT
     if(MRB_PROC_JITTED_P(m)) {
-      printf("op_send calling into jitted code %p\n", ctx);
       mrb_proc_jit_call(m, ctx);
-      printf("/op_send calling into jitted code\n");
     }
 #endif
   }
-  printf("send end\n");
 }
 
-char _str_const_op_send[] = "op_send %d %d %d\n";
+DEBUG(static char _str_const_op_send[] = "op_send %d %d %d\n");
 static FORCE_INLINE void
 op_send(struct op_ctx *ctx) {
   /* A B C R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
 
-  int opcode = GET_OPCODE(CTX_I(ctx));
   int a = GETARG_A(CTX_I(ctx));
   int b = GETARG_B(CTX_I(ctx));
   int n = GETARG_C(CTX_I(ctx));
 
-  printf(_str_const_op_send, a, b, n);
-  _op_send(ctx, opcode, a, b, n);
-  printf(_str_const_op_send, a, b, n);
+  DEBUG(printf(_str_const_op_send, a, b, n));
+  _op_send(ctx, OP_SEND, a, b, n);
 }
 
 static FORCE_INLINE void
 op_sendb(struct op_ctx *ctx) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
-  return op_send(ctx);
+
+  int a = GETARG_A(CTX_I(ctx));
+  int b = GETARG_B(CTX_I(ctx));
+  int n = GETARG_C(CTX_I(ctx));
+
+  _op_send(ctx, OP_SENDB, a, b, n);
 }
 
 static FORCE_INLINE void
@@ -1423,16 +1383,14 @@ _op_return(struct op_ctx *ctx, int a, int b) {
     ctx->syms = ctx->irep->syms;
     ctx->regs[acc] = v;
   }
-  printf("op_return end %p\n", ctx);
 }
 
-static const char _str_const_op_return[] = "op_return: %d %d\n";
+DEBUG(static const char _str_const_op_return[] = "op_return: %d %d\n");
 static FORCE_INLINE void
 op_return(struct op_ctx *ctx) {
   /* A B     return R(A) (B=normal,in-block return/break) */
-  printf(_str_const_op_return, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)));
+  DEBUG(printf(_str_const_op_return, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx))));
   _op_return(ctx, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)));
-  printf(_str_const_op_return, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)));
 }
 
 static FORCE_INLINE void
@@ -1629,11 +1587,9 @@ op_argary(struct op_ctx *ctx) {
   PC_INC(ctx->pc);
 }
 
-static const char _str_const_op_enter[] = "op_enter: %d\n";
+DEBUG(static const char _str_const_op_enter[] = "op_enter: %d\n");
 static FORCE_INLINE void
 op_enter(struct op_ctx *ctx) {
-  mrb_code *pc = ctx->pc;
-
   /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
   /* number of optional arguments times OP_JMP should follow */
   volatile mrb_aspec ax = GETARG_Ax(CTX_I(ctx));
@@ -1700,14 +1656,12 @@ op_enter(struct op_ctx *ctx) {
       ctx->regs[m1+o+1] = mrb_ary_new_capa(ctx->mrb, 0);
     }
     if (o == 0 || argc < m1+m2) {
-      //fprintf(stderr, "4\n", ctx->pc - pc, o);
       PC_INC(ctx->pc);
 #ifdef MRB_JIT_GEN
       jit_jmp_off = ctx->proc->jit_oa_off[0];
 #endif
     }
     else {
-      //fprintf(stderr, "3 %d\n", argc - m1 - m2);
       PC_ADD(ctx->pc, ctx->irep->oa_off[argc - m1 - m2]);
 #ifdef MRB_JIT_GEN
       jit_jmp_off = ctx->proc->jit_oa_off[argc - m1 - m2];
@@ -1734,14 +1688,12 @@ op_enter(struct op_ctx *ctx) {
     }
 
     if(o > 0) {
-      //fprintf(stderr, "1\n", ctx->pc - pc, o);
       PC_ADD(ctx->pc, ctx->irep->oa_off[o]);
 #ifdef MRB_JIT_GEN
       jit_jmp_off = ctx->proc->jit_oa_off[o];
 #endif
     }
     else {
-      //fprintf(stderr, "2\n", ctx->pc - pc, o);
       PC_INC(ctx->pc);
 #ifdef MRB_JIT_GEN
       jit_jmp_off = ctx->proc->jit_oa_off[0];
@@ -1750,18 +1702,9 @@ op_enter(struct op_ctx *ctx) {
 
   }
 
-  //fprintf(stderr, "PC INC: %d (%d) (%p)\n", ctx->pc - pc, o, ctx->irep);
-  //fprintf(stderr, "eproc:%p\n", ctx->irep);
-  int i;
-  for (i=0; i< MRB_OPT_ARGC_MAX; i++) {
-    //fprintf(stderr, "off %d:%d\n", i, ctx->irep->oa_off[i]);
-  }
 
 #ifdef MRB_JIT_GEN
-//  asm volatile ("jmp %A0"
-//    : : "r" (jit_jmp_addr) :);
-// __asm__ ("mov %0, %%rdi\n\t" : : "r" (jit_jmp_addr) : "rdi");
-  printf(_str_const_op_enter, ((uintptr_t)ctx->proc->jit_page->data) + jit_jmp_off);
+  DEBUG(printf(_str_const_op_enter, ((uintptr_t)ctx->proc->jit_page->data) + jit_jmp_off));
   typedef void (*__op_enter_exit__)(struct op_ctx *, uintptr_t off);
   ((__op_enter_exit__)(0xFAB))(ctx, ((uintptr_t)ctx->proc->jit_page->data) + jit_jmp_off);
 #endif
@@ -2129,8 +2072,6 @@ op_addi(struct op_ctx *ctx) {
   int a = GETARG_A(CTX_I(ctx));
   mrb_value *regs_a = ctx->regs + a;
 
-  printf(_str_const_op_addi, regs_a - ctx->regs, mrb_type(regs_a[0]), mrb_fixnum(regs_a[0]));
-  printf(_str_const_op_addi, regs_a - ctx->regs, mrb_type(regs_a[0]), mrb_fixnum(regs_a[0]));
   /* need to check if + is overridden */
   switch (mrb_type(regs_a[0])) {
   case MRB_TT_FIXNUM:
@@ -2236,8 +2177,7 @@ op_subi(struct op_ctx *ctx) {
 } while(0)
 
 
-char _str_const_op_eq[] = "op_eq %ld\n";
-char _str_const_op_eqt[] = "op_eq ty %d %d\n";
+DEBUG(static char _str_const_op_eq[] = "op_eq %ld\n");
 static FORCE_INLINE void
 op_eq(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)*/
@@ -2245,7 +2185,7 @@ op_eq(struct op_ctx *ctx) {
   mrb_value *regs = ctx->regs;
   mrb_value *regs_a = regs + a;
 
-  //printf(_str_const_op_eq, a);
+  DEBUG(printf(_str_const_op_eq, a));
 
   if (mrb_obj_eq(ctx->mrb, regs_a[0], regs_a[1])) {
     SET_TRUE_VALUE(regs_a[0]);
@@ -2254,20 +2194,19 @@ op_eq(struct op_ctx *ctx) {
     OP_CMP(==);
   }
 
-  //printf(_str_const_op_eq, mrb_type(regs[a]),mrb_type(regs[a+1]));
   PC_INC(ctx->pc);
 }
 
-char _str_const_op_lt[] = "op_lt %ld\n";
-char _str_const_op_ltt[] = "op_lt ty %d %d\n";
+DEBUG(static char _str_const_op_lt[] = "op_lt %ld\n");
 static FORCE_INLINE void
 op_lt(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)<R(A+1) (Syms[B]=:<,C=1)*/
   int a = GETARG_A(CTX_I(ctx));
   mrb_value *regs = ctx->regs;
   OP_CMP(<);
-  //printf(_str_const_op_lt, a);
-  //printf(_str_const_op_lt, mrb_type(regs[a]),mrb_type(regs[a+1]));
+
+  DEBUG(printf(_str_const_op_lt, a));
+
   PC_INC(ctx->pc);
 }
 
@@ -2385,12 +2324,12 @@ op_apost(struct op_ctx *ctx) {
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
-static char _str_const_string[] = "string\n";
+DEBUG(static char _str_const_op_string[] = "op_string\n");
 static FORCE_INLINE void
 op_string(struct op_ctx *ctx) {
   /* A Bx           R(A) := str_new(Lit(Bx)) */
   ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_str_dup(ctx->mrb, ctx->pool[GETARG_Bx(CTX_I(ctx))]);
-  printf(_str_const_string);
+  DEBUG(printf(_str_const_op_string));
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
@@ -2583,10 +2522,10 @@ op_debug(struct op_ctx *ctx) {
 #endif
 }
 
-static char _str_const_stop[] = "stop\n";
+DEBUG(static char _str_const_op_stop[] = "op_stop\n");
 static FORCE_INLINE void
 op_stop(struct op_ctx *ctx) {
-  printf(_str_const_stop);
+  DEBUG(printf(_str_const_op_stop));
   return _op_stop(ctx);
 }
 
@@ -3098,10 +3037,7 @@ jit:
     mrb_proc_jit_call(proc, (void *) &ctx);
   } else {
     if (mrb_proc_jit(mrb, proc)) {
-      fprintf(stderr, "before jit: %d %d\n", GET_OPCODE(ctx.i), GETARG_sBx(ctx.i));
-      
       mrb_proc_jit_call(proc, (void *) &ctx);
-      fprintf(stderr,"jit returned");
     } else {
       ctx.run_flags &= ~MRB_RUN_JIT;
       goto dispatch;
