@@ -212,7 +212,7 @@ main(int argc, char **argv)
   if (args.check_syntax)
     c->no_exec = TRUE;
   if (args.jit)
-    c->jit = TRUE;
+    mrb->run_flags |= MRB_RUN_JIT;
 
   /* Set $0 */
   zero_sym = mrb_intern_lit(mrb, "$0");

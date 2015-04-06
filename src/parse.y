@@ -5551,7 +5551,6 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   struct RClass *target = mrb->object_class;
   struct RProc *proc;
   mrb_value v;
-  mrb_run_flags flags = MRB_RUN_NORMAL;
   unsigned int keep = 0;
 
   if (!p) {
@@ -5592,16 +5591,13 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
     else {
       c->keep_lv = TRUE;
     }
-    if(c->jit) {
-      flags = (mrb_run_flags) (flags | MRB_RUN_JIT);
-    }
   }
   proc->target_class = target;
   if (mrb->c->ci) {
     mrb->c->ci->target_class = target;
   }
 
-  v = mrb_toplevel_run_keep_full(mrb, proc, keep, flags);
+  v = mrb_toplevel_run_keep(mrb, proc, keep);
   if (mrb->exc) return mrb_nil_value();
   return v;
 }

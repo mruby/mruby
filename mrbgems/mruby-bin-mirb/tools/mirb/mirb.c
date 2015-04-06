@@ -455,10 +455,14 @@ main(int argc, char **argv)
         }
         /* pass a proc for evaulation */
         /* evaluate the bytecode */
-        result = mrb_context_run_full(mrb,
+        if(args.jit) {
+          mrb->run_flags |= MRB_RUN_JIT;
+        }
+
+        result = mrb_context_run(mrb,
             proc,
             mrb_top_self(mrb),
-            stack_keep, args.jit * MRB_RUN_JIT);
+            stack_keep);
         stack_keep = proc->body.irep->nlocals;
         /* did an exception occur? */
         if (mrb->exc) {

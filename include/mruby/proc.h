@@ -71,7 +71,6 @@ MRB_API struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int
 void mrb_proc_copy(struct RProc *a, struct RProc *b);
 mrb_bool mrb_proc_jit(mrb_state *mrb, struct RProc *p);
 void mrb_proc_jit_call(struct RProc *proc, void *ctx);
-void mrb_proc_jit_prepare(struct RProc *proc);
 /* implementation of #send method */
 MRB_API mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
 

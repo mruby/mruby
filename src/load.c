@@ -649,7 +649,6 @@ mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrbc_context *c)
 {
   mrb_irep *irep = mrb_read_irep(mrb, bin);
   struct RProc *proc;
-  mrb_run_flags flags = MRB_RUN_NORMAL;
 
   if (!irep) {
     irep_error(mrb);
@@ -658,8 +657,7 @@ mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrbc_context *c)
   proc = mrb_proc_new(mrb, irep);
   mrb_irep_decref(mrb, irep);
   if (c && c->no_exec) return mrb_obj_value(proc);
-  if (c && c->jit) flags |= MRB_RUN_JIT;
-  return mrb_toplevel_run_full(mrb, proc, flags);
+  return mrb_toplevel_run(mrb, proc);
 }
 
 MRB_API mrb_value
