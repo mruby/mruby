@@ -193,6 +193,7 @@ typedef struct mrb_state {
   mrb_int atexit_stack_len;
 
   mrb_run_flags run_flags;
+  void *op_ctx;
 } mrb_state;
 
 #if __STDC_VERSION__ >= 201112L

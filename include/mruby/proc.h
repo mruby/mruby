@@ -27,8 +27,7 @@ struct REnv {
 
 typedef struct mrb_jit_page {
     size_t size;
-    struct mrb_jit_page *next;
-    uint8_t data[1];
+    uint8_t *data;
 } mrb_jit_page;
 
 struct RProc {
@@ -41,7 +40,7 @@ struct RProc {
   struct REnv *env;
 
 #ifdef MRB_ENABLE_JIT
-  mrb_jit_page *jit_page;
+  mrb_jit_page jit_page;
   uint16_t jit_oa_off[MRB_IREP_AOFF_LEN];
 #endif
 };

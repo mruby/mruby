@@ -68,6 +68,9 @@ static const char _str_const_double_resume[] = "double resume";
 static const char _str_const_attached[] = "__attached__";
 static const char _str_const_super_outside_method[] = "super called outside of method";
 
+void
+mrb_codedump_all(mrb_state *mrb, struct RProc *proc);
+
 static inline void
 stack_clear(mrb_value *from, size_t count)
 {
@@ -366,7 +369,8 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     c = mrb_class(mrb, self);
     p = mrb_method_search_vm(mrb, &c, mid);
 
-    DEBUG(fprintf(stderr, "funcall %s: %p\n", mrb_sym2name(mrb, mid), p));
+    fprintf(stderr, "funcall %s: %p\n", mrb_sym2name(mrb, mid), p);
+
     if (!p) {
       undef = mid;
       mid = intern_str_const(mrb, _str_const_method_missing);
@@ -790,12 +794,16 @@ void __pc_inc__(mrb_code *pc) {
 #define GETARG_Ax(i) 0xAB0000
 #undef GETARG_B
 #define GETARG_B(i) 0xBC0000
+#undef GETARG_b
+#define GETARG_b(i) 0xBC0000
 #undef GETARG_sBx
 #define GETARG_sBx(i) 0xBC0000
 #undef GETARG_Bx
 #define GETARG_Bx(i) 0xBC0000
 #undef GETARG_C
 #define GETARG_C(i) 0xCD0000
+#undef GETARG_c
+#define GETARG_c(i) 0xCD0000
 #define PC_ADD(pc, o) (__pc_add__(pc, o))
 #define PC_INC(pc) (__pc_inc__(pc))
 #else
@@ -1162,7 +1170,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   mrb_value recv, result;
   mrb_sym mid = ctx->syms[b];
 
-  DEBUG(printf("_op_send %s: %p %d %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, b, n));
+  printf("_op_send %s: %p %d %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, b, n);
 
   recv = ctx->regs[a];
   if (opcode != OP_SENDB) {
@@ -1173,9 +1181,14 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
       SET_NIL_VALUE(ctx->regs[a+n+1]);
     }
   }
+
+  printf("_op_send: class\n");
   c = mrb_class(ctx->mrb, recv);
 
+  printf("_op_send: class %p\n", c);
+
   m = mrb_method_search_vm(ctx->mrb, &c, mid);
+  printf("_op_send: %p\n", m);
   if (!m) {
     mrb_value sym = mrb_symbol_value(mid);
 
@@ -1204,6 +1217,9 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   ctx->mrb->c->stack += a;
 
   if (MRB_PROC_CFUNC_P(m)) {
+    mrb_bool flow_modified = FALSE;
+
+    printf("_op_send: cfunc (ctx = %p)\n", ctx);
     if (n == CALL_MAXARGS) {
       ci->argc = -1;
       ci->nregs = 3;
@@ -1212,6 +1228,11 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
       ci->argc = n;
       ci->nregs = n + 2;
     }
+
+    // make op context accessible to C functions
+    // that need to call back into the VM code
+    ctx->mrb->op_ctx = ctx;
+
     result = m->body.func(ctx->mrb, recv);
     ctx->mrb->c->stack[0] = result;
     mrb_gc_arena_restore(ctx->mrb, ctx->ai);
@@ -1224,14 +1245,42 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
         ctx->irep = ctx->proc->body.irep;
         ctx->pool = ctx->irep->pool;
         ctx->syms = ctx->irep->syms;
+        flow_modified = TRUE;
       }
     }
     ctx->regs = ctx->mrb->c->stack = ci->stackent;
     ctx->pc = ci->pc;
     cipop(ctx->mrb);
+
+
+#ifdef MRB_ENABLE_JIT
+    /* the cfunc called above modified execution context.
+     * If the new PC points to the beginning of a proc we
+     * jit and run from the start.
+     * Otherwise (a resume), we need to jump to the corresponding PC
+     * position in native code (TODO).
+     */
+    if(flow_modified) {
+      if(ctx->pc == ctx->irep->iseq) {
+        if ((ctx->mrb->run_flags & MRB_RUN_JIT) && !MRB_PROC_JITTED_P(ctx->proc)) {
+
+          printf("_op_send: cfunc seems to have modified context -> jitting\n");
+          mrb_proc_jit(ctx->mrb, ctx->proc);
+        }
+        if(MRB_PROC_JITTED_P(ctx->proc)) {
+          printf("_op_send: calling into jit\n");
+          mrb_proc_jit_call(ctx->proc, ctx);
+          printf("/_op_send: calling into jit\n");
+        }
+      }
+    }
+#endif
+
+
   }
   else {
 
+    printf("_op_send: no cfunc\n");
 
     /* setup environment for calling method */
     ctx->proc = ctx->mrb->c->ci->proc = m;
@@ -1250,15 +1299,24 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     ctx->regs = ctx->mrb->c->stack;
     ctx->pc = ctx->irep->iseq;
 
+
+    printf("_op_send: pc set\n");
+
 #ifdef MRB_ENABLE_JIT
     if ((ctx->mrb->run_flags & MRB_RUN_JIT) && !MRB_PROC_JITTED_P(m)) {
+
+      printf("_op_send: jitting\n");
       mrb_proc_jit(ctx->mrb, m);
     }
     if(MRB_PROC_JITTED_P(m)) {
+
+      printf("_op_send: calling into jit\n");
       mrb_proc_jit_call(m, ctx);
     }
 #endif
   }
+
+  printf("_op_send: end\n");
 }
 
 DEBUG(static char _str_const_op_send[] = "op_send %d %d %d\n");
@@ -1376,7 +1434,7 @@ _op_return(struct op_ctx *ctx, int a, int b) {
       ctx->retval = v;
       MRB_THROW(ctx->stop_jmp);
     }
-    DEBUG(printf("from :%s\n", mrb_sym2name(mrb, ci->mid)));
+    printf("from :%s\n", mrb_sym2name(mrb, ci->mid));
     ctx->proc = mrb->c->ci->proc;
     ctx->irep = ctx->proc->body.irep;
     ctx->pool = ctx->irep->pool;
@@ -1385,20 +1443,23 @@ _op_return(struct op_ctx *ctx, int a, int b) {
   }
 }
 
-DEBUG(static const char _str_const_op_return[] = "op_return: %d %d\n");
+static const char _str_const_op_return[] = "op_return: %d %d\n";
 static FORCE_INLINE void
 op_return(struct op_ctx *ctx) {
   /* A B     return R(A) (B=normal,in-block return/break) */
-  DEBUG(printf(_str_const_op_return, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx))));
+  printf(_str_const_op_return, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)));
   _op_return(ctx, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)));
 }
 
-static FORCE_INLINE void
-op_call(struct op_ctx *ctx) {
+static const char _str_const_op_call[] = "op_call: %d\n";
+static inline void
+_op_call(struct op_ctx *ctx, int a) {
   /* A      R(A) := self.call(frame.argc, frame.argv) */
   mrb_callinfo *ci;
   mrb_value recv = ctx->mrb->c->stack[0];
   struct RProc *m = mrb_proc_ptr(recv);
+
+  printf("_op_call: %d\n", a);
 
   /* replace callinfo */
   ci = ctx->mrb->c->ci;
@@ -1434,7 +1495,7 @@ op_call(struct op_ctx *ctx) {
     ctx->irep = m->body.irep;
     if (!ctx->irep) {
       ctx->mrb->c->stack[0] = mrb_nil_value();
-      return _op_return(ctx, GETARG_A(CTX_I(ctx)), OP_R_NORMAL);
+      return _op_return(ctx, a, OP_R_NORMAL);
     }
     ctx->pool = ctx->irep->pool;
     ctx->syms = ctx->irep->syms;
@@ -1448,7 +1509,25 @@ op_call(struct op_ctx *ctx) {
     ctx->regs = ctx->mrb->c->stack;
     ctx->regs[0] = m->env->stack[0];
     ctx->pc = ctx->irep->iseq;
+
+#ifdef MRB_ENABLE_JIT
+    if ((ctx->mrb->run_flags & MRB_RUN_JIT) && !MRB_PROC_JITTED_P(m)) {
+      mrb_proc_jit(ctx->mrb, m);
+    }
+    if(MRB_PROC_JITTED_P(m)) {
+      printf("_op_call: calling into jit\n");
+      mrb_proc_jit_call(m, ctx);
+      printf("/_op_call: calling into jit\n");
+    }
+#endif
   }
+  printf("_op_call: end\n");
+}
+
+static FORCE_INLINE void
+op_call(struct op_ctx *ctx) {
+  _op_call(ctx, GETARG_A(CTX_I(ctx)));
+  printf(_str_const_op_call, GETARG_A(CTX_I(ctx)));
 }
 
 static FORCE_INLINE void
@@ -1586,7 +1665,7 @@ op_argary(struct op_ctx *ctx) {
   PC_INC(ctx->pc);
 }
 
-DEBUG(static const char _str_const_op_enter[] = "op_enter: %d\n");
+static const char _str_const_op_enter[] = "op_enter: %p\n";
 static FORCE_INLINE void
 op_enter(struct op_ctx *ctx) {
   /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
@@ -1703,9 +1782,9 @@ op_enter(struct op_ctx *ctx) {
 
 
 #ifdef MRB_JIT_GEN
-  DEBUG(printf(_str_const_op_enter, ((uintptr_t)ctx->proc->jit_page->data) + jit_jmp_off));
+  printf(_str_const_op_enter, ((uintptr_t)ctx->proc->jit_page.data) + jit_jmp_off);
   typedef void (*__op_enter_exit__)(struct op_ctx *, uintptr_t off);
-  ((__op_enter_exit__)(0xFAB))(ctx, ((uintptr_t)ctx->proc->jit_page->data) + jit_jmp_off);
+  ((__op_enter_exit__)(0xFAB))(ctx, ((uintptr_t)ctx->proc->jit_page.data) + jit_jmp_off);
 #endif
 }
 
@@ -2354,20 +2433,15 @@ op_hash(struct op_ctx *ctx) {
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
-static const char cac[] = "op_lambda: %d => %p\n";
-static const char ccc[] = "op_method: %d => %p\n";
-
-static FORCE_INLINE void
-op_lambda(struct op_ctx *ctx) {
-  /* A b c  R(A) := lambda(SEQ[b],c) (b:c = 14:2) */
+static inline void
+_op_lambda(struct op_ctx *ctx, int a, int b, int c) {
   struct RProc *p;
-  int c = GETARG_c(CTX_I(ctx));
 
   if (c & OP_L_CAPTURE) {
-    p = mrb_closure_new(ctx->mrb, ctx->irep->reps[GETARG_b(CTX_I(ctx))]);
+    p = mrb_closure_new(ctx->mrb, ctx->irep->reps[b]);
   }
   else {
-    p = mrb_proc_new(ctx->mrb, ctx->irep->reps[GETARG_b(CTX_I(ctx))]);
+    p = mrb_proc_new(ctx->mrb, ctx->irep->reps[b]);
     if (c & OP_L_METHOD) {
       if (p->target_class->tt == MRB_TT_SCLASS) {
         mrb_value klass;
@@ -2379,8 +2453,14 @@ op_lambda(struct op_ctx *ctx) {
     }
   }
   if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
-  ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_obj_value(p);
+  ctx->regs[a] = mrb_obj_value(p);
   ARENA_RESTORE(ctx->mrb, ctx->ai);
+}
+
+static FORCE_INLINE void
+op_lambda(struct op_ctx *ctx) {
+  /* A b c  R(A) := lambda(SEQ[b],c) (b:c = 14:2) */
+  return _op_lambda(ctx, GETARG_A(CTX_I(ctx)), GETARG_b(CTX_I(ctx)), GETARG_c(CTX_I(ctx)));
 }
 
 static FORCE_INLINE void
@@ -2433,7 +2513,7 @@ op_exec(struct op_ctx *ctx) {
   mrb_value recv = ctx->regs[a];
   struct RProc *p;
 
-  DEBUG(printf(_str_const_op_exec, GETARG_A(CTX_I(ctx)), GETARG_Bx(CTX_I(ctx))));
+  printf(_str_const_op_exec, GETARG_A(CTX_I(ctx)), GETARG_Bx(CTX_I(ctx)));
 
   /* prepare stack */
   ci = cipush(ctx->mrb);
@@ -2482,6 +2562,8 @@ op_exec(struct op_ctx *ctx) {
   }
 }
 
+static const char _str_const_op_method[] = "op_method: %s = %p\n";
+
 static FORCE_INLINE void
 op_method(struct op_ctx *ctx) {
   /* A B            R(A).newmethod(Syms(B),R(A+1)) */
@@ -2489,6 +2571,11 @@ op_method(struct op_ctx *ctx) {
   struct RClass *c = mrb_class_ptr(ctx->regs[a]);
 
   mrb_define_method_vm(ctx->mrb, c, ctx->syms[GETARG_B(CTX_I(ctx))], ctx->regs[a+1]);
+
+  printf(_str_const_op_method, mrb_sym2name(ctx->mrb, ctx->syms[GETARG_B(CTX_I(ctx))]),ctx->regs[a+1]);
+
+  mrb_codedump_all(ctx->mrb, mrb_proc_ptr(ctx->regs[a+1]));
+
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
@@ -2571,9 +2658,6 @@ static void *symtbl[1];
 #endif
 
 
-void
-mrb_codedump_all(mrb_state *mrb, struct RProc *proc);
-
 MRB_API mrb_value
 mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {
@@ -2631,8 +2715,8 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   ctx.stop_jmp = &stop_jmp;
   ctx.mrb = mrb;
 
-  DEBUG(fprintf(stderr, "mrb_context_run %d\n", jit));
-  DEBUG(mrb_codedump_all(mrb, proc));
+  fprintf(stderr, "mrb_context_run %d\n", jit);
+  mrb_codedump_all(mrb, proc);
 
   init_symtbl();
   memcpy(ctx.sym_tbl, symtbl, sizeof(symtbl));

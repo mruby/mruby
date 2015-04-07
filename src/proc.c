@@ -164,29 +164,28 @@ jit_page_size() {
   return sysconf(_SC_PAGESIZE);
 }
 
-static struct mrb_jit_page *
-jit_page_alloc(size_t size) {
+static mrb_bool
+jit_page_alloc(struct mrb_jit_page *page, size_t size) {
   size_t page_size = jit_page_size();
-  struct mrb_jit_page *page;
   size = (size + page_size - 1) & ~(page_size - 1);
 
-  DEBUG(fprintf(stderr, "allocating page of size %d\n", size));
+  fprintf(stderr, "allocating page of size %d\n", size);
 
-  page = (struct mrb_jit_page *) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+  page->data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
   page->size = size;
 
-  return page;
+  return TRUE;
 }
 
 static void
 jit_page_prot_exec(struct mrb_jit_page *page) {
-  mprotect(page, page->size, PROT_READ | PROT_EXEC);
+  mprotect(page->data, page->size, PROT_READ | PROT_EXEC);
 }
 #endif
 
 void
 mrb_proc_jit_call(struct RProc *proc, void *ctx) {
-  void (*f)(void *) = (void *)proc->jit_page->data;
+  void (*f)(void *) = (void *)proc->jit_page.data;
   return (*f)(ctx);
 }
 
@@ -203,6 +202,11 @@ static size_t jump_size(mrb_code c, int off) {
     default:
       return (size_t) -1;
   }
+}
+
+static size_t return_size() {
+  uint8_t buf[64];
+  return jit_return(buf) - buf;
 }
 
 static int jmp_offset(mrb_code *iseq, int32_t *tbl, int i);
@@ -310,14 +314,19 @@ mrb_proc_jit(mrb_state *mrb, struct RProc *proc)
       return FALSE;
     }
 
-    size = calculate_off_tbl(proc, off_tbl);
-    DEBUG(fprintf(stderr, "need %d bytes for jit code\n", size));
-    page = jit_page_alloc(size);
+    size = calculate_off_tbl(proc, off_tbl) + return_size();
+    fprintf(stderr, "need %d bytes for jit code (%d for the final return)\n", size, return_size());
+    page = &proc->jit_page;
+    jit_page_alloc(page, size);
+
     for (i = 0; i < irep->ilen; i++) {
       mrb_code c = irep->iseq[i];
       int opcode = GET_OPCODE(c);
       size_t off =  off_tbl[i];
-      DEBUG(fprintf(stderr, "copying opcode:%s (%d) to offset %d (%d bytes) (addr: %p)\n", op_names[opcode], opcode, off, op_sizes[opcode], page->data + off));
+
+      fprintf(stderr, "copying opcode:%s (%d) to offset %d (%d bytes) (addr: %p)\n", op_names[opcode], opcode, off, op_sizes[opcode], page->data + off);
+
+
       memcpy(page->data + off, ops[opcode], op_sizes[opcode]);
 
       arg_funcs[opcode](page->data + off, c);
@@ -336,19 +345,21 @@ mrb_proc_jit(mrb_state *mrb, struct RProc *proc)
         } else {
           jmp_off = jit_jump(page->data + off + op_sizes[opcode], jit_off);
         }
-        DEBUG(fprintf(stderr, "jump to (%d) %p\n", op_off, jmp_off + jit_off));
+        fprintf(stderr, "jump to (%d) %p\n", op_off, jmp_off + jit_off);
       }
     }
 
+    fprintf(stderr, "inserting final ret: to offset %d (addr: %p)\n",  off_tbl[i], page->data + off_tbl[i]);
+    jit_return(page->data + off_tbl[i]);
+
     for (i = 0; i < size; i++)
     {
-      if (i > 0) DEBUG(printf(" "));
-      DEBUG(printf("%02X", page->data[i]));
+      if (i > 0) printf(" ");
+      printf("%02X", page->data[i]);
     }
-    DEBUG(printf("\n"));
+    printf("\n");
 
     proc->flags |= MRB_PROC_JITTED;
-    proc->jit_page = page;
     jit_page_prot_exec(page);
 
     return TRUE;
