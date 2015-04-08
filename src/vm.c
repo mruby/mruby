@@ -1312,6 +1312,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
 
       printf("_op_send: calling into jit\n");
       mrb_proc_jit_call(m, ctx);
+      printf("/_op_send: calling into jit\n");
     }
 #endif
   }

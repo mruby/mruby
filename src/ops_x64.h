@@ -3856,13 +3856,13 @@ uint8_t *jit_return(uint8_t *b) {
   *b++ = 0xc3;
   return b;
 }
-uint8_t *jit_jump(uint8_t *b, int32_t n) {
-  if(n >= -128 && n < 127) {
+uint8_t *jit_jump(uint8_t *b, int32_t n, int force_rel16) {
+  if(n >= -128 && n < 127 && !force_rel16) {
     *b++ = 235;
     *b++ = (int8_t) n;
     return b;
   }
-  if(n >= -32768 && n < 32767) {
+  else {
     *b++ = 233;
     *((int32_t *)(b)) = (int32_t) n;
     b += sizeof(int32_t);
@@ -3870,13 +3870,13 @@ uint8_t *jit_jump(uint8_t *b, int32_t n) {
   }
   return NULL;
 }
-uint8_t *jit_jump_if(uint8_t *b, int32_t n) {
-  if(n >= -128 && n < 127) {
+uint8_t *jit_jump_if(uint8_t *b, int32_t n, int force_rel16) {
+  if(n >= -128 && n < 127 && !force_rel16) {
     *b++ = 116;
     *b++ = (int8_t) n;
     return b;
   }
-  if(n >= -32768 && n < 32767) {
+  else {
     *((uint16_t *)(b)) = (uint16_t) -31729;
     b += sizeof(uint16_t);
     *((int32_t *)(b)) = (int32_t) n;
@@ -3885,13 +3885,13 @@ uint8_t *jit_jump_if(uint8_t *b, int32_t n) {
   }
   return NULL;
 }
-uint8_t *jit_jump_not(uint8_t *b, int32_t n) {
-  if(n >= -128 && n < 127) {
+uint8_t *jit_jump_not(uint8_t *b, int32_t n, int force_rel16) {
+  if(n >= -128 && n < 127 && !force_rel16) {
     *b++ = 117;
     *b++ = (int8_t) n;
     return b;
   }
-  if(n >= -32768 && n < 32767) {
+  else {
     *((uint16_t *)(b)) = (uint16_t) -31473;
     b += sizeof(uint16_t);
     *((int32_t *)(b)) = (int32_t) n;

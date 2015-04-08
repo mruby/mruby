@@ -189,18 +189,18 @@ mrb_proc_jit_call(struct RProc *proc, void *ctx) {
   return (*f)(ctx);
 }
 
-static size_t jump_size(mrb_code c, int off) {
+static size_t jump_size(mrb_code c, int off, int force_rel16) {
   uint8_t buf[64];
   switch(GET_OPCODE(c)) {
     case OP_JMPNOT:
       /* needs je, i.e. jump if equals zero, which means value is false */
-      return jit_jump_if(buf, off) - buf;
+      return jit_jump_if(buf, off, force_rel16) - buf;
     case OP_JMPIF:
-      return jit_jump_not(buf, off) - buf;
+      return jit_jump_not(buf, off, force_rel16) - buf;
     case OP_JMP:
-      return jit_jump(buf, off) - buf;
+      return jit_jump(buf, off, force_rel16) - buf;
     default:
-      return (size_t) -1;
+      mrb_assert(0 && "invalid jump opcode");
   }
 }
 
@@ -209,54 +209,83 @@ static size_t return_size() {
   return jit_return(buf) - buf;
 }
 
-static int jmp_offset(mrb_code *iseq, int32_t *tbl, int i);
-static int32_t calculate_off_tbl_(mrb_code *iseq, int32_t *tbl, int i, int rel_to) {
-  if(tbl[i] > 0) {
-    return tbl[i] - calculate_off_tbl_(iseq, tbl, rel_to, 0);
-  }
-  else if(i == rel_to) {
-    tbl[i] = 0;
-  } else {
-    int32_t off = calculate_off_tbl_(iseq, tbl, i - 1, rel_to);
-    mrb_code c = iseq[i - 1];
-    int opcode = GET_OPCODE(c);
-    off += op_sizes[opcode];
-
-    if (opcode == OP_JMPNOT || opcode == OP_JMPIF || opcode == OP_JMP) {
-      off += jump_size(c, jmp_offset(iseq, tbl, i - 1));
-    }
-    tbl[i] = off;
-  }
-
-  return tbl[i];
+static mrb_bool is_jump(int opcode) {
+  return opcode == OP_JMPNOT || opcode == OP_JMPIF || opcode == OP_JMP;
 }
 
-static int32_t jmp_offset(mrb_code *iseq, int32_t *tbl, int i) {
-  mrb_code c = iseq[i];
-  int vm_off = GETARG_sBx(c);
+static int32_t relax_off_tbl(struct RProc *proc, int32_t *tbl) {
+  int i;
+  mrb_irep *irep = proc->body.irep;
+  tbl[0] = 0;
+  mrb_bool rerelax = FALSE;
 
-  /* The backward case is tricky, as the offset depends on
-   * the size of the jump instruction, which again depends
-   * on the offset.
-   */
-  if(vm_off < 0) {
-    int off_wo_jmp = calculate_off_tbl_(iseq, tbl, i, 0) - calculate_off_tbl_(iseq, tbl, i + vm_off, 0);
-    int jump_size_wo_jmp = jump_size(iseq[i], off_wo_jmp);
-    int jump_size_w_jmp = jump_size(iseq[i], off_wo_jmp + jump_size_wo_jmp);
+  for(i = 0; i < irep->ilen; i++) {
+    mrb_code c = irep->iseq[i];
+    int opcode = GET_OPCODE(c);
 
-    if(jump_size_wo_jmp == jump_size_w_jmp) {
-      return off_wo_jmp + jump_size_w_jmp;
-    } else {
-      return off_wo_jmp + jump_size(iseq[i], off_wo_jmp + jump_size_w_jmp);
+    if (is_jump(opcode)) {
+      int op_off = GETARG_sBx(c);
+      int cur_jmp_size = tbl[i + 1] - tbl[i];
+      int new_jmp_size = op_sizes[opcode];
+      int jmp_off;
+
+      if(op_off >= 0) {
+        jmp_off = tbl[i + op_off] - tbl[i + 1];
+        new_jmp_size += jump_size(c, jmp_off, FALSE);
+      } else {
+        int off_wo_self = tbl[i] - tbl[i + op_off];
+        int jmp_size_wo_self = jump_size(c, off_wo_self, FALSE);
+        int off_w_self = off_wo_self + jmp_size_wo_self;
+        int jmp_size_w_self = jump_size(c, off_w_self, FALSE);
+
+        if(jmp_size_wo_self == jmp_size_w_self) {
+          new_jmp_size += jmp_size_w_self;
+          jmp_off = off_w_self;
+        } else {
+          jmp_off = off_wo_self + jmp_size_w_self;
+          new_jmp_size += jump_size(c, jmp_off, FALSE);
+        }
+      }
+
+      if(cur_jmp_size > new_jmp_size) {
+        int diff = cur_jmp_size - new_jmp_size;
+        int j;
+        printf("jumping %d (%d ops) can be relaxed from %d to %d\n", jmp_off, op_off, cur_jmp_size, new_jmp_size);
+        for(j = i + 1; j <= irep->ilen; j++) {
+          tbl[j] -= diff;
+        }
+        rerelax = TRUE;
+      }
+
     }
   }
+  if(rerelax) {
+    printf("rerelaxing\n");
+    relax_off_tbl(proc, tbl);
+  }
 
-  return calculate_off_tbl_(iseq, tbl, i + vm_off + 1, i + 1);
+  printf("/relaxing\n");
 }
 
 static int32_t calculate_off_tbl(struct RProc *proc, int32_t *tbl) {
-  memset(tbl, -1, sizeof(int32_t) * (proc->body.irep->ilen + 1));
-  return calculate_off_tbl_(proc->body.irep->iseq, tbl, proc->body.irep->ilen, 0);
+  int i;
+  mrb_irep *irep = proc->body.irep;
+  tbl[0] = 0;
+
+  for(i = 0; i < irep->ilen; i++) {
+    mrb_code c = irep->iseq[i];
+    int opcode = GET_OPCODE(c);
+    int32_t next_off = tbl[i] + op_sizes[opcode];
+    if (is_jump(opcode)) {
+      printf("jump: adding extra %d\n", jump_size(irep->iseq[i], 0, TRUE));
+      next_off += jump_size(irep->iseq[i], 0, TRUE);
+    }
+    tbl[i + 1] = next_off;
+  }
+
+  relax_off_tbl(proc, tbl);
+
+  return tbl[irep->ilen];
 }
 
 static mrb_bool
@@ -324,7 +353,7 @@ mrb_proc_jit(mrb_state *mrb, struct RProc *proc)
       int opcode = GET_OPCODE(c);
       size_t off =  off_tbl[i];
 
-      fprintf(stderr, "copying opcode:%s (%d) to offset %d (%d bytes) (addr: %p)\n", op_names[opcode], opcode, off, op_sizes[opcode], page->data + off);
+      fprintf(stderr, "copying opcode:%s (%d) to offset %d (%d bytes) (addr: %p/%p)\n", op_names[opcode], opcode, off, op_sizes[opcode], page->data + off, off);
 
 
       memcpy(page->data + off, ops[opcode], op_sizes[opcode]);
@@ -339,13 +368,13 @@ mrb_proc_jit(mrb_state *mrb, struct RProc *proc)
         (void) jmp_off;
 
         if (opcode == OP_JMPNOT) {
-          jmp_off = jit_jump_if(page->data + off + op_sizes[opcode], jit_off);
+          jmp_off = jit_jump_if(page->data + off + op_sizes[opcode], jit_off, FALSE);
         } else if(opcode == OP_JMPIF){
-          jmp_off = jit_jump_not(page->data + off + op_sizes[opcode], jit_off);
+          jmp_off = jit_jump_not(page->data + off + op_sizes[opcode], jit_off, FALSE);
         } else {
-          jmp_off = jit_jump(page->data + off + op_sizes[opcode], jit_off);
+          jmp_off = jit_jump(page->data + off + op_sizes[opcode], jit_off, FALSE);
         }
-        fprintf(stderr, "jump to (%d) %p\n", op_off, jmp_off + jit_off);
+        fprintf(stderr, "jump to (%d / %ld) %p\n", op_off, jit_off, jmp_off + jit_off);
       }
     }
 

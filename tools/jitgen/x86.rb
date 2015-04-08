@@ -82,12 +82,13 @@ module Assembly
 
           cond = -> (r) {"n >= #{r.min} && n < #{r.max}"}
 
-          io.puts "uint8_t *#{c_func_name}(uint8_t *b, int32_t n) {"
-          io.puts "  if(#{cond[rel8_range]}) {"
+          io.puts "uint8_t *#{c_func_name}(uint8_t *b, int32_t n, int force_rel16) {"
+          io.puts "  if(#{cond[rel8_range]} && !force_rel16) {"
           rel8_to_c io
           io.puts "    return b;";
           io.puts "  }"
-          io.puts "  if(#{cond[rel16_range]}) {"
+          #io.puts "  if(#{cond[rel16_range]}) {"
+          io.puts "  else {"
           rel16_to_c io
           io.puts "    return b;";
           io.puts "  }"
