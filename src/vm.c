@@ -1583,6 +1583,11 @@ op_super(struct op_ctx *ctx) {
     }
     ctx->regs = ctx->mrb->c->stack;
     ctx->pc = ctx->irep->iseq;
+
+#ifdef MRB_ENABLE_JIT
+    mrb_proc_call_jit(ctx->mrb, m, ctx);
+#endif
+
   }
 }
 
@@ -1839,6 +1844,11 @@ op_tailcall(struct op_ctx *ctx) {
     }
     ctx->regs = mrb->c->stack;
     ctx->pc = ctx->irep->iseq;
+
+#ifdef MRB_ENABLE_JIT
+    mrb_proc_call_jit(ctx->mrb, m, ctx);
+#endif
+
   }
 }
 
