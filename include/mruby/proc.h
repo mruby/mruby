@@ -25,12 +25,6 @@ struct REnv {
 #define MRB_ENV_UNSHARE_STACK(e) ((e)->cioff = -1)
 #define MRB_ENV_STACK_SHARED_P(e) ((e)->cioff >= 0)
 
-typedef struct mrb_jit_page {
-    size_t size;
-    uint32_t *off_tbl;
-    uint8_t *data;
-} mrb_jit_page;
-
 struct RProc {
   MRB_OBJECT_HEADER;
   union {
@@ -39,10 +33,6 @@ struct RProc {
   } body;
   struct RClass *target_class;
   struct REnv *env;
-
-#ifdef MRB_ENABLE_JIT
-  mrb_jit_page jit_page;
-#endif
 };
 
 /* aspec access */
@@ -58,8 +48,6 @@ struct RProc {
 #define MRB_PROC_CFUNC_P(p) (((p)->flags & MRB_PROC_CFUNC) != 0)
 #define MRB_PROC_STRICT 256
 #define MRB_PROC_STRICT_P(p) (((p)->flags & MRB_PROC_STRICT) != 0)
-#define MRB_PROC_JITTED 512
-#define MRB_PROC_JITTED_P(p) (((p)->flags & MRB_PROC_JITTED) != 0)
 
 #define mrb_proc_ptr(v)    ((struct RProc*)(mrb_ptr(v)))
 
@@ -68,8 +56,6 @@ struct RProc *mrb_closure_new(mrb_state*, mrb_irep*);
 MRB_API struct RProc *mrb_proc_new_cfunc(mrb_state*, mrb_func_t);
 MRB_API struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals);
 void mrb_proc_copy(struct RProc *a, struct RProc *b);
-mrb_bool mrb_proc_jit(mrb_state *mrb, struct RProc *p);
-void mrb_proc_jit_call(struct RProc *proc, void *ctx);
 /* implementation of #send method */
 MRB_API mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
 
@@ -78,6 +64,11 @@ MRB_API struct RProc *mrb_proc_new_cfunc_with_env(mrb_state*, mrb_func_t, mrb_in
 MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state*, mrb_int);
 /* old name */
 #define mrb_cfunc_env_get(mrb, idx) mrb_proc_cfunc_env_get(mrb, idx)
+
+#ifdef MRB_ENABLE_JIT
+mrb_bool mrb_proc_call_jit(mrb_state *mrb, struct RProc *p, void *ctx);
+#endif
+
 
 #include "mruby/khash.h"
 KHASH_DECLARE(mt, mrb_sym, struct RProc*, TRUE)

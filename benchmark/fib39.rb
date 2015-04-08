@@ -5,4 +5,5 @@ def fib n
   fib(n-2) + fib(n-1)
 end
 
+# fib(39) = 63245986
 puts fib(39)

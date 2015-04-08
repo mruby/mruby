@@ -101,7 +101,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
         (flags & FLAG_BYTEORDER_NATIVE)) {
       irep->iseq = (mrb_code*)src;
       src += sizeof(uint32_t) * irep->ilen;
-      irep->flags |= MRB_ISEQ_NO_FREE;
+      irep->flags |= MRB_IREP_ISEQ_NO_FREE;
     }
     else {
       irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);

@@ -787,7 +787,7 @@ void __pc_add__(mrb_code *pc, int o) {
 
 void __pc_inc__(mrb_code *pc) {
 }
-
+#define JIT_VOLATILE volatile
 #undef GETARG_A
 #define GETARG_A(i) 0xAB0000
 #undef GETARG_Ax
@@ -810,6 +810,7 @@ void __pc_inc__(mrb_code *pc) {
 #define PC_ADD(pc, o) (pc += o)
 #define PC_INC(pc) (pc++)
 #define OP_END
+#define JIT_VOLATILE
 #endif
 
 #define CTX_I(ctx) (*(ctx->pc))
@@ -1262,16 +1263,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
      */
     if(flow_modified) {
       if(ctx->pc == ctx->irep->iseq) {
-        if ((ctx->mrb->run_flags & MRB_RUN_JIT) && !MRB_PROC_JITTED_P(ctx->proc)) {
-
-          //printf("_op_send: cfunc seems to have modified context -> jitting\n");
-          mrb_proc_jit(ctx->mrb, ctx->proc);
-        }
-        if(MRB_PROC_JITTED_P(ctx->proc)) {
-          //printf("_op_send: calling into jit\n");
-          mrb_proc_jit_call(ctx->proc, ctx);
-          //printf("/_op_send: calling into jit\n");
-        }
+        mrb_proc_call_jit(ctx->mrb, ctx->proc, ctx);
       }
     }
 #endif
@@ -1303,17 +1295,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     //printf("_op_send: pc set\n");
 
 #ifdef MRB_ENABLE_JIT
-    if ((ctx->mrb->run_flags & MRB_RUN_JIT) && !MRB_PROC_JITTED_P(m)) {
-
-      //printf("_op_send: jitting\n");
-      mrb_proc_jit(ctx->mrb, m);
-    }
-    if(MRB_PROC_JITTED_P(m)) {
-
-      //printf("_op_send: calling into jit\n");
-      mrb_proc_jit_call(m, ctx);
-      //printf("/_op_send: calling into jit\n");
-    }
+    mrb_proc_call_jit(ctx->mrb, m, ctx);
 #endif
   }
 
@@ -1512,14 +1494,7 @@ _op_call(struct op_ctx *ctx, int a) {
     ctx->pc = ctx->irep->iseq;
 
 #ifdef MRB_ENABLE_JIT
-    if ((ctx->mrb->run_flags & MRB_RUN_JIT) && !MRB_PROC_JITTED_P(m)) {
-      mrb_proc_jit(ctx->mrb, m);
-    }
-    if(MRB_PROC_JITTED_P(m)) {
-      //printf("_op_call: calling into jit\n");
-      mrb_proc_jit_call(m, ctx);
-      //printf("/_op_call: calling into jit\n");
-    }
+    mrb_proc_call_jit(ctx->mrb, m, ctx);
 #endif
   }
   //printf("_op_call: end\n");
@@ -1615,7 +1590,7 @@ static FORCE_INLINE void
 op_argary(struct op_ctx *ctx) {
   /* A Bx   R(A) := argument array (16=6:1:5:4) */
   int a = GETARG_A(CTX_I(ctx));
-  int bx = GETARG_Bx(CTX_I(ctx));
+  JIT_VOLATILE int bx = GETARG_Bx(CTX_I(ctx));
   int m1 = (bx>>10)&0x3f;
   int r  = (bx>>9)&0x1;
   int m2 = (bx>>4)&0x1f;
@@ -1671,7 +1646,7 @@ static FORCE_INLINE void
 op_enter(struct op_ctx *ctx) {
   /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
   /* number of optional arguments times OP_JMP should follow */
-  volatile mrb_aspec ax = GETARG_Ax(CTX_I(ctx));
+  JIT_VOLATILE mrb_aspec ax = GETARG_Ax(CTX_I(ctx));
   int m1 = MRB_ASPEC_REQ(ax);
   int o  = MRB_ASPEC_OPT(ax);
   int r  = MRB_ASPEC_REST(ax);
@@ -1737,13 +1712,13 @@ op_enter(struct op_ctx *ctx) {
     if (o == 0 || argc < m1+m2) {
       PC_INC(ctx->pc);
 #ifdef MRB_JIT_GEN
-      jit_jmp_off = ctx->proc->jit_page.off_tbl[1];
+      jit_jmp_off = ctx->irep->jit_page.off_tbl[1];
 #endif
     }
     else {
       PC_ADD(ctx->pc, ctx->irep->oa_off[argc - m1 - m2]);
 #ifdef MRB_JIT_GEN
-      jit_jmp_off = ctx->proc->jit_page.off_tbl[argc - m1 - m2 + 1];
+      jit_jmp_off = ctx->irep->jit_page.off_tbl[argc - m1 - m2 + 1];
 #endif
     }
   }
@@ -1769,13 +1744,13 @@ op_enter(struct op_ctx *ctx) {
     if(o > 0) {
       PC_ADD(ctx->pc, ctx->irep->oa_off[o]);
 #ifdef MRB_JIT_GEN
-      jit_jmp_off = ctx->proc->jit_page.off_tbl[o + 1];
+      jit_jmp_off = ctx->irep->jit_page.off_tbl[o + 1];
 #endif
     }
     else {
       PC_INC(ctx->pc);
 #ifdef MRB_JIT_GEN
-      jit_jmp_off = ctx->proc->jit_page.off_tbl[1];
+      jit_jmp_off = ctx->irep->jit_page.off_tbl[1];
 #endif
     }
 
@@ -1783,9 +1758,9 @@ op_enter(struct op_ctx *ctx) {
 
 
 #ifdef MRB_JIT_GEN
-  //printf(_str_const_op_enter, ((uintptr_t)ctx->proc->jit_page.data) + jit_jmp_off, jit_jmp_off);
+  //printf(_str_const_op_enter, ((uintptr_t)ctx->irep->jit_page.data) + jit_jmp_off, jit_jmp_off);
   typedef void (*__op_enter_exit__)(struct op_ctx *, uintptr_t off);
-  ((__op_enter_exit__)(0xFAB))(ctx, ((uintptr_t)ctx->proc->jit_page.data) + jit_jmp_off);
+  ((__op_enter_exit__)(0xFAB))(ctx, ((uintptr_t)ctx->irep->jit_page.data) + jit_jmp_off);
 #endif
 }
 
@@ -1873,7 +1848,7 @@ op_blkpush(struct op_ctx *ctx) {
 
   mrb_state *mrb = ctx->mrb;
   int a = GETARG_A(CTX_I(ctx));
-  int bx = GETARG_Bx(CTX_I(ctx));
+  JIT_VOLATILE int bx = GETARG_Bx(CTX_I(ctx));
   int m1 = (bx>>10)&0x3f;
   int r  = (bx>>9)&0x1;
   int m2 = (bx>>4)&0x1f;
@@ -2421,8 +2396,8 @@ op_strcat(struct op_ctx *ctx) {
 static FORCE_INLINE void
 op_hash(struct op_ctx *ctx) {
   /* A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C)) */
-  int b = GETARG_B(CTX_I(ctx));
-  int c = GETARG_C(CTX_I(ctx));
+  JIT_VOLATILE int b = GETARG_B(CTX_I(ctx));
+  JIT_VOLATILE int c = GETARG_C(CTX_I(ctx));
   int lim = b+c*2;
   mrb_value hash = mrb_hash_new_capa(ctx->mrb, c);
 
@@ -2552,12 +2527,7 @@ op_exec(struct op_ctx *ctx) {
     ctx->pc = ctx->irep->iseq;
 
 #ifdef MRB_JIT_GEN
-    if ((ctx->mrb->run_flags & MRB_RUN_JIT) && !MRB_PROC_JITTED_P(p)) {
-      mrb_proc_jit(ctx->mrb, p);
-    }
-    if(MRB_PROC_JITTED_P(p)) {
-      mrb_proc_jit_call(p, ctx);
-    }
+    mrb_proc_call_jit(ctx->mrb, p, ctx);
 #endif
 
   }
@@ -3136,16 +3106,12 @@ dispatch:
 
 jit:
   ctx.i = *ctx.pc;
-  if (MRB_PROC_JITTED_P(proc)) {
-    mrb_proc_jit_call(proc, (void *) &ctx);
-  } else {
-    if (mrb_proc_jit(mrb, proc)) {
-      mrb_proc_jit_call(proc, (void *) &ctx);
-    } else {
-      mrb->run_flags = (mrb_run_flags) (mrb->run_flags & ~MRB_RUN_JIT);
-      goto dispatch;
-    }
+
+  if(!mrb_proc_call_jit(mrb, proc, &ctx)) {
+    mrb->run_flags = (mrb_run_flags) (mrb->run_flags & ~MRB_RUN_JIT);
+    goto dispatch;
   }
+
 
   }
   MRB_CATCH(&c_jmp) {

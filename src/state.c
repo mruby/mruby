@@ -144,7 +144,7 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
 {
   size_t i;
 
-  if (!(irep->flags & MRB_ISEQ_NO_FREE))
+  if (!(irep->flags & MRB_IREP_ISEQ_NO_FREE))
     mrb_free(mrb, irep->iseq);
   for (i=0; i<irep->plen; i++) {
     if (mrb_type(irep->pool[i]) == MRB_TT_STRING) {
