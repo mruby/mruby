@@ -91,8 +91,9 @@ static void
 relax_off_tbl(mrb_irep *irep, int32_t *tbl)
 {
   int i;
-  tbl[0] = 0;
   mrb_bool rerelax = FALSE;
+
+  tbl[0] = 0;
 
   for(i = 0; i < irep->ilen; i++) {
     mrb_code c = irep->iseq[i];
@@ -215,6 +216,7 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
   else {
     unsigned i  = 0;
     struct mrb_jit_page *page;
+    int32_t *off_tbl;
 
     if(!mrb_irep_jit_prepare(mrb, irep)) {
       return FALSE;
@@ -222,7 +224,7 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
 
     fprintf(stderr, "jitting irep %p\n", irep);
     page = &irep->jit_page;
-    int32_t *off_tbl = page->off_tbl;
+    off_tbl = page->off_tbl;
 
     for (i = 0; i < irep->ilen; i++) {
       mrb_code c = irep->iseq[i];
