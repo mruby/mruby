@@ -267,9 +267,11 @@ static int32_t relax_off_tbl(struct RProc *proc, int32_t *tbl) {
   printf("/relaxing\n");
 }
 
-static int32_t calculate_off_tbl(struct RProc *proc, int32_t *tbl) {
+static int32_t build_off_tbl(mrb_state *mrb, struct RProc *proc) {
   int i;
   mrb_irep *irep = proc->body.irep;
+  uint32_t *tbl = mrb_malloc(mrb, (irep->ilen + 1) * sizeof(int32_t));
+
   tbl[0] = 0;
 
   for(i = 0; i < irep->ilen; i++) {
@@ -285,11 +287,12 @@ static int32_t calculate_off_tbl(struct RProc *proc, int32_t *tbl) {
 
   relax_off_tbl(proc, tbl);
 
+  proc->jit_page.off_tbl = tbl;
   return tbl[irep->ilen];
 }
 
 static mrb_bool
-mrb_proc_jit_prepare(struct RProc *proc) {
+mrb_proc_jit_prepare(mrb_state *mrb, struct RProc *proc) {
 
   if (MRB_PROC_CFUNC_P(proc)) {
     return FALSE;
@@ -299,10 +302,19 @@ mrb_proc_jit_prepare(struct RProc *proc) {
   }
   else {
     int i;
+    size_t size = 0;
     uint16_t base = 0;
-    uint16_t off = base + op_sizes[OP_ENTER];
+    uint16_t off = 0;
     mrb_irep *irep = proc->body.irep;
 
+    init_ops();
+
+    size = build_off_tbl(mrb, proc) + return_size();
+    jit_page_alloc(&proc->jit_page, size);
+
+    fprintf(stderr, "need %d bytes for jit code (%d for the final return)\n", size, return_size());
+/*
+    off = op_sizes[OP_ENTER];
     proc->jit_oa_off[0] = off;
     for(i = 1; i < irep->oalen; i++) {
       uint16_t off = 0;
@@ -317,6 +329,7 @@ mrb_proc_jit_prepare(struct RProc *proc) {
     for(i = 0; i < irep->oalen; i++) {
       DEBUG(fprintf(stderr, "op_enter offsets: %d -> %d (%d)\n", i, proc->jit_oa_off[i], proc->jit_oa_off[i] - base));
     }
+    */
   }
 
   return TRUE;
@@ -332,21 +345,16 @@ mrb_proc_jit(mrb_state *mrb, struct RProc *proc)
     return TRUE;
   }
   else {
-    size_t size = 0;
     unsigned i  = 0;
     struct mrb_jit_page *page;
     mrb_irep *irep = proc->body.irep;
-    int32_t *off_tbl = mrb_alloca(mrb, (irep->ilen + 1) * sizeof(int32_t));
-    init_ops();
 
-    if(!mrb_proc_jit_prepare(proc)) {
+    if(!mrb_proc_jit_prepare(mrb, proc)) {
       return FALSE;
     }
 
-    size = calculate_off_tbl(proc, off_tbl) + return_size();
-    fprintf(stderr, "need %d bytes for jit code (%d for the final return)\n", size, return_size());
     page = &proc->jit_page;
-    jit_page_alloc(page, size);
+    uint32_t *off_tbl = page->off_tbl;
 
     for (i = 0; i < irep->ilen; i++) {
       mrb_code c = irep->iseq[i];
@@ -381,7 +389,7 @@ mrb_proc_jit(mrb_state *mrb, struct RProc *proc)
     fprintf(stderr, "inserting final ret: to offset %d (addr: %p)\n",  off_tbl[i], page->data + off_tbl[i]);
     jit_return(page->data + off_tbl[i]);
 
-    for (i = 0; i < size; i++)
+    for (i = 0; i < off_tbl[irep->ilen]; i++)
     {
       if (i > 0) printf(" ");
       printf("%02X", page->data[i]);
