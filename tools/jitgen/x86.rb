@@ -35,7 +35,7 @@ module Assembly
       end
 
       def alias?(other)
-        self == other || self.register_alias_id == other.register_alias_id
+        self == other || (Register === other && self.register_alias_id == other.register_alias_id)
       end
 
       protected

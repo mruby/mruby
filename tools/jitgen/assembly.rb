@@ -224,6 +224,14 @@ module Assembly
       operands[1]
     end
 
+    def source=(source)
+      operands[0] = source
+    end
+
+    def target=(target)
+      operands[0] = target
+    end
+
     def return?
       !!(name =~ /ret/)
     end

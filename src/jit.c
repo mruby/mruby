@@ -128,7 +128,7 @@ relax_off_tbl(mrb_irep *irep, int32_t *tbl)
       if(cur_jmp_size > new_jmp_size) {
         int diff = cur_jmp_size - new_jmp_size;
         int j;
-        printf("jumping %d (%d ops) can be relaxed from %d to %d\n", jmp_off, op_off, cur_jmp_size, new_jmp_size);
+        fprintf(stderr,"jumping %d (%d ops) can be relaxed from %d to %d\n", jmp_off, op_off, cur_jmp_size, new_jmp_size);
         for(j = i + 1; j <= irep->ilen; j++) {
           tbl[j] -= diff;
         }
@@ -138,11 +138,11 @@ relax_off_tbl(mrb_irep *irep, int32_t *tbl)
     }
   }
   if(rerelax) {
-    printf("rerelaxing\n");
+    fprintf(stderr,"rerelaxing\n");
     relax_off_tbl(irep, tbl);
   }
 
-  printf("/relaxing\n");
+  fprintf(stderr,"/relaxing\n");
 }
 
 static int32_t
@@ -158,7 +158,7 @@ build_off_tbl(mrb_state *mrb, mrb_irep *irep)
     int opcode = GET_OPCODE(c);
     int32_t next_off = tbl[i] + op_sizes[opcode];
     if (is_jump(opcode)) {
-      printf("jump: adding extra %d\n", jump_size(irep->iseq[i], 0, TRUE));
+      fprintf(stderr,"jump: adding extra %d\n", jump_size(irep->iseq[i], 0, TRUE));
       next_off += jump_size(irep->iseq[i], 0, TRUE);
     }
     tbl[i + 1] = next_off;
@@ -263,10 +263,10 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
 
     for (i = 0; i < off_tbl[irep->ilen] + 1; i++)
     {
-      if (i > 0) printf(" ");
-      printf("%02X", page->data[i]);
+      if (i > 0) fprintf(stderr," ");
+      fprintf(stderr,"%02X", page->data[i]);
     }
-    printf("\n");
+    fprintf(stderr,"\n");
 
     irep->flags |= MRB_IREP_JITTED;
     jit_page_prot_exec(page);

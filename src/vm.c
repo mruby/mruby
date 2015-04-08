@@ -1204,6 +1204,8 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     }
   }
 
+  //printf("_op_send %s\n", mrb_sym2name(ctx->mrb, mid));
+
   /* push callinfo */
   ci = cipush(ctx->mrb);
   ci->mid = mid;
@@ -2230,6 +2232,7 @@ op_subi(struct op_ctx *ctx) {
     result = OP_CMP_BODY(op,mrb_float,mrb_float);\
     break;\
   default:\
+    return _op_send(ctx, OP_SEND, a, b, n);\
     return op_send(ctx);\
   }\
   if (result) {\
@@ -2246,6 +2249,9 @@ static FORCE_INLINE void
 op_eq(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)*/
   int a = GETARG_A(CTX_I(ctx));
+  int b = GETARG_B(CTX_I(ctx));
+  int n = GETARG_C(CTX_I(ctx));
+
   mrb_value *regs = ctx->regs;
   mrb_value *regs_a = regs + a;
 
@@ -2266,6 +2272,9 @@ static FORCE_INLINE void
 op_lt(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)<R(A+1) (Syms[B]=:<,C=1)*/
   int a = GETARG_A(CTX_I(ctx));
+  int b = GETARG_B(CTX_I(ctx));
+  int n = GETARG_C(CTX_I(ctx));
+
   mrb_value *regs = ctx->regs;
   OP_CMP(<);
 
@@ -2278,6 +2287,9 @@ static FORCE_INLINE void
 op_le(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)*/
   int a = GETARG_A(CTX_I(ctx));
+  int b = GETARG_B(CTX_I(ctx));
+  int n = GETARG_C(CTX_I(ctx));
+
   mrb_value *regs = ctx->regs;
   OP_CMP(<=);
   PC_INC(ctx->pc);
@@ -2287,6 +2299,9 @@ static FORCE_INLINE void
 op_gt(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)>R(A+1) (Syms[B]=:>,C=1)*/
   int a = GETARG_A(CTX_I(ctx));
+  int b = GETARG_B(CTX_I(ctx));
+  int n = GETARG_C(CTX_I(ctx));
+
   mrb_value *regs = ctx->regs;
   OP_CMP(>);
   PC_INC(ctx->pc);
@@ -2296,6 +2311,9 @@ static FORCE_INLINE void
 op_ge(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)*/
   int a = GETARG_A(CTX_I(ctx));
+  int b = GETARG_B(CTX_I(ctx));
+  int n = GETARG_C(CTX_I(ctx));
+
   mrb_value *regs = ctx->regs;
   OP_CMP(>=);
   PC_INC(ctx->pc);

@@ -130,6 +130,29 @@ module Corrections
     end
   end
 
+  class OpRange < Corrector
+    # exclude_end is the 4th parameter
+    # to mrb_range_new
+    EXCLUDE_END_PARAM_NO = 3
+    def correct!
+      super
+
+      # find the instruction that fills the proper
+      # argument register before the call to mrb_range_new.
+      # TODO: handle ABIs that pass arguments on the stack
+      arg_inst = asm.each_instruction.find do |inst|
+        inst.call?
+      end.reverse_each_instruction.find do |inst|
+        p inst if Assembly::X64::CC::SysV.argument_registers.any?{|r| r.alias? inst.target}
+        Assembly::X64::CC::SysV.argument_registers.any?{|r| r.alias? inst.target}
+          inst.source == Assembly::Literal.new(1)
+      end
+
+      # now set to the argument C magic constant
+      arg_inst.source = Assembly::Literal.new 0xCD0000
+    end
+  end
+
   class OpReturn < Corrector
     def correct!
       super
