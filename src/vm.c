@@ -1079,7 +1079,6 @@ _op_raise(struct op_ctx *ctx) {
   mrb_obj_iv_ifnone(ctx->mrb, ctx->mrb->exc, mrb_intern_lit(ctx->mrb, "ciidx"), mrb_fixnum_value(ci - ctx->mrb->c->cibase));
   eidx = ci->eidx;
   if (ci == ctx->mrb->c->cibase) {
-    if (ci->ridx == 0) return _op_stop(ctx);
     return _op_rescue(ctx, ci);
   }
   while (eidx > ci[-1].eidx) {
