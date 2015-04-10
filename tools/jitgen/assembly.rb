@@ -329,11 +329,9 @@ module Assembly
     end
 
     def resolve_label_operands
-      p @label_operands
       @label_operands.each do |inst, operand|
         label = @labels[operand.data]
         if label
-          p inst.operands
           idx = inst.operands.index do |o|
             o.object_id == operand.object_id
           end

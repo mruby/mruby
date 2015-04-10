@@ -4,6 +4,8 @@ module Corrections
   include Assembly
 
   Corrector = Struct.new :assembly do
+    include Assembly
+
     def asm
       assembly
     end
@@ -42,7 +44,6 @@ module Corrections
     def remove_dummy_call!
       func_label = asm.select{|e| Label === e && e.name =~ /op_/}.to_a.first
       call = asm.reverse_each_instruction.find do |inst|
-        p inst.source
         inst.name =~ /call/ && inst.source == func_label
       end
       if call
@@ -69,8 +70,6 @@ module Corrections
         last_label = Label.new 'next'
         asm << last_label
       end
-
-      p last_label
 
       asm.each do |inst|
         if Instruction === inst && inst.return?
@@ -143,8 +142,7 @@ module Corrections
       arg_inst = asm.each_instruction.find do |inst|
         inst.call?
       end.reverse_each_instruction.find do |inst|
-        p inst if Assembly::X64::CC::SysV.argument_registers.any?{|r| r.alias? inst.target}
-        Assembly::X64::CC::SysV.argument_registers.any?{|r| r.alias? inst.target}
+        #Assembly::X64::CC::SysV.argument_registers.any?{|r| r.alias? inst.target} &&
           inst.source == Assembly::Literal.new(1)
       end
 
@@ -159,4 +157,33 @@ module Corrections
       asm.reverse_each_instruction.take(1).to_a.first.insert_after Assembly::X86::ReturnInstruction.new
     end
   end
+
+  #FIXME: very unstable
+  # breaks if LLVM output changes slightly
+  class OpSend < Corrector
+    def correct!
+      super
+
+      epilogue = asm.reverse_each.find do |e|
+        Assembly::Label === e && e.find{|ee| ee.is_a? Instruction}
+      end
+
+      asm.reverse_each_instruction.find do |inst|
+        p inst.name
+        inst.name == 'jae'
+      end.tap do |jae|
+        jae.each.drop(1).take_while do |e|
+          !(Label === e)
+        end.each do |inst|
+          inst.delete
+        end
+        copy_insts = epilogue.each_instruction.map(&:clone).to_a.reverse
+        copy_insts.each do |inst|
+          jae.insert_after inst
+        end
+        copy_insts.first.insert_after Assembly::X86::ReturnInstruction.new
+      end
+    end
+  end
+
 end

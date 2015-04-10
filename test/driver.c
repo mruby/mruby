@@ -21,11 +21,68 @@
 void
 mrb_init_mrbtest(mrb_state *);
 
+struct _args {
+  mrb_bool verbose      : 1;
+  mrb_bool jit          : 1;
+  int argc;
+  char** argv;
+};
+
 /* Print a short remark for the user */
 static void
 print_hint(void)
 {
   printf("mrbtest - Embeddable Ruby Test\n\n");
+}
+
+static void
+usage(const char *name)
+{
+  static const char *const usage_msg[] = {
+  "switches:",
+  "-v           run at verbose mode",
+  "--jit        run with JIT enabled",
+  NULL
+  };
+  const char *const *p = usage_msg;
+
+  printf("Usage: %s [switches] \n", name);
+  while (*p)
+    printf("  %s\n", *p++);
+}
+
+static int
+parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
+{
+  static const struct _args args_zero = { 0 };
+
+  *args = args_zero;
+
+  for (argc--,argv++; argc > 0; argc--,argv++) {
+    char *item;
+    if (argv[0][0] != '-') break;
+
+    item = argv[0] + 1;
+    switch (*item++) {
+    case 'v':
+      args->verbose = TRUE;
+      break;
+    case '-':
+      if (strcmp((*argv) + 2, "jit") == 0) {
+        args->jit = TRUE;
+        break;
+      }
+    default:
+      return EXIT_FAILURE;
+    }
+  }
+  return EXIT_SUCCESS;
+}
+
+static void
+cleanup(mrb_state *mrb, struct _args *args)
+{
+  mrb_close(mrb);
 }
 
 static int
@@ -143,9 +200,7 @@ main(int argc, char **argv)
 {
   mrb_state *mrb;
   int ret;
-  mrb_bool verbose = FALSE;
-
-  print_hint();
+  struct _args args;
 
   /* new interpreter instance */
   mrb = mrb_open();
@@ -154,13 +209,24 @@ main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  if (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'v') {
-    printf("verbose mode: enable\n\n");
-    verbose = TRUE;
+  ret = parse_args(mrb, argc, argv, &args);
+  if (ret == EXIT_FAILURE) {
+    cleanup(mrb, &args);
+    usage(argv[0]);
+    return ret;
   }
 
-  mrb_init_test_driver(mrb, verbose);
+  print_hint();
+
+  mrb_init_test_driver(mrb, args.verbose);
+
+  if (args.jit) {
+    mrb->run_flags |= MRB_RUN_JIT;
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$mrbtest_jit"), mrb_true_value());
+  }
+
   mrb_init_mrbtest(mrb);
+
   ret = eval_test(mrb);
   mrb_close(mrb);
 

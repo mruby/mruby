@@ -1189,6 +1189,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
 
   m = mrb_method_search_vm(ctx->mrb, &c, mid);
   //printf("_op_send: %p\n", m);
+
   if (!m) {
     mrb_value sym = mrb_symbol_value(mid);
 
@@ -1204,6 +1205,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   }
 
   //printf("_op_send %s\n", mrb_sym2name(ctx->mrb, mid));
+
 
   /* push callinfo */
   ci = cipush(ctx->mrb);
@@ -1264,7 +1266,9 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
      */
     if(flow_modified) {
       if(ctx->pc == ctx->irep->iseq) {
+        //printf("_op_send: call into jit (resume)\n");
         mrb_proc_call_jit(ctx->mrb, ctx->proc, ctx);
+        //printf("/_op_send: call into jit (resume)\n");
       }
     }
 #endif
@@ -1274,7 +1278,6 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   else {
 
     //printf("_op_send: no cfunc\n");
-
     /* setup environment for calling method */
     ctx->proc = ctx->mrb->c->ci->proc = m;
     ctx->irep = m->body.irep;
@@ -1296,14 +1299,16 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     //printf("_op_send: pc set\n");
 
 #ifdef MRB_ENABLE_JIT
+    //printf("_op_send: call into jit (send)\n");
     mrb_proc_call_jit(ctx->mrb, m, ctx);
+    //printf("/_op_send: call into jit (send)\n");
 #endif
   }
 
-  //printf("_op_send: end\n");
+  //printf("_op_send %s end\n", mrb_sym2name(ctx->mrb, mid));
 }
 
-DEBUG(static char _str_const_op_send[] = "op_send %d %d %d\n");
+static char _str_const_op_send[] = "op_send %d\n";
 static FORCE_INLINE void
 op_send(struct op_ctx *ctx) {
   /* A B C R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
@@ -1312,10 +1317,20 @@ op_send(struct op_ctx *ctx) {
   int b = GETARG_B(CTX_I(ctx));
   int n = GETARG_C(CTX_I(ctx));
 
-  DEBUG(printf(_str_const_op_send, a, b, n));
+  mrb_callinfo *ci = ctx->mrb->c->ci;
   _op_send(ctx, OP_SEND, a, b, n);
+
+ //printf(_str_const_op_send, ctx->mrb->c->ci - ci);
+
+#ifdef MRB_JIT_GEN
+  if(ctx->mrb->c->ci < ci) {
+    typedef void (*__op_send_exit__)();
+    ((__op_send_exit__)(0xFAB))();
+  }
+#endif
 }
 
+static char _str_const_op_sendb[] = "op_sendb %d %d %d\n";
 static FORCE_INLINE void
 op_sendb(struct op_ctx *ctx) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
@@ -1324,6 +1339,7 @@ op_sendb(struct op_ctx *ctx) {
   int b = GETARG_B(CTX_I(ctx));
   int n = GETARG_C(CTX_I(ctx));
 
+ //printf(_str_const_op_sendb, a, b, n);
   _op_send(ctx, OP_SENDB, a, b, n);
 }
 
@@ -1380,6 +1396,7 @@ _op_return(struct op_ctx *ctx, int a, int b) {
       ci = mrb->c->ci;
       break;
     case OP_R_BREAK:
+     //printf("break\n");
       if (!ctx->proc->env || !MRB_ENV_STACK_SHARED_P(ctx->proc->env)) {
         localjump_error(mrb, LOCALJUMP_ERROR_BREAK);
         return _op_raise(ctx);
@@ -1418,21 +1435,25 @@ _op_return(struct op_ctx *ctx, int a, int b) {
       ctx->retval = v;
       MRB_THROW(ctx->stop_jmp);
     }
-    DEBUG(printf("from :%s\n", mrb_sym2name(mrb, ci->mid)));
+   //printf("from :%s\n", mrb_sym2name(mrb, ci->mid));
     ctx->proc = mrb->c->ci->proc;
     ctx->irep = ctx->proc->body.irep;
     ctx->pool = ctx->irep->pool;
     ctx->syms = ctx->irep->syms;
     ctx->regs[acc] = v;
+
+   //printf("new pc: %p %d\n", ctx->pc, GET_OPCODE(*ctx->pc));
+
   }
 }
 
-static const char _str_const_op_return[] = "op_return: %d %d\n";
+static const char _str_const_op_return[] = "op_return: %p\n";
 static FORCE_INLINE void
 op_return(struct op_ctx *ctx) {
   /* A B     return R(A) (B=normal,in-block return/break) */
-  //printf(_str_const_op_return, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)));
+ //printf(_str_const_op_return, ctx->mrb->c->ci);
   _op_return(ctx, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)));
+ //printf(_str_const_op_return, ctx->mrb->c->ci);
 }
 
 static const char _str_const_op_call[] = "op_call: %d\n";
@@ -2130,7 +2151,7 @@ op_div(struct op_ctx *ctx) {
   PC_INC(ctx->pc);
 }
 
-static const char _str_const_op_addi[] = "op_addi %d ty %d %d\n";
+static const char _str_const_op_addi[] = "op_addi %d\n";
 static FORCE_INLINE void
 op_addi(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)+C (Syms[B]=:+)*/
@@ -2164,7 +2185,9 @@ op_addi(struct op_ctx *ctx) {
     break;
   default:
     SET_INT_VALUE(regs_a[1], GETARG_C(CTX_I(ctx)));
+   //printf(_str_const_op_addi, a);
     return _op_send(ctx, OP_SEND, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)), 1);
+   //printf(_str_const_op_addi, a);
   }
   PC_INC(ctx->pc);
 }
@@ -2178,6 +2201,8 @@ op_subi(struct op_ctx *ctx) {
   int a = GETARG_A(CTX_I(ctx));
   mrb_value *regs = ctx->regs;
   mrb_value *regs_a = regs + a;
+
+ //printf(_str_const_op_subi, a);
 
   /* need to check if + is overridden */
   switch (mrb_type(regs_a[0])) {
@@ -2266,7 +2291,7 @@ op_eq(struct op_ctx *ctx) {
   PC_INC(ctx->pc);
 }
 
-DEBUG(static char _str_const_op_lt[] = "op_lt %ld\n");
+static char _str_const_op_lt[] = "op_lt %ld\n";
 static FORCE_INLINE void
 op_lt(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)<R(A+1) (Syms[B]=:<,C=1)*/
@@ -2274,10 +2299,11 @@ op_lt(struct op_ctx *ctx) {
   int b = GETARG_B(CTX_I(ctx));
   int n = GETARG_C(CTX_I(ctx));
 
+ //printf(_str_const_op_lt, a);
+
   mrb_value *regs = ctx->regs;
   OP_CMP(<);
 
-  DEBUG(printf(_str_const_op_lt, a));
 
   PC_INC(ctx->pc);
 }

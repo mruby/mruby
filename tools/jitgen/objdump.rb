@@ -73,7 +73,6 @@ ObjectFile = Struct.new(:name, :architecture, :body) do
   def find_arguments(bytes, asm)
     instr = Assembly::Instruction.parse asm
     args = Hash.new{|k, v| k[v] = []}
-    p instr
     instr.operands.map do |op|
       MAGIC_ARG_CONSTS.each do |r, a|
         v = case op
