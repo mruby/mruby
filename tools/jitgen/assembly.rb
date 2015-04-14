@@ -70,9 +70,18 @@ module Assembly
 
     def insert_after(other)
       other.next = @next
-      other.prev = self
+      @next.prev = other
 
+      other.prev = self
       @next = other
+    end
+
+    def insert_before(other)
+      @prev.next = other
+      other.prev = @prev
+
+      other.next = self
+      @prev = other
     end
 
     def replace(other)
@@ -199,6 +208,15 @@ module Assembly
 
     def self.label_operand(*args)
       # Can't do here
+    end
+
+    def next_label
+      l = @next
+      while l && !l.is_a?(Label)
+        l = l.next
+      end
+
+      l
     end
 
     def operands_to_asm

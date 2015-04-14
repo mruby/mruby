@@ -71,7 +71,7 @@ module Assembly
           raise "register jump with #{register.name} not supported"
         end
 
-        new('jmp', [register]).tap do |inst|
+        new('jmp', [register], true).tap do |inst|
           inst.bytes = bytes
         end
       end

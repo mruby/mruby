@@ -25,18 +25,22 @@ end
 
 def _argument_usage
   data = File.read vm_c_path
-  hash = {}
+  hash = Hash.new {|h,k| h[k] = {}}
   #FIXME: assuming function closing bracket
   # is right at start of line
   data.scan(/(op_\w+)\s*\(([^\)]*)\)\s*\{(.*?)^\}/m) do |h|
     op = $1
-    args = $3.scan(/GETARG_(\w+)\s*\(/).flatten
+    body = $3
+    args = body.scan(/GETARG_(\w+)\s*\(/).flatten
     args_hash = {}
     args.each do |arg|
       raise unless arg =~ /([ABCcb])/
       args_hash[$1.downcase.to_sym] = arg
     end
-    hash[op] = args_hash
+    hash[op].merge! args_hash
+    if body =~ /OP_IDX/
+      hash[op].merge!({:op_idx => true})
+    end
   end
 
   hash
@@ -45,6 +49,8 @@ end
 def argument_usage
   $argument_usage ||= _argument_usage
 end
+
+p argument_usage['op_send']
 
 $ops = [
   "op_nop", "op_move",
@@ -186,7 +192,7 @@ file ops_header_path(:x64) => [*obj_files, symtbl_header_path] do |t|
     file.puts "\n};"
     file.puts
 
-    file.puts "static void #{obj.name}_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c) {"
+    file.puts "static void #{obj.name}_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {"
     obj.arguments.each do |k, vs|
       vs.each do |m, a, v|
         file.puts "  *((int32_t *)(op + #{v.begin})) = #{k} * #{m} + #{a};"
@@ -198,7 +204,7 @@ file ops_header_path(:x64) => [*obj_files, symtbl_header_path] do |t|
 
     used_arguments = argument_usage[obj.name]
 
-    file.puts "static void #{obj.name}_set_args_from_code(uint8_t *op, mrb_code c) {"
+    file.puts "static void #{obj.name}_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {"
     file.write "  #{obj.name}_set_args(op, "
     [:a, :b, :c].map do |arg|
       v = used_arguments[arg]
@@ -207,7 +213,7 @@ file ops_header_path(:x64) => [*obj_files, symtbl_header_path] do |t|
       else
         0
       end
-    end.join(",").tap do |s|
+    end.<<("op_idx").join(",").tap do |s|
       file.puts "#{s});"
     end
     file.puts "}"
@@ -217,7 +223,7 @@ file ops_header_path(:x64) => [*obj_files, symtbl_header_path] do |t|
     obj
   end
 
-  file.puts "typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c);"
+  file.puts "typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c, uint32_t op_idx);"
   file.puts "static jit_args_func_t arg_funcs[#{objs.size}];"
   file.puts "static uint8_t* ops[#{objs.size}];"
   file.puts "static char *op_names[#{objs.size}];"

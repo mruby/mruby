@@ -231,12 +231,16 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
       int opcode = GET_OPCODE(c);
       int32_t off =  off_tbl[i];
 
-      fprintf(stderr, "copying opcode:%s (%d) to offset %d (%d bytes) (addr: %p/%p)\n", op_names[opcode], opcode, off, op_sizes[opcode], page->data + off, off);
+      fprintf(stderr, "copying %dth opcode:%s (%d) to offset %d (%d bytes) (addr: %p/%p)\n", i, op_names[opcode], opcode, off, op_sizes[opcode], page->data + off, off);
 
 
       memcpy(page->data + off, ops[opcode], op_sizes[opcode]);
 
-      arg_funcs[opcode](page->data + off, c);
+      arg_funcs[opcode](page->data + off, c, i);
+
+      if(opcode == OP_RESCUE) {
+        fprintf(stderr, "jitting op_rescue: %d\n", GETARG_A(c));
+      }
 
       if (opcode == OP_JMPNOT || opcode == OP_JMPIF || opcode == OP_JMP) {
         int op_off = GETARG_sBx(c);

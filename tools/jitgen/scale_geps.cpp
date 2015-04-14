@@ -34,7 +34,8 @@ void scaleGeps(Function *func, Module *mod) {
           uint64_t normV = constInt->getZExtValue() & 0xFF0000;
           if(normV == 0xAB0000 ||
              normV == 0xBC0000 ||
-             normV == 0xCD0000) {
+             normV == 0xCD0000 ||
+             normV == 0xDE0000 ) {
             Type *ty = cast<PointerType>(gepInst->getPointerOperandType())->getElementType();
             gepInst->dump();
             ty->dump();

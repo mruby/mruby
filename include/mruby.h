@@ -69,6 +69,10 @@ typedef struct {
   int argc;
   int acc;
   struct RClass *target_class;
+#ifdef MRB_ENABLE_JIT
+  uint32_t send_idx;
+  uint32_t rescue_idx;
+#endif
 } mrb_callinfo;
 
 enum mrb_fiber_state {

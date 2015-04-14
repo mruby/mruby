@@ -68,6 +68,7 @@ ObjectFile = Struct.new(:name, :architecture, :body) do
     /AB/i => 'a',
     /BC/i => 'b',
     /CD/i => 'c',
+    /DE/i => 'op_idx'
   }
 
   def find_arguments(bytes, asm)

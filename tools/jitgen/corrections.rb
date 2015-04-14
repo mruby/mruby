@@ -183,6 +183,41 @@ module Corrections
         end
         copy_insts.first.insert_after Assembly::X86::ReturnInstruction.new
       end
+
+      return
+
+      mov = asm.each_instruction.find do |inst|
+        Assembly::Literal === inst.source && inst.source.value == 0xBAF
+      end
+
+      if mov
+        target = mov.target
+        call = mov.each_instruction.find do |inst|
+          inst.call? && inst.source.alias?(target)
+        end
+
+        if call
+          # FIXME: assuming argument register 1 is not clobbered.
+          # Since the dummy call is at the bottom of the function
+          # that should normally not happen, though.
+          l = call.next_label
+          p l
+          l.insert_before Assembly::X64::JumpInstruction.register(Assembly::X64::CC::SysV.argument_registers[1])
+
+          p l.send :prev
+
+          p mov
+          p call
+          mov.delete
+          call.delete
+
+          p l.send :prev
+        else
+          raise
+        end
+      end
+
+
     end
   end
 
