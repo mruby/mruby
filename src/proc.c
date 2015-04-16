@@ -13,6 +13,31 @@ static mrb_code call_iseq[] = {
   MKOP_A(OP_CALL, 0),
 };
 
+void
+mrb_proc_register(mrb_state *mrb, struct RProc *p)
+{
+  p->next = mrb->proc_list;
+  if (p->next) {
+    p->next->prev = p;
+  }
+  mrb->proc_list = p;
+}
+
+void
+mrb_proc_destroy(mrb_state *mrb, struct RProc *p)
+{
+  if (p->next) {
+    p->next->prev = p->prev;
+  }
+  if (p->prev) {
+    p->prev->next = p->next;
+  }
+
+  if(p == mrb->proc_list) {
+    mrb->proc_list = p->next;
+  }
+}
+
 struct RProc *
 mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
 {
@@ -30,6 +55,9 @@ mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
   p->body.irep = irep;
   p->env = 0;
   mrb_irep_incref(mrb, irep);
+
+  mrb_mcache_init(mrb, &p->mcache);
+  mrb_proc_register(mrb, p);
 
   return p;
 }
@@ -81,6 +109,9 @@ mrb_proc_new_cfunc(mrb_state *mrb, mrb_func_t func)
   p->body.func = func;
   p->flags |= MRB_PROC_CFUNC;
   p->env = 0;
+
+  mrb_mcache_init(mrb, &p->mcache);
+  mrb_proc_register(mrb, p);
 
   return p;
 }
@@ -144,6 +175,7 @@ mrb_proc_copy(struct RProc *a, struct RProc *b)
   }
   a->target_class = b->target_class;
   a->env = b->env;
+  a->mcache = b->mcache;
 }
 
 static mrb_value
@@ -245,6 +277,9 @@ proc_lambda(mrb_state *mrb, mrb_value self)
     struct RProc *p2 = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, p->c);
     mrb_proc_copy(p2, p);
     p2->flags |= MRB_PROC_STRICT;
+
+    mrb_proc_register(mrb, p2);
+
     return mrb_obj_value(p2);
   }
   return blk;

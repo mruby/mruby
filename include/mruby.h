@@ -69,6 +69,10 @@ typedef struct {
   int argc;
   int acc;
   struct RClass *target_class;
+#ifdef MRB_ENABLE_JIT
+  uint32_t send_idx;
+  uint32_t rescue_idx;
+#endif
 } mrb_callinfo;
 
 enum mrb_fiber_state {
@@ -186,6 +190,8 @@ typedef struct mrb_state {
   mrb_atexit_func *atexit_stack;
 #endif
   mrb_int atexit_stack_len;
+
+  struct RProc *proc_list;
 } mrb_state;
 
 #if __STDC_VERSION__ >= 201112L
@@ -381,6 +387,7 @@ MRB_API void mrb_print_error(mrb_state *mrb);
    + those E_* macros requires mrb_state* variable named mrb.
    + exception objects obtained from those macros are local to mrb
 */
+
 #define E_RUNTIME_ERROR             (mrb_class_get(mrb, "RuntimeError"))
 #define E_TYPE_ERROR                (mrb_class_get(mrb, "TypeError"))
 #define E_ARGUMENT_ERROR            (mrb_class_get(mrb, "ArgumentError"))
@@ -398,6 +405,10 @@ MRB_API void mrb_print_error(mrb_state *mrb);
 #define E_FLOATDOMAIN_ERROR         (mrb_class_get(mrb, "FloatDomainError"))
 
 #define E_KEY_ERROR                 (mrb_class_get(mrb, "KeyError"))
+
+#define E_FIBER_ERROR (mrb_class_get(mrb, "FiberError"))
+
+
 
 MRB_API mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
 MRB_API mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv);
@@ -427,7 +438,6 @@ MRB_API mrb_bool mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RC
 /* fiber functions (you need to link mruby-fiber mrbgem to use) */
 MRB_API mrb_value mrb_fiber_resume(mrb_state *mrb, mrb_value fib, mrb_int argc, const mrb_value *argv);
 MRB_API mrb_value mrb_fiber_yield(mrb_state *mrb, mrb_int argc, const mrb_value *argv);
-#define E_FIBER_ERROR (mrb_class_get(mrb, "FiberError"))
 
 /* memory pool implementation */
 typedef struct mrb_pool mrb_pool;

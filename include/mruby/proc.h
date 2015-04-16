@@ -8,6 +8,7 @@
 #define MRUBY_PROC_H
 
 #include "mruby/irep.h"
+#include "mruby/class.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -33,6 +34,10 @@ struct RProc {
   } body;
   struct RClass *target_class;
   struct REnv *env;
+  struct mrb_mcache mcache;
+
+  struct RProc *next;
+  struct RProc *prev;
 };
 
 /* aspec access */
@@ -53,9 +58,12 @@ struct RProc {
 
 struct RProc *mrb_proc_new(mrb_state*, mrb_irep*);
 struct RProc *mrb_closure_new(mrb_state*, mrb_irep*);
+void mrb_proc_destroy(mrb_state *, struct RProc *p);
+
 MRB_API struct RProc *mrb_proc_new_cfunc(mrb_state*, mrb_func_t);
 MRB_API struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals);
 void mrb_proc_copy(struct RProc *a, struct RProc *b);
+void mrb_proc_register(mrb_state *mrb, struct RProc *p);
 
 /* implementation of #send method */
 MRB_API mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
@@ -65,6 +73,7 @@ MRB_API struct RProc *mrb_proc_new_cfunc_with_env(mrb_state*, mrb_func_t, mrb_in
 MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state*, mrb_int);
 /* old name */
 #define mrb_cfunc_env_get(mrb, idx) mrb_proc_cfunc_env_get(mrb, idx)
+
 
 #include "mruby/khash.h"
 KHASH_DECLARE(mt, mrb_sym, struct RProc*, TRUE)

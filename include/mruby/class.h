@@ -18,6 +18,21 @@ struct RClass {
   struct RClass *super;
 };
 
+struct mrb_mcache_entry {
+  mrb_sym mid;
+  struct RClass *c;
+  struct RClass *sc;
+  struct RProc* p;
+};
+
+#define MRB_METHOD_CACHE_SIZE 4
+struct mrb_mcache {
+  int16_t head;
+  int16_t tail;
+  struct mrb_mcache_entry entries[MRB_METHOD_CACHE_SIZE];
+};
+
+
 #define mrb_class_ptr(v)    ((struct RClass*)(mrb_ptr(v)))
 #define RCLASS_SUPER(v)     (((struct RClass*)(mrb_ptr(v)))->super)
 #define RCLASS_IV_TBL(v)    (((struct RClass*)(mrb_ptr(v)))->iv)
@@ -65,6 +80,8 @@ MRB_API struct RProc *mrb_method_search_vm(mrb_state*, struct RClass**, mrb_sym)
 MRB_API struct RProc *mrb_method_search(mrb_state*, struct RClass*, mrb_sym);
 
 MRB_API struct RClass* mrb_class_real(struct RClass* cl);
+
+void mrb_mcache_init(mrb_state *, struct mrb_mcache *);
 
 void mrb_gc_mark_mt(mrb_state*, struct RClass*);
 size_t mrb_gc_mark_mt_size(mrb_state*, struct RClass*);
