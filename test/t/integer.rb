@@ -83,9 +83,9 @@ assert('Integer#%', '15.2.8.3.5') do
   assert_equal 0.0, b
   assert_equal 2, c
   assert_equal 2, d
-  assert_equal -3, e
+  assert_equal(-3, e)
   assert_equal 3, f
-  assert_equal -2, g
+  assert_equal(-2, g)
   assert_equal 0, h
   assert_equal 0, i
   assert_equal 0, j
