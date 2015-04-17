@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #if defined(_WIN32) || defined(_WIN64)
+  #define NULL_FILE "NUL"
   #define UNLINK _unlink
   #define GETCWD _getcwd
   #define CHMOD(a, b) 0
@@ -34,6 +35,7 @@
   #define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
   #include <direct.h>
 #else
+  #define NULL_FILE "/dev/null"
   #include <unistd.h>
   #define UNLINK unlink
   #define GETCWD getcwd
@@ -311,9 +313,5 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_const(mrb, cnst, "LOCK_UN", mrb_fixnum_value(LOCK_UN));
   mrb_define_const(mrb, cnst, "LOCK_NB", mrb_fixnum_value(LOCK_NB));
   mrb_define_const(mrb, cnst, "SEPARATOR", mrb_str_new_cstr(mrb, FILE_SEPARATOR));
-#if defined(_WIN32) || defined(_WIN64)
-  mrb_define_const(mrb, cnst, "NULL", mrb_str_new_cstr(mrb, "NUL"));
-#else
-  mrb_define_const(mrb, cnst, "NULL", mrb_str_new_cstr(mrb, "/dev/null"));
-#endif
+  mrb_define_const(mrb, cnst, "NULL", mrb_str_new_cstr(mrb, NULL_FILE));
 }
