@@ -197,7 +197,14 @@ typedef struct mrb_state {
   mrb_int atexit_stack_len;
 
   mrb_run_flags run_flags;
+
+#ifdef MRB_ENABLE_JIT
   void *op_ctx;
+#endif
+
+#ifdef MRB_ENABLE_METHOD_CACHE
+  struct RProc *proc_list;
+#endif
 } mrb_state;
 
 #if __STDC_VERSION__ >= 201112L
@@ -432,6 +439,7 @@ extern const char *_mrb_str_const_fiber_error;
 #define E_KEY_ERROR                 (mrb_class_get(mrb, _mrb_str_const_key_error))
 
 #define E_FIBER_ERROR                (mrb_class_get(mrb, _mrb_str_const_fiber_error))
+
 
 MRB_API mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
 MRB_API mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv);

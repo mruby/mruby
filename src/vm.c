@@ -52,6 +52,15 @@ The value below allows about 60000 recursive calls in the simplest case. */
 # define DEBUG(x)
 #endif
 
+static void
+dbg_printf(const char *format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  //vfprintf(stderr, format, args );
+  va_end(args);
+}
+
 #define ARENA_RESTORE(mrb,ai) (mrb)->arena_idx = (ai)
 
 #define strlen_str_const(str_const) (sizeof(str_const) - 1)
@@ -1027,22 +1036,22 @@ op_onerr(struct op_ctx *ctx) {
     else ctx->mrb->c->rsize *= 2;
     ctx->mrb->c->rescue = (mrb_code **)mrb_realloc(ctx->mrb, ctx->mrb->c->rescue, sizeof(mrb_code*) * ctx->mrb->c->rsize);
   }
-  printf(_str_const_op_onerr,ctx->irep->iseq, GETARG_sBx(CTX_I(ctx)), ctx->irep->iseq + GETARG_sBx(CTX_I(ctx)));
+  dbg_printf(_str_const_op_onerr,ctx->irep->iseq, GETARG_sBx(CTX_I(ctx)), ctx->irep->iseq + GETARG_sBx(CTX_I(ctx)));
 
-  //printf(_str_const_op_onerr,NULL,ctx->mrb->c->rsize , NULL);
-  //printf(_str_const_op_onerr,NULL,ctx->mrb->c->ci->ridx, NULL);
- // printf(_str_const_op_onerr,ctx->mrb->c->rescue, 0, NULL);
-//  printf(_str_const_op_onerr,ctx->mrb->c->rescue[ctx->mrb->c->ci->ridx], ctx->mrb->c->ci->ridx, NULL);
+  //dbg_printf(_str_const_op_onerr,NULL,ctx->mrb->c->rsize , NULL);
+  //dbg_printf(_str_const_op_onerr,NULL,ctx->mrb->c->ci->ridx, NULL);
+ // dbg_printf(_str_const_op_onerr,ctx->mrb->c->rescue, 0, NULL);
+//  dbg_printf(_str_const_op_onerr,ctx->mrb->c->rescue[ctx->mrb->c->ci->ridx], ctx->mrb->c->ci->ridx, NULL);
 
-  mrb_codedump_all(ctx->mrb, ctx->proc);
+  //mrb_codedump_all(ctx->mrb, ctx->proc);
 
 #ifdef MRB_JIT_GEN
   //ctx->mrb->c->ci->rescue_idx = OP_IDX(CTX_I(ctx));
   ctx->pc = ctx->irep->iseq + OP_IDX(ctx);
 #endif
 
-  printf(_str_const_op_onerr,ctx->pc, ctx->pc - ctx->irep->iseq);
-  printf(_str_const_op_onerr, ctx->pc, ctx->mrb->c->ci->ridx);
+  dbg_printf(_str_const_op_onerr,ctx->pc, ctx->pc - ctx->irep->iseq);
+  dbg_printf(_str_const_op_onerr, ctx->pc, ctx->mrb->c->ci->ridx);
   ctx->mrb->c->rescue[ctx->mrb->c->ci->ridx++] = ctx->pc + GETARG_sBx(CTX_I(ctx));
 
 }
@@ -1053,7 +1062,7 @@ static FORCE_INLINE void
 op_rescue(struct op_ctx *ctx) {
   /* A      R(A) := exc; clear(exc) */
   int a = GETARG_A(CTX_I(ctx));
-  printf(_str_const_op_rescue, a, ctx->rescue_jmp_addr);
+  dbg_printf(_str_const_op_rescue, a, ctx->rescue_jmp_addr);
   SET_OBJ_VALUE(ctx->regs[a], ctx->mrb->exc);
   ctx->mrb->exc = 0;
 }
@@ -1070,7 +1079,7 @@ op_poperr(struct op_ctx *ctx) {
 
 static void
 _op_stop(struct op_ctx *ctx) {
-  printf("_op_stop\n");
+  dbg_printf("_op_stop\n");
   {
     int eidx_stop = ctx->mrb->c->ci == ctx->mrb->c->cibase ? 0 : ctx->mrb->c->ci[-1].eidx;
     int eidx = ctx->mrb->c->ci->eidx;
@@ -1092,7 +1101,7 @@ _op_stop(struct op_ctx *ctx) {
 static inline void
 _op_rescue(struct op_ctx *ctx, mrb_callinfo *ci) {
   if (ci->ridx == 0) {
-    printf("_op_rescue: stopping\n");
+    dbg_printf("_op_rescue: stopping\n");
     return _op_stop(ctx);
   }
   ctx->proc = ci->proc;
@@ -1106,10 +1115,10 @@ _op_rescue(struct op_ctx *ctx, mrb_callinfo *ci) {
   if(ctx->mrb->run_flags & MRB_RUN_JIT) {
     //uint32_t rescue_idx = ctx->pc - ctx->irep->iseq;
     //uintptr_t jit_jmp_off = ctx->irep->jit_page.off_tbl[ctx->pc - ctx->irep->iseq];
-    //printf("_op_rescue: settings jmp addr for jit to: %p\n", jit_jmp_off);
+    //dbg_printf("_op_rescue: settings jmp addr for jit to: %p\n", jit_jmp_off);
     //ctx->rescue_jmp_addr = ctx->irep->jit_page.data + jit_jmp_off;
-    //printf("_op_rescue: settings jmp addr for jit to: %p %p\n", ctx->rescue_jmp_addr, jit_jmp_off);
-    //printf("_op_rescue: settings jmp addr to nth op: %d\n", ctx->pc - ctx->irep->iseq);
+    //dbg_printf("_op_rescue: settings jmp addr for jit to: %p %p\n", ctx->rescue_jmp_addr, jit_jmp_off);
+    //dbg_printf("_op_rescue: settings jmp addr to nth op: %d\n", ctx->pc - ctx->irep->iseq);
   }
 #endif
 }
@@ -1117,7 +1126,7 @@ _op_rescue(struct op_ctx *ctx, mrb_callinfo *ci) {
 static inline void
 _op_raise(struct op_ctx *ctx) {
 
-  printf("_op_raise\n");
+  dbg_printf("_op_raise\n");
 
   mrb_callinfo *ci;
   int eidx;
@@ -1127,7 +1136,7 @@ _op_raise(struct op_ctx *ctx) {
   mrb_obj_iv_ifnone(ctx->mrb, ctx->mrb->exc, mrb_intern_lit(ctx->mrb, "ciidx"), mrb_fixnum_value(ci - ctx->mrb->c->cibase));
   eidx = ci->eidx;
   if (ci == ctx->mrb->c->cibase) {
-    printf("calling _op_rescue 1\n");
+    dbg_printf("calling _op_rescue 1\n");
     return _op_rescue(ctx, ci);
   }
   while (eidx > ci[-1].eidx) {
@@ -1139,14 +1148,14 @@ _op_raise(struct op_ctx *ctx) {
     ctx->mrb->c->stack = ci[1].stackent;
     if (ci[1].acc == CI_ACC_SKIP && ctx->prev_jmp) {
       ctx->mrb->jmp = ctx->prev_jmp;
-      printf("_op_send: throwing\n");
+      dbg_printf("_op_send: throwing\n");
       MRB_THROW(ctx->prev_jmp);
     }
     if (ci == ctx->mrb->c->cibase) {
       if (ci->ridx == 0) {
         if (ctx->mrb->c == ctx->mrb->root_c) {
           ctx->regs = ctx->mrb->c->stack = ctx->mrb->c->stbase;
-          printf("_op_send: stopping\n");
+          dbg_printf("_op_send: stopping\n");
           return _op_stop(ctx);
         }
         else {
@@ -1167,7 +1176,7 @@ _op_raise(struct op_ctx *ctx) {
     }
   }
   
-  printf("calling _op_rescue -1\n");
+  dbg_printf("calling _op_rescue -1\n");
   return _op_rescue(ctx, ci);
 }
 
@@ -1223,7 +1232,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   mrb_value recv, result;
   mrb_sym mid = ctx->syms[b];
 
-  printf("_op_send %s: %p %d %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, b, n);
+  dbg_printf("_op_send %s: %p %d %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, b, n);
 
   recv = ctx->regs[a];
   if (opcode != OP_SENDB) {
@@ -1235,13 +1244,13 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     }
   }
 
-  //printf("_op_send: class\n");
+  //dbg_printf("_op_send: class\n");
   c = mrb_class(ctx->mrb, recv);
 
-  //printf("_op_send: class %p\n", c);
+  //dbg_printf("_op_send: class %p\n", c);
 
-  m = mrb_method_search_vm(ctx->mrb, &c, mid);
-  //printf("_op_send: %p\n", m);
+  m = mrb_method_search_vm_proc(ctx->mrb, ctx->proc, &c, mid);
+  //dbg_printf("_op_send: %p\n", m);
 
   if (!m) {
     mrb_value sym = mrb_symbol_value(mid);
@@ -1257,7 +1266,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     }
   }
 
-  //printf("_op_send %s\n", mrb_sym2name(ctx->mrb, mid));
+  //dbg_printf("_op_send %s\n", mrb_sym2name(ctx->mrb, mid));
 
 
   /* push callinfo */
@@ -1276,7 +1285,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   if (MRB_PROC_CFUNC_P(m)) {
     mrb_bool flow_modified = FALSE;
 
-    printf("_op_send: cfunc (ctx = %p)\n", ctx);
+    dbg_printf("_op_send: cfunc (ctx = %p)\n", ctx);
     if (n == CALL_MAXARGS) {
       ci->argc = -1;
       ci->nregs = 3;
@@ -1294,7 +1303,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     ctx->mrb->c->stack[0] = result;
     mrb_gc_arena_restore(ctx->mrb, ctx->ai);
     if (ctx->mrb->exc) {
-      printf("calling _op_raise from send\n");
+      dbg_printf("calling _op_raise from send\n");
       return _op_raise(ctx);
     }
     /* pop stackpos */
@@ -1322,9 +1331,9 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
      */
     if(flow_modified) {
       if(ctx->pc == ctx->irep->iseq) {
-        printf("_op_send: call into jit (resume)\n");
+        dbg_printf("_op_send: call into jit (resume)\n");
         mrb_proc_call_jit(ctx->mrb, ctx->proc, ctx);
-        printf("/_op_send: call into jit (resume)\n");
+        dbg_printf("/_op_send: call into jit (resume)\n");
       }
     }
 #endif
@@ -1333,7 +1342,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   }
   else {
 
-    printf("_op_send: no cfunc\n");
+    dbg_printf("_op_send: no cfunc\n");
     /* setup environment for calling method */
     ctx->proc = ctx->mrb->c->ci->proc = m;
     ctx->irep = m->body.irep;
@@ -1352,16 +1361,16 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     ctx->pc = ctx->irep->iseq;
 
 
-    //printf("_op_send: pc set\n");
+    //dbg_printf("_op_send: pc set\n");
 
 #ifdef MRB_ENABLE_JIT
-    printf("_op_send: call into jit (send)\n");
+    dbg_printf("_op_send: call into jit (send)\n");
     mrb_proc_call_jit(ctx->mrb, m, ctx);
-    printf("/_op_send: call into jit (send)\n");
+    dbg_printf("/_op_send: call into jit (send)\n");
 #endif
   }
 
-  printf("_op_send %s end\n", mrb_sym2name(ctx->mrb, mid));
+  dbg_printf("_op_send %s end\n", mrb_sym2name(ctx->mrb, mid));
 }
 
 static char _str_const_op_send[] = "op_send %p\n";
@@ -1382,9 +1391,9 @@ op_send(struct op_ctx *ctx) {
   ctx->pc = ctx->irep->iseq + OP_IDX(ctx);
 #endif
 
-  printf(_str_const_op_send2);
+  dbg_printf(_str_const_op_send2);
   _op_send(ctx, OP_SEND, a, b, n);
-  printf(_str_const_op_send3);
+  dbg_printf(_str_const_op_send3);
 
 #ifdef MRB_JIT_GEN
   if(ctx->mrb->c->ci < ci) {
@@ -1394,7 +1403,7 @@ op_send(struct op_ctx *ctx) {
     typedef void (*__op_send_exit__)(struct op_ctx *, uint8_t *off);
     //((__op_send_exit__)(0xBAF))(ctx, ctx->rescue_jmp_addr);
     ctx->rescue_jmp_addr = NULL;
-    printf(_str_const_op_send, ctx->rescue_jmp_addr);
+    dbg_printf(_str_const_op_send, ctx->rescue_jmp_addr);
   }*/
 #endif
 }
@@ -1408,7 +1417,7 @@ op_sendb(struct op_ctx *ctx) {
   int b = GETARG_B(CTX_I(ctx));
   int n = GETARG_C(CTX_I(ctx));
 
- //printf(_str_const_op_sendb, a, b, n);
+ //dbg_printf(_str_const_op_sendb, a, b, n);
   _op_send(ctx, OP_SENDB, a, b, n);
 }
 
@@ -1465,7 +1474,7 @@ _op_return(struct op_ctx *ctx, int a, int b) {
       ci = mrb->c->ci;
       break;
     case OP_R_BREAK:
-     //printf("break\n");
+     //dbg_printf("break\n");
       if (!ctx->proc->env || !MRB_ENV_STACK_SHARED_P(ctx->proc->env)) {
         localjump_error(mrb, LOCALJUMP_ERROR_BREAK);
         return _op_raise(ctx);
@@ -1504,14 +1513,14 @@ _op_return(struct op_ctx *ctx, int a, int b) {
       ctx->retval = v;
       MRB_THROW(ctx->stop_jmp);
     }
-    printf("from :%s\n", mrb_sym2name(mrb, ci->mid));
+    dbg_printf("from :%s\n", mrb_sym2name(mrb, ci->mid));
     ctx->proc = mrb->c->ci->proc;
     ctx->irep = ctx->proc->body.irep;
     ctx->pool = ctx->irep->pool;
     ctx->syms = ctx->irep->syms;
     ctx->regs[acc] = v;
 
-    printf("new pc: %p %d\n", ctx->pc, GET_OPCODE(*ctx->pc));
+    dbg_printf("new pc: %p %d\n", ctx->pc, GET_OPCODE(*ctx->pc));
 
   }
 }
@@ -1520,9 +1529,9 @@ static const char _str_const_op_return[] = "op_return: %p\n";
 static FORCE_INLINE void
 op_return(struct op_ctx *ctx) {
   /* A B     return R(A) (B=normal,in-block return/break) */
- //printf(_str_const_op_return, ctx->mrb->c->ci);
+ //dbg_printf(_str_const_op_return, ctx->mrb->c->ci);
   _op_return(ctx, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)));
- //printf(_str_const_op_return, ctx->mrb->c->ci);
+ //dbg_printf(_str_const_op_return, ctx->mrb->c->ci);
 }
 
 static const char _str_const_op_call[] = "op_call: %d\n";
@@ -1533,7 +1542,7 @@ _op_call(struct op_ctx *ctx, int a) {
   mrb_value recv = ctx->mrb->c->stack[0];
   struct RProc *m = mrb_proc_ptr(recv);
 
-  //printf("_op_call: %d\n", a);
+  //dbg_printf("_op_call: %d\n", a);
 
   /* replace callinfo */
   ci = ctx->mrb->c->ci;
@@ -1588,13 +1597,13 @@ _op_call(struct op_ctx *ctx, int a) {
     mrb_proc_call_jit(ctx->mrb, m, ctx);
 #endif
   }
-  //printf("_op_call: end\n");
+  //dbg_printf("_op_call: end\n");
 }
 
 static FORCE_INLINE void
 op_call(struct op_ctx *ctx) {
   _op_call(ctx, GETARG_A(CTX_I(ctx)));
-  //printf(_str_const_op_call, GETARG_A(CTX_I(ctx)));
+  //dbg_printf(_str_const_op_call, GETARG_A(CTX_I(ctx)));
 }
 
 static FORCE_INLINE void
@@ -1610,7 +1619,7 @@ op_super(struct op_ctx *ctx) {
 
   recv = ctx->regs[0];
   c = ctx->mrb->c->ci->target_class->super;
-  m = mrb_method_search_vm(ctx->mrb, &c, mid);
+  m = mrb_method_search_vm_proc(ctx->mrb, ctx->proc, &c, mid);
   if (!m) {
     mid = intern_str_const(ctx->mrb, _str_const_method_missing);
     m = mrb_method_search_vm(ctx->mrb, &c, mid);
@@ -1854,7 +1863,7 @@ op_enter(struct op_ctx *ctx) {
 
 
 #ifdef MRB_JIT_GEN
-  //printf(_str_const_op_enter, ((uintptr_t)ctx->irep->jit_page.data) + jit_jmp_off, jit_jmp_off);
+  //dbg_printf(_str_const_op_enter, ((uintptr_t)ctx->irep->jit_page.data) + jit_jmp_off, jit_jmp_off);
   typedef void (*__op_enter_exit__)(struct op_ctx *, uintptr_t off);
   ((__op_enter_exit__)(0xFAB))(ctx, ((uintptr_t)ctx->irep->jit_page.data) + jit_jmp_off);
 #endif
@@ -1888,7 +1897,7 @@ op_tailcall(struct op_ctx *ctx) {
 
   recv = ctx->regs[a];
   c = mrb_class(ctx->mrb, recv);
-  m = mrb_method_search_vm(mrb, &c, mid);
+  m = mrb_method_search_vm_proc(mrb, ctx->proc, &c, mid);
   if (!m) {
     mrb_value sym = mrb_symbol_value(mid);
 
@@ -2254,9 +2263,9 @@ op_addi(struct op_ctx *ctx) {
     break;
   default:
     SET_INT_VALUE(regs_a[1], GETARG_C(CTX_I(ctx)));
-   //printf(_str_const_op_addi, a);
+   //dbg_printf(_str_const_op_addi, a);
     return _op_send(ctx, OP_SEND, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)), 1);
-   //printf(_str_const_op_addi, a);
+   //dbg_printf(_str_const_op_addi, a);
   }
   PC_INC(ctx->pc);
 }
@@ -2271,7 +2280,7 @@ op_subi(struct op_ctx *ctx) {
   mrb_value *regs = ctx->regs;
   mrb_value *regs_a = regs + a;
 
- //printf(_str_const_op_subi, a);
+ //dbg_printf(_str_const_op_subi, a);
 
   /* need to check if + is overridden */
   switch (mrb_type(regs_a[0])) {
@@ -2348,7 +2357,7 @@ op_eq(struct op_ctx *ctx) {
   mrb_value *regs = ctx->regs;
   mrb_value *regs_a = regs + a;
 
-  DEBUG(printf(_str_const_op_eq, a));
+  DEBUG(dbg_printf(_str_const_op_eq, a));
 
   if (mrb_obj_eq(ctx->mrb, regs_a[0], regs_a[1])) {
     SET_TRUE_VALUE(regs_a[0]);
@@ -2368,7 +2377,7 @@ op_lt(struct op_ctx *ctx) {
   int b = GETARG_B(CTX_I(ctx));
   int n = GETARG_C(CTX_I(ctx));
 
- //printf(_str_const_op_lt, a);
+ //dbg_printf(_str_const_op_lt, a);
 
   mrb_value *regs = ctx->regs;
   OP_CMP(<);
@@ -2505,7 +2514,7 @@ static FORCE_INLINE void
 op_string(struct op_ctx *ctx) {
   /* A Bx           R(A) := str_new(Lit(Bx)) */
   ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_str_dup(ctx->mrb, ctx->pool[GETARG_Bx(CTX_I(ctx))]);
-  DEBUG(printf(_str_const_op_string));
+  DEBUG(dbg_printf(_str_const_op_string));
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
@@ -2611,7 +2620,7 @@ op_exec(struct op_ctx *ctx) {
   mrb_value recv = ctx->regs[a];
   struct RProc *p;
 
-  //printf(_str_const_op_exec, GETARG_A(CTX_I(ctx)), GETARG_Bx(CTX_I(ctx)));
+  //dbg_printf(_str_const_op_exec, GETARG_A(CTX_I(ctx)), GETARG_Bx(CTX_I(ctx)));
 
   /* prepare stack */
   ci = cipush(ctx->mrb);
@@ -2665,7 +2674,7 @@ op_method(struct op_ctx *ctx) {
 
   mrb_define_method_vm(ctx->mrb, c, ctx->syms[GETARG_B(CTX_I(ctx))], ctx->regs[a+1]);
 
-  //printf(_str_const_op_method, mrb_sym2name(ctx->mrb, ctx->syms[GETARG_B(CTX_I(ctx))]),ctx->regs[a+1]);
+  //dbg_printf(_str_const_op_method, mrb_sym2name(ctx->mrb, ctx->syms[GETARG_B(CTX_I(ctx))]),ctx->regs[a+1]);
 
   //mrb_codedump_all(ctx->mrb, mrb_proc_ptr(ctx->regs[a+1]));
 
@@ -2714,10 +2723,10 @@ op_debug(struct op_ctx *ctx) {
 #endif
 }
 
-DEBUG(static char _str_const_op_stop[] = "op_stop\n");
+static char _str_const_op_stop[] = "op_stop\n";
 static FORCE_INLINE void
 op_stop(struct op_ctx *ctx) {
-  DEBUG(printf(_str_const_op_stop));
+  dbg_printf(_str_const_op_stop);
   return _op_stop(ctx);
 }
 
@@ -2809,7 +2818,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   ctx.mrb = mrb;
   ctx.rescue_jmp_addr = NULL;
 
-  fprintf(stderr, "mrb_context_run %d\n", jit);
+  dbg_printf("mrb_context_run %d\n", jit);
   //mrb_codedump_all(mrb, proc);
 
   init_symtbl();
@@ -2826,7 +2835,7 @@ RETRY_TRY_BLOCK:
     exc_catched = FALSE;
     _op_raise(&ctx);
 
-    fprintf(stderr ,"back from longjmp raise: next %d\n", GET_OPCODE(*ctx.pc));
+    dbg_printf("back from longjmp raise: next %d\n", GET_OPCODE(*ctx.pc));
 
 #ifdef MRB_ENABLE_JIT
     if (mrb->run_flags & MRB_RUN_JIT) {
@@ -2836,22 +2845,22 @@ RETRY_TRY_BLOCK:
       
       {
         idx = ctx.pc - ctx.irep->iseq;
-        fprintf(stderr ,"(rescue) jumping to %dth op\n", idx, addr);
+        dbg_printf("(rescue) jumping to %dth op\n", idx, addr);
         addr = ctx.irep->jit_page.data + ctx.irep->jit_page.off_tbl[idx];
-        fprintf(stderr ,"(rescue) jumping to %dth op at %p\n", idx, addr);
+        dbg_printf("(rescue) jumping to %dth op at %p\n", idx, addr);
         ((op_t)(addr))(&ctx);
       }
       {
         idx = ctx.pc - ctx.irep->iseq;
         addr = ctx.irep->jit_page.data + ctx.irep->jit_page.off_tbl[idx];
-        fprintf(stderr ,"(send) jumping to %dth op at %p\n", idx, addr);
+        dbg_printf("(send) jumping to %dth op at %p\n", idx, addr);
         ((op_t)(addr))(&ctx);
       }
     } else
 #endif
     {
       int op = ctx.pc - ctx.irep->iseq;
-      fprintf(stderr ,"bcalling rescue handler, jumping to %dth op\n", op);
+      dbg_printf("bcalling rescue handler, jumping to %dth op\n", op);
       JUMP;
     }
   }
