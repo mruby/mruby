@@ -1,7 +1,5 @@
 class File
   module Constants
-    NULL = "/dev/null"
-
     RDONLY   = 0
     WRONLY   = 1
     RDWR     = 2

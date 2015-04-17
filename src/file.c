@@ -311,4 +311,9 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_const(mrb, cnst, "LOCK_UN", mrb_fixnum_value(LOCK_UN));
   mrb_define_const(mrb, cnst, "LOCK_NB", mrb_fixnum_value(LOCK_NB));
   mrb_define_const(mrb, cnst, "SEPARATOR", mrb_str_new_cstr(mrb, FILE_SEPARATOR));
+#if defined(_WIN32) || defined(_WIN64)
+  mrb_define_const(mrb, cnst, "NULL", mrb_str_new_cstr(mrb, "NUL"));
+#else
+  mrb_define_const(mrb, cnst, "NULL", mrb_str_new_cstr(mrb, "/dev/null"));
+#endif
 }
