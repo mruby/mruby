@@ -71,10 +71,24 @@ assert('Integer#%', '15.2.8.3.5') do
   a = 1%1
   b = 1%1.0
   c = 2%4
+  d = 2%5
+  e = 2%-5
+  f = -2%5
+  g = -2%-5
+  h =  2%-2
+  i = -2%2
+  j = -2%-2
 
   assert_equal 0, a
   assert_equal 0.0, b
   assert_equal 2, c
+  assert_equal 2, d
+  assert_equal(-3, e)
+  assert_equal 3, f
+  assert_equal(-2, g)
+  assert_equal 0, h
+  assert_equal 0, i
+  assert_equal 0, j
 end
 
 assert('Integer#<=>', '15.2.9.3.6') do
