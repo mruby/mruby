@@ -331,7 +331,15 @@ mcache_update(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RProc *p)
       e = &mcache->entries[j];
 
       if (e->mid == mid && mcache->classes[j] == c) {
-        mcache->procs[j] = p;
+        if (p) {
+          mcache->procs[j] = p;
+        }
+        else {
+          mcache->procs[j] = NULL;
+          mcache->classes[j] = NULL;
+          e->mid = 0;
+          e->c = NULL;
+        }
         break;
       }
     }
@@ -364,29 +372,36 @@ mcache_enqueue(mrb_state *mrb, struct mrb_mcache *mcache, struct mrb_mcache_entr
 
 
 static inline struct RProc *
-mcache_search_proc(mrb_state *mrb, struct RProc *p, struct RClass *c, mrb_sym mid)
+mcache_search_proc(mrb_state *mrb, struct RProc *p, struct RClass *c, mrb_sym mid, mrb_bool *found)
 {
   struct mrb_mcache_entry *es = p->mcache.entries;
   int i;
 
   for(i = 0; i < MRB_METHOD_CACHE_SIZE; i++) {
     struct mrb_mcache_entry *e = &es[i];
+
     if (e->c == c && e->mid == mid) {
+      *found = TRUE;
       return p->mcache.procs[i];
     }
   }
+
+  *found = FALSE;
   return NULL;
 }
 
 static inline struct RProc *
-mcache_search(mrb_state *mrb, struct RClass *c, mrb_sym mid)
+mcache_search(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_bool *found)
 {
   mrb_callinfo *ci = mrb->c->ci;
 
-  if(ci <= mrb->c->cibase) {
+  if(ci && ci->proc) {
+    return mcache_search_proc(mrb, ci->proc, c, mid, found);
+  }
+  else {
+    *found = FALSE;
     return NULL;
   }
-  return mcache_search_proc(mrb, ci->proc, c, mid);
 }
 #endif
 
@@ -1128,30 +1143,38 @@ search_class(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
         struct mrb_mcache_entry e;
         mrb_callinfo *ci;
 #endif
-
         m = kh_value(h, k);
-        if (!m) break;
 
+        if (!m) break;
 
 #ifdef MRB_ENABLE_METHOD_CACHE
         e.c = *cp;
         e.mid = mid;
-#endif
-
-        *cp = c;
-
-#ifdef MRB_ENABLE_METHOD_CACHE
         ci = mrb->c->ci;
         if (ci && ci->proc) {
           mcache_enqueue(mrb, &ci->proc->mcache, e, c, m);
         }
 #endif
 
+        *cp = c;
         return m;
       }
     }
     c = c->super;
   }
+
+  {
+    struct mrb_mcache_entry e;
+    mrb_callinfo *ci;
+    
+    e.c = *cp;
+    e.mid = mid;
+    ci = mrb->c->ci;
+    if (ci && ci->proc) {
+      mcache_enqueue(mrb, &ci->proc->mcache, e, c, NULL);
+    }
+  }
+
   return NULL;                  /* no method */
 
 }
@@ -1160,9 +1183,10 @@ MRB_API struct RProc *
 mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
 {
 #ifdef MRB_ENABLE_METHOD_CACHE
-  struct RProc *m = mcache_search(mrb, *cp, mid);
+  mrb_bool hit;
+  struct RProc *m = mcache_search(mrb, *cp, mid, &hit);
 
-  if (m) {
+  if (hit) {
     return m;
   }
   else
@@ -1176,16 +1200,19 @@ MRB_API struct RProc *
 mrb_method_search_vm_proc(mrb_state *mrb, struct RProc *p, struct RClass **cp, mrb_sym mid)
 {
 #ifdef MRB_ENABLE_METHOD_CACHE
-  struct RProc *m = mcache_search_proc(mrb, p, *cp, mid);
+  mrb_bool hit;
+  struct RProc *m = mcache_search_proc(mrb, p, *cp, mid, &hit);
 
-  if (m) {
+  if (hit) {
+    //fprintf(stderr, "lookup for (%p %s) was a hit (%p)\n", *cp, mrb_sym2name(mrb, mid), m);
     return m;
-  } else {
+  }
+#endif
+  else
+  {
+    //fprintf(stderr, "lookup for (%p %s) was no hit\n", *cp, mrb_sym2name(mrb, mid));
     return search_class(mrb, cp, mid);
   }
-#else
-  return search_class(mrb, cp, mid);
-#endif
 }
 
 
