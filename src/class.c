@@ -1163,10 +1163,11 @@ search_class(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
     c = c->super;
   }
 
+#ifdef MRB_ENABLE_METHOD_CACHE
   {
     struct mrb_mcache_entry e;
     mrb_callinfo *ci;
-    
+
     e.c = *cp;
     e.mid = mid;
     ci = mrb->c->ci;
@@ -1174,6 +1175,7 @@ search_class(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
       mcache_enqueue(mrb, &ci->proc->mcache, e, c, NULL);
     }
   }
+#endif
 
   return NULL;                  /* no method */
 
@@ -1207,8 +1209,8 @@ mrb_method_search_vm_proc(mrb_state *mrb, struct RProc *p, struct RClass **cp, m
     //fprintf(stderr, "lookup for (%p %s) was a hit (%p)\n", *cp, mrb_sym2name(mrb, mid), m);
     return m;
   }
-#endif
   else
+#endif
   {
     //fprintf(stderr, "lookup for (%p %s) was no hit\n", *cp, mrb_sym2name(mrb, mid));
     return search_class(mrb, cp, mid);
