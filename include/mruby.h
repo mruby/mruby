@@ -191,7 +191,9 @@ typedef struct mrb_state {
 #endif
   mrb_int atexit_stack_len;
 
+#ifdef MRB_ENABLE_METHOD_CACHE
   struct RProc *proc_list;
+#endif
 } mrb_state;
 
 #if __STDC_VERSION__ >= 201112L

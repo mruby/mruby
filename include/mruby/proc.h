@@ -34,10 +34,12 @@ struct RProc {
   } body;
   struct RClass *target_class;
   struct REnv *env;
-  struct mrb_mcache mcache;
 
+#ifdef MRB_ENABLE_METHOD_CACHE
+  struct mrb_mcache mcache;
   struct RProc *next;
   struct RProc *prev;
+#endif
 };
 
 /* aspec access */

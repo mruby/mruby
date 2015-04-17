@@ -21,15 +21,15 @@ struct RClass {
 struct mrb_mcache_entry {
   mrb_sym mid;
   struct RClass *c;
-  struct RClass *sc;
-  struct RProc* p;
 };
 
 #define MRB_METHOD_CACHE_SIZE 4
 struct mrb_mcache {
+  struct mrb_mcache_entry entries[MRB_METHOD_CACHE_SIZE];
+  struct RClass *classes[MRB_METHOD_CACHE_SIZE];
+  struct RProc* procs[MRB_METHOD_CACHE_SIZE];
   int16_t head;
   int16_t tail;
-  struct mrb_mcache_entry entries[MRB_METHOD_CACHE_SIZE];
 };
 
 
@@ -77,6 +77,7 @@ MRB_API void mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_s
 
 MRB_API struct RClass *mrb_class_outer_module(mrb_state*, struct RClass *);
 MRB_API struct RProc *mrb_method_search_vm(mrb_state*, struct RClass**, mrb_sym);
+MRB_API struct RProc *mrb_method_search_vm_proc(mrb_state*, struct RProc *p, struct RClass**, mrb_sym);
 MRB_API struct RProc *mrb_method_search(mrb_state*, struct RClass*, mrb_sym);
 
 MRB_API struct RClass* mrb_class_real(struct RClass* cl);

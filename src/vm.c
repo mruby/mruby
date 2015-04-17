@@ -1071,7 +1071,8 @@ RETRY_TRY_BLOCK:
         }
       }
       c = mrb_class(mrb, recv);
-      m = mrb_method_search_vm(mrb, &c, mid);
+      //m = mrb_method_search_vm(mrb, &c, mid);
+      m = mrb_method_search_vm_proc(mrb, proc, &c, mid);
       if (!m) {
         mrb_value sym = mrb_symbol_value(mid);
 
@@ -1224,7 +1225,7 @@ RETRY_TRY_BLOCK:
 
       recv = regs[0];
       c = mrb->c->ci->target_class->super;
-      m = mrb_method_search_vm(mrb, &c, mid);
+      m = mrb_method_search_vm_proc(mrb, proc, &c, mid);
       if (!m) {
         mid = mrb_intern_lit(mrb, "method_missing");
         m = mrb_method_search_vm(mrb, &c, mid);
@@ -1609,7 +1610,7 @@ RETRY_TRY_BLOCK:
 
       recv = regs[a];
       c = mrb_class(mrb, recv);
-      m = mrb_method_search_vm(mrb, &c, mid);
+      m = mrb_method_search_vm_proc(mrb, proc, &c, mid);
       if (!m) {
         mrb_value sym = mrb_symbol_value(mid);
 

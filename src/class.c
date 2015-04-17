@@ -315,16 +315,13 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
   return c;
 }
 
+#ifdef MRB_ENABLE_METHOD_CACHE
 static void
 mcache_update(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RProc *p)
 {
   struct RProc *i;
 
-  //fprintf(stderr, "updating mcache (%p %s) = %p\n", c, mrb_sym2name(mrb, mid), p);
-
   for(i = mrb->proc_list; i != NULL; i = i->next) {
-    
-    //fprintf(stderr, "updating mcache: checking proc %p\n", i);
     int j;
     struct mrb_mcache *mcache = &i->mcache;
 
@@ -333,10 +330,8 @@ mcache_update(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RProc *p)
 
       e = &mcache->entries[j];
 
-      if (e->mid == mid && e->c == c) {
-        e->p = p;
-        //fprintf(stderr, "updating mcache (%p %s) = %p\n", c, mrb_sym2name(mrb, mid), p);
-        //fprintf(stderr, "updating mcache FOUND\n");
+      if (e->mid == mid && mcache->classes[j] == c) {
+        mcache->procs[j] = p;
         break;
       }
     }
@@ -346,63 +341,54 @@ mcache_update(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RProc *p)
 
 void mrb_mcache_init(mrb_state *mrb, struct mrb_mcache *mcache)
 {
-  static const struct mrb_mcache mcache_zero = { 0 };
+  static const struct mrb_mcache mcache_zero = {{{0}}};
   *mcache = mcache_zero;
   mcache->head = -1;
   mcache->tail = -1;
 }
 
 static inline void
-mcache_enqueue(mrb_state *mrb, struct mrb_mcache *mcache, struct mrb_mcache_entry e)
+mcache_enqueue(mrb_state *mrb, struct mrb_mcache *mcache, struct mrb_mcache_entry e, struct RClass *c, struct RProc *p)
 {
   int16_t tail = mcache->tail + 1;
   /* modulo is undefined for zero */
   if (tail != 0) {
     tail %= MRB_METHOD_CACHE_SIZE;
   }
-  //fprintf(stderr, "inserting entry (%p, %s) at %d into %p\n", e.c,mrb_sym2name(mrb, e.mid), tail, mcache);
-/*
-        struct RClass *k = e.c;
-        while (k) {
-          fprintf(stderr, "parent class %p\n", k);
-          k = k->super;
-        }
-        */
 
-  mcache->entries[tail % MRB_METHOD_CACHE_SIZE] = e;
+  mcache->entries[tail] = e;
+  mcache->classes[tail] = c;
+  mcache->procs[tail] = p;
   mcache->tail = tail;
 }
 
 
 static inline struct RProc *
-mcache_search_ci(mrb_state *mrb, mrb_callinfo *ci, struct RClass *c, mrb_sym mid)
+mcache_search_proc(mrb_state *mrb, struct RProc *p, struct RClass *c, mrb_sym mid)
 {
-  struct mrb_mcache *mcache = &ci->proc->mcache;
+  struct mrb_mcache_entry *es = p->mcache.entries;
   int i;
 
   for(i = 0; i < MRB_METHOD_CACHE_SIZE; i++) {
-    struct mrb_mcache_entry e = mcache->entries[i];
-    if (e.sc == c && e.mid == mid) {
-      return e.p;
+    struct mrb_mcache_entry *e = &es[i];
+    if (e->c == c && e->mid == mid) {
+      return p->mcache.procs[i];
     }
   }
   return NULL;
 }
 
 static inline struct RProc *
-mcache_search_stack(mrb_state *mrb, struct RClass *c, mrb_sym mid)
+mcache_search(mrb_state *mrb, struct RClass *c, mrb_sym mid)
 {
-  //fprintf(stderr, "mcache: searching for (%p %s)\n", c, mrb_sym2name(mrb, mid));
-  struct RProc *p;
   mrb_callinfo *ci = mrb->c->ci;
 
   if(ci <= mrb->c->cibase) {
     return NULL;
   }
-
-  p = mcache_search_ci(mrb, ci, c, mid);
-  return p;
+  return mcache_search_proc(mrb, ci->proc, c, mid);
 }
+#endif
 
 
 MRB_API void
@@ -418,7 +404,9 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
     mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
   }
 
+#ifdef MRB_ENABLE_METHOD_CACHE
   mcache_update(mrb, c, mid, p);
+#endif
 }
 
 MRB_API void
@@ -1122,21 +1110,12 @@ mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, m
   mrb_define_method(mrb, c, name, func, aspec);
 }
 
-MRB_API struct RProc*
-mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
+static inline struct RProc *
+search_class(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
 {
   khiter_t k;
   struct RProc *m;
   struct RClass *c = *cp;
-
-  m = mcache_search_stack(mrb, c, mid);
-
-  if (m) {
-    //fprintf(stderr, "mcache hit %s\n", mrb_sym2name(mrb, mid));
-    return m;
-  } else {
-    //fprintf(stderr, "mcache miss for %s\n", mrb_sym2name(mrb, mid));
-  }
 
   while (c) {
     khash_t(mt) *h = c->mt;
@@ -1144,24 +1123,29 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
     if (h) {
       k = kh_get(mt, mrb, h, mid);
       if (k != kh_end(h)) {
+
+#ifdef MRB_ENABLE_METHOD_CACHE
         struct mrb_mcache_entry e;
         mrb_callinfo *ci;
+#endif
 
         m = kh_value(h, k);
         if (!m) break;
 
-        e.c = c;
-        e.sc = *cp;
+
+#ifdef MRB_ENABLE_METHOD_CACHE
+        e.c = *cp;
         e.mid = mid;
-        e.p = m;
+#endif
 
         *cp = c;
 
+#ifdef MRB_ENABLE_METHOD_CACHE
         ci = mrb->c->ci;
         if (ci && ci->proc) {
-          //fprintf(stderr, "inserting (%p %s) to %p\n", e.c, mrb_sym2name(mrb, mid),&ci->proc->mcache );
-          mcache_enqueue(mrb, &ci->proc->mcache, e);
+          mcache_enqueue(mrb, &ci->proc->mcache, e, c, m);
         }
+#endif
 
         return m;
       }
@@ -1169,7 +1153,41 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
     c = c->super;
   }
   return NULL;                  /* no method */
+
 }
+
+MRB_API struct RProc *
+mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
+{
+#ifdef MRB_ENABLE_METHOD_CACHE
+  struct RProc *m = mcache_search(mrb, *cp, mid);
+
+  if (m) {
+    return m;
+  }
+  else
+#endif
+  {
+    return search_class(mrb, cp, mid);
+  }
+}
+
+MRB_API struct RProc *
+mrb_method_search_vm_proc(mrb_state *mrb, struct RProc *p, struct RClass **cp, mrb_sym mid)
+{
+#ifdef MRB_ENABLE_METHOD_CACHE
+  struct RProc *m = mcache_search_proc(mrb, p, *cp, mid);
+
+  if (m) {
+    return m;
+  } else {
+    return search_class(mrb, cp, mid);
+  }
+#else
+  return search_class(mrb, cp, mid);
+#endif
+}
+
 
 MRB_API struct RProc*
 mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
