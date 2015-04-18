@@ -21,6 +21,7 @@
 #include "mruby/opcode.h"
 #include "value_array.h"
 #include "mrb_throw.h"
+#include "class_inline.h"
 
 #ifndef ENABLE_STDIO
 #if defined(__cplusplus)

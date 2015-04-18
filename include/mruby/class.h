@@ -63,6 +63,8 @@ mrb_class(mrb_state *mrb, mrb_value v)
   }
 }
 
+struct RProc *_mrb_method_search_vm(mrb_state*, struct RClass**, mrb_sym);
+
 #define MRB_SET_INSTANCE_TT(c, tt) c->flags = ((c->flags & ~0xff) | (char)tt)
 #define MRB_INSTANCE_TT(c) (enum mrb_vtype)(c->flags & 0xff)
 
@@ -77,7 +79,6 @@ MRB_API void mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_s
 
 MRB_API struct RClass *mrb_class_outer_module(mrb_state*, struct RClass *);
 MRB_API struct RProc *mrb_method_search_vm(mrb_state*, struct RClass**, mrb_sym);
-MRB_API struct RProc *mrb_method_search_vm_proc(mrb_state*, struct RProc *p, struct RClass**, mrb_sym);
 MRB_API struct RProc *mrb_method_search(mrb_state*, struct RClass*, mrb_sym);
 
 MRB_API struct RClass* mrb_class_real(struct RClass* cl);
