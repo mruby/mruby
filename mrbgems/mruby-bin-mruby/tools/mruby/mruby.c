@@ -209,7 +209,7 @@ main(int argc, char **argv)
   /* Set $0 */
   zero_sym = mrb_intern_lit(mrb, "$0");
   if (args.rfp) {
-    char *cmdline;
+    const char *cmdline;
     cmdline = args.cmdline ? args.cmdline : "-";
     mrbc_filename(mrb, c, cmdline);
     mrb_gv_set(mrb, zero_sym, mrb_str_new_cstr(mrb, cmdline));

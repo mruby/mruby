@@ -121,7 +121,7 @@ fmt_fp(struct fmt_args *f, long double y, int w, int p, int fl, int t)
   } else prefix++, pl=0;
 
   if (!isfinite(y)) {
-    char *ss = (t&32)?"inf":"INF";
+    const char *ss = (t&32)?"inf":"INF";
     if (y!=y) ss=(t&32)?"nan":"NAN";
     pad(f, ' ', w, 3+pl, fl&~ZERO_PAD);
     out(f, prefix, pl);
