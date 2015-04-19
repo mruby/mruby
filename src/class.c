@@ -391,20 +391,6 @@ mcache_search_proc(mrb_state *mrb, struct RProc *p, struct RClass *c, mrb_sym mi
   *found = FALSE;
   return NULL;
 }
-
-static inline struct RProc *
-mcache_search(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_bool *found)
-{
-  mrb_callinfo *ci = mrb->c->ci;
-
-  if(ci && ci->proc) {
-    return mcache_search_proc(mrb, ci->proc, c, mid, found);
-  }
-  else {
-    *found = FALSE;
-    return NULL;
-  }
-}
 #endif
 
 
