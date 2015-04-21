@@ -348,6 +348,31 @@ mcache_update(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RProc *p)
   }
 }
 
+static void
+mcache_clear(mrb_state *mrb, struct RClass *c, mrb_bool super)
+{
+  struct RProc *i;
+
+  for(i = mrb->proc_list; i != NULL; i = i->next) {
+    int j;
+    struct mrb_mcache *mcache = &i->mcache;
+    struct RClass *k = c;
+
+    do {
+      for(j = 0; j < MRB_METHOD_CACHE_SIZE; j++) {
+        struct mrb_mcache_entry *e = &mcache->entries[j];
+
+        if (mcache->classes[j] == k) {
+            mcache->procs[j] = NULL;
+            mcache->classes[j] = NULL;
+            e->mid = 0;
+            e->c = NULL;
+        }
+      }
+      k = k->super;
+    } while (!super || k);
+  }
+}
 
 void mrb_mcache_init(mrb_state *mrb, struct mrb_mcache *mcache)
 {
@@ -884,6 +909,10 @@ mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   skip:
     m = m->super;
   }
+
+#ifdef MRB_ENABLE_METHOD_CACHE
+  mcache_clear(mrb, c, TRUE);
+#endif
 }
 
 static mrb_value

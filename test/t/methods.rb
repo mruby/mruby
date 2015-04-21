@@ -107,3 +107,56 @@ assert('The undef statement (method undefined)', '13.3.7 a) 5)') do
     undef :non_existing_method
   end
 end
+
+assert('Method lookup after #include') do
+  module IncludeLookup
+    module A
+      def m
+        "a"
+      end
+    end
+
+    module B
+      def m
+        "b"
+      end
+    end
+
+    module C
+      def m
+        "c"
+      end
+    end
+
+    module D
+      def m
+        "d"
+      end
+    end
+
+
+    class X
+      include A
+    end
+
+    class Y < X
+    end
+  end
+
+  y = IncludeLookup::Y.new
+
+  assert_equal "a", y.m
+
+  IncludeLookup::X.send :include, IncludeLookup::B
+
+  assert_equal "b", y.m
+
+  IncludeLookup::X.send :include, IncludeLookup::C
+
+  assert_equal "c", y.m
+
+  IncludeLookup::Y.send :include, IncludeLookup::D
+
+  assert_equal "d", y.m
+
+end
