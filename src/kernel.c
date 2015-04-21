@@ -1000,6 +1000,8 @@ mod_define_singleton_method(mrb_state *mrb, mrb_value self)
   }
   p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
   mrb_proc_copy(p, mrb_proc_ptr(blk));
+  mrb_proc_register(mrb, p);
+
   p->flags |= MRB_PROC_STRICT;
   mrb_define_method_raw(mrb, mrb_class_ptr(mrb_singleton_class(mrb, self)), mid, p);
   return mrb_symbol_value(mid);
