@@ -29,6 +29,8 @@ load "#{MRUBY_ROOT}/tasks/libmruby.rake"
 load "#{MRUBY_ROOT}/tasks/mrbgems_test.rake"
 load "#{MRUBY_ROOT}/test/mrbtest.rake"
 
+load "#{MRUBY_ROOT}/tasks/benchmark.rake"
+
 ##############################
 # generic build targets, rules
 task :default => :all
