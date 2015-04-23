@@ -30,9 +30,7 @@ def plot
     dat_files.each do |target_name, bm_files|
       p.puts target_name
       bm_files.each do |bm_file|
-        puts target_name
         p.write File.read(bm_file)
-        print File.read(bm_file)
       end
       p.puts "e"
     end
