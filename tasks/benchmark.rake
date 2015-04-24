@@ -37,6 +37,7 @@ def plot
 
   cmd = %Q{gnuplot -p -e "#{opts}"}
 
+  p cmd
   IO.popen(cmd, 'w') do |p|
     dat_files.each do |target_name, bm_files|
       p.puts target_name.gsub('_', '-')
@@ -56,7 +57,7 @@ MRuby.each_target do |target|
   bm_files.each do |bm_file|
     bm_name = File.basename bm_file, ".rb"
 
-    dat_dir = File.join('benchmark', "#{build_config_name}_#{target.name}")
+    dat_dir = File.join('benchmark', build_config_name, target.name)
     dat_file = File.join(dat_dir, "#{bm_name}.dat")
     $dat_files << dat_file
 
