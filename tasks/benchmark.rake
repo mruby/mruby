@@ -5,7 +5,7 @@ end
 $dat_files = []
 
 def bm_files
-  Dir.glob("#{MRUBY_ROOT}/benchmark/*.rb")
+  Dir.glob("#{MRUBY_ROOT}/benchmark/bm_*.rb")
 end
 
 def plot_file
