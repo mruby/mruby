@@ -2,8 +2,8 @@
 *.bak
 *.d
 *.o
-benchmark/**/*.dat
-benchmark/*.pdf
+/benchmark/**/*.dat
+/benchmark/*.pdf
 *.orig
 *.pdb
 *.rej

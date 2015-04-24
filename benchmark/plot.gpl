@@ -1,5 +1,5 @@
 set yrange [0:]
-set terminal pdf
+set terminal pdf font 'Sans, 3'
 set xtics rotate by -45
 set style histogram errorbars gap 2 lw 1
 set style fill solid border -1
