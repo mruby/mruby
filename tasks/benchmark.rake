@@ -8,10 +8,6 @@ def bm_files
   Dir.glob("#{MRUBY_ROOT}/benchmark/bm_*.rb")
 end
 
-def plot_file
-  File.join(MRUBY_ROOT, 'benchmark', 'bm.pdf')
-end
-
 def build_config_name
   if ENV['MRUBY_CONFIG']
     File.basename(ENV['MRUBY_CONFIG'], '.rb').gsub('build_config_', '')
@@ -20,13 +16,17 @@ def build_config_name
   end
 end
 
+def plot_file
+  File.join(MRUBY_ROOT, 'benchmark', "#{build_config_name}.png")
+end
+
 def plot
   opts_file = "#{MRUBY_ROOT}/benchmark/plot.gpl"
   opts = File.read(opts_file).each_line.to_a.map(&:strip).join(';')
 
   dat_files = $dat_files.group_by {|f| File.dirname(f).split(File::SEPARATOR)[-1]}
 
-  opts += ";set output '#{File.join(MRUBY_ROOT, 'benchmark', "#{build_config_name}.pdf")}'"
+  opts += ";set output '#{plot_file}'"
 
   opts += ';plot '
 
@@ -37,7 +37,6 @@ def plot
 
   cmd = %Q{gnuplot -p -e "#{opts}"}
 
-  p cmd
   IO.popen(cmd, 'w') do |p|
     dat_files.each do |target_name, bm_files|
       p.puts target_name.gsub('_', '-')
