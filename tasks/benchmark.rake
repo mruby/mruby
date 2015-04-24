@@ -12,17 +12,19 @@ def plot_file
   File.join(MRUBY_ROOT, 'benchmark', 'bm.pdf')
 end
 
+def build_config_name
+  if ENV['MRUBY_CONFIG']
+    File.basename(ENV['MRUBY_CONFIG'], '.rb').gsub('build_config_', '')
+  else
+    "build"
+  end
+end
+
 def plot
   opts_file = "#{MRUBY_ROOT}/benchmark/plot.gpl"
   opts = File.read(opts_file).each_line.to_a.map(&:strip).join(';')
 
   dat_files = $dat_files.group_by {|f| File.dirname(f).split(File::SEPARATOR)[-1]}
-
-  build_config_name = if ENV['MRUBY_CONFIG']
-    File.basename(ENV['MRUBY_CONFIG'], '.rb').gsub('build_config_', '')
-  else
-    "bm"
-  end
 
   opts += ";set output '#{File.join(MRUBY_ROOT, 'benchmark', "#{build_config_name}.pdf")}'"
 
@@ -54,7 +56,7 @@ MRuby.each_target do |target|
   bm_files.each do |bm_file|
     bm_name = File.basename bm_file, ".rb"
 
-    dat_dir = File.join('benchmark', target.name)
+    dat_dir = File.join('benchmark', "#{build_config_name}_#{target.name}")
     dat_file = File.join(dat_dir, "#{bm_name}.dat")
     $dat_files << dat_file
 
