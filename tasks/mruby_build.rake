@@ -8,6 +8,7 @@ module MRuby
     end
 
     def each_target(&block)
+      return to_enum(:each_target) if block.nil?
       @targets.each do |key, target|
         target.instance_eval(&block)
       end
