@@ -665,6 +665,8 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     {
       struct RProc *p = (struct RProc*)obj;
 
+      mrb_proc_destroy(mrb, p);
+
       if (!MRB_PROC_CFUNC_P(p) && p->body.irep) {
         mrb_irep_decref(mrb, p->body.irep);
       }
