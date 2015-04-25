@@ -17,7 +17,7 @@ def build_config_name
 end
 
 def plot_file
-  File.join(MRUBY_ROOT, 'benchmark', "#{build_config_name}.png")
+  File.join(MRUBY_ROOT, 'benchmark', "#{build_config_name}.pdf")
 end
 
 def plot

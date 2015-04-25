@@ -1,5 +1,9 @@
 set yrange [0:]
-set terminal pngcairo font 'Sans, 8' lw 1 size 1400,1024
-set xtics rotate by -45
-set style histogram errorbars gap 2 lw 1
 set style fill solid border -1
+set terminal pdfcairo font 'lmroman10, 16' lw 0.01 size 26cm,16cm
+set xtics rotate by -45
+set style histogram errorbars gap 2
+set linetype 1 lc rgb '#333333'
+set linetype 2 lc rgb '#555555'
+set linetype 3 lc rgb '#999999'
+set linetype 4 lc rgb '#BBBBBB'
