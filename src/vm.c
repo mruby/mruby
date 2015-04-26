@@ -1224,7 +1224,7 @@ RETRY_TRY_BLOCK:
 
       if (mid == 0) {
         mrb_value exc;
-      out_super:
+
         exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
         mrb->exc = mrb_obj_ptr(exc);
         goto L_RAISE;
@@ -1313,7 +1313,11 @@ RETRY_TRY_BLOCK:
       else {
         struct REnv *e = uvenv(mrb, lv-1);
         if (!e) {
-          goto out_super;
+          mrb_value exc;
+
+          exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
+          mrb->exc = mrb_obj_ptr(exc);
+          goto L_RAISE;
         }
         stack = e->stack + 1;
       }
