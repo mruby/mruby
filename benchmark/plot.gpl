@@ -11,3 +11,7 @@ set linetype 2 lc rgb '#fb9a99'
 set linetype 7 lc rgb '#e31a1c'
 set linetype 6 lc rgb '#fdbf6f'
 set linetype 8 lc rgb '#ff7f00'
+set mytics 2
+set ytics 1
+set grid ytics mytics lt 0 lw 1 lc rgb '#eee'
+
