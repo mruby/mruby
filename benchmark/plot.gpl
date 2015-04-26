@@ -3,7 +3,11 @@ set style fill solid border -1
 set terminal pdfcairo font 'lmroman10, 16' lw 0.01 size 26cm,16cm
 set xtics rotate by -45
 set style histogram errorbars gap 2
-set linetype 1 lc rgb '#333333'
-set linetype 2 lc rgb '#555555'
-set linetype 3 lc rgb '#999999'
-set linetype 4 lc rgb '#BBBBBB'
+set linetype 1 lc rgb '#a6cee3'
+set linetype 5 lc rgb '#1f78b4'
+set linetype 4 lc rgb '#b2df8a'
+set linetype 3 lc rgb '#33a02c'
+set linetype 2 lc rgb '#fb9a99'
+set linetype 7 lc rgb '#e31a1c'
+set linetype 6 lc rgb '#fdbf6f'
+set linetype 8 lc rgb '#ff7f00'
