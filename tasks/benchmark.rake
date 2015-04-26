@@ -1,5 +1,5 @@
 module MRuby
-  BENCHMARK_REPEAT = 4
+  BENCHMARK_REPEAT = 6
 end
 
 $dat_files = []
