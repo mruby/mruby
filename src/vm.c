@@ -1222,6 +1222,13 @@ RETRY_TRY_BLOCK:
       int a = GETARG_A(i);
       int n = GETARG_C(i);
 
+      if (mid == 0) {
+        mrb_value exc;
+      out_super:
+        exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
+        mrb->exc = mrb_obj_ptr(exc);
+        goto L_RAISE;
+      }
       recv = regs[0];
       c = mrb->c->ci->target_class->super;
       m = mrb_method_search_vm(mrb, &c, mid);
@@ -1306,10 +1313,7 @@ RETRY_TRY_BLOCK:
       else {
         struct REnv *e = uvenv(mrb, lv-1);
         if (!e) {
-          mrb_value exc;
-          exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
-          mrb->exc = mrb_obj_ptr(exc);
-          goto L_RAISE;
+          goto out_super;
         }
         stack = e->stack + 1;
       }
