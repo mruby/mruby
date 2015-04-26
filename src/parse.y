@@ -274,7 +274,8 @@ local_add(parser_state *p, mrb_sym sym)
 static node*
 new_scope(parser_state *p, node *body)
 {
-  return cons((node*)NODE_SCOPE, cons(p->locals->car, body));
+  node *n = p->locals ? p->locals->car : NULL;
+  return cons((node*)NODE_SCOPE, cons(n, body));
 }
 
 /* (:begin prog...) */
