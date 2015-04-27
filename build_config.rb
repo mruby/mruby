@@ -5,7 +5,7 @@ MRuby::Build.new do |conf|
   if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
     toolchain :visualcpp
   else
-    toolchain :gcc
+    toolchain :clang
   end
 
   #enable_debug
@@ -22,6 +22,27 @@ MRuby::Build.new do |conf|
   # include the default GEMs
   conf.gembox 'default'
 
+  compilers.each do |c|
+    #c.flags += %w(-g3)
+    #c.defines += %w(MRB_VM_NO_INLINE)
+  end
+=begin
+  conf.gem core: 'mruby-print'
+  conf.gem core: 'mruby-sprintf'
+  conf.gem core: 'mruby-bin-mruby' do |g|
+    g.cc.flags << ' -g -fprofile-arcs -ftest-coverage'
+    g.linker.flags << ' -g -fprofile-arcs -ftest-coverage'
+  end
+
+  compilers.each do |c|
+    c.flags += %w(-g -fprofile-arcs -ftest-coverage)
+    c.defines += %w(MRB_VM_NO_INLINE)
+  end
+
+  linker do |l|
+    l.flags += %w(-g -fprofile-arcs -ftest-coverage)
+  end
+=end
   # C compiler settings
   # conf.cc do |cc|
   #   cc.command = ENV['CC'] || 'gcc'

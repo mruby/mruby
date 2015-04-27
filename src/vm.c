@@ -22,6 +22,8 @@
 #include "value_array.h"
 #include "mrb_throw.h"
 
+#include "class_inline.h"
+
 #ifndef ENABLE_STDIO
 #if defined(__cplusplus)
 extern "C" {
@@ -84,11 +86,14 @@ static inline void
 stack_clear(mrb_value *from, size_t count)
 {
 #ifndef MRB_NAN_BOXING
+#if 0
   const mrb_value mrb_value_zero = { { 0 } };
 
   while (count-- > 0) {
     *from++ = mrb_value_zero;
   }
+#endif
+  memset(from, 0, count * sizeof(mrb_value));
 #else
   while (count-- > 0) {
     SET_NIL_VALUE(*from);
@@ -268,7 +273,7 @@ cipop(mrb_state *mrb)
 {
   struct mrb_context *c = mrb->c;
 
-  if (c->ci->env) {
+  if (MRB_UNLIKELY(c->ci->env)) {
     struct REnv *e = c->ci->env;
     size_t len = (size_t)MRB_ENV_STACK_LEN(e);
     mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
@@ -1235,8 +1240,8 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   //dbg_printf("_op_send %s: %p %d %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, b, n);
 
   recv = ctx->regs[a];
-  if (opcode != OP_SENDB) {
-    if (n == CALL_MAXARGS) {
+  if (MRB_LIKELY(opcode != OP_SENDB)) {
+    if (MRB_UNLIKELY(n == CALL_MAXARGS)) {
       SET_NIL_VALUE(ctx->regs[a+2]);
     }
     else {
@@ -1252,7 +1257,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   m = mrb_method_search_vm_proc(ctx->mrb, ctx->proc, &c, mid);
   ////dbg_printf("_op_send: %p\n", m);
 
-  if (!m) {
+  if (MRB_UNLIKELY(!m)) {
     mrb_value sym = mrb_symbol_value(mid);
 
     mid = intern_str_const(ctx->mrb, _str_const_method_missing);
@@ -1286,7 +1291,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     mrb_bool flow_modified = FALSE;
 
     //dbg_printf("_op_send: cfunc (ctx = %p)\n", ctx);
-    if (n == CALL_MAXARGS) {
+    if (MRB_UNLIKELY(n == CALL_MAXARGS)) {
       ci->argc = -1;
       ci->nregs = 3;
     }
@@ -1302,13 +1307,13 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     result = m->body.func(ctx->mrb, recv);
     ctx->mrb->c->stack[0] = result;
     mrb_gc_arena_restore(ctx->mrb, ctx->ai);
-    if (ctx->mrb->exc) {
+    if (MRB_UNLIKELY(ctx->mrb->exc)) {
       //dbg_printf("calling _op_raise from send\n");
       return _op_raise(ctx);
     }
     /* pop stackpos */
     ci = ctx->mrb->c->ci;
-    if (!ci->target_class) { /* return from context modifying method (resume/yield) */
+    if (MRB_UNLIKELY(!ci->target_class)) { /* return from context modifying method (resume/yield) */
       if (!MRB_PROC_CFUNC_P(ci[-1].proc)) {
         ctx->proc = ci[-1].proc;
         ctx->irep = ctx->proc->body.irep;
@@ -1349,7 +1354,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     ctx->pool = ctx->irep->pool;
     ctx->syms = ctx->irep->syms;
     ci->nregs = ctx->irep->nregs;
-    if (n == CALL_MAXARGS) {
+    if (MRB_UNLIKELY(n == CALL_MAXARGS)) {
       ci->argc = -1;
       stack_extend(ctx->mrb, (ctx->irep->nregs < 3) ? 3 : ctx->irep->nregs, 3);
     }
@@ -1426,10 +1431,10 @@ op_fsend(struct op_ctx *ctx) {
   /* A B C  R(A) := fcall(R(A),Syms(B),R(A+1),... ,R(A+C-1)) */
 }
 
-static inline void
+__attribute__ ((noinline)) void
 _op_return(struct op_ctx *ctx, int a, int b) {
   mrb_state *mrb = ctx->mrb;
-  if (ctx->mrb->exc) {
+  if (MRB_UNLIKELY(ctx->mrb->exc)) {
     return _op_raise(ctx);
   } else {
     mrb_callinfo *ci = ctx->mrb->c->ci;

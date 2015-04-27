@@ -8,13 +8,15 @@
 #include <stdarg.h>
 #include "mruby.h"
 #include "mruby/array.h"
-#include "mruby/class.h"
 #include "mruby/numeric.h"
 #include "mruby/proc.h"
+#include "mruby/class.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/error.h"
 #include "mruby/data.h"
+
+#include "class_inline.h"
 
 KHASH_DEFINE(mt, mrb_sym, struct RProc*, TRUE, kh_int_hash_func, kh_int_hash_equal)
 
@@ -1125,8 +1127,8 @@ mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, m
   mrb_define_method(mrb, c, name, func, aspec);
 }
 
-static inline struct RProc *
-search_class(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
+struct RProc *
+_mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
 {
   khiter_t k;
   struct RProc *m;
@@ -1185,35 +1187,15 @@ MRB_API struct RProc *
 mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
 {
 #ifdef MRB_ENABLE_METHOD_CACHE
-  mrb_bool hit;
-  struct RProc *m = mcache_search(mrb, *cp, mid, &hit);
+  mrb_callinfo *ci = mrb->c->ci;
 
-  if (hit) {
-    return m;
+  if(ci && ci->proc) {
+    return mrb_method_search_vm_proc(mrb, ci->proc, cp, mid);
   }
   else
 #endif
   {
-    return search_class(mrb, cp, mid);
-  }
-}
-
-MRB_API struct RProc *
-mrb_method_search_vm_proc(mrb_state *mrb, struct RProc *p, struct RClass **cp, mrb_sym mid)
-{
-#ifdef MRB_ENABLE_METHOD_CACHE
-  mrb_bool hit;
-  struct RProc *m = mcache_search_proc(mrb, p, *cp, mid, &hit);
-
-  if (hit) {
-    //fprintf(stderr, "lookup for (%p %s) was a hit (%p)\n", *cp, mrb_sym2name(mrb, mid), m);
-    return m;
-  }
-  else
-#endif
-  {
-    //fprintf(stderr, "lookup for (%p %s) was no hit\n", *cp, mrb_sym2name(mrb, mid));
-    return search_class(mrb, cp, mid);
+    return _mrb_method_search_vm(mrb, cp, mid);
   }
 }
 

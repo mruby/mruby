@@ -140,7 +140,14 @@ $ops.each do |op|
   end
 
   file asm_file => [ll_opt_file, 'asm'] do |t|
-    sh "llc -O3 #{ll_opt_file} -filetype=asm -o #{t.name}"
+    if t.name =~ /op_return/
+      # force stack alignment for ops
+      # that call into SIMD code
+      opts = "-force-align-stack -stack-alignment=16"
+    else
+      opts = ""
+    end
+    sh "llc -O3 #{ll_opt_file} #{opts} -filetype=asm -o #{t.name}"
   end
 
   file corrected_asm_file => asm_file do |t|
@@ -225,7 +232,7 @@ file ops_header_path(:x64) => [*obj_files, symtbl_header_path] do |t|
 
   file.puts "typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c, uint32_t op_idx);"
   file.puts "static jit_args_func_t arg_funcs[#{objs.size}];"
-  file.puts "static uint8_t* ops[#{objs.size}];"
+  file.puts "uint8_t* ops[#{objs.size}];"
   file.puts "static char *op_names[#{objs.size}];"
 
   file.puts "static size_t op_sizes[] = {\n"

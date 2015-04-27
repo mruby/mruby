@@ -6,4 +6,4 @@ def fib n
 end
 
 # fib(39) = 63245986
-puts fib(39)
+puts fib(37)

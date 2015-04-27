@@ -21,6 +21,8 @@
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
 #include <sys/mman.h>
 #include <unistd.h>
+#include <alloca.h>
+#include <stdlib.h>
 
 static size_t
 jit_page_size()
@@ -53,7 +55,7 @@ void
 mrb_irep_jit_call(mrb_state *mrb, mrb_irep *irep, void *ctx)
 {
   void (*f)(void *) = (void *)irep->jit_page.data;
-  return (*f)(ctx);
+  (*f)(ctx);
 }
 
 static size_t
@@ -217,6 +219,8 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
     unsigned i  = 0;
     struct mrb_jit_page *page;
     int32_t *off_tbl;
+    //int ilen = irep->ilen;
+    //mrb_code *iseq = irep->iseq;
 
     if(!mrb_irep_jit_prepare(mrb, irep)) {
       return FALSE;
