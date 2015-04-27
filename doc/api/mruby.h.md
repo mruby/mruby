@@ -49,7 +49,7 @@ It returns number of function retrieved.
 
 char|mruby type|retrieve types|note
 :---:|----------|--------------|---
-`o`|`Object`|`mrb_value`|Could be used to retreive any type of argument
+`o`|`Object`|`mrb_value`|Could be used to retrieve any type of argument
 `C`|`Class`/`Module`|`mrb_value`|
 `S`|`String`|`mrb_value`|
 `A`|`Array`|`mrb_value`|
