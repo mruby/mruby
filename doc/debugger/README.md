@@ -144,7 +144,7 @@ Example:
 (foo.rb:1) continue 3
 ```
 
-This will resume the profram and stop it at the third breakpoint.
+This will resume the program and stop it at the third breakpoint.
 
 #### Delete Command
 

@@ -245,7 +245,7 @@ mruby can use C++ exception to raise exception internally.
 It is called C++ ABI mode.
 By using C++ exception it can release C++ stack object correctly.
 Whenever you mix C++ code C++ ABI mode would be enabled automatically.
-If you need to enable C++ ABI mode explicity add the following:
+If you need to enable C++ ABI mode explicitly add the following:
 ```ruby
 conf.enable_cxx_abi
 ```
@@ -409,7 +409,7 @@ like this:
 
 An extra directory is created for the target platform. In case you
 compile for *i386* a directory called *i386* is created under the
-build direcotry.
+build directory.
 
 The cross compilation workflow starts in the same way as the normal
 compilation by compiling all *native* libraries and binaries.
