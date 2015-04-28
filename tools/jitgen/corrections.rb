@@ -113,6 +113,9 @@ module Corrections
     end
   end
 
+  class OpEnterMethodM < OpEnter
+  end
+
   class OpJmpif < Corrector
     def correct!
       super

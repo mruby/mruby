@@ -95,10 +95,12 @@ enum {
   OP_SUPER,/*     A C     R(A) := super(R(A+1),... ,R(A+C+1))             */
   OP_ARGARY,/*    A Bx    R(A) := argument array (16=6:1:5:4)             */
   OP_ENTER,/*     Ax      arg setup according to flags (23=5:5:1:5:5:1:1) */
+  OP_ENTER_METHOD_M,/*  Ax  arg setup for method with only mandatory args */
   OP_KARG,/*      A B C   R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B))  */
   OP_KDICT,/*     A C     R(A) := kdict                                   */
 
-  OP_RETURN,/*    A B     return R(A) (B=normal,in-block return/break)    */
+  OP_RETURN,/*    A      return R(A)                                      */
+  OP_BREAK,/*    A B     return R(A) (B=return/break)                     */
   OP_TAILCALL,/*  A B C   return call(R(A),Syms(B),*R(C))                 */
   OP_BLKPUSH,/*   A Bx    R(A) := block (16=6:1:5:4)                      */
 

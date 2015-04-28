@@ -71,10 +71,10 @@ void init_symtbl() {
     symtbl[64] = (void *) mrb_fixnum_mul;
     symtbl[65] = (void *) stack_copy;
     symtbl[66] = (void *) _mrb_str_const_localjump_error;
-    symtbl[67] = (void *) uvenv;
-    symtbl[68] = (void *) mrb_class;
-    symtbl[69] = (void *) mrb_intern_static;
-    symtbl[70] = (void *) argnum_error;
+    symtbl[67] = (void *) mrb_class;
+    symtbl[68] = (void *) mrb_intern_static;
+    symtbl[69] = (void *) argnum_error;
+    symtbl[70] = (void *) uvenv;
     symtbl[71] = (void *) _op_call;
     symtbl[72] = (void *) _str_const_super_outside_method;
     symtbl[73] = (void *) _str_const_method_missing;

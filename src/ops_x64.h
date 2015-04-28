@@ -556,7 +556,7 @@ static uint8_t op_getupvar[] = {
   0x4c, 0x8b, 0x73, 0x18,                   /*6: mov    0x18(%rbx),%r14 */
   0x48, 0x8b, 0x7b, 0x58,                   /*a: mov    0x58(%rbx),%rdi */
   0xbe, 0x00, 0x00, 0xcd, 0x00,             /*e: mov    $0xcd0000,%esi */
-  0xff, 0x93, 0x90, 0x02, 0x00, 0x00,       /*13: callq  *0x290(%rbx) */
+  0xff, 0x93, 0xa8, 0x02, 0x00, 0x00,       /*13: callq  *0x2a8(%rbx) */
   0x48, 0x85, 0xc0,                         /*19: test   %rax,%rax */
   0x74, 0x22,                               /*1c: je     40 <op_getupvar+0x40> */
   0x49, 0x81, 0xc6, 0x00, 0x10, 0xab, 0x00, /*1e: add    $0xab1000,%r14 */
@@ -595,7 +595,7 @@ static uint8_t op_setupvar[] = {
   0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
   0x48, 0x8b, 0x7b, 0x58,                   /*4: mov    0x58(%rbx),%rdi */
   0xbe, 0x00, 0x00, 0xcd, 0x00,             /*8: mov    $0xcd0000,%esi */
-  0xff, 0x93, 0x90, 0x02, 0x00, 0x00,       /*d: callq  *0x290(%rbx) */
+  0xff, 0x93, 0xa8, 0x02, 0x00, 0x00,       /*d: callq  *0x2a8(%rbx) */
   0x48, 0x85, 0xc0,                         /*13: test   %rax,%rax */
   0x74, 0x31,                               /*16: je     49 <op_setupvar+0x49> */
   0x48, 0x8b, 0x4b, 0x18,                   /*18: mov    0x18(%rbx),%rcx */
@@ -1051,7 +1051,7 @@ static uint8_t op_super[] = {
   0x48, 0x8b, 0x7b, 0x58,                   /*b3: mov    0x58(%rbx),%rdi */
   0x48, 0x8b, 0xb3, 0xc0, 0x02, 0x00, 0x00, /*b7: mov    0x2c0(%rbx),%rsi */
   0xba, 0x0e, 0x00, 0x00, 0x00,             /*be: mov    $0xe,%edx */
-  0xff, 0x93, 0xa0, 0x02, 0x00, 0x00,       /*c3: callq  *0x2a0(%rbx) */
+  0xff, 0x93, 0x98, 0x02, 0x00, 0x00,       /*c3: callq  *0x298(%rbx) */
   0x41, 0x89, 0xc5,                         /*c9: mov    %eax,%r13d */
   0x48, 0x8b, 0x7b, 0x58,                   /*cc: mov    0x58(%rbx),%rdi */
   0x48, 0x8d, 0x74, 0x24, 0x10,             /*d0: lea    0x10(%rsp),%rsi */
@@ -1195,7 +1195,7 @@ static uint8_t op_argary[] = {
   0x74, 0x1b,                               /*2e: je     4b <op_argary+0x4b> */
   0x48, 0x8b, 0x7b, 0x58,                   /*30: mov    0x58(%rbx),%rdi */
   0xff, 0xce,                               /*34: dec    %esi */
-  0xff, 0x93, 0x90, 0x02, 0x00, 0x00,       /*36: callq  *0x290(%rbx) */
+  0xff, 0x93, 0xa8, 0x02, 0x00, 0x00,       /*36: callq  *0x2a8(%rbx) */
   0x48, 0x85, 0xc0,                         /*3c: test   %rax,%rax */
   0x0f, 0x84, 0x7c, 0x01, 0x00, 0x00,       /*3f: je     1c1 <op_argary+0x1c1> */
   0x48, 0x83, 0xc0, 0x18,                   /*45: add    $0x18,%rax */
@@ -1430,7 +1430,7 @@ static uint8_t op_enter[] = {
   0x75, 0x5d,                               /*157: jne    1b6 <op_enter+0x1b6> */
   0x45, 0x39, 0xee,                         /*159: cmp    %r13d,%r14d */
   0x7e, 0x58,                               /*15c: jle    1b6 <op_enter+0x1b6> */
-  0x41, 0xff, 0x97, 0xa8, 0x02, 0x00, 0x00, /*15e: callq  *0x2a8(%r15) */
+  0x41, 0xff, 0x97, 0xa0, 0x02, 0x00, 0x00, /*15e: callq  *0x2a0(%r15) */
   0x4c, 0x89, 0xff,                         /*165: mov    %r15,%rdi */
   0x41, 0xff, 0x97, 0xd0, 0x01, 0x00, 0x00, /*168: callq  *0x1d0(%r15) */
   0xe9, 0xd4, 0x02, 0x00, 0x00,             /*16f: jmpq   448 <op_enter+0x448> */
@@ -1646,6 +1646,106 @@ static void op_enter_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx
 }
 
 
+/* args: {"a"=>[[1, 0, 17..20]]} */
+static uint8_t op_enter_method_m[] = {
+  0x55,                                     /*0: push   %rbp */
+  0x41, 0x57,                               /*1: push   %r15 */
+  0x41, 0x56,                               /*3: push   %r14 */
+  0x41, 0x55,                               /*5: push   %r13 */
+  0x41, 0x54,                               /*7: push   %r12 */
+  0x53,                                     /*9: push   %rbx */
+  0x48, 0x89, 0xfb,                         /*a: mov    %rdi,%rbx */
+  0xc7, 0x44, 0x24, 0x04, 0x00, 0x00, 0xab, 0x00,/*d: movl   $0xab0000,0x4(%rsp) */
+  0x44, 0x8b, 0x74, 0x24, 0x04,             /*15: mov    0x4(%rsp),%r14d */
+  0x41, 0xc1, 0xee, 0x12,                   /*1a: shr    $0x12,%r14d */
+  0x4c, 0x8b, 0x63, 0x18,                   /*1e: mov    0x18(%rbx),%r12 */
+  0x48, 0x8b, 0x7b, 0x58,                   /*22: mov    0x58(%rbx),%rdi */
+  0x48, 0x8b, 0x47, 0x18,                   /*26: mov    0x18(%rdi),%rax */
+  0x48, 0x8b, 0x40, 0x20,                   /*2a: mov    0x20(%rax),%rax */
+  0x4c, 0x63, 0x78, 0x40,                   /*2e: movslq 0x40(%rax),%r15 */
+  0x4d, 0x85, 0xff,                         /*32: test   %r15,%r15 */
+  0x49, 0x8d, 0x4f, 0x01,                   /*35: lea    0x1(%r15),%rcx */
+  0xb8, 0x02, 0x00, 0x00, 0x00,             /*39: mov    $0x2,%eax */
+  0x48, 0x0f, 0x49, 0xc1,                   /*3e: cmovns %rcx,%rax */
+  0x48, 0xc1, 0xe0, 0x04,                   /*42: shl    $0x4,%rax */
+  0x4d, 0x8d, 0x2c, 0x04,                   /*46: lea    (%r12,%rax,1),%r13 */
+  0x41, 0x8b, 0x54, 0x04, 0x08,             /*4a: mov    0x8(%r12,%rax,1),%edx */
+  0x83, 0xfa, 0x0d,                         /*4f: cmp    $0xd,%edx */
+  0x74, 0x34,                               /*52: je     88 <op_enter_method_m+0x88> */
+  0x85, 0xd2,                               /*54: test   %edx,%edx */
+  0x75, 0x07,                               /*56: jne    5f <op_enter_method_m+0x5f> */
+  0x41, 0x83, 0x7d, 0x00, 0x00,             /*58: cmpl   $0x0,0x0(%r13) */
+  0x74, 0x29,                               /*5d: je     88 <op_enter_method_m+0x88> */
+  0x49, 0x8d, 0x6c, 0x04, 0x08,             /*5f: lea    0x8(%r12,%rax,1),%rbp */
+  0x49, 0x8b, 0x75, 0x00,                   /*64: mov    0x0(%r13),%rsi */
+  0x4c, 0x8b, 0x83, 0xc8, 0x02, 0x00, 0x00, /*68: mov    0x2c8(%rbx),%r8 */
+  0x4c, 0x8b, 0x8b, 0xd0, 0x02, 0x00, 0x00, /*6f: mov    0x2d0(%rbx),%r9 */
+  0xb9, 0x0d, 0x00, 0x00, 0x00,             /*76: mov    $0xd,%ecx */
+  0xff, 0x93, 0x30, 0x01, 0x00, 0x00,       /*7b: callq  *0x130(%rbx) */
+  0x49, 0x89, 0x45, 0x00,                   /*81: mov    %rax,0x0(%r13) */
+  0x89, 0x55, 0x00,                         /*85: mov    %edx,0x0(%rbp) */
+  0x41, 0x83, 0xe6, 0x1f,                   /*88: and    $0x1f,%r14d */
+  0x49, 0x83, 0xc4, 0x10,                   /*8c: add    $0x10,%r12 */
+  0x45, 0x85, 0xff,                         /*90: test   %r15d,%r15d */
+  0x78, 0x20,                               /*93: js     b5 <op_enter_method_m+0xb5> */
+  0x45, 0x39, 0xf7,                         /*95: cmp    %r14d,%r15d */
+  0x4d, 0x89, 0xe7,                         /*98: mov    %r12,%r15 */
+  0x7d, 0x31,                               /*9b: jge    ce <op_enter_method_m+0xce> */
+  0x48, 0x8b, 0x7b, 0x58,                   /*9d: mov    0x58(%rbx),%rdi */
+  0x44, 0x89, 0xf6,                         /*a1: mov    %r14d,%esi */
+  0xff, 0x93, 0xa0, 0x02, 0x00, 0x00,       /*a4: callq  *0x2a0(%rbx) */
+  0x48, 0x89, 0xdf,                         /*aa: mov    %rbx,%rdi */
+  0xff, 0x93, 0xd0, 0x01, 0x00, 0x00,       /*ad: callq  *0x1d0(%rbx) */
+  0xeb, 0x78,                               /*b3: jmp    12d <op_enter_method_m+0x12d> */
+  0x48, 0x8b, 0x43, 0x18,                   /*b5: mov    0x18(%rbx),%rax */
+  0x48, 0x8b, 0x7b, 0x58,                   /*b9: mov    0x58(%rbx),%rdi */
+  0x48, 0x8b, 0x70, 0x10,                   /*bd: mov    0x10(%rax),%rsi */
+  0x4c, 0x8b, 0x7e, 0x28,                   /*c1: mov    0x28(%rsi),%r15 */
+  0x8b, 0x50, 0x18,                         /*c5: mov    0x18(%rax),%edx */
+  0xff, 0x93, 0x00, 0x02, 0x00, 0x00,       /*c8: callq  *0x200(%rbx) */
+  0x48, 0x8b, 0x43, 0x58,                   /*ce: mov    0x58(%rbx),%rax */
+  0x48, 0x8b, 0x40, 0x18,                   /*d2: mov    0x18(%rax),%rax */
+  0x48, 0x8b, 0x40, 0x20,                   /*d6: mov    0x20(%rax),%rax */
+  0x44, 0x89, 0x70, 0x40,                   /*da: mov    %r14d,0x40(%rax) */
+  0x41, 0x8d, 0x46, 0x01,                   /*de: lea    0x1(%r14),%eax */
+  0x48, 0x8b, 0x4b, 0x18,                   /*e2: mov    0x18(%rbx),%rcx */
+  0x48, 0xc1, 0xe0, 0x04,                   /*e6: shl    $0x4,%rax */
+  0x49, 0x8b, 0x55, 0x00,                   /*ea: mov    0x0(%r13),%rdx */
+  0x49, 0x8b, 0x75, 0x08,                   /*ee: mov    0x8(%r13),%rsi */
+  0x48, 0x89, 0x74, 0x01, 0x08,             /*f2: mov    %rsi,0x8(%rcx,%rax,1) */
+  0x48, 0x89, 0x14, 0x01,                   /*f7: mov    %rdx,(%rcx,%rax,1) */
+  0x4d, 0x39, 0xfc,                         /*fb: cmp    %r15,%r12 */
+  0x74, 0x14,                               /*fe: je     114 <op_enter_method_m+0x114> */
+  0x48, 0x8b, 0x7b, 0x18,                   /*100: mov    0x18(%rbx),%rdi */
+  0x48, 0x83, 0xc7, 0x10,                   /*104: add    $0x10,%rdi */
+  0x44, 0x89, 0xf2,                         /*108: mov    %r14d,%edx */
+  0x4c, 0x89, 0xfe,                         /*10b: mov    %r15,%rsi */
+  0xff, 0x93, 0xb0, 0x00, 0x00, 0x00,       /*10e: callq  *0xb0(%rbx) */
+  0x48, 0x8b, 0x43, 0x08,                   /*114: mov    0x8(%rbx),%rax */
+  0x48, 0x8b, 0x88, 0x98, 0x00, 0x00, 0x00, /*118: mov    0x98(%rax),%rcx */
+  0x0f, 0xb7, 0x71, 0x04,                   /*11f: movzwl 0x4(%rcx),%esi */
+  0x48, 0x03, 0xb0, 0xa0, 0x00, 0x00, 0x00, /*123: add    0xa0(%rax),%rsi */
+  0x48, 0x89, 0xdf,                         /*12a: mov    %rbx,%rdi */
+  0x48, 0x89, 0xdf,                         /*12d: mov    %rbx,%rdi */
+  0x5b,                                     /*130: pop    %rbx */
+  0x41, 0x5c,                               /*131: pop    %r12 */
+  0x41, 0x5d,                               /*133: pop    %r13 */
+  0x41, 0x5e,                               /*135: pop    %r14 */
+  0x41, 0x5f,                               /*137: pop    %r15 */
+  0x5d,                                     /*139: pop    %rbp */
+  0xff, 0xe6,                               /*13a: jmpq   *%rsi */
+
+};
+
+static void op_enter_method_m_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
+  *((int32_t *)(op + 17)) = a * 1 + 0;
+}
+
+static void op_enter_method_m_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
+  op_enter_method_m_set_args(op, GETARG_Ax(c),0,0,op_idx);
+}
+
+
 /* args: {} */
 static uint8_t op_karg[] = {
 
@@ -1672,7 +1772,7 @@ static void op_kdict_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx
 }
 
 
-/* args: {"a"=>[[1, 0, 17..20]], "b"=>[[1, 0, 22..25]]} */
+/* args: {"a"=>[[1, 0, 17..20]]} */
 static uint8_t op_return[] = {
   0x55,                                     /*0: push   %rbp */
   0x48, 0x89, 0xe5,                         /*1: mov    %rsp,%rbp */
@@ -1681,23 +1781,44 @@ static uint8_t op_return[] = {
   0x48, 0x83, 0xec, 0x10,                   /*9: sub    $0x10,%rsp */
   0x48, 0x89, 0xfb,                         /*d: mov    %rdi,%rbx */
   0xbe, 0x00, 0x00, 0xab, 0x00,             /*10: mov    $0xab0000,%esi */
-  0xba, 0x00, 0x00, 0xbc, 0x00,             /*15: mov    $0xbc0000,%edx */
-  0xff, 0x93, 0x90, 0x00, 0x00, 0x00,       /*1a: callq  *0x90(%rbx) */
-  0x48, 0x89, 0xdf,                         /*20: mov    %rbx,%rdi */
-  0x48, 0x8d, 0x65, 0xf8,                   /*23: lea    -0x8(%rbp),%rsp */
-  0x5b,                                     /*27: pop    %rbx */
-  0x5d,                                     /*28: pop    %rbp */
-  0xc3,                                     /*29: retq */
+  0x31, 0xd2,                               /*15: xor    %edx,%edx */
+  0xff, 0x93, 0x90, 0x00, 0x00, 0x00,       /*17: callq  *0x90(%rbx) */
+  0x48, 0x89, 0xdf,                         /*1d: mov    %rbx,%rdi */
+  0x48, 0x8d, 0x65, 0xf8,                   /*20: lea    -0x8(%rbp),%rsp */
+  0x5b,                                     /*24: pop    %rbx */
+  0x5d,                                     /*25: pop    %rbp */
+  0xc3,                                     /*26: retq */
 
 };
 
 static void op_return_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 17)) = a * 1 + 0;
-  *((int32_t *)(op + 22)) = b * 1 + 0;
 }
 
 static void op_return_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_return_set_args(op, GETARG_A(c),GETARG_B(c),0,op_idx);
+  op_return_set_args(op, GETARG_A(c),0,0,op_idx);
+}
+
+
+/* args: {"a"=>[[1, 0, 5..8]], "b"=>[[1, 0, 10..13]]} */
+static uint8_t op_break[] = {
+  0x53,                                     /*0: push   %rbx */
+  0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
+  0xbe, 0x00, 0x00, 0xab, 0x00,             /*4: mov    $0xab0000,%esi */
+  0xba, 0x00, 0x00, 0xbc, 0x00,             /*9: mov    $0xbc0000,%edx */
+  0xff, 0x93, 0x90, 0x00, 0x00, 0x00,       /*e: callq  *0x90(%rbx) */
+  0x48, 0x89, 0xdf,                         /*14: mov    %rbx,%rdi */
+  0x5b,                                     /*17: pop    %rbx */
+
+};
+
+static void op_break_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
+  *((int32_t *)(op + 5)) = a * 1 + 0;
+  *((int32_t *)(op + 10)) = b * 1 + 0;
+}
+
+static void op_break_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
+  op_break_set_args(op, GETARG_A(c),GETARG_B(c),0,op_idx);
 }
 
 
@@ -1720,7 +1841,7 @@ static uint8_t op_tailcall[] = {
   0x44, 0x8b, 0xa8, 0x08, 0x10, 0xab, 0x00, /*2f: mov    0xab1008(%rax),%r13d */
   0x4c, 0x89, 0xf7,                         /*36: mov    %r14,%rdi */
   0x44, 0x89, 0xea,                         /*39: mov    %r13d,%edx */
-  0xff, 0x93, 0x98, 0x02, 0x00, 0x00,       /*3c: callq  *0x298(%rbx) */
+  0xff, 0x93, 0x90, 0x02, 0x00, 0x00,       /*3c: callq  *0x290(%rbx) */
   0x48, 0x89, 0x44, 0x24, 0x10,             /*42: mov    %rax,0x10(%rsp) */
   0x48, 0x8b, 0x33,                         /*47: mov    (%rbx),%rsi */
   0x48, 0x8d, 0x54, 0x24, 0x10,             /*4a: lea    0x10(%rsp),%rdx */
@@ -1739,7 +1860,7 @@ static uint8_t op_tailcall[] = {
   0x48, 0x8b, 0xb3, 0xc0, 0x02, 0x00, 0x00, /*78: mov    0x2c0(%rbx),%rsi */
   0xba, 0x0e, 0x00, 0x00, 0x00,             /*7f: mov    $0xe,%edx */
   0x4c, 0x89, 0xf7,                         /*84: mov    %r14,%rdi */
-  0xff, 0x93, 0xa0, 0x02, 0x00, 0x00,       /*87: callq  *0x2a0(%rbx) */
+  0xff, 0x93, 0x98, 0x02, 0x00, 0x00,       /*87: callq  *0x298(%rbx) */
   0x89, 0xc5,                               /*8d: mov    %eax,%ebp */
   0x48, 0x8d, 0x74, 0x24, 0x10,             /*8f: lea    0x10(%rsp),%rsi */
   0x4c, 0x89, 0xf7,                         /*94: mov    %r14,%rdi */
@@ -1864,7 +1985,7 @@ static uint8_t op_blkpush[] = {
   0x74, 0x1c,                               /*2f: je     4d <op_blkpush+0x4d> */
   0x49, 0x8b, 0x7f, 0x58,                   /*31: mov    0x58(%r15),%rdi */
   0xff, 0xce,                               /*35: dec    %esi */
-  0x41, 0xff, 0x97, 0x90, 0x02, 0x00, 0x00, /*37: callq  *0x290(%r15) */
+  0x41, 0xff, 0x97, 0xa8, 0x02, 0x00, 0x00, /*37: callq  *0x2a8(%r15) */
   0x48, 0x85, 0xc0,                         /*3e: test   %rax,%rax */
   0x74, 0x52,                               /*41: je     95 <op_blkpush+0x95> */
   0x48, 0x83, 0xc0, 0x18,                   /*43: add    $0x18,%rax */
@@ -3760,9 +3881,9 @@ static void op_err_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) 
 }
 
 typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c, uint32_t op_idx);
-static jit_args_func_t arg_funcs[76];
-uint8_t* ops[76];
-static char *op_names[76];
+static jit_args_func_t arg_funcs[78];
+uint8_t* ops[78];
+static char *op_names[78];
 static size_t op_sizes[] = {
   sizeof(op_nop), /* 0 */
   sizeof(op_move), /* 32 */
@@ -3803,9 +3924,11 @@ static size_t op_sizes[] = {
   sizeof(op_super), /* 625 */
   sizeof(op_argary), /* 541 */
   sizeof(op_enter), /* 1115 */
+  sizeof(op_enter_method_m), /* 316 */
   sizeof(op_karg), /* 0 */
   sizeof(op_kdict), /* 0 */
-  sizeof(op_return), /* 42 */
+  sizeof(op_return), /* 39 */
+  sizeof(op_break), /* 24 */
   sizeof(op_tailcall), /* 460 */
   sizeof(op_blkpush), /* 189 */
   sizeof(op_add), /* 375 */
@@ -3966,117 +4089,123 @@ void init_ops() {
     ops[38] = op_enter;
     op_names[38] = "op_enter";
     arg_funcs[38] = op_enter_set_args_from_code;
-    ops[39] = op_karg;
-    op_names[39] = "op_karg";
-    arg_funcs[39] = op_karg_set_args_from_code;
-    ops[40] = op_kdict;
-    op_names[40] = "op_kdict";
-    arg_funcs[40] = op_kdict_set_args_from_code;
-    ops[41] = op_return;
-    op_names[41] = "op_return";
-    arg_funcs[41] = op_return_set_args_from_code;
-    ops[42] = op_tailcall;
-    op_names[42] = "op_tailcall";
-    arg_funcs[42] = op_tailcall_set_args_from_code;
-    ops[43] = op_blkpush;
-    op_names[43] = "op_blkpush";
-    arg_funcs[43] = op_blkpush_set_args_from_code;
-    ops[44] = op_add;
-    op_names[44] = "op_add";
-    arg_funcs[44] = op_add_set_args_from_code;
-    ops[45] = op_addi;
-    op_names[45] = "op_addi";
-    arg_funcs[45] = op_addi_set_args_from_code;
-    ops[46] = op_sub;
-    op_names[46] = "op_sub";
-    arg_funcs[46] = op_sub_set_args_from_code;
-    ops[47] = op_subi;
-    op_names[47] = "op_subi";
-    arg_funcs[47] = op_subi_set_args_from_code;
-    ops[48] = op_mul;
-    op_names[48] = "op_mul";
-    arg_funcs[48] = op_mul_set_args_from_code;
-    ops[49] = op_div;
-    op_names[49] = "op_div";
-    arg_funcs[49] = op_div_set_args_from_code;
-    ops[50] = op_eq;
-    op_names[50] = "op_eq";
-    arg_funcs[50] = op_eq_set_args_from_code;
-    ops[51] = op_lt;
-    op_names[51] = "op_lt";
-    arg_funcs[51] = op_lt_set_args_from_code;
-    ops[52] = op_le;
-    op_names[52] = "op_le";
-    arg_funcs[52] = op_le_set_args_from_code;
-    ops[53] = op_gt;
-    op_names[53] = "op_gt";
-    arg_funcs[53] = op_gt_set_args_from_code;
-    ops[54] = op_ge;
-    op_names[54] = "op_ge";
-    arg_funcs[54] = op_ge_set_args_from_code;
-    ops[55] = op_array;
-    op_names[55] = "op_array";
-    arg_funcs[55] = op_array_set_args_from_code;
-    ops[56] = op_arycat;
-    op_names[56] = "op_arycat";
-    arg_funcs[56] = op_arycat_set_args_from_code;
-    ops[57] = op_arypush;
-    op_names[57] = "op_arypush";
-    arg_funcs[57] = op_arypush_set_args_from_code;
-    ops[58] = op_aref;
-    op_names[58] = "op_aref";
-    arg_funcs[58] = op_aref_set_args_from_code;
-    ops[59] = op_aset;
-    op_names[59] = "op_aset";
-    arg_funcs[59] = op_aset_set_args_from_code;
-    ops[60] = op_apost;
-    op_names[60] = "op_apost";
-    arg_funcs[60] = op_apost_set_args_from_code;
-    ops[61] = op_string;
-    op_names[61] = "op_string";
-    arg_funcs[61] = op_string_set_args_from_code;
-    ops[62] = op_strcat;
-    op_names[62] = "op_strcat";
-    arg_funcs[62] = op_strcat_set_args_from_code;
-    ops[63] = op_hash;
-    op_names[63] = "op_hash";
-    arg_funcs[63] = op_hash_set_args_from_code;
-    ops[64] = op_lambda;
-    op_names[64] = "op_lambda";
-    arg_funcs[64] = op_lambda_set_args_from_code;
-    ops[65] = op_range;
-    op_names[65] = "op_range";
-    arg_funcs[65] = op_range_set_args_from_code;
-    ops[66] = op_oclass;
-    op_names[66] = "op_oclass";
-    arg_funcs[66] = op_oclass_set_args_from_code;
-    ops[67] = op_class;
-    op_names[67] = "op_class";
-    arg_funcs[67] = op_class_set_args_from_code;
-    ops[68] = op_module;
-    op_names[68] = "op_module";
-    arg_funcs[68] = op_module_set_args_from_code;
-    ops[69] = op_exec;
-    op_names[69] = "op_exec";
-    arg_funcs[69] = op_exec_set_args_from_code;
-    ops[70] = op_method;
-    op_names[70] = "op_method";
-    arg_funcs[70] = op_method_set_args_from_code;
-    ops[71] = op_sclass;
-    op_names[71] = "op_sclass";
-    arg_funcs[71] = op_sclass_set_args_from_code;
-    ops[72] = op_tclass;
-    op_names[72] = "op_tclass";
-    arg_funcs[72] = op_tclass_set_args_from_code;
-    ops[73] = op_debug;
-    op_names[73] = "op_debug";
-    arg_funcs[73] = op_debug_set_args_from_code;
-    ops[74] = op_stop;
-    op_names[74] = "op_stop";
-    arg_funcs[74] = op_stop_set_args_from_code;
-    ops[75] = op_err;
-    op_names[75] = "op_err";
-    arg_funcs[75] = op_err_set_args_from_code;
+    ops[39] = op_enter_method_m;
+    op_names[39] = "op_enter_method_m";
+    arg_funcs[39] = op_enter_method_m_set_args_from_code;
+    ops[40] = op_karg;
+    op_names[40] = "op_karg";
+    arg_funcs[40] = op_karg_set_args_from_code;
+    ops[41] = op_kdict;
+    op_names[41] = "op_kdict";
+    arg_funcs[41] = op_kdict_set_args_from_code;
+    ops[42] = op_return;
+    op_names[42] = "op_return";
+    arg_funcs[42] = op_return_set_args_from_code;
+    ops[43] = op_break;
+    op_names[43] = "op_break";
+    arg_funcs[43] = op_break_set_args_from_code;
+    ops[44] = op_tailcall;
+    op_names[44] = "op_tailcall";
+    arg_funcs[44] = op_tailcall_set_args_from_code;
+    ops[45] = op_blkpush;
+    op_names[45] = "op_blkpush";
+    arg_funcs[45] = op_blkpush_set_args_from_code;
+    ops[46] = op_add;
+    op_names[46] = "op_add";
+    arg_funcs[46] = op_add_set_args_from_code;
+    ops[47] = op_addi;
+    op_names[47] = "op_addi";
+    arg_funcs[47] = op_addi_set_args_from_code;
+    ops[48] = op_sub;
+    op_names[48] = "op_sub";
+    arg_funcs[48] = op_sub_set_args_from_code;
+    ops[49] = op_subi;
+    op_names[49] = "op_subi";
+    arg_funcs[49] = op_subi_set_args_from_code;
+    ops[50] = op_mul;
+    op_names[50] = "op_mul";
+    arg_funcs[50] = op_mul_set_args_from_code;
+    ops[51] = op_div;
+    op_names[51] = "op_div";
+    arg_funcs[51] = op_div_set_args_from_code;
+    ops[52] = op_eq;
+    op_names[52] = "op_eq";
+    arg_funcs[52] = op_eq_set_args_from_code;
+    ops[53] = op_lt;
+    op_names[53] = "op_lt";
+    arg_funcs[53] = op_lt_set_args_from_code;
+    ops[54] = op_le;
+    op_names[54] = "op_le";
+    arg_funcs[54] = op_le_set_args_from_code;
+    ops[55] = op_gt;
+    op_names[55] = "op_gt";
+    arg_funcs[55] = op_gt_set_args_from_code;
+    ops[56] = op_ge;
+    op_names[56] = "op_ge";
+    arg_funcs[56] = op_ge_set_args_from_code;
+    ops[57] = op_array;
+    op_names[57] = "op_array";
+    arg_funcs[57] = op_array_set_args_from_code;
+    ops[58] = op_arycat;
+    op_names[58] = "op_arycat";
+    arg_funcs[58] = op_arycat_set_args_from_code;
+    ops[59] = op_arypush;
+    op_names[59] = "op_arypush";
+    arg_funcs[59] = op_arypush_set_args_from_code;
+    ops[60] = op_aref;
+    op_names[60] = "op_aref";
+    arg_funcs[60] = op_aref_set_args_from_code;
+    ops[61] = op_aset;
+    op_names[61] = "op_aset";
+    arg_funcs[61] = op_aset_set_args_from_code;
+    ops[62] = op_apost;
+    op_names[62] = "op_apost";
+    arg_funcs[62] = op_apost_set_args_from_code;
+    ops[63] = op_string;
+    op_names[63] = "op_string";
+    arg_funcs[63] = op_string_set_args_from_code;
+    ops[64] = op_strcat;
+    op_names[64] = "op_strcat";
+    arg_funcs[64] = op_strcat_set_args_from_code;
+    ops[65] = op_hash;
+    op_names[65] = "op_hash";
+    arg_funcs[65] = op_hash_set_args_from_code;
+    ops[66] = op_lambda;
+    op_names[66] = "op_lambda";
+    arg_funcs[66] = op_lambda_set_args_from_code;
+    ops[67] = op_range;
+    op_names[67] = "op_range";
+    arg_funcs[67] = op_range_set_args_from_code;
+    ops[68] = op_oclass;
+    op_names[68] = "op_oclass";
+    arg_funcs[68] = op_oclass_set_args_from_code;
+    ops[69] = op_class;
+    op_names[69] = "op_class";
+    arg_funcs[69] = op_class_set_args_from_code;
+    ops[70] = op_module;
+    op_names[70] = "op_module";
+    arg_funcs[70] = op_module_set_args_from_code;
+    ops[71] = op_exec;
+    op_names[71] = "op_exec";
+    arg_funcs[71] = op_exec_set_args_from_code;
+    ops[72] = op_method;
+    op_names[72] = "op_method";
+    arg_funcs[72] = op_method_set_args_from_code;
+    ops[73] = op_sclass;
+    op_names[73] = "op_sclass";
+    arg_funcs[73] = op_sclass_set_args_from_code;
+    ops[74] = op_tclass;
+    op_names[74] = "op_tclass";
+    arg_funcs[74] = op_tclass_set_args_from_code;
+    ops[75] = op_debug;
+    op_names[75] = "op_debug";
+    arg_funcs[75] = op_debug_set_args_from_code;
+    ops[76] = op_stop;
+    op_names[76] = "op_stop";
+    arg_funcs[76] = op_stop_set_args_from_code;
+    ops[77] = op_err;
+    op_names[77] = "op_err";
+    arg_funcs[77] = op_err_set_args_from_code;
   }
 }
 uint8_t *jit_return(uint8_t *b) {

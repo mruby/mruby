@@ -285,12 +285,14 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       }
       break;
     case OP_RETURN:
+    case OP_BREAK:
       switch (c0) {
       case OP_RETURN:
+      case OP_BREAK:
         return 0;
       case OP_MOVE:
         if (GETARG_A(i0) >= s->nlocals) {
-          s->iseq[s->pc-1] = MKOP_AB(OP_RETURN, GETARG_B(i0), OP_R_NORMAL);
+          s->iseq[s->pc-1] = MKOP_AB(OP_RETURN, GETARG_B(i0), 0 /* unused */);
           return 0;
         }
         break;
@@ -303,7 +305,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
         s->pc--;
         genop_peep(s, i0, NOVAL);
         i0 = s->iseq[s->pc-1];
-        return genop(s, MKOP_AB(OP_RETURN, GETARG_A(i0), OP_R_NORMAL));
+        return genop(s, MKOP_AB(OP_RETURN, GETARG_A(i0), 0 /* unused */));
 #if 0
       case OP_SEND:
         if (GETARG_B(i) == OP_R_NORMAL && GETARG_A(i) == GETARG_A(i0)) {
@@ -586,8 +588,8 @@ for_body(codegen_scope *s, node *tree)
   pop();
   if (s->pc > 0) {
     c = s->iseq[s->pc-1];
-    if (GET_OPCODE(c) != OP_RETURN || GETARG_B(c) != OP_R_NORMAL || s->pc == s->lastlabel)
-      genop_peep(s, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
+    if (GET_OPCODE(c) != OP_RETURN || s->pc == s->lastlabel)
+      genop_peep(s, MKOP_AB(OP_RETURN, cursp(), 0 /* unused */), NOVAL);
   }
   loop_pop(s, NOVAL);
   scope_finish(s);
@@ -599,7 +601,7 @@ for_body(codegen_scope *s, node *tree)
 }
 
 static int
-lambda_body(codegen_scope *s, node *tree, int blk)
+lambda_body(codegen_scope *s, node *tree, int blk, int type)
 {
   mrb_code c;
   codegen_scope *parent = s;
@@ -642,7 +644,13 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     s->ainfo = (((ma+oa) & 0x3f) << 6) /* (12bits = 6:1:5) */
       | ((ra & 1) << 5)
       | (pa & 0x1f);
-    genop(s, MKOP_Ax(OP_ENTER, a));
+
+    if(type == OP_L_METHOD && MRB_ASPEC_OPT(a) == 0 && MRB_ASPEC_REST(a) ==  0) {
+      genop(s, MKOP_Ax(OP_ENTER_METHOD_M, a));
+    }
+    else {
+      genop(s, MKOP_Ax(OP_ENTER, a));
+    }
     pos = s->pc;
 
     opt = tree->car->cdr->car;
@@ -672,21 +680,19 @@ lambda_body(codegen_scope *s, node *tree, int blk)
       }
 
     }
-
-
-
   }
+
   codegen(s, tree->cdr->car, VAL);
   pop();
   if (s->pc > 0) {
     c = s->iseq[s->pc-1];
-    if (GET_OPCODE(c) != OP_RETURN || GETARG_B(c) != OP_R_NORMAL || s->pc == s->lastlabel) {
+    if (GET_OPCODE(c) != OP_RETURN || s->pc == s->lastlabel) {
       if (s->nregs == 0) {
         genop(s, MKOP_A(OP_LOADNIL, 0));
-        genop(s, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
+        genop(s, MKOP_AB(OP_RETURN, 0, 0 /* unused */));
       }
       else {
-        genop_peep(s, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
+        genop_peep(s, MKOP_AB(OP_RETURN, cursp(), 0 /* unused */), NOVAL);
       }
     }
   }
@@ -710,15 +716,15 @@ scope_body(codegen_scope *s, node *tree, int val)
     genop(scope, MKOP_A(OP_STOP, 0));
   }
   else if (!val) {
-    genop(scope, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
+    genop(scope, MKOP_AB(OP_RETURN, 0, 0));
   }
   else {
     if (scope->nregs == 0) {
       genop(scope, MKOP_A(OP_LOADNIL, 0));
-      genop(scope, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
+      genop(scope, MKOP_AB(OP_RETURN, 0, 0));
     }
     else {
-      genop_peep(scope, MKOP_AB(OP_RETURN, scope->sp-1, OP_R_NORMAL), NOVAL);
+      genop_peep(scope, MKOP_AB(OP_RETURN, scope->sp-1, 0), NOVAL);
     }
   }
   scope_finish(scope);
@@ -1307,7 +1313,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_LAMBDA:
     {
-      int idx = lambda_body(s, tree, 1);
+      int idx = lambda_body(s, tree, 1, OP_L_LAMBDA);
 
       genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, OP_L_LAMBDA));
       push();
@@ -1316,7 +1322,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_BLOCK:
     {
-      int idx = lambda_body(s, tree, 1);
+      int idx = lambda_body(s, tree, 1, OP_L_BLOCK);
 
       genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, OP_L_BLOCK));
       push();
@@ -1783,10 +1789,10 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_A(OP_LOADNIL, cursp()));
     }
     if (s->loop) {
-      genop(s, MKOP_AB(OP_RETURN, cursp(), OP_R_RETURN));
+      genop(s, MKOP_AB(OP_BREAK, cursp(), OP_R_RETURN));
     }
     else {
-      genop_peep(s, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
+      genop_peep(s, MKOP_AB(OP_RETURN, cursp(), 0), NOVAL);
     }
     if (val) push();
     break;
@@ -1843,7 +1849,7 @@ codegen(codegen_scope *s, node *tree, int val)
       else {
         genop(s, MKOP_A(OP_LOADNIL, cursp()));
       }
-      genop_peep(s, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
+      genop_peep(s, MKOP_AB(OP_RETURN, cursp(), 0), NOVAL);
     }
     if (val) push();
     break;
@@ -2452,7 +2458,7 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_DEF:
     {
       int sym = new_msym(s, sym(tree->car));
-      int idx = lambda_body(s, tree->cdr, 0);
+      int idx = lambda_body(s, tree->cdr, 0, OP_L_METHOD);
 
       genop(s, MKOP_A(OP_TCLASS, cursp()));
       push();
@@ -2471,7 +2477,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       node *recv = tree->car;
       int sym = new_msym(s, sym(tree->cdr->car));
-      int idx = lambda_body(s, tree->cdr->cdr, 0);
+      int idx = lambda_body(s, tree->cdr->cdr, 0, OP_L_METHOD);
 
       codegen(s, recv, VAL);
       pop();
@@ -2679,7 +2685,7 @@ loop_break(codegen_scope *s, node *tree)
       loop->pc3 = tmp;
     }
     else {
-      genop(s, MKOP_AB(OP_RETURN, cursp(), OP_R_BREAK));
+      genop(s, MKOP_AB(OP_BREAK, cursp(), OP_R_BREAK));
     }
   }
 }
@@ -2925,11 +2931,9 @@ codedump(mrb_state *mrb, mrb_irep *irep)
              (GETARG_Ax(c)>>1)&0x1,
              GETARG_Ax(c) & 0x1);
       break;
-    case OP_RETURN:
-      printf("OP_RETURN\tR%d", GETARG_A(c));
+    case OP_BREAK:
+      printf("OP_BREAK\tR%d", GETARG_A(c));
       switch (GETARG_B(c)) {
-      case OP_R_NORMAL:
-        printf("\tnormal"); break;
       case OP_R_RETURN:
         printf("\treturn"); break;
       case OP_R_BREAK:
@@ -2938,6 +2942,10 @@ codedump(mrb_state *mrb, mrb_irep *irep)
         printf("\tbroken"); break;
         break;
       }
+      print_lv(mrb, irep, c, RA);
+      break;
+    case OP_RETURN:
+      printf("OP_RETURN\tR%d", GETARG_A(c));
       print_lv(mrb, irep, c, RA);
       break;
     case OP_BLKPUSH:

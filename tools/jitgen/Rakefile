@@ -63,8 +63,9 @@ $ops = [
   "op_jmp", "op_jmpif", "op_jmpnot",
   "op_onerr", "op_rescue", "op_poperr", "op_raise", "op_epush", "op_epop",
   "op_send", "op_sendb", "op_fsend",
-  "op_call", "op_super", "op_argary", "op_enter",
-  "op_karg", "op_kdict", "op_return", "op_tailcall", "op_blkpush",
+  "op_call", "op_super", "op_argary", "op_enter", "op_enter_method_m",
+  "op_karg", "op_kdict", "op_return", "op_break",
+  "op_tailcall", "op_blkpush",
   "op_add", "op_addi", "op_sub", "op_subi", "op_mul", "op_div",
   "op_eq", "op_lt", "op_le", "op_gt", "op_ge",
   "op_array", "op_arycat", "op_arypush", "op_aref", "op_aset", "op_apost",
@@ -165,7 +166,7 @@ gen_file symtbl_header_path
 
 
 file 'vm.bc' => [vm_c_path] do |t|
-  sh "clang -I#{File.join mruby_root, 'include'} -DMRB_JIT_GEN -fomit-frame-pointer -emit-llvm -o vm.bc -c #{vm_c_path}"
+  sh "clang -I#{File.join mruby_root, 'include'} -DMRB_JIT_GEN -DMRB_ENABLE_JIT -fomit-frame-pointer -emit-llvm -o vm.bc -c #{vm_c_path}"
 end
 
 file ops_header_path(:x64) => [*obj_files, symtbl_header_path] do |t|
