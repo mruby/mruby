@@ -22,10 +22,8 @@
 
 #if SIZE_MAX < UINT32_MAX
 # define SIZE_ERROR_MUL(x, y) ((x) > SIZE_MAX / (y))
-# define SIZE_ERROR(x) ((x) > SIZE_MAX)
 #else
 # define SIZE_ERROR_MUL(x, y) (0)
-# define SIZE_ERROR(x) (0)
 #endif
 
 #if UINT32_MAX > SIZE_MAX
@@ -239,9 +237,6 @@ read_lineno_record_1(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, size_t 
   fname_len = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
   *len += sizeof(uint16_t);
-  if (SIZE_ERROR(fname_len + 1)) {
-    return MRB_DUMP_GENERAL_FAILURE;
-  }
   fname = (char *)mrb_malloc(mrb, fname_len + 1);
   memcpy(fname, bin, fname_len);
   fname[fname_len] = '\0';
@@ -667,7 +662,6 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
     return NULL;
   }
 
-  /* You don't need use SIZE_ERROR as buf_size is enough small. */
   buf = (uint8_t*)mrb_malloc(mrb, header_size);
   if (fread(buf, header_size, 1, fp) == 0) {
     mrb_free(mrb, buf);
