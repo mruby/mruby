@@ -200,7 +200,7 @@ the following options additionally inside of your GEM specification:
 * `spec.test_objs` (Object test files for integration into mrbtest)
 * `spec.test_preload` (Initialization files for mrbtest)
 
-### include_paths and depencency
+### include_paths and dependency
 
 Your GEM can export include paths to another GEMs that depends on your GEM.
 By default, `/...absolute path.../{GEM_NAME}/include` will be exported.

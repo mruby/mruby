@@ -156,7 +156,7 @@ check_bptype(char* args)
 static void
 print_breakpoint(mrb_debug_breakpoint *bp)
 {
-  char* enable_letter[] = {BREAK_INFO_MSG_DISABLE, BREAK_INFO_MSG_ENABLE};
+  const char* enable_letter[] = {BREAK_INFO_MSG_DISABLE, BREAK_INFO_MSG_ENABLE};
 
   if(bp->type == MRB_DEBUG_BPTYPE_LINE) {
     printf(BREAK_INFO_MSG_LINEBREAK,

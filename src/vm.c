@@ -23,8 +23,6 @@
 #include "mrb_throw.h"
 #include "class_inline.h"
 
-#include "class_inline.h"
-
 #ifndef ENABLE_STDIO
 #if defined(__cplusplus)
 extern "C" {
@@ -150,7 +148,7 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
 static inline void
 init_new_stack_space(mrb_state *mrb, int room, int keep)
 {
-  if (room > keep) {
+  if (MRB_LIKELY(room > keep)) {
     /* do not leave uninitialized malloc region */
     stack_clear(&(mrb->c->stack[keep]), room - keep);
   }
@@ -196,7 +194,7 @@ stack_extend_alloc(mrb_state *mrb, int room, int keep)
 static inline void
 stack_extend(mrb_state *mrb, int room, int keep)
 {
-  if (mrb->c->stack + room >= mrb->c->stend) {
+  if (MRB_UNLIKELY(mrb->c->stack + room >= mrb->c->stend)) {
     stack_extend_alloc(mrb, room, keep);
   }
   init_new_stack_space(mrb, room, keep);
@@ -1252,7 +1250,6 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
 
   ////dbg_printf("_op_send: class\n");
   c = mrb_class(ctx->mrb, recv);
-
   ////dbg_printf("_op_send: class %p\n", c);
 
   m = mrb_method_search_vm_proc(ctx->mrb, ctx->proc, &c, mid);
@@ -1273,7 +1270,6 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   }
 
   ////dbg_printf("_op_send %s\n", mrb_sym2name(ctx->mrb, mid));
-
 
   /* push callinfo */
   ci = cipush(ctx->mrb);
@@ -1432,7 +1428,7 @@ op_fsend(struct op_ctx *ctx) {
   /* A B C  R(A) := fcall(R(A),Syms(B),R(A+1),... ,R(A+C-1)) */
 }
 
-__attribute__ ((noinline)) void
+static inline void
 _op_return(struct op_ctx *ctx, int a, int b) {
   mrb_state *mrb = ctx->mrb;
   if (MRB_UNLIKELY(ctx->mrb->exc)) {
@@ -1442,7 +1438,7 @@ _op_return(struct op_ctx *ctx, int a, int b) {
     int acc, eidx = ctx->mrb->c->ci->eidx;
     mrb_value v = ctx->regs[a];
 
-    switch (b) {
+    switch (MRB_EXPECT(b, OP_R_NORMAL)) {
     case OP_R_RETURN:
       /* Fall through to OP_R_NORMAL otherwise */
       if (ctx->proc->env && !MRB_PROC_STRICT_P(ctx->proc)) {
@@ -1623,6 +1619,14 @@ op_super(struct op_ctx *ctx) {
   int a = GETARG_A(CTX_I(ctx));
   int n = GETARG_C(CTX_I(ctx));
 
+  if (mid == 0) {
+    mrb_value exc;
+    mrb_state *mrb = ctx->mrb;
+    exc = exc_new_str_const(ctx->mrb, E_NOMETHOD_ERROR, _str_const_super_outside_method);
+    mrb->exc = mrb_obj_ptr(exc);
+    return _op_raise(ctx);
+  }
+
   recv = ctx->regs[0];
   c = ctx->mrb->c->ci->target_class->super;
   m = mrb_method_search_vm_proc(ctx->mrb, ctx->proc, &c, mid);
@@ -1715,6 +1719,7 @@ op_argary(struct op_ctx *ctx) {
       mrb_value exc;
       mrb_state *mrb = ctx->mrb;
       exc = exc_new_str_const(ctx->mrb, E_NOMETHOD_ERROR, _str_const_super_outside_method);
+
       mrb->exc = mrb_obj_ptr(exc);
       return _op_raise(ctx);
     }
