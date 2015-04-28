@@ -201,6 +201,7 @@ parser_strndup(parser_state *p, const char *s, size_t len)
   b[len] = '\0';
   return b;
 }
+#undef strndup
 #define strndup(s,len) parser_strndup(p, s, len)
 
 static char*
