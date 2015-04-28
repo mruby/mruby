@@ -673,7 +673,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
     goto irep_exit;
   }
   result = read_binary_header(buf, &buf_size, NULL, &flags);
-  if (result != MRB_DUMP_OK) {
+  if (result != MRB_DUMP_OK || buf_size <= header_size) {
     goto irep_exit;
   }
 
