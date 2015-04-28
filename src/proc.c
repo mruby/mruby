@@ -235,17 +235,17 @@ mrb_proc_call_cfunc(mrb_state *mrb, struct RProc *p, mrb_value self)
 mrb_bool
 mrb_proc_call_jit(mrb_state *mrb, struct RProc *p, void *ctx)
 {
-  if(MRB_PROC_CFUNC_P(p) || !(mrb->run_flags & MRB_RUN_JIT)) {
+  if(MRB_UNLIKELY(MRB_PROC_CFUNC_P(p))) {
     return FALSE;
   }
   else {
     mrb_irep *irep = p->body.irep;
 
-    if(!MRB_IREP_JITTED_P(irep)) {
+    if(MRB_UNLIKELY(!MRB_IREP_JITTED_P(irep))) {
       mrb_irep_jit(mrb, irep);
     }
 
-    if(MRB_IREP_JITTED_P(irep)) {
+    if(MRB_LIKELY(MRB_IREP_JITTED_P(irep))) {
       mrb_irep_jit_call(mrb, irep, ctx);
       return TRUE;
     }

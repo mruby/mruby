@@ -24,11 +24,6 @@ mrb_init_mrbtest(mrb_state *mrb)
   }
   mrb_init_test_driver(core_test, mrb_test(mrb_gv_get(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"))));
 
-
-  if (mrb_test(mrb_gv_get(mrb, mrb_intern_lit(mrb, "$mrbtest_jit")))) {
-    core_test->run_flags |= MRB_RUN_JIT;
-  }
-
   mrb_load_irep(core_test, mrbtest_assert_irep);
 
 

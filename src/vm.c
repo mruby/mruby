@@ -1116,14 +1116,12 @@ _op_rescue(struct op_ctx *ctx, mrb_callinfo *ci) {
   ctx->pc = ctx->mrb->c->rescue[--ci->ridx];
 
 #ifdef MRB_ENABLE_JIT
-  if(ctx->mrb->run_flags & MRB_RUN_JIT) {
     //uint32_t rescue_idx = ctx->pc - ctx->irep->iseq;
     //uintptr_t jit_jmp_off = ctx->irep->jit_page.off_tbl[ctx->pc - ctx->irep->iseq];
     ////dbg_printf("_op_rescue: settings jmp addr for jit to: %p\n", jit_jmp_off);
     //ctx->rescue_jmp_addr = ctx->irep->jit_page.data + jit_jmp_off;
     ////dbg_printf("_op_rescue: settings jmp addr for jit to: %p %p\n", ctx->rescue_jmp_addr, jit_jmp_off);
     ////dbg_printf("_op_rescue: settings jmp addr to nth op: %d\n", ctx->pc - ctx->irep->iseq);
-  }
 #endif
 }
 
@@ -1299,7 +1297,9 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
 
     // make op context accessible to C functions
     // that need to call back into the VM code
+#ifdef MRB_ENABLE_JIT
     ctx->mrb->op_ctx = ctx;
+#endif
 
     result = m->body.func(ctx->mrb, recv);
     ctx->mrb->c->stack[0] = result;
@@ -1331,7 +1331,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
      * Otherwise (a resume), we need to jump to the corresponding PC
      * position in native code (TODO).
      */
-    if(flow_modified) {
+    if(MRB_UNLIKELY(flow_modified)) {
       if(ctx->pc == ctx->irep->iseq) {
         //dbg_printf("_op_send: call into jit (resume)\n");
         mrb_proc_call_jit(ctx->mrb, ctx->proc, ctx);
@@ -2766,7 +2766,7 @@ op_err(struct op_ctx *ctx) {
 #ifdef MRB_JIT_GEN
 static void init_symtbl(){};
 static void *symtbl[1];
-#else
+#elif MRB_ENABLE_JIT
 #include "jit_symtbl.h"
 #endif
 
@@ -2784,7 +2784,6 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   int ai = mrb_gc_arena_save(mrb);
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;*/
 
-  mrb_bool jit = (mrb->run_flags & MRB_RUN_JIT);
   struct mrb_jmpbuf c_jmp;
   struct mrb_jmpbuf stop_jmp;
 
@@ -2827,13 +2826,18 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   ctx.prev_jmp = mrb->jmp;
   ctx.stop_jmp = &stop_jmp;
   ctx.mrb = mrb;
+
+#ifdef MRB_ENABLE_JIT
   ctx.rescue_jmp_addr = NULL;
+#endif
 
   //dbg_printf("mrb_context_run %d\n", jit);
   //mrb_codedump_all(mrb, proc);
 
+#ifdef MRB_ENABLE_JIT
   init_symtbl();
   memcpy(ctx.sym_tbl, symtbl, sizeof(symtbl));
+#endif
 
   MRB_TRY(&stop_jmp) {
 
@@ -2849,31 +2853,30 @@ RETRY_TRY_BLOCK:
     //dbg_printf("back from longjmp raise: next %d\n", GET_OPCODE(*ctx.pc));
 
 #ifdef MRB_ENABLE_JIT
-    if (mrb->run_flags & MRB_RUN_JIT) {
-      typedef void (*op_t)(struct op_ctx *ctx);
-      uint8_t *addr;
-      uint32_t idx;
-      
-      {
-        idx = ctx.pc - ctx.irep->iseq;
-        //dbg_printf("(rescue) jumping to %dth op\n", idx, addr);
-        addr = ctx.irep->jit_page.data + ctx.irep->jit_page.off_tbl[idx];
-        //dbg_printf("(rescue) jumping to %dth op at %p\n", idx, addr);
-        ((op_t)(addr))(&ctx);
-      }
-      {
-        idx = ctx.pc - ctx.irep->iseq;
-        addr = ctx.irep->jit_page.data + ctx.irep->jit_page.off_tbl[idx];
-        //dbg_printf("(send) jumping to %dth op at %p\n", idx, addr);
-        ((op_t)(addr))(&ctx);
-      }
-    } else
-#endif
+    typedef void (*op_t)(struct op_ctx *ctx);
+    uint8_t *addr;
+    uint32_t idx;
+    
+    {
+      idx = ctx.pc - ctx.irep->iseq;
+      //dbg_printf("(rescue) jumping to %dth op\n", idx, addr);
+      addr = ctx.irep->jit_page.data + ctx.irep->jit_page.off_tbl[idx];
+      //dbg_printf("(rescue) jumping to %dth op at %p\n", idx, addr);
+      ((op_t)(addr))(&ctx);
+    }
+    {
+      idx = ctx.pc - ctx.irep->iseq;
+      addr = ctx.irep->jit_page.data + ctx.irep->jit_page.off_tbl[idx];
+      //dbg_printf("(send) jumping to %dth op at %p\n", idx, addr);
+      ((op_t)(addr))(&ctx);
+    }
+#else
     {
       int op = ctx.pc - ctx.irep->iseq;
       //dbg_printf("bcalling rescue handler, jumping to %dth op\n", op);
       JUMP;
     }
+#endif
   }
   mrb->jmp = &c_jmp;
   if (!mrb->c->stack) {
@@ -2885,9 +2888,9 @@ RETRY_TRY_BLOCK:
   ctx.regs = mrb->c->stack;
   ctx.regs[0] = self;
 
-  if (jit) {
-    goto jit;
-  }
+#ifdef MRB_ENABLE_JIT
+  goto jit;
+#endif
 
 dispatch:
 
@@ -3275,15 +3278,14 @@ dispatch:
   }
   END_DISPATCH;
 
+#ifdef MRB_ENABLE_JIT
 jit:
   ctx.i = *ctx.pc;
 
   if(!mrb_proc_call_jit(mrb, proc, &ctx)) {
-    mrb->run_flags = (mrb_run_flags) (mrb->run_flags & ~MRB_RUN_JIT);
-    fprintf(stderr, "JIT failed, falling back to interpreter\n");
     goto dispatch;
   }
-
+#endif
 
   }
   MRB_CATCH(&c_jmp) {

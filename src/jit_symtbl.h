@@ -49,8 +49,8 @@ void init_symtbl() {
     symtbl[42] = (void *) localjump_error;
     symtbl[43] = (void *) _op_raise;
     symtbl[44] = (void *) mrb_vm_const_set;
-    symtbl[45] = (void *) mrb_exc_new_str;
-    symtbl[46] = (void *) mrb_str_dup;
+    symtbl[45] = (void *) mrb_str_dup;
+    symtbl[46] = (void *) mrb_exc_new_str;
     symtbl[47] = (void *) _op_stop;
     symtbl[48] = (void *) _op_send;
     symtbl[49] = (void *) mrb_gc_protect;
@@ -76,8 +76,8 @@ void init_symtbl() {
     symtbl[69] = (void *) mrb_intern_static;
     symtbl[70] = (void *) argnum_error;
     symtbl[71] = (void *) _op_call;
-    symtbl[72] = (void *) _str_const_method_missing;
-    symtbl[73] = (void *) _str_const_super_outside_method;
+    symtbl[72] = (void *) _str_const_super_outside_method;
+    symtbl[73] = (void *) _str_const_method_missing;
     symtbl[74] = (void *) _str_const_proc;
     symtbl[75] = (void *) _str_const_to_proc;
     symtbl[76] = (void *) _str_const_no_target_class;

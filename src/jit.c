@@ -4,6 +4,7 @@
 ** See Copyright Notice in mruby.h
 */
 
+#ifdef MRB_ENABLE_JIT
 #define _DEFAULT_SOURCE
 
 #include "mruby/jit.h"
@@ -24,6 +25,9 @@
 #include <alloca.h>
 #include <stdlib.h>
 
+//#define JIT_PRINTF(...) fprintf(stderr, __VA_ARGS__)
+#define JIT_PRINTF
+
 static size_t
 jit_page_size()
 {
@@ -36,7 +40,7 @@ jit_page_alloc(struct mrb_jit_page *page, size_t size)
   size_t page_size = jit_page_size();
   size = (size + page_size - 1) & ~(page_size - 1);
 
-  fprintf(stderr, "allocating page of size %d\n", size);
+  JIT_PRINTF( "allocating page of size %d\n", size);
 
   page->data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
   page->size = size;
@@ -130,7 +134,7 @@ relax_off_tbl(mrb_irep *irep, int32_t *tbl)
       if(cur_jmp_size > new_jmp_size) {
         int diff = cur_jmp_size - new_jmp_size;
         int j;
-        fprintf(stderr,"jumping %d (%d ops) can be relaxed from %d to %d\n", jmp_off, op_off, cur_jmp_size, new_jmp_size);
+        JIT_PRINTF("jumping %d (%d ops) can be relaxed from %d to %d\n", jmp_off, op_off, cur_jmp_size, new_jmp_size);
         for(j = i + 1; j <= irep->ilen; j++) {
           tbl[j] -= diff;
         }
@@ -140,11 +144,11 @@ relax_off_tbl(mrb_irep *irep, int32_t *tbl)
     }
   }
   if(rerelax) {
-    fprintf(stderr,"rerelaxing\n");
+    JIT_PRINTF("rerelaxing\n");
     relax_off_tbl(irep, tbl);
   }
 
-  fprintf(stderr,"/relaxing\n");
+  JIT_PRINTF("/relaxing\n");
 }
 
 static int32_t
@@ -160,7 +164,7 @@ build_off_tbl(mrb_state *mrb, mrb_irep *irep)
     int opcode = GET_OPCODE(c);
     int32_t next_off = tbl[i] + op_sizes[opcode];
     if (is_jump(opcode)) {
-      fprintf(stderr,"jump: adding extra %d\n", jump_size(irep->iseq[i], 0, TRUE));
+      JIT_PRINTF("jump: adding extra %d\n", jump_size(irep->iseq[i], 0, TRUE));
       next_off += jump_size(irep->iseq[i], 0, TRUE);
     }
     tbl[i + 1] = next_off;
@@ -186,7 +190,7 @@ mrb_irep_jit_prepare(mrb_state *mrb, mrb_irep *irep)
     size = build_off_tbl(mrb, irep) + return_size();
     jit_page_alloc(&irep->jit_page, size);
 
-    fprintf(stderr, "need %d bytes for jit code (%d for the final return)\n", size, return_size());
+    JIT_PRINTF( "need %d bytes for jit code (%d for the final return)\n", size, return_size());
 /*
     off = op_sizes[OP_ENTER];
     proc->jit_oa_off[0] = off;
@@ -201,7 +205,7 @@ mrb_irep_jit_prepare(mrb_state *mrb, mrb_irep *irep)
     }
 
     for(i = 0; i < irep->oalen; i++) {
-      DEBUG(fprintf(stderr, "op_enter offsets: %d -> %d (%d)\n", i, proc->jit_oa_off[i], proc->jit_oa_off[i] - base));
+      DEBUG(JIT_PRINTF( "op_enter offsets: %d -> %d (%d)\n", i, proc->jit_oa_off[i], proc->jit_oa_off[i] - base));
     }
     */
   }
@@ -226,7 +230,7 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
       return FALSE;
     }
 
-    fprintf(stderr, "jitting irep %p\n", irep);
+    JIT_PRINTF( "jitting irep %p\n", irep);
     page = &irep->jit_page;
     off_tbl = page->off_tbl;
 
@@ -235,7 +239,7 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
       int opcode = GET_OPCODE(c);
       int32_t off =  off_tbl[i];
 
-      fprintf(stderr, "copying %dth opcode:%s (%d) to offset %d (%d bytes) (addr: %p/%p)\n", i, op_names[opcode], opcode, off, op_sizes[opcode], page->data + off, off);
+      JIT_PRINTF( "copying %dth opcode:%s (%d) to offset %d (%d bytes) (addr: %p/%p)\n", i, op_names[opcode], opcode, off, op_sizes[opcode], page->data + off, off);
 
 
       memcpy(page->data + off, ops[opcode], op_sizes[opcode]);
@@ -243,7 +247,7 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
       arg_funcs[opcode](page->data + off, c, i);
 
       if(opcode == OP_RESCUE) {
-        fprintf(stderr, "jitting op_rescue: %d\n", GETARG_A(c));
+        JIT_PRINTF( "jitting op_rescue: %d\n", GETARG_A(c));
       }
 
       if (opcode == OP_JMPNOT || opcode == OP_JMPIF || opcode == OP_JMP) {
@@ -262,19 +266,19 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
         else {
           jmp_off = jit_jump(page->data + off + op_sizes[opcode], jit_off, FALSE);
         }
-        fprintf(stderr, "jump to (%d / %ld) %p\n", op_off, jit_off, jmp_off + jit_off);
+        JIT_PRINTF( "jump to (%d / %ld) %p\n", op_off, jit_off, jmp_off + jit_off);
       }
     }
 
-    fprintf(stderr, "inserting final ret: to offset %d (addr: %p)\n",  off_tbl[i], page->data + off_tbl[i]);
+    JIT_PRINTF( "inserting final ret: to offset %d (addr: %p)\n",  off_tbl[i], page->data + off_tbl[i]);
     jit_return(page->data + off_tbl[i]);
 
     for (i = 0; i < off_tbl[irep->ilen] + 1; i++)
     {
-      if (i > 0) fprintf(stderr," ");
-      fprintf(stderr,"%02X", page->data[i]);
+      if (i > 0) JIT_PRINTF(" ");
+      JIT_PRINTF("%02X", page->data[i]);
     }
-    fprintf(stderr,"\n");
+    JIT_PRINTF("\n");
 
     irep->flags |= MRB_IREP_JITTED;
     jit_page_prot_exec(page);
@@ -282,3 +286,4 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
     return TRUE;
   }
 }
+#endif

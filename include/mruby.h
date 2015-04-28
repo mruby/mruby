@@ -112,11 +112,6 @@ struct mrb_jmpbuf;
 
 typedef void (*mrb_atexit_func)(struct mrb_state*);
 
-typedef enum {
-  MRB_RUN_NORMAL = 0,
-  MRB_RUN_JIT    = 1
-} mrb_run_flags;
-
 typedef struct mrb_state {
   struct mrb_jmpbuf *jmp;
 
@@ -195,8 +190,6 @@ typedef struct mrb_state {
   mrb_atexit_func *atexit_stack;
 #endif
   mrb_int atexit_stack_len;
-
-  mrb_run_flags run_flags;
 
 #ifdef MRB_ENABLE_JIT
   void *op_ctx;

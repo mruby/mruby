@@ -114,6 +114,4 @@
 #define MRB_API extern
 #endif
 
-#define MRB_ENABLE_JIT
-
 #endif  /* MRUBYCONF_H */

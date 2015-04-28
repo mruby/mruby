@@ -23,7 +23,6 @@ mrb_init_mrbtest(mrb_state *);
 
 struct _args {
   mrb_bool verbose      : 1;
-  mrb_bool jit          : 1;
   int argc;
   char** argv;
 };
@@ -41,7 +40,6 @@ usage(const char *name)
   static const char *const usage_msg[] = {
   "switches:",
   "-v           run at verbose mode",
-  "--jit        run with JIT enabled",
   NULL
   };
   const char *const *p = usage_msg;
@@ -67,11 +65,6 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
     case 'v':
       args->verbose = TRUE;
       break;
-    case '-':
-      if (strcmp((*argv) + 2, "jit") == 0) {
-        args->jit = TRUE;
-        break;
-      }
     default:
       return EXIT_FAILURE;
     }
@@ -219,11 +212,6 @@ main(int argc, char **argv)
   print_hint();
 
   mrb_init_test_driver(mrb, args.verbose);
-
-  if (args.jit) {
-    mrb->run_flags |= MRB_RUN_JIT;
-    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$mrbtest_jit"), mrb_true_value());
-  }
 
   mrb_init_mrbtest(mrb);
 
