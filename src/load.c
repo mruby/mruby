@@ -24,11 +24,7 @@
 #define FLAG_SRC_MALLOC 1
 #define FLAG_SRC_STATIC 0
 
-#if SIZE_MAX < UINT32_MAX
-# define SIZE_ERROR_MUL(x, y) ((x) > SIZE_MAX / (y))
-#else
-# define SIZE_ERROR_MUL(x, y) (0)
-#endif
+#define SIZE_ERROR_MUL(nmemb, size) ((nmemb) > SIZE_MAX / (size))
 
 static size_t
 skip_padding(const uint8_t *buf)
@@ -77,7 +73,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   src += skip_padding(src);
 
   if (irep->ilen > 0) {
-    if (SIZE_ERROR_MUL(sizeof(mrb_code), irep->ilen)) {
+    if (SIZE_ERROR_MUL(irep->ilen, sizeof(mrb_code))) {
       return NULL;
     }
     if ((flags & FLAG_SRC_MALLOC) == 0 &&
@@ -111,7 +107,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   plen = (size_t)bin_to_uint32(src); /* number of pool */
   src += sizeof(uint32_t);
   if (plen > 0) {
-    if (SIZE_ERROR_MUL(sizeof(mrb_value), plen)) {
+    if (SIZE_ERROR_MUL(plen, sizeof(mrb_value))) {
       return NULL;
     }
     irep->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * plen);
@@ -156,7 +152,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   irep->slen = (size_t)bin_to_uint32(src);  /* syms length */
   src += sizeof(uint32_t);
   if (irep->slen > 0) {
-    if (SIZE_ERROR_MUL(sizeof(mrb_sym), irep->slen)) {
+    if (SIZE_ERROR_MUL(irep->slen, sizeof(mrb_sym))) {
       return NULL;
     }
     irep->syms = (mrb_sym *)mrb_malloc(mrb, sizeof(mrb_sym) * irep->slen);
