@@ -83,8 +83,8 @@ directory 'll'
 obj_files = []
 
 def gen_file(f)
-  file f => ['vm.ll', 'll', 'gen'] do
-    sym_tbl = eval(`./gen vm.ll ll`)
+  file f => ['vm_opt.ll', 'll', 'gen'] do
+    sym_tbl = eval(`./gen vm_opt.ll ll`)
 
     File.open symtbl_header_path, 'w' do |f|
       f.puts "#define SYMTBL_SIZE #{sym_tbl.size}"
@@ -165,9 +165,9 @@ end
 gen_file symtbl_header_path
 
 
-file 'vm.ll' => [vm_c_path] do |t|
+file 'vm_opt.ll' => [vm_c_path] do |t|
   sh "clang -I#{File.join mruby_root, 'include'} -DMRB_JIT_GEN -DMRB_ENABLE_JIT -fomit-frame-pointer -emit-llvm -S -o vm.ll -c #{vm_c_path}"
-  #sh "opt -inline vm.ll -S -o vm.ll"
+  sh "opt -inline vm.ll -S -o vm_opt.ll"
 end
 
 file ops_header_path(:x64) => [*obj_files, symtbl_header_path] do |t|
