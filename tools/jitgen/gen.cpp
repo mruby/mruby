@@ -95,11 +95,17 @@ Instruction *getSymbol(Function *func, Instruction *inst, Type *type, BasicBlock
 
 bool isOpFunc(const std::string& name) {
   std::string prefix = "op_";
-  return !name.compare(0, prefix.size(), prefix);
+  bool llvmGenerated = name.at(name.length() - 1) == '_';
+  return !name.compare(0, prefix.size(), prefix) && !llvmGenerated;
 }
 
 bool isDummySymbol(const std::string& name) {
   std::string prefix = "__";
+  return !name.compare(0, prefix.size(), prefix);
+}
+
+bool isIntrinsicSymbol(const std::string& name) {
+  std::string prefix = "llvm";
   return !name.compare(0, prefix.size(), prefix);
 }
 
@@ -188,13 +194,18 @@ int main(int argc, const char **argv)
       if(isDummySymbol(sym)) {
         removeInsts.push_back(callInst);
       } else if(isOpFunc(funcName)) {
+
+        Value *calledValue = callInst->getCalledValue();
+        std::string calledName = calledValue->getName().str();
+
         std::cerr << "=========================" << std::endl;
         std::cerr << funcName << std::endl;
         std::cerr << "=========================" << std::endl;
 
-        Value *calledValue = callInst->getCalledValue();
 
         if(isa<MemCpyInst>(callInst)) {
+        } else if(isIntrinsicSymbol(calledName)) {
+          std::cerr << "Skipping symbol " << calledName << std::endl;
         } else {
           unsigned symIndex = getSymbolIndex(sym);
           std::cerr << symIter->getKey().str() << " " << symIndex << std::endl;
@@ -275,6 +286,13 @@ int main(int argc, const char **argv)
                                                      calledFunc->getFunctionType()->param_end() - 2);
 
               memCpyInst->setCalledFunction(Intrinsic::getDeclaration(opMod, Intrinsic::memcpy, params));
+            } else if(CallInst *callInst = dyn_cast<CallInst>(instIter)) {
+              Value *calledValue = callInst->getCalledValue();
+              std::string calledName = calledValue->getName().str();
+              if(isIntrinsicSymbol(calledName)) {
+                Function *calledFunc = mod->getFunction(calledName);
+                callInst->setCalledFunction(calledFunc);
+              }
             }
 
 #if 0
@@ -364,6 +382,33 @@ int main(int argc, const char **argv)
       ValueToValueMapTy map;
       Function *clonedFunc = CloneFunction(funcIter, map,
                                             true);
+
+
+      for (Function::iterator bbIter = clonedFunc->begin(), bbEnd = clonedFunc->end(); bbIter != bbEnd; ++bbIter) {
+          for (BasicBlock::iterator instIter = bbIter->begin(), instEnd = bbIter->end(); instIter != instEnd; ++instIter) {
+            if(MemCpyInst *memCpyInst = dyn_cast<MemCpyInst>(instIter)) {
+              Function *calledFunc = memCpyInst->getCalledFunction();
+              ArrayRef<Type *> params = makeArrayRef(calledFunc->getFunctionType()->param_begin(),
+                                                     calledFunc->getFunctionType()->param_end() - 2);
+
+              memCpyInst->setCalledFunction(Intrinsic::getDeclaration(opMod, Intrinsic::memcpy, params));
+            } else if(CallInst *callInst = dyn_cast<CallInst>(instIter)) {
+              Value *calledValue = callInst->getCalledValue();
+              std::string calledName = calledValue->getName().str();
+              if(isIntrinsicSymbol(calledName) && isa<Function>(calledValue)) {
+                Function *calledFunc = cast<Function>(calledValue);
+                Function *newCalledFunc = opMod->getFunction(calledName);
+                if(!newCalledFunc) {
+                  FunctionType *funcType = calledFunc->getFunctionType();
+                  newCalledFunc = Function::Create(funcType, GlobalValue::ExternalLinkage, calledName, opMod);
+                }
+                assert(newCalledFunc);
+                callInst->setCalledFunction(newCalledFunc);
+              }
+            }
+          }
+      }
+
 
 
       Value *ctxArg = &(*clonedFunc->getArgumentList().begin());

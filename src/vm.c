@@ -718,18 +718,20 @@ argnum_error(mrb_state *mrb, mrb_int num)
   mrb->exc = mrb_obj_ptr(exc);
 }
 
-#if !defined(MRB_JIT_GEN) && !defined(MRB_VM_NO_INLINE)
 #if defined __GNUC__ || defined __clang__ || defined __INTEL_COMPILER
 #define FORCE_INLINE inline __attribute__((always_inline))
+#define NO_INLINE __attribute__ ((noinline))
 #elif defined _MSC_VER
 #define FORCE_INLINE __forceinline
 #else
 #define FORCE_INLINE inline
 #endif
-#else
-#define FORCE_INLINE __attribute__ ((noinline))
-#endif
 
+#if !defined(MRB_JIT_GEN) && !defined(MRB_VM_NO_INLINE)
+#define OP_INLINE FORCE_INLINE
+#else
+#define OP_INLINE NO_INLINE
+#endif
 
 #define ERR_PC_SET(mrb, pc) mrb->c->ci->err = pc;
 #define ERR_PC_CLR(mrb)     mrb->c->ci->err = 0;
@@ -797,10 +799,10 @@ struct op_ctx {
 
 #ifdef MRB_JIT_GEN
 
-void __pc_add__(mrb_code *pc, int o) {
+void NO_INLINE __pc_add__(mrb_code *pc, int o) {
 }
 
-void __pc_inc__(mrb_code *pc) {
+void NO_INLINE __pc_inc__(mrb_code *pc) {
 }
 #define JIT_VOLATILE volatile
 #undef GETARG_A
@@ -831,90 +833,90 @@ void __pc_inc__(mrb_code *pc) {
 
 #define CTX_I(ctx) (*(ctx->pc))
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_nop(struct op_ctx *ctx) {
   /* do nothing */
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_move(struct op_ctx *ctx) {
   /* A B    R(A) := R(B) */
   ctx->regs[GETARG_A(CTX_I(ctx))] = ctx->regs[GETARG_B(CTX_I(ctx))];
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_loadl(struct op_ctx *ctx) {
   /* A Bx   R(A) := Pool(Bx) */
   ctx->regs[GETARG_A(CTX_I(ctx))] = ctx->pool[GETARG_Bx(CTX_I(ctx))];
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_loadi(struct op_ctx *ctx) {
   /* A sBx  R(A) := sBx */
   SET_INT_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))], GETARG_sBx(CTX_I(ctx)));
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_loadsym(struct op_ctx *ctx) {
   /* A Bx   R(A) := Syms(Bx) */
   SET_SYM_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))], ctx->syms[GETARG_Bx(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_loadself(struct op_ctx *ctx) {
   /* A      R(A) := self */
   ctx->regs[GETARG_A(CTX_I(ctx))] = ctx->regs[0];
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_loadt(struct op_ctx *ctx) {
   /* A      R(A) := true */
   SET_TRUE_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_loadf(struct op_ctx *ctx) {
   /* A      R(A) := false */
   SET_FALSE_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_getglobal(struct op_ctx *ctx) {
   /* A Bx   R(A) := getglobal(Syms(Bx)) */
   ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_gv_get(ctx->mrb, ctx->syms[GETARG_Bx(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_setglobal(struct op_ctx *ctx) {
   /* setglobal(Syms(Bx), R(A)) */
   mrb_gv_set(ctx->mrb, ctx->syms[GETARG_Bx(CTX_I(ctx))], ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_getspecial(struct op_ctx *ctx) {
   /* A Bx   R(A) := Special[Bx] */
   ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_vm_special_get(ctx->mrb, GETARG_Bx(CTX_I(ctx)));
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_setspecial(struct op_ctx *ctx) {
   /* A Bx   Special[Bx] := R(A) */
   mrb_vm_special_set(ctx->mrb, GETARG_Bx(CTX_I(ctx)), ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_getiv(struct op_ctx *ctx) {
   /* A Bx   R(A) := ivget(Bx) */
   ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_vm_iv_get(ctx->mrb, ctx->syms[GETARG_Bx(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_setiv(struct op_ctx *ctx) {
   /* ivset(Syms(Bx),R(A)) */
   mrb_vm_iv_set(ctx->mrb, ctx->syms[GETARG_Bx(CTX_I(ctx))], ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_getcv(struct op_ctx *ctx) {
   /* A Bx   R(A) := cvget(Syms(Bx)) */
   ERR_PC_SET(ctx->mrb, ctx->pc);
@@ -922,13 +924,13 @@ op_getcv(struct op_ctx *ctx) {
   ERR_PC_CLR(ctx->mrb);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_setcv(struct op_ctx *ctx) {
   /* cvset(Syms(Bx),R(A)) */
   mrb_vm_cv_set(ctx->mrb, ctx->syms[GETARG_Bx(CTX_I(ctx))], ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_getconst(struct op_ctx *ctx) {
   /* A Bx    R(A) := constget(Syms(Bx)) */
   mrb_value val;
@@ -940,13 +942,13 @@ op_getconst(struct op_ctx *ctx) {
   ctx->regs[GETARG_A(CTX_I(ctx))] = val;
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_setconst(struct op_ctx *ctx) {
   /* A Bx   constset(Syms(Bx),R(A)) */
   mrb_vm_const_set(ctx->mrb, ctx->syms[GETARG_Bx(CTX_I(ctx))], ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_getmcnst(struct op_ctx *ctx) {
   /* A Bx   R(A) := R(A)::Syms(Bx) */
   mrb_value val;
@@ -959,7 +961,7 @@ op_getmcnst(struct op_ctx *ctx) {
   ctx->regs[a] = val;
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_setmcnst(struct op_ctx *ctx) {
   /* A Bx    R(A+1)::Syms(Bx) := R(A) */
   int a = GETARG_A(CTX_I(ctx));
@@ -967,7 +969,7 @@ op_setmcnst(struct op_ctx *ctx) {
   mrb_const_set(ctx->mrb, ctx->regs[a+1], ctx->syms[GETARG_Bx(CTX_I(ctx))], ctx->regs[a]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_getupvar(struct op_ctx *ctx) {
   /* A B C  R(A) := uvget(B,C) */
   mrb_value *regs_a = ctx->regs + GETARG_A(CTX_I(ctx));
@@ -984,7 +986,7 @@ op_getupvar(struct op_ctx *ctx) {
   }
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_setupvar(struct op_ctx *ctx) {
   /* A B C  uvset(B,C,R(A)) */
   int up = GETARG_C(CTX_I(ctx));
@@ -999,13 +1001,13 @@ op_setupvar(struct op_ctx *ctx) {
   }
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_jmp(struct op_ctx *ctx) {
   /* sBx    pc+=sBx */
   PC_ADD(ctx->pc, GETARG_sBx(CTX_I(ctx)));
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_jmpif(struct op_ctx *ctx) {
   /* A sBx  if R(A) pc+=sBx */
   if (mrb_test(ctx->regs[GETARG_A(CTX_I(ctx))])) {
@@ -1015,7 +1017,7 @@ op_jmpif(struct op_ctx *ctx) {
   }
 }
 static const char _str_const_op_jmpnot[] = "op_jmpnot %d %d\n";
-static FORCE_INLINE void
+static OP_INLINE void
 op_jmpnot(struct op_ctx *ctx) {
   /* A sBx  if R(A) pc+=sBx */
   if (!mrb_test(ctx->regs[GETARG_A(CTX_I(ctx))])) {
@@ -1026,7 +1028,7 @@ op_jmpnot(struct op_ctx *ctx) {
 }
 
 static const char _str_const_op_onerr[] = "op_onerr %p %ld\n";
-static FORCE_INLINE void
+static OP_INLINE void
 op_onerr(struct op_ctx *ctx) {
   /* sBx    pc+=sBx on exception */
   if (ctx->mrb->c->rsize <= ctx->mrb->c->ci->ridx) {
@@ -1056,7 +1058,7 @@ op_onerr(struct op_ctx *ctx) {
 
 
 static char _str_const_op_rescue[] = "op_rescue %d %p\n";
-static FORCE_INLINE void
+static OP_INLINE void
 op_rescue(struct op_ctx *ctx) {
   /* A      R(A) := exc; clear(exc) */
   int a = GETARG_A(CTX_I(ctx));
@@ -1065,7 +1067,7 @@ op_rescue(struct op_ctx *ctx) {
   ctx->mrb->exc = 0;
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_poperr(struct op_ctx *ctx) {
   /* A      A.times{rescue_pop()} */
   int a = GETARG_A(CTX_I(ctx));
@@ -1176,14 +1178,14 @@ _op_raise(struct op_ctx *ctx) {
   return _op_rescue(ctx, ci);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_raise(struct op_ctx *ctx) {
   /* A      raise(R(A)) */
   ctx->mrb->exc = mrb_obj_ptr(ctx->regs[GETARG_A(CTX_I(ctx))]);
   return _op_raise(ctx);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_epush(struct op_ctx *ctx) {
   /* Bx     ensure_push(SEQ[Bx]) */
   struct RProc *p;
@@ -1199,7 +1201,7 @@ op_epush(struct op_ctx *ctx) {
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_epop(struct op_ctx *ctx) {
   /* A      A.times{ensure_pop().call} */
   int a = GETARG_A(CTX_I(ctx));
@@ -1212,13 +1214,13 @@ op_epop(struct op_ctx *ctx) {
   }
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_loadnil(struct op_ctx *ctx) {
   /* A     R(A) := nil */
   SET_NIL_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
 
@@ -1372,7 +1374,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
 static char _str_const_op_send[] = "op_send %p\n";
 static char _str_const_op_send3[] = "/op_send\n";
 static char _str_const_op_send2[] = "op_send\n";
-static FORCE_INLINE void
+static OP_INLINE void
 op_send(struct op_ctx *ctx) {
   /* A B C R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
 
@@ -1405,7 +1407,7 @@ op_send(struct op_ctx *ctx) {
 }
 
 static char _str_const_op_sendb[] = "op_sendb %d %d %d\n";
-static FORCE_INLINE void
+static OP_INLINE void
 op_sendb(struct op_ctx *ctx) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
 
@@ -1417,7 +1419,7 @@ op_sendb(struct op_ctx *ctx) {
   _op_send(ctx, OP_SENDB, a, b, n);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_fsend(struct op_ctx *ctx) {
   /* A B C  R(A) := fcall(R(A),Syms(B),R(A+1),... ,R(A+C-1)) */
 }
@@ -1521,7 +1523,7 @@ _op_return(struct op_ctx *ctx, int a, int b) {
   }
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_break(struct op_ctx *ctx) {
   /* A B     return R(A) (B=normal,in-block return/break) */
  ////VM_PRINTF(_str_const_op_return, ctx->mrb->c->ci);
@@ -1530,7 +1532,7 @@ op_break(struct op_ctx *ctx) {
 }
 
 static const char _str_const_op_return[] = "op_return: %p\n";
-static FORCE_INLINE void
+static OP_INLINE void
 op_return(struct op_ctx *ctx) {
   /* A B     return R(A) (B=normal,in-block return/break) */
  ////VM_PRINTF(_str_const_op_return, ctx->mrb->c->ci);
@@ -1604,13 +1606,13 @@ _op_call(struct op_ctx *ctx, int a) {
   ////VM_PRINTF("_op_call: end\n");
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_call(struct op_ctx *ctx) {
   _op_call(ctx, GETARG_A(CTX_I(ctx)));
   ////VM_PRINTF(_str_const_op_call, GETARG_A(CTX_I(ctx)));
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_super(struct op_ctx *ctx) {
   /* A C  R(A) := super(R(A+1),... ,R(A+C+1)) */
   mrb_value recv;
@@ -1703,7 +1705,7 @@ op_super(struct op_ctx *ctx) {
   }
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_argary(struct op_ctx *ctx) {
   /* A Bx   R(A) := argument array (16=6:1:5:4) */
   int a = GETARG_A(CTX_I(ctx));
@@ -1759,7 +1761,7 @@ op_argary(struct op_ctx *ctx) {
   PC_INC(ctx->pc);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_enter_method_m(struct op_ctx *ctx) {
   /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
   JIT_VOLATILE mrb_aspec ax = GETARG_Ax(CTX_I(ctx));
@@ -1819,7 +1821,7 @@ op_enter_method_m(struct op_ctx *ctx) {
 
 
 static const char _str_const_op_enter[] = "op_enter: %p (%d)\n";
-static FORCE_INLINE void
+static OP_INLINE void
 op_enter(struct op_ctx *ctx) {
   /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
   JIT_VOLATILE mrb_aspec ax = GETARG_Ax(CTX_I(ctx));
@@ -1942,19 +1944,19 @@ op_enter(struct op_ctx *ctx) {
 #endif
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_karg(struct op_ctx *ctx) {
   /* A B C          R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B)) */
   /* if C == 2; raise unless kdict.empty? */
   /* OP_JMP should follow to skip init code */
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_kdict(struct op_ctx *ctx) {
   /* A C            R(A) := kdict */
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_tailcall(struct op_ctx *ctx) {
   /* A B C  return call(R(A),Syms(B),R(A+1),... ,R(A+C+1)) */
 
@@ -2025,7 +2027,7 @@ op_tailcall(struct op_ctx *ctx) {
   }
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_blkpush(struct op_ctx *ctx) {
   /* A Bx   R(A) := block (16=6:1:5:4) */
 
@@ -2056,7 +2058,7 @@ op_blkpush(struct op_ctx *ctx) {
   v1(regs[a]) = v1(regs[a]) op v2(regs[a+1]);\
 } while(0)
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_add(struct op_ctx *ctx) {
 
   /* A B C  R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)*/
@@ -2120,7 +2122,7 @@ op_add(struct op_ctx *ctx) {
 }
 
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_sub(struct op_ctx *ctx) {
 
   /* A B C  R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)*/
@@ -2178,7 +2180,7 @@ op_sub(struct op_ctx *ctx) {
 }
 
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_mul(struct op_ctx *ctx) {
 
   /* A B C  R(A) := R(A)*R(A+1) (Syms[B]=:*,C=1)*/
@@ -2246,7 +2248,7 @@ op_mul(struct op_ctx *ctx) {
   PC_INC(ctx->pc);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_div(struct op_ctx *ctx) {
 
   /* A B C  R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)*/
@@ -2303,7 +2305,7 @@ op_div(struct op_ctx *ctx) {
 }
 
 static const char _str_const_op_addi[] = "op_addi %d\n";
-static FORCE_INLINE void
+static OP_INLINE void
 op_addi(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)+C (Syms[B]=:+)*/
   int a = GETARG_A(CTX_I(ctx));
@@ -2345,7 +2347,7 @@ op_addi(struct op_ctx *ctx) {
 
 char _str_const_op_subi[] = "op_subi %ld\n";
 char _str_const_op_subi2[] = "op_subi type %ld\n";
-static FORCE_INLINE void
+static OP_INLINE void
 op_subi(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)+C (Syms[B]=:+)*/
   /* A B C  R(A) := R(A)-C (Syms[B]=:-)*/
@@ -2420,7 +2422,7 @@ op_subi(struct op_ctx *ctx) {
 
 
 DEBUG(static char _str_const_op_eq[] = "op_eq %ld\n");
-static FORCE_INLINE void
+static OP_INLINE void
 op_eq(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)*/
   int a = GETARG_A(CTX_I(ctx));
@@ -2443,7 +2445,7 @@ op_eq(struct op_ctx *ctx) {
 }
 
 static char _str_const_op_lt[] = "op_lt %ld\n";
-static FORCE_INLINE void
+static OP_INLINE void
 op_lt(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)<R(A+1) (Syms[B]=:<,C=1)*/
   int a = GETARG_A(CTX_I(ctx));
@@ -2459,7 +2461,7 @@ op_lt(struct op_ctx *ctx) {
   PC_INC(ctx->pc);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_le(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)*/
   int a = GETARG_A(CTX_I(ctx));
@@ -2471,7 +2473,7 @@ op_le(struct op_ctx *ctx) {
   PC_INC(ctx->pc);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_gt(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)>R(A+1) (Syms[B]=:>,C=1)*/
   int a = GETARG_A(CTX_I(ctx));
@@ -2483,7 +2485,7 @@ op_gt(struct op_ctx *ctx) {
   PC_INC(ctx->pc);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_ge(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)*/
   int a = GETARG_A(CTX_I(ctx));
@@ -2495,14 +2497,14 @@ op_ge(struct op_ctx *ctx) {
   PC_INC(ctx->pc);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_array(struct op_ctx *ctx) {
   /* A B C          R(A) := ary_new(R(B),R(B+1)..R(B+C)) */
   ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_ary_new_from_values(ctx->mrb, GETARG_C(CTX_I(ctx)), &ctx->regs[GETARG_B(CTX_I(ctx))]);
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_arycat(struct op_ctx *ctx) {
   /* A B            mrb_ary_concat(R(A),R(B)) */
   mrb_ary_concat(ctx->mrb, ctx->regs[GETARG_A(CTX_I(ctx))],
@@ -2510,13 +2512,13 @@ op_arycat(struct op_ctx *ctx) {
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_arypush(struct op_ctx *ctx) {
   /* A B            R(A).push(R(B)) */
   mrb_ary_push(ctx->mrb, ctx->regs[GETARG_A(CTX_I(ctx))], ctx->regs[GETARG_B(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_aref(struct op_ctx *ctx) {
   /* A B C          R(A) := R(B)[C] */
   int a = GETARG_A(CTX_I(ctx));
@@ -2536,13 +2538,13 @@ op_aref(struct op_ctx *ctx) {
   }
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_aset(struct op_ctx *ctx) {
   /* A B C          R(B)[C] := R(A) */
   mrb_ary_set(ctx->mrb, ctx->regs[GETARG_B(CTX_I(ctx))], GETARG_C(CTX_I(ctx)), ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_apost(struct op_ctx *ctx) {
   /* A B C  *R(A),R(A+1)..R(A+C) := R(A) */
   int a = GETARG_A(CTX_I(ctx));
@@ -2583,7 +2585,7 @@ op_apost(struct op_ctx *ctx) {
 }
 
 DEBUG(static char _str_const_op_string[] = "op_string\n");
-static FORCE_INLINE void
+static OP_INLINE void
 op_string(struct op_ctx *ctx) {
   /* A Bx           R(A) := str_new(Lit(Bx)) */
   ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_str_dup(ctx->mrb, ctx->pool[GETARG_Bx(CTX_I(ctx))]);
@@ -2591,13 +2593,13 @@ op_string(struct op_ctx *ctx) {
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_strcat(struct op_ctx *ctx) {
   /* A B    R(A).concat(R(B)) */
   mrb_str_concat(ctx->mrb, ctx->regs[GETARG_A(CTX_I(ctx))], ctx->regs[GETARG_B(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_hash(struct op_ctx *ctx) {
   /* A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C)) */
   JIT_VOLATILE int b = GETARG_B(CTX_I(ctx));
@@ -2637,19 +2639,19 @@ _op_lambda(struct op_ctx *ctx, int a, int b, int c) {
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_lambda(struct op_ctx *ctx) {
   /* A b c  R(A) := lambda(SEQ[b],c) (b:c = 14:2) */
   return _op_lambda(ctx, GETARG_A(CTX_I(ctx)), GETARG_b(CTX_I(ctx)), GETARG_c(CTX_I(ctx)));
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_oclass(struct op_ctx *ctx) {
   /* A      R(A) := ::Object */
   ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_obj_value(ctx->mrb->object_class);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_class(struct op_ctx *ctx) {
   /* A B    R(A) := newclass(R(A),Syms(B),R(A+1)) */
   struct RClass *c = 0;
@@ -2667,7 +2669,7 @@ op_class(struct op_ctx *ctx) {
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_module(struct op_ctx *ctx) {
   /* A B            R(A) := newmodule(R(A),Syms(B)) */
   struct RClass *c = 0;
@@ -2685,7 +2687,7 @@ op_module(struct op_ctx *ctx) {
 }
 
 static char _str_const_op_exec[] = "op_exec %d %d\n";
-static FORCE_INLINE void
+static OP_INLINE void
 op_exec(struct op_ctx *ctx) {
   /* A Bx   R(A) := blockexec(R(A),SEQ[Bx]) */
   int a = GETARG_A(CTX_I(ctx));
@@ -2739,7 +2741,7 @@ op_exec(struct op_ctx *ctx) {
 
 static const char _str_const_op_method[] = "op_method: %s = %p\n";
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_method(struct op_ctx *ctx) {
   /* A B            R(A).newmethod(Syms(B),R(A+1)) */
   int a = GETARG_A(CTX_I(ctx));
@@ -2754,14 +2756,14 @@ op_method(struct op_ctx *ctx) {
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_sclass(struct op_ctx *ctx) {
   /* A B    R(A) := R(B).singleton_class */
   ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_singleton_class(ctx->mrb, ctx->regs[GETARG_B(CTX_I(ctx))]);
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_tclass(struct op_ctx *ctx) {
   /* A      R(A) := target_class */
   mrb_state *mrb = ctx->mrb;
@@ -2774,7 +2776,7 @@ op_tclass(struct op_ctx *ctx) {
   PC_INC(ctx->pc);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_range(struct op_ctx *ctx) {
   /* A B C  R(A) := range_new(R(B),R(B+1),C) */
   int b = GETARG_B(CTX_I(ctx));
@@ -2782,7 +2784,7 @@ op_range(struct op_ctx *ctx) {
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_debug(struct op_ctx *ctx) {
   /* A B C    debug print R(A),R(B),R(C) */
 #ifdef ENABLE_DEBUG
@@ -2797,13 +2799,13 @@ op_debug(struct op_ctx *ctx) {
 }
 
 static char _str_const_op_stop[] = "op_stop\n";
-static FORCE_INLINE void
+static OP_INLINE void
 op_stop(struct op_ctx *ctx) {
   //VM_PRINTF(_str_const_op_stop);
   return _op_stop(ctx);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 op_err(struct op_ctx *ctx) {
   /* Bx     raise RuntimeError with message Lit(Bx) */
 
