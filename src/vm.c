@@ -718,20 +718,24 @@ argnum_error(mrb_state *mrb, mrb_int num)
   mrb->exc = mrb_obj_ptr(exc);
 }
 
-#if defined __GNUC__ || defined __clang__ || defined __INTEL_COMPILER
+#if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)
 #define FORCE_INLINE inline __attribute__((always_inline))
 #define NO_INLINE __attribute__ ((noinline))
 #elif defined _MSC_VER
 #define FORCE_INLINE __forceinline
+#define NO_INLINE __declspec(noinline)
 #else
 #define FORCE_INLINE inline
+#define NO_INLINE
 #endif
+
 
 #if !defined(MRB_JIT_GEN) && !defined(MRB_VM_NO_INLINE)
 #define OP_INLINE FORCE_INLINE
 #else
 #define OP_INLINE NO_INLINE
 #endif
+
 
 #define ERR_PC_SET(mrb, pc) mrb->c->ci->err = pc;
 #define ERR_PC_CLR(mrb)     mrb->c->ci->err = 0;
@@ -1220,7 +1224,7 @@ op_loadnil(struct op_ctx *ctx) {
   SET_NIL_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mid, struct RProc *m, int opcode, int a, int n) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
 
@@ -1357,7 +1361,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mi
   //VM_PRINTF("_op_send %s end\n", mrb_sym2name(ctx->mrb, mid));
 }
 
-static NO_INLINE void
+static OP_INLINE void
 _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   struct RProc *m;
   struct RClass *c;
@@ -1445,7 +1449,7 @@ op_fsend(struct op_ctx *ctx) {
   /* A B C  R(A) := fcall(R(A),Syms(B),R(A+1),... ,R(A+C-1)) */
 }
 
-static FORCE_INLINE void
+static OP_INLINE void
 _op_return(struct op_ctx *ctx, int a, int b) {
   mrb_state *mrb = ctx->mrb;
   if (MRB_UNLIKELY(ctx->mrb->exc)) {
