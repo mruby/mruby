@@ -1220,19 +1220,13 @@ op_loadnil(struct op_ctx *ctx) {
   SET_NIL_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static OP_INLINE void
-_op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
+static FORCE_INLINE void
+_op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mid, struct RProc *m, int opcode, int a, int n) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
 
-  struct RProc *m;
-  struct RClass *c;
   mrb_callinfo *ci;
-  mrb_value recv, result;
-  mrb_sym mid = ctx->syms[b];
+  mrb_value result;
 
-  //VM_PRINTF("_op_send %s: %p %d %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, b, n);
-
-  recv = ctx->regs[a];
   if (MRB_LIKELY(opcode != OP_SENDB)) {
     if (MRB_UNLIKELY(n == CALL_MAXARGS)) {
       SET_NIL_VALUE(ctx->regs[a+2]);
@@ -1242,26 +1236,18 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
     }
   }
 
-  ////VM_PRINTF("_op_send: class\n");
-  c = mrb_class(ctx->mrb, recv);
-  ////VM_PRINTF("_op_send: class %p\n", c);
-
-  m = mrb_method_search_vm_proc(ctx->mrb, ctx->proc, &c, mid);
-  ////VM_PRINTF("_op_send: %p\n", m);
-
-  if (MRB_UNLIKELY(!m)) {
-    mrb_value sym = mrb_symbol_value(mid);
-
-    mid = intern_str_const(ctx->mrb, _str_const_method_missing);
-    m = mrb_method_search_vm(ctx->mrb, &c, mid);
-    if (n == CALL_MAXARGS) {
-      mrb_ary_unshift(ctx->mrb, ctx->regs[a+1], sym);
+  //VM_PRINTF("_op_send %s: %p %d %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, b, n);
+#if 0
+  recv = ctx->regs[a];
+  if (MRB_LIKELY(opcode != OP_SENDB)) {
+    if (MRB_UNLIKELY(n == CALL_MAXARGS)) {
+      SET_NIL_VALUE(ctx->regs[a+2]);
     }
     else {
-      value_move(ctx->regs+a+2, ctx->regs+a+1, ++n);
-      ctx->regs[a+1] = sym;
+      SET_NIL_VALUE(ctx->regs[a+n+1]);
     }
   }
+#endif
 
   ////VM_PRINTF("_op_send %s\n", mrb_sym2name(ctx->mrb, mid));
 
@@ -1369,6 +1355,41 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   }
 
   //VM_PRINTF("_op_send %s end\n", mrb_sym2name(ctx->mrb, mid));
+}
+
+static NO_INLINE void
+_op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
+  struct RProc *m;
+  struct RClass *c;
+  mrb_callinfo *ci;
+  mrb_value recv, result;
+  mrb_sym mid = ctx->syms[b];
+
+  //VM_PRINTF("_op_send %s: %p %d %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, b, n);
+
+  recv = ctx->regs[a];
+
+  ////VM_PRINTF("_op_send: class\n");
+  c = mrb_class(ctx->mrb, recv);
+  ////VM_PRINTF("_op_send: class %p\n", c);
+
+  m = mrb_method_search_vm_proc(ctx->mrb, ctx->proc, &c, mid);
+  ////VM_PRINTF("_op_send: %p\n", m);
+
+  if (MRB_UNLIKELY(!m)) {
+    mrb_value sym = mrb_symbol_value(mid);
+
+    mid = intern_str_const(ctx->mrb, _str_const_method_missing);
+    m = mrb_method_search_vm(ctx->mrb, &c, mid);
+    if (n == CALL_MAXARGS) {
+      mrb_ary_unshift(ctx->mrb, ctx->regs[a+1], sym);
+    }
+    else {
+      value_move(ctx->regs+a+2, ctx->regs+a+1, ++n);
+      ctx->regs[a+1] = sym;
+    }
+  }
+  return _op_send_static(ctx, recv, c, mid, m, opcode, a, n);
 }
 
 static char _str_const_op_send[] = "op_send %p\n";
