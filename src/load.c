@@ -14,6 +14,10 @@
 #include "mruby/debug.h"
 #include "mruby/error.h"
 
+#if SIZE_MAX < UINT32_MAX
+# error size_t must be at least 32 bits wide
+#endif
+
 #define FLAG_BYTEORDER_BIG 2
 #define FLAG_BYTEORDER_LIL 4
 #define FLAG_BYTEORDER_NATIVE 8
@@ -26,10 +30,6 @@
 #else
 # define SIZE_ERROR_MUL(x, y) (0)
 # define SIZE_ERROR(x) (0)
-#endif
-
-#if UINT32_MAX > SIZE_MAX
-# error This code cannot be built on your environment.
 #endif
 
 static size_t
