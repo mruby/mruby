@@ -670,23 +670,21 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   /* You don't need use SIZE_ERROR as buf_size is enough small. */
   buf = (uint8_t*)mrb_malloc(mrb, header_size);
   if (fread(buf, header_size, 1, fp) == 0) {
-    mrb_free(mrb, buf);
-    return NULL;
+    goto irep_exit;
   }
   result = read_binary_header(buf, &buf_size, NULL, &flags);
-  if (result != MRB_DUMP_OK) {
-    mrb_free(mrb, buf);
-    return NULL;
+  if (result != MRB_DUMP_OK || buf_size <= header_size) {
+    goto irep_exit;
   }
 
   buf = (uint8_t*)mrb_realloc(mrb, buf, buf_size);
   if (fread(buf+header_size, buf_size-header_size, 1, fp) == 0) {
-    mrb_free(mrb, buf);
-    return NULL;
+    goto irep_exit;
   }
   irep = read_irep(mrb, buf, FLAG_SRC_MALLOC);
-  mrb_free(mrb, buf);
 
+irep_exit:
+  mrb_free(mrb, buf);
   return irep;
 }
 
