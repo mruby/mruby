@@ -981,7 +981,7 @@ static OP_INLINE void
 op_getupvar(struct op_ctx *ctx) {
   /* A B C  R(A) := uvget(B,C) */
   mrb_value *regs_a = ctx->regs + GETARG_A(CTX_I(ctx));
-  int up = GETARG_C(CTX_I(ctx));
+  int up = ARG_PROTECT(GETARG_C(CTX_I(ctx)));
 
   struct REnv *e = uvenv(ctx->mrb, up);
 
@@ -1373,8 +1373,6 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   mrb_value recv, result;
   mrb_sym mid = ctx->syms[b];
 
-  //VM_PRINTF("_op_send %s: %p %d %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, b, n);
-
   recv = ctx->regs[a];
 
   ////VM_PRINTF("_op_send: class\n");
@@ -1385,6 +1383,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   ////VM_PRINTF("_op_send: %p\n", m);
 
   if (MRB_UNLIKELY(!m)) {
+    mrb_p(ctx->mrb, recv);
     mrb_value sym = mrb_symbol_value(mid);
 
     mid = intern_str_const(ctx->mrb, _str_const_method_missing);
@@ -1397,6 +1396,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
       ctx->regs[a+1] = sym;
     }
   }
+
   return _op_send_static(ctx, recv, c, mid, m, opcode, a, n);
 }
 
@@ -1569,7 +1569,7 @@ op_return(struct op_ctx *ctx) {
  ////VM_PRINTF(_str_const_op_return, ctx->mrb->c->ci);
 }
 
-static const char _str_const_op_call[] = "op_call: %p %p\n";
+static const char _str_const_op_call[] = "op_call: %d\n";
 static inline void
 _op_call(struct op_ctx *ctx, int a) {
   /* A      R(A) := self.call(frame.argc, frame.argv) */
@@ -1577,7 +1577,6 @@ _op_call(struct op_ctx *ctx, int a) {
   mrb_value recv = ctx->mrb->c->stack[0];
   struct RProc *m = mrb_proc_ptr(recv);
 
-  printf(_str_const_op_call, ctx->regs, m->env);
   ////VM_PRINTF("_op_call: %d\n", a);
 
   /* replace callinfo */
@@ -1628,13 +1627,11 @@ _op_call(struct op_ctx *ctx, int a) {
       stack_extend(ctx->mrb, ctx->irep->nregs, ci->argc+2);
     }
     ctx->regs = ctx->mrb->c->stack;
-    printf(_str_const_op_call, ctx->regs, m->env);
     ctx->regs[0] = m->env->stack[0];
     ctx->pc = ctx->irep->iseq;
 
 #ifdef MRB_ENABLE_JIT
-    printf(_str_const_op_call, m);
-    mrb_proc_call_jit(ctx->mrb, m, ctx);
+    mrb_proc_call_jit(ctx->mrb, ctx->proc, ctx);
 #endif
   }
   ////VM_PRINTF("_op_call: end\n");
