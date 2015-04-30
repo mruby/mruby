@@ -3,6 +3,16 @@ require_relative 'x86'
 module Corrections
   include Assembly
 
+  module MagicConstants
+    ARG_PROTECT = 0xabbeef
+    ARGS = {
+      a: 0xAB000,
+      b: 0xBC000,
+      c: 0xCD000,
+    }
+    ARGS_INVERSE = ARGS.invert
+  end
+
   Corrector = Struct.new :assembly do
     include Assembly
 
@@ -39,6 +49,32 @@ module Corrections
       remove_dummy_call!
       remove_return!
       correct_stack!
+      correct_arg_protect_calls!
+    end
+
+
+    def correct_arg_protect_calls!
+      magic_mov = asm.each_instruction.find do |inst|
+        inst.source == Literal.new(MagicConstants::ARG_PROTECT)
+      end
+
+      return unless magic_mov
+
+      arg_mov = magic_mov.each_instruction.find do |inst|
+        inst.target_register? &&
+          inst.target.alias?(Assembly::X64::CC::SysV.argument_registers[0])
+      end
+
+      call = magic_mov.each_instruction.find do |inst|
+        inst.call? &&
+          inst.source_register? &&
+          inst.source.alias?(magic_mov.target)
+      end
+
+      magic_mov.delete
+      arg_mov.delete
+      reg = Assembly::X64::CC::SysV.return_value_register.for_suffix X86.suffix(arg_mov)
+      call.replace Instruction.new(arg_mov.name, [arg_mov.source, reg]);
     end
 
     def remove_dummy_call!

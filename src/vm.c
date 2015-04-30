@@ -53,8 +53,8 @@ The value below allows about 60000 recursive calls in the simplest case. */
 # define DEBUG(x)
 #endif
 
-#define VM_PRINTF
-//#define VM_PRINTF(...) fprintf(stderr, __VA_ARGS__)
+//#define VM_PRINTF
+#define VM_PRINTF(...) fprintf(stderr, __VA_ARGS__)
 
 #define ARENA_RESTORE(mrb,ai) (mrb)->arena_idx = (ai)
 
@@ -808,6 +808,9 @@ void NO_INLINE __pc_add__(mrb_code *pc, int o) {
 
 void NO_INLINE __pc_inc__(mrb_code *pc) {
 }
+
+typedef int (*__arg_protect__)(int);
+#define ARG_PROTECT(x) (((__arg_protect__)(0xABBEEF))(x))
 #define JIT_VOLATILE volatile
 #undef GETARG_A
 #define GETARG_A(i) 0xAB0000
@@ -833,6 +836,7 @@ void NO_INLINE __pc_inc__(mrb_code *pc) {
 #define PC_INC(pc) (pc++)
 #define OP_END
 #define JIT_VOLATILE
+#define ARG_PROTECT(x) (x)
 #endif
 
 #define CTX_I(ctx) (*(ctx->pc))
@@ -1224,7 +1228,7 @@ op_loadnil(struct op_ctx *ctx) {
   SET_NIL_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static OP_INLINE void
+static inline void
 _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mid, struct RProc *m, int opcode, int a, int n) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
 
@@ -1361,7 +1365,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mi
   //VM_PRINTF("_op_send %s end\n", mrb_sym2name(ctx->mrb, mid));
 }
 
-static OP_INLINE void
+static inline void
 _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   struct RProc *m;
   struct RClass *c;
@@ -1449,7 +1453,7 @@ op_fsend(struct op_ctx *ctx) {
   /* A B C  R(A) := fcall(R(A),Syms(B),R(A+1),... ,R(A+C-1)) */
 }
 
-static OP_INLINE void
+static inline void
 _op_return(struct op_ctx *ctx, int a, int b) {
   mrb_state *mrb = ctx->mrb;
   if (MRB_UNLIKELY(ctx->mrb->exc)) {
@@ -1565,7 +1569,7 @@ op_return(struct op_ctx *ctx) {
  ////VM_PRINTF(_str_const_op_return, ctx->mrb->c->ci);
 }
 
-static const char _str_const_op_call[] = "op_call: %d\n";
+static const char _str_const_op_call[] = "op_call: %p %p\n";
 static inline void
 _op_call(struct op_ctx *ctx, int a) {
   /* A      R(A) := self.call(frame.argc, frame.argv) */
@@ -1573,6 +1577,7 @@ _op_call(struct op_ctx *ctx, int a) {
   mrb_value recv = ctx->mrb->c->stack[0];
   struct RProc *m = mrb_proc_ptr(recv);
 
+  printf(_str_const_op_call, ctx->regs, m->env);
   ////VM_PRINTF("_op_call: %d\n", a);
 
   /* replace callinfo */
@@ -1611,9 +1616,11 @@ _op_call(struct op_ctx *ctx, int a) {
       ctx->mrb->c->stack[0] = mrb_nil_value();
       return _op_return(ctx, a, OP_R_NORMAL);
     }
+
     ctx->pool = ctx->irep->pool;
     ctx->syms = ctx->irep->syms;
     ci->nregs = ctx->irep->nregs;
+
     if (ci->argc < 0) {
       stack_extend(ctx->mrb, (ctx->irep->nregs < 3) ? 3 : ctx->irep->nregs, 3);
     }
@@ -1621,10 +1628,12 @@ _op_call(struct op_ctx *ctx, int a) {
       stack_extend(ctx->mrb, ctx->irep->nregs, ci->argc+2);
     }
     ctx->regs = ctx->mrb->c->stack;
+    printf(_str_const_op_call, ctx->regs, m->env);
     ctx->regs[0] = m->env->stack[0];
     ctx->pc = ctx->irep->iseq;
 
 #ifdef MRB_ENABLE_JIT
+    printf(_str_const_op_call, m);
     mrb_proc_call_jit(ctx->mrb, m, ctx);
 #endif
   }
@@ -1789,8 +1798,8 @@ op_argary(struct op_ctx *ctx) {
 static OP_INLINE void
 op_enter_method_m(struct op_ctx *ctx) {
   /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
-  JIT_VOLATILE mrb_aspec ax = GETARG_Ax(CTX_I(ctx));
-  int m1 = MRB_ASPEC_REQ(ax);
+  mrb_aspec ax = GETARG_Ax(CTX_I(ctx));
+  int m1 = MRB_ASPEC_REQ(ARG_PROTECT(ax));
 
   /* unused
   int k  = MRB_ASPEC_KEY(ax);
@@ -2644,7 +2653,7 @@ static inline void
 _op_lambda(struct op_ctx *ctx, int a, int b, int c) {
   struct RProc *p;
 
-  if (c & OP_L_CAPTURE) {
+  if (ARG_PROTECT(c) & OP_L_CAPTURE) {
     p = mrb_closure_new(ctx->mrb, ctx->irep->reps[b]);
   }
   else {
@@ -2667,7 +2676,7 @@ _op_lambda(struct op_ctx *ctx, int a, int b, int c) {
 static OP_INLINE void
 op_lambda(struct op_ctx *ctx) {
   /* A b c  R(A) := lambda(SEQ[b],c) (b:c = 14:2) */
-  return _op_lambda(ctx, GETARG_A(CTX_I(ctx)), GETARG_b(CTX_I(ctx)), GETARG_c(CTX_I(ctx)));
+  _op_lambda(ctx, GETARG_A(CTX_I(ctx)), GETARG_b(CTX_I(ctx)), GETARG_c(CTX_I(ctx)));
 }
 
 static OP_INLINE void

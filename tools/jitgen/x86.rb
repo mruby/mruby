@@ -13,8 +13,7 @@ module Assembly
     end
 
     class Register
-      def self.register_aliases
-        [
+      ALIASES = [
           %i(rax eax ax al),
           %i(rcx ecx cx cl),
           %i(rdx edx dx dl),
@@ -31,7 +30,16 @@ module Assembly
           %i(r13 r13d r13w r13b),
           %i(r14 r14d r14w r14b),
           %i(r15 r15d r15w r15b),
-        ]
+      ]
+
+      def for_suffix(suffix)
+        id = SUFFIXES.index suffix.to_sym
+
+        self.class.new(ALIASES[register_alias_id][id])
+      end
+
+      def suffix
+        SUFFIXES[ALIASES[register_alias_id].index name]
       end
 
       def alias?(other)
@@ -40,7 +48,7 @@ module Assembly
 
       protected
       def register_alias_id
-        self.class.register_aliases.index do |g|
+        ALIASES.index do |g|
           g.include? self.name
         end
       end
@@ -224,6 +232,10 @@ module Assembly
       class SysV
         def self.argument_registers
           [:rdi, :rsi, :rdx, :rcx, :r8, :r9, *(0..7).map{|i| :"xmm#{i}"}].map{|n| X86::Register.new n}
+        end
+
+        def self.return_value_register
+          X86::Register.new :rax
         end
       end
     end

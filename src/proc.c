@@ -95,6 +95,7 @@ closure_setup(mrb_state *mrb, struct RProc *p, int nlocals)
   else {
     e = mrb->c->ci->env;
   }
+  fprintf(stderr, "closure env=%p\n", e);
   p->env = e;
 }
 
