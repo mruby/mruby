@@ -2150,11 +2150,16 @@ primary         : literal
                       p->lpar_beg = ++p->paren_nest;
                     }
                   f_larglist
+                    {
+                      $<stack>$ = p->cmdarg_stack;
+                      p->cmdarg_stack = 0;
+                    }
                   lambda_body
                     {
                       p->lpar_beg = $<num>2;
-                      $$ = new_lambda(p, $3, $4);
+                      $$ = new_lambda(p, $3, $5);
                       local_unnest(p);
+                      p->cmdarg_stack = $<stack>4;
                     }
                 | keyword_if expr_value then
                   compstmt
