@@ -1,9 +1,9 @@
 require 'stringio'
 
-require_relative 'assembly'
+require_relative 'as'
 require_relative 'objdump'
 require_relative 'x86'
-require_relative 'corrections'
+require_relative 'postprocess'
 
 def mruby_root
   __dir__.split(File::SEPARATOR)
@@ -103,17 +103,17 @@ def gen_file(f)
 end
 
 def correct_asm_file(op_name, in_file, out_file)
-  in_asm = Assembly::File.parse File.read(in_file)
+  in_asm = As::File.parse File.read(in_file)
 
-  klass = Corrections::Corrector
+  klass = Postprocess::Processor
 
   begin
     klass_name = "_#{op_name}".gsub(/_([a-z])/){|m| $1.upcase}
-    klass = Corrections::const_get klass_name
+    klass = Postprocess::const_get klass_name
   rescue NameError
   end
 
-  klass.new(in_asm).correct!
+  klass.new(in_asm).process!
   File.write out_file, in_asm.to_asm
 end
 
@@ -132,11 +132,7 @@ $ops.each do |op|
   gen_file ll_file
 
   file ll_opt_file => [ll_file] do |t|
-    unless dont_opt[op]
-      sh "opt #{opt_passes.join ' '} #{ll_file} -S -o #{t.name}"
-    else
-      cp ll_file, t.name
-    end
+    sh "opt #{opt_passes.join ' '} #{ll_file} -S -o #{t.name}"
     sh "./scale_geps #{t.name} #{t.name}"
   end
 
@@ -264,9 +260,9 @@ file ops_header_path(:x64) => [*obj_files, symtbl_header_path] do |t|
   file.puts "  return b;"
   file.puts "}"
 
-  Assembly::X86::JumpInstruction.to_c file
-  Assembly::X86::JumpIfInstruction.to_c file
-  Assembly::X86::JumpNotInstruction.to_c file
+  As::X86::JumpInstruction.to_c file
+  As::X86::JumpIfInstruction.to_c file
+  As::X86::JumpNotInstruction.to_c file
 
   file.close
 end

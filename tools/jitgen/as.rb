@@ -1,7 +1,7 @@
 require 'stringio'
 
 
-module Assembly
+module As
   class Scanner
     attr_reader :string, :rest
 
@@ -32,7 +32,7 @@ module Assembly
     end
 
     def scan!(regexp)
-      scan(regexp) or raise Assembly::SyntaxError.new("Expected #{regexp}")
+      scan(regexp) or raise As::SyntaxError.new("Expected #{regexp}")
     end
   end
 
@@ -326,7 +326,7 @@ module Assembly
       end
     end
 
-    class Register < Assembly::Register
+    class Register < As::Register
       def self.[](*args)
         new(*args)
       end
@@ -483,7 +483,7 @@ end
 if __FILE__ == $0
   require 'pp'
 
-  ast = Assembly::File.parse(File.read ARGV[0])
+  ast = As::File.parse(File.read ARGV[0])
   pp ast.each_instruction.to_a
   puts ast.to_asm
 end

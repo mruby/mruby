@@ -1,8 +1,8 @@
 require_relative 'assembly'
 
-module Assembly
+module As
   module X86
-    class Instruction < Assembly::Instruction
+    class Instruction < As::Instruction
       def bytes
         @bytes ||= []
       end
