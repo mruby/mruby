@@ -111,10 +111,10 @@ module Assembly
   Literal = Struct.new :value do
     def to_asm
       case value
-      when Fixnum
+      when Fixnum, Bignum
         "$#{value}"
       else
-        raise
+        raise "don't know how to handle value of type #{value.class}"
       end
     end
   end

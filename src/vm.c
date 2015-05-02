@@ -803,10 +803,10 @@ struct op_ctx {
 
 #ifdef MRB_JIT_GEN
 
-void NO_INLINE __pc_add__(mrb_code *pc, int o) {
+void NO_INLINE __mrb_jit_pc_add__(mrb_code *pc, int o) {
 }
 
-void NO_INLINE __pc_inc__(mrb_code *pc) {
+void NO_INLINE __mrb_jit_pc_inc__(mrb_code *pc) {
 }
 
 typedef int (*__arg_protect__)(int);
@@ -828,8 +828,8 @@ typedef int (*__arg_protect__)(int);
 #define GETARG_C(i) 0xCD0000
 #undef GETARG_c
 #define GETARG_c(i) 0xCD0000
-#define PC_ADD(pc, o) (__pc_add__(pc, o))
-#define PC_INC(pc) (__pc_inc__(pc))
+#define PC_ADD(pc, o) (__mrb_jit_pc_add__(pc, o))
+#define PC_INC(pc) (__mrb_jit_pc_inc__(pc))
 #define OP_IDX(i) 0xDE0000
 #else
 #define PC_ADD(pc, o) (pc += o)
@@ -997,7 +997,7 @@ op_getupvar(struct op_ctx *ctx) {
 static OP_INLINE void
 op_setupvar(struct op_ctx *ctx) {
   /* A B C  uvset(B,C,R(A)) */
-  int up = GETARG_C(CTX_I(ctx));
+  int up = ARG_PROTECT(GETARG_C(CTX_I(ctx)));
 
   struct REnv *e = uvenv(ctx->mrb, up);
 
@@ -1228,6 +1228,9 @@ op_loadnil(struct op_ctx *ctx) {
   SET_NIL_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
+static char _str_const_op_send[] = "op_send %d\n";
+static char _str_const_op_send3[] = "/op_send\n";
+static char _str_const_op_send2[] = "op_send2 %d\n";
 static inline void
 _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mid, struct RProc *m, int opcode, int a, int n) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
@@ -1282,6 +1285,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mi
     }
     else {
       ci->argc = n;
+      //printf(_str_const_op_send, ci->argc);
       ci->nregs = n + 2;
     }
 
@@ -1400,20 +1404,19 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   return _op_send_static(ctx, recv, c, mid, m, opcode, a, n);
 }
 
-static char _str_const_op_send[] = "op_send %p\n";
-static char _str_const_op_send3[] = "/op_send\n";
-static char _str_const_op_send2[] = "op_send\n";
 static OP_INLINE void
 op_send(struct op_ctx *ctx) {
   /* A B C R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
 
-  int a = GETARG_A(CTX_I(ctx));
+  int a = ARG_PROTECT(GETARG_A(CTX_I(ctx)));
   int b = GETARG_B(CTX_I(ctx));
   int n = GETARG_C(CTX_I(ctx));
 
-  mrb_callinfo *ci = ctx->mrb->c->ci;
+  //printf(_str_const_op_send2, n);
+
 
 #ifdef MRB_JIT_GEN
+  mrb_callinfo *ci = ctx->mrb->c->ci;
   //ci->send_idx = OP_IDX(CTX_I(ctx));
   ctx->pc = ctx->irep->iseq + OP_IDX(ctx);
 #endif
@@ -1440,7 +1443,7 @@ static OP_INLINE void
 op_sendb(struct op_ctx *ctx) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
 
-  int a = GETARG_A(CTX_I(ctx));
+  int a = ARG_PROTECT(GETARG_A(CTX_I(ctx)));
   int b = GETARG_B(CTX_I(ctx));
   int n = GETARG_C(CTX_I(ctx));
 
@@ -1795,8 +1798,8 @@ op_argary(struct op_ctx *ctx) {
 static OP_INLINE void
 op_enter_method_m(struct op_ctx *ctx) {
   /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
-  mrb_aspec ax = GETARG_Ax(CTX_I(ctx));
-  int m1 = MRB_ASPEC_REQ(ARG_PROTECT(ax));
+  mrb_aspec ax = ARG_PROTECT(GETARG_Ax(CTX_I(ctx)));
+  int m1 = MRB_ASPEC_REQ(ax);
 
   /* unused
   int k  = MRB_ASPEC_KEY(ax);
@@ -1855,7 +1858,7 @@ static const char _str_const_op_enter[] = "op_enter: %p (%d)\n";
 static OP_INLINE void
 op_enter(struct op_ctx *ctx) {
   /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
-  JIT_VOLATILE mrb_aspec ax = GETARG_Ax(CTX_I(ctx));
+  mrb_aspec ax = ARG_PROTECT(GETARG_Ax(CTX_I(ctx)));
   int m1 = MRB_ASPEC_REQ(ax);
   int o  = MRB_ASPEC_OPT(ax);
   int r  = MRB_ASPEC_REST(ax);
@@ -2329,7 +2332,7 @@ op_div(struct op_ctx *ctx) {
   }
 #ifdef MRB_NAN_BOXING
   if (isnan(mrb_float(regs[a]))) {
-    regs[a] = mrb_float_value(mrb, mrb_float(regs[a]));
+    regs[a] = mrb_float_value(ctx->mrb, mrb_float(regs[a]));
   }
 #endif
   PC_INC(ctx->pc);

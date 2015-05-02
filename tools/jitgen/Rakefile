@@ -148,7 +148,7 @@ $ops.each do |op|
     else
       opts = ""
     end
-    sh "llc -O3 #{ll_opt_file} #{opts} -filetype=asm -o #{t.name}"
+    sh "llc -O3 #{opts} -filetype=asm -o #{t.name} #{ll_opt_file}"
   end
 
   file corrected_asm_file => asm_file do |t|

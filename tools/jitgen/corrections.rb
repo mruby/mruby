@@ -197,6 +197,9 @@ module Corrections
     end
   end
 
+  class OpBreak < OpReturn
+  end
+
   #FIXME: very unstable
   # breaks if LLVM output changes slightly
   class OpSend < Corrector

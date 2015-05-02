@@ -100,7 +100,7 @@ bool isOpFunc(const std::string& name) {
 }
 
 bool isDummySymbol(const std::string& name) {
-  std::string prefix = "__";
+  std::string prefix = "__mrb_jit_";
   return !name.compare(0, prefix.size(), prefix);
 }
 
