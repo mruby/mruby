@@ -132,7 +132,11 @@ $ops.each do |op|
   gen_file ll_file
 
   file ll_opt_file => [ll_file] do |t|
-    sh "opt #{opt_passes.join ' '} #{ll_file} -S -o #{t.name}"
+    unless dont_opt[op]
+      sh "opt #{opt_passes.join ' '} #{ll_file} -S -o #{t.name}"
+    else
+      cp ll_file, t.name
+    end
     sh "./scale_geps #{t.name} #{t.name}"
   end
 

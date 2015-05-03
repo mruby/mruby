@@ -1,4 +1,4 @@
-require_relative 'assembly'
+require_relative 'as'
 
 module As
   module X86

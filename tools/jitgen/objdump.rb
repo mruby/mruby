@@ -1,4 +1,4 @@
-require_relative 'assembly'
+require_relative 'as'
 require_relative 'x86'
 
 ObjectFile = Struct.new(:name, :architecture, :body) do

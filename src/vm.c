@@ -1021,8 +1021,8 @@ op_jmpif(struct op_ctx *ctx) {
   if (mrb_test(ctx->regs[GETARG_A(CTX_I(ctx))])) {
     PC_ADD(ctx->pc, GETARG_sBx(CTX_I(ctx)));
 #ifdef MRB_JIT_GEN
-    typedef void (*__op_jmpif_jmp__)(struct op_ctx *ctx);
-    ((__op_jmpif_jmp__)(0xFAB))(ctx);
+    //typedef void (*__op_jmpif_jmp__)(struct op_ctx *ctx);
+    //((__op_jmpif_jmp__)(0xFAB))(ctx);
 #endif
   } else {
     PC_INC(ctx->pc);
@@ -1035,8 +1035,8 @@ op_jmpnot(struct op_ctx *ctx) {
   if (!mrb_test(ctx->regs[GETARG_A(CTX_I(ctx))])) {
     PC_ADD(ctx->pc, GETARG_sBx(CTX_I(ctx)));
 #ifdef MRB_JIT_GEN
-    typedef void (*__op_jmpnot_jmp__)();
-    ((__op_jmpnot_jmp__)(0xFAB))();
+    //typedef void (*__op_jmpnot_jmp__)();
+    //((__op_jmpnot_jmp__)(0xFAB))();
 #endif
   } else {
     PC_INC(ctx->pc);
