@@ -6,8 +6,9 @@
 
 %{
 #undef PARSER_DEBUG
-
-#define YYDEBUG 1
+#ifdef PARSER_DEBUG
+# define YYDEBUG 1
+#endif
 #define YYERROR_VERBOSE 1
 /*
  * Force yacc to use our memory management.  This is a little evil because
