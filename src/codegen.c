@@ -2920,7 +2920,10 @@ codedump(mrb_state *mrb, mrb_irep *irep)
              (GETARG_Bx(c)>>0)&0xf);
       print_lv(mrb, irep, c, RA);
       break;
-
+    case OP_ENTER_METHOD_M:
+      printf("OP_ENTER_METHOD_M\t%d\n",
+             (GETARG_Ax(c)>>18)&0x1f);
+      break;
     case OP_ENTER:
       printf("OP_ENTER\t%d:%d:%d:%d:%d:%d:%d\n",
              (GETARG_Ax(c)>>18)&0x1f,

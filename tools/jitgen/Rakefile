@@ -303,20 +303,22 @@ profiles.each do |profile|
     obj_file = obj_file(profile, op)
     asm_file = asm_file(profile, op)
     pp_asm_file = asm_file(profile, op, '_cor')
+    hand_asm_file = hand_asm_file(profile, op)
 
-    file asm_file => [ll_opt_file, asm_dir(profile)] do |t|
-      if t.name =~ /op_return/ || t.name =~ /op_send/
-        # force stack alignment for ops
-        # that call into SIMD code
-        opts = "-force-align-stack -stack-alignment=16"
-      else
-        opts = ""
-      end
-
-      hand_asm_file = hand_asm_file(profile, op)
-      if File.file?(hand_asm_file)
+    if File.file?(hand_asm_file)
+      file asm_file => [hand_asm_file, asm_dir(profile)] do |t|
         cp hand_asm_file, t.name
-      else
+      end
+    else
+      file asm_file => [ll_opt_file, asm_dir(profile)] do |t|
+        if t.name =~ /op_return/ || t.name =~ /op_send/
+          # force stack alignment for ops
+          # that call into SIMD code
+          opts = "-force-align-stack -stack-alignment=16"
+        else
+          opts = ""
+        end
+
         sh "llc -O3 #{opts} -mtriple=#{profile.triple} -filetype=asm -o #{t.name} #{ll_opt_file}"
       end
     end

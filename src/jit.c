@@ -48,8 +48,8 @@
 #include <alloca.h>
 #include <stdlib.h>
 
-//#define JIT_PRINTF(...) fprintf(stderr, __VA_ARGS__)
-#define JIT_PRINTF
+#define JIT_PRINTF(...) fprintf(stderr, __VA_ARGS__)
+//#define JIT_PRINTF
 
 static size_t
 jit_page_size()

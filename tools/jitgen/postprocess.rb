@@ -98,21 +98,16 @@ module Postprocess
     end
 
     def remove_return!
-      last_label = asm.reverse_each.find do |e|
-        Label === e && !e.find{|ee| ee.is_a? Instruction}
-      end
-
-      unless last_label
-        last_label = Label.new 'next'
-        asm << last_label
-      end
+      last_inst = asm.reverse_each_instruction.first
+      label = Label.new 'next'
+      last_inst.insert_after label
 
       asm.each do |inst|
         if Instruction === inst && inst.return?
           if inst.each_instruction.drop(1).first.nil?
             inst.delete
           else
-            inst.replace Instruction.new('jmp', [last_label])
+            inst.replace Instruction.new('jmp', [label])
           end
         end
       end

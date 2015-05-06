@@ -732,8 +732,10 @@ argnum_error(mrb_state *mrb, mrb_int num)
 
 #if !defined(MRB_JIT_GEN) && !defined(MRB_VM_NO_INLINE)
 #define OP_INLINE FORCE_INLINE
+#define JIT_NO_INLINE
 #else
 #define OP_INLINE NO_INLINE
+#define JIT_NO_INLINE NO_INLINE
 #endif
 
 
@@ -1826,7 +1828,7 @@ op_enter_method_m(struct op_ctx *ctx) {
   uint16_t jit_jmp_off = 0;
 #endif
 
-  if (!mrb_nil_p(*blk) && mrb_type(*blk) != MRB_TT_PROC) {
+  if (MRB_UNLIKELY(!mrb_nil_p(*blk) && mrb_type(*blk) != MRB_TT_PROC)) {
     *blk = mrb_convert_type(ctx->mrb, *blk, MRB_TT_PROC, _str_const_proc, _str_const_to_proc);
   }
   if (argc < 0) {
@@ -1887,9 +1889,12 @@ op_enter(struct op_ctx *ctx) {
   uint16_t jit_jmp_off = 0;
 #endif
 
-  if (!mrb_nil_p(*blk) && mrb_type(*blk) != MRB_TT_PROC) {
+  if ((!mrb_nil_p(*blk) && mrb_type(*blk) != MRB_TT_PROC)) {
     *blk = mrb_convert_type(ctx->mrb, *blk, MRB_TT_PROC, _str_const_proc, _str_const_to_proc);
   }
+
+  printf(_str_const_op_enter, blk, ax);
+
   if (argc < 0) {
     struct RArray *ary = mrb_ary_ptr(ctx->regs[1]);
     argv = ary->ptr;
@@ -2353,6 +2358,7 @@ static OP_INLINE void
 op_addi(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)+C (Syms[B]=:+)*/
   int a = GETARG_A(CTX_I(ctx));
+  int c = GETARG_C(CTX_I(ctx));
   mrb_value *regs_a = ctx->regs + a;
   mrb_state *mrb = ctx->mrb;
 
@@ -2361,7 +2367,7 @@ op_addi(struct op_ctx *ctx) {
   case MRB_TT_FIXNUM:
     {
       mrb_int x = mrb_fixnum(regs_a[0]);
-      mrb_int y = GETARG_C(CTX_I(ctx));
+      mrb_int y = c;
       mrb_int z;
 
       if (mrb_int_add_overflow(x, y, &z)) {
@@ -2375,16 +2381,16 @@ op_addi(struct op_ctx *ctx) {
 #ifdef MRB_WORD_BOXING
     {
       mrb_float x = mrb_float(regs_a[0]);
-      SET_FLOAT_VALUE(mrb, regs_a[0], x + GETARG_C(i));
+      SET_FLOAT_VALUE(mrb, regs_a[0], x + c);
     }
 #else
-    mrb_float(regs_a[0]) += GETARG_C(CTX_I(ctx));
+    mrb_float(regs_a[0]) += c;
 #endif
     break;
   default:
-    SET_INT_VALUE(regs_a[1], GETARG_C(CTX_I(ctx)));
+    SET_INT_VALUE(regs_a[1], c);
    ////VM_PRINTF(_str_const_op_addi, a);
-    return _op_send(ctx, OP_SEND, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)), 1);
+    return _op_send(ctx, OP_SEND, a, GETARG_B(CTX_I(ctx)), 1);
    ////VM_PRINTF(_str_const_op_addi, a);
   }
   PC_INC(ctx->pc);
@@ -2397,6 +2403,7 @@ op_subi(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)+C (Syms[B]=:+)*/
   /* A B C  R(A) := R(A)-C (Syms[B]=:-)*/
   int a = GETARG_A(CTX_I(ctx));
+  int c = GETARG_C(CTX_I(ctx));
   mrb_value *regs = ctx->regs;
   mrb_value *regs_a = regs + a;
   mrb_state *mrb = ctx->mrb;
@@ -2408,7 +2415,7 @@ op_subi(struct op_ctx *ctx) {
   case MRB_TT_FIXNUM:
     {
       mrb_int x = mrb_fixnum(regs_a[0]);
-      mrb_int y = GETARG_C(CTX_I(ctx));
+      mrb_int y = c;
       mrb_int z;
 
       if (mrb_int_sub_overflow(x, y, &z)) {
@@ -2423,14 +2430,14 @@ op_subi(struct op_ctx *ctx) {
 #ifdef MRB_WORD_BOXING
     {
       mrb_float x = mrb_float(regs[a]);
-      SET_FLOAT_VALUE(mrb, regs[a], x - GETARG_C(i));
+      SET_FLOAT_VALUE(mrb, regs[a], x - c);
     }
 #else
-    mrb_float(regs_a[0]) -= GETARG_C(CTX_I(ctx));
+    mrb_float(regs_a[0]) -= c;
 #endif
     break;
   default:
-    SET_INT_VALUE(regs_a[1], GETARG_C(CTX_I(ctx)));
+    SET_INT_VALUE(regs_a[1], c);
     return _op_send(ctx, OP_SEND, a, GETARG_B(CTX_I(ctx)), 1);
   }
   PC_INC(ctx->pc);
@@ -2661,7 +2668,7 @@ op_hash(struct op_ctx *ctx) {
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 
-static inline void
+static JIT_NO_INLINE void
 _op_lambda(struct op_ctx *ctx, int a, int b, int c) {
   struct RProc *p;
 
@@ -2697,9 +2704,12 @@ op_oclass(struct op_ctx *ctx) {
   ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_obj_value(ctx->mrb->object_class);
 }
 
+static char _str_const_op_class[] = "op_class %p\n";
 static OP_INLINE void
 op_class(struct op_ctx *ctx) {
   /* A B    R(A) := newclass(R(A),Syms(B),R(A+1)) */
+  printf(_str_const_op_class, ctx);
+
   struct RClass *c = 0;
   int a = GETARG_A(CTX_I(ctx));
   mrb_value base, super;
@@ -2713,6 +2723,7 @@ op_class(struct op_ctx *ctx) {
   c = mrb_vm_define_class(ctx->mrb, base, super, id);
   ctx->regs[a] = mrb_obj_value(c);
   ARENA_RESTORE(ctx->mrb, ctx->ai);
+  printf(_str_const_op_class, ctx);
 }
 
 static OP_INLINE void
