@@ -1021,8 +1021,8 @@ op_jmpif(struct op_ctx *ctx) {
   if (mrb_test(ctx->regs[GETARG_A(CTX_I(ctx))])) {
     PC_ADD(ctx->pc, GETARG_sBx(CTX_I(ctx)));
 #ifdef MRB_JIT_GEN
-    //typedef void (*__op_jmpif_jmp__)(struct op_ctx *ctx);
-    //((__op_jmpif_jmp__)(0xFAB))(ctx);
+    volatile int *p = 0xFAB;
+    *p = 0xFAB;
 #endif
   } else {
     PC_INC(ctx->pc);
@@ -1035,8 +1035,8 @@ op_jmpnot(struct op_ctx *ctx) {
   if (!mrb_test(ctx->regs[GETARG_A(CTX_I(ctx))])) {
     PC_ADD(ctx->pc, GETARG_sBx(CTX_I(ctx)));
 #ifdef MRB_JIT_GEN
-    //typedef void (*__op_jmpnot_jmp__)();
-    //((__op_jmpnot_jmp__)(0xFAB))();
+    volatile int *p = 0xFAB;
+    *p = 0xFAB;
 #endif
   } else {
     PC_INC(ctx->pc);
@@ -2170,6 +2170,7 @@ op_sub(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)*/
   int a = GETARG_A(CTX_I(ctx));
   mrb_value *regs = ctx->regs;
+  mrb_state *mrb = ctx->mrb;
 
   /* need to check if op is overridden */
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
@@ -2296,6 +2297,7 @@ op_div(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)*/
   int a = GETARG_A(CTX_I(ctx));
   mrb_value *regs = ctx->regs;
+  mrb_state *mrb = ctx->mrb;
 
   /* need to check if op is overridden */
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
@@ -2352,6 +2354,7 @@ op_addi(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)+C (Syms[B]=:+)*/
   int a = GETARG_A(CTX_I(ctx));
   mrb_value *regs_a = ctx->regs + a;
+  mrb_state *mrb = ctx->mrb;
 
   /* need to check if + is overridden */
   switch (mrb_type(regs_a[0])) {
@@ -2396,6 +2399,7 @@ op_subi(struct op_ctx *ctx) {
   int a = GETARG_A(CTX_I(ctx));
   mrb_value *regs = ctx->regs;
   mrb_value *regs_a = regs + a;
+  mrb_state *mrb = ctx->mrb;
 
  ////VM_PRINTF(_str_const_op_subi, a);
 
@@ -2873,7 +2877,13 @@ op_err(struct op_ctx *ctx) {
 static void init_symtbl(){};
 static void *symtbl[1];
 #elif MRB_ENABLE_JIT
-#include "jit_symtbl.h"
+#if defined(MRB_NAN_BOXING)
+#include "jit/jit_symtbl_nan_boxing.h"
+#elif defined(MRB_WORD_BOXING)
+#include "jit/jit_symtbl_word_boxing.h"
+#else
+#include "jit/jit_symtbl_no_boxing.h"
+#endif
 #endif
 
 

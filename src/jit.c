@@ -17,9 +17,32 @@
 #endif
 
 #include <string.h>
-#include "ops_x64.h"
 
-#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+#if defined(__linux__)
+#if defined(__x86_64__)
+#if defined(MRB_NAN_BOXING)
+#include "jit/ops_x86_64-unknown-linux-gnu-nan_boxing.h"
+#elif defined(MRB_WORD_BOXING)
+#include "jit/ops_x86_64-unknown-linux-gnu-word_boxing.h"
+#else
+#include "jit/ops_x86_64-unknown-linux-gnu-no_boxing.h"
+#endif
+#elif defined(__i386)
+#if defined(MRB_NAN_BOXING)
+#include "jit/ops_x86-unknown-linux-gnu-nan_boxing.h"
+#elif defined(MRB_WORD_BOXING)
+#include "jit/ops_x86-unknown-linux-gnu-word_boxing.h"
+#else
+#include "jit/ops_x86-unknown-linux-gnu-no_boxing.h"
+#endif
+#endif
+#else
+#error Platform not yet supported
+#endif
+
+#if !defined(_WIN32) && \
+    (defined(__unix__) || defined(__unix) ||\
+    (defined(__APPLE__) && defined(__MACH__)))
 #include <sys/mman.h>
 #include <unistd.h>
 #include <alloca.h>

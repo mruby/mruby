@@ -32,7 +32,13 @@ ObjectFile = Struct.new(:name, :architecture, :body) do
   end
 
   def self.load(filename)
-    parse `objdump -Sf #{filename}`
+    obj = parse `objdump -Sf #{filename}`
+
+    # no name is reported for empty object files
+    # so we get it from the filename if needed
+    obj.name = File.basename(filename, '.*') if obj.name.nil?
+
+    obj
   end
 
   def self.parse(objdump)
@@ -61,6 +67,25 @@ ObjectFile = Struct.new(:name, :architecture, :body) do
     func_name = $1
 
     new func_name, arch, body
+  end
+
+  def to_c(io = StringIO.new)
+    off = 0
+
+    io.puts "/* args: #{arguments.inspect} */"
+    io.puts "static uint8_t #{name}[] = {"
+
+    body.each do |(bytes, asm)|
+      bytes_str = bytes.map{|byte| "0x%02x," % byte}.join(' ').ljust(42, ' ')
+      asm_str = "/*#{'%x' % off}: #{asm} */"
+
+      off += bytes.size
+      io.puts bytes_str + asm_str
+    end
+
+    io.puts "\n};"
+
+    io.string if StringIO === io
   end
 
   private

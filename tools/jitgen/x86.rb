@@ -199,6 +199,19 @@ module As
       def name
         'retq'
       end
+
+      module C
+        def to_c(io = StringIO.new)
+          io.puts "uint8_t *jit_return(uint8_t *b) {"
+          io.puts "  *b++ = 0xc3;"
+          io.puts "  return b;"
+          io.puts "}"
+
+          io.string if StringIO === io
+        end
+      end
+
+      extend C
     end
 
     class JumpNotInstruction < JumpInstruction
