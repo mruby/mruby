@@ -1,5 +1,5 @@
 set yrange [0:]
-set style fill solid border -1
+set style fill pattern border -1
 set terminal pdfcairo font 'lmroman10, 16' lw 0.01 size 26cm,16cm
 set xtics rotate by -45
 set style histogram errorbars gap 2

@@ -91,6 +91,18 @@ MRuby::Build.new('clang-O3-march-native') do |conf|
   conf.cc.flags << '-march=native'
 end
 
+MRuby::Build.new('gcc-O3-cxx_abi') do |conf|
+  toolchain :gcc
+  conf.gembox 'default'
+  conf.enable_cxx_abi
+end
+
+MRuby::Build.new('clang-O3-cxx_abi') do |conf|
+  toolchain :clang
+  conf.gembox 'default'
+  conf.enable_cxx_abi
+end
+
 
   # conf.cc do |cc|
   #   cc.command = ENV['CC'] || 'gcc'

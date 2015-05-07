@@ -1,6 +1,6 @@
 module MRuby
   module Benchmark
-    REPEAT = 6
+    REPEAT = 8
     BENCHMARKS_PER_PLOT = 12
 
     def dat_files
@@ -44,14 +44,22 @@ module MRuby
       all_data = {}
       files = dat_files_per_target
       files.each do |target_name, dat_files|
-        lines = dat_files.flat_map do |dat_file|
-          File.read(dat_file).each_line.to_a.map do |l|
-            bm_name, *vals = l.split(/\s+/)
-            [bm_name, vals.map(&:to_f)].flatten
+        bm_data = dat_files.map do |dat_file|
+          bm_name = File.basename dat_file, '.*'
+          cpu_times = File.read(dat_file).each_line.map do |l|
+            real, sys, user, res = l.split(/\s+/).map(&:to_f)
+            
+	    sys + user
           end
+          
+          min = cpu_times.min
+          max = cpu_times.max
+          avg = cpu_times.inject(&:+) / cpu_times.size
+
+          [bm_name, avg, min, max]
         end.sort_by{|e| e[1]}.reverse
 
-        all_data[target_name.gsub('_', '-')] = lines
+        all_data[target_name.gsub('_', '-')] = bm_data
       end
 
       @all_data = all_data
@@ -126,17 +134,14 @@ MRuby.each_target do |target|
       print bm_name
       puts "..."
 
-      data = (0...MRuby::Benchmark::REPEAT).map do |n|
-        str = %x{(time -f "%e %S %U" #{mruby_bin} #{bm_file}) 2>&1 >/dev/null}
-        str.split(' ').map(&:to_f)
-      end
-
       File.open(task.name, "w") do |f|
-        data = data.map {|_,r,s| (r + s) / 2.0}
-        min = data.min
-        max = data.max
-        avg = data.inject(&:+) / data.size
-        f.puts "#{bm_name.gsub('_', '-')} #{avg} #{min} #{max}"
+        MRuby::Benchmark::REPEAT.times do
+          # %e real
+          # %S sys
+          # %U user
+          # %M max. resident size
+          f.puts %x{(time -f "%e %S %U %M" #{mruby_bin} #{bm_file}) 2>&1 >/dev/null}
+        end
       end
     end
   end
