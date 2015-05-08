@@ -48,6 +48,7 @@
 #include <alloca.h>
 #include <stdlib.h>
 
+#define ALIGN(s, a) (((s) + (a) - 1) & ~((a) - 1))
 #define JIT_PRINTF(...) fprintf(stderr, __VA_ARGS__)
 //#define JIT_PRINTF
 
@@ -56,7 +57,7 @@ jit_page_size()
 {
   return sysconf(_SC_PAGESIZE);
 }
-#define ALIGN(s, a) (((s) + (a) - 1) & ~((a) - 1))
+
 static mrb_bool
 jit_ctx_alloc(mrb_state *mrb, struct mrb_jit_ctx *ctx, size_t text_size, size_t rodata_size)
 {
@@ -198,7 +199,11 @@ build_rodata_off_tbl(mrb_state *mrb, mrb_irep *irep)
   for(i = 0; i < irep->ilen; i++) {
     mrb_code c = irep->iseq[i];
     int opcode = GET_OPCODE(c);
-    int32_t next_off = tbl[i] + op_sizes_rodata[opcode];
+    size_t rodata_size = op_sizes_rodata[opcode];
+    if(op_algn_rodata[opcode] > 1) {
+      rodata_size = ALIGN(rodata_size, op_algn_rodata[opcode]);
+    }
+    int32_t next_off = tbl[i] + rodata_size;
     tbl[i + 1] = next_off;
   }
 
