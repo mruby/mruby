@@ -56,19 +56,26 @@ jit_page_size()
 {
   return sysconf(_SC_PAGESIZE);
 }
-
+#define ALIGN(s, a) (((s) + (a) - 1) & ~((a) - 1))
 static mrb_bool
-jit_page_alloc(struct mrb_jit_page *page, size_t size)
+jit_page_alloc(mrb_state *mrb, struct mrb_jit_page *page, size_t size)
 {
   size_t page_size = jit_page_size();
-  size = (size + page_size - 1) & ~(page_size - 1);
+  size = ALIGN(size, page_size);
+  //size = (size + page_size - 1) & ~(page_size - 1);
 
-  JIT_PRINTF( "allocating page of size %d\n", size);
+  JIT_PRINTF( "page counter is %d\n", mrb->jit_page_counter);
+  uint8_t *addr = (uint8_t *) ALIGN(INT32_MAX - (500 - mrb->jit_page_counter++) * size, page_size);
+  JIT_PRINTF( "allocating page of size %d (at %p)\n", size, addr);
 
-  page->data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+  page->data = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+
+  JIT_PRINTF("allocated page at %p\n", page->data);
   page->size = size;
 
-  return TRUE;
+  mrb_assert((page->data + size) < (uint8_t *)INT32_MAX);
+
+  return page->data != MAP_FAILED;
 }
 
 static void
@@ -211,7 +218,7 @@ mrb_irep_jit_prepare(mrb_state *mrb, mrb_irep *irep)
     init_ops();
 
     size = build_off_tbl(mrb, irep) + return_size();
-    jit_page_alloc(&irep->jit_page, size);
+    jit_page_alloc(mrb, &irep->jit_page, size);
 
     JIT_PRINTF( "need %d bytes for jit code (%d for the final return)\n", size, return_size());
 /*

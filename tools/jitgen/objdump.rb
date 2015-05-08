@@ -62,16 +62,17 @@ ObjectFile = Struct.new(:name, :architecture, :text, :asm, :symbols, :relocation
     io.puts "\n};"
   end
 
-  def link_func_to_c(io)
-    io.puts "static void #{name}_link(uint8_t *op) {"
+  def linker_to_c_func(io)
+    func_name = "#{name}_link"
+    io.puts "static void #{func_name}(uint8_t *op) {"
     relocations.each do |offset, (type, args)|
       case type
       when :R_X86_64_PC32
         # R_X86_64_PC32	2	word32	S+A-P
-        s = "((uint8_t *)#{args[0]})"
+        s = "((uintptr_t)#{args[0]})"
         a = "(#{args[1]})"
-        p = "(op + #{offset})"
-        io.puts "  *((int32_t *)(op + #{offset})) = (uint32_t)(#{s} + #{a} - #{p});"
+        p = "((uintptr_t)(op + #{offset}))"
+        io.puts "  *((int32_t *)(op + #{offset})) = (int32_t)(#{s} + #{a} - #{p});"
       when :R_X86_64_32
         # R_X86_64_32	10	word32	S+A
         # ignore
@@ -82,6 +83,8 @@ ObjectFile = Struct.new(:name, :architecture, :text, :asm, :symbols, :relocation
       end
     end
     io.puts "}"
+
+    func_name
   end
 
   private
@@ -167,7 +170,7 @@ ObjectFile = Struct.new(:name, :architecture, :text, :asm, :symbols, :relocation
     out = `objdump -rj .text #{filename}`
     out.each_line do |line|
       if line =~ /^(\h+)\s+(\w+)\s+(.?\w+)((?:\+|\-)0x\h+)?/
-        self.relocations[$1.to_i(16)] = [$2.to_sym, [$3, eval($4) || 0]]
+        self.relocations[$1.to_i(16)] = [$2.to_sym, [$3, eval($4 || "0")]]
       end
     end
   end

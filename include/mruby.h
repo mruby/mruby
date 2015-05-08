@@ -193,6 +193,7 @@ typedef struct mrb_state {
 
 #ifdef MRB_ENABLE_JIT
   void *op_ctx;
+  uint32_t jit_page_counter;
 #endif
 
 #ifdef MRB_ENABLE_METHOD_CACHE

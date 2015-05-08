@@ -3,8 +3,6 @@
 static uint8_t op_nop[] = {
 
 };
-static void op_nop_link(uint8_t *op) {
-}
 
 static void op_nop_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
 }
@@ -23,8 +21,6 @@ static uint8_t op_move[] = {
 0x48, 0x89, 0x88, 0x00, 0x10, 0xab, 0x00, /*19: mov    %rcx,0xab1000(%rax) */
 
 };
-static void op_move_link(uint8_t *op) {
-}
 
 static void op_move_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 7)) = b * 16 + 0;
@@ -48,8 +44,6 @@ static uint8_t op_loadl[] = {
 0x48, 0x89, 0x90, 0x00, 0x10, 0xab, 0x00, /*1d: mov    %rdx,0xab1000(%rax) */
 
 };
-static void op_loadl_link(uint8_t *op) {
-}
 
 static void op_loadl_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 11)) = b * 16 + 0;
@@ -71,8 +65,6 @@ static uint8_t op_loadi[] = {
 0xc7, 0x80, 0x00, 0x10, 0xab, 0x00, 0x00, 0x00, 0xbc, 0x00,/*12: movl   $0xbc0000,0xab1000(%rax) */
 
 };
-static void op_loadi_link(uint8_t *op) {
-}
 
 static void op_loadi_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 6)) = a * 16 + 8;
@@ -95,8 +87,6 @@ static uint8_t op_loadsym[] = {
 0x89, 0x88, 0x00, 0x10, 0xab, 0x00,       /*1c: mov    %ecx,0xab1000(%rax) */
 
 };
-static void op_loadsym_link(uint8_t *op) {
-}
 
 static void op_loadsym_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 6)) = a * 16 + 8;
@@ -117,8 +107,6 @@ static uint8_t op_loadnil[] = {
 0xc7, 0x80, 0x00, 0x10, 0xab, 0x00, 0x00, 0x00, 0x00, 0x00,/*12: movl   $0x0,0xab1000(%rax) */
 
 };
-static void op_loadnil_link(uint8_t *op) {
-}
 
 static void op_loadnil_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 6)) = a * 16 + 8;
@@ -139,8 +127,6 @@ static uint8_t op_loadself[] = {
 0x48, 0x89, 0x88, 0x00, 0x10, 0xab, 0x00, /*12: mov    %rcx,0xab1000(%rax) */
 
 };
-static void op_loadself_link(uint8_t *op) {
-}
 
 static void op_loadself_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 14)) = a * 16 + 8;
@@ -160,8 +146,6 @@ static uint8_t op_loadt[] = {
 0xc7, 0x80, 0x00, 0x10, 0xab, 0x00, 0x01, 0x00, 0x00, 0x00,/*12: movl   $0x1,0xab1000(%rax) */
 
 };
-static void op_loadt_link(uint8_t *op) {
-}
 
 static void op_loadt_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 6)) = a * 16 + 8;
@@ -181,8 +165,6 @@ static uint8_t op_loadf[] = {
 0xc7, 0x80, 0x00, 0x10, 0xab, 0x00, 0x01, 0x00, 0x00, 0x00,/*12: movl   $0x1,0xab1000(%rax) */
 
 };
-static void op_loadf_link(uint8_t *op) {
-}
 
 static void op_loadf_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 6)) = a * 16 + 8;
@@ -211,9 +193,6 @@ static uint8_t op_getglobal[] = {
 0x41, 0x5e,                               /*2f: pop    %r14 */
 
 };
-static void op_getglobal_link(uint8_t *op) {
-  *((int32_t *)(op + 25)) = (uint32_t)(((uint8_t *)mrb_gv_get) + (0) - (op + 25));
-}
 
 static void op_getglobal_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 20)) = b * 4 + 0;
@@ -241,9 +220,6 @@ static uint8_t op_setglobal[] = {
 0x5b,                                     /*2b: pop    %rbx */
 
 };
-static void op_setglobal_link(uint8_t *op) {
-  *((int32_t *)(op + 36)) = (uint32_t)(((uint8_t *)mrb_gv_set) + (0) - (op + 36));
-}
 
 static void op_setglobal_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 18)) = b * 4 + 0;
@@ -272,9 +248,6 @@ static uint8_t op_getspecial[] = {
 0x41, 0x5e,                               /*2a: pop    %r14 */
 
 };
-static void op_getspecial_link(uint8_t *op) {
-  *((int32_t *)(op + 20)) = (uint32_t)(((uint8_t *)mrb_vm_special_get) + (0) - (op + 20));
-}
 
 static void op_getspecial_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 15)) = b * 1 + 0;
@@ -301,9 +274,6 @@ static uint8_t op_setspecial[] = {
 0x5b,                                     /*26: pop    %rbx */
 
 };
-static void op_setspecial_link(uint8_t *op) {
-  *((int32_t *)(op + 31)) = (uint32_t)(((uint8_t *)mrb_vm_special_set) + (0) - (op + 31));
-}
 
 static void op_setspecial_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 15)) = a * 16 + 0;
@@ -333,9 +303,6 @@ static uint8_t op_getiv[] = {
 0x41, 0x5e,                               /*2f: pop    %r14 */
 
 };
-static void op_getiv_link(uint8_t *op) {
-  *((int32_t *)(op + 25)) = (uint32_t)(((uint8_t *)mrb_vm_iv_get) + (0) - (op + 25));
-}
 
 static void op_getiv_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 20)) = b * 4 + 0;
@@ -363,9 +330,6 @@ static uint8_t op_setiv[] = {
 0x5b,                                     /*2b: pop    %rbx */
 
 };
-static void op_setiv_link(uint8_t *op) {
-  *((int32_t *)(op + 36)) = (uint32_t)(((uint8_t *)mrb_vm_iv_set) + (0) - (op + 36));
-}
 
 static void op_setiv_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 18)) = b * 4 + 0;
@@ -404,9 +368,6 @@ static uint8_t op_getcv[] = {
 0x41, 0x5e,                               /*57: pop    %r14 */
 
 };
-static void op_getcv_link(uint8_t *op) {
-  *((int32_t *)(op + 45)) = (uint32_t)(((uint8_t *)mrb_vm_cv_get) + (0) - (op + 45));
-}
 
 static void op_getcv_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 40)) = b * 4 + 0;
@@ -434,9 +395,6 @@ static uint8_t op_setcv[] = {
 0x5b,                                     /*2b: pop    %rbx */
 
 };
-static void op_setcv_link(uint8_t *op) {
-  *((int32_t *)(op + 36)) = (uint32_t)(((uint8_t *)mrb_vm_cv_set) + (0) - (op + 36));
-}
 
 static void op_setcv_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 18)) = b * 4 + 0;
@@ -476,9 +434,6 @@ static uint8_t op_getconst[] = {
 0x5b,                                     /*5f: pop    %rbx */
 
 };
-static void op_getconst_link(uint8_t *op) {
-  *((int32_t *)(op + 39)) = (uint32_t)(((uint8_t *)mrb_vm_const_get) + (0) - (op + 39));
-}
 
 static void op_getconst_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 34)) = b * 4 + 0;
@@ -506,9 +461,6 @@ static uint8_t op_setconst[] = {
 0x5b,                                     /*2b: pop    %rbx */
 
 };
-static void op_setconst_link(uint8_t *op) {
-  *((int32_t *)(op + 36)) = (uint32_t)(((uint8_t *)mrb_vm_const_set) + (0) - (op + 36));
-}
 
 static void op_setconst_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 18)) = b * 4 + 0;
@@ -551,9 +503,6 @@ static uint8_t op_getmcnst[] = {
 0x5b,                                     /*70: pop    %rbx */
 
 };
-static void op_getmcnst_link(uint8_t *op) {
-  *((int32_t *)(op + 56)) = (uint32_t)(((uint8_t *)mrb_const_get) + (0) - (op + 56));
-}
 
 static void op_getmcnst_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 38)) = b * 4 + 0;
@@ -585,9 +534,6 @@ static uint8_t op_setmcnst[] = {
 0x5b,                                     /*39: pop    %rbx */
 
 };
-static void op_setmcnst_link(uint8_t *op) {
-  *((int32_t *)(op + 50)) = (uint32_t)(((uint8_t *)mrb_const_set) + (0) - (op + 50));
-}
 
 static void op_setmcnst_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 18)) = b * 4 + 0;
@@ -641,8 +587,6 @@ static uint8_t op_getupvar[] = {
 0x41, 0x5e,                               /*78: pop    %r14 */
 
 };
-static void op_getupvar_link(uint8_t *op) {
-}
 
 static void op_getupvar_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 13)) = a * 16 + 0;
@@ -691,9 +635,6 @@ static uint8_t op_setupvar[] = {
 0x5b,                                     /*6b: pop    %rbx */
 
 };
-static void op_setupvar_link(uint8_t *op) {
-  *((int32_t *)(op + 100)) = (uint32_t)(((uint8_t *)mrb_write_barrier) + (0) - (op + 100));
-}
 
 static void op_setupvar_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 5)) = c * 1 + 0;
@@ -712,8 +653,6 @@ static void op_setupvar_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_
 static uint8_t op_jmp[] = {
 
 };
-static void op_jmp_link(uint8_t *op) {
-}
 
 static void op_jmp_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
 }
@@ -729,8 +668,6 @@ static uint8_t op_jmpif[] = {
 0x83, 0xb8, 0x08, 0x10, 0xab, 0x00, 0x00, /*4: cmpl   $0x0,0xab1008(%rax) */
 
 };
-static void op_jmpif_link(uint8_t *op) {
-}
 
 static void op_jmpif_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 6)) = a * 16 + 8;
@@ -747,8 +684,6 @@ static uint8_t op_jmpnot[] = {
 0x83, 0xb8, 0x08, 0x10, 0xab, 0x00, 0x00, /*4: cmpl   $0x0,0xab1008(%rax) */
 
 };
-static void op_jmpnot_link(uint8_t *op) {
-}
 
 static void op_jmpnot_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 6)) = a * 16 + 8;
@@ -802,9 +737,6 @@ static uint8_t op_onerr[] = {
 0x5b,                                     /*90: pop    %rbx */
 
 };
-static void op_onerr_link(uint8_t *op) {
-  *((int32_t *)(op + 61)) = (uint32_t)(((uint8_t *)mrb_realloc) + (0) - (op + 61));
-}
 
 static void op_onerr_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 92)) = op_idx * 4 + 0;
@@ -830,8 +762,6 @@ static uint8_t op_rescue[] = {
 0x48, 0xc7, 0x40, 0x28, 0x00, 0x00, 0x00, 0x00,/*2c: movq   $0x0,0x28(%rax) */
 
 };
-static void op_rescue_link(uint8_t *op) {
-}
 
 static void op_rescue_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 17)) = a * 16 + 8;
@@ -855,8 +785,6 @@ static uint8_t op_poperr[] = {
 0x75, 0xed,                               /*21: jne    10 <op_poperr+0x10> */
 
 };
-static void op_poperr_link(uint8_t *op) {
-}
 
 static void op_poperr_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
 }
@@ -879,9 +807,6 @@ static uint8_t op_raise[] = {
 0x5b,                                     /*1f: pop    %rbx */
 
 };
-static void op_raise_link(uint8_t *op) {
-  *((int32_t *)(op + 24)) = (uint32_t)(((uint8_t *)_op_raise) + (0) - (op + 24));
-}
 
 static void op_raise_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 15)) = a * 16 + 0;
@@ -943,10 +868,6 @@ static uint8_t op_epush[] = {
 0x41, 0x5e,                               /*a5: pop    %r14 */
 
 };
-static void op_epush_link(uint8_t *op) {
-  *((int32_t *)(op + 26)) = (uint32_t)(((uint8_t *)mrb_closure_new) + (0) - (op + 26));
-  *((int32_t *)(op + 92)) = (uint32_t)(((uint8_t *)mrb_realloc) + (0) - (op + 92));
-}
 
 static void op_epush_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 21)) = b * 8 + 0;
@@ -989,9 +910,6 @@ static uint8_t op_epop[] = {
 0x5d,                                     /*53: pop    %rbp */
 
 };
-static void op_epop_link(uint8_t *op) {
-  *((int32_t *)(op + 47)) = (uint32_t)(((uint8_t *)ecall) + (0) - (op + 47));
-}
 
 static void op_epop_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 69)) = a * 1 + 0;
@@ -1041,9 +959,6 @@ static uint8_t op_send[] = {
 0x5d,                                     /*6e: pop    %rbp */
 
 };
-static void op_send_link(uint8_t *op) {
-  *((int32_t *)(op + 70)) = (uint32_t)(((uint8_t *)_op_send) + (0) - (op + 70));
-}
 
 static void op_send_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 15)) = a * 1 + 0;
@@ -1078,9 +993,6 @@ static uint8_t op_sendb[] = {
 0x5d,                                     /*37: pop    %rbp */
 
 };
-static void op_sendb_link(uint8_t *op) {
-  *((int32_t *)(op + 43)) = (uint32_t)(((uint8_t *)_op_send) + (0) - (op + 43));
-}
 
 static void op_sendb_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 17)) = a * 1 + 0;
@@ -1097,8 +1009,6 @@ static void op_sendb_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx
 static uint8_t op_fsend[] = {
 
 };
-static void op_fsend_link(uint8_t *op) {
-}
 
 static void op_fsend_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
 }
@@ -1234,14 +1144,6 @@ static uint8_t op_call[] = {
 0x5d,                                     /*1c3: pop    %rbp */
 
 };
-static void op_call_link(uint8_t *op) {
-  *((int32_t *)(op + 116)) = (uint32_t)(((uint8_t *)mrb_gc_arena_restore) + (0) - (op + 116));
-  *((int32_t *)(op + 135)) = (uint32_t)(((uint8_t *)_op_raise) + (0) - (op + 135));
-  *((int32_t *)(op + 267)) = (uint32_t)(((uint8_t *)cipop) + (0) - (op + 267));
-  *((int32_t *)(op + 353)) = (uint32_t)(((uint8_t *)_op_return) + (0) - (op + 353));
-  *((int32_t *)(op + 376)) = (uint32_t)(((uint8_t *)stack_extend) + (0) - (op + 376));
-  *((int32_t *)(op + 441)) = (uint32_t)(((uint8_t *)mrb_proc_call_jit) + (0) - (op + 441));
-}
 
 static void op_call_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 343)) = a * 1 + 0;
@@ -1436,21 +1338,6 @@ static uint8_t op_super[] = {
 0x5d,                                     /*2bf: pop    %rbp */
 
 };
-static void op_super_link(uint8_t *op) {
-  *((int32_t *)(op + 155)) = (uint32_t)(((uint8_t *)_mrb_str_const_nomethod_error) + (0) - (op + 155));
-  *((int32_t *)(op + 163)) = (uint32_t)(((uint8_t *)mrb_class_get) + (0) - (op + 163));
-  *((int32_t *)(op + 185)) = (uint32_t)(((uint8_t *)mrb_str_new_static) + (0) - (op + 185));
-  *((int32_t *)(op + 201)) = (uint32_t)(((uint8_t *)mrb_exc_new_str) + (0) - (op + 201));
-  *((int32_t *)(op + 226)) = (uint32_t)(((uint8_t *)_mrb_method_search_vm) + (0) - (op + 226));
-  *((int32_t *)(op + 262)) = (uint32_t)(((uint8_t *)mrb_intern_static) + (0) - (op + 262));
-  *((int32_t *)(op + 282)) = (uint32_t)(((uint8_t *)mrb_method_search_vm) + (0) - (op + 282));
-  *((int32_t *)(op + 379)) = (uint32_t)(((uint8_t *)cipush) + (0) - (op + 379));
-  *((int32_t *)(op + 523)) = (uint32_t)(((uint8_t *)mrb_gc_arena_restore) + (0) - (op + 523));
-  *((int32_t *)(op + 542)) = (uint32_t)(((uint8_t *)_op_raise) + (0) - (op + 542));
-  *((int32_t *)(op + 613)) = (uint32_t)(((uint8_t *)stack_extend) + (0) - (op + 613));
-  *((int32_t *)(op + 652)) = (uint32_t)(((uint8_t *)mrb_proc_call_jit) + (0) - (op + 652));
-  *((int32_t *)(op + 683)) = (uint32_t)(((uint8_t *)cipop) + (0) - (op + 683));
-}
 
 static void op_super_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 234)) = c * 1 + 0;
@@ -1666,15 +1553,6 @@ static uint8_t op_argary[] = {
 0x5d,                                     /*2d3: pop    %rbp */
 
 };
-static void op_argary_link(uint8_t *op) {
-  *((int32_t *)(op + 122)) = (uint32_t)(((uint8_t *)_mrb_str_const_nomethod_error) + (0) - (op + 122));
-  *((int32_t *)(op + 130)) = (uint32_t)(((uint8_t *)mrb_class_get) + (0) - (op + 130));
-  *((int32_t *)(op + 153)) = (uint32_t)(((uint8_t *)mrb_str_new_static) + (0) - (op + 153));
-  *((int32_t *)(op + 169)) = (uint32_t)(((uint8_t *)mrb_exc_new_str) + (0) - (op + 169));
-  *((int32_t *)(op + 181)) = (uint32_t)(((uint8_t *)_op_raise) + (0) - (op + 181));
-  *((int32_t *)(op + 335)) = (uint32_t)(((uint8_t *)mrb_ary_new_capa) + (0) - (op + 335));
-  *((int32_t *)(op + 624)) = (uint32_t)(((uint8_t *)mrb_ary_new_from_values) + (0) - (op + 624));
-}
 
 static void op_argary_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 21)) = b * 1 + 0;
@@ -2177,16 +2055,6 @@ static uint8_t op_enter[] = {
 0xff, 0xe6,                               /*6fe: jmpq   *%rsi */
 
 };
-static void op_enter_link(uint8_t *op) {
-  *((int32_t *)(op + 182)) = (uint32_t)(((uint8_t *)mrb_convert_type) + (0) - (op + 182));
-  *((int32_t *)(op + 249)) = (uint32_t)(((uint8_t *)printf) + (0) - (op + 249));
-  *((int32_t *)(op + 295)) = (uint32_t)(((uint8_t *)mrb_gc_protect) + (0) - (op + 295));
-  *((int32_t *)(op + 373)) = (uint32_t)(((uint8_t *)argnum_error) + (0) - (op + 373));
-  *((int32_t *)(op + 381)) = (uint32_t)(((uint8_t *)_op_raise) + (0) - (op + 381));
-  *((int32_t *)(op + 430)) = (uint32_t)(((uint8_t *)mrb_gc_protect) + (0) - (op + 430));
-  *((int32_t *)(op + 1252)) = (uint32_t)(((uint8_t *)mrb_ary_new_from_values) + (0) - (op + 1252));
-  *((int32_t *)(op + 1571)) = (uint32_t)(((uint8_t *)mrb_ary_new_capa) + (0) - (op + 1571));
-}
 
 static void op_enter_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 18)) = a * 1 + 0;
@@ -2333,12 +2201,6 @@ static uint8_t op_enter_method_m[] = {
 0xff, 0xe6,                               /*1c3: jmpq   *%rsi */
 
 };
-static void op_enter_method_m_link(uint8_t *op) {
-  *((int32_t *)(op + 125)) = (uint32_t)(((uint8_t *)mrb_convert_type) + (0) - (op + 125));
-  *((int32_t *)(op + 167)) = (uint32_t)(((uint8_t *)argnum_error) + (0) - (op + 167));
-  *((int32_t *)(op + 175)) = (uint32_t)(((uint8_t *)_op_raise) + (0) - (op + 175));
-  *((int32_t *)(op + 204)) = (uint32_t)(((uint8_t *)mrb_gc_protect) + (0) - (op + 204));
-}
 
 static void op_enter_method_m_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 14)) = a * 1 + 0;
@@ -2353,8 +2215,6 @@ static void op_enter_method_m_set_args_from_code(uint8_t *op, mrb_code c, uint32
 static uint8_t op_karg[] = {
 
 };
-static void op_karg_link(uint8_t *op) {
-}
 
 static void op_karg_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
 }
@@ -2368,8 +2228,6 @@ static void op_karg_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx)
 static uint8_t op_kdict[] = {
 
 };
-static void op_kdict_link(uint8_t *op) {
-}
 
 static void op_kdict_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
 }
@@ -2397,9 +2255,6 @@ static uint8_t op_return[] = {
 0xc3,                                     /*25: retq */
 
 };
-static void op_return_link(uint8_t *op) {
-  *((int32_t *)(op + 24)) = (uint32_t)(((uint8_t *)_op_return) + (0) - (op + 24));
-}
 
 static void op_return_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 17)) = a * 1 + 0;
@@ -2422,9 +2277,6 @@ static uint8_t op_break[] = {
 0xc3,                                     /*17: retq */
 
 };
-static void op_break_link(uint8_t *op) {
-  *((int32_t *)(op + 15)) = (uint32_t)(((uint8_t *)_op_return) + (0) - (op + 15));
-}
 
 static void op_break_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 5)) = a * 1 + 0;
@@ -2642,15 +2494,6 @@ static uint8_t op_tailcall[] = {
 0xe9, 0x4d, 0xfd, 0xff, 0xff,             /*314: jmpq   66 <op_tailcall+0x66> */
 
 };
-static void op_tailcall_link(uint8_t *op) {
-  *((int32_t *)(op + 200)) = (uint32_t)(((uint8_t *)_mrb_method_search_vm) + (0) - (op + 200));
-  *((int32_t *)(op + 248)) = (uint32_t)(((uint8_t *)mrb_intern_static) + (0) - (op + 248));
-  *((int32_t *)(op + 267)) = (uint32_t)(((uint8_t *)mrb_method_search_vm) + (0) - (op + 267));
-  *((int32_t *)(op + 583)) = (uint32_t)(((uint8_t *)mrb_gc_arena_restore) + (0) - (op + 583));
-  *((int32_t *)(op + 598)) = (uint32_t)(((uint8_t *)_op_return) + (0) - (op + 598));
-  *((int32_t *)(op + 665)) = (uint32_t)(((uint8_t *)stack_extend) + (0) - (op + 665));
-  *((int32_t *)(op + 704)) = (uint32_t)(((uint8_t *)mrb_proc_call_jit) + (0) - (op + 704));
-}
 
 static void op_tailcall_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 32)) = b * 4 + 0;
@@ -2740,10 +2583,6 @@ static uint8_t op_blkpush[] = {
 0x41, 0x5e,                               /*d1: pop    %r14 */
 
 };
-static void op_blkpush_link(uint8_t *op) {
-  *((int32_t *)(op + 109)) = (uint32_t)(((uint8_t *)localjump_error) + (0) - (op + 109));
-  *((int32_t *)(op + 117)) = (uint32_t)(((uint8_t *)_op_raise) + (0) - (op + 117));
-}
 
 static void op_blkpush_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 14)) = b * 1 + 0;
@@ -2829,10 +2668,6 @@ static uint8_t op_add[] = {
 0x41, 0x5f,                               /*14b: pop    %r15 */
 
 };
-static void op_add_link(uint8_t *op) {
-  *((int32_t *)(op + 157)) = (uint32_t)(((uint8_t *)mrb_str_plus) + (0) - (op + 157));
-  *((int32_t *)(op + 292)) = (uint32_t)(((uint8_t *)op_send) + (0) - (op + 292));
-}
 
 static void op_add_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 18)) = a * 16 + 8;
@@ -2864,63 +2699,61 @@ static void op_add_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) 
 }
 
 
-/* args: {"a"=>[[16, 8, 17..20], [16, 0, 34..37], [16, 0, 42..45], [16, 0, 55..58], [16, 8, 67..70], [16, 0, 91..94], [16, 24, 99..102], [16, 16, 109..112], [1, 0, 119..122], [16, 8, 146..149], [16, 0, 156..159]], "b"=>[[1, 0, 124..127]]} */
+/* args: {"c"=>[[1, 0, 5..8]], "a"=>[[16, 8, 15..18], [16, 0, 32..35], [16, 0, 40..43], [16, 0, 53..56], [16, 8, 65..68], [16, 0, 89..92], [16, 24, 97..100], [16, 16, 107..110], [1, 0, 117..120], [16, 8, 144..147], [16, 0, 154..157]], "b"=>[[1, 0, 122..125]]} */
 static uint8_t op_addi[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
-0x8b, 0x0c, 0x25, 0xba, 0xab, 0x0f, 0x00, /*4: mov    0xfabba,%ecx */
-0x48, 0x8b, 0x43, 0x18,                   /*b: mov    0x18(%rbx),%rax */
-0x8b, 0x90, 0x08, 0x10, 0xab, 0x00,       /*f: mov    0xab1008(%rax),%edx */
-0x83, 0xfa, 0x06,                         /*15: cmp    $0x6,%edx */
-0x75, 0x16,                               /*18: jne    30 <op_addi+0x30> */
-0xf2, 0x0f, 0x2a, 0xc1,                   /*1a: cvtsi2sd %ecx,%xmm0 */
-0xf2, 0x0f, 0x58, 0x80, 0x00, 0x10, 0xab, 0x00,/*1e: addsd  0xab1000(%rax),%xmm0 */
-0xf2, 0x0f, 0x11, 0x80, 0x00, 0x10, 0xab, 0x00,/*26: movsd  %xmm0,0xab1000(%rax) */
-0xeb, 0x70,                               /*2e: jmp    a0 <op_addi+0xa0> */
-0x83, 0xfa, 0x03,                         /*30: cmp    $0x3,%edx */
-0x75, 0x2c,                               /*33: jne    61 <op_addi+0x61> */
-0x8b, 0x90, 0x00, 0x10, 0xab, 0x00,       /*35: mov    0xab1000(%rax),%edx */
-0x89, 0xd6,                               /*3b: mov    %edx,%esi */
-0x01, 0xce,                               /*3d: add    %ecx,%esi */
-0x71, 0x4f,                               /*3f: jno    90 <op_addi+0x90> */
-0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x06, 0x00, 0x00, 0x00,/*41: movl   $0x6,0xab1008(%rax) */
-0xf2, 0x0f, 0x2a, 0xc2,                   /*4b: cvtsi2sd %edx,%xmm0 */
-0xf2, 0x0f, 0x2a, 0xc9,                   /*4f: cvtsi2sd %ecx,%xmm1 */
-0xf2, 0x0f, 0x58, 0xc8,                   /*53: addsd  %xmm0,%xmm1 */
-0xf2, 0x0f, 0x11, 0x88, 0x00, 0x10, 0xab, 0x00,/*57: movsd  %xmm1,0xab1000(%rax) */
-0xeb, 0x3f,                               /*5f: jmp    a0 <op_addi+0xa0> */
-0xc7, 0x80, 0x18, 0x10, 0xab, 0x00, 0x03, 0x00, 0x00, 0x00,/*61: movl   $0x3,0xab1018(%rax) */
-0x89, 0x88, 0x10, 0x10, 0xab, 0x00,       /*6b: mov    %ecx,0xab1010(%rax) */
-0xbe, 0x20, 0x00, 0x00, 0x00,             /*71: mov    $0x20,%esi */
-0xba, 0x00, 0x00, 0xab, 0x00,             /*76: mov    $0xab0000,%edx */
-0xb9, 0x00, 0x00, 0xbc, 0x00,             /*7b: mov    $0xbc0000,%ecx */
-0x41, 0xb8, 0x01, 0x00, 0x00, 0x00,       /*80: mov    $0x1,%r8d */
-0x48, 0x89, 0xdf,                         /*86: mov    %rbx,%rdi */
-0xe8, 0x00, 0x00, 0x00, 0x00,             /*89: callq  8e <op_addi+0x8e> */
-0xeb, 0x10,                               /*8e: jmp    a0 <op_addi+0xa0> */
-0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x03, 0x00, 0x00, 0x00,/*90: movl   $0x3,0xab1008(%rax) */
-0x89, 0xb0, 0x00, 0x10, 0xab, 0x00,       /*9a: mov    %esi,0xab1000(%rax) */
-0x48, 0x89, 0xdf,                         /*a0: mov    %rbx,%rdi */
-0x5b,                                     /*a3: pop    %rbx */
+0xb8, 0x00, 0x00, 0xcd, 0x00,             /*4: mov    $0xcd0000,%eax */
+0x48, 0x8b, 0x4b, 0x18,                   /*9: mov    0x18(%rbx),%rcx */
+0x8b, 0x91, 0x08, 0x10, 0xab, 0x00,       /*d: mov    0xab1008(%rcx),%edx */
+0x83, 0xfa, 0x06,                         /*13: cmp    $0x6,%edx */
+0x75, 0x16,                               /*16: jne    2e <op_addi+0x2e> */
+0xf2, 0x0f, 0x2a, 0xc0,                   /*18: cvtsi2sd %eax,%xmm0 */
+0xf2, 0x0f, 0x58, 0x81, 0x00, 0x10, 0xab, 0x00,/*1c: addsd  0xab1000(%rcx),%xmm0 */
+0xf2, 0x0f, 0x11, 0x81, 0x00, 0x10, 0xab, 0x00,/*24: movsd  %xmm0,0xab1000(%rcx) */
+0xeb, 0x70,                               /*2c: jmp    9e <op_addi+0x9e> */
+0x83, 0xfa, 0x03,                         /*2e: cmp    $0x3,%edx */
+0x75, 0x2c,                               /*31: jne    5f <op_addi+0x5f> */
+0x8b, 0x91, 0x00, 0x10, 0xab, 0x00,       /*33: mov    0xab1000(%rcx),%edx */
+0x89, 0xd6,                               /*39: mov    %edx,%esi */
+0x01, 0xc6,                               /*3b: add    %eax,%esi */
+0x71, 0x4f,                               /*3d: jno    8e <op_addi+0x8e> */
+0xc7, 0x81, 0x08, 0x10, 0xab, 0x00, 0x06, 0x00, 0x00, 0x00,/*3f: movl   $0x6,0xab1008(%rcx) */
+0xf2, 0x0f, 0x2a, 0xc2,                   /*49: cvtsi2sd %edx,%xmm0 */
+0xf2, 0x0f, 0x2a, 0xc8,                   /*4d: cvtsi2sd %eax,%xmm1 */
+0xf2, 0x0f, 0x58, 0xc8,                   /*51: addsd  %xmm0,%xmm1 */
+0xf2, 0x0f, 0x11, 0x89, 0x00, 0x10, 0xab, 0x00,/*55: movsd  %xmm1,0xab1000(%rcx) */
+0xeb, 0x3f,                               /*5d: jmp    9e <op_addi+0x9e> */
+0xc7, 0x81, 0x18, 0x10, 0xab, 0x00, 0x03, 0x00, 0x00, 0x00,/*5f: movl   $0x3,0xab1018(%rcx) */
+0x89, 0x81, 0x10, 0x10, 0xab, 0x00,       /*69: mov    %eax,0xab1010(%rcx) */
+0xbe, 0x20, 0x00, 0x00, 0x00,             /*6f: mov    $0x20,%esi */
+0xba, 0x00, 0x00, 0xab, 0x00,             /*74: mov    $0xab0000,%edx */
+0xb9, 0x00, 0x00, 0xbc, 0x00,             /*79: mov    $0xbc0000,%ecx */
+0x41, 0xb8, 0x01, 0x00, 0x00, 0x00,       /*7e: mov    $0x1,%r8d */
+0x48, 0x89, 0xdf,                         /*84: mov    %rbx,%rdi */
+0xe8, 0x00, 0x00, 0x00, 0x00,             /*87: callq  8c <op_addi+0x8c> */
+0xeb, 0x10,                               /*8c: jmp    9e <op_addi+0x9e> */
+0xc7, 0x81, 0x08, 0x10, 0xab, 0x00, 0x03, 0x00, 0x00, 0x00,/*8e: movl   $0x3,0xab1008(%rcx) */
+0x89, 0xb1, 0x00, 0x10, 0xab, 0x00,       /*98: mov    %esi,0xab1000(%rcx) */
+0x48, 0x89, 0xdf,                         /*9e: mov    %rbx,%rdi */
+0x5b,                                     /*a1: pop    %rbx */
 
 };
-static void op_addi_link(uint8_t *op) {
-  *((int32_t *)(op + 138)) = (uint32_t)(((uint8_t *)_op_send) + (0) - (op + 138));
-}
 
 static void op_addi_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-  *((int32_t *)(op + 17)) = a * 16 + 8;
-  *((int32_t *)(op + 34)) = a * 16 + 0;
-  *((int32_t *)(op + 42)) = a * 16 + 0;
-  *((int32_t *)(op + 55)) = a * 16 + 0;
-  *((int32_t *)(op + 67)) = a * 16 + 8;
-  *((int32_t *)(op + 91)) = a * 16 + 0;
-  *((int32_t *)(op + 99)) = a * 16 + 24;
-  *((int32_t *)(op + 109)) = a * 16 + 16;
-  *((int32_t *)(op + 119)) = a * 1 + 0;
-  *((int32_t *)(op + 146)) = a * 16 + 8;
-  *((int32_t *)(op + 156)) = a * 16 + 0;
-  *((int32_t *)(op + 124)) = b * 1 + 0;
+  *((int32_t *)(op + 5)) = c * 1 + 0;
+  *((int32_t *)(op + 15)) = a * 16 + 8;
+  *((int32_t *)(op + 32)) = a * 16 + 0;
+  *((int32_t *)(op + 40)) = a * 16 + 0;
+  *((int32_t *)(op + 53)) = a * 16 + 0;
+  *((int32_t *)(op + 65)) = a * 16 + 8;
+  *((int32_t *)(op + 89)) = a * 16 + 0;
+  *((int32_t *)(op + 97)) = a * 16 + 24;
+  *((int32_t *)(op + 107)) = a * 16 + 16;
+  *((int32_t *)(op + 117)) = a * 1 + 0;
+  *((int32_t *)(op + 144)) = a * 16 + 8;
+  *((int32_t *)(op + 154)) = a * 16 + 0;
+  *((int32_t *)(op + 122)) = b * 1 + 0;
 }
 
 static void op_addi_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
@@ -2980,9 +2813,6 @@ static uint8_t op_sub[] = {
 0x5b,                                     /*eb: pop    %rbx */
 
 };
-static void op_sub_link(uint8_t *op) {
-  *((int32_t *)(op + 210)) = (uint32_t)(((uint8_t *)op_send) + (0) - (op + 210));
-}
 
 static void op_sub_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 10)) = a * 16 + 8;
@@ -3009,61 +2839,62 @@ static void op_sub_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) 
 }
 
 
-/* args: {"a"=>[[16, 8, 10..13], [16, 0, 23..26], [16, 0, 36..39], [16, 8, 52..55], [16, 0, 76..79], [16, 24, 84..87], [16, 16, 94..97], [1, 0, 108..111], [16, 8, 135..138], [16, 0, 145..148]], "c"=>[[1, 0, 44..47], [1, 0, 98..101]], "b"=>[[1, 0, 113..116]]} */
+/* args: {"c"=>[[1, 0, 5..8]], "a"=>[[16, 8, 15..18], [16, 0, 32..35], [16, 0, 44..47], [16, 0, 57..60], [16, 8, 69..72], [16, 0, 93..96], [16, 24, 101..104], [16, 16, 111..114], [1, 0, 121..124], [16, 8, 148..151], [16, 0, 158..161]], "b"=>[[1, 0, 126..129]]} */
 static uint8_t op_subi[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
-0x48, 0x8b, 0x43, 0x18,                   /*4: mov    0x18(%rbx),%rax */
-0x8b, 0x88, 0x08, 0x10, 0xab, 0x00,       /*8: mov    0xab1008(%rax),%ecx */
-0x83, 0xf9, 0x06,                         /*e: cmp    $0x6,%ecx */
-0x75, 0x0a,                               /*11: jne    1d <op_subi+0x1d> */
-0xf2, 0x0f, 0x10, 0x80, 0x00, 0x10, 0xab, 0x00,/*13: movsd  0xab1000(%rax),%xmm0 */
-0xeb, 0x23,                               /*1b: jmp    40 <op_subi+0x40> */
-0x83, 0xf9, 0x03,                         /*1d: cmp    $0x3,%ecx */
-0x75, 0x30,                               /*20: jne    52 <op_subi+0x52> */
-0x8b, 0x88, 0x00, 0x10, 0xab, 0x00,       /*22: mov    0xab1000(%rax),%ecx */
-0x89, 0xca,                               /*28: mov    %ecx,%edx */
-0x81, 0xea, 0x00, 0x00, 0xcd, 0x00,       /*2a: sub    $0xcd0000,%edx */
-0x71, 0x53,                               /*30: jno    85 <op_subi+0x85> */
-0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x06, 0x00, 0x00, 0x00,/*32: movl   $0x6,0xab1008(%rax) */
-0xf2, 0x0f, 0x2a, 0xc1,                   /*3c: cvtsi2sd %ecx,%xmm0 */
-0xf2, 0x0f, 0x58, 0x05, 0x00, 0x00, 0x00, 0x00,/*40: addsd  0x0(%rip),%xmm0        # 48 <op_subi+0x48> */
-0xf2, 0x0f, 0x11, 0x80, 0x00, 0x10, 0xab, 0x00,/*48: movsd  %xmm0,0xab1000(%rax) */
-0xeb, 0x43,                               /*50: jmp    95 <op_subi+0x95> */
-0xc7, 0x80, 0x18, 0x10, 0xab, 0x00, 0x03, 0x00, 0x00, 0x00,/*52: movl   $0x3,0xab1018(%rax) */
-0xc7, 0x80, 0x10, 0x10, 0xab, 0x00, 0x00, 0x00, 0xcd, 0x00,/*5c: movl   $0xcd0000,0xab1010(%rax) */
-0xbe, 0x20, 0x00, 0x00, 0x00,             /*66: mov    $0x20,%esi */
-0xba, 0x00, 0x00, 0xab, 0x00,             /*6b: mov    $0xab0000,%edx */
-0xb9, 0x00, 0x00, 0xbc, 0x00,             /*70: mov    $0xbc0000,%ecx */
-0x41, 0xb8, 0x01, 0x00, 0x00, 0x00,       /*75: mov    $0x1,%r8d */
-0x48, 0x89, 0xdf,                         /*7b: mov    %rbx,%rdi */
-0xe8, 0x00, 0x00, 0x00, 0x00,             /*7e: callq  83 <op_subi+0x83> */
-0xeb, 0x10,                               /*83: jmp    95 <op_subi+0x95> */
-0xc7, 0x80, 0x08, 0x10, 0xab, 0x00, 0x03, 0x00, 0x00, 0x00,/*85: movl   $0x3,0xab1008(%rax) */
-0x89, 0x90, 0x00, 0x10, 0xab, 0x00,       /*8f: mov    %edx,0xab1000(%rax) */
-0x48, 0x89, 0xdf,                         /*95: mov    %rbx,%rdi */
-0x5b,                                     /*98: pop    %rbx */
+0xb8, 0x00, 0x00, 0xcd, 0x00,             /*4: mov    $0xcd0000,%eax */
+0x48, 0x8b, 0x4b, 0x18,                   /*9: mov    0x18(%rbx),%rcx */
+0x8b, 0x91, 0x08, 0x10, 0xab, 0x00,       /*d: mov    0xab1008(%rcx),%edx */
+0x83, 0xfa, 0x06,                         /*13: cmp    $0x6,%edx */
+0x75, 0x1a,                               /*16: jne    32 <op_subi+0x32> */
+0xf2, 0x0f, 0x2a, 0xc0,                   /*18: cvtsi2sd %eax,%xmm0 */
+0xf2, 0x0f, 0x10, 0x89, 0x00, 0x10, 0xab, 0x00,/*1c: movsd  0xab1000(%rcx),%xmm1 */
+0xf2, 0x0f, 0x5c, 0xc8,                   /*24: subsd  %xmm0,%xmm1 */
+0xf2, 0x0f, 0x11, 0x89, 0x00, 0x10, 0xab, 0x00,/*28: movsd  %xmm1,0xab1000(%rcx) */
+0xeb, 0x70,                               /*30: jmp    a2 <op_subi+0xa2> */
+0x83, 0xfa, 0x03,                         /*32: cmp    $0x3,%edx */
+0x75, 0x2c,                               /*35: jne    63 <op_subi+0x63> */
+0x8b, 0x91, 0x00, 0x10, 0xab, 0x00,       /*37: mov    0xab1000(%rcx),%edx */
+0x89, 0xd6,                               /*3d: mov    %edx,%esi */
+0x29, 0xc6,                               /*3f: sub    %eax,%esi */
+0x71, 0x4f,                               /*41: jno    92 <op_subi+0x92> */
+0xc7, 0x81, 0x08, 0x10, 0xab, 0x00, 0x06, 0x00, 0x00, 0x00,/*43: movl   $0x6,0xab1008(%rcx) */
+0xf2, 0x0f, 0x2a, 0xc2,                   /*4d: cvtsi2sd %edx,%xmm0 */
+0xf2, 0x0f, 0x2a, 0xc8,                   /*51: cvtsi2sd %eax,%xmm1 */
+0xf2, 0x0f, 0x5c, 0xc1,                   /*55: subsd  %xmm1,%xmm0 */
+0xf2, 0x0f, 0x11, 0x81, 0x00, 0x10, 0xab, 0x00,/*59: movsd  %xmm0,0xab1000(%rcx) */
+0xeb, 0x3f,                               /*61: jmp    a2 <op_subi+0xa2> */
+0xc7, 0x81, 0x18, 0x10, 0xab, 0x00, 0x03, 0x00, 0x00, 0x00,/*63: movl   $0x3,0xab1018(%rcx) */
+0x89, 0x81, 0x10, 0x10, 0xab, 0x00,       /*6d: mov    %eax,0xab1010(%rcx) */
+0xbe, 0x20, 0x00, 0x00, 0x00,             /*73: mov    $0x20,%esi */
+0xba, 0x00, 0x00, 0xab, 0x00,             /*78: mov    $0xab0000,%edx */
+0xb9, 0x00, 0x00, 0xbc, 0x00,             /*7d: mov    $0xbc0000,%ecx */
+0x41, 0xb8, 0x01, 0x00, 0x00, 0x00,       /*82: mov    $0x1,%r8d */
+0x48, 0x89, 0xdf,                         /*88: mov    %rbx,%rdi */
+0xe8, 0x00, 0x00, 0x00, 0x00,             /*8b: callq  90 <op_subi+0x90> */
+0xeb, 0x10,                               /*90: jmp    a2 <op_subi+0xa2> */
+0xc7, 0x81, 0x08, 0x10, 0xab, 0x00, 0x03, 0x00, 0x00, 0x00,/*92: movl   $0x3,0xab1008(%rcx) */
+0x89, 0xb1, 0x00, 0x10, 0xab, 0x00,       /*9c: mov    %esi,0xab1000(%rcx) */
+0x48, 0x89, 0xdf,                         /*a2: mov    %rbx,%rdi */
+0x5b,                                     /*a5: pop    %rbx */
 
 };
-static void op_subi_link(uint8_t *op) {
-  *((int32_t *)(op + 68)) = (uint32_t)(((uint8_t *).LCPI0_0) + (0) - (op + 68));
-  *((int32_t *)(op + 127)) = (uint32_t)(((uint8_t *)_op_send) + (0) - (op + 127));
-}
 
 static void op_subi_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-  *((int32_t *)(op + 10)) = a * 16 + 8;
-  *((int32_t *)(op + 23)) = a * 16 + 0;
-  *((int32_t *)(op + 36)) = a * 16 + 0;
-  *((int32_t *)(op + 52)) = a * 16 + 8;
-  *((int32_t *)(op + 76)) = a * 16 + 0;
-  *((int32_t *)(op + 84)) = a * 16 + 24;
-  *((int32_t *)(op + 94)) = a * 16 + 16;
-  *((int32_t *)(op + 108)) = a * 1 + 0;
-  *((int32_t *)(op + 135)) = a * 16 + 8;
-  *((int32_t *)(op + 145)) = a * 16 + 0;
-  *((int32_t *)(op + 44)) = c * 1 + 0;
-  *((int32_t *)(op + 98)) = c * 1 + 0;
-  *((int32_t *)(op + 113)) = b * 1 + 0;
+  *((int32_t *)(op + 5)) = c * 1 + 0;
+  *((int32_t *)(op + 15)) = a * 16 + 8;
+  *((int32_t *)(op + 32)) = a * 16 + 0;
+  *((int32_t *)(op + 44)) = a * 16 + 0;
+  *((int32_t *)(op + 57)) = a * 16 + 0;
+  *((int32_t *)(op + 69)) = a * 16 + 8;
+  *((int32_t *)(op + 93)) = a * 16 + 0;
+  *((int32_t *)(op + 101)) = a * 16 + 24;
+  *((int32_t *)(op + 111)) = a * 16 + 16;
+  *((int32_t *)(op + 121)) = a * 1 + 0;
+  *((int32_t *)(op + 148)) = a * 16 + 8;
+  *((int32_t *)(op + 158)) = a * 16 + 0;
+  *((int32_t *)(op + 126)) = b * 1 + 0;
 }
 
 static void op_subi_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
@@ -3128,10 +2959,6 @@ static uint8_t op_mul[] = {
 0x41, 0x5e,                               /*fc: pop    %r14 */
 
 };
-static void op_mul_link(uint8_t *op) {
-  *((int32_t *)(op + 73)) = (uint32_t)(((uint8_t *)mrb_fixnum_mul) + (0) - (op + 73));
-  *((int32_t *)(op + 221)) = (uint32_t)(((uint8_t *)op_send) + (0) - (op + 221));
-}
 
 static void op_mul_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 12)) = a * 16 + 8;
@@ -3203,9 +3030,6 @@ static uint8_t op_div[] = {
 0x5b,                                     /*cb: pop    %rbx */
 
 };
-static void op_div_link(uint8_t *op) {
-  *((int32_t *)(op + 196)) = (uint32_t)(((uint8_t *)op_send) + (0) - (op + 196));
-}
 
 static void op_div_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 10)) = a * 16 + 8;
@@ -3292,10 +3116,6 @@ static uint8_t op_eq[] = {
 0xeb, 0xcd,                               /*104: jmp    d3 <op_eq+0xd3> */
 
 };
-static void op_eq_link(uint8_t *op) {
-  *((int32_t *)(op + 42)) = (uint32_t)(((uint8_t *)mrb_obj_eq) + (0) - (op + 42));
-  *((int32_t *)(op + 256)) = (uint32_t)(((uint8_t *)_op_send) + (0) - (op + 256));
-}
 
 static void op_eq_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 17)) = a * 16 + 0;
@@ -3376,9 +3196,6 @@ static uint8_t op_lt[] = {
 0x5b,                                     /*d8: pop    %rbx */
 
 };
-static void op_lt_link(uint8_t *op) {
-  *((int32_t *)(op + 209)) = (uint32_t)(((uint8_t *)_op_send) + (0) - (op + 209));
-}
 
 static void op_lt_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 10)) = a * 16 + 8;
@@ -3455,9 +3272,6 @@ static uint8_t op_le[] = {
 0x5b,                                     /*d8: pop    %rbx */
 
 };
-static void op_le_link(uint8_t *op) {
-  *((int32_t *)(op + 209)) = (uint32_t)(((uint8_t *)_op_send) + (0) - (op + 209));
-}
 
 static void op_le_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 10)) = a * 16 + 8;
@@ -3534,9 +3348,6 @@ static uint8_t op_gt[] = {
 0x5b,                                     /*d8: pop    %rbx */
 
 };
-static void op_gt_link(uint8_t *op) {
-  *((int32_t *)(op + 209)) = (uint32_t)(((uint8_t *)_op_send) + (0) - (op + 209));
-}
 
 static void op_gt_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 10)) = a * 16 + 8;
@@ -3613,9 +3424,6 @@ static uint8_t op_ge[] = {
 0x5b,                                     /*d8: pop    %rbx */
 
 };
-static void op_ge_link(uint8_t *op) {
-  *((int32_t *)(op + 209)) = (uint32_t)(((uint8_t *)_op_send) + (0) - (op + 209));
-}
 
 static void op_ge_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 10)) = a * 16 + 8;
@@ -3660,9 +3468,6 @@ static uint8_t op_array[] = {
 0x41, 0x5e,                               /*3e: pop    %r14 */
 
 };
-static void op_array_link(uint8_t *op) {
-  *((int32_t *)(op + 27)) = (uint32_t)(((uint8_t *)mrb_ary_new_from_values) + (0) - (op + 27));
-}
 
 static void op_array_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 17)) = b * 16 + 0;
@@ -3703,10 +3508,6 @@ static uint8_t op_arycat[] = {
 0x41, 0x5f,                               /*54: pop    %r15 */
 
 };
-static void op_arycat_link(uint8_t *op) {
-  *((int32_t *)(op + 33)) = (uint32_t)(((uint8_t *)mrb_ary_splat) + (0) - (op + 33));
-  *((int32_t *)(op + 60)) = (uint32_t)(((uint8_t *)mrb_ary_concat) + (0) - (op + 60));
-}
 
 static void op_arycat_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 19)) = b * 16 + 0;
@@ -3735,9 +3536,6 @@ static uint8_t op_arypush[] = {
 0x5b,                                     /*2f: pop    %rbx */
 
 };
-static void op_arypush_link(uint8_t *op) {
-  *((int32_t *)(op + 40)) = (uint32_t)(((uint8_t *)mrb_ary_push) + (0) - (op + 40));
-}
 
 static void op_arypush_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 15)) = a * 16 + 0;
@@ -3775,9 +3573,6 @@ static uint8_t op_aref[] = {
 0x41, 0x5e,                               /*58: pop    %r14 */
 
 };
-static void op_aref_link(uint8_t *op) {
-  *((int32_t *)(op + 41)) = (uint32_t)(((uint8_t *)mrb_ary_ref) + (0) - (op + 41));
-}
 
 static void op_aref_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 12)) = b * 16 + 8;
@@ -3810,9 +3605,6 @@ static uint8_t op_aset[] = {
 0x5b,                                     /*34: pop    %rbx */
 
 };
-static void op_aset_link(uint8_t *op) {
-  *((int32_t *)(op + 45)) = (uint32_t)(((uint8_t *)mrb_ary_set) + (0) - (op + 45));
-}
 
 static void op_aset_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 15)) = b * 16 + 0;
@@ -3927,11 +3719,6 @@ static uint8_t op_apost[] = {
 0x5d,                                     /*1be: pop    %rbp */
 
 };
-static void op_apost_link(uint8_t *op) {
-  *((int32_t *)(op + 76)) = (uint32_t)(((uint8_t *)mrb_ary_new_from_values) + (0) - (op + 76));
-  *((int32_t *)(op + 176)) = (uint32_t)(((uint8_t *)mrb_ary_new_capa) + (0) - (op + 176));
-  *((int32_t *)(op + 260)) = (uint32_t)(((uint8_t *)mrb_ary_new_capa) + (0) - (op + 260));
-}
 
 static void op_apost_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 19)) = a * 16 + 8;
@@ -3981,9 +3768,6 @@ static uint8_t op_string[] = {
 0x41, 0x5e,                               /*43: pop    %r14 */
 
 };
-static void op_string_link(uint8_t *op) {
-  *((int32_t *)(op + 32)) = (uint32_t)(((uint8_t *)mrb_str_dup) + (0) - (op + 32));
-}
 
 static void op_string_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 21)) = b * 16 + 0;
@@ -4012,9 +3796,6 @@ static uint8_t op_strcat[] = {
 0x5b,                                     /*2f: pop    %rbx */
 
 };
-static void op_strcat_link(uint8_t *op) {
-  *((int32_t *)(op + 40)) = (uint32_t)(((uint8_t *)mrb_str_concat) + (0) - (op + 40));
-}
 
 static void op_strcat_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 15)) = a * 16 + 0;
@@ -4083,10 +3864,6 @@ static uint8_t op_hash[] = {
 0x5d,                                     /*c0: pop    %rbp */
 
 };
-static void op_hash_link(uint8_t *op) {
-  *((int32_t *)(op + 52)) = (uint32_t)(((uint8_t *)mrb_hash_new_capa) + (0) - (op + 52));
-  *((int32_t *)(op + 129)) = (uint32_t)(((uint8_t *)mrb_hash_set) + (0) - (op + 129));
-}
 
 static void op_hash_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 19)) = b * 1 + 0;
@@ -4112,9 +3889,6 @@ static uint8_t op_lambda[] = {
 0x5b,                                     /*1b: pop    %rbx */
 
 };
-static void op_lambda_link(uint8_t *op) {
-  *((int32_t *)(op + 20)) = (uint32_t)(((uint8_t *)_op_lambda) + (0) - (op + 20));
-}
 
 static void op_lambda_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 5)) = a * 1 + 0;
@@ -4150,9 +3924,6 @@ static uint8_t op_range[] = {
 0x41, 0x5e,                               /*53: pop    %r14 */
 
 };
-static void op_range_link(uint8_t *op) {
-  *((int32_t *)(op + 48)) = (uint32_t)(((uint8_t *)mrb_range_new) + (0) - (op + 48));
-}
 
 static void op_range_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 17)) = b * 16 + 0;
@@ -4179,8 +3950,6 @@ static uint8_t op_oclass[] = {
 0x89, 0x90, 0x08, 0x10, 0xab, 0x00,       /*16: mov    %edx,0xab1008(%rax) */
 
 };
-static void op_oclass_link(uint8_t *op) {
-}
 
 static void op_oclass_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 18)) = a * 16 + 0;
@@ -4192,74 +3961,56 @@ static void op_oclass_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_id
 }
 
 
-/* args: {"b"=>[[4, 0, 33..36]], "a"=>[[16, 0, 40..43], [16, 8, 53..56], [16, 16, 60..63], [16, 24, 67..70], [16, 0, 139..142], [16, 8, 145..148]]} */
+/* args: {"b"=>[[4, 0, 15..18]], "a"=>[[16, 0, 22..25], [16, 8, 35..38], [16, 16, 42..45], [16, 24, 49..52], [16, 0, 117..120], [16, 8, 123..126]]} */
 static uint8_t op_class[] = {
-0x55,                                     /*0: push   %rbp */
-0x53,                                     /*1: push   %rbx */
-0x48, 0x89, 0xfb,                         /*2: mov    %rdi,%rbx */
-0x31, 0xed,                               /*5: xor    %ebp,%ebp */
-0xbf, 0x00, 0x00, 0x00, 0x00,             /*7: mov    $0x0,%edi */
-0x31, 0xc0,                               /*c: xor    %eax,%eax */
-0x48, 0x89, 0xde,                         /*e: mov    %rbx,%rsi */
-0xe8, 0x00, 0x00, 0x00, 0x00,             /*11: callq  16 <op_class+0x16> */
-0x48, 0x8b, 0x7b, 0x18,                   /*16: mov    0x18(%rbx),%rdi */
-0x48, 0x8b, 0x43, 0x28,                   /*1a: mov    0x28(%rbx),%rax */
-0x44, 0x8b, 0x88, 0x00, 0x04, 0xbc, 0x00, /*1e: mov    0xbc0400(%rax),%r9d */
-0x48, 0x8b, 0x87, 0x00, 0x10, 0xab, 0x00, /*25: mov    0xab1000(%rdi),%rax */
-0x48, 0x89, 0xc2,                         /*2c: mov    %rax,%rdx */
-0x48, 0xc1, 0xea, 0x20,                   /*2f: shr    $0x20,%rdx */
-0x8b, 0xb7, 0x08, 0x10, 0xab, 0x00,       /*33: mov    0xab1008(%rdi),%esi */
-0x48, 0x8b, 0x8f, 0x10, 0x10, 0xab, 0x00, /*39: mov    0xab1010(%rdi),%rcx */
-0x44, 0x8b, 0x87, 0x18, 0x10, 0xab, 0x00, /*40: mov    0xab1018(%rdi),%r8d */
-0x85, 0xf6,                               /*47: test   %esi,%esi */
-0x74, 0x04,                               /*49: je     4f <op_class+0x4f> */
-0x89, 0xf5,                               /*4b: mov    %esi,%ebp */
-0xeb, 0x1e,                               /*4d: jmp    6d <op_class+0x6d> */
-0x85, 0xc0,                               /*4f: test   %eax,%eax */
-0x75, 0x1a,                               /*51: jne    6d <op_class+0x6d> */
-0x48, 0x8b, 0x43, 0x58,                   /*53: mov    0x58(%rbx),%rax */
-0x48, 0x8b, 0x40, 0x18,                   /*57: mov    0x18(%rax),%rax */
-0x48, 0x8b, 0x40, 0x20,                   /*5b: mov    0x20(%rax),%rax */
-0x48, 0x8b, 0x40, 0x48,                   /*5f: mov    0x48(%rax),%rax */
-0x0f, 0xb6, 0x28,                         /*63: movzbl (%rax),%ebp */
-0x48, 0x89, 0xc2,                         /*66: mov    %rax,%rdx */
-0x48, 0xc1, 0xea, 0x20,                   /*69: shr    $0x20,%rdx */
-0x48, 0x8b, 0x7b, 0x58,                   /*6d: mov    0x58(%rbx),%rdi */
-0x48, 0xc1, 0xe2, 0x20,                   /*71: shl    $0x20,%rdx */
-0x89, 0xc6,                               /*75: mov    %eax,%esi */
-0x48, 0x09, 0xd6,                         /*77: or     %rdx,%rsi */
-0x89, 0xea,                               /*7a: mov    %ebp,%edx */
-0xe8, 0x00, 0x00, 0x00, 0x00,             /*7c: callq  81 <op_class+0x81> */
-0x48, 0x8b, 0x4b, 0x18,                   /*81: mov    0x18(%rbx),%rcx */
-0x0f, 0xb6, 0x10,                         /*85: movzbl (%rax),%edx */
-0x48, 0x89, 0x81, 0x00, 0x10, 0xab, 0x00, /*88: mov    %rax,0xab1000(%rcx) */
-0x89, 0x91, 0x08, 0x10, 0xab, 0x00,       /*8f: mov    %edx,0xab1008(%rcx) */
-0x8b, 0x43, 0x50,                         /*95: mov    0x50(%rbx),%eax */
-0x48, 0x8b, 0x4b, 0x58,                   /*98: mov    0x58(%rbx),%rcx */
-0x89, 0x81, 0xdc, 0x00, 0x00, 0x00,       /*9c: mov    %eax,0xdc(%rcx) */
-0xbf, 0x00, 0x00, 0x00, 0x00,             /*a2: mov    $0x0,%edi */
-0x31, 0xc0,                               /*a7: xor    %eax,%eax */
-0x48, 0x89, 0xde,                         /*a9: mov    %rbx,%rsi */
-0xe8, 0x00, 0x00, 0x00, 0x00,             /*ac: callq  b1 <op_class+0xb1> */
-0x48, 0x89, 0xdf,                         /*b1: mov    %rbx,%rdi */
-0x5b,                                     /*b4: pop    %rbx */
-0x5d,                                     /*b5: pop    %rbp */
+0x53,                                     /*0: push   %rbx */
+0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
+0x48, 0x8b, 0x7b, 0x18,                   /*4: mov    0x18(%rbx),%rdi */
+0x48, 0x8b, 0x43, 0x28,                   /*8: mov    0x28(%rbx),%rax */
+0x44, 0x8b, 0x88, 0x00, 0x04, 0xbc, 0x00, /*c: mov    0xbc0400(%rax),%r9d */
+0x48, 0x8b, 0xb7, 0x00, 0x10, 0xab, 0x00, /*13: mov    0xab1000(%rdi),%rsi */
+0x48, 0x89, 0xf0,                         /*1a: mov    %rsi,%rax */
+0x48, 0xc1, 0xe8, 0x20,                   /*1d: shr    $0x20,%rax */
+0x8b, 0x97, 0x08, 0x10, 0xab, 0x00,       /*21: mov    0xab1008(%rdi),%edx */
+0x48, 0x8b, 0x8f, 0x10, 0x10, 0xab, 0x00, /*27: mov    0xab1010(%rdi),%rcx */
+0x44, 0x8b, 0x87, 0x18, 0x10, 0xab, 0x00, /*2e: mov    0xab1018(%rdi),%r8d */
+0x85, 0xd2,                               /*35: test   %edx,%edx */
+0x75, 0x20,                               /*37: jne    59 <op_class+0x59> */
+0x31, 0xd2,                               /*39: xor    %edx,%edx */
+0x85, 0xf6,                               /*3b: test   %esi,%esi */
+0x75, 0x1a,                               /*3d: jne    59 <op_class+0x59> */
+0x48, 0x8b, 0x43, 0x58,                   /*3f: mov    0x58(%rbx),%rax */
+0x48, 0x8b, 0x40, 0x18,                   /*43: mov    0x18(%rax),%rax */
+0x48, 0x8b, 0x40, 0x20,                   /*47: mov    0x20(%rax),%rax */
+0x48, 0x8b, 0x70, 0x48,                   /*4b: mov    0x48(%rax),%rsi */
+0x0f, 0xb6, 0x16,                         /*4f: movzbl (%rsi),%edx */
+0x48, 0x89, 0xf0,                         /*52: mov    %rsi,%rax */
+0x48, 0xc1, 0xe8, 0x20,                   /*55: shr    $0x20,%rax */
+0x48, 0x8b, 0x7b, 0x58,                   /*59: mov    0x58(%rbx),%rdi */
+0x48, 0xc1, 0xe0, 0x20,                   /*5d: shl    $0x20,%rax */
+0x89, 0xf6,                               /*61: mov    %esi,%esi */
+0x48, 0x09, 0xc6,                         /*63: or     %rax,%rsi */
+0xe8, 0x00, 0x00, 0x00, 0x00,             /*66: callq  6b <op_class+0x6b> */
+0x48, 0x8b, 0x4b, 0x18,                   /*6b: mov    0x18(%rbx),%rcx */
+0x0f, 0xb6, 0x10,                         /*6f: movzbl (%rax),%edx */
+0x48, 0x89, 0x81, 0x00, 0x10, 0xab, 0x00, /*72: mov    %rax,0xab1000(%rcx) */
+0x89, 0x91, 0x08, 0x10, 0xab, 0x00,       /*79: mov    %edx,0xab1008(%rcx) */
+0x8b, 0x43, 0x50,                         /*7f: mov    0x50(%rbx),%eax */
+0x48, 0x8b, 0x4b, 0x58,                   /*82: mov    0x58(%rbx),%rcx */
+0x89, 0x81, 0xdc, 0x00, 0x00, 0x00,       /*86: mov    %eax,0xdc(%rcx) */
+0x48, 0x89, 0xdf,                         /*8c: mov    %rbx,%rdi */
+0x5b,                                     /*8f: pop    %rbx */
 
 };
-static void op_class_link(uint8_t *op) {
-  *((int32_t *)(op + 18)) = (uint32_t)(((uint8_t *)printf) + (0) - (op + 18));
-  *((int32_t *)(op + 125)) = (uint32_t)(((uint8_t *)mrb_vm_define_class) + (0) - (op + 125));
-  *((int32_t *)(op + 173)) = (uint32_t)(((uint8_t *)printf) + (0) - (op + 173));
-}
 
 static void op_class_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-  *((int32_t *)(op + 33)) = b * 4 + 0;
-  *((int32_t *)(op + 40)) = a * 16 + 0;
-  *((int32_t *)(op + 53)) = a * 16 + 8;
-  *((int32_t *)(op + 60)) = a * 16 + 16;
-  *((int32_t *)(op + 67)) = a * 16 + 24;
-  *((int32_t *)(op + 139)) = a * 16 + 0;
-  *((int32_t *)(op + 145)) = a * 16 + 8;
+  *((int32_t *)(op + 15)) = b * 4 + 0;
+  *((int32_t *)(op + 22)) = a * 16 + 0;
+  *((int32_t *)(op + 35)) = a * 16 + 8;
+  *((int32_t *)(op + 42)) = a * 16 + 16;
+  *((int32_t *)(op + 49)) = a * 16 + 24;
+  *((int32_t *)(op + 117)) = a * 16 + 0;
+  *((int32_t *)(op + 123)) = a * 16 + 8;
 }
 
 static void op_class_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
@@ -4306,9 +4057,6 @@ static uint8_t op_module[] = {
 0x5b,                                     /*80: pop    %rbx */
 
 };
-static void op_module_link(uint8_t *op) {
-  *((int32_t *)(op + 88)) = (uint32_t)(((uint8_t *)mrb_vm_define_module) + (0) - (op + 88));
-}
 
 static void op_module_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 14)) = b * 4 + 0;
@@ -4419,15 +4167,6 @@ static uint8_t op_exec[] = {
 0x5d,                                     /*163: pop    %rbp */
 
 };
-static void op_exec_link(uint8_t *op) {
-  *((int32_t *)(op + 34)) = (uint32_t)(((uint8_t *)cipush) + (0) - (op + 34));
-  *((int32_t *)(op + 129)) = (uint32_t)(((uint8_t *)mrb_proc_new) + (0) - (op + 129));
-  *((int32_t *)(op + 197)) = (uint32_t)(((uint8_t *)mrb_gc_arena_restore) + (0) - (op + 197));
-  *((int32_t *)(op + 216)) = (uint32_t)(((uint8_t *)_op_raise) + (0) - (op + 216));
-  *((int32_t *)(op + 260)) = (uint32_t)(((uint8_t *)stack_extend) + (0) - (op + 260));
-  *((int32_t *)(op + 310)) = (uint32_t)(((uint8_t *)mrb_proc_call_jit) + (0) - (op + 310));
-  *((int32_t *)(op + 341)) = (uint32_t)(((uint8_t *)cipop) + (0) - (op + 341));
-}
 
 static void op_exec_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 22)) = a * 16 + 0;
@@ -4461,9 +4200,6 @@ static uint8_t op_method[] = {
 0x5b,                                     /*40: pop    %rbx */
 
 };
-static void op_method_link(uint8_t *op) {
-  *((int32_t *)(op + 44)) = (uint32_t)(((uint8_t *)mrb_define_method_vm) + (0) - (op + 44));
-}
 
 static void op_method_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 18)) = b * 4 + 0;
@@ -4497,9 +4233,6 @@ static uint8_t op_sclass[] = {
 0x41, 0x5e,                               /*40: pop    %r14 */
 
 };
-static void op_sclass_link(uint8_t *op) {
-  *((int32_t *)(op + 29)) = (uint32_t)(((uint8_t *)mrb_singleton_class) + (0) - (op + 29));
-}
 
 static void op_sclass_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 17)) = b * 16 + 0;
@@ -4553,13 +4286,6 @@ static uint8_t op_tclass[] = {
 0x41, 0x5f,                               /*7d: pop    %r15 */
 
 };
-static void op_tclass_link(uint8_t *op) {
-  *((int32_t *)(op + 54)) = (uint32_t)(((uint8_t *)_mrb_str_const_type_error) + (0) - (op + 54));
-  *((int32_t *)(op + 62)) = (uint32_t)(((uint8_t *)mrb_class_get) + (0) - (op + 62));
-  *((int32_t *)(op + 83)) = (uint32_t)(((uint8_t *)mrb_str_new_static) + (0) - (op + 83));
-  *((int32_t *)(op + 99)) = (uint32_t)(((uint8_t *)mrb_exc_new_str) + (0) - (op + 99));
-  *((int32_t *)(op + 115)) = (uint32_t)(((uint8_t *)_op_raise) + (0) - (op + 115));
-}
 
 static void op_tclass_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 39)) = a * 16 + 0;
@@ -4585,9 +4311,6 @@ static uint8_t op_debug[] = {
 0x5b,                                     /*22: pop    %rbx */
 
 };
-static void op_debug_link(uint8_t *op) {
-  *((int32_t *)(op + 27)) = (uint32_t)(((uint8_t *)printf) + (0) - (op + 27));
-}
 
 static void op_debug_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 10)) = a * 1 + 0;
@@ -4609,9 +4332,6 @@ static uint8_t op_stop[] = {
 0x5b,                                     /*c: pop    %rbx */
 
 };
-static void op_stop_link(uint8_t *op) {
-  *((int32_t *)(op + 5)) = (uint32_t)(((uint8_t *)_op_stop) + (0) - (op + 5));
-}
 
 static void op_stop_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
 }
@@ -4655,13 +4375,6 @@ static uint8_t op_err[] = {
 0x5d,                                     /*62: pop    %rbp */
 
 };
-static void op_err_link(uint8_t *op) {
-  *((int32_t *)(op + 34)) = (uint32_t)(((uint8_t *)mrb_str_dup) + (0) - (op + 34));
-  *((int32_t *)(op + 46)) = (uint32_t)(((uint8_t *)_mrb_str_const_localjump_error) + (0) - (op + 46));
-  *((int32_t *)(op + 54)) = (uint32_t)(((uint8_t *)mrb_class_get) + (0) - (op + 54));
-  *((int32_t *)(op + 70)) = (uint32_t)(((uint8_t *)mrb_exc_new_str) + (0) - (op + 70));
-  *((int32_t *)(op + 86)) = (uint32_t)(((uint8_t *)_op_raise) + (0) - (op + 86));
-}
 
 static void op_err_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
   *((int32_t *)(op + 20)) = b * 16 + 0;
@@ -4675,7 +4388,7 @@ static void op_err_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) 
 typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c, uint32_t op_idx);
 typedef void (*jit_link_func_t)(uint8_t *op);
 static jit_args_func_t arg_funcs[78];
-static jit_link_func_t link_funcs[78];
+extern jit_link_func_t link_funcs[];
 uint8_t* ops[78];
 static char *op_names[78];
 
@@ -4727,9 +4440,9 @@ static size_t op_sizes[] = {
   sizeof(op_tailcall), /* 793 */
   sizeof(op_blkpush), /* 211 */
   sizeof(op_add), /* 333 */
-  sizeof(op_addi), /* 164 */
+  sizeof(op_addi), /* 162 */
   sizeof(op_sub), /* 236 */
-  sizeof(op_subi), /* 153 */
+  sizeof(op_subi), /* 166 */
   sizeof(op_mul), /* 254 */
   sizeof(op_div), /* 204 */
   sizeof(op_eq), /* 262 */
@@ -4749,7 +4462,7 @@ static size_t op_sizes[] = {
   sizeof(op_lambda), /* 28 */
   sizeof(op_range), /* 85 */
   sizeof(op_oclass), /* 28 */
-  sizeof(op_class), /* 182 */
+  sizeof(op_class), /* 144 */
   sizeof(op_module), /* 129 */
   sizeof(op_exec), /* 356 */
   sizeof(op_method), /* 65 */
@@ -4761,324 +4474,246 @@ static size_t op_sizes[] = {
 
 };
 
-extern void init_symtbl();
+extern void init_linker();
 void init_ops() {
   static int init = 0;
   if(init == 0) {
     init = 1;
-    init_symtbl();
+    init_linker();
     ops[0] = op_nop;
     op_names[0] = "op_nop";
     arg_funcs[0] = op_nop_set_args_from_code;
-    link_funcs[0] = op_nop_link;
     ops[1] = op_move;
     op_names[1] = "op_move";
     arg_funcs[1] = op_move_set_args_from_code;
-    link_funcs[1] = op_move_link;
     ops[2] = op_loadl;
     op_names[2] = "op_loadl";
     arg_funcs[2] = op_loadl_set_args_from_code;
-    link_funcs[2] = op_loadl_link;
     ops[3] = op_loadi;
     op_names[3] = "op_loadi";
     arg_funcs[3] = op_loadi_set_args_from_code;
-    link_funcs[3] = op_loadi_link;
     ops[4] = op_loadsym;
     op_names[4] = "op_loadsym";
     arg_funcs[4] = op_loadsym_set_args_from_code;
-    link_funcs[4] = op_loadsym_link;
     ops[5] = op_loadnil;
     op_names[5] = "op_loadnil";
     arg_funcs[5] = op_loadnil_set_args_from_code;
-    link_funcs[5] = op_loadnil_link;
     ops[6] = op_loadself;
     op_names[6] = "op_loadself";
     arg_funcs[6] = op_loadself_set_args_from_code;
-    link_funcs[6] = op_loadself_link;
     ops[7] = op_loadt;
     op_names[7] = "op_loadt";
     arg_funcs[7] = op_loadt_set_args_from_code;
-    link_funcs[7] = op_loadt_link;
     ops[8] = op_loadf;
     op_names[8] = "op_loadf";
     arg_funcs[8] = op_loadf_set_args_from_code;
-    link_funcs[8] = op_loadf_link;
     ops[9] = op_getglobal;
     op_names[9] = "op_getglobal";
     arg_funcs[9] = op_getglobal_set_args_from_code;
-    link_funcs[9] = op_getglobal_link;
     ops[10] = op_setglobal;
     op_names[10] = "op_setglobal";
     arg_funcs[10] = op_setglobal_set_args_from_code;
-    link_funcs[10] = op_setglobal_link;
     ops[11] = op_getspecial;
     op_names[11] = "op_getspecial";
     arg_funcs[11] = op_getspecial_set_args_from_code;
-    link_funcs[11] = op_getspecial_link;
     ops[12] = op_setspecial;
     op_names[12] = "op_setspecial";
     arg_funcs[12] = op_setspecial_set_args_from_code;
-    link_funcs[12] = op_setspecial_link;
     ops[13] = op_getiv;
     op_names[13] = "op_getiv";
     arg_funcs[13] = op_getiv_set_args_from_code;
-    link_funcs[13] = op_getiv_link;
     ops[14] = op_setiv;
     op_names[14] = "op_setiv";
     arg_funcs[14] = op_setiv_set_args_from_code;
-    link_funcs[14] = op_setiv_link;
     ops[15] = op_getcv;
     op_names[15] = "op_getcv";
     arg_funcs[15] = op_getcv_set_args_from_code;
-    link_funcs[15] = op_getcv_link;
     ops[16] = op_setcv;
     op_names[16] = "op_setcv";
     arg_funcs[16] = op_setcv_set_args_from_code;
-    link_funcs[16] = op_setcv_link;
     ops[17] = op_getconst;
     op_names[17] = "op_getconst";
     arg_funcs[17] = op_getconst_set_args_from_code;
-    link_funcs[17] = op_getconst_link;
     ops[18] = op_setconst;
     op_names[18] = "op_setconst";
     arg_funcs[18] = op_setconst_set_args_from_code;
-    link_funcs[18] = op_setconst_link;
     ops[19] = op_getmcnst;
     op_names[19] = "op_getmcnst";
     arg_funcs[19] = op_getmcnst_set_args_from_code;
-    link_funcs[19] = op_getmcnst_link;
     ops[20] = op_setmcnst;
     op_names[20] = "op_setmcnst";
     arg_funcs[20] = op_setmcnst_set_args_from_code;
-    link_funcs[20] = op_setmcnst_link;
     ops[21] = op_getupvar;
     op_names[21] = "op_getupvar";
     arg_funcs[21] = op_getupvar_set_args_from_code;
-    link_funcs[21] = op_getupvar_link;
     ops[22] = op_setupvar;
     op_names[22] = "op_setupvar";
     arg_funcs[22] = op_setupvar_set_args_from_code;
-    link_funcs[22] = op_setupvar_link;
     ops[23] = op_jmp;
     op_names[23] = "op_jmp";
     arg_funcs[23] = op_jmp_set_args_from_code;
-    link_funcs[23] = op_jmp_link;
     ops[24] = op_jmpif;
     op_names[24] = "op_jmpif";
     arg_funcs[24] = op_jmpif_set_args_from_code;
-    link_funcs[24] = op_jmpif_link;
     ops[25] = op_jmpnot;
     op_names[25] = "op_jmpnot";
     arg_funcs[25] = op_jmpnot_set_args_from_code;
-    link_funcs[25] = op_jmpnot_link;
     ops[26] = op_onerr;
     op_names[26] = "op_onerr";
     arg_funcs[26] = op_onerr_set_args_from_code;
-    link_funcs[26] = op_onerr_link;
     ops[27] = op_rescue;
     op_names[27] = "op_rescue";
     arg_funcs[27] = op_rescue_set_args_from_code;
-    link_funcs[27] = op_rescue_link;
     ops[28] = op_poperr;
     op_names[28] = "op_poperr";
     arg_funcs[28] = op_poperr_set_args_from_code;
-    link_funcs[28] = op_poperr_link;
     ops[29] = op_raise;
     op_names[29] = "op_raise";
     arg_funcs[29] = op_raise_set_args_from_code;
-    link_funcs[29] = op_raise_link;
     ops[30] = op_epush;
     op_names[30] = "op_epush";
     arg_funcs[30] = op_epush_set_args_from_code;
-    link_funcs[30] = op_epush_link;
     ops[31] = op_epop;
     op_names[31] = "op_epop";
     arg_funcs[31] = op_epop_set_args_from_code;
-    link_funcs[31] = op_epop_link;
     ops[32] = op_send;
     op_names[32] = "op_send";
     arg_funcs[32] = op_send_set_args_from_code;
-    link_funcs[32] = op_send_link;
     ops[33] = op_sendb;
     op_names[33] = "op_sendb";
     arg_funcs[33] = op_sendb_set_args_from_code;
-    link_funcs[33] = op_sendb_link;
     ops[34] = op_fsend;
     op_names[34] = "op_fsend";
     arg_funcs[34] = op_fsend_set_args_from_code;
-    link_funcs[34] = op_fsend_link;
     ops[35] = op_call;
     op_names[35] = "op_call";
     arg_funcs[35] = op_call_set_args_from_code;
-    link_funcs[35] = op_call_link;
     ops[36] = op_super;
     op_names[36] = "op_super";
     arg_funcs[36] = op_super_set_args_from_code;
-    link_funcs[36] = op_super_link;
     ops[37] = op_argary;
     op_names[37] = "op_argary";
     arg_funcs[37] = op_argary_set_args_from_code;
-    link_funcs[37] = op_argary_link;
     ops[38] = op_enter;
     op_names[38] = "op_enter";
     arg_funcs[38] = op_enter_set_args_from_code;
-    link_funcs[38] = op_enter_link;
     ops[39] = op_enter_method_m;
     op_names[39] = "op_enter_method_m";
     arg_funcs[39] = op_enter_method_m_set_args_from_code;
-    link_funcs[39] = op_enter_method_m_link;
     ops[40] = op_karg;
     op_names[40] = "op_karg";
     arg_funcs[40] = op_karg_set_args_from_code;
-    link_funcs[40] = op_karg_link;
     ops[41] = op_kdict;
     op_names[41] = "op_kdict";
     arg_funcs[41] = op_kdict_set_args_from_code;
-    link_funcs[41] = op_kdict_link;
     ops[42] = op_return;
     op_names[42] = "op_return";
     arg_funcs[42] = op_return_set_args_from_code;
-    link_funcs[42] = op_return_link;
     ops[43] = op_break;
     op_names[43] = "op_break";
     arg_funcs[43] = op_break_set_args_from_code;
-    link_funcs[43] = op_break_link;
     ops[44] = op_tailcall;
     op_names[44] = "op_tailcall";
     arg_funcs[44] = op_tailcall_set_args_from_code;
-    link_funcs[44] = op_tailcall_link;
     ops[45] = op_blkpush;
     op_names[45] = "op_blkpush";
     arg_funcs[45] = op_blkpush_set_args_from_code;
-    link_funcs[45] = op_blkpush_link;
     ops[46] = op_add;
     op_names[46] = "op_add";
     arg_funcs[46] = op_add_set_args_from_code;
-    link_funcs[46] = op_add_link;
     ops[47] = op_addi;
     op_names[47] = "op_addi";
     arg_funcs[47] = op_addi_set_args_from_code;
-    link_funcs[47] = op_addi_link;
     ops[48] = op_sub;
     op_names[48] = "op_sub";
     arg_funcs[48] = op_sub_set_args_from_code;
-    link_funcs[48] = op_sub_link;
     ops[49] = op_subi;
     op_names[49] = "op_subi";
     arg_funcs[49] = op_subi_set_args_from_code;
-    link_funcs[49] = op_subi_link;
     ops[50] = op_mul;
     op_names[50] = "op_mul";
     arg_funcs[50] = op_mul_set_args_from_code;
-    link_funcs[50] = op_mul_link;
     ops[51] = op_div;
     op_names[51] = "op_div";
     arg_funcs[51] = op_div_set_args_from_code;
-    link_funcs[51] = op_div_link;
     ops[52] = op_eq;
     op_names[52] = "op_eq";
     arg_funcs[52] = op_eq_set_args_from_code;
-    link_funcs[52] = op_eq_link;
     ops[53] = op_lt;
     op_names[53] = "op_lt";
     arg_funcs[53] = op_lt_set_args_from_code;
-    link_funcs[53] = op_lt_link;
     ops[54] = op_le;
     op_names[54] = "op_le";
     arg_funcs[54] = op_le_set_args_from_code;
-    link_funcs[54] = op_le_link;
     ops[55] = op_gt;
     op_names[55] = "op_gt";
     arg_funcs[55] = op_gt_set_args_from_code;
-    link_funcs[55] = op_gt_link;
     ops[56] = op_ge;
     op_names[56] = "op_ge";
     arg_funcs[56] = op_ge_set_args_from_code;
-    link_funcs[56] = op_ge_link;
     ops[57] = op_array;
     op_names[57] = "op_array";
     arg_funcs[57] = op_array_set_args_from_code;
-    link_funcs[57] = op_array_link;
     ops[58] = op_arycat;
     op_names[58] = "op_arycat";
     arg_funcs[58] = op_arycat_set_args_from_code;
-    link_funcs[58] = op_arycat_link;
     ops[59] = op_arypush;
     op_names[59] = "op_arypush";
     arg_funcs[59] = op_arypush_set_args_from_code;
-    link_funcs[59] = op_arypush_link;
     ops[60] = op_aref;
     op_names[60] = "op_aref";
     arg_funcs[60] = op_aref_set_args_from_code;
-    link_funcs[60] = op_aref_link;
     ops[61] = op_aset;
     op_names[61] = "op_aset";
     arg_funcs[61] = op_aset_set_args_from_code;
-    link_funcs[61] = op_aset_link;
     ops[62] = op_apost;
     op_names[62] = "op_apost";
     arg_funcs[62] = op_apost_set_args_from_code;
-    link_funcs[62] = op_apost_link;
     ops[63] = op_string;
     op_names[63] = "op_string";
     arg_funcs[63] = op_string_set_args_from_code;
-    link_funcs[63] = op_string_link;
     ops[64] = op_strcat;
     op_names[64] = "op_strcat";
     arg_funcs[64] = op_strcat_set_args_from_code;
-    link_funcs[64] = op_strcat_link;
     ops[65] = op_hash;
     op_names[65] = "op_hash";
     arg_funcs[65] = op_hash_set_args_from_code;
-    link_funcs[65] = op_hash_link;
     ops[66] = op_lambda;
     op_names[66] = "op_lambda";
     arg_funcs[66] = op_lambda_set_args_from_code;
-    link_funcs[66] = op_lambda_link;
     ops[67] = op_range;
     op_names[67] = "op_range";
     arg_funcs[67] = op_range_set_args_from_code;
-    link_funcs[67] = op_range_link;
     ops[68] = op_oclass;
     op_names[68] = "op_oclass";
     arg_funcs[68] = op_oclass_set_args_from_code;
-    link_funcs[68] = op_oclass_link;
     ops[69] = op_class;
     op_names[69] = "op_class";
     arg_funcs[69] = op_class_set_args_from_code;
-    link_funcs[69] = op_class_link;
     ops[70] = op_module;
     op_names[70] = "op_module";
     arg_funcs[70] = op_module_set_args_from_code;
-    link_funcs[70] = op_module_link;
     ops[71] = op_exec;
     op_names[71] = "op_exec";
     arg_funcs[71] = op_exec_set_args_from_code;
-    link_funcs[71] = op_exec_link;
     ops[72] = op_method;
     op_names[72] = "op_method";
     arg_funcs[72] = op_method_set_args_from_code;
-    link_funcs[72] = op_method_link;
     ops[73] = op_sclass;
     op_names[73] = "op_sclass";
     arg_funcs[73] = op_sclass_set_args_from_code;
-    link_funcs[73] = op_sclass_link;
     ops[74] = op_tclass;
     op_names[74] = "op_tclass";
     arg_funcs[74] = op_tclass_set_args_from_code;
-    link_funcs[74] = op_tclass_link;
     ops[75] = op_debug;
     op_names[75] = "op_debug";
     arg_funcs[75] = op_debug_set_args_from_code;
-    link_funcs[75] = op_debug_link;
     ops[76] = op_stop;
     op_names[76] = "op_stop";
     arg_funcs[76] = op_stop_set_args_from_code;
-    link_funcs[76] = op_stop_link;
     ops[77] = op_err;
     op_names[77] = "op_err";
     arg_funcs[77] = op_err_set_args_from_code;
-    link_funcs[77] = op_err_link;
   }
 }
 

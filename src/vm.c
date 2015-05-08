@@ -798,7 +798,7 @@ struct op_ctx {
    * needs to be last field
    * !!!!!!!!
    */
-  void *sym_tbl[124];
+  //void *sym_tbl[124];
 #endif
 };
 
@@ -2358,9 +2358,9 @@ static OP_INLINE void
 op_addi(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)+C (Syms[B]=:+)*/
   int a = GETARG_A(CTX_I(ctx));
-  //int c = GETARG_C(CTX_I(ctx));
-  volatile int *ptr = (int *)0xFABBA;
-  int c = *ptr;
+  int c = ARG_PROTECT(GETARG_C(CTX_I(ctx)));
+  //volatile int *ptr = (int *)0xFABBA;
+  //int c = *ptr;
 
   mrb_value *regs_a = ctx->regs + a;
   mrb_state *mrb = ctx->mrb;
@@ -2406,7 +2406,7 @@ op_subi(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)+C (Syms[B]=:+)*/
   /* A B C  R(A) := R(A)-C (Syms[B]=:-)*/
   int a = GETARG_A(CTX_I(ctx));
-  int c = GETARG_C(CTX_I(ctx));
+  int c = ARG_PROTECT(GETARG_C(CTX_I(ctx)));
   mrb_value *regs = ctx->regs;
   mrb_value *regs_a = regs + a;
   mrb_state *mrb = ctx->mrb;
@@ -2711,7 +2711,7 @@ static char _str_const_op_class[] = "op_class %p\n";
 static OP_INLINE void
 op_class(struct op_ctx *ctx) {
   /* A B    R(A) := newclass(R(A),Syms(B),R(A+1)) */
-  printf(_str_const_op_class, ctx);
+  //printf(_str_const_op_class, ctx);
 
   struct RClass *c = 0;
   int a = GETARG_A(CTX_I(ctx));
@@ -2726,7 +2726,7 @@ op_class(struct op_ctx *ctx) {
   c = mrb_vm_define_class(ctx->mrb, base, super, id);
   ctx->regs[a] = mrb_obj_value(c);
   ARENA_RESTORE(ctx->mrb, ctx->ai);
-  printf(_str_const_op_class, ctx);
+  //printf(_str_const_op_class, ctx);
 }
 
 static OP_INLINE void
@@ -2888,15 +2888,15 @@ op_err(struct op_ctx *ctx) {
 #endif
 
 #ifdef MRB_JIT_GEN
-static void init_symtbl(){};
-static void *symtbl[1];
+static void init_linker(){};
+static void *link_funcs[1];
 #elif MRB_ENABLE_JIT
 #if defined(MRB_NAN_BOXING)
-#include "jit/jit_symtbl_nan_boxing.h"
+#include "jit/linker_nan_boxing.h"
 #elif defined(MRB_WORD_BOXING)
-#include "jit/jit_symtbl_word_boxing.h"
+#include "jit/linker_word_boxing.h"
 #else
-#include "jit/jit_symtbl_no_boxing.h"
+#include "jit/linker_no_boxing.h"
 #endif
 #endif
 
@@ -2966,8 +2966,10 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   //mrb_codedump_all(mrb, proc);
 
 #ifdef MRB_ENABLE_JIT
-  init_symtbl();
-  memcpy(ctx.sym_tbl, symtbl, sizeof(symtbl));
+  init_linker();
+
+  //init_symtbl();
+  //memcpy(ctx.sym_tbl, symtbl, sizeof(symtbl));
 #endif
 
   MRB_TRY(&stop_jmp) {
