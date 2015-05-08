@@ -267,6 +267,10 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
 
       memcpy(page->data + off, ops[opcode], op_sizes[opcode]);
 
+      /* link code */
+      link_funcs[opcode](page->data + off);
+
+      /* set operands */
       arg_funcs[opcode](page->data + off, c, i);
 
       if(opcode == OP_RESCUE) {

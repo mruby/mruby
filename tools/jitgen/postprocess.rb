@@ -99,7 +99,7 @@ module Postprocess
 
     def remove_return!
       last_inst = asm.reverse_each_instruction.first
-      label = Label.new 'next'
+      label = Label.new '.LNEXT'
       last_inst.insert_after label
 
       asm.each do |inst|

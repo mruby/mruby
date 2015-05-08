@@ -176,7 +176,9 @@ end
 
 def decls_to_c(file, objs)
   file.puts "typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c, uint32_t op_idx);"
+  file.puts "typedef void (*jit_link_func_t)(uint8_t *op);"
   file.puts "static jit_args_func_t arg_funcs[#{objs.size}];"
+  file.puts "static jit_link_func_t link_funcs[#{objs.size}];"
   file.puts "uint8_t* ops[#{objs.size}];"
   file.puts "static char *op_names[#{objs.size}];"
 end
@@ -192,6 +194,7 @@ def init_symtbl_to_c(file, objs)
     file.puts "    ops[#{index}] = #{op.name};"
     file.puts "    op_names[#{index}] = \"#{op.name}\";"
     file.puts "    arg_funcs[#{index}] = #{op.name}_set_args_from_code;"
+    file.puts "    link_funcs[#{index}] = #{op.name}_link;"
   end
   file.puts "  }"
   file.puts "}"

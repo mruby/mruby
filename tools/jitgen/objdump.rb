@@ -1,7 +1,7 @@
 require_relative 'as'
 require_relative 'x86'
 
-ObjectFile = Struct.new(:name, :architecture, :body) do
+ObjectFile = Struct.new(:name, :architecture, :text, :asm, :symbols, :relocations) do
   include As
 
   ARCH_MAP = {
@@ -10,7 +10,6 @@ ObjectFile = Struct.new(:name, :architecture, :body) do
   }
 
   alias_method :arch, :architecture
-
 
   def arguments
     body.inject([0, Hash.new{|h, v| h[v] = []}]) do |acc, (bytes, asm)|
@@ -26,13 +25,18 @@ ObjectFile = Struct.new(:name, :architecture, :body) do
   end
 
   def bytesize
-    body.inject(0) do |acc, (b, _)|
+    text.inject(0) do |acc, b|
       acc + b.size
     end
   end
 
+  def body
+    text.zip(asm)
+  end
+
   def self.load(filename)
-    obj = parse `objdump -Sf #{filename}`
+    obj = new
+    obj.send :parse!, filename
 
     # no name is reported for empty object files
     # so we get it from the filename if needed
@@ -41,39 +45,11 @@ ObjectFile = Struct.new(:name, :architecture, :body) do
     obj
   end
 
-  def self.parse(objdump)
-    body = []
-    objdump.each_line.inject([]) do |ary, line|
-      if line =~ /:\t((?:[0-9a-f]{2}\s)+)\s+(.*)/
-        bytes, asm = $1.strip, $2.strip
-        bytes = bytes.split(/\s+/).map(&:strip).reject(&:empty?).map do |byte|
-          byte.to_i(16)
-        end
-
-        asm.strip!
-
-        if asm.empty?
-          body.last[0].concat bytes
-        else
-          body << [bytes, asm]
-        end
-      end
-    end
-
-    objdump =~ /^architecture: (.*?),/
-    arch = ARCH_MAP[$1]
-
-    objdump =~ /^\d+ <(.*?)>:/
-    func_name = $1
-
-    new func_name, arch, body
-  end
-
-  def to_c(io = StringIO.new)
+  def text_to_c_array(io, var_name = self.name)
     off = 0
 
     io.puts "/* args: #{arguments.inspect} */"
-    io.puts "static uint8_t #{name}[] = {"
+    io.puts "static uint8_t #{var_name}[] = {"
 
     body.each do |(bytes, asm)|
       bytes_str = bytes.map{|byte| "0x%02x," % byte}.join(' ').ljust(42, ' ')
@@ -84,8 +60,28 @@ ObjectFile = Struct.new(:name, :architecture, :body) do
     end
 
     io.puts "\n};"
+  end
 
-    io.string if StringIO === io
+  def link_func_to_c(io)
+    io.puts "static void #{name}_link(uint8_t *op) {"
+    relocations.each do |offset, (type, args)|
+      case type
+      when :R_X86_64_PC32
+        # R_X86_64_PC32	2	word32	S+A-P
+        s = "((uint8_t *)#{args[0]})"
+        a = "(#{args[1]})"
+        p = "(op + #{offset})"
+        io.puts "  *((int32_t *)(op + #{offset})) = (uint32_t)(#{s} + #{a} - #{p});"
+      when :R_X86_64_32
+        # R_X86_64_32	10	word32	S+A
+        # ignore
+      when :R_X86_64_32S
+        # ignore
+      else
+        raise "unknown relocation type `#{type}'"
+      end
+    end
+    io.puts "}"
   end
 
   private
@@ -97,6 +93,7 @@ ObjectFile = Struct.new(:name, :architecture, :body) do
   }
 
   def find_arguments(bytes, asm)
+    p [bytes, asm]
     instr = As::Instruction.parse asm
     args = Hash.new{|k, v| k[v] = []}
     instr.operands.map do |op|
@@ -125,5 +122,53 @@ ObjectFile = Struct.new(:name, :architecture, :body) do
       end
     end
     args
+  end
+
+  def parse!(filename)
+    parse_text! filename
+    parse_relocations! filename
+  end
+
+  def parse_text!(filename)
+    self.text = []
+    self.asm = []
+
+    out = `objdump -Sf #{filename}`
+    out.each_line do |line|
+      p line
+      if line =~ /:\t((?:[0-9a-f]{2}\s)+)\s+(.*)/
+        bytes, asm = $1.strip, $2.strip
+        bytes = bytes.split(/\s+/).map(&:strip).reject(&:empty?).map do |byte|
+          byte.to_i(16)
+        end
+
+        asm.strip!
+
+        if asm.empty?
+          self.text.last.concat bytes
+        else
+          self.text << bytes
+          self.asm << asm
+        end
+      end
+    end
+
+    out =~ /^architecture: (.*?),/
+    self.architecture = ARCH_MAP[$1]
+
+    out =~ /^\d+ <(.*?)>:/
+    self.name = $1
+  end
+
+
+  def parse_relocations!(filename)
+    self.relocations = {}
+
+    out = `objdump -rj .text #{filename}`
+    out.each_line do |line|
+      if line =~ /^(\h+)\s+(\w+)\s+(.?\w+)((?:\+|\-)0x\h+)?/
+        self.relocations[$1.to_i(16)] = [$2.to_sym, [$3, eval($4) || 0]]
+      end
+    end
   end
 end

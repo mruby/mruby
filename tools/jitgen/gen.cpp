@@ -146,6 +146,22 @@ void findGepUsers(User *parentUser, Module *mod, LLVMContext &context, std::vect
   }
 }
 
+GlobalVariable *cloneGlobalVariable(Module &m, GlobalVariable *gV)
+{
+  GlobalVariable *newGV = m.getGlobalVariable(gV->getName());
+  if(!newGV) {
+    newGV = new GlobalVariable(m,
+                          gV->getType()->getElementType(),
+                          gV->isConstant(), gV->getLinkage(),
+                          (Constant*) gV->getInitializer(), gV->getName(),
+                          (GlobalVariable*) nullptr,
+                          gV->getThreadLocalMode(),
+                          gV->getType()->getAddressSpace());
+    newGV->copyAttributesFrom(gV);
+  }
+  return newGV;
+}
+
 int main(int argc, const char **argv)
 {
   LLVMContext context;
@@ -158,7 +174,7 @@ int main(int argc, const char **argv)
 
   auto mod = parseIRFile(argv[1], error, context);
   std::string outputDir(argv[2]);
-
+#if 0
   std::vector<Function *> removeFuncs;
 
   ValueSymbolTable &symTbl = mod->getValueSymbolTable();
@@ -207,13 +223,13 @@ int main(int argc, const char **argv)
         } else if(isIntrinsicSymbol(calledName)) {
           std::cerr << "Skipping symbol " << calledName << std::endl;
         } else {
-          unsigned symIndex = getSymbolIndex(sym);
-          std::cerr << symIter->getKey().str() << " " << symIndex << std::endl;
+          //unsigned symIndex = getSymbolIndex(sym);
+          //std::cerr << symIter->getKey().str() << " " << symIndex << std::endl;
 
-          Instruction *castInst = getSymbol(func, callInst, calledValue->getType(),
-                                            bb, &*mod, context, symIndex);
+          //Instruction *castInst = getSymbol(func, callInst, calledValue->getType(),
+          //                                  bb, &*mod, context, symIndex);
 
-          callInst->setCalledFunction(castInst);
+          //callInst->setCalledFunction(castInst);
         }
         //val->replaceAllUsesWith(castInst);
         //use->replaceUsesOfWith(replaceInst);
@@ -250,10 +266,9 @@ int main(int argc, const char **argv)
 
           std::cerr << symIter->getKey().str() << std::endl;
 
-          Instruction *castInst = getSymbol(func, inst, val->getType(),
-                                            bb, &*mod, context, getSymbolIndex(sym));
-
-          user->replaceUsesOfWith(val, castInst);
+          //Instruction *castInst = getSymbol(func, inst, val->getType(),
+          //                                  bb, &*mod, context, getSymbolIndex(sym));
+          //user->replaceUsesOfWith(val, castInst);
         }
       } else {
       }
@@ -263,7 +278,7 @@ int main(int argc, const char **argv)
   for(Instruction *inst: removeInsts) {
     inst->removeFromParent();
   }
-
+#endif
   for(Module::iterator funcIter = mod->begin(); funcIter != mod->end(); ++funcIter) {
     std::string funcName = funcIter->getName().str();
 
@@ -277,6 +292,7 @@ int main(int argc, const char **argv)
       opMod->setTargetTriple(mod->getTargetTriple());
       opMod->setModuleInlineAsm(mod->getModuleInlineAsm());
 
+#if 0
       for (Function::iterator bbIter = funcIter->begin(), bbEnd = funcIter->end(); bbIter != bbEnd; ++bbIter) {
         if(isOpFunc(funcIter)) {
           for (BasicBlock::iterator instIter = bbIter->begin(), instEnd = bbIter->end(); instIter != instEnd; ++instIter) {
@@ -295,7 +311,6 @@ int main(int argc, const char **argv)
               }
             }
 
-#if 0
             if(StoreInst *storeInst = dyn_cast<StoreInst>(instIter)) {
               Value *operand = storeInst->getOperand(0);
               if(ConstantInt *constInt = dyn_cast<ConstantInt>(operand)) {
@@ -344,7 +359,6 @@ int main(int argc, const char **argv)
                 }
               }
             }
-#endif
 
             if(User *user = dyn_cast<User>(instIter)) {
               for(unsigned i = 0; i < user->getNumOperands(); i++) {
@@ -365,9 +379,9 @@ int main(int argc, const char **argv)
                         symbolMap[name] = index;
                       }
 
-                      Instruction *castInst = getSymbol(funcIter, instIter, operand->getType(),
-                                                        bbIter, &*mod, context, index);
-                      cast<User>(user)->setOperand(i, castInst);
+                      //Instruction *castInst = getSymbol(funcIter, instIter, operand->getType(),
+                      //                                  bbIter, &*mod, context, index);
+                      //cast<User>(user)->setOperand(i, castInst);
                     }
                   }
                 }
@@ -377,12 +391,14 @@ int main(int argc, const char **argv)
         }
       }
 
+#endif
 
 
       ValueToValueMapTy map;
       Function *clonedFunc = CloneFunction(funcIter, map,
                                             true);
 
+      std::vector<Instruction *> removeInsts;
 
       for (Function::iterator bbIter = clonedFunc->begin(), bbEnd = clonedFunc->end(); bbIter != bbEnd; ++bbIter) {
           for (BasicBlock::iterator instIter = bbIter->begin(), instEnd = bbIter->end(); instIter != instEnd; ++instIter) {
@@ -395,7 +411,11 @@ int main(int argc, const char **argv)
             } else if(CallInst *callInst = dyn_cast<CallInst>(instIter)) {
               Value *calledValue = callInst->getCalledValue();
               std::string calledName = calledValue->getName().str();
-              if(isIntrinsicSymbol(calledName) && isa<Function>(calledValue)) {
+
+              if(isDummySymbol(calledName)) {
+                removeInsts.push_back(callInst);
+                std::cerr << "----------------------" << calledName << std::endl;
+              } else if(/*isIntrinsicSymbol(calledName) && */ isa<Function>(calledValue)) {
                 Function *calledFunc = cast<Function>(calledValue);
                 Function *newCalledFunc = opMod->getFunction(calledName);
                 if(!newCalledFunc) {
@@ -405,11 +425,44 @@ int main(int argc, const char **argv)
                 assert(newCalledFunc);
                 callInst->setCalledFunction(newCalledFunc);
               }
+            } 
+            if(User *user = dyn_cast<User>(instIter)) {
+              for(unsigned i = 0; i < user->getNumOperands(); i++) {
+                Value *operand = user->getOperand(i);
+                if(ConstantExpr *constExpr = dyn_cast<ConstantExpr>(operand)) {
+                  for(unsigned j = 0; j < constExpr->getNumOperands(); j++) {
+                    if(GlobalVariable *gV = dyn_cast<GlobalVariable>(cast<User>(constExpr)->getOperand(j))) {
+                      std::string name = gV->getName().str();
+                      std::cerr << "###############" << name << std::endl;
+
+                      GlobalVariable *newGV = cloneGlobalVariable(*opMod, gV);
+                      //Constant *newGVar = opMod->getOrInsertGlobal(name, ceOperand->getType());
+                      cast<User>(constExpr)->setOperand(j, newGV);
+                      //constExpr->setOperand(j, newGVar);
+                      //user->replaceUsesOfWith(ceOperand, newGVar);
+
+                      //Instruction *castInst = getSymbol(funcIter, instIter, operand->getType(),
+                      //                                  bbIter, &*mod, context, index);
+                      //cast<User>(user)->setOperand(i, castInst);
+                    }
+                  }
+                } else if(GlobalVariable *gV = dyn_cast<GlobalVariable>(operand)) {
+                  std::string name = gV->getName().str();
+                  std::cerr << "/////////////////" << name << std::endl;
+
+                  GlobalVariable *newGV = cloneGlobalVariable(*opMod, gV);
+                  user->setOperand(i, newGV);
+                }
+              }
             }
           }
       }
 
 
+      for(Instruction *inst: removeInsts) {
+        inst->eraseFromParent();
+      }
+      std::cerr << "clear"  << std::endl;
 
       Value *ctxArg = &(*clonedFunc->getArgumentList().begin());
       CallInst *ci = CallInst::Create(clonedFunc, ctxArg, "", clonedFunc->back().getTerminator());

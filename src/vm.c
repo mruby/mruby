@@ -2358,7 +2358,10 @@ static OP_INLINE void
 op_addi(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)+C (Syms[B]=:+)*/
   int a = GETARG_A(CTX_I(ctx));
-  int c = GETARG_C(CTX_I(ctx));
+  //int c = GETARG_C(CTX_I(ctx));
+  volatile int *ptr = (int *)0xFABBA;
+  int c = *ptr;
+
   mrb_value *regs_a = ctx->regs + a;
   mrb_state *mrb = ctx->mrb;
 
