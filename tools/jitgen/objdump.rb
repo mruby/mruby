@@ -4,7 +4,7 @@ require_relative 'x86'
 ObjectFile = Struct.new(:filename, :sections) do
   include As
 
-  Section = Struct.new(:name, :body, :symbols, :relocations) do
+  Section = Struct.new(:name, :body, :symbols, :relocations, :alignment) do
     def self.parse(obj, name)
       section = new name, [], {}, {}
       section.send :parse!, obj
@@ -46,6 +46,8 @@ ObjectFile = Struct.new(:filename, :sections) do
       else
         data_to_c(io, var_name)
       end
+
+      var_name
     end
 
     def data_to_c(io, var_name)
@@ -107,30 +109,38 @@ ObjectFile = Struct.new(:filename, :sections) do
       func_name
     end
 
-    private
-    attr_accessor :asm, :obj
-
     def sane_name
       # remove leading dot
       name[1..-1]
     end
 
+    private
+    attr_accessor :asm, :obj
+
     def parse!(obj)
       @obj = obj
 
-      parse_relocations!
       if text?
-        parse_text_section!
+        out = `objdump -Srfhj #{name} #{obj.filename}`
+        parse_text_section! out
       else
-        parse_data_section!
+        out = `objdump -shrj #{name} #{obj.filename}`
+        parse_data_section! out
       end
     end
 
-    def parse_data_section!
-      out = `objdump -sj #{name} #{obj.filename}`
-      out.each_line do |line|
-        if line =~ /(\h{8})/
-          bytes = $1.each_char.each_slice(2).map do |l, r|
+    def parse_data_section! out
+      parse_relocations! out
+      parse_alignment! out
+
+      index = out.index('Contents of section')
+      return unless index
+
+      p out
+      part = out[index..(out.index("\n\n", index) || -1)]
+      part.each_line do |line|
+        if line =~ /^\s+\h+((?:\s+\h{2,8})+)/
+          bytes = $1.gsub(/\s/, '').each_char.each_slice(2).map do |l, r|
             (l + r).to_i 16
           end
           self.body << bytes
@@ -138,12 +148,17 @@ ObjectFile = Struct.new(:filename, :sections) do
       end
     end
 
-    def parse_text_section!
+    def parse_text_section! out
       @asm = []
 
-      out = `objdump -Sfj #{name} #{obj.filename}`
-      out.each_line do |line|
-        if line =~ /:\t((?:[0-9a-f]{2}\s)+)\s+(.*)/
+      parse_alignment! out
+
+      index = out.index('Disassembly of section')
+      return unless index
+
+      part = out[index..-1]
+      part.each_line do |line|
+        if line =~ /^\s+\h+:\t((?:[0-9a-f]{2}\s)+)\s+(.*)/
           bytes, asm = $1.strip, $2.strip
           bytes = bytes.split(/\s+/).map(&:strip).reject(&:empty?).map do |byte|
             byte.to_i(16)
@@ -157,14 +172,30 @@ ObjectFile = Struct.new(:filename, :sections) do
             self.body << bytes
             @asm << asm
           end
+        elsif line =~ /^\s+(\h+):\s+(\w+)\s+(\.?\w+)((?:\+|\-)0x\h+)?/
+          self.relocations[$1.to_i(16)] = [$2.to_sym, [$3, eval($4 || "0")]]
         end
+      end
+
+    end
+
+    def parse_alignment! out
+      self.alignment = if out =~ /2\*\*(\d+)/
+        2**($1.to_i)
+      else
+        -1
       end
     end
 
-    def parse_relocations!
-      out = `objdump -rj #{name} #{obj.filename}`
-      out.each_line do |line|
-        if line =~ /^(\h+)\s+(\w+)\s+(.?\w+)((?:\+|\-)0x\h+)?/
+    def parse_relocations! out
+      #out = `objdump -rj #{name} #{obj.filename}`
+
+      index = out.index('RELOCATION RECORDS')
+      return unless index
+
+      part = out[index..out.index("\n\n", index)]
+      part.each_line do |line|
+        if line =~ /^(\h+)\s+(\w+)\s+(\.?\w+)((?:\+|\-)0x\h+)?/
           self.relocations[$1.to_i(16)] = [$2.to_sym, [$3, eval($4 || "0")]]
         end
       end
@@ -227,7 +258,7 @@ ObjectFile = Struct.new(:filename, :sections) do
   end
 
   def to_c(io)
-    sections.each do |s|
+    sections.map do |s|
       s.to_c io
     end
   end

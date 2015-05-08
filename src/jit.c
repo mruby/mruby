@@ -58,24 +58,30 @@ jit_page_size()
 }
 #define ALIGN(s, a) (((s) + (a) - 1) & ~((a) - 1))
 static mrb_bool
-jit_ctx_alloc(mrb_state *mrb, struct mrb_jit_ctx *ctx, size_t text_size)
+jit_ctx_alloc(mrb_state *mrb, struct mrb_jit_ctx *ctx, size_t text_size, size_t rodata_size)
 {
   size_t page_size = jit_page_size();
-  text_size = ALIGN(text_size, page_size);
-  //size = (size + page_size - 1) & ~(page_size - 1);
+  size_t aligned_text_size = ALIGN(text_size, 16);
+  size_t size = ALIGN(aligned_text_size + rodata_size, page_size);
+  uint8_t *addr, *mem;
 
   JIT_PRINTF( "page counter is %d\n", mrb->jit_page_counter);
-  uint8_t *addr = (uint8_t *) ALIGN(INT32_MAX - (500 - mrb->jit_page_counter++) * text_size, page_size);
-  JIT_PRINTF( "allocating page of size %d (at %p)\n", text_size, addr);
+  addr = (uint8_t *) ALIGN(INT32_MAX - (500 - mrb->jit_page_counter++) * size, page_size);
+  JIT_PRINTF( "allocating page of size %d (at %p)\n", size, addr);
 
-  ctx->text = mmap(addr, text_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+  mem = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+
+  ctx->text = mem;
+  ctx->rodata = mem + aligned_text_size;
 
   JIT_PRINTF("allocated page at %p\n", ctx->text);
   ctx->text_size = text_size;
+  ctx->rodata_size = rodata_size;
+  ctx->size = size;
 
-  mrb_assert((ctx->text + text_size) < (uint8_t *)INT32_MAX);
+  mrb_assert((mem + size) < (uint8_t *)INT32_MAX);
 
-  return ctx->text != MAP_FAILED;
+  return mem != MAP_FAILED;
 }
 
 static void
@@ -124,7 +130,7 @@ is_jump(int opcode)
 }
 
 static void
-relax_off_tbl(mrb_irep *irep, int32_t *tbl)
+relax_text_off_tbl(mrb_irep *irep, int32_t *tbl)
 {
   int i;
   mrb_bool rerelax = FALSE;
@@ -138,7 +144,7 @@ relax_off_tbl(mrb_irep *irep, int32_t *tbl)
     if (is_jump(opcode)) {
       int op_off = GETARG_sBx(c);
       int cur_jmp_size = tbl[i + 1] - tbl[i];
-      int new_jmp_size = op_sizes[opcode];
+      int new_jmp_size = op_sizes_text[opcode];
       int jmp_off;
 
       if(op_off >= 0) {
@@ -175,14 +181,14 @@ relax_off_tbl(mrb_irep *irep, int32_t *tbl)
   }
   if(rerelax) {
     JIT_PRINTF("rerelaxing\n");
-    relax_off_tbl(irep, tbl);
+    relax_text_off_tbl(irep, tbl);
   }
 
   JIT_PRINTF("/relaxing\n");
 }
 
 static int32_t
-build_off_tbl(mrb_state *mrb, mrb_irep *irep)
+build_rodata_off_tbl(mrb_state *mrb, mrb_irep *irep)
 {
   int i;
   int32_t *tbl = (int32_t *) mrb_malloc(mrb, (irep->ilen + 1) * sizeof(int32_t));
@@ -192,7 +198,26 @@ build_off_tbl(mrb_state *mrb, mrb_irep *irep)
   for(i = 0; i < irep->ilen; i++) {
     mrb_code c = irep->iseq[i];
     int opcode = GET_OPCODE(c);
-    int32_t next_off = tbl[i] + op_sizes[opcode];
+    int32_t next_off = tbl[i] + op_sizes_rodata[opcode];
+    tbl[i + 1] = next_off;
+  }
+
+  irep->jit_ctx.rodata_off_tbl = tbl;
+  return tbl[irep->ilen];
+}
+
+static int32_t
+build_text_off_tbl(mrb_state *mrb, mrb_irep *irep)
+{
+  int i;
+  int32_t *tbl = (int32_t *) mrb_malloc(mrb, (irep->ilen + 1) * sizeof(int32_t));
+
+  tbl[0] = 0;
+
+  for(i = 0; i < irep->ilen; i++) {
+    mrb_code c = irep->iseq[i];
+    int opcode = GET_OPCODE(c);
+    int32_t next_off = tbl[i] + op_sizes_text[opcode];
     if (is_jump(opcode)) {
       JIT_PRINTF("jump: adding extra %d\n", jump_size(irep->iseq[i], 0, TRUE));
       next_off += jump_size(irep->iseq[i], 0, TRUE);
@@ -200,9 +225,9 @@ build_off_tbl(mrb_state *mrb, mrb_irep *irep)
     tbl[i + 1] = next_off;
   }
 
-  relax_off_tbl(irep, tbl);
+  relax_text_off_tbl(irep, tbl);
 
-  irep->jit_ctx.off_tbl = tbl;
+  irep->jit_ctx.text_off_tbl = tbl;
   return tbl[irep->ilen];
 }
 
@@ -214,22 +239,25 @@ mrb_irep_jit_prepare(mrb_state *mrb, mrb_irep *irep)
   }
   else {
     size_t text_size = 0;
+    size_t rodata_size = 0;
 
     init_ops();
 
-    text_size = build_off_tbl(mrb, irep) + return_size();
-    jit_ctx_alloc(mrb, &irep->jit_ctx, text_size);
+    text_size = build_text_off_tbl(mrb, irep) + return_size();
+    rodata_size = build_rodata_off_tbl(mrb, irep);
+
+    jit_ctx_alloc(mrb, &irep->jit_ctx, text_size, rodata_size);
 
     JIT_PRINTF( "need %d bytes for jit code (%d for the final return)\n", text_size, return_size());
 /*
-    off = op_sizes[OP_ENTER];
+    off = op_sizes_text[OP_ENTER];
     proc->jit_oa_off[0] = off;
     for(i = 1; i < irep->oalen; i++) {
       uint16_t off = 0;
       int j;
       for(j = 1; j < irep->oa_off[i]; j++) {
         mrb_code c = irep->iseq[j];
-        off += op_sizes[GET_OPCODE(c)];
+        off += op_sizes_text[GET_OPCODE(c)];
       }
       proc->jit_oa_off[i] = off;
     }
@@ -252,7 +280,8 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
   else {
     unsigned i  = 0;
     struct mrb_jit_ctx *ctx;
-    int32_t *off_tbl;
+    int32_t *text_off_tbl;
+    int32_t *rodata_off_tbl;
     //int ilen = irep->ilen;
     //mrb_code *iseq = irep->iseq;
 
@@ -262,20 +291,23 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
 
     JIT_PRINTF( "jitting irep %p\n", irep);
     ctx = &irep->jit_ctx;
-    off_tbl = ctx->off_tbl;
+    text_off_tbl = ctx->text_off_tbl;
+    rodata_off_tbl = ctx->rodata_off_tbl;
 
     for (i = 0; i < irep->ilen; i++) {
       mrb_code c = irep->iseq[i];
       int opcode = GET_OPCODE(c);
-      int32_t off =  off_tbl[i];
+      int32_t off =  text_off_tbl[i];
+      int32_t rodata_off = rodata_off_tbl[i];
 
-      JIT_PRINTF( "copying %dth opcode:%s (%d) to offset %d (%d bytes) (addr: %p/%p)\n", i, op_names[opcode], opcode, off, op_sizes[opcode], ctx->text + off, off);
+      JIT_PRINTF( "copying %dth opcode:%s (%d) to offset %d (%d bytes) (addr: %p/%p)\n", i, op_names[opcode], opcode, off, op_sizes_text[opcode], ctx->text + off, off);
 
 
-      memcpy(ctx->text + off, ops[opcode], op_sizes[opcode]);
+      memcpy(ctx->text + off, ops_text[opcode], op_sizes_text[opcode]);
+      memcpy(ctx->rodata + rodata_off, ops_rodata[opcode], op_sizes_rodata[opcode]);
 
       /* link code */
-      link_funcs[opcode](ctx->text + off);
+      link_funcs[opcode](ctx->text + off, ctx->rodata + rodata_off);
 
       /* set operands */
       arg_funcs[opcode](ctx->text + off, c, i);
@@ -287,27 +319,27 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
       if (opcode == OP_JMPNOT || opcode == OP_JMPIF || opcode == OP_JMP) {
         int op_off = GETARG_sBx(c);
         uint8_t *jmp_off;
-        int jit_off = off_tbl[i + op_off] - off_tbl[i + 1];
+        int jit_off = text_off_tbl[i + op_off] - text_off_tbl[i + 1];
 
         (void) jmp_off;
 
         if (opcode == OP_JMPNOT) {
-          jmp_off = jit_jump_if(ctx->text + off + op_sizes[opcode], jit_off, FALSE);
+          jmp_off = jit_jump_if(ctx->text + off + op_sizes_text[opcode], jit_off, FALSE);
         }
         else if(opcode == OP_JMPIF){
-          jmp_off = jit_jump_not(ctx->text + off + op_sizes[opcode], jit_off, FALSE);
+          jmp_off = jit_jump_not(ctx->text + off + op_sizes_text[opcode], jit_off, FALSE);
         }
         else {
-          jmp_off = jit_jump(ctx->text + off + op_sizes[opcode], jit_off, FALSE);
+          jmp_off = jit_jump(ctx->text + off + op_sizes_text[opcode], jit_off, FALSE);
         }
         JIT_PRINTF( "jump to (%d / %ld) %p\n", op_off, jit_off, jmp_off + jit_off);
       }
     }
 
-    JIT_PRINTF( "inserting final ret: to offset %d (addr: %p)\n",  off_tbl[i], ctx->text + off_tbl[i]);
-    jit_return(ctx->text + off_tbl[i]);
+    JIT_PRINTF( "inserting final ret: to offset %d (addr: %p)\n",  text_off_tbl[i], ctx->text + text_off_tbl[i]);
+    jit_return(ctx->text + text_off_tbl[i]);
 
-    for (i = 0; i < off_tbl[irep->ilen] + 1; i++)
+    for (i = 0; i < text_off_tbl[irep->ilen] + 1; i++)
     {
       if (i > 0) JIT_PRINTF(" ");
       JIT_PRINTF("%02X", ctx->text[i]);

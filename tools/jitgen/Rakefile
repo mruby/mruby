@@ -183,7 +183,8 @@ def decls_to_c(file, objs)
   file.puts "typedef void (*jit_link_func_t)(uint8_t *op, uint8_t *data);"
   file.puts "static jit_args_func_t arg_funcs[#{objs.size}];"
   file.puts "extern jit_link_func_t link_funcs[];"
-  file.puts "uint8_t* ops[#{objs.size}];"
+  file.puts "uint8_t* ops_text[#{objs.size}];"
+  file.puts "uint8_t* ops_rodata[#{objs.size}];"
   file.puts "static char *op_names[#{objs.size}];"
 end
 
@@ -206,7 +207,7 @@ def linker_to_c(file, objs)
   file.puts "}"
 end
 
-def init_ops_to_c(file, objs)
+def init_ops_to_c(file, objs, array_var_names)
   file.puts "extern void init_linker();"
   file.puts "void init_ops() {"
   file.puts "  static int init = 0;"
@@ -214,7 +215,9 @@ def init_ops_to_c(file, objs)
   file.puts "    init = 1;"
   file.puts "    init_linker();"
   objs.each_with_index do |op, index|
-    file.puts "    ops[#{index}] = #{op.name};"
+    op.sections.each_with_index do |s, i|
+      file.puts "    ops_#{s.sane_name}[#{index}] = #{array_var_names[index][i]};"
+    end
     file.puts "    op_names[#{index}] = \"#{op.name}\";"
     file.puts "    arg_funcs[#{index}] = #{op.name}_set_args_from_code;"
   end
@@ -222,12 +225,24 @@ def init_ops_to_c(file, objs)
   file.puts "}"
 end
 
-def op_sizes_to_c(file, objs)
-  file.puts "static size_t op_sizes[] = {\n"
-  objs.each do |op|
-    file.puts "  sizeof(#{op.name}), /* #{op.bytesize} */"
+def op_sizes_to_c(file, objs, array_var_names)
+  # Order of sections matters!
+  ['text', 'rodata'].each_with_index do |s, i|
+    file.puts "static size_t op_sizes_#{s}[] = {\n"
+    objs.each_with_index do |op, index|
+      file.puts "  sizeof(#{array_var_names[index][i]}), /* #{op.sections[i].bytesize} */"
+    end
+    file.puts "\n};"
   end
-  file.puts "\n};"
+
+  ['text', 'rodata'].each_with_index do |s, i|
+    file.puts "static int8_t op_algn_#{s}[] = {\n"
+    objs.each_with_index do |op, index|
+      file.puts "  #{op.sections[i].alignment},"
+    end
+    file.puts "\n};"
+  end
+
 end
 
 def set_arg_funcs_to_c(file, obj)
@@ -368,6 +383,7 @@ profiles.each do |profile|
   file ops_header_path(profile) => [*obj_files[profile], jit_src_dir, symtbl_header_path(profile)] do |t|
     file = nil
     linker_file = nil
+    array_var_names = []
 
     objs = obj_files[profile].map do |obj_file|
       obj = ObjectFile.load(obj_file)
@@ -375,7 +391,7 @@ profiles.each do |profile|
       linker_file ||= File.open linker_header_path(profile), 'w'
 
       file.puts
-      obj.to_c file
+      array_var_names << obj.to_c(file)
       file.puts
       set_arg_funcs_to_c(file, obj)
       file.puts
@@ -385,9 +401,9 @@ profiles.each do |profile|
 
     decls_to_c(file, objs)
     file.puts
-    op_sizes_to_c(file, objs)
+    op_sizes_to_c(file, objs, array_var_names)
     file.puts
-    init_ops_to_c(file, objs)
+    init_ops_to_c(file, objs, array_var_names)
     file.puts
 
     linker_to_c(linker_file, objs)

@@ -9,14 +9,16 @@ extern "C" {
 
 typedef struct mrb_jit_ctx {
     size_t text_size;
-    //size_t data_size;
+    size_t rodata_size;
+    size_t size;
 
-    int32_t *off_tbl;
+    int32_t *text_off_tbl;
+    int32_t *rodata_off_tbl;
 
-    /* data section, .rodata, .data etc. */
-    //uint8_t *data;
+    /* .rodata sections */
+    uint8_t *rodata;
 
-    /* text section, i.e. code */
+    /* .text sections */
     uint8_t *text;
 } mrb_jit_ctx;
 

@@ -1131,7 +1131,7 @@ _op_rescue(struct op_ctx *ctx, mrb_callinfo *ci) {
 
 #ifdef MRB_ENABLE_JIT
     //uint32_t rescue_idx = ctx->pc - ctx->irep->iseq;
-    //uintptr_t jit_jmp_off = ctx->irep->jit_ctx.off_tbl[ctx->pc - ctx->irep->iseq];
+    //uintptr_t jit_jmp_off = ctx->irep->jit_ctx.text_off_tbl[ctx->pc - ctx->irep->iseq];
     ////VM_PRINTF("_op_rescue: settings jmp addr for jit to: %p\n", jit_jmp_off);
     //ctx->rescue_jmp_addr = ctx->irep->jit_ctx.text + jit_jmp_off;
     ////VM_PRINTF("_op_rescue: settings jmp addr for jit to: %p %p\n", ctx->rescue_jmp_addr, jit_jmp_off);
@@ -1852,7 +1852,7 @@ op_enter_method_m(struct op_ctx *ctx) {
 
   PC_INC(ctx->pc);
 #ifdef MRB_JIT_GEN
-  jit_jmp_off = ctx->irep->jit_ctx.off_tbl[1];
+  jit_jmp_off = ctx->irep->jit_ctx.text_off_tbl[1];
 #endif
 
 
@@ -1939,13 +1939,13 @@ op_enter(struct op_ctx *ctx) {
     if (o == 0 || argc < m1+m2) {
       PC_INC(ctx->pc);
 #ifdef MRB_JIT_GEN
-      jit_jmp_off = ctx->irep->jit_ctx.off_tbl[1];
+      jit_jmp_off = ctx->irep->jit_ctx.text_off_tbl[1];
 #endif
     }
     else {
       PC_ADD(ctx->pc, ctx->irep->oa_off[argc - m1 - m2]);
 #ifdef MRB_JIT_GEN
-      jit_jmp_off = ctx->irep->jit_ctx.off_tbl[argc - m1 - m2 + 1];
+      jit_jmp_off = ctx->irep->jit_ctx.text_off_tbl[argc - m1 - m2 + 1];
 #endif
     }
   }
@@ -1971,13 +1971,13 @@ op_enter(struct op_ctx *ctx) {
     if(o > 0) {
       PC_ADD(ctx->pc, ctx->irep->oa_off[o]);
 #ifdef MRB_JIT_GEN
-      jit_jmp_off = ctx->irep->jit_ctx.off_tbl[o + 1];
+      jit_jmp_off = ctx->irep->jit_ctx.text_off_tbl[o + 1];
 #endif
     }
     else {
       PC_INC(ctx->pc);
 #ifdef MRB_JIT_GEN
-      jit_jmp_off = ctx->irep->jit_ctx.off_tbl[1];
+      jit_jmp_off = ctx->irep->jit_ctx.text_off_tbl[1];
 #endif
     }
 
@@ -2993,13 +2993,13 @@ RETRY_TRY_BLOCK:
     {
       idx = ctx.pc - ctx.irep->iseq;
       //VM_PRINTF("(rescue) jumping to %dth op\n", idx, addr);
-      addr = ctx.irep->jit_ctx.text + ctx.irep->jit_ctx.off_tbl[idx];
+      addr = ctx.irep->jit_ctx.text + ctx.irep->jit_ctx.text_off_tbl[idx];
       //VM_PRINTF("(rescue) jumping to %dth op at %p\n", idx, addr);
       ((op_t)(addr))(&ctx);
     }
     {
       idx = ctx.pc - ctx.irep->iseq;
-      addr = ctx.irep->jit_ctx.text + ctx.irep->jit_ctx.off_tbl[idx];
+      addr = ctx.irep->jit_ctx.text + ctx.irep->jit_ctx.text_off_tbl[idx];
       //VM_PRINTF("(send) jumping to %dth op at %p\n", idx, addr);
       ((op_t)(addr))(&ctx);
     }

@@ -1447,9 +1447,9 @@ static uint8_t op_super__text[] = {
 
 };
 static uint8_t op_super__rodata[] = {
-0x73, 0x75, 0x70, 0x65,                   
-0x73, 0x69, 0x64, 0x65,                   
-0x65, 0x74, 0x68, 0x6f,                   
+0x73, 0x75, 0x70, 0x65, 0x72, 0x20, 0x63, 0x61, 0x6c, 0x6c, 0x65, 0x64, 0x20, 0x6f, 0x75, 0x74,
+0x73, 0x69, 0x64, 0x65, 0x20, 0x6f, 0x66, 0x20, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x00, 0x6d,
+0x65, 0x74, 0x68, 0x6f, 0x64, 0x5f, 0x6d, 0x69, 0x73, 0x73, 0x69, 0x6e, 0x67, 0x00,
 
 };
 
@@ -1668,8 +1668,8 @@ static uint8_t op_argary__text[] = {
 
 };
 static uint8_t op_argary__rodata[] = {
-0x73, 0x75, 0x70, 0x65,                   
-0x73, 0x69, 0x64, 0x65,                   
+0x73, 0x75, 0x70, 0x65, 0x72, 0x20, 0x63, 0x61, 0x6c, 0x6c, 0x65, 0x64, 0x20, 0x6f, 0x75, 0x74,
+0x73, 0x69, 0x64, 0x65, 0x20, 0x6f, 0x66, 0x20, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x00,
 
 };
 
@@ -2117,7 +2117,7 @@ static uint8_t op_enter__text[] = {
 0x48, 0x8b, 0x44, 0x24, 0x28,             /*636: mov    0x28(%rsp),%rax */
 0x85, 0xc0,                               /*63b: test   %eax,%eax */
 0x48, 0x8b, 0x45, 0x08,                   /*63d: mov    0x8(%rbp),%rax */
-0x48, 0x8b, 0x88, 0x98, 0x00, 0x00, 0x00, /*641: mov    0x98(%rax),%rcx */
+0x48, 0x8b, 0x88, 0xa8, 0x00, 0x00, 0x00, /*641: mov    0xa8(%rax),%rcx */
 0x0f, 0x84, 0x8e, 0x00, 0x00, 0x00,       /*648: je     6dc <op_enter+0x6dc> */
 0x45, 0x39, 0xe9,                         /*64e: cmp    %r13d,%r9d */
 0x0f, 0x8c, 0x85, 0x00, 0x00, 0x00,       /*651: jl     6dc <op_enter+0x6dc> */
@@ -2154,14 +2154,14 @@ static uint8_t op_enter__text[] = {
 0x4a, 0x89, 0x0c, 0x00,                   /*6c1: mov    %rcx,(%rax,%r8,1) */
 0x85, 0xff,                               /*6c5: test   %edi,%edi */
 0x48, 0x8b, 0x45, 0x08,                   /*6c7: mov    0x8(%rbp),%rax */
-0x48, 0x8b, 0x88, 0x98, 0x00, 0x00, 0x00, /*6cb: mov    0x98(%rax),%rcx */
+0x48, 0x8b, 0x88, 0xa8, 0x00, 0x00, 0x00, /*6cb: mov    0xa8(%rax),%rcx */
 0x74, 0x08,                               /*6d2: je     6dc <op_enter+0x6dc> */
 0xff, 0xc7,                               /*6d4: inc    %edi */
 0x48, 0x8d, 0x0c, 0xb9,                   /*6d6: lea    (%rcx,%rdi,4),%rcx */
 0xeb, 0x04,                               /*6da: jmp    6e0 <op_enter+0x6e0> */
 0x48, 0x83, 0xc1, 0x04,                   /*6dc: add    $0x4,%rcx */
 0x0f, 0xb7, 0x31,                         /*6e0: movzwl (%rcx),%esi */
-0x48, 0x03, 0xb0, 0xa0, 0x00, 0x00, 0x00, /*6e3: add    0xa0(%rax),%rsi */
+0x48, 0x03, 0xb0, 0xc0, 0x00, 0x00, 0x00, /*6e3: add    0xc0(%rax),%rsi */
 0x48, 0x89, 0xef,                         /*6ea: mov    %rbp,%rdi */
 0x48, 0x89, 0xef,                         /*6ed: mov    %rbp,%rdi */
 0x48, 0x83, 0xc4, 0x58,                   /*6f0: add    $0x58,%rsp */
@@ -2175,8 +2175,9 @@ static uint8_t op_enter__text[] = {
 
 };
 static uint8_t op_enter__rodata[] = {
-0x50, 0x72, 0x6f, 0x63,                   
-0x6f, 0x70, 0x5f, 0x65,                   
+0x50, 0x72, 0x6f, 0x63, 0x00, 0x74, 0x6f, 0x5f, 0x70, 0x72, 0x6f, 0x63, 0x00, 0x00, 0x00, 0x00,
+0x6f, 0x70, 0x5f, 0x65, 0x6e, 0x74, 0x65, 0x72, 0x3a, 0x20, 0x25, 0x70, 0x20, 0x28, 0x25, 0x64,
+0x29, 0x0a, 0x00,                         
 
 };
 
@@ -2308,9 +2309,9 @@ static uint8_t op_enter_method_m__text[] = {
 0x48, 0x89, 0xd0,                         /*18f: mov    %rdx,%rax */
 0x75, 0xdc,                               /*192: jne    170 <op_enter_method_m+0x170> */
 0x49, 0x8b, 0x46, 0x08,                   /*194: mov    0x8(%r14),%rax */
-0x48, 0x8b, 0x88, 0x98, 0x00, 0x00, 0x00, /*198: mov    0x98(%rax),%rcx */
+0x48, 0x8b, 0x88, 0xa8, 0x00, 0x00, 0x00, /*198: mov    0xa8(%rax),%rcx */
 0x0f, 0xb7, 0x71, 0x04,                   /*19f: movzwl 0x4(%rcx),%esi */
-0x48, 0x03, 0xb0, 0xa0, 0x00, 0x00, 0x00, /*1a3: add    0xa0(%rax),%rsi */
+0x48, 0x03, 0xb0, 0xc0, 0x00, 0x00, 0x00, /*1a3: add    0xc0(%rax),%rsi */
 0x4c, 0x89, 0xf7,                         /*1aa: mov    %r14,%rdi */
 0x4c, 0x89, 0xf7,                         /*1ad: mov    %r14,%rdi */
 0x5b,                                     /*1b0: pop    %rbx */
@@ -2326,7 +2327,7 @@ static uint8_t op_enter_method_m__text[] = {
 
 };
 static uint8_t op_enter_method_m__rodata[] = {
-0x50, 0x72, 0x6f, 0x63,                   
+0x50, 0x72, 0x6f, 0x63, 0x00, 0x74, 0x6f, 0x5f, 0x70, 0x72, 0x6f, 0x63, 0x00,
 
 };
 
@@ -2635,11 +2636,11 @@ static uint8_t op_tailcall__text[] = {
 
 };
 static uint8_t op_tailcall__rodata[] = {
-0x00, 0x00, 0x00, 0x00,                   
-0x00, 0x00, 0x00, 0x00,                   
-0x00, 0x00, 0x00, 0x00,                   
-0x00, 0x00, 0x00, 0x00,                   
-0x6d, 0x65, 0x74, 0x68,                   
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x5f, 0x6d, 0x69, 0x73, 0x73, 0x69, 0x6e, 0x67, 0x00,
 
 };
 
@@ -4522,8 +4523,8 @@ static uint8_t op_tclass__text[] = {
 
 };
 static uint8_t op_tclass__rodata[] = {
-0x6e, 0x6f, 0x20, 0x74,                   
-0x6f, 0x72, 0x20, 0x6d,                   
+0x6e, 0x6f, 0x20, 0x74, 0x61, 0x72, 0x67, 0x65, 0x74, 0x20, 0x63, 0x6c, 0x61, 0x73, 0x73, 0x20,
+0x6f, 0x72, 0x20, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x00,
 
 };
 
@@ -4552,7 +4553,8 @@ static uint8_t op_debug__text[] = {
 
 };
 static uint8_t op_debug__rodata[] = {
-0x4f, 0x50, 0x5f, 0x44,                   
+0x4f, 0x50, 0x5f, 0x44, 0x45, 0x42, 0x55, 0x47, 0x20, 0x25, 0x64, 0x20, 0x25, 0x64, 0x20, 0x25,
+0x64, 0x0a, 0x00,                         
 
 };
 
@@ -4639,88 +4641,332 @@ typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c, uint32_t op_idx);
 typedef void (*jit_link_func_t)(uint8_t *op, uint8_t *data);
 static jit_args_func_t arg_funcs[78];
 extern jit_link_func_t link_funcs[];
-uint8_t* ops[78];
+uint8_t* ops_text[78];
+uint8_t* ops_rodata[78];
 static char *op_names[78];
 
-static size_t op_sizes[] = {
-  sizeof(op_nop), /* 0 */
-  sizeof(op_move), /* 32 */
-  sizeof(op_loadl), /* 36 */
-  sizeof(op_loadi), /* 28 */
-  sizeof(op_loadsym), /* 34 */
-  sizeof(op_loadnil), /* 28 */
-  sizeof(op_loadself), /* 25 */
-  sizeof(op_loadt), /* 28 */
-  sizeof(op_loadf), /* 28 */
-  sizeof(op_getglobal), /* 49 */
-  sizeof(op_setglobal), /* 44 */
-  sizeof(op_getspecial), /* 44 */
-  sizeof(op_setspecial), /* 39 */
-  sizeof(op_getiv), /* 49 */
-  sizeof(op_setiv), /* 44 */
-  sizeof(op_getcv), /* 89 */
-  sizeof(op_setcv), /* 44 */
-  sizeof(op_getconst), /* 96 */
-  sizeof(op_setconst), /* 44 */
-  sizeof(op_getmcnst), /* 113 */
-  sizeof(op_setmcnst), /* 58 */
-  sizeof(op_getupvar), /* 122 */
-  sizeof(op_setupvar), /* 108 */
-  sizeof(op_jmp), /* 0 */
-  sizeof(op_jmpif), /* 11 */
-  sizeof(op_jmpnot), /* 11 */
-  sizeof(op_onerr), /* 145 */
-  sizeof(op_rescue), /* 52 */
-  sizeof(op_poperr), /* 35 */
-  sizeof(op_raise), /* 32 */
-  sizeof(op_epush), /* 167 */
-  sizeof(op_epop), /* 84 */
-  sizeof(op_send), /* 111 */
-  sizeof(op_sendb), /* 56 */
-  sizeof(op_fsend), /* 0 */
-  sizeof(op_call), /* 452 */
-  sizeof(op_super), /* 704 */
-  sizeof(op_argary), /* 724 */
-  sizeof(op_enter), /* 1792 */
-  sizeof(op_enter_method_m), /* 453 */
-  sizeof(op_karg), /* 0 */
-  sizeof(op_kdict), /* 0 */
-  sizeof(op_return), /* 38 */
-  sizeof(op_break), /* 24 */
-  sizeof(op_tailcall), /* 793 */
-  sizeof(op_blkpush), /* 211 */
-  sizeof(op_add), /* 333 */
-  sizeof(op_addi), /* 162 */
-  sizeof(op_sub), /* 236 */
-  sizeof(op_subi), /* 166 */
-  sizeof(op_mul), /* 254 */
-  sizeof(op_div), /* 204 */
-  sizeof(op_eq), /* 262 */
-  sizeof(op_lt), /* 217 */
-  sizeof(op_le), /* 217 */
-  sizeof(op_gt), /* 217 */
-  sizeof(op_ge), /* 217 */
-  sizeof(op_array), /* 64 */
-  sizeof(op_arycat), /* 86 */
-  sizeof(op_arypush), /* 48 */
-  sizeof(op_aref), /* 90 */
-  sizeof(op_aset), /* 53 */
-  sizeof(op_apost), /* 447 */
-  sizeof(op_string), /* 69 */
-  sizeof(op_strcat), /* 48 */
-  sizeof(op_hash), /* 193 */
-  sizeof(op_lambda), /* 28 */
-  sizeof(op_range), /* 85 */
-  sizeof(op_oclass), /* 28 */
-  sizeof(op_class), /* 144 */
-  sizeof(op_module), /* 129 */
-  sizeof(op_exec), /* 356 */
-  sizeof(op_method), /* 65 */
-  sizeof(op_sclass), /* 66 */
-  sizeof(op_tclass), /* 127 */
-  sizeof(op_debug), /* 35 */
-  sizeof(op_stop), /* 13 */
-  sizeof(op_err), /* 99 */
+static size_t op_sizes_text[] = {
+  sizeof(op_nop__text), /* 0 */
+  sizeof(op_move__text), /* 32 */
+  sizeof(op_loadl__text), /* 36 */
+  sizeof(op_loadi__text), /* 28 */
+  sizeof(op_loadsym__text), /* 34 */
+  sizeof(op_loadnil__text), /* 28 */
+  sizeof(op_loadself__text), /* 25 */
+  sizeof(op_loadt__text), /* 28 */
+  sizeof(op_loadf__text), /* 28 */
+  sizeof(op_getglobal__text), /* 49 */
+  sizeof(op_setglobal__text), /* 44 */
+  sizeof(op_getspecial__text), /* 44 */
+  sizeof(op_setspecial__text), /* 39 */
+  sizeof(op_getiv__text), /* 49 */
+  sizeof(op_setiv__text), /* 44 */
+  sizeof(op_getcv__text), /* 89 */
+  sizeof(op_setcv__text), /* 44 */
+  sizeof(op_getconst__text), /* 96 */
+  sizeof(op_setconst__text), /* 44 */
+  sizeof(op_getmcnst__text), /* 113 */
+  sizeof(op_setmcnst__text), /* 58 */
+  sizeof(op_getupvar__text), /* 122 */
+  sizeof(op_setupvar__text), /* 108 */
+  sizeof(op_jmp__text), /* 0 */
+  sizeof(op_jmpif__text), /* 11 */
+  sizeof(op_jmpnot__text), /* 11 */
+  sizeof(op_onerr__text), /* 145 */
+  sizeof(op_rescue__text), /* 52 */
+  sizeof(op_poperr__text), /* 35 */
+  sizeof(op_raise__text), /* 32 */
+  sizeof(op_epush__text), /* 167 */
+  sizeof(op_epop__text), /* 84 */
+  sizeof(op_send__text), /* 111 */
+  sizeof(op_sendb__text), /* 56 */
+  sizeof(op_fsend__text), /* 0 */
+  sizeof(op_call__text), /* 452 */
+  sizeof(op_super__text), /* 704 */
+  sizeof(op_argary__text), /* 724 */
+  sizeof(op_enter__text), /* 1792 */
+  sizeof(op_enter_method_m__text), /* 453 */
+  sizeof(op_karg__text), /* 0 */
+  sizeof(op_kdict__text), /* 0 */
+  sizeof(op_return__text), /* 38 */
+  sizeof(op_break__text), /* 24 */
+  sizeof(op_tailcall__text), /* 793 */
+  sizeof(op_blkpush__text), /* 211 */
+  sizeof(op_add__text), /* 333 */
+  sizeof(op_addi__text), /* 162 */
+  sizeof(op_sub__text), /* 236 */
+  sizeof(op_subi__text), /* 166 */
+  sizeof(op_mul__text), /* 254 */
+  sizeof(op_div__text), /* 204 */
+  sizeof(op_eq__text), /* 262 */
+  sizeof(op_lt__text), /* 217 */
+  sizeof(op_le__text), /* 217 */
+  sizeof(op_gt__text), /* 217 */
+  sizeof(op_ge__text), /* 217 */
+  sizeof(op_array__text), /* 64 */
+  sizeof(op_arycat__text), /* 86 */
+  sizeof(op_arypush__text), /* 48 */
+  sizeof(op_aref__text), /* 90 */
+  sizeof(op_aset__text), /* 53 */
+  sizeof(op_apost__text), /* 447 */
+  sizeof(op_string__text), /* 69 */
+  sizeof(op_strcat__text), /* 48 */
+  sizeof(op_hash__text), /* 193 */
+  sizeof(op_lambda__text), /* 28 */
+  sizeof(op_range__text), /* 85 */
+  sizeof(op_oclass__text), /* 28 */
+  sizeof(op_class__text), /* 144 */
+  sizeof(op_module__text), /* 129 */
+  sizeof(op_exec__text), /* 356 */
+  sizeof(op_method__text), /* 65 */
+  sizeof(op_sclass__text), /* 66 */
+  sizeof(op_tclass__text), /* 127 */
+  sizeof(op_debug__text), /* 35 */
+  sizeof(op_stop__text), /* 13 */
+  sizeof(op_err__text), /* 99 */
+
+};
+static size_t op_sizes_rodata[] = {
+  sizeof(op_nop__rodata), /* 0 */
+  sizeof(op_move__rodata), /* 0 */
+  sizeof(op_loadl__rodata), /* 0 */
+  sizeof(op_loadi__rodata), /* 0 */
+  sizeof(op_loadsym__rodata), /* 0 */
+  sizeof(op_loadnil__rodata), /* 0 */
+  sizeof(op_loadself__rodata), /* 0 */
+  sizeof(op_loadt__rodata), /* 0 */
+  sizeof(op_loadf__rodata), /* 0 */
+  sizeof(op_getglobal__rodata), /* 0 */
+  sizeof(op_setglobal__rodata), /* 0 */
+  sizeof(op_getspecial__rodata), /* 0 */
+  sizeof(op_setspecial__rodata), /* 0 */
+  sizeof(op_getiv__rodata), /* 0 */
+  sizeof(op_setiv__rodata), /* 0 */
+  sizeof(op_getcv__rodata), /* 0 */
+  sizeof(op_setcv__rodata), /* 0 */
+  sizeof(op_getconst__rodata), /* 0 */
+  sizeof(op_setconst__rodata), /* 0 */
+  sizeof(op_getmcnst__rodata), /* 0 */
+  sizeof(op_setmcnst__rodata), /* 0 */
+  sizeof(op_getupvar__rodata), /* 0 */
+  sizeof(op_setupvar__rodata), /* 0 */
+  sizeof(op_jmp__rodata), /* 0 */
+  sizeof(op_jmpif__rodata), /* 0 */
+  sizeof(op_jmpnot__rodata), /* 0 */
+  sizeof(op_onerr__rodata), /* 0 */
+  sizeof(op_rescue__rodata), /* 0 */
+  sizeof(op_poperr__rodata), /* 0 */
+  sizeof(op_raise__rodata), /* 0 */
+  sizeof(op_epush__rodata), /* 0 */
+  sizeof(op_epop__rodata), /* 0 */
+  sizeof(op_send__rodata), /* 0 */
+  sizeof(op_sendb__rodata), /* 0 */
+  sizeof(op_fsend__rodata), /* 0 */
+  sizeof(op_call__rodata), /* 0 */
+  sizeof(op_super__rodata), /* 46 */
+  sizeof(op_argary__rodata), /* 31 */
+  sizeof(op_enter__rodata), /* 35 */
+  sizeof(op_enter_method_m__rodata), /* 13 */
+  sizeof(op_karg__rodata), /* 0 */
+  sizeof(op_kdict__rodata), /* 0 */
+  sizeof(op_return__rodata), /* 0 */
+  sizeof(op_break__rodata), /* 0 */
+  sizeof(op_tailcall__rodata), /* 79 */
+  sizeof(op_blkpush__rodata), /* 0 */
+  sizeof(op_add__rodata), /* 0 */
+  sizeof(op_addi__rodata), /* 0 */
+  sizeof(op_sub__rodata), /* 0 */
+  sizeof(op_subi__rodata), /* 0 */
+  sizeof(op_mul__rodata), /* 0 */
+  sizeof(op_div__rodata), /* 0 */
+  sizeof(op_eq__rodata), /* 0 */
+  sizeof(op_lt__rodata), /* 0 */
+  sizeof(op_le__rodata), /* 0 */
+  sizeof(op_gt__rodata), /* 0 */
+  sizeof(op_ge__rodata), /* 0 */
+  sizeof(op_array__rodata), /* 0 */
+  sizeof(op_arycat__rodata), /* 0 */
+  sizeof(op_arypush__rodata), /* 0 */
+  sizeof(op_aref__rodata), /* 0 */
+  sizeof(op_aset__rodata), /* 0 */
+  sizeof(op_apost__rodata), /* 0 */
+  sizeof(op_string__rodata), /* 0 */
+  sizeof(op_strcat__rodata), /* 0 */
+  sizeof(op_hash__rodata), /* 0 */
+  sizeof(op_lambda__rodata), /* 0 */
+  sizeof(op_range__rodata), /* 0 */
+  sizeof(op_oclass__rodata), /* 0 */
+  sizeof(op_class__rodata), /* 0 */
+  sizeof(op_module__rodata), /* 0 */
+  sizeof(op_exec__rodata), /* 0 */
+  sizeof(op_method__rodata), /* 0 */
+  sizeof(op_sclass__rodata), /* 0 */
+  sizeof(op_tclass__rodata), /* 26 */
+  sizeof(op_debug__rodata), /* 19 */
+  sizeof(op_stop__rodata), /* 0 */
+  sizeof(op_err__rodata), /* 0 */
+
+};
+static int8_t op_algn_text[] = {
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+  16,
+
+};
+static int8_t op_algn_rodata[] = {
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  16,
+  16,
+  16,
+  1,
+  -1,
+  -1,
+  -1,
+  -1,
+  8,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+  16,
+  16,
+  -1,
+  -1,
 
 };
 
@@ -4730,238 +4976,316 @@ void init_ops() {
   if(init == 0) {
     init = 1;
     init_linker();
-    ops[0] = op_nop;
+    ops_text[0] = op_nop__text;
+    ops_rodata[0] = op_nop__rodata;
     op_names[0] = "op_nop";
     arg_funcs[0] = op_nop_set_args_from_code;
-    ops[1] = op_move;
+    ops_text[1] = op_move__text;
+    ops_rodata[1] = op_move__rodata;
     op_names[1] = "op_move";
     arg_funcs[1] = op_move_set_args_from_code;
-    ops[2] = op_loadl;
+    ops_text[2] = op_loadl__text;
+    ops_rodata[2] = op_loadl__rodata;
     op_names[2] = "op_loadl";
     arg_funcs[2] = op_loadl_set_args_from_code;
-    ops[3] = op_loadi;
+    ops_text[3] = op_loadi__text;
+    ops_rodata[3] = op_loadi__rodata;
     op_names[3] = "op_loadi";
     arg_funcs[3] = op_loadi_set_args_from_code;
-    ops[4] = op_loadsym;
+    ops_text[4] = op_loadsym__text;
+    ops_rodata[4] = op_loadsym__rodata;
     op_names[4] = "op_loadsym";
     arg_funcs[4] = op_loadsym_set_args_from_code;
-    ops[5] = op_loadnil;
+    ops_text[5] = op_loadnil__text;
+    ops_rodata[5] = op_loadnil__rodata;
     op_names[5] = "op_loadnil";
     arg_funcs[5] = op_loadnil_set_args_from_code;
-    ops[6] = op_loadself;
+    ops_text[6] = op_loadself__text;
+    ops_rodata[6] = op_loadself__rodata;
     op_names[6] = "op_loadself";
     arg_funcs[6] = op_loadself_set_args_from_code;
-    ops[7] = op_loadt;
+    ops_text[7] = op_loadt__text;
+    ops_rodata[7] = op_loadt__rodata;
     op_names[7] = "op_loadt";
     arg_funcs[7] = op_loadt_set_args_from_code;
-    ops[8] = op_loadf;
+    ops_text[8] = op_loadf__text;
+    ops_rodata[8] = op_loadf__rodata;
     op_names[8] = "op_loadf";
     arg_funcs[8] = op_loadf_set_args_from_code;
-    ops[9] = op_getglobal;
+    ops_text[9] = op_getglobal__text;
+    ops_rodata[9] = op_getglobal__rodata;
     op_names[9] = "op_getglobal";
     arg_funcs[9] = op_getglobal_set_args_from_code;
-    ops[10] = op_setglobal;
+    ops_text[10] = op_setglobal__text;
+    ops_rodata[10] = op_setglobal__rodata;
     op_names[10] = "op_setglobal";
     arg_funcs[10] = op_setglobal_set_args_from_code;
-    ops[11] = op_getspecial;
+    ops_text[11] = op_getspecial__text;
+    ops_rodata[11] = op_getspecial__rodata;
     op_names[11] = "op_getspecial";
     arg_funcs[11] = op_getspecial_set_args_from_code;
-    ops[12] = op_setspecial;
+    ops_text[12] = op_setspecial__text;
+    ops_rodata[12] = op_setspecial__rodata;
     op_names[12] = "op_setspecial";
     arg_funcs[12] = op_setspecial_set_args_from_code;
-    ops[13] = op_getiv;
+    ops_text[13] = op_getiv__text;
+    ops_rodata[13] = op_getiv__rodata;
     op_names[13] = "op_getiv";
     arg_funcs[13] = op_getiv_set_args_from_code;
-    ops[14] = op_setiv;
+    ops_text[14] = op_setiv__text;
+    ops_rodata[14] = op_setiv__rodata;
     op_names[14] = "op_setiv";
     arg_funcs[14] = op_setiv_set_args_from_code;
-    ops[15] = op_getcv;
+    ops_text[15] = op_getcv__text;
+    ops_rodata[15] = op_getcv__rodata;
     op_names[15] = "op_getcv";
     arg_funcs[15] = op_getcv_set_args_from_code;
-    ops[16] = op_setcv;
+    ops_text[16] = op_setcv__text;
+    ops_rodata[16] = op_setcv__rodata;
     op_names[16] = "op_setcv";
     arg_funcs[16] = op_setcv_set_args_from_code;
-    ops[17] = op_getconst;
+    ops_text[17] = op_getconst__text;
+    ops_rodata[17] = op_getconst__rodata;
     op_names[17] = "op_getconst";
     arg_funcs[17] = op_getconst_set_args_from_code;
-    ops[18] = op_setconst;
+    ops_text[18] = op_setconst__text;
+    ops_rodata[18] = op_setconst__rodata;
     op_names[18] = "op_setconst";
     arg_funcs[18] = op_setconst_set_args_from_code;
-    ops[19] = op_getmcnst;
+    ops_text[19] = op_getmcnst__text;
+    ops_rodata[19] = op_getmcnst__rodata;
     op_names[19] = "op_getmcnst";
     arg_funcs[19] = op_getmcnst_set_args_from_code;
-    ops[20] = op_setmcnst;
+    ops_text[20] = op_setmcnst__text;
+    ops_rodata[20] = op_setmcnst__rodata;
     op_names[20] = "op_setmcnst";
     arg_funcs[20] = op_setmcnst_set_args_from_code;
-    ops[21] = op_getupvar;
+    ops_text[21] = op_getupvar__text;
+    ops_rodata[21] = op_getupvar__rodata;
     op_names[21] = "op_getupvar";
     arg_funcs[21] = op_getupvar_set_args_from_code;
-    ops[22] = op_setupvar;
+    ops_text[22] = op_setupvar__text;
+    ops_rodata[22] = op_setupvar__rodata;
     op_names[22] = "op_setupvar";
     arg_funcs[22] = op_setupvar_set_args_from_code;
-    ops[23] = op_jmp;
+    ops_text[23] = op_jmp__text;
+    ops_rodata[23] = op_jmp__rodata;
     op_names[23] = "op_jmp";
     arg_funcs[23] = op_jmp_set_args_from_code;
-    ops[24] = op_jmpif;
+    ops_text[24] = op_jmpif__text;
+    ops_rodata[24] = op_jmpif__rodata;
     op_names[24] = "op_jmpif";
     arg_funcs[24] = op_jmpif_set_args_from_code;
-    ops[25] = op_jmpnot;
+    ops_text[25] = op_jmpnot__text;
+    ops_rodata[25] = op_jmpnot__rodata;
     op_names[25] = "op_jmpnot";
     arg_funcs[25] = op_jmpnot_set_args_from_code;
-    ops[26] = op_onerr;
+    ops_text[26] = op_onerr__text;
+    ops_rodata[26] = op_onerr__rodata;
     op_names[26] = "op_onerr";
     arg_funcs[26] = op_onerr_set_args_from_code;
-    ops[27] = op_rescue;
+    ops_text[27] = op_rescue__text;
+    ops_rodata[27] = op_rescue__rodata;
     op_names[27] = "op_rescue";
     arg_funcs[27] = op_rescue_set_args_from_code;
-    ops[28] = op_poperr;
+    ops_text[28] = op_poperr__text;
+    ops_rodata[28] = op_poperr__rodata;
     op_names[28] = "op_poperr";
     arg_funcs[28] = op_poperr_set_args_from_code;
-    ops[29] = op_raise;
+    ops_text[29] = op_raise__text;
+    ops_rodata[29] = op_raise__rodata;
     op_names[29] = "op_raise";
     arg_funcs[29] = op_raise_set_args_from_code;
-    ops[30] = op_epush;
+    ops_text[30] = op_epush__text;
+    ops_rodata[30] = op_epush__rodata;
     op_names[30] = "op_epush";
     arg_funcs[30] = op_epush_set_args_from_code;
-    ops[31] = op_epop;
+    ops_text[31] = op_epop__text;
+    ops_rodata[31] = op_epop__rodata;
     op_names[31] = "op_epop";
     arg_funcs[31] = op_epop_set_args_from_code;
-    ops[32] = op_send;
+    ops_text[32] = op_send__text;
+    ops_rodata[32] = op_send__rodata;
     op_names[32] = "op_send";
     arg_funcs[32] = op_send_set_args_from_code;
-    ops[33] = op_sendb;
+    ops_text[33] = op_sendb__text;
+    ops_rodata[33] = op_sendb__rodata;
     op_names[33] = "op_sendb";
     arg_funcs[33] = op_sendb_set_args_from_code;
-    ops[34] = op_fsend;
+    ops_text[34] = op_fsend__text;
+    ops_rodata[34] = op_fsend__rodata;
     op_names[34] = "op_fsend";
     arg_funcs[34] = op_fsend_set_args_from_code;
-    ops[35] = op_call;
+    ops_text[35] = op_call__text;
+    ops_rodata[35] = op_call__rodata;
     op_names[35] = "op_call";
     arg_funcs[35] = op_call_set_args_from_code;
-    ops[36] = op_super;
+    ops_text[36] = op_super__text;
+    ops_rodata[36] = op_super__rodata;
     op_names[36] = "op_super";
     arg_funcs[36] = op_super_set_args_from_code;
-    ops[37] = op_argary;
+    ops_text[37] = op_argary__text;
+    ops_rodata[37] = op_argary__rodata;
     op_names[37] = "op_argary";
     arg_funcs[37] = op_argary_set_args_from_code;
-    ops[38] = op_enter;
+    ops_text[38] = op_enter__text;
+    ops_rodata[38] = op_enter__rodata;
     op_names[38] = "op_enter";
     arg_funcs[38] = op_enter_set_args_from_code;
-    ops[39] = op_enter_method_m;
+    ops_text[39] = op_enter_method_m__text;
+    ops_rodata[39] = op_enter_method_m__rodata;
     op_names[39] = "op_enter_method_m";
     arg_funcs[39] = op_enter_method_m_set_args_from_code;
-    ops[40] = op_karg;
+    ops_text[40] = op_karg__text;
+    ops_rodata[40] = op_karg__rodata;
     op_names[40] = "op_karg";
     arg_funcs[40] = op_karg_set_args_from_code;
-    ops[41] = op_kdict;
+    ops_text[41] = op_kdict__text;
+    ops_rodata[41] = op_kdict__rodata;
     op_names[41] = "op_kdict";
     arg_funcs[41] = op_kdict_set_args_from_code;
-    ops[42] = op_return;
+    ops_text[42] = op_return__text;
+    ops_rodata[42] = op_return__rodata;
     op_names[42] = "op_return";
     arg_funcs[42] = op_return_set_args_from_code;
-    ops[43] = op_break;
+    ops_text[43] = op_break__text;
+    ops_rodata[43] = op_break__rodata;
     op_names[43] = "op_break";
     arg_funcs[43] = op_break_set_args_from_code;
-    ops[44] = op_tailcall;
+    ops_text[44] = op_tailcall__text;
+    ops_rodata[44] = op_tailcall__rodata;
     op_names[44] = "op_tailcall";
     arg_funcs[44] = op_tailcall_set_args_from_code;
-    ops[45] = op_blkpush;
+    ops_text[45] = op_blkpush__text;
+    ops_rodata[45] = op_blkpush__rodata;
     op_names[45] = "op_blkpush";
     arg_funcs[45] = op_blkpush_set_args_from_code;
-    ops[46] = op_add;
+    ops_text[46] = op_add__text;
+    ops_rodata[46] = op_add__rodata;
     op_names[46] = "op_add";
     arg_funcs[46] = op_add_set_args_from_code;
-    ops[47] = op_addi;
+    ops_text[47] = op_addi__text;
+    ops_rodata[47] = op_addi__rodata;
     op_names[47] = "op_addi";
     arg_funcs[47] = op_addi_set_args_from_code;
-    ops[48] = op_sub;
+    ops_text[48] = op_sub__text;
+    ops_rodata[48] = op_sub__rodata;
     op_names[48] = "op_sub";
     arg_funcs[48] = op_sub_set_args_from_code;
-    ops[49] = op_subi;
+    ops_text[49] = op_subi__text;
+    ops_rodata[49] = op_subi__rodata;
     op_names[49] = "op_subi";
     arg_funcs[49] = op_subi_set_args_from_code;
-    ops[50] = op_mul;
+    ops_text[50] = op_mul__text;
+    ops_rodata[50] = op_mul__rodata;
     op_names[50] = "op_mul";
     arg_funcs[50] = op_mul_set_args_from_code;
-    ops[51] = op_div;
+    ops_text[51] = op_div__text;
+    ops_rodata[51] = op_div__rodata;
     op_names[51] = "op_div";
     arg_funcs[51] = op_div_set_args_from_code;
-    ops[52] = op_eq;
+    ops_text[52] = op_eq__text;
+    ops_rodata[52] = op_eq__rodata;
     op_names[52] = "op_eq";
     arg_funcs[52] = op_eq_set_args_from_code;
-    ops[53] = op_lt;
+    ops_text[53] = op_lt__text;
+    ops_rodata[53] = op_lt__rodata;
     op_names[53] = "op_lt";
     arg_funcs[53] = op_lt_set_args_from_code;
-    ops[54] = op_le;
+    ops_text[54] = op_le__text;
+    ops_rodata[54] = op_le__rodata;
     op_names[54] = "op_le";
     arg_funcs[54] = op_le_set_args_from_code;
-    ops[55] = op_gt;
+    ops_text[55] = op_gt__text;
+    ops_rodata[55] = op_gt__rodata;
     op_names[55] = "op_gt";
     arg_funcs[55] = op_gt_set_args_from_code;
-    ops[56] = op_ge;
+    ops_text[56] = op_ge__text;
+    ops_rodata[56] = op_ge__rodata;
     op_names[56] = "op_ge";
     arg_funcs[56] = op_ge_set_args_from_code;
-    ops[57] = op_array;
+    ops_text[57] = op_array__text;
+    ops_rodata[57] = op_array__rodata;
     op_names[57] = "op_array";
     arg_funcs[57] = op_array_set_args_from_code;
-    ops[58] = op_arycat;
+    ops_text[58] = op_arycat__text;
+    ops_rodata[58] = op_arycat__rodata;
     op_names[58] = "op_arycat";
     arg_funcs[58] = op_arycat_set_args_from_code;
-    ops[59] = op_arypush;
+    ops_text[59] = op_arypush__text;
+    ops_rodata[59] = op_arypush__rodata;
     op_names[59] = "op_arypush";
     arg_funcs[59] = op_arypush_set_args_from_code;
-    ops[60] = op_aref;
+    ops_text[60] = op_aref__text;
+    ops_rodata[60] = op_aref__rodata;
     op_names[60] = "op_aref";
     arg_funcs[60] = op_aref_set_args_from_code;
-    ops[61] = op_aset;
+    ops_text[61] = op_aset__text;
+    ops_rodata[61] = op_aset__rodata;
     op_names[61] = "op_aset";
     arg_funcs[61] = op_aset_set_args_from_code;
-    ops[62] = op_apost;
+    ops_text[62] = op_apost__text;
+    ops_rodata[62] = op_apost__rodata;
     op_names[62] = "op_apost";
     arg_funcs[62] = op_apost_set_args_from_code;
-    ops[63] = op_string;
+    ops_text[63] = op_string__text;
+    ops_rodata[63] = op_string__rodata;
     op_names[63] = "op_string";
     arg_funcs[63] = op_string_set_args_from_code;
-    ops[64] = op_strcat;
+    ops_text[64] = op_strcat__text;
+    ops_rodata[64] = op_strcat__rodata;
     op_names[64] = "op_strcat";
     arg_funcs[64] = op_strcat_set_args_from_code;
-    ops[65] = op_hash;
+    ops_text[65] = op_hash__text;
+    ops_rodata[65] = op_hash__rodata;
     op_names[65] = "op_hash";
     arg_funcs[65] = op_hash_set_args_from_code;
-    ops[66] = op_lambda;
+    ops_text[66] = op_lambda__text;
+    ops_rodata[66] = op_lambda__rodata;
     op_names[66] = "op_lambda";
     arg_funcs[66] = op_lambda_set_args_from_code;
-    ops[67] = op_range;
+    ops_text[67] = op_range__text;
+    ops_rodata[67] = op_range__rodata;
     op_names[67] = "op_range";
     arg_funcs[67] = op_range_set_args_from_code;
-    ops[68] = op_oclass;
+    ops_text[68] = op_oclass__text;
+    ops_rodata[68] = op_oclass__rodata;
     op_names[68] = "op_oclass";
     arg_funcs[68] = op_oclass_set_args_from_code;
-    ops[69] = op_class;
+    ops_text[69] = op_class__text;
+    ops_rodata[69] = op_class__rodata;
     op_names[69] = "op_class";
     arg_funcs[69] = op_class_set_args_from_code;
-    ops[70] = op_module;
+    ops_text[70] = op_module__text;
+    ops_rodata[70] = op_module__rodata;
     op_names[70] = "op_module";
     arg_funcs[70] = op_module_set_args_from_code;
-    ops[71] = op_exec;
+    ops_text[71] = op_exec__text;
+    ops_rodata[71] = op_exec__rodata;
     op_names[71] = "op_exec";
     arg_funcs[71] = op_exec_set_args_from_code;
-    ops[72] = op_method;
+    ops_text[72] = op_method__text;
+    ops_rodata[72] = op_method__rodata;
     op_names[72] = "op_method";
     arg_funcs[72] = op_method_set_args_from_code;
-    ops[73] = op_sclass;
+    ops_text[73] = op_sclass__text;
+    ops_rodata[73] = op_sclass__rodata;
     op_names[73] = "op_sclass";
     arg_funcs[73] = op_sclass_set_args_from_code;
-    ops[74] = op_tclass;
+    ops_text[74] = op_tclass__text;
+    ops_rodata[74] = op_tclass__rodata;
     op_names[74] = "op_tclass";
     arg_funcs[74] = op_tclass_set_args_from_code;
-    ops[75] = op_debug;
+    ops_text[75] = op_debug__text;
+    ops_rodata[75] = op_debug__rodata;
     op_names[75] = "op_debug";
     arg_funcs[75] = op_debug_set_args_from_code;
-    ops[76] = op_stop;
+    ops_text[76] = op_stop__text;
+    ops_rodata[76] = op_stop__rodata;
     op_names[76] = "op_stop";
     arg_funcs[76] = op_stop_set_args_from_code;
-    ops[77] = op_err;
+    ops_text[77] = op_err__text;
+    ops_rodata[77] = op_err__rodata;
     op_names[77] = "op_err";
     arg_funcs[77] = op_err_set_args_from_code;
   }
