@@ -58,22 +58,22 @@ jit_page_size()
 }
 #define ALIGN(s, a) (((s) + (a) - 1) & ~((a) - 1))
 static mrb_bool
-jit_ctx_alloc(mrb_state *mrb, struct mrb_jit_ctx *ctx, size_t size)
+jit_ctx_alloc(mrb_state *mrb, struct mrb_jit_ctx *ctx, size_t text_size)
 {
   size_t page_size = jit_page_size();
-  size = ALIGN(size, page_size);
+  text_size = ALIGN(text_size, page_size);
   //size = (size + page_size - 1) & ~(page_size - 1);
 
   JIT_PRINTF( "page counter is %d\n", mrb->jit_page_counter);
-  uint8_t *addr = (uint8_t *) ALIGN(INT32_MAX - (500 - mrb->jit_page_counter++) * size, page_size);
-  JIT_PRINTF( "allocating page of size %d (at %p)\n", size, addr);
+  uint8_t *addr = (uint8_t *) ALIGN(INT32_MAX - (500 - mrb->jit_page_counter++) * text_size, page_size);
+  JIT_PRINTF( "allocating page of size %d (at %p)\n", text_size, addr);
 
-  ctx->text = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+  ctx->text = mmap(addr, text_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
   JIT_PRINTF("allocated page at %p\n", ctx->text);
-  ctx->size = size;
+  ctx->text_size = text_size;
 
-  mrb_assert((ctx->text + size) < (uint8_t *)INT32_MAX);
+  mrb_assert((ctx->text + text_size) < (uint8_t *)INT32_MAX);
 
   return ctx->text != MAP_FAILED;
 }
@@ -81,7 +81,7 @@ jit_ctx_alloc(mrb_state *mrb, struct mrb_jit_ctx *ctx, size_t size)
 static void
 jit_ctx_prot_exec(struct mrb_jit_ctx *ctx)
 {
-  mprotect(ctx->text, ctx->size, PROT_READ | PROT_EXEC);
+  mprotect(ctx->text, ctx->text_size, PROT_READ | PROT_EXEC);
 }
 #endif
 
@@ -213,14 +213,14 @@ mrb_irep_jit_prepare(mrb_state *mrb, mrb_irep *irep)
     return TRUE;
   }
   else {
-    size_t size = 0;
+    size_t text_size = 0;
 
     init_ops();
 
-    size = build_off_tbl(mrb, irep) + return_size();
-    jit_ctx_alloc(mrb, &irep->jit_ctx, size);
+    text_size = build_off_tbl(mrb, irep) + return_size();
+    jit_ctx_alloc(mrb, &irep->jit_ctx, text_size);
 
-    JIT_PRINTF( "need %d bytes for jit code (%d for the final return)\n", size, return_size());
+    JIT_PRINTF( "need %d bytes for jit code (%d for the final return)\n", text_size, return_size());
 /*
     off = op_sizes[OP_ENTER];
     proc->jit_oa_off[0] = off;

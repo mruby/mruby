@@ -8,7 +8,7 @@ extern "C" {
 #include "mruby.h"
 
 typedef struct mrb_jit_ctx {
-    size_t size;
+    size_t text_size;
     //size_t data_size;
 
     int32_t *off_tbl;
