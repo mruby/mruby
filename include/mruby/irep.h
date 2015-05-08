@@ -54,7 +54,7 @@ typedef struct mrb_irep {
 
   uint16_t oa_off[MRB_IREP_AOFF_LEN];
 #ifdef MRB_ENABLE_JIT
-  mrb_jit_page jit_page;
+  mrb_jit_ctx jit_ctx;
 #endif
 } mrb_irep;
 

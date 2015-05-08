@@ -7,11 +7,18 @@ extern "C" {
 
 #include "mruby.h"
 
-typedef struct mrb_jit_page {
+typedef struct mrb_jit_ctx {
     size_t size;
+    //size_t data_size;
+
     int32_t *off_tbl;
-    uint8_t *data;
-} mrb_jit_page;
+
+    /* data section, .rodata, .data etc. */
+    //uint8_t *data;
+
+    /* text section, i.e. code */
+    uint8_t *text;
+} mrb_jit_ctx;
 
 struct mrb_irep;
 

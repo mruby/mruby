@@ -180,7 +180,7 @@ end
 
 def decls_to_c(file, objs)
   file.puts "typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c, uint32_t op_idx);"
-  file.puts "typedef void (*jit_link_func_t)(uint8_t *op);"
+  file.puts "typedef void (*jit_link_func_t)(uint8_t *op, uint8_t *data);"
   file.puts "static jit_args_func_t arg_funcs[#{objs.size}];"
   file.puts "extern jit_link_func_t link_funcs[];"
   file.puts "uint8_t* ops[#{objs.size}];"
@@ -188,7 +188,7 @@ def decls_to_c(file, objs)
 end
 
 def linker_to_c(file, objs)
-  file.puts "typedef void (*jit_link_func_t)(uint8_t *op);"
+  file.puts "typedef void (*jit_link_func_t)(uint8_t *op, uint8_t *data);"
   file.puts "jit_link_func_t link_funcs[#{objs.size}];"
 
   func_names = objs.map do |obj|

@@ -64,7 +64,7 @@ ObjectFile = Struct.new(:name, :architecture, :text, :asm, :symbols, :relocation
 
   def linker_to_c_func(io)
     func_name = "#{name}_link"
-    io.puts "static void #{func_name}(uint8_t *op) {"
+    io.puts "static void #{func_name}(uint8_t *op, uint8_t *data) {"
     relocations.each do |offset, (type, args)|
       case type
       when :R_X86_64_PC32
