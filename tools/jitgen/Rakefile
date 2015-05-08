@@ -192,7 +192,7 @@ def linker_to_c(file, objs)
   file.puts "jit_link_func_t link_funcs[#{objs.size}];"
 
   func_names = objs.map do |obj|
-    obj.linker_to_c_func(file)
+    obj.linker_to_c(file)
   end
 
   file.puts "void init_linker() {"
@@ -375,7 +375,7 @@ profiles.each do |profile|
       linker_file ||= File.open linker_header_path(profile), 'w'
 
       file.puts
-      obj.text_to_c_array file
+      obj.to_c file
       file.puts
       set_arg_funcs_to_c(file, obj)
       file.puts
