@@ -97,7 +97,7 @@ ObjectFile = Struct.new(:filename, :sections) do
           else raise
           end
 
-          s = "((uintptr_t)#{args[0][1..-1]})"
+          s = "((uintptr_t)#{args[0].sub(/^\./, '')})"
           a = "(#{args[1]})"
           io.puts "*((#{t} *)(#{sane_name} + #{offset})) = (#{t})(#{s} + #{a});"
         else
@@ -136,7 +136,6 @@ ObjectFile = Struct.new(:filename, :sections) do
       index = out.index('Contents of section')
       return unless index
 
-      p out
       part = out[index..(out.index("\n\n", index) || -1)]
       part.each_line do |line|
         if line =~ /^\s+\h+((?:\s+\h{2,8})+)/
@@ -174,6 +173,8 @@ ObjectFile = Struct.new(:filename, :sections) do
           end
         elsif line =~ /^\s+(\h+):\s+(\w+)\s+(\.?\w+)((?:\+|\-)0x\h+)?/
           self.relocations[$1.to_i(16)] = [$2.to_sym, [$3, eval($4 || "0")]]
+          raise if $3.nil? || $3.empty?
+          p $3
         end
       end
 

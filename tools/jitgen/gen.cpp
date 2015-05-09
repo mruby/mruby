@@ -162,6 +162,22 @@ GlobalVariable *cloneGlobalVariable(Module &m, GlobalVariable *gV)
   return newGV;
 }
 
+void cloneGlobalVariables(Module &mod, User *user) {
+  for(unsigned i = 0; i < user->getNumOperands(); i++) {
+    Value *operand = user->getOperand(i);
+    if(GlobalVariable *gV = dyn_cast<GlobalVariable>(operand)) {
+      std::string name = gV->getName().str();
+      std::cerr << "/////////////////" << name << std::endl;
+
+      GlobalVariable *newGV = cloneGlobalVariable(mod, gV);
+      user->setOperand(i, newGV);
+    } else if(User *userOperand = dyn_cast<User>(operand)) {
+      cloneGlobalVariables(mod, userOperand);
+    }
+  }
+
+}
+
 int main(int argc, const char **argv)
 {
   LLVMContext context;
@@ -426,35 +442,7 @@ int main(int argc, const char **argv)
                 callInst->setCalledFunction(newCalledFunc);
               }
             } 
-            if(User *user = dyn_cast<User>(instIter)) {
-              for(unsigned i = 0; i < user->getNumOperands(); i++) {
-                Value *operand = user->getOperand(i);
-                if(ConstantExpr *constExpr = dyn_cast<ConstantExpr>(operand)) {
-                  for(unsigned j = 0; j < constExpr->getNumOperands(); j++) {
-                    if(GlobalVariable *gV = dyn_cast<GlobalVariable>(cast<User>(constExpr)->getOperand(j))) {
-                      std::string name = gV->getName().str();
-                      std::cerr << "###############" << name << std::endl;
-
-                      GlobalVariable *newGV = cloneGlobalVariable(*opMod, gV);
-                      //Constant *newGVar = opMod->getOrInsertGlobal(name, ceOperand->getType());
-                      cast<User>(constExpr)->setOperand(j, newGV);
-                      //constExpr->setOperand(j, newGVar);
-                      //user->replaceUsesOfWith(ceOperand, newGVar);
-
-                      //Instruction *castInst = getSymbol(funcIter, instIter, operand->getType(),
-                      //                                  bbIter, &*mod, context, index);
-                      //cast<User>(user)->setOperand(i, castInst);
-                    }
-                  }
-                } else if(GlobalVariable *gV = dyn_cast<GlobalVariable>(operand)) {
-                  std::string name = gV->getName().str();
-                  std::cerr << "/////////////////" << name << std::endl;
-
-                  GlobalVariable *newGV = cloneGlobalVariable(*opMod, gV);
-                  user->setOperand(i, newGV);
-                }
-              }
-            }
+            cloneGlobalVariables(*opMod, instIter);
           }
       }
 

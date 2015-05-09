@@ -165,6 +165,7 @@ module Postprocess
     def process!
       super
 
+      return
       # find the instruction that fills the proper
       # argument register before the call to mrb_range_new.
       # TODO: handle ABIs that pass arguments on the stack
