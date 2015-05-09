@@ -811,35 +811,35 @@ void NO_INLINE __mrb_jit_pc_add__(mrb_code *pc, int o) {
 void NO_INLINE __mrb_jit_pc_inc__(mrb_code *pc) {
 }
 
-static const uint16_t A;
-static const uint16_t B;
-static const uint8_t C;
-static const uint16_t Bx;
-static const int16_t sBx;
-static const uint32_t Ax;
-static const uint16_t b;
-static const uint16_t c;
+static const intptr_t A;
+static const intptr_t B;
+static const intptr_t C;
+static const intptr_t Bx;
+static const intptr_t sBx;
+static const intptr_t Ax;
+static const intptr_t b;
+static const intptr_t c;
 
 typedef int (*__arg_protect__)(int);
 //#define ARG_PROTECT(x) (((__arg_protect__)(0xABBEEF))(x))
 #define ARG_PROTECT(x) (x)
 #define JIT_VOLATILE volatile
 #undef GETARG_A
-#define GETARG_A(i) ((uint16_t)(uintptr_t)(&A))
+#define GETARG_A(i) ((uintptr_t)(&A))
 #undef GETARG_Ax
-#define GETARG_Ax(i) ((uint32_t)(uintptr_t)(&Ax))
+#define GETARG_Ax(i) ((uintptr_t)(&Ax))
 #undef GETARG_B
-#define GETARG_B(i) ((uint16_t)(uintptr_t)(&Bx))
+#define GETARG_B(i) ((uintptr_t)(&Bx))
 #undef GETARG_b
-#define GETARG_b(i) ((uint16_t)(uintptr_t)(&b))
+#define GETARG_b(i) ((uintptr_t)(&b))
 #undef GETARG_sBx
-#define GETARG_sBx(i) ((int16_t)(uintptr_t)(&sBx))
+#define GETARG_sBx(i) ((uintptr_t)(&sBx))
 #undef GETARG_Bx
-#define GETARG_Bx(i) ((uint16_t)(uintptr_t)(&Bx))
+#define GETARG_Bx(i) ((uintptr_t)(&Bx))
 #undef GETARG_C
-#define GETARG_C(i) ((uint8_t)(uintptr_t)(&C))
+#define GETARG_C(i) ((uintptr_t)(&C))
 #undef GETARG_c
-#define GETARG_c(i) ((uint16_t)(uintptr_t)(&c))
+#define GETARG_c(i) ((uintptr_t)(&c))
 #define PC_ADD(pc, o) (__mrb_jit_pc_add__(pc, o))
 #define PC_INC(pc) (__mrb_jit_pc_inc__(pc))
 #define OP_IDX(i) 0xDE0000
