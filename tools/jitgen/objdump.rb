@@ -86,7 +86,7 @@ ObjectFile = Struct.new(:filename, :sections) do
           s = "((uintptr_t)#{args[0]})"
           a = "(#{args[1]})"
           p = "((uintptr_t)(#{sane_name} + #{offset}))"
-          io.puts "  *((int32_t *)(text + #{offset})) = (int32_t)(#{s} + #{a} - #{p});"
+          io.puts "  *((int32_t *)(#{sane_name} + #{offset})) = (int32_t)(#{s} + #{a} - #{p});"
         when :R_X86_64_32, :R_X86_64_32S, :R_X86_64_64
           # R_X86_64_32	10	word32	S+A
 
