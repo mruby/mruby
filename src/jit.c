@@ -193,19 +193,24 @@ build_rodata_off_tbl(mrb_state *mrb, mrb_irep *irep)
 {
   int i;
   int32_t *tbl = (int32_t *) mrb_malloc(mrb, (irep->ilen + 1) * sizeof(int32_t));
-
-  tbl[0] = 0;
+  uint8_t *rodata = irep->jit_ctx.rodata;
 
   for(i = 0; i < irep->ilen; i++) {
     mrb_code c = irep->iseq[i];
     int opcode = GET_OPCODE(c);
-    size_t rodata_size = op_sizes_rodata[opcode];
-    if(op_algn_rodata[opcode] > 1) {
-      rodata_size = ALIGN(rodata_size, op_algn_rodata[opcode]);
+    size_t size = op_sizes_rodata[opcode];
+    uint8_t align = op_algn_rodata[opcode];
+
+    if(align > 1) {
+      rodata = (uint8_t *) ALIGN((uintptr_t)rodata, align);
     }
-    int32_t next_off = tbl[i] + rodata_size;
-    tbl[i + 1] = next_off;
+
+    tbl[i] = rodata - irep->jit_ctx.rodata;
+
+    rodata += size;
   }
+
+  tbl[irep->ilen] = rodata - irep->jit_ctx.rodata;
 
   irep->jit_ctx.rodata_off_tbl = tbl;
   return tbl[irep->ilen];

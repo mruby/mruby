@@ -85,7 +85,7 @@ ObjectFile = Struct.new(:filename, :sections) do
           # R_X86_64_PC32	2	word32	S+A-P
           s = "((uintptr_t)#{args[0]})"
           a = "(#{args[1]})"
-          p = "((uintptr_t)(text + #{offset}))"
+          p = "((uintptr_t)(#{sane_name} + #{offset}))"
           io.puts "  *((int32_t *)(text + #{offset})) = (int32_t)(#{s} + #{a} - #{p});"
         when :R_X86_64_32, :R_X86_64_32S, :R_X86_64_64
           # R_X86_64_32	10	word32	S+A
@@ -99,7 +99,7 @@ ObjectFile = Struct.new(:filename, :sections) do
 
           s = "((uintptr_t)#{args[0][1..-1]})"
           a = "(#{args[1]})"
-          io.puts "*((#{t} *)(text + #{offset})) = (#{t})(#{s} + #{a});"
+          io.puts "*((#{t} *)(#{sane_name} + #{offset})) = (#{t})(#{s} + #{a});"
         else
           raise "unknown relocation type `#{type}'"
         end
