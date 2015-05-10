@@ -49,8 +49,8 @@
 #include <stdlib.h>
 
 #define ALIGN(s, a) (((s) + (a) - 1) & ~((a) - 1))
-#define JIT_PRINTF(...) fprintf(stderr, __VA_ARGS__)
-//#define JIT_PRINTF
+//#define JIT_PRINTF(...) fprintf(stderr, __VA_ARGS__)
+#define JIT_PRINTF
 
 static size_t
 jit_page_size()

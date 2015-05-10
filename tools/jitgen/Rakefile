@@ -277,11 +277,7 @@ def gen_file(profile, f)
   ll_f = ll_file(profile, 'vm_opt')
   ll_d = ll_dir profile
   file f => [ll_f, ll_d, 'gen', jit_src_dir] do
-    sym_tbl = eval(`./gen #{ll_f} #{ll_d}`)
-
-    File.open symtbl_header_path(profile), 'w' do |f|
-      symtbl_to_c(f, sym_tbl)
-    end
+    sh "./gen #{ll_f} #{ll_d}"
   end
 end
 
