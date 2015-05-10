@@ -301,21 +301,6 @@ module As
   end
 
   module X86
-    SUFFIXES = %i(q l w b)
-
-    def self.suffix(inst)
-      #FIXME: might give wrong result
-      # but works for most imporant instructions
-      # such as mov etc.
-
-      suffix = inst.name[-1].to_sym
-
-      # default is word
-      suffix = :w unless SUFFIXES.include? suffix
-
-      suffix
-    end
-
     Memory = Struct.new(:offset, :base, :index, :scale) do
       def to_asm
         o = offset && offset.to_s

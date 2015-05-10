@@ -180,7 +180,7 @@ end
 
 def decls_to_c(file, objs)
   file.puts "typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c, uint32_t op_idx);"
-  file.puts "typedef void (*jit_link_func_t)(uint8_t *op, uint8_t *data);"
+  file.puts "typedef void (*jit_link_func_t)(uint8_t *op, uint8_t *data, mrb_code c);"
   file.puts "static jit_args_func_t arg_funcs[#{objs.size}];"
   file.puts "extern jit_link_func_t link_funcs[];"
   file.puts "uint8_t* ops_text[#{objs.size}];"
@@ -189,7 +189,7 @@ def decls_to_c(file, objs)
 end
 
 def linker_to_c(file, objs)
-  file.puts "typedef void (*jit_link_func_t)(uint8_t *op, uint8_t *data);"
+  file.puts "typedef void (*jit_link_func_t)(uint8_t *op, uint8_t *data, mrb_code c);"
   file.puts "jit_link_func_t link_funcs[#{objs.size}];"
 
   func_names = objs.map do |obj|
@@ -337,7 +337,7 @@ profiles.each do |profile|
       else
         cp ll_file, t.name
       end
-      sh "./scale_geps #{t.name} #{t.name}"
+      #sh "./scale_geps #{t.name} #{t.name}"
     end
 
     obj_file = obj_file(profile, op)
@@ -345,26 +345,26 @@ profiles.each do |profile|
     pp_asm_file = asm_file(profile, op, '_cor')
     hand_asm_file = hand_asm_file(profile, op)
 
-    if File.file?(hand_asm_file)
-      file asm_file => [hand_asm_file, asm_dir(profile)] do |t|
+    file asm_file => [ll_opt_file, asm_dir(profile)] do |t|
+      if t.name =~ /op_return/ || t.name =~ /op_send/
+        # force stack alignment for ops
+        # that call into SIMD code
+        opts = "-force-align-stack -stack-alignment=16"
+      else
+        opts = ""
+      end
+
+      sh "llc -O3 #{opts} -mtriple=#{profile.triple} -filetype=asm -o #{t.name} #{ll_opt_file}"
+    end
+
+    if false && File.file?(hand_asm_file)
+      file pp_asm_file => [hand_asm_file, asm_file] do |t|
         cp hand_asm_file, t.name
       end
     else
-      file asm_file => [ll_opt_file, asm_dir(profile)] do |t|
-        if t.name =~ /op_return/ || t.name =~ /op_send/
-          # force stack alignment for ops
-          # that call into SIMD code
-          opts = "-force-align-stack -stack-alignment=16"
-        else
-          opts = ""
-        end
-
-        sh "llc -O3 #{opts} -mtriple=#{profile.triple} -filetype=asm -o #{t.name} #{ll_opt_file}"
+      file pp_asm_file => asm_file do |t|
+        postproc_asm_file op, asm_file, t.name
       end
-    end
-
-    file pp_asm_file => asm_file do |t|
-      postproc_asm_file op, asm_file, t.name
     end
 
     file obj_file => [pp_asm_file, obj_dir(profile)] do |t|

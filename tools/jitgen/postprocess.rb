@@ -73,7 +73,7 @@ module Postprocess
 
       magic_mov.delete
       arg_mov.delete
-      reg = As::X64::CC::SysV.return_value_register.for_suffix X86.suffix(arg_mov)
+      reg = As::X64::CC::SysV.return_value_register.for_suffix arg_mov.x86_suffix
       call.replace Instruction.new(arg_mov.name, [arg_mov.source, reg]);
     end
 
@@ -132,7 +132,7 @@ module Postprocess
           # FIXME: assuming argument register 1 is not clobbered.
           # Since the dummy call is at the bottom of the function
           # that should normally not happen, though.
-          call.each_instruction.to_a.last.insert_after As::X64::JumpInstruction.register(As::X64::CC::SysV.argument_registers[1])
+          call.each_instruction.to_a.last.insert_after As::X86::JumpInstruction.register(As::X64::CC::SysV.argument_registers[1])
 
           mov.delete
           call.delete
@@ -149,7 +149,15 @@ module Postprocess
 
   class OpJmpif < Processor
     def process!
-      #super
+      super
+      asm.each_instruction do |inst|
+        inst.delelte if inst.name =~ /(push|pop)/
+      end
+
+      asm.each_instruction.drop_while{|inst| !inst.x86_jump?}.each do |inst|
+        inst.delete
+      end
+
       #inst = asm.find{|e| As::Instruction === e && e.target && e.target.base.name == :rsp}
       #inst.delete if inst
     end
@@ -235,7 +243,7 @@ module Postprocess
           # that should normally not happen, though.
           l = call.next_label
           p l
-          l.insert_before As::X64::JumpInstruction.register(As::X64::CC::SysV.argument_registers[1])
+          l.insert_before As::X86::JumpInstruction.register(As::X64::CC::SysV.argument_registers[1])
 
           p l.send :prev
 

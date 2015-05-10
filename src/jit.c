@@ -62,18 +62,17 @@ static mrb_bool
 jit_ctx_alloc(mrb_state *mrb, struct mrb_jit_ctx *ctx, size_t text_size, size_t rodata_size)
 {
   size_t page_size = jit_page_size();
-  size_t aligned_text_size = ALIGN(text_size, 16);
-  size_t size = ALIGN(aligned_text_size + rodata_size, page_size);
+  size_t size = ALIGN(text_size + rodata_size, page_size);
   uint8_t *addr, *mem;
 
-  JIT_PRINTF( "page counter is %d\n", mrb->jit_page_counter);
+  JIT_PRINTF( "page counter is %d | page size is %d\n", mrb->jit_page_counter, page_size);
   addr = (uint8_t *) ALIGN(INT32_MAX - (500 - mrb->jit_page_counter++) * size, page_size);
-  JIT_PRINTF( "allocating page of size %d (at %p)\n", size, addr);
+  JIT_PRINTF( "allocating page of size %d (text:%d, rodata: %d) (at %p)\n", size, text_size,rodata_size ,addr);
 
   mem = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
   ctx->text = mem;
-  ctx->rodata = mem + aligned_text_size;
+  ctx->rodata = mem + text_size;
 
   JIT_PRINTF("allocated page at %p\n", ctx->text);
   ctx->text_size = text_size;
@@ -280,6 +279,8 @@ mrb_irep_jit_prepare(mrb_state *mrb, mrb_irep *irep)
 
   return TRUE;
 }
+void
+mrb_irep_codedump(mrb_state *mrb, mrb_irep *irep);
 
 mrb_bool
 mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
@@ -300,6 +301,8 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
     }
 
     JIT_PRINTF( "jitting irep %p\n", irep);
+    mrb_irep_codedump(mrb, irep);
+    
     ctx = &irep->jit_ctx;
     text_off_tbl = ctx->text_off_tbl;
     rodata_off_tbl = ctx->rodata_off_tbl;
@@ -317,13 +320,15 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
       memcpy(ctx->rodata + rodata_off, ops_rodata[opcode], op_sizes_rodata[opcode]);
 
       /* link code */
-      link_funcs[opcode](ctx->text + off, ctx->rodata + rodata_off);
+      link_funcs[opcode](ctx->text + off, ctx->rodata + rodata_off, c);
 
       /* set operands */
-      arg_funcs[opcode](ctx->text + off, c, i);
+      //arg_funcs[opcode](ctx->text + off, c, i);
 
       if(opcode == OP_RESCUE) {
         JIT_PRINTF( "jitting op_rescue: %d\n", GETARG_A(c));
+      } else if(opcode == OP_SEND) {
+        JIT_PRINTF( "jitting op_send: %d %d %d\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
       }
 
       if (opcode == OP_JMPNOT || opcode == OP_JMPIF || opcode == OP_JMP) {

@@ -1,16 +1,35 @@
 require_relative 'as'
 
 module As
-  module X86
-    class Instruction < As::Instruction
-      def bytes
-        @bytes ||= []
-      end
-
-      def bytes=(bytes)
-        @bytes = bytes
-      end
+  class Instruction
+    def bytes
+      @bytes ||= []
     end
+
+    def bytes=(bytes)
+      @bytes = bytes
+    end
+
+    def x86_jump?
+      %w(jmp je jne jg jge ja jae jl).include? name
+    end
+
+    def x86_suffix
+      #FIXME: might give wrong result
+      # but works for most imporant instructions
+      # such as mov etc.
+
+      suffix = name[-1].to_sym
+
+      # default is word
+      suffix = :w unless X86::SUFFIXES.include? suffix
+
+      suffix
+    end
+  end
+
+  module X86
+    SUFFIXES = %i(q l w b)
 
     class Register
       ALIASES = [
@@ -215,7 +234,6 @@ module As
     end
 
     class JumpNotInstruction < JumpInstruction
-
       module C
         include JumpIfInstruction::C
 
@@ -238,9 +256,6 @@ module As
   end
 
   module X64
-    include X86
-    extend X86
-
     module CC
       class SysV
         def self.argument_registers
@@ -253,5 +268,10 @@ module As
       end
     end
   end
+
+  CC = X64::CC::SysV
+
 end
+
+
 

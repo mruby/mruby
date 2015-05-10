@@ -811,14 +811,14 @@ void NO_INLINE __mrb_jit_pc_add__(mrb_code *pc, int o) {
 void NO_INLINE __mrb_jit_pc_inc__(mrb_code *pc) {
 }
 
-static const intptr_t A;
-static const intptr_t B;
-static const intptr_t C;
-static const intptr_t Bx;
-static const intptr_t sBx;
-static const intptr_t Ax;
-static const intptr_t b;
-static const intptr_t c;
+const intptr_t A;
+const intptr_t B;
+const intptr_t C;
+const intptr_t Bx;
+const intptr_t sBx;
+const intptr_t Ax;
+const intptr_t b;
+const intptr_t c;
 
 typedef int (*__arg_protect__)(int);
 //#define ARG_PROTECT(x) (((__arg_protect__)(0xABBEEF))(x))
@@ -829,7 +829,7 @@ typedef int (*__arg_protect__)(int);
 #undef GETARG_Ax
 #define GETARG_Ax(i) ((uintptr_t)(&Ax))
 #undef GETARG_B
-#define GETARG_B(i) ((uintptr_t)(&Bx))
+#define GETARG_B(i) ((uintptr_t)(&B))
 #undef GETARG_b
 #define GETARG_b(i) ((uintptr_t)(&b))
 #undef GETARG_sBx
@@ -1250,7 +1250,7 @@ op_loadnil(struct op_ctx *ctx) {
 
 static char _str_const_op_send[] = "op_send %d\n";
 static char _str_const_op_send3[] = "/op_send\n";
-static char _str_const_op_send2[] = "op_send2 %d\n";
+static char _str_const_op_send2[] = "op_send2 %s %d %d %d\n";
 static inline void
 _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mid, struct RProc *m, int opcode, int a, int n) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
@@ -1267,7 +1267,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mi
     }
   }
 
-  //VM_PRINTF("_op_send %s: %p %d %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, b, n);
+  //VM_PRINTF("_op_send_static %s: %p %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, n);
 #if 0
   recv = ctx->regs[a];
   if (MRB_LIKELY(opcode != OP_SENDB)) {
@@ -1399,6 +1399,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
 
   recv = ctx->regs[a];
 
+  //printf(_str_const_op_send2,mrb_sym2name(ctx->mrb, mid), a, b, n);
   ////VM_PRINTF("_op_send: class\n");
   c = mrb_class(ctx->mrb, recv);
   ////VM_PRINTF("_op_send: class %p\n", c);
@@ -1428,12 +1429,9 @@ static OP_INLINE void
 op_send(struct op_ctx *ctx) {
   /* A B C R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
 
-  int a = ARG_PROTECT(GETARG_A(CTX_I(ctx)));
+  int a = GETARG_A(CTX_I(ctx));
   int b = GETARG_B(CTX_I(ctx));
   int n = GETARG_C(CTX_I(ctx));
-
-  //printf(_str_const_op_send2, n);
-
 
 #ifdef MRB_JIT_GEN
   mrb_callinfo *ci = ctx->mrb->c->ci;
@@ -1902,8 +1900,6 @@ op_enter(struct op_ctx *ctx) {
   if ((!mrb_nil_p(*blk) && mrb_type(*blk) != MRB_TT_PROC)) {
     *blk = mrb_convert_type(ctx->mrb, *blk, MRB_TT_PROC, _str_const_proc, _str_const_to_proc);
   }
-
-  printf(_str_const_op_enter, blk, ax);
 
   if (argc < 0) {
     struct RArray *ary = mrb_ary_ptr(ctx->regs[1]);

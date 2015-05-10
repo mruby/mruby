@@ -6,6 +6,7 @@ ObjectFile = Struct.new(:filename, :sections) do
 
   Section = Struct.new(:name, :body, :symbols, :relocations, :alignment) do
     def self.parse(obj, name)
+      puts "parse #{obj.filename}"
       section = new name, [], {}, {}
       section.send :parse!, obj
 
@@ -78,7 +79,7 @@ ObjectFile = Struct.new(:filename, :sections) do
     end
 
     def linker_to_c(io, func_name = "#{obj.name}__#{sane_name}__link")
-      io.puts "static void #{func_name}(uint8_t *text, uint8_t *rodata) {"
+      io.puts "static void #{func_name}(uint8_t *text, uint8_t *rodata, mrb_code c) {"
       relocations.each do |offset, (type, args)|
         case type
         when :R_X86_64_PC32
@@ -97,7 +98,16 @@ ObjectFile = Struct.new(:filename, :sections) do
           else raise
           end
 
-          s = "((uintptr_t)#{args[0].sub(/^\./, '')})"
+          sym = args[0].sub(/^\./, '')
+          sym = if %w(A B C Ax Bx sBx b c).include?(sym)
+            "GETARG_#{sym}(c)"
+          elsif sym =~ /^\./
+            args[0][1..-1]
+          else
+            sym
+          end
+
+          s = "((uintptr_t)#{sym})"
           a = "(#{args[1]})"
           io.puts "*((#{t} *)(#{sane_name} + #{offset})) = (#{t})(#{s} + #{a});"
         else
@@ -174,7 +184,6 @@ ObjectFile = Struct.new(:filename, :sections) do
         elsif line =~ /^\s+(\h+):\s+(\w+)\s+(\.?\w+)((?:\+|\-)0x\h+)?/
           self.relocations[$1.to_i(16)] = [$2.to_sym, [$3, eval($4 || "0")]]
           raise if $3.nil? || $3.empty?
-          p $3
         end
       end
 
@@ -246,12 +255,15 @@ ObjectFile = Struct.new(:filename, :sections) do
   end
 
   def linker_to_c(io, func_name = "#{name}_link")
+    # link text last
+    sections = self.sections.sort_by{|s| s.text? ? 1 : 0}
+
     func_names = sections.map do |s|
       s.linker_to_c io
     end
-    io.puts "static void #{func_name}(uint8_t *text, uint8_t *rodata) {"
+    io.puts "static void #{func_name}(uint8_t *text, uint8_t *rodata, mrb_code c) {"
     func_names.each do |fn|
-      io.puts "  #{fn}(text, rodata);"
+      io.puts "  #{fn}(text, rodata, c);"
     end
     io.puts "}"
 
