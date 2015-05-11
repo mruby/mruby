@@ -41,34 +41,69 @@ bool isIntrinsicSymbol(const std::string& name) {
   return !name.compare(0, prefix.size(), prefix);
 }
 
+bool isArgSymbol(const std::string& name) {
+  return name == "A" ||
+         name == "B" ||
+         name == "Bx" ||
+         name == "b" ||
+         name == "sBx" ||
+         name == "Ax" ||
+         name == "C" ||
+         name == "c";
+}
+
 bool isOpFunc(Function *func) {
   return isOpFunc(func->getName().str());
 }
 
-GlobalVariable *cloneGlobalVariable(Module &m, GlobalVariable *gV)
+void cloneGlobalVariable(Module &m, GlobalVariable *gV, ValueToValueMapTy& map)
 {
   GlobalVariable *newGV = m.getGlobalVariable(gV->getName());
   if(!newGV) {
+    GlobalValue::LinkageTypes linkage;
+    Constant *init;
+    if(gV->hasName()) {
+      if(isArgSymbol(gV->getName().str())) {
+        linkage = gV->getLinkage();
+        init = gV->getInitializer();
+      } else {
+        linkage = GlobalVariable::ExternalLinkage;
+        init = nullptr;
+      }
+    } else if(gV->hasInitializer()) {
+      assert(0);
+      // untested
+
+      linkage = gV->getLinkage();
+      init = gV->getInitializer();
+      if(ConstantArray *ac = dyn_cast<ConstantArray>(init)) {
+        std::vector<Constant *> ops;
+        for(Use& use: ac->operands()) {
+          ops.push_back(cast<Constant>(&use));
+        }
+        init = ConstantArray::get(ac->getType(), ArrayRef<Constant *>(ops));
+      } else {
+      }
+    }
     newGV = new GlobalVariable(m,
                           gV->getType()->getElementType(),
-                          gV->isConstant(), gV->getLinkage(),
-                          (Constant*) gV->getInitializer(), gV->getName(),
+                          gV->isConstant(), linkage,
+                          init, gV->getName(),
                           (GlobalVariable*) nullptr,
                           gV->getThreadLocalMode(),
                           gV->getType()->getAddressSpace());
     newGV->copyAttributesFrom(gV);
   }
-  return newGV;
+  map[gV] = newGV;
 }
 
-void cloneGlobalVariables(Module &mod, User *user) {
+void cloneGlobalVariables(Module &mod, User *user, ValueToValueMapTy& map) {
   for(unsigned i = 0; i < user->getNumOperands(); i++) {
     Value *operand = user->getOperand(i);
     if(GlobalVariable *gV = dyn_cast<GlobalVariable>(operand)) {
-      GlobalVariable *newGV = cloneGlobalVariable(mod, gV);
-      user->setOperand(i, newGV);
+      cloneGlobalVariable(mod, gV, map);
     } else if(User *userOperand = dyn_cast<User>(operand)) {
-      cloneGlobalVariables(mod, userOperand);
+      cloneGlobalVariables(mod, userOperand, map);
     }
   }
 
@@ -96,11 +131,18 @@ int main(int argc, const char **argv)
       std::cerr << "=========================" << std::endl;
 
       Module *opMod = new Module(funcName, context);
+      ValueToValueMapTy map;
+
+      for (Function::iterator bbIter = funcIter->begin(), bbEnd = funcIter->end(); bbIter != bbEnd; ++bbIter) {
+        for (BasicBlock::iterator instIter = bbIter->begin(), instEnd = bbIter->end(); instIter != instEnd; ++instIter) {
+          cloneGlobalVariables(*opMod, instIter, map);
+        }
+      }
+
       opMod->setDataLayout(mod->getDataLayout());
       opMod->setTargetTriple(mod->getTargetTriple());
       opMod->setModuleInlineAsm(mod->getModuleInlineAsm());
 
-      ValueToValueMapTy map;
       Function *clonedFunc = CloneFunction(funcIter, map,
                                             true);
 
@@ -133,13 +175,15 @@ int main(int argc, const char **argv)
                 callInst->setCalledFunction(newCalledFunc);
               }
             }
-            cloneGlobalVariables(*opMod, instIter);
           }
       }
 
       for(Instruction *inst: removeInsts) {
         inst->eraseFromParent();
       }
+
+      Value *ctxArg = &(*clonedFunc->getArgumentList().begin());
+      CallInst *ci = CallInst::Create(clonedFunc, ctxArg, "", clonedFunc->back().getTerminator());
 
       clonedFunc->setLinkage(GlobalValue::LinkageTypes::ExternalLinkage);
 
@@ -160,6 +204,9 @@ int main(int argc, const char **argv)
       os.close();
       std::cerr << "Written " << ec << std::endl;
       std::cerr << std::endl << std::endl;
+
+      delete opMod;
+      opMod = nullptr;
     }
   }
 

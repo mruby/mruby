@@ -5,7 +5,7 @@ require_relative 'objdump'
 require_relative 'x86'
 require_relative 'postprocess'
 
-obj_files = Hash.new{|h, k| h[k] = []}
+$obj_files = Hash.new{|h, k| h[k] = []}
 
 opt_passes = %w(
   -targetlibinfo -scoped-noalias -assumption-cache-tracker -basicaa
@@ -367,54 +367,61 @@ profiles.each do |profile|
       sh "as #{pp_asm_file} -o #{t.name}"
     end
 
-    obj_files[profile] << obj_file
+    $obj_files[profile] << obj_file
   end
+end
+
+def process_objs(profile)
+  file = nil
+  linker_file = nil
+  array_var_names = []
+
+  objs = $obj_files[profile].map do |obj_file|
+    obj = ObjectFile.load(obj_file)
+    file ||= File.open ops_header_path(profile), 'w'
+    linker_file ||= File.open linker_header_path(profile), 'w'
+
+    file.puts
+    array_var_names << obj.to_c(file)
+    file.puts
+    set_arg_funcs_to_c(file, obj)
+    file.puts
+
+    obj
+  end
+
+  decls_to_c(file, objs)
+  file.puts
+  op_sizes_to_c(file, objs, array_var_names)
+  file.puts
+  init_ops_to_c(file, objs, array_var_names)
+  file.puts
+
+  linker_to_c(linker_file, objs)
+  linker_file.puts
+
+  As::X86::ReturnInstruction.to_c file
+  As::X86::JumpInstruction.to_c file
+  As::X86::JumpIfInstruction.to_c file
+  As::X86::JumpNotInstruction.to_c file
+
+  file.close
+  linker_file.close
 end
 
 directory jit_src_dir
 
+
 profiles.each do |profile|
-  gen_file profile, symtbl_header_path(profile)
+  file linker_header_path(profile) => [*$obj_files[profile], jit_src_dir] do |t|
+    process_objs profile
+  end
 
-  file ops_header_path(profile) => [*obj_files[profile], jit_src_dir, symtbl_header_path(profile)] do |t|
-    file = nil
-    linker_file = nil
-    array_var_names = []
-
-    objs = obj_files[profile].map do |obj_file|
-      obj = ObjectFile.load(obj_file)
-      file ||= File.open t.name, 'w'
-      linker_file ||= File.open linker_header_path(profile), 'w'
-
-      file.puts
-      array_var_names << obj.to_c(file)
-      file.puts
-      set_arg_funcs_to_c(file, obj)
-      file.puts
-
-      obj
-    end
-
-    decls_to_c(file, objs)
-    file.puts
-    op_sizes_to_c(file, objs, array_var_names)
-    file.puts
-    init_ops_to_c(file, objs, array_var_names)
-    file.puts
-
-    linker_to_c(linker_file, objs)
-    linker_file.puts
-
-    As::X86::ReturnInstruction.to_c file
-    As::X86::JumpInstruction.to_c file
-    As::X86::JumpIfInstruction.to_c file
-    As::X86::JumpNotInstruction.to_c file
-
-    file.close
-    linker_file.close
+  file ops_header_path(profile) => [*$obj_files[profile], jit_src_dir] do |t|
+    process_objs profile
   end
 end
 
-task :default => profiles.flat_map{|p| [ops_header_path(p), symtbl_header_path(p)]}
+task :default => profiles.flat_map{|p| [ops_header_path(p), linker_header_path(p)]}
 
 __END__

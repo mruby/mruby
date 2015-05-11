@@ -6,7 +6,6 @@ ObjectFile = Struct.new(:filename, :sections) do
 
   Section = Struct.new(:name, :body, :symbols, :relocations, :alignment) do
     def self.parse(obj, name)
-      puts "parse #{obj.filename}"
       section = new name, [], {}, {}
       section.send :parse!, obj
 
