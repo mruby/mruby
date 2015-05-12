@@ -6,8 +6,9 @@
 
 %{
 #undef PARSER_DEBUG
-
-#define YYDEBUG 1
+#ifdef PARSER_DEBUG
+# define YYDEBUG 1
+#endif
 #define YYERROR_VERBOSE 1
 /*
  * Force yacc to use our memory management.  This is a little evil because
@@ -201,6 +202,7 @@ parser_strndup(parser_state *p, const char *s, size_t len)
   b[len] = '\0';
   return b;
 }
+#undef strndup
 #define strndup(s,len) parser_strndup(p, s, len)
 
 static char*
@@ -270,12 +272,17 @@ local_add(parser_state *p, mrb_sym sym)
   }
 }
 
+static node*
+locals_node(parser_state *p)
+{
+  return p->locals ? p->locals->car : NULL;
+}
+
 /* (:scope (vars..) (prog...)) */
 static node*
 new_scope(parser_state *p, node *body)
 {
-  node *n = p->locals ? p->locals->car : NULL;
-  return cons((node*)NODE_SCOPE, cons(n, body));
+  return cons((node*)NODE_SCOPE, cons(locals_node(p), body));
 }
 
 /* (:begin prog...) */
@@ -602,35 +609,35 @@ new_undef(parser_state *p, mrb_sym sym)
 static node*
 new_class(parser_state *p, node *c, node *s, node *b)
 {
-  return list4((node*)NODE_CLASS, c, s, cons(p->locals->car, b));
+  return list4((node*)NODE_CLASS, c, s, cons(locals_node(p), b));
 }
 
 /* (:sclass obj body) */
 static node*
 new_sclass(parser_state *p, node *o, node *b)
 {
-  return list3((node*)NODE_SCLASS, o, cons(p->locals->car, b));
+  return list3((node*)NODE_SCLASS, o, cons(locals_node(p), b));
 }
 
 /* (:module module body) */
 static node*
 new_module(parser_state *p, node *m, node *b)
 {
-  return list3((node*)NODE_MODULE, m, cons(p->locals->car, b));
+  return list3((node*)NODE_MODULE, m, cons(locals_node(p), b));
 }
 
 /* (:def m lv (arg . body)) */
 static node*
 new_def(parser_state *p, mrb_sym m, node *a, node *b)
 {
-  return list5((node*)NODE_DEF, nsym(m), p->locals->car, a, b);
+  return list5((node*)NODE_DEF, nsym(m), locals_node(p), a, b);
 }
 
 /* (:sdef obj m lv (arg . body)) */
 static node*
 new_sdef(parser_state *p, node *o, mrb_sym m, node *a, node *b)
 {
-  return list6((node*)NODE_SDEF, o, nsym(m), p->locals->car, a, b);
+  return list6((node*)NODE_SDEF, o, nsym(m), locals_node(p), a, b);
 }
 
 /* (:arg . sym) */
@@ -668,14 +675,14 @@ new_block_arg(parser_state *p, node *a)
 static node*
 new_block(parser_state *p, node *a, node *b)
 {
-  return list4((node*)NODE_BLOCK, p->locals->car, a, b);
+  return list4((node*)NODE_BLOCK, locals_node(p), a, b);
 }
 
 /* (:lambda arg body) */
 static node*
 new_lambda(parser_state *p, node *a, node *b)
 {
-  return list4((node*)NODE_LAMBDA, p->locals->car, a, b);
+  return list4((node*)NODE_LAMBDA, locals_node(p), a, b);
 }
 
 /* (:asgn lhs rhs) */
@@ -2144,11 +2151,16 @@ primary         : literal
                       p->lpar_beg = ++p->paren_nest;
                     }
                   f_larglist
+                    {
+                      $<stack>$ = p->cmdarg_stack;
+                      p->cmdarg_stack = 0;
+                    }
                   lambda_body
                     {
                       p->lpar_beg = $<num>2;
-                      $$ = new_lambda(p, $3, $4);
+                      $$ = new_lambda(p, $3, $5);
                       local_unnest(p);
+                      p->cmdarg_stack = $<stack>4;
                     }
                 | keyword_if expr_value then
                   compstmt

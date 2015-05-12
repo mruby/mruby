@@ -14,23 +14,17 @@
 #include "mruby/debug.h"
 #include "mruby/error.h"
 
+#if SIZE_MAX < UINT32_MAX
+# error size_t must be at least 32 bits wide
+#endif
+
 #define FLAG_BYTEORDER_BIG 2
 #define FLAG_BYTEORDER_LIL 4
 #define FLAG_BYTEORDER_NATIVE 8
 #define FLAG_SRC_MALLOC 1
 #define FLAG_SRC_STATIC 0
 
-#if SIZE_MAX < UINT32_MAX
-# define SIZE_ERROR_MUL(x, y) ((x) > SIZE_MAX / (y))
-# define SIZE_ERROR(x) ((x) > SIZE_MAX)
-#else
-# define SIZE_ERROR_MUL(x, y) (0)
-# define SIZE_ERROR(x) (0)
-#endif
-
-#if UINT32_MAX > SIZE_MAX
-# error This code cannot be built on your environment.
-#endif
+#define SIZE_ERROR_MUL(nmemb, size) ((nmemb) > SIZE_MAX / (size))
 
 static size_t
 skip_padding(const uint8_t *buf)
@@ -94,7 +88,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   src += skip_padding(src);
 
   if (irep->ilen > 0) {
-    if (SIZE_ERROR_MUL(sizeof(mrb_code), irep->ilen)) {
+    if (SIZE_ERROR_MUL(irep->ilen, sizeof(mrb_code))) {
       return NULL;
     }
     if ((flags & FLAG_SRC_MALLOC) == 0 &&
@@ -128,7 +122,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   plen = (size_t)bin_to_uint32(src); /* number of pool */
   src += sizeof(uint32_t);
   if (plen > 0) {
-    if (SIZE_ERROR_MUL(sizeof(mrb_value), plen)) {
+    if (SIZE_ERROR_MUL(plen, sizeof(mrb_value))) {
       return NULL;
     }
     irep->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * plen);
@@ -173,7 +167,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   irep->slen = (size_t)bin_to_uint32(src);  /* syms length */
   src += sizeof(uint32_t);
   if (irep->slen > 0) {
-    if (SIZE_ERROR_MUL(sizeof(mrb_sym), irep->slen)) {
+    if (SIZE_ERROR_MUL(irep->slen, sizeof(mrb_sym))) {
       return NULL;
     }
     irep->syms = (mrb_sym *)mrb_malloc(mrb, sizeof(mrb_sym) * irep->slen);
@@ -254,9 +248,6 @@ read_lineno_record_1(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, size_t 
   fname_len = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
   *len += sizeof(uint16_t);
-  if (SIZE_ERROR(fname_len + 1)) {
-    return MRB_DUMP_GENERAL_FAILURE;
-  }
   fname = (char *)mrb_malloc(mrb, fname_len + 1);
   memcpy(fname, bin, fname_len);
   fname[fname_len] = '\0';
@@ -682,26 +673,23 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
     return NULL;
   }
 
-  /* You don't need use SIZE_ERROR as buf_size is enough small. */
   buf = (uint8_t*)mrb_malloc(mrb, header_size);
   if (fread(buf, header_size, 1, fp) == 0) {
-    mrb_free(mrb, buf);
-    return NULL;
+    goto irep_exit;
   }
   result = read_binary_header(buf, &buf_size, NULL, &flags);
-  if (result != MRB_DUMP_OK) {
-    mrb_free(mrb, buf);
-    return NULL;
+  if (result != MRB_DUMP_OK || buf_size <= header_size) {
+    goto irep_exit;
   }
 
   buf = (uint8_t*)mrb_realloc(mrb, buf, buf_size);
   if (fread(buf+header_size, buf_size-header_size, 1, fp) == 0) {
-    mrb_free(mrb, buf);
-    return NULL;
+    goto irep_exit;
   }
   irep = read_irep(mrb, buf, FLAG_SRC_MALLOC);
-  mrb_free(mrb, buf);
 
+irep_exit:
+  mrb_free(mrb, buf);
   return irep;
 }
 

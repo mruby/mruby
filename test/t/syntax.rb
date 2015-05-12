@@ -213,6 +213,12 @@ assert('Splat and multiple assignment in for') do
   assert_equal 7, f
 end
 
+assert('Splat without assignment') do
+  * = [0]
+  a, * = [1, 2]
+  assert_equal 1, a
+end
+
 assert('Return values of case statements') do
   a = [] << case 1
   when 3 then 2
