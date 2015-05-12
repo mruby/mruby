@@ -802,56 +802,14 @@ struct op_ctx {
 #endif
 };
 
-
-#ifdef MRB_JIT_GEN
-
-void NO_INLINE __mrb_jit_pc_add__(mrb_code *pc, int o) {
-}
-
-void NO_INLINE __mrb_jit_pc_inc__(mrb_code *pc) {
-}
-
-const intptr_t A;
-const intptr_t B;
-const intptr_t C;
-const intptr_t Bx;
-const intptr_t sBx;
-const intptr_t Ax;
-const intptr_t b;
-const intptr_t c;
-
-typedef int (*__arg_protect__)(int);
-//#define ARG_PROTECT(x) (((__arg_protect__)(0xABBEEF))(x))
-#define ARG_PROTECT(x) (x)
-#define JIT_VOLATILE volatile
-#undef GETARG_A
-#define GETARG_A(i) ((uintptr_t)(&A))
-#undef GETARG_Ax
-#define GETARG_Ax(i) ((uintptr_t)(&Ax))
-#undef GETARG_B
-#define GETARG_B(i) ((uintptr_t)(&B))
-#undef GETARG_b
-#define GETARG_b(i) ((uintptr_t)(&b))
-#undef GETARG_sBx
-#define GETARG_sBx(i) ((uintptr_t)(&sBx))
-#undef GETARG_Bx
-#define GETARG_Bx(i) ((uintptr_t)(&Bx))
-#undef GETARG_C
-#define GETARG_C(i) ((uintptr_t)(&C))
-#undef GETARG_c
-#define GETARG_c(i) ((uintptr_t)(&c))
-#define PC_ADD(pc, o) (__mrb_jit_pc_add__(pc, o))
-#define PC_INC(pc) (__mrb_jit_pc_inc__(pc))
-#define OP_IDX(i) 0xDE0000
-#else
 #define PC_ADD(pc, o) (pc += o)
 #define PC_INC(pc) (pc++)
-#define OP_END
-#define JIT_VOLATILE
-#define ARG_PROTECT(x) (x)
+#define CTX_I(ctx) (*(ctx->pc))
+
+#ifdef MRB_JIT_GEN
+#include "jit/gen.h"
 #endif
 
-#define CTX_I(ctx) (*(ctx->pc))
 
 static OP_INLINE void
 op_nop(struct op_ctx *ctx) {
@@ -993,7 +951,7 @@ static OP_INLINE void
 op_getupvar(struct op_ctx *ctx) {
   /* A B C  R(A) := uvget(B,C) */
   mrb_value *regs_a = ctx->regs + GETARG_A(CTX_I(ctx));
-  int up = ARG_PROTECT(GETARG_C(CTX_I(ctx)));
+  int up = GETARG_C(CTX_I(ctx));
 
   struct REnv *e = uvenv(ctx->mrb, up);
 
@@ -1009,7 +967,7 @@ op_getupvar(struct op_ctx *ctx) {
 static OP_INLINE void
 op_setupvar(struct op_ctx *ctx) {
   /* A B C  uvset(B,C,R(A)) */
-  int up = ARG_PROTECT(GETARG_C(CTX_I(ctx)));
+  int up = GETARG_C(CTX_I(ctx));
 
   struct REnv *e = uvenv(ctx->mrb, up);
 
@@ -1033,8 +991,7 @@ op_jmpif(struct op_ctx *ctx) {
   if (mrb_test(ctx->regs[GETARG_A(CTX_I(ctx))])) {
     PC_ADD(ctx->pc, GETARG_sBx(CTX_I(ctx)));
 #ifdef MRB_JIT_GEN
-    volatile int *p = 0xFAB;
-    *p = 0xFAB;
+    MRB_JIT_GEN_DUMMY_WRITE
 #endif
   } else {
     PC_INC(ctx->pc);
@@ -1047,8 +1004,7 @@ op_jmpnot(struct op_ctx *ctx) {
   if (!mrb_test(ctx->regs[GETARG_A(CTX_I(ctx))])) {
     PC_ADD(ctx->pc, GETARG_sBx(CTX_I(ctx)));
 #ifdef MRB_JIT_GEN
-    volatile int *p = 0xFAB;
-    *p = 0xFAB;
+    MRB_JIT_GEN_DUMMY_WRITE
 #endif
   } else {
     PC_INC(ctx->pc);
@@ -1435,7 +1391,7 @@ static OP_INLINE void
 op_sendb(struct op_ctx *ctx) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
 
-  int a = ARG_PROTECT(GETARG_A(CTX_I(ctx)));
+  int a = GETARG_A(CTX_I(ctx));
   int b = GETARG_B(CTX_I(ctx));
   int n = GETARG_C(CTX_I(ctx));
 
@@ -1724,7 +1680,7 @@ static OP_INLINE void
 op_argary(struct op_ctx *ctx) {
   /* A Bx   R(A) := argument array (16=6:1:5:4) */
   int a = GETARG_A(CTX_I(ctx));
-  JIT_VOLATILE int bx = GETARG_Bx(CTX_I(ctx));
+  int bx = GETARG_Bx(CTX_I(ctx));
   int m1 = (bx>>10)&0x3f;
   int r  = (bx>>9)&0x1;
   int m2 = (bx>>4)&0x1f;
@@ -1779,7 +1735,7 @@ op_argary(struct op_ctx *ctx) {
 static OP_INLINE void
 op_enter_method_m(struct op_ctx *ctx) {
   /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
-  mrb_aspec ax = ARG_PROTECT(GETARG_Ax(CTX_I(ctx)));
+  mrb_aspec ax = GETARG_Ax(CTX_I(ctx));
   int m1 = MRB_ASPEC_REQ(ax);
 
   /* unused
@@ -1835,7 +1791,7 @@ op_enter_method_m(struct op_ctx *ctx) {
 static OP_INLINE void
 op_enter(struct op_ctx *ctx) {
   /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
-  mrb_aspec ax = ARG_PROTECT(GETARG_Ax(CTX_I(ctx)));
+  mrb_aspec ax = GETARG_Ax(CTX_I(ctx));
   int m1 = MRB_ASPEC_REQ(ax);
   int o  = MRB_ASPEC_OPT(ax);
   int r  = MRB_ASPEC_REST(ax);
@@ -2044,7 +2000,7 @@ op_blkpush(struct op_ctx *ctx) {
 
   mrb_state *mrb = ctx->mrb;
   int a = GETARG_A(CTX_I(ctx));
-  JIT_VOLATILE int bx = GETARG_Bx(CTX_I(ctx));
+  int bx = GETARG_Bx(CTX_I(ctx));
   int m1 = (bx>>10)&0x3f;
   int r  = (bx>>9)&0x1;
   int m2 = (bx>>4)&0x1f;
@@ -2323,7 +2279,7 @@ static OP_INLINE void
 op_addi(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)+C (Syms[B]=:+)*/
   int a = GETARG_A(CTX_I(ctx));
-  int c = ARG_PROTECT(GETARG_C(CTX_I(ctx)));
+  int c = GETARG_C(CTX_I(ctx));
 
   mrb_value *regs_a = ctx->regs + a;
   mrb_state *mrb = ctx->mrb;
@@ -2366,7 +2322,7 @@ op_subi(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)+C (Syms[B]=:+)*/
   /* A B C  R(A) := R(A)-C (Syms[B]=:-)*/
   int a = GETARG_A(CTX_I(ctx));
-  int c = ARG_PROTECT(GETARG_C(CTX_I(ctx)));
+  int c = GETARG_C(CTX_I(ctx));
   mrb_value *regs = ctx->regs;
   mrb_value *regs_a = regs + a;
   mrb_state *mrb = ctx->mrb;
@@ -2609,8 +2565,8 @@ op_strcat(struct op_ctx *ctx) {
 static OP_INLINE void
 op_hash(struct op_ctx *ctx) {
   /* A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C)) */
-  JIT_VOLATILE int b = GETARG_B(CTX_I(ctx));
-  JIT_VOLATILE int c = GETARG_C(CTX_I(ctx));
+  int b = GETARG_B(CTX_I(ctx));
+  int c = GETARG_C(CTX_I(ctx));
   int lim = b+c*2;
   mrb_value hash = mrb_hash_new_capa(ctx->mrb, c);
 
@@ -2626,7 +2582,7 @@ static JIT_NO_INLINE void
 _op_lambda(struct op_ctx *ctx, int a, int b, int c) {
   struct RProc *p;
 
-  if (ARG_PROTECT(c) & OP_L_CAPTURE) {
+  if (c & OP_L_CAPTURE) {
     p = mrb_closure_new(ctx->mrb, ctx->irep->reps[b]);
   }
   else {
@@ -2790,7 +2746,8 @@ op_debug(struct op_ctx *ctx) {
   ctx->mrb->debug_op_hook(ctx->mrb, ctx->irep, ctx->pc, ctx->regs);
 #else
 #ifdef ENABLE_STDIO
-  printf(_str_const_op_debug_format, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)), GETARG_C(CTX_I(ctx)));
+  printf(_str_const_op_debug_format, (int) GETARG_A(CTX_I(ctx)),
+         (int) GETARG_B(CTX_I(ctx)), (int) GETARG_C(CTX_I(ctx)));
 #else
   abort();
 #endif

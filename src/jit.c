@@ -12,10 +12,6 @@
 #include "mruby/irep.h"
 #include "mruby/opcode.h"
 
-#ifndef DEBUG
-#define DEBUG(x)
-#endif
-
 #include <string.h>
 
 #if defined(__linux__)
@@ -48,9 +44,15 @@
 #include <alloca.h>
 #include <stdlib.h>
 
+//#define JIT_DEBUG
+
 #define ALIGN(s, a) (((s) + (a) - 1) & ~((a) - 1))
-//#define JIT_PRINTF(...) fprintf(stderr, __VA_ARGS__)
-#define JIT_PRINTF
+
+#ifdef JIT_DEBUG
+#define JIT_PRINTF(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define JIT_PRINTF(...)
+#endif
 
 static size_t
 jit_page_size()
@@ -279,6 +281,7 @@ mrb_irep_jit_prepare(mrb_state *mrb, mrb_irep *irep)
 
   return TRUE;
 }
+
 void
 mrb_irep_codedump(mrb_state *mrb, mrb_irep *irep);
 
@@ -301,8 +304,11 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
     }
 
     JIT_PRINTF( "jitting irep %p\n", irep);
+
+#ifdef JIT_DEBUG
     mrb_irep_codedump(mrb, irep);
-    
+#endif
+
     ctx = &irep->jit_ctx;
     text_off_tbl = ctx->text_off_tbl;
     rodata_off_tbl = ctx->rodata_off_tbl;

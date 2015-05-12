@@ -156,9 +156,9 @@ end
 def decls_to_c(file, objs)
   file.puts "typedef void (*jit_link_func_t)(uint8_t *op, uint8_t *data, mrb_code c);"
   file.puts "extern jit_link_func_t link_funcs[];"
-  file.puts "uint8_t* ops_text[#{objs.size}];"
-  file.puts "uint8_t* ops_rodata[#{objs.size}];"
-  file.puts "static char *op_names[#{objs.size}];"
+  file.puts "const uint8_t* ops_text[#{objs.size}];"
+  file.puts "const uint8_t* ops_rodata[#{objs.size}];"
+  file.puts "const char *op_names[#{objs.size}];"
 end
 
 def linker_to_c(file, objs)
