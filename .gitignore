@@ -11,6 +11,9 @@
 *.sav
 *.swp
 *.tmp
+*.gcov
+callgrind.out.*
+oprofile_data
 *~
 .DS_Store
 .ccmalloc

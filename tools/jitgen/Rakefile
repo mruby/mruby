@@ -111,16 +111,20 @@ def hand_asm_file(profile, op_name)
   File.join 'asm', "#{op_name}_#{profile.arch}_#{profile.boxing}.s"
 end
 
+def profile_dir(profile)
+  File.join 'profiles', profile.to_s
+end
+
 def obj_dir(profile)
-  File.join profile.to_s, 'obj'
+  File.join profile_dir(profile), 'obj'
 end
 
 def asm_dir(profile)
-  File.join profile.to_s, 'asm'
+  File.join profile_dir(profile), 'asm'
 end
 
 def ll_dir(profile)
-  File.join profile.boxing.to_s, 'll'
+  File.join 'profiles', profile.boxing.to_s, 'll'
 end
 
 def obj_file(profile, name)
@@ -237,8 +241,7 @@ def postproc_asm_file(op_name, in_file, out_file)
 end
 
 profiles.each do |profile|
-  directory profile.to_s
-
+  directory profile_dir(profile)
   directory obj_dir(profile)
   directory asm_dir(profile)
 
@@ -293,7 +296,7 @@ profiles.each do |profile|
       sh "llc -O3 #{opts} -mtriple=#{profile.triple} -filetype=asm -o #{t.name} #{ll_opt_file}"
     end
 
-    if false && File.file?(hand_asm_file)
+    if File.file?(hand_asm_file)
       file pp_asm_file => [hand_asm_file, asm_file] do |t|
         cp hand_asm_file, t.name
       end
@@ -349,6 +352,9 @@ end
 
 directory jit_src_dir
 
+file 'gen' => 'gen.cpp' do |t|
+  sh "clang++ -std=c++11 -g3 -O0 gen.cpp $(llvm-config --cppflags --cxxflags --libs --ldflags --cflags) -pthread -lcurses -ldl -o #{t.name} -lz"
+end
 
 profiles.each do |profile|
   directory profile_src_dir(profile)
