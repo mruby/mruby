@@ -7,6 +7,17 @@ module MRuby
       @dat_files ||= []
     end
 
+    def title(target_name)
+      case build_config_name
+      when 'cc'
+        target_name.sub(/march\-(\w+)/, 'march=\1')
+                   .gsub('-cxx-abi', ' (C++ ABI)')
+                   .gsub('-', ' -')
+      else
+        target_name
+      end
+    end
+
     def bm_files
       Dir.glob("#{MRUBY_ROOT}/benchmark/bm_*.rb")
     end
@@ -59,6 +70,7 @@ module MRuby
           [bm_name, avg, min, max]
         end.sort_by{|e| e[1]}.reverse
 
+        # underscore means subscript in gnuplot
         all_data[target_name.gsub('_', '-')] = bm_data
       end
 
@@ -102,7 +114,7 @@ module MRuby
 
       IO.popen(cmd, 'w') do |p|
         data.each do |k, v|
-          p.puts %Q["#{k.gsub('-march-native', '-march=native').gsub("-", " -")}"]
+          p.puts %Q["#{title  k}"]
           v.each do |l|
             p.puts l.join(' ')
           end
