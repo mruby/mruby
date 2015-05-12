@@ -23,7 +23,10 @@ struct mrb_mcache_entry {
   struct RClass *c;
 };
 
+#ifndef MRB_METHOD_CACHE_SIZE
 #define MRB_METHOD_CACHE_SIZE 4
+#endif
+
 struct mrb_mcache {
   struct mrb_mcache_entry entries[MRB_METHOD_CACHE_SIZE];
   struct RClass *classes[MRB_METHOD_CACHE_SIZE];
