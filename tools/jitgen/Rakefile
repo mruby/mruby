@@ -50,56 +50,27 @@ $ops = [
 
 
 def mruby_root
-  __dir__.split(File::SEPARATOR)
-         .slice_after('mruby').to_a[0]
-         .join(File::SEPARATOR)
+  File.expand_path File.join(__dir__, '..', '..')
 end
 
 def jit_src_dir
   File.join mruby_root, 'src', 'jit'
 end
 
-def ops_header_path(profile)
-  File.join jit_src_dir, "ops_#{profile.to_s}.h"
+def profile_src_dir(profile)
+  File.join jit_src_dir, profile.to_s
 end
 
-def symtbl_header_path(profile)
-  File.join jit_src_dir, "jit_symtbl_#{profile.boxing}.h"
+def ops_header_path(profile)
+  File.join profile_src_dir(profile), "ops.h"
 end
 
 def linker_header_path(profile)
-  File.join jit_src_dir, "linker_#{profile.boxing}.h"
+  File.join profile_src_dir(profile), "linker.h"
 end
 
 def vm_c_path
  File.join mruby_root, 'src', 'vm.c'
-end
-
-def _argument_usage
-  data = File.read vm_c_path
-  hash = Hash.new {|h,k| h[k] = {}}
-  #FIXME: assuming function closing bracket
-  # is right at start of line
-  data.scan(/(op_\w+)\s*\(([^\)]*)\)\s*\{(.*?)^\}/m) do |h|
-    op = $1
-    body = $3
-    args = body.scan(/GETARG_(\w+)\s*\(/).flatten
-    args_hash = {}
-    args.each do |arg|
-      raise unless arg =~ /([ABCcb])/
-      args_hash[$1.downcase.to_sym] = arg
-    end
-    hash[op].merge! args_hash
-    if body =~ /OP_IDX/
-      hash[op].merge!({:op_idx => true})
-    end
-  end
-
-  hash
-end
-
-def argument_usage
-  $argument_usage ||= _argument_usage
 end
 
 def boxings
@@ -179,9 +150,7 @@ def symtbl_to_c(file, sym_tbl)
 end
 
 def decls_to_c(file, objs)
-  file.puts "typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c, uint32_t op_idx);"
   file.puts "typedef void (*jit_link_func_t)(uint8_t *op, uint8_t *data, mrb_code c);"
-  file.puts "static jit_args_func_t arg_funcs[#{objs.size}];"
   file.puts "extern jit_link_func_t link_funcs[];"
   file.puts "uint8_t* ops_text[#{objs.size}];"
   file.puts "uint8_t* ops_rodata[#{objs.size}];"
@@ -219,7 +188,6 @@ def init_ops_to_c(file, objs, array_var_names)
       file.puts "    ops_#{s.sane_name}[#{index}] = #{array_var_names[index][i]};"
     end
     file.puts "    op_names[#{index}] = \"#{op.name}\";"
-    file.puts "    arg_funcs[#{index}] = #{op.name}_set_args_from_code;"
   end
   file.puts "  }"
   file.puts "}"
@@ -243,34 +211,6 @@ def op_sizes_to_c(file, objs, array_var_names)
     file.puts "\n};"
   end
 
-end
-
-def set_arg_funcs_to_c(file, obj)
-  file.puts "static void #{obj.name}_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {"
-  obj.arguments.each do |k, vs|
-    vs.each do |m, a, v|
-      file.puts "  *((int32_t *)(op + #{v.begin})) = #{k} * #{m} + #{a};"
-    end
-  end
-  file.puts "}"
-
-  file.puts
-
-  used_arguments = argument_usage[obj.name]
-
-  file.puts "static void #{obj.name}_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {"
-  file.write "  #{obj.name}_set_args(op, "
-  [:a, :b, :c].map do |arg|
-    v = used_arguments[arg]
-    if v
-      "GETARG_#{v}(c)"
-    else
-      0
-    end
-  end.<<("op_idx").join(",").tap do |s|
-    file.puts "#{s});"
-  end
-  file.puts "}"
 end
 
 def gen_file(profile, f)
@@ -372,40 +312,38 @@ profiles.each do |profile|
 end
 
 def process_objs(profile)
-  file = nil
+  ops_file = nil
   linker_file = nil
   array_var_names = []
 
   objs = $obj_files[profile].map do |obj_file|
     obj = ObjectFile.load(obj_file)
-    file ||= File.open ops_header_path(profile), 'w'
+    ops_file ||= File.open ops_header_path(profile), 'w'
     linker_file ||= File.open linker_header_path(profile), 'w'
 
-    file.puts
-    array_var_names << obj.to_c(file)
-    file.puts
-    set_arg_funcs_to_c(file, obj)
-    file.puts
+    ops_file.puts
+    array_var_names << obj.to_c(ops_file)
+    ops_file.puts
 
     obj
   end
 
-  decls_to_c(file, objs)
-  file.puts
-  op_sizes_to_c(file, objs, array_var_names)
-  file.puts
-  init_ops_to_c(file, objs, array_var_names)
-  file.puts
+  decls_to_c(ops_file, objs)
+  ops_file.puts
+  op_sizes_to_c(ops_file, objs, array_var_names)
+  ops_file.puts
+  init_ops_to_c(ops_file, objs, array_var_names)
+  ops_file.puts
 
   linker_to_c(linker_file, objs)
   linker_file.puts
 
-  As::X86::ReturnInstruction.to_c file
-  As::X86::JumpInstruction.to_c file
-  As::X86::JumpIfInstruction.to_c file
-  As::X86::JumpNotInstruction.to_c file
+  As::X86::ReturnInstruction.to_c ops_file
+  As::X86::JumpInstruction.to_c ops_file
+  As::X86::JumpIfInstruction.to_c ops_file
+  As::X86::JumpNotInstruction.to_c ops_file
 
-  file.close
+  ops_file.close
   linker_file.close
 end
 
@@ -413,11 +351,13 @@ directory jit_src_dir
 
 
 profiles.each do |profile|
-  file linker_header_path(profile) => [*$obj_files[profile], jit_src_dir] do |t|
+  directory profile_src_dir(profile)
+
+  file linker_header_path(profile) => [*$obj_files[profile], profile_src_dir(profile)] do |t|
     process_objs profile
   end
 
-  file ops_header_path(profile) => [*$obj_files[profile], jit_src_dir] do |t|
+  file ops_header_path(profile) => [*$obj_files[profile], profile_src_dir(profile)] do |t|
     process_objs profile
   end
 end

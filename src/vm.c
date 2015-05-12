@@ -2893,17 +2893,31 @@ op_err(struct op_ctx *ctx) {
 #pragma GCC diagnostic pop
 #endif
 
-#ifdef MRB_JIT_GEN
+#if defined(MRB_JIT_GEN)
 static void init_linker(){};
 static void *link_funcs[1];
-#elif MRB_ENABLE_JIT
-#if defined(MRB_NAN_BOXING)
-#include "jit/linker_nan_boxing.h"
-#elif defined(MRB_WORD_BOXING)
-#include "jit/linker_word_boxing.h"
-#else
-#include "jit/linker_no_boxing.h"
-#endif
+#elif defined(MRB_ENABLE_JIT)
+#  if defined(__linux__)
+#    if defined(__x86_64__)
+#      if defined(MRB_NAN_BOXING)
+#        include "jit/x86_64-unknown-linux-gnu-nan_boxing/linker.h"
+#      elif defined(MRB_WORD_BOXING)
+#        include "jit/x86_64-unknown-linux-gnu-word_boxing/linker.h"
+#      else
+#        include "jit/x86_64-unknown-linux-gnu-no_boxing/linker.h"
+#      endif
+#    elif defined(__i386)
+#      if defined(MRB_NAN_BOXING)
+#        include "jit/x86-unknown-linux-gnu-nan_boxing/linker.h"
+#      elif defined(MRB_WORD_BOXING)
+#        include "jit/x86-unknown-linux-gnu-word_boxing/linker.h"
+#      else
+#        include "jit/x86-unknown-linux-gnu-no_boxing/linker.h"
+#      endif
+#    endif
+#  else
+#    error Platform not yet supported
+#  endif
 #endif
 
 

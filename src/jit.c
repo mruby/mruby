@@ -19,25 +19,25 @@
 #include <string.h>
 
 #if defined(__linux__)
-#if defined(__x86_64__)
-#if defined(MRB_NAN_BOXING)
-#include "jit/ops_x86_64-unknown-linux-gnu-nan_boxing.h"
-#elif defined(MRB_WORD_BOXING)
-#include "jit/ops_x86_64-unknown-linux-gnu-word_boxing.h"
+#  if defined(__x86_64__)
+#    if defined(MRB_NAN_BOXING)
+#      include "jit/x86_64-unknown-linux-gnu-nan_boxing/ops.h"
+#    elif defined(MRB_WORD_BOXING)
+#      include "jit/x86_64-unknown-linux-gnu-word_boxing/ops.h"
+#    else
+#      include "jit/x86_64-unknown-linux-gnu-no_boxing/ops.h"
+#    endif
+#  elif defined(__i386)
+#    if defined(MRB_NAN_BOXING)
+#      include "jit/x86-unknown-linux-gnu-nan_boxing/ops.h"
+#    elif defined(MRB_WORD_BOXING)
+#      include "jit/x86-unknown-linux-gnu-word_boxing/ops.h"
+#    else
+#      include "jit/x86-unknown-linux-gnu-no_boxing/ops.h"
+#    endif
+#  endif
 #else
-#include "jit/ops_x86_64-unknown-linux-gnu-no_boxing.h"
-#endif
-#elif defined(__i386)
-#if defined(MRB_NAN_BOXING)
-#include "jit/ops_x86-unknown-linux-gnu-nan_boxing.h"
-#elif defined(MRB_WORD_BOXING)
-#include "jit/ops_x86-unknown-linux-gnu-word_boxing.h"
-#else
-#include "jit/ops_x86-unknown-linux-gnu-no_boxing.h"
-#endif
-#endif
-#else
-#error Platform not yet supported
+#  error Platform not yet supported
 #endif
 
 #if !defined(_WIN32) && \

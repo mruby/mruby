@@ -1,5 +1,4 @@
 
-/* args: {} */
 static uint8_t op_nop__text[] = {
 
 };
@@ -7,15 +6,7 @@ static uint8_t op_nop__rodata[] = {
 
 };
 
-static void op_nop_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_nop_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_nop_set_args(op, 0,0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_move__text[] = {
 0x48, 0x8b, 0x47, 0x18,                   /*0: mov    0x18(%rdi),%rax */
 0xb9, 0x00, 0x00, 0x00, 0x00,             /*4: mov    $0x0,%ecx */
@@ -28,15 +19,7 @@ static uint8_t op_move__rodata[] = {
 
 };
 
-static void op_move_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_move_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_move_set_args(op, GETARG_A(c),GETARG_B(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_loadl__text[] = {
 0x48, 0x8b, 0x47, 0x18,                   /*0: mov    0x18(%rdi),%rax */
 0x48, 0x8b, 0x4f, 0x20,                   /*4: mov    0x20(%rdi),%rcx */
@@ -50,15 +33,7 @@ static uint8_t op_loadl__rodata[] = {
 
 };
 
-static void op_loadl_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_loadl_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_loadl_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_loadi__text[] = {
 0x48, 0x8b, 0x47, 0x18,                   /*0: mov    0x18(%rdi),%rax */
 0xb9, 0x00, 0x00, 0x00, 0x00,             /*4: mov    $0x0,%ecx */
@@ -72,15 +47,7 @@ static uint8_t op_loadi__rodata[] = {
 
 };
 
-static void op_loadi_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_loadi_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_loadi_set_args(op, GETARG_A(c),GETARG_sBx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_loadsym__text[] = {
 0x48, 0x8b, 0x47, 0x18,                   /*0: mov    0x18(%rdi),%rax */
 0xb9, 0x00, 0x00, 0x00, 0x00,             /*4: mov    $0x0,%ecx */
@@ -96,15 +63,7 @@ static uint8_t op_loadsym__rodata[] = {
 
 };
 
-static void op_loadsym_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_loadsym_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_loadsym_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_loadnil__text[] = {
 0x48, 0x8b, 0x47, 0x18,                   /*0: mov    0x18(%rdi),%rax */
 0xb9, 0x00, 0x00, 0x00, 0x00,             /*4: mov    $0x0,%ecx */
@@ -117,15 +76,7 @@ static uint8_t op_loadnil__rodata[] = {
 
 };
 
-static void op_loadnil_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_loadnil_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_loadnil_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_loadself__text[] = {
 0x48, 0x8b, 0x47, 0x18,                   /*0: mov    0x18(%rdi),%rax */
 0xb9, 0x00, 0x00, 0x00, 0x00,             /*4: mov    $0x0,%ecx */
@@ -137,15 +88,7 @@ static uint8_t op_loadself__rodata[] = {
 
 };
 
-static void op_loadself_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_loadself_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_loadself_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_loadt__text[] = {
 0x48, 0x8b, 0x47, 0x18,                   /*0: mov    0x18(%rdi),%rax */
 0xb9, 0x00, 0x00, 0x00, 0x00,             /*4: mov    $0x0,%ecx */
@@ -158,15 +101,7 @@ static uint8_t op_loadt__rodata[] = {
 
 };
 
-static void op_loadt_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_loadt_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_loadt_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_loadf__text[] = {
 0x48, 0x8b, 0x47, 0x18,                   /*0: mov    0x18(%rdi),%rax */
 0xb9, 0x00, 0x00, 0x00, 0x00,             /*4: mov    $0x0,%ecx */
@@ -179,15 +114,7 @@ static uint8_t op_loadf__rodata[] = {
 
 };
 
-static void op_loadf_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_loadf_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_loadf_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_getglobal__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -211,15 +138,7 @@ static uint8_t op_getglobal__rodata[] = {
 
 };
 
-static void op_getglobal_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_getglobal_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_getglobal_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_setglobal__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -239,15 +158,7 @@ static uint8_t op_setglobal__rodata[] = {
 
 };
 
-static void op_setglobal_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_setglobal_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_setglobal_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_getspecial__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -269,15 +180,7 @@ static uint8_t op_getspecial__rodata[] = {
 
 };
 
-static void op_getspecial_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_getspecial_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_getspecial_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_setspecial__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -295,15 +198,7 @@ static uint8_t op_setspecial__rodata[] = {
 
 };
 
-static void op_setspecial_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_setspecial_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_setspecial_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_getiv__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -327,15 +222,7 @@ static uint8_t op_getiv__rodata[] = {
 
 };
 
-static void op_getiv_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_getiv_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_getiv_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_setiv__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -355,15 +242,7 @@ static uint8_t op_setiv__rodata[] = {
 
 };
 
-static void op_setiv_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_setiv_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_setiv_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_getcv__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -396,15 +275,7 @@ static uint8_t op_getcv__rodata[] = {
 
 };
 
-static void op_getcv_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_getcv_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_getcv_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_setcv__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -424,15 +295,7 @@ static uint8_t op_setcv__rodata[] = {
 
 };
 
-static void op_setcv_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_setcv_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_setcv_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_getconst__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -464,15 +327,7 @@ static uint8_t op_getconst__rodata[] = {
 
 };
 
-static void op_getconst_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_getconst_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_getconst_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_setconst__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -492,15 +347,7 @@ static uint8_t op_setconst__rodata[] = {
 
 };
 
-static void op_setconst_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_setconst_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_setconst_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_getmcnst__text[] = {
 0x41, 0x56,                               /*0: push   %r14 */
 0x53,                                     /*2: push   %rbx */
@@ -537,15 +384,7 @@ static uint8_t op_getmcnst__rodata[] = {
 
 };
 
-static void op_getmcnst_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_getmcnst_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_getmcnst_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_setmcnst__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -569,15 +408,7 @@ static uint8_t op_setmcnst__rodata[] = {
 
 };
 
-static void op_setmcnst_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_setmcnst_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_setmcnst_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_getupvar__text[] = {
 0x48, 0x8b, 0x47, 0x18,                   /*0: mov    0x18(%rdi),%rax */
 0x48, 0x8b, 0x4f, 0x50,                   /*4: mov    0x50(%rdi),%rcx */
@@ -616,15 +447,7 @@ static uint8_t op_getupvar__rodata[] = {
 
 };
 
-static void op_getupvar_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_getupvar_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_getupvar_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_setupvar__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -665,15 +488,7 @@ static uint8_t op_setupvar__rodata[] = {
 
 };
 
-static void op_setupvar_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_setupvar_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_setupvar_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_jmp__text[] = {
 
 };
@@ -681,15 +496,7 @@ static uint8_t op_jmp__rodata[] = {
 
 };
 
-static void op_jmp_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_jmp_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_jmp_set_args(op, 0,GETARG_sBx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_jmpif__text[] = {
 0x48, 0x8b, 0x47, 0x18,                   /*0: mov    0x18(%rdi),%rax */
 0xb9, 0x00, 0x00, 0x00, 0x00,             /*4: mov    $0x0,%ecx */
@@ -704,15 +511,7 @@ static uint8_t op_jmpif__rodata[] = {
 
 };
 
-static void op_jmpif_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_jmpif_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_jmpif_set_args(op, GETARG_A(c),GETARG_sBx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_jmpnot__text[] = {
 0x48, 0x8b, 0x47, 0x18,                   /*0: mov    0x18(%rdi),%rax */
 0xb9, 0x00, 0x00, 0x00, 0x00,             /*4: mov    $0x0,%ecx */
@@ -727,15 +526,7 @@ static uint8_t op_jmpnot__rodata[] = {
 
 };
 
-static void op_jmpnot_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_jmpnot_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_jmpnot_set_args(op, GETARG_A(c),GETARG_sBx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_onerr__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -783,15 +574,7 @@ static uint8_t op_onerr__rodata[] = {
 
 };
 
-static void op_onerr_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_onerr_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_onerr_set_args(op, 0,GETARG_sBx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_rescue__text[] = {
 0x48, 0x8b, 0x47, 0x18,                   /*0: mov    0x18(%rdi),%rax */
 0x48, 0x8b, 0x4f, 0x50,                   /*4: mov    0x50(%rdi),%rcx */
@@ -832,15 +615,7 @@ static uint8_t op_rescue__rodata[] = {
 
 };
 
-static void op_rescue_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_rescue_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_rescue_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_poperr__text[] = {
 0xb8, 0x00, 0x00, 0x00, 0x00,             /*0: mov    $0x0,%eax */
 0x85, 0xc0,                               /*5: test   %eax,%eax */
@@ -859,15 +634,7 @@ static uint8_t op_poperr__rodata[] = {
 
 };
 
-static void op_poperr_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_poperr_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_poperr_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_raise__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -888,15 +655,7 @@ static uint8_t op_raise__rodata[] = {
 
 };
 
-static void op_raise_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_raise_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_raise_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_epush__text[] = {
 0x41, 0x56,                               /*0: push   %r14 */
 0x53,                                     /*2: push   %rbx */
@@ -952,15 +711,7 @@ static uint8_t op_epush__rodata[] = {
 
 };
 
-static void op_epush_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_epush_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_epush_set_args(op, 0,GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_epop__text[] = {
 0x55,                                     /*0: push   %rbp */
 0x41, 0x57,                               /*1: push   %r15 */
@@ -1002,15 +753,7 @@ static uint8_t op_epop__rodata[] = {
 
 };
 
-static void op_epop_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_epop_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_epop_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_send__text[] = {
 0x55,                                     /*0: push   %rbp */
 0x48, 0x89, 0xe5,                         /*1: mov    %rsp,%rbp */
@@ -1051,15 +794,7 @@ static uint8_t op_send__rodata[] = {
 
 };
 
-static void op_send_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_send_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_send_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_sendb__text[] = {
 0x55,                                     /*0: push   %rbp */
 0x48, 0x89, 0xe5,                         /*1: mov    %rsp,%rbp */
@@ -1082,15 +817,7 @@ static uint8_t op_sendb__rodata[] = {
 
 };
 
-static void op_sendb_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_sendb_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_sendb_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_fsend__text[] = {
 
 };
@@ -1098,15 +825,7 @@ static uint8_t op_fsend__rodata[] = {
 
 };
 
-static void op_fsend_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_fsend_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_fsend_set_args(op, 0,0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_call__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -1232,15 +951,7 @@ static uint8_t op_call__rodata[] = {
 
 };
 
-static void op_call_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_call_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_call_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_super__text[] = {
 0x55,                                     /*0: push   %rbp */
 0x41, 0x57,                               /*1: push   %r15 */
@@ -1492,15 +1203,7 @@ static uint8_t op_super__rodata[] = {
 
 };
 
-static void op_super_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_super_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_super_set_args(op, GETARG_A(c),0,GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_argary__text[] = {
 0x55,                                     /*0: push   %rbp */
 0x41, 0x57,                               /*1: push   %r15 */
@@ -1713,15 +1416,7 @@ static uint8_t op_argary__rodata[] = {
 
 };
 
-static void op_argary_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_argary_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_argary_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_enter__text[] = {
 0x55,                                     /*0: push   %rbp */
 0x41, 0x57,                               /*1: push   %r15 */
@@ -2322,15 +2017,7 @@ static uint8_t op_enter__rodata[] = {
 
 };
 
-static void op_enter_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_enter_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_enter_set_args(op, GETARG_Ax(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_enter_method_m__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -2466,15 +2153,7 @@ static uint8_t op_enter_method_m__rodata[] = {
 
 };
 
-static void op_enter_method_m_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_enter_method_m_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_enter_method_m_set_args(op, GETARG_Ax(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_karg__text[] = {
 
 };
@@ -2482,15 +2161,7 @@ static uint8_t op_karg__rodata[] = {
 
 };
 
-static void op_karg_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_karg_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_karg_set_args(op, 0,0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_kdict__text[] = {
 
 };
@@ -2498,15 +2169,7 @@ static uint8_t op_kdict__rodata[] = {
 
 };
 
-static void op_kdict_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_kdict_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_kdict_set_args(op, 0,0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_return__text[] = {
 0x55,                                     /*0: push   %rbp */
 0x48, 0x89, 0xe5,                         /*1: mov    %rsp,%rbp */
@@ -2528,15 +2191,7 @@ static uint8_t op_return__rodata[] = {
 
 };
 
-static void op_return_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_return_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_return_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_break__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -2552,15 +2207,7 @@ static uint8_t op_break__rodata[] = {
 
 };
 
-static void op_break_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_break_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_break_set_args(op, GETARG_A(c),GETARG_B(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_tailcall__text[] = {
 0x55,                                     /*0: push   %rbp */
 0x41, 0x57,                               /*1: push   %r15 */
@@ -2837,15 +2484,7 @@ static uint8_t op_tailcall__rodata[] = {
 
 };
 
-static void op_tailcall_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_tailcall_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_tailcall_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_blkpush__text[] = {
 0x41, 0x56,                               /*0: push   %r14 */
 0x53,                                     /*2: push   %rbx */
@@ -2913,15 +2552,7 @@ static uint8_t op_blkpush__rodata[] = {
 
 };
 
-static void op_blkpush_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_blkpush_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_blkpush_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_add__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -3039,15 +2670,7 @@ static uint8_t op_add__rodata[] = {
 
 };
 
-static void op_add_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_add_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_add_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_addi__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -3113,15 +2736,7 @@ static uint8_t op_addi__rodata[] = {
 
 };
 
-static void op_addi_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_addi_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_addi_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_sub__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -3219,15 +2834,7 @@ static uint8_t op_sub__rodata[] = {
 
 };
 
-static void op_sub_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_sub_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_sub_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_subi__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -3295,15 +2902,7 @@ static uint8_t op_subi__rodata[] = {
 
 };
 
-static void op_subi_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_subi_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_subi_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_mul__text[] = {
 0x41, 0x56,                               /*0: push   %r14 */
 0x53,                                     /*2: push   %rbx */
@@ -3417,15 +3016,7 @@ static uint8_t op_mul__rodata[] = {
 
 };
 
-static void op_mul_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_mul_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_mul_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_div__text[] = {
 0x41, 0x56,                               /*0: push   %r14 */
 0x53,                                     /*2: push   %rbx */
@@ -3527,15 +3118,7 @@ static uint8_t op_div__rodata[] = {
 
 };
 
-static void op_div_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_div_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_div_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_eq__text[] = {
 0x41, 0x56,                               /*0: push   %r14 */
 0x53,                                     /*2: push   %rbx */
@@ -3636,15 +3219,7 @@ static uint8_t op_eq__rodata[] = {
 
 };
 
-static void op_eq_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_eq_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_eq_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_lt__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -3738,15 +3313,7 @@ static uint8_t op_lt__rodata[] = {
 
 };
 
-static void op_lt_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_lt_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_lt_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_le__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -3840,15 +3407,7 @@ static uint8_t op_le__rodata[] = {
 
 };
 
-static void op_le_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_le_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_le_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_gt__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -3940,15 +3499,7 @@ static uint8_t op_gt__rodata[] = {
 
 };
 
-static void op_gt_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_gt_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_gt_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_ge__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -4040,15 +3591,7 @@ static uint8_t op_ge__rodata[] = {
 
 };
 
-static void op_ge_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_ge_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_ge_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_array__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -4075,15 +3618,7 @@ static uint8_t op_array__rodata[] = {
 
 };
 
-static void op_array_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_array_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_array_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_arycat__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -4113,15 +3648,7 @@ static uint8_t op_arycat__rodata[] = {
 
 };
 
-static void op_arycat_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_arycat_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_arycat_set_args(op, GETARG_A(c),GETARG_B(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_arypush__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -4140,15 +3667,7 @@ static uint8_t op_arypush__rodata[] = {
 
 };
 
-static void op_arypush_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_arypush_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_arypush_set_args(op, GETARG_A(c),GETARG_B(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_aref__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -4191,15 +3710,7 @@ static uint8_t op_aref__rodata[] = {
 
 };
 
-static void op_aref_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_aref_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_aref_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_aset__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -4219,15 +3730,7 @@ static uint8_t op_aset__rodata[] = {
 
 };
 
-static void op_aset_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_aset_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_aset_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_apost__text[] = {
 0x55,                                     /*0: push   %rbp */
 0x41, 0x57,                               /*1: push   %r15 */
@@ -4365,15 +3868,7 @@ static uint8_t op_apost__rodata[] = {
 
 };
 
-static void op_apost_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_apost_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_apost_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_string__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -4400,15 +3895,7 @@ static uint8_t op_string__rodata[] = {
 
 };
 
-static void op_string_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_string_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_string_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_strcat__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -4427,15 +3914,7 @@ static uint8_t op_strcat__rodata[] = {
 
 };
 
-static void op_strcat_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_strcat_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_strcat_set_args(op, GETARG_A(c),GETARG_B(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_hash__text[] = {
 0x55,                                     /*0: push   %rbp */
 0x41, 0x57,                               /*1: push   %r15 */
@@ -4485,15 +3964,7 @@ static uint8_t op_hash__rodata[] = {
 
 };
 
-static void op_hash_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_hash_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_hash_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_lambda__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -4509,15 +3980,7 @@ static uint8_t op_lambda__rodata[] = {
 
 };
 
-static void op_lambda_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_lambda_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_lambda_set_args(op, GETARG_A(c),GETARG_b(c),GETARG_c(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_range__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -4548,15 +4011,7 @@ static uint8_t op_range__rodata[] = {
 
 };
 
-static void op_range_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_range_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_range_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_oclass__text[] = {
 0x48, 0x8b, 0x47, 0x18,                   /*0: mov    0x18(%rdi),%rax */
 0x48, 0x8b, 0x4f, 0x50,                   /*4: mov    0x50(%rdi),%rcx */
@@ -4581,15 +4036,7 @@ static uint8_t op_oclass__rodata[] = {
 
 };
 
-static void op_oclass_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_oclass_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_oclass_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_class__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -4656,15 +4103,7 @@ static uint8_t op_class__rodata[] = {
 
 };
 
-static void op_class_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_class_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_class_set_args(op, GETARG_A(c),GETARG_B(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_module__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -4728,15 +4167,7 @@ static uint8_t op_module__rodata[] = {
 
 };
 
-static void op_module_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_module_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_module_set_args(op, GETARG_A(c),GETARG_B(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_exec__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -4838,15 +4269,7 @@ static uint8_t op_exec__rodata[] = {
 
 };
 
-static void op_exec_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_exec_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_exec_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_method__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -4876,15 +4299,7 @@ static uint8_t op_method__rodata[] = {
 
 };
 
-static void op_method_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_method_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_method_set_args(op, GETARG_A(c),GETARG_B(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_sclass__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -4910,15 +4325,7 @@ static uint8_t op_sclass__rodata[] = {
 
 };
 
-static void op_sclass_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_sclass_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_sclass_set_args(op, GETARG_A(c),GETARG_B(c),0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_tclass__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -4975,15 +4382,7 @@ static uint8_t op_tclass__rodata[] = {
 
 };
 
-static void op_tclass_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_tclass_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_tclass_set_args(op, GETARG_A(c),0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_debug__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -5001,15 +4400,7 @@ static uint8_t op_debug__rodata[] = {
 
 };
 
-static void op_debug_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_debug_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_debug_set_args(op, GETARG_A(c),GETARG_B(c),GETARG_C(c),op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_stop__text[] = {
 0x53,                                     /*0: push   %rbx */
 0x48, 0x89, 0xfb,                         /*1: mov    %rdi,%rbx */
@@ -5022,15 +4413,7 @@ static uint8_t op_stop__rodata[] = {
 
 };
 
-static void op_stop_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
 
-static void op_stop_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_stop_set_args(op, 0,0,0,op_idx);
-}
-
-
-/* args: {} */
 static uint8_t op_err__text[] = {
 0x41, 0x57,                               /*0: push   %r15 */
 0x41, 0x56,                               /*2: push   %r14 */
@@ -5067,16 +4450,7 @@ static uint8_t op_err__rodata[] = {
 
 };
 
-static void op_err_set_args(uint8_t *op, uint32_t a, int32_t b, uint8_t c, uint32_t op_idx) {
-}
-
-static void op_err_set_args_from_code(uint8_t *op, mrb_code c, uint32_t op_idx) {
-  op_err_set_args(op, GETARG_A(c),GETARG_Bx(c),0,op_idx);
-}
-
-typedef void (*jit_args_func_t)(uint8_t *op, mrb_code c, uint32_t op_idx);
 typedef void (*jit_link_func_t)(uint8_t *op, uint8_t *data, mrb_code c);
-static jit_args_func_t arg_funcs[78];
 extern jit_link_func_t link_funcs[];
 uint8_t* ops_text[78];
 uint8_t* ops_rodata[78];
@@ -5416,315 +4790,237 @@ void init_ops() {
     ops_text[0] = op_nop__text;
     ops_rodata[0] = op_nop__rodata;
     op_names[0] = "op_nop";
-    arg_funcs[0] = op_nop_set_args_from_code;
     ops_text[1] = op_move__text;
     ops_rodata[1] = op_move__rodata;
     op_names[1] = "op_move";
-    arg_funcs[1] = op_move_set_args_from_code;
     ops_text[2] = op_loadl__text;
     ops_rodata[2] = op_loadl__rodata;
     op_names[2] = "op_loadl";
-    arg_funcs[2] = op_loadl_set_args_from_code;
     ops_text[3] = op_loadi__text;
     ops_rodata[3] = op_loadi__rodata;
     op_names[3] = "op_loadi";
-    arg_funcs[3] = op_loadi_set_args_from_code;
     ops_text[4] = op_loadsym__text;
     ops_rodata[4] = op_loadsym__rodata;
     op_names[4] = "op_loadsym";
-    arg_funcs[4] = op_loadsym_set_args_from_code;
     ops_text[5] = op_loadnil__text;
     ops_rodata[5] = op_loadnil__rodata;
     op_names[5] = "op_loadnil";
-    arg_funcs[5] = op_loadnil_set_args_from_code;
     ops_text[6] = op_loadself__text;
     ops_rodata[6] = op_loadself__rodata;
     op_names[6] = "op_loadself";
-    arg_funcs[6] = op_loadself_set_args_from_code;
     ops_text[7] = op_loadt__text;
     ops_rodata[7] = op_loadt__rodata;
     op_names[7] = "op_loadt";
-    arg_funcs[7] = op_loadt_set_args_from_code;
     ops_text[8] = op_loadf__text;
     ops_rodata[8] = op_loadf__rodata;
     op_names[8] = "op_loadf";
-    arg_funcs[8] = op_loadf_set_args_from_code;
     ops_text[9] = op_getglobal__text;
     ops_rodata[9] = op_getglobal__rodata;
     op_names[9] = "op_getglobal";
-    arg_funcs[9] = op_getglobal_set_args_from_code;
     ops_text[10] = op_setglobal__text;
     ops_rodata[10] = op_setglobal__rodata;
     op_names[10] = "op_setglobal";
-    arg_funcs[10] = op_setglobal_set_args_from_code;
     ops_text[11] = op_getspecial__text;
     ops_rodata[11] = op_getspecial__rodata;
     op_names[11] = "op_getspecial";
-    arg_funcs[11] = op_getspecial_set_args_from_code;
     ops_text[12] = op_setspecial__text;
     ops_rodata[12] = op_setspecial__rodata;
     op_names[12] = "op_setspecial";
-    arg_funcs[12] = op_setspecial_set_args_from_code;
     ops_text[13] = op_getiv__text;
     ops_rodata[13] = op_getiv__rodata;
     op_names[13] = "op_getiv";
-    arg_funcs[13] = op_getiv_set_args_from_code;
     ops_text[14] = op_setiv__text;
     ops_rodata[14] = op_setiv__rodata;
     op_names[14] = "op_setiv";
-    arg_funcs[14] = op_setiv_set_args_from_code;
     ops_text[15] = op_getcv__text;
     ops_rodata[15] = op_getcv__rodata;
     op_names[15] = "op_getcv";
-    arg_funcs[15] = op_getcv_set_args_from_code;
     ops_text[16] = op_setcv__text;
     ops_rodata[16] = op_setcv__rodata;
     op_names[16] = "op_setcv";
-    arg_funcs[16] = op_setcv_set_args_from_code;
     ops_text[17] = op_getconst__text;
     ops_rodata[17] = op_getconst__rodata;
     op_names[17] = "op_getconst";
-    arg_funcs[17] = op_getconst_set_args_from_code;
     ops_text[18] = op_setconst__text;
     ops_rodata[18] = op_setconst__rodata;
     op_names[18] = "op_setconst";
-    arg_funcs[18] = op_setconst_set_args_from_code;
     ops_text[19] = op_getmcnst__text;
     ops_rodata[19] = op_getmcnst__rodata;
     op_names[19] = "op_getmcnst";
-    arg_funcs[19] = op_getmcnst_set_args_from_code;
     ops_text[20] = op_setmcnst__text;
     ops_rodata[20] = op_setmcnst__rodata;
     op_names[20] = "op_setmcnst";
-    arg_funcs[20] = op_setmcnst_set_args_from_code;
     ops_text[21] = op_getupvar__text;
     ops_rodata[21] = op_getupvar__rodata;
     op_names[21] = "op_getupvar";
-    arg_funcs[21] = op_getupvar_set_args_from_code;
     ops_text[22] = op_setupvar__text;
     ops_rodata[22] = op_setupvar__rodata;
     op_names[22] = "op_setupvar";
-    arg_funcs[22] = op_setupvar_set_args_from_code;
     ops_text[23] = op_jmp__text;
     ops_rodata[23] = op_jmp__rodata;
     op_names[23] = "op_jmp";
-    arg_funcs[23] = op_jmp_set_args_from_code;
     ops_text[24] = op_jmpif__text;
     ops_rodata[24] = op_jmpif__rodata;
     op_names[24] = "op_jmpif";
-    arg_funcs[24] = op_jmpif_set_args_from_code;
     ops_text[25] = op_jmpnot__text;
     ops_rodata[25] = op_jmpnot__rodata;
     op_names[25] = "op_jmpnot";
-    arg_funcs[25] = op_jmpnot_set_args_from_code;
     ops_text[26] = op_onerr__text;
     ops_rodata[26] = op_onerr__rodata;
     op_names[26] = "op_onerr";
-    arg_funcs[26] = op_onerr_set_args_from_code;
     ops_text[27] = op_rescue__text;
     ops_rodata[27] = op_rescue__rodata;
     op_names[27] = "op_rescue";
-    arg_funcs[27] = op_rescue_set_args_from_code;
     ops_text[28] = op_poperr__text;
     ops_rodata[28] = op_poperr__rodata;
     op_names[28] = "op_poperr";
-    arg_funcs[28] = op_poperr_set_args_from_code;
     ops_text[29] = op_raise__text;
     ops_rodata[29] = op_raise__rodata;
     op_names[29] = "op_raise";
-    arg_funcs[29] = op_raise_set_args_from_code;
     ops_text[30] = op_epush__text;
     ops_rodata[30] = op_epush__rodata;
     op_names[30] = "op_epush";
-    arg_funcs[30] = op_epush_set_args_from_code;
     ops_text[31] = op_epop__text;
     ops_rodata[31] = op_epop__rodata;
     op_names[31] = "op_epop";
-    arg_funcs[31] = op_epop_set_args_from_code;
     ops_text[32] = op_send__text;
     ops_rodata[32] = op_send__rodata;
     op_names[32] = "op_send";
-    arg_funcs[32] = op_send_set_args_from_code;
     ops_text[33] = op_sendb__text;
     ops_rodata[33] = op_sendb__rodata;
     op_names[33] = "op_sendb";
-    arg_funcs[33] = op_sendb_set_args_from_code;
     ops_text[34] = op_fsend__text;
     ops_rodata[34] = op_fsend__rodata;
     op_names[34] = "op_fsend";
-    arg_funcs[34] = op_fsend_set_args_from_code;
     ops_text[35] = op_call__text;
     ops_rodata[35] = op_call__rodata;
     op_names[35] = "op_call";
-    arg_funcs[35] = op_call_set_args_from_code;
     ops_text[36] = op_super__text;
     ops_rodata[36] = op_super__rodata;
     op_names[36] = "op_super";
-    arg_funcs[36] = op_super_set_args_from_code;
     ops_text[37] = op_argary__text;
     ops_rodata[37] = op_argary__rodata;
     op_names[37] = "op_argary";
-    arg_funcs[37] = op_argary_set_args_from_code;
     ops_text[38] = op_enter__text;
     ops_rodata[38] = op_enter__rodata;
     op_names[38] = "op_enter";
-    arg_funcs[38] = op_enter_set_args_from_code;
     ops_text[39] = op_enter_method_m__text;
     ops_rodata[39] = op_enter_method_m__rodata;
     op_names[39] = "op_enter_method_m";
-    arg_funcs[39] = op_enter_method_m_set_args_from_code;
     ops_text[40] = op_karg__text;
     ops_rodata[40] = op_karg__rodata;
     op_names[40] = "op_karg";
-    arg_funcs[40] = op_karg_set_args_from_code;
     ops_text[41] = op_kdict__text;
     ops_rodata[41] = op_kdict__rodata;
     op_names[41] = "op_kdict";
-    arg_funcs[41] = op_kdict_set_args_from_code;
     ops_text[42] = op_return__text;
     ops_rodata[42] = op_return__rodata;
     op_names[42] = "op_return";
-    arg_funcs[42] = op_return_set_args_from_code;
     ops_text[43] = op_break__text;
     ops_rodata[43] = op_break__rodata;
     op_names[43] = "op_break";
-    arg_funcs[43] = op_break_set_args_from_code;
     ops_text[44] = op_tailcall__text;
     ops_rodata[44] = op_tailcall__rodata;
     op_names[44] = "op_tailcall";
-    arg_funcs[44] = op_tailcall_set_args_from_code;
     ops_text[45] = op_blkpush__text;
     ops_rodata[45] = op_blkpush__rodata;
     op_names[45] = "op_blkpush";
-    arg_funcs[45] = op_blkpush_set_args_from_code;
     ops_text[46] = op_add__text;
     ops_rodata[46] = op_add__rodata;
     op_names[46] = "op_add";
-    arg_funcs[46] = op_add_set_args_from_code;
     ops_text[47] = op_addi__text;
     ops_rodata[47] = op_addi__rodata;
     op_names[47] = "op_addi";
-    arg_funcs[47] = op_addi_set_args_from_code;
     ops_text[48] = op_sub__text;
     ops_rodata[48] = op_sub__rodata;
     op_names[48] = "op_sub";
-    arg_funcs[48] = op_sub_set_args_from_code;
     ops_text[49] = op_subi__text;
     ops_rodata[49] = op_subi__rodata;
     op_names[49] = "op_subi";
-    arg_funcs[49] = op_subi_set_args_from_code;
     ops_text[50] = op_mul__text;
     ops_rodata[50] = op_mul__rodata;
     op_names[50] = "op_mul";
-    arg_funcs[50] = op_mul_set_args_from_code;
     ops_text[51] = op_div__text;
     ops_rodata[51] = op_div__rodata;
     op_names[51] = "op_div";
-    arg_funcs[51] = op_div_set_args_from_code;
     ops_text[52] = op_eq__text;
     ops_rodata[52] = op_eq__rodata;
     op_names[52] = "op_eq";
-    arg_funcs[52] = op_eq_set_args_from_code;
     ops_text[53] = op_lt__text;
     ops_rodata[53] = op_lt__rodata;
     op_names[53] = "op_lt";
-    arg_funcs[53] = op_lt_set_args_from_code;
     ops_text[54] = op_le__text;
     ops_rodata[54] = op_le__rodata;
     op_names[54] = "op_le";
-    arg_funcs[54] = op_le_set_args_from_code;
     ops_text[55] = op_gt__text;
     ops_rodata[55] = op_gt__rodata;
     op_names[55] = "op_gt";
-    arg_funcs[55] = op_gt_set_args_from_code;
     ops_text[56] = op_ge__text;
     ops_rodata[56] = op_ge__rodata;
     op_names[56] = "op_ge";
-    arg_funcs[56] = op_ge_set_args_from_code;
     ops_text[57] = op_array__text;
     ops_rodata[57] = op_array__rodata;
     op_names[57] = "op_array";
-    arg_funcs[57] = op_array_set_args_from_code;
     ops_text[58] = op_arycat__text;
     ops_rodata[58] = op_arycat__rodata;
     op_names[58] = "op_arycat";
-    arg_funcs[58] = op_arycat_set_args_from_code;
     ops_text[59] = op_arypush__text;
     ops_rodata[59] = op_arypush__rodata;
     op_names[59] = "op_arypush";
-    arg_funcs[59] = op_arypush_set_args_from_code;
     ops_text[60] = op_aref__text;
     ops_rodata[60] = op_aref__rodata;
     op_names[60] = "op_aref";
-    arg_funcs[60] = op_aref_set_args_from_code;
     ops_text[61] = op_aset__text;
     ops_rodata[61] = op_aset__rodata;
     op_names[61] = "op_aset";
-    arg_funcs[61] = op_aset_set_args_from_code;
     ops_text[62] = op_apost__text;
     ops_rodata[62] = op_apost__rodata;
     op_names[62] = "op_apost";
-    arg_funcs[62] = op_apost_set_args_from_code;
     ops_text[63] = op_string__text;
     ops_rodata[63] = op_string__rodata;
     op_names[63] = "op_string";
-    arg_funcs[63] = op_string_set_args_from_code;
     ops_text[64] = op_strcat__text;
     ops_rodata[64] = op_strcat__rodata;
     op_names[64] = "op_strcat";
-    arg_funcs[64] = op_strcat_set_args_from_code;
     ops_text[65] = op_hash__text;
     ops_rodata[65] = op_hash__rodata;
     op_names[65] = "op_hash";
-    arg_funcs[65] = op_hash_set_args_from_code;
     ops_text[66] = op_lambda__text;
     ops_rodata[66] = op_lambda__rodata;
     op_names[66] = "op_lambda";
-    arg_funcs[66] = op_lambda_set_args_from_code;
     ops_text[67] = op_range__text;
     ops_rodata[67] = op_range__rodata;
     op_names[67] = "op_range";
-    arg_funcs[67] = op_range_set_args_from_code;
     ops_text[68] = op_oclass__text;
     ops_rodata[68] = op_oclass__rodata;
     op_names[68] = "op_oclass";
-    arg_funcs[68] = op_oclass_set_args_from_code;
     ops_text[69] = op_class__text;
     ops_rodata[69] = op_class__rodata;
     op_names[69] = "op_class";
-    arg_funcs[69] = op_class_set_args_from_code;
     ops_text[70] = op_module__text;
     ops_rodata[70] = op_module__rodata;
     op_names[70] = "op_module";
-    arg_funcs[70] = op_module_set_args_from_code;
     ops_text[71] = op_exec__text;
     ops_rodata[71] = op_exec__rodata;
     op_names[71] = "op_exec";
-    arg_funcs[71] = op_exec_set_args_from_code;
     ops_text[72] = op_method__text;
     ops_rodata[72] = op_method__rodata;
     op_names[72] = "op_method";
-    arg_funcs[72] = op_method_set_args_from_code;
     ops_text[73] = op_sclass__text;
     ops_rodata[73] = op_sclass__rodata;
     op_names[73] = "op_sclass";
-    arg_funcs[73] = op_sclass_set_args_from_code;
     ops_text[74] = op_tclass__text;
     ops_rodata[74] = op_tclass__rodata;
     op_names[74] = "op_tclass";
-    arg_funcs[74] = op_tclass_set_args_from_code;
     ops_text[75] = op_debug__text;
     ops_rodata[75] = op_debug__rodata;
     op_names[75] = "op_debug";
-    arg_funcs[75] = op_debug_set_args_from_code;
     ops_text[76] = op_stop__text;
     ops_rodata[76] = op_stop__rodata;
     op_names[76] = "op_stop";
-    arg_funcs[76] = op_stop_set_args_from_code;
     ops_text[77] = op_err__text;
     ops_rodata[77] = op_err__rodata;
     op_names[77] = "op_err";
-    arg_funcs[77] = op_err_set_args_from_code;
   }
 }
 

@@ -16,20 +16,6 @@ ObjectFile = Struct.new(:filename, :sections) do
       @asm
     end
 
-    def arguments
-      body.each_with_index.inject([0, Hash.new{|h, v| h[v] = []}]) do |acc, (bytes, index)|
-        asm = @asm[index]
-        off, hash = acc
-
-        args = find_arguments(bytes, asm).map {|k, v| [k, v.map{|(m, a, r)| [m, a, ((r.min + off)..(r.max + off))]}]}.to_h
-        new_hash = hash.merge(args) do |key, av, hv|
-          av | hv
-        end
-
-        [off + bytes.size, new_hash]
-      end[1]
-    end
-
     def text?
       name == '.text'
     end
@@ -62,7 +48,6 @@ ObjectFile = Struct.new(:filename, :sections) do
     def text_to_c(io, var_name)
       off = 0
 
-      io.puts "/* args: #{arguments.inspect} */"
       io.puts "static uint8_t #{var_name}[] = {"
 
       body.each_with_index do |bytes, index|
@@ -209,37 +194,6 @@ ObjectFile = Struct.new(:filename, :sections) do
         end
       end
     end
-
-    def find_arguments(bytes, asm)
-      instr = As::Instruction.parse asm
-      args = Hash.new{|k, v| k[v] = []}
-      instr.operands.map do |op|
-        MAGIC_ARG_CONSTS.each do |r, a|
-          v = case op
-          when As::Literal
-            op.value
-          when As::X86::Memory
-            op.offset
-          else
-            nil
-          end
-
-          if v && v.to_s(16) =~ /#{r}(\h\h)(\h\h)/i
-            arg_bytes = [v].pack('l<').force_encoding('ASCII-8BIT').each_codepoint.to_a
-            (bytes.size).downto(0) do |i|
-              range = (i - arg_bytes.size)...i
-              seq = bytes[range]
-              if seq == arg_bytes
-                mul_off, add_off = $1.to_i(16), $2.to_i(16)
-                mul_off = 1 if mul_off.zero?
-                args[a] << [mul_off, add_off, range]
-              end
-            end
-          end
-        end
-      end
-      args
-    end
   end
 
   def self.load(filename)
@@ -275,21 +229,9 @@ ObjectFile = Struct.new(:filename, :sections) do
     end
   end
 
-  def arguments
-    sections.find{|s| s.text?}.arguments
-  end
-
   def bytesize
     sections.find{|s| s.text?}.bytesize
   end
-
-  private
-  MAGIC_ARG_CONSTS = {
-    /AB/i => 'a',
-    /BC/i => 'b',
-    /CD/i => 'c',
-    /DE/i => 'op_idx'
-  }
 
   def parse!
     self.sections << Section.parse(self, '.text')
