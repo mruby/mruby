@@ -1104,7 +1104,6 @@ _op_raise(struct op_ctx *ctx) {
   mrb_obj_iv_ifnone(ctx->mrb, ctx->mrb->exc, mrb_intern_lit(ctx->mrb, "ciidx"), mrb_fixnum_value(ci - ctx->mrb->c->cibase));
   eidx = ci->eidx;
   if (ci == ctx->mrb->c->cibase) {
-    //VM_PRINTF("calling _op_rescue 1\n");
     return _op_rescue(ctx, ci);
   }
   while (eidx > ci[-1].eidx) {
@@ -1116,14 +1115,12 @@ _op_raise(struct op_ctx *ctx) {
     ctx->mrb->c->stack = ci[1].stackent;
     if (ci[1].acc == CI_ACC_SKIP && ctx->prev_jmp) {
       ctx->mrb->jmp = ctx->prev_jmp;
-      //VM_PRINTF("_op_send: throwing\n");
       MRB_THROW(ctx->prev_jmp);
     }
     if (ci == ctx->mrb->c->cibase) {
       if (ci->ridx == 0) {
         if (ctx->mrb->c == ctx->mrb->root_c) {
           ctx->regs = ctx->mrb->c->stack = ctx->mrb->c->stbase;
-          //VM_PRINTF("_op_send: stopping\n");
           return _op_stop(ctx);
         }
         else {
@@ -1190,7 +1187,7 @@ op_loadnil(struct op_ctx *ctx) {
   SET_NIL_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static inline void
+static FORCE_INLINE void
 _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mid, struct RProc *m, int opcode, int a, int n) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
 
@@ -1205,21 +1202,6 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mi
       SET_NIL_VALUE(ctx->regs[a+n+1]);
     }
   }
-
-  //VM_PRINTF("_op_send_static %s: %p %d %d %d\n", mrb_sym2name(ctx->mrb, mid), ctx, opcode, a, n);
-#if 0
-  recv = ctx->regs[a];
-  if (MRB_LIKELY(opcode != OP_SENDB)) {
-    if (MRB_UNLIKELY(n == CALL_MAXARGS)) {
-      SET_NIL_VALUE(ctx->regs[a+2]);
-    }
-    else {
-      SET_NIL_VALUE(ctx->regs[a+n+1]);
-    }
-  }
-#endif
-
-  ////VM_PRINTF("_op_send %s\n", mrb_sym2name(ctx->mrb, mid));
 
   /* push callinfo */
   ci = cipush(ctx->mrb);
@@ -1237,7 +1219,6 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mi
   if (MRB_PROC_CFUNC_P(m)) {
     mrb_bool flow_modified = FALSE;
 
-    //VM_PRINTF("_op_send: cfunc (ctx = %p)\n", ctx);
     if (MRB_UNLIKELY(n == CALL_MAXARGS)) {
       ci->argc = -1;
       ci->nregs = 3;
@@ -1257,7 +1238,6 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mi
     ctx->mrb->c->stack[0] = result;
     mrb_gc_arena_restore(ctx->mrb, ctx->ai);
     if (MRB_UNLIKELY(ctx->mrb->exc)) {
-      //VM_PRINTF("calling _op_raise from send\n");
       return _op_raise(ctx);
     }
     /* pop stackpos */
@@ -1285,18 +1265,12 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mi
      */
     if(MRB_UNLIKELY(flow_modified)) {
       if(ctx->pc == ctx->irep->iseq) {
-        //VM_PRINTF("_op_send: call into jit (resume)\n");
         mrb_proc_call_jit(ctx->mrb, ctx->proc, ctx);
-        //VM_PRINTF("/_op_send: call into jit (resume)\n");
       }
     }
 #endif
-
-
   }
   else {
-
-    //VM_PRINTF("_op_send: no cfunc\n");
     /* setup environment for calling method */
     ctx->proc = ctx->mrb->c->ci->proc = m;
     ctx->irep = m->body.irep;
@@ -1314,20 +1288,13 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mi
     ctx->regs = ctx->mrb->c->stack;
     ctx->pc = ctx->irep->iseq;
 
-
-    ////VM_PRINTF("_op_send: pc set\n");
-
 #ifdef MRB_ENABLE_JIT
-    //VM_PRINTF("_op_send: call into jit (send)\n");
     mrb_proc_call_jit(ctx->mrb, m, ctx);
-    //VM_PRINTF("/_op_send: call into jit (send)\n");
 #endif
   }
-
-  //VM_PRINTF("_op_send %s end\n", mrb_sym2name(ctx->mrb, mid));
 }
 
-static inline void
+static FORCE_INLINE void
 _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   struct RProc *m;
   struct RClass *c;
@@ -1403,7 +1370,7 @@ op_fsend(struct op_ctx *ctx) {
   /* A B C  R(A) := fcall(R(A),Syms(B),R(A+1),... ,R(A+C-1)) */
 }
 
-static inline void
+static FORCE_INLINE void
 _op_return(struct op_ctx *ctx, int a, int b) {
   mrb_state *mrb = ctx->mrb;
   if (MRB_UNLIKELY(ctx->mrb->exc)) {
@@ -1490,15 +1457,11 @@ _op_return(struct op_ctx *ctx, int a, int b) {
       ctx->retval = v;
       MRB_THROW(ctx->stop_jmp);
     }
-    //VM_PRINTF("from :%s\n", mrb_sym2name(mrb, ci->mid));
     ctx->proc = mrb->c->ci->proc;
     ctx->irep = ctx->proc->body.irep;
     ctx->pool = ctx->irep->pool;
     ctx->syms = ctx->irep->syms;
     ctx->regs[acc] = v;
-
-    //VM_PRINTF("new pc: %p %d\n", ctx->pc, GET_OPCODE(*ctx->pc));
-
   }
 }
 

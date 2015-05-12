@@ -192,7 +192,9 @@ module Postprocess
   class OpReturn < Processor
     def process!
       super
-      asm.reverse_each_instruction.take(1).to_a.first.insert_after As::X86::ReturnInstruction.new
+      asm.reverse_each_instruction.find do |inst|
+        inst.x86_jump? && inst.source == Label.new('.LNEXT')
+      end.replace As::X86::ReturnInstruction.new
     end
   end
 
