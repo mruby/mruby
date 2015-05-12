@@ -1187,7 +1187,7 @@ op_loadnil(struct op_ctx *ctx) {
   SET_NIL_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static FORCE_INLINE void
+static inline void
 _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mid, struct RProc *m, int opcode, int a, int n) {
   /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
 
@@ -1294,7 +1294,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c, mrb_sym mi
   }
 }
 
-static FORCE_INLINE void
+static inline void
 _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n) {
   struct RProc *m;
   struct RClass *c;
@@ -1370,7 +1370,7 @@ op_fsend(struct op_ctx *ctx) {
   /* A B C  R(A) := fcall(R(A),Syms(B),R(A+1),... ,R(A+C-1)) */
 }
 
-static FORCE_INLINE void
+static inline void
 _op_return(struct op_ctx *ctx, int a, int b) {
   mrb_state *mrb = ctx->mrb;
   if (MRB_UNLIKELY(ctx->mrb->exc)) {

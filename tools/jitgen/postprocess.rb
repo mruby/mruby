@@ -192,9 +192,20 @@ module Postprocess
   class OpReturn < Processor
     def process!
       super
-      asm.reverse_each_instruction.find do |inst|
+      jmp_next = asm.reverse_each_instruction.find do |inst|
         inst.x86_jump? && inst.source == Label.new('.LNEXT')
-      end.replace As::X86::ReturnInstruction.new
+      end
+        
+      if jmp_next
+        jmp_next.replace As::X86::ReturnInstruction.new
+      else
+        # there is no jump nedded, e.g. because
+        # default flow runs into next
+        # add return as last instruction
+        asm.reverse_each_instruction
+           .take(1).to_a.first
+           .insert_after As::X86::ReturnInstruction.new
+      end
     end
   end
 
