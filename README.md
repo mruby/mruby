@@ -46,7 +46,7 @@ We don't have mailing list, use GitHub forum <http://github.com/mruby/mruby>.
 
 ## How to compile and install (mruby and gems)
 
-See the INSTALL file.
+See the *doc/compile/README.md* file.
 
 
 ## Running Tests
@@ -60,11 +60,12 @@ Or
     $ ruby ./minirake test
 
 
-## Customization
+## How to customize mruby (mrbgems)
 
 mruby contains a package manager called *mrbgems*. To create extensions
-in C and/or Ruby you should create a *GEM*. You will find a complete
-documentation with examples under *examples/mrbgems*.
+in C and/or Ruby you should create a *GEM*. For a documentation of how to
+use mrbgems consult the file *doc/mrbgems/README.md*. For example code of
+how to use mrbgems look into the folder *examples/mrbgems/*.
 
 
 ## License
