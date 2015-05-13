@@ -58,6 +58,7 @@ module MiniRake
   class Task
     TASKS = Hash.new
     RULES = Array.new
+    NAMESPACE = Array.new
 
     # List of prerequisites for a task.
     attr_reader :prerequisites
@@ -157,7 +158,8 @@ module MiniRake
       # added to the existing task.
       def define_task(args, &block)
         task_name, deps = resolve_args(args)
-        lookup(task_name).enhance([deps].flatten, &block)
+        full_task_name = NAMESPACE.+([task_name]).join(':')
+        lookup(full_task_name).enhance([deps].flatten, &block)
       end
 
       # Define a rule for synthesizing tasks.
@@ -251,6 +253,13 @@ module MiniRake
     # Declare a file task.
     def file(args, &block)
       MiniRake::FileTask.define_task(args, &block)
+    end
+
+    # Define new namespace
+    def namespace(name, &block)
+      MiniRake::Task::NAMESPACE.push name
+      instance_eval &block
+      MiniRake::Task::NAMESPACE.pop
     end
 
     # Declare a set of files tasks to create the given directories on

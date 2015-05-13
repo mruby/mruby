@@ -123,6 +123,35 @@ module MRuby
       end
     end
 
+    def print(relative = nil)
+      data = Hash.new{|h, k| h[k] = []}
+      self.all_data.each do |bc_name, bms|
+        bms.each do |(bm_name, *bm_data)|
+          data[bm_name] << bm_data
+        end
+      end
+  
+      row_headers = all_data.keys.map(&:to_s)
+      max_row_wid = row_headers.max_by(&:size).size + 2
+
+      col_headers = data.keys.map(&:to_s)
+      max_col_wid = col_headers.max_by(&:size).size + 2
+
+      puts " ".*(max_col_wid) + row_headers.map {|h| "%#{max_row_wid}s" % h }.join('')
+      puts
+      data.each do |bm_name, bm_data|
+        avgs = bm_data.map do |(avg, *_)| 
+          if relative
+            avg / bm_data[relative][0]
+          else
+            avg
+          end
+        end
+        printf "%#{max_col_wid}s" % bm_name
+        puts avgs.map {|avg| "%#{max_row_wid}.2f" % avg }.join('')
+      end
+    end
+
     extend self
   end
 end
@@ -159,11 +188,18 @@ MRuby.each_target do |target|
   end
 end
 
-MRuby::Benchmark.plot_files.each_with_index do |plot_file, index|
-  file plot_file => [*MRuby::Benchmark.dat_files, MRuby::Benchmark.plot_opts_file] do
-    MRuby::Benchmark.plot index
-  end
-end
+namespace :benchmark do
 
-task :benchmark => MRuby::Benchmark.plot_files do
+  MRuby::Benchmark.plot_files.each_with_index do |plot_file, index|
+    file plot_file => [*MRuby::Benchmark.dat_files, MRuby::Benchmark.plot_opts_file] do
+      MRuby::Benchmark.plot index
+    end
+  end
+
+  task :plot => MRuby::Benchmark.plot_files do
+  end
+
+  task :print, [:relative] => MRuby::Benchmark.dat_files do |t, args|
+    MRuby::Benchmark.print args[:relative] ? args[:relative].to_i : nil
+  end
 end
