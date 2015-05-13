@@ -199,7 +199,7 @@ namespace :benchmark do
   task :plot => MRuby::Benchmark.plot_files do
   end
 
-  task :print, [:relative] => MRuby::Benchmark.dat_files do |t, args|
-    MRuby::Benchmark.print args[:relative] ? args[:relative].to_i : nil
+  task :print => MRuby::Benchmark.dat_files do |t, args|
+    MRuby::Benchmark.print args[0] ? args[0].to_i : nil
   end
 end

@@ -88,21 +88,21 @@ module MiniRake
     end
 
     # Invoke the task if it is needed.  Prerequites are invoked first.
-    def invoke
+    def invoke(args = [])
       puts "Invoke #{name} (already=[#{@already_invoked}], needed=[#{needed?}])" if $trace
       return if @already_invoked
       @already_invoked = true
       prerequisites = @prerequisites.collect{ |n| n.is_a?(Proc) ? n.call(name) : n }.flatten
       prerequisites.each { |n| Task[n].invoke }
-      execute if needed?
+      execute(args) if needed?
     end
 
     # Execute the actions associated with this task.
-    def execute
+    def execute(args = [])
       puts "Execute #{name}" if $trace
       self.class.enhance_with_matching_rule(name) if @actions.empty?
       unless $dryrun
-        @actions.each { |act| act.call(self) }
+        @actions.each { |act| act.call(self, args) }
       end
     end
 
@@ -456,12 +456,15 @@ class RakeApp
         end
         here = Dir.pwd
       end
-      tasks = []
-      ARGV.each do |task_name|
-        if /^(\w+)=(.*)/.match(task_name)
+      task = nil
+      args = []
+      ARGV.each do |arg|
+        if /^(\w+)=(.*)/.match(arg)
           ENV[$1] = $2
+        elsif task.nil?
+          task = arg
         else
-          tasks << task_name
+          args << arg
         end
       end
       puts "(in #{Dir.pwd})"
@@ -470,10 +473,8 @@ class RakeApp
       if $show_tasks
         display_tasks
       else
-        tasks.push("default") if tasks.size == 0
-        tasks.each do |task_name|
-          MiniRake::Task[task_name].invoke
-        end
+        task ||= "default"
+        MiniRake::Task[task].invoke args
       end
     rescue Exception => ex
       puts "rake aborted!"
