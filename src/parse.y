@@ -1157,17 +1157,6 @@ heredoc_end(parser_state *p)
 %right tPOW
 %right '!' '~' tUPLUS
 
-%nonassoc idNULL
-%nonassoc idRespond_to
-%nonassoc idIFUNC
-%nonassoc idCFUNC
-%nonassoc id_core_set_method_alias
-%nonassoc id_core_set_variable_alias
-%nonassoc id_core_undef_method
-%nonassoc id_core_define_method
-%nonassoc id_core_define_singleton_method
-%nonassoc id_core_set_postexe
-
 %token tLAST_TOKEN
 
 %%
