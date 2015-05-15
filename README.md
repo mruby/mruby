@@ -70,7 +70,7 @@ how to use mrbgems look into the folder *examples/mrbgems/*.
 
 ## License
 
-Copyright (c) 2014 mruby developers
+Copyright (c) 2015 mruby developers
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
