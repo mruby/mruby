@@ -63,7 +63,7 @@ ObjectFile = Struct.new(:filename, :sections) do
     end
 
     def linker_to_c(io, func_name = "#{obj.name}__#{sane_name}__link")
-      io.puts "static void #{func_name}(uint8_t *text, uint8_t *rodata, mrb_code c) {"
+      io.puts "static void #{func_name}(#{obj.linker_params_to_c}) {"
       relocations.each do |offset, (type, args)|
         case type
         when :R_X86_64_PC32
@@ -84,7 +84,7 @@ ObjectFile = Struct.new(:filename, :sections) do
 
           sym = args[0].sub(/^\./, '')
           sym = if %w(A B C Ax Bx sBx b c).include?(sym)
-            "GETARG_#{sym}(c)"
+            "GETARG_#{sym}(*pc)"
           elsif sym =~ /^\./
             args[0][1..-1]
           else
@@ -207,6 +207,18 @@ ObjectFile = Struct.new(:filename, :sections) do
     File.basename(filename, '.*')
   end
 
+  def linker_param_c_types
+    ['uint8_t *', 'uint8_t *', 'mrb_code *']
+  end
+
+  def linker_param_names
+    %w(text rodata pc)
+  end
+
+  def linker_params_to_c
+    linker_param_c_types.zip(linker_param_names).map(&:join).join(', ')
+  end
+
   def linker_to_c(io, func_name = "#{name}_link")
     # link text last
     sections = self.sections.sort_by{|s| s.text? ? 1 : 0}
@@ -214,9 +226,9 @@ ObjectFile = Struct.new(:filename, :sections) do
     func_names = sections.map do |s|
       s.linker_to_c io
     end
-    io.puts "static void #{func_name}(uint8_t *text, uint8_t *rodata, mrb_code c) {"
+    io.puts "static void #{func_name}(#{linker_params_to_c}) {"
     func_names.each do |fn|
-      io.puts "  #{fn}(text, rodata, c);"
+      io.puts "  #{fn}(#{linker_param_names.join ', '});"
     end
     io.puts "}"
 

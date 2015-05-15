@@ -7,8 +7,11 @@
 #include "mruby.h"
 #include "mruby/class.h"
 #include "mruby/proc.h"
-#include "mruby/jit.h"
 #include "mruby/opcode.h"
+
+#ifdef MRB_ENABLE_JIT
+#  include "mruby/jit.h"
+#endif
 
 static mrb_code call_iseq[] = {
   MKOP_A(OP_CALL, 0),
@@ -233,7 +236,7 @@ mrb_proc_call_cfunc(mrb_state *mrb, struct RProc *p, mrb_value self)
 
 #ifdef MRB_ENABLE_JIT
 mrb_bool
-mrb_proc_call_jit(mrb_state *mrb, struct RProc *p, void *ctx)
+mrb_proc_call_jit(mrb_state *mrb, struct RProc *p, void *ctx, mrb_code *pc)
 {
   if(MRB_UNLIKELY(MRB_PROC_CFUNC_P(p))) {
     return FALSE;
@@ -246,7 +249,7 @@ mrb_proc_call_jit(mrb_state *mrb, struct RProc *p, void *ctx)
     }
 
     if(MRB_LIKELY(MRB_IREP_JITTED_P(irep))) {
-      mrb_irep_jit_call(mrb, irep, ctx);
+      mrb_irep_jit_call(mrb, irep, ctx, pc);
       return TRUE;
     }
   }

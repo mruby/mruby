@@ -44,7 +44,7 @@
 #include <alloca.h>
 #include <stdlib.h>
 
-//#define JIT_DEBUG
+#define JIT_DEBUG
 
 #define ALIGN(s, a) (((s) + (a) - 1) & ~((a) - 1))
 
@@ -94,10 +94,20 @@ jit_ctx_prot_exec(struct mrb_jit_ctx *ctx)
 #endif
 
 void
-mrb_irep_jit_call(mrb_state *mrb, mrb_irep *irep, void *ctx)
+mrb_irep_jit_call(mrb_state *mrb, mrb_irep *irep, void *ctx, mrb_code *pc)
 {
-  void (*f)(void *) = (void *)irep->jit_ctx.text;
-  (*f)(ctx);
+  if(pc == NULL) {
+    pc = irep->iseq;
+  }
+  {
+    unsigned index = pc - irep->iseq;
+    JIT_PRINTF("calling into jit code: index is %d\n", index);
+    unsigned off = irep->jit_ctx.text_off_tbl[index];
+    JIT_PRINTF("calling into jit code: text is %p, off is %d\n", irep->jit_ctx.text, off);
+    void (*f)(void *) = (void *)(irep->jit_ctx.text + off);
+    JIT_PRINTF("calling into jit code: at %p\n", f);
+    (*f)(ctx);
+  }
 }
 
 static size_t
@@ -259,7 +269,7 @@ mrb_irep_jit_prepare(mrb_state *mrb, mrb_irep *irep)
 
     jit_ctx_alloc(mrb, &irep->jit_ctx, text_size, rodata_size);
 
-    JIT_PRINTF( "need %d bytes for jit code (%d for the final return)\n", text_size, return_size());
+    JIT_PRINTF("need %d bytes for jit code (%d for the final return)\n", text_size, return_size());
 /*
     off = op_sizes_text[OP_ENTER];
     proc->jit_oa_off[0] = off;
@@ -326,7 +336,7 @@ mrb_irep_jit(mrb_state *mrb, mrb_irep *irep)
       memcpy(ctx->rodata + rodata_off, ops_rodata[opcode], op_sizes_rodata[opcode]);
 
       /* link code */
-      link_funcs[opcode](ctx->text + off, ctx->rodata + rodata_off, c);
+      link_funcs[opcode](ctx->text + off, ctx->rodata + rodata_off, irep->iseq + i);
 
       /* set operands */
       //arg_funcs[opcode](ctx->text + off, c, i);

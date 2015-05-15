@@ -77,7 +77,7 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state*, mrb_int);
 #define mrb_cfunc_env_get(mrb, idx) mrb_proc_cfunc_env_get(mrb, idx)
 
 #ifdef MRB_ENABLE_JIT
-mrb_bool mrb_proc_call_jit(mrb_state *mrb, struct RProc *p, void *ctx);
+mrb_bool mrb_proc_call_jit(mrb_state *mrb, struct RProc *p, void *ctx, mrb_code *pc);
 #endif
 
 #include "mruby/khash.h"
