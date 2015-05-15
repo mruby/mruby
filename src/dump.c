@@ -16,8 +16,6 @@
 #define FLAG_BYTEORDER_NATIVE 2
 #define FLAG_BYTEORDER_NONATIVE 0
 
-#ifdef ENABLE_STDIO
-
 #ifdef MRB_USE_FLOAT
 #define MRB_FLOAT_FMT "%.9e"
 #else
@@ -996,6 +994,8 @@ mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, uint8_t flags, uint8_t **bin, size
 {
   return dump_irep(mrb, irep, dump_flags(flags, FLAG_BYTEORDER_NONATIVE), bin, bin_size);
 }
+
+#ifdef ENABLE_STDIO
 
 int
 mrb_dump_irep_binary(mrb_state *mrb, mrb_irep *irep, uint8_t flags, FILE* fp)
