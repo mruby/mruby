@@ -21,6 +21,7 @@ struct RClass {
 struct mrb_mcache_entry {
   mrb_sym mid;
   struct RClass *c;
+  struct Proc *p;
 };
 
 #ifndef MRB_METHOD_CACHE_SIZE
@@ -30,7 +31,6 @@ struct mrb_mcache_entry {
 struct mrb_mcache {
   struct mrb_mcache_entry entries[MRB_METHOD_CACHE_SIZE];
   struct RClass *classes[MRB_METHOD_CACHE_SIZE];
-  struct RProc* procs[MRB_METHOD_CACHE_SIZE];
   int16_t head;
   int16_t tail;
 };

@@ -106,7 +106,6 @@ void cloneGlobalVariables(Module &mod, User *user, ValueToValueMapTy& map) {
       cloneGlobalVariables(mod, userOperand, map);
     }
   }
-
 }
 
 int main(int argc, const char **argv)

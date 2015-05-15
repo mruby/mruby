@@ -10,7 +10,7 @@ mrb_method_search_vm_proc(mrb_state *mrb, struct RProc *p, struct RClass **cp, m
     struct mrb_mcache_entry *e = &es[i];
 
     if (e->c == c && e->mid == mid) {
-      return p->mcache.procs[i];
+      return p->p;
     }
   }
 #endif

@@ -326,25 +326,28 @@ mcache_update(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RProc *p)
   for(i = mrb->proc_list; i != NULL; i = i->next) {
     int j;
     struct mrb_mcache *mcache = &i->mcache;
+    struct RClass *k = c;
 
-    for(j = 0; j < MRB_METHOD_CACHE_SIZE; j++) {
-      struct mrb_mcache_entry *e;
+    do {
+      for(j = 0; j < MRB_METHOD_CACHE_SIZE; j++) {
+        struct mrb_mcache_entry *e = &mcache->entries[j];
 
-      e = &mcache->entries[j];
-
-      if (e->mid == mid && mcache->classes[j] == c) {
-        if (p) {
-          mcache->procs[j] = p;
+        if (e->mid == mid && mcache->classes[j] == k) {
+          if (p && k == c) {
+            e->p = p;
+          }
+          else {
+            e->p = NULL;
+            mcache->classes[j] = NULL;
+            e->mid = 0;
+            e->c = NULL;
+          }
+          goto next_proc;
         }
-        else {
-          mcache->procs[j] = NULL;
-          mcache->classes[j] = NULL;
-          e->mid = 0;
-          e->c = NULL;
-        }
-        break;
       }
-    }
+      k = k->super;
+    } while (k);
+next_proc:;
   }
 }
 
@@ -363,10 +366,10 @@ mcache_clear(mrb_state *mrb, struct RClass *c, mrb_bool super)
         struct mrb_mcache_entry *e = &mcache->entries[j];
 
         if (mcache->classes[j] == k) {
-            mcache->procs[j] = NULL;
             mcache->classes[j] = NULL;
             e->mid = 0;
             e->c = NULL;
+            e->p = NULL;
         }
       }
       k = k->super;
@@ -383,7 +386,7 @@ void mrb_mcache_init(mrb_state *mrb, struct mrb_mcache *mcache)
 }
 
 static inline void
-mcache_enqueue(mrb_state *mrb, struct mrb_mcache *mcache, struct mrb_mcache_entry e, struct RClass *c, struct RProc *p)
+mcache_enqueue(mrb_state *mrb, struct mrb_mcache *mcache, struct mrb_mcache_entry e, struct RClass *c)
 {
   int16_t tail = mcache->tail + 1;
   /* modulo is undefined for zero */
@@ -393,7 +396,6 @@ mcache_enqueue(mrb_state *mrb, struct mrb_mcache *mcache, struct mrb_mcache_entr
 
   mcache->entries[tail] = e;
   mcache->classes[tail] = c;
-  mcache->procs[tail] = p;
   mcache->tail = tail;
 }
 
@@ -409,7 +411,7 @@ mcache_search_proc(mrb_state *mrb, struct RProc *p, struct RClass *c, mrb_sym mi
 
     if (e->c == c && e->mid == mid) {
       *found = TRUE;
-      return p->mcache.procs[i];
+      return e->p;
     }
   }
 
@@ -1167,9 +1169,10 @@ _mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
 #ifdef MRB_ENABLE_METHOD_CACHE
         e.c = *cp;
         e.mid = mid;
+        e.p = m;
         ci = mrb->c->ci;
         if (ci && ci->proc) {
-          mcache_enqueue(mrb, &ci->proc->mcache, e, c, m);
+          mcache_enqueue(mrb, &ci->proc->mcache, e, c);
         }
 #endif
 
@@ -1187,9 +1190,10 @@ _mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
 
     e.c = *cp;
     e.mid = mid;
+    e.p = NULL;
     ci = mrb->c->ci;
     if (ci && ci->proc) {
-      mcache_enqueue(mrb, &ci->proc->mcache, e, c, NULL);
+      mcache_enqueue(mrb, &ci->proc->mcache, e, c);
     }
   }
 #endif
