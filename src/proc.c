@@ -9,10 +9,6 @@
 #include "mruby/proc.h"
 #include "mruby/opcode.h"
 
-#ifdef MRB_ENABLE_JIT
-#  include "mruby/jit.h"
-#endif
-
 static mrb_code call_iseq[] = {
   MKOP_A(OP_CALL, 0),
 };
@@ -233,30 +229,6 @@ mrb_proc_call_cfunc(mrb_state *mrb, struct RProc *p, mrb_value self)
 {
   return (p->body.func)(mrb, self);
 }
-
-#ifdef MRB_ENABLE_JIT
-mrb_bool
-mrb_proc_call_jit(mrb_state *mrb, struct RProc *p, void *ctx, mrb_code *pc)
-{
-  if(MRB_UNLIKELY(MRB_PROC_CFUNC_P(p))) {
-    return FALSE;
-  }
-  else {
-    mrb_irep *irep = p->body.irep;
-
-    if(MRB_UNLIKELY(!MRB_IREP_JITTED_P(irep))) {
-      mrb_irep_jit(mrb, irep);
-    }
-
-    if(MRB_LIKELY(MRB_IREP_JITTED_P(irep))) {
-      mrb_irep_jit_call(mrb, irep, ctx, pc);
-      return TRUE;
-    }
-  }
-
-  return FALSE;
-}
-#endif
 
 mrb_code*
 mrb_proc_iseq(mrb_state *mrb, struct RProc *p)

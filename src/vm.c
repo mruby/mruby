@@ -1190,7 +1190,7 @@ op_loadnil(struct op_ctx *ctx) {
   SET_NIL_VALUE(ctx->regs[GETARG_A(CTX_I(ctx))]);
 }
 
-static char _str_const_op_send[] = "setting pc to %p\n";
+static char _str_const_op_send[] = "send %s %p\n";
 static inline void
 _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
                 mrb_sym mid, struct RProc *m, int opcode, int a, int n, mrb_code *pc) {
@@ -1215,7 +1215,9 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
   ci->stackent = ctx->mrb->c->stack;
   ci->target_class = c;
 
-  printf(_str_const_op_send, pc);
+  printf(_str_const_op_send,mrb_sym2name(ctx->mrb, mid), pc);
+    //fprintf(stderr, "funcall %s: %p\n", mrb_sym2name(mrb, mid), p);
+
   ci->pc = pc + 1;
   ci->acc = a;
 
@@ -1258,23 +1260,9 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
       }
     }
     ctx->regs = ctx->mrb->c->stack = ci->stackent;
-    PC_SET(ctx, ci->pc);
+    PC_PUSH(ctx, ci->pc);
+    printf("pc set to ci %p (%p) (%d|%d)\n", ctx->pc, ci->pc, pc >= ctx->irep->iseq && pc < ctx->irep->iseq + ctx->irep->ilen);
     cipop(ctx->mrb);
-
-
-#ifdef MRB_ENABLE_JIT
-    /* the cfunc called above modified execution context.
-     * If the new PC points to the beginning of a proc we
-     * jit and run from the start.
-     * Otherwise (a resume), we need to jump to the corresponding PC
-     * position in native code (TODO).
-     */
-    if(MRB_UNLIKELY(flow_modified)) {
-      if(PC_GET(ctx) == ctx->irep->iseq) {
-        mrb_proc_call_jit(ctx->mrb, ctx->proc, ctx, NULL);
-      }
-    }
-#endif
   }
   else {
     /* setup environment for calling method */
@@ -1292,11 +1280,8 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
       stack_extend(ctx->mrb, ctx->irep->nregs,  n+2);
     }
     ctx->regs = ctx->mrb->c->stack;
-    PC_SET(ctx, ctx->irep->iseq);
-
-#ifdef MRB_ENABLE_JIT
-    mrb_proc_call_jit(ctx->mrb, m, ctx, NULL);
-#endif
+    PC_PUSH(ctx, ctx->irep->iseq);
+    printf("pc set to iseq %p (%p)\n", ctx->pc, ctx->irep->iseq);
   }
 }
 
@@ -1328,7 +1313,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n, mrb_code *pc) {
     }
   }
 
-  return _op_send_static(ctx, recv, c, mid, m, opcode, a, n, pc);
+  _op_send_static(ctx, recv, c, mid, m, opcode, a, n, pc);
 }
 
 static OP_INLINE void
@@ -1338,25 +1323,13 @@ op_send(struct op_ctx *ctx) {
   int a = GETARG_A(CTX_I(ctx));
   int b = GETARG_B(CTX_I(ctx));
   int n = GETARG_C(CTX_I(ctx));
+  mrb_code *pc = PC_GET(ctx);
 
-#ifdef MRB_JIT_GEN
-  mrb_callinfo *ci = ctx->mrb->c->ci;
-  //ci->send_idx = OP_IDX(CTX_I(ctx));
-  PC_SET(ctx, ctx->irep->iseq + OP_IDX(ctx));
-#endif
+  _op_send(ctx, OP_SEND, a, b, n, pc);
 
-  _op_send(ctx, OP_SEND, a, b, n, PC_GET(ctx));
-
-#ifdef MRB_JIT_GEN
-  if(ctx->mrb->c->ci < ci) {
-    typedef void (*__op_send_exit__)();
-    ((__op_send_exit__)(0xFAB))();
-  }/* else if(ctx->rescue_jmp_addr != NULL) {
-    typedef void (*__op_send_exit__)(struct op_ctx *, uint8_t *off);
-    //((__op_send_exit__)(0xBAF))(ctx, ctx->rescue_jmp_addr);
-    ctx->rescue_jmp_addr = NULL;
-    //VM_PRINTF(_str_const_op_send, ctx->rescue_jmp_addr);
-  }*/
+#ifdef MRB_ENABLE_JIT
+    mrb_irep_jit_and_call(ctx->mrb, ctx->irep, ctx, ctx->pc);
+    __builtin_unreachable();
 #endif
 }
 
@@ -1367,8 +1340,9 @@ op_sendb(struct op_ctx *ctx) {
   int a = GETARG_A(CTX_I(ctx));
   int b = GETARG_B(CTX_I(ctx));
   int n = GETARG_C(CTX_I(ctx));
+  mrb_code *pc = PC_GET(ctx);
 
-  _op_send(ctx, OP_SENDB, a, b, n, PC_GET(ctx));
+  _op_send(ctx, OP_SENDB, a, b, n, pc);
 }
 
 static OP_INLINE void
@@ -1464,17 +1438,13 @@ _op_return(struct op_ctx *ctx, int a, int b) {
       ctx->retval = v;
       MRB_THROW(ctx->stop_jmp);
     }
+    printf("from :%s\n", mrb_sym2name(ctx->mrb, ci->mid));
     ctx->proc = mrb->c->ci->proc;
     ctx->irep = ctx->proc->body.irep;
     ctx->pool = ctx->irep->pool;
     ctx->syms = ctx->irep->syms;
     ctx->regs[acc] = v;
-    PC_SET(ctx, pc);
-
-#ifdef MRB_ENABLE_JIT
-    mrb_proc_call_jit(ctx->mrb, ctx->proc, ctx, pc);
-#endif
-
+    PC_PUSH(ctx, pc);
   }
 }
 
@@ -1482,12 +1452,22 @@ static OP_INLINE void
 op_break(struct op_ctx *ctx) {
   /* A B     return R(A) (B=normal,in-block return/break) */
   _op_return(ctx, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)));
+
+#ifdef MRB_ENABLE_JIT
+    mrb_irep_jit_and_call(ctx->mrb, ctx->irep, ctx, ctx->pc);
+    __builtin_unreachable();
+#endif
 }
 
 static OP_INLINE void
 op_return(struct op_ctx *ctx) {
   /* A B     return R(A) (B=normal,in-block return/break) */
   _op_return(ctx, GETARG_A(CTX_I(ctx)), OP_R_NORMAL);
+
+#ifdef MRB_ENABLE_JIT
+    mrb_irep_jit_and_call(ctx->mrb, ctx->irep, ctx, ctx->pc);
+    __builtin_unreachable();
+#endif
 }
 
 static inline void
@@ -1549,7 +1529,7 @@ _op_call(struct op_ctx *ctx, int a) {
     PC_SET(ctx, ctx->irep->iseq);
 
 #ifdef MRB_ENABLE_JIT
-    mrb_proc_call_jit(ctx->mrb, ctx->proc, ctx, NULL);
+    mrb_irep_jit_and_call(ctx->mrb, ctx->irep, ctx, NULL);
 #endif
   }
 }
@@ -1646,7 +1626,7 @@ op_super(struct op_ctx *ctx) {
     PC_SET(ctx, ctx->irep->iseq);
 
 #ifdef MRB_ENABLE_JIT
-    mrb_proc_call_jit(ctx->mrb, m, ctx, NULL);
+    mrb_irep_jit_and_call(ctx->mrb, ctx->irep, ctx, NULL);
 #endif
 
   }
@@ -1964,7 +1944,7 @@ op_tailcall(struct op_ctx *ctx) {
     PC_SET(ctx, ctx->irep->iseq);
 
 #ifdef MRB_ENABLE_JIT
-    mrb_proc_call_jit(ctx->mrb, m, ctx, NULL);
+    mrb_irep_jit_and_call(ctx->mrb, ctx->irep, ctx, NULL);
 #endif
 
   }
@@ -2669,7 +2649,7 @@ op_exec(struct op_ctx *ctx) {
     PC_SET(ctx, ctx->irep->iseq);
 
 #ifdef MRB_JIT_GEN
-    mrb_proc_call_jit(ctx->mrb, p, ctx, NULL);
+    mrb_irep_jit_and_call(ctx->mrb, ctx->irep, ctx, NULL);
 #endif
 
   }
@@ -3308,9 +3288,10 @@ dispatch:
 jit:
   ctx.i = *ctx.pc;
 
-  if(!mrb_proc_call_jit(mrb, proc, &ctx, NULL)) {
-    goto dispatch;
-  }
+  mrb_irep_jit_and_call(mrb, ctx.irep, &ctx, NULL);
+  //if(!mrb_irep_jit_and_call(mrb, proc, &ctx, NULL)) {
+  //  goto dispatch;
+  //}
 #endif
 
   }
@@ -3322,6 +3303,7 @@ jit:
 
   }
   MRB_CATCH(&stop_jmp) {
+    printf("stop\n");
     retval = ctx.retval;
   }
   MRB_END_EXC(&stop_jmp);

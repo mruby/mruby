@@ -23,14 +23,14 @@ module Postprocess
     def remove_bogus_stack_adds!
       add = asm.reverse_each_instruction.find do |inst|
         inst.name =~ /add/ &&
-          Literal === inst.source &&
+          Constant === inst.source &&
           inst.target_register? &&
           inst.target.alias?(X86::Register[:rsp])
       end
 
       if add
         sub = asm.each_instruction.find do |inst|
-          inst.name =~ /sub/ && Literal === inst.source && inst.target.alias?(X86::Register[:rsp])
+          inst.name =~ /sub/ && Constant === inst.source && inst.target.alias?(X86::Register[:rsp])
         end
 
         if sub
@@ -49,13 +49,22 @@ module Postprocess
       remove_dummy_call!
       remove_return!
       correct_stack!
-      correct_arg_protect_calls!
+      turn_jit_calls_into_jumps!
     end
 
+    def turn_jit_calls_into_jumps!
+      insts = asm.each_instruction.select do |inst|
+        inst.call? && Label === inst.source && inst.source.name == 'mrb_irep_jit_and_call'
+      end
+
+      insts.each do |inst|
+        inst.replace Instruction.new('jmp', inst.operands);
+      end
+    end
 
     def correct_arg_protect_calls!
       magic_mov = asm.each_instruction.find do |inst|
-        inst.source == Literal.new(MagicConstants::ARG_PROTECT)
+        inst.source == Constant.new(MagicConstants::ARG_PROTECT)
       end
 
       return unless magic_mov
@@ -119,7 +128,7 @@ module Postprocess
       super
 
       mov = asm.each_instruction.find do |inst|
-        As::Literal === inst.source && inst.source.value == 0xFAB
+        As::Constant === inst.source && inst.source.value == 0xFAB
       end
 
       if mov
@@ -181,11 +190,11 @@ module Postprocess
         inst.call?
       end.reverse_each_instruction.find do |inst|
         #As::X64::CC::SysV.argument_registers.any?{|r| r.alias? inst.target} &&
-          inst.source == As::Literal.new(1)
+          inst.source == As::Constant.new(1)
       end
 
       # now set to the argument C magic constant
-      arg_inst.source = As::Literal.new 0xCD0000
+      arg_inst.source = As::Constant.new 0xCD0000
     end
   end
 
@@ -217,6 +226,7 @@ module Postprocess
   class OpSend < Processor
     def process!
       super
+      return
 
       epilogue = asm.reverse_each.find do |e|
         As::Label === e && e.find{|ee| ee.is_a? Instruction}
@@ -241,7 +251,7 @@ module Postprocess
       return
 
       mov = asm.each_instruction.find do |inst|
-        As::Literal === inst.source && inst.source.value == 0xBAF
+        As::Constant === inst.source && inst.source.value == 0xBAF
       end
 
       if mov

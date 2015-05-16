@@ -82,13 +82,12 @@ ObjectFile = Struct.new(:filename, :sections) do
           else raise
           end
 
-          sym = args[0].sub(/^\./, '')
-          sym = if %w(A B C Ax Bx sBx b c).include?(sym)
-            "GETARG_#{sym}(*pc)"
-          elsif sym =~ /^\./
-            args[0][1..-1]
+          arg0 = args[0].sub(/^__mrb_jit_/, '')
+                        .sub(/^\./, '')
+          sym = if %w(A B C Ax Bx sBx b c).include?(arg0)
+            "GETARG_#{arg0}(*pc)"
           else
-            sym
+            arg0
           end
 
           s = "((uintptr_t)#{sym})"

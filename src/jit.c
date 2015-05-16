@@ -93,21 +93,35 @@ jit_ctx_prot_exec(struct mrb_jit_ctx *ctx)
 }
 #endif
 
-void
-mrb_irep_jit_call(mrb_state *mrb, mrb_irep *irep, void *ctx, mrb_code *pc)
+typedef void (*op_func_t)(void *);
+
+
+mrb_noreturn void
+mrb_irep_jit_and_call(mrb_state *mrb, struct mrb_irep *irep, void *ctx, mrb_code *pc)
 {
+  if(MRB_UNLIKELY(!MRB_IREP_JITTED_P(irep))) {
+    mrb_irep_jit(mrb, irep);
+  }
+
   if(pc == NULL) {
     pc = irep->iseq;
   }
-  {
-    unsigned index = pc - irep->iseq;
-    JIT_PRINTF("calling into jit code: index is %d\n", index);
-    unsigned off = irep->jit_ctx.text_off_tbl[index];
-    JIT_PRINTF("calling into jit code: text is %p, off is %d\n", irep->jit_ctx.text, off);
-    void (*f)(void *) = (void *)(irep->jit_ctx.text + off);
-    JIT_PRINTF("calling into jit code: at %p\n", f);
-    (*f)(ctx);
-  }
+
+  //if(MRB_LIKELY(MRB_IREP_JITTED_P(irep))) {
+  mrb_irep_jit_call(mrb, irep, ctx, pc);
+}
+
+mrb_noreturn void
+mrb_irep_jit_call(mrb_state *mrb, mrb_irep *irep, void *ctx, mrb_code *pc)
+{
+  JIT_PRINTF("pc valid: %p -> %d\n", pc, pc >= irep->iseq && pc < irep->iseq + irep->ilen);
+  unsigned index = pc - irep->iseq;
+  JIT_PRINTF("calling into jit code: index is %d\n", index);
+  unsigned off = irep->jit_ctx.text_off_tbl[index];
+  JIT_PRINTF("calling into jit code: text is %p, off is %d\n", irep->jit_ctx.text, off);
+  __attribute__((__noreturn__)) op_func_t f = (op_func_t *)(irep->jit_ctx.text + off);
+  JIT_PRINTF("calling into jit code: at %p\n", f);
+  return (*f)(ctx);
 }
 
 static size_t

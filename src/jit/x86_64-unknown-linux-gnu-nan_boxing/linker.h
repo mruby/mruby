@@ -153,10 +153,10 @@ static void op_setiv_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 static void op_getcv__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 }
 static void op_getcv__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
-  *((int32_t *)(text + 11)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 11)));
-*((uint32_t *)(text + 33)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-*((uint32_t *)(text + 50)) = (uint32_t)(((uintptr_t)GETARG_Bx(*pc)) + (0));
-  *((int32_t *)(text + 58)) = (int32_t)(((uintptr_t)mrb_vm_cv_get) + (-4) - ((uintptr_t)(text + 58)));
+*((int32_t *)(text + 24)) = (int32_t)(((uintptr_t)pc) + (0));
+*((uint32_t *)(text + 30)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+*((uint32_t *)(text + 47)) = (uint32_t)(((uintptr_t)GETARG_Bx(*pc)) + (0));
+  *((int32_t *)(text + 55)) = (int32_t)(((uintptr_t)mrb_vm_cv_get) + (-4) - ((uintptr_t)(text + 55)));
 }
 static void op_getcv_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_getcv__rodata__link(text, rodata, pc);
@@ -176,10 +176,10 @@ static void op_setcv_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 static void op_getconst__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 }
 static void op_getconst__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
-  *((int32_t *)(text + 7)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 7)));
-*((uint32_t *)(text + 36)) = (uint32_t)(((uintptr_t)GETARG_Bx(*pc)) + (0));
-  *((int32_t *)(text + 44)) = (int32_t)(((uintptr_t)mrb_vm_const_get) + (-4) - ((uintptr_t)(text + 44)));
-*((uint32_t *)(text + 85)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+*((int32_t *)(text + 20)) = (int32_t)(((uintptr_t)pc) + (0));
+*((uint32_t *)(text + 33)) = (uint32_t)(((uintptr_t)GETARG_Bx(*pc)) + (0));
+  *((int32_t *)(text + 41)) = (int32_t)(((uintptr_t)mrb_vm_const_get) + (-4) - ((uintptr_t)(text + 41)));
+*((uint32_t *)(text + 82)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 }
 static void op_getconst_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_getconst__rodata__link(text, rodata, pc);
@@ -199,10 +199,10 @@ static void op_setconst_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 static void op_getmcnst__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 }
 static void op_getmcnst__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
-  *((int32_t *)(text + 9)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 9)));
-*((uint32_t *)(text + 42)) = (uint32_t)(((uintptr_t)GETARG_Bx(*pc)) + (0));
-*((uint32_t *)(text + 50)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-  *((int32_t *)(text + 62)) = (int32_t)(((uintptr_t)mrb_const_get) + (-4) - ((uintptr_t)(text + 62)));
+*((int32_t *)(text + 22)) = (int32_t)(((uintptr_t)pc) + (0));
+*((uint32_t *)(text + 39)) = (uint32_t)(((uintptr_t)GETARG_Bx(*pc)) + (0));
+*((uint32_t *)(text + 47)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+  *((int32_t *)(text + 59)) = (int32_t)(((uintptr_t)mrb_const_get) + (-4) - ((uintptr_t)(text + 59)));
 }
 static void op_getmcnst_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_getmcnst__rodata__link(text, rodata, pc);
@@ -273,8 +273,8 @@ static void op_onerr__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc)
 }
 static void op_onerr__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   *((int32_t *)(text + 63)) = (int32_t)(((uintptr_t)mrb_realloc) + (-4) - ((uintptr_t)(text + 63)));
-  *((int32_t *)(text + 97)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 97)));
-*((uint32_t *)(text + 102)) = (uint32_t)(((uintptr_t)GETARG_sBx(*pc)) + (0));
+*((uint32_t *)(text + 116)) = (uint32_t)(((uintptr_t)GETARG_sBx(*pc)) + (0));
+*((int32_t *)(text + 124)) = (int32_t)(((uintptr_t)pc) + (0));
 }
 static void op_onerr_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_onerr__rodata__link(text, rodata, pc);
@@ -336,11 +336,12 @@ static void op_epop_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 static void op_send__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 }
 static void op_send__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
-  *((int32_t *)(text + 29)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 29)));
-*((uint32_t *)(text + 39)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-*((uint32_t *)(text + 44)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
-*((uint32_t *)(text + 50)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
-  *((int32_t *)(text + 55)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 55)));
+*((uint32_t *)(text + 22)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+*((uint32_t *)(text + 27)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
+*((uint32_t *)(text + 33)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
+*((uint32_t *)(text + 39)) = (uint32_t)(((uintptr_t)pc) + (0));
+  *((int32_t *)(text + 44)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 44)));
+  *((int32_t *)(text + 64)) = (int32_t)(((uintptr_t)mrb_irep_jit_and_call) + (-4) - ((uintptr_t)(text + 64)));
 }
 static void op_send_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_send__rodata__link(text, rodata, pc);
@@ -349,11 +350,11 @@ static void op_send_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 static void op_sendb__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 }
 static void op_sendb__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
-  *((int32_t *)(text + 19)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 19)));
-*((uint32_t *)(text + 29)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-*((uint32_t *)(text + 34)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
-*((uint32_t *)(text + 40)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
-  *((int32_t *)(text + 45)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 45)));
+*((uint32_t *)(text + 22)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+*((uint32_t *)(text + 27)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
+*((uint32_t *)(text + 33)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
+*((uint32_t *)(text + 39)) = (uint32_t)(((uintptr_t)pc) + (0));
+  *((int32_t *)(text + 44)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 44)));
 }
 static void op_sendb_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_sendb__rodata__link(text, rodata, pc);
@@ -372,11 +373,11 @@ static void op_call__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) 
 static void op_call__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   *((int32_t *)(text + 130)) = (int32_t)(((uintptr_t)mrb_gc_arena_restore) + (-4) - ((uintptr_t)(text + 130)));
   *((int32_t *)(text + 149)) = (int32_t)(((uintptr_t)_op_raise) + (-4) - ((uintptr_t)(text + 149)));
-  *((int32_t *)(text + 265)) = (int32_t)(((uintptr_t)cipop) + (-4) - ((uintptr_t)(text + 265)));
-*((uint32_t *)(text + 337)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-  *((int32_t *)(text + 347)) = (int32_t)(((uintptr_t)_op_return) + (-4) - ((uintptr_t)(text + 347)));
-  *((int32_t *)(text + 370)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 370)));
-  *((int32_t *)(text + 417)) = (int32_t)(((uintptr_t)mrb_proc_call_jit) + (-4) - ((uintptr_t)(text + 417)));
+*((uint32_t *)(text + 204)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+  *((int32_t *)(text + 214)) = (int32_t)(((uintptr_t)_op_return) + (-4) - ((uintptr_t)(text + 214)));
+  *((int32_t *)(text + 253)) = (int32_t)(((uintptr_t)cipop) + (-4) - ((uintptr_t)(text + 253)));
+  *((int32_t *)(text + 371)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 371)));
+  *((int32_t *)(text + 419)) = (int32_t)(((uintptr_t)mrb_irep_jit_and_call) + (-4) - ((uintptr_t)(text + 419)));
 }
 static void op_call_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_call__rodata__link(text, rodata, pc);
@@ -410,14 +411,14 @@ static void op_super__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 457)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 482)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
   *((int32_t *)(text + 493)) = (int32_t)(((uintptr_t)cipush) + (-4) - ((uintptr_t)(text + 493)));
-  *((int32_t *)(text + 545)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 545)));
-*((uint32_t *)(text + 566)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-  *((int32_t *)(text + 651)) = (int32_t)(((uintptr_t)mrb_gc_arena_restore) + (-4) - ((uintptr_t)(text + 651)));
-  *((int32_t *)(text + 670)) = (int32_t)(((uintptr_t)_op_raise) + (-4) - ((uintptr_t)(text + 670)));
-*((uint32_t *)(text + 680)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-  *((int32_t *)(text + 782)) = (int32_t)(((uintptr_t)cipop) + (-4) - ((uintptr_t)(text + 782)));
-  *((int32_t *)(text + 795)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 795)));
-  *((int32_t *)(text + 824)) = (int32_t)(((uintptr_t)mrb_proc_call_jit) + (-4) - ((uintptr_t)(text + 824)));
+*((int32_t *)(text + 546)) = (int32_t)(((uintptr_t)pc) + (4));
+*((uint32_t *)(text + 559)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+  *((int32_t *)(text + 644)) = (int32_t)(((uintptr_t)mrb_gc_arena_restore) + (-4) - ((uintptr_t)(text + 644)));
+  *((int32_t *)(text + 663)) = (int32_t)(((uintptr_t)_op_raise) + (-4) - ((uintptr_t)(text + 663)));
+  *((int32_t *)(text + 694)) = (int32_t)(((uintptr_t)cipop) + (-4) - ((uintptr_t)(text + 694)));
+*((uint32_t *)(text + 714)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+  *((int32_t *)(text + 798)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 798)));
+  *((int32_t *)(text + 828)) = (int32_t)(((uintptr_t)mrb_irep_jit_and_call) + (-4) - ((uintptr_t)(text + 828)));
 }
 static void op_super_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_super__rodata__link(text, rodata, pc);
@@ -593,6 +594,7 @@ static void op_return__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc
 static void op_return__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 17)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
   *((int32_t *)(text + 24)) = (int32_t)(((uintptr_t)_op_return) + (-4) - ((uintptr_t)(text + 24)));
+  *((int32_t *)(text + 44)) = (int32_t)(((uintptr_t)mrb_irep_jit_and_call) + (-4) - ((uintptr_t)(text + 44)));
 }
 static void op_return_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_return__rodata__link(text, rodata, pc);
@@ -604,6 +606,7 @@ static void op_break__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 5)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 10)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
   *((int32_t *)(text + 15)) = (int32_t)(((uintptr_t)_op_return) + (-4) - ((uintptr_t)(text + 15)));
+  *((int32_t *)(text + 35)) = (int32_t)(((uintptr_t)mrb_irep_jit_and_call) + (-4) - ((uintptr_t)(text + 35)));
 }
 static void op_break_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_break__rodata__link(text, rodata, pc);
@@ -612,12 +615,12 @@ static void op_break_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 static void op_tailcall__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint64_t *)(rodata + 0)) = (uint64_t)(((uintptr_t)text) + (95));
 *((uint64_t *)(rodata + 8)) = (uint64_t)(((uintptr_t)text) + (123));
-*((uint64_t *)(rodata + 16)) = (uint64_t)(((uintptr_t)text) + (851));
-*((uint64_t *)(rodata + 24)) = (uint64_t)(((uintptr_t)text) + (863));
-*((uint64_t *)(rodata + 32)) = (uint64_t)(((uintptr_t)text) + (875));
+*((uint64_t *)(rodata + 16)) = (uint64_t)(((uintptr_t)text) + (753));
+*((uint64_t *)(rodata + 24)) = (uint64_t)(((uintptr_t)text) + (765));
+*((uint64_t *)(rodata + 32)) = (uint64_t)(((uintptr_t)text) + (777));
 *((uint64_t *)(rodata + 40)) = (uint64_t)(((uintptr_t)text) + (123));
 *((uint64_t *)(rodata + 48)) = (uint64_t)(((uintptr_t)text) + (112));
-*((uint64_t *)(rodata + 56)) = (uint64_t)(((uintptr_t)text) + (887));
+*((uint64_t *)(rodata + 56)) = (uint64_t)(((uintptr_t)text) + (789));
 }
 static void op_tailcall__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 30)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
@@ -645,11 +648,11 @@ static void op_tailcall__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc
 *((uint32_t *)(text + 536)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 558)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 582)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-  *((int32_t *)(text + 717)) = (int32_t)(((uintptr_t)mrb_gc_arena_restore) + (-4) - ((uintptr_t)(text + 717)));
-*((uint32_t *)(text + 722)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-  *((int32_t *)(text + 732)) = (int32_t)(((uintptr_t)_op_return) + (-4) - ((uintptr_t)(text + 732)));
-  *((int32_t *)(text + 799)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 799)));
-  *((int32_t *)(text + 828)) = (int32_t)(((uintptr_t)mrb_proc_call_jit) + (-4) - ((uintptr_t)(text + 828)));
+  *((int32_t *)(text + 715)) = (int32_t)(((uintptr_t)mrb_gc_arena_restore) + (-4) - ((uintptr_t)(text + 715)));
+*((uint32_t *)(text + 720)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+  *((int32_t *)(text + 730)) = (int32_t)(((uintptr_t)_op_return) + (-4) - ((uintptr_t)(text + 730)));
+  *((int32_t *)(text + 870)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 870)));
+  *((int32_t *)(text + 900)) = (int32_t)(((uintptr_t)mrb_irep_jit_and_call) + (-4) - ((uintptr_t)(text + 900)));
 }
 static void op_tailcall_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_tailcall__rodata__link(text, rodata, pc);
@@ -702,10 +705,10 @@ static void op_addi__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 118)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 139)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 147)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
-  *((int32_t *)(text + 166)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 166)));
-*((uint32_t *)(text + 176)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
-  *((int32_t *)(text + 190)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 190)));
-*((uint32_t *)(text + 200)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+*((uint32_t *)(text + 169)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
+*((uint32_t *)(text + 181)) = (uint32_t)(((uintptr_t)pc) + (0));
+  *((int32_t *)(text + 189)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 189)));
+*((uint32_t *)(text + 199)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 }
 static void op_addi_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_addi__rodata__link(text, rodata, pc);
@@ -740,10 +743,10 @@ static void op_subi__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 124)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 145)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 153)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
-  *((int32_t *)(text + 172)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 172)));
-*((uint32_t *)(text + 182)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
-  *((int32_t *)(text + 196)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 196)));
-*((uint32_t *)(text + 206)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+*((uint32_t *)(text + 175)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
+*((uint32_t *)(text + 187)) = (uint32_t)(((uintptr_t)pc) + (0));
+  *((int32_t *)(text + 195)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 195)));
+*((uint32_t *)(text + 205)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 }
 static void op_subi_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_subi__rodata__link(text, rodata, pc);
@@ -802,11 +805,11 @@ static void op_eq__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 256)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 288)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 302)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-  *((int32_t *)(text + 333)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 333)));
-*((uint32_t *)(text + 343)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-*((uint32_t *)(text + 348)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
-*((uint32_t *)(text + 354)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
-  *((int32_t *)(text + 362)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 362)));
+*((uint32_t *)(text + 336)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+*((uint32_t *)(text + 341)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
+*((uint32_t *)(text + 347)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
+*((uint32_t *)(text + 353)) = (uint32_t)(((uintptr_t)pc) + (0));
+  *((int32_t *)(text + 361)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 361)));
 }
 static void op_eq_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_eq__rodata__link(text, rodata, pc);
@@ -823,11 +826,11 @@ static void op_lt__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 219)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 251)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 266)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-  *((int32_t *)(text + 298)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 298)));
-*((uint32_t *)(text + 308)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-*((uint32_t *)(text + 313)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
-*((uint32_t *)(text + 319)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
-  *((int32_t *)(text + 327)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 327)));
+*((uint32_t *)(text + 301)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+*((uint32_t *)(text + 306)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
+*((uint32_t *)(text + 312)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
+*((uint32_t *)(text + 318)) = (uint32_t)(((uintptr_t)pc) + (0));
+  *((int32_t *)(text + 326)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 326)));
 }
 static void op_lt_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_lt__rodata__link(text, rodata, pc);
@@ -844,11 +847,11 @@ static void op_le__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 219)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 251)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 266)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-  *((int32_t *)(text + 298)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 298)));
-*((uint32_t *)(text + 308)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-*((uint32_t *)(text + 313)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
-*((uint32_t *)(text + 319)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
-  *((int32_t *)(text + 327)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 327)));
+*((uint32_t *)(text + 301)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+*((uint32_t *)(text + 306)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
+*((uint32_t *)(text + 312)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
+*((uint32_t *)(text + 318)) = (uint32_t)(((uintptr_t)pc) + (0));
+  *((int32_t *)(text + 326)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 326)));
 }
 static void op_le_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_le__rodata__link(text, rodata, pc);
@@ -865,11 +868,11 @@ static void op_gt__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 213)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 244)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 259)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-  *((int32_t *)(text + 291)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 291)));
-*((uint32_t *)(text + 301)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-*((uint32_t *)(text + 306)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
-*((uint32_t *)(text + 312)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
-  *((int32_t *)(text + 320)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 320)));
+*((uint32_t *)(text + 294)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+*((uint32_t *)(text + 299)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
+*((uint32_t *)(text + 305)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
+*((uint32_t *)(text + 311)) = (uint32_t)(((uintptr_t)pc) + (0));
+  *((int32_t *)(text + 319)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 319)));
 }
 static void op_gt_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_gt__rodata__link(text, rodata, pc);
@@ -886,11 +889,11 @@ static void op_ge__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 213)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 244)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
 *((uint32_t *)(text + 259)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-  *((int32_t *)(text + 291)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 291)));
-*((uint32_t *)(text + 301)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-*((uint32_t *)(text + 306)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
-*((uint32_t *)(text + 312)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
-  *((int32_t *)(text + 320)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 320)));
+*((uint32_t *)(text + 294)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+*((uint32_t *)(text + 299)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
+*((uint32_t *)(text + 305)) = (uint32_t)(((uintptr_t)GETARG_C(*pc)) + (0));
+*((uint32_t *)(text + 311)) = (uint32_t)(((uintptr_t)pc) + (0));
+  *((int32_t *)(text + 319)) = (int32_t)(((uintptr_t)_op_send) + (-4) - ((uintptr_t)(text + 319)));
 }
 static void op_ge_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_ge__rodata__link(text, rodata, pc);
@@ -1083,14 +1086,14 @@ static void op_exec__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) 
 static void op_exec__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 11)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
   *((int32_t *)(text + 31)) = (int32_t)(((uintptr_t)cipush) + (-4) - ((uintptr_t)(text + 31)));
-  *((int32_t *)(text + 41)) = (int32_t)(((uintptr_t)pc) + (-4) - ((uintptr_t)(text + 41)));
-*((uint32_t *)(text + 144)) = (uint32_t)(((uintptr_t)GETARG_Bx(*pc)) + (0));
-  *((int32_t *)(text + 153)) = (int32_t)(((uintptr_t)mrb_proc_new) + (-4) - ((uintptr_t)(text + 153)));
-  *((int32_t *)(text + 220)) = (int32_t)(((uintptr_t)mrb_gc_arena_restore) + (-4) - ((uintptr_t)(text + 220)));
-  *((int32_t *)(text + 239)) = (int32_t)(((uintptr_t)_op_raise) + (-4) - ((uintptr_t)(text + 239)));
-  *((int32_t *)(text + 284)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 284)));
-  *((int32_t *)(text + 324)) = (int32_t)(((uintptr_t)mrb_proc_call_jit) + (-4) - ((uintptr_t)(text + 324)));
-  *((int32_t *)(text + 355)) = (int32_t)(((uintptr_t)cipop) + (-4) - ((uintptr_t)(text + 355)));
+*((int32_t *)(text + 42)) = (int32_t)(((uintptr_t)pc) + (4));
+*((uint32_t *)(text + 137)) = (uint32_t)(((uintptr_t)GETARG_Bx(*pc)) + (0));
+  *((int32_t *)(text + 146)) = (int32_t)(((uintptr_t)mrb_proc_new) + (-4) - ((uintptr_t)(text + 146)));
+  *((int32_t *)(text + 205)) = (int32_t)(((uintptr_t)mrb_gc_arena_restore) + (-4) - ((uintptr_t)(text + 205)));
+  *((int32_t *)(text + 224)) = (int32_t)(((uintptr_t)_op_raise) + (-4) - ((uintptr_t)(text + 224)));
+  *((int32_t *)(text + 255)) = (int32_t)(((uintptr_t)cipop) + (-4) - ((uintptr_t)(text + 255)));
+  *((int32_t *)(text + 309)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 309)));
+  *((int32_t *)(text + 350)) = (int32_t)(((uintptr_t)mrb_irep_jit_and_call) + (-4) - ((uintptr_t)(text + 350)));
 }
 static void op_exec_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_exec__rodata__link(text, rodata, pc);

@@ -108,11 +108,11 @@ module As
       ".#{name} #{arguments.map(&:to_asm).join(', ')}"
     end
   end
-  Literal = Struct.new :value do
+  Constant = Struct.new(:value, :offset) do
     def to_asm
       case value
-      when Fixnum, Bignum
-        "$#{value}"
+      when Fixnum, Bignum, String
+        "$#{value}#{offset ? '%+d' % offset : ''}"
       else
         raise "don't know how to handle value of type #{value.class}"
       end
@@ -159,7 +159,7 @@ module As
 
     def scan_operand scanner, inst
       number = /[+-]?(?:(0x\h+)|(?:\d+))/
-      scanner.scan /(?<offset>(?:#{number})|(?:#{SYMBOL_REGEXP}))?\((?:%(?<base>\w+))?(?:,%(?<index>\w+))?(?:,(?<scale>\d+))?\)/ do |m|
+      scanner.scan(/(?<offset>(?:#{number})|(?:#{SYMBOL_REGEXP}))?\((?:%(?<base>\w+))?(?:,%(?<index>\w+))?(?:,(?<scale>\d+))?\)/) do |m|
 
         if m[:offset]
           offset = case m[:offset]
@@ -176,19 +176,22 @@ module As
         return o
       end
 
-      scanner.scan /\$([+-]?(?:(?:0x\h+)|(?:\d+)))/ do |m|
-        return Literal.new(eval m[1])
+      scanner.scan(/\$([+-]?(?:(?:0x\h+)|(?:\d+)|(?:\w+)))/) do |m|
+        v = Integer(m[1]) rescue v = m[1]
+        o = Constant.new v
+        if m = scanner.scan(/([+-](?:(?:0x\h+)|(?:\d+)))/)
+          o.offset = Integer m[1]
+        end
+        return o
       end
 
-      scanner.scan /%(\w+)/ do |m|
+      scanner.scan(/%(\w+)/) do |m|
         o = X86::Register.new m[1].to_sym
         return o
       end
 
-      scanner.scan /(#{SYMBOL_REGEXP})/ do |m|
-        o = Unparsed.new m[1]
-        label_operand inst, o
-
+      scanner.scan(/(#{SYMBOL_REGEXP})/) do |m|
+        o = Label.new m[1]
         return o
       end
 
