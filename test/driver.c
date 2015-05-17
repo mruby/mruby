@@ -42,10 +42,8 @@ check_error(mrb_state *mrb)
 static int
 eval_test(mrb_state *mrb)
 {
-  const char *prog = "report()";
-
   /* evaluate the test */
-  mrb_load_string(mrb, prog);
+  mrb_funcall(mrb, mrb_top_self(mrb), "report", 0);
   /* did an exception occur? */
   if (mrb->exc) {
     mrb_print_error(mrb);
