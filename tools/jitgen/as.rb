@@ -213,6 +213,10 @@ module As
       # Can't do here
     end
 
+    def rename!(new_name)
+      self.name = new_name
+    end
+
     def next_label
       l = @next
       while l && !l.is_a?(Label)

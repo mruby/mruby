@@ -793,6 +793,7 @@ struct op_ctx {
 #ifdef MRB_ENABLE_JIT
   uint8_t *rescue_jmp_addr;
   uint32_t op_idx;
+  void *jit_stack;
 
   /* !!!!!!!!
    * needs to be last field
@@ -3292,6 +3293,7 @@ dispatch:
 jit:
   ctx.i = *ctx.pc;
 
+  ctx.jit_stack = alloca(512);
   mrb_jit_enter(mrb, ctx.irep, &ctx, NULL);
   //if(!mrb_jit_enter(mrb, proc, &ctx, NULL)) {
   //  goto dispatch;

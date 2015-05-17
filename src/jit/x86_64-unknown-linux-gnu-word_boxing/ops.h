@@ -2150,8 +2150,9 @@ static uint8_t op_return__text[] = {
 0x8b, 0x0c, 0x32,                         /*3c: mov    (%rdx,%rsi,1),%ecx */
 0x48, 0x03, 0x88, 0xc0, 0x00, 0x00, 0x00, /*3f: add    0xc0(%rax),%rcx */
 0x48, 0x89, 0xdf,                         /*46: mov    %rbx,%rdi */
-0xff, 0xd1,                               /*49: callq  *%rcx */
-0xc3,                                     /*4b: retq */
+0x48, 0x81, 0xc4, 0x00, 0x02, 0x00, 0x00, /*49: add    $0x200,%rsp */
+0x48, 0x81, 0xe4, 0x00, 0xfe, 0xff, 0xff, /*50: and    $0xfffffffffffffe00,%rsp */
+0xff, 0xe1,                               /*57: jmpq   *%rcx */
 
 };
 static uint8_t op_return__rodata[] = {
@@ -2174,8 +2175,9 @@ static uint8_t op_break__text[] = {
 0x8b, 0x0c, 0x32,                         /*33: mov    (%rdx,%rsi,1),%ecx */
 0x48, 0x03, 0x88, 0xc0, 0x00, 0x00, 0x00, /*36: add    0xc0(%rax),%rcx */
 0x48, 0x89, 0xdf,                         /*3d: mov    %rbx,%rdi */
-0xff, 0xd1,                               /*40: callq  *%rcx */
-0xc3,                                     /*42: retq */
+0x48, 0x81, 0xc4, 0x00, 0x02, 0x00, 0x00, /*40: add    $0x200,%rsp */
+0x48, 0x81, 0xe4, 0x00, 0xfe, 0xff, 0xff, /*47: and    $0xfffffffffffffe00,%rsp */
+0xff, 0xe1,                               /*4e: jmpq   *%rcx */
 
 };
 static uint8_t op_break__rodata[] = {
@@ -4522,8 +4524,8 @@ static size_t op_sizes_text[] = {
   sizeof(op_enter_method_m__text), /* 483 */
   sizeof(op_karg__text), /* 0 */
   sizeof(op_kdict__text), /* 0 */
-  sizeof(op_return__text), /* 76 */
-  sizeof(op_break__text), /* 67 */
+  sizeof(op_return__text), /* 89 */
+  sizeof(op_break__text), /* 80 */
   sizeof(op_tailcall__text), /* 849 */
   sizeof(op_blkpush__text), /* 198 */
   sizeof(op_add__text), /* 385 */

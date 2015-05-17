@@ -201,6 +201,17 @@ module Postprocess
   class OpReturn < Processor
     def process!
       super
+      reset_stack!
+    end
+
+    def reset_stack!
+      call = asm.reverse_each_instruction.find {|inst| inst.call?}
+      call.insert_before Instruction.new('addq', [Constant.new(512), X86::Register[:rsp]])
+      call.insert_before Instruction.new('andq', [Constant.new(-512), X86::Register[:rsp]])
+      call.rename! 'jmpq'
+    end
+
+    def insert_return!
       jmp_next = asm.reverse_each_instruction.find do |inst|
         inst.x86_jump? && inst.source == Label.new('.LNEXT')
       end
