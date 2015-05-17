@@ -1328,7 +1328,7 @@ op_send(struct op_ctx *ctx) {
   _op_send(ctx, OP_SEND, a, b, n, pc);
 
 #ifdef MRB_ENABLE_JIT
-    mrb_irep_jit_and_call(ctx->mrb, ctx->irep, ctx, ctx->pc);
+    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, ctx->pc);
     __builtin_unreachable();
 #endif
 }
@@ -1446,6 +1446,10 @@ _op_return(struct op_ctx *ctx, int a, int b) {
     ctx->regs[acc] = v;
     PC_PUSH(ctx, pc);
   }
+  {
+    int _s = 30;
+    printf("ret stack:%p\n", &_s);
+  }
 }
 
 static OP_INLINE void
@@ -1454,7 +1458,7 @@ op_break(struct op_ctx *ctx) {
   _op_return(ctx, GETARG_A(CTX_I(ctx)), GETARG_B(CTX_I(ctx)));
 
 #ifdef MRB_ENABLE_JIT
-    mrb_irep_jit_and_call(ctx->mrb, ctx->irep, ctx, ctx->pc);
+    MRB_JIT_CALL(ctx->irep, ctx->pc, ctx);
     __builtin_unreachable();
 #endif
 }
@@ -1465,7 +1469,7 @@ op_return(struct op_ctx *ctx) {
   _op_return(ctx, GETARG_A(CTX_I(ctx)), OP_R_NORMAL);
 
 #ifdef MRB_ENABLE_JIT
-    mrb_irep_jit_and_call(ctx->mrb, ctx->irep, ctx, ctx->pc);
+    MRB_JIT_CALL(ctx->irep, ctx->pc, ctx);
     __builtin_unreachable();
 #endif
 }
@@ -1529,7 +1533,7 @@ _op_call(struct op_ctx *ctx, int a) {
     PC_SET(ctx, ctx->irep->iseq);
 
 #ifdef MRB_ENABLE_JIT
-    mrb_irep_jit_and_call(ctx->mrb, ctx->irep, ctx, NULL);
+    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, NULL);
 #endif
   }
 }
@@ -1626,7 +1630,7 @@ op_super(struct op_ctx *ctx) {
     PC_SET(ctx, ctx->irep->iseq);
 
 #ifdef MRB_ENABLE_JIT
-    mrb_irep_jit_and_call(ctx->mrb, ctx->irep, ctx, NULL);
+    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, NULL);
 #endif
 
   }
@@ -1944,7 +1948,7 @@ op_tailcall(struct op_ctx *ctx) {
     PC_SET(ctx, ctx->irep->iseq);
 
 #ifdef MRB_ENABLE_JIT
-    mrb_irep_jit_and_call(ctx->mrb, ctx->irep, ctx, NULL);
+    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, NULL);
 #endif
 
   }
@@ -2649,7 +2653,7 @@ op_exec(struct op_ctx *ctx) {
     PC_SET(ctx, ctx->irep->iseq);
 
 #ifdef MRB_JIT_GEN
-    mrb_irep_jit_and_call(ctx->mrb, ctx->irep, ctx, NULL);
+    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, NULL);
 #endif
 
   }
@@ -3288,8 +3292,8 @@ dispatch:
 jit:
   ctx.i = *ctx.pc;
 
-  mrb_irep_jit_and_call(mrb, ctx.irep, &ctx, NULL);
-  //if(!mrb_irep_jit_and_call(mrb, proc, &ctx, NULL)) {
+  mrb_jit_enter(mrb, ctx.irep, &ctx, NULL);
+  //if(!mrb_jit_enter(mrb, proc, &ctx, NULL)) {
   //  goto dispatch;
   //}
 #endif

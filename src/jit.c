@@ -96,19 +96,20 @@ jit_ctx_prot_exec(struct mrb_jit_ctx *ctx)
 typedef void (*op_func_t)(void *);
 
 
-mrb_noreturn void
-mrb_irep_jit_and_call(mrb_state *mrb, struct mrb_irep *irep, void *ctx, mrb_code *pc)
+mrb_bool
+mrb_jit_enter(mrb_state *mrb, struct mrb_irep *irep, void *ctx, mrb_code *pc)
 {
   if(MRB_UNLIKELY(!MRB_IREP_JITTED_P(irep))) {
-    mrb_irep_jit(mrb, irep);
+    if(!mrb_irep_jit(mrb, irep)) {
+      return FALSE;
+    }
   }
 
   if(pc == NULL) {
     pc = irep->iseq;
   }
 
-  //if(MRB_LIKELY(MRB_IREP_JITTED_P(irep))) {
-  mrb_irep_jit_call(mrb, irep, ctx, pc);
+  MRB_JIT_CALL(irep, pc, ctx);
 }
 
 mrb_noreturn void
