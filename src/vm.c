@@ -2303,8 +2303,9 @@ RETRY_TRY_BLOCK:
       /* A B            R(A).newmethod(Syms(B),R(A+1)) */
       int a = GETARG_A(i);
       struct RClass *c = mrb_class_ptr(regs[a]);
+      struct RProc *p = mrb_proc_ptr(regs[a+1]);
 
-      mrb_define_method_vm(mrb, c, syms[GETARG_B(i)], regs[a+1]);
+      mrb_define_method_raw(mrb, c, syms[GETARG_B(i)], p);
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }
