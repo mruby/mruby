@@ -378,10 +378,6 @@ mrb_jit_enter(mrb_state *mrb, struct mrb_irep *irep, void *ctx, mrb_code *pc)
     }
   }
 
-  if(pc == NULL) {
-    pc = irep->iseq;
-  }
-
   MRB_JIT_CALL(irep, pc, ctx);
 }
 

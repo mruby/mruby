@@ -214,8 +214,8 @@ module Postprocess
   class OpReturn < Processor
     def process!
       super
-      remove_stack_spill! :rbx
-      remove_stack_spill! :rbp
+      #remove_stack_spill! :rbx
+      #remove_stack_spill! :rbp
       call = asm.reverse_each_instruction.find {|inst| inst.call?}
       #call.insert_before Instruction.new('addq', [Constant.new(512), X86::Register[:rsp]])
       #call.insert_before Instruction.new('andq', [Constant.new(-512), X86::Register[:rsp]])
@@ -248,7 +248,7 @@ module Postprocess
   class OpSend < Processor
     def process!
       super
-      remove_stack_spill! :rbx
+      #remove_stack_spill! :rbx
       return
 
       epilogue = asm.reverse_each.find do |e|
