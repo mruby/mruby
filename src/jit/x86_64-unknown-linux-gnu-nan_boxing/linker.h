@@ -371,13 +371,13 @@ static void op_fsend_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 static void op_call__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 }
 static void op_call__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
-  *((int32_t *)(text + 144)) = (int32_t)(((uintptr_t)mrb_gc_arena_restore) + (-4) - ((uintptr_t)(text + 144)));
-  *((int32_t *)(text + 163)) = (int32_t)(((uintptr_t)_op_raise) + (-4) - ((uintptr_t)(text + 163)));
-  *((int32_t *)(text + 279)) = (int32_t)(((uintptr_t)cipop) + (-4) - ((uintptr_t)(text + 279)));
-*((uint32_t *)(text + 351)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-  *((int32_t *)(text + 361)) = (int32_t)(((uintptr_t)_op_return) + (-4) - ((uintptr_t)(text + 361)));
-  *((int32_t *)(text + 384)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 384)));
-  *((int32_t *)(text + 432)) = (int32_t)(((uintptr_t)mrb_jit_enter) + (-4) - ((uintptr_t)(text + 432)));
+*((uint32_t *)(text + 175)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+  *((int32_t *)(text + 185)) = (int32_t)(((uintptr_t)_op_return) + (-4) - ((uintptr_t)(text + 185)));
+  *((int32_t *)(text + 213)) = (int32_t)(((uintptr_t)mrb_gc_arena_restore) + (-4) - ((uintptr_t)(text + 213)));
+  *((int32_t *)(text + 273)) = (int32_t)(((uintptr_t)cipop) + (-4) - ((uintptr_t)(text + 273)));
+  *((int32_t *)(text + 387)) = (int32_t)(((uintptr_t)_op_raise) + (-4) - ((uintptr_t)(text + 387)));
+  *((int32_t *)(text + 401)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 401)));
+  *((int32_t *)(text + 462)) = (int32_t)(((uintptr_t)mrb_jit_enter) + (-4) - ((uintptr_t)(text + 462)));
 }
 static void op_call_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_call__rodata__link(text, rodata, pc);
@@ -415,10 +415,10 @@ static void op_super__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 575)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
   *((int32_t *)(text + 660)) = (int32_t)(((uintptr_t)mrb_gc_arena_restore) + (-4) - ((uintptr_t)(text + 660)));
   *((int32_t *)(text + 679)) = (int32_t)(((uintptr_t)_op_raise) + (-4) - ((uintptr_t)(text + 679)));
-*((uint32_t *)(text + 689)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-  *((int32_t *)(text + 791)) = (int32_t)(((uintptr_t)cipop) + (-4) - ((uintptr_t)(text + 791)));
-  *((int32_t *)(text + 804)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 804)));
-  *((int32_t *)(text + 834)) = (int32_t)(((uintptr_t)mrb_jit_enter) + (-4) - ((uintptr_t)(text + 834)));
+  *((int32_t *)(text + 710)) = (int32_t)(((uintptr_t)cipop) + (-4) - ((uintptr_t)(text + 710)));
+*((uint32_t *)(text + 730)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+  *((int32_t *)(text + 814)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 814)));
+  *((int32_t *)(text + 850)) = (int32_t)(((uintptr_t)mrb_jit_enter) + (-4) - ((uintptr_t)(text + 850)));
 }
 static void op_super_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_super__rodata__link(text, rodata, pc);
@@ -613,12 +613,12 @@ static void op_break_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 static void op_tailcall__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint64_t *)(rodata + 0)) = (uint64_t)(((uintptr_t)text) + (109));
 *((uint64_t *)(rodata + 8)) = (uint64_t)(((uintptr_t)text) + (137));
-*((uint64_t *)(rodata + 16)) = (uint64_t)(((uintptr_t)text) + (865));
-*((uint64_t *)(rodata + 24)) = (uint64_t)(((uintptr_t)text) + (877));
-*((uint64_t *)(rodata + 32)) = (uint64_t)(((uintptr_t)text) + (889));
+*((uint64_t *)(rodata + 16)) = (uint64_t)(((uintptr_t)text) + (769));
+*((uint64_t *)(rodata + 24)) = (uint64_t)(((uintptr_t)text) + (781));
+*((uint64_t *)(rodata + 32)) = (uint64_t)(((uintptr_t)text) + (793));
 *((uint64_t *)(rodata + 40)) = (uint64_t)(((uintptr_t)text) + (137));
 *((uint64_t *)(rodata + 48)) = (uint64_t)(((uintptr_t)text) + (126));
-*((uint64_t *)(rodata + 56)) = (uint64_t)(((uintptr_t)text) + (901));
+*((uint64_t *)(rodata + 56)) = (uint64_t)(((uintptr_t)text) + (805));
 }
 static void op_tailcall__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 44)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
@@ -649,8 +649,8 @@ static void op_tailcall__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc
   *((int32_t *)(text + 731)) = (int32_t)(((uintptr_t)mrb_gc_arena_restore) + (-4) - ((uintptr_t)(text + 731)));
 *((uint32_t *)(text + 736)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
   *((int32_t *)(text + 746)) = (int32_t)(((uintptr_t)_op_return) + (-4) - ((uintptr_t)(text + 746)));
-  *((int32_t *)(text + 812)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 812)));
-  *((int32_t *)(text + 842)) = (int32_t)(((uintptr_t)mrb_jit_enter) + (-4) - ((uintptr_t)(text + 842)));
+  *((int32_t *)(text + 886)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 886)));
+  *((int32_t *)(text + 922)) = (int32_t)(((uintptr_t)mrb_jit_enter) + (-4) - ((uintptr_t)(text + 922)));
 }
 static void op_tailcall_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_tailcall__rodata__link(text, rodata, pc);
@@ -1089,9 +1089,9 @@ static void op_exec__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   *((int32_t *)(text + 160)) = (int32_t)(((uintptr_t)mrb_proc_new) + (-4) - ((uintptr_t)(text + 160)));
   *((int32_t *)(text + 219)) = (int32_t)(((uintptr_t)mrb_gc_arena_restore) + (-4) - ((uintptr_t)(text + 219)));
   *((int32_t *)(text + 238)) = (int32_t)(((uintptr_t)_op_raise) + (-4) - ((uintptr_t)(text + 238)));
-  *((int32_t *)(text + 282)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 282)));
-  *((int32_t *)(text + 323)) = (int32_t)(((uintptr_t)mrb_jit_enter) + (-4) - ((uintptr_t)(text + 323)));
-  *((int32_t *)(text + 354)) = (int32_t)(((uintptr_t)cipop) + (-4) - ((uintptr_t)(text + 354)));
+  *((int32_t *)(text + 269)) = (int32_t)(((uintptr_t)cipop) + (-4) - ((uintptr_t)(text + 269)));
+  *((int32_t *)(text + 323)) = (int32_t)(((uintptr_t)stack_extend) + (-4) - ((uintptr_t)(text + 323)));
+  *((int32_t *)(text + 370)) = (int32_t)(((uintptr_t)mrb_jit_enter) + (-4) - ((uintptr_t)(text + 370)));
 }
 static void op_exec_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_exec__rodata__link(text, rodata, pc);

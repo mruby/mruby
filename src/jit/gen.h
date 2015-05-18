@@ -40,6 +40,4 @@ intptr_t __mrb_jit_pc;
 #define PC_INC(ctx) (__mrb_jit_pc_inc(ctx))
 #undef PC_GET
 #define PC_GET(ctx) ((mrb_code *)&__mrb_jit_pc)
-#undef PC_SET
-#define PC_SET(ctx, v)
 #define OP_IDX(i) 0xDE0000

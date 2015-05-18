@@ -805,8 +805,7 @@ struct op_ctx {
 
 #define PC_ADD(ctx, o) (ctx->pc += o)
 #define PC_INC(ctx) (ctx->pc++)
-#define PC_PUSH(ctx, v) (ctx->pc = v)
-#define PC_SET(ctx, v) PC_PUSH(ctx, v)
+#define PC_SET(ctx, v) (ctx->pc = v)
 #define PC_GET(ctx) (ctx->pc)
 #define CTX_I(ctx) (*(ctx->pc))
 
@@ -1023,14 +1022,7 @@ op_onerr(struct op_ctx *ctx) {
     else ctx->mrb->c->rsize *= 2;
     ctx->mrb->c->rescue = (mrb_code **)mrb_realloc(ctx->mrb, ctx->mrb->c->rescue, sizeof(mrb_code*) * ctx->mrb->c->rsize);
   }
-
-#ifdef MRB_JIT_GEN
-  //ctx->mrb->c->ci->rescue_idx = OP_IDX(CTX_I(ctx));
-  PC_SET(ctx, ctx->irep->iseq + OP_IDX(ctx));
-#endif
-
   ctx->mrb->c->rescue[ctx->mrb->c->ci->ridx++] = PC_GET(ctx) + GETARG_sBx(CTX_I(ctx));
-
 }
 
 static OP_INLINE void
@@ -1261,7 +1253,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
       }
     }
     ctx->regs = ctx->mrb->c->stack = ci->stackent;
-    PC_PUSH(ctx, ci->pc);
+    PC_SET(ctx, ci->pc);
     //printf("pc set to ci %p (%p) (%d|%d)\n", ctx->pc, ci->pc, pc >= ctx->irep->iseq && pc < ctx->irep->iseq + ctx->irep->ilen);
     cipop(ctx->mrb);
   }
@@ -1281,7 +1273,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
       stack_extend(ctx->mrb, ctx->irep->nregs,  n+2);
     }
     ctx->regs = ctx->mrb->c->stack;
-    PC_PUSH(ctx, ctx->irep->iseq);
+    PC_SET(ctx, ctx->irep->iseq);
     //printf("pc set to iseq %p (%p)\n", ctx->pc, ctx->irep->iseq);
   }
 }
@@ -1445,7 +1437,7 @@ _op_return(struct op_ctx *ctx, int a, int b) {
     ctx->pool = ctx->irep->pool;
     ctx->syms = ctx->irep->syms;
     ctx->regs[acc] = v;
-    PC_PUSH(ctx, pc);
+    PC_SET(ctx, pc);
   }
   {
     //int _s = 30;
@@ -1532,16 +1524,17 @@ _op_call(struct op_ctx *ctx, int a) {
     ctx->regs = ctx->mrb->c->stack;
     ctx->regs[0] = m->env->stack[0];
     PC_SET(ctx, ctx->irep->iseq);
-
-#ifdef MRB_ENABLE_JIT
-    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, NULL);
-#endif
   }
 }
 
 static OP_INLINE void
 op_call(struct op_ctx *ctx) {
   _op_call(ctx, GETARG_A(CTX_I(ctx)));
+
+#ifdef MRB_ENABLE_JIT
+    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, ctx->pc);
+    __builtin_unreachable();
+#endif
 }
 
 static OP_INLINE void
@@ -1631,9 +1624,9 @@ op_super(struct op_ctx *ctx) {
     PC_SET(ctx, ctx->irep->iseq);
 
 #ifdef MRB_ENABLE_JIT
-    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, NULL);
+    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, ctx->pc);
+    __builtin_unreachable();
 #endif
-
   }
 }
 
@@ -1949,7 +1942,8 @@ op_tailcall(struct op_ctx *ctx) {
     PC_SET(ctx, ctx->irep->iseq);
 
 #ifdef MRB_ENABLE_JIT
-    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, NULL);
+    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, ctx->pc);
+    __builtin_unreachable();
 #endif
 
   }
@@ -2653,10 +2647,10 @@ op_exec(struct op_ctx *ctx) {
     ctx->regs = ctx->mrb->c->stack;
     PC_SET(ctx, ctx->irep->iseq);
 
-#ifdef MRB_JIT_GEN
-    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, NULL);
+#ifdef MRB_ENABLE_JIT
+    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, ctx->pc);
+    __builtin_unreachable();
 #endif
-
   }
 }
 
