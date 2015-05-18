@@ -44,7 +44,7 @@
 #include <alloca.h>
 #include <stdlib.h>
 
-#define JIT_DEBUG
+//#define JIT_DEBUG
 
 #define ALIGN(s, a) (((s) + (a) - 1) & ~((a) - 1))
 

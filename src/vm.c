@@ -1216,7 +1216,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
   ci->stackent = ctx->mrb->c->stack;
   ci->target_class = c;
 
-  printf(_str_const_op_send,mrb_sym2name(ctx->mrb, mid), pc);
+  //printf(_str_const_op_send,mrb_sym2name(ctx->mrb, mid), pc);
     //fprintf(stderr, "funcall %s: %p\n", mrb_sym2name(mrb, mid), p);
 
   ci->pc = pc + 1;
@@ -1262,7 +1262,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
     }
     ctx->regs = ctx->mrb->c->stack = ci->stackent;
     PC_PUSH(ctx, ci->pc);
-    printf("pc set to ci %p (%p) (%d|%d)\n", ctx->pc, ci->pc, pc >= ctx->irep->iseq && pc < ctx->irep->iseq + ctx->irep->ilen);
+    //printf("pc set to ci %p (%p) (%d|%d)\n", ctx->pc, ci->pc, pc >= ctx->irep->iseq && pc < ctx->irep->iseq + ctx->irep->ilen);
     cipop(ctx->mrb);
   }
   else {
@@ -1282,7 +1282,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
     }
     ctx->regs = ctx->mrb->c->stack;
     PC_PUSH(ctx, ctx->irep->iseq);
-    printf("pc set to iseq %p (%p)\n", ctx->pc, ctx->irep->iseq);
+    //printf("pc set to iseq %p (%p)\n", ctx->pc, ctx->irep->iseq);
   }
 }
 
@@ -1439,7 +1439,7 @@ _op_return(struct op_ctx *ctx, int a, int b) {
       ctx->retval = v;
       MRB_THROW(ctx->stop_jmp);
     }
-    printf("from :%s\n", mrb_sym2name(ctx->mrb, ci->mid));
+    //printf("from :%s\n", mrb_sym2name(ctx->mrb, ci->mid));
     ctx->proc = mrb->c->ci->proc;
     ctx->irep = ctx->proc->body.irep;
     ctx->pool = ctx->irep->pool;
@@ -1448,8 +1448,8 @@ _op_return(struct op_ctx *ctx, int a, int b) {
     PC_PUSH(ctx, pc);
   }
   {
-    int _s = 30;
-    printf("ret stack:%p\n", &_s);
+    //int _s = 30;
+    //printf("ret stack:%p\n", &_s);
   }
 }
 
@@ -3309,7 +3309,6 @@ jit:
 
   }
   MRB_CATCH(&stop_jmp) {
-    printf("stop\n");
     retval = ctx.retval;
   }
   MRB_END_EXC(&stop_jmp);
