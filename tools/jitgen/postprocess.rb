@@ -20,6 +20,18 @@ module Postprocess
       assembly
     end
 
+    def remove_stack_spill!(reg)
+      pop = asm.reverse_each_instruction.find do |inst|
+        inst.name =~ /pop/ && inst.source_register?(reg)
+      end
+      pop.delete if pop
+
+      push = asm.each_instruction.find do |inst|
+        inst.name =~ /push/ && inst.source_register?(reg)
+      end
+      push.delete if push
+    end
+
     def remove_bogus_stack_adds!
       add = asm.reverse_each_instruction.find do |inst|
         inst.name =~ /add/ &&
@@ -49,16 +61,25 @@ module Postprocess
       remove_dummy_call!
       remove_return!
       correct_stack!
-      turn_jit_calls_into_jumps!
+      handle_jit_enter!
     end
 
-    def turn_jit_calls_into_jumps!
+    def handle_jit_enter!
       insts = asm.each_instruction.select do |inst|
-        inst.call? && Label === inst.source && inst.source.name == 'mrb_irep_jit_and_call'
+        inst.call? && Label === inst.source && inst.source.name == 'mrb_jit_enter'
       end
 
       insts.each do |inst|
-        inst.replace Instruction.new('jmp', inst.operands);
+        inst.rename! 'jmp'
+      end
+
+      unless insts.empty?
+        max_stack_size = 512
+        first_inst = asm.each_instruction.first
+        inst0 = Instruction.new 'addq', [Constant[max_stack_size - 1], X86::Register[:rsp]]
+        inst1 = Instruction.new 'andq', [Constant[-max_stack_size], X86::Register[:rsp]]
+        first_inst.insert_before inst0
+        first_inst.insert_before inst1
       end
     end
 
@@ -95,15 +116,7 @@ module Postprocess
         call.delete
       end
 
-      pop = asm.reverse_each_instruction.find do |inst|
-        inst.name =~ /pop/ && inst.source_register?(:rax)
-      end
-      pop.delete if pop
-
-      push = asm.each_instruction.find do |inst|
-        inst.name =~ /push/ && inst.source_register?(:rax)
-      end
-      push.delete if push
+      remove_stack_spill! :rax
     end
 
     def remove_return!
@@ -201,13 +214,11 @@ module Postprocess
   class OpReturn < Processor
     def process!
       super
-      reset_stack!
-    end
-
-    def reset_stack!
+      remove_stack_spill! :rbx
+      remove_stack_spill! :rbp
       call = asm.reverse_each_instruction.find {|inst| inst.call?}
-      call.insert_before Instruction.new('addq', [Constant.new(512), X86::Register[:rsp]])
-      call.insert_before Instruction.new('andq', [Constant.new(-512), X86::Register[:rsp]])
+      #call.insert_before Instruction.new('addq', [Constant.new(512), X86::Register[:rsp]])
+      #call.insert_before Instruction.new('andq', [Constant.new(-512), X86::Register[:rsp]])
       call.rename! 'jmpq'
     end
 
@@ -237,6 +248,7 @@ module Postprocess
   class OpSend < Processor
     def process!
       super
+      remove_stack_spill! :rbx
       return
 
       epilogue = asm.reverse_each.find do |e|

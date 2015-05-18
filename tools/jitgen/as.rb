@@ -109,6 +109,10 @@ module As
     end
   end
   Constant = Struct.new(:value, :offset) do
+    def self.[](*args)
+      new *args
+    end
+
     def to_asm
       case value
       when Fixnum, Bignum, String
