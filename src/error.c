@@ -19,7 +19,7 @@
 #include "mrb_throw.h"
 
 MRB_API mrb_value
-mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
+mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, size_t len)
 {
   mrb_value arg = mrb_str_new(mrb, ptr, len);
   return mrb_obj_new(mrb, c, 1, &arg);
