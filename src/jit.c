@@ -378,6 +378,7 @@ mrb_jit_enter(mrb_state *mrb, struct mrb_irep *irep, void *ctx, mrb_code *pc)
     }
   }
 
+  printf("JIT: entering irep: %p at %p (%d)\n", irep, pc, pc - irep->iseq);
   MRB_JIT_CALL(irep, pc, ctx);
 }
 

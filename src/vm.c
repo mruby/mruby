@@ -813,6 +813,20 @@ struct op_ctx {
 #include "jit/gen.h"
 #endif
 
+#ifdef MRB_ENABLE_JIT
+#define _OP_SEND(ctx_, opcode_, a_, b_, n_, pc_) \
+do {\
+  _op_send(ctx_, opcode_, a_, b_, n_, pc_);\
+  mrb_jit_enter((ctx_)->mrb, (ctx_)->irep, ctx_, (ctx_)->pc);\
+  return;\
+} while(0);
+#else
+#define _OP_SEND(ctx_, opcode_, a_, b_, n_, pc_) \
+do {\
+  return _op_send(ctx_, opcode_, a_, b_, n_, pc_);\
+} while(0);
+#endif
+
 
 static OP_INLINE void
 op_nop(struct op_ctx *ctx) {
@@ -1218,6 +1232,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
   ctx->mrb->c->stack += a;
 
   if (MRB_PROC_CFUNC_P(m)) {
+    printf("cfunc\n");
     if (MRB_UNLIKELY(n == CALL_MAXARGS)) {
       ci->argc = -1;
       ci->nregs = 3;
@@ -1251,7 +1266,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
     }
     ctx->regs = ctx->mrb->c->stack = ci->stackent;
     PC_SET(ctx, ci->pc);
-    //printf("pc set to ci %p (%p) (%d|%d)\n", ctx->pc, ci->pc, pc >= ctx->irep->iseq && pc < ctx->irep->iseq + ctx->irep->ilen);
+    printf("C func pc set to ci %p (%p) (%d|%d)\n", ctx->pc, ci->pc, pc >= ctx->irep->iseq && pc < ctx->irep->iseq + ctx->irep->ilen);
     cipop(ctx->mrb);
   }
   else {
@@ -1271,7 +1286,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
     }
     ctx->regs = ctx->mrb->c->stack;
     PC_SET(ctx, ctx->irep->iseq);
-    //printf("pc set to iseq %p (%p)\n", ctx->pc, ctx->irep->iseq);
+    printf("pc set to iseq %p (%p)\n", ctx->pc, ctx->irep->iseq);
   }
 }
 
@@ -1304,6 +1319,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n, mrb_code *pc) {
   }
 
   _op_send_static(ctx, recv, c, mid, m, opcode, a, n, pc);
+  printf("_op_send done\n");
 }
 
 static OP_INLINE void
@@ -1315,12 +1331,7 @@ op_send(struct op_ctx *ctx) {
   int n = GETARG_C(CTX_I(ctx));
   mrb_code *pc = PC_GET(ctx);
 
-  _op_send(ctx, OP_SEND, a, b, n, pc);
-
-#ifdef MRB_ENABLE_JIT
-    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, ctx->pc);
-    __builtin_unreachable();
-#endif
+  _OP_SEND(ctx, OP_SEND, a, b, n, pc);
 }
 
 static OP_INLINE void
@@ -1332,12 +1343,7 @@ op_sendb(struct op_ctx *ctx) {
   int n = GETARG_C(CTX_I(ctx));
   mrb_code *pc = PC_GET(ctx);
 
-  _op_send(ctx, OP_SENDB, a, b, n, pc);
-
-#ifdef MRB_ENABLE_JIT
-    mrb_jit_enter(ctx->mrb, ctx->irep, ctx, ctx->pc);
-    __builtin_unreachable();
-#endif
+  _OP_SEND(ctx, OP_SENDB, a, b, n, pc);
 }
 
 static OP_INLINE void
@@ -1427,7 +1433,8 @@ _op_return(struct op_ctx *ctx, int a, int b, mrb_code *pc) {
     acc = ci->acc;
     PC_SET(ctx, ci->pc);
     ctx->regs = mrb->c->stack = ci->stackent;
-    //printf("from :%s\n", mrb_sym2name(ctx->mrb, ci->mid));
+    printf("from :%s\n", mrb_sym2name(ctx->mrb, ci->mid));
+    printf("PC set to %p\n", ctx->pc);
     if (acc == CI_ACC_SKIP) {
       mrb->jmp = ctx->prev_jmp;
       ctx->retval = v;
@@ -2254,7 +2261,7 @@ op_addi(struct op_ctx *ctx) {
     break;
   default:
     SET_INT_VALUE(regs_a[1], c);
-    return _op_send(ctx, OP_SEND, a, GETARG_B(CTX_I(ctx)), 1, PC_GET(ctx));
+    _OP_SEND(ctx, OP_SEND, a, GETARG_B(CTX_I(ctx)), 1, PC_GET(ctx));
   }
   PC_INC(ctx);
 }
@@ -2299,10 +2306,11 @@ op_subi(struct op_ctx *ctx) {
     break;
   default:
     SET_INT_VALUE(regs_a[1], c);
-    return _op_send(ctx, OP_SEND, a, GETARG_B(CTX_I(ctx)), 1, PC_GET(ctx));
+    _OP_SEND(ctx, OP_SEND, a, GETARG_B(CTX_I(ctx)), 1, PC_GET(ctx));
   }
   PC_INC(ctx);
 }
+
 
 #define OP_CMP_BODY(op,v1,v2) (v1(regs[a]) op v2(regs[a+1]))
 
@@ -2323,7 +2331,7 @@ op_subi(struct op_ctx *ctx) {
     result = OP_CMP_BODY(op,mrb_float,mrb_float);\
     break;\
   default:\
-    return _op_send(ctx, OP_SEND, a, b, n, PC_GET(ctx));\
+    _OP_SEND(ctx, OP_SEND, a, b, n, PC_GET(ctx));\
   }\
   if (result) {\
     SET_TRUE_VALUE(regs[a]);\
