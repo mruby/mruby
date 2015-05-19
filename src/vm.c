@@ -1091,20 +1091,13 @@ _op_rescue(struct op_ctx *ctx, mrb_callinfo *ci) {
   ctx->regs = ctx->mrb->c->stack = ci[1].stackent;
   PC_SET(ctx, ctx->mrb->c->rescue[--ci->ridx]);
 
-#ifdef MRB_ENABLE_JIT
-    //uint32_t rescue_idx = PC_GET(ctx) - ctx->irep->iseq;
-    //uintptr_t jit_jmp_off = ctx->irep->jit_ctx.text_off_tbl[PC_GET(ctx) - ctx->irep->iseq];
-    ////VM_PRINTF("_op_rescue: settings jmp addr for jit to: %p\n", jit_jmp_off);
-    //ctx->rescue_jmp_addr = ctx->irep->jit_ctx.text + jit_jmp_off;
-    ////VM_PRINTF("_op_rescue: settings jmp addr for jit to: %p %p\n", ctx->rescue_jmp_addr, jit_jmp_off);
-    ////VM_PRINTF("_op_rescue: settings jmp addr to nth op: %d\n", PC_GET(ctx) - ctx->irep->iseq);
-#endif
+  VM_PRINTF("_op_rescue: PC=%p %d\n", ctx->pc, ctx->pc - ctx->irep->iseq);
 }
 
 static inline void
 _op_raise(struct op_ctx *ctx, mrb_code *pc) {
 
-  //VM_PRINTF("_op_raise\n");
+  VM_PRINTF("_op_raise %d\n", pc - ctx->irep->iseq);
 
   mrb_callinfo *ci;
   int eidx;
@@ -1114,6 +1107,7 @@ _op_raise(struct op_ctx *ctx, mrb_code *pc) {
   mrb_obj_iv_ifnone(ctx->mrb, ctx->mrb->exc, mrb_intern_lit(ctx->mrb, "ciidx"), mrb_fixnum_value(ci - ctx->mrb->c->cibase));
   eidx = ci->eidx;
   if (ci == ctx->mrb->c->cibase) {
+    VM_PRINTF("_op_raise: _op_rescue\n");
     return _op_rescue(ctx, ci);
   }
   while (eidx > ci[-1].eidx) {
@@ -1151,6 +1145,7 @@ _op_raise(struct op_ctx *ctx, mrb_code *pc) {
     }
   }
   
+  VM_PRINTF("_op_raise: %d _op_rescue2\n", pc - ctx->irep->iseq);
   //VM_PRINTF("calling _op_rescue -1\n");
   return _op_rescue(ctx, ci);
 }
@@ -1159,7 +1154,12 @@ static OP_INLINE void
 op_raise(struct op_ctx *ctx) {
   /* A      raise(R(A)) */
   ctx->mrb->exc = mrb_obj_ptr(ctx->regs[GETARG_A(CTX_I(ctx))]);
-  return _op_raise(ctx, PC_GET(ctx));
+  _op_raise(ctx, PC_GET(ctx));
+
+#ifdef MRB_ENABLE_JIT
+  mrb_jit_enter(ctx->mrb, ctx->irep, ctx, ctx->pc);
+  __builtin_unreachable();
+#endif
 }
 
 static OP_INLINE void
@@ -1232,6 +1232,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
   ctx->mrb->c->stack += a;
 
   if (MRB_PROC_CFUNC_P(m)) {
+    VM_PRINTF("op_send: cfunc\n");
     if (MRB_UNLIKELY(n == CALL_MAXARGS)) {
       ci->argc = -1;
       ci->nregs = 3;
@@ -1241,13 +1242,17 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
       ci->nregs = n + 2;
     }
 
-    // make op context accessible to C functions
-    // that need to call back into the VM code
+    /* make op context accessible to C functions
+     * that need to call back into the VM code
+     */
 #ifdef MRB_ENABLE_JIT
     ctx->mrb->op_ctx = ctx;
+    /* set PC in case we hit #raise */
+    ctx->pc = pc;
 #endif
 
     result = m->body.func(ctx->mrb, recv);
+    VM_PRINTF("csend result: %d\n", mrb_test(ctx->regs[GETARG_A(CTX_I(ctx))]));
     ctx->mrb->c->stack[0] = result;
     mrb_gc_arena_restore(ctx->mrb, ctx->ai);
     if (MRB_UNLIKELY(ctx->mrb->exc)) {
@@ -1265,7 +1270,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
     }
     ctx->regs = ctx->mrb->c->stack = ci->stackent;
     PC_SET(ctx, ci->pc);
-    VM_PRINTF("C func pc set to ci %p (%p) (%d|%d)\n", ctx->pc, ci->pc, pc >= ctx->irep->iseq && pc < ctx->irep->iseq + ctx->irep->ilen);
+    VM_PRINTF("C func pc set to ci %p (%p) (%d)\n", ctx->pc, ci->pc, ctx->pc - ctx->irep->iseq);
     cipop(ctx->mrb);
   }
   else {
@@ -1351,8 +1356,10 @@ op_fsend(struct op_ctx *ctx) {
 
 static inline void
 _op_return(struct op_ctx *ctx, int a, int b, mrb_code *pc) {
+  VM_PRINTF("_op_return entered\n");
   mrb_state *mrb = ctx->mrb;
   if (MRB_UNLIKELY(ctx->mrb->exc)) {
+    VM_PRINTF("_op_return: raising\n");
     return _op_raise(ctx, pc);
   } else {
     mrb_callinfo *ci = ctx->mrb->c->ci;
@@ -2833,7 +2840,9 @@ RETRY_TRY_BLOCK:
 
   if (exc_catched) {
     exc_catched = FALSE;
+    VM_PRINTF("exc longjump: %d\n", ctx.pc - ctx.irep->iseq);
     _op_raise(&ctx, ctx.pc);
+    VM_PRINTF("exc longjump, continuing at %d\n", ctx.pc - ctx.irep->iseq);
 #ifdef MRB_ENABLE_JIT
     mrb_jit_enter(mrb, ctx.irep, &ctx, ctx.pc);
 #else

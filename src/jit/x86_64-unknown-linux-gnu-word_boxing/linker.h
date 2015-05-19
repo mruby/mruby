@@ -314,9 +314,10 @@ static void op_poperr_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 static void op_raise__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 }
 static void op_raise__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
-*((uint32_t *)(text + 5)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-*((uint32_t *)(text + 26)) = (uint32_t)(((uintptr_t)pc) + (0));
-  *((int32_t *)(text + 31)) = (int32_t)(((uintptr_t)_op_raise) + (-4) - ((uintptr_t)(text + 31)));
+*((uint32_t *)(text + 19)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+*((uint32_t *)(text + 40)) = (uint32_t)(((uintptr_t)pc) + (0));
+  *((int32_t *)(text + 45)) = (int32_t)(((uintptr_t)_op_raise) + (-4) - ((uintptr_t)(text + 45)));
+  *((int32_t *)(text + 65)) = (int32_t)(((uintptr_t)mrb_jit_enter) + (-4) - ((uintptr_t)(text + 65)));
 }
 static void op_raise_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_raise__rodata__link(text, rodata, pc);
