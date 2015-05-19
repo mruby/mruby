@@ -63,12 +63,13 @@ module MRuby
 	    sys + user
           end
           
-          min = cpu_times.min
-          max = cpu_times.max
-          avg = cpu_times.inject(&:+) / cpu_times.size
+          cpu_times.sort!
+          min = cpu_times.shift.round 3
+          max = cpu_times.pop.round 3
+          avg = cpu_times.inject(&:+)./(cpu_times.size).round(3)
 
           [bm_name, avg, min, max]
-        end.sort_by{|e| e[1]}.reverse
+        end
 
         # underscore means subscript in gnuplot
         all_data[target_name.gsub('_', '-')] = bm_data
@@ -102,10 +103,12 @@ module MRuby
       opts_file = plot_opts_file
       opts = File.read(opts_file).each_line.to_a.map(&:strip).join(';')
 
+
       opts += ";set output '#{plot_file index}'"
+      opts += ";set key off" if index && index > 0
       opts += ';plot '
 
-      opts += data.keys.map do
+      opts += data.keys.map.with_index do |k, i|
         %Q['-' u 2:3:4:xtic(1) w hist title columnheader(1)]
       end.join(',')
       opts += ';'
@@ -188,13 +191,15 @@ MRuby.each_target do |target|
   end
 end
 
-namespace :benchmark do
 
   MRuby::Benchmark.plot_files.each_with_index do |plot_file, index|
     file plot_file => [*MRuby::Benchmark.dat_files, MRuby::Benchmark.plot_opts_file] do
       MRuby::Benchmark.plot index
     end
   end
+
+namespace :benchmark do
+
 
   task :plot => MRuby::Benchmark.plot_files do
   end

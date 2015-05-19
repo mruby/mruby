@@ -2,6 +2,7 @@ set yrange [0:]
 set style fill pattern 1 border -1
 set terminal pdfcairo lw 1 size 26cm,16cm
 set xtics rotate by -45
+set key left top
 set style histogram errorbars gap 2
 set linetype 1 lc rgb '#a6cee3'
 set linetype 2 lc rgb '#1f78b4'
