@@ -1208,7 +1208,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
   ci->stackent = ctx->mrb->c->stack;
   ci->target_class = c;
 
-  //printf(_str_const_op_send,mrb_sym2name(ctx->mrb, mid), pc);
+  printf(_str_const_op_send,mrb_sym2name(ctx->mrb, mid), pc);
     //fprintf(stderr, "funcall %s: %p\n", mrb_sym2name(mrb, mid), p);
 
   ci->pc = pc + 1;
@@ -1275,6 +1275,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
   }
 }
 
+static char _str_const_op_send2[] = "send_ %s %d %d\n";
 static inline void
 _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n, mrb_code *pc) {
   struct RProc *m;
@@ -1282,11 +1283,12 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n, mrb_code *pc) {
   mrb_value recv;
   mrb_sym mid = ctx->syms[b];
 
+  printf(_str_const_op_send2,mrb_sym2name(ctx->mrb, mid), mid, b);
+
   recv = ctx->regs[a];
   c = mrb_class(ctx->mrb, recv);
 
   m = mrb_method_search_vm_proc(ctx->mrb, ctx->proc, &c, mid);
-
   if (MRB_UNLIKELY(!m)) {
     mrb_value sym = mrb_symbol_value(mid);
 
@@ -1698,10 +1700,6 @@ op_enter_method_m(struct op_ctx *ctx) {
   int paramc = m1;
   mrb_value *blk = &argv[argc < 0 ? 1 : argc];
 
-#ifdef MRB_JIT_GEN
-  uint16_t jit_jmp_off = 0;
-#endif
-
   if (MRB_UNLIKELY(!mrb_nil_p(*blk) && mrb_type(*blk) != MRB_TT_PROC)) {
     *blk = mrb_convert_type(ctx->mrb, *blk, MRB_TT_PROC, _str_const_proc, _str_const_to_proc);
   }
@@ -1725,14 +1723,9 @@ op_enter_method_m(struct op_ctx *ctx) {
   }
 
   PC_INC(ctx);
-#ifdef MRB_JIT_GEN
-  jit_jmp_off = ctx->irep->jit_ctx.text_off_tbl[1];
-#endif
-
 
 #ifdef MRB_JIT_GEN
-  typedef void (*__op_enter_exit__)(struct op_ctx *, uintptr_t off);
-  ((__op_enter_exit__)(0xFAB))(ctx, ((uintptr_t)ctx->irep->jit_ctx.text) + jit_jmp_off);
+  MRB_JIT_CALL(ctx->irep, ctx->irep->iseq + 1, ctx);
 #endif
 }
 
@@ -2331,7 +2324,6 @@ op_subi(struct op_ctx *ctx) {
     break;\
   default:\
     return _op_send(ctx, OP_SEND, a, b, n, PC_GET(ctx));\
-    return op_send(ctx);\
   }\
   if (result) {\
     SET_TRUE_VALUE(regs[a]);\
@@ -2341,6 +2333,8 @@ op_subi(struct op_ctx *ctx) {
   }\
 } while(0)
 
+
+static char _str_const_op_eq[] = "eq %d %d %d\n";
 static OP_INLINE void
 op_eq(struct op_ctx *ctx) {
   /* A B C  R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)*/
@@ -2349,10 +2343,10 @@ op_eq(struct op_ctx *ctx) {
   int n = GETARG_C(CTX_I(ctx));
 
   mrb_value *regs = ctx->regs;
-  mrb_value *regs_a = regs + a;
+  printf(_str_const_op_eq, mrb_type(regs[a]), mrb_type(regs[a + 1]), n);
 
-  if (mrb_obj_eq(ctx->mrb, regs_a[0], regs_a[1])) {
-    SET_TRUE_VALUE(regs_a[0]);
+  if (mrb_obj_eq(ctx->mrb, regs[a], regs[a + 1])) {
+    SET_TRUE_VALUE(regs[a]);
   }
   else {
     OP_CMP(==);
@@ -2683,7 +2677,7 @@ static OP_INLINE void
 op_range(struct op_ctx *ctx) {
   /* A B C  R(A) := range_new(R(B),R(B+1),C) */
   int b = GETARG_B(CTX_I(ctx));
-  ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_range_new(ctx->mrb, ctx->regs[b], ctx->regs[b+1], !!GETARG_C(CTX_I(ctx)));
+  ctx->regs[GETARG_A(CTX_I(ctx))] = mrb_range_new(ctx->mrb, ctx->regs[b], ctx->regs[b+1], GETARG_C(CTX_I(ctx)));
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }
 

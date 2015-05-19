@@ -166,8 +166,8 @@ module Postprocess
     end
   end
 
-  class OpEnterMethodM < OpEnter
-  end
+  #class OpEnterMethodM
+  #end
 
   class OpJmpif < Processor
     def process!
@@ -248,7 +248,7 @@ module Postprocess
   class OpSend < Processor
     def process!
       super
-      #remove_stack_spill! :rbx
+      remove_stack_spill! :rbx
       return
 
       epilogue = asm.reverse_each.find do |e|
@@ -303,9 +303,10 @@ module Postprocess
           raise
         end
       end
-
-
     end
+  end
+
+  class OpSendb < OpSend
   end
 
 end
