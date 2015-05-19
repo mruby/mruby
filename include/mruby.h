@@ -365,7 +365,7 @@ MRB_API mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 #define TOLOWER(c) (ISASCII(c) ? tolower((int)(unsigned char)(c)) : (c))
 #endif
 
-MRB_API mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len);
+MRB_API mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, size_t len);
 MRB_API mrb_noreturn void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
 
 MRB_API mrb_noreturn void mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg);
