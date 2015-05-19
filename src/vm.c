@@ -53,8 +53,8 @@ The value below allows about 60000 recursive calls in the simplest case. */
 # define DEBUG(x)
 #endif
 
-//#define VM_PRINTF
-#define VM_PRINTF(...) fprintf(stderr, __VA_ARGS__)
+#define VM_PRINTF(...)
+//#define VM_PRINTF(...) fprintf(stderr, __VA_ARGS__)
 
 #define ARENA_RESTORE(mrb,ai) (mrb)->arena_idx = (ai)
 
@@ -1222,7 +1222,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
   ci->stackent = ctx->mrb->c->stack;
   ci->target_class = c;
 
-  printf(_str_const_op_send,mrb_sym2name(ctx->mrb, mid), pc);
+  VM_PRINTF(_str_const_op_send,mrb_sym2name(ctx->mrb, mid), pc);
     //fprintf(stderr, "funcall %s: %p\n", mrb_sym2name(mrb, mid), p);
 
   ci->pc = pc + 1;
@@ -1232,7 +1232,6 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
   ctx->mrb->c->stack += a;
 
   if (MRB_PROC_CFUNC_P(m)) {
-    printf("cfunc\n");
     if (MRB_UNLIKELY(n == CALL_MAXARGS)) {
       ci->argc = -1;
       ci->nregs = 3;
@@ -1266,7 +1265,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
     }
     ctx->regs = ctx->mrb->c->stack = ci->stackent;
     PC_SET(ctx, ci->pc);
-    printf("C func pc set to ci %p (%p) (%d|%d)\n", ctx->pc, ci->pc, pc >= ctx->irep->iseq && pc < ctx->irep->iseq + ctx->irep->ilen);
+    VM_PRINTF("C func pc set to ci %p (%p) (%d|%d)\n", ctx->pc, ci->pc, pc >= ctx->irep->iseq && pc < ctx->irep->iseq + ctx->irep->ilen);
     cipop(ctx->mrb);
   }
   else {
@@ -1286,7 +1285,7 @@ _op_send_static(struct op_ctx *ctx, mrb_value recv, struct RClass *c,
     }
     ctx->regs = ctx->mrb->c->stack;
     PC_SET(ctx, ctx->irep->iseq);
-    printf("pc set to iseq %p (%p)\n", ctx->pc, ctx->irep->iseq);
+    VM_PRINTF("pc set to iseq %p (%p)\n", ctx->pc, ctx->irep->iseq);
   }
 }
 
@@ -1298,7 +1297,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n, mrb_code *pc) {
   mrb_value recv;
   mrb_sym mid = ctx->syms[b];
 
-  printf(_str_const_op_send2,mrb_sym2name(ctx->mrb, mid), mid, b);
+  VM_PRINTF(_str_const_op_send2,mrb_sym2name(ctx->mrb, mid), mid, b);
 
   recv = ctx->regs[a];
   c = mrb_class(ctx->mrb, recv);
@@ -1319,7 +1318,6 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n, mrb_code *pc) {
   }
 
   _op_send_static(ctx, recv, c, mid, m, opcode, a, n, pc);
-  printf("_op_send done\n");
 }
 
 static OP_INLINE void
@@ -1433,8 +1431,8 @@ _op_return(struct op_ctx *ctx, int a, int b, mrb_code *pc) {
     acc = ci->acc;
     PC_SET(ctx, ci->pc);
     ctx->regs = mrb->c->stack = ci->stackent;
-    printf("from :%s\n", mrb_sym2name(ctx->mrb, ci->mid));
-    printf("PC set to %p\n", ctx->pc);
+    VM_PRINTF("from :%s\n", mrb_sym2name(ctx->mrb, ci->mid));
+    VM_PRINTF("PC set to %p\n", ctx->pc);
     if (acc == CI_ACC_SKIP) {
       mrb->jmp = ctx->prev_jmp;
       ctx->retval = v;
@@ -2351,7 +2349,6 @@ op_eq(struct op_ctx *ctx) {
   int n = GETARG_C(CTX_I(ctx));
 
   mrb_value *regs = ctx->regs;
-  printf(_str_const_op_eq, mrb_type(regs[a]), mrb_type(regs[a + 1]), n);
 
   if (mrb_obj_eq(ctx->mrb, regs[a], regs[a + 1])) {
     SET_TRUE_VALUE(regs[a]);
@@ -2836,7 +2833,6 @@ RETRY_TRY_BLOCK:
 
   if (exc_catched) {
     exc_catched = FALSE;
-    //fprintf(stderr, "orbit call\n");
     _op_raise(&ctx, ctx.pc);
 #ifdef MRB_ENABLE_JIT
     mrb_jit_enter(mrb, ctx.irep, &ctx, ctx.pc);
