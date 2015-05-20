@@ -2108,6 +2108,7 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       node *n = tree;
 
+      if (!n) break;
       codegen(s, n->car, VAL);
       n = n->cdr;
       while (n) {

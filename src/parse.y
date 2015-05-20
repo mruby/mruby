@@ -4116,10 +4116,9 @@ parser_yylex(parser_state *p)
   retry:
   last_state = p->lstate;
   switch (c = nextc(p)) {
-  case '\0':    /* NUL */
   case '\004':  /* ^D */
   case '\032':  /* ^Z */
-    return 0;
+  case '\0':    /* NUL */
   case -1:      /* end of script. */
     if (p->heredocs_from_nextline)
       goto maybe_heredoc;
