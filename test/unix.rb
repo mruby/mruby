@@ -1,9 +1,10 @@
 def unixserver_test_block
-  File.unlink SocketTest.tmppath rescue nil
+  path = SocketTest.tmppath
+  File.unlink path rescue nil
   begin
-    result = yield SocketTest.tmppath
+    result = yield path
   ensure
-    File.unlink SocketTest.tmppath rescue nil
+    File.unlink path rescue nil
   end
   result
 end
