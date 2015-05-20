@@ -4,4 +4,4 @@ def fib n
   fib(n-2) + fib(n-1)
 end
 
-puts fib(37)
+puts fib(34)
