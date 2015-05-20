@@ -12,7 +12,11 @@ MRuby::Gem::Specification.new('mruby-bin-mirb') do |spec|
         spec.linker.libraries << 'termcap'
       end
     end
-    spec.linker.libraries << 'readline'
+    if RUBY_PLATFORM.include?('netbsd')
+      spec.linker.libraries << 'edit'
+    else
+      spec.linker.libraries << 'readline'
+    end
   elsif spec.build.cc.search_header_path 'linenoise.h'
     spec.cc.defines << "ENABLE_LINENOISE"
   end
