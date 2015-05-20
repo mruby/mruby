@@ -3,8 +3,8 @@ module MRuby
     REPEAT = 8
     BENCHMARKS_PER_PLOT = 12
 
-    def dat_files
-      @dat_files ||= []
+    def data_files
+      @data_files ||= []
     end
 
     def title(target_name)
@@ -18,8 +18,12 @@ module MRuby
       end
     end
 
+    def dir
+      File.join MRUBY_ROOT, 'benchmark'
+    end
+
     def bm_files
-      Dir.glob("#{MRUBY_ROOT}/benchmark/bm_*.rb")
+      Dir.glob(File.join dir, 'bm_*.rb')
     end
 
     def build_config_name
@@ -31,19 +35,19 @@ module MRuby
     end
 
     def plot_file(index = nil)
-      File.join(MRUBY_ROOT, 'benchmark', "#{build_config_name}#{index}.pdf")
+      File.join(dir, "#{build_config_name}#{index}.pdf")
     end
 
     def plot_opts_file
-      "#{MRUBY_ROOT}/benchmark/plot.gpl"
+      File.join dir, 'plot.gpl'
     end
 
-    def dat_files_per_target
-      @dat_files_per_target ||= dat_files.group_by {|f| File.dirname(f).split(File::SEPARATOR)[-1]}
+    def data_files_per_target
+      @data_files_per_target ||= data_files.group_by {|f| File.dirname(f).split(File::SEPARATOR)[-1]}
     end
 
     def plot_files
-      h = dat_files_per_target
+      h = data_files_per_target
       (0...(h[h.keys.first].size / BENCHMARKS_PER_PLOT.to_f).ceil).map do |i|
         plot_file i
       end
@@ -53,14 +57,14 @@ module MRuby
       return @all_data if @all_data
 
       all_data = {}
-      files = dat_files_per_target
-      files.each do |target_name, dat_files|
-        bm_data = dat_files.map do |dat_file|
+      files = data_files_per_target
+      files.each do |target_name, data_files|
+        bm_data = data_files.map do |dat_file|
           bm_name = File.basename dat_file, '.*'
           cpu_times = File.read(dat_file).each_line.map do |l|
             real, sys, user, res = l.split(/\s+/).map(&:to_f)
-            
-	    sys + user
+
+            sys + user
           end
           
           cpu_times.sort!
@@ -102,7 +106,6 @@ module MRuby
 
       opts_file = plot_opts_file
       opts = File.read(opts_file).each_line.to_a.map(&:strip).join(';')
-
 
       opts += ";set output '#{plot_file index}'"
       opts += ";set key off" if index && index > 0
@@ -155,11 +158,170 @@ module MRuby
       end
     end
 
+    include Rake::DSL
+
+    def define_tasks
+      plot_files.each_with_index do |plot_file, index|
+        file plot_file => [*data_files, plot_opts_file] do
+          plot index
+        end
+      end
+
+      namespace :benchmark do
+        task :plot => plot_files do
+        end
+
+        task :print => data_files do |t, args|
+          print args[0] ? args[0].to_i : nil
+        end
+      end
+    end
+
+    def define_bm_task(mruby_bin, bm_file, target_name)
+      bm_name = File.basename bm_file, ".rb"
+      data_dir = File.join(dir, build_config_name, target_name)
+      data_file = File.join(data_dir, "#{bm_name}.dat")
+      self.data_files << data_file
+
+      directory data_dir
+
+      file data_file => [bm_file, data_dir, mruby_bin] do |task|
+        puts bm_name
+
+        File.open(task.name, "w") do |f|
+          REPEAT.times do
+            # %e real
+            # %S sys
+            # %U user
+            # %M max. resident size
+            f.puts %x{(time -f "%e %S %U %M" #{mruby_bin} #{bm_file}) 2>&1 >/dev/null}
+          end
+        end
+      end
+    end
+
+
     extend self
   end
 end
 
+module MRuby
+  module Profiling
+    def data_files
+      @data_files ||= Hash.new{|h, k| h[k] = []}
+    end
 
+    def dir
+      File.join MRUBY_ROOT, 'profiling'
+    end
+
+    def plot_opts_file
+      File.join dir, 'plot.gpl'
+    end
+
+    def plot_files
+      @plot_files ||= []
+    end
+
+    def plot_file(target_name)
+      File.join(dir, "#{MRuby::Benchmark.build_config_name}_#{target_name}.pdf")
+    end
+
+    def plot(plot_file, target_name)
+      opts_file = plot_opts_file
+      opts = File.read(opts_file).each_line.to_a.map(&:strip).join(';')
+
+      opts += ";set output '#{plot_file}'"
+
+      data_files = self.data_files[target_name]
+
+      syms = []
+      totals = {}
+      bm_names = []
+      data = Hash.new{|h, k| h[k] = Hash.new{|h, k| h[k] = 0.0}}
+      data_files.each_with_index do |data_file, index|
+        bm_name = "#{File.basename(data_file, ".dat")}"
+        bm_names[index] = bm_name
+        totals[bm_name] = 0
+        File.read(data_file).each_line do |line|
+          perc, sym = line.split /\s+/
+          data[bm_name][sym] = perc.to_f;
+          totals[bm_name] += perc.to_f;
+          syms << sym
+        end
+      end
+
+      syms.uniq!
+
+      opts += ';plot '
+      opts += syms.map.with_index do |bm_name, index|
+        %Q['-' u 2:xtic(1) t columnheader(1) ]
+      end.join(',')
+      opts += ';'
+
+      cmd = %Q{gnuplot -p -e "#{opts}"}
+
+      IO.popen(cmd, 'w') do |p|
+        syms.each_with_index do |sym, index|
+          p.puts sym
+          bm_names.each do |bm_name|
+            p.puts "#{bm_name} #{data[bm_name][sym].to_f / totals[bm_name] * 100 }"
+          end
+          p.puts 'e'
+        end
+      end
+    end
+
+    include Rake::DSL
+
+    def define_target_task(target_name)
+      plot_file = plot_file(target_name)
+      self.plot_files << plot_file
+      file plot_file => [*data_files[target_name], plot_opts_file] do
+        plot plot_file, target_name
+      end
+    end
+
+    def define_tasks
+      namespace :profiling do
+        task :print => data_files do |t, args|
+        end
+
+        task :plot => plot_files do
+        end
+      end
+    end
+
+    def define_bm_task(mruby_bin, bm_file, target_name)
+      bm_name = File.basename bm_file, ".rb"
+      data_dir = File.join('profiling', MRuby::Benchmark.build_config_name, target_name)
+      data_file = File.join(data_dir, "#{bm_name}.dat")
+      session_dir = '/tmp/mruby_oprofile'
+      self.data_files[target_name] << data_file
+
+      directory data_dir
+      directory session_dir
+
+      file data_file => [bm_file, data_dir, mruby_bin, session_dir] do |task|
+        print bm_name
+        puts "..."
+
+        sh "operf -d /tmp/mruby_oprofile #{mruby_bin} #{bm_file}"
+        out = %x{opreport --session-dir=#{session_dir} --no-header --threshold 3 --symbols}
+
+        File.open(task.name, "w") do |f|
+          out.each_line do |line|
+            if line =~ /^\d+\s+(\d+(?:\.\d+)?)\s+(?:.*?\s+)?([a-zA-Z0-9_]+)$/
+              f.puts "#{$1} #{$2}"
+            end
+          end
+        end
+      end
+    end
+
+    extend self
+  end
+end
 
 MRuby.each_target do |target|
   next if target.name == 'host'
@@ -168,43 +330,13 @@ MRuby.each_target do |target|
   MRuby::Benchmark.bm_files.each do |bm_file|
     bm_name = File.basename bm_file, ".rb"
 
-    dat_dir = File.join('benchmark', MRuby::Benchmark.build_config_name, target.name)
-    dat_file = File.join(dat_dir, "#{bm_name}.dat")
-    MRuby::Benchmark.dat_files << dat_file
-
-    directory dat_dir
-
-    file dat_file => [bm_file, dat_dir, mruby_bin] do |task|
-      print bm_name
-      puts "..."
-
-      File.open(task.name, "w") do |f|
-        MRuby::Benchmark::REPEAT.times do
-          # %e real
-          # %S sys
-          # %U user
-          # %M max. resident size
-          f.puts %x{(time -f "%e %S %U %M" #{mruby_bin} #{bm_file}) 2>&1 >/dev/null}
-        end
-      end
-    end
+    MRuby::Benchmark.define_bm_task mruby_bin, bm_file, target.name
+    MRuby::Profiling.define_bm_task mruby_bin, bm_file, target.name
   end
+
+  MRuby::Profiling.define_target_task target.name 
 end
 
+MRuby::Benchmark.define_tasks 
+MRuby::Profiling.define_tasks
 
-  MRuby::Benchmark.plot_files.each_with_index do |plot_file, index|
-    file plot_file => [*MRuby::Benchmark.dat_files, MRuby::Benchmark.plot_opts_file] do
-      MRuby::Benchmark.plot index
-    end
-  end
-
-namespace :benchmark do
-
-
-  task :plot => MRuby::Benchmark.plot_files do
-  end
-
-  task :print => MRuby::Benchmark.dat_files do |t, args|
-    MRuby::Benchmark.print args[0] ? args[0].to_i : nil
-  end
-end
