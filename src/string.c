@@ -1768,22 +1768,21 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   result = mrb_ary_new(mrb);
   beg = 0;
   if (split_type == awk) {
-    char *ptr = RSTRING_PTR(str);
-    char *eptr = RSTRING_END(str);
-    char *bptr = ptr;
     mrb_bool skip = TRUE;
+    mrb_int idx = 0;
+    mrb_int str_len = RSTRING_LEN(str);
     unsigned int c;
+    int ai = mrb_gc_arena_save(mrb);
 
-    end = beg;
-    while (ptr < eptr) {
-      int ai = mrb_gc_arena_save(mrb);
-      c = (unsigned char)*ptr++;
+    idx = end = beg;
+    while (idx < str_len) {
+      c = (unsigned char)RSTRING_PTR(str)[idx++];
       if (skip) {
         if (ISSPACE(c)) {
-          beg = ptr - bptr;
+          beg = idx;
         }
         else {
-          end = ptr - bptr;
+          end = idx;
           skip = FALSE;
           if (lim_p && lim <= i) break;
         }
@@ -1792,42 +1791,33 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
         mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
         mrb_gc_arena_restore(mrb, ai);
         skip = TRUE;
-        beg = ptr - bptr;
+        beg = idx;
         if (lim_p) ++i;
       }
       else {
-        end = ptr - bptr;
+        end = idx;
       }
     }
   }
   else if (split_type == string) {
-    char *ptr = RSTRING_PTR(str); /* s->as.ary */
-    char *temp = ptr;
-    char *eptr = RSTRING_END(str);
-    mrb_int slen = RSTRING_LEN(spat);
+    mrb_int str_len = RSTRING_LEN(str);
+    mrb_int pat_len = RSTRING_LEN(spat);
+    mrb_int idx = 0;
+    int ai = mrb_gc_arena_save(mrb);
 
-    if (slen == 0) {
-      int ai = mrb_gc_arena_save(mrb);
-      while (ptr < eptr) {
-        mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr-temp, 1));
-        mrb_gc_arena_restore(mrb, ai);
-        ptr++;
-        if (lim_p && lim <= ++i) break;
+    while (idx < str_len && 1) {
+      if (pat_len > 0) {
+        end = mrb_memsearch(RSTRING_PTR(spat), pat_len, RSTRING_PTR(str)+idx, str_len - idx);
+        if (end < 0) break;
+      } else {
+        end = 1;
       }
+      mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, idx, end));
+      mrb_gc_arena_restore(mrb, ai);
+      idx += end + pat_len;
+      if (lim_p && lim <= ++i) break;
     }
-    else {
-      char *sptr = RSTRING_PTR(spat);
-      int ai = mrb_gc_arena_save(mrb);
-
-      while (ptr < eptr &&
-        (end = mrb_memsearch(sptr, slen, ptr, eptr - ptr)) >= 0) {
-        mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr - temp, end));
-        mrb_gc_arena_restore(mrb, ai);
-        ptr += end + slen;
-        if (lim_p && lim <= ++i) break;
-      }
-    }
-    beg = ptr - temp;
+    beg = idx;
   }
   else {
     mrb_noregexp(mrb, str);
