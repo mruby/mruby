@@ -1805,7 +1805,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     mrb_int idx = 0;
     int ai = mrb_gc_arena_save(mrb);
 
-    while (idx < str_len && 1) {
+    while (idx < str_len) {
       if (pat_len > 0) {
         end = mrb_memsearch(RSTRING_PTR(spat), pat_len, RSTRING_PTR(str)+idx, str_len - idx);
         if (end < 0) break;
