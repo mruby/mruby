@@ -612,10 +612,10 @@ static void op_return_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 static void op_break__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 }
 static void op_break__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
-*((uint32_t *)(text + 5)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-*((uint32_t *)(text + 10)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
-*((uint32_t *)(text + 15)) = (uint32_t)(((uintptr_t)pc) + (0));
-  *((int32_t *)(text + 20)) = (int32_t)(((uintptr_t)_op_return) + (-4) - ((uintptr_t)(text + 20)));
+*((uint32_t *)(text + 17)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
+*((uint32_t *)(text + 22)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
+*((uint32_t *)(text + 27)) = (uint32_t)(((uintptr_t)pc) + (0));
+  *((int32_t *)(text + 32)) = (int32_t)(((uintptr_t)_op_return) + (-4) - ((uintptr_t)(text + 32)));
 }
 static void op_break_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_break__rodata__link(text, rodata, pc);

@@ -289,7 +289,7 @@ profiles.each do |profile|
     hand_asm_file = hand_asm_file(profile, op)
 
     file asm_file => [ll_opt_file, asm_dir(profile)] do |t|
-      if t.name =~ /op_return/
+      if t.name =~ /op_return/ || t.name =~ /op_break/
         # force stack alignment for ops
         # that call into SIMD code
         opts = "-force-align-stack -stack-alignment=16"
