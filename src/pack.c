@@ -13,8 +13,8 @@
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 struct tmpl {
   mrb_value str;
@@ -51,7 +51,7 @@ enum {
 #define PACK_FLAG_SIGNED        0x00000008	/* native size ("_" "!") */
 #define PACK_FLAG_GT            0x00000010	/* big endian (">") */
 #define PACK_FLAG_LT            0x00000020	/* little endian ("<") */
-#define PACK_FLAG_WIDTH         0x00000040	/* */
+#define PACK_FLAG_WIDTH         0x00000040	/* "count" is "width" */
 #define PACK_FLAG_LSB           0x00000080	/* LSB / low nibble first */
 #define PACK_FLAG_COUNT2        0x00000100	/* "count" is special... */
 #define PACK_FLAG_LITTLEENDIAN  0x00000200	/* little endian actually */
@@ -868,17 +868,17 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       if (type == PACK_TYPE_INTEGER) {
         if (mrb_float_p(o)) {
           o = mrb_funcall(mrb, o, "to_i", 0);
-	} else if (!mrb_fixnum_p(o)) {
-	  mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into Integer", mrb_class_path(mrb, mrb_obj_class(mrb, o)));
-	}
+        } else if (!mrb_fixnum_p(o)) {
+          mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into Integer", mrb_class_path(mrb, mrb_obj_class(mrb, o)));
+        }
       } else if (type == PACK_TYPE_FLOAT) {
         if (!mrb_float_p(o)) {
           o = mrb_funcall(mrb, o, "to_f", 0);
         }
       } else if (type == PACK_TYPE_STRING) {
         if (!mrb_string_p(o)) {
-	  mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into String", mrb_class_path(mrb, mrb_obj_class(mrb, o)));
-	}
+          mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into String", mrb_class_path(mrb, mrb_obj_class(mrb, o)));
+        }
       }
 
       switch (dir) {
