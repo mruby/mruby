@@ -60,20 +60,24 @@ module MRuby
       files = data_files_per_target
       files.each do |target_name, data_files|
         bm_data = data_files.map do |dat_file|
-          bm_name = File.basename dat_file, '.*'
-          cpu_times = File.read(dat_file).each_line.map do |l|
-            real, sys, user, res = l.split(/\s+/).map(&:to_f)
+          begin
+            bm_name = File.basename dat_file, '.*'
+            cpu_times = File.read(dat_file).each_line.map do |l|
+              real, sys, user, res = l.split(/\s+/).map(&:to_f)
 
-            sys + user
+              sys + user
+            end
+            
+            cpu_times.sort!
+            min = cpu_times.shift.round 3
+            max = cpu_times.pop.round 3
+            avg = cpu_times.inject(&:+)./(cpu_times.size).round(3)
+
+            [bm_name, avg, min, max]
+          rescue Exception
+            [bm_name, 0, 0, 0]
           end
-          
-          cpu_times.sort!
-          min = cpu_times.shift.round 3
-          max = cpu_times.pop.round 3
-          avg = cpu_times.inject(&:+)./(cpu_times.size).round(3)
-
-          [bm_name, avg, min, max]
-        end
+        end.compact
 
         # underscore means subscript in gnuplot
         all_data[target_name.gsub('_', '-')] = bm_data
@@ -148,7 +152,7 @@ module MRuby
       data.each do |bm_name, bm_data|
         avgs = bm_data.map do |(avg, *_)| 
           if relative
-            avg / bm_data[relative][0]
+            bm_data[relative][0] > 0 ? avg / bm_data[relative][0] : 0
           else
             avg
           end

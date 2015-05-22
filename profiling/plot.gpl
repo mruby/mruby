@@ -1,6 +1,6 @@
 set yrange [0:100]
 set style fill pattern 1 border -1
-set terminal pdfcairo lw 1 size 26cm,16cm
+set terminal pdfcairo lw 1 size 26cm,22cm
 set xtics rotate by -45
 set key outside center bottom horiz Left invert reverse
 set style data histogram
