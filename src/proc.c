@@ -240,6 +240,9 @@ proc_lambda(mrb_state *mrb, mrb_value self)
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Proc object without a block");
   }
+  if (mrb_type(blk) != MRB_TT_PROC) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "not a proc");
+  }
   p = mrb_proc_ptr(blk);
   if (!MRB_PROC_STRICT_P(p)) {
     struct RProc *p2 = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, p->c);
