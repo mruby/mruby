@@ -18,23 +18,24 @@ struct RClass {
   struct RClass *super;
 };
 
-struct mrb_mcache_entry {
-  mrb_sym mid;
-  struct RClass *c;
-  struct Proc *p;
-};
 
-#ifndef MRB_METHOD_CACHE_SIZE
-#define MRB_METHOD_CACHE_SIZE 4
+#ifndef MRB_METHOD_CACHE_MORPHICITY
+#define MRB_METHOD_CACHE_MORPHICITY 2
 #endif
 
-struct mrb_mcache {
-  struct mrb_mcache_entry entries[MRB_METHOD_CACHE_SIZE];
-  struct RClass *classes[MRB_METHOD_CACHE_SIZE];
-  int16_t head;
-  int16_t tail;
+struct mrb_mcache_entry {
+  mrb_sym mid;
+  struct RClass *sc[MRB_METHOD_CACHE_MORPHICITY];
+  struct RProc *p[MRB_METHOD_CACHE_MORPHICITY];
+  struct RClass *tc[MRB_METHOD_CACHE_MORPHICITY];
+  uint16_t index;
 };
 
+
+struct mrb_mcache {
+  uint16_t len;
+  struct mrb_mcache_entry entries[1];
+};
 
 #define mrb_class_ptr(v)    ((struct RClass*)(mrb_ptr(v)))
 #define RCLASS_SUPER(v)     (((struct RClass*)(mrb_ptr(v)))->super)
@@ -66,10 +67,10 @@ mrb_class(mrb_state *mrb, mrb_value v)
   }
 }
 
-struct RProc *_mrb_method_search_vm(mrb_state*, struct RClass**, mrb_sym);
-
 #define MRB_SET_INSTANCE_TT(c, tt) c->flags = ((c->flags & ~0xff) | (char)tt)
 #define MRB_INSTANCE_TT(c) (enum mrb_vtype)(c->flags & 0xff)
+
+struct RProc *_mrb_method_search_vm(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym mid);
 
 MRB_API struct RClass* mrb_define_class_id(mrb_state*, mrb_sym, struct RClass*);
 MRB_API struct RClass* mrb_define_module_id(mrb_state*, mrb_sym);

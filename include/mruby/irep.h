@@ -13,6 +13,7 @@ extern "C" {
 
 #include "mrbconf.h"
 #include "mruby/compile.h"
+#include "mruby/class.h"
 
 #ifdef MRB_ENABLE_JIT
 #include "mruby/jit.h"
@@ -56,6 +57,12 @@ typedef struct mrb_irep {
 #ifdef MRB_ENABLE_JIT
   mrb_jit_ctx jit_ctx;
 #endif
+
+#ifdef MRB_ENABLE_METHOD_CACHE
+  struct mrb_mcache *mcache;
+  struct mrb_irep *next;
+  struct mrb_irep *prev;
+#endif
 } mrb_irep;
 
 #define MRB_IREP_ISEQ_NO_FREE 1
@@ -68,6 +75,7 @@ MRB_API mrb_value mrb_load_irep_cxt(mrb_state*, const uint8_t*, mrbc_context*);
 void mrb_irep_free(mrb_state*, struct mrb_irep*);
 void mrb_irep_incref(mrb_state*, struct mrb_irep*);
 void mrb_irep_decref(mrb_state*, struct mrb_irep*);
+void mrb_irep_mcache_init(mrb_state*, struct mrb_irep*);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */

@@ -118,6 +118,10 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
     }
   }
 
+#ifdef MRB_ENABLE_METHOD_CACHE
+  mrb_irep_mcache_init(mrb, irep);
+#endif
+
   /* POOL BLOCK */
   plen = (size_t)bin_to_uint32(src); /* number of pool */
   src += sizeof(uint32_t);

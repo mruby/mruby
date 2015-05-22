@@ -76,6 +76,9 @@ typedef struct scope {
 
   int debug_start_pos;
   uint16_t filename_index;
+#ifdef MRB_ENABLE_METHOD_CACHE
+  uint16_t mcache_index;
+#endif
   parser_state* parser;
 } codegen_scope;
 
@@ -148,6 +151,7 @@ new_label(codegen_scope *s)
 static inline int
 genop(codegen_scope *s, mrb_code i)
 {
+  int pc;
   if (s->pc == s->icapa) {
     s->icapa *= 2;
     s->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->icapa);
@@ -160,7 +164,29 @@ genop(codegen_scope *s, mrb_code i)
   if (s->lines) {
     s->lines[s->pc] = s->lineno;
   }
-  return s->pc++;
+  pc = s->pc++;
+
+#ifdef MRB_ENABLE_METHOD_CACHE
+  int opcode = GET_OPCODE(i);
+  if(opcode == OP_SEND ||
+     opcode == OP_TAILCALL ||
+     opcode == OP_SENDB ||
+     opcode == OP_ADDI ||
+     opcode == OP_ADD ||
+     opcode == OP_SUBI ||
+     opcode == OP_SUB ||
+     opcode == OP_MUL ||
+     opcode == OP_DIV ||
+     opcode == OP_EQ ||
+     opcode == OP_LT ||
+     opcode == OP_LE ||
+     opcode == OP_GT ||
+     opcode == OP_GE ||
+     opcode == OP_SUPER) {
+    genop(s, MKOP_Ax(OP_MCACHE, s->mcache_index++));
+  } else
+#endif
+  return pc;
 }
 
 #define NOVAL  0
@@ -321,14 +347,17 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
     case OP_ADD:
     case OP_SUB:
       if (c0 == OP_LOADI) {
+        s->pc--;
         int c = GETARG_sBx(i0);
 
         if (c1 == OP_SUB) c = -c;
         if (c > 127 || c < -127) break;
-        if (0 <= c)
-          s->iseq[s->pc-1] = MKOP_ABC(OP_ADDI, GETARG_A(i), GETARG_B(i), c);
-        else
-          s->iseq[s->pc-1] = MKOP_ABC(OP_SUBI, GETARG_A(i), GETARG_B(i), -c);
+        if (0 <= c) {
+          genop(s, MKOP_ABC(OP_ADDI, GETARG_A(i), GETARG_B(i), c));
+        }
+        else {
+          genop(s, MKOP_ABC(OP_SUBI, GETARG_A(i), GETARG_B(i), -c));
+        }
         return 0;
       }
     case OP_STRCAT:
@@ -377,7 +406,7 @@ dispatch(codegen_scope *s, int pc)
     break;
   default:
 #ifdef ENABLE_STDIO
-    fprintf(stderr, "bug: dispatch on non JMP op\n");
+    fprintf(stderr, "bug: dispatch on non JMP op (opcode %d)\n", c);
 #endif
     scope_error(s);
     break;
@@ -2593,7 +2622,9 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   }
   p->parser = prev->parser;
   p->filename_index = prev->filename_index;
-
+#ifdef MRB_ENABLE_METHOD_CACHE
+  p->mcache_index = 0;
+#endif
   return p;
 }
 
@@ -2632,6 +2663,10 @@ scope_finish(codegen_scope *s)
 
   irep->nlocals = s->nlocals;
   irep->nregs = s->nregs;
+
+#ifdef MRB_ENABLE_METHOD_CACHE
+  mrb_irep_mcache_init(mrb, irep);
+#endif
 
   mrb_gc_arena_restore(mrb, s->ai);
   mrb_pool_close(s->mpool);
@@ -3128,7 +3163,9 @@ codedump(mrb_state *mrb, mrb_irep *irep)
     case OP_EPOP:
       printf("OP_EPOP\t%d\n", GETARG_A(c));
       break;
-
+    case OP_MCACHE:
+      printf("OP_MCACHE\t%d\n", GETARG_Ax(c));
+      break;
     default:
       printf("OP_unknown %d\t%d\t%d\t%d\n", GET_OPCODE(c),
              GETARG_A(c), GETARG_B(c), GETARG_C(c));

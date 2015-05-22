@@ -197,7 +197,7 @@ typedef struct mrb_state {
 #endif
 
 #ifdef MRB_ENABLE_METHOD_CACHE
-  struct RProc *proc_list;
+  struct mrb_irep *irep_list;
 #endif
 } mrb_state;
 

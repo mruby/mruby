@@ -8,7 +8,6 @@
 #define MRUBY_PROC_H
 
 #include "mruby/irep.h"
-#include "mruby/class.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -34,12 +33,6 @@ struct RProc {
   } body;
   struct RClass *target_class;
   struct REnv *env;
-
-#ifdef MRB_ENABLE_METHOD_CACHE
-  struct mrb_mcache mcache;
-  struct RProc *next;
-  struct RProc *prev;
-#endif
 };
 
 /* aspec access */

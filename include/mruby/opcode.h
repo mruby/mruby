@@ -142,6 +142,8 @@ enum {
   OP_STOP,/*              stop VM                                         */
   OP_ERR,/*       Bx      raise RuntimeError with message Lit(Bx)         */
 
+  OP_MCACHE,/*    Ax      method cache context information                */
+
   OP_RSVD1,/*             reserved instruction #1                         */
   OP_RSVD2,/*             reserved instruction #2                         */
   OP_RSVD3,/*             reserved instruction #3                         */

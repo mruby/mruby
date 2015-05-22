@@ -517,6 +517,45 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+static inline struct RProc *
+method_search_vm(mrb_state *mrb, struct mrb_irep *irep,
+                 mrb_code *pc,
+                 struct RClass **cp, mrb_sym mid)
+{
+  struct RClass *c = *cp;
+  struct RProc *m;
+#ifdef MRB_ENABLE_METHOD_CACHE
+  int index, e_index, i;
+  struct mrb_mcache *mcache;
+  struct mrb_mcache_entry *e;
+  mrb_code c_mcache = *(pc + 1);
+
+  mrb_assert(GET_OPCODE(c_mcache) == OP_MCACHE);
+  index = GETARG_Ax(c_mcache);
+  mcache = irep->mcache;
+  e = &mcache->entries[index];
+
+  for(i = 0; i < MRB_METHOD_CACHE_MORPHICITY; i++) {
+    if (e->sc[i] == c) {
+      m = e->p[i];
+      goto done;
+    }
+  }
+#endif
+  m = _mrb_method_search_vm(mrb, c, cp, mid);
+#ifdef MRB_ENABLE_METHOD_CACHE
+  e_index = e->index;
+  e->index = (e_index + 1) % MRB_METHOD_CACHE_MORPHICITY;
+  e->sc[e_index] = c;
+  e->tc[e_index] = *cp;
+  e->p[e_index] = m;
+  e->mid = mid;
+#endif
+
+done:
+  return m;
+}
+
 static mrb_value
 eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
 {
@@ -1307,7 +1346,7 @@ _op_send(struct op_ctx *ctx, int opcode, int a, int b, int n, mrb_code *pc) {
   recv = ctx->regs[a];
   c = mrb_class(ctx->mrb, recv);
 
-  m = mrb_method_search_vm_proc(ctx->mrb, ctx->proc, &c, mid);
+  m = method_search_vm(ctx->mrb, ctx->irep, pc, &c, mid);
   if (MRB_UNLIKELY(!m)) {
     mrb_value sym = mrb_symbol_value(mid);
 
@@ -1566,7 +1605,7 @@ op_super(struct op_ctx *ctx) {
 
   recv = ctx->regs[0];
   c = ctx->mrb->c->ci->target_class->super;
-  m = mrb_method_search_vm_proc(ctx->mrb, ctx->proc, &c, mid);
+  m = method_search_vm(ctx->mrb, ctx->irep, PC_GET(ctx), &c, mid);
   if (!m) {
     mid = intern_str_const(ctx->mrb, _str_const_method_missing);
     m = mrb_method_search_vm(ctx->mrb, &c, mid);
@@ -1892,7 +1931,7 @@ op_tailcall(struct op_ctx *ctx) {
 
   recv = ctx->regs[a];
   c = mrb_class(ctx->mrb, recv);
-  m = mrb_method_search_vm_proc(mrb, ctx->proc, &c, mid);
+  m = method_search_vm(mrb, ctx->irep, PC_GET(ctx), &c, mid);
   if (!m) {
     mrb_value sym = mrb_symbol_value(mid);
 
@@ -2802,7 +2841,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     &&L_OP_LAMBDA, &&L_OP_RANGE, &&L_OP_OCLASS,
     &&L_OP_CLASS, &&L_OP_MODULE, &&L_OP_EXEC,
     &&L_OP_METHOD, &&L_OP_SCLASS, &&L_OP_TCLASS,
-    &&L_OP_DEBUG, &&L_OP_STOP, &&L_OP_ERR,
+    &&L_OP_DEBUG, &&L_OP_STOP, &&L_OP_ERR, &&L_OP_MCACHE
   };
 #endif
 
@@ -3258,6 +3297,10 @@ RETRY_TRY_BLOCK:
     CASE(OP_ERR) {
       op_err(&ctx);
       JUMP;
+    }
+
+    CASE(OP_MCACHE) {
+      NEXT;
     }
   }
   END_DISPATCH;
