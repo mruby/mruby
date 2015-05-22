@@ -2075,7 +2075,7 @@ op_add(struct op_ctx *ctx) {
     regs[a] = mrb_str_plus(mrb, regs[a], regs[a+1]);
     break;
   default:
-    return op_send(ctx);
+    _OP_SEND(ctx, OP_SEND, a, GETARG_B(CTX_I(ctx)), 1, PC_GET(ctx));
   }
   ARENA_RESTORE(mrb, ctx->ai);
   PC_INC(ctx);
@@ -2136,7 +2136,7 @@ op_sub(struct op_ctx *ctx) {
 #endif
     break;
   default:
-    return op_send(ctx);
+    _OP_SEND(ctx, OP_SEND, a, GETARG_B(CTX_I(ctx)), 1, PC_GET(ctx));
   }
   PC_INC(ctx);
 }
@@ -2205,7 +2205,7 @@ op_mul(struct op_ctx *ctx) {
 #endif
     break;
   default:
-    return op_send(ctx);
+    _OP_SEND(ctx, OP_SEND, a, GETARG_B(CTX_I(ctx)), 1, PC_GET(ctx));
   }
   PC_INC(ctx);
 }
@@ -2258,7 +2258,7 @@ op_div(struct op_ctx *ctx) {
 #endif
     break;
   default:
-    return op_send(ctx);
+    _OP_SEND(ctx, OP_SEND, a, GETARG_B(CTX_I(ctx)), 1, PC_GET(ctx));
   }
 #ifdef MRB_NAN_BOXING
   if (isnan(mrb_float(regs[a]))) {
