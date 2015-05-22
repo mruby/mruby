@@ -357,7 +357,9 @@ pack_a(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
   else
     pad = ' ';
 
-  if (count == -1) {
+  if (count == 0) {
+    return 0;
+  } else if (count == -1) {
     copylen = slen;
     padlen = (flags & PACK_FLAG_Z) ? 1 : 0;
   } else if (count < slen) {
@@ -383,29 +385,31 @@ static int
 unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, unsigned int flags)
 {
   mrb_value dst;
-  const char *sptr;
-  char *dptr;
+  const char *cp, *sptr;
+  long copylen;
 
   sptr = src;
+  if (count != -1 && count < slen)  {
+    slen = count;
+  }
+  copylen = slen;
 
-  if (count == -1 || count > slen)
-    count = slen;
-
-  dst = mrb_str_new(mrb, NULL, count);
-  dptr = RSTRING_PTR(dst);
-
-  memcpy(dptr, sptr, count);
-  if (flags & PACK_FLAG_Z) {
-    if (count > 0 && dptr[count - 1] == '\0')
-      count--;
-  } else if (!(flags & PACK_FLAG_a)) {
-    while (count > 0 && (dptr[count - 1] == '\0' || isspace(dptr[count - 1])))
-      count--;
+  if (flags & PACK_FLAG_Z) {  /* "Z" */
+    if ((cp = memchr(sptr, '\0', slen)) != NULL) {
+      copylen = cp - sptr;
+      if (count == -1) {
+        slen = copylen + 1;
+      }
+    }
+  } else if (!(flags & PACK_FLAG_a)) {  /* "A" */
+    while (copylen > 0 && (sptr[copylen - 1] == '\0' || isspace(sptr[copylen - 1]))) {
+      copylen--;
+    }
   }
 
-  dst = mrb_str_resize(mrb, dst, count);
+  dst = mrb_str_new(mrb, sptr, copylen);
   mrb_ary_push(mrb, ary, dst);
-  return count;
+  return slen;
 }
 
 
@@ -907,6 +911,10 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
         ridx += pack_float(mrb, o, result, ridx, flags);
         break;
       default:
+        break;
+      }
+      if (dir == PACK_DIR_STR) { /* always consumes 1 entry */
+        aidx++;
         break;
       }
       if (count > 0) {
