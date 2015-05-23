@@ -46,7 +46,7 @@ The value below allows about 60000 recursive calls in the simplest case. */
 #define MRB_STACK_MAX (0x40000 - MRB_STACK_GROWTH)
 #endif
 
-#define VM_DEBUG
+//#define VM_DEBUG
 
 #ifdef VM_DEBUG
 # define DEBUG(x) (x)
@@ -1774,10 +1774,7 @@ op_enter(struct op_ctx *ctx) {
   mrb_value *argv0 = argv;
   int paramc = m1 + o + r + m2;
   mrb_value *blk = &argv[argc < 0 ? 1 : argc];
-
-#ifdef MRB_JIT_GEN
-  uint16_t jit_jmp_off = 0;
-#endif
+  mrb_code *pc = PC_GET(ctx);
 
   if ((!mrb_nil_p(*blk) && mrb_type(*blk) != MRB_TT_PROC)) {
     *blk = mrb_convert_type(ctx->mrb, *blk, MRB_TT_PROC, _str_const_proc, _str_const_to_proc);
@@ -1825,16 +1822,10 @@ op_enter(struct op_ctx *ctx) {
       ctx->regs[m1+o+1] = mrb_ary_new_capa(ctx->mrb, 0);
     }
     if (o == 0 || argc < m1+m2) {
-      PC_INC(ctx);
-#ifdef MRB_JIT_GEN
-      jit_jmp_off = ctx->irep->jit_ctx.text_off_tbl[1];
-#endif
+      pc += 1;
     }
     else {
-      PC_ADD(ctx, ctx->irep->oa_off[argc - m1 - m2]);
-#ifdef MRB_JIT_GEN
-      jit_jmp_off = ctx->irep->jit_ctx.text_off_tbl[argc - m1 - m2 + 1];
-#endif
+      pc += ctx->irep->oa_off[argc - m1 - m2];
     }
   }
   else {
@@ -1857,24 +1848,17 @@ op_enter(struct op_ctx *ctx) {
     }
 
     if(o > 0) {
-      PC_ADD(ctx, ctx->irep->oa_off[o]);
-#ifdef MRB_JIT_GEN
-      jit_jmp_off = ctx->irep->jit_ctx.text_off_tbl[o + 1];
-#endif
+      pc += ctx->irep->oa_off[o];
     }
     else {
-      PC_INC(ctx);
-#ifdef MRB_JIT_GEN
-      jit_jmp_off = ctx->irep->jit_ctx.text_off_tbl[1];
-#endif
+      pc += 1;
     }
-
   }
 
-
 #ifdef MRB_JIT_GEN
-  typedef void (*__op_enter_exit__)(struct op_ctx *, uintptr_t off);
-  ((__op_enter_exit__)(0xFAB))(ctx, ((uintptr_t)ctx->irep->jit_ctx.text) + jit_jmp_off);
+  MRB_JIT_CALL(ctx->irep, pc, ctx);
+#else
+  PC_SET(ctx, pc);
 #endif
 }
 

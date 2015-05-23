@@ -347,11 +347,11 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
     case OP_ADD:
     case OP_SUB:
       if (c0 == OP_LOADI) {
-        s->pc--;
         int c = GETARG_sBx(i0);
 
         if (c1 == OP_SUB) c = -c;
         if (c > 127 || c < -127) break;
+        s->pc--;
         if (0 <= c) {
           genop(s, MKOP_ABC(OP_ADDI, GETARG_A(i), GETARG_B(i), c));
         }
