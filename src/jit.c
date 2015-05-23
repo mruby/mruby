@@ -36,14 +36,6 @@
 #  error Platform not yet supported
 #endif
 
-#if !defined(_WIN32) && \
-    (defined(__unix__) || defined(__unix) ||\
-    (defined(__APPLE__) && defined(__MACH__)))
-#include <sys/mman.h>
-#include <unistd.h>
-#include <alloca.h>
-#include <stdlib.h>
-
 #define JIT_DEBUG
 
 #define ALIGN(s, a) (((s) + (a) - 1) & ~((a) - 1))
@@ -53,6 +45,14 @@
 #else
 #define JIT_PRINTF(...)
 #endif
+
+#if !defined(_WIN32) && \
+    (defined(__unix__) || defined(__unix) ||\
+    (defined(__APPLE__) && defined(__MACH__)))
+#include <sys/mman.h>
+#include <unistd.h>
+#include <alloca.h>
+#include <stdlib.h>
 
 static size_t
 jit_page_size()
