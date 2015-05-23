@@ -185,6 +185,11 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
     mrb_free(mrb, irep->mcache);
   }
 #endif
+
+#ifdef MRB_ENABLE_JIT
+  mrb_jit_release(mrb, irep);
+#endif
+
   mrb_free(mrb, irep);
 }
 

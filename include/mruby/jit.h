@@ -34,6 +34,9 @@ struct mrb_irep;
 
 mrb_bool mrb_jit_enter(mrb_state *mrb, struct mrb_irep *irep, void *ctx, mrb_code *pc);
 
+mrb_bool
+mrb_jit_release(mrb_state *mrb, struct mrb_irep *irep);
+
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif

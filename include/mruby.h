@@ -193,7 +193,6 @@ typedef struct mrb_state {
 
 #ifdef MRB_ENABLE_JIT
   void *op_ctx;
-  uint32_t jit_page_counter;
 #endif
 
 #ifdef MRB_ENABLE_METHOD_CACHE
@@ -395,22 +394,22 @@ MRB_API void mrb_print_error(mrb_state *mrb);
    + exception objects obtained from those macros are local to mrb
 */
 
-extern const char *_mrb_str_const_runtime_error;
-extern const char *_mrb_str_const_type_error;
-extern const char *_mrb_str_const_argument_error;
-extern const char *_mrb_str_const_index_error;
-extern const char *_mrb_str_const_range_error;
-extern const char *_mrb_str_const_name_error;
-extern const char *_mrb_str_const_nomethod_error;
-extern const char *_mrb_str_const_script_error;
-extern const char *_mrb_str_const_syntax_error;
-extern const char *_mrb_str_const_localjump_error;
-extern const char *_mrb_str_const_regexp_error;
-extern const char *_mrb_str_const_systemstack_error;
-extern const char *_mrb_str_const_notimplemented_error;
-extern const char *_mrb_str_const_floatdomain_error;
-extern const char *_mrb_str_const_key_error;
-extern const char *_mrb_str_const_fiber_error;
+extern const char _mrb_str_const_runtime_error[];
+extern const char _mrb_str_const_type_error[];
+extern const char _mrb_str_const_argument_error[];
+extern const char _mrb_str_const_index_error[];
+extern const char _mrb_str_const_range_error[];
+extern const char _mrb_str_const_name_error[];
+extern const char _mrb_str_const_nomethod_error[];
+extern const char _mrb_str_const_script_error[];
+extern const char _mrb_str_const_syntax_error[];
+extern const char _mrb_str_const_localjump_error[];
+extern const char _mrb_str_const_regexp_error[];
+extern const char _mrb_str_const_systemstack_error[];
+extern const char _mrb_str_const_notimplemented_error[];
+extern const char _mrb_str_const_floatdomain_error[];
+extern const char _mrb_str_const_key_error[];
+extern const char _mrb_str_const_fiber_error[];
 
 
 

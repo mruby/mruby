@@ -14,8 +14,10 @@
 
 #include <string.h>
 
+
 #if defined(__linux__)
 #  if defined(__x86_64__)
+#    define MRB_JIT_PAGE_BASE ((uint8_t *)(INT32_MAX))
 #    if defined(MRB_NAN_BOXING)
 #      include "jit/x86_64-unknown-linux-gnu-nan_boxing/ops.h"
 #    elif defined(MRB_WORD_BOXING)
@@ -38,13 +40,96 @@
 
 //#define JIT_DEBUG
 
-#define ALIGN(s, a) (((s) + (a) - 1) & ~((a) - 1))
-
 #ifdef JIT_DEBUG
 #define JIT_PRINTF(...) fprintf(stderr, __VA_ARGS__)
 #else
 #define JIT_PRINTF(...)
 #endif
+
+#define ALIGN(s, a) (((s) + (a) - 1) & ~((a) - 1))
+
+#ifndef MRB_JIT_PAGE_MAP_SIZE
+#define MRB_JIT_PAGE_MAP_SIZE 2048
+#endif
+
+#define MRB_JIT_PAGE_FIND_MAX_ATTEMPTS 32
+
+typedef enum {
+  PAGE_MARK_UNKOWN,
+  PAGE_MARK_FREE,
+  PAGE_MARK_ALLOCED
+} page_mark_t;
+
+static uint8_t page_marks[MRB_JIT_PAGE_MAP_SIZE];
+
+static void
+mark_page(uint8_t *addr, size_t size, size_t page_size, page_mark_t mark) {
+  size_t n_pages = size / page_size;
+  int i = (MRB_JIT_PAGE_BASE - addr) / (page_size);
+  int j;
+
+  JIT_PRINTF("marking pages %d - %ld as %d\n", i, i + n_pages, mark);
+  for(j = 0; j < n_pages; j++) {
+     page_marks[i + j] = mark;
+  }
+
+  for(i = 0; i < MRB_JIT_PAGE_MAP_SIZE; i++) {
+    if(page_marks[i] == PAGE_MARK_ALLOCED) {
+      JIT_PRINTF("X");
+    }
+    else if(page_marks[i] == PAGE_MARK_FREE) {
+      JIT_PRINTF(".");
+    } else {
+      JIT_PRINTF("?");
+    }
+  }
+  JIT_PRINTF("\n");
+}
+
+static uint8_t *
+find_page(size_t size, size_t page_size)
+{
+  size_t n_pages = size / page_size;
+  int i;
+
+  JIT_PRINTF("finding free page\n");
+  for(i = 0; i < MRB_JIT_PAGE_MAP_SIZE; i++) {
+    if(page_marks[i] == PAGE_MARK_ALLOCED) {
+      JIT_PRINTF("X");
+    }
+    else if(page_marks[i] == PAGE_MARK_FREE) {
+      JIT_PRINTF(".");
+    } else {
+      JIT_PRINTF("?");
+    }
+  }
+  JIT_PRINTF("\n");
+
+
+  for(i = 0; i < MRB_JIT_PAGE_MAP_SIZE; i++) {
+    if(page_marks[i] != PAGE_MARK_ALLOCED) {
+      int j;
+      for(j = 1; j < n_pages; j++) {
+        if(page_marks[i + j] == PAGE_MARK_ALLOCED) {
+          i += j + 1;
+          goto outer;
+        }
+      }
+      goto found;
+    }
+outer:;
+  }
+
+  JIT_PRINTF("no page found!!\n");
+  return NULL;
+
+found:
+  {
+    JIT_PRINTF("found free page: %d - %ld\n", i, i + n_pages);
+    return (uint8_t *) (MRB_JIT_PAGE_BASE - i * page_size);
+  }
+}
+
 
 #if !defined(_WIN32) && \
     (defined(__unix__) || defined(__unix) ||\
@@ -53,6 +138,7 @@
 #include <unistd.h>
 #include <alloca.h>
 #include <stdlib.h>
+#include <errno.h>
 
 static size_t
 jit_page_size()
@@ -66,9 +152,15 @@ jit_ctx_alloc(mrb_state *mrb, struct mrb_jit_ctx *ctx, size_t text_size, size_t 
   size_t page_size = jit_page_size();
   size_t size = ALIGN(text_size + rodata_size, page_size);
   uint8_t *addr, *mem;
+  unsigned tries = 0;
 
-  JIT_PRINTF("page counter is %d | page size is %zu\n", mrb->jit_page_counter, page_size);
-  addr = (uint8_t *) ALIGN(INT32_MAX - (500 - mrb->jit_page_counter++) * size, page_size);
+retry:
+  addr = find_page(size, page_size);
+  if(!addr) {
+    fprintf(stderr, "JIT: no free address range for page found. Consider increasing MRB_JIT_PAGE_MAP_SIZE\n");
+    abort();
+  }
+
   JIT_PRINTF( "allocating page of size %zu (text:%zu, rodata: %zu) (at %p)\n", size, text_size,rodata_size ,addr);
 
   mem = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
@@ -81,9 +173,39 @@ jit_ctx_alloc(mrb_state *mrb, struct mrb_jit_ctx *ctx, size_t text_size, size_t 
   ctx->rodata_size = rodata_size;
   ctx->size = size;
 
-  mrb_assert((mem + size) < (uint8_t *)INT32_MAX);
+  if(mem != MAP_FAILED) {
+    if((mem + size) >= (uint8_t *)INT32_MAX) {
+      tries++;
+      if (tries >= MRB_JIT_PAGE_FIND_MAX_ATTEMPTS) {
+        fprintf(stderr, "JIT: allocating memory for SCM failed (requested %p, receviced %p).\n", addr, mem);
+        abort();
+      } else {
+        JIT_PRINTF("got invalid page %p, retrying...\n", mem);
+        mark_page(addr, size, page_size, PAGE_MARK_ALLOCED);
+        munmap(mem, size);
 
-  return mem != MAP_FAILED;
+        goto retry;
+      }
+    }
+    else {
+      mark_page(ctx->text, ctx->size, page_size, PAGE_MARK_ALLOCED);
+    }
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+static void
+jit_ctx_free(mrb_state *mrb, struct mrb_jit_ctx *ctx)
+{
+  size_t page_size = jit_page_size();
+  JIT_PRINTF("deallocating page of size %zu (%ld pages)\n", ctx->size, ctx->size / page_size );
+  if(munmap(ctx->text, ctx->size) < 0) {
+    fprintf(stderr, "munmap failed: %s\n", strerror(errno));
+  } else {
+    mark_page(ctx->text, ctx->size, page_size, PAGE_MARK_FREE);
+  }
 }
 
 static void
@@ -235,6 +357,17 @@ build_text_off_tbl(mrb_state *mrb, mrb_irep *irep)
 
   irep->jit_ctx.text_off_tbl = tbl;
   return tbl[irep->ilen];
+}
+
+
+mrb_bool
+mrb_jit_release(mrb_state *mrb, mrb_irep *irep) {
+  if (MRB_IREP_JITTED_P(irep)) {
+    jit_ctx_free(mrb, &irep->jit_ctx);
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 static mrb_bool
