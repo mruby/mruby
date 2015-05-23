@@ -255,23 +255,6 @@ mrb_jit_prepare(mrb_state *mrb, mrb_irep *irep)
     jit_ctx_alloc(mrb, &irep->jit_ctx, text_size, rodata_size);
 
     JIT_PRINTF("need %zu bytes for jit code (%zu for the final return)\n", text_size, return_size());
-/*
-    off = op_sizes_text[OP_ENTER];
-    proc->jit_oa_off[0] = off;
-    for(i = 1; i < irep->oalen; i++) {
-      uint16_t off = 0;
-      int j;
-      for(j = 1; j < irep->oa_off[i]; j++) {
-        mrb_code c = irep->iseq[j];
-        off += op_sizes_text[GET_OPCODE(c)];
-      }
-      proc->jit_oa_off[i] = off;
-    }
-
-    for(i = 0; i < irep->oalen; i++) {
-      DEBUG(JIT_PRINTF( "op_enter offsets: %d -> %d (%d)\n", i, proc->jit_oa_off[i], proc->jit_oa_off[i] - base));
-    }
-    */
   }
 
   return TRUE;
@@ -291,8 +274,6 @@ mrb_jit_compile(mrb_state *mrb, mrb_irep *irep)
     struct mrb_jit_ctx *ctx;
     int32_t *text_off_tbl;
     int32_t *rodata_off_tbl;
-    //int ilen = irep->ilen;
-    //mrb_code *iseq = irep->iseq;
 
     if(!mrb_jit_prepare(mrb, irep)) {
       return FALSE;
