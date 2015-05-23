@@ -16,8 +16,6 @@
 #include "mruby/error.h"
 #include "mruby/data.h"
 
-#include "class_inline.h"
-
 KHASH_DEFINE(mt, mrb_sym, struct RProc*, TRUE, kh_int_hash_func, kh_int_hash_equal)
 
 void
