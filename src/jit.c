@@ -44,7 +44,7 @@
 #include <alloca.h>
 #include <stdlib.h>
 
-//#define JIT_DEBUG
+#define JIT_DEBUG
 
 #define ALIGN(s, a) (((s) + (a) - 1) & ~((a) - 1))
 
@@ -67,9 +67,9 @@ jit_ctx_alloc(mrb_state *mrb, struct mrb_jit_ctx *ctx, size_t text_size, size_t 
   size_t size = ALIGN(text_size + rodata_size, page_size);
   uint8_t *addr, *mem;
 
-  JIT_PRINTF( "page counter is %d | page size is %d\n", mrb->jit_page_counter, page_size);
+  JIT_PRINTF("page counter is %d | page size is %zu\n", mrb->jit_page_counter, page_size);
   addr = (uint8_t *) ALIGN(INT32_MAX - (500 - mrb->jit_page_counter++) * size, page_size);
-  JIT_PRINTF( "allocating page of size %d (text:%d, rodata: %d) (at %p)\n", size, text_size,rodata_size ,addr);
+  JIT_PRINTF( "allocating page of size %zu (text:%zu, rodata: %zu) (at %p)\n", size, text_size,rodata_size ,addr);
 
   mem = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
@@ -225,7 +225,7 @@ build_text_off_tbl(mrb_state *mrb, mrb_irep *irep)
     int opcode = GET_OPCODE(c);
     int32_t next_off = tbl[i] + op_sizes_text[opcode];
     if (is_jump(opcode)) {
-      JIT_PRINTF("jump: adding extra %d\n", jump_size(irep->iseq[i], 0, TRUE));
+      JIT_PRINTF("jump: adding extra %zu\n", jump_size(irep->iseq[i], 0, TRUE));
       next_off += jump_size(irep->iseq[i], 0, TRUE);
     }
     tbl[i + 1] = next_off;
@@ -254,7 +254,7 @@ mrb_jit_prepare(mrb_state *mrb, mrb_irep *irep)
 
     jit_ctx_alloc(mrb, &irep->jit_ctx, text_size, rodata_size);
 
-    JIT_PRINTF("need %d bytes for jit code (%d for the final return)\n", text_size, return_size());
+    JIT_PRINTF("need %zu bytes for jit code (%zu for the final return)\n", text_size, return_size());
 /*
     off = op_sizes_text[OP_ENTER];
     proc->jit_oa_off[0] = off;
@@ -314,7 +314,7 @@ mrb_jit_compile(mrb_state *mrb, mrb_irep *irep)
       int32_t off =  text_off_tbl[i];
       int32_t rodata_off = rodata_off_tbl[i];
 
-      JIT_PRINTF( "copying %dth opcode:%s (%d) to offset %d (%d bytes) (addr: %p/%p)\n", i, op_names[opcode], opcode, off, op_sizes_text[opcode], ctx->text + off, off);
+      JIT_PRINTF( "copying %dth opcode:%s (%d) to offset %d (%zu bytes) (addr: %p/%p)\n", i, op_names[opcode], opcode, off, op_sizes_text[opcode], ctx->text + off, (void *)(intptr_t)off);
 
 
       memcpy(ctx->text + off, ops_text[opcode], op_sizes_text[opcode]);
@@ -322,15 +322,6 @@ mrb_jit_compile(mrb_state *mrb, mrb_irep *irep)
 
       /* link code */
       link_funcs[opcode](ctx->text + off, ctx->rodata + rodata_off, irep->iseq + i);
-
-      /* set operands */
-      //arg_funcs[opcode](ctx->text + off, c, i);
-
-      if(opcode == OP_RESCUE) {
-        JIT_PRINTF( "jitting op_rescue: %d\n", GETARG_A(c));
-      } else if(opcode == OP_SEND) {
-        JIT_PRINTF( "jitting op_send: %d %d %d\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));
-      }
 
       if (opcode == OP_JMPNOT || opcode == OP_JMPIF || opcode == OP_JMP) {
         int op_off = GETARG_sBx(c);
@@ -348,7 +339,7 @@ mrb_jit_compile(mrb_state *mrb, mrb_irep *irep)
         else {
           jmp_off = jit_jump(ctx->text + off + op_sizes_text[opcode], jit_off, FALSE);
         }
-        JIT_PRINTF( "jump to (%d / %ld) %p\n", op_off, jit_off, jmp_off + jit_off);
+        JIT_PRINTF( "jump to (%d / %d) %p\n", op_off, jit_off, jmp_off + jit_off);
       }
     }
 
@@ -378,21 +369,10 @@ mrb_jit_enter(mrb_state *mrb, struct mrb_irep *irep, void *ctx, mrb_code *pc)
     }
   }
 
-  JIT_PRINTF("JIT: entering irep: %p at %p (%d) %d\n", irep, pc, pc - irep->iseq, GET_OPCODE(*pc));
+  JIT_PRINTF("JIT: entering irep: %p at %p (%ld) %d\n", irep, pc, pc - irep->iseq, GET_OPCODE(*pc));
   MRB_JIT_CALL(irep, pc, ctx);
-}
 
-mrb_noreturn void
-mrb_jit_call(mrb_state *mrb, mrb_irep *irep, void *ctx, mrb_code *pc)
-{
-  JIT_PRINTF("pc valid: %p -> %d\n", pc, pc >= irep->iseq && pc < irep->iseq + irep->ilen);
-  unsigned index = pc - irep->iseq;
-  JIT_PRINTF("calling into jit code: index is %d\n", index);
-  unsigned off = irep->jit_ctx.text_off_tbl[index];
-  JIT_PRINTF("calling into jit code: text is %p, off is %d\n", irep->jit_ctx.text, off);
-  __attribute__((__noreturn__)) op_func_t f = (op_func_t *)(irep->jit_ctx.text + off);
-  JIT_PRINTF("calling into jit code: at %p\n", f);
-  return (*f)(ctx);
+  /* never reached */
+  return TRUE;
 }
-
 #endif
