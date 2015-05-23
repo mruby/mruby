@@ -4150,7 +4150,9 @@ parser_yylex(parser_state *p)
     p->lineno++;
     p->column = 0;
     if (p->parsing_heredoc != NULL) {
-      return parse_string(p);
+      if (p->lex_strterm) {
+        return parse_string(p);
+      }
     }
     goto retry;
   default:
