@@ -2728,6 +2728,11 @@ op_err(struct op_ctx *ctx) {
   return _op_raise(ctx, PC_GET(ctx));
 }
 
+static OP_INLINE void
+op_mcache(struct op_ctx *ctx) {
+  /* NOP */
+}
+
 #if defined __GNUC__
 #pragma GCC diagnostic pop
 #endif
@@ -3247,6 +3252,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_MCACHE) {
+      op_mcache(&ctx);
       NEXT;
     }
   }
