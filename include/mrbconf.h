@@ -75,6 +75,9 @@
 /* enable method cache */
 //#define MRB_ENABLE_METHOD_CACHE
 
+/* enable JIT */
+//#define MRB_ENABLE_JIT
+
 /* -DDISABLE_XXXX to drop following features */
 //#define DISABLE_STDIO		/* use of stdio */
 
