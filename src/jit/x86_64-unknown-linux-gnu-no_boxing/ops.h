@@ -2627,29 +2627,32 @@ static uint8_t op_tailcall__rodata[] = {
 static uint8_t op_blkpush__text[] = {
 0x48, 0x81, 0xc4, 0xff, 0x01, 0x00, 0x00, /*0: add    $0x1ff,%rsp */
 0x48, 0x81, 0xe4, 0x00, 0xfe, 0xff, 0xff, /*7: and    $0xfffffffffffffe00,%rsp */
-0x41, 0x56,                               /*e: push   %r14 */
-0x53,                                     /*10: push   %rbx */
-0x49, 0x89, 0xfe,                         /*11: mov    %rdi,%r14 */
-0xb8, 0x00, 0x00, 0x00, 0x00,             /*14: mov    $0x0,%eax */
-0xa8, 0x0f,                               /*19: test   $0xf,%al */
-0x75, 0x0c,                               /*1b: jne    29 <op_blkpush+0x29> */
-0x49, 0x8d, 0x4e, 0x18,                   /*1d: lea    0x18(%r14),%rcx */
-0x48, 0x89, 0xc8,                         /*21: mov    %rcx,%rax */
-0xe9, 0x83, 0x00, 0x00, 0x00,             /*24: jmpq   ac <op_blkpush+0xac> */
-0x49, 0x8b, 0x7e, 0x58,                   /*29: mov    0x58(%r14),%rdi */
-0x48, 0x8b, 0x47, 0x18,                   /*2d: mov    0x18(%rdi),%rax */
-0x48, 0x8b, 0x40, 0x20,                   /*31: mov    0x20(%rax),%rax */
-0x48, 0x8b, 0x40, 0x08,                   /*35: mov    0x8(%rax),%rax */
-0x48, 0x8b, 0x40, 0x28,                   /*39: mov    0x28(%rax),%rax */
-0xbe, 0x00, 0x00, 0x00, 0x00,             /*3d: mov    $0x0,%esi */
-0x83, 0xe6, 0x0f,                         /*42: and    $0xf,%esi */
-0x48, 0x85, 0xc0,                         /*45: test   %rax,%rax */
-0x0f, 0x94, 0xc1,                         /*48: sete   %cl */
-0x83, 0xfe, 0x01,                         /*4b: cmp    $0x1,%esi */
-0x74, 0x23,                               /*4e: je     73 <op_blkpush+0x73> */
-0xba, 0x01, 0x00, 0x00, 0x00,             /*50: mov    $0x1,%edx */
-0x29, 0xf2,                               /*55: sub    %esi,%edx */
-0x66, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00,/*57: nopw   0x0(%rax,%rax,1) */
+0x55,                                     /*e: push   %rbp */
+0x48, 0x89, 0xe5,                         /*f: mov    %rsp,%rbp */
+0x41, 0x56,                               /*12: push   %r14 */
+0x53,                                     /*14: push   %rbx */
+0x48, 0x83, 0xe4, 0xf0,                   /*15: and    $0xfffffffffffffff0,%rsp */
+0x49, 0x89, 0xfe,                         /*19: mov    %rdi,%r14 */
+0xb8, 0x00, 0x00, 0x00, 0x00,             /*1c: mov    $0x0,%eax */
+0xa8, 0x0f,                               /*21: test   $0xf,%al */
+0x75, 0x09,                               /*23: jne    2e <op_blkpush+0x2e> */
+0x49, 0x8d, 0x4e, 0x18,                   /*25: lea    0x18(%r14),%rcx */
+0x48, 0x89, 0xc8,                         /*29: mov    %rcx,%rax */
+0xeb, 0x7e,                               /*2c: jmp    ac <op_blkpush+0xac> */
+0x49, 0x8b, 0x7e, 0x58,                   /*2e: mov    0x58(%r14),%rdi */
+0x48, 0x8b, 0x47, 0x18,                   /*32: mov    0x18(%rdi),%rax */
+0x48, 0x8b, 0x40, 0x20,                   /*36: mov    0x20(%rax),%rax */
+0x48, 0x8b, 0x40, 0x08,                   /*3a: mov    0x8(%rax),%rax */
+0x48, 0x8b, 0x40, 0x28,                   /*3e: mov    0x28(%rax),%rax */
+0xbe, 0x00, 0x00, 0x00, 0x00,             /*42: mov    $0x0,%esi */
+0x83, 0xe6, 0x0f,                         /*47: and    $0xf,%esi */
+0x48, 0x85, 0xc0,                         /*4a: test   %rax,%rax */
+0x0f, 0x94, 0xc1,                         /*4d: sete   %cl */
+0x83, 0xfe, 0x01,                         /*50: cmp    $0x1,%esi */
+0x74, 0x1e,                               /*53: je     73 <op_blkpush+0x73> */
+0xba, 0x01, 0x00, 0x00, 0x00,             /*55: mov    $0x1,%edx */
+0x29, 0xf2,                               /*5a: sub    %esi,%edx */
+0x0f, 0x1f, 0x40, 0x00,                   /*5c: nopl   0x0(%rax) */
 0xf6, 0xc1, 0x01,                         /*60: test   $0x1,%cl */
 0x75, 0x12,                               /*63: jne    77 <op_blkpush+0x77> */
 0x48, 0x8b, 0x40, 0x08,                   /*65: mov    0x8(%rax),%rax */
@@ -2695,8 +2698,10 @@ static uint8_t op_blkpush__text[] = {
 0x48, 0x89, 0x44, 0x11, 0x08,             /*f4: mov    %rax,0x8(%rcx,%rdx,1) */
 0x48, 0x89, 0x3c, 0x11,                   /*f9: mov    %rdi,(%rcx,%rdx,1) */
 0x4c, 0x89, 0xf7,                         /*fd: mov    %r14,%rdi */
-0x5b,                                     /*100: pop    %rbx */
-0x41, 0x5e,                               /*101: pop    %r14 */
+0x48, 0x8d, 0x65, 0xf0,                   /*100: lea    -0x10(%rbp),%rsp */
+0x5b,                                     /*104: pop    %rbx */
+0x41, 0x5e,                               /*105: pop    %r14 */
+0x5d,                                     /*107: pop    %rbp */
 
 };
 static uint8_t op_blkpush__rodata[] = {
@@ -4776,7 +4781,7 @@ static size_t op_sizes_text[] = {
   sizeof(op_return__text), /* 80 */
   sizeof(op_break__text), /* 83 */
   sizeof(op_tailcall__text), /* 1011 */
-  sizeof(op_blkpush__text), /* 259 */
+  sizeof(op_blkpush__text), /* 264 */
   sizeof(op_add__text), /* 491 */
   sizeof(op_addi__text), /* 215 */
   sizeof(op_sub__text), /* 406 */

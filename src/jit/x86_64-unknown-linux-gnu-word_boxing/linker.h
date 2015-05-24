@@ -704,8 +704,8 @@ static void op_tailcall_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 static void op_blkpush__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 }
 static void op_blkpush__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
-*((uint32_t *)(text + 19)) = (uint32_t)(((uintptr_t)GETARG_Bx(*pc)) + (0));
-*((uint32_t *)(text + 60)) = (uint32_t)(((uintptr_t)GETARG_Bx(*pc)) + (0));
+*((uint32_t *)(text + 31)) = (uint32_t)(((uintptr_t)GETARG_Bx(*pc)) + (0));
+*((uint32_t *)(text + 69)) = (uint32_t)(((uintptr_t)GETARG_Bx(*pc)) + (0));
   *((int32_t *)(text + 125)) = (int32_t)(((uintptr_t)localjump_error) + (-4) - ((uintptr_t)(text + 125)));
 *((uint32_t *)(text + 130)) = (uint32_t)(((uintptr_t)pc) + (0));
   *((int32_t *)(text + 138)) = (int32_t)(((uintptr_t)_op_raise) + (-4) - ((uintptr_t)(text + 138)));
