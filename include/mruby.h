@@ -407,8 +407,6 @@ extern const char _mrb_str_const_floatdomain_error[];
 extern const char _mrb_str_const_key_error[];
 extern const char _mrb_str_const_fiber_error[];
 
-
-
 #define E_RUNTIME_ERROR             (mrb_class_get(mrb, _mrb_str_const_runtime_error))
 #define E_TYPE_ERROR                (mrb_class_get(mrb, _mrb_str_const_type_error))
 #define E_ARGUMENT_ERROR            (mrb_class_get(mrb, _mrb_str_const_argument_error))
@@ -421,14 +419,10 @@ extern const char _mrb_str_const_fiber_error[];
 #define E_LOCALJUMP_ERROR           (mrb_class_get(mrb, _mrb_str_const_localjump_error))
 #define E_REGEXP_ERROR              (mrb_class_get(mrb, _mrb_str_const_regexp_error))
 #define E_SYSSTACK_ERROR            (mrb_class_get(mrb, _mrb_str_const_systemstack_error))
-
 #define E_NOTIMP_ERROR              (mrb_class_get(mrb, _mrb_str_const_notimplemented_error))
 #define E_FLOATDOMAIN_ERROR         (mrb_class_get(mrb, _mrb_str_const_floatdomain_error))
-
 #define E_KEY_ERROR                 (mrb_class_get(mrb, _mrb_str_const_key_error))
-
-#define E_FIBER_ERROR                (mrb_class_get(mrb, _mrb_str_const_fiber_error))
-
+#define E_FIBER_ERROR               (mrb_class_get(mrb, _mrb_str_const_fiber_error))
 
 MRB_API mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
 MRB_API mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv);

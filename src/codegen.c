@@ -2761,9 +2761,6 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
     codegen(scope, p->tree, NOVAL);
     proc = mrb_proc_new(mrb, scope->irep);
 
-    for (i=0; i< MRB_OPT_ARGC_MAX; i++) {
-      //fprintf(stderr, "new proc off %d:%d %d\n", i, proc->oa_off[i], scope->codegen_ctx->oa_off[i]);
-    }
     mrb_irep_decref(mrb, scope->irep);
     mrb_pool_close(scope->mpool);
     return proc;

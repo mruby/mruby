@@ -449,7 +449,6 @@ main(int argc, char **argv)
         }
         /* pass a proc for evaulation */
         /* evaluate the bytecode */
-
         result = mrb_context_run(mrb,
             proc,
             mrb_top_self(mrb),

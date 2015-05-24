@@ -105,7 +105,6 @@ find_page(size_t size, size_t page_size)
   }
   JIT_PRINTF("\n");
 
-
   for(i = 0; i < MRB_JIT_PAGE_MAP_SIZE; i++) {
     if(page_marks[i] != PAGE_MARK_ALLOCED) {
       int j;

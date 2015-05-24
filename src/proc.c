@@ -248,7 +248,6 @@ proc_lambda(mrb_state *mrb, mrb_value self)
     struct RProc *p2 = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, p->c);
     mrb_proc_copy(p2, p);
     p2->flags |= MRB_PROC_STRICT;
-
     return mrb_obj_value(p2);
   }
   return blk;

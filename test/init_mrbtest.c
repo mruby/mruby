@@ -23,13 +23,8 @@ mrb_init_mrbtest(mrb_state *mrb)
     exit(EXIT_FAILURE);
   }
   mrb_init_test_driver(core_test, mrb_test(mrb_gv_get(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"))));
-
   mrb_load_irep(core_test, mrbtest_assert_irep);
-
-
   mrb_load_irep(core_test, mrbtest_irep);
-
-
   mrb_t_pass_result(mrb, core_test);
 
 #ifndef DISABLE_GEMS

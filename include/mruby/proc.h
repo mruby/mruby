@@ -53,12 +53,10 @@ struct RProc {
 
 struct RProc *mrb_proc_new(mrb_state*, mrb_irep*);
 struct RProc *mrb_closure_new(mrb_state*, mrb_irep*);
-void mrb_proc_destroy(mrb_state *, struct RProc *p);
 
 MRB_API struct RProc *mrb_proc_new_cfunc(mrb_state*, mrb_func_t);
 MRB_API struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals);
 void mrb_proc_copy(struct RProc *a, struct RProc *b);
-void mrb_proc_register(mrb_state *mrb, struct RProc *p);
 
 /* implementation of #send method */
 MRB_API mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
