@@ -239,7 +239,9 @@ local_nest(parser_state *p)
 static void
 local_unnest(parser_state *p)
 {
-  p->locals = p->locals->cdr;
+  if (p->locals) {
+    p->locals = p->locals->cdr;
+  }
 }
 
 static mrb_bool
@@ -261,7 +263,9 @@ local_var_p(parser_state *p, mrb_sym sym)
 static void
 local_add_f(parser_state *p, mrb_sym sym)
 {
-  p->locals->car = push(p->locals->car, nsym(sym));
+  if (p->locals) {
+    p->locals->car = push(p->locals->car, nsym(sym));
+  }
 }
 
 static void
@@ -1156,17 +1160,6 @@ heredoc_end(parser_state *p)
 %right tUMINUS_NUM tUMINUS
 %right tPOW
 %right '!' '~' tUPLUS
-
-%nonassoc idNULL
-%nonassoc idRespond_to
-%nonassoc idIFUNC
-%nonassoc idCFUNC
-%nonassoc id_core_set_method_alias
-%nonassoc id_core_set_variable_alias
-%nonassoc id_core_undef_method
-%nonassoc id_core_define_method
-%nonassoc id_core_define_singleton_method
-%nonassoc id_core_set_postexe
 
 %token tLAST_TOKEN
 
@@ -4127,10 +4120,9 @@ parser_yylex(parser_state *p)
   retry:
   last_state = p->lstate;
   switch (c = nextc(p)) {
-  case '\0':    /* NUL */
   case '\004':  /* ^D */
   case '\032':  /* ^Z */
-    return 0;
+  case '\0':    /* NUL */
   case -1:      /* end of script. */
     if (p->heredocs_from_nextline)
       goto maybe_heredoc;
@@ -4158,7 +4150,9 @@ parser_yylex(parser_state *p)
     p->lineno++;
     p->column = 0;
     if (p->parsing_heredoc != NULL) {
-      return parse_string(p);
+      if (p->lex_strterm) {
+        return parse_string(p);
+      }
     }
     goto retry;
   default:

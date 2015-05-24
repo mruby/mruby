@@ -1148,8 +1148,8 @@ static void op_method__rodata__link(uint8_t *text, uint8_t *rodata, mrb_code *pc
 }
 static void op_method__text__link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
 *((uint32_t *)(text + 5)) = (uint32_t)(((uintptr_t)GETARG_A(*pc)) + (0));
-*((uint32_t *)(text + 45)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
-  *((int32_t *)(text + 62)) = (int32_t)(((uintptr_t)mrb_define_method_vm) + (-4) - ((uintptr_t)(text + 62)));
+*((uint32_t *)(text + 60)) = (uint32_t)(((uintptr_t)GETARG_B(*pc)) + (0));
+  *((int32_t *)(text + 68)) = (int32_t)(((uintptr_t)mrb_define_method_raw) + (-4) - ((uintptr_t)(text + 68)));
 }
 static void op_method_link(uint8_t *text, uint8_t *rodata, mrb_code *pc) {
   op_method__rodata__link(text, rodata, pc);

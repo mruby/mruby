@@ -90,7 +90,7 @@ fmt_u(uint32_t x, char *s)
 typedef char compiler_defines_long_double_incorrectly[9-(int)sizeof(long double)];
 #endif
 
-#if defined(__CYGWIN32__) || defined(mips)
+#if defined(__CYGWIN32__) || defined(__NetBSD__) || defined(mips)
 static long double
 frexpl (long double x, int *eptr)
 {

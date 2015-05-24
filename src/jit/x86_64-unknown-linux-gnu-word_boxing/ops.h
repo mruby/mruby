@@ -4472,20 +4472,20 @@ static uint8_t op_method__text[] = {
 0xb8, 0x00, 0x00, 0x00, 0x00,             /*4: mov    $0x0,%eax */
 0x48, 0x98,                               /*9: cltq */
 0x48, 0x8b, 0x4b, 0x18,                   /*b: mov    0x18(%rbx),%rcx */
-0x4c, 0x8b, 0x43, 0x28,                   /*f: mov    0x28(%rbx),%r8 */
+0x48, 0x8b, 0x53, 0x28,                   /*f: mov    0x28(%rbx),%rdx */
 0x48, 0x8b, 0x34, 0xc1,                   /*13: mov    (%rcx,%rax,8),%rsi */
-0x48, 0x8b, 0x7b, 0x50,                   /*17: mov    0x50(%rbx),%rdi */
-0xba, 0x00, 0x00, 0x00, 0x00,             /*1b: mov    $0x0,%edx */
-0x41, 0x8b, 0x14, 0x90,                   /*20: mov    (%r8,%rdx,4),%edx */
-0xff, 0xc0,                               /*24: inc    %eax */
-0x48, 0x98,                               /*26: cltq */
-0x48, 0x8b, 0x0c, 0xc1,                   /*28: mov    (%rcx,%rax,8),%rcx */
-0xe8, 0x00, 0x00, 0x00, 0x00,             /*2c: callq  31 <op_method+0x31> */
-0x8b, 0x43, 0x48,                         /*31: mov    0x48(%rbx),%eax */
-0x48, 0x8b, 0x4b, 0x50,                   /*34: mov    0x50(%rbx),%rcx */
-0x89, 0x81, 0xdc, 0x00, 0x00, 0x00,       /*38: mov    %eax,0xdc(%rcx) */
-0x48, 0x89, 0xdf,                         /*3e: mov    %rbx,%rdi */
-0x5b,                                     /*41: pop    %rbx */
+0xff, 0xc0,                               /*17: inc    %eax */
+0x48, 0x98,                               /*19: cltq */
+0x48, 0x8b, 0x0c, 0xc1,                   /*1b: mov    (%rcx,%rax,8),%rcx */
+0x48, 0x8b, 0x7b, 0x50,                   /*1f: mov    0x50(%rbx),%rdi */
+0xb8, 0x00, 0x00, 0x00, 0x00,             /*23: mov    $0x0,%eax */
+0x8b, 0x14, 0x82,                         /*28: mov    (%rdx,%rax,4),%edx */
+0xe8, 0x00, 0x00, 0x00, 0x00,             /*2b: callq  30 <op_method+0x30> */
+0x8b, 0x43, 0x48,                         /*30: mov    0x48(%rbx),%eax */
+0x48, 0x8b, 0x4b, 0x50,                   /*33: mov    0x50(%rbx),%rcx */
+0x89, 0x81, 0xdc, 0x00, 0x00, 0x00,       /*37: mov    %eax,0xdc(%rcx) */
+0x48, 0x89, 0xdf,                         /*3d: mov    %rbx,%rdi */
+0x5b,                                     /*40: pop    %rbx */
 
 };
 static uint8_t op_method__rodata[] = {
@@ -4734,7 +4734,7 @@ static size_t op_sizes_text[] = {
   sizeof(op_class__text), /* 221 */
   sizeof(op_module__text), /* 209 */
   sizeof(op_exec__text), /* 382 */
-  sizeof(op_method__text), /* 66 */
+  sizeof(op_method__text), /* 65 */
   sizeof(op_sclass__text), /* 56 */
   sizeof(op_tclass__text), /* 199 */
   sizeof(op_debug__text), /* 35 */

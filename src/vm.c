@@ -2674,7 +2674,8 @@ op_method(struct op_ctx *ctx) {
   int a = GETARG_A(CTX_I(ctx));
   struct RClass *c = mrb_class_ptr(ctx->regs[a]);
 
-  mrb_define_method_vm(ctx->mrb, c, ctx->syms[GETARG_B(CTX_I(ctx))], ctx->regs[a+1]);
+  struct RProc *p = mrb_proc_ptr(ctx->regs[a+1]);
+  mrb_define_method_raw(ctx->mrb, c, ctx->syms[GETARG_B(CTX_I(ctx))], p);
 
   ARENA_RESTORE(ctx->mrb, ctx->ai);
 }

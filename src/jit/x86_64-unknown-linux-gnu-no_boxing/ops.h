@@ -4543,23 +4543,22 @@ static uint8_t op_method__text[] = {
 0x48, 0x98,                               /*9: cltq */
 0x48, 0x89, 0xc1,                         /*b: mov    %rax,%rcx */
 0x48, 0xc1, 0xe1, 0x04,                   /*e: shl    $0x4,%rcx */
-0x4c, 0x8b, 0x43, 0x18,                   /*12: mov    0x18(%rbx),%r8 */
-0x48, 0x8b, 0x53, 0x28,                   /*16: mov    0x28(%rbx),%rdx */
-0x49, 0x8b, 0x34, 0x08,                   /*1a: mov    (%r8,%rcx,1),%rsi */
-0x48, 0x8b, 0x7b, 0x58,                   /*1e: mov    0x58(%rbx),%rdi */
-0xb9, 0x00, 0x00, 0x00, 0x00,             /*22: mov    $0x0,%ecx */
-0x8b, 0x14, 0x8a,                         /*27: mov    (%rdx,%rcx,4),%edx */
-0xff, 0xc0,                               /*2a: inc    %eax */
-0x48, 0x98,                               /*2c: cltq */
-0x48, 0xc1, 0xe0, 0x04,                   /*2e: shl    $0x4,%rax */
-0x49, 0x8b, 0x0c, 0x00,                   /*32: mov    (%r8,%rax,1),%rcx */
-0x45, 0x8b, 0x44, 0x00, 0x08,             /*36: mov    0x8(%r8,%rax,1),%r8d */
-0xe8, 0x00, 0x00, 0x00, 0x00,             /*3b: callq  40 <op_method+0x40> */
-0x8b, 0x43, 0x50,                         /*40: mov    0x50(%rbx),%eax */
-0x48, 0x8b, 0x4b, 0x58,                   /*43: mov    0x58(%rbx),%rcx */
-0x89, 0x81, 0xdc, 0x00, 0x00, 0x00,       /*47: mov    %eax,0xdc(%rcx) */
-0x48, 0x89, 0xdf,                         /*4d: mov    %rbx,%rdi */
-0x5b,                                     /*50: pop    %rbx */
+0x48, 0x8b, 0x53, 0x18,                   /*12: mov    0x18(%rbx),%rdx */
+0x4c, 0x8b, 0x43, 0x28,                   /*16: mov    0x28(%rbx),%r8 */
+0x48, 0x8b, 0x34, 0x0a,                   /*1a: mov    (%rdx,%rcx,1),%rsi */
+0xff, 0xc0,                               /*1e: inc    %eax */
+0x48, 0x98,                               /*20: cltq */
+0x48, 0xc1, 0xe0, 0x04,                   /*22: shl    $0x4,%rax */
+0x48, 0x8b, 0x0c, 0x02,                   /*26: mov    (%rdx,%rax,1),%rcx */
+0x48, 0x8b, 0x7b, 0x58,                   /*2a: mov    0x58(%rbx),%rdi */
+0xb8, 0x00, 0x00, 0x00, 0x00,             /*2e: mov    $0x0,%eax */
+0x41, 0x8b, 0x14, 0x80,                   /*33: mov    (%r8,%rax,4),%edx */
+0xe8, 0x00, 0x00, 0x00, 0x00,             /*37: callq  3c <op_method+0x3c> */
+0x8b, 0x43, 0x50,                         /*3c: mov    0x50(%rbx),%eax */
+0x48, 0x8b, 0x4b, 0x58,                   /*3f: mov    0x58(%rbx),%rcx */
+0x89, 0x81, 0xdc, 0x00, 0x00, 0x00,       /*43: mov    %eax,0xdc(%rcx) */
+0x48, 0x89, 0xdf,                         /*49: mov    %rbx,%rdi */
+0x5b,                                     /*4c: pop    %rbx */
 
 };
 static uint8_t op_method__rodata[] = {
@@ -4808,7 +4807,7 @@ static size_t op_sizes_text[] = {
   sizeof(op_class__text), /* 170 */
   sizeof(op_module__text), /* 145 */
   sizeof(op_exec__text), /* 398 */
-  sizeof(op_method__text), /* 81 */
+  sizeof(op_method__text), /* 77 */
   sizeof(op_sclass__text), /* 79 */
   sizeof(op_tclass__text), /* 168 */
   sizeof(op_debug__text), /* 35 */
