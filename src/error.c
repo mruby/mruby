@@ -16,7 +16,7 @@
 #include "mruby/debug.h"
 #include "mruby/error.h"
 #include "mruby/class.h"
-#include "mrb_throw.h"
+#include "mruby/throw.h"
 
 MRB_API mrb_value
 mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, size_t len)

@@ -17,7 +17,7 @@
 #include "node.h"
 #include "mruby/opcode.h"
 #include "mruby/re.h"
-#include "mrb_throw.h"
+#include "mruby/throw.h"
 
 typedef mrb_ast_node node;
 typedef struct mrb_parser_state parser_state;
