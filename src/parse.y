@@ -27,7 +27,7 @@
 #include "mruby/proc.h"
 #include "mruby/error.h"
 #include "node.h"
-#include "mrb_throw.h"
+#include "mruby/throw.h"
 
 #define YYLEX_PARAM p
 
