@@ -5118,7 +5118,14 @@ parser_yylex(parser_state *p)
       pushback(p, c);
       if (last_state == EXPR_FNAME) goto gvar;
       tokfix(p);
-      yylval.nd = new_nth_ref(p, atoi(tok(p)));
+      {
+        unsigned long n = strtoul(tok(p), NULL, 10);
+        if (n > INT_MAX) {
+          yyerror_i(p, "capture group index must be <= %d", INT_MAX);
+          return 0;
+        }
+        yylval.nd = new_nth_ref(p, (int)n);
+      }
       return tNTH_REF;
 
     default:
