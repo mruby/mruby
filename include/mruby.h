@@ -348,21 +348,20 @@ MRB_API mrb_bool mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass
 MRB_API mrb_value mrb_obj_inspect(mrb_state *mrb, mrb_value self);
 MRB_API mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 
-/* need to include <ctype.h> to use these macros */
 #ifndef ISPRINT
-#define ISASCII(c) (!(((int)(unsigned char)(c)) & ~0x7f))
-#define ISPRINT(c) (ISASCII(c) && isprint((int)(unsigned char)(c)))
-#define ISSPACE(c) (ISASCII(c) && isspace((int)(unsigned char)(c)))
-#define ISUPPER(c) (ISASCII(c) && isupper((int)(unsigned char)(c)))
-#define ISLOWER(c) (ISASCII(c) && islower((int)(unsigned char)(c)))
-#define ISALNUM(c) (ISASCII(c) && isalnum((int)(unsigned char)(c)))
-#define ISALPHA(c) (ISASCII(c) && isalpha((int)(unsigned char)(c)))
-#define ISDIGIT(c) (ISASCII(c) && isdigit((int)(unsigned char)(c)))
-#define ISXDIGIT(c) (ISASCII(c) && isxdigit((int)(unsigned char)(c)))
-#define ISBLANK(c) (ISASCII(c) && ((c) == ' ' || (c) == '\t'))
-#define ISCNTRL(c) (ISASCII(c) && iscntrl((int)(unsigned char)(c)))
-#define TOUPPER(c) (ISASCII(c) ? toupper((int)(unsigned char)(c)) : (c))
-#define TOLOWER(c) (ISASCII(c) ? tolower((int)(unsigned char)(c)) : (c))
+#define ISASCII(c) ((unsigned)(c) <= 0x7f)
+#define ISPRINT(c) (((unsigned)(c) - 0x20) < 0x5f)
+#define ISSPACE(c) ((c) == ' ' || (unsigned)(c) - '\t' < 5)
+#define ISUPPER(c) (((unsigned)(c) - 'A') < 26)
+#define ISLOWER(c) (((unsigned)(c) - 'a') < 26)
+#define ISALPHA(c) ((((unsigned)(c) | 0x20) - 'a') < 26)
+#define ISDIGIT(c) (((unsigned)(c) - '0') < 10)
+#define ISXDIGIT(c) (ISDIGIT(c) || ((unsigned)(c) | 0x20) - 'a' < 6)
+#define ISALNUM(c) (ISALPHA(c) || ISDIGIT(c))
+#define ISBLANK(c) ((c) == ' ' || (c) == '\t')
+#define ISCNTRL(c) ((unsigned)(c) < 0x20 || (c) == 0x7f)
+#define TOUPPER(c) (ISLOWER(c) ? ((c) & 0x5f) : (c))
+#define TOLOWER(c) (ISUPPER(c) ? ((c) | 0x20) : (c))
 #endif
 
 MRB_API mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, size_t len);

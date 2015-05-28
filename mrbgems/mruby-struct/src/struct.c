@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <ctype.h>
 #include <string.h>
 #include "mruby.h"
 #include "mruby/array.h"

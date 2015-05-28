@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <ctype.h>
 #include <float.h>
 #include <limits.h>
 #include <stddef.h>
