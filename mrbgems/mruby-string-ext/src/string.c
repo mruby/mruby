@@ -1,4 +1,3 @@
-#include <ctype.h>
 #include <string.h>
 #include "mruby.h"
 #include "mruby/array.h"

@@ -5,7 +5,6 @@
 #include "mruby/range.h"
 #include "mruby/numeric.h"
 #include "mruby/re.h"
-#include <ctype.h>
 #include <string.h>
 
 static const char utf8len_codepage[256] =
