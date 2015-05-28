@@ -350,7 +350,7 @@ MRB_API mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 
 /* need to include <ctype.h> to use these macros */
 #ifndef ISPRINT
-#define ISASCII(c) (!(((int)(unsigned char)(c)) & ~0x7f))
+#define ISASCII(c) ((unsigned)(c) <= 0x7f)
 #define ISPRINT(c) (ISASCII(c) && isprint((int)(unsigned char)(c)))
 #define ISSPACE(c) (ISASCII(c) && isspace((int)(unsigned char)(c)))
 #define ISUPPER(c) (ISASCII(c) && isupper((int)(unsigned char)(c)))
