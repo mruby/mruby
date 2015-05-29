@@ -7,9 +7,9 @@
 #include <stdarg.h>
 #include "mruby.h"
 #include "mruby/array.h"
-#include "mruby/class.h"
 #include "mruby/numeric.h"
 #include "mruby/proc.h"
+#include "mruby/class.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/error.h"
@@ -314,6 +314,77 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
   return c;
 }
 
+#ifdef MRB_ENABLE_METHOD_CACHE
+static void
+mcache_update(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RProc *p)
+{
+  struct mrb_irep *irep;
+
+  for(irep = mrb->irep_list; irep != NULL; irep = irep->next) {
+    int i, j;
+    struct mrb_mcache *mcache = irep->mcache;
+
+    if (mcache) {
+      struct RClass *k = c;
+
+      do {
+        for(i = 0; i < mcache->len; i++) {
+          struct mrb_mcache_entry *e = &mcache->entries[i];
+          if (e->mid == mid) {
+            for(j = 0; j < MRB_METHOD_CACHE_MORPHICITY; j++) {
+              if (e->tc[j] == k) {
+                if (p && k == c) {
+                  e->p[j] = p;
+                }
+                else {
+                  e->p[j] = NULL;
+                  e->tc[j] = NULL;
+                  e->sc[j] = NULL;
+                }
+                break;
+              }
+            }
+            goto next_proc;
+          }
+        }
+        k = k->super;
+      } while (k);
+    }
+next_proc:;
+  }
+}
+
+static void
+mcache_clear(mrb_state *mrb, struct RClass *c, mrb_bool super)
+{
+  struct mrb_irep *irep;
+
+  for(irep = mrb->irep_list; irep != NULL; irep = irep->next) {
+    int i, j;
+    struct mrb_mcache *mcache = irep->mcache;
+    struct RClass *k = c;
+
+    if (mcache) {
+      do {
+        for(i = 0; i < mcache->len; i++) {
+          struct mrb_mcache_entry *e = &mcache->entries[i];
+
+          for(j = 0; j < MRB_METHOD_CACHE_MORPHICITY; j++) {
+            if (e->tc[j] == k) {
+                e->tc[j] = NULL;
+                e->sc[j] = NULL;
+                e->p[j] = NULL;
+            }
+          }
+        }
+        k = k->super;
+      } while (!super || k);
+    }
+  }
+}
+#endif
+
+
 MRB_API void
 mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RProc *p)
 {
@@ -326,6 +397,10 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
   if (p) {
     mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
   }
+
+#ifdef MRB_ENABLE_METHOD_CACHE
+  mcache_update(mrb, c, mid, p);
+#endif
 }
 
 MRB_API void
@@ -794,6 +869,10 @@ mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   skip:
     m = m->super;
   }
+
+#ifdef MRB_ENABLE_METHOD_CACHE
+  mcache_clear(mrb, c, TRUE);
+#endif
 }
 
 static mrb_value
@@ -1023,12 +1102,11 @@ mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, m
   mrb_define_method(mrb, c, name, func, aspec);
 }
 
-MRB_API struct RProc*
-mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
+struct RProc *
+_mrb_method_search_vm(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym mid)
 {
   khiter_t k;
   struct RProc *m;
-  struct RClass *c = *cp;
 
   while (c) {
     khash_t(mt) *h = c->mt;
@@ -1036,15 +1114,25 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
     if (h) {
       k = kh_get(mt, mrb, h, mid);
       if (k != kh_end(h)) {
+
         m = kh_value(h, k);
+
         if (!m) break;
+
         *cp = c;
         return m;
       }
     }
     c = c->super;
   }
+
   return NULL;                  /* no method */
+}
+
+MRB_API struct RProc *
+mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
+{
+  return _mrb_method_search_vm(mrb, *cp, cp, mid);
 }
 
 MRB_API struct RProc*
@@ -1640,6 +1728,7 @@ mod_define_method(mrb_state *mrb, mrb_value self)
   }
   p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
   mrb_proc_copy(p, mrb_proc_ptr(blk));
+
   p->flags |= MRB_PROC_STRICT;
   mrb_define_method_raw(mrb, c, mid, p);
   return mrb_symbol_value(mid);

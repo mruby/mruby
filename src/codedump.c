@@ -224,7 +224,10 @@ codedump(mrb_state *mrb, mrb_irep *irep)
              (GETARG_Bx(c)>>0)&0xf);
       print_lv(mrb, irep, c, RA);
       break;
-
+    case OP_ENTER_METHOD_M:
+      printf("OP_ENTER_METHOD_M\t%d\n",
+             (GETARG_Ax(c)>>18)&0x1f);
+      break;
     case OP_ENTER:
       printf("OP_ENTER\t%d:%d:%d:%d:%d:%d:%d\n",
              (GETARG_Ax(c)>>18)&0x1f,
@@ -235,10 +238,9 @@ codedump(mrb_state *mrb, mrb_irep *irep)
              (GETARG_Ax(c)>>1)&0x1,
              GETARG_Ax(c) & 0x1);
       break;
-    case OP_RETURN:
-      printf("OP_RETURN\tR%d", GETARG_A(c));
+    case OP_BREAK:
+      printf("OP_BREAK\tR%d", GETARG_A(c));
       switch (GETARG_B(c)) {
-      case OP_R_NORMAL:
       case OP_R_RETURN:
         printf("\treturn"); break;
       case OP_R_BREAK:
@@ -247,6 +249,10 @@ codedump(mrb_state *mrb, mrb_irep *irep)
         printf("\tbroken"); break;
         break;
       }
+      print_lv(mrb, irep, c, RA);
+      break;
+    case OP_RETURN:
+      printf("OP_RETURN\tR%d", GETARG_A(c));
       print_lv(mrb, irep, c, RA);
       break;
     case OP_BLKPUSH:
@@ -423,7 +429,9 @@ codedump(mrb_state *mrb, mrb_irep *irep)
     case OP_EPOP:
       printf("OP_EPOP\t%d\n", GETARG_A(c));
       break;
-
+    case OP_MCACHE:
+      printf("OP_MCACHE\t%d\n", GETARG_Ax(c));
+      break;
     default:
       printf("OP_unknown %d\t%d\t%d\t%d\n", GET_OPCODE(c),
              GETARG_A(c), GETARG_B(c), GETARG_C(c));
@@ -444,6 +452,18 @@ codedump_recur(mrb_state *mrb, mrb_irep *irep)
   for (i=0; i<irep->rlen; i++) {
     codedump_recur(mrb, irep->reps[i]);
   }
+}
+
+void
+mrb_irep_codedump(mrb_state *mrb, mrb_irep *irep)
+{
+  codedump(mrb, irep);
+}
+
+void
+mrb_codedump(mrb_state *mrb, struct RProc *proc)
+{
+  codedump(mrb, proc->body.irep);
 }
 
 void

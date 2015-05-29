@@ -62,6 +62,16 @@ static const unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
 # endif
 #endif
 
+#ifdef __GNUC__
+#define MRB_LIKELY(x)    __builtin_expect(!!(x), 1)
+#define MRB_UNLIKELY(x)  __builtin_expect(!!(x), 0)
+#define MRB_EXPECT(x, e)  __builtin_expect(x, e)
+#else
+#define MRB_LIKELY(x)    (x)
+#define MRB_UNLIKELY(x)  (x)
+#define MRB_EXPECT(x, e)  (x)
+#endif
+
 enum mrb_vtype {
   MRB_TT_FALSE = 0,   /*   0 */
   MRB_TT_FREE,        /*   1 */

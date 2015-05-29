@@ -261,7 +261,7 @@ mrb_init_proc(mrb_state *mrb)
   static const mrb_irep mrb_irep_zero = { 0 };
 
   *call_irep = mrb_irep_zero;
-  call_irep->flags = MRB_ISEQ_NO_FREE;
+  call_irep->flags = MRB_IREP_ISEQ_NO_FREE;
   call_irep->iseq = call_iseq;
   call_irep->ilen = 1;
 

@@ -11,6 +11,7 @@
 #include "mruby/variable.h"
 #include "mruby/debug.h"
 #include "mruby/string.h"
+#include "mruby/opcode.h"
 
 void mrb_init_heap(mrb_state*);
 void mrb_init_core(mrb_state*);
@@ -144,7 +145,7 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
 {
   size_t i;
 
-  if (!(irep->flags & MRB_ISEQ_NO_FREE))
+  if (!(irep->flags & MRB_IREP_ISEQ_NO_FREE))
     mrb_free(mrb, irep->iseq);
   for (i=0; i<irep->plen; i++) {
     if (mrb_type(irep->pool[i]) == MRB_TT_STRING) {
@@ -167,6 +168,28 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   mrb_free(mrb, (void *)irep->filename);
   mrb_free(mrb, irep->lines);
   mrb_debug_info_free(mrb, irep->debug_info);
+
+#ifdef MRB_ENABLE_METHOD_CACHE
+  if (irep->next) {
+    irep->next->prev = irep->prev;
+  }
+  if (irep->prev) {
+    irep->prev->next = irep->next;
+  }
+
+  if(irep == mrb->irep_list) {
+    mrb->irep_list = irep->next;
+  }
+
+  if (irep->mcache) {
+    mrb_free(mrb, irep->mcache);
+  }
+#endif
+
+#ifdef MRB_ENABLE_JIT
+  mrb_jit_release(mrb, irep);
+#endif
+
   mrb_free(mrb, irep);
 }
 
@@ -266,8 +289,37 @@ mrb_add_irep(mrb_state *mrb)
   *irep = mrb_irep_zero;
   irep->refcnt = 1;
 
+#ifdef MRB_ENABLE_METHOD_CACHE
+  irep->next = mrb->irep_list;
+  if (irep->next) {
+    irep->next->prev = irep;
+  }
+  mrb->irep_list = irep;
+#endif
+
   return irep;
 }
+
+#ifdef MRB_ENABLE_METHOD_CACHE
+void mrb_irep_mcache_init(mrb_state *mrb, struct mrb_irep *irep)
+{
+  uint16_t len = 0;
+  int i;
+  for(i = 0; i < irep->ilen; i++) {
+    mrb_code c = irep->iseq[i];
+    if (GET_OPCODE(c) == OP_MCACHE) {
+      len = GETARG_Ax(c) + 1;
+    }
+  }
+
+  if (len > 0) {
+    irep->mcache = mrb_calloc(mrb, sizeof(struct mrb_mcache) + (len) * sizeof(struct mrb_mcache_entry), 1);
+    irep->mcache->len = len;
+  } else {
+    irep->mcache = NULL;
+  }
+}
+#endif
 
 MRB_API mrb_value
 mrb_top_self(mrb_state *mrb)

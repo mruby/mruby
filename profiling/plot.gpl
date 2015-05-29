@@ -1,0 +1,17 @@
+set yrange [0:100]
+set style fill pattern 1 border -1
+set terminal pdfcairo lw 1 size 26cm,22cm
+set xtics rotate by -45
+set key outside center bottom horiz Left invert reverse
+set style data histogram
+set style histogram rowstacked
+set linetype 1 lc rgb '#a6cee3'
+set linetype 2 lc rgb '#1f78b4'
+set linetype 3 lc rgb '#b2df8a'
+set linetype 4 lc rgb '#33a02c'
+set linetype 5 lc rgb '#fb9a99'
+set linetype 6 lc rgb '#e31a1c'
+set linetype 7 lc rgb '#fdbf6f'
+set linetype 8 lc rgb '#ff7f00'
+set ylabel '% of total'
+

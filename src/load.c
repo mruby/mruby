@@ -66,6 +66,19 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   irep->rlen = (size_t)bin_to_uint16(src);
   src += sizeof(uint16_t);
 
+  /* Optional Variable Offset Table */
+  {
+    int i;
+
+    irep->oalen = bin_to_uint16(src);
+    src += sizeof(uint16_t);
+
+    for (i = 0; i < irep->oalen; i++) {
+      irep->oa_off[i] = bin_to_uint16(src);
+      src += sizeof(uint16_t);
+    }
+  }
+
   /* Binary Data Section */
   /* ISEQ BLOCK */
   irep->ilen = (size_t)bin_to_uint32(src);
@@ -80,7 +93,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
         (flags & FLAG_BYTEORDER_NATIVE)) {
       irep->iseq = (mrb_code*)src;
       src += sizeof(uint32_t) * irep->ilen;
-      irep->flags |= MRB_ISEQ_NO_FREE;
+      irep->flags |= MRB_IREP_ISEQ_NO_FREE;
     }
     else {
       irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);
@@ -102,6 +115,10 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
       }
     }
   }
+
+#ifdef MRB_ENABLE_METHOD_CACHE
+  mrb_irep_mcache_init(mrb, irep);
+#endif
 
   /* POOL BLOCK */
   plen = (size_t)bin_to_uint32(src); /* number of pool */

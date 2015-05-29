@@ -1,0 +1,377 @@
+require 'stringio'
+
+require_relative 'as'
+require_relative 'objdump'
+require_relative 'x86'
+require_relative 'postprocess'
+
+$obj_files = Hash.new{|h, k| h[k] = []}
+
+opt_passes = %w(
+  -targetlibinfo -scoped-noalias -assumption-cache-tracker -basicaa
+  -notti -verify -ipsccp -globalopt -deadargelim -domtree -instcombine
+  -simplifycfg -basiccg -prune-eh -inline-cost -inline -functionattrs
+  -argpromotion -sroa -domtree -early-cse -lazy-value-info -jump-threading
+  -correlated-propagation -simplifycfg -domtree -instcombine  -simplifycfg
+  -reassociate -domtree -loops -loop-simplify -lcssa -loop-rotate -licm -loop-unswitch
+  -instcombine -scalar-evolution -loop-simplify -lcssa -indvars -loop-idiom -loop-deletion
+  -function_tti -loop-unroll -memdep -mldst-motion -domtree -memdep -gvn -memdep
+  -memcpyopt -sccp -domtree -instcombine -lazy-value-info -jump-threading
+  -correlated-propagation -domtree -memdep -dse -adce -simplifycfg -domtree
+  -instcombine -barrier -domtree -loops -loop-simplify -lcssa -branch-prob -block-freq
+  -scalar-evolution -loop-vectorize -instcombine -scalar-evolution -slp-vectorizer
+  -simplifycfg -domtree -instcombine -loops -loop-simplify -lcssa -scalar-evolution
+  -function_tti -loop-unroll -alignment-from-assumptions -strip-dead-prototypes -constmerge
+)
+
+$ops = [
+  "op_nop", "op_move",
+  "op_loadl", "op_loadi", "op_loadsym", "op_loadnil",
+  "op_loadself", "op_loadt", "op_loadf",
+  "op_getglobal", "op_setglobal", "op_getspecial", "op_setspecial",
+  "op_getiv", "op_setiv", "op_getcv", "op_setcv",
+  "op_getconst", "op_setconst", "op_getmcnst", "op_setmcnst",
+  "op_getupvar", "op_setupvar",
+  "op_jmp", "op_jmpif", "op_jmpnot",
+  "op_onerr", "op_rescue", "op_poperr", "op_raise", "op_epush", "op_epop",
+  "op_send", "op_sendb", "op_fsend",
+  "op_call", "op_super", "op_argary", "op_enter", "op_enter_method_m",
+  "op_karg", "op_kdict", "op_return", "op_break",
+  "op_tailcall", "op_blkpush",
+  "op_add", "op_addi", "op_sub", "op_subi", "op_mul", "op_div",
+  "op_eq", "op_lt", "op_le", "op_gt", "op_ge",
+  "op_array", "op_arycat", "op_arypush", "op_aref", "op_aset", "op_apost",
+  "op_string", "op_strcat", "op_hash",
+  "op_lambda", "op_range", "op_oclass",
+  "op_class", "op_module", "op_exec",
+  "op_method", "op_sclass", "op_tclass",
+  "op_debug", "op_stop", "op_err",
+]
+
+
+def mruby_root
+  File.expand_path File.join(__dir__, '..', '..')
+end
+
+def jit_src_dir
+  File.join mruby_root, 'src', 'jit'
+end
+
+def profile_src_dir(profile)
+  File.join jit_src_dir, profile.to_s
+end
+
+def ops_header_path(profile)
+  File.join profile_src_dir(profile), "ops.h"
+end
+
+def linker_header_path(profile)
+  File.join profile_src_dir(profile), "linker.h"
+end
+
+def vm_c_path
+ File.join mruby_root, 'src', 'vm.c'
+end
+
+def boxings
+  {
+    :no_boxing => 'MRB_NO_BOXING',
+    :nan_boxing => 'MRB_NAN_BOXING',
+    :word_boxing => 'MRB_WORD_BOXING'
+  }
+end
+
+def triples
+  %w(x86_64-unknown-linux-gnu)
+end
+
+Profile = Struct.new(:triple, :boxing) do
+  def to_s
+    "#{triple}-#{boxing}"
+  end
+
+  def arch
+    triple.split('-', 2)[0]
+  end
+end
+
+def profiles
+  return $profiles if $profiles
+  $profiles = []
+  triples.each do |t|
+    boxings.each do |b, _|
+      $profiles << Profile.new(t, b)
+    end
+  end
+
+  $profiles
+end
+
+def hand_asm_file(profile, op_name)
+  File.join 'asm', "#{op_name}_#{profile.arch}_#{profile.boxing}.s"
+end
+
+def profile_dir(profile)
+  File.join 'profiles', profile.to_s
+end
+
+def obj_dir(profile)
+  File.join profile_dir(profile), 'obj'
+end
+
+def asm_dir(profile)
+  File.join profile_dir(profile), 'asm'
+end
+
+def ll_dir(profile)
+  File.join 'profiles', profile.boxing.to_s, 'll'
+end
+
+def obj_file(profile, name)
+  File.join obj_dir(profile), "#{name}.o"
+end
+
+def asm_file(profile, name, suffix = '')
+  File.join asm_dir(profile), "#{name}#{suffix}.s"
+end
+
+def ll_file(profile, name)
+  File.join ll_dir(profile), "#{name}.ll"
+end
+
+def symtbl_to_c(file, sym_tbl)
+  file.puts "#define SYMTBL_SIZE #{sym_tbl.size}"
+  file.puts "static void* symtbl[SYMTBL_SIZE];"
+  file.puts "void init_symtbl() {"
+  file.puts "  static int init = 0;"
+  file.puts "  if(init == 0) {"
+  file.puts "    init = 1;"
+  sym_tbl.each_with_index do |s, i|
+    file.puts "    symtbl[#{i}] = (void *) #{s};"
+  end
+  file.puts "  }"
+  file.puts "}"
+end
+
+def jit_link_func_type_to_c(file, objs)
+  file.puts "typedef void (*jit_link_func_t)(#{objs.first.linker_params_to_c});"
+end
+
+def decls_to_c(file, objs)
+  jit_link_func_type_to_c file, objs
+  file.puts "extern jit_link_func_t link_funcs[];"
+  file.puts "const uint8_t* ops_text[#{objs.size}];"
+  file.puts "const uint8_t* ops_rodata[#{objs.size}];"
+  file.puts "const char *op_names[#{objs.size}];"
+end
+
+def linker_to_c(file, objs)
+  jit_link_func_type_to_c file, objs
+  file.puts "jit_link_func_t link_funcs[#{objs.size}];"
+
+  func_names = objs.map do |obj|
+    obj.linker_to_c(file)
+  end
+
+  file.puts "void init_linker() {"
+  file.puts "  static int init = 0;"
+  file.puts "  if(init == 0) {"
+  file.puts "    init = 1;"
+  func_names.each_with_index do |f, i|
+    file.puts "    link_funcs[#{i}] = (jit_link_func_t) #{f};"
+  end
+  file.puts "  }"
+  file.puts "}"
+end
+
+def init_ops_to_c(file, objs, array_var_names)
+  file.puts "extern void init_linker();"
+  file.puts "void init_ops() {"
+  file.puts "  static int init = 0;"
+  file.puts "  if(init == 0) {"
+  file.puts "    init = 1;"
+  file.puts "    init_linker();"
+  objs.each_with_index do |op, index|
+    op.sections.each_with_index do |s, i|
+      file.puts "    ops_#{s.sane_name}[#{index}] = #{array_var_names[index][i]};"
+    end
+    file.puts "    op_names[#{index}] = \"#{op.name}\";"
+  end
+  file.puts "  }"
+  file.puts "}"
+end
+
+def op_sizes_to_c(file, objs, array_var_names)
+  # Order of sections matters!
+  ['text', 'rodata'].each_with_index do |s, i|
+    file.puts "static size_t op_sizes_#{s}[] = {\n"
+    objs.each_with_index do |op, index|
+      file.puts "  sizeof(#{array_var_names[index][i]}), /* #{op.sections[i].bytesize} */"
+    end
+    file.puts "\n};"
+  end
+
+  ['text', 'rodata'].each_with_index do |s, i|
+    file.puts "static int8_t op_algn_#{s}[] = {\n"
+    objs.each_with_index do |op, index|
+      file.puts "  #{op.sections[i].alignment},"
+    end
+    file.puts "\n};"
+  end
+
+end
+
+def gen_file(profile, f)
+  ll_f = ll_file(profile, 'vm_opt')
+  ll_d = ll_dir profile
+  file f => [ll_f, ll_d, 'gen', jit_src_dir] do
+    sh "./gen #{ll_f} #{ll_d}"
+  end
+end
+
+def postproc_asm_file(op_name, in_file, out_file)
+  in_asm = As::File.parse File.read(in_file)
+
+  klass = Postprocess::Processor
+
+  begin
+    klass_name = "_#{op_name}".gsub(/_([a-z])/){|m| $1.upcase}
+    klass = Postprocess::const_get klass_name
+  rescue NameError
+  end
+
+  klass.new(in_asm).process!
+  File.write out_file, in_asm.to_asm
+end
+
+profiles.each do |profile|
+  directory profile_dir(profile)
+  directory obj_dir(profile)
+  directory asm_dir(profile)
+
+  directory ll_dir(profile)
+end
+
+profiles.each do |profile|
+  vm_ll = ll_file(profile, 'vm')
+
+  file vm_ll => [vm_c_path, ll_dir(profile)] do |t|
+    boxing_def = boxings[profile.boxing]
+    sh "clang -I#{File.join mruby_root, 'include'} -DMRB_JIT_GEN -DMRB_ENABLE_JIT\
+        -D#{boxing_def} -fomit-frame-pointer -emit-llvm -S -o #{t.name} -c #{vm_c_path}"
+  end
+
+  file ll_file(profile, 'vm_opt') => [vm_ll] do |t|
+    sh "opt -inline #{vm_ll} -S -o #{t.name}"
+  end
+
+  #dont_opt = ->(op){ ['op_jmpif', 'op_jmpnot'].include? op}
+  dont_opt = ->(op){ false }
+
+  $ops.each do |op|
+    ll_file = ll_file(profile, op)
+    ll_opt_file = ll_file(profile, "#{op}_opt")
+
+    gen_file profile, ll_file
+
+    file ll_opt_file => [ll_file] do |t|
+      unless dont_opt[op]
+        sh "opt #{opt_passes.join ' '} #{ll_file} -S -o #{t.name}"
+      else
+        cp ll_file, t.name
+      end
+      #sh "./scale_geps #{t.name} #{t.name}"
+    end
+
+    obj_file = obj_file(profile, op)
+    asm_file = asm_file(profile, op)
+    pp_asm_file = asm_file(profile, op, '_cor')
+    hand_asm_file = hand_asm_file(profile, op)
+
+    file asm_file => [ll_opt_file, asm_dir(profile)] do |t|
+      if t.name =~ /op_return/ || t.name =~ /op_break/ || t.name =~ /op_blkpush/
+        # force stack alignment for ops
+        # that call into SIMD code
+        opts = "-force-align-stack -stack-alignment=16"
+      else
+        opts = ""
+      end
+
+      sh "llc -O3 #{opts} -mtriple=#{profile.triple} -filetype=asm -o #{t.name} #{ll_opt_file}"
+    end
+
+    if File.file?(hand_asm_file)
+      file pp_asm_file => [hand_asm_file, asm_file] do |t|
+        cp hand_asm_file, t.name
+      end
+    else
+      file pp_asm_file => asm_file do |t|
+        postproc_asm_file op, asm_file, t.name
+      end
+    end
+
+    file obj_file => [pp_asm_file, obj_dir(profile)] do |t|
+      sh "as #{pp_asm_file} -o #{t.name}"
+    end
+
+    $obj_files[profile] << obj_file
+  end
+end
+
+def process_objs(profile)
+  ops_file = nil
+  linker_file = nil
+  array_var_names = []
+
+  objs = $obj_files[profile].map do |obj_file|
+    obj = ObjectFile.load(obj_file)
+    ops_file ||= File.open ops_header_path(profile), 'w'
+    linker_file ||= File.open linker_header_path(profile), 'w'
+
+    ops_file.puts
+    array_var_names << obj.to_c(ops_file)
+    ops_file.puts
+
+    obj
+  end
+
+  decls_to_c(ops_file, objs)
+  ops_file.puts
+  op_sizes_to_c(ops_file, objs, array_var_names)
+  ops_file.puts
+  init_ops_to_c(ops_file, objs, array_var_names)
+  ops_file.puts
+
+  linker_to_c(linker_file, objs)
+  linker_file.puts
+
+  As::X86::ReturnInstruction.to_c ops_file
+  As::X86::JumpInstruction.to_c ops_file
+  As::X86::JumpIfInstruction.to_c ops_file
+  As::X86::JumpNotInstruction.to_c ops_file
+
+  ops_file.close
+  linker_file.close
+end
+
+directory jit_src_dir
+
+file 'gen' => 'gen.cpp' do |t|
+  sh "clang++ -std=c++11 -g3 -O0 gen.cpp $(llvm-config --cppflags --cxxflags --libs --ldflags --cflags) -pthread -lcurses -ldl -o #{t.name} -lz"
+end
+
+profiles.each do |profile|
+  directory profile_src_dir(profile)
+
+  file linker_header_path(profile) => [*$obj_files[profile], profile_src_dir(profile)] do |t|
+    process_objs profile
+  end
+
+  file ops_header_path(profile) => [*$obj_files[profile], profile_src_dir(profile)] do |t|
+    process_objs profile
+  end
+end
+
+task :default => profiles.flat_map{|p| [ops_header_path(p), linker_header_path(p)]}
+
+__END__
