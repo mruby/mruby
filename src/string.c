@@ -2462,6 +2462,25 @@ mrb_str_bytes(mrb_state *mrb, mrb_value str)
   return a;
 }
 
+/*
+ * call-seq:
+ *   str.ord   -> fixnum
+ *
+ * Returns the byte corresponding to first character in _str_.
+ *
+ *    str = "hello"
+ *    str.ord       #=> 104
+ */
+static mrb_value
+mrb_str_ord(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  unsigned char *p = (unsigned char *)(RSTR_PTR(s));
+
+  return mrb_fixnum_value(p[0]);
+}
+
+
 /* ---------------------------*/
 void
 mrb_init_string(mrb_state *mrb)
@@ -2515,4 +2534,5 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "upcase!",         mrb_str_upcase_bang,     MRB_ARGS_NONE()); /* 15.2.10.5.43 */
   mrb_define_method(mrb, s, "inspect",         mrb_str_inspect,         MRB_ARGS_NONE()); /* 15.2.10.5.46(x) */
   mrb_define_method(mrb, s, "bytes",           mrb_str_bytes,           MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "ord",             mrb_str_ord,           MRB_ARGS_NONE());
 }
