@@ -219,6 +219,21 @@ assert('Splat without assignment') do
   assert_equal 1, a
 end
 
+assert('multiple assignment (rest)') do
+  *a = 0
+  assert_equal [0], a
+end
+
+assert('multiple assignment (rest+post)') do
+  *a, b = 0, 1, 2
+  *c, d = 3
+
+  assert_equal [0, 1], a
+  assert_equal [2], b
+  assert_equal [], c
+  assert_equal [3], d
+end
+
 assert('Return values of case statements') do
   a = [] << case 1
   when 3 then 2
