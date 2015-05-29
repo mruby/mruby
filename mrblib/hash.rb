@@ -10,7 +10,7 @@ class Hash
   #  hash.
   #
   # ISO 15.2.13.4.1
-  def == (hash)
+  def ==(hash)
     return true if self.equal?(hash)
     begin
       hash = hash.to_hash
@@ -54,7 +54,7 @@ class Hash
   #
   # ISO 15.2.13.4.8
   def delete(key, &block)
-    if block && ! self.has_key?(key)
+    if block && !self.has_key?(key)
       block.call(key)
     else
       self.__delete(key)

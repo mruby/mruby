@@ -32,7 +32,7 @@ class Range
 
     return self if (val <=> last) > 0
 
-    while((val <=> last) < 0)
+    while (val <=> last) < 0
       block.call(val)
       val = val.succ
     end

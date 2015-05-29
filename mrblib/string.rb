@@ -12,7 +12,7 @@ class String
   def each_line(&block)
     # expect that str.index accepts an Integer for 1st argument as a byte data
     offset = 0
-    while(pos = self.index(0x0a, offset))
+    while pos = self.index(0x0a, offset)
       block.call(self[offset, pos + 1 - offset])
       offset = pos + 1
     end
@@ -106,7 +106,7 @@ class String
   # +self+.
   def each_char(&block)
     pos = 0
-    while(pos < self.size)
+    while pos < self.size
       block.call(self[pos])
       pos += 1
     end
@@ -118,7 +118,7 @@ class String
   def each_byte(&block)
     bytes = self.bytes
     pos = 0
-    while(pos < bytes.size)
+    while pos < bytes.size
       block.call(bytes[pos])
       pos += 1
     end

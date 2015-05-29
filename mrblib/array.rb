@@ -34,7 +34,7 @@ class Array
     return to_enum :each_index unless block_given?
 
     idx = 0
-    while(idx < length)
+    while idx < length
       block.call(idx)
       idx += 1
     end
@@ -75,7 +75,7 @@ class Array
       self[size - 1] = nil  # allocate
 
       idx = 0
-      while(idx < size)
+      while idx < size
         self[idx] = (block)? block.call(idx): obj
         idx += 1
       end
