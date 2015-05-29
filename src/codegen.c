@@ -957,13 +957,6 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
     gen_vmassignment(s, tree->car, sp, val);
     break;
 
-    push();
-    gen_call(s, tree, attrsym(s, sym(tree->cdr->car)), sp, NOVAL);
-    pop();
-    if (val) {
-      genop_peep(s, MKOP_AB(OP_MOVE, cursp(), sp), val);
-    }
-    break;
   /* splat without assignment */
   case NODE_NIL:
     break;
