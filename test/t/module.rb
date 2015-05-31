@@ -533,3 +533,7 @@ assert('Module#module_function') do
   assert_true M.respond_to?(:modfunc)
 end
 
+assert('module with non-class/module outer raises TypeError') do
+  assert_raise(TypeError) { module 0::M1 end }
+  assert_raise(TypeError) { module []::M2 end }
+end
