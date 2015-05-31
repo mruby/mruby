@@ -1615,8 +1615,14 @@ codegen(codegen_scope *s, node *tree, int val)
             }
           }
           if (t->car) {         /* rest (len - pre - post) */
-            int rn = len - post - n;
+            int rn;
 
+            if (len < post + n) {
+              rn = 0;
+            }
+            else {
+              rn = len - post - n;
+            }
             genop(s, MKOP_ABC(OP_ARRAY, cursp(), rhs+n, rn));
             gen_assignment(s, t->car, cursp(), NOVAL);
             n += rn;

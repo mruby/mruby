@@ -234,6 +234,20 @@ assert('multiple assignment (rest+post)') do
   assert_equal 3, d
 end
 
+assert('multiple assignment (nosplat array rhs)') do
+  a, *b = []
+  *c, d = [0]
+  e, *f, g = [1, 2]
+
+  assert_nil a
+  assert_equal [], b
+  assert_equal [], c
+  assert_equal 0, d
+  assert_equal 1, e
+  assert_equal [], f
+  assert_equal 2, g
+end
+
 assert('Return values of case statements') do
   a = [] << case 1
   when 3 then 2
