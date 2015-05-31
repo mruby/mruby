@@ -229,9 +229,9 @@ assert('multiple assignment (rest+post)') do
   *c, d = 3
 
   assert_equal [0, 1], a
-  assert_equal [2], b
+  assert_equal 2, b
   assert_equal [], c
-  assert_equal [3], d
+  assert_equal 3, d
 end
 
 assert('Return values of case statements') do
