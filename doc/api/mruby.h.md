@@ -72,7 +72,7 @@ The passing variadic arguments must be a pointer of retrieving type.
 ```C
 MRB_API struct RClass *mrb_define_class(mrb_state *, const char*, struct RClass*);
 ```
-Creates a new class. If you're creating a gem it may look something like this:
+Defines a new class. If you're creating a gem it may look something like this:
 
 ```C
 void mrb_example_gem_init(mrb_state* mrb) {
@@ -90,7 +90,7 @@ void mrb_example_gem_final(mrb_state* mrb) {
 MRB_API void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
 ```
 
-Creates a global function in ruby. If you're creating a gem it may look something like this:
+Defines a global function in ruby. If you're creating a gem it may look something like this:
 
 ```C
 mrb_value example_method(mrb_state* mrb, mrb_value self){
@@ -131,7 +131,7 @@ void mrb_example_gem_final(mrb_state* mrb) {
 MRB_API struct RClass *mrb_define_module(mrb_state *, const char*);
 ```
 
-Creates a module in ruby. If you're creating a gem it may look something like this:
+Defines a module. If you're creating a gem it may look something like this:
 
 ```C
 mrb_value example_method(mrb_state* mrb, mrb_value self){
@@ -198,11 +198,12 @@ void mrb_example_gem_final(mrb_state* mrb) {
 }
 ```
 
+### mrb_str_new_cstr
 
+```C
+MRB_API mrb_value mrb_str_new_cstr(mrb_state*, const char*);
+```
 
-
-
-
-
+Turns a C string into a Ruby string value.
 
 
