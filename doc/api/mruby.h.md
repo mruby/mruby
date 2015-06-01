@@ -94,7 +94,7 @@ Creates a global function in ruby. If you're creating a gem it may look somethin
 
 ```C
 mrb_value example_method(mrb_state* mrb, mrb_value self){
-	puts("Executing example commad!");
+	puts("Executing example command!");
 	return self;
 }
 
