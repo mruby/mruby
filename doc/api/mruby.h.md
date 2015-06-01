@@ -67,3 +67,149 @@ char|mruby type|retrieve types|note
 `?`|optional given|`mrb_bool`|True if preceding argument is given. Used to check optional argument is given.
 
 The passing variadic arguments must be a pointer of retrieving type.
+
+### mrb_define_class
+```C
+MRB_API struct RClass *mrb_define_class(mrb_state *, const char*, struct RClass*);
+```
+Defines a new class. If you're creating a gem it may look something like this:
+
+```C
+void mrb_example_gem_init(mrb_state* mrb) {
+    struct RClass *example_class;
+    example_class = mrb_define_class(mrb, "Example_Class", mrb->object_class);
+}
+
+void mrb_example_gem_final(mrb_state* mrb) {
+  //free(TheAnimals);
+}
+```
+### mrb_define_method
+
+```C
+MRB_API void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
+```
+
+Defines a global function in ruby. If you're creating a gem it may look something like this:
+
+```C
+mrb_value example_method(mrb_state* mrb, mrb_value self){
+	puts("Executing example command!");
+	return self;
+}
+
+void mrb_example_gem_init(mrb_state* mrb) {
+  mrb_define_method(mrb, mrb->kernel_module, "example_method", example_method, MRB_ARGS_NONE());  
+}
+
+void mrb_example_gem_final(mrb_state* mrb) {
+  //free(TheAnimals);
+}
+```
+
+Or maybe you want to create a class method for a class? It might look something like this:
+
+```C
+mrb_value example_method(mrb_state* mrb, mrb_value self){
+	puts("Examples are like pizza...");
+	return self;
+}
+
+void mrb_example_gem_init(mrb_state* mrb) {
+    struct RClass *example_class;
+    example_class = mrb_define_class(mrb, "Example_Class", mrb->object_class);
+    mrb_define_method(mrb, example_class, "example_method", example_method, MRB_ARGS_NONE()); 
+}
+
+void mrb_example_gem_final(mrb_state* mrb) {
+  //free(TheAnimals);
+}
+```
+### mrb_define_module
+
+```C
+MRB_API struct RClass *mrb_define_module(mrb_state *, const char*);
+```
+
+Defines a module. If you're creating a gem it may look something like this:
+
+```C
+mrb_value example_method(mrb_state* mrb, mrb_value self){
+	puts("Examples are like tacos...");
+	return self;
+}
+
+void mrb_example_gem_init(mrb_state* mrb) {
+    struct RClass *example_module;
+    example_module = mrb_define_module(mrb, "Example_Module");
+}
+
+void mrb_example_gem_final(mrb_state* mrb) {
+  //free(TheAnimals);
+}
+```
+
+### mrb_define_module_function
+
+```C
+MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
+```
+
+Defines a module function. If you're creating a gem it may look something like this:
+
+
+```C
+mrb_value example_method(mrb_state* mrb, mrb_value self){
+	puts("Examples are like hot wings...");
+	return self;
+}
+
+void mrb_example_gem_init(mrb_state* mrb) {
+    struct RClass *example_module;
+    example_module = mrb_define_module(mrb, "Example_Module");
+    mrb_define_module_function(mrb, example_module, "example_method", example_method, MRB_ARGS_NONE());
+}
+
+void mrb_example_gem_final(mrb_state* mrb) {
+  //free(TheAnimals);
+}
+```
+
+### mrb_define_const
+
+```C
+MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
+```
+
+Defines a constant. If you're creating a gem it may look something like this:
+
+```C
+mrb_value example_method(mrb_state* mrb, mrb_value self){
+	puts("Examples are like hot wings...");
+	return self;
+}
+
+void mrb_example_gem_init(mrb_state* mrb) {
+    mrb_define_const(mrb, mrb->kernel_module, "EXAPMLE_CONSTANT", mrb_fixnum_value(0x00000001));
+}
+
+void mrb_example_gem_final(mrb_state* mrb) {
+  //free(TheAnimals);
+}
+```
+
+### mrb_str_new_cstr
+
+```C
+MRB_API mrb_value mrb_str_new_cstr(mrb_state*, const char*);
+```
+
+Turns a C string into a Ruby string value.
+
+
+### mrb_value mrb_funcall
+
+```C
+MRB_API mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, mrb_int,...);
+```
+Call existing ruby functions.
