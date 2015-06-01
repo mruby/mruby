@@ -3,6 +3,12 @@
 This is a C API Reference.
 The structure of this document will follow the directory structure of `include/` directory.
 
+If there isn't specific description of the first `mrb_state* mrb` argument
+it's the current mruby state.
+
+## [API Changes](./changes.md)
+There is many API changes from 1.0.0 so check it out.
+
 ## Headers list
 Header name|Features
 -----------|--------
