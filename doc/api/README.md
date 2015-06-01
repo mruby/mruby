@@ -25,6 +25,6 @@ Header name|Features
 [mruby/range.h](./mruby.range.h.md)|`Range` class.
 [mruby/re.h](./mruby.re.h.md)|`Regexp` class.
 [mruby/string.h](./mruby.string.h.md)|`String` class.
-[mruby/value.h](./mruby.value.h.md)|`mrb_value` functions and macros.
+[mruby/value.h](./value.h.md)|`mrb_value` functions and macros.
 [mruby/variable.h](./mruby.variable.h.md)|Functions to access to mruby variables.
 [mruby/version.h](./mruby.version.h.md)|Macros of mruby version.
