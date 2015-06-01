@@ -298,6 +298,9 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
   mrb_int blen;
 
   mrb_get_args(mrb, "a", &ptr, &blen);
+  if (ARY_MAX_SIZE - blen < a1->len) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big"); 
+  }
   ary = mrb_ary_new_capa(mrb, a1->len + blen);
   a2 = mrb_ary_ptr(ary);
   array_copy(a2->ptr, a1->ptr, a1->len);
@@ -351,7 +354,9 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argument");
   }
   if (times == 0) return mrb_ary_new(mrb);
-
+  if (ARY_MAX_SIZE / times < a1->len) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big"); 
+  }
   ary = mrb_ary_new_capa(mrb, a1->len * times);
   a2 = mrb_ary_ptr(ary);
   ptr = a2->ptr;
