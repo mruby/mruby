@@ -1911,7 +1911,7 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_GVAR:
-    {
+    if (val) {
       int sym = new_sym(s, sym(tree));
 
       genop(s, MKOP_ABx(OP_GETGLOBAL, cursp(), sym));
@@ -1920,7 +1920,7 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_IVAR:
-    {
+    if (val) {
       int sym = new_sym(s, sym(tree));
 
       genop(s, MKOP_ABx(OP_GETIV, cursp(), sym));
@@ -1929,7 +1929,7 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_CVAR:
-    {
+    if (val) {
       int sym = new_sym(s, sym(tree));
 
       genop(s, MKOP_ABx(OP_GETCV, cursp(), sym));
@@ -1951,7 +1951,7 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_BACK_REF:
-    {
+    if (val) {
       char buf[2] = { '$' };
       mrb_value str;
       int sym;
@@ -1965,7 +1965,7 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_NTH_REF:
-    {
+    if (val) {
       int sym;
       mrb_state *mrb = s->mrb;
       mrb_value fix = mrb_fixnum_value((intptr_t)tree);
