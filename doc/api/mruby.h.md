@@ -207,3 +207,9 @@ MRB_API mrb_value mrb_str_new_cstr(mrb_state*, const char*);
 Turns a C string into a Ruby string value.
 
 
+### mrb_value mrb_funcall
+
+```C
+MRB_API mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, mrb_int,...);
+```
+Call existing ruby functions.
