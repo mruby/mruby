@@ -8,7 +8,6 @@
 
 */
 
-#include "dirent.h"
 #include <errno.h>
 #include <io.h> /* _findfirst and _findnext set errno iff they return -1 */
 #include <stdlib.h>
@@ -21,6 +20,11 @@ extern "C"
 
 typedef ptrdiff_t handle_type; /* C99's intptr_t not sufficiently portable */
 
+struct dirent
+{
+    char *d_name;
+};
+
 struct DIR
 {
     handle_type         handle; /* -1 for failed rewind */
@@ -28,6 +32,8 @@ struct DIR
     struct dirent       result; /* d_name null iff first time */
     char                *name;  /* null-terminated char string */
 };
+
+typedef struct DIR DIR;
 
 DIR *opendir(const char *name)
 {

@@ -16,7 +16,7 @@
   #define PATH_MAX MAX_PATH
  #endif
   #define S_ISDIR(B) ((B)&_S_IFDIR)
-  #include "Win/dirent.h"
+  #include "Win/dirent.c"
   #include <direct.h>
   #define rmdir _rmdir
   #define getcwd _getcwd
