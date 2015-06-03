@@ -26,7 +26,7 @@ mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb
 MRB_API void
 mrb_data_check_type(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 {
-  if (mrb_immediate_p(obj) || (mrb_type(obj) != MRB_TT_DATA)) {
+  if (mrb_type(obj) != MRB_TT_DATA) {
     mrb_check_type(mrb, obj, MRB_TT_DATA);
   }
   if (DATA_TYPE(obj) != type) {
@@ -48,7 +48,7 @@ mrb_data_check_type(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 MRB_API void*
 mrb_data_check_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 {
-  if (mrb_immediate_p(obj) || (mrb_type(obj) != MRB_TT_DATA)) {
+  if (mrb_type(obj) != MRB_TT_DATA) {
     return NULL;
   }
   if (DATA_TYPE(obj) != type) {
