@@ -1942,7 +1942,9 @@ codegen(codegen_scope *s, node *tree, int val)
       int sym = new_sym(s, sym(tree));
 
       genop(s, MKOP_ABx(OP_GETCONST, cursp(), sym));
-      push();
+      if (val) {
+        push();
+      }
     }
     break;
 
