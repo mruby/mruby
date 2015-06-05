@@ -1,4 +1,4 @@
-### mrb_ary_new()
+### mrb_ary_new
 
 ```C
 mrb_value mrb_ary_new(mrb_state *mrb);
@@ -38,7 +38,7 @@ end
 Example_Class.new
 ```
 
-### mrb_ary_push()
+### mrb_ary_push
 ```C
 void mrb_ary_push(mrb_state*, mrb_value, mrb_value);
 ```
@@ -88,7 +88,7 @@ After compiling you should get these results.
 Array
 ```
 
-## mrb_ary_pop()
+## mrb_ary_pop
 ```C
 mrb_value mrb_ary_pop(mrb_state *mrb, mrb_value ary);
 ```
@@ -144,7 +144,7 @@ After compiling you should get these results.
 Array
 [70]
 ```
-## mrb_ary_ref()
+## mrb_ary_ref
 ```C
 mrb_value mrb_ary_ref(mrb_state *mrb, mrb_value ary, mrb_int n);
 ```
