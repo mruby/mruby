@@ -9,7 +9,7 @@ In this example we read from a Ruby file inside C. The Ruby code will print what
 ```C
 #include <stdio.h>
 #include <mruby.h>
-#include "mruby/array.h" // Need the array header.
+#include "mruby/array.h" // Needs the array header.
 #include "mruby/compile.h"
 
 
@@ -48,7 +48,7 @@ In this example we read from a Ruby file inside C. The Ruby code will print what
 ```C
 #include <stdio.h>
 #include <mruby.h>
-#include "mruby/array.h" // Need the array header.
+#include "mruby/array.h" // Needs the array header.
 #include "mruby/compile.h"
 
 int main(int argc, char *argv[])
@@ -99,7 +99,7 @@ called pop_ary that will return the array alone(just to be clean) and you should
 ```C
 #include <stdio.h>
 #include <mruby.h>
-#include "mruby/array.h" // Need the array header.
+#include "mruby/array.h" // Needs the array header.
 #include "mruby/compile.h"
 
 int main(int argc, char *argv[])
@@ -154,7 +154,7 @@ In this example we read from a Ruby file inside C. The Ruby code will print what
 ```C
 #include <stdio.h>
 #include <mruby.h>
-#include "mruby/array.h" // Need the array header.
+#include "mruby/array.h" // Needs the array header.
 #include "mruby/compile.h"
 
 int main(int argc, char *argv[])
@@ -207,7 +207,7 @@ In this example we read from a Ruby file inside C. The Ruby code will print what
 ```C
 #include <stdio.h>
 #include <mruby.h>
-#include "mruby/array.h" // Need the array header.
+#include "mruby/array.h" // Needs the array header.
 #include "mruby/compile.h"
 
 int main(int argc, char *argv[])
