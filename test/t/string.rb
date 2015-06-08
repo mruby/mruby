@@ -254,6 +254,15 @@ assert('String#gsub', '15.2.10.5.18') do
   assert_equal('A',      'a'.gsub('a'){|w| w.capitalize })
 end
 
+assert('String#gsub with backslash') do
+  s = 'abXcdXef'
+  assert_equal 'ab<\\>cd<\\>ef',    s.gsub('X', '<\\\\>')
+  assert_equal 'ab<X>cd<X>ef',      s.gsub('X', '<\\&>')
+  assert_equal 'ab<X>cd<X>ef',      s.gsub('X', '<\\0>')
+  assert_equal 'ab<ab>cd<abXcd>ef', s.gsub('X', '<\\`>')
+  assert_equal 'ab<cdXef>cd<ef>ef', s.gsub('X', '<\\\'>')
+end
+
 assert('String#gsub!', '15.2.10.5.19') do
   a = 'abcabc'
   a.gsub!('b', 'B')
@@ -414,6 +423,15 @@ assert('String#sub', '15.2.10.5.36') do
   assert_equal 'aBcabc', 'abcabc'.sub('b', 'B')
   assert_equal 'aBcabc', 'abcabc'.sub('b') { |w| w.capitalize }
   assert_equal 'aa$', 'aa#'.sub('#', '$')
+end
+
+assert('String#sub with backslash') do
+  s = 'abXcdXef'
+  assert_equal 'ab<\\>cdXef',    s.sub('X', '<\\\\>')
+  assert_equal 'ab<X>cdXef',     s.sub('X', '<\\&>')
+  assert_equal 'ab<X>cdXef',     s.sub('X', '<\\0>')
+  assert_equal 'ab<ab>cdXef',    s.sub('X', '<\\`>')
+  assert_equal 'ab<cdXef>cdXef', s.sub('X', '<\\\'>')
 end
 
 assert('String#sub!', '15.2.10.5.37') do

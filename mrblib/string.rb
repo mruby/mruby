@@ -20,6 +20,30 @@ class String
     self
   end
 
+  # private method for gsub/sub
+  def __sub_replace(pre, m, post)
+    s = ""
+    i = 0
+    while j = index("\\", i)
+      break if j == length-1
+      t = case self[j+1]
+          when "\\"
+            "\\"
+          when "`"
+            pre
+          when "&", "0"
+            m
+          when "'"
+            post
+          else
+            self[j, 2]
+          end
+      s += self[i, j-i] + t
+      i = j + 2
+    end
+    s + self[i, length-i]
+  end
+
   ##
   # Replace all matches of +pattern+ with +replacement+.
   # Call block (if given) for each match and replace
@@ -29,7 +53,17 @@ class String
   # ISO 15.2.10.5.18
   def gsub(*args, &block)
     if args.size == 2
-      split(args[0], -1).join(args[1])
+      s = ""
+      i = 0
+      while j = index(args[0], i)
+        seplen = args[0].length
+        k = j + seplen
+        pre = self[0, j]
+        post = self[k, length-k]
+        s += self[i, j-i] + args[1].__sub_replace(pre, args[0], post)
+        i = k
+      end
+      s + self[i, length-i]
     elsif args.size == 1 && block
       split(args[0], -1).join(block.call(args[0]))
     else
@@ -76,7 +110,8 @@ class String
   # ISO 15.2.10.5.36
   def sub(*args, &block)
     if args.size == 2
-      split(args[0], 2).join(args[1])
+      pre, post = split(args[0], 2)
+      pre + args[1].__sub_replace(pre, args[0], post) + post
     elsif args.size == 1 && block
       split(args[0], 2).join(block.call(args[0]))
     else
