@@ -6,10 +6,16 @@ MRuby::Gem::Specification.new('mruby-bin-mirb') do |spec|
   if spec.build.cc.search_header_path 'readline/readline.h'
     spec.cc.defines << "ENABLE_READLINE"
     if spec.build.cc.search_header_path 'termcap.h'
-      if MRUBY_BUILD_HOST_IS_CYGWIN then
-        spec.linker.libraries << 'ncurses'
-      else
-        spec.linker.libraries << 'termcap'
+      if MRUBY_BUILD_HOST_IS_CYGWIN || MRUBY_BUILD_HOST_IS_OPENBSD
+        if spec.build.cc.search_header_path 'termcap.h'
+          if MRUBY_BUILD_HOST_IS_CYGWIN then
+            spec.linker.libraries << 'ncurses'
+          elsif spec.linker.has_library('libterminfo') then
+            spec.linker.libraries << 'terminfo'
+          else
+            spec.linker.libraries << 'termcap'
+          end
+        end
       end
     end
     if RUBY_PLATFORM.include?('netbsd')

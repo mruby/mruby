@@ -3,6 +3,7 @@
 # basic build file for mruby
 MRUBY_ROOT = File.dirname(File.expand_path(__FILE__))
 MRUBY_BUILD_HOST_IS_CYGWIN = RUBY_PLATFORM.include?('cygwin')
+MRUBY_BUILD_HOST_IS_OPENBSD = RUBY_PLATFORM.include?('openbsd')
 
 # load build systems
 load "#{MRUBY_ROOT}/tasks/ruby_ext.rake"
