@@ -11,12 +11,8 @@
 static void
 p(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value val;
+  mrb_value val = mrb_inspect(mrb, obj);
 
-  val = mrb_funcall(mrb, obj, "inspect", 0);
-  if (!mrb_string_p(val)) {
-    val = mrb_obj_as_string(mrb, obj);
-  }
   fwrite(RSTRING_PTR(val), RSTRING_LEN(val), 1, stdout);
   putc('\n', stdout);
 }
