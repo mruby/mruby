@@ -4,6 +4,7 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <math.h>
 #include <stdio.h>
 #include <time.h>
 #include "mruby.h"
@@ -208,12 +209,12 @@ time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
   out_of_range:
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "%S out of Time range", mrb_float_value(mrb, sec));
   }
-  tm->usec = (time_t)((sec - tm->sec) * 1.0e6 + usec);
+  tm->usec = (time_t)llround((sec - tm->sec) * 1.0e6 + usec);
   while (tm->usec < 0) {
     tm->sec--;
     tm->usec += 1000000;
   }
-  while (tm->usec > 1000000) {
+  while (tm->usec >= 1000000) {
     tm->sec++;
     tm->usec -= 1000000;
   }
