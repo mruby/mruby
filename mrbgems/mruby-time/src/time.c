@@ -201,11 +201,14 @@ time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
   struct mrb_time *tm;
 
   tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(struct mrb_time));
-  tm->sec  = (time_t)sec;
   if (sizeof(time_t) == 4 && (sec > (double)INT32_MAX || (double)INT32_MIN > sec)) {
     goto out_of_range;
   }
-  else if ((sec > 0 && tm->sec < 0) || (sec < 0 && (double)tm->sec > sec)) {
+  if (sizeof(time_t) == 8 && (sec > (double)INT64_MAX || (double)INT64_MIN > sec)) {
+    goto out_of_range;
+  }
+  tm->sec  = (time_t)sec;
+  if ((sec > 0 && tm->sec < 0) || (sec < 0 && (double)tm->sec > sec)) {
   out_of_range:
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "%S out of Time range", mrb_float_value(mrb, sec));
   }
