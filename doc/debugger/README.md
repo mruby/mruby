@@ -13,7 +13,7 @@ This file documents the mruby debugger ('mrdb') methods.
 The trunk of the mruby source tree, with the most recent mrdb, can be checked out with the following command:
 
 ```bash
-$ git clone https://github.com/mruby-Forum/mruby.git
+$ git clone https://github.com/mruby/mruby.git
 ```
 
 To run the `make` command:
