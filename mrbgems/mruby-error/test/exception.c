@@ -40,8 +40,10 @@ static mrb_value
 run_rescue_exceptions(mrb_state *mrb, mrb_value self)
 {
   mrb_value b, r;
+  struct RClass *cls[1];
   mrb_get_args(mrb, "oo", &b, &r);
-  return mrb_rescue_exceptions(mrb, protect_cb, b, protect_cb, r, E_TYPE_ERROR, NULL);
+  cls[0] = E_TYPE_ERROR;
+  return mrb_rescue_exceptions(mrb, protect_cb, b, protect_cb, r, 1, cls);
 }
 
 void
