@@ -1,4 +1,3 @@
-#include <stdarg.h>
 #include "mruby.h"
 #include "mruby/throw.h"
 #include "mruby/error.h"
@@ -52,18 +51,19 @@ MRB_API mrb_value
 mrb_rescue(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
            mrb_func_t rescue, mrb_value r_data)
 {
-  return mrb_rescue_exceptions(mrb, body, b_data, rescue, r_data, mrb->eStandardError_class, NULL);
+  return mrb_rescue_exceptions(mrb, body, b_data, rescue, r_data, 1, &mrb->eStandardError_class);
 }
 
 MRB_API mrb_value
-mrb_rescue_exceptions(mrb_state *mrb, mrb_func_t body, mrb_value b_data, mrb_func_t rescue, mrb_value r_data, ...)
+mrb_rescue_exceptions(mrb_state *mrb, mrb_func_t body, mrb_value b_data, mrb_func_t rescue, mrb_value r_data,
+                      mrb_int len, struct RClass **classes)
 {
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
   struct mrb_jmpbuf c_jmp;
   mrb_value result;
-  va_list excs;
   struct RClass *cls;
   mrb_bool error_matched = FALSE;
+  mrb_int i;
 
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;
@@ -72,14 +72,12 @@ mrb_rescue_exceptions(mrb_state *mrb, mrb_func_t body, mrb_value b_data, mrb_fun
   } MRB_CATCH(&c_jmp) {
     mrb->jmp = prev_jmp;
 
-    va_start(excs, r_data);
-    while((cls = va_arg(excs, struct RClass*))) {
-      if (mrb_obj_is_kind_of(mrb, mrb_obj_value(mrb->exc), cls)) {
+    for (i = 0; i < len; ++i) {
+      if (mrb_obj_is_kind_of(mrb, mrb_obj_value(mrb->exc), classes[i])) {
         error_matched = TRUE;
         break;
       }
     }
-    va_end(excs);
 
     if (!error_matched) { MRB_THROW(mrb->jmp); }
 

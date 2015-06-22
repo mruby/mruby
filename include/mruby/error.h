@@ -35,7 +35,8 @@ MRB_API mrb_value mrb_ensure(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
 MRB_API mrb_value mrb_rescue(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
                              mrb_func_t rescue, mrb_value r_data);
 MRB_API mrb_value mrb_rescue_exceptions(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
-                                        mrb_func_t rescue, mrb_value r_data, ...);
+                                        mrb_func_t rescue, mrb_value r_data,
+                                        mrb_int len, struct RClass **classes);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */
