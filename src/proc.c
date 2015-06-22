@@ -216,7 +216,7 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
   ma = MRB_ASPEC_REQ(aspec);
   ra = MRB_ASPEC_REST(aspec);
   pa = MRB_ASPEC_POST(aspec);
-  arity = ra ? -(ma + pa + 1) : ma + pa;
+  arity = ra || MRB_PROC_STRICT_P(p) ? -(ma + pa + 1) : ma + pa;
 
   return mrb_fixnum_value(arity);
 }
