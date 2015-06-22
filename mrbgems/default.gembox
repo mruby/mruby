@@ -70,4 +70,7 @@ MRuby::GemBox.new do |conf|
 
   # Use extensional Kernel module
   conf.gem :core => "mruby-kernel-ext"
+
+  # Use mruby-compiler to build other mrbgems
+  conf.gem :core => "mruby-compiler"
 end
