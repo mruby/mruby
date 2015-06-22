@@ -26,6 +26,15 @@ conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
 conf.gem :bitbucket => 'mruby/mrbgems-example', :branch => 'master'
 ```
 
+To use mrbgem from [mgem-list](https://github.com/mruby/mgem-list) use `:mgem` option:
+```ruby
+conf.gem :mgem => 'mruby-yaml'
+conf.gem :mgem => 'yaml' # 'mruby-' prefix could be ignored
+```
+
+If there is missing dependencies, mrbgem dependencies solver will reference
+mrbgem from core or mgem-list.
+
 To pull all gems from remote GIT repository on build, call ```./minirake -p```,
 or ```./minirake --pull-gems```.
 
