@@ -41,6 +41,9 @@ assert('Proc#curry') do
   assert_raise(ArgumentError) { b.curry[1, 2][3, 4] }
   assert_raise(ArgumentError) { b.curry(5) }
   assert_raise(ArgumentError) { b.curry(1) }
+
+  assert_false(proc{}.curry.lambda?)
+  assert_true(lambda{}.curry.lambda?)
 end
 
 assert('Proc#parameters') do
