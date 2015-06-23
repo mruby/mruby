@@ -808,7 +808,7 @@ retry:
             if (mrb_fixnum_p(val)) goto bin_retry;
             break;
           case MRB_TT_STRING:
-            val = mrb_str_to_inum(mrb, val, 0, FALSE);
+            val = mrb_str_to_inum(mrb, val, 0, TRUE);
             goto bin_retry;
           case MRB_TT_FIXNUM:
             v = mrb_fixnum(val);

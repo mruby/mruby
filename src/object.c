@@ -539,7 +539,7 @@ mrb_convert_to_integer(mrb_state *mrb, mrb_value val, int base)
 
     case MRB_TT_STRING:
     string_conv:
-      return mrb_str_to_inum(mrb, val, base, FALSE);
+      return mrb_str_to_inum(mrb, val, base, TRUE);
 
     default:
       break;
