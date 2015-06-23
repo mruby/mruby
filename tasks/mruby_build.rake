@@ -283,6 +283,10 @@ EOS
 
   class CrossBuild < Build
     attr_block %w(test_runner)
+    # cross compiling targets for building native extensions.
+    # host  - arch of where the built binary will run
+    # build - arch of the machine building the binary
+    attr_accessor :host_target, :build_target
 
     def initialize(name, build_dir=nil, &block)
       @test_runner = Command::CrossTestRunner.new(self)
