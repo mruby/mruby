@@ -36,6 +36,14 @@ assert('Proc#arity', '15.2.17.4.2') do
   assert_equal(-3, b)
   assert_equal  1, c
   assert_equal  1, d
+
+  e = ->(x=0, y){}.arity
+  f = ->((x, y), z=0){}.arity
+  g = ->(x=0){}.arity
+
+  assert_equal(-2, e)
+  assert_equal(-2, f)
+  assert_equal(-1, g)
 end
 
 assert('Proc#call', '15.2.17.4.3') do
