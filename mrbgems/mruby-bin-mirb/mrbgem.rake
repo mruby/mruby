@@ -26,4 +26,5 @@ MRuby::Gem::Specification.new('mruby-bin-mirb') do |spec|
   end
 
   spec.bins = %w(mirb)
+  spec.add_dependency('mruby-compiler', :core => 'mruby-compiler')
 end
