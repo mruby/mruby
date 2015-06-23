@@ -127,8 +127,8 @@ module MRuby
       obj = objfile(cxx_src) if obj.nil?
 
       file cxx_src => [src, __FILE__] do |t|
-        File.open(t.name, 'w') do |f|
-          f.write <<EOS
+        FileUtils.mkdir_p File.dirname t.name
+        IO.write t.name, <<EOS
 #define __STDC_CONSTANT_MACROS
 #define __STDC_LIMIT_MACROS
 
@@ -136,9 +136,8 @@ extern "C" {
 #include "#{src}"
 }
 
-#{File.basename(src) == 'error.c'? 'mrb_int mrb_jmpbuf::jmpbuf_id = 0;' : ''}
+#{src == "#{MRUBY_ROOT}/src/error.c"? 'mrb_int mrb_jmpbuf::jmpbuf_id = 0;' : ''}
 EOS
-        end
       end
 
       file obj => cxx_src do |t|
