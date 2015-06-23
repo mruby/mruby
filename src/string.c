@@ -1985,7 +1985,8 @@ bad:
 MRB_API const char*
 mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 {
-  struct RString *ps = mrb_str_ptr(*ptr);
+  mrb_value str = mrb_str_to_str(mrb, *ptr);
+  struct RString *ps = mrb_str_ptr(str);
   mrb_int len = mrb_str_strlen(mrb, ps);
   char *p = RSTR_PTR(ps);
 
