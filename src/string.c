@@ -2003,12 +2003,12 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
   const char *s;
   mrb_int len;
 
-  str = mrb_str_to_str(mrb, str);
   if (badcheck) {
+    /* Raises if the string contains a null character (the badcheck) */
     s = mrb_string_value_cstr(mrb, &str);
   }
   else {
-    s = RSTRING_PTR(str);
+    s = mrb_string_value_ptr(mrb, str);
   }
   if (s) {
     len = RSTRING_LEN(str);
