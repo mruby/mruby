@@ -13,9 +13,11 @@ class Proc
   end
 
   def curry(arity=self.arity)
+    type = :proc
     abs = lambda {|a| a < 0 ? -a - 1 : a}
     arity = abs[arity]
     if lambda?
+      type = :lambda
       self_arity = self.arity
       if (self_arity >= 0 && arity != self_arity) ||
          (self_arity < 0 && abs[self_arity] > arity)
@@ -25,7 +27,7 @@ class Proc
 
     pproc = self
     make_curry = proc do |given_args=[]|
-      proc do |*args|
+      send(type) do |*args|
         new_args = given_args + args
         if new_args.size >= arity
           pproc[*new_args]
