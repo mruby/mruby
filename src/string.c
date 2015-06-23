@@ -2003,7 +2003,6 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
   const char *s;
   mrb_int len;
 
-  str = mrb_str_to_str(mrb, str);
   if (badcheck) {
     s = mrb_string_value_cstr(mrb, &str);
   }
