@@ -452,8 +452,6 @@ MRB_API void mrb_show_copyright(mrb_state *mrb);
 
 MRB_API mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
 
-#include "mruby/deprecated.h"
-
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif
