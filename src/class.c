@@ -1174,11 +1174,11 @@ mrb_instance_alloc(mrb_state *mrb, mrb_value cv)
  *  call-seq:
  *     class.new(args, ...)    ->  obj
  *
- *  Calls <code>allocate</code> to create a new object of
- *  <i>class</i>'s class, then invokes that object's
- *  <code>initialize</code> method, passing it <i>args</i>.
- *  This is the method that ends up getting called whenever
- *  an object is constructed using .new.
+ *  Creates a new object of <i>class</i>'s class, then
+ *  invokes that object's <code>initialize</code> method,
+ *  passing it <i>args</i>. This is the method that ends
+ *  up getting called whenever an object is constructed using
+ *  `.new`.
  *
  */
 
