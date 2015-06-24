@@ -114,7 +114,7 @@ mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
       return ptr[i];
     }
   }
-  mrb_raisef(mrb, E_INDEX_ERROR, "`%S' is not a struct member", mrb_sym2str(mrb, id));
+  mrb_raisef(mrb, E_INDEX_ERROR, "'%S' is not a struct member", mrb_sym2str(mrb, id));
   return mrb_nil_value();       /* not reached */
 }
 
@@ -193,7 +193,7 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
       return ptr[i] = val;
     }
   }
-  mrb_raisef(mrb, E_INDEX_ERROR, "`%S' is not a struct member", mrb_sym2str(mrb, mid));
+  mrb_raisef(mrb, E_INDEX_ERROR, "'%S' is not a struct member", mrb_sym2str(mrb, mid));
   return mrb_nil_value();       /* not reached */
 }
 
@@ -749,8 +749,8 @@ mrb_struct_values_at(mrb_state *mrb, mrb_value self)
  *  The <code>Struct</code> class is a generator of specific classes,
  *  each one of which is defined to hold a set of variables and their
  *  accessors. In these examples, we'll call the generated class
- *  ``<i>Customer</i>Class,'' and we'll show an example instance of that
- *  class as ``<i>Customer</i>Inst.''
+ *  "<i>Customer</i>Class," and we'll show an example instance of that
+ *  class as "<i>Customer</i>Inst."
  *
  *  In the descriptions that follow, the parameter <i>symbol</i> refers
  *  to a symbol, which is either a quoted string or a

@@ -234,20 +234,20 @@ get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
  *      ------+--------------------------------------------------------------
  *        b   | Convert argument as a binary number.
  *            | Negative numbers will be displayed as a two's complement
- *            | prefixed with `..1'.
- *        B   | Equivalent to `b', but uses an uppercase 0B for prefix
+ *            | prefixed with '..1'.
+ *        B   | Equivalent to 'b', but uses an uppercase 0B for prefix
  *            | in the alternative format by #.
  *        d   | Convert argument as a decimal number.
- *        i   | Identical to `d'.
+ *        i   | Identical to 'd'.
  *        o   | Convert argument as an octal number.
  *            | Negative numbers will be displayed as a two's complement
- *            | prefixed with `..7'.
- *        u   | Identical to `d'.
+ *            | prefixed with '..7'.
+ *        u   | Identical to 'd'.
  *        x   | Convert argument as a hexadecimal number.
  *            | Negative numbers will be displayed as a two's complement
- *            | prefixed with `..f' (representing an infinite string of
+ *            | prefixed with '..f' (representing an infinite string of
  *            | leading 'ff's).
- *        X   | Equivalent to `x', but uses uppercase letters.
+ *        X   | Equivalent to 'x', but uses uppercase letters.
  *
  *      Field |  Float Format
  *      ------+--------------------------------------------------------------
@@ -255,7 +255,7 @@ get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
  *            | with one digit before the decimal point as [-]d.dddddde[+-]dd.
  *            | The precision specifies the number of digits after the decimal
  *            | point (defaulting to six).
- *        E   | Equivalent to `e', but uses an uppercase E to indicate
+ *        E   | Equivalent to 'e', but uses an uppercase E to indicate
  *            | the exponent.
  *        f   | Convert floating point argument as [-]ddd.dddddd,
  *            | where the precision specifies the number of digits after
@@ -264,11 +264,11 @@ get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
  *            | if the exponent is less than -4 or greater than or
  *            | equal to the precision, or in dd.dddd form otherwise.
  *            | The precision specifies the number of significant digits.
- *        G   | Equivalent to `g', but use an uppercase `E' in exponent form.
+ *        G   | Equivalent to 'g', but use an uppercase 'E' in exponent form.
  *        a   | Convert floating point argument as [-]0xh.hhhhp[+-]dd,
  *            | which is consisted from optional sign, "0x", fraction part
  *            | as hexadecimal, "p", and exponential part as decimal.
- *        A   | Equivalent to `a', but use uppercase `X' and `P'.
+ *        A   | Equivalent to 'a', but use uppercase 'X' and 'P'.
  *
  *      Field |  Other Format
  *      ------+--------------------------------------------------------------
@@ -287,7 +287,7 @@ get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
  *    ---------+---------------+-----------------------------------------
  *    space    | bBdiouxX      | Leave a space at the start of
  *             | aAeEfgG       | non-negative numbers.
- *             | (numeric fmt) | For `o', `x', `X', `b' and `B', use
+ *             | (numeric fmt) | For 'o', 'x', 'X', 'b' and 'B', use
  *             |               | a minus sign with absolute value for
  *             |               | negative values.
  *    ---------+---------------+-----------------------------------------
@@ -297,27 +297,27 @@ get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
  *             |               | sprintf string.
  *    ---------+---------------+-----------------------------------------
  *     #       | bBoxX         | Use an alternative format.
- *             | aAeEfgG       | For the conversions `o', increase the precision
- *             |               | until the first digit will be `0' if
+ *             | aAeEfgG       | For the conversions 'o', increase the precision
+ *             |               | until the first digit will be '0' if
  *             |               | it is not formatted as complements.
- *             |               | For the conversions `x', `X', `b' and `B'
- *             |               | on non-zero, prefix the result with ``0x'',
- *             |               | ``0X'', ``0b'' and ``0B'', respectively.
- *             |               | For `a', `A', `e', `E', `f', `g', and 'G',
+ *             |               | For the conversions 'x', 'X', 'b' and 'B'
+ *             |               | on non-zero, prefix the result with "0x",
+ *             |               | "0X", "0b" and "0B", respectively.
+ *             |               | For 'a', 'A', 'e', 'E', 'f', 'g', and 'G',
  *             |               | force a decimal point to be added,
  *             |               | even if no digits follow.
- *             |               | For `g' and 'G', do not remove trailing zeros.
+ *             |               | For 'g' and 'G', do not remove trailing zeros.
  *    ---------+---------------+-----------------------------------------
  *    +        | bBdiouxX      | Add a leading plus sign to non-negative
  *             | aAeEfgG       | numbers.
- *             | (numeric fmt) | For `o', `x', `X', `b' and `B', use
+ *             | (numeric fmt) | For 'o', 'x', 'X', 'b' and 'B', use
  *             |               | a minus sign with absolute value for
  *             |               | negative values.
  *    ---------+---------------+-----------------------------------------
  *    -        | all           | Left-justify the result of this conversion.
  *    ---------+---------------+-----------------------------------------
  *    0 (zero) | bBdiouxX      | Pad with zeros, not spaces.
- *             | aAeEfgG       | For `o', `x', `X', `b' and `B', radix-1
+ *             | aAeEfgG       | For 'o', 'x', 'X', 'b' and 'B', radix-1
  *             | (numeric fmt) | is used for negative numbers formatted as
  *             |               | complements.
  *    ---------+---------------+-----------------------------------------
@@ -328,21 +328,21 @@ get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
  *
  *  Examples of flags:
  *
- *   # `+' and space flag specifies the sign of non-negative numbers.
+ *   # '+' and space flag specifies the sign of non-negative numbers.
  *   sprintf("%d", 123)  #=> "123"
  *   sprintf("%+d", 123) #=> "+123"
  *   sprintf("% d", 123) #=> " 123"
  *
- *   # `#' flag for `o' increases number of digits to show `0'.
- *   # `+' and space flag changes format of negative numbers.
+ *   # '#' flag for 'o' increases number of digits to show '0'.
+ *   # '+' and space flag changes format of negative numbers.
  *   sprintf("%o", 123)   #=> "173"
  *   sprintf("%#o", 123)  #=> "0173"
  *   sprintf("%+o", -123) #=> "-173"
  *   sprintf("%o", -123)  #=> "..7605"
  *   sprintf("%#o", -123) #=> "..7605"
  *
- *   # `#' flag for `x' add a prefix `0x' for non-zero numbers.
- *   # `+' and space flag disables complements for negative numbers.
+ *   # '#' flag for 'x' add a prefix '0x' for non-zero numbers.
+ *   # '+' and space flag disables complements for negative numbers.
  *   sprintf("%x", 123)   #=> "7b"
  *   sprintf("%#x", 123)  #=> "0x7b"
  *   sprintf("%+x", -123) #=> "-7b"
@@ -350,12 +350,12 @@ get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
  *   sprintf("%#x", -123) #=> "0x..f85"
  *   sprintf("%#x", 0)    #=> "0"
  *
- *   # `#' for `X' uses the prefix `0X'.
+ *   # '#' for 'X' uses the prefix '0X'.
  *   sprintf("%X", 123)  #=> "7B"
  *   sprintf("%#X", 123) #=> "0X7B"
  *
- *   # `#' flag for `b' add a prefix `0b' for non-zero numbers.
- *   # `+' and space flag disables complements for negative numbers.
+ *   # '#' flag for 'b' add a prefix '0b' for non-zero numbers.
+ *   # '+' and space flag disables complements for negative numbers.
  *   sprintf("%b", 123)   #=> "1111011"
  *   sprintf("%#b", 123)  #=> "0b1111011"
  *   sprintf("%+b", -123) #=> "-1111011"
@@ -363,19 +363,19 @@ get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
  *   sprintf("%#b", -123) #=> "0b..10000101"
  *   sprintf("%#b", 0)    #=> "0"
  *
- *   # `#' for `B' uses the prefix `0B'.
+ *   # '#' for 'B' uses the prefix '0B'.
  *   sprintf("%B", 123)  #=> "1111011"
  *   sprintf("%#B", 123) #=> "0B1111011"
  *
- *   # `#' for `e' forces to show the decimal point.
+ *   # '#' for 'e' forces to show the decimal point.
  *   sprintf("%.0e", 1)  #=> "1e+00"
  *   sprintf("%#.0e", 1) #=> "1.e+00"
  *
- *   # `#' for `f' forces to show the decimal point.
+ *   # '#' for 'f' forces to show the decimal point.
  *   sprintf("%.0f", 1234)  #=> "1234"
  *   sprintf("%#.0f", 1234) #=> "1234."
  *
- *   # `#' for `g' forces to show the decimal point.
+ *   # '#' for 'g' forces to show the decimal point.
  *   # It also disables stripping lowest zeros.
  *   sprintf("%g", 123.4)   #=> "123.4"
  *   sprintf("%#g", 123.4)  #=> "123.400"
@@ -409,7 +409,7 @@ get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
  *
  *  Examples of precisions:
  *
- *   # precision for `d', 'o', 'x' and 'b' is
+ *   # precision for 'd', 'o', 'x' and 'b' is
  *   # minimum number of digits               <------>
  *   sprintf("%20.8d", 123)  #=> "            00000123"
  *   sprintf("%20.8o", 123)  #=> "            00000173"
@@ -420,8 +420,8 @@ get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
  *   sprintf("%20.8x", -123) #=> "            ..ffff85"
  *   sprintf("%20.8b", -11)  #=> "            ..110101"
  *
- *   # "0x" and "0b" for `#x' and `#b' is not counted for
- *   # precision but "0" for `#o' is counted.  <------>
+ *   # "0x" and "0b" for '#x' and '#b' is not counted for
+ *   # precision but "0" for '#o' is counted.  <------>
  *   sprintf("%#20.8d", 123)  #=> "            00000123"
  *   sprintf("%#20.8o", 123)  #=> "            00000173"
  *   sprintf("%#20.8x", 123)  #=> "          0x0000007b"
@@ -431,22 +431,22 @@ get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
  *   sprintf("%#20.8x", -123) #=> "          0x..ffff85"
  *   sprintf("%#20.8b", -11)  #=> "          0b..110101"
  *
- *   # precision for `e' is number of
+ *   # precision for 'e' is number of
  *   # digits after the decimal point           <------>
  *   sprintf("%20.8e", 1234.56789) #=> "      1.23456789e+03"
  *
- *   # precision for `f' is number of
+ *   # precision for 'f' is number of
  *   # digits after the decimal point               <------>
  *   sprintf("%20.8f", 1234.56789) #=> "       1234.56789000"
  *
- *   # precision for `g' is number of
+ *   # precision for 'g' is number of
  *   # significant digits                          <------->
  *   sprintf("%20.8g", 1234.56789) #=> "           1234.5679"
  *
  *   #                                         <------->
  *   sprintf("%20.8g", 123456789)  #=> "       1.2345679e+08"
  *
- *   # precision for `s' is
+ *   # precision for 's' is
  *   # maximum number of characters                    <------>
  *   sprintf("%20.8s", "string test") #=> "            string t"
  *
@@ -539,7 +539,7 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
     if (t >= end)
       goto sprint_exit; /* end of fmt string */
 
-    p = t + 1;    /* skip `%' */
+    p = t + 1;    /* skip '%' */
 
     width = prec = -1;
     nextvalue = mrb_undef_value();
