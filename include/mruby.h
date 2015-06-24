@@ -192,10 +192,13 @@ typedef struct mrb_state {
 # define mrb_noreturn _Noreturn
 #elif defined __GNUC__ && !defined __STRICT_ANSI__
 # define mrb_noreturn __attribute__((noreturn))
+# define mrb_deprecated __attribute__((deprecated))
 #elif defined _MSC_VER
 # define mrb_noreturn __declspec(noreturn)
+# define mrb_deprecated __declspec(deprecated)
 #else
 # define mrb_noreturn
+# define mrb_deprecated
 #endif
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
@@ -249,16 +252,6 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
 #define MRB_ARGS_ANY()      MRB_ARGS_REST()
 /* accept no arguments */
 #define MRB_ARGS_NONE()     ((mrb_aspec)0)
-
-/* compatibility macros; will be removed */
-#define ARGS_REQ(n)         MRB_ARGS_REQ(n)
-#define ARGS_OPT(n)         MRB_ARGS_OPT(n)
-#define ARGS_REST()         MRB_ARGS_REST()
-#define ARGS_POST(n)        MRB_ARGS_POST()
-#define ARGS_KEY(n1,n2)     MRB_ARGS_KEY(n1,n2)
-#define ARGS_BLOCK()        MRB_ARGS_BLOCK()
-#define ARGS_ANY()          MRB_ARGS_ANY()
-#define ARGS_NONE()         MRB_ARGS_NONE()
 
 MRB_API mrb_int mrb_get_args(mrb_state *mrb, const char *format, ...);
 
