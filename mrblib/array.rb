@@ -146,7 +146,7 @@ class Array
   #  equal, then that inequality is the return value. If all the
   #  values found are equal, then the return is based on a
   #  comparison of the array lengths.  Thus, two arrays are
-  #  ``equal'' according to <code>Array#<=></code> if and only if they have
+  #  "equal" according to <code>Array#<=></code> if and only if they have
   #  the same length and the value of each element is equal to the
   #  value of the corresponding element in the other array.
   #

@@ -119,7 +119,7 @@ class Hash
   #
   #  <em>produces:</em>
   #
-  #     prog.rb:2:in `fetch': key not found (KeyError)
+  #     prog.rb:2:in 'fetch': key not found (KeyError)
   #      from prog.rb:2
   #
 

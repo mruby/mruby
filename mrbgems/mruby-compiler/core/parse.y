@@ -4204,7 +4204,7 @@ parser_yylex(parser_state *p)
       }
       pushback(p, c);
       if (IS_SPCARG(c)) {
-        yywarning(p, "`*' interpreted as argument prefix");
+        yywarning(p, "'*' interpreted as argument prefix");
         c = tSTAR;
       }
       else if (IS_BEG()) {
@@ -4455,7 +4455,7 @@ parser_yylex(parser_state *p)
     }
     pushback(p, c);
     if (IS_SPCARG(c)) {
-      yywarning(p, "`&' interpreted as argument prefix");
+      yywarning(p, "'&' interpreted as argument prefix");
       c = tAMPER;
     }
     else if (IS_BEG()) {
@@ -4761,7 +4761,7 @@ parser_yylex(parser_state *p)
         nondigit = c;
         break;
 
-      case '_':       /* `_' in number just ignored */
+      case '_':       /* '_' in number just ignored */
         if (nondigit) goto decode_num;
         nondigit = c;
         break;
@@ -4776,7 +4776,7 @@ parser_yylex(parser_state *p)
     pushback(p, c);
     if (nondigit) {
       trailing_uc:
-      yyerror_i(p, "trailing `%c' in number", nondigit);
+      yyerror_i(p, "trailing '%c' in number", nondigit);
     }
     tokfix(p);
     if (is_float) {
@@ -5157,10 +5157,10 @@ parser_yylex(parser_state *p)
       }
       else if (isdigit(c)) {
         if (p->bidx == 1) {
-          yyerror_i(p, "`@%c' is not allowed as an instance variable name", c);
+          yyerror_i(p, "'@%c' is not allowed as an instance variable name", c);
         }
         else {
-          yyerror_i(p, "`@@%c' is not allowed as a class variable name", c);
+          yyerror_i(p, "'@@%c' is not allowed as a class variable name", c);
         }
         return 0;
       }
@@ -5176,7 +5176,7 @@ parser_yylex(parser_state *p)
 
     default:
       if (!identchar(c)) {
-        yyerror_i(p,  "Invalid char `\\x%02X' in expression", c);
+        yyerror_i(p,  "Invalid char '\\x%02X' in expression", c);
         goto retry;
       }
 

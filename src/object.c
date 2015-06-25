@@ -428,7 +428,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
  *  Returns a string representing <i>obj</i>. The default
  *  <code>to_s</code> prints the object's class and an encoding of the
  *  object id. As a special case, the top-level object that is the
- *  initial execution context of Ruby programs returns ``main.''
+ *  initial execution context of Ruby programs returns "main."
  */
 
 MRB_API mrb_value

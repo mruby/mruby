@@ -8,7 +8,7 @@
 #define MRUBY_OPCODE_H
 
 #define MAXARG_Bx        (0xffff)
-#define MAXARG_sBx       (MAXARG_Bx>>1)         /* `sBx' is signed */
+#define MAXARG_sBx       (MAXARG_Bx>>1)         /* 'sBx' is signed */
 
 /* instructions: packed 32 bit      */
 /* -------------------------------  */

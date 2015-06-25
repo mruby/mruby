@@ -212,7 +212,7 @@ MRB_API struct RClass*
 mrb_define_class_id(mrb_state *mrb, mrb_sym name, struct RClass *super)
 {
   if (!super) {
-    mrb_warn(mrb, "no super class for `%S', Object assumed", mrb_sym2str(mrb, name));
+    mrb_warn(mrb, "no super class for '%S', Object assumed", mrb_sym2str(mrb, name));
   }
   return define_class(mrb, name, super, mrb->object_class);
 }
@@ -311,7 +311,7 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
 
 #if 0
   if (!super) {
-    mrb_warn(mrb, "no super class for `%S::%S', Object assumed",
+    mrb_warn(mrb, "no super class for '%S::%S', Object assumed",
              mrb_obj_value(outer), mrb_sym2str(mrb, id));
   }
 #endif
@@ -1658,7 +1658,7 @@ check_cv_name_str(mrb_state *mrb, mrb_value str)
   mrb_int len = RSTRING_LEN(str);
 
   if (len < 3 || !(s[0] == '@' && s[1] == '@')) {
-    mrb_name_error(mrb, mrb_intern_str(mrb, str), "`%S' is not allowed as a class variable name", str);
+    mrb_name_error(mrb, mrb_intern_str(mrb, str), "'%S' is not allowed as a class variable name", str);
   }
 }
 
@@ -1846,7 +1846,7 @@ remove_method(mrb_state *mrb, mrb_value mod, mrb_sym mid)
     }
   }
 
-  mrb_name_error(mrb, mid, "method `%S' not defined in %S",
+  mrb_name_error(mrb, mid, "method '%S' not defined in %S",
     mrb_sym2str(mrb, mid), mod);
 }
 

@@ -110,8 +110,8 @@ num_div(mrb_state *mrb, mrb_value x)
  *
  *  Returns a string containing a representation of self. As well as a
  *  fixed or exponential form of the number, the call may return
- *  ``<code>NaN</code>'', ``<code>Infinity</code>'', and
- *  ``<code>-Infinity</code>''.
+ *  "<code>NaN</code>", "<code>Infinity</code>", and
+ *  "<code>-Infinity</code>".
  */
 
 static mrb_value
