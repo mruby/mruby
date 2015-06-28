@@ -1,5 +1,5 @@
 MRuby::Gem::Specification.new('mruby-array-ext') do |spec|
   spec.license = 'MIT'
   spec.author  = 'mruby developers'
-  spec.summary = 'extended Array class'
+  spec.summary = 'Array class extension'
 end
