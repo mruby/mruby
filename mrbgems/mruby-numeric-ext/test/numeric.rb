@@ -16,3 +16,10 @@ end
 assert('Float#div') do
   assert_float 52, 365.2425.div(7)
 end
+
+assert('Float#angle') do
+  assert_equal 0, 1.0.angle
+  assert_equal 0, 0.0.angle
+  assert_equal Math::PI, -1.0.angle
+  assert_true (0.0/0.0).angle.nan?
+end
