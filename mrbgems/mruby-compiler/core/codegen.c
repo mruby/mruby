@@ -2652,13 +2652,17 @@ loop_break(codegen_scope *s, node *tree)
     }
 
     loop = s->loop;
-    while (loop->type == LOOP_BEGIN) {
+    while (loop && loop->type == LOOP_BEGIN) {
       genop_peep(s, MKOP_A(OP_POPERR, 1), NOVAL);
       loop = loop->prev;
     }
-    while (loop->type == LOOP_RESCUE) {
+    while (loop && loop->type == LOOP_RESCUE) {
       loop = loop->prev;
     }
+    if (!loop) {
+      codegen_error(s, "unexpected break");
+    }
+
     if (loop->type == LOOP_NORMAL) {
       int tmp;
 
