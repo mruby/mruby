@@ -71,7 +71,7 @@ module MRuby
 
         fail "unknown mgem protocol: #{conf['protocol']}" if conf['protocol'] != 'git'
         params[:git] = conf['repository']
-        params[:branch] = conf['branch"] if conf["branch']
+        params[:branch] = conf['branch'] if conf['branch']
       end
 
       if params[:core]
