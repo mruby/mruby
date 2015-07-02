@@ -222,9 +222,9 @@ mrb_debug_context_free(mrb_state *mrb)
 static mrdb_state*
 mrdb_state_new(mrb_state *mrb)
 {
-  mrdb_state *mrdb = mrb_malloc(mrb, sizeof(mrb_state));
+  mrdb_state *mrdb = mrb_malloc(mrb, sizeof(mrdb_state));
 
-  memset(mrdb, 0, sizeof(mrb_state));
+  memset(mrdb, 0, sizeof(mrdb_state));
 
   mrdb->dbg = mrb_debug_context_get(mrb);
   mrdb->command = mrb_malloc(mrb, MAX_COMMAND_LINE+1);
