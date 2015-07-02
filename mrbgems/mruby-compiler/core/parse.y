@@ -3604,10 +3604,13 @@ toklast(parser_state *p)
 static void
 tokfix(parser_state *p)
 {
-  if (p->bidx >= MRB_PARSER_BUF_SIZE) {
+  int i = p->bidx, imax = MRB_PARSER_BUF_SIZE - 1;
+
+  if (i > imax) {
+    i = imax;
     yyerror(p, "string too long (truncated)");
   }
-  p->buf[p->bidx] = '\0';
+  p->buf[i] = '\0';
 }
 
 static const char*
