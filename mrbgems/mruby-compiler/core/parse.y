@@ -4802,6 +4802,7 @@ parser_yylex(parser_state *p)
   case ')':
   case ']':
     p->paren_nest--;
+    /* fall through */
   case '}':
     COND_LEXPOP();
     CMDARG_LEXPOP();
@@ -5133,6 +5134,7 @@ parser_yylex(parser_state *p)
         pushback(p,  c);
         return '$';
       }
+      /* fall through */
     case '0':
       tokadd(p, '$');
     }

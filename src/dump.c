@@ -819,7 +819,6 @@ write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t *bin, uint8
   uint32_t offset;
 
   switch (flags & DUMP_ENDIAN_NAT) {
-  default:
   endian_big:
   case DUMP_ENDIAN_BIG:
     memcpy(header->binary_ident, RITE_BINARY_IDENT, sizeof(header->binary_ident));
