@@ -2057,6 +2057,7 @@ MRB_API double
 mrb_cstr_to_dbl(mrb_state *mrb, const char * p, mrb_bool badcheck)
 {
   char *end;
+  char buf[DBL_DIG * 4 + 10];
   double d;
 
   enum {max_width = 20};
@@ -2077,7 +2078,6 @@ bad:
     return d;
   }
   if (*end) {
-    char buf[DBL_DIG * 4 + 10];
     char *n = buf;
     char *e = buf + sizeof(buf) - 1;
     char prev = 0;
