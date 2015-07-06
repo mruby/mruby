@@ -1927,7 +1927,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
       }
       break;
   } /* end of switch (base) { */
-  if (*str == '0') {    /* squeeze preceeding 0s */
+  if (*str == '0') {    /* squeeze preceding 0s */
     uscore = 0;
     while ((c = *++str) == '0' || c == '_') {
       if (c == '_') {
