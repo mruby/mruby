@@ -109,8 +109,8 @@ MRuby::Toolchain.new(:androideabi) do |conf|
     ANDROID_CC = path_to_toolchain + '/bin/' + toolchain_prefix + 'gcc'
     ANDROID_LD = path_to_toolchain + '/bin/' + toolchain_prefix + 'gcc'
     ANDROID_AR = path_to_toolchain + '/bin/' + toolchain_prefix + 'ar'
-    ANDROID_CFLAGS  = GCC_COMMON_CFLAGS  + %W(-mandroid --sysroot="#{SYSROOT}") + ARCH_CFLAGS
-    ANDROID_LDFLAGS = GCC_COMMON_LDFLAGS + %W(-mandroid --sysroot="#{SYSROOT}") + ARCH_LDFLAGS
+    ANDROID_CFLAGS  = GCC_COMMON_CFLAGS  + %W(-D__android__ -mandroid --sysroot="#{SYSROOT}") + ARCH_CFLAGS
+    ANDROID_LDFLAGS = GCC_COMMON_LDFLAGS + %W(-D__android__ -mandroid --sysroot="#{SYSROOT}") + ARCH_LDFLAGS
   when 'clang' then
     # clang is not supported yet.
   when 'clang31', 'clang3.1' then
