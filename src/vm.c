@@ -1074,9 +1074,14 @@ RETRY_TRY_BLOCK:
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
         mrb_value sym = mrb_symbol_value(mid);
+        mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
 
-        mid = mrb_intern_lit(mrb, "method_missing");
-        m = mrb_method_search_vm(mrb, &c, mid);
+        m = mrb_method_search_vm(mrb, &c, missing);
+        if (!m) {
+          mrb_no_method_error(mrb, mid, n, regs+a+1,
+                              "undefined method '%S' for %S", mrb_sym2str(mrb, mid), recv);
+        }
+        mid = missing;
         if (n == CALL_MAXARGS) {
           mrb_ary_unshift(mrb, regs[a+1], sym);
         }
