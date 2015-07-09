@@ -16,6 +16,7 @@ struct RClass {
   struct iv_tbl *iv;
   struct kh_mt *mt;
   struct RClass *super;
+  struct RClass *origin;
 };
 
 #define mrb_class_ptr(v)    ((struct RClass*)(mrb_ptr(v)))

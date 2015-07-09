@@ -474,6 +474,39 @@ end
 
 # Not ISO specified
 
+assert('Module#prepend') do
+  module M0
+    def m1; [:M0] end
+  end
+  module M1
+    def m1; [:M1, super, :M1] end
+  end
+  module M2
+    def m1; [:M2, super, :M2] end
+  end
+  M3 = Module.new do
+    def m1; [:M3, super, :M3] end
+  end
+  module M4
+    def m1; [:M4, super, :M4] end
+  end
+
+  class C0
+    include M0
+    prepend M1
+    def m1; [:C0, super, :C0] end
+  end
+  class C1 < C0
+    prepend M2, M3
+    include M4
+    def m1; [:C1, super, :C1] end
+  end
+
+  obj = C1.new
+  expected = [:M2,[:M3,[:C1,[:M4,[:M1,[:C0,[:M0],:C0],:M1],:M4],:C1],:M3],:M2]
+  assert_equal(expected, obj.m1)
+end
+
 assert('Module#to_s') do
   module Test4to_sModules
   end
