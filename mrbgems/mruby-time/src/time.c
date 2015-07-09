@@ -11,6 +11,10 @@
 #include "mruby/class.h"
 #include "mruby/data.h"
 
+#if !defined(__MINGW64__) && defined(_WIN32)
+# define llround(x) round(x)
+#endif
+
 #if defined(__MINGW64__) || defined(__MINGW32__)
 # include <sys/time.h>
 #endif
