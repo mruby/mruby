@@ -491,18 +491,18 @@ assert('Module#prepend') do
     def m1; [:M4, super, :M4] end
   end
 
-  class C0
+  class P0
     include M0
     prepend M1
     def m1; [:C0, super, :C0] end
   end
-  class C1 < C0
+  class P1 < P0
     prepend M2, M3
     include M4
     def m1; [:C1, super, :C1] end
   end
 
-  obj = C1.new
+  obj = P1.new
   expected = [:M2,[:M3,[:C1,[:M4,[:M1,[:C0,[:M0],:C0],:M1],:M4],:C1],:M3],:M2]
   assert_equal(expected, obj.m1)
 end
