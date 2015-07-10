@@ -776,11 +776,25 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, stru
   while (m) {
     struct RClass *p = c, *ic;
     int superclass_seen = 0;
-
+ 
+    //if (m->origin != m)
+    //  goto skip;
     if (c->mt && c->mt == m->mt) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic include detected");
     }
     while (p) {
+      /*if (p->tt == MRB_TT_ICLASS) {
+        if (!superclass_seen) {
+          ins_pos = p; // move insert point
+        }
+        goto skip;
+      } else if (p->tt == MRB_TT_CLASS) {
+        if (p->mt == m->mt) {
+          if (!search_super) break;
+          superclass_seen = 1;
+        }
+      }*/
+      //
       if (c != p && p->tt == MRB_TT_CLASS) {
         if (!search_super) break;
         superclass_seen = 1;
