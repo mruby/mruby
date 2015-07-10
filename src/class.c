@@ -76,6 +76,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
 
   if (o->c->tt == MRB_TT_SCLASS) return;
   sc = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_SCLASS, mrb->class_class);
+  sc->origin = sc;
   sc->mt = 0;
   sc->iv = 0;
   if (o->tt == MRB_TT_CLASS) {
@@ -799,6 +800,7 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, stru
     else {
       ic->c = m;
     }
+    ic->origin = ic;
     ic->mt = m->mt;
     ic->iv = m->iv;
     ic->super = ins_pos->super;
@@ -825,6 +827,7 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   origin = c->origin;
   if (origin == c) {
     origin = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, c);
+    origin->origin = origin;
     //OBJ_WB_UNPROTECT(origin); /* TODO: conservative shading. Need more survey. */
     origin->super = c->super;
     c->super = origin;
@@ -1547,6 +1550,7 @@ MRB_API struct RClass*
 mrb_module_new(mrb_state *mrb)
 {
   struct RClass *m = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_MODULE, mrb->module_class);
+  m->origin = m;
   m->mt = kh_init(mt, mrb);
 
   return m;
