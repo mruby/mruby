@@ -770,11 +770,8 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
 }
 
 MRB_API inline void
-include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *m, int search_super)
+include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, struct RClass *m, int search_super)
 {
-  struct RClass *ins_pos;
-
-  ins_pos = c;
   while (m) {
     struct RClass *p = c, *ic;
     int superclass_seen = 0;
@@ -816,7 +813,7 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *m, int search
 MRB_API void
 mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
-  include_module_at(mrb, c, m, FALSE);
+  include_module_at(mrb, c, c->origin, m, FALSE);
 }
 
 MRB_API void
@@ -835,7 +832,7 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
     origin->mt = c->mt;
     c->mt = kh_init(mt, mrb);
   }
-  include_module_at(mrb, c, m, FALSE); // changed =
+  include_module_at(mrb, c, c, m, FALSE); // changed =
   if (changed) {
     //rb_vm_check_redefinition_by_prepend(klass);
   }
