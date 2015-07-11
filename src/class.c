@@ -834,7 +834,10 @@ include_module_at(mrb_state *mrb, struct RClass *klass, struct RClass *c, struct
 MRB_API void
 mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
-  include_module_at(mrb, c, c->origin, m, 1);
+  int changed = include_module_at(mrb, c, c->origin, m, 1);
+  if (changed < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic include detected");
+  }
 }
 
 MRB_API void
