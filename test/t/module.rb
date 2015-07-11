@@ -1,6 +1,26 @@
 ##
 # Module ISO Test
 
+def labeled_module(name, &block)
+  Module.new do
+    singleton_class.class_eval do
+      define_method(:to_s) { name }
+      alias_method :inspect, :to_s
+    end
+    class_eval(&block) if block
+  end
+end
+
+def labeled_class(name, supklass = Object, &block)
+  Class.new(supklass) do
+    singleton_class.class_eval do
+      define_method(:to_s) { name }
+      alias_method :inspect, :to_s
+    end
+    class_eval(&block) if block
+  end
+end
+
 assert('Module', '15.2.2') do
   assert_equal Class, Module.class
 end
@@ -519,9 +539,9 @@ assert('Module#prepend') do
 
   assert('test_prepend_inheritance') do
     bug6654 = '[ruby-core:45914]'
-    a = Module.new
-    b = Module.new { include a }
-    c = Module.new { prepend b }
+    a = labeled_module('a')
+    b = labeled_module('b') { include a }
+    c = labeled_module('c') { prepend b }
 
     assert bug6654 do
       # the Module#< operator should be used here instead, but we don't have it
@@ -530,8 +550,8 @@ assert('Module#prepend') do
     end
 
     bug8357 = '[ruby-core:54736] [Bug #8357]'
-    b = Module.new { prepend a }
-    c = Class.new { include b }
+    b = labeled_module('b') { prepend a }
+    c = labeled_class('c') { include b }
 
     assert bug8357 do
       # the Module#< operator should be used here instead, but we don't have it
@@ -542,6 +562,207 @@ assert('Module#prepend') do
     bug8357 = '[ruby-core:54742] [Bug #8357]'
     assert_kind_of(b, c.new, bug8357)
   end
+
+  assert('test_prepend_instance_methods') do
+    bug6655 = '[ruby-core:45915]'
+    assert_equal(Object.instance_methods, Class.new {prepend Module.new}.instance_methods, bug6655)
+  end
+
+  assert 'test_prepend_singleton_methods' do
+    o = Object.new
+    o.singleton_class.class_eval {prepend Module.new}
+    assert_equal([], o.singleton_methods)
+  end
+
+  assert 'test_prepend_remove_method' do
+    c = Class.new do
+      prepend Module.new { def foo; end }
+    end
+    assert_raise(NameError) do
+      c.class_eval do
+        remove_method(:foo)
+      end
+    end
+    c.class_eval do
+      def foo; end
+    end
+    removed = nil
+    c.singleton_class.class_eval do
+      define_method(:method_removed) {|id| removed = id}
+    end
+    assert_nothing_raised(NoMethodError, NameError, '[Bug #7843]') do
+      c.class_eval do
+        remove_method(:foo)
+      end
+    end
+    assert_equal(:foo, removed)
+  end
+
+  assert 'test_prepend_class_ancestors' do
+    bug6658 = '[ruby-core:45919]'
+    m = labeled_module("m")
+    c = labeled_class("c") {prepend m}
+    assert_equal([m, c], c.ancestors[0, 2], bug6658)
+
+    bug6662 = '[ruby-dev:45868]'
+    c2 = labeled_class("c2", c)
+    anc = c2.ancestors
+    assert_equal([c2, m, c, Object], anc[0..anc.index(Object)], bug6662)
+  end
+
+  # this assertion causes the mrbtest to segfault
+  #assert 'test_prepend_module_ancestors' do
+  #  bug6659 = '[ruby-dev:45861]'
+  #  m0 = labeled_module("m0") { def x; [:m0, *super] end }
+  #  m1 = labeled_module("m1") { def x; [:m1, *super] end; prepend m0 }
+  #  m2 = labeled_module("m2") { def x; [:m2, *super] end; prepend m1 }
+  #  c0 = labeled_class("c0") { def x; [:c0] end }
+  #  c1 = labeled_class("c1") { def x; [:c1] end; prepend m2 }
+  #  c2 = labeled_class("c2", c0) { def x; [:c2, *super] end; include m2 }
+  #  #
+  #  assert_equal([m0, m1], m1.ancestors, bug6659)
+  #  #
+  #  bug6662 = '[ruby-dev:45868]'
+  #  assert_equal([m0, m1, m2], m2.ancestors, bug6662)
+  #  assert_equal([m0, m1, m2, c1], c1.ancestors[0, 4], bug6662)
+  #  assert_equal([:m0, :m1, :m2, :c1], c1.new.x)
+  #  assert_equal([c2, m0, m1, m2, c0], c2.ancestors[0, 5], bug6662)
+  #  assert_equal([:c2, :m0, :m1, :m2, :c0], c2.new.x)
+  #  #
+  #  m3 = labeled_module("m3") { include m1; prepend m1 }
+  #  assert_equal([m3, m0, m1], m3.ancestors)
+  #  m3 = labeled_module("m3") { prepend m1; include m1 }
+  #  assert_equal([m0, m1, m3], m3.ancestors)
+  #  m3 = labeled_module("m3") { prepend m1; prepend m1 }
+  #  assert_equal([m0, m1, m3], m3.ancestors)
+  #  m3 = labeled_module("m3") { include m1; include m1 }
+  #  assert_equal([m3, m0, m1], m3.ancestors)
+  #end
+
+  assert 'test_prepend_instance_methods_false' do
+    bug6660 = '[ruby-dev:45863]'
+    assert_equal([:m1], Class.new{ prepend Module.new; def m1; end }.instance_methods(false), bug6660)
+    assert_equal([:m1], Class.new(Class.new{def m2;end}){ prepend Module.new; def m1; end }.instance_methods(false), bug6660)
+  end
+
+  assert 'test_cyclic_prepend' do
+    bug7841 = '[ruby-core:52205] [Bug #7841]'
+    m1 = Module.new
+    m2 = Module.new
+    m1.instance_eval { prepend(m2) }
+    assert_raise(ArgumentError, bug7841) do
+      m2.instance_eval { prepend(m1) }
+    end
+  end
+
+  # these assertions will not run without a #assert_seperately method
+  #assert 'test_prepend_optmethod' do
+  #  bug7983 = '[ruby-dev:47124] [Bug #7983]'
+  #  assert_separately [], %{
+  #    module M
+  #      def /(other)
+  #        to_f / other
+  #      end
+  #    end
+  #    Fixnum.send(:prepend, M)
+  #    assert_equal(0.5, 1 / 2, "#{bug7983}")
+  #  }
+  #  assert_equal(0, 1 / 2)
+  #end
+
+  #assert 'test_prepend_visibility' do
+  #  bug8005 = '[ruby-core:53106] [Bug #8005]'
+  #  c = Class.new do
+  #    prepend Module.new {}
+  #    def foo() end
+  #    protected :foo
+  #  end
+  #  a = c.new
+  #  assert_respond_to a, [:foo, true], bug8005
+  #  assert_nothing_raised(NoMethodError, bug8005) {a.send :foo}
+  #end
+
+  #assert 'test_prepend_visibility_inherited' do
+  #  bug8238 = '[ruby-core:54105] [Bug #8238]'
+  #  assert_separately [], <<-"end;", timeout: 20
+  #    class A
+  #      def foo() A; end
+  #      private :foo
+  #    end
+  #    class B < A
+  #      public :foo
+  #      prepend Module.new
+  #    end
+  #    assert_equal(A, B.new.foo, "#{bug8238}")
+  #  end;
+  #end
+
+  assert 'test_prepend_included_modules' do
+    bug8025 = '[ruby-core:53158] [Bug #8025]'
+    mixin = labeled_module("mixin")
+    c = labeled_module("c") {prepend mixin}
+    im = c.included_modules
+    assert_not_include(im, c, bug8025)
+    assert_include(im, mixin, bug8025)
+    c1 = labeled_class("c1") {prepend mixin}
+    c2 = labeled_class("c2", c1)
+    im = c2.included_modules
+    assert_not_include(im, c1, bug8025)
+    assert_not_include(im, c2, bug8025)
+    assert_include(im, mixin, bug8025)
+  end
+
+  assert 'test_prepend_super_in_alias' do
+    bug7842 = '[Bug #7842]'
+
+    p = labeled_module("P") do
+      def m; "P"+super; end
+    end
+    a = labeled_class("A") do
+      def m; "A"; end
+    end
+    b = labeled_class("B", a) do
+      def m; "B"+super; end
+      alias m2 m
+      prepend p
+      alias m3 m
+    end
+    assert_equal("BA", b.new.m2, bug7842)
+    assert_equal("PBA", b.new.m3, bug7842)
+  end
+
+  assert 'test_prepend_each_classes' do
+    m = labeled_module("M")
+    c1 = labeled_class("C1") {prepend m}
+    c2 = labeled_class("C2", c1) {prepend m}
+    assert_equal([m, c2, m, c1], c2.ancestors[0, 4], "should be able to prepend each classes")
+  end
+
+  assert 'test_prepend_no_duplication' do
+    m = labeled_module("M")
+    c = labeled_class("C") {prepend m; prepend m}
+    assert_equal([m, c], c.ancestors[0, 2], "should never duplicate")
+  end
+
+  assert 'test_prepend_in_superclass' do
+    m = labeled_module("M")
+    c1 = labeled_class("C1")
+    c2 = labeled_class("C2", c1) {prepend m}
+    c1.class_eval {prepend m}
+    assert_equal([m, c2, m, c1], c2.ancestors[0, 4], "should accesisble prepended module in superclass")
+  end
+
+  # requires #assert_seperately
+  #assert 'test_prepend_call_super' do
+  #  assert_separately([], <<-'end;') #do
+  #    bug10847 = '[ruby-core:68093] [Bug #10847]'
+  #    module M; end
+  #    Float.prepend M
+  #    assert_nothing_raised(SystemStackError, bug10847) do
+  #      0.3.numerator
+  #    end
+  #  end;
+  #end
 end
 # @!endgroup prepend
 
