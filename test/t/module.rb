@@ -540,10 +540,6 @@ assert('Module#prepend') do
     end
 
     bug8357 = '[ruby-core:54742] [Bug #8357]'
-    t_print c.new.kind_of?(b)
-    t_print "\n"
-    t_print [b, b.ancestors, c, c.ancestors].inspect
-    t_print "\n"
     assert_kind_of(b, c.new, bug8357)
   end
 end
