@@ -77,7 +77,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   if (o->c->tt == MRB_TT_SCLASS) return;
   sc = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_SCLASS, mrb->class_class);
   sc->origin = sc;
-  sc->mt = 0;
+  sc->mt = kh_init(mt, mrb);
   sc->iv = 0;
   if (o->tt == MRB_TT_CLASS) {
     c = (struct RClass*)o;
@@ -771,6 +771,13 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
   return c;
 }
 
+static void
+boot_initmod(mrb_state *mrb, struct RClass *mod)
+{
+  mod->origin = mod;
+  mod->mt = kh_init(mt, mrb);
+}
+
 static struct RClass*
 include_class_new(mrb_state *mrb, struct RClass *m, struct RClass *super)
 {
@@ -1012,10 +1019,8 @@ mrb_mod_initialize(mrb_state *mrb, mrb_value mod)
 
   /* hack, fix missing module->origin */
   struct RClass *m = mrb_class_ptr(mod);
-  if (!m->origin)
-    m->origin = m;
-
-  mrb_get_args(mrb, "&", &b);
+  boot_initmod(mrb, m); // bootstrap a newly initialized module
+  mrb_get_args(mrb, "|&", &b);
   if (!mrb_nil_p(b)) {
     mrb_yield_with_class(mrb, b, 1, &mod, mod, m);
   }
@@ -1574,9 +1579,7 @@ MRB_API struct RClass*
 mrb_module_new(mrb_state *mrb)
 {
   struct RClass *m = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_MODULE, mrb->module_class);
-  m->origin = m;
-  m->mt = kh_init(mt, mrb);
-
+  boot_initmod(mrb, m);
   return m;
 }
 
