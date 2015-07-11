@@ -474,38 +474,80 @@ end
 
 # Not ISO specified
 
+# @!group prepend
 assert('Module#prepend') do
-  module M0
-    def m1; [:M0] end
-  end
-  module M1
-    def m1; [:M1, super, :M1] end
-  end
-  module M2
-    def m1; [:M2, super, :M2] end
-  end
-  M3 = Module.new do
-    def m1; [:M3, super, :M3] end
-  end
-  module M4
-    def m1; [:M4, super, :M4] end
+  assert('test_prepend') do
+    module M0
+      def m1; [:M0] end
+    end
+    module M1
+      def m1; [:M1, super, :M1] end
+    end
+    module M2
+      def m1; [:M2, super, :M2] end
+    end
+    M3 = Module.new do
+      def m1; [:M3, super, :M3] end
+    end
+    module M4
+      def m1; [:M4, super, :M4] end
+    end
+
+    class P0
+      include M0
+      prepend M1
+      def m1; [:C0, super, :C0] end
+    end
+    class P1 < P0
+      prepend M2, M3
+      include M4
+      def m1; [:C1, super, :C1] end
+    end
+
+    obj = P1.new
+    expected = [:M2,[:M3,[:C1,[:M4,[:M1,[:C0,[:M0],:C0],:M1],:M4],:C1],:M3],:M2]
+    assert_equal(expected, obj.m1)
   end
 
-  class P0
-    include M0
-    prepend M1
-    def m1; [:C0, super, :C0] end
-  end
-  class P1 < P0
-    prepend M2, M3
-    include M4
-    def m1; [:C1, super, :C1] end
+  # mruby shouldn't be affected by this since there is
+  # no visibility control (yet)
+  assert('test_public_prepend') do
+    assert_nothing_raised('ruby/ruby #8846') do
+      Class.new.prepend(Module.new)
+    end
   end
 
-  obj = P1.new
-  expected = [:M2,[:M3,[:C1,[:M4,[:M1,[:C0,[:M0],:C0],:M1],:M4],:C1],:M3],:M2]
-  assert_equal(expected, obj.m1)
+  assert('test_prepend_inheritance') do
+    bug6654 = '[ruby-core:45914]'
+    a = Module.new
+    b = Module.new { include a }
+    c = Module.new { prepend b }
+
+    assert bug6654 do
+      # the Module#< operator should be used here instead, but we don't have it
+      assert_include(c.ancestors, a)
+      assert_include(c.ancestors, b)
+    end
+
+    bug8357 = '[ruby-core:54736] [Bug #8357]'
+    b = Module.new { prepend a }
+    c = Class.new { include b }
+
+    assert bug8357 do
+      # the Module#< operator should be used here instead, but we don't have it
+      assert_include(c.ancestors, a)
+      assert_include(c.ancestors, b)
+    end
+
+    bug8357 = '[ruby-core:54742] [Bug #8357]'
+    t_print c.new.kind_of?(b)
+    t_print "\n"
+    t_print [b, b.ancestors, c, c.ancestors].inspect
+    t_print "\n"
+    assert_kind_of(b, c.new, bug8357)
+  end
 end
+# @!endgroup prepend
 
 assert('Module#to_s') do
   module Test4to_sModules
