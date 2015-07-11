@@ -327,12 +327,6 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
 {
   khash_t(mt) *h;
   khiter_t k;
-
-  if (!c->origin) {
-    printf("Warning, class %s does not have valid origin\n", mrb_class_name(mrb, c));
-    mrb_raisef(mrb, E_RUNTIME_ERROR, "Invalid origin");
-    c->origin = c;
-  }
   h = c->origin->mt;
 
   if (!h) h = c->mt = kh_init(mt, mrb);
