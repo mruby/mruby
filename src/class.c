@@ -325,8 +325,15 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
 MRB_API void
 mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RProc *p)
 {
-  khash_t(mt) *h = c->mt;
+  khash_t(mt) *h;
   khiter_t k;
+
+  if (!c->origin) {
+    printf("Warning, class %s does not have valid origin\n", mrb_class_name(mrb, c));
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "Invalid origin");
+    c->origin = c;
+  }
+  h = c->origin->mt;
 
   if (!h) h = c->mt = kh_init(mt, mrb);
   k = kh_put(mt, mrb, h, mid);
@@ -758,6 +765,7 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
   struct RClass *c;
 
   c = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_CLASS, mrb->class_class);
+  c->origin = c;
   if (super) {
     c->super = super;
     mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)super);
@@ -765,71 +773,74 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
   else {
     c->super = mrb->object_class;
   }
-  c->origin = c;
   c->mt = kh_init(mt, mrb);
   return c;
 }
 
-MRB_API inline void
-include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, struct RClass *m, int search_super)
+static struct RClass*
+include_class_new(mrb_state *mrb, struct RClass *m, struct RClass *super)
 {
-  while (m) {
-    struct RClass *p = c, *ic;
+  struct RClass *ic = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, mrb->class_class);
+  if (m->tt == MRB_TT_ICLASS) {
+    m = m->c;
+  }
+  ic->origin = ic;
+  ic->iv = m->iv;
+  ic->mt = m->origin->mt;
+  ic->super = super;
+  if (m->tt == MRB_TT_ICLASS) {
+    ic->c = m->c;
+  } else {
+    ic->c = m;
+  }
+  return ic;
+}
+
+MRB_API int
+include_module_at(mrb_state *mrb, struct RClass *klass, struct RClass *c, struct RClass *module, int search_super)
+{
+  struct RClass *p, *iclass;
+  void *klass_mt = klass->origin->mt;
+
+  while (module) {
     int superclass_seen = 0;
- 
-    //if (m->origin != m)
-    //  goto skip;
-    if (c->mt && c->mt == m->mt) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic include detected");
-    }
-    while (p) {
-      /*if (p->tt == MRB_TT_ICLASS) {
-        if (!superclass_seen) {
-          ins_pos = p; // move insert point
+
+    if (module->origin != module)
+      goto skip;
+
+    if (klass_mt && klass_mt == module->mt)
+      return -1;
+
+    p = klass->super;
+    while(p) {
+      if (p->tt == MRB_TT_ICLASS) {
+        if (p->mt == module->mt) {
+          if (!superclass_seen) {
+            c = p; // move insert point
+          }
+          goto skip;
         }
-        goto skip;
       } else if (p->tt == MRB_TT_CLASS) {
-        if (p->mt == m->mt) {
-          if (!search_super) break;
-          superclass_seen = 1;
-        }
-      }*/
-      //
-      if (c != p && p->tt == MRB_TT_CLASS) {
         if (!search_super) break;
         superclass_seen = 1;
       }
-      else if (p->mt == m->mt) {
-        if (p->tt == MRB_TT_ICLASS && !superclass_seen) {
-          ins_pos = p;
-        }
-        goto skip;
-      }
       p = p->super;
     }
-    ic = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, mrb->class_class);
-    if (m->tt == MRB_TT_ICLASS) {
-      ic->c = m->c;
-    }
-    else {
-      ic->c = m;
-    }
-    ic->origin = ic;
-    ic->mt = m->mt;
-    ic->iv = m->iv;
-    ic->super = ins_pos->super;
-    ins_pos->super = ic;
-    mrb_field_write_barrier(mrb, (struct RBasic*)ins_pos, (struct RBasic*)ic);
-    ins_pos = ic;
+
+    iclass = include_class_new(mrb, module, c->super);
+    c->super = iclass;
+    mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)c->super);
+    c = iclass;
   skip:
-    m = m->super;
+    module = module->super;
   }
+  return 0;
 }
 
 MRB_API void
 mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
-  include_module_at(mrb, c, c->origin, m, FALSE);
+  include_module_at(mrb, c, c->origin, m, 1);
 }
 
 MRB_API void
@@ -842,16 +853,16 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   if (origin == c) {
     origin = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, c);
     origin->origin = origin;
-    //OBJ_WB_UNPROTECT(origin); /* TODO: conservative shading. Need more survey. */
     origin->super = c->super;
     c->super = origin;
     c->origin = origin;
     origin->mt = c->mt;
     c->mt = kh_init(mt, mrb);
+    mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)c->origin);
   }
-  include_module_at(mrb, c, c, m, FALSE); // changed =
-  if (changed) {
-    //rb_vm_check_redefinition_by_prepend(klass);
+  changed = include_module_at(mrb, c, c, m, 0);
+  if (changed < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic prepend detected");
   }
 }
 
@@ -955,15 +966,12 @@ mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
 {
   mrb_value result;
   struct RClass *c = mrb_class_ptr(self);
-
   result = mrb_ary_new(mrb);
-  mrb_ary_push(mrb, result, mrb_obj_value(c));
-  c = c->super;
   while (c) {
     if (c->tt == MRB_TT_ICLASS) {
       mrb_ary_push(mrb, result, mrb_obj_value(c->c));
     }
-    else if (c->tt != MRB_TT_SCLASS) {
+    else if (c->origin == c) {
       mrb_ary_push(mrb, result, mrb_obj_value(c));
     }
     c = c->super;
@@ -1005,9 +1013,14 @@ mrb_mod_initialize(mrb_state *mrb, mrb_value mod)
 {
   mrb_value b;
 
+  /* hack, fix missing module->origin */
+  struct RClass *m = mrb_class_ptr(mod);
+  if (!m->origin)
+    m->origin = m;
+
   mrb_get_args(mrb, "&", &b);
   if (!mrb_nil_p(b)) {
-    mrb_yield_with_class(mrb, b, 1, &mod, mod, mrb_class_ptr(mod));
+    mrb_yield_with_class(mrb, b, 1, &mod, mod, m);
   }
   return mod;
 }
@@ -1324,9 +1337,9 @@ mrb_class_superclass(mrb_state *mrb, mrb_value klass)
   struct RClass *c;
 
   c = mrb_class_ptr(klass);
-  c = c->super;
+  c = c->origin->super;
   while (c && c->tt == MRB_TT_ICLASS) {
-    c = c->super;
+    c = c->origin->super;
   }
   if (!c) return mrb_nil_value();
   return mrb_obj_value(c);
@@ -1925,7 +1938,7 @@ static void
 remove_method(mrb_state *mrb, mrb_value mod, mrb_sym mid)
 {
   struct RClass *c = mrb_class_ptr(mod);
-  khash_t(mt) *h = c->mt;
+  khash_t(mt) *h = c->origin->mt;
   khiter_t k;
 
   if (h) {
