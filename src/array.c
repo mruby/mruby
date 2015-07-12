@@ -295,7 +295,7 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "a", &ptr, &blen);
   if (ARY_MAX_SIZE - blen < a1->len) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big"); 
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
   }
   a2 = ary_new_capa(mrb, a1->len + blen);
   array_copy(a2->ptr, a1->ptr, a1->len);
@@ -349,7 +349,7 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
   }
   if (times == 0) return mrb_ary_new(mrb);
   if (ARY_MAX_SIZE / times < a1->len) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big"); 
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
   }
   a2 = ary_new_capa(mrb, a1->len * times);
   ptr = a2->ptr;
@@ -1031,7 +1031,13 @@ mrb_ary_join_m(mrb_state *mrb, mrb_value ary)
 {
   mrb_value sep = mrb_nil_value();
 
-  mrb_get_args(mrb, "|S", &sep);
+  mrb_get_args(mrb, "|o", &sep);
+  if (mrb_nil_p(sep)) {
+    sep = mrb_str_to_str(mrb, sep);
+  } else if (mrb_type(sep) != MRB_TT_STRING) {
+    mrb_raise(mrb, E_TYPE_ERROR, "expected String");
+    return mrb_nil_value();
+  }
   return mrb_ary_join(mrb, ary, sep);
 }
 
