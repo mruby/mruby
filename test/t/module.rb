@@ -670,32 +670,34 @@ assert('Module#prepend') do
   #  assert_equal(0, 1 / 2)
   #end
 
-  #assert 'test_prepend_visibility' do
-  #  bug8005 = '[ruby-core:53106] [Bug #8005]'
-  #  c = Class.new do
-  #    prepend Module.new {}
-  #    def foo() end
-  #    protected :foo
-  #  end
-  #  a = c.new
-  #  assert_respond_to a, [:foo, true], bug8005
-  #  assert_nothing_raised(NoMethodError, bug8005) {a.send :foo}
-  #end
+  # mruby has no visibility control
+  assert 'test_prepend_visibility' do
+    bug8005 = '[ruby-core:53106] [Bug #8005]'
+    c = Class.new do
+      prepend Module.new {}
+      def foo() end
+      protected :foo
+    end
+    a = c.new
+    assert_true a.respond_to?(:foo), bug8005
+    assert_nothing_raised(NoMethodError, bug8005) {a.send :foo}
+  end
 
-  #assert 'test_prepend_visibility_inherited' do
-  #  bug8238 = '[ruby-core:54105] [Bug #8238]'
-  #  assert_separately [], <<-"end;", timeout: 20
-  #    class A
-  #      def foo() A; end
-  #      private :foo
-  #    end
-  #    class B < A
-  #      public :foo
-  #      prepend Module.new
-  #    end
-  #    assert_equal(A, B.new.foo, "#{bug8238}")
-  #  end;
-  #end
+  # mruby has no visibility control
+  assert 'test_prepend_visibility_inherited' do
+    bug8238 = '[ruby-core:54105] [Bug #8238]'
+    module Test4PrependVisibilityInherited
+      class A
+        def foo() A; end
+        private :foo
+      end
+      class B < A
+        public :foo
+        prepend Module.new
+      end
+    end
+    assert_equal(Test4PrependVisibilityInherited::A, Test4PrependVisibilityInherited::B.new.foo, "#{bug8238}")
+  end
 
   assert 'test_prepend_included_modules' do
     bug8025 = '[ruby-core:53158] [Bug #8025]'
