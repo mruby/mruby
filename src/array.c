@@ -1032,9 +1032,7 @@ mrb_ary_join_m(mrb_state *mrb, mrb_value ary)
   mrb_value sep = mrb_nil_value();
 
   mrb_get_args(mrb, "|o", &sep);
-  if (mrb_nil_p(sep)) {
-    sep = mrb_str_to_str(mrb, sep);
-  } else if (mrb_type(sep) != MRB_TT_STRING) {
+  if (!(mrb_nil_p(sep) || mrb_type(sep) == MRB_TT_STRING)) {
     mrb_raise(mrb, E_TYPE_ERROR, "expected String");
     return mrb_nil_value();
   }
