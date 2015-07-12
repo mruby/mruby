@@ -653,13 +653,19 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* kl
 {
   khint_t i;
   mrb_value ary;
+  mrb_bool prepended;
   struct RClass* oldklass;
   khash_t(st)* set = kh_init(st, mrb);
+
+  if (!recur && klass->origin != klass) {
+    klass = klass->origin;
+    prepended = 1;
+  }
 
   oldklass = 0;
   while (klass && (klass != oldklass)) {
     method_entry_loop(mrb, klass, set);
-    if ((klass->tt == MRB_TT_ICLASS) ||
+    if ((klass->tt == MRB_TT_ICLASS && !prepended) ||
         (klass->tt == MRB_TT_SCLASS)) {
     }
     else {
