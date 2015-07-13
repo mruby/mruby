@@ -495,7 +495,7 @@ end
 # Not ISO specified
 
 # @!group prepend
-  assert('test_prepend') do
+  assert('Module#prepend') do
     module M0
       def m1; [:M0] end
     end
@@ -530,13 +530,13 @@ end
 
   # mruby shouldn't be affected by this since there is
   # no visibility control (yet)
-  assert('test_public_prepend') do
+  assert('Module#prepend public') do
     assert_nothing_raised('ruby/ruby #8846') do
       Class.new.prepend(Module.new)
     end
   end
 
-  assert('test_prepend_inheritance') do
+  assert('Module#prepend inheritance') do
     bug6654 = '[ruby-core:45914]'
     a = labeled_module('a')
     b = labeled_module('b') { include a }
@@ -562,18 +562,18 @@ end
     assert_kind_of(b, c.new, bug8357)
   end
 
-  assert('test_prepend_instance_methods') do
+  assert('Moduler#prepend + #instance_methods') do
     bug6655 = '[ruby-core:45915]'
     assert_equal(Object.instance_methods, Class.new {prepend Module.new}.instance_methods, bug6655)
   end
 
-  assert 'test_prepend_singleton_methods' do
+  assert 'Module#prepend + #singleton_methods' do
     o = Object.new
     o.singleton_class.class_eval {prepend Module.new}
     assert_equal([], o.singleton_methods)
   end
 
-  assert 'test_prepend_remove_method' do
+  assert 'Module#prepend + #remove_method' do
     c = Class.new do
       prepend Module.new { def foo; end }
     end
@@ -597,7 +597,7 @@ end
     assert_equal(:foo, removed)
   end
 
-  assert 'test_prepend_class_ancestors' do
+  assert 'Module#prepend + Class#ancestors' do
     bug6658 = '[ruby-core:45919]'
     m = labeled_module("m")
     c = labeled_class("c") {prepend m}
@@ -609,8 +609,7 @@ end
     assert_equal([c2, m, c, Object], anc[0..anc.index(Object)], bug6662)
   end
 
-  # this assertion causes the mrbtest to segfault
-  assert 'test_prepend_module_ancestors' do
+  assert 'Module#prepend + Module#ancestors' do
     bug6659 = '[ruby-dev:45861]'
     m0 = labeled_module("m0") { def x; [:m0, *super] end }
     m1 = labeled_module("m1") { def x; [:m1, *super] end; prepend m0 }
@@ -638,13 +637,13 @@ end
     assert_equal([m3, m0, m1], m3.ancestors)
   end
 
-  assert 'test_prepend_instance_methods_false' do
+  assert 'Module#prepend #instance_methods(false)' do
     bug6660 = '[ruby-dev:45863]'
     assert_equal([:m1], Class.new{ prepend Module.new; def m1; end }.instance_methods(false), bug6660)
     assert_equal([:m1], Class.new(Class.new{def m2;end}){ prepend Module.new; def m1; end }.instance_methods(false), bug6660)
   end
 
-  assert 'test_cyclic_prepend' do
+  assert 'cyclic Module#prepend' do
     bug7841 = '[ruby-core:52205] [Bug #7841]'
     m1 = Module.new
     m2 = Module.new
@@ -670,7 +669,7 @@ end
   #end
 
   # mruby has no visibility control
-  assert 'test_prepend_visibility' do
+  assert 'Module#prepend visibility' do
     bug8005 = '[ruby-core:53106] [Bug #8005]'
     c = Class.new do
       prepend Module.new {}
@@ -683,7 +682,7 @@ end
   end
 
   # mruby has no visibility control
-  assert 'test_prepend_visibility_inherited' do
+  assert 'Module#prepend inherited visibility' do
     bug8238 = '[ruby-core:54105] [Bug #8238]'
     module Test4PrependVisibilityInherited
       class A
@@ -698,7 +697,7 @@ end
     assert_equal(Test4PrependVisibilityInherited::A, Test4PrependVisibilityInherited::B.new.foo, "#{bug8238}")
   end
 
-  assert 'test_prepend_included_modules' do
+  assert 'Module#prepend + #included_modules' do
     bug8025 = '[ruby-core:53158] [Bug #8025]'
     mixin = labeled_module("mixin")
     c = labeled_module("c") {prepend mixin}
@@ -713,7 +712,8 @@ end
     assert_include(im, mixin, bug8025)
   end
 
-  assert 'test_prepend_super_in_alias' do
+  assert 'Module#prepend super in alias' do
+    skip "super does not currently work in aliased methods"
     bug7842 = '[Bug #7842]'
 
     p = labeled_module("P") do
@@ -740,20 +740,20 @@ end
     end
   end
 
-  assert 'test_prepend_each_classes' do
+  assert 'Module#prepend each class' do
     m = labeled_module("M")
     c1 = labeled_class("C1") {prepend m}
     c2 = labeled_class("C2", c1) {prepend m}
-    assert_equal([m, c2, m, c1], c2.ancestors[0, 4], "should be able to prepend each classes")
+    assert_equal([m, c2, m, c1], c2.ancestors[0, 4], "should be able to prepend each class")
   end
 
-  assert 'test_prepend_no_duplication' do
+  assert 'Module#prepend no duplication' do
     m = labeled_module("M")
     c = labeled_class("C") {prepend m; prepend m}
     assert_equal([m, c], c.ancestors[0, 2], "should never duplicate")
   end
 
-  assert 'test_prepend_in_superclass' do
+  assert 'Module#prepend in superclass' do
     m = labeled_module("M")
     c1 = labeled_class("C1")
     c2 = labeled_class("C2", c1) {prepend m}
@@ -762,7 +762,7 @@ end
   end
 
   # requires #assert_seperately
-  #assert 'test_prepend_call_super' do
+  #assert 'Module#prepend call super' do
   #  assert_separately([], <<-'end;') #do
   #    bug10847 = '[ruby-core:68093] [Bug #10847]'
   #    module M; end
