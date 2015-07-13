@@ -543,21 +543,21 @@ assert('Module#prepend') do
     b = labeled_module('b') { include a }
     c = labeled_module('c') { prepend b }
 
-    assert bug6654 do
+    #assert bug6654 do
       # the Module#< operator should be used here instead, but we don't have it
       assert_include(c.ancestors, a)
       assert_include(c.ancestors, b)
-    end
+    #end
 
     bug8357 = '[ruby-core:54736] [Bug #8357]'
     b = labeled_module('b') { prepend a }
     c = labeled_class('c') { include b }
 
-    assert bug8357 do
+    #assert bug8357 do
       # the Module#< operator should be used here instead, but we don't have it
       assert_include(c.ancestors, a)
       assert_include(c.ancestors, b)
-    end
+    #end
 
     bug8357 = '[ruby-core:54742] [Bug #8357]'
     assert_kind_of(b, c.new, bug8357)
