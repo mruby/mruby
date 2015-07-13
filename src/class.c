@@ -1945,6 +1945,7 @@ remove_method(mrb_state *mrb, mrb_value mod, mrb_sym mid)
     k = kh_get(mt, mrb, h, mid);
     if (k != kh_end(h)) {
       kh_del(mt, mrb, h, k);
+      mrb_funcall(mrb, mod, "method_removed", 1, mrb_symbol_value(mid));
       return;
     }
   }
@@ -2197,6 +2198,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "public",                  mrb_mod_dummy_visibility, MRB_ARGS_ANY());  /* 15.2.2.4.38 */
   mrb_define_method(mrb, mod, "remove_class_variable",   mrb_mod_remove_cvar,      MRB_ARGS_REQ(1)); /* 15.2.2.4.39 */
   mrb_define_method(mrb, mod, "remove_method",           mrb_mod_remove_method,    MRB_ARGS_ANY());  /* 15.2.2.4.41 */
+  mrb_define_method(mrb, mod, "method_removed",          mrb_bob_init,             MRB_ARGS_REQ(1));  /* 15.2.2.4.41 */
   mrb_define_method(mrb, mod, "attr_reader",             mrb_mod_attr_reader,      MRB_ARGS_ANY());  /* 15.2.2.4.13 */
   mrb_define_method(mrb, mod, "attr_writer",             mrb_mod_attr_writer,      MRB_ARGS_ANY());  /* 15.2.2.4.14 */
   mrb_define_method(mrb, mod, "to_s",                    mrb_mod_to_s,             MRB_ARGS_NONE());
