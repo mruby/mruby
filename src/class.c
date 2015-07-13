@@ -435,7 +435,7 @@ to_sym(mrb_state *mrb, mrb_value ss)
     ----------------------------------------------------------------------------------------------
     o:      Object         [mrb_value]
     C:      class/module   [mrb_value]
-    S:      String         [mrb_value]
+    S:      String         [mrb_value]            when ! follows the value may be nil
     A:      Array          [mrb_value]
     H:      Hash           [mrb_value]
     s:      String         [char*,mrb_int]        Receive two arguments.
@@ -525,6 +525,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
+        if (*format == '!') {
+          format++;
+          if (mrb_nil_p(*sp)) {
+            *p = *sp++;
+            i++;
+            break;
+          }
+        }
         if (i < argc) {
           *p = to_str(mrb, *sp++);
           i++;
