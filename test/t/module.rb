@@ -495,7 +495,6 @@ end
 # Not ISO specified
 
 # @!group prepend
-assert('Module#prepend') do
   assert('test_prepend') do
     module M0
       def m1; [:M0] end
@@ -773,7 +772,6 @@ assert('Module#prepend') do
   #    end
   #  end;
   #end
-end
 # @!endgroup prepend
 
 assert('Module#to_s') do
