@@ -1004,7 +1004,9 @@ mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
   result = mrb_ary_new(mrb);
   while (c) {
     if (c->tt == MRB_TT_ICLASS) {
-      mrb_ary_push(mrb, result, mrb_obj_value(c->c));
+      if (c->c->tt == MRB_TT_MODULE) {
+        mrb_ary_push(mrb, result, mrb_obj_value(c->c));
+      }
     }
     c = c->super;
   }
