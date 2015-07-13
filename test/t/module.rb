@@ -720,17 +720,25 @@ assert('Module#prepend') do
     p = labeled_module("P") do
       def m; "P"+super; end
     end
+
     a = labeled_class("A") do
       def m; "A"; end
     end
+
     b = labeled_class("B", a) do
       def m; "B"+super; end
       alias m2 m
       prepend p
       alias m3 m
     end
-    assert_equal("BA", b.new.m2, bug7842)
-    assert_equal("PBA", b.new.m3, bug7842)
+
+    assert_nothing_raised do
+      assert_equal("BA", b.new.m2, bug7842)
+    end
+
+    assert_nothing_raised do
+      assert_equal("PBA", b.new.m3, bug7842)
+    end
   end
 
   assert 'test_prepend_each_classes' do
