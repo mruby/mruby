@@ -726,6 +726,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         datap = va_arg(ap, void**);
         type = va_arg(ap, struct mrb_data_type const*);
+        if (*format == '!') {
+          format++;
+          if (i < argc && mrb_nil_p(*sp)) {
+            *datap = 0;
+            i++;
+            break;
+          }
+        }
         if (i < argc) {
           *datap = mrb_data_get_ptr(mrb, *sp++, type);
           ++i;
