@@ -435,9 +435,9 @@ to_sym(mrb_state *mrb, mrb_value ss)
     ----------------------------------------------------------------------------------------------
     o:      Object         [mrb_value]
     C:      class/module   [mrb_value]
-    S:      String         [mrb_value]            when ! follows the value may be nil
-    A:      Array          [mrb_value]
-    H:      Hash           [mrb_value]
+    S:      String         [mrb_value]            when ! follows, the value may be nil
+    A:      Array          [mrb_value]            when ! follows, the value may be nil
+    H:      Hash           [mrb_value]            when ! follows, the value may be nil
     s:      String         [char*,mrb_int]        Receive two arguments.
     z:      String         [char*]                NUL terminated string.
     a:      Array          [mrb_value*,mrb_int]   Receive two arguments.
@@ -527,7 +527,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         p = va_arg(ap, mrb_value*);
         if (*format == '!') {
           format++;
-          if (mrb_nil_p(*sp)) {
+          if (i < argc && mrb_nil_p(*sp)) {
             *p = *sp++;
             i++;
             break;
@@ -544,6 +544,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
+        if (*format == '!') {
+          format++;
+          if (i < argc && mrb_nil_p(*sp)) {
+            *p = *sp++;
+            i++;
+            break;
+          }
+        }
         if (i < argc) {
           *p = to_ary(mrb, *sp++);
           i++;
@@ -555,6 +563,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
+        if (*format == '!') {
+          format++;
+          if (i < argc && mrb_nil_p(*sp)) {
+            *p = *sp++;
+            i++;
+            break;
+          }
+        }
         if (i < argc) {
           *p = to_hash(mrb, *sp++);
           i++;
@@ -569,6 +585,15 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         ps = va_arg(ap, char**);
         pl = va_arg(ap, mrb_int*);
+        if (*format == '!') {
+          format++;
+          if (i < argc && mrb_nil_p(*sp)) {
+            *ps = NULL;
+            *pl = 0;
+            i++;
+            break;
+          }
+        }
         if (i < argc) {
           ss = to_str(mrb, *sp++);
           *ps = RSTRING_PTR(ss);
@@ -583,6 +608,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         const char **ps;
 
         ps = va_arg(ap, const char**);
+        if (*format == '!') {
+          format++;
+          if (i < argc && mrb_nil_p(*sp)) {
+            *ps = NULL;
+            i++;
+            break;
+          }
+        }
         if (i < argc) {
           ss = to_str(mrb, *sp++);
           *ps = mrb_string_value_cstr(mrb, &ss);
@@ -599,6 +632,15 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         pb = va_arg(ap, mrb_value**);
         pl = va_arg(ap, mrb_int*);
+        if (*format == '!') {
+          format++;
+          if (i < argc && mrb_nil_p(*sp)) {
+            *pb = 0;
+            *pl = 0;
+            i++;
+            break;
+          }
+        }
         if (i < argc) {
           aa = to_ary(mrb, *sp++);
           a = mrb_ary_ptr(aa);
