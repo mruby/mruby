@@ -44,7 +44,7 @@ int mrb_get_args(mrb_state *mrb, const char *format, ...);
 ```
 Retrieve arguments from `mrb_state`.
 When applicable, implicit conversions (such as `to_str`,
-`to_ary`, `to_hash`) are be applied to received arguments.
+`to_ary`, `to_hash`) are applied to received arguments.
 Use it inside a function pointed by `mrb_func_t`.
 It returns the number of arguments retrieved.
 `format` is a list of following format specifiers:
