@@ -798,26 +798,26 @@ include_class_new(mrb_state *mrb, struct RClass *m, struct RClass *super)
 }
 
 MRB_API int
-include_module_at(mrb_state *mrb, struct RClass *klass, struct RClass *c, struct RClass *module, int search_super)
+include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, struct RClass *m, int search_super)
 {
-  struct RClass *p, *iclass;
-  void *klass_mt = klass->origin->mt;
+  struct RClass *p, *ic;
+  void *klass_mt = c->origin->mt;
 
-  while (module) {
+  while (m) {
     int superclass_seen = 0;
 
-    if (module->origin != module)
+    if (m->origin != m)
       goto skip;
 
-    if (klass_mt && klass_mt == module->mt)
+    if (klass_mt && klass_mt == m->mt)
       return -1;
 
-    p = klass->super;
+    p = c->super;
     while(p) {
       if (p->tt == MRB_TT_ICLASS) {
-        if (p->mt == module->mt) {
+        if (p->mt == m->mt) {
           if (!superclass_seen) {
-            c = p; // move insert point
+            ins_pos = p; // move insert point
           }
           goto skip;
         }
@@ -828,12 +828,12 @@ include_module_at(mrb_state *mrb, struct RClass *klass, struct RClass *c, struct
       p = p->super;
     }
 
-    iclass = include_class_new(mrb, module, c->super);
-    c->super = iclass;
-    mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)c->super);
-    c = iclass;
+    ic = include_class_new(mrb, m, ins_pos->super);
+    ins_pos->super = ic;
+    mrb_field_write_barrier(mrb, (struct RBasic*)ins_pos, (struct RBasic*)ins_pos->super);
+    ins_pos = ic;
   skip:
-    module = module->super;
+    m = m->super;
   }
   return 0;
 }
