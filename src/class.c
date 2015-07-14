@@ -438,9 +438,9 @@ to_sym(mrb_state *mrb, mrb_value ss)
     S:      String         [mrb_value]            when ! follows, the value may be nil
     A:      Array          [mrb_value]            when ! follows, the value may be nil
     H:      Hash           [mrb_value]            when ! follows, the value may be nil
-    s:      String         [char*,mrb_int]        Receive two arguments.
-    z:      String         [char*]                NUL terminated string.
-    a:      Array          [mrb_value*,mrb_int]   Receive two arguments.
+    s:      String         [char*,mrb_int]        Receive two arguments; s! gives (NULL,0) for nil
+    z:      String         [char*]                NUL terminated string; z! gives NULL for nil
+    a:      Array          [mrb_value*,mrb_int]   Receive two arguments; a! gives (NULL,0) for nil
     f:      Float          [mrb_float]
     i:      Integer        [mrb_int]
     b:      Boolean        [mrb_bool]
