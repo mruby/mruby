@@ -856,6 +856,7 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   origin = c->origin;
   if (origin == c) {
     origin = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, c);
+    origin->flags |= MRB_FLAG_IS_ORIGIN;
     origin->origin = origin;
     origin->super = c->super;
     c->super = origin;
