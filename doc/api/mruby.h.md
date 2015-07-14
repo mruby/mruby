@@ -43,20 +43,22 @@ Deletes `mrb_state`.
 int mrb_get_args(mrb_state *mrb, const char *format, ...);
 ```
 Retrieve arguments from `mrb_state`.
+When applicable, implicit conversions (such as `to_str`,
+`to_ary`, `to_hash`) are applied to received arguments.
 Use it inside a function pointed by `mrb_func_t`.
-It returns number of function retrieved.
-`format` is a list of following format specifier:
+It returns the number of arguments retrieved.
+`format` is a list of following format specifiers:
 
 char|mruby type|retrieve types|note
 :---:|----------|--------------|---
 `o`|`Object`|`mrb_value`|Could be used to retrieve any type of argument
 `C`|`Class`/`Module`|`mrb_value`|
-`S`|`String`|`mrb_value`|
-`A`|`Array`|`mrb_value`|
-`H`|`Hash`|`mrb_value`|
-`s`|`String`|`char*`, `mrb_int`|
-`z`|`String`|`char*`|
-`a`|`Array`|`mrb_value*`, `mrb_int`|
+`S`|`String`|`mrb_value`|when ! follows, the value may be nil
+`A`|`Array`|`mrb_value`|when ! follows, the value may be nil
+`H`|`Hash`|`mrb_value`|when ! follows, the value may be nil
+`s`|`String`|`char*`, `mrb_int`|Receive two arguments; s! gives (NULL,0) for nil
+`z`|`String`|`char*`|NUL terminated string; z! gives NULL for nil
+`a`|`Array`|`mrb_value*`, `mrb_int`|Receive two arguments; a! gives (NULL,0) for nil
 `f`|`Float`|`mrb_float`|
 `i`|`Integer`|`mrb_int`|
 `b`|boolean|`mrb_bool`|
@@ -118,7 +120,7 @@ mrb_value example_method(mrb_state* mrb, mrb_value self){
 void mrb_example_gem_init(mrb_state* mrb) {
     struct RClass *example_class;
     example_class = mrb_define_class(mrb, "Example_Class", mrb->object_class);
-    mrb_define_method(mrb, example_class, "example_method", example_method, MRB_ARGS_NONE()); 
+    mrb_define_method(mrb, example_class, "example_method", example_method, MRB_ARGS_NONE());
 }
 
 void mrb_example_gem_final(mrb_state* mrb) {
