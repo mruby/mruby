@@ -1020,8 +1020,6 @@ static mrb_value
 mrb_mod_initialize(mrb_state *mrb, mrb_value mod)
 {
   mrb_value b;
-
-  /* hack, fix missing module->origin */
   struct RClass *m = mrb_class_ptr(mod);
   boot_initmod(mrb, m); // bootstrap a newly initialized module
   mrb_get_args(mrb, "|&", &b);
