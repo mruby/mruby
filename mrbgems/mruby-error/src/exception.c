@@ -61,7 +61,6 @@ mrb_rescue_exceptions(mrb_state *mrb, mrb_func_t body, mrb_value b_data, mrb_fun
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
   struct mrb_jmpbuf c_jmp;
   mrb_value result;
-  struct RClass *cls;
   mrb_bool error_matched = FALSE;
   mrb_int i;
 
