@@ -51,9 +51,9 @@ mrb_class(mrb_state *mrb, mrb_value v)
 
 // TODO: figure out where to put user flags
 #define MRB_FLAG_IS_ORIGIN (1 << 20)
-#define MRB_FLAG_IS_INSTANCE (0xFF)
-#define MRB_SET_INSTANCE_TT(c, tt) c->flags = ((c->flags & ~MRB_FLAG_IS_INSTANCE) | (char)tt)
-#define MRB_INSTANCE_TT(c) (enum mrb_vtype)(c->flags & MRB_FLAG_IS_INSTANCE)
+#define MRB_INSTANCE_TT_MASK (0xFF)
+#define MRB_SET_INSTANCE_TT(c, tt) c->flags = ((c->flags & ~MRB_INSTANCE_TT_MASK) | (char)tt)
+#define MRB_INSTANCE_TT(c) (enum mrb_vtype)(c->flags & MRB_INSTANCE_TT_MASK)
 
 MRB_API struct RClass* mrb_define_class_id(mrb_state*, mrb_sym, struct RClass*);
 MRB_API struct RClass* mrb_define_module_id(mrb_state*, mrb_sym);
