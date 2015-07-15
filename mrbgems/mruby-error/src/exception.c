@@ -17,6 +17,7 @@ mrb_protect(mrb_state *mrb, mrb_func_t body, mrb_value data, mrb_bool *state)
     mrb->jmp = prev_jmp;
   } MRB_CATCH(&c_jmp) {
     mrb->jmp = prev_jmp;
+    result = mrb_obj_value(mrb->exc);
     mrb->exc = NULL;
     if (state) { *state = TRUE; }
   } MRB_END_EXC(&c_jmp);

@@ -1,10 +1,12 @@
 assert 'mrb_protect' do
+  # no failure in protect returns [result, false]
   assert_equal ['test', false] do
     ExceptionTest.mrb_protect { 'test' }
   end
-  assert_equal [nil, true] do
-    ExceptionTest.mrb_protect { raise 'test' }
-  end
+  # failure in protect returns [exception, true]
+  result = ExceptionTest.mrb_protect { raise 'test' }
+  assert_kind_of RuntimeError, result[0]    
+  assert_true result[1]
 end
 
 assert 'mrb_ensure' do
