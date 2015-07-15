@@ -29,6 +29,7 @@ MRB_API mrb_noreturn void mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_va
 /* declaration for fail method */
 MRB_API mrb_value mrb_f_raise(mrb_state*, mrb_value);
 
+/* functions defined in mruby-error mrbgem */
 MRB_API mrb_value mrb_protect(mrb_state *mrb, mrb_func_t body, mrb_value data, mrb_bool *state);
 MRB_API mrb_value mrb_ensure(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
                              mrb_func_t ensure, mrb_value e_data);
