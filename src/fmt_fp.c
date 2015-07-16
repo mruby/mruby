@@ -90,7 +90,7 @@ fmt_u(uint32_t x, char *s)
 typedef char compiler_defines_long_double_incorrectly[9-(int)sizeof(long double)];
 #endif
 
-#if ((defined(__CYGWIN32__) || defined(__NetBSD__) || defined(mips)) && !defined(__linux__)) || defined(__android__)
+#if ((defined(__CYGWIN__) || defined(__NetBSD__) || defined(mips)) && !defined(__linux__)) || defined(__android__)
 #undef frexpl
 #define frexpl frexp
 #endif
