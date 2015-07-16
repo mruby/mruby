@@ -159,10 +159,9 @@ cleanup(mrb_state *mrb, struct _args *args)
 {
   if (args->rfp && args->rfp != stdin)
     fclose(args->rfp);
-  if (args->cmdline && !args->fname)
+  if (!args->fname)
     mrb_free(mrb, args->cmdline);
-  if (args->argv)
-    mrb_free(mrb, args->argv);
+  mrb_free(mrb, args->argv);
   mrb_close(mrb);
 }
 
