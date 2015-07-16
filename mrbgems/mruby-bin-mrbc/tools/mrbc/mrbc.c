@@ -161,8 +161,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
 static void
 cleanup(mrb_state *mrb, struct mrbc_args *args)
 {
-  if (args->outfile)
-    mrb_free(mrb, (void*)args->outfile);
+  mrb_free(mrb, (void*)args->outfile);
   mrb_close(mrb);
 }
 
