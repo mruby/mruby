@@ -111,6 +111,7 @@ class String
   def sub(*args, &block)
     if args.size == 2
       pre, post = split(args[0], 2)
+      return self unless post # The sub target wasn't found in the string
       pre + args[1].__sub_replace(pre, args[0], post) + post
     elsif args.size == 1 && block
       split(args[0], 2).join(block.call(args[0]))
