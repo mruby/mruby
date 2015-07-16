@@ -1608,10 +1608,10 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
       case MRB_TT_CLASS:
       case MRB_TT_MODULE:
       case MRB_TT_SCLASS:
-        mrb_str_append(mrb, str, mrb_inspect(mrb, v));
+        mrb_str_cat_str(mrb, str, mrb_inspect(mrb, v));
         break;
       default:
-        mrb_str_append(mrb, str, mrb_any_to_s(mrb, v));
+        mrb_str_cat_str(mrb, str, mrb_any_to_s(mrb, v));
         break;
     }
     return mrb_str_cat_lit(mrb, str, ">");

@@ -609,7 +609,7 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   else {
     ins = mrb_inspect(mrb, v);
   }
-  mrb_str_append(mrb, str, ins);
+  mrb_str_cat_str(mrb, str, ins);
   return 0;
 }
 
