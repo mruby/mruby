@@ -797,7 +797,7 @@ include_class_new(mrb_state *mrb, struct RClass *m, struct RClass *super)
   return ic;
 }
 
-MRB_API int
+static int
 include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, struct RClass *m, int search_super)
 {
   struct RClass *p, *ic;
