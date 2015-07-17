@@ -55,8 +55,11 @@ Sets a keys and values to hashes.
 #### Example
 
 In this example we read from a Ruby file inside C. The Ruby code will print what you pass as an argument
-and what class the passed in value is. This example sets a key and value pair to a hash. In pure Ruby doing this is equivalent to a = {:da_key => 80}.
+and what class the passed in value is. This example sets a key and value pair to a hash. In pure Ruby doing this is equivalent to:
 
+```Ruby
+a = {:da_key => 80}
+```
 
 ```C
 #include <stdio.h>
@@ -114,8 +117,12 @@ Gets a value from a key.
 #### Example
 
 In this example we read from a Ruby file inside C. The Ruby code will print what you pass as an argument
-and what class the passed in value is. This example gets a value from a key. In pure Ruby doing this is equivalent to        a = {:da_key => 80} 
-a[:da_key].
+and what class the passed in value is. This example gets a value from a key. In pure Ruby doing this is equivalent to:
+
+```Ruby
+a = {:da_key => 80} 
+a[:da_key]
+```
 
 ```C
 #include <stdio.h>
@@ -177,9 +184,12 @@ Deletes hash key and value pair.
 #### Example
 
 In this example we read from a Ruby file inside C. The Ruby code will print what you pass as an argument
-and what class the passed in value is. This example deletes hash key and value pair. In pure Ruby doing this is equivalent to a = {:da_key1 => 80,:da_key2 => 90} 
-a.delete(:da_key2)
+and what class the passed in value is. This example deletes hash key and value pair. In pure Ruby doing this is equivalent to:
 
+```Ruby
+a = {:da_key1 => 80,:da_key2 => 90} 
+a.delete(:da_key2)
+```
 
 ```C
 #include <stdio.h>
@@ -308,9 +318,12 @@ Clears the hash.
 #### Example
 
 In this example we read from a Ruby file inside C. The Ruby code will print what you pass as an argument
-and what class the passed in value is. This example clears the hash. In pure Ruby doing this is equivalent to
+and what class the passed in value is. This example clears the hash. In pure Ruby doing this is equivalent to:
+
+```Ruby
 a = {:da_key1 => 80,:da_key2 => 90}
 a.clear
+```
 
 ```C
 #include <stdio.h>
