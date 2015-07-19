@@ -649,6 +649,37 @@ mrb_tcpsocket_allocate(mrb_state *mrb, mrb_value klass)
   return mrb_obj_value((struct RObject*)mrb_obj_alloc(mrb, ttype, c));
 }
 
+/* Windows overrides for IO methods on BasicSocket objects.
+ * This is because sockets on Windows are not the same as file
+ * descriptors, and thus functions which operate on file descriptors
+ * will break on socket descriptors.
+ */
+#ifdef _WIN32
+static mrb_value
+mrb_win32_basicsocket_close(mrb_state *mrb, mrb_value self)
+{
+  if (closesocket(socket_fd(mrb, self)) != NO_ERROR)
+    mrb_sys_fail(mrb, "closesocket");
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_win32_basicsocket_write(mrb_state *mrb, mrb_value self)
+{
+  int n;
+  SOCKET sd;
+  mrb_value str;
+
+  sd = socket_fd(mrb, self);
+  mrb_get_args(mrb, "S", &str);
+  n = send(sd, RSTRING_PTR(str), RSTRING_LEN(str), 0);
+  if (n == SOCKET_ERROR)
+    mrb_sys_fail(mrb, "write");
+  return mrb_fixnum_value(n);
+}
+
+#endif
+
 void
 mrb_mruby_socket_gem_init(mrb_state* mrb)
 {
@@ -727,6 +758,12 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   //mrb_define_method(mrb, usock, "recv_io", mrb_unixsocket_peeraddr, MRB_ARGS_NONE());
   //mrb_define_method(mrb, usock, "recvfrom", mrb_unixsocket_peeraddr, MRB_ARGS_NONE());
   //mrb_define_method(mrb, usock, "send_io", mrb_unixsocket_peeraddr, MRB_ARGS_NONE());
+
+  /* Windows IO Method Overrides on BasicSocket */
+#ifdef _WIN32
+  mrb_define_method(mrb, bsock, "close", mrb_win32_basicsocket_close, MRB_ARGS_NONE());
+  mrb_define_method(mrb, bsock, "write", mrb_win32_basicsocket_write, MRB_ARGS_REQ(1));
+#endif
 
   constants = mrb_define_module_under(mrb, sock, "Constants");
 
