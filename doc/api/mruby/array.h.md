@@ -12,28 +12,27 @@ In this example we read from a Ruby file inside C. The Ruby code will print what
 #include "mruby/array.h" // Needs the array header.
 #include "mruby/compile.h"
 
-
 int main(int argc, char *argv[])
-{	
-	  mrb_value new_ary; // Declare variable.
-	  mrb_state *mrb = mrb_open();
-    if (!mrb) { /* handle error */ }
-    FILE *fp = fopen("test.rb","r");
-	  new_ary = mrb_ary_new(mrb);
-    mrb_value obj = mrb_load_file(mrb,fp);
-    mrb_funcall(mrb, obj, "method_name", 1, new_ary);
-    fclose(fp);
-    mrb_close(mrb);
-	return 0;
+{
+  mrb_value new_ary; // Declare variable.
+  mrb_state *mrb = mrb_open();
+  if (!mrb) { /* handle error */ }
+  FILE *fp = fopen("test.rb","r");
+  new_ary = mrb_ary_new(mrb);
+  mrb_value obj = mrb_load_file(mrb,fp);
+  mrb_funcall(mrb, obj, "method_name", 1, new_ary);
+  fclose(fp);
+  mrb_close(mrb);
+  return 0;
 }
 ```
 test.rb
 ```Ruby
 class Example_Class
-	def method_name(a)
-		puts a
-		puts a.class
-	end
+  def method_name(a)
+    puts a
+    puts a.class
+  end
 end
 Example_Class.new
 ```
@@ -52,32 +51,32 @@ In this example we read from a Ruby file inside C. The Ruby code will print what
 #include "mruby/compile.h"
 
 int main(int argc, char *argv[])
-{	
-	  mrb_value new_ary; // Declare variable.
-	  mrb_int random_value1 = 70; // Initialize variable
-	  mrb_int random_value2 = 60; // Initialize variable
-	  mrb_state *mrb = mrb_open();
-    if (!mrb) { /* handle error */ }
-    FILE *fp = fopen("test.rb","r");
-	  new_ary = mrb_ary_new(mrb); // Initialize ruby array.
-	  /* Pushes the fixnum value from random_value1 to the new_ary instance. */
-	  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value1)); 
-	  /* Pushes the fixnum value from random_value2 to the new_ary instance. */
-	  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value2));
-    mrb_value obj = mrb_load_file(mrb,fp);
-    mrb_funcall(mrb, obj, "method_name", 1, new_ary);
-    fclose(fp);
-    mrb_close(mrb);
-	  return 0;
+{
+  mrb_value new_ary; // Declare variable.
+  mrb_int random_value1 = 70; // Initialize variable
+  mrb_int random_value2 = 60; // Initialize variable
+  mrb_state *mrb = mrb_open();
+  if (!mrb) { /* handle error */ }
+  FILE *fp = fopen("test.rb","r");
+  new_ary = mrb_ary_new(mrb); // Initialize ruby array.
+  /* Pushes the fixnum value from random_value1 to the new_ary instance. */
+  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value1)); 
+  /* Pushes the fixnum value from random_value2 to the new_ary instance. */
+  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value2));
+  mrb_value obj = mrb_load_file(mrb,fp);
+  mrb_funcall(mrb, obj, "method_name", 1, new_ary);
+  fclose(fp);
+  mrb_close(mrb);
+  return 0;
 }
 ```
 test.rb
 ```Ruby
 class Example_Class
-	def method_name(a)
-		puts a
-		puts a.class
-	end
+  def method_name(a)
+    puts a
+    puts a.class
+  end
 end
 Example_Class.new
 ```
@@ -103,37 +102,37 @@ called pop_ary that will return the array alone(just to be clean) and you should
 #include "mruby/compile.h"
 
 int main(int argc, char *argv[])
-{	
-	  mrb_value new_ary; // Declare variable.
-	  mrb_int random_value1 = 70; // Initialize variable
-	  mrb_int random_value2 = 60; // Initialize variable
-	  mrb_state *mrb = mrb_open();
-    if (!mrb) { /* handle error */ }
-    FILE *fp = fopen("test.rb","r");
-	  new_ary = mrb_ary_new(mrb); // Initialize ruby array.
-	  /* Pushes the fixnum value from random_value1 to the new_ary instance. */
-	  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value1)); 
-	  /* Pushes the fixnum value from random_value2 to the new_ary instance. */
-	  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value2));
-    mrb_value obj = mrb_load_file(mrb,fp);
-    mrb_funcall(mrb, obj, "method_name", 1, new_ary);
-    mrb_ary_pop(mrb, new_ary); // Pops the last element of the array. In this case 60.
-    mrb_funcall(mrb, obj, "pop_ary", 1, new_ary); // Calls the method again to show the results.
-    fclose(fp);
-    mrb_close(mrb);
-	  return 0;
+{
+  mrb_value new_ary; // Declare variable.
+  mrb_int random_value1 = 70; // Initialize variable
+  mrb_int random_value2 = 60; // Initialize variable
+  mrb_state *mrb = mrb_open();
+  if (!mrb) { /* handle error */ }
+  FILE *fp = fopen("test.rb","r");
+  new_ary = mrb_ary_new(mrb); // Initialize ruby array.
+  /* Pushes the fixnum value from random_value1 to the new_ary instance. */
+  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value1)); 
+  /* Pushes the fixnum value from random_value2 to the new_ary instance. */
+  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value2));
+  mrb_value obj = mrb_load_file(mrb,fp);
+  mrb_funcall(mrb, obj, "method_name", 1, new_ary);
+  mrb_ary_pop(mrb, new_ary); // Pops the last element of the array. In this case 60.
+  mrb_funcall(mrb, obj, "pop_ary", 1, new_ary); // Calls the method again to show the results.
+  fclose(fp);
+  mrb_close(mrb);
+  return 0;
 }
 ```
 test.rb
 ```Ruby
 class Example_Class
-	def method_name(a)
-		puts a
-		puts a.class
-	end
-	def pop_ary(a)
-		puts a
-	end
+  def method_name(a)
+    puts a
+    puts a.class
+  end
+  def pop_ary(a)
+    puts a
+  end
 end
 Example_Class.new
 ```
@@ -158,35 +157,35 @@ In this example we read from a Ruby file inside C. The Ruby code will print what
 #include "mruby/compile.h"
 
 int main(int argc, char *argv[])
-{	
-    mrb_value ary_ref; // Declare variable.
-	  mrb_value new_ary; // Declare variable.
-	  mrb_int random_value1 = 70; // Initialize variable
-	  mrb_int random_value2 = 60; // Initialize variable
-	  mrb_state *mrb = mrb_open();
-    if (!mrb) { /* handle error */ }
-    FILE *fp = fopen("test.rb","r");
-	  new_ary = mrb_ary_new(mrb); // Initialize ruby array.
-	  /* Pushes the fixnum value from random_value1 to the new_ary instance. */
-	  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value1)); 
-	  /* Pushes the fixnum value from random_value2 to the new_ary instance. */
-	  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value2));
-	  ary_ref = mrb_ary_ref(mrb, new_ary, 1); // Gets the value of new_ary's second element at index 1. 
-    mrb_value obj = mrb_load_file(mrb,fp);
-    /* Passing the value from ary_ref to the method method_name.*/
-    mrb_funcall(mrb, obj, "method_name", 1, ary_ref);
-    fclose(fp);
-    mrb_close(mrb);
-	  return 0;
+{
+  mrb_value ary_ref; // Declare variable.
+  mrb_value new_ary; // Declare variable.
+  mrb_int random_value1 = 70; // Initialize variable
+  mrb_int random_value2 = 60; // Initialize variable
+  mrb_state *mrb = mrb_open();
+  if (!mrb) { /* handle error */ }
+  FILE *fp = fopen("test.rb","r");
+  new_ary = mrb_ary_new(mrb); // Initialize ruby array.
+  /* Pushes the fixnum value from random_value1 to the new_ary instance. */
+  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value1)); 
+  /* Pushes the fixnum value from random_value2 to the new_ary instance. */
+  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value2));
+  ary_ref = mrb_ary_ref(mrb, new_ary, 1); // Gets the value of new_ary's second element at index 1. 
+  mrb_value obj = mrb_load_file(mrb,fp);
+  /* Passing the value from ary_ref to the method method_name.*/
+  mrb_funcall(mrb, obj, "method_name", 1, ary_ref);
+  fclose(fp);
+  mrb_close(mrb);
+  return 0;
 }
 ```
 test.rb
 ```Ruby
 class Example_Class
-	def method_name(a)
-		puts a
-		puts a.class
-	end
+  def method_name(a)
+    puts a
+    puts a.class
+  end
 end
 Example_Class.new
 ```
@@ -211,36 +210,36 @@ In this example we read from a Ruby file inside C. The Ruby code will print what
 #include "mruby/compile.h"
 
 int main(int argc, char *argv[])
-{	
-	  mrb_value new_ary;
-	  mrb_value ary_obj;
-	  mrb_int random_value1 = 70;
-	  mrb_int random_value2 = 60;
-	  mrb_state *mrb = mrb_open();
-    if (!mrb) { /* handle error */ }
-    FILE *fp = fopen("test.rb","r");
-	  new_ary = mrb_ary_new(mrb);
-	  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value1));
-	  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value2));
-	  /* Sets the fixnum value of 7 to the second index of the array.*/
-	  mrb_ary_set(mrb, new_ary, 2, mrb_fixnum_value(7));
-    mrb_value obj = mrb_load_file(mrb,fp);
-    mrb_funcall(mrb, obj, "before_after", 1, new_ary);
-    fclose(fp);
-    mrb_close(mrb);
-	  return 0;
+{
+  mrb_value new_ary;
+  mrb_value ary_obj;
+  mrb_int random_value1 = 70;
+  mrb_int random_value2 = 60;
+  mrb_state *mrb = mrb_open();
+  if (!mrb) { /* handle error */ }
+  FILE *fp = fopen("test.rb","r");
+  new_ary = mrb_ary_new(mrb);
+  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value1));
+  mrb_ary_push(mrb, new_ary, mrb_fixnum_value(random_value2));
+  /* Sets the fixnum value of 7 to the second index of the array.*/
+  mrb_ary_set(mrb, new_ary, 2, mrb_fixnum_value(7));
+  mrb_value obj = mrb_load_file(mrb,fp);
+  mrb_funcall(mrb, obj, "before_after", 1, new_ary);
+  fclose(fp);
+  mrb_close(mrb);
+  return 0;
 }
 ```
 test.rb
 ```Ruby
 class Example_Class
-	def method_name(a)
-		puts a
-		puts a.class
-	end
-	def before_after(a)
-		puts a
-	end
+  def method_name(a)
+    puts a
+    puts a.class
+  end
+  def before_after(a)
+    puts a
+  end
 end
 Example_Class.new
 ```
