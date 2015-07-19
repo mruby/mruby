@@ -38,10 +38,10 @@ main(void)
 test.rb
 ```Ruby
 class My_Class
-	def method_name(s)
-		puts s
-		puts s.class
-	end
+  def method_name(s)
+    puts s
+    puts s.class
+  end
 end
 a = My_Class.new
 ```
@@ -86,10 +86,10 @@ main(void)
 test.rb
 ```Ruby
 class My_Class
-	def method_name(s)
-		puts s
-		puts s.class
-	end
+  def method_name(s)
+    puts s
+    puts s.class
+  end
 end
 a = My_Class.new
 ```
@@ -134,10 +134,10 @@ main(void)
 test.rb
 ```Ruby
 class My_Class
-	def method_name(s)
-		puts s
-		puts s.class
-	end
+  def method_name(s)
+    puts s
+    puts s.class
+  end
 end
 a = My_Class.new
 ```
@@ -181,10 +181,10 @@ main(void)
 test.rb
 ```Ruby
 class My_Class
-	def method_name(s)
-		puts s
-		puts s.class
-	end
+  def method_name(s)
+    puts s
+    puts s.class
+  end
 end
 a = My_Class.new
 ```
@@ -229,10 +229,10 @@ main(void)
 test.rb
 ```Ruby
 class My_Class
-	def method_name(s)
-		puts s
-		puts s.class
-	end
+  def method_name(s)
+    puts s
+    puts s.class
+  end
 end
 a = My_Class.new
 ```
