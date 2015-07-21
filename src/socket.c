@@ -255,7 +255,7 @@ mrb_basicsocket_getsockname(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
 { 
-  char opt[4];
+  char opt[8];
   int s;
   mrb_int family, level, optname;
   mrb_value c, data;
@@ -268,7 +268,7 @@ mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
     mrb_sys_fail(mrb, "getsockopt");
   c = mrb_const_get(mrb, mrb_obj_value(mrb_class_get(mrb, "Socket")), mrb_intern_lit(mrb, "Option"));
   family = socket_family(s);
-  data = mrb_str_new(mrb, opt, sizeof(int));
+  data = mrb_str_new(mrb, opt, optlen);
   return mrb_funcall(mrb, c, "new", 4, mrb_fixnum_value(family), mrb_fixnum_value(level), mrb_fixnum_value(optname), data);
 }
 
@@ -659,7 +659,7 @@ static mrb_value
 mrb_win32_basicsocket_close(mrb_state *mrb, mrb_value self)
 {
   if (closesocket(socket_fd(mrb, self)) != NO_ERROR)
-    mrb_sys_fail(mrb, "close");
+    mrb_raise(mrb, E_SOCKET_ERROR, "closesocket unsuccessful");
   return mrb_nil_value();
 }
 
@@ -674,7 +674,7 @@ mrb_win32_basicsocket_write(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "S", &str);
   n = send(sd, RSTRING_PTR(str), RSTRING_LEN(str), 0);
   if (n == SOCKET_ERROR)
-    mrb_sys_fail(mrb, "write");
+    mrb_sys_fail(mrb, "send");
   return mrb_fixnum_value(n);
 }
 
