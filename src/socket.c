@@ -582,7 +582,7 @@ static mrb_value
 mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
 {
 #ifdef _WIN32
-  mrb_sys_fail(mrb, "sockaddr_un unsupported on Windows");
+  mrb_raise(mrb, E_NOTIMP_ERROR, "sockaddr_un unsupported on Windows");
   return mrb_nil_value();
 #else
   struct sockaddr_un *sunp;
@@ -606,7 +606,7 @@ static mrb_value
 mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
 {
 #ifdef _WIN32
-  mrb_sys_fail(mrb, "socketpair unsupported on Windows");
+  mrb_raise(mrb, E_NOTIMP_ERROR, "socketpair unsupported on Windows");
   return mrb_nil_value();
 #else
   mrb_value ary;
@@ -659,7 +659,7 @@ static mrb_value
 mrb_win32_basicsocket_close(mrb_state *mrb, mrb_value self)
 {
   if (closesocket(socket_fd(mrb, self)) != NO_ERROR)
-    mrb_sys_fail(mrb, "closesocket");
+    mrb_sys_fail(mrb, "close");
   return mrb_nil_value();
 }
 
@@ -691,7 +691,7 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   int result;
   result = WSAStartup(MAKEWORD(2,2), &wsaData);
   if (result != NO_ERROR)
-    mrb_sys_fail(mrb, "WSAStartup");
+    mrb_raise(mrb, E_RUNTIME_ERROR, "WSAStartup failed");
 #else
   struct RClass *usock;
 #endif
