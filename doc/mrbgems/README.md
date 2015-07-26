@@ -198,16 +198,20 @@ end
 In case your GEM has more complex build requirements you can use
 the following options additionally inside of your GEM specification:
 
-* `spec.cflags` (C compiler flags)
-* `spec.mruby_cflags` (global C compiler flags for everything)
-* `spec.mruby_ldflags` (global linker flags for everything)
-* `spec.mruby_libs` (global libraries for everything)
-* `spec.mruby_includes` (global includes for everything)
+* `spec.cc.flags` (C compiler flags)
+* `spec.cc.defines` (C compiler defines)
+* `spec.cc.include_paths` (C compiler include paths)
+* `spec.linker.flags` (Linker flags)
+* `spec.linker.libraries` (Linker libraries)
+* `spec.linker.library_paths` (Linker additional library path)
+* `spec.bins` (Generate binary file)
 * `spec.rbfiles` (Ruby files to compile)
 * `spec.objs` (Object files to compile)
 * `spec.test_rbfiles` (Ruby test files for integration into mrbtest)
 * `spec.test_objs` (Object test files for integration into mrbtest)
 * `spec.test_preload` (Initialization files for mrbtest)
+
+You also can use `spec.mruby.cc` and `spec.mruby.linker` to add extra global parameters for compiler and linker.
 
 ### include_paths and dependency
 
