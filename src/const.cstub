@@ -340,6 +340,9 @@
 #ifdef SO_LINGER
   define_const(SO_LINGER);
 #endif
+#ifdef SO_NOSIGPIPE
+  define_const(SO_NOSIGPIPE);
+#endif
 #ifdef SO_OOBINLINE
   define_const(SO_OOBINLINE);
 #endif
