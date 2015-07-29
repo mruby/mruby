@@ -2154,6 +2154,7 @@ primary         : literal
                       $$ = new_lambda(p, $3, $5);
                       local_unnest(p);
                       p->cmdarg_stack = $<stack>4;
+                      CMDARG_LEXPOP();
                     }
                 | keyword_if expr_value then
                   compstmt
