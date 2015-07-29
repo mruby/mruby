@@ -59,7 +59,7 @@ module MRuby
           git.run_pull mgem_list_dir, mgem_list_url if $pull_gems
         else
           FileUtils.mkdir_p mgem_list_dir
-          git.run_clone mgem_list_dir, mgem_list_url
+          git.run_clone mgem_list_dir, mgem_list_url, "--depth 1"
         end
 
         require 'yaml'
