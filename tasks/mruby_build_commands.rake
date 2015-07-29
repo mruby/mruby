@@ -92,6 +92,8 @@ module MRuby
 
     def define_rules(build_dir, source_dir='')
       @out_ext = build.exts.object
+      gemrake = File.join(source_dir, "mrbgem.rake")
+      rakedep = File.exist?(gemrake) ? [ gemrake ] : []
 
       if build_dir.include? "mrbgems/"
         generated_file_matcher = Regexp.new("^#{Regexp.escape build_dir}/(.*)#{Regexp.escape out_ext}$")
@@ -104,7 +106,7 @@ module MRuby
             file.sub(generated_file_matcher, "#{source_dir}/\\1#{ext}")
           },
           proc { |file|
-            get_dependencies(file)
+            get_dependencies(file) + rakedep
           }
         ] do |t|
           run t.name, t.prerequisites.first
@@ -115,7 +117,7 @@ module MRuby
             file.sub(generated_file_matcher, "#{build_dir}/\\1#{ext}")
           },
           proc { |file|
-            get_dependencies(file)
+            get_dependencies(file) + rakedep
           }
         ] do |t|
           run t.name, t.prerequisites.first
