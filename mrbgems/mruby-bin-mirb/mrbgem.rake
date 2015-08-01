@@ -20,6 +20,9 @@ MRuby::Gem::Specification.new('mruby-bin-mirb') do |spec|
       spec.linker.libraries << 'edit'
     else
       spec.linker.libraries << 'readline'
+      if spec.build.cc.search_header_path 'curses.h'
+        spec.linker.libraries << 'ncurses'
+      end
     end
   elsif spec.build.cc.search_header_path 'linenoise.h'
     spec.cc.defines << "ENABLE_LINENOISE"
