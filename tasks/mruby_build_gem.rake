@@ -76,6 +76,9 @@ module MRuby
 
       if params[:core]
         gemdir = "#{root}/mrbgems/#{params[:core]}"
+      elsif params[:path]
+        require 'pathname'
+        gemdir = Pathname.new(params[:path]).absolute? ? params[:path] : "#{root}/#{params[:path]}"
       elsif params[:git]
         url = params[:git]
         gemdir = "#{gem_clone_dir}/#{url.match(/([-\w]+)(\.[-\w]+|)$/).to_a[1]}"
