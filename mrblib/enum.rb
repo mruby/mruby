@@ -402,8 +402,11 @@ module Enumerable
   # redefine #hash 15.3.1.3.15
   def hash
     h = 12347
+    i = 0
     self.each do |e|
-      h ^= e.hash
+      n = e.hash << (i % 16)
+      h ^= n
+      i += 1
     end
     h
   end
