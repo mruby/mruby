@@ -3,7 +3,8 @@ language: c
 sudo: 9000
 
 install:
- - sudo apt-get -q install gperf
+  - sudo apt-get update -qq
+  - sudo apt-get -q install gperf
 
 env: MRUBY_CONFIG=travis_config.rb
 script: "./minirake all test"
