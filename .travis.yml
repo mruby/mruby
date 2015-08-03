@@ -1,6 +1,8 @@
 language: c
 
-sudo: 9000
+matrix:
+  include:
+    - sudo: 9000
 
 install:
   - sudo apt-get update -qq
