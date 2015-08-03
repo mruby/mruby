@@ -1,4 +1,6 @@
-# no installation...
+language: c
+
+sudo: 9000
 
 install:
  - sudo apt-get -q install gperf
