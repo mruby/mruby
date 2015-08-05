@@ -13,6 +13,22 @@ assert('String#getbyte') do
   assert_equal bytes2[0], str2.getbyte(0)
 end
 
+assert('String#setbyte') do
+  str1 = "hello"
+  h = "H".getbyte(0)
+  str1.setbyte(0, h)
+  assert_equal(h, str1.getbyte(0))
+  assert_equal("Hello", str1)
+end
+
+assert('String#byteslice') do
+  str1 = "hello"
+  assert_equal("e", str1.byteslice(1))
+  assert_equal("o", str1.byteslice(-1))
+  assert_equal("ell", str1.byteslice(1..3))
+  assert_equal("el", str1.byteslice(1...3))
+end
+
 assert('String#dump') do
   ("\1" * 100).dump     # should not raise an exception - regress #1210
   "\0".inspect == "\"\\000\"" and

@@ -3,6 +3,7 @@
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/string.h"
+#include "mruby/range.h"
 
 static mrb_value
 mrb_str_getbyte(mrb_state *mrb, mrb_value str)
@@ -16,6 +17,59 @@ mrb_str_getbyte(mrb_state *mrb, mrb_value str)
     return mrb_nil_value();
 
   return mrb_fixnum_value((unsigned char)RSTRING_PTR(str)[pos]);
+}
+
+static mrb_value
+mrb_str_setbyte(mrb_state *mrb, mrb_value str)
+{
+  mrb_int pos, byte;
+  long len = RSTRING_LEN(str);
+
+  mrb_get_args(mrb, "ii", &pos, &byte);
+
+  if (pos < -len || len <= pos)
+    mrb_raisef(mrb, E_INDEX_ERROR, "index %S is out of array", mrb_fixnum_value(pos));
+  if (pos < 0)
+    pos += len;
+
+  mrb_str_modify(mrb, mrb_str_ptr(str));
+  byte &= 0xff;
+  RSTRING_PTR(str)[pos] = byte;
+  return mrb_fixnum_value((unsigned char)byte);
+}
+
+static mrb_value
+mrb_str_byteslice(mrb_state *mrb, mrb_value str)
+{
+  mrb_value a1;
+  mrb_int len;
+  int argc;
+
+  argc = mrb_get_args(mrb, "o|i", &a1, &len);
+  if (argc == 2) {
+    return mrb_str_substr(mrb, str, mrb_fixnum(a1), len);
+  }
+  switch (mrb_type(a1)) {
+  case MRB_TT_RANGE:
+    {
+      mrb_int beg;
+
+      len = RSTRING_LEN(str);
+      if (mrb_range_beg_len(mrb, a1, &beg, &len, len)) {
+        return mrb_str_substr(mrb, str, beg, len);
+      }
+      return mrb_nil_value();
+    }
+  case MRB_TT_FLOAT:
+    a1 = mrb_fixnum_value((mrb_int)mrb_float(a1));
+    /* fall through */
+  case MRB_TT_FIXNUM:
+    return mrb_str_substr(mrb, str, mrb_fixnum(a1), 1);
+  default:
+    mrb_raise(mrb, E_TYPE_ERROR, "wrong type of argument");
+  }
+  /* not reached */
+  return mrb_nil_value();
 }
 
 /*
@@ -375,6 +429,8 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 
   mrb_define_method(mrb, s, "dump",            mrb_str_dump,            MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "getbyte",         mrb_str_getbyte,         MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, s, "setbyte",         mrb_str_setbyte,         MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, s, "byteslice",       mrb_str_byteslice,       MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_method(mrb, s, "swapcase!",       mrb_str_swapcase_bang,   MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "swapcase",        mrb_str_swapcase,        MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "concat",          mrb_str_concat2,         MRB_ARGS_REQ(1));
