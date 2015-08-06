@@ -211,9 +211,15 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
     n = sl;
   } else {
     if (flags & PACK_FLAG_LITTLEENDIAN) {
-      ul = src[3] * 256*256*256 + (src[2] *256*256) + (src[1] * 256) + src[0];
+      ul = (unsigned long)src[3] * 256*256*256;
+      ul += (unsigned long)src[2] *256*256;
+      ul += (unsigned long)src[1] *256;
+      ul += (unsigned long)src[0];
     } else {
-      ul = src[0] * 256*256*256 + (src[1] *256*256) + (src[2] * 256) + src[3];
+      ul = (unsigned long)src[0] * 256*256*256;
+      ul += (unsigned long)src[1] *256*256;
+      ul += (unsigned long)src[2] *256;
+      ul += (unsigned long)src[3];
     }
     if (!POSFIXABLE(ul)) {
       snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %lu", ul);
