@@ -1,17 +1,20 @@
 mruby-pack (pack / unpack)
 =========
 
-## install by mrbgems
-```bash
-git clone git://github.com/iij/mruby-pack.git
-cp -pr mruby-pack ${MRUBY_ROOT}/mrbgems/g/.
-echo mruby-pack >> ${MRUBY_ROOT}/mrbgems/GEMS.active
-cd ${MRUBY_ROOT}
-rake ENABLE_GEMS="true"
-./bin/mruby ${MRUBY_ROOT}/mrbgems/g/mruby-pack/example/sample.rb
+mruby-pack provides `Array#pack` and `String#unpack` for mruby.
+
+
+## Installation
+Add the line below into your `build_config.rb`:
+
+```
+  conf.gem :github => 'iij/mruby-pack'
 ```
 
-## supported template string
+There is no dependency on other mrbgems.
+
+
+## Supported template string
  - A : arbitrary binary string (space padded, count is width)
  - a : arbitrary binary string (null padded, count is width)
  - C : 8-bit unsigned (unsigned char)
