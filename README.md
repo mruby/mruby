@@ -31,6 +31,8 @@ rake ENABLE_GEMS="true"
  - m : base64 encoded string (see RFC 2045, count is width)
  - N : 32-bit unsigned, network (big-endian) byte order
  - n : 16-bit unsigned, network (big-endian) byte order
+ - Q : 64-bit unsigned, native endian (`uint64_t`)
+ - q : 64-bit signed, native endian (`int64_t`)
  - S : 16-bit unsigned, native endian (`uint16_t`)
  - s : 16-bit signed, native endian (`int16_t`)
  - V : 32-bit unsigned, VAX (little-endian) byte order

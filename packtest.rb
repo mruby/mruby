@@ -60,6 +60,14 @@ pptest [16909060], "\x01\x02\x03\x04", "L>"
 
 packtest [-1], "\xff\xff\xff\xff", "L<"
 
+pptest [1000000000], "\x00\x00\x00\x00\x3b\x9a\xca\x00", "q>"
+pptest [-1000000000], "\xff\xff\xff\xff\xc4\x65\x36\x00", "q>"
+
+if (2**33).is_a? Fixnum
+  pptest [81985529216486895],    "\x01\x23\x45\x67\x89\xab\xcd\xef", "q>"
+  pptest [-1167088121787636991], "\x01\x23\x45\x67\x89\xab\xcd\xef", "q<"
+end
+
 pptest [16909060], "\x01\x02\x03\x04", "N"
 pptest [258], "\x01\x02", "n"
 pptest [32769], "\x80\x01", "n"

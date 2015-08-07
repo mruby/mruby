@@ -25,7 +25,7 @@ enum {
   PACK_DIR_CHAR,	/* C */
   PACK_DIR_SHORT,	/* S */
   PACK_DIR_LONG,	/* L */
-  //PACK_DIR_QUAD,	/* Q */
+  PACK_DIR_QUAD,	/* Q */
   //PACK_DIR_INT,	/* i */
   //PACK_DIR_VAX,
   //PACK_DIR_UTF8,	/* U */
@@ -229,6 +229,72 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   }
   mrb_ary_push(mrb, ary, mrb_fixnum_value(n));
   return 4;
+}
+
+static int
+pack_q(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
+{
+  unsigned long long n;
+  str = str_len_ensure(mrb, str, sidx + 8);
+  n = mrb_fixnum(o);
+  if (flags & PACK_FLAG_LITTLEENDIAN) {
+    RSTRING_PTR(str)[sidx+0] = n & 0xff;
+    RSTRING_PTR(str)[sidx+1] = n >> 8;
+    RSTRING_PTR(str)[sidx+2] = n >> 16;
+    RSTRING_PTR(str)[sidx+3] = n >> 24;
+    RSTRING_PTR(str)[sidx+4] = n >> 32;
+    RSTRING_PTR(str)[sidx+5] = n >> 40;
+    RSTRING_PTR(str)[sidx+6] = n >> 48;
+    RSTRING_PTR(str)[sidx+7] = n >> 56;
+  } else {
+    RSTRING_PTR(str)[sidx+0] = n >> 56;
+    RSTRING_PTR(str)[sidx+1] = n >> 48;
+    RSTRING_PTR(str)[sidx+2] = n >> 40;
+    RSTRING_PTR(str)[sidx+3] = n >> 32;
+    RSTRING_PTR(str)[sidx+4] = n >> 24;
+    RSTRING_PTR(str)[sidx+5] = n >> 16;
+    RSTRING_PTR(str)[sidx+6] = n >> 8;
+    RSTRING_PTR(str)[sidx+7] = n & 0xff;
+  }
+  return 8;
+}
+
+static int
+unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
+{
+  char msg[60];
+  uint64_t ull;
+  int i, pos, step;
+  mrb_int n;
+
+  if (flags & PACK_FLAG_LITTLEENDIAN) {
+    pos  = 7;
+    step = -1;
+  } else {
+    pos  = 0;
+    step = 1;
+  }
+  ull = 0;
+  for (i = 0; i < 8; i++) {
+    ull = ull * 256 + (uint64_t)src[pos];
+    pos += step;
+  }
+  if (flags & PACK_FLAG_SIGNED) {
+    int64_t sll = ull;
+    if (!FIXABLE(sll)) {
+      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %lld", (long long)sll);
+      mrb_raise(mrb, E_RANGE_ERROR, msg);
+    }
+    n = sll;
+  } else {
+    if (!POSFIXABLE(ull)) {
+      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %llu", (unsigned long long)ull);
+      mrb_raise(mrb, E_RANGE_ERROR, msg);
+    }
+    n = ull;
+  }
+  mrb_ary_push(mrb, ary, mrb_fixnum_value(n));
+  return 8;
 }
 
 static int
@@ -775,6 +841,17 @@ alias:
     size = 2;
     flags |= PACK_FLAG_GT;
     break;
+  case 'Q':
+    dir = PACK_DIR_QUAD;
+    type = PACK_TYPE_INTEGER;
+    size = 8;
+    break;
+  case 'q':
+    dir = PACK_DIR_QUAD;
+    type = PACK_TYPE_INTEGER;
+    size = 8;
+    flags |= PACK_FLAG_SIGNED;
+    break;
   case 'S':
     dir = PACK_DIR_SHORT;
     type = PACK_TYPE_INTEGER;
@@ -821,9 +898,9 @@ alias:
     } else if (ch == '*')  {
       count = -1;
     } else if (ch == '_' || ch == '!' || ch == '<' || ch == '>') {
-      if (strchr("sSiIlL", t) == NULL) {
+      if (strchr("sSiIlLqQ", t) == NULL) {
         char ch_str = ch;
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%S' allowed only after types sSiIlL", mrb_str_new(mrb, &ch_str, 1));
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%S' allowed only after types sSiIlLqQ", mrb_str_new(mrb, &ch_str, 1));
       }
       if (ch == '_' || ch == '!') {
         flags |= PACK_FLAG_s;
@@ -900,6 +977,9 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
         break;
       case PACK_DIR_LONG:
         ridx += pack_l(mrb, o, result, ridx, flags);
+        break;
+      case PACK_DIR_QUAD:
+        ridx += pack_q(mrb, o, result, ridx, flags);
         break;
       case PACK_DIR_BASE64:
         ridx += pack_m(mrb, o, result, ridx, count, flags);
@@ -986,6 +1066,9 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
         break;
       case PACK_DIR_LONG:
         srcidx += unpack_l(mrb, sptr, srclen - srcidx, result, flags);
+        break;
+      case PACK_DIR_QUAD:
+        srcidx += unpack_q(mrb, sptr, srclen - srcidx, result, flags);
         break;
       case PACK_DIR_BASE64:
         srcidx += unpack_m(mrb, sptr, srclen - srcidx, result, flags);
