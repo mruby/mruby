@@ -192,37 +192,30 @@ static int
 unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
   char msg[60];
-  unsigned long ul;
-  long sl;
+  uint32_t ul;
   mrb_int n;
 
+  if (flags & PACK_FLAG_LITTLEENDIAN) {
+    ul = (uint32_t)src[3] * 256*256*256;
+    ul += (uint32_t)src[2] *256*256;
+    ul += (uint32_t)src[1] *256;
+    ul += (uint32_t)src[0];
+  } else {
+    ul = (uint32_t)src[0] * 256*256*256;
+    ul += (uint32_t)src[1] *256*256;
+    ul += (uint32_t)src[2] *256;
+    ul += (uint32_t)src[3];
+  }
   if (flags & PACK_FLAG_SIGNED) {
-    if (flags & PACK_FLAG_LITTLEENDIAN) {
-      sl = (signed long)(signed char)src[3] * 256*256*256;
-      sl += (src[2] *256*256) + (src[1] * 256) + src[0];
-    } else {
-      sl = (signed long)(signed char)src[0] * 256*256*256;
-      sl += (src[1] *256*256) + (src[2] * 256) + src[3];
-    }
+    int32_t sl = ul;
     if (!FIXABLE(sl)) {
-      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %ld", sl);
+      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %ld", (long)sl);
       mrb_raise(mrb, E_RANGE_ERROR, msg);
     }
     n = sl;
   } else {
-    if (flags & PACK_FLAG_LITTLEENDIAN) {
-      ul = (unsigned long)src[3] * 256*256*256;
-      ul += (unsigned long)src[2] *256*256;
-      ul += (unsigned long)src[1] *256;
-      ul += (unsigned long)src[0];
-    } else {
-      ul = (unsigned long)src[0] * 256*256*256;
-      ul += (unsigned long)src[1] *256*256;
-      ul += (unsigned long)src[2] *256;
-      ul += (unsigned long)src[3];
-    }
     if (!POSFIXABLE(ul)) {
-      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %lu", ul);
+      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %lu", (unsigned long)ul);
       mrb_raise(mrb, E_RANGE_ERROR, msg);
     }
     n = ul;
