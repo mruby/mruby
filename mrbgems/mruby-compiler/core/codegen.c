@@ -188,6 +188,11 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       if (val) break;
       switch (c0) {
       case OP_MOVE:
+        if (GETARG_A(i) == GETARG_A(i0)) {
+          /* skip overriden OP_MOVE */
+          s->pc--;
+          return genop_peep(s, i, val);
+        }
         if (GETARG_B(i) == GETARG_A(i0) && GETARG_A(i) == GETARG_B(i0)) {
           /* skip swapping OP_MOVE */
           return 0;
