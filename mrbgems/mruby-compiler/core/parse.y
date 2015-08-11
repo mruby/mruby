@@ -2942,7 +2942,7 @@ backref         : tNTH_REF
                 | tBACK_REF
                 ;
 
-superclass      : term
+superclass      : /* term */
                     {
                       $$ = 0;
                     }
@@ -2954,12 +2954,12 @@ superclass      : term
                   expr_value term
                     {
                       $$ = $3;
-                    }
+                    } /* 
                 | error term
                     {
                       yyerrok;
                       $$ = 0;
-                    }
+                    } */
                 ;
 
 f_arglist       : '(' f_args rparen
