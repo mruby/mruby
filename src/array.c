@@ -386,12 +386,11 @@ static mrb_value
 mrb_ary_reverse(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self), *b;
+  mrb_value *p1, *p2, *e;
 
   if (a->len <= 1) return self;
 
   b = ary_new_capa(mrb, a->len);
-  mrb_value *p1, *p2, *e;
-
   p1 = a->ptr;
   e  = p1 + a->len;
   p2 = b->ptr + a->len - 1;
