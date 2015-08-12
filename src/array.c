@@ -19,7 +19,6 @@
 static inline mrb_value
 ary_elt(mrb_value ary, mrb_int offset)
 {
-  if (RARRAY_LEN(ary) == 0) return mrb_nil_value();
   if (offset < 0 || RARRAY_LEN(ary) <= offset) {
     return mrb_nil_value();
   }
