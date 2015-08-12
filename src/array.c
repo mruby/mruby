@@ -385,11 +385,11 @@ mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_ary_reverse(mrb_state *mrb, mrb_value self)
 {
-  struct RArray *a = mrb_ary_ptr(self);
+  struct RArray *a = mrb_ary_ptr(self), *b;
 
   if (a->len <= 1) return self;
 
-  struct RArray *b = ary_new_capa(mrb, a->len);
+  b = ary_new_capa(mrb, a->len);
   mrb_value *p1, *p2, *e;
 
   p1 = a->ptr;
