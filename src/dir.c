@@ -216,7 +216,7 @@ mrb_dir_rewind(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_dir_seek(mrb_state *mrb, mrb_value self)
 {
-  #if defined(_WIN32) || (_WIN64)
+  #if defined(_WIN32) || defined(_WIN64) || defined(__android__)
   mrb_raise(mrb, E_RUNTIME_ERROR, "dirseek() unreliable on Win platforms");
   return self;
   #else
@@ -237,7 +237,7 @@ mrb_dir_seek(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_dir_tell(mrb_state *mrb, mrb_value self)
 {
-  #if defined(_WIN32) || (_WIN64)
+  #if defined(_WIN32) || defined(_WIN64) || defined(__android__)
   mrb_raise(mrb, E_RUNTIME_ERROR, "dirtell() unreliable on Win platforms");
   return mrb_fixnum_value(0);
   #else
