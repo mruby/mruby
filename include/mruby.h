@@ -435,7 +435,7 @@ MRB_API void mrb_state_atexit(mrb_state *mrb, mrb_atexit_func func);
 MRB_API void mrb_show_version(mrb_state *mrb);
 MRB_API void mrb_show_copyright(mrb_state *mrb);
 
-#ifdef MRB_DEBUG
+#ifdef ENABLE_DEBUG
 #include <assert.h>
 #define mrb_assert(p) assert(p)
 #define mrb_assert_int_fit(t1,n,t2,max) assert((n)>=0 && ((sizeof(n)<=sizeof(t2))||(n<=(t1)(max))))
