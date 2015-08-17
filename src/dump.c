@@ -16,7 +16,7 @@
 #define FLAG_BYTEORDER_NONATIVE 0
 
 #ifdef MRB_USE_FLOAT
-#define MRB_FLOAT_FMT "%.9e"
+#define MRB_FLOAT_FMT "%.8e"
 #else
 #define MRB_FLOAT_FMT "%.16e"
 #endif
