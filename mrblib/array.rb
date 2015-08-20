@@ -16,7 +16,7 @@ class Array
     while idx < length and length <= self.length and length = self.length-1
       elm = self[idx += 1]
       unless elm
-        if elm == nil and length >= self.length
+        if elm.nil? and length >= self.length
           break
         end
       end
@@ -50,9 +50,7 @@ class Array
   def collect!(&block)
     return to_enum :collect! unless block_given?
 
-    self.each_index{|idx|
-      self[idx] = block.call(self[idx])
-    }
+    self.each_index { |idx| self[idx] = block.call(self[idx]) }
     self
   end
 
@@ -72,7 +70,7 @@ class Array
 
     self.clear
     if size > 0
-      self[size - 1] = nil  # allocate
+      self[size - 1] = nil # allocate
 
       idx = 0
       while idx < size
@@ -158,14 +156,11 @@ class Array
 
     len = self.size
     n = other.size
-    if len > n
-      len = n
-    end
+    len = n if len > n
     i = 0
     while i < len
       n = (self[i] <=> other[i])
-      return n if n == nil
-      return n if n != 0
+      return n if n.nil? || n != 0
       i += 1
     end
     len = self.size - other.size
@@ -185,7 +180,7 @@ class Array
       self.delete_at(i)
       ret = key
     end
-    if ret == nil && block
+    if ret.nil? && block
       block.call
     else
       ret
