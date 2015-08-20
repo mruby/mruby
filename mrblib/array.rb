@@ -180,20 +180,14 @@ class Array
       self.delete_at(i)
       ret = key
     end
-    if ret.nil? && block
-      block.call
-    else
-      ret
-    end
+    return block.call if ret.nil? && block
+    ret
   end
 
   # internal method to convert multi-value to single value
   def __svalue
-    if self.size < 2
-      self.first
-    else
-      self
-    end
+    return self.first if self.size < 2
+    self
   end
 end
 
