@@ -80,12 +80,8 @@ class String
   # ISO 15.2.10.5.19
   def gsub!(*args, &block)
     str = self.gsub(*args, &block)
-    if str != self
-      self.replace(str)
-      self
-    else
-      nil
-    end
+    return nil if str == self
+    self.replace(str)
   end
 
   ##
@@ -129,12 +125,8 @@ class String
   # ISO 15.2.10.5.37
   def sub!(*args, &block)
     str = self.sub(*args, &block)
-    if str != self
-      self.replace(str)
-      self
-    else
-      nil
-    end
+    return nil if str == self
+    self.replace(str)
   end
 
   ##
@@ -165,20 +157,16 @@ class String
   # Modify +self+ by replacing the content of +self+
   # at the position +pos+ with +value+.
   def []=(pos, value)
-    if pos < 0
-      pos += self.length
-    end
+    pos += self.length if pos < 0
     b = self[0, pos]
-    a = self[pos+1..-1]
+    a = self[pos + 1..-1]
     self.replace([b, value, a].join(''))
   end
 
   ##
   # ISO 15.2.10.5.3
   def =~(re)
-    if re.respond_to? :to_str
-      raise TypeError, "type mismatch: String given"
-    end
+    raise TypeError, "type mismatch: String given" if re.respond_to? :to_str
     re =~ self
   end
 
