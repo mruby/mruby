@@ -46,11 +46,12 @@
   #include <pwd.h>
 #endif
 
-#define FILE_SEPARATOR "/"
 #if defined(_WIN32) || defined(_WIN64)
   #define PATH_SEPARATOR ";"
+  #define FILE_SEPARATOR "\\"
 #else
   #define PATH_SEPARATOR ":"
+  #define FILE_SEPARATOR "/"
 #endif
 
 #ifndef LOCK_SH
