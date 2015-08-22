@@ -24,17 +24,9 @@ module Enumerable
   # ISO 15.3.2.2.1
   def all?(&block)
     if block
-      self.each{|*val|
-        unless block.call(*val)
-          return false
-        end
-      }
+      self.each{|*val| return false unless block.call(*val)}
     else
-      self.each{|*val|
-        unless val.__svalue
-          return false
-        end
-      }
+      self.each{|*val| return false unless val.__svalue}
     end
     true
   end
@@ -49,17 +41,9 @@ module Enumerable
   # ISO 15.3.2.2.2
   def any?(&block)
     if block
-      self.each{|*val|
-        if block.call(*val)
-          return true
-        end
-      }
+      self.each{|*val| return true if block.call(*val)}
     else
-      self.each{|*val|
-        if val.__svalue
-          return true
-        end
-      }
+      self.each{|*val| return true if val.__svalue}
     end
     false
   end
@@ -75,9 +59,7 @@ module Enumerable
     return to_enum :collect unless block
 
     ary = []
-    self.each{|*val|
-      ary.push(block.call(*val))
-    }
+    self.each{|*val| ary.push(block.call(*val))}
     ary
   end
 
@@ -183,9 +165,7 @@ module Enumerable
   # ISO 15.3.2.2.10
   def include?(obj)
     self.each{|*val|
-      if val.__svalue == obj
-        return true
-      end
+      return true if val.__svalue == obj
     }
     false
   end
