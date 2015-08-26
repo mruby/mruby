@@ -321,6 +321,7 @@ end
 
 assert('IO.popen') do
   io = IO.popen("ls")
+  assert_true io.close_on_exec?
   assert_equal Fixnum, io.pid.class
   ls = io.read
   assert_equal ls.class, String
@@ -362,28 +363,28 @@ assert('IO#fileno') do
   io.closed?
 end
 
-assert('IO#close_on_exec') do 
+assert('IO#close_on_exec') do
   fd = IO.sysopen $mrbtest_io_wfname, "w"
   io = IO.new fd, "w"
-  begin 
-    # IO.sysopen opens a file descripter without O_CLOEXEC flag.
-    assert_equal(false, io.close_on_exec?)
+  begin
+    # IO.sysopen opens a file descripter with O_CLOEXEC flag.
+    assert_true io.close_on_exec?
   rescue ScriptError
     skip "IO\#close_on_exec is not implemented."
   end
 
-  io.close_on_exec = true
-  assert_equal(true, io.close_on_exec?)
   io.close_on_exec = false
   assert_equal(false, io.close_on_exec?)
   io.close_on_exec = true
   assert_equal(true, io.close_on_exec?)
-  
+  io.close_on_exec = false
+  assert_equal(false, io.close_on_exec?)
+
   io.close
   io.closed?
 
   # # Use below when IO.pipe is implemented.
-  # begin 
+  # begin
   #   r, w = IO.pipe
   #   assert_equal(false, r.close_on_exec?)
   #   r.close_on_exec = true
