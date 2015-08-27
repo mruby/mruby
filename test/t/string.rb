@@ -542,3 +542,11 @@ assert('String#each_byte') do
 
   assert_equal bytes1, bytes2
 end
+
+assert('String#freeze') do
+  str = "hello"
+  str.freeze
+
+  assert_raise(RuntimeError) { str.upcase! }
+end
+
