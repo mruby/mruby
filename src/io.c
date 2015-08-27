@@ -128,9 +128,9 @@ mrb_io_flags_to_modenum(mrb_state *mrb, int flags)
 void
 mrb_fd_cloexec(mrb_state *mrb, int fd)
 {
+#if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
   int flags, flags2;
 
-#if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
   flags = fcntl(fd, F_GETFD);
   if (flags == -1) {
     mrb_sys_fail(mrb, "fcntl");
