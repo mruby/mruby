@@ -292,7 +292,8 @@ typedef struct mrb_state {
  * @return [struct RClass *] Reference to the newly defined class.
  * @see mrb_define_class_under
  */
-MRB_API struct RClass *mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super);
+MRB_API struct RClass *mrb_define_class_id(mrb_state*, mrb_sym, struct RClass*);
+// MRB_API struct RClass *mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super);
 
 /**
  * Defines a new module.
@@ -301,7 +302,8 @@ MRB_API struct RClass *mrb_define_class(mrb_state *mrb, const char *name, struct
  * @param [const char *] char* The name of the module.
  * @return [struct RClass *] Reference to the newly defined module.
  */
-MRB_API struct RClass *mrb_define_module(mrb_state *, const char*);
+MRB_API struct RClass *mrb_define_module_id(mrb_state*, mrb_sym);
+// MRB_API struct RClass *mrb_define_module(mrb_state *, const char*);
 MRB_API mrb_value mrb_singleton_class(mrb_state*, mrb_value);
 
 /**
@@ -355,7 +357,8 @@ MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
  * @param [mrb_func_t] func The function pointer to the method definition.
  * @param [mrb_aspec] aspec The method parameters declaration.
  */
-MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *name, mrb_func_t func, mrb_aspec aspec);
+MRB_API void mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec);
+// MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *name, mrb_func_t func, mrb_aspec aspec);
 
 /**
  * Defines a class method.
@@ -382,8 +385,18 @@ MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *n
  * @param [mrb_func_t] mrb_func_t The function pointer to the class method definition.
  * @param [mrb_aspec] mrb_aspec The method parameters declaration.
  */
-MRB_API void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
-MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
+MRB_API void mrb_define_class_method_id(mrb_state *, struct RClass *, mrb_sym , mrb_func_t, mrb_aspec);
+MRB_API void mrb_define_singleton_method_id(mrb_state*, struct RObject*, mrb_sym , mrb_func_t, mrb_aspec);
+// MRB_API void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
+// MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
+
+MRB_API void mrb_define_global_const_id(mrb_state *mrb, mrb_sym name, mrb_value val);
+
+/* deprecated methods. defined in mruby-symbol-ext mrbgem:
+MRB_API struct RClass *mrb_define_class(mrb_state *, const char*, struct RClass*);
+MRB_API struct RClass *mrb_define_module(mrb_state *, const char*);
+MRB_API void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
+*/
 
 /**
  *  Defines a module fuction.
@@ -410,7 +423,8 @@ MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char
  *  @param [mrb_func_t] mrb_func_t The function pointer to the module function definition.
  *  @param [mrb_aspec] mrb_aspec The method parameters declaration.
  */
-MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
+MRB_API void mrb_define_module_function_id(mrb_state*, struct RClass*, mrb_sym , mrb_func_t, mrb_aspec);
+// MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
 
 /**
  *  Defines a constant.
@@ -438,7 +452,8 @@ MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*,
  *  @param [const char *] name The name of the constant being defined.
  *  @param [mrb_value] mrb_value The value for the constant.
  */
-MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
+MRB_API void mrb_define_const_id(mrb_state*, struct RClass*, mrb_sym name, mrb_value);
+// MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 
 /**
  * Undefines a method.
@@ -488,7 +503,8 @@ MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_
  * @param [struct RClass*] RClass* A class the method will be undefined from.
  * @param [const char*] constchar* The name of the method to be undefined.
  */
-MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
+MRB_API void mrb_undef_method_id(mrb_state*, struct RClass*, mrb_sym );
+// MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 
 /**
  * Undefine a class method.
@@ -527,7 +543,8 @@ MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
  * @param [RClass*] RClass* A class the class method will be undefined from.
  * @param [constchar*] constchar* The name of the class method to be undefined.
  */
-MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
+MRB_API void mrb_undef_class_method_id(mrb_state*, struct RClass*, mrb_sym);
+// MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 
 /**
  * Initialize a new object instace of c class.
@@ -630,7 +647,8 @@ MRB_API struct RClass * mrb_module_new(mrb_state *mrb);
  * @param [const char *] name A string representing the name of the class.
  * @return [mrb_bool] A boolean value.
  */
-MRB_API mrb_bool mrb_class_defined(mrb_state *mrb, const char *name);
+MRB_API mrb_bool mrb_class_defined_id(mrb_state *mrb, mrb_sym sym);
+// MRB_API mrb_bool mrb_class_defined(mrb_state *mrb, const char *name);
 
 /**
  * Gets a class.
@@ -638,7 +656,8 @@ MRB_API mrb_bool mrb_class_defined(mrb_state *mrb, const char *name);
  * @param [const char *] name The name of the class.
  * @return [struct RClass *] A reference to the class.
 */
-MRB_API struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
+MRB_API struct RClass * mrb_class_get_id(mrb_state *mrb, mrb_sym name);
+// MRB_API struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
 
 /**
  * Gets a exception class.
@@ -646,7 +665,8 @@ MRB_API struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
  * @param [const char *] name The name of the class.
  * @return [struct RClass *] A reference to the class.
 */
-MRB_API struct RClass * mrb_exc_get(mrb_state *mrb, const char *name);
+MRB_API struct RClass * mrb_exc_get_id(mrb_state *mrb, mrb_sym);
+// MRB_API struct RClass * mrb_exc_get(mrb_state *mrb, const char *name);
 
 /**
  * Returns an mrb_bool. True if inner class was defined, and false if the inner class was not defined.
@@ -677,7 +697,8 @@ MRB_API struct RClass * mrb_exc_get(mrb_state *mrb, const char *name);
  * @param [const char *] name A string representing the name of the inner class.
  * @return [mrb_bool] A boolean value.
  */
-MRB_API mrb_bool mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, const char *name);
+MRB_API mrb_bool mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, mrb_sym);
+// MRB_API mrb_bool mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
 /**
  * Gets a child class.
@@ -686,7 +707,8 @@ MRB_API mrb_bool mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, c
  * @param [const char *] name The name of the class.
  * @return [struct RClass *] A reference to the class.
 */
-MRB_API struct RClass * mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
+MRB_API struct RClass * mrb_class_get_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name);
+// MRB_API struct RClass * mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
 /**
  * Gets a module.
@@ -694,7 +716,8 @@ MRB_API struct RClass * mrb_class_get_under(mrb_state *mrb, struct RClass *outer
  * @param [const char *] name The name of the module.
  * @return [struct RClass *] A reference to the module.
 */
-MRB_API struct RClass * mrb_module_get(mrb_state *mrb, const char *name);
+MRB_API struct RClass * mrb_module_get_id(mrb_state *mrb, mrb_sym name);
+// MRB_API struct RClass * mrb_module_get(mrb_state *mrb, const char *name);
 
 /**
  * Gets a module defined under another module.
@@ -703,7 +726,48 @@ MRB_API struct RClass * mrb_module_get(mrb_state *mrb, const char *name);
  * @param [const char *] name The name of the module.
  * @return [struct RClass *] A reference to the module.
 */
-MRB_API struct RClass * mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
+MRB_API struct RClass * mrb_module_get_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name);
+// MRB_API struct RClass * mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
+MRB_API struct RClass * mrb_define_class_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name, struct RClass *super);
+// MRB_API struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
+MRB_API struct RClass * mrb_define_module_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name);
+// MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
+
+#ifndef MRB_DISABLE_LITERAL_INTERN
+/* macros to wrap string literal with mrb_intern_lit */
+#define mrb_define_class(mrb, name, super) mrb_define_class_id(mrb, mrb_intern_lit(mrb, name), super)
+#define mrb_define_module(mrb, name) mrb_define_module_id(mrb, mrb_intern_lit(mrb, name))
+#define mrb_define_method(mrb, cls, name, f, aspec) \
+  mrb_define_method_id(mrb, cls, mrb_intern_lit(mrb, name), f, aspec)
+#define mrb_define_class_method(mrb, cls, name, f, aspec) \
+  mrb_define_class_method_id(mrb, cls, mrb_intern_lit(mrb, name), f, aspec)
+#define mrb_define_singleton_method(mrb, obj, name, f, aspec) \
+  mrb_define_singleton_method_id(mrb, obj, mrb_intern_lit(mrb, name), f, aspec)
+#define mrb_define_module_function(mrb, cls, name, f,  aspec) \
+  mrb_define_module_function_id(mrb, cls, mrb_intern_lit(mrb, name), f, aspec)
+#define mrb_define_const(mrb, cls, name, val) mrb_define_const_id(mrb, cls, mrb_intern_lit(mrb, name), val)
+#define mrb_define_global_const(mrb, name, val) mrb_define_global_const_id(mrb, mrb_intern_lit(mrb, name), val)
+#define mrb_undef_method(mrb, cls, name) mrb_undef_method_id(mrb, cls, mrb_intern_lit(mrb, name))
+#define mrb_undef_class_method(mrb, cls, name) mrb_undef_class_method_id(mrb, cls, mrb_intern_lit(mrb, name))
+#define mrb_class_defined(mrb, name) mrb_class_defined_id(mrb, mrb_intern_lit(mrb, name))
+#define mrb_class_get(mrb, name) mrb_class_get_id(mrb, mrb_intern_lit(mrb, name))
+#define mrb_class_get_under(mrb, cls, name) mrb_class_get_under_id(mrb, cls, mrb_intern_lit(mrb, name))
+#define mrb_module_get(mrb, name) mrb_module_get_id(mrb, mrb_intern_lit(mrb, name))
+#define mrb_module_get_under(mrb, cls, name) mrb_module_get_under_id(mrb, cls, mrb_intern_lit(mrb, name))
+#define mrb_define_class_under(mrb, cls, name, super) mrb_define_class_under_id(mrb, cls, mrb_intern_lit(mrb, name), super)
+#define mrb_define_module_under(mrb, cls, name) mrb_define_module_under_id(mrb, cls, mrb_intern_lit(mrb, name))
+#define mrb_exc_get(mrb, name) mrb_exc_get_id(mrb, mrb_intern_lit(mrb, name))
+#define mrb_check_convert_type(mrb, val, type, tname, method) mrb_check_convert_type_id(mrb, val, type, mrb_intern_lit(mrb, tname), mrb_intern_lit(mrb, method))
+#define mrb_convert_type(mrb, val, type, tname, method) mrb_convert_type_id(mrb, val, type, mrb_intern_lit(mrb, tname), mrb_intern_lit(mrb, method))
+#endif
+
+MRB_API void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
+MRB_API mrb_value mrb_singleton_class(mrb_state*, mrb_value);
+MRB_API mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv);
+#define mrb_class_new_instance(mrb,argc,argv,c) mrb_obj_new(mrb,c,argc,argv)
+MRB_API mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
+MRB_API struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
+MRB_API struct RClass * mrb_module_new(mrb_state *mrb);
 MRB_API mrb_value mrb_notimplement_m(mrb_state*, mrb_value);
 
 /**
@@ -716,7 +780,8 @@ MRB_API mrb_value mrb_notimplement_m(mrb_state*, mrb_value);
  * @return [mrb_value] The newly duplicated object.
  */
 MRB_API mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
-MRB_API mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
+MRB_API mrb_value mrb_check_to_integer_id(mrb_state *mrb, mrb_value val, mrb_sym);
+// MRB_API mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
 
 /**
  * Returns true if obj responds to the given method. If the method was defined for that
@@ -770,9 +835,11 @@ MRB_API mrb_bool mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mi
  * @return [struct RClass *] Reference to the newly defined class
  * @see mrb_define_class
  */
-MRB_API struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
+MRB_API struct RClass * mrb_define_class_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym, struct RClass *super);
+// MRB_API struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
 
-MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
+MRB_API struct RClass * mrb_define_module_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym);
+// MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
 /**
  * Function requires n arguments.
@@ -917,7 +984,11 @@ MRB_API mrb_value* mrb_get_argv(mrb_state *mrb);
  * @param [...] ... Variadic values(not type safe!).
  * @return [mrb_value] mrb_value mruby function value.
  */
-MRB_API mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, mrb_int,...);
+#ifndef MRB_DISABLE_LITERAL_INTERN
+#define mrb_funcall(mrb, self, sym, len, ...) \
+  mrb_funcall_id(mrb, self, mrb_intern_lit(mrb, sym), len, ## __VA_ARGS__)
+#endif
+MRB_API mrb_value mrb_funcall_id(mrb_state*, mrb_value, mrb_sym, mrb_int,...);
 /**
  * Call existing ruby functions. This is basically the type safe version of mrb_funcall.
  *
@@ -972,6 +1043,7 @@ MRB_API mrb_sym mrb_intern_str(mrb_state*,mrb_value);
 MRB_API mrb_value mrb_check_intern_cstr(mrb_state*,const char*);
 MRB_API mrb_value mrb_check_intern(mrb_state*,const char*,size_t);
 MRB_API mrb_value mrb_check_intern_str(mrb_state*,mrb_value);
+#define mrb_check_intern_lit(mrb, lit) mrb_check_intern(mrb, lit, mrb_strlen_lit(lit))
 MRB_API const char *mrb_sym2name(mrb_state*,mrb_sym);
 MRB_API const char *mrb_sym2name_len(mrb_state*,mrb_sym,mrb_int*);
 MRB_API mrb_value mrb_sym2str(mrb_state*,mrb_sym);
@@ -1108,12 +1180,14 @@ MRB_API void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*
 } while (0)
 MRB_API void mrb_write_barrier(mrb_state *, struct RBasic*);
 
-MRB_API mrb_value mrb_check_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method);
+MRB_API mrb_value mrb_check_convert_type_id(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym tname, mrb_sym method);
+// MRB_API mrb_value mrb_check_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method);
 MRB_API mrb_value mrb_any_to_s(mrb_state *mrb, mrb_value obj);
 MRB_API const char * mrb_obj_classname(mrb_state *mrb, mrb_value obj);
 MRB_API struct RClass* mrb_obj_class(mrb_state *mrb, mrb_value obj);
 MRB_API mrb_value mrb_class_path(mrb_state *mrb, struct RClass *c);
-MRB_API mrb_value mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method);
+MRB_API mrb_value mrb_convert_type_id(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym tname, mrb_sym method);
+// MRB_API mrb_value mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method);
 MRB_API mrb_bool mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c);
 MRB_API mrb_value mrb_obj_inspect(mrb_state *mrb, mrb_value self);
 MRB_API mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
@@ -1199,7 +1273,6 @@ typedef enum call_type {
 
 MRB_API void mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const char *name2);
 MRB_API const char *mrb_class_name(mrb_state *mrb, struct RClass* klass);
-MRB_API void mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val);
 
 MRB_API mrb_value mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id);
 

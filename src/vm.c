@@ -372,17 +372,12 @@ ecall(mrb_state *mrb)
   mrb_gc_arena_restore(mrb, ai);
 }
 
-#ifndef MRB_FUNCALL_ARGC_MAX
-#define MRB_FUNCALL_ARGC_MAX 16
-#endif
-
 MRB_API mrb_value
-mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, mrb_int argc, ...)
+mrb_funcall_id(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, ...)
 {
   mrb_value argv[MRB_FUNCALL_ARGC_MAX];
   va_list ap;
   mrb_int i;
-  mrb_sym mid = mrb_intern_cstr(mrb, name);
 
   if (argc > MRB_FUNCALL_ARGC_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=" MRB_STRINGIZE(MRB_FUNCALL_ARGC_MAX) ")");

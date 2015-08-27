@@ -753,15 +753,15 @@ mrb_const_remove(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 }
 
 MRB_API void
-mrb_define_const(mrb_state *mrb, struct RClass *mod, const char *name, mrb_value v)
+mrb_define_const_id(mrb_state *mrb, struct RClass *mod, mrb_sym sym, mrb_value v)
 {
-  mrb_obj_iv_set(mrb, (struct RObject*)mod, mrb_intern_cstr(mrb, name), v);
+  mrb_obj_iv_set(mrb, (struct RObject*)mod, sym, v);
 }
 
 MRB_API void
-mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val)
+mrb_define_global_const_id(mrb_state *mrb, mrb_sym sym, mrb_value val)
 {
-  mrb_define_const(mrb, mrb->object_class, name, val);
+  mrb_define_const_id(mrb, mrb->object_class, sym, val);
 }
 
 static int
