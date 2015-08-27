@@ -59,6 +59,10 @@ struct RString {
 #define RSTR_SET_NOFREE_FLAG(s) ((s)->flags |= MRB_STR_NOFREE)
 #define RSTR_UNSET_NOFREE_FLAG(s) ((s)->flags &= ~MRB_STR_NOFREE)
 
+#define RSTR_FROZEN_P(s) ((s)->flags & MRB_STR_FROZEN)
+#define RSTR_SET_FROZEN_FLAG(s) ((s)->flags |= MRB_STR_FROZEN)
+#define RSTR_UNSET_FROZEN_FLAG(s) ((s)->flags &= ~MRB_STR_FROZEN)
+
 #define mrb_str_ptr(s)       ((struct RString*)(mrb_ptr(s)))
 #define RSTRING(s)           mrb_str_ptr(s)
 #define RSTRING_PTR(s)       RSTR_PTR(RSTRING(s))
@@ -70,9 +74,10 @@ mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 
 #define MRB_STR_SHARED    1
 #define MRB_STR_NOFREE    2
-#define MRB_STR_EMBED     4
-#define MRB_STR_EMBED_LEN_MASK 0xf8
-#define MRB_STR_EMBED_LEN_SHIFT 3
+#define MRB_STR_FROZEN    4
+#define MRB_STR_EMBED     8
+#define MRB_STR_EMBED_LEN_MASK 0x1f0
+#define MRB_STR_EMBED_LEN_SHIFT 4
 
 void mrb_gc_free_str(mrb_state*, struct RString*);
 MRB_API void mrb_str_modify(mrb_state*, struct RString*);
