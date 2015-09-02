@@ -21,6 +21,7 @@ MRuby::Build.new do |conf|
 
   # include the default GEMs
   conf.gembox 'default'
+  conf.gem :core => 'mruby-eval'
 
   # C compiler settings
   # conf.cc do |cc|
@@ -105,7 +106,7 @@ MRuby::Build.new('host-debug') do |conf|
   conf.gem :core => "mruby-bin-debugger"
 
   # bintest
-  # conf.enable_bintest
+  conf.enable_bintest
 end
 
 MRuby::Build.new('test') do |conf|
