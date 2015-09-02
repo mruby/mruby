@@ -1863,7 +1863,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
   const char *p;
   char sign = 1;
   int c, uscore;
-  unsigned long n = 0;
+  uint64_t n = 0;
   mrb_int val;
 
 #define conv_digit(c) \
@@ -1983,9 +1983,9 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     }
     n *= base;
     n += c;
-  }
-  if (n > MRB_INT_MAX) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "string (%S) too big for integer", mrb_str_new_cstr(mrb, str));
+    if (n > MRB_INT_MAX) {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "string (%S) too big for integer", mrb_str_new_cstr(mrb, str));
+    }
   }
   val = n;
   if (badcheck) {
