@@ -69,7 +69,7 @@ Returns a concated string comprised of a Ruby string and a C string.
 Returns a concated string comprised of a Ruby string and a C string(A shorter alternative to mrb_str_cat).
 ### mrb_str_append
 ```C
-   mrb_value mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2);
+   mrb_value mrb_str_append(mrb_state *mrb, mrb_value str1, mrb_value str2);
 ```
 Adds str2 to the end of str1.
 ### mrb_str_cmp
