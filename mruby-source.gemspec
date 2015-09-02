@@ -6,7 +6,7 @@ require 'mruby/source/version'
 Gem::Specification.new do |spec|
   spec.name          = "mruby-source"
   spec.version       = MRuby::Source::MRUBY_VERSION
-  spec.authors       = ["mruby developers"]
+  spec.authors       = [ MRuby::Source::MRUBY_AUTHOR ]
 
   spec.summary       = %q{MRuby source code wrapper.}
   spec.description   = %q{MRuby source code wrapper for use with Ruby libs.}
