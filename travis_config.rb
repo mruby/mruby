@@ -38,3 +38,13 @@ MRuby::Build.new('cxx_abi') do |conf|
 
   build_mrbc_exec
 end
+
+MRuby::Build.new('test') do |conf|
+  toolchain :gcc
+
+  enable_debug
+  conf.enable_bintest
+
+  conf.gembox 'full-core'
+  conf.gem :core => "mruby-test"
+end

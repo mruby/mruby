@@ -249,7 +249,7 @@ EOS
 
     def run_test
       puts ">>> Test #{name} <<<"
-      mrbtest = exefile("#{build_dir}/test/mrbtest")
+      mrbtest = exefile("#{build_dir}/bin/mrbtest")
       sh "#{filename mrbtest.relative_path}#{$verbose ? ' -v' : ''}"
       puts
       run_bintest if @enable_bintest
