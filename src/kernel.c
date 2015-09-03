@@ -248,6 +248,11 @@ mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
       clone->c = mrb_singleton_class_clone(mrb, mrb_obj_value(klass));
     }
 
+    if (klass->origin != klass)
+      clone->origin = klass->origin;
+    else
+      clone->origin = clone;
+
     clone->super = klass->super;
     if (klass->iv) {
       mrb_iv_copy(mrb, mrb_obj_value(clone), mrb_obj_value(klass));
@@ -269,6 +274,13 @@ copy_class(mrb_state *mrb, mrb_value dst, mrb_value src)
 {
   struct RClass *dc = mrb_class_ptr(dst);
   struct RClass *sc = mrb_class_ptr(src);
+  /* if the origin is not the same as the class, then the origin and
+     the current class need to be copied */
+  if (sc->origin != sc) {
+    dc->origin = mrb_class_ptr(mrb_obj_dup(mrb, mrb_obj_value(sc->origin)));
+  } else {
+    dc->origin = dc;
+  }
   dc->mt = kh_copy(mt, mrb, sc->mt);
   dc->super = sc->super;
 }
@@ -641,13 +653,19 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* kl
 {
   khint_t i;
   mrb_value ary;
+  mrb_bool prepended;
   struct RClass* oldklass;
   khash_t(st)* set = kh_init(st, mrb);
+
+  if (!recur && klass->origin != klass) {
+    klass = klass->origin;
+    prepended = 1;
+  }
 
   oldklass = 0;
   while (klass && (klass != oldklass)) {
     method_entry_loop(mrb, klass, set);
-    if ((klass->tt == MRB_TT_ICLASS) ||
+    if ((klass->tt == MRB_TT_ICLASS && !prepended) ||
         (klass->tt == MRB_TT_SCLASS)) {
     }
     else {
