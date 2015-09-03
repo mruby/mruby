@@ -32,7 +32,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
     end
   end
 
-  gem_table = build.gems.generate_gem_table self
+  gem_table = build.gems.generate_gem_table build
 
   build.gems.each do |g|
     test_rbobj = g.test_rbireps.ext(exts.object)
