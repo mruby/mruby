@@ -114,9 +114,9 @@ MRuby::Build.new('test') do |conf|
 
   enable_debug
   conf.enable_bintest
+  conf.enable_test
 
   conf.gembox 'default'
-  conf.gem :core => "mruby-test"
 end
 
 # Define cross build settings

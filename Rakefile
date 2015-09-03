@@ -116,9 +116,7 @@ end
 desc "run all mruby tests"
 task :test => ["all"] do
   MRuby.each_target do
-    if gems.find { |v| v.name == 'mruby-test' }
-      run_test unless build_mrbtest_lib_only?
-    end
+    run_test if test_enabled?
   end
 end
 
