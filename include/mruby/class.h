@@ -16,7 +16,6 @@ struct RClass {
   struct iv_tbl *iv;
   struct kh_mt *mt;
   struct RClass *super;
-  struct RClass *origin;
 };
 
 #define mrb_class_ptr(v)    ((struct RClass*)(mrb_ptr(v)))
@@ -50,7 +49,16 @@ mrb_class(mrb_state *mrb, mrb_value v)
 }
 
 // TODO: figure out where to put user flags
+#define MRB_FLAG_IS_PREPENDED (1 << 19)
 #define MRB_FLAG_IS_ORIGIN (1 << 20)
+#define MRB_CLASS_ORIGIN(c) do {\
+  if (c->flags & MRB_FLAG_IS_PREPENDED) {\
+    c = c->super;\
+    while (!(c->flags & MRB_FLAG_IS_ORIGIN)) {\
+      c = c->super;\
+    }\
+  }\
+} while (0)
 #define MRB_INSTANCE_TT_MASK (0xFF)
 #define MRB_SET_INSTANCE_TT(c, tt) c->flags = ((c->flags & ~MRB_INSTANCE_TT_MASK) | (char)tt)
 #define MRB_INSTANCE_TT(c) (enum mrb_vtype)(c->flags & MRB_INSTANCE_TT_MASK)

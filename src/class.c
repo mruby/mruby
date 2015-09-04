@@ -76,7 +76,6 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
 
   if (o->c->tt == MRB_TT_SCLASS) return;
   sc = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_SCLASS, mrb->class_class);
-  sc->origin = sc;
   sc->mt = kh_init(mt, mrb);
   sc->iv = 0;
   if (o->tt == MRB_TT_CLASS) {
@@ -189,13 +188,20 @@ mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name)
 }
 
 static struct RClass*
+find_origin(struct RClass *c)
+{
+  MRB_CLASS_ORIGIN(c);
+  return c;
+}
+
+static struct RClass*
 define_class(mrb_state *mrb, mrb_sym name, struct RClass *super, struct RClass *outer)
 {
   struct RClass * c;
 
   if (mrb_const_defined_at(mrb, mrb_obj_value(outer), name)) {
     c = class_from_sym(mrb, outer, name);
-    c = c->origin;
+    MRB_CLASS_ORIGIN(c);
     if (super && mrb_class_real(c->super) != super) {
       mrb_raisef(mrb, E_TYPE_ERROR, "superclass mismatch for Class %S (%S not %S)",
                  mrb_sym2str(mrb, name),
@@ -327,7 +333,8 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
 {
   khash_t(mt) *h;
   khiter_t k;
-  h = c->origin->mt;
+  MRB_CLASS_ORIGIN(c);
+  h = c->mt;
 
   if (!h) h = c->mt = kh_init(mt, mrb);
   k = kh_put(mt, mrb, h, mid);
@@ -809,7 +816,6 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
   struct RClass *c;
 
   c = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_CLASS, mrb->class_class);
-  c->origin = c;
   if (super) {
     c->super = super;
     mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)super);
@@ -824,7 +830,6 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
 static void
 boot_initmod(mrb_state *mrb, struct RClass *mod)
 {
-  mod->origin = mod;
   mod->mt = kh_init(mt, mrb);
 }
 
@@ -835,9 +840,9 @@ include_class_new(mrb_state *mrb, struct RClass *m, struct RClass *super)
   if (m->tt == MRB_TT_ICLASS) {
     m = m->c;
   }
-  ic->origin = ic;
+  MRB_CLASS_ORIGIN(m);
   ic->iv = m->iv;
-  ic->mt = m->origin->mt;
+  ic->mt = m->mt;
   ic->super = super;
   if (m->tt == MRB_TT_ICLASS) {
     ic->c = m->c;
@@ -851,12 +856,12 @@ static int
 include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, struct RClass *m, int search_super)
 {
   struct RClass *p, *ic;
-  void *klass_mt = c->origin->mt;
+  void *klass_mt = find_origin(c)->mt;
 
   while (m) {
     int superclass_seen = 0;
 
-    if (m->origin != m)
+    if (m->flags & MRB_FLAG_IS_PREPENDED)
       goto skip;
 
     if (klass_mt && klass_mt == m->mt)
@@ -891,7 +896,7 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, stru
 MRB_API void
 mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
-  int changed = include_module_at(mrb, c, c->origin, m, 1);
+  int changed = include_module_at(mrb, c, find_origin(c), m, 1);
   if (changed < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic include detected");
   }
@@ -903,17 +908,15 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   struct RClass *origin;
   int changed = 0;
 
-  origin = c->origin;
-  if (origin == c) {
+  if (!(c->flags & MRB_FLAG_IS_PREPENDED)) {
     origin = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, c);
     origin->flags |= MRB_FLAG_IS_ORIGIN;
-    origin->origin = origin;
     origin->super = c->super;
     c->super = origin;
-    c->origin = origin;
     origin->mt = c->mt;
     c->mt = kh_init(mt, mrb);
-    mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)c->origin);
+    mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)origin);
+    c->flags |= MRB_FLAG_IS_PREPENDED;
   }
   changed = include_module_at(mrb, c, c, m, 0);
   if (changed < 0) {
@@ -1026,7 +1029,7 @@ mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
     if (c->tt == MRB_TT_ICLASS) {
       mrb_ary_push(mrb, result, mrb_obj_value(c->c));
     }
-    else if (c->origin == c) {
+    else if (!(c->flags & MRB_FLAG_IS_PREPENDED)) {
       mrb_ary_push(mrb, result, mrb_obj_value(c));
     }
     c = c->super;
@@ -1051,8 +1054,9 @@ mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
 {
   mrb_value result;
   struct RClass *c = mrb_class_ptr(self);
-  struct RClass *origin = c->origin;
+  struct RClass *origin = c;
 
+  MRB_CLASS_ORIGIN(origin);
   result = mrb_ary_new(mrb);
   while (c) {
     if (c != origin && c->tt == MRB_TT_ICLASS) {
@@ -1391,9 +1395,9 @@ mrb_class_superclass(mrb_state *mrb, mrb_value klass)
   struct RClass *c;
 
   c = mrb_class_ptr(klass);
-  c = c->origin->super;
+  c = find_origin(c)->super;
   while (c && c->tt == MRB_TT_ICLASS) {
-    c = c->origin->super;
+    c = find_origin(c)->super;
   }
   if (!c) return mrb_nil_value();
   return mrb_obj_value(c);
@@ -1990,7 +1994,7 @@ static void
 remove_method(mrb_state *mrb, mrb_value mod, mrb_sym mid)
 {
   struct RClass *c = mrb_class_ptr(mod);
-  khash_t(mt) *h = c->origin->mt;
+  khash_t(mt) *h = find_origin(c)->mt;
   khiter_t k;
 
   if (h) {
