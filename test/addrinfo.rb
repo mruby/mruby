@@ -19,10 +19,10 @@ end
 
 assert('Addrinfo.foreach') do
   # assume Addrinfo.getaddrinfo works well
-  a = Addrinfo.getaddrinfo("localhost", "domain")
+  a = Addrinfo.getaddrinfo("localhost.", "domain")
   b = []
-  Addrinfo.foreach("localhost", "domain") { |ai| b << ai }
-  assert_equal(a.size, b.size)
+  Addrinfo.foreach("localhost.", "domain") { |ai| b << ai }
+  assert_equal(a.sort, b.sort)
 end
 
 assert('Addrinfo.ip') do
