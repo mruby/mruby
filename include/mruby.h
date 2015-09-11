@@ -292,6 +292,18 @@ MRB_API mrb_value mrb_str_new_cstr(mrb_state*, const char*);
 MRB_API mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
 #define mrb_str_new_lit(mrb, lit) mrb_str_new_static(mrb, (lit), mrb_strlen_lit(lit))
 
+#ifdef _WIN32
+char* mrb_utf8_from_locale(const char *p, size_t len);
+char* mrb_locale_from_utf8(const char *p, size_t len);
+#define mrb_locale_free(p) free(p)
+#define mrb_utf8_free(p) free(p)
+#else
+#define mrb_utf8_from_locale(p, l) (p)
+#define mrb_locale_from_utf8(p, l) (p)
+#define mrb_locale_free(p)
+#define mrb_utf8_free(p)
+#endif
+
 MRB_API mrb_state* mrb_open(void);
 MRB_API mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
 MRB_API mrb_state* mrb_open_core(mrb_allocf, void *ud);

@@ -366,6 +366,8 @@ main(int argc, char **argv)
   ai = mrb_gc_arena_save(mrb);
 
   while (TRUE) {
+    char *utf8;
+
 #ifndef ENABLE_READLINE
     print_cmdline(code_block_open);
 
@@ -415,17 +417,21 @@ main(int argc, char **argv)
       strcpy(ruby_code, last_code_line);
     }
 
+    utf8 = mrb_utf8_from_locale(ruby_code, -1);
+    if (!utf8) abort();
+
     /* parse code */
     parser = mrb_parser_new(mrb);
     if (parser == NULL) {
       fputs("create parser state error\n", stderr);
       break;
     }
-    parser->s = ruby_code;
-    parser->send = ruby_code + strlen(ruby_code);
+    parser->s = utf8;
+    parser->send = utf8 + strlen(utf8);
     parser->lineno = cxt->lineno;
     mrb_parser_parse(parser, cxt);
     code_block_open = is_code_block_open(parser);
+    mrb_utf8_free(utf8);
 
     if (code_block_open) {
       /* no evaluation of code */
