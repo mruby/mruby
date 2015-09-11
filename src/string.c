@@ -43,6 +43,69 @@ mrb_str_strlen(mrb_state *mrb, struct RString *s)
   return max;
 }
 
+#ifdef _WIN32
+#include <windows.h>
+
+char*
+mrb_utf8_from_locale(const char *str, size_t len)
+{
+  wchar_t* wcsp;
+  char* mbsp;
+  size_t mbssize, wcssize;
+
+  if (len == 0)
+    return strdup("");
+  if (len == -1)
+	len = strlen(str);
+  wcssize = MultiByteToWideChar(GetACP(), 0, str, len,  NULL, 0);
+  wcsp = (wchar_t*) malloc((wcssize + 1) * sizeof(wchar_t));
+  if (!wcsp)
+    return NULL;
+  wcssize = MultiByteToWideChar(GetACP(), 0, str, len, wcsp, wcssize + 1);
+  wcsp[wcssize] = 0;
+
+  mbssize = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR) wcsp, -1, NULL, 0, NULL, NULL);
+  mbsp = (char*) malloc((mbssize + 1));
+  if (!mbsp) {
+    free(wcsp);
+    return NULL;
+  }
+  mbssize = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR) wcsp, -1, mbsp, mbssize, NULL, NULL);
+  mbsp[mbssize] = 0;
+  free(wcsp);
+  return mbsp;
+}
+
+char*
+mrb_locale_from_utf8(const char *utf8, size_t len)
+{
+  wchar_t* wcsp;
+  char* mbsp;
+  size_t mbssize, wcssize;
+
+  if (len == 0)
+    return strdup("");
+  if (len == -1)
+	len = strlen(utf8);
+  wcssize = MultiByteToWideChar(CP_UTF8, 0, utf8, len,  NULL, 0);
+  wcsp = (wchar_t*) malloc((wcssize + 1) * sizeof(wchar_t));
+  if (!wcsp)
+    return NULL;
+  wcssize = MultiByteToWideChar(CP_UTF8, 0, utf8, len, wcsp, wcssize + 1);
+  wcsp[wcssize] = 0;
+  mbssize = WideCharToMultiByte(GetACP(), 0, (LPCWSTR) wcsp, -1, NULL, 0, NULL, NULL);
+  mbsp = (char*) malloc((mbssize + 1));
+  if (!mbsp) {
+    free(wcsp);
+    return NULL;
+  }
+  mbssize = WideCharToMultiByte(GetACP(), 0, (LPCWSTR) wcsp, -1, mbsp, mbssize, NULL, NULL);
+  mbsp[mbssize] = 0;
+  free(wcsp);
+  return mbsp;
+}
+#endif
+
 static inline void
 resize_capa(mrb_state *mrb, struct RString *s, mrb_int capacity)
 {

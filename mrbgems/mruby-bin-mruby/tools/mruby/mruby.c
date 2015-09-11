@@ -191,7 +191,11 @@ main(int argc, char **argv)
 
   ARGV = mrb_ary_new_capa(mrb, args.argc);
   for (i = 0; i < args.argc; i++) {
-    mrb_ary_push(mrb, ARGV, mrb_str_new_cstr(mrb, args.argv[i]));
+    char* utf8 = mrb_utf8_from_locale(args.argv[i], -1);
+    if (utf8) {
+      mrb_ary_push(mrb, ARGV, mrb_str_new_cstr(mrb, utf8));
+      mrb_utf8_free(utf8);
+    }
   }
   mrb_define_global_const(mrb, "ARGV", ARGV);
 
@@ -222,7 +226,10 @@ main(int argc, char **argv)
     v = mrb_load_file_cxt(mrb, args.rfp, c);
   }
   else {
-    v = mrb_load_string_cxt(mrb, args.cmdline, c);
+    char* utf8 = mrb_utf8_from_locale(args.cmdline, -1);
+    if (!utf8) abort();
+    v = mrb_load_string_cxt(mrb, utf8, c);
+    mrb_utf8_free(utf8);
   }
 
   mrbc_context_free(mrb, c);
