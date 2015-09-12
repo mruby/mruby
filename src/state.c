@@ -234,6 +234,7 @@ mrb_free_context(mrb_state *mrb, struct mrb_context *c)
 MRB_API void
 mrb_close(mrb_state *mrb)
 {
+  if (!mrb) return;
   if (mrb->atexit_stack_len > 0) {
     mrb_int i;
     for (i = mrb->atexit_stack_len; i > 0; --i) {
