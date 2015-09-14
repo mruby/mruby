@@ -235,12 +235,12 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     mrb_int len;
     char *file = NULL;
     mrb_int line = 1;
+    mrb_value cv;
 
     mrb_get_args(mrb, "s|zi", &s, &len, &file, &line);
     c->ci->acc = CI_ACC_SKIP;
-    if (c->ci->target_class->tt == MRB_TT_ICLASS) {
-      c->ci->target_class = c->ci->target_class->c;
-    }
+    cv = mrb_singleton_class(mrb, self);
+    c->ci->target_class = mrb_class_ptr(cv);
     return mrb_run(mrb, create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line), self);
   }
   else {
