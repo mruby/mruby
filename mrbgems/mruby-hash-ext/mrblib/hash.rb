@@ -126,7 +126,7 @@ class Hash
   def fetch(key, none=NONE, &block)
     unless self.key?(key)
       if block
-        block.call
+        block.call(key)
       elsif none != NONE
         none
       else

@@ -75,6 +75,7 @@ assert('Hash#fetch') do
   assert_equal "feline", h.fetch("cat")
   assert_equal "mickey", h.fetch("mouse", "mickey")
   assert_equal "minny", h.fetch("mouse"){"minny"}
+  assert_equal "mouse", h.fetch("mouse"){|k| k}
   begin
     h.fetch("gnu")
   rescue => e
