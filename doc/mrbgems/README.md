@@ -26,6 +26,15 @@ conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
 conf.gem :bitbucket => 'mruby/mrbgems-example', :branch => 'master'
 ```
 
+To use mrbgem from [mgem-list](https://github.com/mruby/mgem-list) use `:mgem` option:
+```ruby
+conf.gem :mgem => 'mruby-yaml'
+conf.gem :mgem => 'yaml' # 'mruby-' prefix could be omitted
+```
+
+If there is missing dependencies, mrbgem dependencies solver will reference
+mrbgem from core or mgem-list.
+
 To pull all gems from remote GIT repository on build, call ```./minirake -p```,
 or ```./minirake --pull-gems```.
 
@@ -142,7 +151,7 @@ MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
   # Use any version of mruby-uv from github.
   spec.add_dependency('mruby-uv', '>= 0.0.0', :github => 'mattn/mruby-uv')
 
-  # Use latest mruby-onig-regexp from github. (version requirements can be ignored)
+  # Use latest mruby-onig-regexp from github. (version requirements can be omitted)
   spec.add_dependency('mruby-onig-regexp', :github => 'mattn/mruby-onig-regexp')
 end
 ```
@@ -189,16 +198,20 @@ end
 In case your GEM has more complex build requirements you can use
 the following options additionally inside of your GEM specification:
 
-* `spec.cflags` (C compiler flags)
-* `spec.mruby_cflags` (global C compiler flags for everything)
-* `spec.mruby_ldflags` (global linker flags for everything)
-* `spec.mruby_libs` (global libraries for everything)
-* `spec.mruby_includes` (global includes for everything)
+* `spec.cc.flags` (C compiler flags)
+* `spec.cc.defines` (C compiler defines)
+* `spec.cc.include_paths` (C compiler include paths)
+* `spec.linker.flags` (Linker flags)
+* `spec.linker.libraries` (Linker libraries)
+* `spec.linker.library_paths` (Linker additional library path)
+* `spec.bins` (Generate binary file)
 * `spec.rbfiles` (Ruby files to compile)
 * `spec.objs` (Object files to compile)
 * `spec.test_rbfiles` (Ruby test files for integration into mrbtest)
 * `spec.test_objs` (Object test files for integration into mrbtest)
 * `spec.test_preload` (Initialization files for mrbtest)
+
+You also can use `spec.mruby.cc` and `spec.mruby.linker` to add extra global parameters for compiler and linker.
 
 ### include_paths and dependency
 

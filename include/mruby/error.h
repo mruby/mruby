@@ -24,10 +24,20 @@ MRB_API mrb_value mrb_exc_new_str(mrb_state *mrb, struct RClass* c, mrb_value st
 MRB_API mrb_value mrb_make_exception(mrb_state *mrb, int argc, const mrb_value *argv);
 MRB_API mrb_value mrb_exc_backtrace(mrb_state *mrb, mrb_value exc);
 MRB_API mrb_value mrb_get_backtrace(mrb_state *mrb);
-MRB_API mrb_noreturn void mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_int argc, const mrb_value *argv, const char *fmt, ...);
+MRB_API mrb_noreturn void mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, const char *fmt, ...);
 
 /* declaration for fail method */
 MRB_API mrb_value mrb_f_raise(mrb_state*, mrb_value);
+
+/* functions defined in mruby-error mrbgem */
+MRB_API mrb_value mrb_protect(mrb_state *mrb, mrb_func_t body, mrb_value data, mrb_bool *state);
+MRB_API mrb_value mrb_ensure(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
+                             mrb_func_t ensure, mrb_value e_data);
+MRB_API mrb_value mrb_rescue(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
+                             mrb_func_t rescue, mrb_value r_data);
+MRB_API mrb_value mrb_rescue_exceptions(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
+                                        mrb_func_t rescue, mrb_value r_data,
+                                        mrb_int len, struct RClass **classes);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */

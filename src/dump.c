@@ -16,7 +16,7 @@
 #define FLAG_BYTEORDER_NONATIVE 0
 
 #ifdef MRB_USE_FLOAT
-#define MRB_FLOAT_FMT "%.9e"
+#define MRB_FLOAT_FMT "%.8e"
 #else
 #define MRB_FLOAT_FMT "%.16e"
 #endif
@@ -819,7 +819,6 @@ write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t *bin, uint8
   uint32_t offset;
 
   switch (flags & DUMP_ENDIAN_NAT) {
-  default:
   endian_big:
   case DUMP_ENDIAN_BIG:
     memcpy(header->binary_ident, RITE_BINARY_IDENT, sizeof(header->binary_ident));
@@ -979,12 +978,8 @@ error_exit:
     mrb_free(mrb, *bin);
     *bin = NULL;
   }
-  if (lv_syms) {
-    mrb_free(mrb, lv_syms);
-  }
-  if (filenames) {
-    mrb_free(mrb, filenames);
-  }
+  mrb_free(mrb, lv_syms);
+  mrb_free(mrb, filenames);
   return result;
 }
 

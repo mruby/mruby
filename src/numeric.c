@@ -55,7 +55,8 @@ num_pow(mrb_state *mrb, mrb_value x)
   mrb_get_args(mrb, "o", &y);
   yv = mrb_to_flo(mrb, y);
   d = pow(mrb_to_flo(mrb, x), yv);
-  if (mrb_fixnum_p(x) && mrb_fixnum_p(y) && FIXABLE(d) && yv > 0)
+  if (mrb_fixnum_p(x) && mrb_fixnum_p(y) && FIXABLE(d) && yv > 0 && 
+      (d < 0 || (d > 0 && (mrb_int)d > 0)))
     return mrb_fixnum_value((mrb_int)d);
   return mrb_float_value(mrb, d);
 }
@@ -110,8 +111,8 @@ num_div(mrb_state *mrb, mrb_value x)
  *
  *  Returns a string containing a representation of self. As well as a
  *  fixed or exponential form of the number, the call may return
- *  ``<code>NaN</code>'', ``<code>Infinity</code>'', and
- *  ``<code>-Infinity</code>''.
+ *  "<code>NaN</code>", "<code>Infinity</code>", and
+ *  "<code>-Infinity</code>".
  */
 
 static mrb_value
@@ -436,7 +437,7 @@ flo_round(mrb_state *mrb, mrb_value num)
 {
   double number, f;
   mrb_int ndigits = 0;
-  int i;
+  mrb_int i;
 
   mrb_get_args(mrb, "|i", &ndigits);
   number = mrb_float(num);
@@ -451,7 +452,7 @@ flo_round(mrb_state *mrb, mrb_value num)
   }
 
   f = 1.0;
-  i = abs(ndigits);
+  i = ndigits >= 0 ? ndigits : -ndigits;
   while  (--i >= 0)
     f = f*10.0;
 
@@ -819,11 +820,13 @@ fix_xor(mrb_state *mrb, mrb_value x)
 static mrb_value
 lshift(mrb_state *mrb, mrb_int val, mrb_int width)
 {
-  mrb_assert(width >= 0);
+  mrb_assert(width > 0);
   if (width > NUMERIC_SHIFT_WIDTH_MAX) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "width(%S) > (%S:MRB_INT_BIT-1)",
-               mrb_fixnum_value(width),
-               mrb_fixnum_value(NUMERIC_SHIFT_WIDTH_MAX));
+    mrb_float f = (mrb_float)val;
+    while (width--) {
+      f *= 2;
+    }
+    return mrb_float_value(mrb, f);
   }
   return mrb_fixnum_value(val << width);
 }
@@ -831,7 +834,7 @@ lshift(mrb_state *mrb, mrb_int val, mrb_int width)
 static mrb_value
 rshift(mrb_int val, mrb_int width)
 {
-  mrb_assert(width >= 0);
+  mrb_assert(width > 0);
   if (width >= NUMERIC_SHIFT_WIDTH_MAX) {
     if (val < 0) {
       return mrb_fixnum_value(-1);

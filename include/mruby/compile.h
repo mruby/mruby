@@ -55,8 +55,8 @@ enum mrb_lex_state_enum {
   EXPR_CMDARG,                /* newline significant, +/- is an operator. */
   EXPR_MID,                   /* newline significant, +/- is an operator. */
   EXPR_FNAME,                 /* ignore newline, no reserved words. */
-  EXPR_DOT,                   /* right after `.' or `::', no reserved words. */
-  EXPR_CLASS,                 /* immediate after `class', no here document. */
+  EXPR_DOT,                   /* right after '.' or '::', no reserved words. */
+  EXPR_CLASS,                 /* immediate after 'class', no here document. */
   EXPR_VALUE,                 /* alike EXPR_BEG but label is disallowed. */
   EXPR_MAX_STATE
 };

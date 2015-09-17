@@ -119,10 +119,10 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
         args->flags |= DUMP_DEBUG_INFO;
         break;
       case 'E':
-        args->flags = DUMP_ENDIAN_BIG | (args->flags & DUMP_DEBUG_INFO);
+        args->flags = DUMP_ENDIAN_BIG | (args->flags & ~DUMP_ENDIAN_MASK);
         break;
       case 'e':
-        args->flags = DUMP_ENDIAN_LIL | (args->flags & DUMP_DEBUG_INFO);
+        args->flags = DUMP_ENDIAN_LIL | (args->flags & ~DUMP_ENDIAN_MASK);
         break;
       case 'h':
         return -1;
@@ -161,8 +161,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
 static void
 cleanup(mrb_state *mrb, struct mrbc_args *args)
 {
-  if (args->outfile)
-    mrb_free(mrb, (void*)args->outfile);
+  mrb_free(mrb, (void*)args->outfile);
   mrb_close(mrb);
 }
 

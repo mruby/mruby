@@ -27,6 +27,8 @@ MRuby::Toolchain.new(:androideabi) do |conf|
   ANDROID_TARGET_ARCH = ENV['ANDROID_TARGET_ARCH'] || DEFAULT_ANDROID_TARGET_ARCH
   ANDROID_TARGET_ARCH_ABI = ENV['ANDROID_TARGET_ARCH_ABI'] || DEFAULT_ANDROID_TARGET_ARCH_ABI
   ANDROID_TOOLCHAIN = ENV['ANDROID_TOOLCHAIN'] || DEFAULT_ANDROID_TOOLCHAIN
+  GCC_VERSION = ENV['GCC_VERSION'] || DEFAULT_GCC_VERSION
+  CLANG_VERSION = ENV['CLANG_VERSION'] || DEFAULT_CLANG_VERSION
 
   case ANDROID_TARGET_ARCH.downcase
   when 'arch-arm',  'arm'  then
@@ -74,9 +76,9 @@ MRuby::Toolchain.new(:androideabi) do |conf|
       else
         # Any other architecture are not supported by Android NDK.
       end
-      path_to_toolchain += DEFAULT_GCC_VERSION + '/prebuilt/' + HOST_PLATFORM
+      path_to_toolchain += GCC_VERSION + '/prebuilt/' + HOST_PLATFORM
     else
-      path_to_toolchain += 'llvm-' + DEFAULT_CLANG_VERSION + '/prebuilt/' + HOST_PLATFORM
+      path_to_toolchain += 'llvm-' + CLANG_VERSION + '/prebuilt/' + HOST_PLATFORM
     end
   else
     path_to_toolchain = ANDROID_STANDALONE_TOOLCHAIN
@@ -109,8 +111,8 @@ MRuby::Toolchain.new(:androideabi) do |conf|
     ANDROID_CC = path_to_toolchain + '/bin/' + toolchain_prefix + 'gcc'
     ANDROID_LD = path_to_toolchain + '/bin/' + toolchain_prefix + 'gcc'
     ANDROID_AR = path_to_toolchain + '/bin/' + toolchain_prefix + 'ar'
-    ANDROID_CFLAGS  = GCC_COMMON_CFLAGS  + %W(-mandroid --sysroot="#{SYSROOT}") + ARCH_CFLAGS
-    ANDROID_LDFLAGS = GCC_COMMON_LDFLAGS + %W(-mandroid --sysroot="#{SYSROOT}") + ARCH_LDFLAGS
+    ANDROID_CFLAGS  = GCC_COMMON_CFLAGS  + %W(-D__android__ -mandroid --sysroot="#{SYSROOT}") + ARCH_CFLAGS
+    ANDROID_LDFLAGS = GCC_COMMON_LDFLAGS + %W(-D__android__ -mandroid --sysroot="#{SYSROOT}") + ARCH_LDFLAGS
   when 'clang' then
     # clang is not supported yet.
   when 'clang31', 'clang3.1' then

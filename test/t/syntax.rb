@@ -1,6 +1,6 @@
 assert('__FILE__') do
-  file = __FILE__
-  assert_true 'test/t/syntax.rb' == file || 'test\t\syntax.rb' == file
+  file = __FILE__.split('test/')[1]
+  assert_true 't/syntax.rb' == file || 't\syntax.rb' == file
 end
 
 assert('__LINE__') do
@@ -217,6 +217,35 @@ assert('Splat without assignment') do
   * = [0]
   a, * = [1, 2]
   assert_equal 1, a
+end
+
+assert('multiple assignment (rest)') do
+  *a = 0
+  assert_equal [0], a
+end
+
+assert('multiple assignment (rest+post)') do
+  *a, b = 0, 1, 2
+  *c, d = 3
+
+  assert_equal [0, 1], a
+  assert_equal 2, b
+  assert_equal [], c
+  assert_equal 3, d
+end
+
+assert('multiple assignment (nosplat array rhs)') do
+  a, *b = []
+  *c, d = [0]
+  e, *f, g = [1, 2]
+
+  assert_nil a
+  assert_equal [], b
+  assert_equal [], c
+  assert_equal 0, d
+  assert_equal 1, e
+  assert_equal [], f
+  assert_equal 2, g
 end
 
 assert('Return values of case statements') do

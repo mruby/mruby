@@ -8,49 +8,35 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 
-static void
-printstr(mrb_state *mrb, mrb_value obj)
-{
 #ifdef ENABLE_STDIO
-  char *s;
-  int len;
-
+static void
+printstr(mrb_value obj, FILE *stream)
+{
   if (mrb_string_p(obj)) {
-    s = RSTRING_PTR(obj);
-    len = RSTRING_LEN(obj);
-    fwrite(s, len, 1, stdout);
+    fwrite(RSTRING_PTR(obj), RSTRING_LEN(obj), 1, stream);
+    putc('\n', stream);
   }
-#endif
 }
+#else
+# define printstr(obj, stream) (void)0
+#endif
 
 MRB_API void
 mrb_p(mrb_state *mrb, mrb_value obj)
 {
-#ifdef ENABLE_STDIO
-  mrb_value val;
+  mrb_value val = mrb_inspect(mrb, obj);
 
-  val = mrb_funcall(mrb, obj, "inspect", 0);
-  if (!mrb_string_p(val)) {
-    val = mrb_obj_as_string(mrb, obj);
-  }
-  printstr(mrb, val);
-  putc('\n', stdout);
-#endif
+  printstr(val, stdout);
 }
 
 MRB_API void
 mrb_print_error(mrb_state *mrb)
 {
-#ifdef ENABLE_STDIO
   mrb_value s;
 
   mrb_print_backtrace(mrb);
   s = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
-  if (mrb_string_p(s)) {
-    fwrite(RSTRING_PTR(s), RSTRING_LEN(s), 1, stderr);
-    putc('\n', stderr);
-  }
-#endif
+  printstr(s, stderr);
 }
 
 MRB_API void
@@ -59,8 +45,7 @@ mrb_show_version(mrb_state *mrb)
   mrb_value msg;
 
   msg = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_DESCRIPTION"));
-  printstr(mrb, msg);
-  printstr(mrb, mrb_str_new_lit(mrb, "\n"));
+  printstr(msg, stdout);
 }
 
 MRB_API void
@@ -69,6 +54,5 @@ mrb_show_copyright(mrb_state *mrb)
   mrb_value msg;
 
   msg = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_COPYRIGHT"));
-  printstr(mrb, msg);
-  printstr(mrb, mrb_str_new_lit(mrb, "\n"));
+  printstr(msg, stdout);
 }

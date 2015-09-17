@@ -1,17 +1,18 @@
 #include "mruby.h"
 #include "mruby/string.h"
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 static void
 printstr(mrb_state *mrb, mrb_value obj)
 {
-  char *s;
-  mrb_int len;
-
   if (mrb_string_p(obj)) {
-    s = RSTRING_PTR(obj);
-    len = RSTRING_LEN(obj);
-    fwrite(s, len, 1, stdout);
+    char* ptr = mrb_locale_from_utf8(RSTRING_PTR(obj), RSTRING_LEN(obj));
+    if (ptr) {
+      fwrite(ptr, strlen(ptr), 1, stdout);
+      mrb_locale_free(ptr);
+    }
   }
 }
 

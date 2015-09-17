@@ -119,14 +119,14 @@ class Hash
   #
   #  <em>produces:</em>
   #
-  #     prog.rb:2:in `fetch': key not found (KeyError)
+  #     prog.rb:2:in 'fetch': key not found (KeyError)
   #      from prog.rb:2
   #
 
   def fetch(key, none=NONE, &block)
     unless self.key?(key)
       if block
-        block.call
+        block.call(key)
       elsif none != NONE
         none
       else

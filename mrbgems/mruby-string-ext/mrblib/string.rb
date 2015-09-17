@@ -164,9 +164,9 @@ class String
   #    string                  #=> "thsa sting"
   #
   def slice!(arg1, arg2=nil)
-    raise "wrong number of arguments (for 1..2)" if arg1 == nil && arg2 == nil
+    raise "wrong number of arguments (for 1..2)" if arg1.nil? && arg2.nil?
 
-    if arg1 != nil && arg2 != nil
+    if !arg1.nil? && !arg2.nil?
       idx = arg1
       idx += self.size if arg1 < 0
       if idx >= 0 && idx <= self.size && arg2 > 0
@@ -196,8 +196,8 @@ class String
         return nil
       end
     end
-    unless str == nil || str == ""
-      if arg1 != nil && arg2 !=nil
+    unless str.nil? || str == ""
+      if !arg1.nil? && !arg2.nil?
         idx = arg1 >= 0 ? arg1 : self.size+arg1
         str2 = self[0...idx] + self[idx+arg2..-1].to_s
       else
@@ -207,13 +207,13 @@ class String
           str2 = self[0...idx] + self[idx2+1..-1].to_s
         elsif arg1.kind_of?(String)
           idx = self.index(arg1)
-          str2 = self[0...idx] + self[idx+arg1.size..-1] unless idx == nil
+          str2 = self[0...idx] + self[idx+arg1.size..-1] unless idx.nil?
         else
           idx = arg1 >= 0 ? arg1 : self.size+arg1
           str2 = self[0...idx] + self[idx+1..-1].to_s
         end
       end
-      self.replace(str2) unless str2 == nil
+      self.replace(str2) unless str2.nil?
     end
     str
   end

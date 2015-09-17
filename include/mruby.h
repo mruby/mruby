@@ -192,10 +192,13 @@ typedef struct mrb_state {
 # define mrb_noreturn _Noreturn
 #elif defined __GNUC__ && !defined __STRICT_ANSI__
 # define mrb_noreturn __attribute__((noreturn))
+# define mrb_deprecated __attribute__((deprecated))
 #elif defined _MSC_VER
 # define mrb_noreturn __declspec(noreturn)
+# define mrb_deprecated __declspec(deprecated)
 #else
 # define mrb_noreturn
+# define mrb_deprecated
 #endif
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
@@ -203,6 +206,7 @@ MRB_API struct RClass *mrb_define_class(mrb_state *, const char*, struct RClass*
 MRB_API struct RClass *mrb_define_module(mrb_state *, const char*);
 MRB_API mrb_value mrb_singleton_class(mrb_state*, mrb_value);
 MRB_API void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
+MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
 
 MRB_API void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
 MRB_API void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
@@ -250,16 +254,6 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
 /* accept no arguments */
 #define MRB_ARGS_NONE()     ((mrb_aspec)0)
 
-/* compatibility macros; will be removed */
-#define ARGS_REQ(n)         MRB_ARGS_REQ(n)
-#define ARGS_OPT(n)         MRB_ARGS_OPT(n)
-#define ARGS_REST()         MRB_ARGS_REST()
-#define ARGS_POST(n)        MRB_ARGS_POST()
-#define ARGS_KEY(n1,n2)     MRB_ARGS_KEY(n1,n2)
-#define ARGS_BLOCK()        MRB_ARGS_BLOCK()
-#define ARGS_ANY()          MRB_ARGS_ANY()
-#define ARGS_NONE()         MRB_ARGS_NONE()
-
 MRB_API mrb_int mrb_get_args(mrb_state *mrb, const char *format, ...);
 
 /* `strlen` for character string literals (use with caution or `strlen` instead)
@@ -297,6 +291,18 @@ MRB_API mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
 MRB_API mrb_value mrb_str_new_cstr(mrb_state*, const char*);
 MRB_API mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
 #define mrb_str_new_lit(mrb, lit) mrb_str_new_static(mrb, (lit), mrb_strlen_lit(lit))
+
+#ifdef _WIN32
+char* mrb_utf8_from_locale(const char *p, size_t len);
+char* mrb_locale_from_utf8(const char *p, size_t len);
+#define mrb_locale_free(p) free(p)
+#define mrb_utf8_free(p) free(p)
+#else
+#define mrb_utf8_from_locale(p, l) (p)
+#define mrb_locale_from_utf8(p, l) (p)
+#define mrb_locale_free(p)
+#define mrb_utf8_free(p)
+#endif
 
 MRB_API mrb_state* mrb_open(void);
 MRB_API mrb_state* mrb_open_allocf(mrb_allocf, void *ud);

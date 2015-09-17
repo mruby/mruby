@@ -515,7 +515,7 @@ module Enumerable
   #
 
   def each_with_object(obj=nil, &block)
-    raise ArgumentError, "wrong number of arguments (0 for 1)" if obj == nil
+    raise ArgumentError, "wrong number of arguments (0 for 1)" if obj.nil?
 
     return to_enum(:each_with_object, obj) unless block
 
@@ -574,10 +574,10 @@ module Enumerable
   #
 
   def cycle(n=nil, &block)
-    return to_enum(:cycle, n) if !block && n == nil
+    return to_enum(:cycle, n) if !block && n.nil?
 
     ary = []
-    if n == nil
+    if n.nil?
       self.each do|*val|
         ary.push val
         block.call(*val)

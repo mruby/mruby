@@ -104,10 +104,11 @@ static void mrb_hash_modify(mrb_state *mrb, mrb_value hash);
 static inline mrb_value
 mrb_hash_ht_key(mrb_state *mrb, mrb_value key)
 {
-  if (mrb_string_p(key))
-    return mrb_str_dup(mrb, key);
-  else
-    return key;
+  if (mrb_string_p(key) && !RSTR_FROZEN_P(mrb_str_ptr(key))) {
+    key = mrb_str_dup(mrb, key);
+    RSTR_SET_FROZEN_FLAG(mrb_str_ptr(key));
+  }
+  return key;
 }
 
 #define KEY(key) mrb_hash_ht_key(mrb, key)

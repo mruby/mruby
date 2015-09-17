@@ -43,6 +43,69 @@ mrb_str_strlen(mrb_state *mrb, struct RString *s)
   return max;
 }
 
+#ifdef _WIN32
+#include <windows.h>
+
+char*
+mrb_utf8_from_locale(const char *str, size_t len)
+{
+  wchar_t* wcsp;
+  char* mbsp;
+  size_t mbssize, wcssize;
+
+  if (len == 0)
+    return strdup("");
+  if (len == -1)
+	len = strlen(str);
+  wcssize = MultiByteToWideChar(GetACP(), 0, str, len,  NULL, 0);
+  wcsp = (wchar_t*) malloc((wcssize + 1) * sizeof(wchar_t));
+  if (!wcsp)
+    return NULL;
+  wcssize = MultiByteToWideChar(GetACP(), 0, str, len, wcsp, wcssize + 1);
+  wcsp[wcssize] = 0;
+
+  mbssize = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR) wcsp, -1, NULL, 0, NULL, NULL);
+  mbsp = (char*) malloc((mbssize + 1));
+  if (!mbsp) {
+    free(wcsp);
+    return NULL;
+  }
+  mbssize = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR) wcsp, -1, mbsp, mbssize, NULL, NULL);
+  mbsp[mbssize] = 0;
+  free(wcsp);
+  return mbsp;
+}
+
+char*
+mrb_locale_from_utf8(const char *utf8, size_t len)
+{
+  wchar_t* wcsp;
+  char* mbsp;
+  size_t mbssize, wcssize;
+
+  if (len == 0)
+    return strdup("");
+  if (len == -1)
+	len = strlen(utf8);
+  wcssize = MultiByteToWideChar(CP_UTF8, 0, utf8, len,  NULL, 0);
+  wcsp = (wchar_t*) malloc((wcssize + 1) * sizeof(wchar_t));
+  if (!wcsp)
+    return NULL;
+  wcssize = MultiByteToWideChar(CP_UTF8, 0, utf8, len, wcsp, wcssize + 1);
+  wcsp[wcssize] = 0;
+  mbssize = WideCharToMultiByte(GetACP(), 0, (LPCWSTR) wcsp, -1, NULL, 0, NULL, NULL);
+  mbsp = (char*) malloc((mbssize + 1));
+  if (!mbsp) {
+    free(wcsp);
+    return NULL;
+  }
+  mbssize = WideCharToMultiByte(GetACP(), 0, (LPCWSTR) wcsp, -1, mbsp, mbssize, NULL, NULL);
+  mbsp[mbssize] = 0;
+  free(wcsp);
+  return mbsp;
+}
+#endif
+
 static inline void
 resize_capa(mrb_state *mrb, struct RString *s, mrb_int capacity)
 {
@@ -75,9 +138,18 @@ str_decref(mrb_state *mrb, mrb_shared_string *shared)
   }
 }
 
+static void
+check_frozen(mrb_state *mrb, struct RString *s)
+{
+  if (RSTR_FROZEN_P(s)) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen string");
+  }
+}
+
 MRB_API void
 mrb_str_modify(mrb_state *mrb, struct RString *s)
 {
+  check_frozen(mrb, s);
   if (RSTR_SHARED_P(s)) {
     mrb_shared_string *shared = s->as.heap.aux.shared;
 
@@ -117,6 +189,15 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
     RSTR_UNSET_NOFREE_FLAG(s);
     return;
   }
+}
+
+static mrb_value
+mrb_str_freeze(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+
+  RSTR_SET_FROZEN_FLAG(s);
+  return str;
 }
 
 MRB_API mrb_value
@@ -1100,7 +1181,7 @@ mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
  *
  *  Returns a copy of <i>str</i> with all uppercase letters replaced with their
  *  lowercase counterparts. The operation is locale insensitive---only
- *  characters ``A'' to ``Z'' are affected.
+ *  characters 'A' to 'Z' are affected.
  *
  *     "hEllO".downcase   #=> "hello"
  */
@@ -1345,6 +1426,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 {
   long len;
 
+  check_frozen(mrb, s1);
   len = RSTR_LEN(s2);
   if (RSTR_SHARED_P(s1)) {
     str_decref(mrb, s1->as.heap.aux.shared);
@@ -1703,7 +1785,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
  *
  *  If <i>pattern</i> is omitted, the value of <code>$;</code> is used.  If
  *  <code>$;</code> is <code>nil</code> (which is the default), <i>str</i> is
- *  split on whitespace as if ` ' were specified.
+ *  split on whitespace as if ' ' were specified.
  *
  *  If the <i>limit</i> parameter is omitted, trailing null fields are
  *  suppressed. If <i>limit</i> is a positive number, at most that number of
@@ -1715,10 +1797,8 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
  *     " now's  the time".split        #=> ["now's", "the", "time"]
  *     " now's  the time".split(' ')   #=> ["now's", "the", "time"]
  *     " now's  the time".split(/ /)   #=> ["", "now's", "", "the", "time"]
- *     "1, 2.34,56, 7".split(%r{,\s*}) #=> ["1", "2.34", "56", "7"]
  *     "hello".split(//)               #=> ["h", "e", "l", "l", "o"]
  *     "hello".split(//, 3)            #=> ["h", "e", "llo"]
- *     "hi mom".split(%r{\s*})         #=> ["h", "i", "m", "o", "m"]
  *
  *     "mellow yellow".split("ello")   #=> ["m", "w y", "w"]
  *     "1,2,,3,4,,".split(',')         #=> ["1", "2", "", "3", "4"]
@@ -1846,7 +1926,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
   const char *p;
   char sign = 1;
   int c, uscore;
-  unsigned long n = 0;
+  uint64_t n = 0;
   mrb_int val;
 
 #define conv_digit(c) \
@@ -1929,7 +2009,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
       }
       break;
   } /* end of switch (base) { */
-  if (*str == '0') {    /* squeeze preceeding 0s */
+  if (*str == '0') {    /* squeeze preceding 0s */
     uscore = 0;
     while ((c = *++str) == '0' || c == '_') {
       if (c == '_') {
@@ -1966,9 +2046,9 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     }
     n *= base;
     n += c;
-  }
-  if (n > MRB_INT_MAX) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "string (%S) too big for integer", mrb_str_new_cstr(mrb, str));
+    if (n > MRB_INT_MAX) {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "string (%S) too big for integer", mrb_str_new_cstr(mrb, str));
+    }
   }
   val = n;
   if (badcheck) {
@@ -1987,7 +2067,8 @@ bad:
 MRB_API const char*
 mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 {
-  struct RString *ps = mrb_str_ptr(*ptr);
+  mrb_value str = mrb_str_to_str(mrb, *ptr);
+  struct RString *ps = mrb_str_ptr(str);
   mrb_int len = mrb_str_strlen(mrb, ps);
   char *p = RSTR_PTR(ps);
 
@@ -2004,12 +2085,12 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
   const char *s;
   mrb_int len;
 
-  str = mrb_str_to_str(mrb, str);
   if (badcheck) {
+    /* Raises if the string contains a null character (the badcheck) */
     s = mrb_string_value_cstr(mrb, &str);
   }
   else {
-    s = RSTRING_PTR(str);
+    s = mrb_string_value_ptr(mrb, str);
   }
   if (s) {
     len = RSTRING_LEN(str);
@@ -2058,6 +2139,7 @@ MRB_API double
 mrb_cstr_to_dbl(mrb_state *mrb, const char * p, mrb_bool badcheck)
 {
   char *end;
+  char buf[DBL_DIG * 4 + 10];
   double d;
 
   enum {max_width = 20};
@@ -2078,7 +2160,6 @@ bad:
     return d;
   }
   if (*end) {
-    char buf[DBL_DIG * 4 + 10];
     char *n = buf;
     char *e = buf + sizeof(buf) - 1;
     char prev = 0;
@@ -2212,7 +2293,7 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
  *
  *  Returns a copy of <i>str</i> with all lowercase letters replaced with their
  *  uppercase counterparts. The operation is locale insensitive---only
- *  characters ``a'' to ``z'' are affected.
+ *  characters 'a' to 'z' are affected.
  *
  *     "hEllO".upcase   #=> "HELLO"
  */
@@ -2367,10 +2448,10 @@ mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2)
 }
 
 MRB_API mrb_value
-mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2)
+mrb_str_append(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
   str2 = mrb_str_to_str(mrb, str2);
-  return mrb_str_cat_str(mrb, str, str2);
+  return mrb_str_cat_str(mrb, str1, str2);
 }
 
 #define CHAR_ESC_LEN 13 /* sizeof(\x{ hex of 32bit unsigned int } \0) */
@@ -2515,4 +2596,6 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "upcase!",         mrb_str_upcase_bang,     MRB_ARGS_NONE()); /* 15.2.10.5.43 */
   mrb_define_method(mrb, s, "inspect",         mrb_str_inspect,         MRB_ARGS_NONE()); /* 15.2.10.5.46(x) */
   mrb_define_method(mrb, s, "bytes",           mrb_str_bytes,           MRB_ARGS_NONE());
+
+  mrb_define_method(mrb, s, "freeze",          mrb_str_freeze,          MRB_ARGS_NONE());
 }

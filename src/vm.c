@@ -266,6 +266,7 @@ ecall(mrb_state *mrb, int i)
   mrb_value *self = mrb->c->stack;
   struct RObject *exc;
 
+  if (i<0) return;
   p = mrb->c->ensure[i];
   if (!p) return;
   if (mrb->c->ci->eidx > i)
@@ -723,6 +724,8 @@ argnum_error(mrb_state *mrb, mrb_int num)
 
 #define CALL_MAXARGS 127
 
+void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
+
 MRB_API mrb_value
 mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {
@@ -1030,7 +1033,7 @@ RETRY_TRY_BLOCK:
       mrb_callinfo *ci = mrb->c->ci;
       int n, eidx = ci->eidx;
 
-      for (n=0; n<a && eidx > ci[-1].eidx; n++) {
+      for (n=0; n<a && (ci == mrb->c->cibase || eidx > ci[-1].eidx); n++) {
         ecall(mrb, --eidx);
         ARENA_RESTORE(mrb, ai);
       }
@@ -1074,9 +1077,21 @@ RETRY_TRY_BLOCK:
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
         mrb_value sym = mrb_symbol_value(mid);
+        mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
 
-        mid = mrb_intern_lit(mrb, "method_missing");
-        m = mrb_method_search_vm(mrb, &c, mid);
+        m = mrb_method_search_vm(mrb, &c, missing);
+        if (!m) {
+          mrb_value args;
+
+          if (n == CALL_MAXARGS) {
+            args = regs[a+1];
+          }
+          else {
+            args = mrb_ary_new_from_values(mrb, n, regs+a+1);
+          }
+          mrb_method_missing(mrb, mid, recv, args);
+        }
+        mid = missing;
         if (n == CALL_MAXARGS) {
           mrb_ary_unshift(mrb, regs[a+1], sym);
         }
@@ -1471,9 +1486,6 @@ RETRY_TRY_BLOCK:
           if (ci->ridx == 0) goto L_STOP;
           goto L_RESCUE;
         }
-        while (eidx > ci[-1].eidx) {
-          ecall(mrb, --eidx);
-        }
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           ci = mrb->c->ci;
@@ -1483,6 +1495,9 @@ RETRY_TRY_BLOCK:
             MRB_THROW(prev_jmp);
           }
           if (ci == mrb->c->cibase) {
+            while (eidx > 0) {
+              ecall(mrb, --eidx);
+            }
             if (ci->ridx == 0) {
               if (mrb->c == mrb->root_c) {
                 regs = mrb->c->stack = mrb->c->stbase;
@@ -2125,33 +2140,28 @@ RETRY_TRY_BLOCK:
       int pre  = GETARG_B(i);
       int post = GETARG_C(i);
 
+      struct RArray *ary;
+      int len, idx;
+
       if (!mrb_array_p(v)) {
-        regs[a++] = mrb_ary_new_capa(mrb, 0);
+        v = mrb_ary_new_from_values(mrb, 1, &regs[a]);
+      }
+      ary = mrb_ary_ptr(v);
+      len = ary->len;
+      if (len > pre + post) {
+        regs[a++] = mrb_ary_new_from_values(mrb, len - pre - post, ary->ptr+pre);
         while (post--) {
-          SET_NIL_VALUE(regs[a]);
-          a++;
+          regs[a++] = ary->ptr[len-post-1];
         }
       }
       else {
-        struct RArray *ary = mrb_ary_ptr(v);
-        int len = ary->len;
-        int idx;
-
-        if (len > pre + post) {
-          regs[a++] = mrb_ary_new_from_values(mrb, len - pre - post, ary->ptr+pre);
-          while (post--) {
-            regs[a++] = ary->ptr[len-post-1];
-          }
+        regs[a++] = mrb_ary_new_capa(mrb, 0);
+        for (idx=0; idx+pre<len; idx++) {
+          regs[a+idx] = ary->ptr[pre+idx];
         }
-        else {
-          regs[a++] = mrb_ary_new_capa(mrb, 0);
-          for (idx=0; idx+pre<len; idx++) {
-            regs[a+idx] = ary->ptr[pre+idx];
-          }
-          while (idx < post) {
-            SET_NIL_VALUE(regs[a+idx]);
-            idx++;
-          }
+        while (idx < post) {
+          SET_NIL_VALUE(regs[a+idx]);
+          idx++;
         }
       }
       ARENA_RESTORE(mrb, ai);

@@ -122,6 +122,69 @@ assert('String#[] with Range') do
   assert_equal 'bc', j2
 end
 
+assert('String#[]=') do
+  # length of args is 1
+  a = 'abc'
+  a[0] = 'X'
+  assert_equal 'Xbc', a
+
+  b = 'abc'
+  b[-1] = 'X'
+  assert_equal 'abX', b
+
+  c = 'abc'
+  assert_raise(IndexError) do
+    c[10] = 'X'
+  end
+
+  d = 'abc'
+  assert_raise(IndexError) do
+    d[-10] = 'X'
+  end
+
+  e = 'abc'
+  e[1.1] = 'X'
+  assert_equal 'aXc', e
+
+
+  # length of args is 2
+  a1 = 'abc'
+  assert_raise(IndexError) do
+    a1[0, -1] = 'X'
+  end
+
+  b1 = 'abc'
+  assert_raise(IndexError) do
+    b1[10, 0] = 'X'
+  end
+
+  c1 = 'abc'
+  assert_raise(IndexError) do
+    c1[-10, 0] = 'X'
+  end
+
+  d1 = 'abc'
+  d1[0, 0] = 'X'
+  assert_equal 'Xabc', d1
+
+  e1 = 'abc'
+  e1[1, 3] = 'X'
+  assert_equal 'aX', e1
+
+  # args is RegExp
+  # It will be tested in mrbgems.
+
+  # args is String
+  a3 = 'abc'
+  a3['bc'] = 'X'
+  assert_equal a3, 'aX'
+
+  b3 = 'abc'
+  assert_raise(IndexError) do
+    b3['XX'] = 'Y'
+  end
+end
+
 assert('String#capitalize', '15.2.10.5.7') do
   a = 'abc'
   a.capitalize
@@ -252,6 +315,15 @@ assert('String#gsub', '15.2.10.5.18') do
   assert_equal('$$a$$',  '##a##'.gsub('##'){|w| '$$' }, 'mruby/mruby#847 another case with block')
   assert_equal('A',      'a'.gsub('a', 'A'))
   assert_equal('A',      'a'.gsub('a'){|w| w.capitalize })
+end
+
+assert('String#gsub with backslash') do
+  s = 'abXcdXef'
+  assert_equal 'ab<\\>cd<\\>ef',    s.gsub('X', '<\\\\>')
+  assert_equal 'ab<X>cd<X>ef',      s.gsub('X', '<\\&>')
+  assert_equal 'ab<X>cd<X>ef',      s.gsub('X', '<\\0>')
+  assert_equal 'ab<ab>cd<abXcd>ef', s.gsub('X', '<\\`>')
+  assert_equal 'ab<cdXef>cd<ef>ef', s.gsub('X', '<\\\'>')
 end
 
 assert('String#gsub!', '15.2.10.5.19') do
@@ -416,6 +488,15 @@ assert('String#sub', '15.2.10.5.36') do
   assert_equal 'aa$', 'aa#'.sub('#', '$')
 end
 
+assert('String#sub with backslash') do
+  s = 'abXcdXef'
+  assert_equal 'ab<\\>cdXef',    s.sub('X', '<\\\\>')
+  assert_equal 'ab<X>cdXef',     s.sub('X', '<\\&>')
+  assert_equal 'ab<X>cdXef',     s.sub('X', '<\\0>')
+  assert_equal 'ab<ab>cdXef',    s.sub('X', '<\\`>')
+  assert_equal 'ab<cdXef>cdXef', s.sub('X', '<\\\'>')
+end
+
 assert('String#sub!', '15.2.10.5.37') do
   a = 'abcabc'
   a.sub!('b', 'B')
@@ -524,3 +605,11 @@ assert('String#each_byte') do
 
   assert_equal bytes1, bytes2
 end
+
+assert('String#freeze') do
+  str = "hello"
+  str.freeze
+
+  assert_raise(RuntimeError) { str.upcase! }
+end
+

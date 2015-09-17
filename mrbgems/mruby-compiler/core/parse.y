@@ -2154,6 +2154,7 @@ primary         : literal
                       $$ = new_lambda(p, $3, $5);
                       local_unnest(p);
                       p->cmdarg_stack = $<stack>4;
+                      CMDARG_LEXPOP();
                     }
                 | keyword_if expr_value then
                   compstmt
@@ -2941,7 +2942,7 @@ backref         : tNTH_REF
                 | tBACK_REF
                 ;
 
-superclass      : term
+superclass      : /* term */
                     {
                       $$ = 0;
                     }
@@ -2953,12 +2954,12 @@ superclass      : term
                   expr_value term
                     {
                       $$ = $3;
-                    }
+                    } /* 
                 | error term
                     {
                       yyerrok;
                       $$ = 0;
-                    }
+                    } */
                 ;
 
 f_arglist       : '(' f_args rparen
@@ -3604,10 +3605,13 @@ toklast(parser_state *p)
 static void
 tokfix(parser_state *p)
 {
-  if (p->bidx >= MRB_PARSER_BUF_SIZE) {
+  int i = p->bidx, imax = MRB_PARSER_BUF_SIZE - 1;
+
+  if (i > imax) {
+    i = imax;
     yyerror(p, "string too long (truncated)");
   }
-  p->buf[p->bidx] = '\0';
+  p->buf[i] = '\0';
 }
 
 static const char*
@@ -4204,7 +4208,7 @@ parser_yylex(parser_state *p)
       }
       pushback(p, c);
       if (IS_SPCARG(c)) {
-        yywarning(p, "`*' interpreted as argument prefix");
+        yywarning(p, "'*' interpreted as argument prefix");
         c = tSTAR;
       }
       else if (IS_BEG()) {
@@ -4455,7 +4459,7 @@ parser_yylex(parser_state *p)
     }
     pushback(p, c);
     if (IS_SPCARG(c)) {
-      yywarning(p, "`&' interpreted as argument prefix");
+      yywarning(p, "'&' interpreted as argument prefix");
       c = tAMPER;
     }
     else if (IS_BEG()) {
@@ -4761,7 +4765,7 @@ parser_yylex(parser_state *p)
         nondigit = c;
         break;
 
-      case '_':       /* `_' in number just ignored */
+      case '_':       /* '_' in number just ignored */
         if (nondigit) goto decode_num;
         nondigit = c;
         break;
@@ -4776,7 +4780,7 @@ parser_yylex(parser_state *p)
     pushback(p, c);
     if (nondigit) {
       trailing_uc:
-      yyerror_i(p, "trailing `%c' in number", nondigit);
+      yyerror_i(p, "trailing '%c' in number", nondigit);
     }
     tokfix(p);
     if (is_float) {
@@ -4802,6 +4806,7 @@ parser_yylex(parser_state *p)
   case ')':
   case ']':
     p->paren_nest--;
+    /* fall through */
   case '}':
     COND_LEXPOP();
     CMDARG_LEXPOP();
@@ -5133,6 +5138,7 @@ parser_yylex(parser_state *p)
         pushback(p,  c);
         return '$';
       }
+      /* fall through */
     case '0':
       tokadd(p, '$');
     }
@@ -5157,10 +5163,10 @@ parser_yylex(parser_state *p)
       }
       else if (isdigit(c)) {
         if (p->bidx == 1) {
-          yyerror_i(p, "`@%c' is not allowed as an instance variable name", c);
+          yyerror_i(p, "'@%c' is not allowed as an instance variable name", c);
         }
         else {
-          yyerror_i(p, "`@@%c' is not allowed as a class variable name", c);
+          yyerror_i(p, "'@@%c' is not allowed as a class variable name", c);
         }
         return 0;
       }
@@ -5176,7 +5182,7 @@ parser_yylex(parser_state *p)
 
     default:
       if (!identchar(c)) {
-        yyerror_i(p,  "Invalid char `\\x%02X' in expression", c);
+        yyerror_i(p,  "Invalid char '\\x%02X' in expression", c);
         goto retry;
       }
 

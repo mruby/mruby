@@ -12,12 +12,36 @@ class String
   def each_line(&block)
     # expect that str.index accepts an Integer for 1st argument as a byte data
     offset = 0
-    while(pos = self.index(0x0a, offset))
+    while pos = self.index(0x0a, offset)
       block.call(self[offset, pos + 1 - offset])
       offset = pos + 1
     end
     block.call(self[offset, self.size - offset]) if self.size > offset
     self
+  end
+
+  # private method for gsub/sub
+  def __sub_replace(pre, m, post)
+    s = ""
+    i = 0
+    while j = index("\\", i)
+      break if j == length-1
+      t = case self[j+1]
+          when "\\"
+            "\\"
+          when "`"
+            pre
+          when "&", "0"
+            m
+          when "'"
+            post
+          else
+            self[j, 2]
+          end
+      s += self[i, j-i] + t
+      i = j + 2
+    end
+    s + self[i, length-i]
   end
 
   ##
@@ -29,7 +53,17 @@ class String
   # ISO 15.2.10.5.18
   def gsub(*args, &block)
     if args.size == 2
-      split(args[0], -1).join(args[1])
+      s = ""
+      i = 0
+      while j = index(args[0], i)
+        seplen = args[0].length
+        k = j + seplen
+        pre = self[0, j]
+        post = self[k, length-k]
+        s += self[i, j-i] + args[1].__sub_replace(pre, args[0], post)
+        i = k
+      end
+      s + self[i, length-i]
     elsif args.size == 1 && block
       split(args[0], -1).join(block.call(args[0]))
     else
@@ -46,12 +80,8 @@ class String
   # ISO 15.2.10.5.19
   def gsub!(*args, &block)
     str = self.gsub(*args, &block)
-    if str != self
-      self.replace(str)
-      self
-    else
-      nil
-    end
+    return nil if str == self
+    self.replace(str)
   end
 
   ##
@@ -76,7 +106,9 @@ class String
   # ISO 15.2.10.5.36
   def sub(*args, &block)
     if args.size == 2
-      split(args[0], 2).join(args[1])
+      pre, post = split(args[0], 2)
+      return self unless post # The sub target wasn't found in the string
+      pre + args[1].__sub_replace(pre, args[0], post) + post
     elsif args.size == 1 && block
       split(args[0], 2).join(block.call(args[0]))
     else
@@ -93,12 +125,8 @@ class String
   # ISO 15.2.10.5.37
   def sub!(*args, &block)
     str = self.sub(*args, &block)
-    if str != self
-      self.replace(str)
-      self
-    else
-      nil
-    end
+    return nil if str == self
+    self.replace(str)
   end
 
   ##
@@ -106,7 +134,7 @@ class String
   # +self+.
   def each_char(&block)
     pos = 0
-    while(pos < self.size)
+    while pos < self.size
       block.call(self[pos])
       pos += 1
     end
@@ -118,7 +146,7 @@ class String
   def each_byte(&block)
     bytes = self.bytes
     pos = 0
-    while(pos < bytes.size)
+    while pos < bytes.size
       block.call(bytes[pos])
       pos += 1
     end
@@ -126,23 +154,54 @@ class String
   end
 
   ##
-  # Modify +self+ by replacing the content of +self+
-  # at the position +pos+ with +value+.
-  def []=(pos, value)
-    if pos < 0
-      pos += self.length
+  # Modify +self+ by replacing the content of +self+.
+  # The portion of the string affected is determined using the same criteria as +String#[]+.
+  def []=(*args)
+    anum = args.size
+    if anum == 2
+      pos, value = args
+      if pos.kind_of? String
+        posnum = self.index(pos)
+        if posnum
+          b = self[0, posnum.to_i]
+          a = self[(posnum + pos.length)..-1]
+          self.replace([b, value, a].join(''))
+          return value
+        else
+          raise IndexError, "string not matched"
+        end
+      else
+        pos += self.length if pos < 0
+        if pos < 0 || pos > self.length
+          raise IndexError, "index #{args[0]} out of string"
+        end
+        b = self[0, pos.to_i]
+        a = self[pos + 1..-1]
+        self.replace([b, value, a].join(''))
+        return value
+      end
+    elsif anum == 3
+      pos, len, value = args
+      pos += self.length if pos < 0
+      if pos < 0 || pos > self.length
+        raise IndexError, "index #{args[0]} out of string"
+      end
+      if len < 0
+        raise IndexError, "negative length #{len}"
+      end
+      b = self[0, pos.to_i]
+      a = self[pos + len..-1]
+      self.replace([b, value, a].join(''))
+      return value
+    else
+      raise ArgumentError, "wrong number of arguments (#{anum} for 2..3)"
     end
-    b = self[0, pos]
-    a = self[pos+1..-1]
-    self.replace([b, value, a].join(''))
   end
 
   ##
   # ISO 15.2.10.5.3
   def =~(re)
-    if re.respond_to? :to_str
-      raise TypeError, "type mismatch: String given"
-    end
+    raise TypeError, "type mismatch: String given" if re.respond_to? :to_str
     re =~ self
   end
 

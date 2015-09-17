@@ -152,7 +152,7 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
     mrb_str_append(mrb, str, line);
     mrb_str_cat_lit(mrb, str, ": ");
     if (append_mesg) {
-      mrb_str_append(mrb, str, mesg);
+      mrb_str_cat_str(mrb, str, mesg);
       mrb_str_cat_lit(mrb, str, " (");
     }
     mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, exc));
@@ -165,7 +165,7 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
     str = mrb_str_new_cstr(mrb, cname);
     mrb_str_cat_lit(mrb, str, ": ");
     if (append_mesg) {
-      mrb_str_append(mrb, str, mesg);
+      mrb_str_cat_str(mrb, str, mesg);
     }
     else {
       mrb_str_cat_cstr(mrb, str, cname);
@@ -424,15 +424,14 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
 }
 
 MRB_API mrb_noreturn void
-mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_int argc, const mrb_value *argv, char const* fmt, ...)
+mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt, ...)
 {
   mrb_value exc;
   va_list ap;
 
   va_start(ap, fmt);
   exc = mrb_funcall(mrb, mrb_obj_value(E_NOMETHOD_ERROR), "new", 3,
-                    mrb_vformat(mrb, fmt, ap), mrb_symbol_value(id),
-                    mrb_ary_new_from_values(mrb, argc, argv));
+                    mrb_vformat(mrb, fmt, ap), mrb_symbol_value(id), args);
   va_end(ap);
   mrb_exc_raise(mrb, exc);
 }

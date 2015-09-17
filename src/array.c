@@ -19,7 +19,6 @@
 static inline mrb_value
 ary_elt(mrb_value ary, mrb_int offset)
 {
-  if (RARRAY_LEN(ary) == 0) return mrb_nil_value();
   if (offset < 0 || RARRAY_LEN(ary) <= offset) {
     return mrb_nil_value();
   }
@@ -88,15 +87,12 @@ array_copy(mrb_value *dst, const mrb_value *src, mrb_int size)
 MRB_API mrb_value
 mrb_ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals)
 {
-  mrb_value ary;
-  struct RArray *a;
+  struct RArray *a = ary_new_capa(mrb, size);
 
-  ary = mrb_ary_new_capa(mrb, size);
-  a = mrb_ary_ptr(ary);
   array_copy(a->ptr, vals, size);
   a->len = size;
 
-  return ary;
+  return mrb_obj_value(a);
 }
 
 MRB_API mrb_value
@@ -293,18 +289,19 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a1 = mrb_ary_ptr(self);
   struct RArray *a2;
-  mrb_value ary;
   mrb_value *ptr;
   mrb_int blen;
 
   mrb_get_args(mrb, "a", &ptr, &blen);
-  ary = mrb_ary_new_capa(mrb, a1->len + blen);
-  a2 = mrb_ary_ptr(ary);
+  if (ARY_MAX_SIZE - blen < a1->len) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
+  }
+  a2 = ary_new_capa(mrb, a1->len + blen);
   array_copy(a2->ptr, a1->ptr, a1->len);
   array_copy(a2->ptr + a1->len, ptr, blen);
   a2->len = a1->len + blen;
 
-  return ary;
+  return mrb_obj_value(a2);
 }
 
 static void
@@ -342,7 +339,6 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a1 = mrb_ary_ptr(self);
   struct RArray *a2;
-  mrb_value ary;
   mrb_value *ptr;
   mrb_int times;
 
@@ -351,9 +347,10 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argument");
   }
   if (times == 0) return mrb_ary_new(mrb);
-
-  ary = mrb_ary_new_capa(mrb, a1->len * times);
-  a2 = mrb_ary_ptr(ary);
+  if (ARY_MAX_SIZE / times < a1->len) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
+  }
+  a2 = ary_new_capa(mrb, a1->len * times);
   ptr = a2->ptr;
   while (times--) {
     array_copy(ptr, a1->ptr, a1->len);
@@ -361,7 +358,7 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
     a2->len += a1->len;
   }
 
-  return ary;
+  return mrb_obj_value(a2);
 }
 
 static mrb_value
@@ -388,11 +385,8 @@ mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_ary_reverse(mrb_state *mrb, mrb_value self)
 {
-  struct RArray *a = mrb_ary_ptr(self), *b;
-  mrb_value ary;
+  struct RArray *a = mrb_ary_ptr(self), *b = ary_new_capa(mrb, a->len);
 
-  ary = mrb_ary_new_capa(mrb, a->len);
-  b = mrb_ary_ptr(ary);
   if (a->len > 0) {
     mrb_value *p1, *p2, *e;
 
@@ -404,7 +398,7 @@ mrb_ary_reverse(mrb_state *mrb, mrb_value self)
     }
     b->len = a->len;
   }
-  return ary;
+  return mrb_obj_value(b);
 }
 
 MRB_API void
@@ -1036,7 +1030,7 @@ mrb_ary_join_m(mrb_state *mrb, mrb_value ary)
 {
   mrb_value sep = mrb_nil_value();
 
-  mrb_get_args(mrb, "|S", &sep);
+  mrb_get_args(mrb, "|S!", &sep);
   return mrb_ary_join(mrb, ary, sep);
 }
 
@@ -1047,7 +1041,6 @@ mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
 
   mrb_get_args(mrb, "o", &ary2);
   if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_true_value();
-  if (mrb_immediate_p(ary2)) return mrb_false_value();
   if (!mrb_array_p(ary2)) {
     return mrb_false_value();
   }
@@ -1063,7 +1056,6 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
 
   mrb_get_args(mrb, "o", &ary2);
   if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_fixnum_value(0);
-  if (mrb_immediate_p(ary2)) return mrb_nil_value();
   if (!mrb_array_p(ary2)) {
     return mrb_nil_value();
   }

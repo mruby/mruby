@@ -16,7 +16,7 @@ class Array
     while idx < length and length <= self.length and length = self.length-1
       elm = self[idx += 1]
       unless elm
-        if elm == nil and length >= self.length
+        if elm.nil? and length >= self.length
           break
         end
       end
@@ -34,7 +34,7 @@ class Array
     return to_enum :each_index unless block_given?
 
     idx = 0
-    while(idx < length)
+    while idx < length
       block.call(idx)
       idx += 1
     end
@@ -50,9 +50,7 @@ class Array
   def collect!(&block)
     return to_enum :collect! unless block_given?
 
-    self.each_index{|idx|
-      self[idx] = block.call(self[idx])
-    }
+    self.each_index { |idx| self[idx] = block.call(self[idx]) }
     self
   end
 
@@ -72,10 +70,10 @@ class Array
 
     self.clear
     if size > 0
-      self[size - 1] = nil  # allocate
+      self[size - 1] = nil # allocate
 
       idx = 0
-      while(idx < size)
+      while idx < size
         self[idx] = (block)? block.call(idx): obj
         idx += 1
       end
@@ -146,7 +144,7 @@ class Array
   #  equal, then that inequality is the return value. If all the
   #  values found are equal, then the return is based on a
   #  comparison of the array lengths.  Thus, two arrays are
-  #  ``equal'' according to <code>Array#<=></code> if and only if they have
+  #  "equal" according to <code>Array#<=></code> if and only if they have
   #  the same length and the value of each element is equal to the
   #  value of the corresponding element in the other array.
   #
@@ -158,14 +156,11 @@ class Array
 
     len = self.size
     n = other.size
-    if len > n
-      len = n
-    end
+    len = n if len > n
     i = 0
     while i < len
       n = (self[i] <=> other[i])
-      return n if n == nil
-      return n if n != 0
+      return n if n.nil? || n != 0
       i += 1
     end
     len = self.size - other.size
@@ -185,20 +180,14 @@ class Array
       self.delete_at(i)
       ret = key
     end
-    if ret == nil && block
-      block.call
-    else
-      ret
-    end
+    return block.call if ret.nil? && block
+    ret
   end
 
   # internal method to convert multi-value to single value
   def __svalue
-    if self.size < 2
-      self.first
-    else
-      self
-    end
+    return self.first if self.size < 2
+    self
   end
 end
 
