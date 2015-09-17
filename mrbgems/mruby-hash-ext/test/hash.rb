@@ -79,7 +79,7 @@ assert('Hash#fetch') do
   begin
     h.fetch("gnu")
   rescue => e
-    assert_kind_of(StandardError, e);
+    assert_kind_of(KeyError, e);
   end
 end
 
