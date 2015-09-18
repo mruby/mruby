@@ -660,7 +660,7 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* kl
 
   if (!recur && (klass->flags & MRB_FLAG_IS_PREPENDED)) {
     MRB_CLASS_ORIGIN(klass);
-    prepended = 1;
+    prepended = TRUE;
   }
 
   oldklass = 0;
