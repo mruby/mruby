@@ -130,7 +130,7 @@ class Hash
       elsif none != NONE
         none
       else
-        raise RuntimeError, "Key not found: #{key}"
+        raise KeyError, "Key not found: #{key}"
       end
     else
       self[key]
@@ -156,7 +156,7 @@ class Hash
 
     self.each do |k, v|
       self.delete(k) if block.call(k, v)
-    end 
+    end
     self
   end
 
