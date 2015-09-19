@@ -1,8 +1,9 @@
-/*
-** mruby/string.h - String class
-**
-** See Copyright Notice in mruby.h
-*/
+/**
+ * @header mruby/string.h
+ * @copyright See Copyright Notice in mruby.h
+ *
+ * String class
+ */
 
 #ifndef MRUBY_STRING_H
 #define MRUBY_STRING_H
@@ -67,7 +68,7 @@ struct RString {
 #define RSTRING(s)           mrb_str_ptr(s)
 #define RSTRING_PTR(s)       RSTR_PTR(RSTRING(s))
 #define RSTRING_EMBED_LEN(s) RSTR_ENBED_LEN(RSTRING(s))
-#define RSTRING_LEN(s)       RSTR_LEN(RSTRING(s))  
+#define RSTRING_LEN(s)       RSTR_LEN(RSTRING(s))
 #define RSTRING_CAPA(s)      RSTR_CAPA(RSTRING(s))
 #define RSTRING_END(s)       (RSTRING_PTR(s) + RSTRING_LEN(s))
 mrb_int mrb_str_strlen(mrb_state*, struct RString*);
