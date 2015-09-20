@@ -1,31 +1,35 @@
 /*
- * mruby - An embeddable Ruby implementation
- *
- * Copyright (c) mruby developers 2010-2015
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
- *
- * @header mruby.h
+** mruby - An embeddable Ruby implementation
+**
+** Copyright (c) mruby developers 2010-2015
+**
+** Permission is hereby granted, free of charge, to any person obtaining
+** a copy of this software and associated documentation files (the
+** "Software"), to deal in the Software without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Software, and to
+** permit persons to whom the Software is furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be
+** included in all copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+**
+** [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 */
+
+/**
+ * @header mruby.h
+ *
+ * Basic mruby header.
+ */
 
 #ifndef MRUBY_H
 #define MRUBY_H
@@ -48,6 +52,13 @@ typedef uint32_t mrb_aspec;
 struct mrb_irep;
 struct mrb_state;
 
+/**
+ * Function pointer type of custom allocator used in mrb_open_allocf.
+ *
+ * The function pointing it must behave similarly as realloc except:
+ * - If ptr is NULL it must allocate new space.
+ * - If s is NULL, ptr must be freed.
+ */
 typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 
 #ifndef MRB_GC_ARENA_SIZE
@@ -206,7 +217,19 @@ typedef struct mrb_state {
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
 
 /**
- * Define a new Class
+ * Defines a new class.
+ *
+ * If you're creating a gem it may look something like this:
+ *  <pre>
+ *    void mrb_example_gem_init(mrb_state* mrb) {
+ *      struct RClass *example_class;
+ *      example_class = mrb_define_class(mrb, "Example_Class", mrb->object_class);
+ *    }
+ *
+ *    void mrb_example_gem_final(mrb_state* mrb) {
+ *      //free(TheAnimals);
+ *    }
+ *  </pre>
  *
  * @param name The name of the defined class
  * @param super The new class parent
@@ -217,6 +240,23 @@ MRB_API mrb_value mrb_singleton_class(mrb_state*, mrb_value);
 MRB_API void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
 MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
 
+/**
+ * Defines a global function in ruby.
+ *
+ * If you're creating a gem it may look something like this:
+ *    mrb_value example_method(mrb_state* mrb, mrb_value self){
+ *        puts("Executing example command!");
+ *        return self;
+ *    }
+ *
+ *    void mrb_example_gem_init(mrb_state* mrb) {
+ *      mrb_define_method(mrb, mrb->kernel_module, "example_method", example_method, MRB_ARGS_NONE());  
+ *    }
+ *
+ *    void mrb_example_gem_final(mrb_state* mrb) {
+ *      //free(TheAnimals);
+ *    }
+ */
 MRB_API void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
 MRB_API void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
 MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
@@ -263,6 +303,39 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
 /* accept no arguments */
 #define MRB_ARGS_NONE()     ((mrb_aspec)0)
 
+/**
+ * Retrieve arguments from mrb_state.
+ * When applicable, implicit conversions (such as to_str, to_ary, to_hash) are
+ * applied to received arguments.
+ * Use it inside a function pointed by mrb_func_t.
+ * @param format
+ *      is a list of following format specifiers:
+ *      <pre>
+ *        char mruby type      retrieve types       note
+ *        o    Object          mrb_value            Could be used to retrieve any type of argument
+ *        C    Class/Module    mrb_value
+ *        S    String          mrb_value            when ! follows, the value may be nil
+ *        A    Array           mrb_value            when ! follows, the value may be nil
+ *        H    Hash            mrb_value            when ! follows, the value may be nil
+ *        s    String          char*, mrb_int       Receive two arguments; s! gives (NULL,0) for nil
+ *        z    String          char*                NUL terminated string; z! gives NULL for nil
+ *        a    Array           mrb_value*, mrb_int  Receive two arguments; a! gives (NULL,0) for nil
+ *        f    Float           mrb_float
+ *        i    Integer         mrb_int
+ *        b    boolean         mrb_bool
+ *        n    Symbol          mrb_sym
+ *        &    block           mrb_value
+ *        *    rest arguments  mrb_value*, mrb_int  Receive the rest of arguments as an array.
+ *        |    optional                             After this spec following specs would be optional.
+ *        ?    optional given  mrb_bool             True if preceding argument is given. Used to check optional argument is given.
+ *      </pre>
+ *
+ * @param ...
+ *      The passing variadic arguments must be a pointer of retrieving type.
+ *
+ * @return
+ *      the number of arguments retrieved.
+ */
 MRB_API mrb_int mrb_get_args(mrb_state *mrb, const char *format, ...);
 
 /* `strlen` for character string literals (use with caution or `strlen` instead)
@@ -273,6 +346,9 @@ MRB_API mrb_int mrb_get_args(mrb_state *mrb, const char *format, ...);
 */
 #define mrb_strlen_lit(lit) (sizeof(lit "") - 1)
 
+/**
+ * Call existing ruby functions.
+ */
 MRB_API mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, mrb_int,...);
 MRB_API mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, mrb_int, const mrb_value*);
 MRB_API mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, mrb_int, const mrb_value*, mrb_value);
@@ -297,6 +373,10 @@ MRB_API struct RBasic *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*)
 MRB_API void mrb_free(mrb_state*, void*);
 
 MRB_API mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
+
+/**
+ * Turns a C string into a Ruby string value.
+ */
 MRB_API mrb_value mrb_str_new_cstr(mrb_state*, const char*);
 MRB_API mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
 #define mrb_str_new_lit(mrb, lit) mrb_str_new_static(mrb, (lit), mrb_strlen_lit(lit))
@@ -313,9 +393,25 @@ char* mrb_locale_from_utf8(const char *p, size_t len);
 #define mrb_utf8_free(p)
 #endif
 
+/**
+ * Creates new mrb_state.
+ */
 MRB_API mrb_state* mrb_open(void);
+
+
+/**
+ * Create new mrb_state with custom allocator.
+ *
+ * @param ud
+ *      will be passed to custom allocator f. If user data isn't required just
+ *      pass NULL. Function pointer f must satisfy requirements of its type.
+ */
 MRB_API mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
 MRB_API mrb_state* mrb_open_core(mrb_allocf, void *ud);
+
+/**
+ * Deletes mrb_state.
+ */
 MRB_API void mrb_close(mrb_state*);
 
 MRB_API void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
