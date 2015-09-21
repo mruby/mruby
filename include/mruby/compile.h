@@ -11,9 +11,8 @@
 
 /**
  * @file mruby/compile.h
- * @brief MRuby compiler
- * @defgroup mrb_compile MRuby compiler
- * @ingroup MRuby
+ * @defgroup mruby_compile Compiler
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

@@ -12,9 +12,8 @@
 
 /**
  * @file mruby/irep.h
- * @brief Compiled mruby script.
- * @defgroup mrb_irep Compiled mruby script.
- * @ingroup MRuby
+ * @defgroup mruby_irep Compiled mruby scripts.
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

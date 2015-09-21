@@ -40,14 +40,18 @@
 /**
  * @file mruby.h
  * @brief Main header of mruby C API. Include this first.
- * @defgroup mrb_core MRuby core
- * @ingroup MRuby
+ * @defgroup mruby MRuby C API
  * @{
  */
 MRB_BEGIN_DECL
 
 typedef uint32_t mrb_code;
+
+/**
+ * Required arguments signature type.
+ */
 typedef uint32_t mrb_aspec;
+
 
 struct mrb_irep;
 struct mrb_state;
@@ -245,17 +249,15 @@ MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
  *
  * If you're creating a gem it may look something like this:
  *
- *     mrb_value example_method(mrb_state* mrb, mrb_value self){
+ *     mrb_value example_method(mrb_state* mrb, mrb_value self)
+ *     {
  *          puts("Executing example command!");
  *          return self;
  *     }
  *
- *     void mrb_example_gem_init(mrb_state* mrb) {
+ *     void mrb_example_gem_init(mrb_state* mrb)
+ *     {
  *           mrb_define_method(mrb, mrb->kernel_module, "example_method", example_method, MRB_ARGS_NONE());
- *     }
- *
- *     void mrb_example_gem_final(mrb_state* mrb) {
- *         //free(TheAnimals);
  *     }
  *
  * @param mrb
@@ -265,7 +267,8 @@ MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
  * @param func
  *      The function pointer to the method definition.
  * @param aspec
- *      The method required parameters definition.
+ *      The method parameters declaration.
+ *      See @ref mruby_mrb_aspec for details.
  */
 MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *name, mrb_func_t func, mrb_aspec aspec);
 
@@ -293,28 +296,95 @@ MRB_API mrb_bool mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mi
 MRB_API struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
 MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
-/* required arguments */
+/**
+ * @defgroup mruby_mrb_aspec Required arguments declaration helpers.
+ *
+ * Helper functions to declare arguments requirements on methods declared by
+ * \ref mrb_define_method and the like
+ *
+ * @{
+ */
+
+/**
+ * Function requires n arguments.
+ *
+ * @param n
+ *      The number of required arguments.
+ */
 #define MRB_ARGS_REQ(n)     ((mrb_aspec)((n)&0x1f) << 18)
-/* optional arguments */
+
+/**
+ * Funtion takes n optional arguments
+ *
+ * @param n
+ *      The number of optional arguments.
+ */
 #define MRB_ARGS_OPT(n)     ((mrb_aspec)((n)&0x1f) << 13)
-/* mandatory and optinal arguments */
+
+/**
+ * Funtion takes n1 mandatory arguments and n2 optional arguments
+ *
+ * @param n1
+ *      The number of required arguments.
+ * @param n2
+ *      The number of optional arguments.
+ */
 #define MRB_ARGS_ARG(n1,n2)   (MRB_ARGS_REQ(n1)|MRB_ARGS_OPT(n2))
 
-/* rest argument */
+/** rest argument */
 #define MRB_ARGS_REST()     ((mrb_aspec)(1 << 12))
-/* required arguments after rest */
+
+/** required arguments after rest */
 #define MRB_ARGS_POST(n)    ((mrb_aspec)((n)&0x1f) << 7)
-/* keyword arguments (n of keys, kdict) */
+
+/** keyword arguments (n of keys, kdict) */
 #define MRB_ARGS_KEY(n1,n2) ((mrb_aspec)((((n1)&0x1f) << 2) | ((n2)?(1<<1):0)))
-/* block argument */
+
+/**
+ * Function takes a block argument
+ */
 #define MRB_ARGS_BLOCK()    ((mrb_aspec)1)
 
-/* accept any number of arguments */
+/**
+ * Function accepts any number of arguments
+ */
 #define MRB_ARGS_ANY()      MRB_ARGS_REST()
-/* accept no arguments */
+
+/**
+ * Function accepts no arguments
+ */
 #define MRB_ARGS_NONE()     ((mrb_aspec)0)
 
-/** Retrieve arguments from mrb_state.
+/** @} */
+
+/**
+ * Format specifiers for \ref mrb_get_args function
+ *
+ * Must be a list of following format specifiers:
+ *
+ * | char | mruby type     | retrieve types      |note                                                |
+ * |:----:|----------------|---------------------|----------------------------------------------------|
+ * | o    | Object         | mrb_value           | Could be used to retrieve any type of argument     |
+ * | C    | Class/Module   | mrb_value           |                                                    |
+ * | S    | String         | mrb_value           | when ! follows, the value may be nil               |
+ * | A    | Array          | mrb_value           | when ! follows, the value may be nil               |
+ * | H    | Hash           | mrb_value           | when ! follows, the value may be nil               |
+ * | s    | String         | char *, mrb_int      |  Receive two arguments; s! gives (NULL,0) for nil  |
+ * | z    | String         | char *               | NUL terminated string; z! gives NULL for nil       |
+ * | a    | Array          | mrb_value *, mrb_int | Receive two arguments; a! gives (NULL,0) for nil   |
+ * | f    | Float          | mrb_float           |                                                    |
+ * | i    | Integer        | mrb_int             |                                                    |
+ * | b    | boolean        | mrb_bool            |                                                    |
+ * | n    | Symbol         | mrb_sym             |                                                    |
+ * | &    | block          | mrb_value           |                                                    |
+ * | *    | rest arguments | mrb_value *, mrb_int | Receive the rest of arguments as an array.         |
+ * | \|   | optional       |                     | After this spec following specs would be optional. |
+ * | ?    | optional given | mrb_bool            | True if preceding argument is given. Used to check optional argument is given. |
+ */
+typedef const char *mrb_args_format;
+
+/**
+ * Retrieve arguments from mrb_state.
  *
  * When applicable, implicit conversions (such as to_str, to_ary, to_hash) are
  * applied to received arguments.
@@ -322,36 +392,14 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
  *
  * @param mrb
  *      The current MRuby state.
- *
  * @param format
- *      is a list of following format specifiers:
- *      <pre>
- *        char mruby type      retrieve types       note
- *        o    Object          mrb_value            Could be used to retrieve any type of argument
- *        C    Class/Module    mrb_value
- *        S    String          mrb_value            when ! follows, the value may be nil
- *        A    Array           mrb_value            when ! follows, the value may be nil
- *        H    Hash            mrb_value            when ! follows, the value may be nil
- *        s    String          char*, mrb_int       Receive two arguments; s! gives (NULL,0) for nil
- *        z    String          char*                NUL terminated string; z! gives NULL for nil
- *        a    Array           mrb_value*, mrb_int  Receive two arguments; a! gives (NULL,0) for nil
- *        f    Float           mrb_float
- *        i    Integer         mrb_int
- *        b    boolean         mrb_bool
- *        n    Symbol          mrb_sym
- *        &    block           mrb_value
- *        *    rest arguments  mrb_value*, mrb_int  Receive the rest of arguments as an array.
- *        |    optional                             After this spec following specs would be optional.
- *        ?    optional given  mrb_bool             True if preceding argument is given. Used to check optional argument is given.
- *      </pre>
- *
+ *      is a list of format specifiers see @ref mrb_args_format
  * @param ...
  *      The passing variadic arguments must be a pointer of retrieving type.
- *
  * @return
  *      the number of arguments retrieved.
  */
-MRB_API mrb_int mrb_get_args(mrb_state *mrb, const char *format, ...);
+MRB_API mrb_int mrb_get_args(mrb_state *mrb, mrb_args_format format, ...);
 
 /* `strlen` for character string literals (use with caution or `strlen` instead)
     Adjacent string literals are concatenated in C/C++ in translation phase 6.

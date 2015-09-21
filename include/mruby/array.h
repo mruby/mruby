@@ -11,9 +11,8 @@
 
 /**
  * @file mruby/array.h
- * @brief Array class
- * @defgroup mrb_array MRuby Array class
- * @ingroup MRuby
+ * @defgroup mruby_array Array class
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

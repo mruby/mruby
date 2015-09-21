@@ -13,9 +13,8 @@
 
 /**
  * @file mruby/dump.h
- * @brief Dumping compiled mruby script.
- * @defgroup mrb_dump Dumping compiled mruby script.
- * @ingroup MRuby
+ * @defgroup mruby_dump Dumping compiled mruby script.
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

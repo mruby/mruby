@@ -11,9 +11,8 @@
 
 /**
  * @file mruby/variable.h
- * @brief Functions to access mruby variables.
- * @defgroup mrb_variable Functions to access to mruby variables.
- * @ingroup MRuby
+ * @defgroup mruby_variable Functions to access to mruby variables.
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

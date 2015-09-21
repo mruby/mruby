@@ -11,9 +11,8 @@
 
 /**
  * @file mruby/error.h
- * @brief Error handling.
- * @defgroup mrb_error MRuby Error handling.
- * @ingroup MRuby
+ * @defgroup mruby_error Error handling.
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

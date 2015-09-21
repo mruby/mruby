@@ -11,9 +11,8 @@
 
 /**
  * @file mruby/data.h
- * @brief User defined objects.
- * @defgroup mrb_string MRuby User defined objects.
- * @ingroup MRuby
+ * @defgroup mruby_data User defined objects.
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

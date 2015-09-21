@@ -11,9 +11,8 @@
 
 /**
  * @file mruby/hash.h
- * @brief Hash class
- * @defgroup mrb_hash MRuby Hash class
- * @ingroup MRuby
+ * @defgroup mruby_hash Hash class
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

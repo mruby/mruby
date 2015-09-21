@@ -11,9 +11,8 @@
 
 /**
  * @file mruby/debug.h
- * @brief Debugging.
- * @defgroup mrb_string MRuby Debugging.
- * @ingroup MRuby
+ * @defgroup mruby_debug Debugging.
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

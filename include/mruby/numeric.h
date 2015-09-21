@@ -11,9 +11,11 @@
 
 /**
  * @file mruby/numeric.h
- * @brief Numeric class and sub-classes of it.
- * @defgroup mrb_string Numeric class and sub-classes of it.
- * @ingroup MRuby
+ * @defgroup mruby_numeric Numeric class and it's sub-classes.
+ *
+ * Numeric, Integer, Float, Fixnum classes
+ *
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

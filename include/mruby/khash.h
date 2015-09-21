@@ -14,9 +14,8 @@
 
 /**
  * @file mruby/khash.h
- * @brief Defines of khash which is used in hash table of mruby.
- * @defgroup mrb_khash Defines of khash which is used in hash table of mruby.
- * @ingroup MRuby
+ * @defgroup mruby_khash khash definitions used in mruby's hash table.
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

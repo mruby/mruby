@@ -12,9 +12,8 @@
 
 /**
  * @file mruby/proc.h
- * @brief Proc class
- * @defgroup mrb_proc MRuby Proc class
- * @ingroup MRuby
+ * @defgroup mruby_proc Proc class
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

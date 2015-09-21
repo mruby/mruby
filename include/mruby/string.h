@@ -11,9 +11,8 @@
 
 /**
  * @file mruby/string.h
- * @brief String class
- * @defgroup mrb_string MRuby String class
- * @ingroup MRuby
+ * @defgroup mrb_string String class
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

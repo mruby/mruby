@@ -11,9 +11,8 @@
 
 /**
  * @file mruby/gc.h
- * @brief Uncommon memory management stuffs.
- * @defgroup mrb_gc MRuby garbage collection.
- * @ingroup MRuby
+ * @defgroup mruby_gc Uncommon memory management stuffs.
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

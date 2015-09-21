@@ -11,9 +11,8 @@
 
 /**
  * @file mruby/range.h
- * @brief Range class
- * @defgroup mrb_range MRuby Range class
- * @ingroup MRuby
+ * @defgroup mruby_range Range class
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL

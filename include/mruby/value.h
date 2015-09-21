@@ -11,9 +11,11 @@
 
 /**
  * @file mruby/value.h
- * @brief mrb_value functions and macros.
- * @defgroup mrb_value mrb_value functions and macros.
- * @ingroup MRuby
+ * @defgroup mruby_value Value definitions
+ *
+ * @ref mrb_value functions and macros.
+ *
+ * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL
