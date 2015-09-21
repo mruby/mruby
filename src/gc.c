@@ -385,11 +385,59 @@ gc_protect(mrb_state *mrb, struct RBasic *p)
   mrb->arena[mrb->arena_idx++] = p;
 }
 
+/* mrb_gc_protect() leaves the object in the arena */
 MRB_API void
 mrb_gc_protect(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_immediate_p(obj)) return;
   gc_protect(mrb, mrb_basic_ptr(obj));
+}
+
+#define GC_ROOT_NAME "_gc_root_"
+
+/* mrb_gc_register() keeps the object from GC.
+
+   Register your object when it's exported to C world,
+   without reference from Ruby world, e.g. callback
+   arguments.  Don't forget to remove the obejct using
+   mrb_gc_unregister, otherwise your object will leak.
+*/
+
+MRB_API void
+mrb_gc_register(mrb_state *mrb, mrb_value obj)
+{
+  mrb_sym root = mrb_intern_lit(mrb, GC_ROOT_NAME);
+  mrb_value table = mrb_gv_get(mrb, root);
+
+  if (mrb_nil_p(table) || mrb_type(table) != MRB_TT_ARRAY) {
+    table = mrb_ary_new(mrb);
+    mrb_gv_set(mrb, root, table);
+  }
+  mrb_ary_push(mrb, table, obj);
+}
+
+/* mrb_gc_unregister() removes the object from GC root. */
+MRB_API void
+mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
+{
+  mrb_sym root = mrb_intern_lit(mrb, GC_ROOT_NAME);
+  mrb_value table = mrb_gv_get(mrb, root);
+  struct RArray *a;
+  mrb_int i, j;
+
+  if (mrb_nil_p(table)) return;
+  if (mrb_type(table) != MRB_TT_ARRAY) {
+    mrb_gv_set(mrb, root, mrb_nil_value());
+    return;
+  }
+  a = mrb_ary_ptr(table);
+  mrb_ary_modify(mrb, a);
+  for (i=j=0; i<a->len; i++) {
+    if (!mrb_obj_eq(mrb, a->ptr[i], obj)) {
+      a->ptr[j++] = a->ptr[i];
+    }
+  }
+  a->len = j;
 }
 
 MRB_API struct RBasic*

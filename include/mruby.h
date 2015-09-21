@@ -408,7 +408,13 @@ MRB_API mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
 MRB_API mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv);
 MRB_API mrb_value mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c);
 
+/* mrb_gc_protect() leaves the object in the arena */
 MRB_API void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
+/* mrb_gc_register() keeps the object from GC. */
+MRB_API void mrb_gc_register(mrb_state *mrb, mrb_value obj);
+/* mrb_gc_unregister() removes the object from GC root. */
+MRB_API void mrb_gc_unregister(mrb_state *mrb, mrb_value obj);
+
 MRB_API mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 #define mrb_int(mrb, val) mrb_fixnum(mrb_to_int(mrb, val))
 MRB_API void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
