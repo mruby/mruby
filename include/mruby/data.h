@@ -11,14 +11,23 @@
 
 /**
  * @file mruby/data.h
- * @defgroup mruby_data User defined objects.
+ * @defgroup mruby_data Custom C wrapped data.
+ *
+ * Defining Ruby wrappers around native objects.
+ *
  * @ingroup mruby
  * @{
  */
 MRB_BEGIN_DECL
 
+/**
+ * Custom data type description.
+ */
 typedef struct mrb_data_type {
+  /** data type name */
   const char *struct_name;
+
+  /** data type release function pointer */
   void (*dfree)(mrb_state *mrb, void*);
 } mrb_data_type;
 
