@@ -176,8 +176,14 @@ mrb_obj_value(void *p)
   return v;
 }
 
-static inline mrb_value
-mrb_nil_value(void)
+
+/**
+ * Get a nil mrb_value object.
+ *
+ * @return
+ *      nil mrb_value object reference.
+ */
+MRB_INLINE mrb_value mrb_nil_value(void)
 {
   mrb_value v;
   SET_NIL_VALUE(v);
