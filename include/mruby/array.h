@@ -17,6 +17,7 @@
  */
 MRB_BEGIN_DECL
 
+
 typedef struct mrb_shared_array {
   int refcnt;
   mrb_int len;
@@ -47,15 +48,93 @@ struct RArray {
 void mrb_ary_decref(mrb_state*, mrb_shared_array*);
 MRB_API void mrb_ary_modify(mrb_state*, struct RArray*);
 MRB_API mrb_value mrb_ary_new_capa(mrb_state*, mrb_int);
+
+/**
+ * Initializes a new array.
+ *
+ * Equivalent to:
+ *
+ *      Array.new
+ *
+ * @param mrb
+ *      The MRuby state reference.
+ * @returns
+ *      The initialized array
+ */
 MRB_API mrb_value mrb_ary_new(mrb_state *mrb);
 MRB_API mrb_value mrb_ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals);
 MRB_API mrb_value mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr);
 MRB_API void mrb_ary_concat(mrb_state*, mrb_value, mrb_value);
 MRB_API mrb_value mrb_ary_splat(mrb_state*, mrb_value);
-MRB_API void mrb_ary_push(mrb_state*, mrb_value, mrb_value);
+
+/**
+ * Pushes value into array.
+ *
+ * Equivalent to:
+ *
+ *      ary << value
+ *
+ * @param mrb
+ *      The MRuby state reference.
+ * @param ary
+ *      The array in which the value will be pushed
+ * @param value
+ *      The value to be pushed into array
+ */
+MRB_API void mrb_ary_push(mrb_state *mrb, mrb_value array, mrb_value value);
+
+/**
+ * Pops the last element from the array.
+ *
+ * Equivalent to:
+ *
+ *      ary.pop
+ *
+ * @param mrb
+ *      The MRuby state reference.
+ * @param ary
+ *      The array from which the value will be poped.
+ * @returns
+ *      The poped value.
+ */
 MRB_API mrb_value mrb_ary_pop(mrb_state *mrb, mrb_value ary);
+
+/**
+ * Returns a reference to an element of the array on the given index.
+ *
+ * Equivalent to:
+ *
+ *      ary[n]
+ *
+ * @param mrb
+ *      The MRuby state reference.
+ * @param ary
+ *      The target array.
+ * @param n
+ *      The array index being referenced
+ * @returns
+ *      The referenced value.
+ */
 MRB_API mrb_value mrb_ary_ref(mrb_state *mrb, mrb_value ary, mrb_int n);
+
+/**
+ * Sets a value on an array at the given index
+ *
+ * Equivalent to:
+ *
+ *      ary[n] = val
+ *
+ * @param mrb
+ *      The MRuby state reference.
+ * @param ary
+ *      The target array.
+ * @param n
+ *      The array index being referenced.
+ * @param val
+ *      The value being setted.
+ */
 MRB_API void mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val);
+
 MRB_API void mrb_ary_replace(mrb_state *mrb, mrb_value a, mrb_value b);
 MRB_API mrb_value mrb_check_array_type(mrb_state *mrb, mrb_value self);
 MRB_API mrb_value mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item);
