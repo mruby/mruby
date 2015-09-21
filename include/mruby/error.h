@@ -7,9 +7,15 @@
 #ifndef MRUBY_ERROR_H
 #define MRUBY_ERROR_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include "mruby/common.h"
+
+/**
+ * @file mruby/error.h
+ * @defgroup mruby_error Error handling.
+ * @ingroup mruby
+ * @{
+ */
+MRB_BEGIN_DECL
 
 struct RException {
   MRB_OBJECT_HEADER;
@@ -39,8 +45,7 @@ MRB_API mrb_value mrb_rescue_exceptions(mrb_state *mrb, mrb_func_t body, mrb_val
                                         mrb_func_t rescue, mrb_value r_data,
                                         mrb_int len, struct RClass **classes);
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_ERROR_H */

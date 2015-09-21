@@ -7,9 +7,15 @@
 #ifndef MRUBY_DEBUG_H
 #define MRUBY_DEBUG_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include "mruby/common.h"
+
+/**
+ * @file mruby/debug.h
+ * @defgroup mruby_debug Debugging.
+ * @ingroup mruby
+ * @{
+ */
+MRB_BEGIN_DECL
 
 typedef enum mrb_debug_line_type {
   mrb_debug_line_ary = 0,
@@ -58,8 +64,7 @@ MRB_API mrb_irep_debug_info_file *mrb_debug_info_append_file(
 MRB_API mrb_irep_debug_info *mrb_debug_info_alloc(mrb_state *mrb, mrb_irep *irep);
 MRB_API void mrb_debug_info_free(mrb_state *mrb, mrb_irep_debug_info *d);
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
 #endif /* MRUBY_DEBUG_H */

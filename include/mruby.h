@@ -28,24 +28,42 @@
 #ifndef MRUBY_H
 #define MRUBY_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #include <stdint.h>
 #include <stddef.h>
 #include <limits.h>
 
 #include "mrbconf.h"
+#include "mruby/common.h"
 #include "mruby/value.h"
 #include "mruby/version.h"
 
+/**
+ * @file mruby.h
+ * @defgroup mruby MRuby C API
+ * @{
+ */
+MRB_BEGIN_DECL
+
 typedef uint32_t mrb_code;
+
+/**
+ * Required arguments signature type.
+ */
 typedef uint32_t mrb_aspec;
+
 
 struct mrb_irep;
 struct mrb_state;
 
+/**
+ * Function pointer type of custom allocator used in @ref mrb_open_allocf.
+ *
+ * The function pointing it must behave similarly as realloc except:
+ * - If ptr is NULL it must allocate new space.
+ * - If s is NULL, ptr must be freed.
+ *
+ * See @ref mrb_default_allocf for the default implementation.
+ */
 typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 
 #ifndef MRB_GC_ARENA_SIZE
@@ -188,35 +206,90 @@ typedef struct mrb_state {
   mrb_int atexit_stack_len;
 } mrb_state;
 
-#if __STDC_VERSION__ >= 201112L
-# define mrb_noreturn _Noreturn
-#elif defined __GNUC__ && !defined __STRICT_ANSI__
-# define mrb_noreturn __attribute__((noreturn))
-# define mrb_deprecated __attribute__((deprecated))
-#elif defined _MSC_VER
-# define mrb_noreturn __declspec(noreturn)
-# define mrb_deprecated __declspec(deprecated)
-#else
-# define mrb_noreturn
-# define mrb_deprecated
-#endif
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
-MRB_API struct RClass *mrb_define_class(mrb_state *, const char*, struct RClass*);
+
+/**
+ * Defines a new class.
+ *
+ * If you're creating a gem it may look something like this:
+ *  <pre>
+ *    void mrb_example_gem_init(mrb_state* mrb) {
+ *      struct RClass *example_class;
+ *      example_class = mrb_define_class(mrb, "Example_Class", mrb->object_class);
+ *    }
+ *
+ *    void mrb_example_gem_final(mrb_state* mrb) {
+ *      //free(TheAnimals);
+ *    }
+ *  </pre>
+ *
+ * @param name The name of the defined class
+ * @param super The new class parent
+ */
+MRB_API struct RClass *mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super);
 MRB_API struct RClass *mrb_define_module(mrb_state *, const char*);
 MRB_API mrb_value mrb_singleton_class(mrb_state*, mrb_value);
 MRB_API void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
 MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
 
-MRB_API void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
+/**
+ * Defines a global function in ruby.
+ *
+ * If you're creating a gem it may look something like this:
+ *
+ *     mrb_value example_method(mrb_state* mrb, mrb_value self)
+ *     {
+ *          puts("Executing example command!");
+ *          return self;
+ *     }
+ *
+ *     void mrb_example_gem_init(mrb_state* mrb)
+ *     {
+ *           mrb_define_method(mrb, mrb->kernel_module, "example_method", example_method, MRB_ARGS_NONE());
+ *     }
+ *
+ * @param mrb
+ *      The MRuby state reference.
+ * @param cla
+ *      The class pointer where the method will be defined.
+ * @param func
+ *      The function pointer to the method definition.
+ * @param aspec
+ *      The method parameters declaration.
+ *      See @ref mruby_mrb_aspec for details.
+ */
+MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *name, mrb_func_t func, mrb_aspec aspec);
+
 MRB_API void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
 MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
 MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
 MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
+
+/**
+ * Initialize a new object instace of c class.
+ *
+ * @param mrb
+ *      The current mruby state.
+ * @param c
+ *      Reference to the class of the new object.
+ * @param argc
+ *      Number of arguments in argv
+ * @param argv
+ *      Array of @ref mrb_value "mrb_values" to initialize the object
+ * @returns
+ *      The newly initialized object
+ */
 MRB_API mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv);
-#define mrb_class_new_instance(mrb,argc,argv,c) mrb_obj_new(mrb,c,argc,argv)
+
+/** See @ref mrb_obj_new */
+MRB_INLINE mrb_value mrb_class_new_instance(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv) 
+{
+  return mrb_obj_new(mrb,c,argc,argv);
+}
+
 MRB_API mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 MRB_API struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
 MRB_API struct RClass * mrb_module_new(mrb_state *mrb);
@@ -233,28 +306,110 @@ MRB_API mrb_bool mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mi
 MRB_API struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
 MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
-/* required arguments */
+/**
+ * @defgroup mruby_mrb_aspec Required arguments declaration helpers.
+ *
+ * Helper functions to declare arguments requirements on methods declared by
+ * \ref mrb_define_method and the like
+ *
+ * @{
+ */
+
+/**
+ * Function requires n arguments.
+ *
+ * @param n
+ *      The number of required arguments.
+ */
 #define MRB_ARGS_REQ(n)     ((mrb_aspec)((n)&0x1f) << 18)
-/* optional arguments */
+
+/**
+ * Funtion takes n optional arguments
+ *
+ * @param n
+ *      The number of optional arguments.
+ */
 #define MRB_ARGS_OPT(n)     ((mrb_aspec)((n)&0x1f) << 13)
-/* mandatory and optinal arguments */
+
+/**
+ * Funtion takes n1 mandatory arguments and n2 optional arguments
+ *
+ * @param n1
+ *      The number of required arguments.
+ * @param n2
+ *      The number of optional arguments.
+ */
 #define MRB_ARGS_ARG(n1,n2)   (MRB_ARGS_REQ(n1)|MRB_ARGS_OPT(n2))
 
-/* rest argument */
+/** rest argument */
 #define MRB_ARGS_REST()     ((mrb_aspec)(1 << 12))
-/* required arguments after rest */
+
+/** required arguments after rest */
 #define MRB_ARGS_POST(n)    ((mrb_aspec)((n)&0x1f) << 7)
-/* keyword arguments (n of keys, kdict) */
+
+/** keyword arguments (n of keys, kdict) */
 #define MRB_ARGS_KEY(n1,n2) ((mrb_aspec)((((n1)&0x1f) << 2) | ((n2)?(1<<1):0)))
-/* block argument */
+
+/**
+ * Function takes a block argument
+ */
 #define MRB_ARGS_BLOCK()    ((mrb_aspec)1)
 
-/* accept any number of arguments */
+/**
+ * Function accepts any number of arguments
+ */
 #define MRB_ARGS_ANY()      MRB_ARGS_REST()
-/* accept no arguments */
+
+/**
+ * Function accepts no arguments
+ */
 #define MRB_ARGS_NONE()     ((mrb_aspec)0)
 
-MRB_API mrb_int mrb_get_args(mrb_state *mrb, const char *format, ...);
+/** @} */
+
+/**
+ * Format specifiers for \ref mrb_get_args function
+ *
+ * Must be a list of following format specifiers:
+ *
+ * | char | mruby type     | retrieve types      |note                                                |
+ * |:----:|----------------|---------------------|----------------------------------------------------|
+ * | o    | Object         | mrb_value           | Could be used to retrieve any type of argument     |
+ * | C    | Class/Module   | mrb_value           |                                                    |
+ * | S    | String         | mrb_value           | when ! follows, the value may be nil               |
+ * | A    | Array          | mrb_value           | when ! follows, the value may be nil               |
+ * | H    | Hash           | mrb_value           | when ! follows, the value may be nil               |
+ * | s    | String         | char *, mrb_int      |  Receive two arguments; s! gives (NULL,0) for nil  |
+ * | z    | String         | char *               | NUL terminated string; z! gives NULL for nil       |
+ * | a    | Array          | mrb_value *, mrb_int | Receive two arguments; a! gives (NULL,0) for nil   |
+ * | f    | Float          | mrb_float           |                                                    |
+ * | i    | Integer        | mrb_int             |                                                    |
+ * | b    | boolean        | mrb_bool            |                                                    |
+ * | n    | Symbol         | mrb_sym             |                                                    |
+ * | &    | block          | mrb_value           |                                                    |
+ * | *    | rest arguments | mrb_value *, mrb_int | Receive the rest of arguments as an array.         |
+ * | \|   | optional       |                     | After this spec following specs would be optional. |
+ * | ?    | optional given | mrb_bool            | True if preceding argument is given. Used to check optional argument is given. |
+ */
+typedef const char *mrb_args_format;
+
+/**
+ * Retrieve arguments from mrb_state.
+ *
+ * When applicable, implicit conversions (such as to_str, to_ary, to_hash) are
+ * applied to received arguments.
+ * Use it inside a function pointed by mrb_func_t.
+ *
+ * @param mrb
+ *      The current MRuby state.
+ * @param format
+ *      is a list of format specifiers see @ref mrb_args_format
+ * @param ...
+ *      The passing variadic arguments must be a pointer of retrieving type.
+ * @return
+ *      the number of arguments retrieved.
+ */
+MRB_API mrb_int mrb_get_args(mrb_state *mrb, mrb_args_format format, ...);
 
 /* `strlen` for character string literals (use with caution or `strlen` instead)
     Adjacent string literals are concatenated in C/C++ in translation phase 6.
@@ -264,6 +419,9 @@ MRB_API mrb_int mrb_get_args(mrb_state *mrb, const char *format, ...);
 */
 #define mrb_strlen_lit(lit) (sizeof(lit "") - 1)
 
+/**
+ * Call existing ruby functions.
+ */
 MRB_API mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, mrb_int,...);
 MRB_API mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, mrb_int, const mrb_value*);
 MRB_API mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, mrb_int, const mrb_value*, mrb_value);
@@ -288,6 +446,10 @@ MRB_API struct RBasic *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*)
 MRB_API void mrb_free(mrb_state*, void*);
 
 MRB_API mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
+
+/**
+ * Turns a C string into a Ruby string value.
+ */
 MRB_API mrb_value mrb_str_new_cstr(mrb_state*, const char*);
 MRB_API mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
 #define mrb_str_new_lit(mrb, lit) mrb_str_new_static(mrb, (lit), mrb_strlen_lit(lit))
@@ -304,11 +466,54 @@ char* mrb_locale_from_utf8(const char *p, size_t len);
 #define mrb_utf8_free(p)
 #endif
 
+/**
+ * Creates new mrb_state.
+ *
+ * @returns
+ *      Pointer to the newly created mrb_state.
+ */
 MRB_API mrb_state* mrb_open(void);
-MRB_API mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
-MRB_API mrb_state* mrb_open_core(mrb_allocf, void *ud);
-MRB_API void mrb_close(mrb_state*);
 
+/**
+ * Create new mrb_state with custom allocators.
+ *
+ * @param f
+ *      Reference to the allocation function.
+ * @param ud
+ *      User data will be passed to custom allocator f.
+ *      If user data isn't required just pass NULL.
+ * @returns
+ *      Pointer to the newly created mrb_state.
+ */
+MRB_API mrb_state* mrb_open_allocf(mrb_allocf f, void *ud);
+
+/**
+ * Create new mrb_state with just the MRuby core
+ *
+ * @param f
+ *      Reference to the allocation function.
+ *      Use mrb_default_allocf for the default
+ * @param ud
+ *      User data will be passed to custom allocator f.
+ *      If user data isn't required just pass NULL.
+ * @returns
+ *      Pointer to the newly created mrb_state.
+ */
+MRB_API mrb_state* mrb_open_core(mrb_allocf f, void *ud);
+
+/**
+ * Closes and frees a mrb_state.
+ *
+ * @param mrb
+ *      Pointer to the mrb_state to be closed.
+ */
+MRB_API void mrb_close(mrb_state *mrb);
+
+/**
+ * The default allocation function.
+ *
+ * @ref mrb_allocf
+ */
 MRB_API void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
 
 MRB_API mrb_value mrb_top_self(mrb_state *);
@@ -471,8 +676,7 @@ MRB_API void mrb_show_copyright(mrb_state *mrb);
 
 MRB_API mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_H */

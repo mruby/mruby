@@ -7,6 +7,19 @@
 #ifndef MRUBY_VALUE_H
 #define MRUBY_VALUE_H
 
+#include "mruby/common.h"
+
+/**
+ * @file mruby/value.h
+ * @defgroup mruby_value Value definitions
+ *
+ * @ref mrb_value functions and macros.
+ *
+ * @ingroup mruby
+ * @{
+ */
+MRB_BEGIN_DECL
+
 typedef uint32_t mrb_sym;
 typedef uint8_t mrb_bool;
 struct mrb_state;
@@ -163,8 +176,14 @@ mrb_obj_value(void *p)
   return v;
 }
 
-static inline mrb_value
-mrb_nil_value(void)
+
+/**
+ * Get a nil mrb_value object.
+ *
+ * @return
+ *      nil mrb_value object reference.
+ */
+MRB_INLINE mrb_value mrb_nil_value(void)
 {
   mrb_value v;
   SET_NIL_VALUE(v);
@@ -225,5 +244,8 @@ mrb_ro_data_p(const char *p)
 #else
 # define mrb_ro_data_p(p) FALSE
 #endif
+
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_VALUE_H */

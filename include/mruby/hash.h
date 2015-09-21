@@ -7,9 +7,15 @@
 #ifndef MRUBY_HASH_H
 #define MRUBY_HASH_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include "mruby/common.h"
+
+/**
+ * @file mruby/hash.h
+ * @defgroup mruby_hash Hash class
+ * @ingroup mruby
+ * @{
+ */
+MRB_BEGIN_DECL
 
 struct RHash {
   MRB_OBJECT_HEADER;
@@ -47,8 +53,7 @@ void mrb_gc_mark_hash(mrb_state*, struct RHash*);
 size_t mrb_gc_mark_hash_size(mrb_state*, struct RHash*);
 void mrb_gc_free_hash(mrb_state*, struct RHash*);
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_HASH_H */

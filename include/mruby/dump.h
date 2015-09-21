@@ -7,12 +7,17 @@
 #ifndef MRUBY_DUMP_H
 #define MRUBY_DUMP_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #include "mruby.h"
 #include "mruby/irep.h"
+#include "mruby/common.h"
+
+/**
+ * @file mruby/dump.h
+ * @defgroup mruby_dump Dumping compiled mruby script.
+ * @ingroup mruby
+ * @{
+ */
+MRB_BEGIN_DECL
 
 #define DUMP_DEBUG_INFO 1
 #define DUMP_ENDIAN_BIG 2
@@ -185,11 +190,10 @@ bin_to_uint8(const uint8_t *bin)
   return (uint8_t)bin[0];
 }
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
-/* crc.c */
+/** @internal crc.c */
 uint16_t
 calc_crc_16_ccitt(const uint8_t *src, size_t nbytes, uint16_t crc);
 

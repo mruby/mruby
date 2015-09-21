@@ -7,9 +7,15 @@
 #ifndef MRUBY_STRING_H
 #define MRUBY_STRING_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include "mruby/common.h"
+
+/**
+ * @file mruby/string.h
+ * @defgroup mrb_string String class
+ * @ingroup mruby
+ * @{
+ */
+MRB_BEGIN_DECL
 
 extern const char mrb_digitmap[];
 
@@ -67,7 +73,7 @@ struct RString {
 #define RSTRING(s)           mrb_str_ptr(s)
 #define RSTRING_PTR(s)       RSTR_PTR(RSTRING(s))
 #define RSTRING_EMBED_LEN(s) RSTR_ENBED_LEN(RSTRING(s))
-#define RSTRING_LEN(s)       RSTR_LEN(RSTRING(s))  
+#define RSTRING_LEN(s)       RSTR_LEN(RSTRING(s))
 #define RSTRING_CAPA(s)      RSTR_CAPA(RSTRING(s))
 #define RSTRING_END(s)       (RSTRING_PTR(s) + RSTRING_LEN(s))
 mrb_int mrb_str_strlen(mrb_state*, struct RString*);
@@ -120,8 +126,7 @@ void mrb_regexp_check(mrb_state *mrb, mrb_value obj);
 #define mrb_str_buf_cat(mrb, str, ptr, len) mrb_str_cat(mrb, str, ptr, len)
 #define mrb_str_buf_append(mrb, str, str2) mrb_str_cat_str(mrb, str, str2)
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_STRING_H */

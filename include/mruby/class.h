@@ -7,9 +7,15 @@
 #ifndef MRUBY_CLASS_H
 #define MRUBY_CLASS_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include "mruby/common.h"
+
+/**
+ * @file mruby/class.h
+ * @defgroup mruby_class Class class
+ * @ingroup mruby
+ * @{
+ */
+MRB_BEGIN_DECL
 
 struct RClass {
   MRB_OBJECT_HEADER;
@@ -81,8 +87,7 @@ void mrb_gc_mark_mt(mrb_state*, struct RClass*);
 size_t mrb_gc_mark_mt_size(mrb_state*, struct RClass*);
 void mrb_gc_free_mt(mrb_state*, struct RClass*);
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_CLASS_H */
