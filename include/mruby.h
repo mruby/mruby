@@ -39,7 +39,6 @@
 
 /**
  * @file mruby.h
- * @brief Main header of mruby C API. Include this first.
  * @defgroup mruby MRuby C API
  * @{
  */
@@ -57,11 +56,13 @@ struct mrb_irep;
 struct mrb_state;
 
 /**
- * Function pointer type of custom allocator used in mrb_open_allocf.
+ * Function pointer type of custom allocator used in @ref mrb_open_allocf.
  *
  * The function pointing it must behave similarly as realloc except:
  * - If ptr is NULL it must allocate new space.
  * - If s is NULL, ptr must be freed.
+ *
+ * See @ref mrb_default_allocf for the default implementation.
  */
 typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 
@@ -205,18 +206,6 @@ typedef struct mrb_state {
   mrb_int atexit_stack_len;
 } mrb_state;
 
-#if __STDC_VERSION__ >= 201112L
-# define mrb_noreturn _Noreturn
-#elif defined __GNUC__ && !defined __STRICT_ANSI__
-# define mrb_noreturn __attribute__((noreturn))
-# define mrb_deprecated __attribute__((deprecated))
-#elif defined _MSC_VER
-# define mrb_noreturn __declspec(noreturn)
-# define mrb_deprecated __declspec(deprecated)
-#else
-# define mrb_noreturn
-# define mrb_deprecated
-#endif
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
 
@@ -278,8 +267,29 @@ MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*,
 MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
+
+/**
+ * Initialize a new object instace of c class.
+ *
+ * @param mrb
+ *      The current mruby state.
+ * @param c
+ *      Reference to the class of the new object.
+ * @param argc
+ *      Number of arguments in argv
+ * @param argv
+ *      Array of @ref mrb_value "mrb_values" to initialize the object
+ * @returns
+ *      The newly initialized object
+ */
 MRB_API mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv);
-#define mrb_class_new_instance(mrb,argc,argv,c) mrb_obj_new(mrb,c,argc,argv)
+
+/** See @ref mrb_obj_new */
+MRB_INLINE mrb_value mrb_class_new_instance(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv) 
+{
+  return mrb_obj_new(mrb,c,argc,argv);
+}
+
 MRB_API mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 MRB_API struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
 MRB_API struct RClass * mrb_module_new(mrb_state *mrb);
@@ -464,19 +474,32 @@ char* mrb_locale_from_utf8(const char *p, size_t len);
  */
 MRB_API mrb_state* mrb_open(void);
 
-
 /**
- * Create new mrb_state with custom allocator.
+ * Create new mrb_state with custom allocators.
  *
+ * @param f
+ *      Reference to the allocation function.
  * @param ud
- *      will be passed to custom allocator f. If user data isn't required just
- *      pass NULL. Function pointer f must satisfy requirements of its type.
- *
+ *      User data will be passed to custom allocator f.
+ *      If user data isn't required just pass NULL.
  * @returns
  *      Pointer to the newly created mrb_state.
  */
-MRB_API mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
-MRB_API mrb_state* mrb_open_core(mrb_allocf, void *ud);
+MRB_API mrb_state* mrb_open_allocf(mrb_allocf f, void *ud);
+
+/**
+ * Create new mrb_state with just the MRuby core
+ *
+ * @param f
+ *      Reference to the allocation function.
+ *      Use mrb_default_allocf for the default
+ * @param ud
+ *      User data will be passed to custom allocator f.
+ *      If user data isn't required just pass NULL.
+ * @returns
+ *      Pointer to the newly created mrb_state.
+ */
+MRB_API mrb_state* mrb_open_core(mrb_allocf f, void *ud);
 
 /**
  * Closes and frees a mrb_state.
@@ -486,6 +509,11 @@ MRB_API mrb_state* mrb_open_core(mrb_allocf, void *ud);
  */
 MRB_API void mrb_close(mrb_state *mrb);
 
+/**
+ * The default allocation function.
+ *
+ * @ref mrb_allocf
+ */
 MRB_API void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
 
 MRB_API mrb_value mrb_top_self(mrb_state *);
