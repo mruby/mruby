@@ -1,16 +1,22 @@
-/**
- * @header mruby/string.h
- * @copyright See Copyright Notice in mruby.h
- *
- * String class
- */
+/*
+** mruby/string.h - String class
+**
+** See Copyright Notice in mruby.h
+*/
 
 #ifndef MRUBY_STRING_H
 #define MRUBY_STRING_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include "mruby/common.h"
+
+/**
+ * @file mruby/string.h
+ * @brief String class
+ * @defgroup mrb_string MRuby String class
+ * @ingroup MRuby
+ * @{
+ */
+MRB_BEGIN_DECL
 
 extern const char mrb_digitmap[];
 
@@ -121,8 +127,7 @@ void mrb_regexp_check(mrb_state *mrb, mrb_value obj);
 #define mrb_str_buf_cat(mrb, str, ptr, len) mrb_str_cat(mrb, str, ptr, len)
 #define mrb_str_buf_append(mrb, str, str2) mrb_str_cat_str(mrb, str, str2)
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_STRING_H */

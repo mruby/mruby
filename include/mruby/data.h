@@ -7,9 +7,16 @@
 #ifndef MRUBY_DATA_H
 #define MRUBY_DATA_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include "mruby/common.h"
+
+/**
+ * @file mruby/data.h
+ * @brief User defined objects.
+ * @defgroup mrb_string MRuby User defined objects.
+ * @ingroup MRuby
+ * @{
+ */
+MRB_BEGIN_DECL
 
 typedef struct mrb_data_type {
   const char *struct_name;
@@ -59,8 +66,7 @@ mrb_data_init(mrb_value v, void *ptr, const mrb_data_type *type)
   DATA_TYPE(v) = type;
 }
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
 #endif /* MRUBY_DATA_H */

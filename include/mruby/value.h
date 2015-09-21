@@ -7,6 +7,17 @@
 #ifndef MRUBY_VALUE_H
 #define MRUBY_VALUE_H
 
+#include "mruby/common.h"
+
+/**
+ * @file mruby/value.h
+ * @brief mrb_value functions and macros.
+ * @defgroup mrb_value mrb_value functions and macros.
+ * @ingroup MRuby
+ * @{
+ */
+MRB_BEGIN_DECL
+
 typedef uint32_t mrb_sym;
 typedef uint8_t mrb_bool;
 struct mrb_state;
@@ -225,5 +236,8 @@ mrb_ro_data_p(const char *p)
 #else
 # define mrb_ro_data_p(p) FALSE
 #endif
+
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_VALUE_H */

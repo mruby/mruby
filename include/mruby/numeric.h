@@ -7,9 +7,16 @@
 #ifndef MRUBY_NUMERIC_H
 #define MRUBY_NUMERIC_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include "mruby/common.h"
+
+/**
+ * @file mruby/numeric.h
+ * @brief Numeric class and sub-classes of it.
+ * @defgroup mrb_string Numeric class and sub-classes of it.
+ * @ingroup MRuby
+ * @{
+ */
+MRB_BEGIN_DECL
 
 #define POSFIXABLE(f) ((f) <= MRB_INT_MAX)
 #define NEGFIXABLE(f) ((f) >= MRB_INT_MIN)
@@ -104,8 +111,7 @@ mrb_int_sub_overflow(mrb_int minuend, mrb_int subtrahend, mrb_int *difference)
 #undef MRB_UINT_MAKE
 #undef MRB_UINT_MAKE2
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_NUMERIC_H */

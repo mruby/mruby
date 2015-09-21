@@ -7,9 +7,16 @@
 #ifndef MRUBY_ARRAY_H
 #define MRUBY_ARRAY_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include "mruby/common.h"
+
+/**
+ * @file mruby/array.h
+ * @brief Array class
+ * @defgroup mrb_array MRuby Array class
+ * @ingroup MRuby
+ * @{
+ */
+MRB_BEGIN_DECL
 
 typedef struct mrb_shared_array {
   int refcnt;
@@ -67,8 +74,7 @@ mrb_ary_len(mrb_state *mrb, mrb_value ary)
   return RARRAY_LEN(ary);
 }
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_ARRAY_H */

@@ -25,26 +25,26 @@
 ** [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 */
 
-/**
- * @header mruby.h
- *
- * Basic mruby header.
- */
-
 #ifndef MRUBY_H
 #define MRUBY_H
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #include <stdint.h>
 #include <stddef.h>
 #include <limits.h>
 
 #include "mrbconf.h"
+#include "mruby/common.h"
 #include "mruby/value.h"
 #include "mruby/version.h"
+
+/**
+ * @file mruby.h
+ * @brief Main header of mruby C API. Include this first.
+ * @defgroup mrb_core MRuby core
+ * @ingroup MRuby
+ * @{
+ */
+MRB_BEGIN_DECL
 
 typedef uint32_t mrb_code;
 typedef uint32_t mrb_aspec;
@@ -244,20 +244,31 @@ MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
  * Defines a global function in ruby.
  *
  * If you're creating a gem it may look something like this:
- *    mrb_value example_method(mrb_state* mrb, mrb_value self){
- *        puts("Executing example command!");
- *        return self;
- *    }
  *
- *    void mrb_example_gem_init(mrb_state* mrb) {
- *      mrb_define_method(mrb, mrb->kernel_module, "example_method", example_method, MRB_ARGS_NONE());  
- *    }
+ *     mrb_value example_method(mrb_state* mrb, mrb_value self){
+ *          puts("Executing example command!");
+ *          return self;
+ *     }
  *
- *    void mrb_example_gem_final(mrb_state* mrb) {
- *      //free(TheAnimals);
- *    }
+ *     void mrb_example_gem_init(mrb_state* mrb) {
+ *           mrb_define_method(mrb, mrb->kernel_module, "example_method", example_method, MRB_ARGS_NONE());
+ *     }
+ *
+ *     void mrb_example_gem_final(mrb_state* mrb) {
+ *         //free(TheAnimals);
+ *     }
+ *
+ * @param mrb
+ *      The MRuby state reference.
+ * @param cla
+ *      The class pointer where the method will be defined.
+ * @param func
+ *      The function pointer to the method definition.
+ * @param aspec
+ *      The method required parameters definition.
  */
-MRB_API void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
+MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *name, mrb_func_t func, mrb_aspec aspec);
+
 MRB_API void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
 MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
 MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
@@ -303,11 +314,15 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
 /* accept no arguments */
 #define MRB_ARGS_NONE()     ((mrb_aspec)0)
 
-/**
- * Retrieve arguments from mrb_state.
+/** Retrieve arguments from mrb_state.
+ *
  * When applicable, implicit conversions (such as to_str, to_ary, to_hash) are
  * applied to received arguments.
  * Use it inside a function pointed by mrb_func_t.
+ *
+ * @param mrb
+ *      The current MRuby state.
+ *
  * @param format
  *      is a list of following format specifiers:
  *      <pre>
@@ -395,6 +410,9 @@ char* mrb_locale_from_utf8(const char *p, size_t len);
 
 /**
  * Creates new mrb_state.
+ *
+ * @returns
+ *      Pointer to the newly created mrb_state.
  */
 MRB_API mrb_state* mrb_open(void);
 
@@ -405,14 +423,20 @@ MRB_API mrb_state* mrb_open(void);
  * @param ud
  *      will be passed to custom allocator f. If user data isn't required just
  *      pass NULL. Function pointer f must satisfy requirements of its type.
+ *
+ * @returns
+ *      Pointer to the newly created mrb_state.
  */
 MRB_API mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
 MRB_API mrb_state* mrb_open_core(mrb_allocf, void *ud);
 
 /**
- * Deletes mrb_state.
+ * Closes and frees a mrb_state.
+ *
+ * @param mrb
+ *      Pointer to the mrb_state to be closed.
  */
-MRB_API void mrb_close(mrb_state*);
+MRB_API void mrb_close(mrb_state *mrb);
 
 MRB_API void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
 
@@ -570,8 +594,7 @@ MRB_API void mrb_show_copyright(mrb_state *mrb);
 
 MRB_API mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_H */

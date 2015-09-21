@@ -7,6 +7,17 @@
 #ifndef MRUBY_VERSION_H
 #define MRUBY_VERSION_H
 
+#include "mruby/common.h"
+
+/**
+ * @file mruby/version.h
+ * @brief MRuby version macros
+ * @defgroup mrb_string MRuby version macros
+ * @ingroup MRuby
+ * @{
+ */
+MRB_BEGIN_DECL
+
 #define MRB_STRINGIZE0(expr) #expr
 #define MRB_STRINGIZE(expr) MRB_STRINGIZE0(expr)
 
@@ -38,5 +49,8 @@
   MRB_STRINGIZE(MRUBY_BIRTH_YEAR)"-"   \
   MRB_STRINGIZE(MRUBY_RELEASE_YEAR)" " \
   MRUBY_AUTHOR                         \
+
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_VERSION_H */
