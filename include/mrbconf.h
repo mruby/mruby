@@ -26,6 +26,9 @@
 /* represent mrb_value as a word (natural unit of data for the processor) */
 //#define MRB_WORD_BOXING
 
+/* string class to handle UTF-8 encoding */
+//#define MRB_UTF8_STRING
+
 /* argv max size in mrb_funcall */
 //#define MRB_FUNCALL_ARGC_MAX 16
 

@@ -310,4 +310,30 @@ class String
       return self if excl && str == other_str
     end
   end
+
+  def chars(&block)
+    if block_given?
+      self.split('').map do |i|
+        block.call(i)
+      end
+      self
+    else
+      self.split('')
+    end
+  end
+  alias each_char chars
+
+  def codepoints(&block)
+    len = self.size
+
+    if block_given?
+      self.split('').map do|x|
+        block.call(x.ord)
+      end
+      self
+    else
+      self.split('').map{|x| x.ord}
+    end
+  end
+  alias each_codepoint codepoints
 end
