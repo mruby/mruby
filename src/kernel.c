@@ -654,7 +654,7 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* kl
 {
   khint_t i;
   mrb_value ary;
-  mrb_bool prepended;
+  mrb_bool prepended = FALSE;
   struct RClass* oldklass;
   khash_t(st)* set = kh_init(st, mrb);
 
