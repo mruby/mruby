@@ -2575,7 +2575,21 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
   p = RSTRING_PTR(str); pend = RSTRING_END(str);
   for (;p < pend; p++) {
     unsigned char c, cc;
+#ifdef MRB_UTF8_STRING
+    mrb_int clen;
 
+    clen = utf8len(p, pend);
+    if (clen > 1) {
+      mrb_int i;
+
+      for (i=0; i<clen; i++) {
+        buf[i] = p[i];
+      }
+      mrb_str_cat(mrb, result, buf, clen);
+      p += clen;
+      continue;
+    }
+#endif
     c = *p;
     if (c == '"'|| c == '\\' || (c == '#' && IS_EVSTR(p, pend))) {
       buf[0] = '\\'; buf[1] = c;
