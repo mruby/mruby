@@ -250,14 +250,13 @@ static const char utf8len_codepage[256] =
 };
 
 static mrb_int
-utf8len(unsigned char* p)
+utf8len(const char* p, const char* e)
 {
   mrb_int len;
   mrb_int i;
 
-  if (*p == 0)
-    return 1;
-  len = utf8len_codepage[*p];
+  len = utf8len_codepage[(unsigned char)*p];
+  if (p + len > e) return 1;
   for (i = 1; i < len; ++i)
     if ((p[i] & 0xc0) != 0x80)
       return 1;
@@ -268,11 +267,11 @@ static mrb_int
 utf8_strlen(mrb_value str, mrb_int len)
 {
   mrb_int total = 0;
-  unsigned char* p = (unsigned char*) RSTRING_PTR(str);
-  unsigned char* e = p;
+  char* p = RSTRING_PTR(str);
+  char* e = p;
   e += len < 0 ? RSTRING_LEN(str) : len;
   while (p<e) {
-    p += utf8len(p);
+    p += utf8len(p, e);
     total++;
   }
   return total;
@@ -282,12 +281,14 @@ utf8_strlen(mrb_value str, mrb_int len)
 
 /* map character index to byte offset index */
 static mrb_int
-chars2bytes(char *p, mrb_int idx)
+chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
 {
   mrb_int i, b, n;
+  const char *p = RSTRING_PTR(s) + off;
+  const char *e = RSTRING_END(s);
 
-  for (b=i=0; i<idx; i++) {
-    n = utf8len((unsigned char*)p);
+  for (b=i=0; p<e && i<idx; i++) {
+    n = utf8len(p, e);
     b += n;
     p += n;
   }
@@ -301,7 +302,7 @@ bytes2chars(char *p, mrb_int bi)
   mrb_int i, b, n;
 
   for (b=i=0; b<bi; i++) {
-    n = utf8len((unsigned char*)p);
+    n = utf8len(p, p+bi);
     b += n;
     p += n;
   }
@@ -310,7 +311,7 @@ bytes2chars(char *p, mrb_int bi)
 
 #else
 #define RSTRING_CHAR_LEN(s) RSTRING_LEN(s)
-#define chars2bytes(p, ci) (ci)
+#define chars2bytes(p, off, ci) (ci)
 #define bytes2chars(p, bi) (bi)
 #endif
 
@@ -422,8 +423,8 @@ byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 static inline mrb_value
 str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
-  beg = chars2bytes(RSTRING_PTR(str), beg);
-  len = chars2bytes(RSTRING_PTR(str)+beg, len);
+  beg = chars2bytes(str, 0, beg);
+  len = chars2bytes(str, beg, len);
 
   return byte_subseq(mrb, str, beg, len);
 }
@@ -1565,7 +1566,7 @@ mrb_str_index(mrb_state *mrb, mrb_value str)
     }
   }
   if (pos >= clen) return mrb_nil_value();
-  pos = chars2bytes(RSTRING_PTR(str), pos);
+  pos = chars2bytes(str, 0, pos);
 
   switch (mrb_type(sub)) {
     default: {
@@ -1738,7 +1739,7 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
     r = RSTRING_PTR(str) + len;
 
     while (p<e) {
-      mrb_int clen = utf8len((unsigned char*)p);
+      mrb_int clen = utf8len(p, e);
       r -= clen;
       memcpy(r, p, clen);
       p += clen;
@@ -1835,8 +1836,8 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
     else
       sub = mrb_nil_value();
   }
-  pos = chars2bytes(RSTRING_PTR(str), pos);
-  len = chars2bytes(RSTRING_PTR(str)+pos, len);
+  pos = chars2bytes(str, 0, pos);
+  len = chars2bytes(str, pos, len);
   mrb_regexp_check(mrb, sub);
 
   switch (mrb_type(sub)) {
@@ -1986,7 +1987,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
         end = mrb_memsearch(RSTRING_PTR(spat), pat_len, RSTRING_PTR(str)+idx, str_len - idx);
         if (end < 0) break;
       } else {
-        end = chars2bytes(RSTRING_PTR(str)+idx, 1);
+        end = chars2bytes(str, idx, 1);
       }
       mrb_ary_push(mrb, result, byte_subseq(mrb, str, idx, end));
       mrb_gc_arena_restore(mrb, ai);
