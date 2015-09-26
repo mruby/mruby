@@ -76,10 +76,8 @@ assert('Hash#fetch') do
   assert_equal "mickey", h.fetch("mouse", "mickey")
   assert_equal "minny", h.fetch("mouse"){"minny"}
   assert_equal "mouse", h.fetch("mouse"){|k| k}
-  begin
+  assert_raise(KeyError) do
     h.fetch("gnu")
-  rescue => e
-    assert_kind_of(KeyError, e);
   end
 end
 
