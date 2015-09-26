@@ -116,6 +116,7 @@ module Enumerable
     raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
     raise ArgumentError, "invalid size" if n <= 0
 
+    return to_enum(:each_cons,n) unless block
     ary = []
     n = n.to_int
     self.each do |*val|
@@ -143,6 +144,7 @@ module Enumerable
     raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
     raise ArgumentError, "invalid slice size" if n <= 0
 
+    return to_enum(:each_slice,n) unless block
     ary = []
     n = n.to_int
     self.each do |*val|
