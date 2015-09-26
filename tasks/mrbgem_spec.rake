@@ -52,7 +52,7 @@ module MRuby
         MRuby::Build::COMMANDS.each do |command|
           instance_variable_set("@#{command}", @build.send(command).clone)
         end
-        @linker = LinkerConfig.new([], [], [], [])
+        @linker = LinkerConfig.new([], [], [], [], [])
 
         @rbfiles = Dir.glob("#{dir}/mrblib/**/*.rb").sort
         @objs = Dir.glob("#{dir}/src/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
