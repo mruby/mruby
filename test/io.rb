@@ -150,6 +150,14 @@ assert('IO#write', '15.2.20.5.20') do
   true
 end
 
+assert('IO#<<') do
+  io = IO.open(IO.sysopen($mrbtest_io_wfname))
+  io << "" << ""
+  assert_equal 0, io.pos
+  io.close
+  true
+end
+
 assert('IO.for_fd') do
   fd = IO.sysopen($mrbtest_io_rfname)
   io = IO.for_fd(fd)
