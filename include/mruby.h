@@ -285,7 +285,7 @@ MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 MRB_API mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv);
 
 /** See @ref mrb_obj_new */
-MRB_INLINE mrb_value mrb_class_new_instance(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv) 
+MRB_INLINE mrb_value mrb_class_new_instance(mrb_state *mrb, mrb_int argc, const mrb_value *argv, struct RClass *c)
 {
   return mrb_obj_new(mrb,c,argc,argv);
 }
