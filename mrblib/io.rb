@@ -108,6 +108,11 @@ class IO
     raise IOError
   end
 
+  def <<(str)
+    write(str)
+    self
+  end
+
   def eof?
     return true if @buf && @buf.size > 0
 
