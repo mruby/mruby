@@ -256,6 +256,17 @@ assert('IO#pos=, IO#seek') do
   io.closed?
 end
 
+assert('IO#rewind') do
+  fd = IO.sysopen $mrbtest_io_rfname
+  io = IO.new fd
+  assert_equal 'm', io.getc
+  assert_equal 1, io.pos
+  assert_equal 0, io.rewind
+  assert_equal 0, io.pos
+  io.close
+  io.closed?
+end
+
 assert('IO#gets') do
   fd = IO.sysopen $mrbtest_io_rfname
   io = IO.new fd
