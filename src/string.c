@@ -2586,7 +2586,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
         buf[i] = p[i];
       }
       mrb_str_cat(mrb, result, buf, clen);
-      p += clen;
+      p += clen-1;
       continue;
     }
 #endif
