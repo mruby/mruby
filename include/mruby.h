@@ -279,12 +279,12 @@ MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
  *      Number of arguments in argv
  * @param argv
  *      Array of @ref mrb_value "mrb_values" to initialize the object
- * @returns
+ * @return
  *      The newly initialized object
  */
 MRB_API mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv);
 
-/** See @ref mrb_obj_new */
+/** @see mrb_obj_new */
 MRB_INLINE mrb_value mrb_class_new_instance(mrb_state *mrb, mrb_int argc, const mrb_value *argv, struct RClass *c)
 {
   return mrb_obj_new(mrb,c,argc,argv);
@@ -469,7 +469,7 @@ char* mrb_locale_from_utf8(const char *p, size_t len);
 /**
  * Creates new mrb_state.
  *
- * @returns
+ * @return
  *      Pointer to the newly created mrb_state.
  */
 MRB_API mrb_state* mrb_open(void);
@@ -482,7 +482,7 @@ MRB_API mrb_state* mrb_open(void);
  * @param ud
  *      User data will be passed to custom allocator f.
  *      If user data isn't required just pass NULL.
- * @returns
+ * @return
  *      Pointer to the newly created mrb_state.
  */
 MRB_API mrb_state* mrb_open_allocf(mrb_allocf f, void *ud);
@@ -496,7 +496,7 @@ MRB_API mrb_state* mrb_open_allocf(mrb_allocf f, void *ud);
  * @param ud
  *      User data will be passed to custom allocator f.
  *      If user data isn't required just pass NULL.
- * @returns
+ * @return
  *      Pointer to the newly created mrb_state.
  */
 MRB_API mrb_state* mrb_open_core(mrb_allocf f, void *ud);
