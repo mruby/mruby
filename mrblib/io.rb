@@ -141,6 +141,10 @@ class IO
     seek(i, SEEK_SET)
   end
 
+  def rewind
+    seek(0, SEEK_SET)
+  end
+
   def seek(i, whence = SEEK_SET)
     raise IOError if closed?
     @pos = sysseek(i, whence)
