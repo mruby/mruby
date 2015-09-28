@@ -10,10 +10,7 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/array.h
- * @defgroup mruby_array Array class
- * @ingroup mruby
- * @{
+ * Array class
  */
 MRB_BEGIN_DECL
 
@@ -58,7 +55,7 @@ MRB_API mrb_value mrb_ary_new_capa(mrb_state*, mrb_int);
  *
  * @param mrb
  *      The MRuby state reference.
- * @returns
+ * @return
  *      The initialized array
  */
 MRB_API mrb_value mrb_ary_new(mrb_state *mrb);
@@ -94,7 +91,7 @@ MRB_API void mrb_ary_push(mrb_state *mrb, mrb_value array, mrb_value value);
  *      The MRuby state reference.
  * @param ary
  *      The array from which the value will be poped.
- * @returns
+ * @return
  *      The poped value.
  */
 MRB_API mrb_value mrb_ary_pop(mrb_state *mrb, mrb_value ary);
@@ -112,7 +109,7 @@ MRB_API mrb_value mrb_ary_pop(mrb_state *mrb, mrb_value ary);
  *      The target array.
  * @param n
  *      The array index being referenced
- * @returns
+ * @return
  *      The referenced value.
  */
 MRB_API mrb_value mrb_ary_ref(mrb_state *mrb, mrb_value ary, mrb_int n);

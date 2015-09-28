@@ -10,10 +10,7 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/compile.h
- * @defgroup mruby_compile Compiler
- * @ingroup mruby
- * @{
+ * MRuby Compiler
  */
 MRB_BEGIN_DECL
 

@@ -10,13 +10,9 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/numeric.h
- * @defgroup mruby_numeric Numeric class and it's sub-classes.
+ * Numeric class and it's sub-classes.
  *
- * Numeric, Integer, Float, Fixnum classes
- *
- * @ingroup mruby
- * @{
+ * Integer, Float and Fixnum
  */
 MRB_BEGIN_DECL
 
@@ -113,7 +109,6 @@ mrb_int_sub_overflow(mrb_int minuend, mrb_int subtrahend, mrb_int *difference)
 #undef MRB_UINT_MAKE
 #undef MRB_UINT_MAKE2
 
-/** @} */
 MRB_END_DECL
 
 #endif  /* MRUBY_NUMERIC_H */

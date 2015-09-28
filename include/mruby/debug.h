@@ -10,10 +10,7 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/debug.h
- * @defgroup mruby_debug Debugging.
- * @ingroup mruby
- * @{
+ * MRuby Debugging.
  */
 MRB_BEGIN_DECL
 
@@ -64,7 +61,6 @@ MRB_API mrb_irep_debug_info_file *mrb_debug_info_append_file(
 MRB_API mrb_irep_debug_info *mrb_debug_info_alloc(mrb_state *mrb, mrb_irep *irep);
 MRB_API void mrb_debug_info_free(mrb_state *mrb, mrb_irep_debug_info *d);
 
-/** @} */
 MRB_END_DECL
 
 #endif /* MRUBY_DEBUG_H */

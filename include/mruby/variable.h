@@ -10,10 +10,7 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/variable.h
- * @defgroup mruby_variable Functions to access to mruby variables.
- * @ingroup mruby
- * @{
+ * Functions to access mruby variables.
  */
 MRB_BEGIN_DECL
 
@@ -80,7 +77,6 @@ void mrb_gc_mark_iv(mrb_state*, struct RObject*);
 size_t mrb_gc_mark_iv_size(mrb_state*, struct RObject*);
 void mrb_gc_free_iv(mrb_state*, struct RObject*);
 
-/** @} */
 MRB_END_DECL
 
 #endif  /* MRUBY_VARIABLE_H */

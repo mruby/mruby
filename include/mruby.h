@@ -38,9 +38,7 @@
 #include "mruby/version.h"
 
 /**
- * @file mruby.h
- * @defgroup mruby MRuby C API
- * @{
+ * MRuby C API entry point
  */
 MRB_BEGIN_DECL
 
@@ -56,13 +54,13 @@ struct mrb_irep;
 struct mrb_state;
 
 /**
- * Function pointer type of custom allocator used in @ref mrb_open_allocf.
+ * Function pointer type of custom allocator used in @see mrb_open_allocf.
  *
  * The function pointing it must behave similarly as realloc except:
  * - If ptr is NULL it must allocate new space.
  * - If s is NULL, ptr must be freed.
  *
- * See @ref mrb_default_allocf for the default implementation.
+ * See @see mrb_default_allocf for the default implementation.
  */
 typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 
@@ -213,16 +211,17 @@ typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
  * Defines a new class.
  *
  * If you're creating a gem it may look something like this:
- *  <pre>
- *    void mrb_example_gem_init(mrb_state* mrb) {
- *      struct RClass *example_class;
- *      example_class = mrb_define_class(mrb, "Example_Class", mrb->object_class);
- *    }
  *
- *    void mrb_example_gem_final(mrb_state* mrb) {
- *      //free(TheAnimals);
- *    }
- *  </pre>
+ * ```c
+ * void mrb_example_gem_init(mrb_state* mrb) {
+ *   struct RClass *example_class;
+ *   example_class = mrb_define_class(mrb, "Example_Class", mrb->object_class);
+ * }
+ *
+ * void mrb_example_gem_final(mrb_state* mrb) {
+ *   //free(TheAnimals);
+ * }
+ * ```
  *
  * @param name The name of the defined class
  * @param super The new class parent
@@ -676,7 +675,6 @@ MRB_API void mrb_show_copyright(mrb_state *mrb);
 
 MRB_API mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
 
-/** @} */
 MRB_END_DECL
 
 #endif  /* MRUBY_H */

@@ -10,10 +10,7 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/string.h
- * @defgroup mrb_string String class
- * @ingroup mruby
- * @{
+ * String class
  */
 MRB_BEGIN_DECL
 
@@ -126,7 +123,6 @@ void mrb_regexp_check(mrb_state *mrb, mrb_value obj);
 #define mrb_str_buf_cat(mrb, str, ptr, len) mrb_str_cat(mrb, str, ptr, len)
 #define mrb_str_buf_append(mrb, str, str2) mrb_str_cat_str(mrb, str, str2)
 
-/** @} */
 MRB_END_DECL
 
 #endif  /* MRUBY_STRING_H */

@@ -10,10 +10,7 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/range.h
- * @defgroup mruby_range Range class
- * @ingroup mruby
- * @{
+ * Range class
  */
 MRB_BEGIN_DECL
 
@@ -35,7 +32,6 @@ MRB_API mrb_value mrb_range_new(mrb_state*, mrb_value, mrb_value, mrb_bool);
 MRB_API mrb_bool mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len);
 mrb_value mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, const mrb_value *argv, mrb_value (*func)(mrb_state*, mrb_value, mrb_int));
 
-/** @} */
 MRB_END_DECL
 
 #endif  /* MRUBY_RANGE_H */

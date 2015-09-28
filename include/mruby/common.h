@@ -7,12 +7,6 @@
 #ifndef MRUBY_COMMON_H
 #define MRUBY_COMMON_H
 
-/**
- * @file mruby/common.h
- * @defgroup mruby_common Shared compiler macros
- * @ingroup mruby
- * @{
- */
 
 #ifdef __cplusplus
 # define MRB_BEGIN_DECL extern "C" {
@@ -23,6 +17,11 @@
 /** End declarations in C mode */
 # define MRB_END_DECL
 #endif
+
+/**
+ * Shared compiler macros
+ */
+MRB_BEGIN_DECL
 
 /** Declare a function that never returns. */
 #if __STDC_VERSION__ >= 201112L
@@ -63,6 +62,6 @@
 # define MRB_API extern
 #endif
 
-/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_COMMON_H */

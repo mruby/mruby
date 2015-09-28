@@ -10,11 +10,7 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/version.h
- * @brief MRuby version macros
- * @defgroup mrb_string MRuby version macros
- * @ingroup MRuby
- * @{
+ * MRuby version macros
  */
 MRB_BEGIN_DECL
 

@@ -10,13 +10,7 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/value.h
- * @defgroup mruby_value Value definitions
- *
- * @ref mrb_value functions and macros.
- *
- * @ingroup mruby
- * @{
+ * MRuby Value definition functions and macros.
  */
 MRB_BEGIN_DECL
 
@@ -245,7 +239,6 @@ mrb_ro_data_p(const char *p)
 # define mrb_ro_data_p(p) FALSE
 #endif
 
-/** @} */
 MRB_END_DECL
 
 #endif  /* MRUBY_VALUE_H */

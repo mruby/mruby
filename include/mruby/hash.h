@@ -10,10 +10,7 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/hash.h
- * @defgroup mruby_hash Hash class
- * @ingroup mruby
- * @{
+ * Hash class
  */
 MRB_BEGIN_DECL
 
@@ -53,7 +50,6 @@ void mrb_gc_mark_hash(mrb_state*, struct RHash*);
 size_t mrb_gc_mark_hash_size(mrb_state*, struct RHash*);
 void mrb_gc_free_hash(mrb_state*, struct RHash*);
 
-/** @} */
 MRB_END_DECL
 
 #endif  /* MRUBY_HASH_H */
