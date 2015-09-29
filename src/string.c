@@ -1318,7 +1318,18 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
   mrb_str_modify(mrb, s);
   if (RSTR_LEN(s) > 0) {
     mrb_int len;
+#ifdef MRB_UTF8_STRING
+    const char* t = RSTR_PTR(s), *p = t;
+    const char* e = p + RSTR_LEN(s);
+    while (p<e) {
+      mrb_int clen = utf8len(p, e);
+      if (p + clen>=e) break;
+      p += clen;
+    }
+    len = p - t;
+#else
     len = RSTR_LEN(s) - 1;
+#endif
     if (RSTR_PTR(s)[len] == '\n') {
       if (len > 0 &&
           RSTR_PTR(s)[len-1] == '\r') {

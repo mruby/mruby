@@ -262,6 +262,16 @@ assert('String#chop', '15.2.10.5.11') do
   assert_equal 'abc', c
 end
 
+assert('String#chop', '15.2.10.5.11') do
+  a = ''.chop
+  b = 'あいう'.chop
+  c = 'あ\nい'.chop.chop
+
+  assert_equal '', a
+  assert_equal 'あい', b
+  assert_equal 'あ', c
+end if UTF8STRING
+
 assert('String#chop!', '15.2.10.5.12') do
   a = ''
   b = 'abc'
@@ -272,6 +282,21 @@ assert('String#chop!', '15.2.10.5.12') do
   assert_equal a, ''
   assert_equal b, 'ab'
 end
+
+assert('String#chop!', '15.2.10.5.12') do
+  a = ''
+  b = 'あいうえ\n'
+  c = 'あいうえ\n'
+
+  a.chop!
+  b.chop!
+  c.chop!
+  c.chop!
+
+  assert_equal a, ''
+  assert_equal b, 'あいうえ'
+  assert_equal c, 'あいう'
+end if UTF8STRING
 
 assert('String#downcase', '15.2.10.5.13') do
   a = 'ABC'.downcase
