@@ -1,9 +1,9 @@
-[![Build Status](https://travis-ci.org/mruby/mruby.svg?branch=master)](https://travis-ci.org/mruby/mruby)
+[![Build Status][build-status-img]][travis-ci]
 
 ## What is mruby
 
 mruby is the lightweight implementation of the Ruby language complying to (part
-of) the [ISO standard](http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579). Its syntax is Ruby 1.9 compatible.
+of) the [ISO standard][ISO-standard]. Its syntax is Ruby 1.9 compatible.
 
 mruby can be linked and embedded within your application.  We provide the
 interpreter program "mruby" and the interactive mruby shell "mirb" as examples.
@@ -78,8 +78,13 @@ Please ask us if you want to distribute your code under another license.
 
 ## How to Contribute
 
-See the [contribution guidelines](CONTRIBUTING.md), and then send a pull
+See the [contribution guidelines][contribution-guidelines], and then send a pull
 request to <http://github.com/mruby/mruby>.  We consider you have granted
 non-exclusive right to your contributed code under MIT license.  If you want to
 be named as one of mruby developers, please include an update to the AUTHORS
 file in your pull request.
+
+[ISO-standard]: http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579		
+[build-status-img]: https://travis-ci.org/mruby/mruby.svg?branch=master	
+[contribution-guidelines]: CONTRIBUTING.md		
+[travis-ci]: https://travis-ci.org/mruby/mruby
