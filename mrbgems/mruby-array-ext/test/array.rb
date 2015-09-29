@@ -293,3 +293,9 @@ assert('Array#to_h') do
   assert_raise(TypeError)     { [1].to_h }
   assert_raise(ArgumentError) { [[1]].to_h }
 end
+
+assert("Array#index") do
+  assert_nil (1..10).to_a.index { |i| i % 5 == 0 and i % 7 == 0 }
+  assert_equal 34, (1..100).to_a.index { |i| i % 5 == 0 and i % 7 == 0 }
+  assert_equal 49 ,(1..100).to_a.index(50)
+end
