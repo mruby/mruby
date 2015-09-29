@@ -1022,7 +1022,7 @@ mrb_noregexp(mrb_state *mrb, mrb_value self)
 void
 mrb_regexp_check(mrb_state *mrb, mrb_value obj)
 {
-  if (mrb_regexp_p(mrb, obj)) {
+  if (!mrb_regexp_p(mrb, obj)) {
     mrb_noregexp(mrb, obj);
   }
 }
