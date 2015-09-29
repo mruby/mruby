@@ -212,21 +212,21 @@ typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
  *
  * If you're creating a gem it may look something like this:
  *
- * ```c
- * void mrb_example_gem_init(mrb_state* mrb) {
- *   struct RClass *example_class;
- *   example_class = mrb_define_class(mrb, "Example_Class", mrb->object_class);
- * }
+ *      !!!c
+ *      void mrb_example_gem_init(mrb_state* mrb) {
+ *              struct RClass *example_class;
+ *              example_class = mrb_define_class(mrb, "Example_Class", mrb->object_class);
+ *      }
  *
- * void mrb_example_gem_final(mrb_state* mrb) {
- *   //free(TheAnimals);
- * }
- * ```
+ *      void mrb_example_gem_final(mrb_state* mrb) {
+ *              //free(TheAnimals);
+ *      }
  *
  * @param name The name of the defined class
  * @param super The new class parent
  */
 MRB_API struct RClass *mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super);
+
 MRB_API struct RClass *mrb_define_module(mrb_state *, const char*);
 MRB_API mrb_value mrb_singleton_class(mrb_state*, mrb_value);
 MRB_API void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
@@ -237,6 +237,7 @@ MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
  *
  * If you're creating a gem it may look something like this:
  *
+ *     !!!c
  *     mrb_value example_method(mrb_state* mrb, mrb_value self)
  *     {
  *          puts("Executing example command!");
