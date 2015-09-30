@@ -265,7 +265,7 @@ end
 assert('String#chop', '15.2.10.5.11') do
   a = ''.chop
   b = 'あいう'.chop
-  c = 'あ\nい'.chop.chop
+  c = "あ\nい".chop.chop
 
   assert_equal '', a
   assert_equal 'あい', b
@@ -285,8 +285,8 @@ end
 
 assert('String#chop!', '15.2.10.5.12') do
   a = ''
-  b = 'あいうえ\n'
-  c = 'あいうえ\n'
+  b = "あいうえ\n"
+  c = "あいうえ\n"
 
   a.chop!
   b.chop!
