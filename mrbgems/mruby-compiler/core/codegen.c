@@ -1330,6 +1330,17 @@ codegen(codegen_scope *s, node *tree, int val)
       int pos1, pos2;
       node *e = tree->cdr->cdr->car;
 
+      switch ((intptr_t)tree->car->car) {
+      case NODE_TRUE:
+      case NODE_INT:
+      case NODE_STR:
+        codegen(s, tree->cdr->car, val);
+        return;
+      case NODE_FALSE:
+      case NODE_NIL:
+        codegen(s, e, val);
+        return;
+      }
       codegen(s, tree->car, VAL);
       pop();
       pos1 = genop_peep(s, MKOP_AsBx(OP_JMPNOT, cursp(), 0), NOVAL);
