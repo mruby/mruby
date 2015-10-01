@@ -1,4 +1,6 @@
 class Array
+  include Enumerable
+
   ##
   # call-seq:
   #    ary.uniq!                -> ary or nil
@@ -681,4 +683,28 @@ class Array
     return nil if self.size == result.size
     self.replace(result)
   end
+
+  ##
+  #  call-seq:
+  #     ary.index(obj)             ->  int or nil
+  #     ary.index { |item| block } ->  int or nil
+  #     ary.index                  ->  Enumerator
+  #
+  #  Returns the _index_ of the first object in +ary+ such that the object is
+  #  <code>==</code> to +obj+.
+  #
+  #  If a block is given instead of an argument, returns the _index_ of the
+  #  first object for which the block returns +true+.  Returns +nil+ if no
+  #  match is found.
+  #
+  #  See also Array#rindex.
+  #
+  #  An Enumerator is returned if neither a block nor argument is given.
+  #
+  #     a = [ "a", "b", "c" ]
+  #     a.index("b")              #=> 1
+  #     a.index("z")              #=> nil
+  #     a.index { |x| x == "b" }  #=> 1
+
+  alias_method :index, :find_index
 end
