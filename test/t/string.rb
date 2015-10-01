@@ -1,3 +1,4 @@
+# coding: utf-8
 ##
 # String ISO Test
 
@@ -262,7 +263,7 @@ assert('String#chop', '15.2.10.5.11') do
   assert_equal 'abc', c
 end
 
-assert('String#chop', '15.2.10.5.11') do
+assert('String#chop(UTF-8)', '15.2.10.5.11') do
   a = ''.chop
   b = 'あいう'.chop
   c = "あ\nい".chop.chop
@@ -283,7 +284,7 @@ assert('String#chop!', '15.2.10.5.12') do
   assert_equal b, 'ab'
 end
 
-assert('String#chop!', '15.2.10.5.12') do
+assert('String#chop!(UTF-8)', '15.2.10.5.12') do
   a = ''
   b = "あいうえ\n"
   c = "あいうえ\n"
