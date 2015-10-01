@@ -2216,7 +2216,8 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_REGX:
     if (val) {
       char *p1 = (char*)tree->car;
-      char *p2 = (char*)tree->cdr;
+      char *p2 = (char*)tree->cdr->car;
+      char *p3 = (char*)tree->cdr->cdr;
       int ai = mrb_gc_arena_save(s->mrb);
       int sym = new_sym(s, mrb_intern_lit(s->mrb, REGEXP_CLASS));
       int off = new_lit(s, mrb_str_new_cstr(s->mrb, p1));
@@ -2226,11 +2227,22 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_ABx(OP_GETMCNST, cursp(), sym));
       push();
       genop(s, MKOP_ABx(OP_STRING, cursp(), off));
-      if (p2) {
+      if (p2 || p3) {
         push();
-        off = new_lit(s, mrb_str_new_cstr(s->mrb, p2));
-        genop(s, MKOP_ABx(OP_STRING, cursp(), off));
+        if (p2) {
+          off = new_lit(s, mrb_str_new_cstr(s->mrb, p2));
+          genop(s, MKOP_ABx(OP_STRING, cursp(), off));
+        } else {
+          genop(s, MKOP_A(OP_LOADNIL, cursp()));
+        }
         argc++;
+        if (p3) {
+          push();
+          off = new_lit(s, mrb_str_new(s->mrb, p3, 1));
+          genop(s, MKOP_ABx(OP_STRING, cursp(), off));
+          argc++;
+          pop();
+        }
         pop();
       }
       pop();

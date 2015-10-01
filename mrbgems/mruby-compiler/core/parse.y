@@ -761,9 +761,9 @@ new_dsym(parser_state *p, node *a)
 
 /* (:str . (a . a)) */
 static node*
-new_regx(parser_state *p, const char *p1, const char* p2)
+new_regx(parser_state *p, const char *p1, const char* p2, const char* p3)
 {
-  return cons((node*)NODE_REGX, cons((node*)p1, (node*)p2));
+  return cons((node*)NODE_REGX, cons((node*)p1, cons((node*)p2, (node*)p3)));
 }
 
 /* (:dregx . a) */
@@ -3986,6 +3986,8 @@ parse_string(parser_state *p)
     char *s = strndup(tok(p), toklen(p));
     char flags[3];
     char *flag = flags;
+    char enc = '\0';
+    char *encp;
     char *dup;
 
     newtok(p);
@@ -3994,6 +3996,8 @@ parse_string(parser_state *p)
       case 'i': f |= 1; break;
       case 'x': f |= 2; break;
       case 'm': f |= 4; break;
+      case 'u': f |= 16; break;
+      case 'n': f |= 32; break;
       default: tokadd(p, re_opt); break;
       }
     }
@@ -4009,12 +4013,20 @@ parse_string(parser_state *p)
       if (f & 1) *flag++ = 'i';
       if (f & 2) *flag++ = 'x';
       if (f & 4) *flag++ = 'm';
-      dup = strndup(flags, (size_t)(flag - flags));
+      if (f & 16) enc = 'u';
+      if (f & 32) enc = 'n';
     }
-    else {
+    if (flag > flags) {
+      dup = strndup(flags, (size_t)(flag - flags));
+    } else {
       dup = NULL;
     }
-    yylval.nd = new_regx(p, s, dup);
+    if (enc) {
+      encp = strndup(&enc, 1);
+    } else {
+      encp = NULL;
+    }
+    yylval.nd = new_regx(p, s, dup, encp);
 
     return tREGEXP;
   }
