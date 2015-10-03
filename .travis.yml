@@ -1,5 +1,7 @@
 language: c
 
+sudo: false
+
 matrix:
   include:
     - os: linux
@@ -7,8 +9,10 @@ matrix:
     - os: osx
       osx_image: xcod6.4
 
-install:
-  - if [ $TRAVIS_OS_NAME = 'linux' ]; then sudo apt-get update -qq; sudo apt-get -q install gperf; fi
+addons:
+  apt:
+    packages:
+      - gperf
 
 env: MRUBY_CONFIG=travis_config.rb
 script: "./minirake all test"
