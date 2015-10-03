@@ -103,6 +103,10 @@ module MRuby
         @dependencies << {:gem => name, :requirements => requirements, :default => default_gem}
       end
 
+      def add_test_dependency(*args)
+        add_dependency(*args) if build.test_enabled?
+      end
+
       def add_conflict(name, *req)
         @conflicts << {:gem => name, :requirements => req.empty? ? nil : req}
       end
