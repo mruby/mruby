@@ -24,17 +24,15 @@ You can use mrbconfs with following ways:
 
 ## Debug macros.
 `ENABLE_DEBUG`
+* Can be enabled via `enable_debug` method of `MRuby::Build`.
 * When defined code fetch hook and debug OP hook will be enabled.
 * When using any of the hook set function pointer `code_fetch_hook` and/or `debug_op_hook` of `mrb_state`.
 * Fetch hook will be called before any OP.
 * Debug OP hook will be called when dispatching `OP_DEBUG`.
+* When defined `mrb_assert*` macro will be defined with macros from `<assert.h>`.
 
 `DISABLE_DEBUG`
 * Will be define automatically if `ENABLE_DEBUG` isn't defined.
-
-`MRB_DEBUG`
-* When defined `mrb_assert*` macro will be defined with macros from `<assert.h>`.
-* Could be enabled via `enable_debug` method of `MRuby::Build`.
 
 ## Stack configuration
 
