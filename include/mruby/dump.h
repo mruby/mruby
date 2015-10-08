@@ -12,10 +12,7 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/dump.h
- * @defgroup mruby_dump Dumping compiled mruby script.
- * @ingroup mruby
- * @{
+ * Dumping compiled mruby script.
  */
 MRB_BEGIN_DECL
 
@@ -190,7 +187,6 @@ bin_to_uint8(const uint8_t *bin)
   return (uint8_t)bin[0];
 }
 
-/** @} */
 MRB_END_DECL
 
 /** @internal crc.c */

@@ -11,10 +11,7 @@
 #include "mruby/irep.h"
 
 /**
- * @file mruby/proc.h
- * @defgroup mruby_proc Proc class
- * @ingroup mruby
- * @{
+ * Proc class
  */
 MRB_BEGIN_DECL
 
@@ -74,7 +71,6 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state*, mrb_int);
 #include "mruby/khash.h"
 KHASH_DECLARE(mt, mrb_sym, struct RProc*, TRUE)
 
-/** @} */
 MRB_END_DECL
 
 #endif  /* MRUBY_PROC_H */

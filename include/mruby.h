@@ -38,9 +38,7 @@
 #include "mruby/version.h"
 
 /**
- * @file mruby.h
- * @defgroup mruby MRuby C API
- * @{
+ * MRuby C API entry point
  */
 MRB_BEGIN_DECL
 
@@ -56,13 +54,13 @@ struct mrb_irep;
 struct mrb_state;
 
 /**
- * Function pointer type of custom allocator used in @ref mrb_open_allocf.
+ * Function pointer type of custom allocator used in @see mrb_open_allocf.
  *
  * The function pointing it must behave similarly as realloc except:
  * - If ptr is NULL it must allocate new space.
  * - If s is NULL, ptr must be freed.
  *
- * See @ref mrb_default_allocf for the default implementation.
+ * See @see mrb_default_allocf for the default implementation.
  */
 typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 
@@ -213,21 +211,25 @@ typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
  * Defines a new class.
  *
  * If you're creating a gem it may look something like this:
- *  <pre>
- *    void mrb_example_gem_init(mrb_state* mrb) {
- *      struct RClass *example_class;
- *      example_class = mrb_define_class(mrb, "Example_Class", mrb->object_class);
- *    }
  *
- *    void mrb_example_gem_final(mrb_state* mrb) {
- *      //free(TheAnimals);
- *    }
- *  </pre>
+ *      !!!c
+ *      void mrb_example_gem_init(mrb_state* mrb) {
+ *              struct RClass *example_class;
+ *              example_class = mrb_define_class(mrb, "Example_Class", mrb->object_class);
+ *      }
  *
+ *      void mrb_example_gem_final(mrb_state* mrb) {
+ *              //free(TheAnimals);
+ *      }
+ *
+ * @param mrb The current mruby state.
  * @param name The name of the defined class
  * @param super The new class parent
+ * @return Reference to the newly defined class
+ * @see mrb_define_class_under
  */
 MRB_API struct RClass *mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super);
+
 MRB_API struct RClass *mrb_define_module(mrb_state *, const char*);
 MRB_API mrb_value mrb_singleton_class(mrb_state*, mrb_value);
 MRB_API void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
@@ -238,6 +240,7 @@ MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
  *
  * If you're creating a gem it may look something like this:
  *
+ *     !!!c
  *     mrb_value example_method(mrb_state* mrb, mrb_value self)
  *     {
  *          puts("Executing example command!");
@@ -249,15 +252,10 @@ MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
  *           mrb_define_method(mrb, mrb->kernel_module, "example_method", example_method, MRB_ARGS_NONE());
  *     }
  *
- * @param mrb
- *      The MRuby state reference.
- * @param cla
- *      The class pointer where the method will be defined.
- * @param func
- *      The function pointer to the method definition.
- * @param aspec
- *      The method parameters declaration.
- *      See @ref mruby_mrb_aspec for details.
+ * @param mrb The MRuby state reference.
+ * @param cla The class pointer where the method will be defined.
+ * @param func The function pointer to the method definition.
+ * @param aspec The method parameters declaration.
  */
 MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *name, mrb_func_t func, mrb_aspec aspec);
 
@@ -271,20 +269,15 @@ MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 /**
  * Initialize a new object instace of c class.
  *
- * @param mrb
- *      The current mruby state.
- * @param c
- *      Reference to the class of the new object.
- * @param argc
- *      Number of arguments in argv
- * @param argv
- *      Array of @ref mrb_value "mrb_values" to initialize the object
- * @returns
- *      The newly initialized object
+ * @param mrb The current mruby state.
+ * @param c Reference to the class of the new object.
+ * @param argc Number of arguments in argv
+ * @param argv Array of mrb_value to initialize the object
+ * @return The newly initialized object
  */
 MRB_API mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv);
 
-/** See @ref mrb_obj_new */
+/** @see mrb_obj_new */
 MRB_INLINE mrb_value mrb_class_new_instance(mrb_state *mrb, mrb_int argc, const mrb_value *argv, struct RClass *c)
 {
   return mrb_obj_new(mrb,c,argc,argv);
@@ -303,17 +296,20 @@ MRB_API mrb_value mrb_notimplement_m(mrb_state*, mrb_value);
 MRB_API mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
 MRB_API mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
 MRB_API mrb_bool mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid);
-MRB_API struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
-MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
 /**
- * @defgroup mruby_mrb_aspec Required arguments declaration helpers.
+ * Defines a new class under a given module
  *
- * Helper functions to declare arguments requirements on methods declared by
- * \ref mrb_define_method and the like
- *
- * @{
+ * @param mrb The current mruby state.
+ * @param outer Reference to the module under which the new class will be defined
+ * @param name The name of the defined class
+ * @param super The new class parent
+ * @return Reference to the newly defined class
+ * @see mrb_define_class
  */
+MRB_API struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
+
+MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
 /**
  * Function requires n arguments.
@@ -365,8 +361,6 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
  */
 #define MRB_ARGS_NONE()     ((mrb_aspec)0)
 
-/** @} */
-
 /**
  * Format specifiers for \ref mrb_get_args function
  *
@@ -400,14 +394,10 @@ typedef const char *mrb_args_format;
  * applied to received arguments.
  * Use it inside a function pointed by mrb_func_t.
  *
- * @param mrb
- *      The current MRuby state.
- * @param format
- *      is a list of format specifiers see @ref mrb_args_format
- * @param ...
- *      The passing variadic arguments must be a pointer of retrieving type.
- * @return
- *      the number of arguments retrieved.
+ * @param mrb The current MRuby state.
+ * @param format is a list of format specifiers see @ref mrb_args_format
+ * @param ... The passing variadic arguments must be a pointer of retrieving type.
+ * @return the number of arguments retrieved.
  */
 MRB_API mrb_int mrb_get_args(mrb_state *mrb, mrb_args_format format, ...);
 
@@ -469,7 +459,7 @@ char* mrb_locale_from_utf8(const char *p, size_t len);
 /**
  * Creates new mrb_state.
  *
- * @returns
+ * @return
  *      Pointer to the newly created mrb_state.
  */
 MRB_API mrb_state* mrb_open(void);
@@ -482,7 +472,7 @@ MRB_API mrb_state* mrb_open(void);
  * @param ud
  *      User data will be passed to custom allocator f.
  *      If user data isn't required just pass NULL.
- * @returns
+ * @return
  *      Pointer to the newly created mrb_state.
  */
 MRB_API mrb_state* mrb_open_allocf(mrb_allocf f, void *ud);
@@ -496,7 +486,7 @@ MRB_API mrb_state* mrb_open_allocf(mrb_allocf f, void *ud);
  * @param ud
  *      User data will be passed to custom allocator f.
  *      If user data isn't required just pass NULL.
- * @returns
+ * @return
  *      Pointer to the newly created mrb_state.
  */
 MRB_API mrb_state* mrb_open_core(mrb_allocf f, void *ud);
@@ -676,7 +666,6 @@ MRB_API void mrb_show_copyright(mrb_state *mrb);
 
 MRB_API mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
 
-/** @} */
 MRB_END_DECL
 
 #endif  /* MRUBY_H */

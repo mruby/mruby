@@ -13,10 +13,7 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/khash.h
- * @defgroup mruby_khash khash definitions used in mruby's hash table.
- * @ingroup mruby
- * @{
+ * khash definitions used in mruby's hash table.
  */
 MRB_BEGIN_DECL
 
@@ -272,7 +269,6 @@ static inline khint_t __ac_X31_hash_string(const char *s)
 
 typedef const char *kh_cstr_t;
 
-/** @} */
 MRB_END_DECL
 
 #endif  /* MRUBY_KHASH_H */

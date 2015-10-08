@@ -11,10 +11,7 @@
 #include "mruby/compile.h"
 
 /**
- * @file mruby/irep.h
- * @defgroup mruby_irep Compiled mruby scripts.
- * @ingroup mruby
- * @{
+ * Compiled mruby scripts.
  */
 MRB_BEGIN_DECL
 
@@ -58,7 +55,6 @@ void mrb_irep_free(mrb_state*, struct mrb_irep*);
 void mrb_irep_incref(mrb_state*, struct mrb_irep*);
 void mrb_irep_decref(mrb_state*, struct mrb_irep*);
 
-/** @} */
 MRB_END_DECL
 
 #endif  /* MRUBY_IREP_H */

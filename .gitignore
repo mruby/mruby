@@ -21,3 +21,5 @@ cscope.out
 /bin
 /build
 /mruby-source-*.gem
+doc/api
+.yardoc

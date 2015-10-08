@@ -10,10 +10,7 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/class.h
- * @defgroup mruby_class Class class
- * @ingroup mruby
- * @{
+ * Class class
  */
 MRB_BEGIN_DECL
 
@@ -87,7 +84,6 @@ void mrb_gc_mark_mt(mrb_state*, struct RClass*);
 size_t mrb_gc_mark_mt_size(mrb_state*, struct RClass*);
 void mrb_gc_free_mt(mrb_state*, struct RClass*);
 
-/** @} */
 MRB_END_DECL
 
 #endif  /* MRUBY_CLASS_H */

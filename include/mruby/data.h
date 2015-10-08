@@ -10,13 +10,9 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/data.h
- * @defgroup mruby_data Custom C wrapped data.
+ * Custom C wrapped data.
  *
  * Defining Ruby wrappers around native objects.
- *
- * @ingroup mruby
- * @{
  */
 MRB_BEGIN_DECL
 
@@ -74,7 +70,6 @@ mrb_data_init(mrb_value v, void *ptr, const mrb_data_type *type)
   DATA_TYPE(v) = type;
 }
 
-/** @} */
 MRB_END_DECL
 
 #endif /* MRUBY_DATA_H */

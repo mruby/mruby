@@ -1,0 +1,8 @@
+--plugin mruby
+--plugin coderay
+--output-dir doc/api
+-
+AUTHORS
+MITL
+CONTRIBUTING.md
+doc/guides/*.md
