@@ -295,7 +295,7 @@ MRB_API mrb_value mrb_notimplement_m(mrb_state*, mrb_value);
 
 MRB_API mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
 MRB_API mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
-MRB_API mrb_bool mrb_obj_mrb_define_class_underrespond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid);
+MRB_API mrb_bool mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid);
 
 /**
  * Defines a new class under a given module
