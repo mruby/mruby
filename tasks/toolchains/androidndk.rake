@@ -3,9 +3,10 @@ class MRuby::Toolchain::AndroidNDK
   DEFAULT_ARCH = 'armeabi'
   DEFAULT_PLATFORM = 'android-14'
   DEFAULT_TOOLCHAIN = :gcc
-  KNOWN_NDK_HOMES = %w{
+  DEFAULT_NDK_HOMES = %w{
     /usr/local/opt/android-ndk
   }
+  TOOLCHAINS = [:gcc, :clang]
   ARCHITECTURES = %w{
     armeabi armeabi-v7a arm64-v8a
     mips mips64
@@ -31,7 +32,7 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
     @home_path ||= Pathname(
       params[:ndk_home] ||
         ENV['ANDROID_NDK_HOME'] ||
-        KNOWN_NDK_HOMES.find{ |path| File.directory?(path) } ||
+        DEFAULT_NDK_HOMES.find{ |path| File.directory?(path) } ||
         raise(AndroidNDKHomeNotFound)
     )
   end
