@@ -3,16 +3,32 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#if defined(__MINGW32__) || defined(__MINGW64__)
+# include <windows.h>
+# include <io.h>
+#endif
 
 static void
 printstr(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_string_p(obj)) {
-    char* ptr = mrb_locale_from_utf8(RSTRING_PTR(obj), RSTRING_LEN(obj));
-    if (ptr) {
-      fwrite(ptr, strlen(ptr), 1, stdout);
-      mrb_locale_free(ptr);
-    }
+#if defined(__MINGW32__) || defined(__MINGW64__)
+    if (isatty(fileno(stdout))) {
+      DWORD written;
+      int mlen = RSTRING_LEN(obj);
+      char* utf8 = RSTRING_PTR(obj);
+      int wlen = MultiByteToWideChar(CP_UTF8, 0, utf8, mlen, NULL, 0);
+      wchar_t* utf16 = mrb_malloc(mrb, (wlen+1) * sizeof(wchar_t));
+      if (utf16 == NULL) return;
+      if (MultiByteToWideChar(CP_UTF8, 0, utf8, mlen, utf16, wlen) > 0) {
+        utf16[wlen] = 0;
+        WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE),
+          utf16, wlen, &written, NULL);
+      }
+      mrb_free(mrb, utf16);
+    } else
+#endif
+      fwrite(RSTRING_PTR(obj), RSTRING_LEN(obj), 1, stdout);
   }
 }
 
