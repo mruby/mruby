@@ -128,8 +128,10 @@ enum mrb_vtype {
 #define mrb_test(o)   mrb_bool(o)
 MRB_API mrb_bool mrb_regexp_p(struct mrb_state*, mrb_value);
 
-static inline mrb_value
-mrb_float_value(struct mrb_state *mrb, mrb_float f)
+/*
+ * Returns a float in Ruby.
+ */
+MRB_INLINE mrb_value mrb_float_value(struct mrb_state *mrb, mrb_float f)
 {
   mrb_value v;
   (void) mrb;
@@ -146,8 +148,10 @@ mrb_cptr_value(struct mrb_state *mrb, void *p)
   return v;
 }
 
-static inline mrb_value
-mrb_fixnum_value(mrb_int i)
+/*
+ * Returns a fixnum in Ruby.
+ */
+MRB_INLINE mrb_value mrb_fixnum_value(mrb_int i)
 {
   mrb_value v;
   SET_INT_VALUE(v, i);
@@ -171,7 +175,7 @@ mrb_obj_value(void *p)
 }
 
 
-/**
+/*
  * Get a nil mrb_value object.
  *
  * @return
@@ -184,16 +188,20 @@ MRB_INLINE mrb_value mrb_nil_value(void)
   return v;
 }
 
-static inline mrb_value
-mrb_false_value(void)
+/*
+ * Returns false in Ruby.
+ */
+MRB_INLINE mrb_value mrb_false_value(void)
 {
   mrb_value v;
   SET_FALSE_VALUE(v);
   return v;
 }
 
-static inline mrb_value
-mrb_true_value(void)
+/*
+ * Returns true in Ruby.
+ */
+MRB_INLINE mrb_value mrb_true_value(void)
 {
   mrb_value v;
   SET_TRUE_VALUE(v);
