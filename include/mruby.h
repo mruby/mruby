@@ -887,9 +887,26 @@ MRB_API mrb_value mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id);
 MRB_API mrb_bool mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
 MRB_API mrb_bool mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
 
-/* fiber functions (you need to link mruby-fiber mrbgem to use) */
+
+/*
+ * Resume a Fiber
+ *
+ * @mrbgem mruby-fiber
+ */
 MRB_API mrb_value mrb_fiber_resume(mrb_state *mrb, mrb_value fib, mrb_int argc, const mrb_value *argv);
+
+/*
+ * Yield a Fiber
+ *
+ * @mrbgem mruby-fiber
+ */
 MRB_API mrb_value mrb_fiber_yield(mrb_state *mrb, mrb_int argc, const mrb_value *argv);
+
+/*
+ * FiberError reference
+ *
+ * @mrbgem mruby-fiber
+ */
 #define E_FIBER_ERROR (mrb_class_get(mrb, "FiberError"))
 
 /* memory pool implementation */
