@@ -139,5 +139,10 @@ end
 
 desc 'generate document'
 task :doc do
-  load "#{MRUBY_ROOT}/doc/language/generator.rb"
+  begin
+    sh "mrbdoc"
+  rescue
+    puts "ERROR: To generate documents, you should install yard-mruby gem."
+    puts "  $ gem install yard-mruby"
+  end
 end
