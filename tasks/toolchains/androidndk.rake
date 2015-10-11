@@ -163,7 +163,8 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
     flags = []
     case toolchain
     when :gcc
-      flags = %W(-D__android__ -mandroid --sysroot="#{sysroot}" -no-canonical-prefixes)
+      flags += %W(-no-canonical-prefixes)
+      flags += %W(-D__android__ -mandroid --sysroot="#{sysroot}")
       case arch
       when 'armeabi-v7a-hard'
         flags += %W(-march=armv7-a -Wl,--fix-cortex-a8 -Wl,--no-warn-mismatch -lm_hard)
