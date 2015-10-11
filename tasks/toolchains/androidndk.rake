@@ -172,7 +172,7 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
       when /arm64/
         flags += %W(-no-canonical-prefixes)
       when /armeabi/
-        flags += %W() #add required flags
+        flags += %W(-no-canonical-prefixes)
       when /mips64/
         flags += %W() #add required flags
       when /mips/
