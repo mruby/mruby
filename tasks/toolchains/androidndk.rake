@@ -144,12 +144,8 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
         flags += %W(-fpic -fstack-protector-strong -march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16)
       when /arm/
         flags += %W(-fpic -fstack-protector-strong -march=armv5te -mtune=xscale -msoft-float)
-      when /mips64/
-        flags += %W(-fpic -fno-strict-aliasing -finline-functions -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers)
       when /mips/
         flags += %W(-fpic -fno-strict-aliasing -finline-functions -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers)
-      when /x86_64/
-        flags += %W(-fstack-protector-strong)
       when /x86/
         flags += %W(-fstack-protector-strong)
       end
