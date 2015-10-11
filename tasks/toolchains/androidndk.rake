@@ -170,7 +170,7 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
       flags = %W(-D__android__ -mandroid --sysroot="#{sysroot}")
       case arch
       when /arm64/
-        flags += %W() #add required flags
+        flags += %W(-no-canonical-prefixes)
       when /armeabi/
         flags += %W() #add required flags
       when /mips64/
