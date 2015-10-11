@@ -164,7 +164,25 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
   end
 
   def ldflags
-    %W(-D__android__ -mandroid --sysroot="#{sysroot}")
+    flags = []
+    case toolchain
+    when :gcc
+      flags = %W(-D__android__ -mandroid --sysroot="#{sysroot}")
+      case arch
+      when /arm64/
+        flags += %W() #add required flags
+      when /armeabi/
+        flags += %W() #add required flags
+      when /mips64/
+        flags += %W() #add required flags
+      when /mips/
+        flags += %W() #add required flags
+      when /x86_64/
+        flags += %W() #add required flags
+      when /x86/
+        flags += %W() #add required flags
+      end
+    end
   end
 
   def ar
