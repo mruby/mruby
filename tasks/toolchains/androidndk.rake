@@ -151,7 +151,7 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
       when /x86_64/
         flags += %W(-fstack-protector-strong -no-canonical-prefixes)
       when /x86/
-        flags += %W(-no-canonical-prefixes)
+        flags += %W(-fstack-protector-strong -no-canonical-prefixes)
       end
     when :clang
     end
