@@ -60,6 +60,8 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
           'aarch64-linux-android-*'
         when /mips/
           'mipsel-linux-android-*'
+        when /x86/
+          'x86-*'
         end
       when :clang
         'llvm-*'
