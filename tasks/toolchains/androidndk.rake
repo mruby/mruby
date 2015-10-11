@@ -128,23 +128,23 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
 
     case toolchain
     when :gcc
-      flags += %W(-ffunction-sections -funwind-tables -fstack-protector)
+      flags += %W(-ffunction-sections -funwind-tables)
       flags += %W(-D__android__ -mandroid --sysroot="#{sysroot}")
       case arch
       when /arm64/
-        flags += %W(-fpic -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes)
+        flags += %W(-fpic -fstack-protector-strong -no-canonical-prefixes)
       when 'armeabi-v7a-hard'
-        flags += %W(-fpic -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -march=armv7-a -mhard-float -D_NDK_MATH_NO_SOFTFP=1 -mfpu=vfpv3-d16)
+        flags += %W(-fpic -fstack-protector-strong -no-canonical-prefixes -march=armv7-a -mhard-float -D_NDK_MATH_NO_SOFTFP=1 -mfpu=vfpv3-d16)
       when 'armeabi-v7a'
-        flags += %W(-fpic -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16)
+        flags += %W(-fpic -fstack-protector-strong -no-canonical-prefixes -march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16)
       when /arm/
-        flags += %W(-fpic -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -march=armv5te -mtune=xscale -msoft-float)
+        flags += %W(-fpic -fstack-protector-strong -no-canonical-prefixes -march=armv5te -mtune=xscale -msoft-float)
       when /mips64/
-        flags += %W(-fpic -fno-strict-aliasing -finline-functions -ffunction-sections -funwind-tables -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers -no-canonical-prefixes)
+        flags += %W(-fpic -fno-strict-aliasing -finline-functions -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers -no-canonical-prefixes)
       when /mips/
         flags += %W(-fpic -fno-strict-aliasing -finline-functions -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers)
       when /x86/
-        flags += %W(-ffunction-sections -funwind-tables -no-canonical-prefixes)
+        flags += %W(-no-canonical-prefixes)
       end
     when :clang
     end
