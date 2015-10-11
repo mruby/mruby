@@ -75,7 +75,7 @@ toolchain :visualcpp
 
 Toolchain configuration for Android.
 ```ruby
-toolchain :androideabi
+toolchain :androidndk
 ```
 
 Requires the custom standalone Android NDK and the toolchain path
