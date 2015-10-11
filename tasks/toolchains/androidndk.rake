@@ -171,6 +171,10 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
       case arch
       when /arm64/
         flags += %W(-no-canonical-prefixes)
+      when 'armeabi-v7a-hard'
+        flags += %W(-no-canonical-prefixes -march=armv7-a -Wl,--fix-cortex-a8 -Wl,--no-warn-mismatch -lm_hard)
+      when 'armeabi-v7a'
+        flags += %W(-no-canonical-prefixes -march=armv7-a -Wl,--fix-cortex-a8)
       when /armeabi/
         flags += %W(-no-canonical-prefixes)
       when /mips64/
