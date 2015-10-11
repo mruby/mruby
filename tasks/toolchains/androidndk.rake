@@ -133,6 +133,8 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
       case arch
       when /arm64/
         flags += %W(-fpic -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes)
+      when 'armeabi-v7a-hard'
+        flags += %W(-fpic -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -march=armv7-a -mhard-float -D_NDK_MATH_NO_SOFTFP=1 -mfpu=vfpv3-d16)
       when 'armeabi-v7a'
         flags += %W(-fpic -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16)
       when /arm/
