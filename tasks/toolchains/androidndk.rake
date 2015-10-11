@@ -58,6 +58,8 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
           'arm-linux-androideabi-*'
         when /arm64/
           'aarch64-linux-android-*'
+        when /mips64/
+          'mips64el-linux-android-*'
         when /mips/
           'mipsel-linux-android-*'
         when /x86/
@@ -79,6 +81,7 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
                when /armeabi/ then 'arm-linux-androideabi-'
                when /arm64/   then 'aarch64-linux-android-'
                when /x86/     then 'x86-'
+               when /mips64/  then 'mips64el-linux-android-'
                when /mips/    then 'mipsel-linux-android-'
                end
              end
@@ -90,6 +93,7 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
            when /armeabi/ then 'arch-arm'
            when /arm64/   then 'arch-arm64'
            when /x86/     then 'arch-x86'
+           when /mips64/  then 'arch-mips64'
            when /mips/    then 'arch-mips'
            end
 
@@ -104,6 +108,7 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
                 when /armeabi/ then 'arm-linux-androideabi-'
                 when /arm64/   then 'aarch64-linux-android-'
                 when /x86/     then 'i686-linux-android-'
+                when /mips64/  then 'mips64el-linux-android-'
                 when /mips/    then 'mipsel-linux-android-'
                 end + command
     end
@@ -132,6 +137,8 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
         flags += %W(-march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16)
       when /arm/
         flags += %W(-march=armv5te -mtune=xscale -msoft-float)
+      when /mips64/
+        flags += %W(-fpic -fno-strict-aliasing -finline-functions -ffunction-sections -funwind-tables -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers -no-canonical-prefixes)
       when /mips/
         flags += %W(-fpic -fno-strict-aliasing -finline-functions -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers)
       end
