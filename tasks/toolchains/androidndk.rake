@@ -143,6 +143,8 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
         flags += %W(-fpic -fno-strict-aliasing -finline-functions -ffunction-sections -funwind-tables -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers -no-canonical-prefixes)
       when /mips/
         flags += %W(-fpic -fno-strict-aliasing -finline-functions -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers)
+      when /x86/
+        flags += %W(-ffunction-sections -funwind-tables -no-canonical-prefixes)
       end
     when :clang
     end
