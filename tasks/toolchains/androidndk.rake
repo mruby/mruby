@@ -53,7 +53,12 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
     params.fetch(:toolchain_version) do
       test = case toolchain
       when :gcc
-        'arm-linux-androideabi-*'
+        case arch
+        when /armeabi/
+          'arm-linux-androideabi-*'
+        when /arm64/
+          'aarch64-linux-android-*'
+        end
       when :clang
         'llvm-*'
       end
@@ -67,9 +72,10 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
              when :clang then 'llvm-'
              when :gcc
                case arch
-               when /arm/  then 'arm-linux-androideabi-'
-               when /x86/  then 'x86-'
-               when /mips/ then 'mipsel-linux-android-'
+               when /armeabi/ then 'arm-linux-androideabi-'
+               when /arm64/   then 'aarch64-linux-android-'
+               when /x86/     then 'x86-'
+               when /mips/    then 'mipsel-linux-android-'
                end
              end
     home_path.join('toolchains', prefix + toolchain_version.to_s, 'prebuilt', host_platform)
@@ -77,9 +83,10 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
 
   def sysroot
     path = case arch
-           when /arm/  then 'arch-arm'
-           when /x86/  then 'arch-x86'
-           when /mips/ then 'arch-mips'
+           when /armeabi/ then 'arch-arm'
+           when /arm64/   then 'arch-arm64'
+           when /x86/     then 'arch-x86'
+           when /mips/    then 'arch-mips'
            end
 
     home_path.join('platforms', platform, path).to_s
@@ -90,9 +97,10 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
 
     if toolchain == :gcc
       command = case arch
-                when /arm/  then 'arm-linux-androideabi-'
-                when /x86/  then 'i686-linux-android-'
-                when /mips/ then 'mipsel-linux-android-'
+                when /armeabi/ then 'arm-linux-androideabi-'
+                when /arm64/   then 'aarch64-linux-android-'
+                when /x86/     then 'i686-linux-android-'
+                when /mips/    then 'mipsel-linux-android-'
                 end + command
     end
 
@@ -114,6 +122,8 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
       flags += %W(-ffunction-sections -funwind-tables -fstack-protector)
       flags += %W(-D__android__ -mandroid --sysroot="#{sysroot}")
       case arch
+	  when /arm64/
+	    flags += %W()
       when 'armeabi-v7a'
         flags += %W(-march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16)
       when /arm/
