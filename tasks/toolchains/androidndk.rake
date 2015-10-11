@@ -58,6 +58,8 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
           'arm-linux-androideabi-*'
         when /arm64/
           'aarch64-linux-android-*'
+        when /mips/
+          'mipsel-linux-android-*'
         end
       when :clang
         'llvm-*'
