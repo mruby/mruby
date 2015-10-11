@@ -132,7 +132,7 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
       flags += %W(-D__android__ -mandroid --sysroot="#{sysroot}")
       case arch
       when /arm64/
-        flags += %W()
+        flags += %W(-fpic -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes)
       when 'armeabi-v7a'
         flags += %W(-march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16)
       when /arm/
