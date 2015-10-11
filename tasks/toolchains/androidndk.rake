@@ -62,6 +62,8 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
           'mips64el-linux-android-*'
         when /mips/
           'mipsel-linux-android-*'
+        when /x86_64/
+          'x86_64-*'
         when /x86/
           'x86-*'
         end
@@ -80,6 +82,7 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
                case arch
                when /armeabi/ then 'arm-linux-androideabi-'
                when /arm64/   then 'aarch64-linux-android-'
+               when /x86_64/  then 'x86_64-'
                when /x86/     then 'x86-'
                when /mips64/  then 'mips64el-linux-android-'
                when /mips/    then 'mipsel-linux-android-'
@@ -92,6 +95,7 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
     path = case arch
            when /armeabi/ then 'arch-arm'
            when /arm64/   then 'arch-arm64'
+           when /x86_64/  then 'arch-x86_64'
            when /x86/     then 'arch-x86'
            when /mips64/  then 'arch-mips64'
            when /mips/    then 'arch-mips'
@@ -107,6 +111,7 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
       command = case arch
                 when /armeabi/ then 'arm-linux-androideabi-'
                 when /arm64/   then 'aarch64-linux-android-'
+                when /x86_64/  then 'x86_64-linux-android-'
                 when /x86/     then 'i686-linux-android-'
                 when /mips64/  then 'mips64el-linux-android-'
                 when /mips/    then 'mipsel-linux-android-'
@@ -143,6 +148,8 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
         flags += %W(-fpic -fno-strict-aliasing -finline-functions -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers -no-canonical-prefixes)
       when /mips/
         flags += %W(-fpic -fno-strict-aliasing -finline-functions -fmessage-length=0 -fno-inline-functions-called-once -fgcse-after-reload -frerun-cse-after-loop -frename-registers)
+      when /x86_64/
+        flags += %W(-fstack-protector-strong -no-canonical-prefixes)
       when /x86/
         flags += %W(-no-canonical-prefixes)
       end
