@@ -486,6 +486,18 @@ typedef const char *mrb_args_format;
  */
 MRB_API mrb_int mrb_get_args(mrb_state *mrb, mrb_args_format format, ...);
 
+static inline mrb_sym
+mrb_get_mid(mrb_state *mrb) /* get method symbol */
+{
+  return mrb->c->ci->mid;
+}
+
+static inline int
+mrb_get_argc(mrb_state *mrb) /* get argc */
+{
+  return mrb->c->ci->argc;
+}
+
 /* `strlen` for character string literals (use with caution or `strlen` instead)
     Adjacent string literals are concatenated in C/C++ in translation phase 6.
     If `lit` is not one, the compiler will report a syntax error:
