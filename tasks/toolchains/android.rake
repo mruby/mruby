@@ -1,5 +1,4 @@
-
-class MRuby::Toolchain::AndroidNDK
+class MRuby::Toolchain::Android
   DEFAULT_ARCH = 'armeabi'
   DEFAULT_PLATFORM = 'android-14'
   DEFAULT_TOOLCHAIN = :gcc
@@ -199,8 +198,8 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
   end
 end
 
-MRuby::Toolchain.new(:androidndk) do |conf, params|
-  ndk = MRuby::Toolchain::AndroidNDK.new(params)
+MRuby::Toolchain.new(:android) do |conf, params|
+  ndk = MRuby::Toolchain::Android.new(params)
 
   toolchain ndk.toolchain
 
