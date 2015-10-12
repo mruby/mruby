@@ -230,9 +230,38 @@ typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
  */
 MRB_API struct RClass *mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super);
 
+/**
+ * Defines a new module.
+ * @param mrb_state* The current mruby state.
+ * @param char* The name of the module.
+ * @return Reference to the newly defined module.
+ */
 MRB_API struct RClass *mrb_define_module(mrb_state *, const char*);
 MRB_API mrb_value mrb_singleton_class(mrb_state*, mrb_value);
+
+/**
+ * Include a module in another class or module.
+ * Equivalent to: 
+ *
+ *   module B                                                                                                         *
+ *     include A                                                                                                      *
+ *   end 
+ * @param mrb_state* The current mruby state.
+ * @param RClass* A reference to module or a class.
+ * @param RClass* A reference to the module to be included.
+ */
 MRB_API void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
+
+/**
+ * Prepends a module in another class or module.
+ * Equivalent to:
+ *  module B
+ *    prepend A
+ *  end
+ * @param mrb_state* The current mruby state.
+ * @param RClass* A reference to module or a class.
+ * @param RClass* A reference to the module to be prepended.
+ */ 
 MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
 
 /**
@@ -259,9 +288,65 @@ MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
  */
 MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *name, mrb_func_t func, mrb_aspec aspec);
 
+/**
+ * Defines a class method.
+ *   # Ruby style
+ *   class Foo
+ *     def Foo.bar
+ *     end
+ *   end
+ *   // C style
+ *   mrb_value bar_method(mrb_state* mrb, mrb_value self){
+ *     return mrb_nil_value();
+ *   }
+ *   void mrb_example_gem_init(mrb_state* mrb){
+ *     struct RClass *foo;
+ *     foo = mrb_define_class(mrb, "Foo", mrb->object_class);
+ *     mrb_define_class_method(mrb, foo, "bar", bar_method, MRB_ARGS_NONE()); 
+ *   }
+ * @param mrb_state* The MRuby state reference. 
+ * @param RClass* The class where the class method will be defined.
+ * @param char* The name of the class method.
+ * @param mrb_func_t The function pointer to the class method definition.
+ * @param mrb_aspec The method parameters declaration.
+ */
 MRB_API void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
 MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
+
+/**
+ *  Defines a module fuction.
+ *   # Ruby style
+ *   module Foo                                                                                                     
+ *     def Foo.bar                                                                                                    *     end
+ *   end                                                                                                             
+ *   // C style                                                                                                      
+ *   mrb_value bar_method(mrb_state* mrb, mrb_value self){                                                           
+ *     return mrb_nil_value();                                                                                                      
+ *   }                                                                                                               
+ *   void mrb_example_gem_init(mrb_state* mrb){                                                                      
+ *     struct RClass *foo;                                                                                           
+ *     foo = mrb_define_module(mrb, "Foo");                                                        
+ *     mrb_define_module_function(mrb, foo, "bar", bar_method, MRB_ARGS_NONE());
+ *   }    
+ *  @param mrb_state* The MRuby state reference.
+ *  @param RClass* The module where the module function will be defined.
+ *  @param char* The name of the module function.
+ *  @param mrb_func_t The function pointer to the module function definition. 
+ *  @param mrb_aspec The method parameters declaration.
+ */
 MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
+
+/**
+ *  Defines a constant.
+ *    # Ruby style
+ *    AGE = 22
+ *    // C style
+ *    mrb_define_const(mrb, mrb->kernel_module, "AGE", mrb_fixnum_value(22));
+ *  @param mrb_state* The MRuby state reference.
+ *  @param RClass* A class or module the constant is defined in.
+ *  @param name The name of the constant.
+ *  @param mrb_value The value for the constant.
+ */
 MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
