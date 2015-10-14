@@ -1,3 +1,6 @@
+# Time class
+#
+# @mrbgem mruby-time
 class Time
   def sunday?;  wday == 0 end
   def monday?;  wday == 1 end

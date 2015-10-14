@@ -11,6 +11,7 @@
  *  Symbol.
  *  If called outside of a method, it returns <code>nil</code>.
  *
+ * @mrbgem mruby-kernel-ext
  */
 static mrb_value
 mrb_f_method(mrb_state *mrb, mrb_value self)
@@ -45,6 +46,8 @@ mrb_f_method(mrb_state *mrb, mrb_value self)
  *     Integer("0930", 10) #=> 930
  *     Integer("111", 2)   #=> 7
  *     Integer(nil)        #=> TypeError
+ *
+ * @mrbgem mruby-kernel-ext
  */
 static mrb_value
 mrb_f_integer(mrb_state *mrb, mrb_value self)
@@ -67,6 +70,8 @@ mrb_f_integer(mrb_state *mrb, mrb_value self)
  *     Float(123.456)     #=> 123.456
  *     Float("123.456")   #=> 123.456
  *     Float(nil)         #=> TypeError
+ *
+ * @mrbgem mruby-kernel-ext
  */
 static mrb_value
 mrb_f_float(mrb_state *mrb, mrb_value self)
@@ -88,6 +93,8 @@ mrb_f_float(mrb_state *mrb, mrb_value self)
  *     String(self)        #=> "main"
  *     String(self.class)  #=> "Object"
  *     String(123456)      #=> "123456"
+ *
+ * @mrbgem mruby-kernel-ext
  */
 static mrb_value
 mrb_f_string(mrb_state *mrb, mrb_value self)
@@ -112,6 +119,7 @@ mrb_f_string(mrb_state *mrb, mrb_value self)
  *
  *     Array(1..5)   #=> [1, 2, 3, 4, 5]
  *
+ * @mrbgem mruby-kernel-ext
  */
 static mrb_value
 mrb_f_array(mrb_state *mrb, mrb_value self)
@@ -142,6 +150,8 @@ mrb_f_array(mrb_state *mrb, mrb_value self)
  *     Hash(nil)         #=> {}
  *     Hash(key: :value) #=> {:key => :value}
  *     Hash([1, 2, 3])   #=> TypeError
+ *
+ * @mrbgem mruby-kernel-ext
  */
 static mrb_value
 mrb_f_hash(mrb_state *mrb, mrb_value self)

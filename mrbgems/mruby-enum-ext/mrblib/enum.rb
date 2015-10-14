@@ -1,7 +1,5 @@
-##
-# Enumerable
-#
 module Enumerable
+
   ##
   # call-seq:
   #    enum.drop(n)               -> array
@@ -11,7 +9,8 @@ module Enumerable
   #
   #    a = [1, 2, 3, 4, 5, 0]
   #    a.drop(3)             #=> [4, 5, 0]
-
+  #
+  # @mrbgem mruby-enum-ext
   def drop(n)
     raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
     raise ArgumentError, "attempt to drop negative size" if n < 0
@@ -35,7 +34,8 @@ module Enumerable
   #
   #    a = [1, 2, 3, 4, 5, 0]
   #    a.drop_while {|i| i < 3 }   #=> [3, 4, 5, 0]
-
+  #
+  # @mrbgem mruby-enum-ext
   def drop_while(&block)
     return to_enum :drop_while unless block
 
@@ -55,7 +55,8 @@ module Enumerable
   #
   #    a = [1, 2, 3, 4, 5, 0]
   #    a.take(3)             #=> [1, 2, 3]
-
+  #
+  # @mrbgem mruby-enum-ext
   def take(n)
     raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
     raise ArgumentError, "attempt to take negative size" if n < 0
@@ -81,7 +82,8 @@ module Enumerable
   #
   #    a = [1, 2, 3, 4, 5, 0]
   #    a.take_while {|i| i < 3 }   #=> [1, 2]
-
+  #
+  # @mrbgem mruby-enum-ext
   def take_while(&block)
     return to_enum :take_while unless block
 
@@ -111,7 +113,8 @@ module Enumerable
   #     [6, 7, 8]
   #     [7, 8, 9]
   #     [8, 9, 10]
-
+  #
+  # @mrbgem mruby-enum-ext
   def each_cons(n, &block)
     raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
     raise ArgumentError, "invalid size" if n <= 0
@@ -139,7 +142,8 @@ module Enumerable
   #     [4, 5, 6]
   #     [7, 8, 9]
   #     [10]
-
+  #
+  # @mrbgem mruby-enum-ext
   def each_slice(n, &block)
     raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
     raise ArgumentError, "invalid slice size" if n <= 0
@@ -167,7 +171,8 @@ module Enumerable
   # corresponding to the key.
   #
   #    (1..6).group_by {|i| i%3}   #=> {0=>[3, 6], 1=>[1, 4], 2=>[2, 5]}
-
+  #
+  # @mrbgem mruby-enum-ext
   def group_by(&block)
     return to_enum :group_by unless block
 
@@ -189,7 +194,8 @@ module Enumerable
   # values in <i>enum</i> through the given block.
   #
   # If no block is given, an enumerator is returned instead.
-
+  #
+  # @mrbgem mruby-enum-ext
   def sort_by(&block)
     return to_enum :sort_by unless block
 
@@ -216,6 +222,8 @@ module Enumerable
   # Returns the first element, or the first +n+ elements, of the enumerable.
   # If the enumerable is empty, the first form returns <code>nil</code>, and the
   # second form returns an empty array.
+  #
+  # @mrbgem mruby-enum-ext
   def first(n=NONE)
     if n == NONE
       self.each do |*val|
@@ -244,6 +252,8 @@ module Enumerable
   # If an argument is given, the number of items in +enum+ that
   # are equal to +item+ are counted.  If a block is given, it
   # counts the number of elements yielding a true value.
+  #
+  # @mrbgem mruby-enum-ext
   def count(v=NONE, &block)
     count = 0
     if block
@@ -276,6 +286,8 @@ module Enumerable
   #
   #    [1, 2, 3, 4].flat_map { |e| [e, -e] } #=> [1, -1, 2, -2, 3, -3, 4, -4]
   #    [[1, 2], [3, 4]].flat_map { |e| e + [100] } #=> [1, 2, 100, 3, 4, 100]
+  #
+  # @mrbgem mruby-enum-ext
   def flat_map(&block)
     return to_enum :flat_map unless block
 
@@ -303,7 +315,8 @@ module Enumerable
   # If no block is given, an enumerator is returned instead.
   #
   #    %w[albatross dog horse].max_by {|x| x.length }   #=> "albatross"
-
+  #
+  # @mrbgem mruby-enum-ext
   def max_by(&block)
     return to_enum :max_by unless block
 
@@ -337,7 +350,8 @@ module Enumerable
   # If no block is given, an enumerator is returned instead.
   #
   #    %w[albatross dog horse].min_by {|x| x.length }   #=> "dog"
-
+  #
+  # @mrbgem mruby-enum-ext
   def min_by(&block)
     return to_enum :min_by unless block
 
@@ -373,7 +387,8 @@ module Enumerable
   #     a = %w(albatross dog horse)
   #     a.minmax                                  #=> ["albatross", "horse"]
   #     a.minmax { |a, b| a.length <=> b.length } #=> ["dog", "albatross"]
-
+  #
+  # @mrbgem mruby-enum-ext
   def minmax(&block)
     max = nil
     min = nil
@@ -411,7 +426,8 @@ module Enumerable
   #  If no block is given, an enumerator is returned instead.
   #
   #     %w(albatross dog horse).minmax_by { |x| x.length }   #=> ["dog", "albatross"]
-
+  #
+  # @mrbgem mruby-enum-ext
   def minmax_by(&block)
     return to_enum :minmax_by unless block
 
@@ -454,7 +470,8 @@ module Enumerable
   #     [].none?                                           #=> true
   #     [nil, false].none?                                 #=> true
   #     [nil, true].none?                                  #=> false
-
+  #
+  # @mrbgem mruby-enum-ext
   def none?(&block)
     if block
       self.each do |*val|
@@ -484,7 +501,7 @@ module Enumerable
   #    [nil, true, 99].one?                               #=> false
   #    [nil, true, false].one?                            #=> true
   #
-
+  # @mrbgem mruby-enum-ext
   def one?(&block)
     count = 0
     if block
@@ -515,7 +532,7 @@ module Enumerable
   #     (1..10).each_with_object([]) { |i, a| a << i*2 }
   #     #=> [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
   #
-
+  # @mrbgem mruby-enum-ext
   def each_with_object(obj=nil, &block)
     raise ArgumentError, "wrong number of arguments (0 for 1)" if obj.nil?
 
@@ -542,7 +559,7 @@ module Enumerable
   #      2
   #      1
   #
-
+  # @mrbgem mruby-enum-ext
   def reverse_each(&block)
     return to_enum :reverse_each unless block
 
@@ -574,7 +591,7 @@ module Enumerable
   #     a.cycle { |x| puts x }  # print, a, b, c, a, b, c,.. forever.
   #     a.cycle(2) { |x| puts x }  # print, a, b, c, a, b, c.
   #
-
+  # @mrbgem mruby-enum-ext
   def cycle(n=nil, &block)
     return to_enum(:cycle, n) if !block && n.nil?
 
@@ -623,7 +640,7 @@ module Enumerable
   #     (1..100).find_index { |i| i % 5 == 0 and i % 7 == 0 }  #=> 34
   #     (1..100).find_index(50)                                #=> 49
   #
-
+  # @mrbgem mruby-enum-ext
   def find_index(val=NONE, &block)
     return to_enum(:find_index, val) if !block && val == NONE
 
@@ -653,7 +670,7 @@ module Enumerable
   #  <code>enum#size</code>.  If the size of any argument is less than
   #  <code>enum#size</code>, <code>nil</code> values are supplied.
   #
-
+  # @mrbgem mruby-enum-ext
   def zip(*arg)
     ary = []
     arg = arg.map{|a|a.to_a}
@@ -682,7 +699,7 @@ module Enumerable
   #     %i[hello world].each_with_index.to_h
   #       # => {:hello => 0, :world => 1}
   #
-
+  # @mrbgem mruby-enum-ext
   def to_h
     h = {}
     self.each do |*v|

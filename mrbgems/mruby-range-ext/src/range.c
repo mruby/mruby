@@ -38,6 +38,8 @@ r_lt(mrb_state *mrb, mrb_value a, mrb_value b)
  *     ("a".."z").cover?("c")    #=> true
  *     ("a".."z").cover?("5")    #=> false
  *     ("a".."z").cover?("cc")   #=> true
+ *
+ * @mrbgem mruby-range-ext
  */
 static mrb_value
 mrb_range_cover(mrb_state *mrb, mrb_value range)
@@ -75,6 +77,8 @@ mrb_range_cover(mrb_state *mrb, mrb_value range)
  *
  *    (10..20).first     #=> 10
  *    (10..20).first(3)  #=> [10, 11, 12]
+ *
+ * @mrbgem mruby-range-ext
  */
 static mrb_value
 mrb_range_first(mrb_state *mrb, mrb_value range)
@@ -106,6 +110,8 @@ mrb_range_first(mrb_state *mrb, mrb_value range)
  *    (10...20).last     #=> 20
  *    (10..20).last(3)   #=> [18, 19, 20]
  *    (10...20).last(3)  #=> [17, 18, 19]
+ *
+ * @mrbgem mruby-range-ext
  */
 static mrb_value
 mrb_range_last(mrb_state *mrb, mrb_value range)
@@ -131,8 +137,9 @@ mrb_range_last(mrb_state *mrb, mrb_value range)
  *
  *    (10..20).size    #=> 11
  *    ('a'..'z').size  #=> nil
+ *
+ * @mrbgem mruby-range-ext
  */
-
 static mrb_value
 mrb_range_size(mrb_state *mrb, mrb_value range)
 {

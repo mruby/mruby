@@ -17,6 +17,8 @@
  *
  *   h = { "cat" => "feline", "dog" => "canine", "cow" => "bovine" }
  *   h.values_at("cow", "cat")  #=> ["bovine", "feline"]
+ *
+ * @mrbgem mruby-hash-ext
  */
 
 static mrb_value

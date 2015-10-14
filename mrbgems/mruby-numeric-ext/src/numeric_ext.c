@@ -1,6 +1,9 @@
 #include <limits.h>
 #include "mruby.h"
 
+/**
+ * @mrbgem mruby-numeric-ext
+ */
 static mrb_value
 mrb_int_chr(mrb_state *mrb, mrb_value x)
 {

@@ -1,17 +1,21 @@
 class Proc
 
+  # @mrbgem mruby-proc-ext
   def ===(*args)
     call(*args)
   end
 
+  # @mrbgem mruby-proc-ext
   def yield(*args)
     call(*args)
   end
 
+  # @mrbgem mruby-proc-ext
   def to_proc
     self
   end
 
+  # @mrbgem mruby-proc-ext
   def curry(arity=self.arity)
     type = :proc
     abs = lambda {|a| a < 0 ? -a - 1 : a}
