@@ -243,8 +243,8 @@ MRB_API mrb_value mrb_singleton_class(mrb_state*, mrb_value);
  * Include a module in another class or module.
  * Equivalent to: 
  *
- *   module B                                                                                                         *
- *     include A                                                                                                      *
+ *   module B                                                                                                         
+ *     include A                                                                                                      
  *   end 
  * @param mrb_state* The current mruby state.
  * @param RClass* A reference to module or a class.
@@ -348,6 +348,65 @@ MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*,
  *  @param mrb_value The value for the constant.
  */
 MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
+
+/**
+ * Undefines a method.
+ *
+ *   # Ruby style
+ *
+ *   class A
+ *
+ *     def a
+ *       "a"
+ *     end
+ *
+ *   end
+ *
+ *   A.new.a # => a
+ *
+ *   class B < A
+ *
+ *     undef_method :a
+ *
+ *   end
+ *
+ *   B.new.a # => undefined method 'a' for B (NoMethodError)
+ *
+ *   // C style
+ *
+ *   mrb_value
+ *   mrb_a(mrb_state *mrb){
+ *
+ *     return mrb_str_new_cstr(mrb, "a");
+ *
+ *   }
+ *
+ *   void
+ *   mrb_example_gem_init(mrb_state* mrb){
+ *     struct RClass *a;
+ *     struct RClass *b;
+ *     struct RClass *c;
+ *
+ *     a = mrb_define_class(mrb, "A", mrb->object_class);
+ *
+ *     mrb_define_method(mrb, a, "a", mrb_a, MRB_ARGS_NONE());
+ *
+ *     b = mrb_define_class(mrb, "B", a);
+ *
+ *     c = mrb_define_class(mrb, "C", b);
+ *
+ *     mrb_undef_method(mrb, c, "a");
+ *
+ *   }
+ *
+ *   mrb_example_gem_final(mrb_state* mrb){
+ *
+ *   }
+ *
+ * @param mrb_state* The MRuby state reference.
+ * @param RClass* A class the method will be undefined from.
+ * @param constchar* The name of the method to be undefined.
+ */
 MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 
