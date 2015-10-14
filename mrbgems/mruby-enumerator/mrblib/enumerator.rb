@@ -6,93 +6,92 @@
 # A class which allows both internal and external iteration.
 #
 # An Enumerator can be created by the following methods.
-# - Kernel#to_enum
-# - Kernel#enum_for
-# - Enumerator.new
+# - {Kernel#to_enum}
+# - {Kernel#enum_for}
+# - {Enumerator#initialize Enumerator.new}
 #
 # Most methods have two forms: a block form where the contents
 # are evaluated for each item in the enumeration, and a non-block form
 # which returns a new Enumerator wrapping the iteration.
 #
-#   enumerator = %w(one two three).each
-#   puts enumerator.class # => Enumerator
+#       enumerator = %w(one two three).each
+#       puts enumerator.class # => Enumerator
 #
-#   enumerator.each_with_object("foo") do |item, obj|
-#     puts "#{obj}: #{item}"
-#   end
+#       enumerator.each_with_object("foo") do |item, obj|
+#         puts "#{obj}: #{item}"
+#       end
 #
-#   # foo: one
-#   # foo: two
-#   # foo: three
+#       # foo: one
+#       # foo: two
+#       # foo: three
 #
-#   enum_with_obj = enumerator.each_with_object("foo")
-#   puts enum_with_obj.class # => Enumerator
+#       enum_with_obj = enumerator.each_with_object("foo")
+#       puts enum_with_obj.class # => Enumerator
 #
-#   enum_with_obj.each do |item, obj|
-#     puts "#{obj}: #{item}"
-#   end
+#       enum_with_obj.each do |item, obj|
+#         puts "#{obj}: #{item}"
+#       end
 #
-#   # foo: one
-#   # foo: two
-#   # foo: three
+#       # foo: one
+#       # foo: two
+#       # foo: three
 #
 # This allows you to chain Enumerators together.  For example, you
 # can map a list's elements to strings containing the index
 # and the element as a string via:
 #
-#   puts %w[foo bar baz].map.with_index { |w, i| "#{i}:#{w}" }
-#   # => ["0:foo", "1:bar", "2:baz"]
+#       puts %w[foo bar baz].map.with_index { |w, i| "#{i}:#{w}" }
+#       # => ["0:foo", "1:bar", "2:baz"]
 #
 # An Enumerator can also be used as an external iterator.
 # For example, Enumerator#next returns the next value of the iterator
 # or raises StopIteration if the Enumerator is at the end.
 #
-#   e = [1,2,3].each   # returns an enumerator object.
-#   puts e.next   # => 1
-#   puts e.next   # => 2
-#   puts e.next   # => 3
-#   puts e.next   # raises StopIteration
+#       e = [1,2,3].each   # returns an enumerator object.
+#       puts e.next   # => 1
+#       puts e.next   # => 2
+#       puts e.next   # => 3
+#       puts e.next   # raises StopIteration
 #
 # You can use this to implement an internal iterator as follows:
 #
-#   def ext_each(e)
-#     while true
-#       begin
-#         vs = e.next_values
-#       rescue StopIteration
-#         return $!.result
+#       def ext_each(e)
+#         while true
+#           begin
+#             vs = e.next_values
+#           rescue StopIteration
+#             return $!.result
+#           end
+#           y = yield(*vs)
+#           e.feed y
+#         end
 #       end
-#       y = yield(*vs)
-#       e.feed y
-#     end
-#   end
 #
-#   o = Object.new
+#       o = Object.new
 #
-#   def o.each
-#     puts yield
-#     puts yield(1)
-#     puts yield(1, 2)
-#     3
-#   end
+#       def o.each
+#         puts yield
+#         puts yield(1)
+#         puts yield(1, 2)
+#         3
+#       end
 #
-#   # use o.each as an internal iterator directly.
-#   puts o.each {|*x| puts x; [:b, *x] }
-#   # => [], [:b], [1], [:b, 1], [1, 2], [:b, 1, 2], 3
+#       # use o.each as an internal iterator directly.
+#       puts o.each {|*x| puts x; [:b, *x] }
+#       # => [], [:b], [1], [:b, 1], [1, 2], [:b, 1, 2], 3
 #
-#   # convert o.each to an external iterator for
-#   # implementing an internal iterator.
-#   puts ext_each(o.to_enum) {|*x| puts x; [:b, *x] }
-#   # => [], [:b], [1], [:b, 1], [1, 2], [:b, 1, 2], 3
+#       # convert o.each to an external iterator for
+#       # implementing an internal iterator.
+#       puts ext_each(o.to_enum) {|*x| puts x; [:b, *x] }
+#       # => [], [:b], [1], [:b, 1], [1, 2], [:b, 1, 2], 3
 #
 # @mrbgem mruby-enumerator
 class Enumerator
   include Enumerable
 
   ##
-  # call-seq:
-  #   Enumerator.new(size = nil) { |yielder| ... }
-  #   Enumerator.new(obj, method = :each, *args)
+  # @overload initialize(size = nil, &block)
+  # @overload initialize(obj, method = :each, *args)
   #
   # Creates a new Enumerator object, which can be used as an
   # Enumerable.
@@ -101,15 +100,15 @@ class Enumerator
   # which a "yielder" object, given as block parameter, can be used to
   # yield a value by calling the +yield+ method (aliased as +<<+):
   #
-  #   fib = Enumerator.new do |y|
-  #     a = b = 1
-  #     loop do
-  #       y << a
-  #       a, b = b, a + b
+  #     fib = Enumerator.new do |y|
+  #       a = b = 1
+  #       loop do
+  #         y << a
+  #         a, b = b, a + b
+  #       end
   #     end
-  #   end
   #
-  #   p fib.take(10) # => [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+  #     p fib.take(10) # => [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
   #
   def initialize(obj=nil, meth=:each, *args, &block)
     if block_given?
@@ -189,8 +188,7 @@ class Enumerator
   #
   # If no block is given, returns a new Enumerator.
   #
-  # === Example
-  #
+  # @example
   #   to_three = Enumerator.new do |y|
   #     3.times do |x|
   #       y << x
