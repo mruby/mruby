@@ -1,3 +1,4 @@
+--markup markdown
 --plugin mruby
 --plugin coderay
 --output-dir doc/api

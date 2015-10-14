@@ -607,42 +607,45 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
 #define MRB_ARGS_NONE()     ((mrb_aspec)0)
 
 /**
- * Format specifiers for \ref mrb_get_args function
+ * Format specifiers for {mrb_get_args} function
  *
- * Must be a list of following format specifiers:
+ * Must be a C string composed of the following format specifiers:
  *
- * | char | mruby type     | retrieve types      |note                                                |
- * |:----:|----------------|---------------------|----------------------------------------------------|
- * | o    | Object         | mrb_value           | Could be used to retrieve any type of argument     |
- * | C    | Class/Module   | mrb_value           |                                                    |
- * | S    | String         | mrb_value           | when ! follows, the value may be nil               |
- * | A    | Array          | mrb_value           | when ! follows, the value may be nil               |
- * | H    | Hash           | mrb_value           | when ! follows, the value may be nil               |
- * | s    | String         | char *, mrb_int      |  Receive two arguments; s! gives (NULL,0) for nil  |
- * | z    | String         | char *               | NUL terminated string; z! gives NULL for nil       |
- * | a    | Array          | mrb_value *, mrb_int | Receive two arguments; a! gives (NULL,0) for nil   |
- * | f    | Float          | mrb_float           |                                                    |
- * | i    | Integer        | mrb_int             |                                                    |
- * | b    | boolean        | mrb_bool            |                                                    |
- * | n    | Symbol         | mrb_sym             |                                                    |
- * | &    | block          | mrb_value           |                                                    |
- * | *    | rest arguments | mrb_value *, mrb_int | Receive the rest of arguments as an array.         |
- * | \|   | optional       |                     | After this spec following specs would be optional. |
- * | ?    | optional given | mrb_bool            | True if preceding argument is given. Used to check optional argument is given. |
+ * | char | Ruby type      | C types           | Notes                                               |
+ * |:----:|----------------|-------------------|----------------------------------------------------|
+ * | `o`  | {Object}       | {mrb_value}       | Could be used to retrieve any type of argument     |
+ * | `C`  | {Class}/{Module} | {mrb_value}     |                                                    |
+ * | `S`  | {String}       | {mrb_value}       | when `!` follows, the value may be `nil`           |
+ * | `A`  | {Array}        | {mrb_value}       | when `!` follows, the value may be `nil`           |
+ * | `H`  | {Hash}         | {mrb_value}       | when `!` follows, the value may be `nil`           |
+ * | `s`  | {String}       | char *, {mrb_int} |  Receive two arguments; `s!` gives (`NULL`,`0`) for `nil`       |
+ * | `z`  | {String}       | char *            | `NULL` terminated string; `z!` gives `NULL` for `nil`           |
+ * | `a`  | {Array}        | {mrb_value} *, {mrb_int} | Receive two arguments; `a!` gives (`NULL`,`0`) for `nil` |
+ * | `f`  | {Float}        | {mrb_float}       |                                                    |
+ * | `i`  | {Integer}      | {mrb_int}         |                                                    |
+ * | `b`  | boolean        | {mrb_bool}        |                                                    |
+ * | `n`  | {Symbol}       | {mrb_sym}         |                                                    |
+ * | `&`  | block          | {mrb_value}       |                                                    |
+ * | `*`  | rest arguments | {mrb_value} *, {mrb_int} | Receive the rest of arguments as an array.  |
+ * | &vert; | optional     |                   | After this spec following specs would be optional. |
+ * | `?`  | optional given | {mrb_bool}        | `TRUE` if preceding argument is given. Used to check optional argument is given. |
+ *
+ * @see mrb_get_args
  */
 typedef const char *mrb_args_format;
 
 /**
  * Retrieve arguments from mrb_state.
  *
- * When applicable, implicit conversions (such as to_str, to_ary, to_hash) are
+ * When applicable, implicit conversions (such as `to_str`, `to_ary`, `to_hash`) are
  * applied to received arguments.
- * Use it inside a function pointed by mrb_func_t.
+ * Used inside a function of mrb_func_t type.
  *
  * @param mrb The current MRuby state.
- * @param format is a list of format specifiers see @ref mrb_args_format
+ * @param format [mrb_args_format] is a list of format specifiers
  * @param ... The passing variadic arguments must be a pointer of retrieving type.
  * @return the number of arguments retrieved.
+ * @see mrb_args_format
  */
 MRB_API mrb_int mrb_get_args(mrb_state *mrb, mrb_args_format format, ...);
 
