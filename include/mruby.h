@@ -292,17 +292,25 @@ MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *n
  * Defines a class method.
  *   # Ruby style
  *   class Foo
+ *
  *     def Foo.bar
  *     end
+ *
  *   end
  *   // C style
  *   mrb_value bar_method(mrb_state* mrb, mrb_value self){
+ *
  *     return mrb_nil_value();
+ *
  *   }
  *   void mrb_example_gem_init(mrb_state* mrb){
+ *
  *     struct RClass *foo;
+ *
  *     foo = mrb_define_class(mrb, "Foo", mrb->object_class);
- *     mrb_define_class_method(mrb, foo, "bar", bar_method, MRB_ARGS_NONE()); 
+ *
+ *     mrb_define_class_method(mrb, foo, "bar", bar_method, MRB_ARGS_NONE());
+ * 
  *   }
  * @param mrb_state* The MRuby state reference. 
  * @param RClass* The class where the class method will be defined.
@@ -316,17 +324,24 @@ MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char
 /**
  *  Defines a module fuction.
  *   # Ruby style
- *   module Foo                                                                                                     
+ *   module Foo
+ *                                                                                                     
  *     def Foo.bar                                                                                                    *     end
+ *
  *   end                                                                                                             
  *   // C style                                                                                                      
- *   mrb_value bar_method(mrb_state* mrb, mrb_value self){                                                           
- *     return mrb_nil_value();                                                                                                      
+ *   mrb_value bar_method(mrb_state* mrb, mrb_value self){ 
+ *                                                          
+ *     return mrb_nil_value();                                                                                        *               
  *   }                                                                                                               
- *   void mrb_example_gem_init(mrb_state* mrb){                                                                      
- *     struct RClass *foo;                                                                                           
- *     foo = mrb_define_module(mrb, "Foo");                                                        
+ *   void mrb_example_gem_init(mrb_state* mrb){
+ *                                                                      
+ *     struct RClass *foo;
+ *                                                                                           
+ *     foo = mrb_define_module(mrb, "Foo");
+ *                                                        
  *     mrb_define_module_function(mrb, foo, "bar", bar_method, MRB_ARGS_NONE());
+ *
  *   }    
  *  @param mrb_state* The MRuby state reference.
  *  @param RClass* The module where the module function will be defined.
@@ -339,9 +354,28 @@ MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*,
 /**
  *  Defines a constant.
  *    # Ruby style
+ *
+ *    class ExampleClass
+ *    
  *    AGE = 22
+ *
+ *    end
+ *
  *    // C style
- *    mrb_define_const(mrb, mrb->kernel_module, "AGE", mrb_fixnum_value(22));
+ *    #include <stdio.h> 
+ *    #include <mruby.h>
+ *
+ *    void
+ *    mrb_example_gem_init(mrb_state* mrb){
+ * 
+ *      mrb_define_const(mrb, mrb->kernel_module, "AGE", mrb_fixnum_value(22));
+ *
+ *    }
+ *
+ *    mrb_value
+ *    mrb_example_gem_final(mrb_state* mrb){
+ *
+ *    }
  *  @param mrb_state* The MRuby state reference.
  *  @param RClass* A class or module the constant is defined in.
  *  @param name The name of the constant.
@@ -354,48 +388,50 @@ MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_
  *
  *   # Ruby style
  *
- *   class A
+ *   class ExampleClassA
  *
- *     def a
- *       "a"
+ *     def example_method
+ *       "example"
  *     end
  *
  *   end
  *
- *   A.new.a # => a
+ *   ExampleClassA.new.example_method # => example
  *
- *   class B < A
+ *   class ExampleClassB < ExampleClassA
  *
- *     undef_method :a
+ *     undef_method :example_method
  *
  *   end
  *
- *   B.new.a # => undefined method 'a' for B (NoMethodError)
+ *   ExampleClassB.new.example_method # => undefined method 'example_method' for ExampleClassB (NoMethodError)
  *
  *   // C style
- *
+ *   #include <stdio.h>
+ *   #include <mruby.h>
+ *  
  *   mrb_value
- *   mrb_a(mrb_state *mrb){
+ *   mrb_example_method(mrb_state *mrb){
  *
- *     return mrb_str_new_cstr(mrb, "a");
+ *     return mrb_str_new_cstr(mrb, "example");
  *
  *   }
  *
  *   void
  *   mrb_example_gem_init(mrb_state* mrb){
- *     struct RClass *a;
- *     struct RClass *b;
- *     struct RClass *c;
+ *     struct RClass *example_class_a;
+ *     struct RClass *example_class_b;
+ *     struct RClass *example_class_c;
  *
- *     a = mrb_define_class(mrb, "A", mrb->object_class);
+ *     example_class_a = mrb_define_class(mrb, "ExampleClassA", mrb->object_class);
  *
- *     mrb_define_method(mrb, a, "a", mrb_a, MRB_ARGS_NONE());
+ *     mrb_define_method(mrb, example_class_a, "example_method", mrb_example_method, MRB_ARGS_NONE());
  *
- *     b = mrb_define_class(mrb, "B", a);
+ *     example_class_b = mrb_define_class(mrb, "ExampleClassB", example_class_a);
  *
- *     c = mrb_define_class(mrb, "C", b);
+ *     example_class_c = mrb_define_class(mrb, "ExampleClassC", example_class_b);
  *
- *     mrb_undef_method(mrb, c, "a");
+ *     mrb_undef_method(mrb, example_class_c, "example_method");
  *
  *   }
  *
@@ -403,11 +439,58 @@ MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_
  *
  *   }
  *
- * @param mrb_state* The MRuby state reference.
+ * @param mrb_state* The mruby state reference.
  * @param RClass* A class the method will be undefined from.
  * @param constchar* The name of the method to be undefined.
  */
 MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
+
+/**
+ * Undefine a class method.
+ *   # Ruby style
+ *
+ *   class ExampleClass
+ *
+ *     def self.example_method
+ *       "example"
+ *     end
+ *
+ *   end
+ *
+ *   ExampleClass.example_method
+ *   
+ *   // C style
+ *   #include <stdio.h>
+ *   #include <mruby.h> 
+ *
+ *   mrb_value
+ *   mrb_example_method(mrb_state *mrb){
+ *
+ *     return mrb_str_new_cstr(mrb, "example");
+ *     
+ *   }
+ *
+ *   void
+ *   mrb_example_gem_init(mrb_state* mrb){
+ *
+ *     struct RClass *example_class;
+ *     
+ *     example_class = mrb_define_class(mrb, "ExampleClass", mrb->object_class);
+ *
+ *     mrb_define_class_method(mrb, example_class, "example_method", mrb_example_method, MRB_ARGS_NONE());
+ *
+ *     mrb_undef_class_method(mrb, example_class, "example_method");
+ *
+ *   }
+ *
+ *   void
+ *   mrb_example_gem_final(mrb_state* mrb){
+ *
+ *   }
+ * @param mrb_state* The mruby state reference.
+ * @param RClass* A class the class method will be undefined from.
+ * @param constchar* The name of the class method to be undefined.
+ */
 MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 
 /**
