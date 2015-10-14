@@ -762,7 +762,7 @@ MRB_API void mrb_close(mrb_state *mrb);
 /**
  * The default allocation function.
  *
- * @ref mrb_allocf
+ * @see mrb_allocf
  */
 MRB_API void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
 
