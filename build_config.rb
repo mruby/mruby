@@ -21,7 +21,7 @@ MRuby::Build.new do |conf|
 
   # include the default GEMs
   conf.gembox 'default'
-  conf.gem '/home/thamav/tests/mrbgem_test'
+
   # C compiler settings
   # conf.cc do |cc|
   #   cc.command = ENV['CC'] || 'gcc'
@@ -82,7 +82,7 @@ MRuby::Build.new do |conf|
   # bintest
   # conf.enable_bintest
 end
-=begin
+
 MRuby::Build.new('host-debug') do |conf|
   # load specific toolchain settings
 
@@ -117,7 +117,7 @@ MRuby::Build.new('test') do |conf|
 
   conf.gembox 'default'
 end
-=end
+
 # Define cross build settings
 # MRuby::CrossBuild.new('32bit') do |conf|
 #   toolchain :gcc
