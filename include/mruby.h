@@ -496,6 +496,21 @@ MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 /**
  * Initialize a new object instace of c class.
  *
+ *   // Example:
+ *   #include <stdio.h>
+ *   #include <mruby.h>
+ *
+ *   void
+ *   mrb_example_gem_init(mrb_state* mrb) {
+ *     struct RClass *example_class;
+ *
+ *     mrb_value *argv[1];
+ *     mrb_value obj;
+ *
+ *     example_class = mrb_define_class(mrb, "ExampleClass", mrb->object_class);*     argv[0] = example_class;
+ *     obj = mrb_obj_new(mrb, mrb->object_class, 1, argv); // => ExampleClass
+ *     mrb_funcall(mrb, obj, "puts", 1, example_class);
+ *   }  
  * @param mrb The current mruby state.
  * @param c Reference to the class of the new object.
  * @param argc Number of arguments in argv
@@ -504,7 +519,31 @@ MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
  */
 MRB_API mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv);
 
-/** @see mrb_obj_new */
+/**
+ * Initialize a new object instace of c class.
+ *
+ *   // Example:
+ *   #include <stdio.h> 
+ *   #include <mruby.h>
+ *   
+ *   void
+ *   mrb_example_gem_init(mrb_state* mrb) {
+ *     struct RClass *example_class;
+ *
+ *     mrb_value *argv[1];
+ *     mrb_value obj;
+ *     mrb_value obj_inst;
+ *
+ *     example_class = mrb_define_class(mrb, "ExampleClass", mrb->object_class);*
+ *     argv[0] = example_class;
+ *     obj = mrb_obj_new(mrb, mrb->object_class, 1, argv);
+ *     obj_inst = mrb_class_new_instance(mrb, 0, argv, example_class); // => #<ExampleClass:0x89734f8>
+ *     mrb_funcall(mrb, obj, "puts", 1, obj_inst);
+ *   }
+ * @param mrb The current mruby state.
+ * @param argc Number of arguments in argv
+ * @param c Reference to the class of the new object.
+ */
 MRB_INLINE mrb_value mrb_class_new_instance(mrb_state *mrb, mrb_int argc, const mrb_value *argv, struct RClass *c)
 {
   return mrb_obj_new(mrb,c,argc,argv);
