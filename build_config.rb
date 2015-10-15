@@ -109,7 +109,12 @@ MRuby::Build.new('host-debug') do |conf|
 end
 
 MRuby::Build.new('test') do |conf|
-  toolchain :gcc
+  # Gets set by the VS command prompts.
+  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+    toolchain :visualcpp
+  else
+    toolchain :gcc
+  end
 
   enable_debug
   conf.enable_bintest
