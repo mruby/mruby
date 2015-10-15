@@ -171,6 +171,8 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
         flags += %W(-march=armv7-a -Wl,--fix-cortex-a8)
       end
     end
+    
+    flags
   end
 
   def ar
