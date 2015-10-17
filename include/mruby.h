@@ -496,6 +496,24 @@ MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 /**
  * Initialize a new object instace of c class.
  *
+ *   # Ruby style
+ *   class ExampleClass
+ *   end
+ *
+ *   p ExampleClass # => #<ExampleClass:0x9958588>
+ *   // C style
+ *   #include <stdio.h>
+ *   #include <mruby.h>
+ *
+ *   void
+ *   mrb_example_gem_init(mrb_state* mrb) {
+ *     struct RClass *example_class;
+ *     mrb_value obj;
+ *
+ *     example_class = mrb_define_class(mrb, "ExampleClass", mrb->object_class); # => class ExampleClass; end
+ *     obj = mrb_obj_new(mrb, example_class, 0, NULL); # => ExampleClass.new
+ *     mrb_p(mrb, obj); // => Kernel#p
+ *   }  
  * @param mrb The current mruby state.
  * @param c Reference to the class of the new object.
  * @param argc Number of arguments in argv
