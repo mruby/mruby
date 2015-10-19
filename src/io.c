@@ -525,8 +525,7 @@ mrb_value
 mrb_io_sysseek(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
-  int pos;
-  mrb_int offset, whence = -1;
+  mrb_int pos, offset, whence = -1;
 
   mrb_get_args(mrb, "i|i", &offset, &whence);
   if (whence < 0) {
