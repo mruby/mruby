@@ -119,7 +119,6 @@ struct mrb_jmpbuf;
 
 typedef void (*mrb_atexit_func)(struct mrb_state*);
 
-
 typedef struct mrb_state {
   struct mrb_jmpbuf *jmp;
 

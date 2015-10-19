@@ -101,40 +101,6 @@ typedef struct {
   union {
     struct free_obj free;
     struct RBasic basic;
-    struct RClass klass;
-    struct RProc proc;
-    struct RException exc;
-  } as;
-} infreq_value;
-
-typedef struct {
-  union {
-    struct free_obj free;
-    struct RBasic basic;
-    struct RObject object;
-#ifdef MRB_WORD_BOXING
-    struct RFloat floatv;
-    struct RCptr cptr;
-#endif
-  } as;
-} small_value;
-
-typedef struct {
-  union {
-    struct free_obj free;
-    struct RBasic basic;
-    struct RString string;
-    struct RArray array;
-    struct RHash hash;
-    struct RRange range;
-    struct RData data;
-  } as;
-} large_value;
-
-typedef struct {
-  union {
-    struct free_obj free;
-    struct RBasic basic;
     struct RObject object;
     struct RClass klass;
     struct RString string;
