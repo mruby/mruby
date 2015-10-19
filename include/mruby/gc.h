@@ -63,14 +63,14 @@ typedef struct mrb_gc {
 #endif
   int arena_idx;
 
-  mrb_gc_state gc_state; /* state of gc */
+  mrb_gc_state state; /* state of gc */
   int current_white_part; /* make white object by white_part */
   struct RBasic *gray_list; /* list of gray objects to be traversed incrementally */
   struct RBasic *atomic_gray_list; /* list of objects to be traversed atomically */
-  size_t gc_live_after_mark;
-  size_t gc_threshold;
-  int gc_interval_ratio;
-  int gc_step_ratio;
+  size_t live_after_mark;
+  size_t threshold;
+  int interval_ratio;
+  int step_ratio;
   mrb_bool disabled      :1;
   mrb_bool full          :1;
   mrb_bool generational  :1;
