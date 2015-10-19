@@ -30,6 +30,10 @@ MRB_API void mrb_free_context(struct mrb_state *mrb, struct mrb_context *c);
 #define MRB_GC_WHITES (MRB_GC_WHITE_A | MRB_GC_WHITE_B)
 #define MRB_GC_COLOR_MASK 7
 
+#ifndef MRB_GC_ARENA_SIZE
+#define MRB_GC_ARENA_SIZE 100
+#endif
+
 typedef enum {
   GC_STATE_ROOT = 0,
   GC_STATE_MARK,
@@ -75,7 +79,7 @@ typedef struct mrb_gc {
 } mrb_gc;
 
 MRB_API mrb_bool
-mrb_object_dead_p(struct mrb_state *mrb, struct RObject *object);
+mrb_object_dead_p(struct mrb_state *mrb, struct RBasic *object);
 
 MRB_END_DECL
 

@@ -260,7 +260,7 @@ mrb_free(mrb_state *mrb, void *p)
 }
 
 MRB_API mrb_bool
-mrb_object_dead_p(mrb_state *mrb, struct RObject *object) {
+mrb_object_dead_p(mrb_state *mrb, struct RBasic *object) {
   return is_dead(&mrb->gc, object);
 }
 
@@ -394,7 +394,7 @@ gc_protect(mrb_state *mrb, mrb_gc *gc, struct RBasic *p)
   if (gc->arena_idx >= MRB_GC_ARENA_SIZE) {
     /* arena overflow error */
     gc->arena_idx = MRB_GC_ARENA_SIZE - 4; /* force room in arena */
-    mrb_raise(gc, E_RUNTIME_ERROR, "arena overflow error");
+    mrb_raise(mrb, E_RUNTIME_ERROR, "arena overflow error");
   }
 #else
   if (gc->arena_idx >= gc->arena_capa) {
