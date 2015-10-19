@@ -35,6 +35,7 @@
 #include "mrbconf.h"
 #include "mruby/common.h"
 #include "mruby/value.h"
+#include "mruby/gc.h"
 #include "mruby/version.h"
 
 /**
@@ -114,15 +115,10 @@ struct mrb_context {
   struct RFiber *fib;
 };
 
-enum gc_state {
-  GC_STATE_ROOT = 0,
-  GC_STATE_MARK,
-  GC_STATE_SWEEP
-};
-
 struct mrb_jmpbuf;
 
 typedef void (*mrb_atexit_func)(struct mrb_state*);
+
 
 typedef struct mrb_state {
   struct mrb_jmpbuf *jmp;
@@ -153,32 +149,8 @@ typedef struct mrb_state {
   struct RClass *symbol_class;
   struct RClass *kernel_module;
 
-  struct heap_page *heaps;                /* heaps for GC */
-  struct heap_page *sweeps;
-  struct heap_page *free_heaps;
-  size_t live; /* count of live objects */
-#ifdef MRB_GC_FIXED_ARENA
-  struct RBasic *arena[MRB_GC_ARENA_SIZE]; /* GC protection array */
-#else
-  struct RBasic **arena;                   /* GC protection array */
-  int arena_capa;
-#endif
-  int arena_idx;
-
-  enum gc_state gc_state; /* state of gc */
-  int current_white_part; /* make white object by white_part */
-  struct RBasic *gray_list; /* list of gray objects to be traversed incrementally */
-  struct RBasic *atomic_gray_list; /* list of objects to be traversed atomically */
-  size_t gc_live_after_mark;
-  size_t gc_threshold;
-  int gc_interval_ratio;
-  int gc_step_ratio;
-  mrb_bool gc_disabled:1;
-  mrb_bool gc_full:1;
-  mrb_bool is_generational_gc_mode:1;
-  mrb_bool out_of_memory:1;
-  size_t majorgc_old_threshold;
   struct alloca_header *mems;
+  mrb_gc gc;
 
   mrb_sym symidx;
   struct kh_n2s *name2sym;      /* symbol hash */

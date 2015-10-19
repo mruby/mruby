@@ -206,7 +206,7 @@ MRB_API mrb_noreturn void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
   mrb->exc = mrb_obj_ptr(exc);
-  if (!mrb->out_of_memory) {
+  if (!mrb->gc.out_of_memory) {
     exc_debug_info(mrb, mrb->exc);
   }
   if (!mrb->jmp) {
