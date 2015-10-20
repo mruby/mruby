@@ -150,6 +150,14 @@ assert('IO#write', '15.2.20.5.20') do
   true
 end
 
+assert('IO#<<') do
+  io = IO.open(IO.sysopen($mrbtest_io_wfname))
+  io << "" << ""
+  assert_equal 0, io.pos
+  io.close
+  true
+end
+
 assert('IO.for_fd') do
   fd = IO.sysopen($mrbtest_io_rfname)
   io = IO.for_fd(fd)
@@ -243,6 +251,17 @@ assert('IO#pos=, IO#seek') do
   assert_equal 'm', io.getc
   assert_equal 1, io.pos
   assert_equal 0, io.seek(0)
+  assert_equal 0, io.pos
+  io.close
+  io.closed?
+end
+
+assert('IO#rewind') do
+  fd = IO.sysopen $mrbtest_io_rfname
+  io = IO.new fd
+  assert_equal 'm', io.getc
+  assert_equal 1, io.pos
+  assert_equal 0, io.rewind
   assert_equal 0, io.pos
   io.close
   io.closed?

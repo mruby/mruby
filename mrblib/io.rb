@@ -108,6 +108,11 @@ class IO
     raise IOError
   end
 
+  def <<(str)
+    write(str)
+    self
+  end
+
   def eof?
     return true if @buf && @buf.size > 0
 
@@ -134,6 +139,10 @@ class IO
 
   def pos=(i)
     seek(i, SEEK_SET)
+  end
+
+  def rewind
+    seek(0, SEEK_SET)
   end
 
   def seek(i, whence = SEEK_SET)
