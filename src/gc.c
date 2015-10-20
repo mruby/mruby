@@ -172,16 +172,24 @@ gettimeofday_time(void)
 
 #define GC_STEP_SIZE 1024
 
-#define paint_gray(o) ((o)->color = MRB_GC_GRAY)
-#define paint_black(o) ((o)->color = MRB_GC_BLACK)
-#define paint_white(o) ((o)->color = MRB_GC_WHITES)
+/* white: 011, black: 100, gray: 000 */
+#define GC_GRAY 0
+#define GC_WHITE_A 1
+#define GC_WHITE_B (1 << 1)
+#define GC_BLACK (1 << 2)
+#define GC_WHITES (GC_WHITE_A | GC_WHITE_B)
+#define GC_COLOR_MASK 7
+
+#define paint_gray(o) ((o)->color = GC_GRAY)
+#define paint_black(o) ((o)->color = GC_BLACK)
+#define paint_white(o) ((o)->color = GC_WHITES)
 #define paint_partial_white(s, o) ((o)->color = (s)->current_white_part)
-#define is_gray(o) ((o)->color == MRB_GC_GRAY)
-#define is_white(o) ((o)->color & MRB_GC_WHITES)
-#define is_black(o) ((o)->color & MRB_GC_BLACK)
+#define is_gray(o) ((o)->color == GC_GRAY)
+#define is_white(o) ((o)->color & GC_WHITES)
+#define is_black(o) ((o)->color & GC_BLACK)
 #define flip_white_part(s) ((s)->current_white_part = other_white_part(s))
-#define other_white_part(s) ((s)->current_white_part ^ MRB_GC_WHITES)
-#define is_dead(s, o) (((o)->color & other_white_part(s) & MRB_GC_WHITES) || (o)->tt == MRB_TT_FREE)
+#define other_white_part(s) ((s)->current_white_part ^ GC_WHITES)
+#define is_dead(s, o) (((o)->color & other_white_part(s) & GC_WHITES) || (o)->tt == MRB_TT_FREE)
 
 #define objects(p) ((RVALUE *)p->objects)
 
@@ -342,7 +350,7 @@ mrb_gc_init(mrb_state *mrb, mrb_gc *gc)
   gc->arena_capa = MRB_GC_ARENA_SIZE;
 #endif
 
-  gc->current_white_part = MRB_GC_WHITE_A;
+  gc->current_white_part = GC_WHITE_A;
   gc->heaps = NULL;
   gc->free_heaps = NULL;
   add_heap(mrb, gc);
@@ -923,7 +931,7 @@ final_marking_phase(mrb_state *mrb, mrb_gc *gc)
 static void
 prepare_incremental_sweep(mrb_state *mrb, mrb_gc *gc)
 {
-  gc->state = GC_STATE_SWEEP;
+  gc->state = MRB_GC_STATE_SWEEP;
   gc->sweeps = gc->heaps;
   gc->live_after_mark = gc->live;
 }
@@ -994,12 +1002,12 @@ static size_t
 incremental_gc(mrb_state *mrb, mrb_gc *gc, size_t limit)
 {
   switch (gc->state) {
-  case GC_STATE_ROOT:
+  case MRB_GC_STATE_ROOT:
     root_scan_phase(mrb, gc);
-    gc->state = GC_STATE_MARK;
+    gc->state = MRB_GC_STATE_MARK;
     flip_white_part(gc);
     return 0;
-  case GC_STATE_MARK:
+  case MRB_GC_STATE_MARK:
     if (gc->gray_list) {
       return incremental_marking_phase(mrb, gc, limit);
     }
@@ -1008,11 +1016,11 @@ incremental_gc(mrb_state *mrb, mrb_gc *gc, size_t limit)
       prepare_incremental_sweep(mrb, gc);
       return 0;
     }
-  case GC_STATE_SWEEP: {
+  case MRB_GC_STATE_SWEEP: {
      size_t tried_sweep = 0;
      tried_sweep = incremental_sweep_phase(mrb, gc, limit);
      if (tried_sweep == 0)
-       gc->state = GC_STATE_ROOT;
+       gc->state = MRB_GC_STATE_ROOT;
      return tried_sweep;
   }
   default:
@@ -1037,7 +1045,7 @@ incremental_gc_step(mrb_state *mrb, mrb_gc *gc)
   limit = (GC_STEP_SIZE/100) * gc->step_ratio;
   while (result < limit) {
     result += incremental_gc(mrb, gc, limit);
-    if (gc->state == GC_STATE_ROOT)
+    if (gc->state == MRB_GC_STATE_ROOT)
       break;
   }
 
@@ -1052,14 +1060,14 @@ clear_all_old(mrb_state *mrb, mrb_gc *gc)
   mrb_assert(is_generational(gc));
   if (is_major_gc(gc)) {
     /* finish the half baked GC */
-    incremental_gc_until(mrb, gc, GC_STATE_ROOT);
+    incremental_gc_until(mrb, gc, MRB_GC_STATE_ROOT);
   }
 
   /* Sweep the dead objects, then reset all the live objects
    * (including all the old objects, of course) to white. */
   gc->generational = FALSE;
   prepare_incremental_sweep(mrb, gc);
-  incremental_gc_until(mrb, gc, GC_STATE_ROOT);
+  incremental_gc_until(mrb, gc, MRB_GC_STATE_ROOT);
   gc->generational = origin_mode;
 
   /* The gray objects have already been painted as white */
@@ -1077,13 +1085,13 @@ mrb_incremental_gc(mrb_state *mrb)
   GC_TIME_START;
 
   if (is_minor_gc(gc)) {
-    incremental_gc_until(mrb, gc, GC_STATE_ROOT);
+    incremental_gc_until(mrb, gc, MRB_GC_STATE_ROOT);
   }
   else {
     incremental_gc_step(mrb, gc);
   }
 
-  if (gc->state == GC_STATE_ROOT) {
+  if (gc->state == MRB_GC_STATE_ROOT) {
     mrb_assert(gc->live >= gc->live_after_mark);
     gc->threshold = (gc->live_after_mark/100) * gc->interval_ratio;
     if (gc->threshold < GC_STEP_SIZE) {
@@ -1121,12 +1129,12 @@ mrb_full_gc(mrb_state *mrb)
     clear_all_old(mrb, gc);
     gc->full = TRUE;
   }
-  else if (gc->state != GC_STATE_ROOT) {
+  else if (gc->state != MRB_GC_STATE_ROOT) {
     /* finish half baked GC cycle */
-    incremental_gc_until(mrb, gc, GC_STATE_ROOT);
+    incremental_gc_until(mrb, gc, MRB_GC_STATE_ROOT);
   }
 
-  incremental_gc_until(mrb, gc, GC_STATE_ROOT);
+  incremental_gc_until(mrb, gc, MRB_GC_STATE_ROOT);
   gc->threshold = (gc->live_after_mark/100) * gc->interval_ratio;
 
   if (is_generational(gc)) {
@@ -1185,13 +1193,13 @@ mrb_field_write_barrier(mrb_state *mrb, struct RBasic *obj, struct RBasic *value
   if (!is_white(value)) return;
 
   mrb_assert(!is_dead(gc, value) && !is_dead(gc, obj));
-  mrb_assert(is_generational(gc) || mrb->gc.state != GC_STATE_ROOT);
+  mrb_assert(is_generational(gc) || gc->state != MRB_GC_STATE_ROOT);
 
-  if (is_generational(gc) || mrb->gc.state == GC_STATE_MARK) {
+  if (is_generational(gc) || gc->state == MRB_GC_STATE_MARK) {
     add_gray_list(mrb, gc, value);
   }
   else {
-    mrb_assert(mrb->gc.state == GC_STATE_SWEEP);
+    mrb_assert(gc->state == MRB_GC_STATE_SWEEP);
     paint_partial_white(gc, obj); /* for never write barriers */
   }
 }
@@ -1213,7 +1221,7 @@ mrb_write_barrier(mrb_state *mrb, struct RBasic *obj)
   if (!is_black(obj)) return;
 
   mrb_assert(!is_dead(gc, obj));
-  mrb_assert(is_generational(gc) || gc->state != GC_STATE_ROOT);
+  mrb_assert(is_generational(gc) || gc->state != MRB_GC_STATE_ROOT);
   paint_gray(obj);
   obj->gcnext = gc->atomic_gray_list;
   gc->atomic_gray_list = obj;
@@ -1350,11 +1358,11 @@ change_gen_gc_mode(mrb_state *mrb, mrb_gc *gc, mrb_bool enable)
 {
   if (is_generational(gc) && !enable) {
     clear_all_old(mrb, gc);
-    mrb_assert(gc->state == GC_STATE_ROOT);
+    mrb_assert(gc->state == MRB_GC_STATE_ROOT);
     gc->full = FALSE;
   }
   else if (!is_generational(gc) && enable) {
-    incremental_gc_until(mrb, gc, GC_STATE_ROOT);
+    incremental_gc_until(mrb, gc, MRB_GC_STATE_ROOT);
     gc->majorgc_old_threshold = gc->live_after_mark/100 * DEFAULT_MAJOR_GC_INC_RATIO;
     gc->full = FALSE;
   }
@@ -1466,16 +1474,16 @@ test_mrb_field_write_barrier(void)
   paint_partial_white(mrb, value);
 
 
-  puts("  in GC_STATE_MARK");
-  gc->state = GC_STATE_MARK;
+  puts("  in MRB_GC_STATE_MARK");
+  gc->state = MRB_GC_STATE_MARK;
   mrb_field_write_barrier(mrb, obj, value);
 
   mrb_assert(is_gray(value));
 
 
-  puts("  in GC_STATE_SWEEP");
+  puts("  in MRB_GC_STATE_SWEEP");
   paint_partial_white(mrb, value);
-  gc->state = GC_STATE_SWEEP;
+  gc->state = MRB_GC_STATE_SWEEP;
   mrb_field_write_barrier(mrb, obj, value);
 
   mrb_assert(obj->color & gc->current_white_part);
@@ -1483,7 +1491,7 @@ test_mrb_field_write_barrier(void)
 
 
   puts("  fail with black");
-  gc->state = GC_STATE_MARK;
+  gc->state = MRB_GC_STATE_MARK;
   paint_white(obj);
   paint_partial_white(mrb, value);
   mrb_field_write_barrier(mrb, obj, value);
@@ -1492,7 +1500,7 @@ test_mrb_field_write_barrier(void)
 
 
   puts("  fail with gray");
-  gc->state = GC_STATE_MARK;
+  gc->state = MRB_GC_STATE_MARK;
   paint_black(obj);
   paint_gray(value);
   mrb_field_write_barrier(mrb, obj, value);
@@ -1507,7 +1515,7 @@ test_mrb_field_write_barrier(void)
     paint_black(obj);
     paint_partial_white(mrb, mrb_basic_ptr(value));
 
-    gc->state = GC_STATE_MARK;
+    gc->state = MRB_GC_STATE_MARK;
     mrb_field_write_barrier_value(mrb, obj, value);
 
     mrb_assert(is_gray(mrb_basic_ptr(value)));
@@ -1527,8 +1535,8 @@ test_mrb_write_barrier(void)
   obj = mrb_basic_ptr(mrb_ary_new(mrb));
   paint_black(obj);
 
-  puts("  in GC_STATE_MARK");
-  gc->state = GC_STATE_MARK;
+  puts("  in MRB_GC_STATE_MARK");
+  gc->state = MRB_GC_STATE_MARK;
   mrb_write_barrier(mrb, obj);
 
   mrb_assert(is_gray(obj));
@@ -1615,15 +1623,15 @@ test_incremental_gc(void)
   puts("  in mrb_full_gc");
   mrb_full_gc(mrb);
 
-  mrb_assert(gc->state == GC_STATE_ROOT);
-  puts("  in GC_STATE_ROOT");
+  mrb_assert(gc->state == MRB_GC_STATE_ROOT);
+  puts("  in MRB_GC_STATE_ROOT");
   incremental_gc(mrb, max);
-  mrb_assert(gc->state == GC_STATE_MARK);
-  puts("  in GC_STATE_MARK");
-  incremental_gc_until(mrb, GC_STATE_SWEEP);
-  mrb_assert(gc->state == GC_STATE_SWEEP);
+  mrb_assert(gc->state == MRB_GC_STATE_MARK);
+  puts("  in MRB_GC_STATE_MARK");
+  incremental_gc_until(mrb, MRB_GC_STATE_SWEEP);
+  mrb_assert(gc->state == MRB_GC_STATE_SWEEP);
 
-  puts("  in GC_STATE_SWEEP");
+  puts("  in MRB_GC_STATE_SWEEP");
   page = gc->heaps;
   while (page) {
     RVALUE *p = objects(page);
@@ -1644,10 +1652,10 @@ test_incremental_gc(void)
   mrb_assert(gc->gray_list == NULL);
 
   incremental_gc(mrb, max);
-  mrb_assert(gc->state == GC_STATE_SWEEP);
+  mrb_assert(gc->state == MRB_GC_STATE_SWEEP);
 
   incremental_gc(mrb, max);
-  mrb_assert(gc->state == GC_STATE_ROOT);
+  mrb_assert(gc->state == MRB_GC_STATE_ROOT);
 
   free = (RVALUE*)gc->heaps->freelist;
   while (free) {
@@ -1659,11 +1667,11 @@ test_incremental_gc(void)
   mrb_assert(gc->live == total-freed);
 
   puts("test_incremental_gc(gen)");
-  incremental_gc_until(mrb, GC_STATE_SWEEP);
+  incremental_gc_until(mrb, MRB_GC_STATE_SWEEP);
   change_gen_gc_mode(mrb, TRUE);
 
   mrb_assert(gc->full == FALSE);
-  mrb_assert(gc->state == GC_STATE_ROOT);
+  mrb_assert(gc->state == MRB_GC_STATE_ROOT);
 
   puts("  in minor");
   mrb_assert(is_minor_gc(mrb));
@@ -1671,13 +1679,13 @@ test_incremental_gc(void)
   gc->majorgc_old_threshold = 0;
   mrb_incremental_gc(mrb);
   mrb_assert(gc->full == TRUE);
-  mrb_assert(gc->state == GC_STATE_ROOT);
+  mrb_assert(gc->state == MRB_GC_STATE_ROOT);
 
   puts("  in major");
   mrb_assert(is_major_gc(mrb));
   do {
     mrb_incremental_gc(mrb);
-  } while (gc->state != GC_STATE_ROOT);
+  } while (gc->state != MRB_GC_STATE_ROOT);
   mrb_assert(gc->full == FALSE);
 
   mrb_close(mrb);
