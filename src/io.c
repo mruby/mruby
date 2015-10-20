@@ -535,7 +535,7 @@ mrb_io_sysseek(mrb_state *mrb, mrb_value io)
   fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
   pos = lseek(fptr->fd, offset, whence);
   if (pos < 0) {
-    mrb_raise(mrb, E_IO_ERROR, "sysseek failed");
+    mrb_sys_fail(mrb, "sysseek");
   }
 
   return mrb_fixnum_value(pos);
