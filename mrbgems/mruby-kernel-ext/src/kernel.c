@@ -146,10 +146,10 @@ mrb_f_array(mrb_state *mrb, mrb_value self)
  *  <i>arg</i><code>.to_hash</code>. Returns an empty <code>Hash</code> when
  *  <i>arg</i> is <tt>nil</tt> or <tt>[]</tt>.
  *
- *     Hash([])          #=> {}
- *     Hash(nil)         #=> {}
- *     Hash(key: :value) #=> {:key => :value}
- *     Hash([1, 2, 3])   #=> TypeError
+ *      Hash([])          #=> {}
+ *      Hash(nil)         #=> {}
+ *      Hash(key: :value) #=> {:key => :value}
+ *      Hash([1, 2, 3])   #=> TypeError
  *
  * @mrbgem mruby-kernel-ext
  */

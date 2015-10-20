@@ -581,27 +581,27 @@ module Kernel
   #
   # Here is such an example, with parameter passing and a sizing block:
   #
-  #   module Enumerable
-  #     # a generic method to repeat the values of any enumerable
-  #     def repeat(n)
-  #       raise ArgumentError, "#{n} is negative!" if n < 0
-  #       unless block_given?
-  #         return to_enum(__method__, n) do # __method__ is :repeat here
-  #           sz = size     # Call size and multiply by n...
-  #           sz * n if sz  # but return nil if size itself is nil
+  #     module Enumerable
+  #       # a generic method to repeat the values of any enumerable
+  #       def repeat(n)
+  #         raise ArgumentError, "#{n} is negative!" if n < 0
+  #         unless block_given?
+  #           return to_enum(__method__, n) do # __method__ is :repeat here
+  #             sz = size     # Call size and multiply by n...
+  #             sz * n if sz  # but return nil if size itself is nil
+  #           end
+  #         end
+  #         each do |*val|
+  #           n.times { yield *val }
   #         end
   #       end
-  #       each do |*val|
-  #         n.times { yield *val }
-  #       end
   #     end
-  #   end
   #
-  #   %i[hello world].repeat(2) { |w| puts w }
-  #     # => Prints 'hello', 'hello', 'world', 'world'
-  #   enum = (1..14).repeat(3)
-  #     # => returns an Enumerator when called without a block
-  #   enum.first(4) # => [1, 1, 1, 2]
+  #     %i[hello world].repeat(2) { |w| puts w }
+  #       # => Prints 'hello', 'hello', 'world', 'world'
+  #     enum = (1..14).repeat(3)
+  #       # => returns an Enumerator when called without a block
+  #     enum.first(4) # => [1, 1, 1, 2]
   #
   def to_enum(meth=:each, *args)
     Enumerator.new self, meth, *args

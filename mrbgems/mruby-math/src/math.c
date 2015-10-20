@@ -236,7 +236,8 @@ math_tan(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.asin(x)    -> float
  *
- *  Computes the arc sine of <i>x</i>. Returns -{PI/2} .. {PI/2}.
+ *  Computes the arc sine of <i>x</i>.
+ *  @return computed value between `-(PI/2)` and `(PI/2)`.
  */
 static mrb_value
 math_asin(mrb_state *mrb, mrb_value obj)
@@ -276,7 +277,7 @@ math_acos(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.atan(x)    -> float
  *
- *  Computes the arc tangent of <i>x</i>. Returns -{PI/2} .. {PI/2}.
+ *  Computes the arc tangent of <i>x</i>. Returns `-(PI/2) .. (PI/2)`.
  */
 static mrb_value
 math_atan(mrb_state *mrb, mrb_value obj)
