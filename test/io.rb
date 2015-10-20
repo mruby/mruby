@@ -426,6 +426,14 @@ assert('IO#close_on_exec') do
   # end
 end
 
+assert('IO#sysseek') do
+  IO.open(IO.sysopen($mrbtest_io_rfname)) do |io|
+    assert_equal 2, io.sysseek(2)
+    assert_equal 5, io.sysseek(3, IO::SEEK_CUR) # 2 + 3 => 5
+    assert_equal $mrbtest_io_msg.size - 4, io.sysseek(-4, IO::SEEK_END)
+  end
+end
+
 assert('`cmd`') do
   assert_equal `echo foo`, "foo\n"
 end
