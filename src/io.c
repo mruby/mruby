@@ -525,7 +525,8 @@ mrb_value
 mrb_io_sysseek(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
-  mrb_int pos, offset, whence = -1;
+  off_t pos;
+  mrb_int offset, whence = -1;
 
   mrb_get_args(mrb, "i|i", &offset, &whence);
   if (whence < 0) {
@@ -534,11 +535,14 @@ mrb_io_sysseek(mrb_state *mrb, mrb_value io)
 
   fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
   pos = lseek(fptr->fd, offset, whence);
-  if (pos < 0) {
+  if (pos == -1) {
     mrb_sys_fail(mrb, "sysseek");
   }
-
-  return mrb_fixnum_value(pos);
+  if (pos > MRB_INT_MAX) {
+    return mrb_float_value(mrb, (mrb_float)pos);
+  } else {
+    return mrb_fixnum_value(pos);
+  }
 }
 
 mrb_value
