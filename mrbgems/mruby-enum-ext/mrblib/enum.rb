@@ -77,11 +77,11 @@ module Enumerable
   # Passes elements to the block until the block returns +nil+ or +false+,
   # then stops iterating and returns an array of all prior elements.
   #
-  #  If no block is given, an enumerator is returned instead.
+  # If no block is given, an enumerator is returned instead.
   #
-  #    a = [1, 2, 3, 4, 5, 0]
-  #    a.take_while {|i| i < 3 }   #=> [1, 2]
-
+  #     a = [1, 2, 3, 4, 5, 0]
+  #     a.take_while {|i| i < 3 }   #=> [1, 2]
+  #
   def take_while(&block)
     return to_enum :take_while unless block
 
@@ -94,13 +94,12 @@ module Enumerable
   end
 
   ##
-  # call-seq:
-  #   enum.each_cons(n) {...}   ->  nil
-  #
   # Iterates the given block for each array of consecutive <n>
   # elements.
   #
-  # e.g.:
+  # @return [nil]
+  #
+  # @example
   #     (1..10).each_cons(3) {|a| p a}
   #     # outputs below
   #     [1, 2, 3]
@@ -127,12 +126,11 @@ module Enumerable
   end
 
   ##
-  # call-seq:
-  #   enum.each_slice(n) {...}  ->  nil
-  #
   # Iterates the given block for each slice of <n> elements.
   #
-  # e.g.:
+  # @return [nil]
+  #
+  # @example
   #     (1..10).each_slice(3) {|a| p a}
   #     # outputs below
   #     [1, 2, 3]
@@ -166,8 +164,8 @@ module Enumerable
   # block, and values are arrays of elements in <i>enum</i>
   # corresponding to the key.
   #
-  #    (1..6).group_by {|i| i%3}   #=> {0=>[3, 6], 1=>[1, 4], 2=>[2, 5]}
-
+  #     (1..6).group_by {|i| i%3}   #=> {0=>[3, 6], 1=>[1, 4], 2=>[2, 5]}
+  #
   def group_by(&block)
     return to_enum :group_by unless block
 

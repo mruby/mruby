@@ -98,6 +98,22 @@ enum mrb_vtype {
 
 #include "mruby/object.h"
 
+#ifdef MRB_DOCUMENTATION_BLOCK
+
+/**
+ * @abstract
+ * MRuby value boxing.
+ *
+ * Actual implementation depends on configured boxing type.
+ *
+ * @see mruby/boxing_no.h Default boxing representation
+ * @see mruby/boxing_word.h Word representation
+ * @see mruby/boxing_nan.h Boxed double representation
+ */
+typedef void mrb_value;
+
+#endif
+
 #if defined(MRB_NAN_BOXING)
 #include "boxing_nan.h"
 #elif defined(MRB_WORD_BOXING)

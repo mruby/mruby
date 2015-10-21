@@ -74,8 +74,8 @@ class Hash
   #
   # If no block is given, an enumerator is returned instead.
   #
-  #  h = { "a" => 100, "b" => 200 }
-  #  h.each {|key, value| puts "#{key} is #{value}" }
+  #     h = { "a" => 100, "b" => 200 }
+  #     h.each {|key, value| puts "#{key} is #{value}" }
   #
   # <em>produces:</em>
   #
