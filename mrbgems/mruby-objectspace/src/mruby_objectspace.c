@@ -17,7 +17,7 @@ os_count_object_type(mrb_state *mrb, struct RBasic *obj, void *data)
 
   obj_count->total++;
 
-  if (is_dead(mrb, obj)) {
+  if (mrb_object_dead_p(mrb, obj)) {
     obj_count->freed++;
   }
   else {
@@ -115,7 +115,7 @@ os_each_object_cb(mrb_state *mrb, struct RBasic *obj, void *ud)
   struct os_each_object_data *d = (struct os_each_object_data*)ud;
 
   /* filter dead objects */
-  if (is_dead(mrb, obj)) {
+  if (mrb_object_dead_p(mrb, obj)) {
     return;
   }
 

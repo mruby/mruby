@@ -52,7 +52,7 @@ The value below allows about 60000 recursive calls in the simplest case. */
 # define DEBUG(x)
 #endif
 
-#define ARENA_RESTORE(mrb,ai) (mrb)->arena_idx = (ai)
+#define ARENA_RESTORE(mrb,ai) (mrb)->gc.arena_idx = (ai)
 
 static inline void
 stack_clear(mrb_value *from, size_t count)
