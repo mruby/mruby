@@ -5984,9 +5984,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_COLON3:
-    printf("NODE_COLON3:\n");
-    dump_prefix(tree, offset+1);
-    printf("::%s\n", mrb_sym2name(mrb, sym(tree)));
+    printf("NODE_COLON3: ::%s\n", mrb_sym2name(mrb, sym(tree)));
     break;
 
   case NODE_ARRAY:
