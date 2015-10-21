@@ -1,5 +1,4 @@
 class Array
-
   ##
   # call-seq:
   #    ary.uniq!                -> ary or nil
@@ -16,7 +15,6 @@ class Array
   #    c = [["student","sam"], ["student","george"], ["teacher","matz"]]
   #    c.uniq! { |s| s.first } # => [["student", "sam"], ["teacher", "matz"]]
   #
-  # @mrbgem mruby-array-ext
   def uniq!(&block)
     ary = self.dup
     result = []
@@ -56,7 +54,6 @@ class Array
   #    b = [["student","sam"], ["student","george"], ["teacher","matz"]]
   #    b.uniq { |s| s.first } # => [["student", "sam"], ["teacher", "matz"]]
   #
-  # @mrbgem mruby-array-ext
   def uniq(&block)
     ary = self.dup
     if block
@@ -78,7 +75,6 @@ class Array
   #
   #    [ 1, 1, 2, 2, 3, 3, 4, 5 ] - [ 1, 2, 4 ]  #=>  [ 3, 3, 5 ]
   #
-  # @mrbgem mruby-array-ext
   def -(elem)
     raise TypeError, "can't convert #{elem.class} into Array" unless elem.class == Array
 
@@ -99,7 +95,6 @@ class Array
   #    [ "a", "b", "c" ] | [ "c", "d", "a" ]
   #           #=> [ "a", "b", "c", "d" ]
   #
-  # @mrbgem mruby-array-ext
   def |(elem)
     raise TypeError, "can't convert #{elem.class} into Array" unless elem.class == Array
 
@@ -116,7 +111,6 @@ class Array
   #
   #    [ 1, 1, 3, 5 ] & [ 1, 2, 3 ]   #=> [ 1, 3 ]
   #
-  # @mrbgem mruby-array-ext
   def &(elem)
     raise TypeError, "can't convert #{elem.class} into Array" unless elem.class == Array
 
@@ -149,7 +143,6 @@ class Array
   #    a = [ 1, 2, [3, [4, 5] ] ]
   #    a.flatten(1)              #=> [1, 2, 3, [4, 5]]
   #
-  # @mrbgem mruby-array-ext
   def flatten(depth=nil)
     ar = []
     self.each do |e|
@@ -179,7 +172,6 @@ class Array
   #    a = [ 1, 2, [3, [4, 5] ] ]
   #    a.flatten!(1) #=> [1, 2, 3, [4, 5]]
   #
-  # @mrbgem mruby-array-ext
   def flatten!(depth=nil)
     modified = false
     ar = []
@@ -207,7 +199,6 @@ class Array
   #    [ "a", nil, "b", nil, "c", nil ].compact
   #                      #=> [ "a", "b", "c" ]
   #
-  # @mrbgem mruby-array-ext
   def compact
     result = self.dup
     result.compact!
@@ -225,7 +216,6 @@ class Array
   #    [ "a", nil, "b", nil, "c" ].compact! #=> [ "a", "b", "c" ]
   #    [ "a", "b", "c" ].compact!           #=> nil
   #
-  # @mrbgem mruby-array-ext
   def compact!
     result = self.select { |e| !e.nil? }
     if result.size == self.size
@@ -236,7 +226,6 @@ class Array
   end
 
   # for efficiency
-  # @mrbgem mruby-array-ext
   def reverse_each(&block)
     return to_enum :reverse_each unless block_given?
 
@@ -249,7 +238,6 @@ class Array
   end
 
   NONE=Object.new
-
   ##
   #  call-seq:
   #     ary.fetch(index)                    -> obj
@@ -272,7 +260,7 @@ class Array
   #     a.fetch(100) { |i| puts "#{i} is out of bounds" }
   #                              #=> "100 is out of bounds"
   #
-  # @mrbgem mruby-array-ext
+
   def fetch(n=nil, ifnone=NONE, &block)
     warn "block supersedes default value argument" if !n.nil? && ifnone != NONE && block
 
@@ -322,7 +310,7 @@ class Array
   #     a.fill(1, 2) { |i| i+1 } #=> [0, 2, 3, 27]
   #     a.fill(0..1) { |i| i+1 } #=> [1, 2, 3, 27]
   #
-  # @mrbgem mruby-array-ext
+
   def fill(arg0=nil, arg1=nil, arg2=nil, &block)
     if arg0.nil? && arg1.nil? && arg2.nil? && !block
       raise ArgumentError, "wrong number of arguments (0 for 1..3)"
@@ -406,8 +394,7 @@ class Array
   #     a                #=> ["a", "b", "c", "d"]
   #     a.rotate(2)      #=> ["c", "d", "a", "b"]
   #     a.rotate(-3)     #=> ["b", "c", "d", "a"]
-  #
-  # @mrbgem mruby-array-ext
+
   def rotate(count=1)
     ary = []
     len = self.length
@@ -438,12 +425,12 @@ class Array
   #     a                #=> ["b", "c", "d", "a"]
   #     a.rotate!(2)     #=> ["d", "a", "b", "c"]
   #     a.rotate!(-3)    #=> ["a", "b", "c", "d"]
-  #
-  # @mrbgem mruby-array-ext
+
   def rotate!(count=1)
     self.replace(self.rotate(count))
   end
 
+  ##
   #  call-seq:
   #     ary.delete_if { |item| block }  -> ary
   #     ary.delete_if                   -> Enumerator
@@ -459,8 +446,7 @@ class Array
   #
   #     scores = [ 97, 42, 75 ]
   #     scores.delete_if {|score| score < 80 }   #=> [97]
-  #
-  # @mrbgem mruby-array-ext
+
   def delete_if(&block)
     return to_enum :delete_if unless block_given?
 
@@ -489,8 +475,7 @@ class Array
   #  See also Enumerable#reject and Array#delete_if.
   #
   #  If no block is given, an Enumerator is returned instead.
-  #
-  # @mrbgem mruby-array-ext
+
   def reject!(&block)
     return to_enum :reject! unless block_given?
 
@@ -522,8 +507,7 @@ class Array
   #     a = %w{ a b c d }
   #     a.insert(2, 99)         #=> ["a", "b", 99, "c", "d"]
   #     a.insert(-2, 1, 2, 3)   #=> ["a", "b", 99, "c", 1, 2, 3, "d"]
-  #
-  # @mrbgem mruby-array-ext
+
   def insert(idx, *args)
     idx += self.size + 1 if idx < 0
     self[idx, 0] = args
@@ -581,8 +565,7 @@ class Array
   #  You must not mix the two modes at a time; the block must always
   #  return either true/false, or always return a number.  It is
   #  undefined which value is actually picked up at each iteration.
-  #
-  # @mrbgem mruby-array-ext
+
   def bsearch(&block)
     return to_enum :bsearch unless block_given?
 
@@ -629,8 +612,7 @@ class Array
   #
   #     scores = [ 97, 42, 75 ]
   #     scores.delete_if {|score| score < 80 }   #=> [97]
-  #
-  # @mrbgem mruby-array-ext
+
   def delete_if(&block)
     return to_enum :delete_if unless block_given?
 
@@ -659,8 +641,7 @@ class Array
   #
   #     a = [1, 2, 3, 4, 5]
   #     a.keep_if { |val| val > 3 } #=> [4, 5]
-  #
-  # @mrbgem mruby-array-ext
+
   def keep_if(&block)
     return to_enum :keep_if unless block_given?
 
@@ -689,8 +670,7 @@ class Array
   #  See also Array#keep_if
   #
   #  If no block is given, an Enumerator is returned instead.
-  #
-  # @mrbgem mruby-array-ext
+
   def select!(&block)
     return to_enum :select! unless block_given?
 
@@ -713,8 +693,6 @@ class Array
   #  If a block is given instead of an argument, returns the _index_ of the
   #  first object for which the block returns +true+.  Returns +nil+ if no
   #  match is found.
-  #
-  # @mrbgem mruby-array-ext
   #
   # ISO 15.2.12.5.14
   def index(val=NONE, &block)

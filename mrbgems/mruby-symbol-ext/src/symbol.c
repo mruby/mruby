@@ -21,8 +21,6 @@ typedef struct symbol_name {
  *                                     :default_proc, :compact, :extend,
  *                                     :Tms, :getwd, :$=, :ThreadGroup,
  *                                     :wait2, :$>]
- *
- * @mrbgem mruby-symbol-ext
  */
 static mrb_value
 mrb_sym_all_symbols(mrb_state *mrb, mrb_value self)
@@ -42,8 +40,6 @@ mrb_sym_all_symbols(mrb_state *mrb, mrb_value self)
  *   sym.length    -> integer
  *
  * Same as <code>sym.to_s.length</code>.
- *
- * @mrbgem mruby-symbol-ext
  */
 static mrb_value
 mrb_sym_length(mrb_state *mrb, mrb_value self)

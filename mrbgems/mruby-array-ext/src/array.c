@@ -4,7 +4,7 @@
 #include "mruby/range.h"
 #include "mruby/hash.h"
 
-/**
+/*
  *  call-seq:
  *     ary.assoc(obj)   -> new_ary  or  nil
  *
@@ -22,9 +22,8 @@
  *     a  = [ s1, s2, s3 ]
  *     a.assoc("letters")  #=> [ "letters", "a", "b", "c" ]
  *     a.assoc("foo")      #=> nil
- *
- * @mrbgem mruby-array-ext
  */
+
 static mrb_value
 mrb_ary_assoc(mrb_state *mrb, mrb_value ary)
 {
@@ -74,7 +73,7 @@ mrb_ary_rassoc(mrb_state *mrb, mrb_value ary)
   return mrb_nil_value();
 }
 
-/**
+/*
  *  call-seq:
  *     ary.at(index)   ->   obj  or nil
  *
@@ -85,9 +84,8 @@ mrb_ary_rassoc(mrb_state *mrb, mrb_value ary)
  *     a = [ "a", "b", "c", "d", "e" ]
  *     a.at(0)     #=> "a"
  *     a.at(-1)    #=> "e"
- *
- * @mrbgem mruby-array-ext
  */
+
 static mrb_value
 mrb_ary_at(mrb_state *mrb, mrb_value ary)
 {
@@ -97,10 +95,6 @@ mrb_ary_at(mrb_state *mrb, mrb_value ary)
   return mrb_ary_entry(ary, pos);
 }
 
-/**
- *
- * @mrbgem mruby-array-ext
- */
 static mrb_value
 mrb_ary_values_at(mrb_state *mrb, mrb_value self)
 {
@@ -112,7 +106,7 @@ mrb_ary_values_at(mrb_state *mrb, mrb_value self)
   return mrb_get_values_at(mrb, self, RARRAY_LEN(self), argc, argv, mrb_ary_ref);
 }
 
-/**
+/*
  *  call-seq:
  *     ary.to_h   ->   Hash
  *
@@ -122,8 +116,8 @@ mrb_ary_values_at(mrb_state *mrb, mrb_value self)
  *      [[:foo, :bar], [1, 2]].to_h
  *        # => {:foo => :bar, 1 => 2}
  *
- * @mrbgem mruby-array-ext
  */
+
 static mrb_value
 mrb_ary_to_h(mrb_state *mrb, mrb_value ary)
 {

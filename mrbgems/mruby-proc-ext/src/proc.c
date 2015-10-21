@@ -5,9 +5,6 @@
 #include "mruby/string.h"
 #include "mruby/debug.h"
 
-/**
- * @mrbgem mruby-proc-ext
- */
 static mrb_value
 mrb_proc_lambda(mrb_state *mrb, mrb_value self)
 {
@@ -15,9 +12,6 @@ mrb_proc_lambda(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(MRB_PROC_STRICT_P(p));
 }
 
-/**
- * @mrbgem mruby-proc-ext
- */
 static mrb_value
 mrb_proc_source_location(mrb_state *mrb, mrb_value self)
 {
@@ -39,9 +33,6 @@ mrb_proc_source_location(mrb_state *mrb, mrb_value self)
   }
 }
 
-/**
- * @mrbgem mruby-proc-ext
- */
 static mrb_value
 mrb_proc_inspect(mrb_state *mrb, mrb_value self)
 {
@@ -76,9 +67,6 @@ mrb_proc_inspect(mrb_state *mrb, mrb_value self)
   return str;
 }
 
-/**
- * @mrbgem mruby-proc-ext
- */
 static mrb_value
 mrb_kernel_proc(mrb_state *mrb, mrb_value self)
 {
@@ -100,9 +88,8 @@ mrb_kernel_proc(mrb_state *mrb, mrb_value self)
  *
  *    prc = lambda{|x, y=42, *other|}
  *    prc.parameters  #=> [[:req, :x], [:opt, :y], [:rest, :other]]
- *
- * @mrbgem mruby-proc-ext
  */
+
 static mrb_value
 mrb_proc_parameters(mrb_state *mrb, mrb_value self)
 {

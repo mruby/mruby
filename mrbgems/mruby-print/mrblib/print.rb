@@ -1,9 +1,11 @@
+##
+# Kernel
+#
+# ISO 15.3.1
 module Kernel
-
   ##
   # Invoke method +print+ on STDOUT and passing +*args+
   #
-  # @mrbgem mruby-print
   # ISO 15.3.1.2.10
   def print(*args)
     i = 0
@@ -17,7 +19,6 @@ module Kernel
   ##
   # Invoke method +puts+ on STDOUT and passing +*args*+
   #
-  # @mrbgem mruby-print
   # ISO 15.3.1.2.11
   def puts(*args)
     i = 0
@@ -35,7 +36,6 @@ module Kernel
   ##
   # Print human readable object description
   #
-  # @mrbgem mruby-print
   # ISO 15.3.1.3.34
   def p(*args)
     i = 0

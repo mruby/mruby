@@ -15,8 +15,6 @@ module Enumerable
   #   - take_while
   #   - flat_map  collect_concat
   #   - zip
-  #
-  # @mrbgem mruby-enum-lazy
   def lazy
     Lazy.new(self)
   end
@@ -26,8 +24,6 @@ module Enumerable
   #   Based on https://github.com/yhara/enumerable-lazy
   #   Inspired by https://github.com/antimon2/enumerable_lz
   #   http://jp.rubyist.net/magazine/?0034-Enumerable_lz (ja)
-  #
-  # @mrbgem mruby-enum-lazy
   class Lazy < Enumerator
     def initialize(obj, &block)
       super(){|yielder|

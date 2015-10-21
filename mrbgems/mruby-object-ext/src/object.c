@@ -7,9 +7,8 @@
  *     nil.to_a    -> []
  *
  *  Always returns an empty array.
- *
- * @mrbgem mruby-object-ext
  */
+
 static mrb_value
 nil_to_a(mrb_state *mrb, mrb_value obj)
 {
@@ -21,9 +20,8 @@ nil_to_a(mrb_state *mrb, mrb_value obj)
  *     nil.to_f    -> 0.0
  *
  *  Always returns zero.
- *
- * @mrbgem mruby-object-ext
  */
+
 static mrb_value
 nil_to_f(mrb_state *mrb, mrb_value obj)
 {
@@ -35,9 +33,8 @@ nil_to_f(mrb_state *mrb, mrb_value obj)
  *     nil.to_i    -> 0
  *
  *  Always returns zero.
- *
- * @mrbgem mruby-object-ext
  */
+
 static mrb_value
 nil_to_i(mrb_state *mrb, mrb_value obj)
 {
@@ -60,9 +57,8 @@ nil_to_i(mrb_state *mrb, mrb_value obj)
  *     end
  *     k = KlassWithSecret.new
  *     k.instance_exec(5) {|x| @secret+x }   #=> 104
- *
- * @mrbgem mruby-object-ext
  */
+
 static mrb_value
 mrb_obj_instance_exec(mrb_state *mrb, mrb_value self)
 {

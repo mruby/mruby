@@ -12,7 +12,6 @@ class Object
   #    .select {|x| x%2==0} .tap {|x| puts "evens: #{x.inspect}"}
   #    .map { |x| x*x }     .tap {|x| puts "squares: #{x.inspect}"}
   #
-  # @mrbgem mruby-object-ext
   def tap
     yield self
     self

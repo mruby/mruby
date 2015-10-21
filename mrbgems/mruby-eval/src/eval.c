@@ -195,10 +195,6 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, cha
   return proc;
 }
 
-/**
- *
- * @mrbgem mruby-eval
- */
 static mrb_value
 f_eval(mrb_state *mrb, mrb_value self)
 {
@@ -225,10 +221,6 @@ mrb_value mrb_obj_instance_eval(mrb_state *mrb, mrb_value self);
 
 #define CI_ACC_SKIP    -1
 
-/**
- *
- * @mrbgem mruby-eval
- */
 static mrb_value
 f_instance_eval(mrb_state *mrb, mrb_value self)
 {

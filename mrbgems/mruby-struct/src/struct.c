@@ -739,28 +739,26 @@ mrb_struct_values_at(mrb_state *mrb, mrb_value self)
 
   return mrb_get_values_at(mrb, self, RSTRUCT_LEN(self), argc, argv, struct_aref_int);
 }
+
+/*
+ *  A <code>Struct</code> is a convenient way to bundle a number of
+ *  attributes together, using accessor methods, without having to write
+ *  an explicit class.
+ *
+ *  The <code>Struct</code> class is a generator of specific classes,
+ *  each one of which is defined to hold a set of variables and their
+ *  accessors. In these examples, we'll call the generated class
+ *  "<i>Customer</i>Class," and we'll show an example instance of that
+ *  class as "<i>Customer</i>Inst."
+ *
+ *  In the descriptions that follow, the parameter <i>symbol</i> refers
+ *  to a symbol, which is either a quoted string or a
+ *  <code>Symbol</code> (such as <code>:name</code>).
+ */
 void
 mrb_mruby_struct_gem_init(mrb_state* mrb)
 {
   struct RClass *st;
-
-  /*
-   *  A <code>Struct</code> is a convenient way to bundle a number of
-   *  attributes together, using accessor methods, without having to write
-   *  an explicit class.
-   *
-   *  The <code>Struct</code> class is a generator of specific classes,
-   *  each one of which is defined to hold a set of variables and their
-   *  accessors. In these examples, we'll call the generated class
-   *  "<i>Customer</i>Class," and we'll show an example instance of that
-   *  class as "<i>Customer</i>Inst."
-   *
-   *  In the descriptions that follow, the parameter <i>symbol</i> refers
-   *  to a symbol, which is either a quoted string or a
-   *  <code>Symbol</code> (such as <code>:name</code>).
-   *
-   * @mrbgem mruby-struct
-   */
   st = mrb_define_class(mrb, "Struct",  mrb->object_class);
 
   mrb_define_class_method(mrb, st, "new",             mrb_struct_s_def,       MRB_ARGS_ANY());  /* 15.2.18.3.1  */

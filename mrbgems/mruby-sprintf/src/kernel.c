@@ -6,9 +6,6 @@
 
 #include "mruby.h"
 
-/**
- * @mrbgem mruby-sprintf
- */
 mrb_value mrb_f_sprintf(mrb_state *mrb, mrb_value obj); /* in sprintf.c */
 
 void

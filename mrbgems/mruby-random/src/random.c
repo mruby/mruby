@@ -104,9 +104,6 @@ get_random_state(mrb_state *mrb)
   return DATA_GET_PTR(mrb, random_val, &mt_state_type, mt_state);
 }
 
-/**
- * @mrbgem mruby-random
- */
 static mrb_value
 mrb_random_g_rand(mrb_state *mrb, mrb_value self)
 {
@@ -114,9 +111,6 @@ mrb_random_g_rand(mrb_state *mrb, mrb_value self)
   return mrb_random_rand(mrb, random);
 }
 
-/**
- * @mrbgem mruby-random
- */
 static mrb_value
 mrb_random_g_srand(mrb_state *mrb, mrb_value self)
 {
@@ -202,9 +196,8 @@ mrb_random_srand(mrb_state *mrb, mrb_value self)
  *     ary.shuffle!   ->   ary
  *
  *  Shuffles elements in self in place.
- *
- * @mrbgem mruby-random
  */
+
 static mrb_value
 mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
 {
@@ -241,9 +234,8 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
  *     ary.shuffle   ->   new_ary
  *
  *  Returns a new array with elements of self shuffled.
- *
- * @mrbgem mruby-random
  */
+
 static mrb_value
 mrb_ary_shuffle(mrb_state *mrb, mrb_value ary)
 {
@@ -266,9 +258,8 @@ mrb_ary_shuffle(mrb_state *mrb, mrb_value ary)
  *
  *  If the array is empty the first form returns +nil+ and the second form
  *  returns an empty array.
- *
- * @mrbgem mruby-random
  */
+
 static mrb_value
 mrb_ary_sample(mrb_state *mrb, mrb_value ary)
 {
@@ -332,9 +323,6 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, mrb->kernel_module, "rand", mrb_random_g_rand, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, mrb->kernel_module, "srand", mrb_random_g_srand, MRB_ARGS_OPT(1));
 
-  /**
-   * @mrbgem mruby-random
-   */
   random = mrb_define_class(mrb, "Random", mrb->object_class);
   MRB_SET_INSTANCE_TT(random, MRB_TT_DATA);
   mrb_define_class_method(mrb, random, "rand", mrb_random_g_rand, MRB_ARGS_OPT(1));

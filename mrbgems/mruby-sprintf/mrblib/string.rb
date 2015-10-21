@@ -1,6 +1,4 @@
 class String
-
-  # @mrbgem mruby-sprintf
   def %(args)
     if args.is_a? Array
       sprintf(self, *args)

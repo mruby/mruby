@@ -9,7 +9,6 @@ class String
   #    a = "abcde"
   #    a.clear    #=> ""
   #
-  # @mrbgem mruby-string-ext
   def clear
     self.replace("")
   end
@@ -24,7 +23,6 @@ class String
   #    "  hello  ".lstrip   #=> "hello  "
   #    "hello".lstrip       #=> "hello"
   #
-  # @mrbgem mruby-string-ext
   def lstrip
     a = 0
     z = self.size - 1
@@ -42,7 +40,6 @@ class String
   #    "  hello  ".rstrip   #=> "  hello"
   #    "hello".rstrip       #=> "hello"
   #
-  # @mrbgem mruby-string-ext
   def rstrip
     a = 0
     z = self.size - 1
@@ -59,7 +56,6 @@ class String
   #    "    hello    ".strip   #=> "hello"
   #    "\tgoodbye\r\n".strip   #=> "goodbye"
   #
-  # @mrbgem mruby-string-ext
   def strip
     a = 0
     z = self.size - 1
@@ -79,7 +75,6 @@ class String
   #    "  hello  ".lstrip   #=> "hello  "
   #    "hello".lstrip!      #=> nil
   #
-  # @mrbgem mruby-string-ext
   def lstrip!
     s = self.lstrip
     (s == self) ? nil : self.replace(s)
@@ -96,7 +91,6 @@ class String
   #    "  hello  ".rstrip   #=> "  hello"
   #    "hello".rstrip!      #=> nil
   #
-  # @mrbgem mruby-string-ext
   def rstrip!
     s = self.rstrip
     (s == self) ? nil : self.replace(s)
@@ -109,7 +103,6 @@ class String
   #  Removes leading and trailing whitespace from <i>str</i>. Returns
   #  <code>nil</code> if <i>str</i> was not altered.
   #
-  # @mrbgem mruby-string-ext
   def strip!
     s = self.strip
     (s == self) ? nil : self.replace(s)
@@ -126,7 +119,6 @@ class String
   #    "abcdef".casecmp("abcdefg")   #=> -1
   #    "abcdef".casecmp("ABCDEF")    #=> 0
   #
-  # @mrbgem mruby-string-ext
   def casecmp(str)
     self.downcase <=> str.to_str.downcase
   rescue NoMethodError
@@ -144,7 +136,6 @@ class String
     end
   end
 
-  # @mrbgem mruby-string-ext
   def rpartition(sep)
     raise TypeError, "type mismatch: #{sep.class} given" unless sep.is_a? String
     n = rindex(sep)
@@ -172,7 +163,6 @@ class String
   #    string.slice!("r")      #=> "r"
   #    string                  #=> "thsa sting"
   #
-  # @mrbgem mruby-string-ext
   def slice!(arg1, arg2=nil)
     raise "wrong number of arguments (for 1..2)" if arg1.nil? && arg2.nil?
 
@@ -244,7 +234,6 @@ class String
   #     "abcd".insert(-3, 'X')   #=> "abXcd"
   #     "abcd".insert(-1, 'X')   #=> "abcdX"
   #
-  # @mrbgem mruby-string-ext
   def insert(idx, str)
     pos = idx.to_i
     pos += self.size + 1 if pos < 0
@@ -267,8 +256,6 @@ class String
   #     "hello".ljust(4)            #=> "hello"
   #     "hello".ljust(20)           #=> "hello               "
   #     "hello".ljust(20, '1234')   #=> "hello123412341234123"
-  #
-  # @mrbgem mruby-string-ext
   def ljust(idx, padstr = ' ')
     if idx <= self.size
       return self
@@ -310,7 +297,6 @@ class String
   #     "25".upto("5").to_a   #=> []
   #     "07".upto("11").to_a  #=> ["07", "08", "09", "10", "11"]
   #
-  # @mrbgem mruby-string-ext
   def upto(other_str, excl=false, &block)
     return to_enum :upto, other_str, excl unless block
 
@@ -325,7 +311,6 @@ class String
     end
   end
 
-  # @mrbgem mruby-string-ext
   def chars(&block)
     if block_given?
       self.split('').map do |i|
@@ -338,7 +323,6 @@ class String
   end
   alias each_char chars
 
-  # @mrbgem mruby-string-ext
   def codepoints(&block)
     len = self.size
 

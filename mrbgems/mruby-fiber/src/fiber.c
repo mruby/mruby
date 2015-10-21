@@ -368,13 +368,6 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
 {
   struct RClass *c;
 
-
-
-  /**
-   * Fiber
-   *
-   * @mrbgem mruby-fiber
-   */
   c = mrb_define_class(mrb, "Fiber", mrb->object_class);
   MRB_SET_INSTANCE_TT(c, MRB_TT_FIBER);
 
@@ -387,11 +380,6 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
   mrb_define_class_method(mrb, c, "yield", fiber_yield, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "current", fiber_current, MRB_ARGS_NONE());
 
-  /**
-   * FiberError
-   *
-   * @mrbgem mruby-fiber
-   */
   mrb_define_class(mrb, "FiberError", mrb->eStandardError_class);
 }
 

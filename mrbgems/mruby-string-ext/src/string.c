@@ -5,9 +5,6 @@
 #include "mruby/string.h"
 #include "mruby/range.h"
 
-/**
- * @mrbgem mruby-string-ext
- */
 static mrb_value
 mrb_str_getbyte(mrb_state *mrb, mrb_value str)
 {
@@ -22,9 +19,6 @@ mrb_str_getbyte(mrb_state *mrb, mrb_value str)
   return mrb_fixnum_value((unsigned char)RSTRING_PTR(str)[pos]);
 }
 
-/**
- * @mrbgem mruby-string-ext
- */
 static mrb_value
 mrb_str_setbyte(mrb_state *mrb, mrb_value str)
 {
@@ -44,9 +38,6 @@ mrb_str_setbyte(mrb_state *mrb, mrb_value str)
   return mrb_fixnum_value((unsigned char)byte);
 }
 
-/**
- * @mrbgem mruby-string-ext
- */
 static mrb_value
 mrb_str_byteslice(mrb_state *mrb, mrb_value str)
 {
@@ -88,8 +79,6 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
  *  Equivalent to <code>String#swapcase</code>, but modifies the receiver in
  *  place, returning <i>str</i>, or <code>nil</code> if no changes were made.
  *  Note: case conversion is effective only in ASCII region.
- *
- * @mrbgem mruby-string-ext
  */
 static mrb_value
 mrb_str_swapcase_bang(mrb_state *mrb, mrb_value str)
@@ -127,8 +116,6 @@ mrb_str_swapcase_bang(mrb_state *mrb, mrb_value str)
  *
  *     "Hello".swapcase          #=> "hELLO"
  *     "cYbEr_PuNk11".swapcase   #=> "CyBeR_pUnK11"
- *
- * @mrbgem mruby-string-ext
  */
 static mrb_value
 mrb_str_swapcase(mrb_state *mrb, mrb_value self)
@@ -154,8 +141,6 @@ mrb_str_swapcase(mrb_state *mrb, mrb_value self)
  *     a = "hello "
  *     a << "world"   #=> "hello world"
  *     a.concat(33)   #=> "hello world!"
- *
- * @mrbgem mruby-string-ext
  */
 static mrb_value
 mrb_str_concat2(mrb_state *mrb, mrb_value self)
@@ -178,8 +163,6 @@ mrb_str_concat2(mrb_state *mrb, mrb_value self)
  *    "hello".start_with?("heaven", "hell")     #=> true
  *    "hello".start_with?("heaven", "paradise") #=> false
  *    "h".start_with?("heaven", "hell")         #=> false
- *
- * @mrbgem mruby-string-ext
  */
 static mrb_value
 mrb_str_start_with(mrb_state *mrb, mrb_value self)
@@ -209,8 +192,6 @@ mrb_str_start_with(mrb_state *mrb, mrb_value self)
  *     str.end_with?([suffixes]+)   -> true or false
  *
  *  Returns true if +str+ ends with one of the +suffixes+ given.
- *
- * @mrbgem mruby-string-ext
  */
 static mrb_value
 mrb_str_end_with(mrb_state *mrb, mrb_value self)
@@ -237,18 +218,12 @@ mrb_str_end_with(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
-/*
- * @mrbgem mruby-string-ext
- */
 static mrb_value
 mrb_str_hex(mrb_state *mrb, mrb_value self)
 {
   return mrb_str_to_inum(mrb, self, 16, FALSE);
 }
 
-/*
- * @mrbgem mruby-string-ext
- */
 static mrb_value
 mrb_str_oct(mrb_state *mrb, mrb_value self)
 {
@@ -263,8 +238,6 @@ mrb_str_oct(mrb_state *mrb, mrb_value self)
  *
  *     a = "abcde"
  *     a.chr    #=> "a"
- *
- * @mrbgem mruby-string-ext
  */
 static mrb_value
 mrb_str_chr(mrb_state *mrb, mrb_value self)
@@ -272,9 +245,6 @@ mrb_str_chr(mrb_state *mrb, mrb_value self)
   return mrb_str_substr(mrb, self, 0, 1);
 }
 
-/*
- * @mrbgem mruby-string-ext
- */
 static mrb_value
 mrb_fixnum_chr(mrb_state *mrb, mrb_value num)
 {
@@ -328,8 +298,6 @@ mrb_fixnum_chr(mrb_state *mrb, mrb_value num)
  *
  *     a = "abc\ndef"
  *     a.lines    #=> ["abc\n", "def"]
- *
- * @mrbgem mruby-string-ext
  */
 static mrb_value
 mrb_str_lines(mrb_state *mrb, mrb_value self)
@@ -377,8 +345,6 @@ mrb_str_lines(mrb_state *mrb, mrb_value self)
  *
  *     a = "abc"
  *     a.succ    #=> "abd"
- *
- * @mrbgem mruby-string-ext
  */
 static mrb_value
 mrb_str_succ_bang(mrb_state *mrb, mrb_value self)
@@ -453,9 +419,6 @@ mrb_str_succ_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-/*
- * @mrbgem mruby-string-ext
- */
 static mrb_value
 mrb_str_succ(mrb_state *mrb, mrb_value self)
 {
@@ -475,8 +438,6 @@ mrb_str_succ(mrb_state *mrb, mrb_value self)
  *     a = "world"
  *     a.prepend("hello ") #=> "hello world"
  *     a                   #=> "hello world"
- *
- * @mrbgem mruby-string-ext
  */
 static mrb_value
 mrb_str_prepend(mrb_state *mrb, mrb_value self)
@@ -555,9 +516,6 @@ utf8code(unsigned char* p)
   return p[0];
 }
 
-/*
- * @mrbgem mruby-string-ext
- */
 static mrb_value
 mrb_str_ord(mrb_state* mrb, mrb_value str)
 {

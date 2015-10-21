@@ -722,12 +722,6 @@ void
 mrb_mruby_math_gem_init(mrb_state* mrb)
 {
   struct RClass *mrb_math;
-
-  /**
-   * Math functions
-   *
-   * @mrbgem mruby-math
-   */
   mrb_math = mrb_define_module(mrb, "Math");
 
   mrb_define_class_under(mrb, mrb_math, "DomainError", mrb->eStandardError_class);

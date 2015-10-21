@@ -174,12 +174,6 @@ os_each_object(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_objectspace_gem_init(mrb_state *mrb)
 {
-
-  /**
-   * ObjectSpace
-   *
-   * @mrbgem mruby-objectspace
-   */
   struct RClass *os = mrb_define_module(mrb, "ObjectSpace");
   mrb_define_class_method(mrb, os, "count_objects", os_count_objects, MRB_ARGS_OPT(1));
   mrb_define_class_method(mrb, os, "each_object", os_each_object, MRB_ARGS_OPT(1));

@@ -1,8 +1,6 @@
 class Hash
 
   #  ISO does not define Hash#each_pair, so each_pair is defined in gem.
-  #
-  # @mrbgem mruby-hash-ext
   alias each_pair each
 
   ##
@@ -24,7 +22,7 @@ class Hash
   #     Hash[ [ ["a", 100], ["b", 200] ] ] #=> {"a"=>100, "b"=>200}
   #     Hash["a" => 100, "b" => 200] #=> {"a"=>100, "b"=>200}
   #
-  # @mrbgem mruby-hash-ext
+
   def self.[](*object)
     length = object.length
     if length == 1
@@ -82,7 +80,7 @@ class Hash
   #     h1.merge!(h2) { |key, v1, v2| v1 }
   #                     #=> {"a"=>100, "b"=>200, "c"=>300}
   #
-  # @mrbgem mruby-hash-ext
+
   def merge!(other, &block)
     raise TypeError, "can't convert argument into Hash" unless other.respond_to?(:to_hash)
     if block
@@ -124,7 +122,7 @@ class Hash
   #     prog.rb:2:in 'fetch': key not found (KeyError)
   #      from prog.rb:2
   #
-  # @mrbgem mruby-hash-ext
+
   def fetch(key, none=NONE, &block)
     unless self.key?(key)
       if block
@@ -152,7 +150,7 @@ class Hash
   #     h = { "a" => 100, "b" => 200, "c" => 300 }
   #     h.delete_if {|key, value| key >= "b" }   #=> {"a"=>100}
   #
-  # @mrbgem mruby-hash-ext
+
   def delete_if(&block)
     return to_enum :delete_if unless block_given?
 
@@ -177,7 +175,7 @@ class Hash
   #     a.flatten    # => [1, "one", 2, [2, "two"], 3, "three"]
   #     a.flatten(2) # => [1, "one", 2, 2, "two", 3, "three"]
   #
-  # @mrbgem mruby-hash-ext
+
   def flatten(level=1)
     self.to_a.flatten(level)
   end
@@ -192,7 +190,7 @@ class Hash
   #     h = { "n" => 100, "m" => 100, "y" => 300, "d" => 200, "a" => 0 }
   #     h.invert   #=> {0=>"a", 100=>"m", 200=>"d", 300=>"y"}
   #
-  # @mrbgem mruby-hash-ext
+
   def invert
     h = Hash.new
     self.each {|k, v| h[v] = k }
@@ -209,7 +207,7 @@ class Hash
   #
   #  If no block is given, an enumerator is returned instead.
   #
-  # @mrbgem mruby-hash-ext
+
   def keep_if(&block)
     return to_enum :keep_if unless block_given?
 
@@ -234,7 +232,7 @@ class Hash
   #     h.key(300)   #=> "c"
   #     h.key(999)   #=> nil
   #
-  # @mrbgem mruby-hash-ext
+
   def key(val)
     self.each do |k, v|
       return k if v == val
@@ -249,7 +247,6 @@ class Hash
   #  Returns +self+. If called on a subclass of Hash, converts
   #  the receiver to a Hash object.
   #
-  # @mrbgem mruby-hash-ext
   def to_h
     self
   end

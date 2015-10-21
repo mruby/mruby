@@ -1,10 +1,6 @@
 #include <stdlib.h>
 #include "mruby.h"
 
-/**
- *
- * @mrbgem mruby-exit
- */
 static mrb_value
 f_exit(mrb_state *mrb, mrb_value self)
 {
