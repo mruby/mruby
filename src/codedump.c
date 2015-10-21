@@ -240,11 +240,11 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       switch (GETARG_B(c)) {
       case OP_R_NORMAL:
       case OP_R_RETURN:
-        printf("\treturn"); break;
+        printf("\treturn\t"); break;
       case OP_R_BREAK:
-        printf("\tbreak"); break;
+        printf("\tbreak\t"); break;
       default:
-        printf("\tbroken"); break;
+        printf("\tbroken\t"); break;
         break;
       }
       print_lv(mrb, irep, c, RA);
