@@ -146,7 +146,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
 
   init = "#{spec.dir}/init_mrbtest.c"
   file mlib => clib
-  file clib => [build.mrbcfile, init] do |t|
+  file clib => [build.mrbcfile, init] + mrbs do |t|
     _pp "GEN", "*.rb", "#{clib.relative_path}"
     FileUtils.mkdir_p File.dirname(clib)
     open(clib, 'w') do |f|
