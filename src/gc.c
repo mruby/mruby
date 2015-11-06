@@ -1425,7 +1425,7 @@ gc_each_objects(mrb_state *mrb, mrb_gc *gc, mrb_each_object_callback *callback, 
 void
 mrb_objspace_each_objects(mrb_state *mrb, mrb_each_object_callback *callback, void *data)
 {
-  return gc_each_objects(mrb, &mrb->gc, callback, data);
+  gc_each_objects(mrb, &mrb->gc, callback, data);
 }
 
 #ifdef GC_TEST
