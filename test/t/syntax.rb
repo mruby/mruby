@@ -1,6 +1,6 @@
 assert('__FILE__') do
-  file = __FILE__.split('test/')[1]
-  assert_true 't/syntax.rb' == file || 't\syntax.rb' == file
+  file = __FILE__[-9, 9]
+  assert_true 'syntax.rb' == file
 end
 
 assert('__LINE__') do
@@ -394,15 +394,15 @@ assert('multiline comments work correctly') do
 =begin
 this is a comment with nothing after begin and end
 =end
-=begin  this is a comment 
+=begin  this is a comment
 this is a comment with extra after =begin
 =end
 =begin
 this is a comment that has =end with spaces after it
-=end  
+=end
 =begin this is a comment
 this is a comment that has extra after =begin and =end with spaces after it
-=end  
+=end
   line = __LINE__
 =begin	this is a comment
 this is a comment that has extra after =begin and =end with tabs after it
