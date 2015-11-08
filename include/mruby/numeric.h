@@ -35,11 +35,7 @@ mrb_value mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y);
 #define MRB_UINT_MAKE(n) MRB_UINT_MAKE2(n)
 #define mrb_uint MRB_UINT_MAKE(MRB_INT_BIT)
 
-#ifdef MRB_WORD_BOXING
-# define MRB_INT_OVERFLOW_MASK ((mrb_uint)1 << (MRB_INT_BIT - 1 - MRB_FIXNUM_SHIFT))
-#else
-# define MRB_INT_OVERFLOW_MASK ((mrb_uint)1 << (MRB_INT_BIT - 1))
-#endif
+#define MRB_INT_OVERFLOW_MASK ((mrb_uint)1 << (MRB_INT_BIT - 1 - MRB_FIXNUM_SHIFT))
 
 /* Idea from Potion: https://github.com/perl11/potion (MIT) */
 #if (defined(__clang__) && ((__clang_major__ > 3) || (__clang_major__ == 3 && __clang_minor__ >= 4))) \
