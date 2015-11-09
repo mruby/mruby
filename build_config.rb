@@ -21,7 +21,7 @@ MRuby::Build.new do |conf|
 
   # include the default GEMs
   conf.gembox 'default'
-
+  
   # C compiler settings
   # conf.cc do |cc|
   #   cc.command = ENV['CC'] || 'gcc'
