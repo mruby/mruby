@@ -221,6 +221,7 @@ MRB_API void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
 
 /**
  * Prepends a module in another class or module.
+ *
  * Equivalent to:
  *  module B
  *    prepend A
@@ -234,7 +235,9 @@ MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
 /**
  * Defines a global function in ruby.
  *
- * If you're creating a gem it may look something like this:
+ * If you're creating a gem it may look something like this
+ *
+ * Example:
  *
  *     !!!c
  *     mrb_value example_method(mrb_state* mrb, mrb_value self)
@@ -257,6 +260,8 @@ MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *n
 
 /**
  * Defines a class method.
+ *
+ * Example:
  *   # Ruby style
  *   class Foo
  *
@@ -290,6 +295,8 @@ MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char
 
 /**
  *  Defines a module fuction.
+ *
+ * Example:
  *   # Ruby style
  *   module Foo
  *                                                                                                     
@@ -320,6 +327,8 @@ MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*,
 
 /**
  *  Defines a constant.
+ *
+ * Example:
  *    # Ruby style
  *
  *    class ExampleClass
@@ -353,6 +362,7 @@ MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_
 /**
  * Undefines a method.
  *
+ * Example:
  *   # Ruby style
  *
  *   class ExampleClassA
@@ -414,10 +424,11 @@ MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 
 /**
  * Undefine a class method.
+ *
+ * Example:
  *   # Ruby style
  *
  *   class ExampleClass
- *
  *     def self.example_method
  *       "example"
  *     end
@@ -463,6 +474,8 @@ MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 /**
  * Initialize a new object instace of c class.
  *
+ * Example:
+ *
  *   # Ruby style
  *   class ExampleClass
  *   end
@@ -496,12 +509,104 @@ MRB_INLINE mrb_value mrb_class_new_instance(mrb_state *mrb, mrb_int argc, const 
 }
 
 MRB_API mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
+
+/**
+ * Creates a new instance of Class, Class.
+ *
+ * Example:
+ *
+ *   void
+ *   mrb_example_gem_init(mrb_state* mrb) {
+ *      struct RClass *example_class;
+ *      mrb_value obj;
+ *
+ *      example_class = mrb_class_new(mrb, mrb->object_class);
+ *      obj = mrb_obj_new(mrb, example_class, 0, NULL); // => #<#<Class:0x9a945b8>:0x9a94588>
+ *      mrb_p(mrb, obj); // => Kernel#p
+ *   }
+ *
+ * @param mrb The current mruby state.
+ * @param super The super class or parent.
+ * @return RClass* Reference to the new class.
+ */
 MRB_API struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
+
+/**
+ * Creates a new module, Module.
+ *
+ * Example:
+ *   void
+ *   mrb_example_gem_init(mrb_state* mrb) {
+ *      struct RClass *example_module;
+ *
+ *      example_module = mrb_module_new(mrb);
+ *   }
+ *
+ * @param mrb The current mruby state.
+ * @return Reference to the new module.
+ */
 MRB_API struct RClass * mrb_module_new(mrb_state *mrb);
+
+/**
+ * Creates a new module, Module.
+ *
+ * Example:
+ *   void
+ *   mrb_example_gem_init(mrb_state* mrb) {
+ *      struct RClass *example_class;
+ *      mrb_bool cd;
+ *
+ *      example_class = mrb_define_class(mrb, "ExampleClass", mrb->object_class);
+ *      cd = mrb_class_defined(mrb, "ExampleClass");
+ *      
+ *      // If mrb_class_defined returns 1 then puts "True"
+ *      // If mrb_class_defined returns 0 then puts "False"
+ *      if (cd == 1){
+ *        puts("True");
+ *      }
+ *      else {
+ *        puts("False");
+ *      }
+ *   }
+ *
+ * @param mrb The current mruby state.
+ * @param *name A string representing the name of the class.
+ * @return mrb_bool A boolean value.
+ */
 MRB_API mrb_bool mrb_class_defined(mrb_state *mrb, const char *name);
+
+/**
+ * Gets a class.
+ * @param mrb The current mruby state.
+ * @param name The name of the class.
+ * @return A reference to the class.
+*/
 MRB_API struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
+
+/**
+ * Gets a child class.
+ * @param mrb The current mruby state.
+ * @param outer The name of the parent class.
+ * @param name The name of the class.
+ * @return A reference to the class.
+*/
 MRB_API struct RClass * mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
+
+/**
+ * Gets a module.
+ * @param mrb The current mruby state.
+ * @param name The name of the module.
+ * @return A reference to the module.
+*/
 MRB_API struct RClass * mrb_module_get(mrb_state *mrb, const char *name);
+
+/**
+ * Gets a module defined under another module.
+ * @param mrb The current mruby state.
+ * @param outer The name of the outer module.
+ * @param name The name of the module.
+ * @return A reference to the module.
+*/
 MRB_API struct RClass * mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
 MRB_API mrb_value mrb_notimplement_m(mrb_state*, mrb_value);
 
