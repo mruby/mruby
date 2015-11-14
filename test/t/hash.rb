@@ -351,3 +351,75 @@ assert('Hash#rehash') do
   h.rehash
   assert_equal("b", h[[:b]])
 end
+
+assert('Hash#<') do
+  h1 = {a:1, b:2}
+  h2 = {a:1, b:2, c:3}
+
+  assert_false(h1 < h1)
+  assert_true(h1 < h2)
+  assert_false(h2 < h1)
+  assert_false(h2 < h2)
+
+  h1 = {a:1}
+  h2 = {a:2}
+
+  assert_false(h1 < h1)
+  assert_false(h1 < h2)
+  assert_false(h2 < h1)
+  assert_false(h2 < h2)
+end
+
+assert('Hash#<=') do
+  h1 = {a:1, b:2}
+  h2 = {a:1, b:2, c:3}
+
+  assert_true(h1 <= h1)
+  assert_true(h1 <= h2)
+  assert_false(h2 <= h1)
+  assert_true(h2 <= h2)
+
+  h1 = {a:1}
+  h2 = {a:2}
+
+  assert_true(h1 <= h1)
+  assert_false(h1 <= h2)
+  assert_false(h2 <= h1)
+  assert_true(h2 <= h2)
+end
+
+assert('Hash#>=') do
+  h1 = {a:1, b:2}
+  h2 = {a:1, b:2, c:3}
+
+  assert_true(h1 >= h1)
+  assert_false(h1 >= h2)
+  assert_true(h2 >= h1)
+  assert_true(h2 >= h2)
+
+  h1 = {a:1}
+  h2 = {a:2}
+
+  assert_true(h1 >= h1)
+  assert_false(h1 >= h2)
+  assert_false(h2 >= h1)
+  assert_true(h2 >= h2)
+end
+
+assert('Hash#>') do
+  h1 = {a:1, b:2}
+  h2 = {a:1, b:2, c:3}
+
+  assert_false(h1 > h1)
+  assert_false(h1 > h2)
+  assert_true(h2 > h1)
+  assert_false(h2 > h2)
+
+  h1 = {a:1}
+  h2 = {a:2}
+
+  assert_false(h1 > h1)
+  assert_false(h1 > h2)
+  assert_false(h2 > h1)
+  assert_false(h2 > h2)
+end
