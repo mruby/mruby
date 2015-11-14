@@ -548,7 +548,7 @@ MRB_API struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
 MRB_API struct RClass * mrb_module_new(mrb_state *mrb);
 
 /**
- * Creates a new module, Module.
+ * Returns an mrb_bool. True if class was defined, and false if the class was not defined.
  *
  * Example:
  *   void
@@ -610,8 +610,58 @@ MRB_API struct RClass * mrb_module_get(mrb_state *mrb, const char *name);
 MRB_API struct RClass * mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
 MRB_API mrb_value mrb_notimplement_m(mrb_state*, mrb_value);
 
+/**
+ * Duplicate an object.
+ *
+ * Equivalent to:
+ *   Object#dup    
+ * @param mrb The current mruby state.
+ * @param obj Object to be duplicate.
+ * @return The newly duplicated object.
+ */
 MRB_API mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
 MRB_API mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
+
+/**
+ * Returns true if obj responds to the given method. If the method was defined for that
+ * class it returns true, it returns false otherwise.
+ *
+ * Example:
+ *   # Ruby style
+ *   class ExampleClass
+ *      def example_method
+ *      end
+ *   end
+ *
+ *   ExampleClass.new.respond_to?(:example_method) # => true
+ *
+ *   // C style
+ *   void
+ *   mrb_example_gem_init(mrb_state* mrb) {
+ *      struct RClass *example_class;
+ *      mrb_sym mid;
+ *      mrb_bool obj_resp;
+ *
+ *      example_class = mrb_define_class(mrb, "ExampleClass", mrb->object_class);
+ *      mrb_define_method(mrb, example_class, "example_method", exampleMethod, MRB_ARGS_NONE());
+ *      mid = mrb_intern_str(mrb, mrb_str_new_cstr(mrb, "example_method" ));
+ *      obj_resp = mrb_obj_respond_to(mrb, example_class, mid); // => 1(true in Ruby world)
+ *      
+ *      // If mrb_obj_respond_to returns 1 then puts "True"
+ *      // If mrb_obj_respond_to returns 0 then puts "False"
+ *      if (obj_resp == 1) {
+ *        puts("True");
+ *      }
+ *      else if (obj_resp == 0) {
+ *        puts("False");
+ *      }
+ *   }
+ *
+ * @param mrb The current mruby state.
+ * @param c A reference to a class.
+ * @param mid A symbol referencing a method id.
+ * @return mrb_bool A boolean value.
+ */
 MRB_API mrb_bool mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid);
 
 /**
