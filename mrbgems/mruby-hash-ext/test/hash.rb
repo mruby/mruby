@@ -158,3 +158,75 @@ assert("Hash#to_h") do
   assert_equal Hash, h.to_h.class
   assert_equal h, h.to_h
 end
+
+assert('Hash#<') do
+  h1 = {a:1, b:2}
+  h2 = {a:1, b:2, c:3}
+
+  assert_false(h1 < h1)
+  assert_true(h1 < h2)
+  assert_false(h2 < h1)
+  assert_false(h2 < h2)
+
+  h1 = {a:1}
+  h2 = {a:2}
+
+  assert_false(h1 < h1)
+  assert_false(h1 < h2)
+  assert_false(h2 < h1)
+  assert_false(h2 < h2)
+end
+
+assert('Hash#<=') do
+  h1 = {a:1, b:2}
+  h2 = {a:1, b:2, c:3}
+
+  assert_true(h1 <= h1)
+  assert_true(h1 <= h2)
+  assert_false(h2 <= h1)
+  assert_true(h2 <= h2)
+
+  h1 = {a:1}
+  h2 = {a:2}
+
+  assert_true(h1 <= h1)
+  assert_false(h1 <= h2)
+  assert_false(h2 <= h1)
+  assert_true(h2 <= h2)
+end
+
+assert('Hash#>=') do
+  h1 = {a:1, b:2}
+  h2 = {a:1, b:2, c:3}
+
+  assert_true(h1 >= h1)
+  assert_false(h1 >= h2)
+  assert_true(h2 >= h1)
+  assert_true(h2 >= h2)
+
+  h1 = {a:1}
+  h2 = {a:2}
+
+  assert_true(h1 >= h1)
+  assert_false(h1 >= h2)
+  assert_false(h2 >= h1)
+  assert_true(h2 >= h2)
+end
+
+assert('Hash#>') do
+  h1 = {a:1, b:2}
+  h2 = {a:1, b:2, c:3}
+
+  assert_false(h1 > h1)
+  assert_false(h1 > h2)
+  assert_true(h2 > h1)
+  assert_false(h2 > h2)
+
+  h1 = {a:1}
+  h2 = {a:2}
+
+  assert_false(h1 > h1)
+  assert_false(h1 > h2)
+  assert_false(h2 > h1)
+  assert_false(h2 > h2)
+end
