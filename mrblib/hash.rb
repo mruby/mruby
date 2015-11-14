@@ -346,6 +346,102 @@ class Hash
     h.each_key{|k| self[k] = h[k]}
     self
   end
+
+  ##
+  #  call-seq:
+  #    hash < other -> true or false
+  #
+  #  Returns <code>true</code> if <i>hash</i> is subset of
+  #  <i>other</i>.
+  #
+  #     h1 = {a:1, b:2}
+  #     h2 = {a:1, b:2, c:3}
+  #     h1 < h2    #=> true
+  #     h2 < h1    #=> false
+  #     h1 < h1    #=> false
+  #
+  def <(hash)
+    begin
+      hash = hash.to_hash
+    rescue NoMethodError
+      raise TypeError, "can't convert #{hash.class} to Hash"
+    end
+    size < hash.size and all? {|key, val|
+      hash.key?(key) and hash[key] == val
+    }
+  end
+
+  ##
+  #  call-seq:
+  #    hash <= other -> true or false
+  #
+  #  Returns <code>true</code> if <i>hash</i> is subset of
+  #  <i>other</i> or equals to <i>other</i>.
+  #
+  #     h1 = {a:1, b:2}
+  #     h2 = {a:1, b:2, c:3}
+  #     h1 <= h2   #=> true
+  #     h2 <= h1   #=> false
+  #     h1 <= h1   #=> true
+  #
+  def <=(hash)
+    begin
+      hash = hash.to_hash
+    rescue NoMethodError
+      raise TypeError, "can't convert #{hash.class} to Hash"
+    end
+    size <= hash.size and all? {|key, val|
+      hash.key?(key) and hash[key] == val
+    }
+  end
+
+  ##
+  #  call-seq:
+  #    hash > other -> true or false
+  #
+  #  Returns <code>true</code> if <i>other</i> is subset of
+  #  <i>hash</i>.
+  #
+  #     h1 = {a:1, b:2}
+  #     h2 = {a:1, b:2, c:3}
+  #     h1 > h2    #=> false
+  #     h2 > h1    #=> true
+  #     h1 > h1    #=> false
+  #
+  def >(hash)
+    begin
+      hash = hash.to_hash
+    rescue NoMethodError
+      raise TypeError, "can't convert #{hash.class} to Hash"
+    end
+    size > hash.size and hash.all? {|key, val|
+      key?(key) and self[key] == val
+    }
+  end
+
+  ##
+  #  call-seq:
+  #    hash >= other -> true or false
+  #
+  #  Returns <code>true</code> if <i>other</i> is subset of
+  #  <i>hash</i> or equals to <i>hash</i>.
+  #
+  #     h1 = {a:1, b:2}
+  #     h2 = {a:1, b:2, c:3}
+  #     h1 >= h2   #=> false
+  #     h2 >= h1   #=> true
+  #     h1 >= h1   #=> true
+  #
+  def >=(hash)
+    begin
+      hash = hash.to_hash
+    rescue NoMethodError
+      raise TypeError, "can't convert #{hash.class} to Hash"
+    end
+    size >= hash.size and hash.all? {|key, val|
+      key?(key) and self[key] == val
+    }
+  end
 end
 
 ##
