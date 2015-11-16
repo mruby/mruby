@@ -75,11 +75,11 @@
 /* fixed size state atexit stack */
 //#define MRB_FIXED_STATE_ATEXIT_STACK
 
+/* defines mrb_state::{code_fetch_hook,debug_op_hook} */
+//#define MRB_DEFINE_HOOKS
+
 /* -DDISABLE_XXXX to drop following features */
 //#define DISABLE_STDIO		/* use of stdio */
-
-/* -DENABLE_XXXX to enable following features */
-//#define ENABLE_DEBUG		/* hooks for debugger */
 
 /* end of configuration */
 
@@ -87,12 +87,19 @@
 #ifndef DISABLE_STDIO
 #define ENABLE_STDIO
 #endif
-#ifndef ENABLE_DEBUG
-#define DISABLE_DEBUG
-#endif
 
 #ifdef ENABLE_STDIO
 # include <stdio.h>
+#endif
+
+/* backward compatibility */
+#ifdef ENABLE_DEBUG
+#define MRB_DEFINE_HOOKS
+#endif
+#ifdef MRB_DEFINE_HOOKS
+#define ENABLE_DEBUG
+#else
+#define DISABLE_DEBUG
 #endif
 
 #ifndef FALSE
