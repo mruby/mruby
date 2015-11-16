@@ -75,23 +75,25 @@
 /* fixed size state atexit stack */
 //#define MRB_FIXED_STATE_ATEXIT_STACK
 
-/* -DDISABLE_XXXX to drop following features */
-//#define DISABLE_STDIO		/* use of stdio */
+/* -DMRB_DISABLE_XXXX to drop following features */
+//#define MRB_DISABLE_STDIO	/* use of stdio */
 
-/* -DENABLE_XXXX to enable following features */
-//#define ENABLE_DEBUG		/* hooks for debugger */
+/* -DMRB_ENABLE_XXXX to enable following features */
+//#define MRB_ENABLE_DEBUG_HOOK	/* hooks for debugger */
 
 /* end of configuration */
 
-/* define ENABLE_XXXX from DISABLE_XXX */
-#ifndef DISABLE_STDIO
-#define ENABLE_STDIO
-#endif
-#ifndef ENABLE_DEBUG
-#define DISABLE_DEBUG
+/* define MRB_DISABLE_XXXX from DISABLE_XXX (for compatibility) */
+#ifdef DISABLE_STDIO
+#define MRB_DIABLE_STDIO
 #endif
 
-#ifdef ENABLE_STDIO
+/* define MRB_ENABLE_XXXX from ENABLE_XXX (for compatibility) */
+#ifdef ENABLE_DEBUG
+#define MRB_ENABLE_DEBUG_HOOK
+#endif
+
+#ifndef MRB_DISABLE_STDIO
 # include <stdio.h>
 #endif
 

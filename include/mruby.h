@@ -152,7 +152,7 @@ typedef struct mrb_state {
   struct symbol_name *symtbl;   /* symbol table */
   size_t symcapa;
 
-#ifdef ENABLE_DEBUG
+#ifdef MRB_ENABLE_DEBUG_HOOK
   void (*code_fetch_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
   void (*debug_op_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
 #endif

@@ -309,7 +309,7 @@ mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
 MRB_API void
 mrb_warn(mrb_state *mrb, const char *fmt, ...)
 {
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
   va_list ap;
   mrb_value str;
 
@@ -324,7 +324,7 @@ mrb_warn(mrb_state *mrb, const char *fmt, ...)
 MRB_API mrb_noreturn void
 mrb_bug(mrb_state *mrb, const char *fmt, ...)
 {
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
   va_list ap;
   mrb_value str;
 

@@ -989,7 +989,7 @@ mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, uint8_t flags, uint8_t **bin, size
   return dump_irep(mrb, irep, dump_flags(flags, FLAG_BYTEORDER_NONATIVE), bin, bin_size);
 }
 
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
 
 int
 mrb_dump_irep_binary(mrb_state *mrb, mrb_irep *irep, uint8_t flags, FILE* fp)
@@ -1092,4 +1092,4 @@ mrb_dump_irep_cfunc(mrb_state *mrb, mrb_irep *irep, uint8_t flags, FILE *fp, con
   return result;
 }
 
-#endif /* ENABLE_STDIO */
+#endif /* MRB_DISABLE_STDIO */

@@ -7,7 +7,7 @@
 #include "mruby/dump.h"
 #include "mruby/variable.h"
 
-#ifndef ENABLE_STDIO
+#ifdef MRB_DISABLE_STDIO
 static void
 p(mrb_state *mrb, mrb_value obj)
 {

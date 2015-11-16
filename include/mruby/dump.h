@@ -23,7 +23,7 @@ MRB_BEGIN_DECL
 #define DUMP_ENDIAN_MASK 6
 
 int mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size);
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
 int mrb_dump_irep_binary(mrb_state*, mrb_irep*, uint8_t, FILE*);
 int mrb_dump_irep_cfunc(mrb_state *mrb, mrb_irep*, uint8_t flags, FILE *f, const char *initname);
 mrb_irep *mrb_read_irep_file(mrb_state*, FILE*);

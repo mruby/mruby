@@ -3294,7 +3294,7 @@ yyerror(parser_state *p, const char *s)
   int n;
 
   if (! p->capture_errors) {
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
     if (p->filename) {
       fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
     }
@@ -3330,7 +3330,7 @@ yywarn(parser_state *p, const char *s)
   int n;
 
   if (! p->capture_errors) {
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
     if (p->filename) {
       fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
     }
@@ -3401,7 +3401,7 @@ nextc(parser_state *p)
     cons_free(tmp);
   }
   else {
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
     if (p->f) {
       if (feof(p->f)) goto eof;
       c = fgetc(p->f);
@@ -3491,7 +3491,7 @@ peeks(parser_state *p, const char *s)
 {
   int len = strlen(s);
 
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
   if (p->f) {
     int n = 0;
     while (*s) {
@@ -5442,7 +5442,7 @@ mrb_parser_new(mrb_state *mrb)
   p->pool = pool;
 
   p->s = p->send = NULL;
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISBLE_STDIO
   p->f = NULL;
 #endif
 
@@ -5541,7 +5541,7 @@ mrb_parser_get_filename(struct mrb_parser_state* p, uint16_t idx) {
   }
 }
 
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
 MRB_API parser_state*
 mrb_parse_file(mrb_state *mrb, FILE *f, mrbc_context *c)
 {
@@ -5633,7 +5633,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   return v;
 }
 
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
 MRB_API mrb_value
 mrb_load_file_cxt(mrb_state *mrb, FILE *f, mrbc_context *c)
 {
@@ -5671,7 +5671,7 @@ mrb_load_string(mrb_state *mrb, const char *s)
   return mrb_load_string_cxt(mrb, s, NULL);
 }
 
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
 
 static void
 dump_prefix(node *tree, int offset)
@@ -5697,7 +5697,7 @@ dump_recur(mrb_state *mrb, node *tree, int offset)
 void
 mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 {
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
   int nodetype;
 
   if (!tree) return;

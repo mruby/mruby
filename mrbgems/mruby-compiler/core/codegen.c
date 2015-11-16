@@ -96,7 +96,7 @@ codegen_error(codegen_scope *s, const char *message)
     mrb_pool_close(s->mpool);
     s = tmp;
   }
-#ifdef ENABLE_STDIO
+#ifndef MBB_DISABLE_STDIO
   if (s->filename && s->lineno) {
     fprintf(stderr, "codegen error:%s:%d: %s\n", s->filename, s->lineno, message);
   }
@@ -375,7 +375,7 @@ dispatch(codegen_scope *s, int pc)
   case OP_ONERR:
     break;
   default:
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
     fprintf(stderr, "bug: dispatch on non JMP op\n");
 #endif
     scope_error(s);
@@ -978,7 +978,7 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
     break;
 
   default:
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
     printf("unknown lhs %d\n", type);
 #endif
     break;
