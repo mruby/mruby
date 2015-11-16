@@ -189,19 +189,19 @@ typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
  *              //free(TheAnimals);
  *      }
  *
- * @param mrb The current mruby state.
- * @param name The name of the defined class
- * @param super The new class parent
- * @return Reference to the newly defined class
+ * @param [mrb_state *] mrb The current mruby state.
+ * @param [const char *] name The name of the defined class.
+ * @param [struct RClass *] super The new class parent.
+ * @return [struct RClass *] Reference to the newly defined class.
  * @see mrb_define_class_under
  */
 MRB_API struct RClass *mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super);
 
 /**
  * Defines a new module.
- * @param mrb_state* The current mruby state.
- * @param char* The name of the module.
- * @return Reference to the newly defined module.
+ * @param [mrb_state *] mrb_state* The current mruby state.
+ * @param [const char *] char* The name of the module.
+ * @return [struct RClass *] Reference to the newly defined module.
  */
 MRB_API struct RClass *mrb_define_module(mrb_state *, const char*);
 MRB_API mrb_value mrb_singleton_class(mrb_state*, mrb_value);
@@ -213,9 +213,9 @@ MRB_API mrb_value mrb_singleton_class(mrb_state*, mrb_value);
  *   module B                                                                                                         
  *     include A                                                                                                      
  *   end 
- * @param mrb_state* The current mruby state.
- * @param RClass* A reference to module or a class.
- * @param RClass* A reference to the module to be included.
+ * @param [mrb_state *] mrb_state* The current mruby state.
+ * @param [struct RClass *] RClass* A reference to module or a class.
+ * @param [struct RClass *] RClass* A reference to the module to be included.
  */
 MRB_API void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
 
@@ -226,9 +226,9 @@ MRB_API void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
  *  module B
  *    prepend A
  *  end
- * @param mrb_state* The current mruby state.
- * @param RClass* A reference to module or a class.
- * @param RClass* A reference to the module to be prepended.
+ * @param [mrb_state *] mrb_state* The current mruby state.
+ * @param [struct RClass *] RClass* A reference to module or a class.
+ * @param [struct RClass *] RClass* A reference to the module to be prepended.
  */ 
 MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
 
@@ -251,10 +251,11 @@ MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
  *           mrb_define_method(mrb, mrb->kernel_module, "example_method", example_method, MRB_ARGS_NONE());
  *     }
  *
- * @param mrb The MRuby state reference.
- * @param cla The class pointer where the method will be defined.
- * @param func The function pointer to the method definition.
- * @param aspec The method parameters declaration.
+ * @param [mrb_state *] mrb The MRuby state reference.
+ * @param [struct RClass *] cla The class pointer where the method will be defined.
+ * @param [const char *] name The name of the method being defined.
+ * @param [mrb_func_t] func The function pointer to the method definition.
+ * @param [mrb_aspec] aspec The method parameters declaration.
  */
 MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *name, mrb_func_t func, mrb_aspec aspec);
 
@@ -284,11 +285,11 @@ MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *n
  *     mrb_define_class_method(mrb, foo, "bar", bar_method, MRB_ARGS_NONE());
  * 
  *   }
- * @param mrb_state* The MRuby state reference. 
- * @param RClass* The class where the class method will be defined.
- * @param char* The name of the class method.
- * @param mrb_func_t The function pointer to the class method definition.
- * @param mrb_aspec The method parameters declaration.
+ * @param [mrb_state *] mrb_state* The MRuby state reference. 
+ * @param [struct RClass *] RClass* The class where the class method will be defined.
+ * @param [const char *] char* The name of the class method being defined.
+ * @param [mrb_func_t] mrb_func_t The function pointer to the class method definition.
+ * @param [mrb_aspec] mrb_aspec The method parameters declaration.
  */
 MRB_API void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
 MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
@@ -317,11 +318,11 @@ MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char
  *     mrb_define_module_function(mrb, foo, "bar", bar_method, MRB_ARGS_NONE());
  *
  *   }    
- *  @param mrb_state* The MRuby state reference.
- *  @param RClass* The module where the module function will be defined.
- *  @param char* The name of the module function.
- *  @param mrb_func_t The function pointer to the module function definition. 
- *  @param mrb_aspec The method parameters declaration.
+ *  @param [mrb_state *] mrb_state* The MRuby state reference.
+ *  @param [struct RClass *] RClass* The module where the module function will be defined.
+ *  @param [const char *] char* The name of the module function being defined.
+ *  @param [mrb_func_t] mrb_func_t The function pointer to the module function definition. 
+ *  @param [mrb_aspec] mrb_aspec The method parameters declaration.
  */
 MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
 
@@ -352,10 +353,10 @@ MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*,
  *    mrb_example_gem_final(mrb_state* mrb){
  *
  *    }
- *  @param mrb_state* The MRuby state reference.
- *  @param RClass* A class or module the constant is defined in.
- *  @param name The name of the constant.
- *  @param mrb_value The value for the constant.
+ *  @param [mrb_state *] mrb_state* The MRuby state reference.
+ *  @param [struct RClass *] RClass* A class or module the constant is defined in.
+ *  @param [const char *] name The name of the constant being defined.
+ *  @param [mrb_value] mrb_value The value for the constant.
  */
 MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 
@@ -416,9 +417,9 @@ MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_
  *
  *   }
  *
- * @param mrb_state* The mruby state reference.
- * @param RClass* A class the method will be undefined from.
- * @param constchar* The name of the method to be undefined.
+ * @param [mrb_state*] mrb_state* The mruby state reference.
+ * @param [struct RClass*] RClass* A class the method will be undefined from.
+ * @param [const char*] constchar* The name of the method to be undefined.
  */
 MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 
@@ -465,9 +466,9 @@ MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
  *   mrb_example_gem_final(mrb_state* mrb){
  *
  *   }
- * @param mrb_state* The mruby state reference.
- * @param RClass* A class the class method will be undefined from.
- * @param constchar* The name of the class method to be undefined.
+ * @param [mrb_state*] mrb_state* The mruby state reference.
+ * @param [RClass*] RClass* A class the class method will be undefined from.
+ * @param [constchar*] constchar* The name of the class method to be undefined.
  */
 MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 
@@ -494,11 +495,11 @@ MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
  *     obj = mrb_obj_new(mrb, example_class, 0, NULL); # => ExampleClass.new
  *     mrb_p(mrb, obj); // => Kernel#p
  *   }  
- * @param mrb The current mruby state.
- * @param c Reference to the class of the new object.
- * @param argc Number of arguments in argv
- * @param argv Array of mrb_value to initialize the object
- * @return The newly initialized object
+ * @param [mrb_state*] mrb The current mruby state.
+ * @param [RClass*] c Reference to the class of the new object.
+ * @param [mrb_int] argc Number of arguments in argv
+ * @param [const mrb_value *] argv Array of mrb_value to initialize the object
+ * @return [mrb_value] The newly initialized object
  */
 MRB_API mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv);
 
@@ -525,9 +526,9 @@ MRB_API mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
  *      mrb_p(mrb, obj); // => Kernel#p
  *   }
  *
- * @param mrb The current mruby state.
- * @param super The super class or parent.
- * @return RClass* Reference to the new class.
+ * @param [mrb_state*] mrb The current mruby state.
+ * @param [struct RClass *] super The super class or parent.
+ * @return [struct RClass *] Reference to the new class.
  */
 MRB_API struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
 
@@ -542,8 +543,8 @@ MRB_API struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
  *      example_module = mrb_module_new(mrb);
  *   }
  *
- * @param mrb The current mruby state.
- * @return Reference to the new module.
+ * @param [mrb_state*] mrb The current mruby state.
+ * @return [struct RClass *] Reference to the new module.
  */
 MRB_API struct RClass * mrb_module_new(mrb_state *mrb);
 
@@ -569,43 +570,43 @@ MRB_API struct RClass * mrb_module_new(mrb_state *mrb);
  *      }
  *   }
  *
- * @param mrb The current mruby state.
- * @param *name A string representing the name of the class.
- * @return mrb_bool A boolean value.
+ * @param [mrb_state*] mrb The current mruby state.
+ * @param [const char *] name A string representing the name of the class.
+ * @return [mrb_bool] A boolean value.
  */
 MRB_API mrb_bool mrb_class_defined(mrb_state *mrb, const char *name);
 
 /**
  * Gets a class.
- * @param mrb The current mruby state.
- * @param name The name of the class.
- * @return A reference to the class.
+ * @param [mrb_state*] mrb The current mruby state.
+ * @param [const char *] name The name of the class.
+ * @return [struct RClass *] A reference to the class.
 */
 MRB_API struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
 
 /**
  * Gets a child class.
- * @param mrb The current mruby state.
- * @param outer The name of the parent class.
- * @param name The name of the class.
- * @return A reference to the class.
+ * @param [mrb_state*] mrb The current mruby state.
+ * @param [struct RClass *] outer The name of the parent class.
+ * @param [const char *] name The name of the class.
+ * @return [struct RClass *] A reference to the class.
 */
 MRB_API struct RClass * mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
 /**
  * Gets a module.
- * @param mrb The current mruby state.
- * @param name The name of the module.
- * @return A reference to the module.
+ * @param [mrb_state*] mrb The current mruby state.
+ * @param [const char *] name The name of the module.
+ * @return [struct RClass *] A reference to the module.
 */
 MRB_API struct RClass * mrb_module_get(mrb_state *mrb, const char *name);
 
 /**
  * Gets a module defined under another module.
- * @param mrb The current mruby state.
- * @param outer The name of the outer module.
- * @param name The name of the module.
- * @return A reference to the module.
+ * @param [mrb_state*] mrb The current mruby state.
+ * @param [struct RClass *] outer The name of the outer module.
+ * @param [const char *] name The name of the module.
+ * @return [struct RClass *] A reference to the module.
 */
 MRB_API struct RClass * mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
 MRB_API mrb_value mrb_notimplement_m(mrb_state*, mrb_value);
@@ -615,9 +616,9 @@ MRB_API mrb_value mrb_notimplement_m(mrb_state*, mrb_value);
  *
  * Equivalent to:
  *   Object#dup    
- * @param mrb The current mruby state.
- * @param obj Object to be duplicate.
- * @return The newly duplicated object.
+ * @param [mrb_state*] mrb The current mruby state.
+ * @param [mrb_value] obj Object to be duplicate.
+ * @return [mrb_value] The newly duplicated object.
  */
 MRB_API mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
 MRB_API mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
@@ -657,21 +658,21 @@ MRB_API mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char
  *      }
  *   }
  *
- * @param mrb The current mruby state.
- * @param c A reference to a class.
- * @param mid A symbol referencing a method id.
- * @return mrb_bool A boolean value.
+ * @param [mrb_state*] mrb The current mruby state.
+ * @param [struct RClass *] c A reference to a class.
+ * @param [mrb_sym] mid A symbol referencing a method id.
+ * @return [mrb_bool] A boolean value.
  */
 MRB_API mrb_bool mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid);
 
 /**
  * Defines a new class under a given module
  *
- * @param mrb The current mruby state.
- * @param outer Reference to the module under which the new class will be defined
- * @param name The name of the defined class
- * @param super The new class parent
- * @return Reference to the newly defined class
+ * @param [mrb_state*] mrb The current mruby state.
+ * @param [struct RClass *] outer Reference to the module under which the new class will be defined
+ * @param [const char *] name The name of the defined class
+ * @param [struct RClass *] super The new class parent
+ * @return [struct RClass *] Reference to the newly defined class
  * @see mrb_define_class
  */
 MRB_API struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
