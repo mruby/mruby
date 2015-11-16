@@ -138,6 +138,10 @@ largest value of required alignment.
 * Ignored when `MRB_USE_IV_SEGLIST` is defined.
 
 ## Other configuration.
+`MRB_UTF8_STRING`
+* Adds UTF-8 encoding support to character-oriented String instance methods.
+* If it isn't defined, they only support the US-ASCII encoding.
+
 `MRB_FUNCALL_ARGC_MAX`
 * Default value is `16`.
 * Specifies 4th argument(`argc`) max value of `mrb_funcall`.
