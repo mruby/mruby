@@ -112,7 +112,7 @@ struct mrb_parser_state {
   struct mrb_pool *pool;
   mrb_ast_node *cells;
   const char *s, *send;
-#ifndef MRB_DIABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
   FILE *f;
 #endif
   mrbc_context *cxt;

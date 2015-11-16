@@ -85,7 +85,7 @@
 
 /* define MRB_DISABLE_XXXX from DISABLE_XXX (for compatibility) */
 #ifdef DISABLE_STDIO
-#define MRB_DIABLE_STDIO
+#define MRB_DISABLE_STDIO
 #endif
 
 /* define MRB_ENABLE_XXXX from ENABLE_XXX (for compatibility) */
