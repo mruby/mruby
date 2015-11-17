@@ -821,7 +821,8 @@ static mrb_value
 lshift(mrb_state *mrb, mrb_int val, mrb_int width)
 {
   mrb_assert(width > 0);
-  if (width > NUMERIC_SHIFT_WIDTH_MAX) {
+  if ((width > NUMERIC_SHIFT_WIDTH_MAX) ||
+      (val   > (MRB_INT_MAX >> width))) {
     mrb_float f = (mrb_float)val;
     while (width--) {
       f *= 2;
