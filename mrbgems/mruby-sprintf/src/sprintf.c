@@ -763,7 +763,7 @@ retry:
         const char *prefix = NULL;
         int sign = 0, dots = 0;
         char sc = 0;
-        mrb_int v = 0, org_v = 0;
+        mrb_int v = 0;
         int base;
         mrb_int len;
 
@@ -827,7 +827,6 @@ retry:
         }
 
         if (base == 2) {
-          org_v = v;
           if (v < 0 && !sign) {
             val = mrb_fix2binstr(mrb, mrb_fixnum_value(v), base);
             dots = 1;
@@ -964,7 +963,7 @@ retry:
         CHECK(prec - len);
         if (dots) PUSH("..", 2);
 
-        if (v < 0 || (base == 2 && org_v < 0)) {
+        if (v < 0) {
           char c = sign_bits(base, p);
           while (len < prec--) {
             buf[blen++] = c;
