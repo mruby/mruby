@@ -796,10 +796,6 @@ retry:
   bin_retry:
         switch (mrb_type(val)) {
           case MRB_TT_FLOAT:
-            if (FIXABLE(mrb_float(val))) {
-              val = mrb_fixnum_value((mrb_int)mrb_float(val));
-              goto bin_retry;
-            }
             val = mrb_flo_to_fixnum(mrb, val);
             if (mrb_fixnum_p(val)) goto bin_retry;
             break;

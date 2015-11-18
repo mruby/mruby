@@ -964,7 +964,12 @@ mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
     if (isnan(d)) {
       mrb_raise(mrb, E_FLOATDOMAIN_ERROR, "NaN");
     }
-    z = (mrb_int)d;
+    if (FIXABLE(d)) {
+      z = (mrb_int)d;
+    }
+    else {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "number (%S) too big for integer", x);
+    }
   }
   return mrb_fixnum_value(z);
 }
