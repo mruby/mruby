@@ -71,7 +71,7 @@ sign_bits(int base, const char *p)
 static mrb_value
 mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 {
-  char buf[64], *b = buf + sizeof buf;
+  char buf[66], *b = buf + sizeof buf;
   mrb_int num = mrb_fixnum(x);
   uint64_t val = (uint64_t)num;
   char d;
@@ -759,7 +759,7 @@ retry:
       case 'B':
       case 'u': {
         mrb_value val = GETARG();
-        char fbuf[32], nbuf[64], *s;
+        char fbuf[32], nbuf[68], *s;
         const char *prefix = NULL;
         int sign = 0, dots = 0;
         char sc = 0;
