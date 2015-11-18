@@ -79,10 +79,6 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
   if (base != 2) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %S", mrb_fixnum_value(base));
   }
-
-  if (val >= (1 << 10))
-    val &= 0x3ff;
-
   if (val == 0) {
     return mrb_str_new_lit(mrb, "0");
   }
