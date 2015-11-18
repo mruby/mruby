@@ -843,12 +843,10 @@ retry:
           else {
             val = mrb_fixnum_to_str(mrb, mrb_fixnum_value(v), base);
           }
-          v = mrb_fixnum(mrb_str_to_inum(mrb, val, 10, FALSE));
         }
         if (sign) {
           char c = *p;
           if (c == 'i') c = 'd'; /* %d and %i are identical */
-          if (base == 2) c = 'd';
           if (v < 0) {
             v = -v;
             sc = '-';
@@ -862,20 +860,29 @@ retry:
             sc = ' ';
             width--;
           }
-          snprintf(fbuf, sizeof(fbuf), "%%l%c", c);
-          snprintf(nbuf, sizeof(nbuf), fbuf, v);
+          if (base == 2) {
+            snprintf(nbuf, sizeof(nbuf), "%s", RSTRING_PTR(val));
+          }
+          else {
+            snprintf(fbuf, sizeof(fbuf), "%%l%c", c);
+            snprintf(nbuf, sizeof(nbuf), fbuf, v);
+          }
           s = nbuf;
         }
         else {
           char c = *p;
           if (c == 'X') c = 'x';
-          if (base == 2) c = 'd';
           s = nbuf;
           if (v < 0) {
             dots = 1;
           }
-          snprintf(fbuf, sizeof(fbuf), "%%l%c", c);
-          snprintf(++s, sizeof(nbuf) - 1, fbuf, v);
+          if (base == 2) {
+            snprintf(++s, sizeof(nbuf) - 1, "%s", RSTRING_PTR(val));
+          }
+          else {
+            snprintf(fbuf, sizeof(fbuf), "%%l%c", c);
+            snprintf(++s, sizeof(nbuf) - 1, fbuf, v);
+          }
           if (v < 0) {
             char d;
 
