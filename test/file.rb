@@ -106,3 +106,12 @@ assert('File.expand_path (with ENV)') do
 
   assert_equal "#{ENV['HOME']}/user", File.expand_path("user", ENV['HOME']), "relative with base_dir"
 end
+
+assert('File.path') do
+  assert_equal "", File.path("")
+  assert_equal "a/b/c", File.path("a/b/c")
+  assert_equal "a/../b/./c", File.path("a/../b/./c")
+  assert_raise(TypeError) { File.path(nil) }
+  assert_raise(TypeError) { File.path(123) }
+
+end
