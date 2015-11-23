@@ -5442,7 +5442,7 @@ mrb_parser_new(mrb_state *mrb)
   p->pool = pool;
 
   p->s = p->send = NULL;
-#ifndef MRB_DISBLE_STDIO
+#ifndef MRB_DISABLE_STDIO
   p->f = NULL;
 #endif
 
