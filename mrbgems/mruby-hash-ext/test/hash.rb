@@ -39,6 +39,12 @@ assert('Hash.[] "c_key", "c_value"') do
   end
 end
 
+assert('Hash.try_convert') do
+  assert_nil Hash.try_convert(nil)
+  assert_nil Hash.try_convert("{1=>2}")
+  assert_equal({1=>2}, Hash.try_convert({1=>2}))
+end
+
 assert('Hash#merge!') do
   a = { 'abc_key' => 'abc_value', 'cba_key' => 'cba_value' }
   b = { 'cba_key' => 'XXX',  'xyz_key' => 'xyz_value' }
