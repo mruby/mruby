@@ -7,7 +7,7 @@
 #ifndef MRUBY_DEBUG_H
 #define MRUBY_DEBUG_H
 
-#include "mruby/common.h"
+#include "common.h"
 
 /**
  * MRuby Debugging.

@@ -7,7 +7,7 @@
 #ifndef MRUBY_DATA_H
 #define MRUBY_DATA_H
 
-#include "mruby/common.h"
+#include "common.h"
 
 /**
  * Custom C wrapped data.

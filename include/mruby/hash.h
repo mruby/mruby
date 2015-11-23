@@ -7,7 +7,7 @@
 #ifndef MRUBY_HASH_H
 #define MRUBY_HASH_H
 
-#include "mruby/common.h"
+#include "common.h"
 
 /**
  * Hash class

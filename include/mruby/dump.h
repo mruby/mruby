@@ -8,8 +8,8 @@
 #define MRUBY_DUMP_H
 
 #include "mruby.h"
-#include "mruby/irep.h"
-#include "mruby/common.h"
+#include "irep.h"
+#include "common.h"
 
 /**
  * Dumping compiled mruby script.
