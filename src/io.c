@@ -149,6 +149,32 @@ mrb_fd_cloexec(mrb_state *mrb, int fd)
 #endif
 }
 
+static int
+mrb_cloexec_pipe(mrb_state *mrb, int fildes[2])
+{
+  int ret;
+  ret = pipe(fildes);
+  if (ret == -1)
+    return -1;
+  mrb_fd_cloexec(mrb, fildes[0]);
+  mrb_fd_cloexec(mrb, fildes[1]);
+  return ret;
+}
+
+static int
+mrb_pipe(mrb_state *mrb, int pipes[2])
+{
+  int ret;
+  ret = mrb_cloexec_pipe(mrb, pipes);
+  if (ret == -1) {
+    if (errno == EMFILE || errno == ENFILE) {
+      mrb_garbage_collect(mrb);
+      ret = mrb_cloexec_pipe(mrb, pipes);
+    }
+  }
+  return ret;
+}
+
 #ifndef _WIN32
 static int
 mrb_proc_exec(const char *pname)
@@ -645,6 +671,42 @@ mrb_io_read_data_pending(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
+mrb_io_s_pipe(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value r = mrb_nil_value();
+  mrb_value w = mrb_nil_value();
+  struct mrb_io *fptr_r;
+  struct mrb_io *fptr_w;
+  int pipes[2];
+
+  if (mrb_pipe(mrb, pipes) == -1) {
+    mrb_sys_fail(mrb, "pipe");
+  }
+
+  r = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
+  mrb_iv_set(mrb, r, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
+  mrb_iv_set(mrb, r, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
+  fptr_r = mrb_io_alloc(mrb);
+  fptr_r->fd = pipes[0];
+  fptr_r->writable = 0;
+  fptr_r->sync = 0;
+  DATA_TYPE(r) = &mrb_io_type;
+  DATA_PTR(r)  = fptr_r;
+
+  w = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
+  mrb_iv_set(mrb, w, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
+  mrb_iv_set(mrb, w, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
+  fptr_w = mrb_io_alloc(mrb);
+  fptr_w->fd = pipes[1];
+  fptr_w->writable = 1;
+  fptr_w->sync = 1;
+  DATA_TYPE(w) = &mrb_io_type;
+  DATA_PTR(w)  = fptr_w;
+
+  return mrb_assoc_new(mrb, r, w);
+}
+
+static mrb_value
 mrb_io_s_select(mrb_state *mrb, mrb_value klass)
 {
   mrb_value *argv;
@@ -925,6 +987,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_class_method(mrb, io, "for_fd",  mrb_io_s_for_fd,   MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "select",  mrb_io_s_select,  MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, io, "_pipe", mrb_io_s_pipe, MRB_ARGS_NONE());
 
   mrb_define_method(mrb, io, "initialize", mrb_io_initialize, MRB_ARGS_ANY());    /* 15.2.20.5.21 (x)*/
   mrb_define_method(mrb, io, "sync",       mrb_io_sync,       MRB_ARGS_NONE());
