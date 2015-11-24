@@ -304,7 +304,7 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
   src = mrb_str_to_cstr(mrb, from);
   dst = mrb_str_to_cstr(mrb, to);
 
-  if (symlink(src, dst) < 0) {
+  if (symlink(src, dst) == -1) {
     mrb_sys_fail(mrb, mrb_str_to_cstr(mrb, mrb_format(mrb, "(%S, %S)", from, to)));
   }
   mrb_gc_arena_restore(mrb, ai);
