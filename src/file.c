@@ -290,6 +290,26 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+static mrb_value
+mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
+{
+#if defined(_WIN32) || defined(_WIN64)
+  mrb_raise(mrb, E_NOTIMP_ERROR, "symlink is not supported on this platform");
+#else
+  mrb_value from, to;
+  const char *src, *dst;
+
+  mrb_get_args(mrb, "SS", &from, &to);
+  src = mrb_string_value_cstr(mrb, &from);
+  dst = mrb_string_value_cstr(mrb, &to);
+
+  if (symlink(src, dst) < 0) {
+    mrb_sys_fail(mrb, mrb_str_to_cstr(mrb, mrb_format(mrb, "(%S, %S)", from, to)));
+  }
+#endif
+  return mrb_fixnum_value(0);
+}
+
 void
 mrb_init_file(mrb_state *mrb)
 {
@@ -302,6 +322,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "delete", mrb_file_s_unlink, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, file, "unlink", mrb_file_s_unlink, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, file, "rename", mrb_file_s_rename, MRB_ARGS_REQ(2));
+  mrb_define_class_method(mrb, file, "symlink", mrb_file_s_symlink, MRB_ARGS_REQ(2));
 
   mrb_define_class_method(mrb, file, "dirname",   mrb_file_dirname,    MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, file, "basename",  mrb_file_basename,   MRB_ARGS_REQ(1));
