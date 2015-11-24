@@ -402,28 +402,23 @@ assert('IO#close_on_exec') do
   io.close
   io.closed?
 
-  # # Use below when IO.pipe is implemented.
-  # begin
-  #   r, w = IO.pipe
-  #   assert_equal(false, r.close_on_exec?)
-  #   r.close_on_exec = true
-  #   assert_equal(true, r.close_on_exec?)
-  #   r.close_on_exec = false
-  #   assert_equal(false, r.close_on_exec?)
-  #   r.close_on_exec = true
-  #   assert_equal(true, r.close_on_exec?)
+  begin
+    r, w = IO.pipe
+    assert_equal(true, r.close_on_exec?)
+    r.close_on_exec = false
+    assert_equal(false, r.close_on_exec?)
+    r.close_on_exec = true
+    assert_equal(true, r.close_on_exec?)
 
-  #   assert_equal(false, w.close_on_exec?)
-  #   w.close_on_exec = true
-  #   assert_equal(true, w.close_on_exec?)
-  #   w.close_on_exec = false
-  #   assert_equal(false, w.close_on_exec?)
-  #   w.close_on_exec = true
-  #   assert_equal(true, w.close_on_exec?)
-  # ensure
-  #   r.close unless r.closed?
-  #   w.close unless w.closed?
-  # end
+    assert_equal(true, w.close_on_exec?)
+    w.close_on_exec = false
+    assert_equal(false, w.close_on_exec?)
+    w.close_on_exec = true
+    assert_equal(true, w.close_on_exec?)
+  ensure
+    r.close unless r.closed?
+    w.close unless w.closed?
+  end
 end
 
 assert('IO#sysseek') do
@@ -431,6 +426,42 @@ assert('IO#sysseek') do
     assert_equal 2, io.sysseek(2)
     assert_equal 5, io.sysseek(3, IO::SEEK_CUR) # 2 + 3 => 5
     assert_equal $mrbtest_io_msg.size - 4, io.sysseek(-4, IO::SEEK_END)
+  end
+end
+
+assert('IO.pipe') do
+  called = false
+  IO.pipe do |r, w|
+    assert_true r.kind_of?(IO)
+    assert_true w.kind_of?(IO)
+    assert_false r.closed?
+    assert_false w.closed?
+    assert_true FileTest.pipe?(r)
+    assert_true FileTest.pipe?(w)
+    assert_nil r.pid
+    assert_nil w.pid
+    assert_true 2 < r.fileno
+    assert_true 2 < w.fileno
+    assert_true r.fileno != w.fileno
+    assert_false r.sync
+    assert_true w.sync
+    assert_equal 8, w.write('test for')
+    assert_equal 'test', r.read(4)
+    assert_equal ' for', r.read(4)
+    assert_equal 5, w.write(' pipe')
+    assert_equal nil, w.close
+    assert_equal ' pipe', r.read
+    called = true
+    assert_raise(IOError) { r.write 'test' }
+    # TODO:
+    # This assert expect raise IOError but got RuntimeError
+    # Because mruby-io not have flag for I/O readable
+    # assert_raise(IOError) { w.read }
+  end
+  assert_true called
+
+  assert_nothing_raised do
+    IO.pipe { |r, w| r.close; w.close }
   end
 end
 

@@ -16,7 +16,7 @@ IO, File module for mruby
 | IO.copy_stream             |          |      |
 | IO.new, IO.for_fd, IO.open |  o  |     |
 | IO.foreach                 |          |      |
-| IO.pipe                    |          |      |
+| IO.pipe                    |    o     |      |
 | IO.popen                   |    o     |      |
 | IO.read                    |    o     |      |
 | IO.readlines               |          |      |

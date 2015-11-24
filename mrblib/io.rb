@@ -41,6 +41,19 @@ class IO
     end
   end
 
+  def self.pipe(&block)
+    if block
+      begin
+        r, w = IO._pipe
+        yield r, w
+      ensure
+        r.close unless r.closed?
+        w.close unless w.closed?
+      end
+    else
+      IO._pipe
+    end
+  end
 
   def self.read(path, length=nil, offset=nil, opt=nil)
     if not opt.nil?        # 4 arguments
