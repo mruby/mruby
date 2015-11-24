@@ -6,9 +6,10 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   build.bins << 'mrbtest'
   spec.add_dependency('mruby-compiler', :core => 'mruby-compiler')
 
+  spec.test_rbfiles = Dir.glob("#{MRUBY_ROOT}/test/t/*.rb")
+
   clib = "#{build_dir}/mrbtest.c"
   mlib = clib.ext(exts.object)
-  mrbs = Dir.glob("#{MRUBY_ROOT}/test/t/*.rb")
   exec = exefile("#{build.build_dir}/bin/mrbtest")
 
   libmruby = libfile("#{build.build_dir}/lib/libmruby")
@@ -146,7 +147,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
 
   init = "#{spec.dir}/init_mrbtest.c"
   file mlib => clib
-  file clib => [build.mrbcfile, init] + mrbs do |t|
+  file clib => init do |t|
     _pp "GEN", "*.rb", "#{clib.relative_path}"
     FileUtils.mkdir_p File.dirname(clib)
     open(clib, 'w') do |f|
@@ -160,7 +161,6 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
       f.puts %Q[ */]
       f.puts %Q[]
       f.puts IO.read(init)
-      mrbc.run f, mrbs, 'mrbtest_irep'
       build.gems.each do |g|
         f.puts %Q[void GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb_state *mrb);]
       end
