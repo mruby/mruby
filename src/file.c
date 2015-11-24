@@ -298,14 +298,16 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
 #else
   mrb_value from, to;
   const char *src, *dst;
+  int ai = mrb_gc_arena_save(mrb);
 
   mrb_get_args(mrb, "SS", &from, &to);
-  src = mrb_string_value_cstr(mrb, &from);
-  dst = mrb_string_value_cstr(mrb, &to);
+  src = mrb_str_to_cstr(mrb, from);
+  dst = mrb_str_to_cstr(mrb, to);
 
   if (symlink(src, dst) < 0) {
     mrb_sys_fail(mrb, mrb_str_to_cstr(mrb, mrb_format(mrb, "(%S, %S)", from, to)));
   }
+  mrb_gc_arena_restore(mrb, ai);
 #endif
   return mrb_fixnum_value(0);
 }
