@@ -7,8 +7,8 @@
 #ifndef MRUBY_PROC_H
 #define MRUBY_PROC_H
 
-#include "mruby/common.h"
-#include "mruby/irep.h"
+#include "common.h"
+#include "irep.h"
 
 /**
  * Proc class
@@ -68,7 +68,7 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state*, mrb_int);
 /* old name */
 #define mrb_cfunc_env_get(mrb, idx) mrb_proc_cfunc_env_get(mrb, idx)
 
-#include "mruby/khash.h"
+#include "khash.h"
 KHASH_DECLARE(mt, mrb_sym, struct RProc*, TRUE)
 
 MRB_END_DECL

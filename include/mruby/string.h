@@ -7,7 +7,7 @@
 #ifndef MRUBY_STRING_H
 #define MRUBY_STRING_H
 
-#include "mruby/common.h"
+#include "common.h"
 
 /**
  * String class

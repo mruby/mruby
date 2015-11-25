@@ -7,7 +7,7 @@
 #ifndef MRUBY_NUMERIC_H
 #define MRUBY_NUMERIC_H
 
-#include "mruby/common.h"
+#include "common.h"
 
 /**
  * Numeric class and it's sub-classes.

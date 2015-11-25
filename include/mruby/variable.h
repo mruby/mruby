@@ -7,7 +7,7 @@
 #ifndef MRUBY_VARIABLE_H
 #define MRUBY_VARIABLE_H
 
-#include "mruby/common.h"
+#include "common.h"
 
 /**
  * Functions to access mruby variables.
