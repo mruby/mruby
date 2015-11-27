@@ -7,7 +7,7 @@
 #ifndef MRUBY_COMPILE_H
 #define MRUBY_COMPILE_H
 
-#include <mruby/common.h>
+#include "common.h"
 
 /**
  * MRuby Compiler

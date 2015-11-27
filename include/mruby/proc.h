@@ -7,7 +7,7 @@
 #ifndef MRUBY_PROC_H
 #define MRUBY_PROC_H
 
-#include <mruby/common.h>
+#include "common.h"
 #include <mruby/irep.h>
 
 /**

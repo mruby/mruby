@@ -9,7 +9,7 @@
 
 #include <mruby.h>
 #include <mruby/irep.h>
-#include <mruby/common.h>
+#include "common.h"
 
 /**
  * Dumping compiled mruby script.
