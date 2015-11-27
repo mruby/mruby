@@ -1,7 +1,7 @@
 #include <stdlib.h>
-#include "mruby.h"
-#include "mruby/irep.h"
-#include "mruby/variable.h"
+#include <mruby.h>
+#include <mruby/irep.h>
+#include <mruby/variable.h>
 
 extern const uint8_t mrbtest_assert_irep[];
 

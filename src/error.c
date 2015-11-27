@@ -7,16 +7,16 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include "mruby.h"
-#include "mruby/array.h"
-#include "mruby/irep.h"
-#include "mruby/proc.h"
-#include "mruby/string.h"
-#include "mruby/variable.h"
-#include "mruby/debug.h"
-#include "mruby/error.h"
-#include "mruby/class.h"
-#include "mruby/throw.h"
+#include <mruby.h>
+#include <mruby/array.h>
+#include <mruby/irep.h>
+#include <mruby/proc.h>
+#include <mruby/string.h>
+#include <mruby/variable.h>
+#include <mruby/debug.h>
+#include <mruby/error.h>
+#include <mruby/class.h>
+#include <mruby/throw.h>
 
 MRB_API mrb_value
 mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, size_t len)

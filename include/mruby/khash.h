@@ -9,8 +9,8 @@
 
 #include <string.h>
 
-#include "mruby.h"
-#include "mruby/common.h"
+#include <mruby.h>
+#include <mruby/common.h>
 
 /**
  * khash definitions used in mruby's hash table.

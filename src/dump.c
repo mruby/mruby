@@ -6,11 +6,11 @@
 
 #include <string.h>
 #include <limits.h>
-#include "mruby/dump.h"
-#include "mruby/string.h"
-#include "mruby/irep.h"
-#include "mruby/numeric.h"
-#include "mruby/debug.h"
+#include <mruby/dump.h>
+#include <mruby/string.h>
+#include <mruby/irep.h>
+#include <mruby/numeric.h>
+#include <mruby/debug.h>
 
 #define FLAG_BYTEORDER_NATIVE 2
 #define FLAG_BYTEORDER_NONATIVE 0

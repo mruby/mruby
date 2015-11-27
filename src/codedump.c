@@ -1,9 +1,9 @@
-#include "mruby.h"
-#include "mruby/irep.h"
-#include "mruby/debug.h"
-#include "mruby/opcode.h"
-#include "mruby/string.h"
-#include "mruby/proc.h"
+#include <mruby.h>
+#include <mruby/irep.h>
+#include <mruby/debug.h>
+#include <mruby/opcode.h>
+#include <mruby/string.h>
+#include <mruby/proc.h>
 
 #ifndef MRB_DISABLE_STDIO
 static int

@@ -1,7 +1,7 @@
-#include "mruby.h"
-#include "mruby/error.h"
-#include "mruby/array.h"
-#include "mruby/hash.h"
+#include <mruby.h>
+#include <mruby/error.h>
+#include <mruby/array.h>
+#include <mruby/hash.h>
 
 /*
  *  call-seq:

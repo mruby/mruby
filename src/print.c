@@ -4,9 +4,9 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include "mruby/string.h"
-#include "mruby/variable.h"
+#include <mruby.h>
+#include <mruby/string.h>
+#include <mruby/variable.h>
 
 #ifndef MRB_DISABLE_STDIO
 static void

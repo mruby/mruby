@@ -7,9 +7,9 @@
 #ifndef MRUBY_DUMP_H
 #define MRUBY_DUMP_H
 
-#include "mruby.h"
-#include "mruby/irep.h"
-#include "mruby/common.h"
+#include <mruby.h>
+#include <mruby/irep.h>
+#include <mruby/common.h>
 
 /**
  * Dumping compiled mruby script.

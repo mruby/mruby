@@ -1,5 +1,5 @@
-#include "mruby.h"
-#include "mruby/variable.h"
+#include <mruby.h>
+#include <mruby/variable.h>
 
 void
 mrb_init_version(mrb_state* mrb)

@@ -6,11 +6,11 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "mruby.h"
-#include "mruby/irep.h"
-#include "mruby/variable.h"
-#include "mruby/debug.h"
-#include "mruby/string.h"
+#include <mruby.h>
+#include <mruby/irep.h>
+#include <mruby/variable.h>
+#include <mruby/debug.h>
+#include <mruby/string.h>
 
 void mrb_init_core(mrb_state*);
 void mrb_init_mrbgems(mrb_state*);

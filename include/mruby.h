@@ -33,10 +33,10 @@
 #include <limits.h>
 
 #include "mrbconf.h"
-#include "mruby/common.h"
-#include "mruby/value.h"
-#include "mruby/gc.h"
-#include "mruby/version.h"
+#include <mruby/common.h>
+#include <mruby/value.h>
+#include <mruby/gc.h>
+#include <mruby/version.h>
 
 /**
  * MRuby C API entry point

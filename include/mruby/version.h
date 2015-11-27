@@ -7,7 +7,7 @@
 #ifndef MRUBY_VERSION_H
 #define MRUBY_VERSION_H
 
-#include "mruby/common.h"
+#include <mruby/common.h>
 
 /**
  * mruby version definition macros

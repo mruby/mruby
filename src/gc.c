@@ -6,17 +6,17 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include "mruby.h"
-#include "mruby/array.h"
-#include "mruby/class.h"
-#include "mruby/data.h"
-#include "mruby/hash.h"
-#include "mruby/proc.h"
-#include "mruby/range.h"
-#include "mruby/string.h"
-#include "mruby/variable.h"
-#include "mruby/gc.h"
-#include "mruby/error.h"
+#include <mruby.h>
+#include <mruby/array.h>
+#include <mruby/class.h>
+#include <mruby/data.h>
+#include <mruby/hash.h>
+#include <mruby/proc.h>
+#include <mruby/range.h>
+#include <mruby/string.h>
+#include <mruby/variable.h>
+#include <mruby/gc.h>
+#include <mruby/error.h>
 
 /*
   = Tri-color Incremental Garbage Collection

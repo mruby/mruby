@@ -1,5 +1,5 @@
-#include "mruby.h"
-#include "mruby/string.h"
+#include <mruby.h>
+#include <mruby/string.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

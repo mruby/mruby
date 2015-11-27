@@ -1,8 +1,8 @@
-#include "mruby.h"
-#include "mruby/value.h"
-#include "mruby/array.h"
-#include "mruby/range.h"
-#include "mruby/hash.h"
+#include <mruby.h>
+#include <mruby/value.h>
+#include <mruby/array.h>
+#include <mruby/range.h>
+#include <mruby/hash.h>
 
 /*
  *  call-seq:

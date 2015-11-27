@@ -22,12 +22,12 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include "mruby.h"
-#include "mruby/compile.h"
-#include "mruby/proc.h"
-#include "mruby/error.h"
+#include <mruby.h>
+#include <mruby/compile.h>
+#include <mruby/proc.h>
+#include <mruby/error.h>
+#include <mruby/throw.h>
 #include "node.h"
-#include "mruby/throw.h"
 
 #define YYLEX_PARAM p
 

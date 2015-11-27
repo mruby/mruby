@@ -7,14 +7,14 @@
 #ifndef MRUBY_COMPILE_H
 #define MRUBY_COMPILE_H
 
-#include "mruby/common.h"
+#include <mruby/common.h>
 
 /**
  * MRuby Compiler
  */
 MRB_BEGIN_DECL
 
-#include "mruby.h"
+#include <mruby.h>
 
 struct mrb_jmpbuf;
 

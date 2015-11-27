@@ -7,8 +7,8 @@
 #ifndef MRUBY_IREP_H
 #define MRUBY_IREP_H
 
-#include "mruby/common.h"
-#include "mruby/compile.h"
+#include <mruby/common.h>
+#include <mruby/compile.h>
 
 /**
  * Compiled mruby scripts.

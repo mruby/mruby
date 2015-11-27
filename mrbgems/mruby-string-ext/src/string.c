@@ -1,9 +1,9 @@
 #include <string.h>
-#include "mruby.h"
-#include "mruby/array.h"
-#include "mruby/class.h"
-#include "mruby/string.h"
-#include "mruby/range.h"
+#include <mruby.h>
+#include <mruby/array.h>
+#include <mruby/class.h>
+#include <mruby/string.h>
+#include <mruby/range.h>
 
 static mrb_value
 mrb_str_getbyte(mrb_state *mrb, mrb_value str)

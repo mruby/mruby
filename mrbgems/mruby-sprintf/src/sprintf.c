@@ -4,14 +4,14 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
+#include <mruby.h>
 
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
-#include "mruby/string.h"
-#include "mruby/hash.h"
-#include "mruby/numeric.h"
+#include <mruby/string.h>
+#include <mruby/hash.h>
+#include <mruby/numeric.h>
 #include <math.h>
 #include <ctype.h>
 

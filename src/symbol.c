@@ -6,10 +6,10 @@
 
 #include <limits.h>
 #include <string.h>
-#include "mruby.h"
-#include "mruby/khash.h"
-#include "mruby/string.h"
-#include "mruby/dump.h"
+#include <mruby.h>
+#include <mruby/khash.h>
+#include <mruby/string.h>
+#include <mruby/dump.h>
 
 /* ------------------------------------------------------ */
 typedef struct symbol_name {

@@ -181,18 +181,18 @@ module MRuby
       def print_gem_init_header(f)
         print_gem_comment(f)
         f.puts %Q[#include <stdlib.h>] unless rbfiles.empty?
-        f.puts %Q[#include "mruby.h"]
-        f.puts %Q[#include "mruby/irep.h"] unless rbfiles.empty?
+        f.puts %Q[#include <mruby.h>]
+        f.puts %Q[#include <mruby/irep.h>] unless rbfiles.empty?
       end
 
       def print_gem_test_header(f)
         print_gem_comment(f)
         f.puts %Q[#include <stdio.h>]
         f.puts %Q[#include <stdlib.h>]
-        f.puts %Q[#include "mruby.h"]
-        f.puts %Q[#include "mruby/irep.h"]
-        f.puts %Q[#include "mruby/variable.h"]
-        f.puts %Q[#include "mruby/hash.h"] unless test_args.empty?
+        f.puts %Q[#include <mruby.h>]
+        f.puts %Q[#include <mruby/irep.h>]
+        f.puts %Q[#include <mruby/variable.h>]
+        f.puts %Q[#include <mruby/hash.h>] unless test_args.empty?
       end
 
       def test_dependencies

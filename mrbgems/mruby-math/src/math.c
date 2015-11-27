@@ -4,8 +4,8 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include "mruby/array.h"
+#include <mruby.h>
+#include <mruby/array.h>
 
 #include <math.h>
 

@@ -7,9 +7,9 @@
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
-#include "mruby.h"
-#include "mruby/class.h"
-#include "mruby/data.h"
+#include <mruby.h>
+#include <mruby/class.h>
+#include <mruby/data.h>
 
 #if !defined(__MINGW64__) && defined(_WIN32)
 # define llround(x) round(x)

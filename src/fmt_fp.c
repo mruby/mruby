@@ -33,8 +33,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <float.h>
 #include <ctype.h>
 
-#include "mruby.h"
-#include "mruby/string.h"
+#include <mruby.h>
+#include <mruby/string.h>
 
 struct fmt_args {
   mrb_state *mrb;

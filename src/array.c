@@ -4,11 +4,11 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include "mruby/array.h"
-#include "mruby/class.h"
-#include "mruby/string.h"
-#include "mruby/range.h"
+#include <mruby.h>
+#include <mruby/array.h>
+#include <mruby/class.h>
+#include <mruby/string.h>
+#include <mruby/range.h>
 #include "value_array.h"
 
 #define ARY_DEFAULT_LEN   4
