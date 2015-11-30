@@ -1,7 +1,9 @@
-# How to use `mrb_gc_arena_save()`/`mrb_gc_arena_restore()`
+# How to use `mrb_gc_arena_save()`/`mrb_gc_arena_restore()`/`mrb_gc_protect()`
 
-This is basically English translation of [Matz's blog post](http://www.rubyist.net/~matz/20130731.html) written in Japanese.
-Some parts are updated to reflect recent changes.
+_This is an English translation of [Matz's blog post][matz blog post]
+written in Japanese._
+_Some parts are updated to reflect recent changes._
+[matz blog post]: http://www.rubyist.net/~matz/20130731.html
 
 When you are extending mruby using C language, you may encounter
 mysterious "arena overflow error" or memory leak or very slow
@@ -10,7 +12,7 @@ implementing "conservative GC".
 
 GC (garbage collector) must ensure that object is "alive", in other
 words, that it is referenced by somewhere from program.  This can be
-determined by checking that that object can be directly or indirectly
+determined by checking if the object can be directly or indirectly
 referenced by root.  The local variables, global variables and
 constants etc are root.
 
@@ -22,7 +24,7 @@ by C variable is also "alive", but mruby GC cannot aware of this, so
 it might mistakenly recognize the objects referenced by only C
 variables as dead.
 
-It is a fatal bug for GC to collect live objects.
+This can be a fatal bug if the GC tries to collect a live object.
 
 In CRuby, we scan C stack area, and use C variable as root to check
 whether object is alive or not.  Of course, because we are accessing C
@@ -32,60 +34,64 @@ pointer, then assume it as a pointer.  We call it "conservative".
 
 By the way, CRuby's "conservative GC" has some problems.
 
-Its biggest problem is we have no way to access to the stack area in
+The biggest problem is we have no way to access to the stack area in
 portable way.  Therefore, we cannot use this method if we'd like to
 implement highly portable runtime, like mruby.
 
-So we came up an another plan to implement "conservative GC" in mruby.
+So we came up with an another plan to implement "conservative GC" in mruby.
 
-Again, the problem is that there is an object which was created in C
-function, and is not referenced by Ruby world, and cannot be treated
-as garbage.
+Again, the problem is when an object which was created in C function, becomes
+no longer referenced in the Ruby world, and cannot be treated as garbage.
 
 In mruby, we recognize all objects created in C function are alive.
-Then we have no problem such as recognizing live object as dead.
+Then we have no problem such as confusing a live object as dead.
 
 This means that because we cannot collect truly dead object, we may
-get a little bit less efficiency, but GC itself is highly portable.
+lose efficiency, but as a trade-off the GC itself is highly portable.
 We can say goodbye to the problem that GC deletes live objects due to
 optimization which sometimes occurs in CRuby.
 
 According to this idea, we have a table, called "GC arena", which
-remembers objects created in C function.  The arena is stack
-structure, when C function execution is returned to mruby VM, all
-objects registered in the arena are popped.
+remembers objects created in C function.
 
-This works very well, but GC arena causes another problem.  "arena
-overflow error" or memory leak.
+The arena is stack structure, when C function execution is returned to mruby
+VM, all objects registered in the arena are popped.
+
+This works very well, but can cause another problem: "arena overflow error" or
+memory leak.
 
 As of this writing, mruby automatically extend arena to remember
 objects (See `MRB_GC_FIXED_ARENA` and `MRB_GC_ARENA_SIZE` in
-doc/mrbconf/README.md).  If you keep creating objects in C functions,
-it increases memory usage, since GC never kick in.  This memory usage
-may look like memory leak, and also makes execution slower.
+doc/guides/mrbconf.md).
+
+If you create many objects in C functions, memory usage will increase, since
+GC never kick in.  This memory usage may look like memory leak, but will also
+make execution slower as more memory will need to be allocated.
 
 With the build time configuration, you can limit the maximum size of
 arena (e.g., 100).  Then if you create many objects, arena overflows,
-thus you will get "arena overflow error".
+thus you will get an "arena overflow error".
 
 To workaround these problems, we have `mrb_gc_arena_save()` and
 `mrb_gc_arena_restore()` functions.
 
 `int mrb_gc_arena_save(mrb)` returns the current position of the stack
 top of GC arena, and `void mrb_gc_arena_restore(mrb, idx)` sets the
-stack top position to back to given idx.  We uses them like so:
+stack top position to back to given `idx`.
+
+We can use them like this:
 
 ```c
 int arena_idx = mrb_gc_arena_save(mrb);
 
-...create objects...
+// ...create objects...
 mrb_gc_arena_restore(mrb, arena_idx);
 
 ```
 
-In mruby, C function call are surrounded by this save/restore, but we
+In mruby, C function calls are surrounded by this save/restore, but we
 can further optimize memory usage by surrounding save/restore, and can
-avoid arena overflow.
+avoid creating arena overflow bugs.
 
 Let's take a real example.  Here is the source code of `Array#inspect`:
 
@@ -134,38 +140,38 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
 }
 ```
 
-This is a real example, so a little bit complicated, so bear with me.
+This is a real example, so a little bit complicated, but bear with me.
 The essence of `Array#inspect` is that after stringifying each element
 of array using `inspect` method, we join them together so that we can
-get `inspect` representation of entire array.
+get `inspect` representation of the entire array.
 
-After the `inspect` representation of entire array is created, we no
-longer require the individual string representation.  That means that
-we don't have to register these temporal objects into GC arena.
+After the `inspect` representation is created, we no longer require the
+individual string representation.  This means that we don't have to register
+these temporal objects into GC arena.
 
-Therefore, in `ary_inspect()` function, we do:
+Therefore, in order to keep the arena size small; the `ary_inspect()` function
+will do the following:
 
 * save the position of the stack top using `mrb_gc_arena_save()`.
 * get `inspect` representation of each element.
 * append it to the constructing entire `inspect` representation of array.
 * restore stack top position using `mrb_gc_arena_restore()`.
 
-to keep the arena size small.
-
 Please note that the final `inspect` representation of entire array
 was created before the call of `mrb_gc_arena_restore()`.  Otherwise,
 required temporal object may be deleted by GC.
 
-We may have a usecase that after creating many temporal objects, we'd
+We may have a usecase where after creating many temporal objects, we'd
 like to keep some of them.  In this case, we cannot use the same idea
-in `ary_inspect()` like appending objects to existing one.  Instead,
-after `mrb_gc_arena_restore()`, we register back the objects we'd like
-to keep to the arena using `mrb_gc_protect(mrb, obj)`.  Use
-`mrb_gc_protect()` with caution because its usage could lead to arena
-overflow error.
+in `ary_inspect()` like appending objects to existing one.
+Instead, after `mrb_gc_arena_restore()`, we must re-register the objects we
+want to keep in the arena using `mrb_gc_protect(mrb, obj)`.
+Use `mrb_gc_protect()` with caution because it could also lead to an "arena
+overflow error".
 
-We also have to mention that when `mrb_funcall` is called in top
-level, its return value is also registered to GC arena, so calling
-them repeatedly eventually lead to arena overflow error.  Use
-`mrb_gc_arena_save()` and `mrb_gc_arena_restore()` or possible use of
+We must also mention that when `mrb_funcall` is called in top level, the return
+value is also registered to GC arena, so repeated use of `mrb_funcall` may
+eventually lead to an "arena overflow error".
+
+Use `mrb_gc_arena_save()` and `mrb_gc_arena_restore()` or possible use of
 `mrb_gc_protect()` to workaround this.
