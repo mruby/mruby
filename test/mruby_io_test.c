@@ -1,10 +1,17 @@
 #include <sys/types.h>
-#include <sys/socket.h>
+
+#if defined(_WIN32) || defined(_WIN64)
+  #include <winsock.h>
+  #include <io.h>
+#else
+  #include <sys/socket.h>
+  #include <unistd.h>
+  #include <sys/un.h>
+#endif
+
 #include <sys/stat.h>
-#include <sys/un.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include "mruby.h"
 #include "mruby/array.h"
@@ -22,13 +29,18 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   mode_t mask;
   int fd0, fd1, fd2, fd3;
   FILE *fp;
+
+#ifndef _WIN32
   struct sockaddr_un sun0;
+#endif
 
   mask = umask(077);
   fd0 = mkstemp(rfname);
   fd1 = mkstemp(wfname);
+#ifndef _WIN32
   fd2 = mkstemp(symlinkname);
   fd3 = mkstemp(socketname);
+#endif
   if (fd0 == -1 || fd1 == -1 || fd2 == -1 || fd3 == -1) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't create temporary file");
     return mrb_nil_value();
@@ -56,6 +68,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   }
   fclose(fp);
 
+#ifndef _WIN32
   unlink(symlinkname);
   close(fd2);
   if (symlink("hoge", symlinkname) == -1) {
@@ -74,6 +87,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't make a socket bi");
   }
   close(fd3);
+#endif
 
   return mrb_true_value();
 }
@@ -112,9 +126,11 @@ static mrb_value
 mrb_io_test_file_setup(mrb_state *mrb, mrb_value self)
 {
   mrb_value ary = mrb_io_test_io_setup(mrb, self);
+#ifndef _WIN32
   if (symlink("/usr/bin", "test-bin") == -1) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't make a symbolic link");
   }
+#endif
 
   return ary;
 }
