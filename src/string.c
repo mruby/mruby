@@ -2030,11 +2030,12 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
 }
 
 MRB_API mrb_value
-mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
+mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int badcheck)
 {
-  const char *p;
+  const char *p = str;
+  const char *pend = str + len;
   char sign = 1;
-  int c, uscore;
+  int c;
   uint64_t n = 0;
   mrb_int val;
 
@@ -2048,7 +2049,8 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     if (badcheck) goto bad;
     return mrb_fixnum_value(0);
   }
-  while (ISSPACE(*str)) str++;
+  while (str<pend && ISSPACE(*str))
+    str++;
 
   if (str[0] == '+') {
     str++;
@@ -2056,10 +2058,6 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
   else if (str[0] == '-') {
     str++;
     sign = 0;
-  }
-  if (str[0] == '+' || str[0] == '-') {
-    if (badcheck) goto bad;
-    return mrb_fixnum_value(0);
   }
   if (base <= 0) {
     if (str[0] == '0') {
@@ -2078,6 +2076,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
           break;
         default:
           base = 8;
+          break;
       }
     }
     else if (base < -1) {
@@ -2119,35 +2118,37 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
       break;
   } /* end of switch (base) { */
   if (*str == '0') {    /* squeeze preceding 0s */
-    uscore = 0;
-    while ((c = *++str) == '0' || c == '_') {
+    while (str<pend && ((c = *++str) == '0' || c == '_')) {
       if (c == '_') {
-        if (++uscore >= 2)
+        if (*str == '_') {
+          if (badcheck) goto bad;
           break;
+        }
       }
-      else
-        uscore = 0;
     }
     if (!(c = *str) || ISSPACE(c)) --str;
   }
   c = *str;
+  if (badcheck && c == '\0') {
+    goto nullbyte;
+  }
   c = conv_digit(c);
   if (c < 0 || c >= base) {
     if (badcheck) goto bad;
     return mrb_fixnum_value(0);
   }
 
-  uscore = 0;
-  for (p=str;*p;p++) {
+  for (p=str;p<pend;p++) {
     if (*p == '_') {
-      if (uscore == 0) {
-        uscore++;
+      if (p[1] == '_') {
+        if (badcheck) goto bad;
         continue;
       }
-      if (badcheck) goto bad;
-      break;
+      p++;
     }
-    uscore = 0;
+    if (badcheck && *p == '\0') {
+      goto nullbyte;
+    }
     c = conv_digit(*p);
     if (c < 0 || c >= base) {
       break;
@@ -2161,15 +2162,24 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
   val = n;
   if (badcheck) {
     if (p == str) goto bad; /* no number */
-    while (*p && ISSPACE(*p)) p++;
-    if (*p) goto bad;           /* trailing garbage */
+    while (p<pend && ISSPACE(*p)) p++;
+    if (p<pend) goto bad;       /* trailing garbage */
   }
 
   return mrb_fixnum_value(sign ? val : -val);
-bad:
+ nullbyte:
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
+  /* not reached */
+ bad:
   mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for number(%S)", mrb_str_new_cstr(mrb, str));
   /* not reached */
   return mrb_fixnum_value(0);
+}
+
+MRB_API mrb_value
+mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
+{
+  return mrb_str_len_to_inum(mrb, str, strlen(str), base, badcheck);
 }
 
 MRB_API const char*
@@ -2198,17 +2208,8 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
   mrb_int len;
 
   s = mrb_string_value_ptr(mrb, str);
-  if (s) {
-    len = RSTRING_LEN(str);
-    if (badcheck && strlen(s) != len) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
-    }
-    if (s[len]) {    /* no sentinel somehow */
-      struct RString *temp_str = str_new(mrb, s, len);
-      s = RSTR_PTR(temp_str);
-    }
-  }
-  return mrb_cstr_to_inum(mrb, s, base, badcheck);
+  len = RSTRING_LEN(str);
+  return mrb_str_len_to_inum(mrb, s, len, base, badcheck);
 }
 
 /* 15.2.10.5.38 */
