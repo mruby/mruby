@@ -2178,7 +2178,8 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
   mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
   /* not reached */
  bad:
-  mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for number(%S)", mrb_str_new_cstr(mrb, str));
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for number(%S)",
+             mrb_inspect(mrb, mrb_str_new_cstr(mrb, str)));
   /* not reached */
   return mrb_fixnum_value(0);
 }
