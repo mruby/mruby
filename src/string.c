@@ -2052,23 +2052,23 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
      ISUPPER(c) ? ((c) - 'A' + 10) : \
      -1)
 
-  if (!str) {
+  if (!p) {
     if (badcheck) goto bad;
     return mrb_fixnum_value(0);
   }
-  while (str<pend && ISSPACE(*str))
-    str++;
+  while (p<pend && ISSPACE(*p))
+    p++;
 
-  if (str[0] == '+') {
-    str++;
+  if (p[0] == '+') {
+    p++;
   }
-  else if (str[0] == '-') {
-    str++;
+  else if (p[0] == '-') {
+    p++;
     sign = 0;
   }
   if (base <= 0) {
-    if (str[0] == '0') {
-      switch (str[1]) {
+    if (p[0] == '0') {
+      switch (p[1]) {
         case 'x': case 'X':
           base = 16;
           break;
@@ -2095,27 +2095,27 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
   }
   switch (base) {
     case 2:
-      if (str[0] == '0' && (str[1] == 'b'||str[1] == 'B')) {
-        str += 2;
+      if (p[0] == '0' && (p[1] == 'b'||p[1] == 'B')) {
+        p += 2;
       }
       break;
     case 3:
       break;
     case 8:
-      if (str[0] == '0' && (str[1] == 'o'||str[1] == 'O')) {
-        str += 2;
+      if (p[0] == '0' && (p[1] == 'o'||p[1] == 'O')) {
+        p += 2;
       }
     case 4: case 5: case 6: case 7:
       break;
     case 10:
-      if (str[0] == '0' && (str[1] == 'd'||str[1] == 'D')) {
-        str += 2;
+      if (p[0] == '0' && (p[1] == 'd'||p[1] == 'D')) {
+        p += 2;
       }
     case 9: case 11: case 12: case 13: case 14: case 15:
       break;
     case 16:
-      if (str[0] == '0' && (str[1] == 'x'||str[1] == 'X')) {
-        str += 2;
+      if (p[0] == '0' && (p[1] == 'x'||p[1] == 'X')) {
+        p += 2;
       }
       break;
     default:
@@ -2124,18 +2124,18 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
       }
       break;
   } /* end of switch (base) { */
-  if (*str == '0') {    /* squeeze preceding 0s */
-    while (str<pend && ((c = *++str) == '0' || c == '_')) {
+  if (*p == '0') {    /* squeeze preceding 0s */
+    while (p<pend && ((c = *++p) == '0' || c == '_')) {
       if (c == '_') {
-        if (*str == '_') {
+        if (*p == '_') {
           if (badcheck) goto bad;
           break;
         }
       }
     }
-    if (!(c = *str) || ISSPACE(c)) --str;
+    if (!(c = *p) || ISSPACE(c)) --p;
   }
-  c = *str;
+  c = *p;
   if (badcheck && c == '\0') {
     goto nullbyte;
   }
@@ -2145,7 +2145,7 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
     return mrb_fixnum_value(0);
   }
 
-  for (p=str;p<pend;p++) {
+  for ( ;p<pend;p++) {
     if (*p == '_') {
       if (p[1] == '_') {
         if (badcheck) goto bad;
