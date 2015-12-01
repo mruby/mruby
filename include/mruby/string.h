@@ -123,7 +123,8 @@ MRB_API mrb_value mrb_check_string_type(mrb_state *mrb, mrb_value str);
 MRB_API mrb_value mrb_str_buf_new(mrb_state *mrb, size_t capa);
 
 MRB_API const char *mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr);
-MRB_API const char *mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr);
+MRB_API const char *mrb_string_value_ptr(mrb_state *mrb, mrb_value str);
+MRB_API mrb_int mrb_string_value_len(mrb_state *mrb, mrb_value str);
 
 /*
  * Duplicates a string object.

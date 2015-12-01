@@ -1013,6 +1013,13 @@ mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
   return RSTRING_PTR(str);
 }
 
+MRB_API mrb_int
+mrb_string_value_len(mrb_state *mrb, mrb_value ptr)
+{
+  mrb_value str = mrb_str_to_str(mrb, ptr);
+  return RSTRING_LEN(str);
+}
+
 void
 mrb_noregexp(mrb_state *mrb, mrb_value self)
 {
