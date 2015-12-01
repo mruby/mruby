@@ -2182,6 +2182,10 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
   char *p = RSTR_PTR(ps);
 
   if (!p || p[len] != '\0') {
+    if (RSTR_FROZEN_P(ps)) {
+      *ptr = str = mrb_str_dup(mrb, str);
+      ps = mrb_str_ptr(str);
+    }
     mrb_str_modify(mrb, ps);
     return RSTR_PTR(ps);
   }
