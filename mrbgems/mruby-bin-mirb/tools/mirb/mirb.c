@@ -333,7 +333,7 @@ main(int argc, char **argv)
   char last_code_line[1024] = { 0 };
 #ifndef ENABLE_READLINE
   int last_char;
-  int char_index;
+  size_t char_index;
 #else
   char *history_path;
 #endif
