@@ -2150,7 +2150,6 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     uscore = 0;
     c = conv_digit(*p);
     if (c < 0 || c >= base) {
-      if (badcheck) goto bad;
       break;
     }
     n *= base;
