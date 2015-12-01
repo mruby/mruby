@@ -852,19 +852,24 @@ call_with_block(parser_state *p, node *a, node *b)
 {
   node *n;
 
-  if (a->car == (node*)NODE_SUPER ||
-      a->car == (node*)NODE_ZSUPER) {
+  switch ((enum node_type)a->car) {
+  case NODE_SUPER:
+  case NODE_ZSUPER:
     if (!a->cdr) a->cdr = cons(0, b);
     else {
       args_with_block(p, a->cdr, b);
     }
-  }
-  else {
+    break;
+  case NODE_CALL:
+  case NODE_FCALL:
     n = a->cdr->cdr->cdr;
     if (!n->car) n->car = cons(0, b);
     else {
       args_with_block(p, n->car, b);
     }
+    break;
+  default:
+    break;
   }
 }
 
