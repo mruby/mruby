@@ -53,7 +53,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_socketname"), mrb_str_new_cstr(mrb, socketname));
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_msg"), mrb_str_new_cstr(mrb, msg));
 
-  fp = fopen(rfname, "w");
+  fp = fopen(rfname, "wb");
   if (fp == NULL) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't open temporary file");
     return mrb_nil_value();
@@ -61,7 +61,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   fputs(msg, fp);
   fclose(fp);
 
-  fp = fopen(wfname, "w");
+  fp = fopen(wfname, "wb");
   if (fp == NULL) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't open temporary file");
     return mrb_nil_value();
