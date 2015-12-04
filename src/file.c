@@ -46,12 +46,13 @@
   #include <pwd.h>
 #endif
 
+#define FILE_SEPARATOR "/"
+
 #if defined(_WIN32) || defined(_WIN64)
   #define PATH_SEPARATOR ";"
-  #define FILE_SEPARATOR "\\"
+  #define FILE_ALT_SEPARATOR "\\"
 #else
   #define PATH_SEPARATOR ":"
-  #define FILE_SEPARATOR "/"
 #endif
 
 #ifndef LOCK_SH
@@ -343,6 +344,11 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_const(mrb, cnst, "LOCK_NB", mrb_fixnum_value(LOCK_NB));
   mrb_define_const(mrb, cnst, "SEPARATOR", mrb_str_new_cstr(mrb, FILE_SEPARATOR));
   mrb_define_const(mrb, cnst, "PATH_SEPARATOR", mrb_str_new_cstr(mrb, PATH_SEPARATOR));
+#if defined(_WIN32) || defined(_WIN64)
+  mrb_define_const(mrb, cnst, "ALT_SEPARATOR", mrb_str_new_cstr(mrb, FILE_ALT_SEPARATOR));
+#else
+  mrb_define_const(mrb, cnst, "ALT_SEPARATOR", mrb_nil_value());
+#endif
   mrb_define_const(mrb, cnst, "NULL", mrb_str_new_cstr(mrb, NULL_FILE));
 
 }
