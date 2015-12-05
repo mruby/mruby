@@ -89,14 +89,21 @@ class File < IO
     end
 
     expanded_path = concat_path(path, default_dir)
+    drive_prefix = ""
+    if File::ALT_SEPARATOR && expanded_path.size > 2 &&
+        ("A".."Z").include?(expanded_path[0].upcase) && expanded_path[1] == ":"
+      drive_prefix = expanded_path[0, 2]
+      expanded_path = expanded_path[2, expanded_path.size]
+    end
     expand_path_array = []
+    if File::ALT_SEPARATOR && expanded_path.include?(File::ALT_SEPARATOR)
+      expanded_path.gsub!(File::ALT_SEPARATOR, '/')
+    end
     while expanded_path.include?('//')
       expanded_path = expanded_path.gsub('//', '/')
     end
 
-    if expanded_path == "/"
-      expanded_path
-    else
+    if expanded_path != "/"
       expanded_path.split('/').each do |path_token|
         if path_token == '..'
           if expand_path_array.size > 1
@@ -109,8 +116,15 @@ class File < IO
         end
       end
 
-      expand_path = expand_path_array.join("/")
-      expand_path.empty? ? '/' : expand_path
+      expanded_path = expand_path_array.join("/")
+      if expanded_path.empty?
+        expanded_path = '/'
+      end
+    end
+    if drive_prefix.empty?
+      expanded_path
+    else
+      drive_prefix + expanded_path.gsub("/", File::ALT_SEPARATOR)
     end
   end
 

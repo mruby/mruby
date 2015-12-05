@@ -6,8 +6,8 @@ assert('FileTest TEST SETUP') do
 end
 
 assert("FileTest.directory?") do
-  assert_equal true,  FileTest.directory?("/tmp")
-  assert_equal false, FileTest.directory?("/bin/sh")
+  assert_equal true,  FileTest.directory?(File.join(File._getwd, "mrblib"))
+  assert_equal false, FileTest.directory?(File.join(File._getwd, "README.md"))
 end
 
 assert("FileTest.exist?") do
@@ -23,14 +23,18 @@ assert("FileTest.exist?") do
 end
 
 assert("FileTest.file?") do
-  assert_equal false, FileTest.file?("/tmp")
-  assert_equal true,  FileTest.file?("/bin/sh")
+  assert_equal false, FileTest.file?(File.join(File._getwd, "mrblib"))
+  assert_equal true,  FileTest.file?(File.join(File._getwd, "README.md"))
 end
 
 assert("FileTest.pipe?") do
-  io = IO.popen("ls")
-  assert_equal true,  FileTest.pipe?(io)
-  assert_equal false, FileTest.pipe?("/tmp")
+  begin
+    assert_equal false, FileTest.pipe?("/tmp")
+    io = IO.popen("ls")
+    assert_equal true,  FileTest.pipe?(io)
+  rescue NotImplementedError => e
+    skip e.message
+  end
 end
 
 assert('FileTest.size') do
@@ -61,11 +65,19 @@ assert("FileTest.size?") do
 end
 
 assert("FileTest.socket?") do
-  assert_true FileTest.socket?($mrbtest_io_socketname)
+  begin
+    assert_true FileTest.socket?($mrbtest_io_socketname)
+  rescue NotImplementedError => e
+    skip e.message
+  end
 end
 
 assert("FileTest.symlink?") do
-  assert_true FileTest.symlink?($mrbtest_io_symlinkname)
+  begin
+    assert_true FileTest.symlink?($mrbtest_io_symlinkname)
+  rescue NotImplementedError => e
+    skip e.message
+  end
 end
 
 assert("FileTest.zero?") do

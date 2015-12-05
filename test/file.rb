@@ -56,12 +56,16 @@ end
 
 assert('IO#flock') do
   f = File.open $mrbtest_io_rfname
-  assert_equal(f.flock(File::LOCK_SH), 0)
-  assert_equal(f.flock(File::LOCK_UN), 0)
-  assert_equal(f.flock(File::LOCK_EX | File::LOCK_NB), 0)
-  assert_equal(f.flock(File::LOCK_UN), 0)
-  f.close
-  true
+  begin
+    assert_equal(f.flock(File::LOCK_SH), 0)
+    assert_equal(f.flock(File::LOCK_UN), 0)
+    assert_equal(f.flock(File::LOCK_EX | File::LOCK_NB), 0)
+    assert_equal(f.flock(File::LOCK_UN), 0)
+  rescue NotImplementedError => e
+    skip e.message
+  ensure
+    f.close
+  end
 end
 
 assert('File.join') do
@@ -76,8 +80,13 @@ assert('File.join') do
 end
 
 assert('File.realpath') do
-  usrbin = IO.popen("cd bin; /bin/pwd -P") { |f| f.read.chomp }
-  assert_equal usrbin, File.realpath("bin")
+  if File.const_defined?(:ALT_SEPARATOR) && File::ALT_SEPARATOR
+    readme_path = File._getwd + File::ALT_SEPARATOR + "README.md"
+    assert_equal readme_path, File.realpath("README.md")
+  else
+    usrbin = IO.popen("cd bin; /bin/pwd -P") { |f| f.read.chomp }
+    assert_equal usrbin, File.realpath("bin")
+  end
 end
 
 assert('File TEST CLEANUP') do
@@ -95,7 +104,12 @@ assert('File.expand_path') do
   assert_equal "/hoge", File.expand_path("////tmp/..///////hoge")
 
   assert_equal "/", File.expand_path("../../../..", "/")
-  assert_equal "/", File.expand_path(([".."] * 100).join("/"))
+  if File._getwd[1] == ":"
+    drive_letter = File._getwd[0]
+    assert_equal drive_letter + ":\\", File.expand_path(([".."] * 100).join("/"))
+  else
+    assert_equal "/", File.expand_path(([".."] * 100).join("/"))
+  end
 end
 
 assert('File.expand_path (with ENV)') do
