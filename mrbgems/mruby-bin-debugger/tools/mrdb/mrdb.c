@@ -57,7 +57,7 @@ static const debug_command debug_command_list[] = {
   {"quit",      NULL,           1, 0, 0, DBGCMD_QUIT,           dbgcmd_quit},            /* q[uit] */
   {"run",       NULL,           1, 0, 0, DBGCMD_RUN,            dbgcmd_run},             /* r[un] */
   {"step",      NULL,           1, 0, 1, DBGCMD_STEP,           dbgcmd_step},            /* s[tep] */
-  {"next",      NULL,           1, 0, 1, DBGCMD_NEXT,           dbgcmd_next},            /* s[tep] */
+  {"next",      NULL,           1, 0, 1, DBGCMD_NEXT,           dbgcmd_next},            /* n[ext] */
   {NULL}
 };
 
