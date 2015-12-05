@@ -57,5 +57,6 @@ dbgcmd_state
 dbgcmd_next(mrb_state *mrb, mrdb_state *mrdb)
 {
   mrdb->dbg->xm = DBG_NEXT;
+  mrdb->dbg->prvci = mrb->c->ci;
   return DBGST_CONTINUE;
 }

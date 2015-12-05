@@ -585,6 +585,7 @@ mrb_code_fetch_hook(mrb_state *mrb, mrb_irep *irep, mrb_code *pc, mrb_value *reg
     if((uint32_t)(dbg->prvci) < (uint32_t)(mrb->c->ci)) {
       return;
     }
+    dbg->prvci = NULL;
     dbg->method_bpno = 0;
     dbg->bm = BRK_NEXT;
     break;
@@ -606,7 +607,6 @@ mrb_code_fetch_hook(mrb_state *mrb, mrb_irep *irep, mrb_code *pc, mrb_value *reg
     }
     dbg->prvfile = file;
     dbg->prvline = line;
-    dbg->prvci = mrb->c->ci;
     return;
   case DBG_INIT:
     dbg->root_irep = irep;
