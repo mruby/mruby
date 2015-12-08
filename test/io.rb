@@ -359,15 +359,19 @@ assert('IO#gets - paragraph mode') do
 end
 
 assert('IO.popen') do
-  io = IO.popen("ls")
-  assert_true io.close_on_exec?
-  assert_equal Fixnum, io.pid.class
-  ls = io.read
-  assert_equal ls.class, String
-  assert_include ls, 'AUTHORS'
-  assert_include ls, 'mrblib'
-  io.close
-  io.closed?
+  begin
+    io = IO.popen("ls")
+    assert_true io.close_on_exec?
+    assert_equal Fixnum, io.pid.class
+    ls = io.read
+    assert_equal ls.class, String
+    assert_include ls, 'AUTHORS'
+    assert_include ls, 'mrblib'
+    io.close
+    io.closed?
+  rescue NotImplementedError => e
+    skip e.message
+  end
 end
 
 assert('IO.read') do
@@ -450,43 +454,51 @@ assert('IO#sysseek') do
 end
 
 assert('IO.pipe') do
-  called = false
-  IO.pipe do |r, w|
-    assert_true r.kind_of?(IO)
-    assert_true w.kind_of?(IO)
-    assert_false r.closed?
-    assert_false w.closed?
-    assert_true FileTest.pipe?(r)
-    assert_true FileTest.pipe?(w)
-    assert_nil r.pid
-    assert_nil w.pid
-    assert_true 2 < r.fileno
-    assert_true 2 < w.fileno
-    assert_true r.fileno != w.fileno
-    assert_false r.sync
-    assert_true w.sync
-    assert_equal 8, w.write('test for')
-    assert_equal 'test', r.read(4)
-    assert_equal ' for', r.read(4)
-    assert_equal 5, w.write(' pipe')
-    assert_equal nil, w.close
-    assert_equal ' pipe', r.read
-    called = true
-    assert_raise(IOError) { r.write 'test' }
-    # TODO:
-    # This assert expect raise IOError but got RuntimeError
-    # Because mruby-io not have flag for I/O readable
-    # assert_raise(IOError) { w.read }
-  end
-  assert_true called
+  begin
+    called = false
+    IO.pipe do |r, w|
+      assert_true r.kind_of?(IO)
+      assert_true w.kind_of?(IO)
+      assert_false r.closed?
+      assert_false w.closed?
+      assert_true FileTest.pipe?(r)
+      assert_true FileTest.pipe?(w)
+      assert_nil r.pid
+      assert_nil w.pid
+      assert_true 2 < r.fileno
+      assert_true 2 < w.fileno
+      assert_true r.fileno != w.fileno
+      assert_false r.sync
+      assert_true w.sync
+      assert_equal 8, w.write('test for')
+      assert_equal 'test', r.read(4)
+      assert_equal ' for', r.read(4)
+      assert_equal 5, w.write(' pipe')
+      assert_equal nil, w.close
+      assert_equal ' pipe', r.read
+      called = true
+      assert_raise(IOError) { r.write 'test' }
+      # TODO:
+      # This assert expect raise IOError but got RuntimeError
+      # Because mruby-io not have flag for I/O readable
+      # assert_raise(IOError) { w.read }
+    end
+    assert_true called
 
-  assert_nothing_raised do
-    IO.pipe { |r, w| r.close; w.close }
+    assert_nothing_raised do
+      IO.pipe { |r, w| r.close; w.close }
+    end
+  rescue NotImplementedError => e
+    skip e.message
   end
 end
 
 assert('`cmd`') do
-  assert_equal `echo foo`, "foo\n"
+  begin
+    assert_equal `echo foo`, "foo\n"
+  rescue NotImplementedError => e
+    skip e.message
+  end
 end
 
 assert('IO TEST CLEANUP') do

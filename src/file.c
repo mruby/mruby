@@ -130,17 +130,28 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 {
-  #if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32) || defined(_WIN64)
   char dname[_MAX_DIR], vname[_MAX_DRIVE];
   char buffer[_MAX_DRIVE + _MAX_DIR];
   char *path;
+  size_t ridx;
   mrb_value s;
   mrb_get_args(mrb, "S", &s);
   path = mrb_str_to_cstr(mrb, s);
   _splitpath((const char*)path, vname, dname, NULL, NULL);
   snprintf(buffer, _MAX_DRIVE + _MAX_DIR, "%s%s", vname, dname);
+  ridx = strlen(buffer);
+  if (ridx == 0) {
+    strncpy(buffer, ".", 2);  /* null terminated */
+  } else if (ridx > 1) {
+    ridx--;
+    while (ridx > 0 && (buffer[ridx] == '/' || buffer[ridx] == '\\')) {
+      buffer[ridx] = '\0';  /* remove last char */
+      ridx--;
+    }
+  }
   return mrb_str_new_cstr(mrb, buffer);
-  #else
+#else
   char *dname, *path;
   mrb_value s;
   mrb_get_args(mrb, "S", &s);
@@ -149,25 +160,37 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
   if ((dname = dirname(path)) == NULL) {
     mrb_sys_fail(mrb, "dirname");
   }
-  #endif
+#endif
   return mrb_str_new_cstr(mrb, dname);
 }
 
 static mrb_value
 mrb_file_basename(mrb_state *mrb, mrb_value klass)
 {
-  #if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32) || defined(_WIN64)
   char bname[_MAX_DIR];
   char extname[_MAX_EXT];
   char *path;
+  size_t ridx;
   char buffer[_MAX_DIR + _MAX_EXT];
   mrb_value s;
   mrb_get_args(mrb, "S", &s);
   path = mrb_str_to_cstr(mrb, s);
+  ridx = strlen(path);
+  if (ridx > 0) {
+    ridx--;
+    while (ridx > 0 && (path[ridx] == '/' || path[ridx] == '\\')) {
+      path[ridx] = '\0';
+      ridx--;
+    }
+    if (strncmp(path, "/", 2) == 0) {
+      return mrb_str_new_cstr(mrb, path);
+    }
+  }
   _splitpath((const char*)path, NULL, NULL, bname, extname);
   snprintf(buffer, _MAX_DIR + _MAX_EXT, "%s%s", bname, extname);
   return mrb_str_new_cstr(mrb, buffer);
-  #else
+#else
   char *bname, *path;
   mrb_value s;
   mrb_get_args(mrb, "S", &s);
@@ -176,7 +199,7 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
     mrb_sys_fail(mrb, "basename");
   }
   return mrb_str_new_cstr(mrb, bname);
-  #endif
+#endif
 }
 
 static mrb_value
@@ -255,12 +278,11 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
 #endif
 }
 
-#ifndef _WIN32
 mrb_value
 mrb_file_flock(mrb_state *mrb, mrb_value self)
 {
-#if defined(sun)
-  mrb_raise(mrb, E_RUNTIME_ERROR, "flock is not supported on Illumos/Solaris");
+#if defined(_WIN32) || defined(_WIN64) || defined(sun)
+  mrb_raise(mrb, E_NOTIMP_ERROR, "flock is not supported on Illumos/Solaris/Windows");
 #else
   mrb_int operation;
   int fd;
@@ -289,7 +311,6 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
 #endif
   return mrb_fixnum_value(0);
 }
-#endif
 
 static mrb_value
 mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
@@ -333,9 +354,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "_getwd",    mrb_file__getwd,     MRB_ARGS_NONE());
   mrb_define_class_method(mrb, file, "_gethome",  mrb_file__gethome,   MRB_ARGS_OPT(1));
 
-  #ifndef _WIN32
   mrb_define_method(mrb, file, "flock", mrb_file_flock, MRB_ARGS_REQ(1));
-  #endif
 
   cnst = mrb_define_module_under(mrb, file, "Constants");
   mrb_define_const(mrb, cnst, "LOCK_SH", mrb_fixnum_value(LOCK_SH));

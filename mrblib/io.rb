@@ -27,6 +27,9 @@ class IO
   end
 
   def self.popen(command, mode = 'r', &block)
+    if !self.respond_to?(:_popen)
+      raise NotImplementedError, "popen is not supported on this platform"
+    end
     io = self._popen(command, mode)
     return io unless block
 
@@ -42,6 +45,9 @@ class IO
   end
 
   def self.pipe(&block)
+    if !self.respond_to?(:_pipe)
+      raise NotImplementedError, "pipe is not supported on this platform"
+    end
     if block
       begin
         r, w = IO._pipe
