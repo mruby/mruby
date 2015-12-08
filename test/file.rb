@@ -80,7 +80,7 @@ assert('File.join') do
 end
 
 assert('File.realpath') do
-  if File.const_defined?(:ALT_SEPARATOR) && File::ALT_SEPARATOR
+  if File::ALT_SEPARATOR
     readme_path = File._getwd + File::ALT_SEPARATOR + "README.md"
     assert_equal readme_path, File.realpath("README.md")
   else
