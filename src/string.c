@@ -2137,7 +2137,7 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
   }
   c = *p;
   if (badcheck && c == '\0') {
-    goto nullbyte;
+    goto bad;
   }
   c = conv_digit(c);
   if (c < 0 || c >= base) {
