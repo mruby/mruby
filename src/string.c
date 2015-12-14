@@ -2125,15 +2125,21 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
       break;
   } /* end of switch (base) { */
   if (*p == '0') {    /* squeeze preceding 0s */
-    while (p<pend && ((c = *++p) == '0' || c == '_')) {
+    p++;
+    while (p<pend) {
+      c = *p++;
       if (c == '_') {
-        if (*p == '_') {
+        if (p<pend && *p == '_') {
           if (badcheck) goto bad;
           break;
         }
+        continue;
+      }
+      if (c != '0') {
+        p--;
+        break;
       }
     }
-    if (!(c = *p) || ISSPACE(c)) --p;
   }
   c = *p;
   if (badcheck && c == '\0') {
