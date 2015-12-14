@@ -2124,6 +2124,10 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
       }
       break;
   } /* end of switch (base) { */
+  if (p>=pend) {
+    if (badcheck) goto bad;
+    return mrb_fixnum_value(0);
+  }
   if (*p == '0') {    /* squeeze preceding 0s */
     p++;
     while (p<pend) {
@@ -2153,14 +2157,17 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
 
   for ( ;p<pend;p++) {
     if (*p == '_') {
-      if (p[1] == '_') {
+      if (p+1<pend && p[1] == '_') {
         if (badcheck) goto bad;
         continue;
       }
       p++;
+      if (badcheck && p<pend)
+        goto bad;
     }
     if (badcheck && *p == '\0') {
       goto nullbyte;
+      break;
     }
     c = conv_digit(*p);
     if (c < 0 || c >= base) {
@@ -2186,7 +2193,7 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
   /* not reached */
  bad:
   mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for number(%S)",
-             mrb_inspect(mrb, mrb_str_new_cstr(mrb, str)));
+             mrb_inspect(mrb, mrb_str_new(mrb, str, pend-str)));
   /* not reached */
   return mrb_fixnum_value(0);
 }
