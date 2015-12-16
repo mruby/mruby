@@ -2175,8 +2175,12 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
     }
     n *= base;
     n += c;
-    if (n > MRB_INT_MAX) {
+    if (sign && n > MRB_INT_MAX) {
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "string (%S) too big for integer",
+                 mrb_str_new(mrb, str, pend-str));
+    }
+    else if (!sign && n > -(int64_t)MRB_INT_MIN) {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "string (%S) too small for integer",
                  mrb_str_new(mrb, str, pend-str));
     }
   }
