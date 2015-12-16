@@ -2145,29 +2145,24 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
       }
     }
   }
-  c = *p;
-  if (badcheck && c == '\0') {
-    goto bad;
-  }
-  c = conv_digit(c);
-  if (c < 0 || c >= base) {
+  if (p == pend) {
     if (badcheck) goto bad;
     return mrb_fixnum_value(0);
   }
-
   for ( ;p<pend;p++) {
     if (*p == '_') {
-      if (p+1<pend && p[1] == '_') {
+      p++;
+      if (p==pend) {
         if (badcheck) goto bad;
         continue;
       }
-      p++;
-      if (badcheck && p<pend)
-        goto bad;
+      if (*p == '_') {
+        if (badcheck) goto bad;
+        break;
+      }
     }
     if (badcheck && *p == '\0') {
       goto nullbyte;
-      break;
     }
     c = conv_digit(*p);
     if (c < 0 || c >= base) {
