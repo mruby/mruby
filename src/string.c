@@ -2162,7 +2162,7 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
         continue;
       }
       p++;
-      if (badcheck && p<pend)
+      if (badcheck && p>=pend)
         goto bad;
     }
     if (badcheck && *p == '\0') {
