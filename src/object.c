@@ -481,6 +481,7 @@ mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
     case MRB_TT_MODULE:
     case MRB_TT_CLASS:
     case MRB_TT_ICLASS:
+    case MRB_TT_SCLASS:
       break;
 
     default:
