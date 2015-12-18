@@ -1,5 +1,7 @@
 [![Build Status][build-status-img]][travis-ci]
 
+GitHub Desktopデビューした
+
 ## What's mruby
 
 mruby is the lightweight implementation of the Ruby language complying to (part
