@@ -3473,6 +3473,7 @@ peekc_n(parser_state *p, int n)
   do {
     c0 = nextc(p);
     if (c0 == -1) return c0;    /* do not skip partial EOF */
+    if (c0 >= 0) --p->column;
     list = push(list, (node*)(intptr_t)c0);
   } while(n--);
   if (p->pb) {
