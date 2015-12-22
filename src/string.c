@@ -4,6 +4,10 @@
 ** See Copyright Notice in mruby.h
 */
 
+#ifdef _MSC_VER
+# define _CRT_NONSTDC_NO_DEPRECATE
+#endif
+
 #include <float.h>
 #include <limits.h>
 #include <stddef.h>
@@ -2170,12 +2174,12 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
     }
     n *= base;
     n += c;
-    if (n > (int64_t)MRB_INT_MAX + (sign ? 0 : 1)) {
+    if (n > (uint64_t)MRB_INT_MAX + (sign ? 0 : 1)) {
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "string (%S) too big for integer",
                  mrb_str_new(mrb, str, pend-str));
     }
   }
-  val = n;
+  val = (mrb_int)n;
   if (badcheck) {
     if (p == str) goto bad; /* no number */
     while (p<pend && ISSPACE(*p)) p++;
