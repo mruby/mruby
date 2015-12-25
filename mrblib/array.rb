@@ -13,11 +13,10 @@ class Array
     return to_enum :each unless block_given?
 
     idx, length = -1, self.length-1
-    while idx < length and length <= self.length and length = self.length-1
+    while idx < length && length <= self.length
+      length = self.length-1
       elm = self[idx += 1]
-      if elm.nil? and length >= self.length
-        break
-      end
+      break if elm.nil? && length >= self.length
       block.call(elm)
     end
     self
