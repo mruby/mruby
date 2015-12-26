@@ -427,9 +427,6 @@ main(int argc, char **argv)
   ai = mrb_gc_arena_save(mrb);
 
   while (TRUE) {
-#ifdef ENABLE_READLINE
-    char* line;
-#endif
     char *utf8;
 
     if (args.rfp) {
