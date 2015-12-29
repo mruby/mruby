@@ -373,7 +373,17 @@ assert('Raise in ensure') do
   end
 end
 
+def backtrace_avaialble?
+  begin
+    raise "XXX"
+  rescue => exception
+    not exception.backtrace.empty?
+  end
+end
+
 assert('GC in rescue') do
+  skip "backtrace isn't avaialble" unless backtrace_avaialble?
+
   line = nil
   begin
     [1].each do
@@ -391,6 +401,8 @@ assert('GC in rescue') do
 end
 
 assert('Method call in rescue') do
+  skip "backtrace isn't avaialble" unless backtrace_avaialble?
+
   line = nil
   begin
     [1].each do
