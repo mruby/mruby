@@ -258,6 +258,8 @@ cipop(mrb_state *mrb)
   c->ci--;
 }
 
+void mrb_exc_set(mrb_state *mrb, mrb_value exc);
+
 static void
 ecall(mrb_state *mrb, int i)
 {
@@ -669,7 +671,7 @@ localjump_error(mrb_state *mrb, localjump_error_kind kind)
   mrb_str_cat(mrb, msg, lead, sizeof(lead) - 1);
   mrb_str_cat(mrb, msg, kind_str[kind], kind_str_len[kind]);
   exc = mrb_exc_new_str(mrb, E_LOCALJUMP_ERROR, msg);
-  mrb->exc = mrb_obj_ptr(exc);
+  mrb_exc_set(mrb, exc);
 }
 
 static void
@@ -688,7 +690,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
                   mrb_fixnum_value(mrb->c->ci->argc), mrb_fixnum_value(num));
   }
   exc = mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str);
-  mrb->exc = mrb_obj_ptr(exc);
+  mrb_exc_set(mrb, exc);
 }
 
 #define ERR_PC_SET(mrb, pc) mrb->c->ci->err = pc;
@@ -1007,7 +1009,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_RAISE) {
       /* A      raise(R(A)) */
-      mrb->exc = mrb_obj_ptr(regs[GETARG_A(i)]);
+      mrb_exc_set(mrb, regs[GETARG_A(i)]);
       goto L_RAISE;
     }
 
@@ -1241,7 +1243,7 @@ RETRY_TRY_BLOCK:
         mrb_value exc;
 
         exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
-        mrb->exc = mrb_obj_ptr(exc);
+        mrb_exc_set(mrb, exc);
         goto L_RAISE;
       }
       recv = regs[0];
@@ -1331,7 +1333,7 @@ RETRY_TRY_BLOCK:
           mrb_value exc;
 
           exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
-          mrb->exc = mrb_obj_ptr(exc);
+          mrb_exc_set(mrb, exc);
           goto L_RAISE;
         }
         stack = e->stack + 1;
@@ -1561,7 +1563,7 @@ RETRY_TRY_BLOCK:
             }
             if (mrb->c->prev->ci == mrb->c->prev->cibase) {
               mrb_value exc = mrb_exc_new_str_lit(mrb, E_FIBER_ERROR, "double resume");
-              mrb->exc = mrb_obj_ptr(exc);
+              mrb_exc_set(mrb, exc);
               goto L_RAISE;
             }
             /* automatic yield at the end */
@@ -2323,7 +2325,7 @@ RETRY_TRY_BLOCK:
       /* A      R(A) := target_class */
       if (!mrb->c->ci->target_class) {
         mrb_value exc = mrb_exc_new_str_lit(mrb, E_TYPE_ERROR, "no target class or module");
-        mrb->exc = mrb_obj_ptr(exc);
+        mrb_exc_set(mrb, exc);
         goto L_RAISE;
       }
       regs[GETARG_A(i)] = mrb_obj_value(mrb->c->ci->target_class);
@@ -2381,7 +2383,7 @@ RETRY_TRY_BLOCK:
       else {
         exc = mrb_exc_new_str(mrb, E_LOCALJUMP_ERROR, msg);
       }
-      mrb->exc = mrb_obj_ptr(exc);
+      mrb_exc_set(mrb, exc);
       goto L_RAISE;
     }
   }

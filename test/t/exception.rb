@@ -373,12 +373,35 @@ assert('Raise in ensure') do
   end
 end
 
-assert('Raise in rescue') do
-  assert_raise(ArgumentError) do
-    begin
-      raise "" # RuntimeError
-    rescue
-      raise ArgumentError
+assert('GC in rescue') do
+  line = nil
+  begin
+    [1].each do
+      [2].each do
+        [3].each do
+          line = __LINE__; raise "XXX"
+        end
+      end
     end
+  rescue => exception
+    GC.start
+    assert_equal("#{__FILE__}:#{line}:in Object.call",
+                 exception.backtrace.first)
+  end
+end
+
+assert('Method call in rescue') do
+  line = nil
+  begin
+    [1].each do
+      [2].each do
+        line = __LINE__; raise "XXX"
+      end
+    end
+  rescue => exception
+    [3].each do
+    end
+    assert_equal("#{__FILE__}:#{line}:in Object.call",
+                 exception.backtrace.first)
   end
 end
