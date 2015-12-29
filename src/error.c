@@ -390,7 +390,7 @@ exception_call:
     if (!mrb_obj_is_kind_of(mrb, mesg, mrb->eException_class))
       mrb_raise(mrb, E_TYPE_ERROR, "exception object expected");
     if (argc > 2)
-        set_backtrace(mrb, mesg, argv[2]);
+      set_backtrace(mrb, mesg, argv[2]);
   }
 
   return mesg;
