@@ -209,6 +209,7 @@ top_env(mrb_state *mrb, struct RProc *proc)
 
 #define CI_ACC_SKIP    -1
 #define CI_ACC_DIRECT  -2
+#define CI_ACC_RESUMED -3
 
 static mrb_callinfo*
 cipush(mrb_state *mrb)
@@ -736,9 +737,21 @@ void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value 
 MRB_API mrb_value
 mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {
+  mrb_irep *irep = proc->body.irep;
+
+  if (!mrb->c->stack) {
+    stack_init(mrb);
+  }
+  stack_extend(mrb, irep->nregs, stack_keep);
+  mrb->c->stack[0] = self;
+  return mrb_vm_exec(mrb, proc, irep->iseq);
+}
+
+MRB_API mrb_value
+mrb_vm_exec(mrb_state *mrb, struct RProc *proc, mrb_code *pc)
+{
   /* mrb_assert(mrb_proc_cfunc_p(proc)) */
   mrb_irep *irep = proc->body.irep;
-  mrb_code *pc = irep->iseq;
   mrb_value *pool = irep->pool;
   mrb_sym *syms = irep->syms;
   mrb_value *regs = NULL;
@@ -782,14 +795,9 @@ RETRY_TRY_BLOCK:
     goto L_RAISE;
   }
   mrb->jmp = &c_jmp;
-  if (!mrb->c->stack) {
-    stack_init(mrb);
-  }
-  stack_extend(mrb, irep->nregs, stack_keep);
   mrb->c->ci->proc = proc;
   mrb->c->ci->nregs = irep->nregs;
   regs = mrb->c->stack;
-  regs[0] = self;
 
   INIT_DISPATCH {
     CASE(OP_NOP) {
@@ -1131,19 +1139,24 @@ RETRY_TRY_BLOCK:
           ci->nregs = n + 2;
         }
         result = m->body.func(mrb, recv);
-        mrb->c->stack[0] = result;
         mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
         ci = mrb->c->ci;
         if (!ci->target_class) { /* return from context modifying method (resume/yield) */
-          if (!MRB_PROC_CFUNC_P(ci[-1].proc)) {
+          if (ci->acc == CI_ACC_RESUMED) {
+            mrb->jmp = prev_jmp;
+            return result;
+          }
+          else {
+            mrb_assert(!MRB_PROC_CFUNC_P(ci[-1].proc));
             proc = ci[-1].proc;
             irep = proc->body.irep;
             pool = irep->pool;
             syms = irep->syms;
           }
         }
+        mrb->c->stack[0] = result;
         regs = mrb->c->stack = ci->stackent;
         pc = ci->pc;
         cipop(mrb);
@@ -1608,14 +1621,19 @@ RETRY_TRY_BLOCK:
         while (eidx > mrb->c->ci[-1].eidx) {
           ecall(mrb, --eidx);
         }
+        if (mrb->c->vmexec && !mrb->c->ci->target_class) {
+          mrb->c->vmexec = FALSE;
+          mrb->jmp = prev_jmp;
+          return v;
+        }
         cipop(mrb);
         acc = ci->acc;
-        pc = ci->pc;
         regs = mrb->c->stack = ci->stackent;
         if (acc == CI_ACC_SKIP) {
           mrb->jmp = prev_jmp;
           return v;
         }
+        pc = ci->pc;
         DEBUG(printf("from :%s\n", mrb_sym2name(mrb, ci->mid)));
         proc = mrb->c->ci->proc;
         irep = proc->body.irep;

@@ -87,7 +87,7 @@ typedef struct {
 enum mrb_fiber_state {
   MRB_FIBER_CREATED = 0,
   MRB_FIBER_RUNNING,
-  MRB_FIBER_RESUMING,
+  MRB_FIBER_RESUMED,
   MRB_FIBER_SUSPENDED,
   MRB_FIBER_TRANSFERRED,
   MRB_FIBER_TERMINATED,
@@ -108,6 +108,7 @@ struct mrb_context {
   int esize;
 
   enum mrb_fiber_state status;
+  mrb_bool vmexec;
   struct RFiber *fib;
 };
 
@@ -934,6 +935,7 @@ MRB_API mrb_value mrb_top_self(mrb_state *);
 MRB_API mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
 MRB_API mrb_value mrb_toplevel_run(mrb_state*, struct RProc*);
 MRB_API mrb_value mrb_context_run(mrb_state*, struct RProc*, mrb_value, unsigned int);
+MRB_API mrb_value mrb_vm_exec(mrb_state*, struct RProc*, mrb_code*);
 
 MRB_API void mrb_p(mrb_state*, mrb_value);
 MRB_API mrb_int mrb_obj_id(mrb_value obj);
