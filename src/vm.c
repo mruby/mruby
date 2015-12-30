@@ -237,22 +237,27 @@ cipush(mrb_state *mrb)
   return ci;
 }
 
+MRB_API void
+mrb_env_unshare(mrb_state *mrb, struct REnv *e)
+{
+  size_t len = (size_t)MRB_ENV_STACK_LEN(e);
+  mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
+
+  MRB_ENV_UNSHARE_STACK(e);
+  if (len > 0) {
+    stack_copy(p, e->stack, len);
+  }
+  e->stack = p;
+  mrb_write_barrier(mrb, (struct RBasic *)e);
+}
+
 static void
 cipop(mrb_state *mrb)
 {
   struct mrb_context *c = mrb->c;
 
   if (c->ci->env) {
-    struct REnv *e = c->ci->env;
-    size_t len = (size_t)MRB_ENV_STACK_LEN(e);
-    mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
-
-    MRB_ENV_UNSHARE_STACK(e);
-    if (len > 0) {
-      stack_copy(p, e->stack, len);
-    }
-    e->stack = p;
-    mrb_write_barrier(mrb, (struct RBasic *)e);
+    mrb_env_unshare(mrb, c->ci->env);
   }
 
   c->ci--;
