@@ -20,7 +20,7 @@ typedef mrb_int mrb_jmpbuf_impl;
 
 #include <setjmp.h>
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #define MRB_SETJMP _setjmp
 #define MRB_LONGJMP _longjmp
 #else
