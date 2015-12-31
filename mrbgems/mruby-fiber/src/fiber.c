@@ -332,7 +332,9 @@ mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
  *  along any arguments that were passed to it. The fiber will resume
  *  processing at this point when <code>resume</code> is called next.
  *  Any arguments passed to the next <code>resume</code> will be the
- *  value that this <code>Fiber.yield</code> expression evaluates to.
+ *
+ *  mruby limitation: Fiber resume/yield cannot cross C function boundary.
+ *  thus you cannot yield from #initialize which is called by mrb_funcall().
  */
 static mrb_value
 fiber_yield(mrb_state *mrb, mrb_value self)
