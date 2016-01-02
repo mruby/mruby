@@ -359,7 +359,7 @@ ctrl_c_handler(int signo)
 int
 main(int argc, char **argv)
 {
-  char ruby_code[1024] = { 0 };
+  char ruby_code[4096] = { 0 };
   char last_code_line[1024] = { 0 };
 #ifndef ENABLE_READLINE
   int last_char;
