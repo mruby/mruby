@@ -504,6 +504,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
 {
   struct RProc *p;
   mrb_callinfo *ci;
+  mrb_int max = 3;
 
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
@@ -516,11 +517,19 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   p = mrb_proc_ptr(blk);
   ci->proc = p;
   ci->argc = 1;
-  mrb->c->stack[1] = self;
   if (MRB_PROC_CFUNC_P(p)) {
+    stack_extend(mrb, 3, 0);
+    mrb->c->stack[0] = self;
+    mrb->c->stack[1] = self;
+    mrb->c->stack[2] = mrb_nil_value();
     return p->body.func(mrb, self);
   }
   ci->nregs = p->body.irep->nregs;
+  if (max < ci->nregs) max = ci->nregs;
+  stack_extend(mrb, max, 0);
+  mrb->c->stack[0] = self;
+  mrb->c->stack[1] = self;
+  mrb->c->stack[2] = mrb_nil_value();
   ci = cipush(mrb);
   ci->nregs = 0;
   ci->target_class = 0;
