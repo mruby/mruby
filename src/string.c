@@ -306,17 +306,20 @@ bytes2chars(char *p, mrb_int bi)
   mrb_int i, b, n;
 
   for (b=i=0; b<bi; i++) {
-    n = utf8len(p, p+bi);
+    n = utf8len_codepage[(unsigned char)*p];
     b += n;
     p += n;
   }
+  if (b != bi) return -1;
   return i;
 }
 
+#define BYTES_ALIGN_CHECK(pos) if (pos < 0) return mrb_nil_value();
 #else
 #define RSTRING_CHAR_LEN(s) RSTRING_LEN(s)
 #define chars2bytes(p, off, ci) (ci)
 #define bytes2chars(p, bi) (bi)
+#define BYTES_ALIGN_CHECK(pos)
 #endif
 
 static inline mrb_int
@@ -1608,6 +1611,7 @@ mrb_str_index(mrb_state *mrb, mrb_value str)
 
   if (pos == -1) return mrb_nil_value();
   pos = bytes2chars(RSTRING_PTR(str), pos);
+  BYTES_ALIGN_CHECK(pos);
   return mrb_fixnum_value(pos);
 }
 
@@ -1877,6 +1881,7 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
       pos = str_rindex(mrb, str, sub, pos);
       if (pos >= 0) {
         pos = bytes2chars(RSTRING_PTR(str), pos);
+        BYTES_ALIGN_CHECK(pos);
         return mrb_fixnum_value(pos);
       }
       break;
