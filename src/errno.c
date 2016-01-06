@@ -43,7 +43,7 @@ mrb_sce_init(mrb_state *mrb, mrb_value self)
     } else {
       mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "errno"), mrb_fixnum_value(n));
       str = mrb_str_new_cstr(mrb, "Unknown error: ");
-      snprintf(buf, sizeof(buf), "%d", n);
+      snprintf(buf, sizeof(buf), "%d", (int)n);
       mrb_str_cat2(mrb, str, buf);
     }
   } else {
