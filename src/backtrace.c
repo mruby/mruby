@@ -175,7 +175,10 @@ output_backtrace_i(mrb_state *mrb, struct backtrace_location_raw *loc_raw, void 
 static void
 output_backtrace(mrb_state *mrb, mrb_int ciidx, mrb_code *pc0, output_stream_func func, void *data)
 {
-  each_backtrace(mrb, ciidx, pc0, output_backtrace_i, data);
+  struct output_backtrace_args args;
+  args.func = func;
+  args.data = data;
+  each_backtrace(mrb, ciidx, pc0, output_backtrace_i, &args);
 }
 
 static void
