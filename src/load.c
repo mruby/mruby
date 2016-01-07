@@ -635,7 +635,7 @@ mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrbc_context *c)
   proc = mrb_proc_new(mrb, irep);
   mrb_irep_decref(mrb, irep);
   if (c && c->no_exec) return mrb_obj_value(proc);
-  return mrb_toplevel_run(mrb, proc);
+  return mrb_top_run(mrb, proc, mrb_top_self(mrb), 0);
 }
 
 MRB_API mrb_value
@@ -697,7 +697,7 @@ mrb_load_irep_file_cxt(mrb_state *mrb, FILE* fp, mrbc_context *c)
   mrb_irep_decref(mrb, irep);
   if (c && c->dump_result) mrb_codedump_all(mrb, proc);
   if (c && c->no_exec) return mrb_obj_value(proc);
-  val = mrb_toplevel_run(mrb, proc);
+  val = mrb_top_run(mrb, proc, mrb_top_self(mrb), 0);
   return val;
 }
 
