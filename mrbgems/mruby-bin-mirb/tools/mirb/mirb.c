@@ -546,7 +546,7 @@ done:
         }
         /* pass a proc for evaulation */
         /* evaluate the bytecode */
-        result = mrb_context_run(mrb,
+        result = mrb_vm_run(mrb,
             proc,
             mrb_top_self(mrb),
             stack_keep);

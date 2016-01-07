@@ -5634,7 +5634,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   if (mrb->c->ci) {
     mrb->c->ci->target_class = target;
   }
-  v = mrb_toplevel_run_keep(mrb, proc, keep);
+  v = mrb_top_run(mrb, proc, mrb_top_self(mrb), keep);
   if (mrb->exc) return mrb_nil_value();
   return v;
 }

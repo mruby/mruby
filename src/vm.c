@@ -746,7 +746,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
 void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
 
 MRB_API mrb_value
-mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
+mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {
   mrb_irep *irep = proc->body.irep;
 
@@ -2434,30 +2434,24 @@ RETRY_TRY_BLOCK:
 MRB_API mrb_value
 mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 {
-  return mrb_context_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
+  return mrb_vm_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
 }
 
 MRB_API mrb_value
-mrb_toplevel_run_keep(mrb_state *mrb, struct RProc *proc, unsigned int stack_keep)
+mrb_top_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {
   mrb_callinfo *ci;
   mrb_value v;
 
   if (!mrb->c->cibase || mrb->c->ci == mrb->c->cibase) {
-    return mrb_context_run(mrb, proc, mrb_top_self(mrb), stack_keep);
+    return mrb_vm_run(mrb, proc, self, stack_keep);
   }
   ci = cipush(mrb);
   ci->nregs = 1;   /* protect the receiver */
   ci->acc = CI_ACC_SKIP;
   ci->target_class = mrb->object_class;
-  v = mrb_context_run(mrb, proc, mrb_top_self(mrb), stack_keep);
+  v = mrb_vm_run(mrb, proc, self, stack_keep);
   cipop(mrb);
 
   return v;
-}
-
-MRB_API mrb_value
-mrb_toplevel_run(mrb_state *mrb, struct RProc *proc)
-{
-  return mrb_toplevel_run_keep(mrb, proc, 0);
 }

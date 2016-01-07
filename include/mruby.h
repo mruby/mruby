@@ -933,9 +933,13 @@ MRB_API void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
 
 MRB_API mrb_value mrb_top_self(mrb_state *);
 MRB_API mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
-MRB_API mrb_value mrb_toplevel_run(mrb_state*, struct RProc*);
-MRB_API mrb_value mrb_context_run(mrb_state*, struct RProc*, mrb_value, unsigned int);
+MRB_API mrb_value mrb_top_run(mrb_state*, struct RProc*, mrb_value, unsigned int);
+MRB_API mrb_value mrb_vm_run(mrb_state*, struct RProc*, mrb_value, unsigned int);
 MRB_API mrb_value mrb_vm_exec(mrb_state*, struct RProc*, mrb_code*);
+/* compatibility macros */
+#define mrb_toplevel_run_keep(m,p,k) mrb_top_run((m),(p),mrb_top_self(m),(k))
+#define mrb_toplevel_run(m,p) mrb_toplevel_run_keep((m),(p),0)
+#define mrb_context_run(m,p,s,k) mrb_vm_run((m),(p),(s),(k))
 
 MRB_API void mrb_p(mrb_state*, mrb_value);
 MRB_API mrb_int mrb_obj_id(mrb_value obj);
