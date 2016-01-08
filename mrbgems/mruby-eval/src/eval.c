@@ -133,7 +133,7 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest)
 void mrb_codedump_all(mrb_state*, struct RProc*);
 
 static struct RProc*
-create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, char *file, mrb_int line, mrb_bool nest)
+create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, char *file, mrb_int line)
 {
   mrbc_context *cxt;
   struct mrb_parser_state *p;
@@ -185,12 +185,7 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, cha
   e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)e);
   e->mid = c->ci[-1].mid;
   e->cioff = c->ci - c->cibase - 1;
-  if (nest) {
-    e->stack = c->stack;
-  }
-  else {
-    e->stack = c->ci->stackent;
-  }
+  e->stack = c->ci->stackent;
   MRB_SET_ENV_STACK_LEN(e, c->ci[-1].proc->body.irep->nlocals);
   c->ci->env = e;
   proc->env = e;
@@ -215,7 +210,7 @@ f_eval(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "s|ozi", &s, &len, &binding, &file, &line);
 
-  proc = create_proc_from_string(mrb, s, len, binding, file, line, FALSE);
+  proc = create_proc_from_string(mrb, s, len, binding, file, line);
   ret = mrb_top_run(mrb, proc, mrb->c->stack[0], 0);
   if (mrb->exc) {
     mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));
@@ -249,8 +244,8 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     c->ci->acc = CI_ACC_SKIP;
     cv = mrb_singleton_class(mrb, self);
     c->ci->target_class = mrb_class_ptr(cv);
-    proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line, TRUE);
-    return mrb_run(mrb, proc, self);
+    proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line);
+    return mrb_top_run(mrb, proc, mrb->c->stack[0], 0);
   }
   else {
     mrb_get_args(mrb, "&", &b);
