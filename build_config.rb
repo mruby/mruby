@@ -22,7 +22,7 @@ MRuby::Build.new do |conf|
   # include the default GEMs
   conf.gembox 'default'
   
-  conf.gem '../mruby_example'
+  conf.gem :github => 'mav7/mruby_example', :branch => 'build'
   # C compiler settings
   # conf.cc do |cc|
   #   cc.command = ENV['CC'] || 'gcc'
