@@ -384,6 +384,19 @@ assert('class variable and class << self style class method') do
   assert_equal("value", ClassVariableTest.class_variable)
 end
 
+assert('class variable in module and class << self style class method') do
+  module ClassVariableInModuleTest
+    @@class_variable = "value"
+    class << self
+      def class_variable
+        @@class_variable
+      end
+    end
+  end
+
+  assert_equal("value", ClassVariableInModuleTest.class_variable)
+end
+
 assert('class with non-class/module outer raises TypeError') do
   assert_raise(TypeError) { class 0::C1; end }
   assert_raise(TypeError) { class []::C2; end }
