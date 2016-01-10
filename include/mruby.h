@@ -914,7 +914,7 @@ MRB_API mrb_value mrb_check_intern(mrb_state*,const char*,size_t);
  */
 MRB_API mrb_value mrb_check_intern_str(mrb_state*,mrb_value);
 /**
- * Returns the name of the Symbol as a C string.
+ * Returns a Symbol as a C string
  *
  *     void
  *     mrb_mruby_example_gem_init(mrb_state* mrb) {
@@ -931,7 +931,7 @@ MRB_API mrb_value mrb_check_intern_str(mrb_state*,mrb_value);
  */
 MRB_API const char *mrb_sym2name(mrb_state*,mrb_sym);
 /**
- * Returns the length of the Symbol name as a C string.
+ * Returns the length of a Symbol as C string
  *
  *     void
  *     mrb_mruby_example_gem_init(mrb_state* mrb) {
