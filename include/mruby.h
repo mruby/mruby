@@ -865,7 +865,7 @@ MRB_API mrb_sym mrb_intern(mrb_state*,const char*,size_t);
 MRB_API mrb_sym mrb_intern_static(mrb_state*,const char*,size_t);
 #define mrb_intern_lit(mrb, lit) mrb_intern_static(mrb, lit, mrb_strlen_lit(lit))
 /**
- * Creates a symbol from a Ruby string.
+ * Creates a symbol from a String.
  *
  *     void
  *     mrb_mruby_example_gem_init(mrb_state* mrb) {
@@ -950,7 +950,7 @@ MRB_API const char *mrb_sym2name(mrb_state*,mrb_sym);
  */
 MRB_API const char *mrb_sym2name_len(mrb_state*,mrb_sym,mrb_int*);
 /**
- * Returns a Ruby String from a Ruby Symbol.
+ * Returns a String from a Symbol.
  *
  *     void
  *     mrb_mruby_example_gem_init(mrb_state* mrb) {
@@ -1013,7 +1013,7 @@ MRB_API struct RBasic *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*)
  */
 MRB_API void mrb_free(mrb_state*, void*);
 /**
- *  Returns a Ruby String value.
+ *  Returns a String from C String.
  *
  *      void
  *      mrb_mruby_example_gem_init(mrb_state* mrb) {
@@ -1031,7 +1031,7 @@ MRB_API void mrb_free(mrb_state*, void*);
 MRB_API mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
 
 /**
- *  Returns a Ruby String value from a C string.
+ *  Returns a String from a C string.
  *
  *      void
  *      mrb_mruby_example_gem_init(mrb_state* mrb) {
