@@ -865,7 +865,7 @@ MRB_API mrb_sym mrb_intern(mrb_state*,const char*,size_t);
 MRB_API mrb_sym mrb_intern_static(mrb_state*,const char*,size_t);
 #define mrb_intern_lit(mrb, lit) mrb_intern_static(mrb, lit, mrb_strlen_lit(lit))
 /**
- * Defines a symbol from a Ruby string.
+ * Creates a symbol from a Ruby string.
  *
  *     void
  *     mrb_mruby_example_gem_init(mrb_state* mrb) {
@@ -881,7 +881,7 @@ MRB_API mrb_sym mrb_intern_static(mrb_state*,const char*,size_t);
  */
 MRB_API mrb_sym mrb_intern_str(mrb_state*,mrb_value);
 /**
- * Returns :Symbol if C string passed is "Symbol". It returns nil otherwise.
+ * Returns a Symbol, or nil otherwise.
  *
  *     void
  *     mrb_mruby_example_gem_init(mrb_state* mrb) {
@@ -897,7 +897,7 @@ MRB_API mrb_sym mrb_intern_str(mrb_state*,mrb_value);
 MRB_API mrb_value mrb_check_intern_cstr(mrb_state*,const char*);
 MRB_API mrb_value mrb_check_intern(mrb_state*,const char*,size_t);
 /**
- * Returns :Symbol if Ruby string passed is "Symbol". It returns nil otherwise.
+ * Returns a Symbol, or nil otherwise.
  *
  *     void
  *     mrb_mruby_example_gem_init(mrb_state* mrb) {
@@ -914,7 +914,7 @@ MRB_API mrb_value mrb_check_intern(mrb_state*,const char*,size_t);
  */
 MRB_API mrb_value mrb_check_intern_str(mrb_state*,mrb_value);
 /**
- * Returns a Symbol as a C string
+ * Returns a C string from a Symbol
  *
  *     void
  *     mrb_mruby_example_gem_init(mrb_state* mrb) {
