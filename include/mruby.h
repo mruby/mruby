@@ -950,7 +950,7 @@ MRB_API const char *mrb_sym2name(mrb_state*,mrb_sym);
  */
 MRB_API const char *mrb_sym2name_len(mrb_state*,mrb_sym,mrb_int*);
 /**
- * Returns a Ruby string.
+ * Returns a Ruby String from a Ruby Symbol.
  *
  *     void
  *     mrb_mruby_example_gem_init(mrb_state* mrb) {
