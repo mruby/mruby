@@ -773,7 +773,7 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym)
     klass = mrb_obj_iv_get(mrb, (struct RObject *)cls,
                            mrb_intern_lit(mrb, "__attached__"));
     c = mrb_class_ptr(klass);
-    if (c->tt == MRB_TT_CLASS) {
+    if (c->tt == MRB_TT_CLASS || c->tt == MRB_TT_MODULE) {
       while (c) {
         if (c->iv && iv_get(mrb, c->iv, sym, &v)) {
           return v;
