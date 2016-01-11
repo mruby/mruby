@@ -829,7 +829,7 @@ MRB_API mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, mrb_int, cons
  */
 MRB_API mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, mrb_int, const mrb_value*, mrb_value);
 /**
- * Defines a symbol from a C string.
+ * Creates a symbol from a C string.
  *
  *     # Ruby way:
  *     :symbol # => :symbol
@@ -843,7 +843,7 @@ MRB_API mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, mrb_int
  */
 MRB_API mrb_sym mrb_intern_cstr(mrb_state*,const char*);
 /**
- * Defines a symbol from a C string.
+ * Creates a symbol from a C string.
  *
  *     # Ruby way
  *     :symbol
