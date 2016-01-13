@@ -1,4 +1,4 @@
-MRuby::Toolchain.new(:visualcpp) do |conf|
+MRuby::Toolchain.new(:visualcpp) do |conf, _params|
   [conf.cc].each do |cc|
     cc.command = ENV['CC'] || 'cl.exe'
     # C4013: implicit function declaration
