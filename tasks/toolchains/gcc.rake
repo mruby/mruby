@@ -1,4 +1,4 @@
-MRuby::Toolchain.new(:gcc) do |conf|
+MRuby::Toolchain.new(:gcc) do |conf, _params|
   [conf.cc, conf.objc, conf.asm].each do |cc|
     cc.command = ENV['CC'] || 'gcc'
     cc.flags = [ENV['CFLAGS'] || %w(-g -std=gnu99 -O3 -Wall -Werror-implicit-function-declaration -Wdeclaration-after-statement -Wwrite-strings)]
