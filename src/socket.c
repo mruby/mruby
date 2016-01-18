@@ -734,7 +734,7 @@ mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_socket_gem_init(mrb_state* mrb)
 {
-  struct RClass *io, *ai, *sock, *bsock, *ipsock, *tcpsock, *udpsock;
+  struct RClass *io, *ai, *sock, *bsock, *ipsock, *tcpsock;
   struct RClass *constants;
 
 #ifdef _WIN32
@@ -781,7 +781,7 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   mrb_define_class_method(mrb, tcpsock, "_allocate", mrb_tcpsocket_allocate, MRB_ARGS_NONE());
   mrb_define_class(mrb, "TCPServer", tcpsock);
 
-  udpsock = mrb_define_class(mrb, "UDPSocket", ipsock);
+  mrb_define_class(mrb, "UDPSocket", ipsock);
   //#recvfrom_nonblock
 
   sock = mrb_define_class(mrb, "Socket", bsock);
