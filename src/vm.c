@@ -256,12 +256,13 @@ static void
 cipop(mrb_state *mrb)
 {
   struct mrb_context *c = mrb->c;
-
-  if (c->ci->env) {
-    mrb_env_unshare(mrb, c->ci->env);
-  }
+  struct REnv *env = c->ci->env;
 
   c->ci--;
+
+  if (env) {
+    mrb_env_unshare(mrb, env);
+  }
 }
 
 void mrb_exc_set(mrb_state *mrb, mrb_value exc);
