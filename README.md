@@ -3,6 +3,12 @@ mruby-io
 
 IO, File module for mruby
 
+## Installation
+Add the line below to your `build_config.rb`:
+
+```
+  conf.gem :github => 'iij/mruby-io'
+```
 
 ## Implemented methods
 
