@@ -1300,7 +1300,7 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     }
                 | keyword_END '{' compstmt '}'
                     {
-                      yyerror(p, "END not suported");
+                      yyerror(p, "END not supported");
                       $$ = new_postexe(p, $3);
                     }
                 | command_asgn
