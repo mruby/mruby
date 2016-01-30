@@ -421,6 +421,13 @@ assert('String#ljust') do
   assert_equal "hello", "hello".ljust(-3)
 end
 
+assert('String#rjust') do
+  assert_equal "hello", "hello".rjust(4)
+  assert_equal "               hello", "hello".rjust(20)
+  assert_equal "123412341234123hello", "hello".rjust(20, '1234')
+  assert_equal "hello", "hello".rjust(-3)
+end
+
 assert('String#upto') do
   a     = "aa"
   start = "aa"
