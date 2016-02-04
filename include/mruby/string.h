@@ -81,9 +81,10 @@ mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 #define MRB_STR_SHARED    1
 #define MRB_STR_NOFREE    2
 #define MRB_STR_FROZEN    4
-#define MRB_STR_EMBED     8
-#define MRB_STR_EMBED_LEN_MASK 0x1f0
-#define MRB_STR_EMBED_LEN_SHIFT 4
+#define MRB_STR_NO_UTF    8
+#define MRB_STR_EMBED    16
+#define MRB_STR_EMBED_LEN_MASK 0x3e0
+#define MRB_STR_EMBED_LEN_SHIFT 5
 
 void mrb_gc_free_str(mrb_state*, struct RString*);
 MRB_API void mrb_str_modify(mrb_state*, struct RString*);
