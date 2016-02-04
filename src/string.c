@@ -273,10 +273,16 @@ utf8_strlen(mrb_value str, mrb_int len)
   mrb_int total = 0;
   char* p = RSTRING_PTR(str);
   char* e = p;
+  if (RSTRING(str)->flags & MRB_STR_NO_UTF) {
+    return RSTRING_LEN(str);
+  }
   e += len < 0 ? RSTRING_LEN(str) : len;
   while (p<e) {
     p += utf8len(p, e);
     total++;
+  }
+  if (RSTRING_LEN(str) == total) {
+    RSTRING(str)->flags |= MRB_STR_NO_UTF;
   }
   return total;
 }
@@ -652,6 +658,7 @@ MRB_API void
 mrb_str_modify(mrb_state *mrb, struct RString *s)
 {
   check_frozen(mrb, s);
+  s->flags &= ~MRB_STR_NO_UTF;
   if (RSTR_SHARED_P(s)) {
     mrb_shared_string *shared = s->as.heap.aux.shared;
 
