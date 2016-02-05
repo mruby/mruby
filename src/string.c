@@ -1870,7 +1870,6 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
       sub = mrb_nil_value();
   }
   pos = chars2bytes(str, 0, pos);
-  len = chars2bytes(str, pos, len);
   mrb_regexp_check(mrb, sub);
 
   switch (mrb_type(sub)) {
