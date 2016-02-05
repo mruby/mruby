@@ -245,7 +245,6 @@ codedump(mrb_state *mrb, mrb_irep *irep)
         printf("\tbreak\t"); break;
       default:
         printf("\tbroken\t"); break;
-        break;
       }
       print_lv(mrb, irep, c, RA);
       break;
