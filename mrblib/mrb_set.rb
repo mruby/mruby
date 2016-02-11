@@ -307,7 +307,7 @@ class Set
   end
 
   def inspect
-    sprintf('#<%s: {%s}>', self.class, to_a.inspect[1..-2])
+    "#<#{self.class}: {#{self.to_a.inspect[1..-2]}}>"
   end
 
 end
