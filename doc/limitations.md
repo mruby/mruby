@@ -141,3 +141,68 @@ true
 true
 true
 ```
+
+## defined?
+
+The ```defined?``` keyword is considered to complex to be fully
+implemented. It is recommended to use ```const_defined?``` and
+other reflection methods instead.
+
+```ruby
+defined?(Foo)
+```
+
+#### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
+
+```
+nil
+```
+
+#### mruby [1.2.0 (2015-11-17)]
+
+```NameError``` is raised.
+
+## ```alias``` on global variables
+
+Aliasing a global variable works in CRuby but is not part
+of the ISO standard.
+
+```ruby
+alias $a $__a__
+```
+
+#### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
+
+``` nil ```
+
+#### mruby [1.2.0 (2015-11-17)]
+
+Syntax error
+
+## Operator modification
+
+An operator can't be overwritten by the user.
+
+```ruby
+class String
+  def +
+  end
+end
+
+'a' + 'b'
+```
+
+#### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
+
+```ArgumentError``` is raised.
+The re-defined ```+``` operator does not accept any arguments.
+
+#### mruby [1.2.0 (2015-11-17)]
+
+``` 'ab' ```
+Behavior of the operator wasn't changed.
+
+## ```Kernel.binding``` missing
+
+```Kernel.binding``` is not implemented as it is not in the
+ISO standard.
