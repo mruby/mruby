@@ -9,9 +9,9 @@ Set class
 ```ruby
 MRuby::Build.new do |conf|
 
-    # ... (snip) ...
+  # ... (snip) ...
 
-    conf.gem :git => 'https://github.com/yui-knk/mruby-set.git'
+  conf.gem :git => 'https://github.com/yui-knk/mruby-set.git'
 end
 ```
 
