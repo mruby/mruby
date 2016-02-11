@@ -173,7 +173,7 @@ alias $a $__a__
 
 #### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
 
-```nil```
+``` nil ```
 
 #### mruby [1.2.0 (2015-11-17)]
 
@@ -199,7 +199,7 @@ The re-defined ```+``` operator does not accept any arguments.
 
 #### mruby [1.2.0 (2015-11-17)]
 
-```'ab'```
+``` 'ab' ```
 Behavior of the operator wasn't changed.
 
 ## ```Kernel.binding``` missing
