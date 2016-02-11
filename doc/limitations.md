@@ -64,3 +64,80 @@ end
 #### mruby [1.2.0 (2015-11-17)]
 
 No exception is raised.
+
+## Check of infinite recursion
+
+mruby does not check infinite recursion across C extensions.
+
+```ruby
+def test; eval 'test'; end; test
+```
+
+#### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
+
+```SystemStackError``` is raised.
+
+#### mruby [1.2.0 (2015-11-17)]
+
+Segmentation fault.
+
+## Fiber execution can't cross C function boundary
+
+mruby's ```Fiber``` is implemented in a similar way to Lua's co-routine. This
+results in the consequence that you can't switch context within C functions.
+Only exception is ```mrb_fiber_yield``` at return.
+
+## ```Array``` does not support instance variables
+
+To reduce memory consumption ```Array``` does not support instance variables.
+
+```ruby
+class Liste < Array
+  def initialize(str = nil)
+    @feld = str
+  end
+end 
+
+p Liste.new "foobar"
+```
+
+#### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
+
+``` [] ```
+
+#### mruby [1.2.0 (2015-11-17)]
+
+```ArgumentError``` is raised.
+
+## Method visibility
+
+For simplicity reasons no method visibility (public/private/protected) is
+supported.
+
+```ruby
+class VisibleTest
+
+  def public_method; end
+
+  private
+  def private_method; end
+
+end
+
+p VisibleTest.new.respond_to?(:private_method, false)
+p VisibleTest.new.respond_to?(:private_method, true)
+```
+
+#### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
+
+```
+false
+true
+```
+
+#### mruby [1.2.0 (2015-11-17)]
+
+```
+true
+true
+```
