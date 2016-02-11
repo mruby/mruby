@@ -1,4 +1,4 @@
-# Limitations
+# Limitations and Differences
 
 The philosophy of mruby is to be a lightweight implementation of
 the Ruby ISO standard. These two objectives are partially contradicting.
@@ -12,6 +12,15 @@ This document is collecting these limitations.
 
 This document does not contain a complete list of limitations.
 Please help to improve it by submitting your findings.
+
+
+## ```1/2``` gives ```0.5```
+
+Since mruby does not have ```Bignum```, bigger integers are represented
+by ```Float``` numbers. To enhace interoperability between ```Float```
+and ```Float```, mruby provides ``Float#upto``` and other iterationg
+methods for ```Float`` class.  As a side effect, ```1/2``` gives ```0.5```
+not ```0```.
 
 ## ```Array``` passed to ```puts```
 
