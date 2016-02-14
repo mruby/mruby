@@ -845,6 +845,26 @@ MRB_API mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, mrb_int
  * @return [mrb_sym] mrb_sym A symbol.
  */
 MRB_API mrb_sym mrb_intern_cstr(mrb_state*,const char*);
+
+/**
+ * Creates a symbol from a C string.
+ *
+ *     # Ruby way
+ *     :symbol
+ *
+ *     // C way
+ *     void
+ *     mrb_mruby_example_gem_init(mrb_state* mrb) {
+ *       mrb_sym mrb_symbol;
+ *       char c_str[6] = "symbol";
+ *
+ *       mrb_symbol = mrb_intern(mrb, "symbol", sizeof(c_str));
+ *     }
+ * @param [mrb_state*] mrb_state* The current mruby state.
+ * @param [const char*] const char* A C string.
+ * @param [size_t] size_t An integer representing the size of the string.
+ * @return [mrb_sym] mrb_sym A symbol. 
+ */
 MRB_API mrb_sym mrb_intern(mrb_state*,const char*,size_t);
 MRB_API mrb_sym mrb_intern_static(mrb_state*,const char*,size_t);
 #define mrb_intern_lit(mrb, lit) mrb_intern_static(mrb, lit, mrb_strlen_lit(lit))
