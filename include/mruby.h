@@ -284,12 +284,12 @@ MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *n
  *
  * Example:
  *
- *     # Ruby style
+ *     # Ruby way
  *     class Foo
  *       def Foo.bar
  *       end
  *     end
- *     // C style
+ *     // C way
  *     mrb_value bar_method(mrb_state* mrb, mrb_value self){
  *       return mrb_nil_value();
  *     }
@@ -312,12 +312,12 @@ MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char
  *
  * Example:
  *
- *        # Ruby style
+ *        # Ruby way
  *        module Foo                                                                                                  
  *          def Foo.bar
  *          end                                                                                                 
  *        end                                                                                                             
- *        // C style                                                                                                      
+ *        // C way                                                                                                      
  *        mrb_value bar_method(mrb_state* mrb, mrb_value self){
  *          return mrb_nil_value();                                                                                                     
  *        }                                                                                                               
@@ -339,11 +339,11 @@ MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*,
  *
  * Example:
  *
- *          # Ruby style
+ *          # Ruby way
  *          class ExampleClass
  *            AGE = 22
  *          end
- *          // C style
+ *          // C way
  *          #include <stdio.h> 
  *          #include <mruby.h>
  * 
@@ -367,7 +367,7 @@ MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_
  *
  * Example:
  *
- *     # Ruby style
+ *     # Ruby way
  *
  *     class ExampleClassA
  *       def example_method
@@ -382,7 +382,7 @@ MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_
  *
  *     ExampleClassB.new.example_method # => undefined method 'example_method' for ExampleClassB (NoMethodError)
  *
- *     // C style
+ *     // C way
  *     #include <stdio.h>
  *     #include <mruby.h>
  * 
@@ -416,7 +416,7 @@ MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
  * Undefine a class method.
  * Example:
  *
- *      # Ruby style
+ *      # Ruby way
  *      class ExampleClass
  *        def self.example_method
  *          "example"
@@ -425,7 +425,7 @@ MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
  *
  *     ExampleClass.example_method
  *   
- *     // C style
+ *     // C way
  *     #include <stdio.h>
  *     #include <mruby.h> 
  *
@@ -456,12 +456,12 @@ MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
  *
  * Example:
  *
- *     # Ruby style
+ *     # Ruby way
  *     class ExampleClass
  *     end
  *
  *     p ExampleClass # => #<ExampleClass:0x9958588>
- *     // C style
+ *     // C way
  *     #include <stdio.h>
  *     #include <mruby.h>
  *
@@ -606,7 +606,7 @@ MRB_API mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char
  * class it returns true, it returns false otherwise.
  *
  *      Example:
- *      # Ruby style
+ *      # Ruby way
  *      class ExampleClass
  *        def example_method
  *        end
@@ -614,7 +614,7 @@ MRB_API mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char
  *
  *      ExampleClass.new.respond_to?(:example_method) # => true
  *
- *      // C style
+ *      // C way
  *      void
  *      mrb_example_gem_init(mrb_state* mrb) {
  *        struct RClass *example_class;
@@ -833,41 +833,221 @@ MRB_API mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, mrb_int, cons
  */
 MRB_API mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, mrb_int, const mrb_value*, mrb_value);
 /**
- * Create a symbol
+ * Creates a symbol from a C string.
  *
- *     # Ruby style:
- *     :pizza # => :pizza
+ *     # Ruby way:
+ *     :symbol # => :symbol
  *     
- *     // C style:
- *     mrb_sym m_sym = mrb_intern_cstr(mrb, "pizza"); //  => :pizza
+ *     // C way:
+ *     mrb_sym mrb_symbol = mrb_intern_cstr(mrb, "symbol"); //  => :symbol
  * @param [mrb_state*] mrb_state* The current mruby state.
  * @param [const char*] const char* The name of the method.
  * @return [mrb_sym] mrb_sym A symbol.
+ * @see mrb_intern
  */
 MRB_API mrb_sym mrb_intern_cstr(mrb_state*,const char*);
+/**
+ * Creates a symbol from a C string.
+ *
+ *     # Ruby way
+ *     :symbol
+ *
+ *     // C way
+ *     void
+ *     mrb_mruby_example_gem_init(mrb_state* mrb) {
+ *       mrb_sym mrb_symbol;
+ *       char c_str[6] = "symbol";
+ *
+ *       mrb_symbol = mrb_intern(mrb, "symbol", sizeof(c_str));
+ *     }
+ * @param [mrb_state*] mrb_state* The current mruby state.
+ * @param [const char*] const char* A C string.
+ * @param [size_t] size_t An integer representing the size of the string.
+ * @return [mrb_sym] mrb_sym A symbol. 
+ */
 MRB_API mrb_sym mrb_intern(mrb_state*,const char*,size_t);
 MRB_API mrb_sym mrb_intern_static(mrb_state*,const char*,size_t);
 #define mrb_intern_lit(mrb, lit) mrb_intern_static(mrb, lit, mrb_strlen_lit(lit))
+/**
+ * Creates a symbol from a String.
+ *
+ *     void
+ *     mrb_mruby_example_gem_init(mrb_state* mrb) {
+ *       mrb_sym mrb_symbol;
+ *       mrb_value mrb_string;
+ *
+ *       mrb_string = mrb_str_new_cstr(mrb, "symbol"); // Returns a Ruby string from C string.
+ *       mrb_intern_str(mrb, mrb_string); // Returns Symbol from Ruby string.
+ *     }
+ * @param [mrb_state*] mrb_state* The current mruby state.
+ * @param [mrb_value] mrb_value A Ruby value.
+ * @return [mrb_sym] mrb_sym A symbol. 
+ */
 MRB_API mrb_sym mrb_intern_str(mrb_state*,mrb_value);
+/**
+ * Returns a Symbol, or nil otherwise.
+ *
+ *     void
+ *     mrb_mruby_example_gem_init(mrb_state* mrb) {
+ *       mrb_value mrb_symbol;
+ *
+ *       mrb_symbol = mrb_check_intern_cstr(mrb, "Symbol"); // Returns :Symbol
+ *       mrb_p(mrb, mrb_symbol); // This is equivalent to p :Symbol
+ *     }
+ * @param [mrb_state*] mrb_state* The current mruby state.
+ * @param [const char*] char* A C string.
+ * @return [mrb_value] mrb_value A Ruby value. 
+ */
 MRB_API mrb_value mrb_check_intern_cstr(mrb_state*,const char*);
 MRB_API mrb_value mrb_check_intern(mrb_state*,const char*,size_t);
+/**
+ * Returns a Symbol, or nil otherwise.
+ *
+ *     void
+ *     mrb_mruby_example_gem_init(mrb_state* mrb) {
+ *       mrb_value mrb_string;
+ *       mrb_value mrb_symbol;
+ *
+ *       mrb_string = mrb_str_new_cstr(mrb, "Symbol"); // Returns a Ruby string from C string.
+ *       mrb_symbol = mrb_check_intern_str(mrb, mrb_string); // Returns :Symbol
+ *       mrb_p(mrb, mrb_symbol); // This is equivalent to p :Symbol
+ *     }
+ * @param [mrb_state*] mrb_state* The current mruby state.
+ * @param [mrb_value] mrb_value A Ruby value.
+ * @return [mrb_value] mrb_value A Ruby value. 
+ */
 MRB_API mrb_value mrb_check_intern_str(mrb_state*,mrb_value);
+/**
+ * Returns a C string from a Symbol
+ *
+ *     void
+ *     mrb_mruby_example_gem_init(mrb_state* mrb) {
+ *       mrb_sym mrb_symbol;
+ *       char* symbol_name = "symbol";
+ *
+ *       mrb_symbol = mrb_intern(mrb, symbol_name, strlen(symbol_name)); // Returns a symbol
+ *       symbol_name = mrb_sym2name(mrb, mrb_symbol); // Returns the name of the symbol
+ *       printf("%s\n", symbol_name);
+ *     }
+ * @param [mrb_state*] mrb_state* The current mruby state.
+ * @param [mrb_sym] mrb_sym A Symbol.
+ * @return [const char*] char* A C string value. 
+ */
 MRB_API const char *mrb_sym2name(mrb_state*,mrb_sym);
+/**
+ * Returns the length of a Symbol as C string
+ *
+ *     void
+ *     mrb_mruby_example_gem_init(mrb_state* mrb) {
+ *       mrb_sym mrb_symbol;
+ *       mrb_int mrb_integer;
+ *       const char* symbol_name = "symbol";
+ *
+ *       mrb_symbol = mrb_intern(mrb, symbol_name, strlen(symbol_name)); // Returns Symbol.
+ *       symbol_name = mrb_sym2name_len(mrb, mrb_symbol, &mrb_integer); // Returns length of symbol name.
+ *       printf("%d\n", strlen(symbol_name));
+ *     }
+ * @param [mrb_state*] mrb_state* The current mruby state.
+ * @param [mrb_sym] mrb_sym A Symbol.
+ * @param [mrb_int] mrb_int A Ruby integer value.
+ * @return [const char*] char* A C string value. 
+ */
 MRB_API const char *mrb_sym2name_len(mrb_state*,mrb_sym,mrb_int*);
+/**
+ * Returns a String from a Symbol.
+ *
+ *     void
+ *     mrb_mruby_example_gem_init(mrb_state* mrb) {
+ *       mrb_sym mrb_symbol;
+ *       mrb_value mrb_string;
+ *       const char* symbol_name = "symbol";
+ *
+ *       mrb_symbol = mrb_intern(mrb, symbol_name, strlen(symbol_name)); // Returns Symbol.
+ *       mrb_string = mrb_sym2str(mrb, mrb_symbol); // Returns symbol name as a Ruby string.
+ *       mrb_p(mrb, mrb_string);
+ *     }
+ * @param [mrb_state*] mrb_state* The current mruby state.
+ * @param [mrb_sym] mrb_sym A Symbol.
+ * @return [mrb_value] mrb_value A Ruby string value. 
+ */
 MRB_API mrb_value mrb_sym2str(mrb_state*,mrb_sym);
-
-MRB_API void *mrb_malloc(mrb_state*, size_t);         /* raise RuntimeError if no mem */
-MRB_API void *mrb_calloc(mrb_state*, size_t, size_t); /* ditto */
-MRB_API void *mrb_realloc(mrb_state*, void*, size_t); /* ditto */
-MRB_API void *mrb_realloc_simple(mrb_state*, void*, size_t); /* return NULL if no memory available */
-MRB_API void *mrb_malloc_simple(mrb_state*, size_t);  /* return NULL if no memory available */
+/**
+ *  Allocates the requested memory and returns a pointer to it. It raises RuntimeError if no memory.
+ *  
+ *  @param [mrb_state*] mrb_state* The current mruby state.
+ *  @param [size_t] size_t The size of memory block, in bytes.
+ *  @return [void*] void* Pointer to requested block of memory.
+ */
+MRB_API void *mrb_malloc(mrb_state*, size_t);
+MRB_API void *mrb_calloc(mrb_state*, size_t, size_t); /* raise RuntimeError if no mem */
+/**
+ *  Attempts to resize the memory block pointed to by ptr that was previously allocated with a call to mrb_malloc or mrb_calloc.
+ *  It raises RuntimeError if no memory.
+ *  
+ *  @param [mrb_state*] mrb_state* The current mruby state.
+ *  @param [void*] void* This is the pointer to a memory block previously allocated with mrb_malloc or mrb_calloc.
+ *  @param [size_t] size_t The size of memory block, in bytes.
+ *  @return [void*] void* Pointer to requested block of memory.
+ */
+MRB_API void *mrb_realloc(mrb_state*, void*, size_t);
+/**
+ *  Attempts to resize the memory block pointed to by ptr that was previously allocated with a call to mrb_malloc_simple.
+ *  It returns NULL if there's no memory available.
+ *  
+ *  @param [mrb_state*] mrb_state* The current mruby state.
+ *  @param [void*] void* This is the pointer to a memory block previously allocated with mrb_malloc_simple.
+ *  @param [size_t] size_t The size of memory block, in bytes.
+ *  @return [void*] void* Pointer to requested block of memory.
+ */
+MRB_API void *mrb_realloc_simple(mrb_state*, void*, size_t);
+/**
+ *  Allocates the requested memory and returns a pointer to it. It return NULL if no memory available.
+ *  
+ *  @param [mrb_state*] mrb_state* The current mruby state.
+ *  @param [size_t] size_t The size of memory block, in bytes.
+ *  @return [void*] void* Pointer to requested block of memory.
+ */
+MRB_API void *mrb_malloc_simple(mrb_state*, size_t);
 MRB_API struct RBasic *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*);
+/**
+ *  Deallocates the memory previously allocated by a call to mrb_calloc, mrb_malloc, mrb_realloc, mrb_malloc_simple, or mrb_realloc_simple
+ *  
+ *  @param [mrb_state*] mrb_state* The current mruby state.
+ *  @param [void*] void* The pointer to a memory block previously allocated.
+ */
 MRB_API void mrb_free(mrb_state*, void*);
-
+/**
+ *  Returns a String from C String.
+ *
+ *      void
+ *      mrb_mruby_example_gem_init(mrb_state* mrb) {
+ *        mrb_value mrb_string;
+ *        char c_str[6] = "String";
+ *
+ *        mrb_string = mrb_str_new(mrb, c_str, strlen(c_str)); // Return Ruby string value.
+ *        mrb_p(mrb, mrb_string);
+ *      }
+ *  @param [mrb_state*] mrb The current mruby state.
+ *  @param [const char] *p A C string.
+ *  @param [size_t] len The length of string.
+ *  @return [mrb_value] mrb_value A Ruby value.
+ */
 MRB_API mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
 
 /**
- * Turns a C string into a Ruby string value.
+ *  Returns a String from a C string.
+ *
+ *      void
+ *      mrb_mruby_example_gem_init(mrb_state* mrb) {
+ *        mrb_value mrb_string;
+ *        char c_str[6] = "String";
+ *
+ *        mrb_string = mrb_str_new_cstr(mrb, c_str); // Return Ruby string value.
+ *        mrb_p(mrb, mrb_string);
+ *      }
+ *  @param [mrb_state*] mrb The current mruby state.
+ *  @param [const char] *p A C string.
+ *  @return [mrb_value] mrb_value A Ruby value.
  */
 MRB_API mrb_value mrb_str_new_cstr(mrb_state*, const char*);
 MRB_API mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
@@ -945,17 +1125,171 @@ MRB_API mrb_value mrb_vm_exec(mrb_state*, struct RProc*, mrb_code*);
 #define mrb_toplevel_run(m,p) mrb_toplevel_run_keep((m),(p),0)
 #define mrb_context_run(m,p,s,k) mrb_vm_run((m),(p),(s),(k))
 
+/**
+ *  Directly writes obj.inspect followed by a newline to the program’s standard output.
+ *
+ *      void
+ *      mrb_mruby_example_gem_init(mrb_state* mrb) 
+ *      {
+ *          mrb_value mrb_string; // Declare mrb_string
+ *          char c_str[6] = "String"; // Initialize c_str variable.
+ *
+ *          mrb_string = mrb_str_new(mrb, c_str, strlen(c_str)); // Create new String object. 
+ *          mrb_p(mrb, mrb_string); // Writes an object as a string.
+ *      }
+ *  @param [mrb_state*] mrb The current mruby state.
+ *  @param [mrb_value] obj An object.
+ */
 MRB_API void mrb_p(mrb_state*, mrb_value);
+
+/**
+ *  Returns an integer identifier for obj.
+ *
+ *      void
+ *      mrb_mruby_example_gem_init(mrb_state* mrb) 
+ *      {
+ *          mrb_value mrb_string;         // Declare mrb_string as an mrb_value.
+ *          mrb_int obj_id;               // Declare obj_id as an mrb_int.
+ *          mrb_value mrb_fixnum;         // Declare mrb_fixnum as an mrb_value.
+ *          char c_str[6] = "String";     // Initialize c_str variable.
+ *
+ *          mrb_string = mrb_str_new_cstr(mrb, c_str);      // Create new String object. 
+ *          obj_id = mrb_obj_id(mrb_string);                // Returns object id.
+ *          mrb_fixnum = mrb_fixnum_value(obj_id);          // Returns obj_id as a Fixnum. 
+ *          mrb_p(mrb, mrb_fixnum);                         // prints object id.
+ *      }
+ *  @param [mrb_state*] mrb The current mruby state.
+ *  @param [mrb_value] obj An object.
+ *  @return [mrb_int] mrb_int A Ruby Integer value.
+ */
 MRB_API mrb_int mrb_obj_id(mrb_value obj);
+
+/**
+ *  Returns Symbol from an Object.
+ *
+ *      // Example:
+ *      void
+ *      mrb_mruby_example_gem_init(mrb_state* mrb) 
+ *      {
+ *          mrb_sym obj_sym;            // Declare obj_sym as an mrb_sym.
+ *          mrb_value mrb_string;       // Declare mrb_string as an mrb_value.
+ *          char c_str[6] = "String";   // Initialize c_str variable.
+ *
+ *          mrb_string = mrb_str_new(mrb, c_str, strlen(c_str));  // Create new String object.
+ *          obj_sym = mrb_obj_to_sym(mrb, mrb_string);            // Returns a String Symbol.
+ *          mrb_p(mrb, mrb_symbol_value(obj_sym));                // Print Symbol Object as String.
+ *       }
+ *  @param [mrb_state*] mrb The current mruby state.
+ *  @param [mrb_value] obj An object.
+ *  @return [mrb_sym] mrb_sym A Symbol.
+ */
 MRB_API mrb_sym mrb_obj_to_sym(mrb_state *mrb, mrb_value name);
 
+/**
+ * Returns True if the two passed in Objects are equal. Returns Flase otherwise.
+ *
+ * @see mrb_obj_equal
+ */
 MRB_API mrb_bool mrb_obj_eq(mrb_state*, mrb_value, mrb_value);
+
+/**
+ * Returns True if the two passed in Objects are equal. Returns Flase otherwise.
+ *
+ * @see mrb_equal
+ */
 MRB_API mrb_bool mrb_obj_equal(mrb_state*, mrb_value, mrb_value);
+
+/**
+ *  Returns True if the two passed in Objects are equal. Returns Flase otherwise.
+ *
+ *      void
+ *      mrb_mruby_example_gem_init(mrb_state* mrb) 
+ *      {
+ *          mrb_int i1 = 1;   // Declare i1 as mrb_int.
+ *          mrb_int i2 = 1;   // Declare i2 as mrb_int.
+ *          mrb_value f1;     // Declare f1 as mrb_value.
+ *          mrb_value f2;     // Declare f2 as mrb_value.
+ *          mrb_bool obj_eql; // Declare obj_eql as mrb_bool.
+ *
+ *          f1 = mrb_fixnum_value(i1);            // Get Fixnum value from i1.
+ *          f2 = mrb_fixnum_value(i2);            // Get Fixnum value from i2.
+ *          obj_eql = mrb_obj_eq(mrb, f1, f2);    // Returns True f1 and f2 are equal.
+ *          mrb_p(mrb, mrb_bool_value(obj_eql));  // Print Boolean Object as String.
+ *      }
+ *  @param [mrb_state*] mrb The current mruby state.
+ *  @param [mrb_value] obj1 An object.
+ *  @param [mrb_value] obj2 An object.
+ *  @return [mrb_bool] mrb_bool A boolean value.
+ */
 MRB_API mrb_bool mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
+
+/**
+ *  Returns an integer from Object. Depending on what number is passed to base it will
+ *  return an integer of another base number system. ex. 2 will return binary numbers,
+ *  or 10 will return decimal numbers, and 16 will return hexedecimal numbers.
+ *
+ *      // Example
+ *      void
+ *      mrb_mruby_example_gem_init(mrb_state* mrb) 
+ *      {
+ *          mrb_value mrb_string_base_2;     // Declare mrb_string_base_2 as mrb_value.
+ *          mrb_value mrb_string_base_10;    // Declare mrb_string_base_10 as mrb_value.
+ *          mrb_value mrb_string_base_16;    // Declare mrb_string_base_16 as mrb_value.
+ *          mrb_value base_2;                // Declare base_2 as mrb_value.
+ *          mrb_value base_10;               // Declare base_10 as mrb_value.
+ *          mrb_value base_16;               // Declare base_16 as mrb_value.
+ *          char c_str1_base_2[8] = "1100101";      // Declare c_str1_base_2 as C String.
+ *          char c_str1_base_10[8] = "1100101";     // Declare c_str1_base_10 as C String.
+ *          char c_str1_base_16[3] = "0a";          // Declare c_str1_base_16 as C String.
+ *
+ *          mrb_string_base_2 = mrb_str_new(mrb, c_str1_base_2, strlen(c_str1_base_2));       // Creates String Object.
+ *          mrb_string_base_10 = mrb_str_new(mrb, c_str1_base_10, strlen(c_str1_base_10));    // Creates String Object.
+ *          mrb_string_base_16 = mrb_str_new(mrb, c_str1_base_16, strlen(c_str1_base_16));    // Creates String Object.
+ *          base_2 = mrb_convert_to_integer(mrb, mrb_string_base_2, 2);                       // returns "1100101"
+ *          base_10 = mrb_convert_to_integer(mrb, mrb_string_base_10, 10);                    // returns "1100101"
+ *          base_16 = mrb_convert_to_integer(mrb, mrb_string_base_16, 16);                    // returns "10"
+ *          mrb_p(mrb, base_2);                                                               // Print Fixnum Object as String.
+ *          mrb_p(mrb, base_10);                                                              // Print Fixnum Object as String.
+ *          mrb_p(mrb, base_16);                                                              // Print Fixnum Object as String.
+ *       }
+ *  @param [mrb_state*] mrb The current mruby state.
+ *  @param [mrb_value] val An object.
+ *  @param [int] base An integer representing the number system you want returned.
+ *  @return [mrb_value] mrb_value An Object.
+ */
 MRB_API mrb_value mrb_convert_to_integer(mrb_state *mrb, mrb_value val, int base);
+
+/**
+ * Returns an Integer from Object. This differs from mrb_convert_to_integer() in that
+ * it sets base to 0 giving you an Integer of what ever String you pass in.
+ *
+ * @see mrb_convert_to_integer
+ */
 MRB_API mrb_value mrb_Integer(mrb_state *mrb, mrb_value val);
+
+/**
+ * Returns an Float from Object.
+ *
+ * @param [mrb_state*] mrb The current mruby state.
+ * @param [mrb_value] obj An object.
+ * @return [mrb_value] mrb_value An Object.
+ */
 MRB_API mrb_value mrb_Float(mrb_state *mrb, mrb_value val);
+
+/**
+ *  Creates a string representation of passed in value.
+ *
+ *  @param [mrb_state*] mrb The current mruby state.
+ *  @param [mrb_value] obj An object.
+ *  @return [mrb_value] mrb_value An Object.
+ */
 MRB_API mrb_value mrb_inspect(mrb_state *mrb, mrb_value obj);
+
+/**
+ * Returns True if the two passed in Objects are equal. Returns Flase otherwise.
+ *
+ * @see mrb_eql
+ */
 MRB_API mrb_bool mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 
 MRB_API void mrb_garbage_collect(mrb_state*);
