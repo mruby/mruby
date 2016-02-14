@@ -1125,17 +1125,171 @@ MRB_API mrb_value mrb_vm_exec(mrb_state*, struct RProc*, mrb_code*);
 #define mrb_toplevel_run(m,p) mrb_toplevel_run_keep((m),(p),0)
 #define mrb_context_run(m,p,s,k) mrb_vm_run((m),(p),(s),(k))
 
+/**
+ *  Directly writes obj.inspect followed by a newline to the program’s standard output.
+ *
+ *      void
+ *      mrb_mruby_example_gem_init(mrb_state* mrb) 
+ *      {
+ *          mrb_value mrb_string; // Declare mrb_string
+ *          char c_str[6] = "String"; // Initialize c_str variable.
+ *
+ *          mrb_string = mrb_str_new(mrb, c_str, strlen(c_str)); // Create new String object. 
+ *          mrb_p(mrb, mrb_string); // Writes an object as a string.
+ *      }
+ *  @param [mrb_state*] mrb The current mruby state.
+ *  @param [mrb_value] obj An object.
+ */
 MRB_API void mrb_p(mrb_state*, mrb_value);
+
+/**
+ *  Returns an integer identifier for obj.
+ *
+ *      void
+ *      mrb_mruby_example_gem_init(mrb_state* mrb) 
+ *      {
+ *          mrb_value mrb_string;         // Declare mrb_string as an mrb_value.
+ *          mrb_int obj_id;               // Declare obj_id as an mrb_int.
+ *          mrb_value mrb_fixnum;         // Declare mrb_fixnum as an mrb_value.
+ *          char c_str[6] = "String";     // Initialize c_str variable.
+ *
+ *          mrb_string = mrb_str_new_cstr(mrb, c_str);      // Create new String object. 
+ *          obj_id = mrb_obj_id(mrb_string);                // Returns object id.
+ *          mrb_fixnum = mrb_fixnum_value(obj_id);          // Returns obj_id as a Fixnum. 
+ *          mrb_p(mrb, mrb_fixnum);                         // prints object id.
+ *      }
+ *  @param [mrb_state*] mrb The current mruby state.
+ *  @param [mrb_value] obj An object.
+ *  @return [mrb_int] mrb_int A Ruby Integer value.
+ */
 MRB_API mrb_int mrb_obj_id(mrb_value obj);
+
+/**
+ *  Returns Symbol from an Object.
+ *
+ *      // Example:
+ *      void
+ *      mrb_mruby_example_gem_init(mrb_state* mrb) 
+ *      {
+ *          mrb_sym obj_sym;            // Declare obj_sym as an mrb_sym.
+ *          mrb_value mrb_string;       // Declare mrb_string as an mrb_value.
+ *          char c_str[6] = "String";   // Initialize c_str variable.
+ *
+ *          mrb_string = mrb_str_new(mrb, c_str, strlen(c_str));  // Create new String object.
+ *          obj_sym = mrb_obj_to_sym(mrb, mrb_string);            // Returns a String Symbol.
+ *          mrb_p(mrb, mrb_symbol_value(obj_sym));                // Print Symbol Object as String.
+ *       }
+ *  @param [mrb_state*] mrb The current mruby state.
+ *  @param [mrb_value] obj An object.
+ *  @return [mrb_sym] mrb_sym A Symbol.
+ */
 MRB_API mrb_sym mrb_obj_to_sym(mrb_state *mrb, mrb_value name);
 
+/**
+ * Returns True if the two passed in Objects are equal. Returns Flase otherwise.
+ *
+ * @see mrb_obj_equal
+ */
 MRB_API mrb_bool mrb_obj_eq(mrb_state*, mrb_value, mrb_value);
+
+/**
+ * Returns True if the two passed in Objects are equal. Returns Flase otherwise.
+ *
+ * @see mrb_equal
+ */
 MRB_API mrb_bool mrb_obj_equal(mrb_state*, mrb_value, mrb_value);
+
+/**
+ *  Returns True if the two passed in Objects are equal. Returns Flase otherwise.
+ *
+ *      void
+ *      mrb_mruby_example_gem_init(mrb_state* mrb) 
+ *      {
+ *          mrb_int i1 = 1;   // Declare i1 as mrb_int.
+ *          mrb_int i2 = 1;   // Declare i2 as mrb_int.
+ *          mrb_value f1;     // Declare f1 as mrb_value.
+ *          mrb_value f2;     // Declare f2 as mrb_value.
+ *          mrb_bool obj_eql; // Declare obj_eql as mrb_bool.
+ *
+ *          f1 = mrb_fixnum_value(i1);            // Get Fixnum value from i1.
+ *          f2 = mrb_fixnum_value(i2);            // Get Fixnum value from i2.
+ *          obj_eql = mrb_obj_eq(mrb, f1, f2);    // Returns True f1 and f2 are equal.
+ *          mrb_p(mrb, mrb_bool_value(obj_eql));  // Print Boolean Object as String.
+ *      }
+ *  @param [mrb_state*] mrb The current mruby state.
+ *  @param [mrb_value] obj1 An object.
+ *  @param [mrb_value] obj2 An object.
+ *  @return [mrb_bool] mrb_bool A boolean value.
+ */
 MRB_API mrb_bool mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
+
+/**
+ *  Returns an integer from Object. Depending on what number is passed to base it will
+ *  return an integer of another base number system. ex. 2 will return binary numbers,
+ *  or 10 will return decimal numbers, and 16 will return hexedecimal numbers.
+ *
+ *      // Example
+ *      void
+ *      mrb_mruby_example_gem_init(mrb_state* mrb) 
+ *      {
+ *          mrb_value mrb_string_base_2;     // Declare mrb_string_base_2 as mrb_value.
+ *          mrb_value mrb_string_base_10;    // Declare mrb_string_base_10 as mrb_value.
+ *          mrb_value mrb_string_base_16;    // Declare mrb_string_base_16 as mrb_value.
+ *          mrb_value base_2;                // Declare base_2 as mrb_value.
+ *          mrb_value base_10;               // Declare base_10 as mrb_value.
+ *          mrb_value base_16;               // Declare base_16 as mrb_value.
+ *          char c_str1_base_2[8] = "1100101";      // Declare c_str1_base_2 as C String.
+ *          char c_str1_base_10[8] = "1100101";     // Declare c_str1_base_10 as C String.
+ *          char c_str1_base_16[3] = "0a";          // Declare c_str1_base_16 as C String.
+ *
+ *          mrb_string_base_2 = mrb_str_new(mrb, c_str1_base_2, strlen(c_str1_base_2));       // Creates String Object.
+ *          mrb_string_base_10 = mrb_str_new(mrb, c_str1_base_10, strlen(c_str1_base_10));    // Creates String Object.
+ *          mrb_string_base_16 = mrb_str_new(mrb, c_str1_base_16, strlen(c_str1_base_16));    // Creates String Object.
+ *          base_2 = mrb_convert_to_integer(mrb, mrb_string_base_2, 2);                       // returns "1100101"
+ *          base_10 = mrb_convert_to_integer(mrb, mrb_string_base_10, 10);                    // returns "1100101"
+ *          base_16 = mrb_convert_to_integer(mrb, mrb_string_base_16, 16);                    // returns "10"
+ *          mrb_p(mrb, base_2);                                                               // Print Fixnum Object as String.
+ *          mrb_p(mrb, base_10);                                                              // Print Fixnum Object as String.
+ *          mrb_p(mrb, base_16);                                                              // Print Fixnum Object as String.
+ *       }
+ *  @param [mrb_state*] mrb The current mruby state.
+ *  @param [mrb_value] val An object.
+ *  @param [int] base An integer representing the number system you want returned.
+ *  @return [mrb_value] mrb_value An Object.
+ */
 MRB_API mrb_value mrb_convert_to_integer(mrb_state *mrb, mrb_value val, int base);
+
+/**
+ * Returns an Integer from Object. This differs from mrb_convert_to_integer() in that
+ * it sets base to 0 giving you an Integer of what ever String you pass in.
+ *
+ * @see mrb_convert_to_integer
+ */
 MRB_API mrb_value mrb_Integer(mrb_state *mrb, mrb_value val);
+
+/**
+ * Returns an Float from Object.
+ *
+ * @param [mrb_state*] mrb The current mruby state.
+ * @param [mrb_value] obj An object.
+ * @return [mrb_value] mrb_value An Object.
+ */
 MRB_API mrb_value mrb_Float(mrb_state *mrb, mrb_value val);
+
+/**
+ *  Creates a string representation of passed in value.
+ *
+ *  @param [mrb_state*] mrb The current mruby state.
+ *  @param [mrb_value] obj An object.
+ *  @return [mrb_value] mrb_value An Object.
+ */
 MRB_API mrb_value mrb_inspect(mrb_state *mrb, mrb_value obj);
+
+/**
+ * Returns True if the two passed in Objects are equal. Returns Flase otherwise.
+ *
+ * @see mrb_eql
+ */
 MRB_API mrb_bool mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 
 MRB_API void mrb_garbage_collect(mrb_state*);
