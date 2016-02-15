@@ -147,9 +147,11 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, cha
 
   cxt = mrbc_context_new(mrb);
   cxt->lineno = line;
-  if (file) {
-    mrbc_filename(mrb, cxt, file);
+
+  if (!file) {
+    file = "(eval)";
   }
+  mrbc_filename(mrb, cxt, file);
   cxt->capture_errors = TRUE;
   cxt->no_optimize = TRUE;
 
