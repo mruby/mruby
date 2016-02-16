@@ -2829,7 +2829,7 @@ symbol          : basic_symbol
                     {
                       $$ = new_sym(p, $1);
                     }
-                | tSYMBEG tSTRING_BEG string_interp tSTRING
+                | tSYMBEG tSTRING_BEG string_rep tSTRING
                     {
                       p->lstate = EXPR_END;
                       $$ = new_dsym(p, push($3, $4));
