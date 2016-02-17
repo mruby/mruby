@@ -1179,7 +1179,13 @@ codegen(codegen_scope *s, node *tree, int val)
 {
   int nt;
 
-  if (!tree) return;
+  if (!tree) {
+    if (val) {
+      genop(s, MKOP_A(OP_LOADNIL, cursp()));
+      push();
+    }
+    return;
+  }
 
   if (s->irep && s->filename_index != tree->filename_index) {
     s->irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
