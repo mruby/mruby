@@ -339,6 +339,12 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
           return 0;
         }
       }
+      if (c0 == OP_LOADNIL) {
+        if (GETARG_B(i) == GETARG_A(i0)) {
+          s->pc--;
+          return 0;
+        }
+      }
       break;
     case OP_JMPIF:
     case OP_JMPNOT:
