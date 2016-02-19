@@ -111,6 +111,14 @@ assert('wrong struct arg count') do
   end
 end
 
+assert('struct dup') do
+  c = Struct.new(:m1, :m2, :m3, :m4, :m5)
+  cc = c.new(1,2,3,4,5)
+  assert_nothing_raised {
+    assert_equal(cc, cc.dup)
+  }
+end
+
 assert('struct inspect') do
   c = Struct.new(:m1, :m2, :m3, :m4, :m5)
   cc = c.new(1,2,3,4,5)

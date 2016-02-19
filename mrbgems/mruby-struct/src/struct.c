@@ -418,7 +418,6 @@ static mrb_value
 mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
 {
   mrb_value s;
-  mrb_int i, len;
 
   mrb_get_args(mrb, "o", &s);
 
@@ -429,13 +428,7 @@ mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
   if (!mrb_array_p(s)) {
     mrb_raise(mrb, E_TYPE_ERROR, "corrupted struct");
   }
-  if (RSTRUCT_LEN(copy) != RSTRUCT_LEN(s)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "struct size mismatch");
-  }
-  len = RSTRUCT_LEN(copy);
-  for (i = 0; i < len; i++) {
-    mrb_ary_set(mrb, copy, i, RSTRUCT_PTR(s)[i]);
-  }
+  mrb_ary_replace(mrb, copy, s);
   return copy;
 }
 
