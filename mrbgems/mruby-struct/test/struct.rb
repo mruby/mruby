@@ -140,3 +140,8 @@ assert('Struct#values_at') do
   assert_equal ['io', 'aki'], a.values_at(1, 0)
   assert_raise(IndexError) { a.values_at 2 }
 end
+
+assert('Struct#dup') do
+  A = Struct.new(:a, :b)
+  assert_nothing_raised(TypeError) { A.new(1, 2).dup }
+end
