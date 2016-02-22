@@ -1358,10 +1358,6 @@ codegen(codegen_scope *s, node *tree, int val)
       pos1 = genop_peep(s, MKOP_AsBx(OP_JMPNOT, cursp(), 0), NOVAL);
 
       codegen(s, tree->cdr->car, val);
-      if (val && !(tree->cdr->car)) {
-        genop(s, MKOP_A(OP_LOADNIL, cursp()));
-        push();
-      }
       if (e) {
         if (val) pop();
         pos2 = genop(s, MKOP_sBx(OP_JMP, 0));
