@@ -429,6 +429,8 @@ to_sym(mrb_state *mrb, mrb_value ss)
   else {
     mrb_value obj = mrb_funcall(mrb, ss, "inspect", 0);
     mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol", obj);
+    /* not reached */
+    return 0;
   }
 }
 
