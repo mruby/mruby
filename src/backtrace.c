@@ -330,7 +330,7 @@ save_backtrace_i(mrb_state *mrb,
 {
   mrb_backtrace_entry *entry;
 
-  if (loc_raw->i >= mrb->backtrace.n_allocated) {
+  if (mrb->backtrace.n >= mrb->backtrace.n_allocated) {
     int new_n_allocated;
     if (mrb->backtrace.n_allocated == 0) {
       new_n_allocated = 8;
