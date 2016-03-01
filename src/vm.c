@@ -1935,7 +1935,11 @@ RETRY_TRY_BLOCK:
         {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_int y = mrb_fixnum(regs[a+1]);
+#ifdef MRB_INTEGER_DIVISION
+          SET_INT_VALUE(regs[a], x / y);
+#else
           SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x / (mrb_float)y);
+#endif
         }
         break;
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
