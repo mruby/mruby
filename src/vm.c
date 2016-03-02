@@ -1936,7 +1936,29 @@ RETRY_TRY_BLOCK:
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_int y = mrb_fixnum(regs[a+1]);
 #ifdef MRB_INTEGER_DIVISION
-          SET_INT_VALUE(regs[a], x / y);
+          if (y == 0 || (x == MRB_INT_MIN && y == -1)) {
+             SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x / (mrb_float)y);
+          }
+          else {
+            mrb_int div, mod;
+            if (y < 0) {
+              if (x < 0)
+                div = -x / -y;
+              else
+                div = - (x / -y);
+            }
+            else {
+              if (x < 0)
+                div = - (-x / y);
+              else
+                div = x / y;
+            }
+            mod = x - div*y;
+            if ((mod < 0 && y > 0) || (mod > 0 && y < 0)) {
+              div -= 1;
+            }
+            SET_INT_VALUE(regs[a], div);
+          }
 #else
           SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x / (mrb_float)y);
 #endif
