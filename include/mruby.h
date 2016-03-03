@@ -118,7 +118,7 @@ typedef struct {
   const char *filename;
   int lineno;
   struct RClass *klass;
-  const char *sep;
+  char sep;
   mrb_sym method_id;
 } mrb_backtrace_entry;
 
