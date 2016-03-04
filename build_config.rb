@@ -122,6 +122,14 @@ MRuby::Build.new('test') do |conf|
   conf.gembox 'default'
 end
 
+MRuby::Build.new('bench') do |conf|
+  toolchain :gcc
+
+  conf.cc.flags << '-O3'
+
+  conf.gembox 'default'
+end
+
 # Define cross build settings
 # MRuby::CrossBuild.new('32bit') do |conf|
 #   toolchain :gcc
