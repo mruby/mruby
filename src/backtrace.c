@@ -111,6 +111,8 @@ each_backtrace(mrb_state *mrb, mrb_int ciidx, mrb_code *pc0, each_backtrace_func
     mrb_callinfo *ci;
     mrb_irep *irep;
     mrb_code *pc;
+    
+    loc.lineno = -1;
 
     ci = &mrb->c->cibase[i];
 
@@ -128,8 +130,11 @@ each_backtrace(mrb_state *mrb, mrb_int ciidx, mrb_code *pc0, each_backtrace_func
     else {
       pc = pc0;
     }
-    loc.filename = mrb_debug_get_filename(irep, (uint32_t)(pc - irep->iseq));
-    loc.lineno = mrb_debug_get_line(irep, (uint32_t)(pc - irep->iseq));
+    
+    if (irep) {
+      loc.filename = mrb_debug_get_filename(irep, (uint32_t)(pc - irep->iseq));
+      loc.lineno = mrb_debug_get_line(irep, (uint32_t)(pc - irep->iseq));
+    }
 
     if (loc.lineno == -1) continue;
 
