@@ -695,8 +695,13 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
 #endif
 
   case MRB_TT_OBJECT:
+    mrb_gc_free_iv(mrb, (struct RObject*)obj);
+    break;
+
   case MRB_TT_EXCEPTION:
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
+    if ((struct RObject*)obj == mrb->backtrace.exc)
+      mrb->backtrace.exc = 0;
     break;
 
   case MRB_TT_CLASS:

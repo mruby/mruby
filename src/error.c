@@ -255,17 +255,22 @@ mrb_exc_set(mrb_state *mrb, mrb_value exc)
 {
   if (!mrb->gc.out_of_memory && mrb->backtrace.n > 0) {
     mrb_value target_exc = mrb_nil_value();
+    int ai;
+
+    ai = mrb_gc_arena_save(mrb);
     if ((mrb->exc && !have_backtrace(mrb, mrb->exc))) {
       target_exc = mrb_obj_value(mrb->exc);
     }
-    else if (!mrb_nil_p(exc) && mrb_obj_ptr(exc) == mrb->backtrace.exc) {
-      target_exc = exc;
+    else if (!mrb_nil_p(exc) && mrb->backtrace.exc) {
+      target_exc = mrb_obj_value(mrb->backtrace.exc);
+      mrb_gc_protect(mrb, target_exc);
     }
     if (!mrb_nil_p(target_exc)) {
       mrb_value backtrace;
       backtrace = mrb_restore_backtrace(mrb);
       set_backtrace(mrb, target_exc, backtrace);
     }
+    mrb_gc_arena_restore(mrb, ai);
   }
 
   mrb->backtrace.n = 0;
