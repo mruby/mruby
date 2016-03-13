@@ -413,9 +413,12 @@ module MRuby
           # as circular dependency has already detected in the caller.
           import_include_paths(dep_g)
 
+          dep_g.export_include_paths.uniq!
           g.compilers.each do |compiler|
             compiler.include_paths += dep_g.export_include_paths
             g.export_include_paths += dep_g.export_include_paths
+            compiler.include_paths.uniq!
+            g.export_include_paths.uniq!
           end
         end
       end
