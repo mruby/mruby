@@ -1221,13 +1221,12 @@ codegen(codegen_scope *s, node *tree, int val)
       int onerr, noexc, exend, pos1, pos2, tmp;
       struct loopinfo *lp;
 
+      if (tree->car == NULL) return;
       onerr = genop(s, MKOP_Bx(OP_ONERR, 0));
       lp = loop_push(s, LOOP_BEGIN);
       lp->pc1 = onerr;
-      if (tree->car) {
-        codegen(s, tree->car, val);
-        if (val) pop();
-      }
+      codegen(s, tree->car, VAL);
+      pop();
       lp->type = LOOP_RESCUE;
       noexc = genop(s, MKOP_Bx(OP_JMP, 0));
       dispatch(s, onerr);
@@ -1709,7 +1708,7 @@ codegen(codegen_scope *s, node *tree, int val)
         pop();
         gen_assignment(s, tree->car, cursp(), val);
         dispatch(s, pos);
-        break;
+        return;
       }
       codegen(s, tree->cdr->cdr->car, VAL);
       push(); pop();
