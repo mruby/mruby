@@ -826,13 +826,23 @@ gen_values(codegen_scope *s, node *t, int val)
 #define CALL_MAXARGS 127
 
 static void
-gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
+gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
 {
   mrb_sym sym = name ? name : sym(tree->cdr->car);
-  int idx;
+  int idx, skip;
   int n = 0, noop = 0, sendv = 0, blk = 0;
 
   codegen(s, tree->car, VAL); /* receiver */
+  if (safe) {
+    int recv = cursp()-1;
+    genop(s, MKOP_A(OP_LOADNIL, cursp()));
+    push();
+    genop(s, MKOP_AB(OP_MOVE, cursp(), recv));
+    pop();
+    idx = new_msym(s, mrb_intern_lit(s->mrb, "=="));
+    genop(s, MKOP_ABC(OP_EQ, cursp(), idx, 1));
+    skip = genop(s, MKOP_AsBx(OP_JMPIF, cursp(), 0));
+  }
   idx = new_msym(s, sym);
   tree = tree->cdr->cdr->car;
   if (tree) {
@@ -905,6 +915,9 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
       }
     }
   }
+  if (safe) {
+    dispatch(s, skip);
+  }
   if (val) {
     push();
   }
@@ -968,7 +981,7 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
 
   case NODE_CALL:
     push();
-    gen_call(s, tree, attrsym(s, sym(tree->cdr->car)), sp, NOVAL);
+    gen_call(s, tree, attrsym(s, sym(tree->cdr->car)), sp, NOVAL, 0);
     pop();
     if (val) {
       genop_peep(s, MKOP_AB(OP_MOVE, cursp(), sp), val);
@@ -1511,7 +1524,10 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_FCALL:
   case NODE_CALL:
-    gen_call(s, tree, 0, 0, val);
+    gen_call(s, tree, 0, 0, val, 0);
+    break;
+  case NODE_SCALL:
+    gen_call(s, tree, 0, 0, val, 1);
     break;
 
   case NODE_DOT2:
