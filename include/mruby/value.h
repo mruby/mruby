@@ -22,7 +22,19 @@ struct mrb_state;
 # error "You can't define MRB_INT16 and MRB_INT64 at the same time."
 #endif
 
-#include <inttypes.h>
+#if defined _MSC_VER && _MSC_VER < 1800
+# define PRIo64 "llo"
+# define PRId64 "lld"
+# define PRIx64 "llx"
+# define PRIo16 "ho"
+# define PRId16 "hd"
+# define PRIx16 "hx"
+# define PRIo32 "o"
+# define PRId32 "d"
+# define PRIx32 "x"
+#else
+# include <inttypes.h>
+#endif
 
 #if defined(MRB_INT64)
   typedef int64_t mrb_int;
