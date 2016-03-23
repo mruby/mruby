@@ -310,3 +310,10 @@ assert("Array#to_ary") do
   assert_equal [], [].to_ary
   assert_equal [1,2,3], [1,2,3].to_ary
 end
+
+assert("Array#dig") do
+  h = [[[1]], 0]
+  assert_equal(1, h.dig(0, 0, 0))
+  assert_nil(h.dig(2, 0))
+  assert_raise(TypeError) {h.dig(:a)}
+end

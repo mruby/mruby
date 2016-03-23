@@ -148,3 +148,10 @@ assert('Struct#values_at') do
   assert_equal ['io', 'aki'], a.values_at(1, 0)
   assert_raise(IndexError) { a.values_at 2 }
 end
+
+assert("Struct#dig") do
+  a = Struct.new(:blue, :purple).new('aki', Struct.new(:red).new(1))
+  assert_equal 'aki', a.dig(:blue)
+  assert_equal 1, a.dig(:purple, :red)
+  assert_equal 1, a.dig(1, 0)
+end
