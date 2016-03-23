@@ -709,7 +709,8 @@ new_masgn(parser_state *p, node *a, node *b)
 static node*
 new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
 {
-  if (op == mrb_intern_lit(p->mrb, "||") && (intptr_t)a->car == NODE_CVAR) {
+  if (op == mrb_intern_lit(p->mrb, "||") &&
+      ((intptr_t)a->car == NODE_CONST || (intptr_t)a->car == NODE_CVAR)) {
     return new_rescue(p, a, list1(list3(list1(new_const(p, mrb_intern_lit(p->mrb, "NameError"))),
                                         0, new_asgn(p, a, b))), NULL);
   }
