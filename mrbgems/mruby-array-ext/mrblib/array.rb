@@ -744,4 +744,21 @@ class Array
   def to_ary
     self
   end
+
+  ##
+  # call-seq:
+  #   ary.dig(idx, ...)                 -> object
+  #
+  # Extracts the nested value specified by the sequence of <i>idx</i>
+  # objects by calling +dig+ at each step, returning +nil+ if any
+  # intermediate step is +nil+.
+  #
+  def dig(idx,*args)
+    n = self[idx]
+    if args.size > 0
+      n&.dig(*args)
+    else
+      n
+    end
+  end
 end
