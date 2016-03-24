@@ -1712,14 +1712,35 @@ codegen(codegen_scope *s, node *tree, int val)
       const char *name = mrb_sym2name_len(s->mrb, sym, &len);
       int idx;
 
-      codegen(s, tree->car, VAL);
+      if ((len == 2 && name[0] == '|' && name[1] == '|') &&
+          ((intptr_t)tree->car->car == NODE_CONST ||
+           (intptr_t)tree->car->car == NODE_CVAR)) {
+        int onerr, noexc, exc;
+        struct loopinfo *lp;
+
+        onerr = genop(s, MKOP_Bx(OP_ONERR, 0));
+        lp = loop_push(s, LOOP_BEGIN);
+        lp->pc1 = onerr;
+        exc = cursp();
+        codegen(s, tree->car, VAL);
+        lp->type = LOOP_RESCUE;
+        genop(s, MKOP_A(OP_POPERR, 1));
+        noexc = genop(s, MKOP_Bx(OP_JMP, 0));
+        dispatch(s, onerr);
+        genop(s, MKOP_A(OP_RESCUE, exc));
+        genop(s, MKOP_A(OP_LOADF, exc));
+        dispatch(s, noexc);
+      }
+      else {
+        codegen(s, tree->car, VAL);
+      }
       if (len == 2 &&
           ((name[0] == '|' && name[1] == '|') ||
            (name[0] == '&' && name[1] == '&'))) {
         int pos;
 
         pop();
-        pos = genop_peep(s, MKOP_AsBx(name[0] == '|' ? OP_JMPIF : OP_JMPNOT, cursp(), 0), NOVAL);
+        pos = genop_peep(s, MKOP_AsBx(name[0]=='|'?OP_JMPIF:OP_JMPNOT, cursp(), 0), NOVAL);
         codegen(s, tree->cdr->cdr->car, VAL);
         pop();
         gen_assignment(s, tree->car, cursp(), val);
