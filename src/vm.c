@@ -2271,6 +2271,7 @@ RETRY_TRY_BLOCK:
         base = mrb_obj_value(mrb->c->ci->target_class);
       }
       c = mrb_vm_define_class(mrb, base, super, id);
+      regs = mrb->c->stack;
       regs[a] = mrb_obj_value(c);
       ARENA_RESTORE(mrb, ai);
       NEXT;
