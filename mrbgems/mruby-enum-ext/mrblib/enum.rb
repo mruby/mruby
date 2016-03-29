@@ -384,11 +384,11 @@ module Enumerable
         min = val
         first = false
       else
+        val = val.__svalue
         if block
-          max = val.__svalue if block.call(*val, max) > 0
-          min = val.__svalue if block.call(*val, min) < 0
+          max = val if block.call(val, max) > 0
+          min = val if block.call(val, min) < 0
         else
-          val = val.__svalue
           max = val if (val <=> max) > 0
           min = val if (val <=> min) < 0
         end
