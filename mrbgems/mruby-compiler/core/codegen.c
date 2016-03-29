@@ -780,16 +780,22 @@ gen_values(codegen_scope *s, node *t, int val)
     is_splat = (intptr_t)t->car->car == NODE_SPLAT; /* splat mode */
     if (n >= 127 || is_splat) {
       if (val) {
-        pop_n(n);
-        genop(s, MKOP_ABC(OP_ARRAY, cursp(), cursp(), n));
-        push();
-        codegen(s, t->car, VAL);
-        pop(); pop();
-        if (is_splat) {
-          genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
+        if (is_splat && n == 0 && (intptr_t)t->car->cdr->car == NODE_ARRAY) {
+          codegen(s, t->car->cdr, VAL);
+          pop();
         }
         else {
-          genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
+          pop_n(n);
+          genop(s, MKOP_ABC(OP_ARRAY, cursp(), cursp(), n));
+          push();
+          codegen(s, t->car, VAL);
+          pop(); pop();
+          if (is_splat) {
+            genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
+          }
+          else {
+            genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
+          }
         }
         t = t->cdr;
         while (t) {
