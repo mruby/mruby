@@ -2228,6 +2228,7 @@ RETRY_TRY_BLOCK:
 
       while (b < lim) {
         mrb_hash_set(mrb, hash, regs[b], regs[b+1]);
+        regs = mrb->c->stack;
         b+=2;
       }
       regs[GETARG_A(i)] = hash;
