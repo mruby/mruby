@@ -53,7 +53,7 @@ MRuby::Toolchain.new(:visualcpp) do |conf, _params|
 
   if require 'open3'
     Open3.popen3 conf.cc.command do |_, _, e, _|
-      if /Version (?<v>\d{2}\.\d{2}\.\d{5})/ =~ e.gets && v.to_i <= 17
+      if /Version (\d{2})\.\d{2}\.\d{5}/ =~ e.gets && $1.to_i <= 17
         m = "# VS2010/2012 support will be dropped after the next release! #"
         h = "#" * m.length
         puts h, m, h
