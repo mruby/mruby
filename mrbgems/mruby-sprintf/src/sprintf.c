@@ -828,18 +828,15 @@ retry:
           }
         }
         if (sign) {
-          if (v < 0) {
-            v = -v;
-            sc = '-';
-            width--;
-          }
-          else if (flags & FPLUS) {
-            sc = '+';
-            width--;
-          }
-          else if (flags & FSPACE) {
-            sc = ' ';
-            width--;
+          if (v > 0) {
+            if (flags & FPLUS) {
+              sc = '+';
+              width--;
+            }
+            else if (flags & FSPACE) {
+              sc = ' ';
+              width--;
+            }
           }
           switch (base) {
           case 2:
