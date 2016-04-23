@@ -770,15 +770,7 @@ retry:
         switch (*p) {
           case 'd':
           case 'i':
-          case 'u':
             sign = 1; break;
-          case 'o':
-          case 'x':
-          case 'X':
-          case 'b':
-          case 'B':
-            if (flags&(FPLUS|FSPACE)) sign = 1;
-            break;
           default:
             break;
         }
