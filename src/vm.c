@@ -766,7 +766,6 @@ mrb_vm_exec(mrb_state *mrb, struct RProc *proc, mrb_code *pc)
   mrb_irep *irep = proc->body.irep;
   mrb_value *pool = irep->pool;
   mrb_sym *syms = irep->syms;
-  mrb_value *regs = NULL;
   mrb_code i;
   int ai = mrb_gc_arena_save(mrb);
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
@@ -809,8 +808,8 @@ RETRY_TRY_BLOCK:
   mrb->jmp = &c_jmp;
   mrb->c->ci->proc = proc;
   mrb->c->ci->nregs = irep->nregs;
-  regs = mrb->c->stack;
 
+#define regs (mrb->c->stack)
   INIT_DISPATCH {
     CASE(OP_NOP) {
       /* do nothing */
@@ -916,7 +915,6 @@ RETRY_TRY_BLOCK:
       ERR_PC_SET(mrb, pc);
       val = mrb_vm_const_get(mrb, syms[GETARG_Bx(i)]);
       ERR_PC_CLR(mrb);
-      regs = mrb->c->stack;
       regs[GETARG_A(i)] = val;
       NEXT;
     }
@@ -935,7 +933,6 @@ RETRY_TRY_BLOCK:
       ERR_PC_SET(mrb, pc);
       val = mrb_const_get(mrb, regs[a], syms[GETARG_Bx(i)]);
       ERR_PC_CLR(mrb);
-      regs = mrb->c->stack;
       regs[a] = val;
       NEXT;
     }
@@ -1169,7 +1166,7 @@ RETRY_TRY_BLOCK:
           }
         }
         mrb->c->stack[0] = result;
-        regs = mrb->c->stack = ci->stackent;
+        mrb->c->stack = ci->stackent;
         pc = ci->pc;
         cipop(mrb);
         JUMP;
@@ -1226,7 +1223,7 @@ RETRY_TRY_BLOCK:
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
         ci = mrb->c->ci;
-        regs = mrb->c->stack = ci->stackent;
+        mrb->c->stack = ci->stackent;
         regs[ci->acc] = recv;
         pc = ci->pc;
         cipop(mrb);
@@ -1252,7 +1249,6 @@ RETRY_TRY_BLOCK:
         else {
           stack_extend(mrb, irep->nregs, ci->argc+2);
         }
-        regs = mrb->c->stack;
         regs[0] = m->env->stack[0];
         pc = irep->iseq;
         JUMP;
@@ -1320,7 +1316,7 @@ RETRY_TRY_BLOCK:
         mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
-        regs = mrb->c->stack = mrb->c->ci->stackent;
+        mrb->c->stack = mrb->c->ci->stackent;
         cipop(mrb);
         NEXT;
       }
@@ -1340,7 +1336,6 @@ RETRY_TRY_BLOCK:
         else {
           stack_extend(mrb, irep->nregs, ci->argc+2);
         }
-        regs = mrb->c->stack;
         pc = irep->iseq;
         JUMP;
       }
@@ -1532,7 +1527,7 @@ RETRY_TRY_BLOCK:
             }
             if (ci->ridx == 0) {
               if (mrb->c == mrb->root_c) {
-                regs = mrb->c->stack = mrb->c->stbase;
+                mrb->c->stack = mrb->c->stbase;
                 goto L_STOP;
               }
               else {
@@ -1558,7 +1553,7 @@ RETRY_TRY_BLOCK:
         irep = proc->body.irep;
         pool = irep->pool;
         syms = irep->syms;
-        regs = mrb->c->stack = ci[1].stackent;
+        mrb->c->stack = ci[1].stackent;
         pc = mrb->c->rescue[--ci->ridx];
       }
       else {
@@ -1640,7 +1635,7 @@ RETRY_TRY_BLOCK:
         }
         cipop(mrb);
         acc = ci->acc;
-        regs = mrb->c->stack = ci->stackent;
+        mrb->c->stack = ci->stackent;
         if (acc == CI_ACC_SKIP) {
           mrb->jmp = prev_jmp;
           return v;
@@ -1714,7 +1709,6 @@ RETRY_TRY_BLOCK:
         else {
           stack_extend(mrb, irep->nregs, ci->argc+2);
         }
-        regs = mrb->c->stack;
         pc = irep->iseq;
       }
       JUMP;
@@ -2215,7 +2209,6 @@ RETRY_TRY_BLOCK:
     CASE(OP_STRCAT) {
       /* A B    R(A).concat(R(B)) */
       mrb_str_concat(mrb, regs[GETARG_A(i)], regs[GETARG_B(i)]);
-      regs = mrb->c->stack;
       NEXT;
     }
 
@@ -2228,7 +2221,6 @@ RETRY_TRY_BLOCK:
 
       while (b < lim) {
         mrb_hash_set(mrb, hash, regs[b], regs[b+1]);
-        regs = mrb->c->stack;
         b+=2;
       }
       regs[GETARG_A(i)] = hash;
@@ -2272,7 +2264,6 @@ RETRY_TRY_BLOCK:
         base = mrb_obj_value(mrb->c->ci->target_class);
       }
       c = mrb_vm_define_class(mrb, base, super, id);
-      regs = mrb->c->stack;
       regs[a] = mrb_obj_value(c);
       ARENA_RESTORE(mrb, ai);
       NEXT;
@@ -2324,7 +2315,7 @@ RETRY_TRY_BLOCK:
         mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
-        regs = mrb->c->stack = mrb->c->ci->stackent;
+        mrb->c->stack = mrb->c->ci->stackent;
         cipop(mrb);
         NEXT;
       }
@@ -2334,7 +2325,6 @@ RETRY_TRY_BLOCK:
         syms = irep->syms;
         stack_extend(mrb, irep->nregs, 1);
         ci->nregs = irep->nregs;
-        regs = mrb->c->stack;
         pc = irep->iseq;
         JUMP;
       }
@@ -2425,6 +2415,7 @@ RETRY_TRY_BLOCK:
     }
   }
   END_DISPATCH;
+#undef regs
 
   }
   MRB_CATCH(&c_jmp) {
