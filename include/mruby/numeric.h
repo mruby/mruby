@@ -31,45 +31,39 @@ mrb_value mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y);
 
-/* Idea from Potion: https://github.com/perl11/potion (MIT) */
-#if (defined(__clang__) && ((__clang_major__ > 3) || (__clang_major__ == 3 && __clang_minor__ >= 4))) \
-    || (defined(__GNUC__) && __GNUC__ >= 5)
+#ifndef __has_builtin
+  #define __has_builtin(x) 0
+#endif
+
+#if (defined(__GNUC__) && __GNUC__ >= 5) ||   \
+    (__has_builtin(__builtin_add_overflow) && \
+     __has_builtin(__builtin_sub_overflow) && \
+     __has_builtin(__builtin_mul_overflow))
+# define MRB_HAVE_TYPE_GENERIC_CHECKED_ARITHMETIC_BUILTINS
+#endif
+
+#ifdef MRB_HAVE_TYPE_GENERIC_CHECKED_ARITHMETIC_BUILTINS
+
+#ifndef MRB_WORD_BOXING
+# define WBCHK(x) 0
+#else
+# define WBCHK(x) !FIXABLE(x)
+#endif
 
 static inline mrb_bool
 mrb_int_add_overflow(mrb_int augend, mrb_int addend, mrb_int *sum)
 {
-  mrb_bool of;
-
-#ifdef MRB_INT64
-  long long val;
-  of = __builtin_saddll_overflow(augend, addend, &val) ||
-#else
-  int val;
-  of = __builtin_sadd_overflow(augend, addend, &val) ||
-#endif
-  (val > MRB_INT_MAX) || (val < MRB_INT_MIN);
-
-  *sum = (mrb_int) val;
-  return of;
+  return __builtin_add_overflow(augend, addend, sum) || WBCHK(*sum);
 }
 
 static inline mrb_bool
 mrb_int_sub_overflow(mrb_int minuend, mrb_int subtrahend, mrb_int *difference)
 {
-  mrb_bool of;
-
-#ifdef MRB_INT64
-  long long val;
-  of = __builtin_ssubll_overflow(minuend, subtrahend, &val) ||
-#else
-  int val;
-  of = __builtin_ssub_overflow(minuend, subtrahend, &val) ||
-#endif
-  (val > MRB_INT_MAX) || (val < MRB_INT_MIN);
-
-  *difference = (mrb_int) val;
-  return of;
+  return __builtin_sub_overflow(minuend, subtrahend, difference) || WBCHK(*difference);
 }
+
+#undef WBCHK
+
 #else
 
 #define MRB_UINT_MAKE2(n) uint ## n ## _t
