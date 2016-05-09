@@ -31,12 +31,6 @@ mrb_value mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y);
 
-#define MRB_UINT_MAKE2(n) uint ## n ## _t
-#define MRB_UINT_MAKE(n) MRB_UINT_MAKE2(n)
-#define mrb_uint MRB_UINT_MAKE(MRB_INT_BIT)
-
-#define MRB_INT_OVERFLOW_MASK ((mrb_uint)1 << (MRB_INT_BIT - 1 - MRB_FIXNUM_SHIFT))
-
 /* Idea from Potion: https://github.com/perl11/potion (MIT) */
 #if (defined(__clang__) && ((__clang_major__ > 3) || (__clang_major__ == 3 && __clang_minor__ >= 4))) \
     || (defined(__GNUC__) && __GNUC__ >= 5)
@@ -78,6 +72,12 @@ mrb_int_sub_overflow(mrb_int minuend, mrb_int subtrahend, mrb_int *difference)
 }
 #else
 
+#define MRB_UINT_MAKE2(n) uint ## n ## _t
+#define MRB_UINT_MAKE(n) MRB_UINT_MAKE2(n)
+#define mrb_uint MRB_UINT_MAKE(MRB_INT_BIT)
+
+#define MRB_INT_OVERFLOW_MASK ((mrb_uint)1 << (MRB_INT_BIT - 1 - MRB_FIXNUM_SHIFT))
+
 static inline mrb_bool
 mrb_int_add_overflow(mrb_int augend, mrb_int addend, mrb_int *sum)
 {
@@ -98,12 +98,12 @@ mrb_int_sub_overflow(mrb_int minuend, mrb_int subtrahend, mrb_int *difference)
   return !!(((x ^ z) & (~y ^ z)) & MRB_INT_OVERFLOW_MASK);
 }
 
-#endif
-
 #undef MRB_INT_OVERFLOW_MASK
 #undef mrb_uint
 #undef MRB_UINT_MAKE
 #undef MRB_UINT_MAKE2
+
+#endif
 
 MRB_END_DECL
 
