@@ -1186,7 +1186,6 @@ RETRY_TRY_BLOCK:
           ci->argc = n;
           stack_extend(mrb, irep->nregs,  n+2);
         }
-        regs = mrb->c->stack;
         pc = irep->iseq;
         JUMP;
       }
