@@ -62,6 +62,12 @@ mrb_int_sub_overflow(mrb_int minuend, mrb_int subtrahend, mrb_int *difference)
   return __builtin_sub_overflow(minuend, subtrahend, difference) || WBCHK(*difference);
 }
 
+static inline mrb_bool
+mrb_int_mul_overflow(mrb_int multiplier, mrb_int multiplicand, mrb_int *product)
+{
+  return __builtin_mul_overflow(multiplier, multiplicand, product) || WBCHK(*product);
+}
+
 #undef WBCHK
 
 #else
@@ -90,6 +96,35 @@ mrb_int_sub_overflow(mrb_int minuend, mrb_int subtrahend, mrb_int *difference)
   mrb_uint z = (mrb_uint)(x - y);
   *difference = (mrb_int)z;
   return !!(((x ^ z) & (~y ^ z)) & MRB_INT_OVERFLOW_MASK);
+}
+
+static inline mrb_bool
+mrb_int_mul_overflow(mrb_int multiplier, mrb_int multiplicand, mrb_int *product)
+{
+#if MRB_INT_BIT == 32
+  int64_t n = (int64_t)multiplier * multiplicand;
+  *product = (mrb_int)n;
+  return !FIXABLE(n);
+#else
+  if (multiplier > 0) {
+    if (multiplicand > 0) {
+      if (multiplier > MRB_INT_MAX / multiplicand) return TRUE;
+    }
+    else {
+      if (multiplicand < MRB_INT_MAX / multiplier) return TRUE;
+    }
+  }
+  else {
+    if (multiplicand > 0) {
+      if (multiplier < MRB_INT_MAX / multiplicand) return TRUE;
+    }
+    else {
+      if (multiplier != 0 && multiplicand < MRB_INT_MAX / multiplier) return TRUE;
+    }
+  }
+  *product = multiplier * multiplicand;
+  return FALSE;
+#endif
 }
 
 #undef MRB_INT_OVERFLOW_MASK
