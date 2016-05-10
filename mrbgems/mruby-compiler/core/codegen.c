@@ -2801,7 +2801,8 @@ loop_break(codegen_scope *s, node *tree)
       loop = loop->prev;
     }
     if (!loop) {
-      codegen_error(s, "unexpected break");
+      raise_error(s, "unexpected break");
+      return;
     }
 
     if (loop->type == LOOP_NORMAL) {
