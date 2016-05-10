@@ -541,10 +541,6 @@ int_to_i(mrb_state *mrb, mrb_value num)
   return num;
 }
 
-/*tests if N*N would overflow*/
-#define SQRT_INT_MAX ((mrb_int)1<<((MRB_INT_BIT-1-MRB_FIXNUM_SHIFT)/2))
-#define FIT_SQRT_INT(n) (((n)<SQRT_INT_MAX)&&((n)>=-SQRT_INT_MAX))
-
 mrb_value
 mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
@@ -552,18 +548,14 @@ mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 
   a = mrb_fixnum(x);
   if (mrb_fixnum_p(y)) {
-    mrb_float c;
-    mrb_int b;
+    mrb_int b, c;
 
     if (a == 0) return x;
     b = mrb_fixnum(y);
-    if (FIT_SQRT_INT(a) && FIT_SQRT_INT(b))
-      return mrb_fixnum_value(a*b);
-    c = a * b;
-    if ((a != 0 && c/a != b) || !FIXABLE(c)) {
-      return mrb_float_value(mrb, (mrb_float)a*(mrb_float)b);
+    if (mrb_int_mul_overflow(a, b, &c)) {
+      return mrb_float_value(mrb, (mrb_float)a * (mrb_float)b);
     }
-    return mrb_fixnum_value((mrb_int)c);
+    return mrb_fixnum_value(c);
   }
   return mrb_float_value(mrb, (mrb_float)a * mrb_to_flo(mrb, y));
 }
