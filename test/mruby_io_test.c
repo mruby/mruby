@@ -1,4 +1,5 @@
 #include <sys/types.h>
+#include <errno.h>
 
 #if defined(_WIN32) || defined(_WIN64)
   #include <winsock.h>
@@ -84,7 +85,9 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   sun0.sun_family = AF_UNIX;
   snprintf(sun0.sun_path, sizeof(sun0.sun_path), "%s", socketname);
   if (bind(fd3, (struct sockaddr *)&sun0, sizeof(sun0)) == -1) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "can't make a socket bi");
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "can't bind AF_UNIX socket to %S: %S",
+               mrb_str_new_cstr(mrb, sun0.sun_path),
+               mrb_fixnum_value(errno));
   }
   close(fd3);
 #endif
