@@ -25,7 +25,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   char rfname[]      = "tmp.mruby-io-test.XXXXXXXX";
   char wfname[]      = "tmp.mruby-io-test.XXXXXXXX";
   char symlinkname[] = "tmp.mruby-io-test.XXXXXXXX";
-  char socketname[]  = "tmp.mruby-io-test.XXXXXXXX";
+  char socketname[]  = "/tmp/mruby-io-test.XXXXXXXX";
   char msg[] = "mruby io test\n";
   mode_t mask;
   int fd0, fd1, fd2, fd3;
