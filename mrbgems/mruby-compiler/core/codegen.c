@@ -1717,6 +1717,10 @@ codegen(codegen_scope *s, node *tree, int val)
       mrb_int len;
       const char *name = mrb_sym2name_len(s->mrb, sym, &len);
       int idx, callargs = -1, vsp = -1;
+      int shortcut =
+	  len == 2 &&
+          ((name[0] == '|' && name[1] == '|') ||
+           (name[0] == '&' && name[1] == '&'));
 
       if ((len == 2 && name[0] == '|' && name[1] == '|') &&
           ((intptr_t)tree->car->car == NODE_CONST ||
@@ -1737,7 +1741,7 @@ codegen(codegen_scope *s, node *tree, int val)
         genop(s, MKOP_A(OP_LOADF, exc));
         dispatch(s, noexc);
       }
-      else if ((intptr_t)tree->car->car == NODE_CALL) {
+      else if (!shortcut && (intptr_t)tree->car->car == NODE_CALL) {
         node *n = tree->car->cdr;
 
         if (val) {
@@ -1768,9 +1772,7 @@ codegen(codegen_scope *s, node *tree, int val)
       else {
         codegen(s, tree->car, VAL);
       }
-      if (len == 2 &&
-          ((name[0] == '|' && name[1] == '|') ||
-           (name[0] == '&' && name[1] == '&'))) {
+      if (shortcut) {
         int pos;
 
         pop();
