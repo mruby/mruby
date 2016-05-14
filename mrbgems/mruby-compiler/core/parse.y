@@ -6240,7 +6240,8 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_SYM:
-    printf("NODE_SYM :%s\n", mrb_sym2name(mrb, sym(tree)));
+    printf("NODE_SYM :%s (%d)\n", mrb_sym2name(mrb, sym(tree)),
+           (int)(intptr_t)tree);
     break;
 
   case NODE_SELF:
