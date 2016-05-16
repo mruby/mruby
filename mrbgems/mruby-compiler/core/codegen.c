@@ -1855,15 +1855,16 @@ codegen(codegen_scope *s, node *tree, int val)
         gen_assignment(s, tree->car, cursp(), val);
       }
       else {
-        if (callargs == CALL_MAXARGS) {
-          genop(s, MKOP_AB(OP_ARYPUSH, cursp()-1, cursp()));
-          if (val) {
-            genop(s, MKOP_AB(OP_MOVE, vsp, cursp()));
-          }
-          pop();
-        }
-        else if (val) {
+        if (val) {
           genop(s, MKOP_AB(OP_MOVE, vsp, cursp()));
+        }
+        if (callargs == CALL_MAXARGS) {
+          pop();
+          genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
+        }
+        else {
+          pop_n(callargs);
+          callargs++;
         }
         pop();
         idx = new_msym(s, attrsym(s,sym(tree->car->cdr->cdr->car)));
