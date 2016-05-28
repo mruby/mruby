@@ -262,7 +262,9 @@ class TCPServer
     ai = Addrinfo.getaddrinfo(host, service, nil, nil, nil, Socket::AI_PASSIVE)[0]
     @init_with_fd = true
     super(Socket._socket(ai.afamily, Socket::SOCK_STREAM, 0), "r+")
-    self.setsockopt(Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true)
+    if Socket.const_defined?(:SO_REUSEADDR)
+      self.setsockopt(Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true)
+    end
     Socket._bind(self.fileno, ai.to_sockaddr)
     listen(5)
     self
