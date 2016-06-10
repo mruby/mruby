@@ -453,7 +453,7 @@ mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
   mrb_sym root = mrb_intern_lit(mrb, GC_ROOT_NAME);
   mrb_value table = mrb_gv_get(mrb, root);
   struct RArray *a;
-  mrb_int i, j;
+  mrb_int i, len;
 
   if (mrb_nil_p(table)) return;
   if (mrb_type(table) != MRB_TT_ARRAY) {
@@ -462,12 +462,14 @@ mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
   }
   a = mrb_ary_ptr(table);
   mrb_ary_modify(mrb, a);
-  for (i=j=0; i<a->len; i++) {
-    if (!mrb_obj_eq(mrb, a->ptr[i], obj)) {
-      a->ptr[j++] = a->ptr[i];
+  len = a->len-1;
+  for (i=0; i<len; i++) {
+    if (mrb_obj_eq(mrb, a->ptr[i], obj)) {
+      memmove(&a->ptr[i], &a->ptr[i+1], len-i);
+      break;
     }
   }
-  a->len = j;
+  a->len--;
 }
 
 MRB_API struct RBasic*
