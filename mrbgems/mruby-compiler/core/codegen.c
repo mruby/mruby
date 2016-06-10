@@ -835,7 +835,7 @@ static void
 gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
 {
   mrb_sym sym = name ? name : sym(tree->cdr->car);
-  int idx, skip;
+  int idx, skip = 0;
   int n = 0, noop = 0, sendv = 0, blk = 0;
 
   codegen(s, tree->car, VAL); /* receiver */
