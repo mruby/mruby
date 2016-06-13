@@ -195,7 +195,6 @@ mrb_dir_chroot(mrb_state *mrb, mrb_value self)
   path = mrb_str_to_cstr(mrb, spath);
   res = chroot(path);
   if (res == -1) {
-    perror("chroot");
     mrb_sys_fail(mrb, path);
   }
 
