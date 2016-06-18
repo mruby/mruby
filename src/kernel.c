@@ -722,9 +722,7 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
 static mrb_value
 mrb_obj_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj, mrb_method_flag_t flag)
 {
-  if (recur)
-    return mrb_class_instance_method_list(mrb, recur, mrb_class(mrb, obj), 0);
-  return mrb_obj_singleton_methods(mrb, recur, obj);
+  return mrb_class_instance_method_list(mrb, recur, mrb_class(mrb, obj), 0);
 }
 /* 15.3.1.3.31 */
 /*
