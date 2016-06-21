@@ -40,6 +40,11 @@
 #include <string.h>
 
 
+static void mrb_io_free(mrb_state *mrb, void *ptr);
+struct mrb_data_type mrb_io_type = { "IO", mrb_io_free };
+
+
+static struct mrb_io *io_get_open_fptr(mrb_state *mrb, mrb_value self);
 static int mrb_io_modestr_to_flags(mrb_state *mrb, const char *modestr);
 static int mrb_io_flags_to_modenum(mrb_state *mrb, int flags);
 static void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise);
@@ -51,6 +56,18 @@ mrb_module_get(mrb_state *mrb, const char *name)
   return mrb_class_get(mrb, name);
 }
 #endif
+
+static struct mrb_io *
+io_get_open_fptr(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_io *fptr;
+
+  fptr = (struct mrb_io *)mrb_get_datatype(mrb, self, &mrb_io_type);
+  if (fptr->fd < 0) {
+    mrb_raise(mrb, E_IO_ERROR, "closed stream.");
+  }
+  return fptr;
+}
 
 static int
 mrb_io_modestr_to_flags(mrb_state *mrb, const char *mode)
@@ -204,8 +221,6 @@ mrb_io_free(mrb_state *mrb, void *ptr)
     mrb_free(mrb, io);
   }
 }
-
-struct mrb_data_type mrb_io_type = { "IO", mrb_io_free };
 
 static struct mrb_io *
 mrb_io_alloc(mrb_state *mrb)
@@ -425,6 +440,17 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise)
 }
 
 mrb_value
+mrb_io_isatty(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_io *fptr;
+
+  fptr = io_get_open_fptr(mrb, self);
+  if (isatty(fptr->fd) == 0)
+    return mrb_false_value();
+  return mrb_true_value();
+}
+
+mrb_value
 mrb_io_s_for_fd(mrb_state *mrb, mrb_value klass)
 {
   struct RClass *c = mrb_class_ptr(klass);
@@ -601,13 +627,10 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
 }
 
 mrb_value
-mrb_io_close(mrb_state *mrb, mrb_value io)
+mrb_io_close(mrb_state *mrb, mrb_value self)
 {
   struct mrb_io *fptr;
-  fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
-  if (fptr && fptr->fd < 0) {
-    mrb_raise(mrb, E_IO_ERROR, "closed stream.");
-  }
+  fptr = io_get_open_fptr(mrb, self);
   fptr_finalize(mrb, fptr, FALSE);
   return mrb_nil_value();
 }
@@ -879,16 +902,13 @@ mrb_io_fileno(mrb_state *mrb, mrb_value io)
 }
 
 mrb_value
-mrb_io_close_on_exec_p(mrb_state *mrb, mrb_value io)
+mrb_io_close_on_exec_p(mrb_state *mrb, mrb_value self)
 {
 #if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
   struct mrb_io *fptr;
   int ret;
 
-  fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
-  if (fptr->fd < 0) {
-    mrb_raise(mrb, E_IO_ERROR, "closed stream");
-  }
+  fptr = io_get_open_fptr(mrb, self);
 
   if (fptr->fd2 >= 0) {
     if ((ret = fcntl(fptr->fd2, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
@@ -906,18 +926,14 @@ mrb_io_close_on_exec_p(mrb_state *mrb, mrb_value io)
 }
 
 mrb_value
-mrb_io_set_close_on_exec(mrb_state *mrb, mrb_value io)
+mrb_io_set_close_on_exec(mrb_state *mrb, mrb_value self)
 {
 #if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
   struct mrb_io *fptr;
   int flag, ret;
   mrb_bool b;
 
-  fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
-  if (fptr->fd < 0) {
-    mrb_raise(mrb, E_IO_ERROR, "closed stream");
-  }
-
+  fptr = io_get_open_fptr(mrb, self);
   mrb_get_args(mrb, "b", &b);
   flag = b ? FD_CLOEXEC : 0;
 
@@ -951,11 +967,7 @@ mrb_io_set_sync(mrb_state *mrb, mrb_value self)
   struct mrb_io *fptr;
   mrb_bool b;
 
-  fptr = (struct mrb_io *)mrb_get_datatype(mrb, self, &mrb_io_type);
-  if (fptr->fd < 0) {
-    mrb_raise(mrb, E_IO_ERROR, "closed stream.");
-  }
-
+  fptr = io_get_open_fptr(mrb, self);
   mrb_get_args(mrb, "b", &b);
   fptr->sync = b;
   return mrb_bool_value(b);
@@ -965,11 +977,7 @@ mrb_value
 mrb_io_sync(mrb_state *mrb, mrb_value self)
 {
   struct mrb_io *fptr;
-
-  fptr = (struct mrb_io *)mrb_get_datatype(mrb, self, &mrb_io_type);
-  if (fptr->fd < 0) {
-    mrb_raise(mrb, E_IO_ERROR, "closed stream.");
-  }
+  fptr = io_get_open_fptr(mrb, self);
   return mrb_bool_value(fptr->sync);
 }
 
@@ -994,6 +1002,7 @@ mrb_init_io(mrb_state *mrb)
 #endif
 
   mrb_define_method(mrb, io, "initialize", mrb_io_initialize, MRB_ARGS_ANY());    /* 15.2.20.5.21 (x)*/
+  mrb_define_method(mrb, io, "isatty",     mrb_io_isatty,     MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "sync",       mrb_io_sync,       MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "sync=",      mrb_io_set_sync,   MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "sysread",    mrb_io_sysread,    MRB_ARGS_ANY());

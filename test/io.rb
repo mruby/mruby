@@ -262,6 +262,18 @@ assert('IO#_read_buf') do
   io.closed?
 end
 
+assert('IO#isatty') do
+  f1 = File.open("/dev/tty")
+  f2 = File.open($mrbtest_io_rfname)
+
+  assert_true  f1.isatty
+  assert_false f2.isatty
+
+  f1.close
+  f2.close
+  true
+end
+
 assert('IO#pos=, IO#seek') do
   fd = IO.sysopen $mrbtest_io_rfname
   io = IO.new fd

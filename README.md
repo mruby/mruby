@@ -1,7 +1,7 @@
 mruby-io
 ========
 
-IO, File module for mruby
+`IO` and `File` classes for mruby
 
 ## Installation
 Add the line below to your `build_config.rb`:
@@ -62,7 +62,7 @@ Add the line below to your `build_config.rb`:
 | IO#gets                    |    o     |      |
 | IO#internal_encoding       |          |      |
 | IO#ioctl                   |          |      |
-| IO#isatty, IO#tty?         |          |      |
+| IO#isatty, IO#tty?         |    o     |      |
 | IO#lineno                  |          |      |
 | IO#lineno=                 |          |      |
 | IO#lines                   |          | obsolete |
