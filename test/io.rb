@@ -372,6 +372,7 @@ end
 
 assert('IO.popen') do
   begin
+    $? = nil
     io = IO.popen("ls")
     assert_true io.close_on_exec?
     assert_equal Fixnum, io.pid.class
@@ -379,7 +380,13 @@ assert('IO.popen') do
     assert_equal ls.class, String
     assert_include ls, 'AUTHORS'
     assert_include ls, 'mrblib'
+
     io.close
+    if Object.const_defined? :Process
+      assert_true $?.success?
+    else
+      assert_equal 0, $?
+    end
     io.closed?
   rescue NotImplementedError => e
     skip e.message

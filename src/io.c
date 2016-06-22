@@ -47,7 +47,7 @@ struct mrb_data_type mrb_io_type = { "IO", mrb_io_free };
 static struct mrb_io *io_get_open_fptr(mrb_state *mrb, mrb_value self);
 static int mrb_io_modestr_to_flags(mrb_state *mrb, const char *modestr);
 static int mrb_io_flags_to_modenum(mrb_state *mrb, int flags);
-static void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise);
+static void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet);
 
 #if MRUBY_RELEASE_NO < 10000
 static struct RClass *
@@ -68,6 +68,29 @@ io_get_open_fptr(mrb_state *mrb, mrb_value self)
   }
   return fptr;
 }
+
+#if !defined(_WIN32) && !defined(_WIN64)
+static void
+io_set_process_status(mrb_state *mrb, pid_t pid, int status)
+{
+  struct RClass *c_process, *c_status;
+  mrb_value v;
+
+  c_status = NULL;
+  if (mrb_class_defined(mrb, "Process")) {
+    c_process = mrb_class_get(mrb, "Process");
+    if (mrb_const_defined(mrb, mrb_obj_value(c_process), mrb_intern_cstr(mrb, "Status"))) {
+      c_status = mrb_class_get_under(mrb, c_process, "Status");
+    }
+  }
+  if (c_status != NULL) {
+    v = mrb_funcall(mrb, mrb_obj_value(c_status), "new", 2, mrb_fixnum_value(pid), mrb_fixnum_value(status));
+  } else {
+    v = mrb_fixnum_value(WEXITSTATUS(status));
+  }
+  mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$?"), v);
+}
+#endif
 
 static int
 mrb_io_modestr_to_flags(mrb_state *mrb, const char *mode)
@@ -389,7 +412,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
 
   fptr = DATA_PTR(io);
   if (fptr != NULL) {
-    fptr_finalize(mrb, fptr, 0);
+    fptr_finalize(mrb, fptr, TRUE);
     mrb_free(mrb, fptr);
   }
   fptr = mrb_io_alloc(mrb);
@@ -404,7 +427,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
 }
 
 static void
-fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise)
+fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
 {
   int n = 0;
 
@@ -428,13 +451,17 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int noraise)
 #if !defined(_WIN32) && !defined(_WIN64)
   if (fptr->pid != 0) {
     pid_t pid;
+    int status;
     do {
-      pid = waitpid(fptr->pid, NULL, 0);
+      pid = waitpid(fptr->pid, &status, 0);
     } while (pid == -1 && errno == EINTR);
+    if (!quiet && pid == fptr->pid) {
+      io_set_process_status(mrb, pid, status);
+    }
   }
 #endif
 
-  if (!noraise && n != 0) {
+  if (!quiet && n != 0) {
     mrb_sys_fail(mrb, "fptr_finalize failed.");
   }
 }
