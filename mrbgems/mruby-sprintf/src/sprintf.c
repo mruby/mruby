@@ -524,7 +524,7 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
   bsiz = 120;
   result = mrb_str_buf_new(mrb, bsiz);
   buf = RSTRING_PTR(result);
-  memset(buf, 0, bsiz);
+  memset(buf, 0, RSTRING_EMBED_LEN_MAX);
 
   for (; p < end; p++) {
     const char *t;
