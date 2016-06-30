@@ -137,7 +137,7 @@ gettimeofday_time(void)
   fprintf(stderr, "%s\n", with);\
   fprintf(stderr, "gc_invoke: %19.3f\n", gettimeofday_time() - program_invoke_time);\
   fprintf(stderr, "is_generational: %d\n", is_generational(gc));\
-  fprintf(stderr, "is_major_gc: %d\n", is_major_gc(mrb));\
+  fprintf(stderr, "is_major_gc: %d\n", is_major_gc(gc));\
 } while(0)
 
 #define GC_TIME_START do {\
