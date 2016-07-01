@@ -1029,7 +1029,7 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
       continue;
 
     if (flags & PACK_FLAG_COUNT2) {
-      sptr = RSTRING_PTR(str) + srcidx;
+      sptr = (const unsigned char *)RSTRING_PTR(str) + srcidx;
       switch (dir) {
       case PACK_DIR_HEX:
         srcidx += unpack_h(mrb, sptr, srclen - srcidx, result, count, flags);
@@ -1049,7 +1049,7 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
         break;
       }
 
-      sptr = RSTRING_PTR(str) + srcidx;
+      sptr = (const unsigned char *)RSTRING_PTR(str) + srcidx;
       switch (dir) {
       case PACK_DIR_CHAR:
         srcidx += unpack_c(mrb, sptr, srclen - srcidx, result, flags);
