@@ -28,7 +28,7 @@ enum {
   PACK_DIR_QUAD,	/* Q */
   //PACK_DIR_INT,	/* i */
   //PACK_DIR_VAX,
-  //PACK_DIR_UTF8,	/* U */
+  PACK_DIR_UTF8,  /* U */
   //PACK_DIR_BER,
   PACK_DIR_DOUBLE,	/* E */
   PACK_DIR_FLOAT,	/* f */
@@ -406,6 +406,45 @@ unpack_float(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ar
   mrb_ary_push(mrb, ary, mrb_float_value(mrb, f));
 
   return 4;
+}
+
+static int
+pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, long count, unsigned int flags)
+{
+  char utf8[4];
+  int len;
+  
+  unsigned long c = mrb_fixnum(o);
+
+  /* Unicode character */
+  /* from mruby-compiler gem */
+  if (c < 0x80) {
+    utf8[0] = (char)c;
+    len = 1;
+  }
+  else if (c < 0x800) {
+    utf8[0] = (char)(0xC0 | (c >> 6));
+    utf8[1] = (char)(0x80 | (c & 0x3F));
+    len = 2;
+  }
+  else if (c < 0x10000) {
+    utf8[0] = (char)(0xE0 |  (c >> 12)        );
+    utf8[1] = (char)(0x80 | ((c >>  6) & 0x3F));
+    utf8[2] = (char)(0x80 | ( c        & 0x3F));
+    len = 3;
+  }
+  else {
+    utf8[0] = (char)(0xF0 |  (c >> 18)        );
+    utf8[1] = (char)(0x80 | ((c >> 12) & 0x3F));
+    utf8[2] = (char)(0x80 | ((c >>  6) & 0x3F));
+    utf8[3] = (char)(0x80 | ( c        & 0x3F));
+    len = 4;
+  }
+  
+  str = str_len_ensure(mrb, str, sidx + len);
+  memcpy(RSTRING_PTR(str) + sidx, utf8, len);
+  
+  return len;
 }
 
 static int
@@ -856,6 +895,10 @@ alias:
     size = 2;
     flags |= PACK_FLAG_SIGNED;
     break;
+  case 'U':
+    dir = PACK_DIR_UTF8;
+    type = PACK_TYPE_INTEGER;
+    break;
   case 'V':  /* = "L<" */
     dir = PACK_DIR_LONG;
     type = PACK_TYPE_INTEGER;
@@ -988,6 +1031,9 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
         break;
       case PACK_DIR_FLOAT:
         ridx += pack_float(mrb, o, result, ridx, flags);
+        break;
+      case PACK_DIR_UTF8:
+        ridx += pack_utf8(mrb, o, result, ridx, count, flags);
         break;
       default:
         break;
