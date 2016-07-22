@@ -246,6 +246,54 @@ make_struct_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c
   }
 }
 
+static mrb_int
+num_members(mrb_state *mrb, struct RClass *klass)
+{
+  mrb_value members;
+
+  members = struct_ivar_get(mrb, mrb_obj_value(klass), mrb_intern_lit(mrb, "__members__"));
+  if (!mrb_array_p(members)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "broken members");
+  }
+  return RARRAY_LEN(members);
+}
+
+/* copy from src/class.c */
+static mrb_value
+mrb_instance_alloc(mrb_state *mrb, mrb_value cv)
+{
+  struct RClass *c = mrb_class_ptr(cv);
+  struct RObject *o;
+  enum mrb_vtype ttype = MRB_INSTANCE_TT(c);
+
+  if (c->tt == MRB_TT_SCLASS)
+    mrb_raise(mrb, E_TYPE_ERROR, "can't create instance of singleton class");
+
+  if (ttype == 0) ttype = MRB_TT_OBJECT;
+  o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);
+  return mrb_obj_value(o);
+}
+
+MRB_API mrb_value
+mrb_struct_instance_new(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value obj, blk;
+  mrb_value *argv;
+  mrb_int argc;
+  mrb_int n;
+  mrb_int i;
+
+  mrb_get_args(mrb, "*&", &argv, &argc, &blk);
+  obj = mrb_instance_alloc(mrb, klass);
+  n = num_members(mrb, mrb_class_ptr(klass));
+  for (i = 0; i < n; i++) {
+    mrb_ary_set(mrb, obj, i, mrb_nil_value());
+  }
+  mrb_funcall_with_block(mrb, obj, mrb_intern_lit(mrb, "initialize"), argc, argv, blk);
+
+  return obj;
+}
+
 static mrb_value
 make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * klass)
 {
@@ -273,7 +321,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   nstr = mrb_obj_value(c);
   mrb_iv_set(mrb, nstr, mrb_intern_lit(mrb, "__members__"), members);
 
-  mrb_define_class_method(mrb, c, "new", mrb_instance_new, MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, c, "new", mrb_struct_instance_new, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "[]", mrb_instance_new, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "members", mrb_struct_s_members_m, MRB_ARGS_NONE());
   /* RSTRUCT(nstr)->basic.c->super = c->c; */
@@ -367,18 +415,6 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   return st;
 }
 
-static mrb_int
-num_members(mrb_state *mrb, struct RClass *klass)
-{
-  mrb_value members;
-
-  members = struct_ivar_get(mrb, mrb_obj_value(klass), mrb_intern_lit(mrb, "__members__"));
-  if (!mrb_array_p(members)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "broken members");
-  }
-  return RARRAY_LEN(members);
-}
-
 /* 15.2.18.4.8  */
 /*
  */
@@ -392,12 +428,8 @@ mrb_struct_initialize_withArg(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb
   if (n < argc) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "struct size differs");
   }
-
   for (i = 0; i < argc; i++) {
     mrb_ary_set(mrb, self, i, argv[i]);
-  }
-  for (i = argc; i < n; i++) {
-    mrb_ary_set(mrb, self, i, mrb_nil_value());
   }
   return self;
 }
