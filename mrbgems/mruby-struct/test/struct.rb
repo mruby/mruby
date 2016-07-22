@@ -23,6 +23,9 @@ assert('Struct#==', '15.2.18.4.1') do
   cc1 = c.new(1,2)
   cc2 = c.new(1,2)
   assert_true cc1 == cc2
+
+  Struct.new(:m1, :m2) { def foo; end }
+  assert_raise(NoMethodError) { Struct.new(:m1).new.foo }
 end
 
 assert('Struct#[]', '15.2.18.4.2') do
