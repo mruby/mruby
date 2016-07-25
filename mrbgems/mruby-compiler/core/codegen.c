@@ -1785,7 +1785,7 @@ codegen(codegen_scope *s, node *tree, int val)
         int pos;
 
         pop();
-        if (val) {
+        if (val && vsp >= 0) {
           genop(s, MKOP_AB(OP_MOVE, vsp, cursp()));
           pos = genop(s, MKOP_AsBx(name[0]=='|'?OP_JMPIF:OP_JMPNOT, cursp(), 0));
         }
@@ -1794,7 +1794,7 @@ codegen(codegen_scope *s, node *tree, int val)
         }
         codegen(s, tree->cdr->cdr->car, VAL);
         pop();
-        if (val) {
+        if (val && vsp >= 0) {
           genop(s, MKOP_AB(OP_MOVE, vsp, cursp()));
         }
         if ((intptr_t)tree->car->car == NODE_CALL) {
@@ -1855,7 +1855,7 @@ codegen(codegen_scope *s, node *tree, int val)
         gen_assignment(s, tree->car, cursp(), val);
       }
       else {
-        if (val) {
+        if (val && vsp >= 0) {
           genop(s, MKOP_AB(OP_MOVE, vsp, cursp()));
         }
         if (callargs == CALL_MAXARGS) {
