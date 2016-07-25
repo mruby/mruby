@@ -123,9 +123,13 @@ MRuby::Build.new('test') do |conf|
 end
 
 MRuby::Build.new('bench') do |conf|
-  toolchain :gcc
-
-  conf.cc.flags << '-O3'
+  # Gets set by the VS command prompts.
+  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+    toolchain :visualcpp
+  else
+    toolchain :gcc
+    conf.cc.flags << '-O3'
+  end
 
   conf.gembox 'default'
 end
