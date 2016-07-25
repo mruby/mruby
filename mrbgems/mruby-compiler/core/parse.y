@@ -5516,10 +5516,10 @@ mrb_parser_new(mrb_state *mrb)
 
 MRB_API void
 mrb_parser_free(parser_state *p) {
-  mrb_pool_close(p->pool);
   if (p->tokbuf != p->buf) {
     mrb_free(p->mrb, p->tokbuf);
   }
+  mrb_pool_close(p->pool);
 }
 
 MRB_API mrbc_context*
