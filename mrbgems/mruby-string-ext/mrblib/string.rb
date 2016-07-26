@@ -362,7 +362,15 @@ class String
       self.split('')
     end
   end
-  alias each_char chars
+
+  def each_char(&block)
+    return to_enum :each_char unless block
+
+    split('').map do |i|
+      block.call(i)
+    end
+    self
+  end
 
   def codepoints(&block)
     len = self.size
