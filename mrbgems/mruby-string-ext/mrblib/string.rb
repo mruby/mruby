@@ -354,7 +354,7 @@ class String
 
   def chars(&block)
     if block_given?
-      self.split('').map do |i|
+      self.split('').each do |i|
         block.call(i)
       end
       self
@@ -366,7 +366,7 @@ class String
   def each_char(&block)
     return to_enum :each_char unless block
 
-    split('').map do |i|
+    split('').each do |i|
       block.call(i)
     end
     self
@@ -376,7 +376,7 @@ class String
     len = self.size
 
     if block_given?
-      self.split('').map do|x|
+      self.split('').each do|x|
         block.call(x.ord)
       end
       self
