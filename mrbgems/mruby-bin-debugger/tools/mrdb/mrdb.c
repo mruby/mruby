@@ -582,7 +582,7 @@ mrb_code_fetch_hook(mrb_state *mrb, mrb_irep *irep, mrb_code *pc, mrb_value *reg
     if (!file || (dbg->prvfile == file && dbg->prvline == line)) {
       return;
     }
-    if((uint32_t)(dbg->prvci) < (uint32_t)(mrb->c->ci)) {
+    if((intptr_t)(dbg->prvci) < (intptr_t)(mrb->c->ci)) {
       return;
     }
     dbg->prvci = NULL;
