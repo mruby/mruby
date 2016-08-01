@@ -56,6 +56,11 @@ MRB_API mrb_value mrb_check_hash_type(mrb_state *mrb, mrb_value hash);
 MRB_API mrb_value mrb_hash_empty_p(mrb_state *mrb, mrb_value self);
 
 /*
+ * Gets an array of values.
+ */
+MRB_API mrb_value mrb_hash_values(mrb_state *mrb, mrb_value hash);
+
+/*
  * Clears the hash.
  */
 MRB_API mrb_value mrb_hash_clear(mrb_state *mrb, mrb_value hash);
