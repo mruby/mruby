@@ -401,6 +401,7 @@ assert('IO.popen with in option') do
       assert_equal "hello", IO.popen("cat", "r", in: r) { |i| i.read }
       assert_equal "", r.read
     end
+    assert_raise(ArgumentError) { IO.popen("hello", "r", in: Object.new) }
   rescue NotImplementedError => e
     skip e.message
   end
