@@ -270,6 +270,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   mrb_value cmd, io, result;
   mrb_value mode = mrb_str_new_cstr(mrb, "r");
   mrb_value opt  = mrb_hash_new(mrb);
+  mrb_value opt_in, opt_out, opt_err;
 
   struct mrb_io *fptr;
   const char *pname;
@@ -315,6 +316,18 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   result = mrb_nil_value();
   switch (pid = fork()) {
     case 0: /* child */
+      opt_in = mrb_funcall(mrb, opt, "[]", 1, mrb_symbol_value(mrb_intern_lit(mrb, "in")));
+      opt_out = mrb_funcall(mrb, opt, "[]", 1, mrb_symbol_value(mrb_intern_lit(mrb, "out")));
+      opt_err = mrb_funcall(mrb, opt, "[]", 1, mrb_symbol_value(mrb_intern_lit(mrb, "err")));
+      if (!mrb_nil_p(opt_in)) {
+        dup2(mrb_fixnum(mrb_io_fileno(mrb, opt_in)), 0);
+      }
+      if (!mrb_nil_p(opt_out)) {
+        dup2(mrb_fixnum(mrb_io_fileno(mrb, opt_out)), 1);
+      }
+      if (!mrb_nil_p(opt_err)) {
+        dup2(mrb_fixnum(mrb_io_fileno(mrb, opt_err)), 2);
+      }
       if (flags & FMODE_READABLE) {
         close(pr[0]);
         if (pr[1] != 1) {

@@ -26,11 +26,11 @@ class IO
     end
   end
 
-  def self.popen(command, mode = 'r', &block)
+  def self.popen(command, mode = 'r', opts={}, &block)
     if !self.respond_to?(:_popen)
       raise NotImplementedError, "popen is not supported on this platform"
     end
-    io = self._popen(command, mode)
+    io = self._popen(command, mode, opts)
     return io unless block
 
     begin

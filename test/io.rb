@@ -393,6 +393,43 @@ assert('IO.popen') do
   end
 end
 
+assert('IO.popen with in option') do
+  begin
+    IO.pipe do |r, w|
+      w.write 'hello'
+      w.close
+      assert_equal "hello", IO.popen("cat", "r", in: r) { |i| i.read }
+      assert_equal "", r.read
+    end
+  rescue NotImplementedError => e
+    skip e.message
+  end
+end
+
+assert('IO.popen with out option') do
+  begin
+    IO.pipe do |r, w|
+      IO.popen("echo 'hello'", "w", out: w) {}
+      w.close
+      assert_equal "hello\n", r.read
+    end
+  rescue NotImplementedError => e
+    skip e.message
+  end
+end
+
+assert('IO.popen with err option') do
+  begin
+    IO.pipe do |r, w|
+      assert_equal "", IO.popen("echo 'hello' 1>&2", "r", err: w) { |i| i.read }
+      w.close
+      assert_equal "hello\n", r.read
+    end
+  rescue NotImplementedError => e
+    skip e.message
+  end
+end
+
 assert('IO.read') do
   # empty file
   fd = IO.sysopen $mrbtest_io_wfname, "w"
