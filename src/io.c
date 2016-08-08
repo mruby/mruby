@@ -264,6 +264,26 @@ mrb_io_alloc(mrb_state *mrb)
 #endif
 
 #ifndef _WIN32
+static int
+option_to_fd(mrb_state *mrb, mrb_value obj, const char *key)
+{
+  mrb_value opt = mrb_funcall(mrb, obj, "[]", 1, mrb_symbol_value(mrb_intern_static(mrb, key, strlen(key))));
+  if (mrb_nil_p(opt)) {
+    return -1;
+  }
+
+  switch (mrb_type(opt)) {
+    case MRB_TT_DATA: /* IO */
+      return mrb_fixnum(mrb_io_fileno(mrb, opt));
+    case MRB_TT_FIXNUM:
+      return mrb_fixnum(opt);
+    default:
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong exec redirect action");
+      break;
+  }
+  return -1; /* never reached */
+}
+
 mrb_value
 mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
@@ -278,6 +298,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   int pw[2] = { -1, -1 };
   int doexec;
   int saved_errno;
+  int opt_in, opt_out, opt_err;
 
   mrb_get_args(mrb, "S|SH", &cmd, &mode, &opt);
   io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
@@ -286,6 +307,9 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   flags = mrb_io_modestr_to_flags(mrb, mrb_string_value_cstr(mrb, &mode));
 
   doexec = (strcmp("-", pname) != 0);
+  opt_in = option_to_fd(mrb, opt, "in");
+  opt_out = option_to_fd(mrb, opt, "out");
+  opt_err = option_to_fd(mrb, opt, "err");
 
   if (flags & FMODE_READABLE) {
     if (pipe(pr) == -1) {
@@ -315,6 +339,15 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   result = mrb_nil_value();
   switch (pid = fork()) {
     case 0: /* child */
+      if (opt_in != -1) {
+        dup2(opt_in, 0);
+      }
+      if (opt_out != -1) {
+        dup2(opt_out, 1);
+      }
+      if (opt_err != -1) {
+        dup2(opt_err, 2);
+      }
       if (flags & FMODE_READABLE) {
         close(pr[0]);
         if (pr[1] != 1) {
