@@ -380,22 +380,22 @@ $stderr = STDERR
 
 module Kernel
   def print(*args)
-    STDOUT.print(*args)
+    $stdout.print(*args)
   end
 
   def puts(*args)
-    STDOUT.puts(*args)
+    $stdout.puts(*args)
   end
 
   def printf(*args)
-    STDOUT.printf(*args)
+    $stdout.printf(*args)
   end
 
   def gets(*args)
-    STDIN.gets(*args)
+    $stdin.gets(*args)
   end
 
   def getc(*args)
-    STDIN.getc(*args)
+    $stdin.getc(*args)
   end
 end
