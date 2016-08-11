@@ -310,6 +310,12 @@ new_rescue(parser_state *p, node *body, node *resq, node *els)
   return list4((node*)NODE_RESCUE, body, resq, els);
 }
 
+static node*
+new_mod_rescue(parser_state *p, node *body, node *resq)
+{
+  return new_rescue(p, body, list1(list3(0, 0, resq)), 0);
+}
+
 /* (:ensure body ensure) */
 static node*
 new_ensure(parser_state *p, node *a, node *b)
@@ -1300,7 +1306,7 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     }
                 | stmt modifier_rescue stmt
                     {
-                      $$ = new_rescue(p, $1, list1(list3(0, 0, $3)), 0);
+                      $$ = new_mod_rescue(p, $1, $3);
                     }
                 | keyword_END '{' compstmt '}'
                     {
@@ -1316,17 +1322,33 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     {
                       $$ = new_op_asgn(p, $1, $2, $3);
                     }
+                | var_lhs tOP_ASGN command_call modifier_rescue stmt
+                    {
+                      $$ = new_op_asgn(p, $1, $2, new_mod_rescue(p, $3, $5));
+                    }
                 | primary_value '[' opt_call_args rbracket tOP_ASGN command_call
                     {
                       $$ = new_op_asgn(p, new_call(p, $1, intern("[]",2), $3, '.'), $5, $6);
+                    }
+                | primary_value '[' opt_call_args rbracket tOP_ASGN command_call modifier_rescue stmt
+                    {
+                      $$ = new_op_asgn(p, new_call(p, $1, intern("[]",2), $3, '.'), $5, new_mod_rescue(p, $6, $8));
                     }
                 | primary_value call_op tIDENTIFIER tOP_ASGN command_call
                     {
                       $$ = new_op_asgn(p, new_call(p, $1, $3, 0, $2), $4, $5);
                     }
+                | primary_value call_op tIDENTIFIER tOP_ASGN command_call modifier_rescue stmt
+                    {
+                      $$ = new_op_asgn(p, new_call(p, $1, $3, 0, $2), $4, new_mod_rescue(p, $5, $7));
+                    }
                 | primary_value call_op tCONSTANT tOP_ASGN command_call
                     {
                       $$ = new_op_asgn(p, new_call(p, $1, $3, 0, $2), $4, $5);
+                    }
+                | primary_value call_op tCONSTANT tOP_ASGN command_call modifier_rescue stmt
+                    {
+                      $$ = new_op_asgn(p, new_call(p, $1, $3, 0, $2), $4, new_mod_rescue(p, $5, $7));
                     }
                 | primary_value tCOLON2 tCONSTANT tOP_ASGN command_call
                     {
@@ -1337,7 +1359,16 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     {
                       $$ = new_op_asgn(p, new_call(p, $1, $3, 0, tCOLON2), $4, $5);
                     }
+                | primary_value tCOLON2 tIDENTIFIER tOP_ASGN command_call modifier_rescue stmt
+                    {
+                      $$ = new_op_asgn(p, new_call(p, $1, $3, 0, tCOLON2), $4, new_mod_rescue(p, $5, $7));
+                    }
                 | backref tOP_ASGN command_call
+                    {
+                      backref_error(p, $1);
+                      $$ = new_begin(p, 0);
+                    }
+                | backref tOP_ASGN command_call modifier_rescue stmt
                     {
                       backref_error(p, $1);
                       $$ = new_begin(p, 0);
@@ -1360,6 +1391,10 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
 command_asgn    : lhs '=' command_call
                     {
                       $$ = new_asgn(p, $1, $3);
+                    }
+                | lhs '=' command_call modifier_rescue stmt
+                    {
+                      $$ = new_asgn(p, $1, new_mod_rescue(p, $3, $5));
                     }
                 | lhs '=' command_asgn
                     {
@@ -1730,7 +1765,7 @@ arg             : lhs '=' arg
                     }
                 | lhs '=' arg modifier_rescue arg
                     {
-                      $$ = new_asgn(p, $1, new_rescue(p, $3, list1(list3(0, 0, $5)), 0));
+                      $$ = new_asgn(p, $1, new_mod_rescue(p, $3, $5));
                     }
                 | var_lhs tOP_ASGN arg
                     {
@@ -1738,25 +1773,46 @@ arg             : lhs '=' arg
                     }
                 | var_lhs tOP_ASGN arg modifier_rescue arg
                     {
-                      $$ = new_op_asgn(p, $1, $2, new_rescue(p, $3, list1(list3(0, 0, $5)), 0));
+                      $$ = new_op_asgn(p, $1, $2, new_mod_rescue(p, $3, $5));
                     }
                 | primary_value '[' opt_call_args rbracket tOP_ASGN arg
                     {
                       $$ = new_op_asgn(p, new_call(p, $1, intern("[]",2), $3, '.'), $5, $6);
                     }
+                | primary_value '[' opt_call_args rbracket tOP_ASGN arg modifier_rescue arg
+                    {
+                      $$ = new_op_asgn(p, new_call(p, $1, intern("[]",2), $3, '.'), $5, new_mod_rescue(p, $6, $8));
+                    }
                 | primary_value call_op tIDENTIFIER tOP_ASGN arg
                     {
                       $$ = new_op_asgn(p, new_call(p, $1, $3, 0, $2), $4, $5);
+                    }
+                | primary_value call_op tIDENTIFIER tOP_ASGN arg modifier_rescue arg
+                    {
+                      $$ = new_op_asgn(p, new_call(p, $1, $3, 0, $2), $4, new_mod_rescue(p, $5, $7));
                     }
                 | primary_value call_op tCONSTANT tOP_ASGN arg
                     {
                       $$ = new_op_asgn(p, new_call(p, $1, $3, 0, $2), $4, $5);
                     }
+                | primary_value call_op tCONSTANT tOP_ASGN arg modifier_rescue arg
+                    {
+                      $$ = new_op_asgn(p, new_call(p, $1, $3, 0, $2), $4, new_mod_rescue(p, $5, $7));
+                    }
                 | primary_value tCOLON2 tIDENTIFIER tOP_ASGN arg
                     {
                       $$ = new_op_asgn(p, new_call(p, $1, $3, 0, tCOLON2), $4, $5);
                     }
+                | primary_value tCOLON2 tIDENTIFIER tOP_ASGN arg modifier_rescue arg
+                    {
+                      $$ = new_op_asgn(p, new_call(p, $1, $3, 0, tCOLON2), $4, new_mod_rescue(p, $5, $7));
+                    }
                 | primary_value tCOLON2 tCONSTANT tOP_ASGN arg
+                    {
+                      yyerror(p, "constant re-assignment");
+                      $$ = new_begin(p, 0);
+                    }
+                | primary_value tCOLON2 tCONSTANT tOP_ASGN arg modifier_rescue arg
                     {
                       yyerror(p, "constant re-assignment");
                       $$ = new_begin(p, 0);
@@ -1766,7 +1822,17 @@ arg             : lhs '=' arg
                       yyerror(p, "constant re-assignment");
                       $$ = new_begin(p, 0);
                     }
+                | tCOLON3 tCONSTANT tOP_ASGN arg modifier_rescue arg
+                    {
+                      yyerror(p, "constant re-assignment");
+                      $$ = new_begin(p, 0);
+                    }
                 | backref tOP_ASGN arg
+                    {
+                      backref_error(p, $1);
+                      $$ = new_begin(p, 0);
+                    }
+                | backref tOP_ASGN arg modifier_rescue arg
                     {
                       backref_error(p, $1);
                       $$ = new_begin(p, 0);
