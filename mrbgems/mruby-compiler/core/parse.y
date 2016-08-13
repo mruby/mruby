@@ -1318,6 +1318,25 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     {
                       $$ = new_masgn(p, $1, $3);
                     }
+                | lhs '=' mrhs
+                    {
+                      $$ = new_asgn(p, $1, new_array(p, $3));
+                    }
+                | mlhs '=' arg_value
+                    {
+                      $$ = new_masgn(p, $1, $3);
+                    }
+                | mlhs '=' mrhs
+                    {
+                      $$ = new_masgn(p, $1, new_array(p, $3));
+                    }
+                | expr
+                ;
+
+command_asgn    : lhs '=' command_rhs
+                    {
+                      $$ = new_asgn(p, $1, $3);
+                    }
                 | var_lhs tOP_ASGN command_rhs
                     {
                       $$ = new_op_asgn(p, $1, $2, $3);
@@ -1347,25 +1366,6 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     {
                       backref_error(p, $1);
                       $$ = new_begin(p, 0);
-                    }
-                | lhs '=' mrhs
-                    {
-                      $$ = new_asgn(p, $1, new_array(p, $3));
-                    }
-                | mlhs '=' arg_value
-                    {
-                      $$ = new_masgn(p, $1, $3);
-                    }
-                | mlhs '=' mrhs
-                    {
-                      $$ = new_masgn(p, $1, new_array(p, $3));
-                    }
-                | expr
-                ;
-
-command_asgn    : lhs '=' command_rhs
-                    {
-                      $$ = new_asgn(p, $1, $3);
                     }
 		;
 
