@@ -529,7 +529,7 @@ mrb_str_ord(mrb_state* mrb, mrb_value str)
 {
   if (RSTRING_LEN(str) == 0)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "empty string");
-  return mrb_fixnum_value(RSTRING_PTR(str)[0]);
+  return mrb_fixnum_value((unsigned char)RSTRING_PTR(str)[0]);
 }
 #endif
 

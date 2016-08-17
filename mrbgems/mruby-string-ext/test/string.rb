@@ -497,6 +497,10 @@ end
 assert('String#ord') do
   got = "hello!".split('').map {|x| x.ord}
   expect = [104, 101, 108, 108, 111, 33]
+  unless UTF8STRING
+    got << "\xff".ord
+    expect << 0xff
+  end
   assert_equal expect, got
 end
 
