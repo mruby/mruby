@@ -8,4 +8,19 @@ class Module
   def attr(name)
     attr_reader(name)
   end
+
+  # 15.2.2.4.27
+  def include(*args)
+    args.reverse.each do |m|
+      m.append_features(self)
+      m.included(self)
+    end
+  end
+
+  def prepend(*args)
+    args.reverse.each do |m|
+      m.prepend_features(self)
+      m.prepended(self)
+    end
+  end
 end

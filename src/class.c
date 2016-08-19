@@ -948,24 +948,6 @@ mrb_mod_prepend_features(mrb_state *mrb, mrb_value mod)
 }
 
 static mrb_value
-mrb_mod_prepend(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value *argv;
-  mrb_int argc, i;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  for (i=0; i<argc; i++) {
-    mrb_check_type(mrb, argv[i], MRB_TT_MODULE);
-  }
-  while (argc--) {
-    mrb_funcall(mrb, argv[argc], "prepend_features", 1, klass);
-    mrb_funcall(mrb, argv[argc], "prepended", 1, klass);
-  }
-
-  return klass;
-}
-
-static mrb_value
 mrb_mod_append_features(mrb_state *mrb, mrb_value mod)
 {
   mrb_value klass;
@@ -974,24 +956,6 @@ mrb_mod_append_features(mrb_state *mrb, mrb_value mod)
   mrb_get_args(mrb, "C", &klass);
   mrb_include_module(mrb, mrb_class_ptr(klass), mrb_class_ptr(mod));
   return mod;
-}
-
-static mrb_value
-mrb_mod_include(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value *argv;
-  mrb_int argc, i;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  for (i=0; i<argc; i++) {
-    mrb_check_type(mrb, argv[i], MRB_TT_MODULE);
-  }
-  while (argc--) {
-    mrb_funcall(mrb, argv[argc], "append_features", 1, klass);
-    mrb_funcall(mrb, argv[argc], "included", 1, klass);
-  }
-
-  return klass;
 }
 
 /* 15.2.2.4.28 */
@@ -2247,10 +2211,8 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "class_variable_set",      mrb_mod_cvar_set,         MRB_ARGS_REQ(2)); /* 15.2.2.4.18 */
   mrb_define_method(mrb, mod, "extend_object",           mrb_mod_extend_object,    MRB_ARGS_REQ(1)); /* 15.2.2.4.25 */
   mrb_define_method(mrb, mod, "extended",                mrb_bob_init,             MRB_ARGS_REQ(1)); /* 15.2.2.4.26 */
-  mrb_define_method(mrb, mod, "prepend",                 mrb_mod_prepend,          MRB_ARGS_ANY());
   mrb_define_method(mrb, mod, "prepended",               mrb_bob_init,             MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mod, "prepend_features",        mrb_mod_prepend_features, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mod, "include",                 mrb_mod_include,          MRB_ARGS_ANY());  /* 15.2.2.4.27 */
   mrb_define_method(mrb, mod, "include?",                mrb_mod_include_p,        MRB_ARGS_REQ(1)); /* 15.2.2.4.28 */
   mrb_define_method(mrb, mod, "append_features",         mrb_mod_append_features,  MRB_ARGS_REQ(1)); /* 15.2.2.4.10 */
   mrb_define_method(mrb, mod, "class_eval",              mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.15 */
