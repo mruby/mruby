@@ -3,13 +3,14 @@
 # Test for or/and
 #
 # You may think instruction fusion(OP_EQ and OP_JMPIF) for avoiding
-# generate intermedicate boolean value.
+# generate intermediate boolean value.
 # But and/or is pitfall for this fusioning.
 #
-# For example. Folloging mruby code
+# For example, the following mruby code:
+#
 #   if i > 0 and i < 10 then
 #
-# compilies to RITE bitecode
+# compiles to the following byte code:
 #
 #    1 000 OP_LOADI      R1      0               ; R1:i
 #    2 001 OP_MOVE       R2      R1              ; R1:i
@@ -22,7 +23,7 @@
 #    2 008 OP_JMPNOT     R2      (The address of end of then part)
 #
 # When the instruction fusion the OP_GT and OP_JMPNOT you fell into the pitfalls.
-# The deleted intermedicate boolean value is used in OP_JMPNOT (address 008).
+# The deleted intermediate boolean value is used in OP_JMPNOT (address 008).
 
 assert('and', '11.2.3') do
   a = 1
