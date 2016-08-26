@@ -533,4 +533,5 @@ mrb_init_exception(mrb_state *mrb)
   script_error = mrb_define_class(mrb, "ScriptError", mrb->eException_class);                /* 15.2.37 */
   mrb_define_class(mrb, "SyntaxError", script_error);                                        /* 15.2.38 */
   mrb_define_class(mrb, "SystemStackError", exception);
+  mrb_define_class(mrb, "ZeroDivisionError", exception);                                     /* 15.2.30 */
 }

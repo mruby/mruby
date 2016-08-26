@@ -34,6 +34,9 @@ assert('Numeric#/', '15.2.8.3.4') do
   assert_equal(15.1, n/10)
   assert_raise(TypeError){ 1/n }
   assert_raise(TypeError){ 1/nil }
+
+  assert_raise(ZeroDivisionError){ 1.quo(0) }
+  assert_raise(ZeroDivisionError){ 1/0 }
 end
 
 # Not ISO specified

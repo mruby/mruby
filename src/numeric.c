@@ -75,7 +75,12 @@ num_pow(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  return mrb_float_value(mrb, mrb_to_flo(mrb, x) / mrb_to_flo(mrb, y));
+  mrb_float yy;
+  yy = mrb_to_flo(mrb, y);
+  if (yy == 0) {
+    mrb_raise(mrb, E_ZERODIVISION_ERROR, "divided by 0");
+  }
+  return mrb_float_value(mrb, mrb_to_flo(mrb, x) / yy);
 }
 
 /* 15.2.9.3.19(x) */
@@ -92,6 +97,9 @@ num_div(mrb_state *mrb, mrb_value x)
   mrb_float y;
 
   mrb_get_args(mrb, "f", &y);
+  if (y == 0) {
+    mrb_raise(mrb, E_ZERODIVISION_ERROR, "divided by 0");
+  }
   return mrb_float_value(mrb, mrb_to_flo(mrb, x) / y);
 }
 
