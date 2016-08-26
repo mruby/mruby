@@ -15,7 +15,7 @@ addons:
       - gperf
 
 env: MRUBY_CONFIG=travis_config.rb
-script: "./minirake all test"
+script: "./minirake clean all test"
 
 notifications:
   # Update mruby-head installed on Travis CI so other projects can test against it.
