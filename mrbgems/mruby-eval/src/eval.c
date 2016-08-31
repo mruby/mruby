@@ -247,6 +247,7 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     cv = mrb_singleton_class(mrb, self);
     c->ci->target_class = mrb_class_ptr(cv);
     proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line);
+    mrb->c->ci->env = NULL;
     return mrb_vm_run(mrb, proc, mrb->c->stack[0], 0);
   }
   else {
