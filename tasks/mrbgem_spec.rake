@@ -17,7 +17,8 @@ module MRuby
       attr_accessor :name, :dir, :build
       alias mruby build
       attr_accessor :build_config_initializer
-
+      attr_accessor :mrblib_dir, :objs_dir
+      
       attr_accessor :version
       attr_accessor :description, :summary
       attr_accessor :homepage
@@ -44,6 +45,8 @@ module MRuby
         @name = name
         @initializer = block
         @version = "0.0.0"
+        @mrblib_dir = "mrblib"
+        @objs_dir = "src"
         MRuby::Gem.current = self
       end
 
@@ -54,8 +57,8 @@ module MRuby
         end
         @linker = LinkerConfig.new([], [], [], [], [])
 
-        @rbfiles = Dir.glob("#{dir}/mrblib/**/*.rb").sort
-        @objs = Dir.glob("#{dir}/src/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
+        @rbfiles = Dir.glob("#{@dir}/#{@mrblib_dir}/**/*.rb").sort
+        @objs = Dir.glob("#{@dir}/#{@objs_dir}/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
           objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
         end
 
