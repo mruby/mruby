@@ -22,7 +22,7 @@
 #include "value_array.h"
 #include <mruby/throw.h>
 
-#ifndef MRB_DISABLE_STDIO
+#ifdef MRB_DISABLE_STDIO
 #if defined(__cplusplus)
 extern "C" {
 #endif
