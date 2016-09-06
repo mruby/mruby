@@ -26,6 +26,8 @@ get_closure_irep(mrb_state *mrb, int level)
   }
 
   if (!e) return NULL;
+  if (!MRB_ENV_STACK_SHARED_P(e)) return NULL;
+
   proc = c->cibase[e->cioff].proc;
 
   if (!proc || MRB_PROC_CFUNC_P(proc)) {
