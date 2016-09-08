@@ -891,14 +891,31 @@ mrb_ary_rindex_m(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_ary_splat(mrb_state *mrb, mrb_value v)
 {
+  mrb_value a, recv_class;
+
   if (mrb_array_p(v)) {
     return v;
   }
-  if (mrb_respond_to(mrb, v, mrb_intern_lit(mrb, "to_a"))) {
-    return mrb_funcall(mrb, v, "to_a", 0);
+
+  if (!mrb_respond_to(mrb, v, mrb_intern_lit(mrb, "to_a"))) {
+    return mrb_ary_new_from_values(mrb, 1, &v);
+  }
+
+  a = mrb_funcall(mrb, v, "to_a", 0);
+  if (mrb_array_p(a)) {
+    return a;
+  }
+  else if (mrb_nil_p(a)) {
+    return mrb_ary_new_from_values(mrb, 1, &v);
   }
   else {
-    return mrb_ary_new_from_values(mrb, 1, &v);
+    recv_class = mrb_obj_value(mrb_obj_class(mrb, v));
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S to Array (%S#to_a gives %S)",
+      recv_class,
+      recv_class,
+      mrb_obj_value(mrb_obj_class(mrb, a))
+    );
+    return mrb_undef_value();
   }
 }
 

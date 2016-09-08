@@ -307,6 +307,36 @@ assert('Return values of no expression case statement') do
   assert_equal 1, when_value
 end
 
+assert('splat object in assignment') do
+  o = Object.new
+  def o.to_a
+    nil
+  end
+  assert_equal [o], (a = *o)
+
+  def o.to_a
+    1
+  end
+  assert_raise(TypeError) { a = *o }
+
+  def o.to_a
+    [2]
+  end
+  assert_equal [2], (a = *o)
+end
+
+assert('splat object in case statement') do
+  o = Object.new
+  def o.to_a
+    nil
+  end
+  a = case o
+  when *o
+    1
+  end
+  assert_equal 1, a
+end
+
 assert('splat in case statement') do
   values = [3,5,1,7,8]
   testa = [1,2,7]
