@@ -77,6 +77,8 @@ assert('File.join') do
   assert_equal "/a/b/c", File.join("/a", "b", "c")
   assert_equal "a/b/c/", File.join("a", "b", "c/")
   assert_equal "a/b/c", File.join("a/", "/b/", "/c")
+  assert_equal "a/b/c", File.join(["a", "b", "c"])
+  assert_equal "a/b/c", File.join("a", ["b", ["c"]])
 end
 
 assert('File.realpath') do
