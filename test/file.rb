@@ -69,14 +69,14 @@ assert('IO#flock') do
 end
 
 assert('File.join') do
-  File.join() == "" and
-  File.join("a") == "a" and
-  File.join("/a") == "/a" and
-  File.join("a/") == "a/" and
-  File.join("a", "b", "c") == "a/b/c" and
-  File.join("/a", "b", "c") == "/a/b/c" and
-  File.join("a", "b", "c/") == "a/b/c/" and
-  File.join("a/", "/b/", "/c") == "a/b/c"
+  assert_equal "", File.join()
+  assert_equal "a", File.join("a")
+  assert_equal "/a", File.join("/a")
+  assert_equal "a/", File.join("a/")
+  assert_equal "a/b/c", File.join("a", "b", "c")
+  assert_equal "/a/b/c", File.join("/a", "b", "c")
+  assert_equal "a/b/c/", File.join("a", "b", "c/")
+  assert_equal "a/b/c", File.join("a/", "/b/", "/c")
 end
 
 assert('File.realpath') do
