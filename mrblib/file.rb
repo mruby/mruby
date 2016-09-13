@@ -19,34 +19,47 @@ class File < IO
   end
 
   def self.join(*names)
-    if names.size == 0
-      ""
-    elsif names.size == 1
-      names[0]
-    else
-      if names[0][-1] == File::SEPARATOR
-        s = names[0][0..-2]
-      else
-        s = names[0].dup
-      end
-      (1..names.size-2).each { |i|
-        t = names[i]
-        if t[0] == File::SEPARATOR and t[-1] == File::SEPARATOR
-          t = t[1..-2]
-        elsif t[0] == File::SEPARATOR
-          t = t[1..-1]
-        elsif t[-1] == File::SEPARATOR
-          t = t[0..-2]
+    return "" if names.empty?
+
+    names.map! do |name|
+      case name
+      when String
+        name
+      when Array
+        if names == name
+          raise ArgumentError, "recursive array"
         end
-        s += File::SEPARATOR + t if t != ""
-      }
-      if names[-1][0] == File::SEPARATOR
-        s += File::SEPARATOR + names[-1][1..-1]
+        join(*name)
       else
-        s += File::SEPARATOR + names[-1]
+        raise TypeError, "no implicit conversion of #{name.class} into String"
       end
-      s
     end
+
+    return names[0] if names.size == 1
+
+    if names[0][-1] == File::SEPARATOR
+      s = names[0][0..-2]
+    else
+      s = names[0].dup
+    end
+
+    (1..names.size-2).each { |i|
+      t = names[i]
+      if t[0] == File::SEPARATOR and t[-1] == File::SEPARATOR
+        t = t[1..-2]
+      elsif t[0] == File::SEPARATOR
+        t = t[1..-1]
+      elsif t[-1] == File::SEPARATOR
+        t = t[0..-2]
+      end
+      s += File::SEPARATOR + t if t != ""
+    }
+    if names[-1][0] == File::SEPARATOR
+      s += File::SEPARATOR + names[-1][1..-1]
+    else
+      s += File::SEPARATOR + names[-1]
+    end
+    s
   end
 
   def self.expand_path(path, default_dir = '.')
