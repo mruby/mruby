@@ -48,30 +48,30 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
       command = command.to_s
 
       command = case arch
-        when /armeabi/, /armeabi-v7a/ then 'arm-linux-androideabi-'
-        when /arm64-v8a/              then 'aarch64-linux-android-'
-        when /x86/                    then 'i686-linux-android-'
-        when /x86_64/                 then 'x86_64-linux-android-'
-        when /mips/                   then 'mipsel-linux-android-'
-        when /mips64/                 then 'mips64el-linux-android-'
+        when /armeabi/    then 'arm-linux-androideabi-'
+        when /arm64-v8a/  then 'aarch64-linux-android-'
+        when /x86_64/     then 'x86_64-linux-android-'
+        when /x86/        then 'i686-linux-android-'
+        when /mips64/     then 'mips64el-linux-android-'
+        when /mips/       then 'mipsel-linux-android-'
         end + command
 
       prefix = case arch
-        when /armeabi/, /armeabi-v7a/ then 'arm-linux-androideabi-'
-        when /arm64-v8a/              then 'aarch64-linux-android-'
-        when /x86/                    then 'x86-'
-        when /x86_64/                 then 'x86_64-'
-        when /mips/                   then 'mipsel-linux-android-'
-        when /mips64/                 then 'mips64el-linux-android-'
+        when /armeabi/    then 'arm-linux-androideabi-'
+        when /arm64-v8a/  then 'aarch64-linux-android-'
+        when /x86_64/     then 'x86_64-'
+        when /x86/        then 'x86-'
+        when /mips64/     then 'mips64el-linux-android-'
+        when /mips/       then 'mipsel-linux-android-'
         end
 
       test = case arch
-        when /armeabi/, /armeabi-v7a/ then 'arm-linux-androideabi-*'
-        when /arm64-v8a/              then 'aarch64-linux-android-*'
-        when /x86/                    then 'x86-*'
-        when /x86_64/                 then 'x86_64-*'
-        when /mips/                   then 'mipsel-linux-android-*'
-        when /mips64/                 then 'mips64el-linux-android-*'
+        when /armeabi/    then 'arm-linux-androideabi-*'
+        when /arm64-v8a/  then 'aarch64-linux-android-*'
+        when /x86_64/     then 'x86_64-*'
+        when /x86/        then 'x86-*'
+        when /mips64/     then 'mips64el-linux-android-*'
+        when /mips/       then 'mipsel-linux-android-*'
         end
 
       gcc_toolchain_version = Dir[home_path.join('toolchains', test)].map{|t| t.match(/-(\d+\.\d+)$/); $1.to_f }.max
@@ -138,12 +138,12 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
   def sysroot
     @sysroot ||= home_path.join('platforms', platform,
         case arch
-        when /armeabi/, /armeabi-v7a/ then 'arch-arm'
-        when /arm64-v8a/              then 'arch-arm64'
-        when /x86/                    then 'arch-x86'
-        when /x86_64/                 then 'arch-x86_64'
-        when /mips/                   then 'arch-mips'
-        when /mips64/                 then 'arch-mips64'
+        when /armeabi/    then 'arch-arm'
+        when /arm64-v8a/  then 'arch-arm64'
+        when /x86_64/     then 'arch-x86_64'
+        when /x86/        then 'arch-x86'
+        when /mips64/     then 'arch-mips64'
+        when /mips/       then 'arch-mips'
         end
       ).to_s
   end
@@ -197,13 +197,13 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
     when :clang
       flags += %W(-gcc-toolchain #{toolchain_path.to_s})
       case arch
-      when /armeabi/      then flags += %W(-target armv5te-none-linux-androideabi)
       when /armeabi-v7a/  then flags += %W(-target armv7-none-linux-androideabi)
+      when /armeabi/      then flags += %W(-target armv5te-none-linux-androideabi)
       when /arm64-v8a/    then flags += %W(-target aarch64-none-linux-android)
-      when /x86/          then flags += %W(-target i686-none-linux-android)
       when /x86_64/       then flags += %W(-target x86_64-none-linux-android)
-      when /mips/         then flags += %W(-target mipsel-none-linux-android)
+      when /x86/          then flags += %W(-target i686-none-linux-android)
       when /mips64/       then flags += %W(-target mips64el-none-linux-android)
+      when /mips/         then flags += %W(-target mipsel-none-linux-android)
       end
     end
 
