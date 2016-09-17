@@ -17,9 +17,9 @@ Please help to improve it by submitting your findings.
 ## ```1/2``` gives ```0.5```
 
 Since mruby does not have ```Bignum```, bigger integers are represented
-by ```Float``` numbers. To enhance interoperability between ```Float```
-and ```Float```, mruby provides ``Float#upto``` and other iterating
-methods for ```Float`` class.  As a side effect, ```1/2``` gives ```0.5```
+by ```Float``` numbers. To enhance interoperability between ```Fixnum```
+and ```Float```, mruby provides ```Float#upto``` and other iterating
+methods for the ```Float``` class.  As a side effect, ```1/2``` gives ```0.5```
 not ```0```.
 
 ## ```Array``` passed to ```puts```
@@ -144,7 +144,7 @@ true
 
 ## defined?
 
-The ```defined?``` keyword is considered to complex to be fully
+The ```defined?``` keyword is considered too complex to be fully
 implemented. It is recommended to use ```const_defined?``` and
 other reflection methods instead.
 
