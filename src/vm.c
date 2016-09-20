@@ -720,9 +720,9 @@ argnum_error(mrb_state *mrb, mrb_int num)
 #endif
 
 #ifdef MRB_BYTECODE_DECODE_OPTION
-#define BYTECODE_DECODER(x) if( (mrb)->bytecode_decoder ) (mrb)->bytecode_decoder((mrb), (x))
+#define BYTECODE_DECODER(x) ((mrb)->bytecode_decoder)?(mrb)->bytecode_decoder((mrb), (x)):(x)
 #else
-#define BYTECODE_DECODER(x) (x);
+#define BYTECODE_DECODER(x) (x)
 #endif
 
 

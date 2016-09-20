@@ -177,7 +177,7 @@ typedef struct mrb_state {
 #endif
 
 #ifdef MRB_BYTECODE_DECODE_OPTION
-  void (*bytecode_decoder)(struct mrb_state* mrb, mrb_code *code);
+  mrb_code (*bytecode_decoder)(struct mrb_state* mrb, mrb_code code);
 #endif
 
   struct RClass *eException_class;
