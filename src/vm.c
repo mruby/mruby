@@ -719,13 +719,20 @@ argnum_error(mrb_state *mrb, mrb_int num)
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs)
 #endif
 
+#ifdef MRB_BYTECODE_DECODE_OPTION
+#define BYTECODE_DECODER(x) if( (mrb)->bytecode_decoder ) (mrb)->bytecode_decoder((mrb), (x))
+#else
+#define BYTECODE_DECODER(x) (x);
+#endif
+
+
 #if defined __GNUC__ || defined __clang__ || defined __INTEL_COMPILER
 #define DIRECT_THREADED
 #endif
 
 #ifndef DIRECT_THREADED
 
-#define INIT_DISPATCH for (;;) { i = *pc; CODE_FETCH_HOOK(mrb, irep, pc, regs); switch (GET_OPCODE(i)) {
+#define INIT_DISPATCH for (;;) { i = BYTECODE_DECODER(*pc); CODE_FETCH_HOOK(mrb, irep, pc, regs); switch (GET_OPCODE(i)) {
 #define CASE(op) case op:
 #define NEXT pc++; break
 #define JUMP break
@@ -735,8 +742,8 @@ argnum_error(mrb_state *mrb, mrb_int num)
 
 #define INIT_DISPATCH JUMP; return mrb_nil_value();
 #define CASE(op) L_ ## op:
-#define NEXT i=*++pc; CODE_FETCH_HOOK(mrb, irep, pc, regs); goto *optable[GET_OPCODE(i)]
-#define JUMP i=*pc; CODE_FETCH_HOOK(mrb, irep, pc, regs); goto *optable[GET_OPCODE(i)]
+#define NEXT i=BYTECODE_DECODER(*++pc); CODE_FETCH_HOOK(mrb, irep, pc, regs); goto *optable[GET_OPCODE(i)]
+#define JUMP i=BYTECODE_DECODER(*pc); CODE_FETCH_HOOK(mrb, irep, pc, regs); goto *optable[GET_OPCODE(i)]
 
 #define END_DISPATCH
 

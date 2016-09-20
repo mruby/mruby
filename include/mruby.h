@@ -176,6 +176,10 @@ typedef struct mrb_state {
   void (*debug_op_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
 #endif
 
+#ifdef MRB_BYTECODE_DECODE_OPTION
+  void (*bytecode_decoder)(struct mrb_state* mrb, mrb_code *code);
+#endif
+
   struct RClass *eException_class;
   struct RClass *eStandardError_class;
   struct RObject *nomem_err;              /* pre-allocated NoMemoryError */
