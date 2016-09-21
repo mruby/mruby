@@ -13,7 +13,7 @@ printstr(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_string_p(obj)) {
 #if defined(_WIN32)
-    if (isatty(fileno(stdout))) {
+    if (_isatty(_fileno(stdout))) {
       DWORD written;
       int mlen = RSTRING_LEN(obj);
       char* utf8 = RSTRING_PTR(obj);
