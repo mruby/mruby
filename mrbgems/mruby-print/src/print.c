@@ -6,6 +6,10 @@
 #if defined(_WIN32)
 # include <windows.h>
 # include <io.h>
+#ifdef _MSC_VER
+# define isatty(x) _isatty(x)
+# define fileno(x) _fileno(x)
+#endif
 #endif
 
 static void
@@ -13,7 +17,7 @@ printstr(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_string_p(obj)) {
 #if defined(_WIN32)
-    if (_isatty(_fileno(stdout))) {
+    if (isatty(fileno(stdout))) {
       DWORD written;
       int mlen = RSTRING_LEN(obj);
       char* utf8 = RSTRING_PTR(obj);
