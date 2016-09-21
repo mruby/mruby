@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#if defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32)
 # include <windows.h>
 # include <io.h>
 #endif
@@ -12,7 +12,7 @@ static void
 printstr(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_string_p(obj)) {
-#if defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(_WIN32)
     if (isatty(fileno(stdout))) {
       DWORD written;
       int mlen = RSTRING_LEN(obj);
