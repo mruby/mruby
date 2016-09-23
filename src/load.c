@@ -544,7 +544,7 @@ read_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc, uint8_t 
   return MRB_DUMP_OK;
 }
 
-MRB_API mrb_irep*
+static mrb_irep*
 read_irep(mrb_state *mrb, const uint8_t *bin, uint8_t flags)
 {
   int result;
@@ -602,7 +602,7 @@ read_irep(mrb_state *mrb, const uint8_t *bin, uint8_t flags)
   return irep;
 }
 
-MRB_API mrb_irep*
+mrb_irep*
 mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
 {
 #ifdef MRB_USE_ETEXT_EDATA
