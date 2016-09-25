@@ -576,7 +576,7 @@ str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
   }
 }
 
-MRB_API mrb_int
+mrb_int
 mrb_str_strlen(mrb_state *mrb, struct RString *s)
 {
   mrb_int i, max = RSTR_LEN(s);

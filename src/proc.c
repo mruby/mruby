@@ -135,7 +135,7 @@ mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx)
   return e->stack[idx];
 }
 
-MRB_API void
+void
 mrb_proc_copy(struct RProc *a, struct RProc *b)
 {
   a->flags = b->flags;
