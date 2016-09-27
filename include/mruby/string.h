@@ -76,7 +76,7 @@ struct RString {
 #define RSTRING_LEN(s)       RSTR_LEN(RSTRING(s))
 #define RSTRING_CAPA(s)      RSTR_CAPA(RSTRING(s))
 #define RSTRING_END(s)       (RSTRING_PTR(s) + RSTRING_LEN(s))
-mrb_int mrb_str_strlen(mrb_state*, struct RString*);
+MRB_API mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 
 #define MRB_STR_SHARED    1
 #define MRB_STR_NOFREE    2
