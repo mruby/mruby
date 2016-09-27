@@ -207,7 +207,7 @@ class String
       else
         idx = arg1
         idx += self.size if arg1 < 0
-        validated = true if idx >=0 && arg1 < self.size   
+        validated = true if idx >=0 && arg1 < self.size
       end
       if validated
         str = self[arg1]

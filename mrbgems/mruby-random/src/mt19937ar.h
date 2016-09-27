@@ -28,7 +28,7 @@
 ** Any feedback is very welcome.
 ** http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/emt.html
 ** email: m-mat @ math.sci.hiroshima-u.ac.jp (remove space)
-** 
+**
 ** This version is modified by mruby developers. If you see any problem,
 ** contact us first at https://github.com/mruby/mruby/issues
 */

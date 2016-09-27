@@ -96,7 +96,7 @@ class Liste < Array
   def initialize(str = nil)
     @feld = str
   end
-end 
+end
 
 p Liste.new "foobar"
 ```
