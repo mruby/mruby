@@ -646,7 +646,7 @@ mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 
 #ifndef MRB_DISABLE_STDIO
 
-MRB_API mrb_irep*
+mrb_irep*
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
   mrb_irep *irep = NULL;
