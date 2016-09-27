@@ -2852,6 +2852,9 @@ loop_break(codegen_scope *s, node *tree)
       loop->pc3 = tmp;
     }
     else {
+      if (!tree) {
+        genop(s, MKOP_A(OP_LOADNIL, cursp()));
+      }
       genop(s, MKOP_AB(OP_RETURN, cursp(), OP_R_BREAK));
     }
   }
