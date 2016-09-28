@@ -18,7 +18,7 @@ module MRuby
       alias mruby build
       attr_accessor :build_config_initializer
       attr_accessor :mrblib_dir, :objs_dir
-      
+
       attr_accessor :version
       attr_accessor :description, :summary
       attr_accessor :homepage

@@ -5,12 +5,12 @@
 MRuby::Build.new do |conf|
   toolchain :gcc
   conf.gembox 'default'
-  conf.cc.defines = %w(ENABLE_READLINE)  
+  conf.cc.defines = %w(ENABLE_READLINE)
   conf.gembox 'default'
 
   #lightweight regular expression
   conf.gem :github => "pbosetti/mruby-hs-regexp", :branch => "master"
-  
+
 end
 
 # Define cross build settings
@@ -18,7 +18,7 @@ MRuby::CrossBuild.new('core2-32-poky-linux') do |conf|
   toolchain :gcc
 
   # Mac OS X
-  # 
+  #
   POKY_EDISON_PATH = '/opt/poky-edison/1.7.2'
 
   POKY_EDISON_SYSROOT =  "#{POKY_EDISON_PATH}/sysroots/core2-32-poky-linux"
@@ -42,7 +42,7 @@ MRuby::CrossBuild.new('core2-32-poky-linux') do |conf|
     cxx.include_paths << ["#{POKY_EDISON_SYSROOT}/usr/include/c++/4.9.1"]
     cxx.flags = conf.cc.flags.dup
     cxx.defines = conf.cc.defines.dup
-    cxx.compile_options = conf.cc.compile_options.dup    
+    cxx.compile_options = conf.cc.compile_options.dup
   end
 
   conf.archiver do |archiver|

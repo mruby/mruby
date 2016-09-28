@@ -2972,7 +2972,7 @@ superclass      : /* term */
                   expr_value term
                     {
                       $$ = $3;
-                    } /* 
+                    } /*
                 | error term
                     {
                       yyerrok;

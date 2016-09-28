@@ -91,12 +91,12 @@ MRB_API void mrb_str_modify(mrb_state*, struct RString*);
 /*
  * Appends self to other. Returns self as a concatnated string.
  *
- * 
+ *
  *  Example:
  *
  *     !!!c
  *     int
- *     main(int argc, 
+ *     main(int argc,
  *          char **argv)
  *     {
  *       // Variable declarations.
@@ -138,12 +138,12 @@ MRB_API void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
 /*
  * Adds two strings together.
  *
- * 
+ *
  *  Example:
  *
  *     !!!c
  *     int
- *     main(int argc, 
+ *     main(int argc,
  *          char **argv)
  *     {
  *       // Variable declarations.
@@ -215,7 +215,7 @@ MRB_API mrb_value mrb_obj_as_string(mrb_state *mrb, mrb_value obj);
  *
  *     !!!c
  *     int
- *     main(int argc, 
+ *     main(int argc,
  *          char **argv)
  *     {
  *         // Variable declaration.
@@ -224,11 +224,11 @@ MRB_API mrb_value mrb_obj_as_string(mrb_state *mrb, mrb_value obj);
  *         mrb_state *mrb = mrb_open();
  *         if (!mrb)
  *         {
- *            // handle error 
+ *            // handle error
  *         }
  *         // Creates a new string.
  *         str = mrb_str_new_cstr(mrb, "Hello, world!");
- *         // Returns 5 characters of 
+ *         // Returns 5 characters of
  *         mrb_str_resize(mrb, str, 5);
  *         mrb_p(mrb, str);
  *
@@ -254,7 +254,7 @@ MRB_API mrb_value mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len);
  *
  *     !!!c
  *     int
- *     main(int argc, 
+ *     main(int argc,
  *     char const **argv)
  *     {
  *       // Variable declarations.

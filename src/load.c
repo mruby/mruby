@@ -523,7 +523,7 @@ read_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc, uint8_t 
   if (memcmp(header->binary_ident, RITE_BINARY_IDENT, sizeof(header->binary_ident)) == 0) {
     if (bigendian_p())
       *flags |= FLAG_BYTEORDER_NATIVE;
-    else 
+    else
       *flags |= FLAG_BYTEORDER_BIG;
   }
   else if (memcmp(header->binary_ident, RITE_BINARY_IDENT_LIL, sizeof(header->binary_ident)) == 0) {
