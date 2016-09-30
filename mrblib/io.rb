@@ -133,20 +133,12 @@ class IO
   end
 
   def eof?
-    return true if @buf && @buf.size > 0
-
-    ret = false
-    char = ''
-
     begin
-      char = sysread(1)
-    rescue EOFError => e
-      ret = true
-    ensure
-      _ungets(char)
+      buf = _read_buf
+      return buf.size == 0
+    rescue EOFError
+      return true
     end
-
-    ret
   end
   alias_method :eof, :eof?
 
@@ -176,21 +168,14 @@ class IO
     @buf = sysread(BUF_SIZE)
   end
 
-  def _ungets(substr)
+  def ungetc(substr)
     raise TypeError.new "expect String, got #{substr.class}" unless substr.is_a?(String)
-    raise IOError if @pos == 0 || @pos.nil?
     @pos -= substr.size
     if @buf.empty?
-      @buf = substr
+      @buf = substr.dup
     else
       @buf = substr + @buf
     end
-    nil
-  end
-
-  def ungetc(char)
-    raise IOError if @pos == 0 || @pos.nil?
-    _ungets(char)
     nil
   end
 

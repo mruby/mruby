@@ -70,14 +70,29 @@ end
 #assert('IO#each_line', '15.2.20.5.5') do
 
 assert('IO#eof?', '15.2.20.5.6') do
-  io = IO.new(IO.sysopen($mrbtest_io_rfname))
-  $mrbtest_io_msg.each_char { |ch|
-    # XXX
-    #assert_false io.eof?
-    io.getc
-  }
+  if false  # XXX: not implemented yet
+    io = IO.new(IO.sysopen($mrbtest_io_wfname, 'w'), 'w')
+    assert_raise(IOError) do
+      io.eof?
+    end
+  end
+
+  # empty file
+  io = IO.open(IO.sysopen($mrbtest_io_wfname, 'w'), 'w')
+  io.close
+  io = IO.open(IO.sysopen($mrbtest_io_wfname, 'r'), 'r')
   assert_true io.eof?
   io.close
+
+  # nonempty file
+  io = IO.new(IO.sysopen($mrbtest_io_rfname))
+  assert_false io.eof?
+  io.readchar
+  assert_false io.eof?
+  io.read
+  assert_true io.eof?
+  io.close
+
   true
 end
 
