@@ -70,12 +70,11 @@ end
 #assert('IO#each_line', '15.2.20.5.5') do
 
 assert('IO#eof?', '15.2.20.5.6') do
-  if false  # XXX: not implemented yet
-    io = IO.new(IO.sysopen($mrbtest_io_wfname, 'w'), 'w')
-    assert_raise(IOError) do
-      io.eof?
-    end
+  io = IO.new(IO.sysopen($mrbtest_io_wfname, 'w'), 'w')
+  assert_raise(IOError) do
+    io.eof?
   end
+  io.close
 
   # empty file
   io = IO.open(IO.sysopen($mrbtest_io_wfname, 'w'), 'w')

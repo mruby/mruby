@@ -133,6 +133,7 @@ class IO
   end
 
   def eof?
+    _check_readable
     begin
       buf = _read_buf
       return buf.size == 0

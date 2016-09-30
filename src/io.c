@@ -254,6 +254,7 @@ mrb_io_alloc(mrb_state *mrb)
   fptr->fd = -1;
   fptr->fd2 = -1;
   fptr->pid = 0;
+  fptr->readable = 0;
   fptr->writable = 0;
   fptr->sync = 0;
   return fptr;
@@ -394,6 +395,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
       fptr->fd = fd;
       fptr->fd2 = write_fd;
       fptr->pid = pid;
+      fptr->readable = ((flags & FMODE_READABLE) != 0);
       fptr->writable = ((flags & FMODE_WRITABLE) != 0);
       fptr->sync = 0;
 
@@ -454,6 +456,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
   DATA_PTR(io) = fptr;
 
   fptr->fd = fd;
+  fptr->readable = ((flags & FMODE_READABLE) != 0);
   fptr->writable = ((flags & FMODE_WRITABLE) != 0);
   fptr->sync = 0;
   return io;
@@ -497,6 +500,16 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
   if (!quiet && n != 0) {
     mrb_sys_fail(mrb, "fptr_finalize failed.");
   }
+}
+
+mrb_value
+mrb_io_check_readable(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_io *fptr = io_get_open_fptr(mrb, self);
+  if (! fptr->readable) {
+    mrb_raise(mrb, E_IO_ERROR, "not opened for reading");
+  }
+  return mrb_nil_value();
 }
 
 mrb_value
@@ -772,6 +785,7 @@ mrb_io_s_pipe(mrb_state *mrb, mrb_value klass)
   mrb_iv_set(mrb, r, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
   fptr_r = mrb_io_alloc(mrb);
   fptr_r->fd = pipes[0];
+  fptr_r->readable = 1;
   fptr_r->writable = 0;
   fptr_r->sync = 0;
   DATA_TYPE(r) = &mrb_io_type;
@@ -782,6 +796,7 @@ mrb_io_s_pipe(mrb_state *mrb, mrb_value klass)
   mrb_iv_set(mrb, w, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
   fptr_w = mrb_io_alloc(mrb);
   fptr_w->fd = pipes[1];
+  fptr_w->readable = 0;
   fptr_w->writable = 1;
   fptr_w->sync = 1;
   DATA_TYPE(w) = &mrb_io_type;
@@ -1062,6 +1077,7 @@ mrb_init_io(mrb_state *mrb)
 #endif
 
   mrb_define_method(mrb, io, "initialize", mrb_io_initialize, MRB_ARGS_ANY());    /* 15.2.20.5.21 (x)*/
+  mrb_define_method(mrb, io, "_check_readable", mrb_io_check_readable, MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "isatty",     mrb_io_isatty,     MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "sync",       mrb_io_sync,       MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "sync=",      mrb_io_set_sync,   MRB_ARGS_REQ(1));
