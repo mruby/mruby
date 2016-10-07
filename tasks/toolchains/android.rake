@@ -18,7 +18,8 @@ class MRuby::Toolchain::Android
   ARCHITECTURES = %w{
     armeabi armeabi-v7a arm64-v8a
     x86 x86_64
-  } # TODO : Add mips mips64 support
+    mips mips64
+  }
 
   class AndroidNDKHomeNotFound < StandardError
     def message
@@ -59,26 +60,6 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
         when /mips/       then 'mipsel-linux-android-'
         end + command
 
-      prefix = case arch
-        when /armeabi/    then 'arm-linux-androideabi-'
-        when /arm64-v8a/  then 'aarch64-linux-android-'
-        when /x86_64/     then 'x86_64-'
-        when /x86/        then 'x86-'
-        when /mips64/     then 'mips64el-linux-android-'
-        when /mips/       then 'mipsel-linux-android-'
-        end
-
-      test = case arch
-        when /armeabi/    then 'arm-linux-androideabi-*'
-        when /arm64-v8a/  then 'aarch64-linux-android-*'
-        when /x86_64/     then 'x86_64-*'
-        when /x86/        then 'x86-*'
-        when /mips64/     then 'mips64el-linux-android-*'
-        when /mips/       then 'mipsel-linux-android-*'
-        end
-
-      gcc_toolchain_version = Dir[home_path.join('toolchains', test)].map{|t| t.match(/-(\d+\.\d+)$/); $1.to_f }.max
-      gcc_toolchain_path = home_path.join('toolchains', prefix + gcc_toolchain_version.to_s, 'prebuilt', host_platform)
       gcc_toolchain_path.join('bin', command).to_s
     end
   end
@@ -110,6 +91,32 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
       when :clang
         home_path.join('toolchains', 'llvm' , 'prebuilt', host_platform)
       end
+  end
+
+  def gcc_toolchain_path
+    if @gcc_toolchain_path === nil then
+      prefix = case arch
+        when /armeabi/    then 'arm-linux-androideabi-'
+        when /arm64-v8a/  then 'aarch64-linux-android-'
+        when /x86_64/     then 'x86_64-'
+        when /x86/        then 'x86-'
+        when /mips64/     then 'mips64el-linux-android-'
+        when /mips/       then 'mipsel-linux-android-'
+        end
+
+      test = case arch
+        when /armeabi/    then 'arm-linux-androideabi-*'
+        when /arm64-v8a/  then 'aarch64-linux-android-*'
+        when /x86_64/     then 'x86_64-*'
+        when /x86/        then 'x86-*'
+        when /mips64/     then 'mips64el-linux-android-*'
+        when /mips/       then 'mipsel-linux-android-*'
+        end
+
+      gcc_toolchain_version = Dir[home_path.join('toolchains', test)].map{|t| t.match(/-(\d+\.\d+)$/); $1.to_f }.max
+      @gcc_toolchain_path = home_path.join('toolchains', prefix + gcc_toolchain_version.to_s, 'prebuilt', host_platform)
+    end
+    @gcc_toolchain_path
   end
 
   def host_platform
@@ -199,7 +206,7 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
     flags += %W(-D__android__ --sysroot="#{sysroot}")
     case toolchain
     when :clang
-      flags += %W(-gcc-toolchain "#{toolchain_path.to_s}")
+      flags += %W(-gcc-toolchain "#{gcc_toolchain_path.to_s}")
       case arch
       when /armeabi-v7a/  then flags += %W(-target armv7-none-linux-androideabi)
       when /armeabi/      then flags += %W(-target armv5te-none-linux-androideabi)
