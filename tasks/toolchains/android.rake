@@ -13,7 +13,7 @@ class MRuby::Toolchain::Android
     ~/Library/Android/ndk
   }
 
-  TOOLCHAINS = [:clang, :gcc] # TODO : Add gcc support
+  TOOLCHAINS = [:clang, :gcc]
 
   ARCHITECTURES = %w{
     armeabi armeabi-v7a arm64-v8a
