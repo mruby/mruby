@@ -13,7 +13,7 @@ class MRuby::Toolchain::Android
     ~/Library/Android/ndk
   }
 
-  TOOLCHAINS = [:clang] # TODO : Add gcc support
+  TOOLCHAINS = [:clang, :gcc] # TODO : Add gcc support
 
   ARCHITECTURES = %w{
     armeabi armeabi-v7a arm64-v8a
@@ -46,22 +46,18 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
   end
 
   def bin_gcc(command)
-    case toolchain
-    when :gcc then bin(command)
-    when :clang
-      command = command.to_s
+    command = command.to_s
 
-      command = case arch
-        when /armeabi/    then 'arm-linux-androideabi-'
-        when /arm64-v8a/  then 'aarch64-linux-android-'
-        when /x86_64/     then 'x86_64-linux-android-'
-        when /x86/        then 'i686-linux-android-'
-        when /mips64/     then 'mips64el-linux-android-'
-        when /mips/       then 'mipsel-linux-android-'
-        end + command
+    command = case arch
+      when /armeabi/    then 'arm-linux-androideabi-'
+      when /arm64-v8a/  then 'aarch64-linux-android-'
+      when /x86_64/     then 'x86_64-linux-android-'
+      when /x86/        then 'i686-linux-android-'
+      when /mips64/     then 'mips64el-linux-android-'
+      when /mips/       then 'mipsel-linux-android-'
+      end + command
 
-      gcc_toolchain_path.join('bin', command).to_s
-    end
+    gcc_toolchain_path.join('bin', command).to_s
   end
 
   def bin(command)
@@ -88,6 +84,8 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
 
   def toolchain_path
     @toolchain_path ||= case toolchain
+      when :gcc
+        gcc_toolchain_path
       when :clang
         home_path.join('toolchains', 'llvm' , 'prebuilt', host_platform)
       end
@@ -190,12 +188,14 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
 
   def cc
     case toolchain
+    when :gcc then bin_gcc('gcc')
     when :clang then bin('clang')
     end
   end
 
   def ar
     case toolchain
+    when :gcc   then bin_gcc('ar')
     when :clang then bin_gcc('ar')
     end
   end
@@ -205,6 +205,17 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
 
     flags += %W(-D__android__ --sysroot="#{sysroot}")
     case toolchain
+    when :gcc
+      flags += %W(-mandroid)
+      case arch
+      when /armeabi-v7a/  then flags += %W(-march=armv7-a)
+      when /armeabi/      then flags += %W(-march=armv5te)
+      when /arm64-v8a/    then flags += %W(-march=armv8-a)
+      when /x86_64/       then flags += %W(-march=x86-64)
+      when /x86/          then flags += %W(-march=i686)
+      when /mips64/       then flags += %W(-march=mips64)
+      when /mips/         then flags += %W(-march=mips32)
+      end
     when :clang
       flags += %W(-gcc-toolchain "#{gcc_toolchain_path.to_s}")
       case arch
