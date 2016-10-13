@@ -465,23 +465,26 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
 static void
 fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
 {
-  int n = 0;
+  int saved_errno = 0;
 
   if (fptr == NULL) {
     return;
   }
 
   if (fptr->fd > 2) {
-    n = close(fptr->fd);
-    if (n == 0) {
-      fptr->fd = -1;
+    if (close(fptr->fd) == -1) {
+      saved_errno = errno;
     }
+    fptr->fd = -1;
   }
+
   if (fptr->fd2 > 2) {
-    n = close(fptr->fd2);
-    if (n == 0) {
-      fptr->fd2 = -1;
+    if (close(fptr->fd2) == -1) {
+      if (saved_errno == 0) {
+        saved_errno = errno;
+      }
     }
+    fptr->fd2 = -1;
   }
 
 #if !defined(_WIN32) && !defined(_WIN64)
@@ -494,10 +497,13 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
     if (!quiet && pid == fptr->pid) {
       io_set_process_status(mrb, pid, status);
     }
+    fptr->pid = 0;
+    /* Note: we don't raise an exception when waitpid(3) fails */
   }
 #endif
 
-  if (!quiet && n != 0) {
+  if (!quiet && saved_errno != 0) {
+    errno = saved_errno;
     mrb_sys_fail(mrb, "fptr_finalize failed.");
   }
 }
