@@ -837,3 +837,8 @@ assert('module with non-class/module outer raises TypeError') do
   assert_raise(TypeError) { module 0::M1 end }
   assert_raise(TypeError) { module []::M2 end }
 end
+
+assert('module to return a symbol representing the defined module') do
+  m = module M; :s end
+  assert_equal(:M, m)
+end

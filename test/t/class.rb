@@ -231,9 +231,12 @@ assert('Class.new') do
   assert_equal([klass], a)
 end
 
-assert('class to return the last value') do
-  m = class C; :m end
-  assert_equal(m, :m)
+assert('class to return a symbol representing the defined class') do
+  c = class C; :m end
+  assert_equal(:C, c)
+
+  d = class D < C; :m end
+  assert_equal(:D, d)
 end
 
 assert('raise when superclass is not a class') do
