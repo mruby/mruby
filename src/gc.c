@@ -736,7 +736,8 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
 
         while (ce <= ci) {
           struct REnv *e = ci->env;
-          if (e && !is_dead(&mrb->gc, e) && MRB_ENV_STACK_SHARED_P(e)) {
+          if (e && !is_dead(&mrb->gc, e) &&
+              e->tt == MRB_TT_ENV && MRB_ENV_STACK_SHARED_P(e)) {
             mrb_env_unshare(mrb, e);
           }
           ci--;
