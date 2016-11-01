@@ -1089,7 +1089,7 @@ heredoc_end(parser_state *p)
 
 %token <id>  tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL
 %token <nd>  tINTEGER tFLOAT tCHAR tXSTRING tREGEXP
-%token <nd>  tSTRING tSTRING_PART tSTRING_MID
+%token <nd>  tSTRING tSTRING_PART tSTRING_MID tLABEL_END
 %token <nd>  tNTH_REF tBACK_REF
 %token <num> tREGEXP_END
 
@@ -3241,6 +3241,14 @@ assoc           : arg_value tASSOC arg_value
                     {
                       $$ = cons(new_sym(p, $1), $2);
                     }
+                | tSTRING_BEG tLABEL_END arg_value
+                    {
+                      $$ = cons(new_sym(p, new_strsym(p, $2)), $3);
+                    }
+                | tSTRING_BEG string_rep tLABEL_END arg_value
+                    {
+                      $$ = cons(new_dsym(p, push($2, $3)), $4);
+                    }
                 ;
 
 operation       : tIDENTIFIER
@@ -4080,8 +4088,13 @@ parse_string(parser_state *p)
 
     return tREGEXP;
   }
-
   yylval.nd = new_str(p, tok(p), toklen(p));
+  if (IS_LABEL_SUFFIX(0)) {
+    p->lstate = EXPR_BEG;
+    nextc(p);
+    return tLABEL_END;
+  }
+
   return tSTRING;
 }
 
