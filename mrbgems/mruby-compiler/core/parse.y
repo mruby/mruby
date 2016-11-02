@@ -3241,6 +3241,10 @@ assoc           : arg_value tASSOC arg_value
                     {
                       $$ = cons(new_sym(p, $1), $2);
                     }
+                | tLABEL_END arg_value
+                    {
+                      $$ = cons(new_sym(p, new_strsym(p, $1)), $2);
+                    }
                 | tSTRING_BEG tLABEL_END arg_value
                     {
                       $$ = cons(new_sym(p, new_strsym(p, $2)), $3);
