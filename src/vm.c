@@ -2298,6 +2298,9 @@ RETRY_TRY_BLOCK:
       mrb_value recv = regs[a];
       struct RProc *p;
 
+      /* prepare closure */
+      p = mrb_closure_new(mrb, irep->reps[GETARG_Bx(i)]);
+
       /* prepare stack */
       ci = cipush(mrb);
       ci->pc = pc + 1;
@@ -2310,7 +2313,7 @@ RETRY_TRY_BLOCK:
       /* prepare stack */
       mrb->c->stack += a;
 
-      p = mrb_proc_new(mrb, irep->reps[GETARG_Bx(i)]);
+      /* setup closure */
       p->target_class = ci->target_class;
       ci->proc = p;
 
