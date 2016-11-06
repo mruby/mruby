@@ -338,10 +338,13 @@ assert('Exception 19') do
       begin
         1 * "b"
       ensure
-        @e = self.z
+        @e = self.zz
       end
     end
 
+    def zz
+      true
+    end
     def z
       true
     end
