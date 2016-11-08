@@ -1645,7 +1645,7 @@ codegen(codegen_scope *s, node *tree, int val)
       node *t = tree->cdr, *p;
       int rhs = cursp();
 
-      if ((intptr_t)t->car == NODE_ARRAY && nosplat(t->cdr)) {
+      if ((intptr_t)t->car == NODE_ARRAY && t->cdr && nosplat(t->cdr)) {
         /* fixed rhs */
         t = t->cdr;
         while (t) {
