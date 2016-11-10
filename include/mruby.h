@@ -567,6 +567,37 @@ MRB_API mrb_bool mrb_class_defined(mrb_state *mrb, const char *name);
 MRB_API struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
 
 /**
+ * Returns an mrb_bool. True if inner class was defined, and false if the inner class was not defined.
+ *
+ * Example:
+ *     void
+ *     mrb_example_gem_init(mrb_state* mrb) {
+ *       struct RClass *example_outer, *example_inner;
+ *       mrb_bool cd;
+ *
+ *       example_outer = mrb_define_module(mrb, "ExampleOuter");
+ *
+ *       example_inner = mrb_define_class_under(mrb, example_outer, "ExampleInner", mrb->object_class);
+ *       cd = mrb_class_defined_under(mrb, example_outer, "ExampleInner");
+ *
+ *       // If mrb_class_defined_under returns 1 then puts "True"
+ *       // If mrb_class_defined_under returns 0 then puts "False"
+ *       if (cd == 1){
+ *         puts("True");
+ *       }
+ *       else {
+ *         puts("False");
+ *       }
+ *      }
+ *
+ * @param [mrb_state*] mrb The current mruby state.
+ * @param [struct RClass *] outer The name of the outer class.
+ * @param [const char *] name A string representing the name of the inner class.
+ * @return [mrb_bool] A boolean value.
+ */
+MRB_API mrb_bool mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, const char *name);
+
+/**
  * Gets a child class.
  * @param [mrb_state*] mrb The current mruby state.
  * @param [struct RClass *] outer The name of the parent class.
