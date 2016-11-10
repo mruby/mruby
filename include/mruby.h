@@ -578,10 +578,10 @@ MRB_API struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
  *       example_outer = mrb_define_module(mrb, "ExampleOuter");
  *
  *       example_inner = mrb_define_class_under(mrb, example_outer, "ExampleInner", mrb->object_class);
- *       cd = mrb_class_under_defined(mrb, example_outer, "ExampleInner");
+ *       cd = mrb_class_defined_under(mrb, example_outer, "ExampleInner");
  *
- *       // If mrb_class_under_defined returns 1 then puts "True"
- *       // If mrb_class_under_defined returns 0 then puts "False"
+ *       // If mrb_class_defined_under returns 1 then puts "True"
+ *       // If mrb_class_defined_under returns 0 then puts "False"
  *       if (cd == 1){
  *         puts("True");
  *       }
@@ -595,7 +595,7 @@ MRB_API struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
  * @param [const char *] name A string representing the name of the inner class.
  * @return [mrb_bool] A boolean value.
  */
-MRB_API mrb_bool mrb_class_under_defined(mrb_state *mrb, struct RClass *outer, const char *name);
+MRB_API mrb_bool mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
 /**
  * Gets a child class.

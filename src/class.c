@@ -272,7 +272,7 @@ mrb_class_defined(mrb_state *mrb, const char *name)
 }
 
 MRB_API mrb_bool
-mrb_class_under_defined(mrb_state *mrb, struct RClass *outer, const char *name)
+mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
   mrb_value sym = mrb_check_intern_cstr(mrb, name);
   if (mrb_nil_p(sym)) {
