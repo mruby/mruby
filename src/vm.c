@@ -1513,6 +1513,7 @@ RETRY_TRY_BLOCK:
       /* A B     return R(A) (B=normal,in-block return/break) */
       if (mrb->exc) {
         mrb_callinfo *ci;
+        mrb_value *stk;
         int eidx;
 
       L_RAISE:
@@ -1524,6 +1525,7 @@ RETRY_TRY_BLOCK:
           if (ci->ridx == 0) goto L_STOP;
           goto L_RESCUE;
         }
+        stk = mrb->c->stack;
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           ci = mrb->c->ci;
@@ -1533,6 +1535,7 @@ RETRY_TRY_BLOCK:
             MRB_THROW(prev_jmp);
           }
           if (ci == mrb->c->cibase) {
+            mrb->c->stack = stk;
             while (eidx > 0) {
               ecall(mrb, --eidx);
             }

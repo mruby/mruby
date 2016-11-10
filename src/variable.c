@@ -760,13 +760,15 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym)
 {
   struct RClass * cls = c;
   mrb_value v;
+  int given = FALSE;
 
   while (c) {
     if (c->iv && iv_get(mrb, c->iv, sym, &v)) {
-      return v;
+      given = TRUE;
     }
     c = c->super;
   }
+  if (given) return v;
   if (cls && cls->tt == MRB_TT_SCLASS) {
     mrb_value klass;
 
@@ -774,12 +776,14 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym)
                            mrb_intern_lit(mrb, "__attached__"));
     c = mrb_class_ptr(klass);
     if (c->tt == MRB_TT_CLASS || c->tt == MRB_TT_MODULE) {
+      given = FALSE;
       while (c) {
         if (c->iv && iv_get(mrb, c->iv, sym, &v)) {
-          return v;
+          given = TRUE;
         }
         c = c->super;
       }
+      if (given) return v;
     }
   }
   mrb_name_error(mrb, sym, "uninitialized class variable %S in %S",
