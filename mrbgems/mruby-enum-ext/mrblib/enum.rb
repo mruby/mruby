@@ -573,35 +573,38 @@ module Enumerable
   #     a.cycle(2) { |x| puts x }  # print, a, b, c, a, b, c.
   #
 
-  def cycle(n=nil, &block)
-    return to_enum(:cycle, n) if !block && n.nil?
+  def cycle(nv = nil, &block)
+    return to_enum(:cycle, nv) unless block
+
+    n = nil
+
+    if nv.nil?
+      n = -1
+    else
+      unless nv.respond_to?(:to_int)
+        raise TypeError, "no implicit conversion of #{nv.class} into Integer"
+      end
+      n = nv.to_int
+      unless n.kind_of?(Integer)
+        raise TypeError, "no implicit conversion of #{nv.class} into Integer"
+      end
+      return nil if n <= 0
+    end
 
     ary = []
-    if n.nil?
-      self.each do|*val|
-        ary.push val
-        block.call(*val)
-      end
-      loop do
-        ary.each do|e|
-          block.call(*e)
-        end
-      end
-    else
-      raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
+    each do |*i|
+      ary.push(i)
+      yield(*i)
+    end
+    return nil if ary.empty?
 
-      n = n.to_int
-      self.each do|*val|
-        ary.push val
-      end
-      count = 0
-      while count < n
-        ary.each do|e|
-          block.call(*e)
-        end
-        count += 1
+    while n < 0 || 0 < (n -= 1)
+      ary.each do |i|
+        yield(*i)
       end
     end
+
+    nil
   end
 
   ##
