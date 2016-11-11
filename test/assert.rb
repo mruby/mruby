@@ -213,7 +213,7 @@ def report()
   t_print("\n")
 
   $asserts.each do |msg|
-    puts msg
+    t_print "#{msg}\n"
   end
 
   $total_test = $ok_test+$ko_test+$kill_test
