@@ -10,7 +10,7 @@ mrb_mod_name(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_mruby_module_ext_gem_init(mrb_state *mrb)
+mrb_mruby_class_ext_gem_init(mrb_state *mrb)
 {
   struct RClass *mod = mrb->module_class;
 
@@ -18,6 +18,6 @@ mrb_mruby_module_ext_gem_init(mrb_state *mrb)
 }
 
 void
-mrb_mruby_module_ext_gem_final(mrb_state *mrb)
+mrb_mruby_class_ext_gem_final(mrb_state *mrb)
 {
 }
