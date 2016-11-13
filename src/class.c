@@ -1539,7 +1539,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
     }
     mrb_obj_iv_set(mrb, (struct RObject*)c, classpath, path);
   }
-  return path;
+  return mrb_str_dup(mrb, path);
 }
 
 MRB_API struct RClass *
