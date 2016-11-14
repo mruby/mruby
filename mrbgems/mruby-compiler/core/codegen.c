@@ -2024,6 +2024,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       genop(s, MKOP_sBx(OP_JMP, s->loop->pc2 - s->pc));
     }
+    if (val) push();
     break;
 
   case NODE_RETRY:
@@ -2058,6 +2059,7 @@ codegen(codegen_scope *s, node *tree, int val)
           genop(s, MKOP_sBx(OP_JMP, lp->pc1 - s->pc));
         }
       }
+      if (val) push();
     }
     break;
 
