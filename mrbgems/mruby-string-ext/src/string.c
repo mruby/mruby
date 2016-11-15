@@ -307,8 +307,9 @@ mrb_str_lines(mrb_state *mrb, mrb_value self)
   int ai;
   mrb_int len;
   mrb_value arg;
-  char *p = RSTRING_PTR(self), *t;
-  char *e = p + RSTRING_LEN(self);
+  char *b = RSTRING_PTR(self);
+  char *p = b, *t;
+  char *e = b + RSTRING_LEN(self);
 
   mrb_get_args(mrb, "&", &blk);
 
@@ -322,6 +323,12 @@ mrb_str_lines(mrb_state *mrb, mrb_value self)
       len = (mrb_int) (p - t);
       arg = mrb_str_new(mrb, t, len);
       mrb_yield_argv(mrb, blk, 1, &arg);
+      if (b != RSTRING_PTR(self)) {
+        ptrdiff_t diff = p - b;
+        b = RSTRING_PTR(self);
+        p = b + diff;
+      }
+      e = b + RSTRING_LEN(self);
     }
     return self;
   }
