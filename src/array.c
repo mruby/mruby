@@ -16,15 +16,6 @@
 #define ARY_C_MAX_SIZE (SIZE_MAX / sizeof(mrb_value))
 #define ARY_MAX_SIZE ((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? (mrb_int)ARY_C_MAX_SIZE : MRB_INT_MAX-1)
 
-static inline mrb_value
-ary_elt(mrb_value ary, mrb_int offset)
-{
-  if (offset < 0 || RARRAY_LEN(ary) <= offset) {
-    return mrb_nil_value();
-  }
-  return RARRAY_PTR(ary)[offset];
-}
-
 static struct RArray*
 ary_new_capa(mrb_state *mrb, mrb_int capa)
 {

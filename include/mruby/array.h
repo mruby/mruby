@@ -134,6 +134,15 @@ mrb_ary_len(mrb_state *mrb, mrb_value ary)
   return RARRAY_LEN(ary);
 }
 
+static inline mrb_value
+ary_elt(mrb_value ary, mrb_int offset)
+{
+  if (offset < 0 || RARRAY_LEN(ary) <= offset) {
+    return mrb_nil_value();
+  }
+  return RARRAY_PTR(ary)[offset];
+}
+
 MRB_END_DECL
 
 #endif  /* MRUBY_ARRAY_H */

@@ -301,6 +301,17 @@ assert('Array#to_h') do
   assert_raise(ArgumentError) { [[1]].to_h }
 end
 
+assert('Array#to_h (Modified)') do
+  class A
+    def to_ary
+      $a.clear
+      nil
+    end
+  end
+  $a = [A.new]
+  assert_raise(TypeError) { $a.to_h }
+end
+
 assert("Array#index (block)") do
   assert_nil (1..10).to_a.index { |i| i % 5 == 0 and i % 7 == 0 }
   assert_equal 34, (1..100).to_a.index { |i| i % 5 == 0 and i % 7 == 0 }
