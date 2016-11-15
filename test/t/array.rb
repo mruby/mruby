@@ -347,3 +347,15 @@ assert("Array (Longish inline array)") do
   ary.each {|p| h[p.class] += 1}
   assert_equal({Array=>200}, h)
 end
+
+assert("Array#rindex") do
+  class Sneaky
+    def ==(*)
+      $a.clear
+      $a.replace([1])
+      false
+    end
+  end
+  $a = [2, 3, 4, 5, 6, 7, 8, 9, 10, Sneaky.new]
+  assert_equal 0, $a.rindex(1)
+end
