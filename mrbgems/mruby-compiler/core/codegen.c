@@ -818,8 +818,6 @@ gen_values(codegen_scope *s, node *t, int val)
         }
       }
       else {
-        codegen(s, t->car->cdr, NOVAL);
-        t = t->cdr;
         while (t) {
           codegen(s, t->car, NOVAL);
           t = t->cdr;
