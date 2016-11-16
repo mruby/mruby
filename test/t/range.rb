@@ -93,3 +93,14 @@ assert('Range#eql?', '15.2.14.4.14') do
   assert_false (1..10).eql? (Range.new(1.0, 10.0))
   assert_false (1..10).eql? "1..10"
 end
+
+assert('Range without initialize_copy does not fail') do
+  begin
+    Range.alias_method(:old_initialize_copy, :initialize_copy)
+    Range.remove_method(:initialize_copy)
+    assert_equal "nil..nil", (1..2).dup.inspect
+  ensure
+    Range.alias_method(:initialize_copy, :old_initialize_copy)
+    Range.remove_method(:old_initialize_copy)
+  end
+end

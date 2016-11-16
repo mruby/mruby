@@ -655,11 +655,8 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
   case MRB_TT_RANGE:
     {
       struct RRange *r = (struct RRange*)obj;
-
-      if (r->edges) {
-        mrb_gc_mark_value(mrb, r->edges->beg);
-        mrb_gc_mark_value(mrb, r->edges->end);
-      }
+      mrb_gc_mark_value(mrb, r->beg);
+      mrb_gc_mark_value(mrb, r->end);
     }
     break;
 
@@ -771,10 +768,6 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
         mrb_irep_decref(mrb, p->body.irep);
       }
     }
-    break;
-
-  case MRB_TT_RANGE:
-    mrb_free(mrb, ((struct RRange*)obj)->edges);
     break;
 
   case MRB_TT_DATA:
