@@ -15,11 +15,14 @@
 
 #define RSTRUCT_LEN(st) mrb_ary_ptr(st)->len
 #define RSTRUCT_PTR(st) mrb_ary_ptr(st)->ptr
+#define RSTRUCT_CLASS_INTERNAL_NAME "_struct_class_"
 
 static struct RClass *
 struct_class(mrb_state *mrb)
 {
-  return mrb_class_get(mrb, "Struct");
+  mrb_value c = mrb_gv_get(mrb, mrb_intern_lit(mrb, RSTRUCT_CLASS_INTERNAL_NAME));
+  mrb_check_type(mrb, c, MRB_TT_CLASS);
+  return mrb_class_ptr(c);
 }
 
 static inline mrb_value
@@ -677,6 +680,7 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
 {
   struct RClass *st;
   st = mrb_define_class(mrb, "Struct",  mrb->object_class);
+  mrb_gv_set(mrb, mrb_intern_lit(mrb, RSTRUCT_CLASS_INTERNAL_NAME), mrb_obj_value(st));
 
   mrb_define_class_method(mrb, st, "new",             mrb_struct_s_def,       MRB_ARGS_ANY());  /* 15.2.18.3.1  */
 
