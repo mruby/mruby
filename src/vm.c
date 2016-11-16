@@ -2261,7 +2261,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_CLASS) {
       /* A B    R(A) := newclass(R(A),Syms(B),R(A+1)) */
-      struct RClass *c = 0;
+      struct RClass *c = 0, *baseclass;
       int a = GETARG_A(i);
       mrb_value base, super;
       mrb_sym id = syms[GETARG_B(i)];
@@ -2269,7 +2269,10 @@ RETRY_TRY_BLOCK:
       base = regs[a];
       super = regs[a+1];
       if (mrb_nil_p(base)) {
-        base = mrb_obj_value(mrb->c->ci->target_class);
+        baseclass = mrb->c->ci->proc->target_class;
+        if (!baseclass) baseclass = mrb->c->ci->target_class;
+
+        base = mrb_obj_value(baseclass);
       }
       c = mrb_vm_define_class(mrb, base, super, id);
       regs[a] = mrb_obj_value(c);
@@ -2279,14 +2282,17 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_MODULE) {
       /* A B            R(A) := newmodule(R(A),Syms(B)) */
-      struct RClass *c = 0;
+      struct RClass *c = 0, *baseclass;
       int a = GETARG_A(i);
       mrb_value base;
       mrb_sym id = syms[GETARG_B(i)];
 
       base = regs[a];
       if (mrb_nil_p(base)) {
-        base = mrb_obj_value(mrb->c->ci->target_class);
+        baseclass = mrb->c->ci->proc->target_class;
+        if (!baseclass) baseclass = mrb->c->ci->target_class;
+
+        base = mrb_obj_value(baseclass);
       }
       c = mrb_vm_define_module(mrb, base, id);
       regs[a] = mrb_obj_value(c);
