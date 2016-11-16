@@ -93,3 +93,13 @@ assert('Range#eql?', '15.2.14.4.14') do
   assert_false (1..10).eql? (Range.new(1.0, 10.0))
   assert_false (1..10).eql? "1..10"
 end
+
+assert('Replacing Range class does not affect (x..y) syntax') do
+  begin
+    old_range = Range
+    Range = Array
+    assert_equal "1..2", (1..2).inspect
+  ensure
+    Range = old_range
+  end
+end

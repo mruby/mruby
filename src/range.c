@@ -10,8 +10,6 @@
 #include <mruby/string.h>
 #include <mruby/array.h>
 
-#define RANGE_CLASS (mrb_class_get(mrb, "Range"))
-
 static void
 range_check(mrb_state *mrb, mrb_value a, mrb_value b)
 {
@@ -347,7 +345,7 @@ range_eql(mrb_state *mrb, mrb_value range)
   mrb_get_args(mrb, "o", &obj);
 
   if (mrb_obj_equal(mrb, range, obj)) return mrb_true_value();
-  if (!mrb_obj_is_kind_of(mrb, obj, RANGE_CLASS)) {
+  if (!mrb_obj_is_kind_of(mrb, obj, mrb->range_class)) {
     return mrb_false_value();
   }
   if (mrb_type(obj) != MRB_TT_RANGE) return mrb_false_value();
@@ -416,7 +414,7 @@ mrb_init_range(mrb_state *mrb)
 {
   struct RClass *r;
 
-  r = mrb_define_class(mrb, "Range", mrb->object_class);                                /* 15.2.14 */
+  mrb->range_class = r = mrb_define_class(mrb, "Range", mrb->object_class);             /* 15.2.14 */
   MRB_SET_INSTANCE_TT(r, MRB_TT_RANGE);
 
   mrb_define_method(mrb, r, "begin",           mrb_range_beg,         MRB_ARGS_NONE()); /* 15.2.14.4.3  */
