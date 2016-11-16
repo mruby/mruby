@@ -14,6 +14,7 @@
 #include <mruby/variable.h>
 #include <mruby/error.h>
 #include <mruby/data.h>
+#include <mruby/inline.h>
 
 KHASH_DEFINE(mt, mrb_sym, struct RProc*, TRUE, kh_int_hash_func, kh_int_hash_equal)
 
@@ -491,6 +492,7 @@ to_sym(mrb_state *mrb, mrb_value ss)
     b:      Boolean        [mrb_bool]
     n:      Symbol         [mrb_sym]
     d:      Data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified
+    I:      Inline struct  [void*]
     &:      Block          [mrb_value]
     *:      rest argument  [mrb_value*,mrb_int]   Receive the rest of the arguments as an array.
     |:      optional                              Next argument of '|' and later are optional.
@@ -698,6 +700,24 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           a = mrb_ary_ptr(aa);
           *pb = a->ptr;
           *pl = a->len;
+          i++;
+        }
+      }
+      break;
+    case 'I':
+      {
+        void* *p;
+        mrb_value ss;
+
+        p = va_arg(ap, void**);
+        if (i < argc) {
+          ss = ARGV[arg_i];
+          if (mrb_type(ss) != MRB_TT_INLINE)
+          {
+            mrb_raisef(mrb, E_TYPE_ERROR, "%S is not inline struct", ss);
+          }
+          *p = mrb_inline_ptr(ss);
+          arg_i++;
           i++;
         }
       }

@@ -74,6 +74,9 @@ MRuby::GemBox.new do |conf|
   # Use class/module extension
   conf.gem :core => "mruby-class-ext"
 
+  # Use inline struct
+  conf.gem :core => "mruby-inline-struct"
+
   # Use mruby-compiler to build other mrbgems
   conf.gem :core => "mruby-compiler"
 end

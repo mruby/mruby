@@ -11,6 +11,7 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 #include <mruby/error.h>
+#include <mruby/inline.h>
 
 typedef enum {
   NOEX_PUBLIC    = 0x00,
@@ -300,6 +301,9 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
     case MRB_TT_DATA:
     case MRB_TT_EXCEPTION:
       mrb_iv_copy(mrb, dest, obj);
+      break;
+    case MRB_TT_INLINE:
+      mrb_inline_copy(dest, obj);
       break;
 
     default:
