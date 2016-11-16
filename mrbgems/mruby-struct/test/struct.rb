@@ -158,3 +158,9 @@ assert("Struct#dig") do
   assert_equal 1, a.dig(:purple, :red)
   assert_equal 1, a.dig(1, 0)
 end
+
+assert("Struct.new does not allow array") do
+  assert_raise(TypeError) do
+    Struct.new("Test", [:a])
+  end
+end
