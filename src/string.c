@@ -1235,11 +1235,13 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
   char *p, *pp;
   mrb_int rslen;
   mrb_int len;
+  mrb_int argc;
   struct RString *s = mrb_str_ptr(str);
 
   mrb_str_modify(mrb, s);
+  argc = mrb_get_args(mrb, "|S", &rs);
   len = RSTR_LEN(s);
-  if (mrb_get_args(mrb, "|S", &rs) == 0) {
+  if (argc == 0) {
     if (len == 0) return mrb_nil_value();
   smart_chomp:
     if (RSTR_PTR(s)[len-1] == '\n') {
