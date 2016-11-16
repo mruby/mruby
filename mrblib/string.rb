@@ -173,11 +173,8 @@ class String
         head = pos.begin
         tail = pos.end
         tail += self.length if tail < 0
-        if pos.exclude_end?
-          tail -= 1
-        end
-        if tail < 0 || tail > self.length
-          raise IndexError, "index #{args[0]} out of string"
+        unless pos.exclude_end?
+          tail += 1
         end
         return self[head, tail-head]=value
       else
