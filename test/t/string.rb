@@ -381,8 +381,6 @@ assert('String#hash', '15.2.10.5.20') do
 end
 
 assert('String#include?', '15.2.10.5.21') do
-  assert_true 'abc'.include?(97)
-  assert_false 'abc'.include?(100)
   assert_true 'abc'.include?('a')
   assert_false 'abc'.include?('d')
 end
