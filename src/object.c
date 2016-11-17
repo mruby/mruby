@@ -348,7 +348,7 @@ mrb_check_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const
 {
   mrb_value v;
 
-  if (mrb_type(val) == type && type != MRB_TT_DATA && type != MRB_TT_INLINE) return val;
+  if (mrb_type(val) == type && type != MRB_TT_DATA && type != MRB_TT_ISTRUCT) return val;
   v = convert_type(mrb, val, tname, method, FALSE);
   if (mrb_nil_p(v) || mrb_type(v) != type) return mrb_nil_value();
   return v;
@@ -390,7 +390,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
   enum mrb_vtype xt;
 
   xt = mrb_type(x);
-  if ((xt != t) || (xt == MRB_TT_DATA) || (xt == MRB_TT_INLINE)) {
+  if ((xt != t) || (xt == MRB_TT_DATA) || (xt == MRB_TT_ISTRUCT)) {
     while (type->type < MRB_TT_MAXDEFINE) {
       if (type->type == t) {
         const char *etype;

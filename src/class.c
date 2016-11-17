@@ -14,7 +14,7 @@
 #include <mruby/variable.h>
 #include <mruby/error.h>
 #include <mruby/data.h>
-#include <mruby/inline.h>
+#include <mruby/istruct.h>
 
 KHASH_DEFINE(mt, mrb_sym, struct RProc*, TRUE, kh_int_hash_func, kh_int_hash_equal)
 
@@ -712,11 +712,11 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         p = va_arg(ap, void**);
         if (i < argc) {
           ss = ARGV[arg_i];
-          if (mrb_type(ss) != MRB_TT_INLINE)
+          if (mrb_type(ss) != MRB_TT_ISTRUCT)
           {
             mrb_raisef(mrb, E_TYPE_ERROR, "%S is not inline struct", ss);
           }
-          *p = mrb_inline_ptr(ss);
+          *p = mrb_istruct_ptr(ss);
           arg_i++;
           i++;
         }

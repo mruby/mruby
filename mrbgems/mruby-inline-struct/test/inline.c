@@ -1,13 +1,13 @@
 #include <mruby.h>
 #include <mruby/class.h>
 #include <mruby/string.h>
-#include <mruby/inline.h>
+#include <mruby/istruct.h>
 
 static mrb_value
-inline_test_initialize(mrb_state *mrb, mrb_value self)
+istruct_test_initialize(mrb_state *mrb, mrb_value self)
 {
-  char *string = mrb_inline_ptr(self);
-  mrb_int size = mrb_inline_size();
+  char *string = mrb_istruct_ptr(self);
+  mrb_int size = mrb_istruct_size();
   mrb_value object;
   mrb_get_args(mrb, "o", &object);
 
@@ -29,19 +29,19 @@ inline_test_initialize(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-inline_test_to_s(mrb_state *mrb, mrb_value self)
+istruct_test_to_s(mrb_state *mrb, mrb_value self)
 {
-  return mrb_str_new_cstr(mrb, mrb_inline_ptr(self));
+  return mrb_str_new_cstr(mrb, mrb_istruct_ptr(self));
 }
 
 static mrb_value
-inline_test_length(mrb_state *mrb, mrb_value self)
+istruct_test_length(mrb_state *mrb, mrb_value self)
 {
-  return mrb_fixnum_value(mrb_inline_size());
+  return mrb_fixnum_value(mrb_istruct_size());
 }
 
 static mrb_value
-inline_test_test_receive(mrb_state *mrb, mrb_value self)
+istruct_test_test_receive(mrb_state *mrb, mrb_value self)
 {
   mrb_value object;
   mrb_get_args(mrb, "o", &object);
@@ -49,11 +49,11 @@ inline_test_test_receive(mrb_state *mrb, mrb_value self)
   {
     mrb_raisef(mrb, E_TYPE_ERROR, "Expected InlineStructTest");
   }
-  return mrb_bool_value(((char*)mrb_inline_ptr(object))[0] == 's');
+  return mrb_bool_value(((char*)mrb_istruct_ptr(object))[0] == 's');
 }
 
 static mrb_value
-inline_test_test_receive_direct(mrb_state *mrb, mrb_value self)
+istruct_test_test_receive_direct(mrb_state *mrb, mrb_value self)
 {
   char *ptr;
   mrb_get_args(mrb, "I", &ptr);
@@ -61,9 +61,9 @@ inline_test_test_receive_direct(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-inline_test_mutate(mrb_state *mrb, mrb_value self)
+istruct_test_mutate(mrb_state *mrb, mrb_value self)
 {
-  char *ptr = mrb_inline_ptr(self);
+  char *ptr = mrb_istruct_ptr(self);
   memcpy(ptr, "mutate", 6);
   return mrb_nil_value();
 }
@@ -73,11 +73,11 @@ void mrb_mruby_inline_struct_gem_test(mrb_state *mrb)
   struct RClass *cls;
 
   cls = mrb_define_class(mrb, "InlineStructTest", mrb->object_class);
-  MRB_SET_INSTANCE_TT(cls, MRB_TT_INLINE);
-  mrb_define_method(mrb, cls, "initialize", inline_test_initialize, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, cls, "to_s", inline_test_to_s, MRB_ARGS_NONE());
-  mrb_define_method(mrb, cls, "mutate", inline_test_mutate, MRB_ARGS_NONE());
-  mrb_define_class_method(mrb, cls, "length", inline_test_length, MRB_ARGS_NONE());
-  mrb_define_class_method(mrb, cls, "test_receive", inline_test_test_receive, MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, cls, "test_receive_direct", inline_test_test_receive_direct, MRB_ARGS_REQ(1));
+  MRB_SET_INSTANCE_TT(cls, MRB_TT_ISTRUCT);
+  mrb_define_method(mrb, cls, "initialize", istruct_test_initialize, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, cls, "to_s", istruct_test_to_s, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls, "mutate", istruct_test_mutate, MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, cls, "length", istruct_test_length, MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, cls, "test_receive", istruct_test_test_receive, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, cls, "test_receive_direct", istruct_test_test_receive_direct, MRB_ARGS_REQ(1));
 }
