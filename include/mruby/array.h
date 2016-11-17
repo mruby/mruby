@@ -84,8 +84,8 @@ MRB_API void mrb_ary_push(mrb_state *mrb, mrb_value array, mrb_value value);
  *      ary.pop
  *
  * @param mrb The mruby state reference.
- * @param ary The array from which the value will be poped.
- * @return The poped value.
+ * @param ary The array from which the value will be popped.
+ * @return The popped value.
  */
 MRB_API mrb_value mrb_ary_pop(mrb_state *mrb, mrb_value ary);
 
