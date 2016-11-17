@@ -129,6 +129,9 @@ mrb_range_initialize(mrb_state *mrb, mrb_value range)
     exclusive = FALSE;
   }
   /* Ranges are immutable, so that they should be initialized only once. */
+  if (mrb_range_ptr(range)->edges) {
+    mrb_name_error(mrb, mrb_intern_lit(mrb, "initialize"), "`initialize' called twice");
+  }
   range_init(mrb, range, beg, end, exclusive);
   return range;
 }
