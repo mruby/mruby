@@ -116,7 +116,8 @@ enum mrb_vtype {
   MRB_TT_ENV,         /*  20 */
   MRB_TT_DATA,        /*  21 */
   MRB_TT_FIBER,       /*  22 */
-  MRB_TT_MAXDEFINE    /*  23 */
+  MRB_TT_INLINE,      /*  23 */
+  MRB_TT_MAXDEFINE    /*  24 */
 };
 
 #include <mruby/object.h>
