@@ -54,6 +54,10 @@ The value below allows about 60000 recursive calls in the simplest case. */
 
 #define ARENA_RESTORE(mrb,ai) (mrb)->gc.arena_idx = (ai)
 
+#define CALL_MAXARGS 127
+
+void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
+
 static inline void
 stack_clear(mrb_value *from, size_t count)
 {
@@ -362,9 +366,13 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     c = mrb_class(mrb, self);
     p = mrb_method_search_vm(mrb, &c, mid);
     if (!p) {
+      mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
+      p = mrb_method_search_vm(mrb, &c, missing);
+      if (!p) {
+        mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
+        mrb_method_missing(mrb, mid, self, args);
+      }
       undef = mid;
-      mid = mrb_intern_lit(mrb, "method_missing");
-      p = mrb_method_search_vm(mrb, &c, mid);
       n++; argc++;
     }
     ci = cipush(mrb);
@@ -748,10 +756,6 @@ argnum_error(mrb_state *mrb, mrb_int num)
 #define END_DISPATCH
 
 #endif
-
-#define CALL_MAXARGS 127
-
-void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
 
 MRB_API mrb_value
 mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
@@ -1290,8 +1294,20 @@ RETRY_TRY_BLOCK:
       c = mrb->c->ci->target_class->super;
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
-        mid = mrb_intern_lit(mrb, "method_missing");
-        m = mrb_method_search_vm(mrb, &c, mid);
+        mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
+        m = mrb_method_search_vm(mrb, &c, missing);
+        if (!m) {
+          mrb_value args;
+
+          if (n == CALL_MAXARGS) {
+            args = regs[a+1];
+          }
+          else {
+            args = mrb_ary_new_from_values(mrb, n, regs+a+1);
+          }
+          mrb_method_missing(mrb, mid, recv, args);
+        }
+        mid = missing;
         if (n == CALL_MAXARGS) {
           mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(ci->mid));
         }
@@ -1681,9 +1697,20 @@ RETRY_TRY_BLOCK:
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
         mrb_value sym = mrb_symbol_value(mid);
+        mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
+        m = mrb_method_search_vm(mrb, &c, missing);
+        if (!m) {
+          mrb_value args;
 
-        mid = mrb_intern_lit(mrb, "method_missing");
-        m = mrb_method_search_vm(mrb, &c, mid);
+          if (n == CALL_MAXARGS) {
+            args = regs[a+1];
+          }
+          else {
+            args = mrb_ary_new_from_values(mrb, n, regs+a+1);
+          }
+          mrb_method_missing(mrb, mid, recv, args);
+        }
+        mid = missing;
         if (n == CALL_MAXARGS) {
           mrb_ary_unshift(mrb, regs[a+1], sym);
         }
