@@ -43,10 +43,11 @@ assert('Range#first', '15.2.14.4.7') do
 end
 
 assert('Range#include?', '15.2.14.4.8') do
-  a = (1..10)
+  assert_true (1..10).include?(10)
+  assert_false (1..10).include?(11)
 
-  assert_true a.include?(5)
-  assert_false a.include?(20)
+  assert_true (1...10).include?(9)
+  assert_false (1...10).include?(10)
 end
 
 assert('Range#initialize', '15.2.14.4.9') do
