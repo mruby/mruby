@@ -230,9 +230,9 @@ mrb_range_include(mrb_state *mrb, mrb_value range)
 
   beg = r->edges->beg;
   end = r->edges->end;
-  include_p = r_le(mrb, beg, val) && /* beg <= val */
-              ((r->excl && r_gt(mrb, end, val)) || /* end >  val */
-              (!r->excl && r_ge(mrb, end, val))); /* end >= val */
+  include_p = r_le(mrb, beg, val) &&           /* beg <= val */
+              (r->excl ? r_gt(mrb, end, val)   /* end >  val */
+                       : r_ge(mrb, end, val)); /* end >= val */
 
   return mrb_bool_value(include_p);
 }
