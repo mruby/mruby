@@ -103,7 +103,7 @@ mrb_float_id(mrb_float f)
 }
 
 MRB_API mrb_int
-mrb_obj_id(mrb_value obj)
+mrb_obj_id(mrb_state *mrb, mrb_value obj)
 {
   mrb_int tt = mrb_type(obj);
 
@@ -125,7 +125,7 @@ mrb_obj_id(mrb_value obj)
   case MRB_TT_FIXNUM:
     return MakeID2(mrb_float_id((mrb_float)mrb_fixnum(obj)), MRB_TT_FLOAT);
   case MRB_TT_FLOAT:
-    return MakeID(mrb_float_id(mrb_float(obj)));
+    return MakeID(mrb_float_id((mrb_float)mrb_float(obj)));
   case MRB_TT_STRING:
   case MRB_TT_OBJECT:
   case MRB_TT_CLASS:
@@ -141,7 +141,7 @@ mrb_obj_id(mrb_value obj)
   case MRB_TT_DATA:
   case MRB_TT_ISTRUCT:
   default:
-    return MakeID(mrb_ptr(obj));
+    return MakeID(mrb_ptr(obj))^mrb->id_secret;
   }
 }
 

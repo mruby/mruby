@@ -398,6 +398,7 @@ assert('Kernel#object_id', '15.3.1.3.33') do
   a = ""
   b = ""
   assert_not_equal a.object_id, b.object_id
+  assert_equal a.object_id, a.object_id
 
   assert_kind_of Numeric, object_id
   assert_kind_of Numeric, "".object_id
