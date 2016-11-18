@@ -10,6 +10,7 @@
 #include <mruby/class.h>
 #include <mruby/re.h>
 #include <mruby/irep.h>
+#include "shorthash_siphash24.c"
 
 MRB_API struct RData*
 mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb_data_type *type)
@@ -103,12 +104,13 @@ mrb_float_id(mrb_float f)
 }
 
 MRB_API mrb_int
-mrb_obj_id(mrb_value obj)
+mrb_obj_id(mrb_state *mrb, mrb_value obj)
 {
   mrb_int tt = mrb_type(obj);
 
 #define MakeID2(p,t) (mrb_int)(((intptr_t)(p))^(t))
 #define MakeID(p)    MakeID2(p,tt)
+#define HashValue(o) (mrb_int)crypto_shorthash_siphash24((void*)&o, sizeof(o), mrb->key)
 
   switch (tt) {
   case MRB_TT_FREE:
@@ -120,12 +122,17 @@ mrb_obj_id(mrb_value obj)
     return MakeID(0);
   case MRB_TT_TRUE:
     return MakeID(1);
-  case MRB_TT_SYMBOL:
-    return MakeID(mrb_symbol(obj));
+  case MRB_TT_SYMBOL: {
+    struct {
+      mrb_sym sym;
+      mrb_int tt;
+    } value = {mrb_symbol(obj), tt};
+    return HashValue(value);
+  }
   case MRB_TT_FIXNUM:
     return MakeID2(mrb_float_id((mrb_float)mrb_fixnum(obj)), MRB_TT_FLOAT);
   case MRB_TT_FLOAT:
-    return MakeID(mrb_float_id(mrb_float(obj)));
+    return MakeID(mrb_float_id((mrb_float)mrb_float(obj)));
   case MRB_TT_STRING:
   case MRB_TT_OBJECT:
   case MRB_TT_CLASS:
@@ -140,8 +147,13 @@ mrb_obj_id(mrb_value obj)
   case MRB_TT_FILE:
   case MRB_TT_DATA:
   case MRB_TT_ISTRUCT:
-  default:
-    return MakeID(mrb_ptr(obj));
+  default: {
+    struct {
+      void* ptr;
+      mrb_int tt;
+    } value = {mrb_ptr(obj), tt};
+    return HashValue(value);
+  }
   }
 }
 
