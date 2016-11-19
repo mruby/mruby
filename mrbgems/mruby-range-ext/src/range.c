@@ -1,6 +1,7 @@
 #include <mruby.h>
 #include <mruby/range.h>
 #include <math.h>
+#include <float.h>
 
 static mrb_bool
 r_le(mrb_state *mrb, mrb_value a, mrb_value b)
@@ -140,9 +141,11 @@ mrb_range_size(mrb_state *mrb, mrb_value range)
   mrb_value beg, end;
   double beg_f, end_f;
   mrb_bool num_p = TRUE;
+  mrb_bool excl;
 
   beg = r->edges->beg;
   end = r->edges->end;
+  excl = r->excl;
   if (mrb_fixnum_p(beg)) {
     beg_f = (double)mrb_fixnum(beg);
   }
@@ -162,14 +165,24 @@ mrb_range_size(mrb_state *mrb, mrb_value range)
     num_p = FALSE;
   }
   if (num_p) {
-    double f;
+    double n = end_f - beg_f;
+    double err = (fabs(beg_f) + fabs(end_f) + fabs(end_f-beg_f)) * DBL_EPSILON;
 
-    if (beg_f > end_f) return mrb_fixnum_value(0);
-    f = end_f - beg_f;
-    if (!r->excl) {
-      return mrb_fixnum_value((mrb_int)ceil(f + 1));
+    if (err>0.5) err=0.5;
+    if (excl) {
+      if (n<=0) return mrb_fixnum_value(0);
+      if (n<1)
+        n = 0;
+      else
+        n = floor(n - err);
     }
-    return mrb_fixnum_value((mrb_int)ceil(f));
+    else {
+      if (n<0) return mrb_fixnum_value(0);
+      n = floor(n + err);
+    }
+    if (isinf(n+1))
+      return mrb_float_value(mrb, INFINITY);
+    return mrb_fixnum_value(n+1);
   }
   return mrb_nil_value();
 }
