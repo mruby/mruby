@@ -139,7 +139,7 @@ mrb_range_size(mrb_state *mrb, mrb_value range)
 {
   struct RRange *r = mrb_range_ptr(range);
   mrb_value beg, end;
-  double beg_f, end_f;
+  mrb_float beg_f, end_f;
   mrb_bool num_p = TRUE;
   mrb_bool excl;
 
@@ -147,7 +147,7 @@ mrb_range_size(mrb_state *mrb, mrb_value range)
   end = r->edges->end;
   excl = r->excl;
   if (mrb_fixnum_p(beg)) {
-    beg_f = (double)mrb_fixnum(beg);
+    beg_f = (mrb_float)mrb_fixnum(beg);
   }
   else if (mrb_float_p(beg)) {
     beg_f = mrb_float(beg);
@@ -156,7 +156,7 @@ mrb_range_size(mrb_state *mrb, mrb_value range)
     num_p = FALSE;
   }
   if (mrb_fixnum_p(end)) {
-    end_f = (double)mrb_fixnum(end);
+    end_f = (mrb_float)mrb_fixnum(end);
   }
   else if (mrb_float_p(end)) {
     end_f = mrb_float(end);
@@ -165,8 +165,8 @@ mrb_range_size(mrb_state *mrb, mrb_value range)
     num_p = FALSE;
   }
   if (num_p) {
-    double n = end_f - beg_f;
-    double err = (fabs(beg_f) + fabs(end_f) + fabs(end_f-beg_f)) * DBL_EPSILON;
+    mrb_float n = end_f - beg_f;
+    mrb_float err = (fabs(beg_f) + fabs(end_f) + fabs(end_f-beg_f)) * DBL_EPSILON;
 
     if (err>0.5) err=0.5;
     if (excl) {
