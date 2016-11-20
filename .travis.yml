@@ -1,18 +1,47 @@
+---
 language: c
-
-sudo: false
-
-matrix:
-  include:
-    - os: linux
-      sudo: 9000
-    - os: osx
-      osx_image: xcode7.1
-
+sudo: required
+compiler:
+- gcc
+- clang
+os:
+- linux
+- osx
 addons:
   apt:
     packages:
-      - gperf
-
-env: MRUBY_CONFIG=travis_config.rb
+    - gperf
+    - gcc-multilib
+    - g++-4.6-multilib
+    - lib32bz2-dev
+    - libc6-dev-i386
+    - lib32z1-dev
+    - lib32readline6-dev
+    - lib32ncurses5-dev
+env:
+  global:
+  - MRUBY_CONFIG=travis_config.rb
+  matrix:
+  - CFLAGS='-m32 ' LDFLAGS='-m32'
+  - CFLAGS='-m32 -DMRB_NAN_BOXING=1' LDFLAGS='-m32'
+  - CFLAGS='-m32 -DMRB_WORD_BOXING=1' LDFLAGS='-m32'
+  - CFLAGS='-m32 -DMRB_INT16=1' LDFLAGS='-m32'
+  - CFLAGS='-m32 -DMRB_INT16=1 -DMRB_NAN_BOXING=1' LDFLAGS='-m32'
+  - CFLAGS='-m32 -DMRB_INT64=1' LDFLAGS='-m32'
+  - CFLAGS='-m32 -DMRB_USE_FLOAT=1' LDFLAGS='-m32'
+  - CFLAGS='-m32 -DMRB_USE_FLOAT=1 -DMRB_WORD_BOXING=1' LDFLAGS='-m32'
+  - CFLAGS='-m32 -DMRB_USE_FLOAT=1 -DMRB_INT16=1' LDFLAGS='-m32'
+  - CFLAGS='-m32 -DMRB_USE_FLOAT=1 -DMRB_INT64=1' LDFLAGS='-m32'
+  - CFLAGS='' LDFLAGS=''
+  - CFLAGS='-DMRB_NAN_BOXING=1' LDFLAGS=''
+  - CFLAGS='-DMRB_WORD_BOXING=1' LDFLAGS=''
+  - CFLAGS='-DMRB_INT16=1' LDFLAGS=''
+  - CFLAGS='-DMRB_INT16=1 -DMRB_NAN_BOXING=1' LDFLAGS=''
+  - CFLAGS='-DMRB_INT64=1' LDFLAGS=''
+  - CFLAGS='-DMRB_INT64=1 -DMRB_WORD_BOXING=1' LDFLAGS=''
+  - CFLAGS='-DMRB_USE_FLOAT=1' LDFLAGS=''
+  - CFLAGS='-DMRB_USE_FLOAT=1 -DMRB_WORD_BOXING=1' LDFLAGS=''
+  - CFLAGS='-DMRB_USE_FLOAT=1 -DMRB_INT16=1' LDFLAGS=''
+  - CFLAGS='-DMRB_USE_FLOAT=1 -DMRB_INT64=1' LDFLAGS=''
+  - CFLAGS='-DMRB_USE_FLOAT=1 -DMRB_INT64=1 -DMRB_WORD_BOXING=1' LDFLAGS=''
 script: "./minirake all test"
