@@ -211,6 +211,8 @@ mrb_obj_value(void *p)
 {
   mrb_value v;
   SET_OBJ_VALUE(v, (struct RBasic*)p);
+  mrb_assert(p == mrb_ptr(v));
+  mrb_assert(((struct RBasic*)p)->tt == mrb_type(v));
   return v;
 }
 
