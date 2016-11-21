@@ -32,6 +32,21 @@
 #include <stddef.h>
 #include <limits.h>
 
+#ifdef MRB_DEBUG
+#include <assert.h>
+#define mrb_assert(p) assert(p)
+#define mrb_assert_int_fit(t1,n,t2,max) assert((n)>=0 && ((sizeof(n)<=sizeof(t2))||(n<=(t1)(max))))
+#else
+#define mrb_assert(p) ((void)0)
+#define mrb_assert_int_fit(t1,n,t2,max) ((void)0)
+#endif
+
+#if __STDC_VERSION__ >= 201112L
+#define mrb_static_assert(exp, str) _Static_assert(exp, str)
+#else
+#define mrb_static_assert(exp, str) mrb_assert(exp)
+#endif
+
 #include "mrbconf.h"
 #include "mruby/common.h"
 #include <mruby/value.h>
@@ -1134,21 +1149,6 @@ MRB_API void mrb_state_atexit(mrb_state *mrb, mrb_atexit_func func);
 
 MRB_API void mrb_show_version(mrb_state *mrb);
 MRB_API void mrb_show_copyright(mrb_state *mrb);
-
-#ifdef MRB_DEBUG
-#include <assert.h>
-#define mrb_assert(p) assert(p)
-#define mrb_assert_int_fit(t1,n,t2,max) assert((n)>=0 && ((sizeof(n)<=sizeof(t2))||(n<=(t1)(max))))
-#else
-#define mrb_assert(p) ((void)0)
-#define mrb_assert_int_fit(t1,n,t2,max) ((void)0)
-#endif
-
-#if __STDC_VERSION__ >= 201112L
-#define mrb_static_assert(exp, str) _Static_assert(exp, str)
-#else
-#define mrb_static_assert(exp, str) mrb_assert(exp)
-#endif
 
 MRB_API mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
 
