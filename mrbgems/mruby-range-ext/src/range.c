@@ -68,32 +68,6 @@ mrb_range_cover(mrb_state *mrb, mrb_value range)
 
 /*
  *  call-seq:
- *     rng.first    -> obj
- *     rng.first(n) -> an_array
- *
- *  Returns the first object in the range, or an array of the first +n+
- *  elements.
- *
- *    (10..20).first     #=> 10
- *    (10..20).first(3)  #=> [10, 11, 12]
- */
-static mrb_value
-mrb_range_first(mrb_state *mrb, mrb_value range)
-{
-  mrb_int num;
-  mrb_value array;
-  struct RRange *r = mrb_range_ptr(range);
-
-  if (mrb_get_args(mrb, "|i", &num) == 0) {
-    return r->edges->beg;
-  }
-
-  array = mrb_funcall(mrb, range, "to_a", 0);
-  return mrb_funcall(mrb, array, "first", 1, mrb_fixnum_value(num));
-}
-
-/*
- *  call-seq:
  *     rng.last    -> obj
  *     rng.last(n) -> an_array
  *
@@ -193,7 +167,6 @@ mrb_mruby_range_ext_gem_init(mrb_state* mrb)
   struct RClass * s = mrb_class_get(mrb, "Range");
 
   mrb_define_method(mrb, s, "cover?", mrb_range_cover, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "first",  mrb_range_first, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, s, "last",   mrb_range_last,  MRB_ARGS_OPT(1));
   mrb_define_method(mrb, s, "size",   mrb_range_size,  MRB_ARGS_NONE());
 }
