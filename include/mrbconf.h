@@ -7,6 +7,20 @@
 #ifndef MRUBYCONF_H
 #define MRUBYCONF_H
 
+/* architecture selection: */
+/* specify -DMRB_32BIT or -DMRB_64BIT to override */
+#if !defined(MRB_32BIT) && !defined(MRB_64BIT)
+#if defined(__amd64__) || defined(__amd64) || defined(__x86_64__) || defined(__x86_64) || defined(_M_X64) || defined(_M_AMD64) || defined(__aarch64__)
+#define MRB_64BIT
+#else
+#define MRB_32BIT
+#endif
+#endif
+
+#if defined(MRB_32BIT) && defined(MRB_64BIT)
+#error Cannot build for 32 and 64 bit architecture at the same time
+#endif
+
 /* configuration options: */
 /* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
 //#define MRB_USE_FLOAT
