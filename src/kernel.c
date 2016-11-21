@@ -285,6 +285,7 @@ copy_class(mrb_state *mrb, mrb_value dst, mrb_value src)
   }
   dc->mt = kh_copy(mt, mrb, sc->mt);
   dc->super = sc->super;
+  MRB_SET_INSTANCE_TT(dc, MRB_INSTANCE_TT(sc));
 }
 
 static void
