@@ -7,6 +7,10 @@
 #ifndef MRB_THROW_H
 #define MRB_THROW_H
 
+#if defined(MRB_ENABLE_CXX_EXCEPTION) && !defined(__cplusplus)
+#error Trying to use C++ exception handling in C code
+#endif
+
 #if defined(MRB_ENABLE_CXX_EXCEPTION) && defined(__cplusplus)
 
 #define MRB_TRY(buf) do { try {
