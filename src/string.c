@@ -361,7 +361,7 @@ mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
     return 0;
   }
   else if (m == 1) {
-    const unsigned char *ys = memchr(y, *x, n);
+    const unsigned char *ys = (const unsigned char *)memchr(y, *x, n);
 
     if (ys)
       return ys - y;
