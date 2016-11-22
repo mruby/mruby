@@ -318,7 +318,8 @@ end
 assert('Array#hash', '15.2.12.5.35') do
   a = [ 1, 2, 3 ]
 
-  assert_true(a.hash.is_a? Integer)
+  #assert_true(a.hash.is_a? Integer)
+  assert_true(a.hash.is_a? Integral)  # mruby special
   assert_equal([1,2].hash, [1,2].hash)
 end
 
