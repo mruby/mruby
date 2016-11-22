@@ -10,6 +10,7 @@ end
 assert('Range#first') do
   assert_equal 10, (10..20).first
   assert_equal [10, 11, 12], (10..20).first(3)
+  assert_equal [0, 1, 2], (0..Float::INFINITY).first(3)
 end
 
 assert('Range#last') do
