@@ -15,7 +15,7 @@ class Range
 
     raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1)" unless args.length == 1
     nv = args[0]
-    raise TypeError, "no implicit conversion from nil to integer" unless nv.nil?.!
+    raise TypeError, "no implicit conversion from nil to integer" if nv.nil?
     raise TypeError, "no implicit conversion of #{nv.class} into Integer" unless nv.respond_to?(:to_int)
     n = nv.to_int
     raise TypeError, "no implicit conversion of #{nv.class} into Integer" unless n.kind_of?(Integer)
