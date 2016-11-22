@@ -60,6 +60,12 @@ typedef struct mrb_value {
 #define mrb_fixnum(o)   (o).value.i
 #define mrb_symbol(o)   (o).value.sym
 
+#ifdef MRB_64BIT
+#define BOXNAN_SHIFT_LONG_POINTER(v) (((uintptr_t)(v)>>34)&0x3fff)
+#else
+#define BOXNAN_SHIFT_LONG_POINTER(v) 0
+#endif
+
 #define BOXNAN_SET_VALUE(o, tt, attr, v) do {\
   switch (tt) {\
   case MRB_TT_FALSE:\
@@ -69,7 +75,7 @@ typedef struct mrb_value {
   case MRB_TT_SYMBOL: (o).attr = (v); break;\
   default: (o).value.i = 0; (o).value.p = (void*)((uintptr_t)(o).value.p | (((uintptr_t)(v))>>2)); break;\
   }\
-  (o).value.ttt = (0xfff00000|(((tt)+1)<<14));\
+  (o).value.ttt = (0xfff00000|(((tt)+1)<<14)|BOXNAN_SHIFT_LONG_POINTER(v));\
 } while (0)
 
 #define SET_FLOAT_VALUE(mrb,r,v) do { \
