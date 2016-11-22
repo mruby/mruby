@@ -809,17 +809,13 @@ fix_rev(mrb_state *mrb, mrb_value num)
   return mrb_fixnum_value(~val);
 }
 
-static mrb_value
-bit_coerce(mrb_state *mrb, mrb_value x)
-{
-  while (!mrb_fixnum_p(x)) {
-    if (mrb_float_p(x)) {
-      mrb_raise(mrb, E_TYPE_ERROR, "can't convert Float into Integer");
-    }
-    x = mrb_to_int(mrb, x);
-  }
-  return x;
-}
+static mrb_value flo_and(mrb_state *mrb, mrb_value x);
+static mrb_value flo_or(mrb_state *mrb, mrb_value x);
+static mrb_value flo_xor(mrb_state *mrb, mrb_value x);
+#define bit_op(x,y,op1,op2) do {\
+  if (mrb_fixnum_p(y)) return mrb_fixnum_value(mrb_fixnum(x) op2 mrb_fixnum(y));\
+  return flo_ ## op1(mrb, mrb_float_value(mrb, mrb_fixnum(x)));\
+} while(0)
 
 /* 15.2.8.3.9  */
 /*
@@ -835,9 +831,7 @@ fix_and(mrb_state *mrb, mrb_value x)
   mrb_value y;
 
   mrb_get_args(mrb, "o", &y);
-
-  y = bit_coerce(mrb, y);
-  return mrb_fixnum_value(mrb_fixnum(x) & mrb_fixnum(y));
+  bit_op(x, y, and, &);
 }
 
 /* 15.2.8.3.10 */
@@ -854,9 +848,7 @@ fix_or(mrb_state *mrb, mrb_value x)
   mrb_value y;
 
   mrb_get_args(mrb, "o", &y);
-
-  y = bit_coerce(mrb, y);
-  return mrb_fixnum_value(mrb_fixnum(x) | mrb_fixnum(y));
+  bit_op(x, y, or, |);
 }
 
 /* 15.2.8.3.11 */
@@ -873,9 +865,7 @@ fix_xor(mrb_state *mrb, mrb_value x)
   mrb_value y;
 
   mrb_get_args(mrb, "o", &y);
-
-  y = bit_coerce(mrb, y);
-  return mrb_fixnum_value(mrb_fixnum(x) ^ mrb_fixnum(y));
+  bit_op(x, y, or, ^);
 }
 
 #define NUMERIC_SHIFT_WIDTH_MAX (MRB_INT_BIT-1)
