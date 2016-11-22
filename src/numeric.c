@@ -271,6 +271,77 @@ flo_eq(mrb_state *mrb, mrb_value x)
   }
 }
 
+static int64_t
+value_int64(mrb_state *mrb, mrb_value x)
+{
+  switch (mrb_type(x)) {
+  case MRB_TT_FIXNUM:
+    return (int64_t)mrb_fixnum(x);
+    break;
+  case MRB_TT_FLOAT:
+    return (int64_t)mrb_float(x);
+  default:
+    mrb_raise(mrb, E_TYPE_ERROR, "cannot convert to Integer");
+    break;
+  }
+  /* not reached */
+  return 0;
+}
+
+static mrb_value
+int64_value(mrb_state *mrb, int64_t v)
+{
+  if (MRB_INT_MIN <= v && v <= MRB_INT_MAX) {
+    return mrb_fixnum_value((mrb_int)v);
+  }
+  return mrb_float_value(mrb, (mrb_float)v);
+}
+
+static mrb_value
+flo_rev(mrb_state *mrb, mrb_value x)
+{
+  int64_t v1;
+  mrb_get_args(mrb, "");
+  v1 = (int64_t)mrb_float(x);
+  return int64_value(mrb, ~v1);
+}
+
+static mrb_value
+flo_and(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y;
+  int64_t v1, v2;
+  mrb_get_args(mrb, "o", &y);
+
+  v1 = (int64_t)mrb_float(x);
+  v2 = value_int64(mrb, y);
+  return int64_value(mrb, v1 & v2);
+}
+
+static mrb_value
+flo_or(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y;
+  int64_t v1, v2;
+  mrb_get_args(mrb, "o", &y);
+
+  v1 = (int64_t)mrb_float(x);
+  v2 = value_int64(mrb, y);
+  return int64_value(mrb, v1 | v2);
+}
+
+static mrb_value
+flo_xor(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y;
+  int64_t v1, v2;
+  mrb_get_args(mrb, "o", &y);
+
+  v1 = (int64_t)mrb_float(x);
+  v2 = value_int64(mrb, y);
+  return int64_value(mrb, v1 ^ v2);
+}
+
 /* 15.2.8.3.18 */
 /*
  * call-seq:
@@ -1199,6 +1270,10 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "*",         flo_mul,          MRB_ARGS_REQ(1)); /* 15.2.9.3.3  */
   mrb_define_method(mrb, fl,      "%",         flo_mod,          MRB_ARGS_REQ(1)); /* 15.2.9.3.5  */
   mrb_define_method(mrb, fl,      "==",        flo_eq,           MRB_ARGS_REQ(1)); /* 15.2.9.3.7  */
+  mrb_define_method(mrb, fl,      "~",         flo_rev,          MRB_ARGS_NONE());
+  mrb_define_method(mrb, fl,      "&",         flo_and,          MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, fl,      "|",         flo_or,           MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, fl,      "^",         flo_xor,          MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      "ceil",      flo_ceil,         MRB_ARGS_NONE()); /* 15.2.9.3.8  */
   mrb_define_method(mrb, fl,      "finite?",   flo_finite_p,     MRB_ARGS_NONE()); /* 15.2.9.3.9  */
   mrb_define_method(mrb, fl,      "floor",     flo_floor,        MRB_ARGS_NONE()); /* 15.2.9.3.10 */
