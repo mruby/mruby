@@ -921,15 +921,6 @@ rshift(mrb_int val, mrb_int width)
   return mrb_fixnum_value(val >> width);
 }
 
-static inline void
-fix_shift_get_width(mrb_state *mrb, mrb_int *width)
-{
-  mrb_value y;
-
-  mrb_get_args(mrb, "o", &y);
-  *width = mrb_fixnum(bit_coerce(mrb, y));
-}
-
 /* 15.2.8.3.12 */
 /*
  * call-seq:
@@ -943,8 +934,7 @@ fix_lshift(mrb_state *mrb, mrb_value x)
 {
   mrb_int width, val;
 
-  fix_shift_get_width(mrb, &width);
-
+  mrb_get_args(mrb, "i", &width);
   if (width == 0) {
     return x;
   }
@@ -968,8 +958,7 @@ fix_rshift(mrb_state *mrb, mrb_value x)
 {
   mrb_int width, val;
 
-  fix_shift_get_width(mrb, &width);
-
+  mrb_get_args(mrb, "i", &width);
   if (width == 0) {
     return x;
   }
