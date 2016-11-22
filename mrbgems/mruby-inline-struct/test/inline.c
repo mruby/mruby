@@ -6,7 +6,7 @@
 static mrb_value
 istruct_test_initialize(mrb_state *mrb, mrb_value self)
 {
-  char *string = mrb_istruct_ptr(self);
+  char *string = (char*)mrb_istruct_ptr(self);
   mrb_int size = mrb_istruct_size();
   mrb_value object;
   mrb_get_args(mrb, "o", &object);
@@ -31,7 +31,7 @@ istruct_test_initialize(mrb_state *mrb, mrb_value self)
 static mrb_value
 istruct_test_to_s(mrb_state *mrb, mrb_value self)
 {
-  return mrb_str_new_cstr(mrb, mrb_istruct_ptr(self));
+  return mrb_str_new_cstr(mrb, (const char*)mrb_istruct_ptr(self));
 }
 
 static mrb_value
@@ -63,7 +63,7 @@ istruct_test_test_receive_direct(mrb_state *mrb, mrb_value self)
 static mrb_value
 istruct_test_mutate(mrb_state *mrb, mrb_value self)
 {
-  char *ptr = mrb_istruct_ptr(self);
+  char *ptr = (char*)mrb_istruct_ptr(self);
   memcpy(ptr, "mutate", 6);
   return mrb_nil_value();
 }

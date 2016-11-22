@@ -844,13 +844,13 @@ retry:
             strncpy(nbuf, RSTRING_PTR(val), sizeof(nbuf));
             break;
           case 8:
-            snprintf(nbuf, sizeof(nbuf), "%"MRB_PRIo, v);
+            snprintf(nbuf, sizeof(nbuf), "%" MRB_PRIo, v);
             break;
           case 10:
-            snprintf(nbuf, sizeof(nbuf), "%"MRB_PRId, v);
+            snprintf(nbuf, sizeof(nbuf), "%" MRB_PRId, v);
             break;
           case 16:
-            snprintf(nbuf, sizeof(nbuf), "%"MRB_PRIx, v);
+            snprintf(nbuf, sizeof(nbuf), "%" MRB_PRIx, v);
             break;
           }
           s = nbuf;
@@ -865,13 +865,13 @@ retry:
             strncpy(++s, RSTRING_PTR(val), sizeof(nbuf)-1);
             break;
           case 8:
-            snprintf(++s, sizeof(nbuf)-1, "%"MRB_PRIo, v);
+            snprintf(++s, sizeof(nbuf)-1, "%" MRB_PRIo, v);
             break;
           case 10:
-            snprintf(++s, sizeof(nbuf)-1, "%"MRB_PRId, v);
+            snprintf(++s, sizeof(nbuf)-1, "%" MRB_PRId, v);
             break;
           case 16:
-            snprintf(++s, sizeof(nbuf)-1, "%"MRB_PRIx, v);
+            snprintf(++s, sizeof(nbuf)-1, "%" MRB_PRIx, v);
             break;
           }
           if (v < 0) {

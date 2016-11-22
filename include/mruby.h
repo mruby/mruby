@@ -28,9 +28,25 @@
 #ifndef MRUBY_H
 #define MRUBY_H
 
+#ifdef __cplusplus
+#define __STDC_LIMIT_MACROS
+#define __STDC_CONSTANT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
 #include <stdint.h>
 #include <stddef.h>
 #include <limits.h>
+
+#ifdef __cplusplus
+#ifndef SIZE_MAX
+#ifdef __SIZE_MAX__
+#define SIZE_MAX __SIZE_MAX__
+#else
+#define SIZE_MAX std::numeric_limits<size_t>::max()
+#endif
+#endif
+#endif
 
 #ifdef MRB_DEBUG
 #include <assert.h>
