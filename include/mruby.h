@@ -1147,7 +1147,7 @@ MRB_API void mrb_show_copyright(mrb_state *mrb);
 #if __STDC_VERSION__ >= 201112L
 #define mrb_static_assert(exp, str) _Static_assert(exp, str)
 #else
-#define mrb_static_assert(exp, str) mrb_assert(exp)
+#define mrb_static_assert(exp, str) typedef char mrb_static_assert ## __LINE__[exp]
 #endif
 
 MRB_API mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
