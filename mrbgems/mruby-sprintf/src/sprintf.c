@@ -675,6 +675,7 @@ retry:
         else {
           mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
         }
+        mrb_check_type(mrb, tmp, MRB_TT_STRING);
         c = RSTRING_PTR(tmp);
         n = RSTRING_LEN(tmp);
         if (!(flags & FWIDTH)) {
