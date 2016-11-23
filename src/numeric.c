@@ -15,6 +15,7 @@
 #include <mruby/string.h>
 
 #ifdef MRB_USE_FLOAT
+#define trunc(f) truncf(f)
 #define floor(f) floorf(f)
 #define ceil(f) ceilf(f)
 #define fmod(x,y) fmodf(x,y)
@@ -340,6 +341,53 @@ flo_xor(mrb_state *mrb, mrb_value x)
   v1 = (int64_t)mrb_float(x);
   v2 = value_int64(mrb, y);
   return int64_value(mrb, v1 ^ v2);
+}
+
+static mrb_value
+flo_shift(mrb_state *mrb, mrb_value x, mrb_int width)
+{
+  mrb_float val;
+
+  if (width == 0) {
+    return x;
+  }
+  val = mrb_float(x);
+  if (width < 0) {
+    while (width++) {
+      val /= 2;
+    }
+    val = trunc(val);
+    if (val == 0 && mrb_float(x) < 0) {
+      return mrb_fixnum_value(-1);
+    }
+  }
+  else {
+    while (width--) {
+      val *= 2;
+    }
+  }
+  if (FIXABLE(val)) {
+    return mrb_fixnum_value(val);
+  }
+  return mrb_float_value(mrb, val);
+}
+
+static mrb_value
+flo_lshift(mrb_state *mrb, mrb_value x)
+{
+  mrb_int width;
+
+  mrb_get_args(mrb, "i", &width);
+  return flo_shift(mrb, x, -width);
+}
+
+static mrb_value
+flo_rshift(mrb_state *mrb, mrb_value x)
+{
+  mrb_int width;
+
+  mrb_get_args(mrb, "i", &width);
+  return flo_shift(mrb, x, width);
 }
 
 /* 15.2.8.3.18 */
@@ -1253,6 +1301,8 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "&",         flo_and,          MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      "|",         flo_or,           MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      "^",         flo_xor,          MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, fl,      ">>",        flo_lshift,       MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, fl,      "<<",        flo_rshift,       MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      "ceil",      flo_ceil,         MRB_ARGS_NONE()); /* 15.2.9.3.8  */
   mrb_define_method(mrb, fl,      "finite?",   flo_finite_p,     MRB_ARGS_NONE()); /* 15.2.9.3.9  */
   mrb_define_method(mrb, fl,      "floor",     flo_floor,        MRB_ARGS_NONE()); /* 15.2.9.3.10 */
