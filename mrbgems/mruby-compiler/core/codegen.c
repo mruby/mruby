@@ -2713,7 +2713,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
 
   p->icapa = 1024;
   p->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*p->icapa);
-  p->irep->iseq = p->iseq;
+  p->irep->iseq = NULL;
 
   p->pcapa = 32;
   p->irep->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value)*p->pcapa);
