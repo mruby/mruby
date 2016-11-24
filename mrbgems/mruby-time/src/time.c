@@ -611,16 +611,23 @@ static mrb_value
 mrb_time_initialize_copy(mrb_state *mrb, mrb_value copy)
 {
   mrb_value src;
+  struct mrb_time *t1, *t2;
 
   mrb_get_args(mrb, "o", &src);
   if (mrb_obj_equal(mrb, copy, src)) return copy;
   if (!mrb_obj_is_instance_of(mrb, src, mrb_obj_class(mrb, copy))) {
     mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
   }
-  if (!DATA_PTR(copy)) {
-    mrb_data_init(copy, mrb_malloc(mrb, sizeof(struct mrb_time)), &mrb_time_type);
+  t1 = (struct mrb_time *)DATA_PTR(copy);
+  t2 = (struct mrb_time *)DATA_PTR(src);
+  if (!t2) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized time");
   }
-  *(struct mrb_time *)DATA_PTR(copy) = *(struct mrb_time *)DATA_PTR(src);
+  if (!t1) {
+    t1 = (struct mrb_time *)mrb_malloc(mrb, sizeof(struct mrb_time));
+    mrb_data_init(copy, t1, &mrb_time_type);
+  }
+  *t1 = *t2;
   return copy;
 }
 
