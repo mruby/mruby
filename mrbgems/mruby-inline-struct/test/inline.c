@@ -17,7 +17,7 @@ istruct_test_initialize(mrb_state *mrb, mrb_value self)
   }
   else if (mrb_fixnum_p(object))
   {
-    snprintf(string, size, "fixnum(%d)", mrb_fixnum(object));
+    snprintf(string, size, "fixnum(%" MRB_PRId ")", mrb_fixnum(object));
   }
   else if (mrb_string_p(object))
   {
