@@ -1746,6 +1746,7 @@ codegen(codegen_scope *s, node *tree, int val)
         genop(s, MKOP_A(OP_RESCUE, exc));
         genop(s, MKOP_A(OP_LOADF, exc));
         dispatch(s, noexc);
+        loop_pop(s, NOVAL);
       }
       else if ((intptr_t)tree->car->car == NODE_CALL) {
         node *n = tree->car->cdr;
