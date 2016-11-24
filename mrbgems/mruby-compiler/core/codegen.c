@@ -1798,8 +1798,10 @@ codegen(codegen_scope *s, node *tree, int val)
         int pos;
 
         pop();
-        if (val && vsp >= 0) {
-          genop(s, MKOP_AB(OP_MOVE, vsp, cursp()));
+        if (val) {
+          if (vsp >= 0) {
+            genop(s, MKOP_AB(OP_MOVE, vsp, cursp()));
+          }
           pos = genop(s, MKOP_AsBx(name[0]=='|'?OP_JMPIF:OP_JMPNOT, cursp(), 0));
         }
         else {
