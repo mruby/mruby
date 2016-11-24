@@ -58,13 +58,14 @@ module Enumerable
 
   def take(n)
     raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
-    raise ArgumentError, "attempt to take negative size" if n < 0
-
-    n = n.to_int
+    i = n.to_int
+    raise ArgumentError, "attempt to take negative size" if i < 0
     ary = []
+    return ary if i == 0
     self.each do |*val|
-      break if ary.size >= n
       ary << val.__svalue
+      i -= 1
+      break if i == 0
     end
     ary
   end
