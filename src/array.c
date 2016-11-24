@@ -309,9 +309,12 @@ ary_replace(mrb_state *mrb, struct RArray *a, mrb_value *argv, mrb_int len)
 MRB_API void
 mrb_ary_replace(mrb_state *mrb, mrb_value self, mrb_value other)
 {
+  struct RArray *a1 = mrb_ary_ptr(self);
   struct RArray *a2 = mrb_ary_ptr(other);
 
-  ary_replace(mrb, mrb_ary_ptr(self), a2->ptr, a2->len);
+  if (a1 != a2) {
+    ary_replace(mrb, a1, a2->ptr, a2->len);
+  }
 }
 
 static mrb_value
@@ -554,6 +557,15 @@ mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val)
   mrb_field_write_barrier_value(mrb, (struct RBasic*)a, val);
 }
 
+static struct RArray*
+ary_dup(mrb_state *mrb, struct RArray *a)
+{
+  struct RArray *d = ary_new_capa(mrb, a->len);
+  
+  ary_replace(mrb, d, a->ptr, a->len);
+  return d;
+}
+
 MRB_API mrb_value
 mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_value rpl)
 {
@@ -583,6 +595,10 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   if (mrb_array_p(rpl)) {
     argc = RARRAY_LEN(rpl);
     argv = RARRAY_PTR(rpl);
+    if (argv == a->ptr) {
+      struct RArray *r = ary_dup(mrb, a);
+      argv = r->ptr;
+    }
   }
   else {
     argc = 1;
