@@ -163,3 +163,19 @@ assert('&obj call to_proc if defined') do
 
   assert_raise(TypeError){ mock(&(Object.new)) }
 end
+
+assert('initialize_copy works when initialize is removed') do
+  begin
+    Proc.alias_method(:old_initialize, :initialize)
+    Proc.remove_method(:initialize)
+
+    a = Proc.new {}
+    b = Proc.new {}
+    assert_nothing_raised do
+      a.initialize_copy(b)
+    end
+  ensure
+    Proc.alias_method(:initialize, :old_initialize)
+    Proc.remove_method(:old_initialize)
+  end
+end
