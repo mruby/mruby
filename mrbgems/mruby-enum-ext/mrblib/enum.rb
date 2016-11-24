@@ -61,9 +61,11 @@ module Enumerable
     i = n.to_int
     raise ArgumentError, "attempt to take negative size" if i < 0
     ary = []
+    return ary if i == 0
     self.each do |*val|
-      break if ary.size >= n
       ary << val.__svalue
+      i -= 1
+      break if i == 0
     end
     ary
   end
