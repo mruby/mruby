@@ -140,7 +140,7 @@ mrb_range_size(mrb_state *mrb, mrb_value range)
   }
   if (num_p) {
     mrb_float n = end_f - beg_f;
-    mrb_float err = (fabs(beg_f) + fabs(end_f) + fabs(end_f-beg_f)) * DBL_EPSILON;
+    mrb_float err = (fabs(beg_f) + fabs(end_f) + fabs(end_f-beg_f)) * MRB_FLOAT_EPSILON;
 
     if (err>0.5) err=0.5;
     if (excl) {

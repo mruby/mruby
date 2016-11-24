@@ -64,6 +64,13 @@
 #endif
 
 #include "mrbconf.h"
+
+#ifdef MRB_USE_FLOAT
+#define MRB_FLOAT_EPSILON FLT_EPSILON
+#else
+#define MRB_FLOAT_EPSILON DBL_EPSILON
+#endif
+
 #include "mruby/common.h"
 #include <mruby/value.h>
 #include <mruby/gc.h>
