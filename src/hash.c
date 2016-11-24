@@ -172,11 +172,8 @@ mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
   }
 
   /* not found */
-  if (MRB_RHASH_DEFAULT_P(hash)) {
-    /* xxx mrb_funcall_tailcall(mrb, hash, "default", 1, key); */
-    return mrb_funcall(mrb, hash, "default", 1, key);
-  }
-  return mrb_nil_value();
+  /* xxx mrb_funcall_tailcall(mrb, hash, "default", 1, key); */
+  return mrb_funcall(mrb, hash, "default", 1, key);
 }
 
 MRB_API mrb_value
