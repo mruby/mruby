@@ -1098,7 +1098,7 @@ heredoc_end(parser_state *p)
 %type <nd> literal numeric cpath symbol
 %type <nd> top_compstmt top_stmts top_stmt
 %type <nd> bodystmt compstmt stmts stmt expr arg primary command command_call method_call
-%type <nd> expr_value arg0 arg_rhs primary_value
+%type <nd> expr_value arg_rhs primary_value
 %type <nd> if_tail opt_else case_body cases opt_rescue exc_list exc_var opt_ensure
 %type <nd> args call_args opt_call_args
 %type <nd> paren_args opt_paren_args variable
@@ -1396,7 +1396,7 @@ expr            : command_call
                     {
                       $$ = call_uni_op(p, cond($2), "!");
                     }
-                | arg0
+                | arg
                 ;
 
 expr_value      : expr
@@ -1738,7 +1738,7 @@ reswords        : keyword__LINE__ | keyword__FILE__ | keyword__ENCODING__
                 | keyword_while | keyword_until
                 ;
 
-arg0            : lhs '=' arg_rhs
+arg             : lhs '=' arg_rhs
                     {
                       $$ = new_asgn(p, $1, $3);
                     }
@@ -1911,16 +1911,6 @@ arg0            : lhs '=' arg_rhs
                     }
                 ;
 
-arg             : arg0
-                    {
-                      if (!$1) $$ = new_nil(p);
-                      else {
-                        void_expr_error(p, $1);
-                        $$ = $1;
-                      }
-                    }
-                ;
-
 aref_args       : none
                 | args trailer
                     {
@@ -1939,8 +1929,14 @@ aref_args       : none
                 ;
 
 arg_rhs         : arg %prec tOP_ASGN
+                    {
+                      void_expr_error(p, $1);
+                      $$ = $1;
+                    }
                 | arg modifier_rescue arg
                     {
+                      void_expr_error(p, $1);
+                      void_expr_error(p, $3);
                       $$ = new_mod_rescue(p, $1, $3);
                     }
                 ;
@@ -2030,42 +2026,51 @@ opt_block_arg   : ',' block_arg
 
 args            : arg
                     {
+                      void_expr_error(p, $1);
                       $$ = cons($1, 0);
                       NODE_LINENO($$, $1);
                     }
                 | tSTAR arg
                     {
+                      void_expr_error(p, $2);
                       $$ = cons(new_splat(p, $2), 0);
                       NODE_LINENO($$, $2);
                     }
                 | args ',' arg
                     {
+                      void_expr_error(p, $3);
                       $$ = push($1, $3);
                     }
                 | args ',' tSTAR arg
                     {
+                      void_expr_error(p, $4);
                       $$ = push($1, new_splat(p, $4));
                     }
                 | args ',' heredoc_bodies arg
                     {
+                      void_expr_error(p, $4);
                       $$ = push($1, $4);
                     }
                 | args ',' heredoc_bodies tSTAR arg
                     {
+                      void_expr_error(p, $5);
                       $$ = push($1, new_splat(p, $5));
                     }
                 ;
 
 mrhs            : args ',' arg
                     {
+                      void_expr_error(p, $3);
                       $$ = push($1, $3);
                     }
                 | args ',' tSTAR arg
                     {
+                      void_expr_error(p, $4);
                       $$ = push($1, new_splat(p, $4));
                     }
                 | tSTAR arg
                     {
+                      void_expr_error(p, $2);
                       $$ = list1(new_splat(p, $2));
                     }
                 ;
