@@ -23,10 +23,11 @@ static mrb_value
 mrb_str_setbyte(mrb_state *mrb, mrb_value str)
 {
   mrb_int pos, byte;
-  long len = RSTRING_LEN(str);
+  long len;
 
   mrb_get_args(mrb, "ii", &pos, &byte);
 
+  len = RSTRING_LEN(str);
   if (pos < -len || len <= pos)
     mrb_raisef(mrb, E_INDEX_ERROR, "index %S is out of array", mrb_fixnum_value(pos));
   if (pos < 0)
