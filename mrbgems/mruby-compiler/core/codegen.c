@@ -588,9 +588,6 @@ for_body(codegen_scope *s, node *tree)
 
   push();                       /* push for a block parameter */
 
-  lp = loop_push(s, LOOP_FOR);
-  lp->pc1 = new_label(s);
-
   /* generate loop variable */
   n2 = tree->car;
   genop(s, MKOP_Ax(OP_ENTER, 0x40000));
@@ -600,6 +597,11 @@ for_body(codegen_scope *s, node *tree)
   else {
     gen_vmassignment(s, n2, 1, VAL);
   }
+  /* construct loop */
+  lp = loop_push(s, LOOP_FOR);
+  lp->pc2 = new_label(s);
+
+  /* loop body */
   codegen(s, tree->cdr->cdr->car, VAL);
   pop();
   if (s->pc > 0) {
