@@ -380,7 +380,7 @@ static const struct types {
 /*    {MRB_TT_VARMAP,  "Varmap"}, */ /* internal use: dynamic variables */
 /*    {MRB_TT_NODE,  "Node"}, */ /* internal use: syntax tree node */
 /*    {MRB_TT_UNDEF,  "undef"}, */ /* internal use: #undef; should not happen */
-    {-1,  0}
+  {MRB_TT_MAXDEFINE,  0}
 };
 
 MRB_API void
