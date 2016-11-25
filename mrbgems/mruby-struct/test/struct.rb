@@ -158,3 +158,24 @@ assert("Struct#dig") do
   assert_equal 1, a.dig(:purple, :red)
   assert_equal 1, a.dig(1, 0)
 end
+
+assert("Struct.new removes existing constant") do
+  begin
+    assert_not_equal Struct.new("Test", :a), Struct.new("Test", :a, :b)
+  ensure
+    Struct.remove_const :Test
+  end
+end
+
+assert("Struct#initialize_copy requires struct to be the same type") do
+  begin
+    Struct.new("Test", :a)
+    a = Struct::Test.new("a")
+    Struct.new("Test", :a, :b)
+    assert_raise(TypeError) do
+      a.initialize_copy(Struct::Test.new("a", "b"))
+    end
+  ensure
+    Struct.remove_const :Test
+  end
+end

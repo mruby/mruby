@@ -203,7 +203,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     }
     if (mrb_const_defined_at(mrb, mrb_obj_value(klass), id)) {
       mrb_warn(mrb, "redefining constant Struct::%S", name);
-      /* ?rb_mod_remove_const(klass, mrb_sym2name(mrb, id)); */
+      mrb_const_remove(mrb, mrb_obj_value(klass), id);
     }
     c = mrb_define_class_under(mrb, klass, RSTRING_PTR(name), klass);
   }
