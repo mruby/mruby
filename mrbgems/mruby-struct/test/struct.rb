@@ -179,3 +179,9 @@ assert("Struct#initialize_copy requires struct to be the same type") do
     Struct.remove_const :Test
   end
 end
+
+assert("Struct.new does not allow array") do
+  assert_raise(TypeError) do
+    Struct.new("Test", [:a])
+  end
+end
