@@ -31,3 +31,18 @@ assert('codegen absorbs arguments to redo and retry if they are the argument of 
     end
   end
 end
+
+assert('method call with exactly 127 arguments') do
+  def args_to_ary(*args)
+    args
+  end
+
+  assert_equal [0]*127, args_to_ary(
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, \
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, \
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, \
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, \
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, \
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  )
+end
