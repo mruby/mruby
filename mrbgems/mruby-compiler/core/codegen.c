@@ -2295,7 +2295,11 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       node *n = tree;
 
-      if (!n) break;
+      if (!n) {
+        genop(s, MKOP_A(OP_LOADNIL, cursp()));
+        push();
+        break;
+      }
       codegen(s, n->car, VAL);
       n = n->cdr;
       while (n) {

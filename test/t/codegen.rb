@@ -46,3 +46,11 @@ assert('method call with exactly 127 arguments') do
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   )
 end
+
+assert('nested empty heredoc') do
+  _, a = nil, <<B
+#{<<A}
+A
+B
+  assert_equal "\n", a
+end
