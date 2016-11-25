@@ -1362,6 +1362,10 @@ codegen(codegen_scope *s, node *tree, int val)
       int pos1, pos2;
       node *e = tree->cdr->cdr->car;
 
+      if (!tree->car) {
+        codegen(s, e, val);
+        return;
+      }
       switch ((intptr_t)tree->car->car) {
       case NODE_TRUE:
       case NODE_INT:
