@@ -222,14 +222,17 @@ module Enumerable
       end
       return nil
     else
-      a = []
-      i = 0
+      raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
+      i = n.to_int
+      raise ArgumentError, "attempt to take negative size" if i < 0
+      ary = []
+      return ary if i == 0
       self.each do |*val|
-        break if n<=i
-        a.push val.__svalue
-        i += 1
+        ary << val.__svalue
+        i -= 1
+        break if i == 0
       end
-      a
+      ary
     end
   end
 
