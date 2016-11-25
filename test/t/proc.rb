@@ -46,6 +46,17 @@ assert('Proc#arity', '15.2.17.4.2') do
   assert_equal(-1, g)
 end
 
+assert('Proc#arity with unitialized Proc') do
+  begin
+    Proc.alias_method(:original_initialize, :initialize)
+    Proc.remove_method(:initialize)
+    assert_equal 0, Proc.new{|a, b, c| 1}.arity
+  ensure
+    Proc.alias_method(:initialize, :original_initialize)
+    Proc.remove_method(:original_initialize)
+  end
+end
+
 assert('Proc#call', '15.2.17.4.3') do
   a = 0
   b = Proc.new { a += 1 }
