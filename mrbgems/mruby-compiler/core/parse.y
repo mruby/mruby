@@ -6541,7 +6541,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_HEREDOC:
     printf("NODE_HEREDOC (<<%s):\n", ((parser_heredoc_info*)tree)->term);
-    mrb_parser_dump(mrb, ((parser_heredoc_info*)tree)->doc, offset+1);
+    dump_recur(mrb, ((parser_heredoc_info*)tree)->doc, offset+1);
     break;
 
   default:
