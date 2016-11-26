@@ -445,7 +445,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
   mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
   mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
 
-  fptr = DATA_PTR(io);
+  fptr = (struct mrb_io *)DATA_PTR(io);
   if (fptr != NULL) {
     fptr_finalize(mrb, fptr, TRUE);
     mrb_free(mrb, fptr);
