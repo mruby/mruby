@@ -1,5 +1,5 @@
 /*
-** mruby/instruct.h - Inline structures
+** mruby/istruct.h - Inline structures
 **
 ** See Copyright Notice in mruby.h
 */
