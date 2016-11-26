@@ -215,21 +215,28 @@ module Enumerable
   # Returns the first element, or the first +n+ elements, of the enumerable.
   # If the enumerable is empty, the first form returns <code>nil</code>, and the
   # second form returns an empty array.
-  def first(n=NONE)
-    if n == NONE
+  def first(*args)
+    case args.length
+    when 0
       self.each do |*val|
         return val.__svalue
       end
       return nil
-    else
-      a = []
-      i = 0
+    when 1
+      n = args[0]
+      raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
+      i = n.to_int
+      raise ArgumentError, "attempt to take negative size" if i < 0
+      ary = []
+      return ary if i == 0
       self.each do |*val|
-        break if n<=i
-        a.push val.__svalue
-        i += 1
+        ary << val.__svalue
+        i -= 1
+        break if i == 0
       end
-      a
+      ary
+    else
+      raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 0..1)"
     end
   end
 
