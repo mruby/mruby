@@ -211,3 +211,14 @@ assert('2000 times 500us make a second') do
   end
   t.usec == 0
 end
+
+assert("Time#initialize doens't leave uninitialized object accessible") do
+  assert_raise ArgumentError do
+    $x = Time.new
+    a = Object.new
+    def a.to_i
+      $x.mday
+    end
+    $x.initialize a
+  end
+end
