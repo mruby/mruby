@@ -67,14 +67,12 @@ typedef struct mrb_value {
 #endif
 
 #define BOXNAN_SET_VALUE(o, tt, attr, v) do {\
-  switch (tt) {\
-  case MRB_TT_FALSE:\
-  case MRB_TT_TRUE:\
-  case MRB_TT_UNDEF:\
-  case MRB_TT_FIXNUM:\
-  case MRB_TT_SYMBOL: (o).attr = (v); break;\
-  default: (o).value.i = 0; (o).value.p = (void*)((uintptr_t)(o).value.p | (((uintptr_t)(v))>>2)); break;\
-  }\
+  (o).attr = (v);\
+  (o).value.ttt = 0xfff00000 | (((tt)+1)<<14);\
+} while (0)
+
+#define BOXNAN_SET_OBJ_VALUE(o, tt, v) do {\
+  (o).value.p = (void*)((uintptr_t)(v)>>2);\
   (o).value.ttt = (0xfff00000|(((tt)+1)<<14)|BOXNAN_SHIFT_LONG_POINTER(v));\
 } while (0)
 
@@ -92,8 +90,8 @@ typedef struct mrb_value {
 #define SET_BOOL_VALUE(r,b) BOXNAN_SET_VALUE(r, b ? MRB_TT_TRUE : MRB_TT_FALSE, value.i, 1)
 #define SET_INT_VALUE(r,n) BOXNAN_SET_VALUE(r, MRB_TT_FIXNUM, value.i, (n))
 #define SET_SYM_VALUE(r,v) BOXNAN_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
-#define SET_OBJ_VALUE(r,v) BOXNAN_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
-#define SET_CPTR_VALUE(mrb,r,v) BOXNAN_SET_VALUE(r, MRB_TT_CPTR, value.p, v)
+#define SET_OBJ_VALUE(r,v) BOXNAN_SET_OBJ_VALUE(r, (((struct RObject*)(v))->tt), (v))
+#define SET_CPTR_VALUE(mrb,r,v) BOXNAN_SET_OBJ_VALUE(r, MRB_TT_CPTR, v)
 #define SET_UNDEF_VALUE(r) BOXNAN_SET_VALUE(r, MRB_TT_UNDEF, value.i, 0)
 
 #endif  /* MRUBY_BOXING_NAN_H */
