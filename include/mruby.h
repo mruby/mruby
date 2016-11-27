@@ -430,7 +430,7 @@ MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_
  *
  *     mrb_value
  *     mrb_example_method(mrb_state *mrb){
- *       return mrb_str_new_cstr(mrb, "example");
+ *       return mrb_str_new_lit(mrb, "example");
  *     }
  *
  *     void
@@ -473,7 +473,7 @@ MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
  *
  *     mrb_value
  *     mrb_example_method(mrb_state *mrb){
- *       return mrb_str_new_cstr(mrb, "example");
+ *       return mrb_str_new_lit(mrb, "example");
  *     }
  *
  *     void
@@ -696,7 +696,7 @@ MRB_API mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char
  *
  *        example_class = mrb_define_class(mrb, "ExampleClass", mrb->object_class);
  *        mrb_define_method(mrb, example_class, "example_method", exampleMethod, MRB_ARGS_NONE());
- *        mid = mrb_intern_str(mrb, mrb_str_new_cstr(mrb, "example_method" ));
+ *        mid = mrb_intern_str(mrb, mrb_str_new_lit(mrb, "example_method" ));
  *        obj_resp = mrb_obj_respond_to(mrb, example_class, mid); // => 1(true in Ruby world)
  *
  *        // If mrb_obj_respond_to returns 1 then puts "True"
@@ -884,7 +884,7 @@ MRB_API mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, mrb_int,...);
  *        mrb_state *mrb = mrb_open();
  *
  *        if (!mrb) { }
- *        mrb_sym m_sym = mrb_intern_cstr(mrb, "method_name"); // Symbol for method.
+ *        mrb_sym m_sym = mrb_intern_lit(mrb, "method_name"); // Symbol for method.
  *
  *        FILE *fp = fopen("test.rb","r");
  *        mrb_value obj = mrb_load_file(mrb,fp);
@@ -912,7 +912,7 @@ MRB_API mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, mrb_int
  *     :pizza # => :pizza
  *
  *     // C style:
- *     mrb_sym m_sym = mrb_intern_cstr(mrb, "pizza"); //  => :pizza
+ *     mrb_sym m_sym = mrb_intern_lit(mrb, "pizza"); //  => :pizza
  * @param [mrb_state*] mrb_state* The current mruby state.
  * @param [const char*] const char* The name of the method.
  * @return [mrb_sym] mrb_sym A symbol.
