@@ -278,6 +278,8 @@ mrb_exc_set(mrb_state *mrb, mrb_value exc)
     mrb->exc = 0;
   }
   else {
+    if (!mrb_obj_is_kind_of(mrb, exc, mrb->eException_class))
+      mrb_raise(mrb, E_TYPE_ERROR, "exception object expected");
     mrb->exc = mrb_obj_ptr(exc);
   }
 }
