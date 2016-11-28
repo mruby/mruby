@@ -221,6 +221,9 @@ typedef struct mrb_state {
   struct RClass *eException_class;
   struct RClass *eStandardError_class;
   struct RObject *nomem_err;              /* pre-allocated NoMemoryError */
+#ifdef MRB_GC_FIXED_ARENA
+  struct RObject *arena_err;              /* pre-allocated arena overfow error */
+#endif
 
   void *ud; /* auxiliary data */
 
