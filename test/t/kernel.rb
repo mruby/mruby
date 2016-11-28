@@ -520,6 +520,21 @@ assert('Kernel#to_s', '15.3.1.3.46') do
   assert_equal to_s.class, String
 end
 
+assert('Kernel#to_s on primitives') do
+  begin
+    Fixnum.alias_method :to_s_, :to_s
+    Fixnum.remove_method :to_s
+
+    assert_nothing_raised do
+      # segfaults if mrb_cptr is used
+      1.to_s
+    end
+  ensure
+    Fixnum.alias_method :to_s, :to_s_
+    Fixnum.remove_method :to_s_
+  end
+end
+
 assert('Kernel.local_variables', '15.3.1.2.7') do
   a, b = 0, 1
   a += b
