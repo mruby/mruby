@@ -2109,7 +2109,7 @@ primary         : literal
                     }
                 | tLPAREN_ARG {p->lstate = EXPR_ENDARG;} rparen
                     {
-                      $$ = 0;
+                      $$ = new_nil(p);
                     }
                 | tLPAREN compstmt ')'
                     {
