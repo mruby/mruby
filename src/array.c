@@ -245,13 +245,15 @@ mrb_ary_s_create(mrb_state *mrb, mrb_value self)
 }
 
 static void
-ary_concat(mrb_state *mrb, struct RArray *a, mrb_value *ptr, mrb_int blen)
+ary_concat(mrb_state *mrb, struct RArray *a, struct RArray *a2)
 {
-  mrb_int len = a->len + blen;
+  mrb_int len = a->len + a2->len;
 
   ary_modify(mrb, a);
-  if (a->aux.capa < len) ary_expand_capa(mrb, a, len);
-  array_copy(a->ptr+a->len, ptr, blen);
+  if (a->aux.capa < len) {
+    ary_expand_capa(mrb, a, len);
+  }
+  array_copy(a->ptr+a->len, a2->ptr, a2->len);
   mrb_write_barrier(mrb, (struct RBasic*)a);
   a->len = len;
 }
@@ -261,17 +263,16 @@ mrb_ary_concat(mrb_state *mrb, mrb_value self, mrb_value other)
 {
   struct RArray *a2 = mrb_ary_ptr(other);
 
-  ary_concat(mrb, mrb_ary_ptr(self), a2->ptr, a2->len);
+  ary_concat(mrb, mrb_ary_ptr(self), a2);
 }
 
 static mrb_value
 mrb_ary_concat_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *ptr;
-  mrb_int blen;
+  mrb_value ary;
 
-  mrb_get_args(mrb, "a", &ptr, &blen);
-  ary_concat(mrb, mrb_ary_ptr(self), ptr, blen);
+  mrb_get_args(mrb, "A", &ary);
+  mrb_ary_concat(mrb, self, ary);
   return self;
 }
 
