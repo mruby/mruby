@@ -479,6 +479,17 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   static const RVALUE RVALUE_zero = { { { MRB_TT_FALSE } } };
   mrb_gc *gc = &mrb->gc;
 
+  if (cls) {
+    enum mrb_vtype tt = MRB_INSTANCE_TT(cls);
+    if (tt != MRB_TT_FALSE &&
+        ttype != MRB_TT_SCLASS &&
+        ttype != MRB_TT_ICLASS &&
+        ttype != MRB_TT_ENV &&
+        ttype != tt) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "allocation failure of %S", mrb_obj_value(cls));
+    }
+  }
+
 #ifdef MRB_GC_STRESS
   mrb_full_gc(mrb);
 #endif
