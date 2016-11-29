@@ -2134,8 +2134,8 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_ARYCAT) {
       /* A B            mrb_ary_concat(R(A),R(B)) */
-      mrb_ary_concat(mrb, regs[GETARG_A(i)],
-                     mrb_ary_splat(mrb, regs[GETARG_B(i)]));
+      mrb_value splat = mrb_ary_splat(mrb, regs[GETARG_B(i)]);
+      mrb_ary_concat(mrb, regs[GETARG_A(i)], splat);
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }
