@@ -287,7 +287,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
       mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
     }
   }
-  st = make_struct(mrb, name, rest, struct_class(mrb));
+  st = make_struct(mrb, name, rest, mrb_class_ptr(klass));
   if (!mrb_nil_p(b)) {
     mrb_yield_with_class(mrb, b, 1, &st, st, mrb_class_ptr(st));
   }
