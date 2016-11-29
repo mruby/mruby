@@ -187,3 +187,13 @@ assert("Struct.new does not allow array") do
     Struct.new("Test", [:a])
   end
 end
+
+assert("Struct.new generates subclass of Struct") do
+  begin
+    original_struct = Struct
+    Struct = String
+    assert_equal original_struct, original_struct.new.superclass
+  ensure
+    Struct = original_struct
+  end
+end
