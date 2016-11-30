@@ -1936,7 +1936,6 @@ arg_rhs         : arg %prec tOP_ASGN
                 | arg modifier_rescue arg
                     {
                       void_expr_error(p, $1);
-                      void_expr_error(p, $3);
                       $$ = new_mod_rescue(p, $1, $3);
                     }
                 ;
