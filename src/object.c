@@ -8,6 +8,7 @@
 #include <mruby/class.h>
 #include <mruby/numeric.h>
 #include <mruby/string.h>
+#include <mruby/class.h>
 
 MRB_API mrb_bool
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
@@ -265,6 +266,7 @@ mrb_init_object(mrb_state *mrb)
   struct RClass *f;
 
   mrb->nil_class   = n = mrb_define_class(mrb, "NilClass",   mrb->object_class);
+  MRB_SET_INSTANCE_TT(n, MRB_TT_TRUE);
   mrb_undef_class_method(mrb, n, "new");
   mrb_define_method(mrb, n, "&",    false_and,      MRB_ARGS_REQ(1));  /* 15.2.4.3.1  */
   mrb_define_method(mrb, n, "^",    false_xor,      MRB_ARGS_REQ(1));  /* 15.2.4.3.2  */
@@ -274,6 +276,7 @@ mrb_init_object(mrb_state *mrb)
   mrb_define_method(mrb, n, "inspect", nil_inspect, MRB_ARGS_NONE());
 
   mrb->true_class  = t = mrb_define_class(mrb, "TrueClass",  mrb->object_class);
+  MRB_SET_INSTANCE_TT(t, MRB_TT_TRUE);
   mrb_undef_class_method(mrb, t, "new");
   mrb_define_method(mrb, t, "&",    true_and,       MRB_ARGS_REQ(1));  /* 15.2.5.3.1  */
   mrb_define_method(mrb, t, "^",    true_xor,       MRB_ARGS_REQ(1));  /* 15.2.5.3.2  */
@@ -282,6 +285,7 @@ mrb_init_object(mrb_state *mrb)
   mrb_define_method(mrb, t, "inspect", true_to_s,   MRB_ARGS_NONE());
 
   mrb->false_class = f = mrb_define_class(mrb, "FalseClass", mrb->object_class);
+  MRB_SET_INSTANCE_TT(f, MRB_TT_TRUE);
   mrb_undef_class_method(mrb, f, "new");
   mrb_define_method(mrb, f, "&",    false_and,      MRB_ARGS_REQ(1));  /* 15.2.6.3.1  */
   mrb_define_method(mrb, f, "^",    false_xor,      MRB_ARGS_REQ(1));  /* 15.2.6.3.2  */
