@@ -173,10 +173,12 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
     capa = ARY_DEFAULT_LEN;
   }
   while (capa < len) {
-    capa *= 2;
+    if (capa <= ARY_MAX_SIZE / 2) {
+      capa *= 2;
+    } else {
+      capa = ARY_MAX_SIZE;
+    }
   }
-
-  if (capa > ARY_MAX_SIZE) capa = ARY_MAX_SIZE; /* len <= capa <= ARY_MAX_SIZE */
 
   if (capa > a->aux.capa) {
     mrb_value *expanded_ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
@@ -503,6 +505,9 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   mrb_int len;
 
   mrb_get_args(mrb, "*", &vals, &len);
+  if (len > ARY_MAX_SIZE - a->len) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
+  }
   if (ARY_SHARED_P(a)
       && a->aux.shared->refcnt == 1 /* shared only referenced from this array */
       && a->ptr - a->aux.shared->ptr >= len) /* there's room for unshifted item */ {
