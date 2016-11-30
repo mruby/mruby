@@ -40,6 +40,15 @@ module Enumerable
       }
     end
 
+    def to_enum(meth=:each, *args, &block)
+      lz = Lazy.new(self, &block)
+      lz.obj = self
+      lz.meth = meth
+      lz.args = args
+      lz
+    end
+    alias enum_for to_enum
+
     def map(&block)
       Lazy.new(self){|yielder, val|
         yielder << block.call(val)
