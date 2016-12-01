@@ -397,6 +397,18 @@ assert('class variable in module and class << self style class method') do
   assert_equal("value", ClassVariableInModuleTest.class_variable)
 end
 
+assert('overriding class variable with a module (#3235)') do
+  module ModuleWithCVar
+    @@class_variable = 1
+  end
+  class CVarOverrideTest
+    @@class_variable = 2
+    include ModuleWithCVar
+
+    assert_equal(1, @@class_variable)
+  end
+end
+
 assert('class with non-class/module outer raises TypeError') do
   assert_raise(TypeError) { class 0::C1; end }
   assert_raise(TypeError) { class []::C2; end }
