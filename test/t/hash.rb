@@ -16,6 +16,13 @@ assert('Hash#[]', '15.2.13.4.2') do
   a = { 'abc' => 'abc' }
 
   assert_equal 'abc', a['abc']
+
+  # Hash#[] should call #default (#3272)
+  hash = {}
+  def hash.default(k); self[k] = 1; end
+  hash[:foo] += 1
+
+  assert_equal 2, hash[:foo]
 end
 
 assert('Hash#[]=', '15.2.13.4.3') do

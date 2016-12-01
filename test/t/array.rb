@@ -82,6 +82,14 @@ assert('Array#[]=', '15.2.12.5.5') do
   a = [1,2,3,4,5]
   a[2...4] = 6
   assert_equal([1,2,6,5], a)
+
+  # passing self (#3274)
+  a = [1,2,3]
+  a[1,0] = a
+  assert_equal([1,1,2,3,2,3], a)
+  a = [1,2,3]
+  a[-1,0] = a
+  assert_equal([1,2,1,2,3,3], a)
 end
 
 assert('Array#clear', '15.2.12.5.6') do
@@ -98,6 +106,11 @@ end
 
 assert('Array#concat', '15.2.12.5.8') do
   assert_equal([1,2,3,4], [1, 2].concat([3, 4]))
+
+  # passing self (#3302)
+  a = [1,2,3]
+  a.concat(a)
+  assert_equal([1,2,3,1,2,3], a)
 end
 
 assert('Array#delete_at', '15.2.12.5.9') do
