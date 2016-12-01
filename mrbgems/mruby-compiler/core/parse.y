@@ -3995,6 +3995,20 @@ parse_string(parser_state *p)
           tokadd(p, '\\');
           tokadd(p, c);
         }
+        else if (c == 'u' && peek(p, '{')) {
+          /* \u{xxxx xxxx xxxx} form */
+          nextc(p);
+          while (1) {
+            do c = nextc(p); while (ISSPACE(c));
+            if (c == '}') break;
+            pushback(p, c);
+            c = read_escape_unicode(p, 8);
+            if (c < 0) break;
+            tokadd(p, -c);
+          }
+          if (hinf)
+            hinf->line_head = FALSE;
+        }
         else {
           pushback(p, c);
           tokadd(p, read_escape(p));

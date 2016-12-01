@@ -33,3 +33,7 @@ assert('braced \u notation test') do
   assert_equal("\xF0\x90\x80\x80", "\u{10000}")
   assert_equal("\xF4\x8F\xBF\xBF", "\u{10FFFF}")
 end
+
+assert('braced multiple \u notation test') do
+  assert_equal("ABC", "\u{41 42 43}")
+end
