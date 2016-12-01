@@ -14,14 +14,11 @@
  */
 MRB_BEGIN_DECL
 
-typedef struct mrb_range_edges {
-  mrb_value beg;
-  mrb_value end;
-} mrb_range_edges;
 
 struct RRange {
   MRB_OBJECT_HEADER;
-  mrb_range_edges *edges;
+  mrb_value beg;
+  mrb_value end;
   mrb_bool excl : 1;
 };
 
