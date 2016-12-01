@@ -3752,6 +3752,44 @@ scan_hex(const int *start, int len, int *retlen)
   return retval;
 }
 
+static int32_t
+read_escape_unicode(parser_state *p, size_t limit)
+{
+  int32_t c;
+  int buf[9];
+  int i;
+
+  /* Look for opening brace */
+  i = 0;
+  buf[0] = nextc(p);
+  if (buf[0] < 0) goto eof;
+  if (ISXDIGIT(buf[0])) {
+    /* \uxxxx form */
+    for (i=1; i<limit; i++) {
+      buf[i] = nextc(p);
+      if (buf[i] < 0) goto eof;
+      if (!ISXDIGIT(buf[i])) {
+        pushback(p, buf[i]);
+        break;
+      }
+    }
+  }
+  else {
+    pushback(p, buf[0]);
+  }
+  c = scan_hex(buf, i, &i);
+  if (i == 0) {
+  eof:
+    yyerror(p, "Invalid escape character syntax");
+    return -1;
+  }
+  if (c < 0 || c > 0x10FFFF || (c & 0xFFFFF800) == 0xD800) {
+    yyerror(p, "Invalid Unicode code point");
+    return -1;
+  }
+  return c;
+}
+
 /* Return negative to indicate Unicode code point */
 static int32_t
 read_escape(parser_state *p)
@@ -3824,53 +3862,17 @@ read_escape(parser_state *p)
   return c;
 
   case 'u':     /* Unicode */
-  {
-    int buf[9];
-    int i;
-
-    /* Look for opening brace */
-    i = 0;
-    buf[0] = nextc(p);
-    if (buf[0] < 0) goto eof;
-    if (buf[0] == '{') {
+    if (peek(p, '{')) {
       /* \u{xxxxxxxx} form */
-      for (i=0; i<9; i++) {
-        buf[i] = nextc(p);
-        if (buf[i] < 0) goto eof;
-        if (buf[i] == '}') {
-          break;
-        }
-        else if (!ISXDIGIT(buf[i])) {
-          yyerror(p, "Invalid escape character syntax");
-          pushback(p, buf[i]);
-          return 0;
-        }
-      }
-    }
-    else if (ISXDIGIT(buf[0])) {
-      /* \uxxxx form */
-      for (i=1; i<4; i++) {
-        buf[i] = nextc(p);
-        if (buf[i] < 0) goto eof;
-        if (!ISXDIGIT(buf[i])) {
-          pushback(p, buf[i]);
-          break;
-        }
-      }
+      nextc(p);
+      c = read_escape_unicode(p, 8);
+      if (c < 0) return 0;
+      if (nextc(p) != '}') goto eof;
     }
     else {
-      pushback(p, buf[0]);
+      c = read_escape_unicode(p, 4);
+      if (c < 0) return 0;
     }
-    c = scan_hex(buf, i, &i);
-    if (i == 0) {
-      yyerror(p, "Invalid escape character syntax");
-      return 0;
-    }
-    if (c < 0 || c > 0x10FFFF || (c & 0xFFFFF800) == 0xD800) {
-      yyerror(p, "Invalid Unicode code point");
-      return 0;
-    }
-  }
   return -c;
 
   case 'b':/* backspace */
