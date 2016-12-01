@@ -516,6 +516,7 @@ class Enumerator
 
   # just for internal
   class Generator
+    include Enumerable
     def initialize(&block)
       raise TypeError, "wrong argument type #{self.class} (expected Proc)" unless block.kind_of? Proc
 
