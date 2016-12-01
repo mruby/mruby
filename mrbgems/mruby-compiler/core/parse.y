@@ -3753,7 +3753,7 @@ scan_hex(const int *start, int len, int *retlen)
 }
 
 static int32_t
-read_escape_unicode(parser_state *p, size_t limit)
+read_escape_unicode(parser_state *p, int limit)
 {
   int32_t c;
   int buf[9];
