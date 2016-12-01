@@ -162,9 +162,9 @@ class Enumerator
     end
 
     n = offset - 1
-    enumerator_block_call do |i|
+    enumerator_block_call do |*i|
       n += 1
-      yield [i,n]
+      yield i.__svalue, n
     end
   end
 
