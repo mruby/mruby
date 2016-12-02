@@ -63,3 +63,13 @@ assert('splat in case splat') do
 
   assert_equal [1], a
 end
+
+assert('negate literal register alignment') do
+  a = *case
+  when 0
+    -0.0
+    2
+  end
+
+  assert_equal [2], a
+end
