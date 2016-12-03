@@ -22,7 +22,7 @@ assert('NoMethodError#args', '15.2.32.2.1') do
 end
 
 assert('Can still raise when BasicObject#method_missing is removed') do
-  assert_raise(TypeError) do
+  assert_raise(NoMethodError) do
     begin
       BasicObject.alias_method(:old_method_missing, :method_missing)
       BasicObject.remove_method(:method_missing)
@@ -35,7 +35,7 @@ assert('Can still raise when BasicObject#method_missing is removed') do
 end
 
 assert('Can still call super when BasicObject#method_missing is removed') do
-  assert_raise(TypeError) do
+  assert_raise(NoMethodError) do
     class A
       def foo
         super
