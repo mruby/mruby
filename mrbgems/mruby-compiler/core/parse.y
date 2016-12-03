@@ -871,6 +871,7 @@ call_with_block(parser_state *p, node *a, node *b)
     break;
   case NODE_CALL:
   case NODE_FCALL:
+  case NODE_SCALL:
     n = a->cdr->cdr->cdr;
     if (!n->car) n->car = cons(0, b);
     else {
