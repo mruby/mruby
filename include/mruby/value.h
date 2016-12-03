@@ -62,12 +62,12 @@ struct mrb_state;
 # define MRB_PRIx PRIx32
 #endif
 
+
+MRB_API double mrb_float_read(const char*, char**);
 #ifdef MRB_USE_FLOAT
   typedef float mrb_float;
-# define str_to_mrb_float(buf) strtof(buf, NULL)
 #else
   typedef double mrb_float;
-# define str_to_mrb_float(buf) strtod(buf, NULL)
 #endif
 
 #if defined _MSC_VER && _MSC_VER < 1900
@@ -85,7 +85,6 @@ MRB_API int mrb_msvc_snprintf(char *s, size_t n, const char *format, ...);
 #  define isnan _isnan
 #  define isinf(n) (!_finite(n) && !_isnan(n))
 #  define signbit(n) (_copysign(1.0, (n)) < 0.0)
-#  define strtof (float)strtod
 static const unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
 #  define INFINITY (*(float *)&IEEE754_INFINITY_BITS_SINGLE)
 #  define NAN ((float)(INFINITY - INFINITY))

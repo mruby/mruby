@@ -4912,7 +4912,7 @@ parser_yylex(parser_state *p)
       char *endp;
 
       errno = 0;
-      d = strtod(tok(p), &endp);
+      d = mrb_float_read(tok(p), &endp);
       if (d == 0 && endp == tok(p)) {
         yywarning_s(p, "corrupted float value %s", tok(p));
       }
