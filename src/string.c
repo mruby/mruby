@@ -2796,7 +2796,7 @@ static const double powersOf10[] = {/* Table giving binary powers of 10.  Entry 
     1.0e256
 };
 
-double
+MRB_API double
 mrb_float_read(const char *string, char **endPtr)
 /*  const char *string;		   A decimal ASCII floating-point number,
 				 * optionally preceded by white space.
