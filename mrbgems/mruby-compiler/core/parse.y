@@ -6067,7 +6067,17 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_FCALL:
   case NODE_CALL:
-    printf("NODE_CALL:\n");
+  case NODE_SCALL:
+    switch (nodetype) {
+    case NODE_FCALL:
+      printf("NODE_FCALL:\n"); break;
+    case NODE_CALL:
+      printf("NODE_CALL(.):\n"); break;
+    case NODE_SCALL:
+      printf("NODE_SCALL(&.):\n"); break;
+    default:
+      break;
+    }
     mrb_parser_dump(mrb, tree->car, offset+1);
     dump_prefix(tree, offset+1);
     printf("method='%s' (%d)\n",
