@@ -1817,7 +1817,7 @@ mrb_mod_undef(mrb_state *mrb, mrb_value mod)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   while (argc--) {
-    undef_method(mrb, c, mrb_symbol(*argv));
+    undef_method(mrb, c, to_sym(mrb, *argv));
     argv++;
   }
   return mrb_nil_value();
