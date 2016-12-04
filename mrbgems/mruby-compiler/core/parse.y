@@ -1918,7 +1918,7 @@ aref_args       : none
                       $$ = $1;
                       NODE_LINENO($$, $1);
                     }
-                | args ',' assocs trailer
+                | args comma assocs trailer
                     {
                       $$ = push($1, new_hash(p, $3));
                     }
@@ -1958,7 +1958,7 @@ opt_call_args   : none
                       $$ = cons($1,0);
                       NODE_LINENO($$, $1);
                     }
-                | args ',' assocs ','
+                | args comma assocs ','
                     {
                       $$ = cons(push($1, new_hash(p, $3)), 0);
                       NODE_LINENO($$, $1);
@@ -1985,7 +1985,7 @@ call_args       : command
                       $$ = cons(list1(new_hash(p, $1)), $2);
                       NODE_LINENO($$, $1);
                     }
-                | args ',' assocs opt_block_arg
+                | args comma assocs opt_block_arg
                     {
                       $$ = cons(push($1, new_hash(p, $3)), $4);
                       NODE_LINENO($$, $1);
@@ -2014,7 +2014,7 @@ block_arg       : tAMPER arg
                     }
                 ;
 
-opt_block_arg   : ',' block_arg
+opt_block_arg   : comma block_arg
                     {
                       $$ = $2;
                     }
@@ -2022,6 +2022,10 @@ opt_block_arg   : ',' block_arg
                     {
                       $$ = 0;
                     }
+                ;
+
+comma           : ','
+                | ','  heredoc_bodies
                 ;
 
 args            : arg
@@ -2036,34 +2040,24 @@ args            : arg
                       $$ = cons(new_splat(p, $2), 0);
                       NODE_LINENO($$, $2);
                     }
-                | args ',' arg
+                | args comma arg
                     {
                       void_expr_error(p, $3);
                       $$ = push($1, $3);
                     }
-                | args ',' tSTAR arg
+                | args comma tSTAR arg
                     {
                       void_expr_error(p, $4);
                       $$ = push($1, new_splat(p, $4));
                     }
-                | args ',' heredoc_bodies arg
-                    {
-                      void_expr_error(p, $4);
-                      $$ = push($1, $4);
-                    }
-                | args ',' heredoc_bodies tSTAR arg
-                    {
-                      void_expr_error(p, $5);
-                      $$ = push($1, new_splat(p, $5));
-                    }
                 ;
 
-mrhs            : args ',' arg
+mrhs            : args comma arg
                     {
                       void_expr_error(p, $3);
                       $$ = push($1, $3);
                     }
-                | args ',' tSTAR arg
+                | args comma tSTAR arg
                     {
                       void_expr_error(p, $4);
                       $$ = push($1, new_splat(p, $4));
@@ -2787,10 +2781,6 @@ regexp          : tREGEXP_BEG tREGEXP
 heredoc         : tHEREDOC_BEG
                 ;
 
-opt_heredoc_bodies : /* none */
-                   | heredoc_bodies
-                   ;
-
 heredoc_bodies  : heredoc_body
                 | heredoc_bodies heredoc_body
                 ;
@@ -3312,11 +3302,12 @@ rbracket        : opt_nl ']'
 
 trailer         : /* none */
                 | nl
-                | ','
+                | comma
                 ;
 
 term            : ';' {yyerrok;}
                 | nl
+                | heredoc_body
                 ;
 
 nl              : '\n'
@@ -3324,10 +3315,10 @@ nl              : '\n'
                       p->lineno++;
                       p->column = 0;
                     }
-                  opt_heredoc_bodies
+                ;
 
 terms           : term
-                | terms ';' {yyerrok;}
+                | terms term
                 ;
 
 none            : /* none */
