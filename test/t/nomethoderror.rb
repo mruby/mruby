@@ -51,3 +51,21 @@ assert('Can still call super when BasicObject#method_missing is removed') do
     end
   end
 end
+
+assert("NoMethodError#new does not return an exception") do
+  begin
+    class << NoMethodError
+      def new(*)
+        nil
+      end
+    end
+
+    assert_raise(TypeError) do
+      Object.q
+    end
+  ensure
+    class << NoMethodError
+      remove_method :new
+    end
+  end
+end

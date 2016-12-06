@@ -278,8 +278,6 @@ mrb_exc_set(mrb_state *mrb, mrb_value exc)
     mrb->exc = 0;
   }
   else {
-    if (!mrb_obj_is_kind_of(mrb, exc, mrb->eException_class))
-      mrb_raise(mrb, E_TYPE_ERROR, "exception object expected");
     mrb->exc = mrb_obj_ptr(exc);
   }
 }
@@ -287,6 +285,9 @@ mrb_exc_set(mrb_state *mrb, mrb_value exc)
 MRB_API mrb_noreturn void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
+  if (!mrb_obj_is_kind_of(mrb, exc, mrb->eException_class)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "exception object expected");
+  }
   mrb_exc_set(mrb, exc);
   if (!mrb->gc.out_of_memory) {
     exc_debug_info(mrb, mrb->exc);
