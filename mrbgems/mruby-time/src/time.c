@@ -183,7 +183,7 @@ static const struct mrb_data_type mrb_time_type = { "Time", mrb_free };
 /** Updates the datetime of a mrb_time based on it's timezone and
 seconds setting. Returns self on success, NULL of failure. */
 static struct mrb_time*
-mrb_time_update_datetime(struct mrb_time *self)
+time_update_datetime(mrb_state *mrb, struct mrb_time *self)
 {
   struct tm *aid;
 
@@ -193,7 +193,11 @@ mrb_time_update_datetime(struct mrb_time *self)
   else {
     aid = localtime_r(&self->sec, &self->datetime);
   }
-  if (!aid) return NULL;
+  if (!aid) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "%S out of Time range", mrb_float_value(mrb, self->sec));
+    /* not reached */
+    return NULL;
+  }
 #ifdef NO_GMTIME_R
   self->datetime = *aid; /* copy data */
 #endif
@@ -238,7 +242,7 @@ time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
     tm->usec -= 1000000;
   }
   tm->timezone = timezone;
-  mrb_time_update_datetime(tm);
+  time_update_datetime(mrb, tm);
 
   return tm;
 }
@@ -290,7 +294,7 @@ current_mrb_time(mrb_state *mrb)
   }
 #endif
   tm->timezone = MRB_TIMEZONE_LOCAL;
-  mrb_time_update_datetime(tm);
+  time_update_datetime(mrb, tm);
 
   return tm;
 }
@@ -556,7 +560,7 @@ mrb_time_getutc(mrb_state *mrb, mrb_value self)
   tm2 = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
   *tm2 = *tm;
   tm2->timezone = MRB_TIMEZONE_UTC;
-  mrb_time_update_datetime(tm2);
+  time_update_datetime(mrb, tm2);
   return mrb_time_wrap(mrb, mrb_obj_class(mrb, self), tm2);
 }
 
@@ -571,7 +575,7 @@ mrb_time_getlocal(mrb_state *mrb, mrb_value self)
   tm2 = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
   *tm2 = *tm;
   tm2->timezone = MRB_TIMEZONE_LOCAL;
-  mrb_time_update_datetime(tm2);
+  time_update_datetime(mrb, tm2);
   return mrb_time_wrap(mrb, mrb_obj_class(mrb, self), tm2);
 }
 
@@ -649,7 +653,7 @@ mrb_time_localtime(mrb_state *mrb, mrb_value self)
 
   tm = time_get_ptr(mrb, self);
   tm->timezone = MRB_TIMEZONE_LOCAL;
-  mrb_time_update_datetime(tm);
+  time_update_datetime(mrb, tm);
   return self;
 }
 
@@ -746,7 +750,7 @@ mrb_time_utc(mrb_state *mrb, mrb_value self)
 
   tm = time_get_ptr(mrb, self);
   tm->timezone = MRB_TIMEZONE_UTC;
-  mrb_time_update_datetime(tm);
+  time_update_datetime(mrb, tm);
   return self;
 }
 
