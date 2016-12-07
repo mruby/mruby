@@ -2750,7 +2750,7 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "freeze",          mrb_str_freeze,          MRB_ARGS_NONE());
 }
 
-/* 
+/*
  *	Source code for the "strtod" library procedure.
  *
  * Copyright (c) 1988-1993 The Regents of the University of California.
@@ -2769,7 +2769,6 @@ mrb_init_string(mrb_state *mrb)
 
 #include <ctype.h>
 #include <errno.h>
-extern  int     errno;
 
 #ifndef __STDC__
 # ifdef __GNUC__
@@ -2876,7 +2875,7 @@ mrb_float_read(const char *string, char **endPtr)
      * If the mantissa has more than 18 digits, ignore the extras, since
      * they can't affect the value anyway.
      */
-    
+
     pExp  = p;
     p -= mantSize;
     if (decPt < 0) {
@@ -2954,7 +2953,7 @@ mrb_float_read(const char *string, char **endPtr)
      * many powers of 2 of 10. Then combine the exponent with the
      * fraction.
      */
-    
+
     if (exp < 0) {
 	expSign = TRUE;
 	exp = -exp;
