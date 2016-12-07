@@ -9,7 +9,7 @@ MRuby.each_target do
   }.compact
 
   if cxx_abi_enabled?
-    objs += %w(vm error).map { |v| compile_as_cxx "#{current_dir}/#{v}.c", "#{current_build_dir}/#{v}.cxx" }
+    objs += %w(vm error string).map { |v| compile_as_cxx "#{current_dir}/#{v}.c", "#{current_build_dir}/#{v}.cxx" }
   end
   self.libmruby << objs
 
