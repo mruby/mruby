@@ -31,6 +31,34 @@ assert '$0 value' do
   assert_equal '"-e"', `#{cmd('mruby')} -e #{shellquote('p $0')}`.chomp
 end
 
+assert 'Fixnum override' do
+  script, bin = Tempfile.new('test.rb'), Tempfile.new('test.mrb')
+
+  script.write "class Fixnum\ndef *(other)\n\"<\#{self}:\#{other}>\"\nend\nend\nprint(12 * \"test\")\n"
+  script.flush
+
+  `#{cmd('mruby')} "#{script.path}"`
+  `#{cmd('mrbc')} -o "#{bin.path}" "#{script.path}"`
+
+  o = `#{cmd('mruby')} -b #{bin.path}`.strip
+
+  assert_equal o, "<12:test>"
+end
+
+assert 'Float override' do
+  script, bin = Tempfile.new('test.rb'), Tempfile.new('test.mrb')
+
+  script.write "class Float\ndef *(other)\n\"<\#{self}:\#{other}>\"\nend\nend\nprint(42.5 * \"test\")\n"
+  script.flush
+
+  `#{cmd('mruby')} "#{script.path}"`
+  `#{cmd('mrbc')} -o "#{bin.path}" "#{script.path}"`
+
+  o = `#{cmd('mruby')} -b #{bin.path}`.strip
+
+  assert_equal o, "<42.5:test>"
+end
+
 assert '__END__', '8.6' do
   script = Tempfile.new('test.rb')
 
