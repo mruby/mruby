@@ -44,6 +44,10 @@ assert('Hash#dup') do
   b = a.dup
   a['a'] = 2
   assert_equal({'a' => 1}, b)
+
+  c = Hash.new { |h, k| h[k] = k.upcase }
+  d = c.dup
+  assert_equal("FOO", d["foo"])
 end
 
 assert('Hash#default', '15.2.13.4.5') do
