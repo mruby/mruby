@@ -14,7 +14,7 @@
 #include <mruby/numeric.h>
 #include <mruby/string.h>
 #include <mruby/class.h>
-#include "methods.h"
+#include "numeric_methods.h"
 
 #ifdef MRB_USE_FLOAT
 #define trunc(f) truncf(f)

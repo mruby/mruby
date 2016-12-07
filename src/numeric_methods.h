@@ -1,5 +1,5 @@
 /*
-** methods.h - defines for method override flags
+** numeric_methods.h - defines for method override flags
 **
 ** See Copyright Notice in mruby.h
 */

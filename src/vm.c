@@ -21,7 +21,7 @@
 #include <mruby/opcode.h>
 #include "value_array.h"
 #include <mruby/throw.h>
-#include "methods.h"
+#include "numeric_methods.h"
 
 #ifdef MRB_DISABLE_STDIO
 #if defined(__cplusplus)
