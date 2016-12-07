@@ -225,6 +225,7 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
   struct RHash* ret;
   khash_t(ht) *h, *ret_h;
   khiter_t k, ret_k;
+  mrb_value ifnone, vret;
 
   h = RHASH_TBL(hash);
   ret = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
@@ -243,7 +244,18 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
     }
   }
 
-  return mrb_obj_value(ret);
+  if (MRB_RHASH_DEFAULT_P(hash)) {
+    ret->flags |= MRB_HASH_DEFAULT;
+  }
+  if (MRB_RHASH_PROCDEFAULT_P(hash)) {
+    ret->flags |= MRB_HASH_PROC_DEFAULT;
+  }
+  vret = mrb_obj_value(ret);
+  ifnone = RHASH_IFNONE(hash);
+  if (!mrb_nil_p(ifnone)) {
+      mrb_iv_set(mrb, vret, mrb_intern_lit(mrb, "ifnone"), ifnone);
+  }
+  return vret;
 }
 
 MRB_API mrb_value
