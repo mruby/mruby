@@ -2769,9 +2769,6 @@ mrb_init_string(mrb_state *mrb)
 
 #include <ctype.h>
 #include <errno.h>
-#ifndef errno
-extern  int     errno;
-#endif
 
 #ifndef __STDC__
 # ifdef __GNUC__
