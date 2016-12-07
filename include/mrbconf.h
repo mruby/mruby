@@ -7,10 +7,13 @@
 #ifndef MRUBYCONF_H
 #define MRUBYCONF_H
 
+#include <limits.h>
+#include <stdint.h>
+
 /* architecture selection: */
 /* specify -DMRB_32BIT or -DMRB_64BIT to override */
 #if !defined(MRB_32BIT) && !defined(MRB_64BIT)
-#if defined(__amd64__) || defined(__amd64) || defined(__x86_64__) || defined(__x86_64) || defined(_M_X64) || defined(_M_AMD64) || defined(__aarch64__)
+#if UINT64_MAX == SIZE_MAX
 #define MRB_64BIT
 #else
 #define MRB_32BIT
