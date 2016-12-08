@@ -2773,7 +2773,7 @@ mrb_init_string(mrb_state *mrb)
 #ifndef __STDC__
 # ifdef __GNUC__
 #  define const __const__
-# else
+# elif !defined(_MSC_VER)
 #  define const
 # endif
 #endif
