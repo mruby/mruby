@@ -1004,15 +1004,16 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
             p->as.free.next = page->freelist;
             page->freelist = (struct RBasic*)p;
             freed++;
-          } else {
-            dead_slot = 0;
+          }
+          else {
+            dead_slot = FALSE;
           }
         }
       }
       else {
         if (!is_generational(gc))
           paint_partial_white(gc, &p->as.basic); /* next gc target */
-        dead_slot = 0;
+        dead_slot = FALSE;
       }
       p++;
     }
