@@ -2221,6 +2221,10 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       nt = (intptr_t)tree->car;
       tree = tree->cdr;
+      if (!val) {
+        codegen(s, tree, NOVAL);
+        break;
+      }
       switch (nt) {
       case NODE_FLOAT:
         {
