@@ -108,7 +108,7 @@ ary_fill_with_nil(mrb_value *ptr, mrb_int size)
 static void
 ary_modify(mrb_state *mrb, struct RArray *a)
 {
-  if (RBASIC_FROZEN_P(a)) {
+  if (MRB_FROZEN_P(a)) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen array");
   }
 

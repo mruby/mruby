@@ -455,7 +455,7 @@ mrb_obj_freeze(mrb_state *mrb, mrb_value self)
 {
   struct RBasic *b = mrb_basic_ptr(self);
 
-  RBASIC_SET_FROZEN_FLAG(b);
+  MRB_SET_FROZEN_FLAG(b);
   return self;
 }
 

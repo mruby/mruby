@@ -501,7 +501,7 @@ str_index(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int offset)
 static void
 check_frozen(mrb_state *mrb, struct RString *s)
 {
-  if (RBASIC_FROZEN_P(s)) {
+  if (MRB_FROZEN_P(s)) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen string");
   }
 }
@@ -2208,7 +2208,7 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
   char *p = RSTR_PTR(ps);
 
   if (!p || p[len] != '\0') {
-    if (RBASIC_FROZEN_P(ps)) {
+    if (MRB_FROZEN_P(ps)) {
       *ptr = str = mrb_str_dup(mrb, str);
       ps = mrb_str_ptr(str);
     }
