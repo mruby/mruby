@@ -492,14 +492,14 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
   const char *cp, *sptr;
   long copylen;
 
-  sptr = src;
+  sptr = (const char *)src;
   if (count != -1 && count < slen)  {
     slen = count;
   }
   copylen = slen;
 
   if (flags & PACK_FLAG_Z) {  /* "Z" */
-    if ((cp = memchr(sptr, '\0', slen)) != NULL) {
+    if ((cp = (const char *)memchr(sptr, '\0', slen)) != NULL) {
       copylen = cp - sptr;
       if (count == -1) {
         slen = copylen + 1;
@@ -578,7 +578,7 @@ unpack_h(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, un
     bshift = 0;
   }
 
-  sptr = src;
+  sptr = (const char *)src;
 
   if (count == -1)
     count = slen * 2;
@@ -686,7 +686,7 @@ unpack_m(mrb_state *mrb, const void *src, int slen, mrb_value ary, unsigned int 
   const char *sptr, *sptr0;
   char *dptr, *dptr0;
 
-  sptr0 = sptr = src;
+  sptr0 = sptr = (const char *)src;
 
   dlen = slen / 4 * 3;  /* an estimated value - may be shorter */
   dst = mrb_str_new(mrb, NULL, dlen);
