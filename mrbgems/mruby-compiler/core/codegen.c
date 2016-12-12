@@ -537,7 +537,8 @@ new_sym(codegen_scope *s, mrb_sym sym)
   if (s->irep->slen == MAXSYMLEN) {
     codegen_error(s, "too many symbols (max " MRB_STRINGIZE(MAXSYMLEN) ")");
   }
-  if (s->scapa == MAXMSYMLEN) {
+
+  if (s->irep->slen > MAXMSYMLEN/2 && s->scapa == MAXMSYMLEN) {
     s->scapa = MAXSYMLEN;
     s->irep->syms = (mrb_sym *)codegen_realloc(s, s->irep->syms, sizeof(mrb_sym)*MAXSYMLEN);
     for (i = s->irep->slen; i < MAXMSYMLEN; i++) {
