@@ -1589,7 +1589,9 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
       name = mrb_sym2name_len(mrb, sym, &len);
       path = mrb_str_new(mrb, name, len);
     }
-    mrb_obj_iv_set(mrb, (struct RObject*)c, classpath, path);
+    if (!MRB_FROZEN_P(c)) {
+      mrb_obj_iv_set(mrb, (struct RObject*)c, classpath, path);
+    }
   }
   return mrb_str_dup(mrb, path);
 }
