@@ -162,11 +162,11 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
   total = RSTR_LEN(s)+len;
   if (capa <= total) {
     while (total > capa) {
-      if (capa + 1 >= MRB_INT_MAX / 2) {
-        capa = (total + 4095) / 4096;
-        break;
+      if (capa <= MRB_INT_MAX / 2) {
+        capa *= 2;
+      } else {
+        capa = MRB_INT_MAX;
       }
-      capa = (capa + 1) * 2;
     }
     resize_capa(mrb, s, capa);
   }
