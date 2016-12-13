@@ -3430,6 +3430,7 @@ void_expr_error(parser_state *p, node *n)
 {
   int c;
 
+  if (n == NULL) return;
   c = (int)(intptr_t)n->car;
   switch (c) {
   case NODE_BREAK:
