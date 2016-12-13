@@ -118,8 +118,8 @@ mrb_str_buf_new(mrb_state *mrb, size_t capa)
   return mrb_obj_value(s);
 }
 
-static inline void
-resize_capa(mrb_state *mrb, struct RString *s, mrb_int capacity)
+static void
+resize_capa(mrb_state *mrb, struct RString *s, size_t capacity)
 {
   if (RSTR_EMBED_P(s)) {
     if (RSTRING_EMBED_LEN_MAX < capacity) {
@@ -133,6 +133,9 @@ resize_capa(mrb_state *mrb, struct RString *s, mrb_int capacity)
     }
   }
   else {
+#if SIZE_MAX > MRB_INT_MAX
+    mrb_assert(capacity <= MRB_INT_MAX);
+#endif
     s->as.heap.ptr = (char *)mrb_realloc(mrb, RSTR_PTR(s), capacity+1);
     s->as.heap.aux.capa = capacity;
   }
