@@ -156,14 +156,14 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
   else
     capa = s->as.heap.aux.capa;
 
-  if (RSTR_LEN(s) >= MRB_INT_MAX - (mrb_int)len) {
+  total = RSTR_LEN(s)+len;
+  if (total >= MRB_INT_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
-  total = RSTR_LEN(s)+len;
   if (capa <= total) {
     while (total > capa) {
       if (capa + 1 >= MRB_INT_MAX / 2) {
-        capa = (total + 4095) / 4096;
+        capa = MRB_INT_MAX;
         break;
       }
       capa = (capa + 1) * 2;
