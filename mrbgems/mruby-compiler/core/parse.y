@@ -4130,7 +4130,6 @@ parse_string(parser_state *p)
   yylval.nd = new_str(p, tok(p), toklen(p));
   if (IS_LABEL_POSSIBLE()) {
     if (IS_LABEL_SUFFIX(0)) {
-      fprintf(stderr, "tLABEL_END: %d->%d\n", p->lstate, EXPR_BEG);
       p->lstate = EXPR_BEG;
       nextc(p);
       return tLABEL_END;
