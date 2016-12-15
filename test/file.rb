@@ -146,3 +146,12 @@ assert('File.symlink') do
     end
   end
 end
+
+assert('File.chmod') do
+  File.open('chmod-test', 'w') {}
+  begin
+    assert_equal 1, File.chmod(0400, 'chmod-test')
+  ensure
+    File.delete('chmod-test')
+  end
+end
