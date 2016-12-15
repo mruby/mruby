@@ -48,7 +48,7 @@ struct mrb_dir {
 void
 mrb_dir_free(mrb_state *mrb, void *ptr)
 {
-  struct mrb_dir *mdir = ptr;
+  struct mrb_dir *mdir = (struct mrb_dir *)ptr;
 
   if (mdir->dir) {
     closedir(mdir->dir);
