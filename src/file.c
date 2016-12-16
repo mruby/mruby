@@ -334,6 +334,25 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(0);
 }
 
+static mrb_value
+mrb_file_s_chmod(mrb_state *mrb, mrb_value klass) {
+  mrb_int mode;
+  mrb_int argc, i;
+  mrb_value *filenames;
+  int ai = mrb_gc_arena_save(mrb);
+
+  mrb_get_args(mrb, "i*", &mode, &filenames, &argc);
+  for (i = 0; i < argc; i++) {
+    char *path = mrb_str_to_cstr(mrb, filenames[i]);
+    if (CHMOD(path, mode) == -1) {
+      mrb_sys_fail(mrb, path);
+    }
+  }
+
+  mrb_gc_arena_restore(mrb, ai);
+  return mrb_fixnum_value(argc);
+}
+
 void
 mrb_init_file(mrb_state *mrb)
 {
@@ -347,6 +366,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "unlink", mrb_file_s_unlink, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, file, "rename", mrb_file_s_rename, MRB_ARGS_REQ(2));
   mrb_define_class_method(mrb, file, "symlink", mrb_file_s_symlink, MRB_ARGS_REQ(2));
+  mrb_define_class_method(mrb, file, "chmod", mrb_file_s_chmod, MRB_ARGS_REQ(1) | MRB_ARGS_REST());
 
   mrb_define_class_method(mrb, file, "dirname",   mrb_file_dirname,    MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, file, "basename",  mrb_file_basename,   MRB_ARGS_REQ(1));

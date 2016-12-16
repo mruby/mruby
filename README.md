@@ -106,7 +106,7 @@ Add the line below to your `build_config.rb`:
 | File.basename               |   o      |      |
 | File.blockdev?              |          | FileTest |
 | File.chardev?               |          | FileTest |
-| File.chmod                  |          |      |
+| File.chmod                  |   o      |      |
 | File.chown                  |          |      |
 | File.ctime                  |          |      |
 | File.delete, File.unlink    |   o      |      |
