@@ -353,6 +353,36 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass) {
   return mrb_fixnum_value(argc);
 }
 
+static mrb_value
+mrb_file_s_readlink(mrb_state *mrb, mrb_value klass) {
+#if defined(_WIN32) || defined(_WIN64)
+  mrb_raise(mrb, E_NOTIMP_ERROR, "readlink is not supported on this platform");
+  return mrb_nil_value(); // unreachable
+#else
+  char *path, *buf;
+  size_t bufsize = 100;
+  ssize_t rc;
+  mrb_value ret;
+  int ai = mrb_gc_arena_save(mrb);
+
+  mrb_get_args(mrb, "z", &path);
+
+  buf = mrb_malloc(mrb, bufsize);
+  while ((rc = readlink(path, buf, bufsize)) == bufsize && rc != -1) {
+    bufsize *= 2;
+    buf = mrb_realloc(mrb, buf, bufsize);
+  }
+  if (rc == -1) {
+    mrb_sys_fail(mrb, path);
+  }
+  ret = mrb_str_new(mrb, buf, rc);
+  mrb_free(mrb, buf);
+
+  mrb_gc_arena_restore(mrb, ai);
+  return ret;
+#endif
+}
+
 void
 mrb_init_file(mrb_state *mrb)
 {
@@ -367,6 +397,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "rename", mrb_file_s_rename, MRB_ARGS_REQ(2));
   mrb_define_class_method(mrb, file, "symlink", mrb_file_s_symlink, MRB_ARGS_REQ(2));
   mrb_define_class_method(mrb, file, "chmod", mrb_file_s_chmod, MRB_ARGS_REQ(1) | MRB_ARGS_REST());
+  mrb_define_class_method(mrb, file, "readlink", mrb_file_s_readlink, MRB_ARGS_REQ(1));
 
   mrb_define_class_method(mrb, file, "dirname",   mrb_file_dirname,    MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, file, "basename",  mrb_file_basename,   MRB_ARGS_REQ(1));

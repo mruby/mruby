@@ -134,7 +134,7 @@ Add the line below to your `build_config.rb`:
 | File.pipe?                  |   o      | FileTest |
 | File.readable?              |          | FileTest |
 | File.readable_real?         |          | FileTest |
-| File.readlink               |          |      |
+| File.readlink               |   o      |      |
 | File.realdirpath            |          |      |
 | File.realpath               |   o      |      |
 | File.rename                 |   o      |      |
