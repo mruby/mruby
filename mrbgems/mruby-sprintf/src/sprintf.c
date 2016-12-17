@@ -720,10 +720,10 @@ retry:
           CHECK(n);
           memcpy(buf+blen, c, n);
           blen += n;
-          FILL(' ', width-1);
+          if (width>0) FILL(' ', width-1);
         }
         else {
-          FILL(' ', width-1);
+          if (width>0) FILL(' ', width-1);
           CHECK(n);
           memcpy(buf+blen, c, n);
           blen += n;
