@@ -373,6 +373,7 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass) {
     buf = mrb_realloc(mrb, buf, bufsize);
   }
   if (rc == -1) {
+    mrb_free(mrb, buf);
     mrb_sys_fail(mrb, path);
   }
   ret = mrb_str_new(mrb, buf, rc);
