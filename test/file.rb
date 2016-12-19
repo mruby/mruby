@@ -91,6 +91,22 @@ assert('File.realpath') do
   end
 end
 
+assert("File.readlink") do
+  begin
+    assert_equal 'hoge', File.readlink($mrbtest_io_symlinkname)
+  rescue NotImplementedError => e
+    skip e.message
+  end
+end
+
+assert("File.readlink fails with non-symlink") do
+  begin
+    assert_raise(RuntimeError) { File.readlink($mrbtest_io_rfname) }
+  rescue NotImplementedError => e
+    skip e.message
+  end
+end
+
 assert('File TEST CLEANUP') do
   assert_nil MRubyIOTestUtil.io_test_cleanup
 end
