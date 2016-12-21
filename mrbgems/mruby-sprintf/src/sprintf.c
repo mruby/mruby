@@ -155,7 +155,8 @@ static void
 check_pos_arg(mrb_state *mrb, int posarg, int n)
 {
   if (posarg > 0) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%S) after unnumbered(%S)", mrb_fixnum_value(n));
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%S) after unnumbered(%S)",
+               mrb_fixnum_value(n), mrb_fixnum_value(posarg));
   }
   if (posarg == -2) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%S) after named", mrb_fixnum_value(n));
