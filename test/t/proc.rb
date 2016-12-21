@@ -136,6 +136,18 @@ assert('Proc#return_does_not_break_self') do
   assert_equal c, c.block.call
 end
 
+assert('call Proc#initialize if defined') do
+  a = []
+  c = Class.new(Proc) do
+    define_method(:initialize) do
+      a << :ok
+    end
+  end
+
+  assert_kind_of c, c.new{}
+  assert_equal [:ok], a
+end
+
 assert('&obj call to_proc if defined') do
   pr = Proc.new{}
   def mock(&b)

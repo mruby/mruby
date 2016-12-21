@@ -151,6 +151,7 @@ static mrb_value
 mrb_proc_s_new(mrb_state *mrb, mrb_value proc_class)
 {
   mrb_value blk;
+  mrb_value proc;
   struct RProc *p;
 
   mrb_get_args(mrb, "&", &blk);
@@ -160,7 +161,9 @@ mrb_proc_s_new(mrb_state *mrb, mrb_value proc_class)
   }
   p = (struct RProc *)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb_class_ptr(proc_class));
   mrb_proc_copy(p, mrb_proc_ptr(blk));
-  return mrb_obj_value(p);
+  proc = mrb_obj_value(p);
+  mrb_funcall_with_block(mrb, proc, mrb_intern_lit(mrb, "initialize"), 0, NULL, blk);
+  return proc;
 }
 
 static mrb_value
