@@ -756,6 +756,9 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
   s2 = mrb_str_ptr(other);
   len = RSTR_LEN(s1) + RSTR_LEN(s2);
 
+  if (len < 0 || len >= MRB_INT_MAX) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
+  }
   if (RSTRING_CAPA(self) < len) {
     resize_capa(mrb, s1, len);
   }
