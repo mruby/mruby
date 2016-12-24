@@ -453,9 +453,23 @@ mrb_obj_extend_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_freeze(mrb_state *mrb, mrb_value self)
 {
-  struct RBasic *b = mrb_basic_ptr(self);
+  struct RBasic *b;
 
-  MRB_SET_FROZEN_FLAG(b);
+  switch (mrb_type(self)) {
+    case MRB_TT_FALSE:
+    case MRB_TT_TRUE:
+    case MRB_TT_FIXNUM:
+    case MRB_TT_SYMBOL:
+    case MRB_TT_FLOAT:
+      return self;
+    default:
+      break;
+  }
+
+  b = mrb_basic_ptr(self);
+  if (!MRB_FROZEN_P(b)) {
+    MRB_SET_FROZEN_FLAG(b);
+  }
   return self;
 }
 
