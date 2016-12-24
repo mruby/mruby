@@ -367,10 +367,10 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass) {
 
   mrb_get_args(mrb, "z", &path);
 
-  buf = mrb_malloc(mrb, bufsize);
+  buf = (char *)mrb_malloc(mrb, bufsize);
   while ((rc = readlink(path, buf, bufsize)) == bufsize && rc != -1) {
     bufsize *= 2;
-    buf = mrb_realloc(mrb, buf, bufsize);
+    buf = (char *)mrb_realloc(mrb, buf, bufsize);
   }
   if (rc == -1) {
     mrb_free(mrb, buf);
