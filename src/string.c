@@ -754,6 +754,9 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
     other = mrb_str_to_str(mrb, other);
   }
   s2 = mrb_str_ptr(other);
+  if (RSTR_LEN(s2) == 0) {
+    return;
+  }
   len = RSTR_LEN(s1) + RSTR_LEN(s2);
 
   if (RSTRING_CAPA(self) < len) {
