@@ -260,6 +260,8 @@ end
 assert('Kernel#freeze') do
   obj = Object.new
   assert_equal obj, obj.freeze
+  assert_equal 0, 0.freeze
+  assert_equal :a, :a.freeze
 end
 
 assert('Kernel#global_variables', '15.3.1.3.14') do
@@ -620,4 +622,3 @@ assert('stack extend') do
 
   assert_equal 6, recurse(0, 5)
 end
-
