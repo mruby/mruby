@@ -619,6 +619,10 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   size = head + argc;
 
   if (tail < a->len) size += a->len - tail;
+
+  if (size < 0 || size > ARY_MAX_SIZE)
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
+
   if (size > a->aux.capa)
     ary_expand_capa(mrb, a, size);
 
