@@ -1143,6 +1143,9 @@ RETRY_TRY_BLOCK:
         else {
           value_move(regs+a+2, regs+a+1, ++n);
           regs[a+1] = sym;
+          if (n == CALL_MAXARGS) {
+            regs[a+1] = mrb_ary_new_from_values(mrb, n, regs+a+1);
+          }
         }
       }
 
