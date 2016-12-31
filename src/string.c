@@ -163,15 +163,20 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
 
   total = RSTR_LEN(s)+len;
   if (total >= MRB_INT_MAX) {
+  size_error:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   if (capa <= total) {
     while (total > capa) {
-      if (capa + 1 >= MRB_INT_MAX / 2) {
-        capa = MRB_INT_MAX;
-        break;
+      if (capa <= MRB_INT_MAX / 2) {
+        capa *= 2;
       }
-      capa = (capa + 1) * 2;
+      else {
+        goto size_error;
+      }
+    }
+    if (capa < total || capa > MRB_INT_MAX) {
+      goto size_error;
     }
     resize_capa(mrb, s, capa);
   }
