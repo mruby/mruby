@@ -217,7 +217,7 @@ static struct mrb_time*
 time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
 {
   struct mrb_time *tm;
-  time_t tsec;
+  time_t tsec = 0;
 
   if (sizeof(time_t) == 4 && (sec > (double)INT32_MAX || (double)INT32_MIN > sec)) {
     goto out_of_range;
