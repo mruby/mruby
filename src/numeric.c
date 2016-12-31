@@ -1044,7 +1044,7 @@ fix_to_f(mrb_state *mrb, mrb_value num)
 MRB_API mrb_value
 mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
 {
-  mrb_int z;
+  mrb_int z = 0;
 
   if (!mrb_float_p(x)) {
     mrb_raise(mrb, E_TYPE_ERROR, "non float value");
