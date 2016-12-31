@@ -158,6 +158,8 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
     capa = RSTRING_EMBED_LEN_MAX;
   else
     capa = s->as.heap.aux.capa;
+  if (capa <= RSTRING_EMBED_LEN_MAX)
+    capa = RSTRING_EMBED_LEN_MAX+1;
 
   total = RSTR_LEN(s)+len;
   if (total >= MRB_INT_MAX) {
