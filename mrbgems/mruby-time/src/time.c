@@ -194,7 +194,7 @@ time_update_datetime(mrb_state *mrb, struct mrb_time *self)
     aid = localtime_r(&self->sec, &self->datetime);
   }
   if (!aid) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "%S out of Time range", mrb_float_value(mrb, self->sec));
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "%S out of Time range", mrb_float_value(mrb, (mrb_float)self->sec));
     /* not reached */
     return NULL;
   }
