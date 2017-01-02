@@ -154,10 +154,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
       off = ptr - RSTR_PTR(s);
   }
 
-  if (RSTR_EMBED_P(s))
-    capa = RSTRING_EMBED_LEN_MAX;
-  else
-    capa = s->as.heap.aux.capa;
+  capa = RSTR_CAPA(s);
   if (capa <= RSTRING_EMBED_LEN_MAX)
     capa = RSTRING_EMBED_LEN_MAX+1;
 
@@ -698,14 +695,21 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
   }
   if (RSTR_NOFREE_P(s)) {
     char *p = s->as.heap.ptr;
+    mrb_int len = s->as.heap.len;
 
-    s->as.heap.ptr = (char *)mrb_malloc(mrb, (size_t)s->as.heap.len+1);
-    if (p) {
-      memcpy(RSTR_PTR(s), p, s->as.heap.len);
-    }
-    RSTR_PTR(s)[s->as.heap.len] = '\0';
-    s->as.heap.aux.capa = s->as.heap.len;
     RSTR_UNSET_NOFREE_FLAG(s);
+    if (len < RSTRING_EMBED_LEN_MAX) {
+      RSTR_SET_EMBED_FLAG(s);
+      RSTR_SET_EMBED_LEN(s, len);
+    }
+    else {
+      s->as.heap.ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
+      s->as.heap.aux.capa = len;
+    }
+    if (p) {
+      memcpy(RSTR_PTR(s), p, len);
+    }
+    RSTR_PTR(s)[len] = '\0';
     return;
   }
 }
