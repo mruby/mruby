@@ -385,4 +385,18 @@ class String
     end
   end
   alias each_codepoint codepoints
+
+  ##
+  # call-seq:
+  #    str.prepend(other_str)  -> str
+  #
+  # Prepend---Prepend the given string to <i>str</i>.
+  #
+  #    a = "world"
+  #    a.prepend("hello ") #=> "hello world"
+  #    a                   #=> "hello world"
+  def prepend(arg)
+    self[0, 0] = arg
+    self
+  end
 end
