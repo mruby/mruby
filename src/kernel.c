@@ -473,6 +473,29 @@ mrb_obj_freeze(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+static mrb_value
+mrb_obj_frozen(mrb_state *mrb, mrb_value self)
+{
+  struct RBasic *b;
+
+  switch (mrb_type(self)) {
+    case MRB_TT_FALSE:
+    case MRB_TT_TRUE:
+    case MRB_TT_FIXNUM:
+    case MRB_TT_SYMBOL:
+    case MRB_TT_FLOAT:
+      return mrb_true_value();
+    default:
+      break;
+  }
+
+  b = mrb_basic_ptr(self);
+  if (!MRB_FROZEN_P(b)) {
+    return mrb_false_value();
+  }
+  return mrb_true_value();
+}
+
 /* 15.3.1.3.15 */
 /*
  *  call-seq:
@@ -1148,6 +1171,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "equal?",                     mrb_obj_equal_m,                 MRB_ARGS_REQ(1));    /* 15.3.1.3.11 */
   mrb_define_method(mrb, krn, "extend",                     mrb_obj_extend_m,                MRB_ARGS_ANY());     /* 15.3.1.3.13 */
   mrb_define_method(mrb, krn, "freeze",                     mrb_obj_freeze,                  MRB_ARGS_NONE());
+  mrb_define_method(mrb, krn, "frozen?",                    mrb_obj_frozen,                  MRB_ARGS_NONE());
   mrb_define_method(mrb, krn, "global_variables",           mrb_f_global_variables,          MRB_ARGS_NONE());    /* 15.3.1.3.14 */
   mrb_define_method(mrb, krn, "hash",                       mrb_obj_hash,                    MRB_ARGS_NONE());    /* 15.3.1.3.15 */
   mrb_define_method(mrb, krn, "initialize_copy",            mrb_obj_init_copy,               MRB_ARGS_REQ(1));    /* 15.3.1.3.16 */
