@@ -554,6 +554,7 @@ mrb_hash_delete(mrb_state *mrb, mrb_value self)
   mrb_value key;
 
   mrb_get_args(mrb, "o", &key);
+  mrb_hash_modify(mrb, self);
   return mrb_hash_delete_key(mrb, self, key);
 }
 
@@ -620,6 +621,7 @@ mrb_hash_clear(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
 
+  mrb_hash_modify(mrb, hash);
   if (h) kh_clear(ht, mrb, h);
   return hash;
 }
