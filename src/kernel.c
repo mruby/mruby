@@ -965,14 +965,17 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   }
   else {
     mrb_value tmp;
-    if (!mrb_string_p(mid)) {
+    if (mrb_string_p(mid)) {
+      tmp = mrb_check_intern_str(mrb, mid);
+    }
+    else {
       tmp = mrb_check_string_type(mrb, mid);
       if (mrb_nil_p(tmp)) {
         tmp = mrb_inspect(mrb, mid);
         mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol", tmp);
       }
+      tmp = mrb_check_intern_str(mrb, tmp);
     }
-    tmp = mrb_check_intern_str(mrb, mid);
     if (mrb_nil_p(tmp)) {
       respond_to_p = FALSE;
     }
