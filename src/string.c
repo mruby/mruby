@@ -669,7 +669,7 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
   if (RSTR_SHARED_P(s)) {
     mrb_shared_string *shared = s->as.heap.aux.shared;
 
-    if (shared->refcnt == 1 && s->as.heap.ptr == shared->ptr) {
+    if (shared->nofree == 0 && shared->refcnt == 1 && s->as.heap.ptr == shared->ptr) {
       s->as.heap.ptr = shared->ptr;
       s->as.heap.aux.capa = shared->len;
       RSTR_PTR(s)[s->as.heap.len] = '\0';
