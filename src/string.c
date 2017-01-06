@@ -132,12 +132,12 @@ resize_capa(mrb_state *mrb, struct RString *s, size_t capacity)
       RSTR_UNSET_EMBED_FLAG(s);
       s->as.heap.ptr = tmp;
       s->as.heap.len = len;
-      s->as.heap.aux.capa = capacity;
+      s->as.heap.aux.capa = (mrb_int)capacity;
     }
   }
   else {
-    s->as.heap.ptr = (char *)mrb_realloc(mrb, RSTR_PTR(s), capacity+1);
-    s->as.heap.aux.capa = capacity;
+    s->as.heap.ptr = (char*)mrb_realloc(mrb, RSTR_PTR(s), capacity+1);
+    s->as.heap.aux.capa = (mrb_int)capacity;
   }
 }
 
