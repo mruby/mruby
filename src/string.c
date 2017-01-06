@@ -169,7 +169,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
         capa *= 2;
       }
       else {
-        goto size_error;
+        capa = total;
       }
     }
     if (capa < total || capa > MRB_INT_MAX) {
