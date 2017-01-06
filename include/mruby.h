@@ -234,7 +234,9 @@ typedef struct mrb_state {
 #endif
   mrb_int atexit_stack_len;
 
+#ifdef MRB_ENABLE_NUMERIC_OVERRIDE
   unsigned numeric_methods;
+#endif
 } mrb_state;
 
 

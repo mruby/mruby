@@ -1334,6 +1334,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_const(mrb, fl, "NAN", mrb_float_value(mrb, NAN));
 #endif
 
+#ifdef MRB_ENABLE_NUMERIC_OVERRIDE
   /* Use the optimizations until and unless the methods are overridden */
   mrb->numeric_methods |=
           MRB_METHOD_FIXNUM_PLUS  |
@@ -1344,4 +1345,5 @@ mrb_init_numeric(mrb_state *mrb)
           MRB_METHOD_FLOAT_MINUS  |
           MRB_METHOD_FLOAT_TIMES  |
           MRB_METHOD_FLOAT_DIV    ;
+#endif
 }

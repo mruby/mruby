@@ -398,6 +398,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
     mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
   }
 
+#ifdef MRB_ENABLE_NUMERIC_OVERRIDE
   /* Clear flag for optimized numeric method */
   if (c == mrb->fixnum_class) {
     if (mid == mrb_intern_lit(mrb, "+")) {
@@ -427,6 +428,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
         mrb->numeric_methods &= ~MRB_METHOD_FLOAT_DIV;
     }
   }
+#endif
 }
 
 MRB_API void

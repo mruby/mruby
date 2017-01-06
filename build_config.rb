@@ -122,6 +122,8 @@ MRuby::Build.new('test') do |conf|
   conf.enable_test
 
   conf.gembox 'default'
+  conf.gem core: 'mruby-inline-struct'
+  conf.gem core: 'mruby-numeric-override'
 end
 
 MRuby::Build.new('bench') do |conf|
