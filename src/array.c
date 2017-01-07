@@ -440,6 +440,7 @@ mrb_ary_pop(mrb_state *mrb, mrb_value ary)
 {
   struct RArray *a = mrb_ary_ptr(ary);
 
+  ary_modify(mrb, a);
   if (a->len == 0) return mrb_nil_value();
   return a->ptr[--a->len];
 }
@@ -452,6 +453,7 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
   struct RArray *a = mrb_ary_ptr(self);
   mrb_value val;
 
+  ary_modify(mrb, a);
   if (a->len == 0) return mrb_nil_value();
   if (ARY_SHARED_P(a)) {
   L_SHIFT:
@@ -964,6 +966,7 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
 
+  ary_modify(mrb, a);
   if (ARY_SHARED_P(a)) {
     mrb_ary_decref(mrb, a->aux.shared);
     ARY_UNSET_SHARED_FLAG(a);
