@@ -135,7 +135,7 @@ module MRuby
         if system("pkg-config --exists #{escaped_package_query}")
           cc.flags += [`pkg-config --cflags #{escaped_package_query}`.strip]
           cxx.flags += [`pkg-config --cflags #{escaped_package_query}`.strip]
-          linker.flags += [`pkg-config --libs #{escaped_package_query}`.strip]
+          linker.flags_before_libraries += [`pkg-config --libs #{escaped_package_query}`.strip]
           true
         else
           false
