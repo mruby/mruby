@@ -332,6 +332,15 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
   nowtime.tm_min   = (int)amin;
   nowtime.tm_sec   = (int)asec;
   nowtime.tm_isdst = -1;
+
+  if (nowtime.tm_mon  < 0 || nowtime.tm_mon  > 11
+      || nowtime.tm_mday < 1 || nowtime.tm_mday > 31
+      || nowtime.tm_hour < 0 || nowtime.tm_hour > 24
+      || (nowtime.tm_hour == 24 && (nowtime.tm_min > 0 || nowtime.tm_sec > 0))
+      || nowtime.tm_min  < 0 || nowtime.tm_min  > 59
+      || nowtime.tm_sec  < 0 || nowtime.tm_sec  > 60)
+    mrb_raise(mrb, E_RUNTIME_ERROR, "argument out of range");
+
   if (timezone == MRB_TIMEZONE_UTC) {
     nowsecs = timegm(&nowtime);
   }
