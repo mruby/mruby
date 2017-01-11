@@ -2411,7 +2411,8 @@ RETRY_TRY_BLOCK:
     CASE(OP_RANGE) {
       /* A B C  R(A) := range_new(R(B),R(B+1),C) */
       int b = GETARG_B(i);
-      regs[GETARG_A(i)] = mrb_range_new(mrb, regs[b], regs[b+1], GETARG_C(i));
+      mrb_value val = mrb_range_new(mrb, regs[b], regs[b+1], GETARG_C(i));
+      regs[GETARG_A(i)] = val;
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }
