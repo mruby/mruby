@@ -44,7 +44,7 @@ static mrb_value
 exc_initialize(mrb_state *mrb, mrb_value exc)
 {
   mrb_value mesg;
-  int argc;
+  mrb_int argc;
   mrb_value *argv;
 
   if (mrb_get_args(mrb, "|o*", &mesg, &argv, &argc) >= 1) {
