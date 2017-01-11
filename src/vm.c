@@ -1288,7 +1288,7 @@ RETRY_TRY_BLOCK:
       int a = GETARG_A(i);
       int n = GETARG_C(i);
 
-      if (mid == 0) {
+      if (mid == 0 || !mrb->c->ci->target_class) {
         mrb_value exc;
 
         exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
