@@ -318,6 +318,20 @@ mrb_class_get(mrb_state *mrb, const char *name)
 }
 
 MRB_API struct RClass *
+mrb_exc_get(mrb_state *mrb, const char *name)
+{
+  struct RClass *exc = mrb_class_get_under(mrb, mrb->object_class, name);
+  struct RClass *e = exc;
+
+  while (e) {
+    if (e == mrb->eException_class)
+      return exc;
+    e = e->super;
+  }
+  return mrb->eException_class;
+}
+
+MRB_API struct RClass *
 mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
   return module_from_sym(mrb, outer, mrb_intern_cstr(mrb, name));
