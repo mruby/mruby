@@ -915,7 +915,9 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
 static void
 boot_initmod(mrb_state *mrb, struct RClass *mod)
 {
-  mod->mt = kh_init(mt, mrb);
+  if (!mod->mt) {
+    mod->mt = kh_init(mt, mrb);
+  }
 }
 
 static struct RClass*
