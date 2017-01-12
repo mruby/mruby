@@ -373,7 +373,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
         mrb_method_missing(mrb, mid, self, args);
       }
       undef = mid;
-      n++; argc++;
+      argc++;
     }
     ci = cipush(mrb);
     ci->mid = mid;
@@ -389,8 +389,18 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       ci->nregs = argc + 2;
       stack_extend(mrb, ci->nregs, 0);
     }
+    else if (argc >= CALL_MAXARGS) {
+      mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
+      stack_extend(mrb, ci->nregs, 0);
+      mrb->c->stack[1] = args;
+      if (undef) {
+        mrb_ary_unshift(mrb, mrb->c->stack[1], mrb_symbol_value(undef));
+      }
+      ci->argc = -1;
+      argc = 1;
+    }
     else {
-      ci->nregs = p->body.irep->nregs + n;
+      ci->nregs = p->body.irep->nregs + argc;
       stack_extend(mrb, ci->nregs, argc+2);
     }
     if (voff >= 0) {
@@ -403,7 +413,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
         stack_copy(mrb->c->stack+2, argv, argc-1);
       }
     }
-    else if (argc > 0) {
+    else if (ci->argc > 0) {
       stack_copy(mrb->c->stack+1, argv, argc);
     }
     mrb->c->stack[argc+1] = blk;
@@ -2478,7 +2488,12 @@ RETRY_TRY_BLOCK:
 MRB_API mrb_value
 mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 {
-  return mrb_vm_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
+  if (mrb->c->ci->argc < 0) {
+    return mrb_vm_run(mrb, proc, self, 3); /* receiver, args and block) */
+  }
+  else {
+    return mrb_vm_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
+  }
 }
 
 MRB_API mrb_value
