@@ -4,6 +4,8 @@ assert('Kernel.fail, Kernel#fail') do
 end
 
 assert('Kernel.caller, Kernel#caller') do
+  skip "backtrace isn't available" if caller(0).empty?
+
   c = Class.new do
     def foo(*args)
       caller(*args)
