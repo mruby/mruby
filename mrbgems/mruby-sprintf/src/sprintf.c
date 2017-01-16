@@ -891,7 +891,7 @@ retry:
         }
         else {
           s = nbuf;
-          if (v < 0) {
+          if (base != 10 && v < 0) {
             dots = 1;
           }
           switch (base) {
