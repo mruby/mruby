@@ -2448,7 +2448,7 @@ block_param     : f_arg ',' f_block_optarg ',' f_rest_arg opt_f_block_arg
                     }
                 | f_arg ','
                     {
-                      $$ = new_args(p, $1, 0, 1, 0, 0);
+                      $$ = new_args(p, $1, 0, 0, 0, 0);
                     }
                 | f_arg ',' f_rest_arg ',' f_arg opt_f_block_arg
                     {
