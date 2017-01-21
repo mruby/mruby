@@ -1675,7 +1675,6 @@ codegen(codegen_scope *s, node *tree, int val)
         }
         tree = tree->car;
         if (tree->car) {                /* pre */
-          int first = TRUE;
           t = tree->car;
           n = 0;
           while (t) {
@@ -1684,10 +1683,7 @@ codegen(codegen_scope *s, node *tree, int val)
               n++;
             }
             else {
-              if (first) {
-                genop(s, MKOP_A(OP_LOADNIL, rhs+n));
-                first = FALSE;
-              }
+              genop(s, MKOP_A(OP_LOADNIL, rhs+n));
               gen_assignment(s, t->car, rhs+n, NOVAL);
             }
             t = t->cdr;
