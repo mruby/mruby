@@ -137,6 +137,7 @@ stack_extend_alloc(mrb_state *mrb, int room, int keep)
   size_t size = mrb->c->stend - mrb->c->stbase;
   size_t off = mrb->c->stack - mrb->c->stbase;
 
+  if (off > size) size = off;
 #ifdef MRB_STACK_EXTEND_DOUBLING
   if (room <= size)
     size *= 2;
