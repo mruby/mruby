@@ -1,0 +1,1 @@
+#define MRUBY_REVISION 0
