@@ -796,6 +796,7 @@ mrb_ary_aset(mrb_state *mrb, mrb_value self)
   mrb_value v1, v2, v3;
   mrb_int i, len;
 
+  mrb_ary_modify(mrb, mrb_ary_ptr(self));
   if (mrb_get_args(mrb, "oo|o", &v1, &v2, &v3) == 2) {
     switch (mrb_type(v1)) {
     /* a[n..m] = v */
