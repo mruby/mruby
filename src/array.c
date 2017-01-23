@@ -589,7 +589,6 @@ MRB_API mrb_value
 mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_value rpl)
 {
   struct RArray *a = mrb_ary_ptr(ary);
-  mrb_int tail, size;
   const mrb_value *argv;
   mrb_int i, argc;
 
@@ -608,7 +607,6 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   if (a->len < len || a->len < head + len) {
     len = a->len - head;
   }
-  tail = head + len;
 
   /* size check */
   if (mrb_array_p(rpl)) {
@@ -623,30 +621,44 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     argc = 1;
     argv = &rpl;
   }
-  size = head + argc;
-
-  if (tail < a->len) size += a->len - tail;
-
-  if (size < 0 || size > ARY_MAX_SIZE)
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
-
-  if (size > a->aux.capa)
-    ary_expand_capa(mrb, a, size);
-
-  if (head > a->len) {
+  if (head >= a->len) {
+    if (head > ARY_MAX_SIZE - argc) {
+      mrb_raisef(mrb, E_INDEX_ERROR, "index %S too big", mrb_fixnum_value(head));
+    }
+    len = head + argc;
+    if (len > a->aux.capa) {
+      ary_expand_capa(mrb, a, head + argc);
+    }
     ary_fill_with_nil(a->ptr + a->len, head - a->len);
+    if (argc > 0) {
+      for (int i = 0; i < argc; i++) {
+        a->ptr[head + i] = argv[i];
+      }
+    }
+    a->len = len;
   }
-  else if (head < a->len) {
-    value_move(a->ptr + head + argc, a->ptr + tail, a->len - tail);
-  }
+  else {
+    mrb_int alen;
 
+    if (a->len - len > ARY_MAX_SIZE - argc) {
+      mrb_raisef(mrb, E_INDEX_ERROR, "index %S too big", mrb_fixnum_value(a->len + argc - len));
+    }
+    alen = a->len + argc - len;
+    if (alen > a->aux.capa) {
+      ary_expand_capa(mrb, a, alen);
+    }
+
+    if (len != argc) {
+      value_move(a->ptr + head + argc, a->ptr + head + len, a->len - (head + len));
+      a->len = alen;
+    }
+    if (argc > 0) {
+      value_move(a->ptr + head, argv, argc);
+    }
+  }
   for (i = 0; i < argc; i++) {
-    *(a->ptr + head + i) = *(argv + i);
     mrb_field_write_barrier_value(mrb, (struct RBasic*)a, argv[i]);
   }
-
-  a->len = size;
-
   return ary;
 }
 
