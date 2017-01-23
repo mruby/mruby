@@ -631,7 +631,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     }
     ary_fill_with_nil(a->ptr + a->len, head - a->len);
     if (argc > 0) {
-      for (int i = 0; i < argc; i++) {
+      for (i = 0; i < argc; i++) {
         a->ptr[head + i] = argv[i];
       }
     }
