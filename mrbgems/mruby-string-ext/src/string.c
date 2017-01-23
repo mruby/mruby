@@ -56,8 +56,14 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
       mrb_int beg;
 
       len = RSTRING_LEN(str);
-      if (mrb_range_beg_len(mrb, a1, &beg, &len, len)) {
+      switch (mrb_range_beg_len(mrb, a1, &beg, &len, len, TRUE)) {
+      case 0:                   /* not range */
+        break;
+      case 1:                   /* range */
         return mrb_str_substr(mrb, str, beg, len);
+      case 2:                   /* out of range */
+        mrb_raisef(mrb, E_RANGE_ERROR, "%S out of range", a1);
+        break;
       }
       return mrb_nil_value();
     }

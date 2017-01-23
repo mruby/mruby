@@ -1091,22 +1091,25 @@ num_index:
       return mrb_nil_value();
 
     case MRB_TT_RANGE:
-      /* check if indx is Range */
-      {
-        mrb_int beg, len;
+      goto range_arg;
 
-        len = RSTRING_CHAR_LEN(str);
-        if (mrb_range_beg_len(mrb, indx, &beg, &len, len)) {
-          return str_subseq(mrb, str, beg, len);
-        }
-        else {
-          return mrb_nil_value();
-        }
-      }
-    case MRB_TT_FLOAT:
     default:
       indx = mrb_Integer(mrb, indx);
       if (mrb_nil_p(indx)) {
+      range_arg:
+        {
+          mrb_int beg, len;
+
+          len = RSTRING_CHAR_LEN(str);
+          switch (mrb_range_beg_len(mrb, indx, &beg, &len, len, TRUE)) {
+          case 1:
+            return str_subseq(mrb, str, beg, len);
+          case 2:
+            return mrb_nil_value();
+          default:
+            break;
+          }
+        }
         mrb_raise(mrb, E_TYPE_ERROR, "can't convert to Fixnum");
       }
       idx = mrb_fixnum(indx);
