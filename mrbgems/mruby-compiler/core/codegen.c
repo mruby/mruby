@@ -93,6 +93,7 @@ codegen_error(codegen_scope *s, const char *message)
   if (!s) return;
   while (s->prev) {
     codegen_scope *tmp = s->prev;
+    mrb_free(s->mrb, s->iseq);
     mrb_pool_close(s->mpool);
     s = tmp;
   }
