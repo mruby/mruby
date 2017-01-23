@@ -656,9 +656,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
       value_move(a->ptr + head, argv, argc);
     }
   }
-  for (i = 0; i < argc; i++) {
-    mrb_field_write_barrier_value(mrb, (struct RBasic*)a, argv[i]);
-  }
+  mrb_write_barrier(mrb, (struct RBasic*)a);
   return ary;
 }
 
