@@ -423,7 +423,7 @@ byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   mrb_shared_string *shared;
 
   orig = mrb_str_ptr(str);
-  if (RSTR_EMBED_P(orig)) {
+  if (RSTR_EMBED_P(orig) || RSTR_LEN(orig) == 0) {
     s = str_new(mrb, orig->as.ary+beg, len);
   }
   else {
