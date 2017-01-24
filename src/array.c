@@ -591,6 +591,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   struct RArray *a = mrb_ary_ptr(ary);
   const mrb_value *argv;
   mrb_int argc;
+  size_t tail;
 
   ary_modify(mrb, a);
 
@@ -604,7 +605,8 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
       mrb_raise(mrb, E_INDEX_ERROR, "index is out of array");
     }
   }
-  if (a->len < len || a->len < head + len) {
+  tail = head + len;
+  if (a->len < len || (size_t)a->len < tail) {
     len = a->len - head;
   }
 
@@ -647,7 +649,8 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     }
 
     if (len != argc) {
-      value_move(a->ptr + head + argc, a->ptr + head + len, a->len - (head + len));
+      tail = head + len;
+      value_move(a->ptr + head + argc, a->ptr + tail, a->len - tail);
       a->len = alen;
     }
     if (argc > 0) {
