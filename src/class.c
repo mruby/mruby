@@ -1586,7 +1586,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
     if (sym == 0) {
       return mrb_nil_value();
     }
-    else if (outer && outer != mrb->object_class) {
+    else if (outer && outer != c && outer != mrb->object_class) {
       mrb_value base = mrb_class_path(mrb, outer);
       path = mrb_str_buf_new(mrb, 0);
       if (mrb_nil_p(base)) {
