@@ -859,7 +859,15 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_LOADL) {
       /* A Bx   R(A) := Pool(Bx) */
+#ifdef MRB_WORD_BOXING
+      mrb_value val = pool[GETARG_Bx(i)];
+      if (mrb_float_p(val)) {
+        val = mrb_float_value(mrb, mrb_float(val));
+      }
+      regs[GETARG_A(i)] = val;
+#else
       regs[GETARG_A(i)] = pool[GETARG_Bx(i)];
+#endif
       NEXT;
     }
 
