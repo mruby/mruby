@@ -2602,7 +2602,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_CLASS:
     {
-      int idx;
+      int idx, sclass_idx;
 
       if (tree->car->car == (node*)0) {
         genop(s, MKOP_A(OP_LOADNIL, cursp()));
@@ -2624,9 +2624,14 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       pop(); pop();
       idx = new_msym(s, sym(tree->car->cdr));
+      sclass_idx = idx;
+
       genop(s, MKOP_AB(OP_CLASS, cursp(), idx));
       idx = scope_body(s, tree->cdr->cdr->car, val);
       genop(s, MKOP_ABx(OP_EXEC, cursp(), idx));
+
+      genop(s, MKOP_ABx(OP_LOADSYM, cursp(), sclass_idx ? sclass_idx : idx));
+
       if (val) {
         push();
       }
@@ -2653,6 +2658,7 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_AB(OP_MODULE, cursp(), idx));
       idx = scope_body(s, tree->cdr->car, val);
       genop(s, MKOP_ABx(OP_EXEC, cursp(), idx));
+      genop(s, MKOP_ABx(OP_LOADSYM, cursp(), idx));
       if (val) {
         push();
       }
