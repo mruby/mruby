@@ -52,7 +52,7 @@ assert('garbage collecting built-in classes') do
 NilClass = nil
 GC.start
 Array.dup
-print nil.class.name
+print nil.class.to_s
 RUBY
   script.flush
   assert_equal "NilClass", `#{cmd('mruby')} #{script.path}`
