@@ -388,6 +388,9 @@ dispatch(codegen_scope *s, int pc)
     scope_error(s);
     break;
   }
+  if (diff > MAXARG_sBx) {
+    codegen_error(s, "too distant jump address");
+  }
   s->iseq[pc] = MKOP_AsBx(c, GETARG_A(i), diff);
 }
 
