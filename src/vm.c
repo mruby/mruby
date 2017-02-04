@@ -447,6 +447,33 @@ mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, cons
   return mrb_funcall_with_block(mrb, self, mid, argc, argv, mrb_nil_value());
 }
 
+mrb_value
+mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+
+  ci->proc = p;
+  if (MRB_PROC_CFUNC_P(p)) {
+    return p->body.func(mrb, self);
+  }
+  if (ci->argc < 0) {
+    stack_extend(mrb, (p->body.irep->nregs < 3) ? 3 : p->body.irep->nregs, 3);
+  }
+  else {
+    stack_extend(mrb, p->body.irep->nregs, ci->argc+2);
+  }
+
+  ci->nregs = p->body.irep->nregs;
+  ci = cipush(mrb);
+  ci->nregs = 0;
+  ci->target_class = 0;
+  ci->pc = p->body.irep->iseq;
+  ci->stackent = mrb->c->stack;
+  ci->acc = 0;
+
+  return self;
+}
+
 /* 15.3.1.3.4  */
 /* 15.3.1.3.44 */
 /*
@@ -488,7 +515,6 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   ci = mrb->c->ci;
   ci->mid = name;
   ci->target_class = c;
-  ci->proc = p;
   regs = mrb->c->stack+1;
   /* remove first symbol from arguments */
   if (ci->argc >= 0) {
@@ -501,26 +527,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
     mrb_ary_shift(mrb, regs[0]);
   }
 
-  if (MRB_PROC_CFUNC_P(p)) {
-    return p->body.func(mrb, self);
-  }
-
-  if (ci->argc < 0) {
-    stack_extend(mrb, (p->body.irep->nregs < 3) ? 3 : p->body.irep->nregs, 3);
-  }
-  else {
-    stack_extend(mrb, p->body.irep->nregs, ci->argc+2);
-  }
-
-  ci->nregs = p->body.irep->nregs;
-  ci = cipush(mrb);
-  ci->nregs = 0;
-  ci->target_class = 0;
-  ci->pc = p->body.irep->iseq;
-  ci->stackent = mrb->c->stack;
-  ci->acc = 0;
-
-  return self;
+  return mrb_exec_irep(mrb, self, p);
 }
 
 static mrb_value
