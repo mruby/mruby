@@ -857,6 +857,7 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
   mrb_gc_mark(mrb, (struct RBasic*)mrb->top_self);
   /* mark exception */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
+  mrb_gc_mark(mrb, (struct RBasic*)mrb->backtrace.exc);
   /* mark pre-allocated exception */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->nomem_err);
 #ifdef MRB_GC_FIXED_ARENA
