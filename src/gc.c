@@ -367,7 +367,7 @@ mrb_gc_init(mrb_state *mrb, mrb_gc *gc)
 #endif
 }
 
-static void obj_free(mrb_state *mrb, struct RBasic *obj);
+static void obj_free(mrb_state *mrb, struct RBasic *obj, int end);
 
 void
 free_heap(mrb_state *mrb, mrb_gc *gc)
@@ -381,7 +381,7 @@ free_heap(mrb_state *mrb, mrb_gc *gc)
     page = page->next;
     for (p = objects(tmp), e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
       if (p->as.free.tt != MRB_TT_FREE)
-        obj_free(mrb, &p->as.basic);
+        obj_free(mrb, &p->as.basic, TRUE);
     }
     mrb_free(mrb, tmp);
   }
@@ -699,7 +699,7 @@ mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
 }
 
 static void
-obj_free(mrb_state *mrb, struct RBasic *obj)
+obj_free(mrb_state *mrb, struct RBasic *obj, int end)
 {
   DEBUG(printf("obj_free(%p,tt=%d)\n",obj,obj->tt));
   switch (obj->tt) {
@@ -753,7 +753,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
   case MRB_TT_FIBER:
     {
       struct mrb_context *c = ((struct RFiber*)obj)->cxt;
-      if (c && c != mrb->root_c) {
+      if (!end && c && c != mrb->root_c) {
         mrb_callinfo *ci = c->ci;
         mrb_callinfo *ce = c->cibase;
 
@@ -1020,7 +1020,7 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
     while (p<e) {
       if (is_dead(gc, &p->as.basic)) {
         if (p->as.basic.tt != MRB_TT_FREE) {
-          obj_free(mrb, &p->as.basic);
+          obj_free(mrb, &p->as.basic, FALSE);
           if (p->as.basic.tt == MRB_TT_FREE) {
             p->as.free.next = page->freelist;
             page->freelist = (struct RBasic*)p;
