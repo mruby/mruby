@@ -445,8 +445,11 @@ mrb_obj_extend_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
   mrb_int argc;
+  mrb_value args;
 
   mrb_get_args(mrb, "*", &argv, &argc);
+  args = mrb_ary_new_from_values(mrb, argc, argv);
+  argv = (mrb_value*)RARRAY_PTR(args);
   return mrb_obj_extend(mrb, argc, argv, self);
 }
 
