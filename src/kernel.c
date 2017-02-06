@@ -6,6 +6,7 @@
 
 #include <mruby.h>
 #include <mruby/array.h>
+#include <mruby/hash.h>
 #include <mruby/class.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
@@ -1106,8 +1107,8 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_local_variables(mrb_state *mrb, mrb_value self)
 {
-  mrb_value ret;
   struct RProc *proc;
+  mrb_value vars;
   struct mrb_irep *irep;
   size_t i;
 
@@ -1121,10 +1122,10 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
   if (!irep->lv) {
     return mrb_ary_new(mrb);
   }
-  ret = mrb_ary_new_capa(mrb, irep->nlocals - 1);
+  vars = mrb_hash_new(mrb);
   for (i = 0; i + 1 < irep->nlocals; ++i) {
     if (irep->lv[i].name) {
-      mrb_ary_push(mrb, ret, mrb_symbol_value(irep->lv[i].name));
+      mrb_hash_set(mrb, vars, mrb_symbol_value(irep->lv[i].name), mrb_true_value());
     }
   }
   if (proc->env) {
@@ -1137,7 +1138,7 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
         if (irep->lv) {
           for (i = 0; i + 1 < irep->nlocals; ++i) {
             if (irep->lv[i].name) {
-              mrb_ary_push(mrb, ret, mrb_symbol_value(irep->lv[i].name));
+              mrb_hash_set(mrb, vars, mrb_symbol_value(irep->lv[i].name), mrb_true_value());
             }
           }
         }
@@ -1146,7 +1147,7 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
     }
   }
 
-  return ret;
+  return mrb_hash_keys(mrb, vars);
 }
 
 void
