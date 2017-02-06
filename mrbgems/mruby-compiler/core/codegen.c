@@ -666,6 +666,9 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     ka = kd = 0;
     ba = tree->car->cdr->cdr->cdr->cdr ? 1 : 0;
 
+    if (ma > 0x1f || oa > 0x1f || pa > 0x1f || ka > 0x1f) {
+      codegen_error(s, "too many formal arguments");
+    }
     a = ((mrb_aspec)(ma & 0x1f) << 18)
       | ((mrb_aspec)(oa & 0x1f) << 13)
       | ((ra & 1) << 12)
