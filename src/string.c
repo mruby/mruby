@@ -2644,7 +2644,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
     }
 #endif
     c = *p;
-    if (c == '"'|| c == '\\' || (c == '#' && IS_EVSTR(p, pend))) {
+    if (c == '"'|| c == '\\' || (c == '#' && IS_EVSTR(p+1, pend))) {
       buf[0] = '\\'; buf[1] = c;
       mrb_str_cat(mrb, result, buf, 2);
       continue;
