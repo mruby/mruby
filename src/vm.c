@@ -1309,7 +1309,9 @@ RETRY_TRY_BLOCK:
         else {
           stack_extend(mrb, irep->nregs, ci->argc+2);
         }
-        regs[0] = m->env->stack[0];
+        if(m->env) {
+          regs[0] = m->env->stack[0];
+        }
         pc = irep->iseq;
         JUMP;
       }
