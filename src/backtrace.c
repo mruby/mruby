@@ -118,6 +118,7 @@ each_backtrace(mrb_state *mrb, mrb_int ciidx, mrb_code *pc0, each_backtrace_func
     if (MRB_PROC_CFUNC_P(ci->proc)) continue;
 
     irep = ci->proc->body.irep;
+    if (!irep) continue;
 
     if (mrb->c->cibase[i].err) {
       pc = mrb->c->cibase[i].err;
