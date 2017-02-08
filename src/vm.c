@@ -1705,9 +1705,10 @@ RETRY_TRY_BLOCK:
           mrb->jmp = prev_jmp;
           return v;
         }
-        cipop(mrb);
+        ci = mrb->c->ci;
         acc = ci->acc;
         mrb->c->stack = ci->stackent;
+        cipop(mrb);
         if (acc == CI_ACC_SKIP) {
           mrb->jmp = prev_jmp;
           return v;
