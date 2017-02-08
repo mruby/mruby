@@ -1366,11 +1366,22 @@ RETRY_TRY_BLOCK:
       ci->mid = mid;
       ci->proc = m;
       ci->stackent = mrb->c->stack;
-      if (n == CALL_MAXARGS) {
-        ci->argc = -1;
-      }
-      else {
-        ci->argc = n;
+      {
+        int bidx;
+        mrb_value blk;
+
+        if (n == CALL_MAXARGS) {
+          ci->argc = -1;
+          bidx = a+2;
+        }
+        else {
+          ci->argc = n;
+          bidx = a+n+1;
+        }
+        blk = regs[bidx];
+        if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
+          regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
+        }
       }
       ci->target_class = c;
       ci->pc = pc + 1;
