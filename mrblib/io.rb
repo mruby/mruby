@@ -114,6 +114,12 @@ class IO
     self
   end
 
+  def hash
+    # We must define IO#hash here because IO includes Enumerable and
+    # Enumerable#hash will call IO#read...
+    self.__id__
+  end
+
   def write(string)
     str = string.is_a?(String) ? string : string.to_s
     return str.size unless str.size > 0
