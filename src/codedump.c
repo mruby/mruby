@@ -416,8 +416,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       print_lv(mrb, irep, c, RA);
       break;
     case OP_POPERR:
-      printf("OP_POPERR\t%d\t\t", GETARG_A(c));
-      print_lv(mrb, irep, c, RA);
+      printf("OP_POPERR\t%d\t\t\n", GETARG_A(c));
       break;
     case OP_EPOP:
       printf("OP_EPOP\t%d\n", GETARG_A(c));
