@@ -22,19 +22,20 @@ struct tmpl {
 };
 
 enum {
-  PACK_DIR_CHAR,	/* C */
-  PACK_DIR_SHORT,	/* S */
-  PACK_DIR_LONG,	/* L */
-  PACK_DIR_QUAD,	/* Q */
-  //PACK_DIR_INT,	/* i */
+  PACK_DIR_CHAR,      /* C */
+  PACK_DIR_SHORT,     /* S */
+  PACK_DIR_LONG,      /* L */
+  PACK_DIR_QUAD,      /* Q */
+  //PACK_DIR_INT,     /* i */
   //PACK_DIR_VAX,
-  PACK_DIR_UTF8,  /* U */
+  PACK_DIR_UTF8,      /* U */
   //PACK_DIR_BER,
-  PACK_DIR_DOUBLE,	/* E */
-  PACK_DIR_FLOAT,	/* f */
-  PACK_DIR_STR,		/* A */
-  PACK_DIR_HEX,		/* h */
-  PACK_DIR_BASE64,	/* m */
+  PACK_DIR_DOUBLE,    /* E */
+  PACK_DIR_FLOAT,     /* f */
+  PACK_DIR_STR,       /* A */
+  PACK_DIR_HEX,       /* h */
+  PACK_DIR_BASE64,    /* m */
+  PACK_DIR_NUL,       /* x */
   PACK_DIR_INVALID
 };
 
@@ -731,6 +732,26 @@ done:
   return sptr - sptr0;
 }
 
+static int
+pack_x(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, unsigned int flags)
+{
+  long i;
+
+  dst = str_len_ensure(mrb, dst, didx + count);
+  for (i = 0; i < count; i++) {
+    RSTRING_PTR(dst)[didx] = '\0';
+  }
+  return count;
+}
+
+static int
+unpack_x(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
+{
+  if (slen < count) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "x outside of string");
+  }
+  return count;
+}
 
 static void
 prepare_tmpl(mrb_state *mrb, struct tmpl *tmpl)
@@ -911,6 +932,10 @@ alias:
     size = 2;
     flags |= PACK_FLAG_LT;
     break;
+  case 'x':
+    dir = PACK_DIR_NUL;
+    type = PACK_TYPE_NONE;
+    break;
   case 'Z':
     dir = PACK_DIR_STR;
     type = PACK_TYPE_STRING;
@@ -982,6 +1007,10 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 
     if (dir == PACK_DIR_INVALID)
       continue;
+    else if (dir == PACK_DIR_NUL) {
+        ridx += pack_x(mrb, mrb_nil_value(), result, ridx, count, flags);
+        continue;
+    }
 
     for (; aidx < RARRAY_LEN(ary); aidx++) {
       if (count == 0 && !(flags & PACK_FLAG_WIDTH))
@@ -1073,6 +1102,10 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
 
     if (dir == PACK_DIR_INVALID)
       continue;
+    else if (dir == PACK_DIR_NUL) {
+      srcidx += unpack_x(mrb, sptr, srclen - srcidx, result, count, flags);
+      continue;
+    }
 
     if (flags & PACK_FLAG_COUNT2) {
       sptr = (const unsigned char *)RSTRING_PTR(str) + srcidx;

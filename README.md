@@ -40,7 +40,9 @@ There is no dependency on other mrbgems.
  - s : 16-bit signed, native endian (`int16_t`)
  - V : 32-bit unsigned, VAX (little-endian) byte order
  - v : 16-bit unsigned, VAX (little-endian) byte order
+ - x : null byte
  - Z : same as "a", except that null is added with *
+
 
 
 ## License
