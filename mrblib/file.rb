@@ -1,6 +1,4 @@
 class File < IO
-  include Enumerable
-
   class FileError < Exception; end
   class NoFileError < FileError; end
   class UnableToStat < FileError; end
