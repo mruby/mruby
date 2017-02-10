@@ -444,6 +444,26 @@ assert('String#rjust') do
   assert_equal "hello", "hello".rjust(-3)
 end
 
+assert('String#ljust should not change string') do
+  a = "hello"
+  a.ljust(20)
+  assert_equal "hello", a
+end
+
+assert('String#rjust should not change string') do
+  a = "hello"
+  a.rjust(20)
+  assert_equal "hello", a
+end
+
+assert('String#ljust should raise on zero width padding') do
+  assert_raise(ArgumentError) { "foo".ljust(10, '') }
+end
+
+assert('String#rjust should raise on zero width padding') do
+  assert_raise(ArgumentError) { "foo".rjust(10, '') }
+end
+
 assert('String#upto') do
   a     = "aa"
   start = "aa"
