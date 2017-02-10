@@ -263,6 +263,44 @@ class String
     self
   end
 
+  ##
+  #  call-seq:
+  #     str.ljust(integer, padstr=' ')   -> new_str
+  #
+  #  If <i>integer</i> is greater than the length of <i>str</i>, returns a new
+  #  <code>String</code> of length <i>integer</i> with <i>str</i> left justified
+  #  and padded with <i>padstr</i>; otherwise, returns <i>str</i>.
+  #
+  #     "hello".ljust(4)            #=> "hello"
+  #     "hello".ljust(20)           #=> "hello               "
+  #     "hello".ljust(20, '1234')   #=> "hello123412341234123"
+  def ljust(idx, padstr = ' ')
+    raise ArgumentError, 'zero width padding' if padstr == ''
+    return self if idx <= self.size
+    pad_repetitions = (idx / padstr.length).ceil
+    padding = (padstr * pad_repetitions)[0...(idx - self.length)]
+    self + padding
+  end
+
+  ##
+  #  call-seq:
+  #     str.rjust(integer, padstr=' ')   -> new_str
+  #
+  #  If <i>integer</i> is greater than the length of <i>str</i>, returns a new
+  #  <code>String</code> of length <i>integer</i> with <i>str</i> right justified
+  #  and padded with <i>padstr</i>; otherwise, returns <i>str</i>.
+  #
+  #     "hello".rjust(4)            #=> "hello"
+  #     "hello".rjust(20)           #=> "               hello"
+  #     "hello".rjust(20, '1234')   #=> "123412341234123hello"
+  def rjust(idx, padstr = ' ')
+    raise ArgumentError, 'zero width padding' if padstr == ''
+    return self if idx <= self.size
+    pad_repetitions = (idx / padstr.length).ceil
+    padding = (padstr * pad_repetitions)[0...(idx - self.length)]
+    padding + self
+  end
+
   #     str.upto(other_str, exclusive=false) {|s| block }   -> str
   #     str.upto(other_str, exclusive=false)                -> an_enumerator
   #

@@ -5,9 +5,6 @@
 #include <mruby/string.h>
 #include <mruby/range.h>
 
-#define MAX(a,b) ((a)>(b) ? (a) : (b))
-#define MIN(a,b) ((a)<(b) ? (a) : (b))
-
 static mrb_value
 mrb_str_getbyte(mrb_state *mrb, mrb_value str)
 {
@@ -512,93 +509,6 @@ mrb_str_ord(mrb_state* mrb, mrb_value str)
 }
 #endif
 
-static mrb_value
-mrb_str_just(mrb_state* mrb, mrb_value str, mrb_bool right_just)
-{
-  mrb_value new_str;
-  mrb_int idx = 0, i = 0, bytes_to_copy = 0, start_pos = 0, final_pos = 0,
-    pad_str_length = 0;
-  mrb_int str_length = RSTRING_LEN(str);
-  const char *pad_str = NULL;
-  char *new_str_ptr = NULL;
-
-  mrb_get_args(mrb, "i|s!", &idx, &pad_str, &pad_str_length);
-
-  if (pad_str == NULL)
-  {
-    pad_str = " ";
-    pad_str_length = 1;
-  }
-
-  if (pad_str_length == 0)
-  {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
-  }
-
-  if (idx <= str_length)
-  {
-    return str;
-  }
-
-  new_str = mrb_str_dup(mrb, str);
-  mrb_str_resize(mrb, new_str, idx);
-
-  new_str_ptr = RSTRING_PTR(new_str);
-
-  if (right_just)
-  {
-    memcpy(new_str_ptr + idx - str_length, RSTRING_PTR(str), str_length);
-  }
-
-  start_pos = right_just ? 0 : str_length;
-  final_pos = idx - (right_just ? str_length : 0);
-
-  for (i = start_pos; i < final_pos; i += pad_str_length)
-  {
-    bytes_to_copy = idx - i - (right_just ? str_length : 0);
-    bytes_to_copy = MIN(pad_str_length, bytes_to_copy);
-    memcpy(new_str_ptr + i, pad_str, bytes_to_copy);
-  }
-
-  return new_str;
-}
-
-/*
- *  call-seq:
- *     str.ljust(integer, padstr=' ')   -> new_str
- *
- *  If <i>integer</i> is greater than the length of <i>str</i>, returns a new
- *  <code>String</code> of length <i>integer</i> with <i>str</i> left justified
- *  and padded with <i>padstr</i>; otherwise, returns <i>str</i>.
- *
- *     "hello".ljust(4)            #=> "hello"
- *     "hello".ljust(20)           #=> "hello               "
- *     "hello".ljust(20, '1234')   #=> "hello123412341234123"
- */
-static mrb_value
-mrb_str_ljust(mrb_state* mrb, mrb_value str)
-{
-  return mrb_str_just(mrb, str, FALSE);
-}
-
-/*
- *  call-seq:
- *     str.rjust(integer, padstr=' ')   -> new_str
- *
- *  If <i>integer</i> is greater than the length of <i>str</i>, returns a new
- *  <code>String</code> of length <i>integer</i> with <i>str</i> right justified
- *  and padded with <i>padstr</i>; otherwise, returns <i>str</i>.
- *
- *     "hello".rjust(4)            #=> "hello"
- *     "hello".rjust(20)           #=> "               hello"
- *     "hello".rjust(20, '1234')   #=> "123412341234123hello"
- */
-static mrb_value
-mrb_str_rjust(mrb_state* mrb, mrb_value str)
-{
-  return mrb_str_just(mrb, str, TRUE);
-}
-
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -620,8 +530,6 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "lines",           mrb_str_lines,           MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "succ",            mrb_str_succ,            MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "succ!",           mrb_str_succ_bang,       MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "ljust",           mrb_str_ljust,           MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, s, "rjust",           mrb_str_rjust,           MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_alias_method(mrb, s, mrb_intern_lit(mrb, "next"), mrb_intern_lit(mrb, "succ"));
   mrb_alias_method(mrb, s, mrb_intern_lit(mrb, "next!"), mrb_intern_lit(mrb, "succ!"));
   mrb_define_method(mrb, s, "ord", mrb_str_ord, MRB_ARGS_NONE());
