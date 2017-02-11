@@ -1652,7 +1652,7 @@ RETRY_TRY_BLOCK:
         switch (GETARG_B(i)) {
         case OP_R_RETURN:
           /* Fall through to OP_R_NORMAL otherwise */
-          if (proc->env && !MRB_PROC_STRICT_P(proc)) {
+          if (ci->acc >=0 && proc->env && !MRB_PROC_STRICT_P(proc)) {
             struct REnv *e = top_env(mrb, proc);
 
             if (!MRB_ENV_STACK_SHARED_P(e)) {
