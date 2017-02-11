@@ -1773,7 +1773,7 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
 
     mrb_str_modify(mrb, mrb_str_ptr(str));
     len = RSTRING_LEN(str);
-    buf = mrb_malloc(mrb, (size_t)len);
+    buf = (char*)mrb_malloc(mrb, (size_t)len);
     p = buf;
     e = buf + len;
 
