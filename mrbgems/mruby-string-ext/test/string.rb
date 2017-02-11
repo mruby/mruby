@@ -464,12 +464,10 @@ if UTF8STRING
   end
 
   assert('UTF8 byte counting') do
-    skip('string length is broken after []=')
-
     # based on assert_equal 34, "helloó".rjust(34).length
+    # see https://github.com/mruby/mruby/issues/3448
     ret = '                                  '
     ret[-6..-1] = "helloó"
-    
     assert_equal 34, ret.length
   end
 end
