@@ -872,9 +872,7 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
   str2 = str_new(mrb, 0, len);
   str_with_class(mrb, str2, self);
   p = RSTR_PTR(str2);
-  if (len == 1) {
-    memset(p, RSTRING_PTR(self)[0], len);
-  } else if (len > 0) {
+  if (len > 0) {
     n = RSTRING_LEN(self);
     memcpy(p, RSTRING_PTR(self), n);
     while (n <= len/2) {
