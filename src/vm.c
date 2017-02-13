@@ -169,6 +169,9 @@ stack_extend_alloc(mrb_state *mrb, int room, int keep)
 static inline void
 stack_extend(mrb_state *mrb, int room, int keep)
 {
+  if (room < keep) {
+    room = keep;
+  }
   if (mrb->c->stack + room >= mrb->c->stend) {
     stack_extend_alloc(mrb, room, keep);
   }
