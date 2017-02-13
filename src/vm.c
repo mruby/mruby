@@ -1733,7 +1733,7 @@ RETRY_TRY_BLOCK:
         acc = ci->acc;
         mrb->c->stack = ci->stackent;
         cipop(mrb);
-        if (acc == CI_ACC_SKIP) {
+        if (acc == CI_ACC_SKIP || acc == CI_ACC_DIRECT) {
           mrb->jmp = prev_jmp;
           return v;
         }
