@@ -28,13 +28,19 @@ typedef enum {
   NOEX_RESPONDS  = 0x80
 } mrb_method_flag_t;
 
+MRB_API mrb_bool
+mrb_func_basic_p(mrb_state *mrb, mrb_value obj, mrb_sym mid, mrb_func_t func)
+{
+  struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mid);
+  if (MRB_PROC_CFUNC_P(me) && (me->body.func == func))
+    return TRUE;
+  return FALSE;
+}
+
 static mrb_bool
 mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
-  struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mrb_intern_lit(mrb, "to_s"));
-  if (MRB_PROC_CFUNC_P(me) && (me->body.func == mrb_any_to_s))
-    return TRUE;
-  return FALSE;
+  return mrb_func_basic_p(mrb, obj, mrb_intern_lit(mrb, "to_s"), mrb_any_to_s);
 }
 
 /* 15.3.1.3.17 */
