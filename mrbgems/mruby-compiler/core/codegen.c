@@ -2038,7 +2038,7 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_REDO:
-    if (!s->loop) {
+    if (!s->loop || s->loop->type == LOOP_BEGIN || s->loop->type == LOOP_RESCUE) {
       raise_error(s, "unexpected redo");
     }
     else {
