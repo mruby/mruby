@@ -232,6 +232,34 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
     flags
   end
 
+  def ldflags
+    flags = []
+
+    flags += %W(--sysroot="#{sysroot}")
+
+    flags
+  end
+
+  def ldflags_before_libraries
+    flags = []
+
+    case toolchain
+    when :clang
+      flags += %W(-gcc-toolchain "#{gcc_toolchain_path.to_s}")
+      case arch
+      when /armeabi-v7a/  then flags += %W(-target armv7-none-linux-androideabi)
+      when /armeabi/      then flags += %W(-target armv5te-none-linux-androideabi)
+      when /arm64-v8a/    then flags += %W(-target aarch64-none-linux-android)
+      when /x86_64/       then flags += %W(-target x86_64-none-linux-android)
+      when /x86/          then flags += %W(-target i686-none-linux-android)
+      when /mips64/       then flags += %W(-target mips64el-none-linux-android)
+      when /mips/         then flags += %W(-target mipsel-none-linux-android)
+      end
+    end
+    flags += %W(-no-canonical-prefixes)
+
+    flags
+  end
 end
 
 MRuby::Toolchain.new(:android) do |conf, params|
@@ -246,5 +274,6 @@ MRuby::Toolchain.new(:android) do |conf, params|
 
   conf.archiver.command = android.ar
   conf.linker.command = android.cc
-  conf.linker.flags = []
+  conf.linker.flags = android.ldflags
+  conf.linker.flags_before_libraries = android.ldflags_before_libraries
 end
