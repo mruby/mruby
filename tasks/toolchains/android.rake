@@ -247,7 +247,7 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
     when :clang
       flags += %W(-gcc-toolchain "#{gcc_toolchain_path.to_s}")
       case arch
-      when /armeabi-v7a/  then flags += %W(-target armv7-none-linux-androideabi)
+      when /armeabi-v7a/  then flags += %W(-target armv7-none-linux-androideabi -Wl,--fix-cortex-a8)
       when /armeabi/      then flags += %W(-target armv5te-none-linux-androideabi)
       when /arm64-v8a/    then flags += %W(-target aarch64-none-linux-android)
       when /x86_64/       then flags += %W(-target x86_64-none-linux-android)
