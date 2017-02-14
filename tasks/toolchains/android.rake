@@ -203,31 +203,33 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
   def cflags
     flags = []
 
-    flags += %W(-D__android__ --sysroot="#{sysroot}")
+    flags += %W(-MMD -MP)
+    flags += %W(-D__android__ -DANDROID --sysroot="#{sysroot}")
     case toolchain
     when :gcc
-      flags += %W(-mandroid)
       case arch
-      when /armeabi-v7a/  then flags += %W(-march=armv7-a)
-      when /armeabi/      then flags += %W(-march=armv5te)
-      when /arm64-v8a/    then flags += %W(-march=armv8-a)
+      when /armeabi-v7a/  then flags += %W(-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -fpic)
+      when /armeabi/      then flags += %W(-march=armv5te -mtune=xscale -msoft-float -fpic)
+      when /arm64-v8a/    then flags += %W(-march=armv8-a -fpic)
       when /x86_64/       then flags += %W(-march=x86-64)
       when /x86/          then flags += %W(-march=i686)
-      when /mips64/       then flags += %W(-march=mips64)
-      when /mips/         then flags += %W(-march=mips32)
+      when /mips64/       then flags += %W(-march=mips64r6 -fmessage-length=0 -fpic)
+      when /mips/         then flags += %W(-march=mips32 -fmessage-length=0 -fpic)
       end
     when :clang
       flags += %W(-gcc-toolchain "#{gcc_toolchain_path.to_s}")
       case arch
-      when /armeabi-v7a/  then flags += %W(-target armv7-none-linux-androideabi)
-      when /armeabi/      then flags += %W(-target armv5te-none-linux-androideabi)
-      when /arm64-v8a/    then flags += %W(-target aarch64-none-linux-android)
-      when /x86_64/       then flags += %W(-target x86_64-none-linux-android)
-      when /x86/          then flags += %W(-target i686-none-linux-android)
-      when /mips64/       then flags += %W(-target mips64el-none-linux-android)
-      when /mips/         then flags += %W(-target mipsel-none-linux-android)
+      when /armeabi-v7a/  then flags += %W(-target armv7-none-linux-androideabi -fpic)
+      when /armeabi/      then flags += %W(-target armv5te-none-linux-androideabi -fpic)
+      when /arm64-v8a/    then flags += %W(-target aarch64-none-linux-android -fpic)
+      when /x86_64/       then flags += %W(-target x86_64-none-linux-android -fPIC)
+      when /x86/          then flags += %W(-target i686-none-linux-android -fPIC)
+      when /mips64/       then flags += %W(-target mips64el-none-linux-android -fmessage-length=0 -fpic)
+      when /mips/         then flags += %W(-target mipsel-none-linux-android -fmessage-length=0 -fpic)
       end
+      flags += %W(-Wno-invalid-command-line-argument -Wno-unused-command-line-argument)
     end
+    flags += %W(-ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes)
 
     flags
   end
