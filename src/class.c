@@ -2245,6 +2245,9 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
   return mod;
 }
 
+/* implementation of instance_eval */
+mrb_value mrb_obj_instance_eval(mrb_state*, mrb_value);
+
 void
 mrb_init_class(mrb_state *mrb)
 {
@@ -2287,6 +2290,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, bob, "==",                      mrb_obj_equal_m,          MRB_ARGS_REQ(1)); /* 15.3.1.3.1  */
   mrb_define_method(mrb, bob, "!=",                      mrb_obj_not_equal_m,      MRB_ARGS_REQ(1));
   mrb_define_method(mrb, bob, "__send__",                mrb_f_send,               MRB_ARGS_ANY());  /* 15.3.1.3.4  */
+  mrb_define_method(mrb, bob, "instance_eval",           mrb_obj_instance_eval,    MRB_ARGS_ANY());  /* 15.3.1.3.18 */
 
   mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      MRB_ARGS_OPT(1));
   mrb_define_method(mrb, cls, "superclass",              mrb_class_superclass,     MRB_ARGS_NONE()); /* 15.2.3.3.4 */

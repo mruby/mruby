@@ -489,9 +489,6 @@ mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
 }
 
 
-/* implementation of instance_eval */
-mrb_value mrb_obj_instance_eval(mrb_state*, mrb_value);
-
 MRB_API mrb_bool
 mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c)
 {
@@ -1209,7 +1206,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "hash",                       mrb_obj_hash,                    MRB_ARGS_NONE());    /* 15.3.1.3.15 */
   mrb_define_method(mrb, krn, "initialize_copy",            mrb_obj_init_copy,               MRB_ARGS_REQ(1));    /* 15.3.1.3.16 */
   mrb_define_method(mrb, krn, "inspect",                    mrb_obj_inspect,                 MRB_ARGS_NONE());    /* 15.3.1.3.17 */
-  mrb_define_method(mrb, krn, "instance_eval",              mrb_obj_instance_eval,           MRB_ARGS_ANY());     /* 15.3.1.3.18 */
   mrb_define_method(mrb, krn, "instance_of?",               obj_is_instance_of,              MRB_ARGS_REQ(1));    /* 15.3.1.3.19 */
   mrb_define_method(mrb, krn, "instance_variable_defined?", mrb_obj_ivar_defined,            MRB_ARGS_REQ(1));    /* 15.3.1.3.20 */
   mrb_define_method(mrb, krn, "instance_variable_get",      mrb_obj_ivar_get,                MRB_ARGS_REQ(1));    /* 15.3.1.3.21 */
