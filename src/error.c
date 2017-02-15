@@ -202,12 +202,9 @@ exc_get_backtrace(mrb_state *mrb, mrb_value exc)
   return backtrace;
 }
 
-static mrb_value
-exc_set_backtrace(mrb_state *mrb, mrb_value exc)
+static void
+set_backtrace(mrb_state *mrb, mrb_value exc, mrb_value backtrace)
 {
-  mrb_value backtrace;
-
-  mrb_get_args(mrb, "o", &backtrace);
   if (!mrb_array_p(backtrace)) {
   type_err:
     mrb_raise(mrb, E_TYPE_ERROR, "backtrace must be Array of String");
@@ -222,7 +219,15 @@ exc_set_backtrace(mrb_state *mrb, mrb_value exc)
     }
   }
   mrb_iv_set(mrb, exc, mrb_intern_lit(mrb, "backtrace"), backtrace);
+}
 
+static mrb_value
+exc_set_backtrace(mrb_state *mrb, mrb_value exc)
+{
+  mrb_value backtrace;
+
+  mrb_get_args(mrb, "o", &backtrace);
+  set_backtrace(mrb, exc, backtrace);
   return backtrace;
 }
 
@@ -251,12 +256,6 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
     pc = ci->pc;
     ci--;
   }
-}
-
-static void
-set_backtrace(mrb_state *mrb, mrb_value info, mrb_value bt)
-{
-  mrb_funcall(mrb, info, "set_backtrace", 1, bt);
 }
 
 static mrb_bool
