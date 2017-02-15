@@ -1196,7 +1196,6 @@ mrb_init_kernel(mrb_state *mrb)
 
   mrb_define_method(mrb, krn, "===",                        mrb_equal_m,                     MRB_ARGS_REQ(1));    /* 15.3.1.3.2  */
   mrb_define_method(mrb, krn, "__id__",                     mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.3  */
-  mrb_define_method(mrb, krn, "__send__",                   mrb_f_send,                      MRB_ARGS_ANY());     /* 15.3.1.3.4  */
   mrb_define_method(mrb, krn, "block_given?",               mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.6  */
   mrb_define_method(mrb, krn, "class",                      mrb_obj_class_m,                 MRB_ARGS_NONE());    /* 15.3.1.3.7  */
   mrb_define_method(mrb, krn, "clone",                      mrb_obj_clone,                   MRB_ARGS_NONE());    /* 15.3.1.3.8  */
