@@ -40,6 +40,11 @@ void abort(void);
 #define MRB_STACK_GROWTH 128
 #endif
 
+/* Maximum mrb_funcall() depth. Should be set lower on memory constrained systems. */
+#ifndef MRB_FUNCALL_DEPTH_MAX
+#define MRB_FUNCALL_DEPTH_MAX 512
+#endif
+
 /* Maximum stack depth. Should be set lower on memory constrained systems.
 The value below allows about 60000 recursive calls in the simplest case. */
 #ifndef MRB_STACK_MAX
@@ -385,6 +390,9 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       }
       undef = mid;
       argc++;
+    }
+    if (mrb->c->ci - mrb->c->cibase > MRB_FUNCALL_DEPTH_MAX) {
+      mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
     }
     ci = cipush(mrb);
     ci->mid = mid;
