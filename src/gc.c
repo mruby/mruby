@@ -865,6 +865,7 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
   }
   /* mark pre-allocated exception */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->nomem_err);
+  mrb_gc_mark(mrb, (struct RBasic*)mrb->stack_err);
 #ifdef MRB_GC_FIXED_ARENA
   mrb_gc_mark(mrb, (struct RBasic*)mrb->arena_err);
 #endif

@@ -532,7 +532,7 @@ mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt,
 void
 mrb_init_exception(mrb_state *mrb)
 {
-  struct RClass *exception, *runtime_error, *script_error;
+  struct RClass *exception, *runtime_error, *script_error, *stack_error;
 
   mrb->eException_class = exception = mrb_define_class(mrb, "Exception", mrb->object_class); /* 15.2.22 */
   MRB_SET_INSTANCE_TT(exception, MRB_TT_EXCEPTION);
@@ -553,5 +553,6 @@ mrb_init_exception(mrb_state *mrb)
 #endif
   script_error = mrb_define_class(mrb, "ScriptError", mrb->eException_class);                /* 15.2.37 */
   mrb_define_class(mrb, "SyntaxError", script_error);                                        /* 15.2.38 */
-  mrb_define_class(mrb, "SystemStackError", exception);
+  stack_error = mrb_define_class(mrb, "SystemStackError", exception);
+  mrb->stack_err = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, stack_error, "stack level too deep"));
 }

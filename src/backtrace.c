@@ -263,7 +263,7 @@ mrb_print_backtrace(mrb_state *mrb)
 {
   mrb_value backtrace;
 
-  if (!mrb->exc || mrb_obj_is_kind_of(mrb, mrb_obj_value(mrb->exc), E_SYSSTACK_ERROR)) {
+  if (!mrb->exc) {
     return;
   }
 

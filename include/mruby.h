@@ -221,6 +221,7 @@ typedef struct mrb_state {
   struct RClass *eException_class;
   struct RClass *eStandardError_class;
   struct RObject *nomem_err;              /* pre-allocated NoMemoryError */
+  struct RObject *stack_err;              /* pre-allocated SysStackError */
 #ifdef MRB_GC_FIXED_ARENA
   struct RObject *arena_err;              /* pre-allocated arena overfow error */
 #endif
@@ -1110,7 +1111,6 @@ MRB_API void mrb_print_error(mrb_state *mrb);
 #define E_SYNTAX_ERROR              (mrb_exc_get(mrb, "SyntaxError"))
 #define E_LOCALJUMP_ERROR           (mrb_exc_get(mrb, "LocalJumpError"))
 #define E_REGEXP_ERROR              (mrb_exc_get(mrb, "RegexpError"))
-#define E_SYSSTACK_ERROR            (mrb_exc_get(mrb, "SystemStackError"))
 
 #define E_NOTIMP_ERROR              (mrb_exc_get(mrb, "NotImplementedError"))
 #define E_FLOATDOMAIN_ERROR         (mrb_exc_get(mrb, "FloatDomainError"))
