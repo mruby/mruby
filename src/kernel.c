@@ -963,6 +963,77 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
   return val;
 }
 
+void
+mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args)
+{
+  mrb_sym inspect;
+  mrb_value repr;
+
+  inspect = mrb_intern_lit(mrb, "inspect");
+  if (mrb->c->ci > mrb->c->cibase && mrb->c->ci[-1].mid == inspect) {
+    /* method missing in inspect; avoid recursion */
+    repr = mrb_any_to_s(mrb, self);
+  }
+  else if (mrb_respond_to(mrb, self, inspect) && mrb->c->ci - mrb->c->cibase < 64) {
+    repr = mrb_funcall_argv(mrb, self, inspect, 0, 0);
+    if (mrb_string_p(repr) && RSTRING_LEN(repr) > 64) {
+      repr = mrb_any_to_s(mrb, self);
+    }
+  }
+  else {
+    repr = mrb_any_to_s(mrb, self);
+  }
+
+  mrb_no_method_error(mrb, name, args, "undefined method '%S' for %S",
+                      mrb_sym2str(mrb, name), repr);
+}
+
+/* 15.3.1.3.30 */
+/*
+ *  call-seq:
+ *     obj.method_missing(symbol [, *args] )   -> result
+ *
+ *  Invoked by Ruby when <i>obj</i> is sent a message it cannot handle.
+ *  <i>symbol</i> is the symbol for the method called, and <i>args</i>
+ *  are any arguments that were passed to it. By default, the interpreter
+ *  raises an error when this method is called. However, it is possible
+ *  to override the method to provide more dynamic behavior.
+ *  If it is decided that a particular method should not be handled, then
+ *  <i>super</i> should be called, so that ancestors can pick up the
+ *  missing method.
+ *  The example below creates
+ *  a class <code>Roman</code>, which responds to methods with names
+ *  consisting of roman numerals, returning the corresponding integer
+ *  values.
+ *
+ *     class Roman
+ *       def romanToInt(str)
+ *         # ...
+ *       end
+ *       def method_missing(methId)
+ *         str = methId.id2name
+ *         romanToInt(str)
+ *       end
+ *     end
+ *
+ *     r = Roman.new
+ *     r.iv      #=> 4
+ *     r.xxiii   #=> 23
+ *     r.mm      #=> 2000
+ */
+static mrb_value
+mrb_obj_missing(mrb_state *mrb, mrb_value mod)
+{
+  mrb_sym name;
+  mrb_value *a;
+  mrb_int alen;
+
+  mrb_get_args(mrb, "n*", &name, &a, &alen);
+  mrb_method_missing(mrb, name, mod, mrb_ary_new_from_values(mrb, alen, a));
+  /* not reached */
+  return mrb_nil_value();
+}
+
 static inline mrb_bool
 basic_obj_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym id, int pub)
 {
@@ -1199,6 +1270,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "iterator?",                  mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.25 */
   mrb_define_method(mrb, krn, "kind_of?",                   mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.26 */
   mrb_define_method(mrb, krn, "local_variables",            mrb_local_variables,             MRB_ARGS_NONE());    /* 15.3.1.3.28 */
+  mrb_define_method(mrb, krn, "method_missing",             mrb_obj_missing,                 MRB_ARGS_ANY());     /* 15.3.1.3.30 */
   mrb_define_method(mrb, krn, "methods",                    mrb_obj_methods_m,               MRB_ARGS_OPT(1));    /* 15.3.1.3.31 */
   mrb_define_method(mrb, krn, "nil?",                       mrb_false,                       MRB_ARGS_NONE());    /* 15.3.1.3.32 */
   mrb_define_method(mrb, krn, "object_id",                  mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.33 */

@@ -21,20 +21,20 @@ assert('NoMethodError#args', '15.2.32.2.1') do
   end
 end
 
-assert('Can still raise when BasicObject#method_missing is removed') do
+assert('Can still raise when Kernel#method_missing is removed') do
   assert_raise(NoMethodError) do
     begin
-      BasicObject.alias_method(:old_method_missing, :method_missing)
-      BasicObject.remove_method(:method_missing)
+      Kernel.alias_method(:old_method_missing, :method_missing)
+      Kernel.remove_method(:method_missing)
       1.__send__(:foo)
     ensure
-      BasicObject.alias_method(:method_missing, :old_method_missing)
-      BasicObject.remove_method(:old_method_missing)
+      Kernel.alias_method(:method_missing, :old_method_missing)
+      Kernel.remove_method(:old_method_missing)
     end
   end
 end
 
-assert('Can still call super when BasicObject#method_missing is removed') do
+assert('Can still call super when Kernel#method_missing is removed') do
   assert_raise(NoMethodError) do
     class A
       def foo
@@ -42,12 +42,12 @@ assert('Can still call super when BasicObject#method_missing is removed') do
       end
     end
     begin
-      BasicObject.alias_method(:old_method_missing, :method_missing)
-      BasicObject.remove_method(:method_missing)
+      Kernel.alias_method(:old_method_missing, :method_missing)
+      Kernel.remove_method(:method_missing)
       A.new.foo
     ensure
-      BasicObject.alias_method(:method_missing, :old_method_missing)
-      BasicObject.remove_method(:old_method_missing)
+      Kernel.alias_method(:method_missing, :old_method_missing)
+      Kernel.remove_method(:old_method_missing)
     end
   end
 end
