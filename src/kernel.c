@@ -101,7 +101,7 @@ mrb_equal_m(mrb_state *mrb, mrb_value self)
  *  <code>:name</code> notation, which returns the symbol id of
  *  <code>name</code>. Replaces the deprecated <code>Object#id</code>.
  */
-static mrb_value
+mrb_value
 mrb_obj_id_m(mrb_state *mrb, mrb_value self)
 {
   return mrb_fixnum_value(mrb_obj_id(self));
@@ -1192,7 +1192,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "singleton_class",            mrb_singleton_class,             MRB_ARGS_NONE());
 
   mrb_define_method(mrb, krn, "===",                        mrb_equal_m,                     MRB_ARGS_REQ(1));    /* 15.3.1.3.2  */
-  mrb_define_method(mrb, krn, "__id__",                     mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.3  */
   mrb_define_method(mrb, krn, "block_given?",               mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.6  */
   mrb_define_method(mrb, krn, "class",                      mrb_obj_class_m,                 MRB_ARGS_NONE());    /* 15.3.1.3.7  */
   mrb_define_method(mrb, krn, "clone",                      mrb_obj_clone,                   MRB_ARGS_NONE());    /* 15.3.1.3.8  */
