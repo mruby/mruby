@@ -96,7 +96,7 @@ mrb_mruby_object_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, n, "to_f", nil_to_f,       MRB_ARGS_NONE());
   mrb_define_method(mrb, n, "to_i", nil_to_i,       MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, mrb->object_class, "instance_exec", mrb_obj_instance_exec, MRB_ARGS_ANY() | MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, mrb->kernel_module, "instance_exec", mrb_obj_instance_exec, MRB_ARGS_ANY() | MRB_ARGS_BLOCK());
 }
 
 void
