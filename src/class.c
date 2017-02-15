@@ -240,12 +240,22 @@ mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
   return mrb_define_class_id(mrb, mrb_intern_cstr(mrb, name), super);
 }
 
+static mrb_value mrb_bob_init(mrb_state *mrb, mrb_value cv);
+
 static void
 mrb_class_inherited(mrb_state *mrb, struct RClass *super, struct RClass *klass)
 {
+  mrb_value s;
+  mrb_sym mid;
+
   if (!super)
     super = mrb->object_class;
-  mrb_funcall(mrb, mrb_obj_value(super), "inherited", 1, mrb_obj_value(klass));
+  s = mrb_obj_value(super);
+  mid = mrb_intern_lit(mrb, "inherited");
+  if (!mrb_func_basic_p(mrb, s, mid, mrb_bob_init)) {
+    mrb_value c = mrb_obj_value(klass);
+    mrb_funcall_argv(mrb, mrb_obj_value(super), mid, 1, &c);
+  }
 }
 
 MRB_API struct RClass*
@@ -1407,10 +1417,13 @@ MRB_API mrb_value
 mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv)
 {
   mrb_value obj;
+  mrb_sym mid;
 
   obj = mrb_instance_alloc(mrb, mrb_obj_value(c));
-  mrb_funcall_argv(mrb, obj, mrb_intern_lit(mrb, "initialize"), argc, argv);
-
+  mid = mrb_intern_lit(mrb, "initialize");
+  if (!mrb_func_basic_p(mrb, obj, mid, mrb_bob_init)) {
+    mrb_funcall_argv(mrb, obj, mid, argc, argv);
+  }
   return obj;
 }
 
@@ -1432,13 +1445,17 @@ mrb_class_new_class(mrb_state *mrb, mrb_value cv)
   mrb_int n;
   mrb_value super, blk;
   mrb_value new_class;
+  mrb_sym mid;
 
   n = mrb_get_args(mrb, "|C&", &super, &blk);
   if (n == 0) {
     super = mrb_obj_value(mrb->object_class);
   }
   new_class = mrb_obj_value(mrb_class_new(mrb, mrb_class_ptr(super)));
-  mrb_funcall_with_block(mrb, new_class, mrb_intern_lit(mrb, "initialize"), n, &super, blk);
+  mid = mrb_intern_lit(mrb, "initialize");
+  if (!mrb_func_basic_p(mrb, new_class, mid, mrb_bob_init)) {
+    mrb_funcall_with_block(mrb, new_class, mid, n, &super, blk);
+  }
   mrb_class_inherited(mrb, mrb_class_ptr(super), mrb_class_ptr(new_class));
   return new_class;
 }
