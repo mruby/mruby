@@ -66,55 +66,6 @@ mrb_obj_inspect(mrb_state *mrb, mrb_value obj)
   return mrb_any_to_s(mrb, obj);
 }
 
-/* 15.3.1.3.1  */
-/* 15.3.1.3.10 */
-/* 15.3.1.3.11 */
-/*
- *  call-seq:
- *     obj == other        -> true or false
- *     obj.equal?(other)   -> true or false
- *     obj.eql?(other)     -> true or false
- *
- *  Equality---At the <code>Object</code> level, <code>==</code> returns
- *  <code>true</code> only if <i>obj</i> and <i>other</i> are the
- *  same object. Typically, this method is overridden in descendant
- *  classes to provide class-specific meaning.
- *
- *  Unlike <code>==</code>, the <code>equal?</code> method should never be
- *  overridden by subclasses: it is used to determine object identity
- *  (that is, <code>a.equal?(b)</code> iff <code>a</code> is the same
- *  object as <code>b</code>).
- *
- *  The <code>eql?</code> method returns <code>true</code> if
- *  <i>obj</i> and <i>anObject</i> have the same value. Used by
- *  <code>Hash</code> to test members for equality.  For objects of
- *  class <code>Object</code>, <code>eql?</code> is synonymous with
- *  <code>==</code>. Subclasses normally continue this tradition, but
- *  there are exceptions. <code>Numeric</code> types, for example,
- *  perform type conversion across <code>==</code>, but not across
- *  <code>eql?</code>, so:
- *
- *     1 == 1.0     #=> true
- *     1.eql? 1.0   #=> false
- */
-static mrb_value
-mrb_obj_equal_m(mrb_state *mrb, mrb_value self)
-{
-  mrb_value arg;
-
-  mrb_get_args(mrb, "o", &arg);
-  return mrb_bool_value(mrb_obj_equal(mrb, self, arg));
-}
-
-static mrb_value
-mrb_obj_not_equal_m(mrb_state *mrb, mrb_value self)
-{
-  mrb_value arg;
-
-  mrb_get_args(mrb, "o", &arg);
-  return mrb_bool_value(!mrb_equal(mrb, self, arg));
-}
-
 /* 15.3.1.3.2  */
 /*
  *  call-seq:
@@ -1227,6 +1178,7 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
   return mrb_hash_keys(mrb, vars);
 }
 
+mrb_value mrb_obj_equal_m(mrb_state *mrb, mrb_value);
 void
 mrb_init_kernel(mrb_state *mrb)
 {
@@ -1242,8 +1194,6 @@ mrb_init_kernel(mrb_state *mrb)
 
   mrb_define_method(mrb, krn, "singleton_class",            mrb_singleton_class,             MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, krn, "==",                         mrb_obj_equal_m,                 MRB_ARGS_REQ(1));    /* 15.3.1.3.1  */
-  mrb_define_method(mrb, krn, "!=",                         mrb_obj_not_equal_m,             MRB_ARGS_REQ(1));
   mrb_define_method(mrb, krn, "===",                        mrb_equal_m,                     MRB_ARGS_REQ(1));    /* 15.3.1.3.2  */
   mrb_define_method(mrb, krn, "__id__",                     mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.3  */
   mrb_define_method(mrb, krn, "__send__",                   mrb_f_send,                      MRB_ARGS_ANY());     /* 15.3.1.3.4  */
