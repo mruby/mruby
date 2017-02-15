@@ -167,6 +167,7 @@ mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
+  mrb_sym mid;
 
   if (h) {
     k = kh_get(ht, mrb, h, key);
@@ -174,11 +175,12 @@ mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
       return kh_value(h, k).v;
   }
 
-  if (mrb_func_basic_p(mrb, hash, mrb_intern_lit(mrb, "default"), mrb_hash_default)) {
+  mid = mrb_intern_lit(mrb, "default");
+  if (mrb_func_basic_p(mrb, hash, mid, mrb_hash_default)) {
     return hash_default(mrb, hash, key);
   }
   /* xxx mrb_funcall_tailcall(mrb, hash, "default", 1, key); */
-  return mrb_funcall(mrb, hash, "default", 1, key);
+  return mrb_funcall_argv(mrb, hash, mid, 1, &key);
 }
 
 MRB_API mrb_value
