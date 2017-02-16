@@ -124,6 +124,8 @@ mrb_random_init(mrb_state *mrb, mrb_value self)
   mrb_value seed;
   mt_state *t;
 
+  seed = get_opt(mrb);
+
   /* avoid memory leaks */
   t = (mt_state*)DATA_PTR(self);
   if (t) {
@@ -134,7 +136,6 @@ mrb_random_init(mrb_state *mrb, mrb_value self)
   t = (mt_state *)mrb_malloc(mrb, sizeof(mt_state));
   t->mti = N + 1;
 
-  seed = get_opt(mrb);
   seed = mrb_random_mt_srand(mrb, t, seed);
   if (mrb_nil_p(seed)) {
     t->has_seed = FALSE;
@@ -266,7 +267,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
   mrb_int n = 0;
   mrb_bool given;
   mt_state *random = NULL;
-  mrb_int len = RARRAY_LEN(ary);
+  mrb_int len;
 
   mrb_get_args(mrb, "|i?d", &n, &given, &random, &mt_state_type);
   if (random == NULL) {
@@ -274,6 +275,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
   }
   mrb_random_rand_seed(mrb, random);
   mt_rand(random);
+  len = RARRAY_LEN(ary);
   if (!given) {                 /* pick one element */
     switch (len) {
     case 0:

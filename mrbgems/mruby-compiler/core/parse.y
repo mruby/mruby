@@ -41,6 +41,7 @@ static void yyerror(parser_state *p, const char *s);
 static void yywarn(parser_state *p, const char *s);
 static void yywarning(parser_state *p, const char *s);
 static void backref_error(parser_state *p, node *n);
+static void void_expr_error(parser_state *p, node *n);
 static void tokadd(parser_state *p, int32_t c);
 
 #define identchar(c) (ISALNUM(c) || (c) == '_' || !ISASCII(c))
@@ -870,6 +871,7 @@ call_with_block(parser_state *p, node *a, node *b)
     break;
   case NODE_CALL:
   case NODE_FCALL:
+  case NODE_SCALL:
     n = a->cdr->cdr->cdr;
     if (!n->car) n->car = cons(0, b);
     else {
@@ -1097,7 +1099,7 @@ heredoc_end(parser_state *p)
 %type <nd> literal numeric cpath symbol
 %type <nd> top_compstmt top_stmts top_stmt
 %type <nd> bodystmt compstmt stmts stmt expr arg primary command command_call method_call
-%type <nd> expr_value arg_value arg_rhs primary_value
+%type <nd> expr_value arg_rhs primary_value
 %type <nd> if_tail opt_else case_body cases opt_rescue exc_list exc_var opt_ensure
 %type <nd> args call_args opt_call_args
 %type <nd> paren_args opt_paren_args variable
@@ -1322,7 +1324,7 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     {
                       $$ = new_asgn(p, $1, new_array(p, $3));
                     }
-                | mlhs '=' arg_value
+                | mlhs '=' arg
                     {
                       $$ = new_masgn(p, $1, $3);
                     }
@@ -1401,7 +1403,10 @@ expr            : command_call
 expr_value      : expr
                     {
                       if (!$1) $$ = new_nil(p);
-                      else $$ = $1;
+                      else {
+                        void_expr_error(p, $1);
+                        $$ = $1;
+                      }
                     }
                 ;
 
@@ -1907,20 +1912,13 @@ arg             : lhs '=' arg_rhs
                     }
                 ;
 
-arg_value       : arg
-                    {
-                      $$ = $1;
-                      if (!$$) $$ = new_nil(p);
-                    }
-                ;
-
 aref_args       : none
                 | args trailer
                     {
                       $$ = $1;
                       NODE_LINENO($$, $1);
                     }
-                | args ',' assocs trailer
+                | args comma assocs trailer
                     {
                       $$ = push($1, new_hash(p, $3));
                     }
@@ -1931,9 +1929,14 @@ aref_args       : none
                     }
                 ;
 
-arg_rhs         : arg   %prec tOP_ASGN
+arg_rhs         : arg %prec tOP_ASGN
+                    {
+                      void_expr_error(p, $1);
+                      $$ = $1;
+                    }
                 | arg modifier_rescue arg
                     {
+                      void_expr_error(p, $1);
                       $$ = new_mod_rescue(p, $1, $3);
                     }
                 ;
@@ -1955,7 +1958,7 @@ opt_call_args   : none
                       $$ = cons($1,0);
                       NODE_LINENO($$, $1);
                     }
-                | args ',' assocs ','
+                | args comma assocs ','
                     {
                       $$ = cons(push($1, new_hash(p, $3)), 0);
                       NODE_LINENO($$, $1);
@@ -1982,7 +1985,7 @@ call_args       : command
                       $$ = cons(list1(new_hash(p, $1)), $2);
                       NODE_LINENO($$, $1);
                     }
-                | args ',' assocs opt_block_arg
+                | args comma assocs opt_block_arg
                     {
                       $$ = cons(push($1, new_hash(p, $3)), $4);
                       NODE_LINENO($$, $1);
@@ -2005,13 +2008,13 @@ command_args    :  {
                     }
                 ;
 
-block_arg       : tAMPER arg_value
+block_arg       : tAMPER arg
                     {
                       $$ = new_block_arg(p, $2);
                     }
                 ;
 
-opt_block_arg   : ',' block_arg
+opt_block_arg   : comma block_arg
                     {
                       $$ = $2;
                     }
@@ -2021,44 +2024,47 @@ opt_block_arg   : ',' block_arg
                     }
                 ;
 
-args            : arg_value
+comma           : ','
+                | ','  heredoc_bodies
+                ;
+
+args            : arg
                     {
+                      void_expr_error(p, $1);
                       $$ = cons($1, 0);
                       NODE_LINENO($$, $1);
                     }
-                | tSTAR arg_value
+                | tSTAR arg
                     {
+                      void_expr_error(p, $2);
                       $$ = cons(new_splat(p, $2), 0);
                       NODE_LINENO($$, $2);
                     }
-                | args ',' arg_value
+                | args comma arg
                     {
+                      void_expr_error(p, $3);
                       $$ = push($1, $3);
                     }
-                | args ',' tSTAR arg_value
+                | args comma tSTAR arg
                     {
+                      void_expr_error(p, $4);
                       $$ = push($1, new_splat(p, $4));
-                    }
-                | args ',' heredoc_bodies arg_value
-                    {
-                      $$ = push($1, $4);
-                    }
-                | args ',' heredoc_bodies tSTAR arg_value
-                    {
-                      $$ = push($1, new_splat(p, $5));
                     }
                 ;
 
-mrhs            : args ',' arg_value
+mrhs            : args comma arg
                     {
+                      void_expr_error(p, $3);
                       $$ = push($1, $3);
                     }
-                | args ',' tSTAR arg_value
+                | args comma tSTAR arg
                     {
+                      void_expr_error(p, $4);
                       $$ = push($1, new_splat(p, $4));
                     }
-                | tSTAR arg_value
+                | tSTAR arg
                     {
+                      void_expr_error(p, $2);
                       $$ = list1(new_splat(p, $2));
                     }
                 ;
@@ -2097,7 +2103,7 @@ primary         : literal
                     }
                 | tLPAREN_ARG {p->lstate = EXPR_ENDARG;} rparen
                     {
-                      $$ = 0;
+                      $$ = new_nil(p);
                     }
                 | tLPAREN compstmt ')'
                     {
@@ -2125,17 +2131,9 @@ primary         : literal
                     {
                       $$ = new_return(p, 0);
                     }
-                | keyword_yield '(' call_args rparen
+                | keyword_yield opt_paren_args
                     {
-                      $$ = new_yield(p, $3);
-                    }
-                | keyword_yield '(' rparen
-                    {
-                      $$ = new_yield(p, 0);
-                    }
-                | keyword_yield
-                    {
-                      $$ = new_yield(p, 0);
+                      $$ = new_yield(p, $2);
                     }
                 | keyword_not '(' expr rparen
                     {
@@ -2450,7 +2448,7 @@ block_param     : f_arg ',' f_block_optarg ',' f_rest_arg opt_f_block_arg
                     }
                 | f_arg ','
                     {
-                      $$ = new_args(p, $1, 0, 1, 0, 0);
+                      $$ = new_args(p, $1, 0, 0, 0, 0);
                     }
                 | f_arg ',' f_rest_arg ',' f_arg opt_f_block_arg
                     {
@@ -2688,7 +2686,7 @@ opt_rescue      : keyword_rescue exc_list exc_var then
                 | none
                 ;
 
-exc_list        : arg_value
+exc_list        : arg
                     {
                         $$ = list1($1);
                     }
@@ -2782,10 +2780,6 @@ regexp          : tREGEXP_BEG tREGEXP
 
 heredoc         : tHEREDOC_BEG
                 ;
-
-opt_heredoc_bodies : /* none */
-                   | heredoc_bodies
-                   ;
 
 heredoc_bodies  : heredoc_body
                 | heredoc_bodies heredoc_body
@@ -3115,7 +3109,7 @@ f_opt_asgn      : tIDENTIFIER '='
                     }
                 ;
 
-f_opt           : f_opt_asgn arg_value
+f_opt           : f_opt_asgn arg
                     {
                       $$ = cons(nsym($1), $2);
                     }
@@ -3233,23 +3227,23 @@ assocs          : assoc
                     }
                 ;
 
-assoc           : arg_value tASSOC arg_value
+assoc           : arg tASSOC arg
                     {
                       $$ = cons($1, $3);
                     }
-                | tLABEL arg_value
+                | tLABEL arg
                     {
                       $$ = cons(new_sym(p, $1), $2);
                     }
-                | tLABEL_END arg_value
+                | tLABEL_END arg
                     {
                       $$ = cons(new_sym(p, new_strsym(p, $1)), $2);
                     }
-                | tSTRING_BEG tLABEL_END arg_value
+                | tSTRING_BEG tLABEL_END arg
                     {
                       $$ = cons(new_sym(p, new_strsym(p, $2)), $3);
                     }
-                | tSTRING_BEG string_rep tLABEL_END arg_value
+                | tSTRING_BEG string_rep tLABEL_END arg
                     {
                       $$ = cons(new_dsym(p, push($2, $3)), $4);
                     }
@@ -3308,11 +3302,12 @@ rbracket        : opt_nl ']'
 
 trailer         : /* none */
                 | nl
-                | ','
+                | comma
                 ;
 
 term            : ';' {yyerrok;}
                 | nl
+                | heredoc_body
                 ;
 
 nl              : '\n'
@@ -3320,10 +3315,10 @@ nl              : '\n'
                       p->lineno++;
                       p->column = 0;
                     }
-                  opt_heredoc_bodies
+                ;
 
 terms           : term
-                | terms ';' {yyerrok;}
+                | terms term
                 ;
 
 none            : /* none */
@@ -3427,6 +3422,26 @@ backref_error(parser_state *p, node *n)
   }
   else {
     mrb_bug(p->mrb, "Internal error in backref_error() : n=>car == %S", mrb_fixnum_value(c));
+  }
+}
+
+static void
+void_expr_error(parser_state *p, node *n)
+{
+  int c;
+
+  if (n == NULL) return;
+  c = (int)(intptr_t)n->car;
+  switch (c) {
+  case NODE_BREAK:
+  case NODE_RETURN:
+  case NODE_NEXT:
+  case NODE_REDO:
+  case NODE_RETRY:
+    yyerror(p, "void value expression");
+    break;
+  default:
+    break;
   }
 }
 
@@ -3730,6 +3745,44 @@ scan_hex(const int *start, int len, int *retlen)
   return retval;
 }
 
+static int32_t
+read_escape_unicode(parser_state *p, int limit)
+{
+  int32_t c;
+  int buf[9];
+  int i;
+
+  /* Look for opening brace */
+  i = 0;
+  buf[0] = nextc(p);
+  if (buf[0] < 0) goto eof;
+  if (ISXDIGIT(buf[0])) {
+    /* \uxxxx form */
+    for (i=1; i<limit; i++) {
+      buf[i] = nextc(p);
+      if (buf[i] < 0) goto eof;
+      if (!ISXDIGIT(buf[i])) {
+        pushback(p, buf[i]);
+        break;
+      }
+    }
+  }
+  else {
+    pushback(p, buf[0]);
+  }
+  c = scan_hex(buf, i, &i);
+  if (i == 0) {
+  eof:
+    yyerror(p, "Invalid escape character syntax");
+    return -1;
+  }
+  if (c < 0 || c > 0x10FFFF || (c & 0xFFFFF800) == 0xD800) {
+    yyerror(p, "Invalid Unicode code point");
+    return -1;
+  }
+  return c;
+}
+
 /* Return negative to indicate Unicode code point */
 static int32_t
 read_escape(parser_state *p)
@@ -3802,53 +3855,17 @@ read_escape(parser_state *p)
   return c;
 
   case 'u':     /* Unicode */
-  {
-    int buf[9];
-    int i;
-
-    /* Look for opening brace */
-    i = 0;
-    buf[0] = nextc(p);
-    if (buf[0] < 0) goto eof;
-    if (buf[0] == '{') {
+    if (peek(p, '{')) {
       /* \u{xxxxxxxx} form */
-      for (i=0; i<9; i++) {
-        buf[i] = nextc(p);
-        if (buf[i] < 0) goto eof;
-        if (buf[i] == '}') {
-          break;
-        }
-        else if (!ISXDIGIT(buf[i])) {
-          yyerror(p, "Invalid escape character syntax");
-          pushback(p, buf[i]);
-          return 0;
-        }
-      }
-    }
-    else if (ISXDIGIT(buf[0])) {
-      /* \uxxxx form */
-      for (i=1; i<4; i++) {
-        buf[i] = nextc(p);
-        if (buf[i] < 0) goto eof;
-        if (!ISXDIGIT(buf[i])) {
-          pushback(p, buf[i]);
-          break;
-        }
-      }
+      nextc(p);
+      c = read_escape_unicode(p, 8);
+      if (c < 0) return 0;
+      if (nextc(p) != '}') goto eof;
     }
     else {
-      pushback(p, buf[0]);
+      c = read_escape_unicode(p, 4);
+      if (c < 0) return 0;
     }
-    c = scan_hex(buf, i, &i);
-    if (i == 0) {
-      yyerror(p, "Invalid escape character syntax");
-      return 0;
-    }
-    if (c < 0 || c > 0x10FFFF || (c & 0xFFFFF800) == 0xD800) {
-      yyerror(p, "Invalid Unicode code point");
-      return 0;
-    }
-  }
   return -c;
 
   case 'b':/* backspace */
@@ -3906,7 +3923,10 @@ parse_string(parser_state *p)
   int beg = (intptr_t)p->lex_strterm->cdr->cdr->car;
   int end = (intptr_t)p->lex_strterm->cdr->cdr->cdr;
   parser_heredoc_info *hinf = (type & STR_FUNC_HEREDOC) ? parsing_heredoc_inf(p) : NULL;
+  int cmd_state = p->cmd_start;
 
+  if (beg == 0) beg = -3;       /* should never happen */
+  if (end == 0) end = -3;
   newtok(p);
   while ((c = nextc(p)) != end || nest_level != 0) {
     if (hinf && (c == '\n' || c < 0)) {
@@ -3928,7 +3948,12 @@ parse_string(parser_state *p)
           }
         }
         if ((len-1 == hinf->term_len) && (strncmp(s, hinf->term, len-1) == 0)) {
-          return tHEREDOC_END;
+          if (c < 0) {
+            p->parsing_heredoc = NULL;
+          }
+          else {
+            return tHEREDOC_END;
+          }
         }
       }
       if (c < 0) {
@@ -3968,6 +3993,20 @@ parse_string(parser_state *p)
         else if (type & STR_FUNC_REGEXP) {
           tokadd(p, '\\');
           tokadd(p, c);
+        }
+        else if (c == 'u' && peek(p, '{')) {
+          /* \u{xxxx xxxx xxxx} form */
+          nextc(p);
+          while (1) {
+            do c = nextc(p); while (ISSPACE(c));
+            if (c == '}') break;
+            pushback(p, c);
+            c = read_escape_unicode(p, 8);
+            if (c < 0) break;
+            tokadd(p, -c);
+          }
+          if (hinf)
+            hinf->line_head = FALSE;
         }
         else {
           pushback(p, c);
@@ -4093,10 +4132,12 @@ parse_string(parser_state *p)
     return tREGEXP;
   }
   yylval.nd = new_str(p, tok(p), toklen(p));
-  if (IS_LABEL_SUFFIX(0)) {
-    p->lstate = EXPR_BEG;
-    nextc(p);
-    return tLABEL_END;
+  if (IS_LABEL_POSSIBLE()) {
+    if (IS_LABEL_SUFFIX(0)) {
+      p->lstate = EXPR_BEG;
+      nextc(p);
+      return tLABEL_END;
+    }
   }
 
   return tSTRING;
@@ -4871,7 +4912,7 @@ parser_yylex(parser_state *p)
       char *endp;
 
       errno = 0;
-      d = strtod(tok(p), &endp);
+      d = mrb_float_read(tok(p), &endp);
       if (d == 0 && endp == tok(p)) {
         yywarning_s(p, "corrupted float value %s", tok(p));
       }
@@ -5477,7 +5518,10 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
     p->lex_strterm = NULL;
 
     parser_init_cxt(p, c);
-    yyparse(p);
+    if (yyparse(p) != 0 || p->nerr > 0) {
+      p->tree = 0;
+      return;
+    }
     if (!p->tree) {
       p->tree = new_nil(p);
     }
@@ -5657,8 +5701,8 @@ mrb_parse_string(mrb_state *mrb, const char *s, mrbc_context *c)
   return mrb_parse_nstring(mrb, s, strlen(s), c);
 }
 
-static mrb_value
-load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
+MRB_API mrb_value
+mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
 {
   struct RClass *target = mrb->object_class;
   struct RProc *proc;
@@ -5717,7 +5761,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
 MRB_API mrb_value
 mrb_load_file_cxt(mrb_state *mrb, FILE *f, mrbc_context *c)
 {
-  return load_exec(mrb, mrb_parse_file(mrb, f, c), c);
+  return mrb_load_exec(mrb, mrb_parse_file(mrb, f, c), c);
 }
 
 MRB_API mrb_value
@@ -5730,7 +5774,7 @@ mrb_load_file(mrb_state *mrb, FILE *f)
 MRB_API mrb_value
 mrb_load_nstring_cxt(mrb_state *mrb, const char *s, int len, mrbc_context *c)
 {
-  return load_exec(mrb, mrb_parse_nstring(mrb, s, len, c), c);
+  return mrb_load_exec(mrb, mrb_parse_nstring(mrb, s, len, c), c);
 }
 
 MRB_API mrb_value
@@ -6024,7 +6068,17 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_FCALL:
   case NODE_CALL:
-    printf("NODE_CALL:\n");
+  case NODE_SCALL:
+    switch (nodetype) {
+    case NODE_FCALL:
+      printf("NODE_FCALL:\n"); break;
+    case NODE_CALL:
+      printf("NODE_CALL(.):\n"); break;
+    case NODE_SCALL:
+      printf("NODE_SCALL(&.):\n"); break;
+    default:
+      break;
+    }
     mrb_parser_dump(mrb, tree->car, offset+1);
     dump_prefix(tree, offset+1);
     printf("method='%s' (%d)\n",
@@ -6504,8 +6558,8 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_HEREDOC:
-    printf("NODE_HEREDOC:\n");
-    mrb_parser_dump(mrb, ((parser_heredoc_info*)tree)->doc, offset+1);
+    printf("NODE_HEREDOC (<<%s):\n", ((parser_heredoc_info*)tree)->term);
+    dump_recur(mrb, ((parser_heredoc_info*)tree)->doc, offset+1);
     break;
 
   default:

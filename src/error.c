@@ -44,8 +44,10 @@ static mrb_value
 exc_initialize(mrb_state *mrb, mrb_value exc)
 {
   mrb_value mesg;
+  mrb_int argc;
+  mrb_value *argv;
 
-  if (mrb_get_args(mrb, "|o", &mesg) == 1) {
+  if (mrb_get_args(mrb, "|o*", &mesg, &argv, &argc) >= 1) {
     mrb_iv_set(mrb, exc, mrb_intern_lit(mrb, "mesg"), mesg);
   }
   return exc;
@@ -200,14 +202,32 @@ exc_get_backtrace(mrb_state *mrb, mrb_value exc)
   return backtrace;
 }
 
+static void
+set_backtrace(mrb_state *mrb, mrb_value exc, mrb_value backtrace)
+{
+  if (!mrb_array_p(backtrace)) {
+  type_err:
+    mrb_raise(mrb, E_TYPE_ERROR, "backtrace must be Array of String");
+  }
+  else {
+    const mrb_value *p = RARRAY_PTR(backtrace);
+    const mrb_value *pend = p + RARRAY_LEN(backtrace);
+
+    while (p < pend) {
+      if (!mrb_string_p(*p)) goto type_err;
+      p++;
+    }
+  }
+  mrb_iv_set(mrb, exc, mrb_intern_lit(mrb, "backtrace"), backtrace);
+}
+
 static mrb_value
 exc_set_backtrace(mrb_state *mrb, mrb_value exc)
 {
   mrb_value backtrace;
 
   mrb_get_args(mrb, "o", &backtrace);
-  mrb_iv_set(mrb, exc, mrb_intern_lit(mrb, "backtrace"), backtrace);
-
+  set_backtrace(mrb, exc, backtrace);
   return backtrace;
 }
 
@@ -236,12 +256,6 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
     pc = ci->pc;
     ci--;
   }
-}
-
-static void
-set_backtrace(mrb_state *mrb, mrb_value info, mrb_value bt)
-{
-  mrb_funcall(mrb, info, "set_backtrace", 1, bt);
 }
 
 static mrb_bool
@@ -285,6 +299,9 @@ mrb_exc_set(mrb_state *mrb, mrb_value exc)
 MRB_API mrb_noreturn void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
+  if (!mrb_obj_is_kind_of(mrb, exc, mrb->eException_class)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "exception object expected");
+  }
   mrb_exc_set(mrb, exc);
   if (!mrb->gc.out_of_memory) {
     exc_debug_info(mrb, mrb->exc);
@@ -463,7 +480,7 @@ exception_call:
   }
   if (argc > 0) {
     if (!mrb_obj_is_kind_of(mrb, mesg, mrb->eException_class))
-      mrb_raise(mrb, E_TYPE_ERROR, "exception object expected");
+      mrb_raise(mrb, mrb->eException_class, "exception object expected");
     if (argc > 2)
       set_backtrace(mrb, mesg, argv[2]);
   }
@@ -514,7 +531,7 @@ mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt,
 void
 mrb_init_exception(mrb_state *mrb)
 {
-  struct RClass *exception, *runtime_error, *script_error;
+  struct RClass *exception, *runtime_error, *script_error, *stack_error;
 
   mrb->eException_class = exception = mrb_define_class(mrb, "Exception", mrb->object_class); /* 15.2.22 */
   MRB_SET_INSTANCE_TT(exception, MRB_TT_EXCEPTION);
@@ -530,7 +547,11 @@ mrb_init_exception(mrb_state *mrb)
   mrb->eStandardError_class = mrb_define_class(mrb, "StandardError", mrb->eException_class); /* 15.2.23 */
   runtime_error = mrb_define_class(mrb, "RuntimeError", mrb->eStandardError_class);          /* 15.2.28 */
   mrb->nomem_err = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, runtime_error, "Out of memory"));
+#ifdef MRB_GC_FIXED_ARENA
+  mrb->arena_err = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, runtime_error, "arena overflow error"));
+#endif
   script_error = mrb_define_class(mrb, "ScriptError", mrb->eException_class);                /* 15.2.37 */
   mrb_define_class(mrb, "SyntaxError", script_error);                                        /* 15.2.38 */
-  mrb_define_class(mrb, "SystemStackError", exception);
+  stack_error = mrb_define_class(mrb, "SystemStackError", exception);
+  mrb->stack_err = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, stack_error, "stack level too deep"));
 }

@@ -6,6 +6,7 @@ MRuby::Toolchain.new(:gcc) do |conf, _params|
     cc.option_include_path = '-I%s'
     cc.option_define = '-D%s'
     cc.compile_options = '%{flags} -MMD -o %{outfile} -c %{infile}'
+    cc.cxx_compile_flag = '-x c++ -std=c++03'
   end
 
   [conf.cxx].each do |cxx|
@@ -15,6 +16,7 @@ MRuby::Toolchain.new(:gcc) do |conf, _params|
     cxx.option_include_path = '-I%s'
     cxx.option_define = '-D%s'
     cxx.compile_options = '%{flags} -MMD -o %{outfile} -c %{infile}'
+    cxx.cxx_compile_flag = '-x c++ -std=c++03'
   end
 
   conf.linker do |linker|

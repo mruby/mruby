@@ -140,7 +140,7 @@ mrb_proc_copy(struct RProc *a, struct RProc *b)
 {
   a->flags = b->flags;
   a->body = b->body;
-  if (!MRB_PROC_CFUNC_P(a)) {
+  if (!MRB_PROC_CFUNC_P(a) && a->body.irep) {
     a->body.irep->refcnt++;
   }
   a->target_class = b->target_class;
@@ -148,19 +148,22 @@ mrb_proc_copy(struct RProc *a, struct RProc *b)
 }
 
 static mrb_value
-mrb_proc_initialize(mrb_state *mrb, mrb_value self)
+mrb_proc_s_new(mrb_state *mrb, mrb_value proc_class)
 {
   mrb_value blk;
+  mrb_value proc;
+  struct RProc *p;
 
   mrb_get_args(mrb, "&", &blk);
   if (mrb_nil_p(blk)) {
     /* Calling Proc.new without a block is not implemented yet */
     mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Proc object without a block");
   }
-  else {
-    mrb_proc_copy(mrb_proc_ptr(self), mrb_proc_ptr(blk));
-  }
-  return self;
+  p = (struct RProc *)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb_class_ptr(proc_class));
+  mrb_proc_copy(p, mrb_proc_ptr(blk));
+  proc = mrb_obj_value(p);
+  mrb_funcall_with_block(mrb, proc, mrb_intern_lit(mrb, "initialize"), 0, NULL, blk);
+  return proc;
 }
 
 static mrb_value
@@ -188,18 +191,13 @@ mrb_proc_call_cfunc(mrb_state *mrb, struct RProc *p, mrb_value self)
   return (p->body.func)(mrb, self);
 }
 
-mrb_code*
-mrb_proc_iseq(mrb_state *mrb, struct RProc *p)
-{
-  return p->body.irep->iseq;
-}
-
 /* 15.2.17.4.2 */
 static mrb_value
 mrb_proc_arity(mrb_state *mrb, mrb_value self)
 {
   struct RProc *p = mrb_proc_ptr(self);
-  mrb_code *iseq = mrb_proc_iseq(mrb, p);
+  struct mrb_irep *irep;
+  mrb_code *iseq;
   mrb_aspec aspec;
   int ma, op, ra, pa, arity;
 
@@ -208,6 +206,12 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
     return mrb_fixnum_value(-1);
   }
 
+  irep = p->body.irep;
+  if (!irep) {
+    return mrb_fixnum_value(0);
+  }
+
+  iseq = irep->iseq;
   /* arity is depend on OP_ENTER */
   if (GET_OPCODE(*iseq) != OP_ENTER) {
     return mrb_fixnum_value(0);
@@ -267,7 +271,7 @@ mrb_init_proc(mrb_state *mrb)
   call_irep->iseq = call_iseq;
   call_irep->ilen = 1;
 
-  mrb_define_method(mrb, mrb->proc_class, "initialize", mrb_proc_initialize, MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, mrb->proc_class, "new", mrb_proc_s_new, MRB_ARGS_ANY());
   mrb_define_method(mrb, mrb->proc_class, "initialize_copy", mrb_proc_init_copy, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->proc_class, "arity", mrb_proc_arity, MRB_ARGS_NONE());
 

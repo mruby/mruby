@@ -237,6 +237,7 @@ module MiniRake
 
     # Time stamp for file task.
     def timestamp
+      return Time.at(0) unless File.exist?(name)
       stat = File::stat(name.to_s)
       stat.directory? ? Time.at(0) : stat.mtime
     end

@@ -118,6 +118,7 @@ each_backtrace(mrb_state *mrb, mrb_int ciidx, mrb_code *pc0, each_backtrace_func
     if (MRB_PROC_CFUNC_P(ci->proc)) continue;
 
     irep = ci->proc->body.irep;
+    if (!irep) continue;
 
     if (mrb->c->cibase[i].err) {
       pc = mrb->c->cibase[i].err;
@@ -160,7 +161,7 @@ static void
 output_backtrace_i(mrb_state *mrb, struct backtrace_location_raw *loc_raw, void *data)
 {
   struct backtrace_location loc;
-  struct output_backtrace_args *args = data;
+  struct output_backtrace_args *args = (struct output_backtrace_args *)data;
 
   loc.i          = loc_raw->i;
   loc.lineno     = loc_raw->lineno;
@@ -219,7 +220,9 @@ print_backtrace(mrb_state *mrb, mrb_value backtrace)
   for (i = 0; i < n; i++) {
     mrb_value entry = RARRAY_PTR(backtrace)[i];
 
-    fprintf(stream, "\t[%d] %.*s\n", i, (int)RSTRING_LEN(entry), RSTRING_PTR(entry));
+    if (mrb_string_p(entry)) {
+      fprintf(stream, "\t[%d] %.*s\n", i, (int)RSTRING_LEN(entry), RSTRING_PTR(entry));
+    }
   }
 }
 
@@ -260,7 +263,7 @@ mrb_print_backtrace(mrb_state *mrb)
 {
   mrb_value backtrace;
 
-  if (!mrb->exc || mrb_obj_is_kind_of(mrb, mrb_obj_value(mrb->exc), E_SYSSTACK_ERROR)) {
+  if (!mrb->exc) {
     return;
   }
 
@@ -338,7 +341,7 @@ save_backtrace_i(mrb_state *mrb,
     else {
       new_n_allocated = mrb->backtrace.n_allocated * 2;
     }
-    mrb->backtrace.entries =
+    mrb->backtrace.entries = (mrb_backtrace_entry *)
       mrb_realloc(mrb,
                   mrb->backtrace.entries,
                   sizeof(mrb_backtrace_entry) * new_n_allocated);

@@ -1,6 +1,7 @@
 require 'pathname'
 require 'forwardable'
 require 'tsort'
+require 'shellwords'
 
 module MRuby
   module Gem
@@ -89,7 +90,9 @@ module MRuby
         build.libmruby << @objs
 
         instance_eval(&@build_config_initializer) if @build_config_initializer
+      end
 
+      def setup_compilers
         compilers.each do |compiler|
           compiler.define_rules build_dir, "#{dir}"
           compiler.defines << %Q[MRBGEM_#{funcname.upcase}_VERSION=#{version}]
@@ -124,6 +127,21 @@ module MRuby
 
       def test_rbireps
         "#{build_dir}/gem_test.c"
+      end
+
+      def search_package(name, version_query=nil)
+        package_query = name
+        package_query += " #{version_query}" if version_query
+        _pp "PKG-CONFIG", package_query
+        escaped_package_query = Shellwords.escape(package_query)
+        if system("pkg-config --exists #{escaped_package_query}")
+          cc.flags += [`pkg-config --cflags #{escaped_package_query}`.strip]
+          cxx.flags += [`pkg-config --cflags #{escaped_package_query}`.strip]
+          linker.flags_before_libraries += [`pkg-config --libs #{escaped_package_query}`.strip]
+          true
+        else
+          false
+        end
       end
 
       def funcname
@@ -402,6 +420,8 @@ module MRuby
         gem_table = generate_gem_table build
 
         @ary = tsort_dependencies gem_table.keys, gem_table, true
+
+        each(&:setup_compilers)
 
         each do |g|
           import_include_paths(g)

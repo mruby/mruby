@@ -203,7 +203,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     }
     if (mrb_const_defined_at(mrb, mrb_obj_value(klass), id)) {
       mrb_warn(mrb, "redefining constant Struct::%S", name);
-      /* ?rb_mod_remove_const(klass, mrb_sym2name(mrb, id)); */
+      mrb_const_remove(mrb, mrb_obj_value(klass), id);
     }
     c = mrb_define_class_under(mrb, klass, RSTRING_PTR(name), klass);
   }
@@ -273,31 +273,21 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   }
   else {
     if (argc > 0) name = argv[0];
-    if (argc > 1) rest = argv[1];
-    if (mrb_array_p(rest)) {
-      if (!mrb_nil_p(name) && mrb_symbol_p(name)) {
-        /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
-        mrb_ary_unshift(mrb, rest, name);
-        name = mrb_nil_value();
-      }
+    pargv = &argv[1];
+    argcnt = argc-1;
+    if (!mrb_nil_p(name) && mrb_symbol_p(name)) {
+      /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
+      name = mrb_nil_value();
+      pargv = &argv[0];
+      argcnt++;
     }
-    else {
-      pargv = &argv[1];
-      argcnt = argc-1;
-      if (!mrb_nil_p(name) && mrb_symbol_p(name)) {
-        /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
-        name = mrb_nil_value();
-        pargv = &argv[0];
-        argcnt++;
-      }
-      rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
-    }
+    rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
     for (i=0; i<RARRAY_LEN(rest); i++) {
       id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
       mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
     }
   }
-  st = make_struct(mrb, name, rest, struct_class(mrb));
+  st = make_struct(mrb, name, rest, mrb_class_ptr(klass));
   if (!mrb_nil_p(b)) {
     mrb_yield_with_class(mrb, b, 1, &st, st, mrb_class_ptr(st));
   }
@@ -703,7 +693,7 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, st,        "to_a",           mrb_struct_to_a,        MRB_ARGS_NONE());
   mrb_define_method(mrb, st,        "values",         mrb_struct_to_a,        MRB_ARGS_NONE());
   mrb_define_method(mrb, st,        "to_h",           mrb_struct_to_h,        MRB_ARGS_NONE());
-  mrb_define_method(mrb, st,        "values_at",      mrb_struct_values_at,   MRB_ARGS_NONE());
+  mrb_define_method(mrb, st,        "values_at",      mrb_struct_values_at,   MRB_ARGS_ANY());
 }
 
 void

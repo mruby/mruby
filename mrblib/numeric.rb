@@ -100,11 +100,18 @@ module Integral
   # Calls the given block from +self+ to +num+
   # incremented by +step+ (default 1).
   #
-  def step(num, step = 1, &block)
+  def step(num=nil, step=1, &block)
     raise ArgumentError, "step can't be 0" if step == 0
     return to_enum(:step, num, step) unless block_given?
 
     i = if num.kind_of? Float then self.to_f else self end
+    if num == nil
+      while true
+        block.call(i)
+        i+=step
+      end
+      return self
+    end
     if step > 0
       while i <= num
         block.call(i)
@@ -160,35 +167,7 @@ end
 #
 # ISO 15.2.9
 class Float
-  include Integral
   # mruby special - since mruby integers may be upgraded to floats,
   # floats should be compatible to integers.
-  def >> other
-    n = self.to_i
-    other = other.to_i
-    if other < 0
-      n << -other
-    else
-      other.times { n /= 2 }
-      if n.abs < 1
-        if n >= 0
-          0
-        else
-          -1
-        end
-      else
-        n.to_i
-      end
-    end
-  end
-  def << other
-    n = self.to_i
-    other = other.to_i
-    if other < 0
-      n >> -other
-    else
-      other.times { n *= 2 }
-      n
-    end
-  end
+  include Integral
 end

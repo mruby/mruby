@@ -45,7 +45,7 @@ class String
   def lstrip
     a = 0
     z = self.size - 1
-    a += 1 while " \f\n\r\t\v".include?(self[a]) and a <= z
+    a += 1 while a <= z and " \f\n\r\t\v".include?(self[a])
     (z >= 0) ? self[a..z] : ""
   end
 
@@ -62,7 +62,7 @@ class String
   def rstrip
     a = 0
     z = self.size - 1
-    z -= 1 while " \f\n\r\t\v\0".include?(self[z]) and a <= z
+    z -= 1 while a <= z and " \f\n\r\t\v\0".include?(self[z])
     (z >= 0) ? self[a..z] : ""
   end
 
@@ -78,8 +78,8 @@ class String
   def strip
     a = 0
     z = self.size - 1
-    a += 1 while " \f\n\r\t\v".include?(self[a]) and a <= z
-    z -= 1 while " \f\n\r\t\v\0".include?(self[z]) and a <= z
+    a += 1 while a <= z and " \f\n\r\t\v".include?(self[a])
+    z -= 1 while a <= z and " \f\n\r\t\v\0".include?(self[z])
     (z >= 0) ? self[a..z] : ""
   end
 
@@ -275,15 +275,11 @@ class String
   #     "hello".ljust(20)           #=> "hello               "
   #     "hello".ljust(20, '1234')   #=> "hello123412341234123"
   def ljust(idx, padstr = ' ')
-    if idx <= self.size
-      return self
-    end
-    newstr = self.dup
-    newstr << padstr
-    while newstr.size <= idx
-      newstr << padstr
-    end
-    return newstr.slice(0,idx)
+    raise ArgumentError, 'zero width padding' if padstr == ''
+    return self if idx <= self.size
+    pad_repetitions = (idx / padstr.length).ceil
+    padding = (padstr * pad_repetitions)[0...(idx - self.length)]
+    self + padding
   end
 
   ##
@@ -298,15 +294,11 @@ class String
   #     "hello".rjust(20)           #=> "               hello"
   #     "hello".rjust(20, '1234')   #=> "123412341234123hello"
   def rjust(idx, padstr = ' ')
-    if idx <= self.size
-      return self
-    end
-      padsize = idx - self.size
-      newstr = padstr.dup
-      while newstr.size <= padsize
-        newstr << padstr
-      end
-    return newstr.slice(0,padsize) + self
+    raise ArgumentError, 'zero width padding' if padstr == ''
+    return self if idx <= self.size
+    pad_repetitions = (idx / padstr.length).ceil
+    padding = (padstr * pad_repetitions)[0...(idx - self.length)]
+    padding + self
   end
 
   #     str.upto(other_str, exclusive=false) {|s| block }   -> str
@@ -385,4 +377,18 @@ class String
     end
   end
   alias each_codepoint codepoints
+
+  ##
+  # call-seq:
+  #    str.prepend(other_str)  -> str
+  #
+  # Prepend---Prepend the given string to <i>str</i>.
+  #
+  #    a = "world"
+  #    a.prepend("hello ") #=> "hello world"
+  #    a                   #=> "hello world"
+  def prepend(arg)
+    self[0, 0] = arg
+    self
+  end
 end

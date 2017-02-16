@@ -139,6 +139,7 @@ mrb_obj_id(mrb_value obj)
   case MRB_TT_EXCEPTION:
   case MRB_TT_FILE:
   case MRB_TT_DATA:
+  case MRB_TT_ISTRUCT:
   default:
     return MakeID(mrb_ptr(obj));
   }
