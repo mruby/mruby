@@ -198,7 +198,7 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, con
   e->cioff = c->ci - c->cibase - 1;
   e->stack = c->ci->stackent;
   MRB_SET_ENV_STACK_LEN(e, c->ci[-1].proc->body.irep->nlocals);
-  c->ci->target_class = mrb->object_class;
+  c->ci->target_class = proc->target_class;
   c->ci->env = 0;
   proc->env = e;
   patch_irep(mrb, proc->body.irep, 0);
