@@ -131,6 +131,10 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest)
         }
       }
       break;
+
+    case OP_STOP:
+      irep->iseq[i] = MKOP_AB(OP_RETURN, irep->nlocals, OP_R_NORMAL);
+      break;
     }
   }
 }
