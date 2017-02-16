@@ -461,8 +461,8 @@ mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, cons
   return mrb_funcall_with_block(mrb, self, mid, argc, argv, mrb_nil_value());
 }
 
-mrb_value
-mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
+static mrb_value
+exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
 {
   mrb_callinfo *ci = mrb->c->ci;
 
@@ -541,25 +541,16 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
     mrb_ary_shift(mrb, regs[0]);
   }
 
-  return mrb_exec_irep(mrb, self, p);
+  return exec_irep(mrb, self, p);
 }
 
-static mrb_value
-eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
+mrb_value
+mrb_eval_proc_under(mrb_state *mrb, mrb_value self, struct RProc *p, struct RClass *c)
 {
-  struct RProc *p;
-  mrb_callinfo *ci;
+  mrb_callinfo *ci = mrb->c->ci;
   mrb_int max = 3;
 
-  if (mrb_nil_p(blk)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
-  }
-  ci = mrb->c->ci;
-  if (ci->acc == CI_ACC_DIRECT) {
-    return mrb_yield_with_class(mrb, blk, 1, &self, self, c);
-  }
   ci->target_class = c;
-  p = mrb_proc_ptr(blk);
   ci->proc = p;
   ci->argc = 1;
   if (MRB_PROC_CFUNC_P(p)) {
@@ -583,6 +574,21 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   ci->acc = 0;
 
   return self;
+}
+
+static mrb_value
+eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
+{
+  if (mrb_nil_p(blk)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
+  }
+
+  if (mrb->c->ci->acc == CI_ACC_DIRECT) {
+    return mrb_yield_with_class(mrb, blk, 1, &self, self, c);
+  }
+  else {
+    return mrb_eval_proc_under(mrb, self, mrb_proc_ptr(blk), c);
+  }
 }
 
 /* 15.2.2.4.35 */
