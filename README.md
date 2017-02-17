@@ -1,5 +1,7 @@
 mruby-io
 ========
+[![Build Status](https://travis-ci.org/iij/mruby-io.svg?branch=master)](https://travis-ci.org/iij/mruby-io)
+
 
 `IO` and `File` classes for mruby
 
