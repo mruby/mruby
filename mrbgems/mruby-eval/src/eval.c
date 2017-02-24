@@ -4,19 +4,19 @@
 #include <mruby/irep.h>
 #include <mruby/proc.h>
 #include <mruby/opcode.h>
+#include <mruby/variable.h>
 
 mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p);
 mrb_value mrb_obj_instance_eval(mrb_state *mrb, mrb_value self);
 
 static struct mrb_irep *
-get_closure_irep(mrb_state *mrb, int level)
+get_closure_irep(mrb_state *mrb, int level, struct RProc *scope)
 {
   struct mrb_context *c = mrb->c;
-  struct REnv *e = c->ci[-1].proc->env;
+  struct REnv *e = scope->env;
   struct RProc *proc;
-
   if (level == 0) {
-    proc = c->ci[-1].proc;
+    proc = scope;
     if (MRB_PROC_CFUNC_P(proc)) {
       return NULL;
     }
@@ -40,13 +40,13 @@ get_closure_irep(mrb_state *mrb, int level)
 }
 
 static inline mrb_code
-search_variable(mrb_state *mrb, mrb_sym vsym, int bnest)
+search_variable(mrb_state *mrb, mrb_sym vsym, int bnest, struct RProc *scope)
 {
   mrb_irep *virep;
   int level;
   int pos;
 
-  for (level = 0; (virep = get_closure_irep(mrb, level)); level++) {
+  for (level = 0; (virep = get_closure_irep(mrb, level, scope)); level++) {
     if (!virep || virep->lv == NULL) {
       continue;
     }
@@ -70,7 +70,7 @@ potential_upvar_p(struct mrb_locals *lv, uint16_t v, int argc, uint16_t nlocals)
 }
 
 static void
-patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest)
+patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest, struct RProc *scope)
 {
   size_t i;
   mrb_code c;
@@ -88,14 +88,14 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest)
       break;
 
     case OP_EPUSH:
-      patch_irep(mrb, irep->reps[GETARG_Bx(c)], bnest + 1);
+      patch_irep(mrb, irep->reps[GETARG_Bx(c)], bnest + 1, scope);
       break;
 
     case OP_LAMBDA:
       {
         int arg_c = GETARG_c(c);
         if (arg_c & OP_L_CAPTURE) {
-          patch_irep(mrb, irep->reps[GETARG_b(c)], bnest + 1);
+          patch_irep(mrb, irep->reps[GETARG_b(c)], bnest + 1, scope);
         }
       }
       break;
@@ -105,7 +105,7 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest)
         break;
       }
       {
-        mrb_code arg = search_variable(mrb, irep->syms[GETARG_B(c)], bnest);
+        mrb_code arg = search_variable(mrb, irep->syms[GETARG_B(c)], bnest, scope);
         if (arg != 0) {
           /* must replace */
           irep->iseq[i] = MKOPCODE(OP_GETUPVAR) | MKARG_A(GETARG_A(c)) | arg;
@@ -116,7 +116,7 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest)
     case OP_MOVE:
       /* src part */
       if (potential_upvar_p(irep->lv, GETARG_B(c), argc, irep->nlocals)) {
-        mrb_code arg = search_variable(mrb, irep->lv[GETARG_B(c) - 1].name, bnest);
+        mrb_code arg = search_variable(mrb, irep->lv[GETARG_B(c) - 1].name, bnest, scope);
         if (arg != 0) {
           /* must replace */
           irep->iseq[i] = MKOPCODE(OP_GETUPVAR) | MKARG_A(GETARG_A(c)) | arg;
@@ -124,7 +124,7 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest)
       }
       /* dst part */
       if (potential_upvar_p(irep->lv, GETARG_A(c), argc, irep->nlocals)) {
-        mrb_code arg = search_variable(mrb, irep->lv[GETARG_A(c) - 1].name, bnest);
+        mrb_code arg = search_variable(mrb, irep->lv[GETARG_A(c) - 1].name, bnest, scope);
         if (arg != 0) {
           /* must replace */
           irep->iseq[i] = MKOPCODE(OP_SETUPVAR) | MKARG_A(GETARG_B(c)) | arg;
@@ -146,12 +146,22 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, con
 {
   mrbc_context *cxt;
   struct mrb_parser_state *p;
-  struct RProc *proc;
+  struct RProc *proc, *scope;
   struct REnv *e;
   struct mrb_context *c = mrb->c;
+  mrb_bool is_binding = FALSE;
 
   if (!mrb_nil_p(binding)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "Binding of eval must be nil.");
+    if (!mrb_class_defined(mrb, "Binding")
+        || !mrb_obj_is_kind_of(mrb, binding, mrb_class_get(mrb, "Binding"))) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %S (expected binding)",
+          mrb_obj_value(mrb_obj_class(mrb, binding)));
+    }
+    scope = mrb_proc_ptr(mrb_iv_get(mrb, binding, mrb_intern_lit(mrb, "proc")));
+    is_binding = TRUE;
+  }
+  else {
+    scope = c->ci[-1].proc;
   }
 
   cxt = mrbc_context_new(mrb);
@@ -188,20 +198,20 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, con
     mrbc_context_free(mrb, cxt);
     mrb_raise(mrb, E_SCRIPT_ERROR, "codegen error");
   }
-  if (c->ci[-1].proc->target_class) {
-    proc->target_class = c->ci[-1].proc->target_class;
+  if (scope->target_class) {
+    proc->target_class = scope->target_class;
   }
-  e = c->ci[-1].proc->env;
+  e = scope->env;
   if (!e) e = c->ci[-1].env;
   e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)e);
   e->mid = c->ci[-1].mid;
   e->cioff = c->ci - c->cibase - 1;
   e->stack = c->ci->stackent;
-  MRB_SET_ENV_STACK_LEN(e, c->ci[-1].proc->body.irep->nlocals);
+  MRB_SET_ENV_STACK_LEN(e, scope->body.irep->nlocals);
   c->ci->target_class = proc->target_class;
   c->ci->env = 0;
   proc->env = e;
-  patch_irep(mrb, proc->body.irep, 0);
+  patch_irep(mrb, proc->body.irep, 0, scope);
 
   mrb_parser_free(p);
   mrbc_context_free(mrb, cxt);
@@ -222,6 +232,9 @@ f_eval(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "s|ozi", &s, &len, &binding, &file, &line);
 
   proc = create_proc_from_string(mrb, s, len, binding, file, line);
+  if (!mrb_nil_p(binding)) {
+    self = mrb_iv_get(mrb, binding, mrb_intern_lit(mrb, "recv"));
+  }
   mrb_assert(!MRB_PROC_CFUNC_P(proc));
   return mrb_exec_irep(mrb, self, proc);
 }

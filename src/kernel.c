@@ -1129,15 +1129,12 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
-static mrb_value
-mrb_local_variables(mrb_state *mrb, mrb_value self)
+mrb_value
+proc_local_variables(mrb_state *mrb, struct RProc *proc)
 {
-  struct RProc *proc;
   mrb_value vars;
   struct mrb_irep *irep;
   size_t i;
-
-  proc = mrb->c->ci[-1].proc;
 
   if (MRB_PROC_CFUNC_P(proc)) {
     return mrb_ary_new(mrb);
@@ -1176,6 +1173,13 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value mrb_obj_equal_m(mrb_state *mrb, mrb_value);
+
+static mrb_value
+mrb_local_variables(mrb_state *mrb, mrb_value self)
+{
+  return proc_local_variables(mrb, mrb->c->ci[-1].proc);
+}
+
 void
 mrb_init_kernel(mrb_state *mrb)
 {
