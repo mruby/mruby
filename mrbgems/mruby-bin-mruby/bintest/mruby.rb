@@ -2,9 +2,9 @@ require 'tempfile'
 
 assert('regression for #1564') do
   o = `#{cmd('mruby')} -e #{shellquote('<<')} 2>&1`
-  assert_equal o, "-e:1:2: syntax error, unexpected tLSHFT\n"
+  assert_include o, "-e:1:2: syntax error"
   o = `#{cmd('mruby')} -e #{shellquote('<<-')} 2>&1`
-  assert_equal o, "-e:1:3: syntax error, unexpected tLSHFT\n"
+  assert_include o, "-e:1:3: syntax error"
 end
 
 assert('regression for #1572') do
