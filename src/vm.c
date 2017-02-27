@@ -1190,6 +1190,7 @@ RETRY_TRY_BLOCK:
         mid = missing;
         if (n == CALL_MAXARGS-1) {
           regs[a+1] = mrb_ary_new_from_values(mrb, n, regs+a+1);
+          SET_NIL_VALUE(regs[bidx]);
           n++;
         }
         if (n == CALL_MAXARGS) {
