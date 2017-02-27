@@ -1620,12 +1620,12 @@ RETRY_TRY_BLOCK:
         stk = mrb->c->stack;
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
-          ci = mrb->c->ci;
-          mrb->c->stack = ci[1].stackent;
-          if (ci[1].acc == CI_ACC_SKIP && prev_jmp) {
+          mrb->c->stack = ci->stackent;
+          if (ci->acc == CI_ACC_SKIP && prev_jmp) {
             mrb->jmp = prev_jmp;
             MRB_THROW(prev_jmp);
           }
+          ci = mrb->c->ci;
           if (ci == mrb->c->cibase) {
             mrb->c->stack = stk;
             while (eidx > 0) {
