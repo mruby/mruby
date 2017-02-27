@@ -1162,14 +1162,12 @@ RETRY_TRY_BLOCK:
       }
       if (GET_OPCODE(i) != OP_SENDB) {
         SET_NIL_VALUE(regs[bidx]);
-        bidx = 0;
       }
       else {
         mrb_value blk = regs[bidx];
         if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
           regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
         }
-        bidx = 1;
       }
       c = mrb_class(mrb, recv);
       m = mrb_method_search_vm(mrb, &c, mid);
@@ -1198,7 +1196,7 @@ RETRY_TRY_BLOCK:
           mrb_ary_unshift(mrb, regs[a+1], sym);
         }
         else {
-          value_move(regs+a+2, regs+a+1, n+bidx);
+          value_move(regs+a+2, regs+a+1, n+1);
           regs[a+1] = sym;
           n++;
         }
