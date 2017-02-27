@@ -969,6 +969,7 @@ mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args)
  *     r.xxiii   #=> 23
  *     r.mm      #=> 2000
  */
+#ifndef MRB_DEFAULT_METHOD_MISSING
 static mrb_value
 mrb_obj_missing(mrb_state *mrb, mrb_value mod)
 {
@@ -981,6 +982,7 @@ mrb_obj_missing(mrb_state *mrb, mrb_value mod)
   /* not reached */
   return mrb_nil_value();
 }
+#endif
 
 static inline mrb_bool
 basic_obj_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym id, int pub)
@@ -1214,7 +1216,9 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "iterator?",                  mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.25 */
   mrb_define_method(mrb, krn, "kind_of?",                   mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.26 */
   mrb_define_method(mrb, krn, "local_variables",            mrb_local_variables,             MRB_ARGS_NONE());    /* 15.3.1.3.28 */
+#ifndef MRB_DEFAULT_METHOD_MISSING
   mrb_define_method(mrb, krn, "method_missing",             mrb_obj_missing,                 MRB_ARGS_ANY());     /* 15.3.1.3.30 */
+#endif
   mrb_define_method(mrb, krn, "methods",                    mrb_obj_methods_m,               MRB_ARGS_OPT(1));    /* 15.3.1.3.31 */
   mrb_define_method(mrb, krn, "nil?",                       mrb_false,                       MRB_ARGS_NONE());    /* 15.3.1.3.32 */
   mrb_define_method(mrb, krn, "object_id",                  mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.33 */
