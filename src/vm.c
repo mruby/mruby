@@ -1669,18 +1669,26 @@ RETRY_TRY_BLOCK:
           /* Fall through to OP_R_NORMAL otherwise */
           if (ci->acc >=0 && proc->env && !MRB_PROC_STRICT_P(proc)) {
             struct REnv *e = top_env(mrb, proc);
+            mrb_callinfo *ce;
 
             if (!MRB_ENV_STACK_SHARED_P(e)) {
               localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
               goto L_RAISE;
             }
-            ci = mrb->c->cibase + e->cioff;
-            if (ci == mrb->c->cibase) {
+            
+            ce = mrb->c->cibase + e->cioff;
+            while (--ci > ce) {
+              if (ci->acc < 0) {
+                localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
+                goto L_RAISE;
+              }
+            }
+            if (ce == mrb->c->cibase) {
               localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
               goto L_RAISE;
             }
             mrb->c->stack = mrb->c->ci->stackent;
-            mrb->c->ci = ci;
+            mrb->c->ci = ce;
             break;
           }
         case OP_R_NORMAL:
