@@ -1628,9 +1628,6 @@ RETRY_TRY_BLOCK:
           ci = mrb->c->ci;
           if (ci == mrb->c->cibase) {
             mrb->c->stack = stk;
-            while (eidx > 0) {
-              ecall(mrb, --eidx);
-            }
             if (ci->ridx == 0) {
               if (mrb->c == mrb->root_c) {
                 mrb->c->stack = mrb->c->stbase;
