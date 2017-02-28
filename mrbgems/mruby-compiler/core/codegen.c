@@ -1360,7 +1360,9 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_ENSURE:
-    {
+    if (!tree->cdr || !tree->cdr->cdr ||
+        ((intptr_t)tree->cdr->cdr->car == NODE_BEGIN &&
+         tree->cdr->cdr->cdr)) {
       int idx;
       int epush = s->pc;
 
@@ -1371,6 +1373,9 @@ codegen(codegen_scope *s, node *tree, int val)
       s->iseq[epush] = MKOP_Bx(OP_EPUSH, idx);
       s->ensure_level--;
       genop_peep(s, MKOP_A(OP_EPOP, 1), NOVAL);
+    }
+    else {                      /* empty ensure ignored */
+      codegen(s, tree->car, val);
     }
     break;
 
