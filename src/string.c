@@ -959,8 +959,8 @@ mrb_str_cmp_m(mrb_state *mrb, mrb_value str1)
     else {
       mrb_value tmp = mrb_funcall(mrb, str2, "<=>", 1, str1);
 
-      if (mrb_nil_p(tmp)) return mrb_nil_value();
-      if (!mrb_fixnum(tmp)) {
+      if (!mrb_nil_p(tmp)) return mrb_nil_value();
+      if (!mrb_fixnum_p(tmp)) {
         return mrb_funcall(mrb, mrb_fixnum_value(0), "-", 1, tmp);
       }
       result = -mrb_fixnum(tmp);
