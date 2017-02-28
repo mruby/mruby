@@ -113,13 +113,23 @@ module MRuby
       @cxx_exception_disabled = true
     end
 
+    def enable_cxx_exception
+      @cxx_exception_disabled = false
+      compilers.each { |c|
+        c.defines += %w(MRB_ENABLE_CXX_EXCEPTION)
+        c.flags << c.cxx_exception_flag
+      }
+    end
+
     def cxx_abi_enabled?
       @cxx_abi_enabled
     end
 
     def enable_cxx_abi
-      return if @cxx_exception_disabled or @cxx_abi_enabled
-      compilers.each { |c| c.defines += %w(MRB_ENABLE_CXX_EXCEPTION) }
+      return if @cxx_abi_enabled
+      unless @cxx_exception_disabled
+        enable_cxx_exception
+      end
       compilers.each { |c| c.flags << c.cxx_compile_flag }
       linker.command = cxx.command if toolchains.find { |v| v == 'gcc' }
       @cxx_abi_enabled = true

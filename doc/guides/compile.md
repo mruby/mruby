@@ -242,9 +242,19 @@ conf.enable_bintest
 ### C++ ABI
 
 mruby can use C++ exception to raise exception internally.
-It is called C++ ABI mode.
 By using C++ exception it can release C++ stack object correctly.
-Whenever you mix C++ code C++ ABI mode would be enabled automatically.
+
+There are two levels of C++ exception handling. The one is
+C++ exception enabled (but still C files are compiled by C
+compiler), and the other is C++ ABI mode where all files are
+compiled by C++ compiler.
+
+When you mix C++ code, C++ exception would be enabled automatically.
+If you need to enable C++ exception explicitly add the following:
+```ruby
+conf.enable_cxx_exception
+```
+
 If you need to enable C++ ABI mode explicitly add the following:
 ```ruby
 conf.enable_cxx_abi
@@ -252,8 +262,10 @@ conf.enable_cxx_abi
 
 #### C++ exception disabling.
 
+
 If you need to force C++ exception disable
-(For example using a compiler option to disable C++ exception)
+(For example using a compiler option to disable C++ exception),
+but still want to use C++ ABI mode,
 add following:
 ```ruby
 conf.disable_cxx_exception
