@@ -6338,8 +6338,14 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     dump_recur(mrb, tree->car, offset+1);
     dump_prefix(tree, offset);
     printf("tail: %s\n", (char*)tree->cdr->cdr->car);
-    dump_prefix(tree, offset);
-    printf("opt: %s\n", (char*)tree->cdr->cdr->cdr);
+    if (tree->cdr->cdr->cdr->car) {
+      dump_prefix(tree, offset);
+      printf("opt: %s\n", (char*)tree->cdr->cdr->cdr->car);
+    }
+    if (tree->cdr->cdr->cdr->cdr) {
+      dump_prefix(tree, offset);
+      printf("enc: %s\n", (char*)tree->cdr->cdr->cdr->cdr);
+    }
     break;
 
   case NODE_SYM:
