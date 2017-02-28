@@ -1168,8 +1168,11 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 
   argc = mrb_get_args(mrb, "o|o", &a1, &a2);
   if (argc == 2) {
+    mrb_int n1, n2;
+
     mrb_regexp_check(mrb, a1);
-    return str_substr(mrb, str, mrb_fixnum(a1), mrb_fixnum(a2));
+    mrb_get_args(mrb, "ii", &n1, &n2);
+    return str_substr(mrb, str, n1, n2);
   }
   if (argc != 1) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for 1)", mrb_fixnum_value(argc));
