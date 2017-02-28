@@ -387,13 +387,13 @@ end
 assert('IO.popen') do
   begin
     $? = nil
-    io = IO.popen("ls")
+    io = IO.popen("echo mruby-io")
     assert_true io.close_on_exec?
     assert_equal Fixnum, io.pid.class
-    ls = io.read
-    assert_equal ls.class, String
-    assert_include ls, 'AUTHORS'
-    assert_include ls, 'mrblib'
+
+    out = io.read
+    assert_equal out.class, String
+    assert_include out, 'mruby-io'
 
     io.close
     if Object.const_defined? :Process
@@ -401,7 +401,8 @@ assert('IO.popen') do
     else
       assert_equal 0, $?
     end
-    io.closed?
+
+    assert_true io.closed?
   rescue NotImplementedError => e
     skip e.message
   end

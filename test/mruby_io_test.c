@@ -16,6 +16,7 @@
 
 #include "mruby.h"
 #include "mruby/array.h"
+#include "mruby/error.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
 
@@ -72,7 +73,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
 #ifndef _WIN32
   unlink(symlinkname);
   close(fd2);
-  if (symlink("hoge", symlinkname) == -1) {
+  if (symlink(rfname, symlinkname) == -1) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't make a symbolic link");
   }
 
@@ -147,6 +148,34 @@ mrb_io_test_file_cleanup(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+static mrb_value
+mrb_io_test_mkdtemp(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value str;
+  char *cp;
+
+  mrb_get_args(mrb, "S", &str);
+  cp = mrb_str_to_cstr(mrb, str);
+  if (mkdtemp(cp) == NULL) {
+    mrb_sys_fail(mrb, "mkdtemp");
+  }
+  return mrb_str_new_cstr(mrb, cp);
+}
+
+static mrb_value
+mrb_io_test_rmdir(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value str;
+  char *cp;
+
+  mrb_get_args(mrb, "S", &str);
+  cp = mrb_str_to_cstr(mrb, str);
+  if (rmdir(cp) == -1) {
+    mrb_sys_fail(mrb, "rmdir");
+  }
+  return mrb_true_value();
+}
+
 void
 mrb_mruby_io_gem_test(mrb_state* mrb)
 {
@@ -157,4 +186,6 @@ mrb_mruby_io_gem_test(mrb_state* mrb)
   mrb_define_class_method(mrb, io_test, "file_test_setup", mrb_io_test_file_setup, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, io_test, "file_test_cleanup", mrb_io_test_file_cleanup, MRB_ARGS_NONE());
 
+  mrb_define_class_method(mrb, io_test, "mkdtemp", mrb_io_test_mkdtemp, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, io_test, "rmdir", mrb_io_test_rmdir, MRB_ARGS_REQ(1));
 }

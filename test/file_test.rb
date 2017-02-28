@@ -6,8 +6,13 @@ assert('FileTest TEST SETUP') do
 end
 
 assert("FileTest.directory?") do
-  assert_equal true,  FileTest.directory?(File.join(File._getwd, "mrblib"))
-  assert_equal false, FileTest.directory?(File.join(File._getwd, "README.md"))
+  dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  begin
+    assert_true  FileTest.directory?(dir)
+    assert_false FileTest.directory?($mrbtest_io_rfname)
+  ensure
+    MRubyIOTestUtil.rmdir dir
+  end
 end
 
 assert("FileTest.exist?") do
@@ -23,8 +28,13 @@ assert("FileTest.exist?") do
 end
 
 assert("FileTest.file?") do
-  assert_equal false, FileTest.file?(File.join(File._getwd, "mrblib"))
-  assert_equal true,  FileTest.file?(File.join(File._getwd, "README.md"))
+  dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  begin
+    assert_true  FileTest.file?($mrbtest_io_rfname)
+    assert_false FileTest.file?(dir)
+  ensure
+    MRubyIOTestUtil.rmdir dir
+  end
 end
 
 assert("FileTest.pipe?") do

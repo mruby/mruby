@@ -86,14 +86,20 @@ assert('File.realpath') do
     readme_path = File._getwd + File::ALT_SEPARATOR + "README.md"
     assert_equal readme_path, File.realpath("README.md")
   else
-    usrbin = IO.popen("cd bin; /bin/pwd -P") { |f| f.read.chomp }
-    assert_equal usrbin, File.realpath("bin")
+    dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+    begin
+      dir1 = File.realpath($mrbtest_io_rfname)
+      dir2 = File.realpath("./#{dir}//./../#{$mrbtest_io_symlinkname}")
+      assert_equal dir1, dir2
+    ensure
+      MRubyIOTestUtil.rmdir dir
+    end
   end
 end
 
 assert("File.readlink") do
   begin
-    assert_equal 'hoge', File.readlink($mrbtest_io_symlinkname)
+    assert_equal $mrbtest_io_rfname, File.readlink($mrbtest_io_symlinkname)
   rescue NotImplementedError => e
     skip e.message
   end
@@ -101,7 +107,16 @@ end
 
 assert("File.readlink fails with non-symlink") do
   begin
-    assert_raise(RuntimeError) { File.readlink($mrbtest_io_rfname) }
+    assert_raise(RuntimeError) {
+      begin
+        File.readlink($mrbtest_io_rfname)
+      rescue => e
+        if Object.const_defined?(:SystemCallError) and e.kind_of?(SystemCallError)
+          raise RuntimeError, "SystemCallError converted to RuntimeError"
+        end
+        raise e
+      end
+    }
   rescue NotImplementedError => e
     skip e.message
   end
