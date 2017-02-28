@@ -2473,16 +2473,23 @@ codegen(codegen_scope *s, node *tree, int val)
         pop();
         genop_peep(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1), VAL);
       }
-      if (n->cdr) {
-        char *p2 = (char*)n->cdr;
+      if (n->cdr->car) {
+        char *p2 = (char*)n->cdr->car;
 
         push();
         off = new_lit(s, mrb_str_new_cstr(s->mrb, p2));
         genop(s, MKOP_ABx(OP_STRING, cursp(), off));
         argc++;
-        pop();
       }
-      pop();
+      if (n->cdr->cdr) {
+        char *p2 = (char*)n->cdr->cdr;
+
+        push();
+        off = new_lit(s, mrb_str_new_cstr(s->mrb, p2));
+        genop(s, MKOP_ABx(OP_STRING, cursp(), off));
+        argc++;
+      }
+      pop_n(argc);
       sym = new_sym(s, mrb_intern_lit(s->mrb, "compile"));
       genop(s, MKOP_ABC(OP_SEND, cursp(), sym, argc));
       mrb_gc_arena_restore(s->mrb, ai);
