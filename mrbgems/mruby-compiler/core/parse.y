@@ -4069,6 +4069,10 @@ parse_string(parser_state *p)
         return tSTRING_MID;
       }
     }
+    if (c == '\n') {
+      p->lineno++;
+      p->column = 0;
+    }
     tokadd(p, c);
   }
 
