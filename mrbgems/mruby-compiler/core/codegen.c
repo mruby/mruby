@@ -1221,6 +1221,22 @@ readint_mrb_int(codegen_scope *s, const char *p, int base, mrb_bool neg, mrb_boo
 }
 
 static void
+gen_retval(codegen_scope *s, node *tree)
+{
+  if ((intptr_t)tree->car == NODE_SPLAT) {
+    genop(s, MKOP_ABC(OP_ARRAY, cursp(), cursp(), 0));
+    push();
+    codegen(s, tree, VAL);
+    pop(); pop();
+    genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
+  }
+  else {
+    codegen(s, tree, VAL);
+    pop();
+  }
+}
+
+static void
 codegen(codegen_scope *s, node *tree, int val)
 {
   int nt;
@@ -1965,8 +1981,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_RETURN:
     if (tree) {
-      codegen(s, tree, VAL);
-      pop();
+      gen_retval(s, tree);
     }
     else {
       genop(s, MKOP_A(OP_LOADNIL, cursp()));
@@ -2893,8 +2908,7 @@ loop_break(codegen_scope *s, node *tree)
     struct loopinfo *loop;
 
     if (tree) {
-      codegen(s, tree, VAL);
-      pop();
+      gen_retval(s, tree);
     }
 
     loop = s->loop;
