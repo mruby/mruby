@@ -863,6 +863,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
     genop(s, MKOP_A(OP_LOADNIL, cursp()));
     push();
     genop(s, MKOP_AB(OP_MOVE, cursp(), recv));
+    push(); pop();              /* space for a block */
     pop();
     idx = new_msym(s, mrb_intern_lit(s->mrb, "=="));
     genop(s, MKOP_ABC(OP_EQ, cursp(), idx, 1));
