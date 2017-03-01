@@ -1387,6 +1387,8 @@ RETRY_TRY_BLOCK:
       ci->mid = mid;
       ci->proc = m;
       ci->stackent = mrb->c->stack;
+      ci->target_class = c;
+      ci->pc = pc + 1;
       {
         int bidx;
         mrb_value blk;
@@ -1402,10 +1404,9 @@ RETRY_TRY_BLOCK:
         blk = regs[bidx];
         if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
           regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
+          ci = mrb->c->ci;
         }
       }
-      ci->target_class = c;
-      ci->pc = pc + 1;
 
       /* prepare stack */
       mrb->c->stack += a;
