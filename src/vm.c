@@ -2583,3 +2583,7 @@ mrb_top_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int sta
 
   return v;
 }
+
+#if defined(MRB_ENABLE_CXX_EXCEPTION) && defined(__cplusplus)
+mrb_int mrb_jmpbuf::jmpbuf_id = 0;
+#endif

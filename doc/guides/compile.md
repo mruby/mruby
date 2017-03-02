@@ -241,13 +241,15 @@ conf.enable_bintest
 
 ### C++ ABI
 
-mruby can use C++ exception to raise exception internally.
-By using C++ exception it can release C++ stack object correctly.
+By default, mruby uses setjmp/longjmp to implement its
+exceptions. But it doesn't release C++ stack object
+correctly. To support mrbgems written in C++, mruby can be
+configured to use C++ exception.
 
 There are two levels of C++ exception handling. The one is
-C++ exception enabled (but still C files are compiled by C
-compiler), and the other is C++ ABI mode where all files are
-compiled by C++ compiler.
+```enable_cxx_exception``` that enables C++ exception, but
+uses C ABI. The other is ```enable_cxx_abi``` where all
+files are compiled by C++ compiler.
 
 When you mix C++ code, C++ exception would be enabled automatically.
 If you need to enable C++ exception explicitly add the following:
@@ -255,23 +257,16 @@ If you need to enable C++ exception explicitly add the following:
 conf.enable_cxx_exception
 ```
 
-If you need to enable C++ ABI mode explicitly add the following:
-```ruby
-conf.enable_cxx_abi
-```
-
 #### C++ exception disabling.
 
-
-If you need to force C++ exception disable
-(For example using a compiler option to disable C++ exception),
-but still want to use C++ ABI mode,
-add following:
+If your compiler does not support C++ and you want to ensure
+you don't use mrbgem written in C++, you can explicitly disable
+C++ exception, add following:
 ```ruby
 conf.disable_cxx_exception
 ```
-
-Note that it must be called before ```enable_cxx_abi``` or ```gem``` method.
+and you will get an error when you try to use C++ gem.
+Note that it must be called before ```enable_cxx_exception``` or ```gem``` method.
 
 ### Debugging mode
 
