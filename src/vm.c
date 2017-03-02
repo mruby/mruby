@@ -1188,19 +1188,13 @@ RETRY_TRY_BLOCK:
           mrb_method_missing(mrb, mid, recv, args);
         }
         mid = missing;
-        if (n == CALL_MAXARGS-1) {
+        if (n != CALL_MAXARGS) {
+          mrb_value blk = regs[bidx];
           regs[a+1] = mrb_ary_new_from_values(mrb, n, regs+a+1);
-          SET_NIL_VALUE(regs[bidx]);
-          n++;
+          regs[a+2] = blk;
+          n = CALL_MAXARGS;
         }
-        if (n == CALL_MAXARGS) {
-          mrb_ary_unshift(mrb, regs[a+1], sym);
-        }
-        else {
-          value_move(regs+a+2, regs+a+1, n+1);
-          regs[a+1] = sym;
-          n++;
-        }
+        mrb_ary_unshift(mrb, regs[a+1], sym);
       }
 
       /* push callinfo */
