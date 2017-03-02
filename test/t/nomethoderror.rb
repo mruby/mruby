@@ -20,21 +20,3 @@ assert('NoMethodError#args', '15.2.32.2.1') do
     end
   end
 end
-
-assert("NoMethodError#new does not return an exception") do
-  begin
-    class << NoMethodError
-      def new(*)
-        nil
-      end
-    end
-
-    assert_raise(TypeError) do
-      Object.q
-    end
-  ensure
-    class << NoMethodError
-      remove_method :new
-    end
-  end
-end

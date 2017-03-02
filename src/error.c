@@ -519,12 +519,15 @@ MRB_API mrb_noreturn void
 mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt, ...)
 {
   mrb_value exc;
+  mrb_value argv[3];
   va_list ap;
 
   va_start(ap, fmt);
-  exc = mrb_funcall(mrb, mrb_obj_value(E_NOMETHOD_ERROR), "new", 3,
-                    mrb_vformat(mrb, fmt, ap), mrb_symbol_value(id), args);
+  argv[0] = mrb_vformat(mrb, fmt, ap);
+  argv[1] = mrb_symbol_value(id);
+  argv[2] = args;
   va_end(ap);
+  exc = mrb_obj_new(mrb, E_NOMETHOD_ERROR, 3, argv);
   mrb_exc_raise(mrb, exc);
 }
 
