@@ -2579,5 +2579,11 @@ mrb_top_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int sta
 }
 
 #if defined(MRB_ENABLE_CXX_EXCEPTION) && defined(__cplusplus)
+# if !defined(MRB_ENABLE_CXX_ABI)
+} /* end of extern "C" */
+# endif
 mrb_int mrb_jmpbuf::jmpbuf_id = 0;
+# if !defined(MRB_ENABLE_CXX_ABI)
+extern "C" {
+# endif
 #endif
