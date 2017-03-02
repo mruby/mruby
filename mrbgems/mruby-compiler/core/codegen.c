@@ -1814,6 +1814,8 @@ codegen(codegen_scope *s, node *tree, int val)
             for (i=0; i<nargs; i++) {
               genop(s, MKOP_AB(OP_MOVE, cursp()+i+1, base+i+1));
             }
+            push_n(nargs+1);
+            pop_n(nargs+1);
             callargs = nargs;
           }
           else {
