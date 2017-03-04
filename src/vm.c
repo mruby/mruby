@@ -1676,6 +1676,9 @@ RETRY_TRY_BLOCK:
             
             ce = mrb->c->cibase + e->cioff;
             while (--ci > ce) {
+              if (ci->env) {
+                mrb_env_unshare(mrb, ci->env);
+              }
               if (ci->acc < 0) {
                 localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
                 goto L_RAISE;
@@ -1726,6 +1729,9 @@ RETRY_TRY_BLOCK:
             if (ci[-1].acc == CI_ACC_SKIP) {
               mrb->c->ci = ci;
               break;
+            }
+            if (ci->env) {
+              mrb_env_unshare(mrb, ci->env);
             }
             ci--;
           }
