@@ -229,10 +229,11 @@ print_backtrace(mrb_state *mrb, mrb_value backtrace)
 static void
 print_backtrace_saved(mrb_state *mrb)
 {
-  int i;
+  int i, ai;
   FILE *stream = stderr;
 
   fprintf(stream, "trace:\n");
+  ai = mrb_gc_arena_save(mrb);
   for (i = 0; i < mrb->backtrace.n; i++) {
     mrb_backtrace_entry *entry;
 
@@ -252,6 +253,7 @@ print_backtrace_saved(mrb_state *mrb)
       else {
         fprintf(stream, ":in %s", method_name);
       }
+      mrb_gc_arena_restore(mrb, ai);
     }
 
     fprintf(stream, "\n");
