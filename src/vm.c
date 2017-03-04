@@ -292,6 +292,9 @@ ecall(mrb_state *mrb, int i)
   ptrdiff_t nstk;
 
   if (i<0) return;
+  if (mrb->c->ci - mrb->c->cibase > MRB_FUNCALL_DEPTH_MAX) {
+    mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
+  }
   p = mrb->c->ensure[i];
   if (!p) return;
   if (mrb->c->ci->eidx > i)
