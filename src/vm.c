@@ -521,15 +521,19 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   mrb_callinfo *ci;
 
   mrb_get_args(mrb, "n*&", &name, &argv, &argc, &block);
+  ci = mrb->c->ci;
+  if (ci->acc < 0) {
+  funcall:
+    return mrb_funcall_with_block(mrb, self, name, argc, argv, block);
+  }
 
   c = mrb_class(mrb, self);
   p = mrb_method_search_vm(mrb, &c, name);
 
   if (!p) {                     /* call method_mising */
-    return mrb_funcall_with_block(mrb, self, name, argc, argv, block);
+    goto funcall;
   }
 
-  ci = mrb->c->ci;
   ci->mid = name;
   ci->target_class = c;
   regs = mrb->c->stack+1;
