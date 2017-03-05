@@ -78,6 +78,7 @@ class String
   #
   # ISO 15.2.10.5.19
   def gsub!(*args, &block)
+    raise RuntimeError, "can't modify frozen String" if frozen?
     str = self.gsub(*args, &block)
     return nil if str == self
     self.replace(str)
@@ -123,6 +124,7 @@ class String
   #
   # ISO 15.2.10.5.37
   def sub!(*args, &block)
+    raise RuntimeError, "can't modify frozen String" if frozen?
     str = self.sub(*args, &block)
     return nil if str == self
     self.replace(str)
