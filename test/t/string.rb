@@ -402,6 +402,8 @@ assert('String#index', '15.2.10.5.22') do
   assert_equal 0, 'abc'.index('a')
   assert_nil 'abc'.index('d')
   assert_equal 3, 'abcabc'.index('a', 1)
+  assert_equal 5, "hello".index("", 5)
+  assert_equal nil, "hello".index("", 6)
 end
 
 assert('String#initialize', '15.2.10.5.23') do

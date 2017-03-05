@@ -1608,7 +1608,7 @@ mrb_str_index(mrb_state *mrb, mrb_value str)
       return mrb_nil_value();
     }
   }
-  if (pos >= clen) return mrb_nil_value();
+  if (pos > clen) return mrb_nil_value();
   pos = chars2bytes(str, 0, pos);
 
   switch (mrb_type(sub)) {
