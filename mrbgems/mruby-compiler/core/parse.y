@@ -2936,10 +2936,11 @@ var_ref         : variable
                     }
                 | keyword__FILE__
                     {
-                      if (!p->filename) {
-                        p->filename = "(null)";
+                      const char *fn = p->filename;
+                      if (!fn) {
+                        fn = "(null)";
                       }
-                      $$ = new_str(p, p->filename, strlen(p->filename));
+                      $$ = new_str(p, fn, strlen(fn));
                     }
                 | keyword__LINE__
                     {
