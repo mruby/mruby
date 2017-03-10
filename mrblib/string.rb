@@ -34,6 +34,8 @@ class String
             m
           when "'"
             post
+          when "1", "2", "3", "4", "5", "6", "7", "8", "9"
+            ""
           else
             self[j, 2]
           end
