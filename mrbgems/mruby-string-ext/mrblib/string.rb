@@ -345,6 +345,7 @@ class String
       return self if !excl && str == other_str
       str = str.succ
       return self if excl && str == other_str
+      return self if str.size > other_str.size
     end
   end
 
