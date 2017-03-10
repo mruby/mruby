@@ -330,8 +330,14 @@ mrb_class_get(mrb_state *mrb, const char *name)
 MRB_API struct RClass *
 mrb_exc_get(mrb_state *mrb, const char *name)
 {
-  struct RClass *exc = mrb_class_get_under(mrb, mrb->object_class, name);
-  struct RClass *e = exc;
+  struct RClass *exc, *e;
+  mrb_value c = mrb_const_get(mrb, mrb_obj_value(mrb->object_class),
+                              mrb_intern_cstr(mrb, name));
+
+  if (mrb_type(c) != MRB_TT_CLASS) {
+    mrb_raise(mrb, mrb->eException_class, "exception corrupted");
+  }
+  exc = e = mrb_class_ptr(c);
 
   while (e) {
     if (e == mrb->eException_class)
