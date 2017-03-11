@@ -116,6 +116,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 
 #define CHECK(l) do {\
 /*  int cr = ENC_CODERANGE(result);*/\
+  if ((l) < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "illegal specifier"); \
   while ((l) >= bsiz - blen) {\
     bsiz*=2;\
     if (bsiz < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "too big specifier"); \
@@ -766,7 +767,7 @@ retry:
             width -= (int)slen;
             if (!(flags&FMINUS)) {
               CHECK(width);
-              while (width--) {
+              while (width-- > 0) {
                 buf[blen++] = ' ';
               }
             }
@@ -775,7 +776,7 @@ retry:
             blen += len;
             if (flags&FMINUS) {
               CHECK(width);
-              while (width--) {
+              while (width-- > 0) {
                 buf[blen++] = ' ';
               }
             }
@@ -982,7 +983,7 @@ retry:
           width -= prec;
         }
 
-        if (!(flags&FMINUS)) {
+        if (!(flags&FMINUS) && width > 0) {
           CHECK(width);
           while (width-- > 0) {
             buf[blen++] = ' ';
@@ -1012,9 +1013,11 @@ retry:
         }
 
         PUSH(s, len);
-        CHECK(width);
-        while (width-- > 0) {
-          buf[blen++] = ' ';
+        if (width > 0) {
+          CHECK(width);
+          while (width-- > 0) {
+            buf[blen++] = ' ';
+          }
         }
       }
       break;
