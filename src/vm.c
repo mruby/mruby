@@ -569,6 +569,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   p = mrb_proc_ptr(blk);
   ci->proc = p;
   ci->argc = 1;
+  ci->mid = ci[-1].mid;
   if (MRB_PROC_CFUNC_P(p)) {
     stack_extend(mrb, 3, 0);
     mrb->c->stack[0] = self;
@@ -1345,7 +1346,7 @@ RETRY_TRY_BLOCK:
       int a = GETARG_A(i);
       int n = GETARG_C(i);
 
-      if (mid == 0 || !mrb->c->ci->target_class) {
+      if (mid == 0 || !ci->target_class) {
         mrb_value exc;
 
         exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");

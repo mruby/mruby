@@ -365,6 +365,7 @@ assert('String#gsub', '15.2.10.5.18') do
   assert_equal('$$a$$',  '##a##'.gsub('##'){|w| '$$' }, 'mruby/mruby#847 another case with block')
   assert_equal('A',      'a'.gsub('a', 'A'))
   assert_equal('A',      'a'.gsub('a'){|w| w.capitalize })
+  assert_equal("<a><><>", 'a'.gsub('a', '<\0><\1><\2>'))
   assert_equal(".h.e.l.l.o.", "hello".gsub("", "."))
 end
 
