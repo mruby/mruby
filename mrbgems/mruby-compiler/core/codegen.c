@@ -1294,7 +1294,7 @@ codegen(codegen_scope *s, node *tree, int val)
         node *n2 = tree->car;
         int exc = cursp();
 
-        genop(s, MKOP_AB(OP_RESCUE, exc, 0));
+        genop(s, MKOP_ABC(OP_RESCUE, exc, 0, 0));
         push();
         while (n2) {
           node *n3 = n2->car;
@@ -1788,7 +1788,11 @@ codegen(codegen_scope *s, node *tree, int val)
         genop(s, MKOP_A(OP_POPERR, 1));
         noexc = genop(s, MKOP_Bx(OP_JMP, 0));
         dispatch(s, onerr);
+<<<<<<< HEAD
         genop(s, MKOP_AB(OP_RESCUE, exc, 0));
+=======
+        genop(s, MKOP_ABC(OP_RESCUE, exc, 0, 0));
+>>>>>>> 55d89bd... Enhance OP_RESCUE to take B operand fas matching exception; ref #3487
         genop(s, MKOP_A(OP_LOADF, exc));
         dispatch(s, noexc);
         loop_pop(s, NOVAL);

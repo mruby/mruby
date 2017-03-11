@@ -1083,7 +1083,31 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_RESCUE) {
       /* A      R(A) := exc; clear(exc) */
-      SET_OBJ_VALUE(regs[GETARG_A(i)], mrb->exc);
+      /* B      R(B) := matched (bool) */
+      int b = GETARG_B(i);
+      mrb_value exc = mrb_obj_value(mrb->exc);
+
+      if (b != 0) {
+        mrb_value e = regs[b];
+        struct RClass *ec;
+
+        switch (mrb_type(e)) {
+        case MRB_TT_CLASS:
+        case MRB_TT_MODULE:
+          break;
+        default:
+          mrb_raise(mrb, E_TYPE_ERROR, "class or module required for rescue clause");
+          break;
+        }
+        ec = mrb_class_ptr(e);
+        if (mrb_obj_is_kind_of(mrb, exc, ec)) {
+          regs[b] = mrb_true_value();
+        }
+        else {
+          regs[b] = mrb_false_value();
+        }
+      }
+      regs[GETARG_A(i)] = exc;
       mrb->exc = 0;
       NEXT;
     }

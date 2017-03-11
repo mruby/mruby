@@ -408,8 +408,22 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_ONERR\t%03d\n", i+GETARG_sBx(c));
       break;
     case OP_RESCUE:
-      printf("OP_RESCUE\tR%d\t\t", GETARG_A(c));
-      print_lv(mrb, irep, c, RA);
+      {
+        int a = GETARG_A(c);
+        int b = GETARG_B(c);
+        int cnt = GETARG_C(c);
+
+        if (b == 0) {
+          printf("OP_RESCUE\tR%d\t\t%s", a, cnt ? "cont" : "");
+          print_lv(mrb, irep, c, RA);
+          break;
+        }
+        else {
+          printf("OP_RESCUE\tR%d\tR%d\t%s", a, b, cnt ? "cont" : "");
+          print_lv(mrb, irep, c, RAB);
+          break;
+        }
+      }
       break;
     case OP_RAISE:
       printf("OP_RAISE\tR%d\t\t", GETARG_A(c));
