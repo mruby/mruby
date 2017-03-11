@@ -1082,15 +1082,22 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_RESCUE) {
-      /* A      R(A) := exc; clear(exc) */
-      /* B      R(B) := matched (bool) */
+      /* A B    R(A) := exc; clear(exc); R(B) := matched (bool) */
+      int a = GETARG_A(i);
       int b = GETARG_B(i);
-      mrb_value exc = mrb_obj_value(mrb->exc);
+      int c = GETARG_C(i);
+      mrb_value exc;
 
       if (b != 0) {
         mrb_value e = regs[b];
         struct RClass *ec;
 
+        if (c == 0) {
+          exc = mrb_obj_value(mrb->exc);
+        }
+        else {           /* continued; exc taken from R(A) */
+          exc = regs[a];
+        }
         switch (mrb_type(e)) {
         case MRB_TT_CLASS:
         case MRB_TT_MODULE:
@@ -1107,7 +1114,12 @@ RETRY_TRY_BLOCK:
           regs[b] = mrb_false_value();
         }
       }
-      regs[GETARG_A(i)] = exc;
+      else if (c == 0) {
+        exc = mrb_obj_value(mrb->exc);
+      }
+      if (a != 0 && c == 0) {
+        regs[GETARG_A(i)] = exc;
+      }
       mrb->exc = 0;
       NEXT;
     }
