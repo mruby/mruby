@@ -1049,7 +1049,10 @@ retry:
             need = width;
 
           CHECK(need + 1);
-          snprintf(&buf[blen], need + 1, "%*s", need, "");
+          n = snprintf(&buf[blen], need + 1, "%*s", need, "");
+          if (n < 0) {
+            mrb_raise(mrb, E_RUNTIME_ERROR, "formatting error");
+          }
           if (flags & FMINUS) {
             if (!isnan(fval) && fval < 0.0)
               buf[blen++] = '-';
