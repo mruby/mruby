@@ -1293,8 +1293,8 @@ codegen(codegen_scope *s, node *tree, int val)
       if (tree->car) {
         node *n2 = tree->car;
         int exc = cursp();
+        int cnt = 0;
 
-        genop(s, MKOP_ABC(OP_RESCUE, exc, 0, 0));
         push();
         while (n2) {
           node *n3 = n2->car;
@@ -1303,20 +1303,26 @@ codegen(codegen_scope *s, node *tree, int val)
           if (pos1) dispatch(s, pos1);
           pos2 = 0;
           do {
-            if (n4) {
-              codegen(s, n4->car, VAL);
-            }
-            else {
-              genop(s, MKOP_ABx(OP_GETCONST, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "StandardError"))));
-              push();
-            }
-            genop(s, MKOP_AB(OP_MOVE, cursp(), exc));
-            pop();
             if (n4 && n4->car && (intptr_t)n4->car->car == NODE_SPLAT) {
+              if (cnt == 0) {
+                genop(s, MKOP_ABC(OP_RESCUE, exc, 0, cnt)); cnt = 1;
+              }
+              genop(s, MKOP_AB(OP_MOVE, cursp(), exc));
+              push();
+              codegen(s, n4->car, VAL);
+              pop_n(2);
               genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "__case_eqq")), 1));
             }
             else {
-              genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "===")), 1));
+              if (n4) {
+                codegen(s, n4->car, VAL);
+              }
+              else {
+                genop(s, MKOP_ABx(OP_GETCONST, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "StandardError"))));
+                push();
+              }
+              pop();
+              genop(s, MKOP_ABC(OP_RESCUE, exc, cursp(), cnt)); cnt = 1;
             }
             tmp = genop(s, MKOP_AsBx(OP_JMPIF, cursp(), pos2));
             pos2 = tmp;
@@ -1788,11 +1794,7 @@ codegen(codegen_scope *s, node *tree, int val)
         genop(s, MKOP_A(OP_POPERR, 1));
         noexc = genop(s, MKOP_Bx(OP_JMP, 0));
         dispatch(s, onerr);
-<<<<<<< HEAD
-        genop(s, MKOP_AB(OP_RESCUE, exc, 0));
-=======
         genop(s, MKOP_ABC(OP_RESCUE, exc, 0, 0));
->>>>>>> 55d89bd... Enhance OP_RESCUE to take B operand fas matching exception; ref #3487
         genop(s, MKOP_A(OP_LOADF, exc));
         dispatch(s, noexc);
         loop_pop(s, NOVAL);
