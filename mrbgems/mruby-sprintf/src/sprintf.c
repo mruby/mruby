@@ -1087,6 +1087,9 @@ retry:
 
         CHECK(need);
         n = snprintf(&buf[blen], need, fbuf, fval);
+        if (n < 0) {
+          mrb_raise(mrb, E_RUNTIME_ERROR, "formatting error");
+        }
         blen += n;
       }
       break;
