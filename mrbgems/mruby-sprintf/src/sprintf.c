@@ -567,6 +567,7 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
     mrb_sym id = 0;
 
     for (t = p; t < end && *t != '%'; t++) ;
+    if (t + 1 == end) ++t;
     PUSH(p, t - p);
     if (t >= end)
       goto sprint_exit; /* end of fmt string */
