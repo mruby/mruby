@@ -10,6 +10,7 @@ class String
   #
   # ISO 15.2.10.5.15
   def each_line(rs = "\n", &block)
+    return to_enum(:each_line, rs, &block) unless block
     return block.call(self) if rs.nil?
     rs = rs.to_str
     offset = 0
