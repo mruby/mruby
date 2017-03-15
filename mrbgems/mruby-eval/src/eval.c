@@ -231,7 +231,6 @@ f_eval(mrb_state *mrb, mrb_value self)
 static mrb_value
 f_instance_eval(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_context *c = mrb->c;
   mrb_value b;
   mrb_int argc; mrb_value *argv;
 
@@ -246,10 +245,9 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     struct RProc *proc;
 
     mrb_get_args(mrb, "s|zi", &s, &len, &file, &line);
-    c->ci->acc = CI_ACC_SKIP;
     cv = mrb_singleton_class(mrb, self);
-    c->ci->target_class = mrb_class_ptr(cv);
     proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line);
+    proc->target_class = mrb_class_ptr(cv);
     mrb->c->ci->env = NULL;
     mrb_assert(!MRB_PROC_CFUNC_P(proc));
     return mrb_exec_irep(mrb, self, proc);
