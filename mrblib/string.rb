@@ -11,11 +11,12 @@ class String
   # ISO 15.2.10.5.15
   def each_line(&block)
     offset = 0
-    while pos = self.index("\n", offset)
-      block.call(self[offset, pos + 1 - offset])
+    this = dup
+    while pos = this.index("\n", offset)
+      block.call(this[offset, pos + 1 - offset])
       offset = pos + 1
     end
-    block.call(self[offset, self.size - offset]) if self.size > offset
+    block.call(this[offset, this.size - offset]) if this.size > offset
     self
   end
 
