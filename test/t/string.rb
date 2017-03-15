@@ -341,6 +341,12 @@ assert('String#each_line', '15.2.10.5.15') do
   end
 
   assert_equal list, n_list
+
+  n_list.clear
+  a.each_line("li") do |line|
+    n_list << line
+  end
+  assert_equal ["first li", "ne\nsecond li", "ne\nthird li", "ne"], n_list
 end
 
 assert('String#empty?', '15.2.10.5.16') do
