@@ -9,13 +9,18 @@ class String
   # and pass the respective line.
   #
   # ISO 15.2.10.5.15
-  def each_line(&block)
+  def each_line(rs = "\n", &block)
+    return to_enum(:each_line, rs, &block) unless block
+    return block.call(self) if rs.nil?
+    rs = rs.to_str
     offset = 0
-    while pos = self.index("\n", offset)
-      block.call(self[offset, pos + 1 - offset])
-      offset = pos + 1
+    rs_len = rs.length
+    this = dup
+    while pos = this.index(rs, offset)
+      block.call(this[offset, pos + rs_len - offset])
+      offset = pos + rs_len
     end
-    block.call(self[offset, self.size - offset]) if self.size > offset
+    block.call(this[offset, this.size - offset]) if this.size > offset
     self
   end
 
