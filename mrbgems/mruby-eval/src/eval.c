@@ -5,7 +5,7 @@
 #include <mruby/proc.h>
 #include <mruby/opcode.h>
 
-mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p);
+mrb_value mrb_eval_proc_under(mrb_state *mrb, mrb_value self, struct RProc *p, struct RClass *c);
 mrb_value mrb_obj_instance_eval(mrb_state *mrb, mrb_value self);
 
 static struct mrb_irep *
@@ -223,7 +223,7 @@ f_eval(mrb_state *mrb, mrb_value self)
 
   proc = create_proc_from_string(mrb, s, len, binding, file, line);
   mrb_assert(!MRB_PROC_CFUNC_P(proc));
-  return mrb_exec_irep(mrb, self, proc);
+  return mrb_eval_proc_under(mrb, self, proc, 0);
 }
 
 #define CI_ACC_SKIP    -1
@@ -250,7 +250,7 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     proc->target_class = mrb_class_ptr(cv);
     mrb->c->ci->env = NULL;
     mrb_assert(!MRB_PROC_CFUNC_P(proc));
-    return mrb_exec_irep(mrb, self, proc);
+    return mrb_eval_proc_under(mrb, self, proc, mrb_class_ptr(cv));
   }
   else {
     mrb_get_args(mrb, "&", &b);
