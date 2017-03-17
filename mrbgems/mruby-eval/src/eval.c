@@ -133,7 +133,9 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest)
       break;
 
     case OP_STOP:
-      irep->iseq[i] = MKOP_AB(OP_RETURN, irep->nlocals, OP_R_NORMAL);
+      if (mrb->c->ci->acc >= 0) {
+        irep->iseq[i] = MKOP_AB(OP_RETURN, irep->nlocals, OP_R_NORMAL);
+      }
       break;
     }
   }
@@ -210,6 +212,19 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, con
 }
 
 static mrb_value
+exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
+{
+  if (mrb->c->ci->acc < 0) {
+    mrb_value ret = mrb_top_run(mrb, proc, mrb->c->stack[0], 0);
+    if (mrb->exc) {
+      mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));
+    }
+    return ret;
+  }
+  return mrb_exec_irep(mrb, self, proc);
+}
+
+static mrb_value
 f_eval(mrb_state *mrb, mrb_value self)
 {
   char *s;
@@ -223,10 +238,8 @@ f_eval(mrb_state *mrb, mrb_value self)
 
   proc = create_proc_from_string(mrb, s, len, binding, file, line);
   mrb_assert(!MRB_PROC_CFUNC_P(proc));
-  return mrb_exec_irep(mrb, self, proc);
+  return exec_irep(mrb, self, proc);
 }
-
-#define CI_ACC_SKIP    -1
 
 static mrb_value
 f_instance_eval(mrb_state *mrb, mrb_value self)
@@ -250,7 +263,7 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     proc->target_class = mrb_class_ptr(cv);
     mrb->c->ci->env = NULL;
     mrb_assert(!MRB_PROC_CFUNC_P(proc));
-    return mrb_exec_irep(mrb, self, proc);
+    return exec_irep(mrb, self, proc);
   }
   else {
     mrb_get_args(mrb, "&", &b);
