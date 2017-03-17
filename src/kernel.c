@@ -859,8 +859,8 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_RUNTIME_ERROR, "");
     break;
   case 1:
-    a[1] = mrb_check_string_type(mrb, a[0]);
-    if (!mrb_nil_p(a[1])) {
+    if (mrb_string_p(a[0])) {
+      a[1] = a[0];
       argc = 2;
       a[0] = mrb_obj_value(E_RUNTIME_ERROR);
     }

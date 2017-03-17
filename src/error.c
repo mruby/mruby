@@ -435,8 +435,8 @@ mrb_bug(mrb_state *mrb, const char *fmt, ...)
   exit(EXIT_FAILURE);
 }
 
-static mrb_value
-make_exception(mrb_state *mrb, int argc, const mrb_value *argv, mrb_bool isstr)
+MRB_API mrb_value
+mrb_make_exception(mrb_state *mrb, int argc, const mrb_value *argv)
 {
   mrb_value mesg;
   int n;
@@ -448,12 +448,9 @@ make_exception(mrb_state *mrb, int argc, const mrb_value *argv, mrb_bool isstr)
     case 1:
       if (mrb_nil_p(argv[0]))
         break;
-      if (isstr) {
-        mesg = mrb_check_string_type(mrb, argv[0]);
-        if (!mrb_nil_p(mesg)) {
-          mesg = mrb_exc_new_str(mrb, E_RUNTIME_ERROR, mesg);
-          break;
-        }
+      if (mrb_string_p(argv[0])) {
+        mesg = mrb_exc_new_str(mrb, E_RUNTIME_ERROR, argv[0]);
+        break;
       }
       n = 0;
       goto exception_call;
@@ -486,12 +483,6 @@ exception_call:
   }
 
   return mesg;
-}
-
-MRB_API mrb_value
-mrb_make_exception(mrb_state *mrb, int argc, const mrb_value *argv)
-{
-  return make_exception(mrb, argc, argv, TRUE);
 }
 
 MRB_API void
