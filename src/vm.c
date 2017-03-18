@@ -1207,7 +1207,7 @@ RETRY_TRY_BLOCK:
       else {
         mrb_value blk = regs[bidx];
         if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-          ci->nregs = bidx+1;
+          mrb->c->ci->nregs = bidx+1;
           regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
         }
       }
