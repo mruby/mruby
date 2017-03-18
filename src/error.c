@@ -329,6 +329,7 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
   const char *b = p;
   ptrdiff_t size;
   mrb_value ary = mrb_ary_new_capa(mrb, 4);
+  int ai = mrb_gc_arena_save(mrb);
 
   while (*p) {
     const char c = *p++;
@@ -352,14 +353,18 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
         break;
       }
     }
+    mrb_gc_arena_restore(mrb, ai);
   }
   if (b == format) {
     return mrb_str_new_cstr(mrb, format);
   }
   else {
     size = p - b;
-    mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
-    return mrb_ary_join(mrb, ary, mrb_str_new(mrb, NULL, 0));
+    if (size > 0) {
+      mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
+      mrb_gc_arena_restore(mrb, ai);
+    }
+    return mrb_ary_join(mrb, ary, mrb_nil_value());
   }
 }
 
