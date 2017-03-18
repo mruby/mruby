@@ -221,7 +221,7 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, int len)
     tmp_v = GETNEXTARG(); \
     p = t; \
   } \
-  num = mrb_fixnum(tmp_v); \
+  num = mrb_int(mrb, tmp_v); \
 } while (0)
 
 static mrb_value
