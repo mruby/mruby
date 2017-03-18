@@ -1642,12 +1642,12 @@ RETRY_TRY_BLOCK:
     CASE(OP_RETURN) {
       /* A B     return R(A) (B=normal,in-block return/break) */
       if (mrb->exc) {
-        mrb_callinfo *ci;
+        mrb_callinfo *ci, *ci0;
         mrb_value *stk;
         int eidx;
 
       L_RAISE:
-        ci = mrb->c->ci;
+        ci0 = ci = mrb->c->ci;
         mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern_lit(mrb, "lastpc"), mrb_cptr_value(mrb, pc));
         mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern_lit(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->c->cibase));
         eidx = ci->eidx;
@@ -1694,7 +1694,9 @@ RETRY_TRY_BLOCK:
         irep = proc->body.irep;
         pool = irep->pool;
         syms = irep->syms;
-        mrb->c->stack = ci[1].stackent;
+        if (ci != ci0) {
+          mrb->c->stack = ci[1].stackent;
+        }
         pc = mrb->c->rescue[--ci->ridx];
       }
       else {
