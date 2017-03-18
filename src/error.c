@@ -166,12 +166,9 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
   else {
     const char *cname = mrb_obj_classname(mrb, exc);
     str = mrb_str_new_cstr(mrb, cname);
-    mrb_str_cat_lit(mrb, str, ": ");
     if (append_mesg) {
+      mrb_str_cat_lit(mrb, str, ": ");
       mrb_str_cat_str(mrb, str, mesg);
-    }
-    else {
-      mrb_str_cat_cstr(mrb, str, cname);
     }
   }
   return str;
