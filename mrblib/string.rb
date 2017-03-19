@@ -58,6 +58,7 @@ class String
   #
   # ISO 15.2.10.5.18
   def gsub(*args, &block)
+    return to_enum(:gsub, *args) if args.length == 1 && !block
     if args.size == 2
       pattern, replace = *args
       plen = pattern.length
@@ -91,6 +92,7 @@ class String
   # ISO 15.2.10.5.19
   def gsub!(*args, &block)
     raise RuntimeError, "can't modify frozen String" if frozen?
+    return to_enum(:gsub!, *args) if args.length == 1 && !block
     str = self.gsub(*args, &block)
     return nil if str == self
     self.replace(str)
