@@ -59,28 +59,33 @@ class String
   # ISO 15.2.10.5.18
   def gsub(*args, &block)
     return to_enum(:gsub, *args) if args.length == 1 && !block
-    if args.size == 2
-      pattern, replace = *args
-      plen = pattern.length
-      replace = replace.to_str
-      offset = 0
-      result = []
-      while found = index(pattern, offset)
-        result << self[offset, found - offset]
-        offset = found + plen
-        result << replace.__sub_replace(self[0, found], pattern, self[offset..-1] || "")
-        if plen == 0
-          result << self[offset, 1]
-          offset += 1
-        end
-      end
-      result << self[offset..-1] if offset < length
-      result.join
-    elsif args.size == 1 && block
-      split(args[0], -1).join(block.call(args[0]))
-    else
-      raise ArgumentError, "wrong number of arguments"
+    raise ArgumentError, "wrong number of arguments" unless (1..2).include?(args.length)
+
+    pattern, replace = *args
+    plen = pattern.length
+    if args.length == 2 && block
+      block = nil
     end
+    if !replace.nil? || !block
+      replace = replace.to_str
+    end
+    offset = 0
+    result = []
+    while found = index(pattern, offset)
+      result << self[offset, found - offset]
+      offset = found + plen
+      result << if block
+        block.call(pattern).to_s
+      else
+        replace.__sub_replace(self[0, found], pattern, self[offset..-1] || "")
+      end
+      if plen == 0
+        result << self[offset, 1]
+        offset += 1
+      end
+    end
+    result << self[offset..-1] if offset < length
+    result.join
   end
 
   ##
