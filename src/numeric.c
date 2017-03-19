@@ -372,7 +372,7 @@ flo_shift(mrb_state *mrb, mrb_value x, mrb_int width)
     }
   }
   if (FIXABLE(val)) {
-    return mrb_fixnum_value(val);
+    return mrb_fixnum_value((mrb_int)val);
   }
   return mrb_float_value(mrb, val);
 }
