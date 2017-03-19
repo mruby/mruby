@@ -1048,15 +1048,17 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
       break;
 
     default:
-      tmp = mrb_check_string_type(mrb, val);
-      if (!mrb_nil_p(tmp)) {
-        val = tmp;
-        goto str_join;
-      }
-      tmp = mrb_check_convert_type(mrb, val, MRB_TT_ARRAY, "Array", "to_ary");
-      if (!mrb_nil_p(tmp)) {
-        val = tmp;
-        goto ary_join;
+      if (!mrb_immediate_p(val)) {
+        tmp = mrb_check_string_type(mrb, val);
+        if (!mrb_nil_p(tmp)) {
+          val = tmp;
+          goto str_join;
+        }
+        tmp = mrb_check_convert_type(mrb, val, MRB_TT_ARRAY, "Array", "to_ary");
+        if (!mrb_nil_p(tmp)) {
+          val = tmp;
+          goto ary_join;
+        }
       }
       val = mrb_obj_as_string(mrb, val);
       goto str_join;
