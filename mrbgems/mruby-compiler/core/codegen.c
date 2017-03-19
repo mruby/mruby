@@ -1293,8 +1293,8 @@ codegen(codegen_scope *s, node *tree, int val)
       if (tree->car) {
         node *n2 = tree->car;
         int exc = cursp();
-        int cnt = 0;
 
+        genop(s, MKOP_ABC(OP_RESCUE, exc, 0, 0));
         push();
         while (n2) {
           node *n3 = n2->car;
@@ -1304,9 +1304,6 @@ codegen(codegen_scope *s, node *tree, int val)
           pos2 = 0;
           do {
             if (n4 && n4->car && (intptr_t)n4->car->car == NODE_SPLAT) {
-              if (cnt == 0) {
-                genop(s, MKOP_ABC(OP_RESCUE, exc, 0, cnt)); cnt = 1;
-              }
               genop(s, MKOP_AB(OP_MOVE, cursp(), exc));
               push();
               codegen(s, n4->car, VAL);
@@ -1322,7 +1319,7 @@ codegen(codegen_scope *s, node *tree, int val)
                 push();
               }
               pop();
-              genop(s, MKOP_ABC(OP_RESCUE, exc, cursp(), cnt)); cnt = 1;
+              genop(s, MKOP_ABC(OP_RESCUE, exc, cursp(), 1));
             }
             tmp = genop(s, MKOP_AsBx(OP_JMPIF, cursp(), pos2));
             pos2 = tmp;
