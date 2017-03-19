@@ -54,7 +54,7 @@ mrb_proc_inspect(mrb_state *mrb, mrb_value self)
     if (line != -1) {
       char buf[32];
 
-      snprintf(buf, sizeof(buf), "%"MRB_PRId, line);
+      snprintf(buf, sizeof(buf), "%" PRId32, line);
       mrb_str_cat_cstr(mrb, str, buf);
     }
     else {

@@ -152,7 +152,7 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
     char buf[32];
 
     str = mrb_str_dup(mrb, file);
-    snprintf(buf, sizeof(buf), ":%"MRB_PRId": ", mrb_fixnum(line));
+    snprintf(buf, sizeof(buf), ":%" MRB_PRId ": ", mrb_fixnum(line));
     mrb_str_cat_cstr(mrb, str, buf);
     if (append_mesg) {
       mrb_str_cat_str(mrb, str, mesg);
