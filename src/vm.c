@@ -1091,16 +1091,17 @@ RETRY_TRY_BLOCK:
       int c = GETARG_C(i);
       mrb_value exc;
 
+      if (c == 0) {
+        exc = mrb_obj_value(mrb->exc);
+        mrb->exc = 0;
+      }
+      else {           /* continued; exc taken from R(A) */
+        exc = regs[a];
+      }
       if (b != 0) {
         mrb_value e = regs[b];
         struct RClass *ec;
 
-        if (c == 0) {
-          exc = mrb_obj_value(mrb->exc);
-        }
-        else {           /* continued; exc taken from R(A) */
-          exc = regs[a];
-        }
         switch (mrb_type(e)) {
         case MRB_TT_CLASS:
         case MRB_TT_MODULE:
@@ -1110,20 +1111,11 @@ RETRY_TRY_BLOCK:
           break;
         }
         ec = mrb_class_ptr(e);
-        if (mrb_obj_is_kind_of(mrb, exc, ec)) {
-          regs[b] = mrb_true_value();
-        }
-        else {
-          regs[b] = mrb_false_value();
-        }
-      }
-      else if (c == 0) {
-        exc = mrb_obj_value(mrb->exc);
+        regs[b] = mrb_bool_value(mrb_obj_is_kind_of(mrb, exc, ec));
       }
       if (a != 0 && c == 0) {
-        regs[GETARG_A(i)] = exc;
+        regs[a] = exc;
       }
-      mrb->exc = 0;
       NEXT;
     }
 
