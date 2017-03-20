@@ -2181,13 +2181,13 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_BACK_REF:
     if (val) {
-      char buf[2] = { '$' };
-      mrb_value str;
+      char buf[3];
       int sym;
 
+      buf[0] = '$';
       buf[1] = (char)(intptr_t)tree;
-      str = mrb_str_new(s->mrb, buf, 2);
-      sym = new_sym(s, mrb_intern_str(s->mrb, str));
+      buf[2] = 0;
+      sym = new_sym(s, mrb_intern_cstr(s->mrb, buf));
       genop(s, MKOP_ABx(OP_GETGLOBAL, cursp(), sym));
       push();
     }
@@ -2195,14 +2195,12 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_NTH_REF:
     if (val) {
-      int sym;
       mrb_state *mrb = s->mrb;
-      mrb_value fix = mrb_fixnum_value((intptr_t)tree);
-      mrb_value str = mrb_str_buf_new(mrb, 4);
+      char buf[32];
+      int sym;
 
-      mrb_str_cat_lit(mrb, str, "$");
-      mrb_str_cat_str(mrb, str, mrb_fixnum_to_str(mrb, fix, 10));
-      sym = new_sym(s, mrb_intern_str(mrb, str));
+      snprintf(buf, sizeof(buf), "$%" PRId64, (intptr_t)tree);
+      sym = new_sym(s, mrb_intern_cstr(mrb, buf));
       genop(s, MKOP_ABx(OP_GETGLOBAL, cursp(), sym));
       push();
     }
