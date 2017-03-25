@@ -81,6 +81,7 @@ get_backtrace_i(mrb_state *mrb, struct backtrace_location *loc, void *data)
 
   str = mrb_str_new_cstr(mrb, loc->filename);
   snprintf(buf, sizeof(buf), ":%d", loc->lineno);
+  mrb_str_cat_cstr(mrb, str, buf);
 
   if (loc->method) {
     mrb_str_cat_lit(mrb, str, ":in ");
