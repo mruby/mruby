@@ -211,6 +211,16 @@ mrb_time_wrap(mrb_state *mrb, struct RClass *tc, struct mrb_time *tm)
   return mrb_obj_value(Data_Wrap_Struct(mrb, tc, &mrb_time_type, tm));
 }
 
+static void
+check_num_exact(mrb_state *mrb, double num)
+{
+  if (isinf(num)) {
+    mrb_raise(mrb, E_FLOATDOMAIN_ERROR, num < 0 ? "-Infinity" : "Infinity");
+  }
+  if (isnan(num)) {
+    mrb_raise(mrb, E_FLOATDOMAIN_ERROR, "NaN");
+  }
+}
 
 /* Allocates a mrb_time object and initializes it. */
 static struct mrb_time*
@@ -218,6 +228,9 @@ time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
 {
   struct mrb_time *tm;
   time_t tsec = 0;
+
+  check_num_exact(mrb, sec);
+  check_num_exact(mrb, usec);
 
   if (sizeof(time_t) == 4 && (sec > (double)INT32_MAX || (double)INT32_MIN > sec)) {
     goto out_of_range;
