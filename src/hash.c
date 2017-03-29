@@ -246,7 +246,8 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
         int ai = mrb_gc_arena_save(mrb);
         ret_k = kh_put(ht, mrb, ret_h, KEY(kh_key(h, k)));
         mrb_gc_arena_restore(mrb, ai);
-        kh_val(ret_h, ret_k) = kh_val(h, k);
+        kh_val(ret_h, ret_k).v = kh_val(h, k).v;
+        kh_val(ret_h, ret_k).n = kh_size(ret_h)-1;
       }
     }
   }
