@@ -819,12 +819,22 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
     c = c->super;
   }
 
-  if (!cls->iv) {
-    cls->iv = iv_new(mrb);
+  if (cls && cls->tt == MRB_TT_SCLASS) {
+    mrb_value klass;
+    klass = mrb_obj_iv_get(mrb, (struct RObject*)cls,
+                          mrb_intern_lit(mrb, "__attached__"));
+
+    c = mrb_class_ptr(klass);
+  }else{
+    c = cls;
   }
 
-  mrb_write_barrier(mrb, (struct RBasic*)cls);
-  iv_put(mrb, cls->iv, sym, v);
+  if (!c->iv) {
+    c->iv = iv_new(mrb);
+  }
+
+  mrb_write_barrier(mrb, (struct RBasic*)c);
+  iv_put(mrb, c->iv, sym, v);
 }
 
 MRB_API void
