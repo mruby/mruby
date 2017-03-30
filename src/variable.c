@@ -825,7 +825,8 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
                           mrb_intern_lit(mrb, "__attached__"));
 
     c = mrb_class_ptr(klass);
-  }else{
+  }
+  else{
     c = cls;
   }
 
