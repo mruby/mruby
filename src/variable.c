@@ -949,7 +949,7 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
       klass = mrb_obj_iv_get(mrb, (struct RObject *)c,
                              mrb_intern_lit(mrb, "__attached__"));
       c2 = mrb_class_ptr(klass);
-      if (c2->tt == MRB_TT_CLASS)
+      if (c2->tt == MRB_TT_CLASS || c2->tt == MRB_TT_MODULE)
         c = c2;
     }
     c2 = c;
