@@ -1227,6 +1227,10 @@ RETRY_TRY_BLOCK:
         mid = missing;
         if (n != CALL_MAXARGS) {
           mrb_value blk = regs[bidx];
+
+          if (a+2 > irep->nregs) {
+            stack_extend(mrb, a+2, a+n+1);
+          }
           regs[a+1] = mrb_ary_new_from_values(mrb, n, regs+a+1);
           regs[a+2] = blk;
           n = CALL_MAXARGS;
