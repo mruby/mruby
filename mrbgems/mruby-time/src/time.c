@@ -11,6 +11,8 @@
 #include <mruby/class.h>
 #include <mruby/data.h>
 
+#define NDIV(x,y) (-(-((x)+1)/(y))-1)
+
 #if _MSC_VER < 1800
 double round(double x) {
   if (x >= 0.0) {
@@ -237,13 +239,15 @@ time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
   tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(struct mrb_time));
   tm->sec  = tsec;
   tm->usec = (time_t)llround((sec - tm->sec) * 1.0e6 + usec);
-  while (tm->usec < 0) {
-    tm->sec--;
-    tm->usec += 1000000;
+  if (tm->usec < 0) {
+    long sec2 = NDIV(usec,1000000); /* negative div */
+    tm->usec -= sec2 * 1000000;
+    tm->sec += sec2;
   }
-  while (tm->usec >= 1000000) {
-    tm->sec++;
-    tm->usec -= 1000000;
+  if (tm->usec >= 1000000) {
+    long sec2 = usec / 1000000;
+    tm->usec -= sec2 * 1000000;
+    tm->sec += sec2;
   }
   tm->timezone = timezone;
   time_update_datetime(mrb, tm);
