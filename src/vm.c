@@ -1449,13 +1449,16 @@ RETRY_TRY_BLOCK:
       mrb->c->stack[0] = recv;
 
       if (MRB_PROC_CFUNC_P(m)) {
+        mrb_value v;
+
         if (n == CALL_MAXARGS) {
           ci->nregs = 3;
         }
         else {
           ci->nregs = n + 2;
         }
-        mrb->c->stack[0] = m->body.func(mrb, recv);
+        v = m->body.func(mrb, recv);
+        mrb->c->stack[0] = v;
         mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
@@ -1862,7 +1865,8 @@ RETRY_TRY_BLOCK:
       value_move(mrb->c->stack, &regs[a], ci->argc+1);
 
       if (MRB_PROC_CFUNC_P(m)) {
-        mrb->c->stack[0] = m->body.func(mrb, recv);
+        mrb_value v = m->body.func(mrb, recv);
+        mrb->c->stack[0] = v;
         mrb_gc_arena_restore(mrb, ai);
         goto L_RETURN;
       }
