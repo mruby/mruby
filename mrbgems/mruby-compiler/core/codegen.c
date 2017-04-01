@@ -792,7 +792,7 @@ attrsym(codegen_scope *s, mrb_sym a)
 #define CALL_MAXARGS 127
 
 static int
-gen_values(codegen_scope *s, node *t, int val)
+gen_values(codegen_scope *s, node *t, int val, int extra)
 {
   int n = 0;
   int is_splat;
@@ -800,7 +800,7 @@ gen_values(codegen_scope *s, node *t, int val)
   while (t) {
     is_splat = (intptr_t)t->car->car == NODE_SPLAT; /* splat mode */
     if (
-      n >= CALL_MAXARGS - 1 /* need to subtract one because vm.c expects an array if n == CALL_MAXARGS */
+      n+extra >= CALL_MAXARGS - 1 /* need to subtract one because vm.c expects an array if n == CALL_MAXARGS */
       || is_splat) {
       if (val) {
         if (is_splat && n == 0 && (intptr_t)t->car->cdr->car == NODE_ARRAY) {
@@ -872,7 +872,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
   idx = new_msym(s, sym);
   tree = tree->cdr->cdr->car;
   if (tree) {
-    n = gen_values(s, tree->car, VAL);
+    n = gen_values(s, tree->car, VAL, sp?1:0);
     if (n < 0) {
       n = noop = sendv = 1;
       push();
@@ -1632,7 +1632,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       int n;
 
-      n = gen_values(s, tree, val);
+      n = gen_values(s, tree, val, 0);
       if (n >= 0) {
         if (val) {
           pop_n(n);
@@ -1806,7 +1806,7 @@ codegen(codegen_scope *s, node *tree, int val)
         idx = new_msym(s, sym(n->cdr->car));
         if (n->cdr->cdr->car) {
           int base = cursp()-1;
-          int nargs = gen_values(s, n->cdr->cdr->car->car, VAL);
+          int nargs = gen_values(s, n->cdr->cdr->car->car, VAL, 1);
 
           /* copy receiver and arguments */
           if (nargs >= 0) {
@@ -1943,7 +1943,7 @@ codegen(codegen_scope *s, node *tree, int val)
       if (tree) {
         node *args = tree->car;
         if (args) {
-          n = gen_values(s, args, VAL);
+          n = gen_values(s, args, VAL, 0);
           if (n < 0) {
             n = noop = sendv = 1;
             push();
@@ -2020,7 +2020,7 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_ABx(OP_BLKPUSH, cursp(), (ainfo<<4)|(lv & 0xf)));
       push();
       if (tree) {
-        n = gen_values(s, tree, VAL);
+        n = gen_values(s, tree, VAL, 0);
         if (n < 0) {
           n = sendv = 1;
           push();
