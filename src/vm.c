@@ -1202,8 +1202,10 @@ RETRY_TRY_BLOCK:
       else {
         mrb_value blk = regs[bidx];
         if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-          if(bidx >= mrb->c->ci->nregs)
+          if(bidx >= mrb->c->ci->nregs) {
+            stack_extend(mrb, bidx+1, mrb->c->ci->nregs);
             mrb->c->ci->nregs = bidx+1;
+          }
           regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
         }
       }
@@ -1439,8 +1441,10 @@ RETRY_TRY_BLOCK:
         }
         blk = regs[bidx];
         if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-          if(bidx >= ci->nregs)
+          if(bidx >= ci->nregs) {
+            stack_extend(mrb, bidx+1, ci->nregs);
             ci->nregs = bidx+1;
+          }
           regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
           ci = mrb->c->ci;
         }
