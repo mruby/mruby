@@ -215,7 +215,7 @@ mrb_ary_slice_bang(mrb_state *mrb, mrb_value self)
   }
 
   ptr = a->ptr + i;
-  for (j = i; j <= a->len - len; ++j) {
+  for (j = i; j < a->len - len; ++j) {
     *ptr = *(ptr+len);
     ++ptr;
   }
