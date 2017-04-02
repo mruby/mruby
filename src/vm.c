@@ -467,6 +467,7 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
   mrb_callinfo *ci = mrb->c->ci;
 
   ci->proc = p;
+  ci->target_class = p->target_class;
   if (MRB_PROC_CFUNC_P(p)) {
     return p->body.func(mrb, self);
   }
