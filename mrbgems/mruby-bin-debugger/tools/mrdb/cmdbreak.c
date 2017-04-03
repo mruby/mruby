@@ -259,7 +259,8 @@ parse_breakcommand(mrdb_state *mrdb, const char **file, uint32_t *line, char **c
   if ((body = strrchr(args, ':')) == NULL) {
     body = args;
     type = check_bptype(body);
-  } else {
+  }
+  else {
     if (body == args) {
       printf(BREAK_ERR_MSG_INVALIDSTR, args);
       return MRB_DEBUG_BPTYPE_NONE;
@@ -274,7 +275,8 @@ parse_breakcommand(mrdb_state *mrdb, const char **file, uint32_t *line, char **c
       if (l <= 65535) {
         *line = l;
         *file = (body == args)? mrb_debug_get_filename(dbg->irep, (uint32_t)(dbg->pc - dbg->irep->iseq)): args;
-      } else {
+      }
+      else {
         puts(BREAK_ERR_MSG_RANGEOVER);
         type = MRB_DEBUG_BPTYPE_NONE;
       }
@@ -285,11 +287,13 @@ parse_breakcommand(mrdb_state *mrdb, const char **file, uint32_t *line, char **c
         if (ISUPPER(*body)||ISLOWER(*body)||(*body == '_')) {
           *method = body;
           *cname = NULL;
-        } else {
+        }
+        else {
           printf(BREAK_ERR_MSG_INVALIDMETHOD, args);
           type = MRB_DEBUG_BPTYPE_NONE;
         }
-      } else {
+      }
+      else {
         if (ISUPPER(*args)) {
           switch(*body) {
             case '@': case '$': case '?': case '.': case ',': case ':':
@@ -302,7 +306,8 @@ parse_breakcommand(mrdb_state *mrdb, const char **file, uint32_t *line, char **c
             *cname = args;
             break;
           }
-        } else {
+        }
+        else {
           printf(BREAK_ERR_MSG_INVALIDCLASS, args);
           type = MRB_DEBUG_BPTYPE_NONE;
         }
@@ -343,12 +348,15 @@ dbgcmd_break(mrb_state *mrb, mrdb_state *mrdb)
   if (ret >= 0) {
     if (type == MRB_DEBUG_BPTYPE_LINE) {
       printf(BREAK_SET_MSG_LINE, ret, file, line);
-    } else if ((type == MRB_DEBUG_BPTYPE_METHOD)&&(cname == NULL)) {
+    }
+    else if ((type == MRB_DEBUG_BPTYPE_METHOD)&&(cname == NULL)) {
       printf(BREAK_SET_MSG_METHOD, ret, method);
-    } else {
+    }
+    else {
       printf(BREAK_SET_MSG_CLASS_METHOD, ret, cname, method);
     }
-  } else {
+  }
+  else {
     switch (ret) {
       case MRB_DEBUG_BREAK_INVALID_LINENO:
         printf(BREAK_ERR_MSG_INVALIDLINENO, line, file);

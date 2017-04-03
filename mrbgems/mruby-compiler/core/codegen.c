@@ -2445,7 +2445,8 @@ codegen(codegen_scope *s, node *tree, int val)
         if (p2) {
           off = new_lit(s, mrb_str_new_cstr(s->mrb, p2));
           genop(s, MKOP_ABx(OP_STRING, cursp(), off));
-        } else {
+        }
+        else {
           genop(s, MKOP_A(OP_LOADNIL, cursp()));
         }
         argc++;

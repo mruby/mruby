@@ -944,7 +944,8 @@ lshift(mrb_state *mrb, mrb_int val, mrb_int width)
         (val   > (MRB_INT_MAX >> width))) {
       goto bit_overflow;
     }
-  } else {
+  }
+  else {
     if ((width > NUMERIC_SHIFT_WIDTH_MAX) ||
         (val   < (MRB_INT_MIN >> width))) {
       goto bit_overflow;

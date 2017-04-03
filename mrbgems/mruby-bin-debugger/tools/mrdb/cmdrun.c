@@ -13,7 +13,8 @@ dbgcmd_run(mrb_state *mrb, mrdb_state *mrdb)
 
   if (dbg->xm == DBG_INIT){
     dbg->xm = DBG_RUN;
-  } else {
+  }
+  else {
     dbg->xm = DBG_QUIT;
     if (dbg->xphase == DBG_PHASE_RUNNING){
       struct RClass *exc;
@@ -40,7 +41,8 @@ dbgcmd_continue(mrb_state *mrb, mrdb_state *mrdb)
   if (dbg->xphase == DBG_PHASE_AFTER_RUN){
     puts("The program is not running.");
     dbg->xm = DBG_QUIT;
-  } else {
+  }
+  else {
     dbg->xm = DBG_RUN;
   }
   return DBGST_CONTINUE;

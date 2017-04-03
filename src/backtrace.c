@@ -191,7 +191,8 @@ exc_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
   lastpc = mrb_obj_iv_get(mrb, exc, mrb_intern_lit(mrb, "lastpc"));
   if (mrb_nil_p(lastpc)) {
     code = NULL;
-  } else {
+  }
+  else {
     code = (mrb_code*)mrb_cptr(lastpc);
   }
 

@@ -31,7 +31,8 @@ check_lineno(mrb_irep_debug_info_file *info_file, uint16_t lineno)
         return lineno;
       }
     }
-  } else {
+  }
+  else {
     for (l_idx = 0; l_idx < count; ++l_idx) {
       if (lineno == info_file->lines.flat_map[l_idx].line) {
         return lineno;
@@ -198,7 +199,8 @@ mrb_debug_set_break_line(mrb_state *mrb, mrb_debug_context *dbg, const char *fil
   result = check_file_lineno(dbg->root_irep, file, lineno);
   if (result == 0) {
     return MRB_DEBUG_BREAK_INVALID_FILE;
-  }else if (result == MRB_DEBUG_BP_FILE_OK) {
+  }
+  else if (result == MRB_DEBUG_BP_FILE_OK) {
     return MRB_DEBUG_BREAK_INVALID_LINENO;
   }
 

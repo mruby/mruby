@@ -17,7 +17,8 @@
 double round(double x) {
   if (x >= 0.0) {
     return (double)((int)(x + 0.5));
-  } else {
+  }
+  else {
     return (double)((int)(x - 0.5));
   }
 }
