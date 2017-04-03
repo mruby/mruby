@@ -296,6 +296,7 @@ ecall(mrb_state *mrb, int i)
   }
   p = mrb->c->ensure[i];
   if (!p) return;
+  mrb->c->ensure[i] = NULL;
   if (mrb->c->ci->eidx > i)
     mrb->c->ci->eidx = i;
   cioff = mrb->c->ci - mrb->c->cibase;
@@ -310,7 +311,6 @@ ecall(mrb_state *mrb, int i)
   mrb->c->stack = mrb->c->stack + ci[-1].nregs;
   exc = mrb->exc; mrb->exc = 0;
   mrb_run(mrb, p, *self);
-  mrb->c->ensure[i] = NULL;
   mrb->c->ci = mrb->c->cibase + cioff;
   if (!mrb->exc) mrb->exc = exc;
 }
@@ -1148,6 +1148,7 @@ RETRY_TRY_BLOCK:
         mrb->c->ensure = (struct RProc **)mrb_realloc(mrb, mrb->c->ensure, sizeof(struct RProc*) * mrb->c->esize);
       }
       mrb->c->ensure[mrb->c->ci->eidx++] = p;
+      mrb->c->ensure[mrb->c->ci->eidx] = NULL;
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }
