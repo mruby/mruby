@@ -154,6 +154,7 @@ module Enumerable
       end
     end
     block.call(ary) unless ary.empty?
+    nil
   end
 
   ##
