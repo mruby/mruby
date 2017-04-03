@@ -1203,7 +1203,7 @@ RETRY_TRY_BLOCK:
       else {
         mrb_value blk = regs[bidx];
         if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-          if(bidx >= mrb->c->ci->nregs) {
+          if (bidx >= mrb->c->ci->nregs) {
             stack_extend(mrb, bidx+1, mrb->c->ci->nregs);
             mrb->c->ci->nregs = bidx+1;
           }
@@ -1365,7 +1365,7 @@ RETRY_TRY_BLOCK:
         else {
           stack_extend(mrb, irep->nregs, ci->argc+2);
         }
-        if(m->env) {
+        if (m->env) {
           regs[0] = m->env->stack[0];
         }
         pc = irep->iseq;
@@ -1442,7 +1442,7 @@ RETRY_TRY_BLOCK:
         }
         blk = regs[bidx];
         if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-          if(bidx >= ci->nregs) {
+          if (bidx >= ci->nregs) {
             stack_extend(mrb, bidx+1, ci->nregs);
             ci->nregs = bidx+1;
           }

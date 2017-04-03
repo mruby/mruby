@@ -2225,7 +2225,7 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
   mrb_check_type(mrb, mod, MRB_TT_MODULE);
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  if(argc == 0) {
+  if (argc == 0) {
     /* set MODFUNC SCOPE if implemented */
     return mod;
   }
