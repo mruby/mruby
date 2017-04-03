@@ -1665,9 +1665,11 @@ mrb_str_init(mrb_state *mrb, mrb_value self)
 {
   mrb_value str2;
 
-  if (mrb_get_args(mrb, "|S", &str2) == 1) {
-    str_replace(mrb, mrb_str_ptr(self), mrb_str_ptr(str2));
+  if (mrb_get_args(mrb, "|S", &str2) == 0) {
+    struct RString *s = str_new(mrb, 0, 0);
+    str2 = mrb_obj_value(s);
   }
+  str_replace(mrb, mrb_str_ptr(self), mrb_str_ptr(str2));
   return self;
 }
 
