@@ -245,7 +245,7 @@ time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
     tm->usec -= sec2 * 1000000;
     tm->sec += sec2;
   }
-  if (tm->usec >= 1000000) {
+  else if (tm->usec >= 1000000) {
     long sec2 = usec / 1000000;
     tm->usec -= sec2 * 1000000;
     tm->sec += sec2;
