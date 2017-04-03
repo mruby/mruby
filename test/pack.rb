@@ -158,4 +158,8 @@ assert 'pack/unpack "U"' do
   assert_equal "こんにちは世界", [12371, 12435, 12395, 12385, 12399, 19990, 30028].pack("U*")
 
   assert_equal "\000", [0].pack("U")
+
+  assert_raise(RangeError) { [-0x40000000].pack("U") }
+  assert_raise(RangeError) { [-1].pack("U") }
+  assert_raise(RangeError) { [0x40000000].pack("U") }
 end

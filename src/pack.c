@@ -77,7 +77,7 @@ check_little_endian(void)
 static unsigned int
 hex2int(unsigned char ch)
 {
-  if (ch >= '0' && ch <= '9') 
+  if (ch >= '0' && ch <= '9')
     return ch - '0';
   else if (ch >= 'A' && ch <= 'F')
     return 10 + (ch - 'A');
@@ -414,8 +414,12 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, long count, 
 {
   char utf8[4];
   int len;
-  
-  unsigned long c = mrb_fixnum(o);
+  unsigned long c = 0;
+
+  if (mrb_float_p(o)) {
+    goto range_error;
+  }
+  c = mrb_fixnum(o);
 
   /* Unicode character */
   /* from mruby-compiler gem */
@@ -434,17 +438,21 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, long count, 
     utf8[2] = (char)(0x80 | ( c        & 0x3F));
     len = 3;
   }
-  else {
+  else if (c < 0x200000) {
     utf8[0] = (char)(0xF0 |  (c >> 18)        );
     utf8[1] = (char)(0x80 | ((c >> 12) & 0x3F));
     utf8[2] = (char)(0x80 | ((c >>  6) & 0x3F));
     utf8[3] = (char)(0x80 | ( c        & 0x3F));
     len = 4;
   }
-  
+  else {
+range_error:
+    mrb_raise(mrb, E_RANGE_ERROR, "pack(U): value out of range");
+  }
+
   str = str_len_ensure(mrb, str, sidx + len);
   memcpy(RSTRING_PTR(str) + sidx, utf8, len);
-  
+
   return len;
 }
 
