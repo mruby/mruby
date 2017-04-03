@@ -2872,8 +2872,8 @@ scope_finish(codegen_scope *s)
   irep->syms = (mrb_sym*)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
   irep->reps = (mrb_irep**)codegen_realloc(s, irep->reps, sizeof(mrb_irep*)*irep->rlen);
   if (s->filename) {
-    s->irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
-    mrb_debug_info_append_file(mrb, s->irep, s->debug_start_pos, s->pc);
+    irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
+    mrb_debug_info_append_file(mrb, irep, s->debug_start_pos, s->pc);
 
     fname_len = strlen(s->filename);
     fname = (char*)codegen_malloc(s, fname_len + 1);
