@@ -1142,7 +1142,7 @@ RETRY_TRY_BLOCK:
 
       p = mrb_closure_new(mrb, irep->reps[GETARG_Bx(i)]);
       /* push ensure_stack */
-      if (mrb->c->esize <= mrb->c->ci->eidx) {
+      if (mrb->c->esize <= mrb->c->ci->eidx+1) {
         if (mrb->c->esize == 0) mrb->c->esize = 16;
         else mrb->c->esize *= 2;
         mrb->c->ensure = (struct RProc **)mrb_realloc(mrb, mrb->c->ensure, sizeof(struct RProc*) * mrb->c->esize);
