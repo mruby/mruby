@@ -378,6 +378,7 @@ main(int argc, char **argv)
   int i;
   mrb_bool code_block_open = FALSE;
   int ai;
+  unsigned int stack_keep = 0;
 
   /* new interpreter instance */
   mrb = mrb_open();
@@ -548,7 +549,8 @@ done:
         result = mrb_vm_run(mrb,
             proc,
             mrb_top_self(mrb),
-            cxt->slen);
+            stack_keep);
+        stack_keep = proc->body.irep->nlocals;
         /* did an exception occur? */
         if (mrb->exc) {
           p(mrb, mrb_obj_value(mrb->exc), 0);
