@@ -109,6 +109,7 @@ typedef struct {
     struct RRange range;
     struct RData data;
     struct RProc proc;
+    struct REnv env;
     struct RException exc;
 #ifdef MRB_WORD_BOXING
     struct RFloat floatv;
