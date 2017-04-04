@@ -1018,11 +1018,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 
       o = mrb_ary_ref(mrb, ary, aidx);
       if (type == PACK_TYPE_INTEGER) {
-        if (mrb_float_p(o)) {
-          o = mrb_funcall(mrb, o, "to_i", 0);
-        } else if (!mrb_fixnum_p(o)) {
-          mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into Integer", mrb_class_path(mrb, mrb_obj_class(mrb, o)));
-        }
+        o = mrb_to_int(mrb, o);
       } else if (type == PACK_TYPE_FLOAT) {
         if (!mrb_float_p(o)) {
           o = mrb_funcall(mrb, o, "to_f", 0);
