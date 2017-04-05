@@ -367,7 +367,6 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
   else {
     struct RProc *p;
     struct RClass *c;
-    mrb_sym undef = 0;
     mrb_callinfo *ci;
     int n;
     ptrdiff_t voff = -1;
@@ -383,13 +382,14 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     p = mrb_method_search_vm(mrb, &c, mid);
     if (!p) {
       mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
+      mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
       p = mrb_method_search_vm(mrb, &c, missing);
       if (!p) {
-        mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
         mrb_method_missing(mrb, mid, self, args);
       }
-      undef = mid;
-      argc++;
+      mrb_ary_unshift(mrb, args, mrb_symbol_value(mid));
+      mrb->c->stack[n+1] = args;
+      argc = -1;
     }
     if (mrb->c->ci - mrb->c->cibase > MRB_FUNCALL_DEPTH_MAX) {
       mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
@@ -412,13 +412,11 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
       stack_extend(mrb, ci->nregs, 0);
       mrb->c->stack[1] = args;
-      if (undef) {
-        mrb_ary_unshift(mrb, mrb->c->stack[1], mrb_symbol_value(undef));
-      }
       ci->argc = -1;
       argc = 1;
     }
     else {
+      if (argc < 0) argc = 1;
       ci->nregs = p->body.irep->nregs + argc;
       stack_extend(mrb, ci->nregs, argc+2);
     }
@@ -426,13 +424,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       argv = mrb->c->stbase + voff;
     }
     mrb->c->stack[0] = self;
-    if (undef) {
-      mrb->c->stack[1] = mrb_symbol_value(undef);
-      if (argc > 1) {
-        stack_copy(mrb->c->stack+2, argv, argc-1);
-      }
-    }
-    else if (ci->argc > 0) {
+    if (ci->argc > 0) {
       stack_copy(mrb->c->stack+1, argv, argc);
     }
     mrb->c->stack[argc+1] = blk;
