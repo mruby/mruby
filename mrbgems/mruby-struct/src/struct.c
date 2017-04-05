@@ -449,6 +449,7 @@ mrb_struct_aset_sym(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
   for (i=0; i<len; i++) {
     if (mrb_symbol(ptr_members[i]) == id) {
       ptr[i] = val;
+      mrb_write_barrier(mrb, (struct RBasic*)mrb_ptr(s));
       return val;
     }
   }
@@ -511,6 +512,7 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
                "offset %S too large for struct(size:%S)",
                mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
   }
+  mrb_write_barrier(mrb, (struct RBasic*)mrb_ptr(s));
   return RSTRUCT_PTR(s)[i] = val;
 }
 
