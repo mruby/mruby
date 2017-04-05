@@ -1375,6 +1375,8 @@ RETRY_TRY_BLOCK:
       mrb_sym mid = ci->mid;
       int a = GETARG_A(i);
       int n = GETARG_C(i);
+      mrb_value blk;
+      int bidx;
 
       if (mid == 0 || !ci->target_class) {
         mrb_value exc;
@@ -1414,6 +1416,21 @@ RETRY_TRY_BLOCK:
         }
       }
 
+      if (n == CALL_MAXARGS) {
+        bidx = a+2;
+      }
+      else {
+        bidx = a+n+1;
+      }
+      blk = regs[bidx];
+      if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
+        if (bidx >= ci->nregs) {
+          stack_extend(mrb, bidx+1, ci->nregs);
+          ci->nregs = bidx+1;
+        }
+        regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
+      }
+
       /* push callinfo */
       ci = cipush(mrb);
       ci->mid = mid;
@@ -1421,27 +1438,11 @@ RETRY_TRY_BLOCK:
       ci->stackent = mrb->c->stack;
       ci->target_class = c;
       ci->pc = pc + 1;
-      {
-        int bidx;
-        mrb_value blk;
-
-        if (n == CALL_MAXARGS) {
-          ci->argc = -1;
-          bidx = a+2;
-        }
-        else {
-          ci->argc = n;
-          bidx = a+n+1;
-        }
-        blk = regs[bidx];
-        if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-          if (bidx >= ci->nregs) {
-            stack_extend(mrb, bidx+1, ci->nregs);
-            ci->nregs = bidx+1;
-          }
-          regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
-          ci = mrb->c->ci;
-        }
+      if (n == CALL_MAXARGS) {
+        ci->argc = -1;
+      }
+      else {
+        ci->argc = n;
       }
 
       /* prepare stack */
