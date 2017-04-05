@@ -1809,7 +1809,7 @@ RETRY_TRY_BLOCK:
           return v;
         }
         pc = ci->pc;
-        DEBUG(printf("from :%s\n", mrb_sym2name(mrb, ci->mid)));
+        DEBUG(fprintf(stderr, "from :%s\n", mrb_sym2name(mrb, ci->mid)));
         proc = mrb->c->ci->proc;
         irep = proc->body.irep;
         pool = irep->pool;

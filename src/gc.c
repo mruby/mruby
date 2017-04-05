@@ -701,7 +701,7 @@ mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
 static void
 obj_free(mrb_state *mrb, struct RBasic *obj, int end)
 {
-  DEBUG(printf("obj_free(%p,tt=%d)\n",obj,obj->tt));
+  DEBUG(fprintf(stderr, "obj_free(%p,tt=%d)\n",obj,obj->tt));
   switch (obj->tt) {
     /* immediate - no mark */
   case MRB_TT_TRUE:
