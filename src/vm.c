@@ -2146,7 +2146,8 @@ RETRY_TRY_BLOCK:
       }
 #ifdef MRB_NAN_BOXING
       if (isnan(mrb_float(regs[a]))) {
-        regs[a] = mrb_float_value(mrb, mrb_float(regs[a]));
+        mrb_value v = mrb_float_value(mrb, mrb_float(regs[a]));
+        regs[a] = v;
       }
 #endif
       NEXT;
@@ -2299,7 +2300,8 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_ARRAY) {
       /* A B C          R(A) := ary_new(R(B),R(B+1)..R(B+C)) */
-      regs[GETARG_A(i)] = mrb_ary_new_from_values(mrb, GETARG_C(i), &regs[GETARG_B(i)]);
+      mrb_value v = mrb_ary_new_from_values(mrb, GETARG_C(i), &regs[GETARG_B(i)]);
+      regs[GETARG_A(i)] = v;
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }
@@ -2333,7 +2335,8 @@ RETRY_TRY_BLOCK:
         }
       }
       else {
-        regs[GETARG_A(i)] = mrb_ary_ref(mrb, v, c);
+        v = mrb_ary_ref(mrb, v, c);
+        regs[GETARG_A(i)] = v;
       }
       NEXT;
     }
@@ -2350,7 +2353,6 @@ RETRY_TRY_BLOCK:
       mrb_value v = regs[a];
       int pre  = GETARG_B(i);
       int post = GETARG_C(i);
-
       struct RArray *ary;
       int len, idx;
 
@@ -2360,13 +2362,15 @@ RETRY_TRY_BLOCK:
       ary = mrb_ary_ptr(v);
       len = ary->len;
       if (len > pre + post) {
-        regs[a++] = mrb_ary_new_from_values(mrb, len - pre - post, ary->ptr+pre);
+        v = mrb_ary_new_from_values(mrb, len - pre - post, ary->ptr+pre);
+        regs[a++] = v;
         while (post--) {
           regs[a++] = ary->ptr[len-post-1];
         }
       }
       else {
-        regs[a++] = mrb_ary_new_capa(mrb, 0);
+        v = mrb_ary_new_capa(mrb, 0);
+        regs[a++] = v;
         for (idx=0; idx+pre<len; idx++) {
           regs[a+idx] = ary->ptr[pre+idx];
         }
@@ -2381,7 +2385,8 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_STRING) {
       /* A Bx           R(A) := str_new(Lit(Bx)) */
-      regs[GETARG_A(i)] = mrb_str_dup(mrb, pool[GETARG_Bx(i)]);
+      mrb_value str = mrb_str_dup(mrb, pool[GETARG_Bx(i)]);
+      regs[GETARG_A(i)] = str;
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }
