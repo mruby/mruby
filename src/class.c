@@ -127,10 +127,19 @@ MRB_API struct RClass*
 mrb_class_outer_module(mrb_state *mrb, struct RClass *c)
 {
   mrb_value outer;
+  struct RClass *cls;
 
   outer = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__outer__"));
   if (mrb_nil_p(outer)) return NULL;
-  return mrb_class_ptr(outer);
+  cls = mrb_class_ptr(outer);
+  if (cls->tt == MRB_TT_SCLASS)
+  {
+    mrb_value klass;
+    klass = mrb_obj_iv_get(mrb, (struct RObject *)cls,
+                           mrb_intern_lit(mrb, "__attached__"));
+    cls = mrb_class_ptr(klass);
+  }
+  return cls;
 }
 
 static void
