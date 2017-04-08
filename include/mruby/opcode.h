@@ -97,7 +97,7 @@ enum {
   OP_ARGARY,/*    A Bx    R(A) := argument array (16=6:1:5:4)             */
   OP_ENTER,/*     Ax      arg setup according to flags (23=5:5:1:5:5:1:1) */
   OP_KARG,/*      A B C   R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B))  */
-  OP_KDICT,/*     A C     R(A) := kdict                                   */
+  OP_KDICT,/*     A       R(A) := kdict                                   */
 
   OP_RETURN,/*    A B     return R(A) (B=normal,in-block return/break)    */
   OP_TAILCALL,/*  A B C   return call(R(A),Syms(B),*R(C))                 */
