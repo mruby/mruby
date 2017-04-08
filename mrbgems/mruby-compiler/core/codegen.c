@@ -755,32 +755,45 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     int ma, oa, ra, pa, ka, kd, ba;
     int pos, i;
     node *n, *opt;
+    node *tail;
 
+    // mandatory arguments
     ma = node_len(tree->car->car);
     n = tree->car->car;
     while (n) {
       n = n->cdr;
     }
+
+    tail = tree->car->cdr->cdr->cdr->cdr;
+
+    // optional arguments
     oa = node_len(tree->car->cdr->car);
+    // rest arguments
     ra = tree->car->cdr->cdr->car ? 1 : 0;
+    // post required arguments
     pa = node_len(tree->car->cdr->cdr->cdr->car);
-    ka = kd = 0;
-    ba = tree->car->cdr->cdr->cdr->cdr ? 1 : 0;
+     // keyword arguments
+    ka = tail? node_len(tail->cdr->car) : 0;
+    // keyword dictionary?
+    kd = tail && tail->cdr->cdr->car? 1 : 0;
+    // block argument?
+    ba = tail && tail->cdr->cdr->cdr->car ? 1 : 0;
 
     if (ma > 0x1f || oa > 0x1f || pa > 0x1f || ka > 0x1f) {
       codegen_error(s, "too many formal arguments");
     }
-    a = ((mrb_aspec)(ma & 0x1f) << 18)
-      | ((mrb_aspec)(oa & 0x1f) << 13)
-      | ((ra & 1) << 12)
-      | ((pa & 0x1f) << 7)
-      | ((ka & 0x1f) << 2)
-      | ((kd & 1)<< 1)
-      | (ba & 1);
+    a = MRB_ARGS_REQ(ma)
+      | MRB_ARGS_OPT(oa)
+      | (ra? MRB_ARGS_REST() : 0)
+      | MRB_ARGS_POST(pa)
+      | MRB_ARGS_KEY(ka, kd)
+      | (ba? MRB_ARGS_BLOCK() : 0);
     s->ainfo = (((ma+oa) & 0x3f) << 6) /* (12bits = 6:1:5) */
       | ((ra & 1) << 5)
       | (pa & 0x1f);
+    // format arguments for this irep
     genop(s, MKOP_Ax(OP_ENTER, a));
+    // generate jump table for optional arguments initializer
     pos = new_label(s);
     for (i=0; i<oa; i++) {
       new_label(s);
@@ -804,6 +817,71 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     }
     if (oa > 0) {
       dispatch(s, pos+i);
+    }
+
+    if (tail) {
+      int kdict = cursp();
+      node *kwds = tail->cdr->car;
+      mrb_sym kwrest = sym(tail->cdr->cdr->car);
+      // mrb_sym blk = sym(tail->cdr->cdr->cdr->car);
+
+      mrb_assert((intptr_t)tail->car == NODE_ARGS_TAIL);
+      mrb_assert(node_len(tail) == 4);
+
+      if (kwds || kwrest) {
+        genop(s, MKOP_A(OP_KDICT, kdict));
+        push();
+      }
+
+      if (kwrest) {
+        genop(s, MKOP_AB(OP_MOVE, lv_idx(s, kwrest), kdict));
+      }
+
+      while (kwds) {
+        int jmpif_key_p, jmp_def_set = -1;
+        node *kwd = kwds->car, *def_arg = kwd->cdr->cdr->car;
+        mrb_sym kwd_sym = sym(kwd->cdr->car);
+
+        mrb_assert((intptr_t)kwd->car == NODE_KW_ARG);
+
+        /*
+          unless kdict.key? :kwd_sym
+            raise ArgumentError, "kerword argument 'kwd_sym' not passed" if def_val.undef?
+            kwd_sym = def_val
+          else
+            kwd_sym = kdict[:kwd_sym]
+          end
+         */
+
+        genop(s, MKOP_AB(OP_MOVE, cursp(), kdict));
+        genop(s, MKOP_ABx(OP_LOADSYM, cursp() + 1, new_msym(s, kwd_sym)));
+        genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "key?")), 1));
+        jmpif_key_p = genop(s, MKOP_AsBx(OP_JMPIF, cursp(), 0));
+        if (def_arg) {
+          codegen(s, def_arg, VAL);
+          jmp_def_set = genop(s, MKOP_AsBx(OP_JMP, 0, 0));
+        } else {
+          mrb_value err_msg = mrb_format(s->mrb, "keyword argument '%S' not passed", mrb_symbol_value(kwd_sym));
+          genop(s, MKOP_ABx(OP_GETCONST, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "ArgumentError"))));
+          genop(s, MKOP_ABx(OP_STRING, cursp() + 1, new_lit(s, err_msg)));
+          genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "new")), 1));
+          genop(s, MKOP_A(OP_RAISE, cursp()));
+        }
+        dispatch(s, jmpif_key_p);
+        genop(s, MKOP_ABC(OP_KARG, cursp() - 1, new_msym(s, kwd_sym), TRUE));
+        if (jmp_def_set != -1) {
+          dispatch(s, jmp_def_set);
+        }
+        pop();
+        genop_peep(s, MKOP_AB(OP_MOVE, lv_idx(s, kwd_sym), cursp()), NOVAL);
+        i++;
+
+        kwds = kwds->cdr;
+      }
+
+      if (kwds || kwrest) {
+        pop();
+      }
     }
   }
   codegen(s, tree->cdr->car, VAL);

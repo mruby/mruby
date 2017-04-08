@@ -1630,23 +1630,27 @@ RETRY_TRY_BLOCK:
       int o  = MRB_ASPEC_OPT(ax);
       int r  = MRB_ASPEC_REST(ax);
       int m2 = MRB_ASPEC_POST(ax);
+      int kd = (MRB_ASPEC_KEY(ax) > 0 || MRB_ASPEC_KDICT(ax))? 1 : 0;
       /* unused
-      int k  = MRB_ASPEC_KEY(ax);
-      int kd = MRB_ASPEC_KDICT(ax);
       int b  = MRB_ASPEC_BLOCK(ax);
       */
       int argc = mrb->c->ci->argc;
       mrb_value *argv = regs+1;
-      mrb_value *argv0 = argv;
-      int len = m1 + o + r + m2;
+      mrb_value * const argv0 = argv;
+      int const len = m1 + o + r + m2;
+      int const blk_pos = len + kd + 1;
       mrb_value *blk = &argv[argc < 0 ? 1 : argc];
+      mrb_value *kdict;
 
+      // arguments is passed with Array
       if (argc < 0) {
         struct RArray *ary = mrb_ary_ptr(regs[1]);
         argv = ary->ptr;
         argc = ary->len;
         mrb_gc_protect(mrb, regs[1]);
       }
+
+      // strict argument check
       if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc)) {
         if (argc >= 0) {
           if (argc < m1 + m2 || (r == 0 && argc > len)) {
@@ -1655,44 +1659,65 @@ RETRY_TRY_BLOCK:
           }
         }
       }
+      // extract first argument array to arguments
       else if (len > 1 && argc == 1 && mrb_array_p(argv[0])) {
         mrb_gc_protect(mrb, argv[0]);
         argc = mrb_ary_ptr(argv[0])->len;
         argv = mrb_ary_ptr(argv[0])->ptr;
       }
+
+      if (kd) {
+        // check last arguments is hash if method takes keyword arguments
+        if (!mrb_hash_p(argv[argc - 1])) {
+          mrb_value str = mrb_format(mrb, "Excepcted `Hash` as last argument for keyword arguments");
+          mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
+          goto L_RAISE;
+        }
+
+        kdict = &argv[argc - 1];
+      }
+
+      // format arguments for generated code
+      mrb->c->ci->argc = len + kd;
+
+      // no rest arguments
       if (argc < len) {
         int mlen = m2;
         if (argc < m1+m2) {
-          if (m1 < argc)
-            mlen = argc - m1;
-          else
-            mlen = 0;
+          mlen = m1 < argc ? argc - m1 : 0;
         }
-        regs[len+1] = *blk; /* move block */
+        regs[blk_pos] = *blk; /* move block */
+        if (kd) { regs[len + 1] = *kdict; }
         SET_NIL_VALUE(regs[argc+1]);
+        // copy mandatory and optional arguments
         if (argv0 != argv) {
           value_move(&regs[1], argv, argc-mlen); /* m1 + o */
         }
         if (argc < m1) {
           stack_clear(&regs[argc+1], m1-argc);
         }
+        // copy post mandatory arguments
         if (mlen) {
           value_move(&regs[len-m2+1], &argv[argc-mlen], mlen);
         }
         if (mlen < m2) {
           stack_clear(&regs[len-m2+mlen+1], m2-mlen);
         }
+        // initalize rest arguments with empty Array
         if (r) {
           regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
         }
+        // skip optional arguments
         if (o == 0 || argc < m1+m2) pc++;
+        // skip initailizer of passed arguments
         else
           pc += argc - m1 - m2 + 1;
       }
       else {
         int rnum = 0;
         if (argv0 != argv) {
-          regs[len+1] = *blk; /* move block */
+          regs[blk_pos] = *blk; /* move block */
+          if (kd) { regs[len + 1] = *kdict; }
           value_move(&regs[1], argv, m1+o);
         }
         if (r) {
@@ -1705,7 +1730,8 @@ RETRY_TRY_BLOCK:
           }
         }
         if (argv0 == argv) {
-          regs[len+1] = *blk; /* move block */
+          regs[blk_pos] = *blk; /* move block */
+          if (kd) { regs[len + 1] = *kdict; }
         }
         pc += o + 1;
       }
@@ -1721,11 +1747,20 @@ RETRY_TRY_BLOCK:
       /* A B C          R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B)) */
       /* if C == 2; raise unless kdict.empty? */
       /* OP_JMP should follow to skip init code */
+      int a = GETARG_A(i), c = GETARG_C(i);
+      mrb_value k = mrb_symbol_value(syms[GETARG_B(i)]);
+      mrb_value kdict = regs[mrb->c->ci->argc];
+      regs[a] = mrb_hash_get(mrb, kdict, k);
+      if (c) {
+        mrb_funcall(mrb, kdict, "delete", 1, k);
+      }
       NEXT;
     }
 
     CASE(OP_KDICT) {
-      /* A C            R(A) := kdict */
+      /* A              R(A) := kdict */
+      int a = GETARG_A(i);
+      regs[a] = regs[mrb->c->ci->argc];
       NEXT;
     }
 
