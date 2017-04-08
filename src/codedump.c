@@ -64,6 +64,14 @@ codedump(mrb_state *mrb, mrb_irep *irep)
   printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", (void*)irep,
          irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen, (int)irep->rlen);
 
+  if (irep->lv) {
+    printf("local variable names:\n");
+    for (i = 1; i < irep->nlocals; ++i) {
+      char const *n = mrb_sym2name(mrb, irep->lv[i - 1].name);
+      printf("  R%d:%s\n", irep->lv[i - 1].r, n? n : "");
+    }
+  }
+
   for (i = 0; i < (int)irep->ilen; i++) {
     ai = mrb_gc_arena_save(mrb);
 
