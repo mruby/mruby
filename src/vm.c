@@ -35,6 +35,14 @@ void abort(void);
 #define STACK_INIT_SIZE 128
 #define CALLINFO_INIT_SIZE 32
 
+#ifndef ENSURE_STACK_INIT_SIZE
+#define ENSURE_STACK_INIT_SIZE 16
+#endif
+
+#ifndef RESCUE_STACK_INIT_SIZE
+#define RESCUE_STACK_INIT_SIZE 16
+#endif
+
 /* Define amount of linear stack growth. */
 #ifndef MRB_STACK_GROWTH
 #define MRB_STACK_GROWTH 128
@@ -1074,7 +1082,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_ONERR) {
       /* sBx    pc+=sBx on exception */
       if (mrb->c->rsize <= mrb->c->ci->ridx) {
-        if (mrb->c->rsize == 0) mrb->c->rsize = 16;
+        if (mrb->c->rsize == 0) mrb->c->rsize = RESCUE_STACK_INIT_SIZE;
         else mrb->c->rsize *= 2;
         mrb->c->rescue = (mrb_code **)mrb_realloc(mrb, mrb->c->rescue, sizeof(mrb_code*) * mrb->c->rsize);
       }
@@ -1140,7 +1148,7 @@ RETRY_TRY_BLOCK:
       p = mrb_closure_new(mrb, irep->reps[GETARG_Bx(i)]);
       /* push ensure_stack */
       if (mrb->c->esize <= mrb->c->ci->eidx+1) {
-        if (mrb->c->esize == 0) mrb->c->esize = 16;
+        if (mrb->c->esize == 0) mrb->c->esize = ENSURE_STACK_INIT_SIZE;
         else mrb->c->esize *= 2;
         mrb->c->ensure = (struct RProc **)mrb_realloc(mrb, mrb->c->ensure, sizeof(struct RProc*) * mrb->c->esize);
       }
