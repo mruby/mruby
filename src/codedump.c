@@ -444,6 +444,16 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_EPOP\t%d\n", GETARG_A(c));
       break;
 
+    case OP_KARG:
+      printf("OP_KARG\tR%d\t:%s\t%d", GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]), GETARG_C(c));
+      print_lv(mrb, irep, c, RAB);
+      break;
+    case OP_KDICT:
+      printf("OP_KDICT\tR%d", GETARG_A(c));
+      print_lv(mrb, irep, c, RA);
+      break;
+
     default:
       printf("OP_unknown %d\t%d\t%d\t%d\n", GET_OPCODE(c),
              GETARG_A(c), GETARG_B(c), GETARG_C(c));
