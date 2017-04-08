@@ -87,6 +87,107 @@ static void gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val);
 static void codegen(codegen_scope *s, node *tree, int val);
 static void raise_error(codegen_scope *s, const char *msg);
 
+static char const* op2str(int opcode) {
+  switch(opcode) {
+#define op2str(op) case op: return #op
+  op2str(OP_NOP);/*                                                             */
+  op2str(OP_MOVE);/*      A B     R(A) := R(B)                                    */
+  op2str(OP_LOADL);/*     A Bx    R(A) := Pool(Bx)                                */
+  op2str(OP_LOADI);/*     A sBx   R(A) := sBx                                     */
+  op2str(OP_LOADSYM);/*   A Bx    R(A) := Syms(Bx)                                */
+  op2str(OP_LOADNIL);/*   A       R(A) := nil                                     */
+  op2str(OP_LOADSELF);/*  A       R(A) := self                                    */
+  op2str(OP_LOADT);/*     A       R(A) := true                                    */
+  op2str(OP_LOADF);/*     A       R(A) := false                                   */
+
+  op2str(OP_GETGLOBAL);/* A Bx    R(A) := getglobal(Syms(Bx))                     */
+  op2str(OP_SETGLOBAL);/* A Bx    setglobal(Syms(Bx), R(A))                       */
+  op2str(OP_GETSPECIAL);/*A Bx    R(A) := Special[Bx]                             */
+  op2str(OP_SETSPECIAL);/*A Bx    Special[Bx] := R(A)                             */
+  op2str(OP_GETIV);/*     A Bx    R(A) := ivget(Syms(Bx))                         */
+  op2str(OP_SETIV);/*     A Bx    ivset(Syms(Bx),R(A))                            */
+  op2str(OP_GETCV);/*     A Bx    R(A) := cvget(Syms(Bx))                         */
+  op2str(OP_SETCV);/*     A Bx    cvset(Syms(Bx),R(A))                            */
+  op2str(OP_GETCONST);/*  A Bx    R(A) := constget(Syms(Bx))                      */
+  op2str(OP_SETCONST);/*  A Bx    constset(Syms(Bx),R(A))                         */
+  op2str(OP_GETMCNST);/*  A Bx    R(A) := R(A)::Syms(Bx)                          */
+  op2str(OP_SETMCNST);/*  A Bx    R(A+1)::Syms(Bx) := R(A)                        */
+  op2str(OP_GETUPVAR);/*  A B C   R(A) := uvget(B,C)                              */
+  op2str(OP_SETUPVAR);/*  A B C   uvset(B,C,R(A))                                 */
+
+  op2str(OP_JMP);/*       sBx     pc+=sBx                                         */
+  op2str(OP_JMPIF);/*     A sBx   if R(A) pc+=sBx                                 */
+  op2str(OP_JMPNOT);/*    A sBx   if !R(A) pc+=sBx                                */
+  op2str(OP_ONERR);/*     sBx     rescue_push(pc+sBx)                             */
+  op2str(OP_RESCUE);/*    A B C   if A (if C exc=R(A) else R(A) := exc);
+                          if B R(B) := exc.isa?(R(B)); clear(exc)         */
+  op2str(OP_POPERR);/*    A       A.times{rescue_pop()}                           */
+  op2str(OP_RAISE);/*     A       raise(R(A))                                     */
+  op2str(OP_EPUSH);/*     Bx      ensure_push(SEQ[Bx])                            */
+  op2str(OP_EPOP);/*      A       A.times{ensure_pop().call}                      */
+
+  op2str(OP_SEND);/*      A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C))    */
+  op2str(OP_SENDB);/*     A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
+  op2str(OP_FSEND);/*     A B C   R(A) := fcall(R(A),Syms(B),R(A+1),...,R(A+C-1)) */
+  op2str(OP_CALL);/*      A       R(A) := self.call(frame.argc, frame.argv)       */
+  op2str(OP_SUPER);/*     A C     R(A) := super(R(A+1),... ,R(A+C+1))             */
+  op2str(OP_ARGARY);/*    A Bx    R(A) := argument array (16=6:1:5:4)             */
+  op2str(OP_ENTER);/*     Ax      arg setup according to flags (23=5:5:1:5:5:1:1) */
+  op2str(OP_KARG);/*      A B C   R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B))  */
+  op2str(OP_KDICT);/*     A C     R(A) := kdict                                   */
+
+  op2str(OP_RETURN);/*    A B     return R(A) (B=normal,in-block return/break)    */
+  op2str(OP_TAILCALL);/*  A B C   return call(R(A),Syms(B),*R(C))                 */
+  op2str(OP_BLKPUSH);/*   A Bx    R(A) := block (16=6:1:5:4)                      */
+
+  op2str(OP_ADD);/*       A B C   R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)            */
+  op2str(OP_ADDI);/*      A B C   R(A) := R(A)+C (Syms[B]=:+)                     */
+  op2str(OP_SUB);/*       A B C   R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)            */
+  op2str(OP_SUBI);/*      A B C   R(A) := R(A)-C (Syms[B]=:-)                     */
+  op2str(OP_MUL);/*       A B C   R(A) := R(A)*R(A+1) (Syms[B]=:*,C=1)            */
+  op2str(OP_DIV);/*       A B C   R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)            */
+  op2str(OP_EQ);/*        A B C   R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)          */
+  op2str(OP_LT);/*        A B C   R(A) := R(A)<R(A+1)  (Syms[B]=:<,C=1)           */
+  op2str(OP_LE);/*        A B C   R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)          */
+  op2str(OP_GT);/*        A B C   R(A) := R(A)>R(A+1)  (Syms[B]=:>,C=1)           */
+  op2str(OP_GE);/*        A B C   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)          */
+
+  op2str(OP_ARRAY);/*     A B C   R(A) := ary_new(R(B),R(B+1)..R(B+C))            */
+  op2str(OP_ARYCAT);/*    A B     ary_cat(R(A),R(B))                              */
+  op2str(OP_ARYPUSH);/*   A B     ary_push(R(A),R(B))                             */
+  op2str(OP_AREF);/*      A B C   R(A) := R(B)[C]                                 */
+  op2str(OP_ASET);/*      A B C   R(B)[C] := R(A)                                 */
+  op2str(OP_APOST);/*     A B C   *R(A),R(A+1)..R(A+C) := R(A)                    */
+
+  op2str(OP_STRING);/*    A Bx    R(A) := str_dup(Lit(Bx))                        */
+  op2str(OP_STRCAT);/*    A B     str_cat(R(A),R(B))                              */
+
+  op2str(OP_HASH);/*      A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C))           */
+  op2str(OP_LAMBDA);/*    A Bz Cz R(A) := lambda(SEQ[Bz],Cz)                      */
+  op2str(OP_RANGE);/*     A B C   R(A) := range_new(R(B),R(B+1),C)                */
+
+  op2str(OP_OCLASS);/*    A       R(A) := ::Object                                */
+  op2str(OP_CLASS);/*     A B     R(A) := newclass(R(A),Syms(B),R(A+1))           */
+  op2str(OP_MODULE);/*    A B     R(A) := newmodule(R(A),Syms(B))                 */
+  op2str(OP_EXEC);/*      A Bx    R(A) := blockexec(R(A),SEQ[Bx])                 */
+  op2str(OP_METHOD);/*    A B     R(A).newmethod(Syms(B),R(A+1))                  */
+  op2str(OP_SCLASS);/*    A B     R(A) := R(B).singleton_class                    */
+  op2str(OP_TCLASS);/*    A       R(A) := target_class                            */
+
+  op2str(OP_DEBUG);/*     A B C   print R(A),R(B),R(C)                            */
+  op2str(OP_STOP);/*              stop VM                                         */
+  op2str(OP_ERR);/*       Bx      raise RuntimeError with message Lit(Bx)         */
+
+  op2str(OP_RSVD1);/*             reserved instruction #1                         */
+  op2str(OP_RSVD2);/*             reserved instruction #2                         */
+  op2str(OP_RSVD3);/*             reserved instruction #3                         */
+  op2str(OP_RSVD4);/*             reserved instruction #4                         */
+  op2str(OP_RSVD5);/*             reserved instruction #5                         */
+#undef op2str
+  default: return "invalid opcode";
+  }
+}
+
 static void
 codegen_error(codegen_scope *s, const char *message)
 {
@@ -383,7 +484,7 @@ dispatch(codegen_scope *s, int pc)
     break;
   default:
 #ifndef MRB_DISABLE_STDIO
-    fprintf(stderr, "bug: dispatch on non JMP op\n");
+    fprintf(stderr, "bug: dispatch on non JMP op(%s)\n", op2str(c));
 #endif
     scope_error(s);
     break;
