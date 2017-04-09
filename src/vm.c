@@ -1637,6 +1637,10 @@ RETRY_TRY_BLOCK:
         }
         pc += o + 1;
       }
+      /* clear local (but non-argument) variables */
+      if (irep->nlocals-len-2 > 0) {
+        stack_clear(&regs[len+2], irep->nlocals-len-2);
+      }
       JUMP;
     }
 
