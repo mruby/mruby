@@ -1589,7 +1589,6 @@ RETRY_TRY_BLOCK:
         argc = mrb_ary_ptr(argv[0])->len;
         argv = mrb_ary_ptr(argv[0])->ptr;
       }
-      mrb->c->ci->argc = len;
       if (argc < len) {
         int mlen = m2;
         if (argc < m1+m2) {
@@ -1639,6 +1638,7 @@ RETRY_TRY_BLOCK:
         }
         pc += o + 1;
       }
+      mrb->c->ci->argc = len;
       /* clear local (but non-argument) variables */
       if (irep->nlocals-len-2 > 0) {
         stack_clear(&regs[len+2], irep->nlocals-len-2);
