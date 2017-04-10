@@ -1161,6 +1161,7 @@ RETRY_TRY_BLOCK:
 
       for (n=0; n<a && (ci == mrb->c->cibase || eidx > ci[-1].eidx); n++) {
         ecall(mrb, --eidx);
+        ci = mrb->c->ci;
         ARENA_RESTORE(mrb, ai);
       }
       NEXT;
@@ -1706,6 +1707,7 @@ RETRY_TRY_BLOCK:
           if (ci[0].ridx == ci[-1].ridx) {
             while (eidx > ci[-1].eidx) {
               ecall(mrb, --eidx);
+              ci = mrb->c->ci;
             }
           }
         }
