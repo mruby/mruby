@@ -553,6 +553,7 @@ mrb_convert_to_integer(mrb_state *mrb, mrb_value val, int base)
   if (base != 0) {
     tmp = mrb_check_string_type(mrb, val);
     if (!mrb_nil_p(tmp)) {
+      val = tmp;
       goto string_conv;
     }
 arg_error:
