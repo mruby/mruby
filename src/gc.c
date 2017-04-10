@@ -545,6 +545,7 @@ mark_context_stack(mrb_state *mrb, struct mrb_context *c)
   size_t i;
   size_t e;
 
+  if (c->stack == NULL) return;
   e = c->stack - c->stbase;
   if (c->ci) e += c->ci->nregs;
   if (c->stbase + e > c->stend) e = c->stend - c->stbase;
