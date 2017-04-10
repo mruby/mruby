@@ -132,22 +132,15 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
   }
 }
 
-static inline void
-init_new_stack_space(mrb_state *mrb, int room, int keep)
-{
-  if (room > keep) {
-    /* do not leave uninitialized malloc region */
-    stack_clear(&(mrb->c->stack[keep]), room - keep);
-  }
-}
-
 /** def rec ; $deep =+ 1 ; if $deep > 1000 ; return 0 ; end ; rec ; end  */
 
 static void
-stack_extend_alloc(mrb_state *mrb, int room, int keep)
+stack_extend_alloc(mrb_state *mrb, int room)
 {
   mrb_value *oldbase = mrb->c->stbase;
-  size_t size = mrb->c->stend - mrb->c->stbase;
+  mrb_value *newstack;
+  size_t oldsize = mrb->c->stend - mrb->c->stbase;
+  size_t size = oldsize;
   size_t off = mrb->c->stack - mrb->c->stbase;
 
   if (off > size) size = off;
@@ -166,7 +159,12 @@ stack_extend_alloc(mrb_state *mrb, int room, int keep)
     size += room;
 #endif
 
-  mrb->c->stbase = (mrb_value *)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
+  newstack = (mrb_value *)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
+  if (newstack == NULL) {
+    mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
+  }
+  stack_clear(&(newstack[oldsize]), size - oldsize);
+  mrb->c->stbase = newstack;
   mrb->c->stack = mrb->c->stbase + off;
   mrb->c->stend = mrb->c->stbase + size;
   envadjust(mrb, oldbase, mrb->c->stbase);
@@ -174,21 +172,16 @@ stack_extend_alloc(mrb_state *mrb, int room, int keep)
   /* Raise an exception if the new stack size will be too large,
      to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raise has stack space to work with. */
   if (size > MRB_STACK_MAX) {
-    init_new_stack_space(mrb, room, keep);
     mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
   }
 }
 
 static inline void
-stack_extend(mrb_state *mrb, int room, int keep)
+stack_extend(mrb_state *mrb, int room)
 {
-  if (room < keep) {
-    room = keep;
-  }
   if (mrb->c->stack + room >= mrb->c->stend) {
-    stack_extend_alloc(mrb, room, keep);
+    stack_extend_alloc(mrb, room);
   }
-  init_new_stack_space(mrb, room, keep);
 }
 
 static inline struct REnv*
@@ -419,11 +412,11 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     }
     if (MRB_PROC_CFUNC_P(p)) {
       ci->nregs = argc + 2;
-      stack_extend(mrb, ci->nregs, 0);
+      stack_extend(mrb, ci->nregs);
     }
     else if (argc >= CALL_MAXARGS) {
       mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
-      stack_extend(mrb, ci->nregs, 0);
+      stack_extend(mrb, ci->nregs);
       mrb->c->stack[1] = args;
       ci->argc = -1;
       argc = 1;
@@ -431,7 +424,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     else {
       if (argc < 0) argc = 1;
       ci->nregs = p->body.irep->nregs + argc;
-      stack_extend(mrb, ci->nregs, argc+2);
+      stack_extend(mrb, ci->nregs);
     }
     if (voff >= 0) {
       argv = mrb->c->stbase + voff;
@@ -477,10 +470,10 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
     return p->body.func(mrb, self);
   }
   if (ci->argc < 0) {
-    stack_extend(mrb, (p->body.irep->nregs < 3) ? 3 : p->body.irep->nregs, 3);
+    stack_extend(mrb, (p->body.irep->nregs < 3) ? 3 : p->body.irep->nregs);
   }
   else {
-    stack_extend(mrb, p->body.irep->nregs, ci->argc+2);
+    stack_extend(mrb, p->body.irep->nregs);
   }
 
   ci->nregs = p->body.irep->nregs;
@@ -574,7 +567,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   ci->argc = 1;
   ci->mid = ci[-1].mid;
   if (MRB_PROC_CFUNC_P(p)) {
-    stack_extend(mrb, 3, 0);
+    stack_extend(mrb, 3);
     mrb->c->stack[0] = self;
     mrb->c->stack[1] = self;
     mrb->c->stack[2] = mrb_nil_value();
@@ -582,7 +575,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   }
   ci->nregs = p->body.irep->nregs;
   if (max < ci->nregs) max = ci->nregs;
-  stack_extend(mrb, max, 0);
+  stack_extend(mrb, max);
   mrb->c->stack[0] = self;
   mrb->c->stack[1] = self;
   mrb->c->stack[2] = mrb_nil_value();
@@ -688,11 +681,11 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   mrb->c->stack = mrb->c->stack + n;
   if (MRB_PROC_CFUNC_P(p)) {
     ci->nregs = argc + 2;
-    stack_extend(mrb, ci->nregs, 0);
+    stack_extend(mrb, ci->nregs);
   }
   else {
     ci->nregs = p->body.irep->nregs;
-    stack_extend(mrb, ci->nregs, argc+2);
+    stack_extend(mrb, ci->nregs);
   }
 
   mrb->c->stack[0] = self;
@@ -824,7 +817,9 @@ mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stac
   if (!mrb->c->stack) {
     stack_init(mrb);
   }
-  stack_extend(mrb, irep->nregs, stack_keep);
+  if (stack_keep < irep->nregs)
+    stack_keep = irep->nregs;
+  stack_extend(mrb, stack_keep);
   mrb->c->stack[0] = self;
   return mrb_vm_exec(mrb, proc, irep->iseq);
 }
@@ -1210,7 +1205,7 @@ RETRY_TRY_BLOCK:
         mrb_value blk = regs[bidx];
         if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
           if (bidx >= mrb->c->ci->nregs) {
-            stack_extend(mrb, bidx+1, mrb->c->ci->nregs);
+            stack_extend(mrb, bidx+1);
             mrb->c->ci->nregs = bidx+1;
           }
           regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
@@ -1239,7 +1234,7 @@ RETRY_TRY_BLOCK:
           mrb_value blk = regs[bidx];
 
           if (a+2 > irep->nregs) {
-            stack_extend(mrb, a+2, a+n+1);
+            stack_extend(mrb, a+2);
           }
           regs[a+1] = mrb_ary_new_from_values(mrb, n, regs+a+1);
           regs[a+2] = blk;
@@ -1303,11 +1298,11 @@ RETRY_TRY_BLOCK:
         ci->nregs = irep->nregs;
         if (n == CALL_MAXARGS) {
           ci->argc = -1;
-          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs, 3);
+          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs);
         }
         else {
           ci->argc = n;
-          stack_extend(mrb, irep->nregs,  n+2);
+          stack_extend(mrb, irep->nregs);
         }
         pc = irep->iseq;
         JUMP;
@@ -1366,10 +1361,10 @@ RETRY_TRY_BLOCK:
         syms = irep->syms;
         ci->nregs = irep->nregs;
         if (ci->argc < 0) {
-          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs, 3);
+          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs);
         }
         else {
-          stack_extend(mrb, irep->nregs, ci->argc+2);
+          stack_extend(mrb, irep->nregs);
         }
         if (m->env) {
           regs[0] = m->env->stack[0];
@@ -1438,7 +1433,7 @@ RETRY_TRY_BLOCK:
       blk = regs[bidx];
       if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
         if (bidx >= ci->nregs) {
-          stack_extend(mrb, bidx+1, ci->nregs);
+          stack_extend(mrb, bidx+1);
           ci->nregs = bidx+1;
         }
         regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
@@ -1491,10 +1486,10 @@ RETRY_TRY_BLOCK:
         syms = irep->syms;
         ci->nregs = irep->nregs;
         if (n == CALL_MAXARGS) {
-          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs, 3);
+          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs);
         }
         else {
-          stack_extend(mrb, irep->nregs, ci->argc+2);
+          stack_extend(mrb, irep->nregs);
         }
         pc = irep->iseq;
         JUMP;
@@ -1900,10 +1895,10 @@ RETRY_TRY_BLOCK:
         pool = irep->pool;
         syms = irep->syms;
         if (ci->argc < 0) {
-          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs, 3);
+          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs);
         }
         else {
-          stack_extend(mrb, irep->nregs, ci->argc+2);
+          stack_extend(mrb, irep->nregs);
         }
         pc = irep->iseq;
       }
@@ -2527,7 +2522,7 @@ RETRY_TRY_BLOCK:
         irep = p->body.irep;
         pool = irep->pool;
         syms = irep->syms;
-        stack_extend(mrb, irep->nregs, 1);
+        stack_extend(mrb, irep->nregs);
         ci->nregs = irep->nregs;
         pc = irep->iseq;
         JUMP;
