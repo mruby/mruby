@@ -821,10 +821,19 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
 
   if (cls && cls->tt == MRB_TT_SCLASS) {
     mrb_value klass;
-    klass = mrb_obj_iv_get(mrb, (struct RObject*)cls,
-                          mrb_intern_lit(mrb, "__attached__"));
 
-    c = mrb_class_ptr(klass);
+    klass = mrb_obj_iv_get(mrb, (struct RObject*)cls,
+                           mrb_intern_lit(mrb, "__attached__"));
+    switch (mrb_type(klass)) {
+    case MRB_TT_CLASS:
+    case MRB_TT_MODULE:
+    case MRB_TT_SCLASS:
+      c = mrb_class_ptr(klass);
+      break;
+    default:
+      c = cls;
+      break;
+    }
   }
   else{
     c = cls;
