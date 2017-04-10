@@ -326,6 +326,7 @@ mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
     mrb_raise(mrb, E_FIBER_ERROR, "can't yield from root fiber");
   }
 
+  fiber_check_cfunc(mrb, c);
   c->prev->status = MRB_FIBER_RUNNING;
   c->status = MRB_FIBER_SUSPENDED;
   mrb->c = c->prev;
