@@ -1607,8 +1607,14 @@ RETRY_TRY_BLOCK:
         if (argv0 != argv) {
           value_move(&regs[1], argv, argc-mlen); /* m1 + o */
         }
+        if (argc < m1) {
+          stack_clear(&regs[argc+1], m1-argc);
+        }
         if (mlen) {
           value_move(&regs[len-m2+1], &argv[argc-mlen], mlen);
+        }
+        if (mlen < m2) {
+          stack_clear(&regs[len-m2+mlen+1], m2-mlen);
         }
         if (r) {
           regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
