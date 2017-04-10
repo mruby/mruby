@@ -2478,7 +2478,7 @@ opt_block_args_tail : ',' block_args_tail
                 | /* none */
                     {
                       /* allocate register for block */
-                      local_add_f(p, 0);
+                      local_add_f(p, mrb_intern_lit(p->mrb, "&"));
                       $$ = new_args_tail(p, 0, 0, 0);
                     }
                 ;
@@ -3101,7 +3101,7 @@ f_kwrest        : kwrest_mark tIDENTIFIER
                     }
                 | kwrest_mark
                     {
-                      local_add_f(p, 0);
+                      local_add_f(p, mrb_intern_lit(p->mrb, "**"));
                       $$ = 0;
                     }
                 ;
@@ -3131,7 +3131,7 @@ opt_args_tail   : ',' args_tail
                 | /* none */
                     {
                       /* allocate register for block */
-                      local_add_f(p, 0);
+                      local_add_f(p, mrb_intern_lit(p->mrb, "&"));
                       $$ = new_args_tail(p, 0, 0, 0);
                     }
                 ;
@@ -3194,7 +3194,7 @@ f_args          : f_arg ',' f_optarg ',' f_rest_arg opt_args_tail
                     }
                 | /* none */
                     {
-                      local_add_f(p, 0);
+                      local_add_f(p, mrb_intern_lit(p->mrb, "&"));
                       $$ = new_args(p, 0, 0, 0, 0, 0);
                     }
                 ;
@@ -3302,7 +3302,7 @@ f_rest_arg      : restarg_mark tIDENTIFIER
                     }
                 | restarg_mark
                     {
-                      local_add_f(p, 0);
+                      local_add_f(p, mrb_intern_lit(p->mrb, "*"));
                       $$ = -1;
                     }
                 ;
@@ -3324,7 +3324,7 @@ opt_f_block_arg : ',' f_block_arg
                     }
                 | none
                     {
-                      local_add_f(p, 0);
+                      local_add_f(p, mrb_intern_lit(p->mrb, "&"));
                       $$ = 0;
                     }
                 ;

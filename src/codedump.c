@@ -66,6 +66,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
 
   if (irep->lv) {
     printf("local variable names:\n");
+    printf("  R%d:%s\n", 0, "self");
     for (i = 1; i < irep->nlocals; ++i) {
       char const *n = mrb_sym2name(mrb, irep->lv[i - 1].name);
       printf("  R%d:%s\n", irep->lv[i - 1].r, n? n : "");

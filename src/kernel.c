@@ -1143,6 +1143,10 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
   mrb_value vars;
   struct mrb_irep *irep;
   size_t i;
+  mrb_sym const
+      blk = mrb_intern_lit(mrb, "&"),
+      rest = mrb_intern_lit(mrb, "*"),
+      kwrest = mrb_intern_lit(mrb, "**");
 
   proc = mrb->c->ci[-1].proc;
 
@@ -1156,8 +1160,9 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
   }
   vars = mrb_hash_new(mrb);
   for (i = 0; i + 1 < irep->nlocals; ++i) {
-    if (irep->lv[i].name) {
-      mrb_hash_set(mrb, vars, mrb_symbol_value(irep->lv[i].name), mrb_true_value());
+    mrb_sym const n = irep->lv[i].name;
+    if (n && n != blk && n != rest && n != kwrest) {
+      mrb_hash_set(mrb, vars, mrb_symbol_value(n), mrb_true_value());
     }
   }
   if (proc->env) {
@@ -1169,8 +1174,9 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
         irep = e->cxt.c->cibase[e->cioff].proc->body.irep;
         if (irep->lv) {
           for (i = 0; i + 1 < irep->nlocals; ++i) {
-            if (irep->lv[i].name) {
-              mrb_hash_set(mrb, vars, mrb_symbol_value(irep->lv[i].name), mrb_true_value());
+            mrb_sym const n = irep->lv[i].name;
+            if (n && n != blk && n != rest && n != kwrest) {
+              mrb_hash_set(mrb, vars, mrb_symbol_value(n), mrb_true_value());
             }
           }
         }
