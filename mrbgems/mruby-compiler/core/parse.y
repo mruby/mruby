@@ -681,6 +681,8 @@ new_args(parser_state *p, node *m, node *opt, mrb_sym rest, node *m2, node *tail
 static node*
 new_args_tail(parser_state *p, node *kws, node *kwrest, mrb_sym blk)
 {
+  node *k = kws;
+
   /* allocate register for keywords hash */
   if (kws || kwrest) {
     local_add_f(p, (kwrest && kwrest->cdr)? sym(kwrest->cdr) : mrb_intern_lit(p->mrb, "**"));
@@ -690,7 +692,6 @@ new_args_tail(parser_state *p, node *kws, node *kwrest, mrb_sym blk)
   local_add_f(p, blk? blk : mrb_intern_lit(p->mrb, "&"));
 
   /* allocate register for keywords arguments */
-  node *k = kws;
   while (k) {
     local_add_f(p, sym(k->car->cdr->car));
     k = k->cdr;

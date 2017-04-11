@@ -888,10 +888,10 @@ lambda_body(codegen_scope *s, node *tree, int blk)
 
       if (kwds && !kwrest) {
         int jmpif_empty;
+        mrb_value err_msg = mrb_str_new_lit(s->mrb, "unhandled keyword arguments found");
         genop(s, MKOP_AB(OP_MOVE, cursp(), kdict));
         genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "empty?")), 0));
         jmpif_empty = genop(s, MKOP_AsBx(OP_JMPIF, cursp(), 0));
-        mrb_value err_msg = mrb_format(s->mrb, "unhandled keyword arguments found");
         genop(s, MKOP_ABx(OP_GETCONST, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "ArgumentError"))));
         genop(s, MKOP_ABx(OP_STRING, cursp() + 1, new_lit(s, err_msg)));
         genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "new")), 1));
