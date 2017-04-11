@@ -101,7 +101,9 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
     {0, "opt"},
     {0, "rest"},
     {0, "req"},
+    {0, "kdict"},
     {0, "block"},
+    {0, "kwd"},
     {0, NULL}
   };
   const struct RProc *proc = mrb_proc_ptr(self);
@@ -134,7 +136,9 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   parameters_list[1].size = MRB_ASPEC_OPT(aspec);
   parameters_list[2].size = MRB_ASPEC_REST(aspec);
   parameters_list[3].size = MRB_ASPEC_POST(aspec);
-  parameters_list[4].size = MRB_ASPEC_BLOCK(aspec);
+  parameters_list[4].size = MRB_ASPEC_KDICT(aspec);
+  parameters_list[5].size = MRB_ASPEC_BLOCK(aspec);
+  parameters_list[6].size = MRB_ASPEC_KEY(aspec);
 
   parameters = mrb_ary_new_capa(mrb, irep->nlocals-1);
 
@@ -144,7 +148,7 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
     for (j = 0; j < p->size; i++, j++) {
       mrb_value a = mrb_ary_new_capa(mrb, 2);
       mrb_ary_push(mrb, a, sname);
-      if (irep->lv[i].name) {
+      if (irep->lv[i].name != mrb_intern_lit(mrb, "*")) {
         mrb_ary_push(mrb, a, mrb_symbol_value(irep->lv[i].name));
       }
       mrb_ary_push(mrb, parameters, a);
