@@ -142,7 +142,7 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
     if (p->size <= 0) continue;
     sname = mrb_symbol_value(mrb_intern_cstr(mrb, p->name));
     for (j = 0; j < p->size; i++, j++) {
-      mrb_value a = mrb_ary_new(mrb);
+      mrb_value a = mrb_ary_new_capa(mrb, 2);
       mrb_ary_push(mrb, a, sname);
       if (irep->lv[i].name) {
         mrb_ary_push(mrb, a, mrb_symbol_value(irep->lv[i].name));
