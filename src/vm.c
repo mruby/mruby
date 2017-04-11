@@ -1630,7 +1630,8 @@ RETRY_TRY_BLOCK:
       int o  = MRB_ASPEC_OPT(ax);
       int r  = MRB_ASPEC_REST(ax);
       int m2 = MRB_ASPEC_POST(ax);
-      int kd = (MRB_ASPEC_KEY(ax) > 0 || MRB_ASPEC_KDICT(ax))? 1 : 0;
+      int const kw = MRB_ASPEC_KEY(ax);
+      int const kd = (kw > 0 || MRB_ASPEC_KDICT(ax))? 1 : 0;
       /* unused
       int b  = MRB_ASPEC_BLOCK(ax);
       */
@@ -1640,7 +1641,8 @@ RETRY_TRY_BLOCK:
       int const len = m1 + o + r + m2;
       int const blk_pos = len + kd + 1;
       mrb_value *blk = &argv[argc < 0 ? 1 : argc];
-      mrb_value *kdict;
+      mrb_value kdict;
+      int default_empty_kdict = 0;
 
       // arguments is passed with Array
       if (argc < 0) {
@@ -1653,8 +1655,8 @@ RETRY_TRY_BLOCK:
       // strict argument check
       if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc)) {
         if (argc >= 0) {
-          if (argc < m1 + m2 || (r == 0 && argc > len)) {
-            argnum_error(mrb, m1+m2);
+          if (argc < m1 + m2 + (kd && kw == 0? 0 : kd) || (r == 0 && argc > len + kd)) {
+            argnum_error(mrb, m1+m2+kd);
             goto L_RAISE;
           }
         }
@@ -1667,18 +1669,35 @@ RETRY_TRY_BLOCK:
       }
 
       if (kd) {
-        // check last arguments is hash if method takes keyword arguments
-        if (!mrb_hash_p(argv[argc - 1])) {
-          mrb_value str = mrb_format(mrb, "Excepcted `Hash` as last argument for keyword arguments");
+        if (argc == 0 && kw > 0) {
+          mrb_value str = mrb_format(mrb, "excepcted `Hash` as last argument for keyword arguments");
           mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
           goto L_RAISE;
         }
 
-        kdict = &argv[argc - 1];
-      }
+        // check last arguments is hash if method takes keyword arguments
+        if (mrb_hash_p(argv[argc - 1])) { kdict = argv[argc - 1]; }
+        else if (mrb_respond_to(mrb, argv[argc - 1], mrb_intern_lit(mrb, "to_hash"))) {
+          kdict = mrb_convert_type(mrb, argv[argc - 1], MRB_TT_HASH, "Hash", "to_hash");
+        }
+        else {
+          if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc) &&
+              argc >= 0 && (argc < m1 + m2 || (r == 0 && argc > len))) {
+            argnum_error(mrb, m1+m2);
+            goto L_RAISE;
+          }
 
-      // format arguments for generated code
-      mrb->c->ci->argc = len + kd;
+          // check optional keyword arguments
+          if (kw > 0) {
+            mrb_value str = mrb_format(mrb, "excepcted `Hash` as last argument for keyword arguments");
+            mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
+            goto L_RAISE;
+          }
+
+          kdict = mrb_hash_new(mrb);
+          default_empty_kdict = 1;
+        }
+      }
 
       // no rest arguments
       if (argc < len) {
@@ -1687,7 +1706,7 @@ RETRY_TRY_BLOCK:
           mlen = m1 < argc ? argc - m1 : 0;
         }
         regs[blk_pos] = *blk; /* move block */
-        if (kd) { regs[len + 1] = *kdict; }
+        if (kd) { regs[len + 1] = kdict; }
         SET_NIL_VALUE(regs[argc+1]);
         // copy mandatory and optional arguments
         if (argv0 != argv) {
@@ -1717,11 +1736,11 @@ RETRY_TRY_BLOCK:
         int rnum = 0;
         if (argv0 != argv) {
           regs[blk_pos] = *blk; /* move block */
-          if (kd) { regs[len + 1] = *kdict; }
+          if (kd) { regs[len + 1] = kdict; }
           value_move(&regs[1], argv, m1+o);
         }
         if (r) {
-          rnum = argc-m1-o-m2;
+          rnum = argc-m1-o-m2-(default_empty_kdict? 0 : kd);
           regs[m1+o+1] = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
         }
         if (m2) {
@@ -1731,11 +1750,11 @@ RETRY_TRY_BLOCK:
         }
         if (argv0 == argv) {
           regs[blk_pos] = *blk; /* move block */
-          if (kd) { regs[len + 1] = *kdict; }
+          if (kd) { regs[len + 1] = kdict; }
         }
         pc += o + 1;
       }
-      mrb->c->ci->argc = len;
+      mrb->c->ci->argc = len + kd;
       /* clear local (but non-argument) variables */
       if (irep->nlocals-len-2 > 0) {
         stack_clear(&regs[len+2], irep->nlocals-len-2);
@@ -1745,15 +1764,14 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_KARG) {
       /* A B C          R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B)) */
-      /* if C == 2; raise unless kdict.empty? */
-      /* OP_JMP should follow to skip init code */
       int a = GETARG_A(i), c = GETARG_C(i);
       mrb_value k = mrb_symbol_value(syms[GETARG_B(i)]);
       mrb_value kdict = regs[mrb->c->ci->argc];
+
+      mrb_assert(mrb_hash_p(kdict));
       regs[a] = mrb_hash_get(mrb, kdict, k);
-      if (c) {
-        mrb_funcall(mrb, kdict, "delete", 1, k);
-      }
+      if (c) { mrb_hash_delete_key(mrb, kdict, k); }
+
       NEXT;
     }
 

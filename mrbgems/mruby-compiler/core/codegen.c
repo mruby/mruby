@@ -733,6 +733,20 @@ for_body(codegen_scope *s, node *tree)
   genop(s, MKOP_ABC(OP_SENDB, cursp(), idx, 0));
 }
 
+/* count optional keywords */
+static int
+kw_count_opt(node *kws)
+{
+  int ret = 0;
+
+  while(kws) {
+    if (kws->car->cdr->cdr->car) ++ret;
+    kws = kws->cdr;
+  }
+
+  return ret;
+}
+
 static int
 lambda_body(codegen_scope *s, node *tree, int blk)
 {
@@ -772,10 +786,10 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     ra = tree->car->cdr->cdr->car ? 1 : 0;
     // post required arguments
     pa = node_len(tree->car->cdr->cdr->cdr->car);
-     // keyword arguments
-    ka = tail? node_len(tail->cdr->car) : 0;
+    // required keyword arguments
+    ka = tail? node_len(tail->cdr->car) - kw_count_opt(tail->cdr->car) : 0;
     // keyword dictionary?
-    kd = tail && tail->cdr->cdr->car? 1 : 0;
+    kd = tail && (tail->cdr->car || tail->cdr->cdr->car)? 1 : 0;
     // block argument?
     ba = tail && tail->cdr->cdr->cdr->car ? 1 : 0;
 
@@ -820,26 +834,19 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     }
 
     if (tail) {
-      int kdict = cursp();
-      node *kwds = tail->cdr->car;
-      mrb_sym kwrest = sym(tail->cdr->cdr->car);
+      int const kdict = 1 + oa + ra + pa;
+      node* const kwds = tail->cdr->car;
+      node* const kwrest = tail->cdr->cdr->car;
       // mrb_sym blk = sym(tail->cdr->cdr->cdr->car);
+      node *k;
 
       mrb_assert((intptr_t)tail->car == NODE_ARGS_TAIL);
       mrb_assert(node_len(tail) == 4);
 
-      if (kwds || kwrest) {
-        genop(s, MKOP_A(OP_KDICT, kdict));
-        push();
-      }
-
-      if (kwrest) {
-        genop(s, MKOP_AB(OP_MOVE, lv_idx(s, kwrest), kdict));
-      }
-
-      while (kwds) {
+      k = kwds;
+      while (k) {
         int jmpif_key_p, jmp_def_set = -1;
-        node *kwd = kwds->car, *def_arg = kwd->cdr->cdr->car;
+        node *kwd = k->car, *def_arg = kwd->cdr->cdr->car;
         mrb_sym kwd_sym = sym(kwd->cdr->car);
 
         mrb_assert((intptr_t)kwd->car == NODE_KW_ARG);
@@ -859,6 +866,8 @@ lambda_body(codegen_scope *s, node *tree, int blk)
         jmpif_key_p = genop(s, MKOP_AsBx(OP_JMPIF, cursp(), 0));
         if (def_arg) {
           codegen(s, def_arg, VAL);
+          pop();
+          genop_peep(s, MKOP_AB(OP_MOVE, lv_idx(s, kwd_sym), cursp()), NOVAL);
           jmp_def_set = genop(s, MKOP_AsBx(OP_JMP, 0, 0));
         } else {
           mrb_value err_msg = mrb_format(s->mrb, "keyword argument '%S' not passed", mrb_symbol_value(kwd_sym));
@@ -868,19 +877,26 @@ lambda_body(codegen_scope *s, node *tree, int blk)
           genop(s, MKOP_A(OP_RAISE, cursp()));
         }
         dispatch(s, jmpif_key_p);
-        genop(s, MKOP_ABC(OP_KARG, cursp() - 1, new_msym(s, kwd_sym), TRUE));
+        genop(s, MKOP_ABC(OP_KARG, lv_idx(s, kwd_sym), new_msym(s, kwd_sym), TRUE));
         if (jmp_def_set != -1) {
           dispatch(s, jmp_def_set);
         }
-        pop();
-        genop_peep(s, MKOP_AB(OP_MOVE, lv_idx(s, kwd_sym), cursp()), NOVAL);
         i++;
 
-        kwds = kwds->cdr;
+        k = k->cdr;
       }
 
-      if (kwds || kwrest) {
-        pop();
+      if (kwds && !kwrest) {
+        int jmpif_empty;
+        genop(s, MKOP_AB(OP_MOVE, cursp(), kdict));
+        genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "empty?")), 0));
+        jmpif_empty = genop(s, MKOP_AsBx(OP_JMPIF, cursp(), 0));
+        mrb_value err_msg = mrb_format(s->mrb, "unhandled keyword arguments found");
+        genop(s, MKOP_ABx(OP_GETCONST, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "ArgumentError"))));
+        genop(s, MKOP_ABx(OP_STRING, cursp() + 1, new_lit(s, err_msg)));
+        genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "new")), 1));
+        genop(s, MKOP_A(OP_RAISE, cursp()));
+        dispatch(s, jmpif_empty);
       }
     }
   }
@@ -1001,6 +1017,13 @@ gen_values(codegen_scope *s, node *t, int val, int extra)
         }
         t = t->cdr;
         while (t) {
+          if ((intptr_t)t->car->car == NODE_HASH &&
+              (intptr_t)t->car->cdr &&
+              (intptr_t)t->car->cdr->car->car->car == NODE_KW_REST_ARGS) {
+            t = t->cdr;
+            continue;
+          }
+
           push();
           codegen(s, t->car, VAL);
           pop(); pop();
@@ -1021,6 +1044,14 @@ gen_values(codegen_scope *s, node *t, int val, int extra)
       }
       return -1;
     }
+
+    if ((intptr_t)t->car->car == NODE_HASH &&
+        (intptr_t)t->car->cdr &&
+        (intptr_t)t->car->cdr->car->car->car == NODE_KW_REST_ARGS) {
+      t = t->cdr;
+      continue;
+    }
+
     /* normal (no splat) mode */
     codegen(s, t->car, val);
     n++;
@@ -1055,6 +1086,40 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
     if (n < 0) {
       n = noop = sendv = 1;
       push();
+    }
+
+    {
+      node *nd = tree->car, *kwrest = NULL;
+      while(nd) {
+        if (!nd->cdr && (intptr_t)nd->car->car == NODE_HASH) { break; }
+        nd = nd->cdr;
+      }
+
+      if (nd) {
+        mrb_assert((intptr_t)nd->car->car == NODE_HASH);
+
+        nd = nd->car->cdr;
+        while (nd) {
+          if ((intptr_t)nd->car->car->car == NODE_KW_REST_ARGS) {
+            kwrest = nd->car;
+            break;
+          }
+          nd = nd->cdr;
+        }
+
+        if (kwrest) {
+          mrb_assert((intptr_t)kwrest->car->car == NODE_KW_REST_ARGS);
+          if (sendv) {
+            codegen(s, kwrest->cdr, VAL);
+            pop();
+            genop(s, MKOP_AB(OP_ARYPUSH, cursp() - 1, cursp()));
+          }
+          else {
+            codegen(s, kwrest->cdr, VAL);
+            ++n;
+          }
+        }
+      }
     }
   }
   if (sp) {
@@ -1831,6 +1896,12 @@ codegen(codegen_scope *s, node *tree, int val)
       mrb_bool update = FALSE;
 
       while (tree) {
+        // skip ** argument
+        if ((intptr_t)tree->car->car->car == NODE_KW_REST_ARGS) {
+          tree = tree->cdr;
+          continue;
+        }
+
         codegen(s, tree->car->car, val);
         codegen(s, tree->car->cdr, val);
         len++;

@@ -679,15 +679,24 @@ new_args(parser_state *p, node *m, node *opt, mrb_sym rest, node *m2, node *tail
 
 /* (:args_tail keywords rest_keywords_sym block_sym) */
 static node*
-new_args_tail(parser_state *p, node *kws, mrb_sym kwrest, mrb_sym blk)
+new_args_tail(parser_state *p, node *kws, node *kwrest, mrb_sym blk)
 {
+  /* allocate register for keywords hash */
+  if (kws || kwrest) {
+    local_add_f(p, (kwrest && kwrest->cdr)? sym(kwrest->cdr) : mrb_intern_lit(p->mrb, "**"));
+  }
+
+  /* allocate register for block */
+  local_add_f(p, blk? blk : mrb_intern_lit(p->mrb, "&"));
+
+  /* allocate register for keywords arguments */
   node *k = kws;
   while (k) {
     local_add_f(p, sym(k->car->cdr->car));
     k = k->cdr;
   }
 
-  return list4((node*)NODE_ARGS_TAIL, kws, nsym(kwrest), nsym(blk));
+  return list4((node*)NODE_ARGS_TAIL, kws, kwrest, nsym(blk));
 }
 
 /* (:kw_arg kw_sym def_arg) */
@@ -1138,9 +1147,9 @@ heredoc_end(parser_state *p)
 %type <nd> heredoc words symbols
 %type <num> call_op call_op2     /* 0:'&.', 1:'.', 2:'::' */
 
-%type <nd> args_tail opt_args_tail f_kwarg f_kw arg_value
+%type <nd> args_tail opt_args_tail f_kwarg f_kw arg_value f_kwrest
 %type <nd> f_block_kwarg f_block_kw block_args_tail opt_block_args_tail
-%type <id> f_label f_kwrest
+%type <id> f_label
 
 %token tUPLUS             /* unary+ */
 %token tUMINUS            /* unary- */
@@ -2477,8 +2486,6 @@ opt_block_args_tail : ',' block_args_tail
                     }
                 | /* none */
                     {
-                      /* allocate register for block */
-                      local_add_f(p, mrb_intern_lit(p->mrb, "&"));
                       $$ = new_args_tail(p, 0, 0, 0);
                     }
                 ;
@@ -3096,13 +3103,11 @@ kwrest_mark     : tPOW
 
 f_kwrest        : kwrest_mark tIDENTIFIER
                     {
-                      local_add_f(p, $2);
-                      $$ = $2;
+                      $$ = cons((node*)NODE_KW_REST_ARGS, nsym($2));
                     }
                 | kwrest_mark
                     {
-                      local_add_f(p, mrb_intern_lit(p->mrb, "**"));
-                      $$ = 0;
+                      $$ = cons((node*)NODE_KW_REST_ARGS, 0);
                     }
                 ;
 
@@ -3130,8 +3135,6 @@ opt_args_tail   : ',' args_tail
                     }
                 | /* none */
                     {
-                      /* allocate register for block */
-                      local_add_f(p, mrb_intern_lit(p->mrb, "&"));
                       $$ = new_args_tail(p, 0, 0, 0);
                     }
                 ;
@@ -3313,7 +3316,6 @@ blkarg_mark     : '&'
 
 f_block_arg     : blkarg_mark tIDENTIFIER
                     {
-                      local_add_f(p, $2);
                       $$ = $2;
                     }
                 ;
@@ -3324,7 +3326,6 @@ opt_f_block_arg : ',' f_block_arg
                     }
                 | none
                     {
-                      local_add_f(p, mrb_intern_lit(p->mrb, "&"));
                       $$ = 0;
                     }
                 ;
@@ -3377,15 +3378,16 @@ assocs          : assoc
                     }
                 ;
 
-assoc           : arg tASSOC arg
+assoc           : arg_value tASSOC arg_value
                     {
+                      /* if ((intptr_t)$1->car == NODE_STR) */
                       $$ = cons($1, $3);
                     }
-                | tLABEL arg
+                | tLABEL arg_value
                     {
                       $$ = cons(new_sym(p, $1), $2);
                     }
-                | tLABEL_END arg
+                | tLABEL_END arg_value
                     {
                       $$ = cons(new_sym(p, new_strsym(p, $1)), $2);
                     }
@@ -3399,7 +3401,7 @@ assoc           : arg tASSOC arg
                     }
                 | tDSTAR arg_value
                     {
-                      $$ = cons(0, $2);
+                      $$ = cons(cons((node*)NODE_KW_REST_ARGS, 0), $2);
                     }
                 ;
 
@@ -6701,8 +6703,8 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     }
     tree = tree->cdr;
     if (tree->car) {
-      dump_prefix(tree, offset+1);
-      printf("kwrest='%s'\n", mrb_sym2name(mrb, sym(tree->car)));
+      mrb_assert((intptr_t)tree->car->car == NODE_KW_REST_ARGS);
+      mrb_parser_dump(mrb, tree->car, offset+1);
     }
     tree = tree->cdr;
     if (tree->car) {
@@ -6714,6 +6716,10 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_KW_ARG:
     printf("NODE_KW_ARG %s\n", mrb_sym2name(mrb, sym(tree->car)));
     mrb_parser_dump(mrb, tree->cdr->car, offset + 1);
+    break;
+
+  case NODE_KW_REST_ARGS:
+    printf("NODE_KW_REST_ARGS %s\n", mrb_sym2name(mrb, sym(tree)));
     break;
 
   default:
