@@ -551,8 +551,6 @@ done:
             mrb_top_self(mrb),
             stack_keep);
         stack_keep = proc->body.irep->nlocals;
-        /* restore to fiber */
-        mrb->c = mrb->root_c;
         /* did an exception occur? */
         if (mrb->exc) {
           p(mrb, mrb_obj_value(mrb->exc), 0);

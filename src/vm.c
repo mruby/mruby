@@ -816,15 +816,19 @@ MRB_API mrb_value
 mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {
   mrb_irep *irep = proc->body.irep;
+  mrb_value result;
+  struct mrb_context *c = mrb->c;
 
-  if (!mrb->c->stack) {
+  if (!c->stack) {
     stack_init(mrb);
   }
   if (stack_keep < irep->nregs)
     stack_keep = irep->nregs;
   stack_extend(mrb, stack_keep);
-  mrb->c->stack[0] = self;
-  return mrb_vm_exec(mrb, proc, irep->iseq);
+  c->stack[0] = self;
+  result = mrb_vm_exec(mrb, proc, irep->iseq);
+  mrb->c = c;
+  return result;
 }
 
 MRB_API mrb_value
