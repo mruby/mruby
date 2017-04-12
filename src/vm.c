@@ -260,6 +260,7 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e)
   mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
   ptrdiff_t cioff = e->cioff;
 
+  if (!MRB_ENV_STACK_SHARED_P(e)) return;
   MRB_ENV_UNSHARE_STACK(e);
   if (!e->c) {
     /* save block argument position (negated) */
