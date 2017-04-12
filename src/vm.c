@@ -395,6 +395,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
         mrb_method_missing(mrb, mid, self, args);
       }
       mrb_ary_unshift(mrb, args, mrb_symbol_value(mid));
+      stack_extend(mrb, n+2);
       mrb->c->stack[n+1] = args;
       argc = -1;
     }
