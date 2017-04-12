@@ -953,7 +953,8 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
     if (c->iv && iv_get(mrb, c->iv, sym, &v)) {
       return v;
     }
-    for (c2 = c; c2 && c2->tt == MRB_TT_SCLASS;) {
+    c2 = c;
+    while (c2 && c2->tt == MRB_TT_SCLASS) {
       mrb_value klass;
       klass = mrb_obj_iv_get(mrb, (struct RObject *)c2,
                              mrb_intern_lit(mrb, "__attached__"));
