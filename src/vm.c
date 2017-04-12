@@ -369,6 +369,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       val = mrb_obj_value(mrb->exc);
     }
     MRB_END_EXC(&c_jmp);
+    mrb->jmp = 0;
   }
   else {
     struct RProc *p;
