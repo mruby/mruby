@@ -137,7 +137,15 @@ mrb_class_outer_module(mrb_state *mrb, struct RClass *c)
     mrb_value klass;
     klass = mrb_obj_iv_get(mrb, (struct RObject *)cls,
                            mrb_intern_lit(mrb, "__attached__"));
-    cls = mrb_class_ptr(klass);
+    switch (mrb_type(klass)) {
+    case MRB_TT_CLASS:
+    case MRB_TT_SCLASS:
+    case MRB_TT_MODULE:
+      cls = mrb_class_ptr(klass);
+      break;
+    default:
+      break;
+    }
   }
   return cls;
 }
