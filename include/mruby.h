@@ -109,6 +109,8 @@ typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 
 typedef struct {
   mrb_sym mid;
+  mrb_bool use_kdict: 1;
+  mrb_bool need_kdict_dup: 1;
   struct RProc *proc;
   mrb_value *stackent;
   int nregs;

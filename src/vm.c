@@ -252,6 +252,8 @@ cipush(mrb_state *mrb)
   ci->err = 0;
   ci->proc = 0;
   ci->acc = 0;
+  ci->use_kdict = FALSE;
+  ci->need_kdict_dup = TRUE;
 
   return ci;
 }
@@ -1669,7 +1671,9 @@ RETRY_TRY_BLOCK:
       }
 
       if (kd) {
-        mrb_bool dont_separate;
+        mrb_bool const dont_separate = argc == 1 && (m1 + m2 == 1) && MRB_ASPEC_KDICT(ax);
+
+        mrb->c->ci->use_kdict = MRB_ASPEC_KDICT(ax)? TRUE : FALSE;
 
         if (argc == 0 && kw > 0) {
           mrb_value str = mrb_format(mrb, "excepcted `Hash` as last argument for keyword arguments");
@@ -1695,7 +1699,6 @@ RETRY_TRY_BLOCK:
           separate_kdict_p = TRUE;
         }
 
-        dont_separate = argc == 1 && (m1 + m2 == 1) && MRB_ASPEC_KDICT(ax);
         if (!separate_kdict_p && dont_separate) {
           kdict = mrb_hash_new(mrb);
           separate_kdict_p = TRUE;
@@ -1706,9 +1709,6 @@ RETRY_TRY_BLOCK:
           khiter_t k;
           mrb_int non_sym_count = 0;
 
-          // duplicate hash
-          kdict = argv[argc - 1] = mrb_obj_dup(mrb, kdict);
-
           // count non symbol key
           for (k = kh_begin(h); k != kh_end(h); ++k) {
             if (kh_exist(h, k) && !mrb_symbol_p(kh_key(h, k))) { ++non_sym_count; }
@@ -1718,6 +1718,10 @@ RETRY_TRY_BLOCK:
           if (non_sym_count > 0) {
             mrb_value const sep = mrb_hash_new_capa(mrb, kh_size(h) - non_sym_count);
             mrb_value kv;
+
+            // duplicate hash
+            kdict = argv[argc - 1] = mrb_obj_dup(mrb, kdict);
+            mrb->c->ci->need_kdict_dup = FALSE;
 
             for (k = kh_begin(h); k != kh_end(h); ++k) {
               if (!kh_exist(h, k)) { continue; }
@@ -1811,15 +1815,26 @@ RETRY_TRY_BLOCK:
       JUMP;
     }
 
+#define DUP_KDICT(kdict)                    \
+    do {                                    \
+      if (mrb->c->ci->need_kdict_dup) {     \
+        mrb->c->ci->need_kdict_dup = FALSE; \
+        *kdict = mrb_obj_dup(mrb, *kdict);  \
+      }                                     \
+    } while(FALSE)                          \
+
     CASE(OP_KARG) {
       /* A B C          R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B)) */
       int a = GETARG_A(i), c = GETARG_C(i);
       mrb_value k = mrb_symbol_value(syms[GETARG_B(i)]);
-      mrb_value kdict = regs[mrb->c->ci->argc];
+      mrb_value *kdict = &regs[mrb->c->ci->argc];
 
-      mrb_assert(mrb_hash_p(kdict));
-      regs[a] = mrb_hash_get(mrb, kdict, k);
-      if (c) { mrb_hash_delete_key(mrb, kdict, k); }
+      mrb_assert(mrb_hash_p(*kdict));
+      regs[a] = mrb_hash_get(mrb, *kdict, k);
+      if (c && mrb->c->ci->use_kdict) {
+        DUP_KDICT(kdict);
+        mrb_hash_delete_key(mrb, *kdict, k);
+      }
 
       NEXT;
     }
@@ -1827,9 +1842,15 @@ RETRY_TRY_BLOCK:
     CASE(OP_KDICT) {
       /* A              R(A) := kdict */
       int a = GETARG_A(i);
-      regs[a] = regs[mrb->c->ci->argc];
+      mrb_value *kdict = &regs[mrb->c->ci->argc];
+
+      mrb_assert(mrb_hash_p(*kdict));
+      DUP_KDICT(kdict);
+      regs[a] = *kdict;
       NEXT;
     }
+
+#undef DUP_KDICT
 
     L_RETURN:
       i = MKOP_AB(OP_RETURN, GETARG_A(i), OP_R_NORMAL);
