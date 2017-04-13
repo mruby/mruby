@@ -1678,7 +1678,8 @@ RETRY_TRY_BLOCK:
         // check last arguments is hash if method takes keyword arguments
         if (mrb_hash_p(argv[argc - 1])) { kdict = argv[argc - 1]; }
         else if (mrb_respond_to(mrb, argv[argc - 1], mrb_intern_lit(mrb, "to_hash"))) {
-          kdict = mrb_convert_type(mrb, argv[argc - 1], MRB_TT_HASH, "Hash", "to_hash");
+          kdict = argv[argc - 1] =
+                  mrb_convert_type(mrb, argv[argc - 1], MRB_TT_HASH, "Hash", "to_hash");
         }
         else {
           if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc) &&
