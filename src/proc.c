@@ -271,6 +271,7 @@ mrb_init_proc(mrb_state *mrb)
   call_irep->flags = MRB_ISEQ_NO_FREE;
   call_irep->iseq = call_iseq;
   call_irep->ilen = 1;
+  call_irep->nregs = 2;         /* receiver and block */
 
   mrb_define_class_method(mrb, mrb->proc_class, "new", mrb_proc_s_new, MRB_ARGS_ANY());
   mrb_define_method(mrb, mrb->proc_class, "initialize_copy", mrb_proc_init_copy, MRB_ARGS_REQ(1));
