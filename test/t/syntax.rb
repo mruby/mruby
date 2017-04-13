@@ -471,8 +471,10 @@ assert 'keyword arguments' do
   def m(a:) a end
   assert_equal 1, m(a: 1)
   assert_raise(ArgumentError) { m }
-  # TODO: need new VM opcode
-  # assert_raise(ArgumentError) { m 'a'  => 1, a: 1 }
+  assert_raise(ArgumentError) { m 'a'  => 1, a: 1 }
+  h = { a: 1 }
+  assert_equal 1, m(h)
+  assert_equal({ a: 1 }, h)
 
   def m(a: 1) a end
   assert_equal 1, m
@@ -487,17 +489,17 @@ assert 'keyword arguments' do
   def m(a, **) a end
   assert_equal 1, m(1)
   assert_equal 1, m(1, a: 2, b: 3)
-  # assert_equal({ 'a' => 1, b: 2 }, m('a' => 1, b: 2))
+  assert_equal({ 'a' => 1, b: 2 }, m('a' => 1, b: 2))
 
   def m(a, **k) [a, k] end
   assert_equal [1, {}], m(1)
   assert_equal [1, {a: 2, b: 3}], m(1, a: 2, b: 3)
-  # assert_equal [{'a' => 1, b: 2}, {}], m('a' => 1, b: 2)
+  assert_equal [{'a' => 1, b: 2}, {}], m('a' => 1, b: 2)
 
   def m(a=1, **) a end
   assert_equal 1, m
   assert_equal 2, m(2, a: 1, b: 0)
-  # assert_equal({'a' => 1}, m('a' => 1, a: 2))
+  assert_equal({'a' => 1}, m('a' => 1, a: 2))
 
   def m(a=1, **k) [a, k] end
   assert_equal [1, {}], m
@@ -506,17 +508,17 @@ assert 'keyword arguments' do
   def m(*, a:) a end
   assert_equal 1, m(a: 1)
   assert_equal 3, m(1, 2, a: 3)
-  # assert_equal 2, m('a' => 1, a: 2)
+  assert_equal 2, m('a' => 1, a: 2)
 
   def m(*a, b:) [a, b] end
   assert_equal [[], 1], m(b: 1)
   assert_equal [[1, 2], 3], m(1, 2, b: 3)
-  # assert_equal [[{'a' => 1}], 2], m('a' => 1, b: 2)
+  assert_equal [[{'a' => 1}], 2], m('a' => 1, b: 2)
 
   def m(*a, b: 1) [a, b] end
   assert_equal [[], 1], m
   assert_equal [[1, 2, 3], 4], m(1, 2, 3, b: 4)
-  # assert_equal [[{'a' => 1}], 2], m('a' => 1, b: 2)
+  assert_equal [[{'a' => 1}], 2], m('a' => 1, b: 2)
   splat_val = Object.new
   assert_false splat_val.respond_to? :to_ary
   assert_equal [[splat_val], 1], m(*splat_val)
@@ -536,7 +538,7 @@ assert 'keyword arguments' do
   def m(*a, **) a end
   assert_equal [], m()
   assert_equal [1, 2, 3], m(1, 2, 3, a: 4, b: 5)
-  # assert_equal [{"a" => 1}], m("a" => 1, a: 1)
+  assert_equal [{"a" => 1}], m("a" => 1, a: 1)
   assert_equal [1], m(1, **{a: 2})
   h = Object.new
   def h.to_hash; nil end
@@ -546,14 +548,13 @@ assert 'keyword arguments' do
   def m(*, **k) k end
   assert_equal({}, m())
   assert_equal({a: 4, b: 5}, m(1, 2, 3, a: 4, b: 5))
-  # assert_equal({a: 1}, m("a" => 1, a: 1))
+  assert_equal({a: 1}, m("a" => 1, a: 1))
   h = Object.new
   def h.to_hash; {a: 1} end
   assert_true h.respond_to?(:to_hash)
   assert_equal({a: 1}, m(h))
 
-=begin
-  def m(a = nil, **k) [a, k] end
+  def m(a = nil, b = nil, **k) [a, k] end
   assert_equal [nil, {}], m()
   assert_equal [{"a" => 1}, {}], m("a" => 1)
   assert_equal([nil, {a: 1}], m(a: 1))
@@ -565,32 +566,26 @@ assert 'keyword arguments' do
   assert_equal({"a" => 1, b: 2}, h)
   h = {"a" => 1}
   assert_equal(h, m(h).first)
-  h = {}
-  r = m(h)
-  assert_nil r
-  assert_equal({}, r.last)
+  assert_equal([nil, {}], m({}))
   hh = {}
   h = Object.new
   h.define_singleton_method(:to_hash) { hh }
-  r = m(h)
-  assert_nil r.first
-  assert_equal({}, r.last)
+  assert_equal([nil, {}], m(h))
   h = Object.new
   def h.to_hash; {"a" => 1, a: 2} end
   assert_equal([{"a" => 1}, {a: 2}], m(h))
-=end
 
   def m(*a, **k) [a, k] end
   assert_equal([[], {}], m())
   assert_equal([[1], {}], m(1))
   assert_equal([[], {a: 1, b: 2}], m(a: 1, b: 2))
   assert_equal([[1, 2, 3], {a: 2}], m(1, 2, 3, a: 2))
-  # assert_equal([[{"a" => 1}], {}], m("a" => 1))
+  assert_equal([[{"a" => 1}], {}], m("a" => 1))
   assert_equal([[], {a: 1}], m(a: 1))
-  # assert_equal([[{"a" => 1}], {a: 1}], m("a" => 1, a: 1))
-  # assert_equal([[{"a" => 1}], {a: 1}], m({ "a" => 1 }, a: 1))
+  assert_equal([[{"a" => 1}], {a: 1}], m("a" => 1, a: 1))
+  assert_equal([[{"a" => 1}], {a: 1}], m({ "a" => 1 }, a: 1))
   assert_equal([[{a: 1}], {}], m({a: 1}, {}))
-  # assert_equal([[{a: 1}, {"a" => 1}], {}], m({a: 1}, {"a" => 1}))
+  assert_equal([[{a: 1}, {"a" => 1}], {}], m({a: 1}, {"a" => 1}))
   bo = BasicObject.new
   def bo.to_a; [1, 2, 3]; end
   def bo.to_hash; {b: 2, c: 3}; end
@@ -620,12 +615,12 @@ assert 'keyword arguments' do
   def m(a:, **) a end
   assert_equal(1, m(a: 1))
   assert_equal(1, m(a: 1, b: 2))
-  # assert_raise(ArgumentError) { m("a" => 1, a: 1, b: 2) }
+  assert_raise(ArgumentError) { m("a" => 1, a: 1, b: 2) }
 
   def m(a:, **k) [a, k] end
   assert_equal([1, {}], m(a: 1))
   assert_equal([1, {b: 2, c: 3}], m(a: 1, b: 2, c: 3))
-  # assert_raise(ArgumentError) { m("a" => 1, a: 1, b: 2) }
+  assert_raise(ArgumentError) { m("a" => 1, a: 1, b: 2) }
 
 =begin
   def m(a:, &b) [a, b] end

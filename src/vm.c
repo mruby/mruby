@@ -1642,7 +1642,7 @@ RETRY_TRY_BLOCK:
       int const blk_pos = len + kd + 1;
       mrb_value *blk = &argv[argc < 0 ? 1 : argc];
       mrb_value kdict;
-      int default_empty_kdict = 0;
+      mrb_bool separate_kdict_p = FALSE;
 
       // arguments is passed with Array
       if (argc < 0) {
@@ -1655,7 +1655,7 @@ RETRY_TRY_BLOCK:
       // strict argument check
       if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc)) {
         if (argc >= 0) {
-          if (argc < m1 + m2 + (kd && kw == 0? 0 : kd) || (r == 0 && argc > len + kd)) {
+          if (argc < m1 + m2 + (MRB_ASPEC_KDICT(ax) && kw == 0? 0 : kd) || (r == 0 && argc > len + kd)) {
             argnum_error(mrb, m1+m2+kd);
             goto L_RAISE;
           }
@@ -1669,6 +1669,8 @@ RETRY_TRY_BLOCK:
       }
 
       if (kd) {
+        mrb_bool dont_separate;
+
         if (argc == 0 && kw > 0) {
           mrb_value str = mrb_format(mrb, "excepcted `Hash` as last argument for keyword arguments");
           mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
@@ -1682,12 +1684,6 @@ RETRY_TRY_BLOCK:
                   mrb_convert_type(mrb, argv[argc - 1], MRB_TT_HASH, "Hash", "to_hash");
         }
         else {
-          if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc) &&
-              argc >= 0 && (argc < m1 + m2 || (r == 0 && argc > len))) {
-            argnum_error(mrb, m1+m2);
-            goto L_RAISE;
-          }
-
           // check optional keyword arguments
           if (kw > 0) {
             mrb_value str = mrb_format(mrb, "excepcted `Hash` as last argument for keyword arguments");
@@ -1696,8 +1692,60 @@ RETRY_TRY_BLOCK:
           }
 
           kdict = mrb_hash_new(mrb);
-          default_empty_kdict = 1;
+          separate_kdict_p = TRUE;
         }
+
+        dont_separate = argc == 1 && (m1 + m2 == 1) && MRB_ASPEC_KDICT(ax);
+        if (!separate_kdict_p && dont_separate) {
+          kdict = mrb_hash_new(mrb);
+          separate_kdict_p = TRUE;
+        }
+
+        if (!separate_kdict_p) {
+          khash_t(ht) *h = RHASH_TBL(kdict);
+          khiter_t k;
+          mrb_int non_sym_count = 0;
+
+          // duplicate hash
+          kdict = argv[argc - 1] = mrb_obj_dup(mrb, kdict);
+
+          // count non symbol key
+          for (k = kh_begin(h); k != kh_end(h); ++k) {
+            if (kh_exist(h, k) && !mrb_symbol_p(kh_key(h, k))) { ++non_sym_count; }
+          }
+
+          // move keyword arguments to seperate hash
+          if (non_sym_count > 0) {
+            mrb_value const sep = mrb_hash_new_capa(mrb, kh_size(h) - non_sym_count);
+            mrb_value kv;
+
+            for (k = kh_begin(h); k != kh_end(h); ++k) {
+              if (!kh_exist(h, k)) { continue; }
+
+              kv = kh_key(h, k);
+
+              if (mrb_symbol_p(kv)) {
+                mrb_hash_set(mrb, sep, kv, kh_value(h, k).v);
+                mrb_hash_delete_key(mrb, kdict, kv);
+              }
+            }
+
+            separate_kdict_p = TRUE;
+            kdict = sep;
+          }
+          // ignore passed hash as optional argument when hash splitting didn't occur
+          else if (o > 0) { --argc; }
+        }
+
+        // recheck arguments count when kdict is separate hash
+        if (separate_kdict_p && !dont_separate &&
+            mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc) &&
+            argc >= 0 && (argc < m1 + m2 || (r == 0 && argc > len))) {
+          argnum_error(mrb, m1+m2);
+          goto L_RAISE;
+        }
+
+        mrb_assert(mrb_hash_p(kdict));
       }
 
       // no rest arguments
@@ -1741,7 +1789,7 @@ RETRY_TRY_BLOCK:
           value_move(&regs[1], argv, m1+o);
         }
         if (r) {
-          rnum = argc-m1-o-m2-(default_empty_kdict? 0 : kd);
+          rnum = argc-m1-o-m2-(separate_kdict_p? 0 : kd);
           regs[m1+o+1] = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
         }
         if (m2) {
