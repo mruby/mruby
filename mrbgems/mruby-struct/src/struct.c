@@ -638,7 +638,7 @@ mrb_struct_to_h(mrb_state *mrb, mrb_value self)
   mrb_value members, ret;
   mrb_int i;
 
-  members = struct_s_members(mrb, mrb_class(mrb, self));
+  members = struct_members(mrb, self);
   ret = mrb_hash_new_capa(mrb, RARRAY_LEN(members));
 
   for (i = 0; i < RARRAY_LEN(members); ++i) {
