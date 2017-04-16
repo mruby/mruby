@@ -107,6 +107,9 @@ gettimeofday(struct timeval *tv, void *tz)
 # endif
 #endif
 #ifdef NO_GMTIME_R
+#ifdef __MINGW32__
+#define tzset _tzset
+#endif
 #define gmtime_r(t,r) gmtime(t)
 #define localtime_r(t,r) localtime(t)
 #endif
