@@ -20,6 +20,16 @@ module Kernel
   # ISO 15.3.1.2.8 Kernel.loop
   # provided by Kernel#loop
 
+  # 15.3.1.2.13
+  def self.require(str)
+    raise NotImplementedError.new("require not implemented")
+  end
+
+  # 15.3.1.3.42
+  def require(str)
+    Kernel.require str
+  end
+
   ##
   # Calls the given block repetitively.
   #
