@@ -37,6 +37,52 @@ assert('Fiber#alive?') do
   assert_false f.alive?
 end
 
+assert('Fiber#resumable?') do
+  f2 = nil
+  f1 = Fiber.new {
+    assert_false f1.resumable? # running
+    f2.resume
+    assert_false f2.alive?
+    Fiber.yield
+  }
+  f2 = Fiber.new {
+    assert_false f1.resumable? # resuming
+  }
+  assert_true f1.resumable? # created
+  f1.resume
+  assert_true f1.resumable? # suspended
+  f1.resume
+  assert_false f1.resumable? # terminated
+
+  root = Fiber.current
+  f = Fiber.new { root.transfer }
+  f.resume
+  assert_false f.resumable? # transferred
+end
+
+assert('Fiber#transferable?') do
+  f2 = nil
+  f1 = Fiber.new {
+    assert_false f1.transferable? # running
+    f2.resume
+    assert_false f2.alive?
+    Fiber.yield
+  }
+  f2 = Fiber.new {
+    assert_false f1.transferable? # resuming
+  }
+  assert_true f1.transferable? # created
+  f1.resume
+  assert_true f1.transferable? # suspended
+  f1.resume
+  assert_false f1.transferable? # terminated
+
+  root = Fiber.current
+  f = Fiber.new { root.transfer }
+  f.resume
+  assert_true f.transferable? # transferred
+end
+
 assert('Fiber#==') do
   root = Fiber.current
   assert_equal root, root

@@ -290,6 +290,33 @@ fiber_eq(mrb_state *mrb, mrb_value self)
  * and <code>Fiber.yield</code> is called, the fiber would be resumable.
  */
 static mrb_value
+fiber_resumable_p(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_context *c = fiber_check(mrb, self);
+  switch (c->status) {
+  case MRB_FIBER_CREATED:
+  case MRB_FIBER_SUSPENDED:
+    return mrb_true_value();
+  default:
+    return mrb_false_value();
+  }
+}
+
+static mrb_value
+fiber_transferable_p(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_context *c = fiber_check(mrb, self);
+  switch (c->status) {
+  case MRB_FIBER_CREATED:
+  case MRB_FIBER_SUSPENDED:
+  case MRB_FIBER_TRANSFERRED:
+    return mrb_true_value();
+  default:
+    return mrb_false_value();
+  }
+}
+
+static mrb_value
 fiber_transfer(mrb_state *mrb, mrb_value self)
 {
   struct mrb_context *c = fiber_check(mrb, self);
@@ -393,6 +420,8 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, c, "resume",     fiber_resume,  MRB_ARGS_ANY());
   mrb_define_method(mrb, c, "transfer",   fiber_transfer, MRB_ARGS_ANY());
   mrb_define_method(mrb, c, "alive?",     fiber_alive_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, c, "resumable?", fiber_resumable_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, c, "transferable?", fiber_transferable_p, MRB_ARGS_NONE());
   mrb_define_method(mrb, c, "==",         fiber_eq,      MRB_ARGS_REQ(1));
 
   mrb_define_class_method(mrb, c, "yield", fiber_yield, MRB_ARGS_ANY());
