@@ -32,6 +32,7 @@ assert('Array#*', '15.2.12.5.2') do
   end
   assert_equal([1, 1, 1], [1].*(3))
   assert_equal([], [1].*(0))
+  assert_equal("1,2,3", [1, 2, 3] * ",")
 end
 
 assert('Array#<<', '15.2.12.5.3') do

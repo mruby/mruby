@@ -347,6 +347,23 @@ mrb_ary_replace_m(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  call-seq:
+ *     ary * int     -> new_ary
+ *     ary * str     -> new_string
+ *
+ *  Repetition --- With a String argument, equivalent to
+ *  <code>ary.join(str)</code>.
+ *
+ *  Otherwise, returns a new array built by concatenating the +int+ copies of
+ *  +self+.
+ *
+ *
+ *     [ 1, 2, 3 ] * 3    #=> [ 1, 2, 3, 1, 2, 3, 1, 2, 3 ]
+ *     [ 1, 2, 3 ] * ","  #=> "1,2,3"
+ *
+ */
+
 static mrb_value
 mrb_ary_times(mrb_state *mrb, mrb_value self)
 {
@@ -354,7 +371,12 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
   struct RArray *a2;
   mrb_value *ptr;
   mrb_int times;
+  mrb_value obj;
 
+  mrb_get_args(mrb, "o", &obj);
+  if (mrb_type(obj) == MRB_TT_STRING) {
+    return mrb_ary_join(mrb, self, obj);
+  }
   mrb_get_args(mrb, "i", &times);
   if (times < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argument");
