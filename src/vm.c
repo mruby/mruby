@@ -610,6 +610,12 @@ mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
   if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "module_eval/class_eval with string not implemented");
   }
+  /* While module_eval currently doesn't support strings,
+   * it should validate the presence of a block.
+   */
+  if (mrb_nil_p(b)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
+  }
   return eval_under(mrb, mod, b, mrb_class_ptr(mod));
 }
 
@@ -643,6 +649,12 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
 
   if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "instance_eval with string not implemented");
+  }
+  /* While instance_eval currently doesn't support strings,
+   * it should validate the presence of a block.
+   */
+  if (mrb_nil_p(b)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
   }
   switch (mrb_type(self)) {
   case MRB_TT_SYMBOL:
