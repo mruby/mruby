@@ -1,0 +1,85 @@
+mruby (1.1.0-1) unstable; urgency=low
+
+  * New upstream release(1.1.0).
+
+ -- Akira Mitsui <murase.syuka@gmail.com>  Tue, 25 Nov 2014 22:06:20 +0900
+
+mruby (1.0.0+20141109+gitfbadd660-1) unstable; urgency=medium
+
+  * Snapshot, taken from the master (20141109).
+
+ -- Akira Mitsui <murase.syuka@gmail.com>  Sun, 09 Nov 2014 23:26:31 +0900
+
+mruby (1.0.0+20141015+gitb4cc962c-1) unstable; urgency=medium
+
+  * Snapshot, taken from the master (20141015).
+
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Wed, 15 Oct 2014 19:49:36 +0900
+
+mruby (1.0.0+20140919+git5f7b0580-1) unstable; urgency=medium
+
+  * Snapshot, taken from the master (20140919).
+
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Fri, 19 Sep 2014 08:40:31 +0900
+
+mruby (1.0.0+20140623+gitc938b2f6-1) unstable; urgency=medium
+
+  * Snapshot, taken from the master (20140623).
+
+ -- Akira Mitsui <murase.syuka@gmail.com>  Mon, 23 Jun 2014 18:58:59 +0900
+
+mruby (1.0.0-1) unstable; urgency=low
+
+  * New upstream release(1.0.0).
+  * Update Standards-Version to 3.9.5.
+
+ -- Akira Mitsui <murase.syuka@gmail.com>  Thu, 2 Jan 2014 14:24:54 +0900
+
+mruby (0.0.0~20131214+git882afdea-1) unstable; urgency=medium
+
+  * Snapshot, taken from the master (20131214).
+
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Sat, 14 Dec 2013 10:56:42 +0900
+
+mruby (0.0.0~20131107+gitf80401de-1) unstable; urgency=low
+
+  * Snapshot, taken from the master (20131107).
+
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Thu, 07 Nov 2013 12:23:24 +0900
+
+mruby (0.0.0~20131011+git480e3297-1) unstable; urgency=low
+
+  * Snapshot, taken from the master (20131011).
+  * Upload to unstable.
+
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Fri, 11 Oct 2013 13:34:59 +0900
+
+mruby (0.0.0~20130903+gitad5c408c-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Tue, 03 Sep 2013 07:49:24 +0900
+
+mruby (0.0.0~20130801+gitc550a0f8-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Thu, 01 Aug 2013 07:43:27 +0900
+
+mruby (0.0.0~20130704+git4c8fd521-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Thu, 04 Jul 2013 08:27:16 +0900
+
+mruby (0.0.0~20130531+git5c6d2818-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Fri, 31 May 2013 17:33:04 +0900
+
+mruby (0.0.0~20130515+git95fb1fd8-1) experimental; urgency=low
+
+  * Initial release. (Closes: #697835)
+
+ -- Nobuhiro Iwamatsu <iwamatsu@debian.org>  Wed, 15 May 2013 07:29:35 +0900

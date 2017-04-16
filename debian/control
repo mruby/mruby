@@ -1,0 +1,35 @@
+Source: mruby
+Section: ruby
+Priority: extra
+Maintainer: Nobuhiro Iwamatsu <iwamatsu@debian.org>
+Uploaders: Akira Mitsui <murase.syuka@gmail.com>
+Build-Depends: debhelper (>= 9), dpkg-dev (>= 1.16.1~), ruby, bison
+Standards-Version: 3.9.5
+Vcs-Git: git://github.com/mruby-debian/mruby.git
+Vcs-Browser: https://github.com/mruby-debian/mruby
+
+Package: mruby
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: lightweight implementation of the Ruby language
+ mruby is the lightweight implementation of the Ruby language complying to
+ the ISO standard.
+ This can be linked and embedded within your application.
+ .
+ This package contains the following tools:
+  * mirb: Embeddable interactive ruby shell
+  * mrbc: mruby compiler
+  * mruby: mruby interpreter
+  * mrdb: mruby debugger
+  * mruby-strip: mruby strip
+
+Package: libmruby-dev
+Architecture: any
+Section: libdevel
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: lightweight implementation of the Ruby language (development files)
+ mruby is the lightweight implementation of the Ruby language complying to
+ the ISO standard.
+ This can be linked and embedded within your application.
+ .
+ This package contains the development files.

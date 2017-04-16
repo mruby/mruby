@@ -1,0 +1,2 @@
+enable_verbose_build.patch
+mruby-bin-debugger-Fix-compile-without-C99-or-C11.patch

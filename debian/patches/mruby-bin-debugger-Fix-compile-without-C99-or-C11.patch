@@ -1,0 +1,24 @@
+Description: mruby-bin-debugger Fix compile without C99 or C11
+Forwarded: not need
+Author: Nobuhiro Iwamatsu <iwamatsu@debian.org>
+Last-Update: 2014-12-02
+
+diff --git a/mrbgems/mruby-bin-debugger/tools/mrdb/cmdbreak.c b/mrbgems/mruby-bin-debugger/tools/mrdb/cmdbreak.c
+index 9764d4e..1a7a63f 100755
+--- a/mrbgems/mruby-bin-debugger/tools/mrdb/cmdbreak.c
++++ b/mrbgems/mruby-bin-debugger/tools/mrdb/cmdbreak.c
+@@ -58,9 +58,11 @@ print_api_common_error(int32_t error)
+ }
+ 
+ #undef STRTOUL
+-#define STRTOUL(ul,s) \
+-    ul = 0; \
+-    for(int i=0; ISDIGIT(s[i]); i++) ul = 10*ul + (s[i] -'0');
++#define STRTOUL(ul,s) { \
++  int i; \
++  ul = 0; \
++  for(i = 0; ISDIGIT(s[i]); i++) ul = 10*ul + (s[i] -'0'); \
++}
+ 
+ static int32_t
+ parse_breakpoint_no(char* args)
