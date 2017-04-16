@@ -215,7 +215,7 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
 
     mrb_ary_modify(mrb, mrb_ary_ptr(ary));
 
-    for (i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
+    for (i = RARRAY_LEN(ary) - 1; i > 0; i--) {
       mrb_int j;
       mrb_value tmp;
 
