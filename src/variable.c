@@ -1193,16 +1193,14 @@ mrb_class_sym(mrb_state *mrb, struct RClass *c, struct RClass *outer)
 
   name = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__classid__"));
   if (mrb_nil_p(name)) {
-
     if (!outer) return 0;
-    else {
-      struct csym_arg arg;
 
-      arg.c = c;
-      arg.sym = 0;
-      iv_foreach(mrb, outer->iv, csym_i, &arg);
-      return arg.sym;
-    }
+    struct csym_arg arg;
+
+    arg.c = c;
+    arg.sym = 0;
+    iv_foreach(mrb, outer->iv, csym_i, &arg);
+    return arg.sym;
   }
   return mrb_symbol(name);
 }
