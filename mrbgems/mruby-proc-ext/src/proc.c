@@ -47,7 +47,11 @@ mrb_proc_inspect(mrb_state *mrb, mrb_value self)
     mrb_str_cat_lit(mrb, str, "@");
 
     filename = mrb_debug_get_filename(irep, 0);
-    mrb_str_cat_cstr(mrb, str, filename ? filename : "-");
+    if (filename) {
+      mrb_str_cat_cstr(mrb, str, filename);
+    } else {
+      mrb_str_cat_lit(mrb, str, "-");
+    }
     mrb_str_cat_lit(mrb, str, ":");
 
     line = mrb_debug_get_line(irep, 0);
