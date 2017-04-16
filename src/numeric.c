@@ -767,7 +767,14 @@ fix_mod(mrb_state *mrb, mrb_value x)
     if ((b=mrb_fixnum(y)) == 0) {
       return mrb_float_value(mrb, NAN);
     }
+#if ((-2 >> 31) == -1) && ((11 % -5) == 1) && ((-11 % 5) == -1) && ((-11 % -5) == -1)
+    mod = a % b;
+    if (mod) {
+      mod += ((a ^ b) >> 31) & b;
+    }
+#else
     fixdivmod(mrb, a, b, 0, &mod);
+#endif
     return mrb_fixnum_value(mod);
   }
   else {
