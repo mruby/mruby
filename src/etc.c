@@ -141,7 +141,7 @@ mrb_obj_id(mrb_value obj)
   case MRB_TT_DATA:
   case MRB_TT_ISTRUCT:
   default:
-    return MakeID(mrb_ptr(obj));
+    return (mrb_int)MakeID(mrb_ptr(obj));
   }
 }
 
