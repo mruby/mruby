@@ -97,6 +97,8 @@ class Hash
     self
   end
 
+  alias each_pair each
+
   ##
   # Calls the given block for each element of +self+
   # and pass the key of each element.
