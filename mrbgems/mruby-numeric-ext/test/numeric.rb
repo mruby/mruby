@@ -13,6 +13,16 @@ assert('Integer#div') do
   assert_equal 52, 365.div(7)
 end
 
+assert('Fixnum#odd?') do
+  assert_true 1.odd?
+  assert_false 2.odd?
+end
+
+assert('Fixnum#even?') do
+  assert_true 2.even?
+  assert_false 1.even?
+end
+
 assert('Float#div') do
   assert_float 52, 365.2425.div(7)
 end
