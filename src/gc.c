@@ -628,8 +628,25 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
 
   case MRB_TT_OBJECT:
   case MRB_TT_DATA:
-  case MRB_TT_EXCEPTION:
     mrb_gc_mark_iv(mrb, (struct RObject*)obj);
+    break;
+
+  case MRB_TT_EXCEPTION:
+    {
+      mrb_int i, ciidx;
+
+      mrb_gc_mark_iv(mrb, (struct RObject*)obj);
+
+      ciidx = mrb_fixnum(mrb_obj_iv_get(mrb, (struct RObject*)obj,
+                                        mrb_intern_lit(mrb, "ciidx")));
+      for (i = 0; i <= ciidx; i++) {
+        mrb_callinfo *ci = &mrb->c->cibase[i];
+        if (!ci->proc) {
+          continue;
+        }
+        mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
+      }
+    }
     break;
 
   case MRB_TT_PROC:
