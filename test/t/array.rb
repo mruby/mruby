@@ -255,19 +255,35 @@ assert('Array#replace', '15.2.12.5.23') do
 end
 
 assert('Array#reverse', '15.2.12.5.24') do
-  a = [1,2,3]
+  a = [1]
   b = a.reverse
+  c = [1, 2]
+  d = c.reverse
+  e = [1, 2, 3]
+  f = e.reverse
 
-  assert_equal([1,2,3], a)
-  assert_equal([3,2,1], b)
+  assert_equal([1], a)
+  assert_equal([1], b)
+  assert_equal([1, 2], c)
+  assert_equal([2, 1], d)
+  assert_equal([1, 2, 3], e)
+  assert_equal([3, 2, 1], f)
 end
 
 assert('Array#reverse!', '15.2.12.5.25') do
-  a = [1,2,3]
+  a = [1]
   b = a.reverse!
+  c = [1, 2]
+  d = c.reverse!
+  e = [1, 2, 3]
+  f = e.reverse!
 
-  assert_equal([3,2,1], a)
-  assert_equal([3,2,1], b)
+  assert_equal([1], a)
+  assert_equal([1], b)
+  assert_equal([2, 1], c)
+  assert_equal([2, 1], d)
+  assert_equal([3, 2, 1], e)
+  assert_equal([3, 2, 1], f)
 end
 
 assert('Array#rindex', '15.2.12.5.26') do
