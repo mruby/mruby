@@ -238,7 +238,7 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
   ret = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
   ret->ht = kh_init(ht, mrb);
 
-  if (kh_size(h) > 0) {
+  if (h && kh_size(h) > 0) {
     ret_h = ret->ht;
 
     for (k = kh_begin(h); k != kh_end(h); k++) {
