@@ -991,11 +991,14 @@ RETRY_TRY_BLOCK:
     CASE(OP_GETCONST) {
       /* A Bx    R(A) := constget(Syms(Bx)) */
       mrb_value val;
+      int a = GETARG_A(i);
+      int bx = GETARG_Bx(i);
+      mrb_sym sym = syms[bx];
 
       ERR_PC_SET(mrb, pc);
-      val = mrb_vm_const_get(mrb, syms[GETARG_Bx(i)]);
+      val = mrb_vm_const_get(mrb, sym);
       ERR_PC_CLR(mrb);
-      regs[GETARG_A(i)] = val;
+      regs[a] = val;
       NEXT;
     }
 
@@ -1276,7 +1279,6 @@ RETRY_TRY_BLOCK:
         result = m->body.func(mrb, recv);
         mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
-        /* pop stackpos */
         ci = mrb->c->ci;
         if (!ci->target_class) { /* return from context modifying method (resume/yield) */
           if (ci->acc == CI_ACC_RESUMED) {
@@ -1292,6 +1294,7 @@ RETRY_TRY_BLOCK:
           }
         }
         mrb->c->stack[0] = result;
+        /* pop stackpos */
         mrb->c->stack = ci->stackent;
         pc = ci->pc;
         cipop(mrb);
@@ -1475,13 +1478,28 @@ RETRY_TRY_BLOCK:
           ci->nregs = n + 2;
         }
         v = m->body.func(mrb, recv);
-        mrb->c->stack[0] = v;
         mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
+        ci = mrb->c->ci;
+        if (!ci->target_class) { /* return from context modifying method (resume/yield) */
+          if (ci->acc == CI_ACC_RESUMED) {
+            mrb->jmp = prev_jmp;
+            return v;
+          }
+          else {
+            mrb_assert(!MRB_PROC_CFUNC_P(ci[-1].proc));
+            proc = ci[-1].proc;
+            irep = proc->body.irep;
+            pool = irep->pool;
+            syms = irep->syms;
+          }
+        }
+        mrb->c->stack[0] = v;
         /* pop stackpos */
-        mrb->c->stack = mrb->c->ci->stackent;
+        mrb->c->stack = ci->stackent;
+        pc = ci->pc;
         cipop(mrb);
-        NEXT;
+        JUMP;
       }
       else {
         /* fill callinfo */
