@@ -241,7 +241,12 @@ copy_class(mrb_state *mrb, mrb_value dst, mrb_value src)
     c1->super = mrb_class_ptr(mrb_obj_dup(mrb, mrb_obj_value(c0)));
     c1->super->flags |= MRB_FLAG_IS_ORIGIN;
   }
-  dc->mt = kh_copy(mt, mrb, sc->mt);
+  if (sc->mt) {
+    dc->mt = kh_copy(mt, mrb, sc->mt);
+  }
+  else {
+    dc->mt = kh_init(mt, mrb);
+  }
   dc->super = sc->super;
   MRB_SET_INSTANCE_TT(dc, MRB_INSTANCE_TT(sc));
 }
