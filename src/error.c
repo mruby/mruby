@@ -291,6 +291,10 @@ mrb_exc_set(mrb_state *mrb, mrb_value exc)
   }
   else {
     mrb->exc = mrb_obj_ptr(exc);
+    if (!mrb->gc.out_of_memory) {
+      exc_debug_info(mrb, mrb->exc);
+      mrb_save_backtrace(mrb);
+    }
   }
 }
 
@@ -301,10 +305,6 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
     mrb_raise(mrb, E_TYPE_ERROR, "exception object expected");
   }
   mrb_exc_set(mrb, exc);
-  if (!mrb->gc.out_of_memory) {
-    exc_debug_info(mrb, mrb->exc);
-    mrb_save_backtrace(mrb);
-  }
   if (!mrb->jmp) {
     mrb_p(mrb, exc);
     abort();
