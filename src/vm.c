@@ -1514,16 +1514,17 @@ RETRY_TRY_BLOCK:
       int lv = (bx>>0)&0xf;
       mrb_value *stack;
 
+      if (mrb->c->ci->mid == 0 || mrb->c->ci->target_class == NULL) {
+        mrb_value exc;
+
+      L_NOSUPER:
+        exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
+        mrb_exc_set(mrb, exc);
+      }
       if (lv == 0) stack = regs + 1;
       else {
         struct REnv *e = uvenv(mrb, lv-1);
-        if (!e) {
-          mrb_value exc;
-
-          exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
-          mrb_exc_set(mrb, exc);
-          goto L_RAISE;
-        }
+        if (!e) goto L_NOSUPER;
         stack = e->stack + 1;
       }
       if (r == 0) {
