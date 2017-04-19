@@ -86,6 +86,16 @@ assert('Struct#select', '15.2.18.4.7') do
   assert_equal([2]) { c.new(1,2).select{|v| v % 2 == 0} }
 end
 
+assert('Struct define initialize') do
+  i = Struct.new(:m1) {
+    def initialize(*)
+      self.m1
+      self.m1 = 1
+    end
+  }.new
+  assert_equal 1, i.m1
+end
+
 assert('large struct') do
   c = Struct.new(:m1, :m2, :m3, :m4, :m5, :m6, :m7, :m8, :m9, :m10, :m11, :m12, :m13)
   cc = c.new(1,2,3,4,5,6,7,8,9,10,11,12,13)
