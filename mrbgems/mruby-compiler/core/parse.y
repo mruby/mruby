@@ -560,6 +560,13 @@ new_hash(parser_state *p, node *a)
   return cons((node*)NODE_HASH, a);
 }
 
+/* (:kw_hash (k . v) (k . v)...) */
+static node*
+new_kw_hash(parser_state *p, node *a)
+{
+  return cons((node*)NODE_KW_HASH, a);
+}
+
 /* (:sym . a) */
 static node*
 new_sym(parser_state *p, mrb_sym sym)
@@ -1957,11 +1964,11 @@ aref_args       : none
                     }
                 | args comma assocs trailer
                     {
-                      $$ = push($1, new_hash(p, $3));
+                      $$ = push($1, new_kw_hash(p, $3));
                     }
                 | assocs trailer
                     {
-                      $$ = cons(new_hash(p, $1), 0);
+                      $$ = cons(new_kw_hash(p, $1), 0);
                       NODE_LINENO($$, $1);
                     }
                 ;
@@ -1997,12 +2004,12 @@ opt_call_args   : none
                     }
                 | args comma assocs ','
                     {
-                      $$ = cons(push($1, new_hash(p, $3)), 0);
+                      $$ = cons(push($1, new_kw_hash(p, $3)), 0);
                       NODE_LINENO($$, $1);
                     }
                 | assocs ','
                     {
-                      $$ = cons(list1(new_hash(p, $1)), 0);
+                      $$ = cons(list1(new_kw_hash(p, $1)), 0);
                       NODE_LINENO($$, $1);
                     }
                 ;
@@ -2019,12 +2026,12 @@ call_args       : command
                     }
                 | assocs opt_block_arg
                     {
-                      $$ = cons(list1(new_hash(p, $1)), $2);
+                      $$ = cons(list1(new_kw_hash(p, $1)), $2);
                       NODE_LINENO($$, $1);
                     }
                 | args comma assocs opt_block_arg
                     {
-                      $$ = cons(push($1, new_hash(p, $3)), $4);
+                      $$ = cons(push($1, new_kw_hash(p, $3)), $4);
                       NODE_LINENO($$, $1);
                     }
                 | block_arg

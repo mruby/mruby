@@ -178,7 +178,7 @@ static char const* op2str(int opcode) {
   op2str(OP_STOP);/*              stop VM                                         */
   op2str(OP_ERR);/*       Bx      raise RuntimeError with message Lit(Bx)         */
 
-  op2str(OP_RSVD1);/*             reserved instruction #1                         */
+  op2str(OP_SENDK);/*             reserved instruction #1                         */
   op2str(OP_RSVD2);/*             reserved instruction #2                         */
   op2str(OP_RSVD3);/*             reserved instruction #3                         */
   op2str(OP_RSVD4);/*             reserved instruction #4                         */
@@ -834,7 +834,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     }
 
     if (tail) {
-      int const kdict = 1 + oa + ra + pa;
+      int const kdict = 1 + ma + oa + ra + pa;
       node* const kwds = tail->cdr->car;
       node* const kwrest = tail->cdr->cdr->car;
       // mrb_sym blk = sym(tail->cdr->cdr->cdr->car);
@@ -843,60 +843,27 @@ lambda_body(codegen_scope *s, node *tree, int blk)
       mrb_assert((intptr_t)tail->car == NODE_ARGS_TAIL);
       mrb_assert(node_len(tail) == 4);
 
-      k = kwds;
-      while (k) {
-        int jmpif_key_p, jmp_def_set = -1;
+      for (k = kwds; k; k = k->cdr) {
         node *kwd = k->car, *def_arg = kwd->cdr->cdr->car;
         mrb_sym kwd_sym = sym(kwd->cdr->car);
 
         mrb_assert((intptr_t)kwd->car == NODE_KW_ARG);
 
-        /*
-          unless kdict.key? :kwd_sym
-            raise ArgumentError, "kerword argument 'kwd_sym' not passed" if def_val.undef?
-            kwd_sym = def_val
-          else
-            kwd_sym = kdict[:kwd_sym]
-          end
-         */
-
-        genop(s, MKOP_AB(OP_MOVE, cursp(), kdict));
-        genop(s, MKOP_ABx(OP_LOADSYM, cursp() + 1, new_msym(s, kwd_sym)));
-        genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "key?")), 1));
-        jmpif_key_p = genop(s, MKOP_AsBx(OP_JMPIF, cursp(), 0));
         if (def_arg) {
+          int jmpif_key_p;
+          genop(s, MKOP_ABC(OP_KARG, cursp(), new_msym(s, kwd_sym), 1));
+          jmpif_key_p = genop(s, MKOP_AsBx(OP_JMPIF, cursp() + 1, 0));
           codegen(s, def_arg, VAL);
           pop();
-          genop_peep(s, MKOP_AB(OP_MOVE, lv_idx(s, kwd_sym), cursp()), NOVAL);
-          jmp_def_set = genop(s, MKOP_AsBx(OP_JMP, 0, 0));
+          dispatch(s, jmpif_key_p);
+          genop(s, MKOP_AB(OP_MOVE, lv_idx(s, kwd_sym), cursp()));
         } else {
-          mrb_value err_msg = mrb_format(s->mrb, "keyword argument '%S' not passed", mrb_symbol_value(kwd_sym));
-          genop(s, MKOP_ABx(OP_GETCONST, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "ArgumentError"))));
-          genop(s, MKOP_ABx(OP_STRING, cursp() + 1, new_lit(s, err_msg)));
-          genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "new")), 1));
-          genop(s, MKOP_A(OP_RAISE, cursp()));
+          genop(s, MKOP_ABC(OP_KARG, lv_idx(s, kwd_sym), new_msym(s, kwd_sym), 2));
         }
-        dispatch(s, jmpif_key_p);
-        genop(s, MKOP_ABC(OP_KARG, lv_idx(s, kwd_sym), new_msym(s, kwd_sym), TRUE));
-        if (jmp_def_set != -1) {
-          dispatch(s, jmp_def_set);
-        }
-        i++;
-
-        k = k->cdr;
       }
 
-      if (kwds && !kwrest) {
-        int jmpif_empty;
-        mrb_value err_msg = mrb_str_new_lit(s->mrb, "unhandled keyword arguments found");
-        genop(s, MKOP_AB(OP_MOVE, cursp(), kdict));
-        genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "empty?")), 0));
-        jmpif_empty = genop(s, MKOP_AsBx(OP_JMPIF, cursp(), 0));
-        genop(s, MKOP_ABx(OP_GETCONST, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "ArgumentError"))));
-        genop(s, MKOP_ABx(OP_STRING, cursp() + 1, new_lit(s, err_msg)));
-        genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "new")), 1));
-        genop(s, MKOP_A(OP_RAISE, cursp()));
-        dispatch(s, jmpif_empty);
+      if (kwrest || kwds) {
+        genop(s, MKOP_ABC(OP_KDICT, kdict, 0, kwrest? 0 : 1));
       }
     }
   }
@@ -1015,15 +982,7 @@ gen_values(codegen_scope *s, node *t, int val, int extra)
             genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
           }
         }
-        t = t->cdr;
-        while (t) {
-          if ((intptr_t)t->car->car == NODE_HASH &&
-              (intptr_t)t->car->cdr &&
-              (intptr_t)t->car->cdr->car->car->car == NODE_KW_REST_ARGS) {
-            t = t->cdr;
-            continue;
-          }
-
+        for (t = t->cdr; t; t = t->cdr) {
           push();
           codegen(s, t->car, VAL);
           pop(); pop();
@@ -1033,7 +992,6 @@ gen_values(codegen_scope *s, node *t, int val, int extra)
           else {
             genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
           }
-          t = t->cdr;
         }
       }
       else {
@@ -1066,6 +1024,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
   mrb_sym sym = name ? name : sym(tree->cdr->car);
   int idx, skip = 0;
   int n = 0, noop = 0, sendv = 0, blk = 0;
+  node *kwargs = NULL;
 
   codegen(s, tree->car, VAL); /* receiver */
   if (safe) {
@@ -1082,43 +1041,95 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
   idx = new_msym(s, sym);
   tree = tree->cdr->cdr->car;
   if (tree) {
+    node *kwrest = NULL, **arg_n;
+
+    mrb_int symlen;
+    const char *symname = mrb_sym2name_len(s->mrb, sym, &symlen);
+
+    mrb_bool skip_kwargs = FALSE;
+
+    switch (symlen) {
+    case 1:
+      if (symname[0] == '+' || symname[0] == '-' ||
+          symname[0] == '*' || symname[0] == '/' ||
+          symname[0] == '<' || symname[0] == '>')
+      { skip_kwargs = TRUE; }
+      break;
+    case 2:
+      if ((symname[0] == '=' && symname[1] == '=') ||
+          (symname[0] == '>' && symname[1] == '=') ||
+          (symname[0] == '<' && symname[1] == '='))
+      { skip_kwargs = TRUE; }
+      break;
+    }
+
+    for (arg_n = &tree->car; !skip_kwargs && *arg_n; arg_n = &(*arg_n)->cdr) {
+      if (!(*arg_n)->cdr && (intptr_t)(*arg_n)->car->car == NODE_KW_HASH) {
+        node **hsh_node = arg_n, **hsh_list = &(*hsh_node)->car->cdr, **n;
+        int const hsh_len = node_len(*hsh_list);
+
+        kwrest = NULL;
+        for (n = hsh_list; *n; n = &(*n)->cdr) {
+          if ((intptr_t)(*n)->car->car->car == NODE_KW_REST_ARGS) {
+            kwrest = (*n)->car;
+            // skip
+            if ((*n)->cdr) {
+              (*n)->car = (*n)->cdr->car;
+              (*n)->cdr = (*n)->cdr->cdr;
+            }
+            else { (*n) = NULL; }
+            break;
+          }
+        }
+
+        for (n = hsh_list; *n;) {
+          mrb_assert((intptr_t)(*n)->car->car->car != NODE_KW_REST_ARGS);
+
+          if ((intptr_t)(*n)->car->car->car == NODE_SYM) {
+            node *c = (node*)mrb_pool_alloc(s->parser->pool, sizeof(node));
+            c->cdr = kwargs; c->car = (*n)->car;
+            c->lineno = (*n)->car->lineno;
+            c->filename_index = (*n)->car->filename_index;
+            kwargs = c;
+
+            if ((*n)->cdr) {
+              (*n)->car = (*n)->cdr->car;
+              (*n)->cdr = (*n)->cdr->cdr;
+            }
+            else {
+              (*n) = NULL;
+              break;
+            }
+          }
+          else { n = &(*n)->cdr; }
+        }
+
+        mrb_assert(hsh_len == node_len(*hsh_list) + node_len(kwargs) + (kwrest? 1 : 0));
+
+        // remove empty last hash from parameter
+        if (node_len(*hsh_list) == 0) { (*hsh_node) = NULL; }
+        else { (*hsh_node)->car->car = (node*)NODE_HASH; }
+
+        break;
+      }
+    }
+
     n = gen_values(s, tree->car, VAL, sp?1:0);
     if (n < 0) {
       n = noop = sendv = 1;
       push();
     }
 
-    {
-      node *nd = tree->car, *kwrest = NULL;
-      while(nd) {
-        if (!nd->cdr && (intptr_t)nd->car->car == NODE_HASH) { break; }
-        nd = nd->cdr;
+    if (kwrest) {
+      mrb_assert((intptr_t)kwrest->car->car == NODE_KW_REST_ARGS);
+      if (sendv) {
+        codegen(s, kwrest->cdr, VAL);
+        pop();
+        genop(s, MKOP_AB(OP_ARYPUSH, cursp() - 1, cursp()));
       }
-
-      if (nd) {
-        mrb_assert((intptr_t)nd->car->car == NODE_HASH);
-
-        nd = nd->car->cdr;
-        while (nd) {
-          if ((intptr_t)nd->car->car->car == NODE_KW_REST_ARGS) {
-            kwrest = nd->car;
-            break;
-          }
-          nd = nd->cdr;
-        }
-
-        if (kwrest) {
-          mrb_assert((intptr_t)kwrest->car->car == NODE_KW_REST_ARGS);
-          if (sendv) {
-            codegen(s, kwrest->cdr, VAL);
-            pop();
-            genop(s, MKOP_AB(OP_ARYPUSH, cursp() - 1, cursp()));
-          }
-          else {
-            codegen(s, kwrest->cdr, VAL);
-            ++n;
-          }
-        }
+      else {
+        codegen(s, kwrest->cdr, VAL);
+        ++n;
       }
     }
   }
@@ -1176,12 +1187,33 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
       genop(s, MKOP_ABC(OP_EQ, cursp(), idx, n));
     }
     else {
-      if (sendv) n = CALL_MAXARGS;
-      if (blk > 0) {                   /* no block */
-        genop(s, MKOP_ABC(OP_SEND, cursp(), idx, n));
+      int const argc = sendv? CALL_MAXARGS : n;
+
+      if (kwargs) {
+        int kwargs_count = 0;
+
+        push_n(sendv? 2 : n + 2);
+        if (blk > 0) { genop(s, MKOP_A(OP_LOADNIL, cursp() - 1)); }
+
+        for (; kwargs; kwargs = kwargs->cdr) {
+          ++kwargs_count;
+          mrb_assert((intptr_t)kwargs->car->car->car == NODE_SYM);
+          codegen(s, kwargs->car->car, VAL);
+          codegen(s, kwargs->car->cdr, VAL);
+        }
+        // kwargs terminator
+        genop(s, MKOP_A(OP_LOADNIL, cursp()));
+
+        pop_n(2 * kwargs_count);
+        pop_n(sendv? 2 : n + 2);
+
+        genop(s, MKOP_ABC(OP_SENDK, cursp(), idx, argc));
+      }
+      else if (blk > 0) {                   /* no block */
+        genop(s, MKOP_ABC(OP_SEND, cursp(), idx, argc));
       }
       else {
-        genop(s, MKOP_ABC(OP_SENDB, cursp(), idx, n));
+        genop(s, MKOP_ABC(OP_SENDB, cursp(), idx, argc));
       }
     }
   }
@@ -1896,12 +1928,6 @@ codegen(codegen_scope *s, node *tree, int val)
       mrb_bool update = FALSE;
 
       while (tree) {
-        // skip ** argument
-        if ((intptr_t)tree->car->car->car == NODE_KW_REST_ARGS) {
-          tree = tree->cdr;
-          continue;
-        }
-
         codegen(s, tree->car->car, val);
         codegen(s, tree->car->cdr, val);
         len++;

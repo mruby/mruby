@@ -207,14 +207,22 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_JMPNOT\tR%d\t%03d\n", GETARG_A(c), i+GETARG_sBx(c));
       break;
     case OP_SEND:
-      printf("OP_SEND\tR%d\t:%s\t%d\n", GETARG_A(c),
+      printf("OP_SEND\tR%d\t:%s\t%d", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_SENDB:
-      printf("OP_SENDB\tR%d\t:%s\t%d\n", GETARG_A(c),
+      printf("OP_SENDB\tR%d\t:%s\t%d", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
+      print_lv(mrb, irep, c, RA);
+      break;
+    case OP_SENDK:
+      printf("OP_SENDK\tR%d\t:%s\t%d", GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             GETARG_C(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_TAILCALL:
       printf("OP_TAILCALL\tR%d\t:%s\t%d\n", GETARG_A(c),
@@ -459,7 +467,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       print_lv(mrb, irep, c, RAB);
       break;
     case OP_KDICT:
-      printf("OP_KDICT\tR%d", GETARG_A(c));
+      printf("OP_KDICT\tR%d\t%d", GETARG_A(c), GETARG_C(c));
       print_lv(mrb, irep, c, RA);
       break;
 

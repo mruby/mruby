@@ -631,6 +631,7 @@ assert 'keyword arguments' do
   def m(a: 1, b:) [a, b] end
   assert_equal([1, 0], m(b: 0))
   assert_equal([3, 2], m(b: 2, a: 3))
+  assert_raise(ArgumentError) { m a: 1 }
 
   def m(a: def m(a: 1) a end, b:)
     [a, b]

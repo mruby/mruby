@@ -254,6 +254,7 @@ cipush(mrb_state *mrb)
   ci->acc = 0;
   ci->use_kdict = FALSE;
   ci->need_kdict_dup = TRUE;
+  ci->kwds = NULL;
 
   return ci;
 }
@@ -898,6 +899,7 @@ mrb_vm_exec(mrb_state *mrb, struct RProc *proc, mrb_code *pc)
     &&L_OP_CLASS, &&L_OP_MODULE, &&L_OP_EXEC,
     &&L_OP_METHOD, &&L_OP_SCLASS, &&L_OP_TCLASS,
     &&L_OP_DEBUG, &&L_OP_STOP, &&L_OP_ERR,
+    &&L_OP_SENDK,
   };
 #endif
 
@@ -1217,6 +1219,14 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
+    CASE(OP_SENDK) {
+      /* A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),    */
+      /*                      &R(A+C+1),                         */
+      /*                      R(A+C+2),R(A+C+2+1)...,            */
+      /*                      R(A+C+2+2K),R(A+C+2+2K+1),nil)     */
+      /* fall through */
+    };
+
     CASE(OP_SENDB) {
       /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
       /* fall through */
@@ -1241,14 +1251,7 @@ RETRY_TRY_BLOCK:
       else {
         bidx = a+n+1;
       }
-      if (GET_OPCODE(i) != OP_SENDB) {
-        if (bidx >= mrb->c->ci->nregs) {
-          stack_extend(mrb, bidx+1);
-          mrb->c->ci->nregs = bidx+1;
-        }
-        SET_NIL_VALUE(regs[bidx]);
-      }
-      else {
+      if (GET_OPCODE(i) == OP_SENDB || GET_OPCODE(i) == OP_SENDK) {
         mrb_value blk = regs[bidx];
         if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
           if (bidx >= mrb->c->ci->nregs) {
@@ -1258,6 +1261,13 @@ RETRY_TRY_BLOCK:
           result = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
           regs[bidx] = result;
         }
+      }
+      else {
+        if (bidx >= mrb->c->ci->nregs) {
+          stack_extend(mrb, bidx+1);
+          mrb->c->ci->nregs = bidx+1;
+        }
+        SET_NIL_VALUE(regs[bidx]);
       }
       c = mrb_class(mrb, recv);
       m = mrb_method_search_vm(mrb, &c, mid);
@@ -1640,10 +1650,11 @@ RETRY_TRY_BLOCK:
       int argc = mrb->c->ci->argc;
       mrb_value *argv = regs+1;
       mrb_value * const argv0 = argv;
+      mrb_bool const is_sendk = mrb->c->ci->pc && GET_OPCODE(mrb->c->ci->pc[-1]) == OP_SENDK;
       int const len = m1 + o + r + m2;
-      int const blk_pos = len + kd + 1;
+      int blk_pos = len + 1;
       mrb_value *blk = &argv[argc < 0 ? 1 : argc];
-      mrb_value kdict;
+      mrb_value kdict = mrb_undef_value();
       mrb_bool separate_kdict_p = FALSE;
 
       // arguments is passed with Array
@@ -1656,11 +1667,11 @@ RETRY_TRY_BLOCK:
 
       // strict argument check
       if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc)) {
-        if (argc >= 0) {
-          if (argc < m1 + m2 + (MRB_ASPEC_KDICT(ax) && kw == 0? 0 : kd) || (r == 0 && argc > len + kd)) {
-            argnum_error(mrb, m1+m2+kd);
-            goto L_RAISE;
-          }
+        int const kd_append = (MRB_ASPEC_KDICT(ax) && kw == 0) || is_sendk? 0 : kd;
+        if (argc >= 0 &&
+            (argc < m1 + m2 + kd_append || (r == 0 && argc > len + kd_append))) {
+          argnum_error(mrb, m1+m2+kd_append);
+          goto L_RAISE;
         }
       }
       // extract first argument array to arguments
@@ -1670,10 +1681,34 @@ RETRY_TRY_BLOCK:
         argv = mrb_ary_ptr(argv[0])->ptr;
       }
 
-      if (kd) {
-        mrb_bool const dont_separate = argc == 1 && (m1 + m2 == 1) && MRB_ASPEC_KDICT(ax);
+      mrb_bool const dont_separate_kdict = argc == 1 && (m1 + m2 == 1) && MRB_ASPEC_KDICT(ax);
+      mrb->c->ci->use_kdict = MRB_ASPEC_KDICT(ax)? TRUE : FALSE;
+      if (is_sendk) {
+        mrb_value *kw = regs + 2 + (mrb->c->ci->argc < 0? 1 : mrb->c->ci->argc);
 
-        mrb->c->ci->use_kdict = MRB_ASPEC_KDICT(ax)? TRUE : FALSE;
+        if (kd && !dont_separate_kdict) {
+          mrb_value const *kw_beg = kw;
+          int kdict_size = 0;
+          for (; !mrb_nil_p(kw[0]); kw += 2, ++kdict_size) { mrb_assert(mrb_symbol_p(kw[0])); }
+          kdict = mrb_ary_new_from_values(mrb, 2 * kdict_size + 1, kw_beg);
+          mrb->c->ci->kwds = mrb_ary_ptr(kdict)->ptr;
+          mrb_assert(mrb_nil_p(RARRAY_PTR(kdict)[RARRAY_LEN(kdict) - 1]));
+        }
+        // store to last argument hash when proc doesn't use keyword arguments
+        else {
+          mrb_value last_hash = mrb_hash_p(argv[argc - 1])? argv[argc - 1] : mrb_hash_new(mrb);
+          kdict = !mrb_hash_p(argv[argc - 1])? last_hash : mrb_hash_new(mrb);
+
+          for (; !mrb_nil_p(kw[0]); kw += 2) {
+            mrb_assert(mrb_symbol_p(kw[0]));
+            mrb_hash_set(mrb, last_hash, kw[0], kw[1]);
+          }
+        }
+
+        mrb_assert(mrb_nil_p(*kw));
+      }
+      else if (kd) {
+        blk_pos += kd;
 
         if (argc == 0 && kw > 0) {
           mrb_value str = mrb_format(mrb, "excepcted `Hash` as last argument for keyword arguments");
@@ -1699,7 +1734,7 @@ RETRY_TRY_BLOCK:
           separate_kdict_p = TRUE;
         }
 
-        if (!separate_kdict_p && dont_separate) {
+        if (!separate_kdict_p && dont_separate_kdict) {
           kdict = mrb_hash_new(mrb);
           separate_kdict_p = TRUE;
         }
@@ -1742,7 +1777,7 @@ RETRY_TRY_BLOCK:
         }
 
         // recheck arguments count when kdict is separate hash
-        if (separate_kdict_p && !dont_separate &&
+        if (separate_kdict_p && !dont_separate_kdict &&
             mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc) &&
             argc >= 0 && (argc < m1 + m2 || (r == 0 && argc > len))) {
           argnum_error(mrb, m1+m2);
@@ -1750,6 +1785,7 @@ RETRY_TRY_BLOCK:
         }
 
         mrb_assert(mrb_hash_p(kdict));
+        mrb_assert(!mrb->c->ci->kwds);
       }
 
       // no rest arguments
@@ -1793,7 +1829,7 @@ RETRY_TRY_BLOCK:
           value_move(&regs[1], argv, m1+o);
         }
         if (r) {
-          rnum = argc-m1-o-m2-(separate_kdict_p? 0 : kd);
+          rnum = argc-m1-o-m2-(is_sendk || separate_kdict_p? 0 : kd);
           regs[m1+o+1] = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
         }
         if (m2) {
@@ -1824,30 +1860,110 @@ RETRY_TRY_BLOCK:
     } while(FALSE)                          \
 
     CASE(OP_KARG) {
-      /* A B C          R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B)) */
+      /* A B C   R(A) := kdict[Syms(B)]                          */
+      /*         R(A+1) := kdict.key?(Syms(B)) if C == 1         */
+      /*         raise ArgumentError if C == 2 && !kdict.key?(Syms(B)) */
+      /*         kdict.delete(Syms(B)) if C >= 1                 */
       int a = GETARG_A(i), c = GETARG_C(i);
       mrb_value k = mrb_symbol_value(syms[GETARG_B(i)]);
-      mrb_value *kdict = &regs[mrb->c->ci->argc];
+      if (mrb->c->ci->kwds) {
+        mrb_value *kw;
 
-      mrb_assert(mrb_hash_p(*kdict));
-      regs[a] = mrb_hash_get(mrb, *kdict, k);
-      if (c && mrb->c->ci->use_kdict) {
-        DUP_KDICT(kdict);
-        mrb_hash_delete_key(mrb, *kdict, k);
+        mrb_assert(mrb_array_p(regs[mrb->c->ci->argc]));
+        mrb_assert(RARRAY_PTR(regs[mrb->c->ci->argc]) == mrb->c->ci->kwds);
+
+        regs[a] = mrb_undef_value();
+        for (kw = mrb->c->ci->kwds; !mrb_nil_p(*kw); kw += 2) {
+          mrb_assert(mrb_symbol_p(kw[0]));
+          if (mrb_symbol(kw[0]) == mrb_symbol(k)) {
+            regs[a] = kw[1];
+            if (c == 1) { regs[a + 1] = mrb_true_value(); }
+            if (c) { kw[0] = mrb_symbol_value(0); }
+            break;
+          }
+        }
+        if (!mrb_undef_p(regs[a])) { NEXT; }
       }
+      else {
+        mrb_value *kdict = &regs[mrb->c->ci->argc];
+
+        mrb_assert(mrb_hash_p(*kdict));
+        regs[a] = mrb_hash_fetch(mrb, *kdict, k, mrb_undef_value());
+
+        if (!mrb_undef_p(regs[a])) {
+          if (c == 1) { regs[a + 1] = mrb_true_value(); }
+          if (c && mrb->c->ci->use_kdict) {
+            DUP_KDICT(kdict);
+            mrb_hash_delete_key(mrb, *kdict, k);
+          }
+          NEXT;
+        }
+      }
+
+      if (c == 2) {
+        mrb_value str = mrb_format(mrb, "keyword argument '%S' not passed", k);
+        mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
+        goto L_RAISE;
+      }
+      if (c == 1) { regs[a + 1] = mrb_false_value(); }
+      regs[a] = mrb_nil_value();
 
       NEXT;
     }
 
     CASE(OP_KDICT) {
-      /* A              R(A) := kdict */
-      int a = GETARG_A(i);
-      mrb_value *kdict = &regs[mrb->c->ci->argc];
+      /* A C            R(A) := kdict */
+      /*                raise ArgumentError if C && !kdict.empty? */
+      int a = GETARG_A(i), c = GETARG_C(i);
+      mrb_value *kdict = &regs[mrb->c->ci->argc], str;
+
+      if (mrb->c->ci->kwds) {
+        mrb_value *kw;
+
+        mrb_assert(mrb_array_p(*kdict));
+
+        if (c) {
+          mrb_int restkwd = 0;
+          for (kw = mrb->c->ci->kwds; !mrb_nil_p(*kw); kw += 2) {
+            if (mrb_symbol(kw[0]) != 0) { ++restkwd; }
+          }
+          if (restkwd > 0) { goto L_RAISE_KDICT_ERROR; }
+
+          if (kdict == (regs + a)) {
+            *kdict = mrb_nil_value();
+            NEXT;
+          }
+          else { regs[a] = mrb_hash_new(mrb); }
+        }
+        else {
+          mrb_value res = mrb_hash_new(mrb);
+          for (kw = mrb->c->ci->kwds; !mrb_nil_p(*kw); kw += 2) {
+            if (mrb_symbol(kw[0]) == 0) { continue; }
+            mrb_assert(mrb_symbol_p(kw[0]));
+            mrb_hash_set(mrb, res, kw[0], kw[1]);
+          }
+          mrb_assert(mrb_nil_p(*kw));
+          *kdict = regs[a] = res;
+        }
+
+        mrb->c->ci->kwds = NULL;
+      }
+      else {
+        if (c && kh_size(RHASH_TBL(*kdict)) > 0) { goto L_RAISE_KDICT_ERROR; }
+
+        DUP_KDICT(kdict);
+        regs[a] = *kdict;
+      }
 
       mrb_assert(mrb_hash_p(*kdict));
-      DUP_KDICT(kdict);
-      regs[a] = *kdict;
+      mrb_assert(mrb_hash_p(regs[a]));
+
       NEXT;
+
+   L_RAISE_KDICT_ERROR:
+      str = mrb_format(mrb, "unhandled keyword arguments found: %S", *kdict);
+      mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
+      goto L_RAISE;
     }
 
 #undef DUP_KDICT

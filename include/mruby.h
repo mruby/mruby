@@ -122,6 +122,7 @@ typedef struct {
   int argc;
   int acc;
   struct RClass *target_class;
+  mrb_value *kwds;
 } mrb_callinfo;
 
 enum mrb_fiber_state {

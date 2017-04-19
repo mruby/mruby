@@ -46,6 +46,7 @@ enum node_type {
   NODE_ARRAY,
   NODE_ZARRAY,
   NODE_HASH,
+  NODE_KW_HASH,
   NODE_RETURN,
   NODE_YIELD,
   NODE_LVAR,
