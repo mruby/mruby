@@ -1538,6 +1538,7 @@ RETRY_TRY_BLOCK:
       L_NOSUPER:
         exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
         mrb_exc_set(mrb, exc);
+        goto L_RAISE;
       }
       if (lv == 0) stack = regs + 1;
       else {
