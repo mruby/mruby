@@ -1655,7 +1655,7 @@ RETRY_TRY_BLOCK:
       int blk_pos = len + 1;
       mrb_value *blk = &argv[argc < 0 ? 1 : argc];
       mrb_value kdict = mrb_undef_value();
-      mrb_bool separate_kdict_p = FALSE;
+      mrb_bool separate_kdict_p = FALSE, dont_separate_kdict;
 
       // arguments is passed with Array
       if (argc < 0) {
@@ -1681,7 +1681,7 @@ RETRY_TRY_BLOCK:
         argv = mrb_ary_ptr(argv[0])->ptr;
       }
 
-      mrb_bool const dont_separate_kdict = argc == 1 && (m1 + m2 == 1) && MRB_ASPEC_KDICT(ax);
+      dont_separate_kdict = argc == 1 && (m1 + m2 == 1) && MRB_ASPEC_KDICT(ax);
       mrb->c->ci->use_kdict = MRB_ASPEC_KDICT(ax)? TRUE : FALSE;
       if (is_sendk) {
         mrb_value *kw = regs + 2 + (mrb->c->ci->argc < 0? 1 : mrb->c->ci->argc);
@@ -1906,7 +1906,7 @@ RETRY_TRY_BLOCK:
         goto L_RAISE;
       }
       if (c == 1) { regs[a + 1] = mrb_false_value(); }
-      regs[a] = mrb_nil_value();
+      regs[a] = mrb_nil_value(); // clear undef value
 
       NEXT;
     }
