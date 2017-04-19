@@ -1803,8 +1803,13 @@ RETRY_TRY_BLOCK:
           ci = mrb->c->ci;
           break;
         case OP_R_BREAK:
-          if (!proc->env || !MRB_ENV_STACK_SHARED_P(proc->env)) {
-            localjump_error(mrb, LOCALJUMP_ERROR_BREAK);
+          if (ci->acc < 0 || !proc->env || !MRB_ENV_STACK_SHARED_P(proc->env)) {
+            mrb_value exc;
+
+          L_BREAK_ERROR:
+            exc = mrb_exc_new_str_lit(mrb, E_LOCALJUMP_ERROR,
+                                      "break from proc-closure");
+            mrb_exc_set(mrb, exc);
             goto L_RAISE;
           }
           /* break from fiber block */
@@ -1820,7 +1825,7 @@ RETRY_TRY_BLOCK:
           while (ci > mrb->c->ci) {
             if (ci[-1].acc == CI_ACC_SKIP) {
               mrb->c->ci = ci;
-              break;
+              goto L_BREAK_ERROR;
             }
             if (ci->env) {
               mrb_env_unshare(mrb, ci->env);
