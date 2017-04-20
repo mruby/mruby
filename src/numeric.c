@@ -938,7 +938,9 @@ fix_xor(mrb_state *mrb, mrb_value x)
 static mrb_value
 lshift(mrb_state *mrb, mrb_int val, mrb_int width)
 {
-  mrb_assert(width > 0);
+  if (width < 0) {              /* mrb_int overflow */
+    return mrb_float_value(mrb, INFINITY);
+  }
   if (val > 0) {
     if ((width > NUMERIC_SHIFT_WIDTH_MAX) ||
         (val   > (MRB_INT_MAX >> width))) {
@@ -967,7 +969,9 @@ bit_overflow:
 static mrb_value
 rshift(mrb_int val, mrb_int width)
 {
-  mrb_assert(width > 0);
+  if (width < 0) {              /* mrb_int overflow */
+    return mrb_fixnum_value(0);
+  }
   if (width >= NUMERIC_SHIFT_WIDTH_MAX) {
     if (val < 0) {
       return mrb_fixnum_value(-1);
