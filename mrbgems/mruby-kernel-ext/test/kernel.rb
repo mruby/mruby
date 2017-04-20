@@ -81,6 +81,6 @@ end
 assert('Kernel#Hash') do
   assert_equal({}, Hash([]))
   assert_equal({}, Hash(nil))
-  assert_equal({:key => :value}, Hash({key: :value}))
+  assert_equal({:key => :value}, Hash(key: :value))
   assert_raise(TypeError) { Hash([1, 2, 3]) }
 end
