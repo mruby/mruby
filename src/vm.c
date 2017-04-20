@@ -1828,7 +1828,7 @@ RETRY_TRY_BLOCK:
           ci = mrb->c->ci;
           break;
         case OP_R_BREAK:
-          if (ci->acc < 0 || !proc->env || !MRB_ENV_STACK_SHARED_P(proc->env)) {
+          if (!proc->env || !MRB_ENV_STACK_SHARED_P(proc->env)) {
             mrb_value exc;
 
           L_BREAK_ERROR:
@@ -1843,8 +1843,16 @@ RETRY_TRY_BLOCK:
 
             mrb->c = c->prev;
             c->prev = NULL;
+            ci = mrb->c->ci;
           }
-          ci = mrb->c->ci;
+          if (ci->acc < 0) {
+            while (eidx > mrb->c->ci[-1].eidx) {
+              ecall(mrb, --eidx);
+            }
+            mrb->c->vmexec = FALSE;
+            mrb->jmp = prev_jmp;
+            return v;
+          }
           mrb->c->stack = ci->stackent;
           mrb->c->ci = mrb->c->cibase + proc->env->cioff + 1;
           while (ci > mrb->c->ci) {
