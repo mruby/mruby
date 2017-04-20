@@ -1491,7 +1491,9 @@ static void
 gc_each_objects(mrb_state *mrb, mrb_gc *gc, mrb_each_object_callback *callback, void *data)
 {
   mrb_heap_page* page = gc->heaps;
+  mrb_bool old_disable = gc->disabled;
 
+  gc->disabled = TRUE;
   while (page != NULL) {
     RVALUE *p, *pend;
 
@@ -1504,6 +1506,7 @@ gc_each_objects(mrb_state *mrb, mrb_gc *gc, mrb_each_object_callback *callback, 
 
     page = page->next;
   }
+  gc->disabled = old_disable;
 }
 
 void
