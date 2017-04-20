@@ -17,7 +17,9 @@ MRB_BEGIN_DECL
 
 struct mrb_state;
 
-typedef void (mrb_each_object_callback)(struct mrb_state *mrb, struct RBasic *obj, void *data);
+#define MRB_EACH_OBJ_OK 0
+#define MRB_EACH_OBJ_BREAK 1
+typedef int (mrb_each_object_callback)(struct mrb_state *mrb, struct RBasic *obj, void *data);
 void mrb_objspace_each_objects(struct mrb_state *mrb, mrb_each_object_callback *callback, void *data);
 MRB_API void mrb_free_context(struct mrb_state *mrb, struct mrb_context *c);
 

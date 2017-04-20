@@ -1498,7 +1498,8 @@ gc_each_objects(mrb_state *mrb, mrb_gc *gc, mrb_each_object_callback *callback, 
     p = objects(page);
     pend = p + MRB_HEAP_PAGE_SIZE;
     for (;p < pend; p++) {
-      (*callback)(mrb, &p->as.basic, data);
+      if ((*callback)(mrb, &p->as.basic, data) == MRB_EACH_OBJ_BREAK)
+        break;
     }
 
     page = page->next;
