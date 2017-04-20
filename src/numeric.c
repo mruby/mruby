@@ -995,6 +995,7 @@ fix_lshift(mrb_state *mrb, mrb_value x)
     return x;
   }
   val = mrb_fixnum(x);
+  if (val == 0) return x;
   if (width < 0) {
     return rshift(val, -width);
   }
@@ -1019,6 +1020,7 @@ fix_rshift(mrb_state *mrb, mrb_value x)
     return x;
   }
   val = mrb_fixnum(x);
+  if (val == 0) return x;
   if (width < 0) {
     return lshift(mrb, val, -width);
   }
