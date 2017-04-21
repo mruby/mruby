@@ -242,16 +242,18 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       print_lv(mrb, irep, c, RA);
       break;
 
-    case OP_ENTER:
-      printf("OP_ENTER\t%d:%d:%d:%d:%d:%d:%d\n",
-             (GETARG_Ax(c)>>18)&0x1f,
-             (GETARG_Ax(c)>>13)&0x1f,
-             (GETARG_Ax(c)>>12)&0x1,
-             (GETARG_Ax(c)>>7)&0x1f,
-             (GETARG_Ax(c)>>2)&0x1f,
-             (GETARG_Ax(c)>>1)&0x1,
-             GETARG_Ax(c) & 0x1);
-      break;
+    case OP_ENTER: {
+      int a = GETARG_Ax(c);
+      printf("OP_ENTER\t%d:%d:%d:%d:%d:%d:%d:%d\n",
+             MRB_ASPEC_REQ(a),
+             MRB_ASPEC_OPT(a),
+             MRB_ASPEC_REST(a),
+             MRB_ASPEC_POST(a),
+             MRB_ASPEC_KEYREQ(a),
+             MRB_ASPEC_KEY(a),
+             MRB_ASPEC_KDICT(a),
+             MRB_ASPEC_BLOCK(a));
+    } break;
     case OP_RETURN:
       printf("OP_RETURN\tR%d", GETARG_A(c));
       switch (GETARG_B(c)) {

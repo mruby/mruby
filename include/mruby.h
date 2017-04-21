@@ -775,10 +775,10 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
 #define MRB_ARGS_REST()     ((mrb_aspec)(1 << 12))
 
 /** required arguments after rest */
-#define MRB_ARGS_POST(n)    ((mrb_aspec)((n)&0x1f) << 7)
+#define MRB_ARGS_POST(n)    ((mrb_aspec)((n)&0x0f) << 8)
 
 /** keyword arguments (n of keys, kdict) */
-#define MRB_ARGS_KEY(n1,n2) ((mrb_aspec)((((n1)&0x1f) << 2) | ((n2)?(1<<1):0)))
+#define MRB_ARGS_KEY(req,opt,dict) ((mrb_aspec)((((req)&0x07) << 5) | (((opt)&0x07) << 2) | ((dict)?(1<<1):0)))
 
 /**
  * Function takes a block argument

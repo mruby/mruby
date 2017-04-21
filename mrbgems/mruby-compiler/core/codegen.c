@@ -665,7 +665,7 @@ lambda_body(codegen_scope *s, node tree, int blk)
   tree = tree->cdr;
   if (tree->car) {
     mrb_aspec a;
-    int ma, oa, ra, pa, ka, kd, ba;
+    int ma, oa, ra, pa, ko, kr, kd, ba;
     int pos, i;
     node n, opt;
     node tail;
@@ -685,21 +685,23 @@ lambda_body(codegen_scope *s, node tree, int blk)
     ra = tree->car->cdr->cdr->car ? 1 : 0;
     // post required arguments
     pa = node_len(tree->car->cdr->cdr->cdr->car);
+    // optional keyword arguments
+    ko = tail? kw_count_opt(tail->cdr->car) : 0;
     // required keyword arguments
-    ka = tail? node_len(tail->cdr->car) - kw_count_opt(tail->cdr->car) : 0;
+    kr = tail? node_len(tail->cdr->car) - ko : 0;
     // keyword dictionary?
-    kd = tail && (tail->cdr->car || tail->cdr->cdr->car)? 1 : 0;
+    kd = tail && tail->cdr->cdr->car? 1 : 0;
     // block argument?
     ba = tail && tail->cdr->cdr->cdr->car ? 1 : 0;
 
-    if (ma > 0x1f || oa > 0x1f || pa > 0x1f || ka > 0x1f) {
+    if (ma > 0x1f || oa > 0x1f || pa > 0x0f || kr > 0x07 || ko > 0x07) {
       codegen_error(s, "too many formal arguments");
     }
     a = MRB_ARGS_REQ(ma)
       | MRB_ARGS_OPT(oa)
       | (ra? MRB_ARGS_REST() : 0)
       | MRB_ARGS_POST(pa)
-      | MRB_ARGS_KEY(ka, kd)
+      | MRB_ARGS_KEY(kr, ko, kd)
       | (ba? MRB_ARGS_BLOCK() : 0);
     s->ainfo = (((ma+oa) & 0x3f) << 6) /* (12bits = 6:1:5) */
       | ((ra & 1) << 5)

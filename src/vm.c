@@ -1635,15 +1635,16 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ENTER) {
-      /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
+      /* Ax             arg setup according to flags (23=5:5:1:4:3:3:1:1) */
       /* number of optional arguments times OP_JMP should follow */
       mrb_aspec ax = GETARG_Ax(i);
       int m1 = MRB_ASPEC_REQ(ax);
       int o  = MRB_ASPEC_OPT(ax);
       int r  = MRB_ASPEC_REST(ax);
       int m2 = MRB_ASPEC_POST(ax);
-      int const kw = MRB_ASPEC_KEY(ax);
-      int const kd = (kw > 0 || MRB_ASPEC_KDICT(ax))? 1 : 0;
+      int const keyreq = MRB_ASPEC_KEYREQ(ax);
+      int const key = MRB_ASPEC_KEY(ax);
+      int const kd = (keyreq + key > 0 || MRB_ASPEC_KDICT(ax))? 1 : 0;
       /* unused
       int b  = MRB_ASPEC_BLOCK(ax);
       */
@@ -1667,7 +1668,7 @@ RETRY_TRY_BLOCK:
 
       // strict argument check
       if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc)) {
-        int const kd_append = (MRB_ASPEC_KDICT(ax) && kw == 0) || is_sendk? 0 : kd;
+        int const kd_append = keyreq == 0 || is_sendk? 0 : kd;
         if (argc >= 0 &&
             (argc < m1 + m2 + kd_append || (r == 0 && argc > len + kd_append))) {
           argnum_error(mrb, m1+m2+kd_append);
@@ -1681,8 +1682,8 @@ RETRY_TRY_BLOCK:
         argv = mrb_ary_ptr(argv[0])->ptr;
       }
 
-      dont_separate_kdict = argc == 1 && (m1 + m2 == 1) && MRB_ASPEC_KDICT(ax);
-      mrb->c->ci->use_kdict = MRB_ASPEC_KDICT(ax)? TRUE : FALSE;
+      dont_separate_kdict = argc == 1 && (m1 + m2 == 1) && kd;
+      mrb->c->ci->use_kdict = MRB_ASPEC_KDICT(ax) || (!is_sendk && (keyreq + key) > 0)? TRUE : FALSE;
       if (is_sendk) {
         mrb_value *kw = regs + 2 + (mrb->c->ci->argc < 0? 1 : mrb->c->ci->argc);
 
@@ -1710,7 +1711,7 @@ RETRY_TRY_BLOCK:
       else if (kd) {
         blk_pos += kd;
 
-        if (argc == 0 && kw > 0) {
+        if (argc == 0 && keyreq > 0) {
           mrb_value str = mrb_format(mrb, "excepcted `Hash` as last argument for keyword arguments");
           mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
           goto L_RAISE;
@@ -1724,7 +1725,7 @@ RETRY_TRY_BLOCK:
         }
         else {
           // check optional keyword arguments
-          if (kw > 0) {
+          if (keyreq > 0) {
             mrb_value str = mrb_format(mrb, "excepcted `Hash` as last argument for keyword arguments");
             mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
             goto L_RAISE;

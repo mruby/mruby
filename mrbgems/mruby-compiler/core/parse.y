@@ -688,7 +688,7 @@ new_args(parser_state *p, node *m, node *opt, mrb_sym rest, node *m2, node *tail
 static node*
 new_args_tail(parser_state *p, node *kws, node *kwrest, mrb_sym blk)
 {
-  node *k = kws;
+  node *k;
 
   /* allocate register for keywords hash */
   if (kws || kwrest) {
@@ -698,10 +698,17 @@ new_args_tail(parser_state *p, node *kws, node *kwrest, mrb_sym blk)
   /* allocate register for block */
   local_add_f(p, blk? blk : mrb_intern_lit(p->mrb, "&"));
 
-  /* allocate register for keywords arguments */
-  while (k) {
-    local_add_f(p, sym(k->car->cdr->car));
-    k = k->cdr;
+  // allocate register for keywords arguments
+  // order is for Proc#parameters
+  for (k = kws; k; k = k->cdr) {
+    if (!k->car->cdr->cdr->car) { // allocate required keywords
+      local_add_f(p, sym(k->car->cdr->car));
+    }
+  }
+  for (k = kws; k; k = k->cdr) {
+    if (k->car->cdr->cdr->car) { // allocate keywords with default
+      local_add_f(p, sym(k->car->cdr->car));
+    }
   }
 
   return list4((node*)NODE_ARGS_TAIL, kws, kwrest, nsym(blk));
