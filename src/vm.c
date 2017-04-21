@@ -118,16 +118,16 @@ static inline void
 envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
 {
   mrb_callinfo *ci = mrb->c->cibase;
+  ptrdiff_t off;
 
   if (newbase == oldbase) return;
+  off = newbase - oldbase;
   while (ci <= mrb->c->ci) {
     struct REnv *e = ci->env;
     if (e && MRB_ENV_STACK_SHARED_P(e)) {
-      ptrdiff_t off = e->stack - oldbase;
-
-      e->stack = newbase + off;
+      e->stack += off;
     }
-    ci->stackent = newbase + (ci->stackent - oldbase);
+    ci->stackent += off;
     ci++;
   }
 }
