@@ -403,6 +403,9 @@ assert('External command execution.') do
     assert_equal 'test dynamic `', t
     assert_equal ['test', 'test dynamic `', 'test', 'test dynamic `'], results
 
+    results = []
+    assert_equal 'test sym test sym test', `test #{:sym} test #{:sym} test`
+
     alias_method sym, :old_cmd
   end
   true
