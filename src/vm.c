@@ -1244,7 +1244,8 @@ RETRY_TRY_BLOCK:
             stack_extend(mrb, bidx+1);
             mrb->c->ci->nregs = bidx+1;
           }
-          regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
+          result = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
+          regs[bidx] = result;
         }
       }
       c = mrb_class(mrb, recv);
@@ -1468,11 +1469,14 @@ RETRY_TRY_BLOCK:
       }
       blk = regs[bidx];
       if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
+        mrb_value result;
+
         if (bidx >= ci->nregs) {
           stack_extend(mrb, bidx+1);
           ci->nregs = bidx+1;
         }
-        regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
+        result = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
+        regs[bidx] = result;
       }
 
       /* push callinfo */
