@@ -696,7 +696,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           if (i < argc && mrb_nil_p(ARGV[arg_i])) {
             *ps = NULL;
             *pl = 0;
-            i++;
+            i++; arg_i++;
             break;
           }
         }
