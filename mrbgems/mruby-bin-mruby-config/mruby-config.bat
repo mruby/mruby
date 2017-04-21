@@ -32,5 +32,5 @@ echo Usage: mruby-config [switches]
 echo   switches:
 echo   --cflags                   print flags passed to compiler
 echo   --ldflags                  print flags passed to linker
-echo   --ldflags-before-libs      print flags passwd to linker before linked libraries
+echo   --ldflags-before-libs      print flags passed to linker before linked libraries
 echo   --libs                     print linked libraries
