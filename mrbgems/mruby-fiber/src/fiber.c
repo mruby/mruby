@@ -82,9 +82,9 @@ fiber_init(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_FIBER_ERROR, "tried to create Fiber from C defined method");
   }
 
-  f->cxt = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
-  *f->cxt = mrb_context_zero;
-  c = f->cxt;
+  c = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
+  *c = mrb_context_zero;
+  f->cxt = c;
 
   /* initialize VM stack */
   slen = FIBER_STACK_INIT_SIZE;
