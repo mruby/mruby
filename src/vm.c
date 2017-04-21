@@ -257,8 +257,8 @@ MRB_API void
 mrb_env_unshare(mrb_state *mrb, struct REnv *e)
 {
   size_t len = (size_t)MRB_ENV_STACK_LEN(e);
-  mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
   ptrdiff_t cioff = e->cioff;
+  mrb_value *p;
 
   if (!MRB_ENV_STACK_SHARED_P(e)) return;
   MRB_ENV_UNSHARE_STACK(e);
@@ -266,6 +266,7 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e)
     /* save block argument position (negated) */
     e->cioff = -mrb->c->cibase[cioff].argc-1;
   }
+  p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
   if (len > 0) {
     stack_copy(p, e->stack, len);
   }
