@@ -664,8 +664,21 @@ assert 'keyword arguments' do
   assert_equal(l, m(a: 1, b: 2, &(l = ->{})))
 =end
 
+  def m(a:, **) yield end
+  assert_raise(ArgumentError) { m { :blk } }
+  assert_equal :blk, m(a: 1){ :blk }
+
+  def m(a:, **k, &b) [b.call, k] end
+  assert_raise(ArgumentError) { m { :blk } }
+  assert_equal [:blk, {b: 2}], m(a: 1, b: 2){ :blk }
+
   def m(**k, &b) [k, b] end
   assert_equal([{ a: 1, b: 2}, nil], m(a: 1, b: 2))
+  assert_equal :blk, m{ :blk }[1].call
+
+  def m(hsh = {}) hsh end
+  assert_equal({ a: 1, b: 2 }, m(a: 1, b: 2))
+  assert_equal({ a: 1, 'b' => 2 }, m(a: 1, 'b' => 2))
 
 =begin
   def m(a, b=1, *c, (*d, (e)), f: 2, g:, h:, **k, &l)

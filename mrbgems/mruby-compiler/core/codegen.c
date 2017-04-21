@@ -705,7 +705,7 @@ lambda_body(codegen_scope *s, node tree, int blk)
       | (ba? MRB_ARGS_BLOCK() : 0);
     s->ainfo = (((ma+oa) & 0x3f) << 6) /* (12bits = 6:1:5) */
       | ((ra & 1) << 5)
-      | (pa & 0x1f);
+      | (pa+kd & 0x1f);
     // format arguments for this irep
     genop(s, MKOP_Ax(OP_ENTER, a));
     // generate jump table for optional arguments initializer

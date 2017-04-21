@@ -1653,14 +1653,15 @@ RETRY_TRY_BLOCK:
       mrb_value * const argv0 = argv;
       mrb_bool const is_sendk = mrb->c->ci->pc && GET_OPCODE(mrb->c->ci->pc[-1]) == OP_SENDK;
       int const len = m1 + o + r + m2;
-      int blk_pos = len + 1;
-      mrb_value *blk = &argv[argc < 0 ? 1 : argc];
+      int const blk_pos = len + 1 + kd;
+      mrb_value blk = argv[argc < 0 ? 1 : argc];
       mrb_value kdict = mrb_undef_value();
-      mrb_bool separate_kdict_p = FALSE, dont_separate_kdict;
+      mrb_bool separate_kdict_p = FALSE;
+      struct RArray *ary = NULL;
 
       // arguments is passed with Array
       if (argc < 0) {
-        struct RArray *ary = mrb_ary_ptr(regs[1]);
+        ary = mrb_ary_ptr(regs[1]);
         argv = ary->ptr;
         argc = ary->len;
         mrb_gc_protect(mrb, regs[1]);
@@ -1678,16 +1679,16 @@ RETRY_TRY_BLOCK:
       // extract first argument array to arguments
       else if (len > 1 && argc == 1 && mrb_array_p(argv[0])) {
         mrb_gc_protect(mrb, argv[0]);
-        argc = mrb_ary_ptr(argv[0])->len;
-        argv = mrb_ary_ptr(argv[0])->ptr;
+        ary = mrb_ary_ptr(argv[0]);
+        argc = ary->len;
+        argv = ary->ptr;
       }
 
-      dont_separate_kdict = argc == 1 && (m1 + m2 == 1) && kd;
       mrb->c->ci->use_kdict = MRB_ASPEC_KDICT(ax) || (!is_sendk && (keyreq + key) > 0)? TRUE : FALSE;
       if (is_sendk) {
         mrb_value *kw = regs + 2 + (mrb->c->ci->argc < 0? 1 : mrb->c->ci->argc);
 
-        if (kd && !dont_separate_kdict) {
+        if (kd && !(argc == 1 && m1 + m2 == 1)) {
           mrb_value const *kw_beg = kw;
           int kdict_size = 0;
           for (; !mrb_nil_p(kw[0]); kw += 2, ++kdict_size) { mrb_assert(mrb_symbol_p(kw[0])); }
@@ -1697,8 +1698,23 @@ RETRY_TRY_BLOCK:
         }
         // store to last argument hash when proc doesn't use keyword arguments
         else {
-          mrb_value last_hash = mrb_hash_p(argv[argc - 1])? argv[argc - 1] : mrb_hash_new(mrb);
-          kdict = !mrb_hash_p(argv[argc - 1])? last_hash : mrb_hash_new(mrb);
+          mrb_value last_hash;
+          if (argc > 0 && mrb_hash_p(argv[argc - 1])) {
+            last_hash = argv[argc - 1];
+            if (kd) { kdict = mrb_hash_new(mrb); }
+          }
+          else {
+            last_hash = kdict = mrb_hash_new(mrb);
+            if (ary) {
+              mrb_ary_push(mrb, mrb_obj_value(ary), last_hash);
+              argv = ary->ptr;
+            }
+            else {
+              mrb_gc_protect(mrb, argv[argc]);
+              argv[argc] = last_hash;
+            }
+            ++argc;
+          }
 
           for (; !mrb_nil_p(kw[0]); kw += 2) {
             mrb_assert(mrb_symbol_p(kw[0]));
@@ -1709,17 +1725,15 @@ RETRY_TRY_BLOCK:
         mrb_assert(mrb_nil_p(*kw));
       }
       else if (kd) {
-        blk_pos += kd;
-
         if (argc == 0 && keyreq > 0) {
           mrb_value str = mrb_format(mrb, "excepcted `Hash` as last argument for keyword arguments");
           mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
           goto L_RAISE;
         }
 
-        // check last arguments is hash if method takes keyword arguments
-        if (mrb_hash_p(argv[argc - 1])) { kdict = argv[argc - 1]; }
-        else if (mrb_respond_to(mrb, argv[argc - 1], mrb_intern_lit(mrb, "to_hash"))) {
+        // Check last arguments is hash if method takes keyword arguments
+        if (argc > 0 && mrb_hash_p(argv[argc - 1])) { kdict = argv[argc - 1]; }
+        else if (argc > 0 && mrb_respond_to(mrb, argv[argc - 1], mrb_intern_lit(mrb, "to_hash"))) {
           kdict = argv[argc - 1] =
                   mrb_convert_type(mrb, argv[argc - 1], MRB_TT_HASH, "Hash", "to_hash");
         }
@@ -1731,11 +1745,6 @@ RETRY_TRY_BLOCK:
             goto L_RAISE;
           }
 
-          kdict = mrb_hash_new(mrb);
-          separate_kdict_p = TRUE;
-        }
-
-        if (!separate_kdict_p && dont_separate_kdict) {
           kdict = mrb_hash_new(mrb);
           separate_kdict_p = TRUE;
         }
@@ -1754,6 +1763,8 @@ RETRY_TRY_BLOCK:
           if (non_sym_count > 0) {
             mrb_value const sep = mrb_hash_new_capa(mrb, kh_size(h) - non_sym_count);
             mrb_value kv;
+
+            mrb_assert(mrb_hash_p(argv[argc - 1]));
 
             // duplicate hash
             kdict = argv[argc - 1] = mrb_obj_dup(mrb, kdict);
@@ -1778,7 +1789,7 @@ RETRY_TRY_BLOCK:
         }
 
         // recheck arguments count when kdict is separate hash
-        if (separate_kdict_p && !dont_separate_kdict &&
+        if (separate_kdict_p &&
             mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc) &&
             argc >= 0 && (argc < m1 + m2 || (r == 0 && argc > len))) {
           argnum_error(mrb, m1+m2);
@@ -1795,9 +1806,9 @@ RETRY_TRY_BLOCK:
         if (argc < m1+m2) {
           mlen = m1 < argc ? argc - m1 : 0;
         }
-        regs[blk_pos] = *blk; /* move block */
+        regs[blk_pos] = blk; /* move block */
         if (kd) { regs[len + 1] = kdict; }
-        SET_NIL_VALUE(regs[argc+1]);
+        // SET_NIL_VALUE(regs[argc+1]);
         // copy mandatory and optional arguments
         if (argv0 != argv) {
           value_move(&regs[1], argv, argc-mlen); /* m1 + o */
@@ -1825,7 +1836,7 @@ RETRY_TRY_BLOCK:
       else {
         int rnum = 0;
         if (argv0 != argv) {
-          regs[blk_pos] = *blk; /* move block */
+          regs[blk_pos] = blk; /* move block */
           if (kd) { regs[len + 1] = kdict; }
           value_move(&regs[1], argv, m1+o);
         }
@@ -1839,15 +1850,15 @@ RETRY_TRY_BLOCK:
           }
         }
         if (argv0 == argv) {
-          regs[blk_pos] = *blk; /* move block */
+          regs[blk_pos] = blk; /* move block */
           if (kd) { regs[len + 1] = kdict; }
         }
         pc += o + 1;
       }
       mrb->c->ci->argc = len + kd;
       /* clear local (but non-argument) variables */
-      if (irep->nlocals-len-2 > 0) {
-        stack_clear(&regs[len+2], irep->nlocals-len-2);
+      if (irep->nlocals-(len+kd)-2 > 0) {
+        stack_clear(&regs[len+kd+2], irep->nlocals-(len+kd)-2);
       }
       JUMP;
     }
