@@ -294,21 +294,21 @@ static void
 ecall(mrb_state *mrb, int i)
 {
   struct RProc *p;
-  mrb_callinfo *ci;
+  mrb_callinfo *ci = mrb->c->ci;
   mrb_value *self = mrb->c->stack;
   struct RObject *exc;
   int cioff;
 
   if (i<0) return;
-  if (mrb->c->ci - mrb->c->cibase > MRB_FUNCALL_DEPTH_MAX) {
+  if (ci - mrb->c->cibase > MRB_FUNCALL_DEPTH_MAX) {
     mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
   }
   p = mrb->c->ensure[i];
   if (!p) return;
   mrb->c->ensure[i] = NULL;
-  if (mrb->c->ci->eidx > i)
-    mrb->c->ci->eidx = i;
-  cioff = mrb->c->ci - mrb->c->cibase;
+  if (ci->eidx > i)
+    ci->eidx = i;
+  cioff = ci - mrb->c->cibase;
   ci = cipush(mrb);
   ci->stackent = mrb->c->stack;
   ci->mid = ci[-1].mid;
@@ -1060,7 +1060,6 @@ RETRY_TRY_BLOCK:
       /* A B C  R(A) := uvget(B,C) */
       mrb_value *regs_a = regs + GETARG_A(i);
       int up = GETARG_C(i);
-
       struct REnv *e = uvenv(mrb, up);
 
       if (!e) {
