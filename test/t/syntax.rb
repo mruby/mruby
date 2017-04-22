@@ -680,6 +680,10 @@ assert 'keyword arguments' do
   assert_equal({ a: 1, b: 2 }, m(a: 1, b: 2))
   assert_equal({ a: 1, 'b' => 2 }, m(a: 1, 'b' => 2))
 
+  def m(hsh) hsh end
+  assert_equal({ a: 1, b: 2 }, m(a: 1, b: 2))
+  assert_equal({ a: 1, 'b' => 2 }, m(a: 1, 'b' => 2))
+
 =begin
   def m(a, b=1, *c, (*d, (e)), f: 2, g:, h:, **k, &l)
     [a, b, c, d, e, f, g, h, k, l]
