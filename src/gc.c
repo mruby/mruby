@@ -593,8 +593,9 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
     mrb_gc_mark(mrb, (struct RBasic*)c->ensure[i]);
   }
   /* mark fibers */
-  if (c->prev && c->prev->fib) {
-    mrb_gc_mark(mrb, (struct RBasic*)c->prev->fib);
+  mrb_gc_mark(mrb, (struct RBasic*)c->fib);
+  if (c->prev) {
+    mark_context(mrb, c->prev);
   }
 }
 
@@ -646,6 +647,9 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
       struct REnv *e = (struct REnv*)obj;
       mrb_int i, len;
 
+      if (MRB_ENV_STACK_SHARED_P(e) && e->cxt.c->fib) {
+        mrb_gc_mark(mrb, (struct RBasic*)e->cxt.c->fib);
+      }
       len = MRB_ENV_STACK_LEN(e);
       for (i=0; i<len; i++) {
         mrb_gc_mark_value(mrb, e->stack[i]);
@@ -878,13 +882,10 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
   mrb_gc_mark(mrb, (struct RBasic*)mrb->arena_err);
 #endif
 
-  mark_context(mrb, mrb->root_c);
-  if (mrb->root_c->fib) {
-    mrb_gc_mark(mrb, (struct RBasic*)mrb->root_c->fib);
-  }
   if (mrb->root_c != mrb->c) {
     mark_context(mrb, mrb->c);
   }
+  mark_context(mrb, mrb->root_c);
 }
 
 static size_t

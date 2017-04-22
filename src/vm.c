@@ -201,8 +201,8 @@ is_strict(mrb_state *mrb, struct REnv *e)
 {
   int cioff = e->cioff;
 
-  if (MRB_ENV_STACK_SHARED_P(e) && mrb->c->cibase[cioff].proc &&
-      MRB_PROC_STRICT_P(mrb->c->cibase[cioff].proc)) {
+  if (MRB_ENV_STACK_SHARED_P(e) && e->cxt.c->cibase[cioff].proc &&
+      MRB_PROC_STRICT_P(e->cxt.c->cibase[cioff].proc)) {
     return TRUE;
   }
   return FALSE;
@@ -264,8 +264,9 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e)
   MRB_ENV_UNSHARE_STACK(e);
   if (!e->c) {
     /* save block argument position (negated) */
-    e->cioff = -mrb->c->cibase[cioff].argc-1;
+    e->cioff = -e->cxt.c->cibase[cioff].argc-1;
   }
+  e->cxt.mid = e->cxt.c->cibase[cioff].mid;
   p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
   if (len > 0) {
     stack_copy(p, e->stack, len);
@@ -1236,6 +1237,10 @@ RETRY_TRY_BLOCK:
         bidx = a+n+1;
       }
       if (GET_OPCODE(i) != OP_SENDB) {
+        if (bidx >= mrb->c->ci->nregs) {
+          stack_extend(mrb, bidx+1);
+          mrb->c->ci->nregs = bidx+1;
+        }
         SET_NIL_VALUE(regs[bidx]);
       }
       else {
@@ -1363,9 +1368,15 @@ RETRY_TRY_BLOCK:
       ci->target_class = m->target_class;
       ci->proc = m;
       if (m->env) {
-        if (m->env->mid) {
-          ci->mid = m->env->mid;
+        mrb_sym mid;
+
+        if (MRB_ENV_STACK_SHARED_P(m->env)) {
+          mid = m->env->cxt.c->cibase[m->env->cioff].mid;
         }
+        else {
+          mid = m->env->cxt.mid;
+        }
+        if (mid) ci->mid = mid;
         if (!m->env->stack) {
           m->env->stack = mrb->c->stack;
         }
@@ -1990,7 +2001,8 @@ RETRY_TRY_BLOCK:
       if (lv == 0) stack = regs + 1;
       else {
         struct REnv *e = uvenv(mrb, lv-1);
-        if (!e || e->mid == 0) {
+        if (!e || e->cioff == 0 ||
+            (!MRB_ENV_STACK_SHARED_P(e) && e->cxt.mid == 0)) {
           localjump_error(mrb, LOCALJUMP_ERROR_YIELD);
           goto L_RAISE;
         }

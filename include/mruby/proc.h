@@ -18,8 +18,11 @@ MRB_BEGIN_DECL
 struct REnv {
   MRB_OBJECT_HEADER;
   mrb_value *stack;
-  mrb_sym mid;
   ptrdiff_t cioff;
+  union {
+    mrb_sym mid;
+    struct mrb_context *c;
+  } cxt;
 };
 
 #define MRB_SET_ENV_STACK_LEN(e,len) (e)->flags = (unsigned int)(len)

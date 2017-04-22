@@ -41,7 +41,7 @@ env_new(mrb_state *mrb, int nlocals)
 
   e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)mrb->c->ci->proc->env);
   MRB_SET_ENV_STACK_LEN(e, nlocals);
-  e->mid = mrb->c->ci->mid;
+  e->cxt.c = mrb->c;
   e->cioff = mrb->c->ci - mrb->c->cibase;
   e->stack = mrb->c->stack;
 

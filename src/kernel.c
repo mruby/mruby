@@ -158,7 +158,7 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
       ci = 0;                 /* no callinfo available */
     }
     else {
-      ci = mrb->c->cibase + e->cioff;
+      ci = e->cxt.c->cibase + e->cioff;
       bp = ci[1].stackent + 1;
     }
   }
@@ -1165,8 +1165,8 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
 
     while (e) {
       if (MRB_ENV_STACK_SHARED_P(e) &&
-          !MRB_PROC_CFUNC_P(mrb->c->cibase[e->cioff].proc)) {
-        irep = mrb->c->cibase[e->cioff].proc->body.irep;
+          !MRB_PROC_CFUNC_P(e->cxt.c->cibase[e->cioff].proc)) {
+        irep = e->cxt.c->cibase[e->cioff].proc->body.irep;
         if (irep->lv) {
           for (i = 0; i + 1 < irep->nlocals; ++i) {
             if (irep->lv[i].name) {

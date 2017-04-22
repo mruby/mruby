@@ -30,7 +30,7 @@ get_closure_irep(mrb_state *mrb, int level)
 
   if (!e) return NULL;
   if (!MRB_ENV_STACK_SHARED_P(e)) return NULL;
-
+  c = e->cxt.c;
   proc = c->cibase[e->cioff].proc;
 
   if (!proc || MRB_PROC_CFUNC_P(proc)) {
@@ -196,7 +196,7 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, con
   e = c->ci[-1].proc->env;
   if (!e) e = c->ci[-1].env;
   e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)e);
-  e->mid = c->ci[-1].mid;
+  e->cxt.c = c;
   e->cioff = c->ci - c->cibase - 1;
   e->stack = c->ci->stackent;
   MRB_SET_ENV_STACK_LEN(e, c->ci[-1].proc->body.irep->nlocals);
