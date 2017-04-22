@@ -594,8 +594,8 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
   }
   /* mark fibers */
   mrb_gc_mark(mrb, (struct RBasic*)c->fib);
-  if (c->prev) {
-    mark_context(mrb, c->prev);
+  if (c->prev && c->prev->fib) {
+    mrb_gc_mark(mrb, (struct RBasic*)c->prev->fib);
   }
 }
 
@@ -882,10 +882,10 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
   mrb_gc_mark(mrb, (struct RBasic*)mrb->arena_err);
 #endif
 
+  mark_context(mrb, mrb->root_c);
   if (mrb->root_c != mrb->c) {
     mark_context(mrb, mrb->c);
   }
-  mark_context(mrb, mrb->root_c);
 }
 
 static size_t
