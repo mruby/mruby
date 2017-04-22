@@ -95,7 +95,7 @@ enum {
   OP_CALL,/*      A       R(A) := self.call(frame.argc, frame.argv)       */
   OP_SUPER,/*     A C     R(A) := super(R(A+1),... ,R(A+C+1))             */
   OP_ARGARY,/*    A Bx    R(A) := argument array (16=6:1:5:4)             */
-  OP_ENTER,/*     Ax      arg setup according to flags (23=5:5:1:5:5:1:1) */
+  OP_ENTER,/*     Ax      arg setup according to flags (23=5:5:1:4:3:3:1:1) */
   OP_KARG,/*      A B C   R(A) := kdict[Syms(B)]                          */
   /*                      R(A+1) := kdict.key?(Syms(B)) if C == 1         */
   /*                      raise ArgumentError if C == 2 && !kdict.key?(Syms(B)) */
