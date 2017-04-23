@@ -1048,7 +1048,7 @@ retry:
             expr = "Inf";
           }
           need = elen;
-          if ((!isnan(fval) && fval < 0.0) || (flags & FPLUS))
+          if ((!isnan(fval) && fval < 0.0) || (flags & (FPLUS|FSPACE)))
             need++;
           if ((flags & FWIDTH) && need < width)
             need = width;
@@ -1072,8 +1072,6 @@ retry:
               buf[blen + need - elen - 1] = '-';
             else if (flags & FPLUS)
               buf[blen + need - elen - 1] = '+';
-            else if ((flags & FSPACE) && need > width)
-              blen++;
             memcpy(&buf[blen + need - elen], expr, elen);
           }
           blen += strlen(&buf[blen]);
