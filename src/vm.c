@@ -1694,7 +1694,7 @@ RETRY_TRY_BLOCK:
       if (is_sendk) {
         mrb_value *kw = regs + 2 + (mrb->c->ci->argc < 0? 1 : mrb->c->ci->argc);
 
-        if (kdict_req_p && !(argc == 1 && m1 + m2 == 1)) {
+        if (kdict_req_p && !(last_arg_hash_p && m1 + m2 > 0)) {
           mrb_value const *kw_beg = kw;
           int kdict_size = 0;
           for (; !mrb_nil_p(kw[0]); kw += 2, ++kdict_size) { mrb_assert(mrb_symbol_p(kw[0])); }

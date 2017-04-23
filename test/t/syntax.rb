@@ -471,6 +471,11 @@ this is a comment that has extra after =begin and =end with tabs after it
 end
 
 assert 'keyword arguments' do
+  def m(a, b:) [a, b] end
+  assert_equal [1, 2], m(1, b: 2)
+  assert_raise(ArgumentError) { m b: 1 }
+  assert_raise(ArgumentError) { m 1 }
+
   def m(a:) a end
   assert_equal 1, m(a: 1)
   assert_raise(ArgumentError) { m }
