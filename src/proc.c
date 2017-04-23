@@ -200,7 +200,7 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
   struct mrb_irep *irep;
   mrb_code *iseq;
   mrb_aspec aspec;
-  int ma, op, ra, pa, arity;
+  int ma, op, ra, pa, kr, ko, kd, arity, required;
 
   if (MRB_PROC_CFUNC_P(p)) {
     /* TODO cfunc aspec not implemented yet */
@@ -223,7 +223,11 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
   op = MRB_ASPEC_OPT(aspec);
   ra = MRB_ASPEC_REST(aspec);
   pa = MRB_ASPEC_POST(aspec);
-  arity = ra || (MRB_PROC_STRICT_P(p) && op) ? -(ma + pa + 1) : ma + pa;
+  kr = MRB_ASPEC_KEYREQ(aspec);
+  ko = MRB_ASPEC_KEY(aspec);
+  kd = MRB_ASPEC_KDICT(aspec);
+  required = ma + pa + kr;
+  arity = ra || kd || (MRB_PROC_STRICT_P(p) && (op + ko)) ? -(required + 1) : required;
 
   return mrb_fixnum_value(arity);
 }

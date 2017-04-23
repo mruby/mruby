@@ -44,6 +44,10 @@ assert('Proc#arity', '15.2.17.4.2') do
   assert_equal(-2, e)
   assert_equal(-2, f)
   assert_equal(-1, g)
+
+  assert_equal( 1, ->(a:){}.arity)
+  assert_equal(-1, ->(a:1){}.arity)
+  assert_equal(-1, ->(**){}.arity)
 end
 
 assert('Proc#call', '15.2.17.4.3') do
