@@ -3580,7 +3580,7 @@ skips(parser_state *p, const char *s)
     /* skip until first char */
     for (;;) {
       c = nextc(p);
-      if (c < 0) return c;
+      if (c < 0) return FALSE;
       if (c == '\n') {
         p->lineno++;
         p->column = 0;
