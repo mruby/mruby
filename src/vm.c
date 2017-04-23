@@ -1690,10 +1690,13 @@ RETRY_TRY_BLOCK:
 
       // strict argument check
       if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc)) {
-        int const kd_append = (keyreq == 0 || is_sendk)? 0 : kdict_req_p;
-        int const actual_argc = argc + (is_sendk && !kdict_req_p && !CHECK_LAST_ARG_HASH());
+        mrb_bool const last_arg_hash_p = CHECK_LAST_ARG_HASH();
+        int const kd_append = !is_sendk && (keyreq > 0 || (o > 0 && kd && last_arg_hash_p))
+                              ? kdict_req_p : 0;
+        int const actual_argc = argc + (is_sendk && !kdict_req_p && !last_arg_hash_p);
         if (actual_argc >= 0 &&
             (actual_argc < m1 + m2 + kd_append || (r == 0 && actual_argc > len + kd_append))) {
+          mrb->c->ci->argc = actual_argc;
           argnum_error(mrb, m1+m2+kd_append);
           goto L_RAISE;
         }
