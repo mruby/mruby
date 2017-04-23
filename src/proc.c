@@ -226,8 +226,8 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
   kr = MRB_ASPEC_KEYREQ(aspec);
   ko = MRB_ASPEC_KEY(aspec);
   kd = MRB_ASPEC_KDICT(aspec);
-  required = ma + pa + kr;
-  arity = ra || kd || (MRB_PROC_STRICT_P(p) && (op + ko)) ? -(required + 1) : required;
+  required = ma + pa + (kr > 0? 1 : 0);
+  arity = ra || (MRB_PROC_STRICT_P(p) && (op || (kr == 0 && ko + kd))) ? -(required + 1) : required;
 
   return mrb_fixnum_value(arity);
 }
