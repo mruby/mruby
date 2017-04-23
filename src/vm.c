@@ -252,9 +252,7 @@ cipush(mrb_state *mrb)
   ci->err = 0;
   ci->proc = 0;
   ci->acc = 0;
-  ci->use_kdict = FALSE;
-  ci->need_kdict_dup = TRUE;
-  ci->kwds = NULL;
+  ci->flags = MRB_CI_NEED_KDICT_DUP_MASK;
 
   return ci;
 }
@@ -1645,7 +1643,6 @@ RETRY_TRY_BLOCK:
       int const keyreq = MRB_ASPEC_KEYREQ(ax);
       int const key = MRB_ASPEC_KEY(ax);
       int const kd = MRB_ASPEC_KDICT(ax);
-      int const kdict_req = keyreq + key + kd? 1 : 0;
       /* unused
       int b  = MRB_ASPEC_BLOCK(ax);
       */
@@ -1653,8 +1650,9 @@ RETRY_TRY_BLOCK:
       mrb_value *argv = regs+1;
       mrb_value * const argv0 = argv;
       mrb_bool const is_sendk = mrb->c->ci->pc && GET_OPCODE(mrb->c->ci->pc[-1]) == OP_SENDK;
+      mrb_bool const kdict_req_p = keyreq + key + kd? TRUE : FALSE;
       int const len = m1 + o + r + m2;
-      int const blk_pos = len + 1 + kdict_req;
+      int const blk_pos = len + 1 + kdict_req_p;
       mrb_value blk = argv0[argc < 0 ? 1 : argc];
       mrb_value kdict = mrb_undef_value();
       mrb_bool separate_kdict_p = FALSE;
@@ -1673,8 +1671,8 @@ RETRY_TRY_BLOCK:
 
       // strict argument check
       if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc)) {
-        int const kd_append = (keyreq == 0 || is_sendk)? 0 : kdict_req;
-        int const actual_argc = argc + (is_sendk && !kdict_req && !last_arg_hash_p);
+        int const kd_append = (keyreq == 0 || is_sendk)? 0 : kdict_req_p;
+        int const actual_argc = argc + (is_sendk && !kdict_req_p && !last_arg_hash_p);
         if (actual_argc >= 0 &&
             (actual_argc < m1 + m2 + kd_append || (r == 0 && actual_argc > len + kd_append))) {
           argnum_error(mrb, m1+m2+kd_append);
@@ -1691,28 +1689,28 @@ RETRY_TRY_BLOCK:
         last_arg_hash_p = argc > 0 && mrb_respond_to(mrb, argv[argc - 1], mrb_intern_lit(mrb, "to_hash"));
       }
 
-      mrb->c->ci->use_kdict = kd || (!is_sendk && (keyreq + key) > 0)? TRUE : FALSE;
+      mrb->c->ci->flags &= ~MRB_CI_USE_KDICT_MASK;
+      mrb->c->ci->flags |= (kd || (!is_sendk && (keyreq + key) > 0)? MRB_CI_USE_KDICT_MASK : 0);
       if (is_sendk) {
         mrb_value *kw = regs + 2 + (mrb->c->ci->argc < 0? 1 : mrb->c->ci->argc);
 
-        if (kdict_req && !(argc == 1 && m1 + m2 == 1)) {
+        if (kdict_req_p && !(argc == 1 && m1 + m2 == 1)) {
           mrb_value const *kw_beg = kw;
           int kdict_size = 0;
           for (; !mrb_nil_p(kw[0]); kw += 2, ++kdict_size) { mrb_assert(mrb_symbol_p(kw[0])); }
-          kdict = mrb_ary_new_from_values(mrb, 2 * kdict_size + 1, kw_beg);
-          mrb->c->ci->kwds = mrb_ary_ptr(kdict)->ptr;
-          mrb_assert(mrb_nil_p(RARRAY_PTR(kdict)[RARRAY_LEN(kdict) - 1]));
-          mrb_assert(RARRAY_LEN(kdict) >= 3);
+          kdict = mrb_ary_new_from_values(mrb, 2 * kdict_size, kw_beg);
+          mrb_assert(RARRAY_LEN(kdict) >= 2);
+          mrb->c->ci->flags &= ~MRB_CI_NEED_KDICT_DUP_MASK;
         }
         // store to last argument hash when proc doesn't use keyword arguments
         else {
           mrb_value last_arg_hash;
-          separate_kdict_p = kdict_req && TRUE;
+          separate_kdict_p = kdict_req_p && TRUE;
 
           if (last_arg_hash_p) {
             last_arg_hash = argv[argc - 1] =
                             mrb_convert_type(mrb, argv[argc - 1], MRB_TT_HASH, "Hash", "to_hash");
-            if (kdict_req) { kdict = mrb_hash_new(mrb); }
+            if (kdict_req_p) { kdict = mrb_hash_new(mrb); }
           }
           else { // push hash to args if not available
             last_arg_hash = kdict = mrb_hash_new(mrb);
@@ -1735,7 +1733,7 @@ RETRY_TRY_BLOCK:
 
         mrb_assert(mrb_nil_p(*kw));
       }
-      else if (kdict_req) {
+      else if (kdict_req_p) {
         // Check last arguments is hash if method takes keyword arguments
         if (last_arg_hash_p) {
           khash_t(ht) *h;
@@ -1758,7 +1756,7 @@ RETRY_TRY_BLOCK:
 
             // duplicate hash to separate keywords
             kdict = argv[argc - 1] = mrb_obj_dup(mrb, kdict);
-            mrb->c->ci->need_kdict_dup = FALSE;
+            mrb->c->ci->flags &= ~MRB_CI_NEED_KDICT_DUP_MASK;
 
             for (k = kh_begin(h); k != kh_end(h); ++k) {
               if (!kh_exist(h, k)) { continue; }
@@ -1790,7 +1788,6 @@ RETRY_TRY_BLOCK:
         }
 
         mrb_assert(mrb_hash_p(kdict));
-        mrb_assert(!mrb->c->ci->kwds);
       }
 
       // no rest arguments
@@ -1800,7 +1797,7 @@ RETRY_TRY_BLOCK:
           mlen = m1 < argc ? argc - m1 : 0;
         }
         regs[blk_pos] = blk; /* move block */
-        if (kdict_req) { regs[len + 1] = kdict; }
+        if (kdict_req_p) { regs[len + 1] = kdict; }
         // SET_NIL_VALUE(regs[argc+1]);
         // copy mandatory and optional arguments
         if (argv0 != argv) {
@@ -1830,11 +1827,11 @@ RETRY_TRY_BLOCK:
         int rnum = 0;
         if (argv0 != argv) {
           regs[blk_pos] = blk; /* move block */
-          if (kdict_req) { regs[len + 1] = kdict; }
+          if (kdict_req_p) { regs[len + 1] = kdict; }
           value_move(&regs[1], argv, m1+o);
         }
         if (r) {
-          rnum = argc-m1-o-m2-(is_sendk || separate_kdict_p? 0 : kdict_req);
+          rnum = argc-m1-o-m2-(is_sendk || separate_kdict_p? 0 : kdict_req_p);
           regs[m1+o+1] = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
         }
         if (m2) {
@@ -1844,11 +1841,11 @@ RETRY_TRY_BLOCK:
         }
         if (argv0 == argv) {
           regs[blk_pos] = blk; /* move block */
-          if (kdict_req) { regs[len + 1] = kdict; }
+          if (kdict_req_p) { regs[len + 1] = kdict; }
         }
         pc += o + 1;
       }
-      argc = mrb->c->ci->argc = len + kdict_req;
+      argc = mrb->c->ci->argc = len + kdict_req_p;
       /* clear local (but non-argument) variables */
       if (irep->nlocals-argc-2 > 0) {
         stack_clear(&regs[argc+2], irep->nlocals-argc-2);
@@ -1856,13 +1853,13 @@ RETRY_TRY_BLOCK:
       JUMP;
     }
 
-#define DUP_KDICT(kdict)                    \
-    do {                                    \
-      if (mrb->c->ci->need_kdict_dup) {     \
-        mrb->c->ci->need_kdict_dup = FALSE; \
-        *kdict = mrb_obj_dup(mrb, *kdict);  \
-      }                                     \
-    } while(FALSE)                          \
+#define DUP_KDICT(kdict)                                    \
+    do {                                                    \
+      if (mrb->c->ci->flags & MRB_CI_NEED_KDICT_DUP_MASK) { \
+        mrb->c->ci->flags &= ~MRB_CI_NEED_KDICT_DUP_MASK;   \
+        *kdict = mrb_obj_dup(mrb, *kdict);                  \
+      }                                                     \
+    } while(FALSE)                                          \
 
     CASE(OP_KARG) {
       /* A B C   R(A) := kdict[Syms(B)]                          */
@@ -1871,14 +1868,13 @@ RETRY_TRY_BLOCK:
       /*         kdict.delete(Syms(B)) if C >= 1                 */
       int a = GETARG_A(i), c = GETARG_C(i);
       mrb_value k = mrb_symbol_value(syms[GETARG_B(i)]);
-      if (mrb->c->ci->kwds) {
+      mrb_value *kdict = &regs[mrb->c->ci->argc];
+      if (mrb_array_p(*kdict)) {
+        struct RArray *kws = mrb_ary_ptr(*kdict);
         mrb_value *kw;
 
-        mrb_assert(mrb_array_p(regs[mrb->c->ci->argc]));
-        mrb_assert(RARRAY_PTR(regs[mrb->c->ci->argc]) == mrb->c->ci->kwds);
-
         regs[a] = mrb_undef_value();
-        for (kw = mrb->c->ci->kwds; !mrb_nil_p(*kw); kw += 2) {
+        for (kw = kws->ptr; kw < (kws->ptr + kws->len); kw += 2) {
           mrb_assert(mrb_symbol_p(kw[0]));
           if (mrb_symbol(kw[0]) == mrb_symbol(k)) {
             regs[a] = kw[1];
@@ -1890,14 +1886,12 @@ RETRY_TRY_BLOCK:
         if (!mrb_undef_p(regs[a])) { NEXT; }
       }
       else {
-        mrb_value *kdict = &regs[mrb->c->ci->argc];
-
         mrb_assert(mrb_hash_p(*kdict));
         regs[a] = mrb_hash_fetch(mrb, *kdict, k, mrb_undef_value());
 
         if (!mrb_undef_p(regs[a])) {
           if (c == 1) { regs[a + 1] = mrb_true_value(); }
-          if (c && mrb->c->ci->use_kdict) {
+          if (c && (mrb->c->ci->flags & MRB_CI_USE_KDICT_MASK)) {
             DUP_KDICT(kdict);
             mrb_hash_delete_key(mrb, *kdict, k);
           }
@@ -1922,14 +1916,13 @@ RETRY_TRY_BLOCK:
       int a = GETARG_A(i), c = GETARG_C(i);
       mrb_value *kdict = &regs[mrb->c->ci->argc], str;
 
-      if (mrb->c->ci->kwds) {
+      if (mrb_array_p(*kdict)) {
         mrb_value *kw;
-
-        mrb_assert(mrb_array_p(*kdict));
+        struct RArray *kws = mrb_ary_ptr(*kdict);
 
         if (c) {
           mrb_int restkwd = 0;
-          for (kw = mrb->c->ci->kwds; !mrb_nil_p(*kw); kw += 2) {
+          for (kw = kws->ptr; kw < (kws->ptr + kws->len); kw += 2) {
             if (mrb_symbol(kw[0]) != 0) { ++restkwd; }
           }
           if (restkwd > 0) { goto L_RAISE_KDICT_ERROR; }
@@ -1942,18 +1935,16 @@ RETRY_TRY_BLOCK:
         }
         else {
           mrb_value res = mrb_hash_new(mrb);
-          for (kw = mrb->c->ci->kwds; !mrb_nil_p(*kw); kw += 2) {
+          for (kw = kws->ptr; kw < (kws->ptr + kws->len); kw += 2) {
             if (mrb_symbol(kw[0]) == 0) { continue; }
             mrb_assert(mrb_symbol_p(kw[0]));
             mrb_hash_set(mrb, res, kw[0], kw[1]);
           }
-          mrb_assert(mrb_nil_p(*kw));
           *kdict = regs[a] = res;
         }
-
-        mrb->c->ci->kwds = NULL;
       }
       else {
+        mrb_assert(mrb_hash_p(*kdict));
         if (c && kh_size(RHASH_TBL(*kdict)) > 0) { goto L_RAISE_KDICT_ERROR; }
 
         DUP_KDICT(kdict);

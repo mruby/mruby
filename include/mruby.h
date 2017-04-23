@@ -109,8 +109,6 @@ typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 
 typedef struct {
   mrb_sym mid;
-  mrb_bool use_kdict: 1;
-  mrb_bool need_kdict_dup: 1;
   struct RProc *proc;
   mrb_value *stackent;
   int nregs;
@@ -120,10 +118,21 @@ typedef struct {
   mrb_code *pc;                 /* return address */
   mrb_code *err;                /* error position */
   int argc;
-  int acc;
+  int16_t acc; /* always fit in 9-bit since it's from GETARG_A */
+
+  uint8_t flags;
+  /*
+  mrb_bool use_kdict: 1;
+  mrb_bool need_kdict_dup: 1;
+  */
+
   struct RClass *target_class;
-  mrb_value *kwds;
 } mrb_callinfo;
+
+enum {
+  MRB_CI_USE_KDICT_MASK = 1 << 0,
+  MRB_CI_NEED_KDICT_DUP_MASK = 1 << 1,
+};
 
 enum mrb_fiber_state {
   MRB_FIBER_CREATED = 0,
