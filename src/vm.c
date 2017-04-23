@@ -1657,6 +1657,23 @@ RETRY_TRY_BLOCK:
       mrb_value kdict = mrb_undef_value();
       mrb_bool separate_kdict_p = FALSE;
       struct RArray *args_ary = NULL;
+      int kdict_size;
+
+      if (is_sendk) {
+        mrb_value const *kw_beg = regs + 2 + (argc < 0? 1 : argc);
+        mrb_value const *kw;
+        int new_nregs, *nregs = &mrb->c->ci->nregs;
+        kdict_size = 0;
+
+        for (kw = kw_beg; !mrb_nil_p(kw[0]); kw += 2) {
+          mrb_assert(mrb_symbol_p(kw[0]));
+          ++kdict_size;
+        }
+        mrb_assert(mrb_nil_p(*kw));
+
+        new_nregs = kw_beg - regs + 2 * kdict_size + 1;
+        *nregs = *nregs < new_nregs? new_nregs : *nregs;
+      }
 
       // arguments is passed with Array
       if (argc < 0) {
@@ -1692,13 +1709,10 @@ RETRY_TRY_BLOCK:
       mrb->c->ci->flags &= ~MRB_CI_USE_KDICT_MASK;
       mrb->c->ci->flags |= (kd || (!is_sendk && (keyreq + key) > 0)? MRB_CI_USE_KDICT_MASK : 0);
       if (is_sendk) {
-        mrb_value *kw = regs + 2 + (mrb->c->ci->argc < 0? 1 : mrb->c->ci->argc);
+        mrb_value const *kw_beg = regs + 2 + (mrb->c->ci->argc < 0? 1 : mrb->c->ci->argc);
         mrb_bool const last_arg_hash_p = CHECK_LAST_ARG_HASH();
 
         if (kdict_req_p && !(last_arg_hash_p && m1 + m2 > 0)) {
-          mrb_value const *kw_beg = kw;
-          int kdict_size = 0;
-          for (; !mrb_nil_p(kw[0]); kw += 2, ++kdict_size) { mrb_assert(mrb_symbol_p(kw[0])); }
           kdict = mrb_ary_new_from_values(mrb, 2 * kdict_size, kw_beg);
           mrb_assert(RARRAY_LEN(kdict) >= 2);
           mrb->c->ci->flags &= ~MRB_CI_NEED_KDICT_DUP_MASK;
@@ -1706,6 +1720,7 @@ RETRY_TRY_BLOCK:
         // store to last argument hash when proc doesn't use keyword arguments
         else {
           mrb_value last_arg_hash;
+          int i = 0;
           separate_kdict_p = kdict_req_p && TRUE;
 
           if (last_arg_hash_p) {
@@ -1714,7 +1729,7 @@ RETRY_TRY_BLOCK:
             if (kdict_req_p) { kdict = mrb_hash_new(mrb); }
           }
           else { // push hash to args if not available
-            last_arg_hash = kdict = mrb_hash_new(mrb);
+            last_arg_hash = kdict = mrb_hash_new_capa(mrb, kdict_size);
             if (args_ary) {
               mrb_ary_push(mrb, mrb_obj_value(args_ary), last_arg_hash);
               argv = args_ary->ptr;
@@ -1726,13 +1741,10 @@ RETRY_TRY_BLOCK:
             ++argc;
           }
 
-          for (; !mrb_nil_p(kw[0]); kw += 2) {
-            mrb_assert(mrb_symbol_p(kw[0]));
-            mrb_hash_set(mrb, last_arg_hash, kw[0], kw[1]);
+          for (i = 0; i < kdict_size; ++i) {
+            mrb_hash_set(mrb, last_arg_hash, kw_beg[2 * i + 0], kw_beg[2 * i + 1]);
           }
         }
-
-        mrb_assert(mrb_nil_p(*kw));
       }
       else if (kdict_req_p) {
         // Check last arguments is hash if method takes keyword arguments
