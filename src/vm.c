@@ -1656,7 +1656,6 @@ RETRY_TRY_BLOCK:
       mrb_value blk = argv0[argc < 0 ? 1 : argc];
       mrb_value kdict = mrb_undef_value();
       mrb_bool separate_kdict_p = FALSE;
-      mrb_bool last_arg_hash_p;
       struct RArray *args_ary = NULL;
 
       // arguments is passed with Array
@@ -1667,12 +1666,15 @@ RETRY_TRY_BLOCK:
         mrb_gc_protect(mrb, regs[1]);
       }
 
-      last_arg_hash_p = argc > 0 && mrb_respond_to(mrb, argv[argc - 1], mrb_intern_lit(mrb, "to_hash"));
+#define CHECK_LAST_ARG_HASH()                                           \
+      (argc > 0 &&                                                      \
+       (mrb_hash_p(argv[argc - 1]) ||                                   \
+        mrb_respond_to(mrb, argv[argc - 1], mrb_intern_lit(mrb, "to_hash"))))
 
       // strict argument check
       if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc)) {
         int const kd_append = (keyreq == 0 || is_sendk)? 0 : kdict_req_p;
-        int const actual_argc = argc + (is_sendk && !kdict_req_p && !last_arg_hash_p);
+        int const actual_argc = argc + (is_sendk && !kdict_req_p && !CHECK_LAST_ARG_HASH());
         if (actual_argc >= 0 &&
             (actual_argc < m1 + m2 + kd_append || (r == 0 && actual_argc > len + kd_append))) {
           argnum_error(mrb, m1+m2+kd_append);
@@ -1685,14 +1687,13 @@ RETRY_TRY_BLOCK:
         args_ary = mrb_ary_ptr(argv[0]);
         argc = args_ary->len;
         argv = args_ary->ptr;
-
-        last_arg_hash_p = argc > 0 && mrb_respond_to(mrb, argv[argc - 1], mrb_intern_lit(mrb, "to_hash"));
       }
 
       mrb->c->ci->flags &= ~MRB_CI_USE_KDICT_MASK;
       mrb->c->ci->flags |= (kd || (!is_sendk && (keyreq + key) > 0)? MRB_CI_USE_KDICT_MASK : 0);
       if (is_sendk) {
         mrb_value *kw = regs + 2 + (mrb->c->ci->argc < 0? 1 : mrb->c->ci->argc);
+        mrb_bool const last_arg_hash_p = CHECK_LAST_ARG_HASH();
 
         if (kdict_req_p && !(last_arg_hash_p && m1 + m2 > 0)) {
           mrb_value const *kw_beg = kw;
@@ -1735,7 +1736,7 @@ RETRY_TRY_BLOCK:
       }
       else if (kdict_req_p) {
         // Check last arguments is hash if method takes keyword arguments
-        if (last_arg_hash_p) {
+        if (CHECK_LAST_ARG_HASH()) {
           khash_t(ht) *h;
           khiter_t k;
           mrb_int non_sym_count = 0;
@@ -1789,6 +1790,8 @@ RETRY_TRY_BLOCK:
 
         mrb_assert(mrb_hash_p(kdict));
       }
+
+#undef CHECK_LAST_ARG_HASH
 
       // no rest arguments
       if (argc < len) {
