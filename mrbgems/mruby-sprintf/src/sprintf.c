@@ -1040,6 +1040,7 @@ retry:
         if (!isfinite(fval)) {
           const char *expr;
           const int elen = 3;
+          char sign = '\0';
 
           if (isnan(fval)) {
             expr = "NaN";
@@ -1048,35 +1049,26 @@ retry:
             expr = "Inf";
           }
           need = elen;
-          if ((!isnan(fval) && fval < 0.0) || (flags & FPLUS))
-            need++;
+          if (!isnan(fval) && fval < 0.0)
+            sign = '-';
+          else if (flags & (FPLUS|FSPACE))
+            sign = (flags & FPLUS) ? '+' : ' ';
+          if (sign)
+	    ++need;
           if ((flags & FWIDTH) && need < width)
             need = width;
 
-          CHECK(need + 1);
-          n = snprintf(&buf[blen], need + 1, "%*s", need, "");
-          if (n < 0) {
-            mrb_raise(mrb, E_RUNTIME_ERROR, "formatting error");
-          }
+          FILL(' ', need);
           if (flags & FMINUS) {
-            if (!isnan(fval) && fval < 0.0)
-              buf[blen++] = '-';
-            else if (flags & FPLUS)
-              buf[blen++] = '+';
-            else if (flags & FSPACE)
-              blen++;
-            memcpy(&buf[blen], expr, elen);
+            if (sign)
+              buf[blen - need--] = sign;
+            memcpy(&buf[blen - need], expr, elen);
           }
           else {
-            if (!isnan(fval) && fval < 0.0)
-              buf[blen + need - elen - 1] = '-';
-            else if (flags & FPLUS)
-              buf[blen + need - elen - 1] = '+';
-            else if ((flags & FSPACE) && need > width)
-              blen++;
-            memcpy(&buf[blen + need - elen], expr, elen);
+            if (sign)
+              buf[blen - elen - 1] = sign;
+            memcpy(&buf[blen - elen], expr, elen);
           }
-          blen += strlen(&buf[blen]);
           break;
         }
 
