@@ -137,6 +137,7 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
 {
   mrb_value str, mesg, file, line;
   mrb_bool append_mesg;
+  const char *cname;
 
   mesg = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "mesg"));
   file = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "file"));
@@ -148,28 +149,18 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
     append_mesg = RSTRING_LEN(mesg) > 0;
   }
 
+  cname = mrb_obj_classname(mrb, exc);
+  str = mrb_str_new_cstr(mrb, cname);
   if (mrb_string_p(file) && mrb_fixnum_p(line)) {
-    char buf[32];
-
-    str = mrb_str_dup(mrb, file);
-    snprintf(buf, sizeof(buf), ":%" MRB_PRId ": ", mrb_fixnum(line));
-    mrb_str_cat_cstr(mrb, str, buf);
     if (append_mesg) {
-      mrb_str_cat_str(mrb, str, mesg);
-      mrb_str_cat_lit(mrb, str, " (");
+      str = mrb_format(mrb, "%S:%S:%S (%S)", file, line, mesg, str);
     }
-    mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, exc));
-    if (append_mesg) {
-      mrb_str_cat_lit(mrb, str, ")");
+    else {
+      str = mrb_format(mrb, "%S:%S:%S", file, line, str);
     }
   }
-  else {
-    const char *cname = mrb_obj_classname(mrb, exc);
-    str = mrb_str_new_cstr(mrb, cname);
-    if (append_mesg) {
-      mrb_str_cat_lit(mrb, str, ": ");
-      mrb_str_cat_str(mrb, str, mesg);
-    }
+  else if (append_mesg) {
+    str = mrb_format(mrb, "%S:%S", str, mesg);
   }
   return str;
 }

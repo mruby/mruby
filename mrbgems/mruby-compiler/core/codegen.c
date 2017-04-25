@@ -1024,9 +1024,9 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
 
   default:
 #ifndef MRB_DISABLE_STDIO
-    printf("unknown lhs %d\n", type);
+    fprintf(stderr, "unknown lhs %d\n", type);
 #endif
-    break;
+    return;
   }
   if (val) push();
 }
@@ -2195,11 +2195,11 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_NTH_REF:
     if (val) {
       mrb_state *mrb = s->mrb;
-      char buf[32];
+      mrb_value str;
       int sym;
 
-      snprintf(buf, sizeof(buf), "$%" MRB_PRId, (mrb_int)(intptr_t)tree);
-      sym = new_sym(s, mrb_intern_cstr(mrb, buf));
+      str = mrb_format(mrb, "$%S", mrb_fixnum_value((mrb_int)(intptr_t)tree));
+      sym = new_sym(s, mrb_intern_str(mrb, str));
       genop(s, MKOP_ABx(OP_GETGLOBAL, cursp(), sym));
       push();
     }

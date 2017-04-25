@@ -74,14 +74,12 @@ static void
 get_backtrace_i(mrb_state *mrb, struct backtrace_location *loc, void *data)
 {
   mrb_value ary, str;
-  char buf[32];
   int ai = mrb_gc_arena_save(mrb);
 
   ary = mrb_obj_value((struct RArray*)data);
 
   str = mrb_str_new_cstr(mrb, loc->filename);
-  snprintf(buf, sizeof(buf), ":%d", loc->lineno);
-  mrb_str_cat_cstr(mrb, str, buf);
+  str = mrb_format(mrb, "%S:%S", str, mrb_fixnum_value(loc->lineno));
 
   if (loc->method) {
     mrb_str_cat_lit(mrb, str, ":in ");
@@ -400,14 +398,13 @@ mrb_restore_backtrace(mrb_state *mrb)
     int ai;
     mrb_backtrace_entry *entry;
     mrb_value mrb_entry;
-    char buf[32];
 
     ai = mrb_gc_arena_save(mrb);
     entry = &(mrb->backtrace.entries[i]);
 
-    mrb_entry = mrb_str_new_cstr(mrb, entry->filename);
-    snprintf(buf, sizeof(buf), ":%d", entry->lineno);
-    mrb_str_cat_cstr(mrb, mrb_entry, buf);
+    mrb_entry = mrb_format(mrb, "%S:%S",
+                           mrb_str_new_cstr(mrb, entry->filename),
+                           mrb_fixnum_value(entry->lineno));
     if (entry->method_id != 0) {
       mrb_str_cat_lit(mrb, mrb_entry, ":in ");
 
