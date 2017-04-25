@@ -64,6 +64,7 @@ typedef struct mrb_gc {
   size_t threshold;
   int interval_ratio;
   int step_ratio;
+  mrb_bool iterating     :1;
   mrb_bool disabled      :1;
   mrb_bool full          :1;
   mrb_bool generational  :1;

@@ -17,6 +17,7 @@
 #include <mruby/variable.h>
 #include <mruby/gc.h>
 #include <mruby/error.h>
+#include <mruby/throw.h>
 
 /*
   = Tri-color Incremental Garbage Collection
@@ -1162,7 +1163,7 @@ mrb_incremental_gc(mrb_state *mrb)
 {
   mrb_gc *gc = &mrb->gc;
 
-  if (gc->disabled) return;
+  if (gc->disabled || gc->iterating) return;
 
   GC_INVOKE_TIME_REPORT("mrb_incremental_gc()");
   GC_TIME_START;
@@ -1202,7 +1203,7 @@ mrb_full_gc(mrb_state *mrb)
 {
   mrb_gc *gc = &mrb->gc;
 
-  if (gc->disabled) return;
+  if (gc->disabled || gc->iterating) return;
 
   GC_INVOKE_TIME_REPORT("mrb_full_gc()");
   GC_TIME_START;
@@ -1508,7 +1509,32 @@ gc_each_objects(mrb_state *mrb, mrb_gc *gc, mrb_each_object_callback *callback, 
 void
 mrb_objspace_each_objects(mrb_state *mrb, mrb_each_object_callback *callback, void *data)
 {
-  gc_each_objects(mrb, &mrb->gc, callback, data);
+  mrb_bool iterating = mrb->gc.iterating;
+
+  mrb_full_gc(mrb);
+  mrb->gc.iterating = TRUE;
+  if (iterating) {
+    gc_each_objects(mrb, &mrb->gc, callback, data);
+  }
+  else {
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
+
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      gc_each_objects(mrb, &mrb->gc, callback, data);
+      mrb->jmp = prev_jmp;
+      mrb->gc.iterating = iterating; 
+   } MRB_CATCH(&c_jmp) {
+      mrb->jmp = prev_jmp;
+      mrb->gc.iterating = iterating;
+      if (mrb->exc) {
+        mrb_value exc = mrb_obj_value(mrb->exc);
+        mrb->exc = NULL;
+        mrb_exc_raise(mrb, exc);
+      }
+    } MRB_END_EXC(&c_jmp);
+  }
 }
 
 #ifdef GC_TEST
