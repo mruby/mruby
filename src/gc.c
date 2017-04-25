@@ -1511,7 +1511,6 @@ mrb_objspace_each_objects(mrb_state *mrb, mrb_each_object_callback *callback, vo
 {
   mrb_bool iterating = mrb->gc.iterating;
 
-  mrb_full_gc(mrb);
   mrb->gc.iterating = TRUE;
   if (iterating) {
     gc_each_objects(mrb, &mrb->gc, callback, data);
