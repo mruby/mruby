@@ -192,7 +192,7 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, size_t len)
   if (capa > (size_t)a->aux.capa) {
     mrb_value *expanded_ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
 
-    a->aux.capa = capa;
+    a->aux.capa = (mrb_int)capa;
     a->ptr = expanded_ptr;
   }
 }

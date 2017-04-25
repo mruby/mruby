@@ -367,7 +367,7 @@ mrb_str_succ_bang(mrb_state *mrb, mrb_value self)
   unsigned char *p, *e, *b, *t;
   const char *prepend;
   struct RString *s = mrb_str_ptr(self);
-  size_t l;
+  mrb_int l;
 
   if (RSTRING_LEN(self) == 0)
     return self;
