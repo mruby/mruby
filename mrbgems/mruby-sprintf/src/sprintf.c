@@ -716,21 +716,15 @@ retry:
         c = RSTRING_PTR(tmp);
         n = RSTRING_LEN(tmp);
         if (!(flags & FWIDTH)) {
-          CHECK(n);
-          memcpy(buf+blen, c, n);
-          blen += n;
+          PUSH(c, n);
         }
         else if ((flags & FMINUS)) {
-          CHECK(n);
-          memcpy(buf+blen, c, n);
-          blen += n;
+          PUSH(c, n);
           if (width>0) FILL(' ', width-1);
         }
         else {
           if (width>0) FILL(' ', width-1);
-          CHECK(n);
-          memcpy(buf+blen, c, n);
-          blen += n;
+          PUSH(c, n);
         }
       }
       break;
@@ -768,19 +762,11 @@ retry:
           if ((flags&FWIDTH) && (width > slen)) {
             width -= (int)slen;
             if (!(flags&FMINUS)) {
-              CHECK(width);
-              while (width-- > 0) {
-                buf[blen++] = ' ';
-              }
+              FILL(' ', width);
             }
-            CHECK(len);
-            memcpy(&buf[blen], RSTRING_PTR(str), len);
-            blen += len;
+            PUSH(RSTRING_PTR(str), len);
             if (flags&FMINUS) {
-              CHECK(width);
-              while (width-- > 0) {
-                buf[blen++] = ' ';
-              }
+              FILL(' ', width);
             }
             break;
           }
@@ -986,10 +972,7 @@ retry:
         }
 
         if (!(flags&FMINUS) && width > 0) {
-          CHECK(width);
-          while (width-- > 0) {
-            buf[blen++] = ' ';
-          }
+          FILL(' ', width);
         }
 
         if (sc) PUSH(&sc, 1);
@@ -998,28 +981,20 @@ retry:
           int plen = (int)strlen(prefix);
           PUSH(prefix, plen);
         }
-        CHECK(prec - len);
         if (dots) PUSH("..", 2);
 
         if (v < 0) {
           char c = sign_bits(base, p);
-          while (len < prec--) {
-            buf[blen++] = c;
-          }
+          FILL(c, prec - len);
         }
         else if ((flags & (FMINUS|FPREC)) != FMINUS) {
           char c = '0';
-          while (len < prec--) {
-            buf[blen++] = c;
-          }
+          FILL(c, prec - len);
         }
 
         PUSH(s, len);
         if (width > 0) {
-          CHECK(width);
-          while (width-- > 0) {
-            buf[blen++] = ' ';
-          }
+          FILL(' ', width);
         }
       }
       break;
