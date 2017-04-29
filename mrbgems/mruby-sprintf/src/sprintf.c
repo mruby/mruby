@@ -116,7 +116,6 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 
 #define CHECK(l) do {\
 /*  int cr = ENC_CODERANGE(result);*/\
-  if ((l) < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "illegal specifier"); \
   while ((l) >= bsiz - blen) {\
     bsiz*=2;\
     if (bsiz < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "too big specifier"); \
@@ -1059,6 +1058,10 @@ retry:
         if ((flags&FWIDTH) && need < width)
           need = width;
         need += 20;
+        if (need <= 0) {
+          mrb_raise(mrb, E_ARGUMENT_ERROR,
+                    (width > prec ? "width too big" : "prec too big"));
+        }
 
         CHECK(need);
         n = snprintf(&buf[blen], need, fbuf, fval);
