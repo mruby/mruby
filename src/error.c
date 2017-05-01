@@ -62,7 +62,7 @@ exc_initialize(mrb_state *mrb, mrb_value exc)
  *  With no argument, or if the argument is the same as the receiver,
  *  return the receiver. Otherwise, create a new
  *  exception object of the same class as the receiver, but with a
- *  message equal to <code>string.to_str</code>.
+ *  message equal to <code>string</code>.
  *
  */
 
@@ -111,9 +111,7 @@ exc_to_s(mrb_state *mrb, mrb_value exc)
  *   exception.message   ->  string
  *
  * Returns the result of invoking <code>exception.to_s</code>.
- * Normally this returns the exception's message or name. By
- * supplying a to_str method, exceptions are agreeing to
- * be used where Strings are expected.
+ * Normally this returns the exception's message or name.
  */
 
 static mrb_value
