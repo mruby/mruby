@@ -2571,6 +2571,15 @@ block_call      : command do_block
                       if ($1->car == (node*)NODE_YIELD) {
                         yyerror(p, "block given to yield");
                       }
+                      else if ($1->car == (node*)NODE_NEXT) {
+                        yyerror(p, "block given to next");
+                      }
+                      else if ($1->car == (node*)NODE_BREAK) {
+                        yyerror(p, "block given to break");
+                      }
+                      else if ($1->car == (node*)NODE_RETURN) {
+                        yyerror(p, "block given to return");
+                      }
                       else {
                         call_with_block(p, $1, $2);
                       }
