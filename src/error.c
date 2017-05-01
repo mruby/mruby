@@ -174,7 +174,7 @@ exc_get_backtrace(mrb_state *mrb, mrb_value exc)
 
   attr_name = mrb_intern_lit(mrb, "backtrace");
   backtrace = mrb_iv_get(mrb, exc, attr_name);
-  if (mrb_nil_p(backtrace)) {
+  if (!mrb_array_p(backtrace)) {
     if (mrb_obj_ptr(exc) == mrb->backtrace.exc && mrb->backtrace.n > 0) {
       backtrace = mrb_restore_backtrace(mrb);
       mrb->backtrace.n = 0;
