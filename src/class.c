@@ -590,6 +590,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       mrb_value hsh = mrb_hash_new(mrb);
       mrb_value *p = va_arg(ap, mrb_value*);
 
+      mrb_assert(!mrb_nil_p(*kw));
       for (; !mrb_nil_p(*kw); kw += 2) {
         mrb_assert(mrb_symbol_p(kw[0]));
         mrb_hash_set(mrb, hsh, kw[0], kw[1]);

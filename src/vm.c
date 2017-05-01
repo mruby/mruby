@@ -1321,6 +1321,23 @@ RETRY_TRY_BLOCK:
           ci->argc = n;
           ci->nregs = n + 2;
         }
+
+        if (GET_OPCODE(i) == OP_SENDK) {
+          mrb_value const *kw_beg = regs + 2 + (ci->argc < 0? 1 : ci->argc);
+          mrb_value const *kw;
+          int new_nregs, *nregs = &mrb->c->ci->nregs;
+          int kdict_size = 0;
+
+          for (kw = kw_beg; !mrb_nil_p(kw[0]); kw += 2) {
+            mrb_assert(mrb_symbol_p(kw[0]));
+            ++kdict_size;
+          }
+          mrb_assert(mrb_nil_p(*kw));
+
+          new_nregs = kw_beg - regs + 2 * kdict_size + 1;
+          *nregs = *nregs < new_nregs? new_nregs : *nregs;
+        }
+
         result = m->body.func(mrb, recv);
         mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
