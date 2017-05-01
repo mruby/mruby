@@ -1491,15 +1491,16 @@ gc_generational_mode_set(mrb_state *mrb, mrb_value self)
 static void
 gc_each_objects(mrb_state *mrb, mrb_gc *gc, mrb_each_object_callback *callback, void *data)
 {
-  mrb_heap_page* page = gc->heaps;
+  mrb_heap_page* page;
 
+  page = gc->heaps;
   while (page != NULL) {
-    RVALUE *p, *pend;
+    RVALUE *p;
+    int i;
 
     p = objects(page);
-    pend = p + MRB_HEAP_PAGE_SIZE;
-    for (;p < pend; p++) {
-      if ((*callback)(mrb, &p->as.basic, data) == MRB_EACH_OBJ_BREAK)
+    for (i=0; i < MRB_HEAP_PAGE_SIZE; i++) {
+      if ((*callback)(mrb, &p[i].as.basic, data) == MRB_EACH_OBJ_BREAK)
         return;
     }
     page = page->next;
