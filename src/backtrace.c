@@ -213,6 +213,7 @@ print_backtrace(mrb_state *mrb, mrb_value backtrace)
   int i, n;
   FILE *stream = stderr;
 
+  if (!mrb_array_p(backtrace)) return;
   fprintf(stream, "trace:\n");
 
   n = RARRAY_LEN(backtrace);
