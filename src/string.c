@@ -1954,10 +1954,11 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   int argc;
   mrb_value spat = mrb_nil_value();
   enum {awk, string, regexp} split_type = string;
-  long i = 0, lim_p;
+  mrb_int i = 0;
   mrb_int beg;
   mrb_int end;
   mrb_int lim = 0;
+  mrb_bool lim_p;
   mrb_value result, tmp;
 
   argc = mrb_get_args(mrb, "|oi", &spat, &lim);
