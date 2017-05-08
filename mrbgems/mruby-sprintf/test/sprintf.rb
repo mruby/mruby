@@ -87,6 +87,10 @@ assert("String#% with invalid chr") do
   end
 end
 
+assert("String#% %b") do
+  assert_equal("..10115", "%0b5" % -5)
+end
+
 assert("String#% invalid format") do
   assert_raise ArgumentError do
     "%?" % ""
