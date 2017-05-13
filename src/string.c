@@ -685,13 +685,20 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
 
       p = RSTR_PTR(s);
       len = s->as.heap.len;
-      ptr = (char *)mrb_malloc(mrb, (size_t)len + 1);
+      if (len < RSTRING_EMBED_LEN_MAX) {
+        RSTR_SET_EMBED_FLAG(s);
+        RSTR_SET_EMBED_LEN(s, len);
+        ptr = RSTR_PTR(s);
+      }
+      else {
+        ptr = (char *)mrb_malloc(mrb, (size_t)len + 1);
+        s->as.heap.ptr = ptr;
+        s->as.heap.aux.capa = len;
+      }
       if (p) {
         memcpy(ptr, p, len);
       }
       ptr[len] = '\0';
-      s->as.heap.ptr = ptr;
-      s->as.heap.aux.capa = len;
       str_decref(mrb, shared);
     }
     RSTR_UNSET_SHARED_FLAG(s);
