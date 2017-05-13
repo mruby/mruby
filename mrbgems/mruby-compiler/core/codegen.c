@@ -1026,7 +1026,7 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
 #ifndef MRB_DISABLE_STDIO
     fprintf(stderr, "unknown lhs %d\n", type);
 #endif
-    return;
+    break;
   }
   if (val) push();
 }
