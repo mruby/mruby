@@ -79,7 +79,7 @@ get_backtrace_i(mrb_state *mrb, struct backtrace_location *loc, void *data)
   ary = mrb_obj_value((struct RArray*)data);
 
   str = mrb_str_new_cstr(mrb, loc->filename);
-  str = mrb_format(mrb, "%S:%S", str, mrb_fixnum_value(loc->lineno));
+  str = mrb_format(mrb, "%S:%S", str, mrb_fixnum_to_str(mrb, mrb_fixnum_value(loc->lineno), 10));
 
   if (loc->method) {
     mrb_str_cat_lit(mrb, str, ":in ");
