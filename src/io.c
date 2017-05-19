@@ -556,6 +556,7 @@ mrb_io_s_sysclose(mrb_state *mrb, mrb_value klass)
 int
 mrb_cloexec_open(mrb_state *mrb, const char *pathname, mrb_int flags, mrb_int mode)
 {
+  mrb_value emsg;
   int fd, retry = FALSE;
 
 #ifdef O_CLOEXEC
@@ -576,7 +577,10 @@ reopen:
         goto reopen;
       }
     }
-    mrb_sys_fail(mrb, "open");
+
+    emsg = mrb_format(mrb, "open %S", mrb_str_new_cstr(mrb, pathname));
+    mrb_str_modify(mrb, mrb_str_ptr(emsg));
+    mrb_sys_fail(mrb, RSTRING_PTR(emsg));
   }
 
   if (fd <= 2) {
