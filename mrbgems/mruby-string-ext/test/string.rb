@@ -122,12 +122,16 @@ assert('String#swapcase!') do
 end
 
 assert('String#concat') do
-  s = "Hello "
-  s.concat "World!"
-  t = "Hello "
-  t << "World!"
-  assert_equal "Hello World!", t
-  assert_equal "Hello World!", s
+  assert_equal "Hello World!", "Hello " << "World" << 33
+  assert_equal "Hello World!", "Hello ".concat("World").concat(33)
+
+  o = Object.new
+  def o.to_str
+    "to_str"
+  end
+  assert_equal "hi to_str", "hi " << o
+
+  assert_raise(TypeError) { "".concat(Object.new) }
 end
 
 assert('String#casecmp') do
