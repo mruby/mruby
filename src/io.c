@@ -625,6 +625,9 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
   if (maxlen < 0) {
     return mrb_nil_value();
   }
+  else if (maxlen == 0) {
+    return mrb_str_new(mrb, NULL, maxlen);
+  }
 
   if (mrb_nil_p(buf)) {
     buf = mrb_str_new(mrb, NULL, maxlen);
