@@ -705,6 +705,9 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
     fd = fptr->fd2;
   }
   length = write(fd, RSTRING_PTR(buf), RSTRING_LEN(buf));
+  if (length == -1) {
+    mrb_sys_fail(mrb, 0);
+  }
 
   return mrb_fixnum_value(length);
 }

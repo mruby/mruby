@@ -123,14 +123,9 @@ class IO
   def write(string)
     str = string.is_a?(String) ? string : string.to_s
     return str.size unless str.size > 0
-
     len = syswrite(str)
-    if len != -1
-      @pos += len
-      return len
-    end
-
-    raise IOError
+    @pos += len
+    len
   end
 
   def <<(str)
