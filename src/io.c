@@ -623,7 +623,7 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "i|S", &maxlen, &buf);
   if (maxlen < 0) {
-    return mrb_nil_value();
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative expanding string size");
   }
   else if (maxlen == 0) {
     return mrb_str_new(mrb, NULL, maxlen);
