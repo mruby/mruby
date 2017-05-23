@@ -98,6 +98,9 @@
 /* -DMRB_ENABLE_XXXX to enable following features */
 //#define MRB_ENABLE_DEBUG_HOOK	/* hooks for debugger */
 
+/* allow overriding Fixnum/Float + - * / operators */
+//#define MRB_ENABLE_NUMERIC_OVERRIDE
+
 /* end of configuration */
 
 /* define MRB_DISABLE_XXXX from DISABLE_XXX (for compatibility) */

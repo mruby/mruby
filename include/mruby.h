@@ -234,6 +234,10 @@ typedef struct mrb_state {
   mrb_atexit_func *atexit_stack;
 #endif
   mrb_int atexit_stack_len;
+
+#ifdef MRB_ENABLE_NUMERIC_OVERRIDE
+  unsigned numeric_methods;
+#endif
 } mrb_state;
 
 
