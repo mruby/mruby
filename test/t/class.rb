@@ -359,6 +359,19 @@ assert('singleton tests') do
       end
     end
   end
+
+  assert_nothing_raised do
+    module FooMod
+      class FooModInner
+      end
+      class << self
+        FooModInner
+        class << self
+          FooModInner
+        end
+      end
+    end
+  end
 end
 
 assert('clone Class') do
