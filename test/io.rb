@@ -234,6 +234,9 @@ assert('IO.sysopen, IO#sysread') do
     io.sysread(10000)
   end
   io.close
+  assert_equal "", io.sysread(0)
+  assert_raise(IOError) { io.sysread(1) }
+  assert_raise(ArgumentError) { io.sysread(-1) }
   io.closed?
 end
 

@@ -623,7 +623,10 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "i|S", &maxlen, &buf);
   if (maxlen < 0) {
-    return mrb_nil_value();
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative expanding string size");
+  }
+  else if (maxlen == 0) {
+    return mrb_str_new(mrb, NULL, maxlen);
   }
 
   if (mrb_nil_p(buf)) {
@@ -633,7 +636,7 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
     buf = mrb_str_resize(mrb, buf, maxlen);
   }
 
-  fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
+  fptr = (struct mrb_io *)io_get_open_fptr(mrb, io);
   ret = read(fptr->fd, RSTRING_PTR(buf), maxlen);
   switch (ret) {
     case 0: /* EOF */
