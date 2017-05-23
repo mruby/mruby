@@ -872,7 +872,6 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
     /* fall through */
   default:
     exc = mrb_make_exception(mrb, argc, a);
-    mrb_obj_iv_set(mrb, mrb_obj_ptr(exc), mrb_intern_lit(mrb, "lastpc"), mrb_cptr_value(mrb, mrb->c->ci->pc));
     mrb_exc_raise(mrb, exc);
     break;
   }

@@ -163,8 +163,8 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
   return str;
 }
 
-void mrb_save_backtrace(mrb_state *mrb);
-mrb_value mrb_restore_backtrace(mrb_state *mrb);
+void mrb_keep_backtrace(mrb_state *mrb, mrb_value exc);
+mrb_value mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace);
 
 static mrb_value
 exc_get_backtrace(mrb_state *mrb, mrb_value exc)
@@ -175,17 +175,9 @@ exc_get_backtrace(mrb_state *mrb, mrb_value exc)
   attr_name = mrb_intern_lit(mrb, "backtrace");
   backtrace = mrb_iv_get(mrb, exc, attr_name);
   if (!mrb_array_p(backtrace)) {
-    if (mrb_obj_ptr(exc) == mrb->backtrace.exc && mrb->backtrace.n > 0) {
-      backtrace = mrb_restore_backtrace(mrb);
-      mrb->backtrace.n = 0;
-      mrb->backtrace.exc = 0;
-    }
-    else {
-      backtrace = mrb_exc_backtrace(mrb, exc);
-    }
+    backtrace = mrb_unpack_backtrace(mrb, backtrace);
     mrb_iv_set(mrb, exc, attr_name, backtrace);
   }
-
   return backtrace;
 }
 
@@ -224,7 +216,6 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
   mrb_callinfo *ci = mrb->c->ci;
   mrb_code *pc = ci->pc;
 
-  mrb_obj_iv_set(mrb, exc, mrb_intern_lit(mrb, "ciidx"), mrb_fixnum_value((mrb_int)(ci - mrb->c->cibase)));
   while (ci >= mrb->c->cibase) {
     mrb_code *err = ci->err;
 
@@ -245,36 +236,9 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
   }
 }
 
-static mrb_bool
-have_backtrace(mrb_state *mrb, struct RObject *exc)
-{
-  return !mrb_nil_p(mrb_obj_iv_get(mrb, exc, mrb_intern_lit(mrb, "backtrace")));
-}
-
 void
 mrb_exc_set(mrb_state *mrb, mrb_value exc)
 {
-  if (!mrb->gc.out_of_memory && mrb->backtrace.n > 0) {
-    mrb_value target_exc = mrb_nil_value();
-    int ai;
-
-    ai = mrb_gc_arena_save(mrb);
-    if ((mrb->exc && !have_backtrace(mrb, mrb->exc))) {
-      target_exc = mrb_obj_value(mrb->exc);
-    }
-    else if (!mrb_nil_p(exc) && mrb->backtrace.exc) {
-      target_exc = mrb_obj_value(mrb->backtrace.exc);
-      mrb_gc_protect(mrb, target_exc);
-    }
-    if (!mrb_nil_p(target_exc)) {
-      mrb_value backtrace;
-      backtrace = mrb_restore_backtrace(mrb);
-      set_backtrace(mrb, target_exc, backtrace);
-    }
-    mrb_gc_arena_restore(mrb, ai);
-  }
-
-  mrb->backtrace.n = 0;
   if (mrb_nil_p(exc)) {
     mrb->exc = 0;
   }
@@ -282,7 +246,7 @@ mrb_exc_set(mrb_state *mrb, mrb_value exc)
     mrb->exc = mrb_obj_ptr(exc);
     if (!mrb->gc.out_of_memory) {
       exc_debug_info(mrb, mrb->exc);
-      mrb_save_backtrace(mrb);
+      mrb_keep_backtrace(mrb, exc);
     }
   }
 }

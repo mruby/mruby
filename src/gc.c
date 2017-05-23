@@ -735,8 +735,6 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
 
   case MRB_TT_EXCEPTION:
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
-    if ((struct RObject*)obj == mrb->backtrace.exc)
-      mrb->backtrace.exc = 0;
     break;
 
   case MRB_TT_CLASS:
@@ -870,8 +868,6 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
   mrb_gc_mark(mrb, (struct RBasic*)mrb->top_self);
   /* mark exception */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
-  /* mark backtrace */
-  mrb_gc_mark(mrb, (struct RBasic*)mrb->backtrace.exc);
   /* mark pre-allocated exception */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->nomem_err);
   mrb_gc_mark(mrb, (struct RBasic*)mrb->stack_err);

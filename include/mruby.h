@@ -152,12 +152,6 @@ struct mrb_context {
 
 struct mrb_jmpbuf;
 
-typedef struct {
-  const char *filename;
-  int lineno;
-  mrb_sym method_id;
-} mrb_backtrace_entry;
-
 typedef void (*mrb_atexit_func)(struct mrb_state*);
 
 #define MRB_STATE_NO_REGEXP 1
@@ -172,15 +166,9 @@ typedef struct mrb_state {
 
   struct mrb_context *c;
   struct mrb_context *root_c;
+  struct iv_tbl *globals;                 /* global variable table */
 
   struct RObject *exc;                    /* exception */
-  struct {
-    struct RObject *exc;
-    int n;
-    int n_allocated;
-    mrb_backtrace_entry *entries;
-  } backtrace;
-  struct iv_tbl *globals;                 /* global variable table */
 
   struct RObject *top_self;
   struct RClass *object_class;            /* Object class */
