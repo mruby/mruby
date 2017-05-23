@@ -155,8 +155,6 @@ struct mrb_jmpbuf;
 typedef struct {
   const char *filename;
   int lineno;
-  struct RClass *klass;
-  char sep;
   mrb_sym method_id;
 } mrb_backtrace_entry;
 
