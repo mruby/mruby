@@ -73,6 +73,29 @@ end
 
 assert('Enumerable#grep', '15.3.2.2.9') do
   assert_equal [4,5,6], [1,2,3,4,5,6,7,8,9].grep(4..6)
+
+  obj = Object.new
+  class << obj
+    include Enumerable
+    def each
+      yield 1
+      yield 2
+      yield 3
+      yield 1
+      yield 2
+      self
+    end
+  end
+  obj.grep(1..2)
+  assert_equal([1, 2, 1, 2], obj.grep(1..2))
+  a = []
+  obj.grep(2) { |x| a << x }
+  assert_equal([2, 2], a)
+
+  a = []
+  lambda = ->(x, i) { a << [x, i] }
+  obj.each_with_index.grep(proc{ |x,i| x==2 }, &lambda)
+  assert_equal([[2, 1], [2, 4]], a)
 end
 
 assert('Enumerable#include?', '15.3.2.2.10') do
