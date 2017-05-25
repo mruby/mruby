@@ -1273,6 +1273,7 @@ RETRY_TRY_BLOCK:
           else {
             args = mrb_ary_new_from_values(mrb, n, regs+a+1);
           }
+          ERR_PC_SET(mrb, pc);
           mrb_method_missing(mrb, mid, recv, args);
         }
         mid = missing;
@@ -1460,6 +1461,7 @@ RETRY_TRY_BLOCK:
           else {
             args = mrb_ary_new_from_values(mrb, n, regs+a+1);
           }
+          ERR_PC_SET(mrb, pc);
           mrb_method_missing(mrb, mid, recv, args);
         }
         mid = missing;
@@ -1941,6 +1943,7 @@ RETRY_TRY_BLOCK:
           else {
             args = mrb_ary_new_from_values(mrb, n, regs+a+1);
           }
+          ERR_PC_SET(mrb, pc);
           mrb_method_missing(mrb, mid, recv, args);
         }
         mid = missing;
