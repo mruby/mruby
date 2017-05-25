@@ -1034,6 +1034,9 @@ retry:
           if ((flags & FWIDTH) && need < width)
             need = width;
 
+          if (need < 0) {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "width too big");
+          }
           FILL(' ', need);
           if (flags & FMINUS) {
             if (sign)
