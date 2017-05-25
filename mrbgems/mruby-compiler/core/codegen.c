@@ -956,7 +956,7 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
   int type = (intptr_t)tree->car;
 
   tree = tree->cdr;
-  switch ((intptr_t)type) {
+  switch (type) {
   case NODE_GVAR:
     idx = new_sym(s, sym(tree));
     genop_peep(s, MKOP_ABx(OP_SETGLOBAL, sp, idx), val);
@@ -1006,8 +1006,10 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
     break;
 
   case NODE_CALL:
+  case NODE_SCALL:
     push();
-    gen_call(s, tree, attrsym(s, sym(tree->cdr->car)), sp, NOVAL, 0);
+    gen_call(s, tree, attrsym(s, sym(tree->cdr->car)), sp, NOVAL,
+             type == NODE_SCALL);
     pop();
     if (val) {
       genop_peep(s, MKOP_AB(OP_MOVE, cursp(), sp), val);
