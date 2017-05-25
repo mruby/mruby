@@ -190,7 +190,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
   if (c->status == MRB_FIBER_CREATED) {
     mrb_value *b, *e;
 
-    if (len > c->stend - c->stack) {
+    if (len >= c->stend - c->stack) {
       mrb_raise(mrb, E_FIBER_ERROR, "too many arguments to fiber");
     }
     b = c->stack+1;
