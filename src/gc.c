@@ -648,8 +648,11 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
       struct REnv *e = (struct REnv*)obj;
       mrb_int i, len;
 
-      if (MRB_ENV_STACK_SHARED_P(e) && e->cxt.c->fib) {
-        mrb_gc_mark(mrb, (struct RBasic*)e->cxt.c->fib);
+      if (MRB_ENV_STACK_SHARED_P(e)) {
+        if (e->cxt.c->fib) {
+          mrb_gc_mark(mrb, (struct RBasic*)e->cxt.c->fib);
+        }
+        break;
       }
       len = MRB_ENV_STACK_LEN(e);
       for (i=0; i<len; i++) {
