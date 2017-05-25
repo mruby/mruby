@@ -1870,6 +1870,9 @@ RETRY_TRY_BLOCK:
           if (mrb->c->ci == mrb->c->cibase && mrb->c->ci->pc) {
             struct mrb_context *c = mrb->c;
 
+            while (eidx > 0) {
+              ecall(mrb, --eidx);
+            }
             mrb->c = c->prev;
             c->prev = NULL;
             ci = mrb->c->ci;
