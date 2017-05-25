@@ -1148,8 +1148,14 @@ RETRY_TRY_BLOCK:
         case MRB_TT_MODULE:
           break;
         default:
-          mrb_raise(mrb, E_TYPE_ERROR, "class or module required for rescue clause");
-          break;
+          {
+            mrb_value exc;
+
+            exc = mrb_exc_new_str_lit(mrb, E_TYPE_ERROR,
+                  "class or module required for rescue clause");
+            mrb_exc_set(mrb, exc);
+            goto L_RAISE;
+          }
         }
         ec = mrb_class_ptr(e);
         regs[b] = mrb_bool_value(mrb_obj_is_kind_of(mrb, exc, ec));
