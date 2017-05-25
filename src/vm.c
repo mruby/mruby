@@ -264,6 +264,7 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e)
   mrb_value *p;
 
   if (!MRB_ENV_STACK_SHARED_P(e)) return;
+  if (e->cioff == 0 && e->cxt.c == mrb->root_c) return;
   MRB_ENV_UNSHARE_STACK(e);
   if (!e->c) {
     /* save block argument position (negated) */
