@@ -319,7 +319,6 @@ ecall(mrb_state *mrb, int i)
   ci->acc = CI_ACC_SKIP;
   ci->argc = 0;
   ci->proc = p;
-  ci->env = p->env;
   ci->nregs = p->body.irep->nregs;
   ci->target_class = p->target_class;
   mrb->c->stack = mrb->c->stack + ci[-1].nregs;
