@@ -138,6 +138,7 @@ mrb_print_backtrace(mrb_state *mrb)
   }
 
   backtrace = mrb_obj_iv_get(mrb, mrb->exc, mrb_intern_lit(mrb, "backtrace"));
+  if (mrb_nil_p(backtrace)) return;
   if (mrb_array_p(backtrace)) {
     print_backtrace(mrb, backtrace);
   }
@@ -198,6 +199,7 @@ mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace)
   struct backtrace_location *bt;
   mrb_int n, i;
 
+  if (mrb_nil_p(backtrace)) return mrb_ary_new_capa(mrb, 0);
   if (mrb_array_p(backtrace)) return backtrace;
   if (!mrb_string_p(backtrace)) {
   broken:
