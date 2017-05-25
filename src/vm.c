@@ -2740,7 +2740,11 @@ mrb_top_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int sta
   mrb_callinfo *ci;
   mrb_value v;
 
-  if (!mrb->c->cibase || mrb->c->ci == mrb->c->cibase) {
+  if (!mrb->c->cibase) {
+    return mrb_vm_run(mrb, proc, self, stack_keep);
+  }
+  if (mrb->c->ci == mrb->c->cibase) {
+    mrb->c->ci->env = NULL;
     return mrb_vm_run(mrb, proc, self, stack_keep);
   }
   ci = cipush(mrb);
