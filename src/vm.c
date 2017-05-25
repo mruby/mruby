@@ -1084,8 +1084,11 @@ RETRY_TRY_BLOCK:
       if (e) {
         mrb_value *regs_a = regs + GETARG_A(i);
         int idx = GETARG_B(i);
-        e->stack[idx] = *regs_a;
-        mrb_write_barrier(mrb, (struct RBasic*)e);
+
+        if (idx < MRB_ENV_STACK_LEN(e)) {
+          e->stack[idx] = *regs_a;
+          mrb_write_barrier(mrb, (struct RBasic*)e);
+        }
       }
       NEXT;
     }
