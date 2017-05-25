@@ -52,13 +52,13 @@ mrb_open_core(mrb_allocf f, void *ud)
 void*
 mrb_default_allocf(mrb_state *mrb, void *p, size_t size, void *ud)
 {
-  if (size == 0) {
+  void *p2;
+
+  if (size == 0 || (p2 = realloc(p, size)) == NULL) {
     free(p);
     return NULL;
   }
-  else {
-    return realloc(p, size);
-  }
+  return p2;
 }
 
 struct alloca_header {
