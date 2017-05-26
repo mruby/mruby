@@ -1312,8 +1312,12 @@ mrb_init_numeric(mrb_state *mrb)
   integer = mrb_define_class(mrb, "Integer",  numeric);                          /* 15.2.8 */
   MRB_SET_INSTANCE_TT(integer, MRB_TT_FIXNUM);
   mrb_undef_class_method(mrb, integer, "new");
-  mrb_define_method(mrb, integer, "to_i", int_to_i, MRB_ARGS_NONE());            /* 15.2.8.3.24 */
-  mrb_define_method(mrb, integer, "to_int", int_to_i, MRB_ARGS_NONE());
+  mrb_define_method(mrb, integer, "to_i",     int_to_i,       MRB_ARGS_NONE());  /* 15.2.8.3.24 */
+  mrb_define_method(mrb, integer, "to_int",   int_to_i,       MRB_ARGS_NONE());
+  mrb_define_method(mrb, integer, "ceil",     int_to_i,       MRB_ARGS_REQ(1));  /* 15.2.8.3.8 (x) */
+  mrb_define_method(mrb, integer, "floor",    int_to_i,       MRB_ARGS_REQ(1));  /* 15.2.8.3.10 (x) */
+  mrb_define_method(mrb, integer, "round",    int_to_i,       MRB_ARGS_REQ(1));  /* 15.2.8.3.12 (x) */
+  mrb_define_method(mrb, integer, "truncate", int_to_i,       MRB_ARGS_REQ(1));  /* 15.2.8.3.15 (x) */
 
   /* Fixnum Class */
   mrb->fixnum_class = fixnum = mrb_define_class(mrb, "Fixnum", integer);
@@ -1334,10 +1338,6 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fixnum,  "to_s",     fix_to_s,          MRB_ARGS_NONE()); /* 15.2.8.3.25 */
   mrb_define_method(mrb, fixnum,  "inspect",  fix_to_s,          MRB_ARGS_NONE());
   mrb_define_method(mrb, fixnum,  "divmod",   fix_divmod,        MRB_ARGS_REQ(1)); /* 15.2.8.3.30 (x) */
-  mrb_define_method(mrb, fixnum,  "ceil",     int_to_i,          MRB_ARGS_REQ(1)); /* 15.2.8.3.8 (x) */
-  mrb_define_method(mrb, fixnum,  "floor",    int_to_i,          MRB_ARGS_REQ(1)); /* 15.2.8.3.10 (x) */
-  mrb_define_method(mrb, fixnum,  "round",    int_to_i,          MRB_ARGS_REQ(1)); /* 15.2.8.3.12 (x) */
-  mrb_define_method(mrb, fixnum,  "truncate", int_to_i,          MRB_ARGS_REQ(1)); /* 15.2.8.3.15 (x) */
 
   /* Float Class */
   mrb->float_class = fl = mrb_define_class(mrb, "Float", numeric);                 /* 15.2.9 */
