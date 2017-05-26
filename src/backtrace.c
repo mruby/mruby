@@ -13,6 +13,7 @@
 #include <mruby/debug.h>
 #include <mruby/error.h>
 #include <mruby/numeric.h>
+#include <mruby/data.h>
 
 struct backtrace_location {
   int lineno;
@@ -21,6 +22,8 @@ struct backtrace_location {
 };
 
 typedef void (*each_backtrace_func)(mrb_state*, int i, struct backtrace_location*, void*);
+
+static const mrb_data_type bt_type = { "Backtrace", mrb_free };
 
 static void
 each_backtrace(mrb_state *mrb, mrb_int ciidx, mrb_code *pc0, each_backtrace_func func, void *data)
@@ -102,14 +105,11 @@ print_packed_backtrace(mrb_state *mrb, mrb_value packed)
   struct backtrace_location *bt;
   mrb_int n, i;
 
-  if (!mrb_string_p(packed)) {
-  broken:
+  bt = (struct backtrace_location*)mrb_data_check_get_ptr(mrb, packed, &bt_type);
+  if (bt == NULL) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "broken backtrace");
   }
-  n = RSTRING_LEN(packed);
-  if (n%sizeof(struct backtrace_location) != 0) goto broken;
-  n /= sizeof(struct backtrace_location);
-  bt = (struct backtrace_location*)RSTRING_PTR(packed);
+  n = (mrb_int)RDATA(packed)->flags;
 
   fprintf(stream, "trace:\n");
   for (i = 0; i < n; i++) {
@@ -169,16 +169,17 @@ pack_backtrace_i(mrb_state *mrb,
 static mrb_value
 packed_backtrace(mrb_state *mrb)
 {
-  mrb_value backtrace;
+  struct RData *backtrace;
   mrb_int ciidx = mrb->c->ci - mrb->c->cibase;
   mrb_int len = (ciidx+1)*sizeof(struct backtrace_location);
-  char *ptr;
+  void *ptr;
 
-  backtrace = mrb_str_new(mrb, NULL, len);
-  ptr = RSTRING_PTR(backtrace);
+  ptr = mrb_malloc(mrb, len);
   memset(ptr, 0, len);
+  backtrace = mrb_data_object_alloc(mrb, NULL, ptr, &bt_type);
+  backtrace->flags = (unsigned int)ciidx+1;
   each_backtrace(mrb, ciidx, mrb->c->ci->pc, pack_backtrace_i, ptr);
-  return backtrace;
+  return mrb_obj_value(backtrace);
 }
 
 void
@@ -195,21 +196,16 @@ mrb_keep_backtrace(mrb_state *mrb, mrb_value exc)
 mrb_value
 mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace)
 {
-  mrb_value str;
   struct backtrace_location *bt;
   mrb_int n, i;
 
   if (mrb_nil_p(backtrace)) return mrb_ary_new_capa(mrb, 0);
   if (mrb_array_p(backtrace)) return backtrace;
-  if (!mrb_string_p(backtrace)) {
-  broken:
+  bt = (struct backtrace_location*)mrb_data_check_get_ptr(mrb, backtrace, &bt_type);
+  if (bt == NULL) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "broken backtrace");
   }
-  str = backtrace;
-  n = RSTRING_LEN(str);
-  if (n%sizeof(struct backtrace_location) != 0) goto broken;
-  n /= sizeof(struct backtrace_location);
-  bt = (struct backtrace_location*)RSTRING_PTR(str);
+  n = (mrb_int)RDATA(backtrace)->flags;
   backtrace = mrb_ary_new_capa(mrb, n);
   for (i = 0; i < n; i++) {
     int ai = mrb_gc_arena_save(mrb);
