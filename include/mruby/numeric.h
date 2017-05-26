@@ -20,6 +20,12 @@ MRB_BEGIN_DECL
 #define NEGFIXABLE(f) ((f) >= MRB_INT_MIN)
 #define FIXABLE(f) (POSFIXABLE(f) && NEGFIXABLE(f))
 
+#ifdef MRB_INT64
+#define FIXABLE_FLOAT(f) FIXABLE((mrb_int)(f))
+#else
+#define FIXABLE_FLOAT(f) FIXABLE(f)
+#endif
+
 MRB_API mrb_value mrb_flo_to_fixnum(mrb_state *mrb, mrb_value val);
 MRB_API mrb_value mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, int base);
 /* ArgumentError if format string doesn't match /%(\.[0-9]+)?[aAeEfFgG]/ */

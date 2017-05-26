@@ -800,7 +800,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
               {
                 mrb_float f = mrb_float(ARGV[arg_i]);
 
-                if (!FIXABLE(f)) {
+                if (!FIXABLE_FLOAT(f)) {
                   mrb_raise(mrb, E_RANGE_ERROR, "float too big for int");
                 }
                 *p = (mrb_int)f;

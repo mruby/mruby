@@ -392,7 +392,7 @@ flo_shift(mrb_state *mrb, mrb_value x, mrb_int width)
       val *= 2;
     }
   }
-  if (FIXABLE(val)) {
+  if (FIXABLE_FLOAT(val)) {
     return mrb_fixnum_value((mrb_int)val);
   }
   return mrb_float_value(mrb, val);
@@ -515,7 +515,7 @@ flo_floor(mrb_state *mrb, mrb_value num)
 {
   mrb_float f = floor(mrb_float(num));
 
-  if (!FIXABLE(f)) {
+  if (!FIXABLE_FLOAT(f)) {
     return mrb_float_value(mrb, f);
   }
   return mrb_fixnum_value((mrb_int)f);
@@ -540,7 +540,7 @@ flo_ceil(mrb_state *mrb, mrb_value num)
 {
   mrb_float f = ceil(mrb_float(num));
 
-  if (!FIXABLE(f)) {
+  if (!FIXABLE_FLOAT(f)) {
     return mrb_float_value(mrb, f);
   }
   return mrb_fixnum_value((mrb_int)f);
@@ -661,7 +661,7 @@ flo_truncate(mrb_state *mrb, mrb_value num)
   if (f > 0.0) f = floor(f);
   if (f < 0.0) f = ceil(f);
 
-  if (!FIXABLE(f)) {
+  if (!FIXABLE_FLOAT(f)) {
     mrb_check_num_exact(mrb, f);
     return mrb_float_value(mrb, f);
   }
@@ -1099,7 +1099,7 @@ mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
     if (isnan(d)) {
       mrb_raise(mrb, E_FLOATDOMAIN_ERROR, "NaN");
     }
-    if (FIXABLE(d)) {
+    if (FIXABLE_FLOAT(d)) {
       z = (mrb_int)d;
     }
     else {
