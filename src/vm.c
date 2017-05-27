@@ -850,6 +850,7 @@ mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stac
   mrb_irep *irep = proc->body.irep;
   mrb_value result;
   struct mrb_context *c = mrb->c;
+  int cioff = c->ci - c->cibase;
 
   if (!c->stack) {
     stack_init(mrb);
@@ -859,6 +860,9 @@ mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stac
   stack_extend(mrb, stack_keep);
   c->stack[0] = self;
   result = mrb_vm_exec(mrb, proc, irep->iseq);
+  if (c->ci - c->cibase > cioff) {
+    c->ci = c->cibase + cioff;
+  }
   mrb->c = c;
   return result;
 }
