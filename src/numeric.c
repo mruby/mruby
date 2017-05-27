@@ -497,6 +497,17 @@ flo_finite_p(mrb_state *mrb, mrb_value num)
   return mrb_bool_value(isfinite(mrb_float(num)));
 }
 
+void
+mrb_check_num_exact(mrb_state *mrb, mrb_float num)
+{
+  if (isinf(num)) {
+    mrb_raise(mrb, E_FLOATDOMAIN_ERROR, num < 0 ? "-Infinity" : "Infinity");
+  }
+  if (isnan(num)) {
+    mrb_raise(mrb, E_FLOATDOMAIN_ERROR, "NaN");
+  }
+}
+
 /* 15.2.9.3.10 */
 /*
  *  call-seq:
@@ -515,6 +526,7 @@ flo_floor(mrb_state *mrb, mrb_value num)
 {
   mrb_float f = floor(mrb_float(num));
 
+  mrb_check_num_exact(mrb, f);
   if (!FIXABLE_FLOAT(f)) {
     return mrb_float_value(mrb, f);
   }
@@ -540,6 +552,7 @@ flo_ceil(mrb_state *mrb, mrb_value num)
 {
   mrb_float f = ceil(mrb_float(num));
 
+  mrb_check_num_exact(mrb, f);
   if (!FIXABLE_FLOAT(f)) {
     return mrb_float_value(mrb, f);
   }
@@ -587,14 +600,10 @@ flo_round(mrb_state *mrb, mrb_value num)
   mrb_get_args(mrb, "|i", &ndigits);
   number = mrb_float(num);
 
-  if (isinf(number)) {
-    if (0 < ndigits) return num;
-    else mrb_raise(mrb, E_FLOATDOMAIN_ERROR, number < 0 ? "-Infinity" : "Infinity");
+  if (0 < ndigits && (isinf(number) || isnan(number))) {
+    return num;
   }
-  if (isnan(number)) {
-    if (0 < ndigits) return num;
-    else mrb_raise(mrb, E_FLOATDOMAIN_ERROR, "NaN");
-  }
+  mrb_check_num_exact(mrb, number);
 
   f = 1.0;
   i = ndigits >= 0 ? ndigits : -ndigits;
@@ -631,17 +640,6 @@ flo_round(mrb_state *mrb, mrb_value num)
   return mrb_fixnum_value((mrb_int)number);
 }
 
-void
-mrb_check_num_exact(mrb_state *mrb, mrb_float num)
-{
-  if (isinf(num)) {
-    mrb_raise(mrb, E_FLOATDOMAIN_ERROR, num < 0 ? "-Infinity" : "Infinity");
-  }
-  if (isnan(num)) {
-    mrb_raise(mrb, E_FLOATDOMAIN_ERROR, "NaN");
-  }
-}
-
 /* 15.2.9.3.14 */
 /* 15.2.9.3.15 */
 /*
@@ -661,8 +659,8 @@ flo_truncate(mrb_state *mrb, mrb_value num)
   if (f > 0.0) f = floor(f);
   if (f < 0.0) f = ceil(f);
 
+  mrb_check_num_exact(mrb, f);
   if (!FIXABLE_FLOAT(f)) {
-    mrb_check_num_exact(mrb, f);
     return mrb_float_value(mrb, f);
   }
   return mrb_fixnum_value((mrb_int)f);
