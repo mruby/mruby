@@ -238,6 +238,11 @@ assert('IO.sysopen, IO#sysread') do
   assert_raise(IOError) { io.sysread(1) }
   assert_raise(ArgumentError) { io.sysread(-1) }
   io.closed?
+
+  fd = IO.sysopen $mrbtest_io_wfname, "w"
+  io = IO.new fd, "w"
+  assert_raise(IOError) { io.sysread(1) }
+  io.close
 end
 
 assert('IO.sysopen, IO#syswrite') do
