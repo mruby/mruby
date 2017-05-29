@@ -2983,6 +2983,7 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
     proc = mrb_proc_new(mrb, scope->irep);
     mrb_irep_decref(mrb, scope->irep);
     mrb_pool_close(scope->mpool);
+    proc->c = NULL;
     return proc;
   }
   MRB_CATCH(&scope->jmp) {
