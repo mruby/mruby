@@ -431,6 +431,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
   k = kh_put(mt, mrb, h, mid);
   kh_value(h, k) = p;
   if (p) {
+    p->c = NULL;
     mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
   }
 }
