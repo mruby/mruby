@@ -1812,6 +1812,7 @@ RETRY_TRY_BLOCK:
         int acc, eidx = mrb->c->ci->eidx;
         mrb_value v = regs[GETARG_A(i)];
 
+        mrb_gc_protect(mrb, v);
         switch (GETARG_B(i)) {
         case OP_R_RETURN:
           /* Fall through to OP_R_NORMAL otherwise */
@@ -1888,6 +1889,7 @@ RETRY_TRY_BLOCK:
             while (eidx > mrb->c->ci[-1].eidx) {
               ecall(mrb, --eidx);
             }
+            ARENA_RESTORE(mrb, ai);
             mrb->c->vmexec = FALSE;
             mrb->jmp = prev_jmp;
             return v;
@@ -1913,6 +1915,7 @@ RETRY_TRY_BLOCK:
           ecall(mrb, --eidx);
         }
         if (mrb->c->vmexec && !mrb->c->ci->target_class) {
+          ARENA_RESTORE(mrb, ai);
           mrb->c->vmexec = FALSE;
           mrb->jmp = prev_jmp;
           return v;
@@ -1922,6 +1925,7 @@ RETRY_TRY_BLOCK:
         mrb->c->stack = ci->stackent;
         cipop(mrb);
         if (acc == CI_ACC_SKIP || acc == CI_ACC_DIRECT) {
+          ARENA_RESTORE(mrb, ai);
           mrb->jmp = prev_jmp;
           return v;
         }
@@ -1933,6 +1937,7 @@ RETRY_TRY_BLOCK:
         syms = irep->syms;
 
         regs[acc] = v;
+        ARENA_RESTORE(mrb, ai);
       }
       JUMP;
     }
