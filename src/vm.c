@@ -1759,7 +1759,7 @@ RETRY_TRY_BLOCK:
         ci0 = ci = mrb->c->ci;
         eidx = ci->eidx;
         if (ci == mrb->c->cibase) {
-          if (ci->ridx == 0) goto L_STOP;
+          if (ci->ridx == 0) goto L_FTOP;
           goto L_RESCUE;
         }
         stk = mrb->c->stack;
@@ -1774,6 +1774,7 @@ RETRY_TRY_BLOCK:
           if (ci == mrb->c->cibase) {
             mrb->c->stack = stk;
             if (ci->ridx == 0) {
+            L_FTOP:             /* fiber top */
               if (mrb->c == mrb->root_c) {
                 mrb->c->stack = mrb->c->stbase;
                 goto L_STOP;
