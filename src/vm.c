@@ -1821,7 +1821,7 @@ RETRY_TRY_BLOCK:
             struct REnv *e = top_env(mrb, proc);
             mrb_callinfo *ce;
 
-            if (!MRB_ENV_STACK_SHARED_P(e)) {
+            if (!MRB_ENV_STACK_SHARED_P(e) || e->cxt.c != mrb->c) {
               localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
               goto L_RAISE;
             }
