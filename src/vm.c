@@ -851,17 +851,15 @@ mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stac
   mrb_value result;
   struct mrb_context *c = mrb->c;
   int cioff = c->ci - c->cibase;
-  int nregs = irep->nregs;
-  mrb_value *stk;
+  unsigned int nregs = irep->nregs;
 
   if (!c->stack) {
     stack_init(mrb);
   }
   if (stack_keep > nregs)
     nregs = stack_keep;
-  stk = c->stack + stack_keep;
-  if (stk < c->stend) {
-    stack_clear(stk, c->stend - stk);
+  if (nregs > stack_keep) {
+    stack_clear(c->stack + stack_keep, nregs - stack_keep);
   }
   stack_extend(mrb, nregs);
   c->stack[0] = self;
