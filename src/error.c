@@ -164,22 +164,6 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
 }
 
 void mrb_keep_backtrace(mrb_state *mrb, mrb_value exc);
-mrb_value mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace);
-
-static mrb_value
-exc_get_backtrace(mrb_state *mrb, mrb_value exc)
-{
-  mrb_sym attr_name;
-  mrb_value backtrace;
-
-  attr_name = mrb_intern_lit(mrb, "backtrace");
-  backtrace = mrb_iv_get(mrb, exc, attr_name);
-  if (!mrb_array_p(backtrace)) {
-    backtrace = mrb_unpack_backtrace(mrb, backtrace);
-    mrb_iv_set(mrb, exc, attr_name, backtrace);
-  }
-  return backtrace;
-}
 
 static void
 set_backtrace(mrb_state *mrb, mrb_value exc, mrb_value backtrace)
@@ -498,7 +482,7 @@ mrb_init_exception(mrb_state *mrb)
   mrb_define_method(mrb, exception, "to_s",            exc_to_s,          MRB_ARGS_NONE());
   mrb_define_method(mrb, exception, "message",         exc_message,       MRB_ARGS_NONE());
   mrb_define_method(mrb, exception, "inspect",         exc_inspect,       MRB_ARGS_NONE());
-  mrb_define_method(mrb, exception, "backtrace",       exc_get_backtrace, MRB_ARGS_NONE());
+  mrb_define_method(mrb, exception, "backtrace",       mrb_exc_backtrace, MRB_ARGS_NONE());
   mrb_define_method(mrb, exception, "set_backtrace",   exc_set_backtrace, MRB_ARGS_REQ(1));
 
   mrb->eStandardError_class = mrb_define_class(mrb, "StandardError", mrb->eException_class); /* 15.2.23 */

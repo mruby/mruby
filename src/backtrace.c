@@ -227,7 +227,23 @@ mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace)
   return backtrace;
 }
 
-mrb_value
+MRB_API mrb_value
+mrb_exc_backtrace(mrb_state *mrb, mrb_value exc)
+{
+  mrb_sym attr_name;
+  mrb_value backtrace;
+
+  attr_name = mrb_intern_lit(mrb, "backtrace");
+  backtrace = mrb_iv_get(mrb, exc, attr_name);
+  if (mrb_nil_p(backtrace) || mrb_array_p(backtrace)) {
+    return backtrace;
+  }
+  backtrace = mrb_unpack_backtrace(mrb, backtrace);
+  mrb_iv_set(mrb, exc, attr_name, backtrace);
+  return backtrace;
+}
+
+MRB_API mrb_value
 mrb_get_backtrace(mrb_state *mrb)
 {
   return mrb_unpack_backtrace(mrb, packed_backtrace(mrb));
