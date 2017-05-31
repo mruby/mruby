@@ -11,6 +11,7 @@
 #include <mruby/variable.h>
 #include <mruby/debug.h>
 #include <mruby/string.h>
+#include "randombytes.c"
 
 void mrb_init_core(mrb_state*);
 void mrb_init_mrbgems(mrb_state*);
@@ -38,6 +39,8 @@ mrb_open_core(mrb_allocf f, void *ud)
   mrb->allocf_ud = ud;
   mrb->allocf = f;
   mrb->atexit_stack_len = 0;
+
+  randombytes_sysrandom_buf((void*)&mrb->id_secret, sizeof(mrb->id_secret));
 
   mrb_gc_init(mrb, &mrb->gc);
   mrb->c = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
