@@ -620,7 +620,12 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     argc = RARRAY_LEN(rpl);
     argv = RARRAY_PTR(rpl);
     if (argv == a->ptr) {
-      struct RArray *r = ary_dup(mrb, a);
+      struct RArray *r;
+
+      if (argc > 32767) {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "too big recursive splice");
+      }
+      r = ary_dup(mrb, a);
       argv = r->ptr;
     }
   }
