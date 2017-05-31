@@ -2630,6 +2630,7 @@ RETRY_TRY_BLOCK:
       pool = irep->pool;
       syms = irep->syms;
       stack_extend(mrb, irep->nregs);
+      stack_clear(regs+1, irep->nregs-1);
       ci->nregs = irep->nregs;
       pc = irep->iseq;
       JUMP;
