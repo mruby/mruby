@@ -2626,25 +2626,13 @@ RETRY_TRY_BLOCK:
       p->target_class = ci->target_class;
       ci->proc = p;
 
-      if (MRB_PROC_CFUNC_P(p)) {
-        ci->nregs = 0;
-        mrb->c->stack[0] = p->body.func(mrb, recv);
-        mrb_gc_arena_restore(mrb, ai);
-        if (mrb->exc) goto L_RAISE;
-        /* pop stackpos */
-        mrb->c->stack = mrb->c->ci->stackent;
-        cipop(mrb);
-        NEXT;
-      }
-      else {
-        irep = p->body.irep;
-        pool = irep->pool;
-        syms = irep->syms;
-        stack_extend(mrb, irep->nregs);
-        ci->nregs = irep->nregs;
-        pc = irep->iseq;
-        JUMP;
-      }
+      irep = p->body.irep;
+      pool = irep->pool;
+      syms = irep->syms;
+      stack_extend(mrb, irep->nregs);
+      ci->nregs = irep->nregs;
+      pc = irep->iseq;
+      JUMP;
     }
 
     CASE(OP_METHOD) {
