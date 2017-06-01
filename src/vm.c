@@ -234,7 +234,6 @@ cipush(mrb_state *mrb)
   struct mrb_context *c = mrb->c;
   mrb_callinfo *ci = c->ci;
 
-  int eidx = ci->eidx;
   int ridx = ci->ridx;
 
   if (ci + 1 == c->ciend) {
@@ -245,7 +244,7 @@ cipush(mrb_state *mrb)
     c->ciend = c->cibase + size * 2;
   }
   ci = ++c->ci;
-  ci->eidx = eidx;
+  ci->epos = mrb->c->eidx;
   ci->ridx = ridx;
   ci->env = 0;
   ci->pc = 0;
@@ -311,8 +310,6 @@ ecall(mrb_state *mrb, int i)
   p = mrb->c->ensure[i];
   if (!p) return;
   mrb->c->ensure[i] = NULL;
-  if (ci->eidx > i)
-    ci->eidx = i;
   cioff = ci - mrb->c->cibase;
   ci = cipush(mrb);
   ci->stackent = mrb->c->stack;
@@ -1200,13 +1197,13 @@ RETRY_TRY_BLOCK:
 
       p = mrb_closure_new(mrb, irep->reps[GETARG_Bx(i)]);
       /* push ensure_stack */
-      if (mrb->c->esize <= mrb->c->ci->eidx+1) {
+      if (mrb->c->esize <= mrb->c->eidx+1) {
         if (mrb->c->esize == 0) mrb->c->esize = ENSURE_STACK_INIT_SIZE;
         else mrb->c->esize *= 2;
         mrb->c->ensure = (struct RProc **)mrb_realloc(mrb, mrb->c->ensure, sizeof(struct RProc*) * mrb->c->esize);
       }
-      mrb->c->ensure[mrb->c->ci->eidx++] = p;
-      mrb->c->ensure[mrb->c->ci->eidx] = NULL;
+      mrb->c->ensure[mrb->c->eidx++] = p;
+      mrb->c->ensure[mrb->c->eidx] = NULL;
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }
@@ -1215,11 +1212,10 @@ RETRY_TRY_BLOCK:
       /* A      A.times{ensure_pop().call} */
       int a = GETARG_A(i);
       mrb_callinfo *ci = mrb->c->ci;
-      int n, eidx = ci->eidx;
+      int n, epos = ci->epos;
 
-      for (n=0; n<a && (ci == mrb->c->cibase || eidx > ci[-1].eidx); n++) {
-        ecall(mrb, --eidx);
-        ci = mrb->c->ci;
+      for (n=0; n<a && mrb->c->eidx > epos; n++) {
+        ecall(mrb, --mrb->c->eidx);
         ARENA_RESTORE(mrb, ai);
       }
       NEXT;
@@ -1757,11 +1753,9 @@ RETRY_TRY_BLOCK:
       if (mrb->exc) {
         mrb_callinfo *ci, *ci0;
         mrb_value *stk;
-        int eidx;
 
       L_RAISE:
         ci0 = ci = mrb->c->ci;
-        eidx = ci->eidx;
         if (ci == mrb->c->cibase) {
           if (ci->ridx == 0) goto L_FTOP;
           goto L_RESCUE;
@@ -1795,8 +1789,8 @@ RETRY_TRY_BLOCK:
           }
           /* call ensure only when we skip this callinfo */
           if (ci[0].ridx == ci[-1].ridx) {
-            while (eidx > ci[-1].eidx) {
-              ecall(mrb, --eidx);
+            while (mrb->c->eidx > ci->epos) {
+              ecall(mrb, --mrb->c->eidx);
               ci = mrb->c->ci;
             }
           }
@@ -1814,7 +1808,7 @@ RETRY_TRY_BLOCK:
       }
       else {
         mrb_callinfo *ci = mrb->c->ci;
-        int acc, eidx = mrb->c->ci->eidx;
+        int acc;
         mrb_value v = regs[GETARG_A(i)];
 
         mrb_gc_protect(mrb, v);
@@ -1859,8 +1853,8 @@ RETRY_TRY_BLOCK:
               mrb_exc_set(mrb, exc);
               goto L_RAISE;
             }
-            while (eidx > 0) {
-              ecall(mrb, --eidx);
+            while (mrb->c->eidx > 0) {
+              ecall(mrb, --mrb->c->eidx);
             }
             /* automatic yield at the end */
             mrb->c->status = MRB_FIBER_TERMINATED;
@@ -1883,16 +1877,16 @@ RETRY_TRY_BLOCK:
           if (mrb->c->ci == mrb->c->cibase && mrb->c->ci->pc) {
             struct mrb_context *c = mrb->c;
 
-            while (eidx > 0) {
-              ecall(mrb, --eidx);
+            while (mrb->c->eidx > 0) {
+              ecall(mrb, --mrb->c->eidx);
             }
             mrb->c = c->prev;
             c->prev = NULL;
             ci = mrb->c->ci;
           }
           if (ci->acc < 0) {
-            while (eidx > mrb->c->ci[-1].eidx) {
-              ecall(mrb, --eidx);
+            while (mrb->c->eidx > mrb->c->ci->epos) {
+              ecall(mrb, --mrb->c->eidx);
             }
             ARENA_RESTORE(mrb, ai);
             mrb->c->vmexec = FALSE;
@@ -1916,8 +1910,8 @@ RETRY_TRY_BLOCK:
           /* cannot happen */
           break;
         }
-        while (eidx > mrb->c->ci[-1].eidx) {
-          ecall(mrb, --eidx);
+        while (mrb->c->eidx > mrb->c->ci->epos) {
+          ecall(mrb, --mrb->c->eidx);
         }
         if (mrb->c->vmexec && !mrb->c->ci->target_class) {
           ARENA_RESTORE(mrb, ai);
@@ -2693,10 +2687,10 @@ RETRY_TRY_BLOCK:
       /*        stop VM */
     L_STOP:
       {
-        int eidx_stop = mrb->c->ci == mrb->c->cibase ? 0 : mrb->c->ci[-1].eidx;
-        int eidx = mrb->c->ci->eidx;
-        while (eidx > eidx_stop) {
-          ecall(mrb, --eidx);
+        int epos = mrb->c->ci->epos;
+
+        while (mrb->c->eidx > epos) {
+          ecall(mrb, --mrb->c->eidx);
         }
       }
       ERR_PC_CLR(mrb);

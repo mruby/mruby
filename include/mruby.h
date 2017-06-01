@@ -113,7 +113,7 @@ typedef struct {
   mrb_value *stackent;
   int nregs;
   int ridx;
-  int eidx;
+  int epos;
   struct REnv *env;
   mrb_code *pc;                 /* return address */
   mrb_code *err;                /* error position */
@@ -143,7 +143,7 @@ struct mrb_context {
   mrb_code **rescue;                      /* exception handler stack */
   int rsize;
   struct RProc **ensure;                  /* ensure handler stack */
-  int esize;
+  int esize, eidx;
 
   enum mrb_fiber_state status;
   mrb_bool vmexec;

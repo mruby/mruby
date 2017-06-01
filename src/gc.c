@@ -933,7 +933,7 @@ gc_gray_mark(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
       children += i;
 
       /* mark ensure stack */
-      children += (c->ci) ? c->ci->eidx : 0;
+      children += c->eidx;
 
       /* mark closure */
       if (c->cibase) {
