@@ -853,10 +853,10 @@ mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stac
   }
   if (stack_keep > nregs)
     nregs = stack_keep;
+  stack_extend(mrb, nregs);
   if (nregs > stack_keep) {
     stack_clear(c->stack + stack_keep, nregs - stack_keep);
   }
-  stack_extend(mrb, nregs);
   c->stack[0] = self;
   result = mrb_vm_exec(mrb, proc, irep->iseq);
   if (c->ci - c->cibase > cioff) {
