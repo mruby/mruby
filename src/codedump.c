@@ -64,6 +64,15 @@ codedump(mrb_state *mrb, mrb_irep *irep)
   printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", (void*)irep,
          irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen, (int)irep->rlen);
 
+  if (irep->lv) {
+    printf("local variable names:\n");
+    printf("  R%d:%s\n", 0, "self");
+    for (i = 1; i < irep->nlocals; ++i) {
+      char const *n = mrb_sym2name(mrb, irep->lv[i - 1].name);
+      printf("  R%d:%s\n", irep->lv[i - 1].r, n? n : "");
+    }
+  }
+
   for (i = 0; i < (int)irep->ilen; i++) {
     ai = mrb_gc_arena_save(mrb);
 
@@ -198,14 +207,22 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_JMPNOT\tR%d\t%03d\n", GETARG_A(c), i+GETARG_sBx(c));
       break;
     case OP_SEND:
-      printf("OP_SEND\tR%d\t:%s\t%d\n", GETARG_A(c),
+      printf("OP_SEND\tR%d\t:%s\t%d", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_SENDB:
-      printf("OP_SENDB\tR%d\t:%s\t%d\n", GETARG_A(c),
+      printf("OP_SENDB\tR%d\t:%s\t%d", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
              GETARG_C(c));
+      print_lv(mrb, irep, c, RA);
+      break;
+    case OP_SENDK:
+      printf("OP_SENDK\tR%d\t:%s\t%d", GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]),
+             GETARG_C(c));
+      print_lv(mrb, irep, c, RA);
       break;
     case OP_TAILCALL:
       printf("OP_TAILCALL\tR%d\t:%s\t%d\n", GETARG_A(c),
@@ -225,16 +242,18 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       print_lv(mrb, irep, c, RA);
       break;
 
-    case OP_ENTER:
-      printf("OP_ENTER\t%d:%d:%d:%d:%d:%d:%d\n",
-             (GETARG_Ax(c)>>18)&0x1f,
-             (GETARG_Ax(c)>>13)&0x1f,
-             (GETARG_Ax(c)>>12)&0x1,
-             (GETARG_Ax(c)>>7)&0x1f,
-             (GETARG_Ax(c)>>2)&0x1f,
-             (GETARG_Ax(c)>>1)&0x1,
-             GETARG_Ax(c) & 0x1);
-      break;
+    case OP_ENTER: {
+      int a = GETARG_Ax(c);
+      printf("OP_ENTER\t%d:%d:%d:%d:%d:%d:%d:%d\n",
+             MRB_ASPEC_REQ(a),
+             MRB_ASPEC_OPT(a),
+             MRB_ASPEC_REST(a),
+             MRB_ASPEC_POST(a),
+             MRB_ASPEC_KEYREQ(a),
+             MRB_ASPEC_KEY(a),
+             MRB_ASPEC_KDICT(a),
+             MRB_ASPEC_BLOCK(a));
+    } break;
     case OP_RETURN:
       printf("OP_RETURN\tR%d", GETARG_A(c));
       switch (GETARG_B(c)) {
@@ -443,6 +462,16 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       break;
     case OP_EPOP:
       printf("OP_EPOP\t%d\n", GETARG_A(c));
+      break;
+
+    case OP_KARG:
+      printf("OP_KARG\tR%d\t:%s\t%d", GETARG_A(c),
+             mrb_sym2name(mrb, irep->syms[GETARG_B(c)]), GETARG_C(c));
+      print_lv(mrb, irep, c, RAB);
+      break;
+    case OP_KDICT:
+      printf("OP_KDICT\tR%d\t%d", GETARG_A(c), GETARG_C(c));
+      print_lv(mrb, irep, c, RA);
       break;
 
     default:

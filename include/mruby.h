@@ -118,9 +118,21 @@ typedef struct {
   mrb_code *pc;                 /* return address */
   mrb_code *err;                /* error position */
   int argc;
-  int acc;
+  int16_t acc; /* always fit in 9-bit since it's from GETARG_A */
+
+  uint8_t flags;
+  /*
+  mrb_bool use_kdict: 1;
+  mrb_bool need_kdict_dup: 1;
+  */
+
   struct RClass *target_class;
 } mrb_callinfo;
+
+enum {
+  MRB_CI_USE_KDICT_MASK = 1 << 0,
+  MRB_CI_NEED_KDICT_DUP_MASK = 1 << 1,
+};
 
 enum mrb_fiber_state {
   MRB_FIBER_CREATED = 0,
@@ -758,10 +770,10 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
 #define MRB_ARGS_REST()     ((mrb_aspec)(1 << 12))
 
 /** required arguments after rest */
-#define MRB_ARGS_POST(n)    ((mrb_aspec)((n)&0x1f) << 7)
+#define MRB_ARGS_POST(n)    ((mrb_aspec)((n)&0x0f) << 8)
 
 /** keyword arguments (n of keys, kdict) */
-#define MRB_ARGS_KEY(n1,n2) ((mrb_aspec)((((n1)&0x1f) << 2) | ((n2)?(1<<1):0)))
+#define MRB_ARGS_KEY(req,opt,dict) ((mrb_aspec)((((req)&0x07) << 5) | (((opt)&0x07) << 2) | ((dict)?(1<<1):0)))
 
 /**
  * Function takes a block argument

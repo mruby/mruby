@@ -55,6 +55,13 @@ assert('Proc#parameters') do
   assert_equal([[:req, :a]], ->(a){}.parameters)
   assert_equal([[:rest]], lambda { |*| }.parameters)
   assert_equal([[:rest, :a]], Proc.new {|*a|}.parameters)
+  assert_equal([[:keyrest]], Proc.new {|**|}.parameters)
+  assert_equal([[:keyrest, :kw]], Proc.new {|**kw|}.parameters)
+  assert_equal([[:block, :b]], Proc.new {|&b|}.parameters)
+  assert_equal([[:keyreq, :a]], Proc.new {|a:|}.parameters)
+  assert_equal([[:key, :b]], Proc.new {|b: 1|}.parameters)
+  assert_equal([[:block, :blk], [:key, :b]], Proc.new {|b: 1, &blk|}.parameters)
+  assert_equal([[:keyrest, :k], [:block, :blk], [:keyreq, :a], [:keyreq, :b], [:key, :c]], Proc.new {|a:, b:, c: 1, **k, &blk|}.parameters)
   assert_equal([[:opt, :a], [:opt, :b], [:opt, :c], [:opt, :d], [:rest, :e], [:opt, :f], [:opt, :g], [:block, :h]], Proc.new {|a,b,c=:c,d=:d,*e,f,g,&h|}.parameters)
   assert_equal([[:req, :a], [:req, :b], [:opt, :c], [:opt, :d], [:rest, :e], [:req, :f], [:req, :g], [:block, :h]], lambda {|a,b,c=:c,d=:d,*e,f,g,&h|}.parameters)
 end

@@ -95,9 +95,13 @@ enum {
   OP_CALL,/*      A       R(A) := self.call(frame.argc, frame.argv)       */
   OP_SUPER,/*     A C     R(A) := super(R(A+1),... ,R(A+C+1))             */
   OP_ARGARY,/*    A Bx    R(A) := argument array (16=6:1:5:4)             */
-  OP_ENTER,/*     Ax      arg setup according to flags (23=5:5:1:5:5:1:1) */
-  OP_KARG,/*      A B C   R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B))  */
+  OP_ENTER,/*     Ax      arg setup according to flags (23=5:5:1:4:3:3:1:1) */
+  OP_KARG,/*      A B C   R(A) := kdict[Syms(B)]                          */
+  /*                      R(A+1) := kdict.key?(Syms(B)) if C == 1         */
+  /*                      raise ArgumentError if C == 2 && !kdict.key?(Syms(B)) */
+  /*                      kdict.delete(Syms(B)) if C >= 1                 */
   OP_KDICT,/*     A C     R(A) := kdict                                   */
+  /*                      raise ArgumentError if C && !kdict.empty?       */
 
   OP_RETURN,/*    A B     return R(A) (B=normal,in-block return/break)    */
   OP_TAILCALL,/*  A B C   return call(R(A),Syms(B),*R(C))                 */
@@ -141,7 +145,11 @@ enum {
   OP_STOP,/*              stop VM                                         */
   OP_ERR,/*       Bx      raise RuntimeError with message Lit(Bx)         */
 
-  OP_RSVD1,/*             reserved instruction #1                         */
+  OP_SENDK,/*     A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),    */
+  /*                                   &R(A+C+1),                         */
+  /*                                   R(A+C+2),R(A+C+2+1)...,            */
+  /*                                   R(A+C+2+2K),R(A+C+2+2K+1),nil)     */
+
   OP_RSVD2,/*             reserved instruction #2                         */
   OP_RSVD3,/*             reserved instruction #3                         */
   OP_RSVD4,/*             reserved instruction #4                         */

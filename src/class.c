@@ -15,6 +15,8 @@
 #include <mruby/error.h>
 #include <mruby/data.h>
 #include <mruby/istruct.h>
+#include <mruby/opcode.h>
+#include <mruby/hash.h>
 
 KHASH_DEFINE(mt, mrb_sym, struct RProc*, TRUE, kh_int_hash_func, kh_int_hash_equal)
 
@@ -583,6 +585,26 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   (array_argv ? mrb_ary_ptr(mrb->c->stack[1])->ptr : (mrb->c->stack + 1))
 
   while ((c = *format++)) {
+    if ((c == 'H' || c == 'o') &&
+        i == argc && mrb->c->ci->pc && GET_OPCODE(mrb->c->ci->pc[-1]) == OP_SENDK) {
+      mrb_value const *kw = mrb->c->stack + mrb->c->ci->argc + 2;
+      mrb_value hsh = mrb_hash_new(mrb);
+      mrb_value *p = va_arg(ap, mrb_value*);
+
+      mrb_assert(!mrb_nil_p(*kw));
+      for (; !mrb_nil_p(*kw); kw += 2) {
+        mrb_assert(mrb_symbol_p(kw[0]));
+        mrb_hash_set(mrb, hsh, kw[0], kw[1]);
+      }
+      mrb_assert(mrb_nil_p(*kw));
+
+      i++; argc++;
+
+      *p = hsh;
+
+      continue;
+    }
+
     switch (c) {
     case '|': case '*': case '&': case '?':
       break;

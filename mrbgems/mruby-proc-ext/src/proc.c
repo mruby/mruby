@@ -101,7 +101,10 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
     {0, "opt"},
     {0, "rest"},
     {0, "req"},
+    {0, "keyrest"},
     {0, "block"},
+    {0, "keyreq"},
+    {0, "key"},
     {0, NULL}
   };
   const struct RProc *proc = mrb_proc_ptr(self);
@@ -109,6 +112,9 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   mrb_aspec aspec;
   mrb_value sname, parameters;
   int i, j;
+  mrb_sym const keyrest_def = mrb_intern_lit(mrb, "**"),
+                  block_def = mrb_intern_lit(mrb, "&"),
+                   rest_def = mrb_intern_lit(mrb, "*");
 
   if (MRB_PROC_CFUNC_P(proc)) {
     // TODO cfunc aspec is not implemented yet
@@ -134,17 +140,35 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   parameters_list[1].size = MRB_ASPEC_OPT(aspec);
   parameters_list[2].size = MRB_ASPEC_REST(aspec);
   parameters_list[3].size = MRB_ASPEC_POST(aspec);
-  parameters_list[4].size = MRB_ASPEC_BLOCK(aspec);
+  parameters_list[4].size = MRB_ASPEC_KDICT(aspec);
+  parameters_list[5].size = MRB_ASPEC_BLOCK(aspec);
+  parameters_list[6].size = MRB_ASPEC_KEYREQ(aspec);
+  parameters_list[7].size = MRB_ASPEC_KEY(aspec);
 
   parameters = mrb_ary_new_capa(mrb, irep->nlocals-1);
 
   for (i = 0, p = parameters_list; p->name; p++) {
+    if (p == parameters_list + 4 && !MRB_ASPEC_KDICT(aspec) &&
+        (MRB_ASPEC_KEY(aspec) + MRB_ASPEC_KEYREQ(aspec))) {
+      ++i;
+      continue;
+    }
+
+    if (p == parameters_list + 5 && !MRB_ASPEC_BLOCK(aspec) &&
+        (MRB_ASPEC_KDICT(aspec) + MRB_ASPEC_KEY(aspec) + MRB_ASPEC_KEYREQ(aspec))) {
+      ++i;
+      continue;
+    }
+
     if (p->size <= 0) continue;
     sname = mrb_symbol_value(mrb_intern_cstr(mrb, p->name));
+
     for (j = 0; j < p->size; i++, j++) {
-      mrb_value a = mrb_ary_new(mrb);
+      mrb_value a = mrb_ary_new_capa(mrb, 2);
       mrb_ary_push(mrb, a, sname);
-      if (irep->lv[i].name) {
+      if (irep->lv[i].name != rest_def &&
+          irep->lv[i].name != keyrest_def &&
+          irep->lv[i].name != block_def) {
         mrb_ary_push(mrb, a, mrb_symbol_value(irep->lv[i].name));
       }
       mrb_ary_push(mrb, parameters, a);

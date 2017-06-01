@@ -44,6 +44,19 @@ assert('Proc#arity', '15.2.17.4.2') do
   assert_equal(-2, e)
   assert_equal(-2, f)
   assert_equal(-1, g)
+
+  assert_equal( 1, ->(a:){}.arity)
+  assert_equal(-1, ->(a:1){}.arity)
+  assert_equal(-1, ->(**){}.arity)
+
+  assert_equal( 1, ->(a:, b:){}.arity)
+  assert_equal( 3, ->(a, b, c:, d: 1){}.arity)
+  assert_equal(-3, ->(a, b=1, *c, d:, e:, f: 2, **k, &l){}.arity)
+
+  assert_equal( 2, Proc.new{|a, b:|}.arity)
+  assert_equal( 0, Proc.new{|a: 1, b: 2|}.arity)
+  assert_equal( 0, Proc.new{|**k|}.arity)
+  assert_equal( 0, Proc.new{|a: 1, b: 2, **k|}.arity)
 end
 
 assert('Proc#call', '15.2.17.4.3') do
