@@ -1436,6 +1436,10 @@ gc_step_ratio_set(mrb_state *mrb, mrb_value obj)
 static void
 change_gen_gc_mode(mrb_state *mrb, mrb_gc *gc, mrb_bool enable)
 {
+  if (gc->disabled || gc->iterating) {
+    gc->generational = enable;
+    return;
+  }
   if (is_generational(gc) && !enable) {
     clear_all_old(mrb, gc);
     mrb_assert(gc->state == MRB_GC_STATE_ROOT);
