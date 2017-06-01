@@ -112,7 +112,7 @@ typedef struct {
   struct RProc *proc;
   mrb_value *stackent;
   int nregs;
-  int ridx;
+  int rpos;
   int epos;
   struct REnv *env;
   mrb_code *pc;                 /* return address */
@@ -141,7 +141,7 @@ struct mrb_context {
   mrb_callinfo *cibase, *ciend;
 
   mrb_code **rescue;                      /* exception handler stack */
-  int rsize;
+  int rsize, ridx;
   struct RProc **ensure;                  /* ensure handler stack */
   int esize, eidx;
 

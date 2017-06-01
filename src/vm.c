@@ -234,8 +234,6 @@ cipush(mrb_state *mrb)
   struct mrb_context *c = mrb->c;
   mrb_callinfo *ci = c->ci;
 
-  int ridx = ci->ridx;
-
   if (ci + 1 == c->ciend) {
     ptrdiff_t size = ci - c->cibase;
 
@@ -245,7 +243,7 @@ cipush(mrb_state *mrb)
   }
   ci = ++c->ci;
   ci->epos = mrb->c->eidx;
-  ci->ridx = ridx;
+  ci->rpos = mrb->c->ridx;
   ci->env = 0;
   ci->pc = 0;
   ci->err = 0;
@@ -1125,12 +1123,12 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_ONERR) {
       /* sBx    pc+=sBx on exception */
-      if (mrb->c->rsize <= mrb->c->ci->ridx) {
+      if (mrb->c->rsize <= mrb->c->ridx) {
         if (mrb->c->rsize == 0) mrb->c->rsize = RESCUE_STACK_INIT_SIZE;
         else mrb->c->rsize *= 2;
         mrb->c->rescue = (mrb_code **)mrb_realloc(mrb, mrb->c->rescue, sizeof(mrb_code*) * mrb->c->rsize);
       }
-      mrb->c->rescue[mrb->c->ci->ridx++] = pc + GETARG_sBx(i);
+      mrb->c->rescue[mrb->c->ridx++] = pc + GETARG_sBx(i);
       NEXT;
     }
 
@@ -1180,7 +1178,7 @@ RETRY_TRY_BLOCK:
       int a = GETARG_A(i);
 
       while (a--) {
-        mrb->c->ci->ridx--;
+        mrb->c->ridx--;
       }
       NEXT;
     }
@@ -1757,11 +1755,11 @@ RETRY_TRY_BLOCK:
       L_RAISE:
         ci0 = ci = mrb->c->ci;
         if (ci == mrb->c->cibase) {
-          if (ci->ridx == 0) goto L_FTOP;
+          if (mrb->c->ridx == 0) goto L_FTOP;
           goto L_RESCUE;
         }
         stk = mrb->c->stack;
-        while (ci[0].ridx == ci[-1].ridx) {
+        while (mrb->c->ridx == ci->rpos) {
           cipop(mrb);
           mrb->c->stack = ci->stackent;
           if (ci->acc == CI_ACC_SKIP && prev_jmp) {
@@ -1771,7 +1769,7 @@ RETRY_TRY_BLOCK:
           ci = mrb->c->ci;
           if (ci == mrb->c->cibase) {
             mrb->c->stack = stk;
-            if (ci->ridx == 0) {
+            if (mrb->c->ridx == 0) {
             L_FTOP:             /* fiber top */
               if (mrb->c == mrb->root_c) {
                 mrb->c->stack = mrb->c->stbase;
@@ -1788,7 +1786,7 @@ RETRY_TRY_BLOCK:
             break;
           }
           /* call ensure only when we skip this callinfo */
-          if (ci[0].ridx == ci[-1].ridx) {
+          if (mrb->c->ridx == ci->rpos) {
             while (mrb->c->eidx > ci->epos) {
               ecall(mrb, --mrb->c->eidx);
               ci = mrb->c->ci;
@@ -1796,7 +1794,7 @@ RETRY_TRY_BLOCK:
           }
         }
       L_RESCUE:
-        if (ci->ridx == 0) goto L_STOP;
+        if (mrb->c->ridx == 0) goto L_STOP;
         proc = ci->proc;
         irep = proc->body.irep;
         pool = irep->pool;
@@ -1804,7 +1802,7 @@ RETRY_TRY_BLOCK:
         if (ci != ci0) {
           mrb->c->stack = ci[1].stackent;
         }
-        pc = mrb->c->rescue[--ci->ridx];
+        pc = mrb->c->rescue[--mrb->c->ridx];
       }
       else {
         mrb_callinfo *ci = mrb->c->ci;
