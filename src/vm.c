@@ -2609,6 +2609,7 @@ RETRY_TRY_BLOCK:
 
       /* prepare closure */
       p = mrb_closure_new(mrb, irep->reps[GETARG_Bx(i)]);
+      p->c = NULL;
 
       /* prepare stack */
       ci = cipush(mrb);
