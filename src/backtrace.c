@@ -70,13 +70,6 @@ each_backtrace(mrb_state *mrb, mrb_int ciidx, mrb_code *pc0, each_backtrace_func
   }
 }
 
-/* mrb_print_backtrace
-
-   function to retrieve backtrace information from the exception.
-   note that if you call method after the exception, call stack will be
-   overwritten.  So invoke these functions just after detecting exceptions.
-*/
-
 #ifndef MRB_DISABLE_STDIO
 
 static void
@@ -89,8 +82,8 @@ print_backtrace(mrb_state *mrb, mrb_value backtrace)
   fprintf(stream, "trace:\n");
 
   n = RARRAY_LEN(backtrace);
-  for (i = 0; i < n; i++) {
-    mrb_value entry = RARRAY_PTR(backtrace)[i];
+  for (i=0; n--; i++) {
+    mrb_value entry = RARRAY_PTR(backtrace)[n];
 
     if (mrb_string_p(entry)) {
       fprintf(stream, "\t[%d] %.*s\n", i, (int)RSTRING_LEN(entry), RSTRING_PTR(entry));
@@ -103,7 +96,7 @@ print_packed_backtrace(mrb_state *mrb, mrb_value packed)
 {
   FILE *stream = stderr;
   struct backtrace_location *bt;
-  mrb_int n, i;
+  int n, i;
 
   bt = (struct backtrace_location*)mrb_data_check_get_ptr(mrb, packed, &bt_type);
   if (bt == NULL) {
@@ -112,9 +105,9 @@ print_packed_backtrace(mrb_state *mrb, mrb_value packed)
   n = (mrb_int)RDATA(packed)->flags;
 
   fprintf(stream, "trace:\n");
-  for (i = 0; i < n; i++) {
+  for (i = 0; n--; i++) {
     int ai = mrb_gc_arena_save(mrb);
-    struct backtrace_location *entry = &bt[i];
+    struct backtrace_location *entry = &bt[n];
     if (entry->filename == NULL) continue;
     fprintf(stream, "\t[%d] %s:%d", (int)i, entry->filename, entry->lineno);
     if (entry->method_id != 0) {
@@ -127,6 +120,11 @@ print_packed_backtrace(mrb_state *mrb, mrb_value packed)
     fprintf(stream, "\n");
   }
 }
+
+/* mrb_print_backtrace
+
+   function to retrieve backtrace information from the last exception.
+*/
 
 MRB_API void
 mrb_print_backtrace(mrb_state *mrb)
