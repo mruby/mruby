@@ -148,3 +148,31 @@ task :doc do
     puts "  $ gem install yard-mruby"
   end
 end
+
+desc 'create build configurations and update .travis.yml'
+task :build_configurations do
+  require 'yaml'
+
+  configs = []
+  [true, false].each do |mode_32|
+    ['', 'MRB_USE_FLOAT'].each do |float_conf|
+      ['', 'MRB_INT16', 'MRB_INT64'].each do |int_conf|
+        ['', 'MRB_NAN_BOXING', 'MRB_WORD_BOXING'].each do |boxing_conf|
+          next if float_conf == 'MRB_USE_FLOAT' and boxing_conf == 'MRB_NAN_BOXING'
+          next if int_conf == 'MRB_INT64' and boxing_conf == 'MRB_NAN_BOXING'
+          next if int_conf == 'MRB_INT16' and boxing_conf == 'MRB_WORD_BOXING'
+          next if int_conf == 'MRB_INT64' and boxing_conf == 'MRB_WORD_BOXING' and mode_32
+          env = [float_conf, int_conf, boxing_conf].map do |conf|
+            conf == '' ? nil : "-D#{conf}=1"
+          end.compact.join(' ')
+          bit = mode_32 ? '-m32 ' : ''
+          configs << "CFLAGS='#{bit}#{env}' LDFLAGS='#{bit.strip}'"
+        end
+      end
+    end
+  end
+  path = './.travis.yml'
+  data = YAML.load_file(path)
+  data["env"]["matrix"] = configs
+  File.open(path, 'w') { |f| YAML.dump(data, f) }
+end
