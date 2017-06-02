@@ -3474,12 +3474,11 @@ void_expr_error(parser_state *p, node *n)
     void_expr_error(p, n->cdr->cdr);
     break;
   case NODE_BEGIN:
-    if (n->cdr) {
-      while (n->cdr) {
-        n = n->cdr;
-      }
-      void_expr_error(p, n->car);
+    n = n->cdr;
+    while (n->cdr) {
+      n = n->cdr;
     }
+    void_expr_error(p, n->car);
     break;
   default:
     break;
