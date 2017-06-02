@@ -1841,6 +1841,7 @@ RETRY_TRY_BLOCK:
             break;
           }
         case OP_R_NORMAL:
+        NORMAL_RETURN:
           if (ci == mrb->c->cibase) {
             if (!mrb->c->prev) { /* toplevel return */
               localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
@@ -1862,6 +1863,7 @@ RETRY_TRY_BLOCK:
           ci = mrb->c->ci;
           break;
         case OP_R_BREAK:
+          if (MRB_PROC_STRICT_P(proc)) goto NORMAL_RETURN;
           if (!proc->env || !MRB_ENV_STACK_SHARED_P(proc->env)) {
             mrb_value exc;
 

@@ -168,7 +168,7 @@ static mrb_value
 packed_backtrace(mrb_state *mrb)
 {
   struct RData *backtrace;
-  mrb_int ciidx = mrb->c->ci - mrb->c->cibase;
+  ptrdiff_t ciidx = mrb->c->ci - mrb->c->cibase;
   mrb_int len = (ciidx+1)*sizeof(struct backtrace_location);
   void *ptr;
 
