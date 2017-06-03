@@ -1437,7 +1437,7 @@ static void
 change_gen_gc_mode(mrb_state *mrb, mrb_gc *gc, mrb_bool enable)
 {
   if (gc->disabled || gc->iterating) {
-    gc->generational = enable;
+    mrb_raise(mrb, E_RUNTIME_ERROR, "generational mode changed when GC disabled");
     return;
   }
   if (is_generational(gc) && !enable) {
