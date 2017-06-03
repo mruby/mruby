@@ -1335,7 +1335,7 @@ RETRY_TRY_BLOCK:
           if (mrb_type(blk) == MRB_TT_PROC) {
             struct RProc *p = mrb_proc_ptr(blk);
 
-            if (p && p->env == ci[-1].env) {
+            if (p && !MRB_PROC_STRICT_P(p) && p->env == ci[-1].env) {
               p->flags |= MRB_PROC_ORPHAN;
             }
           }
@@ -1775,7 +1775,8 @@ RETRY_TRY_BLOCK:
         if (mrb_type(blk) == MRB_TT_PROC) {
           struct RProc *p = mrb_proc_ptr(blk);
 
-          if (ci > mrb->c->cibase && p->env == ci[-1].env) {
+          if (!MRB_PROC_STRICT_P(proc) &&
+              ci > mrb->c->cibase && p->env == ci[-1].env) {
             p->flags |= MRB_PROC_ORPHAN;
           }
         }
