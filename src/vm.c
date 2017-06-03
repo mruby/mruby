@@ -1328,6 +1328,18 @@ RETRY_TRY_BLOCK:
         mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         ci = mrb->c->ci;
+        if (GET_OPCODE(i) == OP_SENDB) {
+          mrb_value blk;
+
+          blk = ci->stackent[bidx];
+          if (mrb_type(blk) == MRB_TT_PROC) {
+            struct RProc *p = mrb_proc_ptr(blk);
+
+            if (p && p->env == ci[-1].env) {
+              p->flags |= MRB_PROC_ORPHAN;
+            }
+          }
+        }
         if (!ci->target_class) { /* return from context modifying method (resume/yield) */
           if (ci->acc == CI_ACC_RESUMED) {
             mrb->jmp = prev_jmp;
@@ -1748,8 +1760,29 @@ RETRY_TRY_BLOCK:
       /* fall through */
     CASE(OP_RETURN) {
       /* A B     return R(A) (B=normal,in-block return/break) */
+      mrb_callinfo *ci;
+
+      ci = mrb->c->ci;
+      if (ci->mid) {
+        mrb_value blk;
+
+        if (ci->argc < 0) {
+          blk = regs[2];
+        }
+        else {
+          blk = regs[ci->argc+1];
+        }
+        if (mrb_type(blk) == MRB_TT_PROC) {
+          struct RProc *p = mrb_proc_ptr(blk);
+
+          if (ci > mrb->c->cibase && p->env == ci[-1].env) {
+            p->flags |= MRB_PROC_ORPHAN;
+          }
+        }
+      }
+
       if (mrb->exc) {
-        mrb_callinfo *ci, *ci0;
+        mrb_callinfo *ci0;
         mrb_value *stk;
 
       L_RAISE:
@@ -1805,7 +1838,6 @@ RETRY_TRY_BLOCK:
         pc = mrb->c->rescue[--mrb->c->ridx];
       }
       else {
-        mrb_callinfo *ci = mrb->c->ci;
         int acc;
         mrb_value v = regs[GETARG_A(i)];
 
@@ -1864,7 +1896,7 @@ RETRY_TRY_BLOCK:
           break;
         case OP_R_BREAK:
           if (MRB_PROC_STRICT_P(proc)) goto NORMAL_RETURN;
-          if (!proc->env || !MRB_ENV_STACK_SHARED_P(proc->env)) {
+          if (MRB_PROC_ORPHAN_P(proc)) { 
             mrb_value exc;
 
           L_BREAK_ERROR:
@@ -1872,6 +1904,9 @@ RETRY_TRY_BLOCK:
                                       "break from proc-closure");
             mrb_exc_set(mrb, exc);
             goto L_RAISE;
+          }
+          if (!proc->env || !MRB_ENV_STACK_SHARED_P(proc->env)) {
+            goto L_BREAK_ERROR;
           }
           /* break from fiber block */
           if (mrb->c->ci == mrb->c->cibase && mrb->c->ci->pc) {
