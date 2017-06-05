@@ -48,10 +48,12 @@ module MRuby
         @version = "0.0.0"
         @mrblib_dir = "mrblib"
         @objs_dir = "src"
+        @after_setup = false
         MRuby::Gem.current = self
       end
 
       def setup
+        return nil if @after_setup
         MRuby::Gem.current = self
         MRuby::Build::COMMANDS.each do |command|
           instance_variable_set("@#{command}", @build.send(command).clone)
@@ -90,6 +92,7 @@ module MRuby
         build.libmruby << @objs
 
         instance_eval(&@build_config_initializer) if @build_config_initializer
+        @after_setup = true
       end
 
       def setup_compilers
