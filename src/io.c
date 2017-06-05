@@ -637,6 +637,9 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
   }
 
   fptr = (struct mrb_io *)io_get_open_fptr(mrb, io);
+  if (!fptr->readable) {
+    mrb_raise(mrb, E_IO_ERROR, "not opened for reading");
+  }
   ret = read(fptr->fd, RSTRING_PTR(buf), maxlen);
   switch (ret) {
     case 0: /* EOF */
