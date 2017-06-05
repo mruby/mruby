@@ -19,6 +19,10 @@
 #include <mruby/re.h>
 #include <mruby/throw.h>
 
+#ifndef MRB_CODEGEN_LEVEL_MAX
+#define MRB_CODEGEN_LEVEL_MAX 1024
+#endif
+
 typedef mrb_ast_node node;
 typedef struct mrb_parser_state parser_state;
 
@@ -73,6 +77,8 @@ typedef struct scope {
   int debug_start_pos;
   uint16_t filename_index;
   parser_state* parser;
+
+  int rlev;                     /* recursion levels */
 } codegen_scope;
 
 static codegen_scope* scope_new(mrb_state *mrb, codegen_scope *prev, node *lv);
@@ -1243,6 +1249,7 @@ static void
 codegen(codegen_scope *s, node *tree, int val)
 {
   int nt;
+  int rlev = s->rlev;
 
   if (!tree) {
     if (val) {
@@ -1252,6 +1259,10 @@ codegen(codegen_scope *s, node *tree, int val)
     return;
   }
 
+  s->rlev++;
+  if (s->rlev > MRB_CODEGEN_LEVEL_MAX) {
+    codegen_error(s, "too complex expression");
+  }
   if (s->irep && s->filename_index != tree->filename_index) {
     s->irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
     mrb_debug_info_append_file(s->mrb, s->irep, s->debug_start_pos, s->pc);
@@ -1280,7 +1291,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int onerr, noexc, exend, pos1, pos2, tmp;
       struct loopinfo *lp;
 
-      if (tree->car == NULL) return;
+      if (tree->car == NULL) goto exit;
       onerr = genop(s, MKOP_Bx(OP_ONERR, 0));
       lp = loop_push(s, LOOP_BEGIN);
       lp->pc1 = onerr;
@@ -1409,18 +1420,18 @@ codegen(codegen_scope *s, node *tree, int val)
 
       if (!tree->car) {
         codegen(s, e, val);
-        return;
+        goto exit;
       }
       switch ((intptr_t)tree->car->car) {
       case NODE_TRUE:
       case NODE_INT:
       case NODE_STR:
         codegen(s, tree->cdr->car, val);
-        return;
+        goto exit;
       case NODE_FALSE:
       case NODE_NIL:
         codegen(s, e, val);
-        return;
+        goto exit;
       }
       codegen(s, tree->car, VAL);
       pop();
@@ -1881,7 +1892,7 @@ codegen(codegen_scope *s, node *tree, int val)
           gen_assignment(s, tree->car, cursp(), val);
         }
         dispatch(s, pos);
-        return;
+        goto exit;
       }
       codegen(s, tree->cdr->cdr->car, VAL);
       push(); pop();
@@ -2764,6 +2775,8 @@ codegen(codegen_scope *s, node *tree, int val)
   default:
     break;
   }
+ exit:
+  s->rlev = rlev;
 }
 
 static void
@@ -2854,6 +2867,8 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   }
   p->parser = prev->parser;
   p->filename_index = prev->filename_index;
+
+  p->rlev = prev->rlev+1;
 
   return p;
 }
