@@ -2993,6 +2993,7 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
 {
   codegen_scope *scope = scope_new(mrb, 0, 0);
   struct RProc *proc;
+  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
 
   if (!scope) {
     return NULL;
@@ -3003,17 +3004,20 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
   scope->filename_index = p->current_filename_index;
 
   MRB_TRY(&scope->jmp) {
+    mrb->jmp = &scope->jmp; 
     /* prepare irep */
     codegen(scope, p->tree, NOVAL);
     proc = mrb_proc_new(mrb, scope->irep);
     mrb_irep_decref(mrb, scope->irep);
     mrb_pool_close(scope->mpool);
     proc->c = NULL;
+    mrb->jmp = prev_jmp;
     return proc;
   }
   MRB_CATCH(&scope->jmp) {
     mrb_irep_decref(mrb, scope->irep);
     mrb_pool_close(scope->mpool);
+    mrb->jmp = prev_jmp;
     return NULL;
   }
   MRB_END_EXC(&scope->jmp);

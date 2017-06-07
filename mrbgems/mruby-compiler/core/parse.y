@@ -5579,7 +5579,6 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
       }
       MRB_CATCH(p->mrb->jmp) {
         p->nerr++;
-        mrb_p(p->mrb, mrb_obj_value(p->mrb->exc));
       }
       MRB_END_EXC(p->mrb->jmp);
       p->mrb->jmp = 0;
@@ -5789,7 +5788,9 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
       return mrb_undef_value();
     }
     else {
-      mrb->exc = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, E_SYNTAX_ERROR, "syntax error"));
+      if (mrb->exc == NULL) {
+        mrb->exc = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, E_SYNTAX_ERROR, "syntax error"));
+      }
       mrb_parser_free(p);
       return mrb_undef_value();
     }
@@ -5797,7 +5798,9 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
   proc = mrb_generate_code(mrb, p);
   mrb_parser_free(p);
   if (proc == NULL) {
-    mrb->exc = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, E_SCRIPT_ERROR, "codegen error"));
+    if (mrb->exc == NULL) {
+      mrb->exc = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, E_SCRIPT_ERROR, "codegen error"));
+    }
     return mrb_undef_value();
   }
   if (c) {
