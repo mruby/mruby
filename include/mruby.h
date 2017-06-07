@@ -212,6 +212,8 @@ typedef struct mrb_state {
   struct RObject *arena_err;              /* pre-allocated arena overfow error */
 #endif
 
+  unsigned char key[16]; /* siphash key */
+
   void *ud; /* auxiliary data */
 
 #ifdef MRB_FIXED_STATE_ATEXIT_STACK
@@ -1017,7 +1019,7 @@ MRB_API mrb_value mrb_vm_exec(mrb_state*, struct RProc*, mrb_code*);
 #define mrb_context_run(m,p,s,k) mrb_vm_run((m),(p),(s),(k))
 
 MRB_API void mrb_p(mrb_state*, mrb_value);
-MRB_API mrb_int mrb_obj_id(mrb_value obj);
+MRB_API mrb_int mrb_obj_id(mrb_state *mrb, mrb_value obj);
 MRB_API mrb_sym mrb_obj_to_sym(mrb_state *mrb, mrb_value name);
 
 MRB_API mrb_bool mrb_obj_eq(mrb_state*, mrb_value, mrb_value);
