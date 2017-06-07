@@ -243,6 +243,7 @@ assert('IO.sysopen, IO#sysread') do
   io = IO.new fd, "w"
   assert_raise(IOError) { io.sysread(1) }
   io.close
+  true
 end
 
 assert('IO.sysopen, IO#syswrite') do
