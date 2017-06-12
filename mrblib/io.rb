@@ -181,7 +181,7 @@ class IO
     nil
   end
 
-  def read(length = nil)
+  def read(length = nil, outbuf = "")
     unless length.nil?
       unless length.is_a? Fixnum
         raise TypeError.new "can't convert #{length.class} into Integer"
@@ -217,7 +217,12 @@ class IO
       end
     end
 
-    array && array.join
+    if array.nil?
+      outbuf.replace("")
+      nil
+    else
+      outbuf.replace(array.join)
+    end
   end
 
   def readline(arg = $/, limit = nil)
