@@ -124,7 +124,6 @@ class IO
     str = string.is_a?(String) ? string : string.to_s
     return str.size unless str.size > 0
     len = syswrite(str)
-    @pos += len
     len
   end
 
@@ -146,7 +145,7 @@ class IO
 
   def pos
     raise IOError if closed?
-    @pos
+    sysseek(0, SEEK_CUR) - @buf.length
   end
   alias_method :tell, :pos
 
@@ -160,7 +159,7 @@ class IO
 
   def seek(i, whence = SEEK_SET)
     raise IOError if closed?
-    @pos = sysseek(i, whence)
+    sysseek(i, whence)
     @buf = ''
     0
   end
@@ -172,7 +171,6 @@ class IO
 
   def ungetc(substr)
     raise TypeError.new "expect String, got #{substr.class}" unless substr.is_a?(String)
-    @pos -= substr.size
     if @buf.empty?
       @buf = substr.dup
     else
@@ -195,7 +193,6 @@ class IO
     end
 
     array = []
-    start_pos = @pos
     while 1
       begin
         _read_buf
@@ -204,15 +201,12 @@ class IO
         break
       end
 
-      if length && (@pos - start_pos + @buf.size) >= length
-        len = length - (@pos - start_pos)
-        array.push @buf[0, len]
-        @pos += len
-        @buf = @buf[len, @buf.size - len]
+      if length && length <= @buf.size
+        array.push @buf[0, length]
+        @buf = @buf[length, @buf.size - length]
         break
       else
         array.push @buf
-        @pos += @buf.size
         @buf = ''
       end
     end
@@ -240,7 +234,6 @@ class IO
     end
 
     array = []
-    start_pos = @pos
     while 1
       begin
         _read_buf
@@ -249,21 +242,17 @@ class IO
         break
       end
 
-      if limit && (@pos - start_pos + @buf.size) >= limit
-        len = limit - (@pos - start_pos)
-        array.push @buf[0, len]
-        @pos += len
-        @buf = @buf[len, @buf.size - len]
+      if limit && limit <= @buf.size
+        array.push @buf[0, limit]
+        @buf = @buf[limit, @buf.size - limit]
         break
       elsif idx = @buf.index(rs)
         len = idx + rs.size
         array.push @buf[0, len]
-        @pos += len
         @buf = @buf[len, @buf.size - len]
         break
       else
         array.push @buf
-        @pos += @buf.size
         @buf = ''
       end
     end
@@ -285,7 +274,6 @@ class IO
     _read_buf
     c = @buf[0]
     @buf = @buf[1, @buf.size]
-    @pos += 1
     c
   end
 

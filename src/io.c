@@ -389,7 +389,6 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
       }
 
       mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
-      mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
 
       fptr = mrb_io_alloc(mrb);
       fptr->fd = fd;
@@ -443,7 +442,6 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
   flags = mrb_io_modestr_to_flags(mrb, mrb_string_value_cstr(mrb, &mode));
 
   mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
-  mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
 
   fptr = (struct mrb_io *)DATA_PTR(io);
   if (fptr != NULL) {
@@ -801,7 +799,6 @@ mrb_io_s_pipe(mrb_state *mrb, mrb_value klass)
 
   r = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
   mrb_iv_set(mrb, r, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
-  mrb_iv_set(mrb, r, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
   fptr_r = mrb_io_alloc(mrb);
   fptr_r->fd = pipes[0];
   fptr_r->readable = 1;
@@ -812,7 +809,6 @@ mrb_io_s_pipe(mrb_state *mrb, mrb_value klass)
 
   w = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
   mrb_iv_set(mrb, w, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
-  mrb_iv_set(mrb, w, mrb_intern_cstr(mrb, "@pos"), mrb_fixnum_value(0));
   fptr_w = mrb_io_alloc(mrb);
   fptr_w->fd = pipes[1];
   fptr_w->readable = 0;
