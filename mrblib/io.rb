@@ -123,6 +123,10 @@ class IO
   def write(string)
     str = string.is_a?(String) ? string : string.to_s
     return str.size unless str.size > 0
+    if 0 < @buf.length
+      # reset real pos ignore buf
+      seek(pos, SEEK_SET)
+    end
     len = syswrite(str)
     @pos += len
     len

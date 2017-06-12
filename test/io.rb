@@ -181,6 +181,16 @@ assert('IO#write', '15.2.20.5.20') do
   io = IO.open(IO.sysopen($mrbtest_io_wfname))
   assert_equal 0, io.write("")
   io.close
+
+  io = IO.open(IO.sysopen($mrbtest_io_wfname, "r+"), "r+")
+  assert_equal 7, io.write("abcdefg")
+  io.rewind
+  assert_equal "ab", io.read(2)
+  assert_equal 3, io.write("123")
+  io.rewind
+  assert_equal "ab123fg", io.read
+  io.close
+
   true
 end
 
