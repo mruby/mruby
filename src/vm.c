@@ -1241,7 +1241,7 @@ RETRY_TRY_BLOCK:
       int n = GETARG_C(i);
       struct RProc *m;
       struct RClass *c;
-      mrb_callinfo *ci;
+      mrb_callinfo *ci = mrb->c->ci;
       mrb_value recv, result;
       mrb_sym mid = syms[GETARG_B(i)];
       int bidx;
@@ -1255,19 +1255,19 @@ RETRY_TRY_BLOCK:
         bidx = a+n+1;
       }
       if (GET_OPCODE(i) != OP_SENDB) {
-        if (bidx >= mrb->c->ci->nregs) {
+        if (bidx >= ci->nregs) {
           stack_extend(mrb, bidx+1);
-          mrb->c->ci->nregs = bidx+1;
+          ci->nregs = bidx+1;
         }
         SET_NIL_VALUE(regs[bidx]);
-        SET_NIL_VALUE(blk);
+        blk = mrb_nil_value();
       }
       else {
-        mrb_value blk = regs[bidx];
+        blk = regs[bidx];
         if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-          if (bidx >= mrb->c->ci->nregs) {
+          if (bidx >= ci->nregs) {
             stack_extend(mrb, bidx+1);
-            mrb->c->ci->nregs = bidx+1;
+            ci->nregs = bidx+1;
           }
           result = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
           blk = regs[bidx] = result;
@@ -1294,10 +1294,8 @@ RETRY_TRY_BLOCK:
         }
         mid = missing;
         if (n != CALL_MAXARGS) {
-          mrb_value blk = regs[bidx];
-
-          if (a+2 > irep->nregs) {
-            stack_extend(mrb, a+2);
+          if (a+2 >= irep->nregs) {
+            stack_extend(mrb, a+3);
           }
           regs[a+1] = mrb_ary_new_from_values(mrb, n, regs+a+1);
           regs[a+2] = blk;
