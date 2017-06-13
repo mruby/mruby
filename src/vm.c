@@ -856,9 +856,7 @@ mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stac
   if (stack_keep > nregs)
     nregs = stack_keep;
   stack_extend(mrb, nregs);
-  if (nregs > stack_keep) {
-    stack_clear(c->stack + stack_keep, nregs - stack_keep);
-  }
+  stack_clear(c->stack + stack_keep, nregs - stack_keep);
   c->stack[0] = self;
   result = mrb_vm_exec(mrb, proc, irep->iseq);
   if (c->ci - c->cibase > cioff) {
@@ -1437,10 +1435,14 @@ RETRY_TRY_BLOCK:
         syms = irep->syms;
         ci->nregs = irep->nregs;
         if (ci->argc < 0) {
-          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs);
+          if (irep->nregs > 3) {
+            stack_extend(mrb, irep->nregs);
+            stack_clear(regs+3, irep->nregs-3);
+          }
         }
-        else {
+        else if (ci->argc+2 < irep->nregs) {
           stack_extend(mrb, irep->nregs);
+          stack_clear(regs+ci->argc+2, irep->nregs-ci->argc-2);
         }
         if (m->env) {
           regs[0] = m->env->stack[0];
