@@ -205,10 +205,12 @@ class IO
         break
       end
 
-      if length && length <= @buf.size
-        array.push @buf[0, length]
-        @buf = @buf[length, @buf.size - length]
-        break
+      if length
+        consume = (length <= @buf.size) ? length : @buf.size
+        array.push @buf[0, consume]
+        @buf = @buf[consume, @buf.size - consume]
+        length -= consume
+        break if length == 0
       else
         array.push @buf
         @buf = ''
