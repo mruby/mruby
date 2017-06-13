@@ -1245,6 +1245,7 @@ RETRY_TRY_BLOCK:
       mrb_value recv, result;
       mrb_sym mid = syms[GETARG_B(i)];
       int bidx;
+      mrb_value blk;
 
       recv = regs[a];
       if (n == CALL_MAXARGS) {
@@ -1259,6 +1260,7 @@ RETRY_TRY_BLOCK:
           mrb->c->ci->nregs = bidx+1;
         }
         SET_NIL_VALUE(regs[bidx]);
+        SET_NIL_VALUE(blk);
       }
       else {
         mrb_value blk = regs[bidx];
@@ -1268,7 +1270,7 @@ RETRY_TRY_BLOCK:
             mrb->c->ci->nregs = bidx+1;
           }
           result = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
-          regs[bidx] = result;
+          blk = regs[bidx] = result;
         }
       }
       c = mrb_class(mrb, recv);
@@ -1331,9 +1333,6 @@ RETRY_TRY_BLOCK:
         if (mrb->exc) goto L_RAISE;
         ci = mrb->c->ci;
         if (GET_OPCODE(i) == OP_SENDB) {
-          mrb_value blk;
-
-          blk = ci->stackent[bidx];
           if (mrb_type(blk) == MRB_TT_PROC) {
             struct RProc *p = mrb_proc_ptr(blk);
 
