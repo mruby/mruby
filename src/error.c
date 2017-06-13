@@ -472,7 +472,7 @@ mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt,
 void
 mrb_init_exception(mrb_state *mrb)
 {
-  struct RClass *exception, *runtime_error, *script_error, *stack_error;
+  struct RClass *exception, *script_error, *stack_error, *nomem_error;
 
   mrb->eException_class = exception = mrb_define_class(mrb, "Exception", mrb->object_class); /* 15.2.22 */
   MRB_SET_INSTANCE_TT(exception, MRB_TT_EXCEPTION);
@@ -486,13 +486,15 @@ mrb_init_exception(mrb_state *mrb)
   mrb_define_method(mrb, exception, "set_backtrace",   exc_set_backtrace, MRB_ARGS_REQ(1));
 
   mrb->eStandardError_class = mrb_define_class(mrb, "StandardError", mrb->eException_class); /* 15.2.23 */
-  runtime_error = mrb_define_class(mrb, "RuntimeError", mrb->eStandardError_class);          /* 15.2.28 */
-  mrb->nomem_err = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, runtime_error, "Out of memory"));
-#ifdef MRB_GC_FIXED_ARENA
-  mrb->arena_err = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, runtime_error, "arena overflow error"));
-#endif
+  mrb_define_class(mrb, "RuntimeError", mrb->eStandardError_class);          /* 15.2.28 */
   script_error = mrb_define_class(mrb, "ScriptError", mrb->eException_class);                /* 15.2.37 */
   mrb_define_class(mrb, "SyntaxError", script_error);                                        /* 15.2.38 */
   stack_error = mrb_define_class(mrb, "SystemStackError", exception);
   mrb->stack_err = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, stack_error, "stack level too deep"));
+
+  nomem_error = mrb_define_class(mrb, "NoMemoryError", exception);
+  mrb->nomem_err = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, nomem_error, "Out of memory"));
+#ifdef MRB_GC_FIXED_ARENA
+  mrb->arena_err = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, nomem_error, "arena overflow error"));
+#endif
 }
