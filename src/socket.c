@@ -433,8 +433,13 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
       mrb_int i = mrb_test(optval) ? 1 : 0;
       optval = mrb_str_new(mrb, (char *)&i, sizeof(i));
     } else if (mrb_fixnum_p(optval)) {
-      mrb_int i = mrb_fixnum(optval);
-      optval = mrb_str_new(mrb, (char *)&i, sizeof(i));
+      if (optname == IP_MULTICAST_TTL || optname == IP_MULTICAST_LOOP) {
+        char uc = mrb_fixnum(optval);
+        optval = mrb_str_new(mrb, &uc, sizeof(uc));
+      } else {
+        mrb_int i = mrb_fixnum(optval);
+        optval = mrb_str_new(mrb, (char *)&i, sizeof(i));
+      }
     } else {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "optval should be true, false, an integer, or a string");
     }
