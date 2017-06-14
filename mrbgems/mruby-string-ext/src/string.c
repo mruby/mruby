@@ -605,7 +605,7 @@ mrb_str_upto(mrb_state *mrb, mrb_value beg)
     mrb_int max_width = RSTRING_LEN(end);
     mrb_int bi = mrb_int(mrb, mrb_str_to_inum(mrb, beg, 10, FALSE));
     mrb_int ei = mrb_int(mrb, mrb_str_to_inum(mrb, end, 10, FALSE));
-    char buf[max_width+1];
+    char *buf = (char *)mrb_malloc(mrb, max_width+1);
     int ai = mrb_gc_arena_save(mrb);
 
     while (bi <= ei) {
@@ -615,6 +615,8 @@ mrb_str_upto(mrb_state *mrb, mrb_value beg)
       mrb_gc_arena_restore(mrb, ai);
       bi++;
     }
+
+    mrb_free(mrb, buf);
     return beg;
   }
   /* normal case */
