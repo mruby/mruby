@@ -585,10 +585,12 @@ mrb_str_upto(mrb_state *mrb, mrb_value beg)
   ISASCII(RSTRING_PTR(beg)[0]) && ISASCII(RSTRING_PTR(end)[0])) {
     char c = RSTRING_PTR(beg)[0];
     char e = RSTRING_PTR(end)[0];
+    int ai = mrb_gc_arena_save(mrb);
 
     if (c > e || (excl && c == e)) return beg;
     for (;;) {
       mrb_yield(mrb, block, mrb_str_new(mrb, &c, 1));
+      mrb_gc_arena_restore(mrb, ai);
       if (!excl && c == e) break;
       c++;
       if (excl && c == e) break;
@@ -604,11 +606,13 @@ mrb_str_upto(mrb_state *mrb, mrb_value beg)
     mrb_int bi = mrb_int(mrb, mrb_str_to_inum(mrb, beg, 10, FALSE));
     mrb_int ei = mrb_int(mrb, mrb_str_to_inum(mrb, end, 10, FALSE));
     char buf[max_width+1];
+    int ai = mrb_gc_arena_save(mrb);
 
     while (bi <= ei) {
       if (excl && bi == ei) break;
       snprintf(buf, sizeof(buf), "%.*d", min_width, bi);
       mrb_yield(mrb, block, mrb_str_new(mrb, buf, strlen(buf)));
+      mrb_gc_arena_restore(mrb, ai);
       bi++;
     }
     return beg;
@@ -620,6 +624,7 @@ mrb_str_upto(mrb_state *mrb, mrb_value beg)
   after_end = mrb_funcall(mrb, end, "succ", 0);
   current = mrb_str_dup(mrb, beg);
   while (!mrb_str_equal(mrb, current, after_end)) {
+    int ai = mrb_gc_arena_save(mrb);
     mrb_value next = mrb_nil_value();
     if (excl || !mrb_str_equal(mrb, current, end))
       next = mrb_funcall(mrb, current, "succ", 0);
@@ -629,6 +634,7 @@ mrb_str_upto(mrb_state *mrb, mrb_value beg)
     if (excl && mrb_str_equal(mrb, current, end)) break;
     if (RSTRING_LEN(current) > RSTRING_LEN(end) || RSTRING_LEN(current) == 0)
       break;
+    mrb_gc_arena_restore(mrb, ai);
   }
 
   return beg;
