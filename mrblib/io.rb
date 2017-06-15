@@ -200,7 +200,7 @@ class IO
     while 1
       begin
         _read_buf
-      rescue EOFError => e
+      rescue EOFError
         array = nil if array.empty? and (not length.nil?) and length != 0
         break
       end
@@ -248,7 +248,7 @@ class IO
     while 1
       begin
         _read_buf
-      rescue EOFError => e
+      rescue EOFError
         array = nil if array.empty?
         break
       end
@@ -276,7 +276,7 @@ class IO
   def gets(*args)
     begin
       readline(*args)
-    rescue EOFError => e
+    rescue EOFError
       nil
     end
   end
@@ -291,7 +291,7 @@ class IO
   def getc
     begin
       readchar
-    rescue EOFError => e
+    rescue EOFError
       nil
     end
   end
