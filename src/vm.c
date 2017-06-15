@@ -1185,7 +1185,9 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_RAISE) {
       /* A      raise(R(A)) */
-      mrb_exc_set(mrb, regs[GETARG_A(i)]);
+      int a = GETARG_A(i);
+
+      mrb_exc_set(mrb, regs[a]);
       goto L_RAISE;
     }
 
