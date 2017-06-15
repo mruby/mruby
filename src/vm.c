@@ -302,6 +302,7 @@ ecall(mrb_state *mrb, int i)
   mrb_value *self = mrb->c->stack;
   struct RObject *exc;
   ptrdiff_t cioff;
+  int ai = mrb_gc_arena_save(mrb);
 
   if (i<0) return;
   if (ci - mrb->c->cibase > MRB_FUNCALL_DEPTH_MAX) {
@@ -321,9 +322,13 @@ ecall(mrb_state *mrb, int i)
   ci->target_class = p->target_class;
   mrb->c->stack = mrb->c->stack + ci[-1].nregs;
   exc = mrb->exc; mrb->exc = 0;
+  if (exc) {
+    mrb_gc_protect(mrb, mrb_obj_value(exc));
+  }
   mrb_run(mrb, p, *self);
   mrb->c->ci = mrb->c->cibase + cioff;
   if (!mrb->exc) mrb->exc = exc;
+  mrb_gc_arena_restore(mrb, ai);
 }
 
 #ifndef MRB_FUNCALL_ARGC_MAX
