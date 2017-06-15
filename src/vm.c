@@ -867,7 +867,12 @@ mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stac
   if (c->ci - c->cibase > cioff) {
     c->ci = c->cibase + cioff;
   }
-  mrb->c = c;
+  if (mrb->c != c) {
+    if (mrb->c->fib) {
+      mrb_write_barrier(mrb, (struct RBasic*)mrb->c->fib);
+    }
+    mrb->c = c;
+  }
   return result;
 }
 
@@ -1819,6 +1824,9 @@ RETRY_TRY_BLOCK:
               else {
                 struct mrb_context *c = mrb->c;
 
+                if (c->fib) {
+                  mrb_write_barrier(mrb, (struct RBasic*)c->fib);
+                }
                 mrb->c = c->prev;
                 c->prev = NULL;
                 goto L_RAISE;

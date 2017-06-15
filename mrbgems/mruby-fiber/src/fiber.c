@@ -171,6 +171,16 @@ fiber_check_cfunc(mrb_state *mrb, struct mrb_context *c)
   }
 }
 
+static void
+fiber_switch_context(mrb_state *mrb, struct mrb_context *c)
+{
+  if (mrb->c->fib) {
+    mrb_write_barrier(mrb, (struct RBasic*)mrb->c->fib);
+  }
+  c->status = MRB_FIBER_RUNNING;
+  mrb->c = c;
+}
+
 static mrb_value
 fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mrb_bool resume, mrb_bool vmexec)
 {
@@ -207,9 +217,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
   else {
     value = fiber_result(mrb, a, len);
   }
-  mrb_write_barrier(mrb, (struct RBasic*)c->fib);
-  c->status = MRB_FIBER_RUNNING;
-  mrb->c = c;
+  fiber_switch_context(mrb, c);
 
   if (vmexec) {
     c->vmexec = TRUE;
@@ -308,10 +316,8 @@ fiber_transfer(mrb_state *mrb, mrb_value self)
 
   if (c == mrb->root_c) {
     mrb->c->status = MRB_FIBER_TRANSFERRED;
-    mrb->c = c;
-    c->status = MRB_FIBER_RUNNING;
+    fiber_switch_context(mrb, c);
     MARK_CONTEXT_MODIFY(c);
-    mrb_write_barrier(mrb, (struct RBasic*)c->fib);
     return fiber_result(mrb, a, len);
   }
 
@@ -336,13 +342,12 @@ mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
   fiber_check_cfunc(mrb, c);
   c->prev->status = MRB_FIBER_RUNNING;
   c->status = MRB_FIBER_SUSPENDED;
-  mrb->c = c->prev;
+  fiber_switch_context(mrb, c->prev);
   c->prev = NULL;
   if (c->vmexec) {
     c->vmexec = FALSE;
     mrb->c->ci->acc = CI_ACC_RESUMED;
   }
-  mrb_write_barrier(mrb, (struct RBasic*)c->fib);
   MARK_CONTEXT_MODIFY(mrb->c);
   return fiber_result(mrb, a, len);
 }
