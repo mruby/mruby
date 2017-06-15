@@ -140,6 +140,13 @@ assert('IO#read', '15.2.20.5.14') do
   end
 end
 
+assert "IO#read(n) with n > IO::BUF_SIZE" do
+  r,w = IO.pipe
+  n = IO::BUF_SIZE+1
+  w.write 'a'*n
+  assert_equal r.read(n), 'a'*n
+end
+
 assert('IO#readchar', '15.2.20.5.15') do
   # almost same as IO#getc
   IO.open(IO.sysopen($mrbtest_io_rfname)) do |io|
