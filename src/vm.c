@@ -1836,6 +1836,7 @@ RETRY_TRY_BLOCK:
         if (ci != ci0) {
           mrb->c->stack = ci[1].stackent;
         }
+        stack_extend(mrb, irep->nregs);
         pc = mrb->c->rescue[--ci->ridx];
       }
       else {
