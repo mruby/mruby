@@ -1178,6 +1178,33 @@ MRB_API void mrb_show_copyright(mrb_state *mrb);
 
 MRB_API mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
 
+#if 0
+/* memcpy and memset does not work with gdb reverse-next on my box */
+/* use naive memcpy and memset instead */
+#undef memcpy
+#undef memset
+static inline void*
+mrbmemcpy(void *dst, const void *src, size_t n)
+{
+  char *d = dst;
+  const char *s = src;
+  while (n--)
+    *d++ = *s++;
+  return d;
+}
+#define memcpy(a,b,c) mrbmemcpy(a,b,c)
+
+static inline void*
+mrbmemset(void *s, int c, size_t n)
+{
+  char *t = s;
+  while (n--)
+    *t++ = c;
+  return s;
+}
+#define memset(a,b,c) mrbmemset(a,b,c)
+#endif
+
 MRB_END_DECL
 
 #endif  /* MRUBY_H */
