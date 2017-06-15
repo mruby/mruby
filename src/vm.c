@@ -1434,14 +1434,13 @@ RETRY_TRY_BLOCK:
         pool = irep->pool;
         syms = irep->syms;
         ci->nregs = irep->nregs;
+        stack_extend(mrb, irep->nregs);
         if (ci->argc < 0) {
           if (irep->nregs > 3) {
-            stack_extend(mrb, irep->nregs);
             stack_clear(regs+3, irep->nregs-3);
           }
         }
         else if (ci->argc+2 < irep->nregs) {
-          stack_extend(mrb, irep->nregs);
           stack_clear(regs+ci->argc+2, irep->nregs-ci->argc-2);
         }
         if (m->env) {
