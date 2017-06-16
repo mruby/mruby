@@ -610,7 +610,7 @@ mrb_str_upto(mrb_state *mrb, mrb_value beg)
 
     while (bi <= ei) {
       if (excl && bi == ei) break;
-      snprintf(buf, sizeof(buf), "%.*d", min_width, bi);
+      snprintf(buf, max_width+1, "%.*d", (int)min_width, bi);
       mrb_yield(mrb, block, mrb_str_new(mrb, buf, strlen(buf)));
       mrb_gc_arena_restore(mrb, ai);
       bi++;
