@@ -579,10 +579,10 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
   int i;
   mrb_callinfo *ci;
 
-  /* mark stack */
+  /* mark VM stack */
   mark_context_stack(mrb, c);
 
-  /* mark VM stack */
+  /* mark call stack */
   if (c->cibase) {
     for (ci = c->cibase; ci <= c->ci; ci++) {
       mrb_gc_mark(mrb, (struct RBasic*)ci->env);
