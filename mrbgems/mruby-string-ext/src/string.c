@@ -599,14 +599,15 @@ mrb_str_upto(mrb_state *mrb, mrb_value beg)
   }
   /* both edges are all digits */
   if (ISDIGIT(RSTRING_PTR(beg)[0]) && ISDIGIT(RSTRING_PTR(end)[0]) &&
-  all_digits_p(RSTRING_PTR(beg), RSTRING_LEN(beg)) &&
-  all_digits_p(RSTRING_PTR(end), RSTRING_LEN(end))) {
+      all_digits_p(RSTRING_PTR(beg), RSTRING_LEN(beg)) &&
+      all_digits_p(RSTRING_PTR(end), RSTRING_LEN(end))) {
+    int ai = mrb_gc_arena_save(mrb);
     mrb_int min_width = RSTRING_LEN(beg);
     mrb_int max_width = RSTRING_LEN(end);
     mrb_int bi = mrb_int(mrb, mrb_str_to_inum(mrb, beg, 10, FALSE));
     mrb_int ei = mrb_int(mrb, mrb_str_to_inum(mrb, end, 10, FALSE));
-    char *buf = (char *)mrb_malloc(mrb, max_width+1);
-    int ai = mrb_gc_arena_save(mrb);
+    mrb_value str = mrb_str_new(mrb, NULL, max_width);
+    char *buf = RSTRING_PTR(str);
 
     while (bi <= ei) {
       if (excl && bi == ei) break;
@@ -616,7 +617,6 @@ mrb_str_upto(mrb_state *mrb, mrb_value beg)
       bi++;
     }
 
-    mrb_free(mrb, buf);
     return beg;
   }
   /* normal case */
