@@ -760,6 +760,19 @@ mrb_yield_cont(mrb_state *mrb, mrb_value b, mrb_value self, mrb_int argc, const 
   return mrb_exec_irep(mrb, self, p);
 }
 
+static struct RBreak*
+break_new(mrb_state *mrb, struct RProc *p, mrb_value val)
+{
+  struct RBreak *brk;
+
+  brk = (struct RBreak*)mrb_obj_alloc(mrb, MRB_TT_BREAK, NULL);
+  brk->iv = NULL;
+  brk->proc = p;
+  brk->val = val;
+
+  return brk;
+}
+
 typedef enum {
   LOCALJUMP_ERROR_RETURN = 0,
   LOCALJUMP_ERROR_BREAK = 1,
@@ -920,6 +933,8 @@ RETRY_TRY_BLOCK:
 
   if (exc_catched) {
     exc_catched = FALSE;
+    if (mrb->exc && mrb->exc->tt == MRB_TT_BREAK)
+      goto L_BREAK;
     goto L_RAISE;
   }
   mrb->jmp = &c_jmp;
@@ -1856,8 +1871,9 @@ RETRY_TRY_BLOCK:
       }
       else {
         int acc;
-        mrb_value v = regs[GETARG_A(i)];
+        mrb_value v;
 
+        v = regs[GETARG_A(i)];
         mrb_gc_protect(mrb, v);
         switch (GETARG_B(i)) {
         case OP_R_RETURN:
@@ -1943,18 +1959,26 @@ RETRY_TRY_BLOCK:
             }
             ARENA_RESTORE(mrb, ai);
             mrb->c->vmexec = FALSE;
+            mrb->exc = (struct RObject*)break_new(mrb, proc, v);
             mrb->jmp = prev_jmp;
-            return v;
+            MRB_THROW(prev_jmp);
+          }
+          if (FALSE) {
+          L_BREAK:
+            v = ((struct RBreak*)mrb->exc)->val;
+            proc = ((struct RBreak*)mrb->exc)->proc;
+            mrb->exc = NULL;
+            ci = mrb->c->ci;
           }
           mrb->c->stack = ci->stackent;
           mrb->c->ci = mrb->c->cibase + proc->env->cioff + 1;
           while (ci > mrb->c->ci) {
+            if (ci->env) {
+              mrb_env_unshare(mrb, ci->env);
+            }
             if (ci[-1].acc == CI_ACC_SKIP) {
               mrb->c->ci = ci;
               goto L_BREAK_ERROR;
-            }
-            if (ci->env) {
-              mrb_env_unshare(mrb, ci->env);
             }
             ci--;
           }

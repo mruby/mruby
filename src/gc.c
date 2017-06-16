@@ -112,6 +112,7 @@ typedef struct {
     struct RProc proc;
     struct REnv env;
     struct RException exc;
+    struct RBreak brk;
 #ifdef MRB_WORD_BOXING
     struct RFloat floatv;
     struct RCptr cptr;
