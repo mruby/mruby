@@ -433,7 +433,7 @@ mrb_gc_protect(mrb_state *mrb, mrb_value obj)
 
    Register your object when it's exported to C world,
    without reference from Ruby world, e.g. callback
-   arguments.  Don't forget to remove the obejct using
+   arguments.  Don't forget to remove the object using
    mrb_gc_unregister, otherwise your object will leak.
 */
 
