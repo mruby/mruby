@@ -835,7 +835,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
 static void
 root_scan_phase(mrb_state *mrb, mrb_gc *gc)
 {
-  size_t i, e;
+  int i, e;
 
   if (!is_minor_gc(gc)) {
     gc->gray_list = NULL;
@@ -995,6 +995,12 @@ incremental_marking_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
 static void
 final_marking_phase(mrb_state *mrb, mrb_gc *gc)
 {
+  int i, e;
+
+  /* mark arena */
+  for (i=0,e=gc->arena_idx; i<e; i++) {
+    mrb_gc_mark(mrb, gc->arena[i]);
+  }
   mrb_gc_mark_gv(mrb);
   mark_context(mrb, mrb->c);
   mark_context(mrb, mrb->root_c);
