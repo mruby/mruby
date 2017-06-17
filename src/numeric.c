@@ -426,13 +426,13 @@ flo_hash(mrb_state *mrb, mrb_value num)
   mrb_float d;
   char *c;
   size_t i;
-  int hash;
+  mrb_int hash;
 
   d = (mrb_float)mrb_fixnum(num);
   /* normalize -0.0 to 0.0 */
   if (d == 0) d = 0.0;
   c = (char*)&d;
-  for (hash=0, i=0; i<sizeof(mrb_float);i++) {
+  for (hash=0,i=0; i<sizeof(mrb_float); i++) {
     hash = (hash * 971) ^ (unsigned char)c[i];
   }
   if (hash < 0) hash = -hash;
