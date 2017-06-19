@@ -140,7 +140,7 @@ mrb_gc_free_hash(mrb_state *mrb, struct RHash *hash)
 
 
 MRB_API mrb_value
-mrb_hash_new_capa(mrb_state *mrb, int capa)
+mrb_hash_new_capa(mrb_state *mrb, mrb_int capa)
 {
   struct RHash *h;
 
