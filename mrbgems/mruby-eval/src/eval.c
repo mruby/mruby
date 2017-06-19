@@ -205,9 +205,9 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, con
   if (!e) e = c->ci[-1].env;
   e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)e);
   e->cxt.c = c;
-  e->cioff = c->ci - c->cibase - 1;
+  e->cioff = c->ci - c->cibase;
   e->stack = c->ci->stackent;
-  MRB_SET_ENV_STACK_LEN(e, c->ci[-1].proc->body.irep->nlocals);
+  MRB_SET_ENV_STACK_LEN(e, c->ci->proc->body.irep->nlocals);
   c->ci->target_class = proc->target_class;
   c->ci->env = 0;
   proc->env = e;
