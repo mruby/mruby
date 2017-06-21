@@ -157,7 +157,7 @@ def assert_raise(*exp)
       msg = "#{msg}#{exp.inspect} exception expected, not"
       diff = "      Class: <#{e.class}>\n" +
              "    Message: #{e.message}"
-      if not exp.any?{|ex| ex.instance_of?(Module) ? e.kind_of?(ex) : ex == e.class }
+      unless exp.any?{|ex| ex.instance_of?(Module) ? e.kind_of?(ex) : ex == e.class }
         $mrbtest_assert.push([$mrbtest_assert_idx, msg, diff])
         ret = false
       end
