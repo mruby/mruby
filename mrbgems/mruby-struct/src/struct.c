@@ -276,7 +276,6 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   mrb_int argc;
 
   name = mrb_nil_value();
-  rest = mrb_nil_value();
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
   if (argc == 0) { /* special case to avoid crash */
     rest = mrb_ary_new(mrb);
