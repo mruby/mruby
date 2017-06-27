@@ -902,7 +902,9 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         if (argc > i) {
           *pl = argc-i;
           if (*pl > 0) {
-            *var = ARGV + arg_i;
+            mrb_value args = mrb_ary_new_from_values(mrb, *pl, ARGV+arg_i);
+            RARRAY(args)->c = NULL;
+            *var = (mrb_value*)RARRAY_PTR(args);
           }
           i = argc;
           arg_i += *pl;
