@@ -75,7 +75,7 @@ assert("String#% with invalid chr") do
     end
 
     assert_raise TypeError do
-      "%c" % 0
+      "%c" % 0x80
     end
   ensure
     class Fixnum

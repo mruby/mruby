@@ -701,17 +701,27 @@ retry:
 
         tmp = mrb_check_string_type(mrb, val);
         if (!mrb_nil_p(tmp)) {
-          if (mrb_fixnum(mrb_funcall(mrb, tmp, "size", 0)) != 1 ) {
+          if (RSTRING_LEN(tmp) != 1) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "%c requires a character");
           }
         }
         else if (mrb_fixnum_p(val)) {
-          tmp = mrb_funcall(mrb, val, "chr", 0);
+          mrb_int n = mrb_fixnum(val);
+
+          if (n < 0x80) {
+            char buf[1];
+
+            buf[0] = (char)n;
+            tmp = mrb_str_new(mrb, buf, 1);
+          }
+          else {
+            tmp = mrb_funcall(mrb, val, "chr", 0);
+            mrb_check_type(mrb, tmp, MRB_TT_STRING);
+          }
         }
         else {
           mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
         }
-        mrb_check_type(mrb, tmp, MRB_TT_STRING);
         c = RSTRING_PTR(tmp);
         n = RSTRING_LEN(tmp);
         if (!(flags & FWIDTH)) {
