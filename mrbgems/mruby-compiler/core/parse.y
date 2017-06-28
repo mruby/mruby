@@ -5777,6 +5777,7 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
     return mrb_undef_value();
   }
   if (!p->tree || p->nerr) {
+    c->parser_nerr = p->nerr;
     if (p->capture_errors) {
       char buf[256];
       int n;

@@ -33,6 +33,8 @@ typedef struct mrbc_context {
   mrb_bool no_exec:1;
   mrb_bool keep_lv:1;
   mrb_bool no_optimize:1;
+
+  size_t parser_nerr;
 } mrbc_context;
 
 MRB_API mrbc_context* mrbc_context_new(mrb_state *mrb);
