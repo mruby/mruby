@@ -387,7 +387,7 @@ assert('Kernel#method_missing', '15.3.1.3.30') do
   begin
     c.no_method_named_this
   rescue NoMethodError => e
-    assert_equal "undefined method 'no_method_named_this' for #{c.to_s}", e.message
+    assert_equal "undefined method 'no_method_named_this' for #{c}", e.message
   end
 
   class NoInspectClass
@@ -397,7 +397,7 @@ assert('Kernel#method_missing', '15.3.1.3.30') do
   begin
     d.no_method_named_this
   rescue NoMethodError => e
-    assert_equal "undefined method 'no_method_named_this' for #{d.to_s}", e.message
+    assert_equal "undefined method 'no_method_named_this' for #{d}", e.message
   end
 end
 
