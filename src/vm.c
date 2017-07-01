@@ -1684,6 +1684,8 @@ RETRY_TRY_BLOCK:
       else {
         struct REnv *e = uvenv(mrb, lv-1);
         if (!e) goto L_NOSUPER;
+        if (MRB_ENV_STACK_LEN(e) <= m1+r+m2+1)
+          goto L_NOSUPER;
         stack = e->stack + 1;
       }
       if (r == 0) {
