@@ -1991,6 +1991,9 @@ RETRY_TRY_BLOCK:
           if (!proc->env || !MRB_ENV_STACK_SHARED_P(proc->env)) {
             goto L_BREAK_ERROR;
           }
+          if (proc->env->cxt.c != mrb->c) {
+            goto L_BREAK_ERROR;
+          }
           while (mrb->c->eidx > mrb->c->ci->epos) {
             ecall(mrb, --mrb->c->eidx);
           }
