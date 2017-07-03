@@ -801,13 +801,6 @@ retry:
         int base;
         mrb_int len;
 
-        switch (*p) {
-          case 'd':
-          case 'i':
-            sign = 1; break;
-          default:
-            break;
-        }
         if (flags & FSHARP) {
           switch (*p) {
             case 'o': prefix = "0"; break;
@@ -845,22 +838,14 @@ retry:
           case 'b':
           case 'B':
             base = 2; break;
-          case 'u':
           case 'd':
           case 'i':
+            sign = 1;
+          case 'u':
           default:
             base = 10; break;
         }
 
-        if (base == 2) {
-          if (v < 0 && !sign) {
-            val = mrb_fix2binstr(mrb, mrb_fixnum_value(v), base);
-            dots = 1;
-          }
-          else {
-            val = mrb_fixnum_to_str(mrb, mrb_fixnum_value(v), base);
-          }
-        }
         if (sign) {
           if (v > 0) {
             if (flags & FPLUS) {
@@ -872,36 +857,32 @@ retry:
               width--;
             }
           }
-          switch (base) {
-          case 2:
-            strncpy(nbuf, RSTRING_PTR(val), sizeof(nbuf));
-            break;
-          case 8:
-            snprintf(nbuf, sizeof(nbuf), "%" MRB_PRIo, v);
-            break;
-          case 10:
-            snprintf(nbuf, sizeof(nbuf), "%" MRB_PRId, v);
-            break;
-          case 16:
-            snprintf(nbuf, sizeof(nbuf), "%" MRB_PRIx, v);
-            break;
+          else {
+            sc = '-';
+            width--;
+            v = -v;
           }
+          mrb_assert(base == 10);
+          snprintf(nbuf, sizeof(nbuf), "%" MRB_PRId, v);
           s = nbuf;
         }
         else {
           s = nbuf;
-          if (base != 10 && v < 0) {
+          if (v < 0) {
             dots = 1;
           }
           switch (base) {
           case 2:
+            if (v < 0) {
+              val = mrb_fix2binstr(mrb, mrb_fixnum_value(v), base);
+            }
+            else {
+              val = mrb_fixnum_to_str(mrb, mrb_fixnum_value(v), base);
+            }
             strncpy(++s, RSTRING_PTR(val), sizeof(nbuf)-1);
             break;
           case 8:
             snprintf(++s, sizeof(nbuf)-1, "%" MRB_PRIo, v);
-            break;
-          case 10:
-            snprintf(++s, sizeof(nbuf)-1, "%" MRB_PRId, v);
             break;
           case 16:
             snprintf(++s, sizeof(nbuf)-1, "%" MRB_PRIx, v);
@@ -928,11 +909,6 @@ retry:
           size = strlen(s);
           /* PARANOID: assert(size <= MRB_INT_MAX) */
           len = (mrb_int)size;
-        }
-
-        if (dots) {
-          prec -= 2;
-          width -= 2;
         }
 
         if (*p == 'X') {
@@ -990,7 +966,11 @@ retry:
           int plen = (int)strlen(prefix);
           PUSH(prefix, plen);
         }
-        if (dots) PUSH("..", 2);
+        if (dots) {
+          prec -= 2;
+          width -= 2;
+          PUSH("..", 2);
+        }
 
         if (prec > len) {
           CHECK(prec - len);
