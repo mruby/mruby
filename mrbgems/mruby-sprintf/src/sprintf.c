@@ -528,7 +528,6 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
   mrb_int n;
   mrb_int width;
   mrb_int prec;
-  int flags = FNONE;
   int nextarg = 1;
   int posarg = 0;
   mrb_value nextvalue;
@@ -564,6 +563,7 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
   for (; p < end; p++) {
     const char *t;
     mrb_sym id = 0;
+    int flags = FNONE;
 
     for (t = p; t < end && *t != '%'; t++) ;
     if (t + 1 == end) ++t;
