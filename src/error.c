@@ -151,14 +151,14 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
   str = mrb_str_new_cstr(mrb, cname);
   if (mrb_string_p(file) && mrb_fixnum_p(line)) {
     if (append_mesg) {
-      str = mrb_format(mrb, "%S:%S:%S (%S)", file, line, mesg, str);
+      str = mrb_format(mrb, "%S:%S: %S (%S)", file, line, mesg, str);
     }
     else {
-      str = mrb_format(mrb, "%S:%S:%S", file, line, str);
+      str = mrb_format(mrb, "%S:%S: %S", file, line, str);
     }
   }
   else if (append_mesg) {
-    str = mrb_format(mrb, "%S:%S", str, mesg);
+    str = mrb_format(mrb, "%S: %S", str, mesg);
   }
   return str;
 }
