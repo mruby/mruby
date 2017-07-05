@@ -847,7 +847,7 @@ retry:
         }
 
         if (sign) {
-          if (v > 0) {
+          if (v >= 0) {
             if (flags & FPLUS) {
               sc = '+';
               width--;
