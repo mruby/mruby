@@ -838,10 +838,10 @@ retry:
           case 'b':
           case 'B':
             base = 2; break;
+          case 'u':
           case 'd':
           case 'i':
             sign = 1;
-          case 'u':
           default:
             base = 10; break;
         }
