@@ -860,11 +860,11 @@ retry:
           else {
             sc = '-';
             width--;
-            v = -v;
           }
           mrb_assert(base == 10);
           snprintf(nbuf, sizeof(nbuf), "%" MRB_PRId, v);
           s = nbuf;
+          if (v < 0) s++;       /* skip minus sign */
         }
         else {
           s = nbuf;
@@ -974,12 +974,11 @@ retry:
 
         if (prec > len) {
           CHECK(prec - len);
-          if (v < 0) {
-            char c = sign_bits(base, p);
-            FILL(c, prec - len);
-          }
-          else if ((flags & (FMINUS|FPREC)) != FMINUS) {
+          if ((flags & (FMINUS|FPREC)) != FMINUS) {
             char c = '0';
+            FILL(c, prec - len);
+          } else if (v < 0) {
+            char c = sign_bits(base, p);
             FILL(c, prec - len);
           }
         }
