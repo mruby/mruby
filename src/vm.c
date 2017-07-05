@@ -2156,7 +2156,8 @@ RETRY_TRY_BLOCK:
       else {
         struct REnv *e = uvenv(mrb, lv-1);
         if (!e || e->cioff == 0 ||
-            (!MRB_ENV_STACK_SHARED_P(e) && e->cxt.mid == 0)) {
+            (!MRB_ENV_STACK_SHARED_P(e) && e->cxt.mid == 0) ||
+            MRB_ENV_STACK_LEN(e) <= m1+r+m2+1) {
           localjump_error(mrb, LOCALJUMP_ERROR_YIELD);
           goto L_RAISE;
         }
