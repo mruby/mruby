@@ -79,11 +79,13 @@ print_backtrace(mrb_state *mrb, mrb_value backtrace)
   FILE *stream = stderr;
 
   if (!mrb_array_p(backtrace)) return;
-  fprintf(stream, "trace:\n");
 
-  n = RARRAY_LEN(backtrace);
-  for (i=0; n--; i++) {
-    mrb_value entry = RARRAY_PTR(backtrace)[n];
+  n = RARRAY_LEN(backtrace) - 1;
+  if (n == 0) return;
+
+  fprintf(stream, "trace:\n");
+  for (i=0; i<n; i++) {
+    mrb_value entry = RARRAY_PTR(backtrace)[n-i-1];
 
     if (mrb_string_p(entry)) {
       fprintf(stream, "\t[%d] %.*s\n", i, (int)RSTRING_LEN(entry), RSTRING_PTR(entry));
@@ -97,6 +99,7 @@ print_packed_backtrace(mrb_state *mrb, mrb_value packed)
   FILE *stream = stderr;
   struct backtrace_location *bt;
   int n, i;
+  int ai = mrb_gc_arena_save(mrb);
 
   bt = (struct backtrace_location*)mrb_data_check_get_ptr(mrb, packed, &bt_type);
   if (bt == NULL) {
@@ -105,11 +108,10 @@ print_packed_backtrace(mrb_state *mrb, mrb_value packed)
   n = (mrb_int)RDATA(packed)->flags;
 
   fprintf(stream, "trace:\n");
-  for (i = 0; n--; i++) {
-    int ai = mrb_gc_arena_save(mrb);
-    struct backtrace_location *entry = &bt[n];
+  for (i = 0; i<n; i++) {
+    struct backtrace_location *entry = &bt[n-i-1];
     if (entry->filename == NULL) continue;
-    fprintf(stream, "\t[%d] %s:%d", (int)i, entry->filename, entry->lineno);
+    fprintf(stream, "\t[%d] %s:%d", i, entry->filename, entry->lineno);
     if (entry->method_id != 0) {
       const char *method_name;
 
@@ -196,6 +198,7 @@ mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace)
 {
   struct backtrace_location *bt;
   mrb_int n, i;
+  int ai;
 
   if (mrb_nil_p(backtrace)) return mrb_ary_new_capa(mrb, 0);
   if (mrb_array_p(backtrace)) return backtrace;
@@ -205,8 +208,8 @@ mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace)
   }
   n = (mrb_int)RDATA(backtrace)->flags;
   backtrace = mrb_ary_new_capa(mrb, n);
+  ai = mrb_gc_arena_save(mrb);
   for (i = 0; i < n; i++) {
-    int ai = mrb_gc_arena_save(mrb);
     struct backtrace_location *entry = &bt[i];
     mrb_value btline;
 
