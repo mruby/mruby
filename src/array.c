@@ -451,7 +451,7 @@ mrb_ary_pop(mrb_state *mrb, mrb_value ary)
 {
   struct RArray *a = mrb_ary_ptr(ary);
 
-  ary_modify(mrb, a);
+  ary_modify_check(mrb, a);
   if (a->len == 0) return mrb_nil_value();
   return a->ptr[--a->len];
 }

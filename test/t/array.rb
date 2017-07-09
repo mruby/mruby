@@ -237,6 +237,8 @@ assert('Array#pop', '15.2.12.5.21') do
   assert_nil([].pop)
   assert_equal([1,2], a)
   assert_equal(3, b)
+
+  assert_raise(RuntimeError) { [].freeze.pop }
 end
 
 assert('Array#push', '15.2.12.5.22') do
