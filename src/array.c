@@ -106,11 +106,17 @@ ary_fill_with_nil(mrb_value *ptr, mrb_int size)
 }
 
 static void
-ary_modify(mrb_state *mrb, struct RArray *a)
+ary_modify_check(mrb_state *mrb, struct RArray *a)
 {
   if (MRB_FROZEN_P(a)) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen array");
   }
+}
+
+static void
+ary_modify(mrb_state *mrb, struct RArray *a)
+{
+  ary_modify_check(mrb, a);
 
   if (ARY_SHARED_P(a)) {
     mrb_shared_array *shared = a->aux.shared;
@@ -445,7 +451,7 @@ mrb_ary_pop(mrb_state *mrb, mrb_value ary)
 {
   struct RArray *a = mrb_ary_ptr(ary);
 
-  ary_modify(mrb, a);
+  ary_modify_check(mrb, a);
   if (a->len == 0) return mrb_nil_value();
   return a->ptr[--a->len];
 }
@@ -458,7 +464,7 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
   struct RArray *a = mrb_ary_ptr(self);
   mrb_value val;
 
-  ary_modify(mrb, a);
+  ary_modify_check(mrb, a);
   if (a->len == 0) return mrb_nil_value();
   if (ARY_SHARED_P(a)) {
   L_SHIFT:
