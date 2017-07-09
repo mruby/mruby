@@ -284,6 +284,8 @@ assert('Array#shift', '15.2.12.5.27') do
   assert_nil([].shift)
   assert_equal([2,3], a)
   assert_equal(1, b)
+
+  assert_raise(RuntimeError) { [].freeze.shift }
 end
 
 assert('Array#size', '15.2.12.5.28') do
