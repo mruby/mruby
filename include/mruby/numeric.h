@@ -19,8 +19,8 @@ MRB_BEGIN_DECL
 #define TYPED_POSFIXABLE(f,t) ((f) <= (t)MRB_INT_MAX)
 #define TYPED_NEGFIXABLE(f,t) ((f) >= (t)MRB_INT_MIN)
 #define TYPED_FIXABLE(f,t) (TYPED_POSFIXABLE(f,t) && TYPED_NEGFIXABLE(f,t))
-#define POSFIXABLE(f,t) TYPED_POSFIXABLE(f,t)
-#define NEGFIXABLE(f,t) TYPED_NEGFIXABLE(f,t)
+#define POSFIXABLE(f) TYPED_POSFIXABLE(f,mrb_int)
+#define NEGFIXABLE(f) TYPED_NEGFIXABLE(f,mrb_int)
 #define FIXABLE(f) TYPED_FIXABLE(f,mrb_int)
 #define FIXABLE_FLOAT(f) TYPED_FIXABLE(f,double)
 
