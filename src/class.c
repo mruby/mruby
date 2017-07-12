@@ -552,9 +552,9 @@ to_sym(mrb_state *mrb, mrb_value ss)
     d:      Data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified
     I:      Inline struct  [void*]
     &:      Block          [mrb_value]
-    *:      rest argument  [mrb_value*,mrb_int]   Receive the rest of the arguments as an array.
-    |:      optional                              Next argument of '|' and later are optional.
-    ?:      optional given [mrb_bool]             true if preceding argument (optional) is given.
+    *:      rest argument  [mrb_value*,mrb_int]   The rest of the arguments as an array; *! avoid copy of the stack
+    |:      optional                              Following arguments are optional
+    ?:      optional given [mrb_bool]             true if preceding argument (optional) is given
  */
 MRB_API mrb_int
 mrb_get_args(mrb_state *mrb, const char *format, ...)
