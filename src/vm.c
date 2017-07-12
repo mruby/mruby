@@ -228,7 +228,7 @@ top_env(mrb_state *mrb, struct RProc *proc)
 #define CI_ACC_DIRECT  -2
 #define CI_ACC_RESUMED -3
 
-static mrb_callinfo*
+static inline mrb_callinfo*
 cipush(mrb_state *mrb)
 {
   struct mrb_context *c = mrb->c;
@@ -279,7 +279,7 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e)
   mrb_write_barrier(mrb, (struct RBasic *)e);
 }
 
-static void
+static inline void
 cipop(mrb_state *mrb)
 {
   struct mrb_context *c = mrb->c;
