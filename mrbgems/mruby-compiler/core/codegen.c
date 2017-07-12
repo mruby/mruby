@@ -2980,10 +2980,10 @@ loop_break(codegen_scope *s, node *tree)
 static void
 loop_pop(codegen_scope *s, int val)
 {
-  dispatch_linked(s, s->loop->pc3);
   if (val) {
     genop(s, MKOP_A(OP_LOADNIL, cursp()));
   }
+  dispatch_linked(s, s->loop->pc3);
   s->loop = s->loop->prev;
   if (val) push();
 }
