@@ -896,15 +896,25 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       {
         mrb_value **var;
         mrb_int *pl;
+        mrb_bool nocopy = FALSE;
 
+        if (*format == '!') {
+          format++;
+          nocopy = TRUE;
+        }
         var = va_arg(ap, mrb_value**);
         pl = va_arg(ap, mrb_int*);
         if (argc > i) {
           *pl = argc-i;
           if (*pl > 0) {
-            mrb_value args = mrb_ary_new_from_values(mrb, *pl, ARGV+arg_i);
-            RARRAY(args)->c = NULL;
-            *var = (mrb_value*)RARRAY_PTR(args);
+            if (nocopy) {
+              *var = ARGV+arg_i;
+            }
+            else {
+              mrb_value args = mrb_ary_new_from_values(mrb, *pl, ARGV+arg_i);
+              RARRAY(args)->c = NULL;
+              *var = (mrb_value*)RARRAY_PTR(args);
+            }
           }
           i = argc;
           arg_i += *pl;
