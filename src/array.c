@@ -533,6 +533,7 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   if (ARY_SHARED_P(a)
       && a->aux.shared->refcnt == 1 /* shared only referenced from this array */
       && a->ptr - a->aux.shared->ptr >= len) /* there's room for unshifted item */ {
+    ary_modify_check(mrb, a);
     a->ptr -= len;
   }
   else {
