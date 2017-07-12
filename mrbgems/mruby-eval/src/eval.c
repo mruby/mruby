@@ -255,7 +255,7 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
   mrb_value b;
   mrb_int argc; mrb_value *argv;
 
-  mrb_get_args(mrb, "*&", &argv, &argc, &b);
+  mrb_get_args(mrb, "*!&", &argv, &argc, &b);
 
   if (mrb_nil_p(b)) {
     char *s;

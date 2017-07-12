@@ -1597,7 +1597,7 @@ mrb_str_index(mrb_state *mrb, mrb_value str)
   mrb_value sub;
   mrb_int pos, clen;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
+  mrb_get_args(mrb, "*!", &argv, &argc);
   if (argc == 2) {
     mrb_get_args(mrb, "oi", &sub, &pos);
   }
@@ -1868,7 +1868,7 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
   mrb_value sub;
   mrb_int pos, len = RSTRING_CHAR_LEN(str);
 
-  mrb_get_args(mrb, "*", &argv, &argc);
+  mrb_get_args(mrb, "*!", &argv, &argc);
   if (argc == 2) {
     mrb_get_args(mrb, "oi", &sub, &pos);
     if (pos < 0) {

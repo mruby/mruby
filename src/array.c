@@ -255,7 +255,7 @@ mrb_ary_s_create(mrb_state *mrb, mrb_value klass)
   mrb_int len;
   struct RArray *a;
 
-  mrb_get_args(mrb, "*", &vals, &len);
+  mrb_get_args(mrb, "*!", &vals, &len);
   ary = mrb_ary_new_from_values(mrb, len, vals);
   a = mrb_ary_ptr(ary);
   a->c = mrb_class_ptr(klass);
@@ -438,7 +438,7 @@ mrb_ary_push_m(mrb_state *mrb, mrb_value self)
   mrb_value *argv;
   mrb_int len;
 
-  mrb_get_args(mrb, "*", &argv, &len);
+  mrb_get_args(mrb, "*!", &argv, &len);
   while (len--) {
     mrb_ary_push(mrb, self, *argv++);
   }
@@ -526,7 +526,7 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   mrb_value *vals;
   mrb_int len;
 
-  mrb_get_args(mrb, "*", &vals, &len);
+  mrb_get_args(mrb, "*!", &vals, &len);
   if (len > ARY_MAX_SIZE - a->len) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
   }
@@ -717,7 +717,7 @@ aget_index(mrb_state *mrb, mrb_value index)
     mrb_int i, argc;
     mrb_value *argv;
 
-    mrb_get_args(mrb, "i*", &i, &argv, &argc);
+    mrb_get_args(mrb, "i*!", &i, &argv, &argc);
     return i;
   }
 }

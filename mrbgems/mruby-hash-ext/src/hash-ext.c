@@ -26,7 +26,7 @@ hash_values_at(mrb_state *mrb, mrb_value hash)
   mrb_int argc, i;
   int ai;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
+  mrb_get_args(mrb, "*!", &argv, &argc);
   result = mrb_ary_new_capa(mrb, argc);
   ai = mrb_gc_arena_save(mrb);
   for (i = 0; i < argc; i++) {
