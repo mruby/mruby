@@ -1257,8 +1257,8 @@ mrb_gc_arena_restore(mrb_state *mrb, int idx)
 #ifndef MRB_GC_FIXED_ARENA
   int capa = gc->arena_capa;
 
-  if (idx < capa / 2) {
-    capa = (int)(capa * 0.66);
+  if (idx < capa / 4) {
+    capa >>= 2;
     if (capa < MRB_GC_ARENA_SIZE) {
       capa = MRB_GC_ARENA_SIZE;
     }
