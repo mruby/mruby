@@ -254,3 +254,29 @@ assert("Hash#dig") do
   assert_equal(1, h.dig(:a, :b, :c))
   assert_nil(h.dig(:d))
 end
+
+assert("Hash#transform_keys") do
+  h = {a:{b:{c:1}}}
+  assert_equal(1, h.dig(:a, :b, :c))
+  assert_nil(h.dig(:d))
+end
+
+assert("Hash#transform_keys") do
+  h = {"1" => 100, "2" => 200}
+  assert_equal(h.transform_keys{|k| k+"!"},
+               {"1!" => 100, "2!" => 200})
+  assert_equal(h.transform_keys{|k|k.to_i},
+               {1 => 100, 2 => 200})
+  assert_equal(h.transform_keys.with_index{|k, i| "#{k}.#{i}"},
+               {"1.0" => 100, "2.1" => 200})
+end
+
+assert("Hash#transform_values") do
+  h = {a: 1, b: 2, c: 3}
+  assert_equal(h.transform_values{|v| v * v + 1},
+               {a: 2, b: 5, c: 10})
+  assert_equal(h.transform_values{|v|v.to_s},
+               {a: "1", b: "2", c: "3"})
+  assert_equal(h.transform_values.with_index{|v, i| "#{v}.#{i}"},
+               {a: "1.0", b: "2.1", c: "3.2"})
+end

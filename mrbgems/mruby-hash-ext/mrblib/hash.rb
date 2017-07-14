@@ -382,4 +382,43 @@ class Hash
       n
     end
   end
+
+  ##
+  # call-seq:
+  #    hsh.transform_keys {|key| block } -> new_hash
+  #    hsh.transform_keys                -> an_enumerator
+  #
+  # Returns a new hash, with the keys computed from running the block
+  # once for each key in the hash, and the values unchanged.
+  #
+  # If no block is given, an enumerator is returned instead.
+  #
+  def transform_keys(&b)
+    return to_enum :transform_keys unless block_given?
+    hash = {}
+    self.each_key do |k|
+      new_key = yield(k)
+      hash[new_key] = self[k]
+    end
+    hash
+  end
+  ##
+  # call-seq:
+  #    hsh.transform_values {|value| block } -> new_hash
+  #    hsh.transform_values                  -> an_enumerator
+  #
+  # Returns a new hash with the results of running the block once for
+  # every value.
+  # This method does not change the keys.
+  #
+  # If no block is given, an enumerator is returned instead.
+  #
+  def transform_values(&b)
+    return to_enum :transform_values unless block_given?
+    hash = {}
+    self.each_key do |k|
+      hash[k] = yield(self[k])
+    end
+    hash
+  end
 end
