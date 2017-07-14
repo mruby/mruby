@@ -256,12 +256,6 @@ assert("Hash#dig") do
 end
 
 assert("Hash#transform_keys") do
-  h = {a:{b:{c:1}}}
-  assert_equal(1, h.dig(:a, :b, :c))
-  assert_nil(h.dig(:d))
-end
-
-assert("Hash#transform_keys") do
   h = {"1" => 100, "2" => 200}
   assert_equal(h.transform_keys{|k| k+"!"},
                {"1!" => 100, "2!" => 200})
