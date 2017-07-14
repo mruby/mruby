@@ -396,7 +396,7 @@ class Hash
   def transform_keys(&b)
     return to_enum :transform_keys unless block_given?
     hash = {}
-    self.each_key do |k|
+    self.keys.each do |k|
       new_key = yield(k)
       hash[new_key] = self[k]
     end
@@ -416,7 +416,7 @@ class Hash
   def transform_values(&b)
     return to_enum :transform_values unless block_given?
     hash = {}
-    self.each_key do |k|
+    self.keys.each do |k|
       hash[k] = yield(self[k])
     end
     hash
