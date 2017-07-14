@@ -263,6 +263,8 @@ assert("Hash#transform_keys") do
                {1 => 100, 2 => 200})
   assert_equal(h.transform_keys.with_index{|k, i| "#{k}.#{i}"},
                {"1.0" => 100, "2.1" => 200})
+  assert_equal(h.transform_keys!{|k|k.to_i}, h)
+  assert_equal(h, {1 => 100, 2 => 200})
 end
 
 assert("Hash#transform_values") do
@@ -273,4 +275,6 @@ assert("Hash#transform_values") do
                {a: "1", b: "2", c: "3"})
   assert_equal(h.transform_values.with_index{|v, i| "#{v}.#{i}"},
                {a: "1.0", b: "2.1", c: "3.2"})
+  assert_equal(h.transform_values!{|v|v.to_s}, h)
+  assert_equal(h, {a: "1", b: "2", c: "3"})
 end

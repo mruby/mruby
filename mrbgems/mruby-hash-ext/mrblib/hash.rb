@@ -404,6 +404,26 @@ class Hash
   end
   ##
   # call-seq:
+  #    hsh.transform_keys! {|key| block } -> hsh
+  #    hsh.transform_keys!                -> an_enumerator
+  #
+  # Invokes the given block once for each key in <i>hsh</i>, replacing it
+  # with the new key returned by the block, and then returns <i>hsh</i>.
+  #
+  # If no block is given, an enumerator is returned instead.
+  #
+  def transform_keys!(&b)
+    return to_enum :transform_keys! unless block_given?
+    self.keys.each do |k|
+      value = self[k]
+      new_key = yield(k)
+      self.__delete(k)
+      self[new_key] = value
+    end
+    self
+  end
+  ##
+  # call-seq:
   #    hsh.transform_values {|value| block } -> new_hash
   #    hsh.transform_values                  -> an_enumerator
   #
@@ -420,5 +440,22 @@ class Hash
       hash[k] = yield(self[k])
     end
     hash
+  end
+  ##
+  # call-seq:
+  #    hsh.transform_values! {|key| block } -> hsh
+  #    hsh.transform_values!                -> an_enumerator
+  #
+  # Invokes the given block once for each value in the hash, replacing
+  # with the new value returned by the block, and then returns <i>hsh</i>.
+  #
+  # If no block is given, an enumerator is returned instead.
+  #
+  def transform_values!(&b)
+    return to_enum :transform_values! unless block_given?
+    self.keys.each do |k|
+      self[k] = yield(self[k])
+    end
+    self
   end
 end
