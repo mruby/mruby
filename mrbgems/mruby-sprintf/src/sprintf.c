@@ -958,6 +958,7 @@ retry:
 
         if (!(flags&FMINUS) && width > 0) {
           FILL(' ', width);
+          width = 0;
         }
 
         if (sc) PUSH(&sc, 1);
