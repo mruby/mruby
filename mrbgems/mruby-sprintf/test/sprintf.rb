@@ -91,6 +91,12 @@ assert("String#% %b") do
   assert_equal("..10115", "%0b5" % -5)
 end
 
+assert("String#% %d") do
+  assert_equal("  10",   "%4d" % 10)
+  assert_equal("1000",   "%4d" % 1000)
+  assert_equal("100000", "%4d" % 100000)
+end
+
 assert("String#% invalid format") do
   assert_raise ArgumentError do
     "%?" % ""
