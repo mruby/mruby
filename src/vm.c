@@ -65,7 +65,28 @@ The value below allows about 60000 recursive calls in the simplest case. */
 # define DEBUG(x)
 #endif
 
-#define ARENA_RESTORE(mrb,ai) (mrb)->gc.arena_idx = (ai)
+
+#ifndef MRB_GC_FIXED_ARENA
+static void
+mrb_gc_arena_shrink(mrb_state *mrb, int idx)
+{
+  mrb_gc *gc = &mrb->gc;
+  int capa = gc->arena_capa;
+
+  if (idx < capa / 4) {
+    capa >>= 2;
+    if (capa < MRB_GC_ARENA_SIZE) {
+      capa = MRB_GC_ARENA_SIZE;
+    }
+    if (capa != gc->arena_capa) {
+      gc->arena = (struct RBasic**)mrb_realloc(mrb, gc->arena, sizeof(struct RBasic*)*capa);
+      gc->arena_capa = capa;
+    }
+  }
+}
+#else
+#define mrb_gc_arena_shrink(mrb,idx)
+#endif
 
 #define CALL_MAXARGS 127
 
@@ -1271,7 +1292,7 @@ RETRY_TRY_BLOCK:
       }
       mrb->c->ensure[mrb->c->eidx++] = p;
       mrb->c->ensure[mrb->c->eidx] = NULL;
-      ARENA_RESTORE(mrb, ai);
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -1283,7 +1304,7 @@ RETRY_TRY_BLOCK:
 
       for (n=0; n<a && mrb->c->eidx > epos; n++) {
         ecall(mrb, --mrb->c->eidx);
-        ARENA_RESTORE(mrb, ai);
+        mrb_gc_arena_restore(mrb, ai);
       }
       NEXT;
     }
@@ -1395,6 +1416,7 @@ RETRY_TRY_BLOCK:
         }
         result = m->body.func(mrb, recv);
         mrb_gc_arena_restore(mrb, ai);
+        mrb_gc_arena_shrink(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         ci = mrb->c->ci;
         if (GET_OPCODE(i) == OP_SENDB) {
@@ -1481,6 +1503,7 @@ RETRY_TRY_BLOCK:
       if (MRB_PROC_CFUNC_P(m)) {
         recv = m->body.func(mrb, recv);
         mrb_gc_arena_restore(mrb, ai);
+        mrb_gc_arena_shrink(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
         ci = mrb->c->ci;
@@ -1716,7 +1739,7 @@ RETRY_TRY_BLOCK:
         rest->len = m1+len+m2;
       }
       regs[a+1] = stack[m1+r+m2];
-      ARENA_RESTORE(mrb, ai);
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -2006,7 +2029,7 @@ RETRY_TRY_BLOCK:
             ci = mrb->c->ci;
           }
           if (ci->acc < 0) {
-            ARENA_RESTORE(mrb, ai);
+            mrb_gc_arena_restore(mrb, ai);
             mrb->c->vmexec = FALSE;
             mrb->exc = (struct RObject*)break_new(mrb, proc, v);
             mrb->jmp = prev_jmp;
@@ -2040,7 +2063,7 @@ RETRY_TRY_BLOCK:
           ecall(mrb, --mrb->c->eidx);
         }
         if (mrb->c->vmexec && !mrb->c->ci->target_class) {
-          ARENA_RESTORE(mrb, ai);
+          mrb_gc_arena_restore(mrb, ai);
           mrb->c->vmexec = FALSE;
           mrb->jmp = prev_jmp;
           return v;
@@ -2050,7 +2073,7 @@ RETRY_TRY_BLOCK:
         mrb->c->stack = ci->stackent;
         cipop(mrb);
         if (acc == CI_ACC_SKIP || acc == CI_ACC_DIRECT) {
-          ARENA_RESTORE(mrb, ai);
+          mrb_gc_arena_restore(mrb, ai);
           mrb->jmp = prev_jmp;
           return v;
         }
@@ -2062,7 +2085,7 @@ RETRY_TRY_BLOCK:
         syms = irep->syms;
 
         regs[acc] = v;
-        ARENA_RESTORE(mrb, ai);
+        mrb_gc_arena_restore(mrb, ai);
       }
       JUMP;
     }
@@ -2231,7 +2254,7 @@ RETRY_TRY_BLOCK:
       default:
         goto L_SEND;
       }
-      ARENA_RESTORE(mrb, ai);
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -2549,7 +2572,7 @@ RETRY_TRY_BLOCK:
       int c = GETARG_C(i);
       mrb_value v = mrb_ary_new_from_values(mrb, c, &regs[b]);
       regs[a] = v;
-      ARENA_RESTORE(mrb, ai);
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -2559,7 +2582,7 @@ RETRY_TRY_BLOCK:
       int b = GETARG_B(i);
       mrb_value splat = mrb_ary_splat(mrb, regs[b]);
       mrb_ary_concat(mrb, regs[a], splat);
-      ARENA_RESTORE(mrb, ai);
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -2634,7 +2657,7 @@ RETRY_TRY_BLOCK:
           idx++;
         }
       }
-      ARENA_RESTORE(mrb, ai);
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -2642,7 +2665,7 @@ RETRY_TRY_BLOCK:
       /* A Bx           R(A) := str_new(Lit(Bx)) */
       mrb_value str = mrb_str_dup(mrb, pool[GETARG_Bx(i)]);
       regs[GETARG_A(i)] = str;
-      ARENA_RESTORE(mrb, ai);
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -2664,7 +2687,7 @@ RETRY_TRY_BLOCK:
         b+=2;
       }
       regs[GETARG_A(i)] = hash;
-      ARENA_RESTORE(mrb, ai);
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -2681,7 +2704,7 @@ RETRY_TRY_BLOCK:
       }
       if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
       regs[GETARG_A(i)] = mrb_obj_value(p);
-      ARENA_RESTORE(mrb, ai);
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -2708,7 +2731,7 @@ RETRY_TRY_BLOCK:
       }
       c = mrb_vm_define_class(mrb, base, super, id);
       regs[a] = mrb_obj_value(c);
-      ARENA_RESTORE(mrb, ai);
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -2728,7 +2751,7 @@ RETRY_TRY_BLOCK:
       }
       c = mrb_vm_define_module(mrb, base, id);
       regs[a] = mrb_obj_value(c);
-      ARENA_RESTORE(mrb, ai);
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -2776,14 +2799,14 @@ RETRY_TRY_BLOCK:
       struct RProc *p = mrb_proc_ptr(regs[a+1]);
 
       mrb_define_method_raw(mrb, c, syms[GETARG_B(i)], p);
-      ARENA_RESTORE(mrb, ai);
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
     CASE(OP_SCLASS) {
       /* A B    R(A) := R(B).singleton_class */
       regs[GETARG_A(i)] = mrb_singleton_class(mrb, regs[GETARG_B(i)]);
-      ARENA_RESTORE(mrb, ai);
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
@@ -2803,7 +2826,7 @@ RETRY_TRY_BLOCK:
       int b = GETARG_B(i);
       mrb_value val = mrb_range_new(mrb, regs[b], regs[b+1], GETARG_C(i));
       regs[GETARG_A(i)] = val;
-      ARENA_RESTORE(mrb, ai);
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 

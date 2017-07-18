@@ -1243,34 +1243,6 @@ mrb_garbage_collect(mrb_state *mrb)
   mrb_full_gc(mrb);
 }
 
-MRB_API int
-mrb_gc_arena_save(mrb_state *mrb)
-{
-  return mrb->gc.arena_idx;
-}
-
-MRB_API void
-mrb_gc_arena_restore(mrb_state *mrb, int idx)
-{
-  mrb_gc *gc = &mrb->gc;
-
-#ifndef MRB_GC_FIXED_ARENA
-  int capa = gc->arena_capa;
-
-  if (idx < capa / 4) {
-    capa >>= 2;
-    if (capa < MRB_GC_ARENA_SIZE) {
-      capa = MRB_GC_ARENA_SIZE;
-    }
-    if (capa != gc->arena_capa) {
-      gc->arena = (struct RBasic**)mrb_realloc(mrb, gc->arena, sizeof(struct RBasic*)*capa);
-      gc->arena_capa = capa;
-    }
-  }
-#endif
-  gc->arena_idx = idx;
-}
-
 /*
  * Field write barrier
  *   Paint obj(Black) -> value(White) to obj(Black) -> value(Gray).

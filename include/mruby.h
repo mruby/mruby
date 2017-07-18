@@ -1036,11 +1036,27 @@ MRB_API mrb_value mrb_Float(mrb_state *mrb, mrb_value val);
 MRB_API mrb_value mrb_inspect(mrb_state *mrb, mrb_value obj);
 MRB_API mrb_bool mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 
+static inline int mrb_gc_arena_save(mrb_state*);
+static inline void mrb_gc_arena_restore(mrb_state*,int);
+
+static inline int
+mrb_gc_arena_save(mrb_state *mrb)
+{
+  return mrb->gc.arena_idx;
+}
+
+static inline void
+mrb_gc_arena_restore(mrb_state *mrb, int idx)
+{
+  mrb->gc.arena_idx = idx;
+}
+
+MRB_API int mrb_gc_arena_save(mrb_state*);
+MRB_API void mrb_gc_arena_restore(mrb_state*,int);
+
 MRB_API void mrb_garbage_collect(mrb_state*);
 MRB_API void mrb_full_gc(mrb_state*);
 MRB_API void mrb_incremental_gc(mrb_state *);
-MRB_API int mrb_gc_arena_save(mrb_state*);
-MRB_API void mrb_gc_arena_restore(mrb_state*,int);
 MRB_API void mrb_gc_mark(mrb_state*,struct RBasic*);
 #define mrb_gc_mark_value(mrb,val) do {\
   if (!mrb_immediate_p(val)) mrb_gc_mark((mrb), mrb_basic_ptr(val)); \
