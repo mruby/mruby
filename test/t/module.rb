@@ -787,10 +787,28 @@ end
 # @!endgroup prepend
 
 assert('Module#to_s') do
-  module Test4to_sModules
+  module Outer
+    class Inner; end
+    const_set :SetInner, Class.new
   end
 
-  assert_equal 'Test4to_sModules', Test4to_sModules.to_s
+  assert_equal 'Outer', Outer.to_s
+  assert_equal 'Outer::Inner', Outer::Inner.to_s
+  assert_equal 'Outer::SetInner', Outer::SetInner.to_s
+
+  outer = Module.new do
+    const_set :SetInner, Class.new
+  end
+  Object.const_set :SetOuter, outer
+
+  assert_equal 'SetOuter', SetOuter.to_s
+  assert_equal 'SetOuter::SetInner', SetOuter::SetInner.to_s
+
+  mod = Module.new
+  cls = Class.new
+
+  assert_equal "#<Module:0x", mod.to_s[0,11]
+  assert_equal "#<Class:0x", cls.to_s[0,10]
 end
 
 assert('Module#inspect') do
