@@ -2,6 +2,7 @@ require 'pathname'
 require 'forwardable'
 require 'tsort'
 require 'shellwords'
+require_relative 'utils/rbfiles_sorter'
 
 module MRuby
   module Gem
@@ -58,7 +59,8 @@ module MRuby
         end
         @linker = LinkerConfig.new([], [], [], [], [])
 
-        @rbfiles = Dir.glob("#{@dir}/#{@mrblib_dir}/**/*.rb").sort
+        @rbfiles = RbfilesSorter.new("#{@dir}/#{@mrblib_dir}").sort
+
         @objs = Dir.glob("#{@dir}/#{@objs_dir}/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
           objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
         end
