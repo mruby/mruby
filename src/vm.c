@@ -2376,7 +2376,14 @@ RETRY_TRY_BLOCK:
         {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_int y = mrb_fixnum(regs[a+1]);
-          SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x / (mrb_float)y);
+          double f;
+          if (y == 0) {
+            f = INFINITY;
+          }
+          else {
+            f = (mrb_float)x / (mrb_float)y;
+          }
+          SET_FLOAT_VALUE(mrb, regs[a], f);
         }
         break;
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
@@ -2391,7 +2398,14 @@ RETRY_TRY_BLOCK:
         {
           mrb_float x = mrb_float(regs[a]);
           mrb_int y = mrb_fixnum(regs[a+1]);
-          SET_FLOAT_VALUE(mrb, regs[a], x / y);
+          double f;
+          if (y == 0) {
+            f = INFINITY;
+          }
+          else {
+            f = x / y;
+          }
+          SET_FLOAT_VALUE(mrb, regs[a], f);
         }
 #else
         OP_MATH_BODY(/,mrb_float,mrb_fixnum);
