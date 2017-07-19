@@ -1,10 +1,24 @@
 assert 'Module#name' do
-  module A
-    class B
-    end
+  module Outer
+    class Inner; end
+    const_set :SetInner, Class.new
   end
 
-  assert_nil A::B.singleton_class.name
-  assert_equal 'Fixnum', Fixnum.name
-  assert_equal 'A::B', A::B.name
+  assert_equal 'Outer', Outer.name
+  assert_equal 'Outer::Inner', Outer::Inner.name
+  assert_equal 'Outer::SetInner', Outer::SetInner.name
+
+  outer = Module.new do
+    const_set :SetInner, Class.new
+  end
+  Object.const_set :SetOuter, outer
+
+  assert_equal 'SetOuter', SetOuter.name
+  assert_equal 'SetOuter::SetInner', SetOuter::SetInner.name
+
+  mod = Module.new
+  cls = Class.new
+
+  assert_nil mod.name
+  assert_nil cls.name
 end
