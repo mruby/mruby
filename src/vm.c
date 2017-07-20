@@ -1964,7 +1964,7 @@ RETRY_TRY_BLOCK:
               if (ci->env) {
                 mrb_env_unshare(mrb, ci->env);
               }
-              if (ci->acc < 0) {
+              if (ci != ce && ci->acc < 0) {
                 localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
                 goto L_RAISE;
               }
