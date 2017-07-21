@@ -2051,6 +2051,7 @@ RETRY_TRY_BLOCK:
             }
             ci--;
           }
+          mrb_env_unshare(mrb, ci->env);
           break;
         default:
           /* cannot happen */
