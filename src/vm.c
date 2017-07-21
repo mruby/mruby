@@ -279,25 +279,28 @@ cipush(mrb_state *mrb)
 MRB_API void
 mrb_env_unshare(mrb_state *mrb, struct REnv *e)
 {
-  size_t len = (size_t)MRB_ENV_STACK_LEN(e);
-  ptrdiff_t cioff = e->cioff;
-  mrb_value *p;
+  if (e == NULL) return;
+  else {
+    size_t len = (size_t)MRB_ENV_STACK_LEN(e);
+    ptrdiff_t cioff = e->cioff;
+    mrb_value *p;
 
-  if (!MRB_ENV_STACK_SHARED_P(e)) return;
-  if (e->cxt.c != mrb->c) return;
-  if (e->cioff == 0 && e->cxt.c == mrb->root_c) return;
-  MRB_ENV_UNSHARE_STACK(e);
-  if (!e->c) {
-    /* save block argument position (negated) */
-    e->cioff = -e->cxt.c->cibase[cioff].argc-1;
+    if (!MRB_ENV_STACK_SHARED_P(e)) return;
+    if (e->cxt.c != mrb->c) return;
+    if (e->cioff == 0 && e->cxt.c == mrb->root_c) return;
+    MRB_ENV_UNSHARE_STACK(e);
+    if (!e->c) {
+      /* save block argument position (negated) */
+      e->cioff = -e->cxt.c->cibase[cioff].argc-1;
+    }
+    e->cxt.mid = e->cxt.c->cibase[cioff].mid;
+    p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
+    if (len > 0) {
+      stack_copy(p, e->stack, len);
+    }
+    e->stack = p;
+    mrb_write_barrier(mrb, (struct RBasic *)e);
   }
-  e->cxt.mid = e->cxt.c->cibase[cioff].mid;
-  p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
-  if (len > 0) {
-    stack_copy(p, e->stack, len);
-  }
-  e->stack = p;
-  mrb_write_barrier(mrb, (struct RBasic *)e);
 }
 
 static inline void
@@ -307,10 +310,7 @@ cipop(mrb_state *mrb)
   struct REnv *env = c->ci->env;
 
   c->ci--;
-
-  if (env) {
-    mrb_env_unshare(mrb, env);
-  }
+  mrb_env_unshare(mrb, env);
 }
 
 void mrb_exc_set(mrb_state *mrb, mrb_value exc);
@@ -1960,16 +1960,15 @@ RETRY_TRY_BLOCK:
             }
             
             ce = mrb->c->cibase + e->cioff;
-            while (ci >= ce) {
-              if (ci->env) {
-                mrb_env_unshare(mrb, ci->env);
-              }
-              if (ci != ce && ci->acc < 0) {
+            while (ci > ce) {
+              mrb_env_unshare(mrb, ci->env);
+              if (ci->acc < 0) {
                 localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
                 goto L_RAISE;
               }
               ci--;
             }
+            mrb_env_unshare(mrb, ci->env);
             if (ce == mrb->c->cibase) {
               localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
               goto L_RAISE;
@@ -2045,9 +2044,7 @@ RETRY_TRY_BLOCK:
           mrb->c->stack = ci->stackent;
           mrb->c->ci = mrb->c->cibase + proc->env->cioff + 1;
           while (ci > mrb->c->ci) {
-            if (ci->env) {
-              mrb_env_unshare(mrb, ci->env);
-            }
+            mrb_env_unshare(mrb, ci->env);
             if (ci[-1].acc == CI_ACC_SKIP) {
               mrb->c->ci = ci;
               goto L_BREAK_ERROR;
