@@ -5558,7 +5558,7 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
   p->jmp = &buf1;
 
   MRB_TRY(p->jmp) {
-    int n;
+    int n = 1;
 
     p->cmd_start = TRUE;
     p->in_def = p->in_single = 0;
