@@ -253,6 +253,7 @@ static inline mrb_callinfo*
 cipush(mrb_state *mrb)
 {
   struct mrb_context *c = mrb->c;
+  static const mrb_callinfo ci_zero = { 0 };
   mrb_callinfo *ci = c->ci;
 
   int ridx = ci->ridx;
@@ -265,13 +266,9 @@ cipush(mrb_state *mrb)
     c->ciend = c->cibase + size * 2;
   }
   ci = ++c->ci;
+  *ci = ci_zero;
   ci->epos = mrb->c->eidx;
   ci->ridx = ridx;
-  ci->env = 0;
-  ci->pc = 0;
-  ci->err = 0;
-  ci->proc = 0;
-  ci->acc = 0;
 
   return ci;
 }
