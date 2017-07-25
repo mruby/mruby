@@ -2372,7 +2372,7 @@ RETRY_TRY_BLOCK:
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_int y = mrb_fixnum(regs[a+1]);
           double f;
-          if (y == 0) {
+          if (y == 0 && x != 0) {
             f = INFINITY;
           }
           else {
