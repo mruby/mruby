@@ -1,3 +1,4 @@
+# coding: utf-8
 ##
 # Array
 #
@@ -193,9 +194,45 @@ class Array
   include Enumerable
 
   ##
+  # Quick sort
+  # a     : the array to sort
+  # left  : the beginning of sort region
+  # right : the end of sort region
+  def __sort_sub__(a, left, right, &block)
+    if left < right
+      i = left
+      j = right
+      pivot = a[i + (j - i) / 2]
+      while true
+        while ((block)? block.call(a[i], pivot): (a[i] <=> pivot)) < 0
+          i += 1
+        end
+        while ((block)? block.call(pivot, a[j]): (pivot <=> a[j])) < 0
+          j -= 1
+        end
+        break if (i >= j)
+        tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+        i += 1
+        j -= 1
+      end
+      __sort_sub__(a, left, i-1, &block)
+      __sort_sub__(a, j+1, right, &block)
+    end
+  end
+  #  private :__sort_sub__
+
+  ##
   # Sort all elements and replace +self+ with these
   # elements.
   def sort!(&block)
-    self.replace(self.sort(&block))
+    size = self.size
+    if size > 1
+      __sort_sub__(self, 0, size - 1, &block)
+    end
+    self
+  end
+
+  def sort(&block)
+    self.dup.sort!(&block)
   end
 end
