@@ -12,13 +12,13 @@
 
 typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 
-#ifndef MRB_SEGMENT_SIZE
-#define MRB_SEGMENT_SIZE 4
+#ifndef MRB_IV_SEGMENT_SIZE
+#define MRB_IV_SEGMENT_SIZE 4
 #endif
 
 typedef struct segment {
-  mrb_sym key[MRB_SEGMENT_SIZE];
-  mrb_value val[MRB_SEGMENT_SIZE];
+  mrb_sym key[MRB_IV_SEGMENT_SIZE];
+  mrb_value val[MRB_IV_SEGMENT_SIZE];
   struct segment *next;
 } segment;
 
@@ -69,7 +69,7 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
   size_t i;
 
   while (seg) {
-    for (i=0; i<MRB_SEGMENT_SIZE; i++) {
+    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
       mrb_sym key = seg->key[i];
       /* Found room in last segment after last_len */
       if (!seg->next && i >= t->last_len) {
@@ -134,7 +134,7 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 
   seg = t->rootseg;
   while (seg) {
-    for (i=0; i<MRB_SEGMENT_SIZE; i++) {
+    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
       mrb_sym key = seg->key[i];
 
       if (!seg->next && i >= t->last_len) {
@@ -169,7 +169,7 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 
   seg = t->rootseg;
   while (seg) {
-    for (i=0; i<MRB_SEGMENT_SIZE; i++) {
+    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
       mrb_sym key = seg->key[i];
 
       if (!seg->next && i >= t->last_len) {
@@ -196,7 +196,7 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 
   seg = t->rootseg;
   while (seg) {
-    for (i=0; i<MRB_SEGMENT_SIZE; i++) {
+    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
       mrb_sym key = seg->key[i];
 
       /* no value in last segment after last_len */
@@ -232,7 +232,7 @@ iv_size(mrb_state *mrb, iv_tbl *t)
       return size;
     }
     seg = seg->next;
-    size += MRB_SEGMENT_SIZE;
+    size += MRB_IV_SEGMENT_SIZE;
   }
   /* empty iv_tbl */
   return 0;
@@ -250,7 +250,7 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
   t2 = iv_new(mrb);
 
   while (seg != NULL) {
-    for (i=0; i<MRB_SEGMENT_SIZE; i++) {
+    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
       mrb_sym key = seg->key[i];
       mrb_value val = seg->val[i];
 
