@@ -12,8 +12,6 @@
 
 typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 
-#ifdef MRB_USE_IV_SEGLIST
-
 #ifndef MRB_SEGMENT_SIZE
 #define MRB_SEGMENT_SIZE 4
 #endif
@@ -279,115 +277,6 @@ iv_free(mrb_state *mrb, iv_tbl *t)
   }
   mrb_free(mrb, t);
 }
-
-#else
-
-#include <mruby/khash.h>
-
-#ifndef MRB_IVHASH_INIT_SIZE
-#define MRB_IVHASH_INIT_SIZE 8
-#endif
-
-KHASH_DECLARE(iv, mrb_sym, mrb_value, TRUE)
-KHASH_DEFINE(iv, mrb_sym, mrb_value, TRUE, kh_int_hash_func, kh_int_hash_equal)
-
-typedef struct iv_tbl {
-  khash_t(iv) h;
-} iv_tbl;
-
-static iv_tbl*
-iv_new(mrb_state *mrb)
-{
-  return (iv_tbl*)kh_init_size(iv, mrb, MRB_IVHASH_INIT_SIZE);
-}
-
-static void
-iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
-{
-  khash_t(iv) *h = &t->h;
-  khiter_t k;
-
-  k = kh_put(iv, mrb, h, sym);
-  kh_value(h, k) = val;
-}
-
-static mrb_bool
-iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
-{
-  khash_t(iv) *h = &t->h;
-  khiter_t k;
-
-  k = kh_get(iv, mrb, h, sym);
-  if (k != kh_end(h)) {
-    if (vp) *vp = kh_value(h, k);
-    return TRUE;
-  }
-  return FALSE;
-}
-
-static mrb_bool
-iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
-{
-  khash_t(iv) *h = &t->h;
-  khiter_t k;
-
-  if (h) {
-    k = kh_get(iv, mrb, h, sym);
-    if (k != kh_end(h)) {
-      mrb_value val = kh_value(h, k);
-      kh_del(iv, mrb, h, k);
-      if (vp) *vp = val;
-      return TRUE;
-    }
-  }
-  return FALSE;
-}
-
-static mrb_bool
-iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
-{
-  khash_t(iv) *h = &t->h;
-  khiter_t k;
-  int n;
-
-  if (h) {
-    for (k = kh_begin(h); k != kh_end(h); k++) {
-      if (kh_exist(h, k)) {
-        n = (*func)(mrb, kh_key(h, k), kh_value(h, k), p);
-        if (n > 0) return FALSE;
-        if (n < 0) {
-          kh_del(iv, mrb, h, k);
-        }
-      }
-    }
-  }
-  return TRUE;
-}
-
-static size_t
-iv_size(mrb_state *mrb, iv_tbl *t)
-{
-  khash_t(iv) *h;
-
-  if (t && (h = &t->h)) {
-    return kh_size(h);
-  }
-  return 0;
-}
-
-static iv_tbl*
-iv_copy(mrb_state *mrb, iv_tbl *t)
-{
-  return (iv_tbl*)kh_copy(iv, mrb, &t->h);
-}
-
-static void
-iv_free(mrb_state *mrb, iv_tbl *t)
-{
-  kh_destroy(iv, mrb, &t->h);
-}
-
-#endif
 
 static int
 iv_mark_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
