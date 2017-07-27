@@ -1261,9 +1261,7 @@ RETRY_TRY_BLOCK:
       /* A      A.times{rescue_pop()} */
       int a = GETARG_A(i);
 
-      while (a--) {
-        mrb->c->ci->ridx--;
-      }
+      mrb->c->ci->ridx -= a;
       NEXT;
     }
 
