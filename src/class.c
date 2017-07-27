@@ -564,7 +564,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   va_list ap;
   int argc = mrb->c->ci->argc;
   int arg_i = 0;
-  mrb_bool array_argv;
+  mrb_value *array_argv;
   mrb_bool opt = FALSE;
   mrb_bool given = TRUE;
 
@@ -572,15 +572,15 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   if (argc < 0) {
     struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
 
-    argc = a->len;
-    array_argv = TRUE;
+    argc = ARY_LEN(a);
+    array_argv = ARY_PTR(a);
   }
   else {
-    array_argv = FALSE;
+    array_argv = NULL;
   }
 
 #define ARGV \
-  (array_argv ? mrb_ary_ptr(mrb->c->stack[1])->ptr : (mrb->c->stack + 1))
+  (array_argv ? array_argv : (mrb->c->stack + 1))
 
   while ((c = *format++)) {
     switch (c) {
@@ -751,8 +751,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         if (i < argc) {
           aa = to_ary(mrb, ARGV[arg_i++]);
           a = mrb_ary_ptr(aa);
-          *pb = a->ptr;
-          *pl = a->len;
+          *pb = ARY_PTR(a);
+          *pl = ARY_LEN(a);
           i++;
         }
       }
@@ -896,7 +896,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       {
         mrb_value **var;
         mrb_int *pl;
-        mrb_bool nocopy = FALSE;
+        mrb_bool nocopy = array_argv ? TRUE : FALSE;
 
         if (*format == '!') {
           format++;
@@ -913,7 +913,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
             else {
               mrb_value args = mrb_ary_new_from_values(mrb, *pl, ARGV+arg_i);
               RARRAY(args)->c = NULL;
-              *var = (mrb_value*)RARRAY_PTR(args);
+              *var = RARRAY_PTR(args);
             }
           }
           i = argc;

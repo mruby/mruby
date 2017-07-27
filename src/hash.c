@@ -759,7 +759,7 @@ mrb_hash_keys(mrb_state *mrb, mrb_value hash)
   ary = mrb_ary_new_capa(mrb, kh_size(h));
   end = kh_size(h)-1;
   mrb_ary_set(mrb, ary, end, mrb_nil_value());
-  p = mrb_ary_ptr(ary)->ptr;
+  p = RARRAY_PTR(ary);
   for (k = kh_begin(h); k != kh_end(h); k++) {
     if (kh_exist(h, k)) {
       mrb_value kv = kh_key(h, k);

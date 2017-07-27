@@ -13,8 +13,8 @@
 #include <mruby/hash.h>
 #include <mruby/range.h>
 
-#define RSTRUCT_LEN(st) mrb_ary_ptr(st)->len
-#define RSTRUCT_PTR(st) mrb_ary_ptr(st)->ptr
+#define RSTRUCT_LEN(st) RARRAY_LEN(st)
+#define RSTRUCT_PTR(st) RARRAY_PTR(st)
 
 static struct RClass *
 struct_class(mrb_state *mrb)
