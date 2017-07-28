@@ -268,6 +268,12 @@ assert('Module#const_get', '15.2.2.4.21') do
   end
 
   assert_equal 42, Test4ConstGet.const_get(:Const4Test4ConstGet)
+  assert_equal 42, Test4ConstGet.const_get("Const4Test4ConstGet")
+  assert_equal 42, Object.const_get("Test4ConstGet::Const4Test4ConstGet")
+
+  assert_raise(TypeError){ Test4ConstGet.const_get(123) }
+  assert_raise(NameError){ Test4ConstGet.const_get(:I_DO_NOT_EXIST) }
+  assert_raise(NameError){ Test4ConstGet.const_get("I_DO_NOT_EXIST::ME_NEITHER") }
 end
 
 assert('Module#const_missing', '15.2.2.4.22') do
@@ -280,7 +286,7 @@ assert('Module#const_missing', '15.2.2.4.22') do
   assert_equal 42, Test4ConstMissing.const_get(:ConstDoesntExist)
 end
 
-assert('Module#const_get', '15.2.2.4.23') do
+assert('Module#const_set', '15.2.2.4.23') do
   module Test4ConstSet
     Const4Test4ConstSet = 42
   end

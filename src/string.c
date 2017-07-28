@@ -478,15 +478,14 @@ str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   return str_subseq(mrb, str, beg, len);
 }
 
-static mrb_int
-str_index(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int offset)
+MRB_API mrb_int
+mrb_str_index(mrb_state *mrb, mrb_value str, const char *sptr, mrb_int slen, mrb_int offset)
 {
   mrb_int pos;
-  char *s, *sptr;
-  mrb_int len, slen;
+  char *s;
+  mrb_int len;
 
   len = RSTRING_LEN(str);
-  slen = RSTRING_LEN(sub);
   if (offset < 0) {
     offset += len;
     if (offset < 0) return -1;
@@ -498,12 +497,22 @@ str_index(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int offset)
   }
   if (slen == 0) return offset;
   /* need proceed one character at a time */
-  sptr = RSTRING_PTR(sub);
-  slen = RSTRING_LEN(sub);
   len = RSTRING_LEN(str) - offset;
   pos = mrb_memsearch(sptr, slen, s, len);
   if (pos < 0) return pos;
   return pos + offset;
+}
+
+static mrb_int
+str_index_str(mrb_state *mrb, mrb_value str, mrb_value str2, mrb_int offset)
+{
+  const char *ptr;
+  mrb_int len;
+
+  ptr = RSTRING_PTR(str2);
+  len = RSTRING_LEN(str2);
+
+  return mrb_str_index(mrb, str, ptr, len, offset);
 }
 
 static void
@@ -1096,7 +1105,7 @@ num_index:
       return str;
 
     case MRB_TT_STRING:
-      if (str_index(mrb, str, indx, 0) != -1)
+      if (str_index_str(mrb, str, indx, 0) != -1)
         return mrb_str_dup(mrb, indx);
       return mrb_nil_value();
 
@@ -1563,7 +1572,7 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
   mrb_value str2;
 
   mrb_get_args(mrb, "S", &str2);
-  if (str_index(mrb, self, str2, 0) < 0)
+  if (str_index_str(mrb, self, str2, 0) < 0)
     return mrb_bool_value(FALSE);
   return mrb_bool_value(TRUE);
 }
@@ -1590,7 +1599,7 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
  *     "hello".index(/[aeiou]/, -3)   #=> 4
  */
 static mrb_value
-mrb_str_index(mrb_state *mrb, mrb_value str)
+mrb_str_index_m(mrb_state *mrb, mrb_value str)
 {
   mrb_value *argv;
   mrb_int argc;
@@ -1631,7 +1640,7 @@ mrb_str_index(mrb_state *mrb, mrb_value str)
     }
     /* fall through */
     case MRB_TT_STRING:
-      pos = str_index(mrb, str, sub, pos);
+      pos = str_index_str(mrb, str, sub, pos);
       break;
   }
 
@@ -2752,7 +2761,7 @@ mrb_init_string(mrb_state *mrb)
 
   mrb_define_method(mrb, s, "hash",            mrb_str_hash_m,          MRB_ARGS_NONE()); /* 15.2.10.5.20 */
   mrb_define_method(mrb, s, "include?",        mrb_str_include,         MRB_ARGS_REQ(1)); /* 15.2.10.5.21 */
-  mrb_define_method(mrb, s, "index",           mrb_str_index,           MRB_ARGS_ANY());  /* 15.2.10.5.22 */
+  mrb_define_method(mrb, s, "index",           mrb_str_index_m,         MRB_ARGS_ANY());  /* 15.2.10.5.22 */
   mrb_define_method(mrb, s, "initialize",      mrb_str_init,            MRB_ARGS_REQ(1)); /* 15.2.10.5.23 */
   mrb_define_method(mrb, s, "initialize_copy", mrb_str_replace,         MRB_ARGS_REQ(1)); /* 15.2.10.5.24 */
   mrb_define_method(mrb, s, "intern",          mrb_str_intern,          MRB_ARGS_NONE()); /* 15.2.10.5.25 */
