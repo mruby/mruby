@@ -309,10 +309,14 @@ assert('Module#include', '15.2.2.4.27') do
     Const4Include = 42
   end
   module Test4Include2
-    include Test4Include
+    @include_result = include Test4Include
+    class << self
+      attr_reader :include_result
+    end
   end
 
   assert_equal 42, Test4Include2.const_get(:Const4Include)
+  assert_equal Test4Include2, Test4Include2.include_result
 end
 
 assert('Module#include?', '15.2.2.4.28') do
@@ -538,6 +542,18 @@ end
     obj = P1.new
     expected = [:M2,[:M3,[:C1,[:M4,[:M1,[:C0,[:M0],:C0],:M1],:M4],:C1],:M3],:M2]
     assert_equal(expected, obj.m1)
+  end
+
+  assert('Module#prepend result') do
+    module TestPrepended; end
+    module TestPrependResult
+      @prepend_result = prepend TestPrepended
+      class << self
+        attr_reader :prepend_result
+      end
+    end
+
+    assert_equal TestPrependResult, TestPrependResult.prepend_result
   end
 
   # mruby shouldn't be affected by this since there is
