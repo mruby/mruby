@@ -596,30 +596,36 @@ class Array
     return to_enum :bsearch unless block_given?
 
     low = 0
-    high = self.size
+    high = size
     satisfied = false
+
     while low < high
-      mid = low + ((high - low) / 2).truncate
+      mid = ((low+high)/2).truncate
       val = self[mid]
-      v = block.call(val)
-      if v.is_a?(Integer)
-        return val if v == 0
-        smaller = v < 0
-      elsif v == true
+      res = block.call val
+
+      case res
+      when 0 # find-any mode: Found!
+        return val
+      when Numeric # find-any mode: Continue...
+        in_lower_half = res < 0
+      when true # find-min mode
+        in_lower_half = true
         satisfied = true
-        smaller = true
-      elsif v == false || v.nil?
-        smaller = false
+      when false, nil # find-min mode
+        in_lower_half = false
+      else
+        raise TypeError, 'invalid block result (must be numeric, true, false or nil)'
       end
-      if smaller
+
+      if in_lower_half
         high = mid
       else
         low = mid + 1
       end
     end
-    return nil if low == self.size
-    return nil unless satisfied
-    self[low]
+
+    satisfied ? self[low] : nil
   end
 
   ##

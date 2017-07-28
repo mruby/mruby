@@ -260,6 +260,11 @@ assert("Array#bsearch") do
   assert_equal 4, a.bsearch{ |x| between( 0, x,  4) }
   assert_equal 4, a.bsearch{ |x| between( 4, x,  8) }
   assert_equal 8, a.bsearch{ |x| between( 5, x,  8) }
+
+  # Invalid block result
+  assert_raise TypeError, 'invalid block result (must be numeric, true, false or nil)' do
+    a.bsearch{ 'I like to watch the world burn' }
+  end
 end
 
 assert("Array#delete_if") do
