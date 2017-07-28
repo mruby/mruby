@@ -595,18 +595,39 @@ class Array
   def bsearch(&block)
     return to_enum :bsearch unless block_given?
 
+    if idx = bsearch_index(&block)
+      self[idx]
+    else
+      nil
+    end
+  end
+
+  ##
+  #  call-seq:
+  #     ary.bsearch_index {|x| block }  -> int or nil
+  #
+  #  By using binary search, finds an index of a value from this array which
+  #  meets the given condition in O(log n) where n is the size of the array.
+  #
+  #  It supports two modes, depending on the nature of the block and they are
+  #  exactly the same as in the case of #bsearch method with the only difference
+  #  being that this method returns the index of the element instead of the
+  #  element itself. For more details consult the documentation for #bsearch.
+
+  def bsearch_index(&block)
+    return to_enum :bsearch_index unless block_given?
+
     low = 0
     high = size
     satisfied = false
 
     while low < high
       mid = ((low+high)/2).truncate
-      val = self[mid]
-      res = block.call val
+      res = block.call self[mid]
 
       case res
       when 0 # find-any mode: Found!
-        return val
+        return mid
       when Numeric # find-any mode: Continue...
         in_lower_half = res < 0
       when true # find-min mode
@@ -625,7 +646,7 @@ class Array
       end
     end
 
-    satisfied ? self[low] : nil
+    satisfied ? low : nil
   end
 
   ##

@@ -267,6 +267,10 @@ assert("Array#bsearch") do
   end
 end
 
+assert("Array#bsearch_index") do
+  # tested through Array#bsearch
+end
+
 assert("Array#delete_if") do
   a = [1, 2, 3, 4, 5]
   assert_equal [1, 2, 3, 4, 5], a.delete_if { false }
