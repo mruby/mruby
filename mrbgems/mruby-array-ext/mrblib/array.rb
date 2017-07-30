@@ -252,7 +252,7 @@ class Array
 
   # for efficiency
   def reverse_each(&block)
-    return to_enum :reverse_each unless block_given?
+    return to_enum :reverse_each unless block
 
     i = self.size - 1
     while i>=0
@@ -474,7 +474,7 @@ class Array
   #     scores.delete_if {|score| score < 80 }   #=> [97]
 
   def delete_if(&block)
-    return to_enum :delete_if unless block_given?
+    return to_enum :delete_if unless block
 
     idx = 0
     while idx < self.size do
@@ -503,7 +503,7 @@ class Array
   #  If no block is given, an Enumerator is returned instead.
 
   def reject!(&block)
-    return to_enum :reject! unless block_given?
+    return to_enum :reject! unless block
 
     len = self.size
     idx = 0
@@ -593,7 +593,7 @@ class Array
   #  undefined which value is actually picked up at each iteration.
 
   def bsearch(&block)
-    return to_enum :bsearch unless block_given?
+    return to_enum :bsearch unless block
 
     if idx = bsearch_index(&block)
       self[idx]
@@ -615,7 +615,7 @@ class Array
   #  element itself. For more details consult the documentation for #bsearch.
 
   def bsearch_index(&block)
-    return to_enum :bsearch_index unless block_given?
+    return to_enum :bsearch_index unless block
 
     low = 0
     high = size
@@ -667,7 +667,7 @@ class Array
   #     scores.delete_if {|score| score < 80 }   #=> [97]
 
   def delete_if(&block)
-    return to_enum :delete_if unless block_given?
+    return to_enum :delete_if unless block
 
     idx = 0
     while idx < self.size do
@@ -696,7 +696,7 @@ class Array
   #     a.keep_if { |val| val > 3 } #=> [4, 5]
 
   def keep_if(&block)
-    return to_enum :keep_if unless block_given?
+    return to_enum :keep_if unless block
 
     idx = 0
     len = self.size
@@ -725,7 +725,7 @@ class Array
   #  If no block is given, an Enumerator is returned instead.
 
   def select!(&block)
-    return to_enum :select! unless block_given?
+    return to_enum :select! unless block
 
     result = []
     self.each do |x|
