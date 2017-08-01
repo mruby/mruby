@@ -1135,6 +1135,18 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
+/* 15.3.1.2.7 */
+/*
+ *  call-seq:
+ *     local_variables   -> array
+ *
+ *  Returns the names of local variables in the current scope.
+ *
+ *  [mruby limitation]
+ *  If variable symbol information was stripped out from
+ *  compiled binary files using `mruby-strip -l`, this
+ *  method always returns an empty array.
+ */
 static mrb_value
 mrb_local_variables(mrb_state *mrb, mrb_value self)
 {
@@ -1148,34 +1160,19 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
   if (MRB_PROC_CFUNC_P(proc)) {
     return mrb_ary_new(mrb);
   }
-
-  irep = proc->body.irep;
-  if (!irep->lv) {
-    return mrb_ary_new(mrb);
-  }
   vars = mrb_hash_new(mrb);
-  for (i = 0; i + 1 < irep->nlocals; ++i) {
-    if (irep->lv[i].name) {
-      mrb_hash_set(mrb, vars, mrb_symbol_value(irep->lv[i].name), mrb_true_value());
-    }
-  }
-  if (proc->env) {
-    struct REnv *e = proc->env;
-
-    while (e) {
-      if (MRB_ENV_STACK_SHARED_P(e) &&
-          !MRB_PROC_CFUNC_P(e->cxt.c->cibase[e->cioff].proc)) {
-        irep = e->cxt.c->cibase[e->cioff].proc->body.irep;
-        if (irep->lv) {
-          for (i = 0; i + 1 < irep->nlocals; ++i) {
-            if (irep->lv[i].name) {
-              mrb_hash_set(mrb, vars, mrb_symbol_value(irep->lv[i].name), mrb_true_value());
-            }
-          }
-        }
+  while (proc) {
+    if (MRB_PROC_CFUNC_P(proc)) break;
+    irep = proc->body.irep;
+    if (!irep->lv) break;
+    for (i = 0; i + 1 < irep->nlocals; ++i) {
+      if (irep->lv[i].name) {
+        mrb_hash_set(mrb, vars, mrb_symbol_value(irep->lv[i].name), mrb_true_value());
       }
-      e = (struct REnv*)e->c;
     }
+    if (MRB_PROC_CLASS_P(proc)) break;
+    if (!proc->env) break;
+    proc = proc->body.irep->outer;
   }
 
   return mrb_hash_keys(mrb, vars);
