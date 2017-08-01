@@ -2208,14 +2208,7 @@ mrb_mod_const_set(mrb_state *mrb, mrb_value mod)
 
   mrb_get_args(mrb, "no", &id, &value);
   check_const_name_sym(mrb, id);
-  if ((mrb_type(value) == MRB_TT_CLASS || mrb_type(value) == MRB_TT_MODULE)
-      && !mrb_obj_iv_defined(mrb, mrb_obj_ptr(value), mrb_intern_lit(mrb, "__classid__"))) {
-    /* name unnamed classes/modules */
-    setup_class(mrb, mrb_class_ptr(mod), mrb_class_ptr(value), id);
-  }
-  else {
-    mrb_const_set(mrb, mod, id, value);
-  }
+  mrb_const_set(mrb, mod, id, value);
   return value;
 }
 

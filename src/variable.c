@@ -869,7 +869,19 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
 MRB_API void
 mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
 {
+  mrb_sym id = mrb_intern_lit(mrb, "__classid__");
+
   mod_const_check(mrb, mod);
+  if ((mrb_type(v) == MRB_TT_CLASS || mrb_type(v) == MRB_TT_MODULE)
+      && !mrb_obj_iv_defined(mrb, mrb_obj_ptr(v), id)) {
+    struct RObject *c = mrb_obj_ptr(v);
+
+    /* name unnamed classes/modules */
+    mrb_obj_iv_set(mrb, c, id, mrb_symbol_value(sym));
+    if (mrb_class_ptr(mod) != mrb->object_class) {
+      mrb_obj_iv_set(mrb, c, mrb_intern_lit(mrb, "__outer__"), mod);
+    }
+  }
   mrb_iv_set(mrb, mod, sym, v);
 }
 
