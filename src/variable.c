@@ -833,31 +833,35 @@ mrb_value
 mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
 {
   struct RClass *c = mrb->c->ci->proc->target_class;
+  struct RClass *c2;
+  mrb_value v;
+  struct RProc *proc;
 
   if (!c) c = mrb->c->ci->target_class;
-  if (c) {
-    struct RClass *c2;
-    mrb_value v;
+  mrb_assert(c != NULL);
 
-    if (c->iv && iv_get(mrb, c->iv, sym, &v)) {
-      return v;
-    }
-    c2 = c;
-    while (c2 && c2->tt == MRB_TT_SCLASS) {
-      mrb_value klass;
-      klass = mrb_obj_iv_get(mrb, (struct RObject *)c2,
-                             mrb_intern_lit(mrb, "__attached__"));
-      c2 = mrb_class_ptr(klass);
-    }
-    if (c2->tt == MRB_TT_CLASS || c2->tt == MRB_TT_MODULE) c = c2;
-    c2 = c;
-    for (;;) {
-      c2 = mrb_class_outer_module(mrb, c2);
-      if (!c2) break;
+  if (c->iv && iv_get(mrb, c->iv, sym, &v)) {
+    return v;
+  }
+  c2 = c;
+  while (c2 && c2->tt == MRB_TT_SCLASS) {
+    mrb_value klass;
+    klass = mrb_obj_iv_get(mrb, (struct RObject *)c2,
+                           mrb_intern_lit(mrb, "__attached__"));
+    c2 = mrb_class_ptr(klass);
+  }
+  if (c2->tt == MRB_TT_CLASS || c2->tt == MRB_TT_MODULE) c = c2;
+  mrb_assert(!MRB_PROC_CFUNC_P(mrb->c->ci->proc));
+  proc = mrb->c->ci->proc->body.irep->outer;
+  while (proc) {
+    mrb_assert(!MRB_PROC_CFUNC_P(proc));
+    if (MRB_PROC_CLASS_P(proc) && proc->target_class) {
+      c2 = proc->target_class;
       if (c2->iv && iv_get(mrb, c2->iv, sym, &v)) {
         return v;
       }
     }
+    proc = proc->body.irep->outer;
   }
   return const_get(mrb, c, sym);
 }
