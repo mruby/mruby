@@ -13,7 +13,7 @@ static mrb_code call_iseq[] = {
   MKOP_A(OP_CALL, 0),
 };
 
-struct RProc *
+struct RProc*
 mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
 {
   struct RProc *p;
@@ -64,7 +64,7 @@ closure_setup(mrb_state *mrb, struct RProc *p, int nlocals)
   mrb_field_write_barrier(mrb, (struct RBasic *)p, (struct RBasic *)p->env);
 }
 
-struct RProc *
+struct RProc*
 mrb_closure_new(mrb_state *mrb, mrb_irep *irep)
 {
   struct RProc *p = mrb_proc_new(mrb, irep);
@@ -73,7 +73,7 @@ mrb_closure_new(mrb_state *mrb, mrb_irep *irep)
   return p;
 }
 
-MRB_API struct RProc *
+MRB_API struct RProc*
 mrb_proc_new_cfunc(mrb_state *mrb, mrb_func_t func)
 {
   struct RProc *p;
@@ -86,7 +86,7 @@ mrb_proc_new_cfunc(mrb_state *mrb, mrb_func_t func)
   return p;
 }
 
-MRB_API struct RProc *
+MRB_API struct RProc*
 mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const mrb_value *argv)
 {
   struct RProc *p = mrb_proc_new_cfunc(mrb, func);
@@ -110,7 +110,7 @@ mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const
   return p;
 }
 
-MRB_API struct RProc *
+MRB_API struct RProc*
 mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals)
 {
   return mrb_proc_new_cfunc_with_env(mrb, func, nlocals, NULL);

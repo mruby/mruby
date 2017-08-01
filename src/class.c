@@ -105,7 +105,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   mrb_obj_iv_set(mrb, (struct RObject*)sc, mrb_intern_lit(mrb, "__attached__"), mrb_obj_value(o));
 }
 
-static struct RClass *
+static struct RClass*
 class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
   mrb_value c = mrb_const_get(mrb, mrb_obj_value(klass), id);
@@ -114,7 +114,7 @@ class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
   return mrb_class_ptr(c);
 }
 
-static struct RClass *
+static struct RClass*
 module_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
   mrb_value c = mrb_const_get(mrb, mrb_obj_value(klass), id);
@@ -336,19 +336,19 @@ mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, const char *name)
   return mrb_const_defined_at(mrb, mrb_obj_value(outer), mrb_symbol(sym));
 }
 
-MRB_API struct RClass *
+MRB_API struct RClass*
 mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
   return class_from_sym(mrb, outer, mrb_intern_cstr(mrb, name));
 }
 
-MRB_API struct RClass *
+MRB_API struct RClass*
 mrb_class_get(mrb_state *mrb, const char *name)
 {
   return mrb_class_get_under(mrb, mrb->object_class, name);
 }
 
-MRB_API struct RClass *
+MRB_API struct RClass*
 mrb_exc_get(mrb_state *mrb, const char *name)
 {
   struct RClass *exc, *e;
@@ -368,13 +368,13 @@ mrb_exc_get(mrb_state *mrb, const char *name)
   return mrb->eException_class;
 }
 
-MRB_API struct RClass *
+MRB_API struct RClass*
 mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
   return module_from_sym(mrb, outer, mrb_intern_cstr(mrb, name));
 }
 
-MRB_API struct RClass *
+MRB_API struct RClass*
 mrb_module_get(mrb_state *mrb, const char *name)
 {
   return mrb_module_get_under(mrb, mrb->object_class, name);
@@ -396,7 +396,7 @@ mrb_module_get(mrb_state *mrb, const char *name)
  * \note if a class named \a name is already defined and its superclass is
  *       \a super, the function just returns the defined class.
  */
-MRB_API struct RClass *
+MRB_API struct RClass*
 mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super)
 {
   mrb_sym id = mrb_intern_cstr(mrb, name);
@@ -1639,7 +1639,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
   return mrb_str_dup(mrb, path);
 }
 
-MRB_API struct RClass *
+MRB_API struct RClass*
 mrb_class_real(struct RClass* cl)
 {
   if (cl == 0)

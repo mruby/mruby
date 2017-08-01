@@ -3,7 +3,7 @@
 #include <mruby/irep.h>
 #include <mruby/debug.h>
 
-static mrb_irep_debug_info_file *
+static mrb_irep_debug_info_file*
 get_file(mrb_irep_debug_info *info, uint32_t pc)
 {
   mrb_irep_debug_info_file **ret;
@@ -108,7 +108,7 @@ mrb_debug_get_line(mrb_irep *irep, uint32_t pc)
   return -1;
 }
 
-MRB_API mrb_irep_debug_info *
+MRB_API mrb_irep_debug_info*
 mrb_debug_info_alloc(mrb_state *mrb, mrb_irep *irep)
 {
   static const mrb_irep_debug_info initial = { 0, 0, NULL };
@@ -121,7 +121,7 @@ mrb_debug_info_alloc(mrb_state *mrb, mrb_irep *irep)
   return ret;
 }
 
-MRB_API mrb_irep_debug_info_file *
+MRB_API mrb_irep_debug_info_file*
 mrb_debug_info_append_file(mrb_state *mrb, mrb_irep *irep,
                            uint32_t start_pos, uint32_t end_pos)
 {
