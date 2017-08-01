@@ -45,6 +45,8 @@ typedef struct mrb_irep {
   struct mrb_irep_debug_info* debug_info;
 
   size_t ilen, plen, slen, rlen, refcnt;
+
+  struct RProc *outer;      /* Refers outer scope */
 } mrb_irep;
 
 #define MRB_ISEQ_NO_FREE 1

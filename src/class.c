@@ -2314,6 +2314,8 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
 mrb_value mrb_obj_id_m(mrb_state *mrb, mrb_value self);
 /* implementation of instance_eval */
 mrb_value mrb_obj_instance_eval(mrb_state*, mrb_value);
+/* implementation of Module.nesting */
+mrb_value mrb_mod_s_nesting(mrb_state*, mrb_value);
 
 void
 mrb_init_class(mrb_state *mrb)
@@ -2407,6 +2409,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "class_variables",         mrb_mod_class_variables,  MRB_ARGS_NONE()); /* 15.2.2.4.19 */
   mrb_define_method(mrb, mod, "===",                     mrb_mod_eqq,              MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, mod, "constants",         mrb_mod_s_constants,      MRB_ARGS_ANY());  /* 15.2.2.3.1 */
+  mrb_define_class_method(mrb, mod, "nesting",           mrb_mod_s_nesting,        MRB_ARGS_REQ(0)); /* 15.2.2.3.2 */
 
   mrb_undef_method(mrb, cls, "append_features");
   mrb_undef_method(mrb, cls, "extend_object");

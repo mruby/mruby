@@ -29,6 +29,18 @@ end
 
 # TODO not implemented ATM assert('Module.nesting', '15.2.2.3.2') do
 
+assert('Module.nesting', '15.2.2.2.2') do
+  module Test4ModuleNesting
+    module Test4ModuleNesting2
+      assert_equal [Test4ModuleNesting2, Test4ModuleNesting],
+                   Module.nesting
+    end
+  end
+  module Test4ModuleNesting::Test4ModuleNesting2
+    assert_equal [Test4ModuleNesting::Test4ModuleNesting2], Module.nesting
+  end
+end
+
 assert('Module#ancestors', '15.2.2.4.9') do
   class Test4ModuleAncestors
   end

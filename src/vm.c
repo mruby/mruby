@@ -778,6 +778,25 @@ mrb_yield_cont(mrb_state *mrb, mrb_value b, mrb_value self, mrb_int argc, const 
   return mrb_exec_irep(mrb, self, p);
 }
 
+mrb_value
+mrb_mod_s_nesting(mrb_state *mrb, mrb_value mod)
+{
+  struct RProc *proc;
+  mrb_value ary;
+
+  mrb_get_args(mrb, "");
+  ary = mrb_ary_new(mrb);
+  proc = mrb->c->ci[-1].proc;   /* callee proc */
+  while (proc) {
+    mrb_assert(!MRB_PROC_CFUNC_P(proc));
+    if (MRB_PROC_CLASS_P(proc) && proc->target_class) {
+      mrb_ary_push(mrb, ary, mrb_obj_value(proc->target_class));
+    }
+    proc = proc->body.irep->outer;
+  }
+  return ary;
+}
+
 static struct RBreak*
 break_new(mrb_state *mrb, struct RProc *p, mrb_value val)
 {
@@ -2701,16 +2720,20 @@ RETRY_TRY_BLOCK:
     CASE(OP_LAMBDA) {
       /* A b c  R(A) := lambda(SEQ[b],c) (b:c = 14:2) */
       struct RProc *p;
+      int a = GETARG_A(i);
+      int b = GETARG_b(i);
       int c = GETARG_c(i);
+      mrb_irep *nirep = irep->reps[b];
 
+      nirep->outer = mrb->c->ci->proc;
       if (c & OP_L_CAPTURE) {
-        p = mrb_closure_new(mrb, irep->reps[GETARG_b(i)]);
+        p = mrb_closure_new(mrb, nirep);
       }
       else {
-        p = mrb_proc_new(mrb, irep->reps[GETARG_b(i)]);
+        p = mrb_proc_new(mrb, nirep);
       }
       if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
-      regs[GETARG_A(i)] = mrb_obj_value(p);
+      regs[a] = mrb_obj_value(p);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
@@ -2765,13 +2788,17 @@ RETRY_TRY_BLOCK:
     CASE(OP_EXEC) {
       /* A Bx   R(A) := blockexec(R(A),SEQ[Bx]) */
       int a = GETARG_A(i);
+      int bx = GETARG_Bx(i);
       mrb_callinfo *ci;
       mrb_value recv = regs[a];
       struct RProc *p;
+      mrb_irep *nirep = irep->reps[bx];
 
+      nirep->outer = mrb->c->ci->proc;
       /* prepare closure */
-      p = mrb_closure_new(mrb, irep->reps[GETARG_Bx(i)]);
+      p = mrb_closure_new(mrb, nirep);
       p->c = NULL;
+      p->flags |= MRB_PROC_CLASS;
 
       /* prepare stack */
       ci = cipush(mrb);

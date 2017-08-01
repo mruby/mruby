@@ -647,6 +647,9 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
 
       mrb_gc_mark(mrb, (struct RBasic*)p->env);
       mrb_gc_mark(mrb, (struct RBasic*)p->target_class);
+      if (!MRB_PROC_CFUNC_P(p)) {
+        mrb_gc_mark(mrb, (struct RBasic*)p->body.irep->outer);
+      }
     }
     break;
 
