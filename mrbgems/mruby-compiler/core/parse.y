@@ -3768,11 +3768,11 @@ scan_oct(const int *start, int len, int *retlen)
 }
 
 static int32_t
-scan_hex(const int *start, int len, int *retlen)
+scan_hex(parser_state *p, const int *start, int len, int *retlen)
 {
   static const char hexdigit[] = "0123456789abcdef0123456789ABCDEF";
   const int *s = start;
-  int32_t retval = 0;
+  uint32_t retval = 0;
   char *tmp;
 
   /* mrb_assert(len <= 8) */
@@ -3783,20 +3783,27 @@ scan_hex(const int *start, int len, int *retlen)
   }
   *retlen = s - start;
 
-  return retval;
+  if (retval > 0x10FFFF || (retval & 0xFFFFF800) == 0xD800) {
+    yyerror(p, "Invalid Unicode code point");
+    return -1;
+  }
+  return (int32_t)retval;
 }
 
 static int32_t
 read_escape_unicode(parser_state *p, int limit)
 {
-  int32_t c;
   int buf[9];
   int i;
 
   /* Look for opening brace */
   i = 0;
   buf[0] = nextc(p);
-  if (buf[0] < 0) goto eof;
+  if (buf[0] < 0) {
+  eof:
+    yyerror(p, "Invalid escape character syntax");
+    return -1;
+  }
   if (ISXDIGIT(buf[0])) {
     /* \uxxxx form */
     for (i=1; i<limit; i++) {
@@ -3811,17 +3818,7 @@ read_escape_unicode(parser_state *p, int limit)
   else {
     pushback(p, buf[0]);
   }
-  c = scan_hex(buf, i, &i);
-  if (i == 0) {
-  eof:
-    yyerror(p, "Invalid escape character syntax");
-    return -1;
-  }
-  if (c < 0 || c > 0x10FFFF || (c & 0xFFFFF800) == 0xD800) {
-    yyerror(p, "Invalid Unicode code point");
-    return -1;
-  }
-  return c;
+  return scan_hex(p, buf, i, &i);
 }
 
 /* Return negative to indicate Unicode code point */
@@ -3887,13 +3884,8 @@ read_escape(parser_state *p)
         break;
       }
     }
-    c = scan_hex(buf, i, &i);
-    if (i == 0) {
-      yyerror(p, "Invalid escape character syntax");
-      return 0;
-    }
+    return scan_hex(p, buf, i, &i);
   }
-  return c;
 
   case 'u':     /* Unicode */
     if (peek(p, '{')) {
