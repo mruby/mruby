@@ -584,8 +584,8 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   }
   array_copy(ptr, vals, alen);
   ARY_SET_LEN(a, len+alen);
-  while (len--) {
-    mrb_field_write_barrier_value(mrb, (struct RBasic*)a, vals[len]);
+  while (alen--) {
+    mrb_field_write_barrier_value(mrb, (struct RBasic*)a, vals[alen]);
   }
 
   return self;
