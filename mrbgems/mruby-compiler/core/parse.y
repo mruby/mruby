@@ -3751,11 +3751,11 @@ toklen(parser_state *p)
 #define IS_LABEL_POSSIBLE() ((p->lstate == EXPR_BEG && !cmd_state) || IS_ARG())
 #define IS_LABEL_SUFFIX(n) (peek_n(p, ':',(n)) && !peek_n(p, ':', (n)+1))
 
-static int
+static int32_t
 scan_oct(const int *start, int len, int *retlen)
 {
   const int *s = start;
-  int retval = 0;
+  int32_t retval = 0;
 
   /* mrb_assert(len <= 3) */
   while (len-- && *s >= '0' && *s <= '7') {
