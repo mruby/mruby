@@ -145,10 +145,8 @@ mrb_hash_new_capa(mrb_state *mrb, mrb_int capa)
   struct RHash *h;
 
   h = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
-  h->ht = kh_init(ht, mrb);
-  if (capa > 0) {
-    kh_resize(ht, mrb, h->ht, capa);
-  }
+  /* khash needs 1/4 empty space so it is not resized immediately */
+  h->ht = kh_init_size(ht, mrb, capa*4/3);
   h->iv = 0;
   return mrb_obj_value(h);
 }
