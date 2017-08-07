@@ -206,7 +206,7 @@ packed_backtrace(mrb_state *mrb)
   each_backtrace(mrb, ciidx, mrb->c->ci->pc, count_backtrace_i, &len);
   size = len * sizeof(struct backtrace_location);
   ptr = mrb_malloc(mrb, size);
-  memset(ptr, 0, size);
+  if (ptr) memset(ptr, 0, size);
   backtrace = mrb_data_object_alloc(mrb, NULL, ptr, &bt_type);
   backtrace->flags = (unsigned int)len;
   each_backtrace(mrb, ciidx, mrb->c->ci->pc, pack_backtrace_i, &ptr);
