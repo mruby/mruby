@@ -2907,6 +2907,7 @@ RETRY_TRY_BLOCK:
       else {
         exc = mrb_exc_new_str(mrb, E_LOCALJUMP_ERROR, msg);
       }
+      ERR_PC_SET(mrb, pc);
       mrb_exc_set(mrb, exc);
       goto L_RAISE;
     }
