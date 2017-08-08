@@ -117,6 +117,11 @@ task :all => depfiles do
   end
 end
 
+desc "run ruby lib tests"
+task :libtest do
+  sh "ruby -Ilib:test lib_test/*"
+end
+
 desc "run all mruby tests"
 task :test => ["all"] do
   MRuby.each_target do

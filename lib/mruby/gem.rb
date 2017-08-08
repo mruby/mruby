@@ -2,7 +2,7 @@ require 'pathname'
 require 'forwardable'
 require 'tsort'
 require 'shellwords'
-require_relative 'utils/rbfiles_sorter'
+require 'mruby/build/rbfiles_sorter'
 
 module MRuby
   module Gem
