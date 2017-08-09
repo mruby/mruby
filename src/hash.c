@@ -20,37 +20,27 @@ mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
 {
   enum mrb_vtype t = mrb_type(key);
   mrb_value hv;
-  const char *p;
-  mrb_int i, len;
   khint_t h;
 
   switch (t) {
   case MRB_TT_STRING:
-    p = RSTRING_PTR(key);
-    len = RSTRING_LEN(key);
-    h = 0;
-    for (i=0; i<len; i++) {
-      h = (h << 5) - h + *p++;
-    }
-    return h;
+    h = mrb_str_hash(mrb, key);
+    break;
 
+  case MRB_TT_TRUE:
+  case MRB_TT_FALSE:
   case MRB_TT_SYMBOL:
-    h = (khint_t)mrb_symbol(key);
-    return kh_int_hash_func(mrb, h);
-
   case MRB_TT_FIXNUM:
-    h = (khint_t)mrb_float_id((mrb_float)mrb_fixnum(key));
-    return kh_int_hash_func(mrb, h);
-
   case MRB_TT_FLOAT:
-    h = (khint_t)mrb_float_id(mrb_float(key));
-    return kh_int_hash_func(mrb, h);
+    h = (khint_t)mrb_obj_id(key);
+    break;
 
   default:
     hv = mrb_funcall(mrb, key, "hash", 0);
     h = (khint_t)t ^ mrb_fixnum(hv);
-    return kh_int_hash_func(mrb, h);
+    break;
   }
+  return kh_int_hash_func(mrb, h);
 }
 
 static inline khint_t
