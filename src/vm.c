@@ -289,6 +289,7 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e)
     if (!e->c) {
       /* save block argument position (negated) */
       e->cioff = -e->cxt.c->cibase[cioff].argc-1;
+      if (e->cioff == 0) e->cioff = -1;
     }
     e->cxt.mid = e->cxt.c->cibase[cioff].mid;
     p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
