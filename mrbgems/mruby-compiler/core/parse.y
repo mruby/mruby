@@ -1384,7 +1384,7 @@ command_asgn    : lhs '=' command_rhs
                       backref_error(p, $1);
                       $$ = new_begin(p, 0);
                     }
-		;
+                ;
 
 command_rhs     : command_call   %prec tOP_ASGN
                 | command_call modifier_rescue stmt

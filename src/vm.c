@@ -1934,13 +1934,13 @@ RETRY_TRY_BLOCK:
           }
           /* call ensure only when we skip this callinfo */
           if (ci[0].ridx == ci[-1].ridx) {
-	    mrb_value *org_stbase = mrb->c->stbase;
+            mrb_value *org_stbase = mrb->c->stbase;
             while (mrb->c->eidx > ci->epos) {
               ecall(mrb, --mrb->c->eidx);
               ci = mrb->c->ci;
-	      if (org_stbase != mrb->c->stbase) {
-		stk = mrb->c->stack;
-	      }
+              if (org_stbase != mrb->c->stbase) {
+                stk = mrb->c->stack;
+              }
             }
           }
         }

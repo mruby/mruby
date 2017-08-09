@@ -1020,7 +1020,7 @@ retry:
           else if (flags & (FPLUS|FSPACE))
             sign = (flags & FPLUS) ? '+' : ' ';
           if (sign)
-	    ++need;
+            ++need;
           if ((flags & FWIDTH) && need < width)
             need = width;
 
