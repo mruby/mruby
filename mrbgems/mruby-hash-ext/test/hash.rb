@@ -82,6 +82,20 @@ assert('Hash#values_at') do
   assert_equal keys, h.values_at(*keys)
 end
 
+assert('Hash#compact') do
+  h = { "cat" => "feline", "dog" => nil, "cow" => false }
+
+  assert_equal({ "cat" => "feline", "cow" => false }, h.compact)
+  assert_equal({ "cat" => "feline", "dog" => nil, "cow" => false }, h)
+end
+
+assert('Hash#compact!') do
+  h = { "cat" => "feline", "dog" => nil, "cow" => false }
+
+  h.compact!
+  assert_equal({ "cat" => "feline", "cow" => false }, h)
+end
+
 assert('Hash#fetch') do
   h = { "cat" => "feline", "dog" => "canine", "cow" => "bovine" }
   assert_equal "feline", h.fetch("cat")
