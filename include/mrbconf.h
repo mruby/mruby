@@ -87,10 +87,10 @@
 //#define MRB_FIXED_STATE_ATEXIT_STACK
 
 /* -DMRB_DISABLE_XXXX to drop following features */
-//#define MRB_DISABLE_STDIO	/* use of stdio */
+//#define MRB_DISABLE_STDIO /* use of stdio */
 
 /* -DMRB_ENABLE_XXXX to enable following features */
-//#define MRB_ENABLE_DEBUG_HOOK	/* hooks for debugger */
+//#define MRB_ENABLE_DEBUG_HOOK /* hooks for debugger */
 
 /* end of configuration */
 
