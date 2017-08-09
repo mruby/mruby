@@ -2120,9 +2120,7 @@ codegen(codegen_scope *s, node *tree, int val)
         }
         else {
           if (n > 0) {
-            while (n--) {
-              genop_peep(s, MKOP_A(OP_POPERR, 1), NOVAL);
-            }
+            genop_peep(s, MKOP_A(OP_POPERR, n), NOVAL);
           }
           if (s->ensure_level > lp->ensure_level) {
             genop_peep(s, MKOP_A(OP_EPOP, s->ensure_level - lp->ensure_level), NOVAL);
@@ -2938,22 +2936,31 @@ loop_break(codegen_scope *s, node *tree)
   }
   else {
     struct loopinfo *loop;
+    int n = 0;
 
     if (tree) {
       gen_retval(s, tree);
     }
 
     loop = s->loop;
-    while (loop && loop->type == LOOP_BEGIN) {
-      genop_peep(s, MKOP_A(OP_POPERR, 1), NOVAL);
-      loop = loop->prev;
-    }
-    while (loop && (loop->type == LOOP_RESCUE || loop->type == LOOP_BEGIN)) {
-      loop = loop->prev;
+    while (loop) {
+      if (loop->type == LOOP_BEGIN) {
+        n++;
+        loop = loop->prev;
+      }
+      else if (loop->type == LOOP_RESCUE) {
+        loop = loop->prev;
+      }
+      else{
+        break;
+      }
     }
     if (!loop) {
       raise_error(s, "unexpected break");
       return;
+    }
+    if (n > 0) {
+      genop_peep(s, MKOP_A(OP_POPERR, n), NOVAL);
     }
 
     if (loop->type == LOOP_NORMAL) {
