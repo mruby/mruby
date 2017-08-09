@@ -415,32 +415,6 @@ flo_rshift(mrb_state *mrb, mrb_value x)
   return flo_shift(mrb, x, width);
 }
 
-/* 15.2.8.3.18 */
-/*
- * call-seq:
- *   flt.hash  ->  integer
- *
- * Returns a hash code for this float.
- */
-static mrb_value
-flo_hash(mrb_state *mrb, mrb_value num)
-{
-  mrb_float d;
-  char *c;
-  size_t i;
-  mrb_int hash;
-
-  d = (mrb_float)mrb_fixnum(num);
-  /* normalize -0.0 to 0.0 */
-  if (d == 0) d = 0.0;
-  c = (char*)&d;
-  for (hash=0,i=0; i<sizeof(mrb_float); i++) {
-    hash = (hash * 971) ^ (unsigned char)c[i];
-  }
-  if (hash < 0) hash = -hash;
-  return mrb_fixnum_value(hash);
-}
-
 /* 15.2.9.3.13 */
 /*
  * call-seq:
@@ -1332,7 +1306,6 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fixnum,  "<<",       fix_lshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.12 */
   mrb_define_method(mrb, fixnum,  ">>",       fix_rshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.13 */
   mrb_define_method(mrb, fixnum,  "eql?",     fix_eql,         MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
-  mrb_define_method(mrb, fixnum,  "hash",     flo_hash,        MRB_ARGS_NONE()); /* 15.2.8.3.18 */
   mrb_define_method(mrb, fixnum,  "to_f",     fix_to_f,        MRB_ARGS_NONE()); /* 15.2.8.3.23 */
   mrb_define_method(mrb, fixnum,  "to_s",     fix_to_s,        MRB_ARGS_NONE()); /* 15.2.8.3.25 */
   mrb_define_method(mrb, fixnum,  "inspect",  fix_to_s,        MRB_ARGS_NONE());
