@@ -115,6 +115,40 @@ class Hash
   alias update merge!
 
   ##
+  # call-seq:
+  #    hsh.compact     -> new_hsh
+  #
+  # Returns a new hash with the nil values/key pairs removed
+  #
+  #    h = { a: 1, b: false, c: nil }
+  #    h.compact     #=> { a: 1, b: false }
+  #    h             #=> { a: 1, b: false, c: nil }
+  #
+  def compact
+    result = self.dup
+    result.compact!
+    result
+  end
+
+  ##
+  # call-seq:
+  #    hsh.compact!    -> hsh
+  #
+  # Removes all nil values from the hash. Returns the hash.
+  #
+  #    h = { a: 1, b: false, c: nil }
+  #    h.compact!     #=> { a: 1, b: false }
+  #
+  def compact!
+    result = self.select { |k, v| !v.nil? }
+    if result.size == self.size
+      nil
+    else
+      self.replace(result)
+    end
+  end
+
+  ##
   #  call-seq:
   #     hsh.fetch(key [, default] )       -> obj
   #     hsh.fetch(key) {| key | block }   -> obj
