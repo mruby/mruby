@@ -1379,9 +1379,7 @@ RETRY_TRY_BLOCK:
       c = mrb_class(mrb, recv);
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
-        mrb_value sym = mrb_symbol_value(mid);
         mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
-
         m = mrb_method_search_vm(mrb, &c, missing);
         if (!m) {
           mrb_value args;
@@ -1404,7 +1402,7 @@ RETRY_TRY_BLOCK:
           regs[a+2] = blk;
           n = CALL_MAXARGS;
         }
-        mrb_ary_unshift(mrb, regs[a+1], sym);
+        mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(mid));
       }
 
       /* push callinfo */
@@ -1579,6 +1577,23 @@ RETRY_TRY_BLOCK:
         goto L_RAISE;
       }
       recv = regs[0];
+      if (n == CALL_MAXARGS) {
+        bidx = a+2;
+      }
+      else {
+        bidx = a+n+1;
+      }
+      blk = regs[bidx];
+      if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
+        mrb_value result;
+
+        if (bidx >= ci->nregs) {
+          stack_extend(mrb, bidx+1);
+          ci->nregs = bidx+1;
+        }
+        result = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
+        regs[bidx] = result;
+      }
       c = mrb->c->ci->target_class->super;
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
@@ -1597,35 +1612,15 @@ RETRY_TRY_BLOCK:
           mrb_method_missing(mrb, mid, recv, args);
         }
         mid = missing;
-        if (n == CALL_MAXARGS-1) {
+        if (n != CALL_MAXARGS) {
+          if (a+2 >= ci->nregs) {
+            stack_extend(mrb, a+3);
+          }
           regs[a+1] = mrb_ary_new_from_values(mrb, n, regs+a+1);
-          n++;
+          regs[a+2] = blk;
+          n = CALL_MAXARGS;
         }
-        if (n == CALL_MAXARGS) {
-          mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(ci->mid));
-        }
-        else {
-          value_move(regs+a+2, regs+a+1, ++n);
-          SET_SYM_VALUE(regs[a+1], ci->mid);
-        }
-      }
-
-      if (n == CALL_MAXARGS) {
-        bidx = a+2;
-      }
-      else {
-        bidx = a+n+1;
-      }
-      blk = regs[bidx];
-      if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-        mrb_value result;
-
-        if (bidx >= ci->nregs) {
-          stack_extend(mrb, bidx+1);
-          ci->nregs = bidx+1;
-        }
-        result = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
-        regs[bidx] = result;
+        mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(ci->mid));
       }
 
       /* push callinfo */
