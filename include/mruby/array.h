@@ -276,14 +276,6 @@ MRB_API mrb_value mrb_ary_join(mrb_state *mrb, mrb_value ary, mrb_value sep);
  */
 MRB_API mrb_value mrb_ary_resize(mrb_state *mrb, mrb_value ary, mrb_int new_len);
 
-static inline mrb_int
-mrb_ary_len(mrb_state *mrb, mrb_value ary)
-{
-  (void)mrb;
-  mrb_assert(mrb_array_p(ary));
-  return RARRAY_LEN(ary);
-}
-
 static inline mrb_value
 ary_elt(mrb_value ary, mrb_int offset)
 {
