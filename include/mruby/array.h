@@ -276,15 +276,6 @@ MRB_API mrb_value mrb_ary_join(mrb_state *mrb, mrb_value ary, mrb_value sep);
  */
 MRB_API mrb_value mrb_ary_resize(mrb_state *mrb, mrb_value ary, mrb_int new_len);
 
-static inline mrb_value
-ary_elt(mrb_value ary, mrb_int offset)
-{
-  if (offset < 0 || RARRAY_LEN(ary) <= offset) {
-    return mrb_nil_value();
-  }
-  return RARRAY_PTR(ary)[offset];
-}
-
 MRB_END_DECL
 
 #endif  /* MRUBY_ARRAY_H */

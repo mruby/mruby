@@ -1074,7 +1074,10 @@ mrb_ary_entry(mrb_value ary, mrb_int offset)
   if (offset < 0) {
     offset += RARRAY_LEN(ary);
   }
-  return ary_elt(ary, offset);
+  if (offset < 0 || RARRAY_LEN(ary) <= offset) {
+    return mrb_nil_value();
+  }
+  return RARRAY_PTR(ary)[offset];
 }
 
 static mrb_value

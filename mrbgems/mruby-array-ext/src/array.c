@@ -127,19 +127,20 @@ mrb_ary_to_h(mrb_state *mrb, mrb_value ary)
   hash = mrb_hash_new_capa(mrb, 0);
 
   for (i = 0; i < RARRAY_LEN(ary); ++i) {
-    v = mrb_check_array_type(mrb, RARRAY_PTR(ary)[i]);
+    mrb_value elt = RARRAY_PTR(ary)[i];
+    v = mrb_check_array_type(mrb, elt);
 
     if (mrb_nil_p(v)) {
       mrb_raisef(mrb, E_TYPE_ERROR, "wrong element type %S at %S (expected array)",
-        mrb_str_new_cstr(mrb,  mrb_obj_classname(mrb, ary_elt(ary, i))),
-        mrb_fixnum_value(i)
+                 mrb_str_new_cstr(mrb,  mrb_obj_classname(mrb, elt)),
+                 mrb_fixnum_value(i)
       );
     }
 
     if (RARRAY_LEN(v) != 2) {
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong array length at %S (expected 2, was %S)",
-        mrb_fixnum_value(i),
-        mrb_fixnum_value(RARRAY_LEN(v))
+                 mrb_fixnum_value(i),
+                 mrb_fixnum_value(RARRAY_LEN(v))
       );
     }
 
