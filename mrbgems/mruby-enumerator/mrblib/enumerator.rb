@@ -115,6 +115,9 @@ class Enumerator
     else
       raise ArgumentError unless obj
     end
+    if @obj and !self.respond_to?(meth)
+      raise NoMethodError, "undefined method #{meth}"
+    end
 
     @obj = obj
     @meth = meth
