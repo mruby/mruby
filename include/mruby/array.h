@@ -204,7 +204,7 @@ MRB_API void mrb_ary_replace(mrb_state *mrb, mrb_value self, mrb_value other);
 MRB_API mrb_value mrb_check_array_type(mrb_state *mrb, mrb_value self);
 
 /*
- * Unshift an element into an array
+ * Unshift an element into the array
  *
  * Equivalent to:
  *
@@ -215,6 +215,17 @@ MRB_API mrb_value mrb_check_array_type(mrb_state *mrb, mrb_value self);
  * @param item The item to unshift.
  */
 MRB_API mrb_value mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item);
+
+/*
+ * Get nth element in the array
+ *
+ * Equivalent to:
+ *
+ *     ary[offset]
+ *
+ * @param ary The target array.
+ * @param offset The element position (negative counts from the tail).
+ */
 MRB_API mrb_value mrb_ary_entry(mrb_value ary, mrb_int offset);
 
 /*
@@ -231,7 +242,7 @@ MRB_API mrb_value mrb_ary_entry(mrb_value ary, mrb_int offset);
 MRB_API mrb_value mrb_ary_shift(mrb_state *mrb, mrb_value self);
 
 /*
- * Removes all elements from this array
+ * Removes all elements from the array
  *
  * Equivalent to:
  *
