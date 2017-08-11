@@ -46,7 +46,7 @@ struct RArray {
 #define ARY_EMBED_P(a) ((a)->flags & MRB_ARY_EMBED)
 #define ARY_SET_EMBED_FLAG(a) ((a)->flags |= MRB_ARY_EMBED)
 #define ARY_UNSET_EMBED_FLAG(a) ((a)->flags &= ~(MRB_ARY_EMBED|MRB_ARY_EMBED_MASK))
-#define ARY_EMBED_LEN(a) ((a)->flags & MRB_ARY_EMBED_MASK)
+#define ARY_EMBED_LEN(a) ((mrb_int)((a)->flags & MRB_ARY_EMBED_MASK))
 #define ARY_SET_EMBED_LEN(a,len) (a)->flags = ((a)->flags&~MRB_ARY_EMBED_MASK) | ((len)&MRB_ARY_EMBED_MASK);
 #define ARY_EMBED_PTR(a) (&((a)->as.embed[0]))
 
