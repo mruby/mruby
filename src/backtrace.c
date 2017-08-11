@@ -21,7 +21,7 @@ struct backtrace_location {
   mrb_sym method_id;
 };
 
-typedef void (*each_backtrace_func)(mrb_state*, int i, struct backtrace_location*, void*);
+typedef void (*each_backtrace_func)(mrb_state*, struct backtrace_location*, void*);
 
 static const mrb_data_type bt_type = { "Backtrace", mrb_free };
 
@@ -66,7 +66,7 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, mrb_code *pc0, each_backtrace_fu
     }
 
     loc.method_id = ci->mid;
-    func(mrb, j, &loc, data);
+    func(mrb, &loc, data);
   }
 }
 
@@ -170,7 +170,6 @@ mrb_print_backtrace(mrb_state *mrb)
 
 static void
 count_backtrace_i(mrb_state *mrb,
-                 int i,
                  struct backtrace_location *loc,
                  void *data)
 {
@@ -182,7 +181,6 @@ count_backtrace_i(mrb_state *mrb,
 
 static void
 pack_backtrace_i(mrb_state *mrb,
-                 int i,
                  struct backtrace_location *loc,
                  void *data)
 {
