@@ -223,7 +223,7 @@ uvenv(mrb_state *mrb, int up)
 static inline mrb_bool
 is_strict(mrb_state *mrb, struct REnv *e)
 {
-  int cioff = e->cioff;
+  ptrdiff_t cioff = e->cioff;
 
   if (MRB_ENV_STACK_SHARED_P(e) && e->cxt.c->cibase[cioff].proc &&
       MRB_PROC_STRICT_P(e->cxt.c->cibase[cioff].proc)) {
@@ -732,7 +732,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
     mrb->c->stack = mrb->c->ci->stackent;
   }
   else {
-    int cioff = mrb->c->ci - mrb->c->cibase;
+    ptrdiff_t cioff = mrb->c->ci - mrb->c->cibase;
     val = mrb_run(mrb, p, self);
     mrb->c->ci = mrb->c->cibase + cioff;
   }
@@ -903,7 +903,7 @@ mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stac
   mrb_irep *irep = proc->body.irep;
   mrb_value result;
   struct mrb_context *c = mrb->c;
-  int cioff = c->ci - c->cibase;
+  ptrdiff_t cioff = c->ci - c->cibase;
   unsigned int nregs = irep->nregs;
 
   if (!c->stack) {

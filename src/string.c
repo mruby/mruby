@@ -40,7 +40,7 @@ str_new_static(mrb_state *mrb, const char *p, size_t len)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   s = mrb_obj_alloc_string(mrb);
-  s->as.heap.len = len;
+  s->as.heap.len = (mrb_int)len;
   s->as.heap.aux.capa = 0;             /* nofree */
   s->as.heap.ptr = (char *)p;
   s->flags = MRB_STR_NOFREE;
@@ -68,8 +68,8 @@ str_new(mrb_state *mrb, const char *p, size_t len)
     if (len >= MRB_INT_MAX) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
     }
-    s->as.heap.len = len;
-    s->as.heap.aux.capa = len;
+    s->as.heap.len = (mrb_int)len;
+    s->as.heap.aux.capa = (mrb_int)len;
     s->as.heap.ptr = (char *)mrb_malloc(mrb, len+1);
     if (p) {
       memcpy(s->as.heap.ptr, p, len);
@@ -112,7 +112,7 @@ mrb_str_buf_new(mrb_state *mrb, size_t capa)
     capa = MRB_STR_BUF_MIN_SIZE;
   }
   s->as.heap.len = 0;
-  s->as.heap.aux.capa = capa;
+  s->as.heap.aux.capa = (mrb_int)capa;
   s->as.heap.ptr = (char *)mrb_malloc(mrb, capa+1);
   RSTR_PTR(s)[0] = '\0';
 
@@ -341,7 +341,8 @@ mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mr
 {
   const unsigned char *x = xs, *xe = xs + m;
   const unsigned char *y = ys;
-  int i, qstable[256];
+  int i;
+  ptrdiff_t qstable[256];
 
   /* Preprocessing */
   for (i = 0; i < 256; ++i)
@@ -351,7 +352,7 @@ mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mr
   /* Searching */
   for (; y + m <= ys + n; y += *(qstable + y[m])) {
     if (*xs == *y && memcmp(xs, y, m) == 0)
-      return y - ys;
+      return (mrb_int)(y - ys);
   }
   return -1;
 }
@@ -372,7 +373,7 @@ mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
     const unsigned char *ys = (const unsigned char *)memchr(y, *x, n);
 
     if (ys)
-      return ys - y;
+      return (mrb_int)(ys - y);
     else
       return -1;
   }
@@ -585,7 +586,7 @@ str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
   if (len) {
     while (sbeg <= s) {
       if (memcmp(s, t, len) == 0) {
-        return s - RSTR_PTR(ps);
+        return (mrb_int)(s - RSTR_PTR(ps));
       }
       s--;
     }
