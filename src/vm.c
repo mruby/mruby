@@ -1393,7 +1393,6 @@ RETRY_TRY_BLOCK:
           ERR_PC_SET(mrb, pc);
           mrb_method_missing(mrb, mid, recv, args);
         }
-        mid = missing;
         if (n != CALL_MAXARGS) {
           if (a+2 >= irep->nregs) {
             stack_extend(mrb, a+3);
@@ -1403,6 +1402,7 @@ RETRY_TRY_BLOCK:
           n = CALL_MAXARGS;
         }
         mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(mid));
+        mid = missing;
       }
 
       /* push callinfo */
