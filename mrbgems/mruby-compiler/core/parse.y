@@ -3783,7 +3783,7 @@ scan_hex(parser_state *p, const int *start, int len, int *retlen)
   }
   *retlen = s - start;
 
-  if (retval > 0x10FFFF || (retval & 0xFFFFF800) == 0xD800) {
+  if (*retlen == 0 || retval > 0x10FFFF || (retval & 0xFFFFF800) == 0xD800) {
     yyerror(p, "Invalid Unicode code point");
     return -1;
   }
