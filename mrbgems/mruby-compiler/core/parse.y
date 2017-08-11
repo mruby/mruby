@@ -3783,10 +3783,6 @@ scan_hex(parser_state *p, const int *start, int len, int *retlen)
   }
   *retlen = s - start;
 
-  if (*retlen == 0 || retval > 0x10FFFF || (retval & 0xFFFFF800) == 0xD800) {
-    yyerror(p, "Invalid Unicode code point");
-    return -1;
-  }
   return (int32_t)retval;
 }
 
@@ -3795,13 +3791,14 @@ read_escape_unicode(parser_state *p, int limit)
 {
   int buf[9];
   int i;
+  int32_t hex;
 
   /* Look for opening brace */
   i = 0;
   buf[0] = nextc(p);
   if (buf[0] < 0) {
   eof:
-    yyerror(p, "Invalid escape character syntax");
+    yyerror(p, "invalid escape character syntax");
     return -1;
   }
   if (ISXDIGIT(buf[0])) {
@@ -3818,7 +3815,12 @@ read_escape_unicode(parser_state *p, int limit)
   else {
     pushback(p, buf[0]);
   }
-  return scan_hex(p, buf, i, &i);
+  hex = scan_hex(p, buf, i, &i);
+  if (i == 0 || hex > 0x10FFFF || (hex & 0xFFFFF800) == 0xD800) {
+    yyerror(p, "invalid Unicode code point");
+    return -1;
+  }
+  return hex;
 }
 
 /* Return negative to indicate Unicode code point */
@@ -3883,6 +3885,10 @@ read_escape(parser_state *p)
         pushback(p, buf[i]);
         break;
       }
+    }
+    if (i == 0) {
+      yyerror(p, "invalid hex escape");
+      return -1;
     }
     return scan_hex(p, buf, i, &i);
   }
