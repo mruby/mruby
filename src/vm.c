@@ -1342,10 +1342,8 @@ RETRY_TRY_BLOCK:
       /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
       int a = GETARG_A(i);
       int n = GETARG_C(i);
-
       int argc = (n == CALL_MAXARGS) ? -1 : n;
       int bidx = (argc < 0) ? a+2 : a+n+1;
-
       struct RProc *m;
       struct RClass *c;
       mrb_callinfo *ci = mrb->c->ci;
@@ -1538,10 +1536,8 @@ RETRY_TRY_BLOCK:
       /* A C  R(A) := super(R(A+1),... ,R(A+C+1)) */
       int a = GETARG_A(i);
       int n = GETARG_C(i);
-
       int argc = (n == CALL_MAXARGS) ? -1 : n;
       int bidx = (argc < 0) ? a+2 : a+n+1;
-
       mrb_value recv;
       mrb_callinfo *ci = mrb->c->ci;
       struct RProc *m;
