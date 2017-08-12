@@ -1347,9 +1347,8 @@ RETRY_TRY_BLOCK:
       struct RProc *m;
       struct RClass *c;
       mrb_callinfo *ci = mrb->c->ci;
-      mrb_value recv, result;
+      mrb_value recv, blk;
       mrb_sym mid = syms[GETARG_B(i)];
-      mrb_value blk;
 
       recv = regs[a];
       if (GET_OPCODE(i) != OP_SENDB) {
@@ -1358,7 +1357,7 @@ RETRY_TRY_BLOCK:
           ci->nregs = bidx+1;
         }
         SET_NIL_VALUE(regs[bidx]);
-        blk = mrb_nil_value();
+        blk = regs[bidx];
       }
       else {
         blk = regs[bidx];
@@ -1367,8 +1366,7 @@ RETRY_TRY_BLOCK:
             stack_extend(mrb, bidx+1);
             ci->nregs = bidx+1;
           }
-          result = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
-          blk = regs[bidx] = result;
+          blk = regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
         }
       }
       c = mrb_class(mrb, recv);
@@ -1409,7 +1407,7 @@ RETRY_TRY_BLOCK:
 
       if (MRB_PROC_CFUNC_P(m)) {
         ci->nregs = (argc < 0) ? 3 : n+2;
-        result = m->body.func(mrb, recv);
+        recv = m->body.func(mrb, recv);
         mrb_gc_arena_restore(mrb, ai);
         mrb_gc_arena_shrink(mrb, ai);
         if (mrb->exc) goto L_RAISE;
@@ -1417,7 +1415,6 @@ RETRY_TRY_BLOCK:
         if (GET_OPCODE(i) == OP_SENDB) {
           if (mrb_type(blk) == MRB_TT_PROC) {
             struct RProc *p = mrb_proc_ptr(blk);
-
             if (p && !MRB_PROC_STRICT_P(p) && p->env == ci[-1].env) {
               p->flags |= MRB_PROC_ORPHAN;
             }
@@ -1426,7 +1423,7 @@ RETRY_TRY_BLOCK:
         if (!ci->target_class) { /* return from context modifying method (resume/yield) */
           if (ci->acc == CI_ACC_RESUMED) {
             mrb->jmp = prev_jmp;
-            return result;
+            return recv;
           }
           else {
             mrb_assert(!MRB_PROC_CFUNC_P(ci[-1].proc));
@@ -1436,7 +1433,7 @@ RETRY_TRY_BLOCK:
             syms = irep->syms;
           }
         }
-        mrb->c->stack[0] = result;
+        mrb->c->stack[0] = recv;
         /* pop stackpos */
         mrb->c->stack = ci->stackent;
         pc = ci->pc;
@@ -1538,31 +1535,25 @@ RETRY_TRY_BLOCK:
       int n = GETARG_C(i);
       int argc = (n == CALL_MAXARGS) ? -1 : n;
       int bidx = (argc < 0) ? a+2 : a+n+1;
-      mrb_value recv;
-      mrb_callinfo *ci = mrb->c->ci;
       struct RProc *m;
       struct RClass *c;
+      mrb_callinfo *ci = mrb->c->ci;
+      mrb_value recv, blk;
       mrb_sym mid = ci->mid;
-      mrb_value blk;
 
       if (mid == 0 || !ci->target_class) {
-        mrb_value exc;
-
-        exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
+        mrb_value exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
         mrb_exc_set(mrb, exc);
         goto L_RAISE;
       }
       recv = regs[0];
       blk = regs[bidx];
       if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-        mrb_value result;
-
         if (bidx >= ci->nregs) {
           stack_extend(mrb, bidx+1);
           ci->nregs = bidx+1;
         }
-        result = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
-        regs[bidx] = result;
+        blk = regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
       }
       c = ci->target_class->super;
       m = mrb_method_search_vm(mrb, &c, mid);
