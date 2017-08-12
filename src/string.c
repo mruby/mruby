@@ -142,51 +142,6 @@ resize_capa(mrb_state *mrb, struct RString *s, size_t capacity)
   }
 }
 
-static void
-str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
-{
-  size_t capa;
-  size_t total;
-  ptrdiff_t off = -1;
-
-  if (len == 0) return;
-  mrb_str_modify(mrb, s);
-  if (ptr >= RSTR_PTR(s) && ptr <= RSTR_PTR(s) + (size_t)RSTR_LEN(s)) {
-      off = ptr - RSTR_PTR(s);
-  }
-
-  capa = RSTR_CAPA(s);
-  if (capa <= RSTRING_EMBED_LEN_MAX)
-    capa = RSTRING_EMBED_LEN_MAX+1;
-
-  total = RSTR_LEN(s)+len;
-  if (total >= MRB_INT_MAX) {
-  size_error:
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
-  }
-  if (capa <= total) {
-    while (total > capa) {
-      if (capa <= MRB_INT_MAX / 2) {
-        capa *= 2;
-      }
-      else {
-        capa = total;
-      }
-    }
-    if (capa < total || capa > MRB_INT_MAX) {
-      goto size_error;
-    }
-    resize_capa(mrb, s, capa);
-  }
-  if (off != -1) {
-      ptr = RSTR_PTR(s) + off;
-  }
-  memcpy(RSTR_PTR(s) + RSTR_LEN(s), ptr, len);
-  mrb_assert_int_fit(size_t, total, mrb_int, MRB_INT_MAX);
-  RSTR_SET_LEN(s, total);
-  RSTR_PTR(s)[total] = '\0';   /* sentinel */
-}
-
 MRB_API mrb_value
 mrb_str_new(mrb_state *mrb, const char *p, size_t len)
 {
@@ -2605,7 +2560,47 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
 MRB_API mrb_value
 mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 {
-  str_buf_cat(mrb, mrb_str_ptr(str), ptr, len);
+  struct RString *s = mrb_str_ptr(str);
+  size_t capa;
+  size_t total;
+  ptrdiff_t off = -1;
+
+  if (len == 0) return str;
+  mrb_str_modify(mrb, s);
+  if (ptr >= RSTR_PTR(s) && ptr <= RSTR_PTR(s) + (size_t)RSTR_LEN(s)) {
+      off = ptr - RSTR_PTR(s);
+  }
+
+  capa = RSTR_CAPA(s);
+  if (capa <= RSTRING_EMBED_LEN_MAX)
+    capa = RSTRING_EMBED_LEN_MAX+1;
+
+  total = RSTR_LEN(s)+len;
+  if (total >= MRB_INT_MAX) {
+  size_error:
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
+  }
+  if (capa <= total) {
+    while (total > capa) {
+      if (capa <= MRB_INT_MAX / 2) {
+        capa *= 2;
+      }
+      else {
+        capa = total;
+      }
+    }
+    if (capa < total || capa > MRB_INT_MAX) {
+      goto size_error;
+    }
+    resize_capa(mrb, s, capa);
+  }
+  if (off != -1) {
+      ptr = RSTR_PTR(s) + off;
+  }
+  memcpy(RSTR_PTR(s) + RSTR_LEN(s), ptr, len);
+  mrb_assert_int_fit(size_t, total, mrb_int, MRB_INT_MAX);
+  RSTR_SET_LEN(s, total);
+  RSTR_PTR(s)[total] = '\0';   /* sentinel */
   return str;
 }
 
