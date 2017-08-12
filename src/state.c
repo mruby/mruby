@@ -137,7 +137,7 @@ mrb_irep_decref(mrb_state *mrb, mrb_irep *irep)
 void
 mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
 {
-  size_t i;
+  int i;
 
   if (!(irep->flags & MRB_ISEQ_NO_FREE))
     mrb_free(mrb, irep->iseq);

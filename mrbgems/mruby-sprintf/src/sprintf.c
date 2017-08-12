@@ -128,7 +128,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 #define PUSH(s, l) do { \
   CHECK(l);\
   memcpy(&buf[blen], s, l);\
-  blen += (l);\
+  blen += (mrb_int)(l);\
 } while (0)
 
 #define FILL(c, l) do { \
@@ -765,7 +765,7 @@ retry:
           if ((flags&FPREC) && (prec < slen)) {
             char *p = RSTRING_PTR(str) + prec;
             slen = prec;
-            len = p - RSTRING_PTR(str);
+            len = (mrb_int)(p - RSTRING_PTR(str));
           }
           /* need to adjust multi-byte string pos */
           if ((flags&FWIDTH) && (width > slen)) {

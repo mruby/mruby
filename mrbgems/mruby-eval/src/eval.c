@@ -44,7 +44,7 @@ get_closure_irep(mrb_state *mrb, int level)
 static mrb_irep*
 search_irep(mrb_irep *top, int bnest, int lev, mrb_irep *bottom)
 {
-  size_t i;
+  int i;
 
   for (i=0; i<top->rlen; i++) {
     mrb_irep* tmp = top->reps[i];
@@ -106,7 +106,7 @@ potential_upvar_p(struct mrb_locals *lv, uint16_t v, int argc, uint16_t nlocals)
 static void
 patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest, mrb_irep *top)
 {
-  size_t i;
+  int i;
   mrb_code c;
   int argc = irep_argc(irep);
 

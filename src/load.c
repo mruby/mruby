@@ -24,7 +24,7 @@
 #define FLAG_SRC_MALLOC 1
 #define FLAG_SRC_STATIC 0
 
-#define SIZE_ERROR_MUL(nmemb, size) ((nmemb) > SIZE_MAX / (size))
+#define SIZE_ERROR_MUL(nmemb, size) ((size_t)(nmemb) > SIZE_MAX / (size))
 
 static size_t
 skip_padding(const uint8_t *buf)
@@ -43,11 +43,11 @@ offset_crc_body(void)
 static mrb_irep*
 read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flags)
 {
-  size_t i;
+  int i;
   const uint8_t *src = bin;
   ptrdiff_t diff;
   uint16_t tt, pool_data_len, snl;
-  size_t plen;
+  int plen;
   int ai = mrb_gc_arena_save(mrb);
   mrb_irep *irep = mrb_add_irep(mrb);
 
@@ -104,7 +104,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   }
 
   /* POOL BLOCK */
-  plen = (size_t)bin_to_uint32(src); /* number of pool */
+  plen = bin_to_uint32(src); /* number of pool */
   src += sizeof(uint32_t);
   if (plen > 0) {
     if (SIZE_ERROR_MUL(plen, sizeof(mrb_value))) {
@@ -191,7 +191,7 @@ static mrb_irep*
 read_irep_record(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flags)
 {
   mrb_irep *irep = read_irep_record_1(mrb, bin, len, flags);
-  size_t i;
+  int i;
 
   if (irep == NULL) {
     return NULL;
@@ -262,7 +262,7 @@ static int
 read_lineno_record(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, size_t *lenp)
 {
   int result = read_lineno_record_1(mrb, bin, irep, lenp);
-  size_t i;
+  int i;
 
   if (result != MRB_DUMP_OK) return result;
   for (i = 0; i < irep->rlen; i++) {
@@ -293,13 +293,14 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
 {
   const uint8_t *bin = start;
   ptrdiff_t diff;
-  size_t record_size, i;
+  size_t record_size;
   uint16_t f_idx;
+  int i;
 
   if (irep->debug_info) { return MRB_DUMP_INVALID_IREP; }
 
   irep->debug_info = (mrb_irep_debug_info*)mrb_malloc(mrb, sizeof(mrb_irep_debug_info));
-  irep->debug_info->pc_count = irep->ilen;
+  irep->debug_info->pc_count = (uint32_t)irep->ilen;
 
   record_size = (size_t)bin_to_uint32(bin);
   bin += sizeof(uint32_t);
@@ -432,8 +433,8 @@ static int
 read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *record_len, mrb_sym const *syms, uint32_t syms_len)
 {
   const uint8_t *bin = start;
-  size_t i;
   ptrdiff_t diff;
+  int i;
 
   irep->lv = (struct mrb_locals*)mrb_malloc(mrb, sizeof(struct mrb_locals) * (irep->nlocals - 1));
 

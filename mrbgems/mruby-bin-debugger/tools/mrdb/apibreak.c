@@ -429,7 +429,7 @@ static mrb_bool
 check_start_pc_for_line(mrb_irep *irep, mrb_code *pc, uint16_t line)
 {
   if (pc > irep->iseq) {
-    if (line == mrb_debug_get_line(irep, (uint32_t)(pc - irep->iseq - 1))) {
+    if (line == mrb_debug_get_line(irep, pc - irep->iseq - 1)) {
       return FALSE;
     }
   }

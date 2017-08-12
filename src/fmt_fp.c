@@ -61,7 +61,7 @@ out(struct fmt_args *f, const char *s, size_t l)
 
 #define PAD_SIZE 256
 static void
-pad(struct fmt_args *f, char c, int w, int l, int fl)
+pad(struct fmt_args *f, char c, int w, int l, uint8_t fl)
 {
   char pad[PAD_SIZE];
   if (fl & (LEFT_ADJ | ZERO_PAD) || l >= w) return;
@@ -91,13 +91,14 @@ typedef char compiler_defines_long_double_incorrectly[9-(int)sizeof(long double)
 #endif
 
 static int
-fmt_fp(struct fmt_args *f, long double y, int w, int p, int fl, int t)
+fmt_fp(struct fmt_args *f, long double y, int w, int p, uint8_t fl, int t)
 {
   uint32_t big[(LDBL_MANT_DIG+28)/29 + 1          // mantissa expansion
     + (LDBL_MAX_EXP+LDBL_MANT_DIG+28+8)/9]; // exponent expansion
   uint32_t *a, *d, *r, *z;
   uint32_t i;
-  int e2=0, e, j, l;
+  int e2=0, e, j;
+  ptrdiff_t l;
   char buf[9+LDBL_MANT_DIG/4], *s;
   const char *prefix="-0X+0X 0X-0x+0x 0x";
   int pl;

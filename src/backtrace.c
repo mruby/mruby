@@ -56,8 +56,8 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, mrb_code *pc0, each_backtrace_fu
     else {
       pc = pc0;
     }
-    loc.filename = mrb_debug_get_filename(irep, (uint32_t)(pc - irep->iseq));
-    loc.lineno = mrb_debug_get_line(irep, (uint32_t)(pc - irep->iseq));
+    loc.filename = mrb_debug_get_filename(irep, pc - irep->iseq);
+    loc.lineno = mrb_debug_get_line(irep, pc - irep->iseq);
 
     if (loc.lineno == -1) continue;
 

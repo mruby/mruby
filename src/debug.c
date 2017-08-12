@@ -51,7 +51,7 @@ select_line_type(const uint16_t *lines, size_t lines_len)
 }
 
 MRB_API char const*
-mrb_debug_get_filename(mrb_irep *irep, uint32_t pc)
+mrb_debug_get_filename(mrb_irep *irep, ptrdiff_t pc)
 {
   if (irep && pc < irep->ilen) {
     mrb_irep_debug_info_file* f = NULL;
@@ -64,7 +64,7 @@ mrb_debug_get_filename(mrb_irep *irep, uint32_t pc)
 }
 
 MRB_API int32_t
-mrb_debug_get_line(mrb_irep *irep, uint32_t pc)
+mrb_debug_get_line(mrb_irep *irep, ptrdiff_t pc)
 {
   if (irep && pc < irep->ilen) {
     mrb_irep_debug_info_file* f = NULL;

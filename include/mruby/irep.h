@@ -44,7 +44,7 @@ typedef struct mrb_irep {
   uint16_t *lines;
   struct mrb_irep_debug_info* debug_info;
 
-  size_t ilen, plen, slen, rlen, refcnt;
+  int ilen, plen, slen, rlen, refcnt;
 
   struct RProc *outer;      /* Refers outer scope */
 } mrb_irep;
