@@ -1093,7 +1093,7 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
 
   mrb_ary_push(mrb, list, ary);
 
-  result = mrb_str_buf_new(mrb, 64);
+  result = mrb_str_new_capa(mrb, 64);
 
   for (i=0; i<RARRAY_LEN(ary); i++) {
     if (i > 0 && !mrb_nil_p(sep)) {

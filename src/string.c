@@ -94,12 +94,8 @@ mrb_str_new_empty(mrb_state *mrb, mrb_value str)
   return mrb_obj_value(s);
 }
 
-#ifndef MRB_STR_BUF_MIN_SIZE
-# define MRB_STR_BUF_MIN_SIZE 128
-#endif
-
 MRB_API mrb_value
-mrb_str_buf_new(mrb_state *mrb, size_t capa)
+mrb_str_new_capa(mrb_state *mrb, size_t capa)
 {
   struct RString *s;
 
@@ -108,15 +104,25 @@ mrb_str_buf_new(mrb_state *mrb, size_t capa)
   if (capa >= MRB_INT_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string capacity size too big");
   }
-  if (capa < MRB_STR_BUF_MIN_SIZE) {
-    capa = MRB_STR_BUF_MIN_SIZE;
-  }
   s->as.heap.len = 0;
   s->as.heap.aux.capa = (mrb_int)capa;
   s->as.heap.ptr = (char *)mrb_malloc(mrb, capa+1);
   RSTR_PTR(s)[0] = '\0';
 
   return mrb_obj_value(s);
+}
+
+#ifndef MRB_STR_BUF_MIN_SIZE
+# define MRB_STR_BUF_MIN_SIZE 128
+#endif
+
+MRB_API mrb_value
+mrb_str_buf_new(mrb_state *mrb, size_t capa)
+{
+  if (capa < MRB_STR_BUF_MIN_SIZE) {
+    capa = MRB_STR_BUF_MIN_SIZE;
+  }
+  return mrb_str_new_capa(mrb, capa);
 }
 
 static void

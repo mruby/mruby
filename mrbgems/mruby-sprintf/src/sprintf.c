@@ -556,7 +556,7 @@ mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
   end = p + RSTRING_LEN(fmt);
   blen = 0;
   bsiz = 120;
-  result = mrb_str_buf_new(mrb, bsiz);
+  result = mrb_str_new_capa(mrb, bsiz);
   buf = RSTRING_PTR(result);
   memset(buf, 0, bsiz);
 

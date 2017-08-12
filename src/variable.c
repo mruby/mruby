@@ -513,7 +513,7 @@ mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
 
   if (len > 0) {
     const char *cn = mrb_obj_classname(mrb, mrb_obj_value(obj));
-    mrb_value str = mrb_str_buf_new(mrb, 30);
+    mrb_value str = mrb_str_new_capa(mrb, 30);
 
     mrb_str_cat_lit(mrb, str, "-<");
     mrb_str_cat_cstr(mrb, str, cn);
@@ -1108,7 +1108,7 @@ mrb_class_find_path(mrb_state *mrb, struct RClass *c)
   name = find_class_sym(mrb, mrb_class_ptr(outer), c);
   if (name == 0) return mrb_nil_value();
   str = mrb_class_name(mrb, mrb_class_ptr(outer));
-  path = mrb_str_buf_new(mrb, 0);
+  path = mrb_str_new_capa(mrb, 0);
   mrb_str_cat_cstr(mrb, path, str);
   mrb_str_cat_cstr(mrb, path, "::");
 

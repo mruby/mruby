@@ -1332,7 +1332,7 @@ mrb_mod_attr_reader(mrb_state *mrb, mrb_value mod)
 
     method = to_sym(mrb, argv[i]);
     name = mrb_sym2str(mrb, method);
-    str = mrb_str_buf_new(mrb, RSTRING_LEN(name)+1);
+    str = mrb_str_new_capa(mrb, RSTRING_LEN(name)+1);
     mrb_str_cat_lit(mrb, str, "@");
     mrb_str_cat_str(mrb, str, name);
     sym = mrb_intern_str(mrb, str);
@@ -1374,7 +1374,7 @@ mrb_mod_attr_writer(mrb_state *mrb, mrb_value mod)
 
     /* prepare iv name (@name) */
     name = mrb_sym2str(mrb, method);
-    str = mrb_str_buf_new(mrb, RSTRING_LEN(name)+1);
+    str = mrb_str_new_capa(mrb, RSTRING_LEN(name)+1);
     mrb_str_cat_lit(mrb, str, "@");
     mrb_str_cat_str(mrb, str, name);
     sym = mrb_intern_str(mrb, str);
@@ -1382,7 +1382,7 @@ mrb_mod_attr_writer(mrb_state *mrb, mrb_value mod)
     attr = mrb_symbol_value(sym);
 
     /* prepare method name (name=) */
-    str = mrb_str_buf_new(mrb, RSTRING_LEN(str));
+    str = mrb_str_new_capa(mrb, RSTRING_LEN(str));
     mrb_str_cat_str(mrb, str, name);
     mrb_str_cat_lit(mrb, str, "=");
     method = mrb_intern_str(mrb, str);
@@ -1766,7 +1766,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
     struct RClass *c;
     mrb_value path;
 
-    str = mrb_str_buf_new(mrb, 32);
+    str = mrb_str_new_capa(mrb, 32);
     c = mrb_class_ptr(klass);
     path = mrb_class_path(mrb, c);
 

@@ -364,7 +364,7 @@ mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
   struct fmt_args f;
 
   f.mrb = mrb;
-  f.str = mrb_str_buf_new(mrb, 24);
+  f.str = mrb_str_new_capa(mrb, 24);
   if (fmt_core(&f, fmt, mrb_float(flo)) < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid format string");
   }
