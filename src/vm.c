@@ -1345,7 +1345,10 @@ RETRY_TRY_BLOCK:
       else {
         blk = regs[bidx];
         if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-          blk = regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
+          /* store the converted proc not directly in the stack because the stack
+             might have been reallocated during mrb_convert_type(), see #3622 */
+          blk = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
+          regs[bidx] = blk;
         }
       }
       c = mrb_class(mrb, recv);
@@ -1528,7 +1531,10 @@ RETRY_TRY_BLOCK:
       recv = regs[0];
       blk = regs[bidx];
       if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-        blk = regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
+        /* store the converted proc not directly in the stack because the stack
+           might have been reallocated during mrb_convert_type(), see #3622 */
+        blk = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
+        regs[bidx] = blk;
       }
       c = ci->target_class->super;
       m = mrb_method_search_vm(mrb, &c, mid);
