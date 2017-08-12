@@ -1339,20 +1339,12 @@ RETRY_TRY_BLOCK:
 
       recv = regs[a];
       if (GET_OPCODE(i) != OP_SENDB) {
-        if (bidx >= ci->nregs) {
-          ci->nregs = bidx+1;
-          stack_extend(mrb, ci->nregs);
-        }
         SET_NIL_VALUE(regs[bidx]);
         blk = regs[bidx];
       }
       else {
         blk = regs[bidx];
         if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-          if (bidx >= ci->nregs) {
-            ci->nregs = bidx+1;
-            stack_extend(mrb, ci->nregs);
-          }
           blk = regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
         }
       }
@@ -1536,10 +1528,6 @@ RETRY_TRY_BLOCK:
       recv = regs[0];
       blk = regs[bidx];
       if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-        if (bidx >= ci->nregs) {
-          ci->nregs = bidx+1;
-          stack_extend(mrb, ci->nregs);
-        }
         blk = regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
       }
       c = ci->target_class->super;
