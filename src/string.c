@@ -733,28 +733,10 @@ mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
 MRB_API void
 mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
 {
-  struct RString *s1 = mrb_str_ptr(self), *s2;
-  mrb_int len;
-
-  mrb_str_modify(mrb, s1);
   if (!mrb_string_p(other)) {
     other = mrb_str_to_str(mrb, other);
   }
-  s2 = mrb_str_ptr(other);
-  if (RSTR_LEN(s2) == 0) {
-    return;
-  }
-  len = RSTR_LEN(s1) + RSTR_LEN(s2);
-
-  if (len < 0 || len >= MRB_INT_MAX) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
-  }
-  if (RSTRING_CAPA(self) < len) {
-    resize_capa(mrb, s1, len);
-  }
-  memcpy(RSTR_PTR(s1)+RSTR_LEN(s1), RSTR_PTR(s2), RSTR_LEN(s2));
-  RSTR_SET_LEN(s1, len);
-  RSTR_PTR(s1)[len] = '\0';
+  mrb_str_cat_str(mrb, self, other);
 }
 
 /*
