@@ -52,6 +52,7 @@ hash_compact_bang(mrb_state *mrb, mrb_value hash)
   khash_t(ht) *h = RHASH_TBL(hash);
   mrb_int n = -1;
 
+  if (!h) return mrb_nil_value();
   for (k = kh_begin(h); k != kh_end(h); k++) {
     if (kh_exist(h, k)) {
       mrb_value val = kh_value(h, k).v;
