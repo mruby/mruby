@@ -1108,7 +1108,7 @@ mrb_class_find_path(mrb_state *mrb, struct RClass *c)
   name = find_class_sym(mrb, mrb_class_ptr(outer), c);
   if (name == 0) return mrb_nil_value();
   str = mrb_class_name(mrb, mrb_class_ptr(outer));
-  path = mrb_str_new_capa(mrb, 0);
+  path = mrb_str_new_capa(mrb, 40);
   mrb_str_cat_cstr(mrb, path, str);
   mrb_str_cat_cstr(mrb, path, "::");
 
