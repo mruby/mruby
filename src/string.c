@@ -2566,6 +2566,7 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   if (capa <= total) {
+    if (capa == 0) capa = 1;
     while (capa <= total) {
       if (capa <= MRB_INT_MAX / 2) {
         capa *= 2;
