@@ -41,13 +41,12 @@ struct RArray {
 #define mrb_ary_value(p)  mrb_obj_value((void*)(p))
 #define RARRAY(v)  ((struct RArray*)(mrb_ptr(v)))
 
-#define MRB_ARY_EMBED       4
-#define MRB_ARY_EMBED_MASK  3
-#define ARY_EMBED_P(a) ((a)->flags & MRB_ARY_EMBED)
-#define ARY_SET_EMBED_FLAG(a) ((a)->flags |= MRB_ARY_EMBED)
-#define ARY_UNSET_EMBED_FLAG(a) ((a)->flags &= ~(MRB_ARY_EMBED|MRB_ARY_EMBED_MASK))
-#define ARY_EMBED_LEN(a) ((mrb_int)((a)->flags & MRB_ARY_EMBED_MASK))
-#define ARY_SET_EMBED_LEN(a,len) (a)->flags = ((a)->flags&~MRB_ARY_EMBED_MASK) | ((len)&MRB_ARY_EMBED_MASK);
+#define MRB_ARY_EMBED_MASK  7
+#define ARY_EMBED_P(a) ((a)->flags & MRB_ARY_EMBED_MASK)
+//#define ARY_SET_EMBED_FLAG(a) ((a)->flags |= MRB_ARY_EMBED)
+#define ARY_UNSET_EMBED_FLAG(a) ((a)->flags &= ~(MRB_ARY_EMBED_MASK))
+#define ARY_EMBED_LEN(a) (((a)->flags & MRB_ARY_EMBED_MASK) - 1)
+#define ARY_SET_EMBED_LEN(a,len) ((a)->flags = ((a)->flags&~MRB_ARY_EMBED_MASK) | (len + 1))
 #define ARY_EMBED_PTR(a) (&((a)->as.embed[0]))
 
 #define ARY_LEN(a) (ARY_EMBED_P(a)?ARY_EMBED_LEN(a):(a)->as.heap.len)

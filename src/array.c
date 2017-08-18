@@ -29,8 +29,7 @@ ary_new_capa(mrb_state *mrb, mrb_int capa)
 
   a = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
   if (capa <= MRB_ARY_EMBED_LEN_MAX) {
-    ARY_SET_EMBED_FLAG(a);
-    /* ARY_SET_EMBED_LEN(a, 0); */
+    ARY_SET_EMBED_LEN(a, 0);
   }
   else {
     a->as.heap.ptr = (mrb_value *)mrb_malloc(mrb, blen);
@@ -1048,7 +1047,6 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
   else if (!ARY_EMBED_P(a)){
     mrb_free(mrb, a->as.heap.ptr);
   }
-  ARY_SET_EMBED_FLAG(a);
   ARY_SET_EMBED_LEN(a, 0);
 
   return self;
