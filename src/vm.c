@@ -1333,7 +1333,7 @@ RETRY_TRY_BLOCK:
       int bidx = (argc < 0) ? a+2 : a+n+1;
       struct RProc *m;
       struct RClass *c;
-      mrb_callinfo *ci = mrb->c->ci;
+      mrb_callinfo *ci;
       mrb_value recv, blk;
       mrb_sym mid = syms[GETARG_B(i)];
 
@@ -1345,9 +1345,9 @@ RETRY_TRY_BLOCK:
       else {
         blk = regs[bidx];
         if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-          /* store the converted proc not directly in the stack because the stack
-             might have been reallocated during mrb_convert_type(), see #3622 */
           blk = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
+          /* The stack might have been reallocated during mrb_convert_type(),
+             see #3622 */
           regs[bidx] = blk;
         }
       }
@@ -1531,10 +1531,11 @@ RETRY_TRY_BLOCK:
       recv = regs[0];
       blk = regs[bidx];
       if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
-        /* store the converted proc not directly in the stack because the stack
-           might have been reallocated during mrb_convert_type(), see #3622 */
         blk = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
+        /* The stack or ci stack might have been reallocated during
+           mrb_convert_type(), see #3622 and #3784 */
         regs[bidx] = blk;
+        ci = mrb->c->ci;
       }
       c = ci->target_class->super;
       m = mrb_method_search_vm(mrb, &c, mid);
