@@ -1320,7 +1320,7 @@ codegen(codegen_scope *s, node *tree, int val)
             if (n4 && n4->car && nint(n4->car->car) == NODE_SPLAT) {
               codegen(s, n4->car, VAL);
               genop(s, MKOP_AB(OP_MOVE, cursp(), exc));
-              pop();
+              push_n(2); pop_n(3);
               genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "__case_eqq")), 1));
             }
             else {
