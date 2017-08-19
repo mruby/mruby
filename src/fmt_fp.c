@@ -61,7 +61,7 @@ out(struct fmt_args *f, const char *s, size_t l)
 
 #define PAD_SIZE 256
 static void
-pad(struct fmt_args *f, char c, int w, int l, uint8_t fl)
+pad(struct fmt_args *f, char c, int w, ptrdiff_t l, uint8_t fl)
 {
   char pad[PAD_SIZE];
   if (fl & (LEFT_ADJ | ZERO_PAD) || l >= w) return;
@@ -101,7 +101,7 @@ fmt_fp(struct fmt_args *f, long double y, int w, int p, uint8_t fl, int t)
   ptrdiff_t l;
   char buf[9+LDBL_MANT_DIG/4], *s;
   const char *prefix="-0X+0X 0X-0x+0x 0x";
-  int pl;
+  ptrdiff_t pl;
   char ebuf0[3*sizeof(int)], *ebuf=&ebuf0[3*sizeof(int)], *estr;
 
   pl=1;
