@@ -853,7 +853,7 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   if (c2->tt == MRB_TT_CLASS || c2->tt == MRB_TT_MODULE) c = c2;
   mrb_assert(!MRB_PROC_CFUNC_P(mrb->c->ci->proc));
   proc = mrb->c->ci->proc->body.irep->outer;
-  while (proc) {
+  while (proc && proc->tt == MRB_TT_PROC) {
     mrb_assert(!MRB_PROC_CFUNC_P(proc));
     if (MRB_PROC_CLASS_P(proc) && proc->target_class) {
       c2 = proc->target_class;
