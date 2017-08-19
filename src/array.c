@@ -562,6 +562,10 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   mrb_int alen, len;
 
   mrb_get_args(mrb, "*!", &vals, &alen);
+  if (alen == 0) {
+    ary_modify_check(mrb, a);
+    return self;
+  }
   len = ARY_LEN(a);
   if (alen > ARY_MAX_SIZE - len) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
@@ -575,7 +579,6 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   }
   else {
     ary_modify(mrb, a);
-    if (alen == 0) return self;
     if (ARY_CAPA(a) < len + alen)
       ary_expand_capa(mrb, a, len + alen);
     ptr = ARY_PTR(a);
