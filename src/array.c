@@ -570,7 +570,7 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
       && a->as.heap.aux.shared->refcnt == 1 /* shared only referenced from this array */
       && a->as.heap.ptr - a->as.heap.aux.shared->ptr >= alen) /* there's room for unshifted item */ {
     ary_modify_check(mrb, a);
-    a->as.heap.ptr -= len;
+    a->as.heap.ptr -= alen;
     ptr = a->as.heap.ptr;
   }
   else {
