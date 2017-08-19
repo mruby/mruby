@@ -61,7 +61,7 @@ out(struct fmt_args *f, const char *s, size_t l)
 
 #define PAD_SIZE 256
 static void
-pad(struct fmt_args *f, char c, int w, ptrdiff_t l, uint8_t fl)
+pad(struct fmt_args *f, char c, ptrdiff_t w, ptrdiff_t l, uint8_t fl)
 {
   char pad[PAD_SIZE];
   if (fl & (LEFT_ADJ | ZERO_PAD) || l >= w) return;
@@ -120,7 +120,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
     out(f, prefix, pl);
     out(f, ss, 3);
     pad(f, ' ', 0, 3+pl, fl^LEFT_ADJ);
-    return MAX(0, 3+pl);
+    return 3+pl;
   }
 
   y = frexp((double)y, &e2) * 2;
@@ -128,7 +128,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
 
   if ((t|32)=='a') {
     long double round = 8.0;
-    int re;
+    ptrdiff_t re;
 
     if (t&32) prefix += 9;
     pl += 2;
@@ -332,7 +332,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
 static int
 fmt_core(struct fmt_args *f, const char *fmt, mrb_float flo)
 {
-  int p;
+  ptrdiff_t p;
 
   if (*fmt != '%') {
     return -1;

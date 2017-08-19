@@ -606,7 +606,7 @@ write_debug_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const
 
   ret = cur - bin;
   mrb_assert_int_fit(ptrdiff_t, ret, uint32_t, UINT32_MAX);
-  uint32_to_bin(ret, bin);
+  uint32_to_bin((uint32_t)ret, bin);
 
   mrb_assert_int_fit(ptrdiff_t, ret, size_t, SIZE_MAX);
   return (size_t)ret;
@@ -666,7 +666,7 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur, mrb_sym const 
 
   memcpy(header->section_ident, RITE_SECTION_DEBUG_IDENT, sizeof(header->section_ident));
   mrb_assert(section_size <= INT32_MAX);
-  uint32_to_bin(section_size, header->section_size);
+  uint32_to_bin((uint32_t)section_size, header->section_size);
 
   return MRB_DUMP_OK;
 }
@@ -808,7 +808,7 @@ write_section_lv(mrb_state *mrb, mrb_irep *irep, uint8_t *start, mrb_sym const *
 
   diff = cur - start;
   mrb_assert_int_fit(ptrdiff_t, diff, size_t, SIZE_MAX);
-  uint32_to_bin(diff, header->section_size);
+  uint32_to_bin((uint32_t)diff, header->section_size);
 
 lv_section_exit:
   return result;
@@ -843,7 +843,7 @@ write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t *bin, uint8
   mrb_assert(binary_size <= UINT32_MAX);
   uint32_to_bin((uint32_t)binary_size, header->binary_size);
 
-  offset = (&(header->binary_crc[0]) - bin) + sizeof(uint16_t);
+  offset = (uint32_t)((&(header->binary_crc[0]) - bin) + sizeof(uint16_t));
   crc = calc_crc_16_ccitt(bin + offset, binary_size - offset, 0);
   uint16_to_bin(crc, header->binary_crc);
 
