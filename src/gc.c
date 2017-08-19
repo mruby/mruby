@@ -1483,6 +1483,7 @@ gc_each_objects(mrb_state *mrb, mrb_gc *gc, mrb_each_object_callback *callback, 
 {
   mrb_heap_page* page;
 
+  mrb_full_gc(mrb);
   page = gc->heaps;
   while (page != NULL) {
     RVALUE *p;
