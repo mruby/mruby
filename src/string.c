@@ -577,11 +577,11 @@ mrb_str_strlen(mrb_state *mrb, struct RString *s)
 #include <windows.h>
 
 char*
-mrb_utf8_from_locale(const char *str, size_t len)
+mrb_utf8_from_locale(const char *str, int len)
 {
   wchar_t* wcsp;
   char* mbsp;
-  size_t mbssize, wcssize;
+  int mbssize, wcssize;
 
   if (len == 0)
     return strdup("");
@@ -607,11 +607,11 @@ mrb_utf8_from_locale(const char *str, size_t len)
 }
 
 char*
-mrb_locale_from_utf8(const char *utf8, size_t len)
+mrb_locale_from_utf8(const char *utf8, int len)
 {
   wchar_t* wcsp;
   char* mbsp;
-  size_t mbssize, wcssize;
+  int mbssize, wcssize;
 
   if (len == 0)
     return strdup("");
