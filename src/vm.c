@@ -1333,9 +1333,11 @@ RETRY_TRY_BLOCK:
       int bidx = (argc < 0) ? a+2 : a+n+1;
       struct RProc *m;
       struct RClass *c;
-      mrb_callinfo *ci;
+      mrb_callinfo *ci = mrb->c->ci;
       mrb_value recv, blk;
       mrb_sym mid = syms[GETARG_B(i)];
+
+      mrb_assert(bidx < ci->nregs);
 
       recv = regs[a];
       if (GET_OPCODE(i) != OP_SENDB) {
@@ -1522,6 +1524,8 @@ RETRY_TRY_BLOCK:
       mrb_callinfo *ci = mrb->c->ci;
       mrb_value recv, blk;
       mrb_sym mid = ci->mid;
+
+      mrb_assert(bidx < ci->nregs);
 
       if (mid == 0 || !ci->target_class) {
         mrb_value exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
