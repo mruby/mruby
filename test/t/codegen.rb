@@ -73,3 +73,39 @@ assert('negate literal register alignment') do
 
   assert_equal [2], a
 end
+
+assert('register window of calls (#3783)') do
+  # NODE_SCALL
+  assert_nothing_raised do
+    Object.new&.__id__
+  end
+
+  # NODE_CASE
+  assert_nothing_raised do
+    case 1
+    when nil
+    end
+  end
+
+  # NODE_CASE with splat
+  assert_nothing_raised do
+    case 1
+    when *nil
+    end
+  end
+
+  # NODE_YIELD
+  def check_node_yield
+    yield
+  end
+  assert_nothing_raised do
+    check_node_yield{}
+  end
+
+  # NODE_UNDEF
+  assert_nothing_raised do
+    class << Object.new
+      undef send
+    end
+  end
+end
