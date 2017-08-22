@@ -1563,25 +1563,13 @@ mrb_obj_not_equal_m(mrb_state *mrb, mrb_value self)
 MRB_API mrb_bool
 mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid)
 {
-  khiter_t k;
+  struct RProc *m;
 
-  while (c) {
-    khash_t(mt) *h = c->mt;
-
-    if (h) {
-      k = kh_get(mt, mrb, h, mid);
-      if (k != kh_end(h)) {
-        if (kh_value(h, k)) {
-          return TRUE;  /* method exists */
-        }
-        else {
-          return FALSE; /* undefined method */
-        }
-      }
-    }
-    c = c->super;
+  m = mrb_method_search_vm(mrb, &c, mid);
+  if (!m) {
+    return FALSE;
   }
-  return FALSE;         /* no method */
+  return TRUE;
 }
 
 MRB_API mrb_bool
