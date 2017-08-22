@@ -157,6 +157,22 @@ struct mrb_context {
   struct RFiber *fib;
 };
 
+#ifdef MRB_METHOD_CACHE_SIZE
+# define MRB_METHOD_CACHE
+#else
+/* default method cache size: 128 */
+/* cache size needs to be power of 2 */
+# define MRB_METHOD_CACHE_SIZE (1<<7)
+#endif
+
+#ifdef MRB_METHOD_CACHE
+struct mrb_cache_entry {
+  struct RClass *c;
+  mrb_sym mid;
+  struct RProc *m;
+};
+#endif
+
 struct mrb_jmpbuf;
 
 typedef void (*mrb_atexit_func)(struct mrb_state*);
@@ -196,6 +212,10 @@ typedef struct mrb_state {
 
   struct alloca_header *mems;
   mrb_gc gc;
+
+#ifdef MRB_METHOD_CACHE
+  struct mrb_cache_entry cache[MRB_METHOD_CACHE_SIZE];
+#endif
 
   mrb_sym symidx;
   struct kh_n2s *name2sym;      /* symbol hash */

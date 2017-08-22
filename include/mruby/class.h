@@ -63,6 +63,7 @@ mrb_class(mrb_state *mrb, mrb_value v)
     }\
   }\
 } while (0)
+#define MRB_FLAG_IS_INHERITED (1 << 21)
 #define MRB_INSTANCE_TT_MASK (0xFF)
 #define MRB_SET_INSTANCE_TT(c, tt) c->flags = ((c->flags & ~MRB_INSTANCE_TT_MASK) | (char)tt)
 #define MRB_INSTANCE_TT(c) (enum mrb_vtype)(c->flags & MRB_INSTANCE_TT_MASK)

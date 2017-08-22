@@ -253,7 +253,14 @@ mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
   return mrb_define_class_id(mrb, mrb_intern_cstr(mrb, name), super);
 }
 
-static mrb_value mrb_bob_init(mrb_state *mrb, mrb_value cv);
+static mrb_value mrb_bob_init(mrb_state *mrb, mrb_value);
+#ifdef MRB_METHOD_CACHE
+static void mc_clear_by_class(mrb_state *mrb, struct RClass*);
+static void mc_clear_by_id(mrb_state *mrb, mrb_sym);
+#else
+#define mc_clear_by_class(mrb,c)
+#define mc_clear_by_id(mrb,s)
+#endif
 
 static void
 mrb_class_inherited(mrb_state *mrb, struct RClass *super, struct RClass *klass)
@@ -263,7 +270,9 @@ mrb_class_inherited(mrb_state *mrb, struct RClass *super, struct RClass *klass)
 
   if (!super)
     super = mrb->object_class;
+  super->flags |= MRB_FLAG_IS_INHERITED;
   s = mrb_obj_value(super);
+  mc_clear_by_class(mrb, klass);
   mid = mrb_intern_lit(mrb, "inherited");
   if (!mrb_func_basic_p(mrb, s, mid, mrb_bob_init)) {
     mrb_value c = mrb_obj_value(klass);
@@ -427,6 +436,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
     p->c = NULL;
     mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
   }
+  mc_clear_by_id(mrb, mid);
 }
 
 MRB_API void
@@ -1012,6 +1022,7 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, stru
     ic = include_class_new(mrb, m, ins_pos->super);
     ins_pos->super = ic;
     mrb_field_write_barrier(mrb, (struct RBasic*)ins_pos, (struct RBasic*)ins_pos->super);
+    ins_pos->flags |= MRB_FLAG_IS_INHERITED;
     ins_pos = ic;
   skip:
     m = m->super;
@@ -1268,12 +1279,61 @@ mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, m
   mrb_define_method(mrb, c, name, func, aspec);
 }
 
+#ifdef MRB_METHOD_CACHE
+static void
+mc_clear_all(mrb_state *mrb)
+{
+  struct mrb_cache_entry *mc = mrb->cache;
+  int i;
+
+  for (i=0; i<MRB_METHOD_CACHE_SIZE; i++) {
+    mc[i].c = 0;
+  }
+}
+
+static void
+mc_clear_by_class(mrb_state *mrb, struct RClass *c)
+{
+  struct mrb_cache_entry *mc = mrb->cache;
+  int i;
+
+  if (c->flags & MRB_FLAG_IS_INHERITED) {
+    mc_clear_all(mrb);
+    c->flags &= ~MRB_FLAG_IS_INHERITED;
+    return;
+  }
+  for (i=0; i<MRB_METHOD_CACHE_SIZE; i++) {
+    if (mc[i].c == c) mc[i].c = 0;
+  }
+}
+
+static void
+mc_clear_by_id(mrb_state *mrb, mrb_sym mid)
+{
+  struct mrb_cache_entry *mc = mrb->cache;
+  int i;
+
+  for (i=0; i<MRB_METHOD_CACHE_SIZE; i++) {
+    if (mc[i].mid == mid) mc[i].mid = 0;
+  }
+}
+#endif
+
 MRB_API struct RProc*
 mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
 {
   khiter_t k;
   struct RProc *m;
   struct RClass *c = *cp;
+#ifdef MRB_METHOD_CACHE
+  struct RClass *oc = c;
+  int h = kh_int_hash_func(mrb, ((intptr_t)oc) ^ mid) & (MRB_METHOD_CACHE_SIZE-1);
+  struct mrb_cache_entry *mc = &mrb->cache[h];
+
+  if (mc->c == c && mc->mid == mid) {
+    return mc->m;
+  }
+#endif
 
   while (c) {
     khash_t(mt) *h = c->mt;
@@ -1284,6 +1344,11 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
         m = kh_value(h, k);
         if (!m) break;
         *cp = c;
+#ifdef MRB_METHOD_CACHE
+        mc->c = oc;
+        mc->mid = mid;
+        mc->m = m;
+#endif
         return m;
       }
     }
