@@ -187,9 +187,9 @@ flodivmod(mrb_state *mrb, mrb_float x, mrb_float y, mrb_float *divp, mrb_float *
   mrb_float mod;
 
   if (y == 0.0) {
-    if (x == 0.0) div = NAN;
-    else if (x > 0.0) div = INFINITY;
+    if (x > 0.0) div = INFINITY;
     else if (x < 0.0) div = -INFINITY;
+    else div = NAN;             /* x == 0.0 */
     mod = NAN;
   }
   else {
