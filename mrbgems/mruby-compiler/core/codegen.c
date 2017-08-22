@@ -1320,7 +1320,8 @@ codegen(codegen_scope *s, node *tree, int val)
             if (n4 && n4->car && nint(n4->car->car) == NODE_SPLAT) {
               codegen(s, n4->car, VAL);
               genop(s, MKOP_AB(OP_MOVE, cursp(), exc));
-              push_n(2); pop_n(3);
+              push_n(2); pop_n(2); /* space for one arg and a block */
+              pop();
               genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "__case_eqq")), 1));
             }
             else {
@@ -2607,7 +2608,7 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_ABx(OP_LOADSYM, cursp(), b));
       push();
       genop(s, MKOP_A(OP_LOADNIL, cursp()));
-      push();
+      push(); /* space for a block */
       pop_n(4);
       genop(s, MKOP_ABC(OP_SEND, cursp(), c, 2));
       if (val) {
