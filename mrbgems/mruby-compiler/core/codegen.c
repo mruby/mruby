@@ -631,6 +631,7 @@ for_body(codegen_scope *s, node *tree)
   scope_finish(s);
   s = prev;
   genop(s, MKOP_Abc(OP_LAMBDA, cursp(), s->irep->rlen-1, OP_L_BLOCK));
+  push();pop(); /* space for a block */
   pop();
   idx = new_msym(s, mrb_intern_lit(s->mrb, "each"));
   genop(s, MKOP_ABC(OP_SENDB, cursp(), idx, 0));
@@ -1095,6 +1096,7 @@ gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val)
 static void
 gen_send_intern(codegen_scope *s)
 {
+  push();pop(); /* space for a block */
   pop();
   genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "intern")), 0));
   push();

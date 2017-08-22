@@ -75,6 +75,16 @@ assert('negate literal register alignment') do
 end
 
 assert('register window of calls (#3783)') do
+  # NODE_FOR
+  assert_nothing_raised do
+    for i in []; end
+  end
+
+  # NODE_SYMBOLS
+  assert_nothing_raised do
+    %i(sym)
+  end
+
   # NODE_SCALL
   assert_nothing_raised do
     Object.new&.__id__
