@@ -171,6 +171,16 @@ assert('register window of calls (#3783)') do
   # NODE_XSTR
   assert_raise(NotImplementedError){ `static` }
 
+  # NODE_DREGX
+  class Regexp; end
+  assert_raise(NoMethodError){ /#{'dynamic'}tail/ }
+  assert_raise(NoMethodError){ /#{'dynamic'}tail/iu }
+
+  # NODE_REGX
+  assert_raise(NoMethodError){ /static/ }
+  assert_raise(NoMethodError){ /static/iu }
+  Object.remove_const :Regexp
+
   # NODE_UNDEF
   assert_nothing_raised do
     class << Object.new
