@@ -165,6 +165,12 @@ assert('register window of calls (#3783)') do
     check_node_yield{}
   end
 
+  # NODE_DXSTR
+  assert_raise(NotImplementedError){ `#{:dynamic}` }
+
+  # NODE_XSTR
+  assert_raise(NotImplementedError){ `static` }
+
   # NODE_UNDEF
   assert_nothing_raised do
     class << Object.new
