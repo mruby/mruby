@@ -1815,6 +1815,8 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       else if (nint(tree->car->car) == NODE_CALL) {
         node *n = tree->car->cdr;
+        int base, i, nargs = 0;
+        callargs = 0;
 
         if (val) {
           vsp = cursp();
@@ -1822,36 +1824,25 @@ codegen(codegen_scope *s, node *tree, int val)
         }
         codegen(s, n->car, VAL);   /* receiver */
         idx = new_msym(s, nsym(n->cdr->car));
+        base = cursp()-1;
         if (n->cdr->cdr->car) {
-          int base = cursp()-1;
-          int nargs = gen_values(s, n->cdr->cdr->car->car, VAL, 1);
-
-          /* copy receiver and arguments */
+          nargs = gen_values(s, n->cdr->cdr->car->car, VAL, 1);
           if (nargs >= 0) {
-            int i;
-
-            genop(s, MKOP_AB(OP_MOVE, cursp(), base));
-            for (i=0; i<nargs; i++) {
-              genop(s, MKOP_AB(OP_MOVE, cursp()+i+1, base+i+1));
-            }
-            push_n(nargs+1);
-            pop_n(nargs+1);
             callargs = nargs;
           }
-          else {
-            /* varargs */
+          else { /* varargs */
             push();
-            genop(s, MKOP_AB(OP_MOVE, cursp(), base));
-            genop(s, MKOP_AB(OP_MOVE, cursp()+1, base+1));
+            nargs = 1;
             callargs = CALL_MAXARGS;
           }
-          genop(s, MKOP_ABC(OP_SEND, cursp(), idx, callargs));
         }
-        else {
-          genop(s, MKOP_AB(OP_MOVE, cursp(), cursp()-1));
-          genop(s, MKOP_ABC(OP_SEND, cursp(), idx, 0));
-          callargs = 0;
+        /* copy receiver and arguments */
+        genop(s, MKOP_AB(OP_MOVE, cursp(), base));
+        for (i=0; i<nargs; i++) {
+          genop(s, MKOP_AB(OP_MOVE, cursp()+i+1, base+i+1));
         }
+        push_n(nargs+1);pop_n(nargs+1);
+        genop(s, MKOP_ABC(OP_SEND, cursp(), idx, callargs));
         push();
       }
       else {
@@ -1878,20 +1869,17 @@ codegen(codegen_scope *s, node *tree, int val)
           genop(s, MKOP_AB(OP_MOVE, vsp, cursp()));
         }
         if (nint(tree->car->car) == NODE_CALL) {
-          mrb_sym m = nsym(tree->car->cdr->cdr->car);
-          mrb_sym m2 = attrsym(s, m);
-
-          idx = new_msym(s, m2);
-          pop();
           if (callargs == CALL_MAXARGS) {
-            genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
             pop();
-            genop(s, MKOP_ABC(OP_SEND, cursp(), idx, callargs));
+            genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
           }
           else {
             pop_n(callargs);
-            genop(s, MKOP_ABC(OP_SEND, cursp(), idx, callargs+1));
+            callargs++;
           }
+          pop();
+          idx = new_msym(s, attrsym(s, nsym(tree->car->cdr->cdr->car)));
+          genop(s, MKOP_ABC(OP_SEND, cursp(), idx, callargs));
         }
         else {
           gen_assignment(s, tree->car, cursp(), val);
