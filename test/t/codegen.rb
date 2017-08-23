@@ -130,6 +130,33 @@ assert('register window of calls (#3783)') do
       120=>120, 121=>121, 122=>122, 123=>123, 124=>124, 125=>125, 126=>126)
   end
 
+  # NODE_OP_ASGN
+  o = Object.new
+  class << o
+    attr_accessor :a
+  end
+
+  o.a = 1
+  assert_nothing_raised{ o.a += 1 }
+  o.a = 1
+  assert_nothing_raised{ o.a <<= 1 }
+  o.a = 1
+  assert_nothing_raised{ o.a &&= 1 }
+
+  o = { k: 1 }
+  assert_nothing_raised{ o[:k] += 1 }
+  o = { k: 1 }
+  assert_nothing_raised{ o[:k] <<= 1 }
+  o = { k: 1 }
+  assert_nothing_raised{ o[:k] &&= 1 }
+
+  o = { k: 1 }
+  assert_nothing_raised{ o[*[:k]] += 1 }
+  o = { k: 1 }
+  assert_nothing_raised{ o[*[:k]] <<= 1 }
+  o = { k: 1 }
+  assert_nothing_raised{ o[*[:k]] &&= 1 }
+
   # NODE_YIELD
   def check_node_yield
     yield
