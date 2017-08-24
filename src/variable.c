@@ -271,21 +271,6 @@ mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 }
 
 MRB_API void
-mrb_obj_iv_ifnone(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
-{
-  iv_tbl *t = obj->iv;
-
-  if (!t) {
-    t = obj->iv = iv_new(mrb);
-  }
-  else if (iv_get(mrb, t, sym, &v)) {
-    return;
-  }
-  mrb_write_barrier(mrb, (struct RBasic*)obj);
-  iv_put(mrb, t, sym, v);
-}
-
-MRB_API void
 mrb_iv_set(mrb_state *mrb, mrb_value obj, mrb_sym sym, mrb_value v)
 {
   if (obj_iv_p(obj)) {
