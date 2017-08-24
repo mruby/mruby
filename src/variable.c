@@ -99,10 +99,11 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 static mrb_bool
 iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
-  khash_t(iv) *h = &t->h;
-  khiter_t k;
+  if (t == NULL) return FALSE;
+  else {
+    khash_t(iv) *h = &t->h;
+    khiter_t k;
 
-  if (h) {
     k = kh_get(iv, mrb, h, sym);
     if (k != kh_end(h)) {
       mrb_value val = kh_value(h, k);
@@ -117,11 +118,14 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 static mrb_bool
 iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 {
-  khash_t(iv) *h = &t->h;
-  khiter_t k;
-  int n;
+  if (t == NULL) {
+    return TRUE;
+  }
+  else {
+    khash_t(iv) *h = &t->h;
+    khiter_t k;
+    int n;
 
-  if (h) {
     for (k = kh_begin(h); k != kh_end(h); k++) {
       if (kh_exist(h, k)) {
         n = (*func)(mrb, kh_key(h, k), kh_value(h, k), p);
@@ -138,10 +142,8 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 static size_t
 iv_size(mrb_state *mrb, iv_tbl *t)
 {
-  khash_t(iv) *h;
-
-  if (t && (h = &t->h)) {
-    return kh_size(h);
+  if (t) {
+    return kh_size(&t->h);
   }
   return 0;
 }
