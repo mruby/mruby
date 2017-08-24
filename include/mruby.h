@@ -201,6 +201,7 @@ typedef struct mrb_state {
   struct RClass *string_class;
   struct RClass *array_class;
   struct RClass *hash_class;
+  struct RClass *range_class;
 
   struct RClass *float_class;
   struct RClass *fixnum_class;
