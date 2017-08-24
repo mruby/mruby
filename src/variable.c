@@ -12,21 +12,18 @@
 
 typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 
-#ifndef MRB_IV_SEGMENT_SIZE
-#define MRB_IV_SEGMENT_SIZE 4
+#include <mruby/khash.h>
+
+#ifndef MRB_IVHASH_INIT_SIZE
+#define MRB_IVHASH_INIT_SIZE KHASH_MIN_SIZE
 #endif
 
-typedef struct segment {
-  mrb_sym key[MRB_IV_SEGMENT_SIZE];
-  mrb_value val[MRB_IV_SEGMENT_SIZE];
-  struct segment *next;
-} segment;
+KHASH_DECLARE(iv, mrb_sym, mrb_value, TRUE)
+KHASH_DEFINE(iv, mrb_sym, mrb_value, TRUE, kh_int_hash_func, kh_int_hash_equal)
 
 /* Instance variable table structure */
 typedef struct iv_tbl {
-  segment *rootseg;
-  size_t size;
-  size_t last_len;
+  khash_t(iv) h;
 } iv_tbl;
 
 /*
@@ -40,14 +37,7 @@ typedef struct iv_tbl {
 static iv_tbl*
 iv_new(mrb_state *mrb)
 {
-  iv_tbl *t;
-
-  t = (iv_tbl*)mrb_malloc(mrb, sizeof(iv_tbl));
-  t->size = 0;
-  t->rootseg =  NULL;
-  t->last_len = 0;
-
-  return t;
+  return (iv_tbl*)kh_init_size(iv, mrb, MRB_IVHASH_INIT_SIZE);
 }
 
 /*
@@ -62,56 +52,11 @@ iv_new(mrb_state *mrb)
 static void
 iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 {
-  segment *seg = t->rootseg;
-  segment *prev = NULL;
-  segment *matched_seg = NULL;
-  size_t matched_idx = 0;
-  size_t i;
+  khash_t(iv) *h = &t->h;
+  khiter_t k;
 
-  while (seg) {
-    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
-      mrb_sym key = seg->key[i];
-      /* Found room in last segment after last_len */
-      if (!seg->next && i >= t->last_len) {
-        seg->key[i] = sym;
-        seg->val[i] = val;
-        t->last_len = i+1;
-        t->size++;
-        return;
-      }
-      if (!matched_seg && key == 0) {
-        matched_seg = seg;
-        matched_idx = i;
-      }
-      else if (key == sym) {
-        seg->val[i] = val;
-        return;
-      }
-    }
-    prev = seg;
-    seg = seg->next;
-  }
-
-  /* Not found */
-  t->size++;
-  if (matched_seg) {
-    matched_seg->key[matched_idx] = sym;
-    matched_seg->val[matched_idx] = val;
-    return;
-  }
-
-  seg = (segment*)mrb_malloc(mrb, sizeof(segment));
-  if (!seg) return;
-  seg->next = NULL;
-  seg->key[0] = sym;
-  seg->val[0] = val;
-  t->last_len = 1;
-  if (prev) {
-    prev->next = seg;
-  }
-  else {
-    t->rootseg = seg;
-  }
+  k = kh_put(iv, mrb, h, sym);
+  kh_value(h, k) = val;
 }
 
 /*
@@ -129,23 +74,13 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 static mrb_bool
 iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
-  segment *seg;
-  size_t i;
+  khash_t(iv) *h = &t->h;
+  khiter_t k;
 
-  seg = t->rootseg;
-  while (seg) {
-    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
-      mrb_sym key = seg->key[i];
-
-      if (!seg->next && i >= t->last_len) {
-        return FALSE;
-      }
-      if (key == sym) {
-        if (vp) *vp = seg->val[i];
-        return TRUE;
-      }
-    }
-    seg = seg->next;
+  k = kh_get(iv, mrb, h, sym);
+  if (k != kh_end(h)) {
+    if (vp) *vp = kh_value(h, k);
+    return TRUE;
   }
   return FALSE;
 }
@@ -164,25 +99,17 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 static mrb_bool
 iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
-  segment *seg;
-  size_t i;
+  khash_t(iv) *h = &t->h;
+  khiter_t k;
 
-  seg = t->rootseg;
-  while (seg) {
-    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
-      mrb_sym key = seg->key[i];
-
-      if (!seg->next && i >= t->last_len) {
-        return FALSE;
-      }
-      if (key == sym) {
-        t->size--;
-        seg->key[i] = 0;
-        if (vp) *vp = seg->val[i];
-        return TRUE;
-      }
+  if (h) {
+    k = kh_get(iv, mrb, h, sym);
+    if (k != kh_end(h)) {
+      mrb_value val = kh_value(h, k);
+      kh_del(iv, mrb, h, k);
+      if (vp) *vp = val;
+      return TRUE;
     }
-    seg = seg->next;
   }
   return FALSE;
 }
@@ -190,29 +117,20 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 static mrb_bool
 iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 {
-  segment *seg;
-  size_t i;
+  khash_t(iv) *h = &t->h;
+  khiter_t k;
   int n;
 
-  seg = t->rootseg;
-  while (seg) {
-    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
-      mrb_sym key = seg->key[i];
-
-      /* no value in last segment after last_len */
-      if (!seg->next && i >= t->last_len) {
-        return FALSE;
-      }
-      if (key != 0) {
-        n =(*func)(mrb, key, seg->val[i], p);
+  if (h) {
+    for (k = kh_begin(h); k != kh_end(h); k++) {
+      if (kh_exist(h, k)) {
+        n = (*func)(mrb, kh_key(h, k), kh_value(h, k), p);
         if (n > 0) return FALSE;
         if (n < 0) {
-          t->size--;
-          seg->key[i] = 0;
+          kh_del(iv, mrb, h, k);
         }
       }
     }
-    seg = seg->next;
   }
   return TRUE;
 }
@@ -220,62 +138,24 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 static size_t
 iv_size(mrb_state *mrb, iv_tbl *t)
 {
-  segment *seg;
-  size_t size = 0;
+  khash_t(iv) *h;
 
-  if (!t) return 0;
-  if (t->size > 0) return t->size;
-  seg = t->rootseg;
-  while (seg) {
-    if (seg->next == NULL) {
-      size += t->last_len;
-      return size;
-    }
-    seg = seg->next;
-    size += MRB_IV_SEGMENT_SIZE;
+  if (t && (h = &t->h)) {
+    return kh_size(h);
   }
-  /* empty iv_tbl */
   return 0;
 }
 
 static iv_tbl*
 iv_copy(mrb_state *mrb, iv_tbl *t)
 {
-  segment *seg;
-  iv_tbl *t2;
-
-  size_t i;
-
-  seg = t->rootseg;
-  t2 = iv_new(mrb);
-
-  while (seg != NULL) {
-    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
-      mrb_sym key = seg->key[i];
-      mrb_value val = seg->val[i];
-
-      if ((seg->next == NULL) && (i >= t->last_len)) {
-        return t2;
-      }
-      iv_put(mrb, t2, key, val);
-    }
-    seg = seg->next;
-  }
-  return t2;
+  return (iv_tbl*)kh_copy(iv, mrb, &t->h);
 }
 
 static void
 iv_free(mrb_state *mrb, iv_tbl *t)
 {
-  segment *seg;
-
-  seg = t->rootseg;
-  while (seg) {
-    segment *p = seg;
-    seg = seg->next;
-    mrb_free(mrb, p);
-  }
-  mrb_free(mrb, t);
+  kh_destroy(iv, mrb, &t->h);
 }
 
 static int
