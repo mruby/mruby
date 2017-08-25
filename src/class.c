@@ -562,6 +562,7 @@ to_sym(mrb_state *mrb, mrb_value ss)
 MRB_API mrb_int
 mrb_get_args(mrb_state *mrb, const char *format, ...)
 {
+  const char *fmt = format;
   char c;
   int i = 0;
   va_list ap;
@@ -569,6 +570,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   int arg_i = 0;
   mrb_value *array_argv;
   mrb_bool opt = FALSE;
+  mrb_bool opt_skip = TRUE;
   mrb_bool given = TRUE;
 
   va_start(ap, format);
@@ -585,6 +587,27 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 #define ARGV \
   (array_argv ? array_argv : (mrb->c->stack + 1))
 
+  while ((c = *fmt++)) {
+    switch (c) {
+    case '|':
+      opt = TRUE;
+      break;
+    case '*':
+      opt_skip = FALSE;
+      goto check_exit;
+    case '!':
+      break;
+    case '&': case '?':
+      if (opt) opt_skip = FALSE;
+      break;
+    default:
+      break;
+    }
+  }
+
+ check_exit:
+  opt = FALSE;
+  i = 0;
   while ((c = *format++)) {
     switch (c) {
     case '|': case '*': case '&': case '?':
@@ -884,6 +907,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       }
       break;
     case '|':
+      if (opt_skip && i == argc) return argc;
       opt = TRUE;
       break;
     case '?':
