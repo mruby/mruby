@@ -2308,10 +2308,9 @@ RETRY_TRY_BLOCK:
         {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_int y = mrb_fixnum(regs[a+1]);
-          double f;
+          double f = NAN;
           if (y == 0) {
-            if (x == 0) f = NAN;
-            else if (x > 0) f = INFINITY;
+            if (x > 0) f = INFINITY;
             else if (x < 0) f = -INFINITY;
           }
           else {
