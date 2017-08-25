@@ -221,7 +221,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
   else e=0;
 
   /* Perform rounding: j is precision after the radix (possibly neg) */
-  j = p - ((t|32)!='f')*e - ((t|32)=='g' && p);
+  j = (int)p - ((t|32)!='f')*e - ((t|32)=='g' && p);
   if (j < 9*(z-r-1)) {
     uint32_t x;
     /* We avoid C's broken division of negative numbers */
