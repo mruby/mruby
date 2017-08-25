@@ -931,9 +931,10 @@ mrb_ary_first(mrb_state *mrb, mrb_value self)
   struct RArray *a = mrb_ary_ptr(self);
   mrb_int size, alen = ARY_LEN(a);
 
-  if (mrb_get_args(mrb, "|i", &size) == 0) {
+  if (mrb->c->ci->argc == 0) {
     return (alen > 0)? ARY_PTR(a)[0]: mrb_nil_value();
   }
+  mrb_get_args(mrb, "|i", &size);
   if (size < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative array size");
   }
