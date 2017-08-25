@@ -175,7 +175,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
     pad(f, '0', l-(ebuf-estr)-(s-buf), 0, 0);
     out(f, estr, ebuf-estr);
     pad(f, ' ', 0, pl+l, fl^LEFT_ADJ);
-    return pl+l;
+    return (int)pl+(int)l;
   }
   if (p<0) p=6;
 
