@@ -464,12 +464,20 @@ static mrb_value
 mrb_ary_push_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  mrb_int len;
+  mrb_int len, len2, alen;
+  struct RArray *a;
 
-  mrb_get_args(mrb, "*!", &argv, &len);
-  while (len--) {
-    mrb_ary_push(mrb, self, *argv++);
+  mrb_get_args(mrb, "*!", &argv, &alen);
+  a = mrb_ary_ptr(self);
+  ary_modify(mrb, a);
+  len = ARY_LEN(a);
+  len2 = len + alen;
+  if (ARY_CAPA(a) < len2) {
+    ary_expand_capa(mrb, a, len2);
   }
+  array_copy(ARY_PTR(a)+len, argv, alen);
+  ARY_SET_LEN(a, len2);
+  mrb_write_barrier(mrb, (struct RBasic*)a);
 
   return self;
 }
