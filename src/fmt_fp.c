@@ -248,7 +248,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
           if (d<a) *--a=0;
           (*d)++;
         }
-        for (i=10, e=9*(r-a); *a>=i; i*=10, e++);
+        for (i=10, e=9*(int)(r-a); *a>=i; i*=10, e++);
       }
     }
     if (z>d+1) z=d+1;
