@@ -120,7 +120,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
     out(f, prefix, pl);
     out(f, ss, 3);
     pad(f, ' ', 0, 3+pl, fl^LEFT_ADJ);
-    return 3+pl;
+    return 3+(int)pl;
   }
 
   y = frexp((double)y, &e2) * 2;
