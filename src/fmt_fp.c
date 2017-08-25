@@ -120,7 +120,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
     out(f, prefix, pl);
     out(f, ss, 3);
     pad(f, ' ', 0, 3+pl, fl^LEFT_ADJ);
-    return 3+pl;
+    return 3+(int)pl;
   }
 
   y = frexp((double)y, &e2) * 2;
@@ -175,7 +175,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
     pad(f, '0', l-(ebuf-estr)-(s-buf), 0, 0);
     out(f, estr, ebuf-estr);
     pad(f, ' ', 0, pl+l, fl^LEFT_ADJ);
-    return pl+l;
+    return (int)pl+(int)l;
   }
   if (p<0) p=6;
 
@@ -203,7 +203,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
   }
   while (e2<0) {
     uint32_t carry=0, *b;
-    int sh=MIN(9,-e2), need=1+(p+LDBL_MANT_DIG/3+8)/9;
+    int sh=MIN(9,-e2), need=1+((int)p+LDBL_MANT_DIG/3+8)/9;
     for (d=a; d<z; d++) {
       uint32_t rm = *d & ((1<<sh)-1);
       *d = (*d>>sh) + carry;
@@ -217,11 +217,11 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
     e2+=sh;
   }
 
-  if (a<z) for (i=10, e=9*(r-a); *a>=i; i*=10, e++);
+  if (a<z) for (i=10, e=9*(int)(r-a); *a>=i; i*=10, e++);
   else e=0;
 
   /* Perform rounding: j is precision after the radix (possibly neg) */
-  j = p - ((t|32)!='f')*e - ((t|32)=='g' && p);
+  j = (int)p - ((t|32)!='f')*e - ((t|32)=='g' && p);
   if (j < 9*(z-r-1)) {
     uint32_t x;
     /* We avoid C's broken division of negative numbers */
@@ -248,7 +248,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
           if (d<a) *--a=0;
           (*d)++;
         }
-        for (i=10, e=9*(r-a); *a>=i; i*=10, e++);
+        for (i=10, e=9*(int)(r-a); *a>=i; i*=10, e++);
       }
     }
     if (z>d+1) z=d+1;
@@ -326,7 +326,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
 
   pad(f, ' ', 0, pl+l, fl^LEFT_ADJ);
 
-  return pl+l;
+  return (int)pl+(int)l;
 }
 
 static int
