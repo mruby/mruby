@@ -217,7 +217,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
     e2+=sh;
   }
 
-  if (a<z) for (i=10, e=9*(r-a); *a>=i; i*=10, e++);
+  if (a<z) for (i=10, e=9*(int)(r-a); *a>=i; i*=10, e++);
   else e=0;
 
   /* Perform rounding: j is precision after the radix (possibly neg) */
