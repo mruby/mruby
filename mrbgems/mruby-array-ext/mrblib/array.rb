@@ -81,11 +81,7 @@ class Array
   #
   def uniq(&block)
     ary = self.dup
-    if block
-      ary.uniq!(&block)
-    else
-      ary.uniq!
-    end
+    ary.uniq!(&block)
     ary
   end
 
