@@ -65,6 +65,9 @@
 
 #include "mrbconf.h"
 
+#ifndef FLT_EPSILON
+#define FLT_EPSILON (1.19209290e-07f)
+#endif
 #ifndef DBL_EPSILON
 #define DBL_EPSILON ((double)2.22044604925031308085e-16L)
 #endif
