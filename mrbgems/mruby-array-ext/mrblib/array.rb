@@ -169,15 +169,9 @@ class Array
   #    a.flatten(1)              #=> [1, 2, 3, [4, 5]]
   #
   def flatten(depth=nil)
-    ar = []
-    self.each do |e|
-      if e.is_a?(Array) && (depth.nil? || depth > 0)
-        ar += e.flatten(depth.nil? ? nil : depth - 1)
-      else
-        ar << e
-      end
-    end
-    ar
+    res = dup
+    res.flatten! depth
+    res
   end
 
   ##
