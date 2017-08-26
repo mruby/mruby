@@ -46,7 +46,12 @@ class Array
   def collect!(&block)
     return to_enum :collect! unless block
 
-    self.each_index { |idx| self[idx] = block.call(self[idx]) }
+    idx = 0
+    len = size
+    while idx < len
+      self[idx] = block.call self[idx]
+      idx += 1
+    end
     self
   end
 

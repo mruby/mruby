@@ -81,11 +81,7 @@ class Array
   #
   def uniq(&block)
     ary = self.dup
-    if block
-      ary.uniq!(&block)
-    else
-      ary.uniq!
-    end
+    ary.uniq!(&block)
     ary
   end
 
@@ -105,8 +101,19 @@ class Array
 
     hash = {}
     array = []
-    elem.each { |x| hash[x] = true }
-    self.each { |x| array << x unless hash[x] }
+    idx = 0
+    len = elem.size
+    while idx < len
+      hash[elem[idx]] = true
+      idx += 1
+    end
+    idx = 0
+    len = size
+    while idx < len
+      v = self[idx]
+      array << v unless hash[v]
+      idx += 1
+    end
     array
   end
 
@@ -141,12 +148,21 @@ class Array
 
     hash = {}
     array = []
-    elem.each{|v| hash[v] = true }
-    self.each do |v|
+    idx = 0
+    len = elem.size
+    while idx < len
+      hash[elem[idx]] = true
+      idx += 1
+    end
+    idx = 0
+    len = size
+    while idx < len
+      v = self[idx]
       if hash[v]
         array << v
         hash.delete v
       end
+      idx += 1
     end
     array
   end
@@ -169,15 +185,9 @@ class Array
   #    a.flatten(1)              #=> [1, 2, 3, [4, 5]]
   #
   def flatten(depth=nil)
-    ar = []
-    self.each do |e|
-      if e.is_a?(Array) && (depth.nil? || depth > 0)
-        ar += e.flatten(depth.nil? ? nil : depth - 1)
-      else
-        ar << e
-      end
-    end
-    ar
+    res = dup
+    res.flatten! depth
+    res
   end
 
   ##
@@ -200,13 +210,17 @@ class Array
   def flatten!(depth=nil)
     modified = false
     ar = []
-    self.each do |e|
+    idx = 0
+    len = size
+    while idx < len
+      e = self[idx]
       if e.is_a?(Array) && (depth.nil? || depth > 0)
         ar += e.flatten(depth.nil? ? nil : depth - 1)
         modified = true
       else
         ar << e
       end
+      idx += 1
     end
     if modified
       self.replace(ar)
@@ -728,10 +742,14 @@ class Array
     return to_enum :select! unless block
 
     result = []
-    self.each do |x|
-      result << x if block.call(x)
+    idx = 0
+    len = size
+    while idx < len
+      elem = self[idx]
+      result << elem if block.call(elem)
+      idx += 1
     end
-    return nil if self.size == result.size
+    return nil if len == result.size
     self.replace(result)
   end
 
@@ -753,8 +771,9 @@ class Array
 
     if block
       idx = 0
-      self.each do |*e|
-        return idx if block.call(*e)
+      len = size
+      while idx < len
+        return idx if block.call self[idx]
         idx += 1
       end
     else
