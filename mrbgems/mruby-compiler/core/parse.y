@@ -749,7 +749,7 @@ new_float(parser_state *p, const char *s)
 
 /* (:str . (s . len)) */
 static node*
-new_str(parser_state *p, const char *s, int len)
+new_str(parser_state *p, const char *s, size_t len)
 {
   return cons((node*)NODE_STR, cons((node*)strndup(s, len), nint(len)));
 }
@@ -3361,7 +3361,7 @@ static void
 yyerror(parser_state *p, const char *s)
 {
   char* c;
-  int n;
+  size_t n;
 
   if (! p->capture_errors) {
 #ifndef MRB_DISABLE_STDIO
@@ -3397,7 +3397,7 @@ static void
 yywarn(parser_state *p, const char *s)
 {
   char* c;
-  int n;
+  size_t n;
 
   if (! p->capture_errors) {
 #ifndef MRB_DISABLE_STDIO
@@ -3593,7 +3593,7 @@ peek_n(parser_state *p, int c, int n)
 static mrb_bool
 peeks(parser_state *p, const char *s)
 {
-  int len = strlen(s);
+  size_t len = strlen(s);
 
 #ifndef MRB_DISABLE_STDIO
   if (p->f) {
@@ -3629,7 +3629,7 @@ skips(parser_state *p, const char *s)
     }
     s++;
     if (peeks(p, s)) {
-      int len = strlen(s);
+      size_t len = strlen(s);
 
       while (len--) {
         if (nextc(p) == '\n') {
@@ -3762,7 +3762,7 @@ scan_oct(const int *start, int len, int *retlen)
     retval <<= 3;
     retval |= *s++ - '0';
   }
-  *retlen = s - start;
+  *retlen = (int)(s - start);
 
   return retval;
 }
@@ -3781,7 +3781,7 @@ scan_hex(parser_state *p, const int *start, int len, int *retlen)
     retval |= (tmp - hexdigit) & 15;
     s++;
   }
-  *retlen = s - start;
+  *retlen = (int)(s - start);
 
   return (int32_t)retval;
 }
@@ -3958,9 +3958,9 @@ parse_string(parser_state *p)
 {
   int c;
   string_type type = (string_type)(intptr_t)p->lex_strterm->car;
-  int nest_level = (intptr_t)p->lex_strterm->cdr->car;
-  int beg = (intptr_t)p->lex_strterm->cdr->cdr->car;
-  int end = (intptr_t)p->lex_strterm->cdr->cdr->cdr;
+  int nest_level = intn(p->lex_strterm->cdr->car);
+  int beg = intn(p->lex_strterm->cdr->cdr->car);
+  int end = intn(p->lex_strterm->cdr->cdr->cdr);
   parser_heredoc_info *hinf = (type & STR_FUNC_HEREDOC) ? parsing_heredoc_inf(p) : NULL;
   int cmd_state = p->cmd_start;
 
@@ -5672,7 +5672,7 @@ MRB_API const char*
 mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 {
   if (s) {
-    int len = strlen(s);
+    size_t len = strlen(s);
     char *p = (char *)mrb_malloc(mrb, len + 1);
 
     memcpy(p, s, len + 1);
@@ -5704,12 +5704,12 @@ mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
 
   for (i = 0; i < p->filename_table_length; ++i) {
     if (p->filename_table[i] == sym) {
-      p->current_filename_index = i;
+      p->current_filename_index = (int)i;
       return;
     }
   }
 
-  p->current_filename_index = p->filename_table_length++;
+  p->current_filename_index = (int)p->filename_table_length++;
 
   new_table = (mrb_sym*)parser_palloc(p, sizeof(mrb_sym) * p->filename_table_length);
   if (p->filename_table) {
@@ -5744,7 +5744,7 @@ mrb_parse_file(mrb_state *mrb, FILE *f, mrbc_context *c)
 #endif
 
 MRB_API parser_state*
-mrb_parse_nstring(mrb_state *mrb, const char *s, int len, mrbc_context *c)
+mrb_parse_nstring(mrb_state *mrb, const char *s, size_t len, mrbc_context *c)
 {
   parser_state *p;
 
@@ -5839,13 +5839,13 @@ mrb_load_file(mrb_state *mrb, FILE *f)
 #endif
 
 MRB_API mrb_value
-mrb_load_nstring_cxt(mrb_state *mrb, const char *s, int len, mrbc_context *c)
+mrb_load_nstring_cxt(mrb_state *mrb, const char *s, size_t len, mrbc_context *c)
 {
   return mrb_load_exec(mrb, mrb_parse_nstring(mrb, s, len, c), c);
 }
 
 MRB_API mrb_value
-mrb_load_nstring(mrb_state *mrb, const char *s, int len)
+mrb_load_nstring(mrb_state *mrb, const char *s, size_t len)
 {
   return mrb_load_nstring_cxt(mrb, s, len, NULL);
 }
