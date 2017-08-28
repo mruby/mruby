@@ -815,7 +815,11 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
       struct RProc *p = (struct RProc*)obj;
 
       if (!MRB_PROC_CFUNC_P(p) && p->body.irep) {
+        int refcnt = p->body.irep->refcnt;
         mrb_irep_decref(mrb, p->body.irep);
+        if (refcnt == 2) {    /* reference only from irep */
+          p->body.irep->outer = NULL;
+        }
       }
     }
     break;
