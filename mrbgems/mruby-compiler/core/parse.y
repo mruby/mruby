@@ -2968,6 +2968,15 @@ var_ref         : variable
                       snprintf(buf, sizeof(buf), "%d", p->lineno);
                       $$ = new_int(p, buf, 10);
                     }
+                | keyword__ENCODING__
+                    {
+#ifdef MRB_UTF8_STRING
+                      const char *enc = "UTF-8";
+#else
+                      const char *enc = "ASCII-8BIT";
+#endif
+                      $$ = new_str(p, enc, strlen(enc));
+                    }
                 ;
 
 backref         : tNTH_REF
