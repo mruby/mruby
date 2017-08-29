@@ -635,7 +635,7 @@ end
     c.singleton_class.class_eval do
       define_method(:method_removed) {|id| removed = id}
     end
-    assert_nothing_raised(NoMethodError, NameError, '[Bug #7843]') do
+    assert_nothing_raised('[Bug #7843]') do
       c.class_eval do
         remove_method(:foo)
       end
@@ -724,7 +724,7 @@ end
     end
     a = c.new
     assert_true a.respond_to?(:foo), bug8005
-    assert_nothing_raised(NoMethodError, bug8005) {a.send :foo}
+    assert_nothing_raised(bug8005) {a.send :foo}
   end
 
   # mruby has no visibility control
