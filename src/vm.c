@@ -1959,8 +1959,8 @@ RETRY_TRY_BLOCK:
 
             mrb->c = c->prev;
             c->prev = NULL;
-            ci = mrb->c->ci;
           }
+          ci = mrb->c->ci;
           if (ci->acc < 0) {
             mrb_gc_arena_restore(mrb, ai);
             mrb->c->vmexec = FALSE;
