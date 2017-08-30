@@ -865,6 +865,7 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
   mrb_gc_mark(mrb, (struct RBasic*)mrb->string_class);
   mrb_gc_mark(mrb, (struct RBasic*)mrb->array_class);
   mrb_gc_mark(mrb, (struct RBasic*)mrb->hash_class);
+  mrb_gc_mark(mrb, (struct RBasic*)mrb->range_class);
 
   mrb_gc_mark(mrb, (struct RBasic*)mrb->float_class);
   mrb_gc_mark(mrb, (struct RBasic*)mrb->fixnum_class);
