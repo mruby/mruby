@@ -143,9 +143,11 @@ def assert_not_include(collection, obj, msg = nil)
   assert_false(collection.include?(obj), msg, diff)
 end
 
-def assert_raise(exc, msg = nil)
+def assert_raise(*exc)
   return true unless $mrbtest_assert
   $mrbtest_assert_idx += 1
+
+  msg = (exc.last.is_a? String) ? exc.pop : nil
 
   begin
     yield
@@ -153,7 +155,7 @@ def assert_raise(exc, msg = nil)
     diff = nil
     $mrbtest_assert.push [$mrbtest_assert_idx, msg, diff]
     false
-  rescue exc
+  rescue *exc
     true
   rescue Exception => e
     msg ||= "Expected to raise #{exc}, not"
