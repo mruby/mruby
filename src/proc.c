@@ -139,6 +139,10 @@ mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx)
 void
 mrb_proc_copy(struct RProc *a, struct RProc *b)
 {
+  if (a->body.irep) {
+    /* already initialized proc */
+    return;
+  }
   a->flags = b->flags;
   a->body = b->body;
   if (!MRB_PROC_CFUNC_P(a) && a->body.irep) {
