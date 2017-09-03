@@ -279,7 +279,7 @@ mrb_class_inherited(mrb_state *mrb, struct RClass *super, struct RClass *klass)
   mid = mrb_intern_lit(mrb, "inherited");
   if (!mrb_func_basic_p(mrb, s, mid, mrb_bob_init)) {
     mrb_value c = mrb_obj_value(klass);
-    mrb_funcall_argv(mrb, mrb_obj_value(super), mid, 1, &c);
+    mrb_funcall_argv(mrb, s, mid, 1, &c);
   }
 }
 
@@ -1530,10 +1530,14 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
   mrb_value obj, blk;
   mrb_value *argv;
   mrb_int argc;
+  mrb_sym init;
 
   mrb_get_args(mrb, "*&", &argv, &argc, &blk);
   obj = mrb_instance_alloc(mrb, cv);
-  mrb_funcall_with_block(mrb, obj, mrb_intern_lit(mrb, "initialize"), argc, argv, blk);
+  init = mrb_intern_lit(mrb, "initialize");
+  if (!mrb_func_basic_p(mrb, obj, init, mrb_bob_init)) {
+    mrb_funcall_with_block(mrb, obj, init, argc, argv, blk);
+  }
 
   return obj;
 }
