@@ -770,17 +770,23 @@ mrb_value
 mrb_mod_s_nesting(mrb_state *mrb, mrb_value mod)
 {
   struct RProc *proc;
+  mrb_irep *irep;
   mrb_value ary;
+  struct RClass *c;
 
   mrb_get_args(mrb, "");
   ary = mrb_ary_new(mrb);
   proc = mrb->c->ci[-1].proc;   /* callee proc */
-  while (proc) {
-    mrb_assert(!MRB_PROC_CFUNC_P(proc));
-    if (MRB_PROC_CLASS_P(proc) && proc->target_class) {
-      mrb_ary_push(mrb, ary, mrb_obj_value(proc->target_class));
+  c = proc->target_class;
+  mrb_ary_push(mrb, ary, mrb_obj_value(c));
+  mrb_assert(!MRB_PROC_CFUNC_P(proc));
+  irep = proc->body.irep;
+  while (irep) {
+    if (irep->target_class && irep->target_class != c) {
+      c = irep->target_class;
+      mrb_ary_push(mrb, ary, mrb_obj_value(c));
     }
-    proc = proc->body.irep->outer;
+    irep = irep->outer;
   }
   return ary;
 }
@@ -844,6 +850,18 @@ argnum_error(mrb_state *mrb, mrb_int num)
   }
   exc = mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str);
   mrb_exc_set(mrb, exc);
+}
+
+void
+irep_uplink(mrb_state *mrb, mrb_irep *outer, mrb_irep *irep)
+{
+  if (irep->outer != outer) {
+    if (irep->outer) {
+      mrb_irep_decref(mrb, irep->outer);
+    }
+    irep->outer = outer;
+    mrb_irep_incref(mrb, outer);
+  }
 }
 
 #define ERR_PC_SET(mrb, pc) mrb->c->ci->err = pc;
@@ -2647,7 +2665,7 @@ RETRY_TRY_BLOCK:
       int c = GETARG_c(i);
       mrb_irep *nirep = irep->reps[b];
 
-      nirep->outer = mrb->c->ci->proc;
+      irep_uplink(mrb, irep, nirep);
       if (c & OP_L_CAPTURE) {
         p = mrb_closure_new(mrb, nirep);
       }
@@ -2716,11 +2734,11 @@ RETRY_TRY_BLOCK:
       struct RProc *p;
       mrb_irep *nirep = irep->reps[bx];
 
-      nirep->outer = mrb->c->ci->proc;
+      irep_uplink(mrb, irep, nirep);
+      nirep->target_class = mrb_class_ptr(recv);
       /* prepare closure */
       p = mrb_closure_new(mrb, nirep);
       p->c = NULL;
-      p->flags |= MRB_PROC_CLASS;
 
       /* prepare stack */
       ci = cipush(mrb);

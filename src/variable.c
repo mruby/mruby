@@ -702,7 +702,7 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   struct RClass *c = mrb->c->ci->proc->target_class;
   struct RClass *c2;
   mrb_value v;
-  struct RProc *proc;
+  mrb_irep *irep;
 
   if (!c) c = mrb->c->ci->target_class;
   mrb_assert(c != NULL);
@@ -719,16 +719,15 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   }
   if (c2->tt == MRB_TT_CLASS || c2->tt == MRB_TT_MODULE) c = c2;
   mrb_assert(!MRB_PROC_CFUNC_P(mrb->c->ci->proc));
-  proc = mrb->c->ci->proc->body.irep->outer;
-  while (proc && proc->tt == MRB_TT_PROC) {
-    mrb_assert(!MRB_PROC_CFUNC_P(proc));
-    if (MRB_PROC_CLASS_P(proc) && proc->target_class) {
-      c2 = proc->target_class;
+  irep = mrb->c->ci->proc->body.irep;
+  while (irep) {
+    if (irep->target_class) {
+      c2 = irep->target_class;
       if (c2->iv && iv_get(mrb, c2->iv, sym, &v)) {
         return v;
       }
     }
-    proc = proc->body.irep->outer;
+    irep = irep->outer;
   }
   return const_get(mrb, c, sym);
 }

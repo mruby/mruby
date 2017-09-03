@@ -57,8 +57,6 @@ struct RProc {
 #define MRB_PROC_STRICT_P(p) (((p)->flags & MRB_PROC_STRICT) != 0)
 #define MRB_PROC_ORPHAN 512
 #define MRB_PROC_ORPHAN_P(p) (((p)->flags & MRB_PROC_ORPHAN) != 0)
-#define MRB_PROC_CLASS  1024
-#define MRB_PROC_CLASS_P(p) (((p)->flags & MRB_PROC_CLASS) != 0)
 
 #define mrb_proc_ptr(v)    ((struct RProc*)(mrb_ptr(v)))
 

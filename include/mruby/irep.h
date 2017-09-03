@@ -46,7 +46,8 @@ typedef struct mrb_irep {
 
   int ilen, plen, slen, rlen, refcnt;
 
-  struct RProc *outer;      /* Refers outer scope */
+  struct mrb_irep *outer;       /* Refers outer scope */
+  struct RClass *target_class;
 } mrb_irep;
 
 #define MRB_ISEQ_NO_FREE 1

@@ -157,6 +157,8 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   for (i=0; i<irep->rlen; i++) {
     mrb_irep_decref(mrb, irep->reps[i]);
   }
+  if (irep->outer)
+    mrb_irep_decref(mrb, irep->outer);
   mrb_free(mrb, irep->reps);
   mrb_free(mrb, irep->lv);
   if (irep->own_filename) {
