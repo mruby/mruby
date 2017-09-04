@@ -611,10 +611,10 @@ mrb_socket_connect(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_socket_listen(mrb_state *mrb, mrb_value klass)
 {
-  int backlog, s;
+  mrb_int backlog, s;
 
   mrb_get_args(mrb, "ii", &s, &backlog);
-  if (listen(s, backlog) == -1) {
+  if (listen((int)s, (int)backlog) == -1) {
     mrb_sys_fail(mrb, "listen");
   }
   return mrb_nil_value();
