@@ -1319,14 +1319,30 @@ RETRY_TRY_BLOCK:
     CASE(OP_EPOP) {
       /* A      A.times{ensure_pop().call} */
       int a = GETARG_A(i);
-      mrb_callinfo *ci = mrb->c->ci;
-      int n, epos = ci->epos;
+      mrb_callinfo *ci, *nci;
+      mrb_value self = regs[0];
 
-      for (n=0; n<a && mrb->c->eidx > epos; n++) {
-        ecall(mrb, --mrb->c->eidx);
-        mrb_gc_arena_restore(mrb, ai);
-      }
-      NEXT;
+      /* temporary limitation */
+      mrb_assert(a==1);
+      proc = mrb->c->ensure[--mrb->c->eidx];
+      ci = mrb->c->ci;
+      nci = cipush(mrb);
+      nci->mid = ci->mid;
+      nci->argc = 0;
+      nci->proc = proc;
+      nci->stackent = mrb->c->stack;
+      nci->nregs = irep->nregs;
+      nci->target_class = proc->target_class;
+      nci->pc = pc + 1;
+      nci->acc = nci->nregs;
+      mrb->c->stack += ci->nregs;
+      stack_extend(mrb, nci->nregs);
+      irep = proc->body.irep;
+      pool = irep->pool;
+      syms = irep->syms;
+      regs[0] = self;
+      pc = irep->iseq;
+      JUMP;
     }
 
     CASE(OP_LOADNIL) {
