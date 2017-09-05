@@ -582,6 +582,7 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
   int i;
   mrb_callinfo *ci;
 
+ start:
   if (c->status == MRB_FIBER_TERMINATED) return;
 
   /* mark VM stack */
@@ -603,7 +604,8 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
   /* mark fibers */
   mrb_gc_mark(mrb, (struct RBasic*)c->fib);
   if (c->prev) {
-    mark_context(mrb, c->prev);
+    c = c->prev;
+    goto start;
   }
 }
 
