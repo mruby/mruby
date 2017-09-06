@@ -1531,11 +1531,18 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
   mrb_value *argv;
   mrb_int argc;
   mrb_sym init;
+  struct RProc *p;
 
   mrb_get_args(mrb, "*&", &argv, &argc, &blk);
   obj = mrb_instance_alloc(mrb, cv);
   init = mrb_intern_lit(mrb, "initialize");
-  if (!mrb_func_basic_p(mrb, obj, init, mrb_bob_init)) {
+  p = mrb_method_search(mrb, mrb_class(mrb, obj), init);
+  if (MRB_PROC_CFUNC_P(p)) {
+    if (p->body.func != mrb_bob_init) {
+      p->body.func(mrb, obj);
+    }
+  }
+  else {
     mrb_funcall_with_block(mrb, obj, init, argc, argv, blk);
   }
 
