@@ -1322,10 +1322,13 @@ RETRY_TRY_BLOCK:
       mrb_callinfo *ci, *nci;
       mrb_value self = regs[0];
 
-      /* temporary limitation */
-      mrb_assert(a==1);
-      proc = mrb->c->ensure[--mrb->c->eidx];
+      mrb_assert(a==1);         /* temporary limitation */
       ci = mrb->c->ci;
+      if (mrb->c->eidx == ci->epos) {
+        NEXT;
+      }
+
+      proc = mrb->c->ensure[--mrb->c->eidx];
       nci = cipush(mrb);
       nci->mid = ci->mid;
       nci->argc = 0;
