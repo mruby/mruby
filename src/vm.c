@@ -1319,30 +1319,29 @@ RETRY_TRY_BLOCK:
     CASE(OP_EPOP) {
       /* A      A.times{ensure_pop().call} */
       int a = GETARG_A(i);
-      mrb_callinfo *ci, *nci;
+      mrb_callinfo *ci;
       mrb_value self = regs[0];
 
       mrb_assert(a==1);         /* temporary limitation */
-      ci = mrb->c->ci;
-      if (mrb->c->eidx == ci->epos) {
+      if (mrb->c->eidx == mrb->c->ci->epos) {
         NEXT;
       }
 
       proc = mrb->c->ensure[--mrb->c->eidx];
-      nci = cipush(mrb);
-      nci->mid = ci->mid;
-      nci->argc = 0;
-      nci->proc = proc;
-      nci->stackent = mrb->c->stack;
-      nci->nregs = irep->nregs;
-      nci->target_class = proc->target_class;
-      nci->pc = pc + 1;
-      nci->acc = nci->nregs;
-      mrb->c->stack += ci->nregs;
-      stack_extend(mrb, nci->nregs);
       irep = proc->body.irep;
       pool = irep->pool;
       syms = irep->syms;
+      ci = cipush(mrb);
+      ci->mid = ci[-1].mid;
+      ci->argc = 0;
+      ci->proc = proc;
+      ci->stackent = mrb->c->stack;
+      ci->nregs = irep->nregs;
+      ci->target_class = proc->target_class;
+      ci->pc = pc + 1;
+      ci->acc = ci[-1].nregs;
+      mrb->c->stack += ci->acc;
+      stack_extend(mrb, ci->nregs);
       regs[0] = self;
       pc = irep->iseq;
       JUMP;
