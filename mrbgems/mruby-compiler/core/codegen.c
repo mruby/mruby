@@ -279,20 +279,10 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       }
       break;
     case OP_EPOP:
-#if 1
-      if (GETARG_A(i) > 1) {
-        int j, len = GETARG_A(i), n;
-        for (j=0; j<len; j++) {
-          n = genop(s, MKOP_A(OP_EPOP, 1));
-        }
-        return n;
-      }
-#else
       if (c0 == OP_EPOP) {
         s->iseq[s->pc-1] = MKOP_A(OP_EPOP, GETARG_A(i0)+GETARG_A(i));
         return 0;
       }
-#endif
       break;
     case OP_POPERR:
       if (c0 == OP_POPERR) {

@@ -1319,31 +1319,34 @@ RETRY_TRY_BLOCK:
     CASE(OP_EPOP) {
       /* A      A.times{ensure_pop().call} */
       int a = GETARG_A(i);
+      int n, epos = mrb->c->ci->epos;
       mrb_callinfo *ci;
       mrb_value self = regs[0];
 
-      mrb_assert(a==1);         /* temporary limitation */
-      if (mrb->c->eidx == mrb->c->ci->epos) {
+      if (mrb->c->eidx == epos) {
         NEXT;
       }
 
-      proc = mrb->c->ensure[--mrb->c->eidx];
-      irep = proc->body.irep;
+      for (n=0; n<a && mrb->c->eidx > epos; n++) {
+        proc = mrb->c->ensure[epos+n];
+        irep = proc->body.irep;
+        ci = cipush(mrb);
+        ci->mid = ci[-1].mid;
+        ci->argc = 0;
+        ci->proc = proc;
+        ci->stackent = mrb->c->stack;
+        ci->nregs = irep->nregs;
+        ci->target_class = proc->target_class;
+        ci->pc = pc + 1;
+        ci->acc = ci[-1].nregs;
+        mrb->c->stack += ci->acc;
+        stack_extend(mrb, ci->nregs);
+        regs[0] = self;
+        pc = irep->iseq;
+      }
       pool = irep->pool;
       syms = irep->syms;
-      ci = cipush(mrb);
-      ci->mid = ci[-1].mid;
-      ci->argc = 0;
-      ci->proc = proc;
-      ci->stackent = mrb->c->stack;
-      ci->nregs = irep->nregs;
-      ci->target_class = proc->target_class;
-      ci->pc = pc + 1;
-      ci->acc = ci[-1].nregs;
-      mrb->c->stack += ci->acc;
-      stack_extend(mrb, ci->nregs);
-      regs[0] = self;
-      pc = irep->iseq;
+      mrb->c->eidx = epos;
       JUMP;
     }
 
