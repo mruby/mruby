@@ -3,7 +3,7 @@ MRuby::Gem::Specification.new('mruby-socket') do |spec|
   spec.authors = 'Internet Initiative Japan'
 
   spec.cc.include_paths << "#{build.root}/src"
-  
+
   # If Windows, use winsock
   if ( /mswin|mingw|win32/ =~ RUBY_PLATFORM ) then
     spec.linker.libraries << "wsock32"

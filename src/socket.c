@@ -6,7 +6,7 @@
 
 #ifdef _WIN32
   #define _WIN32_WINNT 0x0501
-  
+
   #include <winsock2.h>
   #include <ws2tcpip.h>
   #include <windows.h>
@@ -260,13 +260,13 @@ socket_family(int s)
 
 static mrb_value
 mrb_basicsocket_getpeereid(mrb_state *mrb, mrb_value self)
-{ 
+{
 #ifdef HAVE_GETPEEREID
   mrb_value ary;
   gid_t egid;
   uid_t euid;
   int s;
-  
+
   s = socket_fd(mrb, self);
   if (getpeereid(s, &euid, &egid) != 0)
     mrb_sys_fail(mrb, "getpeereid");
@@ -283,10 +283,10 @@ mrb_basicsocket_getpeereid(mrb_state *mrb, mrb_value self)
 
 static mrb_value
 mrb_basicsocket_getpeername(mrb_state *mrb, mrb_value self)
-{ 
+{
   struct sockaddr_storage ss;
   socklen_t salen;
-  
+
   salen = sizeof(ss);
   if (getpeername(socket_fd(mrb, self), (struct sockaddr *)&ss, &salen) != 0)
     mrb_sys_fail(mrb, "getpeername");
@@ -296,10 +296,10 @@ mrb_basicsocket_getpeername(mrb_state *mrb, mrb_value self)
 
 static mrb_value
 mrb_basicsocket_getsockname(mrb_state *mrb, mrb_value self)
-{ 
+{
   struct sockaddr_storage ss;
   socklen_t salen;
-  
+
   salen = sizeof(ss);
   if (getsockname(socket_fd(mrb, self), (struct sockaddr *)&ss, &salen) != 0)
     mrb_sys_fail(mrb, "getsockname");
@@ -309,7 +309,7 @@ mrb_basicsocket_getsockname(mrb_state *mrb, mrb_value self)
 
 static mrb_value
 mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
-{ 
+{
   char opt[8];
   int s;
   mrb_int family, level, optname;
@@ -329,7 +329,7 @@ mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
 
 static mrb_value
 mrb_basicsocket_recv(mrb_state *mrb, mrb_value self)
-{ 
+{
   int n;
   mrb_int maxlen, flags = 0;
   mrb_value buf;
@@ -345,7 +345,7 @@ mrb_basicsocket_recv(mrb_state *mrb, mrb_value self)
 
 static mrb_value
 mrb_basicsocket_recvfrom(mrb_state *mrb, mrb_value self)
-{ 
+{
   int n;
   mrb_int maxlen, flags = 0;
   mrb_value ary, buf, sa;
@@ -368,7 +368,7 @@ mrb_basicsocket_recvfrom(mrb_state *mrb, mrb_value self)
 
 static mrb_value
 mrb_basicsocket_send(mrb_state *mrb, mrb_value self)
-{ 
+{
   int n;
   mrb_int flags;
   mrb_value dest, mesg;
@@ -387,7 +387,7 @@ mrb_basicsocket_send(mrb_state *mrb, mrb_value self)
 
 static mrb_value
 mrb_basicsocket_setnonblock(mrb_state *mrb, mrb_value self)
-{ 
+{
   int fd, flags;
   mrb_value bool;
 #ifdef _WIN32
@@ -416,7 +416,7 @@ mrb_basicsocket_setnonblock(mrb_state *mrb, mrb_value self)
 
 static mrb_value
 mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
-{ 
+{
   int argc, s;
   mrb_int level = 0, optname;
   mrb_value optval, so;
@@ -461,7 +461,7 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
 
 static mrb_value
 mrb_basicsocket_shutdown(mrb_state *mrb, mrb_value self)
-{ 
+{
   mrb_int how = SHUT_RDWR;
 
   mrb_get_args(mrb, "|i", &how);
@@ -472,7 +472,7 @@ mrb_basicsocket_shutdown(mrb_state *mrb, mrb_value self)
 
 static mrb_value
 mrb_ipsocket_ntop(mrb_state *mrb, mrb_value klass)
-{ 
+{
   mrb_int af, n;
   char *addr, buf[50];
 
@@ -486,7 +486,7 @@ mrb_ipsocket_ntop(mrb_state *mrb, mrb_value klass)
 
 static mrb_value
 mrb_ipsocket_pton(mrb_state *mrb, mrb_value klass)
-{ 
+{
   mrb_int af, n;
   char *bp, buf[50];
 
@@ -516,7 +516,7 @@ invalid:
 
 static mrb_value
 mrb_ipsocket_recvfrom(mrb_state *mrb, mrb_value self)
-{ 
+{
   struct sockaddr_storage ss;
   socklen_t socklen;
   mrb_value a, buf, pair;
@@ -546,7 +546,7 @@ mrb_socket_gethostname(mrb_state *mrb, mrb_value cls)
 {
   mrb_value buf;
   size_t bufsize;
-  
+
 #ifdef HOST_NAME_MAX
   bufsize = HOST_NAME_MAX + 1;
 #else
@@ -647,7 +647,7 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
 #else
   struct sockaddr_un *sunp;
   mrb_value path, s;
-  
+
   mrb_get_args(mrb, "S", &path);
   if (RSTRING_LEN(path) > sizeof(sunp->sun_path) - 1) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "too long unix socket path (max: %ubytes)", (unsigned int)sizeof(sunp->sun_path) - 1);

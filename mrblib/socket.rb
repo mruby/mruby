@@ -154,7 +154,7 @@ class Addrinfo
     [ s, port.to_i, addr, addr ]
   end
 
-  def to_sockaddr 
+  def to_sockaddr
     @sockaddr
   end
 
