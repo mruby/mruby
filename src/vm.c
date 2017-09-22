@@ -1327,7 +1327,9 @@ RETRY_TRY_BLOCK:
         NEXT;
       }
 
-      for (n=0; n<a && mrb->c->eidx > epos; n++) {
+      if (a > mrb->c->eidx - epos)
+        a = mrb->c->eidx - epos;
+      for (n=0; n<a; n++) {
         proc = mrb->c->ensure[epos+n];
         irep = proc->body.irep;
         ci = cipush(mrb);
