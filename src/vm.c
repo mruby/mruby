@@ -1329,6 +1329,7 @@ RETRY_TRY_BLOCK:
 
       if (a > mrb->c->eidx - epos)
         a = mrb->c->eidx - epos;
+      pc = pc + 1;
       for (n=0; n<a; n++) {
         proc = mrb->c->ensure[epos+n];
         irep = proc->body.irep;
@@ -1339,7 +1340,7 @@ RETRY_TRY_BLOCK:
         ci->stackent = mrb->c->stack;
         ci->nregs = irep->nregs;
         ci->target_class = proc->target_class;
-        ci->pc = pc + 1;
+        ci->pc = pc;
         ci->acc = ci[-1].nregs;
         mrb->c->stack += ci->acc;
         stack_extend(mrb, ci->nregs);
