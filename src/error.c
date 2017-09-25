@@ -386,7 +386,7 @@ mrb_bug(mrb_state *mrb, const char *fmt, ...)
 }
 
 MRB_API mrb_value
-mrb_make_exception(mrb_state *mrb, int argc, const mrb_value *argv)
+mrb_make_exception(mrb_state *mrb, mrb_int argc, const mrb_value *argv)
 {
   mrb_value mesg;
   int n;
