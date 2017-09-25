@@ -1,6 +1,10 @@
 #include <mruby.h>
 #include <mruby/string.h>
+
+#ifndef MRB_DISABLE_STDIO
 #include <stdio.h>
+#endif
+
 #include <string.h>
 #include <stdlib.h>
 #if defined(_WIN32)
@@ -15,7 +19,16 @@
 static void
 printstr(mrb_state *mrb, mrb_value obj)
 {
-  if (mrb_string_p(obj)) {
+  if (!mrb_string_p(obj))
+    return;
+
+  if (mrb->print_func)
+  {
+    mrb->print_func(mrb, RSTRING_PTR(obj), RSTRING_LEN(obj), FALSE);
+    return;
+  }
+  
+#ifndef MRB_DISABLE_STDIO
 #if defined(_WIN32)
     if (isatty(fileno(stdout))) {
       DWORD written;
@@ -34,7 +47,7 @@ printstr(mrb_state *mrb, mrb_value obj)
 #endif
       fwrite(RSTRING_PTR(obj), RSTRING_LEN(obj), 1, stdout);
     fflush(stdout);
-  }
+#endif
 }
 
 /* 15.3.1.2.9  */
