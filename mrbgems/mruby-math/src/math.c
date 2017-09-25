@@ -657,7 +657,7 @@ math_ldexp(mrb_state *mrb, mrb_value obj)
   mrb_int   i;
 
   mrb_get_args(mrb, "fi", &x, &i);
-  x = ldexp(x, i);
+  x = ldexp(x, (int)i);
 
   return mrb_float_value(mrb, x);
 }
