@@ -454,7 +454,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     }
     else {
       if (argc < 0) argc = 1;
-      ci->nregs = p->body.irep->nregs + argc;
+      ci->nregs = (int)(p->body.irep->nregs + argc);
       stack_extend(mrb, ci->nregs);
     }
     if (voff >= 0) {
