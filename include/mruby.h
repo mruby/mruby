@@ -858,7 +858,7 @@ mrb_get_mid(mrb_state *mrb) /* get method symbol */
   return mrb->c->ci->mid;
 }
 
-static inline int
+static inline mrb_int
 mrb_get_argc(mrb_state *mrb) /* get argc */
 {
   return mrb->c->ci->argc;
