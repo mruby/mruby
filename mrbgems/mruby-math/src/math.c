@@ -486,7 +486,7 @@ static mrb_value
 math_log(mrb_state *mrb, mrb_value obj)
 {
   mrb_float x, base;
-  int argc;
+  mrb_int argc;
 
   argc = mrb_get_args(mrb, "f|f", &x, &base);
   if (x < 0.0) {
