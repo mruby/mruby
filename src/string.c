@@ -1125,7 +1125,7 @@ static mrb_value
 mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 {
   mrb_value a1, a2;
-  int argc;
+  mrb_int argc;
 
   argc = mrb_get_args(mrb, "o|o", &a1, &a2);
   if (argc == 2) {
