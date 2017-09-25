@@ -999,13 +999,15 @@ retry:
       case 'A': {
         mrb_value val = GETARG();
         double fval;
-        int i, need = 6;
+        mrb_int i;
+        mrb_int need = 6;
         char fbuf[32];
+        int frexp_result;
 
         fval = mrb_float(mrb_Float(mrb, val));
         if (!isfinite(fval)) {
           const char *expr;
-          const int elen = 3;
+          const mrb_int elen = 3;
           char sign = '\0';
 
           if (isnan(fval)) {
@@ -1045,7 +1047,8 @@ retry:
         need = 0;
         if (*p != 'e' && *p != 'E') {
           i = INT_MIN;
-          frexp(fval, &i);
+          frexp(fval, &frexp_result);
+          i = (mrb_int)frexp_result;
           if (i > 0)
             need = BIT_DIGITS(i);
         }
