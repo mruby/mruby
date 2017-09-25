@@ -654,7 +654,7 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur, mrb_sym const 
   for (i = 0; i < filenames_len; ++i) {
     sym = mrb_sym2name_len(mrb, filenames[i], &sym_len);
     mrb_assert(sym);
-    cur += uint16_to_bin(sym_len, cur);
+    cur += uint16_to_bin((uint16_t)sym_len, cur);
     memcpy(cur, sym, sym_len);
     cur += sym_len;
     section_size += sizeof(uint16_t) + sym_len;
