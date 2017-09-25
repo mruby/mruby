@@ -2025,7 +2025,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
 }
 
 MRB_API mrb_value
-mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int badcheck)
+mrb_str_len_to_inum(mrb_state *mrb, const char *str, mrb_int len, mrb_int base, int badcheck)
 {
   const char *p = str;
   const char *pend = str + len;
