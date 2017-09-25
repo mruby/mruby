@@ -1911,7 +1911,7 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_split_m(mrb_state *mrb, mrb_value str)
 {
-  int argc;
+  mrb_int argc;
   mrb_value spat = mrb_nil_value();
   enum {awk, string, regexp} split_type = string;
   mrb_int i = 0;
