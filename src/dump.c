@@ -707,7 +707,7 @@ write_lv_sym_table(mrb_state *mrb, uint8_t **start, mrb_sym const *syms, uint32_
 
   for (i = 0; i < syms_len; ++i) {
     str = mrb_sym2name_len(mrb, syms[i], &str_len);
-    cur += uint16_to_bin(str_len, cur);
+    cur += uint16_to_bin((uint16_t)str_len, cur);
     memcpy(cur, str, str_len);
     cur += str_len;
   }
