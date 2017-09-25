@@ -701,7 +701,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   ci->mid = mid;
   ci->proc = p;
   ci->stackent = mrb->c->stack;
-  ci->argc = argc;
+  ci->argc = (int)argc;
   ci->target_class = c;
   ci->acc = CI_ACC_SKIP;
   mrb->c->stack = mrb->c->stack + n;
