@@ -2857,7 +2857,7 @@ symbol          : basic_symbol
                     }
                 | tSYMBEG tSTRING_BEG string_rep tSTRING
                     {
-                      p->lstate = EXPR_END;
+                      p->lstate = EXPR_ENDARG;
                       $$ = new_dsym(p, push($3, $4));
                     }
                 ;
