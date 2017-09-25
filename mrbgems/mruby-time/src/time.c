@@ -369,7 +369,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time.");
   }
 
-  return time_alloc(mrb, (double)nowsecs, ausec, timezone);
+  return time_alloc(mrb, (double)nowsecs, (double)ausec, timezone);
 }
 
 /* 15.2.19.6.2 */
