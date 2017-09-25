@@ -44,7 +44,7 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
 {
   mrb_value a1;
   mrb_int len;
-  int argc;
+  mrb_int argc;
 
   argc = mrb_get_args(mrb, "o|i", &a1, &len);
   if (argc == 2) {
