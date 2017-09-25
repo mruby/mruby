@@ -435,7 +435,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     ci->mid = mid;
     ci->proc = p;
     ci->stackent = mrb->c->stack;
-    ci->argc = argc;
+    ci->argc = (int)argc;
     ci->target_class = c;
     mrb->c->stack = mrb->c->stack + n;
     if (mrb->c->stbase <= argv && argv < mrb->c->stend) {
