@@ -1467,7 +1467,7 @@ mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   return str_substr(mrb, str, beg, len);
 }
 
-mrb_int
+uint32_t
 mrb_str_hash(mrb_state *mrb, mrb_value str)
 {
   /* 1-8-7 */
@@ -1480,7 +1480,7 @@ mrb_str_hash(mrb_state *mrb, mrb_value str)
     key = key*65599 + *p;
     p++;
   }
-  return (mrb_int)(key + (key>>5));
+  return (uint32_t)(key + (key>>5));
 }
 
 /* 15.2.10.5.20 */
