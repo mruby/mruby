@@ -2628,7 +2628,7 @@ RETRY_TRY_BLOCK:
         v = mrb_ary_new_from_values(mrb, 1, &regs[a]);
       }
       ary = mrb_ary_ptr(v);
-      len = ARY_LEN(ary);
+      len = (int)ARY_LEN(ary);
       if (len > pre + post) {
         v = mrb_ary_new_from_values(mrb, len - pre - post, ARY_PTR(ary)+pre);
         regs[a++] = v;
