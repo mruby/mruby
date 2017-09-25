@@ -1699,7 +1699,7 @@ RETRY_TRY_BLOCK:
           struct RArray *ary = mrb_ary_ptr(stack[m1]);
 
           pp = ARY_PTR(ary);
-          len = ARY_LEN(ary);
+          len = (int)ARY_LEN(ary);
         }
         regs[a] = mrb_ary_new_capa(mrb, m1+len+m2);
         rest = mrb_ary_ptr(regs[a]);
