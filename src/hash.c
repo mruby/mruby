@@ -37,7 +37,7 @@ mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
 
   default:
     hv = mrb_funcall(mrb, key, "hash", 0);
-    h = (khint_t)t ^ mrb_fixnum(hv);
+    h = (khint_t)t ^ (khint_t)mrb_fixnum(hv);
     break;
   }
   return kh_int_hash_func(mrb, h);
