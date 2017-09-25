@@ -75,7 +75,8 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, mrb_code *pc0, each_backtrace_fu
 static void
 print_backtrace(mrb_state *mrb, mrb_value backtrace)
 {
-  int i, n;
+  int i;
+  mrb_int n;
   FILE *stream = stderr;
 
   if (!mrb_array_p(backtrace)) return;
