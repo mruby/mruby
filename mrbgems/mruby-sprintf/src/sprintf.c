@@ -153,7 +153,7 @@ check_next_arg(mrb_state *mrb, int posarg, int nextarg)
 }
 
 static void
-check_pos_arg(mrb_state *mrb, int posarg, int n)
+check_pos_arg(mrb_state *mrb, mrb_int posarg, mrb_int n)
 {
   if (posarg > 0) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%S) after unnumbered(%S)",
