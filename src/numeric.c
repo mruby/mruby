@@ -877,7 +877,7 @@ static mrb_value flo_or(mrb_state *mrb, mrb_value x);
 static mrb_value flo_xor(mrb_state *mrb, mrb_value x);
 #define bit_op(x,y,op1,op2) do {\
   if (mrb_fixnum_p(y)) return mrb_fixnum_value(mrb_fixnum(x) op2 mrb_fixnum(y));\
-  return flo_ ## op1(mrb, mrb_float_value(mrb, mrb_fixnum(x)));\
+  return flo_ ## op1(mrb, mrb_float_value(mrb, (mrb_float)mrb_fixnum(x)));\
 } while(0)
 
 /* 15.2.8.3.9  */
