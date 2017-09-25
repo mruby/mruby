@@ -23,7 +23,7 @@ static mrb_value
 mrb_str_setbyte(mrb_state *mrb, mrb_value str)
 {
   mrb_int pos, byte;
-  long len;
+  mrb_int len;
 
   mrb_get_args(mrb, "ii", &pos, &byte);
 
