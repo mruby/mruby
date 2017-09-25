@@ -442,7 +442,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       voff = argv - mrb->c->stbase;
     }
     if (MRB_PROC_CFUNC_P(p)) {
-      ci->nregs = argc + 2;
+      ci->nregs = (int)(argc + 2);
       stack_extend(mrb, ci->nregs);
     }
     else if (argc >= CALL_MAXARGS) {
