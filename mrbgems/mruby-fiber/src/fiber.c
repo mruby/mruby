@@ -212,7 +212,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
     while (b<e) {
       *b++ = *a++;
     }
-    c->cibase->argc = len;
+    c->cibase->argc = (int)len;
     value = c->stack[0] = c->ci->proc->env->stack[0];
   }
   else {
