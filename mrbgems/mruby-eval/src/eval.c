@@ -211,7 +211,7 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, con
   }
 
   cxt = mrbc_context_new(mrb);
-  cxt->lineno = line;
+  cxt->lineno = (short)line;
 
   mrbc_filename(mrb, cxt, file ? file : "(eval)");
   cxt->capture_errors = TRUE;
