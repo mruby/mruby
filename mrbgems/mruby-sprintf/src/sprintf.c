@@ -198,7 +198,7 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, int len)
 
 #define GETNUM(n, val) \
   for (; p < end && ISDIGIT(*p); p++) {\
-    int next_n = 10 * n + (*p - '0'); \
+    mrb_int next_n = 10 * n + (*p - '0'); \
     if (next_n / 10 != n) {\
       mrb_raise(mrb, E_ARGUMENT_ERROR, #val " too big"); \
     } \
