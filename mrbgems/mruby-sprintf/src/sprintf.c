@@ -19,7 +19,7 @@
 #define BITSPERDIG MRB_INT_BIT
 #define EXTENDSIGN(n, l) (((~0U << (n)) >> (((n)*(l)) % BITSPERDIG)) & ~(~0U << (n)))
 
-mrb_value mrb_str_format(mrb_state *, int, const mrb_value *, mrb_value);
+mrb_value mrb_str_format(mrb_state *, mrb_int, const mrb_value *, mrb_value);
 static void fmt_setup(char*,size_t,int,int,mrb_int,mrb_int);
 
 static char*
@@ -518,7 +518,7 @@ mrb_f_sprintf(mrb_state *mrb, mrb_value obj)
 }
 
 mrb_value
-mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
+mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fmt)
 {
   const char *p, *end;
   char *buf;
