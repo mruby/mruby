@@ -168,7 +168,7 @@ check_pos_arg(mrb_state *mrb, int posarg, int n)
 }
 
 static void
-check_name_arg(mrb_state *mrb, int posarg, const char *name, int len)
+check_name_arg(mrb_state *mrb, int posarg, const char *name, mrb_int len)
 {
   if (posarg > 0) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "named%S after unnumbered(%S)",
@@ -224,7 +224,7 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, int len)
 } while (0)
 
 static mrb_value
-get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
+get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
 {
   mrb_value tmp;
 
@@ -643,7 +643,7 @@ retry:
         }
         symname = mrb_str_new(mrb, start + 1, p - start - 1);
         id = mrb_intern_str(mrb, symname);
-        nextvalue = GETNAMEARG(mrb_symbol_value(id), start, (int)(p - start + 1));
+        nextvalue = GETNAMEARG(mrb_symbol_value(id), start, (mrb_int)(p - start + 1));
         if (mrb_undef_p(nextvalue)) {
           mrb_raisef(mrb, E_KEY_ERROR, "key%S not found", mrb_str_new(mrb, start, p - start + 1));
         }
