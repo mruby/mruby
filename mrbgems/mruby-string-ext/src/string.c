@@ -35,7 +35,7 @@ mrb_str_setbyte(mrb_state *mrb, mrb_value str)
 
   mrb_str_modify(mrb, mrb_str_ptr(str));
   byte &= 0xff;
-  RSTRING_PTR(str)[pos] = byte;
+  RSTRING_PTR(str)[pos] = (unsigned char)byte;
   return mrb_fixnum_value((unsigned char)byte);
 }
 
