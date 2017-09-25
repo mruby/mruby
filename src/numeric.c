@@ -951,7 +951,7 @@ lshift(mrb_state *mrb, mrb_int val, mrb_int width)
         (val   < (MRB_INT_MIN >> width))) {
       goto bit_overflow;
     }
-    return mrb_fixnum_value(val * (1u << width));
+    return mrb_fixnum_value(val * ((mrb_int)1 << width));
   }
 
 bit_overflow:
