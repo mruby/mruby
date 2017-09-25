@@ -4991,7 +4991,7 @@ parser_yylex(parser_state *p)
     if (c == ')')
       p->lstate = EXPR_ENDFN;
     else
-      p->lstate = EXPR_ENDARG;
+      p->lstate = EXPR_END;
     return c;
 
   case ':':
