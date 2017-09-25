@@ -1754,7 +1754,7 @@ RETRY_TRY_BLOCK:
       }
       else if (len > 1 && argc == 1 && mrb_array_p(argv[0])) {
         mrb_gc_protect(mrb, argv[0]);
-        argc = RARRAY_LEN(argv[0]);
+        argc = (int)RARRAY_LEN(argv[0]);
         argv = RARRAY_PTR(argv[0]);
       }
       if (argc < len) {
