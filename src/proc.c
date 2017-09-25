@@ -35,7 +35,7 @@ mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
 }
 
 static struct REnv*
-env_new(mrb_state *mrb, int nlocals)
+env_new(mrb_state *mrb, mrb_int nlocals)
 {
   struct REnv *e;
 
