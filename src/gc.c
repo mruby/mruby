@@ -698,6 +698,10 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     break;
 
   case MRB_TT_STRING:
+    if (RSTR_FSHARED_P(obj) && !RSTR_NOFREE_P(obj)) {
+      struct RString *s = (struct RString*)obj;
+      mrb_gc_mark(mrb, (struct RBasic*)s->as.heap.aux.fshared);
+    }
     break;
 
   case MRB_TT_RANGE:

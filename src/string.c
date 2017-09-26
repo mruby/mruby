@@ -205,7 +205,7 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
     /* no code */;
   else if (RSTR_SHARED_P(str))
     str_decref(mrb, str->as.heap.aux.shared);
-  else if (!RSTR_NOFREE_P(str))
+  else if (!RSTR_NOFREE_P(str) && !RSTR_FSHARED_P(str))
     mrb_free(mrb, str->as.heap.ptr);
 }
 
@@ -341,63 +341,80 @@ mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
   return mrb_memsearch_qs((const unsigned char *)x0, m, (const unsigned char *)y0, n);
 }
 
-static void
+static mrb_bool
 str_make_shared(mrb_state *mrb, struct RString *s)
 {
   if (!RSTR_SHARED_P(s)) {
-    mrb_shared_string *shared = (mrb_shared_string *)mrb_malloc(mrb, sizeof(mrb_shared_string));
-
-    shared->refcnt = 1;
-    if (RSTR_EMBED_P(s)) {
-      const mrb_int len = RSTR_EMBED_LEN(s);
-      char *const tmp = (char *)mrb_malloc(mrb, len+1);
-      memcpy(tmp, s->as.ary, len);
-      tmp[len] = '\0';
-      RSTR_UNSET_EMBED_FLAG(s);
-      s->as.heap.ptr = tmp;
-      s->as.heap.len = len;
-      shared->nofree = FALSE;
-      shared->ptr = s->as.heap.ptr;
-    }
-    else if (RSTR_NOFREE_P(s)) {
-      shared->nofree = TRUE;
-      shared->ptr = s->as.heap.ptr;
-      RSTR_UNSET_NOFREE_FLAG(s);
+    if (MRB_FROZEN_P(s) || RSTR_FSHARED_P(s)) {
+      return FALSE;
     }
     else {
-      shared->nofree = FALSE;
-      if (s->as.heap.aux.capa > s->as.heap.len) {
-        s->as.heap.ptr = shared->ptr = (char *)mrb_realloc(mrb, s->as.heap.ptr, s->as.heap.len+1);
-      }
-      else {
+      mrb_shared_string *shared = (mrb_shared_string *)mrb_malloc(mrb, sizeof(mrb_shared_string));
+
+      shared->refcnt = 1;
+      if (RSTR_EMBED_P(s)) {
+        const mrb_int len = RSTR_EMBED_LEN(s);
+        char *const tmp = (char *)mrb_malloc(mrb, len+1);
+        memcpy(tmp, s->as.ary, len);
+        tmp[len] = '\0';
+        RSTR_UNSET_EMBED_FLAG(s);
+        s->as.heap.ptr = tmp;
+        s->as.heap.len = len;
+        shared->nofree = FALSE;
         shared->ptr = s->as.heap.ptr;
       }
+      else if (RSTR_NOFREE_P(s)) {
+        shared->nofree = TRUE;
+        shared->ptr = s->as.heap.ptr;
+        RSTR_UNSET_NOFREE_FLAG(s);
+      }
+      else {
+        shared->nofree = FALSE;
+        if (s->as.heap.aux.capa > s->as.heap.len) {
+          s->as.heap.ptr = shared->ptr = (char *)mrb_realloc(mrb, s->as.heap.ptr, s->as.heap.len+1);
+        }
+        else {
+          shared->ptr = s->as.heap.ptr;
+        }
+      }
+      shared->len = s->as.heap.len;
+      s->as.heap.aux.shared = shared;
+      RSTR_SET_SHARED_FLAG(s);
     }
-    shared->len = s->as.heap.len;
-    s->as.heap.aux.shared = shared;
-    RSTR_SET_SHARED_FLAG(s);
   }
+  return TRUE;
 }
 
 static mrb_value
 byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
   struct RString *orig, *s;
-  mrb_shared_string *shared;
 
   orig = mrb_str_ptr(str);
   if (RSTR_EMBED_P(orig) || RSTR_LEN(orig) == 0) {
     s = str_new(mrb, orig->as.ary+beg, len);
   }
-  else {
-    str_make_shared(mrb, orig);
-    shared = orig->as.heap.aux.shared;
+  else if (str_make_shared(mrb, orig)) {
+    mrb_shared_string *shared = orig->as.heap.aux.shared;
+
     s = mrb_obj_alloc_string(mrb);
     s->as.heap.ptr = orig->as.heap.ptr + beg;
     s->as.heap.len = len;
     s->as.heap.aux.shared = shared;
     RSTR_SET_SHARED_FLAG(s);
     shared->refcnt++;
+  }
+  else {
+    s = mrb_obj_alloc_string(mrb);
+    s->as.heap.ptr = orig->as.heap.ptr + beg;
+    s->as.heap.len = len;
+    if (MRB_FROZEN_P(orig)) {
+      s->as.heap.aux.fshared = orig;
+    }
+    else {
+      s->as.heap.aux.fshared = orig->as.heap.aux.fshared;
+    }
+    RSTR_SET_FSHARED_FLAG(s);
   }
 
   return mrb_obj_value(s);
@@ -497,25 +514,39 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   len = RSTR_LEN(s2);
   if (RSTR_SHARED_P(s1)) {
     str_decref(mrb, s1->as.heap.aux.shared);
+    RSTR_UNSET_SHARED_FLAG(s1);
   }
-  else if (!RSTR_EMBED_P(s1) && !RSTR_NOFREE_P(s1)) {
+  else if (!RSTR_EMBED_P(s1) && !RSTR_NOFREE_P(s1) && !RSTR_FSHARED_P(s1)
+           && s1->as.heap.ptr) {
     mrb_free(mrb, s1->as.heap.ptr);
   }
 
+  RSTR_UNSET_FSHARED_FLAG(s1);
   RSTR_UNSET_NOFREE_FLAG(s1);
+  RSTR_UNSET_EMBED_FLAG(s1);
 
-  if (RSTR_SHARED_P(s2)) {
+  if (MRB_FROZEN_P(s2)) {
+    RSTR_SET_FSHARED_FLAG(s1);
+    s1->as.heap.ptr = RSTR_PTR(s2);
+    s1->as.heap.len = len;
+    s1->as.heap.aux.fshared = s2;
+  }
+  else if (RSTR_FSHARED_P(s2)) {
+    RSTR_SET_FSHARED_FLAG(s1);
+    s1->as.heap.ptr = s2->as.heap.ptr;
+    s1->as.heap.len = len;
+    s1->as.heap.aux.fshared = s2->as.heap.aux.fshared;
+  }
+  else if (RSTR_SHARED_P(s2)) {
 L_SHARE:
-    RSTR_UNSET_EMBED_FLAG(s1);
+    RSTR_SET_SHARED_FLAG(s1);
     s1->as.heap.ptr = s2->as.heap.ptr;
     s1->as.heap.len = len;
     s1->as.heap.aux.shared = s2->as.heap.aux.shared;
-    RSTR_SET_SHARED_FLAG(s1);
     s1->as.heap.aux.shared->refcnt++;
   }
   else {
     if (len <= RSTRING_EMBED_LEN_MAX) {
-      RSTR_UNSET_SHARED_FLAG(s1);
       RSTR_SET_EMBED_FLAG(s1);
       memcpy(s1->as.ary, RSTR_PTR(s2), len);
       RSTR_SET_EMBED_LEN(s1, len);
@@ -675,11 +706,12 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
     RSTR_UNSET_SHARED_FLAG(s);
     return;
   }
-  if (RSTR_NOFREE_P(s)) {
+  if (RSTR_NOFREE_P(s) || RSTR_FSHARED_P(s)) {
     char *p = s->as.heap.ptr;
     mrb_int len = s->as.heap.len;
 
     RSTR_UNSET_NOFREE_FLAG(s);
+    RSTR_UNSET_FSHARED_FLAG(s);
     if (len < RSTRING_EMBED_LEN_MAX) {
       RSTR_SET_EMBED_FLAG(s);
       RSTR_SET_EMBED_LEN(s, len);
@@ -1219,8 +1251,8 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
   mrb_int argc;
   struct RString *s = mrb_str_ptr(str);
 
-  mrb_str_modify(mrb, s);
   argc = mrb_get_args(mrb, "|S", &rs);
+  mrb_str_modify(mrb, s);
   len = RSTR_LEN(s);
   if (argc == 0) {
     if (len == 0) return mrb_nil_value();

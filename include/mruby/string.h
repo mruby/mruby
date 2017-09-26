@@ -26,6 +26,7 @@ struct RString {
       union {
         mrb_int capa;
         struct mrb_shared_string *shared;
+        struct RString *fshared;
       } aux;
       char *ptr;
     } heap;
@@ -59,6 +60,10 @@ struct RString {
 #define RSTR_SET_SHARED_FLAG(s) ((s)->flags |= MRB_STR_SHARED)
 #define RSTR_UNSET_SHARED_FLAG(s) ((s)->flags &= ~MRB_STR_SHARED)
 
+#define RSTR_FSHARED_P(s) ((s)->flags & MRB_STR_FSHARED)
+#define RSTR_SET_FSHARED_FLAG(s) ((s)->flags |= MRB_STR_FSHARED)
+#define RSTR_UNSET_FSHARED_FLAG(s) ((s)->flags &= ~MRB_STR_FSHARED)
+
 #define RSTR_NOFREE_P(s) ((s)->flags & MRB_STR_NOFREE)
 #define RSTR_SET_NOFREE_FLAG(s) ((s)->flags |= MRB_STR_NOFREE)
 #define RSTR_UNSET_NOFREE_FLAG(s) ((s)->flags &= ~MRB_STR_NOFREE)
@@ -76,7 +81,8 @@ struct RString {
 MRB_API mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 
 #define MRB_STR_SHARED    1
-#define MRB_STR_NOFREE    2
+#define MRB_STR_FSHARED   2
+#define MRB_STR_NOFREE    4
 #define MRB_STR_NO_UTF    8
 #define MRB_STR_EMBED    16
 #define MRB_STR_EMBED_LEN_MASK 0x3e0

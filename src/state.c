@@ -237,6 +237,7 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
       ns->as.heap.ptr[len] = '\0';
     }
   }
+  MRB_SET_FROZEN_FLAG(ns);
   return mrb_obj_value(ns);
 }
 
