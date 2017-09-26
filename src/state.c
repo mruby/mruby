@@ -135,6 +135,24 @@ mrb_irep_decref(mrb_state *mrb, mrb_irep *irep)
 }
 
 void
+mrb_irep_cutref(mrb_state *mrb, mrb_irep *irep)
+{
+  mrb_irep *tmp;
+  int i;
+
+  for (i=0; i<irep->rlen; i++) {
+    tmp = irep->reps[i];
+    irep->reps[i] = NULL;
+    if (tmp) mrb_irep_decref(mrb, tmp);
+  }
+  if (irep->outer) {
+    tmp = irep->outer;
+    irep->outer = NULL;
+    if (tmp) mrb_irep_decref(mrb, tmp);
+  }
+}
+
+void
 mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
 {
   int i;
@@ -155,10 +173,13 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   mrb_free(mrb, irep->pool);
   mrb_free(mrb, irep->syms);
   for (i=0; i<irep->rlen; i++) {
-    mrb_irep_decref(mrb, irep->reps[i]);
+    if (irep->reps[i])
+      mrb_irep_decref(mrb, irep->reps[i]);
   }
-  if (irep->outer)
-    mrb_irep_decref(mrb, irep->outer);
+  if (irep->outer) {
+    if (irep->outer)
+      mrb_irep_decref(mrb, irep->outer);
+  }
   mrb_free(mrb, irep->reps);
   mrb_free(mrb, irep->lv);
   if (irep->own_filename) {
