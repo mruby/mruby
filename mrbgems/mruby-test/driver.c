@@ -60,7 +60,7 @@ static void
 t_printstr(mrb_state *mrb, mrb_value obj)
 {
   char *s;
-  int len;
+  mrb_int len;
 
   if (mrb_string_p(obj)) {
     s = RSTRING_PTR(obj);

@@ -567,10 +567,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 {
   const char *fmt = format;
   char c;
-  int i = 0;
+  mrb_int i = 0;
   va_list ap;
-  int argc = mrb->c->ci->argc;
-  int arg_i = 0;
+  mrb_int argc = mrb->c->ci->argc;
+  mrb_int arg_i = 0;
   mrb_value *array_argv;
   mrb_bool opt = FALSE;
   mrb_bool opt_skip = TRUE;

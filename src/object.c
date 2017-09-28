@@ -523,7 +523,7 @@ mrb_to_int(mrb_state *mrb, mrb_value val)
 }
 
 MRB_API mrb_value
-mrb_convert_to_integer(mrb_state *mrb, mrb_value val, int base)
+mrb_convert_to_integer(mrb_state *mrb, mrb_value val, mrb_int base)
 {
   mrb_value tmp;
 

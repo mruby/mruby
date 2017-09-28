@@ -23,7 +23,7 @@ static mrb_value
 mrb_str_setbyte(mrb_state *mrb, mrb_value str)
 {
   mrb_int pos, byte;
-  long len;
+  mrb_int len;
 
   mrb_get_args(mrb, "ii", &pos, &byte);
 
@@ -35,7 +35,7 @@ mrb_str_setbyte(mrb_state *mrb, mrb_value str)
 
   mrb_str_modify(mrb, mrb_str_ptr(str));
   byte &= 0xff;
-  RSTRING_PTR(str)[pos] = byte;
+  RSTRING_PTR(str)[pos] = (unsigned char)byte;
   return mrb_fixnum_value((unsigned char)byte);
 }
 
@@ -44,7 +44,7 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
 {
   mrb_value a1;
   mrb_int len;
-  int argc;
+  mrb_int argc;
 
   argc = mrb_get_args(mrb, "o|i", &a1, &len);
   if (argc == 2) {

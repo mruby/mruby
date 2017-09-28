@@ -488,7 +488,7 @@ check_frozen(mrb_state *mrb, struct RString *s)
 static mrb_value
 str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 {
-  long len;
+  mrb_int len;
 
   check_frozen(mrb, s1);
   if (s1 == s2) return mrb_obj_value(s1);
@@ -1125,7 +1125,7 @@ static mrb_value
 mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 {
   mrb_value a1, a2;
-  int argc;
+  mrb_int argc;
 
   argc = mrb_get_args(mrb, "o|o", &a1, &a2);
   if (argc == 2) {
@@ -1467,7 +1467,7 @@ mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   return str_substr(mrb, str, beg, len);
 }
 
-mrb_int
+uint32_t
 mrb_str_hash(mrb_state *mrb, mrb_value str)
 {
   /* 1-8-7 */
@@ -1480,7 +1480,7 @@ mrb_str_hash(mrb_state *mrb, mrb_value str)
     key = key*65599 + *p;
     p++;
   }
-  return (mrb_int)(key + (key>>5));
+  return (uint32_t)(key + (key>>5));
 }
 
 /* 15.2.10.5.20 */
@@ -1911,7 +1911,7 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_split_m(mrb_state *mrb, mrb_value str)
 {
-  int argc;
+  mrb_int argc;
   mrb_value spat = mrb_nil_value();
   enum {awk, string, regexp} split_type = string;
   mrb_int i = 0;
@@ -2025,7 +2025,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
 }
 
 MRB_API mrb_value
-mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int badcheck)
+mrb_str_len_to_inum(mrb_state *mrb, const char *str, mrb_int len, mrb_int base, int badcheck)
 {
   const char *p = str;
   const char *pend = str + len;

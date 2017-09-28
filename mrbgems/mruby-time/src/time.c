@@ -369,7 +369,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time.");
   }
 
-  return time_alloc(mrb, (double)nowsecs, ausec, timezone);
+  return time_alloc(mrb, (double)nowsecs, (double)ausec, timezone);
 }
 
 /* 15.2.19.6.2 */
@@ -634,7 +634,7 @@ mrb_time_initialize(mrb_state *mrb, mrb_value self)
 {
   mrb_int ayear = 0, amonth = 1, aday = 1, ahour = 0,
   amin = 0, asec = 0, ausec = 0;
-  int n;
+  mrb_int n;
   struct mrb_time *tm;
 
   n = mrb_get_args(mrb, "|iiiiiii",

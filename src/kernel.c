@@ -855,7 +855,7 @@ MRB_API mrb_value
 mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
   mrb_value a[2], exc;
-  int argc;
+  mrb_int argc;
 
 
   argc = mrb_get_args(mrb, "|oo", &a[0], &a[1]);

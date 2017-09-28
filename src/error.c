@@ -71,7 +71,7 @@ exc_exception(mrb_state *mrb, mrb_value self)
 {
   mrb_value exc;
   mrb_value a;
-  int argc;
+  mrb_int argc;
 
   argc = mrb_get_args(mrb, "|o", &a);
   if (argc == 0) return self;
@@ -386,7 +386,7 @@ mrb_bug(mrb_state *mrb, const char *fmt, ...)
 }
 
 MRB_API mrb_value
-mrb_make_exception(mrb_state *mrb, int argc, const mrb_value *argv)
+mrb_make_exception(mrb_state *mrb, mrb_int argc, const mrb_value *argv)
 {
   mrb_value mesg;
   int n;

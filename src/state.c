@@ -63,7 +63,7 @@ mrb_default_allocf(mrb_state *mrb, void *p, size_t size, void *ud)
 
 struct alloca_header {
   struct alloca_header *next;
-  char buf[];
+  char buf[1];
 };
 
 MRB_API void*

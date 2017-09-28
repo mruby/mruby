@@ -858,7 +858,7 @@ mrb_get_mid(mrb_state *mrb) /* get method symbol */
   return mrb->c->ci->mid;
 }
 
-static inline int
+static inline mrb_int
 mrb_get_argc(mrb_state *mrb) /* get argc */
 {
   return mrb->c->ci->argc;
@@ -1054,7 +1054,7 @@ MRB_API mrb_sym mrb_obj_to_sym(mrb_state *mrb, mrb_value name);
 MRB_API mrb_bool mrb_obj_eq(mrb_state*, mrb_value, mrb_value);
 MRB_API mrb_bool mrb_obj_equal(mrb_state*, mrb_value, mrb_value);
 MRB_API mrb_bool mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
-MRB_API mrb_value mrb_convert_to_integer(mrb_state *mrb, mrb_value val, int base);
+MRB_API mrb_value mrb_convert_to_integer(mrb_state *mrb, mrb_value val, mrb_int base);
 MRB_API mrb_value mrb_Integer(mrb_state *mrb, mrb_value val);
 MRB_API mrb_value mrb_Float(mrb_state *mrb, mrb_value val);
 MRB_API mrb_value mrb_inspect(mrb_state *mrb, mrb_value obj);

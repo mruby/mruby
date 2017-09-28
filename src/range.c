@@ -131,7 +131,7 @@ mrb_range_initialize(mrb_state *mrb, mrb_value range)
 {
   mrb_value beg, end;
   mrb_bool exclusive;
-  int n;
+  mrb_int n;
 
   n = mrb_get_args(mrb, "oo|b", &beg, &end, &exclusive);
   if (n != 3) {

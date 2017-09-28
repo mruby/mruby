@@ -551,7 +551,7 @@ mark_context_stack(mrb_state *mrb, struct mrb_context *c)
   size_t i;
   size_t e;
   mrb_value nil;
-  int nregs;
+  mrb_int nregs;
 
   if (c->stack == NULL) return;
   e = c->stack - c->stbase;
@@ -1389,7 +1389,7 @@ gc_interval_ratio_set(mrb_state *mrb, mrb_value obj)
   mrb_int ratio;
 
   mrb_get_args(mrb, "i", &ratio);
-  mrb->gc.interval_ratio = ratio;
+  mrb->gc.interval_ratio = (int)ratio;
   return mrb_nil_value();
 }
 
@@ -1422,7 +1422,7 @@ gc_step_ratio_set(mrb_state *mrb, mrb_value obj)
   mrb_int ratio;
 
   mrb_get_args(mrb, "i", &ratio);
-  mrb->gc.step_ratio = ratio;
+  mrb->gc.step_ratio = (int)ratio;
   return mrb_nil_value();
 }
 

@@ -37,7 +37,7 @@ mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
 
   default:
     hv = mrb_funcall(mrb, key, "hash", 0);
-    h = (khint_t)t ^ mrb_fixnum(hv);
+    h = (khint_t)t ^ (khint_t)mrb_fixnum(hv);
     break;
   }
   return kh_int_hash_func(mrb, h);
@@ -136,7 +136,7 @@ mrb_hash_new_capa(mrb_state *mrb, mrb_int capa)
 
   h = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
   /* khash needs 1/4 empty space so it is not resized immediately */
-  h->ht = kh_init_size(ht, mrb, capa*4/3);
+  h->ht = kh_init_size(ht, mrb, (khint_t)(capa*4/3));
   h->iv = 0;
   return mrb_obj_value(h);
 }

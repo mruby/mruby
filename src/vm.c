@@ -435,14 +435,14 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     ci->mid = mid;
     ci->proc = p;
     ci->stackent = mrb->c->stack;
-    ci->argc = argc;
+    ci->argc = (int)argc;
     ci->target_class = c;
     mrb->c->stack = mrb->c->stack + n;
     if (mrb->c->stbase <= argv && argv < mrb->c->stend) {
       voff = argv - mrb->c->stbase;
     }
     if (MRB_PROC_CFUNC_P(p)) {
-      ci->nregs = argc + 2;
+      ci->nregs = (int)(argc + 2);
       stack_extend(mrb, ci->nregs);
     }
     else if (argc >= CALL_MAXARGS) {
@@ -454,7 +454,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     }
     else {
       if (argc < 0) argc = 1;
-      ci->nregs = p->body.irep->nregs + argc;
+      ci->nregs = (int)(p->body.irep->nregs + argc);
       stack_extend(mrb, ci->nregs);
     }
     if (voff >= 0) {
@@ -701,11 +701,11 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   ci->mid = mid;
   ci->proc = p;
   ci->stackent = mrb->c->stack;
-  ci->argc = argc;
+  ci->argc = (int)argc;
   ci->target_class = c;
   ci->acc = CI_ACC_SKIP;
   mrb->c->stack = mrb->c->stack + n;
-  ci->nregs = MRB_PROC_CFUNC_P(p) ? argc+2 : p->body.irep->nregs;
+  ci->nregs = MRB_PROC_CFUNC_P(p) ? (int)(argc+2) : p->body.irep->nregs;
   stack_extend(mrb, ci->nregs);
 
   mrb->c->stack[0] = self;
@@ -1699,7 +1699,7 @@ RETRY_TRY_BLOCK:
           struct RArray *ary = mrb_ary_ptr(stack[m1]);
 
           pp = ARY_PTR(ary);
-          len = ARY_LEN(ary);
+          len = (int)ARY_LEN(ary);
         }
         regs[a] = mrb_ary_new_capa(mrb, m1+len+m2);
         rest = mrb_ary_ptr(regs[a]);
@@ -1741,7 +1741,7 @@ RETRY_TRY_BLOCK:
       if (argc < 0) {
         struct RArray *ary = mrb_ary_ptr(regs[1]);
         argv = ARY_PTR(ary);
-        argc = ARY_LEN(ary);
+        argc = (int)ARY_LEN(ary);
         mrb_gc_protect(mrb, regs[1]);
       }
       if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc)) {
@@ -1754,7 +1754,7 @@ RETRY_TRY_BLOCK:
       }
       else if (len > 1 && argc == 1 && mrb_array_p(argv[0])) {
         mrb_gc_protect(mrb, argv[0]);
-        argc = RARRAY_LEN(argv[0]);
+        argc = (int)RARRAY_LEN(argv[0]);
         argv = RARRAY_PTR(argv[0]);
       }
       if (argc < len) {
@@ -2628,7 +2628,7 @@ RETRY_TRY_BLOCK:
         v = mrb_ary_new_from_values(mrb, 1, &regs[a]);
       }
       ary = mrb_ary_ptr(v);
-      len = ARY_LEN(ary);
+      len = (int)ARY_LEN(ary);
       if (len > pre + post) {
         v = mrb_ary_new_from_values(mrb, len - pre - post, ARY_PTR(ary)+pre);
         regs[a++] = v;

@@ -19,7 +19,7 @@
 #define BITSPERDIG MRB_INT_BIT
 #define EXTENDSIGN(n, l) (((~0U << (n)) >> (((n)*(l)) % BITSPERDIG)) & ~(~0U << (n)))
 
-mrb_value mrb_str_format(mrb_state *, int, const mrb_value *, mrb_value);
+mrb_value mrb_str_format(mrb_state *, mrb_int, const mrb_value *, mrb_value);
 static void fmt_setup(char*,size_t,int,int,mrb_int,mrb_int);
 
 static char*
@@ -153,7 +153,7 @@ check_next_arg(mrb_state *mrb, int posarg, int nextarg)
 }
 
 static void
-check_pos_arg(mrb_state *mrb, int posarg, int n)
+check_pos_arg(mrb_state *mrb, mrb_int posarg, mrb_int n)
 {
   if (posarg > 0) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%S) after unnumbered(%S)",
@@ -168,7 +168,7 @@ check_pos_arg(mrb_state *mrb, int posarg, int n)
 }
 
 static void
-check_name_arg(mrb_state *mrb, int posarg, const char *name, int len)
+check_name_arg(mrb_state *mrb, int posarg, const char *name, mrb_int len)
 {
   if (posarg > 0) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "named%S after unnumbered(%S)",
@@ -198,7 +198,7 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, int len)
 
 #define GETNUM(n, val) \
   for (; p < end && ISDIGIT(*p); p++) {\
-    int next_n = 10 * n + (*p - '0'); \
+    mrb_int next_n = 10 * n + (*p - '0'); \
     if (next_n / 10 != n) {\
       mrb_raise(mrb, E_ARGUMENT_ERROR, #val " too big"); \
     } \
@@ -224,7 +224,7 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, int len)
 } while (0)
 
 static mrb_value
-get_hash(mrb_state *mrb, mrb_value *hash, int argc, const mrb_value *argv)
+get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
 {
   mrb_value tmp;
 
@@ -518,7 +518,7 @@ mrb_f_sprintf(mrb_state *mrb, mrb_value obj)
 }
 
 mrb_value
-mrb_str_format(mrb_state *mrb, int argc, const mrb_value *argv, mrb_value fmt)
+mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fmt)
 {
   const char *p, *end;
   char *buf;
@@ -643,7 +643,7 @@ retry:
         }
         symname = mrb_str_new(mrb, start + 1, p - start - 1);
         id = mrb_intern_str(mrb, symname);
-        nextvalue = GETNAMEARG(mrb_symbol_value(id), start, (int)(p - start + 1));
+        nextvalue = GETNAMEARG(mrb_symbol_value(id), start, (mrb_int)(p - start + 1));
         if (mrb_undef_p(nextvalue)) {
           mrb_raisef(mrb, E_KEY_ERROR, "key%S not found", mrb_str_new(mrb, start, p - start + 1));
         }
@@ -999,13 +999,15 @@ retry:
       case 'A': {
         mrb_value val = GETARG();
         double fval;
-        int i, need = 6;
+        mrb_int i;
+        mrb_int need = 6;
         char fbuf[32];
+        int frexp_result;
 
         fval = mrb_float(mrb_Float(mrb, val));
         if (!isfinite(fval)) {
           const char *expr;
-          const int elen = 3;
+          const mrb_int elen = 3;
           char sign = '\0';
 
           if (isnan(fval)) {
@@ -1045,7 +1047,8 @@ retry:
         need = 0;
         if (*p != 'e' && *p != 'E') {
           i = INT_MIN;
-          frexp(fval, &i);
+          frexp(fval, &frexp_result);
+          i = (mrb_int)frexp_result;
           if (i > 0)
             need = BIT_DIGITS(i);
         }
