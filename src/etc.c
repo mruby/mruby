@@ -91,7 +91,7 @@ mrb_float_id(mrb_float f)
 {
   const char *p = (const char*)&f;
   int len = sizeof(f);
-  mrb_int id = 0;
+  uint32_t id = 0;
 
   /* normalize -0.0 to 0.0 */
   if (f == 0) f = 0.0;
@@ -101,7 +101,7 @@ mrb_float_id(mrb_float f)
   }
   id = id + (id>>5);
 
-  return id;
+  return (mrb_int)id;
 }
 
 MRB_API mrb_int
