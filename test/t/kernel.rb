@@ -79,12 +79,20 @@ assert('Kernel.puts', '15.3.1.2.11') do
 end
 
 assert('Kernel.raise', '15.3.1.2.12') do
-  assert_raise RuntimeError do
+  assert_raise_with_message RuntimeError, "" do
     Kernel.raise
   end
 
-  assert_raise RuntimeError do
-    Kernel.raise RuntimeError.new
+  assert_raise_with_message RuntimeError, "error message" do
+    Kernel.raise "error message"
+  end
+
+  assert_raise_with_message NameError, "error message" do
+    Kernel.raise NameError.new("error message")
+  end
+
+  assert_raise_with_message NameError, "error message" do
+    Kernel.raise NameError, "error message"
   end
 end
 
@@ -458,12 +466,20 @@ end
 # Kernel#puts is defined in mruby-print mrbgem. '15.3.1.3.39'
 
 assert('Kernel#raise', '15.3.1.3.40') do
-  assert_raise RuntimeError do
+  assert_raise_with_message RuntimeError, "" do
     raise
   end
 
-  assert_raise RuntimeError do
-    raise RuntimeError.new
+  assert_raise_with_message RuntimeError, "error message" do
+    raise "error message"
+  end
+
+  assert_raise_with_message NameError, "error message" do
+    raise NameError.new("error message")
+  end
+
+  assert_raise_with_message NameError, "error message" do
+    raise NameError, "error message"
   end
 end
 
