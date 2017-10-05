@@ -250,6 +250,11 @@ assert('IO.sysopen, IO#sysread') do
     io.sysread(10000)
     io.sysread(10000)
   end
+
+  assert_raise RuntimeError do
+    io.sysread(5, "abcde".freeze)
+  end
+
   io.close
   assert_equal "", io.sysread(0)
   assert_raise(IOError) { io.sysread(1) }
