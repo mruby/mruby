@@ -631,8 +631,6 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
     buf = mrb_str_new(mrb, NULL, maxlen);
   }
 
-  mrb_str_modify(mrb, RSTRING(buf));
-
   if (RSTRING_LEN(buf) != maxlen) {
     buf = mrb_str_resize(mrb, buf, maxlen);
   } else {
