@@ -5078,6 +5078,9 @@ parser_yylex(parser_state *p)
     else if (IS_SPCARG(-1)) {
       c = tLPAREN_ARG;
     }
+    else if (p->lstate == EXPR_END && space_seen) {
+      c = tLPAREN_ARG;
+    }
     p->paren_nest++;
     COND_PUSH(0);
     CMDARG_PUSH(0);
@@ -5497,11 +5500,9 @@ parser_yylex(parser_state *p)
       mrb_sym ident = intern_cstr(tok(p));
 
       pylval.id = ident;
-#if 0
       if (last_state != EXPR_DOT && islower(tok(p)[0]) && local_var_p(p, ident)) {
         p->lstate = EXPR_END;
       }
-#endif
     }
     return result;
   }
