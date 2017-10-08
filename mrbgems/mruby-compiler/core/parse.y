@@ -5498,7 +5498,7 @@ parser_yylex(parser_state *p)
 
       pylval.id = ident;
 #if 0
-      if (last_state != EXPR_DOT && islower(tok(p)[0]) && lvar_defined(ident)) {
+      if (last_state != EXPR_DOT && islower(tok(p)[0]) && local_var_p(p, ident)) {
         p->lstate = EXPR_END;
       }
 #endif
