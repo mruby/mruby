@@ -426,7 +426,9 @@ mrb_obj_freeze(mrb_state *mrb, mrb_value self)
     case MRB_TT_TRUE:
     case MRB_TT_FIXNUM:
     case MRB_TT_SYMBOL:
+#ifndef MRB_WITHOUT_FLOAT
     case MRB_TT_FLOAT:
+#endif
       return self;
     default:
       break;
@@ -449,7 +451,9 @@ mrb_obj_frozen(mrb_state *mrb, mrb_value self)
     case MRB_TT_TRUE:
     case MRB_TT_FIXNUM:
     case MRB_TT_SYMBOL:
+#ifndef MRB_WITHOUT_FLOAT
     case MRB_TT_FLOAT:
+#endif
       return mrb_true_value();
     default:
       break;
@@ -878,6 +882,16 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();            /* not reached */
 }
 
+static mrb_value
+mrb_krn_class_defined(mrb_state *mrb, mrb_value self)
+{
+  mrb_value str;
+
+  mrb_get_args(mrb, "S", &str);
+  return mrb_bool_value(mrb_class_defined(mrb, RSTRING_PTR(str)));
+}
+
+
 /* 15.3.1.3.41 */
 /*
  *  call-seq:
@@ -1232,6 +1246,8 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "define_singleton_method",    mod_define_singleton_method,     MRB_ARGS_ANY());
   mrb_define_method(mrb, krn, "to_s",                       mrb_any_to_s,                    MRB_ARGS_NONE());    /* 15.3.1.3.46 */
   mrb_define_method(mrb, krn, "__case_eqq",                 mrb_obj_ceqq,                    MRB_ARGS_REQ(1));    /* internal */
+
+  mrb_define_method(mrb, krn, "class_defined?",             mrb_krn_class_defined,           MRB_ARGS_REQ(1));
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
   mrb_alias_method(mrb, mrb->module_class, mrb_intern_lit(mrb, "dup"), mrb_intern_lit(mrb, "clone"));

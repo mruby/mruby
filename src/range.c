@@ -30,8 +30,12 @@ range_check(mrb_state *mrb, mrb_value a, mrb_value b)
 
   ta = mrb_type(a);
   tb = mrb_type(b);
+#ifdef MRB_WITHOUT_FLOAT
+  if (ta == MRB_TT_FIXNUM && tb == MRB_TT_FIXNUM ) {
+#else
   if ((ta == MRB_TT_FIXNUM || ta == MRB_TT_FLOAT) &&
       (tb == MRB_TT_FIXNUM || tb == MRB_TT_FLOAT)) {
+#endif
     return;
   }
 

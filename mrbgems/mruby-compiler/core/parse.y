@@ -740,12 +740,14 @@ new_int(parser_state *p, const char *s, int base)
   return list3((node*)NODE_INT, (node*)strdup(s), nint(base));
 }
 
+#ifndef MRB_WITHOUT_FLOAT
 /* (:float . i) */
 static node*
 new_float(parser_state *p, const char *s)
 {
   return cons((node*)NODE_FLOAT, (node*)strdup(s));
 }
+#endif
 
 /* (:str . (s . len)) */
 static node*
@@ -4962,6 +4964,11 @@ parser_yylex(parser_state *p)
     }
     tokfix(p);
     if (is_float) {
+#ifdef MRB_WITHOUT_FLOAT
+      yywarning_s(p, "floating point numbers are not supported", tok(p));
+      pylval.nd = new_int(p, "0", 10);
+      return tINTEGER;
+#else
       double d;
       char *endp;
 
@@ -4976,6 +4983,7 @@ parser_yylex(parser_state *p)
       }
       pylval.nd = new_float(p, tok(p));
       return tFLOAT;
+#endif
     }
     pylval.nd = new_int(p, tok(p), 10);
     return tINTEGER;

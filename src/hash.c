@@ -12,8 +12,10 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 
+#ifndef MRB_WITHOUT_FLOAT
 /* a function to get hash value of a float number */
 mrb_int mrb_float_id(mrb_float f);
+#endif
 
 static inline khint_t
 mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
@@ -31,7 +33,9 @@ mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
   case MRB_TT_FALSE:
   case MRB_TT_SYMBOL:
   case MRB_TT_FIXNUM:
+#ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
+#endif
     h = (khint_t)mrb_obj_id(key);
     break;
 
@@ -60,12 +64,15 @@ mrb_hash_ht_hash_equal(mrb_state *mrb, mrb_value a, mrb_value b)
     switch (mrb_type(b)) {
     case MRB_TT_FIXNUM:
       return mrb_fixnum(a) == mrb_fixnum(b);
+#ifndef MRB_WITHOUT_FLOAT
     case MRB_TT_FLOAT:
       return (mrb_float)mrb_fixnum(a) == mrb_float(b);
+#endif
     default:
       return FALSE;
     }
 
+#ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
     switch (mrb_type(b)) {
     case MRB_TT_FIXNUM:
@@ -75,6 +82,7 @@ mrb_hash_ht_hash_equal(mrb_state *mrb, mrb_value a, mrb_value b)
     default:
       return FALSE;
     }
+#endif
 
   default:
     return mrb_eql(mrb, a, b);
