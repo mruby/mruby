@@ -29,7 +29,7 @@
 //#define MRB_USE_FLOAT
 
 /* exclude floating point numbers */
-//#define MRB_WITUOUT_FLOAT
+//#define MRB_WITHOUT_FLOAT
 
 /* add -DMRB_INT16 to use 16bit integer for mrb_int; conflict with MRB_INT64 */
 //#define MRB_INT16
@@ -48,7 +48,7 @@
 # endif
 #endif
 
-/* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT and MRB_WITUOUT_FLOAT */
+/* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT and MRB_WITHOUT_FLOAT */
 //#define MRB_NAN_BOXING
 
 /* define on big endian machines; used by MRB_NAN_BOXING */
