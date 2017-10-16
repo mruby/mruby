@@ -2577,7 +2577,7 @@ do_block        : keyword_do_block
                       local_nest(p);
                     }
                   opt_block_param
-                  compstmt
+                  bodystmt
                   keyword_end
                     {
                       $$ = new_block(p,$3,$4);
@@ -2667,7 +2667,7 @@ brace_block     : '{'
                       $<num>$ = p->lineno;
                     }
                   opt_block_param
-                  compstmt keyword_end
+                  bodystmt keyword_end
                     {
                       $$ = new_block(p,$3,$4);
                       SET_LINENO($$, $<num>2);
