@@ -118,7 +118,10 @@ static mrb_value
 mrb_struct_ref(mrb_state *mrb, mrb_value obj)
 {
   mrb_int i = mrb_fixnum(mrb_proc_cfunc_env_get(mrb, 0));
-  return RSTRUCT_PTR(obj)[i];
+  mrb_value *ptr = RSTRUCT_PTR(obj);
+
+  if (!ptr) return mrb_nil_value();
+  return ptr[i];
 }
 
 static mrb_sym
@@ -144,10 +147,17 @@ static mrb_value
 mrb_struct_set_m(mrb_state *mrb, mrb_value obj)
 {
   mrb_int i = mrb_fixnum(mrb_proc_cfunc_env_get(mrb, 0));
+  mrb_value *ptr = RSTRUCT_PTR(obj);
   mrb_value val;
   mrb_get_args(mrb, "o", &val);
   mrb_struct_modify(mrb, obj);
-  return RSTRUCT_PTR(obj)[i] = val;
+  if (i >= RSTRUCT_LEN(obj)) {
+    mrb_ary_set(mrb, obj, i, val);
+  }
+  else {
+    ptr[i] = val;
+  }
+  return val;
 }
 
 static mrb_bool
