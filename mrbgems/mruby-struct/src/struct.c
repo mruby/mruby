@@ -12,6 +12,7 @@
 #include <mruby/variable.h>
 #include <mruby/hash.h>
 #include <mruby/range.h>
+#include <mruby/proc.h>
 
 #define RSTRUCT_LEN(st) RARRAY_LEN(st)
 #define RSTRUCT_PTR(st) RARRAY_PTR(st)
@@ -113,12 +114,11 @@ mrb_struct_members(mrb_state *mrb, mrb_value obj)
   return mrb_struct_s_members_m(mrb, mrb_obj_value(mrb_obj_class(mrb, obj)));
 }
 
-static mrb_value struct_aref_sym(mrb_state *mrb, mrb_value obj, mrb_sym id);
-
 static mrb_value
 mrb_struct_ref(mrb_state *mrb, mrb_value obj)
 {
-  return struct_aref_sym(mrb, obj, mrb->c->ci->mid);
+  mrb_int i = mrb_fixnum(mrb_proc_cfunc_env_get(mrb, 0));
+  return RSTRUCT_PTR(obj)[i];
 }
 
 static mrb_sym
@@ -140,24 +140,14 @@ mrb_id_attrset(mrb_state *mrb, mrb_sym id)
   return mid;
 }
 
-static mrb_value mrb_struct_aset_sym(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val);
-
 static mrb_value
 mrb_struct_set_m(mrb_state *mrb, mrb_value obj)
 {
+  mrb_int i = mrb_fixnum(mrb_proc_cfunc_env_get(mrb, 0));
   mrb_value val;
-
-  const char *name;
-  mrb_int slen;
-  mrb_sym mid;
-
   mrb_get_args(mrb, "o", &val);
-
-  /* get base id */
-  name = mrb_sym2name_len(mrb, mrb->c->ci->mid, &slen);
-  mid = mrb_intern(mrb, name, slen-1); /* omit last "=" */
-
-  return mrb_struct_aset_sym(mrb, obj, mid, val);
+  mrb_struct_modify(mrb, obj);
+  return RSTRUCT_PTR(obj)[i] = val;
 }
 
 static mrb_bool
@@ -187,8 +177,11 @@ make_struct_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c
     const char *name = mrb_sym2name_len(mrb, id, NULL);
 
     if (is_local_id(mrb, name) || is_const_id(mrb, name)) {
-      mrb_define_method_id(mrb, c, id, mrb_struct_ref, MRB_ARGS_NONE());
-      mrb_define_method_id(mrb, c, mrb_id_attrset(mrb, id), mrb_struct_set_m, MRB_ARGS_REQ(1));
+      mrb_value at = mrb_fixnum_value(i);
+      struct RProc *aref = mrb_proc_new_cfunc_with_env(mrb, mrb_struct_ref, 1, &at);
+      struct RProc *aset = mrb_proc_new_cfunc_with_env(mrb, mrb_struct_set_m, 1, &at);
+      mrb_define_method_raw(mrb, c, id, aref);
+      mrb_define_method_raw(mrb, c, mrb_id_attrset(mrb, id), aset);
       mrb_gc_arena_restore(mrb, ai);
     }
   }
