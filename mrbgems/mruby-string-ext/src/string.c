@@ -44,12 +44,13 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
 {
   mrb_value a1;
   mrb_int len;
-  mrb_int argc;
 
-  argc = mrb_get_args(mrb, "o|i", &a1, &len);
-  if (argc == 2) {
+  if (mrb_get_argc(mrb) == 2) {
+    mrb_int pos;
+    mrb_get_args(mrb, "ii", &pos, &len);
     return mrb_str_substr(mrb, str, mrb_fixnum(a1), len);
   }
+  mrb_get_args(mrb, "o|i", &a1, &len);
   switch (mrb_type(a1)) {
   case MRB_TT_RANGE:
     {

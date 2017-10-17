@@ -532,6 +532,35 @@ to_sym(mrb_state *mrb, mrb_value ss)
   }
 }
 
+MRB_API mrb_int
+mrb_get_argc(mrb_state *mrb)
+{
+  mrb_int argc = mrb->c->ci->argc;
+
+  if (argc < 0) {
+    struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
+
+    argc = ARY_LEN(a);
+  }
+  return argc;
+}
+
+MRB_API mrb_value*
+mrb_get_argv(mrb_state *mrb)
+{
+  mrb_int argc = mrb->c->ci->argc;
+  mrb_value *array_argv;
+  if (argc < 0) {
+    struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
+
+    array_argv = ARY_PTR(a);
+  }
+  else {
+    array_argv = NULL;
+  }
+  return array_argv;
+}
+
 /*
   retrieve arguments from mrb_state.
 
@@ -569,23 +598,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   char c;
   mrb_int i = 0;
   va_list ap;
-  mrb_int argc = mrb->c->ci->argc;
+  mrb_int argc = mrb_get_argc(mrb);
   mrb_int arg_i = 0;
-  mrb_value *array_argv;
+  mrb_value *array_argv = mrb_get_argv(mrb);
   mrb_bool opt = FALSE;
   mrb_bool opt_skip = TRUE;
   mrb_bool given = TRUE;
 
   va_start(ap, format);
-  if (argc < 0) {
-    struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
-
-    argc = ARY_LEN(a);
-    array_argv = ARY_PTR(a);
-  }
-  else {
-    array_argv = NULL;
-  }
 
 #define ARGV \
   (array_argv ? array_argv : (mrb->c->stack + 1))
