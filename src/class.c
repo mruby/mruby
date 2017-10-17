@@ -535,7 +535,8 @@ to_sym(mrb_state *mrb, mrb_value ss)
 MRB_API mrb_int
 mrb_get_argc(mrb_state *mrb)
 {
-  mrb_int argc = mrb_vm_get_argc(mrb);
+  mrb_int argc = mrb->c->ci->argc;
+
   if (argc < 0) {
     struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
 
@@ -547,7 +548,7 @@ mrb_get_argc(mrb_state *mrb)
 MRB_API mrb_value*
 mrb_get_argv(mrb_state *mrb)
 {
-  mrb_int argc = mrb_vm_get_argc(mrb);
+  mrb_int argc = mrb->c->ci->argc;
   mrb_value *array_argv;
   if (argc < 0) {
     struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
