@@ -475,6 +475,10 @@ class Hash
     self
   end
 
+  def to_proc
+    ->x{self[x]}
+  end
+
   ##
   # call-seq:
   #   hsh.fetch_values(key, ...)                 -> array
