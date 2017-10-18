@@ -119,9 +119,11 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
   src = mrb_string_value_cstr(mrb, &from);
   dst = mrb_string_value_cstr(mrb, &to);
   if (rename(src, dst) < 0) {
+#if defined(_WIN32) || defined(_WIN64)
     if (CHMOD(dst, 0666) == 0 && UNLINK(dst) == 0 && rename(src, dst) == 0) {
       return mrb_fixnum_value(0);
     }
+#endif
     mrb_sys_fail(mrb, mrb_str_to_cstr(mrb, mrb_format(mrb, "(%S, %S)", from, to)));
   }
   return mrb_fixnum_value(0);
