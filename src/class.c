@@ -1993,6 +1993,12 @@ mod_define_method(mrb_state *mrb, mrb_value self)
   return mrb_symbol_value(mid);
 }
 
+static mrb_value
+top_define_method(mrb_state *mrb, mrb_value self)
+{
+  return mod_define_method(mrb, mrb_obj_value(mrb->object_class));
+}
+
 static void
 check_cv_name_str(mrb_state *mrb, mrb_value str)
 {
@@ -2402,6 +2408,12 @@ mrb_value mrb_obj_instance_eval(mrb_state*, mrb_value);
 /* implementation of Module.nesting */
 mrb_value mrb_mod_s_nesting(mrb_state*, mrb_value);
 
+static mrb_value
+inspect_main(mrb_state *mrb, mrb_value mod)
+{
+  return mrb_str_new_lit(mrb, "main");
+}
+
 void
 mrb_init_class(mrb_state *mrb)
 {
@@ -2498,4 +2510,9 @@ mrb_init_class(mrb_state *mrb)
 
   mrb_undef_method(mrb, cls, "append_features");
   mrb_undef_method(mrb, cls, "extend_object");
+
+  mrb->top_self = (struct RObject*)mrb_obj_alloc(mrb, MRB_TT_OBJECT, mrb->object_class);
+  mrb_define_singleton_method(mrb, mrb->top_self, "inspect", inspect_main, MRB_ARGS_NONE());
+  mrb_define_singleton_method(mrb, mrb->top_self, "to_s", inspect_main, MRB_ARGS_NONE());
+  mrb_define_singleton_method(mrb, mrb->top_self, "define_method", top_define_method, MRB_ARGS_ARG(1,1));
 }
