@@ -278,6 +278,19 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
         }
       }
       break;
+    case OP_GETUPVAR:
+      if (c0 == OP_SETUPVAR) {
+        if (GETARG_B(i) == GETARG_B(i0) && GETARG_C(i) == GETARG_C(i0)) {
+          if (GETARG_A(i) == GETARG_A(i0)) {
+            /* just skip OP_SETUPVAR */
+            return 0;
+          }
+          else {
+            return genop(s, MKOP_AB(OP_MOVE, GETARG_A(i), GETARG_A(i0)));
+          }
+        }
+      }
+      break;
     case OP_EPOP:
       if (c0 == OP_EPOP) {
         s->iseq[s->pc-1] = MKOP_A(OP_EPOP, GETARG_A(i0)+GETARG_A(i));
@@ -335,6 +348,14 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
           s->iseq[s->pc-1] = MKOP_ABC(OP_SUBI, GETARG_A(i), GETARG_B(i), -c);
         return 0;
       }
+      break;
+    case OP_ARYCAT:
+    case OP_ARYPUSH:
+      if (c0 == OP_MOVE && GETARG_A(i0) >= s->nlocals) {
+        s->iseq[s->pc-1] = MKOP_AB(c1, GETARG_A(i), GETARG_B(i0));
+        return 0;
+      }
+      break;
     case OP_STRCAT:
       if (c0 == OP_STRING) {
         mrb_value v = s->irep->pool[GETARG_Bx(i0)];
@@ -822,10 +843,10 @@ gen_values(codegen_scope *s, node *t, int val, int extra)
           codegen(s, t->car, VAL);
           pop(); pop();
           if (is_splat) {
-            genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
+            genop_peep(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1), NOVAL);
           }
           else {
-            genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
+            genop_peep(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1), NOVAL);
           }
         }
         t = t->cdr;
@@ -834,10 +855,10 @@ gen_values(codegen_scope *s, node *t, int val, int extra)
           codegen(s, t->car, VAL);
           pop(); pop();
           if (nint(t->car->car) == NODE_SPLAT) {
-            genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
+            genop_peep(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1), NOVAL);
           }
           else {
-            genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
+            genop_peep(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1), NOVAL);
           }
           t = t->cdr;
         }
@@ -2140,7 +2161,7 @@ codegen(codegen_scope *s, node *tree, int val)
         while (up) {
           idx = lv_idx(up, nsym(tree));
           if (idx > 0) {
-            genop(s, MKOP_ABC(OP_GETUPVAR, cursp(), idx, lv));
+            genop_peep(s, MKOP_ABC(OP_GETUPVAR, cursp(), idx, lv), VAL);
             break;
           }
           lv++;
