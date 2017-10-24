@@ -22,6 +22,9 @@ environment:
 
 init:
   - call "%visualcpp%" %machine%
+  # For using Rubyinstaller's Ruby 2.4 64bit
+  - set PATH=C:\Ruby24-x64\bin;%PATH%
+  - ruby --version
 
 
 install:
