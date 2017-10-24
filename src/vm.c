@@ -273,7 +273,7 @@ cipush(mrb_state *mrb)
   return ci;
 }
 
-MRB_API void
+void
 mrb_env_unshare(mrb_state *mrb, struct REnv *e)
 {
   if (e == NULL) return;
