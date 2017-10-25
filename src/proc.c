@@ -20,15 +20,19 @@ mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
   mrb_callinfo *ci = mrb->c->ci;
 
   p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
-  p->target_class = 0;
   if (ci) {
-    if (ci->proc)
-      p->target_class = ci->proc->target_class;
-    if (!p->target_class)
-      p->target_class = ci->target_class;
+    struct RClass *tc = NULL;
+
+    if (ci->proc) {
+      tc = MRB_PROC_TARGET_CLASS(ci->proc);
+    }
+    if (tc == NULL) {
+      tc = ci->target_class;
+    }
+    p->upper = ci->proc;
+    p->e.target_class = tc;
   }
   p->body.irep = irep;
-  p->env = 0;
   mrb_irep_incref(mrb, irep);
 
   return p;
@@ -38,30 +42,45 @@ static struct REnv*
 env_new(mrb_state *mrb, mrb_int nlocals)
 {
   struct REnv *e;
+  mrb_callinfo *ci = mrb->c->ci;
+  int bidx;
 
-  e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)mrb->c->ci->proc->env);
-  MRB_SET_ENV_STACK_LEN(e, nlocals);
-  e->cxt.c = mrb->c;
-  e->cioff = mrb->c->ci - mrb->c->cibase;
+  e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, NULL);
+  MRB_ENV_SET_STACK_LEN(e, nlocals);
+  bidx = ci->argc;
+  if (ci->argc < 0) bidx = 2;
+  else bidx += 1;
+  MRB_ENV_SET_BIDX(e, bidx);
+  e->mid = ci->mid;
   e->stack = mrb->c->stack;
+  e->cxt = mrb->c;
 
   return e;
 }
 
 static void
-closure_setup(mrb_state *mrb, struct RProc *p, int nlocals)
+closure_setup(mrb_state *mrb, struct RProc *p)
 {
+  mrb_callinfo *ci = mrb->c->ci;
+  struct RProc *up = p->upper;
   struct REnv *e;
 
-  if (!mrb->c->ci->env) {
-    e = env_new(mrb, nlocals);
-    mrb->c->ci->env = e;
+  if (ci->env) {
+    e = ci->env;
   }
   else {
-    e = mrb->c->ci->env;
+    struct RClass *tc = MRB_PROC_TARGET_CLASS(up);
+
+    e = env_new(mrb, up->body.irep->nlocals);
+    ci->env = e;
+    if (tc) {
+      e->c = tc;
+      mrb_field_write_barrier(mrb, (struct RBasic*)e, (struct RBasic*)tc);
+    }
   }
-  p->env = e;
-  mrb_field_write_barrier(mrb, (struct RBasic *)p, (struct RBasic *)p->env);
+  p->e.env = e;
+  p->flags |= MRB_PROC_ENVSET;
+  mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)e);
 }
 
 struct RProc*
@@ -69,7 +88,7 @@ mrb_closure_new(mrb_state *mrb, mrb_irep *irep)
 {
   struct RProc *p = mrb_proc_new(mrb, irep);
 
-  closure_setup(mrb, p, mrb->c->ci->proc->body.irep->nlocals);
+  closure_setup(mrb, p);
   return p;
 }
 
@@ -81,7 +100,8 @@ mrb_proc_new_cfunc(mrb_state *mrb, mrb_func_t func)
   p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
   p->body.func = func;
   p->flags |= MRB_PROC_CFUNC;
-  p->env = 0;
+  p->upper = 0;
+  p->e.target_class = 0;
 
   return p;
 }
@@ -93,8 +113,9 @@ mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const
   struct REnv *e;
   int i;
 
-  p->env = e = env_new(mrb, argc);
-  mrb_field_write_barrier(mrb, (struct RBasic *)p, (struct RBasic *)p->env);
+  p->e.env = e = env_new(mrb, argc);
+  p->flags |= MRB_PROC_ENVSET;
+  mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)e);
   MRB_ENV_UNSHARE_STACK(e);
   e->stack = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * argc);
   if (argv) {
@@ -120,7 +141,7 @@ MRB_API mrb_value
 mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx)
 {
   struct RProc *p = mrb->c->ci->proc;
-  struct REnv *e = p->env;
+  struct REnv *e = MRB_PROC_ENV(p);
 
   if (!MRB_PROC_CFUNC_P(p)) {
     mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from non-cfunc proc.");
@@ -148,8 +169,9 @@ mrb_proc_copy(struct RProc *a, struct RProc *b)
   if (!MRB_PROC_CFUNC_P(a) && a->body.irep) {
     a->body.irep->refcnt++;
   }
-  a->target_class = b->target_class;
-  a->env = b->env;
+  a->upper = b->upper;
+  a->e.env = b->e.env;
+  /* a->e.target_class = a->e.target_class; */
 }
 
 static mrb_value
@@ -169,7 +191,7 @@ mrb_proc_s_new(mrb_state *mrb, mrb_value proc_class)
   proc = mrb_obj_value(p);
   mrb_funcall_with_block(mrb, proc, mrb_intern_lit(mrb, "initialize"), 0, NULL, proc);
   if (!MRB_PROC_STRICT_P(p) &&
-      mrb->c->ci > mrb->c->cibase && p->env == mrb->c->ci[-1].env) {
+      mrb->c->ci > mrb->c->cibase && MRB_PROC_ENV(p) == mrb->c->ci[-1].env) {
     p->flags |= MRB_PROC_ORPHAN;
   }
   return proc;

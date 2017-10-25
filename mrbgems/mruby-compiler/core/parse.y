@@ -5825,7 +5825,7 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
       c->keep_lv = TRUE;
     }
   }
-  proc->target_class = target;
+  MRB_PROC_SET_TARGET_CLASS(proc, target);
   if (mrb->c->ci) {
     mrb->c->ci->target_class = target;
   }

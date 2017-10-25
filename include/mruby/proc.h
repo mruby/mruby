@@ -18,17 +18,19 @@ MRB_BEGIN_DECL
 struct REnv {
   MRB_OBJECT_HEADER;
   mrb_value *stack;
-  ptrdiff_t cioff;
-  union {
-    mrb_sym mid;
-    struct mrb_context *c;
-  } cxt;
+  struct mrb_context *cxt;
+  // struct RProc *proc;
+  mrb_sym mid;
 };
 
-#define MRB_SET_ENV_STACK_LEN(e,len) (e)->flags = (unsigned int)(len)
-#define MRB_ENV_STACK_LEN(e) ((mrb_int)(e)->flags)
-#define MRB_ENV_UNSHARE_STACK(e) ((e)->cioff = -1)
-#define MRB_ENV_STACK_SHARED_P(e) ((e)->cioff >= 0)
+/* flags (21bits): 1(shared flag):10(cioff/bidx):10(stack_len) */
+#define MRB_ENV_SET_STACK_LEN(e,len) (e)->flags = (((e)->flags & ~0x3ff)|(unsigned int)(len) & 0x3ff)
+#define MRB_ENV_STACK_LEN(e) ((mrb_int)((e)->flags & 0x3ff))
+#define MRB_ENV_STACK_UNSHARED (1<<20)
+#define MRB_ENV_UNSHARE_STACK(e) (e)->flags |= MRB_ENV_STACK_UNSHARED
+#define MRB_ENV_STACK_SHARED_P(e) (((e)->flags & MRB_ENV_STACK_UNSHARED) == 0)
+#define MRB_ENV_BIDX(e) (((e)->flags >> 10) & 0x3ff)
+#define MRB_ENV_SET_BIDX(e,idx) (e)->flags = (((e)->flags & ~(0x3ff<<10))|((unsigned int)(idx) & 0x3ff)<<10)
 
 void mrb_env_unshare(mrb_state*, struct REnv*);
 
@@ -38,8 +40,11 @@ struct RProc {
     mrb_irep *irep;
     mrb_func_t func;
   } body;
-  struct RClass *target_class;
-  struct REnv *env;
+  struct RProc *upper;
+  union {
+    struct RClass *target_class;
+    struct REnv *env;
+  } e;
 };
 
 /* aspec access */
@@ -57,6 +62,22 @@ struct RProc {
 #define MRB_PROC_STRICT_P(p) (((p)->flags & MRB_PROC_STRICT) != 0)
 #define MRB_PROC_ORPHAN 512
 #define MRB_PROC_ORPHAN_P(p) (((p)->flags & MRB_PROC_ORPHAN) != 0)
+#define MRB_PROC_ENVSET 1024
+#define MRB_PROC_ENV_P(p) (((p)->flags & MRB_PROC_ENVSET) != 0)
+#define MRB_PROC_ENV(p) (MRB_PROC_ENV_P(p) ? (p)->e.env : NULL)
+#define MRB_PROC_TARGET_CLASS(p) (MRB_PROC_ENV_P(p) ? (p)->e.env->c : (p)->e.target_class )
+#define MRB_PROC_SET_TARGET_CLASS(p,tc) do {\
+  if (MRB_PROC_ENV_P(p)) {\
+    (p)->e.env->c = (tc);\
+    mrb_field_write_barrier(mrb, (struct RBasic*)(p)->e.env, (struct RBasic*)tc);\
+  }\
+  else {\
+    (p)->e.target_class = (tc);\
+    mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)tc);\
+  }\
+} while (0)
+#define MRB_PROC_SCOPE 2048
+#define MRB_PROC_SCOPE_P(p) (((p)->flags & MRB_PROC_SCOPE) != 0)
 
 #define mrb_proc_ptr(v)    ((struct RProc*)(mrb_ptr(v)))
 

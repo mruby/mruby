@@ -544,11 +544,11 @@ done:
         if (args.verbose) {
           mrb_codedump_all(mrb, proc);
         }
-        /* adjest stack length of toplevel environment */
+        /* adjust stack length of toplevel environment */
         if (mrb->c->cibase->env) {
           struct REnv *e = mrb->c->cibase->env;
-          if (MRB_ENV_STACK_LEN(e) < proc->body.irep->nlocals) {
-            MRB_SET_ENV_STACK_LEN(e, proc->body.irep->nlocals);
+          if (e && MRB_ENV_STACK_LEN(e) < proc->body.irep->nlocals) {
+            MRB_ENV_SET_STACK_LEN(e, proc->body.irep->nlocals);
           }
         }
         /* pass a proc for evaluation */

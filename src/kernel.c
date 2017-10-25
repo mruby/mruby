@@ -136,6 +136,7 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
 {
   mrb_callinfo *ci = mrb->c->ci;
   mrb_value *bp;
+  struct RProc *p;
 
   bp = ci->stackent + 1;
   ci--;
@@ -143,24 +144,20 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
     return mrb_false_value();
   }
   /* block_given? called within block; check upper scope */
-  if (ci->proc->env) {
-    struct REnv *e = ci->proc->env;
-
-    while (e->c) {
-      e = (struct REnv*)e->c;
-    }
+  p = ci->proc;
+  while (p) {
+    if (MRB_PROC_SCOPE_P(p)) break;
+    p = p->upper;
+  }
+  /* top-level does not have block slot (always false) */
+  if (p == NULL) return mrb_false_value();
+  if (MRB_PROC_ENV_P(p)) {
+    struct REnv *e = MRB_PROC_ENV(p);
     /* top-level does not have block slot (always false) */
     if (e->stack == mrb->c->stbase)
       return mrb_false_value();
-    if (e->stack && e->cioff < 0) {
-      /* use saved block arg position */
-      bp = &e->stack[-e->cioff];
-      ci = 0;                 /* no callinfo available */
-    }
-    else {
-      ci = e->cxt.c->cibase + e->cioff;
-      bp = ci[1].stackent + 1;
-    }
+    /* use saved block arg position */
+    bp = &e->stack[MRB_ENV_BIDX(e)];
   }
   if (ci && ci->argc > 0) {
     bp += ci->argc;
@@ -655,7 +652,7 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
   khint_t i;
 
   khash_t(mt) *h = klass->mt;
-  if (!h) return;
+  if (!h || kh_size(h) == 0) return;
   for (i=0;i<kh_end(h);i++) {
     if (kh_exist(h, i) && kh_value(h, i)) {
       kh_put(st, mrb, set, kh_key(h, i));
@@ -690,7 +687,7 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* kl
     klass = klass->super;
   }
 
-  ary = mrb_ary_new(mrb);
+  ary = mrb_ary_new_capa(mrb, kh_size(set));
   for (i=0;i<kh_end(set);i++) {
     if (kh_exist(set, i)) {
       mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(set, i)));
@@ -1161,16 +1158,19 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
     return mrb_ary_new(mrb);
   }
   vars = mrb_hash_new(mrb);
-  irep = proc->body.irep;
-  while (irep) {
+  while (proc) {
+    if (MRB_PROC_CFUNC_P(proc)) break;
+    irep = proc->body.irep;
     if (!irep->lv) break;
     for (i = 0; i + 1 < irep->nlocals; ++i) {
       if (irep->lv[i].name) {
         mrb_hash_set(mrb, vars, mrb_symbol_value(irep->lv[i].name), mrb_true_value());
       }
     }
-    if (!proc->env) break;
-    irep = irep->outer;
+    if (!MRB_PROC_ENV_P(proc)) break;
+    proc = proc->upper;
+    // if (MRB_PROC_SCOPE_P(proc)) break;
+    if (!proc->c) break;
   }
 
   return mrb_hash_keys(mrb, vars);

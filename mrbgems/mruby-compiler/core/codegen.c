@@ -3034,6 +3034,9 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
     mrb_irep_decref(mrb, scope->irep);
     mrb_pool_close(scope->mpool);
     proc->c = NULL;
+    if (mrb->c->cibase && mrb->c->cibase->proc == proc->upper) {
+      proc->upper = NULL;
+    }
     mrb->jmp = prev_jmp;
     return proc;
   }
