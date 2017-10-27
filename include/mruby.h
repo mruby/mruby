@@ -1233,7 +1233,7 @@ MRB_API mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
 /* use naive memcpy and memset instead */
 #undef memcpy
 #undef memset
-static inline void*
+static void*
 mrbmemcpy(void *dst, const void *src, size_t n)
 {
   char *d = (char*)dst;
@@ -1244,7 +1244,7 @@ mrbmemcpy(void *dst, const void *src, size_t n)
 }
 #define memcpy(a,b,c) mrbmemcpy(a,b,c)
 
-static inline void*
+static void*
 mrbmemset(void *s, int c, size_t n)
 {
   char *t = (char*)s;
