@@ -211,15 +211,12 @@ stack_extend(mrb_state *mrb, int room)
   }
 }
 
-static int nenv = 0;
-
 static inline struct REnv*
 uvenv(mrb_state *mrb, int up)
 {
   struct RProc *proc = mrb->c->ci->proc;
   struct REnv *e;
 
-  nenv++;
   do {
     e = MRB_PROC_ENV(proc);
     if (!e) return NULL;
