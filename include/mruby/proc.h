@@ -24,7 +24,7 @@ struct REnv {
 };
 
 /* flags (21bits): 1(shared flag):10(cioff/bidx):10(stack_len) */
-#define MRB_ENV_SET_STACK_LEN(e,len) (e)->flags = (((e)->flags & ~0x3ff)|(unsigned int)(len) & 0x3ff)
+#define MRB_ENV_SET_STACK_LEN(e,len) (e)->flags = (((e)->flags & ~0x3ff)|((unsigned int)(len) & 0x3ff))
 #define MRB_ENV_STACK_LEN(e) ((mrb_int)((e)->flags & 0x3ff))
 #define MRB_ENV_STACK_UNSHARED (1<<20)
 #define MRB_ENV_UNSHARE_STACK(e) (e)->flags |= MRB_ENV_STACK_UNSHARED
