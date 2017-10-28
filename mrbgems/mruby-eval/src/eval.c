@@ -12,21 +12,13 @@ mrb_value mrb_obj_instance_eval(mrb_state *mrb, mrb_value self);
 static struct mrb_irep *
 get_closure_irep(mrb_state *mrb, int level)
 {
-  struct mrb_context *c = mrb->c;
-  struct RProc *proc = c->ci[-1].proc;
+  struct RProc *proc = mrb->c->ci[-1].proc;
 
-  if (level == 0) {
-    if (MRB_PROC_CFUNC_P(proc)) {
-      return NULL;
-    }
-    return proc->body.irep;
-  }
-
-  while (--level) {
-    proc = proc->upper;
+  while (level--) {
     if (!proc) return NULL;
+    proc = proc->upper;
   }
-
+  if (!proc) return NULL;
   if (MRB_PROC_CFUNC_P(proc)) {
     return NULL;
   }
@@ -60,7 +52,7 @@ search_variable(mrb_state *mrb, mrb_sym vsym, int bnest)
   int pos;
 
   for (level = 0; (virep = get_closure_irep(mrb, level)); level++) {
-    if (!virep || virep->lv == NULL) {
+    if (virep->lv == NULL) {
       continue;
     }
     for (pos = 0; pos < virep->nlocals - 1; pos++) {
@@ -123,7 +115,7 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest, mrb_irep *top)
       if (GETARG_C(c) != 0) {
         break;
       }
-      {
+      else {
         mrb_code arg = search_variable(mrb, irep->syms[GETARG_B(c)], bnest);
         if (arg != 0) {
           /* must replace */
@@ -197,7 +189,7 @@ create_proc_from_string(mrb_state *mrb, char *s, mrb_int len, mrb_value binding,
   struct mrb_parser_state *p;
   struct RProc *proc;
   struct REnv *e;
-  mrb_callinfo *ci = mrb->c->ci;
+  mrb_callinfo *ci = &mrb->c->ci[-1]; /* callinfo of eval caller */
   struct RClass *target_class = NULL;
   int bidx;
 
@@ -246,19 +238,29 @@ create_proc_from_string(mrb_state *mrb, char *s, mrb_int len, mrb_value binding,
     mrbc_context_free(mrb, cxt);
     mrb_raise(mrb, E_SCRIPT_ERROR, "codegen error");
   }
-  target_class = MRB_PROC_TARGET_CLASS(ci[-1].proc);
-  e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV,
-                                  (struct RClass*)target_class);
-  e->mid = ci->mid;
-  e->stack = ci->stackent;
-  MRB_ENV_SET_STACK_LEN(e, ci->proc->body.irep->nlocals);
-  bidx = ci->argc;
-  if (ci->argc < 0) bidx = 2;
-  else bidx += 1;
-  MRB_ENV_SET_BIDX(e, bidx);
-  proc->e.env = e;
-  proc->flags |= MRB_PROC_ENVSET;
-  ci->target_class = target_class;
+  target_class = MRB_PROC_TARGET_CLASS(ci->proc);
+  if (!MRB_PROC_CFUNC_P(ci->proc)) {
+    if (ci->env) {
+      e = ci->env;
+    }
+    else {
+      e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV,
+                                      (struct RClass*)target_class);
+      e->mid = ci->mid;
+      e->stack = ci[1].stackent;
+      e->cxt = mrb->c;
+      MRB_ENV_SET_STACK_LEN(e, ci->proc->body.irep->nlocals);
+      bidx = ci->argc;
+      if (ci->argc < 0) bidx = 2;
+      else bidx += 1;
+      MRB_ENV_SET_BIDX(e, bidx);
+    }
+    proc->e.env = e;
+    proc->flags |= MRB_PROC_ENVSET;
+    mrb_field_write_barrier(mrb, (struct RBasic*)proc, (struct RBasic*)e);
+  }
+  proc->upper = ci->proc;
+  mrb->c->ci->target_class = target_class;
   patch_irep(mrb, proc->body.irep, 0, proc->body.irep);
   /* mrb_codedump_all(mrb, proc); */
 
