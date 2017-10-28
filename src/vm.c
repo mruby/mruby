@@ -2750,7 +2750,7 @@ RETRY_TRY_BLOCK:
       MRB_PROC_SET_TARGET_CLASS(p, mrb_class_ptr(recv));
       p->flags |= MRB_PROC_SCOPE;
 
-      /* prepare stack */
+      /* prepare call stack */
       ci = cipush(mrb);
       ci->pc = pc + 1;
       ci->acc = a;
@@ -2762,8 +2762,7 @@ RETRY_TRY_BLOCK:
       /* prepare stack */
       mrb->c->stack += a;
 
-      /* setup closure */
-      MRB_PROC_SET_TARGET_CLASS(p, ci->target_class);
+      /* setup block to call */
       ci->proc = p;
 
       irep = p->body.irep;
