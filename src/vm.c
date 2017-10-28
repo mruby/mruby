@@ -151,9 +151,6 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase, size_t size)
 
       e->stack = newbase + off;
     }
-    else if (e && MRB_ENV_STACK_SHARED_P(e)) {
-      fprintf(stderr, "bingo! %p\n", e);
-    }
     ci->stackent = newbase + (ci->stackent - oldbase);
     ci++;
   }
