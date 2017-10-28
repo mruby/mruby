@@ -283,17 +283,21 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   name = mrb_nil_value();
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
   if (argc == 0) { /* special case to avoid crash */
-    rest = mrb_ary_new(mrb);
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
   }
   else {
-    if (argc > 0) name = argv[0];
-    pargv = &argv[1];
-    argcnt = argc-1;
-    if (!mrb_nil_p(name) && mrb_symbol_p(name)) {
-      /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
-      name = mrb_nil_value();
-      pargv = &argv[0];
-      argcnt++;
+    pargv = argv;
+    argcnt = argc;
+    if (argc > 0) {
+      name = argv[0];
+      if (mrb_symbol_p(name)) {
+        /* 1stArgument:symbol -> name=nil rest=argv[0..n] */
+        name = mrb_nil_value();
+      }
+      else {
+        pargv++;
+        argcnt--;
+      }
     }
     rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
     for (i=0; i<RARRAY_LEN(rest); i++) {
