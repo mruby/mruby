@@ -1845,10 +1845,11 @@ RETRY_TRY_BLOCK:
       }
 
       if (mrb->exc) {
+        mrb_callinfo *ci0;
         mrb_value *stk;
 
       L_RAISE:
-        ci = mrb->c->ci;
+        ci0 = ci = mrb->c->ci;
         if (ci == mrb->c->cibase) {
           if (ci->ridx == 0) goto L_FTOP;
           goto L_RESCUE;
@@ -1900,7 +1901,9 @@ RETRY_TRY_BLOCK:
         irep = proc->body.irep;
         pool = irep->pool;
         syms = irep->syms;
-        mrb->c->stack = ci[1].stackent;
+        if (ci < ci0) {
+          mrb->c->stack = ci[1].stackent;
+        }
         stack_extend(mrb, irep->nregs);
         pc = mrb->c->rescue[--ci->ridx];
       }
