@@ -2747,7 +2747,6 @@ RETRY_TRY_BLOCK:
       p = mrb_proc_new(mrb, nirep);
       p->c = NULL;
       mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)proc);
-      MRB_PROC_SET_TARGET_CLASS(p, mrb_class_ptr(recv));
       p->flags |= MRB_PROC_SCOPE;
 
       /* prepare call stack */
