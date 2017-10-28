@@ -338,13 +338,13 @@ ecall(mrb_state *mrb, int i)
   ci->target_class = MRB_PROC_TARGET_CLASS(p);
   env = MRB_PROC_ENV(p);
   mrb_assert(env);
-  c->stack = c->stack + p->body.irep->nregs;
+  c->stack += p->body.irep->nregs;
   exc = mrb->exc; mrb->exc = 0;
   if (exc) {
     mrb_gc_protect(mrb, mrb_obj_value(exc));
   }
   mrb_run(mrb, p, env->stack[0]);
-  c = mrb->c;
+  mrb->c = c;
   c->ci = c->cibase + cioff;
   if (!mrb->exc) mrb->exc = exc;
   mrb_gc_arena_restore(mrb, ai);
@@ -1981,13 +1981,13 @@ RETRY_TRY_BLOCK:
           if (MRB_PROC_ENV(proc)->cxt != mrb->c) {
             goto L_BREAK_ERROR;
           }
+          while (mrb->c->eidx > mrb->c->ci->epos) {
+            ecall_adjust();
+          }
           /* break from fiber block */
           if (ci == mrb->c->cibase && ci->pc) {
             struct mrb_context *c = mrb->c;
 
-            while (c->eidx > c->ci->epos) {
-              ecall_adjust();
-            }
             mrb->c = c->prev;
             c->prev = NULL;
             ci = mrb->c->ci;
