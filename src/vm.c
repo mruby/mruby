@@ -1916,6 +1916,7 @@ RETRY_TRY_BLOCK:
         case OP_R_RETURN:
           /* Fall through to OP_R_NORMAL otherwise */
           if (ci->acc >=0 && MRB_PROC_ENV_P(proc) && !MRB_PROC_STRICT_P(proc)) {
+            mrb_callinfo *cibase = mrb->c->cibase;
             dst = top_proc(mrb, proc); 
 
             if (MRB_PROC_ENV_P(dst)) {
@@ -1926,14 +1927,14 @@ RETRY_TRY_BLOCK:
                 goto L_RAISE;
               }
             }
-            while (ci->proc != dst) {
+            while (cibase <= ci && ci->proc != dst) {
               if (ci->acc < 0) {
                 localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
                 goto L_RAISE;
               }
               ci--;
             }
-            if (ci == mrb->c->cibase) {
+            if (ci <= cibase) {
               localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
               goto L_RAISE;
             }
