@@ -19,7 +19,6 @@ struct REnv {
   MRB_OBJECT_HEADER;
   mrb_value *stack;
   struct mrb_context *cxt;
-  // struct RProc *proc;
   mrb_sym mid;
 };
 
