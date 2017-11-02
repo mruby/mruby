@@ -11,6 +11,7 @@
 #include <mruby/variable.h>
 #include <mruby/debug.h>
 #include <mruby/string.h>
+#include <mruby/class.h>
 
 void mrb_init_core(mrb_state*);
 void mrb_init_mrbgems(mrb_state*);
@@ -222,6 +223,7 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
       ns->as.heap.ptr[len] = '\0';
     }
   }
+  RSTR_SET_POOL_FLAG(ns);
   MRB_SET_FROZEN_FLAG(ns);
   return mrb_obj_value(ns);
 }
