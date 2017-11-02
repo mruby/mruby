@@ -584,6 +584,8 @@ done:
   mrb_free(mrb, history_path);
 #endif
 
+  if (args.rfp) fclose(args.rfp);
+  mrb_free(mrb, args.argv);
   mrbc_context_free(mrb, cxt);
   mrb_close(mrb);
 
