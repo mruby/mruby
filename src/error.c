@@ -200,6 +200,7 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
   mrb_callinfo *ci = mrb->c->ci;
   mrb_code *pc = ci->pc;
 
+  if (mrb_obj_iv_defined(mrb, exc, mrb_intern_lit(mrb, "file"))) return;
   while (ci >= mrb->c->cibase) {
     mrb_code *err = ci->err;
 
