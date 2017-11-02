@@ -215,11 +215,14 @@ packed_backtrace(mrb_state *mrb)
 void
 mrb_keep_backtrace(mrb_state *mrb, mrb_value exc)
 {
+  mrb_sym sym = mrb_intern_lit(mrb, "backtrace");
   mrb_value backtrace;
-  int ai = mrb_gc_arena_save(mrb);
+  int ai;
 
+  if (mrb_iv_defined(mrb, exc, sym)) return;
+  ai = mrb_gc_arena_save(mrb);
   backtrace = packed_backtrace(mrb);
-  mrb_iv_set(mrb, exc, mrb_intern_lit(mrb, "backtrace"), backtrace);
+  mrb_iv_set(mrb, exc, sym, backtrace);
   mrb_gc_arena_restore(mrb, ai);
 }
 
