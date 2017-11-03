@@ -381,3 +381,31 @@ assert("Array#slice!") do
   assert_equal(i, [1, 2, 3])
   assert_equal(j, nil)
 end
+
+assert("Array#permutation") do
+  a = [1, 2, 3]
+  assert_equal([[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]],
+               a.permutation.to_a)
+  assert_equal([[1],[2],[3]],
+               a.permutation(1).to_a)
+  assert_equal([[1,2],[1,3],[2,1],[2,3],[3,1],[3,2]],
+               a.permutation(2).to_a)
+  assert_equal([[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]],
+               a.permutation(3).to_a)
+  assert_equal([[]], a.permutation(0).to_a)
+  assert_equal([], a.permutation(4).to_a)
+end
+
+assert("Array#combination") do
+  a = [1, 2, 3, 4]
+  assert_equal([[1],[2],[3],[4]],
+               a.combination(1).to_a)
+  assert_equal([[1,2],[1,3],[1,4],[2,3],[2,4],[3,4]],
+               a.combination(2).to_a)
+  assert_equal([[1,2,3],[1,2,4],[1,3,4],[2,3,4]],
+               a.combination(3).to_a)
+  assert_equal([[1,2,3,4]],
+               a.combination(4).to_a)
+  assert_equal([[]], a.combination(0).to_a)
+  assert_equal([], a.combination(5).to_a)
+end

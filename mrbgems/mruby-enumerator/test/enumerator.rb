@@ -33,7 +33,7 @@ assert 'Enumerator.new' do
       a, b = b, a + b
     end
   end
-  assert_equal fib.take(10), [1,1,2,3,5,8,13,21,34,55]
+  assert_equal [1,1,2,3,5,8,13,21,34,55], fib.take(10)
 end
 
 assert 'Enumerator#initialize_copy' do

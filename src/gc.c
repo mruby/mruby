@@ -649,11 +649,8 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     {
       struct RProc *p = (struct RProc*)obj;
 
-      mrb_gc_mark(mrb, (struct RBasic*)p->env);
-      mrb_gc_mark(mrb, (struct RBasic*)p->target_class);
-      if (!MRB_PROC_CFUNC_P(p) && p->body.irep) {
-        mrb_gc_mark(mrb, (struct RBasic*)p->body.irep->target_class);
-      }
+      mrb_gc_mark(mrb, (struct RBasic*)p->upper);
+      mrb_gc_mark(mrb, (struct RBasic*)p->e.env);
     }
     break;
 
@@ -662,11 +659,8 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
       struct REnv *e = (struct REnv*)obj;
       mrb_int i, len;
 
-      if (MRB_ENV_STACK_SHARED_P(e)) {
-        if (e->cxt.c->fib) {
-          mrb_gc_mark(mrb, (struct RBasic*)e->cxt.c->fib);
-        }
-        break;
+      if (MRB_ENV_STACK_SHARED_P(e) && e->cxt->fib) {
+        mrb_gc_mark(mrb, (struct RBasic*)e->cxt->fib);
       }
       len = MRB_ENV_STACK_LEN(e);
       for (i=0; i<len; i++) {

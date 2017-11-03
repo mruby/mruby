@@ -436,8 +436,11 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
   k = kh_put(mt, mrb, h, mid);
   kh_value(h, k) = p;
   if (p) {
+    p->flags |= MRB_PROC_SCOPE;
     p->c = NULL;
-    mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
+    mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)p);
+    MRB_PROC_SET_TARGET_CLASS(p, c);
+    mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)c);
   }
   mc_clear_by_id(mrb, c, mid);
 }
@@ -449,7 +452,7 @@ mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t f
   int ai = mrb_gc_arena_save(mrb);
 
   p = mrb_proc_new_cfunc(mrb, func);
-  p->target_class = c;
+  MRB_PROC_SET_TARGET_CLASS(p, c);
   mrb_define_method_raw(mrb, c, mid, p);
   mrb_gc_arena_restore(mrb, ai);
 }
@@ -532,6 +535,35 @@ to_sym(mrb_state *mrb, mrb_value ss)
   }
 }
 
+MRB_API mrb_int
+mrb_get_argc(mrb_state *mrb)
+{
+  mrb_int argc = mrb->c->ci->argc;
+
+  if (argc < 0) {
+    struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
+
+    argc = ARY_LEN(a);
+  }
+  return argc;
+}
+
+MRB_API mrb_value*
+mrb_get_argv(mrb_state *mrb)
+{
+  mrb_int argc = mrb->c->ci->argc;
+  mrb_value *array_argv;
+  if (argc < 0) {
+    struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
+
+    array_argv = ARY_PTR(a);
+  }
+  else {
+    array_argv = NULL;
+  }
+  return array_argv;
+}
+
 /*
   retrieve arguments from mrb_state.
 
@@ -569,23 +601,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   char c;
   mrb_int i = 0;
   va_list ap;
-  mrb_int argc = mrb->c->ci->argc;
+  mrb_int argc = mrb_get_argc(mrb);
   mrb_int arg_i = 0;
-  mrb_value *array_argv;
+  mrb_value *array_argv = mrb_get_argv(mrb);
   mrb_bool opt = FALSE;
   mrb_bool opt_skip = TRUE;
   mrb_bool given = TRUE;
 
   va_start(ap, format);
-  if (argc < 0) {
-    struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
-
-    argc = ARY_LEN(a);
-    array_argv = ARY_PTR(a);
-  }
-  else {
-    array_argv = NULL;
-  }
 
 #define ARGV \
   (array_argv ? array_argv : (mrb->c->stack + 1))
@@ -1979,6 +2002,12 @@ mod_define_method(mrb_state *mrb, mrb_value self)
   return mrb_symbol_value(mid);
 }
 
+static mrb_value
+top_define_method(mrb_state *mrb, mrb_value self)
+{
+  return mod_define_method(mrb, mrb_obj_value(mrb->object_class));
+}
+
 static void
 check_cv_name_str(mrb_state *mrb, mrb_value str)
 {
@@ -2388,6 +2417,12 @@ mrb_value mrb_obj_instance_eval(mrb_state*, mrb_value);
 /* implementation of Module.nesting */
 mrb_value mrb_mod_s_nesting(mrb_state*, mrb_value);
 
+static mrb_value
+inspect_main(mrb_state *mrb, mrb_value mod)
+{
+  return mrb_str_new_lit(mrb, "main");
+}
+
 void
 mrb_init_class(mrb_state *mrb)
 {
@@ -2484,4 +2519,9 @@ mrb_init_class(mrb_state *mrb)
 
   mrb_undef_method(mrb, cls, "append_features");
   mrb_undef_method(mrb, cls, "extend_object");
+
+  mrb->top_self = (struct RObject*)mrb_obj_alloc(mrb, MRB_TT_OBJECT, mrb->object_class);
+  mrb_define_singleton_method(mrb, mrb->top_self, "inspect", inspect_main, MRB_ARGS_NONE());
+  mrb_define_singleton_method(mrb, mrb->top_self, "to_s", inspect_main, MRB_ARGS_NONE());
+  mrb_define_singleton_method(mrb, mrb->top_self, "define_method", top_define_method, MRB_ARGS_ARG(1,1));
 }

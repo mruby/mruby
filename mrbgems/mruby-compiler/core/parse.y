@@ -2579,7 +2579,7 @@ do_block        : keyword_do_block
                       local_nest(p);
                     }
                   opt_block_param
-                  compstmt
+                  bodystmt
                   keyword_end
                     {
                       $$ = new_block(p,$3,$4);
@@ -2669,7 +2669,7 @@ brace_block     : '{'
                       $<num>$ = p->lineno;
                     }
                   opt_block_param
-                  compstmt keyword_end
+                  bodystmt keyword_end
                     {
                       $$ = new_block(p,$3,$4);
                       SET_LINENO($$, $<num>2);
@@ -5731,7 +5731,7 @@ mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
 
   new_table = (mrb_sym*)parser_palloc(p, sizeof(mrb_sym) * p->filename_table_length);
   if (p->filename_table) {
-    memmove(new_table, p->filename_table, sizeof(mrb_sym) * p->filename_table_length);
+    memmove(new_table, p->filename_table, sizeof(mrb_sym) * p->current_filename_index);
   }
   p->filename_table = new_table;
   p->filename_table[p->filename_table_length - 1] = sym;
@@ -5833,7 +5833,7 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
       c->keep_lv = TRUE;
     }
   }
-  proc->target_class = target;
+  MRB_PROC_SET_TARGET_CLASS(proc, target);
   if (mrb->c->ci) {
     mrb->c->ci->target_class = target;
   }

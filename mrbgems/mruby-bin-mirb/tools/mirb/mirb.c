@@ -544,6 +544,13 @@ done:
         if (args.verbose) {
           mrb_codedump_all(mrb, proc);
         }
+        /* adjust stack length of toplevel environment */
+        if (mrb->c->cibase->env) {
+          struct REnv *e = mrb->c->cibase->env;
+          if (e && MRB_ENV_STACK_LEN(e) < proc->body.irep->nlocals) {
+            MRB_ENV_SET_STACK_LEN(e, proc->body.irep->nlocals);
+          }
+        }
         /* pass a proc for evaluation */
         /* evaluate the bytecode */
         result = mrb_vm_run(mrb,
@@ -577,6 +584,8 @@ done:
   mrb_free(mrb, history_path);
 #endif
 
+  if (args.rfp) fclose(args.rfp);
+  mrb_free(mrb, args.argv);
   mrbc_context_free(mrb, cxt);
   mrb_close(mrb);
 

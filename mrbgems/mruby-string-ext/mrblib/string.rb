@@ -144,7 +144,20 @@ class String
   def casecmp(str)
     self.downcase <=> str.to_str.downcase
   rescue NoMethodError
-    raise TypeError, "no implicit conversion of #{str.class} into String"
+    nil
+  end
+
+  ##
+  # call-seq:
+  #   str.casecmp?(other)  -> true, false, or nil
+  #
+  # Returns true if str and other_str are equal after case folding,
+  # false if they are not equal, and nil if other_str is not a string.
+
+  def casecmp?(str)
+    c = self.casecmp(str)
+    return nil if c.nil?
+    return c == 0
   end
 
   def partition(sep)

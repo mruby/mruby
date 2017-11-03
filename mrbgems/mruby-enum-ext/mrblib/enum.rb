@@ -708,4 +708,20 @@ module Enumerable
   def nil.to_h
     {}
   end
+
+  def uniq(&block)
+    hash = {}
+    if block
+      self.each do|*v|
+        v = v.__svalue
+        hash[block.call(v)] ||= v
+      end
+    else
+      self.each do|*v|
+        v = v.__svalue
+        hash[v] ||= v
+      end
+    end
+    hash.values
+  end
 end
