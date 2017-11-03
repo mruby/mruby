@@ -153,13 +153,19 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
   if (p == NULL) return mrb_false_value();
   if (MRB_PROC_ENV_P(p)) {
     struct REnv *e = MRB_PROC_ENV(p);
+    int bidx;
+
     /* top-level does not have block slot (always false) */
     if (e->stack == mrb->c->stbase)
       return mrb_false_value();
     /* use saved block arg position */
-    bp = &e->stack[MRB_ENV_BIDX(e)];
+    bidx = MRB_ENV_BIDX(e);
+    /* bidx may be useless (e.g. define_method) */
+    if (bidx >= MRB_ENV_STACK_LEN(e))
+      return mrb_false_value();
+    bp = &e->stack[bidx];
   }
-  if (ci && ci->argc > 0) {
+  else if (ci && ci->argc > 0) {
     bp += ci->argc;
   }
   if (mrb_nil_p(*bp))
