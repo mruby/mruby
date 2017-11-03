@@ -2331,70 +2331,39 @@ RETRY_TRY_BLOCK:
     CASE(OP_DIV) {
       /* A B C  R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)*/
       int a = GETARG_A(i);
+      double x, y, f;
 
       /* need to check if op is overridden */
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
-        {
-          mrb_int x = mrb_fixnum(regs[a]);
-          mrb_int y = mrb_fixnum(regs[a+1]);
-          double f;
-          if (y == 0) {
-            if (x > 0) f = INFINITY;
-            else if (x < 0) f = -INFINITY;
-            else /* if (x == 0) */ f = NAN;
-          }
-          else {
-            f = (mrb_float)x / (mrb_float)y;
-          }
-          SET_FLOAT_VALUE(mrb, regs[a], f);
-        }
+        x = (mrb_float)mrb_fixnum(regs[a]);
+        y = (mrb_float)mrb_fixnum(regs[a+1]);
         break;
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
-        {
-          mrb_int x = mrb_fixnum(regs[a]);
-          mrb_float y = mrb_float(regs[a+1]);
-          SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x / y);
-        }
+        x = (mrb_float)mrb_fixnum(regs[a]);
+        y = mrb_float(regs[a+1]);
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
-#ifdef MRB_WORD_BOXING
-        {
-          mrb_float x = mrb_float(regs[a]);
-          mrb_int y = mrb_fixnum(regs[a+1]);
-          double f;
-          if (y == 0) {
-            f = INFINITY;
-          }
-          else {
-            f = x / y;
-          }
-          SET_FLOAT_VALUE(mrb, regs[a], f);
-        }
-#else
-        OP_MATH_BODY(/,mrb_float,mrb_fixnum);
-#endif
+        x = mrb_float(regs[a]);
+        y = (mrb_float)mrb_fixnum(regs[a+1]);
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
-#ifdef MRB_WORD_BOXING
-        {
-          mrb_float x = mrb_float(regs[a]);
-          mrb_float y = mrb_float(regs[a+1]);
-          SET_FLOAT_VALUE(mrb, regs[a], x / y);
-        }
-#else
-        OP_MATH_BODY(/,mrb_float,mrb_float);
-#endif
+        x = mrb_float(regs[a]);
+        y = mrb_float(regs[a+1]);
         break;
       default:
         goto L_SEND;
       }
-#ifdef MRB_NAN_BOXING
-      if (isnan(mrb_float(regs[a]))) {
-        mrb_value v = mrb_float_value(mrb, mrb_float(regs[a]));
-        regs[a] = v;
+
+      if (y == 0) {
+        if (x > 0) f = INFINITY;
+        else if (x < 0) f = -INFINITY;
+        else /* if (x == 0) */ f = NAN;
       }
-#endif
+      else {
+        f = x / y;
+      }
+      SET_FLOAT_VALUE(mrb, regs[a], f);
       NEXT;
     }
 

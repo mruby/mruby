@@ -200,7 +200,7 @@ make_struct_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c
 }
 
 static mrb_value
-make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * klass)
+make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *klass)
 {
   mrb_value nstr;
   mrb_sym id;
