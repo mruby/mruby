@@ -114,7 +114,9 @@ typedef struct {
     struct RException exc;
     struct RBreak brk;
 #ifdef MRB_WORD_BOXING
+#ifndef MRB_WITHOUT_FLOAT
     struct RFloat floatv;
+#endif
     struct RCptr cptr;
 #endif
   } as;
@@ -412,7 +414,7 @@ gc_protect(mrb_state *mrb, mrb_gc *gc, struct RBasic *p)
 #else
   if (gc->arena_idx >= gc->arena_capa) {
     /* extend arena */
-    gc->arena_capa = (int)(gc->arena_capa * 1.5);
+    gc->arena_capa = (int)(gc->arena_capa * 3 / 2);
     gc->arena = (struct RBasic**)mrb_realloc(mrb, gc->arena, sizeof(struct RBasic*)*gc->arena_capa);
   }
 #endif
@@ -735,11 +737,13 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
     /* cannot happen */
     return;
 
+#ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
 #ifdef MRB_WORD_BOXING
     break;
 #else
     return;
+#endif
 #endif
 
   case MRB_TT_OBJECT:
@@ -871,7 +875,9 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
   mrb_gc_mark(mrb, (struct RBasic*)mrb->hash_class);
   mrb_gc_mark(mrb, (struct RBasic*)mrb->range_class);
 
+#ifndef MRB_WITHOUT_FLOAT
   mrb_gc_mark(mrb, (struct RBasic*)mrb->float_class);
+#endif
   mrb_gc_mark(mrb, (struct RBasic*)mrb->fixnum_class);
   mrb_gc_mark(mrb, (struct RBasic*)mrb->true_class);
   mrb_gc_mark(mrb, (struct RBasic*)mrb->false_class);

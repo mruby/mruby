@@ -827,6 +827,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         }
       }
       break;
+#ifndef MRB_WITHOUT_FLOAT
     case 'f':
       {
         mrb_float *p;
@@ -839,6 +840,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         }
       }
       break;
+#endif
     case 'i':
       {
         mrb_int *p;
@@ -849,6 +851,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
             case MRB_TT_FIXNUM:
               *p = mrb_fixnum(ARGV[arg_i]);
               break;
+#ifndef MRB_WITHOUT_FLOAT
             case MRB_TT_FLOAT:
               {
                 mrb_float f = mrb_float(ARGV[arg_i]);
@@ -859,6 +862,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
                 *p = (mrb_int)f;
               }
               break;
+#endif
             case MRB_TT_STRING:
               mrb_raise(mrb, E_TYPE_ERROR, "no implicit conversion of String into Integer");
               break;
@@ -1300,9 +1304,11 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
     return mrb_obj_value(mrb->object_class);
   case MRB_TT_SYMBOL:
   case MRB_TT_FIXNUM:
+#ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
     mrb_raise(mrb, E_TYPE_ERROR, "can't define singleton");
     return mrb_nil_value();    /* not reached */
+#endif
   default:
     break;
   }

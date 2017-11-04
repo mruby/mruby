@@ -481,6 +481,7 @@ new_lit(codegen_scope *s, mrb_value val)
         return i;
     }
     break;
+#ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
     for (i=0; i<s->irep->plen; i++) {
       pv = &s->irep->pool[i];
@@ -488,6 +489,7 @@ new_lit(codegen_scope *s, mrb_value val)
       if (mrb_float(*pv) == mrb_float(val)) return i;
     }
     break;
+#endif
   case MRB_TT_FIXNUM:
     for (i=0; i<s->irep->plen; i++) {
       pv = &s->irep->pool[i];
@@ -513,10 +515,12 @@ new_lit(codegen_scope *s, mrb_value val)
     *pv = mrb_str_pool(s->mrb, val);
     break;
 
+#ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
 #ifdef MRB_WORD_BOXING
     *pv = mrb_float_pool(s->mrb, mrb_float(val));
     break;
+#endif
 #endif
   case MRB_TT_FIXNUM:
     *pv = val;
@@ -1184,6 +1188,7 @@ raise_error(codegen_scope *s, const char *msg)
   genop(s, MKOP_ABx(OP_ERR, 1, idx));
 }
 
+#ifndef MRB_WITHOUT_FLOAT
 static double
 readint_float(codegen_scope *s, const char *p, int base)
 {
@@ -1209,6 +1214,7 @@ readint_float(codegen_scope *s, const char *p, int base)
   }
   return f;
 }
+#endif
 
 static mrb_int
 readint_mrb_int(codegen_scope *s, const char *p, int base, mrb_bool neg, mrb_bool *overflow)
@@ -2258,6 +2264,7 @@ codegen(codegen_scope *s, node *tree, int val)
       mrb_bool overflow;
 
       i = readint_mrb_int(s, p, base, FALSE, &overflow);
+#ifndef MRB_WITHOUT_FLOAT
       if (overflow) {
         double f = readint_float(s, p, base);
         int off = new_lit(s, mrb_float_value(s->mrb, f));
@@ -2265,6 +2272,7 @@ codegen(codegen_scope *s, node *tree, int val)
         genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
       }
       else {
+#endif
         if (i < MAXARG_sBx && i > -MAXARG_sBx) {
           co = MKOP_AsBx(OP_LOADI, cursp(), i);
         }
@@ -2273,11 +2281,14 @@ codegen(codegen_scope *s, node *tree, int val)
           co = MKOP_ABx(OP_LOADL, cursp(), off);
         }
         genop(s, co);
+#ifndef MRB_WITHOUT_FLOAT
       }
+#endif
       push();
     }
     break;
 
+#ifndef MRB_WITHOUT_FLOAT
   case NODE_FLOAT:
     if (val) {
       char *p = (char*)tree;
@@ -2288,12 +2299,14 @@ codegen(codegen_scope *s, node *tree, int val)
       push();
     }
     break;
+#endif
 
   case NODE_NEGATE:
     {
       nt = nint(tree->car);
       tree = tree->cdr;
       switch (nt) {
+#ifndef MRB_WITHOUT_FLOAT
       case NODE_FLOAT:
         if (val) {
           char *p = (char*)tree;
@@ -2304,6 +2317,7 @@ codegen(codegen_scope *s, node *tree, int val)
           push();
         }
         break;
+#endif
 
       case NODE_INT:
         if (val) {
@@ -2314,6 +2328,7 @@ codegen(codegen_scope *s, node *tree, int val)
           mrb_bool overflow;
 
           i = readint_mrb_int(s, p, base, TRUE, &overflow);
+#ifndef MRB_WITHOUT_FLOAT
           if (overflow) {
             double f = readint_float(s, p, base);
             int off = new_lit(s, mrb_float_value(s->mrb, -f));
@@ -2321,6 +2336,7 @@ codegen(codegen_scope *s, node *tree, int val)
             genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
           }
           else {
+#endif
             if (i < MAXARG_sBx && i > -MAXARG_sBx) {
               co = MKOP_AsBx(OP_LOADI, cursp(), i);
             }
@@ -2329,7 +2345,9 @@ codegen(codegen_scope *s, node *tree, int val)
               co = MKOP_ABx(OP_LOADL, cursp(), off);
             }
             genop(s, co);
+#ifndef MRB_WITHOUT_FLOAT
           }
+#endif
           push();
         }
         break;
