@@ -2651,6 +2651,7 @@ RETRY_TRY_BLOCK:
       }
       else {
         p = mrb_proc_new(mrb, nirep);
+        p->flags |= MRB_PROC_SCOPE;
       }
       if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
       regs[a] = mrb_obj_value(p);

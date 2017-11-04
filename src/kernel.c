@@ -134,25 +134,32 @@ mrb_obj_id_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_callinfo *ci = mrb->c->ci;
+  mrb_callinfo *ci = &mrb->c->ci[-1];
+  mrb_callinfo *cibase = mrb->c->cibase;
   mrb_value *bp;
   struct RProc *p;
 
-  bp = ci->stackent + 1;
-  ci--;
-  if (ci <= mrb->c->cibase) {
+  if (ci <= cibase) {
+    /* toplevel does not have block */
     return mrb_false_value();
   }
-  /* block_given? called within block; check upper scope */
   p = ci->proc;
+  /* search method/class/module proc */
   while (p) {
     if (MRB_PROC_SCOPE_P(p)) break;
     p = p->upper;
   }
-  /* top-level does not have block slot (always false) */
   if (p == NULL) return mrb_false_value();
-  if (MRB_PROC_ENV_P(p)) {
-    struct REnv *e = MRB_PROC_ENV(p);
+  /* search ci corresponding to proc */
+  while (cibase < ci) {
+    if (ci->proc == p) break;
+    ci--;
+  }
+  if (ci == cibase) {
+    return mrb_false_value();
+  }
+  else if (ci->env) {
+    struct REnv *e = ci->env;
     int bidx;
 
     /* top-level does not have block slot (always false) */
@@ -165,8 +172,14 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
       return mrb_false_value();
     bp = &e->stack[bidx];
   }
-  else if (ci && ci->argc > 0) {
-    bp += ci->argc;
+  else {
+    bp = ci[1].stackent+1;
+    if (ci->argc >= 0) {
+      bp += ci->argc;
+    }
+    else {
+      bp++;
+    }
   }
   if (mrb_nil_p(*bp))
     return mrb_false_value();
@@ -1175,7 +1188,7 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
     }
     if (!MRB_PROC_ENV_P(proc)) break;
     proc = proc->upper;
-    // if (MRB_PROC_SCOPE_P(proc)) break;
+    //if (MRB_PROC_SCOPE_P(proc)) break;
     if (!proc->c) break;
   }
 
