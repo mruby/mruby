@@ -528,6 +528,10 @@ done:
       /* no evaluation of code */
     }
     else {
+      if (0 < parser->nwarn) {
+        /* warning */
+        printf("line %d: %s\n", parser->warn_buffer[0].lineno, parser->warn_buffer[0].message);
+      }
       if (0 < parser->nerr) {
         /* syntax error */
         printf("line %d: %s\n", parser->error_buffer[0].lineno, parser->error_buffer[0].message);
