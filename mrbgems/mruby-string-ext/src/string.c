@@ -68,9 +68,11 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
       }
       return mrb_nil_value();
     }
+#ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
     a1 = mrb_fixnum_value((mrb_int)mrb_float(a1));
     /* fall through */
+#endif
   case MRB_TT_FIXNUM:
     return mrb_str_substr(mrb, str, mrb_fixnum(a1), 1);
   default:

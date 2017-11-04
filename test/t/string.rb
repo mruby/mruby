@@ -154,10 +154,11 @@ assert('String#[]=') do
     d[-10] = 'X'
   end
 
-  e = 'abc'
-  e[1.1] = 'X'
-  assert_equal 'aXc', e
-
+  if class_defined?("Float")
+   e = 'abc'
+   e[1.1] = 'X'
+   assert_equal 'aXc', e
+  end
 
   # length of args is 2
   a1 = 'abc'
@@ -629,7 +630,7 @@ assert('String#to_f', '15.2.10.5.38') do
   assert_float(12345.6789, c)
   assert_float(0, d)
   assert_float(Float::INFINITY, e)
-end
+end if class_defined?("Float")
 
 assert('String#to_i', '15.2.10.5.39') do
   a = ''.to_i
