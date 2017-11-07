@@ -2271,8 +2271,9 @@ codegen(codegen_scope *s, node *tree, int val)
 
         genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
       }
-      else {
+      else
 #endif
+      {
         if (i < MAXARG_sBx && i > -MAXARG_sBx) {
           co = MKOP_AsBx(OP_LOADI, cursp(), i);
         }
@@ -2281,9 +2282,7 @@ codegen(codegen_scope *s, node *tree, int val)
           co = MKOP_ABx(OP_LOADL, cursp(), off);
         }
         genop(s, co);
-#ifndef MRB_WITHOUT_FLOAT
       }
-#endif
       push();
     }
     break;
