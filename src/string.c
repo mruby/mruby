@@ -70,9 +70,9 @@ str_new(mrb_state *mrb, const char *p, size_t len)
     if (len >= MRB_INT_MAX) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
     }
+    s->as.heap.ptr = (char *)mrb_malloc(mrb, len+1);
     s->as.heap.len = (mrb_int)len;
     s->as.heap.aux.capa = (mrb_int)len;
-    s->as.heap.ptr = (char *)mrb_malloc(mrb, len+1);
     if (p) {
       memcpy(s->as.heap.ptr, p, len);
     }
