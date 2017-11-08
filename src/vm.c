@@ -2731,7 +2731,7 @@ RETRY_TRY_BLOCK:
       base = regs[a];
       super = regs[a+1];
       if (mrb_nil_p(base)) {
-        baseclass = mrb->c->ci->target_class;
+        baseclass = MRB_PROC_TARGET_CLASS(mrb->c->ci->proc);
         base = mrb_obj_value(baseclass);
       }
       c = mrb_vm_define_class(mrb, base, super, id);
@@ -2749,7 +2749,7 @@ RETRY_TRY_BLOCK:
 
       base = regs[a];
       if (mrb_nil_p(base)) {
-        baseclass = mrb->c->ci->target_class;
+        baseclass = MRB_PROC_TARGET_CLASS(mrb->c->ci->proc);
         base = mrb_obj_value(baseclass);
       }
       c = mrb_vm_define_module(mrb, base, id);
