@@ -491,6 +491,7 @@ mrb_value
 mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
 {
   mrb_callinfo *ci = mrb->c->ci;
+  int keep;
 
   mrb->c->stack[0] = self;
   ci->proc = p;
@@ -499,7 +500,15 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
     return p->body.func(mrb, self);
   }
   ci->nregs = p->body.irep->nregs;
-  stack_extend(mrb, (ci->argc < 0 && ci->nregs < 3) ? 3 : ci->nregs);
+  if (ci->argc < 0) keep = 3;
+  else keep = ci->argc + 1;
+  if (ci->argc < keep) {
+    stack_extend(mrb, keep);
+  }
+  else {
+    stack_extend(mrb, ci->argc);
+    stack_clear(mrb->c->stack+keep, ci->nregs-keep);
+  }
 
   ci = cipush(mrb);
   ci->nregs = 0;

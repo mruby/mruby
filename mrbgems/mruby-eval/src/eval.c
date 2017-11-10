@@ -273,13 +273,17 @@ create_proc_from_string(mrb_state *mrb, char *s, mrb_int len, mrb_value binding,
 static mrb_value
 exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
 {
+  /* no argument passed from eval() */
+  mrb->c->ci->argc = 0;
   if (mrb->c->ci->acc < 0) {
-    mrb_value ret = mrb_top_run(mrb, proc, mrb->c->stack[0], 0);
+    mrb_value ret = mrb_top_run(mrb, proc, self, 0);
     if (mrb->exc) {
       mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));
     }
     return ret;
   }
+  /* clear block */
+  mrb->c->stack[1] = mrb_nil_value();
   return mrb_exec_irep(mrb, self, proc);
 }
 
