@@ -502,11 +502,11 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
   ci->nregs = p->body.irep->nregs;
   if (ci->argc < 0) keep = 3;
   else keep = ci->argc + 1;
-  if (ci->argc < keep) {
+  if (ci->nregs < keep) {
     stack_extend(mrb, keep);
   }
   else {
-    stack_extend(mrb, ci->argc);
+    stack_extend(mrb, ci->nregs);
     stack_clear(mrb->c->stack+keep, ci->nregs-keep);
   }
 
@@ -1015,7 +1015,9 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_LOADI) {
       /* A sBx  R(A) := sBx */
-      SET_INT_VALUE(regs[GETARG_A(i)], GETARG_sBx(i));
+      int a = GETARG_A(i);
+      mrb_int bx = GETARG_sBx(i);
+      SET_INT_VALUE(regs[a], bx);
       NEXT;
     }
 
