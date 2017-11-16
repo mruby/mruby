@@ -309,6 +309,7 @@ static void
 ecall(mrb_state *mrb, int i)
 {
   struct RProc *p;
+  int nregs;
   struct mrb_context *c = mrb->c;
   mrb_callinfo *ci = c->ci;
   struct RObject *exc;
@@ -323,6 +324,7 @@ ecall(mrb_state *mrb, int i)
   p = c->ensure[i];
   if (!p) return;
   mrb_assert(!MRB_PROC_CFUNC_P(p));
+  nregs = ci->proc->body.irep->nregs;
   c->ensure[i] = NULL;
   cioff = ci - c->cibase;
   ci = cipush(mrb);
@@ -335,7 +337,7 @@ ecall(mrb_state *mrb, int i)
   ci->target_class = MRB_PROC_TARGET_CLASS(p);
   env = MRB_PROC_ENV(p);
   mrb_assert(env);
-  c->stack += p->body.irep->nregs;
+  c->stack += nregs;
   exc = mrb->exc; mrb->exc = 0;
   if (exc) {
     mrb_gc_protect(mrb, mrb_obj_value(exc));
