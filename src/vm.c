@@ -2073,12 +2073,13 @@ RETRY_TRY_BLOCK:
     CASE(OP_TAILCALL) {
       /* A B C  return call(R(A),Syms(B),R(A+1),... ,R(A+C+1)) */
       int a = GETARG_A(i);
+      int b = GETARG_B(i);
       int n = GETARG_C(i);
       struct RProc *m;
       struct RClass *c;
       mrb_callinfo *ci;
       mrb_value recv;
-      mrb_sym mid = syms[GETARG_B(i)];
+      mrb_sym mid = syms[b];
 
       recv = regs[a];
       c = mrb_class(mrb, recv);
@@ -2679,15 +2680,21 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_STRING) {
       /* A Bx           R(A) := str_new(Lit(Bx)) */
-      mrb_value str = mrb_str_dup(mrb, pool[GETARG_Bx(i)]);
-      regs[GETARG_A(i)] = str;
+      mrb_int a = GETARG_A(i);
+      mrb_int bx = GETARG_Bx(i);
+      mrb_value str = mrb_str_dup(mrb, pool[bx]);
+
+      regs[a] = str;
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
     CASE(OP_STRCAT) {
       /* A B    R(A).concat(R(B)) */
-      mrb_str_concat(mrb, regs[GETARG_A(i)], regs[GETARG_B(i)]);
+      mrb_int a = GETARG_A(i);
+      mrb_int b = GETARG_B(i);
+
+      mrb_str_concat(mrb, regs[a], regs[b]);
       NEXT;
     }
 
