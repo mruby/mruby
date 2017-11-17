@@ -666,7 +666,6 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool top)
 {
   struct RClass *c = base;
   mrb_value v;
-  iv_tbl *t;
   mrb_bool retry = FALSE;
   mrb_value name;
   struct RClass *oclass = mrb->object_class;
@@ -674,13 +673,12 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool top)
 L_RETRY:
   while (c) {
     if (c->iv && (top || c != oclass || base == oclass)) {
-      t = c->iv;
-      if (iv_get(mrb, t, sym, &v))
+      if (iv_get(mrb, c->iv, sym, &v))
         return v;
     }
     c = c->super;
   }
-  if (!retry && base && base->tt == MRB_TT_MODULE) {
+  if (!retry && base->tt == MRB_TT_MODULE) {
     c = oclass;
     retry = TRUE;
     goto L_RETRY;
