@@ -409,3 +409,14 @@ assert("Array#combination") do
   assert_equal([[]], a.combination(0).to_a)
   assert_equal([], a.combination(5).to_a)
 end
+
+assert('Array#transpose') do
+  assert_equal([].transpose, [])
+  assert_equal([[]].transpose, [])
+  assert_equal([[1]].transpose, [[1]])
+  assert_equal([[1,2,3]].transpose, [[1], [2], [3]])
+  assert_equal([[1], [2], [3]].transpose, [[1,2,3]])
+  assert_equal([[1,2], [3,4], [5,6]].transpose, [[1,3,5], [2,4,6]])
+  assert_raise(TypeError) { [1].transpose }
+  assert_raise(IndexError) { [[1], [2,3,4]].transpose } 
+end
