@@ -904,4 +904,32 @@ class Array
       end
     end
   end
+
+  ##
+  # call-seq:
+  #    ary.transpose -> new_ary
+  #
+  # Assumes that self is an array of arrays and transposes the rows and columns.
+  #
+  # If the length of the subarrays don’t match, an IndexError is raised.
+  #
+  # Examples:
+  #
+  #    a = [[1,2], [3,4], [5,6]]
+  #    a.transpose   #=> [[1, 3, 5], [2, 4, 6]]
+
+  def transpose
+    return [] if empty?
+
+    column_count = nil
+    self.each do |row|
+      raise TypeError unless row.is_a?(Array)
+      column_count ||= row.count
+      raise IndexError, 'element size differs' unless column_count == row.count
+    end
+
+    Array.new(column_count) do |column_index|
+      self.map { |row| row[column_index] }
+    end
+  end
 end
