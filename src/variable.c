@@ -889,7 +889,7 @@ mrb_const_defined_0(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool exclude,
 {
   struct RClass *klass = mrb_class_ptr(mod);
   struct RClass *tmp;
-  mrb_bool mod_retry = 0;
+  mrb_bool mod_retry = FALSE;
 
   tmp = klass;
 retry:
@@ -901,7 +901,7 @@ retry:
     tmp = tmp->super;
   }
   if (!exclude && !mod_retry && (klass->tt == MRB_TT_MODULE)) {
-    mod_retry = 1;
+    mod_retry = TRUE;
     tmp = mrb->object_class;
     goto retry;
   }
