@@ -681,7 +681,7 @@ L_RETRY:
     c = c->super;
   }
   if (!retry && base && base->tt == MRB_TT_MODULE) {
-    c = mrb->object_class;
+    c = oclass;
     retry = TRUE;
     goto L_RETRY;
   }
