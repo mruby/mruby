@@ -201,8 +201,3 @@ The re-defined ```+``` operator does not accept any arguments.
 
 ``` 'ab' ```
 Behavior of the operator wasn't changed.
-
-## ```Kernel.binding``` missing
-
-```Kernel.binding``` is not implemented as it is not in the
-ISO standard.
