@@ -65,22 +65,6 @@ end
 
 No exception is raised.
 
-## Check of infinite recursion
-
-mruby does not check infinite recursion across C extensions.
-
-```ruby
-def test; eval 'test'; end; test
-```
-
-#### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
-
-```SystemStackError``` is raised.
-
-#### mruby [1.3.0 (2017-7-4)]
-
-Segmentation fault.
-
 ## Fiber execution can't cross C function boundary
 
 mruby's ```Fiber``` is implemented in a similar way to Lua's co-routine. This
