@@ -34,7 +34,6 @@ MRB_API mrb_value mrb_f_raise(mrb_state*, mrb_value);
 
 struct RBreak {
   MRB_OBJECT_HEADER;
-  struct iv_tbl *iv;
   struct RProc *proc;
   mrb_value val;
 };
