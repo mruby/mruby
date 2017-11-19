@@ -177,7 +177,7 @@ gettimeofday_time(void)
 
 #define GC_STEP_SIZE 1024
 
-/* white: 011, black: 100, gray: 000 */
+/* white: 001 or 010, black: 100, gray: 000 */
 #define GC_GRAY 0
 #define GC_WHITE_A 1
 #define GC_WHITE_B (1 << 1)
@@ -1494,7 +1494,6 @@ gc_each_objects(mrb_state *mrb, mrb_gc *gc, mrb_each_object_callback *callback, 
 {
   mrb_heap_page* page;
 
-  mrb_full_gc(mrb);
   page = gc->heaps;
   while (page != NULL) {
     RVALUE *p;
@@ -1514,6 +1513,7 @@ mrb_objspace_each_objects(mrb_state *mrb, mrb_each_object_callback *callback, vo
 {
   mrb_bool iterating = mrb->gc.iterating;
 
+  mrb_full_gc(mrb);
   mrb->gc.iterating = TRUE;
   if (iterating) {
     gc_each_objects(mrb, &mrb->gc, callback, data);
