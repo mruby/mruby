@@ -99,7 +99,7 @@ mrb_proc_new_cfunc(mrb_state *mrb, mrb_func_t func)
 
   p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
   p->body.func = func;
-  p->flags |= MRB_PROC_CFUNC;
+  p->flags |= MRB_PROC_CFUNC_FL;
   p->upper = 0;
   p->e.target_class = 0;
 
@@ -141,11 +141,12 @@ MRB_API mrb_value
 mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx)
 {
   struct RProc *p = mrb->c->ci->proc;
-  struct REnv *e = MRB_PROC_ENV(p);
+  struct REnv *e;
 
-  if (!MRB_PROC_CFUNC_P(p)) {
+  if (!p || !MRB_PROC_CFUNC_P(p)) {
     mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from non-cfunc proc.");
   }
+  e = MRB_PROC_ENV(p);
   if (!e) {
     mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from cfunc Proc without REnv.");
   }
@@ -214,12 +215,6 @@ int
 mrb_proc_cfunc_p(struct RProc *p)
 {
   return MRB_PROC_CFUNC_P(p);
-}
-
-mrb_value
-mrb_proc_call_cfunc(mrb_state *mrb, struct RProc *p, mrb_value self)
-{
-  return (p->body.func)(mrb, self);
 }
 
 /* 15.2.17.4.2 */
@@ -293,7 +288,8 @@ proc_lambda(mrb_state *mrb, mrb_value self)
 void
 mrb_init_proc(mrb_state *mrb)
 {
-  struct RProc *m;
+  struct RProc *p;
+  mrb_method_t m;
   mrb_irep *call_irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
   static const mrb_irep mrb_irep_zero = { 0 };
 
@@ -307,7 +303,8 @@ mrb_init_proc(mrb_state *mrb)
   mrb_define_method(mrb, mrb->proc_class, "initialize_copy", mrb_proc_init_copy, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->proc_class, "arity", mrb_proc_arity, MRB_ARGS_NONE());
 
-  m = mrb_proc_new(mrb, call_irep);
+  p = mrb_proc_new(mrb, call_irep);
+  MRB_METHOD_FROM_PROC(m, p);
   mrb_define_method_raw(mrb, mrb->proc_class, mrb_intern_lit(mrb, "call"), m);
   mrb_define_method_raw(mrb, mrb->proc_class, mrb_intern_lit(mrb, "[]"), m);
 

@@ -170,11 +170,25 @@ struct mrb_context {
 # define MRB_METHOD_CACHE_SIZE (1<<7)
 #endif
 
+typedef mrb_value (*mrb_func_t)(struct mrb_state *mrb, mrb_value);
+
+#ifdef MRB_METHOD_TABLE_INLINE
+typedef uintptr_t mrb_method_t;
+#else
+typedef struct {
+  mrb_bool func_p;
+  union {
+    struct RProc *proc;
+    mrb_func_t func;
+  };
+} mrb_method_t;
+#endif
+
 #ifdef MRB_METHOD_CACHE
 struct mrb_cache_entry {
   struct RClass *c;
   mrb_sym mid;
-  struct RProc *m;
+  mrb_method_t m;
 };
 #endif
 
@@ -256,9 +270,6 @@ typedef struct mrb_state {
 #endif
   mrb_int atexit_stack_len;
 } mrb_state;
-
-
-typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
 
 /**
  * Defines a new class.

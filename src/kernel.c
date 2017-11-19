@@ -31,8 +31,14 @@ typedef enum {
 MRB_API mrb_bool
 mrb_func_basic_p(mrb_state *mrb, mrb_value obj, mrb_sym mid, mrb_func_t func)
 {
-  struct RProc *me = mrb_method_search(mrb, mrb_class(mrb, obj), mid);
-  if (MRB_PROC_CFUNC_P(me) && (me->body.func == func))
+  mrb_method_t m = mrb_method_search(mrb, mrb_class(mrb, obj), mid);
+  struct RProc *p;
+
+  if (MRB_METHOD_UNDEF_P(m)) return FALSE;
+  if (MRB_METHOD_FUNC_P(m))
+    return MRB_METHOD_FUNC(m) == func;
+  p = MRB_METHOD_PROC(m);
+  if (MRB_PROC_CFUNC_P(p) && (MRB_PROC_CFUNC(p) == func))
     return TRUE;
   return FALSE;
 }
@@ -677,7 +683,9 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
   khash_t(mt) *h = klass->mt;
   if (!h || kh_size(h) == 0) return;
   for (i=0;i<kh_end(h);i++) {
-    if (kh_exist(h, i) && kh_value(h, i)) {
+    if (kh_exist(h, i)) {
+      mrb_method_t m = kh_value(h, i);
+      if (MRB_METHOD_UNDEF_P(m)) continue;
       kh_put(st, mrb, set, kh_key(h, i));
     }
   }
@@ -1134,6 +1142,7 @@ static mrb_value
 mod_define_singleton_method(mrb_state *mrb, mrb_value self)
 {
   struct RProc *p;
+  mrb_method_t m;
   mrb_sym mid;
   mrb_value blk = mrb_nil_value();
 
@@ -1144,7 +1153,8 @@ mod_define_singleton_method(mrb_state *mrb, mrb_value self)
   p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
   mrb_proc_copy(p, mrb_proc_ptr(blk));
   p->flags |= MRB_PROC_STRICT;
-  mrb_define_method_raw(mrb, mrb_class_ptr(mrb_singleton_class(mrb, self)), mid, p);
+  MRB_METHOD_FROM_PROC(m, p);
+  mrb_define_method_raw(mrb, mrb_class_ptr(mrb_singleton_class(mrb, self)), mid, m);
   return mrb_symbol_value(mid);
 }
 

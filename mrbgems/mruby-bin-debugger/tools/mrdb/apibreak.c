@@ -117,7 +117,7 @@ compare_break_method(mrb_state *mrb, mrb_debug_breakpoint *bp, struct RClass *cl
 {
   const char* class_name;
   const char* method_name;
-  struct RProc* m;
+  mrb_method_t m;
   struct RClass* sc;
   const char* sn;
   mrb_sym ssym;
@@ -136,10 +136,10 @@ compare_break_method(mrb_state *mrb, mrb_debug_breakpoint *bp, struct RClass *cl
     }
     else if (method_p->class_name != NULL) {
       m = mrb_method_search_vm(mrb, &class_obj, method_sym);
-      if (m == NULL) {
+      if (MRB_METHOD_UNDEF_P(m)) {
         return MRB_DEBUG_OK;
       }
-      if (MRB_PROC_CFUNC_P(m)) {
+      if (MRB_METHOD_CFUNC_P(m)) {
         *isCfunc = TRUE;
       }
 
@@ -151,7 +151,7 @@ compare_break_method(mrb_state *mrb, mrb_debug_breakpoint *bp, struct RClass *cl
       sc = mrb_class_get(mrb, method_p->class_name);
       ssym = mrb_symbol(mrb_check_intern_cstr(mrb, method_p->method_name));
       m = mrb_method_search_vm(mrb, &sc, ssym);
-      if (m == NULL) {
+      if (MRB_METHOD_UNDEF_P(m)) {
         return MRB_DEBUG_OK;
       }
 
