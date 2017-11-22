@@ -1318,6 +1318,46 @@ fix_to_s(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_to_str(mrb, self, base);
 }
 
+/* compare two numbers: (1:0:-1; -2 for error) */
+static mrb_int
+cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
+{
+#ifdef MRB_WITHOUT_FLOAT
+  mrb_int x, y;
+#else
+  mrb_float x, y;
+#endif
+
+#ifdef MRB_WITHOUT_FLOAT
+  x = mrb_fixnum(v1);
+#else
+  x = mrb_to_flo(mrb, v1);
+#endif
+  switch (mrb_type(v2)) {
+  case MRB_TT_FIXNUM:
+#ifdef MRB_WITHOUT_FLOAT
+    y = mrb_fixnum(v2);
+#else
+    y = (mrb_float)mrb_fixnum(v2);
+#endif
+    break;
+#ifndef MRB_WITHOUT_FLOAT
+  case MRB_TT_FLOAT:
+    y = mrb_float(v2);
+    break;
+#endif
+  default:
+    return -2;
+  }
+  if (x > y)
+    return 1;
+  else {
+    if (x < y)
+      return -1;
+    return 0;
+  }
+}
+
 /* 15.2.9.3.6  */
 /*
  * call-seq:
@@ -1333,42 +1373,72 @@ static mrb_value
 num_cmp(mrb_state *mrb, mrb_value self)
 {
   mrb_value other;
-#ifdef MRB_WITHOUT_FLOAT
-  mrb_int x, y;
-#else
-  mrb_float x, y;
-#endif
+  mrb_int n;
 
   mrb_get_args(mrb, "o", &other);
+  n = cmpnum(mrb, self, other);
+  if (n == -2) return mrb_nil_value();
+  return mrb_fixnum_value(n);
+}
 
-#ifdef MRB_WITHOUT_FLOAT
-  x = mrb_fixnum(self);
-#else
-  x = mrb_to_flo(mrb, self);
-#endif
-  switch (mrb_type(other)) {
-  case MRB_TT_FIXNUM:
-#ifdef MRB_WITHOUT_FLOAT
-    y = mrb_fixnum(other);
-#else
-    y = (mrb_float)mrb_fixnum(other);
-#endif
-    break;
-#ifndef MRB_WITHOUT_FLOAT
-  case MRB_TT_FLOAT:
-    y = mrb_float(other);
-    break;
-#endif
-  default:
-    return mrb_nil_value();
-  }
-  if (x > y)
-    return mrb_fixnum_value(1);
-  else {
-    if (x < y)
-      return mrb_fixnum_value(-1);
-    return mrb_fixnum_value(0);
-  }
+static void
+cmperr(mrb_state *mrb, mrb_value v1, mrb_value v2)
+{
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison of %S with %S failed",
+             mrb_obj_value(mrb_class(mrb, v1)),
+             mrb_obj_value(mrb_class(mrb, v2)));
+}
+
+static mrb_value
+num_lt(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other;
+  mrb_int n;
+
+  mrb_get_args(mrb, "o", &other);
+  n = cmpnum(mrb, self, other);
+  if (n == -2) cmperr(mrb, self, other);
+  if (n < 0) return mrb_true_value();
+  return mrb_false_value();
+}
+
+static mrb_value
+num_le(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other;
+  mrb_int n;
+
+  mrb_get_args(mrb, "o", &other);
+  n = cmpnum(mrb, self, other);
+  if (n == -2) cmperr(mrb, self, other);
+  if (n <= 0) return mrb_true_value();
+  return mrb_false_value();
+}
+
+static mrb_value
+num_gt(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other;
+  mrb_int n;
+
+  mrb_get_args(mrb, "o", &other);
+  n = cmpnum(mrb, self, other);
+  if (n == -2) cmperr(mrb, self, other);
+  if (n > 0) return mrb_true_value();
+  return mrb_false_value();
+}
+
+static mrb_value
+num_ge(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other;
+  mrb_int n;
+
+  mrb_get_args(mrb, "o", &other);
+  n = cmpnum(mrb, self, other);
+  if (n == -2) cmperr(mrb, self, other);
+  if (n >= 0) return mrb_true_value();
+  return mrb_false_value();
 }
 
 static mrb_value
@@ -1420,6 +1490,10 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, numeric, "/",        num_div,         MRB_ARGS_REQ(1)); /* 15.2.8.3.4  */
   mrb_define_method(mrb, numeric, "quo",      num_div,         MRB_ARGS_REQ(1)); /* 15.2.7.4.5 (x) */
   mrb_define_method(mrb, numeric, "<=>",      num_cmp,         MRB_ARGS_REQ(1)); /* 15.2.9.3.6  */
+  mrb_define_method(mrb, numeric, "<",        num_lt,          MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, numeric, "<=",       num_le,          MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, numeric, ">",        num_gt,          MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, numeric, ">=",       num_ge,          MRB_ARGS_REQ(1));
   mrb_define_method(mrb, numeric, "finite?",  num_finite_p,    MRB_ARGS_NONE());
   mrb_define_method(mrb, numeric, "infinite?",num_infinite_p,  MRB_ARGS_NONE());
 
