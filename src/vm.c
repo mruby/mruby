@@ -1338,6 +1338,7 @@ RETRY_TRY_BLOCK:
       pc = pc + 1;
       for (n=0; n<a; n++) {
         proc = mrb->c->ensure[epos+n];
+        mrb->c->ensure[epos+n] = NULL;
         irep = proc->body.irep;
         ci = cipush(mrb);
         ci->mid = ci[-1].mid;
