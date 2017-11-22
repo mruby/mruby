@@ -599,8 +599,7 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
     }
   }
   /* mark ensure stack */
-  for (i=0; i<c->esize; i++) {
-    if (c->ensure[i] == NULL) break;
+  for (i=0; i<c->eidx; i++) {
     mrb_gc_mark(mrb, (struct RBasic*)c->ensure[i]);
   }
   /* mark fibers */
