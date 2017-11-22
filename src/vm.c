@@ -1329,7 +1329,7 @@ RETRY_TRY_BLOCK:
       mrb_value self = regs[0];
       struct RClass *target_class = ci->target_class;
 
-      if (mrb->c->eidx == epos) {
+      if (mrb->c->eidx <= epos) {
         NEXT;
       }
 
