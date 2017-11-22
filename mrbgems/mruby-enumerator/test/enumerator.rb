@@ -509,28 +509,28 @@ end
 
 assert 'Hash#select' do
   h = {1=>2,3=>4,5=>6}
-  hret = h.select.with_index {|a,b| a[1] == 4}
+  hret = h.select.with_index {|a,_b| a[1] == 4}
   assert_equal({3=>4}, hret)
   assert_equal({1=>2,3=>4,5=>6}, h)
 end
 
 assert 'Hash#select!' do
   h = {1=>2,3=>4,5=>6}
-  hret = h.select!.with_index {|a,b| a[1] == 4}
+  hret = h.select!.with_index {|a,_b| a[1] == 4}
   assert_equal h, hret
   assert_equal({3=>4}, h)
 end
 
 assert 'Hash#reject' do
   h = {1=>2,3=>4,5=>6}
-  hret = h.reject.with_index {|a,b| a[1] == 4}
+  hret = h.reject.with_index {|a,_b| a[1] == 4}
   assert_equal({1=>2,5=>6}, hret)
   assert_equal({1=>2,3=>4,5=>6}, h)
 end
 
 assert 'Hash#reject!' do
   h = {1=>2,3=>4,5=>6}
-  hret = h.reject!.with_index {|a,b| a[1] == 4}
+  hret = h.reject!.with_index {|a,_b| a[1] == 4}
   assert_equal h, hret
   assert_equal({1=>2,5=>6}, h)
 end
