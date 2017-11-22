@@ -1843,7 +1843,7 @@ RETRY_TRY_BLOCK:
 
 #define ecall_adjust() do {\
   ptrdiff_t cioff = ci - mrb->c->cibase;\
-  ecall(mrb, --mrb->c->eidx);\
+  ecall(mrb);\
   ci = mrb->c->cibase + cioff;\
 } while (0)
 
@@ -2890,7 +2890,7 @@ RETRY_TRY_BLOCK:
         int epos = mrb->c->ci->epos;
 
         while (mrb->c->eidx > epos) {
-          ecall(mrb, --mrb->c->eidx);
+          ecall(mrb);
         }
       }
       ERR_PC_CLR(mrb);
