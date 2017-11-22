@@ -306,7 +306,7 @@ cipop(mrb_state *mrb)
 void mrb_exc_set(mrb_state *mrb, mrb_value exc);
 
 static void
-ecall(mrb_state *mrb, int i)
+ecall(mrb_state *mrb)
 {
   struct RProc *p;
   int nregs;
@@ -316,6 +316,7 @@ ecall(mrb_state *mrb, int i)
   struct REnv *env;
   ptrdiff_t cioff;
   int ai = mrb_gc_arena_save(mrb);
+  int i = --c->eidx;
 
   if (i<0) return;
   if (ci - c->cibase > MRB_FUNCALL_DEPTH_MAX) {
