@@ -325,6 +325,7 @@ ecall(mrb_state *mrb)
   if (!p) return;
   mrb_assert(!MRB_PROC_CFUNC_P(p));
   c->ensure[i] = NULL;
+  c->stack += ci->proc->body.irep->nregs;
   cioff = ci - c->cibase;
   ci = cipush(mrb);
   ci->stackent = mrb->c->stack;
@@ -336,7 +337,6 @@ ecall(mrb_state *mrb)
   ci->target_class = MRB_PROC_TARGET_CLASS(p);
   env = MRB_PROC_ENV(p);
   mrb_assert(env);
-  c->stack += p->upper->body.irep->nregs;
   exc = mrb->exc; mrb->exc = 0;
   if (exc) {
     mrb_gc_protect(mrb, mrb_obj_value(exc));
