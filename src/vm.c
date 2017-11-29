@@ -2884,12 +2884,11 @@ RETRY_TRY_BLOCK:
     CASE(OP_STOP) {
       /*        stop VM */
     L_STOP:
-      {
-        int epos = mrb->c->ci->epos;
-
-        while (mrb->c->eidx > epos) {
-          ecall(mrb);
-        }
+      while (mrb->c->ci > mrb->c->cibase) {
+        cipop(mrb);
+      }
+      while (mrb->c->eidx > 0) {
+        ecall(mrb);
       }
       ERR_PC_CLR(mrb);
       mrb->jmp = prev_jmp;
