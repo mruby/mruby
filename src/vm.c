@@ -1977,7 +1977,7 @@ RETRY_TRY_BLOCK:
               goto L_RAISE;
             }
             while (mrb->c->eidx > 0) {
-              ecall_adjust();
+              ecall(mrb);
             }
             /* automatic yield at the end */
             mrb->c->status = MRB_FIBER_TERMINATED;
