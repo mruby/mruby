@@ -1968,6 +1968,8 @@ RETRY_TRY_BLOCK:
         case OP_R_NORMAL:
         NORMAL_RETURN:
           if (ci == mrb->c->cibase) {
+            struct mrb_context *c;
+
             if (!mrb->c->prev) { /* toplevel return */
               localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
               goto L_RAISE;
@@ -1981,8 +1983,10 @@ RETRY_TRY_BLOCK:
               ecall(mrb);
             }
             /* automatic yield at the end */
-            mrb->c->status = MRB_FIBER_TERMINATED;
-            mrb->c = mrb->c->prev;
+            c = mrb->c;
+            c->status = MRB_FIBER_TERMINATED;
+            mrb->c = c->prev;
+            c->prev = NULL;
             mrb->c->status = MRB_FIBER_RUNNING;
             ci = mrb->c->ci;
           }
