@@ -84,7 +84,7 @@ print_backtrace(mrb_state *mrb, mrb_value backtrace)
   n = RARRAY_LEN(backtrace) - 1;
   if (n == 0) return;
 
-  fprintf(stream, "trace:\n");
+  fprintf(stream, "trace (most recent call last):\n");
   for (i=0; i<n; i++) {
     mrb_value entry = RARRAY_PTR(backtrace)[n-i-1];
 
@@ -121,7 +121,7 @@ print_packed_backtrace(mrb_state *mrb, mrb_value packed)
   n = (mrb_int)RDATA(packed)->flags;
 
   if (packed_bt_len(bt, n) == 0) return;
-  fprintf(stream, "trace:\n");
+  fprintf(stream, "trace (most recent call last):\n");
   for (i = 0; i<n; i++) {
     struct backtrace_location *entry = &bt[n-i-1];
     if (entry->filename == NULL) continue;
