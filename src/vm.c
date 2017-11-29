@@ -316,6 +316,7 @@ ecall(mrb_state *mrb)
   ptrdiff_t cioff;
   int ai = mrb_gc_arena_save(mrb);
   int i = --c->eidx;
+  int nregs;
 
   if (i<0) return;
   if (ci - c->cibase > MRB_FUNCALL_DEPTH_MAX) {
@@ -325,7 +326,7 @@ ecall(mrb_state *mrb)
   if (!p) return;
   mrb_assert(!MRB_PROC_CFUNC_P(p));
   c->ensure[i] = NULL;
-  c->stack += ci->proc->body.irep->nregs;
+  nregs = ci->proc->body.irep->nregs;
   cioff = ci - c->cibase;
   ci = cipush(mrb);
   ci->stackent = mrb->c->stack;
@@ -335,6 +336,7 @@ ecall(mrb_state *mrb)
   ci->proc = p;
   ci->nregs = p->body.irep->nregs;
   ci->target_class = MRB_PROC_TARGET_CLASS(p);
+  c->stack += nregs;
   env = MRB_PROC_ENV(p);
   mrb_assert(env);
   exc = mrb->exc; mrb->exc = 0;
