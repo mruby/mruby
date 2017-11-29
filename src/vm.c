@@ -1896,6 +1896,9 @@ RETRY_TRY_BLOCK:
               else {
                 struct mrb_context *c = mrb->c;
 
+                while (c->eidx > ci->epos) {
+                  ecall_adjust();
+                }
                 if (c->fib) {
                   mrb_write_barrier(mrb, (struct RBasic*)c->fib);
                 }
