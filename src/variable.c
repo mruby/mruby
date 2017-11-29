@@ -948,6 +948,7 @@ find_class_sym(mrb_state *mrb, struct RClass *outer, struct RClass *c)
   struct csym_arg arg;
  
   if (!outer) return 0;
+  if (outer == c) return 0;
   arg.c = c;
   arg.sym = 0;
   iv_foreach(mrb, outer->iv, csym_i, &arg);
