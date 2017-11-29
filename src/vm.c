@@ -300,7 +300,7 @@ cipop(mrb_state *mrb)
   struct REnv *env = c->ci->env;
 
   c->ci--;
-  mrb_env_unshare(mrb, env);
+  if (env) mrb_env_unshare(mrb, env);
 }
 
 void mrb_exc_set(mrb_state *mrb, mrb_value exc);
