@@ -327,7 +327,8 @@ ecall(mrb_state *mrb)
   mrb_assert(!MRB_PROC_CFUNC_P(p));
   c->ensure[i] = NULL;
   nregs = p->upper->body.irep->nregs;
-  if (ci->proc->body.irep->nregs > nregs) {
+  if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc) &&
+      ci->proc->body.irep->nregs > nregs) {
     nregs = ci->proc->body.irep->nregs;
   }
   cioff = ci - c->cibase;
