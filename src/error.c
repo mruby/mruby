@@ -229,6 +229,9 @@ mrb_exc_set(mrb_state *mrb, mrb_value exc)
   }
   else {
     mrb->exc = mrb_obj_ptr(exc);
+    if ((struct RBasic*)mrb->exc == mrb->gc.arena[mrb->gc.arena_idx-1]) {
+      mrb->gc.arena_idx--;
+    }
     if (!mrb->gc.out_of_memory) {
       exc_debug_info(mrb, mrb->exc);
       mrb_keep_backtrace(mrb, exc);
