@@ -19,6 +19,7 @@
 #include <readline/history.h>
 #define MIRB_ADD_HISTORY(line) add_history(line)
 #define MIRB_READLINE(ch) readline(ch)
+#define MIRB_LINE_FREE(line) rl_free(line)
 #define MIRB_WRITE_HISTORY(path) write_history(path)
 #define MIRB_READ_HISTORY(path) read_history(path)
 #define MIRB_USING_HISTORY() using_history()
@@ -27,6 +28,7 @@
 #include <linenoise.h>
 #define MIRB_ADD_HISTORY(line) linenoiseHistoryAdd(line)
 #define MIRB_READLINE(ch) linenoise(ch)
+#define MIRB_LINE_FREE(line) linenoiseFree(line)
 #define MIRB_WRITE_HISTORY(path) linenoiseHistorySave(path)
 #define MIRB_READ_HISTORY(path) linenoiseHistoryLoad(history_path)
 #define MIRB_USING_HISTORY()
@@ -489,7 +491,7 @@ main(int argc, char **argv)
     strcpy(last_code_line, line);
     strcat(last_code_line, "\n");
     MIRB_ADD_HISTORY(line);
-    free(line);
+    MIRB_LINE_FREE(line);
 #endif
 
 done:
