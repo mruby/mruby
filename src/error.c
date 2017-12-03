@@ -265,6 +265,7 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
   const char *p = format;
   const char *b = p;
   ptrdiff_t size;
+  int ai0 = mrb_gc_arena_save(mrb);
   mrb_value ary = mrb_ary_new_capa(mrb, 4);
   int ai = mrb_gc_arena_save(mrb);
 
@@ -296,15 +297,20 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
     mrb_gc_arena_restore(mrb, ai);
   }
   if (b == format) {
+    mrb_gc_arena_restore(mrb, ai0);
     return mrb_str_new_cstr(mrb, format);
   }
   else {
+    mrb_value val;
+
     size = p - b;
     if (size > 0) {
       mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
-      mrb_gc_arena_restore(mrb, ai);
     }
-    return mrb_ary_join(mrb, ary, mrb_nil_value());
+    val = mrb_ary_join(mrb, ary, mrb_nil_value());
+    mrb_gc_arena_restore(mrb, ai0);
+    mrb_gc_protect(mrb, val);
+    return val;
   }
 }
 
