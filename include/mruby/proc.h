@@ -114,7 +114,7 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state*, mrb_int);
 #define MRB_METHOD_FROM_FUNC(m,fn) do{(m).func_p=TRUE;(m).func=(fn);}while(0)
 #define MRB_METHOD_FROM_PROC(m,pr) do{(m).func_p=FALSE;(m).proc=(pr);}while(0)
 #define MRB_METHOD_PROC_P(m) (!MRB_METHOD_FUNC_P(m))
-#define MRB_METHOD_PROC(fn) ((m).proc)
+#define MRB_METHOD_PROC(m) ((m).proc)
 #define MRB_METHOD_UNDEF_P(m) ((m).proc==NULL)
 
 #endif /* MRB_METHOD_TABLE_INLINE */
