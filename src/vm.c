@@ -2043,7 +2043,9 @@ RETRY_TRY_BLOCK:
           proc = proc->upper;
           while (mrb->c->cibase < ci &&  ci[-1].proc != proc) {
             if (ci[-1].acc == CI_ACC_SKIP) {
-              mrb->c->ci = ci;
+              while (ci < mrb->c->ci) {
+                cipop(mrb);
+              }
               goto L_BREAK_ERROR;
             }
             ci--;
@@ -2053,6 +2055,9 @@ RETRY_TRY_BLOCK:
           /* cannot happen */
           break;
         }
+        while (ci < mrb->c->ci) {
+          cipop(mrb);
+        }
         while (mrb->c->eidx > ci->epos) {
           ecall_adjust();
         }
@@ -2061,10 +2066,6 @@ RETRY_TRY_BLOCK:
           mrb->c->vmexec = FALSE;
           mrb->jmp = prev_jmp;
           return v;
-        }
-        while (ci < mrb->c->ci) {
-          mrb_env_unshare(mrb, mrb->c->ci->env);
-          mrb->c->ci--;
         }
         acc = ci->acc;
         mrb->c->stack = ci->stackent;
