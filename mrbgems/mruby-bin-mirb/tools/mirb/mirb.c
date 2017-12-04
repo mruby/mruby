@@ -19,7 +19,12 @@
 #include <readline/history.h>
 #define MIRB_ADD_HISTORY(line) add_history(line)
 #define MIRB_READLINE(ch) readline(ch)
+#if defined(__APPLE__) || defined(__NetBSD__) || defined(__OpenBSD__)
+/* libedit does not have rl_free() */
+#define MIRB_LINE_FREE(line) free(line)
+#else
 #define MIRB_LINE_FREE(line) rl_free(line)
+#endif
 #define MIRB_WRITE_HISTORY(path) write_history(path)
 #define MIRB_READ_HISTORY(path) read_history(path)
 #define MIRB_USING_HISTORY() using_history()
