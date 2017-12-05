@@ -1398,6 +1398,7 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
   struct mrb_cache_entry *mc = &mrb->cache[h];
 
   if (mc->c == c && mc->mid == mid) {
+    *cp = mc->c0;
     return mc->m;
   }
 #endif
@@ -1413,6 +1414,7 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
         *cp = c;
 #ifdef MRB_METHOD_CACHE
         mc->c = oc;
+        mc->c0 = c;
         mc->mid = mid;
         mc->m = m;
 #endif

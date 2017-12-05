@@ -186,7 +186,7 @@ typedef struct {
 
 #ifdef MRB_METHOD_CACHE
 struct mrb_cache_entry {
-  struct RClass *c;
+  struct RClass *c, *c0;
   mrb_sym mid;
   mrb_method_t m;
 };
