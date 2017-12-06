@@ -53,6 +53,11 @@ void abort(void);
 #define MRB_FUNCALL_DEPTH_MAX 512
 #endif
 
+/* Maximum depth of ecall() recursion. */
+#ifndef MRB_ECALL_DEPTH_MAX
+#define MRB_ECALL_DEPTH_MAX 32
+#endif
+
 /* Maximum stack depth. Should be set lower on memory constrained systems.
 The value below allows about 60000 recursive calls in the simplest case. */
 #ifndef MRB_STACK_MAX
@@ -319,7 +324,7 @@ ecall(mrb_state *mrb)
   int nregs;
 
   if (i<0) return;
-  if (ci - c->cibase > MRB_FUNCALL_DEPTH_MAX) {
+  if (ci - c->cibase > MRB_ECALL_DEPTH_MAX) {
     mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
   }
   p = c->ensure[i];
