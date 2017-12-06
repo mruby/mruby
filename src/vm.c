@@ -2065,6 +2065,9 @@ RETRY_TRY_BLOCK:
             }
             ci--;
           }
+          if (ci == mrb->c->cibase) {
+            goto L_BREAK_ERROR;
+          }
           break;
         default:
           /* cannot happen */
