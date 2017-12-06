@@ -2019,8 +2019,15 @@ RETRY_TRY_BLOCK:
           if (!MRB_PROC_ENV_P(proc) || !MRB_ENV_STACK_SHARED_P(MRB_PROC_ENV(proc))) {
             goto L_BREAK_ERROR;
           }
-          if (MRB_PROC_ENV(proc)->cxt != mrb->c) {
-            goto L_BREAK_ERROR;
+          else {
+            struct REnv *e = MRB_PROC_ENV(proc);
+
+            if (e == mrb->c->cibase->env && proc != mrb->c->cibase->proc) {
+              goto L_BREAK_ERROR;
+            }
+            if (e->cxt != mrb->c) {
+              goto L_BREAK_ERROR;
+            }
           }
           while (mrb->c->eidx > mrb->c->ci->epos) {
             ecall_adjust();
