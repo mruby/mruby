@@ -1,11 +1,15 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "mruby.h"
 
 mrb_value
 mrb_sockettest_tmppath(mrb_state *mrb, mrb_value klass)
 {
-  return mrb_str_new_cstr(mrb, tempnam(NULL, "mruby-socket"));
+  char *tmp = tempnam(NULL, "mruby-socket");
+  mrb_value str = mrb_str_new_cstr(mrb, tmp);
+  free(tmp);
+  return str;
 }
 
 void
