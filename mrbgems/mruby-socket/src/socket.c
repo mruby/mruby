@@ -491,7 +491,7 @@ mrb_ipsocket_pton(mrb_state *mrb, mrb_value klass)
   char *bp, buf[50];
 
   mrb_get_args(mrb, "is", &af, &bp, &n);
-  if (n > sizeof(buf) - 1)
+  if ((size_t)n > sizeof(buf) - 1)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid address");
   memcpy(buf, bp, n);
   buf[n] = '\0';
@@ -627,11 +627,11 @@ mrb_socket_sockaddr_family(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "S", &sa);
 #ifdef __linux__
-  if (RSTRING_LEN(sa) < offsetof(struct sockaddr, sa_family) + sizeof(sa_family_t)) {
+  if ((size_t)RSTRING_LEN(sa) < offsetof(struct sockaddr, sa_family) + sizeof(sa_family_t)) {
     mrb_raisef(mrb, E_SOCKET_ERROR, "invalid sockaddr (too short)");
   }
 #else
-  if (RSTRING_LEN(sa) < sizeof(struct sockaddr)) {
+  if ((size_t)RSTRING_LEN(sa) < sizeof(struct sockaddr)) {
     mrb_raisef(mrb, E_SOCKET_ERROR, "invalid sockaddr (too short)");
   }
 #endif
@@ -649,7 +649,7 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
   mrb_value path, s;
 
   mrb_get_args(mrb, "S", &path);
-  if (RSTRING_LEN(path) > sizeof(sunp->sun_path) - 1) {
+  if ((size_t)RSTRING_LEN(path) > sizeof(sunp->sun_path) - 1) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "too long unix socket path (max: %ubytes)", (unsigned int)sizeof(sunp->sun_path) - 1);
   }
   s = mrb_str_buf_new(mrb, sizeof(struct sockaddr_un));
