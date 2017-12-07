@@ -413,7 +413,7 @@ static int
 pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, long count, unsigned int flags)
 {
   char utf8[4];
-  int len;
+  int len = 0;
   unsigned long c = 0;
 
   if (mrb_float_p(o)) {
@@ -471,7 +471,7 @@ utf8_to_uv(mrb_state *mrb, const char *p, long *lenp)
 {
   int c = *p++ & 0xff;
   unsigned long uv = c;
-  long n;
+  long n = 1;
 
   if (!(uv & 0x80)) {
     *lenp = 1;
