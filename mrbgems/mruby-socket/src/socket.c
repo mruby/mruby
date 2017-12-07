@@ -803,8 +803,6 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   result = WSAStartup(MAKEWORD(2,2), &wsaData);
   if (result != NO_ERROR)
     mrb_raise(mrb, E_RUNTIME_ERROR, "WSAStartup failed");
-#else
-  struct RClass *usock;
 #endif
 
   ai = mrb_define_class(mrb, "Addrinfo", mrb->object_class);
@@ -861,14 +859,14 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   //mrb_define_method(mrb, sock, "sysaccept", mrb_socket_accept, MRB_ARGS_NONE());
 
 #ifndef _WIN32
-  usock = mrb_define_class(mrb, "UNIXSocket", bsock);
-#endif
+  mrb_define_class(mrb, "UNIXSocket", bsock);
   //mrb_define_class_method(mrb, usock, "pair", mrb_unixsocket_open, MRB_ARGS_OPT(2));
   //mrb_define_class_method(mrb, usock, "socketpair", mrb_unixsocket_open, MRB_ARGS_OPT(2));
 
   //mrb_define_method(mrb, usock, "recv_io", mrb_unixsocket_peeraddr, MRB_ARGS_NONE());
   //mrb_define_method(mrb, usock, "recvfrom", mrb_unixsocket_peeraddr, MRB_ARGS_NONE());
   //mrb_define_method(mrb, usock, "send_io", mrb_unixsocket_peeraddr, MRB_ARGS_NONE());
+#endif
 
   /* Windows IO Method Overrides on BasicSocket */
 #ifdef _WIN32
