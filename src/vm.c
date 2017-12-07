@@ -1882,7 +1882,6 @@ RETRY_TRY_BLOCK:
 
       if (mrb->exc) {
         mrb_callinfo *ci0;
-        mrb_value *stk;
 
       L_RAISE:
         ci0 = ci = mrb->c->ci;
@@ -1890,7 +1889,6 @@ RETRY_TRY_BLOCK:
           if (ci->ridx == 0) goto L_FTOP;
           goto L_RESCUE;
         }
-        stk = mrb->c->stack;
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           mrb->c->stack = ci->stackent;
@@ -1900,7 +1898,6 @@ RETRY_TRY_BLOCK:
           }
           ci = mrb->c->ci;
           if (ci == mrb->c->cibase) {
-            mrb->c->stack = stk;
             if (ci->ridx == 0) {
             L_FTOP:             /* fiber top */
               if (mrb->c == mrb->root_c) {
