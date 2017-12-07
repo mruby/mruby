@@ -1,0 +1,453 @@
+#ifdef AF_INET
+  define_const(AF_INET);
+#endif
+#ifdef PF_INET
+  define_const(PF_INET);
+#endif
+#ifdef AF_INET6
+  define_const(AF_INET6);
+#endif
+#ifdef PF_INET6
+  define_const(PF_INET6);
+#endif
+#ifdef AF_LINK
+  define_const(AF_LINK);
+#endif
+#ifdef PF_LINK
+  define_const(PF_LINK);
+#endif
+#ifdef AF_LOCAL
+  define_const(AF_LOCAL);
+#endif
+#ifdef PF_LOCAL
+  define_const(PF_LOCAL);
+#endif
+#ifdef AF_UNIX
+  define_const(AF_UNIX);
+#endif
+#ifdef PF_UNIX
+  define_const(PF_UNIX);
+#endif
+#ifdef AF_MAX
+  define_const(AF_MAX);
+#endif
+#ifdef AF_UNSPEC
+  define_const(AF_UNSPEC);
+#endif
+#ifdef PF_UNSPEC
+  define_const(PF_UNSPEC);
+#endif
+#ifdef AF_ROUTE
+  define_const(AF_ROUTE);
+#endif
+#ifdef PF_ROUTE
+  define_const(PF_ROUTE);
+#endif
+#ifdef AI_CANONNAME
+  define_const(AI_CANONNAME);
+#endif
+#ifdef AI_FQDN
+  define_const(AI_FQDN);
+#endif
+#ifdef AI_NUMERICHOST
+  define_const(AI_NUMERICHOST);
+#endif
+#ifdef AI_NUMERICSERV
+  define_const(AI_NUMERICSERV);
+#endif
+#ifdef AI_PASSIVE
+  define_const(AI_PASSIVE);
+#endif
+#ifdef IP_ADD_MEMBERSHIP
+  define_const(IP_ADD_MEMBERSHIP);
+#endif
+#ifdef IP_ADD_SOURCE_MEMBERSHIP
+  define_const(IP_ADD_SOURCE_MEMBERSHIP);
+#endif
+#ifdef IP_BLOCK_SOURCE
+  define_const(IP_BLOCK_SOURCE);
+#endif
+#ifdef IP_DROP_MEMBERSHIP
+  define_const(IP_DROP_MEMBERSHIP);
+#endif
+#ifdef IP_DROP_SOURCE_MEMBERSHIP
+  define_const(IP_DROP_SOURCE_MEMBERSHIP);
+#endif
+#ifdef IP_FREEBIND
+  define_const(IP_FREEBIND);
+#endif
+#ifdef IP_HDRINCL
+  define_const(IP_HDRINCL);
+#endif
+#ifdef IP_IPSEC_POLICY
+  define_const(IP_IPSEC_POLICY);
+#endif
+#ifdef IP_MINTTL
+  define_const(IP_MINTTL);
+#endif
+#ifdef IP_MSFILTER
+  define_const(IP_MSFILTER);
+#endif
+#ifdef IP_MTU
+  define_const(IP_MTU);
+#endif
+#ifdef IP_MTU_DISCOVER
+  define_const(IP_MTU_DISCOVER);
+#endif
+#ifdef IP_MULTICAST_ALL
+  define_const(IP_MULTICAST_ALL);
+#endif
+#ifdef IP_MULTICAST_IF
+  define_const(IP_MULTICAST_IF);
+#endif
+#ifdef IP_MULTICAST_LOOP
+  define_const(IP_MULTICAST_LOOP);
+#endif
+#ifdef IP_MULTICAST_TTL
+  define_const(IP_MULTICAST_TTL);
+#endif
+#ifdef IP_OPTIONS
+  define_const(IP_OPTIONS);
+#endif
+#ifdef IP_ORIGDSTADDR
+  define_const(IP_ORIGDSTADDR);
+#endif
+#ifdef IP_PASSSEC
+  define_const(IP_PASSSEC);
+#endif
+#ifdef IP_PKTINFO
+  define_const(IP_PKTINFO);
+#endif
+#ifdef IP_PKTOPTIONS
+  define_const(IP_PKTOPTIONS);
+#endif
+#ifdef IP_PMTUDISC_DO
+  define_const(IP_PMTUDISC_DO);
+#endif
+#ifdef IP_PMTUDISC_DONT
+  define_const(IP_PMTUDISC_DONT);
+#endif
+#ifdef IP_PMTUDISC_PROBE
+  define_const(IP_PMTUDISC_PROBE);
+#endif
+#ifdef IP_PMTUDISC_WANT
+  define_const(IP_PMTUDISC_WANT);
+#endif
+#ifdef IP_RECVDSTADDR
+  define_const(IP_RECVDSTADDR);
+#endif
+#ifdef IP_RECVERR
+  define_const(IP_RECVERR);
+#endif
+#ifdef IP_RECVOPTS
+  define_const(IP_RECVOPTS);
+#endif
+#ifdef IP_RECVORIGDSTADDR
+  define_const(IP_RECVORIGDSTADDR);
+#endif
+#ifdef IP_RECVRETOPTS
+  define_const(IP_RECVRETOPTS);
+#endif
+#ifdef IP_RECVTOS
+  define_const(IP_RECVTOS);
+#endif
+#ifdef IP_RECVTTL
+  define_const(IP_RECVTTL);
+#endif
+#ifdef IP_RETOPTS
+  define_const(IP_RETOPTS);
+#endif
+#ifdef IP_ROUTER_ALERT
+  define_const(IP_ROUTER_ALERT);
+#endif
+#ifdef IP_TOS
+  define_const(IP_TOS);
+#endif
+#ifdef IP_TRANSPARENT
+  define_const(IP_TRANSPARENT);
+#endif
+#ifdef IP_TTL
+  define_const(IP_TTL);
+#endif
+#ifdef IP_UNBLOCK_SOURCE
+  define_const(IP_UNBLOCK_SOURCE);
+#endif
+#ifdef IP_XFRM_POLICY
+  define_const(IP_XFRM_POLICY);
+#endif
+#ifdef IPV6_JOIN_GROUP
+  define_const(IPV6_JOIN_GROUP);
+#endif
+#ifdef IPV6_LEAVE_GROUP
+  define_const(IPV6_LEAVE_GROUP);
+#endif
+#ifdef IPV6_MULTICAST_HOPS
+  define_const(IPV6_MULTICAST_HOPS);
+#endif
+#ifdef IPV6_MULTICAST_IF
+  define_const(IPV6_MULTICAST_IF);
+#endif
+#ifdef IPV6_MULTICAST_LOOP
+  define_const(IPV6_MULTICAST_LOOP);
+#endif
+#ifdef IPV6_UNICAST_HOPS
+  define_const(IPV6_UNICAST_HOPS);
+#endif
+#ifdef IPV6_V6ONLY
+  define_const(IPV6_V6ONLY);
+#endif
+#ifdef IPPROTO_AH
+  define_const(IPPROTO_AH);
+#endif
+#ifdef IPPROTO_DSTOPTS
+  define_const(IPPROTO_DSTOPTS);
+#endif
+#ifdef IPPROTO_ESP
+  define_const(IPPROTO_ESP);
+#endif
+#ifdef IPPROTO_FRAGMENT
+  define_const(IPPROTO_FRAGMENT);
+#endif
+#ifdef IPPROTO_ICMP
+  define_const(IPPROTO_ICMP);
+#endif
+#ifdef IPPROTO_ICMPV6
+  define_const(IPPROTO_ICMPV6);
+#endif
+#ifdef IPPROTO_IP
+  define_const(IPPROTO_IP);
+#endif
+#ifdef IPPROTO_IPV6
+  define_const(IPPROTO_IPV6);
+#endif
+#ifdef IPPROTO_NONE
+  define_const(IPPROTO_NONE);
+#endif
+#ifdef IPPROTO_RAW
+  define_const(IPPROTO_RAW);
+#endif
+#ifdef IPPROTO_ROUTING
+  define_const(IPPROTO_ROUTING);
+#endif
+#ifdef IPPROTO_TCP
+  define_const(IPPROTO_TCP);
+#endif
+#ifdef IPPROTO_UDP
+  define_const(IPPROTO_UDP);
+#endif
+#ifdef MCAST_BLOCK_SOURCE
+  define_const(MCAST_BLOCK_SOURCE);
+#endif
+#ifdef MCAST_JOIN_GROUP
+  define_const(MCAST_JOIN_GROUP);
+#endif
+#ifdef MCAST_JOIN_SOURCE_GROUP
+  define_const(MCAST_JOIN_SOURCE_GROUP);
+#endif
+#ifdef MCAST_LEAVE_GROUP
+  define_const(MCAST_LEAVE_GROUP);
+#endif
+#ifdef MCAST_LEAVE_SOURCE_GROUP
+  define_const(MCAST_LEAVE_SOURCE_GROUP);
+#endif
+#ifdef MCAST_MSFILTER
+  define_const(MCAST_MSFILTER);
+#endif
+#ifdef MCAST_UNBLOCK_SOURCE
+  define_const(MCAST_UNBLOCK_SOURCE);
+#endif
+#ifdef MSG_BCAST
+  define_const(MSG_BCAST);
+#endif
+#ifdef MSG_CTRUNC
+  define_const(MSG_CTRUNC);
+#endif
+#ifdef MSG_DONTROUTE
+  define_const(MSG_DONTROUTE);
+#endif
+#ifdef MSG_DONTWAIT
+  define_const(MSG_DONTWAIT);
+#endif
+#ifdef MSG_EOR
+  define_const(MSG_EOR);
+#endif
+#ifdef MSG_MCAST
+  define_const(MSG_MCAST);
+#endif
+#ifdef MSG_NOSIGNAL
+  define_const(MSG_NOSIGNAL);
+#endif
+#ifdef MSG_OOB
+  define_const(MSG_OOB);
+#endif
+#ifdef MSG_PEEK
+  define_const(MSG_PEEK);
+#endif
+#ifdef MSG_TRUNC
+  define_const(MSG_TRUNC);
+#endif
+#ifdef MSG_WAITALL
+  define_const(MSG_WAITALL);
+#endif
+#ifdef NI_DGRAM
+  define_const(NI_DGRAM);
+#endif
+#ifdef NI_MAXHOST
+  define_const(NI_MAXHOST);
+#endif
+#ifdef NI_MAXSERV
+  define_const(NI_MAXSERV);
+#endif
+#ifdef NI_NAMEREQD
+  define_const(NI_NAMEREQD);
+#endif
+#ifdef NI_NOFQDN
+  define_const(NI_NOFQDN);
+#endif
+#ifdef NI_NUMERICHOST
+  define_const(NI_NUMERICHOST);
+#endif
+#ifdef NI_NUMERICSERV
+  define_const(NI_NUMERICSERV);
+#endif
+#ifdef SHUT_RD
+  define_const(SHUT_RD);
+#endif
+#ifdef SHUT_WR
+  define_const(SHUT_WR);
+#endif
+#ifdef SHUT_RDWR
+  define_const(SHUT_RDWR);
+#endif
+#ifdef SO_BINDANY
+  define_const(SO_BINDANY);
+#endif
+#ifdef SO_BROADCAST
+  define_const(SO_BROADCAST);
+#endif
+#ifdef SO_DEBUG
+  define_const(SO_DEBUG);
+#endif
+#ifdef SO_DONTROUTE
+  define_const(SO_DONTROUTE);
+#endif
+#ifdef SO_ERROR
+  define_const(SO_ERROR);
+#endif
+#ifdef SO_KEEPALIVE
+  define_const(SO_KEEPALIVE);
+#endif
+#ifdef SO_LINGER
+  define_const(SO_LINGER);
+#endif
+#ifdef SO_NOSIGPIPE
+  define_const(SO_NOSIGPIPE);
+#endif
+#ifdef SO_OOBINLINE
+  define_const(SO_OOBINLINE);
+#endif
+#ifdef SO_PEERCRED
+  define_const(SO_PEERCRED);
+#endif
+#ifdef SO_RCVBUF
+  define_const(SO_RCVBUF);
+#endif
+#ifdef SO_RCVLOWAT
+  define_const(SO_RCVLOWAT);
+#endif
+#ifdef SO_RCVTIMEO
+  define_const(SO_RCVTIMEO);
+#endif
+#ifdef SO_REUSEADDR
+  define_const(SO_REUSEADDR);
+#endif
+#ifdef SO_REUSEPORT
+  define_const(SO_REUSEPORT);
+#endif
+#ifdef SO_RTABLE
+  define_const(SO_RTABLE);
+#endif
+#ifdef SO_SNDBUF
+  define_const(SO_SNDBUF);
+#endif
+#ifdef SO_SNDLOWAT
+  define_const(SO_SNDLOWAT);
+#endif
+#ifdef SO_SNDTIMEO
+  define_const(SO_SNDTIMEO);
+#endif
+#ifdef SO_SPLICE
+  define_const(SO_SPLICE);
+#endif
+#ifdef SO_TIMESTAMP
+  define_const(SO_TIMESTAMP);
+#endif
+#ifdef SO_TYPE
+  define_const(SO_TYPE);
+#endif
+#ifdef SOCK_DGRAM
+  define_const(SOCK_DGRAM);
+#endif
+#ifdef SOCK_RAW
+  define_const(SOCK_RAW);
+#endif
+#ifdef SOCK_SEQPACKET
+  define_const(SOCK_SEQPACKET);
+#endif
+#ifdef SOCK_STREAM
+  define_const(SOCK_STREAM);
+#endif
+#ifdef SOL_SOCKET
+  define_const(SOL_SOCKET);
+#endif
+#ifdef TCP_CONGCTL
+  define_const(TCP_CONGCTL);
+#endif
+#ifdef TCP_CONGESTION
+  define_const(TCP_CONGESTION);
+#endif
+#ifdef TCP_CORK
+  define_const(TCP_CORK);
+#endif
+#ifdef TCP_DEFER_ACCEPT
+  define_const(TCP_DEFER_ACCEPT);
+#endif
+#ifdef TCP_INFO
+  define_const(TCP_INFO);
+#endif
+#ifdef TCP_KEEPCNT
+  define_const(TCP_KEEPCNT);
+#endif
+#ifdef TCP_KEEPIDLE
+  define_const(TCP_KEEPIDLE);
+#endif
+#ifdef TCP_KEEPINIT
+  define_const(TCP_KEEPINIT);
+#endif
+#ifdef TCP_KEEPINTVL
+  define_const(TCP_KEEPINTVL);
+#endif
+#ifdef TCP_LINGER2
+  define_const(TCP_LINGER2);
+#endif
+#ifdef TCP_MAXSEG
+  define_const(TCP_MAXSEG);
+#endif
+#ifdef TCP_MD5SIG
+  define_const(TCP_MD5SIG);
+#endif
+#ifdef TCP_NODELAY
+  define_const(TCP_NODELAY);
+#endif
+#ifdef TCP_QUICKACK
+  define_const(TCP_QUICKACK);
+#endif
+#ifdef TCP_SACK_ENABLE
+  define_const(TCP_SACK_ENABLE);
+#endif
+#ifdef TCP_SYNCNT
+  define_const(TCP_SYNCNT);
+#endif
+#ifdef TCP_WINDOW_CLAMP
+  define_const(TCP_WINDOW_CLAMP);
+#endif
