@@ -107,6 +107,7 @@ end
 
 assert("File.readlink fails with non-symlink") do
   begin
+    e2 = nil
     assert_raise(RuntimeError) {
       begin
         File.readlink($mrbtest_io_rfname)
@@ -115,8 +116,11 @@ assert("File.readlink fails with non-symlink") do
           raise RuntimeError, "SystemCallError converted to RuntimeError"
         end
         raise e
+      rescue NotImplementedError => e
+        e2 = e
       end
     }
+    raise e2 if e2
   rescue NotImplementedError => e
     skip e.message
   end
