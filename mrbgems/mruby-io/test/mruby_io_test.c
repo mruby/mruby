@@ -2,8 +2,46 @@
 #include <errno.h>
 
 #if defined(_WIN32) || defined(_WIN64)
-  #include <winsock.h>
-  #include <io.h>
+
+#include <winsock.h>
+#include <io.h>
+#include <direct.h>
+#include <string.h>
+#include <stdlib.h>
+#include <malloc.h>
+
+typedef int mode_t;
+
+static int
+mkstemp(char *p)
+{
+  char *template, *path;
+  char *path;
+  int fd;
+
+  template = strdup(p);
+  if (template == NULL) return -1;
+  path = _mktemp(template);
+  if (path[0] == 0) {
+    free(path);
+    return -1;
+  }
+  fd = _open(path, _O_CREAT|_O_BINARY|_O_RDWR|_O_TEMPORARY);
+  free(path);
+  return fd;
+}
+
+static char*
+mkdtemp(char *template)
+{
+  char *path = _mktemp(template);
+  if (path[0] == 0) return NULL;
+  if (_mkdir(path) < 0) return NULL;
+  return path;
+}
+
+#define umask(mode) _umask(mode)
+#define rmdir(path) _rmdir(path)
 #else
   #include <sys/socket.h>
   #include <unistd.h>
