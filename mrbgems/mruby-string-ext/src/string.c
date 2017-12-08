@@ -48,7 +48,7 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
   if (mrb_get_argc(mrb) == 2) {
     mrb_int pos;
     mrb_get_args(mrb, "ii", &pos, &len);
-    return mrb_str_substr(mrb, str, mrb_fixnum(a1), len);
+    return mrb_str_substr(mrb, str, pos, len);
   }
   mrb_get_args(mrb, "o|i", &a1, &len);
   switch (mrb_type(a1)) {
