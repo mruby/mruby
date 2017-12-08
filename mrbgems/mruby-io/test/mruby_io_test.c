@@ -5,6 +5,7 @@
 
 #include <winsock.h>
 #include <io.h>
+#include <fcntl.h>
 #include <direct.h>
 #include <string.h>
 #include <stdlib.h>
@@ -16,10 +17,9 @@ static int
 mkstemp(char *p)
 {
   char *template, *path;
-  char *path;
   int fd;
 
-  template = strdup(p);
+  template = _strdup(p);
   if (template == NULL) return -1;
   path = _mktemp(template);
   if (path[0] == 0) {
