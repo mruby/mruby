@@ -570,7 +570,7 @@ mrb_socket_accept(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "i", &s0);
   socklen = sizeof(struct sockaddr_storage);
   sastr = mrb_str_buf_new(mrb, socklen);
-  s1 = accept(s0, (struct sockaddr *)RSTRING_PTR(sastr), &socklen);
+  s1 = (int)accept(s0, (struct sockaddr *)RSTRING_PTR(sastr), &socklen);
   if (s1 == -1) {
     mrb_sys_fail(mrb, "accept");
   }
@@ -692,7 +692,7 @@ mrb_socket_socket(mrb_state *mrb, mrb_value klass)
   int s;
 
   mrb_get_args(mrb, "iii", &domain, &type, &protocol);
-  s = socket(domain, type, protocol);
+  s = (int)socket(domain, type, protocol);
   if (s == -1)
     mrb_sys_fail(mrb, "socket");
   return mrb_fixnum_value(s);
@@ -744,7 +744,7 @@ mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
   }
 
   sd = socket_fd(mrb, self);
-  ret = recv(sd, RSTRING_PTR(buf), maxlen, 0);
+  ret = recv(sd, RSTRING_PTR(buf), (int)maxlen, 0);
 
   switch (ret) {
     case 0: /* EOF */
@@ -783,7 +783,7 @@ mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
 
   sd = socket_fd(mrb, self);
   mrb_get_args(mrb, "S", &str);
-  n = send(sd, RSTRING_PTR(str), RSTRING_LEN(str), 0);
+  n = send(sd, RSTRING_PTR(str), (int)RSTRING_LEN(str), 0);
   if (n == SOCKET_ERROR)
     mrb_sys_fail(mrb, "send");
   return mrb_fixnum_value(n);
