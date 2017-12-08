@@ -11,7 +11,9 @@
 #include <stdlib.h>
 #include <malloc.h>
 
+#if (!defined __MINGW64__) && (!defined __MINGW32__)
 typedef int mode_t;
+#endif
 
 static int
 mkstemp(char *p)
