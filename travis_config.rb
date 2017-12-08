@@ -1,6 +1,7 @@
 MRuby::Build.new('debug') do |conf|
   toolchain :gcc
   enable_debug
+  enable_sanitizer :address, :undefined, :leak
 
   # include all core GEMs
   conf.gembox 'full-core'
@@ -15,6 +16,7 @@ end
 MRuby::Build.new('full-debug') do |conf|
   toolchain :gcc
   enable_debug
+  enable_sanitizer :address, :undefined, :leak
 
   # include all core GEMs
   conf.gembox 'full-core'
@@ -25,6 +27,7 @@ end
 
 MRuby::Build.new do |conf|
   toolchain :gcc
+  enable_sanitizer :address, :undefined, :leak
 
   # include all core GEMs
   conf.gembox 'full-core'
@@ -38,6 +41,7 @@ end
 
 MRuby::Build.new('cxx_abi') do |conf|
   toolchain :gcc
+  enable_sanitizer :address, :undefined, :leak
 
   conf.gembox 'full-core'
   conf.cc.flags += %w(-Werror=declaration-after-statement)
