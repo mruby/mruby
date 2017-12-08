@@ -208,7 +208,7 @@ static mrb_value
 mrb_file_realpath(mrb_state *mrb, mrb_value klass)
 {
   mrb_value pathname, dir_string, s, result;
-  int argc;
+  mrb_int argc;
   char *cpath;
 
   argc = mrb_get_args(mrb, "S|S", &pathname, &dir_string);
@@ -250,7 +250,7 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
 {
 #ifndef _WIN32
   mrb_value username;
-  int argc;
+  mrb_int argc;
   char *home;
 
   argc = mrb_get_args(mrb, "|S", &username);

@@ -28,6 +28,7 @@
   #define read  _read
   #define write _write
   #define lseek _lseek
+  #define isatty _isatty
 #else
   #include <sys/wait.h>
   #include <unistd.h>
@@ -545,7 +546,7 @@ mrb_io_s_sysclose(mrb_state *mrb, mrb_value klass)
 {
   mrb_int fd;
   mrb_get_args(mrb, "i", &fd);
-  if (close(fd) == -1) {
+  if (close((int)fd) == -1) {
     mrb_sys_fail(mrb, "close");
   }
   return mrb_fixnum_value(0);
@@ -564,7 +565,7 @@ mrb_cloexec_open(mrb_state *mrb, const char *pathname, mrb_int flags, mrb_int mo
   flags |= O_NOINHERIT;
 #endif
 reopen:
-  fd = open(pathname, flags, mode);
+  fd = open(pathname, (int)flags, mode);
   if (fd == -1) {
     if (!retry) {
       switch (errno) {
@@ -592,9 +593,9 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
 {
   mrb_value path = mrb_nil_value();
   mrb_value mode = mrb_nil_value();
-  mrb_int fd, flags, perm = -1;
+  mrb_int fd, perm = -1;
   const char *pat;
-  int modenum;
+  int flags, modenum;
 
   mrb_get_args(mrb, "S|Si", &path, &mode, &perm);
   if (mrb_nil_p(mode)) {
@@ -641,7 +642,7 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
   if (!fptr->readable) {
     mrb_raise(mrb, E_IO_ERROR, "not opened for reading");
   }
-  ret = read(fptr->fd, RSTRING_PTR(buf), maxlen);
+  ret = read(fptr->fd, RSTRING_PTR(buf), (size_t)maxlen);
   switch (ret) {
     case 0: /* EOF */
       if (maxlen == 0) {
@@ -676,7 +677,7 @@ mrb_io_sysseek(mrb_state *mrb, mrb_value io)
   }
 
   fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
-  pos = lseek(fptr->fd, offset, whence);
+  pos = lseek(fptr->fd, offset, (int)whence);
   if (pos == -1) {
     mrb_sys_fail(mrb, "sysseek");
   }
@@ -711,7 +712,7 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
   } else {
     fd = fptr->fd2;
   }
-  length = write(fd, RSTRING_PTR(buf), RSTRING_LEN(buf));
+  length = write(fd, RSTRING_PTR(buf), (size_t)RSTRING_LEN(buf));
   if (length == -1) {
     mrb_sys_fail(mrb, 0);
   }
@@ -760,12 +761,12 @@ time2timeval(mrb_state *mrb, mrb_value time)
 
   switch (mrb_type(time)) {
     case MRB_TT_FIXNUM:
-      t.tv_sec = mrb_fixnum(time);
+      t.tv_sec = (time_t)mrb_fixnum(time);
       t.tv_usec = 0;
       break;
 
     case MRB_TT_FLOAT:
-      t.tv_sec = mrb_float(time);
+      t.tv_sec = (time_t)mrb_float(time);
       t.tv_usec = (mrb_float(time) - t.tv_sec) * 1000000.0;
       break;
 
