@@ -19,8 +19,8 @@
 #include <readline/history.h>
 #define MIRB_ADD_HISTORY(line) add_history(line)
 #define MIRB_READLINE(ch) readline(ch)
-#if defined(__APPLE__) || defined(__NetBSD__) || defined(__OpenBSD__)
-/* libedit does not have rl_free() */
+#if !defined(RL_READLINE_VERSION) || RL_READLINE_VERSION < 0x600
+/* libedit & older readline do not have rl_free() */
 #define MIRB_LINE_FREE(line) free(line)
 #else
 #define MIRB_LINE_FREE(line) rl_free(line)
