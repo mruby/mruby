@@ -16,12 +16,12 @@ typedef int mode_t;
 static int
 mkstemp(char *p)
 {
-  char *template, *path;
+  char *temp, *path;
   int fd;
 
-  template = _strdup(p);
-  if (template == NULL) return -1;
-  path = _mktemp(template);
+  temp = _strdup(p);
+  if (temp == NULL) return -1;
+  path = _mktemp(temp);
   if (path[0] == 0) {
     free(path);
     return -1;
@@ -32,9 +32,9 @@ mkstemp(char *p)
 }
 
 static char*
-mkdtemp(char *template)
+mkdtemp(char *temp)
 {
-  char *path = _mktemp(template);
+  char *path = _mktemp(temp);
   if (path[0] == 0) return NULL;
   if (_mkdir(path) < 0) return NULL;
   return path;
