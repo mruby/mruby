@@ -15,7 +15,8 @@ struct mrb_io {
   int pid;  /* child's pid (for pipes)  */
   unsigned int readable:1,
                writable:1,
-               sync:1;
+               sync:1,
+               is_socket:1;
 };
 
 #define FMODE_READABLE             0x00000001

@@ -178,6 +178,7 @@ class BasicSocket
 
   def initialize(*args)
     super(*args)
+    self.is_socket = true
     @do_not_reverse_lookup = @@do_not_reverse_lookup
   end
 
