@@ -173,11 +173,15 @@ assert('File.symlink') do
   if !File.exist?(target_name)
     skip("target directory of File.symlink is not found")
   else
-    assert_equal 0, File.symlink(target_name, symlink_name)
     begin
-      assert_equal true, File.symlink?(symlink_name)
-    ensure
-      File.delete symlink_name
+      assert_equal 0, File.symlink(target_name, symlink_name)
+      begin
+        assert_equal true, File.symlink?(symlink_name)
+      ensure
+        File.delete symlink_name
+      end
+    rescue NotImplementedError => e
+      skip e.message
     end
   end
 end
