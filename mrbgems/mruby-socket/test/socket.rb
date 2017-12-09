@@ -1,3 +1,5 @@
+unless SocketTest.win?
+
 assert('Socket.gethostname') do
   assert_true(Socket.gethostname.is_a? String)
 end
@@ -32,3 +34,5 @@ assert('Socket#recvfrom') do
     c.close rescue nil
   end
 end
+
+end   # win?

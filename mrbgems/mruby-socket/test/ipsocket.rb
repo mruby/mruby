@@ -1,3 +1,5 @@
+unless SocketTest.win?
+
 # Note: most of tests below will fail if UDPSocket is broken.
 
 assert('IPSocket.getaddress') do
@@ -38,3 +40,5 @@ assert('IPSocket.peeraddr') do
   server.close
   true
 end
+
+end # win?
