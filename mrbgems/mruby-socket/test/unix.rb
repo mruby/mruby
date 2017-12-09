@@ -1,5 +1,3 @@
-unless SocketTest.win?
-
 def unixserver_test_block
   path = SocketTest.tmppath
   File.unlink path rescue nil
@@ -126,5 +124,3 @@ assert('UNIXSocket#recvfrom') do
     # a[1][1] would be "" or something
   end
 end
-
-end  # win?

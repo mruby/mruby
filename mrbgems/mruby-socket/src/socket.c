@@ -35,6 +35,8 @@
 #include "mruby/variable.h"
 #include "error.h"
 
+#include "mruby/ext/io.h"
+
 #define E_SOCKET_ERROR             (mrb_class_get(mrb, "SocketError"))
 
 #if !defined(mrb_cptr)
@@ -471,6 +473,21 @@ mrb_basicsocket_shutdown(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_basicsocket_set_is_socket(mrb_state *mrb, mrb_value self)
+{
+  mrb_bool b;
+  struct mrb_io *io_p;
+  mrb_get_args(mrb, "b", &b);
+
+  io_p = (struct mrb_io*)DATA_PTR(self);
+  if (io_p) {
+    io_p->is_socket = b;
+  }
+
+  return mrb_bool_value(b);
+}
+
+static mrb_value
 mrb_ipsocket_ntop(mrb_state *mrb, mrb_value klass)
 {
   mrb_int af, n;
@@ -829,6 +846,7 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   // #sendmsg_nonblock
   mrb_define_method(mrb, bsock, "setsockopt", mrb_basicsocket_setsockopt, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2));
   mrb_define_method(mrb, bsock, "shutdown", mrb_basicsocket_shutdown, MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, bsock, "is_socket=", mrb_basicsocket_set_is_socket, MRB_ARGS_REQ(1));
 
   ipsock = mrb_define_class(mrb, "IPSocket", bsock);
   mrb_define_class_method(mrb, ipsock, "ntop", mrb_ipsocket_ntop, MRB_ARGS_REQ(1));
