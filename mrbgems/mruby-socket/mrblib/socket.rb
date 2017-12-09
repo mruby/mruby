@@ -165,7 +165,7 @@ class Addrinfo
   end
 end
 
-class BasicSocket
+class BasicSocket < IO
   @@do_not_reverse_lookup = true
 
   def self.do_not_reverse_lookup
@@ -208,7 +208,7 @@ class BasicSocket
   attr_accessor :do_not_reverse_lookup
 end
 
-class IPSocket
+class IPSocket < BasicSocket
   def self.getaddress(host)
     Addrinfo.ip(host).ip_address
   end
@@ -227,7 +227,7 @@ class IPSocket
   end
 end
 
-class TCPSocket
+class TCPSocket < IPSocket
   def initialize(host, service, local_host=nil, local_service=nil)
     if @init_with_fd
       super(host, service)
@@ -264,7 +264,7 @@ class TCPSocket
   #def self.gethostbyname(host)
 end
 
-class TCPServer
+class TCPServer < TCPSocket
   def initialize(host=nil, service)
     ai = Addrinfo.getaddrinfo(host, service, nil, nil, nil, Socket::AI_PASSIVE)[0]
     @init_with_fd = true
@@ -306,7 +306,7 @@ class TCPServer
   end
 end
 
-class UDPSocket
+class UDPSocket < IPSocket
   def initialize(af=Socket::AF_INET)
     super(Socket._socket(af, Socket::SOCK_DGRAM, 0), "r+")
     @af = af
@@ -350,7 +350,7 @@ class UDPSocket
   end
 end
 
-class Socket
+class Socket < BasicSocket
   def initialize(domain, type, protocol=0)
     super(Socket._socket(domain, type, protocol), "r+")
   end
