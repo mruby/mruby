@@ -104,9 +104,9 @@ make_base64_dec_tab(void)
 }
 
 static mrb_value
-str_len_ensure(mrb_state *mrb, mrb_value str, int len)
+str_len_ensure(mrb_state *mrb, mrb_value str, mrb_int len)
 {
-  int n = RSTRING_LEN(str);
+  mrb_int n = RSTRING_LEN(str);
   if (len > n) {
     do {
       n *= 2;
@@ -121,7 +121,7 @@ static int
 pack_c(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   str = str_len_ensure(mrb, str, sidx + 1);
-  RSTRING_PTR(str)[sidx] = mrb_fixnum(o);
+  RSTRING_PTR(str)[sidx] = (char)mrb_fixnum(o);
   return 1;
 }
 
@@ -138,10 +138,10 @@ unpack_c(mrb_state *mrb, const void *src, int srclen, mrb_value ary, unsigned in
 static int
 pack_s(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  unsigned short n;
+  uint16_t n;
 
   str = str_len_ensure(mrb, str, sidx + 2);
-  n = mrb_fixnum(o);
+  n = (uint16_t)mrb_fixnum(o);
   if (flags & PACK_FLAG_LITTLEENDIAN) {
     RSTRING_PTR(str)[sidx+0] = n % 256;
     RSTRING_PTR(str)[sidx+1] = n / 256;
@@ -172,19 +172,20 @@ unpack_s(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
 static int
 pack_l(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  unsigned long n;
+  uint32_t n;
+
   str = str_len_ensure(mrb, str, sidx + 4);
-  n = mrb_fixnum(o);
+  n = (uint32_t)mrb_fixnum(o);
   if (flags & PACK_FLAG_LITTLEENDIAN) {
-    RSTRING_PTR(str)[sidx+0] = n & 0xff;
-    RSTRING_PTR(str)[sidx+1] = n >> 8;
-    RSTRING_PTR(str)[sidx+2] = n >> 16;
-    RSTRING_PTR(str)[sidx+3] = n >> 24;
+    RSTRING_PTR(str)[sidx+0] = (char)(n & 0xff);
+    RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
+    RSTRING_PTR(str)[sidx+2] = (char)(n >> 16);
+    RSTRING_PTR(str)[sidx+3] = (char)(n >> 24);
   } else {
-    RSTRING_PTR(str)[sidx+0] = n >> 24;
-    RSTRING_PTR(str)[sidx+1] = n >> 16;
-    RSTRING_PTR(str)[sidx+2] = n >> 8;
-    RSTRING_PTR(str)[sidx+3] = n & 0xff;
+    RSTRING_PTR(str)[sidx+0] = (char)(n >> 24);
+    RSTRING_PTR(str)[sidx+1] = (char)(n >> 16);
+    RSTRING_PTR(str)[sidx+2] = (char)(n >> 8);
+    RSTRING_PTR(str)[sidx+3] = (char)(n & 0xff);
   }
   return 4;
 }
@@ -228,27 +229,28 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
 static int
 pack_q(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  unsigned long long n;
+  uint64_t n;
+
   str = str_len_ensure(mrb, str, sidx + 8);
-  n = mrb_fixnum(o);
+  n = (uint64_t)mrb_fixnum(o);
   if (flags & PACK_FLAG_LITTLEENDIAN) {
-    RSTRING_PTR(str)[sidx+0] = n & 0xff;
-    RSTRING_PTR(str)[sidx+1] = n >> 8;
-    RSTRING_PTR(str)[sidx+2] = n >> 16;
-    RSTRING_PTR(str)[sidx+3] = n >> 24;
-    RSTRING_PTR(str)[sidx+4] = n >> 32;
-    RSTRING_PTR(str)[sidx+5] = n >> 40;
-    RSTRING_PTR(str)[sidx+6] = n >> 48;
-    RSTRING_PTR(str)[sidx+7] = n >> 56;
+    RSTRING_PTR(str)[sidx+0] = (char)(n & 0xff);
+    RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
+    RSTRING_PTR(str)[sidx+2] = (char)(n >> 16);
+    RSTRING_PTR(str)[sidx+3] = (char)(n >> 24);
+    RSTRING_PTR(str)[sidx+4] = (char)(n >> 32);
+    RSTRING_PTR(str)[sidx+5] = (char)(n >> 40);
+    RSTRING_PTR(str)[sidx+6] = (char)(n >> 48);
+    RSTRING_PTR(str)[sidx+7] = (char)(n >> 56);
   } else {
-    RSTRING_PTR(str)[sidx+0] = n >> 56;
-    RSTRING_PTR(str)[sidx+1] = n >> 48;
-    RSTRING_PTR(str)[sidx+2] = n >> 40;
-    RSTRING_PTR(str)[sidx+3] = n >> 32;
-    RSTRING_PTR(str)[sidx+4] = n >> 24;
-    RSTRING_PTR(str)[sidx+5] = n >> 16;
-    RSTRING_PTR(str)[sidx+6] = n >> 8;
-    RSTRING_PTR(str)[sidx+7] = n & 0xff;
+    RSTRING_PTR(str)[sidx+0] = (char)(n >> 56);
+    RSTRING_PTR(str)[sidx+1] = (char)(n >> 48);
+    RSTRING_PTR(str)[sidx+2] = (char)(n >> 40);
+    RSTRING_PTR(str)[sidx+3] = (char)(n >> 32);
+    RSTRING_PTR(str)[sidx+4] = (char)(n >> 24);
+    RSTRING_PTR(str)[sidx+5] = (char)(n >> 16);
+    RSTRING_PTR(str)[sidx+6] = (char)(n >> 8);
+    RSTRING_PTR(str)[sidx+7] = (char)(n & 0xff);
   }
   return 8;
 }
@@ -357,7 +359,7 @@ pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
   float f;
   uint8_t *buffer = (uint8_t *)&f;
   str = str_len_ensure(mrb, str, sidx + 4);
-  f = mrb_float(o);
+  f = (float)mrb_float(o);
 
   if (flags & PACK_FLAG_LITTLEENDIAN) {
 #ifdef MRB_ENDIAN_BIG
@@ -414,12 +416,12 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, long count, 
 {
   char utf8[4];
   int len = 0;
-  unsigned long c = 0;
+  uint32_t c = 0;
 
   if (mrb_float_p(o)) {
     goto range_error;
   }
-  c = mrb_fixnum(o);
+  c = (uint32_t)mrb_fixnum(o);
 
   /* Unicode character */
   /* from mruby-compiler gem */
@@ -533,7 +535,7 @@ unpack_utf8(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary
 static int
 pack_a(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, unsigned int flags)
 {
-  int copylen, slen, padlen;
+  mrb_int copylen, slen, padlen;
   char *dptr, *dptr0, pad, *sptr;
 
   sptr = RSTRING_PTR(src);
@@ -604,7 +606,7 @@ static int
 pack_h(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, unsigned int flags)
 {
   unsigned int a, ashift, b, bshift;
-  int slen;
+  mrb_int slen;
   char *dptr, *dptr0, *sptr;
 
   sptr = RSTRING_PTR(src);
@@ -641,7 +643,7 @@ pack_h(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
     *dptr++ = (a << ashift) + (b << bshift);
   }
 
-  return dptr - dptr0;
+  return (int)(dptr - dptr0);
 }
 
 static int
@@ -688,7 +690,7 @@ unpack_h(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, un
 
   dst = mrb_str_resize(mrb, dst, dptr - dptr0);
   mrb_ary_push(mrb, ary, dst);
-  return sptr - sptr0;
+  return (int)(sptr - sptr0);
 }
 
 
@@ -697,7 +699,7 @@ pack_m(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
 {
   mrb_int dstlen;
   unsigned long l;
-  int column, srclen;
+  mrb_int column, srclen;
   char *srcptr, *dstptr, *dstptr0;
 
   srcptr = RSTRING_PTR(src);
@@ -755,7 +757,7 @@ pack_m(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
     *dstptr++ = '\n';
   }
 
-  return dstptr - dstptr0;
+  return (int)(dstptr - dstptr0);
 }
 
 static int
@@ -811,7 +813,7 @@ unpack_m(mrb_state *mrb, const void *src, int slen, mrb_value ary, unsigned int 
 done:
   dst = mrb_str_resize(mrb, dst, dptr - dptr0);
   mrb_ary_push(mrb, ary, dst);
-  return sptr - sptr0;
+  return (int)(sptr - sptr0);
 }
 
 static int
@@ -851,7 +853,7 @@ has_tmpl(const struct tmpl *tmpl)
 static void
 read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, long *countp, unsigned int *flagsp)
 {
-  int ch, dir, t, tlen, type;
+  mrb_int ch, dir, t, tlen, type;
   int size = 0;
   long count = 1;
   unsigned int flags = 0;
@@ -1166,7 +1168,8 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
   struct tmpl tmpl;
   long count;
   unsigned int flags;
-  int dir, size, srcidx, srclen, type;
+  int dir, size, type;
+  mrb_int srcidx, srclen;
   const unsigned char *sptr;
 
   prepare_tmpl(mrb, &tmpl);

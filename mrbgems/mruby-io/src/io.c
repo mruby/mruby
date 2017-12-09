@@ -454,7 +454,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
   DATA_TYPE(io) = &mrb_io_type;
   DATA_PTR(io) = fptr;
 
-  fptr->fd = fd;
+  fptr->fd = (int)fd;
   fptr->readable = ((flags & FMODE_READABLE) != 0);
   fptr->writable = ((flags & FMODE_WRITABLE) != 0);
   fptr->sync = 0;
@@ -677,7 +677,7 @@ mrb_io_sysseek(mrb_state *mrb, mrb_value io)
   }
 
   fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
-  pos = lseek(fptr->fd, offset, (int)whence);
+  pos = lseek(fptr->fd, (off_t)offset, (int)whence);
   if (pos == -1) {
     mrb_sys_fail(mrb, "sysseek");
   }
