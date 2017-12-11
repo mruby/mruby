@@ -330,7 +330,7 @@ mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_basicsocket_recv(mrb_state *mrb, mrb_value self)
 {
-  int n;
+  ssize_t n;
   mrb_int maxlen, flags = 0;
   mrb_value buf;
 
@@ -339,14 +339,14 @@ mrb_basicsocket_recv(mrb_state *mrb, mrb_value self)
   n = recv(socket_fd(mrb, self), RSTRING_PTR(buf), (size_t)maxlen, (int)flags);
   if (n == -1)
     mrb_sys_fail(mrb, "recv");
-  mrb_str_resize(mrb, buf, n);
+  mrb_str_resize(mrb, buf, (mrb_int)n);
   return buf;
 }
 
 static mrb_value
 mrb_basicsocket_recvfrom(mrb_state *mrb, mrb_value self)
 {
-  int n;
+  ssize_t n;
   mrb_int maxlen, flags = 0;
   mrb_value ary, buf, sa;
   socklen_t socklen;
@@ -358,8 +358,8 @@ mrb_basicsocket_recvfrom(mrb_state *mrb, mrb_value self)
   n = recvfrom(socket_fd(mrb, self), RSTRING_PTR(buf), (size_t)maxlen, (int)flags, (struct sockaddr *)RSTRING_PTR(sa), &socklen);
   if (n == -1)
     mrb_sys_fail(mrb, "recvfrom");
-  mrb_str_resize(mrb, buf, n);
-  mrb_str_resize(mrb, sa, socklen);
+  mrb_str_resize(mrb, buf, (mrb_int)n);
+  mrb_str_resize(mrb, sa, (mrb_int)socklen);
   ary = mrb_ary_new_capa(mrb, 2);
   mrb_ary_push(mrb, ary, buf);
   mrb_ary_push(mrb, ary, sa);
@@ -369,7 +369,7 @@ mrb_basicsocket_recvfrom(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_basicsocket_send(mrb_state *mrb, mrb_value self)
 {
-  int n;
+  ssize_t n;
   mrb_int flags;
   mrb_value dest, mesg;
 
@@ -382,7 +382,7 @@ mrb_basicsocket_send(mrb_state *mrb, mrb_value self)
   }
   if (n == -1)
     mrb_sys_fail(mrb, "send");
-  return mrb_fixnum_value(n);
+  return mrb_fixnum_value((mrb_int)n);
 }
 
 static mrb_value
@@ -454,7 +454,7 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
   }
 
   s = socket_fd(mrb, self);
-  if (setsockopt(s, (int)level, (int)optname, RSTRING_PTR(optval), (size_t)RSTRING_LEN(optval)) == -1)
+  if (setsockopt(s, (int)level, (int)optname, RSTRING_PTR(optval), (socklen_t)RSTRING_LEN(optval)) == -1)
     mrb_sys_fail(mrb, "setsockopt");
   return mrb_fixnum_value(0);
 }
@@ -521,7 +521,8 @@ mrb_ipsocket_recvfrom(mrb_state *mrb, mrb_value self)
   socklen_t socklen;
   mrb_value a, buf, pair;
   mrb_int flags, maxlen;
-  int n, fd;
+  ssize_t n;
+  int fd;
 
   fd = socket_fd(mrb, self);
   flags = 0;
@@ -533,7 +534,7 @@ mrb_ipsocket_recvfrom(mrb_state *mrb, mrb_value self)
   if (n == -1) {
     mrb_sys_fail(mrb, "recvfrom");
   }
-  mrb_str_resize(mrb, buf, n);
+  mrb_str_resize(mrb, buf, (mrb_int)n);
   a = sa2addrlist(mrb, (struct sockaddr *)&ss, socklen);
   pair = mrb_ary_new_capa(mrb, 2);
   mrb_ary_push(mrb, pair, buf);
@@ -555,7 +556,7 @@ mrb_socket_gethostname(mrb_state *mrb, mrb_value cls)
   buf = mrb_str_buf_new(mrb, (mrb_int)bufsize);
   if (gethostname(RSTRING_PTR(buf), bufsize) != 0)
     mrb_sys_fail(mrb, "gethostname");
-  mrb_str_resize(mrb, buf, strlen(RSTRING_PTR(buf)));
+  mrb_str_resize(mrb, buf, (mrb_int)strlen(RSTRING_PTR(buf)));
   return buf;
 }
 

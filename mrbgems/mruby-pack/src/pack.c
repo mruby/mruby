@@ -567,7 +567,7 @@ pack_a(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
     *dptr++ = pad;
   }
 
-  return dptr - dptr0;
+  return (int)(dptr - dptr0);
 }
 
 static int
@@ -575,7 +575,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
 {
   mrb_value dst;
   const char *cp, *sptr;
-  long copylen;
+  ptrdiff_t copylen;
 
   sptr = (const char *)src;
   if (count != -1 && count < slen)  {
@@ -596,7 +596,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
     }
   }
 
-  dst = mrb_str_new(mrb, sptr, copylen);
+  dst = mrb_str_new(mrb, sptr, (mrb_int)copylen);
   mrb_ary_push(mrb, ary, dst);
   return slen;
 }
@@ -606,11 +606,11 @@ static int
 pack_h(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, unsigned int flags)
 {
   unsigned int a, ashift, b, bshift;
-  mrb_int slen;
+  long slen;
   char *dptr, *dptr0, *sptr;
 
   sptr = RSTRING_PTR(src);
-  slen = RSTRING_LEN(src);
+  slen = (long)RSTRING_LEN(src);
 
   if (flags & PACK_FLAG_LSB) {
     ashift = 0;
@@ -853,8 +853,8 @@ has_tmpl(const struct tmpl *tmpl)
 static void
 read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, long *countp, unsigned int *flagsp)
 {
-  mrb_int ch, dir, t, tlen, type;
-  int size = 0;
+  mrb_int ch, t, tlen;
+  int dir, type, size = 0;
   long count = 1;
   unsigned int flags = 0;
   const char *tptr;
@@ -1044,7 +1044,7 @@ alias:
       count = -1;
     } else if (ch == '_' || ch == '!' || ch == '<' || ch == '>') {
       if (strchr("sSiIlLqQ", t) == NULL) {
-        char ch_str = ch;
+        char ch_str = (char)ch;
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%S' allowed only after types sSiIlLqQ", mrb_str_new(mrb, &ch_str, 1));
       }
       if (ch == '_' || ch == '!') {
