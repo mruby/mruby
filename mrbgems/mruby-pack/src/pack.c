@@ -293,6 +293,7 @@ unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   return 8;
 }
 
+#ifndef MRB_WITHOUT_FLOAT
 static int
 pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
@@ -410,6 +411,7 @@ unpack_float(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ar
 
   return 4;
 }
+#endif
 
 static int
 pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, long count, unsigned int flags)
@@ -418,9 +420,11 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, long count, 
   int len = 0;
   uint32_t c = 0;
 
+#ifndef MRB_WITHOUT_FLOAT
   if (mrb_float_p(o)) {
     goto range_error;
   }
+#endif
   c = (uint32_t)mrb_fixnum(o);
 
   /* Unicode character */
@@ -448,7 +452,9 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, long count, 
     len = 4;
   }
   else {
+#ifndef MRB_WITHOUT_FLOAT
 range_error:
+#endif
     mrb_raise(mrb, E_RANGE_ERROR, "pack(U): value out of range");
   }
 
@@ -1103,10 +1109,12 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       o = mrb_ary_ref(mrb, ary, aidx);
       if (type == PACK_TYPE_INTEGER) {
         o = mrb_to_int(mrb, o);
+#ifndef MRB_WITHOUT_FLOAT
       } else if (type == PACK_TYPE_FLOAT) {
         if (!mrb_float_p(o)) {
           o = mrb_funcall(mrb, o, "to_f", 0);
         }
+#endif
       } else if (type == PACK_TYPE_STRING) {
         if (!mrb_string_p(o)) {
           mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into String", mrb_class_path(mrb, mrb_obj_class(mrb, o)));
@@ -1135,12 +1143,14 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       case PACK_DIR_STR:
         ridx += pack_a(mrb, o, result, ridx, count, flags);
         break;
+#ifndef MRB_WITHOUT_FLOAT
       case PACK_DIR_DOUBLE:
         ridx += pack_double(mrb, o, result, ridx, flags);
         break;
       case PACK_DIR_FLOAT:
         ridx += pack_float(mrb, o, result, ridx, flags);
         break;
+#endif
       case PACK_DIR_UTF8:
         ridx += pack_utf8(mrb, o, result, ridx, count, flags);
         break;
@@ -1226,12 +1236,14 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
       case PACK_DIR_BASE64:
         srcidx += unpack_m(mrb, sptr, srclen - srcidx, result, flags);
         break;
+#ifndef MRB_WITHOUT_FLOAT
       case PACK_DIR_FLOAT:
         srcidx += unpack_float(mrb, sptr, srclen - srcidx, result, flags);
         break;
       case PACK_DIR_DOUBLE:
         srcidx += unpack_double(mrb, sptr, srclen - srcidx, result, flags);
         break;
+#endif
       case PACK_DIR_UTF8:
         srcidx += unpack_utf8(mrb, sptr, srclen - srcidx, result, flags);
         break;

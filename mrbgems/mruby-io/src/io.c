@@ -682,7 +682,11 @@ mrb_io_sysseek(mrb_state *mrb, mrb_value io)
     mrb_sys_fail(mrb, "sysseek");
   }
   if (pos > MRB_INT_MAX) {
+#ifndef MRB_WITHOUT_FLOAT
     return mrb_float_value(mrb, (mrb_float)pos);
+#else
+    mrb_raise(mrb, E_IO_ERROR, "sysseek reached too far for MRB_WITHOUT_FLOAT");
+#endif
   } else {
     return mrb_fixnum_value(pos);
   }
@@ -765,10 +769,12 @@ time2timeval(mrb_state *mrb, mrb_value time)
       t.tv_usec = 0;
       break;
 
+#ifndef MRB_WITHOUT_FLOAT
     case MRB_TT_FLOAT:
       t.tv_sec = (time_t)mrb_float(time);
       t.tv_usec = (mrb_float(time) - t.tv_sec) * 1000000.0;
       break;
+#endif
 
     default:
       mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
