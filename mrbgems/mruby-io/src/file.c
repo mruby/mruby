@@ -25,6 +25,7 @@
 #include <string.h>
 #if defined(_WIN32) || defined(_WIN64)
   #include <windows.h>
+  #include <io.h>
   #define NULL_FILE "NUL"
   #define UNLINK _unlink
   #define GETCWD _getcwd
