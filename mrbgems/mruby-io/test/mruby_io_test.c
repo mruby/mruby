@@ -75,6 +75,8 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't create temporary file");
     return mrb_nil_value();
   }
+  close(fd0);
+  close(fd1);
 #if !defined(_WIN32) && !defined(_WIN64)
   fd2 = mkstemp(symlinkname);
   fd3 = mkstemp(socketname);
