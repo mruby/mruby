@@ -200,6 +200,7 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
   if ((bname = basename(path)) == NULL) {
     mrb_sys_fail(mrb, "basename");
   }
+  if (strncmp(bname, "//", 3) == 0) bname[1] = '\0';  /* patch for Cygwin */
   return mrb_str_new_cstr(mrb, bname);
 #endif
 }
