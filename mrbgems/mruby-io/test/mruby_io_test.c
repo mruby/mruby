@@ -15,12 +15,14 @@
 typedef int mode_t;
 #endif
 
+#ifdef _MSC_VER
 static int
 mkstemp(char *p)
 {
   _mktemp(p);
   return 0;
 }
+#endif
 
 static char*
 mkdtemp(char *temp)
@@ -54,8 +56,8 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
 {
   char rfname[]      = "tmp.mruby-io-test-r.XXXXXXXX";
   char wfname[]      = "tmp.mruby-io-test-w.XXXXXXXX";
-  char symlinkname[] = "tmp.mruby-io-test.XXXXXXXX";
-  char socketname[]  = "/tmp/mruby-io-test.XXXXXXXX";
+  char symlinkname[] = "tmp.mruby-io-test-l.XXXXXXXX";
+  char socketname[]  = "tmp.mruby-io-test-s.XXXXXXXX";
   char msg[] = "mruby io test\n";
   mode_t mask;
   int fd0, fd1;
@@ -69,10 +71,16 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   mask = umask(077);
   fd0 = mkstemp(rfname);
   fd1 = mkstemp(wfname);
+  if (fd0 == -1 || fd1 == -1) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "can't create temporary file");
+    return mrb_nil_value();
+  }
+  close(fd0);
+  close(fd1);
 #if !defined(_WIN32) && !defined(_WIN64)
   fd2 = mkstemp(symlinkname);
   fd3 = mkstemp(socketname);
-  if (fd0 == -1 || fd1 == -1 || fd2 == -1 || fd3 == -1) {
+  if (fd2 == -1 || fd3 == -1) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't create temporary file");
     return mrb_nil_value();
   }

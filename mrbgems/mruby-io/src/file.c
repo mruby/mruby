@@ -24,6 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 #if defined(_WIN32) || defined(_WIN64)
+  #include <windows.h>
+  #include <io.h>
   #define NULL_FILE "NUL"
   #define UNLINK _unlink
   #define GETCWD _getcwd
@@ -70,6 +72,18 @@
 
 #define STAT(p, s)        stat(p, s)
 
+#ifdef _WIN32
+static int
+flock(int fd, int operation) {
+  OVERLAPPED ov;
+  HANDLE h = (HANDLE)_get_osfhandle(fd);
+  DWORD flags;
+  flags = ((operation & LOCK_NB) ? LOCKFILE_FAIL_IMMEDIATELY : 0)
+          | ((operation & LOCK_SH) ? LOCKFILE_EXCLUSIVE_LOCK : 0);
+  memset(&ov, 0, sizeof(ov));
+  return LockFileEx(h, flags, 0, 0xffffffff, 0xffffffff, &ov) ? 0 : -1;
+}
+#endif
 
 mrb_value
 mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
@@ -284,7 +298,7 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
 mrb_value
 mrb_file_flock(mrb_state *mrb, mrb_value self)
 {
-#if defined(_WIN32) || defined(_WIN64) || defined(sun)
+#if defined(sun)
   mrb_raise(mrb, E_NOTIMP_ERROR, "flock is not supported on Illumos/Solaris/Windows");
 #else
   mrb_int operation;
