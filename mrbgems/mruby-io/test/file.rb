@@ -106,6 +106,7 @@ assert("File.readlink") do
 end
 
 assert("File.readlink fails with non-symlink") do
+  skip "readlink is not supported on this platform" if MRubyIOTestUtil.win?
   begin
     e2 = nil
     assert_raise(RuntimeError) {
@@ -124,10 +125,6 @@ assert("File.readlink fails with non-symlink") do
   rescue NotImplementedError => e
     skip e.message
   end
-end
-
-assert('File TEST CLEANUP') do
-  assert_nil MRubyIOTestUtil.io_test_cleanup
 end
 
 assert('File.expand_path') do
@@ -193,4 +190,8 @@ assert('File.chmod') do
   ensure
     File.delete('chmod-test')
   end
+end
+
+assert('File TEST CLEANUP') do
+  assert_nil MRubyIOTestUtil.io_test_cleanup
 end

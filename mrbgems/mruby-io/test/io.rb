@@ -23,6 +23,7 @@ end
 
 assert('IO TEST SETUP') do
   MRubyIOTestUtil.io_test_setup
+  $cr = MRubyIOTestUtil.win? ? 1 : 0  # "\n" include CR or not
 end
 
 assert('IO', '15.2.20') do
@@ -141,6 +142,7 @@ assert('IO#read', '15.2.20.5.14') do
 end
 
 assert "IO#read(n) with n > IO::BUF_SIZE" do
+  skip "pipe is not supported on this platform" if MRubyIOTestUtil.win?
   r,w = IO.pipe
   n = IO::BUF_SIZE+1
   w.write 'a'*n
@@ -308,6 +310,7 @@ assert('IO#_read_buf') do
 end
 
 assert('IO#isatty') do
+  skip "isatty is not supported on this platform" if MRubyIOTestUtil.win?
   f1 = File.open("/dev/tty")
   f2 = File.open($mrbtest_io_rfname)
 
@@ -370,7 +373,7 @@ assert('IO#gets') do
   fd = IO.sysopen $mrbtest_io_wfname, "w"
   io = IO.new fd, "w"
   io.write "0123456789" * 2 + "\na"
-  assert_equal 22, io.pos
+  assert_equal 22 + $cr, io.pos
   io.close
   assert_equal true, io.closed?
 
@@ -381,7 +384,7 @@ assert('IO#gets') do
   # gets first line
   assert_equal "0123456789" * 2 + "\n", line, "gets first line"
   assert_equal 21, line.size
-  assert_equal 21, io.pos
+  assert_equal 21 + $cr, io.pos
 
   # gets second line
   assert_equal "a", io.gets, "gets second line"
@@ -399,7 +402,7 @@ assert('IO#gets - paragraph mode') do
   io.write "0" * 10 + "\n"
   io.write "1" * 10 + "\n\n"
   io.write "2" * 10 + "\n"
-  assert_equal 34, io.pos
+  assert_equal 34 + $cr * 4, io.pos
   io.close
   assert_equal true, io.closed?
 
@@ -516,6 +519,7 @@ assert('IO#close_on_exec') do
     # IO.sysopen opens a file descripter with O_CLOEXEC flag.
     assert_true io.close_on_exec?
   rescue ScriptError
+    io.close
     skip "IO\#close_on_exec is not implemented."
   end
 
