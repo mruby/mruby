@@ -427,7 +427,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 mrb_value
 mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value cmd, io, result;
+  mrb_value cmd, io;
   mrb_value mode = mrb_str_new_cstr(mrb, "r");
   mrb_value opt  = mrb_hash_new(mrb);
 
@@ -442,7 +442,6 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   HANDLE ofd[2];
 
   int doexec;
-  int saved_errno;
   int opt_in, opt_out, opt_err;
 
   ifd[0] = INVALID_HANDLE_VALUE;
@@ -589,8 +588,8 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
   }
 
   if (fptr->pid != 0) {
-    pid_t pid;
 #if !defined(_WIN32) && !defined(_WIN64)
+    pid_t pid;
     int status;
     do {
       pid = waitpid(fptr->pid, &status, 0);
