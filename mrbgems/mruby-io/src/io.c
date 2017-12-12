@@ -35,6 +35,10 @@
   #include <unistd.h>
 #endif
 
+#ifdef _MSC_VER
+typedef int pid_t;
+#endif
+
 #include <fcntl.h>
 
 #include <errno.h>
