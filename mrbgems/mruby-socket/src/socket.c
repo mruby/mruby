@@ -12,6 +12,7 @@
   #include <windows.h>
 
   #define SHUT_RDWR SD_BOTH
+  typedef int ssize_t;
 #else
   #include <sys/types.h>
   #include <sys/socket.h>
