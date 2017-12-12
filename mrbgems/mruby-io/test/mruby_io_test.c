@@ -15,12 +15,14 @@
 typedef int mode_t;
 #endif
 
+#ifdef _MSC_VER
 static int
 mkstemp(char *p)
 {
   _mktemp(p);
   return 0;
 }
+#endif
 
 static char*
 mkdtemp(char *temp)
