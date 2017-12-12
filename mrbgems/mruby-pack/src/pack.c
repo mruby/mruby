@@ -1055,7 +1055,7 @@ alias:
     } else if (ch == '*')  {
       count = -1;
     } else if (ch == '_' || ch == '!' || ch == '<' || ch == '>') {
-      if (strchr("sSiIlLqQ", t) == NULL) {
+      if (strchr("sSiIlLqQ", (int)t) == NULL) {
         char ch_str = (char)ch;
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%S' allowed only after types sSiIlLqQ", mrb_str_new(mrb, &ch_str, 1));
       }

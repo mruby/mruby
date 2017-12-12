@@ -30,9 +30,15 @@
   #define lseek _lseek
   #define isatty _isatty
   #define WEXITSTATUS(x) (x)
+  typedef int fsize_t;
+  typedef long ftime_t;
+  typedef long fsuseconds_t;
 #else
   #include <sys/wait.h>
   #include <unistd.h>
+  typedef size_t fsize_t;
+  typedef time_t ftime_t;
+  typedef suseconds_t fsuseconds_t;
 #endif
 
 #ifdef _MSC_VER
@@ -278,9 +284,9 @@ option_to_fd(mrb_state *mrb, mrb_value obj, const char *key)
 
   switch (mrb_type(opt)) {
     case MRB_TT_DATA: /* IO */
-      return mrb_fixnum(mrb_io_fileno(mrb, opt));
+      return (int)mrb_fixnum(mrb_io_fileno(mrb, opt));
     case MRB_TT_FIXNUM:
-      return mrb_fixnum(opt);
+      return (int)mrb_fixnum(opt);
     default:
       mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong exec redirect action");
       break;
@@ -752,7 +758,7 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
   if (!fptr->readable) {
     mrb_raise(mrb, E_IO_ERROR, "not opened for reading");
   }
-  ret = read(fptr->fd, RSTRING_PTR(buf), (size_t)maxlen);
+  ret = read(fptr->fd, RSTRING_PTR(buf), (fsize_t)maxlen);
   switch (ret) {
     case 0: /* EOF */
       if (maxlen == 0) {
@@ -826,7 +832,7 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
   } else {
     fd = fptr->fd2;
   }
-  length = write(fd, RSTRING_PTR(buf), (size_t)RSTRING_LEN(buf));
+  length = write(fd, RSTRING_PTR(buf), (fsize_t)RSTRING_LEN(buf));
   if (length == -1) {
     mrb_sys_fail(mrb, 0);
   }
@@ -886,14 +892,14 @@ time2timeval(mrb_state *mrb, mrb_value time)
 
   switch (mrb_type(time)) {
     case MRB_TT_FIXNUM:
-      t.tv_sec = (time_t)mrb_fixnum(time);
+      t.tv_sec = (ftime_t)mrb_fixnum(time);
       t.tv_usec = 0;
       break;
 
 #ifndef MRB_WITHOUT_FLOAT
     case MRB_TT_FLOAT:
-      t.tv_sec = (time_t)mrb_float(time);
-      t.tv_usec = (mrb_float(time) - t.tv_sec) * 1000000.0;
+      t.tv_sec = (ftime_t)mrb_float(time);
+      t.tv_usec = (fsuseconds_t)((mrb_float(time) - t.tv_sec) * 1000000.0);
       break;
 #endif
 

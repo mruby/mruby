@@ -305,9 +305,9 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
   int fd;
 
   mrb_get_args(mrb, "i", &operation);
-  fd = mrb_fixnum(mrb_io_fileno(mrb, self));
+  fd = (int)mrb_fixnum(mrb_io_fileno(mrb, self));
 
-  while (flock(fd, operation) == -1) {
+  while (flock(fd, (int)operation) == -1) {
     switch (errno) {
       case EINTR:
         /* retry */
