@@ -591,7 +591,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
 
   if (flags & PACK_FLAG_Z) {  /* "Z" */
     if ((cp = (const char *)memchr(sptr, '\0', slen)) != NULL) {
-      copylen = cp - sptr;
+      copylen = (int)(cp - sptr);
       if (count == -1) {
         slen = copylen + 1;
       }
@@ -859,8 +859,8 @@ has_tmpl(const struct tmpl *tmpl)
 static void
 read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, int *countp, unsigned int *flagsp)
 {
-  mrb_int ch, t, tlen;
-  int dir, type, size = 0;
+  mrb_int t, tlen;
+  int ch, dir, type, size = 0;
   int count = 1;
   unsigned int flags = 0;
   const char *tptr;
