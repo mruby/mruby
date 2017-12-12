@@ -1,6 +1,15 @@
-assert('Kernel.fail, Kernel#fail') do
-  assert_raise(RuntimeError) { fail }
-  assert_raise(RuntimeError) { Kernel.fail }
+assert('Kernel#fail') do
+  # identical to Kernel#raise, test availability only
+  assert_raise_with_message NameError, "error message" do
+    fail NameError, "error message"
+  end
+end
+
+assert('Kernel.fail') do
+  # identical to Kernel.raise, test availability only
+  assert_raise_with_message NameError, "error message" do
+    Kernel.fail NameError, "error message"
+  end
 end
 
 assert('Kernel.caller, Kernel#caller') do

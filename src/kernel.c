@@ -864,7 +864,7 @@ mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     raise
  *     raise(string)
- *     raise(exception [, string])
+ *     raise(exception [, string [, array]])
  *
  *  With no arguments, raises a <code>RuntimeError</code>
  *  With a single +String+ argument, raises a
@@ -882,11 +882,11 @@ mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
-  mrb_value a[2], exc;
+  mrb_value a[3], exc;
   mrb_int argc;
 
 
-  argc = mrb_get_args(mrb, "|oo", &a[0], &a[1]);
+  argc = mrb_get_args(mrb, "|ooo", &a[0], &a[1], &a[2]);
   switch (argc) {
   case 0:
     mrb_raise(mrb, E_RUNTIME_ERROR, "");

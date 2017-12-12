@@ -364,6 +364,39 @@ assert('Exception#backtrace') do
       e.backtrace
     end
   end
+
+  # Don't continue unless backtraces are actually available
+  begin
+    raise "get backtrace"
+  rescue => e
+    next if e.backtrace.empty?
+  end
+
+  def raiser
+    raise "error"
+  end
+  raise_loc = "#{__FILE__}:#{__LINE__-2}:in raiser"
+
+  def reraiser
+    raiser
+  rescue => e
+    raise e
+  end
+  reraise_loc = "#{__FILE__}:#{__LINE__-4}:in reraiser"
+
+  backtrace = begin
+    raiser
+  rescue => e
+    e.backtrace
+  end
+  assert_equal raise_loc, backtrace.first
+
+  backtrace = begin
+    reraiser
+  rescue => e
+    e.backtrace
+  end
+  assert_equal [raise_loc, reraise_loc], backtrace.first(2)
 end
 
 assert('Raise in ensure') do

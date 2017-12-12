@@ -167,6 +167,35 @@ def assert_raise(*exc)
   end
 end
 
+def assert_raise_with_message(exc_cls, exc_msg, msg = nil)
+  return true unless $mrbtest_assert
+  $mrbtest_assert_idx += 1
+
+  begin
+    yield
+    msg ||= "Expected to raise #{exc_cls} but nothing was raised."
+    diff = nil
+    $mrbtest_assert.push [$mrbtest_assert_idx, msg, diff]
+    false
+  rescue exc_cls => e
+    if exc_msg == e.message
+      true
+    else
+      msg ||= "Expected to raise #{exc_cls} with message #{exc_msg.inspect}, not"
+      diff = "      Class: <#{e.class}>\n" +
+             "    Message: #{e.message}"
+      $mrbtest_assert.push [$mrbtest_assert_idx, msg, diff]
+      false
+    end
+  rescue Exception => e
+    msg ||= "Expected to raise #{exc_cls}, not"
+    diff = "      Class: <#{e.class}>\n" +
+           "    Message: #{e.message}"
+    $mrbtest_assert.push [$mrbtest_assert_idx, msg, diff]
+    false
+  end
+end
+
 def assert_nothing_raised(msg = nil)
   return true unless $mrbtest_assert
   $mrbtest_assert_idx += 1
