@@ -89,7 +89,7 @@ static void
 mrb_struct_modify(mrb_state *mrb, mrb_value strct)
 {
   if (MRB_FROZEN_P(mrb_basic_ptr(strct))) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen struct");
+    mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen struct");
   }
 
   mrb_write_barrier(mrb, mrb_basic_ptr(strct));

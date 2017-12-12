@@ -286,7 +286,7 @@ static void
 mrb_hash_modify(mrb_state *mrb, mrb_value hash)
 {
   if (MRB_FROZEN_P(mrb_hash_ptr(hash))) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen hash");
+    mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen hash");
   }
   mrb_hash_tbl(mrb, hash);
 }

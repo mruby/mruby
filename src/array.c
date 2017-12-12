@@ -114,7 +114,7 @@ static void
 ary_modify_check(mrb_state *mrb, struct RArray *a)
 {
   if (MRB_FROZEN_P(a)) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen array");
+    mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen array");
   }
 }
 

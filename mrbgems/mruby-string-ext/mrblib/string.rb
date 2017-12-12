@@ -95,7 +95,7 @@ class String
   #    "hello".lstrip!      #=> nil
   #
   def lstrip!
-    raise RuntimeError, "can't modify frozen String" if frozen?
+    raise FrozenError, "can't modify frozen String" if frozen?
     s = self.lstrip
     (s == self) ? nil : self.replace(s)
   end
@@ -125,7 +125,7 @@ class String
   #  <code>nil</code> if <i>str</i> was not altered.
   #
   def strip!
-    raise RuntimeError, "can't modify frozen String" if frozen?
+    raise FrozenError, "can't modify frozen String" if frozen?
     s = self.strip
     (s == self) ? nil : self.replace(s)
   end
@@ -199,7 +199,7 @@ class String
   #    string                  #=> "thsa sting"
   #
   def slice!(arg1, arg2=nil)
-    raise RuntimeError, "can't modify frozen String" if frozen?
+    raise FrozenError, "can't modify frozen String" if frozen?
     raise "wrong number of arguments (for 1..2)" if arg1.nil? && arg2.nil?
 
     if !arg1.nil? && !arg2.nil?

@@ -1164,6 +1164,7 @@ MRB_API void mrb_print_error(mrb_state *mrb);
 #define E_SYNTAX_ERROR              (mrb_exc_get(mrb, "SyntaxError"))
 #define E_LOCALJUMP_ERROR           (mrb_exc_get(mrb, "LocalJumpError"))
 #define E_REGEXP_ERROR              (mrb_exc_get(mrb, "RegexpError"))
+#define E_FROZEN_ERROR              (mrb_exc_get(mrb, "FrozenError"))
 
 #define E_NOTIMP_ERROR              (mrb_exc_get(mrb, "NotImplementedError"))
 #ifndef MRB_WITHOUT_FLOAT

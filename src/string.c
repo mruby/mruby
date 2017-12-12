@@ -494,7 +494,7 @@ static void
 check_frozen(mrb_state *mrb, struct RString *s)
 {
   if (MRB_FROZEN_P(s)) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen string");
+    mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen string");
   }
 }
 
