@@ -581,7 +581,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
 {
   mrb_value dst;
   const char *cp, *sptr;
-  ptrdiff_t copylen;
+  int copylen;
 
   sptr = (const char *)src;
   if (count != -1 && count < slen)  {
@@ -857,11 +857,11 @@ has_tmpl(const struct tmpl *tmpl)
 }
 
 static void
-read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, long *countp, unsigned int *flagsp)
+read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, int *countp, unsigned int *flagsp)
 {
   mrb_int ch, t, tlen;
   int dir, type, size = 0;
-  long count = 1;
+  int count = 1;
   unsigned int flags = 0;
   const char *tptr;
 
@@ -1083,7 +1083,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
   mrb_value o, result;
   mrb_int aidx;
   struct tmpl tmpl;
-  long count;
+  int count;
   unsigned int flags;
   int dir, ridx, size, type;
 
@@ -1176,16 +1176,16 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
 {
   mrb_value result;
   struct tmpl tmpl;
-  long count;
+  int count;
   unsigned int flags;
   int dir, size, type;
-  mrb_int srcidx, srclen;
+  int srcidx, srclen;
   const unsigned char *sptr;
 
   prepare_tmpl(mrb, &tmpl);
 
   srcidx = 0;
-  srclen = RSTRING_LEN(str);
+  srclen = (int)RSTRING_LEN(str);
 
   result = mrb_ary_new(mrb);
   while (has_tmpl(&tmpl)) {
@@ -1219,7 +1219,7 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
         break;
       }
 
-      sptr = (const unsigned char *)RSTRING_PTR(str) + srcidx;
+      sptr = (const unsigned char*)RSTRING_PTR(str) + srcidx;
       switch (dir) {
       case PACK_DIR_CHAR:
         srcidx += unpack_c(mrb, sptr, srclen - srcidx, result, flags);
