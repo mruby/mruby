@@ -19,7 +19,7 @@ addons:
 env:
     MRUBY_CONFIG=travis_config.rb
 before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; brew install gcc@6 || brew link --overwrite gcc@6 ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; brew install gcc@6 || breq link --overwrite gcc@6 ; fi
   - export CC=gcc-6
   - export CXX=g++-6
   - export LD=gcc-6
