@@ -18,19 +18,8 @@ typedef int mode_t;
 static int
 mkstemp(char *p)
 {
-  char *temp, *path;
-  int fd;
-
-  temp = _strdup(p);
-  if (temp == NULL) return -1;
-  path = _mktemp(temp);
-  if (path[0] == 0) {
-    free(path);
-    return -1;
-  }
-  fd = _open(path, _O_CREAT|_O_BINARY|_O_RDWR|_O_TEMPORARY);
-  free(path);
-  return fd;
+  _mktemp(p);
+  return 0;
 }
 
 static char*
@@ -63,30 +52,31 @@ mkdtemp(char *temp)
 static mrb_value
 mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
 {
-  char rfname[]      = "tmp.mruby-io-test.XXXXXXXX";
-  char wfname[]      = "tmp.mruby-io-test.XXXXXXXX";
+  char rfname[]      = "tmp.mruby-io-test-r.XXXXXXXX";
+  char wfname[]      = "tmp.mruby-io-test-w.XXXXXXXX";
   char symlinkname[] = "tmp.mruby-io-test.XXXXXXXX";
   char socketname[]  = "/tmp/mruby-io-test.XXXXXXXX";
   char msg[] = "mruby io test\n";
   mode_t mask;
-  int fd0, fd1, fd2, fd3;
+  int fd0, fd1;
   FILE *fp;
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
+  int fd2, fd3;
   struct sockaddr_un sun0;
 #endif
 
   mask = umask(077);
   fd0 = mkstemp(rfname);
   fd1 = mkstemp(wfname);
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
   fd2 = mkstemp(symlinkname);
   fd3 = mkstemp(socketname);
-#endif
   if (fd0 == -1 || fd1 == -1 || fd2 == -1 || fd3 == -1) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't create temporary file");
     return mrb_nil_value();
   }
+#endif
   umask(mask);
 
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_rfname"), mrb_str_new_cstr(mrb, rfname));
@@ -110,7 +100,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   }
   fclose(fp);
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
   unlink(symlinkname);
   close(fd2);
   if (symlink(rfname, symlinkname) == -1) {
@@ -170,7 +160,7 @@ static mrb_value
 mrb_io_test_file_setup(mrb_state *mrb, mrb_value self)
 {
   mrb_value ary = mrb_io_test_io_setup(mrb, self);
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
   if (symlink("/usr/bin", "test-bin") == -1) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't make a symbolic link");
   }
@@ -216,6 +206,20 @@ mrb_io_test_rmdir(mrb_state *mrb, mrb_value klass)
   return mrb_true_value();
 }
 
+mrb_value
+mrb_io_win_p(mrb_state *mrb, mrb_value klass)
+{
+#if defined(_WIN32) || defined(_WIN64)
+# if defined(__CYGWIN__) || defined(__CYGWIN32__)
+  return mrb_false_value();
+# else
+  return mrb_true_value();
+# endif
+#else
+  return mrb_false_value();
+#endif
+}
+
 void
 mrb_mruby_io_gem_test(mrb_state* mrb)
 {
@@ -228,4 +232,5 @@ mrb_mruby_io_gem_test(mrb_state* mrb)
 
   mrb_define_class_method(mrb, io_test, "mkdtemp", mrb_io_test_mkdtemp, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io_test, "rmdir", mrb_io_test_rmdir, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, io_test, "win?", mrb_io_win_p, MRB_ARGS_NONE());
 }
