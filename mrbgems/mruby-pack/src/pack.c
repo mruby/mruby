@@ -193,7 +193,9 @@ pack_l(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
 static int
 unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
+#ifndef MRB_INT64
   char msg[60];
+#endif
   uint32_t ul;
   mrb_int n;
 
@@ -210,16 +212,20 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   }
   if (flags & PACK_FLAG_SIGNED) {
     int32_t sl = ul;
+#ifndef MRB_INT64
     if (!FIXABLE(sl)) {
       snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %ld", (long)sl);
       mrb_raise(mrb, E_RANGE_ERROR, msg);
     }
+#endif
     n = sl;
   } else {
+#ifndef MRB_INT64
     if (!POSFIXABLE(ul)) {
       snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %lu", (unsigned long)ul);
       mrb_raise(mrb, E_RANGE_ERROR, msg);
     }
+#endif
     n = ul;
   }
   mrb_ary_push(mrb, ary, mrb_fixnum_value(n));
