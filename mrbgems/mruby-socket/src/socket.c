@@ -15,6 +15,7 @@
   #ifndef _SSIZE_T_DEFINED
   typedef int ssize_t;
   #endif
+  typedef int fsize_t;
 #else
   #include <sys/types.h>
   #include <sys/socket.h>
@@ -25,6 +26,7 @@
   #include <fcntl.h>
   #include <netdb.h>
   #include <unistd.h>
+  typedef size_t fsize_t;
 #endif
 
 #include <stddef.h>
@@ -339,7 +341,7 @@ mrb_basicsocket_recv(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "i|i", &maxlen, &flags);
   buf = mrb_str_buf_new(mrb, maxlen);
-  n = recv(socket_fd(mrb, self), RSTRING_PTR(buf), (size_t)maxlen, (int)flags);
+  n = recv(socket_fd(mrb, self), RSTRING_PTR(buf), (fsize_t)maxlen, (int)flags);
   if (n == -1)
     mrb_sys_fail(mrb, "recv");
   mrb_str_resize(mrb, buf, (mrb_int)n);
@@ -358,7 +360,7 @@ mrb_basicsocket_recvfrom(mrb_state *mrb, mrb_value self)
   buf = mrb_str_buf_new(mrb, maxlen);
   socklen = sizeof(struct sockaddr_storage);
   sa = mrb_str_buf_new(mrb, socklen);
-  n = recvfrom(socket_fd(mrb, self), RSTRING_PTR(buf), (size_t)maxlen, (int)flags, (struct sockaddr *)RSTRING_PTR(sa), &socklen);
+  n = recvfrom(socket_fd(mrb, self), RSTRING_PTR(buf), (fsize_t)maxlen, (int)flags, (struct sockaddr *)RSTRING_PTR(sa), &socklen);
   if (n == -1)
     mrb_sys_fail(mrb, "recvfrom");
   mrb_str_resize(mrb, buf, (mrb_int)n);
@@ -379,9 +381,9 @@ mrb_basicsocket_send(mrb_state *mrb, mrb_value self)
   dest = mrb_nil_value();
   mrb_get_args(mrb, "Si|S", &mesg, &flags, &dest);
   if (mrb_nil_p(dest)) {
-    n = send(socket_fd(mrb, self), RSTRING_PTR(mesg), (size_t)RSTRING_LEN(mesg), (int)flags);
+    n = send(socket_fd(mrb, self), RSTRING_PTR(mesg), (fsize_t)RSTRING_LEN(mesg), (int)flags);
   } else {
-    n = sendto(socket_fd(mrb, self), RSTRING_PTR(mesg), (size_t)RSTRING_LEN(mesg), (int)flags, (const struct sockaddr*)RSTRING_PTR(dest), RSTRING_LEN(dest));
+    n = sendto(socket_fd(mrb, self), RSTRING_PTR(mesg), (fsize_t)RSTRING_LEN(mesg), (int)flags, (const struct sockaddr*)RSTRING_PTR(dest), (fsize_t)RSTRING_LEN(dest));
   }
   if (n == -1)
     mrb_sys_fail(mrb, "send");
@@ -532,7 +534,7 @@ mrb_ipsocket_recvfrom(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "i|i", &maxlen, &flags);
   buf = mrb_str_buf_new(mrb, maxlen);
   socklen = sizeof(ss);
-  n = recvfrom(fd, RSTRING_PTR(buf), (size_t)maxlen, (int)flags,
+  n = recvfrom(fd, RSTRING_PTR(buf), (fsize_t)maxlen, (int)flags,
   	       (struct sockaddr *)&ss, &socklen);
   if (n == -1) {
     mrb_sys_fail(mrb, "recvfrom");
@@ -557,7 +559,7 @@ mrb_socket_gethostname(mrb_state *mrb, mrb_value cls)
   bufsize = 256;
 #endif
   buf = mrb_str_buf_new(mrb, (mrb_int)bufsize);
-  if (gethostname(RSTRING_PTR(buf), bufsize) != 0)
+  if (gethostname(RSTRING_PTR(buf), (fsize_t)bufsize) != 0)
     mrb_sys_fail(mrb, "gethostname");
   mrb_str_resize(mrb, buf, (mrb_int)strlen(RSTRING_PTR(buf)));
   return buf;
