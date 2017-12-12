@@ -1309,9 +1309,9 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
   case MRB_TT_FIXNUM:
 #ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
+#endif
     mrb_raise(mrb, E_TYPE_ERROR, "can't define singleton");
     return mrb_nil_value();    /* not reached */
-#endif
   default:
     break;
   }
