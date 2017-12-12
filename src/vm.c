@@ -2867,7 +2867,10 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_SCLASS) {
       /* A B    R(A) := R(B).singleton_class */
-      regs[GETARG_A(i)] = mrb_singleton_class(mrb, regs[GETARG_B(i)]);
+      int a = GETARG_A(i);
+      int b = GETARG_B(i);
+
+      regs[a] = mrb_singleton_class(mrb, regs[b]);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
