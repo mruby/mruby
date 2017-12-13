@@ -281,12 +281,13 @@ mrb_file_is_absolute_path(const char *path)
 static mrb_value
 mrb_file__gethome(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value username;
   mrb_int argc;
   char *home;
   mrb_value path;
 
 #ifndef _WIN32
+  mrb_value username;
+
   argc = mrb_get_args(mrb, "|S", &username);
   if (argc == 0) {
     home = getenv("HOME");
@@ -312,6 +313,7 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
   mrb_utf8_free(home);
   return path;
 #else
+  argc = mrb_get_argc(mrb);
   if (argc == 0) {
     home = getenv("USERPROFILE");
     if (home == NULL) {
