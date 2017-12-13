@@ -15,6 +15,9 @@
 typedef int mode_t;
 #endif
 
+#define open _open
+#define close _close
+
 #ifdef _MSC_VER
 static int
 mkstemp(char *p)
