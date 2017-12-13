@@ -578,8 +578,18 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
   }
 
   if (fptr->fd > 2) {
-    if (close(fptr->fd) == -1) {
-      saved_errno = errno;
+#ifdef _WIN32
+    if (fptr->is_socket) {
+      if (closesocket(fptr->fd) != 0) {
+        saved_errno = WSAGetLastError();
+      }
+      fptr->fd = -1;
+    }
+#endif
+    if (fptr->fd != -1) {
+      if (close(fptr->fd) == -1) {
+        saved_errno = errno;
+      }
     }
     fptr->fd = -1;
   }
