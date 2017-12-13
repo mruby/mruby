@@ -53,6 +53,7 @@ assert('Addrinfo.udp') do
 end
 
 assert('Addrinfo.unix') do
+  skip "unix is not supported on Windows" if SocketTest.win?
   a1 = Addrinfo.unix('/tmp/sock')
   assert_true(a1.unix?)
   assert_equal('/tmp/sock', a1.unix_path)
@@ -62,6 +63,7 @@ assert('Addrinfo.unix') do
 end
 
 assert('Addrinfo#afamily') do
+  skip "afamily is not supported on Windows" if SocketTest.win?
   ai4 = Addrinfo.new(Socket.sockaddr_in(1, '127.0.0.1'))
   ai6 = Addrinfo.new(Socket.sockaddr_in(1, '::1'))
   aiu = Addrinfo.new(Socket.sockaddr_un('/tmp/sock'))
