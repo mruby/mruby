@@ -3,6 +3,10 @@
 
 #include "mruby.h"
 
+#ifdef _WIN32
+  #define tempnam _tempnam
+#endif
+
 mrb_value
 mrb_sockettest_tmppath(mrb_state *mrb, mrb_value klass)
 {
