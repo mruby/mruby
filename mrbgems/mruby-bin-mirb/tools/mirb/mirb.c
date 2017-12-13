@@ -95,6 +95,7 @@ static void
 p(mrb_state *mrb, mrb_value obj, int prompt)
 {
   mrb_value val;
+  char* msg;
 
   val = mrb_funcall(mrb, obj, "inspect", 0);
   if (prompt) {
@@ -108,7 +109,9 @@ p(mrb_state *mrb, mrb_value obj, int prompt)
   if (!mrb_string_p(val)) {
     val = mrb_obj_as_string(mrb, obj);
   }
-  fwrite(RSTRING_PTR(val), RSTRING_LEN(val), 1, stdout);
+  msg = mrb_locale_from_utf8(RSTRING_PTR(val), RSTRING_LEN(val));
+  fwrite(msg, strlen(msg), 1, stdout);
+  mrb_locale_free(msg);
   putc('\n', stdout);
 }
 
@@ -537,11 +540,15 @@ done:
     else {
       if (0 < parser->nwarn) {
         /* warning */
-        printf("line %d: %s\n", parser->warn_buffer[0].lineno, parser->warn_buffer[0].message);
+        char* msg = mrb_locale_from_utf8(parser->warn_buffer[0].message, -1);
+        printf("line %d: %s\n", parser->warn_buffer[0].lineno, msg);
+        mrb_utf8_free(msg);
       }
       if (0 < parser->nerr) {
         /* syntax error */
-        printf("line %d: %s\n", parser->error_buffer[0].lineno, parser->error_buffer[0].message);
+        char* msg = mrb_locale_from_utf8(parser->error_buffer[0].message, -1);
+        printf("line %d: %s\n", parser->error_buffer[0].lineno, msg);
+        mrb_utf8_free(msg);
       }
       else {
         /* generate bytecode */
