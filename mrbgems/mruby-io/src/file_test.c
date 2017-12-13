@@ -63,11 +63,15 @@ mrb_stat0(mrb_state *mrb, mrb_value obj, struct stat *st, int do_lstat)
 
   tmp = mrb_funcall(mrb, obj, "is_a?", 1, str_klass);
   if (mrb_test(tmp)) {
+    char *path = mrb_locale_from_utf8(mrb_str_to_cstr(mrb, obj), -1);
+    int ret;
     if (do_lstat) {
-      return LSTAT(mrb_str_to_cstr(mrb, obj), st);
+      ret = LSTAT(path, st);
     } else {
-      return stat(mrb_str_to_cstr(mrb, obj), st);
+      ret = stat(path, st);
     }
+    mrb_locale_free(path);
+    return ret;
   }
 
   return -1;
