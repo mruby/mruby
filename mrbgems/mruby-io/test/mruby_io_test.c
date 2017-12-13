@@ -4,6 +4,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 
 #include <winsock.h>
+#include <sys/stat.h>
 #include <io.h>
 #include <fcntl.h>
 #include <direct.h>
